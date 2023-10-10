@@ -18,6 +18,7 @@ export default class MonitorPolicy {
   dispatch_group_id: number;
   db_type: string; // 所属db组件
   event_count: number; // 事件数量，-1代表未知，实际数量应为>=0
+  event_url: string;
   id: number;
   is_enabled: boolean; // 是否启用
   is_synced: boolean;
@@ -62,6 +63,7 @@ export default class MonitorPolicy {
     this.dispatch_group_id = payload.dispatch_group_id;
     this.db_type = payload.db_type;
     this.event_count = payload.event_count;
+    this.event_url = payload.event_url;
     this.id = payload.id;
     this.is_enabled = payload.is_enabled;
     this.is_synced = payload.is_synced;

@@ -22,15 +22,11 @@
       value-split-code="+"
       @search="fetchHostNodes" />
     <BkLoading :loading="isTableLoading">
-      <DbOriginalTable
+      <DbTable
+        ref="tableRef"
         class="table-box"
         :columns="columns"
-        :data="tableData"
-        :pagination="pagination.count > 10 ? pagination : false"
-        remote-pagination
-        @page-limit-change="handeChangeLimit"
-        @page-value-change="handleChangePage"
-        @refresh="fetchHostNodes" />
+        :data-source="queryMonitorPolicyList" />
     </BkLoading>
   </div>
   <EditRule
@@ -61,8 +57,6 @@
     queryMonitorPolicyList,
   } from '@services/monitor';
 
-  import { useDefaultPagination } from '@hooks';
-
   import { useGlobalBizs } from '@stores';
 
   import MiniTag from '@components/mini-tag/index.vue';
@@ -90,17 +84,12 @@
   const { currentBizId, bizs } = useGlobalBizs();
   const { notifyGroupId } = useRoute().params as { notifyGroupId: string };
 
+  const tableRef = ref();
   const isShowEditStrrategySideSilder = ref(false);
   const currentChoosedRow = ref({} as RowData);
   const searchValue = ref<Array<SearchSelectItem & {values: SearchSelectItem[]}>>([]);
   const alarmGroupList = ref<SelectItem<string>[]>([]);
-  const tableData = ref<RowData[]>([]);
   const sliderPageType = ref('edit');
-  const pagination = ref({
-    ...useDefaultPagination(),
-    align: 'right',
-    layout: ['total', 'limit', 'list'],
-  });
   const moduleList = ref<SelectItem<string>[]>([]);
   const clusterList = ref<SelectItem<string>[]>([]);
   const isTableLoading = ref(false);
@@ -108,9 +97,10 @@
   async function fetchHostNodes() {
     isTableLoading.value = true;
     try {
-      const ret = await queryMonitorPolicyList(reqParams.value);
-      tableData.value = ret.results;
-      pagination.value.count = ret.count;
+      await tableRef.value.fetchData({ ...reqParams.value }, {
+        bk_biz_id: currentBizId,
+        db_type: props.activeDbType,
+      });
     } finally {
       isTableLoading.value = false;
     }
@@ -153,15 +143,8 @@
       });
       return obj;
     }, {} as Record<string, string>);
-    const commonParams = {
-      bk_biz_id: currentBizId,
-      db_type: props.activeDbType,
-      limit: pagination.value.limit,
-      offset: (pagination.value.current - 1) * pagination.value.limit,
-    };
     return {
       ...searchParams,
-      ...commonParams,
     };
   });
 
@@ -289,7 +272,7 @@
           <div class="operate-box">
           {isShowEdit && <span onClick={() => handleOpenSlider(row, 'edit')}>{t('编辑')}</span>}
           <span onClick={() => handleOpenSlider(row, 'clone')}>{t('克隆')}</span>
-          <span>{t('监控告警')}</span>
+          <span onClick={() => handleOpenMonitorAlarmPage(row.event_url)}>{t('监控告警')}</span>
           <bk-dropdown class="operations-more" popover-options={{ popoverDelay: 0, trigger: 'click' }}>
             {{
               default: () => <db-icon type="more" class="icon"/>,
@@ -386,7 +369,9 @@
   });
 
   watch(reqParams, () => {
-    fetchHostNodes();
+    setTimeout(() => {
+      fetchHostNodes();
+    });
   }, {
     immediate: true,
     deep: true,
@@ -394,9 +379,8 @@
 
   watch(() => props.activeDbType, (type) => {
     if (type) {
-      pagination.value.current = 1;
-      pagination.value.limit = 10;
       setTimeout(() => {
+        fetchHostNodes();
         fetchClusers({
           dbtype: type,
         });
@@ -412,15 +396,6 @@
   }, {
     immediate: true,
   });
-
-  const handleChangePage = (value: number) => {
-    pagination.value.current = value;
-  };
-
-  const handeChangeLimit = (value: number) => {
-    pagination.value.limit = value;
-    pagination.value.current = 1;
-  };
 
   const handleClickDelete = (data: RowData) => {
     InfoBox({
@@ -461,6 +436,10 @@
     sliderPageType.value = type;
     currentChoosedRow.value = row;
     isShowEditStrrategySideSilder.value = true;
+  };
+
+  const handleOpenMonitorAlarmPage = (url: string) => {
+    window.open(url, '_blank');
   };
 
   const handleUpdatePolicySuccess = () => {

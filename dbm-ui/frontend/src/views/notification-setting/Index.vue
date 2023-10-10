@@ -174,14 +174,14 @@
     if (!data) {
       return ({
         person_duty: {
-          enable: true,
+          enable: false,
           send_at: {
             num: 1,
             unit: 'h',
           },
         },
         schedule_table: {
-          enable: true,
+          enable: false,
           qywx_id: '',
           send_at: {
             freq: 'w',

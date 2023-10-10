@@ -22,16 +22,12 @@
       </BkButton>
     </div>
     <BkLoading :loading="isTableLoading">
-      <DbOriginalTable
+      <DbTable
+        ref="tableRef"
         class="table-box"
         :columns="columns"
-        :data="tableData"
-        :pagination="pagination.count > 10 ? pagination : false"
-        remote-pagination
-        :settings="settings"
-        @page-limit-change="handeChangeLimit"
-        @page-value-change="handleChangePage"
-        @refresh="fetchHostNodes" />
+        :data-source="queryDutyRuleList"
+        :settings="settings" />
     </BkLoading>
   </div>
   <EditRule
@@ -50,8 +46,6 @@
     queryDutyRuleList,
     updatePartialDutyRule,
   } from '@services/monitor';
-
-  import { useDefaultPagination } from '@hooks';
 
   import NumberInput from '@components/tools-table-input/index.vue';
 
@@ -78,15 +72,10 @@
 
   const { t } = useI18n();
 
+  const tableRef = ref();
   const pageType = ref();
   const isShowEditRuleSideSilder = ref(false);
   const currentRowData = ref<RowData>();
-  const pagination = ref({
-    ...useDefaultPagination(),
-    align: 'right',
-    layout: ['total', 'limit', 'list'],
-  });
-  const tableData = ref<RowData[]>([]);
   const isTableLoading = ref(false);
 
   const statusMap = {
@@ -296,28 +285,16 @@
     immediate: true,
   });
 
-  const handleChangePage = (value: number) => {
-    pagination.value.current = value;
-    fetchHostNodes();
-  };
-
-  const handeChangeLimit = (value: number) => {
-    pagination.value.limit = value;
-    pagination.value.current = 1;
-    fetchHostNodes();
-  };
 
   const fetchHostNodes = async () => {
     isTableLoading.value = true;
-    const ret = await queryDutyRuleList({
-      db_type: props.activeDbType,
-      limit: pagination.value.limit,
-      offset: (pagination.value.current - 1) * pagination.value.limit,
-    }).finally(() => {
+    try {
+      await tableRef.value.fetchData({}, {
+        db_type: props.activeDbType,
+      });
+    } finally {
       isTableLoading.value = false;
-    });
-    tableData.value = ret.results;
-    pagination.value.count = ret.count;
+    }
   };
 
   const handleClickEditPriority = (data: RowData) => {
@@ -405,8 +382,8 @@
     width: 100%;
   }
 
-  .table-box {
-    :deep(.priority-box) {
+  :deep(.table-box) {
+    .priority-box {
       display: flex;
       align-items: center;
 
@@ -423,7 +400,7 @@
       }
     }
 
-    :deep(.display-text) {
+    .display-text {
       height: 22px;
       padding: 0 8px;
       overflow: hidden;
@@ -436,10 +413,7 @@
       border-radius: 2px;
     }
 
-    // :deep(.rotate-table-column) {
-    // }
-
-    :deep(.operate-box) {
+    .operate-box {
       display: flex;
       gap: 15px;
       align-items: center;

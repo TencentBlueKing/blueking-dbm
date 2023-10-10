@@ -318,7 +318,8 @@
       align-items: center;
 
       .operate-icon {
-        font-size: 18px;
+        font-size: 16px;
+        color: #737987;
         cursor: pointer;
       }
     }
