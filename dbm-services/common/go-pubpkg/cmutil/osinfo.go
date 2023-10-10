@@ -44,13 +44,18 @@ type DiskPartInfo struct {
 
 	Path  string `json:"path"`
 	Total uint64 `json:"total"`
-	// Free 不包括 fs reserved block 部分
+	// Free 真实可用量，不包括 fs reserved 部分，相当于 available
 	Free uint64 `json:"free"`
-	// Used truly used, not include reserved
+	// Used 真实使用量, 不包含 fs reserved
 	Used uint64 `json:"used"`
+	// UsedTotal 总使用量，Used + Reserved
+	UsedTotal uint64 `json:"used_total"`
 	// Reserved = Total - Free - Used
-	Reserved          uint64  `json:"reserved"`
-	UsedPercent       float64 `json:"used_percent"`
+	Reserved uint64 `json:"reserved"`
+	// UsedPercent 在os层面看到的磁盘利用率，包括 reserved (Used + Reserved) / Total
+	UsedPercent float64 `json:"used_percent"`
+	// UsedPercentReal Used / (Total - Reserved), stat.UsedPercent
+	//UsedPercentReal   float64 `json:"used_percent_real"`
 	InodesTotal       uint64  `json:"inodes_total"`
 	InodesUsed        uint64  `json:"inodes_used"`
 	InodesUsedPercent float64 `json:"inodes_used_percent"`
@@ -58,9 +63,9 @@ type DiskPartInfo struct {
 
 // GetDiskPartInfo 获取目录的信息
 // 空间使用，挂载设备。比如 path = /data/dbbak/123，获取的是目录对应的挂载设备的信息
-func GetDiskPartInfo(path string, noCheckDevice bool) (*DiskPartInfo, error) {
+func GetDiskPartInfo(path string, checkDevice bool) (*DiskPartInfo, error) {
 	info := DiskPartInfo{Path: path}
-	if !noCheckDevice {
+	if checkDevice {
 		// 获取目录对应的挂载点
 		osStatArgs := []string{"--format", "%m", path}
 		if stdout, stderr, err := ExecCommand(false, "", "stat", osStatArgs...); err != nil {
@@ -95,8 +100,9 @@ func GetDiskPartInfo(path string, noCheckDevice bool) (*DiskPartInfo, error) {
 	info.Total = pathInfo.Total
 	info.Free = pathInfo.Free
 	info.Used = pathInfo.Used
-	info.UsedPercent = pathInfo.UsedPercent
 	info.Reserved = pathInfo.Total - pathInfo.Used - pathInfo.Free
+	info.UsedTotal = pathInfo.Total - pathInfo.Free                  // = pathInfo.Used + info.Reserved
+	info.UsedPercent = float64(info.UsedTotal) / float64(info.Total) // not pathInfo.UsedPercent
 	info.InodesTotal = pathInfo.InodesTotal
 	info.InodesUsed = pathInfo.InodesUsed
 	info.InodesUsedPercent = float64(100.0*pathInfo.InodesUsed) / float64(pathInfo.InodesTotal)

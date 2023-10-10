@@ -24,8 +24,6 @@ type DiskDfResult struct {
 
 	UsedPct         float32
 	TotalSizeMBReal int64
-
-	SizeToFreeMB int64
 }
 
 // String 用于打印
@@ -36,9 +34,12 @@ func (d DiskDfResult) String() string {
 	)
 }
 
-// GetDiskPartitionWithDir TODO
-// todo replace with cmutil.GetDiskPartInfo
-func GetDiskPartitionWithDir(dirName string) (*DiskDfResult, error) {
+func GetDiskPartitionWithDir(dirName string) (*cmutil.DiskPartInfo, error) {
+	return cmutil.GetDiskPartInfo(dirName, true)
+}
+
+// GetDiskPartitionWithDir2 TODO
+func GetDiskPartitionWithDir2(dirName string) (*DiskDfResult, error) {
 	/*
 		$ df -m /data/dbbak/data1
 		Filesystem           1M-blocks      Used Available Use% Mounted on

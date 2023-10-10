@@ -26,11 +26,12 @@ func DecideSizeToRemove(ports map[int]int64, sizeToFree int64) map[int]int64 {
 			break
 		}
 	}
-	logger.Info("规划出每个实例删除binlog大小，portSizeToFree MB:%+v", portSizeToFree)
+	logger.Info("we got every instance binlog size to delete MB:%+v", portSizeToFree)
 	return portSizeToFree
 }
 
 // reduceFromMax ports代表当前实例的binlog大小
+// 会修改 ports map 里面端口对应的 size 大小
 func reduceFromMax(ports map[int]int64, incr int) (port int) {
 	maxSize := int64(0)
 	var maxSizePort int = 0
@@ -40,7 +41,8 @@ func reduceFromMax(ports map[int]int64, incr int) (port int) {
 			maxSizePort = p
 		}
 	}
-	if ports[maxSizePort]-int64(incr) >= 0 {
+	ports[maxSizePort] = ports[maxSizePort] - int64(incr*cst.ReduceStepSizeMB)
+	if ports[maxSizePort] >= 0 {
 		return maxSizePort
 	} else {
 		return 0

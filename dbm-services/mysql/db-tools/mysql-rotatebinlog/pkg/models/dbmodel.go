@@ -324,7 +324,8 @@ func (m *BinlogFileModel) QuerySuccess(db *sqlx.DB) ([]*BinlogFileModel, error) 
 
 // QueryFailed 查询上传失败、过期的文件
 func (m *BinlogFileModel) QueryFailed(db *sqlx.DB) ([]*BinlogFileModel, error) {
-	return m.Query(db, "backup_status > ?", IBStatusSuccess)
+	inWhere := sq.NotEq{"backup_status": []int{IBStatusSuccess, FileStatusRemoved}}
+	return m.Query(db, inWhere)
 }
 
 // Query 返回 binlog files 以文件名排序
@@ -340,7 +341,7 @@ func (m *BinlogFileModel) Query(db *sqlx.DB, pred interface{}, params ...interfa
 	if err != nil {
 		return nil, err
 	}
-	logger.Info("Query sqlStr: %s, args: %v", sqlStr, args)
+	logger.Debug("Query sqlStr: %s, args: %v", sqlStr, args)
 	if err = db.Select(&files, sqlStr, args...); err != nil {
 		return nil, err
 	}
@@ -355,7 +356,7 @@ func (m *BinlogFileModel) QueryLastFileReport(db *sqlx.DB) (*BinlogFileModel, er
 	if err != nil {
 		return nil, err
 	}
-	logger.Info("sqlStr: %s, args: %v", sqlStr, args)
+	logger.Info("QueryLastFileReport sqlStr: %s, args: %v", sqlStr, args)
 	bf := &BinlogFileModel{}
 	if err = db.Get(bf, sqlStr, args...); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {

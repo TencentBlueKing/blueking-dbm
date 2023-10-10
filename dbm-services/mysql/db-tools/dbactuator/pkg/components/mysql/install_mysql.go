@@ -746,13 +746,13 @@ func (i *InstallMySQLComp) InitDefaultPrivAndSchema() (err error) {
 
 		// 初始化权限
 		var initAccountSqls []string
-		if strings.Contains(version, "tspider") {
+		if strings.Contains(version, cst.PkgTypeSpider) {
 			// 暂时用执行shell命令代替, 执行SQL文件
 			if err := i.create_spider_table(i.InsSockets[port]); err != nil {
 				return err
 			}
 			initAccountSqls = i.generateDefaultSpiderAccount(version)
-		} else if strings.Contains(version, "tdbctl") {
+		} else if strings.Contains(version, cst.PkgTypeTdbctl) {
 			// 对tdbctl 初始化权限
 			initAccountSqls = append(initAccountSqls, "set tc_admin = 0;")
 			initAccountSqls = append(initAccountSqls, i.generateDefaultMysqlAccount(version)...)
