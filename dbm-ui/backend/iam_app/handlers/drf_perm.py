@@ -12,8 +12,9 @@ specific language governing permissions and limitations under the License.
 import logging
 from typing import List
 
-from bkoauth.jwt_client import JWTClient
-from django.utils.translation import ugettext as _
+from bk_audit.constants.log import DEFAULT_EMPTY_VALUE, DEFAULT_SENSITIVITY
+from bk_audit.contrib.bk_audit.client import bk_audit_client
+from bk_audit.log.models import AuditContext, AuditInstance
 from iam import Resource
 from rest_framework import permissions
 
@@ -25,6 +26,19 @@ from backend.iam_app.handlers.permission import Permission
 from backend.ticket.models import Ticket
 
 logger = logging.getLogger("root")
+
+
+class CommonInstance(object):
+    def __init__(self, data):
+        self.instance_id = data.get("id", DEFAULT_EMPTY_VALUE)
+        self.instance_name = data.get("name", DEFAULT_EMPTY_VALUE)
+        self.instance_sensitivity = data.get("sensitivity", DEFAULT_SENSITIVITY)
+        self.instance_origin_data = data.get("origin_data", DEFAULT_EMPTY_VALUE)
+        self.instance_data = data
+
+    @property
+    def instance(self):
+        return AuditInstance(self)
 
 
 class IAMPermission(permissions.BasePermission):
@@ -46,9 +60,22 @@ class IAMPermission(permissions.BasePermission):
             return True
 
         iam = Permission(request=request)
-        # iam.batch_is_allowed(actions=self.actions, resources=[self.resources], is_raise_exception=True)
+        context = AuditContext(request=request)
         for action in self.actions:
             iam.is_allowed(action=action, resources=self.resources, is_raise_exception=True)
+            # 查询类请求（简单定义为所有 GET 请求）不审计
+            if request.method == "GET":
+                continue
+            # 审计操作类请求
+            if not self.resources:
+                bk_audit_client.add_event(action=action, audit_context=context)
+            for resource in self.resources:
+                bk_audit_client.add_event(
+                    action=action,
+                    resource_type=resource,
+                    audit_context=context,
+                    instance=CommonInstance(resource.attribute),
+                )
 
         return True
 

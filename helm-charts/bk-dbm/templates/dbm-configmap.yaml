@@ -57,7 +57,7 @@ data:
   # 蓝鲸权限中心
   BK_IAM_SKIP: "{{ .Values.bk.bkIamSkipMigrate }}"
   IAM_APP_URL: "{{ .Values.bk.bkIamUrl }}"
-  BK_IAM_APIGETEWAY: "{{ .Values.bk.bkIamApiUrl }}"
+  BK_IAM_APIGATEWAY: "{{ .Values.bk.bkIamApiUrl }}"
   # 蓝鲸监控平台
   GRAFANA_URL: "{{ .Values.bk.grafanaUrl }}"
   BKMONITOR_URL: "{{ .Values.bk.bkMonitorUrl }}"

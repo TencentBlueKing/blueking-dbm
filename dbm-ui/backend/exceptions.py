@@ -146,7 +146,7 @@ class PermissionDeniedError(AppBaseException):
         try:
             permission = kwargs.get("permission")
             if permission:
-                client = IAM(env.APP_CODE, env.SECRET_KEY, bk_apigateway_url=env.BK_IAM_APIGETEWAY)
+                client = IAM(env.APP_CODE, env.SECRET_KEY, bk_apigateway_url=env.BK_IAM_APIGATEWAY)
                 for action in permission.get("actions") or []:
                     action["name"] = action.get("name") or action.get("id")
                 data = {
