@@ -214,7 +214,7 @@ func (e *ExcuteSQLFileComp) excuteOne(port int) (err error) {
 			Password:         e.GeneralParam.RuntimeAccountParam.AdminPwd,
 		}.ExcuteSqlByMySQLClient(f.SQLFile, realexcutedbs)
 		if err != nil {
-			logger.Error("执行%s文件失败", f.SQLFile)
+			logger.Error("执行%s文件失败:%s", f.SQLFile, err.Error())
 			return err
 		}
 	}

@@ -24,8 +24,6 @@ import (
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util/osutil"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/spider"
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/itemscollect/masterslaveheartbeat"
-
-	"github.com/pkg/errors"
 )
 
 // InstallMySQLComp TODO
@@ -49,26 +47,12 @@ type InstallMySQLParams struct {
 	// Ports
 	Ports []int `json:"ports" validate:"required,gt=0,dive"`
 	// 安装实例的内存大小，可以不指定，会自动计算
-	InstMem                  uint64          `json:"inst_mem"`
-	Host                     string          `json:"host" validate:"required,ip" `
-	SuperAccount             SuperAccount    `json:"super_account"`
-	DBHAAccount              DBHAAccount     `json:"dbha_account"`
-	SpiderAutoIncrModeMap    json.RawMessage `json:"spider_auto_incr_mode_map"`
+	InstMem                  uint64            `json:"inst_mem"`
+	Host                     string            `json:"host" validate:"required,ip" `
+	SuperAccount             AdditionalAccount `json:"super_account"`
+	DBHAAccount              AdditionalAccount `json:"dbha_account"`
+	SpiderAutoIncrModeMap    json.RawMessage   `json:"spider_auto_incr_mode_map"`
 	AllowDiskFileSystemTypes []string
-}
-
-// SuperAccount TODO
-type SuperAccount struct {
-	User        string   `json:"user" validate:"required"`
-	Pwd         string   `json:"pwd"  validate:"required"`
-	AccessHosts []string `json:"access_hosts"`
-}
-
-// DBHAAccount TODO
-type DBHAAccount struct {
-	User        string   `json:"user" validate:"required"`
-	Pwd         string   `json:"pwd"  validate:"required"`
-	AccessHosts []string `json:"access_hosts"`
 }
 
 // InitDirs TODO
@@ -139,12 +123,12 @@ func (i *InstallMySQLComp) Example() interface{} {
 								"client":{"port": "{{mysqld.port}}"},
 								"mysql":{"socket": "{{mysqld.datadir}}/mysql.sock"},
 								"mysqld":{"binlog_format": "ROW","innodb_io_capacity": "2000","innodb_read_io_threads": "10"}}}`),
-			SuperAccount: SuperAccount{
+			SuperAccount: AdditionalAccount{
 				User:        "user",
 				Pwd:         "xxx",
 				AccessHosts: []string{"ip1", "ip2"},
 			},
-			DBHAAccount: DBHAAccount{
+			DBHAAccount: AdditionalAccount{
 				User:        "user",
 				Pwd:         "xxx",
 				AccessHosts: []string{"ip1", "ip2"},
@@ -294,20 +278,19 @@ func (i *InstallMySQLComp) precheckMysqlProcess() (err error) {
 
 	// 如果正在部署tdbctl组件，部署场景会与这块引起冲突，则暂时先跳过。
 	if i.Params.Medium.GetPkgTypeName() == cst.PkgTypeTdbctl {
-		logger.Warn("正在部署tdbctl组件，不再mysqld进程存活检查")
+		logger.Warn("正在部署tdbctl组件,不再mysqld进程存活检查")
 		return nil
 	}
-
 	if output, err = osutil.ExecShellCommand(false, "ps -ef|grep 'mysqld ' |grep -v grep |wc -l"); err != nil {
-		return errors.Wrap(err, "执行ps -efwww|grep -w mysqld|grep -v grep|wc -l失败")
+		return fmt.Errorf("%w 执行ps -efwww|grep -w mysqld|grep -v grep|wc -l失败", err)
 	}
-	fmt.Println("output", output)
+	logger.Info("output:", output)
 	if mysqldNum, err = strconv.Atoi(osutil.CleanExecShellOutput(output)); err != nil {
 		logger.Error("strconv.Atoi %s failed:%s", output, err.Error())
 		return err
 	}
 	if mysqldNum > 0 {
-		return errors.New(fmt.Sprintf("have %d mysqld process running", mysqldNum))
+		return fmt.Errorf("have %d mysqld process running", mysqldNum)
 	}
 	return nil
 }
@@ -441,7 +424,7 @@ func (i *InstallMySQLComp) GenerateMycnf() (err error) {
 		}
 		tmpl, err := template.ParseFiles(tmplFileName)
 		if err != nil {
-			return errors.WithMessage(err, "template ParseFiles failed")
+			return fmt.Errorf("template ParseFiles failed, err: %w", err)
 		}
 		cnf := util.GetMyCnfFileName(port)
 		f, err := os.Create(cnf)
@@ -628,7 +611,8 @@ func (i *InstallMySQLComp) Startup() (err error) {
  */
 func (i *InstallMySQLComp) generateDefaultMysqlAccount(realVersion string) (initAccountsql []string) {
 
-	initAccountsql = append(i.GetSuperUserAccount(realVersion), i.GetDBHAAccount(realVersion)...)
+	initAccountsql = append(i.Params.SuperAccount.GetSuperUserAccount(realVersion), i.Params.DBHAAccount.GetDBHAAccount(
+		realVersion)...)
 
 	runp := i.GeneralParam.RuntimeAccountParam
 	privParis := []components.MySQLAccountPrivs{}
@@ -657,19 +641,26 @@ VALUES ('%','test','','Y','Y','Y','Y','Y','Y','N','Y','Y','Y','Y','Y','Y','Y','Y
 	return
 }
 
+// AdditionalAccount  额外账户
+type AdditionalAccount struct {
+	User        string   `json:"user" validate:"required"`
+	Pwd         string   `json:"pwd"  validate:"required"`
+	AccessHosts []string `json:"access_hosts"`
+}
+
 // GetSuperUserAccount TODO
-func (i *InstallMySQLComp) GetSuperUserAccount(realVersion string) (initAccountsql []string) {
-	for _, host := range i.Params.SuperAccount.AccessHosts {
+func (a *AdditionalAccount) GetSuperUserAccount(realVersion string) (initAccountsql []string) {
+	for _, host := range cmutil.RemoveDuplicate(a.AccessHosts) {
 		if mysqlutil.MySQLVersionParse(realVersion) >= mysqlutil.MySQLVersionParse("5.7.18") {
 			initAccountsql = append(initAccountsql,
 				fmt.Sprintf("CREATE USER '%s'@'%s' IDENTIFIED WITH mysql_native_password BY '%s' ;",
-					i.Params.SuperAccount.User, host, i.Params.SuperAccount.Pwd))
+					a.User, host, a.Pwd))
 			initAccountsql = append(initAccountsql, fmt.Sprintf("GRANT ALL PRIVILEGES ON *.* TO '%s'@'%s' WITH GRANT OPTION ; ",
-				i.Params.SuperAccount.User, host))
+				a.User, host))
 		} else {
 			initAccountsql = append(initAccountsql,
 				fmt.Sprintf("GRANT ALL PRIVILEGES ON *.* TO '%s'@'%s' IDENTIFIED BY '%s' WITH GRANT OPTION ;",
-					i.Params.SuperAccount.User, host, i.Params.SuperAccount.Pwd))
+					a.User, host, a.Pwd))
 		}
 	}
 	return
@@ -677,22 +668,22 @@ func (i *InstallMySQLComp) GetSuperUserAccount(realVersion string) (initAccounts
 
 // GetDBHAAccount TODO
 // 获取生成DHBA-GM访问账号的生成语句
-func (i *InstallMySQLComp) GetDBHAAccount(realVersion string) (initAccountsql []string) {
-	for _, host := range i.Params.DBHAAccount.AccessHosts {
+func (a *AdditionalAccount) GetDBHAAccount(realVersion string) (initAccountsql []string) {
+	for _, host := range cmutil.RemoveDuplicate(a.AccessHosts) {
 		if mysqlutil.MySQLVersionParse(realVersion) >= mysqlutil.MySQLVersionParse("5.7.18") {
 			initAccountsql = append(initAccountsql,
 				fmt.Sprintf("CREATE USER '%s'@'%s' IDENTIFIED WITH mysql_native_password BY '%s' ;",
-					i.Params.DBHAAccount.User, host, i.Params.DBHAAccount.Pwd))
+					a.User, host, a.Pwd))
 			initAccountsql = append(initAccountsql, fmt.Sprintf(
 				"GRANT RELOAD, PROCESS, SHOW DATABASES, SUPER, REPLICATION CLIENT, SHOW VIEW "+
 					"ON *.* TO '%s'@'%s' WITH GRANT OPTION ;",
-				i.Params.DBHAAccount.User, host))
+				a.User, host))
 		} else {
 			initAccountsql = append(initAccountsql,
 				fmt.Sprintf(
 					"GRANT RELOAD, PROCESS, SHOW DATABASES, SUPER, REPLICATION CLIENT, SHOW VIEW "+
 						"ON *.* TO '%s'@'%s' IDENTIFIED BY '%s' WITH GRANT OPTION ;",
-					i.Params.DBHAAccount.User, host, i.Params.DBHAAccount.Pwd))
+					a.User, host, a.Pwd))
 		}
 	}
 	return
@@ -714,7 +705,7 @@ func (i *InstallMySQLComp) InitDefaultPrivAndSchema() (err error) {
 
 	if bsql, err = staticembed.DefaultSysSchemaSQL.ReadFile(staticembed.DefaultSysSchemaSQLFileName); err != nil {
 		logger.Error("读取嵌入文件%s失败", staticembed.DefaultSysSchemaSQLFileName)
-		return
+		return err
 	}
 	for _, value := range strings.SplitAfterN(string(bsql), ";", -1) {
 		if !regexp.MustCompile(`^\\s*$`).MatchString(value) {
@@ -739,7 +730,7 @@ func (i *InstallMySQLComp) InitDefaultPrivAndSchema() (err error) {
 		var dbWork *native.DbWorker
 		if dbWork, err = native.NewDbWorker(native.DsnBySocket(i.InsSockets[port], "root", "")); err != nil {
 			logger.Error("connenct by %s failed,err:%s", port, err.Error())
-			return
+			return err
 		}
 
 		// 初始化schema

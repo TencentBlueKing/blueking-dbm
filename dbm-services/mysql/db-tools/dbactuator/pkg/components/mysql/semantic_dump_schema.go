@@ -182,7 +182,7 @@ func (c *SemanticDumpSchemaComp) DumpSchema() (err error) {
 		OutputfileName: c.Params.BackupFileName,
 	}
 	if err := dumper.Dump(); err != nil {
-		logger.Error("dump failed: ", err.Error())
+		logger.Error("dump failed: %s", err.Error())
 		return err
 	}
 	return nil
