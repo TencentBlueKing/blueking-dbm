@@ -45,7 +45,7 @@ python manage.py extract_alarm kafka 5676 5677 5678 5679 5685
 python manage.py extract_alarm pulsar 5683 5682 5681 5680
 python manage.py extract_alarm hdfs 5891 5894 5895 5898 5899
 python manage.py extract_alarm influxdb 5946 5947 5948 5949 5950 5951 5952
-python manage.py extract_alarm riak 39875 39876 39877 39878 39879 39882 39881 39882
+python manage.py extract_alarm riak 39876 39877 39878 39879 39882 39881 39882
 
 - 事件
 python manage.py extract_alarm mysql 73474 73473 73472 73471 73418 73456 73370 73382 73381 73379 73380 73378 73377 73363 73376 73670 73669
