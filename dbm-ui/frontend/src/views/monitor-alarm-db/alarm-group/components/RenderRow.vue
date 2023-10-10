@@ -88,20 +88,6 @@
 
   const props = defineProps<Props>();
 
-  const rowRef = ref<HTMLDivElement>();
-  const textRef = ref<HTMLParagraphElement>();
-  const overflowIndex = ref<number | null>(null);
-  const overflowData = computed(() => {
-    if (overflowIndex.value === null) return [];
-
-    return props.data.slice(overflowIndex.value);
-  });
-  const visibleData = computed(() => {
-    if (overflowIndex.value === null) return props.data;
-
-    return props.data.slice(0, overflowIndex.value);
-  });
-
   /**
    * 获取第一个溢出文本的 index
    */
@@ -133,23 +119,41 @@
     });
   };
 
-  const getIconType = (type: string) => (type === 'group' ? 'yonghuzu' : 'dba-config');
+  const rowRef = ref<HTMLDivElement>();
+  useResizeObserver(rowRef, debounce(findOverflowIndex, 300));
+
+  const textRef = ref<HTMLParagraphElement>();
+  const overflowIndex = ref<number | null>(null);
+
+  const overflowData = computed(() => {
+    if (overflowIndex.value === null) {
+      return [];
+    }
+    return props.data.slice(overflowIndex.value);
+  });
+  const visibleData = computed(() => {
+    if (overflowIndex.value === null) {
+      return props.data;
+    }
+    return props.data.slice(0, overflowIndex.value);
+  });
 
   watch(() => props.data, findOverflowIndex, { immediate: true });
-  useResizeObserver(rowRef, debounce(findOverflowIndex, 300));
+
+  const getIconType = (type: string) => (type === 'group' ? 'yonghuzu' : 'dba-config');
 </script>
 
 <style lang="less" scoped>
   .render-row {
+    position: relative;
     display: inline-flex;
     max-width: 100%;
     align-items: center;
-    position: relative;
 
     .render-row-wrapper {
-      opacity: 0;
-      overflow: hidden;
       display: flex;
+      overflow: hidden;
+      opacity: 0%;
     }
 
     .visible-content {
@@ -163,6 +167,6 @@
   }
 
   .render-row-icon {
-    font-size: 20px;
+    font-size: 17.5px;
   }
 </style>
