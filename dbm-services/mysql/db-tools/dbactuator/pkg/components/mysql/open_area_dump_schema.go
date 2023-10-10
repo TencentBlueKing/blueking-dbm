@@ -17,6 +17,8 @@ import (
 	"os"
 	"path"
 	"reflect"
+	"regexp"
+	"strconv"
 	"strings"
 
 	"dbm-services/common/go-pubpkg/bkrepo"
@@ -56,13 +58,14 @@ type OneOpenAreaSchema struct {
 
 // OpenAreaDumpSchemaRunTimeCtx TODO
 type OpenAreaDumpSchemaRunTimeCtx struct {
-	charset     string // 当前实例的字符集
-	dumpCmd     string // 中控位置不一样
-	isSpider    bool   // 是否spider中控
-	dumpDirPath string // dump目录绝对路径
-	tarName     string // 压缩文件名称 {}.tar.gz
-	workDir     string // schema目录所在的位置 即位于/data/install/mysql_open_area
-	uploadFile  []UploadFile
+	charset       string // 当前实例的字符集
+	dumpCmd       string // 中控位置不一样
+	isTdbctl      bool   // 是否spider中控
+	dumpDirPath   string // dump目录绝对路径
+	tarName       string // 压缩文件名称 {}.tar.gz
+	workDir       string // schema目录所在的位置 即位于/data/install/mysql_open_area
+	uploadFile    []UploadFile
+	GtidPurgedOff bool // 对于开启了gtid模式的实例，在导出时设置 --set-gtid-purged=OFF
 }
 
 // UploadFile TODO
@@ -113,7 +116,22 @@ func (c *OpenAreaDumpSchemaComp) Init() (err error) {
 		logger.Error("获取version failed %s", err.Error())
 		return err
 	}
-	c.isSpider = strings.Contains(version, "tdbctl")
+	c.isTdbctl = strings.Contains(version, "tdbctl")
+
+	// 如果是中控或者mysql版本大于等于5.6.9的，设置--set-gtid-purged=OFF
+	// 中控在precheck中判断
+	if strings.Contains(version, "mysql") {
+		reg, err := regexp.Compile(`(\d+\.\d+\.\d+)`)
+		if err != nil {
+			logger.Error("regexp.Compile failed:%s", err.Error())
+			return err
+		}
+		v := reg.FindString(version)
+		if c.VersionCompare(v) {
+			c.GtidPurgedOff = true
+		}
+	}
+
 	c.charset = c.Params.CharSet
 	if c.Params.CharSet == "default" {
 		if c.charset, err = conn.ShowServerCharset(); err != nil {
@@ -135,9 +153,11 @@ func (c *OpenAreaDumpSchemaComp) Init() (err error) {
 
 // Precheck TODO
 func (c *OpenAreaDumpSchemaComp) Precheck() (err error) {
+	// spider实例和mysql实例的目录都是/usr/local/mysql spider建立了软链 也是mysql
 	c.dumpCmd = path.Join(cst.MysqldInstallPath, "bin", "mysqldump")
-	if c.isSpider {
+	if c.isTdbctl {
 		c.dumpCmd = path.Join(cst.TdbctlInstallPath, "bin", "mysqldump")
+		c.GtidPurgedOff = true
 	}
 	if !osutil.FileExist(c.dumpCmd) {
 		return fmt.Errorf("dumpCmd: %s文件不存在", c.dumpCmd)
@@ -154,7 +174,7 @@ func (c *OpenAreaDumpSchemaComp) OpenAreaDumpSchema() (err error) {
 		schema := fmt.Sprintf("%s %s",
 			oneOpenAreaSchema.Schema, strings.Join(oneOpenAreaSchema.Tbales, " "),
 		)
-
+		// 导出表结构，同时导出存储过程、触发器、event
 		dumper = &mysqlutil.MySQLDumperTogether{
 			MySQLDumper: mysqlutil.MySQLDumper{
 				DumpDir:      c.dumpDirPath,
@@ -169,8 +189,9 @@ func (c *OpenAreaDumpSchemaComp) OpenAreaDumpSchema() (err error) {
 					NoData:        true,
 					AddDropTable:  false,
 					DumpRoutine:   true,
-					DumpTrigger:   false,
-					GtidPurgedOff: true,
+					DumpTrigger:   true,
+					DumpEvent:     true,
+					GtidPurgedOff: c.GtidPurgedOff,
 				},
 			},
 			OutputfileName: outputfileName,
@@ -209,11 +230,12 @@ func (c *OpenAreaDumpSchemaComp) OpenAreaDumpData() (err error) {
 				DumpCmdFile:  c.dumpCmd,
 				Charset:      c.charset,
 				MySQLDumpOption: mysqlutil.MySQLDumpOption{
-					NoData:       false,
-					AddDropTable: false,
-					NeedUseDb:    false,
-					NoCreateTb:   true,
-					DumpRoutine:  false,
+					NoData:        false,
+					AddDropTable:  false,
+					NeedUseDb:     false,
+					NoCreateTb:    true,
+					DumpRoutine:   false,
+					GtidPurgedOff: c.GtidPurgedOff,
 				},
 			},
 			OutputfileName: outputfileName,
@@ -332,4 +354,33 @@ func (c *OpenAreaDumpSchemaComp) Upload() (err error) {
 	}
 
 	return nil
+}
+
+// VersionCompare TODO
+func (c *OpenAreaDumpSchemaComp) VersionCompare(version string) bool {
+	verStr1 := strings.Split(version, ".")
+	verStr2 := strings.Split("5.6.8", ".")
+	verLen := len(verStr1)
+	if len(verStr2) > len(verStr1) {
+		verLen = len(verStr2)
+	}
+
+	for i := 0; i < verLen; i++ {
+		// int默认值是0
+		var v1, v2 int
+
+		if i < len(verStr1) {
+			v1, _ = strconv.Atoi(verStr1[i])
+		}
+		if i < len(verStr2) {
+			v2, _ = strconv.Atoi(verStr2[i])
+		}
+
+		if v1 > v2 {
+			return true
+		} else if v1 < v2 {
+			return false
+		}
+	}
+	return false
 }

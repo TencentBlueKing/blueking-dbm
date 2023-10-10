@@ -31,7 +31,7 @@ func NewExecPartitionSQLCommand() *cobra.Command {
 		Use:   ImportPartitionSQL,
 		Short: "分区",
 		Example: fmt.Sprintf(
-			`dbactuator mysql deploy-monitor  %s %s`,
+			`dbactuator mysql import-partitionsql  %s %s`,
 			subcmd.CmdBaseExampleStr,
 			subcmd.ToPrettyJson(act.Payload.Example()),
 		),
