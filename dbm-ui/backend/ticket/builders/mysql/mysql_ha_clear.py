@@ -45,8 +45,7 @@ class MySQLHaClearDetailSerializer(MySQLBaseOperateDetailSerializer):
         super().validate(attrs)
 
         # 库表选择器校验
-        db_operate_list = [info["truncate_data_type"] == TruncateDataTypeEnum.DROP_DATABASE for info in attrs["infos"]]
-        super().validate_database_table_selector(attrs, is_only_db_operate_list=db_operate_list)
+        super().validate_database_table_selector(attrs)
 
         return attrs
 
