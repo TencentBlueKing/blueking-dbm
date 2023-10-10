@@ -42,7 +42,7 @@ export function useClusterData<T>(activeTab: Ref<string>, searchParams: Ref<ISea
 
   const isLoading = ref(false);
   const tableData = shallowRef<T[]>([]);
-  const dbModuleList = shallowRef<{id: number, name: string}[]>([]);
+  const dbModuleList = shallowRef<{ id: number, name: string }[]>([]);
   const isAnomalies = ref(false);
   const pagination = reactive({
     current: 1,

@@ -60,7 +60,7 @@
           </div>
         </template>
         <template #main>
-          <div style="height: 490px;">
+          <div style="height: 574px;">
             <RenderTopoHost
               :cluster-id="selectClusterId"
               :last-values="lastValues"
