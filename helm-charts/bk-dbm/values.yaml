@@ -61,6 +61,14 @@ dbm:
   enabled: true
   replicaCount: 1
 
+  serviceInit:
+    itsmEnabled: true
+    apigwEnabled: true
+    bklogEnabled: true
+    bkccEnabled: true
+    mediumEnabled: true
+    sslEnabled: true
+
   image:
     registry: "mirrors.tencent.com"
     repository: "build/blueking/bk-dbm"
@@ -357,6 +365,12 @@ externalDatabase:
     host: external-db-host-example
     port: 3306
     name: bk_dbm
+  dbmReport:
+    username: bk-dbm
+    password: external-db-pwd-example
+    host: external-db-host-example
+    port: 3306
+    name: bk_dbm_report
   dbConfig:
     username: bk-dbm
     password: external-db-pwd-example

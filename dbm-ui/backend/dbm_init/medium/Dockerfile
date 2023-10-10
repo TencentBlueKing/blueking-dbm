@@ -98,6 +98,8 @@ ADD ./ ./
 COPY --from=builder /venv /venv
 
 ENV DJANGO_SETTINGS_MODULE=settings
+ENV MEDIUM_PATH=dbm-ui/backend/dbm_init/medium
+
 ARG MEDIUM_BUILDER_BRANCH=master
 ARG GITHUB_TOKEN=''
 ARG GITHUB_USERNAME=''
@@ -107,10 +109,10 @@ ARG GITHUB_USER_EMAIL=''
 COPY --from=meidum-builder /blueking-dbm /blueking-dbm
 
 RUN python main.py --type build && \
-    cp ./medium.lock /blueking-dbm/dbm-ui/backend/dbm_init/medium/ && cd /blueking-dbm && \
+    cp ./medium.lock /blueking-dbm/${MEDIUM_PATH} && cd /blueking-dbm && \
     git remote set-url origin https://${GITHUB_TOKEN}@github.com/TencentBlueKing/blueking-dbm.git && \
     git config --global user.email ${GITHUB_USER_EMAIL} && git config --global user.name ${GITHUB_USERNAME} && \
-    git add dbm-ui/backend/dbm_init/medium.lock && \
+    git add ${MEDIUM_PATH}/medium.lock && \
     git commit -m "minor: [$(date +"%Y-%m-%d %H:%M:%S")]update medium.lock" && \
     git push --set-upstream --force origin ${MEDIUM_BUILDER_BRANCH}:medicum_lock_${MEDIUM_BUILDER_BRANCH} && \
     rm -rf /blueking-dbm
