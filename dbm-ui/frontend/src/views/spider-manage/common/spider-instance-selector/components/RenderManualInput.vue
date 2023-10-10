@@ -70,7 +70,7 @@
             <BkButton
               class="w-88"
               size="small"
-              @click="() => inputState.values = ''">
+              @click="handleClear">
               {{ $t('清空') }}
             </BkButton>
           </div>
@@ -256,6 +256,12 @@
     // 将调整好的内容回填显示
     newLines.push(...lines); // 没有错误内容回填
     inputState.values = newLines.join('\n');
+  };
+
+  const handleClear = () => {
+    inputState.values = '';
+    errorState.format.show = false;
+    errorState.instance.show = false;
   };
 </script>
 
