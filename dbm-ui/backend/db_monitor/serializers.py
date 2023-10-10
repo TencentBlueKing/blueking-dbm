@@ -106,10 +106,9 @@ class MonitorPolicySerializer(AuditedSerializer, serializers.ModelSerializer):
         """监控事件跳转链接"""
 
         bk_biz_id = obj.bk_biz_id or env.DBA_APP_BK_BIZ_ID
-        status = "未恢复"
         query_string = urllib.parse.urlencode(
             {
-                "queryString": f"策略ID : {obj.monitor_policy_id} AND 状态 : {status}",
+                "queryString": _("策略ID : {} AND 状态 : {}").format(obj.monitor_policy_id, _("未恢复")),
                 "from": "now-30d",
                 "to": "now",
                 "bizIds": bk_biz_id,
