@@ -1,6 +1,10 @@
 package backup
 
-import "dbm-services/common/go-pubpkg/backupclient"
+import (
+	"github.com/pkg/errors"
+
+	"dbm-services/common/go-pubpkg/backupclient"
+)
 
 // COSBackupClient TODO
 type COSBackupClient struct {
@@ -22,6 +26,9 @@ func (o *COSBackupClient) Init() error {
 
 // Upload TODO
 func (o *COSBackupClient) Upload(fileName string) (string, error) {
+	if o.backupClient == nil {
+		return "-1", errors.New("COSBackupClient need init first")
+	}
 	return o.backupClient.Upload(fileName)
 }
 
