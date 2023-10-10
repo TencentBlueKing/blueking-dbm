@@ -1,15 +1,15 @@
 {
   "bk_biz_id": 0,
-  "name": "MySQL Slave \u540c\u6b65\u5f02\u5e38",
-  "db_type": "mysql",
+  "name": "Riak \u8fde\u63a5\u5931\u8d25",
+  "db_type": "riak",
   "details": {
     "app": "",
-    "name": "MySQL Slave \u540c\u6b65\u5f02\u5e38",
+    "name": "Riak \u8fde\u63a5\u5931\u8d25",
     "path": "",
     "type": "monitor",
     "items": [
       {
-        "name": "COUNT(slave-status)",
+        "name": "COUNT(riak-db-up-dbm_report_channel)",
         "target": [],
         "functions": [],
         "algorithms": [
@@ -31,25 +31,23 @@
         "origin_sql": "",
         "query_configs": [
           {
-            "name": "slave-status",
+            "name": "riak-db-up",
             "alias": "a",
             "functions": [],
-            "metric_id": "custom.event.bkmonitor_event_{event_data_id}.slave-status",
+            "metric_id": "custom.event.bkmonitor_event_{event_data_id}.riak-db-up",
             "agg_method": "COUNT",
             "agg_interval": 60,
             "agg_condition": [],
             "agg_dimension": [
               "app_id",
-              "bk_cloud_id",
               "cluster_domain",
-              "machine_type",
-              "port",
-              "role",
-              "server_ip"
+              "bk_cloud_id",
+              "bk_target_ip",
+              "bk_target_service_instance_id"
             ],
             "data_type_label": "event",
             "result_table_id": "bkmonitor_event_{event_data_id}",
-            "custom_event_name": "slave-status",
+            "custom_event_name": "riak-db-up",
             "data_source_label": "custom"
           }
         ],
@@ -63,7 +61,8 @@
     ],
     "labels": [
       "DBM",
-      "DBM_MYSQL"
+      "DBM_RIAK",
+      "RIAK"
     ],
     "notice": {
       "config": {
@@ -71,17 +70,17 @@
           {
             "signal": "abnormal",
             "title_tmpl": "{{business.bk_biz_name}} - {{alarm.name}}{{alarm.display_type}}",
-            "message_tmpl": "{{content.level}}\n{{content.begin_time}}\n{{content.time}}\n{{content.duration}}\n{{content.target_type}}\n{{content.data_source}}\n{{content.content}}\n{{content.current_value}}\n{{content.biz}}\n{{content.target}}\n{{content.dimension}}\n{{content.detail}}\n{{content.related_info}}"
+            "message_tmpl": "{{content.level}}\n{{content.begin_time}}\n{{content.time}}\n{{content.duration}}\n{{content.target_type}}\n{{content.data_source}}\n{{content.content}}\n{{content.current_value}}\n{{content.biz}}\n{{content.target}}\n{{content.dimension}}\n{{content.detail}}\n{{content.assign_detail}}\n{{content.related_info}}"
           },
           {
             "signal": "recovered",
             "title_tmpl": "{{business.bk_biz_name}} - {{alarm.name}}{{alarm.display_type}}",
-            "message_tmpl": "{{content.level}}\n{{content.begin_time}}\n{{content.time}}\n{{content.duration}}\n{{content.target_type}}\n{{content.data_source}}\n{{content.content}}\n{{content.current_value}}\n{{content.biz}}\n{{content.target}}\n{{content.dimension}}\n{{content.detail}}\n{{content.related_info}}"
+            "message_tmpl": "{{content.level}}\n{{content.begin_time}}\n{{content.time}}\n{{content.duration}}\n{{content.target_type}}\n{{content.data_source}}\n{{content.content}}\n{{content.current_value}}\n{{content.biz}}\n{{content.target}}\n{{content.dimension}}\n{{content.detail}}\n{{content.assign_detail}}\n{{content.related_info}}"
           },
           {
             "signal": "closed",
             "title_tmpl": "{{business.bk_biz_name}} - {{alarm.name}}{{alarm.display_type}}",
-            "message_tmpl": "{{content.level}}\n{{content.begin_time}}\n{{content.time}}\n{{content.duration}}\n{{content.target_type}}\n{{content.data_source}}\n{{content.content}}\n{{content.current_value}}\n{{content.biz}}\n{{content.target}}\n{{content.dimension}}\n{{content.detail}}\n{{content.related_info}}"
+            "message_tmpl": "{{content.level}}\n{{content.begin_time}}\n{{content.time}}\n{{content.duration}}\n{{content.target_type}}\n{{content.data_source}}\n{{content.content}}\n{{content.current_value}}\n{{content.biz}}\n{{content.target}}\n{{content.dimension}}\n{{content.detail}}\n{{content.assign_detail}}\n{{content.related_info}}"
           }
         ],
         "need_poll": true,
@@ -89,8 +88,8 @@
         "interval_notify_mode": "standard"
       },
       "signal": [
-        "abnormal",
-        "no_data"
+        "no_data",
+        "abnormal"
       ],
       "options": {
         "end_time": "23:59:59",
@@ -98,6 +97,11 @@
         "assign_mode": [
           "by_rule"
         ],
+        "upgrade_config": {
+          "is_enabled": false,
+          "user_groups": [],
+          "upgrade_interval": 1440
+        },
         "converge_config": {
           "count": 1,
           "condition": [
@@ -188,6 +192,7 @@
         },
         "chart_image_enabled": true,
         "exclude_notice_ways": {
+          "ack": [],
           "closed": [],
           "recovered": []
         },
@@ -195,11 +200,16 @@
           "unit": "percent",
           "count": 10,
           "timedelta": 5,
-          "dimensions": [],
+          "dimensions": [
+            "app_id",
+            "bk_cloud_id",
+            "bk_target_ip",
+            "bk_target_service_instance_id"
+          ],
           "is_enabled": false
         }
       },
-      "config_id": 72034,
+      "config_id": 40931,
       "relate_type": "NOTICE",
       "user_groups": []
     },
@@ -221,7 +231,7 @@
               }
             ]
           },
-          "check_window": 5
+          "check_window": 1
         },
         "recovery_config": {
           "check_window": 5,
@@ -229,13 +239,14 @@
         }
       }
     ],
-    "scenario": "other_rt",
+    "priority": 0,
+    "scenario": "component",
     "bk_biz_id": "",
     "data_source_type": "\u81ea\u5b9a\u4e49\u4e8b\u4ef6",
-    "priority": 0
+    "priority_group_key": "8fc5d015c4b4004b"
   },
   "is_enabled": true,
-  "monitor_indicator": "COUNT(slave-status)",
+  "monitor_indicator": "COUNT(riak-db-up-dbm_report_channel)",
   "version": 2,
   "alert_source": "event"
 }
