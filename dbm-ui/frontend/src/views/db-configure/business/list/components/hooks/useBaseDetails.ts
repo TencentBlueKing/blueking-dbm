@@ -23,8 +23,9 @@ import {
   DBTypes,
 } from '@common/const';
 
-import { notModuleClusters } from '../../common/const';
-import type { TreeData } from '../common/types';
+import { notModuleClusters } from '@views/db-configure/common/const';
+
+import type { TreeData } from '../types';
 
 interface State {
   loading: boolean;
@@ -114,7 +115,7 @@ export const useBaseDetails = (immediateFetch = true) => {
     }
   }, { deep: true, immediate: true });
 
-  function getFetchParams(versionKey: 'version' | 'proxy_version', confType = 'dbconf') {
+  const getFetchParams = (versionKey: 'version' | 'proxy_version', confType = 'dbconf'): Record<string, any> => {
     if (treeNode === undefined) return {};
 
     const { id, levelType, parentId, data } = treeNode.value;
@@ -139,7 +140,7 @@ export const useBaseDetails = (immediateFetch = true) => {
       };
     }
     return params;
-  }
+  };
 
   return {
     state,

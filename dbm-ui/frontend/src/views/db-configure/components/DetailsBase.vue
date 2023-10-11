@@ -65,8 +65,17 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import { updateBusinessConfig, updatePlatformConfig } from '@services/configs';
-  import type { BizConfDetailsUpdateParams, ConfigBaseDetails, GetLevelConfigParams, PlatConfDetailsParams, PlatConfDetailsUpdateParams } from '@services/types/configs';
+  import {
+    updateBusinessConfig,
+    updatePlatformConfig,
+  } from '@services/configs';
+  import type {
+    BizConfDetailsUpdateParams,
+    ConfigBaseDetails,
+    GetLevelConfigParams,
+    PlatConfDetailsParams,
+    PlatConfDetailsUpdateParams,
+  } from '@services/types/configs';
 
   import {
     ConfLevels,
@@ -94,6 +103,8 @@
     (e:'update-info', value: { key: string, value: string }): void
   }
 
+  type updateFuncParam = PlatConfDetailsUpdateParams & BizConfDetailsUpdateParams;
+
   const props = withDefaults(defineProps<Props>(), {
     data: () => ({} as ConfigBaseDetails),
     loading: false,
@@ -116,30 +127,35 @@
   const isPlat = computed(() => ConfLevels.PLAT === props.level);
   const configItems = computed(() => props.data?.conf_items || []);
   const baseInfoColumns = computed(() => [
-    [{
-      label: t('配置名称'),
-      key: 'name',
-      isEdit: isPlat.value,
-    }, {
-      label: t('描述'),
-      key: 'description',
-      isEdit: true,
-    }, {
-      label: t('数据库版本'),
-      key: 'version',
-    }],
-    [{
-      label: t('更新时间'),
-      key: 'updated_at',
-    }, {
-      label: t('更新人'),
-      key: 'updated_by',
-    }],
+    [
+      {
+        label: t('配置名称'),
+        key: 'name',
+        isEdit: isPlat.value,
+      },
+      {
+        label: t('描述'),
+        key: 'description',
+        isEdit: true,
+      },
+      {
+        label: t('数据库版本'),
+        key: 'version',
+      },
+    ],
+    [
+      {
+        label: t('更新时间'),
+        key: 'updated_at',
+      },
+      {
+        label: t('更新人'),
+        key: 'updated_by',
+      },
+    ],
   ]);
   // 更新基础信息 api
   const updateConfig = computed(() => (isPlat.value ? updatePlatformConfig : updateBusinessConfig));
-
-  type updateFuncParam = PlatConfDetailsUpdateParams & BizConfDetailsUpdateParams;
 
   /**
    * 基础信息编辑
@@ -168,7 +184,7 @@
    * 编辑配置
    */
   const handleToEdit = (extra = {}) => {
-    const name = isPlat.value ? 'PlatConfEdit' : 'DatabaseConfigEdit';
+    const name = isPlat.value ? 'PlatformDbConfigureEdit' : 'DbConfigureEdit';
     router.push({
       name,
       params: { ...route.params, ...props.routeParams, ...extra },

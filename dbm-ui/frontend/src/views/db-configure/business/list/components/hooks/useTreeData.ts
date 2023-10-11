@@ -28,7 +28,7 @@ import {
   TicketTypes,
 } from '@common/const';
 
-import type { TreeData, TreeState } from '../common/types';
+import type { TreeData, TreeState } from '../types';
 
 /**
  * 处理拓扑树数据及操作

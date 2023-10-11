@@ -262,10 +262,6 @@
     }, {});
   };
 
-  onMounted(() => {
-    fetchTableData();
-  });
-
   // 清空搜索条件
   const handleClearSearch = () => {
     filterData.value = [];
@@ -306,6 +302,10 @@
       },
     });
   };
+
+  onMounted(() => {
+    fetchTableData();
+  });
 </script>
 
 <style lang="less" scoped>

@@ -338,7 +338,7 @@
             </BkMenuGroup>
           </FunController>
           <BkMenuGroup :name="$t('配置管理')">
-            <BkMenuItem key="DatabaseConfig">
+            <BkMenuItem key="DbConfigure">
               <template #icon>
                 <i class="db-icon-db-config" />
               </template>

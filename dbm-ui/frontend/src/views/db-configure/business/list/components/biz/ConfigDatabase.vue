@@ -51,7 +51,7 @@
 
   import { useGlobalBizs } from '@stores';
 
-  import type { TreeData } from '../common/types';
+  import type { TreeData } from '../types';
 
   interface Props {
     confType: string
@@ -157,7 +157,7 @@
    */
   const handleToDetails = (row: ConfigListItem) => {
     router.push({
-      name: 'DatabaseConfigDetails',
+      name: 'DbConfigureDetail',
       params: {
         version: row.version,
         ...changeViewParams.value,
@@ -170,7 +170,7 @@
    */
   const handleToEdit = (row: ConfigListItem) => {
     router.push({
-      name: 'DatabaseConfigEdit',
+      name: 'DbConfigureEdit',
       params: {
         version: row.version,
         ...changeViewParams.value,

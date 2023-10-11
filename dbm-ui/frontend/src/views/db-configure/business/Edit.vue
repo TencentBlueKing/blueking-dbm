@@ -342,7 +342,7 @@
         });
       }
       const routeParams = {
-        name: isApp ? 'DatabaseConfigDetails' : 'DatabaseConfig',
+        name: isApp ? 'DbConfigureDetail' : 'DbConfigureList',
         params,
         query,
       };

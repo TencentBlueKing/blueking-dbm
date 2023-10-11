@@ -278,7 +278,7 @@
       router.go(-1);
     } else {
       const params = {
-        name: 'PlatConf',
+        name: 'PlatformDbConfigureList',
         params: { ...route.params },
       };
       router.replace(params);

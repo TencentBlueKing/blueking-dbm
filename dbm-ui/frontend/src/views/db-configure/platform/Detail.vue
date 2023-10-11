@@ -13,13 +13,7 @@
 
 <template>
   <div class="configure-details">
-    <MainBreadcrumbs class="custom-main-breadcrumbs">
-      <template #append>
-        <div class="operations">
-          <!-- <bk-button class="operations__button" size="small" @click="handleToDetails">{{$t('编辑')}}</bk-button> -->
-        </div>
-      </template>
-    </MainBreadcrumbs>
+    <MainBreadcrumbs class="custom-main-breadcrumbs" />
     <BkTab
       v-model:active="state.activeTab"
       class="top-tabs"
@@ -123,32 +117,6 @@
     }];
   }, { deep: true });
 
-  // /**
-  //  * 设置多份集群配置
-  //  */
-  // watch(() => props.clusterType, (type) => {
-  //   const extraParamertes = type && extraParamertesCluster[type as ClusterTypesValues];
-  //   if (extraParamertes) {
-  //     state.extraParametersCards = [...extraParamertes];
-  //     for (const item of state.extraParametersCards) {
-  //       getExtraConfig(item);
-  //     }
-  //   }
-  // }, { immediate: true });
-
-  /**
-   * 编辑配置
-   */
-  // function handleToDetails() {
-  //   router.push({
-  //     name: 'PlatConfEdit',
-  //     params: {
-  //       clusterType: props.clusterType,
-  //       confType: props.confType,
-  //       version: props.version,
-  //     },
-  //   });
-  // }
 
   /**
    * 获取集群通用默认配置 - dbconf
@@ -164,24 +132,6 @@
         state.loading = false;
       });
   }
-
-  // /**
-  //  * 获取部分集群额外配置
-  //  */
-  // function getExtraConfig(params: ExtraConfListItem) {
-  //   params.loading = true;
-  //   getConfigBaseDetails({
-  //     meta_cluster_type: props.clusterType,
-  //     version: params.version,
-  //     conf_type: params.conf_type
-  //   })
-  //     .then((res) => {
-  //       params.data = res;
-  //     })
-  //     .finally(() => {
-  //       params.loading = false;
-  //     });
-  // }
 
   // 更新基础信息
   function handleUpdateInfo({ key, value }: { key: string, value: string }) {

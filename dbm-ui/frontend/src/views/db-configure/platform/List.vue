@@ -135,7 +135,7 @@
    */
   const handleToDetails = (row: ConfigListItem) => {
     router.push({
-      name: 'PlatConfDetails',
+      name: 'PlatformDbConfigureDetail',
       params: {
         clusterType: state.clusterType,
         confType: state.confType,
@@ -149,7 +149,7 @@
    */
   const handleUpdateDetails = (row: ConfigListItem) => {
     router.push({
-      name: 'PlatConfEdit',
+      name: 'PlatformDbConfigureEdit',
       params: {
         clusterType: state.clusterType,
         confType: state.confType,

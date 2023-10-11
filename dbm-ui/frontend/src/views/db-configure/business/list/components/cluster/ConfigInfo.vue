@@ -12,12 +12,12 @@
 -->
 
 <template>
-  <div class="module-content">
+  <div class="main-content">
     <BkLoading
       :loading="state.loading"
       style="height: 100%;"
       :z-index="12">
-      <ConfigEmpty v-if="state.isEmpty" />
+      <ConfigEmpty v-if="showEmpty" />
       <BkTab
         v-else
         v-model:active="activatedTab"
@@ -27,15 +27,10 @@
           :key="tab.name"
           v-bind="tab"
           render-directive="if">
-          <template v-if="tab.name === 'publish' && publishParams !== null">
-            <PublishRecord :fetch-params="publishParams" />
-          </template>
-          <template v-if="tab.name !== 'publish' && configParams !== null">
-            <ConfigDetails
-              :data="state.data"
-              :fetch-params="configParams"
-              :loading="state.loadingDetails" />
-          </template>
+          <ConfigDetails
+            :data="state.data"
+            :fetch-params="fetchParams"
+            :loading="state.loadingDetails" />
         </BkTabPanel>
       </BkTab>
     </BkLoading>
@@ -45,10 +40,9 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import type { GetLevelConfigParams, PlatConfDetailsParams } from '@services/types/configs';
+  import { DBTypes } from '@common/const';
 
-  import PublishRecord from '../../components/PublishRecord.vue';
-  import ConfigEmpty from '../components/ConfigEmpty.vue';
+  import ConfigEmpty from '../ConfigEmpty.vue';
   import { useBaseDetails } from '../hooks/useBaseDetails';
 
   import ConfigDetails from './ConfigDetails.vue';
@@ -62,60 +56,16 @@
   const tabs = reactive([{
     label: t('参数管理'),
     name: 'base',
-  }, {
-    label: t('发布记录'),
-    name: 'publish',
   }]);
 
-  const { state, fetchParams } = useBaseDetails();
-  const publishParams = computed(() => {
-    if (fetchParams.value) {
-      const {
-        meta_cluster_type,
-        conf_type,
-        version,
-        bk_biz_id,
-        level_name,
-        level_value,
-      } = fetchParams.value;
-      return {
-        meta_cluster_type,
-        conf_type,
-        version: version ? version : '',
-        bk_biz_id,
-        level_name,
-        level_value: String(level_value),
-      };
-    }
-    return null;
-  });
-  const configParams = computed(() => {
-    if (fetchParams.value) {
-      const {
-        meta_cluster_type,
-        conf_type,
-        version,
-        bk_biz_id,
-        level_name,
-        level_value,
-      } = fetchParams.value;
-      return {
-        meta_cluster_type,
-        conf_type,
-        version,
-        bk_biz_id,
-        level_name,
-        level_value,
-      } as PlatConfDetailsParams | GetLevelConfigParams;
-    }
-    return null;
-  });
+  const { state, fetchParams, dbType } = useBaseDetails();
+  const showEmpty = computed(() => state.isEmpty && dbType.value === DBTypes.MYSQL);
 </script>
 
 <style lang="less" scoped>
   @import "@styles/common.less";
 
-  .module-content {
+  .main-content {
     height: calc(100% - 42px);
 
     :deep(.db-card) {

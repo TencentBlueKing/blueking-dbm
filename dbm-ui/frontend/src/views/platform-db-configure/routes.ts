@@ -19,62 +19,53 @@ import { t } from '@locales/index';
 
 const routes: RouteRecordRaw[] = [
   {
-    name: 'DbConfigure',
-    path: 'db-configure',
+    name: 'PlatformDbConfigure',
+    path: 'platform-db-configure',
     meta: {
-      routeParentName: MainViewRouteNames.Database,
+      routeParentName: MainViewRouteNames.Platform,
       navName: t('数据库配置'),
       isMenu: true,
     },
     redirect: {
-      name: 'DbConfigureList',
+      name: 'PlatformDbConfigureList',
     },
-    component: () => import('@views/db-configure/Index.vue'),
+    component: () => import('@views/platform-db-configure/Index.vue'),
     children: [
       {
-        name: 'DbConfigureList',
+        name: 'PlatformDbConfigureList',
         path: 'list/:clusterType?',
         meta: {
-          routeParentName: MainViewRouteNames.Database,
+          routeParentName: MainViewRouteNames.Platform,
           navName: t('数据库配置'),
-          activeMenu: 'DbConfigure',
+          activeMenu: 'PlatformDbConfigure',
         },
-        component: () => import('@views/db-configure/business/list/Index.vue'),
+        component: () => import('@views/db-configure/platform/List.vue'),
       },
       {
-        name: 'DbConfigureDetail',
-        path: 'detail/:clusterType/:version/:confType/:treeId/:parentId?',
+        name: 'PlatformDbConfigureEdit',
+        path: 'edit/:clusterType/:version/:confType',
         meta: {
-          routeParentName: MainViewRouteNames.Database,
+          routeParentName: MainViewRouteNames.Platform,
+          navName: t('编辑平台配置'),
+          activeMenu: 'PlatformDbConfigure',
+        },
+        props: true,
+        component: () => import('@views/db-configure/platform/Edit.vue'),
+      },
+      {
+        name: 'PlatformDbConfigureDetail',
+        path: 'detail/:clusterType/:version/:confType',
+        meta: {
+          routeParentName: MainViewRouteNames.Platform,
           navName: t('配置详情'),
-          activeMenu: 'DbConfigure',
+          activeMenu: 'PlatformDbConfigure',
         },
         props: true,
-        component: () => import('@views/db-configure/business/Detail.vue'),
-      },
-      {
-        name: 'DbConfigureEdit',
-        path: 'edit/:clusterType/:version/:confType/:treeId/:parentId?',
-        meta: {
-          routeParentName: MainViewRouteNames.Database,
-          navName: t('配置编辑'),
-          activeMenu: 'DbConfigure',
-        },
-        props: true,
-        component: () => import('@views/db-configure/business/Edit.vue'),
-      },
-      {
-        name: 'DbConfigureBind',
-        path: 'bind/:clusterType/:moduleId',
-        meta: {
-          routeParentName: MainViewRouteNames.Database,
-          navName: t('绑定模块'),
-          activeMenu: 'DbConfigure',
-        },
-        component: () => import('@views/db-configure/business/Bind.vue'),
+        component: () => import('@views/db-configure/platform/Detail.vue'),
       },
     ],
   },
+
 ];
 
 export default function getRoutes() {

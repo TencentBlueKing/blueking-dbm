@@ -12,57 +12,33 @@
 -->
 
 <template>
-  <div class="database-config">
-    <TopTab @change="handleChangeTab" />
-    <template v-if="activeTab">
-      <Content :key="activeTab" />
+  <StretchLayout
+    class="wrapper"
+    :has-details="showDetails">
+    <template #list="{ isCollapseRight, renderWidth, dragTrigger }">
+      <List
+        :drag-trigger="dragTrigger"
+        :is-full-width="isCollapseRight || !showDetails"
+        style="height: 100%; overflow: hidden;"
+        :width="renderWidth" />
     </template>
-  </div>
+    <Details />
+  </StretchLayout>
 </template>
 
 <script setup lang="ts">
   import { useMainViewStore } from '@stores';
 
-  import TopTab from '../components/TopTab.vue';
+  import StretchLayout from '@components/stretch-layout/StretchLayout.vue';
 
-  import Content from './Content.vue';
+  import Details from './details/Index.vue';
+  import List from './list/Index.vue';
 
-  const router = useRouter();
   const route = useRoute();
 
-  /**
-   * 设置 main-view padding
-   */
+  // 设置主视图padding
   const mainViewStore = useMainViewStore();
   mainViewStore.hasPadding = false;
 
-  const activeTab = ref('');
-
-  /**
-   * provide active tab
-   */
-  provide('activeTab', activeTab);
-
-  /**
-   * 切换 tab
-   */
-  const handleChangeTab = (value: string) => {
-    activeTab.value = value;
-  };
-
-  watch(activeTab, (value, old) => {
-    router.replace({
-      params: {
-        clusterType: value,
-      },
-      query: old ? {} : route.query, // 根据 old 判断是否为点击切换
-    });
-  });
+  const showDetails = computed(() => Boolean(route.query.cluster_id && route.query.instance_address));
 </script>
-
-<style lang="less" scoped>
-  .database-config {
-    height: 100%;
-    padding-top: 41px;
-  }
-</style>

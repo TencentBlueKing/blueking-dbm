@@ -11,7 +11,7 @@
  * the specific language governing permissions and limitations under the License.
 -->
 <template>
-  <div class="tendb-page">
+  <div class="spider-manage-list-page">
     <div
       class="operations"
       :class="{'is-flex': isFlexHeader}">
@@ -22,7 +22,7 @@
         :placeholder="$t('集群名称_访问入口_IP')"
         style="width: 320px;"
         unique-select
-        @change="fetchTableData(true)" />
+        @change="fetchTableData" />
       <div class="mb-16">
         <BkButton
           theme="primary"
@@ -202,6 +202,9 @@
   const removeMNTInstanceIds = ref<number[]>([]);
   const searchValues = ref([]);
   const operationData = shallowRef({} as TendbClusterModel);
+  const excelAuthorizeShow = ref(false);
+  // excel 授权
+  const hasData = computed(() => tableRef.value?.getData().length > 0);
   const isCN = computed(() => locale.value === 'zh-cn');
   const isFlexHeader = computed(() => props.width >= 460);
   const paginationExtra = computed(() => {
@@ -215,7 +218,8 @@
       layout: ['total', 'limit', 'list'],
     };
   });
-  const tableHeight = computed(() => `calc(100% - ${isFlexHeader.value ? 48 : 96}px)`);const tableOperationWidth = computed(() => {
+  const tableHeight = computed(() => `calc(100% - ${isFlexHeader.value ? 48 : 96}px)`);
+  const tableOperationWidth = computed(() => {
     if (props.isFullWidth) {
       return isCN.value ? 200 : 300;
     }
@@ -590,6 +594,8 @@
       ...getSearchSelectorParams(searchValues.value),
     }, {}, isInitData);
     isInitData = false;
+
+    console.log('from search');
     return Promise.resolve([]);
   };
 
@@ -814,9 +820,6 @@
     selected.value = [];
   };
 
-  // excel 授权
-  const hasData = computed(() => tableRef.value?.getData().length > 0);
-  const excelAuthorizeShow = ref(false);
 
   const handleShowExcelAuthorize = () => {
     excelAuthorizeShow.value = true;
@@ -824,7 +827,7 @@
 </script>
 
 <style lang="less" scoped>
-.tendb-page {
+.spider-manage-list-page {
   height: 100%;
   padding: 24px 0;
   margin: 0 24px;
