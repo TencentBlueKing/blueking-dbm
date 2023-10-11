@@ -54,8 +54,6 @@
 
   import { useGlobalBizs } from '@stores';
 
-  import { TicketTypes } from '@common/const';
-
   import DbStatus from '@components/db-status/index.vue';
 
   import getSettings from '../common/tableSettings';
@@ -71,8 +69,7 @@
   interface Props {
     lastValues: InstanceSelectorValues,
     clusterId?: number,
-    role?: string
-    ticketType?: string,
+    role?: string,
   }
 
   interface Emits {
@@ -252,10 +249,6 @@
     getResourceInstances(params)
       .then((data) => {
         const ret = data;
-        if (props.ticketType === TicketTypes.TENDBCLUSTER_MASTER_FAIL_OVER) {
-          // 主库故障切换，限制过滤故障主机
-          ret.results = data.results.filter(item => item.status !== 'running');
-        }
         tableData.value = ret.results;
         pagination.count = ret.count;
         isAnomalies.value = false;
