@@ -33,7 +33,7 @@ type BkMonitorEventSender struct {
 }
 
 // NewBkMonitorEventSender new
-func NewBkMonitorEventSender(dataID int64, token, gsePath string) (ret *BkMonitorEventSender, err error) {
+func NewBkMonitorEventSender(dataID int64, token, gsePath, agentAddress string) (ret *BkMonitorEventSender, err error) {
 	if !util.FileExists(gsePath) {
 		err = fmt.Errorf("GSE_PATH:%s not exists", gsePath)
 		mylog.Logger.Error(err.Error())
@@ -50,16 +50,20 @@ func NewBkMonitorEventSender(dataID int64, token, gsePath string) (ret *BkMonito
 		mylog.Logger.Error(err.Error())
 		return
 	}
-	beatConf := filepath.Join(gsePath, "plugins/etc/bkmonitorbeat.conf")
-	if !util.FileExists(beatConf) {
-		err = fmt.Errorf("%s not exists", beatConf)
-		mylog.Logger.Error(err.Error())
-		return
-	}
-	grepCmd := fmt.Sprintf(`grep ipc %s|awk '{print $2}'`, beatConf)
-	ret.AgentAddress, err = util.RunBashCmd(grepCmd, "", nil, 10*time.Second)
-	if err != nil {
-		return
+	if agentAddress != "" {
+		ret.AgentAddress = agentAddress
+	} else {
+		beatConf := filepath.Join(gsePath, "plugins/etc/bkmonitorbeat.conf")
+		if !util.FileExists(beatConf) {
+			err = fmt.Errorf("%s not exists", beatConf)
+			mylog.Logger.Error(err.Error())
+			return
+		}
+		grepCmd := fmt.Sprintf(`grep ipc %s|awk '{print $2}'`, beatConf)
+		ret.AgentAddress, err = util.RunBashCmd(grepCmd, "", nil, 10*time.Second)
+		if err != nil {
+			return
+		}
 	}
 	ret.Data = append(ret.Data, eventBodyItem{})
 	return

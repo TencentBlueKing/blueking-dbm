@@ -845,6 +845,7 @@ class RedisActPayload(object):
             "payload": {
                 "bkdbmonpkg": {"pkg": bkdbmon_pkg.name, "pkg_md5": bkdbmon_pkg.md5},
                 "dbtoolspkg": {"pkg": self.tools_pkg.name, "pkg_md5": self.tools_pkg.md5},
+                "agent_address": env.MYSQL_CROND_AGENT_ADDRESS,
                 "gsepath": DirEnum.GSE_DIR,
                 "redis_fullbackup": fullbackup_config,
                 "redis_binlogbackup": binlogbackup_config,

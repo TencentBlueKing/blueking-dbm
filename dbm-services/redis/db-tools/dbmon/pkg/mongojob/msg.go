@@ -16,6 +16,7 @@ func SendEvent(conf *config.Configuration, serverConf *config.ConfServerItem,
 		conf.RedisMonitor.BkMonitorEventDataID,
 		conf.RedisMonitor.BkMonitorEventToken,
 		conf.GsePath,
+		conf.AgentAddress,
 	)
 
 	if msgH != nil && err == nil {

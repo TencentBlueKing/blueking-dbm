@@ -15,6 +15,7 @@ bk-dbmon安装:
         "pkg":"dbtools.tar.gz",
         "pkg_md5":"334cf6e3b84d371325052d961584d5aa"
     },
+    "agent_address":"/var/run/ipc.state.report",
     "gsepath":"/usr/local/gse_bkte",
     "redis_fullbackup":{
         "to_backup_system":"yes",

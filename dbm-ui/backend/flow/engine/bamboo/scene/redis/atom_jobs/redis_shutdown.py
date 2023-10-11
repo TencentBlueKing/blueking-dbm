@@ -47,6 +47,15 @@ def RedisBatchShutdownAtomJob(root_id, ticket_data, sub_kwargs: ActKwargs, shutd
     exec_ip = shutdown_param["ip"]
     act_kwargs = deepcopy(sub_kwargs)
 
+    trans_files = GetFileList(db_type=DBType.Redis)
+    act_kwargs.file_list = trans_files.redis_dbmon()
+    act_kwargs.exec_ip = exec_ip
+    sub_pipeline.add_act(
+        act_name=_("{}-下发介质包").format(exec_ip),
+        act_component_code=TransFileComponent.code,
+        kwargs=asdict(act_kwargs),
+    )
+
     #  监听请求。集群是先关闭再下架，所以理论上这里是没请求才对
     act_kwargs.exec_ip = exec_ip
     act_kwargs.cluster["exec_ip"] = exec_ip
