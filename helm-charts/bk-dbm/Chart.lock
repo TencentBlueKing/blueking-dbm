@@ -10,7 +10,7 @@ dependencies:
   version: 16.13.2
 - name: etcd
   repository: https://charts.bitnami.com/bitnami
-  version: 9.5.4
+  version: 9.5.5
 - name: grafana
   repository: file://./charts/grafana
   version: 7.9.8
@@ -50,5 +50,5 @@ dependencies:
 - name: backup-consumer
   repository: file://charts/backup-consumer
   version: 0.0.2
-digest: sha256:6b5728014c60aa1e59b0805b9c63a84915e3ed5ea1581f8f4546daf4c0602027
-generated: "2023-10-10T15:44:19.332544+08:00"
+digest: sha256:bca62d6538530facd8b271d761816f51bf547f767d6757f238b00c9e6469565e
+generated: "2023-10-12T10:20:26.956839+08:00"
