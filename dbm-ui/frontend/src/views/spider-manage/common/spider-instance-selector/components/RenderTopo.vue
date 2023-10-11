@@ -141,7 +141,7 @@
         },
       ],
     }).then((data) => {
-      const formatData = data.map((item: any) => ({ ...item, count: item.instance_count }));
+      const formatData = data.map((item: any) => ({ ...item, count: item.remote_db.length }));
       treeData.value = [
         {
           name: currentBizInfo?.display_name || '--',

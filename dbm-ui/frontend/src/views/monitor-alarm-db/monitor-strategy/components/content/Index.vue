@@ -233,20 +233,24 @@
       field: 'is_enabled',
       showOverflowTooltip: true,
       width: 120,
-      render: ({ row }: {row: RowData}) => (
-        <bk-pop-confirm
-          title={t('确认停用该策略？')}
-          content={t('停用后所有监控动作将会停止，请谨慎操作！')}
-          width="320"
-          is-show={row.is_show_tip}
-          trigger="manual"
-          placement="bottom"
-          onConfirm={() => handleClickConfirm(row)}
-          onCancel={() => handleCancelConfirm(row)}
-        >
-        <bk-switcher size="small" v-model={row.is_enabled} theme="primary" onChange={() => handleChangeSwitch(row)}/>
-      </bk-pop-confirm>
-      ),
+      render: ({ row }: {row: RowData}) => {
+        const isInner = row.bk_biz_id === 0;
+        return (
+          <bk-pop-confirm
+            title={t('确认停用该策略？')}
+            content={t('停用后所有监控动作将会停止，请谨慎操作！')}
+            disabled={isInner}
+            width="320"
+            is-show={row.is_show_tip}
+            trigger="manual"
+            placement="bottom"
+            onConfirm={() => handleClickConfirm(row)}
+            onCancel={() => handleCancelConfirm(row)}
+          >
+            <bk-switcher size="small" disabled={isInner} v-model={row.is_enabled} theme="primary" onChange={() => handleChangeSwitch(row)}/>
+          </bk-pop-confirm>
+        );
+      },
     },
     {
       label: t('更新时间'),
