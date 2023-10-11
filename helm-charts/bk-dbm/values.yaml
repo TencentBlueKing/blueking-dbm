@@ -152,7 +152,7 @@ dbm:
       registry: "mirrors.tencent.com"
       repository: "build/blueking/dbmedium"
       pullPolicy: IfNotPresent
-      tag: "latest"
+      tag: ""
 
   securityContext: {}
 
