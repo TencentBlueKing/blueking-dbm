@@ -71,6 +71,7 @@ type Configuration struct {
 	ReportSaveDir     string                `json:"report_save_dir" mapstructure:"report_save_dir"`
 	ReportLeftDay     int                   `json:"report_left_day" mapstructure:"report_left_day"`
 	HttpAddress       string                `json:"http_address" mapstructure:"http_address"`
+	AgentAddress      string                `json:"agent_address" mapstructure:"agent_address"`
 	GsePath           string                `json:"gsepath" mapstructure:"gsepath"`
 	RedisFullBackup   ConfRedisFullBackup   `json:"redis_fullbackup" mapstructure:"redis_fullbackup"`
 	RedisBinlogBackup ConfRedisBinlogBackup `json:"redis_binlogbackup" mapstructure:"redis_binlogbackup"`
