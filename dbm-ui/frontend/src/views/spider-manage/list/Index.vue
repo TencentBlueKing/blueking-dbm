@@ -47,8 +47,8 @@
   import MainBreadcrumbs from '@components/layouts/MainBreadcrumbs.vue';
   import StretchLayout from '@components/stretch-layout/StretchLayout.vue';
 
-  import Details from './details/DetailsTendb.vue';
-  import List from './list/ListTendb.vue';
+  import Details from './details/Index.vue';
+  import List from './list/Index.vue';
 
   const route = useRoute();
   const { t } = useI18n();

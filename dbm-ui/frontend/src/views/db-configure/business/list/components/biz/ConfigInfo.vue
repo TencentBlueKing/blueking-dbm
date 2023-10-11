@@ -33,8 +33,8 @@
 
   import type { ClusterTypesValues } from '@common/const';
 
-  import { extraClusterConfs, getDefaultConf } from '../../common/const';
-  import type { ConfType } from '../../common/types';
+  import { extraClusterConfs, getDefaultConf } from '@views/db-configure/common/const';
+  import type { ConfType } from '@views/db-configure/common/types';
 
   import ConfigDatabase from './ConfigDatabase.vue';
 

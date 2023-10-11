@@ -59,9 +59,9 @@
 
   import MainBreadcrumbs from '@components/layouts/MainBreadcrumbs.vue';
 
-  import DetailsBase from '../../components/DetailsBase.vue';
-  import PublishRecord from '../../components/PublishRecord.vue';
-  import { useLevelParams } from '../../hooks/useLevelParams';
+  import DetailsBase from '@views/db-configure/components/DetailsBase.vue';
+  import PublishRecord from '@views/db-configure/components/PublishRecord.vue';
+  import { useLevelParams } from '@views/db-configure/hooks/useLevelParams';
 
   interface Props {
     clusterType: string,

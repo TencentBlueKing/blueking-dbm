@@ -22,7 +22,7 @@
         @mouseleave="menuStore.mouseleave">
         <div class="main-menu__list db-scroll-y">
           <BkMenuGroup :name="$t('配置管理')">
-            <BkMenuItem key="PlatConf">
+            <BkMenuItem key="PlatformDbConfigure">
               <template #icon>
                 <i class="db-icon-db-config" />
               </template>

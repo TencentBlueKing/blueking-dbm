@@ -58,8 +58,6 @@
                   v-bk-tooltips="$t('新建DB模块')"
                   class="content-tree-add db-icon-add"
                   @click.stop="createModule" />
-                <!-- <span class="content-tree-count">{{item.count}}</span>
-                  <span v-if="item.version" class="content-tree-version">{{item.version}}</span> -->
               </div>
             </template>
             <template #empty>
@@ -79,7 +77,9 @@
         :key="treeState.activeNode.id"
         class="content-details">
         <div class="content-details-title">
-          <strong class="content-details-title-name">{{ treeState.activeNode.name }}</strong>
+          <strong class="content-details-title-name">
+            {{ treeState.activeNode.name }}
+          </strong>
           <BkTag theme="info">
             {{ treeState.activeNode.tag }}
           </BkTag>
@@ -94,15 +94,20 @@
 </template>
 
 <script setup lang="ts">
-  import { clusterTypeInfos, ClusterTypes, type ClusterTypesValues, ConfLevels } from '@common/const';
+  import {
+    clusterTypeInfos,
+    ClusterTypes,
+    type ClusterTypesValues,
+    ConfLevels,
+  } from '@common/const';
 
   import EmptyStatus from '@components/empty-status/EmptyStatus.vue';
 
   import ConfigBusiness from './biz/ConfigInfo.vue';
   import ConfigCluster from './cluster/ConfigInfo.vue';
-  import type { TreeData, TreeState } from './common/types';
   import { useTreeData } from './hooks/useTreeData';
   import ConfigModule from './module/ConfigInfo.vue';
+  import type { TreeData, TreeState } from './types';
 
   const route = useRoute();
   const treeState = reactive<TreeState>({

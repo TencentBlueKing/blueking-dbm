@@ -38,6 +38,7 @@ import getNotificationSettingRoutes from '@views/notification-setting/routes';
 import getPasswordPolicyRoutes from '@views/password-policy/routes';
 import getPasswordRandomizationRoutes from '@views/password-randomization/routes';
 import getPasswordTemporaryModify from '@views/password-temporary-modify/routes';
+import getPlatformDbConfigureRoutes from '@views/platform-db-configure/routes';
 import getPulsarRoutes from '@views/pulsar-manage/routes';
 import getRedisRoutes from '@views/redis/routes';
 import getResourcePool from '@views/resource-pool/routes';
@@ -80,7 +81,7 @@ const platformRoute = {
   name: MainViewRouteNames.Platform,
   path: '/platform',
   redirect: {
-    name: 'PlatConf',
+    name: 'PlatformDbConfigure',
   },
   meta: {
     navName: t('平台管理'),
@@ -158,6 +159,7 @@ export default async function getRouters() {
     ...getPasswordRandomizationRoutes(),
     ...getNotificationSettingRoutes(),
     ...getPasswordTemporaryModify(),
+    ...getPlatformDbConfigureRoutes(),
     // ...deploymentPlanRoutes,
   ];
 

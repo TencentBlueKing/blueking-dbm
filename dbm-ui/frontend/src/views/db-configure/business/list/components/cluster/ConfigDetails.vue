@@ -53,9 +53,10 @@
   import {
     defaultConfTitles,
     extraParamertesCluster,
-  } from '../../common/const';
-  import type { ExtraConfListItem } from '../../common/types';
-  import DetailsBase from '../../components/DetailsBase.vue';
+  } from '@views/db-configure/common/const';
+  import type { ExtraConfListItem } from '@views/db-configure/common/types';
+  import DetailsBase from '@views/db-configure/components/DetailsBase.vue';
+
   import { useBaseDetails } from '../hooks/useBaseDetails';
 
   interface Props {

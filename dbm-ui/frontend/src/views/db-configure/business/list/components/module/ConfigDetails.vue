@@ -41,7 +41,7 @@
 
   import { ConfLevels } from '@common/const';
 
-  import DetailsBase from '../../components/DetailsBase.vue';
+  import DetailsBase from '@views/db-configure/components/DetailsBase.vue';
 
   interface Props {
     data?: ConfigBaseDetails
