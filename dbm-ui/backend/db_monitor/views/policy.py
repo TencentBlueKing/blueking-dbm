@@ -165,14 +165,14 @@ class MonitorPolicyViewSet(AuditedModelViewSet):
     )
     @action(methods=["POST"], detail=True, serializer_class=MonitorPolicyUpdateSerializer)
     def update_strategy(self, request, *args, **kwargs):
-        return Response(self.get_object().update(self.validated_data))
+        return Response(self.get_object().update(self.validated_data, request.user.username))
 
-    @common_swagger_auto_schema(
-        operation_summary=_("恢复默认策略"), tags=[constants.SWAGGER_TAG], request_body=MonitorPolicyEmptySerializer()
-    )
-    @action(methods=["POST"], detail=True)
-    def reset(self, request, *args, **kwargs):
-        return Response(self.get_object().reset())
+    # @common_swagger_auto_schema(
+    #     operation_summary=_("恢复默认策略"), tags=[constants.SWAGGER_TAG], request_body=MonitorPolicyEmptySerializer()
+    # )
+    # @action(methods=["POST"], detail=True)
+    # def reset(self, request, *args, **kwargs):
+    #     return Response(self.get_object().reset())
 
     @common_swagger_auto_schema(
         operation_summary=_("根据db类型查询集群列表"),

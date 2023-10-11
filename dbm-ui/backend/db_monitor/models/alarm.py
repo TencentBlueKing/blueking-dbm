@@ -767,13 +767,17 @@ class MonitorPolicy(AuditedModel):
 
         return details
 
-    def save(self, *args, **kwargs):
+    def save(self, force_insert=False, force_update=False, using=None, update_fields=None):
         """保存策略对象的同时，同步记录到监控"""
 
         # step1. sync to model
-        details = self.patch_all()
+        details = self.details
+        # 开关操作跳过重复的patch
+        if update_fields != ["is_enabled"]:
+            details = self.patch_all()
 
         # step2. sync to bkm
+        details.pop("id")
         res = self.bkm_save_alarm_strategy(details)
 
         # overwrite by bkm strategy details
@@ -786,7 +790,7 @@ class MonitorPolicy(AuditedModel):
             self.parent_details = self.details
 
         # step3. save to db
-        super().save(*args, **kwargs)
+        super().save(force_insert, force_update, using, update_fields)
 
     def delete(self, using=None, keep_parents=False):
         if self.bk_biz_id == PLAT_BIZ_ID:
@@ -846,9 +850,6 @@ class MonitorPolicy(AuditedModel):
         policy.creator = policy.updater = username
         policy.id = None
 
-        # obj.calc_from_targets()
-
-        # create -> overwrite details
         policy.save()
 
         # 重新获取policy
