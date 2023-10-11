@@ -12,7 +12,8 @@
 -->
 
 <template>
-  <MainBreadcrumbs>
+  <div />
+  <!-- <MainBreadcrumbs>
     <template #append>
       <div class="password-temporary-modify-head">
         <span class="head-subtitle">
@@ -154,398 +155,399 @@
         <span>{{ item.text }}</span>
       </div>
     </div>
-  </div>
+  </div> -->
 </template>
 
 <script setup lang="tsx">
-  import dayjs from 'dayjs';
-  import JSEncrypt from 'jsencrypt';
-  import _ from 'lodash';
-  import type { Instance } from 'tippy.js';
-  import { useI18n } from 'vue-i18n';
-  import { useRequest } from 'vue-request';
+  // import dayjs from 'dayjs';
+  // import JSEncrypt from 'jsencrypt';
+  // import _ from 'lodash';
+  // import type { Instance } from 'tippy.js';
+  // import { useI18n } from 'vue-i18n';
+  // import { useRequest } from 'vue-request';
 
-  import {
-    getPasswordPolicy,
-    getRandomPassword,
-    getRSAPublicKeys,
-    modifyMysqlAdminPassword,
-    verifyPasswordStrength,
-  } from '@services/permission';
+  // import {
+  //   getPasswordPolicy,
+  //   getRandomPassword,
+  //   getRSAPublicKeys,
+  //   modifyMysqlAdminPassword,
+  //   verifyPasswordStrength,
+  // } from '@services/permission';
 
-  import { useMainViewStore } from '@stores';
+  // import { useMainViewStore } from '@stores';
 
-  import type { ClusterTypes } from '@common/const';
-  import { dbTippy } from '@common/tippy';
+  // import type { ClusterTypes } from '@common/const';
+  // import { dbTippy } from '@common/tippy';
 
-  import MainBreadcrumbs from '@components/layouts/MainBreadcrumbs.vue';
+  // import MainBreadcrumbs from '@components/layouts/MainBreadcrumbs.vue';
 
-  import type {
-    InstanceSelectorValue,
-    InstanceSelectorValues,
-  } from './components/password-instance-selector/common/types';
-  import InstanceSelector from './components/password-instance-selector/Index.vue';
-  import PasswordSideslider from './components/PasswordSideslider.vue';
-  import UpdateResult from './components/UpdateResult.vue';
+  // import type {
+  //   InstanceSelectorValue,
+  //   InstanceSelectorValues,
+  // } from './components/password-instance-selector/common/types';
+  // import InstanceSelector from './components/password-instance-selector/Index.vue';
+  // import PasswordSideslider from './components/PasswordSideslider.vue';
+  // import UpdateResult from './components/UpdateResult.vue';
 
-  const getEncyptPassword = () => {
-    const encypt = new JSEncrypt();
-    encypt.setPublicKey(publicKey);
-    const encyptPassword = encypt.encrypt(formData.password);
-    return typeof encyptPassword === 'string' ? encyptPassword : '';
-  };
+  // const getEncyptPassword = () => {
+  //   const encypt = new JSEncrypt();
+  //   encypt.setPublicKey(publicKey);
+  //   const encyptPassword = encypt.encrypt(formData.password);
+  //   return typeof encyptPassword === 'string' ? encyptPassword : '';
+  // };
 
-  const verifyPassword = () => verifyPasswordStrength(getEncyptPassword())
-    .then((verifyResult) => {
-      passwordValidate.value = verifyResult;
-      return verifyResult.is_strength;
-    });
+  // const verifyPassword = () => verifyPasswordStrength(getEncyptPassword())
+  //   .then((verifyResult) => {
+  //     passwordValidate.value = verifyResult;
+  //     return verifyResult.is_strength;
+  //   });
 
-  const debounceVerifyPassword = _.debounce(verifyPassword, 300);
+  // const debounceVerifyPassword = _.debounce(verifyPassword, 300);
 
-  interface StrengthItem {
-    keys: string[],
-    text: string
-  }
+  // interface StrengthItem {
+  //   keys: string[],
+  //   text: string
+  // }
 
-  interface TableRow {
-    data: InstanceSelectorValue & {
-      isExpired: boolean
-    },
-    index: number
-  }
+  // interface TableRow {
+  //   data: InstanceSelectorValue & {
+  //     isExpired: boolean
+  //   },
+  //   index: number
+  // }
 
-  type PasswordPolicyKeys = keyof typeof PASSWORD_POLICY;
-  type PasswordPolicy = ServiceReturnType<typeof getPasswordPolicy>
-  type PasswordStrength = ServiceReturnType<typeof verifyPasswordStrength>
+  // type PasswordPolicyKeys = keyof typeof PASSWORD_POLICY;
+  // type PasswordPolicy = ServiceReturnType<typeof getPasswordPolicy>
+  // type PasswordStrength = ServiceReturnType<typeof verifyPasswordStrength>
 
-  const { t } = useI18n();
-  const mainViewStore = useMainViewStore();
-  mainViewStore.hasPadding = false;
-  mainViewStore.customBreadcrumbs = true;
+  // const { t } = useI18n();
+  // const mainViewStore = useMainViewStore();
+  // mainViewStore.hasPadding = false;
+  // mainViewStore.customBreadcrumbs = true;
 
-  const createDefaultData = () => ({
-    instanceList: [] as InstanceSelectorValue[],
-    password: '',
-    validDuration: 1,
-    validDurationType: VALID_DURATION_TYPE.DAY,
-  });
+  // const createDefaultData = () => ({
+  //   instanceList: [] as InstanceSelectorValue[],
+  //   password: '',
+  //   validDuration: 1,
+  //   validDurationType: VALID_DURATION_TYPE.DAY,
+  // });
 
-  const VALID_DURATION_TYPE = {
-    DAY: 'day',
-    HOUR: 'hour',
-  };
+  // const VALID_DURATION_TYPE = {
+  //   DAY: 'day',
+  //   HOUR: 'hour',
+  // };
 
-  const VALID_DURATION_OPTIONS = [
-    {
-      label: t('天'),
-      value: VALID_DURATION_TYPE.DAY,
-    },
-    {
-      label: t('小时'),
-      value: VALID_DURATION_TYPE.HOUR,
-    },
-  ];
+  // const VALID_DURATION_OPTIONS = [
+  //   {
+  //     label: t('天'),
+  //     value: VALID_DURATION_TYPE.DAY,
+  //   },
+  //   {
+  //     label: t('小时'),
+  //     value: VALID_DURATION_TYPE.HOUR,
+  //   },
+  // ];
 
-  const PASSWORD_POLICY = {
-    lowercase: t('包含小写字母'),
-    uppercase: t('包含大写字母'),
-    numbers: t('包含数字'),
-    symbols: t('包含特殊字符_除空格外'),
-    follow_keyboards: t('键盘序'),
-    follow_letters: t('字母序'),
-    follow_numbers: t('数字序'),
-    follow_symbols: t('特殊符号序'),
-  };
+  // const PASSWORD_POLICY = {
+  //   lowercase: t('包含小写字母'),
+  //   uppercase: t('包含大写字母'),
+  //   numbers: t('包含数字'),
+  //   symbols: t('包含特殊字符_除空格外'),
+  //   follow_keyboards: t('键盘序'),
+  //   follow_letters: t('字母序'),
+  //   follow_numbers: t('数字序'),
+  //   follow_symbols: t('特殊符号序'),
+  // };
 
-  const passwordRules = [
-    {
-      trigger: 'blur',
-      message: t('密码不满足要求'),
-      validator: debounceVerifyPassword,
-    },
-  ];
+  // const passwordRules = [
+  //   {
+  //     trigger: 'blur',
+  //     message: t('密码不满足要求'),
+  //     validator: debounceVerifyPassword,
+  //   },
+  // ];
 
-  const columns = [
-    {
-      label: t('实例'),
-      field: 'instance_address',
-      width: 200,
-      render: ({ data }: TableRow) => (
-        <span>
-          { data.instance_address }
-          {
-            data.isExpired
-              ? <db-icon
-                  v-bk-tooltips={ t('当前临时密码未过期，继续修改将会覆盖原来的密码') }
-                  class='ml-4 instance-tip'
-                  type="attention-fill" />
-              : null
-          }
-        </span>
-      ),
-    },
-    {
-      label: t('DB类型'),
-      field: 'db_type',
-      width: 200,
-      render: ({ data }: TableRow) => (
-        <>
-          <db-icon type={ data.db_type } class='mr-8 type-icon' />
-          <span>{ data.db_type }</span>
-        </>
-      ),
-    },
-    {
-      label: t('所属集群'),
-      field: 'master_domain',
-    },
-    {
-      label: t('操作'),
-      field: 'operations',
-      width: 100,
-      render: ({ index }: TableRow) => (
-        <bk-button
-          text
-          theme="primary"
-          onClick={ () => handleInstanceDelete(index) }>
-          { t('删除') }
-        </bk-button>
-      ),
-    },
-  ];
+  // const columns = [
+  //   {
+  //     label: t('实例'),
+  //     field: 'instance_address',
+  //     width: 200,
+  //     render: ({ data }: TableRow) => (
+  //       <span>
+  //         { data.instance_address }
+  //         {
+  //           data.isExpired
+  //             ? <db-icon
+  //                 v-bk-tooltips={ t('当前临时密码未过期，继续修改将会覆盖原来的密码') }
+  //                 class='ml-4 instance-tip'
+  //                 type="attention-fill" />
+  //             : null
+  //         }
+  //       </span>
+  //     ),
+  //   },
+  //   {
+  //     label: t('DB类型'),
+  //     field: 'db_type',
+  //     width: 200,
+  //     render: ({ data }: TableRow) => (
+  //       <>
+  //         <db-icon type={ data.db_type } class='mr-8 type-icon' />
+  //         <span>{ data.db_type }</span>
+  //       </>
+  //     ),
+  //   },
+  //   {
+  //     label: t('所属集群'),
+  //     field: 'master_domain',
+  //   },
+  //   {
+  //     label: t('操作'),
+  //     field: 'operations',
+  //     width: 100,
+  //     render: ({ index }: TableRow) => (
+  //       <bk-button
+  //         text
+  //         theme="primary"
+  //         onClick={ () => handleInstanceDelete(index) }>
+  //         { t('删除') }
+  //       </bk-button>
+  //     ),
+  //   },
+  // ];
 
-  const passwordKeys: string[] = [];
-  const passwordFollowKeys: string[] = [];
-  let instance: Instance | null = null;
-  let publicKey = '';
+  // const passwordKeys: string[] = [];
+  // const passwordFollowKeys: string[] = [];
+  // let instance: Instance | null = null;
+  // let publicKey = '';
 
-  Object.keys(PASSWORD_POLICY).forEach((key) => {
-    if (key.includes('follow_')) {
-      passwordFollowKeys.push(key);
-    } else {
-      passwordKeys.push(key);
-    }
-  });
+  // Object.keys(PASSWORD_POLICY).forEach((key) => {
+  //   if (key.includes('follow_')) {
+  //     passwordFollowKeys.push(key);
+  //   } else {
+  //     passwordKeys.push(key);
+  //   }
+  // });
 
-  const passwordStrength = ref<StrengthItem[]>([]);
-  const passwordValidate = ref({} as PasswordStrength);
-  const submitted = ref(false);
-  const passwordSidesliderShow = ref(false);
-  const instanceSelectorShow = ref(false);
-  const formRef = ref();
-  const passwordRef = ref();
-  const passwordItemRef = ref();
-  const formData = reactive(createDefaultData());
+  // const passwordStrength = ref<StrengthItem[]>([]);
+  // const passwordValidate = ref({} as PasswordStrength);
+  // const submitted = ref(false);
+  // const passwordSidesliderShow = ref(false);
+  // const instanceSelectorShow = ref(false);
+  // const formRef = ref();
+  // const passwordRef = ref();
+  // const passwordItemRef = ref();
+  // const formData = reactive(createDefaultData());
 
-  const anticipatedEffectiveTime = computed(() => {
-    const {
-      validDuration,
-      validDurationType,
-    } = formData;
-    const currentDate = dayjs();
-    let hours = formData.validDuration;
+  // const anticipatedEffectiveTime = computed(() => {
+  //   const {
+  //     validDuration,
+  //     validDurationType,
+  //   } = formData;
+  //   const currentDate = dayjs();
+  //   let hours = formData.validDuration;
 
-    if (validDurationType === VALID_DURATION_TYPE.DAY) {
-      hours = validDuration * 24;
-    }
+  //   if (validDurationType === VALID_DURATION_TYPE.DAY) {
+  //     hours = validDuration * 24;
+  //   }
 
-    return currentDate.add(hours, 'hour').format('YYYY-MM-DD HH:mm');
-  });
+  //   return currentDate.add(hours, 'hour').format('YYYY-MM-DD HH:mm');
+  // });
 
-  useRequest(getRSAPublicKeys, {
-    defaultParams: [{ names: ['password'] }],
-    onSuccess(publicKeyRes) {
-      publicKey = publicKeyRes[0]?.content || '';
-    },
-  });
+  // useRequest(getRSAPublicKeys, {
+  //   defaultParams: [{ names: ['password'] }],
+  //   onSuccess(publicKeyRes) {
+  //     publicKey = publicKeyRes[0]?.content || '';
+  //   },
+  // });
 
-  useRequest(getPasswordPolicy, {
-    onSuccess(passwordPolicyRes) {
-      const {
-        min_length: minLength,
-        max_length: maxLength,
-        include_rule: includeRule,
-        exclude_continuous_rule: excludeContinuousRule,
-      } = passwordPolicyRes.rule;
+  // useRequest(getPasswordPolicy, {
+  //   onSuccess(passwordPolicyRes) {
+  //     const {
+  //       min_length: minLength,
+  //       max_length: maxLength,
+  //       include_rule: includeRule,
+  //       exclude_continuous_rule: excludeContinuousRule,
+  //     } = passwordPolicyRes.rule;
 
-      passwordStrength.value = [{
-        keys: ['min_length_valid', 'max_length_valid'],
-        text: t('密码长度为_min_max', [minLength, maxLength]),
-      }];
+  //     passwordStrength.value = [{
+  //       keys: ['min_length_valid', 'max_length_valid'],
+  //       text: t('密码长度为_min_max', [minLength, maxLength]),
+  //     }];
 
-      for (const passwordKey of passwordKeys) {
-        if (includeRule[passwordKey as keyof PasswordPolicy['rule']['include_rule']]) {
-          passwordStrength.value.push({
-            keys: [`${passwordKey}_valid`],
-            text: PASSWORD_POLICY[passwordKey as PasswordPolicyKeys],
-          });
-        }
-      }
+  //     for (const passwordKey of passwordKeys) {
+  //       if (includeRule[passwordKey as keyof PasswordPolicy['rule']['include_rule']]) {
+  //         passwordStrength.value.push({
+  //           keys: [`${passwordKey}_valid`],
+  //           text: PASSWORD_POLICY[passwordKey as PasswordPolicyKeys],
+  //         });
+  //       }
+  //     }
 
-      if (excludeContinuousRule.repeats) {
-        passwordStrength.value.push({
-          keys: ['repeats_valid'],
-          text: t('不能连续重复n位字母_数字_特殊符号', { n: excludeContinuousRule.limit }),
-        });
-      }
+  //     if (excludeContinuousRule.repeats) {
+  //       passwordStrength.value.push({
+  //         keys: ['repeats_valid'],
+  //         text: t('不能连续重复n位字母_数字_特殊符号', { n: excludeContinuousRule.limit }),
+  //       });
+  //     }
 
-      const special = passwordFollowKeys.reduce((values: StrengthItem[], passwordFollowKey: string) => {
-        const valueKey = passwordFollowKey.replace('follow_', '') as keyof PasswordPolicy['rule']['exclude_continuous_rule'];
-        if (excludeContinuousRule[valueKey]) {
-          values.push({
-            keys: [`${passwordFollowKey}_valid`],
-            text: PASSWORD_POLICY[passwordFollowKey as PasswordPolicyKeys],
-          });
-        }
-        return values;
-      }, []);
+  //     const special = passwordFollowKeys.reduce((values: StrengthItem[], passwordFollowKey: string) => {
+  // eslint-disable-next-line max-len
+  //       const valueKey = passwordFollowKey.replace('follow_', '') as keyof PasswordPolicy['rule']['exclude_continuous_rule'];
+  //       if (excludeContinuousRule[valueKey]) {
+  //         values.push({
+  //           keys: [`${passwordFollowKey}_valid`],
+  //           text: PASSWORD_POLICY[passwordFollowKey as PasswordPolicyKeys],
+  //         });
+  //       }
+  //       return values;
+  //     }, []);
 
-      if (special.length > 0) {
-        const keys: string[] = [];
-        const texts: string[] = [];
-        for (const item of special) {
-          keys.push(...item.keys);
-          texts.push(item.text);
-        }
-        passwordStrength.value.push({
-          keys,
-          text: texts.join('、'),
-        });
-      }
+  //     if (special.length > 0) {
+  //       const keys: string[] = [];
+  //       const texts: string[] = [];
+  //       for (const item of special) {
+  //         keys.push(...item.keys);
+  //         texts.push(item.text);
+  //       }
+  //       passwordStrength.value.push({
+  //         keys,
+  //         text: texts.join('、'),
+  //       });
+  //     }
 
-      const template = document.getElementById('passwordStrength');
-      const content = template?.querySelector?.('.password-strength');
-      if (passwordRef.value?.$el && content) {
-        const el = passwordRef.value.$el as HTMLDivElement;
-        instance?.destroy();
-        instance = dbTippy(el, {
-          trigger: 'manual',
-          theme: 'light',
-          content,
-          arrow: true,
-          placement: 'top-end',
-          interactive: true,
-          allowHTML: true,
-          hideOnClick: false,
-          zIndex: 9999,
-          onDestroy: () => template?.append?.(content),
-          appendTo: () => document.body,
-        });
-      }
-    },
-  });
+  //     const template = document.getElementById('passwordStrength');
+  //     const content = template?.querySelector?.('.password-strength');
+  //     if (passwordRef.value?.$el && content) {
+  //       const el = passwordRef.value.$el as HTMLDivElement;
+  //       instance?.destroy();
+  //       instance = dbTippy(el, {
+  //         trigger: 'manual',
+  //         theme: 'light',
+  //         content,
+  //         arrow: true,
+  //         placement: 'top-end',
+  //         interactive: true,
+  //         allowHTML: true,
+  //         hideOnClick: false,
+  //         zIndex: 9999,
+  //         onDestroy: () => template?.append?.(content),
+  //         appendTo: () => document.body,
+  //       });
+  //     }
+  //   },
+  // });
 
-  const {
-    run: getRandomPasswordRun,
-  } = useRequest(getRandomPassword, {
-    manual: true,
-    onSuccess(randomPasswordRes) {
-      formData.password = randomPasswordRes.password;
-    },
-  });
+  // const {
+  //   run: getRandomPasswordRun,
+  // } = useRequest(getRandomPassword, {
+  //   manual: true,
+  //   onSuccess(randomPasswordRes) {
+  //     formData.password = randomPasswordRes.password;
+  //   },
+  // });
 
-  const {
-    loading: submitting,
-    run: modifyMysqlAdminPasswordRun,
-    data: submitRes,
-  } = useRequest(modifyMysqlAdminPassword, {
-    manual: true,
-    onSuccess() {
-      submitted.value = true;
-      window.changeConfirm = false;
-    },
-  });
+  // const {
+  //   loading: submitting,
+  //   run: modifyMysqlAdminPasswordRun,
+  //   data: submitRes,
+  // } = useRequest(modifyMysqlAdminPassword, {
+  //   manual: true,
+  //   onSuccess() {
+  //     submitted.value = true;
+  //     window.changeConfirm = false;
+  //   },
+  // });
 
-  watch(() => formData.password, (newVal) => {
-    if (newVal) {
-      debounceVerifyPassword();
-    }
-  });
+  // watch(() => formData.password, (newVal) => {
+  //   if (newVal) {
+  //     debounceVerifyPassword();
+  //   }
+  // });
 
-  const handleAddInstance = () => {
-    instanceSelectorShow.value = true;
-  };
+  // const handleAddInstance = () => {
+  //   instanceSelectorShow.value = true;
+  // };
 
-  const handleInstanceDelete = (index: number) => {
-    formData.instanceList.splice(index, 1);
-  };
+  // const handleInstanceDelete = (index: number) => {
+  //   formData.instanceList.splice(index, 1);
+  // };
 
-  const randomlyGenerate = () => {
-    getRandomPasswordRun();
-  };
+  // const randomlyGenerate = () => {
+  //   getRandomPasswordRun();
+  // };
 
-  const handlePasswordFocus = () => {
-    instance?.show();
-    passwordItemRef.value?.clearValidate();
-  };
+  // const handlePasswordFocus = () => {
+  //   instance?.show();
+  //   passwordItemRef.value?.clearValidate();
+  // };
 
-  const handlePasswordBlur = () => {
-    instance?.hide();
-  };
+  // const handlePasswordBlur = () => {
+  //   instance?.hide();
+  // };
 
-  const getStrenthStatus = (item: StrengthItem) => {
-    if (!passwordValidate.value || Object.keys(passwordValidate.value).length === 0) {
-      return '';
-    }
+  // const getStrenthStatus = (item: StrengthItem) => {
+  //   if (!passwordValidate.value || Object.keys(passwordValidate.value).length === 0) {
+  //     return '';
+  //   }
 
-    const isPass = item.keys.every((key) => {
-      const verifyInfo = passwordValidate.value.password_verify_info || {};
-      return verifyInfo[key as keyof PasswordStrength['password_verify_info']];
-    });
-    return `password-strength-status-${isPass ? 'success' : 'failed'}`;
-  };
+  //   const isPass = item.keys.every((key) => {
+  //     const verifyInfo = passwordValidate.value.password_verify_info || {};
+  //     return verifyInfo[key as keyof PasswordStrength['password_verify_info']];
+  //   });
+  //   return `password-strength-status-${isPass ? 'success' : 'failed'}`;
+  // };
 
-  const handleInstanceChange = (data: InstanceSelectorValues) => {
-    formData.instanceList = Object.values(data).reduce((prev, current) => [...prev, ...current], []);
-  };
+  // const handleInstanceChange = (data: InstanceSelectorValues) => {
+  //   formData.instanceList = Object.values(data).reduce((prev, current) => [...prev, ...current], []);
+  // };
 
-  const submitValidator = async () => {
-    await formRef.value.validate();
+  // const submitValidator = async () => {
+  //   await formRef.value.validate();
 
-    handleSubmit(formData.instanceList);
-  };
+  //   handleSubmit(formData.instanceList);
+  // };
 
-  const handleSubmit = (instanceList: {
-    ip: string
-    port: number
-    bk_cloud_id: number
-    cluster_type: ClusterTypes
-    role: string
-  }[] = []) => {
-    const params = {
-      lock_until: anticipatedEffectiveTime.value,
-      password: formData.password,
-      instance_list: instanceList.map((instance) => {
-        const {
-          ip,
-          port,
-          bk_cloud_id,
-          role,
-          cluster_type,
-        } = instance;
+  // const handleSubmit = (instanceList: {
+  //   ip: string
+  //   port: number
+  //   bk_cloud_id: number
+  //   cluster_type: ClusterTypes
+  //   role: string
+  // }[] = []) => {
+  //   const params = {
+  //     lock_until: anticipatedEffectiveTime.value,
+  //     password: formData.password,
+  //     instance_list: instanceList.map((instance) => {
+  //       const {
+  //         ip,
+  //         port,
+  //         bk_cloud_id,
+  //         role,
+  //         cluster_type,
+  //       } = instance;
 
-        return {
-          ip,
-          port,
-          bk_cloud_id,
-          role,
-          cluster_type,
-        };
-      }),
-    };
+  //       return {
+  //         ip,
+  //         port,
+  //         bk_cloud_id,
+  //         role,
+  //         cluster_type,
+  //       };
+  //     }),
+  //   };
 
-    modifyMysqlAdminPasswordRun(params);
-  };
+  //   modifyMysqlAdminPasswordRun(params);
+  // };
 
-  const handleReset = () => {
-    Object.assign(formData, createDefaultData());
-  };
+  // const handleReset = () => {
+  //   Object.assign(formData, createDefaultData());
+  // };
 
-  const handleRefresh = () => {
-    handleReset();
-    submitted.value = false;
-  };
+  // const handleRefresh = () => {
+  //   handleReset();
+  //   submitted.value = false;
+  // };
 </script>
 
 <style lang="less" scoped>

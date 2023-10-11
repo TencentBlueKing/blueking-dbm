@@ -39,22 +39,22 @@
           :label="t('密码必须包含')"
           required>
           <BkCheckbox
-            v-model="formData.include_rule.lowercase"
+            v-model="formData.lowercase"
             :false-label="false">
             {{ t('小写字母') }}
           </BkCheckbox>
           <BkCheckbox
-            v-model="formData.include_rule.uppercase"
+            v-model="formData.uppercase"
             :false-label="false">
             {{ t('大写字母') }}
           </BkCheckbox>
           <BkCheckbox
-            v-model="formData.include_rule.numbers"
+            v-model="formData.numbers"
             :false-label="false">
             {{ t('数字') }}
           </BkCheckbox>
           <BkCheckbox
-            v-model="formData.include_rule.symbols"
+            v-model="formData.symbols"
             :false-label="false">
             {{ t('特殊字符_除空格外') }}
           </BkCheckbox>
@@ -65,33 +65,33 @@
               class="password-policy-text mr-8"
               style="padding: 0;">N = </span>
             <BkInput
-              v-model="formData.exclude_continuous_rule.limit"
+              v-model="formData.follow.limit"
               class="password-policy-number"
               :min="3"
               type="number" />
           </p>
           <BkCheckbox
-            v-model="formData.exclude_continuous_rule.keyboards"
+            v-model="formData.follow.keyboards"
             :false-label="false">
             {{ t('键盘序') }}
           </BkCheckbox>
           <BkCheckbox
-            v-model="formData.exclude_continuous_rule.letters"
+            v-model="formData.follow.letters"
             :false-label="false">
             {{ t('字母序') }}
           </BkCheckbox>
           <BkCheckbox
-            v-model="formData.exclude_continuous_rule.numbers"
+            v-model="formData.follow.numbers"
             :false-label="false">
             {{ t('数字序') }}
           </BkCheckbox>
           <BkCheckbox
-            v-model="formData.exclude_continuous_rule.symbols"
+            v-model="formData.follow.symbols"
             :false-label="false">
             {{ t('连续特殊符号序') }}
           </BkCheckbox>
           <BkCheckbox
-            v-model="formData.exclude_continuous_rule.repeats"
+            v-model="formData.follow.repeats"
             :false-label="false">
             {{ t('重复字母_数字_特殊符号') }}
           </BkCheckbox>
@@ -127,15 +127,7 @@
   import { useInfo } from '@hooks';
 
   const initData = () => ({
-    max_length: 32,
-    min_length: 8,
-    include_rule: {
-      lowercase: true,
-      numbers: true,
-      symbols: true,
-      uppercase: true,
-    },
-    exclude_continuous_rule: {
+    follow: {
       keyboards: false,
       letters: false,
       limit: 3,
@@ -143,9 +135,16 @@
       repeats: false,
       symbols: false,
     },
+    lowercase: true,
+    max_length: 32,
+    min_length: 8,
+    numbers: true,
+    symbols: true,
+    uppercase: true,
   });
 
   const { t } = useI18n();
+  const accountType = 'mysql';
 
   const passwordPolicyData = {
     id: 0,
@@ -158,11 +157,9 @@
 
   const fetchPasswordPolicy = () => {
     isLoading.value = true;
-    getPasswordPolicy()
+    getPasswordPolicy(accountType)
       .then((passwordPolicy) => {
-        passwordPolicyData.id = passwordPolicy.id;
-        passwordPolicyData.name = passwordPolicy.name;
-        Object.assign(formData, passwordPolicy.rule);
+        Object.assign(formData, passwordPolicy);
       })
       .finally(() => {
         isLoading.value = false;
@@ -185,8 +182,8 @@
   const handleSubmit = (message = t('保存成功')) => {
     isSubmitting.value = true;
     updatePasswordPolicy({
-      ...passwordPolicyData,
-      rule: formData,
+      account_type: accountType,
+      policy: formData,
     })
       .then(() => {
         Message({

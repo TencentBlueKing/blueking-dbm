@@ -101,18 +101,25 @@ export interface PasswordStrengthVerifyInfo {
 
 // 密码策略
 export interface PasswordPolicy {
-  id: number,
-  name: string,
-  rule: {
-    include_rule: PasswordPolicyIncludeRule
-    exclude_continuous_rule: PasswordPolicyExcludeContinuousRule,
-    max_length: number,
-    min_length: number,
-  },
-  creator?: string,
-  create_time?: string,
-  operator?: string,
-  update_time?: string
+  follow: PasswordPolicyFollow,
+  lowercase: boolean,
+  max_length: number,
+  min_length: number,
+  numbers: boolean,
+  symbols: boolean,
+  uppercase: boolean
+}
+
+/**
+ * 密码策略 follow
+ */
+export interface PasswordPolicyFollow {
+  limit: number,
+  letters: boolean,
+  numbers: boolean,
+  repeats: boolean,
+  symbols: boolean,
+  keyboards: boolean
 }
 
 // 密码策略 include_rule

@@ -125,8 +125,8 @@
   }
 
   type PasswordPolicy = ServiceReturnType<typeof getPasswordPolicy>;
-  type IncludeRule = PasswordPolicy['rule']['include_rule']
-  type ExcludeContinuousRule = PasswordPolicy['rule']['exclude_continuous_rule']
+  type IncludeRule = PasswordPolicy
+  type ExcludeContinuousRule = PasswordPolicy['follow']
   type PasswordStrength = ServiceReturnType<typeof verifyPasswordStrength>;
   type PasswordStrengthVerifyInfo = PasswordStrength['password_verify_info']
 
@@ -138,7 +138,7 @@
 
   const { t } = useI18n();
   const { currentBizId } = useGlobalBizs();
-  const { TENDBCLUSTER } = AccountTypes;
+  const { MYSQL, TENDBCLUSTER } = AccountTypes;
   let instance: Instance | null = null;
   let publicKey = '';
 
@@ -163,7 +163,7 @@
   const passwordRef = ref();
   const passwordItemRef = ref();
 
-  const verifyPassword = () => verifyPasswordStrength(getEncyptPassword())
+  const verifyPassword = () => verifyPasswordStrength(currentBizId, getEncyptPassword(), MYSQL)
     .then((res) => {
       validate.value = res;
       return res.is_strength;
@@ -191,14 +191,14 @@
   watch(isShow, (show: boolean) => {
     if (show) {
       fetchRSAPublicKeys();
-      fetchPasswordPolicy();
+      fetchPasswordPolicy(MYSQL);
       validate.value = {} as PasswordStrength;
       strength.value = [];
     }
   });
 
   const fetchRSAPublicKeys = () =>  {
-    getRSAPublicKeys({ names: ['password'] })
+    getRSAPublicKeys({ names: [MYSQL] })
       .then((res) => {
         publicKey = res[0]?.content || '';
       });
@@ -221,9 +221,8 @@
       const {
         min_length: minLength,
         max_length: maxLength,
-        include_rule: includeRule,
-        exclude_continuous_rule: excludeContinuousRule,
-      } = res.rule;
+        follow,
+      } = res;
 
       strength.value = [{
         keys: ['min_length_valid', 'max_length_valid'],
@@ -232,7 +231,7 @@
 
       // 常规提示
       for (const key of keys) {
-        if (includeRule[key as keyof IncludeRule]) {
+        if (res[key as keyof IncludeRule]) {
           strength.value.push({
             keys: [`${key}_valid`],
             text: t(PASSWORD_POLICY[key as PasswordPolicyKeys]),
@@ -241,17 +240,17 @@
       }
 
       // 重复提示
-      if (excludeContinuousRule.repeats) {
+      if (follow.repeats) {
         strength.value.push({
           keys: ['repeats_valid'],
-          text: t('不能连续重复n位字母_数字_特殊符号', { n: excludeContinuousRule.limit }),
+          text: t('不能连续重复n位字母_数字_特殊符号', { n: follow.limit }),
         });
       }
 
       // 特殊提示（键盘序、字符序、数字序等）
       const special = followKeys.reduce((values, key: string) => {
         const valueKey = key.replace('follow_', '') as keyof ExcludeContinuousRule;
-        if (excludeContinuousRule[valueKey]) {
+        if (res.follow[valueKey]) {
           values.push({
             keys: [`${key}_valid`],
             text: t(PASSWORD_POLICY[key as PasswordPolicyKeys]),

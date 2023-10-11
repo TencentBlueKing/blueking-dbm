@@ -61,14 +61,38 @@ interface MysqlAdminPasswordResultItem {
 }
 
 /**
+ * 更新密码策略
+ */
+export interface PasswordPolicyParams {
+  account_type: string,
+  policy: PasswordPolicy
+}
+
+/**
+ * 查询公钥参数
+ */
+export interface RSAPublicKeyParams {
+  names: string[]
+}
+
+/**
+ * 公钥信息
+ */
+export interface RSAPublicKey {
+  content: string,
+  description: string,
+  name: string,
+}
+
+/**
  * 查询密码安全策略
  */
-export const getPasswordPolicy = () => http.get<PasswordPolicy>('/apis/conf/password_policy/get_password_policy/');
+export const getPasswordPolicy = (accountType: string) => http.get<PasswordPolicy>('/apis/conf/password_policy/get_password_policy/', { account_type: accountType });
 
 /**
  * 更新密码安全策略
  */
-export const updatePasswordPolicy = (params: PasswordPolicy) => http.post('/apis/conf/password_policy/update_password_policy/', params);
+export const updatePasswordPolicy = (params: PasswordPolicyParams) => http.post<PasswordPolicyParams>('/apis/conf/password_policy/update_password_policy/', params);
 
 /**
  * 查询随机化周期
@@ -125,18 +149,12 @@ export const queryMysqlAdminPassword = (params: {
 /**
  * 获取公钥列表
  */
-export const getRSAPublicKeys = (params: {
-  names: string[]
-}) => http.post<{
-  content: string,
-  description: string,
-  name: string,
-}[]>('/apis/core/encrypt/fetch_public_keys/', params);
+export const getRSAPublicKeys = (params: RSAPublicKeyParams) => http.post<RSAPublicKey[]>('/apis/core/rsa/fetch_public_keys/', params);
 
 /**
  * 校验密码强度
  */
-export const verifyPasswordStrength = (password: string) => http.post<PasswordStrength>('/apis/conf/password_policy/verify_password_strength/', { password });
+export const verifyPasswordStrength = (bizId: number, password: string, accountType?: AccountTypesValues) => http.post<PasswordStrength>(`/apis/mysql/bizs/${bizId}/permission/account/verify_password_strength/`, { password, account_type: accountType });
 
 /**
  * 查询账号规则列表
