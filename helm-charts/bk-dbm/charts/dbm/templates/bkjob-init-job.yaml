@@ -1,8 +1,8 @@
-{{- if .Values.serviceInit.mediumEnabled -}}
+{{- if .Values.serviceInit.bkjobEnabled -}}
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: {{ include "dbm.mediumInitJobName" . }}
+  name: {{ include "dbm.bkjobInitJobName" . }}
   labels:
     {{- include "dbm.labels" . | nindent 4 }}
 spec:
@@ -19,22 +19,20 @@ spec:
       serviceAccountName: {{ include "dbm.serviceAccountName" . }}
       restartPolicy: Never
       containers:
-        - name: dbm-medium-init
-          image: "{{ .Values.global.imageRegistry | default .Values.dbmedium.image.registry }}/{{ .Values.dbmedium.image.repository }}:{{ .Values.dbmedium.image.tag | default .Chart.AppVersion }}"
-          imagePullPolicy: {{ .Values.dbmedium.image.pullPolicy }}
+        - name: dbm-bkjob-init
+          image: "{{ .Values.global.imageRegistry | default .Values.image.registry }}/{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
           command:
             - /bin/bash
             - -c
           args:
-            - |
-              type=('mysql' 'es' 'kafka' 'hdfs' 'pulsar' 'influxdb' 'redis');
-              for element in ${type[@]}; do
-                python main.py --type upload --db $element && python main.py --type sync --db $element;
-              done
+            - "python manage.py services_init bkjob"
+          env:
+            {{- include "dbm.envs" . | trim | nindent 12 }}
           envFrom:
-            {{- if .Values.dbmedium.extraEnvVarsCM }}
+            {{- if .Values.extraEnvVarsCM }}
             - configMapRef:
-                name: {{ .Values.dbmedium.extraEnvVarsCM }}
+                name: {{ .Values.extraEnvVarsCM }}
             {{- end }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}

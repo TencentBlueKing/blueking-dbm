@@ -87,6 +87,14 @@ environment variables
 {{- printf "%s-%s-%d"  (include "dbm.fullname" .) "db-bklog-init" .Release.Revision }}
 {{- end }}
 
+{{- define "dbm.bkmonitorInitJobName" -}}
+{{- printf "%s-%s-%d"  (include "dbm.fullname" .) "db-monitor-init" .Release.Revision }}
+{{- end }}
+
+{{- define "dbm.bkjobInitJobName" -}}
+{{- printf "%s-%s-%d"  (include "dbm.fullname" .) "db-job-init" .Release.Revision }}
+{{- end }}
+
 {{- define "dbm.sslInitJobName" -}}
 {{- printf "%s-%s-%d"  (include "dbm.fullname" .) "db-ssl-init" .Release.Revision }}
 {{- end }}
