@@ -80,10 +80,9 @@
     TicketTypes,
   } from '@common/const';
 
-  import ClusterSelector from '@components/cluster-selector/SpiderClusterSelector.vue';
-
   import { random } from '@utils';
 
+  import ClusterSelector from './components/cluster-selector/Index.vue';
   import RenderData from './components/Index.vue';
   import RenderDataRow, {
     createRowData,

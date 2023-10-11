@@ -171,16 +171,15 @@
 
   import { ClusterTypes } from '@common/const';
 
+  import ClusterRelatedTasks from '@components/cluster-selector/cluster-relate-tasks/Index.vue';
+  import CollapseMini from '@components/cluster-selector/CollapseMini.vue';
+  import { useClusterData } from '@components/cluster-selector/useSpiderClusterData';
   import DbStatus from '@components/db-status/index.vue';
 
   import {
     makeMap,
     messageWarn,
   } from '@utils';
-
-  import ClusterRelatedTasks from './cluster-relate-tasks/Index.vue';
-  import CollapseMini from './CollapseMini.vue';
-  import { useClusterData } from './useSpiderClusterData';
 
   interface Props {
     isShow: boolean;
@@ -218,7 +217,6 @@
 
   const { t } = useI18n();
   const copy = useCopy();
-
   const formItem = useFormItem();
 
   const tabTipsRef = ref();
@@ -261,22 +259,33 @@
     }, {} as Record<string, boolean>));
 
   const isIndeterminate = computed(() => !isSelectedAll.value
-    && selectedMap.value[activeTab.value] && Object.keys(selectedMap.value[activeTab.value]).length > 0);
+    && Boolean(selectedMap.value[activeTab.value]) && Object.keys(selectedMap.value[activeTab.value]).length > 0);
 
   const columns = [
     {
       width: 60,
       label: () => (
-      <bk-checkbox
-        key={`${pagination.current}_${activeTab.value}`}
-        model-value={isSelectedAll.value}
-        indeterminate={isIndeterminate.value}
-        label={true}
-        onClick={(e: Event) => e.stopPropagation()}
-        onChange={handleSelecteAll}
-      />
-    ),
-      render: ({ data }: { data: ValueOf<Props['selected']>[0] }) => (
+        <bk-checkbox
+          key={`${pagination.current}_${activeTab.value}`}
+          v-model={isSelectedAll.value}
+          indeterminate={isIndeterminate.value}
+          label={true}
+          onClick={(e: Event) => e.stopPropagation()}
+          onChange={handleSelecteAll}
+        />
+      ),
+      render: ({ data }: { data: ValueOf<Props['selected']>[0] }) => {
+        if (data.spider_slave.length > 0) {
+          return (
+            <bk-popover theme="dark" placement="top">
+              {{
+                default: () => <bk-checkbox style="vertical-align: middle;" disabled />,
+                content: () => <span>{t('该集群已有只读集群')}</span>,
+              }}
+          </bk-popover>
+          );
+        }
+        return (
       <bk-checkbox
         style="vertical-align: middle;"
         model-value={Boolean(selectedDomainMap.value[data.id])}
@@ -284,7 +293,8 @@
         onClick={(e: Event) => e.stopPropagation()}
         onChange={(value: boolean) => handleSelecteRow(data, value)}
       />
-    ),
+        );
+      },
     },
     {
       label: t('集群'),
@@ -328,6 +338,8 @@
       },
     },
   ];
+
+  let isSelectedAllReal = false;
 
   watch(() => props.isShow, (show) => {
     if (show) {
@@ -402,13 +414,21 @@
   /**
    * 全选当页数据
    */
-  const handleSelecteAll = (value: boolean) => {
+  const handleSelecteAll = () => {
+    isSelectedAllReal = !isSelectedAllReal;
     for (const data of tableData.value) {
-      handleSelecteRow(data, value);
+      if (data.spider_slave.length === 0) {
+        handleSelecteRow(data, isSelectedAllReal);
+      }
     }
   };
-
   const checkSelectedAll = () => {
+    if (tableData.value.filter(data => data.spider_slave.length > 0).length > 0) {
+      nextTick(() => {
+        isSelectedAll.value = false;
+      });
+      return;
+    }
     const currentSelected = selectedMap.value[activeTab.value];
     if (!currentSelected || Object.keys(currentSelected).length < 1) {
       isSelectedAll.value = false;
@@ -436,11 +456,16 @@
     } else {
       delete selectedMapMemo[activeTab.value][data.id];
     }
+
     selectedMap.value = selectedMapMemo;
+
     checkSelectedAll();
   };
 
   const handleRowClick = (row:any, data: ValueOf<Props['selected']>[0]) => {
+    if (data.spider_slave.length > 0) {
+      return;
+    }
     const currentSelected = selectedMap.value[activeTab.value];
     const isChecked = !!(currentSelected && currentSelected[data.id]);
     handleSelecteRow(data, !isChecked);
