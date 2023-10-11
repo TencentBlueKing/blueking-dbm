@@ -102,6 +102,7 @@ from backend.flow.views.pulsar_apply import InstallPulsarSceneApiView
 from backend.flow.views.pulsar_destroy import DestroyPulsarSceneApiView
 from backend.flow.views.pulsar_disable import DisablePulsarSceneApiView
 from backend.flow.views.pulsar_enable import EnablePulsarSceneApiView
+from backend.flow.views.pulsar_fake_apply import FakeInstallPulsarSceneApiView
 from backend.flow.views.pulsar_reboot import RebootPulsarSceneApiView
 from backend.flow.views.pulsar_scale_up import ScaleUpPulsarSceneApiView
 from backend.flow.views.redis_cluster import (
@@ -296,6 +297,7 @@ urlpatterns = [
     url(r"^scene/disable_pulsar$", DisablePulsarSceneApiView.as_view()),
     url(r"^scene/destroy_pulsar$", DestroyPulsarSceneApiView.as_view()),
     url(r"^scene/reboot_pulsar$", RebootPulsarSceneApiView.as_view()),
+    url(r"^scene/fake_install_pulsar$", FakeInstallPulsarSceneApiView.as_view()),
     url(r"^scene/import_resource_init$", ImportResourceInitStepApiView.as_view()),
     # spider
     url(r"^scene/add_spider_mnt$", AddSpiderMNTSceneApiView.as_view()),
