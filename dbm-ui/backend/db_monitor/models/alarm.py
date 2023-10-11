@@ -771,13 +771,10 @@ class MonitorPolicy(AuditedModel):
         """保存策略对象的同时，同步记录到监控"""
 
         # step1. sync to model
-        details = self.details
-        # 开关操作跳过重复的patch
-        if update_fields != ["is_enabled"]:
-            details = self.patch_all()
+        # 启停操作(["is_enabled"]) -> 跳过重复的patch
+        details = self.details if update_fields == ["is_enabled"] else self.patch_all()
 
         # step2. sync to bkm
-        details.pop("id")
         res = self.bkm_save_alarm_strategy(details)
 
         # overwrite by bkm strategy details
