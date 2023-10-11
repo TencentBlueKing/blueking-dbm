@@ -95,13 +95,6 @@ class TenDBClusterSpecFilter(ClusterSpecFilter):
 class RedisSpecFilter(ClusterSpecFilter):
     """Redis规格过滤器基类"""
 
-    # 建议规格数，超出将淘汰末尾规格
-    RECOMMEND_SPEC_NUM = 4
-    # 淘汰规格比例
-    DISUSE_SPEC_RATIO = 0.5
-    # 按照机器组数正向/逆向排序
-    MACHINE_PAIR_SORT = False
-
     def _qps_check(self, user_qps_range, spec_qps_range):
         # redis可以接受规格qps过大，不接受规格qps小于用户的最小值
         if user_qps_range["min"] > spec_qps_range["max"]:
@@ -110,29 +103,11 @@ class RedisSpecFilter(ClusterSpecFilter):
         return True
 
     def custom_filter(self):
-        """对规格方案进行排序，如果存在大于4个方案，则按比例淘汰末尾规格方案"""
-        self.specs.sort(key=lambda x: x["machine_pair"], reverse=self.MACHINE_PAIR_SORT)
-        if len(self.specs) > self.RECOMMEND_SPEC_NUM:
-            self.specs = self.specs[: -int(len(self.specs) * self.DISUSE_SPEC_RATIO)]
-
-    def filter_too_large_building_capacity(self):
-        """过滤掉过大的建设容量，当建设容量大于目标容量时，默认只保留最小的一个"""
-        exceed_target_capacity_specs: List[Dict[str, Any]] = []
-        in_target_capacity_specs: List[Dict[str, Any]] = []
-        for spec in self.specs:
-            # 首先筛选出建设容量超出目标容量的规格
-            if spec["machine_pair"] * spec["capacity"] > self.capacity:
-                exceed_target_capacity_specs.append(spec)
-            else:
-                in_target_capacity_specs.append(spec)
-
-        # 如果存在多个建设容量>目标容量的规格，则取最接近目标容量的规格
-        if exceed_target_capacity_specs:
-            in_target_capacity_specs.append(
-                sorted(exceed_target_capacity_specs, key=lambda x: x["machine_pair"] * x["capacity"])[0]
-            )
-
-        self.specs = in_target_capacity_specs
+        """对规格方案进行排序,根据目标容量,以及未来容量来决定排序方式"""
+        if self.future_capacity >= self.capacity:
+            self.specs.sort(key=lambda x: (-x["cluster_shard_num"], -x["capacity"], x["machine_pair"]))
+        else:
+            self.specs.sort(key=lambda x: (x["cluster_shard_num"], -x["capacity"], x["machine_pair"]))
 
 
 class TendisPlusSpecFilter(RedisSpecFilter):
@@ -185,15 +160,51 @@ class TendisSSDSpecFilter(RedisSpecFilter):
 class TendisCacheSpecFilter(RedisSpecFilter):
     """TendisCache集群规格过滤器"""
 
+    # 单个实例建议的容量规格
+    BASE_SINGLE_CAPCITY = 6
+    # 支持简单阔缩容倍数（非DTS方式）
+    SCALE_MULITPLE = 4
+
     def calc_cluster_shard_num(self):
+        valid_specs: List[Dict[str, Any]] = []
+        max_capcity = self.capacity
+        if self.future_capacity > self.capacity:
+            max_capcity = min(self.future_capacity, self.capacity * self.SCALE_MULITPLE / 2)
+        # 先进行排序
+        self.specs.sort(key=lambda x: (x["capacity"]))
+
+        # 选取合适的规格
+        spec_idx, instance_cap, spec_cnt, avaiable_specs = 0, self.BASE_SINGLE_CAPCITY, len(self.specs), []
         for spec in self.specs:
-            # 计算单机分片数，CPU去中间数的偶数
-            single_machine_shard_num = int((spec["cpu"]["min"] + spec["cpu"]["max"]) / 2)
+            if self.capacity <= spec["capacity"]:
+                avaiable_specs.append(spec)
+                if spec_idx >= 1:
+                    avaiable_specs.append(self.specs[spec_idx - 1])
+                if spec_idx >= 3:
+                    avaiable_specs.append(self.specs[spec_idx - 2])
+                break
+            spec_idx += 1
+
+        if self.capacity > self.specs[spec_cnt - 1]["capacity"] * self.SCALE_MULITPLE:
+            instance_cap = self.BASE_SINGLE_CAPCITY * self.SCALE_MULITPLE
+
+        if self.capacity > self.specs[spec_cnt - 1]["capacity"]:
+            avaiable_specs.append(self.specs[spec_cnt - 1])
+            if spec_cnt > 2:
+                avaiable_specs.append(self.specs[spec_cnt - 2])
+
+        for spec_new in avaiable_specs:
+            # 一定要保证集群总分片数是机器组数的整数倍，并且单机分片数需要取整，取偶
+            cluster_shard_num = math.ceil(max_capcity / instance_cap)
+            single_machine_shard_num = math.ceil(cluster_shard_num / spec_new["machine_pair"])
             single_machine_shard_num = max(single_machine_shard_num + (single_machine_shard_num & 1), 2)
-            spec["cluster_shard_num"] = single_machine_shard_num * spec["machine_pair"]
+            spec_new["cluster_shard_num"] = max(single_machine_shard_num * spec_new["machine_pair"], 4)
+
+            valid_specs.append(spec_new)
+
+        self.specs = valid_specs
 
     def custom_filter(self):
-        super().filter_too_large_building_capacity()
         super().custom_filter()
 
 
