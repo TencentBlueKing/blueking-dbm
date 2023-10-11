@@ -458,8 +458,8 @@
     margin-bottom: 16px;
   }
 
-  .table-box {
-    :deep(.strategy-title) {
+  :deep(.table-box) {
+    .strategy-title {
       display: flex;
       align-items: center;
 
@@ -501,14 +501,14 @@
       }
     }
 
-    :deep(.targets-box) {
+    .targets-box {
       display: flex;
       width: 100%;
       flex-flow: column wrap;
       padding: 5px 15px;
     }
 
-    :deep(.alarm-group) {
+    .alarm-group {
       display: flex;
       width: 100%;
       padding: 5px 15px;
@@ -533,7 +533,7 @@
 
     }
 
-    :deep(.operate-box) {
+    .operate-box {
       display: flex;
       gap: 15px;
       justify-content: flex-end;
