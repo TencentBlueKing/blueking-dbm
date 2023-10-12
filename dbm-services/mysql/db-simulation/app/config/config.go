@@ -24,6 +24,7 @@ type AppConfig struct {
 	DbConf         DbConfig    `yaml:"dbconf"`
 	MirrorsAddress []ImgConfig `yaml:"mirrorsAddress"`
 	Debug          bool        `yaml:"debug"`
+	LoadRuleFromdb bool        `yaml:"loadRuleFromdb"`
 }
 
 // BkRepoConfig TODO
@@ -181,6 +182,5 @@ func loadConfig() (err error) {
 	if err = viper.Unmarshal(&GAppConfig); err != nil {
 		return err
 	}
-	logger.Debug("load config is: %v", GAppConfig)
 	return
 }

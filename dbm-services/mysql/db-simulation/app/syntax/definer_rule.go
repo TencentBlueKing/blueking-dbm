@@ -1,5 +1,9 @@
 package syntax
 
+import (
+	"fmt"
+)
+
 // DefinerBase TODO
 type DefinerBase struct {
 	ParseBase
@@ -9,9 +13,6 @@ type DefinerBase struct {
 // Checker TODO
 func (c DefinerBase) Checker(mysqlVersion string) (r *CheckerResult) {
 	r = &CheckerResult{}
-	emptydefiner := UserHost{}
-	if c.Definer != emptydefiner {
-		r.Parse(R.CreateTableRule.DefinerRule, c.Command, "")
-	}
+	r.Parse(R.CreateTableRule.DefinerRule, fmt.Sprintf("%s@%s", c.Definer.User, c.Definer.Host), "")
 	return
 }
