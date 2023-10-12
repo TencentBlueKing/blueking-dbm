@@ -68,6 +68,7 @@ cutoff_list = [
     TicketType.REDIS_CLUSTER_CUTOFF.value,
     TicketType.REDIS_CLUSTER_ADD_SLAVE.value,
 ]
+migrate_list = [TicketType.TENDIS_META_MITRATE.value]
 tool_list = [TicketType.REDIS_DATA_STRUCTURE.value, TicketType.REDIS_DATA_STRUCTURE_TASK_DELETE.value]
 twemproxy_cluster_type_list = [
     ClusterType.TendisTwemproxyRedisInstance.value,
@@ -103,12 +104,15 @@ class RedisActPayload(object):
         )
 
         self.__init_dbconfig_params()
-        if self.ticket_data["ticket_type"] in apply_list + cutoff_list + tool_list:
+        if self.ticket_data["ticket_type"] in apply_list + cutoff_list + tool_list + migrate_list:
             self.account = self.__get_define_config(NameSpaceEnum.Common, ConfigFileEnum.OS, ConfigTypeEnum.OSConf)
-            if "db_version" in self.ticket_data:
-                self.init_redis_config = self.__get_define_config(
-                    self.namespace, self.ticket_data["db_version"], ConfigTypeEnum.DBConf
-                )
+            db_version = ""
+            if "db_version" in self.cluster:
+                db_version = self.cluster["db_version"]
+            elif "db_version" in self.ticket_data:
+                db_version = self.ticket_data["db_version"]
+            if db_version != "":
+                self.init_redis_config = self.__get_define_config(self.namespace, db_version, ConfigTypeEnum.DBConf)
                 self.init_proxy_config = self.__get_define_config(
                     self.namespace, self.proxy_version, ConfigTypeEnum.ProxyConf
                 )

@@ -538,3 +538,39 @@ class RedisClusterAddSlaveApiView(FlowTestView):
         root_id = uuid.uuid1().hex
         RedisController(root_id=root_id, ticket_data=request.data).redis_cluster_add_slave()
         return Response({"root_id": root_id})
+
+
+class RedisClusterMigratePrecheck(FlowTestView):
+    """
+    集群迁移前置检查
+    """
+
+    @staticmethod
+    def post(request):
+        root_id = uuid.uuid1().hex
+        RedisController(root_id=root_id, ticket_data=request.data).redis_cluster_migrate_precheck()
+        return Response({"root_id": root_id})
+
+
+class RedisClusterMigrateLoad(FlowTestView):
+    """
+    集群迁移
+    """
+
+    @staticmethod
+    def post(request):
+        root_id = uuid.uuid1().hex
+        RedisController(root_id=root_id, ticket_data=request.data).redis_cluster_migrate_load()
+        return Response({"root_id": root_id})
+
+
+class RedisClusterMigrateCompair(FlowTestView):
+    """
+    集群迁移数据对比
+    """
+
+    @staticmethod
+    def post(request):
+        root_id = uuid.uuid1().hex
+        RedisController(root_id=root_id, ticket_data=request.data).redis_cluster_migrate_compair()
+        return Response({"root_id": root_id})
