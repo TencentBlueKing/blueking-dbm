@@ -126,6 +126,27 @@ func (r *Checker) Run() error {
 		slog.Info("run in demand mode")
 	}
 
+	// 固定写入一行恒为真的站位数据
+	ts := time.Now()
+	_, err = r.db.Exec(
+		fmt.Sprintf("INSERT INTO %s("+
+			"master_ip, master_port, "+
+			"`db`, tbl, chunk, "+
+			"lower_boundary, upper_boundary, "+
+			"this_crc, this_cnt, master_crc, master_cnt, ts) "+
+			"VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+			r.resultHistoryTable),
+		r.Config.Ip, r.Config.Port,
+		"_dba_fake_db", "_dba_fake_table", 0,
+		"1=1", "1=1",
+		0, 0, 0, 0, ts,
+	)
+	if err != nil {
+		slog.Error("write place hold row", slog.String("error", err.Error()))
+		return err
+	}
+	slog.Info("write place hold row success")
+
 	output := Output{
 		PtStderr:    stderr.String(),
 		Summaries:   summaries,
