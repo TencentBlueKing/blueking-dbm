@@ -16,18 +16,16 @@
           "bk_app_code": "app_id",
           "cluster_name": "cluster_name",
           "instance_host": "instance_host",
-          "instance_port": "instance_port"
+          "instance_port": "instance_port",
+          "cluster_domain": "cluster_domain"
         }
       },
       "collector": {
         "period": 60,
-        "timeout": 60,
         "password": false,
         "bk_username": "",
         "metrics_url": "http://127.0.0.1:9274/metrics"
-      },
-      "target_node_type": "TOPO",
-      "target_object_type": "SERVICE"
+      }
     },
     "plugin_info": {
       "plugin_id": "dbm_influxdb_bkpull",
@@ -5796,5 +5794,5 @@
     "target_node_type": "TOPO",
     "target_object_type": "SERVICE"
   },
-  "version": 1
+  "version": 2
 }
