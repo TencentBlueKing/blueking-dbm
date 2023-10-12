@@ -1053,14 +1053,20 @@ class MysqlActPayload(PayloadHandler, TBinlogDumperActPayload):
         """
         数据校验
         """
-        db_patterns = [
-            ele if ele.endswith("%") or ele == "*" else "{}_{}".format(ele, self.ticket_data["shard_id"])
-            for ele in self.ticket_data["db_patterns"]
-        ]
-        ignore_dbs = [
-            ele if ele.endswith("%") or ele == "*" else "{}_{}".format(ele, self.ticket_data["shard_id"])
-            for ele in self.ticket_data["ignore_dbs"]
-        ]
+        db_patterns = []
+        ignore_dbs = []
+        if self.ticket_data["ticket_type"] == TicketType.TENDBCLUSTER_CHECKSUM:
+            db_patterns = [
+                ele if ele.endswith("%") or ele == "*" else "{}_{}".format(ele, self.ticket_data["shard_id"])
+                for ele in self.ticket_data["db_patterns"]
+            ]
+            ignore_dbs = [
+                ele if ele.endswith("%") or ele == "*" else "{}_{}".format(ele, self.ticket_data["shard_id"])
+                for ele in self.ticket_data["ignore_dbs"]
+            ]
+        elif self.ticket_data["ticket_type"] == TicketType.MYSQL_CHECKSUM:
+            db_patterns = self.ticket_data["db_patterns"]
+            ignore_dbs = self.ticket_data["ignore_dbs"]
         return {
             "db_type": DBActuatorTypeEnum.MySQL.value,
             "action": DBActuatorActionEnum.Checksum.value,

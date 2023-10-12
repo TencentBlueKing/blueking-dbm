@@ -26,3 +26,33 @@ META_CHECK_DATA = {
         {"name": "msg", "display_name": "详情", "format": "text"},
     ],
 }
+
+CHECKSUM_CHECK_DATA = {
+    "count": 1,
+    "next": None,
+    "previous": None,
+    "results": [{"bk_biz_id": 3, "cluster": "example.cluster", "status": True, "fail_slaves": 0, "msg": ""}],
+    "name": "数据校验",
+    "title": [
+        {"name": "bk_biz_id", "display_name": "业务", "format": "text"},
+        {"name": "cluster", "display_name": "集群", "format": "text"},
+        {"name": "status", "display_name": "校验结果", "format": "status"},
+        {"name": "fail_slaves", "display_name": "失败的从库实例数量", "format": "text"},
+        {"name": "msg", "display_name": "失败信息", "format": "text"},
+    ],
+}
+
+CHECKSUM_INSTANCE_DATA = {
+    "count": 1,
+    "next": None,
+    "previous": None,
+    "results": [{"bk_biz_id": 3, "cluster": "example.cluster", "status": True, "fail_slaves": 0, "msg": ""}],
+    "name": "失败的从库实例详情",
+    "title": [
+        {"name": "bk_biz_id", "display_name": "业务", "format": "text"},
+        {"name": "cluster", "display_name": "集群", "format": "text"},
+        {"name": "status", "display_name": "校验结果", "format": "status"},
+        {"name": "fail_slaves", "display_name": "失败的从库实例数量", "format": "text"},
+        {"name": "msg", "display_name": "失败信息", "format": "text"},
+    ],
+}
