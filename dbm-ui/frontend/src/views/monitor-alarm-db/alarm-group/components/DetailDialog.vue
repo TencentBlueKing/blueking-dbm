@@ -14,9 +14,11 @@
 <template>
   <BkSideslider
     :is-show="isShow"
-    :title="title"
     :width="960"
     @closed="handleClose">
+    <template #header>
+      {{ sidesliderTitle }} {{ type === 'copy' ? `【${detailData.name}】` : '' }}
+    </template>
     <DbForm
       ref="formRef"
       class="detail-form"
@@ -68,26 +70,22 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
+  import {
+    getAlarmGroupList,
+    insertAlarmGroup,
+    updateAlarmGroup,
+  } from '@services/monitorAlarm';
+
   import { useBeforeClose } from '@hooks';
 
   import { messageSuccess } from '@utils';
-
-  import {
-    insertAlarmGroup,
-    updateAlarmGroup,
-  } from '../common/services';
-  import type {
-    AlarmGroupDetailParams,
-    AlarmGroupItem,
-  } from '../common/types';
 
   import NoticeMethodFormItem from './NoticeMethodFormItem.vue';
   import ReceiversSelector from './ReceiversSelector.vue';
 
   interface Props {
-    title: string,
-    type: 'add' | 'edit' | 'copy' | '',
-    detailData: AlarmGroupItem,
+    type: 'add' | 'edit' | 'copy',
+    detailData: ServiceReturnType<typeof getAlarmGroupList>['results'][number],
     bizId: number
   }
 
@@ -103,35 +101,32 @@
 
   const { t } = useI18n();
   const route = useRoute();
+  const handleBeforeClose = useBeforeClose();
+
+  const isPlatform = route.matched[0]?.name === 'Platform';
+  const titleMap: Record<string, string> = {
+    add: t('新建告警组'),
+    edit: t('编辑告警组'),
+    copy: t('克隆告警组'),
+  };
 
   const formRef = ref();
   const receiversSelectorRef = ref();
   const noticeMethodRef = ref();
-
-  watch(isShow, (newVal) => {
-    if (newVal && props.type !== 'add') {
-      formData.name = props.detailData.name;
-      formData.receivers = props.detailData.receivers.map(item => item.id);
-    }
-  });
-
   const formData = reactive({
     name: '',
     receivers: [] as string[],
   });
-  const isPlatform = computed(() => route.matched[0]?.name === 'Platform');
-  const editDisabled = computed(() => {
-    if (isPlatform.value) return false;
-    return props.type === 'edit' && props.detailData.is_built_in;
-  });
-
 
   const loading = computed(() => insertLoading.value || updateLoading.value);
-  const runSuccess = (msg: string) => {
-    messageSuccess(msg);
-    handleClose(true);
-    emits('successed');
-  };
+  const editDisabled = computed(() => {
+    if (isPlatform) {
+      return false;
+    }
+    return props.type === 'edit' && props.detailData.is_built_in;
+  });
+  const sidesliderTitle = computed(() => `${titleMap[props.type]}`);
+
   const {
     loading: insertLoading,
     run: insertAlarmGroupRun,
@@ -141,6 +136,7 @@
       runSuccess(t('创建成功'));
     },
   });
+
   const {
     loading: updateLoading,
     run: updateAlarmGroupRun,
@@ -151,11 +147,24 @@
     },
   });
 
+  watch(isShow, (newVal) => {
+    if (newVal && props.type !== 'add') {
+      formData.name = props.detailData.name;
+      formData.receivers = props.detailData.receivers.map(item => item.id);
+    }
+  });
+
+  const runSuccess = (message: string) => {
+    messageSuccess(message);
+    handleClose(true);
+    emits('successed');
+  };
+
   const handleSubmit = async () => {
     await formRef.value.validate();
 
     const { name } = formData;
-    const params: AlarmGroupDetailParams = {
+    const params = {
       bk_biz_id: props.bizId,
       name,
       receivers: receiversSelectorRef.value.getSelectedReceivers(),
@@ -165,18 +174,21 @@
     };
 
     if (props.type === 'edit') {
-      params.id = props.detailData.id;
+      Object.assign(params, {
+        id: props.detailData.id,
+      });
       updateAlarmGroupRun(params);
     } else {
       insertAlarmGroupRun(params);
     }
   };
 
-  const handleBeforeClose = useBeforeClose();
   const handleClose = async (isRequest = false) => {
     if (!isRequest) {
       const result = await handleBeforeClose();
-      if (!result) return;
+      if (!result) {
+        return;
+      }
     }
 
     formData.name = '';
