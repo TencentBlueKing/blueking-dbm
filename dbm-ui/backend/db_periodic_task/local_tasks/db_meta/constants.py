@@ -39,8 +39,10 @@ QUERY_TEMPLATE = {
                 bkmonitor:exporter_dbm_redis_exporter:redis_memory_used_bytes{ instance_role="redis_master"}[1m]
             ))""",
         "total": """sum by (cluster_domain) (
-            sum_over_time(
-                bkmonitor:dbm_system:mem:total{instance_role="redis_master"}[1m]
+            avg by (cluster_domain, bk_target_ip) (
+                avg_over_time(
+                    bkmonitor:dbm_system:mem:total{instance_role="redis_master"}[1m]
+                )
             ))""",
     },
     # TODO: 待完善，从采集器出发，直接上报total
