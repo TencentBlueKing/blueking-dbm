@@ -113,9 +113,8 @@ RUN set -ex && \
     git checkout -f ${MEDIUM_BUILDER_BRANCH} && \
     cp ../medium.lock ${MEDIUM_PATH} && \
     git add ${MEDIUM_PATH}/medium.lock && \
-    git diff-index --quiet HEAD || \
+    # 判断有diff才提pr，否则会非正常结束。注意这里也需要删除.git
+    git diff-index --quiet HEAD && rm -rf /app/blueking-dbm || \
     git commit -m "minor: [$(date +"%Y-%m-%d %H:%M:%S")]update medium.lock" && \
-    git push --set-upstream --force origin ${MEDIUM_BUILDER_BRANCH}:medicum_lock_${MEDIUM_BUILDER_BRANCH}
-
-# 删除blueking-dbm文件(防止git敏感信息泄露)
-RUN set -ex && rm -rf /app/blueking-dbm
+    git push --set-upstream --force origin ${MEDIUM_BUILDER_BRANCH}:medicum_lock_${MEDIUM_BUILDER_BRANCH} && \
+    rm -rf /app/blueking-dbm
