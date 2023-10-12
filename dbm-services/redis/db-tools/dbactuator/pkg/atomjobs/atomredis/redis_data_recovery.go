@@ -105,7 +105,7 @@ func (task *RedisDataRecover) Init(m *jobruntime.JobGenericRuntime) error {
 
 // Name 原子任务名
 func (task *RedisDataRecover) Name() string {
-	return "redis_data_structure"
+	return "redis_data_structure_old"
 }
 
 // Retry times

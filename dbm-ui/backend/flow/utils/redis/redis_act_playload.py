@@ -1342,10 +1342,9 @@ class RedisActPayload(object):
 
     def redis_data_structure(self, **kwargs) -> dict:
         """
-        redis 数据构造
+        redis 数据构造 新备份系统
         """
         params = kwargs["params"]
-        print("params", params)
         return {
             "db_type": DBActuatorTypeEnum.Redis.value,
             "action": DBActuatorTypeEnum.Redis.value + "_" + RedisActuatorActionEnum.DATA_STRUCTURE.value,
@@ -1355,15 +1354,10 @@ class RedisActPayload(object):
                 "new_temp_ip": params["data_params"]["new_temp_ip"],
                 "new_temp_ports": params["data_params"]["new_temp_ports"],
                 "recovery_time_point": params["data_params"]["recovery_time_point"],
-                "is_precheck": params["data_params"]["is_precheck"],
                 "tendis_type": params["data_params"]["tendis_type"],
-                "user": self.account["user"],
-                "password": self.account["user_pwd"],
-                "base_info": {
-                    "url": env.IBS_INFO_URL,
-                    "sys_id": env.IBS_INFO_SYSID,
-                    "key": env.IBS_INFO_KEY,
-                },
+                "dest_dir": params["data_params"]["dest_dir"],
+                "full_file_list": params["data_params"]["full_file_list"],
+                "binlog_file_list": params["data_params"]["binlog_file_list"],
             },
         }
 
