@@ -325,7 +325,7 @@
             controller-id="influxdb"
             module-id="bigdata">
             <BkMenuGroup name="InfluxDB">
-              <BkMenuItem key="InfluxDBInstances">
+              <BkMenuItem key="InfluxDBManage">
                 <template #icon>
                   <i class="db-icon-influxdb" />
                 </template>
@@ -338,7 +338,7 @@
             </BkMenuGroup>
           </FunController>
           <BkMenuGroup :name="$t('配置管理')">
-            <BkMenuItem key="DatabaseConfig">
+            <BkMenuItem key="DbConfigure">
               <template #icon>
                 <i class="db-icon-db-config" />
               </template>
@@ -349,6 +349,39 @@
               </span>
             </BkMenuItem>
           </BkMenuGroup>
+          <FunController module-id="monitor">
+            <BkMenuGroup :name="$t('监控告警')">
+              <FunController
+                controller-id="monitor_policy"
+                module-id="monitor">
+                <BkMenuItem key="DBMonitorStrategy">
+                  <template #icon>
+                    <i class="db-icon-gaojingcelve" />
+                  </template>
+                  <span
+                    v-overflow-tips.right
+                    class="text-overflow">
+                    {{ $t('监控策略') }}
+                  </span>
+                </BkMenuItem>
+              </FunController>
+              <FunController
+                controller-id="notice_group"
+                module-id="monitor">
+                <BkMenuItem key="DBMonitorAlarmGroup">
+                  <template #icon>
+                    <i class="db-icon-db-config" />
+                  </template>
+                  <span
+                    v-overflow-tips.right
+                    class="text-overflow">
+                    {{ $t('告警组') }}
+                  </span>
+                </BkMenuItem>
+              </FunController>
+            </BkMenuGroup>
+          </FunController>
+
           <BkMenuGroup :name="$t('任务中心')">
             <BkMenuItem key="DatabaseMission">
               <template #icon>
@@ -358,6 +391,18 @@
                 v-overflow-tips.right
                 class="text-overflow">
                 {{ $t('历史任务') }}
+              </span>
+            </BkMenuItem>
+          </BkMenuGroup>
+          <BkMenuGroup :name="$t('安全')">
+            <BkMenuItem key="DBPasswordTemporaryModify">
+              <template #icon>
+                <i class="db-icon-password" />
+              </template>
+              <span
+                v-overflow-tips.right
+                class="text-overflow">
+                {{ $t('修改密码') }}
               </span>
             </BkMenuItem>
           </BkMenuGroup>

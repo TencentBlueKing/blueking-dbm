@@ -16,24 +16,24 @@ tredisdumpOutputRespFileSize: 1MiB #tredisdump输出格式为RESP格式时,每�
 tredisdumpOutputCmdFileSize: 1GiB #tredisdump输出格式为普通set/hset命令时,每个文件目标 1GB
 respFileImportParallelLimit: 4 # RESP格式文件导入时,并发度为4
 cmdFileImportParallelLimit: 40 # 普通命令文件导入时,并发度为40(也就是每个task同一时间最大导入40个普通命令格式文件)
-respFileImportTimeout: 120  # RESP格式文件导入时,超时时间120s
+respFileImportTimeout: 120 # RESP格式文件导入时,超时时间120s
 cmdFileImportTimeout: 604800 # 普通命令文件导入时,超时时间7天
 importMaxRetryTimes: 5 #非list类型的key,导入可重试,最大重试次数
 tredisdumpTheadCnt: 10 #tredisdump --thread 参数
 tendisplusMakeSyncParallelLimit: 5
 memSizePerTendisplusKvStoreSync: 500MiB # 每个tendisplus kvstore启动一个redis-sync,默认其占用500MiB内存
 bkDbm:
-  rootUrl: {{bk_dbm_nginx_url}}
-  bk_cloud_id: {{bk_dbm_cloud_id}}
-  db_cloud_token: {{bk_dbm_cloud_token}}
+  rootUrl: VAR_bk_dbm_nginx_url
+  bk_cloud_id: VAR_bk_dbm_cloud_id
+  db_cloud_token: VAR_bk_dbm_cloud_token
 serviceName: bkDbm
-zoneName: {{city_name}}
-ABSUSER: {{system_user}}
-ABSPASSWORD: {{system_password}}
+zoneName: VAR_city_name
+ABSUSER: VAR_system_user
+ABSPASSWORD: VAR_system_password
 ABSPORT: 36000
 ABSTIMEOUT: 14400
 RsyncPullBwLimit: 400000 # rsync bandwidth limit, kbit/s
 RsyncPullTimeout: 36000 # rsync timeout,10 hour
-WarnMessageNotifier: {{warning_msg_notifiers}} #告警通知人
+WarnMessageNotifier: VAR_warning_msg_notifiers #告警通知人
 DtsServerDiskMaxUsgRatio: 85 #dtsserver磁盘最大使用90%,超过则发送告警
 DtsServerMemMaxUsgRatio: 80 #dtsserver内存最大使用90%,超过则发送告警

@@ -1,0 +1,50 @@
+{
+  "bk_biz_id": 0,
+  "plugin_id": "dbm_kafka_exporter",
+  "name": "dbm_kafka_exporter",
+  "db_type": "kafka",
+  "short_name": "zookeeper",
+  "details": {
+    "name": "dbm_kafka_exporter",
+    "label": "component",
+    "params": {
+      "plugin": {
+        "--kafka.server": "{{ target.host.bk_host_innerip }}:{{ target.process[\"java\"].bind_info[0].port }}",
+        "--sasl.enabled": "",
+        "--sasl.mechanism": "scram-sha512",
+        "--web.listen-address": "${host}:${port}",
+        "\u670d\u52a1\u5b9e\u4f8b\u7ef4\u5ea6\u6ce8\u5165": {
+          "app": "app",
+          "instance": "instance",
+          "cluster_name": "cluster_name",
+          "cluster_type": "cluster_type",
+          "instance_host": "instance_host",
+          "instance_port": "instance_port",
+          "instance_role": "instance_role",
+          "cluster_domain": "cluster_domain"
+        }
+      },
+      "collector": {
+        "host": "127.0.0.1",
+        "port": "9528",
+        "period": 60,
+        "timeout": 60
+      },
+      "target_node_type": "TOPO",
+      "target_object_type": "SERVICE"
+    },
+    "plugin_info": {
+      "plugin_id": "dbm_kafka_exporter",
+      "metric_json": [],
+      "plugin_type": "Exporter",
+      "os_type_list": [
+        "linux"
+      ]
+    },
+    "collect_type": "Exporter",
+    "target_nodes": [],
+    "target_node_type": "TOPO",
+    "target_object_type": "SERVICE"
+  },
+  "version": 1
+}

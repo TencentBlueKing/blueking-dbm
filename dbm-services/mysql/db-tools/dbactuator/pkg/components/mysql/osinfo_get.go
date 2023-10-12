@@ -61,7 +61,7 @@ func (s *OSInfoGetComp) Start() (err error) {
 		s.Params.Directory = []string{"/", "/data", "/data1", "/data2"}
 	}
 	for _, dir := range s.Params.Directory {
-		disk, err := cmutil.GetDiskPartInfo(dir, s.Params.NoCheckDevice)
+		disk, err := cmutil.GetDiskPartInfo(dir, !s.Params.NoCheckDevice)
 		if err != nil {
 			if s.defaultParams {
 				continue

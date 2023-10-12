@@ -2,10 +2,9 @@ package crond
 
 import (
 	"fmt"
+	"log/slog"
 
 	"dbm-services/mysql/db-tools/mysql-crond/pkg/config"
-
-	"golang.org/x/exp/slog"
 )
 
 // Resume TODO
@@ -16,7 +15,7 @@ func Resume(name string, permanent bool) (int, error) {
 
 			entryID, err := cronJob.AddJob(j.Schedule, j)
 			if err != nil {
-				slog.Error("resume job", err)
+				slog.Error("resume job", slog.String("error", err.Error()))
 				return 0, err
 			}
 			slog.Info(
@@ -37,12 +36,12 @@ func Resume(name string, permanent bool) (int, error) {
 			return int(entryID), nil
 		} else {
 			err := fmt.Errorf("conver %v to ExternalJob failed", value)
-			slog.Error("resume job", err)
+			slog.Error("resume job", slog.String("error", err.Error()))
 			return 0, err
 		}
 	} else {
 		err := fmt.Errorf("%s not found", name)
-		slog.Error("resume job", err)
+		slog.Error("resume job", slog.String("error", err.Error()))
 		return 0, err
 	}
 }

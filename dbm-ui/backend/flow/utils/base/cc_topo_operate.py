@@ -177,6 +177,7 @@ class CCTopoOperator:
                 instance_role=instance_role,
                 instance_host=ins.machine.ip,
                 instance_port=str(ins.port),
+                db_module=str(cluster.db_module_id),
                 instance=f"{ins.machine.ip}-{ins.port}",
             )
         )

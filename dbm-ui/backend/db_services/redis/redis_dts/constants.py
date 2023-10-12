@@ -176,3 +176,36 @@ do
 done <<< "$lines"
 
 """
+
+# 添加 /etc/resolv.conf
+SERVERS_ADD_RESOLV_CONF = """
+lines="{}"
+
+while read -r line
+do
+    # skip empty line
+    if [[ "$line" =~ ^[[:space:]]*$ ]]; then
+        continue
+    fi
+    if ! grep -qF "$line" /etc/resolv.conf; then
+        sed -i "1i $line" /etc/resolv.conf
+        echo "Added: $line"
+    else
+        echo "Skipped: $line"
+    fi
+done <<< "$lines"
+"""
+
+# 删除 /etc/resolv.conf
+SERVERS_DEL_RESOLV_CONF = """
+lines="{}"
+
+while read -r line
+do
+    # skip empty line
+    if [[ "$line" =~ ^[[:space:]]*$ ]]; then
+        continue
+    fi
+    sed -i "/$line/d" /etc/resolv.conf
+done <<< "$lines"
+"""

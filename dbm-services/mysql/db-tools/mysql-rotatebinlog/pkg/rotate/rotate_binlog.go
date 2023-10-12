@@ -2,7 +2,6 @@ package rotate
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -33,7 +32,7 @@ type ServerObj struct {
 
 	dbWorker  *native.DbWorker
 	binlogDir string
-	// 已按文件名升序排序
+	// 已按文件名升序排序，本地存在的binlog文件列表
 	binlogFiles  []*BinlogFile
 	backupClient backup.BackupClient
 	instance     *native.InsObject
@@ -103,11 +102,11 @@ func (i *ServerObj) Rotate() (err error) {
 func (i *ServerObj) FreeSpace() (err error) {
 	sizeToFreeBytes := i.rotate.sizeToFreeMB * 1024 * 1024 // MB to bytes
 	logger.Info("plan to free port %d binlog bytes %d", i.Port, sizeToFreeBytes)
-	if err = i.rotate.Remove(sizeToFreeBytes); err != nil {
-		logger.Error("%+v", err)
+	if err = i.rotate.Remove(sizeToFreeBytes, true); err != nil {
+		logger.Error("Remove %+v", err)
 	}
 	if err = i.PurgeIndex(); err != nil {
-		logger.Error("%+v", err)
+		logger.Error("PurgeIndex %+v", err)
 	}
 	defer i.dbWorker.Stop()
 	return nil
@@ -142,7 +141,7 @@ func (f *BinlogFile) String() string {
 // getBinlogFilesLocal 获取实例的 本地 binlog 列表，会按文件名排序
 func (i *ServerObj) getBinlogFilesLocal() (string, []*BinlogFile, error) {
 	// 临时关闭 binlog 删除
-	files, err := ioutil.ReadDir(i.binlogDir) // 已经按文件名排序
+	files, err := os.ReadDir(i.binlogDir) // 已经按文件名排序
 	if err != nil {
 		return "", nil, errors.Wrap(err, "read binlog dir")
 	}
@@ -154,11 +153,12 @@ func (i *ServerObj) getBinlogFilesLocal() (string, []*BinlogFile, error) {
 			}
 			continue
 		} else {
+			fii, _ := fi.Info()
 			i.binlogFiles = append(
 				i.binlogFiles, &BinlogFile{
 					Filename: fi.Name(),
-					Mtime:    fi.ModTime().Format(cst.DBTimeLayout),
-					Size:     fi.Size(),
+					Mtime:    fii.ModTime().Format(cst.DBTimeLayout),
+					Size:     fii.Size(),
 				},
 			)
 		}

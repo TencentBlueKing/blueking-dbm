@@ -27,7 +27,8 @@ const routes: RouteRecordRaw[] = [
       isMenu: true,
     },
     component: () => import('@views/mission/pages/index.vue'),
-  }, {
+  },
+  {
     name: 'DatabaseMissionDetails',
     path: 'mission-details/:root_id',
     meta: {

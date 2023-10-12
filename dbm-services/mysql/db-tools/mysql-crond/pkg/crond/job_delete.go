@@ -2,11 +2,11 @@ package crond
 
 import (
 	"fmt"
+	"log/slog"
 
 	"dbm-services/mysql/db-tools/mysql-crond/pkg/config"
 
 	"github.com/robfig/cron/v3"
-	"golang.org/x/exp/slog"
 )
 
 // Delete TODO
@@ -21,7 +21,7 @@ func Delete(name string, permanent bool) (int, error) {
 	}
 
 	err := NotFoundError(fmt.Sprintf("job %s not found", name))
-	slog.Error("delete job", err)
+	slog.Error("delete job", slog.String("error", err.Error()))
 	return 0, err
 }
 
@@ -29,7 +29,7 @@ func deleteActivate(entry *cron.Entry, permanent bool) (int, error) {
 	j, ok := entry.Job.(*config.ExternalJob)
 	if !ok {
 		err := fmt.Errorf("convert %v to ExternalJob failed", entry)
-		slog.Error("delete activate", err)
+		slog.Error("delete activate", slog.String("error", err.Error()))
 		return 0, err
 	}
 
@@ -50,7 +50,7 @@ func deleteDisabled(name string, permanent bool) (int, error) {
 	job, ok := v.(*config.ExternalJob)
 	if !ok {
 		err := fmt.Errorf("conver %v to ExternalJob failed", v)
-		slog.Error("delete disabled", err)
+		slog.Error("delete disabled", slog.String("error", err.Error()))
 		return 0, err
 	}
 

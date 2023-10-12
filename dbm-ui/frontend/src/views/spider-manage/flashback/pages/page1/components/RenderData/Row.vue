@@ -37,28 +37,28 @@
           ref="databasesRef"
           v-model="localDatabases"
           :cluster-id="localClusterId"
-          :rules="dbAndTableNameRules" />
+          :rules="targetdbAndTableNameBaseRules" />
       </td>
       <td style="padding: 0;">
         <RenderTableName
           ref="tablesRef"
           v-model="localTables"
           :cluster-id="localClusterId"
-          :rules="dbAndTableNameRules" />
+          :rules="targetdbAndTableNameBaseRules" />
       </td>
       <td style="padding: 0;">
         <RenderDbName
           ref="databasesIgnoreRef"
           v-model="localDatabaseIgnore"
           :cluster-id="localClusterId"
-          :rules="dbAndTableNameRules" />
+          :rules="ingoredbAndTableNameBaseRules" />
       </td>
       <td style="padding: 0;">
         <RenderTableName
           ref="tablesIgnoreRef"
           v-model="localTablesIgnore"
           :cluster-id="localClusterId"
-          :rules="dbAndTableNameRules" />
+          :rules="ingoredbAndTableNameBaseRules" />
       </td>
       <td :class="{'shadow-column': isFixed}">
         <div class="action-box">
@@ -156,27 +156,38 @@
   const localDatabaseIgnore = ref<string[]>();
   const localTablesIgnore = ref<string[]>();
 
-  let isFinallValidDbAndTableName = false;
-
-  const dbAndTableNameRules = [
+  const targetdbAndTableNameBaseRules = [
     {
-      validator: () => {
-        if (!isFinallValidDbAndTableName) {
-          isFinallValidDbAndTableName = false;
-          return true;
-        }
-        return !!(
-          (localDatabases.value && localDatabases.value.length > 0)
-          || (localTables.value && localTables.value.length > 0)
-          || (localDatabaseIgnore.value && localDatabaseIgnore.value.length > 0)
-          || (localTablesIgnore.value && localTablesIgnore.value.length > 0)
-        );
-      },
-      message: t('库名和表名不能全为空'),
+      validator: (value: string []) => value && value.length > 0,
+      message: t('不能为空'),
     },
     {
-      validator: (value: string []) => _.every(value, item => !/\*/.test(item)),
-      message: t('不允许出现 *'),
+      validator: (value: string []) => {
+        if (_.some(value, item => /\*/.test(item))) {
+          return value.length < 2;
+        }
+        return true;
+      },
+      message: t('出现 * 只允许填一个'),
+      trigger: 'change',
+    },
+    {
+      validator: (value: string []) => _.every(value, item => !/^%$/.test(item)),
+      message: t('% 不允许单独使用'),
+      trigger: 'change',
+    },
+  ];
+
+  const ingoredbAndTableNameBaseRules = [
+    {
+      validator: (value: string []) => {
+        if (value.length < 1) {
+          return true;
+        }
+
+        return _.every(value, item => !/\*/.test(item));
+      },
+      message: t('不支持 *'),
       trigger: 'change',
     },
     {
@@ -226,7 +237,6 @@
 
   defineExpose<Exposes>({
     getValue() {
-      isFinallValidDbAndTableName = true;
       return Promise.all([
         clusterRef.value.getValue(),
         startTimeRef.value.getValue(),

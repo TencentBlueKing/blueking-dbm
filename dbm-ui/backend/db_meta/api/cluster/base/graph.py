@@ -19,7 +19,7 @@ from django.db.models import Q
 from django.utils.translation import gettext_lazy as _
 
 from backend import env
-from backend.db_meta.enums import ClusterEntryType, InstanceRole, MachineType, TenDBClusterSpiderRole
+from backend.db_meta.enums import ClusterEntryType, ClusterType, InstanceRole, MachineType, TenDBClusterSpiderRole
 from backend.db_meta.models import Cluster, ClusterEntry, ProxyInstance, StorageInstance
 
 
@@ -50,8 +50,18 @@ class Node:
     @staticmethod
     def generate_url(ins: Union[StorageInstance, ProxyInstance, ClusterEntry]) -> str:
         if isinstance(ins, (StorageInstance, ProxyInstance)):
+            if ins.cluster_type == ClusterType.TenDBCluster:
+                url_tpl = (
+                    "/database/{bk_biz_id}/spider-manage/list-instance?"
+                    "instance_address={ip}:{port}&cluster_id={cluster_id}"
+                )
+            else:
+                url_tpl = (
+                    "/database/{bk_biz_id}/{cluster_type}-instance?"
+                    "instance_address={ip}:{port}&cluster_id={cluster_id}"
+                )
             # url 跳转到实例详情
-            return "/database/{bk_biz_id}/{cluster_type}-instance/{cluster_id}/{ip}:{port}/details".format(
+            return url_tpl.format(
                 bk_biz_id=ins.bk_biz_id,
                 cluster_type=ins.cluster_type,
                 cluster_id=ins.cluster.first().id,

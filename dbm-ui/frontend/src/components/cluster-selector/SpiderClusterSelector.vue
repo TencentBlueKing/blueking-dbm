@@ -124,10 +124,10 @@
                 class="table-box"
                 :columns="columns"
                 :data="tableData"
-                :height="500"
+                :height="528"
                 :is-anomalies="isAnomalies"
                 :is-searching="searchSelectValue.length > 0"
-                :pagination="pagination"
+                :pagination="pagination.count < 10 ? false: pagination"
                 remote-pagination
                 row-style="cursor: pointer;"
                 @clear-search="handleClearSearch"
@@ -174,7 +174,6 @@
   import DbStatus from '@components/db-status/index.vue';
 
   import {
-    getSearchSelectorParams,
     makeMap,
     messageWarn,
   } from '@utils';
@@ -220,20 +219,6 @@
   const { t } = useI18n();
   const copy = useCopy();
 
-  const checkSelectedAll = () => {
-    if (!selectedMap.value[activeTab.value]
-      || Object.keys(selectedMap.value[activeTab.value]).length < 1) {
-      isSelectedAll.value = false;
-      return;
-    }
-
-    for (let i = 0; i < tableData.value.length; i++) {
-      if (!selectedMap.value[activeTab.value][tableData.value[i].id]) {
-        isSelectedAll.value = false;
-      }
-    }
-  };
-
   const formItem = useFormItem();
 
   const tabTipsRef = ref();
@@ -253,7 +238,7 @@
     fetchResources,
     handleChangePage,
     handeChangeLimit,
-  } = useClusterData<ValueOf<Props['selected']>[0]>(activeTab, getSearchSelectorParams(searchSelectValue.value));
+  } = useClusterData<ValueOf<Props['selected']>[0]>(activeTab, searchSelectValue);
 
   // 显示切换 tab tips
   const showSwitchTabTips = computed(() => showTabTips.value && props.onlyOneType);
@@ -275,6 +260,9 @@
       return Object.assign({}, result, masterDomainMap);
     }, {} as Record<string, boolean>));
 
+  const isIndeterminate = computed(() => !isSelectedAll.value
+    && selectedMap.value[activeTab.value] && Object.keys(selectedMap.value[activeTab.value]).length > 0);
+
   const columns = [
     {
       width: 60,
@@ -282,6 +270,7 @@
       <bk-checkbox
         key={`${pagination.current}_${activeTab.value}`}
         model-value={isSelectedAll.value}
+        indeterminate={isIndeterminate.value}
         label={true}
         onClick={(e: Event) => e.stopPropagation()}
         onChange={handleSelecteAll}
@@ -419,6 +408,21 @@
     }
   };
 
+  const checkSelectedAll = () => {
+    const currentSelected = selectedMap.value[activeTab.value];
+    if (!currentSelected || Object.keys(currentSelected).length < 1) {
+      isSelectedAll.value = false;
+      return;
+    }
+    for (let i = 0; i < tableData.value.length; i++) {
+      if (!currentSelected[tableData.value[i].id]) {
+        isSelectedAll.value = false;
+        return;
+      }
+    }
+    isSelectedAll.value = true;
+  };
+
   /**
    * 选择当行数据
    */
@@ -432,23 +436,14 @@
     } else {
       delete selectedMapMemo[activeTab.value][data.id];
     }
-
     selectedMap.value = selectedMapMemo;
-
     checkSelectedAll();
   };
 
   const handleRowClick = (row:any, data: ValueOf<Props['selected']>[0]) => {
-    const selectedMapMemo = { ...selectedMap.value };
-    if (!selectedMapMemo[activeTab.value]) {
-      selectedMapMemo[activeTab.value] = {};
-    }
-    if (selectedMapMemo[activeTab.value][data.id]) {
-      delete selectedMapMemo[activeTab.value][data.id];
-    } else {
-      selectedMapMemo[activeTab.value][data.id] = data;
-    }
-    selectedMap.value = selectedMapMemo;
+    const currentSelected = selectedMap.value[activeTab.value];
+    const isChecked = !!(currentSelected && currentSelected[data.id]);
+    handleSelecteRow(data, !isChecked);
   };
 
   /**

@@ -338,15 +338,19 @@ class GetFileList(object):
             f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{bkdbmon_pkg.path}",
         ]
 
+    @classmethod
     def redis_add_dts_server(self) -> list:
         """
         redis add dts_server
         """
+        redis_actuator_pkg = Package.get_latest_package(
+            version=MediumEnum.Latest, pkg_type=MediumEnum.DBActuator, db_type=DBType.Redis
+        )
         redis_dts_pkg = Package.get_latest_package(
             version=MediumEnum.Latest, pkg_type=MediumEnum.RedisDts, db_type=DBType.Redis
         )
         return [
-            f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{self.actuator_pkg.path}",
+            f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{redis_actuator_pkg.path}",
             f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{redis_dts_pkg.path}",
         ]
 

@@ -12,9 +12,12 @@ import math
 from typing import Any, Dict, List
 
 from django.forms import model_to_dict
+from django.utils.translation import ugettext as _
 
 from backend.components.dbresource.client import DBResourceApi
+from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Spec
+from backend.db_services.dbresource.exceptions import SpecOperateException
 
 
 class ClusterSpecFilter(object):
@@ -150,6 +153,7 @@ class TendisPlusSpecFilter(RedisSpecFilter):
         for spec in self.specs:
             spec["machine_pair"] = max(math.ceil(self.capacity / spec["capacity"]), 3)
             spec["cluster_capacity"] = spec["machine_pair"] * spec["capacity"]
+            spec["cluster_qps"] = spec["machine_pair"] * spec["qps"]["min"]
 
     def calc_cluster_shard_num(self):
         for spec in self.specs:
@@ -200,11 +204,17 @@ class ResourceHandler(object):
     """资源池接口的处理函数"""
 
     @classmethod
-    def spec_resource_count(cls, bk_biz_id: int, resource_type: str, bk_cloud_id: int, spec_ids: List[int]):
+    def spec_resource_count(cls, bk_biz_id: int, bk_cloud_id: int, spec_ids: List[int]):
+        specs = Spec.objects.filter(spec_id__in=spec_ids)
+        # 获取resource_type
+        spec_cluster_type = list(set(specs.values_list("spec_cluster_type", flat=True)))
+        if len(spec_cluster_type) > 1:
+            raise SpecOperateException(_("请保证请求的规格类型一致"))
+        resource_type = ClusterType.cluster_type_to_db_type(spec_cluster_type[0])
         # 构造申请参数
         spec_count_details = [
             spec.get_apply_params_detail(group_mark=str(spec.spec_id), count=0, bk_cloud_id=bk_cloud_id)
-            for spec in Spec.objects.filter(spec_id__in=spec_ids)
+            for spec in specs
         ]
         spec_count_params = {
             "bk_biz_id": bk_biz_id,

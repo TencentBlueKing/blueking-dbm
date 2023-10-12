@@ -49,7 +49,7 @@
             {{ $t('数据库管理') }}
           </RouterLink>
           <AuthComponent
-            action-id="DB_MANAGE"
+            action-id="GLOBAL_MANAGE"
             immediate-check>
             <RouterLink
               active-class="main-navigation__nav--active"

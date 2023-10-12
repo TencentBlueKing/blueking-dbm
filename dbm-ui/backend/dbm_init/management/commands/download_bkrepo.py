@@ -10,13 +10,12 @@ specific language governing permissions and limitations under the License.
 """
 import logging
 import os
-import subprocess
-import zipfile
 
 from django.conf import settings
 from django.core.management.base import BaseCommand
 
 from backend.core.storages.storage import get_storage
+from backend.dbm_init.medium.handlers import MediumHandler
 
 logger = logging.getLogger("root")
 
@@ -34,31 +33,5 @@ class Command(BaseCommand):
         path = options["path"]
         option = options["option"]
         storage = get_storage()
-
         # 以dbm_init为根目录进行操作
-        if not os.path.exists(BKREPO_TMP_DIR):
-            os.makedirs(BKREPO_TMP_DIR)
-        os.chdir(BKREPO_TMP_DIR)
-
-        if option in ["download", "all"]:
-            if path:
-                subprocess.call(["wget", storage.url(f"/{path}")])
-            else:
-                with open(os.path.join(BKREPO_TMP_DIR, "wget.txt"), "w") as f:
-                    for d in storage.listdir("/")[0]:
-                        f.write(storage.url(d["fullPath"]) + "\n")
-                subprocess.call(["wget", "-i", "./wget.txt"])
-
-        if option in ["unzip", "all"]:
-            for root, dirs, files in os.walk(BKREPO_TMP_DIR):
-                for file in files:
-                    if "?" not in file:
-                        continue
-
-                    if path and path not in file:
-                        continue
-
-                    db_type = file.split("?")[0]
-                    with zipfile.ZipFile(os.path.join(root, file)) as zfile:
-                        logger.info("unzip dir: %s", file)
-                        zfile.extractall(os.path.join(BKREPO_TMP_DIR, db_type))
+        MediumHandler(storage).download_medium(option, path, BKREPO_TMP_DIR)

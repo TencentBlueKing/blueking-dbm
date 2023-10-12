@@ -239,7 +239,7 @@ func (i *InstallNewDbBackupComp) InitRenderData() (err error) {
 	case cst.BackupRoleOrphan:
 		// orphan 使用的是 tendbsingle Master.DataSchemaGrant
 		dsg = i.Params.Options.Master.DataSchemaGrant
-	case cst.BackupRoleSpiderMaster, cst.BackupRoleSpiderSlave:
+	case cst.BackupRoleSpiderMaster, cst.BackupRoleSpiderSlave, cst.BackupRoleSpiderMnt:
 		// spider 只在 spider_master and tdbctl_master 上，备份schema,grant
 		dsg = "schema,grant"
 	default:

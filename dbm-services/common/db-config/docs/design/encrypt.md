@@ -36,3 +36,29 @@ curl --location --request POST 'http://bkdbm-dbconfig/bkconfig/v1/confitem/query
     "conf_name": "xx"
 }'
 ```
+
+# 修改加密 key
+修改加密秘钥，一定要备份之前的秘钥和已生成的加密串（包括平台默认和业务密码），一旦秘钥丢失将无法拿到明文。
+## 平台默认密码
+```
+### 用旧key来解密出明文密码
+./bkconfigcli query --decrypt --old-key="xx"
+./bkconfigcli query --decrypt --namespace=influxdb --old-key="xx"
+
+### 修改key
+./bkconfigcli update  --old-key="xx" --new-key="xxxx"
+./bkconfigcli update  --namespace=influxdb --old-key="xx" --new-key="xxxx"
+```
+
+## 业务或者集群默认密码
+
+```
+### 查询某个业务所有相关密码
+./bkconfigcli query --decrypt --old-key="xx" --bk-biz-id=123
+
+### 用新key更新 业务 123 的相关密码，可用于先验证是否正确
+./bkconfigcli update  --old-key="xx" --new-key="xxxx" --bk-biz-id=123
+
+### 用新key更新所有业务的相关密码
+./bkconfigcli update  --old-key="xx" --new-key="xxxx" --bk-biz-id=-1
+```

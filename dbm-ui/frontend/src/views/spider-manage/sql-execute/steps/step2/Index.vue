@@ -287,10 +287,6 @@
     return revokeSemanticCheck({
       bk_biz_id: currentBizId,
       root_id: rootId,
-    }).then(() => {
-      router.push({
-        name: 'spiderSqlExecute',
-      });
     })
       .finally(() => {
         isRevokeing.value = false;

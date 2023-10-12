@@ -31,9 +31,8 @@ from backend.db_meta.enums import (
 )
 from backend.db_meta.enums.cluster_status import ClusterDBSingleStatusFlags
 from backend.db_meta.exceptions import ClusterExclusiveOperateException, DBMetaException
-from backend.db_meta.models.tag import Tag
 from backend.db_services.version.constants import LATEST, PredixyVersion, TwemproxyVersion
-from backend.ticket.constants import TicketType
+from backend.ticket.constants import AffinityEnum, TicketType
 from backend.ticket.models import ClusterOperateRecord
 
 logger = logging.getLogger("root")
@@ -51,8 +50,10 @@ class Cluster(AuditedModel):
     status = models.CharField(max_length=64, choices=ClusterStatus.get_choices(), default=ClusterStatus.NORMAL.value)
     bk_cloud_id = models.IntegerField(default=DEFAULT_BK_CLOUD_ID, help_text=_("云区域 ID"))
     region = models.CharField(max_length=128, default="", help_text=_("地域"))
+    disaster_tolerance_level = models.CharField(
+        max_length=128, help_text=_("容灾要求"), choices=AffinityEnum.get_choices(), default=AffinityEnum.NONE.value
+    )
     time_zone = models.CharField(max_length=16, default=DEFAULT_TIME_ZONE, help_text=_("集群所在的时区"))
-    tag = models.ManyToManyField(Tag, blank=True, help_text=_("集群标签"))
 
     class Meta:
         unique_together = ("bk_biz_id", "name", "cluster_type", "db_module_id")
@@ -61,7 +62,12 @@ class Cluster(AuditedModel):
         return self.name
 
     def to_dict(self):
-        return {**model_to_dict(self), "cluster_type_name": str(ClusterType.get_choice_label(self.cluster_type))}
+        """将集群所有字段转为字段"""
+        return {
+            **model_to_dict(self),
+            "cluster_type_name": str(ClusterType.get_choice_label(self.cluster_type)),
+            "tag": [model_to_dict(t) for t in self.tag_set.all()],
+        }
 
     @property
     def simple_desc(self):

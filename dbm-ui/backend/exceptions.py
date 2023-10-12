@@ -42,6 +42,7 @@ class ErrorCode(object):
     REDIS_DTS_CODE = "13"
     DB_REMOTE_SERVICE_CODE = "14"
     DB_MONITOR_CODE = "15"
+    TENDB_OPEN_AREA_CODE = "16"
 
 
 class AppBaseException(Exception):
@@ -145,7 +146,7 @@ class PermissionDeniedError(AppBaseException):
         try:
             permission = kwargs.get("permission")
             if permission:
-                client = IAM(env.APP_CODE, env.SECRET_KEY, bk_apigateway_url=env.BK_IAM_APIGETEWAY)
+                client = IAM(env.APP_CODE, env.SECRET_KEY, bk_apigateway_url=env.BK_IAM_APIGATEWAY)
                 for action in permission.get("actions") or []:
                     action["name"] = action.get("name") or action.get("id")
                 data = {

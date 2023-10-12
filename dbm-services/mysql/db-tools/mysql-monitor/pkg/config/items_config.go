@@ -1,6 +1,6 @@
 package config
 
-import "golang.org/x/exp/slices"
+import "slices"
 
 // MonitorItem 监控项
 type MonitorItem struct {

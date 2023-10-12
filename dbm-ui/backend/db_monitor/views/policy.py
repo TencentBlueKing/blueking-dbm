@@ -19,10 +19,15 @@ from rest_framework.response import Response
 from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.bk_web.viewsets import AuditedModelViewSet
 
-from ...configuration.constants import PLAT_BIZ_ID
+from ...configuration.constants import PLAT_BIZ_ID, DBType
+from ...db_meta.enums import ClusterType, InstanceRole
+from ...db_meta.models import Cluster, DBModule, StorageInstance
+from ...iam_app.handlers.drf_perm import DBManageIAMPermission
 from .. import constants
 from ..models import MonitorPolicy
 from ..serializers import (
+    ListClusterSerializer,
+    ListModuleSerializer,
     MonitorPolicyCloneSerializer,
     MonitorPolicyEmptySerializer,
     MonitorPolicyListSerializer,
@@ -54,9 +59,6 @@ class MonitorPolicyListFilter(filters.FilterSet):
     def filter_notify_groups(self, queryset, name, value):
         """过滤多个告警组: value=1,2,3"""
 
-        if name != "notify_groups":
-            return queryset
-
         qs = Q()
         for group in map(lambda x: int(x), value.split(",")):
             qs = qs | Q(notify_groups__contains=group)
@@ -86,13 +88,17 @@ class MonitorPolicyListFilter(filters.FilterSet):
 @method_decorator(
     name="list",
     decorator=common_swagger_auto_schema(
-        tags=[constants.SWAGGER_TAG], responses={status.HTTP_200_OK: MonitorPolicyListSerializer()}
+        operation_summary=_("获取策略列表"),
+        tags=[constants.SWAGGER_TAG],
+        responses={status.HTTP_200_OK: MonitorPolicyListSerializer()},
     ),
 )
 @method_decorator(
     name="retrieve",
     decorator=common_swagger_auto_schema(
-        tags=[constants.SWAGGER_TAG], responses={status.HTTP_200_OK: MonitorPolicySerializer()}
+        operation_summary=_("获取策略详情"),
+        tags=[constants.SWAGGER_TAG],
+        responses={status.HTTP_200_OK: MonitorPolicySerializer()},
     ),
 )
 @method_decorator(
@@ -101,7 +107,7 @@ class MonitorPolicyListFilter(filters.FilterSet):
 )
 @method_decorator(
     name="destroy",
-    decorator=common_swagger_auto_schema(tags=[constants.SWAGGER_TAG]),
+    decorator=common_swagger_auto_schema(operation_summary=_("删除策略"), tags=[constants.SWAGGER_TAG]),
 )
 @method_decorator(
     name="create",
@@ -125,6 +131,9 @@ class MonitorPolicyViewSet(AuditedModelViewSet):
     filter_class = MonitorPolicyListFilter
     ordering_fields = ("-create_at",)
 
+    def _get_custom_permissions(self):
+        return [DBManageIAMPermission()]
+
     def get_serializer_class(self):
         if self.action == "list":
             return MonitorPolicyListSerializer
@@ -133,14 +142,14 @@ class MonitorPolicyViewSet(AuditedModelViewSet):
     @common_swagger_auto_schema(
         operation_summary=_("启用策略"), tags=[constants.SWAGGER_TAG], request_body=MonitorPolicyEmptySerializer()
     )
-    @action(methods=["POST"], detail=True, serializer_class=MonitorPolicyEmptySerializer)
+    @action(methods=["POST"], detail=True)
     def enable(self, request, *args, **kwargs):
         return Response(self.get_object().enable())
 
     @common_swagger_auto_schema(
         operation_summary=_("停用策略"), tags=[constants.SWAGGER_TAG], request_body=MonitorPolicyEmptySerializer()
     )
-    @action(methods=["POST"], detail=True, serializer_class=MonitorPolicyEmptySerializer)
+    @action(methods=["POST"], detail=True)
     def disable(self, request, *args, **kwargs):
         return Response(self.get_object().disable())
 
@@ -161,6 +170,44 @@ class MonitorPolicyViewSet(AuditedModelViewSet):
     @common_swagger_auto_schema(
         operation_summary=_("恢复默认策略"), tags=[constants.SWAGGER_TAG], request_body=MonitorPolicyEmptySerializer()
     )
-    @action(methods=["POST"], detail=True, serializer_class=MonitorPolicyEmptySerializer)
+    @action(methods=["POST"], detail=True)
     def reset(self, request, *args, **kwargs):
         return Response(self.get_object().reset())
+
+    @common_swagger_auto_schema(
+        operation_summary=_("根据db类型查询集群列表"),
+        tags=[constants.SWAGGER_TAG],
+        query_serializer=ListClusterSerializer,
+    )
+    @action(
+        methods=["GET"], detail=False, serializer_class=ListClusterSerializer, pagination_class=None, filter_class=None
+    )
+    def cluster_list(self, request, *args, **kwargs):
+        dbtype = self.validated_data["dbtype"]
+
+        if dbtype == DBType.InfluxDB:
+            return Response(
+                StorageInstance.objects.filter(instance_role=InstanceRole.INFLUXDB).values_list(
+                    "machine__ip", flat=True
+                )
+            )
+
+        clusters = Cluster.objects.filter(cluster_type__in=ClusterType.db_type_to_cluster_type(dbtype))
+
+        return Response(clusters.values_list("immute_domain", flat=True))
+
+    @common_swagger_auto_schema(
+        operation_summary=_("根据db类型查询模块列表"),
+        tags=[constants.SWAGGER_TAG],
+        query_serializer=ListModuleSerializer,
+    )
+    @action(
+        methods=["GET"], detail=False, serializer_class=ListModuleSerializer, pagination_class=None, filter_class=None
+    )
+    def db_module_list(self, request, *args, **kwargs):
+        dbtype = self.validated_data["dbtype"]
+        return Response(
+            DBModule.objects.filter(cluster_type__in=ClusterType.db_type_to_cluster_type(dbtype)).values(
+                "db_module_id", "db_module_name"
+            )
+        )

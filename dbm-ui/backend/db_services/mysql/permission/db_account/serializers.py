@@ -111,6 +111,7 @@ class MySQLAccountRulesDetailSerializer(serializers.Serializer):
 
 
 class FilterMySQLAccountRulesSerializer(serializers.Serializer):
+    rule_ids = serializers.CharField(help_text=_("规则ID列表(通过,分割)"), required=False)
     user = serializers.CharField(help_text=_("账号名称"), required=False)
     access_db = serializers.CharField(help_text=_("访问DB"), required=False)
     privilege = serializers.CharField(help_text=_("规则列表"), required=False)

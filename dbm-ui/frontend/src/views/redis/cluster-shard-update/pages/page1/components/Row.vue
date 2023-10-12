@@ -30,6 +30,7 @@
       <RenderDeployPlan
         ref="deployPlanRef"
         :data="data.deployPlan"
+        :is-disabled="!data.srcCluster"
         :is-loading="data.isLoading"
         :row-data="data" />
     </td>

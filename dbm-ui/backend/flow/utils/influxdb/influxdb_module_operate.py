@@ -86,6 +86,7 @@ class InfluxdbCCTopoOperator:
                     instance_port=str(ins.port),
                     exporter_port=str(INFLUXDB_EXPORTER_PORT),
                     db_group=group_name,
+                    db_module="default",
                 )
             )
 

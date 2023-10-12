@@ -1,7 +1,19 @@
+/*
+ * TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
+ * Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
+ * Licensed under the MIT License (the "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at https://opensource.org/licenses/MIT
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+ * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
+
 package mysqlutil
 
 import (
+	"errors"
 	"fmt"
+	"os"
 	"path"
 	"regexp"
 	"runtime"
@@ -11,8 +23,6 @@ import (
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util/osutil"
-
-	"github.com/panjf2000/ants/v2"
 )
 
 var dumpCompleteReg = regexp.MustCompile("Dump completed on")
@@ -65,6 +75,7 @@ type MySQLDumperTogether struct {
 	MySQLDumper
 	OutputfileName string
 	UseTMySQLDump  bool // 是否使用的是自研的mysqldump,一般介质在备份目录下
+	TDBCTLDump     bool // 中控专有参数
 }
 
 // checkDumpComplete  检查导出结果是否Ok
@@ -111,8 +122,8 @@ func (m *MySQLDumperTogether) Dump() (err error) {
 		dumpOption = m.getTMySQLDumpOption()
 	}
 	dumpCmd := m.getDumpCmd(strings.Join(m.DbNames, " "), outputFile, errFile, dumpOption)
-	logger.Info("mysqldump cmd:%s", RemovePassword(dumpCmd))
-	output, err := osutil.ExecShellCommand(false, dumpCmd)
+	logger.Info("mysqldump cmd:%s", ClearSensitiveInformation(dumpCmd))
+	output, err := osutil.StandardShellCommand(false, dumpCmd)
 	if err != nil {
 		return fmt.Errorf("execte %s get an error:%s,%w", dumpCmd, output, err)
 	}
@@ -128,50 +139,47 @@ func (m *MySQLDumperTogether) Dump() (err error) {
 //	@receiver m
 //	@return err
 func (m *MySQLDumper) Dump() (err error) {
-	var wg sync.WaitGroup
-	var errs []string
 	m.init()
+	var wg sync.WaitGroup
+	var errs []error
 	errChan := make(chan error, 1)
+	concurrencyControl := make(chan struct{}, m.maxConcurrency)
 	logger.Info("mysqldump data:%+v", *m)
-	pool, _ := ants.NewPool(m.maxConcurrency)
-	defer pool.Release()
-	f := func(db string) func() {
-		return func() {
+	go func() {
+		for err := range errChan {
+			logger.Error("dump db failed: %s", err.Error())
+			errs = append(errs, err)
+		}
+	}()
+	for _, db := range m.DbNames {
+		wg.Add(1)
+		concurrencyControl <- struct{}{}
+		go func(db string) {
+			defer func() {
+				wg.Done()
+				<-concurrencyControl
+			}()
 			outputFile := path.Join(m.DumpDir, fmt.Sprintf("%s.sql", db))
 			errFile := path.Join(m.DumpDir, fmt.Sprintf("%s.err", db))
 			dumpCmd := m.getDumpCmd(db, outputFile, errFile, "")
 			logger.Info("mysqldump cmd:%s", RemovePassword(dumpCmd))
-			output, err := osutil.ExecShellCommand(false, dumpCmd)
+			output, err := osutil.StandardShellCommand(false, dumpCmd)
 			if err != nil {
-				errChan <- fmt.Errorf("execte %s get an error:%s,%w", dumpCmd, output, err)
-				wg.Done()
+				errContent, _ := os.ReadFile(errFile)
+				errChan <- fmt.Errorf("execte %s get an error:%s,%w\n errfile content:%s", dumpCmd, output, err,
+					string(errContent))
 				return
 			}
 			if err := checkDumpComplete(outputFile); err != nil {
-				errChan <- err
-				wg.Done()
+				errContent, _ := os.ReadFile(errFile)
+				errChan <- fmt.Errorf("%w\n errfile content:%s", err, string(errContent))
 				return
 			}
-			wg.Done()
-		}
+		}(db)
 	}
-
-	for _, db := range m.DbNames {
-		wg.Add(1)
-		pool.Submit(f(db))
-	}
-	go func() {
-		for err := range errChan {
-			logger.Error("dump db failed: %s", err.Error())
-			errs = append(errs, err.Error())
-		}
-	}()
 	wg.Wait()
 	close(errChan)
-	if len(errs) > 0 {
-		return fmt.Errorf("Errrors: %s", strings.Join(errs, "\n"))
-	}
-	return err
+	return errors.Join(errs...)
 }
 
 /*
@@ -281,4 +289,10 @@ func (m *MySQLDumper) getTMySQLDumpOption() (dumpOption string) {
 	--max-resource-use-percent=%d
 	`, m.maxConcurrency, m.maxResourceUsePercent,
 	)
+}
+
+func (m *MySQLDumper) getTDBCTLDumpOption() (dumpOption string) {
+	// 默认false 即不带有SET tc_admin=0
+	// 如果不需要下发spider，可添加此参数
+	return " --print-tc-admin-info "
 }

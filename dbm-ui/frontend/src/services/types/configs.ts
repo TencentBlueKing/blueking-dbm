@@ -11,8 +11,6 @@
  * the specific language governing permissions and limitations under the License.
 */
 
-import type { ConfLevels } from '@common/const';
-
 /**
  * 查询平台配置列表参数
  */
@@ -106,10 +104,10 @@ export interface ConfigVersionParams {
   meta_cluster_type: string
   conf_type: string
   version: string
-  bk_biz_id: number
-  level_name: ConfLevels
-  level_value: string
-  level_info?: string
+  bk_biz_id?: number
+  level_name?: string
+  level_value?: number
+  level_info?: any
   revision?: string
 }
 

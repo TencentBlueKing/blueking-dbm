@@ -113,6 +113,17 @@ class TendbBaseOperateDetailSerializer(MySQLBaseOperateDetailSerializer):
             ):
                 raise serializers.ValidationError(_("【{}】请保证缩容后的接入层spider master数量>0").format(cluster.name))
 
+    def validate_checksum_database_selector(self, attrs):
+        """校验tendbcluster的checksum库表选择器"""
+        cluster_database_info = {
+            "infos": [
+                {**backup_info, "cluster_id": info["cluster_id"]}
+                for info in attrs["infos"]
+                for backup_info in info["backup_infos"]
+            ]
+        }
+        super().validate_database_table_selector(attrs=cluster_database_info)
+
 
 class TendbClustersTakeDownDetailsSerializer(MySQLClustersTakeDownDetailsSerializer):
     is_only_delete_slave_domain = serializers.BooleanField(help_text=_("是否只禁用只读接入层"), required=False, default=False)

@@ -8,9 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-import base64
 import datetime
-import glob
 import json
 import logging
 import os
@@ -27,12 +25,11 @@ from backend.core.storages.constants import FileCredentialType, StorageType
 from backend.core.storages.file_source import BkJobFileSourceManager
 from backend.core.storages.storage import get_storage
 from backend.db_meta.models import AppMonitorTopo
-from backend.db_monitor.constants import TPLS_ALARM_DIR, TPLS_COLLECT_DIR
-from backend.db_monitor.models import AlertRule, CollectInstance, CollectTemplate, NoticeGroup, RuleTemplate
 from backend.db_services.ipchooser.constants import DB_MANAGE_SET, DIRTY_MODULE, RESOURCE_MODULE
 from backend.dbm_init.constants import CC_APP_ABBR_ATTR, CC_HOST_DBM_ATTR
 from backend.dbm_init.json_files.format import JsonConfigFormat
 from backend.exceptions import ApiError, ApiRequestError, ApiResultError
+from backend.flow.utils.cc_manage import CcManage
 
 logger = logging.getLogger("root")
 
@@ -126,9 +123,11 @@ class Services:
                 func_name = filename.split(".")[0]
                 if hasattr(JsonConfigFormat, f"format_{func_name}"):
                     bklog_json_str = JsonConfigFormat.format(bklog_json_str, f"format_{func_name}")
-                if "mysql" in filename:
+                elif "mysql" in filename:
                     bklog_json_str = JsonConfigFormat.format(bklog_json_str, JsonConfigFormat.format_mysql.__name__)
-                if "redis" in filename:
+                elif "backup" in filename:
+                    bklog_json_str = JsonConfigFormat.format(bklog_json_str, JsonConfigFormat.format_mysql.__name__)
+                elif "redis" in filename:
                     bklog_json_str = JsonConfigFormat.format(bklog_json_str, JsonConfigFormat.format_redis.__name__)
                 else:
                     logger.warning(f"格式化函数{func_name}不存在(如果无需格式化json可忽略)")
@@ -189,32 +188,25 @@ class Services:
         # 初始化db的管理集群和相关模块
         if not SystemSettings.get_setting_value(key=SystemSettingsEnum.MANAGE_TOPO.value):
             # 创建管理集群
-            manage_set = CCApi.create_set(
-                {
-                    "bk_biz_id": env.DBA_APP_BK_BIZ_ID,
-                    "data": {"bk_parent_id": env.DBA_APP_BK_BIZ_ID, "bk_set_name": DB_MANAGE_SET},
-                }
+            manage_set_id = CcManage.get_or_create_set_with_name(
+                bk_biz_id=env.DBA_APP_BK_BIZ_ID, bk_set_name=DB_MANAGE_SET
             )
             # 创建资源池模块和污点池模块
             manage_modules = [RESOURCE_MODULE, DIRTY_MODULE]
-            module_name__module_info = {}
+            module_name__module_id = {}
             for module in manage_modules:
-                module_info = CCApi.create_module(
-                    {
-                        "bk_biz_id": env.DBA_APP_BK_BIZ_ID,
-                        "bk_set_id": manage_set["bk_set_id"],
-                        "data": {"bk_parent_id": manage_set["bk_set_id"], "bk_module_name": module},
-                    }
+                module_id = CcManage.get_or_create_module_with_name(
+                    bk_biz_id=env.DBA_APP_BK_BIZ_ID, bk_set_id=manage_set_id, bk_module_name=module
                 )
-                module_name__module_info[module] = module_info
+                module_name__module_id[module] = module_id
             # 插入管理集群的配置
             SystemSettings.insert_setting_value(
                 key=SystemSettingsEnum.MANAGE_TOPO.value,
                 value_type="dict",
                 value={
-                    "set_id": manage_set["bk_set_id"],
-                    "resource_module_id": module_name__module_info[RESOURCE_MODULE]["bk_module_id"],
-                    "dirty_module_id": module_name__module_info[DIRTY_MODULE]["bk_module_id"],
+                    "set_id": manage_set_id,
+                    "resource_module_id": module_name__module_id[RESOURCE_MODULE],
+                    "dirty_module_id": module_name__module_id[DIRTY_MODULE],
                 },
             )
 
@@ -287,183 +279,6 @@ class Services:
         return True
 
     @staticmethod
-    def init_alarm_strategy():
-        """初始化告警策略"""
-
-        bkm_dbm_report = SystemSettings.get_setting_value(key=SystemSettingsEnum.BKM_DBM_REPORT.value)
-
-        now = datetime.datetime.now()
-        updated_alarms = 0
-        logger.warning("[init_alarm_strategy] sync bkmonitor alarm start: %s", now)
-
-        # 未来考虑将模板放到db管理
-        # rules = RuleTemplate.objects.filter(is_enabled=True, bk_biz_id=0)
-        # for rule in rules:
-        alarm_tpls = os.path.join(TPLS_ALARM_DIR, "*.json")
-        for alarm_tpl in glob.glob(alarm_tpls):
-            with open(alarm_tpl, "r") as f:
-                template_dict = json.loads(f.read())
-                rule = RuleTemplate(**template_dict)
-
-            alert_params = rule.details
-
-            # 支持跳过部分db类型的初始化
-            if rule.db_type in EXCLUDE_DB_TYPES:
-                continue
-
-            try:
-                try:
-                    # 唯一性：db_type+name
-                    alert_rule = AlertRule.objects.get(bk_biz_id=rule.bk_biz_id, db_type=rule.db_type, name=rule.name)
-                    # alert_rule = AlertRule.objects.get(template_id=rule.id)
-                    alert_params["id"] = alert_rule.monitor_strategy_id
-                    logger.warning("[init_alarm_strategy] update bkmonitor alarm: %s " % rule.db_type)
-                except AlertRule.DoesNotExist:
-                    # 为了能够重复执行，这里也支持下AlertRule被清空的情况
-                    res = BKMonitorV3Api.search_alarm_strategy_v3(
-                        {
-                            "page": 1,
-                            "page_size": 1,
-                            "conditions": [{"key": "name", "value": alert_params["name"]}],
-                            "bk_biz_id": env.DBA_APP_BK_BIZ_ID,
-                            "with_notice_group": False,
-                            "with_notice_group_detail": False,
-                        },
-                        use_admin=True,
-                    )
-
-                    # 批量获取策略
-                    strategy_config_list = res["strategy_config_list"]
-
-                    # 业务下存在该策略
-                    if strategy_config_list:
-                        strategy_config = strategy_config_list[0]
-                        alert_params["id"] = strategy_config["id"]
-                        logger.warning("[init_alarm_strategy] sync bkmonitor alarm: %s " % rule.db_type)
-                    else:
-                        logger.warning("[init_alarm_strategy] create bkmonitor alarm: %s " % rule.db_type)
-
-                # 更新业务id
-                alert_params["bk_biz_id"] = env.DBA_APP_BK_BIZ_ID
-
-                # 用最新告警组覆盖模板中的
-                notice = alert_params["notice"]
-                notice["user_groups"] = NoticeGroup.get_monitor_groups(db_type=rule.db_type)
-
-                # 自定义事件和指标需要渲染metric_id
-                # {bk_biz_id}_bkmoinitor_event_{event_data_id}
-                items = alert_params["items"]
-                for item in items:
-                    for query_config in item["query_configs"]:
-                        if "custom.event" not in query_config["metric_id"]:
-                            continue
-
-                        query_config["metric_id"] = query_config["metric_id"].format(
-                            bk_biz_id=env.DBA_APP_BK_BIZ_ID, event_data_id=bkm_dbm_report["event"]["data_id"]
-                        )
-                        query_config["result_table_id"] = query_config["result_table_id"].format(
-                            bk_biz_id=env.DBA_APP_BK_BIZ_ID, event_data_id=bkm_dbm_report["event"]["data_id"]
-                        )
-                        logger.warning(query_config)
-                        # logger.info(query_config["metric_id"], query_config["result_table_id"])
-
-                res = BKMonitorV3Api.save_alarm_strategy_v3(alert_params, use_admin=True)
-
-                # 实例化Rule
-                obj, _ = AlertRule.objects.update_or_create(
-                    defaults={"details": alert_params, "monitor_strategy_id": res["id"]},
-                    bk_biz_id=rule.bk_biz_id,
-                    db_type=rule.db_type,
-                    name=rule.name,
-                    # template_id=rule.id,
-                )
-
-                updated_alarms += 1
-            except Exception as e:  # pylint: disable=wildcard-import
-                logger.error("[init_alarm_strategy] sync bkmonitor alarm: %s (%s)", rule.db_type, e)
-
-        logger.warning(
-            "[init_alarm_strategy] finish sync bkmonitor alarm end: %s, update_cnt: %s",
-            datetime.datetime.now() - now,
-            updated_alarms,
-        )
-
-    @staticmethod
-    def init_collect_strategy():
-        now = datetime.datetime.now()
-        updated_collectors = 0
-
-        logger.warning("[init_collect_strategy] start sync bkmonitor collector start: %s", now)
-
-        # 未来考虑将模板放到db管理
-        # templates = CollectTemplate.objects.filter(bk_biz_id=0)
-        # for template in templates:
-
-        collect_tpls = os.path.join(TPLS_COLLECT_DIR, "*.json")
-        for collect_tpl in glob.glob(collect_tpls):
-            with open(collect_tpl, "r") as f:
-                template_dict = json.loads(f.read())
-                template = CollectTemplate(**template_dict)
-
-            collect_params = template.details
-
-            # 支持跳过部分db类型的初始化
-            if template.db_type in EXCLUDE_DB_TYPES:
-                continue
-
-            try:
-                try:
-                    collect_instance = CollectInstance.objects.get(
-                        bk_biz_id=template.bk_biz_id, db_type=template.db_type, plugin_id=template.plugin_id
-                    )
-                    collect_params["id"] = collect_instance.collect_id
-                    logger.warning("[init_collect_strategy] update bkmonitor collector: %s " % template.db_type)
-                except CollectInstance.DoesNotExist:
-                    # 为了能够重复执行，这里考虑下CollectInstance被清空的情况
-                    res = BKMonitorV3Api.query_collect_config(
-                        {"bk_biz_id": env.DBA_APP_BK_BIZ_ID, "search": {"fuzzy": collect_params["name"]}},
-                        use_admin=True,
-                    )
-
-                    # 业务下存在该策略
-                    collect_config_list = res["config_list"]
-                    if res["total"] == 1:
-                        collect_config = collect_config_list[0]
-                        collect_params["id"] = collect_config["id"]
-                        logger.warning("[init_collect_strategy] sync bkmonitor collector: %s " % template.db_type)
-                    else:
-                        logger.warning("[init_collect_strategy] create bkmonitor collector: %s " % template.db_type)
-
-                # 其他渲染操作
-                collect_params["bk_biz_id"] = env.DBA_APP_BK_BIZ_ID
-                collect_params["plugin_id"] = template.plugin_id
-
-                collect_params["target_nodes"] = [
-                    {"bk_inst_id": bk_set_id, "bk_obj_id": "set", "bk_biz_id": bk_biz_id}
-                    for bk_set_id, bk_biz_id in AppMonitorTopo.get_set_by_plugin_id(plugin_id=template.plugin_id)
-                ]
-
-                res = BKMonitorV3Api.save_collect_config(collect_params, use_admin=True)
-
-                # 实例化Rule
-                obj, _ = CollectInstance.objects.update_or_create(
-                    defaults={"details": collect_params, "collect_id": res["id"]},
-                    bk_biz_id=template.bk_biz_id,
-                    db_type=template.db_type,
-                    plugin_id=template.plugin_id,
-                )
-
-                updated_collectors += 1
-            except Exception as e:  # pylint: disable=wildcard-import
-                logger.error("[init_collect_strategy] sync bkmonitor collector: %s (%s)", template.db_type, e)
-
-        logger.warning(
-            "[init_collect_strategy] finish sync bkmonitor collector end: %s, update_cnt: %s",
-            datetime.datetime.now() - now,
-            updated_collectors,
-        )
-
-    @staticmethod
     def init_custom_metric_and_event():
         """初始化自定义指标和采集项"""
         custom_name = "dbm_report_channel"
@@ -475,7 +290,7 @@ class Services:
                 "search_key": custom_name,
                 "page": 1,
                 "page_size": 10,
-                "bk_biz_id": 3,
+                "bk_biz_id": env.DBA_APP_BK_BIZ_ID,
             }
         )
         if res.get("total") > 0:
@@ -572,13 +387,16 @@ class Services:
     def auto_create_bkmonitor_alarm() -> bool:
         """初始化bkmonitor配置"""
 
+        from backend.db_monitor.models import CollectInstance
+        from backend.db_periodic_task.local_tasks import sync_plat_monitor_policy
+
         logger.info("auto_create_bkmonitor_service")
 
         # 加载采集策略
-        Services.init_collect_strategy()
+        CollectInstance.init_collect_strategy()
 
         # 加载告警策略
-        Services.init_alarm_strategy()
+        sync_plat_monitor_policy()
 
         return True
 

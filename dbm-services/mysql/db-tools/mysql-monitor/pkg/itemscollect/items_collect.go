@@ -11,6 +11,7 @@ package itemscollect
 
 import (
 	"fmt"
+	"log/slog"
 
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/itemscollect/characterconsistency"
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/itemscollect/dbhaheartbeat"
@@ -31,8 +32,6 @@ import (
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/itemscollect/tscc"
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/itemscollect/uniquectlmaster"
 	mi "dbm-services/mysql/db-tools/mysql-monitor/pkg/monitoriteminterface"
-
-	"golang.org/x/exp/slog"
 )
 
 var registeredItemConstructor map[string]func(*mi.ConnectionCollect) mi.MonitorItemInterface
@@ -42,7 +41,7 @@ func registerItemConstructor(
 ) error {
 	if _, ok := registeredItemConstructor[name]; ok {
 		err := fmt.Errorf("%s already registered", name)
-		slog.Error("register item creator", err)
+		slog.Error("register item creator", slog.String("error", err.Error()))
 		return err
 	}
 	registeredItemConstructor[name] = f

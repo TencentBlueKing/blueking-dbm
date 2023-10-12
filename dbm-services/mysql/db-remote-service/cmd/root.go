@@ -5,6 +5,7 @@ import (
 	"crypto/x509"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"os"
 	"path"
@@ -15,7 +16,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/cobra"
-	"golang.org/x/exp/slog"
 	"gopkg.in/natefinch/lumberjack.v2"
 )
 
@@ -32,6 +32,11 @@ var rootCmd = &cobra.Command{
 		slog.Debug("run", slog.Any("log config", config.LogConfig))
 
 		r := gin.Default()
+
+		r.Handle("GET", "/ping", func(context *gin.Context) {
+			context.String(http.StatusOK, "pong")
+		})
+
 		service.RegisterRouter(r)
 
 		if config.RuntimeConfig.TLS {
@@ -44,7 +49,7 @@ var rootCmd = &cobra.Command{
 						pool := x509.NewCertPool()
 						ca, err := os.ReadFile(config.RuntimeConfig.CAFile)
 						if err != nil {
-							slog.Error("read cer file", err)
+							slog.Error("read cer file", slog.String("error", err.Error()))
 							panic(err)
 						}
 						pool.AppendCertsFromPEM(ca)
@@ -54,13 +59,13 @@ var rootCmd = &cobra.Command{
 				},
 			}
 			if err := s.ListenAndServeTLS(config.RuntimeConfig.CertFile, config.RuntimeConfig.KeyFile); err != nil {
-				slog.Error("run service", err)
+				slog.Error("run service", slog.String("error", err.Error()))
 				os.Exit(1)
 			}
 		} else {
 			slog.Info("run in http mode")
 			if err := r.Run(fmt.Sprintf(":%d", config.RuntimeConfig.Port)); err != nil {
-				slog.Error("run service", err)
+				slog.Error("run service", slog.String("error", err.Error()))
 				os.Exit(1)
 			}
 		}
@@ -72,7 +77,7 @@ var rootCmd = &cobra.Command{
 func Execute() {
 	err := rootCmd.Execute()
 	if err != nil {
-		slog.Error("execute cobra cmd", err)
+		slog.Error("execute cobra cmd", slog.String("error", err.Error()))
 		os.Exit(1)
 	}
 }

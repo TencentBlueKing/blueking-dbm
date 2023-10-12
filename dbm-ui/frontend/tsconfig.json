@@ -28,7 +28,7 @@
       "node_modules",
       "./src/types"
     ],
-    "types": ["bkui-vue/lib/volar.components",],
+    "types": ["bkui-vue/lib/volar.components"],
     "jsx": "preserve"
   },
   "references": [

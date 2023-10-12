@@ -124,6 +124,7 @@ func (c *MachineResourceGetterInputParam) matchStorageSpecs(db *gorm.DB) {
 }
 
 func (c *MachineResourceGetterInputParam) queryBs(db *gorm.DB) {
+	db.Where("status = ? ", model.Unused)
 	if len(c.Hosts) > 0 {
 		db.Where("ip in (?)", c.Hosts)
 		return
@@ -139,7 +140,7 @@ func (c *MachineResourceGetterInputParam) queryBs(db *gorm.DB) {
 	}
 	if len(c.RsTypes) > 0 {
 		// 如果参数["all"],表示选择没有任何资源类型标签的资源
-		if c.RsTypes[0] == "all" && len(cmutil.RemoveDuplicate(c.ForBizs)) == 1 {
+		if c.RsTypes[0] == "all" {
 			db.Where("JSON_LENGTH(rs_types) <= 0")
 		} else {
 			db.Where(model.JSONQuery("rs_types").Contains(c.RsTypes))
@@ -148,7 +149,6 @@ func (c *MachineResourceGetterInputParam) queryBs(db *gorm.DB) {
 	c.Cpu.MatchCpu(db)
 	c.Mem.MatchMem(db)
 	c.matchStorageSpecs(db)
-	db.Where("status = ? ", model.Unused)
 	if len(c.City) > 0 {
 		db.Where(" city in (?) ", c.City)
 	}
@@ -160,7 +160,7 @@ func (c *MachineResourceGetterInputParam) queryBs(db *gorm.DB) {
 	}
 	if len(c.ForBizs) > 0 {
 		// 如果参数[0],表示选择没有任何业务标签的资源
-		if c.ForBizs[0] == 0 && len(cmutil.RemoveDuplicate(c.ForBizs)) == 1 {
+		if c.ForBizs[0] == 0 {
 			db.Where("JSON_LENGTH(dedicated_bizs) <= 0")
 		} else {
 			db.Where(model.JSONQuery("dedicated_bizs").Contains(cmutil.IntSliceToStrSlice(c.ForBizs)))

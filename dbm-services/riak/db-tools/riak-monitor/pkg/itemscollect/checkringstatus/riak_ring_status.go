@@ -20,12 +20,14 @@ func CheckRingStatus() (string, error) {
 		} else if strings.Contains(resp, "FALSE") {
 			// FALSE ['riak@xxx','riak@xxx'] down.  All nodes need to be up to check.
 			slog.Error(resp)
+			// 如果指令无法执行返回error，告警monitor-internal-error；
+			// 如果指令执行正常，集群异常，返回message，riak-ring-status事件告警
 			re := regexp.MustCompile(`\[[^[]*\] down`)
 			matchArr := re.FindStringSubmatch(resp)
 			if len(matchArr) == 1 {
-				return "", fmt.Errorf(matchArr[0])
+				return matchArr[0], nil
 			} else {
-				return "", fmt.Errorf(resp)
+				return resp, nil
 			}
 		} else {
 			errInfo := fmt.Sprintf("execute [ %s ] error: %s", cmd, err.Error())

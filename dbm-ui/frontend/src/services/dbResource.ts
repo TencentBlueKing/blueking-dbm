@@ -189,7 +189,7 @@ export function transferDirtyMachines(params: {
 // 获取规格主机数量
 export function getSpecResourceCount(params: {
   bk_biz_id: number,
-  resource_type: string,
+  resource_type?: string,
   bk_cloud_id: number,
   spec_ids: number[]
 }) {

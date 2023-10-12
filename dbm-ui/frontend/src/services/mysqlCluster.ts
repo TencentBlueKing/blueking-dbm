@@ -57,7 +57,11 @@ export const queryClusters = (params: {
 // 批量下载文件
 export const batchFetchFile = (params: {
   file_path_list: string[]
-}) => http.post<Array<{content: string}>>('/apis/core/storage/batch_fetch_file_content/', params);
+}) => http.post<Array<{
+  content: string,
+  path: string,
+  url: string
+}>>('/apis/core/storage/batch_fetch_file_content/', params);
 
 // 查询tendbcluster集群的remote_db/remote_dr
 export const getRemoteParis = function (params: {

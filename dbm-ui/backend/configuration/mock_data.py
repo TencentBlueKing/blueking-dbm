@@ -30,3 +30,11 @@ PASSWORD_POLICY = {
 }
 
 CREATE_IP_WHITELIST_DATA = {"bk_biz_id": 1, "remark": "123", "ips": ["127.0.0.1", "127.0.0.2"]}
+
+BIZ_SETTINGS_DATA = {
+    "key1": "value1",
+    "key2": "value2",
+    "...": "....",
+    # 开区变量表
+    "OPEN_AREA_VARS": [{"desc": "test1", "name": "test1"}, {"desc": "test2", "name": "test2"}],
+}

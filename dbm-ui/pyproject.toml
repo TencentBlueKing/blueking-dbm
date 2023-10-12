@@ -28,7 +28,7 @@ gunicorn = "19.7.1"
 gevent = "1.5.0"
 IPy = "^1.01"
 python-validator = "^0.0.8"
-bk-iam = "^1.2.0"
+bk-iam = "1.2.0"
 bkstorages = "^1.0.8"
 django-mysql = "3.12.0"
 blue-krill = "^1.1.1"
@@ -53,6 +53,7 @@ pyinstrument = "3.4.2"
 mistune = "0.8.4"
 bkoauth = "0.1.0"
 apigw-manager = {extras = ["cryptography"], version = "^2.0.0"}
+bk-audit = "1.1.0rc0"
 
 
 [tool.poetry.dev-dependencies]

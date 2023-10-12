@@ -15,7 +15,8 @@ export type AddonsFunctions = 'redis_nameservice';
 export type MySQLFunctions = 'toolbox' | 'tendbsingle' | 'tendbha' | 'tendbcluster' | 'tendbcluster_toolbox';
 export type RedisFunctions = 'PredixyTendisplusCluster' | 'TwemproxyRedisInstance' | 'TwemproxyTendisSSDInstance' | 'toolbox';
 export type BigdataFunctions = 'es' | 'kafka' | 'hdfs' | 'influxdb' | 'pulsar';
-export type FunctionKeys = AddonsFunctions | MySQLFunctions | RedisFunctions | BigdataFunctions;
+export type MonitorFunctions = 'duty_rule' | 'monitor_policy' | 'notice_group';
+export type FunctionKeys = AddonsFunctions | MySQLFunctions | RedisFunctions | BigdataFunctions | MonitorFunctions;
 
 export interface ControllerBaseInfo {
   is_enabled: boolean,
@@ -30,6 +31,7 @@ interface ControllerData {
   mysql: ControllerItem<MySQLFunctions>,
   redis: ControllerItem<RedisFunctions>,
   bigdata: ControllerItem<BigdataFunctions>,
+  monitor: ControllerItem<MonitorFunctions>,
 }
 
 export type ExtractedControllerDataKeys = Extract<keyof ControllerData, string>;
@@ -39,12 +41,14 @@ export default class FunctionController {
   mysql: ControllerItem<MySQLFunctions>;
   redis: ControllerItem<RedisFunctions>;
   bigdata: ControllerItem<BigdataFunctions>;
+  monitor: ControllerItem<MonitorFunctions>;
 
   constructor(payload = {} as ControllerData) {
     this.addons = payload.addons;
     this.mysql = payload.mysql;
     this.redis = payload.redis;
     this.bigdata = payload.bigdata;
+    this.monitor = payload.monitor;
   }
 
   getFlatData<

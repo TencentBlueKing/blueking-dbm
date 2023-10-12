@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: bk-dbmedium-db-env
+  labels: {{- include "common.labels.standard" . | nindent 4 }}
+    {{- if .Values.commonLabels }}
+    {{- include "common.tplvalues.render" (dict "value" .Values.commonLabels "context" $) | nindent 4 }}
+    {{- end }}
+data:
+  DJANGO_SETTINGS_MODULE: "settings"
+  PYTHONUNBUFFERED: "1"
+  APP_CODE: "{{ .Values.dbm.envs.bkAppCode }}"
+  APP_ID: "{{ .Values.dbm.envs.bkAppCode }}"
+  APP_TOKEN: "{{ .Values.dbm.envs.bkAppToken }}"
+  BKREPO_PROJECT: "{{ .Values.bk.bkRepoProject }}"
+  BKREPO_PASSWORD: "{{ .Values.bk.bkRepoPassword }}"
+  BKREPO_USERNAME: "{{ .Values.bk.bkRepoUsername }}"
+  BKREPO_PUBLIC_BUCKET: "{{ .Values.bk.bkRepoPublicBucket }}"
+  BKREPO_ENDPOINT_URL: "{{ .Values.bk.bkRepoUrl }}"
+  DBM_SAAS_URL: "{{ .Values.dbm.internalDomain | default "http://bk-dbm/" }}"

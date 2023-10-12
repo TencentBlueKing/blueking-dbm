@@ -1,8 +1,9 @@
 package externalhandler
 
 import (
+	"log/slog"
+
 	"github.com/pkg/errors"
-	"golang.org/x/exp/slog"
 )
 
 func (h *Handler) execute() (string, error) {

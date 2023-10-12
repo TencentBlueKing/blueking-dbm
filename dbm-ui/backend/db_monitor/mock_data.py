@@ -125,27 +125,45 @@ LIST_NOTICE_GROUP = {
 
 CREATE_NOTICE_GROUP = {
     "name": _("新建告警组"),
+    "bk_biz_id": 0,
     "receivers": [{"type": "group", "id": "bk_biz_maintainer"}, {"type": "user", "id": "admin"}],
     "details": copy.deepcopy(NOTICE_GROUP_DETAIL),
 }
 
-UPDATE_NOTICE_GROUP = {"id": 1, **CREATE_NOTICE_GROUP}
+UPDATE_NOTICE_GROUP = {"id": 1, **CREATE_NOTICE_GROUP, **{"name": _("更新告警组")}}
 
 GET_RELATED_POLICY = [{"id": 1, "name": _("策略 A")}, {"id": 2, "name": _("策略 B")}]
 
-CREATE_DUTY_RULE = {
+CREATE_HANDOFF_DUTY_RULE = {
     "name": _("周末轮值"),
-    "duty_type": "periodic",
-    "duty_biz_list": [],
-    "ignore_biz_list": [],
-    "members": ["admin"],
-    "shift_number": 2,
-    "shift_day": 1,
-    "start_time": "2023-09-05",
-    "end_time": "2023-10-31",
-    "work_type": "daily",
-    "work_days": [6, 7],
-    "work_times": ["00:00--11:59", "12:00--23:59"],
+    "priority": 1,
+    "db_type": "mysql",
+    "category": "handoff",
+    "effective_time": "2023-09-05 00:00:00",
+    "duty_arranges": [
+        {
+            "duty_number": 2,
+            "duty_day": 1,
+            "members": ["admin"],
+            "work_type": "weekly",
+            "work_days": [6, 7],
+            "work_times": ["00:00--11:59", "12:00--23:59"],
+        }
+    ],
+}
+
+CREATE_CUSTOM_DUTY_RULE = {
+    "name": _("固定排班"),
+    "priority": 2,
+    "db_type": "redis",
+    "category": "regular",
+    "effective_time": "2023-10-01 00:00:00",
+    "end_time": "2023-10-03 00:00:00",
+    "duty_arranges": [
+        {"date": "2023-10-01", "work_times": ["00:00--11:59", "12:00--23:59"], "members": ["admin"]},
+        {"date": "2023-10-02", "work_times": ["08:00--18:00"], "members": ["admin"]},
+        {"date": "2023-10-03", "work_times": ["00:00--11:59", "12:00--23:59"], "members": ["admin"]},
+    ],
 }
 
 # bk monitor api

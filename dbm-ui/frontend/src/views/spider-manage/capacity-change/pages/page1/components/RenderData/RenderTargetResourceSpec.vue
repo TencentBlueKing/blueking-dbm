@@ -191,6 +191,10 @@
   .cluster-spec-plan-selector-box{
     padding: 20px 40px;
 
+    .bk-form-label{
+      font-weight: bold;
+    }
+
     .spec-box{
       width: 100%;
       padding: 16px 0;

@@ -13,7 +13,7 @@
   schedule: '@every 10s'
   machine_type:
     - riak
-- name: db-up
+- name: riak-db-up
   enable: true
   schedule: '@every 10s'
   machine_type:

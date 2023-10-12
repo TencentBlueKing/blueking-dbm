@@ -5,6 +5,7 @@ import (
 	"bufio"
 	"context"
 	"fmt"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"strings"
@@ -13,7 +14,6 @@ import (
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/monitoriteminterface"
 
 	"github.com/jmoiron/sqlx"
-	"golang.org/x/exp/slog"
 )
 
 var name = "proxy-user-list"
@@ -31,7 +31,7 @@ func (c *Checker) Run() (msg string, err error) {
 	)
 	f, err := os.Open(userListFilePath)
 	if err != nil {
-		slog.Error("read proxy user list file", err)
+		slog.Error("read proxy user list file", slog.String("error", err.Error()))
 		return "", err
 	}
 	defer func() {
@@ -44,7 +44,7 @@ func (c *Checker) Run() (msg string, err error) {
 		usersFromFile = append(usersFromFile, scanner.Text())
 		err := scanner.Err()
 		if err != nil {
-			slog.Error("scan proxy user list file", err)
+			slog.Error("scan proxy user list file", slog.String("error", err.Error()))
 			return "", err
 		}
 	}
@@ -55,7 +55,7 @@ func (c *Checker) Run() (msg string, err error) {
 	var usersFromQuery []string
 	err = c.db.SelectContext(ctx, &usersFromQuery, `SELECT * FROM USERS`)
 	if err != nil {
-		slog.Error("query user list", err)
+		slog.Error("query user list", slog.String("error", err.Error()))
 		return "", err
 	}
 

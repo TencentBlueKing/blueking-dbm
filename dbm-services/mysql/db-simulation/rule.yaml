@@ -14,60 +14,96 @@ BuiltInRule:
 
 CommandRule:
   HighRiskCommandRule:
-    expr: ' Val in Item '
-    desc: '高危命令'
-    item: [	"drop_table", "drop_index", "lock_tables", "analyze","rename_table", "drop_procedure", "drop_view", "drop_trigger","drop_function", "drop_server", "drop_event", "drop_compression_dictionary","optimize", "alter_tablespace"]
-    
-  BanCommandRule:
-    expr: ' Val in Item '
-    desc: '禁用命令'
-    ban: true
-    item: ["truncate", "revoke", "kill", "reset", "drop_db","drop_user", "grant","create_user", "revoke_all", "shutdown", "lock_tables_for_backup","reset", "purge", "lock_binlog_for_backup","lock_tables_for_backup","install_plugin", "uninstall_plugin","alter_user"]
+    expr: " Val in Item "
+    desc: "高危命令"
+    item:
+      [
+        "drop_table",
+        "drop_index",
+        "lock_tables",
+        "analyze",
+        "rename_table",
+        "drop_procedure",
+        "drop_view",
+        "drop_trigger",
+        "drop_function",
+        "drop_server",
+        "drop_event",
+        "drop_compression_dictionary",
+        "optimize",
+        "alter_tablespace",
+      ]
 
+  BanCommandRule:
+    expr: " Val in Item "
+    desc: "禁用命令"
+    ban: true
+    item:
+      [
+        "truncate",
+        "revoke",
+        "kill",
+        "reset",
+        "drop_db",
+        "drop_user",
+        "grant",
+        "create_user",
+        "revoke_all",
+        "shutdown",
+        "lock_tables_for_backup",
+        "reset",
+        "purge",
+        "lock_binlog_for_backup",
+        "lock_tables_for_backup",
+        "install_plugin",
+        "uninstall_plugin",
+        "alter_user",
+      ]
 
 CreateTableRule:
   SuggestBlobColumCount:
-      expr: ' Val >= Item '
-      item: 10
-      desc: "建议单表Blob字段不要过多"
+    expr: " Val >= Item "
+    item: 10
+    desc: "建议单表Blob字段不要过多"
   SuggestEngine:
-      expr: ' not (Val contains Item) and ( len(Val) != 0 ) '
-      item: 'innodb'
-      desc: "建议使用Innodb表"
+    expr: " not (Val contains Item) and ( len(Val) != 0 ) "
+    item: "innodb"
+    desc: "建议使用Innodb表"
   NeedPrimaryKey:
-      expr: ' Val == Item '
-      item: 1
-      desc: "建议包含主键"
+    expr: " Val == Item "
+    item: 1
+    desc: "建议包含主键"
   DefinerRule:
-      expr: ' Val in Item '
-      desc: '不允许指定definer'
-      ban: true
-      item: ["create_function","create_trigger","create_event","create_procedure","create_view"]
+    expr: " Val not in Item "
+    desc: "definer必须指定用户"
+    ban: true
+    item: ["ADMIN@localhost"]
   NormalizedName:
-      expr: ' Val in Item '
-      desc: '规范化命名'
-      item: ["first_char_exception", "special_char", "Keyword_exception"]
+    expr: " Val in Item "
+    desc: "规范化命名"
+    item: ["first_char_exception", "special_char", "Keyword_exception"]
 
 AlterTableRule:
   HighRiskType:
-    expr: ' Val in Item '
-    item: ["drop_column", "drop_key","change_column","rename_table", "rename_key"]
+    expr: " Val in Item "
+    item:
+      ["drop_column", "drop_key", "change_column", "rename_table", "rename_key"]
     desc: "高危变更类型"
   HighRiskPkAlterType:
-    expr: ' Val in Item '
+    expr: " Val in Item "
     item: ["add_column", "add_key", "change_column"]
     desc: "高危主键变更类型"
   AlterUseAfter:
-    expr: ' Val != Item '
+    expr: " Val != Item "
     item: ""
     desc: "变更表时使用了after"
-  AddColumnMixed:    
-    expr: ' ( Item in Val ) && ( len(Val) > 1 ) '
-    item:  'add_column'
+  AddColumnMixed:
+    expr: " ( Item in Val ) && ( len(Val) > 1 ) "
+    item: "add_column"
     desc: "加字段和其它alter table 类型混用，可能导致非在线加字段"
 
 DmlRule:
   DmlNotHasWhere:
- #  expr: ' Val != Item '
-    item:  true
+    expr: " Val != Item "
+    item: true
     desc: "没有使用WHERE或者LIMIT,可能会导致全表数据更改"

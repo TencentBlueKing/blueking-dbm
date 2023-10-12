@@ -49,6 +49,7 @@
       <RenderTargetCapacity
         ref="targetCapacityRef"
         :data="data.targetCapacity"
+        :is-disabled="!data.targetCluster"
         :is-loading="data.isLoading"
         @click-select="handleClickSelect" />
     </td>

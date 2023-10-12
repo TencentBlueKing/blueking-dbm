@@ -50,7 +50,7 @@ BK_IAM_SKIP = get_type_env(key="BK_IAM_SKIP", _type=bool, default=False)
 BK_IAM_SYSTEM_NAME = get_type_env(key="BK_IAM_SYSTEM_NAME", _type=str, default="DB管理平台")
 BK_IAM_INNER_HOST = get_type_env(key="BK_IAM_V3_INNER_HOST", _type=str, default="https://iam-inner.example.com")
 BK_IAM_USE_APIGATEWAY = True
-BK_IAM_APIGETEWAY = get_type_env(key="BK_IAM_APIGETEWAY", _type=str, default="https://iam-apigw.example.com")
+BK_IAM_APIGATEWAY = get_type_env(key="BK_IAM_APIGATEWAY", _type=str, default="https://iam-apigw.example.com")
 IAM_APP_URL = get_type_env(key="IAM_APP_URL", _type=str, default="https://iam.example.com")
 BK_IAM_RESOURCE_API_HOST = get_type_env(key="BK_IAM_RESOURCE_API_HOST", _type=str, default="https://bkdbm.example.com")
 
@@ -80,6 +80,7 @@ BK_JOB_URL = get_type_env(key="BK_JOB_HOST", _type=str, default=None)
 BK_NODEMAN_URL = get_type_env(key="BK_NODEMAN_URL", _type=str, default="http://apps.example.com/bk--nodeman")
 BK_SCR_URL = get_type_env(key="BK_SCR_URL", _type=str, default="http://scr.example.com")
 BK_SOPS_URL = get_type_env(key="BK_SOPS_HOST", _type=str, default=None)
+BK_HELPER_URL = get_type_env(key="BK_HELPER_URL", _type=str, default=None)
 # 北极星服务
 POLARIS_URL = get_type_env(key="POLARIS_URL", _type=str, default="http://polaris.example.com")
 

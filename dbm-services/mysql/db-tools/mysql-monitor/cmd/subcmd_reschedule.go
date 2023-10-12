@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"log/slog"
 	"os"
 	"path/filepath"
 
@@ -8,7 +9,6 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"golang.org/x/exp/slog"
 )
 
 var subCmdReschedule = &cobra.Command{
@@ -24,7 +24,7 @@ var subCmdReschedule = &cobra.Command{
 		if !filepath.IsAbs(configPath) {
 			cwd, err := os.Getwd()
 			if err != nil {
-				slog.Error("reschedule get config abs path", err)
+				slog.Error("reschedule get config abs path", slog.String("error", err.Error()))
 				return err
 			}
 			configPath = filepath.Join(cwd, configPath)
@@ -39,7 +39,7 @@ var subCmdReschedule = &cobra.Command{
 
 		err = config.LoadMonitorItemsConfig()
 		if err != nil {
-			slog.Error("reschedule load items", err)
+			slog.Error("reschedule load items", slog.String("error", err.Error()))
 			return err
 		}
 
@@ -48,7 +48,7 @@ var subCmdReschedule = &cobra.Command{
 
 		err = config.WriteMonitorItemsBack()
 		if err != nil {
-			slog.Error("reschedule write back items", err)
+			slog.Error("reschedule write back items", slog.String("error", err.Error()))
 			return err
 		}
 

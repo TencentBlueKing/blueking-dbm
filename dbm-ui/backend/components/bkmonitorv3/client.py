@@ -86,6 +86,20 @@ class _BKMonitorV3Api(object):
             module=self.MODULE,
             description=_("保存告警策略"),
         )
+        self.switch_alarm_strategy = DataAPI(
+            method="POST",
+            base=BKMONITORV3_APIGW_DOMAIN,
+            url="switch_alarm_strategy/",
+            module=self.MODULE,
+            description=_("启停告警策略"),
+        )
+        self.update_partial_strategy_v3 = DataAPI(
+            method="POST",
+            base=BKMONITORV3_APIGW_DOMAIN,
+            url="update_partial_strategy_v3/",
+            module=self.MODULE,
+            description=_("批量更新策略局部配置"),
+        )
         self.delete_alarm_strategy_v3 = DataAPI(
             method="POST",
             base=BKMONITORV3_APIGW_DOMAIN,
@@ -155,6 +169,51 @@ class _BKMonitorV3Api(object):
             url="save_user_group/",
             module=self.MODULE,
             description=_("保存用户组"),
+        )
+        self.save_duty_rule = DataAPI(
+            method="POST",
+            base=BKMONITORV3_APIGW_DOMAIN,
+            url="save_duty_rule/",
+            module=self.MODULE,
+            description=_("保存轮值规则"),
+        )
+        self.delete_duty_rules = DataAPI(
+            method="POST",
+            base=BKMONITORV3_APIGW_DOMAIN,
+            url="delete_duty_rules/",
+            module=self.MODULE,
+            description=_("删除轮值规则"),
+        )
+        self.save_rule_group = DataAPI(
+            method="POST",
+            base=BKMONITORV3_APIGW_DOMAIN,
+            url="assign/save_rule_group/",
+            module=self.MODULE,
+            description=_("保存分派组"),
+        )
+
+        self.search_rule_groups = DataAPI(
+            method="POST",
+            base=BKMONITORV3_APIGW_DOMAIN,
+            url="assign/search_rule_groups/",
+            module=self.MODULE,
+            description=_("查询分派组"),
+        )
+
+        self.delete_rule_group = DataAPI(
+            method="POST",
+            base=BKMONITORV3_APIGW_DOMAIN,
+            url="assign/delete_rule_group/",
+            module=self.MODULE,
+            description=_("删除分派组"),
+        )
+
+        self.search_event = DataAPI(
+            method="POST",
+            base=BKMONITORV3_APIGW_DOMAIN,
+            url="search_event/",
+            module=self.MODULE,
+            description=_("查询事件"),
         )
 
 

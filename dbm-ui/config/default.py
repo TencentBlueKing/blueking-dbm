@@ -63,6 +63,11 @@ INSTALLED_APPS += (
     # pipeline
     "pipeline.component_framework",
     "pipeline.eri",
+    # bk-iam
+    "backend.iam_app",
+    "iam.contrib.iam_migration",
+    # bk-audit
+    "bk_audit.contrib.bk_audit",
     # backend
     "backend.core.storages",
     "backend.core.encrypt",
@@ -74,10 +79,9 @@ INSTALLED_APPS += (
     "backend.flow",
     "backend.flow.plugins",
     "backend.db_meta.apps.DBMeta",
-    "backend.iam_app",
-    "iam.contrib.iam_migration",
     "backend.db_services.mysql.permission.authorize",
     "backend.db_services.mysql.permission.clone",
+    "backend.db_services.mysql.open_area",
     "backend.db_services.ipchooser",
     "backend.dbm_init",
     "backend.db_proxy",
@@ -88,6 +92,7 @@ INSTALLED_APPS += (
     "backend.db_dirty",
     "apigw_manager.apigw",
     "backend.db_periodic_task",
+    "backend.db_report"
 )
 
 
@@ -162,8 +167,23 @@ DATABASES = {
             "CHARSET": "utf8",
             "COLLATION": "utf8_general_ci",
         },
+    },
+    "report_db": {
+        "ENGINE": "django.db.backends.mysql",
+        "NAME": os.environ.get("REPORT_DB_NAME", APP_CODE),
+        "USER": os.environ.get("REPORT_DB_USER", "root"),
+        "PASSWORD": os.environ.get("REPORT_DB_PASSWORD", ""),
+        "HOST": os.environ.get("REPORT_DB_HOST", "127.0.0.1"),
+        "PORT": os.environ.get("REPORT_DB_PORT", "3306"),
+        "OPTIONS": {"init_command": "SET default_storage_engine=INNODB", "charset": "utf8mb4"},
+        "TEST": {
+            "CHARSET": "utf8",
+            "COLLATION": "utf8_general_ci",
+        },
     }
 }
+
+DATABASE_ROUTERS = ["backend.db_report.database_router.ReportRouter"]
 
 # Cache - 缓存后端采用redis
 # https://docs.djangoproject.com/en/3.2/ref/settings/#cache
@@ -200,10 +220,15 @@ BK_IAM_SKIP = env.BK_IAM_SKIP
 BK_IAM_INNER_HOST = env.BK_IAM_INNER_HOST
 BK_IAM_SYSTEM_ID = env.BK_IAM_SYSTEM_ID
 BK_IAM_USE_APIGATEWAY = env.BK_IAM_USE_APIGATEWAY
-BK_IAM_APIGATEWAY_URL = env.BK_IAM_APIGETEWAY
+BK_IAM_APIGATEWAY_URL = env.BK_IAM_APIGATEWAY
 BK_IAM_MIGRATION_APP_NAME = "iam_app"
 BK_IAM_MIGRATION_JSON_PATH = "backend/iam_app/migration_json_files"
 BK_IAM_RESOURCE_API_HOST = env.BK_IAM_RESOURCE_API_HOST
+
+# BK-AUDIT 审计中心配置，见 https://github.com/TencentBlueKing/bk-audit-python-sdk/tree/master
+BK_AUDIT_SETTINGS = {
+    "formatter": "bk_audit.contrib.django.formatters.DjangoFormatter",
+}
 
 # APIGW配置
 BK_APIGW_STATIC_VERSION = env.BK_APIGW_STATIC_VERSION

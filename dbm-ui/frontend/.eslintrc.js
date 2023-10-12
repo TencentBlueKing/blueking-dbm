@@ -35,6 +35,8 @@ module.exports = {
     // value 为 true 允许被重写，为 false 不允许被重写
     __RESOURCE_UNIQUE_KEY__: false,
     ValueOf: false,
+    ServiceReturnType: false,
+    SelectItem: false,
   },
   rules: {
     '@typescript-eslint/no-explicit-any': 'off',
@@ -122,6 +124,8 @@ module.exports = {
           registeredComponentsOnly: false,
           ignores: [],
         }],
+        'vue/no-setup-props-reactivity-loss': 'off',
+        'vue/no-setup-props-destructure': 'off',
       },
     },
   ],

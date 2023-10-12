@@ -12,13 +12,14 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"fmt"
+	"log/slog"
 	"os"
 	"path/filepath"
 
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/config"
 
 	"github.com/jmoiron/sqlx"
-	"golang.org/x/exp/slog"
 )
 
 type mysqlProcess struct {
@@ -62,7 +63,7 @@ func (c *mysqlProcess) JsonString() (string, error) {
 	)
 
 	if err != nil {
-		slog.Error("marshal process list", err)
+		slog.Error("marshal process list", slog.String("error", err.Error()))
 		return "", err
 	}
 
@@ -79,25 +80,32 @@ func snapShot(db *sqlx.DB) error {
 		return err
 	}
 
+	regFilePath := filepath.Join(
+		filepath.Dir(executable),
+		fmt.Sprintf("processlist.%d.reg", config.MonitorConfig.Port))
 	f, err := os.OpenFile(
-		filepath.Join(filepath.Dir(executable), "processlist.reg"),
+		regFilePath,
 		os.O_CREATE|os.O_TRUNC|os.O_RDWR,
 		0755,
 	)
 	if err != nil {
-		slog.Error("create processlist.reg", err)
+		slog.Error(
+			"create processlist reg file",
+			slog.String("error", err.Error()),
+			slog.String("file path", regFilePath),
+		)
 		return err
 	}
 
 	content, err := json.Marshal(processList)
 	if err != nil {
-		slog.Error("marshal processlist", err)
+		slog.Error("marshal processlist", slog.String("error", err.Error()))
 		return err
 	}
 
 	_, err = f.Write(content)
 	if err != nil {
-		slog.Error("write processlist.reg", err)
+		slog.Error("write processlist.reg", slog.String("error", err.Error()))
 		return err
 	}
 
@@ -108,18 +116,19 @@ func snapShot(db *sqlx.DB) error {
 func loadSnapShot() ([]*mysqlProcess, error) {
 	content, err := os.ReadFile(
 		filepath.Join(
-			filepath.Dir(executable), "processlist.reg",
+			filepath.Dir(executable),
+			fmt.Sprintf("processlist.%d.reg", config.MonitorConfig.Port),
 		),
 	)
 	if err != nil {
-		slog.Error("read processlist.reg", err)
+		slog.Error("read processlist.reg", slog.String("error", err.Error()))
 		return nil, err
 	}
 
 	var res []*mysqlProcess
 	err = json.Unmarshal(content, &res)
 	if err != nil {
-		slog.Error("unmarshal processlist", err)
+		slog.Error("unmarshal processlist", slog.String("error", err.Error()))
 		return nil, err
 	}
 
@@ -134,7 +143,7 @@ func queryProcessList(db *sqlx.DB) ([]mysqlProcess, error) {
 		ctx,
 		`SELECT ID, USER, HOST, DB, COMMAND, TIME, STATE, INFO FROM INFORMATION_SCHEMA.PROCESSLIST`)
 	if err != nil {
-		slog.Error("show full processlist", err)
+		slog.Error("show full processlist", slog.String("error", err.Error()))
 		return nil, err
 	}
 	defer func() {
@@ -146,7 +155,7 @@ func queryProcessList(db *sqlx.DB) ([]mysqlProcess, error) {
 		p := mysqlProcess{}
 		err := rows.StructScan(&p)
 		if err != nil {
-			slog.Error("scan processlist", err)
+			slog.Error("scan processlist", slog.String("error", err.Error()))
 			return nil, err
 		}
 		res = append(res, p)

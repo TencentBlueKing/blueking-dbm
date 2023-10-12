@@ -72,6 +72,7 @@ class Machine(AuditedModel):
         if proxies:
             for proxy in proxies:
                 for cluster in proxy.cluster.all():
+                    tendb_cluster_spider_ext = getattr(proxy, "tendbclusterspiderext", None)
                     host_labels.append(
                         asdict(
                             CommonHostDBMeta(
@@ -79,13 +80,31 @@ class Machine(AuditedModel):
                                 app_id=str(cluster.bk_biz_id),
                                 cluster_type=cluster.cluster_type,
                                 cluster_domain=cluster.immute_domain,
-                                instance_role="proxy",
+                                # tendbcluster中扩展了proxy的类型，需要特殊处理
+                                instance_role=tendb_cluster_spider_ext.spider_role
+                                if tendb_cluster_spider_ext
+                                else "proxy",
                             )
                         )
                     )
 
         if storages:
             for storage in storages:
+                # influxdb需要单独处理
+                if storage.cluster_type == ClusterType.Influxdb.value:
+                    host_labels.append(
+                        asdict(
+                            CommonHostDBMeta(
+                                app=AppCache.get_app_attr(storage.bk_biz_id, default=storage.bk_biz_id),
+                                app_id=str(storage.bk_biz_id),
+                                cluster_domain=storage.machine.ip,
+                                cluster_type=storage.cluster_type,
+                                instance_role=storage.instance_role,
+                            )
+                        )
+                    )
+                    continue
+
                 for cluster in storage.cluster.all():
                     host_labels.append(
                         asdict(

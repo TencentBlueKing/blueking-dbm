@@ -19,5 +19,11 @@ export DB_PASSWORD=
 export DB_HOST="localhost"
 export DB_PORT="3306"
 
+export REPORT_DB_NAME="${APP_ID}_report"
+export REPORT_DB_USER=${DB_USER}
+export REPORT_DB_PASSWORD=
+export REPORT_DB_HOST=${DB_HOST}
+export REPORT_DB_PORT=${DB_PORT}
+
 # iam
 export BK_IAM_SKIP=true

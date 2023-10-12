@@ -123,10 +123,10 @@ func InitRule() (err error) {
 	initRules = append(initRules, TbSyntaxRule{
 		GroupName: "CreateTableRule",
 		RuleName:  "DefinerRule",
-		Expr:      "Val in Item ",
+		Expr:      "Val not in Item ",
 		ItemType:  ArryItem,
-		Item:      []byte(`["create_function","create_trigger","create_event","create_procedure","create_view"]`),
-		Desc:      "不允许指定definer",
+		Item:      []byte(`["ADMIN@localhost"]`),
+		Desc:      "必须指定definer",
 		WarnLevel: 0,
 		Status:    true,
 	})

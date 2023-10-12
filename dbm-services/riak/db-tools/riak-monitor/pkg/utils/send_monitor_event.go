@@ -16,10 +16,10 @@ func SendMonitorEvent(name string, msg string) {
 
 	// 事件的维度信息
 	additionDimension := map[string]interface{}{
-		"immute_domain": config.MonitorConfig.ImmuteDomain,
-		"machine_type":  config.MonitorConfig.MachineType,
-		"bk_cloud_id":   *config.MonitorConfig.BkCloudID,
-		"port":          config.MonitorConfig.Port,
+		"cluster_domain": config.MonitorConfig.ImmuteDomain,
+		"machine_type":   config.MonitorConfig.MachineType,
+		"bk_cloud_id":    *config.MonitorConfig.BkCloudID,
+		"port":           config.MonitorConfig.Port,
 		// 实例id
 		"bk_target_service_instance_id": strconv.FormatInt(config.MonitorConfig.BkInstanceId, 10),
 	}

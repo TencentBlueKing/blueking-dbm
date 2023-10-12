@@ -31,3 +31,11 @@ type commonData struct {
 	Dimension map[string]interface{} `json:"dimension"`
 	Metrics   map[string]int         `json:"metrics"`
 }
+
+type Setting struct {
+	MonitorMetricDataID      int    `json:"MONITOR_METRIC_DATA_ID"`
+	MonitorEventDataID       int    `json:"MONITOR_EVENT_DATA_ID"`
+	MonitorMetricAccessToken string `json:"MONITOR_METRIC_ACCESS_TOKEN"`
+	MonitorEventAccessToken  string `json:"MONITOR_EVENT_ACCESS_TOKEN"`
+	MonitorService           string `json:"MONITOR_SERVICE"`
+}

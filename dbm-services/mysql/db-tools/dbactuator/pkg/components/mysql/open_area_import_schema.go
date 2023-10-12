@@ -178,19 +178,7 @@ func (c *OpenAreaImportSchemaComp) EraseAutoIncrement() (err error) {
 			logger.Error("regexp.Compile failed:%s", err.Error())
 			return err
 		}
-		reg2, err := regexp.Compile(`(?i)SET tc_admin=0`)
-		if err != nil {
-			logger.Error("regexp.Compile failed:%s", err.Error())
-			return err
-		}
-		reg3, err := regexp.Compile(`\/\*!(.*?)\*\/;`)
-		if err != nil {
-			logger.Error("regexp.Compile failed:%s", err.Error())
-			return err
-		}
 		newSchemaContent := reg.ReplaceAllString(string(schemaContent), "")
-		newSchemaContent = reg2.ReplaceAllString(newSchemaContent, "SET tc_admin=1")
-		newSchemaContent = reg3.ReplaceAllString(newSchemaContent, "")
 		newSchemaFilePath := fmt.Sprintf("%s.new", schemaFilePath)
 
 		f, err := os.Create(newSchemaFilePath)
@@ -248,11 +236,6 @@ func (c *OpenAreaImportSchemaComp) OpenAreaImportSchema() (err error) {
 func (c *OpenAreaImportSchemaComp) OpenAreaImportData() (err error) {
 	for _, oneShemaInfo := range c.Params.OpenAreaParam {
 		dataFileName := fmt.Sprintf("%s.sql", oneShemaInfo.Schema)
-
-		fmt.Printf("%+v\n", c)
-		fmt.Println(dataFileName)
-		fmt.Println(oneShemaInfo.NewDB)
-
 		err = mysqlutil.ExecuteSqlAtLocal{
 			IsForce:          false,
 			Charset:          c.charset,

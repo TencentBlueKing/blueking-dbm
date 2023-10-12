@@ -14,13 +14,6 @@ package cst
 import "time"
 
 const (
-	// Environment TODO
-	Environment = "enviroment"
-	// Test TODO
-	Test = "test"
-)
-
-const (
 	// TIMELAYOUT TODO
 	TIMELAYOUT = "2006-01-02 15:04:05"
 	// TIMELAYOUTSEQ TODO

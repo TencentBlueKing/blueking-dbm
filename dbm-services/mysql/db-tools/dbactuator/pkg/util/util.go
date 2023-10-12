@@ -1,9 +1,20 @@
+/*
+ * TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
+ * Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
+ * Licensed under the MIT License (the "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at https://opensource.org/licenses/MIT
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+ * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
+
 // Package util TODO
 package util
 
 import (
 	"crypto/md5"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"math/rand"
@@ -11,14 +22,12 @@ import (
 	"os"
 	"reflect"
 	"regexp"
-	"runtime"
 	"strings"
 	"time"
 
 	"dbm-services/common/go-pubpkg/logger"
 
 	"github.com/TylerBrock/colorjson"
-	"github.com/pkg/errors"
 )
 
 // RetryConfig TODO
@@ -38,22 +47,6 @@ func Retry(r RetryConfig, f func() error) (err error) {
 		logger.Warn("第%d次重试,函数错误:%s", i, err.Error(), err.Error())
 	}
 	return
-}
-
-// AtWhere TODO
-func AtWhere() string {
-	pc, _, _, ok := runtime.Caller(1)
-	if ok {
-		fileName, line := runtime.FuncForPC(pc).FileLine(pc)
-		result := strings.Index(fileName, "/bk-dbactuator/")
-		if result > 1 {
-			preStr := fileName[0:result]
-			fileName = strings.Replace(fileName, preStr, "", 1)
-		}
-		return fmt.Sprintf("%s:%d", fileName, line)
-	} else {
-		return "Method not Found!"
-	}
 }
 
 const (
@@ -281,12 +274,7 @@ func ReverseRead(name string, lineNum uint) ([]string, error) {
 
 // SliceErrorsToError TODO
 func SliceErrorsToError(errs []error) error {
-	var errStrs []string
-	for _, e := range errs {
-		errStrs = append(errStrs, e.Error())
-	}
-	errString := strings.Join(errStrs, "\n")
-	return errors.New(errString)
+	return errors.Join(errs...)
 }
 
 // IntnRange TODO

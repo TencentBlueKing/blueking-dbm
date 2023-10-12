@@ -18,6 +18,8 @@ from backend.configuration.constants import SystemSettingsEnum
 from backend.configuration.models import SystemSettings
 from backend.db_dirty.models import DirtyMachine
 from backend.db_meta.models import Machine
+from backend.db_services.ipchooser.constants import IDLE_HOST_MODULE
+from backend.db_services.ipchooser.handlers.topo_handler import TopoHandler
 from backend.flow.utils.cc_manage import CcManage
 from backend.ticket.models import Flow, Ticket
 
@@ -55,14 +57,10 @@ class DBDirtyMachineHandler(object):
         @param ticket: 关联的单据
         @param flow: 关联的flow任务
         """
-        # 排除已经录入到Machine表的机器（因为是成功消费不算污点机器）
-        db_machines = list(Machine.objects.filter(bk_host_id__in=bk_host_ids).values_list("bk_host_id", flat=True))
-        dirty_host_ids = list(set(bk_host_ids) - set(db_machines))
-
         # 查询污点机器信息
         host_property_filter = {
             "condition": "AND",
-            "rules": [{"field": "bk_host_id", "operator": "in", "value": dirty_host_ids}],
+            "rules": [{"field": "bk_host_id", "operator": "in", "value": bk_host_ids}],
         }
         dirty_host_infos = CCApi.list_biz_hosts(
             {
@@ -74,15 +72,26 @@ class DBDirtyMachineHandler(object):
             }
         )["info"]
 
-        # 将污点机器信息转移至污点池模块
-        dirty_module = SystemSettings.get_setting_value(key=SystemSettingsEnum.MANAGE_TOPO.value)["dirty_module_id"]
-        CcManage(bk_biz_id=env.DBA_APP_BK_BIZ_ID).transfer_host_module(
-            bk_host_ids=dirty_host_ids, target_module_ids=[dirty_module]
-        )
+        # 获取空闲机模块，资源池模块和污点池模块
+        system_manage_topo = SystemSettings.get_setting_value(key=SystemSettingsEnum.MANAGE_TOPO.value)
+        idle_module = CcManage(bk_biz_id).get_biz_internal_module(bk_biz_id)[IDLE_HOST_MODULE]["bk_module_id"]
+        resource_module, dirty_module = system_manage_topo["resource_module_id"], system_manage_topo["dirty_module_id"]
+        # 获取主机的拓扑信息
+        host_topo_infos = TopoHandler.query_host_set_module(bk_biz_id=3, bk_host_ids=bk_host_ids)["hosts_topo_info"]
+        # 将污点机器信息转移至污点池模(如果污点机器不在空闲机/资源池，则放弃转移，认为已到正确拓扑)
+        transfer_host_ids = [
+            info["bk_host_id"]
+            for info in host_topo_infos
+            if not set(info["bk_module_ids"]) - {resource_module, idle_module}
+        ]
+        if transfer_host_ids:
+            CcManage(bk_biz_id=env.DBA_APP_BK_BIZ_ID).transfer_host_module(
+                bk_host_ids=transfer_host_ids, target_module_ids=[dirty_module]
+            )
 
         # 录入污点池表中
         exist_dirty_machine_ids = list(
-            DirtyMachine.objects.filter(bk_host_id__in=dirty_host_ids).values_list("bk_host_id", flat=True)
+            DirtyMachine.objects.filter(bk_host_id__in=bk_host_ids).values_list("bk_host_id", flat=True)
         )
         DirtyMachine.objects.bulk_create(
             [

@@ -17,7 +17,7 @@
       property="details.resource_spec.backend_group.future_capacity"
       required>
       <BkInput
-        :min="modelValue.capacity"
+        :min="Number(modelValue.capacity)"
         :model-value="modelValue.future_capacity"
         style="width: 314px;"
         type="number"
@@ -48,7 +48,8 @@
         v-bkloading="{loading: isLoading}"
         class="custom-edit-table"
         :columns="columns"
-        :data="renderSpecs">
+        :data="renderSpecs"
+        @row-click="handleRowClick">
         <template #empty>
           <p
             v-if="!sliderProps.value[1]"
@@ -80,11 +81,6 @@
     getFilterClusterSpec,
     queryQPSRange,
   } from '@services/resourceSpec';
-
-  interface TableRenderProps {
-    data: FilterClusterSpecItem,
-    row: FilterClusterSpecItem,
-  }
 
   interface ModelValue {
     spec_id: string,
@@ -119,12 +115,16 @@
       field: 'spec_name',
       label: t('资源规格'),
       showOverflowTooltip: false,
-      render: ({ row }: TableRenderProps) => (
+      render: ({ data }: { data: FilterClusterSpecItem }) => (
         <bk-radio
           v-model={modelValue.value.spec_id}
-          label={row.spec_id}
+          label={`${data.spec_id}`}
           class="spec-radio">
-          <div class="text-overflow" v-overflow-tips>{row.spec_name}</div>
+          <div
+            class="text-overflow"
+            v-overflow-tips>
+            {data.spec_name}
+          </div>
         </bk-radio>
       ),
     },
@@ -251,9 +251,8 @@
     }
   };
 
-  const fetchSpecResourceCount = () => {
+  const fetchSpecResourceCount = _.debounce(() => {
     getSpecResourceCount({
-      resource_type: props.clusterType,
       bk_biz_id: Number(props.bizId),
       bk_cloud_id: Number(props.cloudId),
       spec_ids: specs.value.map(item => item.spec_id),
@@ -263,7 +262,7 @@
         count: data[item.spec_id] ?? 0,
       }));
     });
-  };
+  }, 100);
 
   watch(() => sliderProps.value, _.debounce(() => {
     modelValue.value.spec_id = '';
@@ -306,6 +305,10 @@
       fetchQPSRange();
     }
   });
+
+  const handleRowClick = (event: Event, row: FilterClusterSpecItem) => {
+    modelValue.value.spec_id = `${row.spec_id}`;
+  };
 
   defineExpose({
     getData() {

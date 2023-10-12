@@ -1,0 +1,50 @@
+{{- if .Values.serviceInit.mediumEnabled -}}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "dbm.mediumInitJobName" . }}
+  labels:
+    {{- include "dbm.labels" . | nindent 4 }}
+spec:
+  backoffLimit: 0
+  template:
+    metadata:
+      labels:
+        {{- include "dbm.labels" . | nindent 8 }}
+    spec:
+      {{- with .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "dbm.serviceAccountName" . }}
+      restartPolicy: Never
+      containers:
+        - name: dbm-medium-init
+          image: "{{ .Values.global.imageRegistry | default .Values.dbmedium.image.registry }}/{{ .Values.dbmedium.image.repository }}:{{ .Values.dbmedium.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.dbmedium.image.pullPolicy }}
+          command:
+            - /bin/bash
+            - -c
+          args:
+            - |
+              type=('mysql' 'es' 'kafka' 'hdfs' 'pulsar' 'influxdb' 'redis');
+              for element in ${type[@]}; do
+                python main.py --type upload --db $element && python main.py --type sync --db $element;
+              done
+          envFrom:
+            {{- if .Values.dbmedium.extraEnvVarsCM }}
+            - configMapRef:
+                name: {{ .Values.dbmedium.extraEnvVarsCM }}
+            {{- end }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      initContainers:
+        - name: check-saas-api
+          image: {{ include "dbm.migration.k8sWaitFor.image" . }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          args:
+            - pod
+            - -lapp.kubernetes.io/component={{ include "dbm.saas-api.fullname" .}}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+{{- end }}

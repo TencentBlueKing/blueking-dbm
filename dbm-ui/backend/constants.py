@@ -52,6 +52,7 @@ class CommonInstanceLabels:
     instance_role: str
     instance_host: str
     instance_port: str
+    db_module: str
 
 
 # 定义添加host的公共固定标签结构

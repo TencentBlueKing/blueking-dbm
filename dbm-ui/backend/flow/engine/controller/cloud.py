@@ -14,6 +14,7 @@ from backend.flow.engine.bamboo.scene.cloud.dbha_service_flow import CloudDBHASe
 from backend.flow.engine.bamboo.scene.cloud.dns_service_flow import CloudDNSServiceFlow
 from backend.flow.engine.bamboo.scene.cloud.drs_service_flow import CloudDRSServiceFlow
 from backend.flow.engine.bamboo.scene.cloud.nginx_service_flow import CloudNginxServiceFlow
+from backend.flow.engine.bamboo.scene.cloud.redis_dts_server_service_flow import CloudRedisDtsServerServiceFlow
 from backend.flow.engine.controller.base import BaseController
 
 logger = logging.getLogger("Controller")
@@ -113,3 +114,28 @@ class CloudServiceController(BaseController):
         """drs新增流程"""
         flow = CloudDRSServiceFlow(root_id=self.root_id, data=self.ticket_data)
         flow.service_replace_flow()
+
+    def redis_dts_server_apply_scene(self):
+        """redis dts_server部署流程"""
+        flow = CloudRedisDtsServerServiceFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.service_apply_flow()
+
+    def redis_dts_server_add_scene(self):
+        """redis dts_server新增流程"""
+        flow = CloudRedisDtsServerServiceFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.service_add_flow()
+
+    def redis_dts_server_reduce_scene(self):
+        """redis dts_server裁撤流程"""
+        flow = CloudRedisDtsServerServiceFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.service_reduce_flow()
+
+    def redis_dts_server_replace_scene(self):
+        """redis dts_server替换流程"""
+        flow = CloudRedisDtsServerServiceFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.service_replace_flow()
+
+    def redis_dts_server_reload_scene(self):
+        """redis dts_server重装流程"""
+        flow = CloudRedisDtsServerServiceFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.service_reload_flow()

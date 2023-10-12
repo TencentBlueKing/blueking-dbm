@@ -6,13 +6,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"os"
 	"os/exec"
 	"time"
 
 	"dbm-services/mysql/db-tools/mysql-table-checksum/pkg/config"
-
-	"golang.org/x/exp/slog"
 )
 
 // Run 执行
@@ -35,7 +34,7 @@ func (r *Checker) Run() error {
 	if err != nil {
 		var exitError *exec.ExitError
 		if !errors.As(err, &exitError) {
-			slog.Error("run pt-table-checksum got unexpected error", err)
+			slog.Error("run pt-table-checksum got unexpected error", slog.String("error", err.Error()))
 			return err
 		}
 	}
@@ -83,7 +82,7 @@ func (r *Checker) Run() error {
 	*/
 	if stderr.Len() > 0 {
 		err = errors.New(stderr.String())
-		slog.Error("run pt-table-checksum got un-docoument error", err)
+		slog.Error("run pt-table-checksum got un-docoument error", slog.String("error", err.Error()))
 		return err
 	}
 
@@ -96,7 +95,7 @@ func (r *Checker) Run() error {
 	if err != nil {
 		slog.Error(
 			"trans pt-table-checksum stdout to summary",
-			err,
+			slog.String("error", err.Error()),
 			slog.String("pt stdout", stdout.String()),
 		)
 		return err
@@ -117,7 +116,7 @@ func (r *Checker) Run() error {
 			if err != nil {
 				slog.Error(
 					"truncate regular result table",
-					err,
+					slog.String("error", err.Error()),
 					slog.String("table name", r.Config.PtChecksum.Replicate),
 				)
 				return err
@@ -127,6 +126,27 @@ func (r *Checker) Run() error {
 		slog.Info("run in demand mode")
 	}
 
+	// 固定写入一行恒为真的站位数据
+	ts := time.Now()
+	_, err = r.db.Exec(
+		fmt.Sprintf("INSERT INTO %s("+
+			"master_ip, master_port, "+
+			"`db`, tbl, chunk, chunk_time, chunk_index, "+
+			"lower_boundary, upper_boundary, "+
+			"this_crc, this_cnt, master_crc, master_cnt, ts) "+
+			"VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+			r.resultHistoryTable),
+		r.Config.Ip, r.Config.Port,
+		"_dba_fake_db", "_dba_fake_table", 0, 0, "",
+		"1=1", "1=1",
+		0, 0, 0, 0, ts,
+	)
+	if err != nil {
+		slog.Error("write place hold row", slog.String("error", err.Error()))
+		return err
+	}
+	slog.Info("write place hold row success")
+
 	output := Output{
 		PtStderr:    stderr.String(),
 		Summaries:   summaries,
@@ -134,7 +154,10 @@ func (r *Checker) Run() error {
 	}
 	ojson, err := json.Marshal(output)
 	if err != nil {
-		slog.Error("marshal output", err, slog.String("output", fmt.Sprintf("%v", output)))
+		slog.Error("marshal output",
+			slog.String("error", err.Error()),
+			slog.String("output", fmt.Sprintf("%v", output)),
+		)
 		return err
 	}
 
@@ -142,7 +165,7 @@ func (r *Checker) Run() error {
 
 	if ptErr != nil && (ptErr.ExitCode()&1 != 0 || ptErr.ExitCode()&2 != 0 || ptErr.ExitCode()&4 != 0) {
 		err = errors.New(string(ojson))
-		slog.Error("run pt-table-checksum bad flag found", err)
+		slog.Error("run pt-table-checksum bad flag found", slog.String("error", err.Error()))
 		_, _ = fmt.Fprintf(os.Stderr, string(ojson))
 		return err
 	}

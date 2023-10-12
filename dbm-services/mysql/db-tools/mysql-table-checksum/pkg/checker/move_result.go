@@ -3,9 +3,8 @@ package checker
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"strings"
-
-	"golang.org/x/exp/slog"
 )
 
 func (r *Checker) moveResult() error {
@@ -18,7 +17,7 @@ func (r *Checker) moveResult() error {
 	if err != nil {
 		slog.Error(
 			"fetch result table columns",
-			err,
+			slog.String("error", err.Error()),
 			slog.String("result table", r.resultTbl),
 			slog.String("result db", r.resultDB),
 		)
@@ -29,7 +28,7 @@ func (r *Checker) moveResult() error {
 		var col string
 		err := rows.Scan(&col)
 		if err != nil {
-			slog.Error("iterator columns", err)
+			slog.Error("iterator columns", slog.String("error", err.Error()))
 			return err
 		}
 
@@ -38,16 +37,14 @@ func (r *Checker) moveResult() error {
 
 	err = r.validateHistoryTable()
 	if err != nil {
-		slog.Error("move result validate history table again", err)
+		slog.Error("move result validate history table again", slog.String("error", err.Error()))
 		return err
 	}
 	slog.Info("move result validate history table again success")
 
-	slog.Info("move result", slog.Time("ts", r.startTS))
-
 	conn, err := r.db.Conn(context.Background())
 	if err != nil {
-		slog.Error("get connect", err)
+		slog.Error("get connect", slog.String("error", err.Error()))
 		return err
 	}
 	defer func() {
@@ -56,9 +53,11 @@ func (r *Checker) moveResult() error {
 
 	_, err = conn.ExecContext(context.Background(), `SET BINLOG_FORMAT = 'STATEMENT'`)
 	if err != nil {
-		slog.Error("set binlog_format = 'statement'", err)
+		slog.Error("set binlog_format = 'statement'", slog.String("error", err.Error()))
 		return err
 	}
+
+	slog.Info("move result", slog.Time("from", r.startTS))
 	_, err = conn.ExecContext(
 		context.Background(),
 		fmt.Sprintf(
@@ -69,7 +68,7 @@ func (r *Checker) moveResult() error {
 		), r.startTS,
 	)
 	if err != nil {
-		slog.Error("move result", err)
+		slog.Error("move result", slog.String("error", err.Error()))
 		return err
 	}
 
