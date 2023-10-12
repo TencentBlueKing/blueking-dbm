@@ -12,7 +12,6 @@ package syntax
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"reflect"
 
@@ -41,31 +40,6 @@ type CheckerResult struct {
 	RiskWarns []string
 }
 
-// IsPass TODO
-func (c CheckerResult) IsPass() bool {
-	return len(c.BanWarns) == 0 && len(c.RiskWarns) == 0
-}
-
-// Parse TODO
-func (c *CheckerResult) Parse(rule *RuleItem, val interface{}, s string) {
-	matched, err := rule.CheckItem(val)
-	if matched {
-		if rule.Ban {
-			c.BanWarns = append(c.BanWarns, fmt.Sprintf("%s\n%s", err.Error(), s))
-		} else {
-			c.RiskWarns = append(c.RiskWarns, fmt.Sprintf("%s\n%s", err.Error(), s))
-		}
-	}
-}
-
-// ParseBultinBan TODO
-func (c *CheckerResult) ParseBultinBan(f func() (bool, string)) {
-	matched, msg := f()
-	if matched {
-		c.BanWarns = append(c.BanWarns, msg)
-	}
-}
-
 const (
 	// DEFAUTL_RULE_FILE TODO
 	DEFAUTL_RULE_FILE = "rule.yaml"
@@ -83,14 +57,17 @@ func init() {
 		fileContent, err = os.ReadFile(DEFAUTL_RULE_FILE)
 	}
 	if err != nil {
-		logger.Error("failed to read the rule file:%s", err.Error())
-		panic(err)
+		logger.Fatal("failed to read the rule file:%s", err.Error())
+		return
 	}
 	if err := yaml.Unmarshal(fileContent, R); err != nil {
-		panic(err)
+		logger.Fatal("unmarshal rule config failed:%v", err)
 	}
-	if err = traverseLoadRule(*R); err != nil {
-		logger.Error("load rule from database failed %s", err.Error())
+	// 是否从db中加载配置覆盖配置文件
+	if config.GAppConfig.LoadRuleFromdb {
+		if err = traverseLoadRule(*R); err != nil {
+			logger.Error("load rule from database failed %s", err.Error())
+		}
 	}
 	var initCompiles = []*RuleItem{}
 	initCompiles = append(initCompiles, traverseRule(R.CommandRule)...)
@@ -98,9 +75,35 @@ func init() {
 	initCompiles = append(initCompiles, traverseRule(R.AlterTableRule)...)
 	initCompiles = append(initCompiles, traverseRule(R.DmlRule)...)
 	for _, c := range initCompiles {
-		if err := c.Compile(); err != nil {
-			panic(err)
+		if err = c.compile(); err != nil {
+			logger.Fatal("compile rule failed %s", err.Error())
+			return
 		}
+	}
+}
+
+// IsPass TODO
+func (c CheckerResult) IsPass() bool {
+	return len(c.BanWarns) == 0 && len(c.RiskWarns) == 0
+}
+
+// Parse TODO
+func (c *CheckerResult) Parse(rule *RuleItem, val interface{}, additionalMsg string) {
+	matched, err := rule.CheckItem(val)
+	if matched {
+		if rule.Ban {
+			c.BanWarns = append(c.BanWarns, fmt.Sprintf("%s\n%s", err.Error(), additionalMsg))
+		} else {
+			c.RiskWarns = append(c.RiskWarns, fmt.Sprintf("%s\n%s", err.Error(), additionalMsg))
+		}
+	}
+}
+
+// ParseBultinBan TODO
+func (c *CheckerResult) ParseBultinBan(f func() (bool, string)) {
+	matched, msg := f()
+	if matched {
+		c.BanWarns = append(c.BanWarns, msg)
 	}
 }
 
@@ -233,11 +236,10 @@ type Env struct {
 	Item interface{}
 }
 
-// Compile TODO
-func (i *RuleItem) Compile() (err error) {
+func (i *RuleItem) compile() (err error) {
 	p, err := expr.Compile(i.Expr, expr.Env(Env{}), expr.AsBool())
 	if err != nil {
-		log.Printf("expr.Compile error %s\n", err.Error())
+		logger.Error("%s:expr.Compile error %s\n", i.Desc, err.Error())
 		return err
 	}
 	i.ruleProgram = p
@@ -264,5 +266,5 @@ func (i *RuleItem) CheckItem(val interface{}) (matched bool, err error) {
 	if !matched {
 		return false, fmt.Errorf("")
 	}
-	return matched, fmt.Errorf("%s:%v", i.Desc, val)
+	return matched, fmt.Errorf("%s,当前值:%v", i.Desc, val)
 }

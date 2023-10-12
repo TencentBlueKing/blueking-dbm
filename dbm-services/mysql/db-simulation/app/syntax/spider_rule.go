@@ -28,23 +28,25 @@ func init() {
 		fileContent, err = os.ReadFile(DEFAUTL_SPIDER_RULE_FILE)
 	}
 	if err != nil {
-		logger.Error("read rule config file failed %s", err.Error())
-		panic(err)
+		logger.Fatal("read rule config file failed %s", err.Error())
+		return
 	}
 	if err = yaml.Unmarshal(fileContent, SR); err != nil {
-		logger.Error("yaml Unmarshal failed %s", err.Error())
-		panic(err)
+		logger.Fatal("yaml Unmarshal failed %s", err.Error())
+		return
 	}
-	//	panic("panic there..")
-	if err = traverseLoadRule(*SR); err != nil {
-		logger.Error("load rule from database failed %s", err.Error())
+	if config.GAppConfig.LoadRuleFromdb {
+		if err = traverseLoadRule(*SR); err != nil {
+			logger.Error("load rule from database failed %s", err.Error())
+		}
 	}
 	var initCompiles = []*RuleItem{}
 	initCompiles = append(initCompiles, traverseRule(SR.CommandRule)...)
 	initCompiles = append(initCompiles, traverseRule(SR.SpiderCreateTableRule)...)
 	for _, c := range initCompiles {
-		if err = c.Compile(); err != nil {
-			panic(err)
+		if err = c.compile(); err != nil {
+			logger.Fatal("compile rule failed %s", err.Error())
+			return
 		}
 	}
 }
