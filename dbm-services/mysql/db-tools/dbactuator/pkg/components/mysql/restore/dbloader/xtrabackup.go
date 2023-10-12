@@ -62,6 +62,10 @@ func (x *Xtrabackup) PreRun() error {
 
 // PostRun TODO
 func (x *Xtrabackup) PostRun() (err error) {
+	logger.Info("decompress xtrabackup meta files again")
+	if err := x.DecompressMetaFile(); err != nil {
+		return err
+	}
 	logger.Info("change datadir owner user and group")
 	// 调整目录属主
 	if err = x.changeDirOwner(); err != nil {
@@ -190,7 +194,7 @@ func (x *Xtrabackup) DecompressMetaFile() error {
 		if _, err := os.Stat(compressedFile); os.IsNotExist(err) {
 			continue
 		}
-		script := fmt.Sprintf(`cd %s && %s -do %s.qp > %s`, x.LoaderDir, x.QpressTool, file, file)
+		script := fmt.Sprintf(`%s -do %s.qp > %s`, x.QpressTool, compressedFile, filepath.Join(x.LoaderDir, file))
 		stdErr, err := cmutil.ExecShellCommand(false, script)
 		if err != nil {
 			return errors.Wrapf(err, "decompress file %s failed, error:%s, stderr:%s",
