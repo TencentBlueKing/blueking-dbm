@@ -162,7 +162,6 @@ export default async function getRouters() {
     ...getDBMonitorAlarmRoutes(),
     ...getPlatMonitorAlarmRoutes(),
     ...getPasswordRandomizationRoutes(),
-    ...getNotificationSettingRoutes(),
     ...getPasswordTemporaryModify(),
     // ...deploymentPlanRoutes,
   ];

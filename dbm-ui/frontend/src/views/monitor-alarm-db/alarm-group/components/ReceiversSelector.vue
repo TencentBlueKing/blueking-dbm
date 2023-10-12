@@ -228,6 +228,7 @@
         display: block;
       }
     }
+
     .selected-tag-icon {
       font-size: 20px;
     }
