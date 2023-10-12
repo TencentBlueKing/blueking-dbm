@@ -10,7 +10,7 @@
     "params": {
       "plugin": {
         "--es.all": "",
-        "--es.uri": "http://{{ target.host.bk_host_innerip }}:{{ target.process[\"java\"].bind_info[0].port }}",
+        "--es.uri": "http://{{ target.host.bk_host_innerip }}:{{ target.service.labels[\"instance_port\"] }}",
         "--es.shards": "",
         "--es.indices": "",
         "--es.timeout": "30s",
@@ -5221,5 +5221,5 @@
     "target_node_type": "TOPO",
     "target_object_type": "SERVICE"
   },
-  "version": 1
+  "version": 2
 }
