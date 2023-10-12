@@ -193,7 +193,7 @@ class PulsarApplyFlow(PulsarBaseFlow):
             act_component_code=ExecutePulsarActuatorScriptComponent.code,
             kwargs=asdict(act_kwargs),
         )
-        # 插入haproxy实例信息
+        # 插入pulsar manager实例信息
         manager_kwargs = BigdataManagerKwargs(
             manager_op_type=ManagerOpType.CREATE,
             db_type=DBType.Pulsar,
