@@ -85,9 +85,8 @@ class TenDBClusterDestroyFlow(object):
         定义spider集群下架流程，支持多集群下架模式
         增加单据临时ADMIN账号的添加和删除逻辑
         """
-        cluster_ids = [i["cluster_id"] for i in self.data["infos"]]
         spider_destroy_pipeline = Builder(
-            root_id=self.root_id, data=self.data, need_random_pass_cluster_ids=list(set(cluster_ids))
+            root_id=self.root_id, data=self.data, need_random_pass_cluster_ids=list(set(self.data["cluster_ids"]))
         )
         sub_pipelines = []
 
