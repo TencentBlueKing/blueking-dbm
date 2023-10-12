@@ -32,6 +32,7 @@ type RuntimeAccountParam struct {
 	MySQLAccountParam
 	ProxyAccountParam
 	TdbctlAccoutParam
+	TBinlogDumperAccoutParam
 }
 
 // GetAllSysAccount TODO

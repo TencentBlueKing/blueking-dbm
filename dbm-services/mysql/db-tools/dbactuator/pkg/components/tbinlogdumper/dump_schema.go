@@ -188,8 +188,8 @@ func (c *DumpSchemaComp) LoadSchema() (err error) {
 		Host:             c.Params.Host,
 		Port:             c.Params.TBinlogdumperPort,
 		WorkDir:          c.BackupDir,
-		User:             c.GeneralParam.RuntimeAccountParam.AdminUser,
-		Password:         c.GeneralParam.RuntimeAccountParam.AdminPwd,
+		User:             c.GeneralParam.RuntimeAccountParam.TBinlogDumperUser,
+		Password:         c.GeneralParam.RuntimeAccountParam.TBinlogDumperPwd,
 	}.ExcuteSqlByMySQLClientOne(c.BackupFileName, "test")
 	if err != nil {
 		logger.Error("执行%s文件失败", path.Join(c.BackupDir, c.BackupFileName))

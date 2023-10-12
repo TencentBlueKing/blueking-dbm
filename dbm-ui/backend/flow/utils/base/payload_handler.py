@@ -63,8 +63,21 @@ class PayloadHandler(object):
                 "instances": [DEFAULT_INSTANCE],
                 "users": [{"username": UserName.PROXY.value, "component": MySQLPrivComponent.PROXY.value}],
             }
-        )
+        )["items"]
         return {"proxy_admin_pwd": data[0]["password"], "proxy_admin_user": data[0]["username"]}
+
+    @staticmethod
+    def get_tbinlogdumper_account():
+        """
+        获取tbinlogdumper实例内置帐户密码
+        """
+        data = MySQLPrivManagerApi.get_password(
+            {
+                "instances": [DEFAULT_INSTANCE],
+                "users": [{"username": UserName.ADMIN.value, "component": MySQLPrivComponent.TBINLOGDUMPER.value}],
+            }
+        )["items"]
+        return {"tbinlogdumper_admin_pwd": data[0]["password"], "tbinlogdumper_admin_user": data[0]["username"]}
 
     def get_mysql_account(self) -> dict:
         """
@@ -85,13 +98,13 @@ class PayloadHandler(object):
                 ],
             }
         )
-        for user in data:
+        for user in data["items"]:
             user_map[value_to_name[user["username"]] + "_user"] = (
                 "MONITOR" if user["username"] == UserName.MONITOR_ACCESS_ALL.value else user["username"]
             )
             user_map[value_to_name[user["username"]] + "_pwd"] = user["password"]
 
-        if self.ticket_data["ticket_type"] in apply_list:
+        if self.ticket_data.get("ticket_type", None) in apply_list:
             # 部署类单据临时给个ADMIN初始化账号密码，部署完成会完成随机化
             user_map["admin_user"] = "ADMIN"
         else:

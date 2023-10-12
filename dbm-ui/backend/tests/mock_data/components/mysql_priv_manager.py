@@ -101,4 +101,4 @@ class MySQLPrivManagerApiMock(object):
     @classmethod
     @raw_response
     def get_password(cls, *args, **kwargs):
-        return [{"username": "mysql", "password": "xxx"}]
+        return {"items": [{"username": "mysql", "password": "xxx"}], "count": 0}

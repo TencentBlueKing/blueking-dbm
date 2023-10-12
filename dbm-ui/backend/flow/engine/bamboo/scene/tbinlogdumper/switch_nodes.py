@@ -99,7 +99,8 @@ class TBinlogDumperSwitchNodesFlow(object):
         """
         定义TBinlogDumper切换过程
         """
-        pipeline = Builder(root_id=self.root_id, data=self.data)
+        cluster_ids = [i["cluster_id"] for i in self.data["infos"]]
+        pipeline = Builder(root_id=self.root_id, data=self.data, need_random_pass_cluster_ids=list(set(cluster_ids)))
         sub_pipelines = []
         for info in self.data["infos"]:
             # 获取对应集群相关对象
@@ -177,4 +178,4 @@ class TBinlogDumperSwitchNodesFlow(object):
             raise NormalTBinlogDumperFlowException(message=_("没检测到需要迁移的实例，拼装TBinlogDumper迁移部署流程失败"))
 
         pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
-        pipeline.run_pipeline()
+        pipeline.run_pipeline(is_drop_random_user=True)

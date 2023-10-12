@@ -7,6 +7,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import copy
 import uuid
 from dataclasses import asdict
 
@@ -190,6 +191,7 @@ def switch_sub_flow(
         "uid": uid,
         "bk_biz_id": cluster.bk_biz_id,
         "created_by": created_by,
+        "cluster_id": cluster.id,
     }
 
     sub_pipeline = SubBuilder(root_id=root_id, data=parent_global_data)
@@ -200,7 +202,23 @@ def switch_sub_flow(
         old_dumper = ExtraProcessInstance.objects.get(id=inst["reduce_id"])
 
         # 按照实例维度声明子流程
-        sub_sub_pipeline = SubBuilder(root_id=root_id, data=parent_global_data)
+        global_data = copy.deepcopy(parent_global_data)
+        global_data["add_tbinlogdumper_conf"] = {"port": old_dumper.listen_port}
+        sub_sub_pipeline = SubBuilder(root_id=root_id, data=global_data)
+
+        # 同步表结构到新的tbinlogdumper实例
+        sub_sub_pipeline.add_act(
+            act_name=_("导入相关表结构"),
+            act_component_code=ExecuteDBActuatorScriptComponent.code,
+            kwargs=asdict(
+                ExecActuatorKwargs(
+                    bk_cloud_id=cluster.bk_cloud_id,
+                    exec_ip=master.machine.ip,
+                    get_mysql_payload_func=TBinlogDumperActPayload.tbinlogdumper_load_schema_payload.__name__,
+                    run_as_system_user=DBA_SYSTEM_USER,
+                )
+            ),
+        )
 
         # 旧实例断开同步
         sub_sub_pipeline.add_act(
@@ -225,7 +243,7 @@ def switch_sub_flow(
                     bk_cloud_id=cluster.bk_cloud_id,
                     exec_ip=master.machine.ip,
                     get_mysql_payload_func=MysqlActPayload.get_grant_mysql_repl_user_payload.__name__,
-                    cluster={"new_slave_ip": master.machine.ip, "mysql_port": inst["port"]},
+                    cluster={"new_slave_ip": master.machine.ip, "mysql_port": master.port},
                     run_as_system_user=DBA_SYSTEM_USER,
                 )
             ),
@@ -315,6 +333,7 @@ def incr_sync_sub_flow(
             slave_ip=master.machine.ip,
             master_port=master.port,
             slave_port=add_tbinlogdumper_conf["port"],
+            is_tbinlogdumper=True,
         )
     )
     # 返回子流程
