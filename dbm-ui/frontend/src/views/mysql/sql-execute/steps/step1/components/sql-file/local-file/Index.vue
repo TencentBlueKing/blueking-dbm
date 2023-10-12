@@ -54,7 +54,8 @@
               :model-value="currentSelectFileData.content"
               readonly
               :title="selectFileName" />
-            <CheckSuccess v-if="!currentSelectFileData.isCheckFailded" />
+            <CheckSuccess
+              v-if="currentSelectFileData.messageList.length < 1 && !currentSelectFileData.isCheckFailded" />
             <CheckError :data="currentSelectFileData" />
           </BkLoading>
         </div>
