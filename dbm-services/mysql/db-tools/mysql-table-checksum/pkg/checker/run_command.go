@@ -131,13 +131,13 @@ func (r *Checker) Run() error {
 	_, err = r.db.Exec(
 		fmt.Sprintf("INSERT INTO %s("+
 			"master_ip, master_port, "+
-			"`db`, tbl, chunk, "+
+			"`db`, tbl, chunk, chunk_time, chunk_index, "+
 			"lower_boundary, upper_boundary, "+
 			"this_crc, this_cnt, master_crc, master_cnt, ts) "+
-			"VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+			"VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
 			r.resultHistoryTable),
 		r.Config.Ip, r.Config.Port,
-		"_dba_fake_db", "_dba_fake_table", 0,
+		"_dba_fake_db", "_dba_fake_table", 0, 0, "",
 		"1=1", "1=1",
 		0, 0, 0, 0, ts,
 	)
