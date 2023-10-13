@@ -50,6 +50,7 @@ class CCTopoOperator:
         if len(bk_biz_ids) != 1:
             raise ValidationError("different cluster biz is not supporting")
         self.bk_biz_id = bk_biz_ids[0]
+        self.hosting_biz_id = SystemSettings.get_exact_hosting_biz(self.bk_biz_id)
         self.is_bk_module_created = False
 
     def create_bk_module(self):
@@ -103,7 +104,6 @@ class CCTopoOperator:
         """
         cluster_module_id_map = {}
         func_name = INSTANCE_MONITOR_PLUGINS[self.db_type][machine_type]["func_name"]
-        hosting_biz_id = SystemSettings.get_exact_hosting_biz(self.bk_biz_id)
         for ins in instances:
             cluster = ins.cluster.first()
             # 查询实例对应的模块 ID
@@ -111,7 +111,7 @@ class CCTopoOperator:
             if not bk_module_id:
                 print(ClusterMonitorTopo.objects.all().values())
                 bk_module_id = ClusterMonitorTopo.objects.get(
-                    bk_biz_id=hosting_biz_id, cluster_id=cluster.id, machine_type=machine_type
+                    bk_biz_id=self.hosting_biz_id, cluster_id=cluster.id, machine_type=machine_type
                 ).bk_module_id
                 cluster_module_id_map[cluster.id] = bk_module_id
 
@@ -140,7 +140,7 @@ class CCTopoOperator:
             # 若服务实例不存在，则添加
             func_name = INSTANCE_MONITOR_PLUGINS[self.db_type][machine_type]["func_name"]
             bk_module_id = ClusterMonitorTopo.objects.get(
-                bk_biz_id=cluster.bk_biz_id, cluster_id=cluster.id, machine_type=machine_type
+                bk_biz_id=self.hosting_biz_id, cluster_id=cluster.id, machine_type=machine_type
             ).bk_module_id
             instance = StorageInstance.objects.filter(cluster=cluster, machine_type=machine_type).first()
             self.init_instance_service(
