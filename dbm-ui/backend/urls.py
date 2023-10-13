@@ -77,8 +77,8 @@ if getattr(settings, "ENVIRONMENT", "") not in []:
 vue_patterns = [
     path("login_success.html", LoginSuccessView.as_view()),
     path("logout/", LogOutView.as_view()),
-    path("version/", VersionView.as_view()),
-    path("ping/", ping, name="ping"),
+    re_path("^version/?$", VersionView.as_view()),
+    re_path("^ping/?$", ping, name="ping"),
     re_path("", HomeView.as_view()),
 ]
 urlpatterns += vue_patterns

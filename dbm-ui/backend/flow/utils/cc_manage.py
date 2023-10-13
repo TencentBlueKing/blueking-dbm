@@ -290,6 +290,21 @@ class CcManage(object):
         @param: bk_process_name:    对外显示的服务名 比如程序的二进制名称为java的服务zookeeper，则填zookeeper
         @param: labels_dict:  待加入的标签字典
         """
+        # 检查主机的服务实例，若已存在，则不新建
+        service_instances = CCApi.list_service_instance_detail(
+            {"bk_biz_id": self.hosting_biz_id, "bk_host_list": [bk_host_id], "page": {"start": 0, "limit": 200}}
+        )["info"]
+        for ins in service_instances:
+            for process in ins.get("process_instances") or []:
+                if all(
+                    [
+                        process["process"]["bk_func_name"] == func_name,
+                        process["process"]["bk_process_name"] == bk_process_name,
+                        process["process"]["bind_info"][0]["ip"] == listen_ip,
+                        process["process"]["bind_info"][0]["port"] == str(listen_port),
+                    ]
+                ):
+                    return ins["id"]
 
         # 添加服务实例信息，目前只操作一个，所以返回也是只有一个元素
         bk_instance_ids = list(
