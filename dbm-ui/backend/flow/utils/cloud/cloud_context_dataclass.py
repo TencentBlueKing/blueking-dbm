@@ -80,6 +80,7 @@ class CloudDBHAKwargs:
 
     dbha_type: CloudDBHATypeEnum = None  # dbha部署的类型：gm/agent
     nginx_internal_domain: str = None  # nginx内网地址
+    name_service_domain: str = None  # 名字服务的内网地址
 
     user: str = ""  # 超级账户的用户名
     pwd: str = ""  # 超级账户的密码
