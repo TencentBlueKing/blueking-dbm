@@ -115,10 +115,11 @@
       field: 'spec_name',
       label: t('资源规格'),
       showOverflowTooltip: false,
-      render: ({ data }: { data: FilterClusterSpecItem }) => (
+      render: ({ data, index }: { data: FilterClusterSpecItem, index: number }) => (
         <bk-radio
           v-model={modelValue.value.spec_id}
-          label={`${data.spec_id}`}
+          label={data.spec_id}
+          kye={index}
           class="spec-radio">
           <div
             class="text-overflow"
@@ -126,7 +127,7 @@
             {data.spec_name}
           </div>
         </bk-radio>
-      ),
+        ),
     },
     {
       field: 'machine_pair',

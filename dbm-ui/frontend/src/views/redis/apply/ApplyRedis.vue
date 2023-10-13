@@ -25,7 +25,10 @@
           v-model:biz-id="state.formdata.bk_biz_id"
           @change-biz="handleChangeBiz" />
         <ClusterName v-model="state.formdata.details.cluster_name" />
-        <ClusterAlias v-model="state.formdata.details.cluster_alias" />
+        <ClusterAlias
+          v-model="state.formdata.details.cluster_alias"
+          :biz-id="state.formdata.bk_biz_id"
+          cluster-type="redis" />
         <CloudItem
           v-model="state.formdata.details.bk_cloud_id"
           @change="handleChangeCloud" />
