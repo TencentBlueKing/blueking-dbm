@@ -261,6 +261,9 @@
   const isIndeterminate = computed(() => !isSelectedAll.value
     && Boolean(selectedMap.value[activeTab.value]) && Object.keys(selectedMap.value[activeTab.value]).length > 0);
 
+  // eslint-disable-next-line max-len
+  const mainSelectDisable = computed(() => tableData.value.filter(data => data.spider_slave.length > 0).length === tableData.value.length);
+
   const columns = [
     {
       width: 60,
@@ -269,6 +272,7 @@
           key={`${pagination.current}_${activeTab.value}`}
           v-model={isSelectedAll.value}
           indeterminate={isIndeterminate.value}
+          disabled={mainSelectDisable.value}
           label={true}
           onClick={(e: Event) => e.stopPropagation()}
           onChange={handleSelecteAll}
