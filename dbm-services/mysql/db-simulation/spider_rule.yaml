@@ -1,43 +1,85 @@
 CommandRule:
   HighRiskCommandRule:
-    expr: ' Val in Item '
-    desc: '高危命令'
-    item: [	"drop_table", "drop_index", "lock_tables", "analyze","rename_table", "drop_procedure", "drop_view", "drop_trigger","drop_function", "drop_server", "drop_event", "drop_compression_dictionary","optimize", "alter_tablespace"]
-    
+    expr: " Val in Item "
+    desc: "高危命令"
+    item:
+      [
+        "drop_table",
+        "drop_index",
+        "lock_tables",
+        "analyze",
+        "rename_table",
+        "drop_procedure",
+        "drop_view",
+        "drop_trigger",
+        "drop_function",
+        "drop_server",
+        "drop_event",
+        "drop_compression_dictionary",
+        "optimize",
+        "alter_tablespace",
+      ]
+
   BanCommandRule:
-    expr: ' Val in Item '
-    desc: '禁用命令'
+    expr: " Val in Item "
+    desc: "禁用命令"
     ban: true
-    item: ["truncate", "revoke", "kill", "reset", "drop_db","drop_user", "grant","create_user", "revoke_all", "shutdown", "lock_tables_for_backup","reset", "purge", "lock_binlog_for_backup","lock_tables_for_backup","install_plugin", "uninstall_plugin","alter_user"]
+    item:
+      [
+        "truncate",
+        "revoke",
+        "kill",
+        "reset",
+        "drop_db",
+        "drop_user",
+        "grant",
+        "create_user",
+        "revoke_all",
+        "shutdown",
+        "lock_tables_for_backup",
+        "reset",
+        "purge",
+        "lock_binlog_for_backup",
+        "lock_tables_for_backup",
+        "install_plugin",
+        "uninstall_plugin",
+        "alter_user",
+      ]
 
 SpiderCreateTableRule:
-    ColChasetNotEqTbChaset:
-      expr: " Val != Item "
-      ban: true
-      item: true
-      desc: "create table 语句中列字符集定义与表字符集不一致"
-    CreateWithSelect:
-      expr: " Val != Item "
-      ban: true
-      item: true
-      desc: "UNSUPPORT SQL CREATE TABLE WITH SELECT"
-    CreateTbLike:
-      expr: " Val != Item "
-      ban: true
-      item:  true
-      desc: "UNSUPPORT SQL CREATE TABLE LIKE"
-    ShardKeyNotPk:
-      expr: " Val != Item "
-      ban: true
-      item:  true
-      desc: " CREATE TABLE shard_key 非主键（表存在主键)"
-    ShardKeyNotIndex:
-      expr: " Val != Item "
-      item: true
-      ban: true
-      desc: " CREATE TABLE shard_key 非索引键	"
-    IllegalComment:
-      expr: " Val != Item "
-      item: true
-      ban: true
-      desc: " 非法的CREATE TABlE的COMMENT "
+  ColChasetNotEqTbChaset:
+    turnOn: true
+    ban: true
+    desc: "create table 语句中列字符集定义与表字符集不一致"
+  CreateWithSelect:
+    turnOn: true
+    ban: true
+    desc: "UNSUPPORT SQL CREATE TABLE WITH SELECT"
+  CreateTbLike:
+    turnOn: true
+    ban: true
+    desc: "UNSUPPORT SQL CREATE TABLE LIKE"
+  ShardKeyNotPk:
+    turnOn: true
+    ban: true
+    desc: " CREATE TABLE shard_key 非主键"
+  ShardKeyNotIndex:
+    turnOn: true
+    ban: true
+    desc: "CREATE TABLE shard_key 非索引键"
+  IllegalComment:
+    turnOn: true
+    ban: true
+    desc: "非法的CREATE TABlE的COMMENT"
+  NoIndexExists:
+    turnOn: true
+    ban: true
+    desc: "没有任何索引存在"
+  NoPubColAtMultUniqueIndex:
+    turnOn: true
+    ban: true
+    desc: "存在多个唯一健（含主键),shard_key只能是其中的共同部分"
+  MustSpecialShardKeyOnlyHaveCommonIndex:
+    turnOn: true
+    ban: true
+    desc: "不存在唯一索引,只包含包含多个普通索引,则必须指定shard_key"

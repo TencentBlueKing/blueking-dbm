@@ -99,6 +99,19 @@ func (c *CheckerResult) Parse(rule *RuleItem, val interface{}, additionalMsg str
 	}
 }
 
+// Trigger TODO
+func (c *CheckerResult) Trigger(rule *BoolRuleItem, additionalMsg string) {
+	// 表示检查开关关闭，跳过检查
+	if !rule.TurnOn {
+		return
+	}
+	if rule.Ban {
+		c.BanWarns = append(c.BanWarns, fmt.Sprintf("%s:%s", rule.Desc, additionalMsg))
+	} else {
+		c.RiskWarns = append(c.RiskWarns, fmt.Sprintf("%s:%s", rule.Desc, additionalMsg))
+	}
+}
+
 // ParseBultinBan TODO
 func (c *CheckerResult) ParseBultinBan(f func() (bool, string)) {
 	matched, msg := f()
@@ -115,6 +128,13 @@ type RuleItem struct {
 	Expr        string `yaml:"expr"`
 	Desc        string `yaml:"desc"`
 	Ban         bool   `yaml:"ban"`
+}
+
+// BoolRuleItem 开关型规则，只需配置开启或者关闭即可
+type BoolRuleItem struct {
+	Desc   string `yaml:"desc"`
+	Ban    bool   `yaml:"ban"`
+	TurnOn bool   `yaml:"turnOn"`
 }
 
 // Rules TODO
@@ -157,7 +177,6 @@ type CreateTableRule struct {
 	SuggestEngine         *RuleItem `yaml:"SuggestEngine"`
 	NeedPrimaryKey        *RuleItem `yaml:"NeedPrimaryKey"`
 	DefinerRule           *RuleItem `yaml:"DefinerRule"`
-	NormalizedName        *RuleItem `yaml:"NormalizedName"`
 }
 
 // AlterTableRule TODO
@@ -224,8 +243,10 @@ func parseRule(drule model.TbSyntaxRule) (rule RuleItem, err error) {
 func traverseRule(v interface{}) (rules []*RuleItem) {
 	value := reflect.ValueOf(v) // coordinate 是一个 Coordinate 实例
 	for num := 0; num < value.NumField(); num++ {
-		rule := value.Field(num).Interface().(*RuleItem)
-		rules = append(rules, rule)
+		rule, ok := value.Field(num).Interface().(*RuleItem)
+		if ok {
+			rules = append(rules, rule)
+		}
 	}
 	return rules
 }

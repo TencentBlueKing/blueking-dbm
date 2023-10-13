@@ -124,7 +124,7 @@ func (tf *TmysqlParseFile) Do(dbtype string) (result map[string]*CheckInfo, err 
 	}
 	// 最后删除临时目录,不会返回错误
 	// 暂时屏蔽 观察过程文件
-	defer tf.delTempDir()
+	// defer tf.delTempDir()
 	errChan := make(chan error)
 	resultfileChan := make(chan string, 10)
 	signalChan := make(chan struct{})
