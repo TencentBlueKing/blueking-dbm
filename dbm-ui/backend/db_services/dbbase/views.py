@@ -38,12 +38,12 @@ class DBBaseViewSet(viewsets.SystemViewSet):
     @common_swagger_auto_schema(
         operation_summary=_("查询集群名字是否重复"),
         auto_schema=ResponseSwaggerAutoSchema,
-        request_body=IsClusterDuplicatedSerializer(),
+        query_serializer=IsClusterDuplicatedSerializer(),
         responses={status.HTTP_200_OK: IsClusterDuplicatedResponseSerializer()},
         tags=[SWAGGER_TAG],
     )
-    @action(methods=["POST"], detail=False, serializer_class=IsClusterDuplicatedSerializer)
+    @action(methods=["GET"], detail=False, serializer_class=IsClusterDuplicatedSerializer)
     def verify_duplicated_cluster_name(self, request, *args, **kwargs):
         validate_data = self.params_validate(self.get_serializer_class())
         is_duplicated = Cluster.objects.filter(**validate_data).exists()
-        return Response({"is_duplicated": is_duplicated})
+        return Response(is_duplicated)
