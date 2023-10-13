@@ -27,7 +27,10 @@
           v-model:biz-id="formData.bk_biz_id"
           @change-biz="handleChangeBiz" />
         <ClusterName v-model="formData.details.cluster_name" />
-        <ClusterAlias v-model="formData.details.cluster_alias" />
+        <ClusterAlias
+          v-model="formData.details.cluster_alias"
+          :biz-id="formData.bk_biz_id"
+          cluster-type="es" />
         <CloudItem
           v-model="formData.details.bk_cloud_id"
           @change="handleChangeCloud" />
@@ -441,7 +444,7 @@
       cold,
     } = formData.details.resource_spec;
     const isPass = Boolean(hot.spec_id && hot.count) || Boolean(cold.spec_id && cold.count);
-    return (isPass ? 'info' : 'error');
+    return (isPass ? 'info' : 'danger');
   });
 
   const rules = {
@@ -640,7 +643,7 @@
     isClickSubmit.value = true;
     formRef.value.validate()
       .then(() => {
-        if (tipTheme.value === 'error' && formData.details.ip_source === 'resource_pool') {
+        if (tipTheme.value === 'danger' && formData.details.ip_source === 'resource_pool') {
           return Promise.reject(t('请保证冷热节点至少存在一台'));
         }
         baseState.isSubmitting = true;
