@@ -132,17 +132,6 @@ func InitRule() (err error) {
 	})
 
 	initRules = append(initRules, TbSyntaxRule{
-		GroupName: "CreateTableRule",
-		RuleName:  "NormalizedName",
-		Expr:      "Val in Item ",
-		ItemType:  ArryItem,
-		Item:      []byte(`["first_char_exception", "special_char", "Keyword_exception"]`),
-		Desc:      "规范化命名",
-		WarnLevel: 0,
-		Status:    true,
-	})
-
-	initRules = append(initRules, TbSyntaxRule{
 		GroupName: "AlterTableRule",
 		RuleName:  "HighRiskType",
 		Expr:      "Val in Item",

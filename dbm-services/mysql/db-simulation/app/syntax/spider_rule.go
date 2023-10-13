@@ -18,6 +18,25 @@ type SpiderChecker interface {
 	SpiderChecker(mysqlVersion string) *CheckerResult
 }
 
+// SpiderRules spdier 语法检查规则
+type SpiderRules struct {
+	CommandRule           CommandRule           `yaml:"CommandRule"`
+	SpiderCreateTableRule SpiderCreateTableRule `yaml:"SpiderCreateTableRule"`
+}
+
+// SpiderCreateTableRule spider create table 建表规则
+type SpiderCreateTableRule struct {
+	ColChasetNotEqTbChaset                 *BoolRuleItem `yaml:"ColChasetNotEqTbChaset"`
+	CreateWithSelect                       *BoolRuleItem `yaml:"CreateWithSelect"`
+	CreateTbLike                           *BoolRuleItem `yaml:"CreateTbLike"`
+	ShardKeyNotPk                          *BoolRuleItem `yaml:"ShardKeyNotPk"`
+	ShardKeyNotIndex                       *BoolRuleItem `yaml:"ShardKeyNotIndex"`
+	IllegalComment                         *BoolRuleItem `yaml:"IllegalComment"`
+	NoIndexExists                          *BoolRuleItem `yaml:"NoIndexExists"`
+	NoPubColAtMultUniqueIndex              *BoolRuleItem `yaml:"NoPubColAtMultUniqueIndex"`
+	MustSpecialShardKeyOnlyHaveCommonIndex *BoolRuleItem `yaml:"MustSpecialShardKeyOnlyHaveCommonIndex"`
+}
+
 func init() {
 	SR = &SpiderRules{}
 	var fileContent []byte
@@ -49,20 +68,4 @@ func init() {
 			return
 		}
 	}
-}
-
-// SpiderRules TODO
-type SpiderRules struct {
-	CommandRule           CommandRule           `yaml:"CommandRule"`
-	SpiderCreateTableRule SpiderCreateTableRule `yaml:"SpiderCreateTableRule"`
-}
-
-// SpiderCreateTableRule TODO
-type SpiderCreateTableRule struct {
-	ColChasetNotEqTbChaset *RuleItem `yaml:"ColChasetNotEqTbChaset"`
-	CreateWithSelect       *RuleItem `yaml:"CreateWithSelect"`
-	CreateTbLike           *RuleItem `yaml:"CreateTbLike"`
-	ShardKeyNotPk          *RuleItem `yaml:"ShardKeyNotPk"`
-	ShardKeyNotIndex       *RuleItem `yaml:"ShardKeyNotIndex"`
-	IllegalComment         *RuleItem `yaml:"IllegalComment"`
 }
