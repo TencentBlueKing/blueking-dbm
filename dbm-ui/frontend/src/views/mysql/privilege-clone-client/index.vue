@@ -428,7 +428,8 @@
     toolboxTableRef.value.validate()
       .then(() => {
         isSubmitting.value = true;
-        precheckPermissionClone(globalBizsStore.currentBizId, {
+        precheckPermissionClone({
+          bizId: globalBizsStore.currentBizId,
           clone_type: 'client',
           clone_cluster_type: 'mysql',
           clone_list: tableData.value.map((item) => {

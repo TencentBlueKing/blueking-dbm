@@ -57,7 +57,7 @@ interface AlarmGroupDetailParams {
   name: string,
   receivers: AlarmGroupRecivers[],
   details: AlarmGroupDetail
-  id?: number
+  id: number
 }
 
 // 告警组用户组
@@ -91,7 +91,7 @@ export const getAlarmGroupList = (params: {
 /**
  * 新建告警组
  */
-export const insertAlarmGroup = (params: AlarmGroupDetailParams) => http.post('/apis/monitor/notice_group/', params);
+export const insertAlarmGroup = (params: Omit<AlarmGroupDetailParams, 'id'>) => http.post('/apis/monitor/notice_group/', params);
 
 /**
  * 编辑告警组
@@ -101,12 +101,12 @@ export const updateAlarmGroup = (params: AlarmGroupDetailParams) => http.put(`/a
 /**
  * 删除告警组
  */
-export const deleteAlarmGroup = (id: number) => http.delete(`/apis/monitor/notice_group/${id}/`);
+export const deleteAlarmGroup = (params: { id: number }) => http.delete(`/apis/monitor/notice_group/${params.id}/`);
 
 /**
  * 获取告警组用户组
  */
-export const getUserGroupList = (bizId: number) => http.get<UserGroup[]>(`/apis/cmdb/${bizId}/list_cc_obj_user/`);
+export const getUserGroupList = (params: { bizId: number }) => http.get<UserGroup[]>(`/apis/cmdb/${params.bizId}/list_cc_obj_user/`);
 
 /**
  * 获取告警组通知方式

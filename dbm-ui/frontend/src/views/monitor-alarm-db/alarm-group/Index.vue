@@ -205,7 +205,7 @@
   const userGroupMap = shallowRef<UserGroupMap>({});
 
   useRequest(getUserGroupList, {
-    defaultParams: [bizId],
+    defaultParams: [{ bizId }],
     onSuccess(userGroupList) {
       userGroupMap.value = userGroupList.reduce((userGroupPrev, userGroup) => ({ ...userGroupPrev, [userGroup.id]: {
         id: userGroup.id,
@@ -250,7 +250,7 @@
       content: t('删除后将无法恢复'),
       onConfirm: async () => {
         try {
-          await deleteAlarmGroup(id);
+          await deleteAlarmGroup({ id });
           messageSuccess(t('删除成功'));
           fetchTableData();
           return true;

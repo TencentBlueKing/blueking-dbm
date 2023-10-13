@@ -310,7 +310,10 @@
       content: t('即将删除账号xx_删除后将不能恢复', { name: row.account.user }),
       onConfirm: async () => {
         try {
-          await deleteAccount(bizId.value, row.account.account_id);
+          await deleteAccount({
+            bizId: bizId.value,
+            account_id: row.account.account_id,
+          });
           Message({
             message: t('成功删除账号'),
             theme: 'success',

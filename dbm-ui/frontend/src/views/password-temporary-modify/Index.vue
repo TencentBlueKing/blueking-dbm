@@ -19,6 +19,7 @@
           ( {{ t('修改的是管理账号的密码') }} )
         </span>
         <BkButton
+          v-if="!submitting && !submitted"
           text
           theme="primary"
           @click="passwordSidesliderShow = true">
@@ -43,9 +44,11 @@
     </div>
     <UpdateResult
       v-else-if="submitted"
-      :submit-method="handleSubmit"
+      :submit-length="submitLength"
       :submit-res="submitRes"
-      @refresh="handleRefresh" />
+      :submit-role-map="submitRoleMap"
+      @refresh="handleRefresh"
+      @retry="handleSubmit" />
     <DbForm
       v-else
       ref="formRef"
@@ -55,7 +58,8 @@
       <BkFormItem
         class="pr-32"
         :label="t('需要修改的实例')"
-        property="instanceList">
+        property="instanceList"
+        required>
         <BkButton
           class="mb-16"
           @click="handleAddInstance">
@@ -170,6 +174,7 @@
     getRandomPassword,
     getRSAPublicKeys,
     modifyMysqlAdminPassword,
+    queryMysqlAdminPassword,
     verifyPasswordStrength,
   } from '@services/permission';
 
@@ -195,7 +200,9 @@
     return typeof encyptPassword === 'string' ? encyptPassword : '';
   };
 
-  const verifyPassword = () => verifyPasswordStrength(getEncyptPassword())
+  const verifyPassword = () => verifyPasswordStrength({
+    password: getEncyptPassword(),
+  })
     .then((verifyResult) => {
       passwordValidate.value = verifyResult;
       return verifyResult.is_strength;
@@ -230,6 +237,12 @@
     validDuration: 1,
     validDurationType: VALID_DURATION_TYPE.DAY,
   });
+
+  const formatInstance = (instance: {
+    cloudId: number,
+    ip: string,
+    port: number
+  }) => `${instance.cloudId}:${instance.ip}:${instance.port}`;
 
   const VALID_DURATION_TYPE = {
     DAY: 'day',
@@ -276,11 +289,11 @@
           { data.instance_address }
           {
             data.isExpired
-              ? <db-icon
+              ? null
+              : <db-icon
                   v-bk-tooltips={ t('当前临时密码未过期，继续修改将会覆盖原来的密码') }
                   class='ml-4 instance-tip'
                   type="attention-fill" />
-              : null
           }
         </span>
       ),
@@ -331,11 +344,13 @@
   const passwordStrength = ref<StrengthItem[]>([]);
   const passwordValidate = ref({} as PasswordStrength);
   const submitted = ref(false);
+  const submitLength = ref(0);
   const passwordSidesliderShow = ref(false);
   const instanceSelectorShow = ref(false);
   const formRef = ref();
   const passwordRef = ref();
   const passwordItemRef = ref();
+  const submitRoleMap = shallowRef<Record<string, string>>({});
   const formData = reactive(createDefaultData());
 
   const anticipatedEffectiveTime = computed(() => {
@@ -457,6 +472,39 @@
     },
   });
 
+  const {
+    run: queryMysqlAdminPasswordRun,
+  } = useRequest(queryMysqlAdminPassword, {
+    manual: true,
+    onSuccess(adminPasswordList) {
+      const instanceMap: Record<string, boolean> = {};
+      const { instanceList } = formData;
+
+      adminPasswordList.results.forEach((adminPasswordItem) => {
+        const instance = formatInstance({
+          cloudId: adminPasswordItem.bk_cloud_id,
+          ip: adminPasswordItem.ip,
+          port: adminPasswordItem.port,
+        });
+
+        instanceMap[instance] = dayjs(adminPasswordItem.lock_until).isBefore(dayjs());
+      });
+
+      formData.instanceList = instanceList.reduce((newInstanceListPrev, instanceItem) => {
+        const instance = formatInstance({
+          cloudId: instanceItem.bk_cloud_id,
+          ip: instanceItem.ip,
+          port: instanceItem.port,
+        });
+
+        return [...newInstanceListPrev, {
+          ...instanceItem,
+          isExpired: instanceMap[instance],
+        }];
+      }, [] as TableRow['data'][]);
+    },
+  });
+
   watch(() => formData.password, (newVal) => {
     if (newVal) {
       debounceVerifyPassword();
@@ -496,8 +544,18 @@
     return `password-strength-status-${isPass ? 'success' : 'failed'}`;
   };
 
-  const handleInstanceChange = (data: InstanceSelectorValues) => {
-    formData.instanceList = Object.values(data).reduce((prev, current) => [...prev, ...current], []);
+  const handleInstanceChange = (instanceValues: InstanceSelectorValues) => {
+    // eslint-disable-next-line max-len
+    const instanceList = Object.values(instanceValues).reduce((instanceListPrev, instanceValuesItem) => [...instanceListPrev, ...instanceValuesItem], []);
+
+    queryMysqlAdminPasswordRun({
+      instances: instanceList.map(instanceItem => formatInstance({
+        cloudId: instanceItem.bk_cloud_id,
+        ip: instanceItem.ip,
+        port: instanceItem.port,
+      })).join(','),
+    });
+    formData.instanceList = instanceList;
   };
 
   const submitValidator = async () => {
@@ -513,28 +571,35 @@
     cluster_type: ClusterTypes
     role: string
   }[] = []) => {
+    const instanceListParam: typeof instanceList = [];
+    const roleMap: Record<string, string> = {};
+    instanceList.forEach((instance) => {
+      const {
+        ip,
+        port,
+        bk_cloud_id,
+        role,
+        cluster_type,
+      } = instance;
+
+      roleMap[`${ip}:${port}`] = role;
+      instanceListParam.push({
+        ip,
+        port,
+        bk_cloud_id,
+        role,
+        cluster_type,
+      });
+    });
+
     const params = {
       lock_until: anticipatedEffectiveTime.value,
       password: formData.password,
-      instance_list: instanceList.map((instance) => {
-        const {
-          ip,
-          port,
-          bk_cloud_id,
-          role,
-          cluster_type,
-        } = instance;
-
-        return {
-          ip,
-          port,
-          bk_cloud_id,
-          role,
-          cluster_type,
-        };
-      }),
+      instance_list: instanceListParam,
     };
 
+    submitLength.value = instanceListParam.length;
+    submitRoleMap.value = roleMap;
     modifyMysqlAdminPasswordRun(params);
   };
 

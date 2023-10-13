@@ -219,7 +219,9 @@
    * 远程校验密码是否符合要求
    */
   function verifyPassword() {
-    return verifyPasswordStrength(getEncyptPassword())
+    return verifyPasswordStrength({
+      password: getEncyptPassword(),
+    })
       .then((res) => {
         passwordState.validate = res;
         return res.is_strength;
