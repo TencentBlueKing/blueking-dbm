@@ -116,6 +116,40 @@ func (s Steps) Run() (err error) {
 	return nil
 }
 
+// DeserializeNonStandard TODO
+/*
+	反序列化payload,并校验参数
+	ps: 参数校验 from golang validate v10
+*/
+func (b *BaseOptions) DeserializeNonStandard(s interface{}) (err error) {
+	var bp []byte
+	if b.PayloadFormat == PayloadFormatRaw {
+		bp = []byte(b.Payload)
+	} else {
+		logger.Info("DeserializeAndValidate payload body: %s", b.Payload)
+		bp, err = base64.StdEncoding.DecodeString(b.Payload)
+		if err != nil {
+			return err
+		}
+	}
+
+	// 如果 s 里面的 sub struct 是 pointer，要初始化后再传进来才能解析到环境变量
+	if err := env.Parse(s); err != nil {
+		logger.Warn("env parse error, ignore environment variables for payload:%s", err.Error())
+		// env: expected a pointer to a Struct
+	}
+	defer logger.Info("payload parsed: %+v", s)
+	if err = json.Unmarshal(bp, s); err != nil {
+		logger.Error("json.Unmarshal failed, %v", s, err)
+		return
+	}
+	if err = validate.GoValidateStruct(s, false, true); err != nil {
+		logger.Error("validate struct failed, %v", s, err)
+		return
+	}
+	return nil
+}
+
 // Deserialize TODO
 func Deserialize(s interface{}) (p *BaseOptions, err error) {
 	var bp []byte
@@ -196,6 +230,7 @@ func (b *BaseOptions) Deserialize(s interface{}) (err error) {
 		err = errors.WithMessage(err, "参数解析错误")
 		return err
 	}
+	s = bip.ExtendParam
 	// logger.Info("params after unmarshal %+v", bip)
 	if err = validate.GoValidateStruct(bip, false, true); err != nil {
 		logger.Error("validate struct failed, %v", s, err)
