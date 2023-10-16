@@ -267,7 +267,10 @@
                 : null
             }
           </div>
-          <db-icon type="copy" v-bk-tooltips={t('复制集群名称')} onClick={() => copy(data.cluster_name)} />
+          <db-icon
+            type="copy"
+            v-bk-tooltips={t('复制集群名称')}
+            onClick={() => copy(data.cluster_name)} />
         </div>
       ),
     },
@@ -278,8 +281,19 @@
       showOverflowTooltip: false,
       render: ({ data }: IColumn) => (
         <div class="domain">
-          <span class="text-overflow" v-overflow-tips>{data.master_domain}</span>
-          <i class="db-icon-copy" v-bk-tooltips={t('复制主访问入口')} onClick={() => copy(data.master_domain)} />
+          <span
+            class="text-overflow"
+            v-overflow-tips>
+            {data.master_domain || '--'}
+          </span>
+          {
+            data.master_domain && (
+              <db-icon
+                type="copy"
+                v-bk-tooltips={t('复制主访问入口')}
+                onClick={() => copy(data.master_domain)} />
+            )
+          }
         </div>
       ),
     },
@@ -290,11 +304,19 @@
       showOverflowTooltip: false,
       render: ({ data }: IColumn) => (
         <div class="domain">
-          <span class="text-overflow" v-overflow-tips>{data.slave_domain || '--'}</span>
+          <span
+            class="text-overflow"
+            v-overflow-tips>
+            {data.slave_domain || '--'}
+          </span>
           {
             data.slave_domain
-              ? <i class="db-icon-copy" v-bk-tooltips={t('复制从访问入口')} onClick={() => copy(data.slave_domain)} />
-              : null
+            && (
+              <db-icon
+                type="copy"
+                v-bk-tooltips={t('复制从访问入口')}
+                onClick={() => copy(data.slave_domain)} />
+            )
           }
         </div>
       ),

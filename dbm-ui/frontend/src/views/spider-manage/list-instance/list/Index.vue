@@ -38,7 +38,6 @@
         ref="tableRef"
         :columns="columns"
         :data-source="getSpiderInstances"
-        fixed-pagination
         :pagination-extra="paginationExtra"
         :row-class="setRowClass"
         :settings="settings"
@@ -71,7 +70,7 @@
 
   import { getSearchSelectorParams, isRecentDays } from '@utils';
 
-  import type { SearchSelectValues, TableProps } from '@/types/bkui-vue';
+  import type { SearchSelectValues } from '@/types/bkui-vue';
 
   interface IColumn {
     cell: string,
@@ -92,23 +91,29 @@
   const copy = useCopy();
   const { t } = useI18n();
 
-  const searchSelectData = [{
-    name: t('实例'),
-    id: 'instance_address',
-  }, {
-    name: t('域名'),
-    id: 'domain',
-  }, {
-    name: 'IP',
-    id: 'ip',
-  }, {
-    name: t('端口'),
-    id: 'port',
-  }, {
-    name: t('状态'),
-    id: 'status',
-    children: Object.values(clusterInstStatus).map(item => ({ id: item.key, name: item.text })),
-  }];
+  const searchSelectData = [
+    {
+      name: t('实例'),
+      id: 'instance_address',
+    },
+    {
+      name: t('域名'),
+      id: 'domain',
+    },
+    {
+      name: 'IP',
+      id: 'ip',
+    },
+    {
+      name: t('端口'),
+      id: 'port',
+    },
+    {
+      name: t('状态'),
+      id: 'status',
+      children: Object.values(clusterInstStatus).map(item => ({ id: item.key, name: item.text })),
+    },
+  ];
   const tableRef = ref();
   const filterData = shallowRef<SearchSelectValues>([]);
   const isFlexHeader = computed(() => props.width >= 460);
@@ -151,8 +156,16 @@
         showOverflowTooltip: false,
         render: ({ cell, data }: IColumn) => (
           <div class="domain">
-            <a class="text-overflow" href="javascript:" v-overflow-tips onClick={() => handleToClusterDetails(data)}>{cell}</a>
-            <i class="db-icon-copy" v-bk-tooltips={t('复制集群名称')} onClick={() => copy(cell)} />
+            <a
+              class="text-overflow"
+              href="javascript:"
+              v-overflow-tips
+              onClick={() => handleToClusterDetails(data)}>
+              {cell}
+            </a>
+            <db-cion type="copy"
+              v-bk-tooltips={t('复制集群名称')}
+              onClick={() => copy(cell)} />
           </div>
         ),
       },
@@ -172,8 +185,11 @@
         showOverflowTooltip: false,
         render: ({ cell }: IColumn) => (
           <div class="domain">
-            <span class="text-overflow" v-overflow-tips>{cell}</span>
-            <i class="db-icon-copy" v-bk-tooltips={t('复制主访问入口')} onClick={() => copy(cell)} />
+            <span class="text-overflow" v-overflow-tips>{cell || '--'}</span>
+            <db-icon
+              v-bk-tooltips={t('复制主访问入口')}
+              type="copy"
+              onClick={() => copy(cell)} />
           </div>
         ),
       },
@@ -187,7 +203,7 @@
             <span
               class="text-overflow"
               v-overflow-tips>
-              {cell}
+              {cell || '--'}
             </span>
             {
               cell && (
@@ -215,7 +231,12 @@
         fixed: 'right',
         width: 140,
         render: ({ data }: { data: TendbInstanceModel }) => (
-          <bk-button theme="primary" text onClick={handleToDetails.bind(this, data)}>{ t('查看详情') }</bk-button>
+          <bk-button
+            theme="primary"
+            text
+            onClick={() => handleToDetails(data)}>
+              { t('查看详情') }
+            </bk-button>
         ),
       },
     ];
