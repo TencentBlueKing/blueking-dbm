@@ -29,12 +29,13 @@ from backend.flow.utils.redis.redis_script_template import (
     redis_actuator_template,
     redis_fast_execute_script_common_kwargs,
 )
+from backend.ticket.constants import TicketType
 
 logger = logging.getLogger("json")
 cpl = re.compile("<ctx>(?P<context>.+?)</ctx>")  # 非贪婪模式，只匹配第一次出现的自定义tag
 
 
-class ExecuteDBActuatorScriptService(BkJobService):
+class ExecuteDataStructureActuatorScriptService(BkJobService):
     """
     根据db-actuator组件，绑定fast_execute_script api接口访问。
     """
@@ -63,6 +64,12 @@ class ExecuteDBActuatorScriptService(BkJobService):
         if trans_data is None or trans_data == "${trans_data}":
             # 表示没有加载上下文内容，则在此添加
             trans_data = getattr(flow_context, kwargs["set_trans_data_dataclass"])()
+
+        # 如果是数据构造并且上下文有backup_dir值则对
+        if kwargs["cluster"]["ticket_type"] == TicketType.REDIS_DATA_STRUCTURE.value and getattr(
+            trans_data, "backup_dir"
+        ):
+            kwargs["cluster"]["data_params"]["dest_dir"] = trans_data.backup_dir + "/dbbak/recover_redis"
 
         root_id = kwargs["root_id"]
         node_name = kwargs["node_name"]
@@ -98,7 +105,6 @@ class ExecuteDBActuatorScriptService(BkJobService):
             self.log_info(_("[{}] kwargs['payload'] 是不完整，需要将{}内容加到payload中").format(node_name, kwargs["cluster"]))
             db_act_template["payload"].update(kwargs["cluster"])
 
-        # 这里有些场景没有tendis_backup_info，比如key删除
         if getattr(trans_data, "tendis_backup_info"):
             db_act_template["payload"]["backup_tasks"] = trans_data.tendis_backup_info
 
@@ -140,7 +146,7 @@ class ExecuteDBActuatorScriptService(BkJobService):
         return [Service.OutputItem(name="exec_ips", key="exec_ips", type="list")]
 
 
-class ExecuteDBActuatorScriptComponent(Component):
+class ExecuteDataStructureActuatorScriptComponent(Component):
     name = __name__
-    code = "redis_db_actuator_execute"
-    bound_service = ExecuteDBActuatorScriptService
+    code = "redis_data_structure_actuator_execute"
+    bound_service = ExecuteDataStructureActuatorScriptService

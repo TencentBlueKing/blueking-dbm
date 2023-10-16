@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
 Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
@@ -8,7 +7,29 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-RESOURCE_TAG = "db_services/redis/rollback"
+from django.utils.translation import ugettext as _
 
-# 查询某个特定时间点附近的日志时，默认在3天内
-BACKUP_LOG_ROLLBACK_TIME_RANGE_DAYS = 3
+from backend.exceptions import AppBaseException, ErrorCode
+
+
+class TendisFlowBaseException(AppBaseException):
+    MODULE_CODE = ErrorCode.FLOW_CODE
+    MESSAGE = _("Flow模块Tendis 异常")
+
+
+class NormalTendisFlowException(TendisFlowBaseException):
+    ERROR_CODE = "001"
+    MESSAGE = _("通用异常")
+    MESSAGE_TPL = _("{message}")
+
+
+class TendisGetBackupInfoFailedException(TendisFlowBaseException):
+    ERROR_CODE = "006"
+    MESSAGE = _("获取备份失败")
+    MESSAGE_TPL = _("{message}")
+
+
+class TendisGetBinlogFailedException(TendisFlowBaseException):
+    ERROR_CODE = "007"
+    MESSAGE = _("获取binlog失败")
+    MESSAGE_TPL = _("{message}")

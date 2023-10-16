@@ -8,7 +8,3 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-RESOURCE_TAG = "db_services/redis/rollback"
-
-# 查询某个特定时间点附近的日志时，默认在3天内
-BACKUP_LOG_ROLLBACK_TIME_RANGE_DAYS = 3
