@@ -51,30 +51,37 @@
     {
       label: t('待构造集群'),
       field: 'clusterName',
+      showOverflowTooltip: true,
     },
     {
       label: t('回档类型'),
       field: 'rollbackType',
+      showOverflowTooltip: true,
     },
     {
       label: t('回档时间'),
       field: 'rollbackTime',
+      showOverflowTooltip: true,
     },
     {
       label: t('构造 DB 名'),
+      showOverflowTooltip: true,
       field: 'dbName',
     },
     {
       label: t('忽略DB名'),
       field: 'ignoreDbName',
+      showOverflowTooltip: true,
     },
     {
       label: t('构造表名'),
       field: 'tableName',
+      showOverflowTooltip: true,
     },
     {
       label: t('忽略表名'),
       field: 'ignoreTableName',
+      showOverflowTooltip: true,
     },
   ];
 

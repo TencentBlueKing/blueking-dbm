@@ -1203,7 +1203,7 @@ export interface SpiderFullBackupDetails {
     backup_type: 'logical' | 'physical',
     file_tag: 'MYSQL_FULL_BACKUP' | 'LONGDAY_DBFILE_3Y',
     clusters: {
-      id: 6,
+      cluster_id: number,
       backup_local: string, // spider_mnt:: 127.0.0.1: 8000
     }[],
   }
