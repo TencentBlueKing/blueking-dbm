@@ -47,7 +47,7 @@ func NewSysInitCommand() *cobra.Command {
 
 // Init TODO
 func (d *SysInitAct) Init() (err error) {
-	if err = d.Deserialize(&d.Service); err != nil {
+	if err = d.DeserializeNonStandard(&d.Service); err != nil {
 		logger.Error("DeserializeAndValidate err %s", err.Error())
 		return err
 	}
