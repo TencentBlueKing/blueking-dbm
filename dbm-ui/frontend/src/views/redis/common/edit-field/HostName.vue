@@ -85,9 +85,7 @@
   });
 
   const handleInputFinish = (value: string) => {
-    editRef.value.getValue().then(() => {
-      emits('onInputFinish', value);
-    });
+    emits('onInputFinish', value);
   };
 
   defineExpose<Exposes>({

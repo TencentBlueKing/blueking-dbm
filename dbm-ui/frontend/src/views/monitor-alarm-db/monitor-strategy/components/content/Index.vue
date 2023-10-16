@@ -408,7 +408,7 @@
       subTitle: t('将会删除所有内容，请谨慎操作！'),
       width: 400,
       onConfirm: () => {
-        runDeletePolicy(data.id);
+        runDeletePolicy({ id: data.id });
       } });
   };
 
@@ -422,12 +422,12 @@
       });
     } else {
       // 启用
-      runEnablePolicy(row.id);
+      runEnablePolicy({ id: row.id });
     }
   };
 
   const handleClickConfirm = (row: RowData) => {
-    runDisablePolicy(row.id);
+    runDisablePolicy({ id: row.id });
   };
 
   const handleCancelConfirm = (row: RowData) => {

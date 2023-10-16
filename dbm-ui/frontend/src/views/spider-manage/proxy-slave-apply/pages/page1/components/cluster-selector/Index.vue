@@ -281,22 +281,22 @@
       render: ({ data }: { data: ValueOf<Props['selected']>[0] }) => {
         if (data.spider_slave.length > 0) {
           return (
-            <bk-popover theme="dark" placement="top">
+            <bk-popover theme="dark" placement="top" popoverDelay={0}>
               {{
                 default: () => <bk-checkbox style="vertical-align: middle;" disabled />,
                 content: () => <span>{t('该集群已有只读集群')}</span>,
               }}
-          </bk-popover>
+            </bk-popover>
           );
         }
         return (
-      <bk-checkbox
-        style="vertical-align: middle;"
-        model-value={Boolean(selectedDomainMap.value[data.id])}
-        label={true}
-        onClick={(e: Event) => e.stopPropagation()}
-        onChange={(value: boolean) => handleSelecteRow(data, value)}
-      />
+          <bk-checkbox
+            style="vertical-align: middle;"
+            model-value={Boolean(selectedDomainMap.value[data.id])}
+            label={true}
+            onClick={(e: Event) => e.stopPropagation()}
+            onChange={(value: boolean) => handleSelecteRow(data, value)}
+          />
         );
       },
     },

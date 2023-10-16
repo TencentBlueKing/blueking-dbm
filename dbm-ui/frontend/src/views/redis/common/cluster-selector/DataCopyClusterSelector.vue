@@ -199,30 +199,14 @@
 
   const emits = defineEmits<Emits>();
 
-  function initData() {
-    const clusterType = ClusterTypes.REDIS;
-    return {
-      curSelectdDataTab: clusterType,
-      activeTab: clusterType,
-      search: '',
-      isLoading: false,
-      pagination: useDefaultPagination(),
-      tableData: [],
-      selected: _.cloneDeep(props.selected),
-      isSelectedAll: false,
-      dbModuleList: [],
-      isAnomalies: false,
-    };
-  }
-
   const { t } = useI18n();
   const copy = useCopy();
   const { dialogWidth } = useSelectorDialogWidth();
 
-  let rawTableData: RedisModel[] = [];
-
   const tabTipsRef = ref();
-
+  const tabState = reactive({
+    showTips: false,
+  });
 
   // 显示切换 tab tips
   const showSwitchTabTips = computed(() => tabState.showTips);
@@ -244,19 +228,31 @@
       <bk-checkbox
         key={`${state.pagination.current}_${state.activeTab}`}
         indeterminate={isIndeterminate.value}
-        model-value={state.isSelectedAll}
+        v-model={state.isSelectedAll}
         onClick={(e: Event) => e.stopPropagation()}
         onChange={handleSelectedAll}
       />
     ),
-      render: ({ data }: { data: RedisModel }) => (
-      <bk-checkbox
-        style="vertical-align: middle;"
-        model-value={selectedDomains.value.includes(data.master_domain)}
-        onClick={(e: Event) => e.stopPropagation()}
-        onChange={(value: boolean) => handleSelected(data, value)}
-      />
-    ),
+      render: ({ data }: { data: RedisModel }) => {
+        if (!data.isSlaveNormal) {
+          return (
+            <bk-popover theme="dark" placement="top" popoverDelay={0}>
+              {{
+                default: () => <bk-checkbox style="vertical-align: middle;" disabled />,
+                content: () => <span>{t('slave 状态异常，无法选择')}</span>,
+              }}
+            </bk-popover>
+          );
+        }
+        return (
+          <bk-checkbox
+            style="vertical-align: middle;"
+            model-value={selectedDomains.value.includes(data.master_domain)}
+            onClick={(e: Event) => e.stopPropagation()}
+            onChange={(status: boolean) => handleSelected(data, status)}
+          />
+        );
+      },
     },
     {
       label: t('集群'),
@@ -283,7 +279,7 @@
       showOverflowTooltip: true,
       width: 120,
       render: ({ data }: { data: RedisModel }) => {
-        const info = data.status === 'normal' ? { theme: 'success', text: t('正常') } : { theme: 'danger', text: t('异常') };
+        const info = data.isSlaveNormal ? { theme: 'success', text: t('正常') } : { theme: 'danger', text: t('异常') };
         return <DbStatus theme={info.theme}>{info.text}</DbStatus>;
       },
     },
@@ -300,14 +296,13 @@
       render: ({ data }: { data: RedisModel }) => data.bk_cloud_name,
     },
   ];
-
-  /** tabs 功能 */
-  const tabState = reactive({
-    showTips: false,
-  });
   const tabTextMap: Record<string, string> = {
     [ClusterTypes.REDIS]: t('集群选择'),
   };
+
+  let rawTableData: RedisModel[] = [];
+  let isSelectedAllReal = false;
+
   const tabs = computed(() => {
     const { tabList } = props;
     return tabList.map((id: string) => ({
@@ -380,6 +375,22 @@
     }
   }
 
+  function initData() {
+    const clusterType = ClusterTypes.REDIS;
+    return {
+      curSelectdDataTab: clusterType,
+      activeTab: clusterType,
+      search: '',
+      isLoading: false,
+      pagination: useDefaultPagination(),
+      tableData: [],
+      selected: _.cloneDeep(props.selected),
+      isSelectedAll: false,
+      dbModuleList: [],
+      isAnomalies: false,
+    };
+  }
+
   /**
    * 清空过滤列表
    */
@@ -391,6 +402,9 @@
   }
 
   function isSelectedAll() {
+    if (state.tableData.filter(data => !data.isSlaveNormal).length > 0) {
+      return false;
+    }
     if (selectedDomains.value.length === 0) return false;
     const diff = _.differenceBy(state.tableData, selectedDomains.value.map(item => ({ master_domain: item })), 'master_domain');
     return diff.length === 0;
@@ -399,16 +413,22 @@
   /**
    * 全选当页数据
    */
-  function handleSelectedAll(value: boolean) {
+  function handleSelectedAll() {
+    isSelectedAllReal = !isSelectedAllReal;
     for (const data of state.tableData) {
-      handleSelected(data, value);
+      if (data.isSlaveNormal) {
+        handleSelected(data, isSelectedAllReal);
+      }
     }
   }
 
   /**
    * 选择当前行数据
    */
-  function handleSelected(data: RedisModel, value: boolean) {
+  function handleSelected(data: RedisModel, value: boolean, isRowClick = false) {
+    if (!isRowClick && !data.isSlaveNormal) {
+      return;
+    }
     const targetValue = data.master_domain;
     if (value) {
       if (selectedDomains.value.includes(targetValue)) {
@@ -419,13 +439,18 @@
       const index = selectedDomains.value.findIndex(val => val === targetValue);
       state.selected[state.activeTab].splice(index, 1);
     }
-    state.isSelectedAll = isSelectedAll();
+    nextTick(() => {
+      state.isSelectedAll = isSelectedAll();
+    });
   }
 
   function handleRowClick(_:number, data: RedisModel) {
+    if (data.redis_slave.filter(item => item.status !== 'running').length > 0) {
+      return;
+    }
     const index = selectedDomains.value.findIndex(val => val === data.master_domain);
     const checked = index > -1;
-    handleSelected(data, !checked);
+    handleSelected(data, !checked, true);
   }
 
   /**

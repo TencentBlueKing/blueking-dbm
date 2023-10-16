@@ -25,21 +25,6 @@
       <span class="input-desc">G</span>
     </BkFormItem>
     <BkFormItem
-      :label="$t('QPS预估范围')"
-      required>
-      <BkSlider
-        v-model="sliderProps.value"
-        :disable="sliderProps.disabled"
-        :formatter-label="formatterLabel"
-        :max-value="sliderProps.max"
-        :min-value="sliderProps.min"
-        range
-        show-between-label
-        show-input
-        show-tip
-        style="width: 800px;font-size: 12px;" />
-    </BkFormItem>
-    <BkFormItem
       ref="specRef"
       :label="$t('集群部署方案')"
       property="details.resource_spec.backend_group.spec_id"
@@ -52,16 +37,16 @@
         @row-click="handleRowClick">
         <template #empty>
           <p
-            v-if="!sliderProps.value[1]"
+            v-if="!modelValue.capacity || !modelValue.future_capacity"
             style="width: 100%; line-height: 128px; text-align: center;">
             <DbIcon
               class="mr-4"
               type="attention" />
-            <span>{{ $t('请先设置容量及QPS范围') }}</span>
+            <span>{{ $t('请先设置容量') }}</span>
           </p>
           <BkException
             v-else
-            :description="$t('无匹配的资源规格_请先修改容量及QPS设置')"
+            :description="$t('无匹配的资源规格_请先修改容量设置')"
             scene="part"
             style="font-size: 12px;"
             type="empty" />
@@ -76,14 +61,11 @@
   import { useI18n } from 'vue-i18n';
 
   import { getSpecResourceCount } from '@services/dbResource';
-  import {
-    type FilterClusterSpecItem,
-    getFilterClusterSpec,
-    queryQPSRange,
-  } from '@services/resourceSpec';
+  import RedisClusterSpecModel from '@services/model/resource-spec/redis-cluster-sepc';
+  import { getFilterClusterSpec } from '@services/resourceSpec';
 
   interface ModelValue {
-    spec_id: string,
+    spec_id: number,
     capacity: number | string,
     future_capacity: number | string,
   }
@@ -101,21 +83,15 @@
   const { t } = useI18n();
 
   const specRef = ref();
-  const specs = shallowRef<FilterClusterSpecItem[]>([]);
-  const renderSpecs = shallowRef<FilterClusterSpecItem[]>([]);
+  const specs = shallowRef<RedisClusterSpecModel[]>([]);
+  const renderSpecs = shallowRef<RedisClusterSpecModel[]>([]);
   const isLoading = ref(false);
-  const sliderProps = reactive({
-    value: [0, 0],
-    max: 0,
-    min: 0,
-    disabled: true,
-  });
   const columns = [
     {
       field: 'spec_name',
       label: t('资源规格'),
       showOverflowTooltip: false,
-      render: ({ data, index }: { data: FilterClusterSpecItem, index: number }) => (
+      render: ({ data, index }: { data: RedisClusterSpecModel, index: number }) => (
         <bk-radio
           v-model={modelValue.value.spec_id}
           label={data.spec_id}
@@ -145,57 +121,58 @@
       sort: true,
     },
     {
-      field: 'cluster_qps',
-      label: t('集群QPS每秒'),
-    },
-    {
       field: 'count',
       label: t('可用主机数'),
     },
   ];
 
-  const formatterLabel = (value: string) => `${value}/s`;
+  let timer = 0;
+
+  watch(() => modelValue.value.spec_id, () => {
+    if (modelValue.value.spec_id) {
+      specRef.value.clearValidate();
+    }
+  });
+
+  watch([
+    () => props.bizId,
+    () => props.cloudId,
+    specs,
+  ], () => {
+    if (
+      typeof props.bizId === 'number'
+      && props.bizId > 0
+      && typeof props.cloudId === 'number'
+      && specs.value.length > 0
+    ) {
+      fetchSpecResourceCount();
+    }
+  }, { immediate: true, deep: true });
+
+  watch([
+    () => modelValue.value.capacity,
+    () => modelValue.value.future_capacity,
+  ], ([capacityValue, futureCapacityValue]) => {
+    if (capacityValue === '' || futureCapacityValue === '') {
+      resetSlider();
+    } else {
+      modelValue.value.spec_id = -1;
+      clearTimeout(timer);
+      timer = setTimeout(() => {
+        fetchFilterClusterSpec();
+      }, 400);
+    }
+  });
 
   const resetSlider = () => {
-    sliderProps.value = [0, 0];
-    sliderProps.max = 0;
-    sliderProps.min = 0;
-    sliderProps.disabled = true;
     specs.value = [];
     renderSpecs.value = [];
   };
 
-  const fetchQPSRange = _.debounce(() => {
-    const { capacity, future_capacity: futureCapacity } = modelValue.value;
-    if (!capacity || !futureCapacity) {
-      resetSlider();
-      return;
-    }
-
-    queryQPSRange({
-      spec_cluster_type: props.clusterType,
-      spec_machine_type: props.machineType,
-      capacity: Number(capacity),
-      future_capacity: Number(futureCapacity),
-    })
-      .then(({ max, min }) => {
-        if (!max || !min) {
-          sliderProps.max = 0;
-          sliderProps.min = 0;
-          sliderProps.disabled = true;
-        }
-        sliderProps.value = [min, max];
-        sliderProps.max = max;
-        sliderProps.min = min;
-        sliderProps.disabled = false;
-      });
-  }, 400);
-
   const fetchFilterClusterSpec = () => {
     const { capacity, future_capacity: futureCapacity } = modelValue.value;
-    const [min, max] = sliderProps.value;
 
-    if (!capacity || !futureCapacity || (max === 0)) {
+    if (!capacity || !futureCapacity) {
       return;
     }
 
@@ -205,7 +182,6 @@
       spec_machine_type: props.machineType,
       capacity: Number(capacity),
       future_capacity: Number(futureCapacity),
-      qps: { min, max },
     })
       .then((res) => {
         specs.value = res;
@@ -265,50 +241,8 @@
     });
   }, 100);
 
-  watch(() => sliderProps.value, _.debounce(() => {
-    modelValue.value.spec_id = '';
-    if (sliderProps.value[1] > 0) {
-      fetchFilterClusterSpec();
-    } else {
-      specs.value = [];
-      renderSpecs.value = [];
-    }
-  }, 400), { immediate: true, deep: true });
-
-  watch(() => modelValue.value.spec_id, () => {
-    if (modelValue.value.spec_id) {
-      specRef.value.clearValidate();
-    }
-  });
-
-  watch([
-    () => props.bizId,
-    () => props.cloudId,
-    specs,
-  ], () => {
-    if (
-      typeof props.bizId === 'number'
-      && props.bizId > 0
-      && typeof props.cloudId === 'number'
-      && specs.value.length > 0
-    ) {
-      fetchSpecResourceCount();
-    }
-  }, { immediate: true, deep: true });
-
-  watch([
-    () => modelValue.value.capacity,
-    () => modelValue.value.future_capacity,
-  ], ([capacityValue, futureCapacityValue]) => {
-    if (capacityValue === '' || futureCapacityValue === '') {
-      resetSlider();
-    } else {
-      fetchQPSRange();
-    }
-  });
-
-  const handleRowClick = (event: Event, row: FilterClusterSpecItem) => {
-    modelValue.value.spec_id = `${row.spec_id}`;
+  const handleRowClick = (event: Event, row: RedisClusterSpecModel) => {
+    modelValue.value.spec_id = row.spec_id;
   };
 
   defineExpose({

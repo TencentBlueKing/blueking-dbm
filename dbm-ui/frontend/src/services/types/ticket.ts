@@ -862,6 +862,8 @@ export interface RedisScaleUpDownDetails {
     shard_num: number,
     group_num: number,
     online_switch_type: 'user_confirm' | 'no_confirm',
+    capacity: number,
+    future_capacity: number,
     resource_spec: {
       backend_group: {
         spec_id: number,
@@ -942,6 +944,8 @@ export interface RedisClusterShardUpdateDetails {
     cluster_shard_num: number,
     db_version: string,
     online_switch_type: 'user_confirm',
+    capacity: number,
+    future_capacity: number,
     resource_spec: {
       proxy: {
         spec_id: number,
@@ -968,6 +972,8 @@ export interface RedisClusterTypeUpdateDetails extends RedisClusterShardUpdateDe
     cluster_shard_num: number,
     db_version: string,
     online_switch_type: 'user_confirm',
+    capacity: number,
+    future_capacity: number,
     resource_spec: {
       proxy: {
         spec_id: number,

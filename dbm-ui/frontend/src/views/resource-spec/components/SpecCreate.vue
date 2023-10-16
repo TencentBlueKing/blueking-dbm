@@ -62,10 +62,6 @@
           :min="1"
           type="number" />
       </BkFormItem>
-      <SpecQps
-        v-if="hasQPS && formdata.qps"
-        v-model="formdata.qps"
-        :is-edit="isEdit" />
       <BkFormItem :label="$t('描述')">
         <BkInput
           v-model="formdata.desc"
@@ -121,7 +117,6 @@
   import SpecCPU from './spec-form-item/SpecCPU.vue';
   import SpecDevice from './spec-form-item/SpecDevice.vue';
   import SpecMem from './spec-form-item/SpecMem.vue';
-  import SpecQps from  './spec-form-item/SpecQPS.vue';
   import SpecStorage from './spec-form-item/SpecStorage.vue';
 
   import { messageSuccess } from '@/utils';
@@ -184,10 +179,6 @@
       spec_name: '',
       spec_id: undefined,
       instance_num: 1,
-      qps: {
-        max: '',
-        min: '',
-      },
     };
   };
 
@@ -210,13 +201,6 @@
     `${ClusterTypes.PULSAE}_pulsar_broker`,
   ];
   const isRequired = computed(() => !notRequiredStorageList.includes(`${props.clusterType}_${props.machineType}`));
-  const hasQPSSpecs = [
-    `${ClusterTypes.TWEMPROXY_REDIS_INSTANCE}_tendiscache`,
-    `${ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE}_tendisssd`,
-    `${ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER}_tendisplus`,
-    `${ClusterTypes.TENDBCLUSTER}_remote`,
-  ];
-  const hasQPS = computed(() => hasQPSSpecs.includes(`${props.clusterType}_${props.machineType}`));
   const nameRules = computed(() => [
     {
       required: true,
@@ -242,7 +226,6 @@
     () => formdata.value.cpu,
     () => formdata.value.mem,
     () => formdata.value.storage_spec,
-    () => formdata.value.qps,
   ], () => {
     if (props.mode === 'create' && isCustomInput.value === false) {
       formdata.value.spec_name = getName();
@@ -251,7 +234,7 @@
   }, { deep: true });
 
   const getName = () => {
-    const { cpu, mem, storage_spec: StorageSpec, qps } = formdata.value;
+    const { cpu, mem, storage_spec: StorageSpec } = formdata.value;
     const displayList = [
       {
         value: cpu.min,
@@ -264,10 +247,6 @@
       {
         value: Math.min(...StorageSpec.map(item => Number(item.size))),
         unit: 'G',
-      },
-      {
-        value: qps?.min ?? 0,
-        unit: '/s',
       },
     ];
     return displayList.filter(item => item.value)
@@ -303,15 +282,6 @@
 
         if (!props.hasInstance) {
           delete params.instance_num;
-        }
-
-        if (hasQPS.value) {
-          params.qps = {
-            max: Number(params.qps?.max),
-            min: Number(params.qps?.min),
-          };
-        } else {
-          delete params.qps;
         }
 
         createResourceSpec(params)

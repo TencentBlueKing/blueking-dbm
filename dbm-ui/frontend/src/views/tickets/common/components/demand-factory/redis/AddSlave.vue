@@ -57,14 +57,17 @@
     {
       label: t('目标主库主机'),
       field: 'hostIp',
+      showOverflowTooltip: true,
     },
     {
       label: t('所属集群'),
       field: 'clusterName',
+      showOverflowTooltip: true,
     },
     {
       label: t('规格需求'),
       field: 'sepc',
+      showOverflowTooltip: true,
       render: ({ data }: {data: RowData}) => <span>{data.sepc.name}</span>,
     },
     {

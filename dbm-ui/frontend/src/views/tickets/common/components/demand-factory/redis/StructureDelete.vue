@@ -26,7 +26,6 @@
     ticketDetails: TicketDetails<RedisStructureDeleteDetails>
   }
 
-
   defineProps<Props>();
 
   const { t } = useI18n();
@@ -35,6 +34,7 @@
     {
       label: t('目标集群'),
       field: 'prod_cluster',
+      showOverflowTooltip: true,
     },
     {
       label: t('关联单据'),
