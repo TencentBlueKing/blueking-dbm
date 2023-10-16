@@ -1048,7 +1048,16 @@ class MonitorPolicy(AuditedModel):
             tmp = defaultdict(int)
             for event in events:
                 # 监控对外返回json中会将app_id映射为bk_app_code： tapd:1010104091006892981
-                tmp[(event["strategy_id"], event["origin_alarm"]["data"]["dimensions"]["bk_app_code"])] += 1
+                bk_app_code = event["origin_alarm"]["data"]["dimensions"].get("bk_app_code")
+                app_id = event["origin_alarm"]["data"]["dimensions"].get("app_id") or bk_app_code
+
+                # 缺少业app_id维度的策略
+                if not app_id:
+                    app_id = 0
+                    logger.error("find bad bkmonitor event: %s", event)
+                    # continue
+
+                tmp[(event["strategy_id"], app_id)] += 1
 
             event_counts = defaultdict(dict)
             for (strategy_id, app_id), event_count in tmp.items():
