@@ -135,13 +135,6 @@
   const isSpecOperationEdit = computed(() => specOperationState.type === 'edit');
   const hasInstanceSpecs = [`${ClusterTypes.ES}_es_datanode`];
   const hasInstance = computed(() => hasInstanceSpecs.includes(`${props.clusterType}_${props.machineType}`));
-  const hasQPSSpecs = [
-    `${ClusterTypes.TWEMPROXY_REDIS_INSTANCE}_tendiscache`,
-    `${ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE}_tendisssd`,
-    `${ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER}_tendisplus`,
-    `${ClusterTypes.TENDBCLUSTER}_remote`,
-  ];
-  const hasQPS = computed(() => hasQPSSpecs.includes(`${props.clusterType}_${props.machineType}`));
   const columns = computed(() => {
     const baseColumns = [
       {
@@ -273,16 +266,6 @@
         label: t('每台主机实例数量'),
         field: 'instance_num',
         width: 140,
-      });
-    }
-    if (hasQPS.value) {
-      baseColumns.splice(3, 0, {
-        label: t('单机QPS每秒'),
-        field: 'qps',
-        render: ({ data }: {data: ResourceSpecModel}) => {
-          const { min, max } = data.qps ?? { min: 0, max: 0 };
-          return min && max ? `${min} ~ ${max}` : '--';
-        },
       });
     }
     return baseColumns;

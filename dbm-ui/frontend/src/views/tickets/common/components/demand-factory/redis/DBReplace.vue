@@ -59,6 +59,7 @@
     {
       label: t('待替换的主机'),
       field: 'ip',
+      showOverflowTooltip: true,
     },
     {
       label: t('角色类型'),
@@ -67,10 +68,12 @@
     {
       label: t('所属集群'),
       field: 'clusterName',
+      showOverflowTooltip: true,
     },
     {
       label: t('规格需求'),
       field: 'sepc',
+      showOverflowTooltip: true,
       render: ({ data }: {data: RowData}) => <span>{data.sepc.name}</span>,
     },
   ];

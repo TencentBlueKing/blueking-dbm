@@ -12,42 +12,9 @@
 */
 
 import http from './http';
+import RedisClusterSpecModel from './model/resource-spec/redis-cluster-sepc';
 import ResourceSpecModel from './model/resource-spec/resourceSpec';
 import type { ListBase } from './types/common';
-
-export interface FilterClusterSpecItem {
-  creator: string,
-  updater: string,
-  spec_id: number,
-  spec_name: string,
-  spec_cluster_type: string,
-  spec_machine_type: string,
-  cpu: {
-    max: number,
-    min: number
-  },
-  mem: {
-    max: number,
-    min: number
-  },
-  device_class: string[],
-  storage_spec: {
-    size: number,
-    type: string,
-    mount_point: string
-  }[],
-  desc: string,
-  instance_num: number,
-  qps: {
-    max: number,
-    min: number
-  },
-  cluster_qps: string,
-  capacity: number,
-  machine_pair: number,
-  cluster_capacity: number,
-  cluster_shard_num: number
-}
 
 // 获取资源规格列表
 export const getResourceSpecList = function (params: Record<string, any> & {
@@ -105,14 +72,14 @@ export const getFilterClusterSpec = (params: {
   spec_machine_type: string,
   capacity: number,
   future_capacity: number,
-  qps: {
+  qps?: {
     min: number,
     max: number
   },
   shard_num?: number,
-}) => http.post<FilterClusterSpecItem[]>('/apis/dbresource/spec/filter_cluster_spec/', params);
+}) => http.post<RedisClusterSpecModel[]>('/apis/dbresource/spec/filter_cluster_spec/', params);
 
 // 规格详情
-export const getResourceSpec = function (params: {spec_id: number}) {
+export const getResourceSpec = function (params: { spec_id: number }) {
   return http.get<ResourceSpecModel>(`/apis/dbresource/spec/${params.spec_id}/`);
 };

@@ -211,4 +211,8 @@ export default class Redis {
     if (len <= 1) return len;
     return new Set(this.proxy.map(item => item.ip)).size;
   }
+
+  get isSlaveNormal() {
+    return this.redis_slave.every(item => item.status === 'running');
+  }
 }

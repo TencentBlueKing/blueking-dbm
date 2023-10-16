@@ -23,6 +23,32 @@ import { useGlobalBizs } from '@stores';
 import type { InstanceInfos } from '../types/clusters';
 import type { ListBase } from '../types/common';
 
+interface MasterSlaveByIp {
+  cluster: {
+    bk_cloud_id: number,
+    cluster_type: string;
+    deploy_plan_id: number,
+    id: number,
+    immute_domain: string;
+    major_version: string;
+    name: string;
+    region: string;
+  },
+  instances: {
+    bk_biz_id: number,
+    bk_cloud_id: number,
+    bk_host_id: number,
+    bk_instance_id: number,
+    instance: string;
+    ip: string;
+    name: string;
+    phase: string;
+    port: number,
+    status: string;
+  }[],
+  master_ip: string;
+  slave_ip: string;
+}
 
 // 根据IP查询集群、角色和规格
 export const queryInfoByIp = (params: {
@@ -53,33 +79,6 @@ export const queryClusterHostList = (params: {
   return http.post<RedisHostModel[]>(`/apis/redis/bizs/${currentBizId}/toolbox/query_cluster_ips/`, params)
     .then(data => data.map(item => new RedisHostModel(item)));
 };
-
-export interface MasterSlaveByIp {
-  cluster: {
-    bk_cloud_id: number,
-    cluster_type: string;
-    deploy_plan_id: number,
-    id: number,
-    immute_domain: string;
-    major_version: string;
-    name: string;
-    region: string;
-  },
-  instances: {
-    bk_biz_id: number,
-    bk_cloud_id: number,
-    bk_host_id: number,
-    bk_instance_id: number,
-    instance: string;
-    ip: string;
-    name: string;
-    phase: string;
-    port: number,
-    status: string;
-  }[],
-  master_ip: string;
-  slave_ip: string;
-}
 
 // 根据masterIP查询集群、实例和slave
 export const queryMasterSlaveByIp = (params: {
@@ -152,7 +151,6 @@ export const setJobDisconnectSync = (params: {
   const { currentBizId } = useGlobalBizs();
   return http.post<unknown>(`/apis/redis/bizs/${currentBizId}/dts/job_disconnect_sync/`, params);
 };
-
 
 // dts job 批量失败重试
 export const setJobTaskFailedRetry = (params: {

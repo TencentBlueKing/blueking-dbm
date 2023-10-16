@@ -364,7 +364,7 @@
       subTitle: t('重置 Secure Key,需自定修改 Template 中的地址字段！'),
       width: 450,
       onConfirm: async () => {
-        await deleteDutyRule(row.id);
+        await deleteDutyRule({ id: row.id });
         fetchHostNodes();
       } });
   };

@@ -21,7 +21,7 @@
     :is-show="isShow"
     :quick-close="false"
     title=""
-    :width="1400"
+    :width="dialogWidth"
     @closed="handleClose">
     <BkResizeLayout
       :border="false"
@@ -167,7 +167,7 @@
   import type { ResourceItem } from '@services/types/clusters';
   import type { ListBase } from '@services/types/common';
 
-  import { useCopy } from '@hooks';
+  import { useCopy, useSelectorDialogWidth } from '@hooks';
 
   import { ClusterTypes } from '@common/const';
 
@@ -218,8 +218,8 @@
 
   const { t } = useI18n();
   const copy = useCopy();
-
   const formItem = useFormItem();
+  const { dialogWidth } = useSelectorDialogWidth();
 
   const tabTipsRef = ref();
   const activeTab = ref(props.tabList[0].id);

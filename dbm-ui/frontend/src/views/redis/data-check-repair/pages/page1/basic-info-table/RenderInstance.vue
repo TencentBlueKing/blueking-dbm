@@ -12,59 +12,44 @@
 -->
 
 <template>
-  <BkLoading :loading="isLoading">
-    <BkSelect
-      v-if="isSelectAll || localValue.length < 2"
-      v-model="localValue"
-      class="item-input"
-      filterable
-      :input-search="false"
-      multiple
-      show-select-all
-      @change="handleSelectChange">
-      <BkOption
-        v-for="item in selectList"
-        :key="item.value"
-        :label="item.label"
-        :value="item.value" />
-    </BkSelect>
-    <BkPopover
-      v-else
-      :content="$t('批量添加')"
-      placement="top"
-      theme="dark">
-      <template #content>
-        <div
-          v-for="item in localValue"
-          :key="item">
-          {{ item }}
-        </div>
-      </template>
-      <div class="content">
-        <BkSelect
-          v-model="localValue"
-          class="item-input"
-          filterable
-          :input-search="false"
-          multiple
-          show-select-all
-          @change="handleSelectChange">
-          <BkOption
-            v-for="item in selectList"
-            :key="item.value"
-            :label="item.label"
-            :value="item.value" />
-        </BkSelect>
-        <div
-          v-if="localValue.length > 1"
-          class="more-box">
-          <BkTag>
-            +{{ localValue.length - 1 }}
-          </BkTag>
-        </div>
+  <BkPopover
+    :disabled="isSelectAll || localValue.length < 2"
+    placement="top"
+    theme="dark">
+    <template #content>
+      <div
+        v-for="item in localValue"
+        :key="item">
+        {{ item }}
       </div>
-    </BkPopover>
-  </BkLoading>
+    </template>
+    <div class="content">
+      <BkSelect
+        v-model="localValue"
+        filterable
+        :input-search="false"
+        multiple
+        show-select-all>
+        <template #trigger>
+          <div class="item-input">
+            {{ displayText }}
+          </div>
+        </template>
+        <BkOption
+          v-for="item in selectList"
+          :key="item.value"
+          :label="item.label"
+          :value="item.value" />
+      </BkSelect>
+      <div
+        v-if="!isSelectAll && localValue.length > 1"
+        class="more-box">
+        <BkTag>
+          +{{ localValue.length - 1 }}
+        </BkTag>
+      </div>
+    </div>
+  </BkPopover>
 </template>
 <script setup lang="ts">
   import { computed } from 'vue';
@@ -75,45 +60,59 @@
   interface Props {
     selectList?: string[];
     data?: IDataRow['instances'];
-    isLoading?: boolean;
   }
 
   interface Exposes {
     getValue: () => Promise<string[]>
   }
 
-  const props = defineProps<Props>();
+  const props = withDefaults(defineProps<Props>(), {
+    selectList: () => ([]),
+    data: '',
+  });
 
   const { t } = useI18n();
+
   const totalText = t('全部');
 
-  const localValue = ref<string[]>([totalText]);
+  const localValue = ref<string[]>([]);
+  const displayText = ref(totalText);
 
   const selectList = computed(() => (props.selectList
     ? props.selectList.map(item => ({ value: item, label: item })) : []));
-  const isSelectAll = computed(() => localValue.value.length === 1 && localValue.value[0] === totalText);
+  const isSelectAll = computed(() => localValue.value.length === props.selectList.length);
+
+
+  watch(localValue, (list) => {
+    if (list.length === props.selectList.length) {
+      displayText.value = totalText;
+      return;
+    }
+    if (list.length > 1 && list[0] === totalText) {
+      list.shift();
+    }
+    displayText.value = list.join(' , ');
+  });
+
+  watch(() => props.selectList, (list) => {
+    if (list.length > 0) {
+      localValue.value = list;
+    }
+  });
 
   watch(() => props.data, (str) => {
-    if (str) localValue.value = str.split('\n');
+    if (str) {
+      localValue.value = str.split('\n');
+    }
   }, {
     immediate: true,
   });
 
   const getFinalValue = () => {
-    if (isSelectAll.value) {
+    if (isSelectAll.value || localValue.value.length === 0) {
       return ['all'];
     }
     return localValue.value;
-  };
-
-  const handleSelectChange = (selectList: string[]) => {
-    if (selectList.length > 1 && selectList[0] === totalText) {
-      selectList.shift();
-      localValue.value = selectList;
-    }
-    if (selectList.length === props.selectList?.length) {
-      localValue.value = [totalText];
-    }
   };
 
   defineExpose<Exposes>({
@@ -128,6 +127,11 @@
   .item-input {
     width: 100%;
     height: 40px;
+    padding: 0 16px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    cursor: pointer;
 
     :deep(.bk-input) {
       position: relative;

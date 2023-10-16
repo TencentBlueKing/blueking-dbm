@@ -117,6 +117,7 @@
 
   import DataCopyTransferDetail from './components/DataCopyTransferDetail.vue';
   import ExecuteStatus from './components/ExecuteStatus.vue';
+  import KeyTags from './components/KeyTags.vue';
 
   const { t } = useI18n();
   const router = useRouter();
@@ -252,12 +253,12 @@
     {
       label: t('包含 key'),
       field: 'key_white_regex',
-      showOverflowTooltip: true,
+      showOverflowTooltip: false,
       width: 120,
       render: ({ data }: {data: RedisDSTHistoryJobModel}) => {
         if (data.key_white_regex) {
-          const tags = data.key_white_regex.split('\n');
-          return tags.map(tag => <bk-tag type="stroke">{tag}</bk-tag>);
+          const tags = ['asfdaffa', 'sdgfrgerhgwer', 'sfgsrgdhdhdh'];// data.key_white_regex.split('\n');
+          return <KeyTags maxRow={2} data={tags} />;
         }
         return <span>--</span>;
       },
@@ -270,7 +271,7 @@
       render: ({ data }: {data: RedisDSTHistoryJobModel}) => {
         if (data.key_black_regex) {
           const tags = data.key_black_regex.split('\n');
-          return tags.map(tag => <bk-tag type="stroke">{tag}</bk-tag>);
+          return <KeyTags data={tags} />;
         }
         return <span>--</span>;
       },
@@ -455,13 +456,16 @@
 <style lang="less" scoped>
 
 .table-box {
-  :deep(.bk-tag-stroke) {
-    min-width: 26px;
+  :deep(.key-tag) {
+    display: inline-flex;
+    height: 22px;
+    padding: 0 10px;
+    font-size: 12px;
+    line-height: 22px;
+    color: #63656E;
+    text-align: center;
     background: #F0F1F5;
-
-    .bk-tag-text {
-      background: #F0F1F5 !important;
-    }
+    border-radius: 2px;
   }
 }
 

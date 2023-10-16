@@ -43,6 +43,8 @@
     },
     shardNum: number,
     groupNum: number,
+    capacity: number,
+    futureCapacity: number,
     dbVersion: string,
     switchMode: string,
   }
@@ -61,27 +63,45 @@
     {
       label: t('目标集群'),
       field: 'clusterName',
+      showOverflowTooltip: true,
     },
     {
       label: t('集群分片数'),
       field: 'shardNum',
+      showOverflowTooltip: true,
     },
     {
       label: t('部署机器组数'),
       field: 'groupNum',
+      showOverflowTooltip: true,
+    },
+    {
+      label: t('当前容量需求'),
+      field: 'capacity',
+      showOverflowTooltip: true,
+      render: ({ data }: {data: RowData}) => <span>{data.capacity}G</span>,
+    },
+    {
+      label: t('未来容量需求'),
+      field: 'futureCapacity',
+      showOverflowTooltip: true,
+      render: ({ data }: {data: RowData}) => <span>{data.futureCapacity}G</span>,
     },
     {
       label: t('目标资源规格'),
       field: 'sepc',
+      showOverflowTooltip: true,
       render: ({ data }: {data: RowData}) => <span>{data.sepc.name}</span>,
     },
     {
       label: t('指定Redis版本'),
       field: 'dbVersion',
+      showOverflowTooltip: true,
     },
     {
       label: t('切换模式'),
       field: 'switchMode',
+      showOverflowTooltip: true,
       render: ({ data }: {data: RowData}) => <span>{data.switchMode === 'user_confirm' ? t('需人工确认') : t('无需确认')}</span>,
     },
   ];
@@ -99,7 +119,6 @@
         } });
         return obj;
       }, {} as Record<number, {clusterName: string, clusterType: string}>);
-
 
       // 避免重复查询
       const clusterTypes = [...new Set(Object.values(clusterMap).map(item => item.clusterType))];
@@ -122,6 +141,8 @@
           shardNum: item.shard_num,
           groupNum: item.group_num,
           dbVersion: item.db_version,
+          capacity: item.capacity,
+          futureCapacity: item.future_capacity,
           sepc: {
             id: item.resource_spec.backend_group.spec_id,
             name: specInfo ? specInfo.spec_name : '',

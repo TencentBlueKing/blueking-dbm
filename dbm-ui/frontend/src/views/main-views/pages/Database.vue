@@ -19,7 +19,7 @@
       <BkMenu
         :active-key="activeKey"
         :collapse="menuStore.collapsed"
-        :opened-keys="openedKeys"
+        :opened-keys="composeOpenKeys"
         @click="handleChangeMenu"
         @mouseenter="menuStore.mouseenter"
         @mouseleave="menuStore.mouseleave">
@@ -431,6 +431,8 @@
 </template>
 
 <script setup lang="ts">
+  import type { Emitter } from 'mitt';
+  import mitt from 'mitt';
   import type { RouteRecordRaw } from 'vue-router';
 
   import { useGlobalBizs, useMenu, useUserProfile  } from '@stores';
@@ -461,16 +463,7 @@
 
   type MenuList = typeof mysqlToolboxMenus;
 
-  const menuStore = useMenu();
-  const route = useRoute();
-  const globalBizsStore = useGlobalBizs();
-  const userProfileStore = useUserProfile();
-  const { activeKey, handleChangeMenu, openedKeys } = useMenuInfo();
-
-  const biz = computed(() => globalBizsStore.bizs.find(item => item.bk_biz_id === Number(route.params.bizId)));
-  const notExistBusiness = computed(() => globalBizsStore.bizs.length === 0 && !biz.value);
-
-  const generateToolboxFavorMenus = (type: 'mysql' | 'redis' | 'spider') => {
+  function generateToolboxFavorMenus(type: 'mysql' | 'redis' | 'spider') {
     let favors: Array<MenuChild> = [];
     let toolboxChildrenRouters: RouteRecordRaw[] = [];
     let toolBoxMenus: MenuList = [];
@@ -518,7 +511,22 @@
       }
     }
     return menuGroup.filter(item => item.children.length > 0);
-  };
+  }
+
+  const eventBus = mitt() as Emitter<any>;
+  provide('collapseEventBus', eventBus);
+
+  const menuStore = useMenu();
+  const route = useRoute();
+  const globalBizsStore = useGlobalBizs();
+  const userProfileStore = useUserProfile();
+  const { activeKey, handleChangeMenu, openedKeys } = useMenuInfo();
+
+  const addOpenKey = ref('');
+
+  const composeOpenKeys = computed(() => [...openedKeys.value, addOpenKey.value]);
+  const biz = computed(() => globalBizsStore.bizs.find(item => item.bk_biz_id === Number(route.params.bizId)));
+  const notExistBusiness = computed(() => globalBizsStore.bizs.length === 0 && !biz.value);
 
   // Mysql工具箱收藏导航
   const mysqlToolboxFavorMenus = computed(() => generateToolboxFavorMenus('mysql'));
@@ -528,4 +536,18 @@
 
   // Spider工具箱收藏导航
   const spiderToolboxFavorMenus = computed(() => generateToolboxFavorMenus('spider'));
+
+  watch(activeKey, () => {
+    handleToggleCollapse('');
+  });
+
+  const handleToggleCollapse = (key: string) => {
+    addOpenKey.value = key;
+  };
+
+  eventBus.on('collapse', handleToggleCollapse);
+
+  onBeforeUnmount(() => {
+    eventBus.off('collapse', handleToggleCollapse);
+  });
 </script>

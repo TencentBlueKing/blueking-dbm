@@ -308,7 +308,7 @@
 .redis-page {
   display: flex;
   padding: 24px;
-  margin: 20px 24px;
+  margin-top: -4px;
   overflow: hidden;
   background-color: #fff;
   flex-direction: column;

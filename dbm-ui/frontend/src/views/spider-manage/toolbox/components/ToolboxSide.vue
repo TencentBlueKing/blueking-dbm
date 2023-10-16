@@ -88,6 +88,8 @@
 </template>
 
 <script setup lang="ts">
+  import _ from 'lodash';
+  import type { Emitter } from 'mitt';
   import { useI18n } from 'vue-i18n';
 
   import { useUserProfile } from '@stores';
@@ -108,6 +110,8 @@
     dragIndex: null | number,
     dragendIndex: null | number,
   }
+
+  const eventBus = inject('collapseEventBus') as Emitter<Record<any, unknown>>;
 
   const { t } = useI18n();
   const router = useRouter();
@@ -178,14 +182,24 @@
     if (!isCollected) {
       // 添加收藏
       favors.push(item);
+      eventBus.emit('collapse', item.parentId);
     } else {
       // 取消收藏
       favors.splice(index, 1);
     }
-
+    // 基于原路由重新排序, 实现收藏后的顺序与原顺序一致
+    const referenceTooolRouetrs = _.flatMap(menus.map(item => item.children)).map(item => item.id);
+    const favorsIds = favors.map(item => item.id);
+    const sortedFavors = referenceTooolRouetrs.reduce((results, item) => {
+      const index = favorsIds.indexOf(item);
+      if (index > -1) {
+        results.push(favors[index]);
+      }
+      return results;
+    }, [] as MenuChild[]);
     userProfileStore.updateProfile({
       label: UserPersonalSettings.SPIDER_TOOLBOX_FAVOR,
-      values: favors,
+      values: sortedFavors,
     }).then(() => {
       messageSuccess(isCollected ? t('取消收藏成功') : t('收藏成功'));
     });

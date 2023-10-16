@@ -48,10 +48,9 @@
       style="padding: 0;">
       <RenderTargetCapacity
         ref="targetCapacityRef"
-        :data="data.targetCapacity"
         :is-disabled="!data.targetCluster"
         :is-loading="data.isLoading"
-        @click-select="handleClickSelect" />
+        :row-data="data" />
     </td>
     <td
       style="padding: 0;">
@@ -115,12 +114,12 @@
     shardNum?: number;
     groupNum?: number;
     currentSepc?: string;
-    currentCapacity?: {
+    targetCapacity?: {
+      current: number,
       used: number,
       total: number,
     };
-    targetCapacity?: {
-      current: number,
+    currentCapacity?: {
       used: number,
       total: number,
     };
@@ -136,6 +135,8 @@
     shard_num: number,
     group_num: number,
     online_switch_type: OnlineSwitchType,
+    capacity: number,
+    future_capacity: number,
     resource_spec: {
       backend_group: {
         spec_id: number,
@@ -171,7 +172,6 @@
     (e: 'add', params: Array<IDataRow>): void,
     (e: 'remove'): void,
     (e: 'clusterInputFinish', value: string): void
-    (e: 'clickSelect'): void
   }
 
   interface Exposes {
@@ -201,10 +201,6 @@
     return [];
   });
 
-  const handleClickSelect = () => {
-    emits('clickSelect');
-  };
-
   const handleInputFinish = (value: string) => {
     emits('clusterInputFinish', value);
   };
@@ -228,21 +224,13 @@
         switchModeRef.value.getValue(),
         targetCapacityRef.value.getValue(),
       ]).then((data) => {
-        const [version, switchMode] = data;
+        const [version, switchMode, targetCapacity] = data;
         return {
           cluster_id: props.data.clusterId,
           db_version: version,
           bk_cloud_id: props.data.bkCloudId,
-          shard_num: props.data.targetShardNum,
-          group_num: props.data.targetGroupNum,
           online_switch_type: switchMode,
-          resource_spec: {
-            backend_group: {
-              spec_id: props.data.sepcId,
-              count: props.data.targetGroupNum, // 机器组数
-              affinity: AffinityType.CROS_SUBZONE, // 暂时固定 'CROS_SUBZONE',
-            },
-          },
+          ...targetCapacity,
         };
       });
     },
