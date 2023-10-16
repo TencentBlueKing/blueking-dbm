@@ -221,7 +221,7 @@ class TicketType(str, StructuredEnum):
     REDIS_CLUSTER_CUTOFF = EnumField("REDIS_CLUSTER_CUTOFF", _("Redis 整机替换"))
     REDIS_CLUSTER_AUTOFIX = EnumField("REDIS_CLUSTER_AUTOFIX", _("Redis 故障自愈"))
     REDIS_CLUSTER_INSTANCE_SHUTDOWN = EnumField("REDIS_CLUSTER_INSTANCE_SHUTDOWN", _("Redis 故障自愈-实例下架"))
-    REDIS_MASTER_SLAVE_SWITCH = EnumField("REDIS_MASTER_SLAVE_SWITCH", _("Redis 主从故障切换"))
+    REDIS_MASTER_SLAVE_SWITCH = EnumField("REDIS_MASTER_SLAVE_SWITCH", _("Redis 主从切换"))
     PROXY_SCALE_UP = EnumField("PROXY_SCALE_UP", _("Redis Proxy扩容"))
     PROXY_SCALE_DOWN = EnumField("PROXY_SCALE_DOWN", _("Redis Proxy缩容"))
     REDIS_ADD_DTS_SERVER = EnumField("REDIS_ADD_DTS_SERVER", _("Redis 新增DTS SERVER"))
