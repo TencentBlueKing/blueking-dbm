@@ -75,10 +75,11 @@ func IntsJoin(intList []int, sep string) string {
 	return strings.Join(strList, sep)
 }
 
-// SplitGroup TODO
-func SplitGroup(laxiconid []string, subGroupLength int64) [][]string {
+// SplitGroup 数组切割
+// 将数组laxiconid 按照 subGroupLength 切分成若干个数组
+func SplitGroup[T int | string](laxiconid []T, subGroupLength int64) [][]T {
 	max := int64(len(laxiconid))
-	var segmens = make([][]string, 0)
+	var segmens = make([][]T, 0)
 	quantity := max / subGroupLength
 	remainder := max % subGroupLength
 	if quantity <= 1 {
