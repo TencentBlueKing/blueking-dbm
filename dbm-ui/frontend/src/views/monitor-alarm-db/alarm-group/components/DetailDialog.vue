@@ -174,10 +174,10 @@
     };
 
     if (props.type === 'edit') {
-      Object.assign(params, {
+      updateAlarmGroupRun({
+        ...params,
         id: props.detailData.id,
       });
-      updateAlarmGroupRun(params);
     } else {
       insertAlarmGroupRun(params);
     }

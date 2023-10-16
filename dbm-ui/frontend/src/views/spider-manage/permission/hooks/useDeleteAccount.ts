@@ -41,7 +41,11 @@ export const useDeleteAccount = () => {
       },
       onConfirm: async () => {
         try {
-          run(currentBizId, accountId, AccountTypes.TENDBCLUSTER);
+          run({
+            bizId: currentBizId,
+            account_id: accountId,
+            account_type: AccountTypes.TENDBCLUSTER,
+          });
 
           Message({
             message: t('成功删除账号'),

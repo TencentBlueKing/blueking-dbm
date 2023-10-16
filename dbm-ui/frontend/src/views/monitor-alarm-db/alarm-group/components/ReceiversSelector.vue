@@ -126,16 +126,15 @@
     loading: userGroupLoading, // 避免数据回显时，获取用户组请求未完成造成显示错误
     mutate,
   } = useRequest(getUserGroupList, {
-    defaultParams: [props.bizId],
+    defaultParams: [{ bizId: props.bizId }],
     onSuccess(userGroupList) {
-      const newUserGroupList = [];
+      const newUserGroupList: ServiceReturnType<typeof getUserGroupList> = [];
       const userArr: {
         id: string,
         disabled: boolean
       }[] = [];
 
-      for (let i = 0; i < userGroupList.length; i++) {
-        const userGroupItem = userGroupList[i];
+      userGroupList.forEach((userGroupItem) => {
         const newUserGroupItem = {
           ...userGroupItem,
           disabled: modelValue.value.includes(userGroupItem.id) && props.isBuiltIn,
@@ -148,7 +147,7 @@
           disabled: modelValue.value.includes(memberItem) && props.isBuiltIn,
         }));
         userArr.push(...memberList);
-      }
+      });
 
       userList.value = userArr;
       mutate(newUserGroupList);

@@ -163,7 +163,9 @@
   const passwordRef = ref();
   const passwordItemRef = ref();
 
-  const verifyPassword = () => verifyPasswordStrength(getEncyptPassword())
+  const verifyPassword = () => verifyPasswordStrength({
+    password: getEncyptPassword(),
+  })
     .then((res) => {
       validate.value = res;
       return res.is_strength;

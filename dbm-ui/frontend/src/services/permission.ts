@@ -43,6 +43,7 @@ interface RamdomCycle {
 
 // mysql生效实例密码(admin)
 interface MysqlAdminPassword {
+  bk_cloud_id: number,
   component: string,
   id: number,
   ip: string,
@@ -56,8 +57,14 @@ interface MysqlAdminPassword {
 
 interface MysqlAdminPasswordResultItem {
   bk_cloud_id: number
-  ip: string
-  port: number
+  cluster_type: ClusterTypes
+  instances: {
+    role: string
+    addresses: {
+      ip: string
+      port: number
+    }[]
+  }[]
 }
 
 /**
@@ -111,16 +118,10 @@ export const modifyMysqlAdminPassword = (params: {
 export const queryMysqlAdminPassword = (params: {
   limit?: number
   offset?: number
-  start_time: string
-  end_time: string
-  instance: string[]
-}) => http.get<MysqlAdminPassword>('/apis/conf/password_policy/query_mysql_admin_password/', params).then(res => ({
-  // TODO
-  count: 100,
-  next: '',
-  previous: '',
-  results: res,
-}));
+  begin_time?: string
+  end_time?: string
+  instances?: string
+}) => http.get<ListBase<MysqlAdminPassword[]>>('/apis/conf/password_policy/query_mysql_admin_password/', params);
 
 /**
  * 获取公钥列表
@@ -136,7 +137,9 @@ export const getRSAPublicKeys = (params: {
 /**
  * 校验密码强度
  */
-export const verifyPasswordStrength = (password: string) => http.post<PasswordStrength>('/apis/conf/password_policy/verify_password_strength/', { password });
+export const verifyPasswordStrength = (params: {
+  password: string
+}) => http.post<PasswordStrength>('/apis/conf/password_policy/verify_password_strength/', params);
 
 /**
  * 查询账号规则列表
@@ -151,31 +154,38 @@ export const createAccount = (params: CreateAccountParams, bizId: number) => htt
 /**
  * 删除账号
  */
-export const deleteAccount = (bizId: number, accountId: number, accountType?: AccountTypesValues) => http.delete(`/apis/mysql/bizs/${bizId}/permission/account/delete_account/`, { account_id: accountId, account_type: accountType });
+export const deleteAccount = (params: {
+  bizId: number,
+  account_id: number,
+  account_type?: AccountTypesValues
+}) => http.delete(`/apis/mysql/bizs/${params.bizId}/permission/account/delete_account/`, params);
 
 /**
  * 添加账号规则
  */
-export const createAccountRule = (bizId: number, params: AccountRule) => http.post(`/apis/mysql/bizs/${bizId}/permission/account/add_account_rule/`, params);
+export const createAccountRule = (params: AccountRule & { bizId: number }) => http.post(`/apis/mysql/bizs/${params.bizId}/permission/account/add_account_rule/`, params);
 
 /**
  * 授权规则前置检查
  */
-export const preCheckAuthorizeRules = (bizId: number, params: AuthorizePreCheckData) => http.post<AuthorizePreCheckResult>(`/apis/mysql/bizs/${bizId}/permission/authorize/pre_check_rules/`, params);
+export const preCheckAuthorizeRules = (params: AuthorizePreCheckData & { bizId: number }) => http.post<AuthorizePreCheckResult>(`/apis/mysql/bizs/${params.bizId}/permission/authorize/pre_check_rules/`, params);
 
 /**
  * 查询账号规则
  */
-export const queryAccountRules = (id: number, params: {user: string, access_dbs: string[], account_type?: AccountTypesValues}) => http.post<ListBase<PermissionRule[]>>(`/apis/mysql/bizs/${id}/permission/account/query_account_rules/`, params);
+export const queryAccountRules = (params: {
+  bizId: number,
+  user: string,
+  access_dbs: string[],
+  account_type?: AccountTypesValues
+}) => http.post<ListBase<PermissionRule[]>>(`/apis/mysql/bizs/${params.bizId}/permission/account/query_account_rules/`, params);
 
 /**
  * 权限克隆前置检查
  */
-export const precheckPermissionClone = (
-  bizId: number,
-  params: {
+export const precheckPermissionClone = (params: {
+    bizId: number,
     clone_type: 'instance' | 'client',
     clone_list: Array<{source: string, target: string}>,
     clone_cluster_type: 'mysql'|'tendbcluster'
-  },
-) => http.post<PermissionCloneRes>(`/apis/mysql/bizs/${bizId}/permission/clone/pre_check_clone/`, params);
+  }) => http.post<PermissionCloneRes>(`/apis/mysql/bizs/${params.bizId}/permission/clone/pre_check_clone/`, params);

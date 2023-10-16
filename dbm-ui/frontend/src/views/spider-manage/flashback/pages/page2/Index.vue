@@ -51,7 +51,7 @@
     useRouter,
   } from 'vue-router';
 
-  import RenderSuccess from '@views/mysql/common/ticket-success/Index.vue';
+  import RenderSuccess from '@components/ticket-success/Index.vue';
 
   const route = useRoute();
   const router = useRouter();

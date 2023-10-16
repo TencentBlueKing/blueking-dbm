@@ -419,10 +419,11 @@
     await formRef.value.validate();
     const params = {
       ...state.formdata,
+      bizId: globalBizsStore.currentBizId,
       cluster_type: clusterState.clusterType,
     };
     state.isLoading = true;
-    preCheckAuthorizeRules(globalBizsStore.currentBizId, params)
+    preCheckAuthorizeRules(params)
       .then((res) => {
         const {
           pre_check: preCheck,

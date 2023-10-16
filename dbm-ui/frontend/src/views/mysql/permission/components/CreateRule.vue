@@ -269,7 +269,8 @@
 
     if (!user || dbs.length === 0) return false;
 
-    return queryAccountRules(globalbizsStore.currentBizId, {
+    return queryAccountRules({
+      bizId: globalbizsStore.currentBizId,
       user,
       access_dbs: dbs,
     })
@@ -330,9 +331,10 @@
     state.isSubmitting = true;
     const params = {
       ...state.formdata,
+      bizId: globalbizsStore.currentBizId,
       access_db: state.formdata.access_db.replace(/\n|;/g, ','), // 统一分隔符
     };
-    createAccountRule(globalbizsStore.currentBizId, params)
+    createAccountRule(params)
       .then(() => {
         Message({
           message: t('成功添加授权规则'),
