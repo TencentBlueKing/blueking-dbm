@@ -33,6 +33,9 @@ class SQLGrammarCheckSerializer(serializers.Serializer):
     sql_files = serializers.ListField(
         help_text=_("sql文件列表"), child=serializers.FileField(help_text=_("sql文件"), required=False), required=False
     )
+    cluster_type = serializers.ChoiceField(
+        help_text=_("集群类型"), choices=DBType.get_choices(), required=False, default=DBType.MySQL
+    )
 
     class Meta:
         swagger_schema_fields = {"example": mock_data.SQL_GRAMMAR_CHECK_REQUEST_DATA}

@@ -336,7 +336,7 @@ class QueryQPSRangeResponseSerializer(serializers.Serializer):
 
 
 class FilterClusterSpecSerializer(QueryQPSRangeSerializer):
-    qps = serializers.JSONField(help_text=_("qps范围"))
+    qps = serializers.JSONField(help_text=_("qps范围"), required=False)
 
 
 class FilterClusterSpecResponseSerializer(QueryQPSRangeSerializer):
