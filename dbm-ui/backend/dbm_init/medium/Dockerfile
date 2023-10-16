@@ -1,33 +1,54 @@
-FROM golang:1.21 as meidum-builder
+FROM golang:1.21 as go-builder
 
-# 标准化时区
+## 标准化时区
 RUN ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime && \
     echo "Asia/Shanghai" > /etc/timezone
 
-WORKDIR /blueking-dbm
-ADD ./ ./
+## 安装go import工具
+RUN go install golang.org/x/tools/cmd/goimports@latest
 
-# 安装goimports，并且构建相应依赖
-ARG MEDIUM_BUILDER_BRANCH=master
+FROM go-builder as go-mod-builder
+
+WORKDIR /blueking-dbm
+ADD ./dbm-services ./dbm-services
+
+## 初始化go依赖
 RUN set -ex && \
-    git checkout -f ${MEDIUM_BUILDER_BRANCH} && \
-    go install golang.org/x/tools/cmd/goimports@latest && \
     goimports -w . && find . -name go.mod -execdir go mod tidy \;
 
-## 构建制品
+FROM go-mod-builder as mysql-medium-builder
+
+## 构建mysql介质
 RUN set -ex && \
-    # 构建mysql介质
     cd /blueking-dbm/dbm-services/mysql/db-tools/dbactuator && make -j4 && \
     cd /blueking-dbm/dbm-services/mysql/db-tools/mysql-dbbackup && sh build.sh -t txsql && \
-    cd /blueking-dbm/dbm-services/mysql/db-tools/mysql-table-checksum && make release-bin VERSION=1.0.0 -j4 && \
-    cd /blueking-dbm/dbm-services/mysql/db-tools/mysql-crond && make release-bin VERSION=1.0.0 -j4 && \
-    cd /blueking-dbm/dbm-services/mysql/db-tools/mysql-rotatebinlog && make release VERSION=1.0.0 -j4 && \
-    cd /blueking-dbm/dbm-services/mysql/db-tools/mysql-monitor && make release-bin VERSION=1.0.0 -j4 && \
-    # 构建redis介质
-    # 构建大数据的介质(大数据的dbactuator都是同一个)
-    cd /blueking-dbm/dbm-services/bigdata/db-tools/dbactuator && make -j4 && \
-    # 删除.git文件，避免敏感信息泄露
-    cd /blueking-dbm && rm -rf .git
+    cd /blueking-dbm/dbm-services/mysql/db-tools/mysql-table-checksum && make release-bin VERSION= -j4 && \
+    cd /blueking-dbm/dbm-services/mysql/db-tools/mysql-crond && make release-bin VERSION= -j4 && \
+    cd /blueking-dbm/dbm-services/mysql/db-tools/mysql-rotatebinlog && make release VERSION= -j4 && \
+    cd /blueking-dbm/dbm-services/mysql/db-tools/mysql-monitor && make release-bin VERSION= -j4
+
+
+FROM go-mod-builder as redis-medium-builder
+
+## 构建redis介质
+RUN set -ex && \
+    echo TODO....
+
+
+FROM go-mod-builder as bigdata-medium-builder
+
+## 构建大数据介质
+RUN set -ex && \
+    cd /blueking-dbm/dbm-services/bigdata/db-tools/dbactuator && make -j4
+
+
+FROM go-builder as medium-builder
+
+WORKDIR /blueking-dbm
+COPY --from=mysql-medium-builder /blueking-dbm/dbm-services/mysql ./dbm-services/mysql
+COPY --from=redis-medium-builder /blueking-dbm/dbm-services/redis ./dbm-services/redis
+COPY --from=bigdata-medium-builder /blueking-dbm/dbm-services/bigdata ./dbm-services/bigdata
+
 
 FROM python:3.6.12-slim-buster AS base
 
@@ -98,22 +119,25 @@ ARG GITHUB_TOKEN=''
 ARG GITHUB_USERNAME=''
 ARG GITHUB_USER_EMAIL=''
 
-## 拷贝第一阶段的文件，构建的制品
-COPY --from=meidum-builder /blueking-dbm /blueking-dbm
+## 拷贝第一阶段的文件，构建制品
+COPY --from=medium-builder /blueking-dbm /blueking-dbm
 
 ## 将相关制品移动到指定目录，提交medicum.lock文件
 RUN set -ex && \
     # 克隆线上的dbm仓库
-    git config --global user.email ${GITHUB_USER_EMAIL} && git config --global user.name ${GITHUB_USERNAME} && \
+    git config --global user.email ${GITHUB_USER_EMAIL} && \
+    git config --global user.name ${GITHUB_USERNAME} && \
     git clone https://${GITHUB_TOKEN}@github.com/TencentBlueKing/blueking-dbm.git && \
     # 注意：这里需要将.git文件复制给前面构建文件夹，用作判断commit是否需要更新
-    cp -r blueking-dbm/.git /blueking-dbm && python main.py --type build && rm -rf /blueking-dbm && \
-    # 将更新后的medium.lock文件放到clone的dbm仓库，并提pr
+    cp -r blueking-dbm/.git /blueking-dbm && \
+    python main.py --type build && \
+    rm -rf /blueking-dbm && \
+    # 将更新后的medium.lock文件放到clone的dbm仓库
     cd blueking-dbm/ && \
     git checkout -f ${MEDIUM_BUILDER_BRANCH} && \
     cp ../medium.lock ${MEDIUM_PATH} && \
-    git add ${MEDIUM_PATH}/medium.lock && \
     # 判断有diff才提pr，否则会非正常结束。注意这里也需要删除.git
+    git add ${MEDIUM_PATH}/medium.lock && \
     git diff-index --quiet HEAD && rm -rf /app/blueking-dbm || \
     git commit -m "minor: [$(date +"%Y-%m-%d %H:%M:%S")]update medium.lock" && \
     git push --set-upstream --force origin ${MEDIUM_BUILDER_BRANCH}:medicum_lock_${MEDIUM_BUILDER_BRANCH} && \
