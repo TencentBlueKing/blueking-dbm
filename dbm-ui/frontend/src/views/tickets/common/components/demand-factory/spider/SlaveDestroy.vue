@@ -66,6 +66,7 @@
     {
       label: t('集群'),
       field: 'clusterName',
+      showOverflowTooltip: true,
     },
   ];
 

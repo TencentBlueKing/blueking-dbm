@@ -146,6 +146,7 @@
     {
       field: 'spec_name',
       label: t('资源规格'),
+      showOverflowTooltip: true,
     },
     {
       field: 'machine_pair',

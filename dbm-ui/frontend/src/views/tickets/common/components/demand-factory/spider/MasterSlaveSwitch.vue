@@ -80,10 +80,12 @@
     {
       label: t('故障主库主机'),
       field: 'masterIp',
+      showOverflowTooltip: true,
     },
     {
       label: t('从库主机'),
       field: 'slaveIp',
+      showOverflowTooltip: true,
     },
   ];
 

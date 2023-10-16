@@ -53,10 +53,12 @@
     {
       label: t('目标集群'),
       field: 'clusterName',
+      showOverflowTooltip: true,
     },
     {
       label: t('规格'),
       field: 'sepc',
+      showOverflowTooltip: true,
       render: ({ data }: {data: RowData}) => <span>{data.sepc.name}</span>,
     },
     {
