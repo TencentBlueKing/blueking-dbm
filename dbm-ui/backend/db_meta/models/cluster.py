@@ -8,9 +8,11 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import json
 import logging
 from typing import Dict, List
 
+from django.core.cache import cache
 from django.db import models
 from django.db.models import Count, QuerySet
 from django.forms import model_to_dict
@@ -18,7 +20,7 @@ from django.utils.translation import ugettext_lazy as _
 
 from backend.bk_web.models import AuditedModel
 from backend.components.db_remote_service.client import DRSApi
-from backend.constants import DEFAULT_BK_CLOUD_ID, DEFAULT_TIME_ZONE, IP_PORT_DIVIDER
+from backend.constants import CACHE_CLUSTER_STATS, DEFAULT_BK_CLOUD_ID, DEFAULT_TIME_ZONE, IP_PORT_DIVIDER
 from backend.db_meta.enums import (
     ClusterDBHAStatusFlags,
     ClusterPhase,
@@ -266,3 +268,7 @@ class Cluster(AuditedModel):
             )
         else:
             return ctl_address
+
+    @classmethod
+    def get_cluster_stats(cls) -> dict:
+        return json.loads(cache.get(CACHE_CLUSTER_STATS, "{}"))

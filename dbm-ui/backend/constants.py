@@ -63,3 +63,7 @@ class CommonHostDBMeta:
     cluster_domain: str
     cluster_type: str
     instance_role: str
+
+
+# 集群状态数据缓存key
+CACHE_CLUSTER_STATS = "cluster_stats"

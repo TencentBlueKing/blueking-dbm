@@ -19,7 +19,7 @@ from django.core.cache import cache
 
 from backend import env
 from backend.components import BKMonitorV3Api
-from backend.db_meta.constants import CACHE_CLUSTER_STATS
+from backend.constants import CACHE_CLUSTER_STATS
 from backend.db_meta.enums import ClusterType, InstanceRole
 from backend.db_meta.models import Cluster, StorageInstance
 
@@ -122,7 +122,3 @@ def sync_cluster_stat_from_monitor():
 
     # print(cluster_stats)
     cache.set(CACHE_CLUSTER_STATS, json.dumps(cluster_stats))
-
-
-def get_cluster_stats() -> dict:
-    return json.loads(cache.get(CACHE_CLUSTER_STATS, "{}"))

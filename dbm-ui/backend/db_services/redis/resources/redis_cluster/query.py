@@ -24,7 +24,6 @@ from backend.db_meta.models import AppCache, Machine, Spec
 from backend.db_meta.models.cluster import Cluster
 from backend.db_meta.models.cluster_entry import ClusterEntry
 from backend.db_meta.models.instance import ProxyInstance, StorageInstance
-from backend.db_periodic_task.local_tasks.db_meta.sync_cluster_stat import get_cluster_stats
 from backend.db_services.dbbase.constants import IP_PORT_DIVIDER
 from backend.db_services.dbbase.instances.handlers import InstanceHandler
 from backend.db_services.dbbase.resources import query
@@ -175,7 +174,7 @@ class ListRetrieveResource(query.ListRetrieveResource):
         cluster.storages = cluster.storageinstance_set.filter(cluster_type=cluster.cluster_type, bk_biz_id=bk_biz_id)
         cluster.proxies = cluster.proxyinstance_set.filter(cluster_type=cluster.cluster_type, bk_biz_id=bk_biz_id)
         cluster_entry_map = ClusterEntry.get_cluster_entry_map_by_cluster_ids([cluster.id])
-        cluster_stats_map = get_cluster_stats()
+        cluster_stats_map = Cluster.get_cluster_stats()
 
         return cls._to_cluster_list(cluster, cluster_entry_map, cluster_stats_map)
 
@@ -225,7 +224,7 @@ class ListRetrieveResource(query.ListRetrieveResource):
             list(clusters.values_list("id", flat=True))
         )
 
-        cluster_stats_map = get_cluster_stats()
+        cluster_stats_map = Cluster.get_cluster_stats()
 
         return query.ResourceList(
             count=count,
