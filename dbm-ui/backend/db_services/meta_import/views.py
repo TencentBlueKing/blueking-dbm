@@ -21,6 +21,7 @@ from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.db_services.meta_import.constants import SWAGGER_TAG
 from backend.db_services.meta_import.serializers import MySQLHaMetadataImportSerializer
 from backend.iam_app.handlers.drf_perm import RejectPermission
+from backend.ticket.builders.mysql.mysql_ha_metadata_import import MySQLHaMetadataImportDetailSerializer
 from backend.ticket.constants import TicketType
 from backend.ticket.models import Ticket
 
@@ -49,6 +50,7 @@ class DBMetadataImportViewSet(viewsets.SystemViewSet):
         # 解析json文件
         data["json_content"] = json.loads(data.pop("file").read().decode("utf-8"))
         # 自动创建ticket
+        MySQLHaMetadataImportDetailSerializer(data=data).is_valid(raise_exception=True)
         Ticket.create_ticket(
             ticket_type=TicketType.MYSQL_HA_METADATA_IMPORT,
             creator=request.user.username,

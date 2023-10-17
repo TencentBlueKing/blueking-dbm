@@ -66,7 +66,6 @@ from backend.flow.views.mysql_ha_destroy import (
 )
 from backend.flow.views.mysql_ha_full_backup import MySQLHAFullBackup
 from backend.flow.views.mysql_ha_master_fail_over import MySQLHAMasterFailOverApiView
-from backend.flow.views.mysql_ha_metadata_import import TenDBHAMetadataImportViewSet
 from backend.flow.views.mysql_ha_rename_database import MySQLHARenameDatabaseView
 from backend.flow.views.mysql_ha_switch import MySQLHASwitchSceneApiView
 from backend.flow.views.mysql_ha_truncate_data import MySQLHATruncateDataView
@@ -348,10 +347,4 @@ urlpatterns = [
     url("^scene/switch_tbinlogumper$", SwitchTBinlogDumperSceneApiView.as_view()),
     url("^scene/tendbha_standardize$", TenDBHAStandardizeView.as_view()),
     url("^scene/mysql_open_area$", MysqlOpenAreaSceneApiView.as_view()),
-    url("^scene/tendbha_metadata_import$", TenDBHAMetadataImportViewSet.as_view({"post": "create"})),
 ]
-
-# routers = DefaultRouter(trailing_slash=True)
-# routers.register("scene/tendb_ha_import_metadata", TenDBHAMetadataImportViewSet, basename="")
-#
-# urlpatterns+=routers.urls

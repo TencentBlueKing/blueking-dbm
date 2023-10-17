@@ -9,10 +9,12 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import json
+import logging
 from collections import defaultdict
 from typing import Dict, List
 
 from django.db import models
+from django.db.models import Q
 from django.utils.translation import ugettext_lazy as _
 
 from backend import env
@@ -22,6 +24,8 @@ from backend.configuration.models import SystemSettings
 from backend.constants import INT_MAX
 from backend.db_meta.enums import ClusterType, MachineType
 from backend.ticket.constants import AffinityEnum
+
+logger = logging.getLogger("root")
 
 
 class Spec(AuditedModel):
@@ -173,6 +177,27 @@ class Spec(AuditedModel):
             spec_choices = [
                 (spec.spec_id, f"[{spec.spec_id}]{spec.spec_cluster_type}-{spec.spec_machine_type}-{spec.spec_name}")
                 for spec in cls.objects.all()
+            ]
+        except Exception:  # pylint: disable=broad-except
+            # 忽略出现的异常，此时可能因为表未初始化
+            spec_choices = []
+        return spec_choices
+
+    @classmethod
+    def get_choices_with_filter(cls, cluster_type=None, machine_type=None):
+        try:
+            qct = Q()
+            qmt = Q()
+            if cluster_type:
+                qct = Q(spec_cluster_type=cluster_type)
+            if machine_type:
+                qmt = Q(spec_machine_type=machine_type)
+
+            logger.info("get spec choices with filter: {}".format(qct & qmt))
+
+            spec_choices = [
+                (spec.spec_id, f"[{spec.spec_id}]{spec.spec_cluster_type}-{spec.spec_machine_type}-{spec.spec_name}")
+                for spec in cls.objects.filter(qct & qmt)
             ]
         except Exception:  # pylint: disable=broad-except
             # 忽略出现的异常，此时可能因为表未初始化
