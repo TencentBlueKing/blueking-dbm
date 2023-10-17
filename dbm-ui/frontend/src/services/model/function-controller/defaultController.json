@@ -55,5 +55,27 @@
         "is_enabled": true
       }
     }
+  },
+  "addons": {
+    "is_enabled": false,
+    "children": {
+      "redis_nameservice": {
+        "is_enabled": true
+      }
+    }
+  },
+  "monitor": {
+    "is_enabled": false,
+    "children": {
+      "duty_rule": {
+        "is_enabled": true
+      },
+      "monitor_policy": {
+        "is_enabled": true
+      },
+      "notice_group": {
+        "is_enabled": true
+      }
+    }
   }
 }

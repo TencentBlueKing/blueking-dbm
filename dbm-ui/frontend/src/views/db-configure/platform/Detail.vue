@@ -77,7 +77,7 @@
   const publishFetchParams = computed(() => ({
     ...baseParams.value,
     level_name: ConfLevels.PLAT,
-    level_value: '0',
+    level_value: 0,
     bk_biz_id: 0,
   }));
   // 顶部 tabs

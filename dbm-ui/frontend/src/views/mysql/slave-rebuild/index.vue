@@ -97,7 +97,6 @@
   import InstanceSelector, {
     type InstanceSelectorValues,
   } from '@components/instance-selector/Index.vue';
-  import BatchEdit from '@components/mysql-toolbox/BatchEdit.vue';
   import SuccessView from '@components/mysql-toolbox/Success.vue';
   import ToolboxTable from '@components/mysql-toolbox/ToolboxTable.vue';
 
@@ -187,28 +186,7 @@
       },
     },
     {
-      label: () => (
-        <span>
-          { t('备份来源') }
-          <BatchEdit
-            title={t('批量编辑备份来源')}
-            width={420}
-            tooltips={t('批量编辑')}
-            validator={validatorBatchSelect.bind(null, t('请选择备份来源'))}
-            onChange={handleBatchBackupChange}>
-            {{
-              default: ({ state }: any) => (
-                <bk-select
-                  v-model={state.value}
-                  list={backupList}
-                  clearable={false}
-                  popover-options={{ boundary: 'parent', disableTeleport: true }}
-                />
-              ),
-            }}
-          </BatchEdit>
-        </span>
-      ),
+      label: () => t('备份来源'),
       field: 'backup_source',
       render: ({ data, index }: TableColumnData) => (
         <bk-form-item
@@ -274,25 +252,6 @@
         trigger: 'blur',
       },
     ];
-  }
-
-  /**
-   * 备份来源批量选择校验
-   */
-  function validatorBatchSelect(errorText: string, value?: string) {
-    return {
-      isPass: !!value,
-      errorText,
-    };
-  }
-
-  /**
-   * 备份来源批量选择校验
-   */
-  function handleBatchBackupChange(value: string) {
-    for (const item of tableData.value) {
-      item.backup_source = value;
-    }
   }
 
   /**

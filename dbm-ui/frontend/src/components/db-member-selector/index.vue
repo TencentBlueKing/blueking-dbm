@@ -43,7 +43,7 @@
 
 <script setup lang="tsx">
   import { getUseList } from '@services/common';
-  import type { GetUsesParams, UseItem } from '@services/types/common';
+  import type { GetUsesParams } from '@services/types/common';
 
   import { useCopy } from '@hooks';
 
@@ -61,7 +61,7 @@
   const copy = useCopy();
 
   const state = reactive({
-    list: [] as UseItem[],
+    list: [] as {username: string}[],
   });
   const isFocous = ref(false);
 

@@ -148,7 +148,7 @@
         baseData.storage_spec = [
           {
             mount_point: '',
-            size: '',
+            size: '' as unknown as number,
             type: '',
           },
         ];

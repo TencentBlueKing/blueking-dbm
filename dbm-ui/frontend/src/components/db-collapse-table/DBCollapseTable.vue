@@ -81,7 +81,10 @@
   interface Props {
     collapse?: boolean,
     title?: string,
-    tableProps?: TablePropTypes,
+    tableProps?: {
+      data: TablePropTypes['data'],
+      columns: TablePropTypes['columns'],
+    },
     operations?: CollapseTableOperation[],
     showIcon?: boolean,
   }
@@ -90,8 +93,8 @@
     collapse: true,
     title: 'Title',
     tableProps: () => ({
-      data: [],
-      columns: [],
+      data: [] as TablePropTypes['data'],
+      columns: [] as TablePropTypes['columns'],
     }),
     operations: () => ([]),
     showIcon: true,

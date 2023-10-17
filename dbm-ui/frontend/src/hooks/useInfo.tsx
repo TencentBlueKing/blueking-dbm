@@ -49,7 +49,7 @@ const info = defineComponent({
     });
 
     const methods = {
-      service: (options: object) => {
+      service: (options: Record<string, any>) => {
         state.loading = false;
         state.options = options;
         methods.show();

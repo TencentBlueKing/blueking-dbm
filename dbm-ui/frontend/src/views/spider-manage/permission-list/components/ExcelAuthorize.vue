@@ -193,7 +193,11 @@
   /**
    * 自定义文件上传返回结果
    */
-  const handleUploadResponse = (res: BaseResponse<AuthorizePreCheckResult>) => {
+  const handleUploadResponse = (res: {
+    code: number;
+    data: AuthorizePreCheckResult;
+    message: string;
+  }) => {
     const result = res.code === 0 ? res.data.pre_check : false;
     importable.value = result;
     precheck.uid = res.data?.authorize_uid ?? '';

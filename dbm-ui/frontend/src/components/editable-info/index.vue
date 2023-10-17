@@ -144,7 +144,7 @@
   interface Props {
     readonly?: boolean,
     columns?: Array<Array<InfoColumn>>,
-    data?: object,
+    data?: Record<string, any>,
     width?: string,
   }
 

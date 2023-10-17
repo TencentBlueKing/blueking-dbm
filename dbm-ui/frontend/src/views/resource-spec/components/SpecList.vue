@@ -85,6 +85,7 @@
 </template>
 
 <script setup lang="tsx">
+  import type { Column } from 'bkui-vue/lib/table/props';
   import { differenceInSeconds } from 'date-fns';
   import { useI18n } from 'vue-i18n';
 
@@ -136,7 +137,7 @@
   const hasInstanceSpecs = [`${ClusterTypes.ES}_es_datanode`];
   const hasInstance = computed(() => hasInstanceSpecs.includes(`${props.clusterType}_${props.machineType}`));
   const columns = computed(() => {
-    const baseColumns = [
+    const baseColumns: Column[] = [
       {
         type: 'selection',
         width: 48,

@@ -103,10 +103,10 @@
 
   import EmptyStatus from '@components/empty-status/EmptyStatus.vue';
 
-  import ConfigBusiness from './biz/ConfigInfo.vue';
-  import ConfigCluster from './cluster/ConfigInfo.vue';
+  import ConfigBusiness from './biz/Index.vue';
+  import ConfigCluster from './cluster/Index.vue';
   import { useTreeData } from './hooks/useTreeData';
-  import ConfigModule from './module/ConfigInfo.vue';
+  import ConfigModule from './module/Index.vue';
   import type { TreeData, TreeState } from './types';
 
   const route = useRoute();

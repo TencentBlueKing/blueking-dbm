@@ -96,7 +96,7 @@
     level?: ConfLevelValues,
     title?: string,
     extraParametersCards?: ExtraConfListItem[],
-    routeParams?: object,
+    routeParams?: Record<string, any>,
   }
 
   interface Emits {

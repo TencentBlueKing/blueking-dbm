@@ -145,6 +145,7 @@
       zookeeper: SpecInfo,
       broker: SpecInfo,
     },
+    no_security?: number,
   }
 
   interface Props{
@@ -157,7 +158,7 @@
 
   const zookeeperSpec = computed(() => props.ticketDetails?.details?.resource_spec?.zookeeper || {});
   const brokerSpec = computed(() => props.ticketDetails?.details?.resource_spec?.broker || {});
-  const security = computed(() => (props.ticketDetails?.no_security === 0 ? t('开启') : t('不开启')));
+  const security = computed(() => (props.ticketDetails?.details.no_security === 0 ? t('开启') : t('不开启')));
 
   /**
    * 获取服务器数量

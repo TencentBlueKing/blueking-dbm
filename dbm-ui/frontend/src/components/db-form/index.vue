@@ -25,7 +25,7 @@
   import { debounce } from 'lodash';
 
   interface Props {
-    model?: object,
+    model?: Record<string, any>,
     autoLabelWidth: boolean,
   }
 

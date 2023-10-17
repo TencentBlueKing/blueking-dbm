@@ -90,7 +90,6 @@
 
   import ClusterSelector from '@components/cluster-selector/ClusterSelector.vue';
   import type { ClusterSelectorResult } from '@components/cluster-selector/types';
-  import BatchEdit from '@components/mysql-toolbox/BatchEdit.vue';
   import { backupList } from '@components/mysql-toolbox/common/const';
   import SuccessView from '@components/mysql-toolbox/Success.vue';
   import ToolboxTable from '@components/mysql-toolbox/ToolboxTable.vue';
@@ -142,7 +141,7 @@
             v-model={[data.cluster_domain, ['trim']]}
             placeholder={t('请输入集群域名')}
             onBlur={hanldeDomainBlur.bind(null, index)}
-            onChangeRelated={handleChangeRelated.bind(null, index)}
+            onChange-related={(value: number[]) => handleChangeRelated(index, value)}
           />
         </bk-form-item>
       ),
@@ -163,28 +162,7 @@
       ),
     },
     {
-      label: () => (
-        <span>
-          { t('备份源') }
-          <BatchEdit
-            title={t('批量编辑备份源')}
-            width={420}
-            tooltips={t('批量编辑')}
-            validator={validatorBatchSelect.bind(null, t('请选择备份源'))}
-            onChange={handleBatchBackupChange}>
-            {{
-              default: ({ state }: any) => (
-                <bk-select
-                  v-model={state.value}
-                  list={backupList}
-                  clearable={false}
-                  popover-options={{ boundary: 'parent', disableTeleport: true }}
-                />
-              ),
-            }}
-          </BatchEdit>
-        </span>
-      ),
+      label: () => t('备份源'),
       field: 'backup_source',
       render: ({ data, index }: TableColumnData) => (
         <bk-form-item
@@ -291,15 +269,6 @@
     item.checked_related = item.cluster_related.filter(item => values.includes(item.id));
   }
 
-  /**
-   * 备份源批量选择校验
-   */
-  function validatorBatchSelect(errorText: string, value?: string) {
-    return {
-      isPass: !!value,
-      errorText,
-    };
-  }
 
   /**
    * 校验主机是否存在
@@ -433,15 +402,6 @@
     window.changeConfirm = true;
 
     fetchRelatedClusters(formatList.map(item => item.cluster_id));
-  }
-
-  /**
-   * 备份源批量选择校验
-   */
-  function handleBatchBackupChange(value: string) {
-    for (const item of tableData.value) {
-      item.backup_source = value;
-    }
   }
 
   /**

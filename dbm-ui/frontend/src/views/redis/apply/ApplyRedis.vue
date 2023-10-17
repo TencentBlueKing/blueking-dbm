@@ -467,8 +467,7 @@
           },
           backend_group: {
             count: 0,
-            spec_name: '',
-            spec_id: '',
+            spec_id: 0,
             capacity: '' as number | string,
             future_capacity: '' as number | string,
           },
@@ -544,8 +543,7 @@
     state.formdata.details.resource_spec.proxy.spec_id = '';
     state.formdata.details.resource_spec.backend_group = {
       count: 0,
-      spec_name: '',
-      spec_id: '',
+      spec_id: 0,
       capacity: '',
       future_capacity: '',
     };

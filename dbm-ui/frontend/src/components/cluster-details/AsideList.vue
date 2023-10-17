@@ -75,7 +75,7 @@
   interface Props {
     loading?: boolean,
     data?:  { [key: string]: string }[],
-    activeItem?: object,
+    activeItem?: Record<string, any>,
     total?: number,
     limit?: number,
     showKey?: string,
