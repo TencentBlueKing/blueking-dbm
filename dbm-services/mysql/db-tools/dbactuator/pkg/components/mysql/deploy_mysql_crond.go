@@ -196,7 +196,16 @@ func (c *DeployMySQLCrondComp) Start() (err error) {
 	errChan := make(chan error)
 	go func() {
 		// 重装的时候无脑尝试关闭一次
-		_, _ = http.Get("http://127.0.0.1:9999/quit")
+		resp, err := http.Get("http://127.0.0.1:9999/quit")
+		if err != nil {
+			logger.Error("send quit request failed for forehead start", err.Error())
+			errChan <- errors.Wrap(err, "send quit request failed for forehead start")
+			return
+		}
+		defer func() {
+			_ = resp.Body.Close()
+		}()
+
 		time.Sleep(15 * time.Second)
 
 		cmd := exec.Command(
@@ -209,7 +218,7 @@ func (c *DeployMySQLCrondComp) Start() (err error) {
 		)
 		var stderr bytes.Buffer
 		cmd.Stderr = &stderr
-		err := cmd.Run()
+		err = cmd.Run()
 		if err != nil {
 			errChan <- errors.Wrap(err, stderr.String())
 		}
@@ -227,11 +236,12 @@ LabelSelectLoop:
 			}
 		case <-time.After(1 * time.Second):
 			logger.Info("try to connect mysql-crond %d times", i)
-			_, err := http.Get("http://127.0.0.1:9999/entries")
+			resp, err := http.Get("http://127.0.0.1:9999/entries")
 			if err != nil {
 				logger.Info("try to connect mysql-crond %d times failed: %s", i, err.Error())
 				break
 			}
+			_ = resp.Body.Close()
 			started = true
 			logger.Info("try to connect mysql-crond %d times success", i)
 			break LabelSelectLoop
@@ -245,7 +255,15 @@ LabelSelectLoop:
 	}
 
 	// 关闭前台启动的 mysql-crond
-	_, _ = http.Get("http://127.0.0.1:9999/quit")
+	resp, err := http.Get("http://127.0.0.1:9999/quit")
+	if err != nil {
+		logger.Error("send quit request failed", err.Error())
+		return err
+	}
+	defer func() {
+		_ = resp.Body.Close()
+	}()
+	logger.Info("send quit request success")
 
 	time.Sleep(15 * time.Second)
 
@@ -291,12 +309,13 @@ LabelSelectLoop:
 	started = false
 	for i := 1; i <= 10; i++ {
 		logger.Info("try to connect mysql-crond %d times", i)
-		_, err := http.Get("http://127.0.0.1:9999/entries")
+		resp, err := http.Get("http://127.0.0.1:9999/entries")
 		if err != nil {
 			logger.Info("try to connect mysql-crond %d times failed: %s", i, err.Error())
 			time.Sleep(2 * time.Second)
 			continue
 		}
+		_ = resp.Body.Close()
 		started = true
 		logger.Info("try to connect mysql-crond %d times success", i)
 		break
