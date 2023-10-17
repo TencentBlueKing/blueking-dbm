@@ -227,7 +227,7 @@ func (job *RedisBackup) GetBackupClient() (err error) {
 		bkTag = consts.RedisForeverBackupTAG
 	}
 	// job.backupClient = backupsys.NewIBSBackupClient(consts.IBSBackupClient, bkTag)
-	job.backupClient, err = backupsys.NewCosBackupClient(consts.COSBackupClient, "", bkTag)
+	job.backupClient, err = backupsys.NewCosBackupClient(consts.COSBackupClient, consts.COSInfoFile, bkTag)
 	return
 }
 

@@ -10,7 +10,6 @@ specific language governing permissions and limitations under the License.
 """
 import base64
 import datetime
-import hashlib
 import logging
 import re
 import traceback
@@ -855,7 +854,7 @@ class RedisDtsExecuteService(BaseService):
             ],
         }
         self.log_info(f"new_data_check_repair_job ticket_data:{ticket_data}")
-        root_id = uuid.uuid1().hex
+        root_id = f"{datetime.date.today()}{uuid.uuid1().hex[:6]}".replace("-", "")
         flow = RedisClusterDataCheckRepairFlow(root_id=root_id, data=ticket_data)
         flow.redis_cluster_data_check_repair_flow()
         self.log_info(f"new_data_check_repair_job flow_id:{root_id}")
@@ -919,7 +918,7 @@ class NewDstClusterInstallJobAndWatchStatus(BaseService):
             "resource_spec": kwargs["cluster"]["dst_install_param"]["resource_spec"],
         }
         self.log_info("NewDstClusterInstallJobAndWatchStatus ticket_data==>:{}".format(ticket_data))
-        root_id = uuid.uuid1().hex
+        root_id = f"{datetime.date.today()}{uuid.uuid1().hex[:6]}".replace("-", "")
         if ticket_data["cluster_type"] == ClusterType.TendisPredixyTendisplusCluster.value:
             flow = TendisPlusApplyFlow(root_id=root_id, data=ticket_data)
             flow.deploy_tendisplus_cluster_flow()
@@ -1021,7 +1020,7 @@ class NewDstClusterFlushJobAndWatchStatus(BaseService):
             ],
         }
         self.log_info("NewDstClusterFlushJobAndWatchStatus ticket_data==>:{}".format(ticket_data))
-        root_id = uuid.uuid1().hex
+        root_id = f"{datetime.date.today()}{uuid.uuid1().hex[:6]}".replace("-", "")
         flow = RedisFlushDataFlow(root_id=root_id, data=ticket_data)
         flow.redis_flush_data_flow()
 
@@ -1115,7 +1114,7 @@ class NewDtsOnlineSwitchJobAndWatchStatus(BaseService):
         self.log_info(f"new_dts_online_switch_job ticket_data:{ticket_data}")
         from backend.flow.engine.bamboo.scene.redis.redis_cluster_data_copy import RedisClusterDataCopyFlow
 
-        root_id = uuid.uuid1().hex
+        root_id = f"{datetime.date.today()}{uuid.uuid1().hex[:6]}".replace("-", "")
         flow = RedisClusterDataCopyFlow(root_id=root_id, data=ticket_data)
         flow.online_switch_flow()
 
@@ -1317,7 +1316,7 @@ class NewDstClusterCloseJobAndWatchStatus(BaseService):
             "force": False,
         }
         self.log_info(f"redis_cluster_close dst_cluster:{job_row.dst_cluster} ticket_data:{ticket_data}")
-        root_id = uuid.uuid1().hex
+        root_id = f"{datetime.date.today()}{uuid.uuid1().hex[:6]}".replace("-", "")
         flow = RedisClusterOpenCloseFlow(root_id=root_id, data=ticket_data)
         flow.redis_cluster_open_close_flow()
 
@@ -1410,7 +1409,7 @@ class NewDstClusterShutdownJobAndWatchStatus(BaseService):
             "cluster_id": job_row.dst_cluster_id,
         }
         self.log_info(f"redis_cluster_shutdown ticket_data:{ticket_data}")
-        root_id = uuid.uuid1().hex
+        root_id = f"{datetime.date.today()}{uuid.uuid1().hex[:6]}".replace("-", "")
         flow = RedisClusterShutdownFlow(root_id=root_id, data=ticket_data)
         flow.redis_cluster_shutdown_flow()
 
