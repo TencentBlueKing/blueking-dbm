@@ -290,7 +290,7 @@ func (k *DbPodSets) DeletePod() (err error) {
 // getLoadSchemaSQLCmd create load schema sql cmd
 func (k *DbPodSets) getLoadSchemaSQLCmd(bkpath, file string) (cmd string) {
 	commands := []string{}
-	commands = append(commands, fmt.Sprintf("wget %s", getdownloadUrl(bkpath, file)))
+	commands = append(commands, fmt.Sprintf("curl -s -S -o %s %s", file, getdownloadUrl(bkpath, file)))
 	// sed -i '/50720 SET tc_admin=0/d'
 	// 从中控dump的schema文件,默认是添加了tc_admin=0,需要删除
 	// 因为模拟执行是需要将中控进行sql转发
@@ -306,9 +306,7 @@ func (k *DbPodSets) getLoadSchemaSQLCmd(bkpath, file string) (cmd string) {
 
 // getLoadSQLCmd get load sql cmd
 func (k *DbPodSets) getLoadSQLCmd(bkpath, file string, dbs []string) (cmd []string) {
-	// cmd = fmt.Sprintf(
-	// 	"wget %s && mysql --defaults-file=/etc/my.cnf -uroot -p%s --default-character-set=%s %s < %s",
-	cmd = append(cmd, fmt.Sprintf("curl -o %s %s", file, getdownloadUrl(bkpath, file)))
+	cmd = append(cmd, fmt.Sprintf("curl -s -S -o %s %s", file, getdownloadUrl(bkpath, file)))
 	for _, db := range dbs {
 		cmd = append(cmd, fmt.Sprintf("mysql --defaults-file=/etc/my.cnf -uroot -p%s --default-character-set=%s -vvv %s < %s",
 			k.BaseInfo.RootPwd, k.BaseInfo.Charset, db, file))
@@ -330,7 +328,7 @@ func getdownloadUrl(bkpath, file string) string {
 		return ""
 	}
 	ll := u.ResolveReference(r).String()
-	logger.Info("dbeug url is %s", ll)
+	logger.Info("download url: %s", ll)
 	return ll
 }
 
@@ -355,7 +353,7 @@ func (k *DbPodSets) executeInPod(cmd, container string, extMap map[string]string
 	reader, writer := io.Pipe()
 	exec, err := remotecommand.NewSPDYExecutor(k.K8S.RestConfig, "POST", req.URL())
 	if err != nil {
-		logger.Error("remotecommand.NewSPDYExecutor", err.Error())
+		logger.Error("at remotecommand.NewSPDYExecutor %s", err.Error())
 		return bytes.Buffer{}, bytes.Buffer{}, err
 	}
 	go func() {

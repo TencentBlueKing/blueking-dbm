@@ -293,7 +293,9 @@ func (t *SimulationTask) SimulationRun(containerName string, xlogger *logger.Log
 					xlogger.Error("download file failed:%s", err.Error())
 					return sstdout, sstderr, fmt.Errorf("download file %s failed:%s", e.SQLFile, err.Error())
 				}
-				xlogger.Error("%s[%s]:ExecuteInPod failed %s", e.SQLFile, realexcutedbs[idx-1], err.Error())
+				xlogger.Error("when execute %s at %s, failed  %s\n", e.SQLFile, realexcutedbs[idx-1], err.Error())
+				xlogger.Error("stderr:\n	%s", stderr.String())
+				xlogger.Error("stdout:\n	%s", stdout.String())
 				return sstdout, sstderr, fmt.Errorf("exec %s in %s failed:%s", e.SQLFile, realexcutedbs[idx-1],
 					err.Error())
 			}
