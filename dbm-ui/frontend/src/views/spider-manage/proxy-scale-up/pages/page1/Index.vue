@@ -39,8 +39,8 @@
         v-model:is-show="isShowMasterInstanceSelector"
         :get-resource-list="getList"
         :selected="{}"
-        :tab-list="clusterSelectorTabList"
-        @change="handelClusterChange" />
+        :show-preview-result-title="false"
+        @change="handelClusterChoosed" />
     </div>
     <template #action>
       <BkButton
@@ -82,7 +82,7 @@
     TicketTypes,
   } from '@common/const';
 
-  import ClusterSelector from '@components/cluster-selector/SpiderClusterSelector.vue';
+  import ClusterSelector from '@components/cluster-selector-new/Index.vue';
 
   import { random } from '@utils';
 
@@ -105,10 +105,10 @@
     ? new Set(tableData.value.map(item => item.cluster)).size : 0));
   const canSubmit = computed(() => tableData.value.filter(item => Boolean(item.cluster)).length > 0);
 
-  const clusterSelectorTabList = [{
-    id: ClusterTypes.SPIDER as string,
-    name: t('集群选择'),
-  }];
+  // const clusterSelectorTabList = [{
+  //   id: ClusterTypes.SPIDER as string,
+  //   name: t('集群选择'),
+  // }];
   const clusterNodeTypeMap = ref<Record<string, string[]>>({});
 
   const handleChangeNodeType = (index: number, domain: string, label: string) => {
@@ -168,7 +168,7 @@
   };
 
   // 批量选择
-  const handelClusterChange = async (selected: {[key: string]: Array<SpiderModel>}) => {
+  const handelClusterChoosed = async (selected: {[key: string]: Array<SpiderModel>}) => {
     const list = selected[ClusterTypes.SPIDER];
     const newList = list.reduce((result, item) => {
       const row = generateRowDateFromRequest(item);
