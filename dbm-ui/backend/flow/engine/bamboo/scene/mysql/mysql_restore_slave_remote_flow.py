@@ -85,7 +85,7 @@ class MySQLRestoreSlaveRemoteFlow(object):
             self.data["db_module_id"] = cluster_class.db_module_id
             self.data["time_zone"] = cluster_class.time_zone
             self.data["created_by"] = self.ticket_data["created_by"]
-            self.data["module"] = self.ticket_data["module"]
+            self.data["module"] = cluster_class.db_module_id
             self.data["ticket_type"] = self.ticket_data["ticket_type"]
             self.data["cluster_type"] = cluster_class.cluster_type
             self.data["uid"] = self.ticket_data["uid"]
@@ -94,7 +94,7 @@ class MySQLRestoreSlaveRemoteFlow(object):
             )
             # self.data["package"] = "5.7.20"
             self.data["ports"] = get_ports(info["cluster_ids"])
-            self.data["force"] = info.get("force", False)
+            self.data["force"] = self.ticket_data.get("force", False)
             self.data["charset"], self.data["db_version"] = get_version_and_charset(
                 self.data["bk_biz_id"],
                 db_module_id=self.data["db_module_id"],
@@ -316,7 +316,7 @@ class MySQLRestoreSlaveRemoteFlow(object):
         tendb_migrate_pipeline_list = []
         for info in self.ticket_data["infos"]:
             self.data = copy.deepcopy(info)
-            cluster_model = Cluster.objects.get(id=self.data["clusterid"])
+            cluster_model = Cluster.objects.get(id=self.data["cluster_id"])
             target_slave = cluster_model.storageinstance_set.get(
                 machine__bk_cloud_id=cluster_model.bk_cloud_id,
                 machine__ip=self.data["slave_ip"],
@@ -327,7 +327,8 @@ class MySQLRestoreSlaveRemoteFlow(object):
             self.data["db_module_id"] = cluster_model.db_module_id
             self.data["time_zone"] = cluster_model.time_zone
             self.data["created_by"] = self.ticket_data["created_by"]
-            self.data["module"] = self.ticket_data["module"]
+            self.data["module"] = cluster_model.db_module_id
+            self.data["force"] = self.ticket_data.get("force", False)
             self.data["ticket_type"] = self.ticket_data["ticket_type"]
             self.data["cluster_type"] = cluster_model.cluster_type
             self.data["uid"] = self.ticket_data["uid"]

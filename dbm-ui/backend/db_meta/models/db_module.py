@@ -54,7 +54,7 @@ class DBModule(AuditedModel):
             if cluster_type:
                 q = Q(cluster_type=cluster_type)
 
-            logger.info("get db module choices with filter: {}".format(q))
+            # logger.info("get db module choices with filter: {}".format(q))
 
             db_module_choices = [
                 (module.db_module_id, f"[{module.db_module_id}]{module.cluster_type}-{module.db_module_name}")

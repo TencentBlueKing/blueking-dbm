@@ -9,7 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
-from typing import List
+from datetime import datetime
 
 from django.db.models import Q
 from django.utils.translation import ugettext_lazy as _
@@ -29,6 +29,7 @@ from backend.ticket.builders.mysql.base import (
 )
 from backend.ticket.constants import FlowRetryType, FlowType, TicketFlowStatus, TicketType
 from backend.ticket.models import Flow
+from backend.utils.time import str2datetime
 
 
 class MySQLChecksumDetailSerializer(MySQLBaseOperateDetailSerializer):
@@ -60,6 +61,10 @@ class MySQLChecksumDetailSerializer(MySQLBaseOperateDetailSerializer):
         super().validate_instance_related_clusters(
             attrs, instance_key=["slaves"], cluster_key=["cluster_id"], role=InstanceInnerRole.SLAVE
         )
+
+        # 校验定时时间不能早于当前时间
+        if str2datetime(attrs["timing"]) < datetime.now():
+            raise serializers.ValidationError(_("定时时间必须晚于当前时间"))
 
         return attrs
 

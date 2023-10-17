@@ -52,7 +52,7 @@ class MysqlAddSlaveDetailSerializer(MySQLBaseOperateDetailSerializer):
 
 class MysqlAddSlaveParamBuilder(builders.FlowParamBuilder):
     # 复用重建 slave 的场景
-    controller = MySQLController.mysql_add_slave_scene
+    controller = MySQLController.mysql_add_slave_remote_scene
 
     def format_ticket_data(self):
         self.ticket_data["add_slave_only"] = True
