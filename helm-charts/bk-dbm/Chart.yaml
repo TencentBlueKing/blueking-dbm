@@ -58,5 +58,5 @@ dependencies:
 description: A Helm chart for bkdbm
 name: bk-dbm
 type: application
-version: 1.2.0-alpha-password.44
-appVersion: 1.2.0-alpha-password.44
+version: 1.2.0-alpha-password.45
+appVersion: 1.2.0-alpha-password.45
