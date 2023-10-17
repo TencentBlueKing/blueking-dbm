@@ -92,13 +92,13 @@ func NewDbPodSets() *DbPodSets {
 func (k *DbPodSets) getCreateClusterSqls() []string {
 	var ss []string
 	ss = append(ss, fmt.Sprintf(
-		"tdbctl create node wrapper 'SPIDER' options(user 'root', password '%s', host 'localhost', port 25000);",
+		"tdbctl create node wrapper 'SPIDER' options(user 'root', password '%s', host '127.0.0.1', port 25000);",
 		k.BaseInfo.RootPwd))
 	ss = append(ss, fmt.Sprintf(
-		"tdbctl create node wrapper 'mysql' options(user 'root', password '%s', host 'localhost', port 20000);",
+		"tdbctl create node wrapper 'mysql' options(user 'root', password '%s', host '127.0.0.1', port 20000);",
 		k.BaseInfo.RootPwd))
 	ss = append(ss, fmt.Sprintf(
-		"tdbctl create node wrapper 'TDBCTL' options(user 'root', password '%s', host 'localhost', port 26000);",
+		"tdbctl create node wrapper 'TDBCTL' options(user 'root', password '%s', host '127.0.0.1', port 26000);",
 		k.BaseInfo.RootPwd))
 	ss = append(ss, "tdbctl enable primary;")
 	ss = append(ss, "tdbctl flush routing;")
