@@ -21,12 +21,7 @@ from backend.db_meta.enums import InstanceRole
 from backend.db_meta.enums.cluster_type import ClusterType
 from backend.db_meta.enums.machine_type import MachineType
 from backend.db_meta.models import AppCache
-from backend.flow.consts import (
-    DEFAULT_REDIS_START_PORT,
-    DEFAULT_TWEMPROXY_SEG_TOTOL_NUM,
-    ClusterStatus,
-    InstanceStatus,
-)
+from backend.flow.consts import ClusterStatus, InstanceStatus
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.plugins.components.collections.redis.exec_actuator_script import ExecuteDBActuatorScriptComponent
@@ -56,8 +51,8 @@ class RedisClusterMigrateLoadFlow(object):
         self.data = data
 
     def __dispose_cluster_params(self, cluster_info: dict) -> dict:
-        master_list = []
-        slave_list = []
+        master_ips = []
+        slave_ips = []
         spec_id_dict = {}
         seg_dict = {}
         role_dict = {}
@@ -73,8 +68,8 @@ class RedisClusterMigrateLoadFlow(object):
             sip = backend["nodes"]["slave"]["ip"]
             mport = backend["nodes"]["master"]["port"]
             sport = backend["nodes"]["slave"]["port"]
-            master_list.append(mip)
-            slave_list.append(sip)
+            master_ips.append(mip)
+            slave_ips.append(sip)
             ip_port_dict[mip].append(mport)
             ip_port_dict[sip].append(sport)
             spec_id_dict[mip] = backend["nodes"]["master"]["spec_id"]
@@ -91,12 +86,12 @@ class RedisClusterMigrateLoadFlow(object):
             "seg_dict": seg_dict,
             "repl_list": repl_list,
             "role_dict": role_dict,
-            "ip_prot_dict": dict(ip_port_dict),
+            "ip_port_dict": dict(ip_port_dict),
             "proxy_ips": proxy_ips,
             "proxy_port": proxy_port,
             "proxy_spec_id": proxy_spec_id,
-            "master_list": master_list,
-            "slave_list": slave_list,
+            "master_ips": list(set(master_ips)),
+            "slave_ips": list(set(slave_ips)),
             "server_shards": dict(server_shards),
         }
 
@@ -134,6 +129,41 @@ class RedisClusterMigrateLoadFlow(object):
                 "cluster_type": params["clusterinfo"]["cluster_type"],
                 "db_version": params["clusterinfo"]["db_version"],
             }
+
+            if ins_status == InstanceStatus.RUNNING:
+                acts_list = []
+                for redis_ip in cluster["master_ips"] + cluster["slave_ips"]:
+                    act_kwargs.cluster["meta_update_ip"] = redis_ip
+                    act_kwargs.cluster["meta_udpate_ports"] = cluster["ip_port_dict"][redis_ip]
+                    act_kwargs.cluster["meta_update_status"] = InstanceStatus.RUNNING
+                    act_kwargs.cluster["meta_func_name"] = RedisDBMeta.instances_status_update.__name__
+                    acts_list.append(
+                        {
+                            "act_name": _("{}-更新redis状态".format(redis_ip)),
+                            "act_component_code": RedisDBMetaComponent.code,
+                            "kwargs": asdict(act_kwargs),
+                        },
+                    )
+                for proxy_ip in cluster["proxy_ips"]:
+                    act_kwargs.cluster["meta_update_ip"] = proxy_ip
+                    act_kwargs.cluster["meta_udpate_ports"] = [cluster["proxy_port"]]
+                    act_kwargs.cluster["meta_update_status"] = InstanceStatus.RUNNING
+                    act_kwargs.cluster["meta_func_name"] = RedisDBMeta.instances_status_update.__name__
+                    acts_list.append(
+                        {
+                            "act_name": _("{}-更新proxy状态".format(proxy_ip)),
+                            "act_component_code": RedisDBMetaComponent.code,
+                            "kwargs": asdict(act_kwargs),
+                        },
+                    )
+                sub_pipeline.add_parallel_acts(acts_list)
+                sub_pipelines.append(
+                    sub_pipeline.build_sub_process(
+                        sub_name=_("{}更新状态子任务").format(params["clusterinfo"]["immute_domain"])
+                    )
+                )
+                continue
+
             sub_pipeline.add_act(
                 act_name=_("初始化配置"), act_component_code=GetRedisActPayloadComponent.code, kwargs=asdict(act_kwargs)
             )
@@ -141,7 +171,7 @@ class RedisClusterMigrateLoadFlow(object):
             # 下发介质包
             trans_files = GetFileList(db_type=DBType.Redis)
             act_kwargs.file_list = trans_files.redis_dbmon()
-            act_kwargs.exec_ip = cluster["proxy_ips"] + cluster["master_list"] + cluster["slave_list"]
+            act_kwargs.exec_ip = cluster["proxy_ips"] + cluster["master_ips"] + cluster["slave_ips"]
             sub_pipeline.add_act(
                 act_name=_("下发介质包"),
                 act_component_code=TransFileComponent.code,
@@ -190,9 +220,7 @@ class RedisClusterMigrateLoadFlow(object):
             sub_pipeline.add_parallel_acts(acts_list)
             # 写配置文件 end
 
-            # sub_ins_pipelines = []
             # proxy 相关操作
-            # sub_proxy_pipeline = SubBuilder(root_id=self.root_id, data=self.data)
             act_kwargs.cluster = copy.deepcopy(cluster_tpl)
             act_kwargs.cluster["machine_type"] = proxy_type
             act_kwargs.cluster["cluster_type"] = params["clusterinfo"]["cluster_type"]
@@ -237,20 +265,17 @@ class RedisClusterMigrateLoadFlow(object):
                     },
                 )
             sub_pipeline.add_parallel_acts(acts_list)
-            # sub_ins_pipelines.append(sub_proxy_pipeline.build_sub_process(sub_name=_("proxy相关子任务")))
 
             # redis 相关操作
-            # sub_redis_pipeline = SubBuilder(root_id=self.root_id, data=self.data)
             # 写入元数据,后面实例的规格可能不一样，所以不能批量写入
-            # TODO 实例状态由参数传过来，需要修改
             acts_list = []
-            for redis_ip in cluster["master_list"] + cluster["slave_list"]:
+            for redis_ip in cluster["master_ips"] + cluster["slave_ips"]:
                 act_kwargs.cluster = copy.deepcopy(cluster_tpl)
                 act_kwargs.cluster["cluster_type"] = params["clusterinfo"]["cluster_type"]
                 act_kwargs.cluster["ins_status"] = ins_status
 
                 act_kwargs.cluster[cluster["role_dict"][redis_ip]] = [redis_ip]
-                act_kwargs.cluster["ports"] = cluster["ip_prot_dict"][redis_ip]
+                act_kwargs.cluster["ports"] = cluster["ip_port_dict"][redis_ip]
                 act_kwargs.cluster["spec_id"] = cluster["spec_id_dict"][redis_ip]
                 act_kwargs.cluster["spec_config"] = {}
                 act_kwargs.cluster["meta_func_name"] = RedisDBMeta.redis_install.__name__
@@ -264,7 +289,7 @@ class RedisClusterMigrateLoadFlow(object):
             sub_pipeline.add_parallel_acts(acts_list)
             # 安装dbmon
             acts_list = []
-            for redis_ip in cluster["master_list"]:
+            for redis_ip in cluster["master_ips"]:
                 act_kwargs.cluster["servers"] = [
                     {
                         "app": app,
@@ -272,12 +297,12 @@ class RedisClusterMigrateLoadFlow(object):
                         "bk_biz_id": str(self.data["bk_biz_id"]),
                         "bk_cloud_id": int(self.data["bk_cloud_id"]),
                         "server_ip": redis_ip,
-                        "server_ports": cluster["ip_prot_dict"][redis_ip],
+                        "server_ports": cluster["ip_port_dict"][redis_ip],
                         "meta_role": InstanceRole.REDIS_MASTER.value,
                         "cluster_domain": params["clusterinfo"]["immute_domain"],
                         "cluster_name": params["clusterinfo"]["name"],
                         "cluster_type": params["clusterinfo"]["cluster_type"],
-                        "server_shards": cluster["server_shards"],
+                        "server_shards": cluster["server_shards"][redis_ip],
                         "cache_backup_mode": get_cache_backup_mode(self.data["bk_biz_id"], 0),
                     }
                 ]
@@ -290,7 +315,7 @@ class RedisClusterMigrateLoadFlow(object):
                         "kwargs": asdict(act_kwargs),
                     },
                 )
-            for redis_ip in cluster["slave_list"]:
+            for redis_ip in cluster["slave_ips"]:
                 act_kwargs.cluster["servers"] = [
                     {
                         "app": app,
@@ -298,12 +323,12 @@ class RedisClusterMigrateLoadFlow(object):
                         "bk_biz_id": str(self.data["bk_biz_id"]),
                         "bk_cloud_id": int(self.data["bk_cloud_id"]),
                         "server_ip": redis_ip,
-                        "server_ports": cluster["ip_prot_dict"][redis_ip],
+                        "server_ports": cluster["ip_port_dict"][redis_ip],
                         "meta_role": InstanceRole.REDIS_SLAVE.value,
                         "cluster_domain": params["clusterinfo"]["immute_domain"],
                         "cluster_name": params["clusterinfo"]["name"],
                         "cluster_type": params["clusterinfo"]["cluster_type"],
-                        "server_shards": cluster["server_shards"],
+                        "server_shards": cluster["server_shards"][redis_ip],
                         "cache_backup_mode": get_cache_backup_mode(self.data["bk_biz_id"], 0),
                     }
                 ]
@@ -349,14 +374,13 @@ class RedisClusterMigrateLoadFlow(object):
             sub_pipeline.add_act(
                 act_name=_("建立集群 元数据"), act_component_code=RedisDBMetaComponent.code, kwargs=asdict(act_kwargs)
             )
-            # sub_ins_pipelines.append(sub_redis_pipeline.build_sub_process(sub_name=_("redis相关子任务")))
 
             # clb、北极星需要写元数据
-            # sub_access_pipeline = SubBuilder(root_id=self.root_id, data=self.data)
             if len(params["entry"]["clb"]) != 0:
                 act_kwargs.cluster = params["entry"]["clb"]
                 act_kwargs.cluster["bk_cloud_id"] = self.data["bk_cloud_id"]
                 act_kwargs.cluster["immute_domain"] = params["clusterinfo"]["immute_domain"]
+                act_kwargs.cluster["created_by"] = self.data["created_by"]
                 act_kwargs.cluster["meta_func_name"] = RedisDBMeta.add_clb_domain.__name__
                 sub_pipeline.add_act(
                     act_name=_("clb元数据写入"), act_component_code=RedisDBMetaComponent.code, kwargs=asdict(act_kwargs)
@@ -366,15 +390,13 @@ class RedisClusterMigrateLoadFlow(object):
                 act_kwargs.cluster = params["entry"]["polairs"]
                 act_kwargs.cluster["bk_cloud_id"] = self.data["bk_cloud_id"]
                 act_kwargs.cluster["immute_domain"] = params["clusterinfo"]["immute_domain"]
+                act_kwargs.cluster["created_by"] = self.data["created_by"]
                 act_kwargs.cluster["meta_func_name"] = RedisDBMeta.add_polairs_domain.__name__
                 sub_pipeline.add_act(
                     act_name=_("polairs元数据写入"), act_component_code=RedisDBMetaComponent.code, kwargs=asdict(act_kwargs)
                 )
-            # sub_ins_pipelines.append(sub_access_pipeline.build_sub_process(sub_name=_("接入层相关子任务")))
-            # sub_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_ins_pipelines)
             sub_pipelines.append(
                 sub_pipeline.build_sub_process(sub_name=_("{}迁移子任务").format(params["clusterinfo"]["immute_domain"]))
             )
-            print("0000" * 10, params["clusterinfo"]["immute_domain"])
         redis_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
         redis_pipeline.run_pipeline()

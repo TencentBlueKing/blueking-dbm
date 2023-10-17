@@ -200,12 +200,12 @@ class RedisDBMeta(object):
                         "spec_config": self.cluster["spec_config"],
                     }
                 )
-                if self.cluster.get("ports"):
-                    for port in self.cluster["ports"]:
-                        ins.append({"ip": ip, "port": port, "instance_role": InstanceRole.REDIS_MASTER.value})
                 if self.cluster.get("inst_num"):
                     for n in range(0, self.cluster["inst_num"]):
                         port = n + self.cluster["start_port"]
+                        ins.append({"ip": ip, "port": port, "instance_role": InstanceRole.REDIS_MASTER.value})
+                elif self.cluster.get("ports"):
+                    for port in self.cluster["ports"]:
                         ins.append({"ip": ip, "port": port, "instance_role": InstanceRole.REDIS_MASTER.value})
 
         if self.cluster.get("new_slave_ips"):
@@ -219,14 +219,13 @@ class RedisDBMeta(object):
                         "spec_config": self.cluster["spec_config"],
                     }
                 )
-                if self.cluster.get("ports"):
-                    for port in self.cluster["ports"]:
-                        ins.append({"ip": ip, "port": port, "instance_role": InstanceRole.REDIS_SLAVE.value})
                 if self.cluster.get("inst_num"):
                     for n in range(0, self.cluster["inst_num"]):
                         port = n + self.cluster["start_port"]
                         ins.append({"ip": ip, "port": port, "instance_role": InstanceRole.REDIS_SLAVE.value})
-        ins = list(set(ins))
+                elif self.cluster.get("ports"):
+                    for port in self.cluster["ports"]:
+                        ins.append({"ip": ip, "port": port, "instance_role": InstanceRole.REDIS_SLAVE.value})
 
         with atomic():
             bk_cloud_id = 0
@@ -647,8 +646,8 @@ class RedisDBMeta(object):
         cluster_entry = ClusterEntry.objects.create(
             cluster=cluster,
             cluster_entry_type=entry_type,
-            entry=self.cluster["clb_ip"],
-            creator=self.ticket_data["created_by"],
+            entry=self.cluster["ip"],
+            creator=self.cluster["created_by"],
         )
         cluster_entry.save()
         clb_entry = CLBEntryDetail.objects.create(
@@ -656,7 +655,7 @@ class RedisDBMeta(object):
             clb_id=self.cluster["id"],
             listener_id=self.cluster["listener_id"],
             clb_region=self.cluster["region"],
-            entry_id=cluster.id,
+            entry_id=cluster_entry.id,
             creator=self.cluster["created_by"],
         )
         clb_entry.save()
@@ -672,15 +671,18 @@ class RedisDBMeta(object):
             cluster=cluster,
             cluster_entry_type=ClusterEntryType.POLARIS,
             entry=self.cluster["name"],
-            creator=self.ticket_data["created_by"],
+            creator=self.cluster["created_by"],
         )
         cluster_entry.save()
+        alias_token = ""
+        if self.cluster.get("alias_token"):
+            alias_token = self.cluster["alias_token"]
         polaris_entry = PolarisEntryDetail.objects.create(
             polaris_name=self.cluster["name"],
             polaris_l5=self.cluster["l5"],
             polaris_token=self.cluster["token"],
-            alias_token=self.cluster["alias_token"],
-            entry_id=cluster.id,
+            alias_token=alias_token,
+            entry_id=cluster_entry.id,
             creator=self.cluster["created_by"],
         )
         polaris_entry.save()
