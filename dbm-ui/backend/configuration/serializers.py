@@ -17,10 +17,11 @@ from backend.bk_web.constants import LEN_NORMAL, LEN_SHORT
 from backend.bk_web.serializers import AuditedSerializer
 from backend.configuration import mock_data
 from backend.configuration.constants import DEFAULT_SETTINGS, DBType
-from backend.configuration.mock_data import BIZ_SETTINGS_DATA, PASSWORD_POLICY
+from backend.configuration.mock_data import BIZ_SETTINGS_DATA, PASSWORD_POLICY, VERIFY_PASSWORD_DATA
 from backend.configuration.models.function_controller import FunctionController
 from backend.configuration.models.ip_whitelist import IPWhitelist
 from backend.configuration.models.system import BizSettings, SystemSettings
+from backend.db_meta.enums import ClusterType
 from backend.db_services.mysql.permission.constants import AccountType
 
 
@@ -93,7 +94,7 @@ class GetMySQLAdminPasswordSerializer(serializers.Serializer):
 
     begin_time = serializers.CharField(help_text=_("开始时间"), required=False)
     end_time = serializers.CharField(help_text=_("结束时间"), required=False)
-    instances = serializers.CharField(help_text=_("过滤的实例列表(通过,分割，实例格式为--cloud_id:ip:port)"), required=False)
+    instances = serializers.CharField(help_text=_("过滤的实例列表(通过,分割，实例格式为--ip:port)"), required=False)
 
 
 class GetMySQLAdminPasswordResponseSerializer(serializers.Serializer):

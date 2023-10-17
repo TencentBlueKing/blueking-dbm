@@ -16,8 +16,8 @@ from django.utils.translation import ugettext as _
 from backend.components import MySQLPrivManagerApi
 from backend.db_meta.exceptions import DBMetaException
 from backend.db_meta.models import Cluster, ClusterEntry, StorageInstanceTuple
-from backend.flow.consts import MySQLPrivComponent, UserName
 from backend.db_services.mysql.open_area.models import TendbOpenAreaConfig
+from backend.flow.consts import MySQLPrivComponent, UserName
 from backend.flow.utils.cc_manage import CcManage
 
 logger = logging.getLogger("root")

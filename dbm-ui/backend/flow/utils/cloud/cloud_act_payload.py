@@ -19,7 +19,8 @@ from backend.components.dbconfig.constants import FormatType, LevelName
 from backend.configuration.models import SystemSettings
 from backend.core.encrypt.constants import AsymmetricCipherConfigType
 from backend.core.encrypt.handlers import AsymmetricHandler
-from backend.db_proxy.constants import NGINX_PUSH_TARGET_PATH, ExtensionType
+from backend.db_proxy.constants import NGINX_PUSH_TARGET_PATH, ExtensionServiceStatus, ExtensionType
+from backend.db_proxy.models import DBExtension
 from backend.flow.consts import (
     CLOUD_NGINX_DBM_DEFAULT_PORT,
     CLOUD_NGINX_MANAGE_DEFAULT_HOST,
@@ -189,7 +190,7 @@ class CloudServiceActPayload(object):
 
     @staticmethod
     def get_dns_nameservers(bk_cloud_id):
-        dns_rows = DBExtension.get_extension_in_cloud(bk_cloud_id=bk_cloud_id, extension_type=CloudServiceName.DNS)
+        dns_rows = DBExtension.get_extension_in_cloud(bk_cloud_id=bk_cloud_id, extension_type=ExtensionType.DNS)
         if not dns_rows:
             raise ServiceDoesNotApply(_("DNS服务未部署,请在DNS服务部署后再进行该服务的部署"))
         dns_nameservers = ["nameserver {}".format(dns.details["ip"]) for dns in dns_rows]

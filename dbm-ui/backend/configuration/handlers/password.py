@@ -22,6 +22,7 @@ from backend.core.encrypt.constants import AsymmetricCipherConfigType
 from backend.core.encrypt.handlers import AsymmetricHandler
 from backend.db_meta.enums import ClusterType, InstanceInnerRole, InstanceRole, TenDBClusterSpiderRole
 from backend.db_periodic_task.models import DBPeriodicTask
+from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.flow.consts import MySQLPasswordRole
 
 
@@ -65,8 +66,8 @@ class DBPasswordHandler(object):
         instance_list = []
         try:
             for address in instances:
-                bk_cloud_id, ip, port = address.split(":")
-                instance_list.append({"bk_cloud_id": int(bk_cloud_id), "ip": ip, "port": int(port)})
+                ip, port = address.split(":")
+                instance_list.append({"ip": ip, "port": int(port)})
         except (IndexError, ValueError):
             raise PasswordPolicyBaseException(_("请保证查询的实例输入格式合法"))
 
@@ -80,8 +81,10 @@ class DBPasswordHandler(object):
 
         mysql_admin_password_data = MySQLPrivManagerApi.get_mysql_admin_password(params=filters)
         mysql_admin_password_data["results"] = mysql_admin_password_data.pop("items")
+        cloud_info = ResourceQueryHelper.search_cc_cloud(get_cache=True)
         for data in mysql_admin_password_data["results"]:
             data["password"] = base64.b64decode(data["password"]).decode("utf-8")
+            data["bk_cloud_name"] = cloud_info[str(data["bk_cloud_id"])]["bk_cloud_name"]
 
         return mysql_admin_password_data
 
