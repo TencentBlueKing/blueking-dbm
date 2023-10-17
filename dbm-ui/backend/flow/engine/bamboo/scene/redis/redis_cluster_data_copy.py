@@ -804,12 +804,14 @@ class RedisClusterDataCopyFlow(object):
                 act_kwargs.cluster["src_proxy_port"] = int(src_cluster_info["cluster_port"])
                 act_kwargs.cluster["src_proxy_password"] = src_cluster_info["cluster_password"]
                 act_kwargs.cluster["src_cluster_type"] = src_cluster_info["cluster_type"]
+                act_kwargs.cluster["src_cluster_name"] = src_cluster_info["cluster_name"]
                 act_kwargs.cluster["my_dst_proxy_ip"] = target_proxy_ip
                 act_kwargs.cluster["dst_proxy_port"] = int(dst_cluster_info["cluster_port"])
                 act_kwargs.cluster["dst_proxy_password"] = dst_cluster_info["cluster_password"]
                 act_kwargs.cluster["dst_cluster_type"] = dst_cluster_info["cluster_type"]
                 act_kwargs.cluster["dst_redis_ip"] = dst_running_master.machine.ip
                 act_kwargs.cluster["dst_redis_port"] = int(dst_running_master.port)
+                act_kwargs.cluster["dst_cluster_name"] = dst_cluster_info["cluster_name"]
                 act_kwargs.get_redis_payload_func = RedisActPayload.redis_dts_src_proxys_online_switch_payload.__name__
                 acts_list.append(
                     {
@@ -842,12 +844,14 @@ class RedisClusterDataCopyFlow(object):
                 act_kwargs.cluster["src_proxy_port"] = int(dst_cluster_info["cluster_port"])
                 act_kwargs.cluster["src_proxy_password"] = dst_cluster_info["cluster_password"]
                 act_kwargs.cluster["src_cluster_type"] = dst_cluster_info["cluster_type"]
+                act_kwargs.cluster["src_cluster_name"] = dst_cluster_info["cluster_name"]
                 act_kwargs.cluster["my_dst_proxy_ip"] = target_proxy_ip
                 act_kwargs.cluster["dst_proxy_port"] = int(src_cluster_info["cluster_port"])
                 act_kwargs.cluster["dst_proxy_password"] = src_cluster_info["cluster_password"]
                 act_kwargs.cluster["dst_cluster_type"] = src_cluster_info["cluster_type"]
                 act_kwargs.cluster["dst_redis_ip"] = src_running_master.machine.ip
                 act_kwargs.cluster["dst_redis_port"] = int(src_running_master.port)
+                act_kwargs.cluster["dst_cluster_name"] = src_cluster_info["cluster_name"]
                 act_kwargs.get_redis_payload_func = RedisActPayload.redis_dts_dst_proxys_online_switch_payload.__name__
                 acts_list.append(
                     {
