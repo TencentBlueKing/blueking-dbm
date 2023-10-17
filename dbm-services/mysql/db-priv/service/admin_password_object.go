@@ -43,13 +43,13 @@ type UserInComponent struct {
 
 // GetAdminUserPasswordPara 函数的入参
 type GetAdminUserPasswordPara struct {
-	Instances []Address `json:"instances"`
-	UserName  string    `json:"username"`
-	Component string    `json:"component"`
-	Limit     *int      `json:"limit"`
-	Offset    *int      `json:"offset"`
-	BeginTime string    `json:"begin_time"`
-	EndTime   string    `json:"end_time"`
+	Instances []IpPort `json:"instances"`
+	UserName  string   `json:"username"`
+	Component string   `json:"component"`
+	Limit     *int     `json:"limit"`
+	Offset    *int     `json:"offset"`
+	BeginTime string   `json:"begin_time"`
+	EndTime   string   `json:"end_time"`
 }
 
 type TbPasswords struct {

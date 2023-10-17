@@ -197,12 +197,7 @@ func (m *GetAdminUserPasswordPara) GetMysqlAdminPassword() ([]*TbPasswords, int,
 	where := fmt.Sprintf(" username='%s' and component='%s' and lock_until is not null", m.UserName, m.Component)
 	var filter []string
 	for _, item := range m.Instances {
-		if item.BkCloudId == nil {
-			return passwords, 0, errno.CloudIdRequired
-		}
-		// 目标实例
-		filter = append(filter, fmt.Sprintf("(ip='%s' and port=%d and bk_cloud_id=%d)",
-			item.Ip, item.Port, *item.BkCloudId))
+		filter = append(filter, fmt.Sprintf("(ip='%s' and port=%d)", item.Ip, item.Port))
 	}
 	filters := strings.Join(filter, " or ")
 	if filters != "" {
@@ -260,6 +255,7 @@ func (m *ModifyAdminUserPasswordPara) ModifyMysqlAdminPassword() (BatchResult, e
 	if m.Async && m.Range == "randmize_expired" {
 		errCheck = m.NeedToBeRandomized()
 		if errCheck != nil {
+			slog.Error("msg", "NeedToBeRandomized", errCheck)
 			return batch, errCheck
 		}
 	} else if m.Async && m.Range == "randmize_daily" {
@@ -303,9 +299,11 @@ func (m *ModifyAdminUserPasswordPara) ModifyMysqlAdminPassword() (BatchResult, e
 
 	for _, cluster := range m.Clusters {
 		if cluster.BkCloudId == nil {
+			slog.Error("msg", errno.CloudIdRequired)
 			return batch, errno.CloudIdRequired
 		}
 		if cluster.ClusterType == nil {
+			slog.Error("msg", errno.ClusterTypeIsEmpty)
 			return batch, errno.ClusterTypeIsEmpty
 		}
 		var psw, encrypt string
@@ -393,7 +391,7 @@ func (m *ModifyAdminUserPasswordPara) ModifyMysqlAdminPassword() (BatchResult, e
 					result := DB.Self.Exec(sql)
 					if result.Error != nil {
 						notOK.Addresses = append(notOK.Addresses, address)
-						slog.Error("msg", "excute sql error", result.Error)
+						slog.Error("msg", "sql", sql, "excute sql error", result.Error)
 						AddError(&errMsg, hostPort, result.Error)
 						continue
 					}
@@ -420,6 +418,7 @@ func (m *ModifyAdminUserPasswordPara) ModifyMysqlAdminPassword() (BatchResult, e
 	batch = BatchResult{Success: success.resources, Fail: fail.resources}
 	if len(errMsg.errs) > 0 {
 		errOuter := errno.ModifyUserPasswordFail.Add("\n" + strings.Join(errMsg.errs, "\n"))
+		slog.Error("msg", "modify error", errOuter)
 		return batch, errOuter
 	}
 	return batch, nil

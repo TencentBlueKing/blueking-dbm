@@ -57,9 +57,7 @@ def get_mysql_instance(cluster_id: int):
     def _get_instances(_role, _instances):
         instance_info = {
             "role": _role,
-            "addresses": [
-                {"ip": instance.machine.ip, "port": instance.port, "id": instance.id} for instance in _instances
-            ],
+            "addresses": [{"ip": instance.machine.ip, "port": instance.port} for instance in _instances],
         }
         return instance_info
 
