@@ -71,7 +71,7 @@
   import type { TableColumnRender } from '@/types/bkui-vue';
 
   interface Props {
-    fetchParams: object,
+    fetchParams: Record<string, any>,
     fetchNodes: (params: any) => Promise<HostNode[]>,
     title?: string,
   }

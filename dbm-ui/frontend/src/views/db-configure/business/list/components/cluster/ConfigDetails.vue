@@ -41,8 +41,6 @@
     ConfigBaseDetails,
     GetLevelConfigParams,
     ParameterConfigItem,
-    PlatConfDetailsParams,
-    PlatConfDetailsUpdateParams,
   } from '@services/types/configs';
 
   import {
@@ -62,7 +60,7 @@
   interface Props {
     data?: ConfigBaseDetails,
     loading?: boolean,
-    fetchParams?: PlatConfDetailsUpdateParams | PlatConfDetailsParams
+    fetchParams?: GetLevelConfigParams
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -70,7 +68,7 @@
       conf_items: [] as ParameterConfigItem[],
     } as ConfigBaseDetails),
     loading: false,
-    fetchParams: () => ({} as PlatConfDetailsUpdateParams),
+    fetchParams: () => ({} as GetLevelConfigParams),
   });
 
   const { t } = useI18n();

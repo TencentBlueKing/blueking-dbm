@@ -35,7 +35,7 @@
 
   import { ClusterTypes, TicketTypes } from '@common/const';
 
-  import type { TreeData } from '../common/types';
+  import type { TreeData } from './types';
 
   const router = useRouter();
   const route = useRoute();

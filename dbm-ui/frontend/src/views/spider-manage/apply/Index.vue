@@ -155,11 +155,11 @@
       remote_shard_num: 0,
       resource_spec: {
         spider: {
-          spec_id: '',
+          spec_id: 0,
           count: 2,
         },
         backend_group: {
-          spec_id: '',
+          spec_id: 0,
           count: 0,
           capacity: '',
           future_capacity: '',

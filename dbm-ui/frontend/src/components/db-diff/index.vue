@@ -48,7 +48,7 @@
   import type { TableColumnRender } from '@/types/bkui-vue';
 
   interface Props {
-    data?: object[],
+    data?: Record<string, any>[],
     count?: {
       create: number,
       update: number,
@@ -80,7 +80,9 @@
   }, {
     label: t('更新前'),
     field: 'before',
-    render: ({ data }: TableColumnRender) => props.labels.map((label) => {
+    render: ({ data }: TableColumnRender) => (
+      <>
+        {props.labels.map((label) => {
       const itemData = data.before;
       const displayValue = label.render ? label.render(data, 'before') : itemData[label.key];
       return (
@@ -89,27 +91,33 @@
           <span class="bk-diff__item-value text-overflow" v-overflow-tips>{displayValue}</span>
         </div>
       );
-    }),
+    })}
+      </>
+    ),
   }, {
     label: t('更新后'),
     field: 'after',
-    render: ({ data }: TableColumnRender) => props.labels.map((label) => {
-      const itemData = data.after;
-      const displayValue = label.render ? label.render(data, 'after') : itemData[label.key];
+    render: ({ data }: TableColumnRender) => (
+      <>
+        {props.labels.map((label) => {
+        const itemData = data.after;
+        const displayValue = label.render ? label.render(data, 'after') : itemData[label.key];
 
-      let { status } = data;
-      if (status === 'update') {
-        status = data.after[label.key] === data.before[label.key] ? '' : 'update';
-      }
-      const statusCls = status ? `bk-diff__item--${data.status}` : '';
+        let { status } = data;
+        if (status === 'update') {
+          status = data.after[label.key] === data.before[label.key] ? '' : 'update';
+        }
+        const statusCls = status ? `bk-diff__item--${data.status}` : '';
 
-      return (
-        <div class={['bk-diff__item', statusCls]}>
-          <span class="bk-diff__item-label">{label.label}</span>
-          <span class="bk-diff__item-value text-overflow" v-overflow-tips>{displayValue}</span>
-        </div>
-      );
-    }),
+        return (
+          <div class={['bk-diff__item', statusCls]}>
+            <span class="bk-diff__item-label">{label.label}</span>
+            <span class="bk-diff__item-value text-overflow" v-overflow-tips>{displayValue}</span>
+          </div>
+        );
+      })}
+      </>
+    ),
   }];
 </script>
 

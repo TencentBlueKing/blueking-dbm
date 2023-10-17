@@ -11,7 +11,7 @@
  * the specific language governing permissions and limitations under the License.
 */
 
-import { acceptHMRUpdate, defineStore } from 'pinia';
+import { defineStore } from 'pinia';
 
 import type { RouteMeteTag } from '@/types/router';
 
@@ -23,7 +23,3 @@ export const useMainViewStore = defineStore('mainView', {
     tags: [] as RouteMeteTag[],
   }),
 });
-
-if (import.meta.hot) {
-  import.meta.hot.accept(acceptHMRUpdate(useMainViewStore, import.meta.hot));
-}

@@ -154,7 +154,7 @@ export const disablePolicy = (params: { id: number }) => http.post<boolean>(`/ap
 export const resetPolicy = (params: { id: number }) => http.post<void>(`/apis/monitor/policy/${params.id}/reset`);
 
 // 删除策略
-export const deletePolicy = (params: { id: number }) => http.delete<null | object>(`/apis/monitor/policy/${params.id}/`);
+export const deletePolicy = (params: { id: number }) => http.delete<null | Record<string, any>>(`/apis/monitor/policy/${params.id}/`);
 
 // 根据db类型查询集群列表
 export const getClusterList = (params: { dbtype: string }) => http.get<string[]>('/apis/monitor/policy/cluster_list/', params);

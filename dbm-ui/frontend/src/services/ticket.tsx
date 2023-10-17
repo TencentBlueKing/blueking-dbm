@@ -59,7 +59,7 @@ export const getCapSpecs = (params: CapSpecsParams & { cityCode: string }) => ht
 /**
  * 创建单据
  */
-export const createTicket = (formData: object) => http.post<TicketItem>('/apis/tickets/', formData, { globalError: false })
+export const createTicket = (formData: Record<string, any>) => http.post<TicketItem>('/apis/tickets/', formData, { globalError: false })
   .then(res => res)
   .catch((e) => {
     const { code, data } = e;
@@ -142,7 +142,7 @@ export const processTicketTodo = (params: {
   action: string,
   todo_id: number,
   ticket_id: number,
-  params: object
+  params: Record<string, any>
 }) => http.post<FlowItemTodo>(`/apis/tickets/${params.ticket_id}/process_todo/`, params);
 
 
