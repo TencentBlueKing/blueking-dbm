@@ -44,6 +44,8 @@ class SQLGrammarCheckSerializer(serializers.Serializer):
         if not (attrs.get("sql_content", None) or attrs.get("sql_files", None)):
             raise ValidationError(_("不允许sql_content和sql_file同时为空，请至少填写一项"))
 
+        # TODO: 校验文件的后缀为.sql
+
         return attrs
 
 

@@ -51,7 +51,7 @@ class MysqlMigrateClusterDetailSerializer(MySQLBaseOperateDetailSerializer):
 
 
 class MysqlMigrateClusterParamBuilder(builders.FlowParamBuilder):
-    controller = MySQLController.mysql_migrate_cluster_scene
+    controller = MySQLController.mysql_migrate_remote_scene
 
     def format_ticket_data(self):
         if self.ticket_data["ip_source"] == IpSource.RESOURCE_POOL:

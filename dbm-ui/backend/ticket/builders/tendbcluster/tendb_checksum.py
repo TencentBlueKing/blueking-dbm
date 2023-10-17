@@ -9,6 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
+from datetime import datetime
 from typing import Any, Dict, List
 
 from django.utils.translation import gettext_lazy as _
@@ -33,6 +34,7 @@ from backend.ticket.builders.mysql.mysql_checksum import (
 from backend.ticket.builders.tendbcluster.base import TendbBaseOperateDetailSerializer
 from backend.ticket.constants import TicketType
 from backend.ticket.models import Flow
+from backend.utils.time import str2datetime
 
 
 class TendbChecksumDetailSerializer(TendbBaseOperateDetailSerializer):
@@ -60,7 +62,13 @@ class TendbChecksumDetailSerializer(TendbBaseOperateDetailSerializer):
     is_sync_non_innodb = serializers.BooleanField(help_text=_("非innodb表是否修复"), required=False, default=False)
 
     def validate(self, attrs):
+        # 库表选择校验
         super().validate_checksum_database_selector(attrs)
+
+        # 校验定时时间不能早于当前时间
+        if str2datetime(attrs["timing"]) < datetime.now():
+            raise serializers.ValidationError(_("定时时间必须晚于当前时间"))
+
         return attrs
 
 
