@@ -166,7 +166,6 @@
 
   const props = withDefaults(defineProps<Props>(), {
     buttonText: t('添加服务器'),
-    showDialog: false,
     searchPlaceholder: '',
     tableProps: () => ({} as TablePropTypes),
     data: () => [],
@@ -182,7 +181,7 @@
     disableTips: '',
   });
   const emits = defineEmits<Emits>();
-  const showDialog = defineModel<boolean>({
+  const showDialog = defineModel<boolean>('showDialog', {
     default: false,
   });
 
@@ -385,8 +384,8 @@
     selectorState.tableData = cloneData;
   }, { immediate: true, deep: true });
 
-  watch(() => props.showDialog, () => {
-    selectorState.isShow = props.showDialog;
+  watch(showDialog, () => {
+    selectorState.isShow = showDialog.value;
   });
 
   watch(() => selectorState.isShow, (isShow) => {
