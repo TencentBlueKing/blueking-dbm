@@ -11,15 +11,15 @@ specific language governing permissions and limitations under the License.
 from typing import Union
 
 from backend.components import DBConfigApi
-from backend.components.dbconfig.constants import LevelName, FormatType, ReqType
+from backend.components.dbconfig.constants import FormatType, LevelName, ReqType
 from backend.configuration.constants import DBType
 from backend.db_meta.enums import InstanceRole
-from backend.db_meta.models import StorageInstance, ProxyInstance
+from backend.db_meta.models import ProxyInstance, StorageInstance
 from backend.flow.consts import ConfigTypeEnum, NameSpaceEnum, PulsarRoleEnum
 from backend.flow.utils.base.cc_topo_operate import CCTopoOperator
 from backend.flow.utils.pulsar.consts import (
-    PULSAR_BROKER_METRICS_PORT,
     PULSAR_BOOKKEEPER_METRICS_PORT,
+    PULSAR_BROKER_METRICS_PORT,
     PULSAR_ZOOKEEPER_METRICS_PORT,
 )
 
