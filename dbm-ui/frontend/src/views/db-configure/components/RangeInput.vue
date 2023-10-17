@@ -87,10 +87,10 @@
   const { body } = document;
   const rangeContentRef = ref<HTMLElement>();
   const valueState = reactive({
-    max: max ?? 0,
-    min: min ?? 0,
+    max: max.value ?? 0,
+    min: min.value ?? 0,
   });
-  const showPlaceholder = computed(() => !Number.isFinite(max) || !Number.isFinite(min));
+  const showPlaceholder = computed(() => !Number.isFinite(max.value) || !Number.isFinite(min.value));
 
   /**
    * popover control
@@ -125,7 +125,7 @@
    * 验证值符合校验则关闭popover
    */
   const handleEnter = () => {
-    if (Number.isFinite(max) && Number.isFinite(min) && valueState.min <= valueState.max) {
+    if (Number.isFinite(max.value) && Number.isFinite(min.value) && valueState.min <= valueState.max) {
       handleClose();
     }
   };
