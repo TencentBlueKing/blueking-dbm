@@ -9,7 +9,6 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 from django.utils.translation import ugettext_lazy as _
-from drf_yasg.openapi import Response as yasg_response
 from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -17,55 +16,72 @@ from rest_framework.response import Response
 from backend import env
 from backend.bk_web import viewsets
 from backend.bk_web.swagger import common_swagger_auto_schema
-from backend.configuration.constants import DEFAULT_SETTINGS
-from backend.configuration.models.system import SystemSettings
-from backend.configuration.serializers import SystemSettingsSerializer
+from backend.components import domains
+from backend.configuration.constants import DISK_CLASSES, SystemSettingsEnum
+from backend.configuration.models.system import BizSettings, SystemSettings
+from backend.configuration.serializers import (
+    BizSettingsSerializer,
+    ListBizSettingsResponseSerializer,
+    ListBizSettingsSerializer,
+    UpdateBizSettingsSerializer,
+    UpdateDutyNoticeSerializer,
+)
+from backend.db_services.ipchooser.constants import IDLE_HOST_MODULE
+from backend.flow.utils.cc_manage import CcManage
+from backend.iam_app.handlers.drf_perm import DBManageIAMPermission, RejectPermission
 
 tags = [_("系统设置")]
 
 
-class SystemSettingsViewSet(viewsets.AuditedModelViewSet):
+class SystemSettingsViewSet(viewsets.SystemViewSet):
     """系统设置视图"""
 
-    serializer_class = SystemSettingsSerializer
-    queryset = SystemSettings.objects.all()
-    # permission_classes 管理员
-    filter_fields = {
-        "key": ["exact"],
-        "type": ["exact"],
-        "id": ["exact"],
-    }
-
     def _get_custom_permissions(self):
+        # 非超级用户拒绝访问敏感信息
+        if self.action == self.sensitive_environ.__name__ and not self.request.user.is_superuser:
+            return [RejectPermission()]
+
         return []
 
     @common_swagger_auto_schema(
-        operation_summary=_("系统设置列表"),
-        responses={status.HTTP_200_OK: SystemSettingsSerializer(_("系统设置"), many=True)},
+        operation_summary=_("查询磁盘类型"),
         tags=tags,
     )
-    def list(self, request, *args, **kwargs):
-        return super().list(request, *args, **kwargs)
+    @action(methods=["GET"], detail=False)
+    def disk_classes(self, request, *args, **kwargs):
+        return Response(DISK_CLASSES)
 
     @common_swagger_auto_schema(
-        operation_summary=_("系统设置键值映射表"),
-        responses={
-            status.HTTP_200_OK: yasg_response(
-                _("系统设置"), examples={setting[0]: setting[2] for setting in DEFAULT_SETTINGS}
-            )
-        },
+        operation_summary=_("查询机型类型"),
         tags=tags,
     )
-    @action(detail=False, methods=["get"])
-    def simple(self, request, *args, **kwargs):
-        """获取系统配置表 -> {"key": "value"}"""
+    @action(methods=["GET"], detail=False)
+    def device_classes(self, request, *args, **kwargs):
+        return Response(SystemSettings.get_setting_value(SystemSettingsEnum.DEVICE_CLASSES.value, default=[]))
 
-        return Response({q.key: q.value for q in self.queryset})
+    @common_swagger_auto_schema(
+        operation_summary=_("查询轮值通知配置"),
+        tags=tags,
+    )
+    @action(methods=["GET"], detail=False, pagination_class=None)
+    def duty_notice_config(self, request, *args, **kwargs):
+        return Response(SystemSettings.get_setting_value(SystemSettingsEnum.BKM_DUTY_NOTICE.value, default={}))
+
+    @common_swagger_auto_schema(
+        operation_summary=_("更新轮值通知配置"),
+        tags=tags,
+        request_body=UpdateDutyNoticeSerializer(),
+    )
+    @action(methods=["POST"], detail=False, pagination_class=None, serializer_class=UpdateDutyNoticeSerializer)
+    def update_duty_notice_config(self, request, *args, **kwargs):
+        """"""
+        SystemSettings.insert_setting_value(SystemSettingsEnum.BKM_DUTY_NOTICE.value, self.validated_data, "dict")
+        return Response(SystemSettings.get_setting_value(SystemSettingsEnum.BKM_DUTY_NOTICE.value, default={}))
 
     @common_swagger_auto_schema(operation_summary=_("查询环境变量"), tags=tags)
     @action(detail=False, methods=["get"])
     def environ(self, request):
-        """按需提供环境变量"""
+        """按需提供非敏感环境变量"""
         return Response(
             {
                 "BK_DOMAIN": env.BK_DOMAIN,
@@ -73,5 +89,66 @@ class SystemSettingsViewSet(viewsets.AuditedModelViewSet):
                 "BK_CMDB_URL": env.BK_CMDB_URL,
                 "BK_NODEMAN_URL": env.BK_NODEMAN_URL,
                 "BK_SCR_URL": env.BK_SCR_URL,
+                "BK_HELPER_URL": env.BK_HELPER_URL,
+                "BK_DBM_URL": env.BK_SAAS_HOST,
+                "CC_IDLE_MODULE_ID": CcManage(env.DBA_APP_BK_BIZ_ID).get_biz_internal_module(env.DBA_APP_BK_BIZ_ID)[
+                    IDLE_HOST_MODULE
+                ]["bk_module_id"],
+                "CC_MANAGE_TOPO": SystemSettings.get_setting_value(key=SystemSettingsEnum.MANAGE_TOPO.value),
             }
         )
+
+    @common_swagger_auto_schema(operation_summary=_("查询环境变量"), tags=tags)
+    @action(detail=False, methods=["get"])
+    def sensitive_environ(self, request):
+        """按需提供敏感环境变量"""
+        dbm_report = SystemSettings.get_setting_value(key=SystemSettingsEnum.BKM_DBM_REPORT.value)
+        return Response(
+            {
+                "MONITOR_METRIC_DATA_ID": dbm_report["metric"]["data_id"],
+                "MONITOR_EVENT_DATA_ID": dbm_report["event"]["data_id"],
+                "MONITOR_METRIC_ACCESS_TOKEN": dbm_report["metric"]["token"],
+                "MONITOR_EVENT_ACCESS_TOKEN": dbm_report["event"]["token"],
+                "MONITOR_SERVICE": dbm_report["proxy"],
+            }
+        )
+
+
+class BizSettingsViewSet(viewsets.AuditedModelViewSet):
+    """业务设置视图"""
+
+    serializer_class = BizSettingsSerializer
+    queryset = BizSettings.objects.all()
+
+    def _get_custom_permissions(self):
+        return [DBManageIAMPermission()]
+
+    @common_swagger_auto_schema(
+        operation_summary=_("业务设置列表"),
+        responses={status.HTTP_200_OK: BizSettingsSerializer(_("业务设置"), many=True)},
+        tags=tags,
+    )
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
+    @common_swagger_auto_schema(
+        operation_summary=_("业务设置列表键值映射表"),
+        query_serializer=ListBizSettingsSerializer(),
+        responses={status.HTTP_200_OK: ListBizSettingsResponseSerializer()},
+        tags=tags,
+    )
+    @action(detail=False, methods=["GET"], serializer_class=ListBizSettingsSerializer)
+    def simple(self, request, *args, **kwargs):
+        filter_field = self.params_validate(self.get_serializer_class())
+        return Response({q.key: q.value for q in self.queryset.filter(**filter_field)})
+
+    @common_swagger_auto_schema(
+        operation_summary=_("更新业务设置列表键值"),
+        request_body=UpdateBizSettingsSerializer(),
+        tags=tags,
+    )
+    @action(detail=False, methods=["POST"], serializer_class=UpdateBizSettingsSerializer)
+    def update_settings(self, request, *args, **kwargs):
+        setting_data = self.params_validate(self.get_serializer_class())
+        BizSettings.insert_setting_value(**setting_data, user=request.user.username)
+        return Response()

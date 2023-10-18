@@ -27,6 +27,7 @@ from backend.flow.plugins.components.collections.redis.get_redis_payload import 
 from backend.flow.plugins.components.collections.redis.redis_db_meta import RedisDBMetaComponent
 from backend.flow.utils.redis.redis_context_dataclass import ActKwargs, CommonContext
 from backend.flow.utils.redis.redis_db_meta import RedisDBMeta
+from backend.flow.utils.redis.redis_proxy_util import get_cache_backup_mode, get_twemproxy_cluster_server_shards
 
 from .redis_install import RedisBatchInstallAtomJob
 from .redis_makesync import RedisMakeSyncAtomJob
@@ -46,6 +47,9 @@ def RedisClusterSlaveReplaceJob(root_id, ticket_data, sub_kwargs: ActKwargs, sla
     # ### 部署实例 ###############################################################################
     sub_pipelines = []
     slave_replace_detail = slave_replace_info["redis_slave"]
+    twemproxy_server_shards = get_twemproxy_cluster_server_shards(
+        act_kwargs.cluster["bk_biz_id"], act_kwargs.cluster["cluster_id"], act_kwargs.cluster["slave_ins_map"]
+    )
     for replace_link in slave_replace_detail:
         # {"ip": "1.1.1.a","spec_id": 17,"target": {"bk_cloud_id": 0,"bk_host_id": 216,"status": 1,"ip": "2.2.2.b"}}
         old_slave = replace_link["ip"]
@@ -58,6 +62,10 @@ def RedisClusterSlaveReplaceJob(root_id, ticket_data, sub_kwargs: ActKwargs, sla
             "instance_numb": len(act_kwargs.cluster["slave_ports"][old_slave]),
             "spec_id": slave_replace_info["slave_spec"].get("id", 0),
             "spec_config": slave_replace_info["slave_spec"],
+            "server_shards": twemproxy_server_shards.get(new_slave, {}),
+            "cache_backup_mode": get_cache_backup_mode(
+                act_kwargs.cluster["bk_biz_id"], act_kwargs.cluster["cluster_id"]
+            ),
         }
         sub_builder = RedisBatchInstallAtomJob(root_id, ticket_data, act_kwargs, params)
         sub_pipelines.append(sub_builder)
@@ -76,6 +84,10 @@ def RedisClusterSlaveReplaceJob(root_id, ticket_data, sub_kwargs: ActKwargs, sla
             "origin_2": old_slave,
             "sync_dst1": new_slave,
             "ins_link": [],
+            "server_shards": twemproxy_server_shards.get(new_slave, {}),
+            "cache_backup_mode": get_cache_backup_mode(
+                act_kwargs.cluster["bk_biz_id"], act_kwargs.cluster["cluster_id"]
+            ),
         }
         for slave_port in act_kwargs.cluster["slave_ports"][old_slave]:
             old_ins = "{}{}{}".format(old_slave, IP_PORT_DIVIDER, slave_port)

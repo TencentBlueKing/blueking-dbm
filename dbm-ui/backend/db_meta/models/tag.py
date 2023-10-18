@@ -9,13 +9,22 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 from django.db import models
+from django.utils.translation import ugettext_lazy as _
 
 from backend.bk_web.models import AuditedModel
+from backend.db_meta.enums.comm import TagType
+from backend.db_meta.models import Cluster
 
 
 class Tag(AuditedModel):
     bk_biz_id = models.IntegerField(default=0)
-    name = models.CharField(max_length=64, default="")
+    name = models.CharField(max_length=64, default="", help_text=_("tag名称"))
+    type = models.CharField(max_length=64, help_text=_("tag类型"), choices=TagType.get_choices())
+    cluster = models.ManyToManyField(Cluster, blank=True, help_text=_("关联集群"))
 
     class Meta:
         unique_together = ["bk_biz_id", "name"]
+
+    def tag_desc(self):
+        """仅返回tag的信息"""
+        return {"bk_biz_id": self.bk_biz_id, "name": self.name, "type": self.type}

@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"log/slog"
 	"strings"
 
 	ma "dbm-services/mysql/db-tools/mysql-crond/api"
@@ -9,7 +10,6 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"golang.org/x/exp/slog"
 )
 
 var subCmdClean = &cobra.Command{
@@ -25,7 +25,7 @@ var subCmdClean = &cobra.Command{
 		manager := ma.NewManager(config.ChecksumConfig.ApiUrl)
 		entries, err := manager.Entries()
 		if err != nil {
-			slog.Error("clean list entries", err)
+			slog.Error("clean list entries", slog.String("error", err.Error()))
 			return err
 		}
 
@@ -37,7 +37,8 @@ var subCmdClean = &cobra.Command{
 				eid, err := manager.Delete(entry.Job.Name, true)
 				if err != nil {
 					slog.Error(
-						"reschedule delete entry", err,
+						"reschedule delete entry",
+						slog.String("error", err.Error()),
 						slog.String("name", entry.Job.Name),
 					)
 					return err

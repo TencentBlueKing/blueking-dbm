@@ -42,6 +42,7 @@ type logicBackupDataOption struct {
 // InstallNewDbBackupParam TODO
 type InstallNewDbBackupParam struct {
 	components.Medium
+	// Configs BackupConfig
 	Configs        map[string]map[string]string `json:"configs" validate:"required"`         // 模板配置
 	Options        BackupOptions                `json:"options" validate:"required"`         // 选项参数配置
 	Host           string                       `json:"host"  validate:"required,ip"`        // 当前实例的主机地址
@@ -162,6 +163,8 @@ func (i *InstallNewDbBackupComp) initBackupOptions() {
 	var ignoretbls, ignoredbs []string
 	ignoredbs = strings.Split(i.Params.Options.IgnoreObjs.IgnoreDatabases, ",")
 	ignoredbs = append(ignoredbs, native.DBSys...)
+	// 默认备份需要 infodba_schema 库
+	ignoredbs = util.StringsRemove(ignoredbs, native.INFODBA_SCHEMA)
 	ignoretbls = strings.Split(i.Params.Options.IgnoreObjs.IgnoreTables, ",")
 
 	i.ignoredbs = util.UniqueStrings(util.RemoveEmpty(ignoredbs))
@@ -210,7 +213,7 @@ func (i *InstallNewDbBackupComp) getInsShardValue(port int) int {
 	return 0
 }
 
-// InitRenderData 初始化待渲染的配置变量
+// InitRenderData 初始化待渲染的配置变量 renderCnf[port]: backup_configs
 func (i *InstallNewDbBackupComp) InitRenderData() (err error) {
 	if i.Params.UntarOnly {
 		logger.Info("untar_only=true do not need InitRenderData")
@@ -219,7 +222,7 @@ func (i *InstallNewDbBackupComp) InitRenderData() (err error) {
 
 	bkuser := i.GeneralParam.RuntimeAccountParam.DbBackupUser
 	bkpwd := i.GeneralParam.RuntimeAccountParam.DbBackupPwd
-	regexfunc, err := db_table_filter.NewDbTableFilter([]string{"*"}, []string{"*"}, i.ignoredbs, i.ignoretbls)
+	regexfunc, err := db_table_filter.BuildMydumperRegex([]string{"*"}, []string{"*"}, i.ignoredbs, i.ignoretbls)
 	if err != nil {
 		return err
 	}
@@ -236,7 +239,7 @@ func (i *InstallNewDbBackupComp) InitRenderData() (err error) {
 	case cst.BackupRoleOrphan:
 		// orphan 使用的是 tendbsingle Master.DataSchemaGrant
 		dsg = i.Params.Options.Master.DataSchemaGrant
-	case cst.BackupRoleSpiderMaster, cst.BackupRoleSpiderSlave:
+	case cst.BackupRoleSpiderMaster, cst.BackupRoleSpiderSlave, cst.BackupRoleSpiderMnt:
 		// spider 只在 spider_master and tdbctl_master 上，备份schema,grant
 		dsg = "schema,grant"
 	default:

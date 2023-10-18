@@ -3,13 +3,12 @@ package checker
 import (
 	"bufio"
 	"fmt"
+	"log/slog"
 	"os/exec"
 	"regexp"
 	"strconv"
 	"strings"
 	"time"
-
-	"golang.org/x/exp/slog"
 )
 
 func summary(stdout string) (summaries []ChecksumSummary, err error) {
@@ -46,7 +45,11 @@ func summary(stdout string) (summaries []ChecksumSummary, err error) {
 				time.Local,
 			)
 			if err != nil {
-				slog.Error("parse time", err, slog.String("original row", line))
+				slog.Error(
+					"parse time",
+					slog.String("error", err.Error()),
+					slog.String("original row", line),
+				)
 				return nil, err
 			}
 

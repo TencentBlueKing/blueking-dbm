@@ -420,11 +420,11 @@ class RedisDBMeta(object):
             machine_obj = Machine.objects.get(ip=self.cluster["meta_update_ip"])
             if machine_obj.access_layer == AccessLayer.PROXY.value:
                 ProxyInstance.objects.filter(
-                    machine__ip=self.cluster["meta_update_ip"], port__in=self.cluster["meta_udpate_ports"]
+                    machine__ip=self.cluster["meta_update_ip"], port__in=self.cluster["meta_update_ports"]
                 ).update(status=self.cluster["meta_update_status"])
             else:
                 StorageInstance.objects.filter(
-                    machine__ip=self.cluster["meta_update_ip"], port__in=self.cluster["meta_udpate_ports"]
+                    machine__ip=self.cluster["meta_update_ip"], port__in=self.cluster["meta_update_ports"]
                 ).update(status=self.cluster["meta_update_status"])
         return True
 
@@ -432,7 +432,7 @@ class RedisDBMeta(object):
         """1.修改状态、2.切换角色"""
         self.instances_status_update()
         with atomic():
-            for port in self.cluster["meta_udpate_ports"]:
+            for port in self.cluster["meta_update_ports"]:
                 old_master = StorageInstance.objects.get(machine__ip=self.cluster["meta_update_ip"], port=port)
                 old_slave = old_master.as_ejector.get().receiver
                 StorageInstanceTuple.objects.get(ejector=old_master, receiver=old_slave).delete(keep_parents=True)
@@ -758,4 +758,15 @@ class RedisDBMeta(object):
             )
             RedisCCTopoOperator(dst_cluster).transfer_instances_to_cluster_module(src_storageinstances)
 
+        return True
+
+    def redis_cluster_version_update(self):
+        """
+        更新集群版本(major_version)
+        """
+        cluster = Cluster.objects.get(
+            bk_cloud_id=self.cluster["bk_cloud_id"], immute_domain=self.cluster["immute_domain"]
+        )
+        cluster.major_version = self.cluster["target_version"]
+        cluster.save(update_fields=["major_version"])
         return True

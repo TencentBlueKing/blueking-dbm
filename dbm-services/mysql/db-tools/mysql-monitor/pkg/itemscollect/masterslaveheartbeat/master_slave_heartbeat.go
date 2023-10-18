@@ -5,6 +5,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"log/slog"
 
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/config"
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/internal/cst"
@@ -13,7 +14,6 @@ import (
 	"github.com/go-sql-driver/mysql"
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
-	"golang.org/x/exp/slog"
 )
 
 var (
@@ -49,7 +49,10 @@ func (c *Checker) updateHeartbeat() error {
 	err := c.db.QueryRow("select @@server_id, @@binlog_format").
 		Scan(&masterServerId, &binlogFormatOld)
 	if err != nil {
-		slog.Error("master-slave-heartbeat query server_id, binlog_format", err)
+		slog.Error(
+			"master-slave-heartbeat query server_id, binlog_format",
+			slog.String("error", err.Error()),
+		)
 		return err
 	}
 	slog.Debug(
@@ -61,7 +64,7 @@ func (c *Checker) updateHeartbeat() error {
 	// will set session variables, so get a connection from pool
 	conn, err := c.db.DB.Conn(context.Background())
 	if err != nil {
-		slog.Error("master-slave-heartbeat get conn from db", err)
+		slog.Error("master-slave-heartbeat get conn from db", slog.String("error", err.Error()))
 		return err
 	}
 	defer func() {
@@ -71,18 +74,13 @@ func (c *Checker) updateHeartbeat() error {
 	if config.MonitorConfig.MachineType == "spider" {
 		_, err := conn.ExecContext(ctx, "set tc_admin=0")
 		if err != nil {
-			slog.Error("master-slave-heartbeat", err)
+			slog.Error("master-slave-heartbeat", slog.String("error", err.Error()))
 			return err
 		}
 	}
 
 	txrrSQL := "SET SESSION TRANSACTION ISOLATION LEVEL REPEATABLE READ" // SET SESSION transaction_isolation = 'REPEATABLE-READ'
 	binlogSQL := "SET SESSION binlog_format='STATEMENT'"
-	updateSQL := fmt.Sprintf(
-		`UPDATE %s SET 
-master_time=now(), slave_time=sysdate(),delay_sec=timestampdiff(SECOND, now(),sysdate()) 
-WHERE slave_server_id=@@server_id and master_server_id= '%s'`,
-		c.heartBeatTable, masterServerId)
 	insertSQL := fmt.Sprintf(
 		`REPLACE INTO %s(master_server_id, slave_server_id, master_time, slave_time, delay_sec) 
 VALUES('%s', @@server_id, now(), sysdate(), timestampdiff(SECOND, now(),sysdate()))`,
@@ -90,16 +88,16 @@ VALUES('%s', @@server_id, now(), sysdate(), timestampdiff(SECOND, now(),sysdate(
 
 	if _, err := conn.ExecContext(ctx, txrrSQL); err != nil {
 		err := errors.WithMessage(err, "update heartbeat need SET SESSION tx_isolation = 'REPEATABLE-READ'")
-		slog.Error("master-slave-heartbeat", err)
+		slog.Error("master-slave-heartbeat", slog.String("error", err.Error()))
 		return err
 	}
 	if _, err := conn.ExecContext(ctx, binlogSQL); err != nil {
 		err := errors.WithMessage(err, "update heartbeat need binlog_format=STATEMENT")
-		slog.Error("master-slave-heartbeat", err)
+		slog.Error("master-slave-heartbeat", slog.String("error", err.Error()))
 		return err
 	}
 
-	res, err := conn.ExecContext(ctx, updateSQL)
+	res, err := conn.ExecContext(ctx, insertSQL)
 	if err != nil {
 		var merr *mysql.MySQLError
 		if errors.As(err, &merr) {
@@ -107,22 +105,16 @@ VALUES('%s', @@server_id, now(), sysdate(), timestampdiff(SECOND, now(),sysdate(
 				slog.Debug("master-slave-heartbeat table not found") // ERROR 1054 (42S22): Unknown colum
 				res, err = c.initTableHeartbeat()
 				if err != nil {
-					slog.Error("master-slave-heartbeat init table", err)
+					slog.Error("master-slave-heartbeat init table", slog.String("error", err.Error()))
 					return err
 				}
 				slog.Debug("master-slave-heartbeat init table success")
 			}
 		}
-	}
-
-	num, _ := res.RowsAffected()
-	slog.Debug("master-slave-heartbeat", slog.String("update rows", name))
-	if num == 0 {
-		if _, err = conn.ExecContext(ctx, insertSQL); err != nil {
-			slog.Error("master-slave-heartbeat insert", err)
-			return err
+	} else {
+		if num, _ := res.RowsAffected(); num > 0 {
+			slog.Debug("master-slave-heartbeat insert success")
 		}
-		slog.Debug("master-slave-heartbeat insert success")
 	}
 	/*
 				// 正常只在 slave 上才需要 update slave beat_sec，但 repeater 也需要更新，所以可以直接忽略角色

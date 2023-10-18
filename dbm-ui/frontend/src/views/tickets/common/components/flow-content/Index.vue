@@ -25,7 +25,9 @@
   </template>
   <template v-else>
     <p>
-      <template v-if="content.status === 'RUNNING' && content.flow_type === 'RESOURCE_APPLY'">
+      <template
+        v-if="content.status === 'RUNNING' &&
+          (content.flow_type === 'RESOURCE_APPLY' || content.flow_type === 'RESOURCE_BATCH_APPLY')">
         <I18nT
           keypath="主机资源不足_等待管理员users补货_补货完成后可以前往place重试"
           tag="span">
@@ -172,7 +174,8 @@
   function handleConfirm(item: FlowItem) {
     state.confirmTips = false;
     state.isLoading = true;
-    retryTicketFlow(item.ticket, {
+    retryTicketFlow({
+      ticketId: item.ticket,
       flow_id: item.id,
     })
       .then(() => {

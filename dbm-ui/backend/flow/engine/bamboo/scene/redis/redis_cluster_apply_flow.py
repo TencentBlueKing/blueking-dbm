@@ -11,6 +11,7 @@ specific language governing permissions and limitations under the License.
 import copy
 import json
 import logging.config
+from collections import defaultdict
 from dataclasses import asdict
 from typing import Dict, Optional
 
@@ -30,6 +31,7 @@ from backend.flow.plugins.components.collections.redis.redis_db_meta import Redi
 from backend.flow.utils.redis.redis_act_playload import RedisActPayload
 from backend.flow.utils.redis.redis_context_dataclass import ActKwargs, CommonContext, DnsKwargs
 from backend.flow.utils.redis.redis_db_meta import RedisDBMeta
+from backend.flow.utils.redis.redis_proxy_util import get_cache_backup_mode
 from backend.flow.utils.redis.redis_util import check_domain
 
 logger = logging.getLogger("flow")
@@ -87,7 +89,7 @@ class RedisClusterApplyFlow(object):
         if len(m) != 0:
             raise Exception("[{}] is used.".format(m))
 
-    def cal_twemproxy_serveres(self, master_ips, shard_num, inst_num, name) -> list:
+    def cal_twemproxy_serveres(self, master_ips, slave_ips, shard_num, inst_num, name):
         """
         计算twemproxy的servers 列表
         - redisip:redisport:1 app beginSeg-endSeg 1
@@ -98,7 +100,9 @@ class RedisClusterApplyFlow(object):
 
         #  计算分片
         servers = []
-        for _index, ip in enumerate(master_ips):
+        twemproxy_server_shards = defaultdict(dict)
+        for _index, master_ip in enumerate(master_ips):
+            slave_ip = slave_ips[_index]
             for inst_no in range(0, inst_num):
                 port = DEFAULT_REDIS_START_PORT + inst_no
                 begin_seg = seg_no * seg_num
@@ -109,8 +113,12 @@ class RedisClusterApplyFlow(object):
                 if begin_seg >= DEFAULT_TWEMPROXY_SEG_TOTOL_NUM or end_seg >= DEFAULT_TWEMPROXY_SEG_TOTOL_NUM:
                     raise Exception("cal_twemproxy_serveres error. pleace check params")
                 seg_no = seg_no + 1
-                servers.append("{}:{} {} {}-{} {}".format(ip, port, name, begin_seg, end_seg, 1))
-        return servers
+                servers.append("{}:{} {} {}-{} {}".format(master_ip, port, name, begin_seg, end_seg, 1))
+                master_inst = "{}:{}".format(master_ip, port)
+                slave_inst = "{}:{}".format(slave_ip, port)
+                twemproxy_server_shards[master_ip][master_inst] = "{}-{}".format(begin_seg, end_seg)
+                twemproxy_server_shards[slave_ip][slave_inst] = "{}-{}".format(begin_seg, end_seg)
+        return servers, twemproxy_server_shards
 
     def deploy_redis_cluster_flow(self):
         """
@@ -128,7 +136,9 @@ class RedisClusterApplyFlow(object):
 
         ins_num = self.data["shard_num"] // self.data["group_num"]
         ports = list(map(lambda i: i + DEFAULT_REDIS_START_PORT, range(ins_num)))
-        servers = self.cal_twemproxy_serveres(master_ips, self.data["shard_num"], ins_num, self.data["cluster_name"])
+        servers, twemproxy_server_shards = self.cal_twemproxy_serveres(
+            master_ips, slave_ips, self.data["shard_num"], ins_num, self.data["cluster_name"]
+        )
 
         self.__pre_check(
             proxy_ips,
@@ -170,6 +180,8 @@ class RedisClusterApplyFlow(object):
             params["spec_id"] = int(self.data["resource_spec"]["master"]["id"])
             params["spec_config"] = self.data["resource_spec"]["master"]
             params["meta_role"] = InstanceRole.REDIS_MASTER.value
+            params["server_shards"] = twemproxy_server_shards[ip]
+            params["cache_backup_mode"] = get_cache_backup_mode(self.data["bk_biz_id"], 0)
             sub_builder = RedisBatchInstallAtomJob(self.root_id, self.data, act_kwargs, params)
             sub_pipelines.append(sub_builder)
         for ip in slave_ips:
@@ -180,6 +192,8 @@ class RedisClusterApplyFlow(object):
             params["spec_id"] = int(self.data["resource_spec"]["slave"]["id"])
             params["spec_config"] = self.data["resource_spec"]["slave"]
             params["meta_role"] = InstanceRole.REDIS_SLAVE.value
+            params["server_shards"] = twemproxy_server_shards[ip]
+            params["cache_backup_mode"] = get_cache_backup_mode(self.data["bk_biz_id"], 0)
             sub_builder = RedisBatchInstallAtomJob(self.root_id, self.data, act_kwargs, params)
             sub_pipelines.append(sub_builder)
         redis_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)

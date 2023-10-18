@@ -277,7 +277,10 @@
    * 查询实例信息
    */
   function fetchInstanceInfos(instances: string[]) {
-    return checkInstances(globalBizsStore.currentBizId, { instance_addresses: instances })
+    return checkInstances({
+      bizId: globalBizsStore.currentBizId,
+      instance_addresses: instances,
+    })
       .then((res) => {
         for (const item of res) {
           const { ip, port, bk_cloud_id: cloudId } = item;

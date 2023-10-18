@@ -161,6 +161,8 @@ class TicketType(str, StructuredEnum):
     MYSQL_SINGLE_TRUNCATE_DATA = EnumField("MYSQL_SINGLE_TRUNCATE_DATA", _("MySQL 单节点清档"))
     MYSQL_SINGLE_RENAME_DATABASE = EnumField("MYSQL_SINGLE_RENAME_DATABASE", _("MySQL 单节点DB重命名"))
     MYSQL_HA_STANDARDIZE = EnumField("MYSQL_HA_STANDARDIZE", _("TendbHA 标准化"))
+    MYSQL_HA_METADATA_IMPORT = EnumField("MYSQL_HA_METADATA_IMPORT", _("TendbHA 元数据导入"))
+    MYSQL_OPEN_AREA = EnumField("MYSQL_OPEN_AREA", _("MySQL 开区"))
 
     # SPIDER(TenDB Cluster)
     TENDBCLUSTER_CHECKSUM = EnumField("TENDBCLUSTER_CHECKSUM", _("TenDB Cluster 数据校验修复"))
@@ -201,6 +203,8 @@ class TicketType(str, StructuredEnum):
     # REDIS
     REDIS_PLUGIN_CREATE_CLB = EnumField("REDIS_PLUGIN_CREATE_CLB", _("Redis 创建CLB"))
     REDIS_PLUGIN_DELETE_CLB = EnumField("REDIS_PLUGIN_DELETE_CLB", _("Redis 删除CLB"))
+    REDIS_PLUGIN_DNS_BIND_CLB = EnumField("REDIS_PLUGIN_DNS_BIND_CLB", _("Redis 域名绑定CLB"))
+    REDIS_PLUGIN_DNS_UNBIND_CLB = EnumField("REDIS_PLUGIN_DNS_UNBIND_CLB", _("Redis 域名解绑CLB"))
     REDIS_PLUGIN_CREATE_POLARIS = EnumField("REDIS_PLUGIN_CREATE_POLARIS", _("Redis 创建Polaris"))
     REDIS_PLUGIN_DELETE_POLARIS = EnumField("REDIS_PLUGIN_DELETE_POLARIS", _("Redis 删除Polaris"))
     REDIS_SINGLE_APPLY = EnumField("REDIS_SINGLE_APPLY", _("Redis 单节点部署"))
@@ -217,7 +221,7 @@ class TicketType(str, StructuredEnum):
     REDIS_CLUSTER_CUTOFF = EnumField("REDIS_CLUSTER_CUTOFF", _("Redis 整机替换"))
     REDIS_CLUSTER_AUTOFIX = EnumField("REDIS_CLUSTER_AUTOFIX", _("Redis 故障自愈"))
     REDIS_CLUSTER_INSTANCE_SHUTDOWN = EnumField("REDIS_CLUSTER_INSTANCE_SHUTDOWN", _("Redis 故障自愈-实例下架"))
-    REDIS_MASTER_SLAVE_SWITCH = EnumField("REDIS_MASTER_SLAVE_SWITCH", _("Redis 主从故障切换"))
+    REDIS_MASTER_SLAVE_SWITCH = EnumField("REDIS_MASTER_SLAVE_SWITCH", _("Redis 主从切换"))
     PROXY_SCALE_UP = EnumField("PROXY_SCALE_UP", _("Redis Proxy扩容"))
     PROXY_SCALE_DOWN = EnumField("PROXY_SCALE_DOWN", _("Redis Proxy缩容"))
     REDIS_ADD_DTS_SERVER = EnumField("REDIS_ADD_DTS_SERVER", _("Redis 新增DTS SERVER"))

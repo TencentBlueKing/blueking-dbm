@@ -27,8 +27,8 @@
         :data="tableData"
         :is-anomalies="isAnomalies"
         :is-searching="!!search"
-        :max-height="490"
-        :pagination="pagination"
+        :max-height="542"
+        :pagination="pagination.count < 10 ? false : pagination"
         remote-pagination
         :settings="tableSettings"
         style="margin-top: 12px;"
@@ -67,16 +67,20 @@
   }
 
   interface Props {
+    lastValues: InstanceSelectorValues,
     clusterId?: number,
-    role?: string
-    lastValues: InstanceSelectorValues
+    role?: string,
   }
 
   interface Emits {
     (e: 'change', value: InstanceSelectorValues): void;
   }
 
-  const props = defineProps<Props>();
+  const props = withDefaults(defineProps<Props>(), {
+    clusterId: undefined,
+    role: '',
+    ticketType: '',
+  });
   const emits = defineEmits<Emits>();
 
   const formatValue = (data: ResourceInstance) => ({
@@ -244,8 +248,9 @@
     }
     getResourceInstances(params)
       .then((data) => {
-        tableData.value = data.results;
-        pagination.count = data.count;
+        const ret = data;
+        tableData.value = ret.results;
+        pagination.count = ret.count;
         isAnomalies.value = false;
       })
       .catch(() => {

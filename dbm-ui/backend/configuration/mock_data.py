@@ -63,3 +63,10 @@ MYSQL_ADMIN_PASSWORD_DATA = [
         "update_time": "2023-09-19 13:02:38",
     }
 ]
+BIZ_SETTINGS_DATA = {
+    "key1": "value1",
+    "key2": "value2",
+    "...": "....",
+    # 开区变量表
+    "OPEN_AREA_VARS": [{"desc": "test1", "name": "test1"}, {"desc": "test2", "name": "test2"}],
+}

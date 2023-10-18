@@ -622,13 +622,17 @@ func (task *RedisInsKeyPatternTask) getTargetKeysByPartten(db int) {
 	}
 
 	// 过滤掉节点心跳检测数据
-	Heartbeat := fmt.Sprintf("%s_%s:heartbeat", task.MasterIP, task.MasterPort)
+	masterHeartbeat := fmt.Sprintf("%s_%s:heartbeat", task.MasterIP, task.MasterPort)
+	slaveHeartbeat := ""
+	if task.MasterIP != task.IP {
+		slaveHeartbeat = fmt.Sprintf("|^%s_%d:heartbeat", task.IP, task.Port)
+	}
 	DbhaAgent := fmt.Sprintf("dbha:agent:%s", task.MasterIP)
 	if grepPattern == "" {
-		grepPattern = fmt.Sprintf("^%s|^%s", Heartbeat, DbhaAgent)
+		grepPattern = fmt.Sprintf("^%s|^%s%s", masterHeartbeat, DbhaAgent, slaveHeartbeat)
 
 	} else {
-		grepPattern = fmt.Sprintf("%s|^%s|^%s", grepPattern, Heartbeat, DbhaAgent)
+		grepPattern = fmt.Sprintf("%s|^%s|^%s%s", grepPattern, masterHeartbeat, DbhaAgent, slaveHeartbeat)
 
 	}
 

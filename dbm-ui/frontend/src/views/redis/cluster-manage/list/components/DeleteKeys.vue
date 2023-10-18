@@ -93,7 +93,6 @@
 </template>
 
 <script setup lang="tsx">
-  import type { PropType } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import { createTicket } from '@services/ticket';
@@ -114,18 +113,22 @@
     black_regex: string
   }
 
-  const props = defineProps({
-    isShow: {
-      type: Boolean,
-      default: false,
-    },
-    data: {
-      type: Array as PropType<ResourceRedisItem[]>,
-      default: () => ([]),
-    },
+  interface Props {
+    data?: ResourceRedisItem[]
+  }
+
+  interface Emits {
+    (e: 'success'): void
+  }
+
+  const props = withDefaults(defineProps<Props>(), {
+    data: () => ([]),
+  });
+  const emits = defineEmits<Emits>();
+  const isShow = defineModel<boolean>('isShow', {
+    default: false,
   });
 
-  const emits = defineEmits(['update:is-show', 'success']);
   const { t } = useI18n();
   const ticketMessage = useTicketMessage();
 
@@ -400,7 +403,7 @@
   async function handleClose() {
     const result = await handleBeforeClose();
     if (!result) return;
-    emits('update:is-show', false);
+    isShow.value = false;
     window.changeConfirm = false;
     regexRefs.white = [];
     regexRefs.black = [];

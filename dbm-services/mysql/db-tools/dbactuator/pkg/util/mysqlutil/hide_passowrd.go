@@ -15,15 +15,15 @@ import (
 )
 
 var (
-	mysqlRegex           = regexp.MustCompile(`mysql.*-u(\s*)\w+.*\s-p(\w+).*`)
-	mysqlAdminRegex      = regexp.MustCompile(`mysqladmin.*-u\w+.*\s-p(\w+).*`)
+	mysqlRegex           = regexp.MustCompile(`mysql.*-u(\s*)\w+.*\s-p(\S+).*`)
+	mysqlAdminRegex      = regexp.MustCompile(`mysqladmin.*-u\w+.*\s-p(\S+).*`)
 	mysqlPasswordRegex   = regexp.MustCompile(`\s-p[^\s]+`)
 	masterPasswordRegexp = regexp.MustCompile(`master_password="[^\s]*"`)
 	identifyByRegex      = regexp.MustCompile(`identified by '[^\s]*'`)
-	userPasswordRegex    = regexp.MustCompile(`\s-u\w+.*\s-p(\w+).*`)
+	userPasswordRegex    = regexp.MustCompile(`\s-u\w+.*\s-p(\S+).*`)
 	dsnRegex             = regexp.MustCompile(`\w+:[^\s]*@tcp\([^\s]+\)`)
 	dsnPasswordRegex     = regexp.MustCompile(`:[^\s]*@tcp\(`)
-	passwordRegex        = regexp.MustCompile(`password ['|"]*\w+['|"]*`)
+	passwordRegex        = regexp.MustCompile(`password ['|"]*\S+['|"]*`)
 )
 
 // ClearSensitiveInformation clear sensitive information from input

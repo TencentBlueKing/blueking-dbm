@@ -45,7 +45,7 @@ interface AlarmGroupDetail {
       notice_ways: {
         name: string,
         receivers?: string[]
-      } [],
+      }[],
       level: 3 | 2 | 1
     }[]
   }[]

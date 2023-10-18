@@ -48,7 +48,9 @@
       <div
         class="edit-btn"
         @click="handleShowIpSelector">
-        <DbIcon type="host-select" />
+        <div class="edit-btn-inner">
+          <DbIcon type="host-select" />
+        </div>
       </div>
     </BkPopover>
   </div>
@@ -144,7 +146,6 @@
     display: flex;
     align-items: center;
     overflow: hidden;
-    border: 1px solid transparent;
 
     &:hover {
       border-color: #a3c5fd;
@@ -161,15 +162,26 @@
     .edit-btn{
       display: flex;
       width: 24px;
-      height: 24px;
-      cursor: pointer;
-      border-radius: 2px;
+      height: 40px;
       align-items: center;
       justify-content: center;
+      background-color: #fafbfd;
 
-      &:hover {
-        background: #F0F1F5;
+      .edit-btn-inner {
+        display: flex;
+        width: 24px;
+        height: 24px;
+        cursor: pointer;
+        border-radius: 2px;
+        align-items: center;
+        justify-content: center;
+
+        &:hover {
+          background: #F0F1F5;
+        }
       }
+
+
     }
   }
 </style>

@@ -70,13 +70,14 @@ export function useTargetClusterData(ticketDetails: TicketDetails<MysqlAuthoriza
       : ticketDetails?.details?.authorize_data?.cluster_type;
 
     const params = {
+      dbType: DBTypes.MYSQL,
       bk_biz_id: globalBizsStore.currentBizId,
       type,
       cluster_ids: ticketDetails?.details?.authorize_data?.cluster_ids,
       ...listState.pagination.getFetchParams(),
       ...getSearchSelectorParams(listState.filters.search),
     };
-    getResources<ResourceItem>(DBTypes.MYSQL, params)
+    getResources<ResourceItem>(params)
       .then((res) => {
         listState.pagination.count = res.count;
         listState.data = res.results;

@@ -697,6 +697,12 @@ func (task *MakeSyncTask) createSyncConfigFile() {
 	tempData = strings.ReplaceAll(tempData, "{{DST_PASSWORD}}", task.DstPassword)
 	tempData = strings.ReplaceAll(tempData, "{{LOG_LEVEL}}", loglevel)
 
+	// 如果目标集群是域名,则redis-sync需要先解析域名中的 proxy ips,而后连接;该行为通过 proxy-enable 参数控制
+	proxyEnable := "no"
+	if util.IsDbDNS(task.GetDstRedisAddr()) {
+		proxyEnable = "yes"
+	}
+	tempData = strings.ReplaceAll(tempData, "{{PROXY_ENABLE}}", proxyEnable)
 	err = ioutil.WriteFile(task.SyncConfFile, []byte(tempData), 0755)
 	if err != nil {
 		task.Logger.Error("Save redis-sync conf fail", zap.Error(err), zap.String("syncConfig", task.SyncConfFile))

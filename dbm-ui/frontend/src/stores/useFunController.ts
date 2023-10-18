@@ -11,7 +11,7 @@
  * the specific language governing permissions and limitations under the License.
 */
 
-import { acceptHMRUpdate, defineStore } from 'pinia';
+import { defineStore } from 'pinia';
 
 import { getFunController } from '@services/functionController';
 import FunctionControllModel from '@services/model/function-controller/functionController';
@@ -37,7 +37,3 @@ export const useFunController = defineStore('useFunController', {
     },
   },
 });
-
-if (import.meta.hot) {
-  import.meta.hot.accept(acceptHMRUpdate(useFunController, import.meta.hot));
-}

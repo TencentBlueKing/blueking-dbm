@@ -50,8 +50,7 @@ export const useTaskCount = (clusterType: string) => {
   };
 
   const initPopover = () => {
-    destroyPopover();
-    if (rootRef.value) {
+    if (rootRef.value && !tippyIns) {
       tippyIns = tippy(rootRef.value as SingleTarget, {
         content: popRef.value,
         placement: 'right',
@@ -79,7 +78,6 @@ export const useTaskCount = (clusterType: string) => {
       }
 
       taskCountStore.taskList = data;
-
       nextTick(() => {
         initPopover();
       });
@@ -121,7 +119,6 @@ export const useTaskCount = (clusterType: string) => {
       },
     });
   };
-
 
   onBeforeUnmount(() => {
     destroyPopover();

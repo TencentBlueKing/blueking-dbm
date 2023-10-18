@@ -94,8 +94,35 @@ func (test *BkDBmonInstallTest) SetBackupConf() *BkDBmonInstallTest {
 	return test
 }
 
+func getRedisClusterServerShargs(ip string, startPort, instNum int, dbType string) (shards map[string]string) {
+	if !consts.IsTwemproxyClusterType(dbType) {
+		return
+	}
+	if startPort == 0 {
+		startPort = consts.TestRedisMasterStartPort
+	}
+	if instNum == 0 {
+		instNum = 4
+	}
+	var port int
+	var instStr string
+	var segStart int
+	var segEnd int
+	shards = make(map[string]string)
+	segStep := (consts.TwemproxyMaxSegment + 1) / instNum
+	for i := 0; i < instNum; i++ {
+		segStart = i * segStep
+		segEnd = (i+1)*segStep - 1
+		port = startPort + i
+		instStr = fmt.Sprintf("%s:%d", ip, port)
+		shards[instStr] = fmt.Sprintf("%d-%d", segStart, segEnd)
+	}
+	return
+}
+
 // AppendMasterServer append master server
-func (test *BkDBmonInstallTest) AppendMasterServer(masterIP string, startPort, instNum int) *BkDBmonInstallTest {
+func (test *BkDBmonInstallTest) AppendMasterServer(masterIP string, startPort, instNum int,
+	dbType string) *BkDBmonInstallTest {
 	if test.Err != nil {
 		return test
 	}
@@ -112,10 +139,15 @@ func (test *BkDBmonInstallTest) AppendMasterServer(masterIP string, startPort, i
 	svrItem := atomredis.ConfServerItem{
 		BkBizID:       "200500194",
 		BkCloudID:     246,
+		App:           "testapp",
+		AppName:       "测试app",
 		ClusterDomain: "tendisx.aaaa.testapp.db",
+		ClusterName:   "aaaa",
+		ClusterType:   dbType,
 		MetaRole:      consts.MetaRoleRedisMaster,
 		ServerIP:      masterIP,
 		ServerPorts:   ports,
+		ServerShards:  getRedisClusterServerShargs(masterIP, startPort, instNum, dbType),
 	}
 	test.Servers = append(test.Servers, svrItem)
 	return test
@@ -139,7 +171,8 @@ func (test *BkDBmonInstallTest) OnlyAEmptyServer(ip string) *BkDBmonInstallTest 
 }
 
 // AppendSlaveServer append slave server
-func (test *BkDBmonInstallTest) AppendSlaveServer(slaveIP string, startPort, instNum int) *BkDBmonInstallTest {
+func (test *BkDBmonInstallTest) AppendSlaveServer(slaveIP string, startPort, instNum int,
+	dbType string) *BkDBmonInstallTest {
 	if test.Err != nil {
 		return test
 	}
@@ -160,10 +193,11 @@ func (test *BkDBmonInstallTest) AppendSlaveServer(slaveIP string, startPort, ins
 		AppName:       "测试app",
 		ClusterDomain: "tendisx.aaaa.testapp.db",
 		ClusterName:   "aaaa",
-		ClusterType:   consts.TendisTypePredixyTendisplusCluster,
+		ClusterType:   dbType,
 		MetaRole:      consts.MetaRoleRedisSlave,
 		ServerIP:      slaveIP,
 		ServerPorts:   ports,
+		ServerShards:  getRedisClusterServerShargs(slaveIP, startPort, instNum, dbType),
 	}
 	test.Servers = append(test.Servers, svrItem)
 	return test
@@ -236,8 +270,8 @@ func BkDbmonInstall(serverIP, dbtoolsPkgName, dbtoolsPkgMd5, bkdbmonPkgName, bkd
 		SetBkDbmonPkg(bkdbmonPkgName, bkdbmonPkgMd5).
 		SetDbtoolsPkg(dbtoolsPkgName, dbtoolsPkgMd5).
 		SetBackupConf().
-		AppendMasterServer(serverIP, masterStartPort, consts.TestRedisInstanceNum).
-		AppendSlaveServer(serverIP, slaveStartPort, consts.TestRedisInstanceNum)
+		AppendMasterServer(serverIP, masterStartPort, consts.TestRedisInstanceNum, dbType).
+		AppendSlaveServer(serverIP, slaveStartPort, consts.TestRedisInstanceNum, dbType)
 	if bkdbmonTest.Err != nil {
 		return
 	}

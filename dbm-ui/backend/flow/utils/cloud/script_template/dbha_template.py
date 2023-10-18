@@ -20,8 +20,10 @@ log_conf:
   log_compress: true
 agent_conf:
   active_db_type: [
-    "tendbha:backend",
-    "tendbha:proxy",
+    "tendbha",
+    "tendbcluster",
+    "TwemproxyRedisInstance",
+    "PredixyTendisplusCluster",
   ]
   city: "{{city}}"
   campus: "{{campus}}"
@@ -73,8 +75,8 @@ db_conf:
     timeout: 10
   redis:
     timeout: 10
-dns:
-  bind_conf:
+name_services:
+  dns_conf:
     host: "{{nginx_domain}}"
     port: 80
     url_pre: "/apis/proxypass"
@@ -92,6 +94,21 @@ dns:
     timeout: 10
     bk_conf:
       bk_token: "{{db_cloud_token}}"
+  polaris_conf:
+    host: {{name_service_domain}}
+    port: 80
+    user: "nouser"
+    pass: "nopasswd"
+    url_pre: "/api/nameservice/polaris"
+    timeout: 10
+  clb_conf:
+    host: {{name_service_domain}}
+    port: 80
+    user: "nouser"
+    pass: "nopasswd"
+    url_pre: "/api/nameservice/clb"
+    timeout: 10
+
 monitor:
   bk_data_id: {{mysql_crond_metrics_data_id}}
   access_token: "{{mysql_crond_metrics_data_token}}"
@@ -115,12 +132,10 @@ log_conf:
   log_compress: true
 agent_conf:
   active_db_type: [
-    "tendbha:backend",
-    "tendbha:proxy",
-    "Rediscache",
-    "Twemproxy",
-    "Predixy",
-    "Tendisplus",
+    "tendbha",
+    "tendbcluster",
+    "TwemproxyRedisInstance",
+    "PredixyTendisplusCluster",
   ]
   city: "{{city}}"
   campus: "{{campus}}"
@@ -172,8 +187,8 @@ db_conf:
     timeout: 10
   redis:
     timeout: 10
-dns:
-  bind_conf:
+name_services:
+  dns_conf:
     host: "{{nginx_domain}}"
     port: 80
     url_pre: "/apis/proxypass"
@@ -187,6 +202,20 @@ dns:
     timeout: 10
     bk_conf:
       bk_token: "{{db_cloud_token}}"
+  polaris_conf:
+    host: {{name_service_domain}}
+    port: 80
+    user: "nouser"
+    pass: "nopasswd"
+    url_pre: "/api/nameservice/polaris"
+    timeout: 10
+  clb_conf:
+    host: {{name_service_domain}}
+    port: 80
+    user: "nouser"
+    pass: "nopasswd"
+    url_pre: "/api/nameservice/clb"
+    timeout: 10
 monitor:
   bk_data_id: {{mysql_crond_metrics_data_id}}
   access_token: "{{mysql_crond_metrics_data_token}}"

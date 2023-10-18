@@ -27,7 +27,14 @@ type ClusterSchemaCheckAct struct {
 	Service spiderctl.TableSchemaCheckComp
 }
 
-// NewClusterSchemaCheckCommand TODO
+// NewClusterSchemaCheckCommand godoc
+//
+// @Summary      spider 集群表结构校验
+// @Description  spider 集群表结构校验
+// @Tags         spiderctl
+// @Accept       json
+// @Param        body body      spiderctl.TableSchemaCheckComp  true  "short description"
+// @Router       /spiderctl/schema-check [post]
 func NewClusterSchemaCheckCommand() *cobra.Command {
 	act := &ClusterSchemaCheckAct{}
 	cmd := &cobra.Command{

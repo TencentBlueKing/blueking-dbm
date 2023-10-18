@@ -11,6 +11,7 @@
 package service
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"regexp"
@@ -305,6 +306,7 @@ func (m *CreatePartitionsInput) UpdatePartitionsConfig() error {
 
 	reservedPartition := m.ExpireTime / m.PartitionTimeInterval
 	partitionType := 0
+
 	switch m.PartitionColumnType {
 	case "datetime":
 		partitionType = 0
@@ -318,37 +320,53 @@ func (m *CreatePartitionsInput) UpdatePartitionsConfig() error {
 	var errs []string
 	for _, dblike := range m.DbLikes {
 		for _, tblike := range m.TbLikes {
-			updateCondition := fmt.Sprintf("bk_biz_id=%d and immute_domain='%s' and dblike='%s' and tblike='%s'",
-				m.BkBizId, m.ImmuteDomain, dblike, tblike)
-			var updateColumn struct {
-				PartitionColumn       string
-				PartitionColumnType   string
-				ReservedPartition     int
-				ExtraPartition        int
-				PartitionTimeInterval int
-				PartitionType         int
-				ExpireTime            int
-				Creator               string
-				Updator               string
+			update_column_map := map[string]interface{}{
+				"partition_column":        m.PartitionColumn,
+				"partition_column_type":   m.PartitionColumnType,
+				"reserved_partition":      reservedPartition,
+				"extra_partition":         extraTime,
+				"partition_time_interval": m.PartitionTimeInterval,
+				"partition_type":          partitionType,
+				"expire_time":             m.ExpireTime,
+				"updator":                 m.Updator,
+				"update_time":             time.Now(),
 			}
-			updateColumn.PartitionColumn = m.PartitionColumn
-			updateColumn.PartitionColumnType = m.PartitionColumnType
-			updateColumn.ReservedPartition = reservedPartition
-			updateColumn.ExtraPartition = extraTime
-			updateColumn.PartitionTimeInterval = m.PartitionTimeInterval
-			updateColumn.PartitionType = partitionType
-			updateColumn.ExpireTime = m.ExpireTime
-			updateColumn.Creator = m.Creator
-			updateColumn.Updator = m.Updator
-			result := model.DB.Self.Debug().Table(tbName).Where(updateCondition).Updates(&updateColumn)
+			result := model.DB.Self.Debug().Table(tbName).
+				Where(
+					"bk_biz_id=? and immute_domain=? and dblike=? and tblike=?",
+					m.BkBizId, m.ImmuteDomain, dblike, tblike).
+				Updates(update_column_map)
+			var para PartitionLogsParam
+			jString, jerr := json.Marshal(update_column_map)
+			if jerr != nil {
+				return jerr
+			}
+			para.Para = string(jString)
 			if result.Error != nil {
 				errs = append(errs, result.Error.Error())
+				para.Err = result.Error
+			}
+			var plog PartitionLogs
+			plog.BkBizId = m.BkBizId
+			plog.ExecuteTime = time.Now()
+			plog.Operator = m.Updator
+
+			jString, jerr = json.Marshal(update_column_map)
+			if jerr != nil {
+				return jerr
+			}
+			plog.Para = string(jString)
+			res := model.DB.Self.Debug().Create(&plog)
+			if res.Error != nil {
+				return res.Error
 			}
 		}
 	}
+
 	if len(errs) > 0 {
 		return fmt.Errorf("errors: %s", strings.Join(errs, "\n"))
 	}
+
 	return nil
 }
 

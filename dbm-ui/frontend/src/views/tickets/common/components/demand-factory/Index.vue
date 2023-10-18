@@ -41,7 +41,7 @@
   import MySQLFlashback from './mysql/Flashback.vue';
   import MySQLFullBackup from './mysql/FullBackup.vue';
   import MySQLHATruncate from './mysql/HATruncate.vue';
-  import MySQLImportSQLFile from './mysql/ImportSQLFile.vue';
+  import MySQLImportSQLFile from './mysql/import-sql-file/Index.vue';
   import MySQLMasterFailOver from './mysql/MasterFailOver.vue';
   import MySQLMasterSlaveSwitch from './mysql/MasterSlaveSwitch.vue';
   import MySQLMigrateCluster from './mysql/MigrateCluster.vue';
@@ -54,6 +54,7 @@
   import MySQLSlave from './mysql/Slave.vue';
   import MySQLTableBackup from './mysql/TableBackup.vue';
   import RedisAddSlave from './redis/AddSlave.vue';
+  import CLBDetail from './redis/CLBDetail.vue';
   import RedisClusterCapacityUpdate from './redis/ClusterCapacityUpdate.vue';
   import RedisClusterShardUpdate from './redis/ClusterShardUpdate.vue';
   import RedisClusterTypeUpdate from './redis/ClusterTypeUpdate.vue';
@@ -194,6 +195,13 @@
     TicketTypes.TENDBCLUSTER_IMPORT_SQLFILE,
   ];
 
+  const redisCLBTypes = [
+    TicketTypes.REDIS_PLUGIN_DNS_BIND_CLB,
+    TicketTypes.REDIS_PLUGIN_DNS_UNBIND_CLB,
+    TicketTypes.REDIS_PLUGIN_CREATE_CLB,
+    TicketTypes.REDIS_PLUGIN_DELETE_CLB,
+  ];
+
   // 单一情况映射表
   const SingleDemandMap = {
     [TicketTypes.ES_APPLY]: DetailsES,
@@ -302,6 +310,10 @@
     // SQL执行
     if (importSQLTypes.includes(ticketType)) {
       return MySQLImportSQLFile;
+    }
+    // redis CLB 相关
+    if (redisCLBTypes.includes(ticketType)) {
+      return CLBDetail;
     }
     if (ticketType in SingleDemandMap) {
       return SingleDemandMap[ticketType as keyof typeof SingleDemandMap];

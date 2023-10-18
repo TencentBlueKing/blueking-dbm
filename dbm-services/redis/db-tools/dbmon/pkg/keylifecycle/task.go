@@ -183,7 +183,7 @@ func (t *Task) bigKeySmartStat(server Instance) (string, string, int64, int64, e
 
 	if strings.Contains(server.Version, "TRedis") {
 		dbsize, step, err = t.bigAndMode4TendisSSD(server, bkfile, kmfile)
-	} else if strings.Contains(server.Version, "tendisplus") {
+	} else if strings.Contains(server.Version, "-rocksdb-") {
 		dbsize, step, err = t.bigAndMode4TendisPlus(server, bkfile, kmfile)
 	} else {
 		if !util.FileExists(fmt.Sprintf("%s/redis/%d/data/appendonly.aof", t.basicDir, server.Port)) &&
@@ -271,8 +271,8 @@ func (t *Task) bigAndMode4TendisPlus(server Instance, bkfile, kmfile string) (in
 
 	rockkeys := fmt.Sprintf("v.%d.keys", server.Port)
 	for db := 0; db < kvstore; db++ {
-		rocksdir := fmt.Sprintf("%s/%d/data/rocksdb/%d/", t.basicDir, server.Port, db)
-		cmdScan := fmt.Sprintf("%s --db=%s scan >> %s 2>&1", consts.LdbTendisplusBin, rocksdir, rockkeys)
+		rocksdir := fmt.Sprintf("%s/%d/data/db/%d/", t.basicDir, server.Port, db)
+		cmdScan := fmt.Sprintf("%s --db=%s tscan >> %s 2>&1", consts.LdbTendisplusBin, rocksdir, rockkeys)
 		mylog.Logger.Info(fmt.Sprintf("do scan sst keys %s :%d: %s", server.Addr, db, cmdScan))
 		if _, err := util.RunBashCmd(cmdScan, "", nil, time.Hour); err != nil {
 			mylog.Logger.Warn(fmt.Sprintf("exec cmd: %s failed: %+v", cmdScan, err))

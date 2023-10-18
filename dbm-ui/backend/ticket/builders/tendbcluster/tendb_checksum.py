@@ -60,7 +60,7 @@ class TendbChecksumDetailSerializer(TendbBaseOperateDetailSerializer):
     is_sync_non_innodb = serializers.BooleanField(help_text=_("非innodb表是否修复"), required=False, default=False)
 
     def validate(self, attrs):
-        # super().validate(attrs)
+        super().validate_checksum_database_selector(attrs)
         return attrs
 
 

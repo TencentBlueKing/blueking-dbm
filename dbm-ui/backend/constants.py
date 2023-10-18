@@ -52,6 +52,7 @@ class CommonInstanceLabels:
     instance_role: str
     instance_host: str
     instance_port: str
+    db_module: str
 
 
 # 定义添加host的公共固定标签结构
@@ -62,3 +63,7 @@ class CommonHostDBMeta:
     cluster_domain: str
     cluster_type: str
     instance_role: str
+
+
+# 集群状态数据缓存key
+CACHE_CLUSTER_STATS = "cluster_stats"

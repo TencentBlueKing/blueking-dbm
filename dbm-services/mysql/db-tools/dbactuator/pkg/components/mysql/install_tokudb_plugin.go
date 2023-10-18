@@ -11,14 +11,13 @@
 package mysql
 
 import (
+	"errors"
 	"fmt"
 	"path"
 	"regexp"
 	"strconv"
 	"strings"
 	"sync"
-
-	"github.com/pkg/errors"
 
 	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/logger"
@@ -68,9 +67,7 @@ func (t *EnableTokudbEngineComp) CloseConn() (err error) {
 	return nil
 }
 
-// Example
-
-// Example TODO
+// Example subcommand example input
 func (t *EnableTokudbEngineComp) Example() interface{} {
 	return &EnableTokudbEngineComp{
 		Params: EnableTokudbParams{
@@ -85,7 +82,7 @@ func (t *EnableTokudbEngineComp) Example() interface{} {
 	}
 }
 
-// Init TODO
+// Init prepare run env
 func (t *EnableTokudbEngineComp) Init() (err error) {
 	t.conns = make(map[Port]*native.DbWorker)
 	t.sockeMap = make(map[Port]string)
@@ -202,11 +199,11 @@ func (t *EnableTokudbEngineComp) ReWriteMyCnf() (err error) {
 	return err
 }
 
-// Install TODO
+// Install :install
 func (t *EnableTokudbEngineComp) Install() (err error) {
 	wg := sync.WaitGroup{}
 	mu := sync.Mutex{}
-	errMap := make(map[Port]error)
+	var errs []error
 	for _, port := range t.Params.Ports {
 		conn, ok := t.conns[port]
 		if !ok {
@@ -226,23 +223,11 @@ func (t *EnableTokudbEngineComp) Install() (err error) {
 			if err != nil {
 				logger.Error("restart mysql %d instance err:%v", port, err)
 				mu.Lock()
-				errMap[port] = err
+				errs = append(errs, fmt.Errorf("retsart %d failde:%w", port, err))
 				mu.Unlock()
 			}
 		}(port)
 	}
 	wg.Wait()
-	if len(errMap) <= 0 {
-		return nil
-	}
-	var gerr error
-	for port, errx := range errMap {
-		logger.Error("restart mysql %d instance err:%v", port, errx)
-		if gerr == nil {
-			gerr = errx
-		} else {
-			gerr = fmt.Errorf("%v,\n%v", gerr, errx)
-		}
-	}
-	return gerr
+	return errors.Join(errs...)
 }

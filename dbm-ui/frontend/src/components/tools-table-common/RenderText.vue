@@ -14,6 +14,11 @@
 <template>
   <BkLoading :loading="isLoading">
     <div
+      ref="textRef"
+      v-bk-tooltips="{
+        content: data || placeholder,
+        disabled: !isOverflow
+      }"
       class="render-text-box"
       :class="{
         'default-display': !data,
@@ -36,6 +41,8 @@
   </BkLoading>
 </template>
 <script setup lang="ts" generic="T extends string | number">
+  import { useIsWidthOverflow } from '@hooks';
+
   import useValidtor, { type Rules } from './hooks/useValidtor';
 
   interface Props {
@@ -50,6 +57,12 @@
   }
 
   const props = defineProps<Props>();
+
+  const textRef = ref();
+
+  const renderData = computed(() => props.data);
+
+  const { isOverflow } = useIsWidthOverflow(textRef, renderData);
 
   const {
     message: errorMessage,

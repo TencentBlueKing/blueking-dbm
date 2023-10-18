@@ -23,16 +23,20 @@ from backend.flow.engine.bamboo.scene.mysql.mysql_ha_destroy_flow import MySQLHA
 from backend.flow.engine.bamboo.scene.mysql.mysql_ha_disable_flow import MySQLHADisableFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_ha_enable_flow import MySQLHAEnableFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_ha_full_backup_flow import MySQLHAFullBackupFlow
+from backend.flow.engine.bamboo.scene.mysql.mysql_ha_metadata_import import TenDBHAMetadataImportFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_ha_standardize_flow import MySQLHAStandardizeFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_master_fail_over import MySQLMasterFailOverFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_master_slave_switch import MySQLMasterSlaveSwitchFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_migrate_cluster_flow import MySQLMigrateClusterFlow
+from backend.flow.engine.bamboo.scene.mysql.mysql_migrate_cluster_remote_flow import MySQLMigrateClusterRemoteFlow
+from backend.flow.engine.bamboo.scene.mysql.mysql_open_area_flow import MysqlOpenAreaFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_partition import MysqlPartitionFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_proxy_cluster_add import MySQLProxyClusterAddFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_proxy_cluster_switch import MySQLProxyClusterSwitchFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_random_password import MySQLRandomizePassword
 from backend.flow.engine.bamboo.scene.mysql.mysql_rename_database_flow import MySQLRenameDatabaseFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_restore_slave_flow import MySQLRestoreSlaveFlow
+from backend.flow.engine.bamboo.scene.mysql.mysql_restore_slave_remote_flow import MySQLRestoreSlaveRemoteFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_rollback_data_flow import MySQLRollbackDataFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_single_apply_flow import MySQLSingleApplyFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_single_destroy_flow import MySQLSingleDestroyFlow
@@ -75,6 +79,29 @@ class MySQLController(BaseController):
         """
         flow = MySQLRestoreSlaveFlow(root_id=self.root_id, data=self.ticket_data)
         flow.deploy_restore_local_slave_flow()
+
+    #  mysql 从节点恢复(接入备份系统)
+    def mysql_restore_slave_remote_scene(self):
+        """
+        tenDB slave 恢复流程编排
+        """
+        flow = MySQLRestoreSlaveRemoteFlow(root_id=self.root_id, tick_data=self.ticket_data)
+        flow.tendb_ha_restore_slave_flow()
+
+    def mysql_add_slave_remote_scene(self):
+        """
+        仅添加 slave 流程编排
+        """
+        self.ticket_data["add_slave_only"] = True
+        flow = MySQLRestoreSlaveRemoteFlow(root_id=self.root_id, tick_data=self.ticket_data)
+        flow.tendb_ha_restore_slave_flow()
+
+    def mysql_restore_local_remote_scene(self):
+        """
+        tenDB slave 原地恢复流程编排
+        """
+        flow = MySQLRestoreSlaveRemoteFlow(root_id=self.root_id, tick_data=self.ticket_data)
+        flow.restore_local_slave_flow()
 
     def mysql_ha_apply_scene(self):
         """
@@ -192,7 +219,6 @@ class MySQLController(BaseController):
         flow.clone_mysql_rules()
 
     def mysql_proxy_add_scene(self):
-
         """
         添加mysql_proxy实例场景(新flow编排)
         ticket_data 参数结构体样例
@@ -343,6 +369,13 @@ class MySQLController(BaseController):
         """
         flow = MySQLMigrateClusterFlow(root_id=self.root_id, data=self.ticket_data)
         flow.deploy_migrate_cluster_flow()
+
+    def mysql_migrate_remote_scene(self):
+        """
+        主从成对迁移flow编排
+        """
+        flow = MySQLMigrateClusterRemoteFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.migrate_cluster_flow()
 
     def mysql_ha_db_table_backup_scene(self):
         """
@@ -506,3 +539,10 @@ class MySQLController(BaseController):
     def mysql_randomize_password(self):
         flow = MySQLRandomizePassword(root_id=self.root_id, data=self.ticket_data)
         flow.mysql_randomize_password()
+    def mysql_open_area_scene(self):
+        flow = MysqlOpenAreaFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.mysql_open_area_flow()
+
+    def mysql_ha_metadata_import_scene(self):
+        flow = TenDBHAMetadataImportFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.import_meta()

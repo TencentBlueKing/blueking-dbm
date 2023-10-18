@@ -19,9 +19,12 @@ from backend.db_services.mysql.remote_service.handlers import RemoteServiceHandl
 from backend.db_services.mysql.remote_service.serializers import (
     CheckClusterDatabaseResponseSerializer,
     CheckClusterDatabaseSerializer,
+    CheckFlashbackInfoResponseSerializer,
     CheckFlashbackInfoSerializer,
     ShowDatabasesRequestSerializer,
     ShowDatabasesResponseSerializer,
+    ShowTablesRequestSerializer,
+    ShowTablesResponseSerializer,
 )
 from backend.iam_app.handlers.drf_perm import DBManageIAMPermission
 
@@ -59,6 +62,19 @@ class RemoteServiceViewSet(viewsets.SystemViewSet):
         )
 
     @common_swagger_auto_schema(
+        operation_summary=_("查询集群数据表列表"),
+        request_body=ShowTablesRequestSerializer(),
+        tags=[SWAGGER_TAG],
+        responses={status.HTTP_200_OK: ShowTablesResponseSerializer()},
+    )
+    @action(methods=["POST"], detail=False, serializer_class=ShowTablesRequestSerializer)
+    def show_cluster_tables(self, request, bk_biz_id):
+        validated_data = self.params_validate(self.get_serializer_class())
+        return Response(
+            RemoteServiceHandler(bk_biz_id=bk_biz_id).show_tables(cluster_db_infos=validated_data["cluster_db_infos"])
+        )
+
+    @common_swagger_auto_schema(
         operation_summary=_("校验DB是否在集群内"),
         request_body=CheckClusterDatabaseSerializer(),
         tags=[SWAGGER_TAG],
@@ -74,6 +90,7 @@ class RemoteServiceViewSet(viewsets.SystemViewSet):
     @common_swagger_auto_schema(
         operation_summary=_("校验flashback信息是否合法"),
         request_body=CheckFlashbackInfoSerializer(),
+        responses={status.HTTP_200_OK: CheckFlashbackInfoResponseSerializer()},
         tags=[SWAGGER_TAG],
     )
     @action(methods=["POST"], detail=False, serializer_class=CheckFlashbackInfoSerializer)

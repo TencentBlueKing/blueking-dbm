@@ -1,0 +1,48 @@
+{{- if .Values.serviceInit.apigwEnabled -}}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "dbm.apigwInitJobName" . }}
+  labels:
+    {{- include "dbm.labels" . | nindent 4 }}
+spec:
+  backoffLimit: 0
+  template:
+    metadata:
+      labels:
+        {{- include "dbm.labels" . | nindent 8 }}
+    spec:
+      {{- with .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "dbm.serviceAccountName" . }}
+      restartPolicy: Never
+      containers:
+        - name: dbm-apigw-init
+          image: "{{ .Values.global.imageRegistry | default .Values.image.registry }}/{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command:
+            - /bin/bash
+            - -c
+          args:
+            - "python manage.py sync_saas_apigw"
+          env:
+            {{- include "dbm.envs" . | trim | nindent 12 }}
+          envFrom:
+            {{- if .Values.extraEnvVarsCM }}
+            - configMapRef:
+                name: {{ .Values.extraEnvVarsCM }}
+            {{- end }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      initContainers:
+        - name: check-saas-api
+          image: {{ include "dbm.migration.k8sWaitFor.image" . }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          args:
+            - pod
+            - -lapp.kubernetes.io/component={{ include "dbm.saas-api.fullname" .}}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+{{- end }}

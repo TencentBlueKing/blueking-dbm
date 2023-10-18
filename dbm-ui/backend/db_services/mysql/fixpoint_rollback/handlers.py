@@ -201,13 +201,12 @@ class FixPointRollbackHandler:
                 for field in delete_fields:
                     backup_id__backup_logs_map[backup_id].pop(field)
 
-            backup_id__backup_logs_map[backup_id]["file_list"].append(file_name)
-            backup_id__backup_logs_map[backup_id]["file_list_details"].append(
-                {"file_name": file_name, "size": log["file_size"], "task_id": log["task_id"]}
-            )
+            file_info = {"file_name": file_name, "size": log["file_size"], "task_id": log["task_id"]}
+            backup_id__backup_logs_map[backup_id]["file_list"].append(file_info["file_name"])
+            backup_id__backup_logs_map[backup_id]["file_list_details"].append(file_info)
 
             if log["file_type"] in ["index", "priv"]:
-                backup_id__backup_logs_map[log["backup_id"]][log["file_type"]] = file_name
+                backup_id__backup_logs_map[log["backup_id"]][log["file_type"]] = file_info
 
         return list(backup_id__backup_logs_map.values())
 
@@ -272,8 +271,8 @@ class FixPointRollbackHandler:
 
         backup_id__backup_logs_map = defaultdict(dict)
         for log in backup_logs:
-            # 如果存在单据号，证明不是例行备份，需排除
-            if log["bill_id"]:
+            # 如果存在单据号，证明不是例行备份; 如果task_id为-1，说明来自旧备份系统;
+            if log["bill_id"] or log["task_id"] == -1:
                 continue
 
             backup_id, log["backup_time"] = log["backup_id"], log["consistent_backup_time"]
@@ -326,6 +325,10 @@ class FixPointRollbackHandler:
                 if backup_log["remote_node"][shard_value]
             ]
             if sorted(shard_value_list) != list(range(0, cluster_shard_num)):
+                continue
+
+            # 如果不存在spider master记录，则忽略
+            if not backup_log["spider_node"]:
                 continue
 
             # 如果存在多条完整的backup记录，则保留最接近rollback time的记录

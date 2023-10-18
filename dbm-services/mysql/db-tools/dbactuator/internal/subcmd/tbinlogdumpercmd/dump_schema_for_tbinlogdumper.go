@@ -27,7 +27,7 @@ type DumpSchemaAct struct {
 	Service tbinlogdumper.DumpSchemaComp
 }
 
-// NewSenmanticDumpSchemaCommand godoc
+// NewDumpSchemaCommand godoc
 //
 // @Summary      备份表结构并导入
 // @Description  备份表结构并导入

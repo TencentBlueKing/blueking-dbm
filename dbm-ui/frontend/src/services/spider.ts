@@ -40,7 +40,7 @@ export function getSpiderList(params: Record<string, any> = {}) {
  * 获取 spider 集群详情
  * @param id 集群 ID
  */
-export const getSpiderDetails = (id: number) => http.get<TendbClusterModel>(`/apis/mysql/bizs/${currentBizId}/spider_resources/${id}/`);
+export const getSpiderDetails = (params: { id: number }) => http.get<TendbClusterModel>(`/apis/mysql/bizs/${currentBizId}/spider_resources/${params.id}/`);
 
 /**
  * 获取 spider 实例列表

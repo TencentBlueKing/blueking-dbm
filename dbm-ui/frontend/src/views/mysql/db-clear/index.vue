@@ -114,7 +114,6 @@
 
   import ClusterSelector from '@components/cluster-selector/ClusterSelector.vue';
   import type { ClusterSelectorResult } from '@components/cluster-selector/types';
-  import BatchEdit from '@components/mysql-toolbox/BatchEdit.vue';
   import SuccessView from '@components/mysql-toolbox/Success.vue';
   import ToolboxTable from '@components/mysql-toolbox/ToolboxTable.vue';
 
@@ -207,29 +206,7 @@
       ),
     },
     {
-      label: () => (
-        <span class="column-required">
-          {t('清档类型')}
-          <BatchEdit
-            title={t('批量编辑清档类型')}
-            width={420}
-            tooltips={t('批量编辑')}
-            default-value="truncate_table"
-            validator={validatorBatchSelect.bind(null, t('请选择清档类型'))}
-            onChange={handleBatchTypeChange}>
-            {{
-              default: ({ state }: any) => (
-                <bk-select
-                  v-model={state.value}
-                  list={truncateDataTypes}
-                  clearable={false}
-                  popover-options={{ boundary: 'parent', disableTeleport: true }}
-                />
-              ),
-            }}
-          </BatchEdit>
-        </span>
-      ),
+      label: () => t('清档类型'),
       field: 'truncate_data_type',
       render: ({ data, index }: TableColumnData) => (
         <bk-form-item
@@ -441,16 +418,6 @@
     item.cluster_id = info?.id ?? 0;
   }
 
-  /**
-   * 清档类型批量选择校验
-   */
-  function validatorBatchSelect(errorText: string, value: string) {
-    return {
-      isPass: !!value,
-      errorText,
-    };
-  }
-
   function getDBMessage(index: number, key: 'db_patterns' | 'ignore_dbs') {
     const data = tableData.value[index];
     const value = data[key];
@@ -627,7 +594,10 @@
 
     if (domains.length === 0) return Promise.resolve();
 
-    return getClusterInfoByDomains(globalBizsStore.currentBizId, { cluster_filters: _.uniq(domains) })
+    return getClusterInfoByDomains({
+      bizId: globalBizsStore.currentBizId,
+      cluster_filters: _.uniq(domains),
+    })
       .then((res) => {
         for (const item of res) {
           clusterInfoMap.set(item.master_domain, item);
@@ -699,15 +669,6 @@
     clearEmptyTableData();
     tableData.value.push(...list);
     window.changeConfirm = true;
-  }
-
-  /**
-   * 清档类型批量选择校验
-   */
-  function handleBatchTypeChange(value: string) {
-    for (const item of tableData.value) {
-      item.truncate_data_type = value;
-    }
   }
 
   /**

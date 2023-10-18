@@ -254,7 +254,6 @@
   display: block;
   width: 100%;
   height: 40px;
-  overflow: hidden;
   cursor: pointer;
   background: #fff;
 
@@ -297,9 +296,9 @@
     right: 0;
     left: 0;
     max-height: 300px;
-    min-height: 42px;
+    min-height: 40px;
     padding: 8px 16px;
-    overflow: auto;
+    overflow-y: auto;
     font-size: 12px;
     line-height: 20px;
     color: #63656e;

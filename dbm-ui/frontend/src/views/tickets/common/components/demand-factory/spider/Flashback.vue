@@ -51,30 +51,37 @@
     {
       label: t('目标集群'),
       field: 'clusterName',
+      showOverflowTooltip: true,
     },
     {
       label: t('开始时间'),
       field: 'startTime',
+      showOverflowTooltip: true,
     },
     {
       label: t('结束时间'),
       field: 'endTime',
+      showOverflowTooltip: true,
     },
     {
       label: t('目标库'),
       field: 'dbName',
+      showOverflowTooltip: true,
     },
     {
       label: t('目标表'),
       field: 'tableName',
+      showOverflowTooltip: true,
     },
     {
       label: t('忽略库'),
       field: 'ignoreDbName',
+      showOverflowTooltip: true,
     },
     {
       label: t('忽略表'),
       field: 'ignoreTableName',
+      showOverflowTooltip: true,
     },
   ];
 

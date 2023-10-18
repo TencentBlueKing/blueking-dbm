@@ -1,42 +1,19 @@
 {
   "bk_biz_id": 0,
-  "monitor_strategy_id": 73377,
-  "name": "MySQL 配置异常",
+  "name": "MySQL \u914d\u7f6e\u5f02\u5e38",
   "db_type": "mysql",
   "details": {
     "app": "",
-    "name": "MySQL 配置异常",
+    "name": "MySQL \u914d\u7f6e\u5f02\u5e38",
     "path": "",
     "type": "monitor",
     "items": [
       {
         "name": "COUNT(mysql-config-diff)",
-        "target": [
-          [
-            {
-              "field": "host_topo_node",
-              "value": [
-                {
-                  "bk_obj_id": "set",
-                  "bk_inst_id": 2000008148
-                },
-                {
-                  "bk_obj_id": "set",
-                  "bk_inst_id": 2000008149
-                },
-                {
-                  "bk_obj_id": "set",
-                  "bk_inst_id": 2000008149
-                }
-              ],
-              "method": "eq"
-            }
-          ]
-        ],
+        "target": [],
         "functions": [],
         "algorithms": [
           {
-            "id": 78712,
             "type": "Threshold",
             "level": 2,
             "config": [
@@ -54,11 +31,10 @@
         "origin_sql": "",
         "query_configs": [
           {
-            "id": 77810,
             "name": "mysql-config-diff",
             "alias": "a",
             "functions": [],
-            "metric_id": "custom.event.{bk_biz_id}_bkmonitor_event_{event_data_id}.mysql-config-diff",
+            "metric_id": "custom.event.bkmonitor_event_{event_data_id}.mysql-config-diff",
             "agg_method": "COUNT",
             "agg_interval": 60,
             "agg_condition": [],
@@ -68,11 +44,11 @@
               "app_id",
               "server_ip",
               "role",
-              "immute_domain",
+              "cluster_domain",
               "machine_type"
             ],
             "data_type_label": "event",
-            "result_table_id": "{bk_biz_id}_bkmonitor_event_{event_data_id}",
+            "result_table_id": "bkmonitor_event_{event_data_id}",
             "custom_event_name": "mysql-config-diff",
             "data_source_label": "custom"
           }
@@ -86,8 +62,8 @@
       }
     ],
     "labels": [
-      "DBM_MYSQL",
-      "DBM"
+      "DBM",
+      "DBM_MYSQL"
     ],
     "notice": {
       "config": {
@@ -120,7 +96,6 @@
         "end_time": "23:59:59",
         "start_time": "00:00:00",
         "assign_mode": [
-          "only_notice",
           "by_rule"
         ],
         "converge_config": {
@@ -226,11 +201,9 @@
       },
       "config_id": 72042,
       "relate_type": "NOTICE",
-      "user_groups": [
-        0
-      ]
+      "user_groups": []
     },
-    "source": "bkmonitorv3",
+    "source": "dbm",
     "actions": [],
     "detects": [
       {
@@ -257,8 +230,12 @@
       }
     ],
     "scenario": "other_rt",
-    "bk_biz_id": 100465,
-    "data_source_type": "自定义事件"
+    "bk_biz_id": "",
+    "data_source_type": "\u81ea\u5b9a\u4e49\u4e8b\u4ef6",
+    "priority": 0
   },
-  "is_enabled": true
+  "is_enabled": true,
+  "monitor_indicator": "COUNT(mysql-config-diff)",
+  "version": 2,
+  "alert_source": "event"
 }

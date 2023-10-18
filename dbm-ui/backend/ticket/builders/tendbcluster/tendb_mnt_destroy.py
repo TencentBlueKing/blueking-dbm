@@ -22,9 +22,9 @@ from backend.ticket.constants import TicketType
 class TendbMNTDestroyDetailSerializer(TendbBaseOperateDetailSerializer):
     class MNTDestroySerializer(serializers.Serializer):
         cluster_id = serializers.IntegerField(help_text=_("集群ID"))
-        spider_ip_list = serializers.ListField(help_text=_("临时节点信息"), child=serializers.DictField())
+        spider_ip_list = serializers.ListField(help_text=_("运维节点信息"), child=serializers.DictField())
 
-    infos = serializers.ListField(help_text=_("下架spider临时节点信息"), child=MNTDestroySerializer())
+    infos = serializers.ListField(help_text=_("下架spider运维节点信息"), child=MNTDestroySerializer())
     is_safe = serializers.BooleanField(help_text=_("是否安全模式执行"), required=False, default=True)
 
     def validate(self, attrs):
@@ -40,4 +40,4 @@ class TendbMNTDestroyParamBuilder(builders.FlowParamBuilder):
 class TendbMNTDestroyFlowBuilder(BaseTendbTicketFlowBuilder):
     serializer = TendbMNTDestroyDetailSerializer
     inner_flow_builder = TendbMNTDestroyParamBuilder
-    inner_flow_name = _("TendbCluster 下架临时节点")
+    inner_flow_name = _("TendbCluster 下架运维节点")

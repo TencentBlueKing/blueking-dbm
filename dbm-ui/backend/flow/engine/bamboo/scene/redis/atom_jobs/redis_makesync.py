@@ -40,6 +40,8 @@ def RedisMakeSyncAtomJob(root_id, ticket_data, sub_kwargs: ActKwargs, params: Di
         "sync_dst1":"1.1.1.x",    # new_master
         "sync_dst2":"2.2.x.1",    # new_slave
         "ins_link":[{"origin_1":"port","origin_2":"port","sync_dst1":"port","sync_dst2":"port"}],
+        "server_shards":{},
+        "cache_backup_mode":"",
     }
     """
     act_kwargs = deepcopy(sub_kwargs)
@@ -70,6 +72,7 @@ def RedisMakeSyncAtomJob(root_id, ticket_data, sub_kwargs: ActKwargs, params: Di
             "bk_biz_id": str(act_kwargs.cluster["bk_biz_id"]),
             "bk_cloud_id": int(act_kwargs.cluster["bk_cloud_id"]),
             "server_ports": [],
+            "server_shards": {},
             "cluster_domain": act_kwargs.cluster["immute_domain"],
         }
     ]
@@ -108,6 +111,8 @@ def RedisMakeSyncAtomJob(root_id, ticket_data, sub_kwargs: ActKwargs, params: Di
             "meta_role": InstanceRole.REDIS_SLAVE.value,  # 可能是master/slave 角色
             "server_ip": params["sync_dst1"],
             "server_ports": server_ports,
+            "server_shards": params.get("server_shards", {}),
+            "cache_backup_mode": params.get("cache_backup_mode", ""),
             "cluster_name": act_kwargs.cluster["cluster_name"],
             "cluster_type": act_kwargs.cluster["cluster_type"],
             "cluster_domain": act_kwargs.cluster["immute_domain"],

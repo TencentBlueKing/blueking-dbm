@@ -1,3 +1,13 @@
+/*
+ * TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
+ * Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
+ * Licensed under the MIT License (the "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at https://opensource.org/licenses/MIT
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+ * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
+
 package tbinlogdumpercmd
 
 import (
@@ -19,13 +29,13 @@ type DeployTbinlogDumperAct struct {
 	Service tbinlogdumper.InstallTbinlogDumperComp
 }
 
-// NewDeployMySQLInstanceCommand godoc
+// NewDeployTbinlogDumperCommand godoc
 //
 // @Summary      部署 tbinlogdumper 实例
 // @Description  部署 tbinlogdumper 实例说明
 // @Tags         tbinlogdumper
 // @Accept       json
-// @Param        body body      mysql.InstallTbinlogDumperComp  true  "short description"
+// @Param        body body      tbinlogdumper.InstallTbinlogDumperComp  true  "short description"
 // @Router       /tbinlogdumper/deploy [post]
 func NewDeployTbinlogDumperCommand() *cobra.Command {
 	act := DeployTbinlogDumperAct{
@@ -73,7 +83,7 @@ func (d *DeployTbinlogDumperAct) Init() (err error) {
 //	@return err
 func (d *DeployTbinlogDumperAct) Rollback() (err error) {
 	var r rollback.RollBackObjects
-	if err = d.DeserializeAndValidate(&r); err != nil {
+	if err = d.Deserialize(&r); err != nil {
 		logger.Error("DeserializeAndValidate failed, %v", err)
 		return err
 	}

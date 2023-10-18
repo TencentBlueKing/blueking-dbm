@@ -621,7 +621,7 @@ func CreatePartitionTicket(check Checker, objects []PartitionObject, zoneOffset 
 	if check.ClusterType == Tendbcluster {
 		ticketType = "TENDBCLUSTER_PARTITION"
 	}
-	ticket := Ticket{BkBizId: check.BkBizId, TicketType: ticketType, Remark: "auto partition",
+	ticket := Ticket{BkBizId: check.BkBizId, TicketType: ticketType, Remark: "auto partition", IgnoreDuplication: true,
 		Details: Detail{Infos: []Info{{check.ConfigId, check.ClusterId, check.ImmuteDomain, *check.BkCloudId, objects}}}}
 	id, err := CreateDbmTicket(ticket)
 	if err != nil {

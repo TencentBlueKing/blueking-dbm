@@ -69,6 +69,30 @@ def proxy_instance(proxies: QuerySet) -> List[Dict]:
                         "bind_port": be.proxyinstance_set.first().port,
                     }
                 )
+            elif be.cluster_entry_type == ClusterEntryType.CLB:
+                dt = be.clbentrydetail_set.get()
+                bind_entry[be.cluster_entry_type].append(
+                    {
+                        "clb_ip": dt.clb_ip,
+                        "clb_id": dt.clb_id,
+                        "listener_id": dt.listener_id,
+                        "clb_region": dt.clb_region,
+                        "bind_ips": list(set([ele.machine.ip for ele in list(be.proxyinstance_set.all())])),
+                        "bind_port": be.proxyinstance_set.first().port,
+                    }
+                )
+            elif be.cluster_entry_type == ClusterEntryType.POLARIS:
+                dt = be.polarisentrydetail_set.get()
+                bind_entry[be.cluster_entry_type].append(
+                    {
+                        "polaris_name": dt.polaris_name,
+                        "polaris_l5": dt.polaris_l5,
+                        "polaris_token": dt.polaris_token,
+                        "alias_token": dt.alias_token,
+                        "bind_ips": list(set([ele.machine.ip for ele in list(be.proxyinstance_set.all())])),
+                        "bind_port": be.proxyinstance_set.first().port,
+                    }
+                )
             else:
                 bind_entry[be.cluster_entry_type].append(be.entry)
 

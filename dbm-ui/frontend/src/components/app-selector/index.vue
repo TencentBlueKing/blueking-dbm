@@ -150,11 +150,12 @@
 </script>
 
 <script setup lang="ts">
-  defineProps({
-    collapsed: {
-      type: Boolean,
-      default: false,
-    },
+  interface Props {
+    collapsed?: boolean
+  }
+
+  withDefaults(defineProps<Props>(), {
+    collapsed: false,
   });
 
   const router = useRouter();

@@ -175,6 +175,7 @@ class TenDBRemoteRebalanceFlow(object):
                     kwargs=asdict(
                         DownloadBackupClientKwargs(
                             bk_cloud_id=cluster_class.bk_cloud_id,
+                            bk_biz_id=int(cluster_class.bk_biz_id),
                             download_host_list=[cluster["new_master_ip"], cluster["new_slave_ip"]],
                         )
                     ),
@@ -207,13 +208,9 @@ class TenDBRemoteRebalanceFlow(object):
                 ins_cluster["slave_ip"] = node["slave"]["ip"]
                 ins_cluster["master_port"] = node["master"]["port"]
                 ins_cluster["slave_port"] = node["slave"]["port"]
-                # todo 正式环境放开file_target_path,需要备份接口支持自动创建目录
-                # ins_cluster["file_target_path"] = "/data/dbbak/{}/{}"\
-                #     .format(self.root_id, ins_cluster["new_master_port"])
-                ins_cluster["file_target_path"] = "/home/mysql/install"
+                ins_cluster["file_target_path"] = f"/data/dbbak/{self.root_id}/{ins_cluster['master_port']}"
                 ins_cluster["shard_id"] = shard_id
                 ins_cluster["change_master_force"] = False
-
                 ins_cluster["backupinfo"] = backup_info["remote_node"].get(shard_id, {})
                 # 判断 remote_node 下每个分片的备份信息是否正常
                 if (

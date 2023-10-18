@@ -29,6 +29,25 @@ logger = logging.getLogger("flow")
 class AuthorizeRules(BaseService):
     """根据定义的用户规则模板进行授权"""
 
+    def _generate_rule_desc(self, authorize_data):
+        # 生成当前规则的描述细则
+        access_dbs = [account_rule["dbname"] for account_rule in authorize_data["account_rules"]]
+        rules_product: List[Tuple[Any, ...]] = list(
+            itertools.product(
+                [authorize_data["user"]],
+                access_dbs,
+                [", ".join(authorize_data["source_ips"])],
+                authorize_data["target_instances"],
+            )
+        )
+        rules_description: str = "\n".join(
+            [
+                _("{}. 账号规则: {}-{}, 来源ip: {}, 目标集群: {}").format(index + 1, rule[0], rule[1], rule[2], rule[3])
+                for index, rule in enumerate(rules_product)
+            ]
+        )
+        return rules_description
+
     def _execute(self, data, parent_data, callback=None) -> bool:
 
         # kwargs就是调用授权接口传入的参数
@@ -50,30 +69,15 @@ class AuthorizeRules(BaseService):
                 access_dbs="\n".join(access_dbs),
             )
 
-            # 生成当前规则的描述细则
-            rules_product: List[Tuple[Any, ...]] = list(
-                itertools.product(
-                    [authorize_data["user"]],
-                    access_dbs,
-                    [", ".join(authorize_data["source_ips"])],
-                    authorize_data["target_instances"],
-                )
-            )
-            rules_description: str = "\n".join(
-                [
-                    _("{}. 账号规则: {}-{}, 来源ip: {}, 目标集群: {}").format(index + 1, rule[0], rule[1], rule[2], rule[3])
-                    for index, rule in enumerate(rules_product)
-                ]
-            )
+            # 生成规则描述
+            rules_description = self._generate_rule_desc(authorize_data)
+            self.log_info(_("授权规则明细:\n{}\n").format(rules_description))
 
             # 进行授权，无论授权是否成功，都需要将message存入record中
-            self.log_info(_("授权规则明细:\n{}\n").format(rules_description))
             try:
                 resp = MySQLPrivManagerApi.authorize_rules(params=authorize_data, raw=True)
-
                 record.status = int(resp["code"]) == 0
                 authorize_success_count += record.status
-
                 record.error = resp["message"]
                 self.log_info(f"{resp['message']}\n")
 

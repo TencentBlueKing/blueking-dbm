@@ -12,6 +12,7 @@ package cmutil
 
 import (
 	"fmt"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -34,12 +35,7 @@ func FilterOutStringSlice(src []string, filters []string) (dst []string) {
 
 // StringsHas check the []string contains the given element
 func StringsHas(ss []string, val string) bool {
-	for _, ele := range ss {
-		if ele == val {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(ss, val)
 }
 
 // UniqueInts Returns unique items in a slice
@@ -79,10 +75,11 @@ func IntsJoin(intList []int, sep string) string {
 	return strings.Join(strList, sep)
 }
 
-// SplitGroup TODO
-func SplitGroup(laxiconid []string, subGroupLength int64) [][]string {
+// SplitGroup 数组切割
+// 将数组laxiconid 按照 subGroupLength 切分成若干个数组
+func SplitGroup[T int | string](laxiconid []T, subGroupLength int64) [][]T {
 	max := int64(len(laxiconid))
-	var segmens = make([][]string, 0)
+	var segmens = make([][]T, 0)
 	quantity := max / subGroupLength
 	remainder := max % subGroupLength
 	if quantity <= 1 {
@@ -99,6 +96,7 @@ func SplitGroup(laxiconid []string, subGroupLength int64) [][]string {
 	return segmens
 }
 
+// CleanStrElems TODO
 // RemoveEmpty 过滤掉空字符串
 func CleanStrElems(elems []string) []string {
 	var result []string
@@ -162,6 +160,7 @@ func ArrayInGroupsOf(arr []string, num int64) [][]string {
 	return segments
 }
 
+// HasElem TODO
 func HasElem[T int | string](elem T, elems []T) bool {
 	if len(elems) <= 0 {
 		return true

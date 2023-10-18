@@ -26,6 +26,7 @@ from backend.flow.plugins.components.collections.redis.exec_actuator_script impo
 from backend.flow.plugins.components.collections.redis.get_redis_payload import GetRedisActPayloadComponent
 from backend.flow.plugins.components.collections.redis.redis_dts_server_meta import RedisDtsServerMetaComponent
 from backend.flow.plugins.components.collections.redis.trans_flies import TransFileComponent
+from backend.flow.utils.cloud.cloud_act_payload import CloudServiceActPayload
 from backend.flow.utils.redis.redis_act_playload import RedisActPayload
 from backend.flow.utils.redis.redis_context_dataclass import ActKwargs, CommonContext
 
@@ -57,7 +58,7 @@ class RedisAddDtsServerFlow(object):
             info: {"ip": "3.3.3.1", "bk_cloud_id": 0, "bk_host_id": 2,"bk_city_name":"上海"}
             """
             logger.info("redis_add_dts_server_flow info:{}".format(info))
-            nginx_url = self.__get_cloud_nginx_url(info["bk_cloud_id"])
+            nginx_url = CloudServiceActPayload.get_cloud_nginx_url(info["bk_cloud_id"])
             cloud_token = self.__get_cloud_token(info["bk_cloud_id"])
             system_user_info = self.__get_system_user_info(self.data["bk_biz_id"])
 
@@ -99,13 +100,6 @@ class RedisAddDtsServerFlow(object):
         sub_pipelines.append(sub_pipeline.build_sub_process(sub_name=_("ADD DTS_SERVER")))
         redis_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
         redis_pipeline.run_pipeline()
-
-    def __get_cloud_nginx_url(self, bk_cloud_id):
-        """
-        获取云区域nginx地址
-        """
-        nginx = DBCloudProxy.objects.filter(bk_cloud_id=bk_cloud_id).last()
-        return "http://{}".format(nginx.internal_address)
 
     def __get_cloud_token(self, bk_cloud_id) -> str:
         """

@@ -331,12 +331,11 @@ func (c *PtTableChecksumComp) transformFilter() (*_ptFilters, error) {
 		c.Params.DbPatterns,
 		c.Params.TablePatterns,
 		c.Params.IgnoreDbs,
-		c.Params.IgnoreTables,
-	)
+		c.Params.IgnoreTables)
 	if err != nil {
 		return nil, err
 	}
-
+	filter.BuildFilter()
 	logger.Info("filter: %v", filter)
 	var res _ptFilters
 	err = c.transformInclude(&res, filter)

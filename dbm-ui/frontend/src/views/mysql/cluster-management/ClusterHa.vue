@@ -40,7 +40,7 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import type { ResourceRedisItem } from '@services/types/clusters';
+  import type { ResourceItem } from '@services/types/clusters';
 
   import { useMainViewStore } from '@stores';
 
@@ -65,7 +65,7 @@
     text: t('异常'),
   });
 
-  const handleChangeDetails = (data: ResourceRedisItem) => {
+  const handleChangeDetails = (data: ResourceItem) => {
     showCustomBreadcrumbs.value = true;
     mainViewStore.customBreadcrumbs = true;
     mainViewStore.$patch({

@@ -135,8 +135,9 @@ class ImportSQLFlow(object):
         )
 
         template_cluster = self.__get_master_instance_info(cluster_id=self.data["cluster_ids"][0])
+        cluster_type = template_cluster["cluster_type"]
         template_db_version = self.__get_version_and_charset(
-            db_module_id=template_cluster["db_module_id"], cluster_type=template_cluster["cluster_type"]
+            db_module_id=template_cluster["db_module_id"], cluster_type=cluster_type
         )
         backend_ip = template_cluster["backend_ip"]
         backend_port = template_cluster["port"]
@@ -174,7 +175,7 @@ class ImportSQLFlow(object):
             act_component_code=SemanticCheckComponent.code,
             kwargs={
                 "cluster": template_cluster,
-                ""
+                "cluster_type": cluster_type,
                 "payload": {
                     "uid": self.data["uid"],
                     "mysql_version": template_db_version,

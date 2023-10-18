@@ -27,7 +27,13 @@
       :type="type"
       v-bind="attrs"
       @change="handleChange"
-      @open-change="handleOpenChange" />
+      @open-change="handleOpenChange">
+      <template
+        v-if="slots.footer"
+        #footer>
+        <slot name="footer" />
+      </template>
+    </BkDatePicker>
     <div
       v-if="errorMessage"
       class="input-error">
@@ -41,6 +47,7 @@
   import {
     ref,
     useAttrs,
+    useSlots,
   } from 'vue';
 
   import useValidtor, {
@@ -59,6 +66,9 @@
     (e: 'update:modelValue', value: Props['modelValue']): void;
     (e: 'change', value: any): void;
   }
+  interface Slots{
+    footer(): any
+  }
 
   interface Exposes {
     getValue: () => Promise<Props['modelValue']>;
@@ -73,8 +83,10 @@
   });
 
   const emits = defineEmits<Emits>();
+  defineSlots<Slots>();
 
   const attrs = useAttrs();
+  const slots = useSlots();
 
   const localValue = ref(props.modelValue);
 

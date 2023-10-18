@@ -125,6 +125,7 @@
     {
       label: 'DB',
       field: 'access_db',
+      showOverflowTooltip: true,
     },
     {
       label: t('权限'),

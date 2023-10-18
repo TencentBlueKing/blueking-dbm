@@ -19,7 +19,7 @@ from backend.flow.views.base import FlowTestView
 logger = logging.getLogger("root")
 
 
-class NameServiceClbCreateSceneApiView(FlowTestView):
+class ClbCreateSceneApiView(FlowTestView):
     """
     名字服务clb创建api接口
     """
@@ -34,7 +34,7 @@ class NameServiceClbCreateSceneApiView(FlowTestView):
         return Response({"root_id": root_id})
 
 
-class NameServiceClbDeleteSceneApiView(FlowTestView):
+class ClbDeleteSceneApiView(FlowTestView):
     """
     名字服务clb删除api接口
     """
@@ -49,7 +49,37 @@ class NameServiceClbDeleteSceneApiView(FlowTestView):
         return Response({"root_id": root_id})
 
 
-class NameServicePolarisCreateSceneApiView(FlowTestView):
+class DomainBindClbIpSceneApiView(FlowTestView):
+    """
+    主域名绑定clb ip api接口
+    """
+
+    @staticmethod
+    def post(request):
+        """
+        主域名绑定clb ip
+        """
+        root_id = uuid.uuid1().hex
+        NameServiceController(root_id=root_id, ticket_data=request.data).immute_domain_bind_clb_ip()
+        return Response({"root_id": root_id})
+
+
+class DomainUnBindClbIpSceneApiView(FlowTestView):
+    """
+    主域名解绑clb ip api接口
+    """
+
+    @staticmethod
+    def post(request):
+        """
+        主域名解绑clb ip
+        """
+        root_id = uuid.uuid1().hex
+        NameServiceController(root_id=root_id, ticket_data=request.data).immute_domain_unbind_clb_ip()
+        return Response({"root_id": root_id})
+
+
+class PolarisCreateSceneApiView(FlowTestView):
     """
     名字服务polaris创建api接口
     """
@@ -64,7 +94,7 @@ class NameServicePolarisCreateSceneApiView(FlowTestView):
         return Response({"root_id": root_id})
 
 
-class NameServicePolarisDeleteSceneApiView(FlowTestView):
+class PolarisDeleteSceneApiView(FlowTestView):
     """
     名字服务polaris删除api接口
     """

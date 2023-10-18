@@ -107,7 +107,7 @@ export const detailColumns: DetailColumns<any> = [{
   render: (value: number) => <span>{Number.isFinite(value) ? `${value}GB` : '--'}</span>,
 }];
 
-const apiMap: Record<string, (params: any, type: string) => Promise<any>> = {
+const apiMap: Record<string, (params: any) => Promise<any>> = {
   kafka: getKafkaRetrieveInstance,
   hdfs: getHDFSRetrieveInstance,
   es: getESRetrieveInstance,
@@ -264,10 +264,11 @@ export const useRenderGraph = (props: ClusterTopoProps, nodeConfig: NodeConfig =
       type: props.clusterType,
       instance_address: address,
       cluster_id: props.id,
+      dbType: props.dbType,
     };
     instState.isLoading = true;
     const fetchApi = apiMap[props.clusterType] || getResourceInstanceDetails;
-    return fetchApi(params, props.dbType)
+    return fetchApi(params)
       .then((res) => {
         instState.detailsCaches.set(address, res);
       })

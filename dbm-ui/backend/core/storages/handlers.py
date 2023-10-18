@@ -56,13 +56,12 @@ class StorageHandler(object):
         file_stream = io.BytesIO(zip_content)
         unzip_files = zipfile.ZipFile(file=file_stream)
         for index, unzip_file_name in enumerate(unzip_files.namelist()):
-            # 注意，这里解压缩的文件名和原路径会有差异(好像会少一个层级)
-            file_path = file_path_list[index]
+            # 注意，这里解压缩的文件名和原路径会有差异(好像少一个层级)
             file_content_list.append(
                 {
-                    "path": file_path,
+                    "path": unzip_file_name,
                     "content": unzip_files.read(unzip_file_name).decode("utf-8"),
-                    "url": self.storage.url(file_path),
+                    "url": self.storage.url(unzip_file_name),
                 }
             )
 

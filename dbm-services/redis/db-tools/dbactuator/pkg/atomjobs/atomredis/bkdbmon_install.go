@@ -22,23 +22,26 @@ import (
 
 // ConfServerItem servers配置项
 type ConfServerItem struct {
-	BkBizID       string `json:"bk_biz_id" yaml:"bk_biz_id" validate:"required"`
-	BkCloudID     int64  `json:"bk_cloud_id" yaml:"bk_cloud_id"`
-	App           string `json:"app" yaml:"app" validate:"required"`
-	AppName       string `json:"app_name" yaml:"app_name" validate:"required"`
-	ClusterDomain string `json:"cluster_domain" yaml:"cluster_domain" validate:"required"`
-	ClusterName   string `json:"cluster_name" yaml:"cluster_name" validate:"required"`
-	ClusterType   string `json:"cluster_type" yaml:"cluster_type" validate:"required"`
-	MetaRole      string `json:"meta_role" yaml:"meta_role" validate:"required"`
-	ServerIP      string `json:"server_ip" yaml:"server_ip" validate:"required"`
-	ServerPorts   []int  `json:"server_ports" yaml:"server_ports" validate:"required"`
-	Shard         string `json:"shard" yaml:"shard"`
+	BkBizID         string            `json:"bk_biz_id" yaml:"bk_biz_id" validate:"required"`
+	BkCloudID       int64             `json:"bk_cloud_id" yaml:"bk_cloud_id"`
+	App             string            `json:"app" yaml:"app" validate:"required"`
+	AppName         string            `json:"app_name" yaml:"app_name" validate:"required"`
+	ClusterDomain   string            `json:"cluster_domain" yaml:"cluster_domain" validate:"required"`
+	ClusterName     string            `json:"cluster_name" yaml:"cluster_name" validate:"required"`
+	ClusterType     string            `json:"cluster_type" yaml:"cluster_type" validate:"required"`
+	MetaRole        string            `json:"meta_role" yaml:"meta_role" validate:"required"`
+	ServerIP        string            `json:"server_ip" yaml:"server_ip" validate:"required"`
+	ServerPorts     []int             `json:"server_ports" yaml:"server_ports" validate:"required"`
+	ServerShards    map[string]string `json:"server_shards" yaml:"server_shards"`
+	CacheBackupMode string            `json:"cache_backup_mode" yaml:"cache_backup_mode"` // aof or rdb
+	Shard           string            `json:"shard" yaml:"shard"`
 }
 
 // BkDbmonInstallParams 安装参数
 type BkDbmonInstallParams struct {
 	BkDbmonPkg         common.MediaPkg        `json:"bkdbmonpkg" validate:"required"`
 	DbToolsPkg         common.DbToolsMediaPkg `json:"dbtoolspkg" validate:"required"`
+	AgentAddress       string                 `json:"agent_address" validate:"required"`
 	GsePath            string                 `json:"gsepath" validate:"required"`
 	RedisFullBackup    map[string]interface{} `json:"redis_fullbackup" validate:"required"`
 	RedisBinlogBackup  map[string]interface{} `json:"redis_binlogbackup" validate:"required"`
@@ -54,6 +57,7 @@ type BkDbmonInstall struct {
 	params            BkDbmonInstallParams
 	bkDbmonBinUpdated bool // bk-dbmon介质是否被更新
 	confFileUpdated   bool //  配置文件是否被更新
+	isStopped         bool // 是否是停止 bkdbmon
 }
 
 // 无实际作用,仅确保实现了 jobruntime.JobRunner 接口
@@ -90,7 +94,7 @@ func (job *BkDbmonInstall) Init(m *jobruntime.JobGenericRuntime) error {
 		}
 	}
 	for _, svrItem := range job.params.Servers {
-		if len(svrItem.ServerPorts) >= 0 {
+		if len(svrItem.ServerPorts) > 0 {
 			if svrItem.ServerIP == "" {
 				job.runtime.Logger.Error("BkDbmonInstall Init params validate failed,err:ServerIP is empty")
 				return fmt.Errorf("ServerIP is empty")
@@ -123,7 +127,10 @@ func (job *BkDbmonInstall) Name() string {
 
 // Run 执行
 func (job *BkDbmonInstall) Run() (err error) {
-	var isStopped bool
+	err = job.checkIsStopped()
+	if err != nil {
+		return
+	}
 	err = job.UntarMedia()
 	if err != nil {
 		return
@@ -132,11 +139,11 @@ func (job *BkDbmonInstall) Run() (err error) {
 	if err != nil {
 		return
 	}
-	isStopped, err = job.stopDbmonWhenNoServers()
+	err = job.stopDbmonWhenNoServers()
 	if err != nil {
 		return
 	}
-	if isStopped {
+	if job.isStopped {
 		return
 	}
 	if !job.bkDbmonBinUpdated && !job.confFileUpdated {
@@ -155,23 +162,26 @@ func (job *BkDbmonInstall) Run() (err error) {
 	return
 }
 
-// stopDbmonWhenNoServers servers为空,没有任何需要监控的 redis-servers/proxy
-// 直接stop bkdbmon即可
-func (job *BkDbmonInstall) stopDbmonWhenNoServers() (isStopped bool, err error) {
+func (job *BkDbmonInstall) checkIsStopped() (err error) {
 	if len(job.params.Servers) == 0 {
-		err = job.StopBkDbmon()
-		isStopped = true
+		job.isStopped = true
 		return
 	}
-	isStopped = true
+	job.isStopped = true
 	for _, svrItem := range job.params.Servers {
 		if len(svrItem.ServerPorts) > 0 {
 			// 存在实例
-			isStopped = false
+			job.isStopped = false
 			break
 		}
 	}
-	if isStopped {
+	return
+}
+
+// stopDbmonWhenNoServers servers为空,没有任何需要监控的 redis-servers/proxy
+// 直接stop bkdbmon即可
+func (job *BkDbmonInstall) stopDbmonWhenNoServers() (err error) {
+	if job.isStopped {
 		err = job.StopBkDbmon()
 		return
 	}
@@ -182,6 +192,10 @@ func (job *BkDbmonInstall) stopDbmonWhenNoServers() (isStopped bool, err error) 
 // 如果/home/mysql/bk-dbmon/bk-dbmon 存在,且版本正确,则不解压
 // 否则解压最新bk-dbmon,并修改 /home/mysql/bk-dbmon 的指向;
 func (job *BkDbmonInstall) UntarMedia() (err error) {
+	if job.isStopped {
+		// 如果是停止 bkdbmon,则不需要解压介质
+		return nil
+	}
 	var remoteVersion, localVersion string
 	err = job.params.BkDbmonPkg.Check()
 	if err != nil {
@@ -305,6 +319,7 @@ type bkDbmonConf struct {
 	ReportSaveDir      string                 `json:"report_save_dir" yaml:"report_save_dir"`
 	ReportLeftDay      int                    `json:"report_left_day" yaml:"report_left_day"`
 	HTTPAddress        string                 `json:"http_address" yaml:"http_address"`
+	AgentAddress       string                 `json:"agent_address" yaml:"agent_address"`
 	GsePath            string                 `json:"gsepath" yaml:"gsepath"`
 	RedisFullBackup    map[string]interface{} `json:"redis_fullbackup" yaml:"redis_fullbackup"`
 	RedisBinlogBackup  map[string]interface{} `json:"redis_binlogbackup" yaml:"redis_binlogbackup"`
@@ -329,6 +344,7 @@ func (job *BkDbmonInstall) GenerateConfigFile() (err error) {
 		ReportSaveDir:      consts.DbaReportSaveDir,
 		ReportLeftDay:      consts.RedisReportLeftDay,
 		HTTPAddress:        consts.BkDbmonHTTPAddress,
+		AgentAddress:       job.params.AgentAddress,
 		GsePath:            job.params.GsePath,
 		RedisFullBackup:    job.params.RedisFullBackup,
 		RedisBinlogBackup:  job.params.RedisBinlogBackup,

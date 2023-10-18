@@ -24,7 +24,7 @@
         :columns="localColumns"
         :data="tableData.results"
         :max-height="tableMaxHeight"
-        :pagination="pagination"
+        :pagination="pagination.count < 10 ? false : pagination"
         :pagination-heihgt="60"
         remote-pagination
         show-overflow-tooltip
@@ -155,6 +155,10 @@
   });
 
   const emits = defineEmits<Emits>();
+
+  defineOptions({
+    inheritAttrs: false,
+  });
 
   // 生成可选中列配置
   const genSelectionColumn = () => ({
@@ -295,7 +299,6 @@
 
   const fetchListData = (loading = true) => {
     isReady = true;
-    console.log('from dadta source statatat = ');
     Promise.resolve()
       .then(() => {
         isLoading.value = loading;
@@ -328,7 +331,6 @@
             emits('requestSuccess', data);
           })
           .catch((error) => {
-            console.error('request error: ', error);
             tableData.value.results = [];
             pagination.count = 0;
             isAnomalies.value = true;
@@ -388,7 +390,9 @@
     const selectMap = { ...rowSelectMemo.value };
     tableData.value.results.forEach((dataItem: any) => {
       if (checked) {
-        selectMap[_.get(dataItem, props.primaryKey)] = dataItem;
+        if (!props.disableSelectMethod(dataItem)) {
+          selectMap[_.get(dataItem, props.primaryKey)] = dataItem;
+        }
       } else {
         delete selectMap[_.get(dataItem, props.primaryKey)];
       }

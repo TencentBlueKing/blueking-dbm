@@ -48,19 +48,16 @@
 </script>
 
 <script setup lang="ts">
-  const props = defineProps({
-    collapse: {
-      type: Boolean,
-      default: true,
-    },
-    title: {
-      type: String,
-      default: 'Title',
-    },
-    count: {
-      type: Number,
-      default: 0,
-    },
+  interface Props {
+    collapse?: boolean,
+    title?: string,
+    count?: number,
+  }
+
+  const props = withDefaults(defineProps<Props>(), {
+    collapse: true,
+    title: 'Title',
+    count: 0,
   });
 
   const state = reactive({

@@ -12,15 +12,22 @@ import (
 	"dbm-services/redis/db-tools/dbactuator/pkg/consts"
 )
 
-// InfoReplSlave Tendisplus master中执行info replication结果中slave状态
+// InfoReplSlave master中执行info replication结果中slave状态
 // 如: slave0:ip=luketest03-redis-rdsplus4-1.luketest03-svc.dmc,port=30000,state=online,offset=930327677,lag=0
 type InfoReplSlave struct {
-	Name   string `json:"name"`
-	IP     string `json:"ip"`
-	Port   int    `json:"port"`
-	State  string `json:"state"`
-	Offset int64  `json:"offset"`
-	Lag    int64  `json:"lag"`
+	Name      string `json:"name"`
+	IP        string `json:"ip"`
+	Port      int    `json:"port"`
+	State     string `json:"state"`
+	Offset    int64  `json:"offset"`
+	Seq       int64  `json:"seq"`
+	Lag       int64  `json:"lag"`
+	BinlogLag int64  `json:"binlog_lag"`
+}
+
+// Addr addr字符串
+func (slave *InfoReplSlave) Addr() string {
+	return slave.IP + ":" + strconv.Itoa(slave.Port)
 }
 
 func (slave *InfoReplSlave) decode(line string) error {
@@ -40,10 +47,14 @@ func (slave *InfoReplSlave) decode(line string) error {
 			slave.Port, _ = strconv.Atoi(list02[1])
 		} else if list02[0] == "state" {
 			slave.State = list02[1]
+		} else if list02[0] == "seq" {
+			slave.Seq, _ = strconv.ParseInt(list02[1], 10, 64)
 		} else if list02[0] == "offset" {
 			slave.Offset, _ = strconv.ParseInt(list02[1], 10, 64)
 		} else if list02[0] == "lag" {
 			slave.Lag, _ = strconv.ParseInt(list02[1], 10, 64)
+		} else if list02[0] == "binlog_lag" {
+			slave.BinlogLag, _ = strconv.ParseInt(list02[1], 10, 64)
 		}
 	}
 	return nil
@@ -407,6 +418,49 @@ func (db *RedisClient) TendisSSDInfoSlaves() (ret TendisSSDInfoSlavesData, err e
 				return
 			}
 			ret.SlaveList = append(ret.SlaveList, slave01)
+		}
+	}
+	return
+}
+
+// GetInfoReplSlaves 获取info replication中slave列表
+func (db *RedisClient) GetInfoReplSlaves() (slaveList []*InfoReplSlave, slaveMap map[string]*InfoReplSlave, err error) {
+	var replRet string
+	if db.DbType == consts.TendisTypeRedisCluster {
+		replRet, err = db.ClusterClient.Info(context.TODO(), "replication").Result()
+	} else {
+		replRet, err = db.InstanceClient.Info(context.TODO(), "replication").Result()
+	}
+	if err != nil {
+		err = fmt.Errorf("info replication fail,err:%v,aadr:%s", err, db.Addr)
+		mylog.Logger.Error(err.Error())
+		return
+	}
+	infoList := strings.Split(replRet, "\n")
+	slaveReg := regexp.MustCompile(`^slave\d+$`)
+	slaveMap = make(map[string]*InfoReplSlave)
+	for _, infoItem := range infoList {
+		infoItem = strings.TrimSpace(infoItem)
+		if strings.HasPrefix(infoItem, "#") {
+			continue
+		}
+		if len(infoItem) == 0 {
+			continue
+		}
+		list01 := strings.SplitN(infoItem, ":", 2)
+		if len(list01) < 2 {
+			continue
+		}
+		list01[0] = strings.TrimSpace(list01[0])
+		list01[1] = strings.TrimSpace(list01[1])
+		if slaveReg.MatchString(list01[0]) == true {
+			slave01 := &InfoReplSlave{}
+			err = slave01.decode(infoItem)
+			if err != nil {
+				return
+			}
+			slaveList = append(slaveList, slave01)
+			slaveMap[slave01.Addr()] = slave01
 		}
 	}
 	return

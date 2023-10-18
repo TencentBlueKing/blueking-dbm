@@ -25,7 +25,6 @@ import { useFunController } from '@stores';
 import { ClusterTypes } from '@common/const';
 
 import getDbConfRoutes from '@views/db-configure/routes';
-// import deploymentPlanRoutes from '@views/deployment-plan/routes';
 import getESRoutes from '@views/es-manage/routes';
 import getEventCenterRouters from '@views/event-center/routes';
 import getHDFSRoutes from '@views/hdfs-manage/routes';
@@ -35,18 +34,18 @@ import getMissionRoutes from '@views/mission/routes';
 import getDBMonitorAlarmRoutes from '@views/monitor-alarm-db/routes';
 import getPlatMonitorAlarmRoutes from '@views/monitor-alarm-plat/routes';
 import getMysqlRoutes from '@views/mysql/routes';
+import getNotificationSettingRoutes from '@views/notification-setting/routes';
 import getPasswordPolicyRoutes from '@views/password-policy/routes';
 import getPasswordRandomizationRoutes from '@views/password-randomization/routes';
 import getPasswordTemporaryModify from '@views/password-temporary-modify/routes';
+import getPlatformDbConfigureRoutes from '@views/platform-db-configure/routes';
 import getPulsarRoutes from '@views/pulsar-manage/routes';
 import getRedisRoutes from '@views/redis/routes';
 import getResourcePool from '@views/resource-pool/routes';
 import getResourceSpecRouters from '@views/resource-spec/routes';
 import getServiceApplyRoutes from '@views/service-apply/routes';
-// import getSpiderRoutes from '@views/spider-manage/routes';
 import getSpiderManageRoutes from '@views/spider-manage/routes';
 import getStaffSettingRoutes from '@views/staff-setting/routes';
-// import getTicketsRoutes from '@views/tickets/routes';
 import getTicketsRoutes from '@views/tickets/routes';
 import getVersionFilesRoutes from '@views/version-files/routes';
 import getWhitelistRoutes from '@views/whitelist/routes';
@@ -71,9 +70,6 @@ const selfServiceRoute = {
 const dbmRoute: RouteRecordRaw = {
   name: MainViewRouteNames.Database,
   path: '/database/:bizId(\\d+)',
-  // redirect: {
-  //   name: 'DatabaseTendbsingle',
-  // },
   meta: {
     navName: t('数据库管理'),
   },
@@ -85,7 +81,7 @@ const platformRoute = {
   name: MainViewRouteNames.Platform,
   path: '/platform',
   redirect: {
-    name: 'PlatConf',
+    name: 'PlatformDbConfigure',
   },
   meta: {
     navName: t('平台管理'),
@@ -128,7 +124,7 @@ const dbmRouteRedirect = {
   [ClusterTypes.HDFS]: 'HdfsManage',
   [ClusterTypes.KAFKA]: 'KafkaManage',
   [ClusterTypes.PULSAE]: 'PulsarManage',
-  [ClusterTypes.INFLUXDB]: 'InfluxDBInstances',
+  [ClusterTypes.INFLUXDB]: 'InfluxDBManage',
 };
 
 export default async function getRouters() {
@@ -140,7 +136,6 @@ export default async function getRouters() {
 
   const routes = [
     ...getMysqlRoutes(mysqlController),
-    // ...getSpiderRoutes(mysqlController),
     ...getRedisRoutes(redisController),
     ...getESRoutes(bigdataController),
     ...getHDFSRoutes(bigdataController),
@@ -163,9 +158,14 @@ export default async function getRouters() {
     ...getPlatMonitorAlarmRoutes(),
     ...getPasswordRandomizationRoutes(),
     ...getPasswordTemporaryModify(),
+    ...getNotificationSettingRoutes(),
+    ...getPasswordTemporaryModify(),
+    ...getPlatformDbConfigureRoutes(),
     // ...deploymentPlanRoutes,
   ];
+
   const mainRoutes = getMainRoutes(routes);
+
   const renderRoutes: RouteRecordRaw[] = [];
 
   for (const route of Object.values(mainRoutes)) {

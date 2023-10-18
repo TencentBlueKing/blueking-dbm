@@ -2,8 +2,7 @@ package checker
 
 import (
 	"fmt"
-
-	"golang.org/x/exp/slices"
+	"slices"
 )
 
 type switchStrategy struct {

@@ -31,6 +31,7 @@
     <td style="padding: 0;">
       <RenderSpec
         :data="data.spec"
+        is-ignore-counts
         :is-loading="data.isLoading" />
     </td>
     <td

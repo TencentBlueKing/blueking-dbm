@@ -8,6 +8,8 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import logging
+
 from backend import env
 from backend.ticket import constants
 from backend.ticket.constants import FLOW_FINISHED_STATUS, FlowType
@@ -53,6 +55,8 @@ if env.FAKE_RESOURCE_APPLY_ENABLE:
             FlowType.RESOURCE_BATCH_DELIVERY: FakeResourceBatchDeliveryFlow,
         }
     )
+
+logger = logging.getLogger("root")
 
 
 class TicketFlowManager(object):

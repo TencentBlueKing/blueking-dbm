@@ -23,9 +23,6 @@ mini:
 clean:
 	cd ${BASE_DIR}/build && rm -rf ${APPNAME}
 
-rotatebinlog:
-	cd ${BASE_DIR}/cmd/rotatebinlog && CGO_ENABLED=0 GOOS=${GOOS} GOARCH=amd64 go build  -ldflags ${BUILD_FLAG}  -o $(BASE_DIR)/build/rotatebinlog -v .
-
 gotool:
 	@-gofmt -w .
 

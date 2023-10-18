@@ -1,6 +1,7 @@
 package rotate
 
 import (
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -20,7 +21,7 @@ import (
 	"dbm-services/mysql/db-tools/mysql-rotatebinlog/pkg/util"
 
 	"github.com/ghodss/yaml"
-	"github.com/pkg/errors"
+	errs "github.com/pkg/errors"
 	"github.com/spf13/cast"
 	"github.com/spf13/viper"
 )
@@ -51,7 +52,9 @@ func (c *RotateBinlogComp) Init() (err error) {
 	return nil
 }
 
-// Start TODO
+// Start godoc
+// 多个实例进行rotate，除了空间释放的计算有关联，其它互补影响
+// 即一个实例rotate失败，不影响其它rotate执行。但会抛出失败的那个实例相应错误
 func (c *RotateBinlogComp) Start() (err error) {
 	if err = log.InitLogger(); err != nil {
 		return err
@@ -70,19 +73,23 @@ func (c *RotateBinlogComp) Start() (err error) {
 	if err = models.SetupTable(); err != nil {
 		return err
 	}
-	var backupClient backup.BackupClient
-	if backupClient, err = backup.InitBackupClient(); err != nil {
-		return err
-	}
 
 	var servers []*ServerObj
 	if err = viper.UnmarshalKey("servers", &servers); err != nil {
-		return errors.Wrap(err, "parse config servers")
+		return errs.Wrap(err, "parse config servers")
 	} else {
 		logger.Info("config servers: %+v", servers)
 	}
+	var errRet error
 	for _, inst := range servers {
-		inst.backupClient = backupClient
+		var backupClient backup.BackupClient
+		if backupClient, err = backup.InitBackupClient(); err != nil {
+			err = errs.WithMessagef(err, "init backup_client")
+			logger.Error("%+v", err.Error())
+			errRet = errors.Join(errRet, err)
+			continue
+		}
+		inst.backupClient = backupClient // if nil, ignore backup
 		inst.instance = &native.InsObject{
 			Host:   inst.Host,
 			Port:   inst.Port,
@@ -91,26 +98,32 @@ func (c *RotateBinlogComp) Start() (err error) {
 			Socket: inst.Socket,
 		}
 		if err = validate.GoValidateStruct(inst, true, false); err != nil {
-			logger.Error("validate instance failed: %s", inst)
+			err = errs.WithMessagef(err, "validate instance %s", inst)
+			logger.Error("%+v", err.Error())
+			errRet = errors.Join(errRet, err)
 			continue
 		}
 		if err = inst.Rotate(); err != nil {
-			logger.Error("fail to rotate_binlog: %d, err: %+v", inst.Port, err)
+			err = errs.WithMessagef(err, "run rotatebinlog %d", inst.Port)
+			logger.Error("%+v", err)
+			errRet = errors.Join(errRet, err)
 			continue
 		}
 	}
 	if err = c.decideSizeToFree(servers); err != nil {
-		return err
+		return errors.Join(errRet, err)
 	}
 	for _, inst := range servers {
 		if err = inst.FreeSpace(); err != nil {
-			logger.Error(err.Error())
+			logger.Error("FreeSpace %+v", err)
+			errRet = errors.Join(errRet, err)
 		}
 		if err = inst.rotate.Backup(); err != nil {
-			logger.Error("%+v", err)
+			logger.Error("Backup %+v", err)
+			errRet = errors.Join(errRet, err)
 		}
 	}
-	return nil
+	return errRet
 }
 
 // RemoveConfig 删除某个 binlog 实例的 rotate 配置
@@ -206,15 +219,15 @@ func (c *RotateBinlogComp) decideSizeToFree(servers []*ServerObj) error {
 		return fmt.Errorf("unknown keep_policy %s", keepPolicy)
 	}
 
-	var diskPartInst = make(map[string][]*ServerObj)    // 每个挂载目录上，放了哪些binlog实例以及对应的binlog空间
-	var diskParts = make(map[string]*util.DiskDfResult) // 目录对应的空间信息
+	var diskPartInst = make(map[string][]*ServerObj)      // 每个挂载目录上，放了哪些binlog实例以及对应的binlog空间
+	var diskParts = make(map[string]*cmutil.DiskPartInfo) // 目录对应的空间信息
 	for _, inst := range servers {
 		diskPart, err := util.GetDiskPartitionWithDir(inst.binlogDir)
 		if err != nil {
 			logger.Warn("fail to get binlog_dir %s disk partition info", inst.binlogDir)
 			continue
 		}
-		mkey := diskPart.MountedOn
+		mkey := diskPart.Mountpoint
 		diskPartInst[mkey] = append(diskPartInst[mkey], inst)
 		diskParts[mkey] = diskPart
 	}
@@ -226,8 +239,7 @@ func (c *RotateBinlogComp) decideSizeToFree(servers []*ServerObj) error {
 	} else {
 		maxBinlogSizeAllowedMB = maxBinlogSizeAllowed / 1024 / 1024
 	}
-	logger.Info(
-		"viper config:%s, parsed_mb:%d",
+	logger.Info("viper config:%s, parsed_mb:%d",
 		viper.GetString("public.max_binlog_total_size"),
 		maxBinlogSizeAllowedMB,
 	)
@@ -251,14 +263,18 @@ func (c *RotateBinlogComp) decideSizeToFree(servers []*ServerObj) error {
 		}
 
 		// 根据磁盘使用率来决定删除空间
-		maxDiskUsedPctAllowed := cast.ToFloat32(viper.GetFloat64("public.max_disk_used_pct") / float64(100))
-		maxDiskUsedAllowedMB := cast.ToInt64(maxDiskUsedPctAllowed * float32(diskPart.TotalSizeMB))
-		if diskPart.UsedPct < maxDiskUsedPctAllowed {
+		maxDiskUsedPctAllowed := viper.GetFloat64("public.max_disk_used_pct") / float64(100)
+		maxDiskUsedAllowedMB := cast.ToUint64(maxDiskUsedPctAllowed*float64(diskPart.Total)) / 1024 / 1024
+		logger.Info("diskPart %s TotalMB:%d UsedPercent:%.2f, maxDiskUsedPctAllowed:%.2f",
+			diskPartName, diskPart.Total/1024/1024, diskPart.UsedPercent, maxDiskUsedPctAllowed)
+		if diskPart.UsedPercent < maxDiskUsedPctAllowed {
 			continue
 		}
-		diskPart.SizeToFreeMB = diskPart.UsedMB - maxDiskUsedAllowedMB
-		portSizeToFreeMB := util.DecideSizeToRemove(instBinlogSizeMB, diskPart.SizeToFreeMB)
-		logger.Info("plan to free space MB: %+v", portSizeToFreeMB)
+		diskPartSizeToFreeMB := int64((diskPart.UsedTotal / 1024 / 1024) - maxDiskUsedAllowedMB)
+		portSizeToFreeMB := util.DecideSizeToRemove(instBinlogSizeMB, diskPartSizeToFreeMB)
+		logger.Info("diskPart %s maxDiskUsedAllowedMB:%d UsedTotalMB:%d expectFreeMB:%d",
+			diskPartName, maxDiskUsedAllowedMB, diskPart.UsedTotal/1024/1024, diskPartSizeToFreeMB)
+		logger.Info("plan to free spaceMB:%+v", portSizeToFreeMB)
 		for _, inst := range diskPartInst[diskPartName] {
 			if portSizeToFreeMB[inst.Port] > inst.rotate.sizeToFreeMB {
 				inst.rotate.sizeToFreeMB = portSizeToFreeMB[inst.Port]

@@ -11,7 +11,7 @@
  * the specific language governing permissions and limitations under the License.
 */
 
-import { acceptHMRUpdate, defineStore } from 'pinia';
+import { defineStore } from 'pinia';
 
 import type UserSemanticTaskModel from '@services/model/sql-import/user-semantic-task';
 
@@ -27,7 +27,3 @@ export const useSQLTaskCount = defineStore('useSQLTaskCount', {
     taskCount: state => state.taskList.length ?? 0,
   },
 });
-
-if (import.meta.hot) {
-  import.meta.hot.accept(acceptHMRUpdate(useSQLTaskCount, import.meta.hot));
-}

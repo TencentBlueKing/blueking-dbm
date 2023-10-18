@@ -32,6 +32,8 @@ const (
 	Prepoccupied = "Prepoccupied"
 	// Used TODO
 	Used = "Used"
+	// UsedByOther 已被其他业务使用
+	UsedByOther = "UsedByOther"
 )
 
 // TbRpDetail  机器资源明细表

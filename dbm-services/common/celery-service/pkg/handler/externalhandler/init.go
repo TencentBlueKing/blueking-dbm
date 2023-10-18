@@ -1,7 +1,7 @@
 package externalhandler
 
 import (
-	"golang.org/x/exp/slog"
+	"log/slog"
 
 	"celery-service/pkg/log"
 )

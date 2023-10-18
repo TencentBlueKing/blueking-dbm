@@ -24,12 +24,13 @@
           :content="$t('强制切换，将忽略同步连接')"
           placement="top"
           theme="dark">
-          <BkCheckbox
-            v-model="isForceSwitch"
-            style="padding-top: 6px;" />
+          <div class="switch-box">
+            <BkCheckbox v-model="isForceSwitch" />
+            <span class="ml-6 force-switch">{{ $t('强制切换') }}</span>
+          </div>
         </BkPopover>
-        <span class="ml-6 force-switch">{{ $t('强制切换') }}</span>
       </div>
+
       <BkLoading :loading="isLoading">
         <RenderData
           v-slot="slotProps"
@@ -85,7 +86,7 @@
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
-  import { type MasterSlaveByIp, queryMasterSlaveByIp } from '@services/redis/toolbox';
+  import { queryMasterSlaveByIp } from '@services/redis/toolbox';
   import { createTicket } from '@services/ticket';
   import type { SubmitTicket } from '@services/types/ticket';
 
@@ -104,6 +105,8 @@
     type InfoItem,
   } from './components/Row.vue';
 
+  type MasterSlaveByIp = ServiceReturnType<typeof queryMasterSlaveByIp>[number];
+
   const { currentBizId } = useGlobalBizs();
   const { t } = useI18n();
   const router = useRouter();
@@ -114,12 +117,12 @@
   const isForceSwitch = ref(false);
   const tableData = ref([createRowData()]);
   const isLoading = ref(false);
-
   const selected = shallowRef({
     createSlaveIdleHosts: [],
     masterFailHosts: [],
     idleHosts: [],
   } as InstanceSelectorValues);
+
   const totalNum = computed(() => tableData.value.filter(item => Boolean(item.ip)).length);
   const inputedIps = computed(() => tableData.value.map(item => item.ip));
 
@@ -179,6 +182,12 @@
 
   // 输入IP后查询详细信息
   const handleChangeHostIp = async (index: number, ip: string) => {
+    if (!ip) {
+      const { ip } = tableData.value[index];
+      ipMemo[ip] = false;
+      tableData.value[index].ip = '';
+      return;
+    }
     tableData.value[index].isLoading = true;
     tableData.value[index].ip = ip;
     const ret = await queryMasterSlaveByIp({
@@ -289,10 +298,16 @@
       justify-content: flex-end;
       align-items: flex-end;
 
-      .force-switch {
-        font-size: 12px;
-        border-bottom: 1px dashed #63656E;
+      .switch-box {
+        display: flex;
+        align-items: center;
+
+        .force-switch {
+          font-size: 12px;
+          border-bottom: 1px dashed #63656E;
+        }
       }
+
     }
 
     .page-action-box {

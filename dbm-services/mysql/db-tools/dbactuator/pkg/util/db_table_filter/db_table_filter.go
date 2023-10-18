@@ -23,6 +23,8 @@ type DbTableFilter struct {
 }
 
 // NewDbTableFilter 构造函数
+// 如果是 mydumper，内置忽略 infodba_schema.conn_log 表
+// NewDbTableFilter 完成后，需要 BuildFilter()
 func NewDbTableFilter(
 	includeDbPatterns []string,
 	includeTablePatterns []string,
@@ -46,10 +48,14 @@ func NewDbTableFilter(
 		return nil, err
 	}
 
-	tf.buildDbFilterRegex()
-	tf.buildTableFilterRegex()
-
 	return tf, nil
+}
+
+// BuildFilter normal build filter
+// is different with NewMydumperRegex
+func (c *DbTableFilter) BuildFilter() {
+	c.buildDbFilterRegex()
+	c.buildTableFilterRegex()
 }
 
 func (c *DbTableFilter) validate() error {
@@ -110,7 +116,13 @@ func (c *DbTableFilter) buildTableFilterRegex() {
 			)
 		}
 	}
-
+	/*
+		if mydumper {
+			// ignore infodba_schema.conn_log
+			// 这里没有放到 ExcludeDbPatterns=[infodba_schema, mysql,test...], ExcludeTablePatterns=[conn_log] 里，因为会拼多
+			excludeParts = append(excludeParts, fmt.Sprintf(`%s\.%s$`, native.INFODBA_SCHEMA, "conn_log"))
+		}
+	*/
 	c.tableFilterIncludeRegex = buildIncludeRegexp(includeParts)
 	c.tableFilterExcludeRegex = buildExcludeRegexp(excludeParts)
 }
@@ -191,6 +203,7 @@ func (c *DbTableFilter) getDbsByRegexp(ip string, port int, user string, passwor
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 
 	pattern, err := regexp2.Compile(reg, regexp2.None)
 	if err != nil {
@@ -236,6 +249,7 @@ func (c *DbTableFilter) getTablesByRegexp(ip string, port int, user string, pass
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 
 	pattern, err := regexp2.Compile(reg, regexp2.None)
 	if err != nil {

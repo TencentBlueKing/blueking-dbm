@@ -22,7 +22,7 @@ from backend.ticket.constants import TicketType
 class TendbFullBackUpDetailSerializer(TendbBaseOperateDetailSerializer):
     class FullBackUpItemSerializer(serializers.Serializer):
         class FullBackUpClusterItemSerializer(serializers.Serializer):
-            id = serializers.IntegerField(help_text=_("集群ID"))
+            cluster_id = serializers.IntegerField(help_text=_("集群ID"))
             backup_local = serializers.CharField(help_text=_("备份位置信息"))
 
         backup_type = serializers.ChoiceField(help_text=_("备份选项"), choices=MySQLBackupTypeEnum.get_choices())
@@ -52,7 +52,7 @@ class TendbFullBackUpDetailSerializer(TendbBaseOperateDetailSerializer):
 
         for cluster in attrs["infos"]["clusters"]:
             if cluster["backup_local"] == TenDBBackUpLocation.SPIDER_MNT and "spider_mnt_address" not in cluster:
-                raise serializers.ValidationError(_("备份位置选择spider_mnt时，请提供临时节点的地址"))
+                raise serializers.ValidationError(_("备份位置选择spider_mnt时，请提供运维节点的地址"))
 
         return attrs
 

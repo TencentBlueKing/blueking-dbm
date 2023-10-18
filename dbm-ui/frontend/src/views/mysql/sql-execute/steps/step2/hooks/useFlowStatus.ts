@@ -36,7 +36,9 @@ export default function (rootId: string) {
   let timer = 0;
 
   const fetchStatus = () => {
-    getTaskflowDetails(rootId).then((data) => {
+    getTaskflowDetails({
+      rootId,
+    }).then((data) => {
       status.value = data.flow_info.status;
       ticketId.value = data.flow_info.uid;
       if (timer < 0) {

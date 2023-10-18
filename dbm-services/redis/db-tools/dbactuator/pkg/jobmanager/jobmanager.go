@@ -196,9 +196,13 @@ func (m *JobGenericManager) atomjobsMapperLoading() {
 		m.atomJobMapper[atomredis.NewRedisDtsDataRepair().Name()] = atomredis.NewRedisDtsDataRepair
 		m.atomJobMapper[atomredis.NewRedisAddDtsServer().Name()] = atomredis.NewRedisAddDtsServer
 		m.atomJobMapper[atomredis.NewRedisRemoveDtsServer().Name()] = atomredis.NewRedisRemoveDtsServer
-		m.atomJobMapper[atomredis.NewRedisDataRecover().Name()] = atomredis.NewRedisDataRecover
+		// 老备份系统
+		// m.atomJobMapper[atomredis.NewRedisDataRecover().Name()] = atomredis.NewRedisDataRecover
+		m.atomJobMapper[atomredis.NewRedisDataStructure().Name()] = atomredis.NewRedisDataStructure
 		m.atomJobMapper[atomredis.NewClusterMeetCheckFinish().Name()] = atomredis.NewClusterMeetCheckFinish
 		m.atomJobMapper[atomredis.NewRedisDtsOnlineSwitch().Name()] = atomredis.NewRedisDtsOnlineSwitch
+		m.atomJobMapper[atomredis.NewRedisVersionUpdate().Name()] = atomredis.NewRedisVersionUpdate
+		m.atomJobMapper[atomredis.NewRedisClusterFailover().Name()] = atomredis.NewRedisClusterFailover
 		// scene needs.
 		m.atomJobMapper[atomproxy.NewTwemproxySceneCheckBackends().Name()] = atomproxy.NewTwemproxySceneCheckBackends
 		m.atomJobMapper[atomredis.NewRedisSceneSyncCheck().Name()] = atomredis.NewRedisSceneSyncCheck

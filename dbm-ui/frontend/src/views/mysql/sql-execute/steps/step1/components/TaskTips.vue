@@ -39,41 +39,43 @@
           </div>
         </div>
       </BkAlert>
-      <div
-        ref="popRef"
-        class="sql-execute-task-popover-list">
+      <div style="display: none;">
         <div
-          v-for="item in taskList"
-          :key="item.root_id"
-          class="task-item">
-          <div>
-            <DbIcon
-              v-if="item.isPending"
-              type="loading" />
-            <DbIcon
-              v-else-if="item.isSucceeded"
-              style="color: #2dcb56;"
-              type="check-circle-fill" />
-            <DbIcon
-              v-else
-              style="color: #ea3636;"
-              type="delete-fill" />
-          </div>
-          <div class="task-create-time">
-            {{ item.created_at }}
-          </div>
-          <div class="task-create-action">
-            <div
-              v-bk-tooltips="$t('移除')"
-              @click="handleRevokeTask(item)">
-              <DbIcon type="delete" />
-            </div>
-            <div
-              v-bk-tooltips="$t('执行日志')"
-              @click="handleGoTaskLog(item)">
+          ref="popRef"
+          class="sql-execute-task-popover-list">
+          <div
+            v-for="item in taskList"
+            :key="item.root_id"
+            class="task-item">
+            <div>
               <DbIcon
-                class="ml8"
-                type="link" />
+                v-if="item.isPending"
+                type="loading" />
+              <DbIcon
+                v-else-if="item.isSucceeded"
+                style="color: #2dcb56;"
+                type="check-circle-fill" />
+              <DbIcon
+                v-else
+                style="color: #ea3636;"
+                type="delete-fill" />
+            </div>
+            <div class="task-create-time">
+              {{ item.created_at }}
+            </div>
+            <div class="task-create-action">
+              <div
+                v-bk-tooltips="$t('移除')"
+                @click="handleRevokeTask(item)">
+                <DbIcon type="delete" />
+              </div>
+              <div
+                v-bk-tooltips="$t('执行日志')"
+                @click="handleGoTaskLog(item)">
+                <DbIcon
+                  class="ml8"
+                  type="link" />
+              </div>
             </div>
           </div>
         </div>

@@ -14,7 +14,10 @@
 import http from './http';
 
 // 获取文件内容
-export const getFileContent = function (params: {file_path: string}):
-Promise<{content: string; path: string; url: string}> {
-  return http.get('/apis/core/storage/fetch_file_content/', params);
+export const getFileContent = function (params: { file_path: string }) {
+  return http.get<{
+    content: string;
+    path: string;
+    url: string
+  }>('/apis/core/storage/fetch_file_content/', params);
 };

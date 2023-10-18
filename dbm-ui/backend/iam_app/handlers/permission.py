@@ -63,7 +63,7 @@ class Permission(object):
         if env.BK_IAM_SKIP:
             return DummyIAM(env.APP_CODE, env.SECRET_KEY, env.BK_IAM_INNER_HOST, env.BK_COMPONENT_API_URL)
 
-        return IAM(env.APP_CODE, env.SECRET_KEY, bk_apigateway_url=env.BK_IAM_APIGETEWAY)
+        return IAM(env.APP_CODE, env.SECRET_KEY, bk_apigateway_url=env.BK_IAM_APIGATEWAY)
 
     def get_system_info(self):
         """

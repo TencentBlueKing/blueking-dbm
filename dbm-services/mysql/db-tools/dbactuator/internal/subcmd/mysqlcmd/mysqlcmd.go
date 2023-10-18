@@ -58,6 +58,12 @@ func NewMysqlCommand() *cobra.Command {
 				NewDropTableCommand(),
 				InstallBackupClientCommand(),
 				NewEnableTokudbPluginCommand(),
+				NewOpenAreaDumpSchemaCommand(),
+				NewOpenAreaImportSchemaCommand(),
+				NewOpenAreaDumpData(),
+				NewOpenAreaImportData(),
+				OSCmdRunCommand(),
+				OSInfoGetCommand(),
 			},
 		},
 		{

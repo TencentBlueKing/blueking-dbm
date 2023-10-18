@@ -11,8 +11,7 @@ package slavestatus
 import (
 	"context"
 	"fmt"
-
-	"golang.org/x/exp/slog"
+	"log/slog"
 
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/config"
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/monitoriteminterface"
@@ -68,7 +67,7 @@ func (c *ctlReplicateChecker) isPrimary() (bool, error) {
 
 	err := c.db.SelectContext(ctx, &getPrimaryRes, `TDBCTL GET PRIMARY`)
 	if err != nil {
-		slog.Error("TDBCTL GET PRIMARY", err)
+		slog.Error("TDBCTL GET PRIMARY", slog.String("error", err.Error()))
 		return false, err
 	}
 

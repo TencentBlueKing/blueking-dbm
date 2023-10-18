@@ -94,12 +94,13 @@
     if (!currentClusterId.value) return;
 
     const params = {
+      dbType: DBTypes.MYSQL,
       type: ClusterTypes.TENDBSINGLE,
       bk_biz_id: globalBizsStore.currentBizId,
       id: currentClusterId.value,
     };
     isLoading.value = true;
-    getResourceDetails<ResourceItem>(DBTypes.MYSQL, params)
+    getResourceDetails<ResourceItem>(params)
       .then((res) => {
         data.value = res;
         emits('change', res);

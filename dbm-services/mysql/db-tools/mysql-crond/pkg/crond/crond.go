@@ -2,6 +2,7 @@
 package crond
 
 import (
+	"log/slog"
 	"sync"
 
 	"dbm-services/mysql/db-tools/mysql-crond/pkg/config"
@@ -9,7 +10,6 @@ import (
 
 	"github.com/robfig/cron/v3"
 	"github.com/spf13/viper"
-	"golang.org/x/exp/slog"
 )
 
 // DisabledJobs TODO
@@ -43,7 +43,7 @@ func Start() error {
 	for _, j := range config.JobsConfig.Jobs {
 		entryID, err := Add(j, false)
 		if err != nil {
-			slog.Error("load job from config", err)
+			slog.Error("load job from config", slog.String("error", err.Error()))
 			return err
 		}
 		slog.Info(
@@ -66,7 +66,7 @@ func Start() error {
 		},
 	)
 	if err != nil {
-		slog.Error("add clearance job", err)
+		slog.Error("add clearance job", slog.String("error", err.Error()))
 		return err
 	}
 	slog.Info("add clearance job", slog.Int("entry id", int(entryID)))
@@ -81,7 +81,7 @@ func Start() error {
 					map[string]interface{}{},
 				)
 				if err != nil {
-					slog.Error("heart beat", err)
+					slog.Error("heart beat", slog.String("error", err.Error()))
 				} else {
 					slog.Info("heart beat success")
 				}
@@ -110,12 +110,12 @@ func Reload() error {
 
 	err := config.InitJobsConfig()
 	if err != nil {
-		slog.Error("reload re-init jobs-config", err)
+		slog.Error("reload re-init jobs-config", slog.String("error", err.Error()))
 		return err
 	}
 	err = Start()
 	if err != nil {
-		slog.Error("reload start crond", err)
+		slog.Error("reload start crond", slog.String("error", err.Error()))
 	}
 	return err
 }

@@ -49,7 +49,9 @@
       </div>
       <InstanceSelector
         v-model:isShow="isShowMasterInstanceSelector"
+        :panel-list="panelList"
         role="remote_master"
+        :ticket-type="TicketTypes.TENDBCLUSTER_MASTER_FAIL_OVER"
         @change="handelMasterProxyChange" />
     </div>
     <template #action>
@@ -85,6 +87,8 @@
   import { createTicket } from '@services/ticket';
 
   import { useGlobalBizs } from '@stores';
+
+  import { TicketTypes } from '@common/const';
 
   import InstanceSelector, {
     type InstanceSelectorValues,
@@ -123,6 +127,17 @@
     is_verify_checksum: false,
     is_check_delay: false,
   });
+
+  const panelList = [
+    {
+      id: 'tendbcluster',
+      name: t('主库故障主机'),
+    },
+    {
+      id: 'manualInput',
+      name: t('手动输入'),
+    },
+  ];
 
   // Master 批量选择
   const handleShowMasterBatchSelector = () => {
@@ -174,7 +189,7 @@
     isSubmitting.value = true;
     Promise.all(rowRefs.value.map((item: { getValue: () => Promise<any> }) => item.getValue()))
       .then(data => createTicket({
-        ticket_type: 'TENDBCLUSTER_MASTER_FAIL_OVER',
+        ticket_type: TicketTypes.TENDBCLUSTER_MASTER_FAIL_OVER,
         remark: '',
         details: {
           ...formData,

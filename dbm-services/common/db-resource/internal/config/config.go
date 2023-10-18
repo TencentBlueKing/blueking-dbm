@@ -14,16 +14,16 @@ var AppConfig Config
 
 // Config TODO
 type Config struct {
-	Gormlog          bool              `yaml:"gormlog"`
-	ListenAddress    string            `yaml:"listenAddress"`
+	Gormlog       bool   `yaml:"gormlog"`
+	ListenAddress string `yaml:"listenAddress"`
+	//	dbmeta: http://bk-dbm
+	DbMeta           string            `json:"dbmeta"`
 	Db               Db                `yaml:"db"`
 	CmdbDb           Db                `yaml:"cmdb_db" mapstructure:"cmdb_db"`
 	LoggerConfig     LoggerConfig      `yaml:"loggerConfig"`
 	BkSecretConfig   BkSecretConfig    `yaml:"bkSecretConfig"`
 	Redis            Redis             `yaml:"redis"`
 	CloudCertificate *CloudCertificate `yaml:"cloudCertificate"`
-	//	dbmeta: http://bk-dbm
-	DbMeta string `json:"dbmeta"`
 }
 
 // Db TODO

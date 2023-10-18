@@ -1,0 +1,17 @@
+bk_biz_id: xxx
+ip: xxx
+port: xxx
+bk_instance_id: xxx
+immute_domain: xxx
+machine_type: riak
+bk_cloud_id: xxx
+log:
+  console: true
+  log_file_dir: /data/monitor/riak-monitor/logs
+  debug: true
+  source: true
+  json: false
+api_url: http://127.0.0.1:9999
+items_config_file: /data/monitor/riak-monitor/items-config.yaml
+interact_timeout: 2s
+default_schedule: '@every 1m'

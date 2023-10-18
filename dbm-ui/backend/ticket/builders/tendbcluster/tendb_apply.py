@@ -75,6 +75,10 @@ class TenDBClusterApplyDetailSerializer(serializers.Serializer):
         CommonValidate.validate_generate_domain("spider", attrs["cluster_name"], attrs["db_app_abbr"])
         CommonValidate.validate_generate_domain("spider-slave", attrs["cluster_name"], attrs["db_app_abbr"])
         # TODO: spider集群部署校验
+        # 校验集群名是否重复
+        CommonValidate.validate_duplicate_cluster_name(
+            self.context["bk_biz_id"], self.context["ticket_type"], attrs["cluster_name"]
+        )
         return attrs
 
 

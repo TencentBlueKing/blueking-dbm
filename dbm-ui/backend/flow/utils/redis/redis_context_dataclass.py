@@ -15,6 +15,7 @@ from typing import Any, Optional
 
 from backend.constants import DEFAULT_BK_CLOUD_ID
 from backend.db_meta.enums.cluster_type import ClusterType
+from backend.env import BACKUP_DOWNLOAD_USER
 from backend.flow.consts import DEFAULT_REDIS_START_PORT, DEFAULT_TWEMPROXY_SEG_TOTOL_NUM
 
 
@@ -146,6 +147,8 @@ class RedisDataStructureContext:
     start_port: int = None
     cluster_id: str = None
     redis_act_payload: Optional[Any] = None  # 代表获取payload参数的类
+    disk_used: dict = field(default_factory=dict)
+    backup_dir: str = None
 
     def cal_twemproxy_serveres(self, name) -> list:
         """
@@ -181,3 +184,18 @@ class RedisDataStructureContext:
     @staticmethod
     def get_proxy_exec_ip_var_name() -> str:
         return "new_install_proxy_exec_ip"
+
+
+@dataclass()
+class DownloadBackupFileKwargs:
+    """
+    定义下载redis备份文件的变量结构体
+    """
+
+    bk_cloud_id: int
+    task_ids: list
+    dest_ip: str
+    dest_dir: str
+    reason: str
+    login_user: str = BACKUP_DOWNLOAD_USER
+    cluster: dict = None

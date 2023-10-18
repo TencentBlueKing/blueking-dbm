@@ -27,7 +27,10 @@
           v-model:biz-id="formData.bk_biz_id"
           @change-biz="handleChangeBiz" />
         <ClusterName v-model="formData.details.cluster_name" />
-        <ClusterAlias v-model="formData.details.cluster_alias" />
+        <ClusterAlias
+          v-model="formData.details.cluster_alias"
+          :biz-id="formData.bk_biz_id"
+          cluster-type="kafka" />
         <CloudItem
           v-model="formData.details.bk_cloud_id"
           @change="handleChangeCloud" />
@@ -257,6 +260,15 @@
           </span>
         </BkFormItem>
         <BkFormItem
+          :label="$t('开启认证')"
+          property="no_security">
+          <BkCheckbox
+            v-model="formData.details.no_security"
+            :false-label="1"
+            style="vertical-align: middle;"
+            :true-label="0" />
+        </BkFormItem>
+        <BkFormItem
           :label="$t('备注')"
           property="remark">
           <BkInput
@@ -353,6 +365,7 @@
       partition_num: 1,
       retention_hours: 1,
       replication_num: 1,
+      no_security: 0,
     },
   });
 

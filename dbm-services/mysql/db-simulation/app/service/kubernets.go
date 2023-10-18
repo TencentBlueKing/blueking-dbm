@@ -92,13 +92,13 @@ func NewDbPodSets() *DbPodSets {
 func (k *DbPodSets) getCreateClusterSqls() []string {
 	var ss []string
 	ss = append(ss, fmt.Sprintf(
-		"tdbctl create node wrapper 'SPIDER' options(user 'root', password '%s', host 'localhost', port 25000);",
+		"tdbctl create node wrapper 'SPIDER' options(user 'root', password '%s', host '127.0.0.1', port 25000);",
 		k.BaseInfo.RootPwd))
 	ss = append(ss, fmt.Sprintf(
-		"tdbctl create node wrapper 'mysql' options(user 'root', password '%s', host 'localhost', port 20000);",
+		"tdbctl create node wrapper 'mysql' options(user 'root', password '%s', host '127.0.0.1', port 20000);",
 		k.BaseInfo.RootPwd))
 	ss = append(ss, fmt.Sprintf(
-		"tdbctl create node wrapper 'TDBCTL' options(user 'root', password '%s', host 'localhost', port 26000);",
+		"tdbctl create node wrapper 'TDBCTL' options(user 'root', password '%s', host '127.0.0.1', port 26000);",
 		k.BaseInfo.RootPwd))
 	ss = append(ss, "tdbctl enable primary;")
 	ss = append(ss, "tdbctl flush routing;")
@@ -131,12 +131,12 @@ func (k *DbPodSets) CreateClusterPod() (err error) {
 						k.BaseInfo.Charset),
 						"--user=mysql"},
 					ReadinessProbe: &v1.Probe{
-						Handler: v1.Handler{
+						ProbeHandler: v1.ProbeHandler{
 							Exec: &v1.ExecAction{
 								Command: []string{"/bin/bash", "-c", fmt.Sprintf("mysql -uroot -p%s -e 'select 1'", k.BaseInfo.RootPwd)},
 							},
 						},
-						InitialDelaySeconds: 2,
+						InitialDelaySeconds: 3,
 						PeriodSeconds:       5,
 					},
 				}, {
@@ -151,12 +151,12 @@ func (k *DbPodSets) CreateClusterPod() (err error) {
 						k.BaseInfo.Charset),
 						"--user=mysql"},
 					ReadinessProbe: &v1.Probe{
-						Handler: v1.Handler{
+						ProbeHandler: v1.ProbeHandler{
 							Exec: &v1.ExecAction{
 								Command: []string{"/bin/bash", "-c", fmt.Sprintf("mysql -uroot -p%s -e 'select 1'", k.BaseInfo.RootPwd)},
 							},
 						},
-						InitialDelaySeconds: 2,
+						InitialDelaySeconds: 3,
 						PeriodSeconds:       5,
 					},
 				},
@@ -174,12 +174,12 @@ func (k *DbPodSets) CreateClusterPod() (err error) {
 							k.BaseInfo.Charset),
 						"--user=mysql"},
 					ReadinessProbe: &v1.Probe{
-						Handler: v1.Handler{
+						ProbeHandler: v1.ProbeHandler{
 							Exec: &v1.ExecAction{
 								Command: []string{"/bin/bash", "-c", fmt.Sprintf("mysql -uroot -p%s -e 'select 1'", k.BaseInfo.RootPwd)},
 							},
 						},
-						InitialDelaySeconds: 2,
+						InitialDelaySeconds: 3,
 						PeriodSeconds:       5,
 					},
 				},
@@ -193,6 +193,7 @@ func (k *DbPodSets) CreateClusterPod() (err error) {
 	logger.Info("connect tdbctl success ~")
 	// create cluster relation
 	for _, ql := range k.getCreateClusterSqls() {
+		logger.Info("exec init cluster sql %s", ql)
 		if _, err = k.DbWork.Db.Exec(ql); err != nil {
 			return err
 		}
@@ -266,7 +267,7 @@ func (k *DbPodSets) CreateMySQLPod() (err error) {
 					k.BaseInfo.Charset),
 					"--user=mysql"},
 				ReadinessProbe: &v1.Probe{
-					Handler: v1.Handler{
+					ProbeHandler: v1.ProbeHandler{
 						Exec: &v1.ExecAction{
 							Command: []string{"/bin/bash", "-c", fmt.Sprintf("mysql -uroot -p%s -e 'select 1'", k.BaseInfo.RootPwd)},
 						},
@@ -281,24 +282,31 @@ func (k *DbPodSets) CreateMySQLPod() (err error) {
 	return k.createpod(c, 3306)
 }
 
-// DeletePod TODO
+// DeletePod delete pod
 func (k *DbPodSets) DeletePod() (err error) {
 	return k.K8S.Cli.CoreV1().Pods(k.K8S.Namespace).Delete(context.TODO(), k.BaseInfo.PodName, metav1.DeleteOptions{})
 }
 
-// GetLoadSchemaSQLCmd TODO
-func (k *DbPodSets) GetLoadSchemaSQLCmd(bkpath, file string) (cmd string) {
-	cmd = fmt.Sprintf(
-		"curl -o %s %s && mysql --defaults-file=/etc/my.cnf -uroot -p%s --default-character-set=%s -vvv < %s",
-		file, getdownloadUrl(bkpath, file), k.BaseInfo.RootPwd, k.BaseInfo.Charset, file)
-	return
+// getLoadSchemaSQLCmd create load schema sql cmd
+func (k *DbPodSets) getLoadSchemaSQLCmd(bkpath, file string) (cmd string) {
+	commands := []string{}
+	commands = append(commands, fmt.Sprintf("curl -s -S -o %s %s", file, getdownloadUrl(bkpath, file)))
+	// sed -i '/50720 SET tc_admin=0/d'
+	// 从中控dump的schema文件,默认是添加了tc_admin=0,需要删除
+	// 因为模拟执行是需要将中控进行sql转发
+	commands = append(commands, fmt.Sprintf("sed -i '/50720 SET tc_admin=0/d' %s", file))
+	// sed 's/CREATE definer=.*@.* PROCEDURE/CREATE definer=`root`@`localhost` PROCEDURE/gI'
+	// 需要处理存储过程、函数的definer，因为拉起的pod是root用户，所以需要将definer修改为root
+	commands = append(commands, fmt.Sprintf(
+		"sed -i 's/CREATE definer=.*@.* $/CREATE definer=`root`@`localhost` /gI' %s", file))
+	commands = append(commands, fmt.Sprintf("mysql -uroot -p%s --default-character-set=%s -vvv < %s", k.BaseInfo.RootPwd,
+		k.BaseInfo.Charset, file))
+	return strings.Join(commands, " && ")
 }
 
-// GetLoadSQLCmd TODO
-func (k *DbPodSets) GetLoadSQLCmd(bkpath, file string, dbs []string) (cmd []string) {
-	// cmd = fmt.Sprintf(
-	// 	"wget %s && mysql --defaults-file=/etc/my.cnf -uroot -p%s --default-character-set=%s %s < %s",
-	cmd = append(cmd, fmt.Sprintf("curl -o %s %s", file, getdownloadUrl(bkpath, file)))
+// getLoadSQLCmd get load sql cmd
+func (k *DbPodSets) getLoadSQLCmd(bkpath, file string, dbs []string) (cmd []string) {
+	cmd = append(cmd, fmt.Sprintf("curl -s -S -o %s %s", file, getdownloadUrl(bkpath, file)))
 	for _, db := range dbs {
 		cmd = append(cmd, fmt.Sprintf("mysql --defaults-file=/etc/my.cnf -uroot -p%s --default-character-set=%s -vvv %s < %s",
 			k.BaseInfo.RootPwd, k.BaseInfo.Charset, db, file))
@@ -320,12 +328,12 @@ func getdownloadUrl(bkpath, file string) string {
 		return ""
 	}
 	ll := u.ResolveReference(r).String()
-	logger.Info("dbeug url is %s", ll)
+	logger.Info("download url: %s", ll)
 	return ll
 }
 
-// ExecuteInPod TODO
-func (k *DbPodSets) ExecuteInPod(cmd, container string, extMap map[string]string) (stdout, stderr bytes.Buffer,
+// executeInPod TODO
+func (k *DbPodSets) executeInPod(cmd, container string, extMap map[string]string) (stdout, stderr bytes.Buffer,
 	err error) {
 	xlogger := logger.New(os.Stdout, true, logger.InfoLevel, extMap)
 	logger.Info("start exec...")
@@ -345,7 +353,7 @@ func (k *DbPodSets) ExecuteInPod(cmd, container string, extMap map[string]string
 	reader, writer := io.Pipe()
 	exec, err := remotecommand.NewSPDYExecutor(k.K8S.RestConfig, "POST", req.URL())
 	if err != nil {
-		logger.Error("remotecommand.NewSPDYExecutor", err.Error())
+		logger.Error("at remotecommand.NewSPDYExecutor %s", err.Error())
 		return bytes.Buffer{}, bytes.Buffer{}, err
 	}
 	go func() {
@@ -362,19 +370,19 @@ func (k *DbPodSets) ExecuteInPod(cmd, container string, extMap map[string]string
 			return
 		}
 	}()
-	err = exec.Stream(remotecommand.StreamOptions{
+	err = exec.StreamWithContext(context.Background(), remotecommand.StreamOptions{
 		Stdin:  nil,
 		Stdout: writer,
 		Stderr: &stderr,
 		Tty:    false,
 	})
 	if err != nil {
-		logger.Error("exec.Stream failed %s:\n stdout:%s\n stderr: %s", err.Error(), strings.TrimSpace(stdout.String()),
+		xlogger.Error("exec.Stream failed %s:\n stdout:%s\n stderr: %s", err.Error(), strings.TrimSpace(stdout.String()),
 			strings.TrimSpace(stderr.String()))
-		return
+		return stdout, stderr, err
 	}
-	logger.Info("exec successfuly...")
+	xlogger.Info("exec successfuly...")
 	logger.Info("info stdout:%s\nstderr:%s ", strings.TrimSpace(stdout.String()),
 		strings.TrimSpace(stderr.String()))
-	return stdout, stderr, err
+	return stdout, stderr, nil
 }

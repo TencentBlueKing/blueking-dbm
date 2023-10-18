@@ -261,6 +261,9 @@
   } = useTableSettings(UserPersonalSettings.TENDBHA_INSTANCE_SETTINGS, defaultSettings);
 
   const renderPagination = computed(() => {
+    if (state.pagination.count < 10) {
+      return false;
+    }
     if (props.isFullWidth) {
       return { ...state.pagination };
     }

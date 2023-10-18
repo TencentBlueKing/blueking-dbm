@@ -14,7 +14,7 @@
 <template>
   <RenderSuccess :steps="steps">
     <template #title>
-      {{ t('库表备份任务提交成功') }}
+      {{ t('清档任务提交成功') }}
     </template>
     <I18nT
       keypath="清档任务提交成功"

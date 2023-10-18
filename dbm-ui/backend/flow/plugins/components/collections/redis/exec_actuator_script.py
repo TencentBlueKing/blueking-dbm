@@ -98,7 +98,9 @@ class ExecuteDBActuatorScriptService(BkJobService):
             self.log_info(_("[{}] kwargs['payload'] 是不完整，需要将{}内容加到payload中").format(node_name, kwargs["cluster"]))
             db_act_template["payload"].update(kwargs["cluster"])
 
-        db_act_template["payload"]["backup_tasks"] = trans_data.tendis_backup_info
+        # 这里有些场景没有tendis_backup_info，比如key删除
+        if getattr(trans_data, "tendis_backup_info"):
+            db_act_template["payload"]["backup_tasks"] = trans_data.tendis_backup_info
 
         db_act_template["payload"] = str(
             base64.b64encode(json.dumps(db_act_template["payload"]).encode("utf-8")), "utf-8"

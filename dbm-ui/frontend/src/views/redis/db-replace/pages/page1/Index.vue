@@ -138,7 +138,7 @@
     const clusterIds = [...new Set(tableData.value.map(item => item.clusterId))];
     const retArr = await Promise.all(clusterIds.map(id => queryMasterSlavePairs({
       cluster_id: id,
-    }).catch(e => null)));
+    }).catch(() => null)));
     retArr.forEach((pairs) => {
       if (pairs !== null) {
         pairs.forEach((item) => {
@@ -194,10 +194,16 @@
 
   // 输入IP后查询详细信息
   const handleChangeHostIp = async (index: number, ip: string) => {
+    if (!ip) {
+      const { ip } = tableData.value[index];
+      ipMemo[ip] = false;
+      tableData.value[index].ip = '';
+      return;
+    }
     tableData.value[index].isLoading = true;
     tableData.value[index].ip = ip;
-    const ret = await queryInfoByIp({
-      ips: [ip],
+    const ret = await queryInfoByIp({ ips: [ip] }).finally(() => {
+      tableData.value[index].isLoading = false;
     });
     const data = ret[0];
     const obj = {

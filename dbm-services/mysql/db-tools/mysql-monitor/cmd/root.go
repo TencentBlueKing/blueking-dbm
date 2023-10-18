@@ -1,10 +1,10 @@
 package cmd
 
 import (
+	"log/slog"
 	"os"
 
 	"github.com/spf13/cobra"
-	"golang.org/x/exp/slog"
 )
 
 var rootCmd = &cobra.Command{
@@ -21,7 +21,7 @@ func init() {
 func Execute() {
 	err := rootCmd.Execute()
 	if err != nil {
-		slog.Error("start", err)
+		slog.Error("start", slog.String("error", err.Error()))
 		os.Exit(1)
 	}
 }

@@ -60,12 +60,13 @@
           </div>
         </template>
         <template #main>
-          <div style="height: 490px;">
+          <div style="height: 574px;">
             <RenderTopoHost
               :cluster-id="selectClusterId"
               :last-values="lastValues"
               :role="role"
               :table-settings="tableSettings"
+              :ticket-type="ticketType"
               @change="handleHostChange" />
           </div>
         </template>
@@ -104,10 +105,15 @@
   interface Props {
     lastValues: InstanceSelectorValues,
     clusterId?: number,
-    role?: string
+    role?: string,
+    ticketType?: string,
   }
 
-  const props = defineProps<Props>();
+  const props = withDefaults(defineProps<Props>(), {
+    clusterId: undefined,
+    role: '',
+    ticketType: '',
+  });
   const emits = defineEmits<Emits>();
 
   const { currentBizId, currentBizInfo } = useGlobalBizs();
@@ -135,7 +141,7 @@
         },
       ],
     }).then((data) => {
-      const formatData = data.map((item: any) => ({ ...item, count: item.instance_count }));
+      const formatData = data.map((item: any) => ({ ...item, count: item.remote_db.length }));
       treeData.value = [
         {
           name: currentBizInfo?.display_name || '--',

@@ -82,6 +82,11 @@ class MysqlSingleApplyDetailSerializer(serializers.Serializer):
         return representation
 
     def validate(self, attrs):
+        # 校验集群名是否重复
+        for domain in attrs["domains"]:
+            CommonValidate.validate_duplicate_cluster_name(
+                self.context["bk_biz_id"], self.context["ticket_type"], domain["key"]
+            )
         # 校验域名是否重复
         # TODO 校验存量的域名是否存在重复
         keys = [domain["key"] for domain in attrs["domains"]]

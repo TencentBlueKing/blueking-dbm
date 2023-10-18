@@ -141,9 +141,9 @@ func (task *MakeSyncTask) MkSyncDirIfNotExists() {
 	return
 }
 
-// GetMyRedisSyncTool 本地获取redis-sync-tendisplus
+// GetMyRedisSyncTool 本地获取redis-sync
 func (task *MakeSyncTask) GetMyRedisSyncTool() {
-	task.RedisSyncTool, task.Err = util.IsToolExecutableInCurrDir("redis-sync-tendisplus")
+	task.RedisSyncTool, task.Err = util.IsToolExecutableInCurrDir("redis-sync")
 	return
 }
 

@@ -12,14 +12,18 @@ specific language governing permissions and limitations under the License.
 import logging
 from typing import Any, Dict, List, Optional, Tuple
 
+from django.utils.translation import ugettext as _
+
 from backend.components.mysql_priv_manager.client import MySQLPrivManagerApi
 from backend.configuration.handlers.password import DBPasswordHandler
 from backend.configuration.models.password_policy import PasswordPolicy
 from backend.core.encrypt.constants import AsymmetricCipherConfigType
 from backend.core.encrypt.handlers import AsymmetricHandler
+from backend.db_services.mysql.open_area.models import TendbOpenAreaConfig
 from backend.db_services.mysql.permission.constants import AccountType
 from backend.db_services.mysql.permission.db_account.dataclass import AccountMeta, AccountRuleMeta
 from backend.db_services.mysql.permission.db_account.policy import DBPasswordPolicy
+from backend.db_services.mysql.permission.exceptions import DBPermissionBaseException
 
 logger = logging.getLogger("root")
 
@@ -182,11 +186,17 @@ class AccountHandler(object):
     def list_account_rules(self, rule_filter: AccountRuleMeta) -> Dict:
         """列举规则清单"""
 
-        account_rules_list = MySQLPrivManagerApi.list_account_rules(
-            {"bk_biz_id": self.bk_biz_id, "cluster_type": self.account_type}
-        )
-        account_rules_list = self._format_account_rules(account_rules_list)
+        # 如果是通过id过滤的，则不管集群类型
+        if rule_filter.rule_ids:
+            rules_list = MySQLPrivManagerApi.list_account_rules(
+                {"bk_biz_id": self.bk_biz_id, "ids": rule_filter.rule_ids}
+            )
+        else:
+            rules_list = MySQLPrivManagerApi.list_account_rules(
+                {"bk_biz_id": self.bk_biz_id, "cluster_type": self.account_type}
+            )
 
+        account_rules_list = self._format_account_rules(rules_list)
         # 不存在过滤条件则直接返回
         if not (rule_filter.user or rule_filter.access_db or rule_filter.privilege):
             return {"count": len(account_rules_list["items"]), "results": account_rules_list["items"]}
@@ -241,6 +251,9 @@ class AccountHandler(object):
         - 删除账号规则
         :param account_rule: 账号规则元信息
         """
+        config = TendbOpenAreaConfig.objects.filter(related_authorize__contains=[account_rule.rule_id])
+        if config.exists():
+            raise DBPermissionBaseException(_("当前授权规则已被开区模板{}引用，不允许删除").format(config.first().name))
 
         resp = MySQLPrivManagerApi.delete_account_rule(
             {

@@ -18,6 +18,7 @@ import (
 
 	"dbm-services/common/db-resource/internal/model"
 	"dbm-services/common/db-resource/internal/svr/bk"
+	"dbm-services/common/db-resource/internal/svr/meta"
 	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/errno"
 	"dbm-services/common/go-pubpkg/logger"
@@ -34,20 +35,6 @@ type SearchContext struct {
 	IdcCitys        []string
 }
 
-func getRealCitys(logicCity string) (realCitys []string, err error) {
-	if cmutil.IsEmpty(logicCity) {
-		return
-	}
-	err = model.CMDBDB.Self.Raw(
-		"select distinct bk_idc_city_name from db_meta_bkcity where  logical_city_id in (select id from db_meta_logicalcity  where name = ?  ) ",
-		logicCity).Scan(&realCitys).Error
-	if err != nil {
-		logger.Error("from region %s find real city failed %s", logicCity, err.Error())
-		return
-	}
-	return
-}
-
 // CycleApply TODO
 func CycleApply(param ApplyRequestInputParam) (pickers []*PickerObject, err error) {
 	for _, v := range param.Details {
@@ -57,8 +44,9 @@ func CycleApply(param ApplyRequestInputParam) (pickers []*PickerObject, err erro
 		if v.Affinity == "" {
 			v.Affinity = NONE
 		}
-		idcCitys, errx := getRealCitys(v.LocationSpec.City)
+		idcCitys, errx := meta.GetIdcCityByLogicCity(v.LocationSpec.City)
 		if errx != nil {
+			logger.Error("request real citys by logic city %s from bkdbm api failed:%v", v.LocationSpec.City, errx)
 			return pickers, errx
 		}
 		s := &SearchContext{
