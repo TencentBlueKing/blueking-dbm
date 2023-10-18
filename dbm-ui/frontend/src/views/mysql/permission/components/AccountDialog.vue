@@ -354,8 +354,9 @@
     const params = {
       ...state.formdata,
       password: getEncyptPassword(),
+      bizId: globalbizsStore.currentBizId,
     };
-    createAccount(params, globalbizsStore.currentBizId)
+    createAccount(params)
       .then((res) => {
         Message({
           message: t('账号创建成功'),
