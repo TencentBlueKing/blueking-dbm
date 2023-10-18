@@ -324,7 +324,7 @@
   import { ClusterTypes, TicketTypes } from '@common/const';
   import { nameRegx } from '@common/regex';
 
-  import BackendQPSSpec from '@components/apply-items/BackendQPSSpec.vue';
+  import BackendQPSSpec from '@components/apply-items/BackendSpec.vue';
   import BusinessItems from '@components/apply-items/BusinessItems.vue';
   import CloudItem from '@components/apply-items/CloudItem.vue';
   import ClusterAlias from '@components/apply-items/ClusterAlias.vue';
