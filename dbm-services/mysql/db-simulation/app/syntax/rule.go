@@ -106,9 +106,9 @@ func (c *CheckerResult) Trigger(rule *BoolRuleItem, additionalMsg string) {
 		return
 	}
 	if rule.Ban {
-		c.BanWarns = append(c.BanWarns, fmt.Sprintf("%s:%s", rule.Desc, additionalMsg))
+		c.BanWarns = append(c.BanWarns, fmt.Sprintf("%s:%s\n%s", rule.Desc, additionalMsg, rule.Suggestion))
 	} else {
-		c.RiskWarns = append(c.RiskWarns, fmt.Sprintf("%s:%s", rule.Desc, additionalMsg))
+		c.RiskWarns = append(c.RiskWarns, fmt.Sprintf("%s:%s\n%s", rule.Desc, additionalMsg, rule.Suggestion))
 	}
 }
 
@@ -128,13 +128,15 @@ type RuleItem struct {
 	Expr        string `yaml:"expr"`
 	Desc        string `yaml:"desc"`
 	Ban         bool   `yaml:"ban"`
+	Suggestion  string `yaml:"suggestion"`
 }
 
 // BoolRuleItem 开关型规则，只需配置开启或者关闭即可
 type BoolRuleItem struct {
-	Desc   string `yaml:"desc"`
-	Ban    bool   `yaml:"ban"`
-	TurnOn bool   `yaml:"turnOn"`
+	Desc       string `yaml:"desc"`
+	Ban        bool   `yaml:"ban"`
+	TurnOn     bool   `yaml:"turnOn"`
+	Suggestion string `yaml:"suggestion"`
 }
 
 // Rules TODO

@@ -296,8 +296,8 @@ func (t *SimulationTask) SimulationRun(containerName string, xlogger *logger.Log
 				xlogger.Error("when execute %s at %s, failed  %s\n", e.SQLFile, realexcutedbs[idx-1], err.Error())
 				xlogger.Error("stderr:\n	%s", stderr.String())
 				xlogger.Error("stdout:\n	%s", stdout.String())
-				return sstdout, sstderr, fmt.Errorf("exec %s in %s failed:%s", e.SQLFile, realexcutedbs[idx-1],
-					err.Error())
+				return sstdout, sstderr, fmt.Errorf("\nexec %s in %s failed:%s\n %s", e.SQLFile, realexcutedbs[idx-1],
+					err.Error(), stderr.String())
 			}
 			xlogger.Info("%s \n %s", stdout.String(), stderr.String())
 		}

@@ -35,6 +35,7 @@ type SpiderCreateTableRule struct {
 	NoIndexExists                          *BoolRuleItem `yaml:"NoIndexExists"`
 	NoPubColAtMultUniqueIndex              *BoolRuleItem `yaml:"NoPubColAtMultUniqueIndex"`
 	MustSpecialShardKeyOnlyHaveCommonIndex *BoolRuleItem `yaml:"MustSpecialShardKeyOnlyHaveCommonIndex"`
+	ShardKeyNotNull                        *BoolRuleItem `yaml:"ShardKeyNotNull"`
 }
 
 func init() {
