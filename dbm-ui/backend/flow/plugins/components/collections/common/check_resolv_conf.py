@@ -101,9 +101,9 @@ class CheckResolvConfService(BkJobService):
         try:
             content = getattr(trans_data, splice_payload_var)
             if content != "":
-                raise Exception("/etc/resolv.conf 不为空 {}".format(content))
+                raise Exception(_("/etc/resolv.conf 不为空 {}").format(content))
         except ValueError as e:
-            self.log_error("/etc/resolv.conf 不为空 {}".format(e))
+            self.log_error(_("/etc/resolv.conf 不为空 {}").format(e))
             data.outputs.ext_result = False
             return False
 

@@ -149,7 +149,7 @@ class ClientSetDnsServerFlow(object):
 
             # TODO 检查是否能解析是否成功
 
-            sub_pipelines.append(sub_pipeline.build_sub_process(sub_name="{}配置dns服务器".format(ip)))
+            sub_pipelines.append(sub_pipeline.build_sub_process(sub_name=_("{}配置dns服务器").format(ip)))
         client_pipeline.add_parallel_sub_pipeline(sub_pipelines)
 
         client_pipeline.run_pipeline()
