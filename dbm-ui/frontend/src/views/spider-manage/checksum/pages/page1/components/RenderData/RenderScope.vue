@@ -26,6 +26,7 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
+  // TODO INTERFACE done
   import { getRemoteParis } from '@services/mysqlCluster';
 
   import TableEditSelect from '@views/mysql/common/edit/Select.vue';

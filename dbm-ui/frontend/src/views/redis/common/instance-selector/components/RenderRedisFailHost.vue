@@ -45,6 +45,7 @@
   import { useI18n } from 'vue-i18n';
 
   import RedisHostModel from '@services/model/redis/redis-host';
+  // TODO INTERFACE
   import {  queryClusterHostList, queryMasterSlavePairs } from '@services/redis/toolbox';
 
   import { ipv4 } from '@common/regex';

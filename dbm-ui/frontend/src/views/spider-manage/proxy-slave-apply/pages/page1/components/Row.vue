@@ -53,6 +53,7 @@
   </tr>
 </template>
 <script lang="ts">
+  // TODO INTERFACE
   import { getSpecResourceCount } from '@services/dbResource';
   import { getResourceSpecList } from '@services/resourceSpec';
 

@@ -69,6 +69,7 @@
   import { useRequest } from 'vue-request';
 
   import type { WhitelistItem } from '@services/types/whitelist';
+  // TODO INTERFACE pending
   import {
     batchDeleteWhitelist,
     getWhitelist,

@@ -29,7 +29,7 @@
       </RenderData>
       <ClusterSelector
         v-model:is-show="isShowBatchSelector"
-        :get-resource-list="getList"
+        :get-resource-list="getSpiderList"
         :selected="{}"
         :tab-list="clusterSelectorTabList"
         @change="handelClusterChange" />
@@ -66,7 +66,8 @@
   } from 'vue';
   import { useRouter } from 'vue-router';
 
-  import { getList } from '@services/spider';
+  // TODO INTERFACE
+  import { getSpiderList } from '@services/source/resourceSpider';
   import { createTicket } from '@services/ticket';
 
   import { useGlobalBizs } from '@stores';

@@ -26,6 +26,7 @@
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
 
+  // TODO INTERFACE
   import { getLevelConfig } from '@services/configs';
   import type { ConfigBaseDetails } from '@services/types/configs';
 

@@ -29,6 +29,7 @@
   } from 'vue';
   import { useI18n } from 'vue-i18n';
 
+  // TODO INTERFACE
   import { checkInstances  } from '@services/clusters';
   import type { InstanceInfos } from '@services/types/clusters';
 

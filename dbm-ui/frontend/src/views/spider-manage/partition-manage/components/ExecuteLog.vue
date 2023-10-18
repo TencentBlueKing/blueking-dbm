@@ -23,6 +23,7 @@
 
   import type PartitionModel from '@services/model/partition/partition';
   import type PartitionLogModel from '@services/model/partition/partition-log';
+  // TODO INTERFACE
   import { queryLog } from '@services/partitionManage';
 
   import { ClusterTypes } from '@common/const';

@@ -14,6 +14,7 @@
 import type { ISearchValue } from 'bkui-vue/lib/search-select/utils';
 import { useI18n } from 'vue-i18n';
 
+// TODO INTERFACE
 import { getResources, getTableFields } from '@services/clusters';
 import { getModules } from '@services/common';
 import type {

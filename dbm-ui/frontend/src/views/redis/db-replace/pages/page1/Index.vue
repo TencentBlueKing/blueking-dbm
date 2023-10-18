@@ -72,6 +72,7 @@
   import { useRouter } from 'vue-router';
 
   import { queryInfoByIp, queryMasterSlavePairs } from '@services/redis/toolbox';
+  // TODO INTERFACE
   import { createTicket } from '@services/ticket';
   import type { SubmitTicket } from '@services/types/ticket';
 

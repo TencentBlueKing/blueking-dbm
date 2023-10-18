@@ -76,8 +76,12 @@
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
-  import { getHostTopoInfos } from '@services/ip';
-  import { precheckPermissionClone } from '@services/permission';
+  // TODO INTERFACE done
+  // import { getHostTopoInfos } from '@services/ip';
+  // import { precheckPermissionClone } from '@services/permission';
+  // import { createTicket } from '@services/ticket';
+  import { getHostTopoInfos } from '@services/source/ipchooser';
+  import { precheckPermissionClone } from '@services/source/permissionClone';
   import { createTicket } from '@services/ticket';
   import type { HostDetails, HostTopoInfo  } from '@services/types/ip';
 

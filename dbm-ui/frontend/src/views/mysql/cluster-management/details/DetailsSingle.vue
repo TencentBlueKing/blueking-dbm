@@ -53,12 +53,10 @@
 </template>
 
 <script setup lang="ts">
-  import { getResourceDetails } from '@services/clusters';
+  // TODO INTERFACE done
+  // import { getResourceDetails } from '@services/clusters';
+  import { getResourceDetails } from '@services/source/resourceTendbsingle';
   import type { ResourceItem } from '@services/types/clusters';
-
-  import {
-    useGlobalBizs,
-  } from '@stores';
 
   import { ClusterTypes, DBTypes } from '@common/const';
 
@@ -74,8 +72,6 @@
 
   const emits = defineEmits<Emits>();
 
-
-  const globalBizsStore = useGlobalBizs();
   const route = useRoute();
 
   const isLoading = ref(false);
@@ -93,14 +89,8 @@
   function fetchResourceDetails() {
     if (!currentClusterId.value) return;
 
-    const params = {
-      dbType: DBTypes.MYSQL,
-      type: ClusterTypes.TENDBSINGLE,
-      bk_biz_id: globalBizsStore.currentBizId,
-      id: currentClusterId.value,
-    };
     isLoading.value = true;
-    getResourceDetails<ResourceItem>(params)
+    getResourceDetails({ clusterId: currentClusterId.value })
       .then((res) => {
         data.value = res;
         emits('change', res);

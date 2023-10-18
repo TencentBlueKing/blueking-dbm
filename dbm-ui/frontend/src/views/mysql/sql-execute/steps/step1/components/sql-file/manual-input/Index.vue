@@ -66,9 +66,12 @@
   } from 'vue';
   import { useI18n } from 'vue-i18n';
 
+  // TODO INTERFACE done
   import type GrammarCheckModel from '@services/model/sql-import/grammar-check';
-  import { grammarCheck } from '@services/sqlImport';
-  import { getFileContent } from '@services/storage';
+  // import { grammarCheck } from '@services/sqlImport';
+  // import { getFileContent } from '@services/storage';
+  import { grammarCheck } from '@services/source/sqlImport';
+  import { getFileContent } from '@services/source/storage';
 
   import { useGlobalBizs } from '@stores';
 

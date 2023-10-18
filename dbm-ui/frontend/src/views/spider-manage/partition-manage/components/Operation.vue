@@ -117,12 +117,13 @@
   import { useRequest } from 'vue-request';
 
   import type PartitionModel from '@services/model/partition/partition';
+  // TODO INTERFACE
   import {
     create as createParitition,
     edit as editPartition,
     verifyPartitionField,
   } from '@services/partitionManage';
-  import { getList } from '@services/spider';
+  import { getSpiderList } from '@services/source/resourceSpider';
 
   import { dbSysExclude } from '@common/const';
   import { dbRegex } from '@common/regex';
@@ -241,7 +242,7 @@
   const {
     loading: isCluserListLoading,
     data: clusterList,
-  } = useRequest(getList, {
+  } = useRequest(getSpiderList, {
     defaultParams: [{
       limit: -1,
     }],

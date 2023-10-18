@@ -65,6 +65,7 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
+  // TODO INTERFACE
   import { getPermissionRules } from '@services/permission';
   import type { PermissionRuleInfo } from '@services/types/permission';
 

@@ -55,6 +55,7 @@
 
 <script setup lang="ts">
   import type TendbClusterModel from '@services/model/spider/tendbCluster';
+  // TODO INTERFACE
   import { getSpiderDetails } from '@services/spider';
 
   import { ClusterTypes } from '@common/const';

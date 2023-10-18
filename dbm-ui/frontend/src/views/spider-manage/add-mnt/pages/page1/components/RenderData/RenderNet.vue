@@ -32,10 +32,13 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import { getCloudList } from '@services/ip';
   import type SpiderModel from '@services/model/spider/spider';
-  import { getDetail } from '@services/spider';
+  // TODO INTERFACE done
+  // import { getCloudList } from '@services/ip';
+  import { getCloudList } from '@services/source/ipchooser';
+  import { getDetail } from '@services/source/resourceSpider';
 
+  // import { getDetail } from '@services/spider';
   import TableEditInput from '@views/mysql/common/edit/Input.vue';
 
   interface Props {

@@ -310,6 +310,7 @@
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
+  // TODO INTERFACE
   import type { RedisFunctions } from '@services/model/function-controller/functionController';
   import { getCapSpecs } from '@services/ticket';
   import type { BizItem } from '@services/types/common';

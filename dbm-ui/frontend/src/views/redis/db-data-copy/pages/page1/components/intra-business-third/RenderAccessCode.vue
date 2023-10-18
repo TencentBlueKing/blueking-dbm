@@ -36,6 +36,7 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
+  // TODO INTERFACE
   import { testRedisConnection } from '@services/redis/toolbox';
 
   import useValidtor from '@views/redis/common/edit/hooks/useValidtor';

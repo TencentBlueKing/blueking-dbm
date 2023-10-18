@@ -29,6 +29,7 @@
   } from 'vue';
   import { useI18n } from 'vue-i18n';
 
+  // TODO INTERFACE
   import { checkInstances } from '@services/clusters';
   import type SpiderModel from '@services/model/spider/spider';
   import type { InstanceInfos } from '@services/types/clusters';

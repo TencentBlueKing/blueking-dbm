@@ -97,12 +97,20 @@
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
 
-  import { getResources } from '@services/clusters';
+  // TODO INTERFACE done
+  // import {
+  //   getModules,
+  //   getUseList,
+  // } from '@services/common';
+  // import { getHaInstances } from '@services/mysqlHa';
+  // import { getResources } from '@services/clusters';
+  // import { createTicket } from '@services/ticket';
+  import { getModules } from '@services/source/cmdb';
   import {
-    getModules,
-    getUseList,
-  } from '@services/common';
-  import { getHaInstances } from '@services/mysqlHa';
+    getResourceInstances,
+    getResources,
+  } from '@services/source/resourceTendbha';
+  import { getUseList } from '@services/source/user';
   import { createTicket } from '@services/ticket';
   import type { ResourceItem } from '@services/types/clusters';
   import type { SearchFilterItem } from '@services/types/common';
@@ -306,7 +314,7 @@
         title={t('【inst】实例预览', { inst: data.master_domain, title: 'Proxy' })}
         role="proxy"
         clusterId={data.id}
-        dataSource={getHaInstances}
+        dataSource={getResourceInstances}
       />
     ),
     },
@@ -321,7 +329,7 @@
         title={t('【inst】实例预览', { inst: data.master_domain, title: 'Master' })}
         role="proxy"
         clusterId={data.id}
-        dataSource={getHaInstances}
+        dataSource={getResourceInstances}
       />
     ),
     },
@@ -336,7 +344,7 @@
         title={t('【inst】实例预览', { inst: data.master_domain, title: 'Slave' })}
         role="slave"
         clusterId={data.id}
-        dataSource={getHaInstances}
+        dataSource={getResourceInstances}
       />
     ),
     },
@@ -570,7 +578,7 @@
     };
     isInit.value = false;
     state.isLoading = isLoading;
-    return getResources<ResourceItem>(params)
+    return getResources(params)
       .then((res) => {
         state.pagination.count = res.count;
         state.data = res.results;

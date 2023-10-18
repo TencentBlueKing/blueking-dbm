@@ -110,11 +110,17 @@
     useRouter,
   } from 'vue-router';
 
+  // TODO INTERFACE
+  // import {
+  //   deleteUserSemanticTasks,
+  //   querySemanticData,
+  //   revokeSemanticCheck,
+  // } from '@services/sqlImport';
   import {
     deleteUserSemanticTasks,
     querySemanticData,
     revokeSemanticCheck,
-  } from '@services/sqlImport';
+  } from '@services/source/sqlImport';
   import { createTicket } from '@services/ticket';
 
   import { useGlobalBizs } from '@stores';

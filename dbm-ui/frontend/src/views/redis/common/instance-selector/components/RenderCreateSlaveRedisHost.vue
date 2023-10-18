@@ -44,6 +44,7 @@
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
+  // TODO INTERFACE
   import RedisHostModel from '@services/model/redis/redis-host';
   import {  queryClusterHostList } from '@services/redis/toolbox';
 

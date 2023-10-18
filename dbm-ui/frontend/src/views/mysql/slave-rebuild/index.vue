@@ -84,7 +84,10 @@
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
 
-  import { checkInstances } from '@services/clusters';
+  // TODO INTERFACE done
+  // import { checkInstances } from '@services/clusters';
+  // import { createTicket } from '@services/ticket';
+  import { checkInstances } from '@services/source/instances';
   import { createTicket } from '@services/ticket';
   import type { InstanceInfos } from '@services/types/clusters';
 

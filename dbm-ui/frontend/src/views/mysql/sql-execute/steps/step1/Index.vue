@@ -102,10 +102,15 @@
     useRouter,
   } from 'vue-router';
 
+  // TODO INTERFACE done
+  // import {
+  //   querySemanticData,
+  //   semanticCheck,
+  // } from '@services/sqlImport';
   import {
     querySemanticData,
     semanticCheck,
-  } from '@services/sqlImport';
+  } from '@services/source/sqlImport';
 
   import { useGlobalBizs } from '@stores';
 

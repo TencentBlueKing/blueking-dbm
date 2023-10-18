@@ -25,7 +25,9 @@
   import { useRequest } from 'vue-request';
 
   import type SpiderModel from '@services/model/spider/spider';
-  import { getDetail } from '@services/spider';
+  // TODO INTERFACE done
+  // import { getDetail } from '@services/spider';
+  import { getDetail } from '@services/source/resourceSpider';
 
   import TableEditInput from '@views/spider-manage/common/edit/Input.vue';
 

@@ -110,7 +110,9 @@
   import { ref } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import { getHostTopoInfos } from '@services/ip';
+  // TODO INTERFACE done
+  // import { getHostTopoInfos } from '@services/ip';
+  import { getHostTopoInfos } from '@services/source/ipchooser';
   import type { HostTopoInfo } from '@services/types/ip';
 
   import { useGlobalBizs } from '@stores';

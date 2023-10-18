@@ -72,7 +72,7 @@
       </BkForm>
       <ClusterSelector
         v-model:is-show="isShowBatchSelector"
-        :get-resource-list="getList"
+        :get-resource-list="getSpiderList"
         :selected="{}"
         :tab-list="clusterSelectorTabList"
         @change="handelClusterChange" />
@@ -108,9 +108,11 @@
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
-  import { getList } from '@services/spider';
+  import { getSpiderList } from '@services/source/resourceSpider';
   import { createTicket } from '@services/ticket';
 
+  // TODO INTERFACE done
+  // import { getList } from '@services/spider';
   import { useGlobalBizs } from '@stores';
 
   import { ClusterTypes } from '@common/const';

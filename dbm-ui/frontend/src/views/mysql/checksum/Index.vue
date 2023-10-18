@@ -151,11 +151,16 @@
   import type { Instance, SingleTarget } from 'tippy.js';
   import { useI18n } from 'vue-i18n';
 
-  import {
-    checkInstances,
-    getClusterInfoByDomains,
-  } from '@services/clusters';
-  import { getClusterDBNames } from '@services/remoteService';
+  // TODO INTERFACE done
+  // import {
+  //   checkInstances,
+  //   getClusterInfoByDomains,
+  // } from '@services/clusters';
+  // import { getClusterDBNames } from '@services/remoteService';
+  // import { createTicket } from '@services/ticket';
+  import { checkInstances } from '@services/source/instances';
+  import { getClusterInfoByDomains } from '@services/source/mysqlCluster';
+  import { getClusterDBNames } from '@services/source/remoteService';
   import { createTicket } from '@services/ticket';
   import type {
     InstanceInfos,

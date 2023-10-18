@@ -70,6 +70,7 @@
   import { InfoBox } from 'bkui-vue';
   import dayjs from 'dayjs';
 
+  // TODO INTERFACE
   import type TendbClusterModel from '@services/model/spider/tendbCluster';
   import { createTicket } from '@services/ticket';
 

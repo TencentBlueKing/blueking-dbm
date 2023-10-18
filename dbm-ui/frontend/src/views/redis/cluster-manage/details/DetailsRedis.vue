@@ -53,6 +53,7 @@
 </template>
 
 <script setup lang="ts">
+// TODO INTERFACE
   import { getResourceDetails } from '@services/clusters';
   import type { ResourceRedisItem } from '@services/types/clusters';
 

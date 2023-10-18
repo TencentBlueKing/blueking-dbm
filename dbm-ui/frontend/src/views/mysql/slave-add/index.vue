@@ -72,11 +72,18 @@
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
+  // TODO INTERFACE done
+  // import {
+  //   findRelatedClustersByClusterIds,
+  //   getClusterInfoByDomains,
+  // } from '@services/clusters';
+  // import { createTicket } from '@services/ticket';
+  // import { checkHost } from '@services/ip';
+  import { checkHost } from '@services/source/ipchooser';
   import {
     findRelatedClustersByClusterIds,
     getClusterInfoByDomains,
-  } from '@services/clusters';
-  import { checkHost } from '@services/ip';
+  } from '@services/source/mysqlCluster';
   import { createTicket } from '@services/ticket';
   import type { ResourceItem } from '@services/types/clusters';
   import type { HostDetails } from '@services/types/ip';

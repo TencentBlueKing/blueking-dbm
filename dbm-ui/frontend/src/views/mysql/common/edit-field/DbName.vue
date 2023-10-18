@@ -49,7 +49,9 @@
   } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import { checkClusterDatabase } from '@services/remoteService';
+  // TODO INTERFACE done
+  // import { checkClusterDatabase } from '@services/remoteService';
+  import { checkClusterDatabase } from '@services/source/remoteService';
 
   import TableEditTag from '@views/mysql/common/edit/Tag.vue';
 

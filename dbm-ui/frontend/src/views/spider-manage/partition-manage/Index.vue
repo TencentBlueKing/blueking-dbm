@@ -65,6 +65,7 @@
   import { useI18n } from 'vue-i18n';
 
   import type PartitionModel from '@services/model/partition/partition';
+  // TODO INTERFACE
   import {
     batchRemove,
     disablePartition,

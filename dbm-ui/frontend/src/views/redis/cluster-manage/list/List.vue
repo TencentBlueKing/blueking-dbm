@@ -115,6 +115,7 @@
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
+  // TODO INTERFACE
   import { getRedisInstances } from '@services/redis';
   import { createTicket } from '@services/ticket';
   import {

@@ -13,11 +13,29 @@
 
 import http from './http';
 
-// 获取文件内容
+const path = '/apis/core/storage';
+
+/**
+ * 批量获取文件内容
+ */
+export const batchFetchFile = (params: {
+  file_path_list: string[]
+}) => http.post<Array<{
+  content: string,
+  path: string,
+  url: string
+}>>(`${path}/batch_fetch_file_content/`, params);
+
+
+// delete_file
+
+/**
+ * 获取文件内容
+ */
 export const getFileContent = function (params: { file_path: string }) {
   return http.get<{
     content: string;
     path: string;
     url: string
-  }>('/apis/core/storage/fetch_file_content/', params);
+  }>(`${path}/fetch_file_content/`, params);
 };

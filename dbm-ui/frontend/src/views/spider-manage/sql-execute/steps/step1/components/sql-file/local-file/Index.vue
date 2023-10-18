@@ -80,6 +80,7 @@
   } from 'vue';
   import { useI18n } from 'vue-i18n';
 
+  // TODO INTERFACE
   import { grammarCheck } from '@services/sqlImport';
   import { getFileContent } from '@services/storage';
 

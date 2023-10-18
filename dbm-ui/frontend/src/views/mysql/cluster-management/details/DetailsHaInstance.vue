@@ -40,19 +40,18 @@
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
 
-  import { getResourceInstanceDetails } from '@services/clusters';
+  // TODO INTERFACE done
+  // import { getResourceInstanceDetails } from '@services/clusters';
+  import { getResourceInstanceDetails } from '@services/source/resourceTendbha';
   import type { InstanceDetails } from '@services/types/clusters';
 
-  import { useGlobalBizs, useMainViewStore } from '@stores';
-
-  import { ClusterTypes, DBTypes } from '@common/const';
+  import { useMainViewStore } from '@stores';
 
   import BaseInfo from './components/BaseInfoHaInstance.vue';
   import ConfigInfo from './components/ConfigHaInstance.vue';
 
   const { t } = useI18n();
   const route = useRoute();
-  const globalBizsStore = useGlobalBizs();
   const mainViewStore = useMainViewStore();
 
   const isLoading = ref(false);
@@ -77,9 +76,6 @@
    */
   function fetchInstDetails() {
     const params = {
-      dbType: DBTypes.MYSQL,
-      bk_biz_id: globalBizsStore.currentBizId,
-      type: ClusterTypes.TENDBHA,
       instance_address: currentInstanceAddress.value,
       cluster_id: currentClusterId.value,
     };

@@ -14,6 +14,7 @@ import { Message } from 'bkui-vue';
 import { useI18n } from 'vue-i18n';
 import { useRequest } from 'vue-request';
 
+// TODO INTERFACE
 import { deleteAccount } from '@services/permission';
 
 import { useInfoWithIcon } from '@hooks';

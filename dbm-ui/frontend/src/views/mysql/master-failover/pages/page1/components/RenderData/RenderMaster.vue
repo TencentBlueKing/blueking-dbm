@@ -32,7 +32,9 @@
   } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import { checkInstances } from '@services/clusters';
+  // TODO INTERFACE done
+  // import { checkInstances } from '@services/clusters';
+  import { checkInstances } from '@services/source/instances';
   import type { InstanceInfos } from '@services/types/clusters';
 
   import { useGlobalBizs } from '@stores';

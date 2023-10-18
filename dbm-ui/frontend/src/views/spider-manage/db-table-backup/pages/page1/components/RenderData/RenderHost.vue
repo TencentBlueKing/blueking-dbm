@@ -82,6 +82,7 @@
   } from 'vue';
   import { useI18n } from 'vue-i18n';
 
+  // TODO INTERFACE
   import { getHostTopoInfos } from '@services/ip';
   import type { HostTopoInfo } from '@services/types/ip';
 

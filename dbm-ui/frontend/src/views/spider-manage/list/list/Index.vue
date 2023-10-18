@@ -118,6 +118,7 @@
   import { useRequest } from 'vue-request';
 
   import type TendbClusterModel from '@services/model/spider/tendbCluster';
+  // TODO INTERFACE
   import {
     getSpiderInstances,
     getSpiderList,

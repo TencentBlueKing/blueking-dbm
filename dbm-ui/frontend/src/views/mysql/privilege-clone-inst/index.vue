@@ -71,8 +71,12 @@
   import type FormItem from 'bkui-vue/lib/form/form-item';
   import { useI18n } from 'vue-i18n';
 
-  import { checkInstances } from '@services/clusters';
-  import { precheckPermissionClone } from '@services/permission';
+  // TODO INTERFACE done
+  // import { checkInstances } from '@services/clusters';
+  // import { precheckPermissionClone } from '@services/permission';
+  // import { createTicket } from '@services/ticket';
+  import { checkInstances } from '@services/source/instances';
+  import { precheckPermissionClone } from '@services/source/permissionClone';
   import { createTicket } from '@services/ticket';
   import type { InstanceInfos } from '@services/types/clusters';
 
