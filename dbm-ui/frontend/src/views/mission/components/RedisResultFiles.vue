@@ -161,7 +161,7 @@
    */
   function fetchKeyFiles() {
     state.isLoading = true;
-    getKeyFiles(props.id)
+    getKeyFiles({ rootId: props.id })
       .then((res) => {
         state.data = res;
         state.downloadLoadings = res.map(() => false);
@@ -182,12 +182,14 @@
    */
   function getDownloadUrl(data: KeyFileItem, index: number) {
     state.fileLoadings[index] = true;
-    getRedisFileUrls(props.id, [data.path])
-      .then((res) => {
-        if (res?.[data.path]) {
-          copy(res?.[data.path]);
-        }
-      })
+    getRedisFileUrls({
+      root_id: props.id,
+      paths: [data.path],
+    }).then((res) => {
+      if (res?.[data.path]) {
+        copy(res?.[data.path]);
+      }
+    })
       .finally(() => {
         state.fileLoadings[index] = false;
       });
@@ -232,7 +234,10 @@
       state.isBatchDownloading = true;
     }
     const paths = data.map(item => item.path);
-    getRedisFileUrls(props.id, paths)
+    getRedisFileUrls({
+      root_id: props.id,
+      paths,
+    })
       .then((res = {}) => {
         const values = Object.values(res);
         const interval = setInterval(downloadFile, 600, values as string[]);

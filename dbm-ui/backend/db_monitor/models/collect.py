@@ -122,19 +122,19 @@ class CollectInstance(CollectTemplateBase):
                     logger.warning("[init_collect_strategy] update bkmonitor collector: %s " % template.name)
                 except CollectInstance.DoesNotExist:
                     # 为了能够重复执行，这里考虑下CollectInstance被清空的情况
-                    # res = BKMonitorV3Api.query_collect_config(
-                    #     {"bk_biz_id": env.DBA_APP_BK_BIZ_ID, "search": {"fuzzy": collect_params["name"]}},
-                    #     use_admin=True,
-                    # )
+                    res = BKMonitorV3Api.query_collect_config(
+                        {"bk_biz_id": env.DBA_APP_BK_BIZ_ID, "search": {"fuzzy": collect_params["name"]}},
+                        use_admin=True,
+                    )
 
                     # 业务下存在该策略
-                    # collect_config_list = res["config_list"]
-                    # if res["total"] == 1:
-                    #     collect_config = collect_config_list[0]
-                    #     collect_params["id"] = collect_config["id"]
-                    #     logger.warning("[init_collect_strategy] sync bkmonitor collector: %s " % template.db_type)
-                    # else:
-                    #     logger.warning("[init_collect_strategy] create bkmonitor collector: %s " % template.db_type)
+                    collect_config_list = res["config_list"]
+                    if res["total"] == 1:
+                        collect_config = collect_config_list[0]
+                        collect_params["id"] = collect_config["id"]
+                        logger.warning("[init_collect_strategy] sync bkmonitor collector: %s " % template.db_type)
+                    else:
+                        logger.warning("[init_collect_strategy] create bkmonitor collector: %s " % template.db_type)
                     logger.warning("[init_collect_strategy] create bkmonitor collector: %s " % template.db_type)
 
                 # TODO: 非DBA业务支持待验证

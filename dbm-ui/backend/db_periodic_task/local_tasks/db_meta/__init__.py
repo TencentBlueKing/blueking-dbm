@@ -9,5 +9,6 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 from .db_meta_check import db_meta_check_task
+from .sync_cluster_stat import sync_cluster_stat_from_monitor
 from .update_app_cache import update_app_cache
 from .update_host_dbmeta import update_host_dbmeta

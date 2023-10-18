@@ -30,15 +30,14 @@
 </script>
 
 <script setup lang="ts">
-  defineProps({
-    width: {
-      type: Number,
-      default: 200,
-    },
-    text: {
-      type: String,
-      default: '',
-    },
+  interface Props {
+    width?: number,
+    text?: string,
+  }
+
+  withDefaults(defineProps<Props>(), {
+    width: 200,
+    text: '',
   });
 </script>
 

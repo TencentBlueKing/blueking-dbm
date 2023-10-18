@@ -28,7 +28,7 @@
       <RenderText
         :data="data.cluster.domain"
         :is-loading="data.isLoading"
-        :placeholder="$t('选择主机后自动生成')" />
+        :placeholder="$t('输入主机后自动生成')" />
     </td>
     <td style="padding: 0;">
       <RenderSpec
@@ -36,10 +36,22 @@
         :is-loading="data.isLoading" />
     </td>
     <td style="padding: 0;">
+      <RenderText
+        :data="data.slaveHost?.faults"
+        :is-loading="data.isLoading"
+        :placeholder="$t('输入主机后自动生成')" />
+    </td>
+    <td style="padding: 0;">
+      <RenderText
+        :data="data.slaveHost?.total"
+        :is-loading="data.isLoading"
+        :placeholder="$t('输入主机后自动生成')" />
+    </td>
+    <!-- <td style="padding: 0;">
       <RenderSlaveHost
         :data="data.slaveHost"
         :is-loading="data.isLoading" />
-    </td>
+    </td> -->
     <td :class="{'shadow-column': isFixed}">
       <div class="action-box">
         <div
@@ -68,7 +80,7 @@
 
   import { random } from '@utils';
 
-  import RenderSlaveHost from './RenderSlaveHost.vue';
+  // import RenderSlaveHost from './RenderSlaveHost.vue';
 
   export interface IDataRow {
     rowKey: string;

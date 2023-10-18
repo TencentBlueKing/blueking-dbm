@@ -121,10 +121,10 @@
   const choosedSpecId = ref(-1);
   const localSpec = shallowRef<IRowData>();
   const showText = computed(() => `${localSpec.value ? `${localSpec.value.capacity} G` : ''}`);
-  const selectList = computed(() => (showText.value ? [{
-    label: showText.value,
-    value: showText.value,
-  }] : []));
+  // const selectList = computed(() => (showText.value ? [{
+  //   label: showText.value,
+  //   value: showText.value,
+  // }] : []));
 
   const rules = [
     {

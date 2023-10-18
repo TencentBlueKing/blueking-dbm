@@ -37,6 +37,7 @@ export function useClusterData(state: ClusterSelectorState) {
    */
   function getResourcesParams() {
     return {
+      dbType: DBTypes.MYSQL,
       type: state.activeTab === ClusterTypes.TENDBCLUSTER ? 'spider' : state.activeTab,
       bk_biz_id: globalBizsStore.currentBizId,
       ...state.pagination.getFetchParams(),
@@ -49,7 +50,7 @@ export function useClusterData(state: ClusterSelectorState) {
    */
   const fetchResources = () => {
     state.isLoading = true;
-    return getResources<ResourceItem>(DBTypes.MYSQL, getResourcesParams())
+    return getResources<ResourceItem>(getResourcesParams())
       .then((res) => {
         state.pagination.count = res.count;
         state.tableData = res.results;

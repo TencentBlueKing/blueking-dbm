@@ -53,6 +53,7 @@ api_patterns = [
     path("monitor/", include("backend.db_monitor.urls")),
     path("event/", include("backend.db_event.urls")),
     path("db_dirty/", include("backend.db_dirty.urls")),
+    path("dbbase/", include("backend.db_services.dbbase.urls")),
 ]
 
 urlpatterns = [
@@ -76,8 +77,8 @@ if getattr(settings, "ENVIRONMENT", "") not in []:
 vue_patterns = [
     path("login_success.html", LoginSuccessView.as_view()),
     path("logout/", LogOutView.as_view()),
-    path("version/", VersionView.as_view()),
-    path("ping/", ping, name="ping"),
+    re_path("^version/?$", VersionView.as_view()),
+    re_path("^ping/?$", ping, name="ping"),
     re_path("", HomeView.as_view()),
 ]
 urlpatterns += vue_patterns

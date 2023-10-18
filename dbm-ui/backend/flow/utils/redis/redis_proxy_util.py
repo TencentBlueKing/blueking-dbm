@@ -13,13 +13,23 @@ import logging.config
 from collections import defaultdict
 from typing import Dict, List, Tuple
 
+from django.utils.translation import ugettext as _
+
 from backend.components import DBConfigApi, DRSApi
 from backend.components.dbconfig.constants import FormatType, LevelName
+from backend.configuration.constants import DBType
 from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.enums import ClusterType, InstanceRole
 from backend.db_meta.models import Cluster
-from backend.db_services.redis.util import is_predixy_proxy_type, is_redis_instance_type, is_twemproxy_proxy_type
-from backend.flow.consts import DEFAULT_DB_MODULE_ID, ConfigFileEnum, ConfigTypeEnum
+from backend.db_package.models import Package
+from backend.db_services.redis.util import (
+    is_predixy_proxy_type,
+    is_redis_instance_type,
+    is_tendisplus_instance_type,
+    is_tendisssd_instance_type,
+    is_twemproxy_proxy_type,
+)
+from backend.flow.consts import DEFAULT_DB_MODULE_ID, ConfigFileEnum, ConfigTypeEnum, MediumEnum
 
 logger = logging.getLogger("flow")
 
@@ -307,3 +317,22 @@ def get_cache_backup_mode(bk_biz_id: int, cluster_id: int) -> str:
             return resp["content"].get("cache_backup_mode", "")
     except Exception:
         return "aof"
+
+
+def get_db_versions_by_cluster_type(cluster_type: str) -> list:
+    if is_redis_instance_type(cluster_type):
+        ret = Package.objects.filter(db_type=DBType.Redis.value, pkg_type=MediumEnum.Redis.value).values_list(
+            "version", flat=True
+        )
+        return list(ret)
+    elif is_tendisplus_instance_type(cluster_type):
+        ret = Package.objects.filter(db_type=DBType.Redis.value, pkg_type=MediumEnum.TendisPlus.value).values_list(
+            "version", flat=True
+        )
+        return list(ret)
+    elif is_tendisssd_instance_type(cluster_type):
+        ret = Package.objects.filter(db_type=DBType.Redis.value, pkg_type=MediumEnum.TendisSsd.value).values_list(
+            "version", flat=True
+        )
+        return list(ret)
+    raise Exception(_("集群类型:{} 不是一个 redis 集群类型?").format(cluster_type))

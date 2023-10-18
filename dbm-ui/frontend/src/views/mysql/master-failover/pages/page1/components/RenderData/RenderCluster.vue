@@ -67,7 +67,8 @@
     emits('change', []);
     if (props.masterData && props.masterData.ip) {
       isLoading.value = true;
-      checkInstances(currentBizId, {
+      checkInstances({
+        bizId: currentBizId,
         instance_addresses: [props.masterData.ip],
       })
         .then((data) => {

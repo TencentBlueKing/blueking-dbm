@@ -10,10 +10,6 @@
  * on an "AS IS" BASIS; WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND; either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
 */
-
-/**
- * 集群节点规格
- */
 export default class RedisClusterSpec {
   capacity: number;
   cluster_capacity: number;

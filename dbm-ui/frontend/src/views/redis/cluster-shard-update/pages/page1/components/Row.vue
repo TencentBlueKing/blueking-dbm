@@ -132,6 +132,8 @@
     cluster_shard_num: number,
     db_version: string,
     online_switch_type:'user_confirm',
+    capacity: number,
+    future_capacity: number,
     resource_spec: {
       proxy: {
         spec_id: number,
@@ -251,6 +253,8 @@
           cluster_shard_num: deployData.target_shard_num,
           db_version: version,
           online_switch_type: 'user_confirm',
+          capacity: deployData.capacity,
+          future_capacity: deployData.future_capacity,
           resource_spec: {
             proxy: {
               spec_id: props.data.proxy.id,

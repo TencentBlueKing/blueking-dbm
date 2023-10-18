@@ -767,11 +767,12 @@ class MonitorPolicy(AuditedModel):
 
         return details
 
-    def save(self, *args, **kwargs):
+    def save(self, force_insert=False, force_update=False, using=None, update_fields=None):
         """保存策略对象的同时，同步记录到监控"""
 
         # step1. sync to model
-        details = self.patch_all()
+        # 启停操作(["is_enabled"]) -> 跳过重复的patch
+        details = self.details if update_fields == ["is_enabled"] else self.patch_all()
 
         # step2. sync to bkm
         res = self.bkm_save_alarm_strategy(details)
@@ -786,7 +787,7 @@ class MonitorPolicy(AuditedModel):
             self.parent_details = self.details
 
         # step3. save to db
-        super().save(*args, **kwargs)
+        super().save(force_insert, force_update, using, update_fields)
 
     def delete(self, using=None, keep_parents=False):
         if self.bk_biz_id == PLAT_BIZ_ID:
@@ -846,9 +847,6 @@ class MonitorPolicy(AuditedModel):
         policy.creator = policy.updater = username
         policy.id = None
 
-        # obj.calc_from_targets()
-
-        # create -> overwrite details
         policy.save()
 
         # 重新获取policy
@@ -1050,7 +1048,16 @@ class MonitorPolicy(AuditedModel):
             tmp = defaultdict(int)
             for event in events:
                 # 监控对外返回json中会将app_id映射为bk_app_code： tapd:1010104091006892981
-                tmp[(event["strategy_id"], event["origin_alarm"]["data"]["dimensions"]["bk_app_code"])] += 1
+                bk_app_code = event["origin_alarm"]["data"]["dimensions"].get("bk_app_code")
+                app_id = event["origin_alarm"]["data"]["dimensions"].get("app_id") or bk_app_code
+
+                # 缺少业app_id维度的策略
+                if not app_id:
+                    app_id = 0
+                    logger.error("find bad bkmonitor event: %s", event)
+                    # continue
+
+                tmp[(event["strategy_id"], app_id)] += 1
 
             event_counts = defaultdict(dict)
             for (strategy_id, app_id), event_count in tmp.items():

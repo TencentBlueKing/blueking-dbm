@@ -9,7 +9,9 @@
         :model-value="modelValue.capacity"
         style="width: 314px;"
         type="number"
-        @change="handleChangeCapacity" />
+        @blur="handleBlurCapacity"
+        @change="handleChangeCapacity"
+        @focus="handleFocusCapacity" />
       <span class="input-desc">G</span>
     </BkFormItem>
     <BkFormItem
@@ -21,7 +23,9 @@
         :model-value="modelValue.future_capacity"
         style="width: 314px;"
         type="number"
-        @change="handleChangeFutureCapacity" />
+        @blur="handleBlurCapacity"
+        @change="handleChangeFutureCapacity"
+        @focus="handleFocusCapacity" />
       <span class="input-desc">G</span>
     </BkFormItem>
     <BkFormItem
@@ -76,15 +80,16 @@
   import { useI18n } from 'vue-i18n';
 
   import { getSpecResourceCount } from '@services/dbResource';
+  import RedisClusterSpecModel from '@services/model/resource-spec/redis-cluster-sepc';
   import {
-    type FilterClusterSpecItem,
     getFilterClusterSpec,
     queryQPSRange,
   } from '@services/resourceSpec';
 
   interface ModelValue {
-    spec_id: string,
+    spec_id: number,
     capacity: number | string,
+    count: number,
     future_capacity: number | string,
   }
 
@@ -101,8 +106,8 @@
   const { t } = useI18n();
 
   const specRef = ref();
-  const specs = shallowRef<FilterClusterSpecItem[]>([]);
-  const renderSpecs = shallowRef<FilterClusterSpecItem[]>([]);
+  const specs = shallowRef<RedisClusterSpecModel[]>([]);
+  const renderSpecs = shallowRef<RedisClusterSpecModel[]>([]);
   const isLoading = ref(false);
   const sliderProps = reactive({
     value: [0, 0],
@@ -115,10 +120,11 @@
       field: 'spec_name',
       label: t('资源规格'),
       showOverflowTooltip: false,
-      render: ({ data }: { data: FilterClusterSpecItem }) => (
+      render: ({ data, index }: { data: RedisClusterSpecModel, index: number }) => (
         <bk-radio
           v-model={modelValue.value.spec_id}
-          label={`${data.spec_id}`}
+          label={data.spec_id}
+          kye={index}
           class="spec-radio">
           <div
             class="text-overflow"
@@ -126,7 +132,7 @@
             {data.spec_name}
           </div>
         </bk-radio>
-      ),
+        ),
     },
     {
       field: 'machine_pair',
@@ -186,7 +192,6 @@
         sliderProps.value = [min, max];
         sliderProps.max = max;
         sliderProps.min = min;
-        sliderProps.disabled = false;
       });
   }, 400);
 
@@ -265,7 +270,7 @@
   }, 100);
 
   watch(() => sliderProps.value, _.debounce(() => {
-    modelValue.value.spec_id = '';
+    modelValue.value.spec_id = -1;
     if (sliderProps.value[1] > 0) {
       fetchFilterClusterSpec();
     } else {
@@ -306,8 +311,16 @@
     }
   });
 
-  const handleRowClick = (event: Event, row: FilterClusterSpecItem) => {
-    modelValue.value.spec_id = `${row.spec_id}`;
+  const handleRowClick = (event: Event, row: RedisClusterSpecModel) => {
+    modelValue.value.spec_id = row.spec_id;
+  };
+
+  const handleFocusCapacity = () => {
+    sliderProps.disabled = true;
+  };
+
+  const handleBlurCapacity = () => {
+    sliderProps.disabled = false;
   };
 
   defineExpose({

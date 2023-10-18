@@ -23,6 +23,32 @@ import { useGlobalBizs } from '@stores';
 import type { InstanceInfos } from '../types/clusters';
 import type { ListBase } from '../types/common';
 
+interface MasterSlaveByIp {
+  cluster: {
+    bk_cloud_id: number,
+    cluster_type: string;
+    deploy_plan_id: number,
+    id: number,
+    immute_domain: string;
+    major_version: string;
+    name: string;
+    region: string;
+  },
+  instances: {
+    bk_biz_id: number,
+    bk_cloud_id: number,
+    bk_host_id: number,
+    bk_instance_id: number,
+    instance: string;
+    ip: string;
+    name: string;
+    phase: string;
+    port: number,
+    status: string;
+  }[],
+  master_ip: string;
+  slave_ip: string;
+}
 
 // 根据IP查询集群、角色和规格
 export const queryInfoByIp = (params: {
@@ -54,33 +80,6 @@ export const queryClusterHostList = (params: {
     .then(data => data.map(item => new RedisHostModel(item)));
 };
 
-export interface MasterSlaveByIp {
-  cluster: {
-    bk_cloud_id: number,
-    cluster_type: string;
-    deploy_plan_id: number,
-    id: number,
-    immute_domain: string;
-    major_version: string;
-    name: string;
-    region: string;
-  },
-  instances: {
-    bk_biz_id: number,
-    bk_cloud_id: number,
-    bk_host_id: number,
-    bk_instance_id: number,
-    instance: string;
-    ip: string;
-    name: string;
-    phase: string;
-    port: number,
-    status: string;
-  }[],
-  master_ip: string;
-  slave_ip: string;
-}
-
 // 根据masterIP查询集群、实例和slave
 export const queryMasterSlaveByIp = (params: {
   ips: string[]
@@ -101,10 +100,7 @@ export interface InstanceItem extends Omit<InstanceInfos, 'spec_config'> {
 /**
  * 判断实例是否存在
  */
-export const checkInstances = (
-  bizId: number,
-  params: Record<'instance_addresses', Array<string>>,
-) => http.post<InstanceItem[]>(`/apis/redis/bizs/${bizId}/instance/check_instances/`, params);
+export const checkInstances = (params: Record<'instance_addresses', Array<string>> & { bizId: number }) => http.post<InstanceItem[]>(`/apis/redis/bizs/${params.bizId}/instance/check_instances/`, params);
 
 // 构造实例列表
 export const getRollbackList = (params?: {
@@ -152,7 +148,6 @@ export const setJobDisconnectSync = (params: {
   const { currentBizId } = useGlobalBizs();
   return http.post<unknown>(`/apis/redis/bizs/${currentBizId}/dts/job_disconnect_sync/`, params);
 };
-
 
 // dts job 批量失败重试
 export const setJobTaskFailedRetry = (params: {

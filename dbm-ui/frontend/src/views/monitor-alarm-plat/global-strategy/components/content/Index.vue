@@ -289,12 +289,12 @@
       });
     } else {
       // 启用
-      runEnablePolicy(row.id);
+      runEnablePolicy({ id: row.id });
     }
   };
 
   const handleClickConfirm = (row: RowData) => {
-    runDisablePolicy(row.id);
+    runDisablePolicy({ id: row.id });
   };
 
   const handleCancelConfirm = (row: RowData) => {

@@ -42,22 +42,27 @@
     {
       label: t('集群'),
       field: 'clusterName',
+      showOverflowTooltip: true,
     },
     {
       label: 'IP',
       field: 'ip',
+      showOverflowTooltip: true,
     },
     {
       label: t('DB 名'),
       field: 'dbName',
+      showOverflowTooltip: true,
     },
     {
       label: t('表名'),
       field: 'tbName',
+      showOverflowTooltip: true,
     },
     {
       label: t('分区动作'),
       field: 'action',
+      showOverflowTooltip: true,
       render: ({ data }: {data: RowData}) => data.action.map(item => (
         <bk-tag>{ item }</bk-tag>
       )),

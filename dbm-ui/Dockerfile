@@ -1,19 +1,23 @@
-FROM node:16.20.1-slim AS static-builder
+FROM node:16.20.1-slim AS frontend-installer
 
 ENV NPM_VERSION 8.19.4
-RUN npm config set registry https://mirrors.tencent.com/npm/
+RUN npm config set registry https://mirrors.tencent.com/npm/ && yarn config set registry https://mirrors.tencent.com/npm/
+
+WORKDIR /frontend
+COPY frontend/package.json ./
+RUN yarn install
+
+FROM frontend-installer AS frontend-builder
 
 WORKDIR /frontend
 COPY frontend ./
-RUN yarn install
-# fix heap out of memory
-ENV NODE_OPTIONS="--max_old_space_size=8192"
+
 RUN yarn build
 
 FROM python:3.6.12-slim-buster AS base
 
-ENV LC_ALL=C.UTF-8 \
-    LANG=C.UTF-8
+WORKDIR /
+ENV LC_ALL=C.UTF-8  LANG=C.UTF-8
 
 ## PYTHON
 # Seems to speed things up
@@ -35,7 +39,7 @@ RUN set -ex && \
 
 RUN set -ex && mkdir ~/.pip && printf '[global]\nindex-url = https://mirrors.tencent.com/pypi/simple/' > ~/.pip/pip.conf
 
-FROM base AS builder
+FROM base AS backend-builder
 
 WORKDIR /
 
@@ -54,29 +58,30 @@ COPY ./pyproject.toml ./poetry.lock /
 # 创建 Python 虚拟环境并安装依赖
 RUN set -ex && python -m venv /venv && . /venv/bin/activate && pip install --upgrade pip && pip install poetry && poetry install
 
+FROM base AS copy-backend-file
+WORKDIR /app
+COPY ./ ./
+RUN rm -rf frontend
+
 FROM base AS base-app
 
 # 安装运行时依赖
 RUN set -ex &&  \
     apt-get update && \
     apt-get install -y --no-install-recommends \
-        gettext curl vim default-libmysqlclient-dev && \
+        gettext curl iputils-ping procps vim default-libmysqlclient-dev && \
     rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 USER root
 
-ADD ./ ./
-
 # 拷贝构件
-
-COPY --from=builder /venv /venv
-COPY --from=static-builder /frontend/dist /app/static/
-
-ENV APP_ID=bk-dbm
-ENV APP_TOKEN=xxxx
+COPY --from=copy-backend-file /app /app
+COPY --from=backend-builder /venv /venv
+COPY --from=frontend-builder /frontend/dist /app/static/
 
 # 收集静态文件
+ENV APP_ID=bk-dbm APP_TOKEN=xxxx
 RUN python manage.py collectstatic --settings=config.prod --noinput
 
 ENTRYPOINT ["/app"]

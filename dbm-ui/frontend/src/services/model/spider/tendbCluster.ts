@@ -208,21 +208,5 @@ export default class TendbCluster {
       return [];
     }
     return payload;
-    // return payload.map(item => ({
-    //   ...item,
-    //   operationDisabled: this.operationDisabled,
-    //   // 操作中的状态描述文本
-    //   get operationStatusText() {
-    //     return TendbCluster.operationTextMap[item.ticket_type];
-    //   },
-    //   // 操作中的状态 icon
-    //   get operationStatusIcon() {
-    //     return TendbCluster.operationIconMap[item.ticket_type];
-    //   },
-    //   // 操作中的单据 ID
-    //   get operationTicketId() {
-    //     return item.ticket_id ?? 0;
-    //   },
-    // }));
   }
 }

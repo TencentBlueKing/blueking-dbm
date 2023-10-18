@@ -11,7 +11,7 @@
  * the specific language governing permissions and limitations under the License.
 */
 
-import { acceptHMRUpdate, defineStore } from 'pinia';
+import { defineStore } from 'pinia';
 
 import { getProfile, upsertProfile } from '@services/common';
 import type { ProfileItem } from '@services/types/common';
@@ -61,7 +61,3 @@ export const useUserProfile = defineStore('UserProfile', {
     },
   },
 });
-
-if (import.meta.hot) {
-  import.meta.hot.accept(acceptHMRUpdate(useUserProfile, import.meta.hot));
-}

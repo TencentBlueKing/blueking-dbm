@@ -25,14 +25,8 @@ from backend.flow.plugins.components.collections.pulsar.pulsar_set_token import 
 from backend.flow.plugins.components.collections.pulsar.pulsar_zk_dns_manage import PulsarZkDnsManageComponent
 from backend.flow.plugins.components.collections.pulsar.rewrite_pulsar_config import WriteBackPulsarConfigComponent
 from backend.flow.utils.extension_manage import BigdataManagerKwargs
-from backend.flow.utils.pulsar.consts import (
-    PULSAR_ZOOKEEPER_SERVICE_PORT,
-)
-from backend.flow.utils.pulsar.pulsar_context_dataclass import (
-    PulsarActKwargs,
-    PulsarApplyContext,
-    ZkDnsKwargs,
-)
+from backend.flow.utils.pulsar.consts import PULSAR_ZOOKEEPER_SERVICE_PORT
+from backend.flow.utils.pulsar.pulsar_context_dataclass import PulsarActKwargs, PulsarApplyContext, ZkDnsKwargs
 
 logger = logging.getLogger("flow")
 

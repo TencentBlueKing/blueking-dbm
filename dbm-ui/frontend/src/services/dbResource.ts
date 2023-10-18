@@ -67,7 +67,11 @@ export function fetchList(params: Record<string, any>) {
 export function importResource(params: {
   for_bizs: number[],
   resource_types: string[],
-  hosts: Array<{ ip: string, host_id: number, bk_cloud_id: number }>
+  hosts: Array<{
+    ip: string,
+    host_id: number,
+    bk_cloud_id: number
+  }>
 }) {
   return http.post('/apis/dbresource/resource/import/', params);
 }
@@ -93,8 +97,15 @@ export function fetchDeviceClass() {
 }
 
 // 获取DBA业务下的主机信息
-export function fetchListDbaHost(params: { limit: number, offset: number, search_content: string }) {
-  return http.get<{ total: number, data: ImportHostModel[] }>('/apis/dbresource/resource/list_dba_hosts/', {
+export function fetchListDbaHost(params: {
+  limit: number,
+  offset: number,
+  search_content: string
+}) {
+  return http.get<{
+    total: number,
+    data: ImportHostModel[]
+  }>('/apis/dbresource/resource/list_dba_hosts/', {
     search_content: params.search_content,
     start: params.offset,
     page_size: params.limit,
@@ -112,7 +123,10 @@ export function removeResource(params: { bk_host_ids: number[] }) {
 
 // 查询资源导入任务
 export function fetchImportTask() {
-  return http.get<{ bk_biz_id: number, task_ids: string[] }>('/apis/dbresource/resource/query_import_tasks/');
+  return http.get<{
+    bk_biz_id: number,
+    task_ids: string[]
+  }>('/apis/dbresource/resource/query_import_tasks/');
 }
 
 // 获取资源导入相关链接
@@ -131,7 +145,10 @@ export function fetchOperationList(params: {
   begin_time: string,
   end_time: string
 }) {
-  return http.get<{ count: number, results: OperationModel[] }>('/apis/dbresource/resource/query_operation_list/', params)
+  return http.get<{
+    count: number,
+    results: OperationModel[]
+  }>('/apis/dbresource/resource/query_operation_list/', params)
     .then(data => ({
       ...data,
       results: data.results.map(item => new OperationModel(item)),

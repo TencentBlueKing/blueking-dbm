@@ -174,7 +174,8 @@
   function handleConfirm(item: FlowItem) {
     state.confirmTips = false;
     state.isLoading = true;
-    retryTicketFlow(item.ticket, {
+    retryTicketFlow({
+      ticketId: item.ticket,
       flow_id: item.id,
     })
       .then(() => {

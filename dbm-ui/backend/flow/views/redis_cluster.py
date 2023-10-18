@@ -540,6 +540,32 @@ class RedisClusterAddSlaveApiView(FlowTestView):
         return Response({"root_id": root_id})
 
 
+class RedisClusterVersionUpdateOnlineApiView(FlowTestView):
+    """
+    api: /apis/v1/flow/scene/redis_cluster_version_update_online
+    params:
+    {
+        "bk_biz_id": 3,
+        "ticket_type":"REDIS_CLUSTER_VERSION_UPDATE_ONLINE",
+        "created_by":"admin",
+        "uid":"1111",
+        "infos": [
+          {
+            "cluster_id": 1,
+            "current_version": "Redis-5",
+            "target_version": "Redis-6",
+          }
+        ]
+    }
+    """
+
+    @staticmethod
+    def post(request):
+        root_id = uuid.uuid1().hex
+        RedisController(root_id=root_id, ticket_data=request.data).redis_cluster_version_update_online()
+        return Response({"root_id": root_id})
+
+
 class RedisClusterMigratePrecheck(FlowTestView):
     """
     集群迁移前置检查

@@ -54,20 +54,13 @@
   import DetailsBase from '../components/DetailsBase.vue';
   import PublishRecord from '../components/PublishRecord.vue';
 
-  const props = defineProps({
-    clusterType: {
-      type: String,
-      required: true,
-    },
-    confType: {
-      type: String,
-      required: true,
-    },
-    version: {
-      type: String,
-      required: true,
-    },
-  });
+  interface Props {
+    clusterType: string,
+    confType: string,
+    version: string,
+  }
+
+  const props = defineProps<Props>();
 
   const { t } = useI18n();
   const state = reactive({
@@ -84,7 +77,7 @@
   const publishFetchParams = computed(() => ({
     ...baseParams.value,
     level_name: ConfLevels.PLAT,
-    level_value: '0',
+    level_value: 0,
     bk_biz_id: 0,
   }));
   // 顶部 tabs

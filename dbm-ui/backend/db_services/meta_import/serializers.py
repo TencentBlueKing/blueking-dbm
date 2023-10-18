@@ -12,17 +12,30 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import ugettext as _
 from rest_framework import serializers
 
+from backend.db_meta.enums import ClusterType, MachineType
 from backend.db_meta.models import DBModule, Spec
 
 
-class MetadataImportChoiceField(serializers.ChoiceField):
-    """元数据导入的动态choice字段"""
+class MetadataImportDBModuleField(serializers.ChoiceField):
+    model = DBModule
 
-    model = None
+    def __init__(self, cluster_type, **kwargs):
+        choices = self.model.get_choices_with_filter(cluster_type=cluster_type)
+        super().__init__(choices, **kwargs)
+        self._choices_label_to_value = {value: key for key, value in self.choices.items()}
 
-    def __init__(self, model, **kwargs):
-        self.model = model
-        choices = self.model.get_choices()
+    def to_representation(self, value):
+        return self._choices[value]
+
+    def to_internal_value(self, data):
+        return self._choices_label_to_value[data]
+
+
+class MetadataImportSpecField(serializers.ChoiceField):
+    model = Spec
+
+    def __init__(self, cluster_type, machine_type, **kwargs):
+        choices = self.model.get_choices_with_filter(cluster_type=cluster_type, machine_type=machine_type)
         super().__init__(choices, **kwargs)
         self._choices_label_to_value = {value: key for key, value in self.choices.items()}
 
@@ -36,9 +49,13 @@ class MetadataImportChoiceField(serializers.ChoiceField):
 class MySQLHaMetadataImportSerializer(serializers.Serializer):
     file = serializers.FileField(help_text=_("元数据json文件"))
     bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
-    db_module_id = MetadataImportChoiceField(help_text=_("模块ID"), model=DBModule)
-    proxy_spec_id = MetadataImportChoiceField(help_text=_("代理层规格ID"), model=Spec)
-    storage_spec_id = MetadataImportChoiceField(help_text=_("存储层规格ID"), model=Spec)
+    db_module_id = MetadataImportDBModuleField(help_text=_("模块ID"), cluster_type=ClusterType.TenDBHA.value)
+    proxy_spec_id = MetadataImportSpecField(
+        help_text=_("代理层规格ID"), cluster_type=ClusterType.TenDBHA.value, machine_type=MachineType.PROXY.value
+    )
+    storage_spec_id = MetadataImportSpecField(
+        help_text=_("存储层规格ID"), cluster_type=ClusterType.TenDBHA.value, machine_type=MachineType.BACKEND.value
+    )
 
     def validate(self, attrs):
         return attrs

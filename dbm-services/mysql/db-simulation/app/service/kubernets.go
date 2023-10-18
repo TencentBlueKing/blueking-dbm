@@ -1,3 +1,13 @@
+/*
+ * TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
+ * Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
+ * Licensed under the MIT License (the "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at https://opensource.org/licenses/MIT
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+ * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
+
 package service
 
 import (
@@ -16,6 +26,7 @@ import (
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-simulation/app"
 	"dbm-services/mysql/db-simulation/app/config"
+	"dbm-services/mysql/db-simulation/model"
 
 	"github.com/pkg/errors"
 	v1 "k8s.io/api/core/v1"
@@ -92,13 +103,13 @@ func NewDbPodSets() *DbPodSets {
 func (k *DbPodSets) getCreateClusterSqls() []string {
 	var ss []string
 	ss = append(ss, fmt.Sprintf(
-		"tdbctl create node wrapper 'SPIDER' options(user 'root', password '%s', host 'localhost', port 25000);",
+		"tdbctl create node wrapper 'SPIDER' options(user 'root', password '%s', host '127.0.0.1', port 25000);",
 		k.BaseInfo.RootPwd))
 	ss = append(ss, fmt.Sprintf(
-		"tdbctl create node wrapper 'mysql' options(user 'root', password '%s', host 'localhost', port 20000);",
+		"tdbctl create node wrapper 'mysql' options(user 'root', password '%s', host '127.0.0.1', port 20000);",
 		k.BaseInfo.RootPwd))
 	ss = append(ss, fmt.Sprintf(
-		"tdbctl create node wrapper 'TDBCTL' options(user 'root', password '%s', host 'localhost', port 26000);",
+		"tdbctl create node wrapper 'TDBCTL' options(user 'root', password '%s', host '127.0.0.1', port 26000);",
 		k.BaseInfo.RootPwd))
 	ss = append(ss, "tdbctl enable primary;")
 	ss = append(ss, "tdbctl flush routing;")
@@ -207,6 +218,11 @@ func (k *DbPodSets) createpod(pod *v1.Pod, probePort int) (err error) {
 		logger.Error("create pod failed %s", err.Error())
 		return err
 	}
+	model.CreateTbContainerRecord(&model.TbContainerRecord{
+		Container:     k.BaseInfo.PodName,
+		Uid:           string(pod.GetUID()),
+		CreatePodTime: time.Now(),
+		CreateTime:    time.Now()})
 	var podIp string
 	// 连续多次探测pod的状态
 	if err := util.Retry(util.RetryConfig{Times: 120, DelayTime: 2 * time.Second}, func() error {
@@ -236,7 +252,11 @@ func (k *DbPodSets) createpod(pod *v1.Pod, probePort int) (err error) {
 		}
 		return nil
 	}
-	return util.Retry(util.RetryConfig{Times: 60, DelayTime: 2 * time.Second}, fn)
+	err = util.Retry(util.RetryConfig{Times: 60, DelayTime: 1 * time.Second}, fn)
+	if err == nil {
+		model.UpdateTbContainerRecord(string(pod.GetUID()))
+	}
+	return err
 }
 
 // CreateMySQLPod TODO
@@ -290,7 +310,7 @@ func (k *DbPodSets) DeletePod() (err error) {
 // getLoadSchemaSQLCmd create load schema sql cmd
 func (k *DbPodSets) getLoadSchemaSQLCmd(bkpath, file string) (cmd string) {
 	commands := []string{}
-	commands = append(commands, fmt.Sprintf("wget %s", getdownloadUrl(bkpath, file)))
+	commands = append(commands, fmt.Sprintf("curl -s -S -o %s %s", file, getdownloadUrl(bkpath, file)))
 	// sed -i '/50720 SET tc_admin=0/d'
 	// 从中控dump的schema文件,默认是添加了tc_admin=0,需要删除
 	// 因为模拟执行是需要将中控进行sql转发
@@ -306,9 +326,7 @@ func (k *DbPodSets) getLoadSchemaSQLCmd(bkpath, file string) (cmd string) {
 
 // getLoadSQLCmd get load sql cmd
 func (k *DbPodSets) getLoadSQLCmd(bkpath, file string, dbs []string) (cmd []string) {
-	// cmd = fmt.Sprintf(
-	// 	"wget %s && mysql --defaults-file=/etc/my.cnf -uroot -p%s --default-character-set=%s %s < %s",
-	cmd = append(cmd, fmt.Sprintf("curl -o %s %s", file, getdownloadUrl(bkpath, file)))
+	cmd = append(cmd, fmt.Sprintf("curl -s -S -o %s %s", file, getdownloadUrl(bkpath, file)))
 	for _, db := range dbs {
 		cmd = append(cmd, fmt.Sprintf("mysql --defaults-file=/etc/my.cnf -uroot -p%s --default-character-set=%s -vvv %s < %s",
 			k.BaseInfo.RootPwd, k.BaseInfo.Charset, db, file))
@@ -330,7 +348,7 @@ func getdownloadUrl(bkpath, file string) string {
 		return ""
 	}
 	ll := u.ResolveReference(r).String()
-	logger.Info("dbeug url is %s", ll)
+	logger.Info("download url: %s", ll)
 	return ll
 }
 
@@ -355,7 +373,7 @@ func (k *DbPodSets) executeInPod(cmd, container string, extMap map[string]string
 	reader, writer := io.Pipe()
 	exec, err := remotecommand.NewSPDYExecutor(k.K8S.RestConfig, "POST", req.URL())
 	if err != nil {
-		logger.Error("remotecommand.NewSPDYExecutor", err.Error())
+		logger.Error("at remotecommand.NewSPDYExecutor %s", err.Error())
 		return bytes.Buffer{}, bytes.Buffer{}, err
 	}
 	go func() {

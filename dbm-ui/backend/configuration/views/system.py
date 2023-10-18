@@ -26,6 +26,8 @@ from backend.configuration.serializers import (
     UpdateBizSettingsSerializer,
     UpdateDutyNoticeSerializer,
 )
+from backend.db_services.ipchooser.constants import IDLE_HOST_MODULE
+from backend.flow.utils.cc_manage import CcManage
 from backend.iam_app.handlers.drf_perm import DBManageIAMPermission, RejectPermission
 
 tags = [_("系统设置")]
@@ -89,6 +91,10 @@ class SystemSettingsViewSet(viewsets.SystemViewSet):
                 "BK_SCR_URL": env.BK_SCR_URL,
                 "BK_HELPER_URL": env.BK_HELPER_URL,
                 "BK_DBM_URL": env.BK_SAAS_HOST,
+                "CC_IDLE_MODULE_ID": CcManage(env.DBA_APP_BK_BIZ_ID).get_biz_internal_module(env.DBA_APP_BK_BIZ_ID)[
+                    IDLE_HOST_MODULE
+                ]["bk_module_id"],
+                "CC_MANAGE_TOPO": SystemSettings.get_setting_value(key=SystemSettingsEnum.MANAGE_TOPO.value),
             }
         )
 

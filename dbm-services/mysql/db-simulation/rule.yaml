@@ -78,10 +78,6 @@ CreateTableRule:
     desc: "definer必须指定用户"
     ban: true
     item: ["ADMIN@localhost"]
-  NormalizedName:
-    expr: " Val in Item "
-    desc: "规范化命名"
-    item: ["first_char_exception", "special_char", "Keyword_exception"]
 
 AlterTableRule:
   HighRiskType:

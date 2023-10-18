@@ -95,9 +95,9 @@ export interface HostSubmitParams {
   ip: string,
   bk_cloud_id: number,
   bk_host_id: number,
-  bk_cpu: number | null,
-  bk_mem: number | null,
-  bk_disk: number | null
+  bk_cpu?: number,
+  bk_mem?: number,
+  bk_disk?: number,
   bk_biz_id: number
 }
 

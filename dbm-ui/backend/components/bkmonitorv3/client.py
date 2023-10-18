@@ -216,5 +216,13 @@ class _BKMonitorV3Api(object):
             description=_("查询事件"),
         )
 
+        self.unify_query = DataAPI(
+            method="POST",
+            base=BKMONITORV3_APIGW_DOMAIN,
+            url="time_series_unify_query/",
+            module=self.MODULE,
+            description=_("统一查询时序数据"),
+        )
+
 
 BKMonitorV3Api = _BKMonitorV3Api()

@@ -196,6 +196,7 @@
     inputState.isLoading = true;
     try {
       const params = {
+        bizId: currentBizId,
         instance_addresses: lines,
       };
       if (props.clusterId) {
@@ -203,7 +204,7 @@
           cluster_ids: [props.clusterId],
         });
       }
-      const res = await checkInstances(currentBizId, params);
+      const res = await checkInstances(params);
       const legalInstances: InstanceInfos[] = [];
       for (let i = lines.length - 1; i >= 0; i--) {
         const item = lines[i];

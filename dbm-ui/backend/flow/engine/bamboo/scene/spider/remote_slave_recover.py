@@ -13,6 +13,7 @@ import logging
 from dataclasses import asdict
 from typing import Dict, Optional
 
+from django.utils.crypto import get_random_string
 from django.utils.translation import ugettext as _
 
 from backend.constants import IP_PORT_DIVIDER
@@ -30,11 +31,15 @@ from backend.flow.plugins.components.collections.common.pause import PauseCompon
 from backend.flow.plugins.components.collections.mysql.clear_machine import MySQLClearMachineComponent
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.spider.spider_db_meta import SpiderDBMetaComponent
+from backend.flow.plugins.components.collections.spider.switch_remote_slave_routing import (
+    SwitchRemoteSlaveRoutingComponent,
+)
 from backend.flow.utils.common_act_dataclass import DownloadBackupClientKwargs
 from backend.flow.utils.mysql.common.mysql_cluster_info import get_version_and_charset
 from backend.flow.utils.mysql.mysql_act_dataclass import ClearMachineKwargs, DBMetaOPKwargs, ExecActuatorKwargs
 from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
 from backend.flow.utils.mysql.mysql_context_dataclass import ClusterInfoContext
+from backend.flow.utils.spider.spider_act_dataclass import InstancePairs, SwitchRemoteSlaveRoutingKwargs
 from backend.flow.utils.spider.spider_db_meta import SpiderDBMeta
 from backend.flow.utils.spider.tendb_cluster_info import get_slave_recover_info
 
@@ -188,6 +193,27 @@ class TenDBRemoteSlaveRecoverFlow(object):
             switch_sub_pipeline_list = []
             # 切换后写入元数据
             switch_sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
+
+            tdbctl_pass = get_random_string(length=10)
+            switch_slave_class = SwitchRemoteSlaveRoutingKwargs(
+                cluster_id=cluster_class.id, switch_remote_instance_pairs=[]
+            )
+            for shard_id, node in cluster_info["my_shards"].items():
+                inst_pairs = InstancePairs(
+                    old_ip=node["slave"]["ip"],
+                    old_port=node["slave"]["port"],
+                    new_ip=node["new_slave"]["ip"],
+                    new_port=node["new_slave"]["port"],
+                    tdbctl_pass=tdbctl_pass,
+                )
+                switch_slave_class.switch_remote_instance_pairs.append(inst_pairs)
+
+            switch_sub_pipeline.add_act(
+                act_name=_("切换到新SLAVE机器"),
+                act_component_code=SwitchRemoteSlaveRoutingComponent.code,
+                kwargs=asdict(switch_slave_class),
+            )
+
             switch_sub_pipeline.add_act(
                 act_name=_("SLAVE切换完毕后修改元数据指向"),
                 act_component_code=SpiderDBMetaComponent.code,

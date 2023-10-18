@@ -92,12 +92,13 @@
     if (!currentClusterId.value) return;
 
     const params = {
+      dbType: DBTypes.REDIS,
       type: DBTypes.REDIS,
       bk_biz_id: globalBizsStore.currentBizId,
       id: currentClusterId.value,
     };
     isLoading.value = true;
-    getResourceDetails<ResourceRedisItem>(DBTypes.REDIS, params)
+    getResourceDetails<ResourceRedisItem>(params)
       .then((res) => {
         data.value = res;
         emits('change', res);

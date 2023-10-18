@@ -182,7 +182,7 @@ export interface ConfigVersionDiffItem {
 export interface GetLevelConfigParams{
   conf_type: string,
   meta_cluster_type: string,
-  version: string,
+  version?: string,
   bk_biz_id?: number,
   level_name?: string,
   level_value?: number,

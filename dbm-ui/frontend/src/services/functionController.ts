@@ -11,9 +11,10 @@
  * the specific language governing permissions and limitations under the License.
 */
 
+import defaultData from '@services/model/function-controller/defaultController.json';
+import FunctionControllerModel from '@services/model/function-controller/functionController';
+
 import http from './http';
-import defaultData from './model/function-controller/defaultController.json';
-import FunctionControllerModel from './model/function-controller/functionController';
 
 /**
  * 获取功能开关信息

@@ -145,16 +145,16 @@ export const clonePolicy = (params: UpdatePolicyParams & {
 }>('/apis/monitor/policy/clone_strategy/', params);
 
 // 启用策略
-export const enablePolicy = (id: number) => http.post<boolean>(`/apis/monitor/policy/${id}/enable/`);
+export const enablePolicy = (params: { id: number }) => http.post<boolean>(`/apis/monitor/policy/${params.id}/enable/`);
 
 // 停用策略
-export const disablePolicy = (id: number) => http.post<boolean>(`/apis/monitor/policy/${id}/disable/`);
+export const disablePolicy = (params: { id: number }) => http.post<boolean>(`/apis/monitor/policy/${params.id}/disable/`);
 
 // 恢复默认策略
-export const resetPolicy = (id: number) => http.post<void>(`/apis/monitor/policy/${id}/reset`);
+export const resetPolicy = (params: { id: number }) => http.post<void>(`/apis/monitor/policy/${params.id}/reset`);
 
 // 删除策略
-export const deletePolicy = (id: number) => http.delete<null | object>(`/apis/monitor/policy/${id}/`);
+export const deletePolicy = (params: { id: number }) => http.delete<null | Record<string, any>>(`/apis/monitor/policy/${params.id}/`);
 
 // 根据db类型查询集群列表
 export const getClusterList = (params: { dbtype: string }) => http.get<string[]>('/apis/monitor/policy/cluster_list/', params);
@@ -196,7 +196,7 @@ export const updatePartialDutyRule = (id: number, params: {
 }) => http.patch<DutyRuleModel>(`/apis/monitor/duty_rule/${id}/`, params);
 
 // 删除轮值规则
-export const deleteDutyRule = (id: number) => http.delete<void>(`/apis/monitor/duty_rule/${id}/`);
+export const deleteDutyRule = (params: { id: number }) => http.delete<void>(`/apis/monitor/duty_rule/${params.id}/`);
 
 // 查询轮值通知配置
 export const getDutyNoticeConfig = () => http.get<DutyNoticeConfig>('/apis/conf/system_settings/duty_notice_config/');

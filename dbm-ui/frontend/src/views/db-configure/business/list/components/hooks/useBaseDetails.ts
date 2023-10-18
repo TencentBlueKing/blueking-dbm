@@ -38,6 +38,35 @@ interface State {
  * 获取参数管理基本信息
  */
 export const useBaseDetails = (immediateFetch = true) => {
+  const getFetchParams = (versionKey: 'version' | 'proxy_version', confType = 'dbconf'): GetLevelConfigParams => {
+    if (treeNode === undefined) {
+      return {} as GetLevelConfigParams;
+    }
+
+    const { id, levelType, parentId, data } = treeNode.value;
+    const notExistModule = notModuleClusters.includes(dbType.value);
+    const params = {
+      meta_cluster_type: clusterType.value,
+      conf_type: confType,
+      version: state.version || data?.extra?.[versionKey],
+      bk_biz_id: bizId.value,
+      level_name: levelType,
+      level_value: id,
+      level_info: undefined as any,
+    };
+    if (parentId && levelType === ConfLevels.CLUSTER) {
+      let [parentLevelType, parentNodeId] = parentId.split('-');
+      if (notExistModule) {
+        parentLevelType = 'module';
+        parentNodeId = '0';
+      }
+      params.level_info = {
+        [parentLevelType]: parentNodeId,
+      };
+    }
+    return params;
+  };
+
   const treeNode = inject<ComputedRef<TreeData>>('treeNode');
   const route = useRoute();
   const bizId = computed(() => Number(route.params.bizId));
@@ -115,32 +144,6 @@ export const useBaseDetails = (immediateFetch = true) => {
     }
   }, { deep: true, immediate: true });
 
-  const getFetchParams = (versionKey: 'version' | 'proxy_version', confType = 'dbconf'): Record<string, any> => {
-    if (treeNode === undefined) return {};
-
-    const { id, levelType, parentId, data } = treeNode.value;
-    const notExistModule = notModuleClusters.includes(dbType.value);
-    const params = {
-      meta_cluster_type: clusterType.value,
-      conf_type: confType,
-      version: state.version || data?.extra?.[versionKey],
-      bk_biz_id: bizId.value,
-      level_name: levelType,
-      level_value: id,
-      level_info: undefined as any,
-    };
-    if (parentId && levelType === ConfLevels.CLUSTER) {
-      let [parentLevelType, parentNodeId] = parentId.split('-');
-      if (notExistModule) {
-        parentLevelType = 'module';
-        parentNodeId = '0';
-      }
-      params.level_info = {
-        [parentLevelType]: parentNodeId,
-      };
-    }
-    return params;
-  };
 
   return {
     state,

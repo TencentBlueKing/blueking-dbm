@@ -16,7 +16,6 @@ import tippy, {
   type Instance,
   type SingleTarget,
 } from 'tippy.js';
-import { onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 
 import type UserSemanticTaskModel from '@services/model/sql-import/user-semantic-task';

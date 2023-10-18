@@ -85,6 +85,7 @@
     {
       label: t('目标集群'),
       field: 'clusterName',
+      showOverflowTooltip: true,
     },
     {
       label: t('集群分片数'),
@@ -97,6 +98,7 @@
     {
       label: t('目标资源规格'),
       field: 'sepc',
+      showOverflowTooltip: true,
       render: ({ data }: {data: RowData}) => <span>{data.sepc.name}</span>,
     },
   ];

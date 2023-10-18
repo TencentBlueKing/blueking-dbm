@@ -465,7 +465,7 @@
    */
   const fetchTaskflowDetails = (loading = false) => {
     flowState.loading = loading;
-    getTaskflowDetails(rootId.value as string)
+    getTaskflowDetails({ rootId: rootId.value })
       .then((res) => {
         flowState.details = res;
         // 渲染失败重试tips
@@ -514,7 +514,7 @@
    */
   const handleRefresh = (node: GraphNode) => {
     retryTaskflowNode({
-      root_id: rootId.value as string,
+      root_id: rootId.value,
       node_id: node.data.id,
     }).then(() => {
       // eslint-disable-next-line no-param-reassign
@@ -529,7 +529,7 @@
    */
   const handleSkipp = (node: GraphNode) => {
     skipTaskflowNode({
-      root_id: rootId.value as string,
+      root_id: rootId.value,
       node_id: node.data.id,
     }).then(() => {
       // eslint-disable-next-line no-param-reassign
@@ -541,7 +541,7 @@
 
   const handleRevokePipeline = () => {
     isRevokePipeline.value = true;
-    revokePipeline(rootId.value)
+    revokePipeline({ rootId: rootId.value })
       .then(() => {
         fetchTaskflowDetails();
         messageSuccess(t('终止任务成功'));

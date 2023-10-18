@@ -28,7 +28,10 @@ export const getList = function (params: Record<string, any> & {bk_biz_id: numbe
     }));
 };
 
-export const getPassword = function (params: {bk_biz_id: number, cluster_id: number}) {
+export const getPassword = function (params: {
+  bk_biz_id: number,
+  cluster_id: number
+}) {
   return http.get<EsPasswordModel>(`/apis/bigdata/bizs/${params.bk_biz_id}/es/es_resources/${params.cluster_id}/get_password/`)
     .then(data => new EsPasswordModel(data));
 };
@@ -43,9 +46,8 @@ export const getListNodes = function (params: Record<string, any> & {bk_biz_id: 
 };
 
 // 获取查询返回字段
-export const getTableFields = function (params: Record<string, any> & {bk_biz_id: number})
-:Promise<ListBase<EsModel[]>> {
-  return http.get(`/apis/bigdata/bizs/${params.bk_biz_id}/es/es_resources/get_table_fields/`);
+export const getTableFields = function (params: Record<string, any> & {bk_biz_id: number}) {
+  return http.get<ListBase<EsModel[]>>(`/apis/bigdata/bizs/${params.bk_biz_id}/es/es_resources/get_table_fields/`);
 };
 
 // 获取实例列表
@@ -58,24 +60,31 @@ export const getListInstance = function (params: Record<string, any> & {bk_biz_i
 };
 
 // 获取实例详情
-export const getRetrieveInstance = function (params: {bk_biz_id: number}):Promise<ListBase<EsModel[]>> {
-  return http.get(`/apis/bigdata/bizs/${params.bk_biz_id}/es/es_resources/retrieve_instance/`, params);
+export const getRetrieveInstance = function (params: {bk_biz_id: number}) {
+  return http.get<ListBase<EsModel[]>>(`/apis/bigdata/bizs/${params.bk_biz_id}/es/es_resources/retrieve_instance/`, params);
 };
 
 // 获取集群详情
-export const getClusterDetail = function (params: {bk_biz_id: number, cluster_id: number}) {
+export const getClusterDetail = function (params: {
+  bk_biz_id: number,
+  cluster_id: number
+}) {
   return http.get<EsModel>(`/apis/bigdata/bizs/${params.bk_biz_id}/es/es_resources/${params.cluster_id}/`)
     .then(data => new EsModel(data));
 };
 
 // 获取集群节点
-export const getNodes = function (params: {bk_biz_id: number, cluster_id: number})
-:Promise<ListBase<EsModel[]>> {
-  return http.get(`/apis/bigdata/bizs/${params.bk_biz_id}/es/es_resources/${params.cluster_id}/get_nodes/`);
+export const getNodes = function (params: {
+  bk_biz_id: number,
+  cluster_id: number
+}) {
+  return http.get<ListBase<EsModel[]>>(`/apis/bigdata/bizs/${params.bk_biz_id}/es/es_resources/${params.cluster_id}/get_nodes/`);
 };
 
 // 获取集群拓扑
-export const getTopoGraph = function (params: {bk_biz_id: number, cluster_id: number})
-:Promise<ListBase<EsModel[]>> {
-  return http.get(`/apis/bigdata/bizs/${params.bk_biz_id}/es/es_resources/${params.cluster_id}/get_topo_graph/`);
+export const getTopoGraph = function (params: {
+  bk_biz_id: number,
+  cluster_id: number
+}) {
+  return http.get<ListBase<EsModel[]>>(`/apis/bigdata/bizs/${params.bk_biz_id}/es/es_resources/${params.cluster_id}/get_topo_graph/`);
 };

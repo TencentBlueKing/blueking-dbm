@@ -258,11 +258,11 @@
 
   // const bizList = ref<SelectItem[]>([]);
 
-  watch(() => [props.pageType, props.data] as [string, RowData | undefined], ([type, data]) => {
-    if (type !== 'create' && data) {
+  watch(() => [props.pageType, props.data], () => {
+    if (props.pageType !== 'create' && props.data) {
       // 编辑或者克隆
-      formModel.ruleName = data.name;
-      rotateType.value = data.category === 'handoff' ? '0' : '1';
+      formModel.ruleName = props.data.name;
+      rotateType.value = props.data.category === 'handoff' ? '0' : '1';
       return;
     }
     formModel.ruleName = '';

@@ -344,12 +344,13 @@
       const { pagination } = clusterState.tableProps;
       const paginationParams = typeof pagination === 'boolean' ? {} : pagination.getFetchParams();
       const params = {
+        dbType: DBTypes.MYSQL,
         bk_biz_id: props.ticketDetails.bk_biz_id,
         type: clusterType === 'tendbcluster' ? 'spider' : clusterType,
         cluster_ids: clusterId,
         ...paginationParams,
       };
-      getResources<ResourceItem>(DBTypes.MYSQL, params)
+      getResources<ResourceItem>(params)
         .then((res) => {
           res.results.forEach((item) => {
             clusterState.tableProps.data.push(Object.assign({

@@ -121,6 +121,7 @@ class CloudServiceActPayload(object):
             "city": self.kwargs["exec_ip"]["bk_city_code"],
             "campus": self.kwargs["exec_ip"]["bk_city_name"],
             "nginx_domain": self.kwargs["nginx_internal_domain"],
+            "name_service_domain": self.kwargs["name_service_domain"],
             "dbha_user": self.kwargs["plain_user"],
             "dbha_password": self.kwargs["plain_pwd"],
             "mysql_crond_metrics_data_id": bkm_dbm_report["metric"]["data_id"],

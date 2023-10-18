@@ -14,7 +14,7 @@
 <template>
   <div
     class="collapse-mini"
-    :class="[{ 'collapse-mini--collapse': state.collapse }]">
+    :class="[{ 'collapse-mini--collapse': isCollapsed }]">
     <div
       class="collapse-mini__header"
       @click="handleToggle">
@@ -30,7 +30,7 @@
 
     <Transition mode="in-out">
       <div
-        v-show="state.collapse"
+        v-show="isCollapsed"
         class="collapse-mini__content">
         <slot />
       </div>
@@ -53,16 +53,15 @@
     count: 0,
   });
 
-  const state = ref({
-    collapse: props.collapse,
-  });
+
+  const isCollapsed = ref(props.collapse);
 
   watch(() => props.collapse, () => {
-    state.collapse = props.collapse;
+    isCollapsed.value = props.collapse;
   });
 
   function handleToggle() {
-    state.collapse = !state.collapse;
+    isCollapsed.value = !isCollapsed.value;
   }
 </script>
 
