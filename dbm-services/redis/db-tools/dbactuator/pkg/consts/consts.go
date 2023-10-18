@@ -155,7 +155,9 @@ const (
 const (
 	NormalBackupType              = "normal_backup"
 	ForeverBackupType             = "forever_backup"
-	BackupClient                  = "/usr/local/bin/backup_client"
+	IBSBackupClient               = "/usr/local/bin/backup_client"
+	COSBackupClient               = "/usr/local/backup_client/bin/backup_client"
+	COSInfoFile                   = "/home/mysql/.cosinfo.toml"
 	BackupTarSplitSize            = "8G"
 	RedisFullBackupTAG            = "REDIS_FULL"
 	RedisBinlogTAG                = "REDIS_BINLOG"

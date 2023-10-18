@@ -17,7 +17,11 @@ from backend.db_services.mysql.remote_service.handlers import RemoteServiceHandl
 from backend.flow.engine.controller.mysql import MySQLController
 from backend.ticket import builders
 from backend.ticket.builders.common.constants import MYSQL_BINLOG_ROLLBACK
-from backend.ticket.builders.mysql.base import BaseMySQLTicketFlowBuilder, MySQLBaseOperateDetailSerializer
+from backend.ticket.builders.mysql.base import (
+    BaseMySQLTicketFlowBuilder,
+    DBTableField,
+    MySQLBaseOperateDetailSerializer,
+)
 from backend.ticket.constants import FlowRetryType, FlowType, TicketType
 from backend.ticket.models import Flow
 from backend.utils.time import str2datetime
@@ -28,16 +32,17 @@ class MySQLFlashbackDetailSerializer(MySQLBaseOperateDetailSerializer):
         cluster_id = serializers.IntegerField(help_text=_("集群ID"))
         start_time = serializers.CharField(help_text=_("开始时间"))
         end_time = serializers.CharField(help_text=_("结束时间"))
-        databases = serializers.ListField(help_text=_("目标库列表"), child=serializers.CharField())
-        databases_ignore = serializers.ListField(help_text=_("忽略库列表"), child=serializers.CharField())
-        tables = serializers.ListField(help_text=_("目标table列表"), child=serializers.CharField())
-        tables_ignore = serializers.ListField(help_text=_("忽略table列表"), child=serializers.CharField())
+        databases = serializers.ListField(help_text=_("目标库列表"), child=DBTableField(db_field=True))
+        databases_ignore = serializers.ListField(help_text=_("忽略库列表"), child=DBTableField(db_field=True))
+        tables = serializers.ListField(help_text=_("目标table列表"), child=DBTableField())
+        tables_ignore = serializers.ListField(help_text=_("忽略table列表"), child=DBTableField())
         mysqlbinlog_rollback = serializers.CharField(
             help_text=_("flashback工具地址"), default=MYSQL_BINLOG_ROLLBACK, required=False
         )
         recored_file = serializers.CharField(help_text=_("记录文件"), required=False, default="")
 
     infos = serializers.ListSerializer(help_text=_("flashback信息"), child=FlashbackSerializer(), allow_empty=False)
+    force = serializers.BooleanField(help_text=_("是否强制执行"), required=False, default=False)
 
     def validate_flash_time(self, attrs):
         # 校验start time和end time的合法性
@@ -54,7 +59,6 @@ class MySQLFlashbackDetailSerializer(MySQLBaseOperateDetailSerializer):
         super(MySQLFlashbackDetailSerializer, self).validate_cluster_can_access(attrs)
         # 校验闪回的时间
         self.validate_flash_time(attrs)
-        # TODO: 校验库表名是否规范
         # 校验库表是否存在
         RemoteServiceHandler(bk_biz_id=self.context["bk_biz_id"]).check_flashback_database(attrs["infos"])
 

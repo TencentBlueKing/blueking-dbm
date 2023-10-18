@@ -122,17 +122,19 @@ func (r *Reporter) ReportBackupStatus(status string) error {
 // ExecuteBackupClient execute backup_client which sends files to backup system
 func (r *Reporter) ExecuteBackupClient(fileName string) (taskid string, err error) {
 	if r.cfg.BackupClient.Enable {
-		backupClient, err := backupclient.New("", "", r.cfg.BackupClient.FileTag)
+		backupClient, err := backupclient.New(r.cfg.BackupClient.BackupClientBin, "", r.cfg.BackupClient.FileTag)
 		if err != nil {
 			return "", err
 		}
 		logger.Log.Infof("upload register file %s", fileName)
 		taskid, err = backupClient.Upload(fileName)
+		logger.Log.Infof("upload register file %s with taskid=%s, err=%v", fileName, taskid, err)
 		if err != nil {
 			return "", err
 		}
 	} else {
 		taskid = "-1"
+		logger.Log.Infof("backup_client is not enabled: %s taskid=%s", fileName, taskid)
 	}
 	return taskid, nil
 }
@@ -184,6 +186,7 @@ func (r *Reporter) ExecuteBackupClient2(fileName string) (taskid string, err err
 }
 
 // ReportBackupResult Report BackupResult info
+// 会执行 ExecuteBackupClient  upload
 func (r *Reporter) ReportBackupResult(backupBaseResult BackupResult) error {
 	var backupResultArray []BackupResult
 

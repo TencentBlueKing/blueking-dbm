@@ -23,7 +23,10 @@ import UserSemanticTaskModel from '@services/model/sql-import/user-semantic-task
 import http from './http';
 
 // sql 语法检测
-export const grammarCheck = function (params: {bk_biz_id: number, body:FormData }) {
+export const grammarCheck = function (params: {
+  bk_biz_id: number,
+  body: FormData
+}) {
   return axios({
     baseURL: window.PROJECT_ENV.VITE_AJAX_URL_PREFIX,
     url: `/apis/mysql/bizs/${params.bk_biz_id}/sql_import/grammar_check/`,
@@ -55,12 +58,18 @@ export const semanticCheck = function (params: {
 };
 
 // 终止语义检测流程
-export const revokeSemanticCheck = function (params: {bk_biz_id: number, root_id: string}) {
+export const revokeSemanticCheck = function (params: {
+  bk_biz_id: number,
+  root_id: string
+}) {
   return http.post(`/apis/mysql/bizs/${params.bk_biz_id}/sql_import/revoke_semantic_check/`, params);
 };
 
 // 查询语义执行的数据
-export const querySemanticData = function (params: {bk_biz_id: number, root_id: string}) {
+export const querySemanticData = function (params: {
+  bk_biz_id: number,
+  root_id: string
+}) {
   return http.post<QuerySemanticExecuteResultModel>(`/apis/mysql/bizs/${params.bk_biz_id}/sql_import/query_semantic_data/`, params)
     .then(data => ({
       ...data,
@@ -73,11 +82,18 @@ export const getUserSemanticTasks = function (params: {
   bk_biz_id: number,
   cluster_type?: string
 }) {
-  return http.get<UserSemanticTaskModel[]>(`/apis/mysql/bizs/${params.bk_biz_id}/sql_import/get_user_semantic_tasks/`, params)
+  const realParams = { ...params } as Record<string, any>;
+  delete realParams.bk_biz_id;
+
+  return http.get<UserSemanticTaskModel[]>(`/apis/mysql/bizs/${params.bk_biz_id}/sql_import/get_user_semantic_tasks/`, realParams)
     .then(data => data.map(item => new UserSemanticTaskModel(item)));
 };
 
 // 删除语义检查任务
-export const deleteUserSemanticTasks = function (params: {bk_biz_id: number, task_ids: string[]}) {
+export const deleteUserSemanticTasks = function (params: {
+  bk_biz_id: number,
+  task_ids: string[],
+  cluster_type: string,
+}) {
   return http.delete<number>(`/apis/mysql/bizs/${params.bk_biz_id}/sql_import/delete_user_semantic_tasks/`, params);
 };

@@ -62,6 +62,7 @@
 </template>
 
 <script setup lang="tsx">
+  import _ from 'lodash';
   import {
     ref,
     shallowRef,
@@ -69,6 +70,7 @@
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
+  import { checkFlashbackDatabase } from '@services/remoteService';
   import { getList } from '@services/spider';
   import { createTicket } from '@services/ticket';
 
@@ -77,6 +79,8 @@
   import { ClusterTypes } from '@common/const';
 
   import ClusterSelector from '@components/cluster-selector/SpiderClusterSelector.vue';
+
+  import { messageError } from '@utils';
 
   import RenderData from './components/RenderData/Index.vue';
   import RenderDataRow, {
@@ -151,23 +155,32 @@
   const handleSubmit = () => {
     isSubmitting.value = true;
     Promise.all(rowRefs.value.map((item: { getValue: () => Promise<any> }) => item.getValue()))
-      .then(data => createTicket({
-        ticket_type: 'TENDBCLUSTER_FLASHBACK',
-        remark: '',
-        details: {
-          infos: data,
-        },
-        bk_biz_id: currentBizId,
-      }).then((data) => {
-        window.changeConfirm = false;
-        router.push({
-          name: 'spiderFlashback',
-          params: {
-            page: 'success',
+      .then(data => checkFlashbackDatabase({
+        infos: data,
+      }).then((checkResult) => {
+        const checkResultError = _.find(checkResult, item => !!item.message);
+        if (checkResultError) {
+          messageError(checkResultError.message);
+          return;
+        }
+        return createTicket({
+          ticket_type: 'TENDBCLUSTER_FLASHBACK',
+          remark: '',
+          details: {
+            infos: data,
           },
-          query: {
-            ticketId: data.id,
-          },
+          bk_biz_id: currentBizId,
+        }).then((data) => {
+          window.changeConfirm = false;
+          router.push({
+            name: 'spiderFlashback',
+            params: {
+              page: 'success',
+            },
+            query: {
+              ticketId: data.id,
+            },
+          });
         });
       }))
       .finally(() => {

@@ -19,7 +19,7 @@
       <BkMenu
         :active-key="activeKey"
         :collapse="menuStore.collapsed"
-        :opened-keys="openedKeys"
+        :opened-keys="composeOpenKeys"
         @click="handleChangeMenu"
         @mouseenter="menuStore.mouseenter"
         @mouseleave="menuStore.mouseleave">
@@ -146,7 +146,7 @@
                 </BkSubmenu>
                 <BkMenuItem key="spiderToolbox">
                   <template #icon>
-                    <i class="db-icon-pulsar" />
+                    <i class="db-icon-tools" />
                   </template>
                   <span
                     v-overflow-tips.right
@@ -173,7 +173,7 @@
                 </BkSubmenu>
                 <BkMenuItem key="spiderPartitionManage">
                   <template #icon>
-                    <i class="db-icon-pulsar" />
+                    <i class="db-icon-mobanshili" />
                   </template>
                   <span
                     v-overflow-tips.right
@@ -325,7 +325,7 @@
             controller-id="influxdb"
             module-id="bigdata">
             <BkMenuGroup name="InfluxDB">
-              <BkMenuItem key="InfluxDBInstances">
+              <BkMenuItem key="InfluxDBManage">
                 <template #icon>
                   <i class="db-icon-influxdb" />
                 </template>
@@ -338,7 +338,7 @@
             </BkMenuGroup>
           </FunController>
           <BkMenuGroup :name="$t('配置管理')">
-            <BkMenuItem key="DatabaseConfig">
+            <BkMenuItem key="DbConfigure">
               <template #icon>
                 <i class="db-icon-db-config" />
               </template>
@@ -349,6 +349,39 @@
               </span>
             </BkMenuItem>
           </BkMenuGroup>
+          <FunController module-id="monitor">
+            <BkMenuGroup :name="$t('监控告警')">
+              <FunController
+                controller-id="monitor_policy"
+                module-id="monitor">
+                <BkMenuItem key="DBMonitorStrategy">
+                  <template #icon>
+                    <i class="db-icon-gaojingcelve" />
+                  </template>
+                  <span
+                    v-overflow-tips.right
+                    class="text-overflow">
+                    {{ $t('监控策略') }}
+                  </span>
+                </BkMenuItem>
+              </FunController>
+              <FunController
+                controller-id="notice_group"
+                module-id="monitor">
+                <BkMenuItem key="DBMonitorAlarmGroup">
+                  <template #icon>
+                    <i class="db-icon-db-config" />
+                  </template>
+                  <span
+                    v-overflow-tips.right
+                    class="text-overflow">
+                    {{ $t('告警组') }}
+                  </span>
+                </BkMenuItem>
+              </FunController>
+            </BkMenuGroup>
+          </FunController>
+
           <BkMenuGroup :name="$t('任务中心')">
             <BkMenuItem key="DatabaseMission">
               <template #icon>
@@ -358,6 +391,18 @@
                 v-overflow-tips.right
                 class="text-overflow">
                 {{ $t('历史任务') }}
+              </span>
+            </BkMenuItem>
+          </BkMenuGroup>
+          <BkMenuGroup :name="$t('安全')">
+            <BkMenuItem key="DBPasswordTemporaryModify">
+              <template #icon>
+                <i class="db-icon-password" />
+              </template>
+              <span
+                v-overflow-tips.right
+                class="text-overflow">
+                {{ $t('修改密码') }}
               </span>
             </BkMenuItem>
           </BkMenuGroup>
@@ -386,6 +431,8 @@
 </template>
 
 <script setup lang="ts">
+  import type { Emitter } from 'mitt';
+  import mitt from 'mitt';
   import type { RouteRecordRaw } from 'vue-router';
 
   import { useGlobalBizs, useMenu, useUserProfile  } from '@stores';
@@ -416,16 +463,7 @@
 
   type MenuList = typeof mysqlToolboxMenus;
 
-  const menuStore = useMenu();
-  const route = useRoute();
-  const globalBizsStore = useGlobalBizs();
-  const userProfileStore = useUserProfile();
-  const { activeKey, handleChangeMenu, openedKeys } = useMenuInfo();
-
-  const biz = computed(() => globalBizsStore.bizs.find(item => item.bk_biz_id === Number(route.params.bizId)));
-  const notExistBusiness = computed(() => globalBizsStore.bizs.length === 0 && !biz.value);
-
-  const generateToolboxFavorMenus = (type: 'mysql' | 'redis' | 'spider') => {
+  function generateToolboxFavorMenus(type: 'mysql' | 'redis' | 'spider') {
     let favors: Array<MenuChild> = [];
     let toolboxChildrenRouters: RouteRecordRaw[] = [];
     let toolBoxMenus: MenuList = [];
@@ -473,7 +511,22 @@
       }
     }
     return menuGroup.filter(item => item.children.length > 0);
-  };
+  }
+
+  const eventBus = mitt() as Emitter<any>;
+  provide('collapseEventBus', eventBus);
+
+  const menuStore = useMenu();
+  const route = useRoute();
+  const globalBizsStore = useGlobalBizs();
+  const userProfileStore = useUserProfile();
+  const { activeKey, handleChangeMenu, openedKeys } = useMenuInfo();
+
+  const addOpenKey = ref('');
+
+  const composeOpenKeys = computed(() => [...openedKeys.value, addOpenKey.value]);
+  const biz = computed(() => globalBizsStore.bizs.find(item => item.bk_biz_id === Number(route.params.bizId)));
+  const notExistBusiness = computed(() => globalBizsStore.bizs.length === 0 && !biz.value);
 
   // Mysql工具箱收藏导航
   const mysqlToolboxFavorMenus = computed(() => generateToolboxFavorMenus('mysql'));
@@ -483,4 +536,18 @@
 
   // Spider工具箱收藏导航
   const spiderToolboxFavorMenus = computed(() => generateToolboxFavorMenus('spider'));
+
+  watch(activeKey, () => {
+    handleToggleCollapse('');
+  });
+
+  const handleToggleCollapse = (key: string) => {
+    addOpenKey.value = key;
+  };
+
+  eventBus.on('collapse', handleToggleCollapse);
+
+  onBeforeUnmount(() => {
+    eventBus.off('collapse', handleToggleCollapse);
+  });
 </script>

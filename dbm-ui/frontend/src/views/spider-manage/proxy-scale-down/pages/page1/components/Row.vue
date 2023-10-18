@@ -23,6 +23,7 @@
       <RenderNodeType
         ref="nodeTypeRef"
         :choosed="choosedNodeType"
+        :counts="counts"
         :data="data.nodeType"
         :is-loading="data.isLoading"
         @change="handleChangeNodeType" />
@@ -37,6 +38,7 @@
       <RenderTargetNumber
         ref="tergetNumRef"
         :data="data.targetNum"
+        :disabled="!data.cluster"
         :is-loading="data.isLoading"
         :max="targetMax"
         :role="currentType" />
@@ -131,6 +133,8 @@
   const currentSepc = ref(props.data.spec);
   const targetMax = ref(1);
   const currentType = ref('');
+
+  const counts = computed(() => ({ master: props.data.masterCount, slave: props.data.slaveCount }));
 
 
   const handleChangeNodeType = (choosedLabel: string) => {

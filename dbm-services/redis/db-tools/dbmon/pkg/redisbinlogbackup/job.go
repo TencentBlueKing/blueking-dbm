@@ -7,7 +7,6 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
-	"strings"
 	"time"
 
 	"dbm-services/redis/db-tools/dbmon/config"
@@ -28,7 +27,8 @@ type Job struct { // NOCC:golint/naming(其他:设计如此)
 	Tasks         []*Task               `json:"tasks"`
 	RealBackupDir string                `json:"real_backup_dir"` // 如 /data/dbbak
 	Reporter      report.Reporter       `json:"-"`
-	Err           error                 `json:"-"`
+	backupClient  backupsys.BackupClient
+	Err           error `json:"-"`
 }
 
 // InitGlobRedisBinlogBackupJob 新建例行binlog备份任务
@@ -59,15 +59,10 @@ func (job *Job) Run() {
 	}
 	defer job.Reporter.Close()
 
-	// 检查历史备份任务状态 并 删除过旧的本地文件
-	for _, svrItem := range job.Conf.Servers {
-		if !consts.IsRedisMetaRole(svrItem.MetaRole) {
-			continue
-		}
-		for _, port := range svrItem.ServerPorts {
-			job.CheckOldBinlogBackupStatus(port)
-			job.DeleteTooOldBinlogbackup(port)
-		}
+	// job.backupClient = backupsys.NewIBSBackupClient(consts.IBSBackupClient, consts.RedisBinlogTAG)
+	job.backupClient, job.Err = backupsys.NewCosBackupClient(consts.COSBackupClient, "", consts.RedisBinlogTAG)
+	if job.Err != nil {
+		return
 	}
 	job.createTasks()
 	if job.Err != nil {
@@ -80,6 +75,17 @@ func (job *Job) Run() {
 		if bakTask.Err != nil {
 			job.Err = bakTask.Err
 			continue
+		}
+	}
+
+	// 检查历史备份任务状态 并 删除过旧的本地文件
+	for _, svrItem := range job.Conf.Servers {
+		if !consts.IsRedisMetaRole(svrItem.MetaRole) {
+			continue
+		}
+		for _, port := range svrItem.ServerPorts {
+			job.CheckOldBinlogBackupStatus(port)
+			job.DeleteTooOldBinlogbackup(port)
 		}
 	}
 }
@@ -104,6 +110,7 @@ func (job *Job) createTasks() {
 	var task *Task
 	var password string
 	var taskBackupDir string
+	var instStr string
 
 	job.Tasks = []*Task{}
 	for _, svrItem := range job.Conf.Servers {
@@ -115,13 +122,18 @@ func (job *Job) createTasks() {
 			if job.Err != nil {
 				return
 			}
+			instStr = fmt.Sprintf("%s:%d", svrItem.ServerIP, port)
 			taskBackupDir = filepath.Join(job.RealBackupDir, "binlog", strconv.Itoa(port))
 			util.MkDirsIfNotExists([]string{taskBackupDir})
 			util.LocalDirChownMysql(taskBackupDir)
-			task = NewBinlogBackupTask(svrItem.BkBizID, svrItem.BkCloudID,
+			task, job.Err = NewBinlogBackupTask(svrItem.BkBizID, svrItem.BkCloudID,
 				svrItem.ClusterDomain, svrItem.ServerIP, port, password,
 				job.Conf.RedisBinlogBackup.ToBackupSystem,
-				taskBackupDir, job.Conf.RedisBinlogBackup.OldFileLeftDay, job.Reporter)
+				taskBackupDir, svrItem.ServerShards[instStr],
+				job.Conf.RedisBinlogBackup.OldFileLeftDay, job.Reporter)
+			if job.Err != nil {
+				return
+			}
 			job.Tasks = append(job.Tasks, task)
 		}
 	}
@@ -137,8 +149,8 @@ func (job *Job) CheckOldBinlogBackupStatus(port int) {
 	var doingHandler, tempHandler, doneHandler *os.File
 	var line string
 	var err error
-	var failMsgs []string
-	var runningTaskIDs, failedTaskIDs []uint64
+	var taskStatus int
+	var statusMsg string
 	task := Task{}
 	oldFileLeftSec := job.Conf.RedisBinlogBackup.OldFileLeftDay * 24 * 3600
 	nowTime := time.Now().Local()
@@ -197,8 +209,9 @@ func (job *Job) CheckOldBinlogBackupStatus(port int) {
 			continue
 		}
 		task.reporter = job.Reporter
+		task.backupClient = job.backupClient
 		// 删除旧文件
-		if nowTime.Sub(task.BackupFileMTime.Time).Seconds() > float64(oldFileLeftSec) {
+		if nowTime.Sub(task.EndTime.Time).Seconds() > float64(oldFileLeftSec) {
 			mylog.Logger.Info(fmt.Sprintf("%s start removing...", task.BackupFile))
 			if util.FileExists(task.BackupFile) {
 				err = os.Remove(task.BackupFile)
@@ -230,27 +243,26 @@ func (job *Job) CheckOldBinlogBackupStatus(port int) {
 		}
 
 		// 判断是否上传成功
-		if task.BackupTaskID > 0 {
-			uploadTask := backupsys.UploadTask{
-				Files:   []string{task.BackupFile},
-				TaskIDs: []uint64{task.BackupTaskID},
-			}
-			runningTaskIDs, failedTaskIDs, _, _, _, _, failMsgs, job.Err = uploadTask.CheckTasksStatus()
+		if task.BackupTaskID != "" {
+			taskStatus, statusMsg, job.Err = task.backupClient.TaskStatus(task.BackupTaskID)
 			if job.Err != nil {
 				tempHandler.WriteString(line + "\n") // 获取tasks状态失败,下次重试
 				continue
 			}
-			if len(failedTaskIDs) > 0 {
+			// taskStatus>4,上传失败;
+			// taskStatus==4,上传成功;
+			// taskStatus<4,上传中
+			if taskStatus > 4 {
 				if task.Status != consts.BackupStatusFailed { // 失败状态不重复上报
 					task.Status = consts.BackupStatusFailed
-					task.Message = fmt.Sprintf("上传失败,err:%s", strings.Join(failMsgs, ","))
+					task.Message = fmt.Sprintf("上传失败,err:%s", statusMsg)
 					task.BackupRecordReport()
 					line = task.ToString()
 				}
 				tempHandler.WriteString(line + "\n") // 上传失败,下次继续重试
-			} else if len(runningTaskIDs) > 0 {
+			} else if taskStatus < 4 {
 				tempHandler.WriteString(line + "\n") // 上传中,下次继续探测
-			} else {
+			} else if taskStatus == 4 {
 				// 上传成功
 				task.Status = consts.BackupStatusToBakSysSuccess
 				task.Message = "上传备份系统成功"
@@ -323,7 +335,7 @@ func (job *Job) DeleteTooOldBinlogbackup(port int) {
 			mylog.Logger.Warn(err.Error())
 			continue
 		}
-		if nowTime.Sub(task.BackupFileMTime.Time).Seconds() > float64(oldFileLeftSec) {
+		if nowTime.Sub(task.EndTime.Time).Seconds() > float64(oldFileLeftSec) {
 			if util.FileExists(task.BackupFile) {
 				err = os.Remove(task.BackupFile)
 				if err != nil {

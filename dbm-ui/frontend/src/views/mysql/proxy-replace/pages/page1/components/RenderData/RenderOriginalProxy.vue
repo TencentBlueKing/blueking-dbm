@@ -39,7 +39,8 @@
         <div
           v-else
           ref="handlerRef"
-          class="relate-btn">
+          class="relate-btn"
+          @click.stop="handleShowRelateMemu">
           <DbIcon type="associated" />
         </div>
       </div>
@@ -57,7 +58,9 @@
       <div
         ref="popRef"
         style="padding: 9px 7px;">
-        <BkLoading :loading="isRelateLoading">
+        <BkLoading
+          v-if="isShowRelateMemo"
+          :loading="isRelateLoading">
           <div style="margin-bottom: 8px; font-size: 12px; line-height: 16px;">
             <span style="font-weight: bold; color: #313238;">{{ $t('同机关联集群') }}</span>
             <span style="color: #63656e;">{{ $t('同主机关联的其他集群_勾选后一同替换') }}</span>
@@ -152,6 +155,7 @@
   const localClusterId = ref(0);
   const localInstanceAddress = ref('');
   const isShowEdit = ref(true);
+  const isShowRelateMemo = ref(false);
   const isRelateLoading = ref(false);
   const relatedClusterList = shallowRef<Array<IClusterData>>([]);
   const realateCheckedMap = shallowRef<Record<number, IClusterData>>({});
@@ -168,7 +172,8 @@
       message: t('目标Proxy不能为空'),
     },
     {
-      validator: () => checkInstances(currentBizId, {
+      validator: () => checkInstances({
+        bizId: currentBizId,
         instance_addresses: [localInstanceAddress.value],
       }).then((data) => {
         if (data.length < 1) {
@@ -261,6 +266,7 @@
       zIndex: 999999,
       onHide() {
         selectRelateClusterList.value = Object.values(realateCheckedMap.value);
+        isShowRelateMemo.value = false;
       },
     });
   };
@@ -305,6 +311,11 @@
     nextTick(() => {
       initRelateClusterPopover();
     });
+  };
+
+  // 显示管理集群列表
+  const handleShowRelateMemu = () => {
+    isShowRelateMemo.value = true;
   };
 
   const handleMultiInput = (list: Array<string>) => {

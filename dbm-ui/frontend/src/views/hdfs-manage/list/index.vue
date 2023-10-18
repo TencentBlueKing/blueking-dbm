@@ -91,7 +91,6 @@
   </div>
 </template>
 <script setup lang="tsx">
-  import type { Table } from 'bkui-vue';
   import { InfoBox } from 'bkui-vue';
   import {
     onMounted,
@@ -198,7 +197,7 @@
     }
     return 100;
   });
-  const columns = computed<InstanceType<typeof Table>['$props']['columns']>(() => [
+  const columns = computed(() => [
     {
       label: 'ID',
       field: 'id',
@@ -214,17 +213,33 @@
       render: ({ data }: {data: HdfsModel}) => (
         <div style="line-height: 14px; display: flex;">
           <div>
-            <a href="javascript:" onClick={() => handleToDetails(data)}>{data.cluster_name}</a>
-            <div style='color: #C4C6CC;'>{data.cluster_alias || '--'}</div>
+            <bk-button
+              text
+              onClick={() => handleToDetails(data)}>
+              {data.cluster_name}
+            </bk-button>
+            <div style='color: #C4C6CC;'>
+              {data.cluster_alias || '--'}
+            </div>
           </div>
-          <RenderOperationTag data={data} style='margin-left: 3px;' />
-          <db-icon v-show={!checkClusterOnline(data)} svg type="yijinyong" style="width: 38px; height: 16px; margin-left: 4px;" />
+          <RenderOperationTag
+            data={data}
+            style='margin-left: 3px;' />
+          <db-icon
+            v-show={!checkClusterOnline(data)}
+            svg
+            type="yijinyong"
+            style="width: 38px; height: 16px; margin-left: 4px;" />
           {
             isRecentDays(data.create_at, 24 * 3)
               ? <span class="glob-new-tag cluster-tag ml-4" data-text="NEW" />
               : null
           }
-            <i class="db-icon-copy mt-2" v-bk-tooltips={t('复制集群名称')} onClick={() => copy(data.cluster_name)} />
+            <db-icon
+              class="mt-2"
+              v-bk-tooltips={t('复制集群名称')}
+              type="copy"
+              onClick={() => copy(data.cluster_name)} />
         </div>
       ),
     },

@@ -202,6 +202,9 @@ func IsExecAll(mode os.FileMode) bool {
 
 // LocalDirChownMysql 改变localDir的属主为mysql
 func LocalDirChownMysql(localDir string) (err error) {
+	if !strings.HasSuffix(localDir, "/") {
+		localDir += string(filepath.Separator)
+	}
 	cmd := fmt.Sprintf("chown -R %s.%s %s", consts.MysqlAaccount, consts.MysqlGroup, localDir)
 	_, err = RunBashCmd(cmd, "", nil, 1*time.Hour)
 	return

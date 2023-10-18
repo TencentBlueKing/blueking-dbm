@@ -29,7 +29,7 @@
       </BkButton>
       <DbPopconfirm
         :confirm-handler="handleBatchRemove"
-        :content="t('移除后将不可恢复')"
+        :content="t('主机将被落到空闲机，如需要可再次导入')"
         :title="t('确认移除选中的主机')">
         <BkButton
           class="ml-8"
@@ -185,12 +185,16 @@
       field: 'id',
       width: 100,
       render: ({ data }: {data: DbResourceModel}) => (
-        <BkButton
-          text
-          theme="primary"
-          onClick={() => handleRemove(data)}>
-          {t('移除')}
-        </BkButton>
+        <db-popconfirm
+          confirm-handler={() => handleRemove(data)}
+          content={t('主机将被落到空闲机，如需要可再次导入')}
+          title={t('确认移除选中的主机')}>
+          <BkButton
+            text
+            theme="primary">
+            {t('移除')}
+          </BkButton>
+        </db-popconfirm>
       ),
     },
   ];
@@ -225,15 +229,13 @@
   };
 
   // 移除主机
-  const handleRemove = (data: DbResourceModel) => {
-    removeResource({
-      bk_host_ids: [data.bk_host_id],
-    }).then(() => {
-      fetchData();
-      tableRef.value.removeSelectByKey(data.bk_host_id);
-      messageSuccess(t('移除成功'));
-    });
-  };
+  const handleRemove = (data: DbResourceModel) => removeResource({
+    bk_host_ids: [data.bk_host_id],
+  }).then(() => {
+    fetchData();
+    tableRef.value.removeSelectByKey(data.bk_host_id);
+    messageSuccess(t('移除成功'));
+  });
 
   // 批量移除
   const handleBatchRemove = () => removeResource({

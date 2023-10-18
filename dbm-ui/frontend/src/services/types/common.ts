@@ -13,7 +13,7 @@
 
 /** */
 export interface BaseResponse<T> {
-  code: number | string,
+  code: number,
   data: T,
   message: string,
   request_id: string
@@ -68,14 +68,6 @@ export interface GetUsesParams {
   limit?: number,
   offset?: number,
   fuzzy_lookups?: string
-}
-
-/**
- * 人员列表信息
- */
-export interface UseItem {
-  display_name: string,
-  username: string,
 }
 
 /**

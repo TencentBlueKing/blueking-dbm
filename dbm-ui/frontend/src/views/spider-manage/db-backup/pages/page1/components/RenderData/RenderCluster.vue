@@ -40,7 +40,7 @@
 
   import { useGlobalBizs } from '@stores';
 
-  import TableEditInput from '@views/mysql/common/edit/Input.vue';
+  import TableEditInput from '@views/spider-manage/common/edit/Input.vue';
 
   import { random } from '@utils';
 
@@ -164,7 +164,7 @@
       return editRef.value
         .getValue()
         .then(() => ({
-          id: localClusterId.value,
+          cluster_id: localClusterId.value,
         }));
     },
   });

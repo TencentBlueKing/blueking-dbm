@@ -12,14 +12,12 @@
 -->
 
 <template>
-  <div class="render-cluster-box">
-    <TableEditInput
-      ref="editRef"
-      v-model="localValue"
-      :placeholder="$t('请输入或选择集群')"
-      :rules="rules"
-      @submit="handleInputFinish" />
-  </div>
+  <TableEditInput
+    ref="editRef"
+    v-model="localValue"
+    :placeholder="$t('请输入或选择集群')"
+    :rules="rules"
+    @submit="handleInputFinish" />
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
@@ -30,7 +28,7 @@
 
   import { domainRegex } from '@common/regex';
 
-  import TableEditInput from '@views/redis/common/edit/Input.vue';
+  import TableEditInput from '@components/tools-table-input/index.vue';
 
   interface Props {
     data?: string;
@@ -86,9 +84,9 @@
   });
 
   const handleInputFinish = (value: string) => {
-    editRef.value.getValue().then(() => {
-      emits('onInputFinish', value);
-    });
+    // editRef.value.getValue().then(() => {
+    emits('onInputFinish', value);
+    // });
   };
 
   defineExpose<Exposes>({
@@ -99,8 +97,4 @@
     },
   });
 </script>
-<style lang="less" scoped>
-  .render-cluster-box {
-    position: relative;
-  }
-</style>
+

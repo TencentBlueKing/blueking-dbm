@@ -53,6 +53,11 @@ func initCron(localcron *cron.Cron) {
 			logger.Error("update gse status %s", err.Error())
 		}
 	})
+	localcron.AddFunc("1 */12 * * *", func() {
+		if err := task.InspectCheckResource(); err != nil {
+			logger.Error("inspect check resource %s", err.Error())
+		}
+	})
 }
 
 // initLogger initialization log

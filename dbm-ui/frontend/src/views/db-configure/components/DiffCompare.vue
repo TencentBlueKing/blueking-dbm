@@ -21,7 +21,6 @@
 </template>
 
 <script setup lang="tsx">
-  import type { PropType } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import type { ParameterConfigItem } from '@services/types/configs';
@@ -35,19 +34,16 @@
 
   import { useDiff } from '../hooks/useDiff';
 
-  const props = defineProps({
-    data: {
-      type: Array as PropType<ParameterConfigItem[]>,
-      default: () => [],
-    },
-    origin: {
-      type: Array as PropType<ParameterConfigItem[]>,
-      default: () => [],
-    },
-    level: {
-      type: String as PropType<ConfLevelValues>,
-      default: ConfLevels.PLAT,
-    },
+  interface Props {
+    data?: ParameterConfigItem[]
+    origin?: ParameterConfigItem[]
+    level?: ConfLevelValues
+  }
+
+  const props = withDefaults(defineProps<Props>(), {
+    data: () => [],
+    origin: () => [],
+    level: ConfLevels.PLAT,
   });
 
   const { t } = useI18n();

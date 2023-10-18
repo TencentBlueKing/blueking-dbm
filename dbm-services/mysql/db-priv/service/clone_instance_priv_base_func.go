@@ -9,9 +9,11 @@ import (
 
 	"dbm-services/mysql/priv-service/util"
 
-	"github.com/pingcap/parser"
-	"github.com/pingcap/parser/ast"
-	_ "github.com/pingcap/tidb/types/parser_driver" // parser_driver TODO
+	//"github.com/pingcap/parser"
+	//"github.com/pingcap/parser/ast"
+	//_ "github.com/pingcap/tidb/types/parser_driver" // parser_driver TODO
+	"github.com/pingcap/tidb/parser"
+	"github.com/pingcap/tidb/parser/ast"
 	"golang.org/x/exp/slog"
 )
 

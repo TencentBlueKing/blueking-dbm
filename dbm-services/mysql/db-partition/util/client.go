@@ -183,7 +183,7 @@ func (c *Client) doNewInner(method, url string, params interface{}, headers map[
 		return nil, err
 	}
 	result := &APIServerResponse{}
-	if strings.Contains(url, "v2/push") {
+	if strings.Contains(host, "v2/push") {
 		temp := &APIServerResponseCompatible{}
 		err = json.Unmarshal(b, temp)
 		if err != nil {

@@ -29,62 +29,70 @@ class TenDBClusterMigrateRemoteDb:
     def storage_create(
         cls,
         cluster_id: int,
-        master_ip: str,
-        slave_ip: str,
         ports: list,
         creator: str,
         mysql_version: str,
         resource_spec: dict,
+        slave_ip: str = None,
+        master_ip: str = None,
     ):
-        """主从成对迁移初始化机器写入元数据"""
+        """主从成对迁移初始化机器写入元数据,兼容单实例安装"""
         cluster = Cluster.objects.get(id=cluster_id)
         bk_cloud_id = cluster.bk_cloud_id
         bk_biz_id = cluster.bk_biz_id
         time_zone = cluster.time_zone
         mysql_pkg = Package.get_latest_package(version=mysql_version, pkg_type=MediumEnum.MySQL, db_type=DBType.MySQL)
-        machines = [
-            {
-                "ip": master_ip,
-                "bk_biz_id": int(bk_biz_id),
-                "machine_type": MachineType.REMOTE.value,
-                "spec_id": resource_spec[MachineType.REMOTE.value]["id"],
-                "spec_config": resource_spec[MachineType.REMOTE.value],
-            },
-            {
-                "ip": slave_ip,
-                "bk_biz_id": int(bk_biz_id),
-                "machine_type": MachineType.REMOTE.value,
-                "spec_id": resource_spec[MachineType.REMOTE.value]["id"],
-                "spec_config": resource_spec[MachineType.REMOTE.value],
-            },
-        ]
-        api.machine.create(machines=machines, creator=creator, bk_cloud_id=bk_cloud_id)
+        machines = []
         storages = []
-        for port in ports:
-            storages.append(
+        if master_ip is not None:
+            machines.append(
                 {
                     "ip": master_ip,
-                    "port": port,
-                    "instance_role": InstanceRole.REMOTE_MASTER.value,
-                    "is_stand_by": True,  # 标记实例属于切换组实例
-                    "db_version": get_mysql_real_version(mysql_pkg.name),  # 存储真正的版本号信息
-                },
+                    "bk_biz_id": int(bk_biz_id),
+                    "machine_type": MachineType.REMOTE.value,
+                    "spec_id": resource_spec[MachineType.REMOTE.value]["id"],
+                    "spec_config": resource_spec[MachineType.REMOTE.value],
+                }
             )
-            storages.append(
+            for port in ports:
+                storages.append(
+                    {
+                        "ip": master_ip,
+                        "port": port,
+                        "instance_role": InstanceRole.REMOTE_MASTER.value,
+                        "is_stand_by": True,  # 标记实例属于切换组实例
+                        "db_version": get_mysql_real_version(mysql_pkg.name),  # 存储真正的版本号信息
+                    },
+                )
+        if slave_ip is not None:
+            machines.append(
                 {
                     "ip": slave_ip,
-                    "port": port,
-                    "instance_role": InstanceRole.REMOTE_SLAVE.value,
-                    "is_stand_by": True,  # 标记实例属于切换组实例
-                    "db_version": get_mysql_real_version(mysql_pkg.name),  # 存储真正的版本号信息
-                },
+                    "bk_biz_id": int(bk_biz_id),
+                    "machine_type": MachineType.REMOTE.value,
+                    "spec_id": resource_spec[MachineType.REMOTE.value]["id"],
+                    "spec_config": resource_spec[MachineType.REMOTE.value],
+                }
             )
+            for port in ports:
+                storages.append(
+                    {
+                        "ip": slave_ip,
+                        "port": port,
+                        "instance_role": InstanceRole.REMOTE_SLAVE.value,
+                        "is_stand_by": True,  # 标记实例属于切换组实例
+                        "db_version": get_mysql_real_version(mysql_pkg.name),  # 存储真正的版本号信息
+                    },
+                )
+
+        api.machine.create(machines=machines, creator=creator, bk_cloud_id=bk_cloud_id)
         api.storage_instance.create(
             instances=storages, creator=creator, time_zone=time_zone, status=InstanceStatus.RESTORING
         )
         # cluster映射关系
         storages = request_validator.validated_storage_list(storages, allow_empty=False, allow_null=False)
         storage_objs = common.filter_out_instance_obj(storages, StorageInstance.objects.all())
+
         cluster.storageinstance_set.add(*storage_objs)
         #  转移模块
         cc_topo_operator = MysqlCCTopoOperator(cluster)
@@ -100,7 +108,6 @@ class TenDBClusterMigrateRemoteDb:
         """
         cluster = Cluster.objects.get(id=cluster_id)
         bk_cloud_id = cluster.bk_cloud_id
-        # bk_biz_id = cluster.bk_biz_id
         source_master_obj = StorageInstance.objects.get(
             machine__ip=source["master"]["ip"], port=source["master"]["port"], machine__bk_cloud_id=bk_cloud_id
         )
@@ -127,10 +134,6 @@ class TenDBClusterMigrateRemoteDb:
         )
         storage_shard.storage_instance_tuple = target_tuple
         storage_shard.save()
-        # storage_shard.delete()
-        # TenDBClusterStorageSet.objects.create(
-        #     storage_instance_tuple=target_tuple, shard_id=storage_shard.shard_key, cluster=cluster
-        # )
 
     @classmethod
     @transaction.atomic
@@ -161,5 +164,4 @@ class TenDBClusterMigrateRemoteDb:
             StorageInstanceTuple.objects.filter(ejector=one.id).delete()
             StorageInstanceTuple.objects.filter(receiver=one.id).delete()
         StorageInstance.objects.filter(machine__ip=ip, machine__bk_cloud_id=bk_cloud_id).delete()
-        api.machine.trans_module(bk_cloud_id=bk_cloud_id, cluster_ids=[cluster_id], machines=[ip], idle=True)
-        api.machine.delete(bk_cloud_id=bk_cloud_id, machines=[ip])
+        api.machine.delete(machines=["ip"], bk_cloud_id=cluster.bk_cloud_id)

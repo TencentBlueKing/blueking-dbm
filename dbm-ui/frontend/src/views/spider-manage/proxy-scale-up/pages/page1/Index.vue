@@ -37,6 +37,8 @@
       </RenderData>
       <ClusterSelector
         v-model:is-show="isShowMasterInstanceSelector"
+        :get-resource-list="getList"
+        :selected="{}"
         :tab-list="clusterSelectorTabList"
         @change="handelClusterChange" />
     </div>
@@ -80,7 +82,7 @@
     TicketTypes,
   } from '@common/const';
 
-  import ClusterSelector from '@views/spider-manage/common/cluster-selector/ClusterSelector.vue';
+  import ClusterSelector from '@components/cluster-selector/SpiderClusterSelector.vue';
 
   import { random } from '@utils';
 
@@ -103,7 +105,10 @@
     ? new Set(tableData.value.map(item => item.cluster)).size : 0));
   const canSubmit = computed(() => tableData.value.filter(item => Boolean(item.cluster)).length > 0);
 
-  const clusterSelectorTabList = [ClusterTypes.SPIDER];
+  const clusterSelectorTabList = [{
+    id: ClusterTypes.SPIDER as string,
+    name: t('集群选择'),
+  }];
   const clusterNodeTypeMap = ref<Record<string, string[]>>({});
 
   const handleChangeNodeType = (index: number, domain: string, label: string) => {
@@ -151,6 +156,7 @@
       nodeType: '',
       masterCount,
       slaveCount,
+      mntCount: item.spider_mnt.length,
       spec: {
         ...item.cluster_spec,
         name: item.cluster_spec.spec_name,
@@ -229,6 +235,7 @@
         infos,
       },
     };
+
     InfoBox({
       title: t('确认对n个集群扩容接入层？', { n: totalNum.value }),
       width: 480,

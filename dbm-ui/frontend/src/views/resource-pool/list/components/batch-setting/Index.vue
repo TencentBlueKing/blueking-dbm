@@ -35,7 +35,8 @@
               </BkSelect>
               <BkCheckbox
                 v-model="formData.set_empty_biz"
-                class="ml-12">
+                class="ml-12"
+                @change="handleEmptyBizChange">
                 {{ t('无限制') }}
               </BkCheckbox>
             </div>
@@ -58,7 +59,8 @@
               </BkSelect>
               <BkCheckbox
                 v-model="formData.set_empty_resource_type"
-                class="ml-12">
+                class="ml-12"
+                @change="handleEmptyResourceTypeChange">
                 {{ t('无限制') }}
               </BkCheckbox>
             </div>
@@ -148,6 +150,14 @@
     data: dbTypeList,
     loading: isDbTypeListLoading,
   } = useRequest(fetchDbTypeList);
+
+  const handleEmptyBizChange = () => {
+    formData.for_bizs = [];
+  };
+
+  const handleEmptyResourceTypeChange = () => {
+    formData.resource_types = [];
+  };
 
   const handleSubmit = () => {
     isSubmiting.value = true;

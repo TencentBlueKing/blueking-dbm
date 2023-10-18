@@ -18,4 +18,5 @@ urlpatterns = [
     path("bizs/<int:bk_biz_id>/", include("backend.db_services.mysql.cluster.urls")),
     path("bizs/<int:bk_biz_id>/", include("backend.db_services.mysql.instance.urls")),
     path("bizs/<int:bk_biz_id>/", include("backend.db_services.mysql.fixpoint_rollback.urls")),
+    path("bizs/<int:bk_biz_id>/", include("backend.db_services.mysql.open_area.urls")),
 ]

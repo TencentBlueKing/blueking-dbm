@@ -65,27 +65,29 @@
           </div>
         </template>
         <template #main>
-          <RenderRedisFailHost
-            v-if="activeTab === 'masterFailHosts'"
-            :last-values="lastValues"
-            :node="selectNode"
-            :role="role"
-            :table-settings="tableSettings"
-            @change="handleHostChange" />
-          <RenderCreateSlaveRedisHost
-            v-else-if="activeTab === 'createSlaveIdleHosts'"
-            :last-values="lastValues"
-            :node="selectNode"
-            :role="role"
-            :table-settings="tableSettings"
-            @change="handleHostChange" />
-          <RenderRedisHost
-            v-else
-            :last-values="lastValues"
-            :node="selectNode"
-            :role="role"
-            :table-settings="tableSettings"
-            @change="handleHostChange" />
+          <div style="height: 570px;">
+            <RenderRedisFailHost
+              v-if="activeTab === 'masterFailHosts'"
+              :last-values="lastValues"
+              :node="selectNode"
+              :role="role"
+              :table-settings="tableSettings"
+              @change="handleHostChange" />
+            <RenderCreateSlaveRedisHost
+              v-else-if="activeTab === 'createSlaveIdleHosts'"
+              :last-values="lastValues"
+              :node="selectNode"
+              :role="role"
+              :table-settings="tableSettings"
+              @change="handleHostChange" />
+            <RenderRedisHost
+              v-else
+              :last-values="lastValues"
+              :node="selectNode"
+              :role="role"
+              :table-settings="tableSettings"
+              @change="handleHostChange" />
+          </div>
         </template>
       </BkResizeLayout>
     </div>
@@ -137,11 +139,20 @@
     isTreeDataLoading.value = true;
     listClusterList(currentBizId).then((data) => {
       let arr = data;
+      // 取消限制
+      // if (props.activeTab === 'masterFailHosts') {
+      //   // 主故障切换，展示master数量
+      //   arr.forEach((item) => {
+      //     Object.assign(item, {
+      //       count: item.redis_master_faults,
+      //     });
+      //   });
+      // }
       if (props.activeTab === 'masterFailHosts') {
         // 主故障切换，展示master数量
         arr.forEach((item) => {
           Object.assign(item, {
-            count: item.redis_master_faults,
+            count: item.redisMasterCount,
           });
         });
       }

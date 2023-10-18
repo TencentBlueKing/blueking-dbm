@@ -253,11 +253,12 @@
   // 创建模块
   const newModule = () => {
     const params = {
+      id: bizId.value,
       db_module_name: formdata.module_name,
       cluster_type: 'tendbcluster',
     };
 
-    return createModules(bizId.value, params)
+    return createModules(params)
       .then((res) => {
         moduleId.value = res.db_module_id;
       });

@@ -8,7 +8,7 @@ import (
 	"dbm-services/common/go-pubpkg/logger"
 
 	"github.com/go-ini/ini"
-	"github.com/shirou/gopsutil/mem"
+	"github.com/shirou/gopsutil/v3/mem"
 )
 
 // GetMemSizeInMi TODO

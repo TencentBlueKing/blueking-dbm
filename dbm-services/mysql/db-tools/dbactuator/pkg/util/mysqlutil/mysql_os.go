@@ -71,33 +71,8 @@ func IsSudo() bool {
 	return false
 }
 
-// InnodbDataFilePathValue TODO
-func InnodbDataFilePathValue(value string) string {
-	result := regexp.MustCompile(`(\d+)(m|M|g|G)`).FindStringSubmatch(value)
-	if len(result) > 0 &&
-		regexp.MustCompile("(?i)M").MatchString(result[2]) {
-		return fmt.Sprintf("%sM:autoextend\n", result[1])
-	} else if len(result) > 0 &&
-		regexp.MustCompile("(?i)G").MatchString(result[2]) {
-		size, err := strconv.Atoi(result[1])
-		if err != nil {
-			logger.Info("%s convert to int get an error:%s", result[1], err.Error())
-			return ""
-		}
-		var (
-			ibDataStr = ""
-			index     = 1
-		)
-		for ; size > 10; size -= 10 {
-			ibDataStr += fmt.Sprintf("ibdata%d:10G;", index)
-			index++
-		}
-		ibDataStr += fmt.Sprintf("ibdata%d:%dG:autoextend", index, size)
-		return ibDataStr
-	}
-
-	return ""
-}
+// 	return ""
+// }
 
 // MySQLVersionParse ():
 // input: select version() 获取到的string
@@ -216,17 +191,11 @@ func GenMysqlServerId(ip string, port int) (uint64, error) {
 		err = fmt.Errorf("len(ips) is not 4. ips:%+v", ips)
 		return 0, err
 	}
-	switch {
-	case ips[0] == "172":
-		first = 1
-	case ips[0] == "10":
-		first = 2
-	case ips[0] == "192":
-		first = 3
-	default:
-		first = 4
+	firstcol, err := strconv.Atoi(ips[0])
+	if err != nil {
+		return 0, err
 	}
-
+	first = (firstcol % 9) + 1
 	first += (port % 10000 % 64) * 4
 	two, err := strconv.ParseInt(ips[1], 10, 64)
 	if err != nil {

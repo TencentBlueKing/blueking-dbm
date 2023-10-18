@@ -55,13 +55,29 @@
             <span class="spec-title">{{ $t('规格需求') }}</span>
           </BkPopover>
         </RenderTableHeadColumn>
-        <RenderTableHeadColumn
+        <!-- <RenderTableHeadColumn
           :is-minimize="slotProps.isOverflow"
           :min-width="150"
           :required="false"
           :row-width="slotProps.rowWidth"
           :width="190">
           <span>{{ $t('当前从库主机') }}</span>
+        </RenderTableHeadColumn> -->
+        <RenderTableHeadColumn
+          :is-minimize="slotProps.isOverflow"
+          :min-width="130"
+          :required="false"
+          :row-width="slotProps.rowWidth"
+          :width="190">
+          <span>{{ $t('故障从库主机数量') }}</span>
+        </RenderTableHeadColumn>
+        <RenderTableHeadColumn
+          :is-minimize="slotProps.isOverflow"
+          :min-width="130"
+          :required="false"
+          :row-width="slotProps.rowWidth"
+          :width="190">
+          <span>{{ $t('当前从库主机数量') }}</span>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
           :is-fixed="slotProps.isOverflow"
@@ -81,8 +97,9 @@
   </div>
 </template>
 <script setup lang="ts">
+  import RenderTable from '@components/render-table/Index.vue';
+
   import RenderTableHeadColumn from '@views/redis/common/render-table/HeadColumn.vue';
-  import RenderTable from '@views/redis/common/render-table/Index.vue';
 
   interface Emits{
     (e: 'showMasterBatchSelector'): void

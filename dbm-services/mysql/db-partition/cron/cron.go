@@ -2,6 +2,7 @@
 package cron
 
 import (
+	"dbm-services/mysql/db-partition/util"
 	"errors"
 	"fmt"
 	"log"
@@ -27,8 +28,12 @@ func RegisterCron() ([]*cron.Cron, error) {
 		return CronList, err
 	}
 	timing := fmt.Sprintf("02 %s * * * ", timingHour)
-	retry := fmt.Sprintf("02 %s * * * ", retryHour)
-	fmt.Println(retry)
+	multiHours, errOuter := util.SplitName(retryHour)
+	if errOuter != nil {
+		errOuter = errors.New("cron.retry_hour format error")
+		slog.Error("msg", "cron error", errOuter)
+		return CronList, errOuter
+	}
 	var debug bool
 	if strings.ToLower(strings.TrimSpace(viper.GetString("log.level"))) == "debug" {
 		debug = true
@@ -41,7 +46,6 @@ func RegisterCron() ([]*cron.Cron, error) {
 	for name, offset := range timezone {
 		offetSeconds := offset * 60 * 60
 		zone := time.FixedZone(name, offetSeconds)
-		date := time.Now().In(zone).Format("20060102")
 		var c *cron.Cron
 		if debug {
 			c = cron.New(cron.WithLocation(zone), cron.WithLogger(cron.VerbosePrintfLogger(log.New(model.NewWriter(
@@ -49,22 +53,18 @@ func RegisterCron() ([]*cron.Cron, error) {
 		} else {
 			c = cron.New(cron.WithLocation(zone))
 		}
-		_, err := c.AddJob(timing, PartitionJob{CronType: Daily, ZoneOffset: offset, CronDate: date})
+		_, err := c.AddJob(timing, PartitionJob{CronType: Daily, ZoneOffset: offset, ZoneName: name, Hour: timingHour})
 		if err != nil {
 			slog.Error("msg", "cron add daily job error", err)
 			return CronList, err
 		}
-		_, err = c.AddJob(retry, PartitionJob{CronType: Retry, ZoneOffset: offset, CronDate: date})
+		for _, retry := range multiHours {
+			_, err = c.AddJob(fmt.Sprintf("08 %s * * * ", retry), PartitionJob{CronType: Retry,
+				ZoneOffset: offset, ZoneName: name, Hour: retry})
+		}
 		if err != nil {
 			slog.Error("msg", "cron add retry job error", err)
 			return CronList, err
-		}
-		if offset == 0 {
-			_, err = c.AddJob("@every 1s", PartitionJob{CronType: Heartbeat, ZoneOffset: offset, CronDate: date})
-			if err != nil {
-				slog.Error("msg", "cron add heartbeat job error", err)
-				return CronList, err
-			}
 		}
 		c.Start()
 		slog.Info("msg", zone, c.Entries())

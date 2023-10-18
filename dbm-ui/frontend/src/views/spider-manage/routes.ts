@@ -19,7 +19,7 @@ import { t } from '@locales/index';
 
 export const spiderToolboxChildrenRoutes: RouteRecordRaw[] = [
   {
-    path: 'sql-execute/:page?',
+    path: 'sql-execute/:step?',
     name: 'spiderSqlExecute',
     meta: {
       routeParentName: MainViewRouteNames.Database,
@@ -278,7 +278,7 @@ const renderRoutes: RouteRecordRaw[] = [
           isMenu: true,
           submenuId: 'tendb-cluster-manage',
         },
-        component: () => import('@views/spider-manage/list/MainView.vue'),
+        component: () => import('@views/spider-manage/list/Index.vue'),
       },
       {
         name: 'tendbClusterInstance',
@@ -289,7 +289,7 @@ const renderRoutes: RouteRecordRaw[] = [
           isMenu: true,
           submenuId: 'tendb-cluster-manage',
         },
-        component: () => import('@views/spider-manage/list-instance/InstanceView.vue'),
+        component: () => import('@views/spider-manage/list-instance/Index.vue'),
       },
       {
         path: 'partition-manage',

@@ -62,7 +62,9 @@
           v-if="isShowRelateMemo"
           :loading="isRelateLoading">
           <div style="margin-bottom: 8px; font-size: 12px; line-height: 16px;">
-            <span style="font-weight: bold; color: #313238;">同机关联集群</span>
+            <span style="font-weight: bold; color: #313238;">
+              {{ t('同机关联集群') }}
+            </span>
             <span style="color: #63656e;">（{{ relateClusterTips }}）</span>
           </div>
           <div style="max-height: 300px; overflow: auto;">
@@ -82,7 +84,7 @@
             <p
               v-else
               style="color: #63656e;">
-              无同机关联集群
+              {{ t('无同机关联集群') }}
             </p>
           </div>
         </BkLoading>
@@ -105,6 +107,7 @@
     shallowRef,
     watch,
   } from 'vue';
+  import { useI18n } from 'vue-i18n';
 
   import {
     findRelatedClustersByClusterIds,
@@ -152,6 +155,7 @@
   let tippyIns: Instance | undefined;
 
   const { currentBizId } = useGlobalBizs();
+  const { t } = useI18n();
 
   const editRef = ref();
   const handlerRef = ref();
@@ -340,7 +344,6 @@
 
   // 显示管理集群列表
   const handleShowRelateMemu = () => {
-    console.log('handleShowRelateMemu');
     isShowRelateMemo.value = true;
   };
 

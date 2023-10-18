@@ -73,10 +73,7 @@ class DBExtension(AuditedModel):
     @classmethod
     def get_extension_access_hosts(cls, bk_cloud_id: int, extension_type: ExtensionType):
         extensions = cls.get_extension_in_cloud(bk_cloud_id, extension_type)
-        if extension_type == ExtensionType.DBHA:
-            extensions = extensions.filter(details__dbha_type=CloudDBHATypeEnum.AGENT)
-
-        access_hosts = [ext.details["ip"] for ext in extensions]
+        access_hosts = list(set([ext.details["ip"] for ext in extensions]))
         return access_hosts
 
     @classmethod

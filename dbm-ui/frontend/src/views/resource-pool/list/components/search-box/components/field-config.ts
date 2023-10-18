@@ -67,16 +67,17 @@ export default {
   hosts: {
     label: 'IP',
     component: 'hosts',
-    type: 'string',
+    type: 'array',
     flex: 2,
-    validator: (value: string) => {
-      if (!value) {
+    validator: (value: string[]) => {
+      if (!value || value.length < 1) {
         return true;
       }
-      if (value.split(/,/g).every(item => ipv4.test(item))) {
-        return true;
+      const errorValue = value.filter(item => !ipv4.test(item));
+      if (errorValue.length > 0) {
+        return `IP 格式错误: ${errorValue.join(',')}`;
       }
-      return 'IP 格式不正确';
+      return true;
     },
   },
   agent_status: {

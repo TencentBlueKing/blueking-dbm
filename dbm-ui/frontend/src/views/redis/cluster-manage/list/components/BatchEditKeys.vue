@@ -63,14 +63,19 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  defineProps({
-    title: {
-      type: String,
-      default: '',
-    },
-  });
+  interface Props {
+    title?: string
+  }
 
-  const emit = defineEmits(['change']);
+  interface Emits {
+    (e: 'change', value: string): void
+  }
+
+  withDefaults(defineProps<Props>(), {
+    title: '',
+  });
+  const emits = defineEmits<Emits>();
+
   const { t } = useI18n();
 
   const state = reactive({
@@ -116,7 +121,7 @@
     handleValidate();
     if (validateState.isShow === true) return;
 
-    emit('change', state.value);
+    emits('change', state.value);
     handleCancel();
   };
 

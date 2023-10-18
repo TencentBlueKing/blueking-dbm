@@ -12,8 +12,8 @@ type LoaderUtil struct {
 	TgtInstance native.InsObject `json:"tgt_instance"`
 	IndexObj    *dbbackup.BackupIndexFile
 
-	// 不写 binlog -without-binlog: set sql_log_bin=0
-	WithOutBinlog bool   `json:"withoutBinlog"`
+	// EnableBinlog 导入数据时是否写binlog，默认不启用 (set sql_log_bin=0)
+	EnableBinlog  bool   `json:"enable_binlog"`
 	IndexFilePath string `json:"index_file_path" validate:"required"`
 	LoaderDir     string `json:"loader_dir"`
 	TaskDir       string `json:"taskDir"`

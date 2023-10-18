@@ -24,7 +24,7 @@ func (ins *MySQLSwitch) ShowSwitchInstanceInfo() string {
 		ins.Ip, ins.Port, ins.IDC, ins.Role, ins.Status, ins.App, ins.ClusterType,
 		ins.MetaType)
 	//TODO right way to check empty?
-	if ins.StandBySlave != (MySQLSlaveInfo{}) {
+	if ins.StandBySlave != (dbutil.SlaveInfo{}) {
 		str = fmt.Sprintf("%s Switch from MASTER:<%s#%d> to SLAVE:<%s#%d>",
 			str, ins.Ip, ins.Port, ins.StandBySlave.Ip, ins.StandBySlave.Port)
 	}
@@ -44,7 +44,7 @@ func (ins *MySQLSwitch) CheckSwitch() (bool, error) {
 		log.Logger.Infof("info:{%s} is master", ins.ShowSwitchInstanceInfo())
 
 		log.Logger.Infof("check slave status. info{%s}", ins.ShowSwitchInstanceInfo())
-		if ins.StandBySlave == (MySQLSlaveInfo{}) {
+		if ins.StandBySlave == (dbutil.SlaveInfo{}) {
 			ins.ReportLogs(constvar.FailResult, "no standby slave info found")
 			return false, err
 		}

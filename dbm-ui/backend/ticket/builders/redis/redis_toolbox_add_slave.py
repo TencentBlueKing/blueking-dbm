@@ -65,7 +65,7 @@ class RedisAddSlaveResourceParamBuilder(builders.ResourceApplyParamBuilder):
         super().post_callback()
 
 
-@builders.BuilderFactory.register(TicketType.REDIS_CLUSTER_ADD_SLAVE)
+@builders.BuilderFactory.register(TicketType.REDIS_CLUSTER_ADD_SLAVE, is_apply=True)
 class RedisAddSlaveFlowBuilder(BaseRedisTicketFlowBuilder):
     serializer = RedisAddSlaveDetailSerializer
     inner_flow_builder = RedisAddSlaveParamBuilder

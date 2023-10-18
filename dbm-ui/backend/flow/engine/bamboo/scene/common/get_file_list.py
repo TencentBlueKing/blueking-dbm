@@ -15,6 +15,7 @@ from backend.db_meta.enums.cluster_type import ClusterType
 from backend.db_package.models import Package
 from backend.db_services.version.constants import PredixyVersion, TwemproxyVersion
 from backend.flow.consts import CLOUD_SSL_PATH, MediumEnum
+from backend.flow.utils.redis.redis_util import get_latest_redis_package_by_version
 
 
 class GetFileList(object):
@@ -53,11 +54,13 @@ class GetFileList(object):
         checksum_pkg = Package.get_latest_package(version=MediumEnum.Latest, pkg_type=MediumEnum.MySQLChecksum)
         rotate_binlog = Package.get_latest_package(version=MediumEnum.Latest, pkg_type=MediumEnum.MySQLRotateBinlog)
         mysql_monitor_pkg = Package.get_latest_package(version=MediumEnum.Latest, pkg_type=MediumEnum.MySQLMonitor)
+        mysql_crond_pkg = Package.get_latest_package(version=MediumEnum.Latest, pkg_type=MediumEnum.MySQLCrond)
         return [
             f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{db_backup_pkg.path}",
             f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{checksum_pkg.path}",
             f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{rotate_binlog.path}",
             f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{mysql_monitor_pkg.path}",
+            f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{mysql_crond_pkg.path}",
         ]
 
     def mysql_install_package(self, db_version: str) -> list:
@@ -116,15 +119,15 @@ class GetFileList(object):
         riak安装需要的安装包列表
         """
         riak_pkg = Package.get_latest_package(version=db_version, pkg_type=MediumEnum.Riak, db_type=DBType.Riak)
-        # riak_crond_pkg = Package.get_latest_package(version=MediumEnum.Latest,
-        #                                             pkg_type=MediumEnum.RiakCrond, db_type=DBType.Riak)
-        # riak_monitor_pkg = Package.get_latest_package(version=MediumEnum.Latest,
-        #                                               pkg_type=MediumEnum.RiakMonitor, db_type=DBType.Riak)
+        mysql_crond_pkg = Package.get_latest_package(version=MediumEnum.Latest, pkg_type=MediumEnum.MySQLCrond)
+        riak_monitor_pkg = Package.get_latest_package(
+            version=MediumEnum.Latest, pkg_type=MediumEnum.RiakMonitor, db_type=DBType.Riak.value
+        )
         return [
             f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{self.actuator_pkg.path}",
             f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{riak_pkg.path}",
-            # f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{riak_crond_pkg.path}",
-            # f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{riak_monitor_pkg.path}",
+            f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{mysql_crond_pkg.path}",
+            f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{riak_monitor_pkg.path}",
         ]
 
     def redis_cluster_apply_proxy(self, cluster_type) -> list:
@@ -155,12 +158,7 @@ class GetFileList(object):
         """
         部署redis,所有节点需要的redis pkg包
         """
-        pkg_type = MediumEnum.Redis
-        if db_version.startswith("TendisSSD"):
-            pkg_type = MediumEnum.TendisSsd
-        if db_version.startswith("Tendisplus"):
-            pkg_type = MediumEnum.TendisPlus
-        redis_pkg = Package.get_latest_package(version=db_version, pkg_type=pkg_type, db_type=DBType.Redis)
+        redis_pkg = get_latest_redis_package_by_version(db_version)
         redis_tool_pkg = Package.get_latest_package(
             version=MediumEnum.Latest, pkg_type=MediumEnum.RedisTools, db_type=DBType.Redis
         )
@@ -171,6 +169,20 @@ class GetFileList(object):
             f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{self.actuator_pkg.path}",
             f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{redis_pkg.path}",
             f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{redis_tool_pkg.path}",
+            f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{bkdbmon_pkg.path}",
+        ]
+
+    def redis_cluster_version_update(self, db_version: str) -> list:
+        """
+        redis集群版本升级
+        """
+        redis_pkg = get_latest_redis_package_by_version(db_version)
+        bkdbmon_pkg = Package.get_latest_package(
+            version=MediumEnum.Latest, pkg_type=MediumEnum.DbMon, db_type=DBType.Redis
+        )
+        return [
+            f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{self.actuator_pkg.path}",
+            f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{redis_pkg.path}",
             f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{bkdbmon_pkg.path}",
         ]
 
@@ -336,15 +348,19 @@ class GetFileList(object):
             f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{bkdbmon_pkg.path}",
         ]
 
+    @classmethod
     def redis_add_dts_server(self) -> list:
         """
         redis add dts_server
         """
+        redis_actuator_pkg = Package.get_latest_package(
+            version=MediumEnum.Latest, pkg_type=MediumEnum.DBActuator, db_type=DBType.Redis
+        )
         redis_dts_pkg = Package.get_latest_package(
             version=MediumEnum.Latest, pkg_type=MediumEnum.RedisDts, db_type=DBType.Redis
         )
         return [
-            f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{self.actuator_pkg.path}",
+            f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{redis_actuator_pkg.path}",
             f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{redis_dts_pkg.path}",
         ]
 

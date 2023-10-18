@@ -26,7 +26,7 @@
 
   import { domainPort, ipPort } from '@common/regex';
 
-  import TableEditInput from '@views/redis/common/edit/Input.vue';
+  import TableEditInput from '@components/tools-table-input/index.vue';
 
   import type { IDataRow } from './Row.vue';
 
@@ -70,15 +70,19 @@
     },
   ];
 
-  const handleInputFinish = (value: string) => {
-    emits('inputFinish', value);
-  };
+  watch(() => props.data, (data) => {
+    localValue.value = data;
+  });
 
   watch(() => localValue.value, () => {
     emits('change', localValue.value);
   }, {
     immediate: true,
   });
+
+  const handleInputFinish = (value: string) => {
+    emits('inputFinish', value);
+  };
 
   defineExpose<Exposes>({
     getValue() {

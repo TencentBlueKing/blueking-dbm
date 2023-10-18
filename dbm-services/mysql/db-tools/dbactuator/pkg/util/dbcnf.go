@@ -12,6 +12,7 @@ package util
 
 import (
 	"fmt"
+	"os"
 	"path"
 	"path/filepath"
 	"reflect"
@@ -608,4 +609,55 @@ func CreateExporterConf(fileName string, host string, port string, user string, 
 		return err
 	}
 	return nil
+}
+
+func CreateMysqlExporterArgs(fileName, pkgType string, port int) error {
+	spiderArgs := []string{
+		"--collect.global_status",
+		"--collect.global_variables",
+		"--collect.datadir_size",
+		"--no-collect.info_schema.processlist",
+		"--collect.info_schema.processlist_ext",
+		"--collect.info_schema.processlist_ext.by_user",
+		"--collect.info_schema.query_response_time",
+		//"--collect.auto_increment_ext.columns", "--collect.auto_increment_ext.interval=1h",
+	}
+	backendArgs := []string{
+		"--collect.global_status",
+		"--collect.global_variables",
+		"--collect.datadir_size",
+		"--no-collect.info_schema.processlist",
+		"--collect.info_schema.processlist_ext",
+		"--collect.info_schema.processlist_ext.by_user",
+		"--collect.info_schema.query_response_time",
+		"--collect.auto_increment_ext.columns",
+		"--collect.auto_increment_ext.interval=1h",
+		"--no-collect.slave_status",
+		"--collect.slave_status_ext",
+		"--collect.infodba_schema.heartbeat",
+		"--no-collect.info_schema.tables",
+		"--collect.info_schema.tables_ext",
+		"--collect.info_schema.tables_ext.interval=1h",
+		"--collect.info_schema.tables_ext.databases=*",
+		"--collect.info_schema.innodb_metrics",
+		"--collect.info_schema.innodb_trx",
+		"--collect.engine_innodb_status",
+	}
+	//fileName := fmt.Sprintf("/etc/exporter_%d.args", port)
+	f, err := os.OpenFile(fileName, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0755)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	if pkgType == cst.PkgTypeSpider {
+		_, err = f.WriteString(strings.Join(spiderArgs, "\n"))
+	} else if pkgType == cst.PkgTypeMysql {
+		_, err = f.WriteString(strings.Join(backendArgs, "\n"))
+	} else {
+		return errors.Errorf("port %d unknown dbrole %s for generating mysql exporter args file", port, pkgType)
+	}
+	if err != nil {
+		return err
+	}
+	return f.Sync()
 }

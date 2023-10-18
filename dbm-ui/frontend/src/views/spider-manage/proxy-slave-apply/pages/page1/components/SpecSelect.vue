@@ -44,7 +44,9 @@
       class="select-placeholder">
       {{ placeholder }}
     </div>
-    <div style="display: none;">
+    <div
+      v-if="!disabled"
+      style="display: none;">
       <div ref="popRef">
         <div
           v-if="searchKey || renderList.length > 0"
@@ -60,21 +62,19 @@
             </template>
           </BkInput>
         </div>
+
         <div class="options-list">
           <SpecPanel
-            v-for="(item, index) in renderList"
+            v-for="item in renderList"
             :key="item.id"
-            :data="item.specData"
-            :is-show-tip="item.isShowTip">
+            :data="item.specData">
             <template #hover>
               <div
                 class="option-item"
                 :class="{
                   active: item.id === localValue
                 }"
-                @click="handleSelect(index, item)"
-                @mouseenter="() => handleControlTip(index, true)"
-                @mouseleave="() => handleControlTip(index, false)">
+                @click="handleSelect(item)">
                 <span>{{ item.name }}</span>
                 <span
                   class="spec-display-count"
@@ -100,7 +100,6 @@
   export interface IListItem {
     id: number,
     name: string,
-    isShowTip: boolean,
     specData: SpecInfo
   }
 </script>
@@ -200,18 +199,9 @@
     immediate: true,
   });
 
-  const handleControlTip = (index: number, isShow: boolean) => {
-    clearTimeout(timer.value);
-    renderList.value[index].isShowTip = false;
-    timer.value = setTimeout(() => {
-      renderList.value[index].isShowTip = isShow;
-    }, 500);
-  };
-
   // 选择
-  const handleSelect = (index: number, item: IListItem) => {
+  const handleSelect = (item: IListItem) => {
     clearTimeout(timer.value);
-    renderList.value[index].isShowTip = false;
     localValue.value = item.id;
     tippyIns.hide();
 
@@ -280,7 +270,7 @@
 .table-edit-select {
   position: relative;
   display: flex;
-  height: 40px;
+  height: 42px;
   overflow: hidden;
   color: #63656e;
   cursor: pointer;
@@ -322,7 +312,6 @@
   }
 
   &.is-disabled {
-    pointer-events: none;
     cursor: not-allowed;
     background-color: #fafbfd;
   }

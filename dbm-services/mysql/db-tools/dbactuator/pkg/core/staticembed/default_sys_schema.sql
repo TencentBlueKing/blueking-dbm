@@ -39,7 +39,7 @@ CREATE TABLE IF NOT EXISTS infodba_schema.check_heartbeat (
     uid INT NOT NULL PRIMARY KEY,
     ck_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP on  UPDATE CURRENT_TIMESTAMP
 ) ENGINE = InnoDB;
-REPLACE INTO infodba_schema.check_heartbeat(uid) value(1);
+REPLACE INTO infodba_schema.check_heartbeat(uid) value(@@server_id);
 CREATE TABLE IF NOT EXISTS infodba_schema.query_response_time(
     time_min INT(11) NOT NULL DEFAULT '0',
     time VARCHAR(14) NOT NULL DEFAULT '',

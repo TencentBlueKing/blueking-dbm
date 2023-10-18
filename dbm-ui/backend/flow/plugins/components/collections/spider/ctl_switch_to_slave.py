@@ -25,9 +25,9 @@ from backend.flow.plugins.components.collections.common.base_service import Base
 
 class CtlSwitchToSlaveService(BaseService):
     """
-    定义spider(tenDB cluster)集群的中控集群做主节点提示，适用于spider裁撤场合调用
-    这里暂时不考虑主从互切场景，仅仅做提升主节点场景，因为互切展示没有需求
-    幂等的内容包括: 预检测、断开同步、选择新的主节点、重新同步新主节点
+    定义spider(tenDB cluster)集群的中控集群提升新主节点，适用于spider-master裁撤场合调用
+    这里暂时不考虑主从互切场景，仅仅做提升主节点场景，因为互切暂时没有需求
+    幂等操作内容包括: 预检测、断开同步、选择新的主节点、重新同步新主节点
     私有变量的主要结构体kwargs：
     {
         “cluster_id”: id,  待关联的集群id

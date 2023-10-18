@@ -29,15 +29,15 @@
   <div class="ticket-details__info">
     <div class="ticket-details__list">
       <div class="ticket-details__item">
-        <span class="ticket-details__item-label">{{ t('执行前检测连接，如有连接') }}：</span>
+        <span class="ticket-details__item-label">{{ t('检查业务来源的连接') }}：</span>
         <span class="ticket-details__item-value">{{ ticketDetails.details.is_check_process ? t('是') : t('否') }}</span>
       </div>
       <div class="ticket-details__item">
-        <span class="ticket-details__item-label">{{ t('检查延迟') }}：</span>
+        <span class="ticket-details__item-label">{{ t('检查主从同步延迟') }}：</span>
         <span class="ticket-details__item-value">{{ ticketDetails.details.is_check_delay ? t('是') : t('否') }}</span>
       </div>
       <div class="ticket-details__item">
-        <span class="ticket-details__item-label">{{ t('检查校验结果') }}：</span>
+        <span class="ticket-details__item-label">{{ t('检查主从数据校验结果') }}：</span>
         <span class="ticket-details__item-value">
           {{ ticketDetails.details.is_verify_checksum ? t('是') : t('否') }}
         </span>
@@ -80,10 +80,12 @@
     {
       label: t('故障主库主机'),
       field: 'masterIp',
+      showOverflowTooltip: true,
     },
     {
       label: t('从库主机'),
       field: 'slaveIp',
+      showOverflowTooltip: true,
     },
   ];
 

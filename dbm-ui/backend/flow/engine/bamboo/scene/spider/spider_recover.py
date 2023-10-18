@@ -41,9 +41,16 @@ def spider_recover_sub_flow(root_id: str, ticket_data: dict, cluster: dict):
     exec_act_kwargs = ExecActuatorKwargs(
         bk_cloud_id=int(cluster["bk_cloud_id"]), cluster_type=ClusterType.TenDBCluster, cluster=cluster
     )
+    exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.mysql_mkdir_dir.__name__
+    exec_act_kwargs.exec_ip = cluster["rollback_ip"]
+    sub_pipeline.add_act(
+        act_name=_("创建目录 {}".format(cluster["file_target_path"])),
+        act_component_code=ExecuteDBActuatorScriptComponent.code,
+        kwargs=asdict(exec_act_kwargs),
+    )
     #  spider 没有主从节点.指定备份的ip:port为主节点。
-    cluster["master_ip"] = cluster["backupinfo"]["host"]
-    cluster["master_port"] = cluster["backupinfo"]["port"]
+    cluster["master_ip"] = ""
+    cluster["master_port"] = 0
     cluster["change_master"] = False
     backup_info = cluster["backupinfo"]
     task_ids = [i["task_id"] for i in backup_info["file_list_details"]]
@@ -76,11 +83,11 @@ def spider_recover_sub_flow(root_id: str, ticket_data: dict, cluster: dict):
             backup_info["backup_time"],
             cluster["rollback_time"],
             minute_range=30,
-            host_ip=cluster["master_ip"],
-            port=cluster["master_port"],
+            host_ip=cluster["rollback_ip"],
+            port=cluster["rollback_port"],
         )
         if backup_binlog is None:
-            raise TendbGetBinlogFailedException(message=_("获取实例 {} binlog失败".format(cluster["master_ip"])))
+            raise TendbGetBinlogFailedException(message=_("获取实例 {} binlog失败".format(cluster["rollback_ip"])))
 
         task_ids = [i["task_id"] for i in backup_binlog["file_list_details"]]
         binlog_files = [i["file_name"] for i in backup_binlog["file_list_details"]]
@@ -128,6 +135,13 @@ def remote_node_rollback(root_id: str, ticket_data: dict, cluster: dict):
         sub_pipeline = SubBuilder(root_id=root_id, data=ticket_data)
         exec_act_kwargs = ExecActuatorKwargs(
             bk_cloud_id=int(cluster["bk_cloud_id"]), cluster_type=ClusterType.TenDBCluster, cluster=cluster
+        )
+        exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.mysql_mkdir_dir.__name__
+        exec_act_kwargs.exec_ip = cluster["rollback_ip"]
+        sub_pipeline.add_act(
+            act_name=_("创建目录 {}".format(cluster["file_target_path"])),
+            act_component_code=ExecuteDBActuatorScriptComponent.code,
+            kwargs=asdict(exec_act_kwargs),
         )
 
         task_ids = [i["task_id"] for i in backup_info["file_list_details"]]

@@ -85,6 +85,7 @@
 </template>
 
 <script setup lang="tsx">
+  import type { Column } from 'bkui-vue/lib/table/props';
   import { differenceInSeconds } from 'date-fns';
   import { useI18n } from 'vue-i18n';
 
@@ -135,15 +136,8 @@
   const isSpecOperationEdit = computed(() => specOperationState.type === 'edit');
   const hasInstanceSpecs = [`${ClusterTypes.ES}_es_datanode`];
   const hasInstance = computed(() => hasInstanceSpecs.includes(`${props.clusterType}_${props.machineType}`));
-  const hasQPSSpecs = [
-    `${ClusterTypes.TWEMPROXY_REDIS_INSTANCE}_tendiscache`,
-    `${ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE}_tendisssd`,
-    `${ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER}_tendisplus`,
-    `${ClusterTypes.TENDBCLUSTER}_remote`,
-  ];
-  const hasQPS = computed(() => hasQPSSpecs.includes(`${props.clusterType}_${props.machineType}`));
   const columns = computed(() => {
-    const baseColumns = [
+    const baseColumns: Column[] = [
       {
         type: 'selection',
         width: 48,
@@ -178,7 +172,7 @@
         showOverflowTooltip: false,
         minWidth: 400,
         render: ({ data }: { data: ResourceSpecModel }) => (
-          <bk-popover theme="light" popover-delay={[300, 0]} disable-outside-click>
+          <bk-popover theme="light" placement="top" popover-delay={[300, 0]} disable-outside-click>
             {{
               default: () => (
                 <div class="machine-info text-overflow">
@@ -273,16 +267,6 @@
         label: t('每台主机实例数量'),
         field: 'instance_num',
         width: 140,
-      });
-    }
-    if (hasQPS.value) {
-      baseColumns.splice(3, 0, {
-        label: t('单机QPS每秒'),
-        field: 'qps',
-        render: ({ data }: {data: ResourceSpecModel}) => {
-          const { min, max } = data.qps ?? { min: 0, max: 0 };
-          return min && max ? `${min} ~ ${max}` : '--';
-        },
       });
     }
     return baseColumns;
@@ -427,6 +411,22 @@
 
       .delete-button {
         margin-right: auto;
+      }
+    }
+
+    :deep(.machine-info) {
+      .bk-tag {
+        &:hover {
+          background-color: #f0f1f5;
+        }
+
+        &.bk-tag-info {
+          background-color: #edf4ff;
+        }
+      }
+
+      &:hover {
+        background-color: #f0f1f5;
       }
     }
   }

@@ -50,26 +50,33 @@
     {
       label: t('集群'),
       field: 'clusterName',
+      showOverflowTooltip: true,
     },
     {
       label: t('清档类型'),
+      minWidth: 200,
       field: 'type',
+      showOverflowTooltip: true,
     },
     {
       label: t('指定DB名'),
       field: 'dbName',
+      showOverflowTooltip: true,
     },
     {
       label: t('忽略DB名'),
       field: 'ignoreDbName',
+      showOverflowTooltip: true,
     },
     {
       label: t('指定表名'),
       field: 'tableName',
+      showOverflowTooltip: true,
     },
     {
       label: t('忽略表名'),
       field: 'ignoreTableName',
+      showOverflowTooltip: true,
     },
   ];
 

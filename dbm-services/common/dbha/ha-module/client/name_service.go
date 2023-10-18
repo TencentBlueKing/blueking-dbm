@@ -133,34 +133,13 @@ func (c *NameServiceClient) DeleteDomain(domainName string, app string, ip strin
 
 // PolarisClbGWResp the response format for polaris and clb
 type PolarisClbGWResp struct {
-	Message string   `json:"message"`
-	Status  int      `json:"status"`
-	Ips     []string `json:"ips,omitempty"`
-}
-
-// PolarisClbBodyParseCB the http body process callback for polaris and clb api
-func PolarisClbBodyParseCB(b []byte) (interface{}, error) {
-	result := &PolarisClbGWResp{}
-	err := json.Unmarshal(b, result)
-	if err != nil {
-		log.Logger.Errorf("unmarshall %s to %+v get an error:%s", string(b), *result, err.Error())
-		return nil, fmt.Errorf("json unmarshal failed, err: %+v", err)
-	}
-
-	// check response and data is nil
-	if result.Status != statusSuccess {
-		log.Logger.Errorf("result.Code is %d not equal to %d,message:%s",
-			result.Status, statusSuccess, result.Message)
-		return nil, fmt.Errorf("%v - %v", result.Status, result.Message)
-	}
-	return result, nil
+	Ips []string `json:"ips,omitempty"`
 }
 
 // ClbDeRegister un-register address to clb
-func (c *NameServiceClient) ClbDeRegister(region string, lbid string, listenid string, addr string) error {
+func (c *NameServiceClient) ClbDeRegister(
+	region string, lbid string, listenid string, addr string) error {
 	req := map[string]interface{}{
-		"db_cloud_token": c.Conf.BKConf.BkToken,
-		"bk_cloud_id":    c.CloudId,
 		"region":         region,
 		"loadbalancerid": lbid,
 		"listenerid":     listenid,
@@ -168,18 +147,15 @@ func (c *NameServiceClient) ClbDeRegister(region string, lbid string, listenid s
 	}
 
 	log.Logger.Debugf("ClbDeRegister param:%v", req)
-	response, err := c.DoNewForCB(http.MethodPost,
+	response, err := c.DoNew(http.MethodPost,
 		c.SpliceUrlByPrefix(c.Conf.UrlPre, constvar.CLBDeRegisterUrl, ""),
-		req, nil, PolarisClbBodyParseCB)
+		req, nil)
 	if err != nil {
+		log.Logger.Errorf("ClbDeRegister failed,%s", err.Error())
 		return err
 	}
 
-	gwRsp := response.(*PolarisClbGWResp)
-	if gwRsp.Status != 0 {
-		return fmt.Errorf("%s failed, return code:%d, msg:%s",
-			util.AtWhere(), gwRsp.Status, gwRsp.Message)
-	}
+	log.Logger.Debugf("ClbDeRegister:%v", response)
 	return nil
 }
 
@@ -188,29 +164,28 @@ func (c *NameServiceClient) ClbGetTargets(
 	region string, lbid string, listenid string,
 ) ([]string, error) {
 	req := map[string]interface{}{
-		"db_cloud_token": c.Conf.BKConf.BkToken,
-		"bk_cloud_id":    c.CloudId,
 		"region":         region,
 		"loadbalancerid": lbid,
 		"listenerid":     listenid,
 	}
 
 	log.Logger.Debugf("ClbDeRegister param:%v", req)
-	response, err := c.DoNewForCB(http.MethodPost,
+	response, err := c.DoNew(http.MethodPost,
 		c.SpliceUrlByPrefix(c.Conf.UrlPre, constvar.CLBGetTargetsUrl, ""),
-		req, nil, PolarisClbBodyParseCB)
+		req, nil)
 	if err != nil {
+		log.Logger.Errorf("ClbGetTargets failed,%s", err.Error())
 		return nil, err
 	}
 
-	gwRsp := response.(*PolarisClbGWResp)
-	if gwRsp.Status != 0 {
-		gwErr := fmt.Errorf("%s failed, return code:%d, msg:%s",
-			util.AtWhere(), gwRsp.Status, gwRsp.Message)
-		return nil, gwErr
+	log.Logger.Debugf("ClbGet Response:%v", response)
+	var gwResp PolarisClbGWResp
+	err = json.Unmarshal(response.Data, &gwResp)
+	if err != nil {
+		log.Logger.Errorf("ClbGetTargets failed,%s", err.Error())
+		return make([]string, 0), err
 	}
-
-	return gwRsp.Ips, nil
+	return gwResp.Ips, nil
 }
 
 // GetPolarisTargets get target address from polaris
@@ -222,25 +197,26 @@ func (c *NameServiceClient) GetPolarisTargets(servicename string) ([]string, err
 	}
 
 	log.Logger.Debugf("GetPolarisTargets param:%v", req)
-	response, err := c.DoNewForCB(http.MethodPost,
+	response, err := c.DoNew(http.MethodPost,
 		c.SpliceUrlByPrefix(c.Conf.UrlPre, constvar.PolarisTargetsUrl, ""),
-		req, nil, PolarisClbBodyParseCB)
+		req, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	gwRsp := response.(*PolarisClbGWResp)
-	if gwRsp.Status != 0 {
-		gwErr := fmt.Errorf("%s failed, return code:%d, msg:%s",
-			util.AtWhere(), gwRsp.Status, gwRsp.Message)
-		return nil, gwErr
+	var gwResp PolarisClbGWResp
+	err = json.Unmarshal(response.Data, &gwResp)
+	if err != nil {
+		log.Logger.Errorf("ClbGetTargets failed,%s", err.Error())
+		return make([]string, 0), err
 	}
 
-	return gwRsp.Ips, nil
+	return gwResp.Ips, nil
 }
 
 // PolarisUnBindTarget unbind address from polaris
-func (c *NameServiceClient) PolarisUnBindTarget(servicename string, servertoken string, addr string) error {
+func (c *NameServiceClient) PolarisUnBindTarget(
+	servicename string, servertoken string, addr string) error {
 	req := map[string]interface{}{
 		"db_cloud_token": c.Conf.BKConf.BkToken,
 		"bk_cloud_id":    c.CloudId,
@@ -250,18 +226,13 @@ func (c *NameServiceClient) PolarisUnBindTarget(servicename string, servertoken 
 	}
 
 	log.Logger.Debugf("PolarisUnBindTarget param:%v", req)
-	response, err := c.DoNewForCB(http.MethodPost,
+	response, err := c.DoNew(http.MethodPost,
 		c.SpliceUrlByPrefix(c.Conf.UrlPre, constvar.PolarisUnBindUrl, ""),
-		req, nil, PolarisClbBodyParseCB)
+		req, nil)
 	if err != nil {
+		log.Logger.Errorf("PolarisUnBindTarget failed,%s", err.Error())
 		return err
 	}
-
-	gwRsp := response.(*PolarisClbGWResp)
-	if gwRsp.Status != 0 {
-		return fmt.Errorf("%s failed, return code:%d, msg:%s",
-			util.AtWhere(), gwRsp.Status, gwRsp.Message)
-	}
-
+	log.Logger.Debugf("PolarisUnBindTarget response:%v", response)
 	return nil
 }

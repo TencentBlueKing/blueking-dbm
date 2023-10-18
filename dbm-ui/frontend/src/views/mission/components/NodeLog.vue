@@ -107,7 +107,6 @@
 
 <script setup lang="tsx">
   import { format } from 'date-fns';
-  import type { PropType } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import { getNodeLog } from '@services/taskflow';
@@ -125,19 +124,23 @@
 
   import { useCopy } from '@/hooks';
 
+  interface Props {
+    isShow?: boolean,
+    node?: GraphNode,
+  }
 
-  const props = defineProps({
-    isShow: {
-      type: Boolean,
-      default: false,
-    },
-    node: {
-      type: Object as PropType<GraphNode>,
-      default: () => ({}),
-    },
+  interface Emits {
+    (e: 'close'): void
+    (e: 'refresh', value: {
+      data: GraphNode['data']
+    }): void
+  }
+
+  const props = withDefaults(defineProps<Props>(), {
+    isShow: false,
+    node: () => ({} as GraphNode),
   });
-
-  const emit = defineEmits(['close', 'refresh']);
+  const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
   const copy = useCopy();
@@ -291,7 +294,7 @@
   };
 
   const handleRefresh = () => {
-    emit('refresh', { data: nodeData.value });
+    emits('refresh', { data: nodeData.value });
     refreshShow.value = false;
   };
 
@@ -300,7 +303,7 @@
    * close slider
    */
   const handleClose = () => {
-    emit('close');
+    emits('close');
     pause();
   };
 

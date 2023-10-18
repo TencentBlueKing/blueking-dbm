@@ -4,11 +4,10 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"os/exec"
 	"strconv"
 	"time"
-
-	"golang.org/x/exp/slog"
 )
 
 type commonData struct {
@@ -52,7 +51,8 @@ func SendBkMonitorBeat(
 	if err != nil {
 		slog.Error(
 			"send bk monitor heart beat encode body",
-			err, slog.Any("body", body),
+			slog.String("error", err.Error()),
+			slog.Any("body", body),
 		)
 		return err
 	}
@@ -76,7 +76,7 @@ func SendBkMonitorBeat(
 	if err != nil {
 		slog.Error(
 			"send bk monitor beat",
-			err,
+			slog.String("error", err.Error()),
 			slog.String("std out", stdout.String()),
 			slog.String("std err", stderr.String()),
 		)
@@ -118,7 +118,7 @@ func SendEvent(name string, content string, additionDimension map[string]interfa
 		body,
 	)
 	if err != nil {
-		slog.Error("send event", err)
+		slog.Error("send event", slog.String("error", err.Error()))
 		return err
 	}
 
@@ -156,7 +156,7 @@ func SendMetrics(mKey string, mValue int64, additionDimension map[string]interfa
 	)
 
 	if err != nil {
-		slog.Error("send event", err)
+		slog.Error("send event", slog.String("error", err.Error()))
 		return err
 	}
 

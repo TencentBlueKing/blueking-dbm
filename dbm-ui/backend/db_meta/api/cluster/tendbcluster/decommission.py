@@ -14,6 +14,7 @@ from django.utils.translation import ugettext as _
 
 from backend.db_meta.exceptions import DBMetaException
 from backend.db_meta.models import Cluster, ClusterEntry, StorageInstanceTuple
+from backend.db_services.mysql.open_area.models import TendbOpenAreaConfig
 from backend.flow.utils.cc_manage import CcManage
 
 logger = logging.getLogger("root")
@@ -59,6 +60,8 @@ def decommission(cluster: Cluster):
     # todo 目前cc没有封装移除主机模块接口,先保留写法
     # delete_cluster_modules(db_type=DBType.MySQL.value, del_cluster_id=cluster.id)
     cluster.delete(keep_parents=True)
+    # 删除集群相关的配置模板
+    TendbOpenAreaConfig.objects.filter(source_cluster_id=cluster.id).delete()
 
 
 @transaction.atomic

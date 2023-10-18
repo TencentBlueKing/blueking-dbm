@@ -63,7 +63,7 @@ export function useListData(props: Props) {
    * search select 过滤参数
    */
   const searchSelectData = [{
-    name: t('主域名'),
+    name: t('主访问入口'),
     id: 'domain',
   }, {
     name: 'IP',
@@ -98,6 +98,7 @@ export function useListData(props: Props) {
    */
   const fetchResources = (extra: FetchParams = {}) => {
     const params = {
+      dbType: DBTypes.MYSQL,
       bk_biz_id: globalBizsStore.currentBizId,
       type: props.clusterType,
       limit: listState.pagination.limit,
@@ -106,7 +107,7 @@ export function useListData(props: Props) {
       ...extra,
     };
     listState.loading = true;
-    return getResources<ResourceItem>(DBTypes.MYSQL, params)
+    return getResources<ResourceItem>(params)
       .then((res) => {
         listState.pagination.count = res.count;
         listState.data = res.results;

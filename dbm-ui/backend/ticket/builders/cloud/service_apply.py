@@ -103,11 +103,6 @@ class CloudServiceApplyFlowBuilder(BaseCloudTicketFlowBuilder):
     def init_ticket_flows(self):
         Flow.objects.bulk_create(
             [
-                # Flow(
-                #     ticket=self.ticket,
-                #     flow_type=FlowType.BK_ITSM.value,
-                #     details=CloudServiceApplyItsmParamBuilder(self.ticket).get_params(),
-                # ),
                 Flow(
                     ticket=self.ticket,
                     flow_type=FlowType.INNER_FLOW.value,

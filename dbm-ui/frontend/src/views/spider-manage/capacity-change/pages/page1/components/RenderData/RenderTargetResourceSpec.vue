@@ -12,28 +12,18 @@
 -->
 
 <template>
-  <span
+  <div
     v-bk-tooltips="{
       disabled: Boolean(clusterData),
       content: t('请先选择集群')
     }">
-    <TableEditSelect
+    <DisableSelect
       ref="inputRef"
-      v-model="showText"
-      disabled
-      :list="selectList"
+      :data="showText"
       :placeholder="t('请选择')"
       :rules="rules"
       @click="handleShowSelector" />
-    <!-- <TableEditInput
-      ref="inputRef"
-      :disabled="!clusterData"
-      :model-value="`${localSpec ? localSpec.capacity + ' G' : ''}`"
-      :placeholder="t('请选择')"
-      readonly
-      :rules="rules"
-      @click="handleShowSelector" /> -->
-  </span>
+  </div>
   <DbSideslider
     v-model:is-show="isShowSelector"
     :before-close="handleClose"
@@ -108,8 +98,7 @@
   import ClusterSpecPlanSelector, {
     type IRowData,
   } from '@components/cluster-spec-plan-selector/Index.vue';
-
-  import TableEditSelect from '@views/redis/common/edit/Select.vue';
+  import DisableSelect from '@components/tools-select-disable/index.vue';
 
   interface Props {
     clusterData?: SpiderModel
@@ -132,10 +121,10 @@
   const choosedSpecId = ref(-1);
   const localSpec = shallowRef<IRowData>();
   const showText = computed(() => `${localSpec.value ? `${localSpec.value.capacity} G` : ''}`);
-  const selectList = computed(() => (showText.value ? [{
-    label: showText.value,
-    value: showText.value,
-  }] : []));
+  // const selectList = computed(() => (showText.value ? [{
+  //   label: showText.value,
+  //   value: showText.value,
+  // }] : []));
 
   const rules = [
     {
@@ -201,6 +190,10 @@
 <style lang="less">
   .cluster-spec-plan-selector-box{
     padding: 20px 40px;
+
+    .bk-form-label{
+      font-weight: bold;
+    }
 
     .spec-box{
       width: 100%;

@@ -16,8 +16,10 @@
     <TableEditInput
       ref="editRef"
       v-model="localValue"
+      :disabled="disabled"
       :placeholder="$t('请输入')"
-      :rules="rules" />
+      :rules="rules"
+      type="number" />
   </BkLoading>
 </template>
 <script setup lang="ts">
@@ -30,7 +32,9 @@
   interface Props {
     data?: IDataRow['targetNum'];
     min?: number;
+    max?: number;
     isLoading?: boolean;
+    disabled?: boolean;
   }
 
   interface Exposes {
@@ -40,6 +44,9 @@
   const props = withDefaults(defineProps<Props>(), {
     data: '',
     min: 0,
+    max: 1,
+    isLoading: false,
+    disabled: false,
   });
 
   const { t } = useI18n();
@@ -60,6 +67,10 @@
     {
       validator: (value: string) => Number(value) > props.min,
       message: t('必须大于当前台数'),
+    },
+    {
+      validator: (value: string) => Number(value) <= props.max,
+      message: t('必须小于等于m台', { m: props.max }),
     },
   ];
 

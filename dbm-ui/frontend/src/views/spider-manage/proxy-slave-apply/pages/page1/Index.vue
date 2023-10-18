@@ -35,6 +35,8 @@
       </RenderData>
       <ClusterSelector
         v-model:is-show="isShowMasterInstanceSelector"
+        :get-resource-list="getList"
+        :selected="{}"
         :tab-list="clusterSelectorTabList"
         @change="handelClusterChange" />
     </div>
@@ -78,10 +80,9 @@
     TicketTypes,
   } from '@common/const';
 
-  import ClusterSelector from '@views/spider-manage/common/cluster-selector/ClusterSelector.vue';
-
   import { random } from '@utils';
 
+  import ClusterSelector from './components/cluster-selector/Index.vue';
   import RenderData from './components/Index.vue';
   import RenderDataRow, {
     createRowData,
@@ -99,7 +100,10 @@
   const tableData = ref([createRowData()]);
   const totalNum = computed(() => tableData.value.filter(item => Boolean(item.cluster)).length);
 
-  const clusterSelectorTabList = [ClusterTypes.SPIDER];
+  const clusterSelectorTabList = [{
+    id: ClusterTypes.SPIDER as string,
+    name: t('集群选择'),
+  }];
   // 集群域名是否已存在表格的映射表
   let domainMemo:Record<string, boolean> = {};
 

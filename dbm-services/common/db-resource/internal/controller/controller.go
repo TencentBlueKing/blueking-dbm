@@ -15,6 +15,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"dbm-services/common/db-resource/internal/svr/task"
 	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/errno"
 	"dbm-services/common/go-pubpkg/logger"
@@ -33,7 +34,7 @@ type Response struct {
 	RequestId string      `json:"request_id"`
 }
 
-// Prepare TODO
+// Prepare before request prepared
 func (c *BaseHandler) Prepare(r *gin.Context, schema interface{}) error {
 	requestId := r.GetString("request_id")
 	if cmutil.IsEmpty(requestId) {
@@ -50,7 +51,7 @@ func (c *BaseHandler) Prepare(r *gin.Context, schema interface{}) error {
 	return nil
 }
 
-// SendResponse TODO
+// SendResponse retrnurns a response
 func (c *BaseHandler) SendResponse(r *gin.Context, err error, data interface{}, requestId string) {
 	code, message := errno.DecodeErr(err)
 	r.JSON(http.StatusOK, Response{
@@ -59,4 +60,23 @@ func (c *BaseHandler) SendResponse(r *gin.Context, err error, data interface{}, 
 		Data:      data,
 		RequestId: requestId,
 	})
+}
+
+// BackStageHandler BackStageHandler
+type BackStageHandler struct {
+	BaseHandler
+}
+
+// RegisterRouter RegisterRouter
+func (c *BackStageHandler) RegisterRouter(engine *gin.Engine) {
+	r := engine.Group("background")
+	{
+		r.POST("/cc/module/check", c.RunModuleCheck)
+	}
+}
+
+// RunModuleCheck 运行模块检查
+func (c BackStageHandler) RunModuleCheck(r *gin.Context) {
+	task.InspectCheckResource()
+	c.SendResponse(r, nil, "Check Success", "")
 }

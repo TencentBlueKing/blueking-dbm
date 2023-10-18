@@ -84,7 +84,8 @@
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
-  import { getClusterDBNames, getClusterInfoByDomains } from '@services/clusters';
+  import { getClusterInfoByDomains } from '@services/clusters';
+  import { getClusterDBNames } from '@services/remoteService';
   import { createTicket } from '@services/ticket';
   import type { ResourceItem } from '@services/types/clusters';
 
@@ -336,7 +337,9 @@
 
     if (domains.length === 0) return Promise.resolve();
 
-    return getClusterInfoByDomains(globalBizsStore.currentBizId, { cluster_filters: _.uniq(domains) })
+    return getClusterInfoByDomains({
+      bizId: globalBizsStore.currentBizId,
+      cluster_filters: _.uniq(domains) })
       .then((res) => {
         for (const item of res) {
           clusterInfoMap.set(item.master_domain, item);
@@ -356,7 +359,9 @@
    */
   function fetchClusterDBNames() {
     const ids = tableData.value.map(item => item.cluster_id).filter(id => id);
-    return getClusterDBNames(globalBizsStore.currentBizId, { cluster_ids: ids })
+    return getClusterDBNames({
+      cluster_ids: ids,
+    })
       .then((res) => {
         for (const item of res) {
           const { cluster_id, databases } = item;
@@ -365,6 +370,7 @@
             systemDatabases: item.system_databases,
           });
         }
+
         return res;
       });
   }

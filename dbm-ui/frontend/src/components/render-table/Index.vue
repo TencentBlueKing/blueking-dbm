@@ -36,12 +36,6 @@
   </div>
 </template>
 <script setup lang="ts">
-  import {
-    onMounted,
-    provide,
-    ref,
-  } from 'vue';
-
   import useColumnResize from './hooks/useColumnResize';
 
   const tableOuterRef = ref();
@@ -49,8 +43,6 @@
   const tableColumnResizeRef = ref();
   const isOverflow = ref(false);
   const rowWidth = ref(0);
-  let resizeTimer = -1;
-  let resizeCount = 1;
 
   const  {
     initColumnWidth,
@@ -59,26 +51,15 @@
   } = useColumnResize(tableOuterRef, tableColumnResizeRef);
 
   const checkTableScroll = () =>  {
-    clearTimeout(resizeTimer);
-    resizeTimer = setTimeout(() => {
-      rowWidth.value = tableRef.value.clientWidth;
-      isOverflow.value = tableOuterRef.value.clientWidth < tableRef.value.clientWidth;
-      if (resizeCount < 2) {
-        checkTableScroll();
-        resizeCount = resizeCount + 1;
-      } else {
-        resizeCount = 1;
-      }
-    }, 100);
+    rowWidth.value = tableRef.value.clientWidth;
+    isOverflow.value = tableOuterRef.value.clientWidth < tableRef.value.clientWidth;
   };
 
   onMounted(() => {
+    window.addEventListener('resize', checkTableScroll);
     initColumnWidth();
-    setTimeout(() => {
-      checkTableScroll();
-      window.addEventListener('resize', checkTableScroll);
-      setTimeout(() => checkTableScroll());
-    });
+    checkTableScroll();
+    setTimeout(() => checkTableScroll());
   });
 
   onBeforeUnmount(() => window.removeEventListener('resize', checkTableScroll));
@@ -94,7 +75,6 @@
     width: 100%;
     overflow-x: auto;
     table-layout: fixed;
-    scrollbar-gutter: stable;
 
     &::-webkit-scrollbar {
       width: 4px;
@@ -119,10 +99,8 @@
       td {
         padding: 0 16px;
         line-height: 40px;
-
-        &:nth-child(n+2) {
-          border-left: 1px solid #dcdee5;
-        }
+        border-top: 1px solid #dcdee5;
+        border-left: 1px solid #dcdee5;
       }
 
       th {
@@ -140,10 +118,6 @@
           text-overflow: ellipsis;
           white-space: nowrap;
         }
-      }
-
-      td {
-        border-top: 1px solid #dcdee5;
       }
     }
 

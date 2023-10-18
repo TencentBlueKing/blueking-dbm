@@ -134,7 +134,7 @@
    */
   const fetchTicketDetails = (id: number, isPoll = false) => {
     state.isLoading = !isPoll;
-    getTicketDetails(id)
+    getTicketDetails({ id })
       .then((res) => {
         state.ticketData = res;
         // 设置轮询
@@ -170,17 +170,19 @@
 .ticket-details {
   padding: 24px;
 
+  :deep(.is-fullscreen) {
+    position: fixed;
+    top: 0;
+    right: 0;
+    z-index: 9999;
+    width: 100%;
+    height: 100%;
+  }
+
   .db-card {
     margin-bottom: 16px;
 
-    .is-fullscreen {
-      position: fixed;
-      top: 0;
-      right: 0;
-      z-index: 9999;
-      width: 100%;
-      height: 100%;
-    }
+
   }
 }
 

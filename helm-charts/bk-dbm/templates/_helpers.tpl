@@ -87,3 +87,35 @@ port: {{ $db.port | default $dbDefault.port | required "externalDatabase.port is
 {{- end -}}
 {{- end -}}
 
+
+{{/*
+ETCD 配置
+*/}}
+{{/*
+内建 Etcd 名称
+*/}}
+{{- define "bk-dbm.etcdName" -}}
+{{- include "common.names.fullname" (dict "Values" .Values.etcd "Chart" .Chart "Release" .Release) -}}
+{{- end -}}
+
+{{- define "bk-dbm.etcd" -}}
+{{- $root := first . -}}
+{{- $name := last . -}}
+{{- $values := $root.Values -}}
+{{- $etcd := $values.externalEtcd  -}}
+
+
+{{- if $values.etcd.enabled -}}
+schema: http
+host: {{ include "bk-dbm.etcdName" $root }}
+port: {{ $values.etcd.service.ports.client }}
+username: root
+password: {{ $values.etcd.auth.rbac.rootPassword }}
+{{- else -}}
+schema: {{ $etcd.schema | default "http" }}
+host: {{ $etcd.host }}
+port: {{ $etcd.port }}
+username: {{ $etcd.username }}
+password: {{ $etcd.password }}
+{{- end -}}
+{{- end -}}

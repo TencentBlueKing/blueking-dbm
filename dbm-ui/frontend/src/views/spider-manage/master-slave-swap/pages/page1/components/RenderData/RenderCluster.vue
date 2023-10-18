@@ -15,9 +15,9 @@
   <BkLoading :loading="isLoading">
     <TableEditInput
       ref="inputRef"
-      disabled
       :model-value="relatedClusterList.map(item => item.cluster_name).join(',')"
       :placeholder="t('输入主库后自动生成')"
+      readonly
       :rules="rules" />
   </BkLoading>
 </template>
@@ -34,7 +34,7 @@
 
   import { useGlobalBizs } from '@stores';
 
-  import TableEditInput from '@views/mysql/common/edit/Input.vue';
+  import TableEditInput from '@views/spider-manage/common/edit/Input.vue';
 
   import type { IHostData } from './Row.vue';
 
@@ -71,7 +71,8 @@
     emits('change', []);
     if (props.masterData && props.masterData.ip) {
       isLoading.value = true;
-      checkInstances(currentBizId, {
+      checkInstances({
+        bizId: currentBizId,
         instance_addresses: [props.masterData.ip],
       }).then((data) => {
         if (data.length < 1) {

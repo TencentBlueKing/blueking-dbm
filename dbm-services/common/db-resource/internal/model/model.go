@@ -38,9 +38,6 @@ type Database struct {
 // DB TODO
 var DB *Database
 
-// CMDBDB TODO
-var CMDBDB *Database
-
 func init() {
 	createSysDb()
 	orm_db := initSelfDB()
@@ -52,16 +49,6 @@ func init() {
 	DB = &Database{
 		Self:      orm_db,
 		SelfSqlDB: sqlDB,
-	}
-	d2 := initDBMDB()
-	d2sqlDb, err := d2.DB()
-	if err != nil {
-		logger.Fatal("init db connect failed %s", err.Error())
-		return
-	}
-	CMDBDB = &Database{
-		Self:      d2,
-		SelfSqlDB: d2sqlDb,
 	}
 	migration()
 	initarchive()

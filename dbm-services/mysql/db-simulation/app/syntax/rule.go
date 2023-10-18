@@ -1,8 +1,17 @@
+/*
+ * TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
+ * Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
+ * Licensed under the MIT License (the "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at https://opensource.org/licenses/MIT
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+ * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
+
 package syntax
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"reflect"
 
@@ -31,23 +40,6 @@ type CheckerResult struct {
 	RiskWarns []string
 }
 
-// IsPass TODO
-func (c CheckerResult) IsPass() bool {
-	return len(c.BanWarns) == 0 && len(c.RiskWarns) == 0
-}
-
-// Parse TODO
-func (c *CheckerResult) Parse(rule *RuleItem, val interface{}, s string) {
-	matched, err := rule.CheckItem(val)
-	if matched {
-		if rule.Ban {
-			c.BanWarns = append(c.BanWarns, fmt.Sprintf("%s\n%s", err.Error(), s))
-		} else {
-			c.RiskWarns = append(c.RiskWarns, fmt.Sprintf("%s\n%s", err.Error(), s))
-		}
-	}
-}
-
 const (
 	// DEFAUTL_RULE_FILE TODO
 	DEFAUTL_RULE_FILE = "rule.yaml"
@@ -65,14 +57,17 @@ func init() {
 		fileContent, err = os.ReadFile(DEFAUTL_RULE_FILE)
 	}
 	if err != nil {
-		logger.Error("failed to read the rule file:%s", err.Error())
-		panic(err)
+		logger.Fatal("failed to read the rule file:%s", err.Error())
+		return
 	}
 	if err := yaml.Unmarshal(fileContent, R); err != nil {
-		panic(err)
+		logger.Fatal("unmarshal rule config failed:%v", err)
 	}
-	if err = traverseLoadRule(*R); err != nil {
-		logger.Error("load rule from database failed %s", err.Error())
+	// 是否从db中加载配置覆盖配置文件
+	if config.GAppConfig.LoadRuleFromdb {
+		if err = traverseLoadRule(*R); err != nil {
+			logger.Error("load rule from database failed %s", err.Error())
+		}
 	}
 	var initCompiles = []*RuleItem{}
 	initCompiles = append(initCompiles, traverseRule(R.CommandRule)...)
@@ -80,21 +75,68 @@ func init() {
 	initCompiles = append(initCompiles, traverseRule(R.AlterTableRule)...)
 	initCompiles = append(initCompiles, traverseRule(R.DmlRule)...)
 	for _, c := range initCompiles {
-		if err := c.Compile(); err != nil {
-			panic(err)
+		if err = c.compile(); err != nil {
+			logger.Fatal("compile rule failed %s", err.Error())
+			return
 		}
+	}
+}
+
+// IsPass TODO
+func (c CheckerResult) IsPass() bool {
+	return len(c.BanWarns) == 0 && len(c.RiskWarns) == 0
+}
+
+// Parse TODO
+func (c *CheckerResult) Parse(rule *RuleItem, val interface{}, additionalMsg string) {
+	matched, err := rule.CheckItem(val)
+	if matched {
+		if rule.Ban {
+			c.BanWarns = append(c.BanWarns, fmt.Sprintf("%s\n%s", err.Error(), additionalMsg))
+		} else {
+			c.RiskWarns = append(c.RiskWarns, fmt.Sprintf("%s\n%s", err.Error(), additionalMsg))
+		}
+	}
+}
+
+// Trigger TODO
+func (c *CheckerResult) Trigger(rule *BoolRuleItem, additionalMsg string) {
+	// 表示检查开关关闭，跳过检查
+	if !rule.TurnOn {
+		return
+	}
+	if rule.Ban {
+		c.BanWarns = append(c.BanWarns, fmt.Sprintf("%s:%s\n%s", rule.Desc, additionalMsg, rule.Suggestion))
+	} else {
+		c.RiskWarns = append(c.RiskWarns, fmt.Sprintf("%s:%s\n%s", rule.Desc, additionalMsg, rule.Suggestion))
+	}
+}
+
+// ParseBultinBan TODO
+func (c *CheckerResult) ParseBultinBan(f func() (bool, string)) {
+	matched, msg := f()
+	if matched {
+		c.BanWarns = append(c.BanWarns, msg)
 	}
 }
 
 // RuleItem TODO
 type RuleItem struct {
-	Expr string      `yaml:"expr"`
-	Desc string      `yaml:"desc"`
-	Item interface{} `yaml:"item"`
-	// 是都是禁用的行为
-	Ban         bool `yaml:"ban"`
+	Item        interface{} `yaml:"item"`
 	Val         interface{}
 	ruleProgram *vm.Program
+	Expr        string `yaml:"expr"`
+	Desc        string `yaml:"desc"`
+	Ban         bool   `yaml:"ban"`
+	Suggestion  string `yaml:"suggestion"`
+}
+
+// BoolRuleItem 开关型规则，只需配置开启或者关闭即可
+type BoolRuleItem struct {
+	Desc       string `yaml:"desc"`
+	Ban        bool   `yaml:"ban"`
+	TurnOn     bool   `yaml:"turnOn"`
+	Suggestion string `yaml:"suggestion"`
 }
 
 // Rules TODO
@@ -103,6 +145,26 @@ type Rules struct {
 	CreateTableRule CreateTableRule `yaml:"CreateTableRule"`
 	AlterTableRule  AlterTableRule  `yaml:"AlterTableRule"`
 	DmlRule         DmlRule         `yaml:"DmlRule"`
+	BuiltInRule     BuiltInRule     `yaml:"BuiltInRule"`
+}
+
+// BuiltInRule TODO
+type BuiltInRule struct {
+	TableNameSpecification TableNameSpecification `yaml:"TableNameSpecification"`
+	ShemaNamespecification ShemaNamespecification `yaml:"ShemaNamespecification"`
+}
+
+// TableNameSpecification TODO
+type TableNameSpecification struct {
+	KeyWord     bool `yaml:"keyword"`
+	SpeicalChar bool `yaml:"speicalChar"`
+}
+
+// ShemaNamespecification TODO
+type ShemaNamespecification struct {
+	KeyWord     bool `yaml:"keyword"`
+	SpeicalChar bool `yaml:"speicalChar"`
+	sysDbName   bool `yaml:"sysDbName"`
 }
 
 // CommandRule TODO
@@ -117,7 +179,6 @@ type CreateTableRule struct {
 	SuggestEngine         *RuleItem `yaml:"SuggestEngine"`
 	NeedPrimaryKey        *RuleItem `yaml:"NeedPrimaryKey"`
 	DefinerRule           *RuleItem `yaml:"DefinerRule"`
-	NormalizedName        *RuleItem `yaml:"NormalizedName"`
 }
 
 // AlterTableRule TODO
@@ -184,8 +245,10 @@ func parseRule(drule model.TbSyntaxRule) (rule RuleItem, err error) {
 func traverseRule(v interface{}) (rules []*RuleItem) {
 	value := reflect.ValueOf(v) // coordinate 是一个 Coordinate 实例
 	for num := 0; num < value.NumField(); num++ {
-		rule := value.Field(num).Interface().(*RuleItem)
-		rules = append(rules, rule)
+		rule, ok := value.Field(num).Interface().(*RuleItem)
+		if ok {
+			rules = append(rules, rule)
+		}
 	}
 	return rules
 }
@@ -196,11 +259,10 @@ type Env struct {
 	Item interface{}
 }
 
-// Compile TODO
-func (i *RuleItem) Compile() (err error) {
+func (i *RuleItem) compile() (err error) {
 	p, err := expr.Compile(i.Expr, expr.Env(Env{}), expr.AsBool())
 	if err != nil {
-		log.Printf("expr.Compile error %s\n", err.Error())
+		logger.Error("%s:expr.Compile error %s\n", i.Desc, err.Error())
 		return err
 	}
 	i.ruleProgram = p
@@ -227,5 +289,5 @@ func (i *RuleItem) CheckItem(val interface{}) (matched bool, err error) {
 	if !matched {
 		return false, fmt.Errorf("")
 	}
-	return matched, fmt.Errorf("%s:%v", i.Desc, val)
+	return matched, fmt.Errorf("%s,当前值:%v", i.Desc, val)
 }

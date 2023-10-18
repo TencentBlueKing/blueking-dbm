@@ -11,7 +11,7 @@
  * the specific language governing permissions and limitations under the License.
 */
 
-import { acceptHMRUpdate, defineStore } from 'pinia';
+import { defineStore } from 'pinia';
 
 import { getSystemEnviron } from '@services/common';
 
@@ -37,7 +37,3 @@ export const useSystemEnviron = defineStore('SystemEnviron', {
     },
   },
 });
-
-if (import.meta.hot) {
-  import.meta.hot.accept(acceptHMRUpdate(useSystemEnviron, import.meta.hot));
-}

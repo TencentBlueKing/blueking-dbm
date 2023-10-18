@@ -92,6 +92,7 @@
   const errorTxt = {
     rule: t('以小写英文字母开头_且只能包含英文字母_数字_连字符'),
     repeat: t('输入域名重复'),
+    maxlength: t('最大长度为m', { m: 63 }),
   };
 
   const state = reactive({
@@ -133,6 +134,14 @@
    */
   const handleValidate = () => {
     const newDomains = state.value.split('\n');
+    // 最大长度
+    const maxlengthRes = newDomains.every(key => key.length <= 63);
+    if (maxlengthRes === false) {
+      validateState.errorTxt = errorTxt.maxlength;
+      validateState.isShow = true;
+      return false;
+    }
+
     const validate = newDomains.every(key => nameRegx.test(key));
     if (!validate) {
       validateState.errorTxt = errorTxt.rule;

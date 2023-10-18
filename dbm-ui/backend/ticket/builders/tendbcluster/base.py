@@ -17,6 +17,7 @@ from backend.configuration.constants import DBType
 from backend.db_meta.enums import ClusterTenDBClusterStatusFlag, TenDBClusterSpiderRole
 from backend.db_meta.models import Cluster
 from backend.flow.consts import MAX_SPIDER_MASTER_COUNT, MIN_SPIDER_MASTER_COUNT, MIN_SPIDER_SLAVE_COUNT
+from backend.ticket import builders
 from backend.ticket.builders import TicketFlowBuilder
 from backend.ticket.builders.common.base import MySQLTicketFlowBuilderPatchMixin, fetch_cluster_ids
 from backend.ticket.builders.mysql.base import (
@@ -29,6 +30,10 @@ from backend.ticket.constants import TicketType
 
 class BaseTendbTicketFlowBuilder(MySQLTicketFlowBuilderPatchMixin, TicketFlowBuilder):
     group = DBType.TenDBCluster.value
+
+
+class TendbBasePauseParamBuilder(builders.PauseParamBuilder):
+    pass
 
 
 class TendbBaseOperateDetailSerializer(MySQLBaseOperateDetailSerializer):
@@ -108,10 +113,21 @@ class TendbBaseOperateDetailSerializer(MySQLBaseOperateDetailSerializer):
             ):
                 raise serializers.ValidationError(_("【{}】请保证缩容后的接入层spider master数量>0").format(cluster.name))
 
+    def validate_checksum_database_selector(self, attrs):
+        """校验tendbcluster的checksum库表选择器"""
+        cluster_database_info = {
+            "infos": [
+                {**backup_info, "cluster_id": info["cluster_id"]}
+                for info in attrs["infos"]
+                for backup_info in info["backup_infos"]
+            ]
+        }
+        super().validate_database_table_selector(attrs=cluster_database_info)
+
 
 class TendbClustersTakeDownDetailsSerializer(MySQLClustersTakeDownDetailsSerializer):
-    is_only_delete_slave_domain = serializers.BooleanField(help_text=_("是否只禁用只读集群"), required=False, default=False)
-    is_only_add_slave_domain = serializers.BooleanField(help_text=_("是否只启用只读集群"), required=False, default=False)
+    is_only_delete_slave_domain = serializers.BooleanField(help_text=_("是否只禁用只读接入层"), required=False, default=False)
+    is_only_add_slave_domain = serializers.BooleanField(help_text=_("是否只启用只读接入层"), required=False, default=False)
 
 
 class TendbBaseOperateResourceParamBuilder(MySQLBaseOperateResourceParamBuilder):

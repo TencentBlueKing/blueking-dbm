@@ -20,6 +20,8 @@ class InstancePhase(str, StructuredEnum):
     # 仅用作单据校验，不实际写入，销毁集群时，请直接删除Instance
     DESTROY = EnumField("destroy", _("destroy"))
 
+    TRANS_STAGE = EnumField("trans_stage", _("trans_stage"))
+
     @classmethod
     def instance_status_transfer_valid(cls, source_phase, target_phase) -> bool:
         """

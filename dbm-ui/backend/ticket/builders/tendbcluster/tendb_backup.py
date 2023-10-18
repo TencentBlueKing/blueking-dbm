@@ -14,6 +14,7 @@ from rest_framework import serializers
 
 from backend.flow.engine.controller.spider import SpiderController
 from backend.ticket import builders
+from backend.ticket.builders.mysql.base import DBTableField
 from backend.ticket.builders.tendbcluster.base import BaseTendbTicketFlowBuilder, TendbBaseOperateDetailSerializer
 from backend.ticket.builders.tendbcluster.tendb_full_backup import TendbFullBackUpDetailSerializer
 from backend.ticket.constants import TicketType
@@ -23,10 +24,10 @@ class TendbBackUpDetailSerializer(TendbBaseOperateDetailSerializer):
     class TendbBackUpItemSerializer(serializers.Serializer):
         cluster_id = serializers.IntegerField(help_text=_("集群ID"))
         backup_local = serializers.CharField(help_text=_("备份位置"))
-        db_patterns = serializers.ListField(help_text=_("匹配DB列表"), child=serializers.CharField())
-        ignore_dbs = serializers.ListField(help_text=_("忽略DB列表"), child=serializers.CharField())
-        table_patterns = serializers.ListField(help_text=_("匹配Table列表"), child=serializers.CharField())
-        ignore_tables = serializers.ListField(help_text=_("忽略Table列表"), child=serializers.CharField())
+        db_patterns = serializers.ListField(help_text=_("匹配DB列表"), child=DBTableField(db_field=True))
+        ignore_dbs = serializers.ListField(help_text=_("忽略DB列表"), child=DBTableField(db_field=True))
+        table_patterns = serializers.ListField(help_text=_("匹配Table列表"), child=DBTableField())
+        ignore_tables = serializers.ListField(help_text=_("忽略Table列表"), child=DBTableField())
 
     infos = serializers.ListSerializer(help_text=_("库表备份信息"), child=TendbBackUpItemSerializer())
 

@@ -38,6 +38,15 @@ declare global {
     sourceCapabilities: any
   }
 
+  interface DragEvent {
+    target: {
+      innerText: string;
+    };
+    relatedTarget: {
+      innerText: string;
+    } | null
+  }
+
   type ClusterTableProps = {
     -readonly [K in keyof TablePropTypes]: TablePropTypes[K]
   }
@@ -52,4 +61,5 @@ declare module 'pinia' {
 }
 
 // export {} 将其标记为外部模块，模块是至少包含1个导入或导出语句的文件，我们必须这样做才能扩展全局范围
-export {};
+export { };
+

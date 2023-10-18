@@ -2,9 +2,15 @@ dependencies:
 - name: common
   repository: https://charts.bitnami.com/bitnami
   version: 1.13.0
+- name: mysql
+  repository: https://charts.bitnami.com/bitnami
+  version: 9.12.4
 - name: redis
   repository: https://charts.bitnami.com/bitnami
   version: 16.13.2
+- name: etcd
+  repository: https://charts.bitnami.com/bitnami
+  version: 9.5.5
 - name: grafana
   repository: file://./charts/grafana
   version: 7.9.8
@@ -19,7 +25,7 @@ dependencies:
   version: 0.1.28
 - name: dbpartition
   repository: file://charts/dbpartition
-  version: 0.1.3
+  version: 0.1.4
 - name: db-simulation
   repository: file://charts/db-simulation
   version: 0.1.7
@@ -34,6 +40,15 @@ dependencies:
   version: 0.0.10
 - name: db-resource
   repository: file://charts/db-resource
-  version: 0.0.5
-digest: sha256:8dc9b9a51155abb5812f480c4859d5a6e15f9038f8672b59edad40d7d87a2f80
-generated: "2023-05-31T12:33:38.082905+08:00"
+  version: 0.0.7
+- name: db-celery-service
+  repository: file://charts/db-celery-service
+  version: 0.0.4
+- name: backup-server
+  repository: file://charts/backup-server
+  version: 0.0.2
+- name: backup-consumer
+  repository: file://charts/backup-consumer
+  version: 0.0.2
+digest: sha256:bca62d6538530facd8b271d761816f51bf547f767d6757f238b00c9e6469565e
+generated: "2023-10-12T10:20:26.956839+08:00"

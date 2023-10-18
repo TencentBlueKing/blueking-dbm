@@ -28,7 +28,10 @@
           v-model:biz-id="formData.bk_biz_id"
           @change-biz="handleChangeBiz" />
         <ClusterName v-model="formData.details.cluster_name" />
-        <ClusterAlias v-model="formData.details.cluster_alias" />
+        <ClusterAlias
+          v-model="formData.details.cluster_alias"
+          :biz-id="formData.bk_biz_id"
+          cluster-type="hdfs" />
         <CloudItem
           v-model="formData.details.bk_cloud_id"
           @change="handleChangeCloud" />
@@ -360,7 +363,7 @@
     bk_biz_id: '' as number | '',
     ticket_type: 'HDFS_APPLY',
     details: {
-      bk_cloud_id: '',
+      bk_cloud_id: 0,
       db_app_abbr: '',
       cluster_name: '',
       cluster_alias: '',
@@ -432,10 +435,7 @@
         trigger: 'change',
       },
       {
-        validator: (value: number) => {
-          console.log('hhto post = ', value);
-          return ![2181, 8480, 8485].includes(value);
-        },
+        validator: (value: number) => ![2181, 8480, 8485].includes(value),
         message: t('禁用2181_8480_8485'),
         trigger: 'change',
       },

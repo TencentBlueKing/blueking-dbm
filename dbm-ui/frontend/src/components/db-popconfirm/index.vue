@@ -45,11 +45,6 @@
     </div>
   </div>
 </template>
-<script lang="ts">
-  export default {
-    name: 'DbPopconfirm',
-  };
-</script>
 <script setup lang="ts">
   import tippy, {
     type Instance,
@@ -69,9 +64,14 @@
     confirmHandler: () => Promise<any>,
     cancelHandler?: () => Promise<any>,
   }
+
   const props = withDefaults(defineProps<Props>(), {
     placement: 'top',
     cancelHandler: () => Promise.resolve(),
+  });
+
+  defineOptions({
+    name: 'DbPopconfirm',
   });
 
   let tippyIns: Instance;
@@ -102,6 +102,7 @@
 
   onMounted(() => {
     const tippyTarget = rootRef.value.children[0];
+
     if (tippyTarget) {
       tippyIns = tippy(tippyTarget as SingleTarget, {
         content: popRef.value,
@@ -115,6 +116,18 @@
         offset: [0, 12],
         zIndex: 999999,
         hideOnClick: true,
+        popperOptions: {
+          strategy: 'fixed',
+          modifiers: [
+            {
+              name: 'flip',
+              options: {
+                fallbackPlacements: ['top-start', 'top-end'],
+                allowedAutoPlacements: ['top-start', 'top-end'],
+              },
+            },
+          ],
+        },
       });
     }
   });
@@ -151,6 +164,13 @@
 
       &::before {
         content: none;
+      }
+    }
+
+    &[data-placement^="top-end"]{
+      & > .tippy-arrow{
+        right: -6px;
+        left: unset !important;
       }
     }
   }

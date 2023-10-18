@@ -42,6 +42,7 @@ type logicBackupDataOption struct {
 // InstallNewDbBackupParam TODO
 type InstallNewDbBackupParam struct {
 	components.Medium
+	// Configs BackupConfig
 	Configs        map[string]map[string]string `json:"configs" validate:"required"`         // 模板配置
 	Options        BackupOptions                `json:"options" validate:"required"`         // 选项参数配置
 	Host           string                       `json:"host"  validate:"required,ip"`        // 当前实例的主机地址
@@ -54,6 +55,7 @@ type InstallNewDbBackupParam struct {
 	ClusterId      map[Port]int                 `json:"cluster_id"`                    // cluster id
 	ShardValue     map[Port]int                 `json:"shard_value"`                   // shard value for spider
 	ExecUser       string                       `json:"exec_user"`                     // 执行Job的用户
+	UntarOnly      bool                         `json:"untar_only"`                    // 只解压，不校验不渲染配置，不连接 db
 }
 
 type runtimeContext struct {
@@ -112,6 +114,10 @@ func (i *InstallNewDbBackupComp) Init() (err error) {
 	i.dbConn = make(map[int]*native.DbWorker)
 	i.versionMap = make(map[int]string)
 	i.renderCnf = make(map[int]config.BackupConfig)
+	if i.Params.UntarOnly {
+		logger.Info("untar_only=true do not try to connect")
+		return nil
+	}
 	for _, port := range i.Params.Ports {
 		dbwork, err := native.InsObject{
 			Host: i.Params.Host,
@@ -157,6 +163,8 @@ func (i *InstallNewDbBackupComp) initBackupOptions() {
 	var ignoretbls, ignoredbs []string
 	ignoredbs = strings.Split(i.Params.Options.IgnoreObjs.IgnoreDatabases, ",")
 	ignoredbs = append(ignoredbs, native.DBSys...)
+	// 默认备份需要 infodba_schema 库
+	ignoredbs = util.StringsRemove(ignoredbs, native.INFODBA_SCHEMA)
 	ignoretbls = strings.Split(i.Params.Options.IgnoreObjs.IgnoreTables, ",")
 
 	i.ignoredbs = util.UniqueStrings(util.RemoveEmpty(ignoredbs))
@@ -205,11 +213,16 @@ func (i *InstallNewDbBackupComp) getInsShardValue(port int) int {
 	return 0
 }
 
-// InitRenderData 初始化待渲染的配置变量
+// InitRenderData 初始化待渲染的配置变量 renderCnf[port]: backup_configs
 func (i *InstallNewDbBackupComp) InitRenderData() (err error) {
+	if i.Params.UntarOnly {
+		logger.Info("untar_only=true do not need InitRenderData")
+		return nil
+	}
+
 	bkuser := i.GeneralParam.RuntimeAccountParam.DbBackupUser
 	bkpwd := i.GeneralParam.RuntimeAccountParam.DbBackupPwd
-	regexfunc, err := db_table_filter.NewDbTableFilter([]string{"*"}, []string{"*"}, i.ignoredbs, i.ignoretbls)
+	regexfunc, err := db_table_filter.BuildMydumperRegex([]string{"*"}, []string{"*"}, i.ignoredbs, i.ignoretbls)
 	if err != nil {
 		return err
 	}
@@ -226,7 +239,7 @@ func (i *InstallNewDbBackupComp) InitRenderData() (err error) {
 	case cst.BackupRoleOrphan:
 		// orphan 使用的是 tendbsingle Master.DataSchemaGrant
 		dsg = i.Params.Options.Master.DataSchemaGrant
-	case cst.BackupRoleSpiderMaster, cst.BackupRoleSpiderSlave:
+	case cst.BackupRoleSpiderMaster, cst.BackupRoleSpiderSlave, cst.BackupRoleSpiderMnt:
 		// spider 只在 spider_master and tdbctl_master 上，备份schema,grant
 		dsg = "schema,grant"
 	default:
@@ -307,6 +320,10 @@ func (i *InstallNewDbBackupComp) DecompressPkg() (err error) {
 // InitBackupUserPriv 创建备份用户
 // TODO 用户初始化考虑在部署 mysqld 的时候进行
 func (i *InstallNewDbBackupComp) InitBackupUserPriv() (err error) {
+	if i.Params.UntarOnly {
+		logger.Info("untar_only=true do not need InitBackupUserPriv")
+		return nil
+	}
 	for _, port := range i.Params.Ports {
 		err := i.initPriv(port, false)
 		if err != nil {
@@ -348,6 +365,10 @@ func (i *InstallNewDbBackupComp) initPriv(port int, isTdbCtl bool) (err error) {
 
 // GenerateDbbackupConfig TODO
 func (i *InstallNewDbBackupComp) GenerateDbbackupConfig() (err error) {
+	if i.Params.UntarOnly {
+		logger.Info("untar_only=true do not need GenerateDbbackupConfig")
+		return nil
+	}
 	// 先渲染模版配置文件
 	templatePath := path.Join(i.installPath, fmt.Sprintf("%s.tpl", cst.BackupFile))
 	if err := i.saveTplConfigfile(templatePath); err != nil {
@@ -458,6 +479,10 @@ func (i *InstallNewDbBackupComp) saveTplConfigfile(tmpl string) (err error) {
 
 // AddCrontab TODO
 func (i *InstallNewDbBackupComp) AddCrontab() error {
+	if i.Params.UntarOnly {
+		logger.Info("untar_only=true do not need AddCrontab")
+		return nil
+	}
 	if i.Params.ClusterType == cst.TendbCluster {
 		return i.addCrontabSpider()
 	} else {

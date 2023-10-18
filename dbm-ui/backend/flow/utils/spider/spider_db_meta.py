@@ -15,7 +15,7 @@ from django.db import transaction
 from backend.db_meta.api.cluster.tendbcluster.handler import TenDBClusterClusterHandler
 from backend.db_meta.api.cluster.tendbcluster.remotedb_node_migrate import TenDBClusterMigrateRemoteDb
 from backend.db_meta.enums import ClusterEntryRole, MachineType, TenDBClusterSpiderRole
-from backend.db_meta.models import Cluster
+from backend.db_meta.models import Cluster, StorageInstance
 from backend.flow.utils.dict_to_dataclass import dict_to_dataclass
 from backend.flow.utils.spider.spider_act_dataclass import ShardInfo
 
@@ -80,7 +80,7 @@ class SpiderDBMeta(object):
 
     def tendb_cluster_slave_apply(self):
         """
-        对已有的TenDB cluster集群 （spider集群）添加从集群（只读集群）
+        对已有的TenDB cluster集群 （spider集群）添加从集群（只读接入层）
         """
         kwargs = {
             "cluster_id": self.global_data["cluster_id"],
@@ -229,10 +229,53 @@ class SpiderDBMeta(object):
 
     def tendb_cluster_slave_destroy(self):
         """
-        清理只读集群剩余元数据信息
+        清理只读接入层剩余元数据信息
         """
         kwargs = {
             "cluster_id": self.global_data["cluster_id"],
         }
         TenDBClusterClusterHandler.clear_clusterentry(**kwargs)
         return True
+
+    def tendb_slave_recover_add_nodes(self):
+        """
+        remotedb 成对迁移添加初始化节点元数据
+        """
+        TenDBClusterMigrateRemoteDb.storage_create(
+            cluster_id=self.cluster["cluster_id"],
+            slave_ip=self.cluster["new_slave_ip"],
+            ports=self.cluster["ports"],
+            creator=self.global_data["created_by"],
+            mysql_version=self.cluster["version"],
+            resource_spec=self.global_data["resource_spec"],
+        )
+        return True
+
+    def tendb_slave_recover_add_tuple(self):
+        new_slave_to_old_master = {
+            "master": {"ip": self.cluster["master_ip"], "port": self.cluster["master_port"]},
+            "slave": {"ip": self.cluster["new_slave_ip"], "port": self.cluster["new_slave_port"]},
+        }
+        TenDBClusterMigrateRemoteDb.add_storage_tuple(
+            cluster_id=self.cluster["cluster_id"], storage=new_slave_to_old_master
+        )
+        # todo  是否修改new_master角色为中继状态
+
+    def tendb_modify_storage_status(self):
+        storage = StorageInstance.objects.get(self.cluster["storage_id"])
+        storage.status = self.cluster["storage_status"]
+        storage.save()
+
+    def tendb_slave_recover_switch(self):
+        for node in self.cluster["my_shards"].values():
+            source = {
+                "master": {"ip": node["master"]["ip"], "port": node["master"]["port"]},
+                "slave": {"ip": node["slave"]["ip"], "port": node["slave"]["port"]},
+            }
+            target = {
+                "master": {"ip": node["master"]["ip"], "port": node["master"]["port"]},
+                "slave": {"ip": node["new_slave"]["ip"], "port": node["new_slave"]["port"]},
+            }
+            TenDBClusterMigrateRemoteDb.switch_remote_node(
+                cluster_id=self.cluster["cluster_id"], source=source, target=target
+            )

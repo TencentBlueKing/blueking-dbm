@@ -23,12 +23,13 @@
     <div v-else>
       <div
         v-for="item in localSlaveInstanceList"
-        :key="item">
+        :key="item"
+        class="content">
         {{ item }}
       </div>
       <div
         v-if="localSlaveInstanceList.length < 1"
-        key="empty"
+        style="color:#c4c6cc;"
         @click="handleShowBatchSelector">
         {{ t('请选择') }}
       </div>
@@ -64,9 +65,7 @@
     (e: 'change', value: string[]): void
   }
   interface Exposes {
-    getValue: () => Promise<{
-      slave: string[]
-    }>
+    getValue: () => Promise<string[]>
   }
 
   const props = defineProps<Props>();
@@ -92,13 +91,9 @@
   defineExpose<Exposes>({
     getValue() {
       if (props.scope === 'all') {
-        return Promise.resolve({
-          slave: [''],
-        });
+        return Promise.resolve(['']);
       }
-      return Promise.resolve({
-        slave: localSlaveInstanceList.value,
-      });
+      return Promise.resolve(localSlaveInstanceList.value);
     },
   });
 </script>
@@ -118,6 +113,13 @@
       .edit-btn{
         display: flex;
       }
+    }
+
+    .content {
+      width: 100%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
     .edit-btn{

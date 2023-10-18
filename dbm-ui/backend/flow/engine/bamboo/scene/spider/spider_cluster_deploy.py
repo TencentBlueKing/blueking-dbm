@@ -84,6 +84,10 @@ class TenDBClusterApplyFlow(object):
         # 声明中控实例的端口
         self.data["ctl_port"] = self.data["spider_port"] + 1000
 
+        # 是否升级成tokudb引擎
+        if not self.data.__contains__("enable_tokudb"):
+            self.data["enable_tokudb"] = False
+
         if len(self.data["remote_group"]) * int(self.data["remote_shard_num"]) != int(self.data["cluster_shard_num"]):
             raise Exception(_("传入参数有异常，请检查！len(remote_group)*remote_shard_num != cluster_shard_num"))
 
@@ -250,6 +254,21 @@ class TenDBClusterApplyFlow(object):
                 }
             )
         deploy_pipeline.add_parallel_acts(acts_list=acts_list)
+
+        # 给安装好的mysql实例开启tokudb引擎
+        if self.data["enable_tokudb"]:
+            acts_list = []
+            for mysql_ip in self.data["mysql_ip_list"]:
+                exec_act_kwargs.exec_ip = mysql_ip["ip"]
+                exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.enable_tokudb_payload.__name__
+                acts_list.append(
+                    {
+                        "act_name": _("安装tokudb引擎"),
+                        "act_component_code": ExecuteDBActuatorScriptComponent.code,
+                        "kwargs": asdict(exec_act_kwargs),
+                    }
+                )
+            deploy_pipeline.add_parallel_acts(acts_list=acts_list)
 
         acts_list = []
         # 定义每个spider节点auto_incr_mode_value值，单调递增

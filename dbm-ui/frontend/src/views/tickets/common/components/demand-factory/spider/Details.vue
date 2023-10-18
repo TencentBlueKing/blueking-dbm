@@ -61,11 +61,13 @@
         <span class="ticket-details__item-label">{{ t('接入层Master') }}：</span>
         <span class="ticket-details__item-value">
           <BkPopover
+            disable-outside-click
+            :offset="16"
             placement="top"
             theme="light">
             <span
               class="pb-2"
-              style="border-bottom: 1px dashed #979ba5;">
+              style="cursor: pointer;border-bottom: 1px dashed #979ba5;">
               {{ spiderSpec?.spec_name }}（{{ `${spiderSpec?.count} ${t('台')}` }}）
             </span>
             <template #content>
@@ -91,7 +93,7 @@
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
 
-  import { type FilterClusterSpecItem } from '@services/resourceSpec';
+  import RedisClusterSpecModel from '@services/model/resource-spec/redis-cluster-sepc';
   import type { TicketDetails } from '@services/types/ticket';
 
   import SpecInfos, { type SpecInfo } from '../../SpecInfos.vue';
@@ -121,7 +123,7 @@
       backend_group: {
         count: number,
         spec_id: string,
-        spec_info: FilterClusterSpecItem
+        spec_info: RedisClusterSpecModel
       },
     },
   }
@@ -144,6 +146,7 @@
     {
       field: 'spec_name',
       label: t('资源规格'),
+      showOverflowTooltip: true,
     },
     {
       field: 'machine_pair',
@@ -160,7 +163,7 @@
     {
       field: 'qps',
       label: t('集群QPS每秒'),
-      render: ({ data }: {data: FilterClusterSpecItem}) => data.qps.min * data.machine_pair,
+      render: ({ data }: {data: RedisClusterSpecModel}) => data.qps.min * data.machine_pair,
     },
   ];
 </script>

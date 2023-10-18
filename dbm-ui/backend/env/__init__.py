@@ -50,7 +50,7 @@ BK_IAM_SKIP = get_type_env(key="BK_IAM_SKIP", _type=bool, default=False)
 BK_IAM_SYSTEM_NAME = get_type_env(key="BK_IAM_SYSTEM_NAME", _type=str, default="DB管理平台")
 BK_IAM_INNER_HOST = get_type_env(key="BK_IAM_V3_INNER_HOST", _type=str, default="https://iam-inner.example.com")
 BK_IAM_USE_APIGATEWAY = True
-BK_IAM_APIGETEWAY = get_type_env(key="BK_IAM_APIGETEWAY", _type=str, default="https://iam-apigw.example.com")
+BK_IAM_APIGATEWAY = get_type_env(key="BK_IAM_APIGATEWAY", _type=str, default="https://iam-apigw.example.com")
 IAM_APP_URL = get_type_env(key="IAM_APP_URL", _type=str, default="https://iam.example.com")
 BK_IAM_RESOURCE_API_HOST = get_type_env(key="BK_IAM_RESOURCE_API_HOST", _type=str, default="https://bkdbm.example.com")
 
@@ -80,6 +80,7 @@ BK_JOB_URL = get_type_env(key="BK_JOB_HOST", _type=str, default=None)
 BK_NODEMAN_URL = get_type_env(key="BK_NODEMAN_URL", _type=str, default="http://apps.example.com/bk--nodeman")
 BK_SCR_URL = get_type_env(key="BK_SCR_URL", _type=str, default="http://scr.example.com")
 BK_SOPS_URL = get_type_env(key="BK_SOPS_HOST", _type=str, default=None)
+BK_HELPER_URL = get_type_env(key="BK_HELPER_URL", _type=str, default=None)
 # 北极星服务
 POLARIS_URL = get_type_env(key="POLARIS_URL", _type=str, default="http://polaris.example.com")
 
@@ -93,6 +94,8 @@ ITSM_FLOW_SKIP = get_type_env(key="ITSM_FLOW_SKIP", _type=str, default=False)
 
 # 名字服务北极星部门字段
 NAMESERVICE_POLARIS_DEPARTMENT = get_type_env(key="NAMESERVICE_POLARIS_DEPARTMENT", _type=str, default="")
+# 名字服务添加clb域名
+CLB_DOMAIN = get_type_env(key="CLB_DOMAIN", _type=bool, default=False)
 
 # 标准运维SA 空闲检查任务模版ID
 SA_CHECK_TEMPLATE_ID = get_type_env(key="SA_CHECK_TEMPLATE_ID", _type=int)
@@ -138,6 +141,11 @@ CHART_VERSION = get_type_env(key="CHART_VERSION", _type=str, default="")
 
 # 资源池伪造开关
 FAKE_RESOURCE_APPLY_ENABLE = get_type_env(key="FAKE_RESOURCE_APPLY_ENABLE", _type=bool, default=False)
+# 资源池是否支持亲和性(暂不支持)
+RESOURCE_SUPPORT_AFFINITY = get_type_env(key="RESOURCE_SUPPORT_AFFINITY", _type=bool, default=False)
 
 # 备份系统是否开启
 BACKUP_SYSTEM_ENABLED = get_type_env(key="BACKUP_SYSTEM_ENABLED", _type=bool, default=False)
+
+# Agent版本: 1.0/2.0
+GSE_AGENT_VERSION = get_type_env(key="GSE_AGENT_VERSION", _type=str, default="1.0")

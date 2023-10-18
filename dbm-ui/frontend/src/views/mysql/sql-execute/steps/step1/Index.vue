@@ -186,7 +186,6 @@
     if (!passed) {
       submitButtonTips.disabled = false;
       submitButtonTips.content = t('语法检测不通过，请先修正');
-      console.log('passs submitButtonTips = ', submitButtonTips);
       return;
     }
     submitButtonTips.disabled = true;

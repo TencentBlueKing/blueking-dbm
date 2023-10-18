@@ -51,7 +51,10 @@
   import { getTicketTypes } from '@services/ticket';
   import type { TaskflowItem } from '@services/types/taskflow';
 
-  import { useGlobalBizs, useUserProfile } from '@stores';
+  import {
+    useGlobalBizs,
+    useUserProfile,
+  } from '@stores';
 
   import {
     TicketTypes,
@@ -60,7 +63,11 @@
 
   import DbStatus from '@components/db-status/index.vue';
 
-  import { getCostTimeDisplay, getMenuListSearch, getSearchSelectorParams } from '@utils';
+  import {
+    getCostTimeDisplay,
+    getMenuListSearch,
+    getSearchSelectorParams,
+  } from '@utils';
 
   import {
     STATUS,
@@ -69,7 +76,7 @@
   import type { ListState } from '../common/types';
   import RedisResultFiles from '../components/RedisResultFiles.vue';
 
-  import type { TableColumnRender, TableProps } from '@/types/bkui-vue';
+  import type { TableColumnRender } from '@/types/bkui-vue';
 
   const { t } = useI18n();
   const { currentBizId } = useGlobalBizs();
@@ -96,56 +103,92 @@
     });
   }
 
-  const columns: TableProps['columns'] = [{
-    label: 'ID',
-    field: 'root_id',
-    fixed: 'left',
-    width: 240,
-    showOverflowTooltip: false,
-    render: ({ cell, data }: TableColumnRender) => (
+  const columns = computed(() => (
+    [
+      {
+        label: 'ID',
+        field: 'root_id',
+        fixed: 'left',
+        width: 240,
+        showOverflowTooltip: false,
+        render: ({ cell, data }: TableColumnRender) => (
       <div class="text-overflow" v-overflow-tips>
-        <a href="javascript:" onClick={handleToDetails.bind(null, data)}>{ cell }</a>
+        <router-link
+          to={{
+            name: 'DatabaseMissionDetails',
+            params: {
+              root_id: data.root_id,
+            },
+          }}>
+          { cell }
+        </router-link>
       </div>
     ),
-  }, {
-    label: t('任务类型'),
-    field: 'ticket_type_display',
-  }, {
-    label: t('状态'),
-    field: 'status',
-    render: ({ cell }: { cell: STATUS_STRING }) => {
-      const themes: Partial<Record<STATUS_STRING, string>> = {
-        RUNNING: 'loading',
-        SUSPENDED: 'loading',
-        BLOCKED: 'loading',
-        CREATED: 'default',
-        READY: 'default',
-        FINISHED: 'success',
-      };
-      const text = STATUS[cell] ? t(STATUS[cell]) : '--';
-      return <DbStatus type="linear" theme={themes[cell] || 'danger'}>{text}</DbStatus>;
-    },
-  }, {
-    label: t('关联单据'),
-    field: 'uid',
-    render: ({ cell }: TableColumnRender) => <bk-button text theme="primary" onClick={handleToTicket.bind(null, cell)}>{ cell }</bk-button>,
-  }, {
-    label: t('执行人'),
-    field: 'created_by',
-  }, {
-    label: t('执行时间'),
-    field: 'created_at',
-  }, {
-    label: t('耗时'),
-    field: 'cost_time',
-    render: ({ cell }: { cell: number }) => getCostTimeDisplay(cell),
-  }, {
-    label: t('操作'),
-    field: 'operation',
-    fixed: 'right',
-    minWidth: 210,
-    render: ({ data }: { data: TaskflowItem }) => (
-      <div class="table-operations"><bk-button class="mr-8" text theme="primary" onClick={handleToDetails.bind(null, data)}>{ t('查看详情') }</bk-button>
+      },
+      {
+        label: t('任务类型'),
+        field: 'ticket_type_display',
+        filter: {
+          list: state.ticketTypes.map(item => ({
+            text: item.name, value: item.name,
+          })),
+        },
+      },
+      {
+        label: t('状态'),
+        field: 'status',
+        filter: {
+          list: Object.keys(STATUS).map(id => ({
+            text: t(STATUS[id as STATUS_STRING]), value: id,
+          })),
+        },
+        render: ({ cell }: { cell: STATUS_STRING }) => {
+          const themes: Partial<Record<STATUS_STRING, string>> = {
+            RUNNING: 'loading',
+            SUSPENDED: 'loading',
+            BLOCKED: 'loading',
+            CREATED: 'default',
+            READY: 'default',
+            FINISHED: 'success',
+          };
+          const text = STATUS[cell] ? t(STATUS[cell]) : '--';
+          return <DbStatus type="linear" theme={themes[cell] || 'danger'}>{text}</DbStatus>;
+        },
+      },
+      {
+        label: t('关联单据'),
+        field: 'uid',
+        render: ({ cell }: TableColumnRender) => <bk-button text theme="primary" onClick={handleToTicket.bind(null, cell)}>{ cell }</bk-button>,
+      },
+      {
+        label: t('执行人'),
+        field: 'created_by',
+      },
+      {
+        label: t('执行时间'),
+        field: 'created_at',
+      },
+      {
+        label: t('耗时'),
+        field: 'cost_time',
+        render: ({ cell }: { cell: number }) => getCostTimeDisplay(cell),
+      },
+      {
+        label: t('操作'),
+        field: 'operation',
+        fixed: 'right',
+        minWidth: 210,
+        render: ({ data }: { data: TaskflowItem }) => (
+      <div class="table-operations">
+        <router-link
+          to={{
+            name: 'DatabaseMissionDetails',
+            params: {
+              root_id: data.root_id,
+            },
+          }}>
+          { t('查看详情') }
+        </router-link>
         {
           includesResultFiles.includes(data.ticket_type) && data.status === 'FINISHED'
             ? <bk-button text theme="primary" onClick={handleShowResultFiles.bind(null, data.root_id)}>{ t('查看结果文件') }</bk-button>
@@ -153,7 +196,9 @@
         }
       </div>
     ),
-  }];
+      },
+    ]
+  ));
 
   const searchData = computed(() => [{
     name: 'ID',
@@ -265,14 +310,14 @@
    * 查看详情
    */
   const router = useRouter();
-  const handleToDetails = (row: TaskflowItem) => {
-    router.push({
-      name: 'DatabaseMissionDetails',
-      params: {
-        root_id: row.root_id,
-      },
-    });
-  };
+  // const handleToDetails = (row: TaskflowItem) => {
+  //   router.push({
+  //     name: 'DatabaseMissionDetails',
+  //     params: {
+  //       root_id: row.root_id,
+  //     },
+  //   });
+  // };
 
   /**
    * 跳转到关联单据

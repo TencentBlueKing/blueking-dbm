@@ -13,10 +13,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"hash/crc32"
+	"log/slog"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
-	"golang.org/x/exp/slog"
 
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/config"
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/monitoriteminterface"
@@ -60,7 +60,10 @@ func (c *spiderRemoteCheck) Run() (msg string, err error) {
 
 	b, err := json.Marshal(res)
 	if err != nil {
-		slog.Error("spider remote marshal res", err, slog.Any("res", res))
+		slog.Error("spider remote marshal res",
+			slog.String("error", err.Error()),
+			slog.Any("res", res),
+		)
 		return "", err
 	}
 

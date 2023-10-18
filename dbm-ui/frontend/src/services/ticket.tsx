@@ -49,17 +49,17 @@ export const getInfrasCities = () => http.get<CitiyItem[]>('/apis/infras/cities/
 /**
  * 服务器规格列表
  */
-export const getInfrasHostSpecs = (cityCode: string) => http.get<HostSpec[]>(`/apis/infras/cities/${cityCode}/host_specs/`);
+export const getInfrasHostSpecs = (params: { cityCode: string }) => http.get<HostSpec[]>(`/apis/infras/cities/${params.cityCode}/host_specs/`);
 
 /**
  * redis 容量列表
  */
-export const getCapSpecs = (cityCode: string, params: CapSpecsParams) => http.post<CapSepcs[]>('/apis/infras/cities/cap_specs/', params);
+export const getCapSpecs = (params: CapSpecsParams & { cityCode: string }) => http.post<CapSepcs[]>('/apis/infras/cities/cap_specs/', params);
 
 /**
  * 创建单据
  */
-export const createTicket = (formData: object) => http.post<TicketItem>('/apis/tickets/', formData, { globalError: false })
+export const createTicket = (formData: Record<string, any>) => http.post<TicketItem>('/apis/tickets/', formData, { globalError: false })
   .then(res => res)
   .catch((e) => {
     const { code, data } = e;
@@ -142,29 +142,32 @@ export const processTicketTodo = (params: {
   action: string,
   todo_id: number,
   ticket_id: number,
-  params: object
+  params: Record<string, any>
 }) => http.post<FlowItemTodo>(`/apis/tickets/${params.ticket_id}/process_todo/`, params);
 
 
 /**
  * 获取单据详情
  */
-export const getTicketDetails = (id: number, params: { is_reviewed?: number } = {}) => http.get<TicketModel>(`/apis/tickets/${id}/`, params).then(data => new TicketModel(data));
+export const getTicketDetails = (params: {
+  id: number,
+  is_reviewed?: number
+}) => http.get<TicketModel>(`/apis/tickets/${params.id}/`, params).then(data => new TicketModel(data));
 
 /**
  * 获取单据流程
  */
-export const getTicketFlows = (id: number) => http.get<FlowItem[]>(`/apis/tickets/${id}/flows/`);
+export const getTicketFlows = (params: { id: number }) => http.get<FlowItem[]>(`/apis/tickets/${params.id}/flows/`);
 
 /**
  * 创建业务英文缩写
  */
-export const createAppAbbr = (id: number, params: CreateAbbrParams) => http.post<CreateAbbrParams>(`/apis/cmdb/${id}/set_db_app_abbr/`, params);
+export const createAppAbbr = (params: CreateAbbrParams & { id: number }) => http.post<CreateAbbrParams>(`/apis/cmdb/${params.id}/set_db_app_abbr/`, params);
 
 /**
  * 创建模块
  */
-export const createModules = (id: number, params: CreateModuleParams) => http.post<CreateModuleResult>(`/apis/cmdb/${id}/create_module/`, params);
+export const createModules = (params: CreateModuleParams & { id: number }) => http.post<CreateModuleResult>(`/apis/cmdb/${params.id}/create_module/`, params);
 
 /**
  * 保存模块配置
@@ -206,7 +209,7 @@ export const getHostInAuthorize = (params: {
 /**
   * 获取单据数量
   */
-export const getTicketsCount = (countType: 'MY_TODO' | 'MY_APPROVE') => http.get<number>('/apis/tickets/get_tickets_count/', { count_type: countType });
+export const getTicketsCount = (params: { count_type: 'MY_TODO' | 'MY_APPROVE' }) => http.get<number>('/apis/tickets/get_tickets_count/', params);
 
 /**
   * 查询集群变更事件
@@ -221,4 +224,7 @@ export const getInstanceOperateRecords = (params: Record<string, unknown> & { in
 /**
   * 重试单据流程
   */
-export const retryTicketFlow = (ticketId: number, params: { flow_id: number }) => http.post(`/apis/tickets/${ticketId}/retry_flow/`, params);
+export const retryTicketFlow = (params: {
+  ticketId: number,
+  flow_id: number
+}) => http.post(`/apis/tickets/${params.ticketId}/retry_flow/`, params);

@@ -10,6 +10,11 @@ image:
   # Overrides the image tag whose default is the chart appVersion.
   tag: ""
 
+  k8sWaitFor:
+    registry: "mirrors.tencent.com"
+    repository: "build/blueking/k8s-wait-for"
+    tag: "v1.5.1"
+
 imagePullSecrets: []
 nameOverride: ""
 fullnameOverride: "bk-dbm-dbpartition"

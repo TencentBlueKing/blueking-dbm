@@ -16,12 +16,14 @@ from rest_framework import serializers
 
 from backend.components import DBConfigApi
 from backend.components.dbconfig import constants as dbconf_const
-from backend.db_meta.enums import ClusterStatus, ClusterType, TenDBClusterSpiderRole
-from backend.db_meta.models import AppCache, Cluster
+from backend.db_meta.enums import ClusterType, TenDBClusterSpiderRole
+from backend.db_meta.enums.comm import SystemTagEnum, TagType
+from backend.db_meta.models import AppCache, Cluster, Tag
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.spider import SpiderController
 from backend.ticket import builders
 from backend.ticket.builders.common.constants import FixpointRollbackType
+from backend.ticket.builders.mysql.base import DBTableField
 from backend.ticket.builders.mysql.mysql_fixpoint_rollback import MySQLFixPointRollbackDetailSerializer
 from backend.ticket.builders.tendbcluster.base import BaseTendbTicketFlowBuilder, TendbBaseOperateDetailSerializer
 from backend.ticket.builders.tendbcluster.tendb_apply import TenDBClusterApplyResourceParamBuilder
@@ -39,10 +41,10 @@ class TendbFixPointRollbackDetailSerializer(TendbBaseOperateDetailSerializer):
     backupinfo = serializers.DictField(
         help_text=_("备份文件信息"), required=False, allow_null=True, allow_empty=True, default={}
     )
-    databases = serializers.ListField(help_text=_("目标库列表"), child=serializers.CharField())
-    databases_ignore = serializers.ListField(help_text=_("忽略库列表"), child=serializers.CharField(), required=False)
-    tables = serializers.ListField(help_text=_("目标table列表"), child=serializers.CharField())
-    tables_ignore = serializers.ListField(help_text=_("忽略table列表"), child=serializers.CharField(), required=False)
+    databases = serializers.ListField(help_text=_("目标库列表"), child=DBTableField(db_field=True))
+    databases_ignore = serializers.ListField(help_text=_("忽略库列表"), child=DBTableField(db_field=True), required=False)
+    tables = serializers.ListField(help_text=_("目标table列表"), child=DBTableField())
+    tables_ignore = serializers.ListField(help_text=_("忽略table列表"), child=DBTableField(), required=False)
 
     def validate(self, attrs):
         # 校验集群是否可用
@@ -72,14 +74,13 @@ class TendbFixPointRollbackFlowParamBuilder(builders.FlowParamBuilder):
         rollback_flow.save(update_fields=["details"])
 
         # 对临时集群记录变更
-        ClusterOperateRecord.objects.create(
-            cluster_id=target_cluster.id,
-            ticket_id=self.ticket.id,
-            flow_id=rollback_flow.id,
-            creator=self.ticket.creator,
+        temporary_tag, _ = Tag.objects.get_or_create(
+            bk_biz_id=self.ticket.bk_biz_id, name=SystemTagEnum.TEMPORARY.value, type=TagType.SYSTEM.value
         )
-        target_cluster.status = ClusterStatus.TEMPORARY.value
-        target_cluster.save(update_fields=["status"])
+        target_cluster.tag_set.add(temporary_tag)
+        ClusterOperateRecord.objects.get_or_create(
+            cluster_id=target_cluster.id, ticket=self.ticket, flow=rollback_flow
+        )
 
 
 class TendbApplyTemporaryFlowParamBuilder(builders.FlowParamBuilder):
@@ -99,7 +100,7 @@ class TenDBClusterApplyCopyResourceParamBuilder(TenDBClusterApplyResourceParamBu
         super().post_callback()
 
 
-@builders.BuilderFactory.register(TicketType.TENDBCLUSTER_ROLLBACK_CLUSTER)
+@builders.BuilderFactory.register(TicketType.TENDBCLUSTER_ROLLBACK_CLUSTER, is_apply=True)
 class MysqlFixPointRollbackFlowBuilder(BaseTendbTicketFlowBuilder):
     serializer = TendbFixPointRollbackDetailSerializer
 

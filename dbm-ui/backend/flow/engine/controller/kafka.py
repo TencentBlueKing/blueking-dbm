@@ -14,6 +14,7 @@ from backend.flow.engine.bamboo.scene.kafka.kafka_apply_flow import KafkaApplyFl
 from backend.flow.engine.bamboo.scene.kafka.kafka_destroy_flow import KafkaDestroyFlow
 from backend.flow.engine.bamboo.scene.kafka.kafka_disable_flow import KafkaDisableFlow
 from backend.flow.engine.bamboo.scene.kafka.kafka_enable_flow import KafkaEnableFlow
+from backend.flow.engine.bamboo.scene.kafka.kafka_fake_apply_flow import KafkaFakeApplyFlow
 from backend.flow.engine.bamboo.scene.kafka.kafka_reboot_flow import KafkaRebootFlow
 from backend.flow.engine.bamboo.scene.kafka.kafka_replace_flow import KafkaReplaceFlow
 from backend.flow.engine.bamboo.scene.kafka.kafka_scale_up_flow import KafkaScaleUpFlow
@@ -81,3 +82,10 @@ class KafkaController(BaseController):
         """
         flow = KafkaRebootFlow(root_id=self.root_id, data=self.ticket_data)
         flow.reboot_kafka_flow()
+
+    def kafka_fake_apply_scene(self):
+        """
+        kafka假部署流程
+        """
+        flow = KafkaFakeApplyFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.fake_deploy_kafka_flow()

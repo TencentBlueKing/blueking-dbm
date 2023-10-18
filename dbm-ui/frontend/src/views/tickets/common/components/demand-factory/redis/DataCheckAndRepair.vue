@@ -88,18 +88,22 @@
     {
       label: t('源集群'),
       field: 'src_cluster',
+      showOverflowTooltip: true,
     },
     {
       label: t('源实例'),
       field: 'src_instances',
+      showOverflowTooltip: true,
     },
     {
       label: t('目标集群'),
       field: 'taregtClusterName',
+      showOverflowTooltip: true,
     },
     {
       label: t('包含 Key'),
       field: 'targetNum',
+      showOverflowTooltip: true,
       render: ({ data }: {data: RowData}) => {
         if (data.key_white_regex.length > 0) {
           return data.key_white_regex.split('\n').map((key, index) => <bk-tag key={index} type="stroke">{key}</bk-tag>);
@@ -110,6 +114,7 @@
     {
       label: t('排除 Key'),
       field: 'time',
+      showOverflowTooltip: true,
       render: ({ data }: {data: RowData}) => {
         if (data.key_black_regex.length > 0) {
           return data.key_black_regex.split('\n').map((key, index) => <bk-tag key={index} type="stroke">{key}</bk-tag>);

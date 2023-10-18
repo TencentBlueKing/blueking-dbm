@@ -3,10 +3,10 @@ package redis_rpc
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/go-redis/redis/v8"
-	"golang.org/x/exp/slog"
 )
 
 // RedisClient redis连接信息

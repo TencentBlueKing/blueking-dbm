@@ -156,28 +156,33 @@ func (c *SemanticDumpSchemaComp) Precheck() (err error) {
 //	@return err
 func (c *SemanticDumpSchemaComp) DumpSchema() (err error) {
 	var dumper mysqlutil.Dumper
+	dumpOption := mysqlutil.MySQLDumpOption{
+		NoData:       true,
+		AddDropTable: true,
+		NeedUseDb:    true,
+		DumpRoutine:  true,
+		DumpTrigger:  true,
+		DumpEvent:    true,
+	}
+	if c.isSpider {
+		dumpOption.GtidPurgedOff = true
+	}
 	dumper = &mysqlutil.MySQLDumperTogether{
 		MySQLDumper: mysqlutil.MySQLDumper{
-			DumpDir:      c.Params.BackupDir,
-			Ip:           c.Params.Host,
-			Port:         c.Params.Port,
-			DbBackupUser: c.GeneralParam.RuntimeAccountParam.AdminUser,
-			DbBackupPwd:  c.GeneralParam.RuntimeAccountParam.AdminPwd,
-			DbNames:      c.dbs,
-			DumpCmdFile:  c.dumpCmd,
-			Charset:      c.charset,
-			MySQLDumpOption: mysqlutil.MySQLDumpOption{
-				NoData:       true,
-				AddDropTable: true,
-				NeedUseDb:    true,
-				DumpRoutine:  true,
-				DumpTrigger:  false,
-			},
+			DumpDir:         c.Params.BackupDir,
+			Ip:              c.Params.Host,
+			Port:            c.Params.Port,
+			DbBackupUser:    c.GeneralParam.RuntimeAccountParam.AdminUser,
+			DbBackupPwd:     c.GeneralParam.RuntimeAccountParam.AdminPwd,
+			DbNames:         c.dbs,
+			DumpCmdFile:     c.dumpCmd,
+			Charset:         c.charset,
+			MySQLDumpOption: dumpOption,
 		},
 		OutputfileName: c.Params.BackupFileName,
 	}
 	if err := dumper.Dump(); err != nil {
-		logger.Error("dump failed: ", err.Error())
+		logger.Error("dump failed: %s", err.Error())
 		return err
 	}
 	return nil

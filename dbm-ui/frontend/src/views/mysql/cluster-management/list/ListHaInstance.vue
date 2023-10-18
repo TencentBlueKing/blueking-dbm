@@ -81,8 +81,6 @@
 
   import { getSearchSelectorParams, isRecentDays, random } from '@utils';
 
-  import type { TableProps } from '@/types/bkui-vue';
-
   interface ColumnData {
     cell: string,
     data: ResourceInstance
@@ -137,12 +135,14 @@
   const tableHeight = computed(() => `calc(100% - ${isFlexHeader.value ? 48 : 96}px)`);
 
   const columns = computed(() => {
-    const list: TableProps['columns'] = [{
-      label: t('实例'),
-      field: 'instance_address',
-      minWidth: 200,
-      showOverflowTooltip: false,
-      render: ({ cell, data }: ColumnData) => (
+    const list = [
+      {
+        label: t('实例'),
+        field: 'instance_address',
+        fixed: 'left',
+        minWidth: 200,
+        showOverflowTooltip: false,
+        render: ({ cell, data }: ColumnData) => (
         <div style="display: flex; align-items: center;">
           <div class="text-overflow" v-overflow-tips>
             <a href="javascript:" onClick={() => handleToDetails(data)}>{cell}</a>
@@ -154,65 +154,74 @@
           }
         </div>
       ),
-    }, {
-      label: t('集群名称'),
-      field: 'cluster_name',
-      minWidth: 200,
-      showOverflowTooltip: false,
-      render: ({ cell, data }: ColumnData) => (
+      },
+      {
+        label: t('集群名称'),
+        field: 'cluster_name',
+        minWidth: 200,
+        showOverflowTooltip: false,
+        render: ({ cell, data }: ColumnData) => (
         <div class="domain">
           <a class="text-overflow" href="javascript:" v-overflow-tips onClick={() => handleToClusterDetails(data)}>{cell}</a>
           <i class="db-icon-copy" v-bk-tooltips={t('复制集群名称')} onClick={() => copy(cell)} />
         </div>
       ),
-    }, {
-      label: t('状态'),
-      field: 'status',
-      width: 140,
-      render: ({ cell }: { cell: ClusterInstStatus }) => {
-        const info = clusterInstStatus[cell] || clusterInstStatus.unavailable;
-        return <DbStatus theme={info.theme}>{info.text}</DbStatus>;
       },
-    }, {
-      label: t('主域名'),
-      field: 'master_domain',
-      minWidth: 200,
-      showOverflowTooltip: false,
-      render: ({ cell }: ColumnData) => (
+      {
+        label: t('状态'),
+        field: 'status',
+        width: 140,
+        render: ({ cell }: { cell: ClusterInstStatus }) => {
+          const info = clusterInstStatus[cell] || clusterInstStatus.unavailable;
+          return <DbStatus theme={info.theme}>{info.text}</DbStatus>;
+        },
+      },
+      {
+        label: t('主访问入口'),
+        field: 'master_domain',
+        minWidth: 200,
+        showOverflowTooltip: false,
+        render: ({ cell }: ColumnData) => (
         <div class="domain">
           <span class="text-overflow" v-overflow-tips>{cell}</span>
-          <i class="db-icon-copy" v-bk-tooltips={t('复制主域名')} onClick={() => copy(cell)} />
+          <i class="db-icon-copy" v-bk-tooltips={t('复制主访问入口')} onClick={() => copy(cell)} />
         </div>
       ),
-    }, {
-      label: t('从域名'),
-      field: 'slave_domain',
-      minWidth: 200,
-      showOverflowTooltip: false,
-      render: ({ cell }: ColumnData) => (
+      },
+      {
+        label: t('从访问入口'),
+        field: 'slave_domain',
+        minWidth: 200,
+        showOverflowTooltip: false,
+        render: ({ cell }: ColumnData) => (
         <div class="domain">
           <span class="text-overflow" v-overflow-tips>{cell}</span>
-          <i class="db-icon-copy" v-bk-tooltips={t('复制从域名')} onClick={() => copy(cell)} />
+          <i class="db-icon-copy" v-bk-tooltips={t('复制从访问入口')} onClick={() => copy(cell)} />
         </div>
       ),
-    },  {
-      label: t('部署角色'),
-      field: 'role',
-    }, {
-      label: t('部署时间'),
-      field: 'create_at',
-      width: 160,
-    }];
-
-    if (props.isFullWidth) {
-      list.push({
+      },
+      {
+        label: t('部署角色'),
+        field: 'role',
+      },
+      {
+        label: t('部署时间'),
+        field: 'create_at',
+        width: 160,
+      },
+      {
         label: t('操作'),
         field: '',
+        fixed: 'right',
         width: 140,
         render: ({ data }: { data: ResourceInstance }) => (
           <bk-button theme="primary" text onClick={handleToDetails.bind(this, data)}>{ t('查看详情') }</bk-button>
         ),
-      });
+      },
+    ];
+
+    if (!props.isFullWidth) {
+      list.pop();
     }
 
     return list;
@@ -252,6 +261,9 @@
   } = useTableSettings(UserPersonalSettings.TENDBHA_INSTANCE_SETTINGS, defaultSettings);
 
   const renderPagination = computed(() => {
+    if (state.pagination.count < 10) {
+      return false;
+    }
     if (props.isFullWidth) {
       return { ...state.pagination };
     }

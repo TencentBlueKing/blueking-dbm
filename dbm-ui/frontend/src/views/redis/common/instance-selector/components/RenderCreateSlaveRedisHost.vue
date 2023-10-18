@@ -25,10 +25,10 @@
       <DbOriginalTable
         :columns="columns"
         :data="tableData"
-        :height="490"
         :is-anomalies="isAnomalies"
         :is-searching="!!search"
-        :pagination="pagination"
+        :max-height="530"
+        :pagination="pagination.count < 10 ? false : pagination"
         remote-pagination
         :settings="tableSettings"
         style="margin-top: 12px;"
@@ -328,7 +328,6 @@
       return;
     }
     if (!ipv4.test(_.trim(search.value))) {
-      console.error('地址错误');
       return;
     }
     handlePageValueChange(1);

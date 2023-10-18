@@ -60,12 +60,15 @@
           </div>
         </template>
         <template #main>
-          <RenderTopoHost
-            :cluster-id="selectClusterId"
-            :last-values="lastValues"
-            :role="role"
-            :table-settings="tableSettings"
-            @change="handleHostChange" />
+          <div style="height: 574px;">
+            <RenderTopoHost
+              :cluster-id="selectClusterId"
+              :last-values="lastValues"
+              :role="role"
+              :table-settings="tableSettings"
+              :ticket-type="ticketType"
+              @change="handleHostChange" />
+          </div>
         </template>
       </BkResizeLayout>
     </div>
@@ -102,10 +105,15 @@
   interface Props {
     lastValues: InstanceSelectorValues,
     clusterId?: number,
-    role?: string
+    role?: string,
+    ticketType?: string,
   }
 
-  const props = defineProps<Props>();
+  const props = withDefaults(defineProps<Props>(), {
+    clusterId: undefined,
+    role: '',
+    ticketType: '',
+  });
   const emits = defineEmits<Emits>();
 
   const { currentBizId, currentBizInfo } = useGlobalBizs();
@@ -133,7 +141,7 @@
         },
       ],
     }).then((data) => {
-      const formatData = data.map((item: any) => ({ ...item, count: item.instance_count }));
+      const formatData = data.map((item: any) => ({ ...item, count: item.remote_db.length }));
       treeData.value = [
         {
           name: currentBizInfo?.display_name || '--',
@@ -178,12 +186,12 @@
     display: block;
     padding-top: 16px;
 
-    &.single-cluster{
-      .bk-resize-layout-aside{
-        width: 0 !important;
-        overflow: hidden !important;
-      }
-    }
+    // &.single-cluster{
+    //   .bk-resize-layout-aside{
+    //     width: 0 !important;
+    //     overflow: hidden !important;
+    //   }
+    // }
 
     .bk-resize-layout {
       height: 100%;

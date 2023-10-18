@@ -16,7 +16,6 @@
 </template>
 <script setup lang="ts">
   import {
-    type ComponentInternalInstance,
     computed,
     ref,
     watch,
@@ -31,13 +30,13 @@
   const comMap = {
     ticket: Page1,
     success: Page2,
-  } as Record<string, ComponentInternalInstance>;
+  };
 
   const page = ref('');
 
   const com = computed(() => {
-    if (comMap[page.value]) {
-      return comMap[page.value];
+    if (comMap[page.value as keyof typeof comMap]) {
+      return comMap[page.value as keyof typeof comMap];
     }
     return Page1;
   });

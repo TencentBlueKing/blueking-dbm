@@ -48,23 +48,18 @@
 
   import BusinessSelector from '@components/business-selector/BusinessSelector.vue';
 
-  const props = defineProps({
-    bizId: {
-      type: [Number, String],
-      required: true,
-    },
-    appAbbr: {
-      type: String,
-      default: '',
-    },
-  });
+  interface Emits {
+    (e: 'changeBiz', value: BizItem): void
+    (e: 'changeAppAbbr', value: string): void
+  }
 
-  const emits = defineEmits([
-    'update:bizId',
-    'changeBiz',
-    'update:appAbbr',
-    'changeAppAbbr',
-  ]);
+  const emits = defineEmits<Emits>();
+  const bizId = defineModel<number | string>('bizId', {
+    required: true,
+  });
+  const appAbbr = defineModel<string>('appAbbr', {
+    default: '',
+  });
 
   const route = useRoute();
   const { t } = useI18n();
@@ -86,7 +81,7 @@
   });
   const appAbbrRef = ref();
 
-  watch(() => props.bizId, (value) => {
+  watch(bizId, (value) => {
     if (typeof value === 'number' || value === null) {
       state.bizId = value;
     } else if (value === '') {
@@ -96,7 +91,7 @@
     immediate: true,
   });
 
-  watch(() => props.appAbbr, (value) => {
+  watch(appAbbr, (value) => {
     state.appAbbr = value;
   }, {
     immediate: true,
@@ -126,7 +121,7 @@
   }
 
   function handleChangeBizId(value: number) {
-    emits('update:bizId', value);
+    bizId.value = value;
     const info = state.bizList.find(item => value === item.bk_biz_id);
     if (info) {
       state.appAbbr = info.english_name;
@@ -134,11 +129,11 @@
       info.english_name && appAbbrRef.value?.clearValidate();
     }
     state.hasEnglishName = !!info?.english_name;
-    emits('changeBiz', info || {});
+    emits('changeBiz', info || {} as BizItem);
   }
 
   function handleChangeAppAbbr(value: string) {
-    emits('update:appAbbr', value);
+    appAbbr.value = value;
     emits('changeAppAbbr', value);
   }
 

@@ -24,7 +24,7 @@
         :columns="localColumns"
         :data="tableData.results"
         :max-height="tableMaxHeight"
-        :pagination="pagination"
+        :pagination="pagination.count < 10 ? false : pagination"
         :pagination-heihgt="60"
         remote-pagination
         show-overflow-tooltip
@@ -155,6 +155,10 @@
   });
 
   const emits = defineEmits<Emits>();
+
+  defineOptions({
+    inheritAttrs: false,
+  });
 
   // 生成可选中列配置
   const genSelectionColumn = () => ({
@@ -305,6 +309,9 @@
           ...paramsMemo,
           ...sortParams,
         };
+
+        isAnomalies.value = false;
+
         props.dataSource(params)
           .then((data) => {
             tableData.value = data;
@@ -323,7 +330,7 @@
 
             emits('requestSuccess', data);
           })
-          .catch(() => {
+          .catch((error) => {
             tableData.value.results = [];
             pagination.count = 0;
             isAnomalies.value = true;
@@ -368,7 +375,6 @@
   const handlePageSelect = () => {
     const selectMap = { ...rowSelectMemo.value };
     tableData.value.results.forEach((dataItem: any) => {
-      console.log('props.disableSelectMethod(dataItem) = ', dataItem);
       if (props.disableSelectMethod(dataItem)) {
         return;
       }
@@ -384,7 +390,9 @@
     const selectMap = { ...rowSelectMemo.value };
     tableData.value.results.forEach((dataItem: any) => {
       if (checked) {
-        selectMap[_.get(dataItem, props.primaryKey)] = dataItem;
+        if (!props.disableSelectMethod(dataItem)) {
+          selectMap[_.get(dataItem, props.primaryKey)] = dataItem;
+        }
       } else {
         delete selectMap[_.get(dataItem, props.primaryKey)];
       }

@@ -15,18 +15,13 @@
   <BkLoading :loading="isLoading">
     <TableEditInput
       ref="inputRef"
-      disabled
       :model-value="relatedClusterList.map(item => item.cluster_name).join(',')"
       :placeholder="t('输入主库后自动生成')"
+      readonly
       :rules="rules" />
   </BkLoading>
 </template>
 <script setup lang="ts">
-  import {
-    ref,
-    shallowRef,
-    watch,
-  } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import { checkInstances  } from '@services/clusters';
@@ -34,14 +29,13 @@
 
   import { useGlobalBizs } from '@stores';
 
-  import TableEditInput from '@views/mysql/common/edit/Input.vue';
+  import TableEditInput from '@views/spider-manage/common/edit/Input.vue';
 
   import type { IHostData } from './Row.vue';
 
   interface Props {
     masterData?: IHostData
   }
-
 
   interface Exposes {
     getValue: () => Promise<Record<'cluster_id', number>>
@@ -67,7 +61,8 @@
     relatedClusterList.value = [];
     if (props.masterData && props.masterData.ip) {
       isLoading.value = true;
-      checkInstances(currentBizId, {
+      checkInstances({
+        bizId: currentBizId,
         instance_addresses: [props.masterData.ip],
       }).then((data) => {
         if (data.length < 1) {

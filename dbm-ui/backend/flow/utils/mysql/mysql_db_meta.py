@@ -465,7 +465,6 @@ class MySQLDBMeta(object):
         集群成对迁移之三：切换到新实例。修改集群对应的实例，
         """
         with atomic():
-
             # 先修改映射关系
             api.cluster.tendbha.change_proxy_storage_entry(
                 cluster_id=self.cluster["cluster_id"],
@@ -604,3 +603,213 @@ class MySQLDBMeta(object):
         TenDBHAClusterHandler(
             bk_biz_id=self.bk_biz_id, cluster_id=self.ticket_data["cluster_id"]
         ).switch_tbinlogdumper_for_cluster(switch_ids=self.cluster["switch_ids"])
+
+    def slave_recover_add_instance(self):
+        # tendb ha从节点重建
+        machines = [
+            {
+                "ip": self.cluster["install_ip"],
+                "bk_biz_id": int(self.ticket_data["bk_biz_id"]),
+                "machine_type": MachineType.BACKEND.value,
+            }
+        ]
+        storage_instances = []
+        clusters = []
+        for cluster_id in self.cluster["cluster_ids"]:
+            cluster = Cluster.objects.get(id=cluster_id)
+            port = cluster.storageinstance_set.get(instance_inner_role=InstanceInnerRole.MASTER.value).port
+            storage_instances.append(
+                {
+                    "ip": self.cluster["install_ip"],
+                    "port": int(port),
+                    "instance_role": InstanceRole.BACKEND_SLAVE.value,
+                    "is_stand_by": False,  # 添加新建
+                    "db_version": self.cluster["package"],  # 存储真正的版本号信息
+                }
+            )
+            clusters.append(
+                {
+                    "ip": self.cluster["install_ip"],
+                    "port": int(port),
+                    "cluster_id": cluster_id,
+                }
+            )
+        with atomic():
+            api.machine.create(
+                machines=machines,
+                bk_cloud_id=int(self.ticket_data["bk_cloud_id"]),
+                creator=self.ticket_data["created_by"],
+            )
+            storage_objs = api.storage_instance.create(
+                instances=storage_instances,
+                creator=self.ticket_data["created_by"],
+                time_zone=self.ticket_data["time_zone"],
+                status=InstanceStatus.RESTORING.value,
+            )
+            # 新建的实例处于游离态，关联到每个相对应的集群ID。
+            api.cluster.tendbha.cluster_add_storage(clusters)
+            # ip转移模块，ip底下关联的每个实例注册到服务(即可监控)
+            MysqlCCTopoOperator(
+                Cluster.objects.filter(id__in=self.cluster["cluster_ids"])
+            ).transfer_instances_to_cluster_module(storage_objs)
+
+    def slave_recover_del_instance(self):
+        """
+        实例卸载完毕修改元数据
+        """
+
+        with atomic():
+            for cluster_id in self.cluster["cluster_ids"]:
+                cluster = Cluster.objects.get(id=cluster_id)
+                master = cluster.main_storage_instances()[0]
+                old_slave = cluster.storageinstance_set.get(machine__ip=self.cluster["uninstall_ip"], port=master.port)
+                api.cluster.tendbha.remove_storage_tuple(
+                    master_ip=master.machine.ip,
+                    slave_ip=old_slave.machine.ip,
+                    bk_cloud_id=cluster.bk_cloud_id,
+                    port_list=[master.port],
+                )
+                api.cluster.tendbha.remove_slave(cluster_id=cluster.id, target_slave_ip=old_slave.machine.ip)
+                CcManage(self.bk_biz_id).delete_service_instance(bk_instance_ids=[old_slave.bk_instance_id])
+                # 删除实例元数据信息
+                api.storage_instance.delete(
+                    [
+                        {
+                            "ip": old_slave.machine.ip,
+                            "port": old_slave.port,
+                            "bk_cloud_id": cluster.bk_cloud_id,
+                        }
+                    ]
+                )
+            if not StorageInstance.objects.filter(
+                machine__ip=self.cluster["uninstall_ip"], machine__bk_cloud_id=int(self.ticket_data["bk_cloud_id"])
+            ).exists():
+                api.machine.delete(
+                    machines=[self.cluster["uninstall_ip"]], bk_cloud_id=int(self.ticket_data["bk_cloud_id"])
+                )
+
+    def tendb_modify_storage_status(self):
+        storage = StorageInstance.objects.get(id=self.cluster["storage_id"])
+        storage.status = self.cluster["storage_status"]
+        storage.save()
+
+    def migrate_cluster_add_instance(self):
+        """
+        集群成对迁移之一：安装新节点，添加实例元数据，关联到集群，转移机器模块
+        """
+        mysql_pkg = Package.get_latest_package(
+            version=self.ticket_data["db_version"], pkg_type=MediumEnum.MySQL, db_type=DBType.MySQL
+        )
+
+        machines = [
+            {
+                "ip": self.cluster["new_master_ip"],
+                "bk_biz_id": int(self.bk_biz_id),
+                "machine_type": MachineType.BACKEND.value,
+            },
+            {
+                "ip": self.cluster["new_slave_ip"],
+                "bk_biz_id": int(self.bk_biz_id),
+                "machine_type": MachineType.BACKEND.value,
+            },
+        ]
+        storage_instances = []
+        for storage_port in self.cluster["cluster_ports"]:
+            storage_instances.append(
+                {
+                    "ip": self.cluster["new_master_ip"],
+                    "port": int(storage_port),
+                    "instance_role": InstanceRole.BACKEND_REPEATER.value,
+                    "is_stand_by": False,  # 添加新建
+                    "db_version": get_mysql_real_version(mysql_pkg.name),  # 存储真正的版本号信息
+                }
+            )
+            storage_instances.append(
+                {
+                    "ip": self.cluster["new_slave_ip"],
+                    "port": int(storage_port),
+                    "instance_role": InstanceRole.BACKEND_SLAVE.value,
+                    "is_stand_by": False,  # 添加新建
+                    "db_version": get_mysql_real_version(mysql_pkg.name),  # 存储真正的版本号信息
+                }
+            )
+
+        cluster_list = []
+        clusterid_list = []
+        for cluster_id in self.ticket_data["cluster_ids"]:
+            cluster_model = Cluster.objects.get(id=cluster_id)
+            master = cluster_model.storageinstance_set.get(instance_inner_role=InstanceInnerRole.MASTER.value)
+            cluster_list.append(
+                {
+                    "ip": self.cluster["new_slave_ip"],
+                    "port": master.port,
+                    "cluster_id": cluster_model.id,
+                }
+            )
+            cluster_list.append(
+                {
+                    "ip": self.cluster["new_master_ip"],
+                    "port": master.port,
+                    "cluster_id": cluster_model.id,
+                }
+            )
+            clusterid_list.append(cluster_model.id)
+        with atomic():
+            api.machine.create(
+                bk_cloud_id=self.ticket_data["bk_cloud_id"], machines=machines, creator=self.ticket_data["created_by"]
+            )
+            storage_objs = api.storage_instance.create(
+                instances=storage_instances,
+                creator=self.ticket_data["created_by"],
+                time_zone=self.ticket_data["time_zone"],
+                status=InstanceStatus.RESTORING,
+            )
+            api.cluster.tendbha.cluster_add_storage(cluster_list)
+            # 转移模块，实例ID注册服务
+            clusters = Cluster.objects.filter(id__in=clusterid_list)
+            MysqlCCTopoOperator(clusters).transfer_instances_to_cluster_module(storage_objs)
+
+            api.cluster.tendbha.add_storage_tuple(
+                master_ip=self.cluster["new_master_ip"],
+                slave_ip=self.cluster["new_slave_ip"],
+                bk_cloud_id=self.ticket_data["bk_cloud_id"],
+                port_list=self.cluster["cluster_ports"],
+            )
+        return True
+
+    def migrate_cluster_add_tuple(self):
+        """
+        添加主从关系链
+        """
+        with atomic():
+            api.cluster.tendbha.storage_tuple.add_storage_tuple(
+                master_ip=self.cluster["master_ip"],
+                slave_ip=self.cluster["new_master_ip"],
+                bk_cloud_id=self.cluster["bk_cloud_id"],
+                port_list=[self.cluster["master_port"]],
+            )
+            #  安装时候已经写入
+            # api.cluster.tendbha.storage_tuple.add_storage_tuple(
+            #     master_ip=self.cluster["new_master_ip"],
+            #     slave_ip=self.cluster["new_slave_ip"],
+            #     bk_cloud_id=self.cluster["bk_cloud_id"],
+            #     port_list=[self.cluster["master_port"]],
+            # )
+
+    def uninstall_instance(self):
+        """
+        实例卸载完毕修改元数据
+        """
+        with atomic():
+            for port in self.cluster["ports"]:
+                StorageInstance.objects.get(
+                    machine__ip=self.cluster["uninstall_ip"],
+                    machine__bk_cloud_id=self.cluster["bk_cloud_id"],
+                    port=port,
+                ).delete()
+            if not StorageInstance.objects.filter(
+                machine__ip=self.cluster["uninstall_ip"], machine__bk_cloud_id=int(self.ticket_data["bk_cloud_id"])
+            ).exists():
+                api.machine.delete(
+                    machines=[self.cluster["uninstall_ip"]], bk_cloud_id=int(self.ticket_data["bk_cloud_id"])
+                )

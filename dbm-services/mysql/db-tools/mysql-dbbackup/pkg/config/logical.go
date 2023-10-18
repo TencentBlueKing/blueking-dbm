@@ -9,8 +9,9 @@
 package config
 
 // LogicalBackup the config of logical backup
+// data or schema is controlled by Public.DataSchemaGrant
 type LogicalBackup struct {
-	ChunkFileSize   uint64 `ini:"ChunkFilesize"` // split tables into chunks of this output file size. This value is in MB
+	ChunkFilesize   uint64 `ini:"ChunkFilesize"` // split tables into chunks of this output file size. This value is in MB
 	Regex           string `ini:"Regex"`
 	Threads         int    `ini:"Threads"`
 	DisableCompress bool   `ini:"DisableCompress"`
@@ -21,15 +22,23 @@ type LogicalBackup struct {
 
 // LogicalLoad the config of logical loading
 type LogicalLoad struct {
-	MysqlHost     string `ini:"MysqlHost"`
-	MysqlPort     int    `ini:"MysqlPort"`
-	MysqlUser     string `ini:"MysqlUser"`
-	MysqlPasswd   string `ini:"MysqlPasswd"`
-	MysqlCharset  string `ini:"MysqlCharset"`
-	MysqlLoadDir  string `ini:"MysqlLoadDir"`
-	Threads       int    `ini:"Threads"`
-	Regex         string `ini:"Regex"`
-	EnableBinlog  bool   `ini:"EnableBinlog"`
+	MysqlHost    string `ini:"MysqlHost"`
+	MysqlPort    int    `ini:"MysqlPort"`
+	MysqlUser    string `ini:"MysqlUser"`
+	MysqlPasswd  string `ini:"MysqlPasswd"`
+	MysqlCharset string `ini:"MysqlCharset"`
+	MysqlLoadDir string `ini:"MysqlLoadDir"`
+	Threads      int    `ini:"Threads"`
+	Regex        string `ini:"Regex"`
+	EnableBinlog bool   `ini:"EnableBinlog"`
+	// SchemaOnly import schema,trigger,func,proc (--no-data)
+	//  if you want only table schema, use ExtraOpt = -skip-triggers --skip-post
+	//  mydumper doest not support data only currently, you should backup only data for your purpose
+	SchemaOnly    bool   `ini:"SchemaOnly"`
 	IndexFilePath string `ini:"IndexFilePath" validate:"required"`
 	ExtraOpt      string `ini:"ExtraOpt"` // other myloader options string to be appended
+	// DBListDropIfExists will run drop database if exists db_xxx before load data. comma separated
+	DBListDropIfExists string `ini:"DBListDropIfExists"`
+	// CreateTableIfNotExists true will add --append-if-not-exist for myloader
+	CreateTableIfNotExists bool `ini:"CreateTableIfNotExists"`
 }

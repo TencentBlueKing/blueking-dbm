@@ -213,6 +213,14 @@ class _CCApi(object):
             description=_("直接通过bk_host_id查询服务实例详细信息"),
         )
 
+        self.list_service_instance_detail = DataAPI(
+            method="POST",
+            base=CC_APIGW_DOMAIN,
+            url="list_service_instance_detail/",
+            module=self.MODULE,
+            description=_("获取服务实例详细信息"),
+        )
+
         self.add_label_for_service_instance = DataAPI(
             method="POST",
             base=CC_APIGW_DOMAIN,
@@ -259,6 +267,14 @@ class _CCApi(object):
             url="find_host_biz_relations/",
             module=self.MODULE,
             description=_("查询主机业务关系信息"),
+        )
+
+        self.search_object_attribute = DataAPI(
+            method="POST",
+            base=CC_APIGW_DOMAIN,
+            url="search_object_attribute/",
+            module=self.MODULE,
+            description=_("查询对象属性"),
         )
 
 

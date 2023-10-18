@@ -1,10 +1,10 @@
 package mysql
 
 import (
+	"log/slog"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"golang.org/x/exp/slog"
 )
 
 // AddRouter TODO

@@ -224,6 +224,7 @@ class MediumEnum(str, StructuredEnum):
     Spider = EnumField("spider", _("spider节点名称"))
     tdbCtl = EnumField("tdbctl", _("spider中控节点名称"))
     Riak = EnumField("riak", _("riak"))
+    RiakMonitor = EnumField("riak-monitor", _("riak-monitor"))
     RedisDts = EnumField("redis-dts", _("redis-dts"))
     TBinlogDumper = EnumField("tbinlogdumper", _("tbinlogdumper实例"))
 
@@ -259,6 +260,7 @@ class CloudServiceModuleName(str, StructuredEnum):
     DNS = EnumField("dns.service.module", _("dns服务模块"))
     DRS = EnumField("drs.service.module", _("drs服务模块"))
     DBHA = EnumField("dbha.service.module", _("dbha服务模块"))
+    RedisDTS = EnumField("redis_dts.service.module", _("redis_dts服务模块"))
 
 
 class MediumFileTypeEnum(int, StructuredEnum):
@@ -336,6 +338,13 @@ class DBActuatorActionEnum(str, StructuredEnum):
     MySQLBackupDemand = EnumField("backup-demand", _("mysql备份请求"))
     TenDBClusterBackendSwitch = EnumField("cluster-backend-switch", _("TenDBCluster集群做后端切换"))
     TenDBClusterMigrateCutOver = EnumField("cluster-backend-migrate-cutover", _("TenDBCluster集群做后端的成对迁移"))
+    DumpSchema = EnumField("dumpschema", _("为TBinlogDumper实例导出导入源表结构"))
+    OsCmd = EnumField("oscmd-run", _("执行os命令"))
+    MysqlOpenAreaDumpSchema = EnumField("open_area_dumpschema", _("Mysql开区导出库表结构"))
+    MysqlOpenAreaImportSchema = EnumField("open_area_importschema", _("Mysql开区导入库表结构"))
+    MysqlOpenAreaDumpData = EnumField("open_area_dumpdata", _("Mysql开区导出库表数据"))
+    MysqlOpenAreaImportData = EnumField("open_area_importdata", _("Mysql开区导入库表数据"))
+    EnableTokudb = EnumField("enable-tokudb-engine", _("MySQL实例安装tokudb引擎"))
 
 
 class RedisActuatorActionEnum(str, StructuredEnum):
@@ -368,6 +377,8 @@ class RedisActuatorActionEnum(str, StructuredEnum):
     REMOVE_DTS_SERVER = EnumField("remove_dts_server", _("remove_dts_server"))
     DATA_STRUCTURE = EnumField("data_structure", _("data_structure"))
     CLUSTER_MEET_CHECK = EnumField("clustermeet_checkfinish", _("clustermeet_checkfinish"))
+    VERSION_UPDATE = EnumField("version_update", _("version_update"))
+    CLUSTER_FAILOVER = EnumField("cluster_failover", _("cluster_failover"))
 
 
 class EsActuatorActionEnum(str, StructuredEnum):
@@ -468,6 +479,9 @@ class RiakActuatorActionEnum(str, StructuredEnum):
     UnInstall = EnumField("uninstall", _("uninstall"))
     Start = EnumField("start", _("start"))
     Stop = EnumField("stop", _("stop"))
+    DeployMonitor = EnumField("deploy-monitor", _("deploy-monitor"))
+    StartMonitor = EnumField("start-monitor", _("start-monitor"))
+    StopMonitor = EnumField("stop-monitor", _("stop-monitor"))
 
 
 class RiakModuleId(int, StructuredEnum):

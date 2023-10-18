@@ -13,9 +13,9 @@
 import { PipelineStatus } from '@common/const';
 
 export const enum RedisClusterTypes {
-  PredixyTendisplusCluster = 'PredixyTendisplusCluster', // Tendisplus存储版集群
-  TwemproxyRedisInstance = 'TwemproxyRedisInstance', // TendisCache集群
-  TwemproxyTendisSSDInstance = 'TwemproxyTendisSSDInstance', // TendisSSD集群
+  PredixyTendisplusCluster = 'PredixyTendisplusCluster', // Tendisplus
+  TwemproxyRedisInstance = 'TwemproxyRedisInstance', // TendisCache
+  TwemproxyTendisSSDInstance = 'TwemproxyTendisSSDInstance', // TendisSSD
 }
 
 interface Node {
@@ -210,5 +210,9 @@ export default class Redis {
     const len = this.proxy.length;
     if (len <= 1) return len;
     return new Set(this.proxy.map(item => item.ip)).size;
+  }
+
+  get isSlaveNormal() {
+    return this.redis_slave.every(item => item.status === 'running');
   }
 }

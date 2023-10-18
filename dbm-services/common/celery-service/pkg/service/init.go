@@ -3,10 +3,10 @@ package service
 import (
 	"bytes"
 	"io"
+	"log/slog"
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"golang.org/x/exp/slog"
 
 	"celery-service/pkg/handler"
 	"celery-service/pkg/log"
@@ -49,6 +49,8 @@ func Init() error {
 	handler.HandleAsyncKill(r)
 	handler.HandleAsyncQuery(r)
 	handler.HandleList(r)
+	handler.HandleDiscovery(r)
+	handler.HandlePing(r)
 
 	for _, rt := range r.Routes() {
 		logger.Info(

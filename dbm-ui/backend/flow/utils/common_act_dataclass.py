@@ -22,6 +22,7 @@ class DownloadBackupClientKwargs:
     """
 
     bk_cloud_id: int
+    bk_biz_id: int
     download_host_list: list
     backup_os_user: str = BACKUP_DEFAULT_OS_USER
 

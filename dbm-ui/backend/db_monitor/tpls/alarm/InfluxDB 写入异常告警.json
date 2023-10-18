@@ -1,34 +1,19 @@
 {
   "bk_biz_id": 0,
-  "monitor_strategy_id": 5948,
-  "name": "InfluxDB 写入异常告警",
+  "name": "InfluxDB \u5199\u5165\u5f02\u5e38\u544a\u8b66",
   "db_type": "influxdb",
   "details": {
     "app": "",
-    "name": "InfluxDB 写入异常告警",
+    "name": "InfluxDB \u5199\u5165\u5f02\u5e38\u544a\u8b66",
     "path": "",
     "type": "monitor",
     "items": [
       {
         "name": "AVG(influxdb_httpd_pointsWrittenFail)",
-        "target": [
-          [
-            {
-              "field": "host_topo_node",
-              "value": [
-                {
-                  "bk_obj_id": "set",
-                  "bk_inst_id": 2000008245
-                }
-              ],
-              "method": "eq"
-            }
-          ]
-        ],
+        "target": [],
         "functions": [],
         "algorithms": [
           {
-            "id": 6528,
             "type": "Threshold",
             "level": 2,
             "config": [
@@ -46,7 +31,6 @@
         "origin_sql": "",
         "query_configs": [
           {
-            "id": 6495,
             "name": "influxdb_httpd_pointsWrittenFail",
             "unit": "",
             "alias": "a",
@@ -68,7 +52,8 @@
             "agg_condition": [],
             "agg_dimension": [
               "bk_target_service_instance_id",
-              "ip"
+              "ip",
+              "app_id"
             ],
             "data_type_label": "time_series",
             "result_table_id": "pushgateway_dbm_influxdb_bkpull.group6",
@@ -86,9 +71,9 @@
       }
     ],
     "labels": [
-      "InfluxDB",
+      "DBM",
       "DBM_INFLUXDB",
-      "DBM"
+      "InfluxDB"
     ],
     "notice": {
       "config": {
@@ -121,8 +106,7 @@
         "end_time": "23:59:59",
         "start_time": "00:00:00",
         "assign_mode": [
-          "by_rule",
-          "only_notice"
+          "by_rule"
         ],
         "upgrade_config": {
           "is_enabled": false,
@@ -232,11 +216,9 @@
       },
       "config_id": 9002,
       "relate_type": "NOTICE",
-      "user_groups": [
-        0
-      ]
+      "user_groups": []
     },
-    "source": "bkmonitorv3",
+    "source": "dbm",
     "actions": [],
     "detects": [
       {
@@ -263,8 +245,12 @@
       }
     ],
     "scenario": "component",
-    "bk_biz_id": 2005000191,
-    "data_source_type": "监控采集指标"
+    "bk_biz_id": "",
+    "data_source_type": "\u76d1\u63a7\u91c7\u96c6\u6307\u6807",
+    "priority": 0
   },
-  "is_enabled": true
+  "is_enabled": true,
+  "monitor_indicator": "AVG(\u5199\u5165\u5931\u8d25\u7684\u6570\u636e\u70b9\u6570\u91cf)",
+  "version": 2,
+  "alert_source": "time_series"
 }

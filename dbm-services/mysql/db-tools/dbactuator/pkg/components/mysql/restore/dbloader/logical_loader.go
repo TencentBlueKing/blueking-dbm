@@ -10,6 +10,7 @@ import (
 
 	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/logger"
+	"dbm-services/mysql/db-tools/dbactuator/pkg/native"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util/db_table_filter"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/config"
 )
@@ -36,11 +37,14 @@ func (l *LogicalLoader) CreateConfigFile() error {
 		MysqlLoadDir:  p.LoaderDir,
 		IndexFilePath: p.IndexFilePath,
 		Threads:       4,
-		EnableBinlog:  true,
+		EnableBinlog:  p.EnableBinlog,
 		Regex:         l.myloaderRegex,
 	}
 	if loaderConfig.MysqlCharset == "" {
 		loaderConfig.MysqlCharset = "binary"
+	}
+	if l.doDr {
+		loaderConfig.DBListDropIfExists = native.INFODBA_SCHEMA
 	}
 	//logger.Info("dbloader config file, %+v", loaderConfig) // 有密码打印
 
@@ -146,6 +150,7 @@ func (l *LogicalLoader) buildFilter() error {
 	); err != nil {
 		return err
 	} else {
+		filter.BuildFilter()
 		l.myloaderRegex = filter.MyloaderRegex(l.doDr)
 	}
 	return nil

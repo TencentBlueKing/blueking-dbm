@@ -61,13 +61,13 @@
           <RenderDbName
             ref="dbPatternsRefs"
             :cluster-id="localClusterId"
-            :model-value="backupInfoItem.ignoreDbs" />
+            :model-value="backupInfoItem.dbPatterns" />
         </td>
         <td style="padding: 0;">
           <RenderDbName
             ref="ignoreDbsRefs"
+            v-model:model-value="backupInfoItem.ignoreDbs"
             :cluster-id="localClusterId"
-            :model-value="backupInfoItem.ignoreDbs"
             :required="false" />
         </td>
         <td style="padding: 0;">
@@ -77,11 +77,11 @@
             :model-value="backupInfoItem.tablePatterns" />
         </td>
         <td style="padding: 0;">
-          <RenderTableName
+          <RenderIgnoreTables
             ref="ignoreTablesRefs"
             :cluster-id="localClusterId"
-            :model-value="backupInfoItem.ignoreTables"
-            :required="false" />
+            :ignore-dbs="backupInfoItem.ignoreDbs"
+            :model-value="backupInfoItem.ignoreTables" />
         </td>
         <td :class="{'shadow-column': isFixed}">
           <div class="action-box">
@@ -134,7 +134,7 @@
     return ({
       rowKey: random(),
       clusterData: data.clusterData,
-      scope: data.scope || 'all',
+      scope: data.scope || '',
       backupInfos: [createBackupInfo(backupInfos)],
     });
   };
@@ -145,6 +145,7 @@
   import RenderTableName from '@views/mysql/common/edit-field/TableName.vue';
 
   import RenderCluster from './RenderCluster.vue';
+  import RenderIgnoreTables from './RenderIgnoreTables.vue';
   import RenderMaster from './RenderMaster.vue';
   import RenderScope from './RenderScope.vue';
   import RenderSlave from './RenderSlave.vue';
@@ -178,7 +179,7 @@
   const ignoreTablesRefs = ref();
 
   const localClusterId = ref(0);
-  const localBackupInfos = shallowRef<IDataRow['backupInfos']>([]);
+  const localBackupInfos = ref<IDataRow['backupInfos']>([]);
   const localScope = ref('');
 
   watch(() => props.data, () => {
@@ -253,12 +254,12 @@
         ignoreDbsList,
         ignoreTablesList,
       ]) => {
-        const slaveListResult = slaveList[0];
+        const slaveListResult = slaveList[0] as string[];
 
         return {
           ...clusterList[0],
           ...scopeList[0],
-          backup_infos: slaveList.reduce((result, item, index) => {
+          backup_infos: slaveListResult.reduce((result, item, index) => {
             result.push({
               slave: slaveListResult[index],
               ...masterList[index],

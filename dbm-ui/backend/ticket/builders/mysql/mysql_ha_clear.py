@@ -19,7 +19,11 @@ from backend.flow.consts import TruncateDataTypeEnum
 from backend.flow.engine.controller.mysql import MySQLController
 from backend.ticket import builders
 from backend.ticket.builders.common.base import CommonValidate, SkipToRepresentationMixin
-from backend.ticket.builders.mysql.base import BaseMySQLTicketFlowBuilder, MySQLBaseOperateDetailSerializer
+from backend.ticket.builders.mysql.base import (
+    BaseMySQLTicketFlowBuilder,
+    DBTableField,
+    MySQLBaseOperateDetailSerializer,
+)
 from backend.ticket.constants import FlowRetryType, FlowType, TicketType
 from backend.ticket.models import Flow
 
@@ -27,10 +31,10 @@ from backend.ticket.models import Flow
 class MySQLHaClearDetailSerializer(MySQLBaseOperateDetailSerializer):
     class TruncateDataInfoSerializer(serializers.Serializer):
         cluster_id = serializers.IntegerField(help_text=_("集群ID"))
-        db_patterns = serializers.ListField(help_text=_("匹配DB列表"), child=serializers.CharField())
-        ignore_dbs = serializers.ListField(help_text=_("忽略DB列表"), child=serializers.CharField())
-        table_patterns = serializers.ListField(help_text=_("匹配Table列表"), child=serializers.CharField())
-        ignore_tables = serializers.ListField(help_text=_("忽略Table列表"), child=serializers.CharField())
+        db_patterns = serializers.ListField(help_text=_("匹配DB列表"), child=DBTableField(db_field=True))
+        ignore_dbs = serializers.ListField(help_text=_("忽略DB列表"), child=DBTableField(db_field=True))
+        table_patterns = serializers.ListField(help_text=_("匹配Table列表"), child=DBTableField())
+        ignore_tables = serializers.ListField(help_text=_("忽略Table列表"), child=DBTableField())
         truncate_data_type = serializers.ChoiceField(help_text=_("清档类型"), choices=TruncateDataTypeEnum.get_choices())
         force = serializers.BooleanField(help_text=_("是否强制执行"), default=False)
 
@@ -41,8 +45,7 @@ class MySQLHaClearDetailSerializer(MySQLBaseOperateDetailSerializer):
         super().validate(attrs)
 
         # 库表选择器校验
-        db_operate_list = [info["truncate_data_type"] == TruncateDataTypeEnum.DROP_DATABASE for info in attrs["infos"]]
-        super().validate_database_table_selector(attrs, is_only_db_operate_list=db_operate_list)
+        super().validate_database_table_selector(attrs)
 
         return attrs
 

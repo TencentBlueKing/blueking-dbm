@@ -21,7 +21,7 @@
     :is-show="isShow"
     :quick-close="false"
     title=""
-    :width="1400"
+    :width="dialogWidth"
     @closed="handleClose">
     <BkResizeLayout
       :border="false"
@@ -121,12 +121,13 @@
               :loading="isLoading"
               :z-index="2">
               <DbOriginalTable
+                class="table-box"
                 :columns="columns"
                 :data="tableData"
-                :height="500"
+                :height="528"
                 :is-anomalies="isAnomalies"
                 :is-searching="searchSelectValue.length > 0"
-                :pagination="pagination"
+                :pagination="pagination.count < 10 ? false: pagination"
                 remote-pagination
                 row-style="cursor: pointer;"
                 @clear-search="handleClearSearch"
@@ -166,14 +167,13 @@
   import type { ResourceItem } from '@services/types/clusters';
   import type { ListBase } from '@services/types/common';
 
-  import { useCopy } from '@hooks';
+  import { useCopy, useSelectorDialogWidth } from '@hooks';
 
   import { ClusterTypes } from '@common/const';
 
   import DbStatus from '@components/db-status/index.vue';
 
   import {
-    getSearchSelectorParams,
     makeMap,
     messageWarn,
   } from '@utils';
@@ -218,22 +218,8 @@
 
   const { t } = useI18n();
   const copy = useCopy();
-
-  const checkSelectedAll = () => {
-    if (!selectedMap.value[activeTab.value]
-      || Object.keys(selectedMap.value[activeTab.value]).length < 1) {
-      isSelectedAll.value = false;
-      return;
-    }
-
-    for (let i = 0; i < tableData.value.length; i++) {
-      if (!selectedMap.value[activeTab.value][tableData.value[i].id]) {
-        isSelectedAll.value = false;
-      }
-    }
-  };
-
   const formItem = useFormItem();
+  const { dialogWidth } = useSelectorDialogWidth();
 
   const tabTipsRef = ref();
   const activeTab = ref(props.tabList[0].id);
@@ -252,7 +238,7 @@
     fetchResources,
     handleChangePage,
     handeChangeLimit,
-  } = useClusterData<ValueOf<Props['selected']>[0]>(activeTab, getSearchSelectorParams(searchSelectValue.value));
+  } = useClusterData<ValueOf<Props['selected']>[0]>(activeTab, searchSelectValue);
 
   // 显示切换 tab tips
   const showSwitchTabTips = computed(() => showTabTips.value && props.onlyOneType);
@@ -260,7 +246,7 @@
   const isEmpty = computed(() => _.every(Object.values(selectedMap.value), item => Object.keys(item).length < 1));
 
   const searchSelectData = computed(() => [{
-    name: t('主域名'),
+    name: t('主访问入口'),
     id: 'domain',
   }, {
     name: t('模块'),
@@ -274,6 +260,9 @@
       return Object.assign({}, result, masterDomainMap);
     }, {} as Record<string, boolean>));
 
+  const isIndeterminate = computed(() => !isSelectedAll.value
+    && selectedMap.value[activeTab.value] && Object.keys(selectedMap.value[activeTab.value]).length > 0);
+
   const columns = [
     {
       width: 60,
@@ -281,6 +270,7 @@
       <bk-checkbox
         key={`${pagination.current}_${activeTab.value}`}
         model-value={isSelectedAll.value}
+        indeterminate={isIndeterminate.value}
         label={true}
         onClick={(e: Event) => e.stopPropagation()}
         onChange={handleSelecteAll}
@@ -301,13 +291,13 @@
       field: 'cluster_name',
       showOverflowTooltip: true,
       render: ({ data }: { data: ResourceItem }) => (
-      <div>
-          <span style='margin-right: 8px'>{data.master_domain}</span>
+      <div class="cluster-name-box">
+          <div class="cluster-name">{data.master_domain}</div>
           {data.operations && data.operations.length > 0 && <bk-popover
             theme="light"
             width="360">
             {{
-              default: () => <bk-tag theme="info">{data.operations.length}</bk-tag>,
+              default: () => <bk-tag theme="info" class="tag-box">{data.operations.length}</bk-tag>,
               content: () => <ClusterRelatedTasks data={data.operations} />,
             }}
           </bk-popover>}
@@ -418,6 +408,21 @@
     }
   };
 
+  const checkSelectedAll = () => {
+    const currentSelected = selectedMap.value[activeTab.value];
+    if (!currentSelected || Object.keys(currentSelected).length < 1) {
+      isSelectedAll.value = false;
+      return;
+    }
+    for (let i = 0; i < tableData.value.length; i++) {
+      if (!currentSelected[tableData.value[i].id]) {
+        isSelectedAll.value = false;
+        return;
+      }
+    }
+    isSelectedAll.value = true;
+  };
+
   /**
    * 选择当行数据
    */
@@ -431,23 +436,14 @@
     } else {
       delete selectedMapMemo[activeTab.value][data.id];
     }
-
     selectedMap.value = selectedMapMemo;
-
     checkSelectedAll();
   };
 
   const handleRowClick = (row:any, data: ValueOf<Props['selected']>[0]) => {
-    const selectedMapMemo = { ...selectedMap.value };
-    if (!selectedMapMemo[activeTab.value]) {
-      selectedMapMemo[activeTab.value] = {};
-    }
-    if (selectedMapMemo[activeTab.value][data.id]) {
-      delete selectedMapMemo[activeTab.value][data.id];
-    } else {
-      selectedMapMemo[activeTab.value][data.id] = data;
-    }
-    selectedMap.value = selectedMapMemo;
+    const currentSelected = selectedMap.value[activeTab.value];
+    const isChecked = !!(currentSelected && currentSelected[data.id]);
+    handleSelecteRow(data, !isChecked);
   };
 
   /**
@@ -550,6 +546,29 @@
     &__content {
       height: 585px;
       padding: 16px 24px 0;
+
+      .table-box {
+        :deep(.cluster-name-box) {
+          display: flex;
+          width: 100%;
+          align-items: center;
+          overflow: hidden;
+
+          .cluster-name {
+            margin-right: 8px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            flex:1;
+          }
+
+          .tag-box {
+            height: 16px;
+            color: #3A84FF;
+            border-radius: 8px !important;
+          }
+        }
+      }
 
       :deep(.bk-pagination-small-list) {
         order: 3;

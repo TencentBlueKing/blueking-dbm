@@ -39,7 +39,7 @@
 
   import { ipv4 } from '@common/regex';
 
-  import TableEditInput from '@views/mysql/common/edit/Input.vue';
+  import TableEditInput from '@views/spider-manage/common/edit/Input.vue';
 
   import { random } from '@utils';
 
@@ -88,7 +88,8 @@
       message: t('IP格式不正确'),
     },
     {
-      validator: () => checkInstances(currentBizId, {
+      validator: () => checkInstances({
+        bizId: currentBizId,
         instance_addresses: [localValue.value],
       }).then((data) => {
         if (data.length > 0) {

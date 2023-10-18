@@ -18,10 +18,10 @@
     <span @click="handleShowTips">
       <TableEditTag
         ref="tagRef"
-        :model-value="modelValue"
+        :model-value="localValue"
         :placeholder="t('请输入DB 名称，支持通配符“%”，含通配符的仅支持单个')"
         :rules="rules"
-        single
+        :single="single"
         @change="handleChange" />
     </span>
     <div style="display: none;">
@@ -49,6 +49,8 @@
   } from 'vue';
   import { useI18n } from 'vue-i18n';
 
+  import { checkClusterDatabase } from '@services/remoteService';
+
   import TableEditTag from '@views/mysql/common/edit/Tag.vue';
 
   interface Props {
@@ -56,10 +58,16 @@
     clusterId: number,
     required?: boolean,
     single: boolean,
+    checkExist?: boolean
+    rules?: {
+      validator: (value: string[]) => boolean,
+      message: string
+    }[]
   }
 
   interface Emits {
-    (e: 'change', value: string []): void
+    (e: 'change', value: string []): void,
+    (e: 'update:modelValue', value: string []): void
   }
 
   interface Exposes {
@@ -71,35 +79,68 @@
     required: true,
     single: false,
     remoteExist: false,
+    checkExist: false,
+    rules: undefined,
   });
 
   const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
 
-  const rules = [
-    {
-      validator: (value: string []) => {
-        if (!props.required) {
-          return true;
-        }
-        return value && value.length > 0;
-      },
-      message: t('DB 名不能为空'),
-    },
-    {
-      validator: (value: string []) => {
-        const hasAllMatch = _.find(value, item => /%$/.test(item));
-        return !(value.length > 1 && hasAllMatch);
-      },
-      message: t('一格仅支持单个 % 对象'),
-    },
-  ];
-
   const rootRef = ref();
   const popRef = ref();
   const tagRef = ref();
   const localValue = ref(props.modelValue);
+
+  const rules = computed(() => {
+    if (props.rules && props.rules.length > 0) {
+      return props.rules;
+    }
+
+    return [
+      {
+        validator: (value: string []) => {
+          if (!props.required) {
+            return true;
+          }
+          return value && value.length > 0;
+        },
+        message: t('DB 名不能为空'),
+      },
+      {
+        validator: (value: string []) => {
+          const hasAllMatch = _.find(value, item => /%$/.test(item));
+          return !(value.length > 1 && hasAllMatch);
+        },
+        message: t('一格仅支持单个 % 对象'),
+      },
+      {
+        validator: (value: string[]) => {
+          if (!props.checkExist) {
+            return true;
+          }
+          const clearDbList = _.filter(value, item => !/[*%]/.test(item));
+          if (clearDbList.length  < 1) {
+            return true;
+          }
+          return checkClusterDatabase({
+            infos: [
+              {
+                cluster_id: props.clusterId,
+                db_names: value,
+              },
+            ],
+          }).then((data) => {
+            if (data.length < 1) {
+              return false;
+            }
+            return _.every(Object.values(data[0].check_info), item => item);
+          });
+        },
+        message: t('DB 不存在'),
+      },
+    ];
+  });
 
   // 集群改变时 DB 需要重置
   watch(() => props.clusterId, () => {
@@ -119,6 +160,7 @@
 
   const handleChange = (value: string[]) => {
     localValue.value = value;
+    emits('update:modelValue', value);
     emits('change', value);
   };
 

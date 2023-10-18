@@ -22,10 +22,30 @@ class BackupLogSerializer(serializers.Serializer):
     days = serializers.IntegerField(help_text=_("查询时间间隔"), default=BACKUP_LOG_RANGE_DAYS, required=False)
 
 
-class BackupLogRollbackTimeSerialzier(serializers.Serializer):
+class BackupLogTendbResponseSerializer(serializers.Serializer):
+    class Meta:
+        swagger_schema_fields = {"example": mock_data.TENDBCLUSTER_BACKUP_LOG_FROM_BKLOG}
+
+
+class BackupLogMySQLResponseSerializer(serializers.Serializer):
+    class Meta:
+        swagger_schema_fields = {"example": mock_data.MYSQL_BACKUP_LOG_FROM_BKLOG}
+
+
+class BackupLogRollbackTimeSerializer(serializers.Serializer):
     cluster_id = serializers.IntegerField(help_text=_("集群ID"))
     rollback_time = serializers.DateTimeField(help_text=_("回档时间"))
     job_instance_id = serializers.IntegerField(help_text=_("JOB实例ID"), required=False)
+
+
+class BackupLogRollbackTimeTendbResponseSerializer(serializers.Serializer):
+    class Meta:
+        swagger_schema_fields = {"example": mock_data.TENDBCLUSTER_BACKUP_LOG_FROM_BKLOG[0]}
+
+
+class BackupLogRollbackTimeMySQLResponseSerializer(serializers.Serializer):
+    class Meta:
+        swagger_schema_fields = {"example": mock_data.MYSQL_BACKUP_LOG_FROM_BKLOG[0]}
 
 
 class QueryBackupLogJobSerializer(serializers.Serializer):

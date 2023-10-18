@@ -34,21 +34,22 @@
       </RenderData>
       <div class="item-block">
         <BkCheckbox v-model="formData.is_check_process">
-          {{ t('执行前检测连接，如有连接') }}
+          {{ t('检查业务来源的连接') }}
         </BkCheckbox>
       </div>
       <div class="item-block">
         <BkCheckbox v-model="formData.is_check_delay">
-          {{ t('检查延迟') }}
+          {{ t('检查主从同步延迟') }}
         </BkCheckbox>
       </div>
       <div class="item-block">
         <BkCheckbox v-model="formData.is_verify_checksum">
-          {{ t('检查校验结果') }}
+          {{ t('检查主从数据校验结果') }}
         </BkCheckbox>
       </div>
       <InstanceSelector
         v-model:is-show="isShowMasterInstanceSelector"
+        :panel-list="panelList"
         role="remote_master"
         @change="handelMasterProxyChange" />
     </div>
@@ -121,6 +122,17 @@
     is_verify_checksum: false,
     is_check_delay: false,
   });
+
+  const panelList = [
+    {
+      id: 'tendbcluster',
+      name: t('主库主机'),
+    },
+    {
+      id: 'manualInput',
+      name: t('手动输入'),
+    },
+  ];
 
   // Master 批量选择
   const handleShowMasterBatchSelector = () => {

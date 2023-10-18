@@ -186,9 +186,11 @@
   const handleRemove = (index: number) => {
     const removeItem = tableData.value[index];
     const { srcCluster } = removeItem;
+    console.log('srcCluster>>', srcCluster);
     tableData.value.splice(index, 1);
     delete domainMemo[srcCluster];
     const clustersArr = selectedClusters.value[ClusterTypes.REDIS];
+    console.log('tableData.value>>>', tableData.value);
     selectedClusters.value[ClusterTypes.REDIS] = clustersArr.filter(item => item.temp_cluster_proxy !== srcCluster);
   };
 
@@ -226,7 +228,16 @@
 
   // 输入集群后查询集群信息并填充到table
   const handleChangeCluster = async (index: number, domain: string) => {
-    const ret = await getRollbackList({ limit: 10, offset: 0, temp_cluster_proxy: domain });
+    if (!domain) {
+      const { srcCluster } = tableData.value[index];
+      domainMemo[srcCluster] = false;
+      tableData.value[index].srcCluster = '';
+      return;
+    }
+    tableData.value[index].isLoading = true;
+    const ret = await getRollbackList({ limit: 10, offset: 0, temp_cluster_proxy: domain }).finally(() => {
+      tableData.value[index].isLoading = false;
+    });
     if (ret.results.length < 1) {
       return;
     }
@@ -253,7 +264,6 @@
     };
     InfoBox({
       title: t('确认对n个构造实例进行恢复？', { n: totalNum.value }),
-      subTitle: t('请谨慎操作！'),
       width: 480,
       onConfirm: () => {
         isSubmitting.value = true;

@@ -46,7 +46,12 @@ def add_proxy(cluster_ids: list, proxy_ip: str, bk_cloud_id: int):
 
         # proxy实例的时区信息同步cluster的,这里其实list只有一个实例
         for proxy in proxy_objs:
+            m = proxy.machine
+            m.db_module_id = cluster.db_module_id
+            m.save()
+
             proxy.time_zone = cluster.time_zone
+            proxy.db_module_id = cluster.db_module_id
             proxy.save()
             new_proxy_objs.append(proxy)
 

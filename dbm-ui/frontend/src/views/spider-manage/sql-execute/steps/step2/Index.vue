@@ -12,7 +12,7 @@
 -->
 
 <template>
-  <div class="mysql-sql-execute-log-page">
+  <div class="spider-sql-execute-log-page">
     <div>
       <Component :is="renderStatusCom" />
     </div>
@@ -28,7 +28,7 @@
       </div>
       <div
         class="layout-right"
-        style="width: 928px;">
+        style="width: 690px;">
         <div class="log-header">
           <div>{{ t('执行日志') }}</div>
           <div
@@ -104,10 +104,6 @@
 </template>
 <script setup lang="ts">
   import _ from 'lodash';
-  import {
-    ref,
-    watch,
-  } from 'vue';
   import { useI18n } from 'vue-i18n';
   import {
     useRoute,
@@ -122,6 +118,8 @@
   import { createTicket } from '@services/ticket';
 
   import { useGlobalBizs } from '@stores';
+
+  import { TicketTypes } from '@common/const';
 
   import RenderFileList, {
     type IFileItem,
@@ -208,7 +206,7 @@
   watch(flowStatus, () => {
     if (flowStatus.value === 'successed') {
       router.push({
-        name: 'MySQLExecute',
+        name: 'spiderSqlExecute',
         params: {
           step: 'success',
         },
@@ -253,10 +251,10 @@
         root_id: rootId,
       },
       remark: '',
-      ticket_type: 'MYSQL_IMPORT_SQLFILE',
+      ticket_type: TicketTypes.TENDBCLUSTER_IMPORT_SQLFILE,
     }).then((data) => {
       router.push({
-        name: 'MySQLExecute',
+        name: 'spiderSqlExecute',
         params: {
           step: 'success',
         },
@@ -273,7 +271,7 @@
   // 执行失败返回编辑
   const handleGoEdit = () => {
     router.push({
-      name: 'MySQLExecute',
+      name: 'spiderSqlExecute',
       params: {
         step: '',
       },
@@ -289,10 +287,6 @@
     return revokeSemanticCheck({
       bk_biz_id: currentBizId,
       root_id: rootId,
-    }).then(() => {
-      router.push({
-        name: 'MySQLExecute',
-      });
     })
       .finally(() => {
         isRevokeing.value = false;
@@ -304,9 +298,10 @@
     return deleteUserSemanticTasks({
       bk_biz_id: currentBizId,
       task_ids: [rootId],
+      cluster_type: 'tendbcluster',
     }).then(() => {
       router.push({
-        name: 'MySQLExecute',
+        name: 'spiderSqlExecute',
       });
     })
       .finally(() => {
@@ -317,7 +312,7 @@
   // 返回继续提单
   const handleLastStep = () => {
     router.push({
-      name: 'MySQLExecute',
+      name: 'spiderSqlExecute',
       params: {
         step: '',
       },
@@ -325,7 +320,7 @@
   };
 </script>
 <style lang="less">
-  .mysql-sql-execute-log-page {
+  .spider-sql-execute-log-page {
     .log-layout {
       display: flex;
       width: 928px;

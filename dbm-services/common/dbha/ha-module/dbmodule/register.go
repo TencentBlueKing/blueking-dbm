@@ -7,7 +7,6 @@ import (
 	"dbm-services/common/dbha/ha-module/dbmodule/redis"
 	"dbm-services/common/dbha/ha-module/dbmodule/riak"
 	"dbm-services/common/dbha/ha-module/dbutil"
-	"dbm-services/common/dbha/ha-module/types"
 )
 
 // FetchDBCallback Agent将从cmdb获取的db实例信息转换为DataBaseDetect用于探测
@@ -30,11 +29,11 @@ type Callback struct {
 }
 
 // DBCallbackMap map for agent handler different dbType
-var DBCallbackMap map[types.DBType]Callback
+var DBCallbackMap map[string]Callback
 
 // TODO map key try to instead of cluster type
 func init() {
-	DBCallbackMap = map[types.DBType]Callback{}
+	DBCallbackMap = map[string]Callback{}
 	//TenDBHA used
 	DBCallbackMap[constvar.DetectTenDBHA] = Callback{
 		FetchDBCallback:              dbmysql.NewMySQLClusterByCmDB,
@@ -49,25 +48,18 @@ func init() {
 		GetSwitchInstanceInformation: dbmysql.NewMySQLSwitchInstance,
 	}
 
-	DBCallbackMap[constvar.TendisCache] = Callback{
-		FetchDBCallback:              redis.NewRedisInstanceByCmdb,
-		DeserializeCallback:          redis.DeserializeRedis,
-		GetSwitchInstanceInformation: redis.NewRedisSwitchInstance,
+	//TwemproxyRedisInstance used
+	DBCallbackMap[constvar.DetectRedis] = Callback{
+		FetchDBCallback:              redis.RedisClusterNewIns,
+		DeserializeCallback:          redis.RedisClusterDeserialize,
+		GetSwitchInstanceInformation: redis.RedisClusterNewSwitchIns,
 	}
-	DBCallbackMap[constvar.Twemproxy] = Callback{
-		FetchDBCallback:              redis.NewTwemproxyInstanceByCmdb,
-		DeserializeCallback:          redis.DeserializeTwemproxy,
-		GetSwitchInstanceInformation: redis.NewTwemproxySwitchInstance,
-	}
-	DBCallbackMap[constvar.Predixy] = Callback{
-		FetchDBCallback:              redis.NewPredixyInstanceByCmdb,
-		DeserializeCallback:          redis.DeserializePredixy,
-		GetSwitchInstanceInformation: redis.NewPredixySwitchInstance,
-	}
-	DBCallbackMap[constvar.Tendisplus] = Callback{
-		FetchDBCallback:              redis.NewTendisplusInstanceByCmdb,
-		DeserializeCallback:          redis.DeserializeTendisplus,
-		GetSwitchInstanceInformation: redis.NewTendisplusSwitchInstance,
+
+	//PredixyTendisplusCluster used
+	DBCallbackMap[constvar.DetectTendisplus] = Callback{
+		FetchDBCallback:              redis.TendisClusterNewIns,
+		DeserializeCallback:          redis.TendisClusterDeserialize,
+		GetSwitchInstanceInformation: redis.TendisClusterNewSwitchIns,
 	}
 
 	DBCallbackMap[constvar.Riak] = Callback{

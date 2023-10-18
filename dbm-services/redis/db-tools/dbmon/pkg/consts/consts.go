@@ -3,7 +3,7 @@ package consts
 
 // version
 const (
-	BkDbmonVersion = "v0.12"
+	BkDbmonVersion = "v0.13"
 )
 
 const (
@@ -136,7 +136,8 @@ const (
 const (
 	NormalBackupType  = "normal_backup"
 	ForeverBackupType = "forever_backup"
-	BackupClient      = "/usr/local/bin/backup_client"
+	IBSBackupClient   = "/usr/local/bin/backup_client"
+	COSBackupClient   = "/usr/local/backup_client/bin/backup_client"
 
 	RedisFullBackupTAG    = "REDIS_FULL"
 	RedisBinlogTAG        = "REDIS_BINLOG"
@@ -161,6 +162,9 @@ const (
 	BackupStatusToBakSysSuccess   = "to_backup_system_success"
 	BackupStatusFailed            = "failed"
 	BackupStatusLocalSuccess      = "local_success"
+
+	CacheBackupModeAof = "aof"
+	CacheBackupModeRdb = "rdb"
 )
 
 const (

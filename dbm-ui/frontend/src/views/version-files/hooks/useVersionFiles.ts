@@ -73,7 +73,7 @@ export const useVersionFiles = (state: IState, typeParams: Ref<TypeParams>) => {
     useInfo({
       title: t('确认删除'),
       content: t('确认删除xx', [data.name]),
-      onConfirm: () => deletePackage(data.id)
+      onConfirm: () => deletePackage({ id: data.id })
         .then(() => {
           Message({
             message: t('删除成功'),

@@ -12,25 +12,45 @@
 -->
 
 <template>
-  <div class="render-host-box">
-    <TableEditInput
-      ref="inputRef"
-      class="host-input"
-      :disabled="!clusterData"
-      :model-value="localHostList.map(item => item.ip).join(',  ')"
-      :placeholder="t('请选择主机')"
-      readonly
-      :rules="rules"
-      textarea />
+  <div
+    class="render-host-box"
+    @mouseenter="handleControlShowEdit(true)"
+    @mouseleave="handleControlShowEdit(false)">
     <BkPopover
-      v-if="Boolean(clusterData)"
+      :is-show="isShowOverflowTip"
+      placement="top"
+      :popover-delay="0"
+      theme="light"
+      trigger="manual">
+      <TableEditInput
+        ref="inputRef"
+        class="host-input"
+        :model-value="localHostList.map(item => item.ip).join(',  ')"
+        :placeholder="t('请选择主机')"
+        readonly
+        :rules="rules"
+        textarea
+        @overflow-change="handleOverflow" />
+      <template #content>
+        <div
+          v-for="item in localHostList"
+          :key="item.ip">
+          {{ item.ip }}
+        </div>
+      </template>
+    </BkPopover>
+
+    <BkPopover
+      v-if="!!clusterData && showEditIcon"
       :content="t('从业务拓扑选择')"
       placement="top"
       theme="dark">
       <div
         class="edit-btn"
         @click="handleShowIpSelector">
-        <DbIcon type="host-select" />
+        <div class="edit-btn-inner">
+          <DbIcon type="host-select" />
+        </div>
       </div>
     </BkPopover>
   </div>
@@ -60,7 +80,7 @@
 
   import IpSelector from '@components/ip-selector/IpSelector.vue';
 
-  import TableEditInput from '@views/mysql/common/edit/Input.vue';
+  import TableEditInput from '@views/spider-manage/common/edit/Input.vue';
 
   interface Props {
     clusterData?: SpiderModel
@@ -75,7 +95,10 @@
   const { t } = useI18n();
   const inputRef = ref();
   const isShowIpSelector = ref(false);
+  const showEditIcon = ref(false);
+  const isOverflow = ref(false);
 
+  const isShowOverflowTip = computed(() => isOverflow.value && showEditIcon.value);
   const localHostList = shallowRef<HostDetails[]>([]);
 
   const rules = [
@@ -84,6 +107,14 @@
       message: t('运维节点 IP 不能为空'),
     },
   ];
+
+  const handleOverflow = (status: boolean) => {
+    isOverflow.value = status;
+  };
+
+  const handleControlShowEdit = (isShow: boolean) => {
+    showEditIcon.value = isShow;
+  };
 
   const handleShowIpSelector = () => {
     isShowIpSelector.value = true;
@@ -114,23 +145,43 @@
     position: relative;
     display: flex;
     align-items: center;
+    overflow: hidden;
+
+    &:hover {
+      border-color: #a3c5fd;
+    }
 
     .host-input{
       flex: 1;
+
+      &:hover {
+        cursor: pointer;
+      }
     }
 
     .edit-btn{
       display: flex;
       width: 24px;
-      height: 24px;
-      cursor: pointer;
-      border-radius: 2px;
+      height: 40px;
       align-items: center;
       justify-content: center;
+      background-color: #fafbfd;
 
-      &:hover {
-        background: #F0F1F5;
+      .edit-btn-inner {
+        display: flex;
+        width: 24px;
+        height: 24px;
+        cursor: pointer;
+        border-radius: 2px;
+        align-items: center;
+        justify-content: center;
+
+        &:hover {
+          background: #F0F1F5;
+        }
       }
+
+
     }
   }
 </style>

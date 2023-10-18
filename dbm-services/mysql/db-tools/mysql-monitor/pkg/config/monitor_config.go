@@ -25,6 +25,7 @@ type monitorConfig struct {
 	MachineType     string        `yaml:"machine_type"`
 	Role            *string       `yaml:"role"`
 	BkCloudID       *int          `yaml:"bk_cloud_id" validate:"required,gte=0"`
+	DBModuleID      *int          `yaml:"db_module_id" validate:"required"`
 	Log             *LogConfig    `yaml:"log"`
 	ItemsConfigFile string        `yaml:"items_config_file" validate:"required"`
 	ApiUrl          string        `yaml:"api_url" validate:"required"`

@@ -18,34 +18,37 @@
       <BkAlert
         closable
         theme="info"
-        :title="$t('主从切换：针对TendisSSD、TendisCache集群，主从切换是把Slave提升为Master，原Master被剔除，针对Tendisplus集群，主从切换是把Slave和Master互换')" />
+        :title="$t('主从切换：针对TendisSSD、TendisCache，主从切换是把Slave提升为Master，原Master被剔除，针对Tendisplus集群，主从切换是把Slave和Master互换')" />
       <div class="top-opeartion">
         <BkPopover
           :content="$t('强制切换，将忽略同步连接')"
           placement="top"
           theme="dark">
-          <BkCheckbox
-            v-model="isForceSwitch"
-            style="padding-top: 6px;" />
+          <div class="switch-box">
+            <BkCheckbox v-model="isForceSwitch" />
+            <span class="ml-6 force-switch">{{ $t('强制切换') }}</span>
+          </div>
         </BkPopover>
-        <span class="ml-6 force-switch">{{ $t('强制切换') }}</span>
       </div>
-      <RenderData
-        v-slot="slotProps"
-        class="mt16"
-        @show-master-batch-selector="handleShowMasterBatchSelector">
-        <RenderDataRow
-          v-for="(item, index) in tableData"
-          :key="item.rowKey"
-          ref="rowRefs"
-          :data="item"
-          :inputed-ips="inputedIps"
-          :is-fixed="slotProps.isOverflow"
-          :removeable="tableData.length <2"
-          @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
-          @on-ip-input-finish="(ip: string) => handleChangeHostIp(index, ip)"
-          @remove="handleRemove(index)" />
-      </RenderData>
+
+      <BkLoading :loading="isLoading">
+        <RenderData
+          v-slot="slotProps"
+          class="mt16"
+          @show-master-batch-selector="handleShowMasterBatchSelector">
+          <RenderDataRow
+            v-for="(item, index) in tableData"
+            :key="item.rowKey"
+            ref="rowRefs"
+            :data="item"
+            :inputed-ips="inputedIps"
+            :is-fixed="slotProps.isOverflow"
+            :removeable="tableData.length <2"
+            @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
+            @on-ip-input-finish="(ip: string) => handleChangeHostIp(index, ip)"
+            @remove="handleRemove(index)" />
+        </RenderData>
+      </BkLoading>
     </div>
     <template #action>
       <BkButton
@@ -83,7 +86,7 @@
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
-  import { type MasterSlaveByIp, queryMasterSlaveByIp } from '@services/redis/toolbox';
+  import { queryMasterSlaveByIp } from '@services/redis/toolbox';
   import { createTicket } from '@services/ticket';
   import type { SubmitTicket } from '@services/types/ticket';
 
@@ -102,19 +105,24 @@
     type InfoItem,
   } from './components/Row.vue';
 
+  type MasterSlaveByIp = ServiceReturnType<typeof queryMasterSlaveByIp>[number];
+
   const { currentBizId } = useGlobalBizs();
   const { t } = useI18n();
   const router = useRouter();
+
   const rowRefs = ref();
   const isShowMasterInstanceSelector = ref(false);
   const isSubmitting  = ref(false);
   const isForceSwitch = ref(false);
   const tableData = ref([createRowData()]);
+  const isLoading = ref(false);
   const selected = shallowRef({
     createSlaveIdleHosts: [],
     masterFailHosts: [],
     idleHosts: [],
   } as InstanceSelectorValues);
+
   const totalNum = computed(() => tableData.value.filter(item => Boolean(item.ip)).length);
   const inputedIps = computed(() => tableData.value.map(item => item.ip));
 
@@ -140,7 +148,10 @@
   const handelMasterProxyChange = async (data: InstanceSelectorValues) => {
     selected.value = data;
     const ips = data.masterFailHosts.map(item => item.ip);
-    const ret = await queryMasterSlaveByIp({ ips });
+    isLoading.value = true;
+    const ret = await queryMasterSlaveByIp({ ips }).finally(() => {
+      isLoading.value  = false;
+    });
     const masterIpMap: Record<string, MasterSlaveByIp> = {};
     ret.forEach((item) => {
       masterIpMap[item.master_ip] = item;
@@ -154,9 +165,9 @@
           isLoading: false,
           ip,
           clusterId: proxyData.cluster_id,
-          cluster: masterIpMap[ip].cluster.immute_domain,
-          masters: masterIpMap[ip].instances.map(item => item.instance),
-          slave: masterIpMap[ip].slave_ip,
+          cluster: masterIpMap[ip]?.cluster?.immute_domain,
+          masters: masterIpMap[ip]?.instances.map(item => item.instance),
+          slave: masterIpMap[ip]?.slave_ip,
         });
         ipMemo[ip] = true;
       }
@@ -171,6 +182,12 @@
 
   // 输入IP后查询详细信息
   const handleChangeHostIp = async (index: number, ip: string) => {
+    if (!ip) {
+      const { ip } = tableData.value[index];
+      ipMemo[ip] = false;
+      tableData.value[index].ip = '';
+      return;
+    }
     tableData.value[index].isLoading = true;
     tableData.value[index].ip = ip;
     const ret = await queryMasterSlaveByIp({
@@ -281,10 +298,16 @@
       justify-content: flex-end;
       align-items: flex-end;
 
-      .force-switch {
-        font-size: 12px;
-        border-bottom: 1px dashed #63656E;
+      .switch-box {
+        display: flex;
+        align-items: center;
+
+        .force-switch {
+          font-size: 12px;
+          border-bottom: 1px dashed #63656E;
+        }
       }
+
     }
 
     .page-action-box {

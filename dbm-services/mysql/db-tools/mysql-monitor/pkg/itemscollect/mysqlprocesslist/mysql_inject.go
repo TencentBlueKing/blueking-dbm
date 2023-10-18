@@ -9,10 +9,10 @@
 package mysqlprocesslist
 
 import (
+	"log/slog"
 	"strings"
 
 	"github.com/dlclark/regexp2"
-	"golang.org/x/exp/slog"
 )
 
 func mysqlInject() (string, error) {
@@ -60,7 +60,7 @@ func hasLongUserSleep(p *mysqlProcess) (bool, error) {
 	re := regexp2.MustCompile(`User sleep`, regexp2.IgnoreCase)
 	match, err := re.MatchString(p.State.String)
 	if err != nil {
-		slog.Error("check long user sleep", err)
+		slog.Error("check long user sleep", slog.String("error", err.Error()))
 		return false, err
 	}
 
@@ -71,7 +71,7 @@ func hasCommentInQuery(p *mysqlProcess) (bool, error) {
 	re := regexp2.MustCompile(`\s+#`, regexp2.IgnoreCase)
 	match, err := re.MatchString(p.Command.String)
 	if err != nil {
-		slog.Error("check comment in query", err)
+		slog.Error("check comment in query", slog.String("error", err.Error()))
 		return false, err
 	}
 

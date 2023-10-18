@@ -9,18 +9,23 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import json
+import logging
 from collections import defaultdict
 from typing import Dict, List
 
 from django.db import models
+from django.db.models import Q
 from django.utils.translation import ugettext_lazy as _
 
+from backend import env
 from backend.bk_web.models import AuditedModel
 from backend.configuration.constants import SystemSettingsEnum
 from backend.configuration.models import SystemSettings
 from backend.constants import INT_MAX
 from backend.db_meta.enums import ClusterType, MachineType
 from backend.ticket.constants import AffinityEnum
+
+logger = logging.getLogger("root")
 
 
 class Spec(AuditedModel):
@@ -72,9 +77,12 @@ class Spec(AuditedModel):
 
         return sum(map(lambda x: int(x), mount_point__size.values()))
 
-    def get_apply_params_detail(self, group_mark, count, bk_cloud_id, affinity=AffinityEnum.NONE, location_spec=""):
+    def get_apply_params_detail(self, group_mark, count, bk_cloud_id, affinity=AffinityEnum.NONE, location_spec=None):
         # 获取资源申请的detail过程，暂时忽略亲和性和位置参数过滤
         spec_offset = SystemSettings.get_setting_value(SystemSettingsEnum.SPEC_OFFSET)
+        # 如果暂不支持城市和亲和性，则忽略
+        affinity = affinity if env.RESOURCE_SUPPORT_AFFINITY else AffinityEnum.NONE
+        location_spec = location_spec if env.RESOURCE_SUPPORT_AFFINITY else None
         return {
             "group_mark": group_mark,
             "bk_cloud_id": bk_cloud_id,
@@ -162,6 +170,39 @@ class Spec(AuditedModel):
                     )
 
         Spec.objects.bulk_create(to_init_specs)
+
+    @classmethod
+    def get_choices(cls):
+        try:
+            spec_choices = [
+                (spec.spec_id, f"[{spec.spec_id}]{spec.spec_cluster_type}-{spec.spec_machine_type}-{spec.spec_name}")
+                for spec in cls.objects.all()
+            ]
+        except Exception:  # pylint: disable=broad-except
+            # 忽略出现的异常，此时可能因为表未初始化
+            spec_choices = []
+        return spec_choices
+
+    @classmethod
+    def get_choices_with_filter(cls, cluster_type=None, machine_type=None):
+        try:
+            qct = Q()
+            qmt = Q()
+            if cluster_type:
+                qct = Q(spec_cluster_type=cluster_type)
+            if machine_type:
+                qmt = Q(spec_machine_type=machine_type)
+
+            logger.info("get spec choices with filter: {}".format(qct & qmt))
+
+            spec_choices = [
+                (spec.spec_id, f"[{spec.spec_id}]{spec.spec_cluster_type}-{spec.spec_machine_type}-{spec.spec_name}")
+                for spec in cls.objects.filter(qct & qmt)
+            ]
+        except Exception:  # pylint: disable=broad-except
+            # 忽略出现的异常，此时可能因为表未初始化
+            spec_choices = []
+        return spec_choices
 
 
 class SnapshotSpec(AuditedModel):

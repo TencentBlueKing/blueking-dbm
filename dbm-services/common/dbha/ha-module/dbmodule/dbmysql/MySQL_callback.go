@@ -12,25 +12,6 @@ import (
 	"dbm-services/common/dbha/ha-module/log"
 )
 
-// DBInstanceInfoDetail instance detail info from cmdb api
-type DBInstanceInfoDetail struct {
-	IP           string `json:"ip"`
-	Port         int    `json:"port"`
-	AdminPort    int    `json:"admin_port"`
-	BKIdcCityID  int    `json:"bk_idc_city_id"`
-	InstanceRole string `json:"instance_role"`
-	//only TenDBCluster's spider node used
-	SpiderRole       string             `json:"spider_role"`
-	Status           string             `json:"status"`
-	Cluster          string             `json:"cluster"`
-	BKBizID          int                `json:"bk_biz_id"`
-	ClusterType      string             `json:"cluster_type"`
-	MachineType      string             `json:"machine_type"`
-	Receiver         []MySQLSlaveInfo   `json:"receiver"`
-	ProxyInstanceSet []dbutil.ProxyInfo `json:"proxyinstance_set"`
-	BindEntry        dbutil.BindEntry   `json:"bind_entry"`
-}
-
 // UnMarshalMySQLInstanceByCmdb convert cmdb instance info to MySQLDetectInstanceInfoFromCmDB
 func UnMarshalMySQLInstanceByCmdb(instances []interface{},
 	clusterType string) ([]*MySQLDetectInstanceInfoFromCmDB, error) {
@@ -40,7 +21,7 @@ func UnMarshalMySQLInstanceByCmdb(instances []interface{},
 	cache := map[string]*MySQLDetectInstanceInfoFromCmDB{}
 
 	for _, v := range instances {
-		ins := DBInstanceInfoDetail{}
+		ins := dbutil.DBInstanceInfoDetail{}
 		rawData, err := json.Marshal(v)
 		if err != nil {
 			return nil, fmt.Errorf("marshal instance info failed:%s", err.Error())
@@ -120,7 +101,7 @@ func NewSpiderClusterByCmDB(instances []interface{}, conf *config.Config) ([]dbu
 // GQA call this and send to gcm switch
 func NewMySQLSwitchInstance(instances []interface{}, conf *config.Config) ([]dbutil.DataBaseSwitch, error) {
 	var ret []dbutil.DataBaseSwitch
-	initFunc := func(ins DBInstanceInfoDetail) (dbutil.DataBaseSwitch, error) {
+	initFunc := func(ins dbutil.DBInstanceInfoDetail) (dbutil.DataBaseSwitch, error) {
 		mysqlCommon := MySQLCommonSwitch{
 			BaseSwitch: dbutil.BaseSwitch{
 				Ip:          ins.IP,
@@ -181,7 +162,7 @@ func NewMySQLSwitchInstance(instances []interface{}, conf *config.Config) ([]dbu
 	}
 
 	for _, v := range instances {
-		ins := DBInstanceInfoDetail{}
+		ins := dbutil.DBInstanceInfoDetail{}
 		rawData, err := json.Marshal(v)
 		if err != nil {
 			return nil, fmt.Errorf("marshal instance info failed:%s", err.Error())

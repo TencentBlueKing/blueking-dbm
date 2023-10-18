@@ -47,6 +47,8 @@ class RedisShardUpdateDetailSerializer(serializers.Serializer):
         current_shard_num = serializers.IntegerField(help_text=_("当前分片数"))
         cluster_shard_num = serializers.IntegerField(help_text=_("目标分片数"))
         resource_spec = ResourceSpecSerializer(help_text=_("资源申请"))
+        capacity = serializers.IntegerField(help_text=_("当前容量需求"))
+        future_capacity = serializers.IntegerField(help_text=_("未来容量需求"))
         db_version = serializers.CharField(help_text=_("版本号"))
         online_switch_type = serializers.ChoiceField(
             help_text=_("切换类型"), choices=SwitchConfirmType.get_choices(), default=SwitchConfirmType.NO_CONFIRM
@@ -91,7 +93,7 @@ class RedisShardUpdateResourceParamBuilder(RedisUpdateApplyResourceParamBuilder)
     pass
 
 
-@builders.BuilderFactory.register(TicketType.REDIS_CLUSTER_SHARD_NUM_UPDATE)
+@builders.BuilderFactory.register(TicketType.REDIS_CLUSTER_SHARD_NUM_UPDATE, is_apply=True)
 class RedisShardUpdateFlowBuilder(BaseRedisTicketFlowBuilder):
     serializer = RedisShardUpdateDetailSerializer
     inner_flow_builder = RedisShardUpdateParamBuilder

@@ -37,7 +37,9 @@
           style="padding-left: 6px" />
       </BkLoading>
     </DbFormItem>
-    <DbFormItem :label="t('集群部署方案')">
+    <DbFormItem
+      v-bind="planFormItemProps"
+      :label="t('集群部署方案')">
       <BkLoading :loading="isPlanLoading">
         <BkTable
           :columns="tableColumns"
@@ -48,6 +50,8 @@
   </div>
 </template>
 <script setup lang="tsx">
+  import type { FormItemProps } from 'bkui-vue/lib/form/form-item';
+  import _ from 'lodash';
   import {
     reactive,
     ref,
@@ -57,23 +61,25 @@
   import { useRequest } from 'vue-request';
 
   import { getSpecResourceCount } from '@services/dbResource';
+  import RedisClusterSpecModel from '@services/model/resource-spec/redis-cluster-sepc';
   import {
-    type FilterClusterSpecItem,
     getFilterClusterSpec,
     queryQPSRange,
   } from '@services/resourceSpec';
 
   import { useGlobalBizs } from '@stores';
 
-  export type IRowData = FilterClusterSpecItem
+  export type IRowData = RedisClusterSpecModel
 
   interface Props {
     clusterType: string,
     machineType: string,
-    cloudId: number
+    cloudId: number,
+    planFormItemProps?: Partial<FormItemProps>,
+    shardNum?: number,
   }
   interface Emits{
-    (e: 'change', modelValue: number, data: FilterClusterSpecItem): void
+    (e: 'change', modelValue: number, data: RedisClusterSpecModel): void
   }
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
@@ -100,12 +106,14 @@
   const queryTimer = ref();
   const specCountMap = shallowRef<Record<number, number>>({});
 
+  const planList = shallowRef<ServiceReturnType<typeof getFilterClusterSpec>>([]);
+
   const tableColumns = [
     {
       field: 'spec_name',
       label: t('资源规格'),
       width: 200,
-      render: ({ data }: { data: FilterClusterSpecItem}) => (
+      render: ({ data }: { data: RedisClusterSpecModel}) => (
         <bk-radio
           label={data.spec_id}
           modelValue={modelValue.value}
@@ -136,7 +144,7 @@
     {
       field: 'count',
       label: t('可用主机数'),
-      render: ({ data }: {data: FilterClusterSpecItem}) => {
+      render: ({ data }: {data: RedisClusterSpecModel}) => {
         if (isCountLoading.value) {
           return (
             <div class="rotate-loading" style="display: inline-block;">
@@ -144,7 +152,7 @@
             </div>
           );
         }
-        return specCountMap.value[data.spec_id];
+        return `${specCountMap.value[data.spec_id]}`;
       },
     },
   ];
@@ -176,7 +184,6 @@
   // 规格列表
   const {
     loading: isPlanLoading,
-    data: planList,
     run: fetchPlanList,
   } = useRequest(getFilterClusterSpec, {
     debounceOptions: {
@@ -184,6 +191,13 @@
       trailing: true,
     },
     manual: true,
+    onSuccess(data) {
+      if (props.shardNum && props.shardNum > 0) {
+        planList.value = _.filter(data, item => item.cluster_shard_num === props.shardNum);
+      } else {
+        planList.value = data;
+      }
+    },
   });
 
   // 可用主机数
@@ -224,7 +238,6 @@
       return;
     }
     fetchSpecCount({
-      resource_type: props.clusterType,
       bk_biz_id: currentBizId,
       bk_cloud_id: props.cloudId,
       spec_ids: planList.value.map(item => item.spec_id),
@@ -254,7 +267,7 @@
   };
 
   // 选中单行
-  const handleRowClick = (event: PointerEvent, data: FilterClusterSpecItem) => {
+  const handleRowClick = (event: MouseEvent, data: RedisClusterSpecModel):any => {
     modelValue.value = data.spec_id;
     specData.value = {
       name: data.spec_name,

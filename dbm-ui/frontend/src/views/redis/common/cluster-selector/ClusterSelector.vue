@@ -18,10 +18,10 @@
     :draggable="false"
     :esc-close="false"
     height="auto"
-    :is-show="props.isShow"
+    :is-show="isShow"
     :quick-close="false"
     title=""
-    :width="1400"
+    :width="dialogWidth"
     @closed="handleClose">
     <BkResizeLayout
       :border="false"
@@ -94,7 +94,9 @@
                 @click.stop="handleChangeTab(item.id)">
                 {{ item.name }}
               </div>
-              <template #content>
+              <template
+                v-if="tabs.length > 1"
+                #content>
                 <div class="tab-tips">
                   <h4>{{ $t('切换类型说明') }}</h4>
                   <p>{{ $t('切换后如果重新选择_选择结果将会覆盖原来选择的内容') }}</p>
@@ -121,15 +123,13 @@
               :loading="state.isLoading"
               :z-index="2">
               <DbOriginalTable
+                class="table-box"
                 :columns="columns"
                 :data="state.tableData"
-                :height="500"
+                :height="528"
                 :is-anomalies="state.isAnomalies"
                 :is-searching="state.search !== ''"
-                :pagination="{
-                  ...state.pagination,
-                  small: true
-                }"
+                :pagination="state.pagination.count < 10 ? false : state.pagination"
                 remote-pagination
                 row-style="cursor: pointer;"
                 @clear-search="handleClearSearch"
@@ -165,7 +165,7 @@
 
   import RedisModel from '@services/model/redis/redis';
 
-  import { useCopy, useDefaultPagination } from '@hooks';
+  import { useCopy, useDefaultPagination, useSelectorDialogWidth } from '@hooks';
 
   import { ClusterTypes, TicketTypes } from '@common/const';
 
@@ -199,10 +199,6 @@
 
   const emits = defineEmits<Emits>();
 
-  const { t } = useI18n();
-
-  let rawTableData: RedisModel[] = [];
-
   function initData() {
     const clusterType = ClusterTypes.REDIS;
     return {
@@ -210,11 +206,7 @@
       activeTab: clusterType,
       search: '',
       isLoading: false,
-      pagination: {
-        ...useDefaultPagination(),
-        limit: 20,
-        'limit-list': [20, 50, 100],
-      },
+      pagination: useDefaultPagination(),
       tableData: [],
       selected: _.cloneDeep(props.selected),
       isSelectedAll: false,
@@ -223,26 +215,14 @@
     };
   }
 
-  const handleClickSearch = async () => {
-    const keyword = state.search;
-    if (state.tableData.length === 0) return;
-    if (rawTableData.length === 0) {
-      rawTableData = [...state.tableData];
-    }
-    if (keyword) {
-      const regex = new RegExp(encodeRegexp(keyword));
-      const filterList = rawTableData.filter(item => regex.test(item.master_domain) || regex.test(item.cluster_alias));
-      state.tableData = filterList;
-      state.pagination.count = filterList.length;
-    } else {
-      handleClickClearSearch();
-    }
-  };
+  const { t } = useI18n();
+  const copy = useCopy();
+  const { dialogWidth } = useSelectorDialogWidth();
 
-  const handleClickClearSearch = () => {
-    state.tableData = rawTableData;
-    state.pagination.count = rawTableData.length;
-  };
+  let rawTableData: RedisModel[] = [];
+
+  const tabTipsRef = ref();
+
 
   // 显示切换 tab tips
   const showSwitchTabTips = computed(() => tabState.showTips);
@@ -274,7 +254,7 @@
         style="vertical-align: middle;"
         model-value={selectedDomains.value.includes(data.master_domain)}
         onClick={(e: Event) => e.stopPropagation()}
-        onChange={handleSelected.bind(null, data)}
+        onChange={(value: boolean) => handleSelected(data, value)}
       />
     ),
     },
@@ -282,29 +262,26 @@
       label: t('集群'),
       field: 'master_domain',
       showOverflowTooltip: true,
+      width: 300,
+      minWidth: 250,
       render: ({ data }: { data: RedisModel }) => (
-    <div>
-        <span style='margin-right: 8px'>{data.master_domain}</span>
-        {data.operations && data.operations.length > 0 && <bk-popover
-          theme="light"
-          width="360">
-          {{
-            default: () => (
-              <bk-tag theme="info">
-                {data.operations.length}
-              </bk-tag>
-            ),
-            content: () => (<ClusterRelatedTasks data={data.operations} />),
-          }}
-        </bk-popover>}
-
-    </div>),
+      <div class="cluster-name-box">
+          <div class="cluster-name">{data.master_domain}</div>
+          {data.operations && data.operations.length > 0 && <bk-popover
+            theme="light"
+            width="360">
+            {{
+              default: () => <bk-tag theme="info" class="tag-box">{data.operations.length}</bk-tag>,
+              content: () => (<ClusterRelatedTasks data={data.operations} />),
+            }}
+          </bk-popover>}
+      </div>),
     },
     {
       label: t('状态'),
       field: 'master_domain',
       showOverflowTooltip: true,
-      minWidth: 100,
+      width: 120,
       render: ({ data }: { data: RedisModel }) => {
         const info = data.status === 'normal' ? { theme: 'success', text: t('正常') } : { theme: 'danger', text: t('异常') };
         return <DbStatus theme={info.theme}>{info.text}</DbStatus>;
@@ -314,10 +291,12 @@
       label: t('集群别名'),
       field: 'cluster_alias',
       showOverflowTooltip: true,
+      minWidth: 140,
     },
     {
       label: t('管控区域'),
       field: 'region',
+      minWidth: 140,
       render: ({ data }: { data: RedisModel }) => data.bk_cloud_name,
     },
   ];
@@ -336,30 +315,6 @@
       name: tabTextMap[id],
     }));
   });
-  // 获取 tab 信息
-  function getTabInfo(key: string) {
-    return tabs.value.find(tab => tab.id === key);
-  }
-  /**
-   * 切换 tab
-   */
-  function handleChangeTab(id: string) {
-    if (state.activeTab === id) return;
-
-    state.activeTab = id;
-  }
-  /**
-   * 关闭提示
-   */
-  const tabTipsRef = ref();
-  function handleCloseTabTips() {
-    tabState.showTips = false;
-    if (tabTipsRef.value) {
-      for (const ref of tabTipsRef.value) {
-        ref.hide();
-      }
-    }
-  }
 
   const {
     fetchResources,
@@ -379,6 +334,51 @@
     state.search = '';
     handleTablePageChange(1);
   });
+
+  const handleClickSearch = async () => {
+    const keyword = state.search;
+    if (state.tableData.length === 0) return;
+    if (rawTableData.length === 0) {
+      rawTableData = [...state.tableData];
+    }
+    if (keyword) {
+      const regex = new RegExp(encodeRegexp(keyword));
+      const filterList = rawTableData.filter(item => regex.test(item.master_domain) || regex.test(item.cluster_alias));
+      state.tableData = filterList;
+      state.pagination.count = filterList.length;
+    } else {
+      handleClickClearSearch();
+    }
+  };
+
+  const handleClickClearSearch = () => {
+    state.tableData = rawTableData;
+    state.pagination.count = rawTableData.length;
+  };
+
+  // 获取 tab 信息
+  function getTabInfo(key: string) {
+    return tabs.value.find(tab => tab.id === key);
+  }
+  /**
+   * 切换 tab
+   */
+  function handleChangeTab(id: string) {
+    if (state.activeTab === id) return;
+
+    state.activeTab = id;
+  }
+  /**
+   * 关闭提示
+   */
+  function handleCloseTabTips() {
+    tabState.showTips = false;
+    if (tabTipsRef.value) {
+      for (const ref of tabTipsRef.value) {
+        ref.hide();
+      }
+    }
+  }
 
   /**
    * 清空过滤列表
@@ -411,6 +411,9 @@
   function handleSelected(data: RedisModel, value: boolean) {
     const targetValue = data.master_domain;
     if (value) {
+      if (selectedDomains.value.includes(targetValue)) {
+        return;
+      }
       state.selected[state.activeTab].push(data);
     } else {
       const index = selectedDomains.value.findIndex(val => val === targetValue);
@@ -438,7 +441,6 @@
   /**
    * 复制集群域名
    */
-  const copy = useCopy();
   function handleCopyCluster() {
     if (isEmpty.value) {
       messageWarn(t('没有可复制集群'));
@@ -472,7 +474,6 @@
       state.isSelectedAll = isSelectedAll();
     });
   }
-
 </script>
 
 <style lang="less" scoped>
@@ -594,6 +595,29 @@
 
     &__button {
       width: 88px;
+    }
+  }
+
+  .table-box {
+    :deep(.cluster-name-box) {
+      display: flex;
+      width: 100%;
+      align-items: center;
+      overflow: hidden;
+
+      .cluster-name {
+        margin-right: 8px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        flex:1;
+      }
+
+      .tag-box {
+        height: 16px;
+        color: #3A84FF;
+        border-radius: 8px !important;
+      }
     }
   }
 

@@ -16,8 +16,9 @@ from rest_framework.response import Response
 
 from backend.bk_web import viewsets
 
+from ...configuration.constants import DISK_CLASSES
 from ...configuration.models import Profile
-from .constants import DEVICE_CLASS, ModeType
+from .constants import ModeType
 from .handlers import host_handler, topo_handler
 from .query.resource import ResourceQueryHelper
 from .serializers import host_sers, topo_sers
@@ -205,4 +206,4 @@ class IpChooserSettingsViewSet(viewsets.SystemViewSet):
     )
     @action(methods=["GET"], detail=False)
     def search_device_class(self, request, *args, **kwargs):
-        return Response(DEVICE_CLASS)
+        return Response(DISK_CLASSES)

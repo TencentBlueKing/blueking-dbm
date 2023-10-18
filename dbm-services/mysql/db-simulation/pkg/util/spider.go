@@ -19,7 +19,7 @@ import (
 	"dbm-services/common/go-pubpkg/logger"
 )
 
-// ParseGetShardKeyForSpider TODO
+// ParseGetShardKeyForSpider get  shard key from table comment
 func ParseGetShardKeyForSpider(tableComment string) (string, error) {
 	pos := strings.Index(tableComment, "shard_key")
 	if pos == -1 {
@@ -52,7 +52,7 @@ func ParseGetShardKeyForSpider(tableComment string) (string, error) {
 	}
 
 	len := uint(end - pos)
-	keyBuf := make([]byte, len+1)
+	keyBuf := make([]byte, len)
 	copy(keyBuf, tableComment[pos:end])
 	return string(keyBuf), nil
 }

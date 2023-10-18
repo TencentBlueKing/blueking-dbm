@@ -29,30 +29,13 @@ from backend.db_meta.models import (
     StorageInstance,
     StorageInstanceTuple,
 )
+from backend.db_periodic_task.local_tasks import update_host_dbmeta
 from backend.db_services.ipchooser.query import resource
 from backend.flow.utils.cc_manage import CcManage
-from backend.periodic_task.tasks.db_meta import update_host_dbmeta
 
 logger = logging.getLogger("root")
 
-SNIPPETS_DIR = os.path.join(os.path.dirname(settings.BASE_DIR), "scripts/snippets")
-
-
-def cluster_type_to_db_type(cluster_type):
-    if cluster_type in [ClusterType.TenDBSingle, ClusterType.TenDBHA, ClusterType.TenDBHA]:
-        db_type = "mysql"
-    elif cluster_type in [
-        ClusterType.Es,
-        ClusterType.Kafka,
-        ClusterType.Hdfs,
-        ClusterType.Pulsar,
-        ClusterType.Influxdb,
-    ]:
-        db_type = cluster_type.lower()
-    else:
-        db_type = "redis"
-
-    return db_type
+SNIPPETS_DIR = os.path.join(settings.BASE_DIR, "scripts/snippets")
 
 
 def remove_cluster(cluster_id, job_clean=True, cc_clean=True):
@@ -64,7 +47,7 @@ def remove_cluster(cluster_id, job_clean=True, cc_clean=True):
     cluster.phase = ClusterPhase.OFFLINE
     cluster.save()
 
-    db_type = cluster_type_to_db_type(cluster.cluster_type)
+    db_type = ClusterType.cluster_type_to_db_type(cluster.cluster_type)
 
     cluster_ips = set(
         list(cluster.storageinstance_set.values_list("machine__ip", flat=True))
@@ -111,6 +94,8 @@ def remove_cluster(cluster_id, job_clean=True, cc_clean=True):
     cluster.nosqlstoragesetdtl_set.all().delete()
     cluster.storageinstance_set.all().delete()
     cluster.proxyinstance_set.all().delete()
+
+    cluster.clusterentry_set.all().update(forward_to=None)
     cluster.clusterentry_set.all().delete()
     Machine.objects.filter(ip__in=cluster_ips).delete()
     cluster.delete()

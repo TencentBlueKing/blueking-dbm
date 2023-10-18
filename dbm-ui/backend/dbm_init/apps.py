@@ -8,7 +8,23 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import logging
+
 from django.apps import AppConfig
+from django.db.models.signals import post_migrate
+from django.utils.translation import ugettext as _
+
+logger = logging.getLogger("root")
+
+
+def init_config(sender, **kwargs):
+    """初始化配置自动执行"""
+    try:
+        from backend.dbm_init.services import Services
+
+        Services.init_custom_metric_and_event()
+    except Exception as e:  # pylint: disable=broad-except
+        logger.error(_("初始化配置异常，错误信息:{}").format(e))
 
 
 class DbmInitConfig(AppConfig):
@@ -17,8 +33,7 @@ class DbmInitConfig(AppConfig):
 
     def ready(self):
         """
-        项目初始化
-        自动生成配置文件和运行相关服务
+        项目初始化，自动生成配置文件和运行相关服务
+        注：这部分目前统一挪到k8s的job进行初始化
         """
-
         pass

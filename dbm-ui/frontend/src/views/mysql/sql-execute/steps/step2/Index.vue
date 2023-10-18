@@ -28,7 +28,7 @@
       </div>
       <div
         class="layout-right"
-        style="width: 928px;">
+        style="width: 690px;">
         <div class="log-header">
           <div>{{ $t('执行日志') }}</div>
           <div
@@ -302,6 +302,7 @@
     return deleteUserSemanticTasks({
       bk_biz_id: currentBizId,
       task_ids: [rootId],
+      cluster_type: 'mysql',
     }).then(() => {
       router.push({
         name: 'MySQLExecute',

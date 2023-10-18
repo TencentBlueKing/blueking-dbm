@@ -95,7 +95,6 @@
 </template>
 
 <script setup lang="tsx">
-  import type { Table } from 'bkui-vue';
   import { useI18n } from 'vue-i18n';
 
   import { getResources } from '@services/clusters';
@@ -148,8 +147,6 @@
     TableSelectionData,
   } from '@/types/bkui-vue';
 
-  type TableProps = InstanceType<typeof Table>['$props'];
-
   interface ColumnData {
     cell: string,
     data: ResourceItem
@@ -196,7 +193,7 @@
   const hasSelected = computed(() => state.selected.length > 0);
   const hasData = computed(() => state.data.length > 0);
   const searchSelectData = computed(() => [{
-    name: t('主域名'),
+    name: t('主访问入口'),
     id: 'domain',
   }, {
     name: 'IP',
@@ -216,23 +213,26 @@
     }
     return 60;
   });
-  const columns = computed<TableProps['columns']>(() => [{
-    type: 'selection',
-    width: 54,
-    label: '',
-    fixed: 'left',
-  }, {
-    label: 'ID',
-    field: 'id',
-    fixed: 'left',
-    width: 100,
-  }, {
-    label: t('集群名称'),
-    field: 'cluster_name',
-    minWidth: 200,
-    fixed: 'left',
-    showOverflowTooltip: false,
-    render: ({ data }: ColumnData) => (
+  const columns = computed(() => [
+    {
+      type: 'selection',
+      width: 54,
+      label: '',
+      fixed: 'left',
+    },
+    {
+      label: 'ID',
+      field: 'id',
+      fixed: 'left',
+      width: 100,
+    },
+    {
+      label: t('集群名称'),
+      field: 'cluster_name',
+      minWidth: 200,
+      fixed: 'left',
+      showOverflowTooltip: false,
+      render: ({ data }: ColumnData) => (
       <div class="cluster-name-container">
         <div
           class="cluster-name text-overflow"
@@ -257,45 +257,50 @@
         <db-icon type="copy" v-bk-tooltips={t('复制集群名称')} onClick={() => copy(data.cluster_name)} />
       </div>
     ),
-  }, {
-    label: t('管控区域'),
-    field: 'bk_cloud_name',
-  }, {
-    label: t('状态'),
-    field: 'status',
-    minWidth: 100,
-    render: ({ data }: ColumnData) => {
-      const info = data.status === 'normal' ? { theme: 'success', text: t('正常') } : { theme: 'danger', text: t('异常') };
-      return <DbStatus theme={info.theme}>{info.text}</DbStatus>;
     },
-  }, {
-    label: t('主域名'),
-    field: 'master_domain',
-    minWidth: 200,
-    showOverflowTooltip: false,
-    render: ({ cell }: ColumnData) => (
+    {
+      label: t('管控区域'),
+      field: 'bk_cloud_name',
+    },
+    {
+      label: t('状态'),
+      field: 'status',
+      minWidth: 100,
+      render: ({ data }: ColumnData) => {
+        const info = data.status === 'normal' ? { theme: 'success', text: t('正常') } : { theme: 'danger', text: t('异常') };
+        return <DbStatus theme={info.theme}>{info.text}</DbStatus>;
+      },
+    },
+    {
+      label: t('主访问入口'),
+      field: 'master_domain',
+      minWidth: 200,
+      showOverflowTooltip: false,
+      render: ({ cell }: ColumnData) => (
       <div class="domain">
         <span class="text-overflow" v-overflow-tips>{cell}</span>
-        <i class="db-icon-copy" v-bk-tooltips={t('复制主域名')} onClick={() => copy(cell)} />
+        <i class="db-icon-copy" v-bk-tooltips={t('复制主访问入口')} onClick={() => copy(cell)} />
       </div>
     ),
-  }, {
-    label: t('从域名'),
-    field: 'slave_domain',
-    minWidth: 200,
-    showOverflowTooltip: false,
-    render: ({ cell }: ColumnData) => (
+    },
+    {
+      label: t('从访问入口'),
+      field: 'slave_domain',
+      minWidth: 200,
+      showOverflowTooltip: false,
+      render: ({ cell }: ColumnData) => (
       <div class="domain">
         <span class="text-overflow" v-overflow-tips>{cell}</span>
-        <i class="db-icon-copy" v-bk-tooltips={t('复制从域名')} onClick={() => copy(cell)} />
+        <i class="db-icon-copy" v-bk-tooltips={t('复制从访问入口')} onClick={() => copy(cell)} />
       </div>
     ),
-  }, {
-    label: 'Proxy',
-    field: 'proxies',
-    minWidth: 180,
-    showOverflowTooltip: false,
-    render: ({ data }: ColumnData) => (
+    },
+    {
+      label: 'Proxy',
+      field: 'proxies',
+      minWidth: 180,
+      showOverflowTooltip: false,
+      render: ({ data }: ColumnData) => (
       <RenderInstances
         data={data.proxies || []}
         title={t('【inst】实例预览', { inst: data.master_domain, title: 'Proxy' })}
@@ -304,12 +309,13 @@
         dataSource={getHaInstances}
       />
     ),
-  }, {
-    label: 'Master',
-    field: 'masters',
-    minWidth: 180,
-    showOverflowTooltip: false,
-    render: ({ data }: ColumnData) => (
+    },
+    {
+      label: 'Master',
+      field: 'masters',
+      minWidth: 180,
+      showOverflowTooltip: false,
+      render: ({ data }: ColumnData) => (
       <RenderInstances
         data={data.masters}
         title={t('【inst】实例预览', { inst: data.master_domain, title: 'Master' })}
@@ -318,12 +324,13 @@
         dataSource={getHaInstances}
       />
     ),
-  }, {
-    label: 'Slave',
-    field: 'slaves',
-    minWidth: 180,
-    showOverflowTooltip: false,
-    render: ({ data }: ColumnData) => (
+    },
+    {
+      label: 'Slave',
+      field: 'slaves',
+      minWidth: 180,
+      showOverflowTooltip: false,
+      render: ({ data }: ColumnData) => (
       <RenderInstances
         data={data.slaves || []}
         title={t('【inst】实例预览', { inst: data.master_domain, title: 'Slave' })}
@@ -332,29 +339,33 @@
         dataSource={getHaInstances}
       />
     ),
-  }, {
-    label: t('所属DB模块'),
-    field: 'db_module_name',
-    width: 140,
-    render: ({ cell }: ColumnData) => <span>{cell || '--'}</span>,
-  }, {
-    label: t('创建人'),
-    field: 'creator',
-    width: 140,
-    render: ({ cell }: ColumnData) => <span>{cell || '--'}</span>,
-  }, {
-    label: t('创建时间'),
-    field: 'create_at',
-    width: 160,
-    render: ({ cell }: ColumnData) => <span>{cell || '--'}</span>,
-  }, {
-    label: t('操作'),
-    field: '',
-    width: tableOperationWidth.value,
-    fixed: props.isFullWidth ? 'right' : false,
-    render: ({ data }: ColumnData) => {
-      const getOperations = (theme = 'primary') => {
-        const operations = [
+    },
+    {
+      label: t('所属DB模块'),
+      field: 'db_module_name',
+      width: 140,
+      render: ({ cell }: ColumnData) => <span>{cell || '--'}</span>,
+    },
+    {
+      label: t('创建人'),
+      field: 'creator',
+      width: 140,
+      render: ({ cell }: ColumnData) => <span>{cell || '--'}</span>,
+    },
+    {
+      label: t('创建时间'),
+      field: 'create_at',
+      width: 160,
+      render: ({ cell }: ColumnData) => <span>{cell || '--'}</span>,
+    },
+    {
+      label: t('操作'),
+      field: '',
+      width: tableOperationWidth.value,
+      fixed: props.isFullWidth ? 'right' : false,
+      render: ({ data }: ColumnData) => {
+        const getOperations = (theme = 'primary') => {
+          const operations = [
           <bk-button
             text
             theme={theme}
@@ -362,19 +373,19 @@
             onClick={handleShowAuthorize.bind(null, [data])}>
             { t('授权') }
           </bk-button>,
-        ];
-        switch (data.phase) {
-        case 'online':
-          operations.push(<bk-button
+          ];
+          switch (data.phase) {
+          case 'online':
+            operations.push(<bk-button
             text
             theme={theme}
             class="mr-8"
             onClick={() => handleSwitchCluster(TicketTypes.MYSQL_HA_DISABLE, data)}>
             { t('禁用') }
           </bk-button>);
-          break;
-        case 'offline':
-          operations.push(...[
+            break;
+          case 'offline':
+            operations.push(...[
             <bk-button
               text
               theme={theme}
@@ -389,21 +400,21 @@
               onClick={() => handleDeleteCluster(data)}>
               { t('删除') }
             </bk-button>,
-          ]);
-          break;
-        }
+            ]);
+            break;
+          }
 
-        return operations;
-      };
-      if (props.isFullWidth) {
-        return (
+          return operations;
+        };
+        if (props.isFullWidth) {
+          return (
           <>
             {getOperations()}
           </>
-        );
-      }
+          );
+        }
 
-      return (
+        return (
         <bk-dropdown class="operations-more">
           {{
             default: () => <i class="db-icon-more"></i>,
@@ -416,9 +427,9 @@
             ),
           }}
         </bk-dropdown>
-      );
-    },
-  }]);
+        );
+      },
+    }]);
 
   watch(() => props.isFullWidth, () => {
     tableKey.value = random();
@@ -451,6 +462,9 @@
   } = useTableSettings(UserPersonalSettings.TENDBHA_TABLE_SETTINGS, defaultSettings);
 
   const renderPagination = computed(() => {
+    if (state.pagination.count < 10) {
+      return false;
+    }
     if (props.isFullWidth) {
       return { ...state.pagination };
     }
@@ -548,6 +562,7 @@
    */
   function fetchResources(isLoading = false) {
     const params = {
+      dbType: DBTypes.MYSQL,
       bk_biz_id: globalBizsStore.currentBizId,
       type: ClusterTypes.TENDBHA,
       ...state.pagination.getFetchParams(),
@@ -555,7 +570,7 @@
     };
     isInit.value = false;
     state.isLoading = isLoading;
-    return getResources<ResourceItem>(DBTypes.MYSQL, params)
+    return getResources<ResourceItem>(params)
       .then((res) => {
         state.pagination.count = res.count;
         state.data = res.results;

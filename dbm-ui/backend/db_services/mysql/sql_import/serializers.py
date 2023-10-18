@@ -15,7 +15,7 @@ from rest_framework import serializers
 
 from backend.configuration.constants import DBType
 from backend.constants import DATETIME_PATTERN
-from backend.db_meta.enums import InstanceInnerRole
+from backend.db_meta.enums import ClusterType, InstanceInnerRole
 from backend.db_services.mysql.sql_import import mock_data
 from backend.db_services.mysql.sql_import.constants import (
     BKREPO_SQLFILE_PATH,
@@ -32,6 +32,9 @@ class SQLGrammarCheckSerializer(serializers.Serializer):
     sql_content = serializers.CharField(help_text=_("sql语句"), required=False)
     sql_files = serializers.ListField(
         help_text=_("sql文件列表"), child=serializers.FileField(help_text=_("sql文件"), required=False), required=False
+    )
+    cluster_type = serializers.ChoiceField(
+        help_text=_("集群类型"), choices=DBType.get_choices(), required=False, default=DBType.MySQL
     )
 
     class Meta:
@@ -119,14 +122,18 @@ class SQLSemanticCheckResponseSerializer(serializers.Serializer):
 
 class SQLUserConfigSerializer(serializers.Serializer):
     root_id = serializers.CharField(help_text=_("流程id"))
-    is_auto_commit = serializers.BooleanField(help_text=_("是否自动创建单据"), required=False, default=False)
-    is_skip_pause = serializers.BooleanField(help_text=_("是否自动跳过确认"), required=False, default=False)
+    is_auto_commit = serializers.BooleanField(help_text=_("是否自动创建单据"))
+    is_skip_pause = serializers.BooleanField(help_text=_("是否自动跳过确认"))
 
     class Meta:
         swagger_schema_fields = {"example": mock_data.SQL_TICKET_AUTO_COMMIT_REQUEST_DATA}
 
 
 class QuerySQLUserConfigSerializer(serializers.Serializer):
+    root_id = serializers.CharField(help_text=_("流程id"))
+
+
+class QuerySQLUserConfigResponseSerializer(serializers.Serializer):
     is_auto_commit = serializers.BooleanField(help_text=_("是否自动创建单据"))
     is_skip_pause = serializers.BooleanField(help_text=_("是否自动跳过确认"))
 
@@ -136,7 +143,7 @@ class QuerySQLUserConfigSerializer(serializers.Serializer):
 
 class GetUserSemanticListSerializer(serializers.Serializer):
     cluster_type = serializers.ChoiceField(
-        help_text=_("集群类型，不传则查询所有集群的任务"), choices=DBType.get_choices(), required=False, default=""
+        help_text=_("集群类型mysql/tendbcluster,为空查询所有任务"), choices=DBType.get_choices(), required=False, default=""
     )
 
     class Meta:
@@ -158,6 +165,9 @@ class GetUserSemanticListResponseSerializer(serializers.Serializer):
 class DeleteUserSemanticListSerializer(serializers.Serializer):
     # user = serializers.CharField(help_text=_("用户名"))
     task_ids = serializers.ListField(help_text=_("语义执行的root id列表"), child=serializers.CharField())
+    cluster_type = serializers.ChoiceField(
+        help_text=_("集群类型"), choices=DBType.get_choices(), required=False, default=""
+    )
 
     class Meta:
         swagger_schema_fields = {"example": mock_data.DELETE_USER_SEMANTIC_LIST_REQUEST_DATA}

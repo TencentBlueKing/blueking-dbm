@@ -84,7 +84,7 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import { useTaskCount } from '@/views/mysql/common/hooks/useTaskCount';
+  import { useTaskCount } from '@views/mysql/common/hooks/useTaskCount';
 
   const { t } = useI18n();
   const {

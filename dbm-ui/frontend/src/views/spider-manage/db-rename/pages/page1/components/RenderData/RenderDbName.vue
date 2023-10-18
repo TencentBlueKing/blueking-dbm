@@ -18,29 +18,35 @@
     <TableEditInput
       ref="inputRef"
       v-model="localValue"
-      :placeholder="t('请输入单个源 DB 名')"
+      :disabled="!clusterId"
+      :placeholder="placeholder"
       :rules="rules" />
   </div>
 </template>
 <script setup lang="ts">
-  import {
-    ref,
-    watch,
-  } from 'vue';
+  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
-  import TableEditInput from '@views/mysql/common/edit/Input.vue';
+  import { checkClusterDatabase } from '@services/remoteService';
+
+  import TableEditInput from '@components/tools-table-input/index.vue';
 
   interface Props {
+    clusterId: number,
     modelValue?: string,
-    clusterId: number
+    placeholder?: string,
+    checkExist?: boolean
   }
 
   interface Exposes {
     getValue: (field: string) => Promise<Record<string, string[]>>
   }
 
-  const props = defineProps<Props>();
+  const props = withDefaults(defineProps<Props>(), {
+    placeholder: '',
+    modelValue: '',
+    checkExist: false,
+  });
 
   const { t } = useI18n();
   const rules = [
@@ -59,6 +65,26 @@
     {
       validator: (value: string) => /^[a-zA-z][a-zA-Z0-9_-]{1,39}$/.test(value),
       message: t('由字母_数字_下划线_减号_字符组成以字母开头'),
+    },
+    {
+      validator: (value: string) => {
+        if (!props.checkExist) {
+          return true;
+        }
+        const clearDbList = _.filter(value, item => !/[*%]/.test(item));
+        if (clearDbList.length  < 1) {
+          return true;
+        }
+        return checkClusterDatabase({
+          infos: [
+            {
+              cluster_id: props.clusterId,
+              db_names: [value],
+            },
+          ],
+        }).then(data => (data.length > 0 ? data[0].check_info[value] : false));
+      },
+      message: t('DB 不存在'),
     },
   ];
 

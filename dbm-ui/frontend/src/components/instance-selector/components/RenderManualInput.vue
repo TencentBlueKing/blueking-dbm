@@ -195,7 +195,10 @@
     // 检查 IP:Port 是否存在
     inputState.isLoading = true;
     try {
-      const res = await checkInstances(currentBizId, { instance_addresses: lines });
+      const res = await checkInstances({
+        bizId: currentBizId,
+        instance_addresses: lines,
+      });
       const legalInstances: InstanceInfos[] = [];
       for (let i = lines.length - 1; i >= 0; i--) {
         const item = lines[i];

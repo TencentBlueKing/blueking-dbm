@@ -606,7 +606,7 @@
               "method":"AVG",
               "metric_field":"usage",
               "refId":"a",
-              "result_table_id":"system.cpu_summary",
+              "result_table_id":"dbm_system.cpu_summary",
               "result_table_label":"os",
               "time_field":"",
               "where":[
@@ -666,7 +666,7 @@
               "method":"AVG",
               "metric_field":"load1",
               "refId":"a",
-              "result_table_id":"system.load",
+              "result_table_id":"dbm_system.load",
               "result_table_label":"os",
               "time_field":"",
               "where":[
@@ -5787,7 +5787,7 @@
                       "key":"instance_role",
                       "method":"eq",
                       "value":[
-                        "backend_master"
+                        "orphan"
                       ]
                     }
                   ]
@@ -5843,7 +5843,7 @@
                       "key":"instance_role",
                       "method":"eq",
                       "value":[
-                        "backend_master"
+                        "orphan"
                       ]
                     }
                   ]
@@ -6014,7 +6014,7 @@
                       "key":"instance_role",
                       "method":"eq",
                       "value":[
-                        "backend_master"
+                        "orphan"
                       ]
                     }
                   ]
@@ -6170,7 +6170,7 @@
                       "key":"instance_role",
                       "method":"eq",
                       "value":[
-                        "backend_master"
+                        "orphan"
                       ]
                     }
                   ]
@@ -6350,7 +6350,7 @@
                       "key":"instance_role",
                       "method":"eq",
                       "value":[
-                        "backend_master"
+                        "orphan"
                       ]
                     }
                   ]
@@ -6393,7 +6393,7 @@
                       "key":"instance_role",
                       "method":"eq",
                       "value":[
-                        "backend_master"
+                        "orphan"
                       ]
                     }
                   ]
@@ -6695,7 +6695,7 @@
                       "key":"instance_role",
                       "method":"eq",
                       "value":[
-                        "backend_master"
+                        "orphan"
                       ]
                     }
                   ]
@@ -7074,7 +7074,7 @@
                   "method":"MAX",
                   "metric_field":"w_s",
                   "refId":"a",
-                  "result_table_id":"system.io",
+                  "result_table_id":"dbm_system.io",
                   "result_table_label":"os",
                   "time_field":"",
                   "where":[
@@ -7106,7 +7106,7 @@
                   "method":"MAX",
                   "metric_field":"r_s",
                   "refId":"b",
-                  "result_table_id":"system.io",
+                  "result_table_id":"dbm_system.io",
                   "result_table_label":"os",
                   "time_field":"",
                   "where":[
@@ -7121,7 +7121,7 @@
                 }
               ],
               "refId":"C",
-              "source":"max(max_over_time(bkmonitor:system:io:w_s{bk_target_ip=\"$host\"}[1m]))",
+              "source":"max(max_over_time(bkmonitor:dbm_system:io:w_s{bk_target_ip=\"$host\"}[1m]))",
               "step":"",
               "type":"range"
             }
@@ -7255,7 +7255,7 @@
                   "method":"MAX",
                   "metric_field":"pct_used",
                   "refId":"a",
-                  "result_table_id":"system.mem",
+                  "result_table_id":"dbm_system.mem",
                   "result_table_label":"os",
                   "time_field":"",
                   "where":[
@@ -7287,7 +7287,7 @@
                   "method":"MAX",
                   "metric_field":"total",
                   "refId":"b",
-                  "result_table_id":"system.mem",
+                  "result_table_id":"dbm_system.mem",
                   "result_table_label":"os",
                   "time_field":"",
                   "where":[
@@ -7302,7 +7302,7 @@
                 }
               ],
               "refId":"C",
-              "source":"max(max_over_time(bkmonitor:system:io:w_s{bk_target_ip=\"$host\"}[1m]))",
+              "source":"max(max_over_time(bkmonitor:dbm_system:io:w_s{bk_target_ip=\"$host\"}[1m]))",
               "step":"",
               "type":"range"
             },
@@ -7347,7 +7347,7 @@
                   "method":"AVG",
                   "metric_field":"used",
                   "refId":"a",
-                  "result_table_id":"system.swap",
+                  "result_table_id":"dbm_system.swap",
                   "result_table_label":"os",
                   "time_field":"",
                   "where":[
@@ -7495,7 +7495,7 @@
                   "method":"MAX",
                   "metric_field":"util",
                   "refId":"a",
-                  "result_table_id":"system.io",
+                  "result_table_id":"dbm_system.io",
                   "result_table_label":"os",
                   "time_field":"",
                   "where":[
@@ -7643,7 +7643,7 @@
                   "method":"max_without_time",
                   "metric_field":"in_use",
                   "refId":"a",
-                  "result_table_id":"system.disk",
+                  "result_table_id":"dbm_system.disk",
                   "result_table_label":"os",
                   "time_field":"",
                   "where":[
@@ -7666,7 +7666,7 @@
                 }
               ],
               "refId":"A",
-              "source":"max by(mount_point) (bkmonitor:system:disk:in_use{bk_target_ip=\"$host\",mount_point=~\"/data.*\"})",
+              "source":"max by(mount_point) (bkmonitor:dbm_system:disk:in_use{bk_target_ip=\"$host\",mount_point=~\"/data.*\"})",
               "step":"",
               "type":"range"
             },
@@ -7711,7 +7711,7 @@
                   "method":"AVG",
                   "metric_field":"total",
                   "refId":"a",
-                  "result_table_id":"system.disk",
+                  "result_table_id":"dbm_system.disk",
                   "result_table_label":"os",
                   "time_field":"",
                   "where":[
@@ -7771,7 +7771,7 @@
                   "method":"AVG",
                   "metric_field":"used",
                   "refId":"a",
-                  "result_table_id":"system.disk",
+                  "result_table_id":"dbm_system.disk",
                   "result_table_label":"os",
                   "time_field":"",
                   "where":[
@@ -7920,7 +7920,7 @@
                   "method":"MAX",
                   "metric_field":"speed_recv",
                   "refId":"a",
-                  "result_table_id":"system.net",
+                  "result_table_id":"dbm_system.net",
                   "result_table_label":"os",
                   "time_field":"",
                   "where":[
@@ -7952,7 +7952,7 @@
                   "method":"MAX",
                   "metric_field":"speed_sent",
                   "refId":"b",
-                  "result_table_id":"system.net",
+                  "result_table_id":"dbm_system.net",
                   "result_table_label":"os",
                   "time_field":"",
                   "where":[
@@ -7967,7 +7967,7 @@
                 }
               ],
               "refId":"C",
-              "source":"max(max_over_time(bkmonitor:system:io:w_s{bk_target_ip=\"$host\"}[1m]))",
+              "source":"max(max_over_time(bkmonitor:dbm_system:io:w_s{bk_target_ip=\"$host\"}[1m]))",
               "step":"",
               "type":"range"
             }
@@ -8183,7 +8183,7 @@
                 }
               ],
               "refId":"C",
-              "source":"max(max_over_time(bkmonitor:system:io:w_s{bk_target_ip=\"$host\"}[1m]))",
+              "source":"max(max_over_time(bkmonitor:dbm_system:io:w_s{bk_target_ip=\"$host\"}[1m]))",
               "step":"",
               "type":"range"
             }
@@ -8332,7 +8332,7 @@
                 "key":"instance_role",
                 "method":"eq",
                 "value":[
-                  "backend_master"
+                  "orphan"
                 ]
               }
             ]
@@ -8385,7 +8385,7 @@
                 "key":"instance_role",
                 "method":"eq",
                 "value":[
-                  "backend_master"
+                  "orphan"
                 ]
               }
             ]
@@ -8437,7 +8437,7 @@
                 "key":"instance_role",
                 "method":"eq",
                 "value":[
-                  "backend_master"
+                  "orphan"
                 ]
               }
             ]
@@ -8463,7 +8463,7 @@
         "options":[
 
         ],
-        "query":"backend_master",
+        "query":"orphan",
         "skipUrlSync":false,
         "type":"custom",
         "refresh":1

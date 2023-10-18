@@ -247,7 +247,16 @@
 
   // 输入集群后查询集群信息并填充到table
   const handleChangeCluster = async (index: number, domain: string) => {
-    const ret = await listClusterList(currentBizId, { domain });
+    if (!domain) {
+      const cluster = tableData.value[index].srcCluster;
+      domainMemo[cluster] = false;
+      tableData.value[index].srcCluster = '';
+      return;
+    }
+    tableData.value[index].isLoading = true;
+    const ret = await listClusterList(currentBizId, { domain }).finally(() => {
+      tableData.value[index].isLoading = false;
+    });
     if (ret.length < 1) {
       return;
     }
@@ -291,7 +300,6 @@
     };
     InfoBox({
       title: t('确认对n个集群执行分片变更？', { n: totalNum.value }),
-      subTitle: '请谨慎操作！',
       width: 480,
       onConfirm: () => {
         isSubmitting.value = true;
@@ -307,8 +315,7 @@
             },
           });
         })
-          .catch((e) => {
-            console.error('submit cluster shard update ticket error：', e);
+          .catch(() => {
             window.changeConfirm = false;
           })
           .finally(() => {

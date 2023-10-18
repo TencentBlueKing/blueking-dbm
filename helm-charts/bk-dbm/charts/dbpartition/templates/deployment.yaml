@@ -46,6 +46,15 @@ spec:
             {{- end }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
+      initContainers:
+        - name: check-saas-api
+          image: {{ include "dbpartition.k8sWaitFor.image" . }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          args:
+            - pod
+            - -lapp.kubernetes.io/component=bk-dbm-saas-api
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}

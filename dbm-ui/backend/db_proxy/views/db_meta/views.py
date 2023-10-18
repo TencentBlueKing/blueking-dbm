@@ -20,6 +20,7 @@ from backend.db_meta.api.cluster import nosqlcomm as NOSQLMETA
 from backend.db_meta.models import BKCity
 from backend.db_proxy.constants import SWAGGER_TAG
 from backend.db_proxy.views.db_meta.serializers import (
+    BizClusterSerializer,
     BKCityNameSerializer,
     ClusterDetailSerializer,
     EntryDetailSerializer,
@@ -164,9 +165,9 @@ class DBMetaApiProxyPassViewSet(BaseProxyPassViewSet):
         validated_data = self.params_validate(self.get_serializer_class())
         return Response(DBHA.query_cluster_by_hosts(validated_data["hosts"]))
 
-    # 批量查询集群信息
+    # 批量查询redis集群信息
     @common_swagger_auto_schema(
-        operation_summary=_("[dbmeta]查询集群信息"),
+        operation_summary=_("[dbmeta]查询redis集群信息"),
         request_body=ClusterDetailSerializer(),
         tags=[SWAGGER_TAG],
     )
@@ -197,3 +198,22 @@ class DBMetaApiProxyPassViewSet(BaseProxyPassViewSet):
             return Response({"msg": "", "code": 0, "data": api.fake.fake_reset_tendbha_cluster(**request.data)})
         except Exception as e:  # pylint: disable=broad-except
             return Response({"msg": "{}".format(e), "code": 1, "data": ""})
+
+    @common_swagger_auto_schema(
+        operation_summary=_("[dbmeta]根据域名查询集群信息"),
+        query_serializer=BizClusterSerializer(),
+        tags=[SWAGGER_TAG],
+    )
+    @action(
+        methods=["GET"],
+        detail=False,
+        serializer_class=BizClusterSerializer,
+        url_path="dbmeta/meta/biz_clusters",
+    )
+    def biz_clusters(self, request):
+        validated_data = self.params_validate(self.get_serializer_class())
+        data = api.priv_manager.biz_clusters(
+            bk_biz_id=validated_data["bk_biz_id"],
+            immute_domains=validated_data["immute_domains"],
+        )
+        return Response(data)

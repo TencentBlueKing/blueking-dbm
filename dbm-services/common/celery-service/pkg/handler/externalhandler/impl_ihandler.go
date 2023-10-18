@@ -3,10 +3,9 @@ package externalhandler
 import (
 	"context"
 	"encoding/json"
+	"log/slog"
 	"os/exec"
 	"strings"
-
-	"golang.org/x/exp/slog"
 
 	"celery-service/pkg/log"
 )
@@ -55,6 +54,15 @@ func (h *Handler) Worker(body []byte, ctx context.Context) (string, error) {
 	h.logger.Info("generate cmd", slog.Any("command", h.cmd))
 
 	return h.execute()
+}
+
+func (h *Handler) Enable() bool {
+	return true
+}
+
+func (h *Handler) EmptyParam() json.RawMessage {
+	empty, _ := json.Marshal([]string{})
+	return empty
 }
 
 func newHandler(item *externalItem) *Handler {

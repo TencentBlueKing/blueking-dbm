@@ -12,23 +12,39 @@
 -->
 
 <template>
-  <div class="render-start-time-box">
+  <div class="render-end-time">
     <TableEditDateTime
       ref="editRef"
-      v-model="localValue"
+      v-model="modelValue"
+      :disabled="!startTime"
       :disabled-date="disableDate"
       :placeholder="t('请选择')"
       :rules="rules"
-      type="datetime" />
+      type="datetime">
+      <template #footer>
+        <div
+          style="line-height: 32px; text-align: center; cursor: pointer;"
+          @click.stop="handleNowTime">
+          now
+        </div>
+      </template>
+    </TableEditDateTime>
+    <div
+      v-if="isNowTime"
+      class="value-now">
+      now
+    </div>
   </div>
 </template>
 <script setup lang="ts">
+  import dayjs from 'dayjs';
+  import { watch } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import TableEditDateTime from '@views/mysql/common/edit/DateTime.vue';
 
   interface Props {
-    modelValue?: string
+    startTime?: string,
   }
 
   interface Exposes {
@@ -37,40 +53,64 @@
 
   const props = defineProps<Props>();
 
+  const modelValue = defineModel<string>({
+    required: false,
+  });
+
   const { t } = useI18n();
   const editRef = ref();
-  const localValue = ref<Required<Props>['modelValue']>('');
+  const isNowTime = ref(false);
 
-  const disableDate = (date: Date) => date && date.valueOf() > Date.now();
+  const disableDate = (date: Date) => date
+    && (
+      date.valueOf() > Date.now()
+      || date.valueOf() < dayjs(props.startTime).valueOf()
+    );
 
   const rules = [
     {
-      validator: (value: Required<Props>['modelValue']) => Boolean(value),
+      validator: (value: string) => Boolean(value),
       message: t('结束时间不能为空'),
     },
   ];
 
-  watch(() => props.modelValue, () => {
-    if (props.modelValue) {
-      localValue.value = props.modelValue;
-    } else {
-      localValue.value = '';
-    }
-  }, {
-    immediate: true,
+  watch(() => props.startTime, () => {
+    modelValue.value = '';
   });
+
+  watch(modelValue, () => {
+    isNowTime.value = false;
+  });
+
+  const handleNowTime = () => {
+    isNowTime.value = true;
+  };
 
   defineExpose<Exposes>({
     getValue() {
+      if (isNowTime.value) {
+        return Promise.resolve({
+          end_time: '',
+        });
+      }
       return editRef.value.getValue()
         .then(() => ({
-          end_time: localValue.value,
+          end_time: modelValue.value,
         }));
     },
   });
 </script>
-<style lang="less">
-  .render-start-time-box {
-    display: block;
+<style lang="less" scoped>
+  .render-end-time{
+    position: relative;
+
+    .value-now{
+      position: absolute;
+      padding: 0 16px;
+      pointer-events: none;
+      cursor: pointer;
+      background: #fff;
+      inset: 0;
+    }
   }
 </style>

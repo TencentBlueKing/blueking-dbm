@@ -70,6 +70,7 @@
 
   import RedisModel from '@services/model/redis/redis';
   import { listClusterList } from '@services/redis/toolbox';
+  import { getResourceSpecList } from '@services/resourceSpec';
   import { createTicket } from '@services/ticket';
   import type { SubmitTicket } from '@services/types/ticket';
 
@@ -85,21 +86,25 @@
     type IDataRow,
     type InfoItem,
   } from './components/Row.vue';
-
+  import type { IListItem } from './components/SpecSelect.vue';
 
   const { currentBizId } = useGlobalBizs();
   const { t } = useI18n();
   const router = useRouter();
+
   const rowRefs = ref();
   const isShowMasterInstanceSelector = ref(false);
   const isSubmitting  = ref(false);
   const tableData = ref([createRowData()]);
+
   const totalNum = computed(() => tableData.value.filter(item => Boolean(item.cluster)).length);
   const inputedClusters = computed(() => tableData.value.map(item => item.cluster));
   const selectedClusters = shallowRef<{[key: string]: Array<RedisModel>}>({ [ClusterTypes.REDIS]: [] });
+
   const clusterSelectorTabList = [ClusterTypes.REDIS];
   // 集群域名是否已存在表格的映射表
   let domainMemo:Record<string, boolean> = {};
+  let clusterSpecListMap: Record<string, IListItem[]> = {};
 
   // 检测列表是否为空
   const checkListEmpty = (list: Array<IDataRow>) => {
@@ -116,37 +121,42 @@
   };
 
   // 根据集群选择返回的数据加工成table所需的数据
-  const generateRowDateFromRequest = (item: RedisModel) => ({
-    rowKey: item.master_domain,
-    isLoading: false,
-    cluster: item.master_domain,
-    clusterId: item.id,
-    bkCloudId: item.bk_cloud_id,
-    clusterType: item.cluster_spec.spec_cluster_type,
-    nodeType: 'Proxy',
-    spec: {
-      ...item.proxy[0].spec_config,
-      name: item.cluster_spec.spec_name,
-      id: item.cluster_spec.spec_id,
-      count: item.proxy.length,
-    },
-    targetNum: `${item.proxy.length}`,
-  });
+  const generateRowDateFromRequest = async (item: RedisModel) => {
+    const clusterType = item.cluster_spec.spec_cluster_type;
+    const specList = await querySpecList(clusterType, item.cluster_spec.spec_id, item.proxy.length);
+    return {
+      rowKey: item.master_domain,
+      isLoading: false,
+      cluster: item.master_domain,
+      clusterId: item.id,
+      bkCloudId: item.bk_cloud_id,
+      clusterType: item.cluster_spec.spec_cluster_type,
+      nodeType: 'Proxy',
+      spec: {
+        ...item.proxy[0].spec_config,
+        name: item.cluster_spec.spec_name,
+        id: item.cluster_spec.spec_id,
+        count: item.proxy.length,
+      },
+      targetNum: `${item.proxy.length}`,
+      specList,
+    };
+  };
 
   // 批量选择
-  const handelClusterChange = (selected: {[key: string]: Array<RedisModel>}) => {
+  const handelClusterChange = async (selected: {[key: string]: Array<RedisModel>}) => {
     selectedClusters.value = selected;
     const list = selected[ClusterTypes.REDIS];
-    const newList = list.reduce((result, item) => {
+    const newList: IDataRow[] = [];
+    for (const item of list) {
       const domain = item.master_domain;
       if (!domainMemo[domain]) {
-        const row = generateRowDateFromRequest(item);
+        const row = await generateRowDateFromRequest(item);
         row.spec.count = item.proxy.length;
-        result.push(row);
+        newList.push(row);
         domainMemo[domain] = true;
       }
-      return result;
-    }, [] as IDataRow[]);
+    }
     if (checkListEmpty(tableData.value)) {
       tableData.value = newList;
     } else {
@@ -155,14 +165,48 @@
     window.changeConfirm = true;
   };
 
+  // 查询集群对应的规格列表
+  const querySpecList = async (type: string, specId: number, specCount: number) => {
+    if (type in clusterSpecListMap) {
+      return clusterSpecListMap[type];
+    }
+    const ret = await getResourceSpecList({
+      spec_cluster_type: type,
+    });
+    const retArr = ret.results;
+    const arr = retArr.map(item => ({
+      value: item.spec_id,
+      label: item.spec_id === specId ? `${item.spec_name} ${t('((n))台', { n: specCount })}` : item.spec_name,
+      specData: {
+        name: item.spec_name,
+        cpu: item.cpu,
+        id: item.spec_id,
+        mem: item.mem,
+        count: 0,
+        storage_spec: item.storage_spec,
+      },
+    }));
+    clusterSpecListMap[type] = arr;
+    return arr;
+  };
+
   // 输入集群后查询集群信息并填充到table
   const handleChangeCluster = async (index: number, domain: string) => {
-    const ret = await listClusterList(currentBizId, { domain });
+    if (!domain) {
+      const { cluster } = tableData.value[index];
+      domainMemo[cluster] = false;
+      tableData.value[index].cluster = '';
+      return;
+    }
+    tableData.value[index].isLoading = true;
+    const ret = await listClusterList(currentBizId, { domain }).finally(() => {
+      tableData.value[index].isLoading = false;
+    });
     if (ret.length < 1) {
       return;
     }
     const data = ret[0];
-    const row = generateRowDateFromRequest(data);
+    const row = await generateRowDateFromRequest(data);
     tableData.value[index] = row;
     domainMemo[domain] = true;
     selectedClusters.value[ClusterTypes.REDIS].push(data);
@@ -195,6 +239,7 @@
         infos,
       },
     };
+
     InfoBox({
       title: t('确认对n个集群扩容接入层？', { n: totalNum.value }),
       width: 480,
@@ -225,6 +270,7 @@
     tableData.value = [createRowData()];
     selectedClusters.value[ClusterTypes.REDIS] = [];
     domainMemo = {};
+    clusterSpecListMap = {};
     window.changeConfirm = false;
   };
 </script>

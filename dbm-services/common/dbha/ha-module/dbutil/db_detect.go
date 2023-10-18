@@ -12,6 +12,35 @@ import (
 	"golang.org/x/crypto/ssh"
 )
 
+// SlaveInfo defined slave switch info
+type SlaveInfo struct {
+	Ip             string `json:"ip"`
+	Port           int    `json:"port"`
+	IsStandBy      bool   `json:"is_stand_by"`
+	Status         string `json:"status"`
+	BinlogFile     string
+	BinlogPosition string
+}
+
+// DBInstanceInfoDetail instance detail info from cmdb api
+type DBInstanceInfoDetail struct {
+	IP           string `json:"ip"`
+	Port         int    `json:"port"`
+	AdminPort    int    `json:"admin_port"`
+	BKIdcCityID  int    `json:"bk_idc_city_id"`
+	InstanceRole string `json:"instance_role"`
+	//only TenDBCluster's spider node used
+	SpiderRole       string      `json:"spider_role"`
+	Status           string      `json:"status"`
+	Cluster          string      `json:"cluster"`
+	BKBizID          int         `json:"bk_biz_id"`
+	ClusterType      string      `json:"cluster_type"`
+	MachineType      string      `json:"machine_type"`
+	Receiver         []SlaveInfo `json:"receiver"`
+	ProxyInstanceSet []ProxyInfo `json:"proxyinstance_set"`
+	BindEntry        BindEntry   `json:"bind_entry"`
+}
+
 // DataBaseDetect interface
 type DataBaseDetect interface {
 	Detection() error

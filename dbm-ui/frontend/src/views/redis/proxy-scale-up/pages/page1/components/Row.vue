@@ -21,23 +21,24 @@
         @on-input-finish="handleInputFinish" />
     </td>
     <td style="padding: 0;">
-      <RenderNodeType
+      <RenderText
         :data="data.nodeType"
-        :is-loading="data.isLoading" />
+        :is-loading="data.isLoading"
+        :placeholder="$t('输入集群后自动生成')" />
     </td>
     <td style="padding: 0;">
       <RenderSpec
         ref="sepcRef"
         :data="data.spec"
         :is-loading="data.isLoading"
-        :select-list="specList"
-        @data-change="handleSpecDataChange" />
+        :select-list="data.specList" />
     </td>
     <td
       style="padding: 0;">
       <RenderTargetNumber
         ref="numRef"
         :data="data.targetNum"
+        :disabled="!data.cluster"
         :is-loading="data.isLoading"
         :min="data.spec?.count" />
     </td>
@@ -61,15 +62,12 @@
   </tr>
 </template>
 <script lang="ts">
-  import { useI18n } from 'vue-i18n';
-
-  import { getResourceSpecList } from '@services/resourceSpec';
+  import RenderText from '@components/tools-table-common/RenderText.vue';
 
   import RenderTargetCluster from '@views/redis/common/edit-field/ClusterName.vue';
 
   import { random } from '@utils';
 
-  import RenderNodeType from './RenderNodeType.vue';
   import RenderSpec from './RenderSpec.vue';
   import RenderTargetNumber from './RenderTargetNumber.vue';
   import type { SpecInfo } from './SpecPanel.vue';
@@ -82,6 +80,7 @@
     clusterId: number;
     bkCloudId: number;
     nodeType: string;
+    specList: IListItem[];
     spec?: SpecInfo;
     targetNum?: string;
     clusterType?: string;
@@ -112,6 +111,7 @@
     clusterId: 0,
     bkCloudId: 0,
     nodeType: '',
+    specList: [],
   });
 
 </script>
@@ -140,41 +140,9 @@
 
   const emits = defineEmits<Emits>();
 
-  const { t } = useI18n();
-
   const clusterRef = ref();
   const sepcRef = ref();
   const numRef = ref();
-
-  const specList = ref<IListItem[]>([]);
-
-  const handleSpecDataChange = () => {
-    const type = props.data?.clusterType;
-    if (type) {
-      querySpecList(type);
-    }
-  };
-
-  // 查询集群对应的规格列表
-  const querySpecList = async (type: string) => {
-    const ret = await getResourceSpecList({
-      spec_cluster_type: type,
-    });
-    const retArr = ret.results;
-    specList.value = retArr.map(item => ({
-      value: item.spec_id,
-      label: item.spec_id === props.data.spec?.id ? `${item.spec_name} ${t('((n))台', { n: props.data.spec?.count })}` : item.spec_name,
-      specData: {
-        name: item.spec_name,
-        cpu: item.cpu,
-        id: item.spec_id,
-        mem: item.mem,
-        count: 0,
-        storage_spec: item.storage_spec,
-      },
-    }));
-  };
-
 
   const handleInputFinish = (value: string) => {
     emits('clusterInputFinish', value);

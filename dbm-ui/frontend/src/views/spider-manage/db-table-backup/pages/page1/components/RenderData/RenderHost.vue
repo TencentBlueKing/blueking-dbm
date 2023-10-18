@@ -89,7 +89,7 @@
 
   import { ipv4 } from '@common/regex';
 
-  import TableEditInput from '@views/mysql/common/edit/Input.vue';
+  import TableEditInput from '@views/spider-manage/common/edit/Input.vue';
 
   import { random } from '@utils';
 
@@ -129,10 +129,7 @@
 
   const rules = [
     {
-      validator: (value: string) => {
-        console.log('asdasdasdad = ', value, value.split(splitReg).length);
-        return value.split(splitReg).length >= 2;
-      },
+      validator: (value: string) => value.split(splitReg).length >= 2,
       message: t('请输入2台IP'),
     },
     {
@@ -206,8 +203,6 @@
           ...result,
           ...selectItem,
         }), {} as Record<string, boolean>);
-        console.log('\n\n\n\nfrom otherAllSelectHostMap === ', singleHostSelectMemo, otherAllSelectHostMap);
-        console.log('asda = ', genHostKey(masterHost), genHostKey(slaveHost));
         if (otherAllSelectHostMap[genHostKey(masterHost)] || otherAllSelectHostMap[genHostKey(slaveHost)]) {
           return false;
         }
@@ -247,7 +242,6 @@
           // selectRelateClusterList.value = Object.values(realateCheckedMap.value);
           },
         });
-        console.log('from wtahc conflick = ', tippyIns);
       }
     });
   });
@@ -260,8 +254,6 @@
       delete checkedMap[genHostKey(hostData)];
     }
     conflicHostSelectMap.value = checkedMap;
-
-    console.log('from handleConflictHostChange', conflicHostSelectMap.value);
   };
 
   onBeforeUnmount(() => {

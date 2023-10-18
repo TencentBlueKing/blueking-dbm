@@ -67,8 +67,8 @@ class RedisClusterApplyDetailSerializer(serializers.Serializer):
         super().validate(attrs)
 
         # 集群名校验
-        bk_biz_id = self.context["bk_biz_id"]
-        CommonValidate.validate_duplicate_cluster_name(bk_biz_id, attrs["cluster_type"], attrs["cluster_name"])
+        bk_biz_id, ticket_type = self.context["bk_biz_id"], self.context["ticket_type"]
+        CommonValidate.validate_duplicate_cluster_name(bk_biz_id, ticket_type, attrs["cluster_name"])
 
         # 仅校验手工选择主机的情况
         if attrs["ip_source"] != IpSource.MANUAL_INPUT:
@@ -280,4 +280,4 @@ class RedisClusterApplyFlowBuilder(BaseRedisTicketFlowBuilder):
 
     @property
     def need_itsm(self):
-        return False
+        return True

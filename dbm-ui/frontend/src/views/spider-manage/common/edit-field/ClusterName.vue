@@ -36,7 +36,7 @@
 
   import { domainRegex } from '@common/regex';
 
-  import TableEditInput from '@views/spider-manage/common/edit/Input.vue';
+  import TableEditInput from '@components/tools-table-input/index.vue';
 
   import { random } from '@utils';
 

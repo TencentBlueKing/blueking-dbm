@@ -17,6 +17,7 @@ from typing import Any, Dict, List, Union
 from django.core.cache import cache
 from django.utils.translation import ugettext as _
 
+from backend import env
 from backend.bk_web.constants import CACHE_1D
 from backend.components import CCApi
 from backend.components.gse.client import GseApi
@@ -193,10 +194,8 @@ class ResourceQueryHelper:
         return resp
 
     @staticmethod
-    def fill_agent_status(cc_hosts, fill_key="status"):
-
-        if not cc_hosts:
-            return
+    def query_agent_one_status(cc_hosts, fill_key="status"):
+        """查询agent1.0状态"""
 
         index = 0
         hosts, host_map = [], {}
@@ -211,9 +210,44 @@ class ResourceQueryHelper:
             status_map = GseApi.get_agent_status({"hosts": hosts})
 
             for ip_cloud, detail in status_map.items():
+                # agent在线状态，0为不在线，1为在线
                 cc_hosts[host_map[ip_cloud]][fill_key] = detail["bk_agent_alive"]
         except KeyError as e:
-            logger.error("fill_agent_status exception: %s", e)
+            logger.error("query_agent_one_status exception: %s", e)
+
+    @staticmethod
+    def query_agent_two_status(cc_hosts, fill_key="status"):
+        """查询agent2.0状态"""
+        index = 0
+        agent_id_list, host_map = [], {}
+        for cc_host in cc_hosts:
+            # bk_agent_id不存在(agent1.0)的情况下可以使用bk_cloud_id和bk_host_innerip来兼容查询
+            bk_agent_id = cc_host.get("bk_agent_id") or f'{cc_host["bk_cloud_id"]}:{cc_host["bk_host_innerip"]}'
+            agent_id_list.append(bk_agent_id)
+            host_map[bk_agent_id] = index
+            index += 1
+
+        try:
+            status_list = GseApi.list_agent_state({"agent_id_list": agent_id_list})
+
+            for status in status_list:
+                # Agent当前运行状态码, -1:未知 0:初始安装 1:启动中 2:运行中 3:有损状态 4:繁忙状态 5:升级中 6:停止中 7:解除安装
+                cc_hosts[host_map[status["bk_agent_id"]]][fill_key] = 1 if status["status_code"] == 2 else 0
+        except KeyError as e:
+            logger.error("query_agent_two_status exception: %s", e)
+
+    @staticmethod
+    def fill_agent_status(cc_hosts, fill_key="status"):
+        if not cc_hosts:
+            return
+
+        if env.GSE_AGENT_VERSION == "1.0":
+            ResourceQueryHelper.query_agent_one_status(cc_hosts, fill_key)
+            return
+
+        if env.GSE_AGENT_VERSION == "2.0":
+            ResourceQueryHelper.query_agent_two_status(cc_hosts, fill_key)
+            return
 
     @staticmethod
     def fill_cloud_name(cc_hosts):
@@ -249,7 +283,7 @@ class ResourceQueryHelper:
         :param limit: 获取数量
         """
 
-        def _get_host_topo(_host_topo: List[Dict[str, Any]]) -> List[str]:
+        def _get_host_topo(_host_topo: List[Dict[str, Any]], key: str = "name") -> List[str]:
             """
             根据拓扑字典平铺获取平铺拓扑信息列表
             :param _host_topo: 主机拓扑信息
@@ -260,8 +294,8 @@ class ResourceQueryHelper:
 
             _host_topo_info_list = []
             for topo in _host_topo:
-                level_name = topo["inst"]["name"]
-                children_topo = _get_host_topo(topo["children"])
+                level_name = topo["inst"][key]
+                children_topo = _get_host_topo(topo["children"], key=key)
                 _host_topo_info_list.extend([f"{level_name}/{child_topo}" for child_topo in children_topo])
 
             return _host_topo_info_list
@@ -331,11 +365,12 @@ class ResourceQueryHelper:
         list_host_total_mainline_topo_filter = {
             "bk_biz_id": bk_biz_id,
             "fields": fields,
-            "host_property_filter": host_property_filter,
             "page": {"start": start, "limit": limit},
         }
         if module_property_filter:
             list_host_total_mainline_topo_filter["module_property_filter"] = module_property_filter
+        if host_property_filter["rules"]:
+            list_host_total_mainline_topo_filter["host_property_filter"] = host_property_filter
 
         resp = CCApi.list_host_total_mainline_topo(list_host_total_mainline_topo_filter)
 
@@ -344,7 +379,13 @@ class ResourceQueryHelper:
         for host_topo in resp["info"]:
             host_topo_info = host_topo["host"]
             host_topo_info["ip"] = host_topo_info.pop("bk_host_innerip")
-            host_topo_info.update({"topo": _get_host_topo(_host_topo=host_topo["topo"])})
+            host_topo_info.update(
+                {
+                    # 获取拓扑信息和拓扑ID信息
+                    "topo": _get_host_topo(_host_topo=host_topo["topo"], key="name"),
+                    "topo_id": _get_host_topo(_host_topo=host_topo["topo"], key="id"),
+                }
+            )
             host_topo_info_list.append(host_topo_info)
 
         return host_topo_info_list

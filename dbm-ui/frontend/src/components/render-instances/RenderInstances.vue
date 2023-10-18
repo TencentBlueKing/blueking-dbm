@@ -103,9 +103,10 @@
   </BkDialog>
 </template>
 
-<script setup lang="tsx">
+<script setup lang="tsx" generic="T extends TendbInstanceModel | ResourceInstance">
   import { useI18n } from 'vue-i18n';
 
+  import type TendbInstanceModel from '@services/model/spider/tendbInstance';
   import type { ResourceInstance } from '@services/types/clusters';
   import type { ListBase } from '@services/types/common';
 
@@ -142,7 +143,7 @@
     role: string,
     data: Array<InstanceData>;
     clusterId: number,
-    dataSource: (params: Record<string, any>) => Promise<ListBase<ResourceInstance[]>>,
+    dataSource: (params: Record<string, any>) => Promise<ListBase<T[]>>,
   }
   const props = defineProps<Props>();
 
@@ -325,5 +326,9 @@
 <style lang="less">
 .copy-popover {
   padding: 4px 6px !important;
+
+  .bk-pop2-arrow {
+    display: none;
+  }
 }
 </style>

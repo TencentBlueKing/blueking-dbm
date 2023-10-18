@@ -24,8 +24,6 @@ type DiskDfResult struct {
 
 	UsedPct         float32
 	TotalSizeMBReal int64
-
-	SizeToFreeMB int64
 }
 
 // String 用于打印
@@ -36,8 +34,12 @@ func (d DiskDfResult) String() string {
 	)
 }
 
-// GetDiskPartitionWithDir TODO
-func GetDiskPartitionWithDir(dirName string) (*DiskDfResult, error) {
+func GetDiskPartitionWithDir(dirName string) (*cmutil.DiskPartInfo, error) {
+	return cmutil.GetDiskPartInfo(dirName, true)
+}
+
+// GetDiskPartitionWithDir2 TODO
+func GetDiskPartitionWithDir2(dirName string) (*DiskDfResult, error) {
 	/*
 		$ df -m /data/dbbak/data1
 		Filesystem           1M-blocks      Used Available Use% Mounted on
@@ -75,6 +77,7 @@ func GetDiskPartitionWithDir(dirName string) (*DiskDfResult, error) {
 
 // GetDirectorySizeMB du 获取 binlog 目录大小
 // 如果 binlog 目录有其它文件，会一起计算
+// TODO replace with cmutil.DirSize()
 func GetDirectorySizeMB(binlogDir string) (int64, error) {
 	/*
 		du -sm /data/

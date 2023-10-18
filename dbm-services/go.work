@@ -1,7 +1,8 @@
-go 1.19
+go 1.21
 
 use (
 	riak/db-tools/dbactuator
+	riak/db-tools/riak-monitor
 	bigdata/db-tools/dbactuator
 	common/db-config
 	common/db-resource

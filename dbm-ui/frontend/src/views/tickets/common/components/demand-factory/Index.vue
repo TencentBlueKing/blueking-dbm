@@ -41,7 +41,7 @@
   import MySQLFlashback from './mysql/Flashback.vue';
   import MySQLFullBackup from './mysql/FullBackup.vue';
   import MySQLHATruncate from './mysql/HATruncate.vue';
-  import MySQLImportSQLFile from './mysql/ImportSQLFile.vue';
+  import MySQLImportSQLFile from './mysql/import-sql-file/Index.vue';
   import MySQLMasterFailOver from './mysql/MasterFailOver.vue';
   import MySQLMasterSlaveSwitch from './mysql/MasterSlaveSwitch.vue';
   import MySQLMigrateCluster from './mysql/MigrateCluster.vue';
@@ -54,6 +54,7 @@
   import MySQLSlave from './mysql/Slave.vue';
   import MySQLTableBackup from './mysql/TableBackup.vue';
   import RedisAddSlave from './redis/AddSlave.vue';
+  import CLBDetail from './redis/CLBDetail.vue';
   import RedisClusterCapacityUpdate from './redis/ClusterCapacityUpdate.vue';
   import RedisClusterShardUpdate from './redis/ClusterShardUpdate.vue';
   import RedisClusterTypeUpdate from './redis/ClusterTypeUpdate.vue';
@@ -189,6 +190,18 @@
     TicketTypes.TENDBCLUSTER_EXCEL_AUTHORIZE_RULES,
   ];
 
+  const importSQLTypes = [
+    TicketTypes.MYSQL_IMPORT_SQLFILE,
+    TicketTypes.TENDBCLUSTER_IMPORT_SQLFILE,
+  ];
+
+  const redisCLBTypes = [
+    TicketTypes.REDIS_PLUGIN_DNS_BIND_CLB,
+    TicketTypes.REDIS_PLUGIN_DNS_UNBIND_CLB,
+    TicketTypes.REDIS_PLUGIN_CREATE_CLB,
+    TicketTypes.REDIS_PLUGIN_DELETE_CLB,
+  ];
+
   // 单一情况映射表
   const SingleDemandMap = {
     [TicketTypes.ES_APPLY]: DetailsES,
@@ -204,7 +217,6 @@
     [TicketTypes.MYSQL_MASTER_SLAVE_SWITCH]: MySQLMasterSlaveSwitch,
     [TicketTypes.MYSQL_PROXY_ADD]: MySQLProxyAdd,
     [TicketTypes.MYSQL_MASTER_FAIL_OVER]: MySQLMasterFailOver,
-    [TicketTypes.MYSQL_IMPORT_SQLFILE]: MySQLImportSQLFile,
     [TicketTypes.MYSQL_FLASHBACK]: MySQLFlashback,
     [TicketTypes.MYSQL_ROLLBACK_CLUSTER]: MySQLRollbackCluster,
     [TicketTypes.MYSQL_RESTORE_SLAVE]: MySQLRestoreSlave,
@@ -294,6 +306,14 @@
     // spider 授权规则
     if (spiderAuthorizeRulesTypes.includes(ticketType)) {
       return SpiderAuthorizeRules;
+    }
+    // SQL执行
+    if (importSQLTypes.includes(ticketType)) {
+      return MySQLImportSQLFile;
+    }
+    // redis CLB 相关
+    if (redisCLBTypes.includes(ticketType)) {
+      return CLBDetail;
     }
     if (ticketType in SingleDemandMap) {
       return SingleDemandMap[ticketType as keyof typeof SingleDemandMap];

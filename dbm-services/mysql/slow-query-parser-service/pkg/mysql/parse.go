@@ -4,10 +4,9 @@ import (
 	"bytes"
 	"encoding/json"
 	"io"
+	"log/slog"
 	"os"
 	"os/exec"
-
-	"golang.org/x/exp/slog"
 )
 
 // ParserPath TODO
@@ -18,7 +17,7 @@ func parse(query string) (*Response, error) {
 
 	inputFile, err := os.CreateTemp("/tmp", "mysql-slow-input")
 	if err != nil {
-		slog.Error("mysql parse create input file", err)
+		slog.Error("mysql parse create input file", slog.String("error", err.Error()))
 		return nil, err
 	}
 	defer os.Remove(inputFile.Name())
@@ -26,7 +25,7 @@ func parse(query string) (*Response, error) {
 
 	outputFile, err := os.CreateTemp("/tmp", "mysql-slow-output")
 	if err != nil {
-		slog.Error("mysql parse create output file", err)
+		slog.Error("mysql parse create output file", slog.String("error", err.Error()))
 		return nil, err
 	}
 	defer os.Remove(outputFile.Name())
@@ -34,7 +33,7 @@ func parse(query string) (*Response, error) {
 
 	_, err = inputFile.WriteString(query)
 	if err != nil {
-		slog.Error("mysql parse write query", err)
+		slog.Error("mysql parse write query", slog.String("error", err.Error()))
 		return nil, err
 	}
 	slog.Info("mysql parse write query success")
@@ -51,7 +50,8 @@ func parse(query string) (*Response, error) {
 
 	err = cmd.Run()
 	if err != nil {
-		slog.Error("mysql parse execute tmysqlparse", err,
+		slog.Error("mysql parse execute tmysqlparse",
+			slog.String("error", err.Error()),
 			slog.String("command", cmd.String()),
 			slog.String("stderr", stderr.String()))
 		return nil, err
@@ -64,7 +64,11 @@ func parse(query string) (*Response, error) {
 	outputFile.Seek(0, 0)
 	content, err := io.ReadAll(outputFile)
 	if err != nil {
-		slog.Error("mysql parse read output file", err, slog.String("output file", outputFile.Name()))
+		slog.Error(
+			"mysql parse read output file",
+			slog.String("error", err.Error()),
+			slog.String("output file", outputFile.Name()),
+		)
 		return nil, err
 	}
 	slog.Info("mysql parse read output file success", slog.String("output file", outputFile.Name()))
@@ -74,7 +78,11 @@ func parse(query string) (*Response, error) {
 	}
 	err = json.Unmarshal(content, &cmdRet)
 	if err != nil {
-		slog.Error("mysql parse unmarshal result", err, slog.String("result", string(content)))
+		slog.Error(
+			"mysql parse unmarshal result",
+			slog.String("error", err.Error()),
+			slog.String("result", string(content)),
+		)
 		return nil, err
 	}
 	cmdRet.Result[0].QueryLength = len(query)

@@ -52,3 +52,4 @@ class _BackupApi(object):
 
 
 MysqlBackupApi = _BackupApi()
+RedisBackupApi = _BackupApi()

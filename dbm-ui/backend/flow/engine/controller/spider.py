@@ -10,8 +10,10 @@ specific language governing permissions and limitations under the License.
 
 from backend.db_meta.enums import ClusterType
 from backend.flow.engine.bamboo.scene.spider.import_sqlfile_flow import ImportSQLFlow
+from backend.flow.engine.bamboo.scene.spider.remote_local_slave_recover import TenDBRemoteSlaveLocalRecoverFlow
 from backend.flow.engine.bamboo.scene.spider.remote_master_fail_over import RemoteMasterFailOverFlow
 from backend.flow.engine.bamboo.scene.spider.remote_master_slave_swtich import RemoteMasterSlaveSwitchFlow
+from backend.flow.engine.bamboo.scene.spider.remote_slave_recover import TenDBRemoteSlaveRecoverFlow
 from backend.flow.engine.bamboo.scene.spider.spider_add_mnt import TenDBClusterAddSpiderMNTFlow
 from backend.flow.engine.bamboo.scene.spider.spider_add_nodes import TenDBClusterAddNodesFlow
 from backend.flow.engine.bamboo.scene.spider.spider_checksum import SpiderChecksumFlow
@@ -172,6 +174,20 @@ class SpiderController(BaseController):
         flow = TenDBRemoteRebalanceFlow(root_id=self.root_id, ticket_data=self.ticket_data)
         flow.tendb_migrate()
 
+    def tendb_cluster_remote_slave_recover(self):
+        """
+        remote 远程slave节点恢复
+        """
+        flow = TenDBRemoteSlaveRecoverFlow(root_id=self.root_id, ticket_data=self.ticket_data)
+        flow.tendb_remote_slave_recover()
+
+    def tendb_cluster_remote_local_recover(self):
+        """
+        remote 本地恢复
+        """
+        flow = TenDBRemoteSlaveLocalRecoverFlow(root_id=self.root_id, ticket_data=self.ticket_data)
+        flow.tendb_remote_slave_local_recover()
+
     def tendb_cluster_rollback_data(self):
         """
         tendb cluster 定点回档
@@ -181,7 +197,7 @@ class SpiderController(BaseController):
 
     def destroy_tendb_slave_cluster(self):
         """
-        tendb cluster 只读集群下架
+        tendb cluster 只读接入层下架
         """
         flow = TenDBSlaveClusterDestroyFlow(root_id=self.root_id, data=self.ticket_data)
         flow.destroy_slave_cluster()

@@ -168,7 +168,8 @@ func (g *JobV3) ExecuteJob(param *FastExecuteScriptParam) (data FastExecuteScrip
 	logger.Info("will execute job at %v", param.TargetServer.IPList)
 	resp, err := g.Client.Do(http.MethodPost, g.get_fast_execute_script_url(), param)
 	if err != nil {
-		logger.Error("call fast_execute_script failed %s", err.Error())
+		logger.Error("1 call fast_execute_script failed %s", err.Error())
+		g.track(resp)
 		return FastExecuteScriptRpData{}, err
 	}
 	if err = json.Unmarshal(resp.Data, &data); err != nil {
@@ -178,11 +179,18 @@ func (g *JobV3) ExecuteJob(param *FastExecuteScriptParam) (data FastExecuteScrip
 	return
 }
 
+func (g *JobV3) track(resp *cc.Response) {
+	if resp != nil {
+		logger.Error("track: request id: %s,respone message:%s,code:%d", resp.RequestId, resp.Message, resp.Code)
+	}
+}
+
 // GetJobStatus TODO
 func (g *JobV3) GetJobStatus(param *GetJobInstanceStatusParam) (data GetJobInstanceStatusRpData, err error) {
 	resp, err := g.Client.Do(http.MethodPost, g.get_job_status_url(), param)
 	if err != nil {
-		logger.Error("call get_job_status failed %s", err.Error())
+		logger.Error("1 call get_job_status failed %s", err.Error())
+		g.track(resp)
 		return GetJobInstanceStatusRpData{}, err
 	}
 	if err = json.Unmarshal(resp.Data, &data); err != nil {
@@ -198,6 +206,7 @@ func (g *JobV3) BatchGetJobInstanceIpLog(param *BatchGetJobInstanceIpLogParam) (
 	resp, err := g.Client.Do(http.MethodPost, g.batch_get_job_instance_ip_log_url(), param)
 	if err != nil {
 		logger.Error("call batch_get_job_instance_ip_log failed %s", err.Error())
+		g.track(resp)
 		return BatchGetJobInstanceIpLogRpData{}, err
 	}
 	if err = json.Unmarshal(resp.Data, &data); err != nil {

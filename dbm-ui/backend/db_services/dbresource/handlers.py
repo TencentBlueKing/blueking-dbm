@@ -12,15 +12,18 @@ import math
 from typing import Any, Dict, List
 
 from django.forms import model_to_dict
+from django.utils.translation import ugettext as _
 
 from backend.components.dbresource.client import DBResourceApi
+from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Spec
+from backend.db_services.dbresource.exceptions import SpecOperateException
 
 
 class ClusterSpecFilter(object):
     """集群规格的过滤器"""
 
-    def __init__(self, capacity, future_capacity, qps, spec_cluster_type, spec_machine_type, shard_num=0):
+    def __init__(self, capacity, future_capacity, spec_cluster_type, spec_machine_type, qps=None, shard_num=0):
         # 用户的当前容量，期望容量，期望qps范围和分片数(可选)
         self.capacity: int = capacity
         self.future_capacity: int = future_capacity
@@ -38,7 +41,8 @@ class ClusterSpecFilter(object):
             spec["machine_pair"] = math.ceil(self.capacity / spec["capacity"])
             # 集群容量：机器组数 * 规格容量；集群qps：机器组数 * 规格qps的min
             spec["cluster_capacity"] = spec["machine_pair"] * spec["capacity"]
-            spec["cluster_qps"] = spec["machine_pair"] * spec["qps"]["min"]
+            if self.qps:
+                spec["cluster_qps"] = spec["machine_pair"] * spec["qps"]["min"]
 
     def calc_cluster_shard_num(self):
         """计算每种规格的分片数, 根据不同的集群计算方式也不同"""
@@ -55,15 +59,16 @@ class ClusterSpecFilter(object):
         """系统自带的过滤：qps和分片数"""
         valid_specs: List[Dict[str, Any]] = []
         for spec in self.specs:
-            qps_range = {
-                "min": spec["machine_pair"] * spec["qps"]["min"],
-                "max": spec["machine_pair"] * spec["qps"]["max"],
-            }
-            if not self._qps_check(self.qps, qps_range):
-                continue
-
             if self.filter_shard_num and spec["cluster_shard_num"] != self.filter_shard_num:
                 continue
+
+            if self.qps:
+                qps_range = {
+                    "min": spec["machine_pair"] * spec["qps"]["min"],
+                    "max": spec["machine_pair"] * spec["qps"]["max"],
+                }
+                if not self._qps_check(self.qps, qps_range):
+                    continue
 
             valid_specs.append(spec)
 
@@ -95,44 +100,16 @@ class TenDBClusterSpecFilter(ClusterSpecFilter):
 class RedisSpecFilter(ClusterSpecFilter):
     """Redis规格过滤器基类"""
 
-    # 建议规格数，超出将淘汰末尾规格
-    RECOMMEND_SPEC_NUM = 4
-    # 淘汰规格比例
-    DISUSE_SPEC_RATIO = 0.5
-    # 按照机器组数正向/逆向排序
-    MACHINE_PAIR_SORT = False
-
     def _qps_check(self, user_qps_range, spec_qps_range):
-        # redis可以接受规格qps过大，不接受规格qps小于用户的最小值
-        if user_qps_range["min"] > spec_qps_range["max"]:
-            return False
-
+        # redis不需要qps校验
         return True
 
     def custom_filter(self):
-        """对规格方案进行排序，如果存在大于4个方案，则按比例淘汰末尾规格方案"""
-        self.specs.sort(key=lambda x: x["machine_pair"], reverse=self.MACHINE_PAIR_SORT)
-        if len(self.specs) > self.RECOMMEND_SPEC_NUM:
-            self.specs = self.specs[: -int(len(self.specs) * self.DISUSE_SPEC_RATIO)]
-
-    def filter_too_large_building_capacity(self):
-        """过滤掉过大的建设容量，当建设容量大于目标容量时，默认只保留最小的一个"""
-        exceed_target_capacity_specs: List[Dict[str, Any]] = []
-        in_target_capacity_specs: List[Dict[str, Any]] = []
-        for spec in self.specs:
-            # 首先筛选出建设容量超出目标容量的规格
-            if spec["machine_pair"] * spec["capacity"] > self.capacity:
-                exceed_target_capacity_specs.append(spec)
-            else:
-                in_target_capacity_specs.append(spec)
-
-        # 如果存在多个建设容量>目标容量的规格，则取最接近目标容量的规格
-        if exceed_target_capacity_specs:
-            in_target_capacity_specs.append(
-                sorted(exceed_target_capacity_specs, key=lambda x: x["machine_pair"] * x["capacity"])[0]
-            )
-
-        self.specs = in_target_capacity_specs
+        """对规格方案进行排序,根据目标容量,以及未来容量来决定排序方式"""
+        if self.future_capacity >= self.capacity:
+            self.specs.sort(key=lambda x: (-x["cluster_shard_num"], -x["capacity"], x["machine_pair"]))
+        else:
+            self.specs.sort(key=lambda x: (x["cluster_shard_num"], -x["capacity"], x["machine_pair"]))
 
 
 class TendisPlusSpecFilter(RedisSpecFilter):
@@ -140,10 +117,6 @@ class TendisPlusSpecFilter(RedisSpecFilter):
 
     # 最佳容量管理大小 300G
     OPTIMAL_MANAGE_CAPACITY = 300
-
-    def _qps_check(self, user_qps_range, spec_qps_range):
-        # TendisPlus集群不需要qps过滤
-        return True
 
     def calc_machine_pair(self):
         """计算每种规格所需的机器组数，TendisPlus至少需要三组"""
@@ -184,15 +157,51 @@ class TendisSSDSpecFilter(RedisSpecFilter):
 class TendisCacheSpecFilter(RedisSpecFilter):
     """TendisCache集群规格过滤器"""
 
+    # 单个实例建议的容量规格
+    BASE_SINGLE_CAPCITY = 6
+    # 支持简单阔缩容倍数（非DTS方式）
+    SCALE_MULITPLE = 4
+
     def calc_cluster_shard_num(self):
+        valid_specs: List[Dict[str, Any]] = []
+        max_capcity = self.capacity
+        if self.future_capacity > self.capacity:
+            max_capcity = min(self.future_capacity, self.capacity * self.SCALE_MULITPLE / 2)
+        # 先进行排序
+        self.specs.sort(key=lambda x: (x["capacity"]))
+
+        # 选取合适的规格
+        spec_idx, instance_cap, spec_cnt, avaiable_specs = 0, self.BASE_SINGLE_CAPCITY, len(self.specs), []
         for spec in self.specs:
-            # 计算单机分片数，CPU去中间数的偶数
-            single_machine_shard_num = int((spec["cpu"]["min"] + spec["cpu"]["max"]) / 2)
+            if self.capacity <= spec["capacity"]:
+                avaiable_specs.append(spec)
+                if spec_idx >= 1:
+                    avaiable_specs.append(self.specs[spec_idx - 1])
+                if spec_idx >= 3:
+                    avaiable_specs.append(self.specs[spec_idx - 2])
+                break
+            spec_idx += 1
+
+        if self.capacity > self.specs[spec_cnt - 1]["capacity"] * self.SCALE_MULITPLE:
+            instance_cap = self.BASE_SINGLE_CAPCITY * self.SCALE_MULITPLE
+
+        if self.capacity > self.specs[spec_cnt - 1]["capacity"]:
+            avaiable_specs.append(self.specs[spec_cnt - 1])
+            if spec_cnt > 2:
+                avaiable_specs.append(self.specs[spec_cnt - 2])
+
+        for spec_new in avaiable_specs:
+            # 一定要保证集群总分片数是机器组数的整数倍，并且单机分片数需要取整，取偶
+            cluster_shard_num = math.ceil(max_capcity / instance_cap)
+            single_machine_shard_num = math.ceil(cluster_shard_num / spec_new["machine_pair"])
             single_machine_shard_num = max(single_machine_shard_num + (single_machine_shard_num & 1), 2)
-            spec["cluster_shard_num"] = single_machine_shard_num * spec["machine_pair"]
+            spec_new["cluster_shard_num"] = max(single_machine_shard_num * spec_new["machine_pair"], 4)
+
+            valid_specs.append(spec_new)
+
+        self.specs = valid_specs
 
     def custom_filter(self):
-        super().filter_too_large_building_capacity()
         super().custom_filter()
 
 
@@ -200,11 +209,17 @@ class ResourceHandler(object):
     """资源池接口的处理函数"""
 
     @classmethod
-    def spec_resource_count(cls, bk_biz_id: int, resource_type: str, bk_cloud_id: int, spec_ids: List[int]):
+    def spec_resource_count(cls, bk_biz_id: int, bk_cloud_id: int, spec_ids: List[int]):
+        specs = Spec.objects.filter(spec_id__in=spec_ids)
+        # 获取resource_type
+        spec_cluster_type = list(set(specs.values_list("spec_cluster_type", flat=True)))
+        if len(spec_cluster_type) > 1:
+            raise SpecOperateException(_("请保证请求的规格类型一致"))
+        resource_type = ClusterType.cluster_type_to_db_type(spec_cluster_type[0])
         # 构造申请参数
         spec_count_details = [
             spec.get_apply_params_detail(group_mark=str(spec.spec_id), count=0, bk_cloud_id=bk_cloud_id)
-            for spec in Spec.objects.filter(spec_id__in=spec_ids)
+            for spec in specs
         ]
         spec_count_params = {
             "bk_biz_id": bk_biz_id,

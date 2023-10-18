@@ -9,7 +9,9 @@
         :model-value="modelValue.capacity"
         style="width: 314px;"
         type="number"
-        @change="handleChangeCapacity" />
+        @blur="handleBlurCapacity"
+        @change="handleChangeCapacity"
+        @focus="handleFocusCapacity" />
       <span class="input-desc">G</span>
     </BkFormItem>
     <BkFormItem
@@ -17,11 +19,13 @@
       property="details.resource_spec.backend_group.future_capacity"
       required>
       <BkInput
-        :min="modelValue.capacity"
+        :min="Number(modelValue.capacity)"
         :model-value="modelValue.future_capacity"
         style="width: 314px;"
         type="number"
-        @change="handleChangeFutureCapacity" />
+        @blur="handleBlurCapacity"
+        @change="handleChangeFutureCapacity"
+        @focus="handleFocusCapacity" />
       <span class="input-desc">G</span>
     </BkFormItem>
     <BkFormItem
@@ -48,7 +52,8 @@
         v-bkloading="{loading: isLoading}"
         class="custom-edit-table"
         :columns="columns"
-        :data="renderSpecs">
+        :data="renderSpecs"
+        @row-click="handleRowClick">
         <template #empty>
           <p
             v-if="!sliderProps.value[1]"
@@ -75,20 +80,16 @@
   import { useI18n } from 'vue-i18n';
 
   import { getSpecResourceCount } from '@services/dbResource';
+  import RedisClusterSpecModel from '@services/model/resource-spec/redis-cluster-sepc';
   import {
-    type FilterClusterSpecItem,
     getFilterClusterSpec,
     queryQPSRange,
   } from '@services/resourceSpec';
 
-  interface TableRenderProps {
-    data: FilterClusterSpecItem,
-    row: FilterClusterSpecItem,
-  }
-
   interface ModelValue {
-    spec_id: string,
+    spec_id: number,
     capacity: number | string,
+    count: number,
     future_capacity: number | string,
   }
 
@@ -105,8 +106,8 @@
   const { t } = useI18n();
 
   const specRef = ref();
-  const specs = shallowRef<FilterClusterSpecItem[]>([]);
-  const renderSpecs = shallowRef<FilterClusterSpecItem[]>([]);
+  const specs = shallowRef<RedisClusterSpecModel[]>([]);
+  const renderSpecs = shallowRef<RedisClusterSpecModel[]>([]);
   const isLoading = ref(false);
   const sliderProps = reactive({
     value: [0, 0],
@@ -119,14 +120,19 @@
       field: 'spec_name',
       label: t('资源规格'),
       showOverflowTooltip: false,
-      render: ({ row }: TableRenderProps) => (
+      render: ({ data, index }: { data: RedisClusterSpecModel, index: number }) => (
         <bk-radio
           v-model={modelValue.value.spec_id}
-          label={row.spec_id}
+          label={data.spec_id}
+          kye={index}
           class="spec-radio">
-          <div class="text-overflow" v-overflow-tips>{row.spec_name}</div>
+          <div
+            class="text-overflow"
+            v-overflow-tips>
+            {data.spec_name}
+          </div>
         </bk-radio>
-      ),
+        ),
     },
     {
       field: 'machine_pair',
@@ -183,10 +189,9 @@
           sliderProps.min = 0;
           sliderProps.disabled = true;
         }
-        sliderProps.value = [0, 0];
+        sliderProps.value = [min, max];
         sliderProps.max = max;
         sliderProps.min = min;
-        sliderProps.disabled = false;
       });
   }, 400);
 
@@ -251,9 +256,8 @@
     }
   };
 
-  const fetchSpecResourceCount = () => {
+  const fetchSpecResourceCount = _.debounce(() => {
     getSpecResourceCount({
-      resource_type: props.clusterType,
       bk_biz_id: Number(props.bizId),
       bk_cloud_id: Number(props.cloudId),
       spec_ids: specs.value.map(item => item.spec_id),
@@ -263,10 +267,10 @@
         count: data[item.spec_id] ?? 0,
       }));
     });
-  };
+  }, 100);
 
   watch(() => sliderProps.value, _.debounce(() => {
-    modelValue.value.spec_id = '';
+    modelValue.value.spec_id = -1;
     if (sliderProps.value[1] > 0) {
       fetchFilterClusterSpec();
     } else {
@@ -306,6 +310,18 @@
       fetchQPSRange();
     }
   });
+
+  const handleRowClick = (event: Event, row: RedisClusterSpecModel) => {
+    modelValue.value.spec_id = row.spec_id;
+  };
+
+  const handleFocusCapacity = () => {
+    sliderProps.disabled = true;
+  };
+
+  const handleBlurCapacity = () => {
+    sliderProps.disabled = false;
+  };
 
   defineExpose({
     getData() {

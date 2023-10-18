@@ -29,13 +29,13 @@
           :min-width="120"
           :required="false"
           :row-width="slotProps.rowWidth"
-          :width="180">
+          :width="200">
           <span>{{ $t('源集群') }}</span>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
           :min-width="180"
           :required="false"
-          :width="200">
+          :width="180">
           <span>{{ $t('源实例') }}</span>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
@@ -75,8 +75,9 @@
   </div>
 </template>
 <script setup lang="ts">
+  import RenderTable from '@components/render-table/Index.vue';
+
   import RenderTableHeadColumn from '@views/redis/common/render-table/HeadColumn.vue';
-  import RenderTable from '@views/redis/common/render-table/Index.vue';
 
   import RenderDataRow, {
     type IDataRow,

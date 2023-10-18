@@ -49,6 +49,8 @@ class RedisTypeUpdateDetailSerializer(serializers.Serializer):
         current_cluster_type = serializers.ChoiceField(choices=ClusterType.get_choices(), help_text=_("当前集群类型"))
         target_cluster_type = serializers.ChoiceField(choices=ClusterType.get_choices(), help_text=_("目标集群类型"))
         resource_spec = ResourceSpecSerializer(help_text=_("资源申请"))
+        capacity = serializers.IntegerField(help_text=_("当前容量需求"))
+        future_capacity = serializers.IntegerField(help_text=_("未来容量需求"))
         db_version = serializers.CharField(help_text=_("版本号"))
         online_switch_type = serializers.ChoiceField(
             help_text=_("切换类型"), choices=SwitchConfirmType.get_choices(), default=SwitchConfirmType.NO_CONFIRM
@@ -93,7 +95,7 @@ class RedisTypeUpdateResourceParamBuilder(RedisUpdateApplyResourceParamBuilder):
     pass
 
 
-@builders.BuilderFactory.register(TicketType.REDIS_CLUSTER_TYPE_UPDATE)
+@builders.BuilderFactory.register(TicketType.REDIS_CLUSTER_TYPE_UPDATE, is_apply=True)
 class RedisTypeUpdateFlowBuilder(BaseRedisTicketFlowBuilder):
     serializer = RedisTypeUpdateDetailSerializer
     inner_flow_builder = RedisTypeUpdateParamBuilder

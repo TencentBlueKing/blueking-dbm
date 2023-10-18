@@ -2,10 +2,11 @@ package handler
 
 import (
 	"context"
+	"encoding/json"
+	"log/slog"
+	"slices"
 
 	"github.com/pkg/errors"
-	"golang.org/x/exp/slices"
-	"golang.org/x/exp/slog"
 
 	"celery-service/pkg/handler/externalhandler"
 	"celery-service/pkg/handler/internalhandler"
@@ -18,6 +19,8 @@ type IHandler interface {
 	ClusterType() string
 	Name() string
 	Worker([]byte, context.Context) (string, error)
+	Enable() bool
+	EmptyParam() json.RawMessage
 }
 
 var Handlers = make(map[string][]IHandler)

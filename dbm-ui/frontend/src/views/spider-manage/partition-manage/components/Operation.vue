@@ -14,7 +14,7 @@
       :model="formData"
       :rules="rules">
       <DbFormItem
-        :label="t('域名列表')"
+        :label="t('目标集群')"
         property="cluster_id"
         required>
         <BkSelect
@@ -34,21 +34,39 @@
         required>
         <BkTagInput
           v-model="formData.dblikes"
-          allow-create />
+          allow-create
+          :disabled="isEditMode"
+          :placeholder="t('请输入目标 DB')" />
       </DbFormItem>
       <DbFormItem
         :label="t('目标表')"
         property="tblikes"
         required>
-        <BkTagInput
-          v-model="formData.tblikes"
-          allow-create />
+        <BkPopover
+          :is-show="isTblikePopShow"
+          placement="top"
+          theme="light"
+          trigger="manual">
+          <BkTagInput
+            v-model="formData.tblikes"
+            allow-create
+            :disabled="isEditMode"
+            :placeholder="t('支持多张表')"
+            @blur="handleTblikeBlur"
+            @focus="handleTblikeFocus" />
+          <template #content>
+            <p>{{ t('注：不支持通配符 *, %, ?') }}</p>
+            <p>{{ t('Enter 完成内容输入') }}</p>
+          </template>
+        </BkPopover>
       </DbFormItem>
       <DbFormItem
         :label="t('字段类型')"
         property="partition_column_type"
         required>
-        <BkSelect v-model="formData.partition_column_type">
+        <BkSelect
+          v-model="formData.partition_column_type"
+          :disabled="isEditMode">
           <BkOption
             id="int"
             name="整型(int)" />
@@ -64,9 +82,13 @@
         :label="t('分区字段')"
         property="partition_column"
         required>
-        <BkInput v-model="formData.partition_column" />
+        <BkInput
+          v-model="formData.partition_column"
+          :disabled="isEditMode"
+          :placeholder="t('须为时间类型的字段，如2022-12-12 或 2022.12.12')" />
       </DbFormItem>
       <DbFormItem
+        :description="t('多少天为一个分区，例如 7 天为一个分区')"
         :label="t('分区间隔')"
         property="partition_time_interval"
         required>
@@ -77,6 +99,7 @@
           type="number" />
       </DbFormItem>
       <DbFormItem
+        :description="t('当到达天数后过去的数据会被定期删除，且必须是分区区间的整数倍')"
         :label="t('数据过期时间')"
         property="expire_time"
         required>
@@ -107,15 +130,21 @@
   interface Props {
     data?: PartitionModel
   }
+  interface Emits{
+    (e: 'success'): void
+  }
   interface Expose {
     submit: () => Promise<any>
   }
 
   const props = defineProps<Props>();
+  const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
 
   const formRef = ref();
+  const isEditMode = ref(false);
+  const isTblikePopShow = ref(false);
   const formData = reactive({
     cluster_id: undefined as unknown as number,
     dblikes: [] as string[],
@@ -135,13 +164,16 @@
         trigger: 'blur',
       },
       {
-        required: true,
+        validator: (value: string[]) => !value.some(item => item === '*'),
+        message: t('目标 DB 不能为*'),
+        trigger: 'blur',
+      },
+      {
         validator: (value: string[]) => value.every(item => dbRegex.test(item)),
         message: t('只允许数字、大小写字母开头和结尾，或%结尾'),
         trigger: 'change',
       },
       {
-        required: true,
         validator: (value: string[]) => value.every(item => !dbSysExclude.includes(item)),
         message: t('不能是系统库'),
         trigger: 'change',
@@ -151,8 +183,13 @@
       {
         required: true,
         validator: (value: string[]) => value.length > 0,
-        message: t('目标 DB 不能为空'),
-        trigger: 'change',
+        message: t('目标表不能为空'),
+        trigger: 'blur',
+      },
+      {
+        validator: (value: string[]) => value.every(item => !/[*%?]/.test(item)),
+        message: t('不支持通配符 *, %, ?'),
+        trigger: 'blur',
       },
     ],
     partition_column: [
@@ -178,7 +215,7 @@
           partition_column_type: formData.partition_column_type,
         }),
         message: t('分区字段验证失败'),
-        trigger: 'change',
+        trigger: 'blur',
       },
     ],
     expire_time: [
@@ -189,13 +226,11 @@
         trigger: 'blur',
       },
       {
-        required: true,
         validator: (value: number) => value >= formData.partition_time_interval,
         message: t('数据过期时间必须不小于分区间隔'),
         trigger: 'change',
       },
       {
-        required: true,
         validator: (value: number) => value % formData.partition_time_interval === 0,
         message: t('数据过期时间是分区间隔的整数倍'),
         trigger: 'change',
@@ -222,9 +257,17 @@
       formData.expire_time = props.data.expire_time;
       formData.partition_time_interval = props.data.partition_time_interval;
     }
+    isEditMode.value = Boolean(props.data && props.data.id);
   }, {
     immediate: true,
   });
+
+  const handleTblikeFocus = () => {
+    isTblikePopShow.value = true;
+  };
+  const handleTblikeBlur = () => {
+    isTblikePopShow.value = false;
+  };
 
   const handleClusterChange = (value: number) => {
     formData.cluster_id = value;
@@ -238,12 +281,12 @@
             return editPartition({
               id: props.data.id,
               ...formData,
-            });
+            }).then(() => emits('success'));
           }
 
           return createParitition({
             ...formData,
-          });
+          }).then(() => emits('success'));
         });
     },
   });

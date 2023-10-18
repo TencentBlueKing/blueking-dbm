@@ -174,8 +174,9 @@ class ListRetrieveResource(query.ListRetrieveResource):
         cluster.storages = cluster.storageinstance_set.filter(cluster_type=cluster.cluster_type, bk_biz_id=bk_biz_id)
         cluster.proxies = cluster.proxyinstance_set.filter(cluster_type=cluster.cluster_type, bk_biz_id=bk_biz_id)
         cluster_entry_map = ClusterEntry.get_cluster_entry_map_by_cluster_ids([cluster.id])
+        cluster_stats_map = Cluster.get_cluster_stats()
 
-        return cls._to_cluster_detail(cluster, cluster_entry_map)
+        return cls._to_cluster_list(cluster, cluster_entry_map, cluster_stats_map)
 
     @classmethod
     def get_topo_graph(cls, bk_biz_id: int, cluster_id: int) -> dict:
@@ -223,12 +224,15 @@ class ListRetrieveResource(query.ListRetrieveResource):
             list(clusters.values_list("id", flat=True))
         )
 
+        cluster_stats_map = Cluster.get_cluster_stats()
+
         return query.ResourceList(
-            count=count, data=[cls._to_cluster_list(cluster, cluster_entry_map) for cluster in clusters]
+            count=count,
+            data=[cls._to_cluster_list(cluster, cluster_entry_map, cluster_stats_map) for cluster in clusters],
         )
 
     @staticmethod
-    def _to_cluster_list(cluster, cluster_entry_map: Dict[int, Dict[str, str]]) -> Dict[str, Any]:
+    def _to_cluster_list(cluster, cluster_entry_map: Dict[int, Dict[str, str]], cluster_stats_map) -> Dict[str, Any]:
         """
         集群序列化
         :param cluster: model Cluster 对象, 增加了 storages 和 proxies 属性
@@ -259,7 +263,7 @@ class ListRetrieveResource(query.ListRetrieveResource):
             "cluster_name": cluster.name,
             "cluster_alias": cluster.alias,
             "cluster_spec": cluster_spec,
-            # TODO: 待补充当前集群使用容量，需要监控采集的支持
+            "cluster_stats": cluster_stats_map.get(cluster.immute_domain, {}),
             "cluster_capacity": cluster_capacity,
             "bk_biz_id": cluster.bk_biz_id,
             "bk_biz_name": AppCache.objects.get(bk_biz_id=cluster.bk_biz_id).bk_biz_name,
@@ -282,20 +286,6 @@ class ListRetrieveResource(query.ListRetrieveResource):
             "create_at": datetime2str(cluster.create_at),
             "update_at": datetime2str(cluster.update_at),
         }
-
-    @classmethod
-    def _to_cluster_detail(cls, cluster, cluster_entry_map: Dict[int, Dict[str, str]]) -> Dict[str, Any]:
-        """
-        集群序列化
-        :param cluster: model Cluster 对象, 增加了 storages 和 proxies 属性
-        :param cluster_entry_map: key 是 cluster.id, value 是当前集群对应的 entry 映射
-        """
-        detail = cls._to_cluster_list(cluster, cluster_entry_map)
-
-        # TODO-monitor: 假数据，待监控完善后补齐
-        detail["cap_usage"] = 93
-
-        return detail
 
     @classmethod
     def _to_instance_list(cls, instance: dict) -> Dict[str, Any]:

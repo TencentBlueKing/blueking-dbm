@@ -85,19 +85,28 @@
     return [];
   });
   const domainKeys = computed(() => tableData.value.map(item => item.key));
-  const domainRule = [{
-    required: true,
-    message: t('必填项'),
-    trigger: 'change',
-  }, {
-    message: t('以小写英文字母开头_且只能包含英文字母_数字_连字符'),
-    trigger: 'blur',
-    validator: (val: string) => nameRegx.test(val),
-  }, {
-    message: t('主域名重复'),
-    trigger: 'blur',
-    validator: (val: string) => domainKeys.value.filter(item => item === val).length < 2,
-  }];
+  const domainRule = [
+    {
+      required: true,
+      message: t('必填项'),
+      trigger: 'change',
+    },
+    {
+      message: t('最大长度为m', { m: 63 }),
+      trigger: 'blur',
+      validator: (val: string) => val.length <= 63,
+    },
+    {
+      message: t('以小写英文字母开头_且只能包含英文字母_数字_连字符'),
+      trigger: 'blur',
+      validator: (val: string) => nameRegx.test(val),
+    },
+    {
+      message: t('主访问入口重复'),
+      trigger: 'blur',
+      validator: (val: string) => domainKeys.value.filter(item => item === val).length < 2,
+    },
+  ];
   // 设置域名 form-item refs
   const domainRefs: any[] = [];
   const setDomainRef = (el: any) => {
@@ -116,7 +125,7 @@
     }, {
       label: () => (
         <span>
-          { t('主域名') }
+          { t('主访问入口') }
           {
             tableData.value.length === 0
               ? null
@@ -134,7 +143,7 @@
     }];
     if (!isMysqlSingle.value) {
       columns.push({
-        label: t('从域名'),
+        label: t('从访问入口'),
         field: 'slaveDomain',
         render: ({ index }: { index: number }) => renderDomain(index),
       });

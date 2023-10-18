@@ -8,3 +8,11 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+
+from backend.db_periodic_task.constants import PeriodicTaskType
+from backend.db_periodic_task.models import DBPeriodicTask
+from backend.db_periodic_task.remote_tasks.register import register_from_remote, registered_remote_tasks
+
+# 注册远程周期任务，并删除过期任务
+register_from_remote()
+DBPeriodicTask.delete_legacy_periodic_task(registered_remote_tasks, PeriodicTaskType.REMOTE.value)

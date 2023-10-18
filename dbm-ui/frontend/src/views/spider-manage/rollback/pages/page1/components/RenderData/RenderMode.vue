@@ -54,10 +54,9 @@
     watch,
   } from 'vue';
   import { useI18n } from 'vue-i18n';
+  import { useRequest } from 'vue-request';
 
   import { queryBackupLogFromBklog } from '@services/fixpointRollback';
-
-  import { useGlobalBizs } from '@stores';
 
   import TableEditDateTime from '@views/mysql/common/edit/DateTime.vue';
   import TableEditSelect from '@views/mysql/common/edit/Select.vue';
@@ -78,7 +77,6 @@
 
   const disableDate = (date: Date) => date && date.valueOf() > Date.now();
 
-  const { currentBizId } = useGlobalBizs();
   const { t } = useI18n();
 
   const timerRules = [
@@ -109,33 +107,42 @@
   const localRollbackTimeRef = ref();
   const localBackupidRef = ref();
   const localBackupType = ref('REMOTE_AND_TIME');
-  const localBackupid = ref(0);
+  const localBackupid = ref('');
   const localRollbackTime = ref('');
 
   const logRecordList = shallowRef<Array<{ id: string, name: string}>>([]);
 
   const editDisabled = computed(() => !props.clusterId);
 
-  let logRecordListMemo = [] as any[];
+  let logRecordListMemo: {backup_id: string, backup_time: string}[] = [];
+
+  const {
+    run: fetchBackupLogFromBklog,
+  } = useRequest(queryBackupLogFromBklog, {
+    manual: true,
+    onSuccess(data) {
+      logRecordList.value = data.map(item => ({
+        id: item.backup_id,
+        name: item.backup_time,
+      }));
+      logRecordListMemo = data;
+    },
+  });
 
   const fetchLogData = () => {
+    if (!props.clusterId) {
+      return;
+    }
     logRecordList.value = [];
     logRecordListMemo = [];
 
-    queryBackupLogFromBklog({
-      bk_biz_id: currentBizId,
+    fetchBackupLogFromBklog({
       cluster_id: props.clusterId,
-    }).then((data) => {
-      logRecordList.value = data.map(item => ({
-        id: item.backup_id,
-        name: `${item.mysql_role} ${item.backup_time}`,
-      }));
-      logRecordListMemo = data;
     });
   };
 
   watch(() => props.clusterId, () => {
-    localBackupid.value = 0;
+    localBackupid.value = '';
     localRollbackTime.value = '';
 
     if (props.rollbackTime) {
@@ -143,9 +150,7 @@
       localBackupType.value = 'REMOTE_AND_TIME';
     }
 
-    if (props.clusterId) {
-      fetchLogData();
-    }
+    fetchLogData();
   }, {
     immediate: true,
   });

@@ -151,11 +151,22 @@
   import type { Instance, SingleTarget } from 'tippy.js';
   import { useI18n } from 'vue-i18n';
 
-  import { checkInstances, getClusterDBNames, getClusterInfoByDomains } from '@services/clusters';
+  import {
+    checkInstances,
+    getClusterInfoByDomains,
+  } from '@services/clusters';
+  import { getClusterDBNames } from '@services/remoteService';
   import { createTicket } from '@services/ticket';
-  import type { InstanceInfos, ResourceItem, ResourceItemInstInfo } from '@services/types/clusters';
+  import type {
+    InstanceInfos,
+    ResourceItem,
+    ResourceItemInstInfo,
+  } from '@services/types/clusters';
 
-  import { useInfo, useTableMaxHeight } from '@hooks';
+  import {
+    useInfo,
+    useTableMaxHeight,
+  } from '@hooks';
 
   import { TicketTypes } from '@common/const';
   import { ipPort } from '@common/regex';
@@ -748,7 +759,10 @@
 
     if (domains.length === 0) return Promise.resolve();
 
-    return getClusterInfoByDomains(globalBizsStore.currentBizId, { cluster_filters: _.uniq(domains) })
+    return getClusterInfoByDomains({
+      bizId: globalBizsStore.currentBizId,
+      cluster_filters: _.uniq(domains),
+    })
       .then((res) => {
         for (const item of res) {
           clusterInfoMap.set(item.master_domain, item);
@@ -791,7 +805,9 @@
    */
   function fetchClusterDBNames() {
     const ids = tableData.value.map(item => item.cluster_id).filter(id => id);
-    return getClusterDBNames(globalBizsStore.currentBizId, { cluster_ids: ids })
+    return getClusterDBNames({
+      cluster_ids: ids,
+    })
       .then((res) => {
         for (const item of res) {
           const { cluster_id, databases } = item;
@@ -820,7 +836,10 @@
    * 查询实例信息
    */
   function fetchInstanceInfos(instances: string[]) {
-    return checkInstances(globalBizsStore.currentBizId, { instance_addresses: instances })
+    return checkInstances({
+      bizId: globalBizsStore.currentBizId,
+      instance_addresses: instances,
+    })
       .then((res) => {
         for (const item of res) {
           const { ip, port } = item;

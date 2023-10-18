@@ -17,14 +17,16 @@
     :class="{
       'is-focused': isFocused,
       'is-disabled': disabled,
+      'is-readonly': readonly,
       'is-error': Boolean(errorMessage)
     }">
     <div
       ref="inputRef"
       class="inner-input"
       :class="{
-        ['is-error']: Boolean(errorMessage),
-        ['is-single']: !isFocused
+        'is-error': Boolean(errorMessage),
+        'is-single': !isFocused,
+        'is-empty': isEmpty,
       }"
       contenteditable="true"
       :spellcheck="false"
@@ -50,12 +52,6 @@
 </template>
 <script setup lang="ts">
   import _ from 'lodash';
-  import {
-    computed,
-    nextTick,
-    ref,
-    watch,
-  } from 'vue';
 
   import { encodeMult } from '@utils';
 
@@ -64,19 +60,19 @@
   } from './hooks/useValidtor';
 
   interface Props {
-    modelValue?: string,
     placeholder?: string,
     textarea?: boolean,
     rules?: Rules,
     // 多个输入
     multiInput?: boolean,
-    disabled?: boolean
+    disabled?: boolean,
+    readonly?: boolean,
   }
 
   interface Emits {
-    (e: 'update:modelValue', value: string): void,
     (e: 'submit', value: string): void,
-    (e: 'multiInput', value: Array<string>): void
+    (e: 'multiInput', value: Array<string>): void,
+    (e: 'overflow-change', value: boolean): void,
   }
 
   interface Exposes {
@@ -85,21 +81,25 @@
   }
 
   const props = withDefaults(defineProps<Props>(), {
-    modelValue: '',
     placeholder: '请输入',
     textarea: false,
     rules: undefined,
     multiInput: false,
     disabled: false,
+    readonly: false,
   });
 
   const emits = defineEmits<Emits>();
 
+  const modelValue = defineModel<string>({
+    default: '',
+  });
 
   const inputRef = ref();
   const isFocused = ref(false);
   const localValue = ref('');
 
+  const isEmpty = computed(() => !modelValue.value);
   const inputStyles = computed<any>(() => {
     if (isFocused.value) {
       return {};
@@ -117,14 +117,20 @@
     validator,
   } = useValidtor(props.rules);
 
-  watch(() => props.modelValue, () => {
+  watch(modelValue, (value) => {
     nextTick(() => {
-      if (localValue.value !== props.modelValue) {
-        localValue.value = props.modelValue;
+      if (localValue.value !== value) {
+        localValue.value = value;
         inputRef.value.innerText = localValue.value;
         window.changeConfirm = true;
       }
     });
+    if (value) {
+      setTimeout(() => {
+        const isOverflow = inputRef.value.clientWidth < inputRef.value.scrollWidth;
+        emits('overflow-change', isOverflow);
+      });
+    }
   }, {
     immediate: true,
   });
@@ -144,7 +150,7 @@
     localValue.value = currentValue;
     inputRef.value.innerText = localValue.value;
     window.changeConfirm = true;
-    emits('update:modelValue', localValue.value);
+    modelValue.value = currentValue;
   };
 
   // 获取焦点
@@ -163,7 +169,7 @@
       localValue.value = _.trim(target.outerText);
       if (!props.multiInput) {
         window.changeConfirm = true;
-        emits('update:modelValue', localValue.value);
+        modelValue.value = localValue.value;
       }
     });
   };
@@ -175,10 +181,9 @@
     }
     isFocused.value = false;
     processMultiInputLocalValue();
-    // 注释掉以支持检测空值
-    // if (!localValue.value) {
-    //   return;
-    // }
+    if (!localValue.value) {
+      return;
+    }
     validator(localValue.value)
       .then(() => {
         window.changeConfirm = true;
@@ -224,7 +229,7 @@
     event.preventDefault();
     if (!props.multiInput) {
       window.changeConfirm = true;
-      emits('update:modelValue', localValue.value);
+      modelValue.value = paste;
     }
   };
 
@@ -243,98 +248,112 @@
     },
   });
 </script>
-<style lang="less">
-  .table-edit-input {
-    position: relative;
-    display: block;
-    height: 40px;
-    cursor: pointer;
-    background: #fff;
+<style lang="less" scoped>
+.table-edit-input {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 40px;
+  cursor: pointer;
+  background: #fff;
 
-    &.is-focused {
-      z-index: 99;
-    }
+  &.is-focused {
+    z-index: 99;
+  }
 
-    &.is-disabled {
-      cursor: not-allowed;
-
-      .inner-input {
-        pointer-events: none;
-        background-color: #fafbfd;
-      }
-    }
-
-    &.is-error {
-      .inner-input {
-        background-color: #fff1f1;
-      }
-    }
+  &.is-disabled {
+    cursor: not-allowed;
 
     .inner-input {
-      position: absolute;
-      top: 0;
-      right: 0;
-      left: 0;
-      width: 100%;
-      max-height: 300px;
-      min-height: 40px;
-      padding: 8px 16px;
-      overflow: auto;
-      font-size: 12px;
-      line-height: 20px;
-      color: #63656e;
-      word-break: break-all;
-      background: inherit;
-      border: 1px solid transparent;
-      outline: none;
-
-      &:hover {
-        background-color: #fafbfd;
-        border-color: #a3c5fd;
-      }
-
-      &:focus {
-        border-color: #3a84ff;
-      }
-
-      &.is-single {
-        & > * {
-          display: inline;
-        }
-
-        br {
-          white-space: nowrap;
-          content: "\A";
-        }
-      }
+      pointer-events: none;
+      background-color: #fafbfd;
     }
+  }
 
-    .input-placeholder {
-      position: absolute;
-      top: 10px;
-      right: 20px;
-      left: 18px;
-      z-index: 1;
-      height: 20px;
-      overflow: hidden;
-      font-size: 12px;
-      line-height: 20px;
-      color: #c4c6cc;
-      text-overflow: ellipsis;
-      white-space: nowrap;
+  &.is-readonly {
+    cursor: default;
+
+    .inner-input {
       pointer-events: none;
     }
 
-    .input-error {
-      position: absolute;
-      top: 0;
-      right: 0;
-      bottom: 0;
-      display: flex;
-      padding-right: 10px;
-      font-size: 14px;
-      color: #ea3636;
-      align-items: center;
+    .is-empty {
+      pointer-events: none;
+      background-color: #fafbfd;
     }
   }
+
+
+  &.is-error {
+    .inner-input {
+      background-color: #fff1f1;
+    }
+  }
+
+  .inner-input {
+    position: absolute;
+    top: 0;
+    right: 0;
+    left: 0;
+    max-height: 300px;
+    min-height: 40px;
+    padding: 8px 16px;
+    overflow-y: auto;
+    font-size: 12px;
+    line-height: 20px;
+    color: #63656e;
+    word-break: break-all;
+    background: inherit;
+    border: 1px solid transparent;
+    outline: none;
+
+    &:hover {
+      background-color: #fafbfd;
+      border-color: #a3c5fd;
+    }
+
+    &:focus {
+      border-color: #3a84ff;
+    }
+
+    &.is-single {
+      & > * {
+        display: inline;
+      }
+
+      br {
+        white-space: nowrap;
+        content: "\A";
+      }
+    }
+  }
+
+  .input-placeholder {
+    position: absolute;
+    top: 10px;
+    right: 20px;
+    left: 18px;
+    z-index: 1;
+    height: 20px;
+    overflow: hidden;
+    font-size: 12px;
+    line-height: 20px;
+    color: #c4c6cc;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    pointer-events: none;
+  }
+
+  .input-error {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    padding-right: 10px;
+    font-size: 14px;
+    color: #ea3636;
+    align-items: center;
+  }
+}
 </style>

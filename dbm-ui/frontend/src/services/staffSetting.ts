@@ -20,10 +20,10 @@ import type {
 /**
  * 查询 DBA 人员列表
  */
-export const getAdmins = (bizId: number): Promise<AdminItem[]> => http.get('/apis/conf/db_admin/list_admins/', { bk_biz_id: bizId });
+export const getAdmins = (params: { bk_biz_id: number }) => http.get<AdminItem[]>('/apis/conf/db_admin/list_admins/', params);
 
 /**
  * 更新 DBA 人员列表
  */
-export const updateAdmins = (params: UpdateAdminsParams): Promise<UpdateAdminsParams> => http.post('/apis/conf/db_admin/upsert_admins/', params);
+export const updateAdmins = (params: UpdateAdminsParams) => http.post<UpdateAdminsParams>('/apis/conf/db_admin/upsert_admins/', params);
 

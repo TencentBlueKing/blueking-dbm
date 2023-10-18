@@ -77,24 +77,24 @@
                 <div class="item-content">
                   <DbIcon
                     class="item-flag"
-                    type="account" />
+                    type="manual" />
                   <div class="item-label">
-                    {{ $t('手动执行') }}
+                    {{ $t('人工确认') }}
                   </div>
-                  <div>{{ $t('单据审批通过之后_需要人工确认方可执行') }}</div>
+                  <div>{{ $t('校验检查完成后，需人工确认后，方可执行修复动作') }}</div>
                 </div>
               </BkRadio>
             </div>
             <div class="item-box">
-              <BkRadio label="timer">
+              <BkRadio label="auto">
                 <div class="item-content">
                   <DbIcon
                     class="item-flag"
                     type="timed-task" />
                   <div class="item-label">
-                    {{ $t('定时执行') }}
+                    {{ $t('自动修复') }}
                   </div>
-                  <div>{{ $t('单据审批通过之后_定时执行_无需确认') }}</div>
+                  <div>{{ $t('校验检查完成后，将自动修复数据') }}</div>
                 </div>
               </BkRadio>
             </div>
@@ -257,6 +257,7 @@
 
   const handleReset = () => {
     tableData.value = [createRowData()];
+    window.changeConfirm = false;
   };
 </script>
 <style lang="less">

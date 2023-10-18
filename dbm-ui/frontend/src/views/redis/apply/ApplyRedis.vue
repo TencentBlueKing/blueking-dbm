@@ -25,7 +25,10 @@
           v-model:biz-id="state.formdata.bk_biz_id"
           @change-biz="handleChangeBiz" />
         <ClusterName v-model="state.formdata.details.cluster_name" />
-        <ClusterAlias v-model="state.formdata.details.cluster_alias" />
+        <ClusterAlias
+          v-model="state.formdata.details.cluster_alias"
+          :biz-id="state.formdata.bk_biz_id"
+          cluster-type="redis" />
         <CloudItem
           v-model="state.formdata.details.bk_cloud_id"
           @change="handleChangeCloud" />
@@ -244,7 +247,8 @@
                     :biz-id="state.formdata.bk_biz_id"
                     :cloud-id="state.formdata.details.bk_cloud_id"
                     :cluster-type="typeInfos.cluster_type"
-                    :machine-type="typeInfos.machine_type" />
+                    :machine-type="typeInfos.machine_type"
+                    style="width: 314px;" />
                 </BkFormItem>
                 <BkFormItem
                   :label="$t('数量')"
@@ -320,7 +324,7 @@
   import { ClusterTypes, TicketTypes } from '@common/const';
   import { nameRegx } from '@common/regex';
 
-  import BackendQPSSpec from '@components/apply-items/BackendQPSSpec.vue';
+  import BackendQPSSpec from '@components/apply-items/BackendSpec.vue';
   import BusinessItems from '@components/apply-items/BusinessItems.vue';
   import CloudItem from '@components/apply-items/CloudItem.vue';
   import ClusterAlias from '@components/apply-items/ClusterAlias.vue';
@@ -441,7 +445,7 @@
       ticket_type: TicketTypes.REDIS_CLUSTER_APPLY,
       remark: '',
       details: {
-        bk_cloud_id: '',
+        bk_cloud_id: 0,
         db_app_abbr: '',
         proxy_port: 50000,
         cluster_name: '',
@@ -463,8 +467,7 @@
           },
           backend_group: {
             count: 0,
-            spec_name: '',
-            spec_id: '',
+            spec_id: 0,
             capacity: '' as number | string,
             future_capacity: '' as number | string,
           },
@@ -512,7 +515,8 @@
       return;
     }
     state.isLoadCapSpecs = true;
-    getCapSpecs(cityCode, {
+    getCapSpecs({
+      cityCode,
       cluster_type: state.formdata.details.cluster_type,
       ip_source: state.formdata.details.ip_source,
       nodes: {
@@ -539,8 +543,7 @@
     state.formdata.details.resource_spec.proxy.spec_id = '';
     state.formdata.details.resource_spec.backend_group = {
       count: 0,
-      spec_name: '',
-      spec_id: '',
+      spec_id: 0,
       capacity: '',
       future_capacity: '',
     };

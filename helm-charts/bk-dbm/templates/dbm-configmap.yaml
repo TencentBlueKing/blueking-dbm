@@ -1,4 +1,5 @@
 {{- $dbmDB := fromYaml (include "bk-dbm.database" (list . "dbm")) -}}
+{{- $dbmReportDB := fromYaml (include "bk-dbm.database" (list . "dbmReport")) -}}
 
 apiVersion: v1
 kind: ConfigMap
@@ -14,6 +15,11 @@ data:
   DB_PORT: "{{ $dbmDB.port }}"
   DB_USER: "{{ $dbmDB.user }}"
   DB_PASSWORD: "{{ $dbmDB.password }}"
+  REPORT_DB_NAME: "{{ $dbmReportDB.name }}"
+  REPORT_DB_HOST: "{{ $dbmReportDB.host }}"
+  REPORT_DB_PORT: "{{ $dbmReportDB.port }}"
+  REPORT_DB_USER: "{{ $dbmReportDB.user }}"
+  REPORT_DB_PASSWORD: "{{ $dbmReportDB.password }}"
   DJANGO_SETTINGS_MODULE: "{{ .Values.dbm.envs.djangoSettingsModule }}"
   RUN_VER: "{{ .Values.dbm.envs.runVer }}"
   SERVICE_ONLY: "True"
@@ -51,7 +57,7 @@ data:
   # 蓝鲸权限中心
   BK_IAM_SKIP: "{{ .Values.bk.bkIamSkipMigrate }}"
   IAM_APP_URL: "{{ .Values.bk.bkIamUrl }}"
-  BK_IAM_APIGETEWAY: "{{ .Values.bk.bkIamApiUrl }}"
+  BK_IAM_APIGATEWAY: "{{ .Values.bk.bkIamApiUrl }}"
   # 蓝鲸监控平台
   GRAFANA_URL: "{{ .Values.bk.grafanaUrl }}"
   BKMONITOR_URL: "{{ .Values.bk.bkMonitorUrl }}"
@@ -69,3 +75,9 @@ data:
   HADB_APIGW_DOMAIN: "{{ .Values.dbm.envs.hadbApigwDomain }}"
   DBRESOURCE_APIGW_DOMAIN: "{{ .Values.dbm.envs.dbResourceApigwDomain }}"
   DRS_APIGW_DOMAIN: "{{ .Values.dbm.envs.dbRemoteServiceApigwDomain }}"
+  # 蓝鲸网关
+  BK_APIGW_STATIC_VERSION: "{{ .Values.bk.bkApigwStaticVersion }}"
+  BK_APIGW_MANAGER_MAINTAINERS: "{{ .Values.bk.bkApigwManagerMaintainers }}"
+  BK_APIGW_STAGE_NAME: "{{ .Values.bk.bkApigwStageName }}"
+  BK_APIGW_GRANT_APPS: "{{ .Values.bk.bkApigwGrantApps}}"
+  BK_APIGW_RESOURCE_DOCS_ARCHIVE_FILE: "{{ .Values.bk.bkApigwResourceDocsArchiveFile }}"

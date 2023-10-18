@@ -15,10 +15,13 @@ from rest_framework import serializers
 from backend.db_services.mysql.remote_service.mock_data import (
     CHECK_CLUSTER_DATABASE_REQUEST_DATA,
     CHECK_CLUSTER_DATABASE_RESPONSE_DATA,
+    FLASHBACK_CHECK_DATA,
     SHOW_DATABASES_REQUEST_DATA,
     SHOW_DATABASES_RESPONSE_DATA,
+    SHOW_TABLES_RESPONSE_DATA,
 )
 from backend.flow.consts import TenDBBackUpLocation
+from backend.ticket.builders.mysql.base import DBTableField
 
 
 class ShowDatabasesRequestSerializer(serializers.Serializer):
@@ -38,13 +41,30 @@ class ShowDatabasesRequestSerializer(serializers.Serializer):
         swagger_schema_fields = {"example": SHOW_DATABASES_REQUEST_DATA}
 
 
+class ShowTablesRequestSerializer(serializers.Serializer):
+    class DbInfoSerializer(serializers.Serializer):
+        cluster_id = serializers.IntegerField(help_text=_("集群ID列表"))
+        dbs = serializers.ListField(help_text=_("查询的DB列表"), child=DBTableField(db_field=True))
+
+    cluster_db_infos = serializers.ListSerializer(help_text=_("集群数据库信息"), child=DbInfoSerializer())
+
+
+class ShowTablesResponseSerializer(serializers.Serializer):
+    class Meta:
+        swagger_schema_fields = {"example": SHOW_TABLES_RESPONSE_DATA}
+
+
 class ShowDatabasesResponseSerializer(serializers.Serializer):
     class Meta:
         swagger_schema_fields = {"example": SHOW_DATABASES_RESPONSE_DATA}
 
 
-class CheckClusterDatabaseSerializer(ShowDatabasesRequestSerializer):
-    db_names = serializers.ListField(help_text=_("DB名列表"), child=serializers.CharField(help_text=_("DB名")))
+class CheckClusterDatabaseSerializer(serializers.Serializer):
+    class CheckInfoSerializer(serializers.Serializer):
+        cluster_id = serializers.IntegerField(help_text=_("集群ID"))
+        db_names = serializers.ListField(help_text=_("DB名列表"), child=serializers.CharField(help_text=_("DB名")))
+
+    infos = serializers.ListSerializer(help_text=_("集群校验信息"), child=CheckInfoSerializer())
 
     class Meta:
         swagger_schema_fields = {"example": CHECK_CLUSTER_DATABASE_REQUEST_DATA}
@@ -58,9 +78,14 @@ class CheckClusterDatabaseResponseSerializer(serializers.Serializer):
 class CheckFlashbackInfoSerializer(serializers.Serializer):
     class FlashbackSerializer(serializers.Serializer):
         cluster_id = serializers.IntegerField(help_text=_("集群ID"))
-        databases = serializers.ListField(help_text=_("目标库列表"), child=serializers.CharField())
-        databases_ignore = serializers.ListField(help_text=_("忽略库列表"), child=serializers.CharField())
-        tables = serializers.ListField(help_text=_("目标table列表"), child=serializers.CharField())
-        tables_ignore = serializers.ListField(help_text=_("忽略table列表"), child=serializers.CharField())
+        databases = serializers.ListField(help_text=_("目标库列表"), child=DBTableField(db_field=True))
+        databases_ignore = serializers.ListField(help_text=_("忽略库列表"), child=DBTableField(db_field=True))
+        tables = serializers.ListField(help_text=_("目标table列表"), child=DBTableField())
+        tables_ignore = serializers.ListField(help_text=_("忽略table列表"), child=DBTableField())
 
     infos = serializers.ListSerializer(help_text=_("flashback信息"), child=FlashbackSerializer(), allow_empty=False)
+
+
+class CheckFlashbackInfoResponseSerializer(serializers.Serializer):
+    class Meta:
+        swagger_schema_fields = {"example": FLASHBACK_CHECK_DATA}

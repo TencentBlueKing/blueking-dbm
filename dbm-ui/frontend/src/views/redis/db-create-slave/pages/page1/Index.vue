@@ -205,11 +205,17 @@
 
   // 输入IP后查询详细信息
   const handleChangeHostIp = async (index: number, ip: string) => {
+    if (!ip) {
+      const { ip } = tableData.value[index];
+      ipMemo[ip] = false;
+      tableData.value[index].ip = '';
+      return;
+    }
     tableData.value[index].isLoading = true;
     tableData.value[index].ip = ip;
-    const ret = await queryInfoByIp({
-      ips: [ip],
-    }).finally(() => tableData.value[index].isLoading = false);
+    const ret = await queryInfoByIp({ ips: [ip] }).finally(() => {
+      tableData.value[index].isLoading = false;
+    });
     if (ret.length === 0) {
       return;
     }
@@ -329,7 +335,6 @@
 
     InfoBox({
       title: t('确认新建n台从库主机？', { n: totalNum.value }),
-      subTitle: t('请谨慎操作！'),
       width: 480,
       onConfirm: () => {
         isSubmitting.value = true;

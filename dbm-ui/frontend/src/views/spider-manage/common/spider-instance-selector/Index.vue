@@ -18,7 +18,8 @@
     :draggable="false"
     :esc-close="false"
     :is-show="isShow"
-    :quick-close="false">
+    :quick-close="false"
+    @closed="handleClose">
     <BkResizeLayout
       :border="false"
       collapsible
@@ -36,6 +37,7 @@
           :cluster-id="clusterId"
           :last-values="lastValues"
           :role="role"
+          :ticket-type="ticketType"
           @change="handleChange" />
       </template>
       <template #aside>
@@ -81,10 +83,6 @@
   };
 </script>
 <script setup lang="ts">
-  import {
-    ref,
-  } from 'vue';
-
   import PanelTab, {
     activePanelInjectionKey,
     defaultPanelList,
@@ -99,7 +97,8 @@
     clusterId?: number;
     panelList?: Array<PanelTypes>,
     role?: string,
-    values?: InstanceSelectorValues
+    values?: InstanceSelectorValues,
+    ticketType?: string,
   }
 
   interface Emits {
@@ -113,6 +112,7 @@
     panelList: () => [...defaultPanelList],
     role: '',
     values: undefined,
+    ticketType: '',
   });
   const emits = defineEmits<Emits>();
 

@@ -9,11 +9,11 @@ import (
 )
 
 type ParseQueryBase struct {
-	QueryId         int    `json:"query_id"`
 	Command         string `json:"command"`
 	QueryString     string `json:"query_string,omitempty"`
-	ErrorCode       int    `json:"error_code,omitempty"`
 	ErrorMsg        string `json:"error_msg,omitempty"`
+	QueryId         int    `json:"query_id"`
+	ErrorCode       int    `json:"error_code,omitempty"`
 	MinMySQLVersion int    `json:"min_mysql_version"`
 	MaxMySQLVersion int    `json:"max_my_sql_version"`
 }

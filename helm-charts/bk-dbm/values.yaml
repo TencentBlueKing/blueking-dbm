@@ -19,6 +19,7 @@ bk:
   bkCmdbUrl: "https://cmdb.example.com"
   # 蓝鲸作业平台
   bkJobUrl: "https://job.example.com"
+  bkJobApiUrl: ""
   # 蓝鲸节点管理
   bkNodemanUrl: https://apps.example.com/bk--nodeman
   # scr平台
@@ -41,17 +42,34 @@ bk:
   # 蓝鲸监控平台
   grafanaUrl: "http://bk-dbm-grafana:3000"
   bkMonitorUrl: "https://bk_monitor.example.com"
+  bkMonitorApiUrl: ""
   bkmDbmToken: "bk-monitor-token"
   mysqlCrondBeatPath: "/usr/local/gse/plugins/bin/bkmonitorbeat"
   mysqlCrondAgentAddress: "/var/run/ipc.state.report"
   mysqlCrondMetricsDataToken: "bk-monitor-custom-token"
   mysqlCrondMetricsDataId: "bk-monitor-custom-data-id"
+  # 蓝鲸网关
+  bkApigwStaticVersion: "1.0.0"
+  bkApigwManagerMaintainers: "admin"
+  bkApigwStageName: "prod"
+  bkApigwGrantApps: []
+  bkApigwResourceDocsArchiveFile: ""
 
 # bk-dbm values
 dbm:
   extraEnvVarsCM: bk-dbm-db-env
   enabled: true
   replicaCount: 1
+
+  serviceInit:
+    itsmEnabled: true
+    apigwEnabled: true
+    bklogEnabled: true
+    bkccEnabled: true
+    bkjobEnabled: true
+    mediumEnabled: true
+    bkmonitorEnabled: true
+    sslEnabled: true
 
   image:
     registry: "mirrors.tencent.com"
@@ -129,9 +147,16 @@ dbm:
     dataId: "1"
     logConfigType: "std_log_config"
 
+  ## 版本文件初始化
+  dbmedium:
+    extraEnvVarsCM: bk-dbmedium-db-env
+    image:
+      registry: "mirrors.tencent.com"
+      repository: "build/blueking/dbmedium"
+      pullPolicy: IfNotPresent
+      tag: ""
 
   securityContext: {}
-
 
   resources:
     limits:
@@ -156,7 +181,6 @@ dbconfig:
     # your rand key to encrypt sensitive value
     ENCRYPT_KEY_PREFIX: ""
 
-
 dbpriv:
   enabled: true
 
@@ -168,12 +192,6 @@ dbpartition:
     PT_MAX_LOAD_THREADS_RUNNING: "80"
     PT_MAX_ROWS: "10000000"
     PT_MAX_SIZE: "322122547200"
-    # bk monitor
-    MONITOR_SERVICE: "http://bk-report/"
-    MONITOR_METRIC_DATA_ID: "543957"
-    MONITOR_METRIC_ACCESS_TOKEN: "metric_token"
-    MONITOR_EVENT_DATA_ID: "542898"
-    MONITOR_EVENT_ACCESS_TOKEN: "event_token"
     DB_REMOTE_SERVICE: "http://bk-dbm/apis/proxypass/drs/"
     CRON_RETRY_HOUR: "7,15"
     CRON_TIMING_HOUR: "3"
@@ -213,15 +231,31 @@ hadb-api:
 db-simulation:
   enabled: true
 
-dbResource:
+db-resource:
   enabled: true
   envs:
     cloudVendor: ""
     secretId: ""
     secretKey: ""
 
-dbRemoteService:
+db-remote-service:
   enabled: false
+
+db-celery-service:
+  enabled: false
+
+backup-consumer:
+  enabled: true
+  # 需配置日志平台采集项 collector_config_name_en=backup_stm_log 的 dataid
+  bk_data_id: 1000
+
+backup-server:
+  enabled: true
+  hdfs:
+    enable: false
+    server_addr: "http://example.com"
+    api_sys_id: "test"
+    api_key: "test key"
 
 # bitnami mysql 配置项
 mysql:
@@ -305,13 +339,27 @@ redis:
         memory: 1Gi
         cpu: 1000m
 
-## 第三方redis配置
+# bitnami etcd 配置项
+etcd:
+  enabled: false
+
+## 第三方 etcd 配置（TODO）
+externalEtcd:
+  ## 地址
+  host: "etcd.example.com"
+  ## 端口
+  port: 2379
+  ## 基础认证
+  username: ""
+  password: ""
+
+## 第三方 redis 配置
 externalRedis:
   host: localhost
   port: 6379
   password: ""
 
-## 第三方MySQL配置
+## 第三方 MySQL 配置
 externalDatabase:
   dbm:
     username: bk-dbm
@@ -319,6 +367,12 @@ externalDatabase:
     host: external-db-host-example
     port: 3306
     name: bk_dbm
+  dbmReport:
+    username: bk-dbm
+    password: external-db-pwd-example
+    host: external-db-host-example
+    port: 3306
+    name: bk_dbm_report
   dbConfig:
     username: bk-dbm
     password: external-db-pwd-example
@@ -366,4 +420,16 @@ externalDatabase:
     password: external-db-pwd-example
     host: external-db-host-example
     port: 3306
-    name: bk_dbm_db-resource
+    name: bk_dbm_db_resource
+  dbCeleryService:
+    username: bk-dbm
+    password: external-db-pwd-example
+    host: external-db-host-example
+    port: 3306
+    name: bk_dbm_db_celery_service
+  backupServer:
+    username: bk-dbm
+    password: external-db-pwd-example
+    host: external-db-host-example
+    port: 3306
+    name: bk_dbm_backup_server

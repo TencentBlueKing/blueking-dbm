@@ -16,6 +16,30 @@ SHOW_DATABASES_RESPONSE_DATA = [
     {"cluster_id": 2, "databases": ["db2", "db3"]},
 ]
 
-CHECK_CLUSTER_DATABASE_REQUEST_DATA = {"cluster_ids": [1], "db_name": ["test1", "test2"]}
+SHOW_TABLES_RESPONSE_DATA = [{"cluster_id": 1, "table_data": {"db1": [], "db2": [], "db3": ["test1"]}}]
 
-CHECK_CLUSTER_DATABASE_RESPONSE_DATA = {"cluster_check_info": {"28": []}, "db_check_info": {"kiodb": False}}
+CHECK_CLUSTER_DATABASE_REQUEST_DATA = {"infos": [{"cluster_id": 1, "db_names": ["test1", "test2"]}]}
+
+CHECK_CLUSTER_DATABASE_RESPONSE_DATA = [
+    {"cluster_id": 63, "db_names": ["db1", "db2"], "check_info": {"db1": False, "db2": True}}
+]
+
+FLASHBACK_CHECK_DATA = [
+    {
+        "cluster_id": 63,
+        "databases": ["kkjj"],
+        "databases_ignore": [],
+        "tables": [],
+        "tables_ignore": [],
+        "message": "this is a error message",
+    },
+    {
+        "cluster_id": 63,
+        "databases": [],
+        "databases_ignore": [],
+        "tables": ["iijkk"],
+        "tables_ignore": [],
+        "message": "this is a error message",
+    },
+    {"cluster_id": 63, "databases": [], "databases_ignore": [], "tables": [], "tables_ignore": [], "message": ""},
+]

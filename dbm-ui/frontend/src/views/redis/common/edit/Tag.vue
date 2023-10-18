@@ -107,7 +107,7 @@
 
     .bk-tag-input {
       .bk-tag-input-trigger {
-        min-height: 40px;
+        min-height: 42px;
         border-color: transparent;
         border-radius: 0;
 

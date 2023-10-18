@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import itertools
 from collections import defaultdict
 from itertools import chain
 from typing import Any, Dict, List, Union
@@ -15,10 +16,8 @@ from typing import Any, Dict, List, Union
 from django.utils.translation import ugettext as _
 
 from backend.components import DRSApi
-from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.api.cluster.base.handler import ClusterHandler
-from backend.db_services.mysql.constants import QUERY_SCHEMA_DBS_SQL, QUERY_SCHEMA_TABLES_SQL
-from backend.db_services.mysql.remote_service.exceptions import RemoteServiceBaseException
+from backend.db_services.mysql.constants import QUERY_SCHEMA_DBS_SQL, QUERY_SCHEMA_TABLES_SQL, QUERY_TABLES_FROM_DB_SQL
 from backend.flow.consts import SYSTEM_DBS
 
 
@@ -79,60 +78,53 @@ class RemoteServiceHandler:
                 )
         return cluster_databases
 
-    def check_cluster_database(
-        self, cluster_ids: List[int], db_names: List[str], cluster_id__role_map: Dict[int, str] = None
-    ) -> Dict[str, Dict]:
+    def show_tables(
+        self, cluster_db_infos: List[Dict], cluster_id__role_map: Dict[int, str] = None
+    ) -> List[Dict[str, Union[str, List]]]:
+        """
+        批量查询集群的数据库列表
+        @param cluster_db_infos: 集群DB信息
+        @param cluster_id__role_map: (可选)集群ID和对应查询库表角色的映射表
+        """
+        cluster_id__role_map = cluster_id__role_map or {}
+
+        cluster_table_infos: List[Dict[str, Union[str, List]]] = []
+        for info in cluster_db_infos:
+            cluster_handler, address = self._get_cluster_address(cluster_id__role_map, info["cluster_id"])
+
+            # 构造数据表查询语句
+            db_sts = " or ".join([f"table_schema='{db}'" for db in info["dbs"]])
+            query_table_sql = QUERY_TABLES_FROM_DB_SQL.format(db_sts=db_sts)
+
+            # 执行DRS，并聚合库所包含的表数据
+            bk_cloud_id = cluster_handler.cluster.bk_cloud_id
+            rpc_results = DRSApi.rpc({"bk_cloud_id": bk_cloud_id, "addresses": [address], "cmds": [query_table_sql]})
+            table_data = rpc_results[0]["cmd_results"][0]["table_data"]
+            aggregate_table_data: Dict[str, List[str]] = {db: [] for db in info["dbs"]}
+            for data in table_data:
+                aggregate_table_data[data["table_schema"]].append(data["table_name"])
+
+            cluster_table_infos.append({"cluster_id": cluster_handler.cluster_id, "table_data": aggregate_table_data})
+
+        return cluster_table_infos
+
+    def check_cluster_database(self, check_infos: List[Dict[str, Any]]) -> List[Dict[str, Dict]]:
         """
         批量校验集群下的DB是否存在
-        @param cluster_ids: 集群ID列表
-        @param db_names: 校验的db名
-        @param cluster_id__role_map: (可选)集群ID和对应查询库表角色的映射表
-        [
-            {
-                "address": "127.0.0.1",
-                "cmd_results": [
-                    {
-                        "cmd": "select schema_name as db_name from information_schema.schemata
-                        where schema_name in ('test','sys','bk-dbm-test')",
-                        "table_data": [{"db_name": "sys"},{"db_name": "test"}],
-                        "rows_affected": 0,
-                        "error_msg": ""
-                    }
-                ],
-                "error_msg": ""
-            }
-        ]
+        @param check_infos: 校验库表的信息
         """
 
-        master_inst__cluster_map: Dict[str, int] = {}
-        for cluster_id in cluster_ids:
-            cluster_handler, address = self._get_cluster_address(cluster_id__role_map, cluster_id)
-            master_inst__cluster_map[address] = cluster_id
+        cluster_id__check_info = {info["cluster_id"]: info for info in check_infos}
+        cluster_database_infos = self.show_databases(cluster_ids=list(cluster_id__check_info.keys()))
 
-        raw_db_names = [f"'{db_name}'" for db_name in db_names]
-        rpc_results = DRSApi.rpc(
-            {
-                "addresses": list(master_inst__cluster_map.keys()),
-                "cmds": [
-                    f"select schema_name as db_name "
-                    f"from information_schema.schemata where schema_name in ({','.join(raw_db_names)});"
-                ],
+        for db_info in cluster_database_infos:
+            check_info = {
+                db_name: (db_name in db_info["databases"])
+                for db_name in cluster_id__check_info[db_info["cluster_id"]]["db_names"]
             }
-        )
+            cluster_id__check_info[db_info["cluster_id"]].update(check_info=check_info)
 
-        # 获取每个集群包含的校验DB列表
-        cluster_check_info: Dict[int, List[str]] = {}
-        for result in rpc_results:
-            cluster_check_info[master_inst__cluster_map[result["address"]]] = [
-                db["db_name"] for db in result["cmd_results"][0]["table_data"]
-            ]
-
-        # 校验DB是否在集群中出现。
-        # 这里的判断逻辑是只要DB在校验集群的其中一个出现，就判定为合法
-        db_exist_list = set(chain(*list(cluster_check_info.values())))
-        db_check_info = {db_name: (db_name in db_exist_list and db_name not in SYSTEM_DBS) for db_name in db_names}
-
-        return {"cluster_check_info": cluster_check_info, "db_check_info": db_check_info}
+        return list(cluster_id__check_info.values())
 
     def check_flashback_database(self, flashback_infos: List[Dict[str, Any]]):
         """
@@ -149,8 +141,15 @@ class RemoteServiceHandler:
         ]
         """
 
-        def _get_db_tb_sts(_databases, key, default):
-            _sts = "(" + " or ".join([f"{key} like '{db}'" for db in _databases]) + ")"
+        def _format_db_tb_name(_data_names):
+            for index in range(len(_data_names)):
+                # mysql模糊匹配单个字符，用_，原本字符串里带的_，要\_转义，如果是*，则转为%表示like % --> 永真
+                _data_names[index] = _data_names[index].replace("_", "\_").replace("?", "_").replace("*", "%")
+            return _data_names
+
+        def _get_db_tb_sts(_data_names, key, default):
+            _data_names = _format_db_tb_name(_data_names)
+            _sts = "(" + " or ".join([f"{key} like '{name}'" for name in _data_names]) + ")"
             _sts = f"({default})" if _sts == "()" else _sts
             return _sts
 
@@ -184,7 +183,8 @@ class RemoteServiceHandler:
             )
             databases = set(query_dbs_list[query_schema_dbs_sql]) - set(query_dbs_list[query_ignore_schema_dbs_sql])
             if not databases:
-                raise RemoteServiceBaseException(_("不存在可用于闪回的库"))
+                info.update(message=_("不存在可用于闪回的库"))
+                continue
 
             # 构造查询表的sql语句
             db_list = "(" + ",".join([f"'{db}'" for db in databases]) + ")"
@@ -207,4 +207,9 @@ class RemoteServiceHandler:
                 query_tbs_list[query_ignore_schema_tables_sql]
             )
             if not databases:
-                raise RemoteServiceBaseException(_("不存在可用于闪回的表"))
+                info.update(message=_("不存在可用于闪回的表"))
+                continue
+
+            info.update(message="")
+
+        return flashback_infos

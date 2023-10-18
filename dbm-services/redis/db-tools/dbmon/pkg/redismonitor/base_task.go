@@ -22,6 +22,7 @@ func newBaseTask(conf *config.Configuration, serverConf config.ConfServerItem, p
 		conf.RedisMonitor.BkMonitorEventDataID,
 		conf.RedisMonitor.BkMonitorEventToken,
 		conf.GsePath,
+		conf.AgentAddress,
 	)
 	if err != nil {
 		return

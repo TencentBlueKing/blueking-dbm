@@ -20,14 +20,17 @@
       form-type="vertical"
       :model="formdata">
       <BkFormItem
+        ref="nameInputRef"
         :label="$t('规格名称')"
         property="spec_name"
         required
         :rules="nameRules">
         <BkInput
-          disabled
-          :model-value="specName"
-          :placeholder="$t('名称自动生成_生成规则_最取最小的CPU_内存_磁盘_QPS')" />
+          v-model="formdata.spec_name"
+          :maxlength="128"
+          :placeholder="$t('请输入')"
+          show-word-limit
+          @input="handleInputName" />
       </BkFormItem>
       <div class="machine-item">
         <div class="machine-item-label">
@@ -59,10 +62,6 @@
           :min="1"
           type="number" />
       </BkFormItem>
-      <SpecQps
-        v-if="hasQPS && formdata.qps"
-        v-model="formdata.qps"
-        :is-edit="isEdit" />
       <BkFormItem :label="$t('描述')">
         <BkInput
           v-model="formdata.desc"
@@ -118,7 +117,6 @@
   import SpecCPU from './spec-form-item/SpecCPU.vue';
   import SpecDevice from './spec-form-item/SpecDevice.vue';
   import SpecMem from './spec-form-item/SpecMem.vue';
-  import SpecQps from  './spec-form-item/SpecQPS.vue';
   import SpecStorage from './spec-form-item/SpecStorage.vue';
 
   import { messageSuccess } from '@/utils';
@@ -150,7 +148,7 @@
         baseData.storage_spec = [
           {
             mount_point: '',
-            size: '',
+            size: '' as unknown as number,
             type: '',
           },
         ];
@@ -181,20 +179,18 @@
       spec_name: '',
       spec_id: undefined,
       instance_num: 1,
-      qps: {
-        max: '',
-        min: '',
-      },
     };
   };
 
   const { t } = useI18n();
 
   const formRef = ref();
+  const nameInputRef = ref();
   const formWrapperRef = ref<HTMLDivElement>();
   const formFooterRef = ref<HTMLDivElement>();
   const formdata = ref(initFormdata());
   const isLoading = ref(false);
+  const isCustomInput = ref(false);
   const initFormdataStringify = JSON.stringify(formdata.value);
   const isChange = computed(() => JSON.stringify(formdata.value) !== initFormdataStringify);
   const notRequiredStorageList = [
@@ -205,37 +201,6 @@
     `${ClusterTypes.PULSAE}_pulsar_broker`,
   ];
   const isRequired = computed(() => !notRequiredStorageList.includes(`${props.clusterType}_${props.machineType}`));
-  const hasQPSSpecs = [
-    `${ClusterTypes.TWEMPROXY_REDIS_INSTANCE}_tendiscache`,
-    `${ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE}_tendisssd`,
-    `${ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER}_tendisplus`,
-    `${ClusterTypes.TENDBCLUSTER}_remote`,
-  ];
-  const hasQPS = computed(() => hasQPSSpecs.includes(`${props.clusterType}_${props.machineType}`));
-  const specName = computed(() => {
-    const { cpu, mem, storage_spec: StorageSpec, qps } = formdata.value;
-    const displayList = [
-      {
-        value: cpu.min,
-        unit: t('核'),
-      },
-      {
-        value: mem.min,
-        unit: 'G',
-      },
-      {
-        value: Math.min(...StorageSpec.map(item => Number(item.size))),
-        unit: 'G',
-      },
-      {
-        value: qps?.min ?? 0,
-        unit: '/s',
-      },
-    ];
-    return displayList.filter(item => item.value)
-      .map(item => item.value + item.unit)
-      .join('_');
-  });
   const nameRules = computed(() => [
     {
       required: true,
@@ -257,18 +222,54 @@
 
   useStickyFooter(formWrapperRef, formFooterRef);
 
+  watch([
+    () => formdata.value.cpu,
+    () => formdata.value.mem,
+    () => formdata.value.storage_spec,
+  ], () => {
+    if (props.mode === 'create' && isCustomInput.value === false) {
+      formdata.value.spec_name = getName();
+      nameInputRef.value?.clearValidate();
+    }
+  }, { deep: true });
+
+  const getName = () => {
+    const { cpu, mem, storage_spec: StorageSpec } = formdata.value;
+    const displayList = [
+      {
+        value: cpu.min,
+        unit: t('核'),
+      },
+      {
+        value: mem.min,
+        unit: 'G',
+      },
+      {
+        value: Math.min(...StorageSpec.map(item => Number(item.size))),
+        unit: 'G',
+      },
+    ];
+    return displayList.filter(item => item.value)
+      .map(item => item.value + item.unit)
+      .join('_');
+  };
+
+  const handleInputName = () => {
+    isCustomInput.value = true;
+  };
+
   const submit = () => {
     isLoading.value = true;
-    formdata.value.spec_name = specName.value;
     formRef.value.validate()
       .then(() => {
         const params = Object.assign(_.cloneDeep(formdata.value), {
+          specId: (formdata.value as ResourceSpecModel).spec_id,
           device_class: formdata.value.device_class.filter(item => item),
           storage_spec: formdata.value.storage_spec.filter(item => item.mount_point && item.size && item.type),
         });
 
         if (props.mode === 'edit') {
-          updateResourceSpec((formdata.value as ResourceSpecModel).spec_id, params)
+          updateResourceSpec(params)
             .then(() => {
               messageSuccess(t('编辑成功'));
               emits('successed');
@@ -282,15 +283,6 @@
 
         if (!props.hasInstance) {
           delete params.instance_num;
-        }
-
-        if (hasQPS.value) {
-          params.qps = {
-            max: Number(params.qps?.max),
-            min: Number(params.qps?.min),
-          };
-        } else {
-          delete params.qps;
         }
 
         createResourceSpec(params)

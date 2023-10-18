@@ -40,7 +40,7 @@ const getFormData = (type: string) => ({
   remark: '',
   ticket_type: type,
   details: {
-    bk_cloud_id: '',
+    bk_cloud_id: 0,
     city_code: '',
     db_app_abbr: '',
     spec: '',
@@ -51,7 +51,7 @@ const getFormData = (type: string) => ({
     start_mysql_port: 20000,
     start_proxy_port: 10000,
     domains: [{ key: '' }],
-    disaster_tolerance_level: 'same_city_cross_zone',
+    disaster_tolerance_level: 'NONE',
     ip_source: 'resource_pool',
     nodes: {
       backend: [] as HostDetails[],
@@ -154,7 +154,7 @@ export const useMysqlData = (type: string) => {
   });
   const fetchInfrasHostSpecs = (cityCode: string) => {
     loading.hostSpecs = true;
-    getInfrasHostSpecs(cityCode)
+    getInfrasHostSpecs({ cityCode })
       .then((res) => {
         fetchState.hostSpecs = res || [];
       })

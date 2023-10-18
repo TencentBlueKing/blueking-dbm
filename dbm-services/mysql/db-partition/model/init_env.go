@@ -36,15 +36,7 @@ func InitEnv() {
 	viper.BindEnv("pt.max_size", "PT_MAX_SIZE")
 	viper.BindEnv("pt.max_rows", "PT_MAX_ROWS")
 
-	viper.BindEnv("monitor.service", "MONITOR_SERVICE")
-	// 蓝鲸监控自定义事件
-	viper.BindEnv("monitor.event.data_id", "MONITOR_EVENT_DATA_ID")
-	viper.BindEnv("monitor.event.access_token", "MONITOR_EVENT_ACCESS_TOKEN")
-	// 蓝鲸监控自定义指标
-	viper.BindEnv("monitor.metric.data_id", "MONITOR_METRIC_DATA_ID")
-	viper.BindEnv("monitor.metric.access_token", "MONITOR_METRIC_ACCESS_TOKEN")
-
-	viper.BindEnv("dba.bk_biz_id", "DBA_BK_BIZ_ID")
+	viper.BindEnv("dba.bk_biz_id", "DBA_APP_BK_BIZ_ID")
 
 	// 程序日志参数, 可选参数
 	viper.BindEnv("log.path", "LOG_PATH")

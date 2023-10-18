@@ -15,10 +15,15 @@ from backend.flow.views.cloud_dbha_apply import CloudDBHAApplySceneApiView
 from backend.flow.views.cloud_dns_bind_apply import CloudDNSApplySceneApiView
 from backend.flow.views.cloud_drs_apply import CloudDRSApplySceneApiView
 from backend.flow.views.cloud_nginx_apply import CloudNginxApplySceneApiView, CloudNginxReplaceSceneApiView
+from backend.flow.views.cloud_redis_dts_server_apply import (
+    CloudRedisDTSServerApplySceneApiView,
+    CloudRedisDTSServerReduceSceneApiView,
+)
 from backend.flow.views.es_apply import InstallEsSceneApiView
 from backend.flow.views.es_destroy import DestroyEsSceneApiView
 from backend.flow.views.es_disable import DisableEsSceneApiView
 from backend.flow.views.es_enable import EnableEsSceneApiView
+from backend.flow.views.es_fake_apply import FakeInstallEsSceneApiView
 from backend.flow.views.es_reboot import RebootEsSceneApiView
 from backend.flow.views.es_replace import ReplaceEsSceneApiView
 from backend.flow.views.es_scale_up import ScaleUpEsSceneApiView
@@ -43,11 +48,13 @@ from backend.flow.views.kafka_apply import InstallKafkaSceneApiView
 from backend.flow.views.kafka_destroy import DestroyKafkaSceneApiView
 from backend.flow.views.kafka_disable import DisableKafkaSceneApiView
 from backend.flow.views.kafka_enable import EnableKafkaSceneApiView
+from backend.flow.views.kafka_fake_apply import FakeInstallKafkaSceneApiView
 from backend.flow.views.kafka_reboot import RebootKafkaSceneApiView
 from backend.flow.views.kafka_replace import ReplaceKafkaSceneApiView
 from backend.flow.views.kafka_scale_up import ScaleUpKafkaSceneApiView
 from backend.flow.views.kafka_shrink import ShrinkKafkaSceneApiView
 from backend.flow.views.mysql_add_slave import AddMysqlSlaveSceneApiView
+from backend.flow.views.mysql_add_slave_remote import AddMysqlSlaveRemoteSceneApiView
 from backend.flow.views.mysql_checksum import MysqlChecksumSceneApiView
 from backend.flow.views.mysql_edit_config import MysqlEditConfigSceneApiView
 from backend.flow.views.mysql_flashback import MysqlFlashbackSceneApiView
@@ -64,12 +71,16 @@ from backend.flow.views.mysql_ha_rename_database import MySQLHARenameDatabaseVie
 from backend.flow.views.mysql_ha_switch import MySQLHASwitchSceneApiView
 from backend.flow.views.mysql_ha_truncate_data import MySQLHATruncateDataView
 from backend.flow.views.mysql_migrate_cluster import MigrateMysqlClusterSceneApiView
+from backend.flow.views.mysql_migrate_cluster_remote import MysqlMigrateRemoteSceneApiView
+from backend.flow.views.mysql_open_area import MysqlOpenAreaSceneApiView
 from backend.flow.views.mysql_partition import MysqlPartitionSceneApiView
 from backend.flow.views.mysql_proxy_add import AddMySQLProxySceneApiView
 from backend.flow.views.mysql_proxy_switch import SwitchMySQLProxySceneApiView
 from backend.flow.views.mysql_pt_table_sync import MySQLPtTableSyncApiView
+from backend.flow.views.mysql_restore_local_remote import RestoreMysqlLocalRemoteSceneApiView
 from backend.flow.views.mysql_restore_local_slave import RestoreMysqlLocalSlaveSceneApiView
 from backend.flow.views.mysql_restore_slave import RestoreMysqlSlaveSceneApiView
+from backend.flow.views.mysql_restore_slave_remote import RestoreMysqlSlaveRemoteSceneApiView
 from backend.flow.views.mysql_rollback_data import MysqlRollbackDataSceneApiView
 from backend.flow.views.mysql_single_apply import InstallMySQLSingleSceneApiView
 from backend.flow.views.mysql_single_destroy import (
@@ -80,15 +91,18 @@ from backend.flow.views.mysql_single_destroy import (
 from backend.flow.views.mysql_single_rename_database import MySQLSingleRenameDatabaseView
 from backend.flow.views.mysql_single_truncate_data import MySQLSingleTruncateDataView
 from backend.flow.views.name_service import (
-    NameServiceClbCreateSceneApiView,
-    NameServiceClbDeleteSceneApiView,
-    NameServicePolarisCreateSceneApiView,
-    NameServicePolarisDeleteSceneApiView,
+    ClbCreateSceneApiView,
+    ClbDeleteSceneApiView,
+    DomainBindClbIpSceneApiView,
+    DomainUnBindClbIpSceneApiView,
+    PolarisCreateSceneApiView,
+    PolarisDeleteSceneApiView,
 )
 from backend.flow.views.pulsar_apply import InstallPulsarSceneApiView
 from backend.flow.views.pulsar_destroy import DestroyPulsarSceneApiView
 from backend.flow.views.pulsar_disable import DisablePulsarSceneApiView
 from backend.flow.views.pulsar_enable import EnablePulsarSceneApiView
+from backend.flow.views.pulsar_fake_apply import FakeInstallPulsarSceneApiView
 from backend.flow.views.pulsar_reboot import RebootPulsarSceneApiView
 from backend.flow.views.pulsar_scale_up import ScaleUpPulsarSceneApiView
 from backend.flow.views.redis_cluster import (
@@ -104,6 +118,7 @@ from backend.flow.views.redis_cluster import (
     RedisClusterShardNumUpdateSceneApiView,
     RedisClusterShutdownSceneApiView,
     RedisClusterTypeUpdateSceneApiView,
+    RedisClusterVersionUpdateOnlineApiView,
     RedisDataStructureSceneApiView,
     RedisDataStructureTaskDeleteSceneApiView,
     RedisFlushDataSceneApiView,
@@ -150,9 +165,12 @@ from backend.flow.views.tbinlogdumper_add import InstallTBinlogDumperSceneApiVie
 from backend.flow.views.tbinlogdumper_reduce import ReduceTBinlogDumperSceneApiView
 from backend.flow.views.tbinlogdumper_switch import SwitchTBinlogDumperSceneApiView
 from backend.flow.views.tendb_cluster_remote_fail_over import RemoteFailOverSceneApiView
+from backend.flow.views.tendb_cluster_remote_local_recover import RemoteLocalRecoverSceneApiView
 from backend.flow.views.tendb_cluster_remote_rebalance import RemoteRebalanceSceneApiView
+from backend.flow.views.tendb_cluster_remote_slave_recover import RemoteSlaveRecoverSceneApiView
 from backend.flow.views.tendb_cluster_remote_switch import RemoteSwitchSceneApiView
 from backend.flow.views.tendb_cluster_rollback_data import TendbClusterRollbackDataSceneApiView
+from backend.flow.views.tendb_ha_standardize import TenDBHAStandardizeView
 
 urlpatterns = [
     #  redis api url begin
@@ -181,16 +199,19 @@ urlpatterns = [
     url(r"^scene/redis_data_structure$", RedisDataStructureSceneApiView.as_view()),
     url(r"^scene/redis_data_structure_task_delete$", RedisDataStructureTaskDeleteSceneApiView.as_view()),
     url(r"^scene/redis_cluster_add_slave$", RedisClusterAddSlaveApiView.as_view()),
+    url(r"^scene/redis_cluster_version_update_online$", RedisClusterVersionUpdateOnlineApiView.as_view()),
     # redis api url end
     # dns api
     url(r"^scene/client_set_dns_server$", ClientSetDnsServerSceneApiView.as_view()),
     # name_service start
     # name_service clb
-    url(r"^scene/nameservice_clb_create$", NameServiceClbCreateSceneApiView.as_view()),
-    url(r"^scene/nameservice_clb_delete$", NameServiceClbDeleteSceneApiView.as_view()),
+    url(r"^scene/nameservice_clb_create$", ClbCreateSceneApiView.as_view()),
+    url(r"^scene/nameservice_clb_delete$", ClbDeleteSceneApiView.as_view()),
+    url(r"^scene/nameservice_domain_bind_clb_ip$", DomainBindClbIpSceneApiView.as_view()),
+    url(r"^scene/nameservice_domain_unbind_clb_ip$", DomainUnBindClbIpSceneApiView.as_view()),
     # name_service polaris
-    url(r"^scene/nameservice_polaris_create$", NameServicePolarisCreateSceneApiView.as_view()),
-    url(r"^scene/nameservice_polaris_delete$", NameServicePolarisDeleteSceneApiView.as_view()),
+    url(r"^scene/nameservice_polaris_create$", PolarisCreateSceneApiView.as_view()),
+    url(r"^scene/nameservice_polaris_delete$", PolarisDeleteSceneApiView.as_view()),
     # name_service end
     url(r"^scene/install_mysql_apply$", InstallMySQLSingleSceneApiView.as_view()),
     url(r"^scene/install_mysql_ha_apply$", InstallMySQLHASceneApiView.as_view()),
@@ -213,6 +234,7 @@ urlpatterns = [
     url(r"^scene/reboot_influxdb$", RebootInfluxdbSceneApiView.as_view()),
     url(r"^scene/replace_influxdb$", ReplaceInfluxdbSceneApiView.as_view()),
     url(r"^scene/install_kafka$", InstallKafkaSceneApiView.as_view()),
+    url(r"^scene/fake_install_kafka$", FakeInstallKafkaSceneApiView.as_view()),
     url(r"^scene/scale_up_kafka$", ScaleUpKafkaSceneApiView.as_view()),
     url(r"^scene/enable_kafka$", EnableKafkaSceneApiView.as_view()),
     url(r"^scene/disable_kafka$", DisableKafkaSceneApiView.as_view()),
@@ -221,6 +243,7 @@ urlpatterns = [
     url(r"^scene/replace_kafka$", ReplaceKafkaSceneApiView.as_view()),
     url(r"^scene/reboot_kafka$", RebootKafkaSceneApiView.as_view()),
     url(r"^scene/install_es$", InstallEsSceneApiView.as_view()),
+    url(r"^scene/fake_install_es$", FakeInstallEsSceneApiView.as_view()),
     url(r"^scene/scale_up_es$", ScaleUpEsSceneApiView.as_view()),
     url(r"^scene/shrink_es$", ShrinkEsSceneApiView.as_view()),
     url(r"^scene/enable_es$", EnableEsSceneApiView.as_view()),
@@ -241,6 +264,11 @@ urlpatterns = [
     url(r"^scene/restore_slave$", RestoreMysqlSlaveSceneApiView.as_view()),
     url(r"^scene/add_slave$", AddMysqlSlaveSceneApiView.as_view()),
     url(r"^scene/restore_local_slave$", RestoreMysqlLocalSlaveSceneApiView.as_view()),
+    # 从节点数据恢复(接入备份系统)
+    url(r"^scene/restore_slave_remote$", RestoreMysqlSlaveRemoteSceneApiView.as_view()),
+    url(r"^scene/add_slave_remote$", AddMysqlSlaveRemoteSceneApiView.as_view()),
+    url(r"^scene/restore_local_slave_remote$", RestoreMysqlLocalRemoteSceneApiView.as_view()),
+    url(r"^scene/migrate_cluster_remote$", MysqlMigrateRemoteSceneApiView.as_view()),
     url(r"^scene/migrate_cluster$", MigrateMysqlClusterSceneApiView.as_view()),
     url(r"^scene/mysql_rollback_data", MysqlRollbackDataSceneApiView.as_view()),
     url(r"^scene/install_es$", InstallEsSceneApiView.as_view()),
@@ -265,12 +293,15 @@ urlpatterns = [
     url(r"^scene/nginx_apply$", CloudNginxApplySceneApiView.as_view()),
     url(r"^scene/nginx_replace$", CloudNginxReplaceSceneApiView.as_view()),
     url(r"^scene/drs_apply$", CloudDRSApplySceneApiView.as_view()),
+    url(r"^scene/redis_dts_server_apply$", CloudRedisDTSServerApplySceneApiView.as_view()),
+    url(r"^scene/redis_dts_server_reduce$", CloudRedisDTSServerReduceSceneApiView.as_view()),
     url(r"^scene/install_pulsar$", InstallPulsarSceneApiView.as_view()),
     url(r"^scene/scale_up_pulsar$", ScaleUpPulsarSceneApiView.as_view()),
     url(r"^scene/enable_pulsar$", EnablePulsarSceneApiView.as_view()),
     url(r"^scene/disable_pulsar$", DisablePulsarSceneApiView.as_view()),
     url(r"^scene/destroy_pulsar$", DestroyPulsarSceneApiView.as_view()),
     url(r"^scene/reboot_pulsar$", RebootPulsarSceneApiView.as_view()),
+    url(r"^scene/fake_install_pulsar$", FakeInstallPulsarSceneApiView.as_view()),
     url(r"^scene/import_resource_init$", ImportResourceInitStepApiView.as_view()),
     # spider
     url(r"^scene/add_spider_mnt$", AddSpiderMNTSceneApiView.as_view()),
@@ -313,8 +344,12 @@ urlpatterns = [
     url(r"^scene/tendb_cluster_rollback_data$", TendbClusterRollbackDataSceneApiView.as_view()),
     url("^scene/destroy_tendb_slave_cluster$", DestroySpiderSlaveClusterSceneApiView.as_view()),
     url("^scene/reduce_spider_mnt$", ReduceSpiderMNTSceneApiView.as_view()),
+    url(r"^scene/tendb_cluster_remote_slave_recover$", RemoteSlaveRecoverSceneApiView.as_view()),
+    url(r"^scene/tendb_cluster_remote_local_recover$", RemoteLocalRecoverSceneApiView.as_view()),
     # tbinlogdumper
     url("^scene/install_tbinlogumper$", InstallTBinlogDumperSceneApiView.as_view()),
     url("^scene/reduce_tbinlogumper$", ReduceTBinlogDumperSceneApiView.as_view()),
     url("^scene/switch_tbinlogumper$", SwitchTBinlogDumperSceneApiView.as_view()),
+    url("^scene/tendbha_standardize$", TenDBHAStandardizeView.as_view()),
+    url("^scene/mysql_open_area$", MysqlOpenAreaSceneApiView.as_view()),
 ]

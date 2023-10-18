@@ -40,7 +40,9 @@ class RedisScaleUpDownDetailSerializer(serializers.Serializer):
         online_switch_type = serializers.ChoiceField(
             help_text=_("切换类型"), choices=SwitchConfirmType.get_choices(), default=SwitchConfirmType.NO_CONFIRM
         )
-        resource_spec = ResourceSpecSerializer()
+        resource_spec = ResourceSpecSerializer(help_text=_("资源申请"))
+        capacity = serializers.IntegerField(help_text=_("当前容量需求"))
+        future_capacity = serializers.IntegerField(help_text=_("未来容量需求"))
 
     ip_source = serializers.ChoiceField(help_text=_("主机来源"), choices=IpSource.get_choices())
     infos = serializers.ListField(help_text=_("批量操作参数列表"), child=InfoSerializer())
@@ -58,7 +60,7 @@ class RedisScaleUpDownResourceParamBuilder(builders.ResourceApplyParamBuilder):
         super().post_callback()
 
 
-@builders.BuilderFactory.register(TicketType.REDIS_SCALE_UPDOWN)
+@builders.BuilderFactory.register(TicketType.REDIS_SCALE_UPDOWN, is_apply=True)
 class RedisScaleUpDownFlowBuilder(BaseRedisTicketFlowBuilder):
     serializer = RedisScaleUpDownDetailSerializer
     inner_flow_builder = RedisScaleUpDownParamBuilder

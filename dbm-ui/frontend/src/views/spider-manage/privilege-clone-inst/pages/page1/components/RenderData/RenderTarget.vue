@@ -35,7 +35,7 @@
 
   import { useGlobalBizs } from '@stores';
 
-  import TableEditInput from '@views/mysql/common/edit/Input.vue';
+  import TableEditInput from '@views/spider-manage/common/edit/Input.vue';
 
   import { random } from '@utils';
 
@@ -69,7 +69,8 @@
       message: t('新实例不能为空'),
     },
     {
-      validator: () => checkInstances(currentBizId, {
+      validator: () => checkInstances({
+        bizId: currentBizId,
         instance_addresses: [localInstanceAddress.value],
       }).then((data) => {
         if (data.length < 1) {

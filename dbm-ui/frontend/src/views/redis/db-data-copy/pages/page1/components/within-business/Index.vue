@@ -98,9 +98,10 @@
 
   import { ClusterTypes, LocalStorageKeys } from '@common/const';
 
-  import ClusterSelector from '@views/redis/common/cluster-selector/ClusterSelector.vue';
+  import RenderTable from '@components/render-table/Index.vue';
+
+  import ClusterSelector from '@views/redis/common/cluster-selector/DataCopyClusterSelector.vue';
   import RenderTableHeadColumn from '@views/redis/common/render-table/HeadColumn.vue';
-  import RenderTable from '@views/redis/common/render-table/Index.vue';
   import type { SelectItem } from '@views/redis/db-data-copy/pages/page1/components/RenderTargetCluster.vue';
   import type { InfoItem } from '@views/redis/db-data-copy/pages/page1/Index.vue';
 
@@ -219,7 +220,16 @@
 
   // 输入集群后查询集群信息并填充到table
   const handleChangeCluster = async (index: number, domain: string) => {
-    const ret = await listClusterList(currentBizId, { domain });
+    if (!domain) {
+      const { srcCluster } = tableData.value[index];
+      domainMemo[srcCluster] = false;
+      tableData.value[index].srcCluster = '';
+      return;
+    }
+    tableData.value[index].isLoading = true;
+    const ret = await listClusterList(currentBizId, { domain }).finally(() => {
+      tableData.value[index].isLoading = false;
+    });
     if (ret.length < 1) {
       return;
     }

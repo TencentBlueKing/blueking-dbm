@@ -3,14 +3,17 @@
     <BkDatePicker
       v-model="recordTime"
       class="mb-16"
+      type="daterange"
       @change="handleDateChange" />
     <DbTable
       ref="tableRef"
       :columns="tableColumns"
-      :data-source="queryLog" />
+      :data-source="queryLog"
+      @clear-search="handleClearSearch" />
   </div>
 </template>
 <script setup lang="tsx">
+  import dayjs from 'dayjs';
   import {
     nextTick,
     ref,
@@ -33,7 +36,11 @@
   const { t } = useI18n();
 
   const tableRef = ref();
-  const recordTime = ref('');
+  const recordTime = ref<[string, string]>([
+    dayjs().date(-100)
+      .format('YYYY-MM-DD HH:mm:ss'),
+    dayjs().format('YYYY-MM-DD HH:mm:ss'),
+  ]);
 
   const tableColumns = [
     {
@@ -43,7 +50,7 @@
     {
       label: t('关联单据'),
       field: 'ticket_id',
-      render: ({ data }: {data: PartitionLogModel}) => (
+      render: ({ data }: {data: PartitionLogModel}) => (data.ticket_id ? (
         <router-link
           target="_blank"
           to={{
@@ -54,7 +61,7 @@
           }}>
           {data.ticket_id}
         </router-link>
-      ),
+        ) : '--'),
     },
     {
       label: t('执行状态'),
@@ -66,7 +73,15 @@
             style="vertical-align: middle;"
             type={data.statusIcon}
             svg />
-          <span class="ml-4">{data.statusText}</span>
+          <span
+            v-bk-tooltips={{
+              disabled: !data.isFailed && data.check_info,
+              content: data.check_info,
+              extCls: 'partition-execute-error-message-pop',
+            }}
+            class="ml-4">
+            {data.statusText}
+          </span>
         </div>
       ),
     },
@@ -78,10 +93,17 @@
   ];
 
   const fetchData = () => {
-    tableRef.value.fetchData({}, {
+    const [startTime, endTime] = recordTime.value;
+    const params = {};
+    if (startTime && endTime) {
+      Object.assign(params, {
+        start_time: dayjs(startTime).format('YYYY-MM-DD HH:mm:ss'),
+        end_time: dayjs(endTime).format('YYYY-MM-DD HH:mm:ss'),
+      });
+    }
+    tableRef.value.fetchData(params, {
       cluster_type: ClusterTypes.SPIDER,
       config_id: props.data.id,
-      date: recordTime.value,
     });
   };
 
@@ -96,9 +118,22 @@
   }, {
     immediate: true,
   });
+
+  const handleClearSearch = () => {
+    recordTime.value = [
+      dayjs().date(-100)
+        .format('YYYY-MM-DD HH:mm:ss'),
+      dayjs().format('YYYY-MM-DD HH:mm:ss'),
+    ];
+    fetchData();
+  };
 </script>
 <style lang="less">
   .partition-execute-log {
     padding: 28px 24px;
+  }
+
+  .partition-execute-error-message-pop{
+    max-width: 350px;;
   }
 </style>

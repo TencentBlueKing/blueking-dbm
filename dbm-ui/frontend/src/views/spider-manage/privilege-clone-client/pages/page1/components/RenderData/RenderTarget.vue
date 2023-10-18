@@ -39,16 +39,9 @@
   } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import { getHostTopoInfos } from '@services/ip';
-  import type { HostTopoInfo } from '@services/types/ip';
-
-  import { useGlobalBizs } from '@stores';
-
   import { ipv4 } from '@common/regex';
 
-  import TableEditInput from '@views/mysql/common/edit/Input.vue';
-
-  import { random } from '@utils';
+  import TableEditInput from '@views/spider-manage/common/edit/Input.vue';
 
   import type { IDataRow } from './Row.vue';
 
@@ -63,22 +56,14 @@
 
   const props = defineProps<Props>();
 
-  const genHostKey = (hostData: HostTopoInfo) => `#${hostData.bk_cloud_id}#${hostData.ip}`;
-
-  const instanceKey = `master_slave_host_${random()}`;
-  const singleHostSelectMemo: { [key: string]: Record<string, boolean> } = {};
-
   const splitReg = /[\n ,，;；]/;
 
-  const { currentBizId } = useGlobalBizs();
   const { t } = useI18n();
 
   const inputRef = ref();
   const localIpText = ref('');
   const isRepeat = ref(false);
 
-  let hostListMemo: HostTopoInfo[] = [];
-  let errorMessage = t('IP不存在');
 
   const rules = [
     {
@@ -107,62 +92,6 @@
       },
       message: t('输入的IP重复'),
     },
-    {
-      validator: (value: string) => {
-        const ipList = value.split(splitReg);
-        return getHostTopoInfos({
-          filter_conditions: {
-            bk_host_innerip: ipList,
-            mode: 'idle_only',
-          },
-          bk_biz_id: currentBizId,
-        }).then((data) => {
-          if (data.hosts_topo_info.length < ipList.length) {
-            const existIps = data.hosts_topo_info.map(item => item.ip);
-            const ips = ipList.filter(ip => !existIps.includes(ip));
-            errorMessage = t('ips不在空闲机中', { ips: ips.join('、') });
-            return false;
-          }
-
-          const qualifiedHosts = data.hosts_topo_info.filter(item => item.bk_cloud_id === props.source?.cloud_area.id);
-          if (qualifiedHosts.length !== ipList.length) {
-            const qualifiedIps = qualifiedHosts.map(item => item.ip);
-            errorMessage = t('新主机xx跟目标集群xx须在同一个管控区域', {
-              ip: qualifiedIps.join(', '),
-              cluster: props.source?.ip,
-            });
-            return false;
-          }
-
-          // IP 有效
-          singleHostSelectMemo[instanceKey] = {};
-          hostListMemo = data.hosts_topo_info;
-          data.hosts_topo_info.forEach(((item) => {
-            singleHostSelectMemo[instanceKey][genHostKey(item)] = true;
-          }));
-          return true;
-        });
-      },
-      message: () => errorMessage,
-    },
-    {
-      validator: () => {
-        const otherHostSelectMemo = { ...singleHostSelectMemo };
-        delete otherHostSelectMemo[instanceKey];
-
-        const otherAllSelectHostMap = Object.values(otherHostSelectMemo).reduce((result, selectItem) => ({
-          ...result,
-          ...selectItem,
-        }), {} as Record<string, boolean>);
-        if (_.some(hostListMemo, hostItem => otherAllSelectHostMap[genHostKey(hostItem)])) {
-          isRepeat.value = true;
-          return false;
-        }
-        isRepeat.value = false;
-        return true;
-      },
-      message: t('IP重复'),
-    },
   ];
 
   // 同步外部主从机器
@@ -177,8 +106,8 @@
     getValue() {
       return inputRef.value
         .getValue()
-        .then(() => Promise.resolve({
-          target: hostListMemo.map(({ ip }) => ip).join('\n'),
+        .then(() => ({
+          target: localIpText.value.split(splitReg).join('\n'),
         }));
     },
   });

@@ -9,7 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 from dataclasses import asdict, dataclass
-from typing import Dict, Union
+from typing import Dict, List, Union
 
 from backend.db_services.mysql.permission.constants import AccountType
 
@@ -36,6 +36,7 @@ class AccountRuleMeta(AccountMeta):
     """账号规则元信息的数据模型"""
 
     rule_id: int = None
+    rule_ids: List[int] = None
     privilege: Dict[str, Union[list, str]] = None
     access_db: Union[list, str] = None
 
@@ -43,6 +44,9 @@ class AccountRuleMeta(AccountMeta):
     access_dbs: list = None
 
     def __post_init__(self):
+        if self.rule_ids and isinstance(self.rule_ids, str):
+            self.rule_ids = list(map(int, self.rule_ids.split(",")))
+
         if not isinstance(self.privilege, dict):
             return
 

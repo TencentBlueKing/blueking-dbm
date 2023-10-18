@@ -19,16 +19,18 @@
       :is-show="isShowPopover">
       <div
         class="render-spec-box"
+        :class="{'default-display': !isDisplay}"
         @mouseenter="handleMouseEnter"
         @mouseleave="handleMouseLeave">
         <span
-          v-if="!data"
-          key="empty"
+          v-if="!isDisplay"
           style="color: #c4c6cc;">
           {{ $t('输入主机后自动生成') }}
         </span>
-        <span v-else>
-          {{ data?.name ? `${data.name} ${$t('((n))台', {n: data?.count})}` : '' }}
+        <span
+          v-else
+          class="content">
+          {{ isDisplay ? `${data?.name} ${$t('((n))台', {n: data?.count})}` : '' }}
         </span>
       </div>
     </SpecPanel>
@@ -65,6 +67,7 @@
 
   const props = defineProps<Props>();
   const isShowPopover = ref(false);
+  const isDisplay = computed(() => props.data?.name && props.data.count !== undefined && props.data.count > 0);
   let timer = 0;
 
   const handleMouseEnter = () => {
@@ -83,20 +86,23 @@
 </script>
 <style lang="less" scoped>
 .render-spec-box {
+  height: 42px;
   padding: 10px 16px;
   overflow: hidden;
   line-height: 20px;
   color: #63656e;
   text-overflow:ellipsis;
   white-space: nowrap;
+
+  .content {
+    padding-bottom: 2px;
+    cursor: pointer;
+    border-bottom: 1px dotted #979BA5;
+  }
 }
 
-.eye {
-  font-size: 15px;
-  color: #3A84FF;
-
-  &:hover {
-    cursor: pointer;
-  }
+.default-display {
+  cursor: not-allowed;
+  background: #FAFBFD;
 }
 </style>

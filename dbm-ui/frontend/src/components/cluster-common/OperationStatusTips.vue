@@ -19,28 +19,30 @@
       class="cluster-operation-status-tips"
       @mouseenter="handleMouseenter">
       <slot />
-      <div
-        ref="popRef"
-        style="font-size: 12px; line-height: 16px; color: #63656e;">
-        <span v-if="!data.isOnline">
-          {{ $t('集群已被禁用无法操作') }}
-        </span>
-        <I18nT
-          v-else
-          keypath="xx_跳转_我的服务单_查看进度"
-          tag="span">
-          <span>{{ data.operationStatusText }}</span>
-          <RouterLink
-            target="_blank"
-            :to="{
-              name: 'SelfServiceMyTickets',
-              query: {
-                filterId: data.operationTicketId,
-              },
-            }">
-            {{ $t('我的服务单') }}
-          </RouterLink>
-        </I18nT>
+      <div style="display: none;">
+        <div
+          ref="popRef"
+          style="font-size: 12px; line-height: 16px; color: #63656e;">
+          <span v-if="!data.isOnline">
+            {{ $t('集群已被禁用无法操作') }}
+          </span>
+          <I18nT
+            v-else
+            keypath="xx_跳转_我的服务单_查看进度"
+            tag="span">
+            <span>{{ data.operationStatusText }}</span>
+            <RouterLink
+              target="_blank"
+              :to="{
+                name: 'SelfServiceMyTickets',
+                query: {
+                  filterId: data.operationTicketId,
+                },
+              }">
+              {{ $t('我的服务单') }}
+            </RouterLink>
+          </I18nT>
+        </div>
       </div>
     </span>
     <slot v-else />
@@ -92,6 +94,15 @@
     activeTippyIns = tippyIns;
   };
 
+  const destroyTippy = () => {
+    if (tippyIns) {
+      tippyIns.hide();
+      tippyIns.unmount();
+      tippyIns.destroy();
+      tippyIns = undefined;
+    }
+  };
+
   watch(() => props.data, () => {
     if (props.data?.operationDisabled && !tippyIns) {
       setTimeout(() => {
@@ -110,16 +121,15 @@
         });
       });
     }
+    if (!props.data.operationDisabled) {
+      destroyTippy();
+    }
   }, {
     immediate: true,
   });
+
   onBeforeUnmount(() => {
-    if (tippyIns) {
-      tippyIns.hide();
-      tippyIns.unmount();
-      tippyIns.destroy();
-      tippyIns = undefined;
-    }
+    destroyTippy();
   });
 </script>
 <style lang="less">
