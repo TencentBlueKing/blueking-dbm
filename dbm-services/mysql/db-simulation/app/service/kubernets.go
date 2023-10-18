@@ -214,13 +214,15 @@ func (k *DbPodSets) CreateClusterPod() (err error) {
 
 // createpod TODO
 func (k *DbPodSets) createpod(pod *v1.Pod, probePort int) (err error) {
-	if _, err = k.K8S.Cli.CoreV1().Pods(k.K8S.Namespace).Create(context.TODO(), pod, metav1.CreateOptions{}); err != nil {
+	podc, err := k.K8S.Cli.CoreV1().Pods(k.K8S.Namespace).Create(context.TODO(), pod, metav1.CreateOptions{})
+	if err != nil {
 		logger.Error("create pod failed %s", err.Error())
 		return err
 	}
+	uid := string(podc.GetUID())
 	model.CreateTbContainerRecord(&model.TbContainerRecord{
 		Container:     k.BaseInfo.PodName,
-		Uid:           string(pod.GetUID()),
+		Uid:           uid,
 		CreatePodTime: time.Now(),
 		CreateTime:    time.Now()})
 	var podIp string
@@ -254,7 +256,7 @@ func (k *DbPodSets) createpod(pod *v1.Pod, probePort int) (err error) {
 	}
 	err = util.Retry(util.RetryConfig{Times: 60, DelayTime: 1 * time.Second}, fn)
 	if err == nil {
-		model.UpdateTbContainerRecord(string(pod.GetUID()))
+		model.UpdateTbContainerRecord(k.BaseInfo.PodName)
 	}
 	return err
 }
