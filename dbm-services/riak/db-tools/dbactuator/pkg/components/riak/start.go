@@ -18,7 +18,7 @@ type StartParam struct {
 type StartRunTimeCtx struct {
 }
 
-// Start 下架
+// Start 启动
 func (i *StartComp) Start() error {
 	return Start()
 }

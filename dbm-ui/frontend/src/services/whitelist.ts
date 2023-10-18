@@ -16,9 +16,8 @@ import type { ListBase } from './types/common';
 import type { WhitelistOperationData } from './types/whitelist';
 
 // IP 白名单列表
-export const getWhitelist = function (params: Record<string, any> & { bk_biz_id: number })
-: Promise<ListBase<any[]>> {
-  return http.post('/apis/conf/ip_whitelist/iplist/', params);
+export const getWhitelist = function (params: Record<string, any> & { bk_biz_id: number }) {
+  return http.post<ListBase<any[]>>('/apis/conf/ip_whitelist/iplist/', params);
 };
 
 // 创建白名单

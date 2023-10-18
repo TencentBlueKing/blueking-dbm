@@ -13,6 +13,7 @@ require (
 	github.com/spf13/cobra v1.7.0
 	golang.org/x/exp v0.0.0-20230522175609-2e198f4a06a1
 	gopkg.in/ini.v1 v1.67.0
+	gopkg.in/yaml.v2 v2.4.0
 )
 
 require (

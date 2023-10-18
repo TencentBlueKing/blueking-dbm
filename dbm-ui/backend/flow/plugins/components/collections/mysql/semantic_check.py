@@ -108,8 +108,8 @@ class SemanticCheckService(BaseService):
         skip_pause_key = CACHE_SEMANTIC_SKIP_PAUSE_FILED.format(bk_biz_id=bk_biz_id, root_id=root_id)
 
         # 默认自动创建单据
-        is_auto_commit = cache.get(auto_commit_key) or True
-        is_skip_pause = cache.get(skip_pause_key) or False
+        is_auto_commit = cache.get(auto_commit_key, True)
+        is_skip_pause = cache.get(skip_pause_key, False)
         self.log_info(
             f"-----------auto_commit_key: {auto_commit_key}-{is_auto_commit}, "
             f"skip_pause_key: {skip_pause_key}-{is_skip_pause}-------------"

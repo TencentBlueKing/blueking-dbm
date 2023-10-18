@@ -18,6 +18,7 @@
     ref="tableRef"
     :columns="tableColumns"
     :data-source="queryFixpointLog"
+    :disable-select-method="disableSelectMethodCallback"
     primary-key="target_cluster.cluster_id"
     selectable
     @selection="handleSelectionChange" />
@@ -106,7 +107,7 @@
       )),
     },
     {
-      label: t('构造表名'),
+      label: t('忽略表名'),
       showOverflowTooltip: true,
       minWidth: 100,
       render: ({ data }: {data: FixpointLogModel}) => (data.tables_ignore.length < 1 ? '--' : (
@@ -147,6 +148,7 @@
           title={t('确认销毁选中的实例')}>
           <bk-button
             theme="primary"
+            disabled={!data.isDestoryEnable}
             text>
             {t('销毁')}
           </bk-button>
@@ -158,6 +160,8 @@
   const fetchData = () => {
     tableRef.value.fetchData();
   };
+
+  const disableSelectMethodCallback = (data: FixpointLogModel) => !data.isDestoryEnable;
 
   const handleDestroy = (payload: FixpointLogModel) => createTicket({
     bk_biz_id: currentBizId,

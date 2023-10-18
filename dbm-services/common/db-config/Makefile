@@ -17,9 +17,16 @@ CMD_HOME = bk-dbconfig/cmd/
 all: build
 api:
 	go build -o ./${SRV_NAME_CMD} -v ${CMD_HOME}/${SRV_NAME_CMD}
+	go build -o ./${CLI_NAME_CMD} -v ${CMD_HOME}/${CLI_NAME_CMD}
+
+client:
+	CGO_ENABLED=0 GOOS=${GOOS} GOARCH=amd64 go build -o ./$(CLI_NAME_CMD) -v ${CMD_HOME}/${CLI_NAME_CMD}
+server:
+	CGO_ENABLED=0 GOOS=${GOOS} GOARCH=amd64 go build -o ./$(SRV_NAME_CMD) -v ${CMD_HOME}/${SRV_NAME_CMD}
 
 build:clean
 	CGO_ENABLED=0 GOOS=${GOOS} GOARCH=amd64 go build -o ./$(SRV_NAME_CMD) -v ${CMD_HOME}/${SRV_NAME_CMD}
+	CGO_ENABLED=0 GOOS=${GOOS} GOARCH=amd64 go build -o ./$(CLI_NAME_CMD) -v ${CMD_HOME}/${CLI_NAME_CMD}
 
 publish:build
 	docker build --build-arg SRV_NAME=$(SRV_NAME) --rm -t $(SRV_NAME):$(CURRENT_VERSION) .

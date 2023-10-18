@@ -17,75 +17,13 @@ from backend import env
 from backend.components import CCApi
 from backend.db_services.ipchooser.constants import DB_MANAGE_SET
 from backend.flow.consts import CloudServiceModuleName
+from backend.flow.utils.cc_manage import CcManage
 
 logger = logging.getLogger("flow")
 
 
 class CloudModuleHandler:
     """云区域服务相关机器转模块操作类"""
-
-    @classmethod
-    def get_or_create_set(cls, bk_biz_id: int, bk_set_name: str) -> int:
-        """
-        获取集群id(默认所有云区域组件管理的的集群名都是一样的，并且集群唯一)
-        @param bk_biz_id: 业务ID
-        @param bk_set_name: 集群名
-        """
-
-        res = CCApi.search_set(
-            params={
-                "bk_biz_id": bk_biz_id,
-                "fields": ["bk_set_name", "bk_set_id"],
-                "condition": {"bk_set_name": bk_set_name},
-            },
-            use_admin=True,
-        )
-
-        if res["count"] > 0:
-            return res["info"][0]["bk_set_id"]
-
-        res = CCApi.create_set(
-            params={
-                "bk_biz_id": bk_biz_id,
-                "data": {
-                    "bk_parent_id": bk_biz_id,
-                    "bk_set_name": bk_set_name,
-                },
-            },
-            use_admin=True,
-        )
-        return res["bk_set_id"]
-
-    @classmethod
-    def get_or_create_module(cls, bk_biz_id: int, bk_set_id: int, bk_module_name: str) -> int:
-        """
-        获取模块id(不同组件属于到不同的模块)
-        @param bk_biz_id: 业务ID
-        @param bk_set_id: 集群ID
-        @param bk_module_name: 模块名字
-        """
-
-        res = CCApi.search_module(
-            {
-                "bk_biz_id": bk_biz_id,
-                "bk_set_id": bk_set_id,
-                "condition": {"bk_module_name": bk_module_name},
-            },
-            use_admin=True,
-        )
-
-        if res["count"] > 0:
-            return res["info"][0]["bk_module_id"]
-
-        res = CCApi.create_module(
-            {
-                "bk_biz_id": env.DBA_APP_BK_BIZ_ID,
-                "bk_set_id": bk_set_id,
-                "data": {"bk_parent_id": bk_set_id, "bk_module_name": bk_module_name},
-            },
-            use_admin=True,
-        )
-        return res["bk_module_id"]
 
     @classmethod
     def find_cloud_module_host_relation(cls, bk_biz_id: int, bk_set_id: int) -> Dict[int, List]:
@@ -147,8 +85,8 @@ class CloudModuleHandler:
         @param bk_host_ids: 转移主机的ID列表
         """
 
-        bk_set_id = cls.get_or_create_set(bk_biz_id=bk_biz_id, bk_set_name=DB_MANAGE_SET)
-        transfer_module_id = cls.get_or_create_module(
+        bk_set_id = CcManage.get_or_create_set_with_name(bk_biz_id=bk_biz_id, bk_set_name=DB_MANAGE_SET)
+        transfer_module_id = CcManage.get_or_create_module_with_name(
             bk_biz_id=bk_biz_id, bk_set_id=bk_set_id, bk_module_name=bk_module_name
         )
         # 获取所有主机并集的module_id，这样可以避免模块的转移覆盖(因为有可能A主机即属于DRS服务又属于DBHA服务)
@@ -169,9 +107,9 @@ class CloudModuleHandler:
         @param bk_module_name: 待删除的模块名
         @param bk_host_ids: 转移主机的ID列表
         """
-        bk_set_id = cls.get_or_create_set(bk_biz_id=bk_biz_id, bk_set_name=DB_MANAGE_SET)
+        bk_set_id = CcManage.get_or_create_set_with_name(bk_biz_id=bk_biz_id, bk_set_name=DB_MANAGE_SET)
         host_id__module_ids_map = cls.find_cloud_module_host_relation(bk_biz_id, bk_set_id)
-        origin_module_id = cls.get_or_create_module(
+        origin_module_id = CcManage.get_or_create_module_with_name(
             bk_biz_id=bk_biz_id, bk_set_id=bk_set_id, bk_module_name=bk_module_name
         )
         recycle_host_ids = []

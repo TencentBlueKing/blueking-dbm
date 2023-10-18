@@ -3,10 +3,10 @@ package handler
 import (
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"golang.org/x/exp/slog"
 
 	"celery-service/pkg/asyncsession"
 )
@@ -20,7 +20,7 @@ func HandleAsyncQuery(engine *gin.Engine) {
 			}
 
 			if err := ctx.ShouldBindJSON(&postArg); err != nil && err != io.EOF {
-				logger.Error("bind post args", slog.Any("error", err))
+				logger.Error("bind post args", slog.String("error", err.Error()))
 				ctx.JSON(
 					http.StatusBadRequest,
 					gin.H{

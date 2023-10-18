@@ -1,8 +1,17 @@
+/*
+ * TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
+ * Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
+ * Licensed under the MIT License (the "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at https://opensource.org/licenses/MIT
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+ * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
+
 package util
 
 import (
-	"fmt"
-	"reflect"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -10,29 +19,14 @@ import (
 	"github.com/pkg/errors"
 )
 
-// 判断val 是否在elems 中
+// ContainElem 判断val 是否在elems 中
 func ContainElem[T int | int64 | string](elems []T, val T) bool {
-	for _, ele := range elems {
-		if ele == val {
-			return true
-		}
-	}
-	return false
-}
-
-// IntsHas check the []int contains the given value
-func IntsHas(ints []int, val int) bool {
-	return ContainElem(ints, val)
-}
-
-// Int64sHas check the []int64 contains the given value
-func Int64sHas(ints []int64, val int64) bool {
-	return ContainElem(ints, val)
+	return slices.Contains(elems, val)
 }
 
 // StringsHas check the []string contains the given element
 func StringsHas(ss []string, val string) bool {
-	return ContainElem(ss, val)
+	return slices.Contains(ss, val)
 }
 
 // StringsHasICase check the []string contains the given element. insensitive case
@@ -46,6 +40,7 @@ func StringsHasICase(ss []string, val string) bool {
 	return false
 }
 
+// UniqueSlice TODO
 func UniqueSlice[T string | int](slice []T) []T {
 	uniqMap := make(map[T]struct{})
 	for _, v := range slice {
@@ -106,13 +101,9 @@ func IsConsecutiveStrings(strList []string, isNumber bool) error {
 
 // RemoveEmpty 过滤掉空字符串
 func RemoveEmpty(input []string) []string {
-	var result []string
-	for _, item := range input {
-		if strings.TrimSpace(item) != "" {
-			result = append(result, item)
-		}
-	}
-	return result
+	return slices.DeleteFunc(input, func(s string) bool {
+		return strings.TrimSpace(s) == ""
+	})
 }
 
 // StringSliceToInterfaceSlice 把字符串数组转换为interface{}数组
@@ -129,57 +120,11 @@ func StringSliceToInterfaceSlice(ids []string) []interface{} {
 }
 
 // StringsRemove an value form an string slice
-func StringsRemove(ss []string, s string) []string {
-	var ns []string
-	for _, v := range ss {
-		if v != s {
-			ns = append(ns, v)
-		}
-	}
-
-	return ns
-}
-
-// StringsInsertAfter 在 slice 里插入某个元素之后，仅匹配一次
-// 如果没有找到元素，忽略
-func StringsInsertAfter(ss []string, old string, new string) []string {
-	var ssNew = make([]string, len(ss)+1)
-	var found bool
-	for i, v := range ss {
-		if found {
-			ssNew[i+1] = v
-		} else if v == old {
-			ssNew[i] = v
-			ssNew[i+1] = new
-			found = true
-		} else {
-			ssNew[i] = v
-		}
-	}
-	if !found {
-		return ssNew[:len(ss)]
-	}
-	return ssNew
-}
-
-// StringsInsertIndex 在 slice index 当前位置，插入一个元素
-// 如果 index 非法，则忽略
-func StringsInsertIndex(ss []string, index int, new string) []string {
-	if index < 0 || index > len(ss)-1 {
-		return ss
-	}
-	var ssNew = make([]string, len(ss)+1)
-	for i, v := range ss {
-		if i > index {
-			ssNew[i+1] = v
-		} else if i < index {
-			ssNew[i] = v
-		} else {
-			ssNew[i] = new
-			ssNew[i+1] = v
-		}
-	}
-	return ssNew
+func StringsRemove(ss []string, s string) (ns []string) {
+	ns = slices.DeleteFunc(ss, func(item string) bool {
+		return item == s
+	})
+	return
 }
 
 // FilterOutStringSlice 滤除scr中含有filters 里面元素的数组
@@ -205,56 +150,4 @@ func RemoveNilElements(v []interface{}) []interface{} {
 		}
 	}
 	return newSlice
-}
-
-// StrVal TODO
-func StrVal(v interface{}) string {
-	switch v := v.(type) {
-	case string:
-		return v
-	case []byte:
-		return string(v)
-	case error:
-		return v.Error()
-	case fmt.Stringer:
-		return v.String()
-	default:
-		return fmt.Sprintf("%v", v)
-	}
-}
-
-// StrSlice TODO
-func StrSlice(v interface{}) []string {
-	switch v := v.(type) {
-	case []string:
-		return v
-	case []interface{}:
-		b := make([]string, 0, len(v))
-		for _, s := range v {
-			if s != nil {
-				b = append(b, StrVal(s))
-			}
-		}
-		return b
-	default:
-		val := reflect.ValueOf(v)
-		switch val.Kind() {
-		case reflect.Array, reflect.Slice:
-			l := val.Len()
-			b := make([]string, 0, l)
-			for i := 0; i < l; i++ {
-				value := val.Index(i).Interface()
-				if value != nil {
-					b = append(b, StrVal(value))
-				}
-			}
-			return b
-		default:
-			if v == nil {
-				return []string{}
-			}
-
-			return []string{StrVal(v)}
-		}
-	}
 }

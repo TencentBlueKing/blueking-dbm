@@ -19,15 +19,52 @@ from backend import env
 from backend.bk_web.constants import LEN_LONG, LEN_NORMAL
 from backend.bk_web.models import AuditedModel
 from backend.configuration import constants
+from backend.configuration.constants import BizSettingsEnum, SystemSettingsEnum
 
 logger = logging.getLogger("root")
 
 
-class SystemSettings(AuditedModel):
+class AbstractSettings(AuditedModel):
+    """定义配置表的基本字段"""
+
     type = models.CharField(_("类型"), max_length=LEN_NORMAL)
     key = models.CharField(_("关键字唯一标识"), max_length=LEN_NORMAL, unique=True)
     value = models.JSONField(_("系统设置值"))
     desc = models.CharField(_("描述"), max_length=LEN_LONG)
+
+    @classmethod
+    def get_setting_value(cls, key: dict, default: Optional[Any] = None) -> Union[str, Dict]:
+        """插入一条配置记录"""
+        try:
+            setting_value = cls.objects.get(**key).value
+        except cls.DoesNotExist:
+            if default is None:
+                setting_value = ""
+            else:
+                setting_value = default
+        return setting_value
+
+    @classmethod
+    def insert_setting_value(
+        cls, key: dict, value: Any, desc: str = "", value_type: str = "str", user: str = "admin"
+    ) -> None:
+        """插入一条配置记录"""
+        cls.objects.update_or_create(
+            defaults={
+                "type": value_type,
+                "value": value,
+                "desc": desc,
+                "updater": user,
+            },
+            **key,
+        )
+
+    class Meta:
+        abstract = True
+
+
+class SystemSettings(AbstractSettings):
+    """系统配置表"""
 
     class Meta:
         verbose_name = _("系统设置")
@@ -68,26 +105,16 @@ class SystemSettings(AuditedModel):
 
     @classmethod
     def get_setting_value(cls, key: str, default: Optional[Any] = None) -> Union[str, Dict]:
-        try:
-            setting_value = cls.objects.get(key=key).value
-        except cls.DoesNotExist:
-            if default is None:
-                setting_value = ""
-            else:
-                setting_value = default
-        return setting_value
+        return super().get_setting_value(key={"key": key}, default=default)
 
     @classmethod
     def insert_setting_value(cls, key: str, value: Any, value_type: str = "str", user: str = "admin") -> None:
-        """插入一条系统配置记录"""
-        cls.objects.update_or_create(
-            defaults={
-                "type": value_type,
-                "value": value,
-                "desc": constants.SystemSettingsEnum.get_choice_label(key),
-                "updater": user,
-            },
-            key=key,
+        return super().insert_setting_value(
+            key={"key": key},
+            value=value,
+            value_type=value_type,
+            user=user,
+            desc=constants.SystemSettingsEnum.get_choice_label(key),
         )
 
     @classmethod
@@ -102,3 +129,31 @@ class SystemSettings(AuditedModel):
         if bk_biz_id in cls.get_setting_value(constants.SystemSettingsEnum.INDEPENDENT_HOSTING_BIZS.value, default=[]):
             return bk_biz_id
         return env.DBA_APP_BK_BIZ_ID
+
+
+class BizSettings(AbstractSettings):
+    """业务配置表"""
+
+    bk_biz_id = models.IntegerField(help_text=_("业务ID"))
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["bk_biz_id"]),
+        ]
+        verbose_name = _("业务配置")
+        verbose_name_plural = _("业务配置")
+        ordering = ("id",)
+
+    @classmethod
+    def get_setting_value(cls, bk_biz_id: int, key: str, default: Optional[Any] = None) -> Union[str, Dict]:
+        return super().get_setting_value(key={"key": key, "bk_biz_id": bk_biz_id}, default=default)
+
+    @classmethod
+    def insert_setting_value(cls, bk_biz_id: int, key: str, value: Any, value_type: str = "str", user: str = "admin"):
+        return super().insert_setting_value(
+            key={"key": key, "bk_biz_id": bk_biz_id},
+            value=value,
+            value_type=value_type,
+            user=user,
+            desc=constants.BizSettingsEnum.get_choice_label(key),
+        )

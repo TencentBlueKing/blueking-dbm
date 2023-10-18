@@ -8,10 +8,15 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import logging
+
 from django.db import models
+from django.db.models import Q
 
 from backend.bk_web.models import AuditedModel
 from backend.db_meta.enums import ClusterEntryType, MachineType
+
+logger = logging.getLogger("root")
 
 
 class DBModule(AuditedModel):
@@ -29,6 +34,36 @@ class DBModule(AuditedModel):
             ("db_module_id", "bk_biz_id", "cluster_type"),
             ("db_module_name", "bk_biz_id", "cluster_type"),
         ]
+
+    @classmethod
+    def get_choices(cls):
+        try:
+            db_module_choices = [
+                (module.db_module_id, f"[{module.db_module_id}]{module.cluster_type}-{module.db_module_name}")
+                for module in cls.objects.all()
+            ]
+        except Exception:  # pylint: disable=broad-except
+            # 忽略出现的异常，此时可能因为表未初始化
+            db_module_choices = []
+        return db_module_choices
+
+    @classmethod
+    def get_choices_with_filter(cls, cluster_type=None):
+        try:
+            q = Q()
+            if cluster_type:
+                q = Q(cluster_type=cluster_type)
+
+            logger.info("get db module choices with filter: {}".format(q))
+
+            db_module_choices = [
+                (module.db_module_id, f"[{module.db_module_id}]{module.cluster_type}-{module.db_module_name}")
+                for module in cls.objects.filter(q)
+            ]
+        except Exception:  # pylint: disable=broad-except
+            # 忽略出现的异常，此时可能因为表未初始化
+            db_module_choices = []
+        return db_module_choices
 
 
 class BKModule(AuditedModel):

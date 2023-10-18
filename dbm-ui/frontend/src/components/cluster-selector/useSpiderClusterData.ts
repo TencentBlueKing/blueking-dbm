@@ -11,6 +11,7 @@
  * the specific language governing permissions and limitations under the License.
 */
 
+import type { ISearchValue } from 'bkui-vue/lib/search-select/utils';
 import {
   type ComponentInternalInstance,
   getCurrentInstance,
@@ -24,10 +25,14 @@ import { getModules } from '@services/common';
 
 import { useGlobalBizs } from '@stores';
 
+import {
+  getSearchSelectorParams,
+} from '@utils';
+
 /**
  * 处理集群列表数据
  */
-export function useClusterData<T>(activeTab: Ref<string>, searchParams: Record<string, any>) {
+export function useClusterData<T>(activeTab: Ref<string>, searchParams: Ref<ISearchValue[]>) {
   const globalBizsStore = useGlobalBizs();
   const currentInstance = getCurrentInstance() as ComponentInternalInstance & {
     proxy: {
@@ -37,7 +42,7 @@ export function useClusterData<T>(activeTab: Ref<string>, searchParams: Record<s
 
   const isLoading = ref(false);
   const tableData = shallowRef<T[]>([]);
-  const dbModuleList = shallowRef<{id: number, name: string}[]>([]);
+  const dbModuleList = shallowRef<{ id: number, name: string }[]>([]);
   const isAnomalies = ref(false);
   const pagination = reactive({
     current: 1,
@@ -56,7 +61,7 @@ export function useClusterData<T>(activeTab: Ref<string>, searchParams: Record<s
       bk_biz_id: globalBizsStore.currentBizId,
       limit: pagination.limit,
       offset: pagination.limit * (pagination.current - 1),
-      ...searchParams,
+      ...getSearchSelectorParams(searchParams.value),
     })
       .then((res) => {
         pagination.count = res.count;

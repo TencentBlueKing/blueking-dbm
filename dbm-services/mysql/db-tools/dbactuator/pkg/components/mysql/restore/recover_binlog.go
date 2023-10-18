@@ -98,7 +98,7 @@ type RecoverBinlog struct {
 	parseScript     string
 	binlogParsedDir string
 	logDir          string
-	//tools           tools.ToolSet
+	// tools           tools.ToolSet
 }
 
 const (

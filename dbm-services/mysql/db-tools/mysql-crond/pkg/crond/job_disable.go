@@ -2,10 +2,9 @@ package crond
 
 import (
 	"fmt"
+	"log/slog"
 
 	"dbm-services/mysql/db-tools/mysql-crond/pkg/config"
-
-	"golang.org/x/exp/slog"
 )
 
 // Disable TODO
@@ -13,14 +12,14 @@ func Disable(name string, permanent bool) (int, error) {
 	existEntry := findEntry(name)
 	if existEntry == nil {
 		err := fmt.Errorf("entry %s not found", name)
-		slog.Error("delete job", err)
+		slog.Error("delete job", slog.String("error", err.Error()))
 		return 0, err
 	}
 
 	j, ok := existEntry.Job.(*config.ExternalJob)
 	if !ok {
 		err := fmt.Errorf("convert %v to ExternalJob failed", existEntry)
-		slog.Error("disable job", err)
+		slog.Error("disable job", slog.String("error", err.Error()))
 		return 0, err
 	}
 	*j.Enable = false

@@ -184,8 +184,8 @@ export const queryAccountRules = (params: {
  * 权限克隆前置检查
  */
 export const precheckPermissionClone = (params: {
-    bizId: number,
-    clone_type: 'instance' | 'client',
-    clone_list: Array<{source: string, target: string}>,
-    clone_cluster_type: 'mysql'|'tendbcluster'
-  }) => http.post<PermissionCloneRes>(`/apis/mysql/bizs/${params.bizId}/permission/clone/pre_check_clone/`, params);
+  bizId: number,
+  clone_type: 'instance' | 'client',
+  clone_list: Array<{ source: string, target: string }>,
+  clone_cluster_type: 'mysql' | 'tendbcluster'
+}) => http.post<PermissionCloneRes>(`/apis/mysql/bizs/${params.bizId}/permission/clone/pre_check_clone/`, params);

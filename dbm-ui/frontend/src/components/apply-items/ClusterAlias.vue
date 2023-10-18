@@ -18,6 +18,7 @@
     :rules="rules">
     <BkInput
       class="item-input"
+      :disabled="!bizId"
       :maxlength="63"
       :model-value="modelValue"
       :placeholder="$t('用于区分不同集群_可随时修改')"
@@ -28,14 +29,18 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
+  import { verifyDuplicatedClusterName } from '@services/dbbase';
+
   interface Props {
-    modelValue: string
+    modelValue: string,
+    bizId: number|'',
+    clusterType: string
   }
   interface Emits {
     (e: 'update:modelValue', value: string): void
   }
 
-  defineProps<Props>();
+  const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
@@ -44,6 +49,20 @@
     {
       validator: (val: string) => val === '' || /^[\u4e00-\u9fa5A-Za-z0-9-]*$/.test(val),
       message: t('只能包含中文_英文字母_数字_连字符'),
+      trigger: 'blur',
+    },
+    {
+      validator: (val: string) => {
+        if (!props.bizId) {
+          return false;
+        }
+        return verifyDuplicatedClusterName({
+          name: val,
+          bk_biz_id: props.bizId,
+          cluster_type: props.clusterType,
+        }).then(data => !data);
+      },
+      message: t('集群名称重复'),
       trigger: 'blur',
     },
   ];

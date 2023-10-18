@@ -16,11 +16,12 @@ from backend.configuration.views.function_controller import FunctionControllerVi
 from backend.configuration.views.ip_whitelist import IPWhitelistViewSet
 from backend.configuration.views.password_policy import PasswordPolicyViewSet
 from backend.configuration.views.profile import ProfileViewSet
-from backend.configuration.views.system import SystemSettingsViewSet
+from backend.configuration.views.system import BizSettingsViewSet, SystemSettingsViewSet
 
 routers = DefaultRouter(trailing_slash=True)
 
 routers.register(r"system_settings", SystemSettingsViewSet, basename="system_settings")
+routers.register(r"biz_settings", BizSettingsViewSet, basename="biz_settings")
 routers.register(r"db_admin", DBAdminViewSet, basename="dba_settings")
 routers.register(r"profile", ProfileViewSet, basename="profile")
 routers.register(r"password_policy", PasswordPolicyViewSet, basename="password_policy")

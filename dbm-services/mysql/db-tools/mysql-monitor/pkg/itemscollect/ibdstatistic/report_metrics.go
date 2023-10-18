@@ -9,13 +9,13 @@
 package ibdstatistic
 
 import (
+	"log/slog"
 	"regexp"
 
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/config"
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/utils"
 
 	"github.com/pkg/errors"
-	"golang.org/x/exp/slog"
 )
 
 var tableSizeMetricName string
@@ -43,7 +43,7 @@ func reportMetrics(result map[string]map[string]int64) error {
 					"invalid dbname: '%s' on %s",
 					dbName, config.MonitorConfig.MachineType,
 				)
-				slog.Error("ibd-statistic report", err)
+				slog.Error("ibd-statistic report", slog.String("error", err.Error()))
 				return err
 			}
 			dbName = match[1]

@@ -47,6 +47,12 @@ url("fonts/iconcool.eot?#iefix") format("embedded-opentype");
 .db-icon-funnel:before {
 	content: "\e1bd";
 }
+.db-icon-copy-2:before {
+	content: "\e1e4";
+}
+.db-icon-paste:before {
+	content: "\e1e5";
+}
 .db-icon-keyboard:before {
 	content: "\e1ae";
 }
@@ -109,6 +115,9 @@ url("fonts/iconcool.eot?#iefix") format("embedded-opentype");
 }
 .db-icon-script-template:before {
 	content: "\e138";
+}
+.db-icon-qiyeweixin:before {
+	content: "\e1d9";
 }
 .db-icon-sql:before {
 	content: "\e1cb";
@@ -541,4 +550,34 @@ url("fonts/iconcool.eot?#iefix") format("embedded-opentype");
 }
 .db-icon-jiankong:before {
 	content: "\e1d7";
+}
+.db-icon-mimasuijihua:before {
+	content: "\e1d8";
+}
+.db-icon-jiqiren:before {
+	content: "\e1da";
+}
+.db-icon-qiyeweixin-2:before {
+	content: "\e1db";
+}
+.db-icon-weixin-2:before {
+	content: "\e1dc";
+}
+.db-icon-youjian:before {
+	content: "\e1dd";
+}
+.db-icon-duanxin:before {
+	content: "\e1de";
+}
+.db-icon-yuyin:before {
+	content: "\e1df";
+}
+.db-icon-warn-lightning:before {
+	content: "\e1e1";
+}
+.db-icon-unlink:before {
+	content: "\e1e2";
+}
+.db-icon-mobanshili:before {
+	content: "\e1e3";
 }

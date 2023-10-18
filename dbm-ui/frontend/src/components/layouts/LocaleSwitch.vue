@@ -72,7 +72,7 @@
       expires: 3600,
       domain: BK_DOMAIN,
     });
-    I18n.global.locale.value = locale;
+    I18n.global.locale.value = locale as any;
     document.querySelector('html')?.setAttribute('lang', locale);
     window.location.reload();
   };

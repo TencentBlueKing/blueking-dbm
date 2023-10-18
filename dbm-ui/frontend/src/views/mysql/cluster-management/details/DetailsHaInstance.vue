@@ -77,13 +77,14 @@
    */
   function fetchInstDetails() {
     const params = {
+      dbType: DBTypes.MYSQL,
       bk_biz_id: globalBizsStore.currentBizId,
       type: ClusterTypes.TENDBHA,
       instance_address: currentInstanceAddress.value,
       cluster_id: currentClusterId.value,
     };
     isLoading.value = true;
-    getResourceInstanceDetails(params, DBTypes.MYSQL)
+    getResourceInstanceDetails(params)
       .then((res) => {
         data.value = res;
         mainViewStore.$patch({

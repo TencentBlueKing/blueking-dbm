@@ -1,0 +1,61 @@
+mysql:
+- actuator:
+    buildPath: /blueking-dbm/dbm-services/mysql/db-tools/dbactuator/build/dbactuator
+    commitId: ''
+    name: dbactuator
+    version: 1.0.0
+- dbbackup:
+    buildPath: /blueking-dbm/dbm-services/mysql/db-tools/mysql-dbbackup/build/dbbackup-go-txsql.tar.gz
+    commitId: ''
+    name: dbbackup-go-txsql.tar.gz
+    version: 1.0.0
+- mysql-checksum:
+    buildPath: /blueking-dbm/dbm-services/mysql/db-tools/mysql-table-checksum/build/mysql-checksum.tar.gz
+    commitId: ''
+    name: mysql-checksum.tar.gz
+    version: 1.0.0
+- mysql-crond:
+    buildPath: /blueking-dbm/dbm-services/mysql/db-tools/mysql-crond/build/mysql-crond.tar.gz
+    commitId: ''
+    name: mysql-crond.tar.gz
+    version: 1.0.0
+- rotate-binlog:
+    buildPath: /blueking-dbm/dbm-services/mysql/db-tools/mysql-rotatebinlog/build/mysql-rotatebinlog.tar.gz
+    commitId: ''
+    name: mysql-rotatebinlog.tar.gz
+    version: 1.0.0
+- mysql-monitor:
+    buildPath: /blueking-dbm/dbm-services/mysql/db-tools/mysql-monitor/build/mysql-monitor.tar.gz
+    commitId: ''
+    name: mysql-monitor.tar.gz
+    version: 1.0.0
+es:
+- actuator:
+    buildPath: /blueking-dbm/dbm-services/bigdata/db-tools/dbactuator/build/dbactuator
+    commitId: ''
+    name: dbactuator
+    version: 1.0.0
+kafka:
+- actuator:
+    buildPath: /blueking-dbm/dbm-services/bigdata/db-tools/dbactuator/build/dbactuator
+    commitId: ''
+    name: dbactuator
+    version: 1.0.0
+hdfs:
+- actuator:
+    buildPath: /blueking-dbm/dbm-services/bigdata/db-tools/dbactuator/build/dbactuator
+    commitId: ''
+    name: dbactuator
+    version: 1.0.0
+pulsar:
+- actuator:
+    buildPath: /blueking-dbm/dbm-services/bigdata/db-tools/dbactuator/build/dbactuator
+    commitId: ''
+    name: dbactuator
+    version: 1.0.0
+influxdb:
+- actuator:
+    buildPath: /blueking-dbm/dbm-services/bigdata/db-tools/dbactuator/build/dbactuator
+    commitId: ''
+    name: dbactuator
+    version: 1.0.0

@@ -161,7 +161,8 @@ func (c *SemanticDumpSchemaComp) DumpSchema() (err error) {
 		AddDropTable: true,
 		NeedUseDb:    true,
 		DumpRoutine:  true,
-		DumpTrigger:  false,
+		DumpTrigger:  true,
+		DumpEvent:    true,
 	}
 	if c.isSpider {
 		dumpOption.GtidPurgedOff = true
@@ -181,7 +182,7 @@ func (c *SemanticDumpSchemaComp) DumpSchema() (err error) {
 		OutputfileName: c.Params.BackupFileName,
 	}
 	if err := dumper.Dump(); err != nil {
-		logger.Error("dump failed: ", err.Error())
+		logger.Error("dump failed: %s", err.Error())
 		return err
 	}
 	return nil

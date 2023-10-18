@@ -20,6 +20,9 @@ class ClusterPhase(str, StructuredEnum):
     # 仅用作单据校验，不实际写入，销毁集群时，请直接删除Cluster
     DESTROY = EnumField("destroy", _("destroy"))
 
+    # scr, gcs 迁移的中间阶段
+    TRANS_STAGE = EnumField("trans_stage", _("trans_stage"))
+
     @classmethod
     def cluster_status_transfer_valid(cls, source_phase, target_phase) -> bool:
         """

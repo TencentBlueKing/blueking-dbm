@@ -23,6 +23,7 @@ from backend.flow.utils.cloud.cloud_context_dataclass import (
     CloudDNSDetail,
     CloudDRSDetail,
     CloudNginxDetail,
+    CloudRedisDTSDetail,
 )
 from backend.flow.utils.cloud.cloud_module_operate import CloudModuleHandler
 
@@ -225,5 +226,27 @@ class CloudDBProxy:
             new_host=self.kwargs["host_infos"][0],
             old_host=self.kwargs["details"]["old_drs"][0],
             change_module=CloudServiceModuleName.DRS,
+        )
+        return res
+
+    def cloud_redis_dts_server_apply(self) -> bool:
+        """redis dts服务部署信息"""
+        res = self.cloud_base_apply(
+            host_infos=self.kwargs["host_infos"],
+            extension_type=ExtensionType.REDIS_DTS,
+            detail_class=CloudRedisDTSDetail,
+            transfer_module=CloudServiceModuleName.RedisDTS,
+        )
+        return res
+
+    def cloud_redis_dts_server_reduce(self) -> bool:
+        res = self.cloud_base_reduce(host_infos=self.kwargs["host_infos"], move_module=CloudServiceModuleName.RedisDTS)
+        return res
+
+    def cloud_redis_dts_server_replace(self) -> bool:
+        res = self.cloud_base_replace(
+            new_host=self.kwargs["host_infos"][0],
+            old_host=self.kwargs["details"]["old_redis_dts"][0],
+            change_module=CloudServiceModuleName.RedisDTS,
         )
         return res

@@ -14,12 +14,17 @@
 <template>
   <BkLoading :loading="isLoading">
     <div
+      ref="textRef"
+      v-bk-tooltips="{
+        content: placeholder,
+        disabled: !isOverflow
+      }"
       class="capacity-box"
       :class="{'default-display': !data}">
       <span
         v-if="!data"
         style="color: #c4c6cc;">
-        {{ $t('选择集群后自动生成') }}
+        {{ placeholder }}
       </span>
       <div
         v-else
@@ -41,6 +46,10 @@
   </BkLoading>
 </template>
 <script setup lang="ts">
+  import { useI18n } from 'vue-i18n';
+
+  import { useIsWidthOverflow } from '@hooks';
+
   import type { IDataRow } from './Row.vue';
 
   interface Props {
@@ -48,8 +57,17 @@
     isLoading?: boolean;
   }
 
-  defineProps<Props>();
+  const props = defineProps<Props>();
 
+  const { t } = useI18n();
+
+  const textRef = ref();
+
+  const renderData = computed(() => props.data);
+
+  const placeholder = t('选择集群后自动生成');
+
+  const { isOverflow } = useIsWidthOverflow(textRef, renderData);
   // const percent = computed(() => {
   //   if (props.data) return Number(((props.data.used / props.data.total) * 100).toFixed(2));
   //   return 0;

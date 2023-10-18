@@ -10,8 +10,10 @@ package mysqlconnlog
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"time"
@@ -21,7 +23,7 @@ import (
 
 	"github.com/jmoiron/sqlx"
 	"github.com/juju/ratelimit"
-	"golang.org/x/exp/slog"
+	"github.com/pkg/errors"
 )
 
 type connRecord struct {
@@ -45,14 +47,32 @@ func mysqlConnLogReport(db *sqlx.DB) (string, error) {
 
 	conn, err := db.Connx(ctx)
 	if err != nil {
-		slog.Error("connlog report get conn from db", err)
+		slog.Error("connlog report get conn from db", slog.String("error", err.Error()))
 		return "", err
+	}
+	defer func() {
+		_ = conn.Close()
+	}()
+
+	var _r interface{}
+	err = conn.GetContext(ctx, &_r,
+		`SELECT 1 FROM INFORMATION_SCHEMA.TABLES 
+					WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? AND TABLE_TYPE='BASE TABLE'`,
+		cst.DBASchema, "conn_log_old")
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			slog.Info("conn_log_old not found, skip report")
+			return "", nil
+		} else {
+			slog.Error("check conn_log_old exists", slog.String("error", err.Error()))
+			return "", err
+		}
 	}
 
 	// report 会把 old 表删掉, 所以也要禁用 binlog 防止从 master 到 slave
 	_, err = conn.ExecContext(ctx, `SET SQL_LOG_BIN=0`)
 	if err != nil {
-		slog.Error("disable binlog", err)
+		slog.Error("disable binlog", slog.String("error", err.Error()))
 		return "", err
 	}
 	slog.Info("report conn log disable binlog success")
@@ -60,7 +80,7 @@ func mysqlConnLogReport(db *sqlx.DB) (string, error) {
 	reportFilePath := filepath.Join(cst.DBAReportBase, "mysql", "conn_log", "report.log")
 	err = os.MkdirAll(filepath.Dir(reportFilePath), 0755)
 	if err != nil {
-		slog.Error("make report dir", err)
+		slog.Error("make report dir", slog.String("error", err.Error()))
 		return "", err
 	}
 	slog.Info("make report dir", slog.String("dir", filepath.Dir(reportFilePath)))
@@ -71,7 +91,7 @@ func mysqlConnLogReport(db *sqlx.DB) (string, error) {
 		0755,
 	)
 	if err != nil {
-		slog.Error("open conn log report file", err)
+		slog.Error("open conn log report file", slog.String("error", err.Error()))
 		return "", err
 	}
 	slog.Info("open conn report file", slog.String("file path", f.Name()))
@@ -80,7 +100,7 @@ func mysqlConnLogReport(db *sqlx.DB) (string, error) {
 
 	rows, err := conn.QueryxContext(ctx, fmt.Sprintf(`SELECT * FROM %s.conn_log_old`, cst.DBASchema))
 	if err != nil {
-		slog.Error("connlog report query conn_log_old", err)
+		slog.Error("connlog report query conn_log_old", slog.String("error", err.Error()))
 		return "", err
 	}
 	defer func() {
@@ -99,26 +119,26 @@ func mysqlConnLogReport(db *sqlx.DB) (string, error) {
 		}
 		err := rows.StructScan(&cr)
 		if err != nil {
-			slog.Error("scan conn_log record", err)
+			slog.Error("scan conn_log record", slog.String("error", err.Error()))
 			return "", err
 		}
 
 		content, err := json.Marshal(cr)
 		if err != nil {
-			slog.Error("marshal conn record", err)
+			slog.Error("marshal conn record", slog.String("error", err.Error()))
 			return "", err
 		}
 
 		_, err = lf.Write(append(content, []byte("\n")...))
 		if err != nil {
-			slog.Error("write conn report", err)
+			slog.Error("write conn report", slog.String("error", err.Error()))
 			return "", err
 		}
 	}
 
 	_, err = db.ExecContext(ctx, fmt.Sprintf(`DROP TABLE IF EXISTS %s.conn_log_old`, cst.DBASchema))
 	if err != nil {
-		slog.Error("drop conn_log_old", err)
+		slog.Error("drop conn_log_old", slog.String("error", err.Error()))
 		return "", err
 	}
 	slog.Info("drop conn_log_old")

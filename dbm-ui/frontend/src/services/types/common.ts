@@ -13,7 +13,7 @@
 
 /** */
 export interface BaseResponse<T> {
-  code: number | string,
+  code: number,
   data: T,
   message: string,
   request_id: string

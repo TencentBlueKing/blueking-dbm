@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log/slog"
 	"os"
 	"path/filepath"
 
@@ -9,7 +10,6 @@ import (
 	"dbm-services/mysql/slow-query-parser-service/pkg/service"
 
 	"github.com/alecthomas/kingpin/v2"
-	"golang.org/x/exp/slog"
 )
 
 var (

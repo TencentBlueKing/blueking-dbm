@@ -1,3 +1,13 @@
+/*
+ * TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
+ * Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
+ * Licensed under the MIT License (the "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at https://opensource.org/licenses/MIT
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+ * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
+
 // Package subcmd TODO
 package subcmd
 
@@ -106,12 +116,12 @@ func (s Steps) Run() (err error) {
 	return nil
 }
 
-// DeserializeAndValidate TODO
+// DeserializeNonStandard TODO
 /*
 	反序列化payload,并校验参数
 	ps: 参数校验 from golang validate v10
 */
-func (b *BaseOptions) DeserializeAndValidate(s interface{}) (err error) {
+func (b *BaseOptions) DeserializeNonStandard(s interface{}) (err error) {
 	var bp []byte
 	if b.PayloadFormat == PayloadFormatRaw {
 		bp = []byte(b.Payload)
@@ -189,6 +199,9 @@ func Deserialize(s interface{}) (p *BaseOptions, err error) {
 //	ps: 参数校验 from golang validate v10
 func (b *BaseOptions) Deserialize(s interface{}) (err error) {
 	var bp []byte
+	if err = b.Validate(); err != nil {
+		return err
+	}
 	if b.PayloadFormat == PayloadFormatRaw {
 		bp = []byte(b.Payload)
 	} else {
@@ -217,6 +230,7 @@ func (b *BaseOptions) Deserialize(s interface{}) (err error) {
 		err = errors.WithMessage(err, "参数解析错误")
 		return err
 	}
+	s = bip.ExtendParam
 	// logger.Info("params after unmarshal %+v", bip)
 	if err = validate.GoValidateStruct(bip, false, true); err != nil {
 		logger.Error("validate struct failed, %v", s, err)
@@ -264,8 +278,6 @@ func (b *BaseOptions) Validate() (err error) {
 	if len(b.Payload) == 0 {
 		return fmt.Errorf("payload need input")
 	}
-	// logger.Info("Validate payload body: %s", b.Payload)
-
 	return nil
 }
 
@@ -327,7 +339,7 @@ func ValidateSubCommand() func(cmd *cobra.Command, args []string) error {
 		if len(args) <= 0 {
 			return fmt.Errorf(
 				"You must specify the type of Operation Describe. %s\n",
-				SuggestAPIResources(cmd.Parent().Name()),
+				suggestAPIResources(cmd.Parent().Name()),
 			)
 		}
 		curName := args[0]
@@ -358,19 +370,17 @@ func PrintSubCommandHelper(cmd *cobra.Command, opt *BaseOptions) bool {
 			if err := GetPathDefinitionHelper(subcmdPath); err != nil {
 				fmt.Println(err)
 				os.Exit(1)
-			} else {
-				return true
 			}
-		} else {
-			fmt.Println("--example need sub-command")
+			return true
 		}
+		fmt.Println("--example need sub-command")
 	}
 	return false
 }
 
-// SuggestAPIResources returns a suggestion to use the "api-resources" command
+// suggestAPIResources returns a suggestion to use the "api-resources" command
 // to retrieve a supported list of resources
-func SuggestAPIResources(parent string) string {
+func suggestAPIResources(parent string) string {
 	return templates.LongDesc(
 		fmt.Sprintf(
 			"Use \"%s {Operation Type}\" for a complete list of supported resources.",

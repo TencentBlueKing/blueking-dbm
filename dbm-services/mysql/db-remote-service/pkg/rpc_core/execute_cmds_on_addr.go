@@ -2,17 +2,17 @@ package rpc_core
 
 import (
 	"context"
+	"log/slog"
 	"time"
 
 	"github.com/pkg/errors"
-	"golang.org/x/exp/slog"
 )
 
 func (c *RPCWrapper) executeOneAddr(address string) (res []cmdResult, err error) {
 	db, err := c.MakeConnection(address, c.user, c.password, c.connectTimeout)
 
 	if err != nil {
-		slog.Error("make connection", err)
+		slog.Error("make connection", slog.String("error", err.Error()))
 		return nil, err
 	}
 
@@ -25,7 +25,7 @@ func (c *RPCWrapper) executeOneAddr(address string) (res []cmdResult, err error)
 
 	conn, err := db.Connx(ctx)
 	if err != nil {
-		slog.Error("get conn from db", err)
+		slog.Error("get conn from db", slog.String("error", err.Error()))
 		return nil, err
 	}
 	defer func() {
@@ -35,7 +35,7 @@ func (c *RPCWrapper) executeOneAddr(address string) (res []cmdResult, err error)
 	for idx, command := range c.commands {
 		pc, err := c.ParseCommand(command)
 		if err != nil {
-			slog.Error("parse command", err)
+			slog.Error("parse command", slog.String("error", err.Error()))
 			return nil, err
 		}
 
@@ -43,7 +43,8 @@ func (c *RPCWrapper) executeOneAddr(address string) (res []cmdResult, err error)
 			tableData, err := queryCmd(conn, command, ctx)
 			if err != nil {
 				slog.Error(
-					"query command", err,
+					"query command",
+					slog.String("error", err.Error()),
 					slog.String("address", address), slog.String("command", command),
 				)
 				res = append(
@@ -71,7 +72,8 @@ func (c *RPCWrapper) executeOneAddr(address string) (res []cmdResult, err error)
 			rowsAffected, err := executeCmd(conn, command, ctx)
 			if err != nil {
 				slog.Error(
-					"execute command", err,
+					"execute command",
+					slog.String("error", err.Error()),
 					slog.String("address", address), slog.String("command", command),
 				)
 				res = append(
@@ -97,7 +99,7 @@ func (c *RPCWrapper) executeOneAddr(address string) (res []cmdResult, err error)
 			)
 		} else {
 			err = errors.Errorf("commands[%d]: %s not support", idx, command)
-			slog.Error("dispatch command", err)
+			slog.Error("dispatch command", slog.String("error", err.Error()))
 			res = append(
 				res, cmdResult{Cmd: command, TableData: nil, RowsAffected: 0, ErrorMsg: err.Error()},
 			)

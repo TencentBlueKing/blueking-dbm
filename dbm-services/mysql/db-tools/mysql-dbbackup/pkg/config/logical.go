@@ -37,4 +37,8 @@ type LogicalLoad struct {
 	SchemaOnly    bool   `ini:"SchemaOnly"`
 	IndexFilePath string `ini:"IndexFilePath" validate:"required"`
 	ExtraOpt      string `ini:"ExtraOpt"` // other myloader options string to be appended
+	// DBListDropIfExists will run drop database if exists db_xxx before load data. comma separated
+	DBListDropIfExists string `ini:"DBListDropIfExists"`
+	// CreateTableIfNotExists true will add --append-if-not-exist for myloader
+	CreateTableIfNotExists bool `ini:"CreateTableIfNotExists"`
 }

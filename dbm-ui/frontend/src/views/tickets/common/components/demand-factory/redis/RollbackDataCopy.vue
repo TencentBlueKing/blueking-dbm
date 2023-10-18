@@ -79,18 +79,22 @@
     {
       label: t('构造产物访问入口'),
       field: 'entry',
+      showOverflowTooltip: true,
     },
     {
       label: t('目标集群'),
       field: 'taregtClusterName',
+      showOverflowTooltip: true,
     },
     {
       label: t('构造到指定时间'),
       field: 'time',
+      showOverflowTooltip: true,
     },
     {
       label: t('包含 Key'),
-      field: 'targetNum',
+      field: 'includeKeys',
+      showOverflowTooltip: true,
       render: ({ data }: {data: RowData}) => {
         if (data.includeKeys.length > 0) {
           return data.includeKeys.map((key, index) => <bk-tag key={index} type="stroke">{key}</bk-tag>);
@@ -100,7 +104,8 @@
     },
     {
       label: t('排除 Key'),
-      field: 'time',
+      field: 'excludeKeys',
+      showOverflowTooltip: true,
       render: ({ data }: {data: RowData}) => {
         if (data.excludeKeys.length > 0) {
           return data.excludeKeys.map((key, index) => <bk-tag key={index} type="stroke">{key}</bk-tag>);

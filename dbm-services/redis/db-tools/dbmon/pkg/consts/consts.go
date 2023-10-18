@@ -3,7 +3,7 @@ package consts
 
 // version
 const (
-	BkDbmonVersion = "v0.12"
+	BkDbmonVersion = "v0.13"
 )
 
 const (
@@ -162,6 +162,9 @@ const (
 	BackupStatusToBakSysSuccess   = "to_backup_system_success"
 	BackupStatusFailed            = "failed"
 	BackupStatusLocalSuccess      = "local_success"
+
+	CacheBackupModeAof = "aof"
+	CacheBackupModeRdb = "rdb"
 )
 
 const (

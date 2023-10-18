@@ -185,7 +185,7 @@
         }
     ],
     "params": {
-        "paths": ["/data/mysqllog/*/slow-query.log"],
+        "paths": ["/data/mysqllog/{{ '{{' }} cmdb_instance.service.labels[\"instance_port\"] {{ '}}' }}/slow-query.log"],
         "conditions": {
             "separator": "",
             "separator_filters": [],
@@ -196,12 +196,28 @@
         "multiline_pattern":"^# User@Host",
         "multiline_max_lines":50,
         "multiline_timeout":2,
-        "encoding":"UTF-8"
+        "encoding":"UTF-8",
+        "extra_template_labels": [
+            {"key": "$for", "value": "cmdb_instance.scope"},
+            {"key": "$body", "value": {
+                "app": "{{ '{{' }} cmdb_instance.service.labels[\"app\"] {{ '}}' }}",
+                "app_id": "{{ '{{' }} cmdb_instance.service.labels[\"app_id\"] {{ '}}' }}",
+                "bk_cloud_id": "{{ '{{' }} cmdb_instance.service.labels[\"bk_cloud_id\"] {{ '}}' }}",
+                "cluster_name": "{{ '{{' }} cmdb_instance.service.labels[\"cluster_name\"] {{ '}}' }}",
+                "cluster_type": "{{ '{{' }} cmdb_instance.service.labels[\"cluster_type\"] {{ '}}' }}",
+                "instance_host": "{{ '{{' }} cmdb_instance.service.labels[\"instance_host\"] {{ '}}' }}",
+                "instance_port": "{{ '{{' }} cmdb_instance.service.labels[\"instance_port\"] {{ '}}' }}",
+                "instance_role": "{{ '{{' }} cmdb_instance.service.labels[\"instance_role\"] {{ '}}' }}",
+                "cluster_domain": "{{ '{{' }} cmdb_instance.service.labels[\"cluster_domain\"] {{ '}}' }}"
+                }
+            },
+            {"key": "$item", "value": "scope"}
+        ]
     },
     "data_encoding": "UTF-8",
     "retention": 7,
     "es_shards": 1,
-    "target_object_type": "HOST",
+    "target_object_type": "SERVICE",
     "target_node_type": "TOPO",
     "target_nodes": [
         {% for node in target_nodes %}{{ node }}{% if not loop.last %}, {% endif %}

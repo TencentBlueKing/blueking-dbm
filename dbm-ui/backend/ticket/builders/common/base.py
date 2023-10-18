@@ -176,7 +176,7 @@ class CommonValidate(object):
     @classmethod
     def _validate_domain_valid(cls, domain):
         if not cls.domain_pattern.match(domain):
-            raise serializers.ValidationError(_("[{}]集群无法通过正则性校验{}").format(domain))
+            raise serializers.ValidationError(_("[{}]集群无法通过正则性校验{}").format(domain, cls.domain_pattern))
 
         if len(domain) > MAX_DOMAIN_LEN_LIMIT:
             raise serializers.ValidationError(_("[{}]集群域名长度过长，请不要让域名长度超过{}").format(domain, MAX_DOMAIN_LEN_LIMIT))
@@ -203,7 +203,6 @@ class CommonValidate(object):
         ignore_tables: List,
         cluster_id,
         dbs_in_cluster_map: Dict[int, List],
-        is_only_db_operate: bool = False,
     ) -> Tuple[bool, str]:
         """校验库表选择器中的单个数据是否合法"""
 
@@ -221,9 +220,7 @@ class CommonValidate(object):
         return True, ""
 
     @classmethod
-    def validate_database_table_selector(
-        cls, bk_biz_id: int, infos: Dict, role_key: None, is_only_db_operate_list: List[bool] = None
-    ) -> Tuple[bool, str]:
+    def validate_database_table_selector(cls, bk_biz_id: int, infos: Dict, role_key: None) -> Tuple[bool, str]:
         """校验库表选择器的数据是否合法"""
 
         cluster_ids = [info["cluster_id"] for info in infos]
@@ -234,8 +231,6 @@ class CommonValidate(object):
 
         dbs_in_cluster = RemoteServiceHandler(bk_biz_id).show_databases(cluster_ids, cluster_id__role_map)
         dbs_in_cluster_map = {db["cluster_id"]: db["databases"] for db in dbs_in_cluster}
-        if not is_only_db_operate_list:
-            is_only_db_operate_list = [False] * len(infos)
 
         for index, info in enumerate(infos):
             is_valid, message = CommonValidate._validate_single_database_table_selector(
@@ -245,7 +240,6 @@ class CommonValidate(object):
                 ignore_tables=info["ignore_tables"],
                 cluster_id=info["cluster_id"],
                 dbs_in_cluster_map=dbs_in_cluster_map,
-                is_only_db_operate=is_only_db_operate_list[index],
             )
             if not is_valid:
                 return is_valid, f"line {index}: {message}"

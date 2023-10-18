@@ -1,42 +1,19 @@
 {
   "bk_biz_id": 0,
-  "monitor_strategy_id": 5626,
-  "name": "MySQL 从库同步异常",
+  "name": "MySQL \u4ece\u5e93\u540c\u6b65\u5f02\u5e38",
   "db_type": "mysql",
   "details": {
     "app": "",
-    "name": "MySQL 从库同步异常",
+    "name": "MySQL \u4ece\u5e93\u540c\u6b65\u5f02\u5e38",
     "path": "",
     "type": "monitor",
     "items": [
       {
         "name": "AVG(mysql_slave_status_slave_io_running) + AVG(mysql_slave_status_slave_sql_running)",
-        "target": [
-          [
-            {
-              "field": "host_topo_node",
-              "value": [
-                {
-                  "bk_obj_id": "set",
-                  "bk_inst_id": 2000008148
-                },
-                {
-                  "bk_obj_id": "set",
-                  "bk_inst_id": 2000008149
-                },
-                {
-                  "bk_obj_id": "set",
-                  "bk_inst_id": 2000008149
-                }
-              ],
-              "method": "eq"
-            }
-          ]
-        ],
+        "target": [],
         "functions": [],
         "algorithms": [
           {
-            "id": 6168,
             "type": "Threshold",
             "level": 1,
             "config": [
@@ -54,12 +31,11 @@
         "origin_sql": "",
         "query_configs": [
           {
-            "id": 6161,
             "name": "mysql_slave_status_slave_io_running",
             "unit": "",
             "alias": "a",
             "functions": [],
-            "metric_id": "bk_monitor.exporter_dbm_mysqld_exporter.slavestat.mysql_slave_st",
+            "metric_id": "bk_monitor.exporter_dbm_mysqld_exporter.slavestat.mysql_slave_status_slave_io_running",
             "agg_method": "AVG",
             "agg_interval": 60,
             "metric_field": "mysql_slave_status_slave_io_running",
@@ -78,19 +54,19 @@
               "bk_target_service_instance_id",
               "app",
               "cluster_domain",
-              "instance"
+              "instance",
+              "app_id"
             ],
             "data_type_label": "time_series",
             "result_table_id": "exporter_dbm_mysqld_exporter.slavestat",
             "data_source_label": "bk_monitor"
           },
           {
-            "id": 6162,
             "name": "mysql_slave_status_slave_sql_running",
             "unit": "",
             "alias": "b",
             "functions": [],
-            "metric_id": "bk_monitor.exporter_dbm_mysqld_exporter.slavestat.mysql_slave_st",
+            "metric_id": "bk_monitor.exporter_dbm_mysqld_exporter.slavestat.mysql_slave_status_slave_sql_running",
             "agg_method": "AVG",
             "agg_interval": 60,
             "metric_field": "mysql_slave_status_slave_sql_running",
@@ -109,7 +85,8 @@
               "bk_target_service_instance_id",
               "app",
               "cluster_domain",
-              "instance"
+              "instance",
+              "app_id"
             ],
             "data_type_label": "time_series",
             "result_table_id": "exporter_dbm_mysqld_exporter.slavestat",
@@ -127,10 +104,9 @@
       }
     ],
     "labels": [
-      "MySQL",
+      "DBM",
       "DBM_MYSQL",
-      "DBM_MYSQL",
-      "DBM"
+      "MySQL"
     ],
     "notice": {
       "config": {
@@ -162,7 +138,9 @@
       "options": {
         "end_time": "23:59:59",
         "start_time": "00:00:00",
-        "assign_mode": [],
+        "assign_mode": [
+          "by_rule"
+        ],
         "upgrade_config": {},
         "converge_config": {
           "count": 1,
@@ -271,11 +249,9 @@
       },
       "config_id": 8680,
       "relate_type": "NOTICE",
-      "user_groups": [
-        0
-      ]
+      "user_groups": []
     },
-    "source": "bkmonitorv3",
+    "source": "dbm",
     "actions": [],
     "detects": [
       {
@@ -302,8 +278,12 @@
       }
     ],
     "scenario": "component",
-    "bk_biz_id": 2005000194,
-    "data_source_type": "监控采集指标"
+    "bk_biz_id": "",
+    "data_source_type": "\u76d1\u63a7\u91c7\u96c6\u6307\u6807",
+    "priority": 0
   },
-  "is_enabled": true
+  "is_enabled": true,
+  "monitor_indicator": "\u4e3b\u4ece\u590d\u5236\u4e2dSlave\u72b6\u6001\u7684\u5e73\u5747\u503c",
+  "version": 2,
+  "alert_source": "time_series"
 }

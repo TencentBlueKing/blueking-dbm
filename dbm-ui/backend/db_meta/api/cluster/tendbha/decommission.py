@@ -17,6 +17,7 @@ from backend.components import MySQLPrivManagerApi
 from backend.db_meta.exceptions import DBMetaException
 from backend.db_meta.models import Cluster, ClusterEntry, StorageInstanceTuple
 from backend.flow.consts import MySQLPrivComponent, UserName
+from backend.db_services.mysql.open_area.models import TendbOpenAreaConfig
 from backend.flow.utils.cc_manage import CcManage
 
 logger = logging.getLogger("root")
@@ -64,6 +65,8 @@ def decommission(cluster: Cluster):
     # TODO CC 目前没有把主机移出当前模块的接口，主机还在模块下，无法删除
     # cc_manage.delete_cluster_modules(db_type=DBType.MySQL.value, cluster=cluster)
     cluster.delete(keep_parents=True)
+    # 删除集群相关的配置模板
+    TendbOpenAreaConfig.objects.filter(source_cluster_id=cluster.id).delete()
 
 
 @transaction.atomic

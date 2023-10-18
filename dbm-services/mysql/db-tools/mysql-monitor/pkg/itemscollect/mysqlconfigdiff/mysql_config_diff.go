@@ -13,17 +13,17 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/config"
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/monitoriteminterface"
 
 	"github.com/pkg/errors"
-	"golang.org/x/exp/slices"
-	"golang.org/x/exp/slog"
 )
 
 var name = "mysql-config-diff"
@@ -75,21 +75,21 @@ func (c *Checker) Run() (msg string, err error) {
 
 	var exitError *exec.ExitError
 	var ok bool
-	if exitError, ok = err.(*exec.ExitError); !ok {
-		slog.Error("compare mysql config", err)
+	if ok = errors.As(err, &exitError); !ok {
+		slog.Error("compare mysql config", slog.String("error", err.Error()))
 		return "", err
 	}
 
 	if exitError.ExitCode() != 1 {
 		unexpectErr := errors.Errorf("unexpect error: %s, stderr: %s", err.Error(), stderr.String())
-		slog.Error("compare mysql config", unexpectErr)
+		slog.Error("compare mysql config", slog.String("error", unexpectErr.Error()))
 		return "", unexpectErr
 	}
 
 	diffs := make(map[string]map[string]interface{})
 	jerr := json.Unmarshal(stdout.Bytes(), &diffs)
 	if jerr != nil {
-		slog.Error("unmarshal variables diffs", err)
+		slog.Error("unmarshal variables diffs", slog.String("error", err.Error()))
 		return "", jerr
 	}
 

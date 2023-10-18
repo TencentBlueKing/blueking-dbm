@@ -22,12 +22,13 @@ const (
 	// SpecialCharRegex = `[￥$!@#%^&*()+={}\[\];:'"<>,.?/\\| ]`
 
 	// AllowWordRegex TODO
-	AllowWordRegex = `^[a-zA-Z0-9][a-zA-Z0-9_-]+[a-zA-Z0-9]$`
+	AllowWordRegex = `^[a-zA-Z0-9]([a-zA-Z0-9_-])*[a-zA-Z0-9]$`
 	// SysReservesPrefixName TODO
 
 )
 
 var reAllowWord *regexp.Regexp
+var reAllowOneWord *regexp.Regexp
 
 // var mysql55WordMap  map[string]struct{}
 var mysql56WordMap map[string]struct{}
@@ -39,6 +40,7 @@ var sysReservesPrefixNames []string
 func init() {
 	sysReservesPrefixNames = []string{"stage_truncate"}
 	reAllowWord = regexp.MustCompile(AllowWordRegex)
+	reAllowOneWord = regexp.MustCompile(`^[a-zA-Z0-9]$`)
 	mysql56WordMap = sliceToMap(keyworld.MySQL56_KEYWORD)
 	mysql57WordMap = sliceToMap(keyworld.MySQL57_KEYWORD)
 	mysql80WordMap = sliceToMap(keyworld.MySQL80_KEYWORD)
@@ -66,8 +68,11 @@ func KeyWordValidator(ver, name string) (matched bool, msg string) {
 
 // SpecialCharValidator TODO
 func SpecialCharValidator(name string) (matched bool, msg string) {
+	if reAllowOneWord.MatchString(name) {
+		return false, ""
+	}
 	if !reAllowWord.MatchString(name) {
-		return true, "Only allowed  " + AllowWordRegex + " characters "
+		return true, name + " : Must match the regexp " + AllowWordRegex + " characters "
 	}
 	for _, sysPrefix := range sysReservesPrefixNames {
 		re := regexp.MustCompile(fmt.Sprintf("^%s", sysPrefix))

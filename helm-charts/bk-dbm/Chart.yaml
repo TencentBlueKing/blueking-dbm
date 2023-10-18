@@ -1,60 +1,72 @@
 apiVersion: v2
 dependencies:
-- name: common
-  repository: https://charts.bitnami.com/bitnami
-  version: 1.13.0
-#- condition: mysql.enabled
-#  name: mysql
-#  version: 8.x.x
-#  repository: https://charts.bitnami.com/bitnami
-- condition: redis.enabled
-  name: redis
-  version: 16.x.x
-  repository: https://charts.bitnami.com/bitnami
-- name: grafana
-  repository: file://./charts/grafana
-  version: 7.x.x
-  condition: grafana.enabled
-- condition: dbm.enabled
-  name: dbm
-  repository: file://charts/dbm
-  version: 0.1.20
-- condition: dbconfig.enabled
-  name: dbconfig
-  repository: file://charts/dbconfig
-  version: 0.1.6
-- condition: dbpriv.enabled
-  name: dbpriv
-  repository: file://charts/dbpriv
-  version: 0.1.28
-- condition: dbpartition.enabled
-  name: dbpartition
-  repository: file://charts/dbpartition
-  version: 0.1.3
-- condition: db-simulation.enabled
-  name: db-simulation
-  repository: file://charts/db-simulation
-  version: 0.1.7
-- condition: dbRemoteService.enabled
-  name: db-remote-service
-  repository: file://charts/db-remote-service
-  version: 0.9.5
-- condition: db-dns-api.enabled
-  name: db-dns-api
-  repository: file://charts/db-dns-api
-  version: 0.1.3
-- condition: hadb-api.enabled
-  name: hadb-api
-  repository: file://charts/hadb-api
-  version: 0.0.10
-- condition: dbResource.enabled
-  name: db-resource
-  repository: file://charts/db-resource
-  version: 0.0.7
-- condition: db-celery-service.enabled
-  name: db-celery-service
-  repository: file://charts/db-celery-service
-  version: 0.0.4
+  - name: common
+    repository: https://charts.bitnami.com/bitnami
+    version: 1.13.0
+  - condition: mysql.enabled
+    name: mysql
+    version: 9.x.x
+    repository: https://charts.bitnami.com/bitnami
+  - condition: redis.enabled
+    name: redis
+    version: 16.x.x
+    repository: https://charts.bitnami.com/bitnami
+  - condition: etcd.enabled
+    name: etcd
+    version: 9.x.x
+    repository: https://charts.bitnami.com/bitnami
+  - name: grafana
+    repository: file://./charts/grafana
+    version: 7.x.x
+    condition: grafana.enabled
+  - condition: dbm.enabled
+    name: dbm
+    repository: file://charts/dbm
+    version: 0.1.20
+  - condition: dbconfig.enabled
+    name: dbconfig
+    repository: file://charts/dbconfig
+    version: 0.1.6
+  - condition: dbpriv.enabled
+    name: dbpriv
+    repository: file://charts/dbpriv
+    version: 0.1.28
+  - condition: dbpartition.enabled
+    name: dbpartition
+    repository: file://charts/dbpartition
+    version: 0.1.4
+  - condition: db-simulation.enabled
+    name: db-simulation
+    repository: file://charts/db-simulation
+    version: 0.1.7
+  - condition: dbRemoteService.enabled
+    name: db-remote-service
+    repository: file://charts/db-remote-service
+    version: 0.9.5
+  - condition: db-dns-api.enabled
+    name: db-dns-api
+    repository: file://charts/db-dns-api
+    version: 0.1.3
+  - condition: hadb-api.enabled
+    name: hadb-api
+    repository: file://charts/hadb-api
+    version: 0.0.10
+  - condition: db-resource.enabled
+    name: db-resource
+    repository: file://charts/db-resource
+    version: 0.0.7
+  - condition: db-celery-service.enabled
+    name: db-celery-service
+    repository: file://charts/db-celery-service
+    version: 0.0.4
+  - condition: backup-server.enabled
+    name: backup-server
+    repository: file://charts/backup-server
+    version: 0.0.2
+  - condition: backup-consumer.enabled
+    name: backup-consumer
+    repository: file://charts/backup-consumer
+    version: 0.0.2
 description: A Helm chart for bkdbm
 name: bk-dbm
 type: application

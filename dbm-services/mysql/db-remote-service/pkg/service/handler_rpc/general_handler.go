@@ -2,13 +2,13 @@ package handler_rpc
 
 import (
 	"fmt"
+	"log/slog"
 	"net/http"
 	"strings"
 
 	"dbm-services/mysql/db-remote-service/pkg/rpc_core"
 
 	"github.com/gin-gonic/gin"
-	"golang.org/x/exp/slog"
 )
 
 func generalHandler(rpcEmbed rpc_core.RPCEmbedInterface) func(*gin.Context) {

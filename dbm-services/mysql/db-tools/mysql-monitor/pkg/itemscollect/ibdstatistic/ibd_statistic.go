@@ -4,6 +4,7 @@ package ibdstatistic
 import (
 	"context"
 	"database/sql"
+	"log/slog"
 	"regexp"
 
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/config"
@@ -11,7 +12,6 @@ import (
 
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
-	"golang.org/x/exp/slog"
 )
 
 /*
@@ -47,13 +47,13 @@ func (c *ibdStatistic) Run() (msg string, err error) {
 	var dataDir sql.NullString
 	err = c.db.GetContext(ctx, &dataDir, `SELECT @@datadir`)
 	if err != nil {
-		slog.Error("ibd-statistic", err)
+		slog.Error("ibd-statistic", slog.String("error", err.Error()))
 		return "", err
 	}
 
 	if !dataDir.Valid {
 		err := errors.Errorf("invalid datadir: '%s'", dataDir.String)
-		slog.Error("ibd-statistic", err)
+		slog.Error("ibd-statistic", slog.String("error", err.Error()))
 		return "", err
 	}
 

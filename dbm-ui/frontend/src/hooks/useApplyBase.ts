@@ -73,12 +73,14 @@ export const useApplyBase = () => {
       content: t('业务Codexx将被保存到业务xx且保存后不允许修改', [appAbbr, bizState.info.display_name]),
       onConfirm: () => {
         baseState.isSubmitting = true;
-        createAppAbbr(formdata.bk_biz_id as number, { db_app_abbr: appAbbr })
-          .then(() => {
-            bizState.hasEnglishName = true;
-            bizState.info.english_name = appAbbr;
-            handleCreateTicket(formdata);
-          })
+        createAppAbbr({
+          id: formdata.bk_biz_id as number,
+          db_app_abbr: appAbbr,
+        }).then(() => {
+          bizState.hasEnglishName = true;
+          bizState.info.english_name = appAbbr;
+          handleCreateTicket(formdata);
+        })
           .catch(() => {
             baseState.isSubmitting = false;
           });

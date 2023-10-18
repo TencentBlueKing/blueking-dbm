@@ -26,6 +26,7 @@ from backend.db_services.mysql.sql_import.serializers import (
     GetUserSemanticListSerializer,
     QuerySemanticDataResponseSerializer,
     QuerySemanticDataSerializer,
+    QuerySQLUserConfigResponseSerializer,
     QuerySQLUserConfigSerializer,
     RevokeSemanticCheckResponseSerializer,
     RevokeSemanticCheckSerializer,
@@ -97,11 +98,11 @@ class SQLImportViewSet(viewsets.SystemViewSet):
 
     @common_swagger_auto_schema(
         operation_summary=_("查询流程配置"),
-        query_serializer=SQLUserConfigSerializer(),
-        responses={status.HTTP_200_OK: QuerySQLUserConfigSerializer()},
+        query_serializer=QuerySQLUserConfigSerializer(),
+        responses={status.HTTP_200_OK: QuerySQLUserConfigResponseSerializer()},
         tags=[SWAGGER_TAG],
     )
-    @action(methods=["GET"], detail=False, serializer_class=SQLUserConfigSerializer)
+    @action(methods=["GET"], detail=False, serializer_class=QuerySQLUserConfigSerializer)
     def query_user_config(self, request, bk_biz_id):
         return self._view_common_handler(
             request, bk_biz_id, SemanticOperateMeta, SQLHandler.query_user_config.__name__

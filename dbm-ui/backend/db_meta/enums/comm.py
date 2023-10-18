@@ -22,3 +22,14 @@ class SyncType(str, StructuredEnum):
 class DBCCModule(str, StructuredEnum):
     REDIS = EnumField("redis", _("redis"))
     MONGODB = EnumField("mongodb", _("mongodb"))
+
+
+class TagType(str, StructuredEnum):
+    CUSTOM = EnumField("custom", _("custom"))
+    SYSTEM = EnumField("system", _("system"))
+
+
+class SystemTagEnum(str, StructuredEnum):
+    """系统内置的tag名称"""
+
+    TEMPORARY = EnumField("temporary", _("temporary"))

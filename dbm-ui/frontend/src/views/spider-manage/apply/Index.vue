@@ -25,7 +25,10 @@
           v-model:biz-id="formdata.bk_biz_id"
           @change-biz="handleChangeBiz" />
         <ClusterName v-model="formdata.details.cluster_name" />
-        <ClusterAlias v-model="formdata.details.cluster_alias" />
+        <ClusterAlias
+          v-model="formdata.details.cluster_alias"
+          :biz-id="formdata.bk_biz_id"
+          cluster-type="tendbcluster" />
         <CloudItem v-model="formdata.details.bk_cloud_id" />
       </DbCard>
       <DbCard :title="$t('部署需求')">
@@ -139,7 +142,7 @@
   const { t } = useI18n();
 
   const initData = () => ({
-    bk_biz_id: '',
+    bk_biz_id: '' as number | '',
     remark: '',
     ticket_type: 'TENDBCLUSTER_APPLY',
     details: {
@@ -152,11 +155,11 @@
       remote_shard_num: 0,
       resource_spec: {
         spider: {
-          spec_id: '',
+          spec_id: 0,
           count: 2,
         },
         backend_group: {
-          spec_id: '',
+          spec_id: 0,
           count: 0,
           capacity: '',
           future_capacity: '',

@@ -13,6 +13,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"log/slog"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -22,7 +23,6 @@ import (
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/monitoriteminterface"
 
 	"github.com/jmoiron/sqlx"
-	"golang.org/x/exp/slog"
 )
 
 var name = "rotate-slowlog"
@@ -57,7 +57,7 @@ func (d *Dummy) Run() (msg string, err error) {
 		`SELECT @@slow_query_log, @@slow_query_log_file`,
 	).Scan(&slowLogOn, &slowLogPath)
 	if err != nil {
-		slog.Error("query slow_query_log, slow_query_log_file", err)
+		slog.Error("query slow_query_log, slow_query_log_file", slog.String("error", err.Error()))
 		return "", err
 	}
 	slog.Info(
@@ -85,7 +85,10 @@ func (d *Dummy) Run() (msg string, err error) {
 	st, err := os.Stat(historySlowLogFilePath)
 	if err != nil {
 		if !os.IsNotExist(err) { // 文件存在
-			slog.Error("get history slow log file stat", err, slog.String("history file path", historySlowLogFilePath))
+			slog.Error("get history slow log file stat",
+				slog.String("error", err.Error()),
+				slog.String("history file path", historySlowLogFilePath),
+			)
 			return "", nil
 		}
 		// 文件不存在
@@ -113,7 +116,10 @@ func (d *Dummy) Run() (msg string, err error) {
 	mvCmd.Stderr = &stderr
 	err = mvCmd.Run()
 	if err != nil {
-		slog.Error("mv slow log", err, slog.String("stderr", stderr.String()))
+		slog.Error("mv slow log",
+			slog.String("error", err.Error()),
+			slog.String("stderr", stderr.String()),
+		)
 		return "", err
 	}
 
@@ -122,13 +128,16 @@ func (d *Dummy) Run() (msg string, err error) {
 	touchCmd.Stderr = &stderr
 	err = touchCmd.Run()
 	if err != nil {
-		slog.Error("touch slow log", err, slog.String("stderr", stderr.String()))
+		slog.Error("touch slow log",
+			slog.String("error", err.Error()),
+			slog.String("stderr", stderr.String()),
+		)
 		return "", err
 	}
 
 	_, err = d.db.ExecContext(ctx, `FLUSH SLOW LOGS`)
 	if err != nil {
-		slog.Error("flush slow logs", err)
+		slog.Error("flush slow logs", slog.String("error", err.Error()))
 		return "", err
 	}
 

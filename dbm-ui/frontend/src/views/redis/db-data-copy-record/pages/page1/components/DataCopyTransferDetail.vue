@@ -93,12 +93,12 @@
                   <div class="content">
                     <span v-if="whiteRegexs.length === 0">--</span>
                     <template v-else>
-                      <BkTag
+                      <KeyTags :data="whiteRegexs" />
+                      <!-- <BkTag
                         v-for="(tag, index) in whiteRegexs"
-                        :key="index"
-                        type="stroke">
+                        :key="index">
                         {{ tag }}
-                      </BkTag>
+                      </BkTag> -->
                     </template>
                   </div>
                 </div>
@@ -109,12 +109,12 @@
                   <div class="content">
                     <span v-if="blackRegexs.length === 0">--</span>
                     <template v-else>
-                      <BkTag
+                      <KeyTags :data="blackRegexs" />
+                      <!-- <BkTag
                         v-for="(tag, index) in blackRegexs"
-                        :key="index"
-                        type="stroke">
+                        :key="index">
                         {{ tag }}
-                      </BkTag>
+                      </BkTag> -->
                     </template>
                   </div>
                 </div>
@@ -234,6 +234,7 @@
   import { encodeRegexp } from '@utils';
 
   import ExecuteStatus from './ExecuteStatus.vue';
+  import KeyTags from './KeyTags.vue';
 
 
   interface Props {
@@ -293,12 +294,12 @@
             disabled={failedList.value.length === 0}
             onClick={(e: Event) => e.stopPropagation()}
             onChange={handleSelectPageAll}
-        />
+          />
         </div>
       ),
       field: 'src_instance',
-      minWidth: 200,
-      showOverflowTooltip: false,
+      width: 220,
+      showOverflowTooltip: true,
       render: ({ index, data }: {index: number, data: RedisDSTJobTaskModel}) => (
           <div style="display:flex;align-items:center;">
             <bk-checkbox
@@ -314,23 +315,28 @@
     {
       label: 'DtsServer',
       field: 'dts_server',
+      showOverflowTooltip: true,
     },
     {
       label: t('Task 类型'),
       field: 'task_type',
+      showOverflowTooltip: true,
     },
     {
       label: t('执行状态'),
       field: 'status',
+      showOverflowTooltip: true,
       render: ({ data }: { data: RedisDSTJobTaskModel }) => <ExecuteStatus type={data.status} />,
     },
     {
       label: t('执行时间'),
       field: 'update_time',
+      showOverflowTooltip: true,
     },
     {
       label: t('任务信息'),
       field: 'message',
+      showOverflowTooltip: true,
     }];
 
   const bizsMap = bizs.reduce((result, item) => {
@@ -370,19 +376,8 @@
     [RemindFrequencyModes.ONCE_WEEKLY]: t('一周一次（早上 10:00）'),
   };
 
-  onMounted(() => {
-    refreshTimer.value = setInterval(() => {
-      if (props.data) {
-        queryTasksTableData(props.data);
-      }
-    }, 5000);
-  });
-
-  onBeforeUnmount(() => {
-    clearInterval(refreshTimer.value);
-  });
-
   let tableRawData = tableData.value;
+
   watch(searchValue, (keyword) => {
     if (keyword) {
       clearTimeout(timer.value);
@@ -459,6 +454,18 @@
     emits('on-close');
   }
 
+  onMounted(() => {
+    refreshTimer.value = setInterval(() => {
+      if (props.data) {
+        queryTasksTableData(props.data);
+      }
+    }, 5000);
+  });
+
+  onBeforeUnmount(() => {
+    clearInterval(refreshTimer.value);
+  });
+
 </script>
 
 <style lang="less" scoped>
@@ -479,6 +486,7 @@
   font-size: 14px;
   font-weight: 700;
   color: #313238;
+  align-items: center;
   cursor: pointer;
 }
 
@@ -519,8 +527,10 @@
         color: @title-color;
         flex: 1;
 
-        :deep(.bk-tag-text) {
-          background-color: #f0f1f5;
+        :deep(.bk-tag) {
+          &:hover {
+            background-color: #f0f1f5;
+          }
         }
       }
     }

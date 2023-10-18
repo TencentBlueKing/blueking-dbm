@@ -862,6 +862,8 @@ export interface RedisScaleUpDownDetails {
     shard_num: number,
     group_num: number,
     online_switch_type: 'user_confirm' | 'no_confirm',
+    capacity: number,
+    future_capacity: number,
     resource_spec: {
       backend_group: {
         spec_id: number,
@@ -942,6 +944,8 @@ export interface RedisClusterShardUpdateDetails {
     cluster_shard_num: number,
     db_version: string,
     online_switch_type: 'user_confirm',
+    capacity: number,
+    future_capacity: number,
     resource_spec: {
       proxy: {
         spec_id: number,
@@ -968,6 +972,8 @@ export interface RedisClusterTypeUpdateDetails extends RedisClusterShardUpdateDe
     cluster_shard_num: number,
     db_version: string,
     online_switch_type: 'user_confirm',
+    capacity: number,
+    future_capacity: number,
     resource_spec: {
       proxy: {
         spec_id: number,
@@ -1203,7 +1209,7 @@ export interface SpiderFullBackupDetails {
     backup_type: 'logical' | 'physical',
     file_tag: 'MYSQL_FULL_BACKUP' | 'LONGDAY_DBFILE_3Y',
     clusters: {
-      id: 6,
+      cluster_id: number,
       backup_local: string, // spider_mnt:: 127.0.0.1: 8000
     }[],
   }
@@ -1343,4 +1349,30 @@ export interface SpiderPartitionManageDetails {
       cluster_type_name: string,
     },
   },
+}
+
+// redis CLB
+export interface RedisCLBDetails {
+  cluster_id: number,
+  clusters: {
+    [key: string]: {
+      alias: string,
+      bk_biz_id: number,
+      bk_cloud_id: number,
+      cluster_type: string,
+      cluster_type_name: string,
+      creator: string,
+      db_module_id: number,
+      id: number,
+      immute_domain: string,
+      major_version: string,
+      name: string,
+      phase: string,
+      region: string,
+      status: string,
+      tag: string[],
+      time_zone: string,
+      updater: string,
+    }
+  }
 }

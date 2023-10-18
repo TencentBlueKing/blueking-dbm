@@ -10,13 +10,26 @@ specific language governing permissions and limitations under the License.
 """
 import hashlib
 import logging.config
+from collections import defaultdict
 from typing import Dict, List, Tuple
+
+from django.utils.translation import ugettext as _
 
 from backend.components import DBConfigApi, DRSApi
 from backend.components.dbconfig.constants import FormatType, LevelName
+from backend.configuration.constants import DBType
+from backend.constants import IP_PORT_DIVIDER
+from backend.db_meta.enums import ClusterType, InstanceRole
 from backend.db_meta.models import Cluster
-from backend.db_services.redis.util import is_predixy_proxy_type, is_twemproxy_proxy_type
-from backend.flow.consts import ConfigTypeEnum
+from backend.db_package.models import Package
+from backend.db_services.redis.util import (
+    is_predixy_proxy_type,
+    is_redis_instance_type,
+    is_tendisplus_instance_type,
+    is_tendisssd_instance_type,
+    is_twemproxy_proxy_type,
+)
+from backend.flow.consts import DEFAULT_DB_MODULE_ID, ConfigFileEnum, ConfigTypeEnum, MediumEnum
 
 logger = logging.getLogger("flow")
 
@@ -219,3 +232,107 @@ def check_cluster_proxy_backends_consistent(cluster_id: int, cluster_password: s
         raise Exception(
             "proxy[{}->{}] backends is not same".format(sorted_md5[0]["proxy_addr"], sorted_md5[-1]["proxy_addr"])
         )
+
+
+def get_twemproxy_cluster_server_shards(bk_biz_id: int, cluster_id: int, other_to_master: dict) -> dict:
+    """
+    获取twemproxy集群的server_shards
+    :param bk_biz_id: 业务id
+    :param cluster_id: 集群id
+    :param other_to_master: other实例 到 master实例的映射关系,格式为{a.a.a.a:30000 : b.b.b.b:30000}
+    """
+    cluster = Cluster.objects.get(id=cluster_id, bk_biz_id=bk_biz_id)
+    if not is_twemproxy_proxy_type(cluster.cluster_type):
+        return {}
+    twemproxy_server_shards = defaultdict(dict)
+    ipport_to_segment = {}
+    for row in cluster.nosqlstoragesetdtl_set.all():
+        ipport = row.instance.machine.ip + IP_PORT_DIVIDER + str(row.instance.port)
+        ipport_to_segment[ipport] = row.seg_range
+
+    for master_obj in cluster.storageinstance_set.filter(instance_role=InstanceRole.REDIS_MASTER.value):
+        if master_obj.as_ejector and master_obj.as_ejector.first():
+            slave_obj = master_obj.as_ejector.get().receiver
+            master_ipport = master_obj.machine.ip + IP_PORT_DIVIDER + str(master_obj.port)
+            slave_ipport = slave_obj.machine.ip + IP_PORT_DIVIDER + str(slave_obj.port)
+
+            twemproxy_server_shards[master_obj.machine.ip][master_ipport] = ipport_to_segment[master_ipport]
+            twemproxy_server_shards[slave_obj.machine.ip][slave_ipport] = ipport_to_segment[master_ipport]
+
+    for other_ipport, master_ipport in other_to_master.items():
+        if master_ipport not in ipport_to_segment:
+            raise Exception(
+                "master ipport {} not found seg_range, not belong cluster:{}??".format(
+                    master_ipport, cluster.immute_domain
+                )
+            )
+        other_list = other_ipport.split(IP_PORT_DIVIDER)
+        other_ip = other_list[0]
+        twemproxy_server_shards[other_ip][other_ipport] = ipport_to_segment[master_ipport]
+    return twemproxy_server_shards
+
+
+def get_cache_backup_mode(bk_biz_id: int, cluster_id: int) -> str:
+    """
+    获取集群的cache_backup_mode
+    :param bk_biz_id: 业务id
+    :param cluster_id: 集群id
+    """
+    query_params = {
+        "bk_biz_id": str(bk_biz_id),
+        "level_name": LevelName.CLUSTER.value,
+        "level_value": "",
+        "level_info": {"module": str(DEFAULT_DB_MODULE_ID)},
+        "conf_file": ConfigFileEnum.FullBackup.value,
+        "conf_type": ConfigTypeEnum.Config.value,
+        "namespace": ClusterType.TendisTwemproxyRedisInstance.value,
+        "format": FormatType.MAP.value,
+    }
+    if cluster_id == 0:
+        # 获取业务级别的配置
+        query_params["level_name"] = LevelName.APP.value
+        query_params["level_value"] = str(bk_biz_id)
+        resp = DBConfigApi.query_conf_item(params=query_params)
+        if resp["content"]:
+            return resp["content"].get("cache_backup_mode", "")
+    cluster: Cluster = None
+    try:
+        cluster = Cluster.objects.get(id=cluster_id, bk_biz_id=bk_biz_id)
+    except Cluster.DoesNotExist:
+        # 获取业务级别的配置
+        query_params["level_name"] = LevelName.APP.value
+        query_params["level_value"] = str(bk_biz_id)
+        resp = DBConfigApi.query_conf_item(params=query_params)
+        if resp["content"]:
+            return resp["content"].get("cache_backup_mode", "")
+    if not is_redis_instance_type(cluster.cluster_type):
+        return ""
+    # 获取集群级别的配置
+    query_params["level_name"] = LevelName.CLUSTER.value
+    query_params["level_value"] = cluster.immute_domain
+    query_params["namespace"] = cluster.cluster_type
+    try:
+        resp = DBConfigApi.query_conf_item(params=query_params)
+        if resp["content"]:
+            return resp["content"].get("cache_backup_mode", "")
+    except Exception:
+        return "aof"
+
+
+def get_db_versions_by_cluster_type(cluster_type: str) -> list:
+    if is_redis_instance_type(cluster_type):
+        ret = Package.objects.filter(db_type=DBType.Redis.value, pkg_type=MediumEnum.Redis.value).values_list(
+            "version", flat=True
+        )
+        return list(ret)
+    elif is_tendisplus_instance_type(cluster_type):
+        ret = Package.objects.filter(db_type=DBType.Redis.value, pkg_type=MediumEnum.TendisPlus.value).values_list(
+            "version", flat=True
+        )
+        return list(ret)
+    elif is_tendisssd_instance_type(cluster_type):
+        ret = Package.objects.filter(db_type=DBType.Redis.value, pkg_type=MediumEnum.TendisSsd.value).values_list(
+            "version", flat=True
+        )
+        return list(ret)
+    raise Exception(_("集群类型:{} 不是一个 redis 集群类型?").format(cluster_type))

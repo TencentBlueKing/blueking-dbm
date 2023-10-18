@@ -3,13 +3,13 @@ package config
 import (
 	"bytes"
 	"fmt"
+	"log/slog"
 	"os"
 	"os/exec"
 	"path"
 	"syscall"
 
 	"github.com/go-playground/validator/v10"
-	"golang.org/x/exp/slog"
 	"gopkg.in/yaml.v2"
 )
 
@@ -56,7 +56,7 @@ func (j *ExternalJob) run() {
 	if err != nil {
 		slog.Error(
 			"external job",
-			err,
+			slog.String("error", err.Error()),
 			slog.String("name", j.Name),
 			slog.String("stderr", stderr.String()),
 		)
@@ -71,7 +71,7 @@ func (j *ExternalJob) run() {
 			},
 		)
 		if err != nil {
-			slog.Error("send event", err)
+			slog.Error("send event", slog.String("error", err.Error()))
 		}
 	} else {
 		slog.Info(
@@ -97,7 +97,7 @@ func (j *ExternalJob) Run() {
 				"job_name": j.Name,
 			},
 		)
-		slog.Error("send event", err)
+		slog.Error("send event", slog.String("error", err.Error()))
 	}
 }
 
@@ -116,7 +116,7 @@ func (j *ExternalJob) validate() error {
 func InitJobsConfig() error {
 	if !path.IsAbs(RuntimeConfig.JobsConfigFile) {
 		err := fmt.Errorf("jobs-config need absolute path")
-		slog.Error("init jobs config", err)
+		slog.Error("init jobs config", slog.String("error", err.Error()))
 		return err
 	}
 
@@ -126,31 +126,31 @@ func InitJobsConfig() error {
 			slog.Info("init jobs config jobs-config file not found, try create it")
 			_, err := os.Create(RuntimeConfig.JobsConfigFile)
 			if err != nil {
-				slog.Error("init jobs config create empty jobs-config file", err)
+				slog.Error("init jobs config create empty jobs-config file", slog.String("error", err.Error()))
 				return err
 			}
 
 			err = os.Chown(RuntimeConfig.JobsConfigFile, JobsUserUid, JobsUserGid)
 			if err != nil {
-				slog.Error("init jobs config chown for jobs config", err)
+				slog.Error("init jobs config chown for jobs config", slog.String("error", err.Error()))
 				return err
 			}
 		} else {
-			slog.Error("init jobs config get jobs-config file stat", err)
+			slog.Error("init jobs config get jobs-config file stat", slog.String("error", err.Error()))
 			return err
 		}
 	}
 
 	content, err := os.ReadFile(RuntimeConfig.JobsConfigFile)
 	if err != nil {
-		slog.Error("init jobs config", err)
+		slog.Error("init jobs config", slog.String("error", err.Error()))
 		return err
 	}
 
 	JobsConfig = &jobsConfig{}
 	err = yaml.Unmarshal(content, &JobsConfig)
 	if err != nil {
-		slog.Error("init jobs config", err)
+		slog.Error("init jobs config", slog.String("error", err.Error()))
 		return err
 	}
 

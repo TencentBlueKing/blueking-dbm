@@ -1,42 +1,19 @@
 {
   "bk_biz_id": 0,
-  "monitor_strategy_id": 5630,
-  "name": "MySQL 主机磁盘IO利用率",
+  "name": "MySQL \u4e3b\u673a\u78c1\u76d8IO\u5229\u7528\u7387",
   "db_type": "mysql",
   "details": {
     "app": "",
-    "name": "MySQL 主机磁盘IO利用率",
+    "name": "MySQL \u4e3b\u673a\u78c1\u76d8IO\u5229\u7528\u7387",
     "path": "",
     "type": "monitor",
     "items": [
       {
-        "name": "AVG(I/O使用率)",
-        "target": [
-          [
-            {
-              "field": "host_topo_node",
-              "value": [
-                {
-                  "bk_obj_id": "set",
-                  "bk_inst_id": 2000008148
-                },
-                {
-                  "bk_obj_id": "set",
-                  "bk_inst_id": 2000008149
-                },
-                {
-                  "bk_obj_id": "set",
-                  "bk_inst_id": 2000008149
-                }
-              ],
-              "method": "eq"
-            }
-          ]
-        ],
+        "name": "AVG(I/O\u4f7f\u7528\u7387)",
+        "target": [],
         "functions": [],
         "algorithms": [
           {
-            "id": 6173,
             "type": "Threshold",
             "level": 2,
             "config": [
@@ -54,8 +31,7 @@
         "origin_sql": "",
         "query_configs": [
           {
-            "id": 6166,
-            "name": "I/O使用率",
+            "name": "I/O\u4f7f\u7528\u7387",
             "unit": "percentunit",
             "alias": "a",
             "functions": [],
@@ -70,7 +46,8 @@
               "app",
               "bk_target_ip",
               "cluster_domain",
-              "bk_target_cloud_id"
+              "bk_target_cloud_id",
+              "app_id"
             ],
             "data_type_label": "time_series",
             "result_table_id": "dbm_system.io",
@@ -89,10 +66,9 @@
       }
     ],
     "labels": [
-      "MySQL",
+      "DBM",
       "DBM_MYSQL",
-      "DBM_MYSQL",
-      "DBM"
+      "MySQL"
     ],
     "notice": {
       "config": {
@@ -124,7 +100,9 @@
       "options": {
         "end_time": "23:59:59",
         "start_time": "00:00:00",
-        "assign_mode": [],
+        "assign_mode": [
+          "by_rule"
+        ],
         "upgrade_config": {},
         "converge_config": {
           "count": 1,
@@ -228,11 +206,9 @@
       },
       "config_id": 8684,
       "relate_type": "NOTICE",
-      "user_groups": [
-        0
-      ]
+      "user_groups": []
     },
-    "source": "bkmonitorv3",
+    "source": "dbm",
     "actions": [],
     "detects": [
       {
@@ -259,8 +235,12 @@
       }
     ],
     "scenario": "os",
-    "bk_biz_id": 2005000194,
-    "data_source_type": "监控采集指标"
+    "bk_biz_id": "",
+    "data_source_type": "\u76d1\u63a7\u91c7\u96c6\u6307\u6807",
+    "priority": 0
   },
-  "is_enabled": true
+  "is_enabled": true,
+  "monitor_indicator": "AVG(I/O\u4f7f\u7528\u7387)",
+  "version": 2,
+  "alert_source": "time_series"
 }

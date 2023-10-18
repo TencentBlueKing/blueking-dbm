@@ -21,7 +21,7 @@ from backend.ticket.constants import SwitchConfirmType, TicketType
 
 
 class RedisMasterSlaveSwitchDetailSerializer(serializers.Serializer):
-    """主从故障切换"""
+    """主从切换"""
 
     class InfoSerializer(ClusterValidateMixin, serializers.Serializer):
         class PairSerializer(serializers.Serializer):
@@ -69,7 +69,7 @@ class RedisMasterSlaveSwitchParamBuilder(builders.FlowParamBuilder):
 class RedisMasterSlaveSwitchFlowBuilder(BaseRedisTicketFlowBuilder):
     serializer = RedisMasterSlaveSwitchDetailSerializer
     inner_flow_builder = RedisMasterSlaveSwitchParamBuilder
-    inner_flow_name = _("Redis 主从故障切换")
+    inner_flow_name = _("Redis 主从切换")
 
     @property
     def need_itsm(self):

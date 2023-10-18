@@ -1,11 +1,11 @@
 package mysqlprocesslist
 
 import (
+	"log/slog"
 	"strings"
 	"time"
 
 	"github.com/dlclark/regexp2"
-	"golang.org/x/exp/slog"
 )
 
 /*
@@ -68,7 +68,7 @@ func hasNormalLock(p *mysqlProcess) (bool, error) {
 	reLockPattern := regexp2.MustCompile(`lock`, regexp2.IgnoreCase)
 	match, err := reLockPattern.MatchString(p.State.String)
 	if err != nil {
-		slog.Error("apply lock pattern", err)
+		slog.Error("apply lock pattern", slog.String("error", err.Error()))
 		return false, err
 	}
 	if !match {
@@ -78,7 +78,7 @@ func hasNormalLock(p *mysqlProcess) (bool, error) {
 	reSystemLockPattern := regexp2.MustCompile(`system lock`, regexp2.IgnoreCase)
 	match, err = reSystemLockPattern.MatchString(p.State.String)
 	if err != nil {
-		slog.Error("apply system lock pattern", err)
+		slog.Error("apply system lock pattern", slog.String("error", err.Error()))
 		return false, err
 	}
 
@@ -91,7 +91,7 @@ func hasNormalLock(p *mysqlProcess) (bool, error) {
 	reExcludeSql := regexp2.MustCompile(`(?=(?:(^binlog|load data)))`, regexp2.IgnoreCase)
 	match, err = reExcludeSql.MatchString(p.Info.String)
 	if err != nil {
-		slog.Error("apply exclude commands pattern", err)
+		slog.Error("apply exclude commands pattern", slog.String("error", err.Error()))
 		return false, err
 	}
 

@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import List, Optional
 
 from backend.db_meta.enums import TenDBClusterSpiderRole
 
@@ -67,3 +68,26 @@ class DropSpiderRoutingKwargs:
     cluster_id: int
     reduce_spiders: list  # 待下架的spider列表，每个元素的格式是字典
     is_safe: bool  # 是否做安全检测
+
+
+@dataclass()
+class InstancePairs:
+    """
+    定义需要替换的实例信息对
+    """
+
+    old_ip: str
+    new_ip: str
+    old_port: int
+    new_port: int
+    tdbctl_pass: str
+
+
+@dataclass
+class SwitchRemoteSlaveRoutingKwargs:
+    """
+    定义spider节点remote slave替换操作的私有变量结构体
+    """
+
+    cluster_id: int
+    switch_remote_instance_pairs: Optional[List[InstancePairs]]

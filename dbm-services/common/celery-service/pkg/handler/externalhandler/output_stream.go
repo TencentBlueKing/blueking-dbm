@@ -3,8 +3,7 @@ package externalhandler
 import (
 	"bufio"
 	"io"
-
-	"golang.org/x/exp/slog"
+	"log/slog"
 )
 
 func (h *Handler) setupOutputStream() error {

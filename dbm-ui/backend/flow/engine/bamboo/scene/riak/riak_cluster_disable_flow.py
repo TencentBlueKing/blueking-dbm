@@ -86,6 +86,19 @@ class RiakClusterDisableFlow(object):
         )
 
         sub_pipeline.add_act(
+            act_name=_("actuator_关闭riak监控"),
+            act_component_code=ExecuteRiakActuatorScriptComponent.code,
+            kwargs=asdict(
+                RiakActKwargs(
+                    get_trans_data_ip_var=NodesContext.get_nodes_var_name(),
+                    bk_cloud_id=self.data["bk_cloud_id"],
+                    run_as_system_user=DBA_ROOT_USER,
+                    get_riak_payload_func=RiakActPayload.get_stop_monitor_payload.__name__,
+                )
+            ),
+        )
+
+        sub_pipeline.add_act(
             act_name=_("actuator_关闭riak实例"),
             act_component_code=ExecuteRiakActuatorScriptComponent.code,
             kwargs=asdict(

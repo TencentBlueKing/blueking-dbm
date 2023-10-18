@@ -14,7 +14,7 @@
 <template>
   <div class="spec-mem spec-form-item">
     <div class="spec-form-item__label">
-      {{ $t('物理机型') }}
+      {{ $t('机型') }}
     </div>
     <div class="spec-form-item__content">
       <BkFormItem
@@ -25,12 +25,20 @@
         <BkSelect
           v-model="localValue"
           :allow-empty-values="['']"
+          filterable
+          :input-search="false"
+          :loading="isLoading"
           multiple
           @change="handleChange">
           <BkOption
-            v-for="item in options"
-            v-bind="item"
-            :key="item.value" />
+            key="all"
+            :label="t('无限制')"
+            value="" />
+          <BkOption
+            v-for="item in deviceClassList"
+            :key="item"
+            :label="item"
+            :value="item" />
         </BkSelect>
       </BkFormItem>
     </div>
@@ -39,6 +47,9 @@
 
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
+  import { useRequest } from 'vue-request';
+
+  import { getDeviceClassList } from '@services/system-setting';
 
   interface Emits {
     (e: 'update:modelValue', value: string[]): void
@@ -58,15 +69,14 @@
     {
       required: true,
       validator: (value: string[]) => value.length > 0,
-      message: t('请选择xx', [t('物理机型')]),
+      message: t('请选择xx', [t('机型')]),
     },
   ];
-  const options = [
-    {
-      label: t('无限制'),
-      value: '',
-    },
-  ];
+
+  const {
+    loading: isLoading,
+    data: deviceClassList,
+  } = useRequest(getDeviceClassList);
 
   const handleChange = () => {
     emits('update:modelValue', localValue.value);

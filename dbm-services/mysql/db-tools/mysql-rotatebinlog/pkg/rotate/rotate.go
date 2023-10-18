@@ -118,7 +118,7 @@ func (i *ServerObj) FlushLogs() error {
 		bp, _ := binlog_parser.NewBinlogParse("", 0)
 		events, err := bp.GetTime(fileName, true, false) // 只获取start_time
 		if err != nil {
-			logger.Warn(err.Error())
+			logger.Warn("FlushLogs GetTime %s", fileName, err.Error())
 			_ = i.flushLogs()
 		} else {
 			lastRotateTime, _ := time.ParseInLocation(cst.DBTimeLayout, events[0].EventTime, time.Local)
@@ -178,7 +178,9 @@ func (i *ServerObj) RemoveMaxKeepDuration() error {
 				// logger.Info("RemoveMaxKeepDuration keep ReserveMinBinlogNum=%d", ReserveMinBinlogNum)
 				continue
 			}
-			if err := os.Remove(filepath.Join(i.binlogDir, f.Filename)); err != nil {
+			fileFullPath := filepath.Join(i.binlogDir, f.Filename)
+			logger.Info("max_keep_duration remove file: %s", fileFullPath)
+			if err := os.Remove(fileFullPath); err != nil {
 				logger.Error(err.Error())
 			}
 		} else {
@@ -211,15 +213,18 @@ func (i *ServerObj) RegisterBinlog(lastFileBefore string) error {
 		fileName := filepath.Join(i.binlogDir, fileObj.Filename)
 		events, err := bp.GetTime(fileName, true, true)
 		if err != nil {
-			logger.Warn(err.Error())
+			logger.Warn("binlog %s GetTime failed: %s", fileName, err.Error())
 			backupStatus = models.IBStatusClientFail
 			backupStatusInfo = err.Error()
 		}
 		if i.Tags.DBRole == models.RoleSlave { // slave 无需备份 binlog
 			backupStatus = models.FileStatusNoNeedUpload
 		}
-		startTime := events[0].EventTime
-		stopTime := events[1].EventTime
+		var startTime, stopTime string
+		if len(events) >= 2 {
+			startTime = events[0].EventTime
+			stopTime = events[1].EventTime
+		}
 		ff := &models.BinlogFileModel{
 			BkBizId:          i.Tags.BkBizId,
 			ClusterId:        i.Tags.ClusterId,
@@ -269,7 +274,7 @@ func (r *BinlogRotate) Backup() error {
 				bp, _ := binlog_parser.NewBinlogParse("", 0)
 				events, err := bp.GetTime(filename, true, true)
 				if err != nil {
-					logger.Warn(err.Error())
+					logger.Warn("Backup GetTime %s", filename, err.Error())
 					// f.BackupStatus = FileStatusAbnormal
 				} else {
 					f.StartTime = events[0].EventTime
@@ -315,12 +320,17 @@ func (r *BinlogRotate) Backup() error {
 // 将本地 done,success 的超过阈值的 binlog 文件删除，更新 binlog 列表状态
 // 超过 max_keep_days 的强制删除，单位 bytes
 // sizeBytesToFree=999999999 代表尽可能删除
-func (r *BinlogRotate) Remove(sizeBytesToFree int64) error {
+func (r *BinlogRotate) Remove(sizeBytesToFree int64, success bool) (err error) {
 	if sizeBytesToFree == 0 {
 		logger.Info("no need to free %d binlog size", r.binlogInst.Port)
 		return nil
 	}
-	binlogFiles, err := r.binlogInst.QuerySuccess(models.DB.Conn)
+	var binlogFiles []*models.BinlogFileModel
+	if success {
+		binlogFiles, err = r.binlogInst.QuerySuccess(models.DB.Conn)
+	} else {
+		binlogFiles, err = r.binlogInst.QueryFailed(models.DB.Conn)
+	}
 	if err != nil {
 		return err
 	}
@@ -331,13 +341,13 @@ func (r *BinlogRotate) Remove(sizeBytesToFree int64) error {
 	num := len(binlogFiles)
 	for i, f := range binlogFiles {
 		if num-i-cst.ReserveMinBinlogNum < 0 {
-			logger.Info("rotate binlog keep ReserveMinBinlogNum=%d", cst.ReserveMinBinlogNum)
+			logger.Info("rotate binlog %d keep ReserveMinBinlogNum=%d", r.binlogInst.Port, cst.ReserveMinBinlogNum)
 			break
 		}
 		fileFullPath := filepath.Join(r.binlogDir, f.Filename)
 		logger.Info("remove file: %s", fileFullPath)
 		if err = os.Remove(fileFullPath); err != nil {
-			logger.Error(err.Error())
+			logger.Error("remove file failed: %s", err.Error())
 			// return err
 		}
 		if !cmutil.FileExists(fileFullPath) {
@@ -356,12 +366,18 @@ func (r *BinlogRotate) Remove(sizeBytesToFree int64) error {
 	}
 	if sizeDeleted < sizeBytesToFree && sizeBytesToFree != PolicyLeastMaxSize*1024*1024 {
 		logger.Warn(
-			"disk space freed does not satisfy needed after delete all allowed binlog files. "+
+			"removeSuccess=%t disk space freed does not satisfy needed after delete all allowed binlog files. "+
 				"sizeDeleted:%d sizeBytesToFree:%d",
-			sizeDeleted, sizeBytesToFree,
+			success, sizeDeleted, sizeBytesToFree,
 		)
-		// todo 可能需要开始删除 备份未完成的 binlog
+		// 需要删除 备份未完成的 binlog
+		if success {
+			leftSizeBytesToFree := sizeBytesToFree - sizeDeleted
+			return r.Remove(leftSizeBytesToFree, false)
+		}
+
 	}
-	logger.Info("sizeBytesDeleted:%d, fileDeleted:%d. binlog lastDeleted: %s", sizeDeleted, fileDeleted, stopFile)
+	logger.Info("removeSuccess=%t sizeBytesDeleted:%d, fileDeleted:%d. binlog lastDeleted: %s",
+		success, sizeDeleted, fileDeleted, stopFile)
 	return nil
 }

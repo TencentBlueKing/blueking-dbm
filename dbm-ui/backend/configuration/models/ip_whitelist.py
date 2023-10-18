@@ -52,6 +52,7 @@ class IPWhitelist(AuditedModel):
         # IPWhitelist.objects.raw(select_sts)
         iplist = cls.objects.filter(ips_filters)
         count = iplist.count()
+        limit = count if limit == -1 else limit
         ip_whitelist = [
             # model_to_dict没有带上create_at和update_at
             {

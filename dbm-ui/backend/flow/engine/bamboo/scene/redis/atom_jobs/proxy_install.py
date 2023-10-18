@@ -86,7 +86,11 @@ def ProxyBatchInstallAtomJob(root_id, ticket_data, act_kwargs: ActKwargs, param:
         act_name=_("Proxy-002-{}-安装backup-client工具").format(exec_ip),
         act_component_code=DownloadBackupClientComponent.code,
         kwargs=asdict(
-            DownloadBackupClientKwargs(bk_cloud_id=act_kwargs.cluster["bk_cloud_id"], download_host_list=[exec_ip]),
+            DownloadBackupClientKwargs(
+                bk_cloud_id=act_kwargs.cluster["bk_cloud_id"],
+                bk_biz_id=int(act_kwargs.cluster["bk_biz_id"]),
+                download_host_list=[exec_ip],
+            ),
         ),
     )
 

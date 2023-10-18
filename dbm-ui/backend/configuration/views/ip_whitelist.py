@@ -42,7 +42,7 @@ class IPWhitelistViewSet(viewsets.AuditedModelViewSet):
 
     def _get_custom_permissions(self):
         bk_biz_id = self.request.query_params.get("bk_biz_id") or self.request.data.get("bk_biz_id")
-        if bk_biz_id:
+        if int(bk_biz_id):
             return [DBManageIAMPermission()]
 
         return [GlobalManageIAMPermission()]

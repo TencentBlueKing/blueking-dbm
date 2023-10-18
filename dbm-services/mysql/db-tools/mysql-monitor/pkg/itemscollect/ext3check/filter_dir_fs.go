@@ -13,10 +13,10 @@ import (
 	"bytes"
 	"os/exec"
 	"regexp"
+	"slices"
 	"strings"
 
 	"github.com/pkg/errors"
-	"golang.org/x/exp/slices"
 )
 
 func filterDirFs(dirs []string, filterFs ...string) (ftDirs []string, err error) {

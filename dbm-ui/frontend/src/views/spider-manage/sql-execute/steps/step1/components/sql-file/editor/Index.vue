@@ -109,7 +109,7 @@
       resizeLayoutInitialDivide.value = 48;
       return;
     }
-    resizeLayoutInitialDivide.value = 24 + props.messageList.length * 24;
+    resizeLayoutInitialDivide.value = Math.min(24 + props.messageList.length * 24, 200);
   });
 
   const handleToggleScreenfull = () => {

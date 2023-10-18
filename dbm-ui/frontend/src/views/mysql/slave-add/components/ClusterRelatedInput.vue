@@ -17,6 +17,7 @@
       <BkInput
         ref="inputRef"
         v-bind="$attrs"
+        :placeholder="placeholder"
         @blur="handleBlur" />
     </template>
     <template v-else>
@@ -80,7 +81,8 @@
   import type { TableItem } from '../common/types';
 
   interface Props {
-    data: TableItem
+    data: TableItem,
+    placeholder?: string
   }
   interface Emits {
     (e: 'blur', evt: FocusEvent): void

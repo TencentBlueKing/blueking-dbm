@@ -19,8 +19,10 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument("cluster_ids", nargs="+", type=int, help="cluster IDs to remove")
+        parser.add_argument("-i", "--ignore-clean", dest="ignore_clean", action="store_true", help="skip job/cc clean")
 
     def handle(self, *args, **options):
         cluster_ids = options.get("cluster_ids")
+        ignore_clean = options.get("ignore_clean")
         for cluster in Cluster.objects.filter(id__in=cluster_ids):
-            remove_cluster(cluster.id)
+            remove_cluster(cluster.id, ignore_clean, ignore_clean)

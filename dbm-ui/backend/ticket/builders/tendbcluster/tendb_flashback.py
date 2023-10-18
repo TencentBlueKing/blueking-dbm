@@ -11,10 +11,15 @@ specific language governing permissions and limitations under the License.
 
 from django.utils.translation import gettext_lazy as _
 
+from backend.db_services.mysql.remote_service.handlers import RemoteServiceHandler
 from backend.flow.engine.controller.spider import SpiderController
 from backend.ticket import builders
 from backend.ticket.builders.mysql.mysql_flashback import MySQLFlashbackDetailSerializer
-from backend.ticket.builders.tendbcluster.base import BaseTendbTicketFlowBuilder, TendbBaseOperateDetailSerializer
+from backend.ticket.builders.tendbcluster.base import (
+    BaseTendbTicketFlowBuilder,
+    TendbBaseOperateDetailSerializer,
+    TendbBasePauseParamBuilder,
+)
 from backend.ticket.constants import FlowRetryType, TicketType
 
 
@@ -24,7 +29,9 @@ class TendbFlashbackDetailSerializer(MySQLFlashbackDetailSerializer, TendbBaseOp
         super(TendbBaseOperateDetailSerializer, self).validate_cluster_can_access(attrs)
         # 校验闪回时间
         super().validate_flash_time(attrs)
-        # TODO: 校验flash的库表选择器
+        # 校验flash的库表选择器
+        RemoteServiceHandler(bk_biz_id=self.context["bk_biz_id"]).check_flashback_database(attrs["infos"])
+
         return attrs
 
 
@@ -41,3 +48,8 @@ class TendbFlashbackFlowBuilder(BaseTendbTicketFlowBuilder):
     inner_flow_builder = TendbFlashbackFlowParamBuilder
     inner_flow_name = _("TenDB Cluster 闪回执行")
     retry_type = FlowRetryType.MANUAL_RETRY
+    pause_node_builder = TendbBasePauseParamBuilder
+
+    @property
+    def need_manual_confirm(self):
+        return True

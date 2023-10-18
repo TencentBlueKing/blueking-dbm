@@ -137,7 +137,7 @@ func (b *BuildMSRelationComp) CheckCurrentSlaveStatus() (err error) {
 	// 检查当前实例是否已经存在进程
 	slaveStatus, err := b.db.ShowSlaveStatus()
 	if err != nil {
-		logger.Error("%s:err:%s", util.AtWhere())
+		logger.Error("show slave status failed,err:%s", err.Error())
 		return err
 	}
 	var emptySlaveStatus native.ShowSlaveStatusResp
@@ -147,7 +147,8 @@ func (b *BuildMSRelationComp) CheckCurrentSlaveStatus() (err error) {
 	}
 	//  如果没有加强制参数，只要存在关系，就抛出错误
 	if !b.Params.Force {
-		return fmt.Errorf("当前实例实际存在主从关系")
+		return fmt.Errorf("当前实例实际存在主从关系, master_host=%s, master_port=%d",
+			slaveStatus.MasterHost, slaveStatus.MasterPort)
 	}
 	logger.Info("show slave status Info is %v", slaveStatus)
 	// 强制参数force=true，直接执行stop slave && reset slave
@@ -201,7 +202,7 @@ func (b *BuildMSRelationComp) CheckBuildOk() (err error) {
 func (b *BuildMSRelationComp) checkSlaveStatus() (err error) {
 	ss, err := b.db.ShowSlaveStatus()
 	if err != nil {
-		logger.Error("%s exec show slave status failed:%s", util.AtWhere(), err.Error())
+		logger.Error("exec show slave status failed:%s", err.Error())
 	}
 	if !ss.ReplSyncIsOk() {
 		errMsg := fmt.Sprintf("IOThread:%s,SQLThread:%s", ss.SlaveIORunning, ss.SlaveSQLRunning)

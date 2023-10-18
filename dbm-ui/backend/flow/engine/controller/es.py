@@ -14,6 +14,7 @@ from backend.flow.engine.bamboo.scene.es.es_apply_flow import EsApplyFlow
 from backend.flow.engine.bamboo.scene.es.es_destroy_flow import EsDestroyFlow
 from backend.flow.engine.bamboo.scene.es.es_disable_flow import EsDisableFlow
 from backend.flow.engine.bamboo.scene.es.es_enable_flow import EsEnableFlow
+from backend.flow.engine.bamboo.scene.es.es_fake_apply_flow import EsFakeApplyFlow
 from backend.flow.engine.bamboo.scene.es.es_reboot_flow import EsRebootFlow
 from backend.flow.engine.bamboo.scene.es.es_replace_flow import EsReplaceFlow
 from backend.flow.engine.bamboo.scene.es.es_scale_up_flow import EsScaleUpFlow
@@ -83,3 +84,10 @@ class EsController(BaseController):
         """
         flow = EsRebootFlow(root_id=self.root_id, data=self.ticket_data)
         flow.reboot_es_flow()
+
+    def es_fake_apply_scene(self):
+        """
+        es录入流程
+        """
+        flow = EsFakeApplyFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.fake_deploy_es_flow()

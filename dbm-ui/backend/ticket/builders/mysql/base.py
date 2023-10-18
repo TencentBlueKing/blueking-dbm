@@ -36,6 +36,10 @@ class BaseMySQLTicketFlowBuilder(MySQLTicketFlowBuilderPatchMixin, TicketFlowBui
     group = DBType.MySQL.value
 
 
+class MySQLBasePauseParamBuilder(builders.PauseParamBuilder):
+    pass
+
+
 class MySQLBaseOperateDetailSerializer(SkipToRepresentationMixin, serializers.Serializer):
     """
     mysql操作的基类，主要功能:
@@ -84,10 +88,16 @@ class MySQLBaseOperateDetailSerializer(SkipToRepresentationMixin, serializers.Se
         ticket_type = self.context["ticket_type"]
 
         for cluster in clusters:
+            if cluster.cluster_type == ClusterType.TenDBSingle:
+                # 如果单节点异常，则直接报错
+                if cluster.status_flag:
+                    raise serializers.ValidationError(_("单节点实例状态异常，暂时无法执行该单据类型：{}").format(ticket_type))
+                continue
+
             for status_flag, whitelist in self.unavailable_whitelist__status_flag.items():
                 if cluster.status_flag & status_flag and ticket_type not in whitelist:
                     raise serializers.ValidationError(
-                        _("实例状态异常:{}，暂时无法执行该单据类型：{}").format(status_flag.flag_text(), ticket_type)
+                        _("高可用实例状态异常:{}，暂时无法执行该单据类型：{}").format(status_flag.flag_text(), ticket_type)
                     )
 
         return attrs
@@ -128,13 +138,10 @@ class MySQLBaseOperateDetailSerializer(SkipToRepresentationMixin, serializers.Se
             if not CommonValidate.validate_instance_related_clusters(inst, cluster_ids, role):
                 raise serializers.ValidationError(_("请保证所选实例{}的关联集群为{}").format(inst, cluster_ids))
 
-    def validate_database_table_selector(self, attrs, role_key=None, is_only_db_operate_list: List[bool] = None):
+    def validate_database_table_selector(self, attrs, role_key=None):
         """校验库表选择器的数据是否合法"""
         is_valid, message = CommonValidate.validate_database_table_selector(
-            bk_biz_id=self.context["bk_biz_id"],
-            infos=attrs["infos"],
-            role_key=role_key,
-            is_only_db_operate_list=is_only_db_operate_list,
+            bk_biz_id=self.context["bk_biz_id"], infos=attrs["infos"], role_key=role_key
         )
         if not is_valid:
             raise serializers.ValidationError(message)

@@ -11,6 +11,7 @@ package mysqlerrlog
 import (
 	"bufio"
 	"context"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -18,7 +19,6 @@ import (
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/config"
 
 	"github.com/jmoiron/sqlx"
-	"golang.org/x/exp/slog"
 )
 
 func snapShot(db *sqlx.DB) error {
@@ -44,7 +44,7 @@ func snapShot(db *sqlx.DB) error {
 		0755,
 	)
 	if err != nil {
-		slog.Error("create reg file", err)
+		slog.Error("create reg file", slog.String("error", err.Error()))
 		return err
 	}
 
@@ -59,13 +59,13 @@ func snapShot(db *sqlx.DB) error {
 
 		startMatch, err := rowStartPattern.MatchString(string(content))
 		if err != nil {
-			slog.Error("apply row start pattern", err)
+			slog.Error("apply row start pattern", slog.String("error", err.Error()))
 			return err
 		}
 
 		baseErrTokenMatch, err := baseErrTokenPattern.MatchString(string(content))
 		if err != nil {
-			slog.Error("apply base error token pattern", err)
+			slog.Error("apply base error token pattern", slog.String("error", err.Error()))
 			return err
 		}
 
@@ -80,12 +80,12 @@ func snapShot(db *sqlx.DB) error {
 
 	f, err := os.OpenFile(offsetRegFile, os.O_CREATE|os.O_TRUNC|os.O_RDWR, 0755)
 	if err != nil {
-		slog.Error("open offset reg", err)
+		slog.Error("open offset reg", slog.String("error", err.Error()))
 		return err
 	}
 	_, err = f.WriteString(strconv.FormatInt(offset, 10))
 	if err != nil {
-		slog.Error("update offset reg", err)
+		slog.Error("update offset reg", slog.String("error", err.Error()))
 		return err
 	}
 
@@ -96,7 +96,7 @@ func snapShot(db *sqlx.DB) error {
 func loadSnapShot() (*bufio.Scanner, error) {
 	f, err := os.Open(errLogRegFile)
 	if err != nil {
-		slog.Error("open err log reg", err)
+		slog.Error("open err log reg", slog.String("error", err.Error()))
 		return nil, err
 	}
 
@@ -110,7 +110,7 @@ func findErrLogFile(db *sqlx.DB) (string, error) {
 	var errLogPath, dataDir string
 	err := db.QueryRowxContext(ctx, `SELECT @@LOG_ERROR, @@DATADIR`).Scan(&errLogPath, &dataDir)
 	if err != nil {
-		slog.Error("query log_error, datadir", err)
+		slog.Error("query log_error, datadir", slog.String("error", err.Error()))
 		return "", err
 	}
 
@@ -123,13 +123,13 @@ func findErrLogFile(db *sqlx.DB) (string, error) {
 func newScanner(logPath string) (*bufio.Scanner, int64, error) {
 	f, err := os.Open(logPath)
 	if err != nil {
-		slog.Error("open err log", err)
+		slog.Error("open err log", slog.String("error", err.Error()))
 		return nil, 0, err
 	}
 
 	st, err := f.Stat()
 	if err != nil {
-		slog.Error("stat of err log", err)
+		slog.Error("stat of err log", slog.String("error", err.Error()))
 		return nil, 0, err
 	}
 	errLogSize := st.Size()
@@ -153,7 +153,7 @@ func newScanner(logPath string) (*bufio.Scanner, int64, error) {
 
 	offset, err := f.Seek(lastOffset, 0)
 	if err != nil {
-		slog.Error("seek err log", err)
+		slog.Error("seek err log", slog.String("error", err.Error()))
 		return nil, 0, err
 	}
 
@@ -171,9 +171,11 @@ func lastRoundOffset() (int64, error) {
 		return 0, err
 	}
 
+	slog.Info("read offset reg", slog.String("offset", string(content)))
+
 	r, err := strconv.ParseInt(string(content), 10, 64)
 	if err != nil {
-		slog.Error("parse last offset", err)
+		slog.Error("parse last offset", slog.String("error", err.Error()))
 		return 0, err
 	}
 

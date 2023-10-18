@@ -1,13 +1,12 @@
 package utils
 
 import (
+	"log/slog"
+	"maps"
 	"strconv"
 
 	ma "dbm-services/mysql/db-tools/mysql-crond/api"
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/config"
-
-	"golang.org/x/exp/maps"
-	"golang.org/x/exp/slog"
 )
 
 // SendMonitorMetrics TODO
@@ -15,7 +14,8 @@ func SendMonitorMetrics(name string, value int64, customDimension map[string]int
 	crondManager := ma.NewManager(config.MonitorConfig.ApiUrl)
 
 	additionDimension := map[string]interface{}{
-		"immute_domain":                 config.MonitorConfig.ImmuteDomain,
+		"cluster_domain":                config.MonitorConfig.ImmuteDomain,
+		"db_module":                     *config.MonitorConfig.DBModuleID,
 		"machine_type":                  config.MonitorConfig.MachineType,
 		"bk_cloud_id":                   strconv.Itoa(*config.MonitorConfig.BkCloudID),
 		"port":                          strconv.Itoa(config.MonitorConfig.Port),
@@ -37,7 +37,8 @@ func SendMonitorMetrics(name string, value int64, customDimension map[string]int
 	)
 	if err != nil {
 		slog.Error(
-			"send metrics", err,
+			"send metrics",
+			slog.String("error", err.Error()),
 			slog.String("name", name), slog.Int64("value", value),
 		)
 	}

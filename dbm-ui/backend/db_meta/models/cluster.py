@@ -8,9 +8,11 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import json
 import logging
 from typing import Dict, List
 
+from django.core.cache import cache
 from django.db import models
 from django.db.models import Count, QuerySet
 from django.forms import model_to_dict
@@ -18,7 +20,7 @@ from django.utils.translation import ugettext_lazy as _
 
 from backend.bk_web.models import AuditedModel
 from backend.components.db_remote_service.client import DRSApi
-from backend.constants import DEFAULT_BK_CLOUD_ID, DEFAULT_TIME_ZONE, IP_PORT_DIVIDER
+from backend.constants import CACHE_CLUSTER_STATS, DEFAULT_BK_CLOUD_ID, DEFAULT_TIME_ZONE, IP_PORT_DIVIDER
 from backend.db_meta.enums import (
     ClusterDBHAStatusFlags,
     ClusterPhase,
@@ -29,9 +31,10 @@ from backend.db_meta.enums import (
     InstanceStatus,
     TenDBClusterSpiderRole,
 )
+from backend.db_meta.enums.cluster_status import ClusterDBSingleStatusFlags
 from backend.db_meta.exceptions import ClusterExclusiveOperateException, DBMetaException
 from backend.db_services.version.constants import LATEST, PredixyVersion, TwemproxyVersion
-from backend.ticket.constants import TicketType
+from backend.ticket.constants import AffinityEnum, TicketType
 from backend.ticket.models import ClusterOperateRecord
 
 logger = logging.getLogger("root")
@@ -49,9 +52,10 @@ class Cluster(AuditedModel):
     status = models.CharField(max_length=64, choices=ClusterStatus.get_choices(), default=ClusterStatus.NORMAL.value)
     bk_cloud_id = models.IntegerField(default=DEFAULT_BK_CLOUD_ID, help_text=_("云区域 ID"))
     region = models.CharField(max_length=128, default="", help_text=_("地域"))
+    disaster_tolerance_level = models.CharField(
+        max_length=128, help_text=_("容灾要求"), choices=AffinityEnum.get_choices(), default=AffinityEnum.NONE.value
+    )
     time_zone = models.CharField(max_length=16, default=DEFAULT_TIME_ZONE, help_text=_("集群所在的时区"))
-
-    # tag = models.ManyToManyField(Tag, blank=True)
 
     class Meta:
         unique_together = ("bk_biz_id", "name", "cluster_type", "db_module_id")
@@ -60,7 +64,12 @@ class Cluster(AuditedModel):
         return self.name
 
     def to_dict(self):
-        return {**model_to_dict(self), "cluster_type_name": str(ClusterType.get_choice_label(self.cluster_type))}
+        """将集群所有字段转为字段"""
+        return {
+            **model_to_dict(self),
+            "cluster_type_name": str(ClusterType.get_choice_label(self.cluster_type)),
+            "tag": [t.tag_desc() for t in self.tag_set.all()],
+        }
 
     @property
     def simple_desc(self):
@@ -101,20 +110,19 @@ class Cluster(AuditedModel):
         return {cluster.id: cluster.immute_domain for cluster in clusters}
 
     @classmethod
-    def is_exclusive(cls, cluster_id, ticket_type=None):
+    def is_exclusive(cls, cluster_id, ticket_type=None, **kwargs):
         if not ticket_type:
             return None
 
-        return ClusterOperateRecord.objects.has_exclusive_operations(ticket_type, cluster_id)
+        return ClusterOperateRecord.objects.has_exclusive_operations(ticket_type, cluster_id, **kwargs)
 
     @classmethod
-    def handle_exclusive_operations(cls, cluster_ids: List[int], ticket_type: str):
+    def handle_exclusive_operations(cls, cluster_ids: List[int], ticket_type: str, **kwargs):
         """
         处理当前的动作是否和集群正在运行的动作存在执行互斥
         """
-
         for cluster_id in cluster_ids:
-            exclusive_infos = cls.is_exclusive(cluster_id, ticket_type)
+            exclusive_infos = cls.is_exclusive(cluster_id, ticket_type, **kwargs)
             if not exclusive_infos:
                 continue
 
@@ -179,6 +187,10 @@ class Cluster(AuditedModel):
                 status=InstanceStatus.UNAVAILABLE.value, instance_inner_role=InstanceInnerRole.SLAVE.value
             ).exists():
                 flag_obj |= ClusterTenDBClusterStatusFlag.RemoteSlaveUnavailable
+        elif self.cluster_type == ClusterType.TenDBSingle.value:
+            flag_obj = ClusterDBSingleStatusFlags(0)
+            if self.storageinstance_set.filter(status=InstanceStatus.UNAVAILABLE.value).exists():
+                flag_obj |= ClusterDBSingleStatusFlags.SingleUnavailable
         else:
             raise DBMetaException(message=_("{} 未实现 status flag".format(self.cluster_type)))
 
@@ -256,3 +268,7 @@ class Cluster(AuditedModel):
             )
         else:
             return ctl_address
+
+    @classmethod
+    def get_cluster_stats(cls) -> dict:
+        return json.loads(cache.get(CACHE_CLUSTER_STATS, "{}"))

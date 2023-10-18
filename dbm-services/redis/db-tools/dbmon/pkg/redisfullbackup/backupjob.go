@@ -61,21 +61,10 @@ func (job *Job) Run() {
 	}
 	defer job.Reporter.Close()
 
-	job.backupClient = backupsys.NewIBSBackupClient(consts.IBSBackupClient, consts.RedisFullBackupTAG)
-	// job.backupClient, job.Err = backupsys.NewCosBackupClient(consts.COSBackupClient, "", consts.RedisBinlogTAG)
-	// if job.Err != nil {
-	// 	return
-	// }
-
-	// 检查历史备份任务状态 并 删除过旧的本地文件
-	for _, svrItem := range job.Conf.Servers {
-		if !consts.IsRedisMetaRole(svrItem.MetaRole) {
-			continue
-		}
-		for _, port := range svrItem.ServerPorts {
-			job.CheckOldFullbackupStatus(port)
-			job.DeleteTooOldFullbackup(port)
-		}
+	// job.backupClient = backupsys.NewIBSBackupClient(consts.IBSBackupClient, consts.RedisFullBackupTAG)
+	job.backupClient, job.Err = backupsys.NewCosBackupClient(consts.COSBackupClient, "", consts.RedisFullBackupTAG)
+	if job.Err != nil {
+		return
 	}
 	job.createTasks()
 	if job.Err != nil {
@@ -88,6 +77,17 @@ func (job *Job) Run() {
 		if bakTask.Err != nil {
 			job.Err = bakTask.Err
 			continue
+		}
+	}
+
+	// 检查历史备份任务状态 并 删除过旧的本地文件
+	for _, svrItem := range job.Conf.Servers {
+		if !consts.IsRedisMetaRole(svrItem.MetaRole) {
+			continue
+		}
+		for _, port := range svrItem.ServerPorts {
+			job.CheckOldFullbackupStatus(port)
+			job.DeleteTooOldFullbackup(port)
 		}
 	}
 }
@@ -115,9 +115,11 @@ func (job *Job) GetReporter() {
 func (job *Job) createTasks() {
 	var task *BackupTask
 	var password string
+	var instStr string
 
 	mylog.Logger.Info(fmt.Sprintf("start create fullback tasks,Servers:%s", util.ToString(job.Conf.Servers)))
 	job.Tasks = []*BackupTask{}
+
 	for _, svrItem := range job.Conf.Servers {
 		if !consts.IsRedisMetaRole(svrItem.MetaRole) {
 			continue
@@ -127,11 +129,16 @@ func (job *Job) createTasks() {
 			if job.Err != nil {
 				return
 			}
-			task = NewFullBackupTask(svrItem.BkBizID, svrItem.BkCloudID,
+			instStr = fmt.Sprintf("%s:%d", svrItem.ServerIP, port)
+			task, job.Err = NewFullBackupTask(svrItem.BkBizID, svrItem.BkCloudID,
 				svrItem.ClusterDomain, svrItem.ServerIP, port, password,
-				job.Conf.RedisFullBackup.ToBackupSystem, consts.NormalBackupType, job.RealBackupDir,
+				job.Conf.RedisFullBackup.ToBackupSystem,
+				consts.NormalBackupType, svrItem.CacheBackupMode, job.RealBackupDir,
 				job.Conf.RedisFullBackup.TarSplit, job.Conf.RedisFullBackup.TarSplitPartSize,
-				job.Reporter)
+				svrItem.ServerShards[instStr], job.Reporter)
+			if job.Err != nil {
+				return
+			}
 			job.Tasks = append(job.Tasks, task)
 		}
 	}

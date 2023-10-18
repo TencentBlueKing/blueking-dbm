@@ -11,28 +11,24 @@ specific language governing permissions and limitations under the License.
 import copy
 import logging
 from dataclasses import asdict
-from datetime import datetime
 from typing import Dict, Optional
 
 from django.utils.translation import ugettext as _
 
 from backend.configuration.constants import DBType
-from backend.constants import IP_PORT_DIVIDER
-from backend.db_meta.enums import ClusterType, InstanceStatus
-from backend.db_services.mysql.fixpoint_rollback.handlers import FixPointRollbackHandler
+from backend.db_meta.enums import InstanceStatus
+from backend.db_meta.models import Cluster
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
-from backend.flow.engine.bamboo.scene.spider.common.exceptions import TendbGetBackupInfoFailedException
-from backend.flow.engine.bamboo.scene.spider.spider_remote_node_migrate import remote_slave_recover_sub_flow
+from backend.flow.engine.bamboo.scene.mysql.common.recover_slave_instance import slave_recover_sub_flow
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
+from backend.flow.plugins.components.collections.mysql.mysql_db_meta import MySQLDBMetaComponent
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
-from backend.flow.plugins.components.collections.spider.spider_db_meta import SpiderDBMetaComponent
 from backend.flow.utils.mysql.common.mysql_cluster_info import get_version_and_charset
 from backend.flow.utils.mysql.mysql_act_dataclass import DBMetaOPKwargs, DownloadMediaKwargs, ExecActuatorKwargs
 from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
 from backend.flow.utils.mysql.mysql_context_dataclass import ClusterInfoContext
-from backend.flow.utils.spider.spider_db_meta import SpiderDBMeta
-from backend.flow.utils.spider.tendb_cluster_info import get_slave_local_recover_info
+from backend.flow.utils.mysql.mysql_db_meta import MySQLDBMeta
 
 logger = logging.getLogger("flow")
 
@@ -66,138 +62,118 @@ class TenDBRemoteSlaveLocalRecoverFlow(object):
         # 阶段1 获取集群所有信息。计算端口,构建数据。
         for info in self.ticket_data["infos"]:
             self.data = copy.deepcopy(info)
-            self.data["bk_cloud_id"] = self.ticket_data["bk_cloud_id"]
+            cluster_class = Cluster.objects.get(id=self.data["cluster_id"])
+            self.data["bk_cloud_id"] = cluster_class.bk_cloud_id
             self.data["root_id"] = self.root_id
             self.data["uid"] = self.ticket_data["uid"]
             self.data["ticket_type"] = self.ticket_data["ticket_type"]
             self.data["bk_biz_id"] = self.ticket_data["bk_biz_id"]
-            self.data["created_by"] = self.ticket_data["created_by"]
-            # self.data["module"] = info["module"]
-            # 卸载流程时强制卸载
+            self.data["bk_biz_id"] = cluster_class.bk_biz_id
+            self.data["db_module_id"] = cluster_class.db_module_id
+            self.data["cluster_type"] = cluster_class.cluster_type
             self.data["force"] = True
-            #  先判断备份是否存在
-            backup_handler = FixPointRollbackHandler(self.data["cluster_id"])
-            restore_time = datetime.now()
-            # restore_time = datetime.strptime("2023-07-31 17:40:00", "%Y-%m-%d %H:%M:%S")
-            backup_info = backup_handler.query_latest_backup_log(restore_time)
-            if backup_info is None:
-                logger.error("cluster {} backup info not exists".format(self.data["cluster_id"]))
-                raise TendbGetBackupInfoFailedException(message=_("获取集群 {} 的备份信息失败".format(self.data["cluster_id"])))
-            logger.debug(backup_info)
-
-            cluster_info = get_slave_local_recover_info(self.data["cluster_id"], self.data["storage_id"])
-            charset, db_version = get_version_and_charset(
-                bk_biz_id=cluster_info["bk_biz_id"],
-                db_module_id=cluster_info["db_module_id"],
-                cluster_type=cluster_info["cluster_type"],
+            self.data["charset"], self.data["db_version"] = get_version_and_charset(
+                bk_biz_id=cluster_class.bk_biz_id,
+                db_module_id=cluster_class.db_module_id,
+                cluster_type=cluster_class.cluster_type,
             )
-            cluster_info["charset"] = charset
-            cluster_info["db_version"] = db_version
-            self.data["target_ip"] = cluster_info["target_ip"]
             tendb_migrate_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
-
-            cluster_info["ports"] = []
-            for shard_id, shard in cluster_info["my_shards"].items():
-                slave = {
-                    "ip": self.data["target_ip"],
-                    "port": shard["port"],
-                    "bk_cloud_id": self.data["bk_cloud_id"],
-                    "instance": "{}{}{}".format(self.data["target_ip"], IP_PORT_DIVIDER, shard["port"]),
-                }
-                cluster_info["my_shards"][shard_id]["new_slave"] = slave
-                cluster_info["ports"].append(shard["port"])
-
-            sync_data_sub_pipeline_list = []
-            for shard_id, node in cluster_info["my_shards"].items():
-                ins_cluster = copy.deepcopy(cluster_info["cluster"])
-                ins_cluster["charset"] = cluster_info["charset"]
-                ins_cluster["new_slave_ip"] = node["new_slave"]["ip"]
-                ins_cluster["new_slave_port"] = node["new_slave"]["port"]
-                ins_cluster["master_ip"] = node["master"]["ip"]
-                ins_cluster["slave_ip"] = node["slave"]["ip"]
-                ins_cluster["master_port"] = node["master"]["port"]
-                ins_cluster["slave_port"] = node["slave"]["port"]
-                # 设置实例状态
-                ins_cluster["storage_id"] = node["slave"]["id"]
-                ins_cluster["storage_status"] = InstanceStatus.RESTORING.value
-                # todo 正式环境放开file_target_path,需要备份接口支持自动创建目录
-                # ins_cluster["file_target_path"] = "/data/dbbak/{}/{}"\
-                #     .format(self.root_id, ins_cluster["new_master_port"])
-                ins_cluster["file_target_path"] = "/home/mysql/install"
-                ins_cluster["shard_id"] = shard_id
-                ins_cluster["change_master_force"] = False
-
-                ins_cluster["backupinfo"] = backup_info["remote_node"].get(shard_id, {})
-                # 判断 remote_node 下每个分片的备份信息是否正常
-                if (
-                    len(ins_cluster["backupinfo"]) == 0
-                    or len(ins_cluster["backupinfo"].get("file_list_details", {})) == 0
-                ):
-                    logger.error(
-                        "cluster {} shard {} backup info not exists".format(self.data["cluster_id"], shard_id)
-                    )
-                    raise TendbGetBackupInfoFailedException(
-                        message=_("获取集群分片 {} shard {}  的备份信息失败".format(self.data["cluster_id"], shard_id))
-                    )
-                sync_data_sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
-                sync_data_sub_pipeline.add_act(
-                    act_name=_("写入初始化实例的db_meta元信息"),
-                    act_component_code=SpiderDBMetaComponent.code,
-                    kwargs=asdict(
-                        DBMetaOPKwargs(
-                            db_meta_class_func=SpiderDBMeta.tendb_modify_storage_status.__name__,
-                            cluster=copy.deepcopy(ins_cluster),
-                            is_update_trans_data=False,
-                        )
-                    ),
-                )
-                exec_act_kwargs = ExecActuatorKwargs(
-                    bk_cloud_id=int(ins_cluster["bk_cloud_id"]),
-                    cluster_type=ClusterType.TenDBCluster,
-                )
-                exec_act_kwargs.exec_ip = ins_cluster["new_slave_ip"]
-                exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_clean_mysql_payload.__name__
-                sync_data_sub_pipeline.add_act(
-                    act_name=_("slave重建之清理从库{}").format(exec_act_kwargs.exec_ip),
-                    act_component_code=ExecuteDBActuatorScriptComponent.code,
-                    kwargs=asdict(exec_act_kwargs),
-                )
-
-                sync_data_sub_pipeline.add_sub_pipeline(
-                    sub_flow=remote_slave_recover_sub_flow(
-                        root_id=self.root_id, ticket_data=copy.deepcopy(self.data), cluster_info=ins_cluster
-                    )
-                )
-                ins_cluster["storage_status"] = InstanceStatus.RUNNING.value
-                sync_data_sub_pipeline.add_act(
-                    act_name=_("写入初始化实例的db_meta元信息"),
-                    act_component_code=SpiderDBMetaComponent.code,
-                    kwargs=asdict(
-                        DBMetaOPKwargs(
-                            db_meta_class_func=SpiderDBMeta.tendb_modify_storage_status.__name__,
-                            cluster=copy.deepcopy(ins_cluster),
-                            is_update_trans_data=False,
-                        )
-                    ),
-                )
-                sync_data_sub_pipeline_list.append(sync_data_sub_pipeline.build_sub_process(sub_name=_("恢复实例数据")))
-
             tendb_migrate_pipeline.add_act(
-                act_name=_("下发工具"),
+                act_name=_("下发db-actor到节点{}".format(self.data["slave_ip"])),
                 act_component_code=TransFileComponent.code,
                 kwargs=asdict(
                     DownloadMediaKwargs(
-                        bk_cloud_id=cluster_info["bk_cloud_id"],
-                        exec_ip=self.data["target_ip"],
+                        bk_cloud_id=cluster_class.bk_cloud_id,
+                        exec_ip=[self.data["slave_ip"]],
                         file_list=GetFileList(db_type=DBType.MySQL).get_db_actuator_package(),
                     )
                 ),
             )
+            sync_data_sub_pipeline_list = []
+            for shard_id in self.data["shard_ids"]:
+                shard = cluster_class.tendbclusterstorageset_set.get(shard_id=shard_id)
+                self.data["master"] = shard.storage_instance_tuple.ejector.ip_port
+                self.data["master_ip"] = shard.storage_instance_tuple.ejector.machine.ip
+                self.data["master_port"] = shard.storage_instance_tuple.ejector.port
+                self.data["slave_port"] = shard.storage_instance_tuple.receiver.port
+                target_slave = cluster_class.storageinstance_set.get(id=shard.storage_instance_tuple.receiver.id)
+                master = cluster_class.storageinstance_set.get(id=shard.storage_instance_tuple.ejector.id)
+                cluster = {"storage_status": InstanceStatus.RESTORING.value, "storage_id": target_slave.id}
+                sync_data_sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
+                sync_data_sub_pipeline.add_act(
+                    act_name=_("写入初始化实例的db_meta元信息"),
+                    act_component_code=MySQLDBMetaComponent.code,
+                    kwargs=asdict(
+                        DBMetaOPKwargs(
+                            db_meta_class_func=MySQLDBMeta.tendb_modify_storage_status.__name__,
+                            cluster=cluster,
+                            is_update_trans_data=False,
+                        )
+                    ),
+                )
+
+                cluster = {
+                    "stop_slave": True,
+                    "reset_slave": True,
+                    "restart": False,
+                    "force": self.data["force"],
+                    "drop_database": True,
+                    "new_slave_ip": target_slave.machine.ip,
+                    "new_slave_port": target_slave.port,
+                }
+                exec_act_kwargs = ExecActuatorKwargs(
+                    bk_cloud_id=cluster_class.bk_cloud_id,
+                    cluster_type=cluster_class.cluster_type,
+                    cluster=cluster,
+                    exec_ip=target_slave.machine.ip,
+                )
+                exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_clean_mysql_payload.__name__
+                sync_data_sub_pipeline.add_act(
+                    act_name=_("slave重建之清理从库{}").format(target_slave.ip_port),
+                    act_component_code=ExecuteDBActuatorScriptComponent.code,
+                    kwargs=asdict(exec_act_kwargs),
+                )
+                cluster = {
+                    "cluster_id": cluster_class.id,
+                    "master_ip": master.machine.ip,
+                    "master_port": master.port,
+                    "new_slave_ip": target_slave.machine.ip,
+                    "new_slave_port": target_slave.port,
+                    "bk_cloud_id": cluster_class.bk_cloud_id,
+                    "file_target_path": f"/data/dbbak/{self.root_id}/{master.port}",
+                    "charset": self.data["charset"],
+                    "change_master_force": True,
+                    "cluster_type": cluster_class.cluster_type,
+                    "shard_id": shard_id,
+                }
+
+                sync_data_sub_pipeline.add_sub_pipeline(
+                    sub_flow=slave_recover_sub_flow(
+                        root_id=self.root_id, ticket_data=copy.deepcopy(self.data), cluster_info=cluster
+                    )
+                )
+
+                cluster = {"storage_status": InstanceStatus.RUNNING.value, "storage_id": target_slave.id}
+                sync_data_sub_pipeline.add_act(
+                    act_name=_("写入初始化实例的db_meta元信息"),
+                    act_component_code=MySQLDBMetaComponent.code,
+                    kwargs=asdict(
+                        DBMetaOPKwargs(
+                            db_meta_class_func=MySQLDBMeta.tendb_modify_storage_status.__name__,
+                            cluster=cluster,
+                            is_update_trans_data=False,
+                        )
+                    ),
+                )
+                sync_data_sub_pipeline_list.append(
+                    sync_data_sub_pipeline.build_sub_process(
+                        _("{} shard {} 原地重建").format(target_slave.ip_port, shard_id)
+                    )
+                )
             tendb_migrate_pipeline.add_parallel_sub_pipeline(sub_flow_list=sync_data_sub_pipeline_list)
             tendb_migrate_pipeline_all_list.append(
-                tendb_migrate_pipeline.build_sub_process(_("集群迁移{}").format(self.data["cluster_id"]))
+                tendb_migrate_pipeline.build_sub_process(_("slave原地重建{}".format(self.data["slave_ip"])))
             )
-
         # 运行流程
         tendb_migrate_pipeline_all.add_parallel_sub_pipeline(tendb_migrate_pipeline_all_list)
         tendb_migrate_pipeline_all.run_pipeline(init_trans_data_class=ClusterInfoContext(), is_drop_random_user=True)

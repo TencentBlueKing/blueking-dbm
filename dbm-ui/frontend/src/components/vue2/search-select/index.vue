@@ -17,7 +17,6 @@
 
 <script lang="tsx">
   import _ from 'lodash';
-  import type { PropType } from 'vue';
 
   import { beforeLoad, loadInstance, mount, unmount } from '@blueking/bk-weweb';
 
@@ -43,52 +42,40 @@
 
 <script setup lang="tsx">
 
-  const props = defineProps({
-    appKey: {
-      type: String,
-      default: 'search-select',
-    },
-    modelValue: {
-      type: Array as PropType<SearchValue[]>,
-      default: () => [],
-    },
-    data: {
-      type: Array as PropType<SearchData[]>,
-      default: () => [],
-    },
+  interface Props {
+    appKey?: string,
+    data?: SearchData[],
     // eslint-disable-next-line vue/no-unused-properties
-    placeholder: {
-      type: String,
-      default: '请输入',
-    },
+    placeholder?: string,
     // eslint-disable-next-line vue/no-unused-properties
-    clearable: {
-      type: Boolean,
-      default: true,
-    },
+    clearable?: boolean,
     // eslint-disable-next-line vue/no-unused-properties
-    showCondition: {
-      type: Boolean,
-      default: false,
-    },
+    showCondition?: boolean,
     // ----- 自定义属性 -------
     // data 是否可重复选择
-    isRepeat: {
-      type: Boolean,
-      default: false,
-    },
+    isRepeat?: boolean,
     // 是否允许自定义输入内容
-    isCustom: {
-      type: Boolean,
-      default: false,
-    },
-  });
+    isCustom?: boolean,
+  }
 
-  const emit = defineEmits([
-    'change',
-    'clear',
-    'update:modelValue',
-  ]);
+  interface Emits {
+    (e: 'change', value: SearchValue[]): void
+    (e: 'clear'): void
+  }
+
+  const props = withDefaults(defineProps<Props>(), {
+    appKey: 'search-select',
+    data: () => [],
+    placeholder: '请输入',
+    clearable: true,
+    showCondition: false,
+    isRepeat: false,
+    isCustom: false,
+  });
+  const emits = defineEmits<Emits>();
+  const modelValue = defineModel<SearchValue[]>({
+    default: () => [],
+  });
 
   const searchSelectRef = ref<HTMLDivElement>();
   const key = computed(() => props.appKey);
@@ -103,11 +90,11 @@
       return props.data;
     }
 
-    const selected = props.modelValue.map(value => value.id);
+    const selected = modelValue.value.map(value => value.id);
     return props.data.filter(item => !selected.includes(item.id));
   });
 
-  watch(() => props.modelValue, (values) => {
+  watch(modelValue, (values) => {
     const len = values.length;
     if (props.isCustom === false && len > 0) {
       const last = values[len - 1];
@@ -134,7 +121,7 @@
         } else {
           cloneValues.splice(len - 1, 1, item);
         }
-        emit('update:modelValue', cloneValues);
+        modelValue.value = cloneValues;
       }
     }
     handleChangeVueData();
@@ -152,7 +139,7 @@
   const handleChangeVueData = () => {
     if (vueInstance.value) {
       const { values } = vueInstance.value;
-      vueInstance.value.values.splice(0, values.length, ...props.modelValue);
+      vueInstance.value.values.splice(0, values.length, ...modelValue.value);
     }
   };
 
@@ -192,12 +179,12 @@
             },
             on: {
               change: (values: any[]) => {
-                emit('update:modelValue', values);
-                emit('change', values);
+                modelValue.value = values;
+                emits('change', values);
               },
               clear: () => {
-                emit('update:modelValue', []);
-                emit('clear');
+                modelValue.value = [];
+                emits('clear');
               },
             },
           });

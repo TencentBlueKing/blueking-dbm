@@ -102,11 +102,15 @@
       event.preventDefault();
       return;
     }
-    validator(localValue.value)
-      .then(() => {
-        window.changeConfirm = true;
-        emits('submit', localValue.value);
-      });
+    if (localValue.value) {
+      validator(localValue.value)
+        .then(() => {
+          window.changeConfirm = true;
+          emits('submit', localValue.value);
+        });
+      return;
+    }
+    emits('submit', localValue.value);
   };
 
   // enter键提交
@@ -152,12 +156,20 @@
   :deep(input) {
     background-color: #fff0f1;
   }
+
+  :deep(.bk-input--number-control) {
+    display: none !important;
+  }
 }
 
 .is-disabled {
   :deep(input) {
     cursor: not-allowed !important;
     border: none !important;
+  }
+
+  :deep(.bk-input--number-control) {
+    background-color: #fafbfd;
   }
 }
 
@@ -175,10 +187,6 @@
     background: inherit;
     border: none;
     outline: none;
-
-    :deep(.bk-input--number-control) {
-      display: none !important;
-    }
 
     :deep(input) {
       border: 1px solid transparent;

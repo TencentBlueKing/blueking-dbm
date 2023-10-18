@@ -67,6 +67,9 @@ class ListRetrieveResource(query.ListRetrieveResource):
         proxy_inst_qset = ProxyInstance.objects.filter(proxy_query)
         storage_inst_qset = StorageInstance.objects.filter(storage_query)
 
+        if query_params.get("name"):
+            cluster_query &= Q(name__icontains=query_params["name"])
+
         if query_params.get("version"):
             cluster_query &= Q(major_version=query_params["version"])
 
@@ -74,7 +77,9 @@ class ListRetrieveResource(query.ListRetrieveResource):
             cluster_query &= Q(region=query_params["region"])
 
         if query_params.get("domain"):
-            cluster_query &= Q(immute_domain__icontains=query_params["domain"])
+            # 考虑从域名的筛选
+            cluster_entry_set = ClusterEntry.objects.filter(entry__icontains=query_params["domain"])
+            cluster_query &= Q(clusterentry__in=cluster_entry_set)
 
         if query_params.get("cluster_ids"):
             cluster_query &= Q(id__in=query_params["cluster_ids"])
@@ -82,7 +87,6 @@ class ListRetrieveResource(query.ListRetrieveResource):
         if query_params.get("creator"):
             cluster_query &= Q(creator__icontains=query_params["creator"])
 
-        cluster_query &= ~Q(status=ClusterStatus.TEMPORARY)
         cluster_qset = Cluster.objects.filter(cluster_query)
 
         if query_params.get("ip"):
@@ -133,7 +137,6 @@ class ListRetrieveResource(query.ListRetrieveResource):
     @classmethod
     def list_instances(cls, bk_biz_id: int, query_params: Dict, limit: int, offset: int) -> query.ResourceList:
         query_conditions = Q(bk_biz_id=bk_biz_id, cluster_type=cls.cluster_type)
-        query_conditions &= ~Q(cluster__status=ClusterStatus.TEMPORARY)
 
         if query_params.get("ip"):
             filter_ip = query_params.get("ip").split(",")

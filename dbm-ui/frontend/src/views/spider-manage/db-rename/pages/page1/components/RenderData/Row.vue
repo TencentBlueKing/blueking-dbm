@@ -24,6 +24,7 @@
       <td style="padding: 0;">
         <RenderDbName
           ref="fromDatabaseRef"
+          check-exist
           :cluster-id="localClusterId"
           :model-value="data.fromDatabase"
           :placeholder="$t('请输入单个源 DB 名')"

@@ -29,12 +29,14 @@ from backend.ticket.builders.mysql.mysql_single_apply import (
     MysqlSingleApplyFlowParamBuilder,
     MysqlSingleApplyResourceParamBuilder,
 )
-from backend.ticket.constants import TicketType
+from backend.ticket.constants import AffinityEnum, TicketType
 from backend.ticket.exceptions import TicketParamsVerifyException
 
 
 class MysqlHAApplyDetailSerializer(MysqlSingleApplyDetailSerializer):
-    disaster_tolerance_level = serializers.CharField(help_text=_("容灾级别"))
+    disaster_tolerance_level = serializers.ChoiceField(
+        help_text=_("容灾级别"), choices=AffinityEnum.get_choices(), required=False, default=AffinityEnum.NONE.value
+    )
     start_proxy_port = serializers.IntegerField(
         help_text=_("Proxy起始端口"),
         required=False,

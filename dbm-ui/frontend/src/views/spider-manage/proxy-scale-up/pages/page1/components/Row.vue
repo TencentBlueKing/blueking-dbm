@@ -39,6 +39,7 @@
         :data="data.targetNum"
         :disabled="!data.cluster"
         :is-loading="data.isLoading"
+        :max="targetMax"
         :min="targetMin" />
     </td>
     <td :class="{'shadow-column': isFixed}">
@@ -79,6 +80,7 @@
     nodeType: string;
     masterCount: number;
     slaveCount: number;
+    mntCount: number; // 校验 spider_master + spider _mnt <=37
     spec?: SpecInfo;
     targetNum?: string;
     clusterType?: string;
@@ -105,6 +107,7 @@
     nodeType: '',
     masterCount: 0,
     slaveCount: 0,
+    mntCount: 0,
   });
 
 </script>
@@ -139,6 +142,7 @@
   const currentSepc = ref(props.data.spec);
 
   const counts = computed(() => ({ master: props.data.masterCount, slave: props.data.slaveCount }));
+  const targetMax = computed(() => 37 - props.data.mntCount);
 
   const handleChangeNodeType = (choosedLabel: string) => {
     let count = 0;

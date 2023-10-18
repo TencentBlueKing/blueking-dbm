@@ -47,14 +47,17 @@
     {
       label: t('集群'),
       field: 'clusterName',
+      showOverflowTooltip: true,
     },
     {
       label: t('源DB名'),
       field: 'fromName',
+      showOverflowTooltip: true,
     },
     {
       label: t('新DB名'),
       field: 'toName',
+      showOverflowTooltip: true,
     },
   ];
 

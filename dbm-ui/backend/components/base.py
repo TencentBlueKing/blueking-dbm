@@ -464,7 +464,8 @@ class DataAPI(object):
         client_crt, client_key = f"{CLIENT_CRT_PATH}/{SSLEnum.CLIENT_CRT}", f"{CLIENT_CRT_PATH}/{SSLEnum.CLIENT_KEY}"
         # 如何证书已存在，则直接返回即可
         ssl = SystemSettings.get_setting_value(key=SSL_KEY, default={})
-        if ssl and ssl.get("local"):
+        # 这里需要判断是否本地化以及文件夹是否存在，有可能pod重启导致秘钥文件丢失
+        if ssl and ssl.get("local") and os.path.exists(CLIENT_CRT_PATH):
             return client_crt, client_key
 
         # 本地写入crt和key文件，防止每次都需要write IO

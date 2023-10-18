@@ -18,7 +18,7 @@
     :draggable="false"
     :esc-close="false"
     height="auto"
-    :is-show="props.isShow"
+    :is-show="isShow"
     :quick-close="false"
     title=""
     :width="1400">
@@ -161,7 +161,6 @@
 <script lang="tsx">
   import { useFormItem } from 'bkui-vue/lib/shared';
   import _ from 'lodash';
-  import type { PropType } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import type { ResourceItem } from '@services/types/clusters';
@@ -188,32 +187,33 @@
 </script>
 
 <script setup lang="tsx">
-  const props = defineProps({
-    isShow: {
-      type: Boolean,
-      default: false,
-    },
+  interface Props {
     // 回填值
-    selected: {
-      type: Object as PropType<ClusterSelectorResult>,
-      default: () => getClusterSelectorSelected(),
-    },
+    selected?: ClusterSelectorResult,
     // 仅允许选一种类型的集群
-    onlyOneType: {
-      type: Boolean,
-      default: false,
-    },
+    onlyOneType?: boolean,
     // 控制显示集群类型 tab
-    tabList: {
-      type: Array as PropType<Array<string>>,
-      default: () => supportClusters,
-    },
-    clusterType: {
-      type: String,
-      default: ClusterTypes.TENDBHA,
-    },
+    tabList?: string[],
+    clusterType?: string,
+  }
+
+  interface Emits {
+    (e: 'change', value: ClusterSelectorResult): void
+  }
+
+  const props = withDefaults(defineProps<Props>(), {
+    // 回填值
+    selected: () => getClusterSelectorSelected(),
+    // 仅允许选一种类型的集群
+    onlyOneType: false,
+    // 控制显示集群类型 tab
+    tabList: () => supportClusters,
+    clusterType: ClusterTypes.TENDBHA,
   });
-  const emits = defineEmits(['update:is-show', 'change']);
+  const emits = defineEmits<Emits>();
+  const isShow = defineModel<boolean>('isShow', {
+    default: false,
+  });
 
   const { t } = useI18n();
 
@@ -350,7 +350,7 @@
     handeChangeLimit,
   } = useClusterData(state);
 
-  watch(() => props.isShow, (show) => {
+  watch(isShow, (show) => {
     if (show) {
       state.selected = _.cloneDeep(props.selected);
       tabState.showTips = true;
@@ -464,7 +464,7 @@
   }
 
   function handleClose() {
-    emits('update:is-show', false);
+    isShow.value = false;
   }
 
   function handleTablePageChange(value: number) {

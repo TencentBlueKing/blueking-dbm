@@ -47,8 +47,8 @@ type SyntaxHandler struct{}
 // CheckSqlStringParam TODO
 type CheckSqlStringParam struct {
 	ClusterType string   `json:"cluster_type" binding:"required"`
-	Sqls        []string `json:"sqls" binding:"gt=0,dive,required"` // SQLS
-	Version     string   `json:"version"`                           // mysql版本
+	Version     string   `json:"version"`
+	Sqls        []string `json:"sqls" binding:"gt=0,dive,required"`
 }
 
 // SyntaxCheckSQL TODO
@@ -74,6 +74,7 @@ func SyntaxCheckSQL(r *gin.Context) {
 			TmysqlParseBinPath: tmysqlParserBin,
 			BaseWorkdir:        workdir,
 		},
+		IsLocalFile: true,
 		Param: syntax.CheckSqlFileParam{
 			BkRepoBasePath: "",
 			FileNames:      []string{fileName},
@@ -84,11 +85,11 @@ func SyntaxCheckSQL(r *gin.Context) {
 	logger.Info("cluster type :%s", param.ClusterType)
 	switch strings.ToLower(param.ClusterType) {
 	case app.Spider, app.TendbCluster:
-		data, err = check.DoSQL(app.Spider)
+		data, err = check.Do(app.Spider)
 	case app.MySQL:
-		data, err = check.DoSQL(app.MySQL)
+		data, err = check.Do(app.MySQL)
 	default:
-		data, err = check.DoSQL(app.MySQL)
+		data, err = check.Do(app.MySQL)
 	}
 
 	if err != nil {
@@ -101,9 +102,9 @@ func SyntaxCheckSQL(r *gin.Context) {
 // CheckFileParam TODO
 type CheckFileParam struct {
 	ClusterType string   `json:"cluster_type"`
-	Path        string   `json:"path" binding:"required"`            // 蓝鲸制品库SQL文件存储的相对路径
-	Files       []string `json:"files" binding:"gt=0,dive,required"` // SQL 文件名
-	Version     string   `json:"version"`                            // mysql版本
+	Path        string   `json:"path" binding:"required"`
+	Version     string   `json:"version"`
+	Files       []string `json:"files" binding:"gt=0,dive,required"`
 }
 
 // SyntaxCheckFile 运行语法检查

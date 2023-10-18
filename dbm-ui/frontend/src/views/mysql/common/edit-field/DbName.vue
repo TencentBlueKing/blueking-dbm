@@ -18,7 +18,7 @@
     <span @click="handleShowTips">
       <TableEditTag
         ref="tagRef"
-        :model-value="modelValue"
+        :model-value="localValue"
         :placeholder="t('请输入DB 名称，支持通配符“%”，含通配符的仅支持单个')"
         :rules="rules"
         :single="single"
@@ -49,6 +49,8 @@
   } from 'vue';
   import { useI18n } from 'vue-i18n';
 
+  import { checkClusterDatabase } from '@services/remoteService';
+
   import TableEditTag from '@views/mysql/common/edit/Tag.vue';
 
   interface Props {
@@ -56,6 +58,7 @@
     clusterId: number,
     required?: boolean,
     single: boolean,
+    checkExist?: boolean
     rules?: {
       validator: (value: string[]) => boolean,
       message: string
@@ -76,6 +79,7 @@
     required: true,
     single: false,
     remoteExist: false,
+    checkExist: false,
     rules: undefined,
   });
 
@@ -109,6 +113,31 @@
           return !(value.length > 1 && hasAllMatch);
         },
         message: t('一格仅支持单个 % 对象'),
+      },
+      {
+        validator: (value: string[]) => {
+          if (!props.checkExist) {
+            return true;
+          }
+          const clearDbList = _.filter(value, item => !/[*%]/.test(item));
+          if (clearDbList.length  < 1) {
+            return true;
+          }
+          return checkClusterDatabase({
+            infos: [
+              {
+                cluster_id: props.clusterId,
+                db_names: value,
+              },
+            ],
+          }).then((data) => {
+            if (data.length < 1) {
+              return false;
+            }
+            return _.every(Object.values(data[0].check_info), item => item);
+          });
+        },
+        message: t('DB 不存在'),
       },
     ];
   });

@@ -111,7 +111,6 @@
 <script lang="tsx">
   import type { TablePropTypes } from 'bkui-vue/lib/table/props';
   import _ from 'lodash';
-  import type { PropType } from 'vue';
 
   import { checkHost, getHostDetails, getHosts, getHostTopo } from '@services/ip';
   import type { HostDetails } from '@services/types/ip';
@@ -142,73 +141,49 @@
 </script>
 
 <script setup lang="tsx">
-  const props = defineProps({
-    bizId: {
-      type: [Number, String],
-      required: true,
-    },
-    buttonText: {
-      type: String,
-      default: t('添加服务器'),
-    },
-    showDialog: {
-      type: Boolean,
-      default: false,
-    },
-    searchPlaceholder: {
-      type: String,
-      default: '',
-    },
-    tableProps: {
-      type: Object as PropType<TablePropTypes>,
-      default: () => ({}),
-    },
-    data: {
-      type: Array as PropType<HostDetails[]>,
-      default: () => [],
-    },
-    title: {
-      type: String,
-      default: t('静态拓扑'),
-    },
-    showView: {
-      type: Boolean,
-      default: true,
-    },
-    required: {
-      type: Boolean,
-      default: false,
-    },
-    isCloudAreaRestrictions: {
-      type: Boolean,
-      default: true,
-    },
-    cloudInfo: {
-      type: Object as PropType<{id?: number | string, name?: string}>,
-      default: () => ({}),
-    },
-    disableDialogSubmitMethod: {
-      type: Function,
-      default: () => false,
-    },
-    disableHostMethod: {
-      type: Function,
-      default: () => false,
-    },
-    serviceMode: {
-      type: String as PropType<'all' | 'idle_only'>,
-      default: 'idle_only',
-    },
-    panelList: {
-      type: Array as PropType<Array<'staticTopo' | 'manualInput' | 'dbmWhitelist'>>,
-      default: () => ['staticTopo', 'manualInput'],
-    },
-    disableTips: {
-      type: String,
-      default: '',
-    },
+  interface Props {
+    bizId: number | string,
+    buttonText?: string,
+    searchPlaceholder?: string,
+    tableProps?: TablePropTypes,
+    data?: HostDetails[],
+    title?: string,
+    showView?: boolean,
+    required?: boolean,
+    isCloudAreaRestrictions?: boolean,
+    cloudInfo?: {id?: number | string, name?: string},
+    disableDialogSubmitMethod?: (hostList: Array<any>) => string | boolean
+    disableHostMethod?: (...args: any) => string | boolean,
+    serviceMode?: 'all' | 'idle_only',
+    panelList?: Array<'staticTopo' | 'manualInput' | 'dbmWhitelist'>,
+    disableTips?: string,
+  }
+
+  interface Emits {
+    (e: 'change', value: typeof selectorState['tableData']): void
+    (e: 'changeWhitelist', value: IPSelectorResult['dbm_whitelist']): void
+  }
+
+  const props = withDefaults(defineProps<Props>(), {
+    buttonText: t('添加服务器'),
+    searchPlaceholder: '',
+    tableProps: () => ({} as TablePropTypes),
+    data: () => [],
+    title: t('静态拓扑'),
+    showView: true,
+    required: false,
+    isCloudAreaRestrictions: true,
+    cloudInfo: () => ({}),
+    disableDialogSubmitMethod: () => false,
+    disableHostMethod: () => false,
+    serviceMode: 'idle_only',
+    panelList: () => ['staticTopo', 'manualInput'],
+    disableTips: '',
   });
-  const emits = defineEmits(['change', 'update:showDialog', 'changeWhitelist']);
+  const emits = defineEmits<Emits>();
+  const showDialog = defineModel<boolean>('showDialog', {
+    default: false,
+  });
 
   const copy = useCopy();
   const formItem = useFormItem();
@@ -409,12 +384,12 @@
     selectorState.tableData = cloneData;
   }, { immediate: true, deep: true });
 
-  watch(() => props.showDialog, () => {
-    selectorState.isShow = props.showDialog;
+  watch(showDialog, () => {
+    selectorState.isShow = showDialog.value;
   });
 
   watch(() => selectorState.isShow, (isShow) => {
-    emits('update:showDialog', isShow);
+    showDialog.value = isShow;
   });
 
   /**

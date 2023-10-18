@@ -280,7 +280,7 @@
                 theme="primary"
                 text
                 onClick={ () => handleShowAuthorize(data, item) }>
-                { t('授权实例') }
+                { t('授权') }
               </bk-button>
             </div>
           ))

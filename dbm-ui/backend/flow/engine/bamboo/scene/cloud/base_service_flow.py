@@ -42,6 +42,7 @@ from backend.flow.utils.cloud.script_template import (
     start_dns_service_template,
     start_drs_service_template,
     start_nginx_template,
+    start_redis_dts_server_template,
 )
 from backend.flow.utils.script_template import privilege_flush_template
 
@@ -282,6 +283,21 @@ class CloudBaseServiceFlow(object):
             script_template=dbha_start_script_template,
             get_script_payload=CloudServiceActPayload.get_dbha_apply_payload.__name__,
             extra_params=asdict(dbha_kwargs),
+        )
+        return pipeline
+
+    def deploy_redis_dts_server_service_pipeline(
+        self, dts_server_host_info: Dict, pipeline: Union[Builder, SubBuilder]
+    ):
+        """redis dts_server的部署流程抽象"""
+        pipeline = self.deploy_service_flow(
+            pipeline=pipeline,
+            bk_cloud_id=self.data["bk_cloud_id"],
+            service_name=CloudServiceName.RedisDTS,
+            host_info=dts_server_host_info,
+            get_file_func=GetFileList.redis_add_dts_server.__name__,
+            script_template=start_redis_dts_server_template,
+            get_script_payload=CloudServiceActPayload.get_redis_dts_server_apply_payload.__name__,
         )
         return pipeline
 

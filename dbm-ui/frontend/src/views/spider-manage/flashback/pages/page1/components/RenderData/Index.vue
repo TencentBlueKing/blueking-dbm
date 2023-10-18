@@ -35,19 +35,18 @@
           :min-width="170"
           :row-width="slotProps.rowWidth"
           :width="180">
-          {{ t('开始时间') }}
+          {{ t('回档时间') }}
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
           :is-minimize="slotProps.isOverflow"
           :min-width="170"
           :row-width="slotProps.rowWidth"
           :width="180">
-          {{ t('结束时间') }}
+          {{ t('截止时间') }}
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
           :is-minimize="slotProps.isOverflow"
           :min-width="100"
-          :required="false"
           :row-width="slotProps.rowWidth"
           :width="190">
           {{ t('目标库') }}
@@ -55,7 +54,6 @@
         <RenderTableHeadColumn
           :is-minimize="slotProps.isOverflow"
           :min-width="100"
-          :required="false"
           :row-width="slotProps.rowWidth"
           :width="350">
           {{ t('目标表') }}

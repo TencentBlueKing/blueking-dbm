@@ -11,6 +11,7 @@ package monitoriteminterface
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/config"
@@ -18,7 +19,6 @@ import (
 	"github.com/go-sql-driver/mysql"
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
-	"golang.org/x/exp/slog"
 )
 
 // ConnectionCollect DB连接对象
@@ -51,7 +51,7 @@ func (c *ConnectionCollect) Close() {
 // NewConnectionCollect 新建连接
 func NewConnectionCollect() (*ConnectionCollect, error) {
 	switch config.MonitorConfig.MachineType {
-	case "backend", "remote":
+	case "backend", "remote", "single":
 		db, err := connectDB(
 			config.MonitorConfig.Ip,
 			config.MonitorConfig.Port,
@@ -59,7 +59,8 @@ func NewConnectionCollect() (*ConnectionCollect, error) {
 		)
 		if err != nil {
 			slog.Error(
-				fmt.Sprintf("connect %s", config.MonitorConfig.MachineType), err,
+				fmt.Sprintf("connect %s", config.MonitorConfig.MachineType),
+				slog.String("error", err.Error()),
 				slog.String("ip", config.MonitorConfig.Ip),
 				slog.Int("port", config.MonitorConfig.Port),
 			)
@@ -74,7 +75,8 @@ func NewConnectionCollect() (*ConnectionCollect, error) {
 		)
 		if err != nil {
 			slog.Error(
-				"connect proxy", err,
+				"connect proxy",
+				slog.String("error", err.Error()),
 				slog.String("ip", config.MonitorConfig.Ip),
 				slog.Int("port", config.MonitorConfig.Port),
 			)
@@ -96,7 +98,8 @@ func NewConnectionCollect() (*ConnectionCollect, error) {
 				}
 			}
 			slog.Error(
-				"connect proxy admin", err,
+				"connect proxy admin",
+				slog.String("error", err.Error()),
 				slog.String("ip", config.MonitorConfig.Ip),
 				slog.Int("port", adminPort),
 			)
@@ -112,7 +115,8 @@ func NewConnectionCollect() (*ConnectionCollect, error) {
 		)
 		if err != nil {
 			slog.Error(
-				"connect spider", err,
+				"connect spider",
+				slog.String("error", err.Error()),
 				slog.String("ip", config.MonitorConfig.Ip),
 				slog.Int("port", config.MonitorConfig.Port),
 			)
@@ -131,7 +135,8 @@ func NewConnectionCollect() (*ConnectionCollect, error) {
 			)
 			if err != nil {
 				slog.Error(
-					"connect ctl", err,
+					"connect ctl",
+					slog.String("error", err.Error()),
 					slog.String("ip", config.MonitorConfig.Ip),
 					slog.Int("port", ctlPort),
 				)
@@ -145,7 +150,7 @@ func NewConnectionCollect() (*ConnectionCollect, error) {
 			"not support machine type: %s",
 			config.MonitorConfig.MachineType,
 		)
-		slog.Error("new connect", err)
+		slog.Error("new connect", slog.String("error", err.Error()))
 		return nil, err
 	}
 }

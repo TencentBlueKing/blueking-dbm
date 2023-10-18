@@ -105,108 +105,6 @@
     excludeKeys: string[],
   }
 
-  const { t } = useI18n();
-  const { currentBizId, bizs } = useGlobalBizs();
-
-  // eslint-disable-next-line vue/no-setup-props-destructure
-  const { infos } = props.ticketDetails.details;
-  const tableData = ref<RowData[]>([]);
-
-  const copyTypesMap = generateMap(copyTypeList);
-
-  const disconnectTypesMap = generateMap(disconnectTypeList);
-
-  const remindFrequencyTypesMap = generateMap(remindFrequencyTypeList);
-
-  const repairAndVerifyFrequencyTypesMap = generateMap(repairAndVerifyFrequencyList);
-
-  const repairAndVerifyTypesMap = generateMap(repairAndVerifyTypeList);
-
-  const writeTypesMap = generateMap(writeTypeList);
-
-  const basicColumns = [
-    {
-      label: t('源集群'),
-      field: 'srcClusterName',
-    },
-    {
-      label: t('目标集群'),
-      field: 'dstClusterName',
-    },
-    {
-      label: t('包含 Key'),
-      field: 'targetNum',
-      render: ({ data }: {data: RowData}) => {
-        if (data.includeKeys.length > 0) {
-          return data.includeKeys.map((key, index) => <bk-tag key={index} type="stroke">{key}</bk-tag>);
-        }
-        return <span>--</span>;
-      },
-    },
-    {
-      label: t('排除 Key'),
-      field: 'time',
-      render: ({ data }: {data: RowData}) => {
-        if (data.excludeKeys.length > 0) {
-          return data.excludeKeys.map((key, index) => <bk-tag key={index} type="stroke">{key}</bk-tag>);
-        }
-        return <span>--</span>;
-      },
-    },
-  ];
-
-  const bizCloumn = {
-    label: t('目标业务'),
-    field: 'dstDiz',
-  };
-
-  const clusterTypeColum = {
-    label: t('集群类型'),
-    field: 'dstDiz',
-    render: ({ data }: {data: RowData}) => <span>{data.dstDiz === 'RedisInstance' ? t('主从版') : t('集群版')}</span>,
-  };
-
-  const columns = computed(() => {
-    switch (props.ticketDetails.details.dts_copy_type) {
-    case 'copy_to_other_system':
-      return basicColumns;
-    case 'diff_app_diff_cluster':
-      basicColumns.splice(1, 0, bizCloumn);
-      return basicColumns;
-    case 'one_app_diff_cluster':
-      return basicColumns;
-    case 'user_built_to_dbm':
-      basicColumns.splice(1, 0, clusterTypeColum);
-      return basicColumns;
-    default:
-      return [];
-    }
-  });
-
-  const bizsMap = bizs.reduce((obj, item) => {
-    Object.assign({ bk_biz_id: item.name }, obj);
-    return obj;
-  }, {} as Record<string, string>);
-
-  const { loading } = useRequest(listClusterList, {
-    defaultParams: [currentBizId],
-    onSuccess: async (r) => {
-      if (r.length < 1) {
-        return;
-      }
-      const clusterMap = r.reduce((obj, item) => {
-        Object.assign(obj, { [item.id]: item.master_domain });
-        return obj;
-      }, {} as Record<string, string>);
-
-      tableData.value = infos.reduce((results, item) => {
-        const obj = generateTableRowData(props.ticketDetails.details.dts_copy_type, clusterMap, item);
-        results.push(obj);
-        return results;
-      }, [] as RowData[]);
-    },
-  });
-
   // 生成行数据
   function generateTableRowData(copyType: string, clusterMap: Record<string, string>, item: RawRowData) {
     let obj: RowData = {
@@ -266,6 +164,114 @@
       return obj;
     }, {} as Record<string, string>);
   }
+
+  const { t } = useI18n();
+  const { currentBizId, bizs } = useGlobalBizs();
+
+  // eslint-disable-next-line vue/no-setup-props-destructure
+  const { infos } = props.ticketDetails.details;
+  const tableData = ref<RowData[]>([]);
+
+  const copyTypesMap = generateMap(copyTypeList);
+
+  const disconnectTypesMap = generateMap(disconnectTypeList);
+
+  const remindFrequencyTypesMap = generateMap(remindFrequencyTypeList);
+
+  const repairAndVerifyFrequencyTypesMap = generateMap(repairAndVerifyFrequencyList);
+
+  const repairAndVerifyTypesMap = generateMap(repairAndVerifyTypeList);
+
+  const writeTypesMap = generateMap(writeTypeList);
+
+  const basicColumns = [
+    {
+      label: t('源集群'),
+      field: 'srcClusterName',
+      showOverflowTooltip: true,
+    },
+    {
+      label: t('目标集群'),
+      field: 'dstClusterName',
+      showOverflowTooltip: true,
+    },
+    {
+      label: t('包含 Key'),
+      field: 'targetNum',
+      showOverflowTooltip: true,
+      render: ({ data }: {data: RowData}) => {
+        if (data.includeKeys.length > 0) {
+          return data.includeKeys.map((key, index) => <bk-tag key={index} type="stroke">{key}</bk-tag>);
+        }
+        return <span>--</span>;
+      },
+    },
+    {
+      label: t('排除 Key'),
+      field: 'time',
+      showOverflowTooltip: true,
+      render: ({ data }: {data: RowData}) => {
+        if (data.excludeKeys.length > 0) {
+          return data.excludeKeys.map((key, index) => <bk-tag key={index} type="stroke">{key}</bk-tag>);
+        }
+        return <span>--</span>;
+      },
+    },
+  ];
+
+  const bizCloumn = {
+    label: t('目标业务'),
+    field: 'dstDiz',
+    showOverflowTooltip: true,
+  };
+
+  const clusterTypeColum = {
+    label: t('集群类型'),
+    field: 'dstDiz',
+    showOverflowTooltip: true,
+    render: ({ data }: {data: RowData}) => <span>{data.dstDiz === 'RedisInstance' ? t('主从版') : t('集群版')}</span>,
+  };
+
+  const columns = computed(() => {
+    switch (props.ticketDetails.details.dts_copy_type) {
+    case 'copy_to_other_system':
+      return basicColumns;
+    case 'diff_app_diff_cluster':
+      basicColumns.splice(1, 0, bizCloumn);
+      return basicColumns;
+    case 'one_app_diff_cluster':
+      return basicColumns;
+    case 'user_built_to_dbm':
+      basicColumns.splice(1, 0, clusterTypeColum);
+      return basicColumns;
+    default:
+      return [];
+    }
+  });
+
+  const bizsMap = bizs.reduce((obj, item) => {
+    Object.assign({ bk_biz_id: item.name }, obj);
+    return obj;
+  }, {} as Record<string, string>);
+
+  const { loading } = useRequest(listClusterList, {
+    defaultParams: [currentBizId],
+    onSuccess: async (r) => {
+      if (r.length < 1) {
+        return;
+      }
+      const clusterMap = r.reduce((obj, item) => {
+        Object.assign(obj, { [item.id]: item.master_domain });
+        return obj;
+      }, {} as Record<string, string>);
+
+      tableData.value = infos.reduce((results, item) => {
+        const obj = generateTableRowData(props.ticketDetails.details.dts_copy_type, clusterMap, item);
+        results.push(obj);
+        return results;
+      }, [] as RowData[]);
+    },
+  });
 
 </script>
 <style lang="less" scoped>

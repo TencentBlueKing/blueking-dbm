@@ -27,8 +27,8 @@
         :data="tableData"
         :is-anomalies="isAnomalies"
         :is-searching="!!search"
-        :max-height="490"
-        :pagination="pagination"
+        :max-height="530"
+        :pagination="pagination.count < 10 ? false : pagination"
         remote-pagination
         :settings="tableSettings"
         style="margin-top: 12px;"
@@ -227,8 +227,9 @@
         .then((data) => {
           // 取消限制
           // tableData.value = data.filter(item => item.isMasterFailover);
-          tableData.value = data;
-          pagination.count = data.length;
+          const arr = data.filter(item => item.isMaster);
+          tableData.value = arr;
+          pagination.count = arr.length;
           isAnomalies.value = false;
         })
         .catch(() => {

@@ -21,7 +21,7 @@
     :is-show="isShow"
     :quick-close="false"
     title=""
-    :width="1400"
+    :width="dialogWidth"
     @closed="handleClose">
     <BkResizeLayout
       :border="false"
@@ -90,12 +90,9 @@
               ref="tabTipsRef"
               :disabled="!showSwitchTabTips"
               theme="light">
-              <div
-                class="tabs__item tabs__item--active"
-                @click.stop="handleChangeTab(item.id)">
-                {{ item.name }}
-              </div>
-              <template #content>
+              <template
+                v-if="tabs.length > 1"
+                #content>
                 <div class="tab-tips">
                   <h4>{{ $t('切换类型说明') }}</h4>
                   <p>{{ $t('切换后如果重新选择_选择结果将会覆盖原来选择的内容') }}</p>
@@ -124,13 +121,10 @@
               <DbOriginalTable
                 :columns="columns"
                 :data="state.tableData"
-                :height="520"
+                :height="528"
                 :is-anomalies="state.isAnomalies"
                 :is-searching="state.search !== ''"
-                :pagination="{
-                  ...state.pagination,
-                  small: true
-                }"
+                :pagination="state.pagination.count < 10 ? false : state.pagination"
                 remote-pagination
                 row-style="cursor: pointer;"
                 @clear-search="handleClearSearch"
@@ -167,7 +161,7 @@
   import RedisRollbackModel from '@services/model/redis/redis-rollback';
   import { getRollbackList } from '@services/redis/toolbox';
 
-  import { useCopy, useDefaultPagination } from '@hooks';
+  import { useCopy, useDefaultPagination, useSelectorDialogWidth } from '@hooks';
 
   import { ClusterTypes } from '@common/const';
 
@@ -196,9 +190,107 @@
 
   const emits = defineEmits<Emits>();
 
+  function initData() {
+    const clusterType = ClusterTypes.REDIS;
+    return {
+      activeTab: clusterType,
+      search: '',
+      isLoading: false,
+      pagination: useDefaultPagination(),
+      tableData: [],
+      selected: _.cloneDeep(props.selected),
+      isAnomalies: false,
+    };
+  }
+
   const { t } = useI18n();
+  const copy = useCopy();
+  const { dialogWidth } = useSelectorDialogWidth();
+
+  const tabTipsRef = ref();
+  const state = reactive<VisitEntrySelectorState>(initData());
+  const tabState = reactive({
+    showTips: false,
+  });
+
+  // 显示切换 tab tips
+  const showSwitchTabTips = computed(() => tabState.showTips);
+
+  // 已选值 keys
+  const selectedKeys = computed(() => Object.keys(state.selected));
+  // 选中结果是否为空
+  const isEmpty = computed(() => !selectedKeys.value.some(key => state.selected[key].length));
+
+  // 选中域名列表
+  const selectedDomains = computed(() => (state.selected[state.activeTab] || []).map(item => item.temp_cluster_proxy));
+
+  const isSelectAll = ref(false);
+
+  const isIndeterminate = computed(() => !isSelectAll.value && state.selected[state.activeTab].length > 0);
+
+  const tabs = computed(() => {
+    const { tabList } = props;
+    return tabList.map((id: string) => ({
+      id,
+      name: tabTextMap[id],
+    }));
+  });
+
+  const columns = [
+    {
+      width: 60,
+      label: () => (
+      <bk-checkbox
+        indeterminate={isIndeterminate.value}
+        v-model={isSelectAll.value}
+        onClick={(e: Event) => e.stopPropagation()}
+        onChange={handleSelectedAll}
+      />
+    ),
+      render: ({ data }: { data: RedisRollbackModel }) => (
+      <bk-checkbox
+        style="vertical-align: middle;"
+        model-value={selectedDomains.value.includes(data.temp_cluster_proxy)}
+        onClick={(e: Event) => e.stopPropagation()}
+        onChange={(value: boolean) => handleSelected(data, value)}
+      />
+    ),
+    },
+    {
+      label: t('构造产物访问入口'),
+      field: 'temp_cluster_proxy',
+      showOverflowTooltip: true },
+    {
+      label: t('目标集群'),
+      field: 'prod_cluster',
+      showOverflowTooltip: true,
+      minWidth: 100 },
+    {
+      label: t('构造到指定时间'),
+      field: 'recovery_time_point',
+      showOverflowTooltip: true,
+    },
+  ];
+
+  const tabTextMap: Record<string, string> = {
+    [ClusterTypes.REDIS]: t('集群选择'),
+  };
 
   let rawTableData: RedisRollbackModel[] = [];
+
+
+  watch(() => props.isShow, (show) => {
+    if (show) {
+      state.selected = _.cloneDeep(props.selected);
+      tabState.showTips = true;
+      handleChangePage(1);
+    }
+  });
+
+  watch(() => state.activeTab, () => {
+    state.search = '';
+    handleChangePage(1);
+  });
 
   const handleClickSearch = async () => {
     const keyword = state.search;
@@ -222,94 +314,6 @@
     state.pagination.count = rawTableData.length;
   };
 
-  // 显示切换 tab tips
-  const showSwitchTabTips = computed(() => tabState.showTips);
-  const state = reactive<VisitEntrySelectorState>(initData());
-  // 已选值 keys
-  const selectedKeys = computed(() => Object.keys(state.selected));
-  // 选中结果是否为空
-  const isEmpty = computed(() => !selectedKeys.value.some(key => state.selected[key].length));
-
-  // 选中域名列表
-  const selectedDomains = computed(() => (state.selected[state.activeTab] || []).map(item => item.temp_cluster_proxy));
-
-  const isSelectAll = computed(() => state.tableData.length > 0
-    && state.tableData.length === Object.values(state.selected[state.activeTab]).length);
-
-  const isIndeterminate = computed(() => !isSelectAll.value && state.selected[state.activeTab].length > 0);
-
-  const columns = [
-    {
-      width: 60,
-      label: () => (
-      <bk-checkbox
-        indeterminate={isIndeterminate.value}
-        model-value={isSelectAll.value}
-        onClick={(e: Event) => e.stopPropagation()}
-        onChange={handleSelectedAll}
-      />
-    ),
-      render: ({ data }: { data: RedisRollbackModel }) => (
-      <bk-checkbox
-        style="vertical-align: middle;"
-        model-value={selectedDomains.value.includes(data.temp_cluster_proxy)}
-        onClick={(e: Event) => e.stopPropagation()}
-        onChange={handleSelected.bind(null, data)}
-      />
-    ),
-    },
-    {
-      label: t('构造产物访问入口'),
-      field: 'temp_cluster_proxy',
-      showOverflowTooltip: true },
-    {
-      label: t('目标集群'),
-      field: 'prod_cluster',
-      showOverflowTooltip: true,
-      minWidth: 100 },
-    {
-      label: t('构造到指定时间'),
-      field: 'recovery_time_point',
-      showOverflowTooltip: true,
-    },
-  ];
-
-  /** tabs 功能 */
-  const tabState = reactive({
-    showTips: false,
-  });
-  const tabTextMap: Record<string, string> = {
-    [ClusterTypes.REDIS]: t('集群选择'),
-  };
-  const tabs = computed(() => {
-    const { tabList } = props;
-    return tabList.map((id: string) => ({
-      id,
-      name: tabTextMap[id],
-    }));
-  });
-
-  onMounted(() => {
-    fetchHostNodes();
-  });
-
-  function initData() {
-    const clusterType = ClusterTypes.REDIS;
-    return {
-      activeTab: clusterType,
-      search: '',
-      isLoading: false,
-      pagination: {
-        ...useDefaultPagination(),
-        limit: 20,
-        'limit-list': [20, 50, 100],
-      },
-      tableData: [],
-      selected: _.cloneDeep(props.selected),
-      isAnomalies: false,
-    };
-  }
-
   const handleChangePage = (value: number) => {
     state.pagination.current = value;
     fetchHostNodes();
@@ -332,17 +336,14 @@
 
   // 获取 tab 信息
   const getTabInfo = (key: string) => tabs.value.find(tab => tab.id === key);
-  /**
-   * 切换 tab
-   */
-  const handleChangeTab = (id: string) => {
-    if (state.activeTab === id) return;
-    state.activeTab = id;
-  };
+
+  function checkSelectedAll() {
+    isSelectAll.value = state.tableData.length > 0
+      && state.tableData.length === Object.values(state.selected[state.activeTab]).length;
+  }
   /**
    * 关闭提示
    */
-  const tabTipsRef = ref();
   function handleCloseTabTips() {
     tabState.showTips = false;
     if (tabTipsRef.value) {
@@ -351,20 +352,6 @@
       }
     }
   }
-
-
-  watch(() => props.isShow, (show) => {
-    if (show) {
-      state.selected = _.cloneDeep(props.selected);
-      tabState.showTips = true;
-      handleChangePage(1);
-    }
-  });
-
-  watch(() => state.activeTab, () => {
-    state.search = '';
-    handleChangePage(1);
-  });
 
   /**
    * 清空过滤列表
@@ -392,11 +379,15 @@
   function handleSelected(data: RedisRollbackModel, value: boolean) {
     const targetValue = data.temp_cluster_proxy;
     if (value) {
+      if (selectedDomains.value.includes(targetValue)) {
+        return;
+      }
       state.selected[state.activeTab].push(data);
     } else {
       const index = selectedDomains.value.findIndex(val => val === targetValue);
       state.selected[state.activeTab].splice(index, 1);
     }
+    checkSelectedAll();
   }
 
   function handleRowClick(_:number, data: RedisRollbackModel) {
@@ -417,7 +408,6 @@
   /**
    * 复制集群域名
    */
-  const copy = useCopy();
   function handleCopyCluster() {
     if (isEmpty.value) {
       messageWarn(t('没有可复制集群'));
@@ -439,6 +429,10 @@
   function handleClose() {
     emits('update:is-show', false);
   }
+
+  onMounted(() => {
+    fetchHostNodes();
+  });
 
 </script>
 

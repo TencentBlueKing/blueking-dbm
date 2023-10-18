@@ -20,12 +20,19 @@
       </BkLoading>
     </div>
     <template #footer>
-      <BkButton
-        :loading="isExecSubmiting"
-        theme="primary"
-        @click="handleExec">
-        {{ t('确认执行') }}
-      </BkButton>
+      <span
+        v-bk-tooltips="{
+          content: t('所有检测均失败，无法执行'),
+          disabled: isExecSubmitEnable
+        }">
+        <BkButton
+          :disabled="!isExecSubmitEnable"
+          :loading="isExecSubmiting"
+          theme="primary"
+          @click="handleExec">
+          {{ t('确认执行') }}
+        </BkButton>
+      </span>
       <BkButton
         class="ml-8"
         :disabled="isExecSubmiting"
@@ -36,6 +43,7 @@
   </DbSideslider>
 </template>
 <script setup lang="tsx">
+  import _ from 'lodash';
   import {
     shallowRef,
     watch,
@@ -83,8 +91,9 @@
   const isExecSubmiting = ref(false);
   const searchValues = ref([]);
   const tableData = shallowRef<ITableData[]>([]);
+  const dryRunData = shallowRef<ServiceReturnType<typeof dryRun>>({});
 
-  let partitionObjectsMemo: Record<string, unknown>;
+  const isExecSubmitEnable = computed(() => props.data && dryRunData.value[props.data.id]?.length > 0);
 
   const renderTableData = computed(() => {
     if (searchValues.value.length < 1) {
@@ -116,26 +125,11 @@
     },
   ];
 
-  const renderActionColumn = (data: ITableData) => {
-    const len = data.action.length;
-    const showTag = len > 1;
-    // data.action 最多两个值，最少一个值
-    return (
-      <div class="action-box">
-        <bk-tag style="margin-right:0;">{ data.action[0] }</bk-tag>
-        {showTag && <bk-popover placement="top" theme="dark">
-            {{
-              default: () => <bk-tag class="tag-box">{`+${len - 1}`}</bk-tag>,
-              content: () => <div>{data.action[1]}</div>,
-            }}
-        </bk-popover>}
-      </div>);
-  };
-
   const tableColumns = [
     {
       label: t('DB 名'),
       field: 'dblike',
+      render: ({ data }: {data: ITableData}) => data.dblike || '--',
     },
     {
       label: t('表名'),
@@ -178,7 +172,25 @@
       field: 'action',
       width: 138,
       showOverflowTooltip: false,
-      render: ({ data }: {data: ITableData}) => renderActionColumn(data),
+      render: ({ data }: {data: ITableData}) => {
+        if (data.action.length < 1) {
+          return '--';
+        }
+        const len = data.action.length;
+        const showTag = len > 1;
+        // data.action 最多两个值，最少一个值
+        return (
+          <div class="action-box">
+            <bk-tag style="margin-right:0;">{ data.action[0] }</bk-tag>
+            {showTag && <bk-popover placement="top" theme="dark">
+                {{
+                  default: () => <bk-tag class="tag-box">{`+${len - 1}`}</bk-tag>,
+                  content: () => <div>{data.action[1]}</div>,
+                }}
+            </bk-popover>}
+          </div>
+        );
+      },
     },
     {
       label: t('分区 SQL'),
@@ -215,13 +227,15 @@
   } = useRequest(dryRun, {
     manual: true,
     onSuccess(data) {
-      if (Object.values(data).length < 1) {
+      if (!props.data || Object.values(data).length < 1) {
         return;
       }
 
-      partitionObjectsMemo = data;
+      const detailList = data[props.data.id];
 
-      const detailList = Object.values(data)[0];
+      dryRunData.value = {
+        [props.data.id]: _.filter(detailList, item => !item.message),
+      };
 
       tableData.value = detailList.reduce((result, recordItem) => {
         const { message } = recordItem;
@@ -233,15 +247,15 @@
             action: [] as string[],
             sql: [] as string[],
           };
-          if (executeItem.init_partition.length > 0) {
+          if (executeItem.init_partition && executeItem.init_partition.length > 0) {
             dataObj.action.push(t('初始化分区'));
             dataObj.sql.push(...executeItem.init_partition.map(sqlItem => sqlItem.sql));
           }
-          if (executeItem.add_partition.length > 0) {
+          if (executeItem.add_partition && executeItem.add_partition.length > 0) {
             dataObj.action.push(t('增加分区'));
             dataObj.sql.push(...executeItem.add_partition);
           }
-          if (executeItem.drop_partition.length > 0) {
+          if (executeItem.drop_partition && executeItem.drop_partition.length > 0) {
             dataObj.action.push(t('删除分区'));
             dataObj.sql.push(...executeItem.drop_partition);
           }
@@ -284,7 +298,7 @@
     isExecSubmiting.value = true;
     execute({
       cluster_id: props.data.cluster_id,
-      partition_objects: partitionObjectsMemo,
+      partition_objects: dryRunData.value,
     })
       .then((data) => {
         ticketMessage(data.id);

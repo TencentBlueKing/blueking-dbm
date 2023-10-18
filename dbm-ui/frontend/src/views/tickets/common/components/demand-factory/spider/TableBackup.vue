@@ -50,26 +50,32 @@
     {
       label: t('目标集群'),
       field: 'clusterName',
+      showOverflowTooltip: true,
     },
     {
       label: t('备份位置'),
       field: 'position',
+      showOverflowTooltip: true,
     },
     {
       label: t('备份DB名'),
       field: 'dbName',
+      showOverflowTooltip: true,
     },
     {
       label: t('备份表名'),
       field: 'tableName',
+      showOverflowTooltip: true,
     },
     {
       label: t('忽略DB名'),
       field: 'ignoreDbName',
+      showOverflowTooltip: true,
     },
     {
       label: t('忽略表名'),
       field: 'ignoreTableName',
+      showOverflowTooltip: true,
     },
   ];
 

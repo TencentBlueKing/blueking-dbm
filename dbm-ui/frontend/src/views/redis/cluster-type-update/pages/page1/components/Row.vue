@@ -29,7 +29,7 @@
     <td style="padding: 0;">
       <RenderTargetClusterType
         ref="targetClusterTypeRef"
-        :exclude-type="props.data.clusterType"
+        :exclude-type="data.clusterType"
         :is-loading="data.isLoading"
         @change="handleClusterTypeChange" />
     </td>
@@ -43,6 +43,7 @@
       <RenderDeployPlan
         ref="deployPlanRef"
         :data="data.deployPlan"
+        :is-disabled="!data.srcCluster"
         :is-loading="data.isLoading"
         :row-data="data"
         :target-cluster-type="selectClusterType" />
@@ -150,6 +151,8 @@
     db_version: string,
     cluster_shard_num: number,
     online_switch_type:'user_confirm',
+    capacity: number,
+    future_capacity: number,
     resource_spec: {
       proxy: {
         spec_id: number,
@@ -279,6 +282,8 @@
           target_cluster_type: targetClusterType,
           db_version: version,
           online_switch_type: 'user_confirm',
+          capacity: deployData.capacity,
+          future_capacity: deployData.future_capacity,
           resource_spec: {
             proxy: {
               spec_id: props.data.proxy.id,

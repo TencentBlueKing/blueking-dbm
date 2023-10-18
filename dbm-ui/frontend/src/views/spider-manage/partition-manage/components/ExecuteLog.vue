@@ -9,7 +9,7 @@
       ref="tableRef"
       :columns="tableColumns"
       :data-source="queryLog"
-      @clearSearch="handleClearSearch" />
+      @clear-search="handleClearSearch" />
   </div>
 </template>
 <script setup lang="tsx">

@@ -11,7 +11,7 @@
  * the specific language governing permissions and limitations under the License.
 */
 
-import { acceptHMRUpdate, defineStore } from 'pinia';
+import { defineStore } from 'pinia';
 
 import { getTicketsCount } from '@services/ticket';
 
@@ -44,12 +44,12 @@ export const useMenu = defineStore('useMenu', {
       this.hoverCollapsed = true;
     },
     fetchTodosCount() {
-      getTicketsCount('MY_TODO').then((count = 0) => {
+      getTicketsCount({ count_type: 'MY_TODO' }).then((count = 0) => {
         this.menuCountMap.todos = count;
       });
     },
     fetchTicketsCount() {
-      getTicketsCount('MY_APPROVE').then((count = 0) => {
+      getTicketsCount({ count_type: 'MY_APPROVE' }).then((count = 0) => {
         this.menuCountMap.tickets = count;
       });
     },
@@ -59,7 +59,3 @@ export const useMenu = defineStore('useMenu', {
     },
   },
 });
-
-if (import.meta.hot) {
-  import.meta.hot.accept(acceptHMRUpdate(useMenu, import.meta.hot));
-}

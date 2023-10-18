@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"io"
+	"log/slog"
 	"os"
 	"path"
 	"path/filepath"
@@ -10,7 +11,6 @@ import (
 	"dbm-services/mysql/db-tools/mysql-table-checksum/pkg/config"
 
 	"github.com/spf13/viper"
-	"golang.org/x/exp/slog"
 	"gopkg.in/natefinch/lumberjack.v2"
 )
 

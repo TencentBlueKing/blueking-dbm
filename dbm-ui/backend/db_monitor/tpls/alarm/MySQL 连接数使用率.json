@@ -1,42 +1,19 @@
 {
   "bk_biz_id": 0,
-  "monitor_strategy_id": 5614,
-  "name": "MySQL 连接数使用率",
+  "name": "MySQL \u8fde\u63a5\u6570\u4f7f\u7528\u7387",
   "db_type": "mysql",
   "details": {
     "app": "",
-    "name": "MySQL 连接数使用率",
+    "name": "MySQL \u8fde\u63a5\u6570\u4f7f\u7528\u7387",
     "path": "",
     "type": "monitor",
     "items": [
       {
         "name": "100 * AVG(mysql_global_status_threads_connected) / AVG(mysql_global_variables_max_connections)",
-        "target": [
-          [
-            {
-              "field": "host_topo_node",
-              "value": [
-                {
-                  "bk_obj_id": "set",
-                  "bk_inst_id": 2000008148
-                },
-                {
-                  "bk_obj_id": "set",
-                  "bk_inst_id": 2000008149
-                },
-                {
-                  "bk_obj_id": "set",
-                  "bk_inst_id": 2000008149
-                }
-              ],
-              "method": "eq"
-            }
-          ]
-        ],
+        "target": [],
         "functions": [],
         "algorithms": [
           {
-            "id": 6151,
             "type": "Threshold",
             "level": 3,
             "config": [
@@ -50,7 +27,6 @@
             "unit_prefix": ""
           },
           {
-            "id": 6152,
             "type": "Threshold",
             "level": 2,
             "config": [
@@ -68,12 +44,11 @@
         "origin_sql": "",
         "query_configs": [
           {
-            "id": 6148,
             "name": "mysql_global_status_threads_connected",
             "unit": "",
             "alias": "a",
             "functions": [],
-            "metric_id": "bk_monitor.exporter_dbm_mysqld_exporter.gstatus.mysql_global_sta",
+            "metric_id": "bk_monitor.exporter_dbm_mysqld_exporter.gstatus.mysql_global_status_threads_connected",
             "agg_method": "AVG",
             "agg_interval": 60,
             "metric_field": "mysql_global_status_threads_connected",
@@ -83,19 +58,19 @@
               "app",
               "cluster_domain",
               "instance_role",
-              "instance"
+              "instance",
+              "app_id"
             ],
             "data_type_label": "time_series",
             "result_table_id": "exporter_dbm_mysqld_exporter.gstatus",
             "data_source_label": "bk_monitor"
           },
           {
-            "id": 6149,
             "name": "mysql_global_variables_max_connections",
             "unit": "",
             "alias": "b",
             "functions": [],
-            "metric_id": "bk_monitor.exporter_dbm_mysqld_exporter.gvars.mysql_global_varia",
+            "metric_id": "bk_monitor.exporter_dbm_mysqld_exporter.gvars.mysql_global_variables_max_connections",
             "agg_method": "AVG",
             "agg_interval": 60,
             "metric_field": "mysql_global_variables_max_connections",
@@ -105,7 +80,8 @@
               "app",
               "cluster_domain",
               "instance_role",
-              "instance"
+              "instance",
+              "app_id"
             ],
             "data_type_label": "time_series",
             "result_table_id": "exporter_dbm_mysqld_exporter.gvars",
@@ -123,10 +99,9 @@
       }
     ],
     "labels": [
-      "MySQL",
+      "DBM",
       "DBM_MYSQL",
-      "DBM_MYSQL",
-      "DBM"
+      "MySQL"
     ],
     "notice": {
       "config": {
@@ -158,7 +133,9 @@
       "options": {
         "end_time": "23:59:59",
         "start_time": "00:00:00",
-        "assign_mode": [],
+        "assign_mode": [
+          "by_rule"
+        ],
         "upgrade_config": {},
         "converge_config": {
           "count": 1,
@@ -262,11 +239,9 @@
       },
       "config_id": 8668,
       "relate_type": "NOTICE",
-      "user_groups": [
-        0
-      ]
+      "user_groups": []
     },
-    "source": "bkmonitorv3",
+    "source": "dbm",
     "actions": [],
     "detects": [
       {
@@ -315,8 +290,12 @@
       }
     ],
     "scenario": "component",
-    "bk_biz_id": 2005000194,
-    "data_source_type": "监控采集指标"
+    "bk_biz_id": "",
+    "data_source_type": "\u76d1\u63a7\u91c7\u96c6\u6307\u6807",
+    "priority": 0
   },
-  "is_enabled": true
+  "is_enabled": true,
+  "monitor_indicator": "\u6570\u636e\u5e93\u8fde\u63a5\u6570\u5e73\u5747\u4f7f\u7528\u7387",
+  "version": 2,
+  "alert_source": "time_series"
 }

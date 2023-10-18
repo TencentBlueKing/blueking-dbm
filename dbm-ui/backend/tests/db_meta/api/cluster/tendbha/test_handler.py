@@ -22,6 +22,7 @@ from backend.db_package.models import Package
 from backend.tests.mock_data import constant
 from backend.tests.mock_data.components import cc
 from backend.tests.mock_data.components.cc import CCApiMock
+from backend.tests.mock_data.db_services.ipchooser import ResourceQueryHelperMock
 
 pytestmark = pytest.mark.django_db
 
@@ -31,6 +32,7 @@ class TestHandler:
     @patch("backend.db_meta.models.app.CCApi", CCApiMock())
     @patch("backend.db_meta.api.common.common.CCApi", CCApiMock())
     @patch("backend.flow.utils.cc_manage.CCApi", CCApiMock())
+    @patch("backend.flow.utils.cc_manage.ResourceQueryHelper", ResourceQueryHelperMock())
     def test_create_success(self, init_db_module, create_city):
         cluster_name = "test"
         clusters = [

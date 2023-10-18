@@ -12,8 +12,9 @@ specific language governing permissions and limitations under the License.
 import logging
 from typing import List
 
-from bkoauth.jwt_client import JWTClient
-from django.utils.translation import ugettext as _
+from bk_audit.constants.log import DEFAULT_EMPTY_VALUE, DEFAULT_SENSITIVITY
+from bk_audit.contrib.bk_audit.client import bk_audit_client
+from bk_audit.log.models import AuditContext, AuditInstance
 from iam import Resource
 from rest_framework import permissions
 
@@ -25,6 +26,19 @@ from backend.iam_app.handlers.permission import Permission
 from backend.ticket.models import Ticket
 
 logger = logging.getLogger("root")
+
+
+class CommonInstance(object):
+    def __init__(self, data):
+        self.instance_id = data.get("id", DEFAULT_EMPTY_VALUE)
+        self.instance_name = data.get("name", DEFAULT_EMPTY_VALUE)
+        self.instance_sensitivity = data.get("sensitivity", DEFAULT_SENSITIVITY)
+        self.instance_origin_data = data.get("origin_data", DEFAULT_EMPTY_VALUE)
+        self.instance_data = data
+
+    @property
+    def instance(self):
+        return AuditInstance(self)
 
 
 class IAMPermission(permissions.BasePermission):
@@ -46,9 +60,22 @@ class IAMPermission(permissions.BasePermission):
             return True
 
         iam = Permission(request=request)
-        # iam.batch_is_allowed(actions=self.actions, resources=[self.resources], is_raise_exception=True)
+        context = AuditContext(request=request)
         for action in self.actions:
             iam.is_allowed(action=action, resources=self.resources, is_raise_exception=True)
+            # 查询类请求（简单定义为所有 GET 请求）不审计
+            if request.method == "GET":
+                continue
+            # 审计操作类请求
+            if not self.resources:
+                bk_audit_client.add_event(action=action, audit_context=context)
+            for resource in self.resources:
+                bk_audit_client.add_event(
+                    action=action,
+                    resource_type=resource,
+                    audit_context=context,
+                    instance=CommonInstance(resource.attribute),
+                )
 
         return True
 
@@ -79,7 +106,7 @@ class BusinessIAMPermission(IAMPermission):
 
     def has_permission(self, request, view):
         bk_biz_id = self._fetch_biz_id(request, view)
-        if not bk_biz_id:
+        if not int(bk_biz_id):
             return True
 
         self.resources = [BusinessResourceMeta.create_instance(str(bk_biz_id))]
@@ -95,6 +122,18 @@ class BusinessIAMPermission(IAMPermission):
 
         # 否则从view/POST/GET中获取bk_biz_id
         return self.has_permission(request, view)
+
+
+class RejectPermission(permissions.BasePermission):
+    """
+    永假的权限，用于屏蔽那些拒绝访问的接口
+    """
+
+    def has_permission(self, request, view):
+        return False
+
+    def has_object_permission(self, request, view, obj):
+        return False
 
 
 class ViewBusinessIAMPermission(BusinessIAMPermission):

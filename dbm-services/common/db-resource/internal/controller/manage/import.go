@@ -142,7 +142,7 @@ type ImportHostResp struct {
 }
 
 func (p ImportMachParam) transParamToBytes() (lableJson, bizJson, rstypes json.RawMessage, err error) {
-	lableJson = []byte("{}")
+	// lableJson = []byte("{}")
 	lableJson, err = json.Marshal(cmutil.CleanStrMap(p.Labels))
 	if err != nil {
 		logger.Error(fmt.Sprintf("ConverLableToJsonStr Failed,Error:%s", err.Error()))

@@ -24,7 +24,7 @@ from backend.db_monitor.models import Dashboard
 from backend.db_monitor.serializers import DashboardUrlSerializer, GetDashboardSerializer
 from backend.iam_app.handlers.drf_perm import DBManageIAMPermission
 
-SWAGGER_TAG = _("监控告警管理")
+from .. import constants
 
 
 class MonitorGrafanaViewSet(viewsets.SystemViewSet):
@@ -39,7 +39,7 @@ class MonitorGrafanaViewSet(viewsets.SystemViewSet):
         operation_summary=_("查询内嵌仪表盘地址"),
         query_serializer=GetDashboardSerializer,
         responses={status.HTTP_200_OK: DashboardUrlSerializer},
-        tags=[SWAGGER_TAG],
+        tags=[constants.SWAGGER_TAG],
     )
     @action(methods=["GET"], detail=False, serializer_class=GetDashboardSerializer, pagination_class=None)
     def get_dashboard(self, request):

@@ -8,17 +8,18 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-import logging
+import operator
 from abc import ABC, abstractmethod
+from functools import reduce
 from typing import Any, Optional, Union
 
+from django.db.models import Q
 from django.utils.translation import gettext as _
 
 from backend.ticket import constants
 from backend.ticket.constants import FLOW_FINISHED_STATUS, FLOW_NOT_EXECUTE_STATUS, FlowErrCode, TicketFlowStatus
-from backend.ticket.models import Flow
-
-logger = logging.getLogger("root")
+from backend.ticket.models import ClusterOperateRecord, Flow, InstanceOperateRecord
+from backend.utils.basic import get_target_items_from_details
 
 
 class BaseTicketFlow(ABC):
@@ -102,7 +103,6 @@ class BaseTicketFlow(ABC):
 
     def run_error_status_handler(self, err: Exception):
         """run异常处理，更新失败状态和错误信息"""
-        logger.exception(f"fail to run flow: {err}")
         err_code = FlowErrCode.get_err_code(err, self.flow_obj.retry_type)
         self.flow_obj.err_msg = err
         self.flow_obj.err_code = err_code
@@ -135,6 +135,47 @@ class BaseTicketFlow(ABC):
         self.ticket.status = constants.TicketStatus.RUNNING
         self.ticket.save(update_fields=["status", "update_at"])
 
+    def create_operate_records(self, object_key, record_model):
+        """
+        写入操作记录的通用方法
+        每一轮flow在running时，需要更新当前集群的record.flow为当前flow，为新出现的集群增加record(如定点回档包含了新出现的集群)
+        """
+        object_ids = set(
+            get_target_items_from_details(self.flow_obj.details, match_keys=[object_key, f"{object_key}s"])
+            + get_target_items_from_details(self.ticket.details, match_keys=[object_key, f"{object_key}s"])
+        )
+        if not object_ids:
+            return
+
+        record_filter = reduce(
+            operator.or_, [Q(**{object_key: obj_id, "ticket": self.ticket}) for obj_id in object_ids]
+        )
+
+        # 修改当前的flow引用，并批量更新
+        to_update_records = record_model.objects.filter(record_filter)
+        for record in to_update_records:
+            record.flow = self.flow_obj
+        record_model.objects.bulk_update(to_update_records, fields=["flow"])
+
+        # 创建新加入的record，并批量创建
+        object_ticket_tuples = list(to_update_records.values_list(object_key, "ticket"))
+        to_create_records = [
+            record_model(
+                **{object_key: obj_id, "flow": self.flow_obj, "ticket": self.ticket, "creator": self.ticket.creator}
+            )
+            for obj_id in object_ids
+            if (obj_id, self.ticket.id) not in object_ticket_tuples
+        ]
+        record_model.objects.bulk_create(to_create_records)
+
+    def create_cluster_operate_records(self):
+        """写入集群操作记录"""
+        self.create_operate_records(object_key="cluster_id", record_model=ClusterOperateRecord)
+
+    def create_instance_operate_records(self):
+        """写入示例的操作记录"""
+        self.create_operate_records(object_key="instance_id", record_model=InstanceOperateRecord)
+
     def run(self):
         """执行流程并记录流程对象ID"""
         try:
@@ -142,6 +183,9 @@ class BaseTicketFlow(ABC):
         except Exception as err:  # pylint: disable=broad-except
             self.run_error_status_handler(err)
             return
+        else:
+            self.create_cluster_operate_records()
+            self.create_instance_operate_records()
 
         self.run_status_handler(flow_obj_id)
 

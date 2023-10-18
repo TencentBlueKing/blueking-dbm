@@ -77,7 +77,7 @@ class MySQLHAStandardizeFlow(object):
                 root_id=self.root_id, data={**copy.deepcopy(self.data), "cluster_id": cluster.id}
             )
             cluster_pipe.add_act(
-                act_name=_(""), act_component_code=ClusterStandardizeTransModuleComponent.code, kwargs={}
+                act_name=_("模块标准化"), act_component_code=ClusterStandardizeTransModuleComponent.code, kwargs={}
             )
 
             pipes.append(cluster_pipe.build_sub_process(sub_name=_("{} CC 模块标准化".format(cluster.immute_domain))))

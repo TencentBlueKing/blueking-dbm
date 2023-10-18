@@ -16,8 +16,9 @@ from rest_framework import serializers
 
 from backend.components import DBConfigApi
 from backend.components.dbconfig import constants as dbconf_const
-from backend.db_meta.enums import ClusterStatus, ClusterType, TenDBClusterSpiderRole
-from backend.db_meta.models import AppCache, Cluster
+from backend.db_meta.enums import ClusterType, TenDBClusterSpiderRole
+from backend.db_meta.enums.comm import SystemTagEnum, TagType
+from backend.db_meta.models import AppCache, Cluster, Tag
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.spider import SpiderController
 from backend.ticket import builders
@@ -65,7 +66,7 @@ class TendbFixPointRollbackFlowParamBuilder(builders.FlowParamBuilder):
         rollback_flow = self.ticket.current_flow()
         ticket_data = rollback_flow.details["ticket_data"]
 
-        # # 为定点构造的flow填充临时集群信息
+        # 为定点构造的flow填充临时集群信息
         source_cluster_id = ticket_data.pop("cluster_id")
         # 对同一个集群同一天回档26^4才有可能重名, 暂时无需担心
         target_cluster = Cluster.objects.get(name=ticket_data["apply_details"]["cluster_name"])
@@ -73,14 +74,13 @@ class TendbFixPointRollbackFlowParamBuilder(builders.FlowParamBuilder):
         rollback_flow.save(update_fields=["details"])
 
         # 对临时集群记录变更
-        ClusterOperateRecord.objects.create(
-            cluster_id=target_cluster.id,
-            ticket_id=self.ticket.id,
-            flow_id=rollback_flow.id,
-            creator=self.ticket.creator,
+        temporary_tag, _ = Tag.objects.get_or_create(
+            bk_biz_id=self.ticket.bk_biz_id, name=SystemTagEnum.TEMPORARY.value, type=TagType.SYSTEM.value
         )
-        target_cluster.status = ClusterStatus.TEMPORARY.value
-        target_cluster.save(update_fields=["status"])
+        target_cluster.tag_set.add(temporary_tag)
+        ClusterOperateRecord.objects.get_or_create(
+            cluster_id=target_cluster.id, ticket=self.ticket, flow=rollback_flow
+        )
 
 
 class TendbApplyTemporaryFlowParamBuilder(builders.FlowParamBuilder):

@@ -28,7 +28,7 @@
       </div>
       <div
         class="layout-right"
-        style="width: 928px;">
+        style="width: 690px;">
         <div class="log-header">
           <div>{{ t('执行日志') }}</div>
           <div
@@ -287,10 +287,6 @@
     return revokeSemanticCheck({
       bk_biz_id: currentBizId,
       root_id: rootId,
-    }).then(() => {
-      router.push({
-        name: 'spiderSqlExecute',
-      });
     })
       .finally(() => {
         isRevokeing.value = false;

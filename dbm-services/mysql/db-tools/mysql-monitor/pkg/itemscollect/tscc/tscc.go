@@ -14,11 +14,11 @@ package tscc
 import (
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"strings"
 	"time"
 
 	"github.com/jmoiron/sqlx"
-	"golang.org/x/exp/slog"
 
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/monitoriteminterface"
 )
@@ -103,7 +103,7 @@ func (c *tableSchemaConsistencyCheck) Run() (msg string, err error) {
 	var ps PrimaryCtlInfo
 	err = c.ctldb.Get(&ps, "TDBCTL GET PRIMARY")
 	if err != nil {
-		slog.Error("execute TDBCTL GET PRIMARY  failed", err)
+		slog.Error("execute TDBCTL GET PRIMARY  failed", slog.String("error", err.Error()))
 		return
 	}
 	if ps.IsThisServer == 0 {
@@ -121,14 +121,14 @@ func (c *tableSchemaConsistencyCheck) Run() (msg string, err error) {
 	var count int
 	err = c.ctldb.Get(&count, "select count(*) from tscc_pending_execute_tbl")
 	if err != nil {
-		slog.Error("query pending execute  check table failed", err)
+		slog.Error("query pending execute  check table failed", slog.String("error", err.Error()))
 		return
 	}
 	if count < 10 {
 		query, args, err := sqlx.In(
 			"insert ignore into tscc_pending_execute_tbl select TABLE_SCHEMA,TABLE_NAME,CREATE_TIME from information_schema.tables where TABLE_SCHEMA not in (?) ", ignoreDbs)
 		if err != nil {
-			slog.Error("get check tables failed", err)
+			slog.Error("get check tables failed", slog.String("error", err.Error()))
 			return msg, err
 		}
 		_, err = c.ctldb.Exec(c.ctldb.Rebind(query), args...)
@@ -158,7 +158,7 @@ func (c *tableSchemaConsistencyCheck) Run() (msg string, err error) {
 			var tblRows []TsccPendingExecuteTbl
 			err = c.ctldb.Select(&tblRows, "select  * from  tscc_pending_execute_tbl limit 500")
 			if err != nil {
-				slog.Error("failed to query the table to be verified", err)
+				slog.Error("failed to query the table to be verified", slog.String("error", err.Error()))
 				return
 			}
 			if len(tblRows) < 1 {
@@ -170,7 +170,7 @@ func (c *tableSchemaConsistencyCheck) Run() (msg string, err error) {
 				err = c.ctldb.Select(&result, fmt.Sprintf("tdbctl checksum `%s`.`%s`;", tblRow.Db, tblRow.Tbl))
 				if err != nil {
 					errChan <- struct{}{}
-					slog.Error("exec tdbctl checksum table failed", err)
+					slog.Error("exec tdbctl checksum table failed", slog.String("error", err.Error()))
 					continue
 				}
 				c.ctldb.Exec("set tc_admin = 0;")
@@ -196,7 +196,7 @@ func (c *tableSchemaConsistencyCheck) atomUpdateCheckResult(db, tbl string, inco
 	if len(inconsistentItems) != 0 {
 		checkResult, err = json.Marshal(inconsistentItems)
 		if err != nil {
-			slog.Error("json marshal failed %s", err.Error())
+			slog.Error("json marshal failed %s", slog.String("error", err.Error()))
 			return
 		}
 		status = ""
@@ -205,16 +205,16 @@ func (c *tableSchemaConsistencyCheck) atomUpdateCheckResult(db, tbl string, inco
 		checkResult,
 		time.Now())
 	if err != nil {
-		slog.Error("replace checksum record failed", err)
+		slog.Error("replace checksum record failed", slog.String("error", err.Error()))
 		return
 	}
 	_, err = tx.Exec("delete from infodba_schema.tscc_pending_execute_tbl where db = ? and tbl = ? ", db, tbl)
 	if err != nil {
-		slog.Warn("delete pending tbl record failed", err)
+		slog.Warn("delete pending tbl record failed", slog.String("error", err.Error()))
 		return
 	}
 	if err = tx.Commit(); err != nil {
-		slog.Warn("commit error: ", err)
+		slog.Warn("commit error: ", slog.String("error", err.Error()))
 		return
 	}
 	return

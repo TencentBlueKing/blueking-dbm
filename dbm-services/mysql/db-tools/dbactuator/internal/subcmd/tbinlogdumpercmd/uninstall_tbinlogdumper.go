@@ -17,13 +17,13 @@ type UnInstallTbinlogDumperAct struct {
 	Service tbinlogdumper.UnInstallTbinlogDumperComp
 }
 
-// NewUnInstallMysqlCommand TODO
+// NewUnInstallTbinlogDumperCommand TODO
 //
 // @Summary      卸载 tbinlogdumper 实例
 // @Description  卸载 tbinlogdumper 实例说明
 // @Tags         tbinlogdumper
 // @Accept       json
-// @Param        body body      mysql.InstallTbinlogDumperComp  true  "short description"
+// @Param        body body      tbinlogdumper.UnInstallTbinlogDumperComp  true  "short description"
 // @Router       /tbinlogdumper/uninstall [post]
 func NewUnInstallTbinlogDumperCommand() *cobra.Command {
 	act := UnInstallTbinlogDumperAct{

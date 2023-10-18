@@ -25,7 +25,18 @@ export default class FixpointLog {
       spider: {
         ip: string;
       }[]
-    }
+    },
+    operations: {
+      cluster_id: number,
+      flow_id: number,
+      operator: number,
+      status: string,
+      ticket_id: number,
+      ticket_type: string,
+      title: string,
+    }[],
+    phase: string,
+    status: string,
   };
   ticket_id: number;
 
@@ -52,7 +63,7 @@ export default class FixpointLog {
       ipSet.add(item.ip);
     });
 
-    return [...ipSet].join(',');
+    return [...ipSet].join(' , ');
   }
 
   get rollbackTypeText() {
@@ -60,5 +71,9 @@ export default class FixpointLog {
       return `回档到指定时间（${this.rollback_time}）`;
     }
     return `备份记录（${this.backupinfo}）`;
+  }
+
+  get isDestoryEnable() {
+    return this.target_cluster.phase === 'online';
   }
 }

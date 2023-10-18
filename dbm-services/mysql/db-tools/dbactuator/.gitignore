@@ -26,3 +26,6 @@ sync_test.sh
 scripts/upload_media.sh
 scripts/upload.sh
 localtest/
+.codecc
+.idea
+.vscode

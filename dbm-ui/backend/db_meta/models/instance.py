@@ -195,6 +195,7 @@ class ProxyInstance(InstanceMixin, AuditedModel):
     storageinstance = models.ManyToManyField(StorageInstance, blank=True)
 
     cluster_type = models.CharField(max_length=64, choices=ClusterType.get_choices(), default="")
+    phase = models.CharField(max_length=64, choices=InstancePhase.get_choices(), default=InstancePhase.ONLINE.value)
     status = models.CharField(max_length=64, choices=InstanceStatus.get_choices(), default="")
     bind_entry = models.ManyToManyField(ClusterEntry, blank=True)
     name = models.CharField(max_length=255, default="")

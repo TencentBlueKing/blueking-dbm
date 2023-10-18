@@ -404,9 +404,6 @@ func (test *RedisInstallTest) SetTendisplusRedisConf() {
 		"scanCntIndexMgr":                     "10000",
 		"truncateBinlogIntervalMs":            "100",
 		"minbinlogkeepsec":                    "1800",
-		"binlogdelrange":                      "500000",
-		"migrate-gc-enabled":                  "false",
-		"deletefilesinrange-for-binlog":       "1",
 		"incrpushthreadnum":                   "10",
 		"rename-command": `config confxx 
                 rename-command flushdb cleandb 

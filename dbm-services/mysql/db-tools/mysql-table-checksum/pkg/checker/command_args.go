@@ -2,15 +2,14 @@ package checker
 
 import (
 	"fmt"
+	"log/slog"
 	"os"
 	"strings"
-
-	"golang.org/x/exp/slog"
 )
 
 func (r *Checker) ptPrecheck() error {
 	if _, err := os.Stat(r.Config.PtChecksum.Path); err != nil {
-		slog.Error("pt pre check", err)
+		slog.Error("pt pre check", slog.String("error", err.Error()))
 		return err
 	}
 	return nil

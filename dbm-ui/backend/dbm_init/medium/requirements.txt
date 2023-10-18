@@ -1,0 +1,3 @@
+bkstorages==1.0.8
+Django==3.2.21
+PyYAML~=5.4.1

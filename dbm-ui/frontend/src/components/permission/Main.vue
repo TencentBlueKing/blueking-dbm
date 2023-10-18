@@ -26,7 +26,6 @@
   </div>
 </template>
 <script lang="ts">
-  import type { PropType } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import type { Permission, PermissionAction } from '@services/types/common';
@@ -37,12 +36,11 @@
 </script>
 
 <script setup lang="ts">
-  const props = defineProps({
-    permission: {
-      required: true,
-      type: Object as PropType<Permission | null>,
-    },
-  });
+  interface Props {
+    permission: Permission | null
+  }
+
+  const props = defineProps<Props>();
 
   const { t } = useI18n();
 
