@@ -9,14 +9,10 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 from blue_krill.data_types.enum import EnumField, StructuredEnum
-from django.utils.translation import ugettext_lazy as _
-
-from .meta_check_sub_type import MetaCheckSubType
-from .mysqlbackup_check_sub_type import MysqlBackupCheckSubType
-
-SWAGGER_TAG = _("巡检报告")
+from django.utils.translation import gettext_lazy as _
 
 
-class ReportFieldFormat(str, StructuredEnum):
-    TEXT = EnumField("text", _("文本渲染"))
-    STATUS = EnumField("status", _("状态渲染"))
+class MysqlBackupCheckSubType(str, StructuredEnum):
+    FullBackup = EnumField("full_backup", _("集群可用全备"))
+    BinlogMaster = EnumField("binlog_master", _("主库binlog备份"))
+    BinlogSeq = EnumField("binlog_seq", _("binlog连续性检查"))
