@@ -16,4 +16,6 @@ urlpatterns = [
     url("^meta_check/instance_belong$", views.MetaCheckReportInstanceBelongViewSet.as_view({"get": "list"})),
     url("^checksum_check/report$", views.ChecksumCheckReportViewSet.as_view({"get": "list"})),
     url("^checksum_check/instance$", views.ChecksumInstanceViewSet.as_view({"get": "list"})),
+    url("^mysql_check/full_backup$", views.MysqlFullBackupCheckReportViewSet.as_view({"get": "list"})),
+    url("^mysql_check/binlog_backup$", views.MysqlBinlogBackupCheckReportViewSet.as_view({"get": "list"})),
 ]

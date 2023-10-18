@@ -11,3 +11,4 @@ specific language governing permissions and limitations under the License.
 from .checksum_check_report_view import ChecksumCheckReportViewSet
 from .checksum_instance_view import ChecksumInstanceViewSet
 from .meta_check_view import MetaCheckReportInstanceBelongViewSet
+from .mysqlbackup_check_view import MysqlBinlogBackupCheckReportViewSet, MysqlFullBackupCheckReportViewSet

@@ -56,3 +56,18 @@ CHECKSUM_INSTANCE_DATA = {
         {"name": "msg", "display_name": "失败信息", "format": "text"},
     ],
 }
+
+MYSQL_BACKUP_CHECK_DATA = {
+    "count": 1,
+    "next": None,
+    "previous": None,
+    "results": [{"bk_biz_id": 3, "cluster": "aa.bb.cc", "cluster_type": "tendbha", "status": True, "msg": ""}],
+    "name": "mysql备份检查",
+    "title": [
+        {"name": "bk_biz_id", "display_name": "业务", "format": "text"},
+        {"name": "cluster", "display_name": "集群域名", "format": "text"},
+        {"name": "cluster_type", "display_name": "集群类型", "format": "text"},
+        {"name": "status", "display_name": "元数据状态", "format": "status"},
+        {"name": "msg", "display_name": "详情", "format": "text"},
+    ],
+}
