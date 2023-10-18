@@ -51,6 +51,10 @@ class RedisClusterMigrateLoadFlow(object):
         self.data = data
 
     def __dispose_cluster_params(self, cluster_info: dict) -> dict:
+        """
+        处理集群参数
+        返回需要的处理后的数据格式
+        """
         master_ips = []
         slave_ips = []
         spec_id_dict = {}
@@ -97,12 +101,14 @@ class RedisClusterMigrateLoadFlow(object):
 
     def redis_cluster_migrate_load_flow(self):
         """
+        if dbha:
+            只更新元数据
         1、写元数据（这里地方挪了cc）
             1.1 proxy元数据
             1.2 redis元数据
+            1.3 集群元数据
         2、写配置文件
         3、if 安装dbmon
-        4、if 接入dbha
         """
         app = AppCache.get_app_attr(self.data["bk_biz_id"], "db_app_abbr")
         app_name = AppCache.get_app_attr(self.data["bk_biz_id"], "bk_biz_name")
