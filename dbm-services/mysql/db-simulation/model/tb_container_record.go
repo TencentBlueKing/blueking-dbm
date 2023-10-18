@@ -33,8 +33,8 @@ func (obj *TbContainerRecord) GetTableName() string {
 }
 
 // UpdateTbContainerRecord TODO
-func UpdateTbContainerRecord(uid string) {
-	err := DB.Model(TbContainerRecord{}).Where("uid = ?", uid).Updates(
+func UpdateTbContainerRecord(container string) {
+	err := DB.Model(TbContainerRecord{}).Where("container = ?", container).Updates(
 		TbContainerRecord{
 			PodReadyTime: time.Now(),
 			UpdateTime:   time.Now(),
