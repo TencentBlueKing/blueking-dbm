@@ -46,83 +46,102 @@ func (c CreateTableResult) SpiderChecker(spiderVersion string) (r *CheckerResult
 }
 
 func (c CreateTableResult) shardKeyChecker(r *CheckerResult) {
+	var has_shard_key bool
+	var shardKeyCol string
+	var err error
 	logger.Info("start shardKeyChecker...")
 	// 如果沒有任何索引,则直接返回错误
 	if len(c.CreateDefinitions.KeyDefs) <= 0 {
 		r.Trigger(SR.SpiderCreateTableRule.NoIndexExists, "")
 		return
 	}
-	uniqueKeys, commonKeys := c.findTablesIndex()
+	pk, uks, keys := c.findTablesIndex()
 	tableComment := c.GetComment()
-	logger.Info("tableComment is %s", tableComment)
-	// 如果table comment 为空,表示没有指定shard key
-	// 或者table comnent 没有指定shardkey
-	// 由中控自主选择
-	if cmutil.IsEmpty(tableComment) || !strings.Contains(tableComment, "shard_key") {
-		// 如果没有唯一索引，如果包含多个普通索引，则必须指定shard_key,否则需要报错
-		if len(commonKeys) > 1 {
-			r.Trigger(SR.SpiderCreateTableRule.MustSpecialShardKeyOnlyHaveCommonIndex, "")
-			return
-		}
-	}
 	// 如果存在多个唯一健（含主键),多个唯一键都没有包含相同的字段也是不允许的
 	var pubCols []string
-	logger.Info("uniqueKeys is %v,len is %d", uniqueKeys, len(uniqueKeys))
-	if len(uniqueKeys) > 1 {
-		pubCols = findCommonColByKeys(uniqueKeys)
+	logger.Info("uniqueKeys is %v,len is %d", uks, len(uks))
+	if len(uks) > 1 {
+		pubCols = findCommonColByKeys(uks)
 		if len(pubCols) < 1 {
 			r.Trigger(SR.SpiderCreateTableRule.NoPubColAtMultUniqueIndex, "")
 			return
 		}
 	}
-	// table comment 不为空的时候 先校验comment 格式是否合法
-	legal, msg := c.validateSpiderComment(tableComment)
-	if !legal {
-		r.Trigger(SR.SpiderCreateTableRule.IllegalComment, msg)
-		return
-	}
-	shardKeyCol, err := util.ParseGetShardKeyForSpider(tableComment)
-	if err != nil {
-		// Todo 错误处理
-		logger.Error("parse %s comment %s shard key failed %s", c.TableName, tableComment, err.Error())
-		return
-	}
-	// 如果存在索引,但是shard key不属于任何索引
-	if !c.shardKeyIsIndex(shardKeyCol) {
-		r.Trigger(SR.SpiderCreateTableRule.ShardKeyNotIndex, "")
-		return
-	}
-	switch {
-	case len(uniqueKeys) == 1:
-		if !c.shardKeyExistInKeys(shardKeyCol, uniqueKeys) {
-			r.Trigger(SR.SpiderCreateTableRule.NoPubColAtMultUniqueIndex, shardKeyCol)
+	logger.Info("tableComment is %s", tableComment)
+
+	if cmutil.IsNotEmpty(tableComment) {
+		// table comment 不为空的时候 先校验comment 格式是否合法
+		legal, msg := c.validateSpiderComment(tableComment)
+		if !legal {
+			r.Trigger(SR.SpiderCreateTableRule.IllegalComment, msg)
 			return
 		}
-	//  如果存在 一个或者多个唯一索引(包含主键)
-	case len(uniqueKeys) > 1:
-		// shard_key只能是其中的共同部分；否则无法建表；
-		if !slices.Contains(pubCols, shardKeyCol) {
-			r.Trigger(SR.SpiderCreateTableRule.NoPubColAtMultUniqueIndex, shardKeyCol)
+		shardKeyCol, err = util.ParseGetShardKeyForSpider(tableComment)
+		if err != nil {
+			// Todo 错误处理
+			logger.Error("parse %s comment %s shard key failed %s", c.TableName, tableComment, err.Error())
 			return
 		}
-	// 如果只存在多个普通索引，shard_key只能是其中任意一个的一部分
-	case len(uniqueKeys) < 1 && len(commonKeys) > 1:
-		if !c.shardKeyExistInKeys(shardKeyCol, commonKeys) {
-			r.Trigger(SR.SpiderCreateTableRule.MustSpecialShardKeyOnlyHaveCommonIndex, shardKeyCol)
+		has_shard_key = true
+	}
+	// 如果table comment 为空,表示没有指定shard key,或table comnent 没有指定shardkey 由中控自主选择
+	if !has_shard_key {
+		switch {
+		case pk != nil:
 			return
+		case len(uks) > 1:
+			return
+		case len(keys) > 1:
+			// 如果没有唯一索引，如果包含多个普通索引，则必须指定shard_key,否则需要报错
+			r.Trigger(SR.SpiderCreateTableRule.MustSpecialShardKeyOnlyHaveCommonIndex, "")
+			return
+		}
+	} else {
+		// 如果存在索引,但是shard key不属于任何索引
+		if !c.shardKeyIsIndex(shardKeyCol) {
+			r.Trigger(SR.SpiderCreateTableRule.ShardKeyNotIndex, "")
+			return
+		}
+		switch {
+		case len(uks) == 1:
+			if !c.shardKeyExistInKeys(shardKeyCol, uks) {
+				r.Trigger(SR.SpiderCreateTableRule.NoPubColAtMultUniqueIndex, shardKeyCol)
+				return
+			}
+		//  如果存在 一个或者多个唯一索引(包含主键)
+		case len(uks) > 1:
+			// shard_key只能是其中的共同部分；否则无法建表；
+			if !slices.Contains(pubCols, shardKeyCol) {
+				r.Trigger(SR.SpiderCreateTableRule.NoPubColAtMultUniqueIndex, shardKeyCol)
+				return
+			}
+		// 如果只存在多个普通索引，shard_key只能是其中任意一个的一部分
+		case len(uks) < 1 && len(uks) > 1:
+			if !c.shardKeyExistInKeys(shardKeyCol, uks) {
+				r.Trigger(SR.SpiderCreateTableRule.MustSpecialShardKeyOnlyHaveCommonIndex, shardKeyCol)
+				return
+			}
+		}
+		shardKeyColDef := c.getColDef(shardKeyCol)
+		// 如果shard key 列允许为null
+		if shardKeyColDef.Nullable {
+			r.Trigger(SR.SpiderCreateTableRule.ShardKeyNotNull, shardKeyColDef.ColName)
 		}
 	}
 }
 
-func (c CreateTableResult) findTablesIndex() (uniqueKeys []KeyDef, commonKeys []KeyDef) {
+func (c CreateTableResult) findTablesIndex() (pk *KeyDef, uks []KeyDef, keys []KeyDef) {
 	for _, key := range c.CreateDefinitions.KeyDefs {
-		if key.PrimaryKey || key.UniqueKey {
-			uniqueKeys = append(uniqueKeys, key)
-		} else {
-			commonKeys = append(commonKeys, key)
+		switch {
+		case key.PrimaryKey:
+			pk = &key
+		case key.UniqueKey:
+			uks = append(uks, key)
+		default:
+			keys = append(keys, key)
 		}
 	}
-	return uniqueKeys, commonKeys
+	return pk, uks, keys
 }
 
 // findCommonColByKeys 寻找多个唯一键中的公共列
@@ -176,4 +195,14 @@ func (c CreateTableResult) shardKeyExistInKeys(shardKeyCol string, keys []KeyDef
 		}
 	}
 	return false
+}
+
+func (c CreateTableResult) getColDef(colName string) (colDef ColDef) {
+	for _, col := range c.CreateDefinitions.ColDefs {
+		if strings.Compare(col.ColName, colName) == 0 {
+			colDef = col
+			break
+		}
+	}
+	return colDef
 }

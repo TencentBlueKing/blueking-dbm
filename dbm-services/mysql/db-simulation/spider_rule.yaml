@@ -51,6 +51,7 @@ SpiderCreateTableRule:
     turnOn: true
     ban: true
     desc: "create table 语句中列字符集定义与表字符集不一致"
+    suggestion: "去掉列字符集"
   CreateWithSelect:
     turnOn: true
     ban: true
@@ -75,11 +76,18 @@ SpiderCreateTableRule:
     turnOn: true
     ban: true
     desc: "没有任何索引存在"
+    suggestion: "请添加索引、唯一键或主键"
   NoPubColAtMultUniqueIndex:
     turnOn: true
     ban: true
-    desc: "存在多个唯一健（含主键),shard_key只能是其中的共同部分"
+    desc: "用户comment指定了shard_key,存在多个唯一健（含主键),shard_key只能是其中的共同部分"
   MustSpecialShardKeyOnlyHaveCommonIndex:
     turnOn: true
     ban: true
     desc: "不存在唯一索引,只包含包含多个普通索引,则必须指定shard_key"
+    suggestion: "请指定shard_key"
+  ShardKeyNotNull:
+    turnOn: true
+    ban: true
+    desc: "如果是shard key 不是主键,默认值就一定要指定成 not null"
+    suggestion: "请指定shard_key列 is not null"
