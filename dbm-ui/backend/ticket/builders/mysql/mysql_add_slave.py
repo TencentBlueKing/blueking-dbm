@@ -26,12 +26,12 @@ class MysqlAddSlaveDetailSerializer(MySQLBaseOperateDetailSerializer):
     class AddSlaveInfoSerializer(serializers.Serializer):
         new_slave = HostInfoSerializer(help_text=_("新从库机器信息"), required=False)
         cluster_ids = serializers.ListField(help_text=_("集群ID列表"), child=serializers.IntegerField())
-        backup_source = serializers.ChoiceField(
-            help_text=_("备份源"), choices=MySQLBackupSource.get_choices(), required=False
-        )
         resource_spec = serializers.JSONField(help_text=_("资源规格"), required=False)
 
     infos = serializers.ListField(help_text=_("添加从库信息"), child=AddSlaveInfoSerializer())
+    backup_source = serializers.ChoiceField(
+        help_text=_("备份源"), choices=MySQLBackupSource.get_choices(), required=False
+    )
     ip_source = serializers.ChoiceField(
         help_text=_("机器来源"), choices=IpSource.get_choices(), required=False, default=IpSource.MANUAL_INPUT
     )
@@ -52,7 +52,13 @@ class MysqlAddSlaveDetailSerializer(MySQLBaseOperateDetailSerializer):
 
 class MysqlAddSlaveParamBuilder(builders.FlowParamBuilder):
     # 复用重建 slave 的场景
-    controller = MySQLController.mysql_add_slave_remote_scene
+    controller_remote = MySQLController.mysql_add_slave_remote_scene
+    controller_local = MySQLController.mysql_add_slave_scene
+
+    def build_controller_info(self) -> dict:
+        backup_source = self.ticket_data.get("backup_source", MySQLBackupSource.LOCAL)
+        self.controller = getattr(self, f"controller_{backup_source}")
+        return super().build_controller_info()
 
     def format_ticket_data(self):
         self.ticket_data["add_slave_only"] = True

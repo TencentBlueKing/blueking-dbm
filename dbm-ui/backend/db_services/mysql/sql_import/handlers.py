@@ -171,8 +171,7 @@ class SQLHandler(object):
 
         # 获取语义执行的node id
         tree = FlowTree.objects.get(root_id=root_id)
-        code = SemanticCheckComponent.code
-        node_id = self.get_node_id_by_component(tree.tree, code)
+        node_id = self.get_node_id_by_component(tree=tree.tree, component_code=SemanticCheckComponent.code)
 
         # 缓存用户的语义检查，并删除过期的数据。注：django的cache不支持redis命令，这里只能使用原生redis客户端进行操作
         now = int(time.time())
@@ -287,9 +286,7 @@ class SQLHandler(object):
             semantic_info_list.extend(self._get_user_semantic_tasks(DBType.MySQL, SemanticCheckComponent.code))
 
         if not self.cluster_type or self.cluster_type == DBType.TenDBCluster:
-            semantic_info_list.extend(
-                self._get_user_semantic_tasks(DBType.TenDBCluster, ExecuteDBActuatorScriptComponent.code)
-            )
+            semantic_info_list.extend(self._get_user_semantic_tasks(DBType.TenDBCluster, SemanticCheckComponent.code))
 
         return semantic_info_list
 

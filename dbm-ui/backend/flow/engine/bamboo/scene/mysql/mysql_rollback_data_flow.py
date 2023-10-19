@@ -15,9 +15,11 @@ from typing import Dict, Optional
 
 from django.utils.translation import ugettext as _
 
+from backend.configuration.constants import DBType
 from backend.db_meta.enums import ClusterType, InstanceInnerRole
 from backend.db_meta.models import Cluster
-from backend.flow.consts import RollbackType
+from backend.db_package.models import Package
+from backend.flow.consts import MediumEnum, RollbackType
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import install_mysql_in_cluster_sub_flow
 from backend.flow.engine.bamboo.scene.mysql.common.exceptions import NormalTenDBFlowException
@@ -71,14 +73,14 @@ class MySQLRollbackDataFlow(object):
             self.data["db_module_id"] = cluster_class.db_module_id
             self.data["time_zone"] = cluster_class.time_zone
             self.data["created_by"] = self.ticket_data["created_by"]
-            self.data["module"] = self.ticket_data["module"]
+            self.data["module"] = cluster_class.db_module_id
             self.data["ticket_type"] = self.ticket_data["ticket_type"]
             self.data["cluster_type"] = cluster_class.cluster_type
             self.data["uid"] = self.ticket_data["uid"]
-            # self.data["package"] = Package.get_latest_package(
-            #     version=cluster_class.major_version, pkg_type=MediumEnum.MySQL, db_type=DBType.MySQL
-            # )
-            self.data["package"] = cluster_class.major_version
+            self.data["package"] = Package.get_latest_package(
+                version=cluster_class.major_version, pkg_type=MediumEnum.MySQL, db_type=DBType.MySQL
+            ).name
+            # self.data["package"] = cluster_class.major_version
             self.data["db_version"] = cluster_class.major_version
             self.data["force"] = info.get("force", False)
             self.data["charset"], self.data["db_version"] = get_version_and_charset(

@@ -19,6 +19,7 @@ from backend.bk_web.models import AuditedModel
 from backend.configuration.constants import DBType
 from backend.db_package.constants import PackageMode, PackageType
 from backend.db_package.exceptions import PackageNotExistException
+from backend.flow.consts import MediumEnum
 
 
 class Package(AuditedModel):
@@ -51,14 +52,18 @@ class Package(AuditedModel):
         """
         根据版本和包类型获取最新的介质包
         """
-        packages = cls.objects.filter(version=version, pkg_type=pkg_type, db_type=db_type)
+        if version == MediumEnum.Latest:
+            # 引进制品版本管理后，默认最新版就是最近上传的介质
+            packages = cls.objects.filter(pkg_type=pkg_type, db_type=db_type)
+        else:
+            packages = cls.objects.filter(version=version, pkg_type=pkg_type, db_type=db_type)
         if bk_biz_id:
             # 过滤出灰度的业务以及无指定业务的包
             packages = packages.filter(Q(allow_biz_ids__contains=bk_biz_id) | Q(allow_biz_ids__isnull=True))
 
-        # 取最新的版本
-        package = packages.first()
-        if not package:
+        if not packages:
             raise PackageNotExistException(version=version, pkg_type=pkg_type, db_type=db_type)
 
+        # 取最新的版本
+        package = packages.order_by("-update_at").first()
         return package

@@ -91,7 +91,7 @@ class MySQLRestoreSlaveRemoteFlow(object):
             self.data["uid"] = self.ticket_data["uid"]
             self.data["package"] = Package.get_latest_package(
                 version=cluster_class.major_version, pkg_type=MediumEnum.MySQL, db_type=DBType.MySQL
-            )
+            ).name
             # self.data["package"] = "5.7.20"
             self.data["ports"] = get_ports(info["cluster_ids"])
             self.data["force"] = self.ticket_data.get("force", False)
@@ -165,6 +165,7 @@ class MySQLRestoreSlaveRemoteFlow(object):
                 master = cluster_model.storageinstance_set.get(instance_inner_role=InstanceInnerRole.MASTER.value)
                 cluster = {
                     "cluster_id": cluster_model.id,
+                    "cluster_type": cluster_class.cluster_type,
                     "master_ip": master.machine.ip,
                     "master_port": master.port,
                     "new_slave_ip": self.data["new_slave_ip"],

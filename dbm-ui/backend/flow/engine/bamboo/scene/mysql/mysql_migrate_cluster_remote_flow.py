@@ -93,12 +93,12 @@ class MySQLMigrateClusterRemoteFlow(object):
             self.data["db_module_id"] = cluster_class.db_module_id
             self.data["time_zone"] = cluster_class.time_zone
             self.data["created_by"] = self.ticket_data["created_by"]
-            self.data["module"] = self.ticket_data["module"]
+            self.data["module"] = cluster_class.db_module_id
             self.data["ticket_type"] = self.ticket_data["ticket_type"]
             self.data["uid"] = self.ticket_data["uid"]
             self.data["package"] = Package.get_latest_package(
                 version=cluster_class.major_version, pkg_type=MediumEnum.MySQL, db_type=DBType.MySQL
-            )
+            ).name
             self.data["ports"] = get_ports(info["cluster_ids"])
             self.data["force"] = info.get("force", False)
             self.data["charset"], self.data["db_version"] = get_version_and_charset(
