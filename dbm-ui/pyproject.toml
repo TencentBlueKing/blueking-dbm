@@ -54,6 +54,7 @@ mistune = "0.8.4"
 bkoauth = "0.1.0"
 apigw-manager = {extras = ["cryptography"], version = "^2.0.0"}
 bk-audit = "1.1.0rc0"
+bk-crypto-python-sdk = "^1.1.1"
 
 
 [tool.poetry.dev-dependencies]
