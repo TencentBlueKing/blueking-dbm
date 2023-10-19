@@ -539,6 +539,7 @@ class MySQLController(BaseController):
     def mysql_randomize_password(self):
         flow = MySQLRandomizePassword(root_id=self.root_id, data=self.ticket_data)
         flow.mysql_randomize_password()
+
     def mysql_open_area_scene(self):
         flow = MysqlOpenAreaFlow(root_id=self.root_id, data=self.ticket_data)
         flow.mysql_open_area_flow()
