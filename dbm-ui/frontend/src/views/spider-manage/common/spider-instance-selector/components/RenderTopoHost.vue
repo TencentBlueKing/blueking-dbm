@@ -41,15 +41,9 @@
   </div>
 </template>
 <script setup lang="tsx">
-  import {
-    ref,
-    watch,
-  } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import {
-    getResourceInstances,
-  } from '@services/clusters';
+  import { getResourceInstances } from '@services/clusters';
   import type { InstanceInfos, ResourceInstance } from '@services/types/clusters';
 
   import { useGlobalBizs } from '@stores';
@@ -331,6 +325,7 @@
     search.value = '';
     handlePageValueChange(1);
   };
+
 </script>
 
 <style lang="less">

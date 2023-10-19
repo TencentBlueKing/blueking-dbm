@@ -36,7 +36,8 @@
       <ClusterSelector
         v-model:is-show="isShowMasterInstanceSelector"
         :get-resource-list="getList"
-        :selected="{}"
+        :selected="selectedClusters"
+        :show-preview-result-title="false"
         :tab-list="clusterSelectorTabList"
         @change="handelClusterChange" />
     </div>
@@ -80,9 +81,11 @@
     TicketTypes,
   } from '@common/const';
 
+  import ClusterSelector from '@components/cluster-selector-new/Index.vue';
+
   import { random } from '@utils';
 
-  import ClusterSelector from './components/cluster-selector/Index.vue';
+  import SpiderTable from './components/cluster-selector-table/Index.vue';
   import RenderData from './components/Index.vue';
   import RenderDataRow, {
     createRowData,
@@ -90,20 +93,25 @@
     type InfoItem,
   } from './components/Row.vue';
 
-
   const { currentBizId } = useGlobalBizs();
   const { t } = useI18n();
   const router = useRouter();
+
   const rowRefs = ref();
   const isShowMasterInstanceSelector = ref(false);
   const isSubmitting  = ref(false);
   const tableData = ref([createRowData()]);
+
+  const selectedClusters = shallowRef<{[key: string]: Array<SpiderModel>}>({ [ClusterTypes.SPIDER]: [] });
+
   const totalNum = computed(() => tableData.value.filter(item => Boolean(item.cluster)).length);
 
   const clusterSelectorTabList = [{
     id: ClusterTypes.SPIDER as string,
     name: t('集群选择'),
+    content: SpiderTable as unknown as Element,
   }];
+
   // 集群域名是否已存在表格的映射表
   let domainMemo:Record<string, boolean> = {};
 
@@ -140,6 +148,7 @@
 
   // 批量选择
   const handelClusterChange = async (selected: {[key: string]: Array<SpiderModel>}) => {
+    selectedClusters.value = selected;
     const list = selected[ClusterTypes.SPIDER];
     const newList = list.reduce((result, item) => {
       const domain = item.master_domain;
@@ -160,6 +169,12 @@
 
   // 输入集群后查询集群信息并填充到table
   const handleChangeCluster = async (index: number, domain: string) => {
+    if (!domain) {
+      const { cluster } = tableData.value[index];
+      domainMemo[cluster] = false;
+      tableData.value[index].cluster = '';
+      return;
+    }
     if (tableData.value[index].cluster === domain) return;
     tableData.value[index].isLoading = true;
     const ret = await getList({ domain }).finally(() => {
@@ -172,16 +187,20 @@
     const row = generateRowDateFromRequest(data);
     tableData.value[index] = row;
     domainMemo[domain] = true;
+    selectedClusters.value[ClusterTypes.SPIDER].push(data);
   };
 
   // 追加一个集群
   const handleAppend = (index: number, appendList: Array<IDataRow>) => {
     tableData.value.splice(index + 1, 0, ...appendList);
   };
+
   // 删除一个集群
   const handleRemove = async (index: number, domain: string) => {
     tableData.value.splice(index, 1);
     delete domainMemo[domain];
+    const clustersArr = selectedClusters.value[ClusterTypes.SPIDER];
+    selectedClusters.value[ClusterTypes.SPIDER] = clustersArr.filter(item => item.master_domain !== domain);
   };
 
   // 点击提交按钮
@@ -227,6 +246,7 @@
 
   const handleReset = () => {
     tableData.value = [createRowData()];
+    selectedClusters.value[ClusterTypes.SPIDER] = [];
     domainMemo = {};
     window.changeConfirm = false;
   };

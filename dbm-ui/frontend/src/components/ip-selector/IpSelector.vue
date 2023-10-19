@@ -65,7 +65,7 @@
     </div>
   </div>
   <BkDialog
-    v-model:is-show="selectorState.isShow"
+    v-model:is-show="showDialog"
     class="db-ip-selector-dialog"
     :close-icon="false"
     :esc-close="false"
@@ -194,7 +194,6 @@
     return t('已过滤出管控区域xx可选的主机', { name: props.cloudInfo.name });
   });
   const selectorState = reactive({
-    isShow: false,
     selected: {
       dynamic_group_list: [],
       host_list: [],
@@ -384,14 +383,6 @@
     selectorState.tableData = cloneData;
   }, { immediate: true, deep: true });
 
-  watch(showDialog, () => {
-    selectorState.isShow = showDialog.value;
-  });
-
-  watch(() => selectorState.isShow, (isShow) => {
-    showDialog.value = isShow;
-  });
-
   /**
    * ip 选择器预览表默认配置
    */
@@ -540,12 +531,12 @@
       handleClearSelected();
     }
     fetchHostDetails();
-    selectorState.isShow = false;
+    showDialog.value = false;
   }
 
   function handleCancelChange() {
     selectorState.cacheSelected = _.cloneDeep(selectorState.selected);
-    selectorState.isShow = false;
+    showDialog.value = false;
   }
 
   /**
@@ -563,7 +554,7 @@
     if (!props.bizId) {
       return;
     }
-    selectorState.isShow = true;
+    showDialog.value = true;
   }
 </script>
 

@@ -36,25 +36,26 @@
         <i class="db-icon-add" />
         {{ $t('批量录入') }}
       </BkButton>
-      <BkCheckbox
-        v-model="isForce"
-        v-bk-tooltips="$t('安全模式下_存在业务连接时需要人工确认')"
-        :false-label="false">
-        <span
-          class="inline-block"
-          style=" margin-top: -2px;border-bottom: 1px dashed #979ba5;">
-          {{ $t('安全模式') }}
-        </span>
-      </BkCheckbox>
     </div>
     <ToolboxTable
       ref="toolboxTableRef"
-      class="mb-32"
+      class="mb-20"
       :columns="columns"
       :data="tableData"
       :max-height="tableMaxHeight"
       @add="handleAddItem"
       @remove="handleRemoveItem" />
+    <BkCheckbox
+      v-model="isForce"
+      v-bk-tooltips="$t('安全模式下_存在业务连接时需要人工确认')"
+      class="mb-20"
+      :false-label="false">
+      <span
+        class="inline-block"
+        style=" margin-top: -2px;border-bottom: 1px dashed #979ba5;">
+        {{ $t('安全模式') }}
+      </span>
+    </BkCheckbox>
     <template #action>
       <BkButton
         class="mr-8 w-88"

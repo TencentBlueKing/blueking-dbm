@@ -18,17 +18,6 @@
         closable
         theme="info"
         :title="t('缩容接入层：减加集群的Proxy数量')" />
-      <div class="top-opeartion">
-        <BkCheckbox
-          v-model="isIgnoreBusinessAccess"
-          style="padding-top: 6px;" />
-        <span
-          v-bk-tooltips="{
-            content: t('如忽略_有连接的情况下也会执行'),
-            theme: 'dark',
-          }"
-          class="ml-6 force-switch">{{ t('忽略业务连接') }}</span>
-      </div>
       <RenderData
         v-slot="slotProps"
         class="mt16"
@@ -46,10 +35,21 @@
           @node-type-choosed="(label: string) => handleChangeNodeType(index, item.cluster, label)"
           @remove="handleRemove(index, item.cluster)" />
       </RenderData>
+      <div class="bottom-opeartion">
+        <BkCheckbox
+          v-model="isIgnoreBusinessAccess"
+          style="padding-top: 6px;" />
+        <span
+          v-bk-tooltips="{
+            content: t('如忽略_有连接的情况下也会执行'),
+            theme: 'dark',
+          }"
+          class="ml-6 force-switch">{{ t('忽略业务连接') }}</span>
+      </div>
       <ClusterSelector
         v-model:is-show="isShowClusterSelector"
         :get-resource-list="getList"
-        :selected="{}"
+        :selected="selectedClusters"
         :tab-list="clusterSelectorTabList"
         @change="handelClusterChange" />
     </div>
@@ -93,25 +93,17 @@
     TicketTypes,
   } from '@common/const';
 
-  import ClusterSelector from '@components/cluster-selector/SpiderClusterSelector.vue';
+  import ClusterSelector from '@components/cluster-selector-new/Index.vue';
 
   import { random } from '@utils';
 
+  import SpiderTable from './components/cluster-selector-table/Index.vue';
   import RenderData from './components/Index.vue';
   import RenderDataRow, {
     createRowData,
     type IDataRow,
     type InfoItem,
   } from './components/Row.vue';
-
-  // 检测列表是否为空
-  const checkListEmpty = (list: Array<IDataRow>) => {
-    if (list.length > 1) {
-      return false;
-    }
-    const [firstRow] = list;
-    return !firstRow.cluster;
-  };
 
   const router = useRouter();
   const { t } = useI18n();
@@ -122,15 +114,31 @@
 
   const tableData = ref([createRowData()]);
   const isIgnoreBusinessAccess = ref(false);
+  const clusterNodeTypeMap = ref<Record<string, string[]>>({});
+  const selectedClusters = shallowRef<{[key: string]: Array<SpiderModel>}>({ [ClusterTypes.SPIDER]: [] });
+
+
   const totalNum = computed(() => (tableData.value.length > 0
     ? new Set(tableData.value.map(item => item.cluster)).size : 0));
   const canSubmit = computed(() => tableData.value.filter(item => Boolean(item.cluster)).length > 0);
 
   const clusterSelectorTabList = [{
-    id: ClusterTypes.SPIDER,
+    id: ClusterTypes.SPIDER as string,
     name: t('集群选择'),
+    content: SpiderTable as unknown as Element,
   }];
-  const clusterNodeTypeMap = ref<Record<string, string[]>>({});
+
+  // 集群域名是否已存在表格的映射表
+  let domainMemo: Record<string, boolean> = {};
+
+  // 检测列表是否为空
+  const checkListEmpty = (list: Array<IDataRow>) => {
+    if (list.length > 1) {
+      return false;
+    }
+    const [firstRow] = list;
+    return !firstRow.cluster;
+  };
 
   const handleChangeNodeType = (index: number, domain: string, label: string) => {
     tableData.value[index].nodeType = label;
@@ -175,10 +183,16 @@
 
   // 批量选择
   const handelClusterChange = async (selected: {[key: string]: Array<SpiderModel>}) => {
+    selectedClusters.value = selected;
     const list = selected[ClusterTypes.SPIDER];
     const newList = list.reduce((result, item) => {
-      const row = generateRowDateFromRequest(item);
-      result.push(row);
+      const domain = item.master_domain;
+      if (!domainMemo[domain]) {
+        const row = generateRowDateFromRequest(item);
+        result.push(row);
+        domainMemo[domain] = true;
+      }
+
       return result;
     }, [] as IDataRow[]);
     if (checkListEmpty(tableData.value)) {
@@ -191,6 +205,12 @@
 
   // 输入集群后查询集群信息并填充到table
   const handleChangeCluster = async (index: number, domain: string) => {
+    if (!domain) {
+      const { cluster } = tableData.value[index];
+      domainMemo[cluster] = false;
+      tableData.value[index].cluster = '';
+      return;
+    }
     if (tableData.value[index].cluster === domain) return;
     tableData.value[index].isLoading = true;
     const ret = await getList({ domain }).finally(() => {
@@ -202,6 +222,8 @@
     const data = ret.results[0];
     const row = generateRowDateFromRequest(data);
     tableData.value[index] = row;
+    domainMemo[domain] = true;
+    selectedClusters.value[ClusterTypes.SPIDER].push(data);
   };
 
   // 追加一个集群
@@ -215,6 +237,7 @@
       tableData.value.splice(index, 1);
       return;
     }
+    delete domainMemo[cluster];
     const { nodeType } = tableData.value[index];
     // 恢复已选择的节点类型到列表
     const sameClusterArr = clusterNodeTypeMap.value[cluster];
@@ -225,6 +248,8 @@
       }
     }
     tableData.value.splice(index, 1);
+    const clustersArr = selectedClusters.value[ClusterTypes.SPIDER];
+    selectedClusters.value[ClusterTypes.SPIDER] = clustersArr.filter(item => item.master_domain !== cluster);
   };
 
   // 点击提交按钮
@@ -270,6 +295,8 @@
   // 重置
   const handleReset = () => {
     tableData.value = [createRowData()];
+    selectedClusters.value[ClusterTypes.SPIDER] = [];
+    domainMemo = {};
     clusterNodeTypeMap.value = {};
     window.changeConfirm = false;
   };
@@ -279,11 +306,10 @@
   .proxy-scale-down-page {
     padding-bottom: 20px;
 
-    .top-opeartion {
+    .bottom-opeartion {
       display: flex;
       width: 100%;
       height: 30px;
-      justify-content: flex-end;
       align-items: flex-end;
 
       .force-switch {

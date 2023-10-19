@@ -73,25 +73,24 @@
     },
   ];
 
-  watch(localValue, (value) => {
-    if (props.role === 'spider_master') {
-      if (Number(value) < 2) {
-        nextTick(() => {
-          localValue.value = '2';
-          editRef.value.getValue();
-        });
-      }
-    }
-  }, {
-    immediate: true,
-  });
+  // watch(localValue, (value) => {
+  //   if (props.role === 'spider_master') {
+  //     if (Number(value) < 2) {
+  //       nextTick(() => {
+  //         localValue.value = '2';
+  //         editRef.value.getValue();
+  //       });
+  //     }
+  //   }
+  // }, {
+  //   immediate: true,
+  // });
 
   defineExpose<Exposes>({
     getValue() {
       return editRef.value
         .getValue()
-        .then(() => ({ spider_reduced_to_count: Number(localValue.value) }))
-        .catch((e: Error) => console.error(e));
+        .then(() => ({ spider_reduced_to_count: Number(localValue.value) }));
     },
   });
 

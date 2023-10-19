@@ -51,6 +51,7 @@
         v-model:is-show="isShowMasterInstanceSelector"
         :panel-list="panelList"
         role="remote_master"
+        :selected="selectedIps"
         @change="handelMasterProxyChange" />
     </div>
     <template #action>
@@ -75,10 +76,6 @@
   </SmartAction>
 </template>
 <script setup lang="tsx">
-  import {
-    ref,
-    shallowRef,
-  } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
@@ -96,17 +93,6 @@
     type IDataRow,
   } from './components/RenderData/Row.vue';
 
-  // 检测列表是否为空
-  const checkListEmpty = (list: Array<IDataRow>) => {
-    if (list.length > 1) {
-      return false;
-    }
-    const [firstRow] = list;
-    return !firstRow.masterData
-      && !firstRow.slaveData
-      && !firstRow.clusterData;
-  };
-
   const { t } = useI18n();
   const router = useRouter();
   const { currentBizId } = useGlobalBizs();
@@ -116,6 +102,7 @@
   const isSubmitting  = ref(false);
 
   const tableData = shallowRef<Array<IDataRow>>([createRowData({})]);
+  const selectedIps = shallowRef<InstanceSelectorValues>({ tendbcluster: [] });
 
   const formData = reactive({
     is_check_process: false,
@@ -134,31 +121,45 @@
     },
   ];
 
+  let ipMemo = {} as Record<string, boolean>;
+
+  // 检测列表是否为空
+  const checkListEmpty = (list: Array<IDataRow>) => {
+    if (list.length > 1) {
+      return false;
+    }
+    const [firstRow] = list;
+    return !firstRow.masterData
+      && !firstRow.slaveData
+      && !firstRow.clusterData;
+  };
+
   // Master 批量选择
   const handleShowMasterBatchSelector = () => {
     isShowMasterInstanceSelector.value = true;
   };
   // Master 批量选择
   const handelMasterProxyChange = (data: InstanceSelectorValues) => {
-    const ipMemo = {} as Record<string, boolean>;
-    const newList = [] as IDataRow [];
-    data.tendbcluster.forEach((proxyData) => {
+    selectedIps.value = data;
+    const newList = data.tendbcluster.reduce((result, item) => {
       const {
         ip,
         bk_host_id,
         bk_cloud_id,
-      } = proxyData;
+      } = item;
       if (!ipMemo[ip]) {
-        newList.push(createRowData({
+        const row = createRowData({
           masterData: {
             bk_host_id,
             bk_cloud_id,
             ip,
           },
-        }));
+        });
+        result.push(row);
         ipMemo[ip] = true;
       }
-    });
+      return result;
+    }, [] as IDataRow[]);
     if (checkListEmpty(tableData.value)) {
       tableData.value = newList;
     } else {
@@ -166,17 +167,25 @@
     }
     window.changeConfirm = true;
   };
+
   // 追加一个集群
   const handleAppend = (index: number, appendList: Array<IDataRow>) => {
     const dataList = [...tableData.value];
     dataList.splice(index + 1, 0, ...appendList);
     tableData.value = dataList;
   };
+
   // 删除一个集群
   const handleRemove = (index: number) => {
     const dataList = [...tableData.value];
+    const ip = dataList[index].masterData?.ip;
     dataList.splice(index, 1);
     tableData.value = dataList;
+    if (ip) {
+      delete ipMemo[ip];
+      const clustersArr = selectedIps.value.tendbcluster;
+      selectedIps.value.tendbcluster = clustersArr.filter(item => item.ip !== ip);
+    }
   };
 
   const handleSubmit = () => {
@@ -210,6 +219,9 @@
 
   const handleReset = () => {
     tableData.value = [createRowData()];
+    ipMemo = {};
+    selectedIps.value.tendbcluster = [];
+    window.changeConfirm = false;
   };
 </script>
 

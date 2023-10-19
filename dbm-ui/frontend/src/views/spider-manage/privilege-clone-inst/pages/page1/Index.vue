@@ -34,6 +34,7 @@
       </RenderData>
       <InstanceSelector
         v-model:is-show="isShowBatchInstanceSelector"
+        :selected="selectedIps"
         @change="handelInstanceSelectorChange" />
     </div>
     <template #action>
@@ -59,10 +60,6 @@
 </template>
 
 <script setup lang="tsx">
-  import {
-    ref,
-    shallowRef,
-  } from 'vue';
   import { useRouter } from 'vue-router';
 
   import { precheckPermissionClone } from '@services/permission';
@@ -80,6 +77,17 @@
     type IDataRow,
   } from './components/RenderData/Row.vue';
 
+  const router = useRouter();
+  const { currentBizId } = useGlobalBizs();
+
+  const rowRefs = ref();
+  const isShowBatchInstanceSelector = ref(false);
+  const isSubmitting  = ref(false);
+
+  const tableData = shallowRef<Array<IDataRow>>([createRowData({})]);
+  const selectedIps = shallowRef<InstanceSelectorValues>({ tendbcluster: [] });
+  let ipMemo = {} as Record<string, boolean>;
+
   // 检测列表是否为空
   const checkListEmpty = (list: Array<IDataRow>) => {
     if (list.length > 1) {
@@ -89,24 +97,24 @@
     return !firstRow.source && !firstRow.target;
   };
 
-  const router = useRouter();
-  const { currentBizId } = useGlobalBizs();
-
-  const rowRefs = ref();
-  const isShowBatchInstanceSelector = ref(false);
-  const isSubmitting  = ref(false);
-
-  const tableData = shallowRef<Array<IDataRow>>([createRowData({})]);
-
   // 批量选择
   const handleShowBatchSelector = () => {
     isShowBatchInstanceSelector.value = true;
   };
   // 批量选择
   const handelInstanceSelectorChange = (data: InstanceSelectorValues) => {
-    const newList = data.tendbcluster.map(item => createRowData({
-      source: item,
-    }));
+    selectedIps.value = data;
+    const newList = data.tendbcluster.reduce((result, item) => {
+      const { instance_address: ip } = item;
+      if (!ipMemo[ip]) {
+        const row = createRowData({
+          source: item,
+        });
+        result.push(row);
+        ipMemo[ip] = true;
+      }
+      return result;
+    }, [] as IDataRow[]);
     if (checkListEmpty(tableData.value)) {
       tableData.value = newList;
     } else {
@@ -121,11 +129,18 @@
     dataList.splice(index + 1, 0, ...appendList);
     tableData.value = dataList;
   };
+
   // 删除一个集群
   const handleRemove = (index: number) => {
     const dataList = [...tableData.value];
+    const ip = dataList[index].source?.instance_address;
     dataList.splice(index, 1);
     tableData.value = dataList;
+    if (ip) {
+      delete ipMemo[ip];
+      const clustersArr = selectedIps.value.tendbcluster;
+      selectedIps.value.tendbcluster = clustersArr.filter(item => item.instance_address !== ip);
+    }
   };
 
   const handleSubmit = () => {
@@ -168,6 +183,9 @@
 
   const handleReset = () => {
     tableData.value = [createRowData()];
+    ipMemo = {};
+    selectedIps.value.tendbcluster = [];
+    window.changeConfirm = false;
   };
 </script>
 
