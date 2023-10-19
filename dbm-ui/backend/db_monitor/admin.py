@@ -25,10 +25,40 @@ class MonitorPolicyAdmin(admin.ModelAdmin):
         "target_level",
         "target_keyword",
         "is_enabled",
-        # "is_synced",
         "sync_at",
         "event_count",
-        # "dispatch_group_id",
     )
     list_filter = ("bk_biz_id", "db_type")
+    search_fields = ("name",)
+
+
+@admin.register(models.DutyRule)
+class DutyRuleAdmin(admin.ModelAdmin):
+    list_display = (
+        "name",
+        "monitor_duty_rule_id",
+        "priority",
+        "is_enabled",
+        "effective_time",
+        "end_time",
+        "category",
+        "db_type",
+    )
+    list_filter = ("category", "db_type")
+    search_fields = ("name",)
+
+
+@admin.register(models.NoticeGroup)
+class NoticeGroupAdmin(admin.ModelAdmin):
+    list_display = (
+        "bk_biz_id",
+        "name",
+        "monitor_group_id",
+        "monitor_duty_rule_id",
+        "db_type",
+        "is_built_in",
+        "sync_at",
+        "dba_sync",
+    )
+    list_filter = ("db_type", "is_built_in", "dba_sync")
     search_fields = ("name",)

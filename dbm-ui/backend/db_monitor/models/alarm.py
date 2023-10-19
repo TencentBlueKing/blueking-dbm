@@ -104,10 +104,7 @@ class NoticeGroup(AuditedModel):
         """业务内置"""
         return dict(cls.objects.filter(bk_biz_id=bk_biz_id, is_built_in=True).values_list("db_type", id_name))
 
-    def save(self, *args, **kwargs):
-        """
-        保存告警组
-        """
+    def save_monitor_group(self) -> int:
         # 深拷贝保存用户组的模板
         save_monitor_group_params = copy.deepcopy(BK_MONITOR_SAVE_USER_GROUP_TEMPLATE)
         # 更新差异字段
@@ -159,8 +156,14 @@ class NoticeGroup(AuditedModel):
             save_monitor_group_params["id"] = self.monitor_group_id
         # 调用监控接口写入
         resp = BKMonitorV3Api.save_user_group(save_monitor_group_params)
-        self.monitor_group_id = resp["id"]
 
+        return resp["id"]
+
+    def save(self, *args, **kwargs):
+        """
+        保存告警组
+        """
+        self.monitor_group_id = self.save_monitor_group()
         if self.is_built_in:
             # 更新业务策略绑定的告警组
             update_app_policy.delay(self.bk_biz_id, self.id, self.db_type)
@@ -270,16 +273,24 @@ class DutyRule(AuditedModel):
                     "group_number": self.duty_arranges[0]["duty_number"],
                 }
             )
-        # 判断是否存量的轮值规则
+        #  2. 判断是否存量的轮值规则，如果是，则走更新流程
         is_old_rule = bool(self.monitor_duty_rule_id)
-        if is_old_rule:
+        if bool(self.monitor_duty_rule_id):
             params["id"] = self.monitor_duty_rule_id
         resp = BKMonitorV3Api.save_duty_rule(params)
         self.monitor_duty_rule_id = resp["id"]
-        # 2. 保存本地轮值规则
+        # 3. 判断是否需要变更用户组
+        # 3.1 非老规则（即新建的规则）
+        need_update_user_group = not is_old_rule
+        # 3.2 调整了优先级的规则
+        if self.pk:
+            old_rule = DutyRule.objects.get(pk=self.pk)
+            if old_rule.priority != self.priority:
+                need_update_user_group = True
+        # 4. 保存本地轮值规则
         super().save(*args, **kwargs)
-        # 3. 如果是新增的轮值，则还需要把新的轮值规则绑定到内置告警组中
-        if not is_old_rule:
+        # 5. 变更告警组
+        if need_update_user_group:
             for notice_group in NoticeGroup.objects.filter(is_built_in=True, db_type=self.db_type):
                 notice_group.save()
 
@@ -288,8 +299,7 @@ class DutyRule(AuditedModel):
         super().delete()
 
     class Meta:
-        verbose_name = _("轮值规则")
-        verbose_name_plural = verbose_name
+        verbose_name_plural = verbose_name = _("轮值规则")
 
 
 class RuleTemplate(AuditedModel):
