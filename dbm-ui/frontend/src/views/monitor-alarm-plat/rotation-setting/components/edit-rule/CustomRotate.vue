@@ -252,6 +252,16 @@
     dateTimeRange.value = range;
   };
 
+  // 临时处理，待组件支持分钟后去除
+  const splitTimeToMinute = (str: string) => {
+    const strArr = str.split(':');
+    if (strArr.length <= 2) {
+      return str;
+    }
+    strArr.pop();
+    return strArr.join(':');
+  };
+
   defineExpose<Exposes>({
     getValue() {
       let effctTime = dateTimeRange.value[0];
@@ -263,7 +273,7 @@
         end_time: endTime,
         duty_arranges: tableData.value.map(item => ({
           date: item.dateTime,
-          work_times: item.timeRange.map(data => data.value.join('--')),
+          work_times: item.timeRange.map(data => data.value.map(str => splitTimeToMinute(str)).join('--')),
           members: item.peoples,
         })),
       };

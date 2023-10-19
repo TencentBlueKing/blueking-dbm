@@ -390,6 +390,16 @@
     dateTimeRange.value = range;
   };
 
+  // 临时处理，待组件支持分钟后去除
+  const splitTimeToMinute = (str: string) => {
+    const strArr = str.split(':');
+    if (strArr.length <= 2) {
+      return str;
+    }
+    strArr.pop();
+    return strArr.join(':');
+  };
+
   defineExpose<Exposes>({
     async getValue() {
       await formRef.value.validate();
@@ -406,7 +416,7 @@
           members: item.peoples,
           work_type: dateSelect.value.date,
           work_days: dateSelect.value.date === 'weekly' ? dateSelect.value.weekday.map(num => (num === 0 ? 7 : num)) : [],
-          work_times: dateSelect.value.timeList.map(item => item.value.join('--')),
+          work_times: dateSelect.value.timeList.map(item => item.value.map(str => splitTimeToMinute(str)).join('--')),
         })),
       };
     },
