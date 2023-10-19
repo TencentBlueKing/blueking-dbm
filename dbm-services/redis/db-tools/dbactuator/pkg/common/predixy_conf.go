@@ -1,12 +1,17 @@
 package common
 
-// PredixConf TODO
+// PredixConf predix配置文件
 var PredixConf = `Bind {{ip:port}}
 WorkerThreads {{worker_threads}}
 ClientTimeout {{client_timeout}}
+SlowlogLogSlowerThan {{slowlog_Log_slower_than}}
+SlowlogMaxLen {{slowlog_max_len}}
 Authority {
-    Auth "{{predixy_password}}" {
+	Auth "{{predixy_password}}" {
         Mode write
+    }
+	Auth "{{predixy_admin_password}}" {
+        Mode admin
     }
 }
 Log {{log_path}}

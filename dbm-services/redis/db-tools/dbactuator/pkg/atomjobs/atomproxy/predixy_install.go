@@ -54,20 +54,23 @@ const DefaultPerm = 0755
 
 // PredixyConfParams predixy配置文件参数
 type PredixyConfParams struct {
-	common.MediaPkg `json:"mediapkg"`
-	IP              string   `json:"ip" validate:"required"`
-	Port            int      `json:"port" validate:"required"`
-	PredixyPasswd   string   `json:"predixypasswd" validate:"required"`
-	RedisPasswd     string   `json:"redispasswd" validate:"required"`
-	Servers         []string `json:"servers" validate:"required"`
-	DbConfig        struct {
-		WorkerThreads      string `json:"workerthreads" validate:"required"`
-		ClientTimeout      string `json:"clienttimeout"`
-		RefreshInterval    string `json:"refreshinterval" validate:"required"`
-		ServerFailureLimit string `json:"serverfailurelimit" validate:"required"`
-		ServerRetryTimeout string `json:"serverretrytimeout" validate:"required"`
-		KeepAlive          string `json:"keepalive"`
-		ServerTimeout      string `json:"servertimeout"`
+	common.MediaPkg    `json:"mediapkg"`
+	IP                 string   `json:"ip" validate:"required"`
+	Port               int      `json:"port" validate:"required"`
+	PredixyPasswd      string   `json:"predixypasswd" validate:"required"`
+	PredixyAdminPasswd string   `json:"predixyadminpasswd" validate:"required"`
+	RedisPasswd        string   `json:"redispasswd" validate:"required"`
+	Servers            []string `json:"servers" validate:"required"`
+	DbConfig           struct {
+		WorkerThreads        string `json:"workerthreads" validate:"required"`
+		ClientTimeout        string `json:"clienttimeout"`
+		RefreshInterval      string `json:"refreshinterval" validate:"required"`
+		ServerFailureLimit   string `json:"serverfailurelimit" validate:"required"`
+		ServerRetryTimeout   string `json:"serverretrytimeout" validate:"required"`
+		KeepAlive            string `json:"keepalive"`
+		ServerTimeout        string `json:"servertimeout"`
+		SlowlogLogSlowerThan string `json:"slowloglogslowerthan" validate:"required"`
+		SlowlogMaxLen        string `json:"slowlogmaxlen" validate:"required"`
 	} `json:"dbconfig" validate:"required"`
 }
 
@@ -144,6 +147,9 @@ func (p *PredixyInstall) getConfFileContent() {
 	conf = strings.Replace(conf, "{{server_timeout}}", p.ConfParams.DbConfig.ServerTimeout, -1)
 	conf = strings.Replace(conf, "{{keep_alive}}", p.ConfParams.DbConfig.KeepAlive, -1)
 	conf = strings.Replace(conf, "{{client_timeout}}", p.ConfParams.DbConfig.ClientTimeout, -1)
+	conf = strings.Replace(conf, "{{slowlog_Log_slower_than}}", p.ConfParams.DbConfig.SlowlogLogSlowerThan, -1)
+	conf = strings.Replace(conf, "{{slowlog_max_len}}", p.ConfParams.DbConfig.SlowlogMaxLen, -1)
+	conf = strings.Replace(conf, "{{predixy_admin_password}}", p.ConfParams.PredixyAdminPasswd, -1)
 	conf = strings.Replace(conf, "{{refresh_interval}}",
 		p.ConfParams.DbConfig.RefreshInterval, -1)
 	conf = strings.Replace(conf, "{{server_failure_limit}}",
