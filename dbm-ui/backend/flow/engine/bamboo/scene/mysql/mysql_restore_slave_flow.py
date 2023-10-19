@@ -302,6 +302,17 @@ class MySQLRestoreSlaveFlow(object):
                 uninstall_slave_sub_list.append(uninstall_slave_sub_pipeline.build_sub_process(_("卸载实例")))
             # 流程: 恢复数据>切换>安装周边>卸载
             sub_pipeline.add_parallel_sub_pipeline(sub_flow_list=slave_restore_sub_list)
+            #  切换前安装周边组件
+            sub_pipeline.add_sub_pipeline(
+                sub_flow=build_surrounding_apps_sub_flow(
+                    bk_cloud_id=one_machine["bk_cloud_id"],
+                    slave_ip_list=[one_machine["new_slave_ip"]],
+                    root_id=self.root_id,
+                    parent_global_data=copy.deepcopy(ticket_data),
+                    is_init=True,
+                    cluster_type=one_machine["cluster_type"],
+                )
+            )
             sub_pipeline.add_act(act_name=_("人工确认"), act_component_code=PauseComponent.code, kwargs={})
             sub_pipeline.add_parallel_sub_pipeline(sub_flow_list=switch_slave_sub_list)
             # 第三步 安装周边
@@ -419,6 +430,17 @@ class MySQLRestoreSlaveFlow(object):
                 act_component_code=ExecuteDBActuatorScriptComponent.code,
                 kwargs=asdict(exec_act_kwargs),
             )
+            restore_local_slave_sub_pipeline.add_sub_pipeline(
+                sub_flow=build_surrounding_apps_sub_flow(
+                    bk_cloud_id=one_cluster["bk_cloud_id"],
+                    slave_ip_list=[one_cluster["new_slave_ip"]],
+                    root_id=self.root_id,
+                    parent_global_data=copy.deepcopy(ticket_data),
+                    is_init=True,
+                    cluster_type=one_cluster["cluster_type"],
+                )
+            )
+
             sub_pipeline_list.append(
                 restore_local_slave_sub_pipeline.build_sub_process(sub_name=_("Restore local Slave 本地重建"))
             )
@@ -551,6 +573,18 @@ class MySQLRestoreSlaveFlow(object):
                         )
                     ),
                 )
+
+                restore_slave_sub_pipeline.add_sub_pipeline(
+                    sub_flow=build_surrounding_apps_sub_flow(
+                        bk_cloud_id=one_cluster["bk_cloud_id"],
+                        slave_ip_list=[one_cluster["new_slave_ip"]],
+                        root_id=self.root_id,
+                        parent_global_data=copy.deepcopy(ticket_data),
+                        is_init=True,
+                        cluster_type=one_cluster["cluster_type"],
+                    )
+                )
+
                 slave_restore_sub_list.append(
                     restore_slave_sub_pipeline.build_sub_process(sub_name=_("添加Slave之恢复slave"))
                 )
