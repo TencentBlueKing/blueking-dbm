@@ -39,7 +39,7 @@ logger = logging.getLogger("json")
 cpl = re.compile("<ctx>(?P<context>.+?)</ctx>")  # 非贪婪模式，只匹配第一次出现的自定义tag
 
 
-class ExecuteDataStructureActuatorScriptService(BkJobService):
+class PushDataStructureJsonScriptService(BkJobService):
     """
     根据db-actuator组件，绑定fast_execute_script api接口访问。
     """
@@ -109,35 +109,30 @@ class ExecuteDataStructureActuatorScriptService(BkJobService):
             self.log_info(_("[{}] kwargs['payload'] 是不完整，需要将{}内容加到payload中").format(node_name, kwargs["cluster"]))
             db_act_template["payload"].update(kwargs["cluster"])
 
-        if getattr(trans_data, "tendis_backup_info"):
-            db_act_template["payload"]["backup_tasks"] = trans_data.tendis_backup_info
-
         db_act_template["payload"] = str(
             base64.b64encode(json.dumps(db_act_template["payload"]).encode("utf-8")), "utf-8"
         )
 
         FlowNode.objects.filter(root_id=kwargs["root_id"], node_id=node_id).update(hosts=exec_ips)
-        db_act_template["file_name"] = (
-            f"{kwargs['cluster']['data_params']['source_ip']}_"
-            f"{global_data['uid']}_{kwargs['root_id']}_{kwargs['exec_ip']}.json"
-        )
         # 脚本内容
         jinja_env = Environment()
-        template = jinja_env.from_string(redis_data_structure_actuator_template)
 
-        body = {
-            "bk_biz_id": env.JOB_BLUEKING_BIZ_ID,
-            "task_name": f"DBM_{node_name}_{node_id}",
-            "script_content": str(base64.b64encode(template.render(db_act_template).encode("utf-8")), "utf-8"),
-            "script_language": 1,
-            "target_server": {"ip_list": target_ip_info},
-        }
+        template = jinja_env.from_string(redis_data_structure_payload_template)
+        payload = copy.deepcopy(consts.BK_PUSH_CONFIG_PAYLOAD)
+        payload["task_name"] = f"{kwargs['node_name']}_{kwargs['node_id']}"
+        payload["file_list"] = [
+            {
+                "file_name": (
+                    f"{kwargs['cluster']['data_params']['source_ip']}_"
+                    f"{global_data['uid']}_{kwargs['root_id']}_{kwargs['exec_ip']}.json"
+                ),
+                "content": str(template.render(db_act_template)),
+            }
+        ]
+        payload["target_server"]["ip_list"] = target_ip_info
 
-        self.log_info(
-            "[{}] ready start task with body {} {}".format(node_name, redis_fast_execute_script_common_kwargs, body)
-        )
-        resp = JobApi.fast_execute_script({**redis_fast_execute_script_common_kwargs, **body}, raw=True)
-
+        self.log_info(_("[{}] 下发介质包参数：{}").format(kwargs["node_name"], payload))
+        resp = JobApi.push_config_file(payload, raw=True)
         # 传入调用结果，并单调监听任务状态
         data.outputs.ext_result = resp
         data.outputs.exec_ips = exec_ips
@@ -153,7 +148,7 @@ class ExecuteDataStructureActuatorScriptService(BkJobService):
         return [Service.OutputItem(name="exec_ips", key="exec_ips", type="list")]
 
 
-class ExecuteDataStructureActuatorScriptComponent(Component):
+class PushDataStructureJsonScriptComponent(Component):
     name = __name__
-    code = "redis_data_structure_actuator_execute"
-    bound_service = ExecuteDataStructureActuatorScriptService
+    code = "push_data_structure_json_execute"
+    bound_service = PushDataStructureJsonScriptService

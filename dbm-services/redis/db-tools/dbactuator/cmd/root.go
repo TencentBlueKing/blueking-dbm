@@ -45,6 +45,17 @@ var RootCmd = &cobra.Command{
 		var err error
 		dir, _ := util.GetCurrentDirectory()
 
+		// payLoadFile 数据构造的时候使用的
+		// 解决命令行参数超限问题:./dbactuator_redis: Argument list too long 问题
+		if payLoad == "" && payLoadFile != "" {
+			if o, err := os.ReadFile(payLoadFile); err == nil {
+				payLoad = base64.StdEncoding.EncodeToString(o)
+				log.Printf("using payload file %s", payLoadFile)
+			} else {
+				log.Printf("using payload file %s err %v", payLoadFile, err)
+			}
+		}
+
 		manager, err := jobmanager.NewJobGenericManager(uid, rootID, nodeID, versionID,
 			payLoad, payLoadFormat, atomJobList, dir, multiProcessConcurrency)
 		if err != nil {
@@ -56,15 +67,6 @@ var RootCmd = &cobra.Command{
 			return
 		}
 
-		// 优先使用payLoad。 payLoadFile 个人测试的时候使用的.
-		if payLoad == "" && payLoadFile != "" {
-			if o, err := os.ReadFile(payLoadFile); err == nil {
-				payLoad = base64.StdEncoding.EncodeToString(o)
-				log.Printf("using payload file %s", payLoadFile)
-			} else {
-				log.Printf("using payload file %s err %v", payLoadFile, err)
-			}
-		}
 		err = consts.SetRedisDataDir(dataDir)
 		if err != nil {
 			log.Println(err.Error())
