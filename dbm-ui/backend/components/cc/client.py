@@ -229,6 +229,14 @@ class _CCApi(object):
             description=_("服务实例添加标签"),
         )
 
+        self.remove_label_from_service_instance = DataAPI(
+            method="POST",
+            base=CC_APIGW_DOMAIN,
+            url="remove_label_from_service_instance/",
+            module=self.MODULE,
+            description=_("从服务实例移除标签"),
+        )
+
         self.delete_service_instance = DataAPI(
             method="POST",
             base=CC_APIGW_DOMAIN,

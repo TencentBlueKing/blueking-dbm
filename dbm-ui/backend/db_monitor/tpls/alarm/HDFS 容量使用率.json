@@ -56,7 +56,7 @@
             "agg_condition": [],
             "agg_dimension": [
               "bk_target_service_instance_id",
-              "app_id"
+              "appid"
             ],
             "data_type_label": "time_series",
             "result_table_id": "exporter_dbm_hdfs_exporter.group1",
@@ -75,7 +75,7 @@
             "agg_condition": [],
             "agg_dimension": [
               "bk_target_service_instance_id",
-              "app_id"
+              "appid"
             ],
             "data_type_label": "time_series",
             "result_table_id": "exporter_dbm_hdfs_exporter.group1",
@@ -96,7 +96,7 @@
               "app",
               "cluster_domain",
               "bk_target_service_instance_id",
-              "app_id"
+              "appid"
             ],
             "data_type_label": "time_series",
             "result_table_id": "exporter_dbm_hdfs_exporter.group1",
@@ -322,6 +322,6 @@
   },
   "is_enabled": true,
   "monitor_indicator": "\u5bb9\u91cf\u4f7f\u7528\u7387",
-  "version": 2,
+  "version": 8,
   "alert_source": "time_series"
 }

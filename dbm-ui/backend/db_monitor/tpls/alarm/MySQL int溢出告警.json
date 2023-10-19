@@ -57,7 +57,7 @@
               "schema",
               "table",
               "column",
-              "app_id"
+              "appid"
             ],
             "data_type_label": "time_series",
             "result_table_id": "exporter_dbm_mysqld_exporter.tableincr",
@@ -90,7 +90,7 @@
               "schema",
               "table",
               "column",
-              "app_id"
+              "appid"
             ],
             "data_type_label": "time_series",
             "result_table_id": "exporter_dbm_mysqld_exporter.tableincr",
@@ -283,6 +283,6 @@
   },
   "is_enabled": true,
   "monitor_indicator": "\u81ea\u589e\u5217\u7684\u5e73\u5747\u4f7f\u7528\u7387",
-  "version": 2,
+  "version": 8,
   "alert_source": "time_series"
 }

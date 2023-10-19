@@ -8,6 +8,9 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import json
+
+from django.core.cache import cache
 from django.db.models import Q
 from django.utils.decorators import method_decorator
 from django.utils.translation import ugettext as _
@@ -24,6 +27,7 @@ from ...db_meta.enums import ClusterType, InstanceRole
 from ...db_meta.models import Cluster, DBModule, StorageInstance
 from ...iam_app.handlers.drf_perm import DBManageIAMPermission
 from .. import constants
+from ..constants import MONITOR_EVENTS
 from ..models import MonitorPolicy
 from ..serializers import (
     ListClusterSerializer,
@@ -138,6 +142,11 @@ class MonitorPolicyViewSet(AuditedModelViewSet):
         if self.action == "list":
             return MonitorPolicyListSerializer
         return MonitorPolicySerializer
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context["events"] = json.loads(cache.get(MONITOR_EVENTS, "{}"))
+        return context
 
     @common_swagger_auto_schema(
         operation_summary=_("启用策略"), tags=[constants.SWAGGER_TAG], request_body=MonitorPolicyEmptySerializer()

@@ -15,13 +15,13 @@ import logging
 import os
 
 from celery.schedules import crontab
-from django_redis import get_redis_connection
+from django.core.cache import cache
 
 from backend import env
 from backend.components import BKMonitorV3Api
 from backend.configuration.constants import DEFAULT_DB_ADMINISTRATORS, PLAT_BIZ_ID
 from backend.configuration.models import DBAdministrator
-from backend.db_monitor.constants import MONITOR_EVENTS_PREFIX, TPLS_ALARM_DIR, TargetPriority
+from backend.db_monitor.constants import MONITOR_EVENTS, TPLS_ALARM_DIR, TargetPriority
 from backend.db_monitor.exceptions import BkMonitorSaveAlarmException
 from backend.db_monitor.models import DispatchGroup, MonitorPolicy, NoticeGroup
 from backend.db_monitor.tasks import update_app_policy
@@ -167,7 +167,7 @@ def sync_plat_dispatch_policy():
     """同步平台分派通知策略
     按照app_id->db_type来拆分策略：
         bk_biz_id=0: db_type=redis and policy=1,2,3 -> notify_group: 1
-        bk_biz_id>0: db_type=redis and policy=1,2,3 and app_id=6 -> notify_group: 2
+        bk_biz_id>0: db_type=redis and policy=1,2,3 and appid=6 -> notify_group: 2
     """
 
     logger.info("sync_plat_dispatch_policy started")
@@ -231,13 +231,6 @@ def sync_monitor_policy_events():
         )
         event_counts.update(biz_event_counts)
 
-    # {strategy_id: { bk_biz_id: count }}
-    r = get_redis_connection("default")
-
-    # delete all monitor_events
-    for key in r.keys(f"{MONITOR_EVENTS_PREFIX}|*"):
-        r.delete(key)
-
-    # update latest monitor_events
-    for monitor_policy_id, policy_event_counts in event_counts.items():
-        r.hset(f"{MONITOR_EVENTS_PREFIX}|{monitor_policy_id}", mapping=policy_event_counts)
+    print(event_counts)
+    logger.info("sync_monitor_policy_events -> policy_event_counts = %s", event_counts)
+    cache.set(MONITOR_EVENTS, json.dumps(event_counts))

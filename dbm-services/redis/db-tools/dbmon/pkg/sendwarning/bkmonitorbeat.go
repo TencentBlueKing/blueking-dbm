@@ -89,7 +89,7 @@ func NewBkMonitorEventSender(dataID int64, token, gsePath, agentAddress string) 
 	        "dimension":{
 	            "bk_biz_id":"200500194",
 	            "bk_cloud_id":"0",
-	            "app_id":"200500194",
+	            "appid":"200500194",
 	            "app_name":"测试app",
 	            "app":"testapp",
 	            "cluster_domain":"tendisx.aaaa.testapp.db",
@@ -176,7 +176,7 @@ func (bm *BkMonitorEventSender) newDimenSion() {
 func (bm *BkMonitorEventSender) SetBkBizID(bkBizID string) *BkMonitorEventSender {
 	bm.newDimenSion()
 	bm.Data[0].Dimension["bk_biz_id"] = bkBizID
-	bm.Data[0].Dimension["app_id"] = bkBizID
+	bm.Data[0].Dimension["appid"] = bkBizID
 	return bm
 }
 

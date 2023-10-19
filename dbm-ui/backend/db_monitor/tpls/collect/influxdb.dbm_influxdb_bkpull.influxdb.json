@@ -11,9 +11,9 @@
       "plugin": {
         "\u670d\u52a1\u5b9e\u4f8b\u7ef4\u5ea6\u6ce8\u5165": {
           "app": "app",
+          "appid": "appid",
           "db_group": "db_group",
           "instance": "instance",
-          "bk_app_code": "app_id",
           "cluster_name": "cluster_name",
           "instance_host": "instance_host",
           "instance_port": "instance_port",
@@ -5794,5 +5794,5 @@
     "target_node_type": "TOPO",
     "target_object_type": "SERVICE"
   },
-  "version": 2
+  "version": 5
 }

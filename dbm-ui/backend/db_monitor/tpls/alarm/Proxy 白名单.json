@@ -39,13 +39,13 @@
             "agg_interval": 60,
             "agg_condition": [],
             "agg_dimension": [
-              "app_id",
-              "role",
-              "port",
+              "appid",
+              "instance_role",
+              "instance_port",
               "machine_type",
               "cluster_domain",
               "bk_cloud_id",
-              "server_ip"
+              "instance_host"
             ],
             "data_type_label": "event",
             "result_table_id": "bkmonitor_event_{event_data_id}",
@@ -236,6 +236,6 @@
   },
   "is_enabled": true,
   "monitor_indicator": "COUNT(proxy-user-list)",
-  "version": 2,
+  "version": 8,
   "alert_source": "event"
 }

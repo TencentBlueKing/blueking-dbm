@@ -98,7 +98,7 @@ def query_cluster_capacity(cluster_type):
     return cluster_cap_bytes
 
 
-@register_periodic_task(run_every=crontab(minute="*/5"))
+@register_periodic_task(run_every=crontab(minute="*/3"))
 def sync_cluster_stat_from_monitor():
     """
     同步各集群容量状态

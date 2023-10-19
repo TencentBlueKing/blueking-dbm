@@ -18,17 +18,10 @@ from backend.bk_web.serializers import AuditedSerializer
 from backend.configuration.constants import DBType
 from backend.db_meta.enums import ClusterType
 from backend.db_monitor import mock_data
-from backend.db_monitor.constants import (
-    MONITOR_EVENTS_PREFIX,
-    AlertLevelEnum,
-    DetectAlgEnum,
-    OperatorEnum,
-    TargetLevel,
-)
+from backend.db_monitor.constants import AlertLevelEnum, DetectAlgEnum, OperatorEnum, TargetLevel
 from backend.db_monitor.models import CollectTemplate, MonitorPolicy, NoticeGroup, RuleTemplate
 from backend.db_monitor.models.alarm import DutyRule
 from backend.db_periodic_task.constants import NoticeSignalEnum
-from backend.utils.redis import RedisConn
 
 
 class GetDashboardSerializer(serializers.Serializer):
@@ -127,10 +120,10 @@ class MonitorPolicyListSerializer(MonitorPolicySerializer):
 
     def get_event_count(self, obj):
         bk_biz_id = int(self.context["request"].query_params.get("bk_biz_id"))
-        events = RedisConn.hgetall(f"{MONITOR_EVENTS_PREFIX}|{obj.monitor_policy_id}")
+        policy_events = self.context["events"].get(str(obj.monitor_policy_id), {})
         if bk_biz_id > 0:
-            return int(events.get(str(bk_biz_id), 0))
-        return sum(map(lambda x: int(x), events.values()))
+            return int(policy_events.get(str(bk_biz_id), 0))
+        return sum(map(lambda x: int(x), policy_events.values()))
 
     class Meta:
         model = MonitorPolicy

@@ -17,7 +17,7 @@
         "--web.listen-address": "${host}:${port}",
         "\u670d\u52a1\u5b9e\u4f8b\u7ef4\u5ea6\u6ce8\u5165": {
           "app": "app",
-          "bk_app_code": "app_id",
+          "appid": "appid",
           "instance": "instance",
           "cluster_name": "cluster_name",
           "cluster_type": "cluster_type",
@@ -29,11 +29,8 @@
       "collector": {
         "host": "127.0.0.1",
         "port": "9527",
-        "period": 60,
-        "timeout": 60
-      },
-      "target_node_type": "TOPO",
-      "target_object_type": "SERVICE"
+        "period": 60
+      }
     },
     "plugin_info": {
       "plugin_id": "dbm_elasticsearch_exporter",
@@ -5222,5 +5219,5 @@
     "target_node_type": "TOPO",
     "target_object_type": "SERVICE"
   },
-  "version": 2
+  "version": 5
 }

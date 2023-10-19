@@ -14,8 +14,8 @@
         "-password-file": "/home/mysql/.exporter/{{ target.process[\"redis-predixy\"].bind_info[0].port }}.conf",
         "\u670d\u52a1\u5b9e\u4f8b\u7ef4\u5ea6\u6ce8\u5165": {
           "app": "app",
+          "appid": "appid",
           "instance": "instance",
-          "bk_app_code": "app_id",
           "cluster_name": "cluster_name",
           "cluster_type": "cluster_type",
           "instance_host": "instance_host",
@@ -27,11 +27,8 @@
       "collector": {
         "host": "127.0.0.1",
         "port": "9121",
-        "period": 60,
-        "timeout": 60
-      },
-      "target_node_type": "TOPO",
-      "target_object_type": "SERVICE"
+        "period": 60
+      }
     },
     "plugin_info": {
       "plugin_id": "dbm_predixy_exporter",
@@ -1115,5 +1112,5 @@
     "target_node_type": "TOPO",
     "target_object_type": "SERVICE"
   },
-  "version": 1
+  "version": 5
 }

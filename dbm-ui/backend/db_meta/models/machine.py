@@ -77,7 +77,7 @@ class Machine(AuditedModel):
                         asdict(
                             CommonHostDBMeta(
                                 app=AppCache.get_app_attr(cluster.bk_biz_id, default=cluster.bk_biz_id),
-                                app_id=str(cluster.bk_biz_id),
+                                appid=str(cluster.bk_biz_id),
                                 cluster_type=cluster.cluster_type,
                                 cluster_domain=cluster.immute_domain,
                                 # tendbcluster中扩展了proxy的类型，需要特殊处理
@@ -96,7 +96,7 @@ class Machine(AuditedModel):
                         asdict(
                             CommonHostDBMeta(
                                 app=AppCache.get_app_attr(storage.bk_biz_id, default=storage.bk_biz_id),
-                                app_id=str(storage.bk_biz_id),
+                                appid=str(storage.bk_biz_id),
                                 cluster_domain=storage.machine.ip,
                                 cluster_type=storage.cluster_type,
                                 instance_role=storage.instance_role,
@@ -110,7 +110,7 @@ class Machine(AuditedModel):
                         asdict(
                             CommonHostDBMeta(
                                 app=AppCache.get_app_attr(cluster.bk_biz_id, default=cluster.bk_biz_id),
-                                app_id=str(cluster.bk_biz_id),
+                                appid=str(cluster.bk_biz_id),
                                 cluster_domain=cluster.immute_domain,
                                 cluster_type=cluster.cluster_type,
                                 instance_role=storage.instance_role,

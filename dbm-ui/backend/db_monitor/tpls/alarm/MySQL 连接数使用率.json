@@ -59,7 +59,7 @@
               "cluster_domain",
               "instance_role",
               "instance",
-              "app_id"
+              "appid"
             ],
             "data_type_label": "time_series",
             "result_table_id": "exporter_dbm_mysqld_exporter.gstatus",
@@ -81,7 +81,7 @@
               "cluster_domain",
               "instance_role",
               "instance",
-              "app_id"
+              "appid"
             ],
             "data_type_label": "time_series",
             "result_table_id": "exporter_dbm_mysqld_exporter.gvars",
@@ -296,6 +296,6 @@
   },
   "is_enabled": true,
   "monitor_indicator": "\u6570\u636e\u5e93\u8fde\u63a5\u6570\u5e73\u5747\u4f7f\u7528\u7387",
-  "version": 2,
+  "version": 8,
   "alert_source": "time_series"
 }

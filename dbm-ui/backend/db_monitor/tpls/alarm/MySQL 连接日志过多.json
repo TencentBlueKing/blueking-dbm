@@ -40,10 +40,10 @@
             "agg_condition": [],
             "agg_dimension": [
               "bk_cloud_id",
-              "port",
-              "app_id",
-              "server_ip",
-              "role",
+              "instance_port",
+              "appid",
+              "instance_host",
+              "instance_role",
               "cluster_domain",
               "machine_type"
             ],
@@ -236,6 +236,6 @@
   },
   "is_enabled": true,
   "monitor_indicator": "COUNT(mysql-connlog-size)",
-  "version": 2,
+  "version": 8,
   "alert_source": "event"
 }
