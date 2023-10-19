@@ -75,7 +75,7 @@ class InfluxdbCCTopoOperator:
             ins_labels = asdict(
                 InfluxDBInstanceLabels(
                     app=AppCache.get_app_attr(ins.bk_biz_id, default=ins.bk_biz_id),
-                    app_id=str(ins.bk_biz_id),
+                    appid=str(ins.bk_biz_id),
                     app_name=AppCache.get_app_attr(ins.bk_biz_id, "db_app_abbr", ins.bk_biz_id),
                     bk_biz_id=str(ins.bk_biz_id),
                     bk_cloud_id=str(ins.machine.bk_cloud_id),

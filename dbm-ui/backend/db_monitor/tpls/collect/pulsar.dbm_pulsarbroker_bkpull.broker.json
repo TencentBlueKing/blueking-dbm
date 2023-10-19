@@ -11,7 +11,7 @@
       "plugin": {
         "\u670d\u52a1\u5b9e\u4f8b\u7ef4\u5ea6\u6ce8\u5165": {
           "app": "app",
-          "bk_app_code": "app_id",
+          "appid": "appid",
           "instance": "instance",
           "cluster_name": "cluster_name",
           "cluster_type": "cluster_type",
@@ -23,12 +23,10 @@
       },
       "collector": {
         "period": 60,
-        "timeout": 60,
         "password": false,
+        "bk_username": "",
         "metrics_url": "http://{{ target.host.bk_host_innerip }}:8080/metrics/"
-      },
-      "target_node_type": "TOPO",
-      "target_object_type": "SERVICE"
+      }
     },
     "plugin_info": {
       "plugin_id": "dbm_pulsarbroker_bkpull",
@@ -2650,5 +2648,5 @@
     "target_node_type": "TOPO",
     "target_object_type": "SERVICE"
   },
-  "version": 1
+  "version": 5
 }

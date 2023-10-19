@@ -41,7 +41,7 @@ QUERY_CMDB_LIMIT = 500
 @dataclass
 class CommonInstanceLabels:
     app: str
-    app_id: str
+    appid: str
     app_name: str
     bk_biz_id: str
     bk_cloud_id: str
@@ -59,7 +59,7 @@ class CommonInstanceLabels:
 @dataclass
 class CommonHostDBMeta:
     app: str
-    app_id: str
+    appid: str
     cluster_domain: str
     cluster_type: str
     instance_role: str

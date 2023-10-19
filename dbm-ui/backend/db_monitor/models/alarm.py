@@ -10,6 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 import copy
 import datetime
+import json
 import logging
 from collections import defaultdict
 
@@ -391,7 +392,7 @@ class DispatchGroup(AuditedModel):
 
         # 业务级分派策略
         if bk_biz_id != PLAT_BIZ_ID:
-            conditions.append({"field": "app_id", "value": [str(bk_biz_id)], "method": "eq", "condition": "and"})
+            conditions.append({"field": "appid", "value": [str(bk_biz_id)], "method": "eq", "condition": "and"})
 
         return {
             "user_groups": [user_groups.get(db_type)],
@@ -472,7 +473,7 @@ class MonitorPolicy(AuditedModel):
     # {
     #     "agg_condition": [
     #         {
-    #             "key": "app_id",
+    #             "key": "appid",
     #             "dimension_name": "dbm_meta app id",
     #             "value": [
     #                 "2"
@@ -500,7 +501,7 @@ class MonitorPolicy(AuditedModel):
     #         },
     #     ]
     # }
-    # [{"level": platform, "rule":{"key": "app_id/db_module/cluster_domain", "value": ["aa", "bb"]}}]
+    # [{"level": platform, "rule":{"key": "appid/db_module/cluster_domain", "value": ["aa", "bb"]}}]
     targets = models.JSONField(verbose_name=_("监控目标"), default=list)
     target_level = models.CharField(
         verbose_name=_("监控目标级别，跟随targets调整"),
@@ -606,20 +607,25 @@ class MonitorPolicy(AuditedModel):
         bkm_dbm_report = SystemSettings.get_setting_value(key=SystemSettingsEnum.BKM_DBM_REPORT.value)
 
         items = details["items"]
+        # 事件类告警，无需设置告警目标，否则要求上报的数据必须携带服务实例id（告警目标匹配依据）
         for item in items:
             # 更新监控目标为db_type对应的cmdb拓扑
-            item["target"] = [
+            item["target"] = (
                 [
-                    {
-                        "field": "host_topo_node",
-                        "method": "eq",
-                        "value": [
-                            {"bk_inst_id": obj["bk_set_id"], "bk_obj_id": "set"}
-                            for obj in AppMonitorTopo.get_set_by_dbtype(db_type=self.db_type)
-                        ],
-                    }
+                    [
+                        {
+                            "field": "host_topo_node",
+                            "method": "eq",
+                            "value": [
+                                {"bk_inst_id": obj["bk_set_id"], "bk_obj_id": "set"}
+                                for obj in AppMonitorTopo.get_set_by_dbtype(db_type=self.db_type)
+                            ],
+                        }
+                    ]
                 ]
-            ]
+                if self.alert_source == AlertSourceEnum.TIME_SERIES.value
+                else []
+            )
 
             for query_config in item["query_configs"]:
                 # data_type_label: time_series | event(自定义上报，需要填充data_id)
@@ -1047,21 +1053,16 @@ class MonitorPolicy(AuditedModel):
         if group_count:
             tmp = defaultdict(int)
             for event in events:
-                # 监控对外返回json中会将app_id映射为bk_app_code： tapd:1010104091006892981
-                bk_app_code = event["origin_alarm"]["data"]["dimensions"].get("bk_app_code")
-                app_id = event["origin_alarm"]["data"]["dimensions"].get("app_id") or bk_app_code
-
+                app_id = event["origin_alarm"]["data"]["dimensions"].get("appid") or 0
                 # 缺少业app_id维度的策略
                 if not app_id:
-                    app_id = 0
-                    logger.error("find bad bkmonitor event: %s", event)
-                    # continue
+                    logger.error("find bad appid event: %s", json.dumps(event))
 
                 tmp[(event["strategy_id"], app_id)] += 1
 
             event_counts = defaultdict(dict)
-            for (strategy_id, app_id), event_count in tmp.items():
-                event_counts[strategy_id][app_id] = event_count
+            for (strategy_id, appid), event_count in tmp.items():
+                event_counts[strategy_id][appid] = event_count
             # return dict(Counter(event["strategy_id"] for event in events))
             return event_counts
 

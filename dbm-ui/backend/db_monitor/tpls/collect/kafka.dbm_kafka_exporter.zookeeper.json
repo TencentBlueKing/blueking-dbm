@@ -15,8 +15,8 @@
         "--web.listen-address": "${host}:${port}",
         "\u670d\u52a1\u5b9e\u4f8b\u7ef4\u5ea6\u6ce8\u5165": {
           "app": "app",
-          "bk_app_code": "app_id",
           "instance": "instance",
+          "bk_app_code": "app_id",
           "cluster_name": "cluster_name",
           "cluster_type": "cluster_type",
           "instance_host": "instance_host",
@@ -36,7 +36,1357 @@
     },
     "plugin_info": {
       "plugin_id": "dbm_kafka_exporter",
-      "metric_json": [],
+      "metric_json": [
+        {
+          "fields": [],
+          "table_id": "exporter_dbm_kafka_exporter.group_default",
+          "rule_list": [],
+          "table_desc": "\u9ed8\u8ba4\u5206\u7ec4",
+          "table_name": "group_default"
+        },
+        {
+          "fields": [
+            {
+              "name": "kafka_consumergroup_current_offset",
+              "type": "double",
+              "unit": "none",
+              "is_active": true,
+              "is_manual": true,
+              "dimensions": [],
+              "description": "",
+              "source_name": "",
+              "monitor_type": "metric",
+              "is_diff_metric": false
+            },
+            {
+              "name": "kafka_consumergroup_current_offset_sum",
+              "type": "double",
+              "unit": "none",
+              "is_active": true,
+              "is_manual": true,
+              "dimensions": [],
+              "description": "",
+              "source_name": "",
+              "monitor_type": "metric",
+              "is_diff_metric": false
+            },
+            {
+              "name": "kafka_consumergroup_lag",
+              "type": "double",
+              "unit": "none",
+              "is_active": true,
+              "is_manual": true,
+              "dimensions": [],
+              "description": "",
+              "source_name": "",
+              "monitor_type": "metric",
+              "is_diff_metric": false
+            },
+            {
+              "name": "kafka_consumergroup_lag_sum",
+              "type": "double",
+              "unit": "none",
+              "is_active": true,
+              "is_manual": true,
+              "dimensions": [],
+              "description": "",
+              "source_name": "",
+              "monitor_type": "metric",
+              "is_diff_metric": false
+            },
+            {
+              "name": "kafka_consumergroup_members",
+              "type": "double",
+              "unit": "none",
+              "is_active": true,
+              "is_manual": true,
+              "dimensions": [],
+              "description": "",
+              "source_name": "",
+              "monitor_type": "metric",
+              "is_diff_metric": false
+            },
+            {
+              "name": "go_cgo_go_to_c_calls_calls_total",
+              "type": "double",
+              "unit": "none",
+              "is_active": true,
+              "is_manual": true,
+              "dimensions": [],
+              "description": "",
+              "source_name": "",
+              "monitor_type": "metric",
+              "is_diff_metric": false
+            },
+            {
+              "name": "go_gc_cycles_automatic_gc_cycles_total",
+              "type": "double",
+              "unit": "none",
+              "is_active": true,
+              "is_manual": true,
+              "dimensions": [],
+              "description": "",
+              "source_name": "",
+              "monitor_type": "metric",
+              "is_diff_metric": false
+            },
+            {
+              "name": "go_gc_cycles_forced_gc_cycles_total",
+              "type": "double",
+              "unit": "none",
+              "is_active": true,
+              "is_manual": true,
+              "dimensions": [],
+              "description": "",
+              "source_name": "",
+              "monitor_type": "metric",
+              "is_diff_metric": false
+            },
+            {
+              "name": "go_gc_cycles_total_gc_cycles_total",
+              "type": "double",
+              "unit": "none",
+              "is_active": true,
+              "is_manual": true,
+              "dimensions": [],
+              "description": "",
+              "source_name": "",
+              "monitor_type": "metric",
+              "is_diff_metric": false
+            },
+            {
+              "name": "go_gc_duration_seconds_sum",
+              "type": "double",
+              "unit": "none",
+              "is_active": true,
+              "is_manual": true,
+              "dimensions": [],
+              "description": "",
+              "source_name": "",
+              "monitor_type": "metric",
+              "is_diff_metric": false
+            },
+            {
+              "name": "go_gc_duration_seconds_count",
+              "type": "double",
+              "unit": "none",
+              "is_active": true,
+              "is_manual": true,
+              "dimensions": [],
+              "description": "",
+              "source_name": "",
+              "monitor_type": "metric",
+              "is_diff_metric": false
+            },
+            {
+              "name": "go_gc_heap_allocs_by_size_bytes_total_sum",
+              "type": "double",
+              "unit": "none",
+              "is_active": true,
+              "is_manual": true,
+              "dimensions": [],
+              "description": "",
+              "source_name": "",
+              "monitor_type": "metric",
+              "is_diff_metric": false
+            },
+            {
+              "name": "go_gc_heap_allocs_by_size_bytes_total_count",
+              "type": "double",
+              "unit": "none",
+              "is_active": true,
+              "is_manual": true,
+              "dimensions": [],
+              "description": "",
+              "source_name": "",
+              "monitor_type": "metric",
+              "is_diff_metric": false
+            },
+            {
+              "name": "go_gc_heap_allocs_bytes_total",
+              "type": "double",
+              "unit": "none",
+              "is_active": true,
+              "is_manual": true,
+              "dimensions": [],
+              "description": "",
+              "source_name": "",
+              "monitor_type": "metric",
+              "is_diff_metric": false
+            },
+            {
+              "name": "go_gc_heap_allocs_objects_total",
+              "type": "double",
+              "unit": "none",
+              "is_active": true,
+              "is_manual": true,
+              "dimensions": [],
+              "description": "",
+              "source_name": "",
+              "monitor_type": "metric",
+              "is_diff_metric": false
+            },
+            {
+              "name": "go_gc_heap_frees_by_size_bytes_total_sum",
+              "type": "double",
+              "unit": "none",
+              "is_active": true,
+              "is_manual": true,
+              "dimensions": [],
+              "description": "",
+              "source_name": "",
+              "monitor_type": "metric",
+              "is_diff_metric": false
+            },
+            {
+              "name": "go_gc_heap_frees_by_size_bytes_total_count",
+              "type": "double",
+              "unit": "none",
+              "is_active": true,
+              "is_manual": true,
+              "dimensions": [],
+              "description": "",
+              "source_name": "",
+              "monitor_type": "metric",
+              "is_diff_metric": false
+            },
+            {
+              "name": "go_gc_heap_frees_bytes_total",
+              "type": "double",
+              "unit": "none",
+              "is_active": true,
+              "is_manual": true,
+              "dimensions": [],
+              "description": "",
+              "source_name": "",
+              "monitor_type": "metric",
+              "is_diff_metric": false
+            },
+            {
+              "name": "go_gc_heap_frees_objects_total",
+              "type": "double",
+              "unit": "none",
+              "is_active": true,
+              "is_manual": true,
+              "dimensions": [],
+              "description": "",
+              "source_name": "",
+              "monitor_type": "metric",
+              "is_diff_metric": false
+            },
+            {
+              "name": "go_gc_heap_goal_bytes",
+              "type": "double",
+              "unit": "none",
+              "is_active": true,
+              "is_manual": true,
+              "dimensions": [],
+              "description": "",
+              "source_name": "",
+              "monitor_type": "metric",
+              "is_diff_metric": false
+            },
+            {
+              "name": "go_gc_heap_objects_objects",
+              "type": "double",
+              "unit": "none",
+              "is_active": true,
+              "is_manual": true,
+              "dimensions": [],
+              "description": "",
+              "source_name": "",
+              "monitor_type": "metric",
+              "is_diff_metric": false
+            },
+            {
+              "name": "go_gc_heap_tiny_allocs_objects_total",
+              "type": "double",
+              "unit": "none",
+              "is_active": true,
+              "is_manual": true,
+              "dimensions": [],
+              "description": "",
+              "source_name": "",
+              "monitor_type": "metric",
+              "is_diff_metric": false
+            },
+            {
+              "name": "go_gc_limiter_last_enabled_gc_cycle",
+              "type": "double",
+              "unit": "none",
+              "is_active": true,
+              "is_manual": true,
+              "dimensions": [],
+              "description": "",
+              "source_name": "",
+              "monitor_type": "metric",
+              "is_diff_metric": false
+            },
+            {
+              "name": "go_gc_pauses_seconds_total_count",
+              "type": "double",
+              "unit": "none",
+              "is_active": true,
+              "is_manual": true,
+              "dimensions": [],
+              "description": "",
+              "source_name": "",
+              "monitor_type": "metric",
+              "is_diff_metric": false
+            },
+            {
+              "name": "go_gc_stack_starting_size_bytes",
+              "type": "double",
+              "unit": "none",
+              "is_active": true,
+              "is_manual": true,
+              "dimensions": [],
+              "description": "",
+              "source_name": "",
+              "monitor_type": "metric",
+              "is_diff_metric": false
+            },
+            {
+              "name": "go_goroutines",
+              "type": "double",
+              "unit": "none",
+              "is_active": true,
+              "is_manual": true,
+              "dimensions": [],
+              "description": "",
+              "source_name": "",
+              "monitor_type": "metric",
+              "is_diff_metric": false
+            },
+            {
+              "name": "go_memory_classes_heap_free_bytes",
+              "type": "double",
+              "unit": "none",
+              "is_active": true,
+              "is_manual": true,
+              "dimensions": [],
+              "description": "",
+              "source_name": "",
+              "monitor_type": "metric",
+              "is_diff_metric": false
+            },
+            {
+              "name": "go_memory_classes_heap_objects_bytes",
+              "type": "double",
+              "unit": "none",
+              "is_active": true,
+              "is_manual": true,
+              "dimensions": [],
+              "description": "",
+              "source_name": "",
+              "monitor_type": "metric",
+              "is_diff_metric": false
+            },
+            {
+              "name": "go_memory_classes_heap_released_bytes",
+              "type": "double",
+              "unit": "none",
+              "is_active": true,
+              "is_manual": true,
+              "dimensions": [],
+              "description": "",
+              "source_name": "",
+              "monitor_type": "metric",
+              "is_diff_metric": false
+            },
+            {
+              "name": "go_memory_classes_heap_stacks_bytes",
+              "type": "double",
+              "unit": "none",
+              "is_active": true,
+              "is_manual": true,
+              "dimensions": [],
+              "description": "",
+              "source_name": "",
+              "monitor_type": "metric",
+              "is_diff_metric": false
+            },
+            {
+              "name": "go_memory_classes_heap_unused_bytes",
+              "type": "double",
+              "unit": "none",
+              "is_active": true,
+              "is_manual": true,
+              "dimensions": [],
+              "description": "",
+              "source_name": "",
+              "monitor_type": "metric",
+              "is_diff_metric": false
+            },
+            {
+              "name": "go_memory_classes_metadata_mcache_free_bytes",
+              "type": "double",
+              "unit": "none",
+              "is_active": true,
+              "is_manual": true,
+              "dimensions": [],
+              "description": "",
+              "source_name": "",
+              "monitor_type": "metric",
+              "is_diff_metric": false
+            },
+            {
+              "name": "go_memory_classes_metadata_mcache_inuse_bytes",
+              "type": "double",
+              "unit": "none",
+              "is_active": true,
+              "is_manual": true,
+              "dimensions": [],
+              "description": "",
+              "source_name": "",
+              "monitor_type": "metric",
+              "is_diff_metric": false
+            },
+            {
+              "name": "go_memory_classes_metadata_mspan_free_bytes",
+              "type": "double",
+              "unit": "none",
+              "is_active": true,
+              "is_manual": true,
+              "dimensions": [],
+              "description": "",
+              "source_name": "",
+              "monitor_type": "metric",
+              "is_diff_metric": false
+            },
+            {
+              "name": "go_memory_classes_metadata_mspan_inuse_bytes",
+              "type": "double",
+              "unit": "none",
+              "is_active": true,
+              "is_manual": true,
+              "dimensions": [],
+              "description": "",
+              "source_name": "",
+              "monitor_type": "metric",
+              "is_diff_metric": false
+            },
+            {
+              "name": "go_memory_classes_metadata_other_bytes",
+              "type": "double",
+              "unit": "none",
+              "is_active": true,
+              "is_manual": true,
+              "dimensions": [],
+              "description": "",
+              "source_name": "",
+              "monitor_type": "metric",
+              "is_diff_metric": false
+            },
+            {
+              "name": "go_memory_classes_os_stacks_bytes",
+              "type": "double",
+              "unit": "none",
+              "is_active": true,
+              "is_manual": true,
+              "dimensions": [],
+              "description": "",
+              "source_name": "",
+              "monitor_type": "metric",
+              "is_diff_metric": false
+            },
+            {
+              "name": "go_memory_classes_other_bytes",
+              "type": "double",
+              "unit": "none",
+              "is_active": true,
+              "is_manual": true,
+              "dimensions": [],
+              "description": "",
+              "source_name": "",
+              "monitor_type": "metric",
+              "is_diff_metric": false
+            },
+            {
+              "name": "go_memory_classes_profiling_buckets_bytes",
+              "type": "double",
+              "unit": "none",
+              "is_active": true,
+              "is_manual": true,
+              "dimensions": [],
+              "description": "",
+              "source_name": "",
+              "monitor_type": "metric",
+              "is_diff_metric": false
+            },
+            {
+              "name": "go_memory_classes_total_bytes",
+              "type": "double",
+              "unit": "none",
+              "is_active": true,
+              "is_manual": true,
+              "dimensions": [],
+              "description": "",
+              "source_name": "",
+              "monitor_type": "metric",
+              "is_diff_metric": false
+            },
+            {
+              "name": "go_memstats_alloc_bytes",
+              "type": "double",
+              "unit": "none",
+              "is_active": true,
+              "is_manual": true,
+              "dimensions": [],
+              "description": "",
+              "source_name": "",
+              "monitor_type": "metric",
+              "is_diff_metric": false
+            },
+            {
+              "name": "go_memstats_alloc_bytes_total",
+              "type": "double",
+              "unit": "none",
+              "is_active": true,
+              "is_manual": true,
+              "dimensions": [],
+              "description": "",
+              "source_name": "",
+              "monitor_type": "metric",
+              "is_diff_metric": false
+            },
+            {
+              "name": "go_memstats_buck_hash_sys_bytes",
+              "type": "double",
+              "unit": "none",
+              "is_active": true,
+              "is_manual": true,
+              "dimensions": [],
+              "description": "",
+              "source_name": "",
+              "monitor_type": "metric",
+              "is_diff_metric": false
+            },
+            {
+              "name": "go_memstats_frees_total",
+              "type": "double",
+              "unit": "none",
+              "is_active": true,
+              "is_manual": true,
+              "dimensions": [],
+              "description": "",
+              "source_name": "",
+              "monitor_type": "metric",
+              "is_diff_metric": false
+            },
+            {
+              "name": "go_memstats_gc_cpu_fraction",
+              "type": "double",
+              "unit": "none",
+              "is_active": true,
+              "is_manual": true,
+              "dimensions": [],
+              "description": "",
+              "source_name": "",
+              "monitor_type": "metric",
+              "is_diff_metric": false
+            },
+            {
+              "name": "go_memstats_gc_sys_bytes",
+              "type": "double",
+              "unit": "none",
+              "is_active": true,
+              "is_manual": true,
+              "dimensions": [],
+              "description": "",
+              "source_name": "",
+              "monitor_type": "metric",
+              "is_diff_metric": false
+            },
+            {
+              "name": "go_memstats_heap_alloc_bytes",
+              "type": "double",
+              "unit": "none",
+              "is_active": true,
+              "is_manual": true,
+              "dimensions": [],
+              "description": "",
+              "source_name": "",
+              "monitor_type": "metric",
+              "is_diff_metric": false
+            },
+            {
+              "name": "go_memstats_heap_idle_bytes",
+              "type": "double",
+              "unit": "none",
+              "is_active": true,
+              "is_manual": true,
+              "dimensions": [],
+              "description": "",
+              "source_name": "",
+              "monitor_type": "metric",
+              "is_diff_metric": false
+            },
+            {
+              "name": "go_memstats_heap_inuse_bytes",
+              "type": "double",
+              "unit": "none",
+              "is_active": true,
+              "is_manual": true,
+              "dimensions": [],
+              "description": "",
+              "source_name": "",
+              "monitor_type": "metric",
+              "is_diff_metric": false
+            },
+            {
+              "name": "go_memstats_heap_objects",
+              "type": "double",
+              "unit": "none",
+              "is_active": true,
+              "is_manual": true,
+              "dimensions": [],
+              "description": "",
+              "source_name": "",
+              "monitor_type": "metric",
+              "is_diff_metric": false
+            },
+            {
+              "name": "go_memstats_heap_released_bytes",
+              "type": "double",
+              "unit": "none",
+              "is_active": true,
+              "is_manual": true,
+              "dimensions": [],
+              "description": "",
+              "source_name": "",
+              "monitor_type": "metric",
+              "is_diff_metric": false
+            },
+            {
+              "name": "go_memstats_heap_sys_bytes",
+              "type": "double",
+              "unit": "none",
+              "is_active": true,
+              "is_manual": true,
+              "dimensions": [],
+              "description": "",
+              "source_name": "",
+              "monitor_type": "metric",
+              "is_diff_metric": false
+            },
+            {
+              "name": "go_memstats_last_gc_time_seconds",
+              "type": "double",
+              "unit": "none",
+              "is_active": true,
+              "is_manual": true,
+              "dimensions": [],
+              "description": "",
+              "source_name": "",
+              "monitor_type": "metric",
+              "is_diff_metric": false
+            },
+            {
+              "name": "go_memstats_lookups_total",
+              "type": "double",
+              "unit": "none",
+              "is_active": true,
+              "is_manual": true,
+              "dimensions": [],
+              "description": "",
+              "source_name": "",
+              "monitor_type": "metric",
+              "is_diff_metric": false
+            },
+            {
+              "name": "go_memstats_mallocs_total",
+              "type": "double",
+              "unit": "none",
+              "is_active": true,
+              "is_manual": true,
+              "dimensions": [],
+              "description": "",
+              "source_name": "",
+              "monitor_type": "metric",
+              "is_diff_metric": false
+            },
+            {
+              "name": "go_memstats_mcache_inuse_bytes",
+              "type": "double",
+              "unit": "none",
+              "is_active": true,
+              "is_manual": true,
+              "dimensions": [],
+              "description": "",
+              "source_name": "",
+              "monitor_type": "metric",
+              "is_diff_metric": false
+            },
+            {
+              "name": "go_memstats_mcache_sys_bytes",
+              "type": "double",
+              "unit": "none",
+              "is_active": true,
+              "is_manual": true,
+              "dimensions": [],
+              "description": "",
+              "source_name": "",
+              "monitor_type": "metric",
+              "is_diff_metric": false
+            },
+            {
+              "name": "go_memstats_mspan_inuse_bytes",
+              "type": "double",
+              "unit": "none",
+              "is_active": true,
+              "is_manual": true,
+              "dimensions": [],
+              "description": "",
+              "source_name": "",
+              "monitor_type": "metric",
+              "is_diff_metric": false
+            },
+            {
+              "name": "go_memstats_mspan_sys_bytes",
+              "type": "double",
+              "unit": "none",
+              "is_active": true,
+              "is_manual": true,
+              "dimensions": [],
+              "description": "",
+              "source_name": "",
+              "monitor_type": "metric",
+              "is_diff_metric": false
+            },
+            {
+              "name": "go_memstats_next_gc_bytes",
+              "type": "double",
+              "unit": "none",
+              "is_active": true,
+              "is_manual": true,
+              "dimensions": [],
+              "description": "",
+              "source_name": "",
+              "monitor_type": "metric",
+              "is_diff_metric": false
+            },
+            {
+              "name": "go_memstats_other_sys_bytes",
+              "type": "double",
+              "unit": "none",
+              "is_active": true,
+              "is_manual": true,
+              "dimensions": [],
+              "description": "",
+              "source_name": "",
+              "monitor_type": "metric",
+              "is_diff_metric": false
+            },
+            {
+              "name": "go_memstats_stack_inuse_bytes",
+              "type": "double",
+              "unit": "none",
+              "is_active": true,
+              "is_manual": true,
+              "dimensions": [],
+              "description": "",
+              "source_name": "",
+              "monitor_type": "metric",
+              "is_diff_metric": false
+            },
+            {
+              "name": "go_memstats_stack_sys_bytes",
+              "type": "double",
+              "unit": "none",
+              "is_active": true,
+              "is_manual": true,
+              "dimensions": [],
+              "description": "",
+              "source_name": "",
+              "monitor_type": "metric",
+              "is_diff_metric": false
+            },
+            {
+              "name": "go_memstats_sys_bytes",
+              "type": "double",
+              "unit": "none",
+              "is_active": true,
+              "is_manual": true,
+              "dimensions": [],
+              "description": "",
+              "source_name": "",
+              "monitor_type": "metric",
+              "is_diff_metric": false
+            },
+            {
+              "name": "go_sched_gomaxprocs_threads",
+              "type": "double",
+              "unit": "none",
+              "is_active": true,
+              "is_manual": true,
+              "dimensions": [],
+              "description": "",
+              "source_name": "",
+              "monitor_type": "metric",
+              "is_diff_metric": false
+            },
+            {
+              "name": "go_sched_goroutines_goroutines",
+              "type": "double",
+              "unit": "none",
+              "is_active": true,
+              "is_manual": true,
+              "dimensions": [],
+              "description": "",
+              "source_name": "",
+              "monitor_type": "metric",
+              "is_diff_metric": false
+            },
+            {
+              "name": "go_sched_latencies_seconds_count",
+              "type": "double",
+              "unit": "none",
+              "is_active": true,
+              "is_manual": true,
+              "dimensions": [],
+              "description": "",
+              "source_name": "",
+              "monitor_type": "metric",
+              "is_diff_metric": false
+            },
+            {
+              "name": "go_threads",
+              "type": "double",
+              "unit": "none",
+              "is_active": true,
+              "is_manual": true,
+              "dimensions": [],
+              "description": "",
+              "source_name": "",
+              "monitor_type": "metric",
+              "is_diff_metric": false
+            },
+            {
+              "name": "kafka_brokers",
+              "type": "double",
+              "unit": "none",
+              "is_active": true,
+              "is_manual": true,
+              "dimensions": [],
+              "description": "",
+              "source_name": "",
+              "monitor_type": "metric",
+              "is_diff_metric": false
+            },
+            {
+              "name": "process_cpu_seconds_total",
+              "type": "double",
+              "unit": "none",
+              "is_active": true,
+              "is_manual": true,
+              "dimensions": [],
+              "description": "",
+              "source_name": "",
+              "monitor_type": "metric",
+              "is_diff_metric": false
+            },
+            {
+              "name": "process_max_fds",
+              "type": "double",
+              "unit": "none",
+              "is_active": true,
+              "is_manual": true,
+              "dimensions": [],
+              "description": "",
+              "source_name": "",
+              "monitor_type": "metric",
+              "is_diff_metric": false
+            },
+            {
+              "name": "process_open_fds",
+              "type": "double",
+              "unit": "none",
+              "is_active": true,
+              "is_manual": true,
+              "dimensions": [],
+              "description": "",
+              "source_name": "",
+              "monitor_type": "metric",
+              "is_diff_metric": false
+            },
+            {
+              "name": "process_resident_memory_bytes",
+              "type": "double",
+              "unit": "none",
+              "is_active": true,
+              "is_manual": true,
+              "dimensions": [],
+              "description": "",
+              "source_name": "",
+              "monitor_type": "metric",
+              "is_diff_metric": false
+            },
+            {
+              "name": "process_start_time_seconds",
+              "type": "double",
+              "unit": "none",
+              "is_active": true,
+              "is_manual": true,
+              "dimensions": [],
+              "description": "",
+              "source_name": "",
+              "monitor_type": "metric",
+              "is_diff_metric": false
+            },
+            {
+              "name": "process_virtual_memory_bytes",
+              "type": "double",
+              "unit": "none",
+              "is_active": true,
+              "is_manual": true,
+              "dimensions": [],
+              "description": "",
+              "source_name": "",
+              "monitor_type": "metric",
+              "is_diff_metric": false
+            },
+            {
+              "name": "process_virtual_memory_max_bytes",
+              "type": "double",
+              "unit": "none",
+              "is_active": true,
+              "is_manual": true,
+              "dimensions": [],
+              "description": "",
+              "source_name": "",
+              "monitor_type": "metric",
+              "is_diff_metric": false
+            },
+            {
+              "name": "promhttp_metric_handler_requests_in_flight",
+              "type": "double",
+              "unit": "none",
+              "is_active": true,
+              "is_manual": true,
+              "dimensions": [],
+              "description": "",
+              "source_name": "",
+              "monitor_type": "metric",
+              "is_diff_metric": false
+            }
+          ],
+          "table_id": "exporter_dbm_kafka_exporter.Group1",
+          "rule_list": [],
+          "table_desc": "\u5206\u7ec41",
+          "table_name": "Group1"
+        },
+        {
+          "fields": [
+            {
+              "name": "kafka_exporter_build_info",
+              "type": "double",
+              "unit": "none",
+              "is_active": true,
+              "is_manual": true,
+              "dimensions": [
+                "version",
+                "branch",
+                "goversion",
+                "revision"
+              ],
+              "description": "",
+              "source_name": "",
+              "monitor_type": "metric",
+              "is_diff_metric": false
+            },
+            {
+              "name": "go_info",
+              "type": "double",
+              "unit": "none",
+              "is_active": true,
+              "is_manual": true,
+              "dimensions": [
+                "version"
+              ],
+              "description": "",
+              "source_name": "",
+              "monitor_type": "metric",
+              "is_diff_metric": false
+            },
+            {
+              "name": "version",
+              "type": "string",
+              "unit": "none",
+              "is_active": true,
+              "is_manual": true,
+              "description": "",
+              "source_name": "",
+              "monitor_type": "dimension",
+              "is_diff_metric": false
+            },
+            {
+              "name": "branch",
+              "type": "string",
+              "unit": "none",
+              "is_active": true,
+              "is_manual": true,
+              "description": "",
+              "source_name": "",
+              "monitor_type": "dimension",
+              "is_diff_metric": false
+            },
+            {
+              "name": "goversion",
+              "type": "string",
+              "unit": "none",
+              "is_active": true,
+              "is_manual": true,
+              "description": "",
+              "source_name": "",
+              "monitor_type": "dimension",
+              "is_diff_metric": false
+            },
+            {
+              "name": "revision",
+              "type": "string",
+              "unit": "none",
+              "is_active": true,
+              "is_manual": true,
+              "description": "",
+              "source_name": "",
+              "monitor_type": "dimension",
+              "is_diff_metric": false
+            }
+          ],
+          "table_id": "exporter_dbm_kafka_exporter.Group2",
+          "rule_list": [],
+          "table_desc": "\u5206\u7ec42",
+          "table_name": "Group2"
+        },
+        {
+          "fields": [
+            {
+              "name": "kafka_broker_info",
+              "type": "double",
+              "unit": "none",
+              "is_active": true,
+              "is_manual": true,
+              "dimensions": [
+                "address",
+                "id"
+              ],
+              "description": "",
+              "source_name": "",
+              "monitor_type": "metric",
+              "is_diff_metric": false
+            },
+            {
+              "name": "address",
+              "type": "string",
+              "unit": "none",
+              "is_active": true,
+              "is_manual": true,
+              "description": "",
+              "source_name": "",
+              "monitor_type": "dimension",
+              "is_diff_metric": false
+            },
+            {
+              "name": "id",
+              "type": "string",
+              "unit": "none",
+              "is_active": true,
+              "is_manual": true,
+              "description": "",
+              "source_name": "",
+              "monitor_type": "dimension",
+              "is_diff_metric": false
+            }
+          ],
+          "table_id": "exporter_dbm_kafka_exporter.Group3",
+          "rule_list": [],
+          "table_desc": "\u5206\u7ec43",
+          "table_name": "Group3"
+        },
+        {
+          "fields": [
+            {
+              "name": "kafka_topic_partition_current_offset",
+              "type": "double",
+              "unit": "none",
+              "is_active": true,
+              "is_manual": true,
+              "dimensions": [
+                "topic",
+                "partition"
+              ],
+              "description": "",
+              "source_name": "",
+              "monitor_type": "metric",
+              "is_diff_metric": false
+            },
+            {
+              "name": "kafka_topic_partition_in_sync_replica",
+              "type": "double",
+              "unit": "none",
+              "is_active": true,
+              "is_manual": true,
+              "dimensions": [
+                "topic",
+                "partition"
+              ],
+              "description": "",
+              "source_name": "",
+              "monitor_type": "metric",
+              "is_diff_metric": false
+            },
+            {
+              "name": "kafka_topic_partition_leader",
+              "type": "double",
+              "unit": "none",
+              "is_active": true,
+              "is_manual": true,
+              "dimensions": [
+                "partition",
+                "topic"
+              ],
+              "description": "",
+              "source_name": "",
+              "monitor_type": "metric",
+              "is_diff_metric": false
+            },
+            {
+              "name": "kafka_topic_partition_leader_is_preferred",
+              "type": "double",
+              "unit": "none",
+              "is_active": true,
+              "is_manual": true,
+              "dimensions": [
+                "topic",
+                "partition"
+              ],
+              "description": "",
+              "source_name": "",
+              "monitor_type": "metric",
+              "is_diff_metric": false
+            },
+            {
+              "name": "kafka_topic_partition_oldest_offset",
+              "type": "double",
+              "unit": "none",
+              "is_active": true,
+              "is_manual": true,
+              "dimensions": [
+                "partition",
+                "topic"
+              ],
+              "description": "",
+              "source_name": "",
+              "monitor_type": "metric",
+              "is_diff_metric": false
+            },
+            {
+              "name": "kafka_topic_partition_replicas",
+              "type": "double",
+              "unit": "none",
+              "is_active": true,
+              "is_manual": true,
+              "dimensions": [
+                "partition",
+                "topic"
+              ],
+              "description": "",
+              "source_name": "",
+              "monitor_type": "metric",
+              "is_diff_metric": false
+            },
+            {
+              "name": "kafka_topic_partition_under_replicated_partition",
+              "type": "double",
+              "unit": "none",
+              "is_active": true,
+              "is_manual": true,
+              "dimensions": [
+                "partition",
+                "topic"
+              ],
+              "description": "",
+              "source_name": "",
+              "monitor_type": "metric",
+              "is_diff_metric": false
+            },
+            {
+              "name": "kafka_topic_partitions",
+              "type": "double",
+              "unit": "none",
+              "is_active": true,
+              "is_manual": true,
+              "dimensions": [
+                "topic"
+              ],
+              "description": "",
+              "source_name": "",
+              "monitor_type": "metric",
+              "is_diff_metric": false
+            },
+            {
+              "name": "topic",
+              "type": "string",
+              "unit": "none",
+              "is_active": true,
+              "is_manual": true,
+              "description": "",
+              "source_name": "",
+              "monitor_type": "dimension",
+              "is_diff_metric": false
+            },
+            {
+              "name": "partition",
+              "type": "string",
+              "unit": "none",
+              "is_active": true,
+              "is_manual": true,
+              "description": "",
+              "source_name": "",
+              "monitor_type": "dimension",
+              "is_diff_metric": false
+            }
+          ],
+          "table_id": "exporter_dbm_kafka_exporter.Group4",
+          "rule_list": [],
+          "table_desc": "\u5206\u7ec44",
+          "table_name": "Group4"
+        },
+        {
+          "fields": [
+            {
+              "name": "go_gc_duration_seconds",
+              "type": "double",
+              "unit": "none",
+              "is_active": true,
+              "is_manual": true,
+              "dimensions": [
+                "quantile"
+              ],
+              "description": "",
+              "source_name": "",
+              "monitor_type": "metric",
+              "is_diff_metric": false
+            },
+            {
+              "name": "go_gc_heap_allocs_by_size_bytes_total_bucket",
+              "type": "double",
+              "unit": "none",
+              "is_active": true,
+              "is_manual": true,
+              "dimensions": [
+                "le"
+              ],
+              "description": "",
+              "source_name": "",
+              "monitor_type": "metric",
+              "is_diff_metric": false
+            },
+            {
+              "name": "go_gc_heap_frees_by_size_bytes_total_bucket",
+              "type": "double",
+              "unit": "none",
+              "is_active": true,
+              "is_manual": true,
+              "dimensions": [
+                "le"
+              ],
+              "description": "",
+              "source_name": "",
+              "monitor_type": "metric",
+              "is_diff_metric": false
+            },
+            {
+              "name": "go_gc_pauses_seconds_total_bucket",
+              "type": "double",
+              "unit": "none",
+              "is_active": true,
+              "is_manual": true,
+              "dimensions": [
+                "le"
+              ],
+              "description": "",
+              "source_name": "",
+              "monitor_type": "metric",
+              "is_diff_metric": false
+            },
+            {
+              "name": "go_sched_latencies_seconds_bucket",
+              "type": "double",
+              "unit": "none",
+              "is_active": true,
+              "is_manual": true,
+              "dimensions": [
+                "le"
+              ],
+              "description": "",
+              "source_name": "",
+              "monitor_type": "metric",
+              "is_diff_metric": false
+            },
+            {
+              "name": "quantile",
+              "type": "string",
+              "unit": "none",
+              "is_active": true,
+              "is_manual": true,
+              "description": "",
+              "source_name": "",
+              "monitor_type": "dimension",
+              "is_diff_metric": false
+            },
+            {
+              "name": "le",
+              "type": "string",
+              "unit": "none",
+              "is_active": true,
+              "is_manual": true,
+              "description": "",
+              "source_name": "",
+              "monitor_type": "dimension",
+              "is_diff_metric": false
+            }
+          ],
+          "table_id": "exporter_dbm_kafka_exporter.Group5",
+          "rule_list": [],
+          "table_desc": "\u5206\u7ec45",
+          "table_name": "Group5"
+        },
+        {
+          "fields": [
+            {
+              "name": "promhttp_metric_handler_requests_total",
+              "type": "double",
+              "unit": "none",
+              "is_active": true,
+              "is_manual": true,
+              "dimensions": [
+                "code"
+              ],
+              "description": "",
+              "source_name": "",
+              "monitor_type": "metric",
+              "is_diff_metric": false
+            },
+            {
+              "name": "code",
+              "type": "string",
+              "unit": "none",
+              "is_active": true,
+              "is_manual": true,
+              "description": "",
+              "source_name": "",
+              "monitor_type": "dimension",
+              "is_diff_metric": false
+            }
+          ],
+          "table_id": "exporter_dbm_kafka_exporter.Group6",
+          "rule_list": [],
+          "table_desc": "\u5206\u7ec46",
+          "table_name": "Group6"
+        }
+      ],
       "plugin_type": "Exporter",
       "os_type_list": [
         "linux"
@@ -47,5 +1397,5 @@
     "target_node_type": "TOPO",
     "target_object_type": "SERVICE"
   },
-  "version": 1
+  "version": 5
 }

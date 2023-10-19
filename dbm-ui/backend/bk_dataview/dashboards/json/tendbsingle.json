@@ -8214,9 +8214,9 @@
         "definition":"- Blueking Monitor - 维度",
         "hide":0,
         "includeAll":false,
-        "label":"app_id",
+        "label":"app",
         "multi":false,
-        "name":"app_id",
+        "name":"app",
         "options":[
 
         ],
@@ -8271,7 +8271,7 @@
                 "key":"app",
                 "method":"eq",
                 "value":[
-                  "$app_id"
+                  "$app"
                 ]
               },
               {
@@ -8285,7 +8285,7 @@
             ]
           },
           "queryType":"dimension",
-          "variables":"$app_id"
+          "variables":"$app"
         },
         "refresh":1,
         "regex":"",

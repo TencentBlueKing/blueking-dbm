@@ -6,6 +6,7 @@ cd $DIR
 make build
 
 version=$(./bin/bk-dbmon -v|awk '{print $2}')
+version="v0.14"
 targetDir="bk-dbmon-$version"
 tarName="$targetDir.tar.gz"
 

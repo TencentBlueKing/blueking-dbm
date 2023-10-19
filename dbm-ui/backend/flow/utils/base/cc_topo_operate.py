@@ -167,7 +167,7 @@ class CCTopoOperator:
         labels = asdict(
             CommonInstanceLabels(
                 app=AppCache.get_app_attr(cluster.bk_biz_id, default=cluster.bk_biz_id),
-                app_id=str(cluster.bk_biz_id),
+                appid=str(cluster.bk_biz_id),
                 app_name=AppCache.get_app_attr(cluster.bk_biz_id, "db_app_abbr", cluster.bk_biz_id),
                 bk_biz_id=str(cluster.bk_biz_id),
                 bk_cloud_id=str(cluster.bk_cloud_id),

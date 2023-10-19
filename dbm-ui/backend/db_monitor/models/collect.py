@@ -29,7 +29,6 @@ __all__ = [
     "CollectInstance",
 ]
 
-from backend.db_meta.enums import MachineType
 from backend.db_meta.models import AppMonitorTopo
 from backend.db_monitor.constants import TPLS_COLLECT_DIR
 from backend.dbm_init.services import EXCLUDE_DB_TYPES
@@ -91,12 +90,9 @@ class CollectInstance(CollectTemplateBase):
         now = datetime.datetime.now()
         updated_collectors = 0
 
-        logger.warning("[init_collect_strategy] start sync bkmonitor collector start: %s", now)
+        logger.info("[init_collect_strategy] start sync bkmonitor collector start: %s", now)
 
         # 未来考虑将模板放到db管理
-        # templates = CollectTemplate.objects.filter(bk_biz_id=0)
-        # for template in templates:
-
         collect_tpls = os.path.join(TPLS_COLLECT_DIR, "*.json")
         for collect_tpl in glob.glob(collect_tpls):
             with open(collect_tpl, "r") as f:
@@ -119,7 +115,12 @@ class CollectInstance(CollectTemplateBase):
                         short_name=template.short_name,
                     )
                     collect_params["id"] = collect_instance.collect_id
-                    logger.warning("[init_collect_strategy] update bkmonitor collector: %s " % template.name)
+
+                    if template.version <= collect_instance.version:
+                        logger.warning("[init_collect_strategy] skip update bkmonitor collector: %s " % template.name)
+                        continue
+
+                    logger.info("[init_collect_strategy] update bkmonitor collector: %s " % template.name)
                 except CollectInstance.DoesNotExist:
                     # 为了能够重复执行，这里考虑下CollectInstance被清空的情况
                     res = BKMonitorV3Api.query_collect_config(
@@ -136,7 +137,6 @@ class CollectInstance(CollectTemplateBase):
                     else:
                         logger.warning("[init_collect_strategy] create bkmonitor collector: %s " % template.db_type)
                     logger.warning("[init_collect_strategy] create bkmonitor collector: %s " % template.db_type)
-
                 # TODO: 非DBA业务支持待验证
                 collect_params.update(
                     bk_biz_id=bk_biz_id,
@@ -151,7 +151,7 @@ class CollectInstance(CollectTemplateBase):
 
                 # 实例化Rule
                 obj, _ = CollectInstance.objects.update_or_create(
-                    defaults={"details": collect_params, "collect_id": res["id"]},
+                    defaults={"details": collect_params, "collect_id": res["id"], "version": template.version},
                     bk_biz_id=template.bk_biz_id,
                     db_type=template.db_type,
                     plugin_id=template.plugin_id,
@@ -163,7 +163,7 @@ class CollectInstance(CollectTemplateBase):
             except Exception as e:  # pylint: disable=wildcard-import
                 logger.error("[init_collect_strategy] sync bkmonitor collector: %s (%s)", template.db_type, e)
 
-        logger.warning(
+        logger.info(
             "[init_collect_strategy] finish sync bkmonitor collector end: %s, update_cnt: %s",
             datetime.datetime.now() - now,
             updated_collectors,

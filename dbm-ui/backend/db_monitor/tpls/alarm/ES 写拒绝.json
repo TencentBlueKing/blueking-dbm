@@ -34,7 +34,7 @@
               "app",
               "cluster_name",
               "name",
-              "app_id"
+              "appid"
             ],
             "agg_condition": [
               {
@@ -65,7 +65,7 @@
             "config": [
               [
                 {
-                  "method": "gte",
+                  "method": "gt",
                   "threshold": 0
                 }
               ]
@@ -251,6 +251,6 @@
   },
   "is_enabled": true,
   "monitor_indicator": "MAX(ES\u7ebf\u7a0b\u6c60\u4e2d\u88ab\u62d2\u7edd\u4efb\u52a1\u6570)",
-  "version": 2,
+  "version": 9,
   "alert_source": "time_series"
 }

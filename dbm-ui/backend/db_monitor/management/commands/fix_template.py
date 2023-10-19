@@ -114,8 +114,9 @@ class Command(BaseCommand):
 
                         query_config["metric_id"] = query_config["metric_id"][:128]
 
-                        if "agg_dimension" in query_config and "app_id" not in query_config["agg_dimension"]:
-                            query_config["agg_dimension"].append("app_id")
+                        if "agg_dimension" in query_config and "appid" not in query_config["agg_dimension"]:
+                            query_config["agg_dimension"].append("appid")
+                            query_config["agg_dimension"].pop("app_id", None)
 
                 self.clear_id(details["items"])
 

@@ -59,7 +59,7 @@
               "cluster_domain",
               "instance_role",
               "instance",
-              "app_id"
+              "appid"
             ],
             "data_type_label": "time_series",
             "result_table_id": "exporter_dbm_mysqld_exporter.gstatus",
@@ -280,6 +280,6 @@
   },
   "is_enabled": true,
   "monitor_indicator": "AVG(mysql_global_status_threads_running)",
-  "version": 2,
+  "version": 8,
   "alert_source": "time_series"
 }

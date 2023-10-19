@@ -63,6 +63,7 @@ class MonitorGrafanaViewSet(viewsets.SystemViewSet):
                 "var-instance": getattr(instance, "ip_port", None),
                 "var-host": getattr(getattr(instance, "machine", None), "ip", None),
                 "var-app_id": bk_biz_id,
+                "var-appid": bk_biz_id,
                 "var-app": AppCache.get_app_attr(bk_biz_id, default=bk_biz_id),
                 "kiosk": 1,
             }
