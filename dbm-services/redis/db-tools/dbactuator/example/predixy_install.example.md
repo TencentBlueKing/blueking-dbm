@@ -5,7 +5,7 @@
 --root_id={{root_id}}
 --node_id={{node_id}}
 --version_id={{version_id}}
---atom-job-list="twemproxy_install"
+--atom-job-list="predixy_install"
 --payload='{{payload_base64}}'`
 
 ## 前置工作:
@@ -20,6 +20,7 @@
   "port":50000,
   "predixypasswd":"xxxxx",
   "redispasswd":"xxxxx",
+  "predixyadminpasswd":"xxxxx",
   "servers":[
     "127.0.0.1:11",
     "2.2.2.2:11"
@@ -31,7 +32,9 @@
     "serverfailurelimit":"10",
     "serverretrytimeout":"1",
     "servertimeout":"0",
-    "keepalive":"0"
+    "keepalive":"0",
+    "slowloglogslowerthan":"10000",
+    "slowlogmaxlen":"1024"
   },
   "mediapkg":{
     "pkg":"predixy-1.4.0.tar.gz",
