@@ -990,6 +990,9 @@ func (i *InstallMySQLComp) getSuperUserAccountForSpider() (initAccountsql []stri
 				"GRANT RELOAD, PROCESS, SHOW DATABASES, SUPER, REPLICATION CLIENT, SHOW VIEW "+
 					"ON *.* TO '%s'@'%s' IDENTIFIED BY '%s' WITH GRANT OPTION ;",
 				i.Params.DBHAAccount.User, host, i.Params.DBHAAccount.Pwd))
+		initAccountsql = append(initAccountsql,
+			fmt.Sprintf(
+				"GRANT SELECT ON mysql.servers TO '%s'@'%s' ;", i.Params.DBHAAccount.User, host))
 	}
 	return
 }
