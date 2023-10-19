@@ -17,6 +17,7 @@ from backend.db_meta.models import Cluster
 from backend.flow.engine.controller.mysql import MySQLController
 from backend.ticket import builders
 from backend.ticket.builders.common.base import HostInfoSerializer, InstanceInfoSerializer
+from backend.ticket.builders.common.constants import MySQLBackupSource
 from backend.ticket.builders.mysql.base import BaseMySQLTicketFlowBuilder, MySQLBaseOperateDetailSerializer
 from backend.ticket.constants import FlowRetryType, FlowType, TicketType
 from backend.ticket.models import Flow
@@ -55,7 +56,13 @@ class MysqlRestoreSlaveDetailSerializer(MySQLBaseOperateDetailSerializer):
 
 
 class MysqlRestoreSlaveParamBuilder(builders.FlowParamBuilder):
-    controller = MySQLController.mysql_restore_slave_remote_scene
+    controller_remote = MySQLController.mysql_restore_slave_remote_scene
+    controller_local = MySQLController.mysql_restore_slave_scene
+
+    def build_controller_info(self) -> dict:
+        backup_source = self.ticket_data.get("backup_source", MySQLBackupSource.LOCAL)
+        self.controller = getattr(self, f"controller_{backup_source}")
+        return super().build_controller_info()
 
     def format_ticket_data(self):
         self.ticket_data["add_slave_only"] = False

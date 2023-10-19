@@ -1113,672 +1113,693 @@
         ]
     },
     "TwemproxyRedisInstance": {
-        "twemproxy":[
+        "tendiscache": [
             {
-                "spec_name":"2核_4G_50G",
-                "cpu":{
-                    "max":2,
-                    "min":2
+                "spec_name": "2c_4g_50gb",
+                "cpu": {
+                    "max": 2,
+                    "min": 2
                 },
-                "mem":{
-                    "max":4,
-                    "min":4
+                "mem": {
+                    "max": 4,
+                    "min": 3
                 },
-                "device_class":[
-
+                "device_class": [
+                    "SA2.MEDIUM4",
+                    "S5.MEDIUM4",
+                    "S5t.MEDIUM4"
                 ],
-                "storage_spec":[
+                "storage_spec": [
                     {
-                        "size":50,
-                        "type":"ALL",
-                        "mount_point":"/data"
+                        "size": 50,
+                        "type": "ALL",
+                        "mount_point": "/data"
                     }
                 ],
-                "desc":"基础机型",
-                "instance_num":0,
-                "qps":{
-
-                }
+                "desc": "",
+                "instance_num": 0,
+                "qps": {}
             },
             {
-                "spec_name":"4核_16G_50G",
-                "cpu":{
-                    "max":4,
-                    "min":4
+                "spec_name": "2c_8g_100gb",
+                "cpu": {
+                    "max": 4,
+                    "min": 2
                 },
-                "mem":{
-                    "max":16,
-                    "min":16
+                "mem": {
+                    "max": 8,
+                    "min": 7
                 },
-                "device_class":[
-
+                "device_class": [
+                    "S5.MEDIUM8",
+                    "S5t.MEDIUM8",
+                    "S5.LARGE8",
+                    "S5t.LARGE8",
+                    "SA2.LARGE8"
                 ],
-                "storage_spec":[
+                "storage_spec": [
                     {
-                        "size":50,
-                        "type":"ALL",
-                        "mount_point":"/data"
+                        "size": 100,
+                        "type": "ALL",
+                        "mount_point": "/data"
                     }
                 ],
-                "desc":"中等机型",
-                "instance_num":0,
-                "qps":{
-
-                }
+                "desc": "",
+                "instance_num": 0,
+                "qps": {}
             },
             {
-                "spec_name":"8核_32G_100G",
-                "cpu":{
-                    "max":8,
-                    "min":8
+                "spec_name": "4c_16g_200gb",
+                "cpu": {
+                    "max": 6,
+                    "min": 4
                 },
-                "mem":{
-                    "max":32,
-                    "min":32
+                "mem": {
+                    "max": 16,
+                    "min": 15
                 },
-                "device_class":[
-
+                "device_class": [
+                    "S5.LARGE16",
+                    "S5t.2XLARGE16",
+                    "SA2.2XLARGE16"
                 ],
-                "storage_spec":[
+                "storage_spec": [
                     {
-                        "size":100,
-                        "type":"ALL",
-                        "mount_point":"/data"
+                        "size": 200,
+                        "type": "ALL",
+                        "mount_point": "/data"
                     }
                 ],
-                "desc":"高等机型",
-                "instance_num":0,
-                "qps":{
-
-                }
+                "desc": "",
+                "instance_num": 0,
+                "qps": {}
+            },
+            {
+                "spec_name": "4c_32g_300gb",
+                "cpu": {
+                    "max": 8,
+                    "min": 4
+                },
+                "mem": {
+                    "max": 32,
+                    "min": 30
+                },
+                "device_class": [
+                    "S5.2XLARGE32",
+                    "S5.4XLARGE32",
+                    "S5t.2XLARGE32"
+                ],
+                "storage_spec": [
+                    {
+                        "size": 300,
+                        "type": "ALL",
+                        "mount_point": "/data"
+                    }
+                ],
+                "desc": "",
+                "instance_num": 0,
+                "qps": {}
+            },
+            {
+                "spec_name": "8c_64g_400gb",
+                "cpu": {
+                    "max": 16,
+                    "min": 8
+                },
+                "mem": {
+                    "max": 64,
+                    "min": 61
+                },
+                "device_class": [
+                    "S5.4XLARGE64",
+                    "S5t.4XLARGE64",
+                    "SA3.4XLARGE64"
+                ],
+                "storage_spec": [
+                    {
+                        "size": 400,
+                        "type": "ALL",
+                        "mount_point": "/data"
+                    }
+                ],
+                "desc": "",
+                "instance_num": 0,
+                "qps": {}
+            },
+            {
+                "spec_name": "16c_128g_600gb",
+                "cpu": {
+                    "max": 32,
+                    "min": 16
+                },
+                "mem": {
+                    "max": 128,
+                    "min": 125
+                },
+                "device_class": [
+                    "S5.8XLARGE128"
+                ],
+                "storage_spec": [
+                    {
+                        "size": 600,
+                        "type": "ALL",
+                        "mount_point": "/data"
+                    }
+                ],
+                "desc": "",
+                "instance_num": 0,
+                "qps": {}
             }
         ],
-        "tendiscache":[
+        "twemproxy": [
             {
-                "spec_name":"2核_8G_100G_1/s",
-                "cpu":{
-                    "max":4,
-                    "min":2
+                "spec_name": "2c_4g_50g",
+                "cpu": {
+                    "max": 2,
+                    "min": 2
                 },
-                "mem":{
-                    "max":8,
-                    "min":8
+                "mem": {
+                    "max": 4,
+                    "min": 3
                 },
-                "device_class":[
-
+                "device_class": [
+                    "S5.MEDIUM4",
+                    "SA2.MEDIUM4",
+                    "S5t.MEDIUM4"
                 ],
-                "storage_spec":[
+                "storage_spec": [
                     {
-                        "size":100,
-                        "type":"ALL",
-                        "mount_point":"/data"
+                        "size": 50,
+                        "type": "ALL",
+                        "mount_point": "/data"
                     }
                 ],
-                "desc":"S5.MEDIUM8,S5.LARGE8,SA2.LARGE8",
-                "instance_num":0,
-                "qps":{
-                    "max":15000,
-                    "min":1
-                }
+                "desc": "基础机型",
+                "instance_num": 0,
+                "qps": {}
             },
             {
-                "spec_name":"16核_128G_600G_1/s",
-                "cpu":{
-                    "max":32,
-                    "min":16
+                "spec_name": "4c_16g_50g",
+                "cpu": {
+                    "max": 6,
+                    "min": 4
                 },
-                "mem":{
-                    "max":128,
-                    "min":128
+                "mem": {
+                    "max": 16,
+                    "min": 15
                 },
-                "device_class":[
-
+                "device_class": [
+                    "S5.2XLARGE16",
+                    "S5.LARGE16",
+                    "SA3.LARGE16",
+                    "SA2.2XLARGE16"
                 ],
-                "storage_spec":[
+                "storage_spec": [
                     {
-                        "size":600,
-                        "type":"ALL",
-                        "mount_point":"/data"
+                        "size": 50,
+                        "type": "ALL",
+                        "mount_point": "/data"
                     }
                 ],
-                "desc":"S5.4XLARGE128,M5.4XLARGE128,SA3.8XLARGE128",
-                "instance_num":0,
-                "qps":{
-                    "max":300000,
-                    "min":1
-                }
+                "desc": "中等机型",
+                "instance_num": 0,
+                "qps": {}
             },
             {
-                "spec_name":"2核_4G_50G_1/s",
-                "cpu":{
-                    "max":2,
-                    "min":2
+                "spec_name": "8c_32g_100g",
+                "cpu": {
+                    "max": 8,
+                    "min": 6
                 },
-                "mem":{
-                    "max":4,
-                    "min":4
+                "mem": {
+                    "max": 32,
+                    "min": 30
                 },
-                "device_class":[
-
+                "device_class": [
+                    "S5.2XLARGE32",
+                    "S5t.2XLARGE32",
+                    "SA3.2XLARGE32"
                 ],
-                "storage_spec":[
+                "storage_spec": [
                     {
-                        "size":50,
-                        "type":"ALL",
-                        "mount_point":"/data"
+                        "size": 100,
+                        "type": "ALL",
+                        "mount_point": "/data"
                     }
                 ],
-                "desc":"SA2.MEDIUM4,S5.MEDIUM4",
-                "instance_num":0,
-                "qps":{
-                    "max":10000,
-                    "min":1
-                }
-            },
-            {
-                "spec_name":"4核_16G_200G_1/s",
-                "cpu":{
-                    "max":6,
-                    "min":4
-                },
-                "mem":{
-                    "max":16,
-                    "min":16
-                },
-                "device_class":[
-
-                ],
-                "storage_spec":[
-                    {
-                        "size":200,
-                        "type":"ALL",
-                        "mount_point":"/data"
-                    }
-                ],
-                "desc":"SA3.LARGE16,S5.LARGE16",
-                "instance_num":0,
-                "qps":{
-                    "max":100000,
-                    "min":1
-                }
-            },
-            {
-                "spec_name":"4核_32G_300G_1/s",
-                "cpu":{
-                    "max":8,
-                    "min":4
-                },
-                "mem":{
-                    "max":32,
-                    "min":32
-                },
-                "device_class":[
-
-                ],
-                "storage_spec":[
-                    {
-                        "size":300,
-                        "type":"ALL",
-                        "mount_point":"/data"
-                    }
-                ],
-                "desc":"S5.2XLARGE32,S5.4XLARGE32",
-                "instance_num":0,
-                "qps":{
-                    "max":160000,
-                    "min":1
-                }
-            },
-            {
-                "spec_name":"8核_64G_400G_1/s",
-                "cpu":{
-                    "max":16,
-                    "min":8
-                },
-                "mem":{
-                    "max":64,
-                    "min":64
-                },
-                "device_class":[
-
-                ],
-                "storage_spec":[
-                    {
-                        "size":400,
-                        "type":"ALL",
-                        "mount_point":"/data"
-                    }
-                ],
-                "desc":"S5.4XLARGE64,SA3.4XLARGE64,M5.2XLARGE64",
-                "instance_num":0,
-                "qps":{
-                    "max":300000,
-                    "min":1
-                }
+                "desc": "高等机型",
+                "instance_num": 0,
+                "qps": {}
             }
         ]
     },
     "TwemproxyTendisSSDInstance": {
-        "tendisssd":[
+        "tendisssd": [
             {
-                "spec_name":"16核_55G_1500G_50000/s",
-                "cpu":{
-                    "max":16,
-                    "min":16
+                "spec_name": "16c_64g_1.5tb",
+                "cpu": {
+                    "max": 16,
+                    "min": 16
                 },
-                "mem":{
-                    "max":66,
-                    "min":55
+                "mem": {
+                    "max": 66,
+                    "min": 55
                 },
-                "device_class":[
-
+                "device_class": [
+                    "IT5.4XLARGE64",
+                    "I6t.4XLARGE56"
                 ],
-                "storage_spec":[
+                "storage_spec": [
                     {
-                        "size":1500,
-                        "type":"ALL",
-                        "mount_point":"/data"
+                        "size": 1500,
+                        "type": "ALL",
+                        "mount_point": "/data"
                     },
                     {
-                        "size":1500,
-                        "type":"SSD",
-                        "mount_point":"/data1"
+                        "size": 1500,
+                        "type": "SSD",
+                        "mount_point": "/data1"
                     }
                 ],
-                "desc":"IT5.4XLARGE64,I6t.4XLARGE56",
-                "instance_num":0,
-                "qps":{
-                    "max":70000,
-                    "min":50000
+                "desc": "",
+                "instance_num": 0,
+                "qps": {
+                    "max": 70000,
+                    "min": 50000
                 }
             },
             {
-                "spec_name":"32核_110G_3500G_80000/s",
-                "cpu":{
-                    "max":32,
-                    "min":32
+                "spec_name": "32c_128g_3.5tb",
+                "cpu": {
+                    "max": 32,
+                    "min": 32
                 },
-                "mem":{
-                    "max":130,
-                    "min":110
+                "mem": {
+                    "max": 130,
+                    "min": 110
                 },
-                "device_class":[
-
+                "device_class": [
+                    "IT5.8XLARGE128",
+                    "I6t.8XLARGE112"
                 ],
-                "storage_spec":[
+                "storage_spec": [
                     {
-                        "size":3500,
-                        "type":"ALL",
-                        "mount_point":"/data"
+                        "size": 3500,
+                        "type": "ALL",
+                        "mount_point": "/data"
                     },
                     {
-                        "size":3500,
-                        "type":"SSD",
-                        "mount_point":"/data1"
+                        "size": 3500,
+                        "type": "SSD",
+                        "mount_point": "/data1"
                     }
                 ],
-                "desc":"IT5.8XLARGE128,I6t.8XLARGE112",
-                "instance_num":0,
-                "qps":{
-                    "max":100000,
-                    "min":80000
+                "desc": "",
+                "instance_num": 0,
+                "qps": {
+                    "max": 100000,
+                    "min": 80000
                 }
             }
         ],
-        "twemproxy":[
+        "twemproxy": [
             {
-                "spec_name":"2核_4G_50G",
-                "cpu":{
-                    "max":2,
-                    "min":2
+                "spec_name": "2c_4g_50g",
+                "cpu": {
+                    "max": 2,
+                    "min": 2
                 },
-                "mem":{
-                    "max":4,
-                    "min":4
+                "mem": {
+                    "max": 4,
+                    "min": 3
                 },
-                "device_class":[
-
+                "device_class": [
+                    "S5.MEDIUM4",
+                    "S5t.MEDIUM4",
+                    "SA2.MEDIUM4"
                 ],
-                "storage_spec":[
+                "storage_spec": [
                     {
-                        "size":50,
-                        "type":"ALL",
-                        "mount_point":"/data"
+                        "size": 50,
+                        "type": "ALL",
+                        "mount_point": "/data"
                     }
                 ],
-                "desc":"基础机型",
-                "instance_num":0,
-                "qps":{
-
-                }
+                "desc": "基础机型",
+                "instance_num": 0,
+                "qps": {}
             },
             {
-                "spec_name":"4核_16G_50G",
-                "cpu":{
-                    "max":4,
-                    "min":4
+                "spec_name": "4c_16g_50g",
+                "cpu": {
+                    "max": 6,
+                    "min": 4
                 },
-                "mem":{
-                    "max":16,
-                    "min":16
+                "mem": {
+                    "max": 16,
+                    "min": 15
                 },
-                "device_class":[
-
+                "device_class": [
+                    "S5.LARGE16",
+                    "S5.2XLARGE16",
+                    "S5t.2XLARGE16",
+                    "SA2.2XLARGE16",
+                    "SA3.LARGE16"
                 ],
-                "storage_spec":[
+                "storage_spec": [
                     {
-                        "size":50,
-                        "type":"ALL",
-                        "mount_point":"/data"
+                        "size": 50,
+                        "type": "ALL",
+                        "mount_point": "/data"
                     }
                 ],
-                "desc":"中等机型",
-                "instance_num":0,
-                "qps":{
-
-                }
+                "desc": "中等机型",
+                "instance_num": 0,
+                "qps": {}
             },
             {
-                "spec_name":"8核_32G_100G",
-                "cpu":{
-                    "max":8,
-                    "min":8
+                "spec_name": "8c_32g_100g",
+                "cpu": {
+                    "max": 8,
+                    "min": 6
                 },
-                "mem":{
-                    "max":32,
-                    "min":32
+                "mem": {
+                    "max": 32,
+                    "min": 30
                 },
-                "device_class":[
-
+                "device_class": [
+                    "M5.LARGE32",
+                    "S5.2XLARGE32",
+                    "S5.4XLARGE32",
+                    "S5t.2XLARGE32",
+                    "SA3.2XLARGE32"
                 ],
-                "storage_spec":[
+                "storage_spec": [
                     {
-                        "size":100,
-                        "type":"ALL",
-                        "mount_point":"/data"
+                        "size": 100,
+                        "type": "ALL",
+                        "mount_point": "/data"
                     }
                 ],
-                "desc":"高等机型",
-                "instance_num":0,
-                "qps":{
-
-                }
+                "desc": "高等机型",
+                "instance_num": 0,
+                "qps": {}
             }
         ]
     },
     "PredixyTendisplusCluster": {
-        "tendisplus":[
+        "tendisplus": [
             {
-                "spec_name":"2核_4G_50G_5000/s",
-                "cpu":{
-                    "max":2,
-                    "min":2
+                "spec_name": "2c_4g_50g",
+                "cpu": {
+                    "max": 2,
+                    "min": 2
                 },
-                "mem":{
-                    "max":4,
-                    "min":4
+                "mem": {
+                    "max": 4,
+                    "min": 3
                 },
-                "device_class":[
-
+                "device_class": [
+                    "S5.MEDIUM4",
+                    "S5t.MEDIUM4",
+                    "SA2.MEDIUM4"
                 ],
-                "storage_spec":[
+                "storage_spec": [
                     {
-                        "size":50,
-                        "type":"ALL",
-                        "mount_point":"/data"
+                        "size": 50,
+                        "type": "ALL",
+                        "mount_point": "/data"
                     },
                     {
-                        "size":50,
-                        "type":"SSD",
-                        "mount_point":"/data1"
+                        "size": 50,
+                        "type": "SSD",
+                        "mount_point": "/data1"
                     }
                 ],
-                "desc":"SA2.MEDIUM4,S5.MEDIUM4",
-                "instance_num":0,
-                "qps":{
-                    "max":10000,
-                    "min":5000
+                "desc": "",
+                "instance_num": 0,
+                "qps": {
+                    "max": 10000,
+                    "min": 5000
                 }
             },
             {
-                "spec_name":"2核_8G_100G_10000/s",
-                "cpu":{
-                    "max":4,
-                    "min":2
+                "spec_name": "2c_8g_100g",
+                "cpu": {
+                    "max": 4,
+                    "min": 2
                 },
-                "mem":{
-                    "max":8,
-                    "min":8
+                "mem": {
+                    "max": 8,
+                    "min": 6
                 },
-                "device_class":[
-
+                "device_class": [
+                    "S5.MEDIUM8",
+                    "S5t.MEDIUM8",
+                    "S5.LARGE8",
+                    "SA2.LARGE8",
+                    "S5t.LARGE8"
                 ],
-                "storage_spec":[
+                "storage_spec": [
                     {
-                        "size":100,
-                        "type":"ALL",
-                        "mount_point":"/data"
+                        "size": 100,
+                        "type": "ALL",
+                        "mount_point": "/data"
                     },
                     {
-                        "size":100,
-                        "type":"SSD",
-                        "mount_point":"/data1"
+                        "size": 100,
+                        "type": "SSD",
+                        "mount_point": "/data1"
                     }
                 ],
-                "desc":"S5.MEDIUM8,S5.LARGE8,SA2.LARGE8",
-                "instance_num":0,
-                "qps":{
-                    "max":15000,
-                    "min":10000
+                "desc": "",
+                "instance_num": 0,
+                "qps": {
+                    "max": 15000,
+                    "min": 10000
                 }
             },
             {
-                "spec_name":"4核_16G_200G_20000/s",
-                "cpu":{
-                    "max":6,
-                    "min":4
+                "spec_name": "4c_16g_200g",
+                "cpu": {
+                    "max": 6,
+                    "min": 4
                 },
-                "mem":{
-                    "max":16,
-                    "min":16
+                "mem": {
+                    "max": 16,
+                    "min": 15
                 },
-                "device_class":[
-
+                "device_class": [
+                    "S5t.2XLARGE16",
+                    "S5.LARGE16",
+                    "SA2.2XLARGE16",
+                    "SA3.LARGE16"
                 ],
-                "storage_spec":[
+                "storage_spec": [
                     {
-                        "size":200,
-                        "type":"ALL",
-                        "mount_point":"/data"
+                        "size": 200,
+                        "type": "ALL",
+                        "mount_point": "/data"
                     },
                     {
-                        "size":200,
-                        "type":"ALL",
-                        "mount_point":"/data1"
+                        "size": 200,
+                        "type": "SSD",
+                        "mount_point": "/data1"
                     }
                 ],
-                "desc":"SA3.LARGE16,S5.LARGE16,M5.MEDIUM16",
-                "instance_num":0,
-                "qps":{
-                    "max":30000,
-                    "min":20000
+                "desc": "",
+                "instance_num": 0,
+                "qps": {
+                    "max": 30000,
+                    "min": 20000
                 }
             },
             {
-                "spec_name":"4核_32G_500G_30000/s",
-                "cpu":{
-                    "max":8,
-                    "min":4
+                "spec_name": "4c_32g_500g",
+                "cpu": {
+                    "max": 8,
+                    "min": 4
                 },
-                "mem":{
-                    "max":32,
-                    "min":32
+                "mem": {
+                    "max": 32,
+                    "min": 30
                 },
-                "device_class":[
-
+                "device_class": [
+                    "S5.2XLARGE32",
+                    "S5.4XLARGE32",
+                    "S5t.2XLARGE32",
+                    "SA3.2XLARGE32",
+                    "SA2.4XLARGE32"
                 ],
-                "storage_spec":[
+                "storage_spec": [
                     {
-                        "size":500,
-                        "type":"ALL",
-                        "mount_point":"/data"
+                        "size": 500,
+                        "type": "ALL",
+                        "mount_point": "/data"
                     },
                     {
-                        "size":500,
-                        "type":"SSD",
-                        "mount_point":"/data1"
+                        "size": 500,
+                        "type": "SSD",
+                        "mount_point": "/data1"
                     }
                 ],
-                "desc":"S5.2XLARGE32,S5.4XLARGE32,M5.LARGE32",
-                "instance_num":0,
-                "qps":{
-                    "max":50000,
-                    "min":30000
+                "desc": "",
+                "instance_num": 0,
+                "qps": {
+                    "max": 50000,
+                    "min": 30000
                 }
             },
             {
-                "spec_name":"16核_55G_1500G_50000/s",
-                "cpu":{
-                    "max":16,
-                    "min":16
+                "spec_name": "16c_64g_1.5tb",
+                "cpu": {
+                    "max": 16,
+                    "min": 16
                 },
-                "mem":{
-                    "max":66,
-                    "min":55
+                "mem": {
+                    "max": 66,
+                    "min": 55
                 },
-                "device_class":[
-
+                "device_class": [
+                    "IT5.4XLARGE64",
+                    "I6t.4XLARGE56"
                 ],
-                "storage_spec":[
+                "storage_spec": [
                     {
-                        "size":1500,
-                        "type":"ALL",
-                        "mount_point":"/data"
+                        "size": 1500,
+                        "type": "ALL",
+                        "mount_point": "/data"
                     },
                     {
-                        "size":1500,
-                        "type":"SSD",
-                        "mount_point":"/data1"
+                        "size": 1500,
+                        "type": "SSD",
+                        "mount_point": "/data1"
                     }
                 ],
-                "desc":"IT5.4XLARGE64,I6t.4XLARGE56",
-                "instance_num":0,
-                "qps":{
-                    "max":80000,
-                    "min":50000
+                "desc": "",
+                "instance_num": 0,
+                "qps": {
+                    "max": 80000,
+                    "min": 50000
                 }
             },
             {
-                "spec_name":"32核_110G_3500G_80000/s",
-                "cpu":{
-                    "max":32,
-                    "min":32
+                "spec_name": "32c_128g_3.5tb",
+                "cpu": {
+                    "max": 32,
+                    "min": 32
                 },
-                "mem":{
-                    "max":130,
-                    "min":110
+                "mem": {
+                    "max": 130,
+                    "min": 110
                 },
-                "device_class":[
-
+                "device_class": [
+                    "IT5.8XLARGE128",
+                    "I6t.8XLARGE112"
                 ],
-                "storage_spec":[
+                "storage_spec": [
                     {
-                        "size":3500,
-                        "type":"ALL",
-                        "mount_point":"/data"
+                        "size": 3500,
+                        "type": "ALL",
+                        "mount_point": "/data"
                     },
                     {
-                        "size":3500,
-                        "type":"SSD",
-                        "mount_point":"/data1"
+                        "size": 3500,
+                        "type": "SSD",
+                        "mount_point": "/data1"
                     }
                 ],
-                "desc":"IT5.8XLARGE128,I6t.8XLARGE112",
-                "instance_num":0,
-                "qps":{
-                    "max":120000,
-                    "min":80000
+                "desc": "",
+                "instance_num": 0,
+                "qps": {
+                    "max": 120000,
+                    "min": 80000
                 }
             }
         ],
-        "predixy":[
+        "predixy": [
             {
-                "spec_name":"2核_4G_50G",
-                "cpu":{
-                    "max":2,
-                    "min":2
+                "spec_name": "2c_4g_50g",
+                "cpu": {
+                    "max": 2,
+                    "min": 2
                 },
-                "mem":{
-                    "max":4,
-                    "min":4
+                "mem": {
+                    "max": 4,
+                    "min": 3
                 },
-                "device_class":[
-
+                "device_class": [
+                    "S5.MEDIUM4",
+                    "S5t.MEDIUM4",
+                    "SA2.MEDIUM4"
                 ],
-                "storage_spec":[
+                "storage_spec": [
                     {
-                        "size":50,
-                        "type":"ALL",
-                        "mount_point":"/data"
+                        "size": 50,
+                        "type": "ALL",
+                        "mount_point": "/data"
                     }
                 ],
-                "desc":"基础机型",
-                "instance_num":0,
-                "qps":{
-
-                }
+                "desc": "基础机型",
+                "instance_num": 0,
+                "qps": {}
             },
             {
-                "spec_name":"4核_16G_50G",
-                "cpu":{
-                    "max":4,
-                    "min":4
+                "spec_name": "4c_16g_50g",
+                "cpu": {
+                    "max": 6,
+                    "min": 4
                 },
-                "mem":{
-                    "max":16,
-                    "min":16
+                "mem": {
+                    "max": 16,
+                    "min": 15
                 },
-                "device_class":[
-
+                "device_class": [
+                    "S5.2XLARGE16",
+                    "S5.LARGE16",
+                    "S5t.2XLARGE16",
+                    "S5t.LARGE16",
+                    "SA2.2XLARGE16",
+                    "SA3.LARGE16"
                 ],
-                "storage_spec":[
+                "storage_spec": [
                     {
-                        "size":50,
-                        "type":"ALL",
-                        "mount_point":"/data"
+                        "size": 50,
+                        "type": "ALL",
+                        "mount_point": "/data"
                     }
                 ],
-                "desc":"中等机型",
-                "instance_num":0,
-                "qps":{
-
-                }
+                "desc": "中等机型",
+                "instance_num": 0,
+                "qps": {}
             },
             {
-                "spec_name":"8核_32G_100G",
-                "cpu":{
-                    "max":8,
-                    "min":8
+                "spec_name": "8c_32g_100g",
+                "cpu": {
+                    "max": 8,
+                    "min": 6
                 },
-                "mem":{
-                    "max":32,
-                    "min":32
+                "mem": {
+                    "max": 32,
+                    "min": 30
                 },
-                "device_class":[
-
+                "device_class": [
+                    "S5.2XLARGE32",
+                    "S5.4XLARGE32",
+                    "S5t.2XLARGE32",
+                    "SA2.4XLARGE32",
+                    "SA3.2XLARGE32"
                 ],
-                "storage_spec":[
+                "storage_spec": [
                     {
-                        "size":100,
-                        "type":"ALL",
-                        "mount_point":"/data"
+                        "size": 100,
+                        "type": "ALL",
+                        "mount_point": "/data"
                     }
                 ],
-                "desc":"高等机型",
-                "instance_num":0,
-                "qps":{
-
-                }
+                "desc": "高等机型",
+                "instance_num": 0,
+                "qps": {}
             }
         ]
     }
