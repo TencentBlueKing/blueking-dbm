@@ -48,8 +48,10 @@
             :is-edit="isEdit" />
           <SpecStorage
             v-model="formdata.storage_spec"
+            :fixed-disk-mount-point="isFixedDiskMountPoint"
             :is-edit="isEdit"
-            :is-required="isRequired" />
+            :is-required="isRequired"
+            :machine-type="machineType" />
         </div>
       </div>
       <BkFormItem
@@ -138,23 +140,36 @@
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
 
+  const isFixedDiskMountPoint = ['tendisssd', 'tendisplus'].includes(props.machineType);
+
   const initFormdata = () => {
     if (props.data) {
-      const baseData = { ...props.data };
-      if (baseData.device_class.length === 0) {
-        baseData.device_class = [''];
-      }
-      if (baseData.storage_spec.length === 0) {
-        baseData.storage_spec = [
+      return _.cloneDeep(props.data);
+    }
+
+    const genStorageSpec = () => {
+      if (isFixedDiskMountPoint) {
+        return [
           {
-            mount_point: '',
-            size: '' as unknown as number,
+            mount_point: '/data',
+            size: '' as string | number,
+            type: '',
+          },
+          {
+            mount_point: '/data1',
+            size: '' as string | number,
             type: '',
           },
         ];
       }
-      return baseData;
-    }
+      return [
+        {
+          mount_point: '/data',
+          size: '' as string | number,
+          type: '',
+        },
+      ];
+    };
 
     return {
       cpu: {
@@ -165,13 +180,7 @@
         max: '' as string | number,
         min: '' as string | number,
       },
-      storage_spec: [
-        {
-          mount_point: '',
-          size: '' as string | number,
-          type: '',
-        },
-      ],
+      storage_spec: genStorageSpec(),
       device_class: [] as string[],
       desc: '',
       spec_cluster_type: props.clusterType,

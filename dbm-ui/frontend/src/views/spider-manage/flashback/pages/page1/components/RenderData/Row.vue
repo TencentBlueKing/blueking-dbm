@@ -37,14 +37,14 @@
           ref="databasesRef"
           v-model="localDatabases"
           :cluster-id="localClusterId"
-          :rules="targetdbAndTableNameBaseRules" />
+          required />
       </td>
       <td style="padding: 0;">
         <RenderTableName
           ref="tablesRef"
           v-model="localTables"
           :cluster-id="localClusterId"
-          :rules="targetdbAndTableNameBaseRules" />
+          required />
       </td>
       <td style="padding: 0;">
         <RenderDbName
@@ -156,28 +156,6 @@
   const localDatabaseIgnore = ref<string[]>();
   const localTablesIgnore = ref<string[]>();
 
-  const targetdbAndTableNameBaseRules = [
-    {
-      validator: (value: string []) => value && value.length > 0,
-      message: t('不能为空'),
-    },
-    {
-      validator: (value: string []) => {
-        if (_.some(value, item => /\*/.test(item))) {
-          return value.length < 2;
-        }
-        return true;
-      },
-      message: t('出现 * 只允许填一个'),
-      trigger: 'change',
-    },
-    {
-      validator: (value: string []) => _.every(value, item => !/^%$/.test(item)),
-      message: t('% 不允许单独使用'),
-      trigger: 'change',
-    },
-  ];
-
   const ingoredbAndTableNameBaseRules = [
     {
       validator: (value: string []) => {
@@ -188,6 +166,16 @@
         return _.every(value, item => !/\*/.test(item));
       },
       message: t('不支持 *'),
+      trigger: 'change',
+    },
+    {
+      validator: (value: string []) => {
+        if (_.some(value, item => /[*%?]/.test(item))) {
+          return value.length < 2;
+        }
+        return true;
+      },
+      message: t('含通配符的单元格仅支持输入单个对象'),
       trigger: 'change',
     },
     {

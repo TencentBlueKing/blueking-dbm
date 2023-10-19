@@ -14,7 +14,9 @@
 <template>
   <div
     class="spec-mem spec-form-item"
-    :class="{'not-required': !isRequired}">
+    :class="{
+      'not-required': !isRequired
+    }">
     <div class="spec-form-item__label">
       {{ $t('磁盘') }}
     </div>
@@ -47,7 +49,8 @@
   interface Props {
     modelValue: StorageSpecItem[],
     isEdit: boolean,
-    isRequired: boolean
+    isRequired: boolean,
+    fixedDiskMountPoint: boolean
   }
 
   interface Emits {
@@ -65,6 +68,7 @@
   const tableData = ref([...props.modelValue]);
   const deviceClass = ref<{label: string, value: string}[]>([]);
   const isLoadDeviceClass = ref(true);
+
   const mountPointRules = (data: StorageSpecItem) => {
     // 非必填
     if (!props.isRequired && !data.mount_point && !data.size && !data.type) {
@@ -114,6 +118,7 @@
       },
     ];
   };
+
   const columns = [
     {
       field: 'mount_point',
@@ -132,6 +137,7 @@
             <bk-input
               class="large-size"
               v-model={data.mount_point}
+              readonly={props.fixedDiskMountPoint}
               placeholder="/data123"
               disabled={props.isEdit} />
           </div>
@@ -167,6 +173,7 @@
     {
       field: 'type',
       label: t('磁盘类型'),
+      width: 120,
       render: ({ data, index }: TableColumnData) => (
         <bk-form-item
           property={`storage_spec.${index}.type`}
@@ -192,10 +199,13 @@
         </bk-form-item>
       ),
     },
-    {
+  ];
+
+  if (!props.fixedDiskMountPoint) {
+    columns.push({
       field: '',
       label: t('操作'),
-      width: 120,
+      width: 80,
       render: ({ index }: TableColumnData) => (
         <div class="opertaions">
           <bk-button
@@ -212,8 +222,8 @@
           </bk-button>
         </div>
       ),
-    },
-  ];
+    });
+  }
 
   const createData = () => ({
     mount_point: '',

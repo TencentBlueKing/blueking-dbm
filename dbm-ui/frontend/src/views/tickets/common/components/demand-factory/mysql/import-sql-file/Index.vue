@@ -169,79 +169,88 @@
     tableProps: {
       data: [] as ResourceItem[],
       pagination: useDefaultPagination(),
-      columns: [{
-        label: t('集群'),
-        field: 'master_domain',
-        showOverflowTooltip: true,
-        render: ({ cell }: { cell: string }) => <span>{cell || '--'}</span>,
-      }, {
-        label: t('类型'),
-        field: 'cluster_type',
-        render: ({ cell }: { cell: string }) => <span>{cell || '--'}</span>,
-      }, {
-        label: t('状态'),
-        field: 'status',
-        render: ({ cell }: { cell: string }) => {
-          const text = cell === 'normal' ? t('正常') : t('异常');
-          const icon = cell === 'normal' ? 'normal' : 'abnormal';
-          return <span>
+      columns: [
+        {
+          label: t('集群'),
+          field: 'master_domain',
+          showOverflowTooltip: true,
+          render: ({ cell }: { cell: string }) => <span>{cell || '--'}</span>,
+        },
+        {
+          label: t('类型'),
+          field: 'cluster_type',
+          render: ({ cell }: { cell: string }) => <span>{cell || '--'}</span>,
+        },
+        {
+          label: t('状态'),
+          field: 'status',
+          render: ({ cell }: { cell: string }) => {
+            const text = cell === 'normal' ? t('正常') : t('异常');
+            const icon = cell === 'normal' ? 'normal' : 'abnormal';
+            return <span>
             <db-icon svg type={icon} style="margin-right: 5px;" />
             {text}
           </span>;
+          },
         },
-      }],
+      ],
     } as unknown as TablePropTypes,
   });
 
   const currentFileContent = computed(() => fileContentMap.value[selectFileName.value] || '');
 
-  const targetDB = [{
-    label: t('变更的DB'),
-    field: 'dbnames',
-    showOverflowTooltip: false,
-    render: ({ cell }: { cell: string[] }) => (
+  const targetDB = [
+    {
+      label: t('变更的DB'),
+      field: 'dbnames',
+      showOverflowTooltip: false,
+      render: ({ cell }: { cell: string[] }) => (
       <div class="text-overflow" v-overflow-tips={{
           content: cell,
         }}>
         {cell.map(item => <bk-tag>{item}</bk-tag>)}
       </div>
     ),
-  }, {
-    label: t('忽略的DB'),
-    field: 'ignore_dbnames',
-    showOverflowTooltip: false,
-    render: ({ cell }: { cell: string[] }) => (
+    },
+    {
+      label: t('忽略的DB'),
+      field: 'ignore_dbnames',
+      showOverflowTooltip: false,
+      render: ({ cell }: { cell: string[] }) => (
       <div class="text-overflow" v-overflow-tips={{
           content: cell,
         }}>
         {cell.length > 0 ? cell.map(item => <bk-tag>{item}</bk-tag>) : '--'}
       </div>
     ),
-  }];
+    }];
 
-  const backupConfig = [{
-    label: t('备份DB'),
-    field: 'db_patterns',
-    showOverflowTooltip: false,
-    render: ({ cell }: { cell: string[] }) => (
+  const backupConfig = [
+    {
+      label: t('备份DB'),
+      field: 'db_patterns',
+      showOverflowTooltip: false,
+      render: ({ cell }: { cell: string[] }) => (
       <div class="text-overflow" v-overflow-tips={{
           content: cell,
         }}>
         {cell.map(item => <bk-tag>{item}</bk-tag>)}
       </div>
     ),
-  }, {
-    label: t('备份表名'),
-    field: 'table_patterns',
-    showOverflowTooltip: false,
-    render: ({ cell }: { cell: string[] }) => (
+    },
+    {
+      label: t('备份表名'),
+      field: 'table_patterns',
+      showOverflowTooltip: false,
+      render: ({ cell }: { cell: string[] }) => (
       <div class="text-overflow" v-overflow-tips={{
           content: cell,
         }}>
         {cell.map(item => <bk-tag>{item}</bk-tag>)}
       </div>
     ),
-  }];
+    },
+  ];
 
   // SQL 文件来源
   const importModeType = computed(() => (props.ticketDetails?.details?.import_mode === 'manual' ? t('手动输入') : t('文件导入')));
@@ -307,14 +316,17 @@
   // 查看日志详情
   function handleClickFile() {
     isShow.value = true;
+
     const uploadSQLFileList = props.ticketDetails?.details?.execute_objects.map(item => item.sql_file);
     uploadFileList.value = uploadSQLFileList;
-    const list: string[] = [];
-    uploadSQLFileList.forEach((item) => {
-      list.push(`${props.ticketDetails.details.path}/${item}`);
-    });
+
+    const filePathList = uploadSQLFileList.reduce((result, item) => {
+      result.push(`${props.ticketDetails.details.path}/${item}`);
+      return result;
+    }, [] as string[]);
+
     batchFetchFile({
-      file_path_list: list,
+      file_path_list: filePathList,
     }).then((result) => {
       fileContentMap.value = result.reduce((result, fileInfo) => {
         const fileName = fileInfo.path.split('/').pop() as string;
@@ -322,6 +334,8 @@
           [fileName]: fileInfo.content,
         });
       }, {} as Record<string, string>);
+
+      [selectFileName.value] = uploadSQLFileList;
     });
   }
 

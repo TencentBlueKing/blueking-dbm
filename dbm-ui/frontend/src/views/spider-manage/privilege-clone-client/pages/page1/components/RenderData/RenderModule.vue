@@ -68,7 +68,7 @@
     fetchHostTopoInfo({
       bk_biz_id: currentBizId,
       filter_conditions: {
-        bk_host_innerip: [`${props.source.cloud_area.id}:${props.source.ip}`],
+        bk_host_innerip: [`${props.source.bk_cloud_id}:${props.source.ip}`],
       },
     });
   }, {

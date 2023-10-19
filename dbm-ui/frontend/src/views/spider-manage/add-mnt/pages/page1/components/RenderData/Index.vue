@@ -36,7 +36,7 @@
           :required="false"
           :row-width="slotProps.rowWidth"
           :width="160">
-          {{ t('所属云区域') }}
+          {{ t('所属管控区域') }}
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
           :is-minimize="slotProps.isOverflow"

@@ -91,7 +91,7 @@
         ref="tableRef"
         :columns="columns"
         :data-source="dataSource"
-        fixed-pagination
+        releate-url-query
         style="margin-bottom: 34px;" />
       <template #footer>
         <BkButton @click="handleHideMore">

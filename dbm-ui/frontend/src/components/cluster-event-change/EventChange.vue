@@ -28,6 +28,7 @@
         :columns="columns"
         :data-source="dataSource"
         fixed-pagination
+        releate-url-query
         @clear-search="handleClearFilters" />
     </BkLoading>
   </div>

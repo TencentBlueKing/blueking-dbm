@@ -43,6 +43,20 @@
       :max-height="tableMaxHeight"
       @add="handleAddItem"
       @remove="handleRemoveItem" />
+    <BkForm form-type="vertical">
+      <BkFormItem
+        :label="t('备份源')"
+        required>
+        <BkRadioGroup v-model="backupSource">
+          <BkRadio label="local">
+            {{ t('本地备份') }}
+          </BkRadio>
+          <BkRadio label="">
+            {{ t('远程备份') }}
+          </BkRadio>
+        </BkRadioGroup>
+      </BkFormItem>
+    </BkForm>
     <template #action>
       <BkButton
         class="mr-8 w-88"
@@ -90,7 +104,6 @@
 
   import ClusterSelector from '@components/cluster-selector/ClusterSelector.vue';
   import type { ClusterSelectorResult } from '@components/cluster-selector/types';
-  import { backupList } from '@components/mysql-toolbox/common/const';
   import SuccessView from '@components/mysql-toolbox/Success.vue';
   import ToolboxTable from '@components/mysql-toolbox/ToolboxTable.vue';
 
@@ -114,13 +127,8 @@
   const clusterInfoMap: Map<string, ResourceItem> = reactive(new Map());
   const hostInfoMap: Map<string, HostDetails> = reactive(new Map());
   const tableData = ref<Array<TableItem>>([getTableItem()]);
-  const backupRules = [
-    {
-      validator: (value: string) => !!value,
-      message: t('请选择'),
-      trigger: 'blur',
-    },
-  ];
+  const backupSource = ref('local');
+
   const columns: TableProps['columns'] = [
     {
       label: () => (
@@ -161,19 +169,6 @@
         </bk-form-item>
       ),
     },
-    {
-      label: () => t('备份源'),
-      field: 'backup_source',
-      render: ({ data, index }: TableColumnData) => (
-        <bk-form-item
-          key={`${data.uniqueId}_backup_source`}
-          error-display-type="tooltips"
-          rules={backupRules}
-          property={`${index}.backup_source`}>
-          <bk-select v-model={data.backup_source} list={backupList} clearable={false}></bk-select>
-        </bk-form-item>
-      ),
-    },
   ];
 
   const getHostInfo = (domain: string, ip: string) => {
@@ -191,7 +186,6 @@
       cluster_related: [],
       checked_related: [],
       new_slave_ip: '',
-      backup_source: 'local',
       uniqueId: generateId('SLAVE_ADD_'),
     };
   }
@@ -410,7 +404,7 @@
   function clearEmptyTableData() {
     if (tableData.value.length === 1) {
       const data = tableData.value[0];
-      if (Object.values({ ...data, uniqueId: '', backup_source: '' }).every(value => (Array.isArray(value) ? !value.length : !value))) {
+      if (Object.values({ ...data, uniqueId: '' }).every(value => (Array.isArray(value) ? !value.length : !value))) {
         tableData.value = [];
       }
     }
@@ -419,12 +413,11 @@
   /**
    * 批量录入
    */
-  async function handleBatchInput(list: Array<{ cluster: string, ip: string, backup: string }>) {
+  async function handleBatchInput(list: Array<{ cluster: string, ip: string }>) {
     const formatList = list.map(item => ({
       ...getTableItem(),
       cluster_domain: item.cluster,
       new_slave_ip: item.ip,
-      backup_source: 'local', // TODO: 目前只有"本地备份"，后续扩展需要根据返回 backup 文案判断类型
     }));
     clearEmptyTableData();
     tableData.value.push(...formatList);
@@ -481,10 +474,10 @@
                   ip: item.new_slave_ip,
                 },
                 cluster_ids: [item.cluster_id].concat(item.checked_related.map(item => item.id)),
-                backup_source: item.backup_source,
               };
             }),
           },
+          backup_source: backupSource.value,
         };
         createTicket(params)
           .then((res) => {
@@ -506,17 +499,22 @@
 </script>
 
 <style lang="less" scoped>
-  .slave-add {
-    height: 100%;
-    overflow: hidden;
+.slave-add {
+  height: 100%;
+  overflow: hidden;
 
-    .slave-add-batch {
-      margin: 16px 0;
+  :deep(.bk-form-label) {
+    font-weight: bold;
+    color: #313238;
+  }
 
-      .db-icon-add {
-        margin-right: 4px;
-        color: @gray-color;
-      }
+  .slave-add-batch {
+    margin: 16px 0;
+
+    .db-icon-add {
+      margin-right: 4px;
+      color: @gray-color;
     }
   }
+}
 </style>

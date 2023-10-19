@@ -90,7 +90,7 @@
     data: initData(),
   });
   const isShowPassword = ref(false);
-  const passwordText = computed(() => (isShowPassword.value ? state.data.password : '*********'));
+  const passwordText = computed(() => (isShowPassword.value ? state.data.password : '******'));
 
   // 获取集群密码
   watch(isShow, (isShow) => {

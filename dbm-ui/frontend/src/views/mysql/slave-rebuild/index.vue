@@ -23,38 +23,60 @@
     :ticket-id="ticketId"
     :title="$t('重建从库任务提交成功')"
     @close="handleCloseSuccess" />
-  <SmartAction
-    v-else
-    class="slave-rebuild">
-    <BkAlert
-      closable
-      :title="$t('重建从库_原机器或新机器重新同步数据及权限_并且将域名解析指向同步好的机器')" />
-    <div class="slave-rebuild-types">
-      <strong class="slave-rebuild-types-title">
-        {{ $t('重建类型') }}
-      </strong>
-      <div class="mt-8 mb-8">
-        <CardCheckbox
-          checked
-          :desc="$t('在原主机上进行故障从库实例重建')"
-          icon="rebuild"
-          :title="$t('原地重建')" />
+  <SmartAction v-else>
+    <div class="slave-rebuild">
+      <BkAlert
+        closable
+        :title="$t('重建从库_原机器或新机器重新同步数据及权限_并且将域名解析指向同步好的机器')" />
+      <div class="slave-rebuild-types">
+        <strong class="slave-rebuild-types-title">
+          {{ $t('重建类型') }}
+        </strong>
+        <div class="mt-8 mb-8">
+          <CardCheckbox
+            v-model="ticketType"
+            :desc="$t('在原主机上进行故障从库实例重建')"
+            icon="rebuild"
+            :title="$t('原地重建')"
+            true-value="MYSQL_RESTORE_LOCAL_SLAVE" />
+          <CardCheckbox
+            v-model="ticketType"
+            class="ml-8"
+            :desc="$t('将故障从库主机的实例重建到新主机')"
+            icon="host"
+            :title="$t('新机重建')"
+            true-value="MYSQL_RESTORE_SLAVE" />
+        </div>
       </div>
+      <BkButton
+        class="slave-rebuild-batch"
+        @click="() => isShowBatchInput = true">
+        <i class="db-icon-add" />
+        {{ $t('批量录入') }}
+      </BkButton>
+      <ToolboxTable
+        ref="toolboxTableRef"
+        class="mb-32"
+        :columns="columns"
+        :data="tableData"
+        :max-height="tableMaxHeight"
+        @add="handleAddItem"
+        @remove="handleRemoveItem" />
+      <BkForm form-type="vertical">
+        <BkFormItem
+          :label="t('备份源')"
+          required>
+          <BkRadioGroup v-model="backupSource">
+            <BkRadio label="local">
+              {{ t('本地备份') }}
+            </BkRadio>
+            <BkRadio label="">
+              {{ t('远程备份') }}
+            </BkRadio>
+          </BkRadioGroup>
+        </BkFormItem>
+      </BkForm>
     </div>
-    <BkButton
-      class="slave-rebuild-batch"
-      @click="() => isShowBatchInput = true">
-      <i class="db-icon-add" />
-      {{ $t('批量录入') }}
-    </BkButton>
-    <ToolboxTable
-      ref="toolboxTableRef"
-      class="mb-32"
-      :columns="columns"
-      :data="tableData"
-      :max-height="tableMaxHeight"
-      @add="handleAddItem"
-      @remove="handleRemoveItem" />
     <template #action>
       <BkButton
         class="mr-8 w-88"
@@ -117,7 +139,6 @@
       port: number
     },
     cluster_id: number,
-    backup_source: string,
     uniqueId: string
   }
   interface TableColumnData {
@@ -136,19 +157,9 @@
   const isShowInstanceSelecotr = ref(false);
   const instanceMap: Map<string, InstanceInfos> = reactive(new Map());
   const tableData = ref<Array<TableItem>>([getTableItem()]);
-  const backupRules = [
-    {
-      validator: (value: string) => !!value,
-      message: t('请选择'),
-      trigger: 'blur',
-    },
-  ];
-  const backupList = [
-    {
-      value: 'local',
-      label: t('本地备份'),
-    },
-  ];
+  const ticketType = ref<'MYSQL_RESTORE_LOCAL_SLAVE'|'MYSQL_RESTORE_SLAVE'>('MYSQL_RESTORE_LOCAL_SLAVE');
+  const backupSource = ref('local');
+
   const columns: TableProps['columns'] = [
     {
       label: () => (
@@ -185,19 +196,6 @@
         );
       },
     },
-    {
-      label: () => t('备份来源'),
-      field: 'backup_source',
-      render: ({ data, index }: TableColumnData) => (
-        <bk-form-item
-          key={`${data.uniqueId}_backup_source`}
-          error-display-type="tooltips"
-          rules={backupRules}
-          property={`${index}.backup_source`}>
-          <bk-select v-model={data.backup_source} list={backupList} clearable={false}></bk-select>
-        </bk-form-item>
-      ),
-    },
   ];
 
   /**
@@ -214,7 +212,6 @@
         port: 0,
       },
       cluster_id: 0,
-      backup_source: '',
       uniqueId: generateId('REBUILD_SLAVE_'),
     };
   }
@@ -304,7 +301,7 @@
   function clearEmptyTableData() {
     if (tableData.value.length === 1) {
       const data = tableData.value[0];
-      if (!data.instance_address && !data.backup_source) {
+      if (!data.instance_address) {
         tableData.value = [];
       }
     }
@@ -317,7 +314,6 @@
     const formatList = list.map(item => ({
       ...getTableItem(),
       instance_address: item.instance,
-      backup_source: 'local', // TODO: 目前只有"本地备份"，后续扩展需要根据返回 backup 文案判断类型
     }));
     clearEmptyTableData();
     tableData.value.push(...formatList);
@@ -400,15 +396,15 @@
       .then(() => {
         isSubmitting.value = true;
         const params = {
-          ticket_type: TicketTypes.MYSQL_RESTORE_LOCAL_SLAVE,
+          ticket_type: ticketType.value,
           bk_biz_id: globalBizsStore.currentBizId,
           details: {
             infos: tableData.value.map(item => ({
               slave: item.slave,
               cluster_id: item.cluster_id,
-              backup_source: item.backup_source,
             })),
           },
+          backup_source: backupSource.value,
         };
         createTicket(params)
           .then((res) => {
@@ -432,7 +428,13 @@
 <style lang="less" scoped>
   .slave-rebuild {
     height: 100%;
+    padding-bottom: 20px;
     overflow: hidden;
+
+    :deep(.bk-form-label) {
+      font-weight: bold;
+      color: #313238;
+    }
 
     .slave-rebuild-batch {
       margin: 16px 0;

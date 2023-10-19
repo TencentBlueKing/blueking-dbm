@@ -70,7 +70,7 @@
   const rules = [
     {
       validator: () => Number(localBkNetId.value) > -1,
-      message: t('云区域不能为空'),
+      message: t('管控区域不能为空'),
     },
   ];
 

@@ -79,6 +79,8 @@
       fetchRemoteMachineInstancePair({
         machines: [`${props.masterData.bk_cloud_id}:${props.masterData.ip}`],
       });
+    } else {
+      slaveHostData.value = undefined;
     }
   }, {
     immediate: true,

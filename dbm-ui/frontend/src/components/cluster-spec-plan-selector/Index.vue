@@ -117,7 +117,7 @@
         <bk-radio
           label={data.spec_id}
           modelValue={modelValue.value}
-          class="spec-radio">
+          style="display: flex">
           <div class="text-overflow" v-overflow-tips>{data.spec_name}</div>
         </bk-radio>
       ),
@@ -275,7 +275,6 @@
     };
     emits('change', data.spec_id, data);
   };
-
 </script>
 <style lang="less">
   .cluster-spec-plan-selector {

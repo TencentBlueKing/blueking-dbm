@@ -26,7 +26,7 @@ export const create = function (params: {
   partition_time_interval: number,
 }) {
   const { currentBizId } = useGlobalBizs();
-  return http.post('/apis/partition/', {
+  return http.post<Record<number, IDryRunData[]>>('/apis/partition/', {
     bk_biz_id: currentBizId,
     ...params,
   });
@@ -68,6 +68,24 @@ export const enablePartition = function (params: {
   });
 };
 
+
+interface IDryRunData {
+  execute_objects: {
+    add_partition: string[],
+    config_id: number,
+    dblike: string,
+    drop_partition: string[],
+    init_partition: {
+      need_size: number,
+      sql: string
+    }[],
+    tblike: string
+  }[],
+  ip: string,
+  message: string,
+  port: number,
+  shard_name: string
+}
 // 分区策略前置执行
 export const dryRun = function (params: {
   config_id: number,
@@ -75,23 +93,7 @@ export const dryRun = function (params: {
   cluster_type: string,
 }) {
   const { currentBizId } = useGlobalBizs();
-  return http.post<Record<number, {
-    execute_objects: {
-      add_partition: string[],
-      config_id: number,
-      dblike: string,
-      drop_partition: string[],
-      init_partition: {
-        need_size: number,
-        sql: string
-      }[],
-      tblike: string
-    }[],
-    ip: string,
-    message: string,
-    port: number,
-    shard_name: string
-  }[]>>('/apis/partition/dry_run/', {
+  return http.post<Record<number, IDryRunData[]>>('/apis/partition/dry_run/', {
     bk_biz_id: currentBizId,
     ...params,
   });
@@ -144,7 +146,7 @@ export const edit = function (params: {
   const realParams = { ...params } as { id?: number, };
   delete realParams.id;
 
-  return http.put(`/apis/partition/${params.id}/`, {
+  return http.put<Record<number, IDryRunData[]>>(`/apis/partition/${params.id}/`, {
     ...realParams,
   });
 };
