@@ -20,6 +20,7 @@ from backend.db_meta.enums import InstanceStatus
 from backend.db_meta.models import Cluster
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
+from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import build_surrounding_apps_sub_flow
 from backend.flow.engine.bamboo.scene.mysql.common.recover_slave_instance import slave_recover_sub_flow
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.mysql.mysql_db_meta import MySQLDBMetaComponent
@@ -165,6 +166,18 @@ class TenDBRemoteSlaveLocalRecoverFlow(object):
                     )
                 )
             tendb_migrate_pipeline.add_parallel_sub_pipeline(sub_flow_list=sync_data_sub_pipeline_list)
+            #  安装周边
+            tendb_migrate_pipeline.add_sub_pipeline(
+                sub_flow=build_surrounding_apps_sub_flow(
+                    bk_cloud_id=cluster_class.bk_cloud_id,
+                    master_ip_list=None,
+                    slave_ip_list=[self.data["slave_ip"]],
+                    root_id=self.root_id,
+                    parent_global_data=copy.deepcopy(self.data),
+                    is_init=True,
+                    cluster_type=cluster_class.cluster_type,
+                )
+            )
             tendb_migrate_pipeline_all_list.append(
                 tendb_migrate_pipeline.build_sub_process(_("slave原地重建{}".format(self.data["slave_ip"])))
             )

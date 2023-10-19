@@ -361,6 +361,18 @@ class MySQLMigrateClusterFlow(object):
 
             # 流程: 恢复数据>切换>安装周边>卸载
             sub_pipeline.add_parallel_sub_pipeline(sub_flow_list=restore_sub_list)
+            # 切换前安装周边组件
+            sub_pipeline.add_sub_pipeline(
+                sub_flow=build_surrounding_apps_sub_flow(
+                    bk_cloud_id=one_machine["bk_cloud_id"],
+                    master_ip_list=[one_machine["new_master_ip"]],
+                    slave_ip_list=[one_machine["new_slave_ip"]],
+                    root_id=self.root_id,
+                    parent_global_data=copy.deepcopy(ticket_data),
+                    is_init=True,
+                    cluster_type=one_machine["cluster_type"],
+                )
+            )
             sub_pipeline.add_act(act_name=_("人工确认"), act_component_code=PauseComponent.code, kwargs={})
             sub_pipeline.add_parallel_sub_pipeline(sub_flow_list=switch_sub_list)
             # 第三步，机器级别再次先安装周边程序
