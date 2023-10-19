@@ -61,6 +61,7 @@
 
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
+  console.log('props = ', props);
 
   const { t } = useI18n();
 

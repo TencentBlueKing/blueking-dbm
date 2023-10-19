@@ -92,6 +92,7 @@
         :data-source="dataSource"
         fixed-pagination
         :height="440"
+        releate-url-query
         @clear-search="handleClearSearch"
         @request-finished="handleRequestFinished" />
     </div>

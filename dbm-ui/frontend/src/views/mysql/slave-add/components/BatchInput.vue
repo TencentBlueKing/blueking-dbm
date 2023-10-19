@@ -30,12 +30,6 @@
           <strong>{{ $t('新从库主机') }}</strong>
           <p class="pt-8">
             127.0.0.1
-          </p>
-        </div>
-        <div class="batch-input-format-item">
-          <strong>{{ $t('备份源') }}</strong>
-          <p class="pt-8">
-            {{ $t('本地备份') }}
             <DbIcon
               v-bk-tooltips="$t('复制格式')"
               class="batch-input-copy"
@@ -105,7 +99,7 @@
 
   interface Emits {
     (e: 'update:isShow', value: boolean): void
-    (e: 'change', value: Array<{ cluster: string, ip: string, backup: string }>): void
+    (e: 'change', value: Array<{ cluster: string, ip: string }>): void
   }
 
   interface Props {
@@ -223,11 +217,10 @@
     if (state.ipError.show || state.formatError.show) return;
 
     const res = newLines.map((item) => {
-      const [cluster, ip, backup] = getContents(item);
+      const [cluster, ip] = getContents(item);
       return {
         cluster,
         ip,
-        backup,
       };
     });
     emits('change', res);

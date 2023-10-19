@@ -13,16 +13,16 @@
 
 <template>
   <SmartAction>
-    <div class="master-slave-swap-page">
+    <div class="mysql-master-slave-swap-page">
       <BkAlert
         closable
         theme="info"
-        :title="$t('同机器所有集群都完成主从关系互切')" />
+        :title="t('同机器所有集群都完成主从关系互切')" />
       <div class="page-action-box">
         <BkButton
           @click="handleShowBatchEntry">
           <DbIcon type="add" />
-          {{ $t('批量录入') }}
+          {{ t('批量录入') }}
         </BkButton>
       </div>
       <RenderData
@@ -37,14 +37,19 @@
           @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
           @remove="handleRemove(index)" />
       </RenderData>
-      <div
-        v-bk-tooltips="$t('安全模式下_存在业务连接时需要人工确认')"
-        class="safe-action">
-        <BkCheckbox
-          v-model="isSafe"
-          :false-label="false"
-          true-label>
-          <span class="safe-action-text">{{ $t('安全模式') }}</span>
+      <div class="item-block">
+        <BkCheckbox v-model="formData.is_check_process">
+          {{ t('检查业务来源的连接') }}
+        </BkCheckbox>
+      </div>
+      <div class="item-block">
+        <BkCheckbox v-model="formData.is_check_delay">
+          {{ t('检查主从同步延迟') }}
+        </BkCheckbox>
+      </div>
+      <div class="item-block">
+        <BkCheckbox v-model="formData.is_verify_checksum">
+          {{ t('检查主从数据校验结果') }}
         </BkCheckbox>
       </div>
       <InstanceSelector
@@ -62,16 +67,16 @@
         :loading="isSubmitting"
         theme="primary"
         @click="handleSubmit">
-        {{ $t('提交') }}
+        {{ t('提交') }}
       </BkButton>
       <DbPopconfirm
         :confirm-handler="handleReset"
-        :content="$t('重置将会情况当前填写的所有内容_请谨慎操作')"
-        :title="$t('确认重置页面')">
+        :content="t('重置将会情况当前填写的所有内容_请谨慎操作')"
+        :title="t('确认重置页面')">
         <BkButton
           class="ml8 w-88"
           :disabled="isSubmitting">
-          {{ $t('重置') }}
+          {{ t('重置') }}
         </BkButton>
       </DbPopconfirm>
     </template>
@@ -83,6 +88,7 @@
     ref,
     shallowRef,
   } from 'vue';
+  import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
   import { createTicket } from '@services/ticket';
@@ -114,15 +120,21 @@
   };
 
   const router = useRouter();
+  const { t } = useI18n();
   const { currentBizId } = useGlobalBizs();
 
   const rowRefs = ref();
   const isShowMasterInstanceSelector = ref(false);
   const isShowBatchEntry = ref(false);
   const isSubmitting  = ref(false);
-  const isSafe = ref(false);
 
   const tableData = shallowRef<Array<IDataRow>>([createRowData({})]);
+
+  const formData = reactive({
+    is_check_process: false,
+    is_verify_checksum: false,
+    is_check_delay: false,
+  });
 
   // 批量录入
   const handleShowBatchEntry = () => {
@@ -190,8 +202,8 @@
         ticket_type: 'MYSQL_MASTER_SLAVE_SWITCH',
         remark: '',
         details: {
+          ...formData,
           infos: data,
-          is_safe: isSafe.value,
         },
         bk_biz_id: currentBizId,
       }).then((data) => {
@@ -218,22 +230,17 @@
 </script>
 
 <style lang="less">
-  .master-slave-swap-page {
+  .mysql-master-slave-swap-page {
     padding-bottom: 20px;
+
+    .item-block{
+      margin-top: 24px;
+    }
 
     .page-action-box {
       display: flex;
       align-items: center;
       margin-top: 16px;
-    }
-
-    .safe-action {
-      margin-top: 20px;
-
-      .safe-action-text {
-        padding-bottom: 2px;
-        border-bottom: 1px dashed #979ba5;
-      }
     }
   }
 </style>

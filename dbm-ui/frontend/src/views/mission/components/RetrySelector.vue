@@ -35,7 +35,9 @@
           {{ $t('最新') }}
         </BkTag>
       </div>
-      <i class="retry-selector__icon db-icon-down-big" />
+      <DbIcon
+        class="retry-selector__icon"
+        type="down-big" />
       <BkLoading
         v-if="state.loading"
         class="retry-selector__loading"
@@ -224,6 +226,7 @@
         height: 16px;
         padding: 0 4px;
         line-height: 16px;
+        pointer-events: none;
       }
     }
 

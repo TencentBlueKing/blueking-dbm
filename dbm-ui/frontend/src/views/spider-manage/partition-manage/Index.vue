@@ -37,7 +37,8 @@
       @setting-change="handleSettingChange" />
     <DryRun
       v-model="isShowDryRun"
-      :data="operationData" />
+      :data="operationData"
+      :operation-dry-run-data="operationDryRunData" />
     <DbSideslider
       v-model:is-show="isShowOperation"
       :confirm-text="operationData && operationData.id ? t('保存并执行') : t('提交')"
@@ -68,6 +69,7 @@
   import {
     batchRemove,
     disablePartition,
+    dryRun,
     enablePartition,
     getList,
   } from '@services/partitionManage';
@@ -100,6 +102,7 @@
   const executeLoadingMap = ref<Record<number, boolean>>({});
   const selectionList = shallowRef<number[]>([]);
   const operationData = shallowRef<PartitionModel>();
+  const operationDryRunData = shallowRef<ServiceReturnType<typeof dryRun>>();
 
   const serachData = [
     {
@@ -300,7 +303,6 @@
     });
   };
 
-
   // 新建
   const handleCreate = () => {
     operationData.value = undefined;
@@ -353,11 +355,15 @@
   const handleShowExecuteLog = (payload: PartitionModel) => {
     isShowExecuteLog.value = true;
     operationData.value = payload;
+    operationDryRunData.value = undefined;
   };
 
   // 新建、编辑成功
-  const handleOperationSuccess = () => {
-    handleExecute(operationData.value as PartitionModel);
+  const handleOperationSuccess = (payload: ServiceReturnType<typeof dryRun>) => {
+    fetchData();
+    operationDryRunData.value = payload;
+    operationData.value = undefined;
+    isShowDryRun.value = true;
   };
 
   const handleDisable  =  (payload: PartitionModel) => {

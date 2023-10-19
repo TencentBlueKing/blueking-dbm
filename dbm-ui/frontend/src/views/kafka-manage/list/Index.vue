@@ -38,7 +38,6 @@
         ref="tableRef"
         :columns="columns"
         :data-source="dataSource"
-        fixed-pagination
         :pagination-extra="paginationExtra"
         :row-class="getRowClass"
         :settings="tableSetting"
@@ -204,17 +203,30 @@
       render: ({ data }: {data: KafkaModel}) => (
         <div style="line-height: 14px; display: flex;">
           <div>
-            <a href="javascript:" onClick={() => handleToDetails(data)}>{data.cluster_name}</a>
+            <bk-button
+              theme="primary"
+              text
+              onClick={() => handleToDetails(data)}>
+              {data.cluster_name}
+            </bk-button>
             <div style='color: #C4C6CC;'>{data.cluster_alias || '--'}</div>
           </div>
           <RenderOperationTag data={data} style='margin-left: 3px;' />
-          <db-icon v-show={!checkClusterOnline(data)} svg type="yijinyong" style="width: 38px; height: 16px; margin-left: 4px;" />
+          <db-icon
+            v-show={!checkClusterOnline(data)}
+            svg
+            type="yijinyong"
+            style="width: 38px; height: 16px; margin-left: 4px;" />
           {
             isRecentDays(data.create_at, 24 * 3)
               ? <span class="glob-new-tag cluster-tag ml-4" data-text="NEW" />
               : null
           }
-          <i class="db-icon-copy mt-2" v-bk-tooltips={t('复制集群名称')} onClick={() => copy(data.cluster_name)} />
+          <db-icon
+            class="mt-2"
+            v-bk-tooltips={t('复制集群名称')}
+            type="copy"
+            onClick={() => copy(data.cluster_name)} />
         </div>
       ),
     },
@@ -615,8 +627,7 @@
 
     .is-shrink-table {
       .bk-table-body {
-        overflow-x: hidden;
-        overflow-y: auto;
+        overflow: hidden auto;
       }
     }
 

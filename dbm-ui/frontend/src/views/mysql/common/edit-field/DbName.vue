@@ -108,11 +108,24 @@
         message: t('DB 名不能为空'),
       },
       {
+        validator: (value: string []) => !_.some(value, item => /\*/.test(item) && item.length > 1),
+        message: t('* 只能独立使用'),
+        trigger: 'change',
+      },
+      {
+        validator: (value: string []) => _.every(value, item => !/^%$/.test(item)),
+        message: t('% 不允许单独使用'),
+        trigger: 'change',
+      },
+      {
         validator: (value: string []) => {
-          const hasAllMatch = _.find(value, item => /%$/.test(item));
-          return !(value.length > 1 && hasAllMatch);
+          if (_.some(value, item => /[*%?]/.test(item))) {
+            return value.length < 2;
+          }
+          return true;
         },
-        message: t('一格仅支持单个 % 对象'),
+        message: t('含通配符的单元格仅支持输入单个对象'),
+        trigger: 'change',
       },
       {
         validator: (value: string[]) => {
@@ -181,7 +194,7 @@
       interactive: true,
       arrow: true,
       offset: [0, 8],
-      zIndex: 999999,
+      zIndex: 9998,
       hideOnClick: true,
     });
   });

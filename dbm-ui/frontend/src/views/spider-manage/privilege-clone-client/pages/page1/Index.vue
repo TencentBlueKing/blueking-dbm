@@ -113,7 +113,11 @@
       const { ip } = item;
       if (!ipMemo[ip]) {
         const row = createRowData({
-          source: item,
+          source: {
+            bk_cloud_id: item.cloud_id,
+            bk_host_id: item.host_id,
+            ip: item.ip,
+          },
         });
         result.push(row);
         ipMemo[ip] = true;

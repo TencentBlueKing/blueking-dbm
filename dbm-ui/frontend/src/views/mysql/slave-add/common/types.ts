@@ -20,7 +20,6 @@ export interface TableItem {
   cluster_related: MySQLClusterInfos[],
   checked_related: MySQLClusterInfos[],
   new_slave_ip: string,
-  backup_source: string,
   uniqueId: string
 }
 export  interface TableColumnData {

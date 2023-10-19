@@ -131,7 +131,7 @@
     data?: PartitionModel
   }
   interface Emits{
-    (e: 'success'): void
+    (e: 'success', params: ServiceReturnType<typeof createParitition>): void
   }
   interface Expose {
     submit: () => Promise<any>
@@ -281,12 +281,12 @@
             return editPartition({
               id: props.data.id,
               ...formData,
-            }).then(() => emits('success'));
+            }).then(data => emits('success', data));
           }
 
           return createParitition({
             ...formData,
-          }).then(() => emits('success'));
+          }).then(data => emits('success', data));
         });
     },
   });

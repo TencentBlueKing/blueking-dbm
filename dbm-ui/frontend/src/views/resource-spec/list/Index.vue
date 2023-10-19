@@ -56,7 +56,7 @@
 
   import { ClusterTypes } from '@common/const';
 
-  import SpecList from '../components/SpecList.vue';
+  import SpecList from './components/SpecList.vue';
 
   interface TabItem {
     moduleId: ExtractedControllerDataKeys,
@@ -68,12 +68,11 @@
     }[]
   }
 
+
   const { t } = useI18n();
   const route = useRoute();
   const funControllerStore = useFunController();
 
-  const curTab = ref<string>(ClusterTypes.TENDBSINGLE);
-  const curChildTab = ref('');
   const tabs: TabItem[] = [
     {
       moduleId: 'mysql',
@@ -241,6 +240,10 @@
       ],
     },
   ];
+
+  const curTab = ref<string>(ClusterTypes.TENDBSINGLE);
+  const curChildTab = ref('');
+
   const renderTabs = computed(() => tabs.filter((item) => {
     const data = funControllerStore.funControllerData[item.moduleId];
     return data

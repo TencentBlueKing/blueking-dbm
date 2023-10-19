@@ -17,23 +17,22 @@
       <td style="padding: 0;">
         <RenderSource
           ref="sourceRef"
-          :model-value="data.source" />
+          v-model="localSource" />
       </td>
       <td style="padding: 0;">
         <RenderModule
           ref="moduleRef"
           :model-value="data.module"
-          :source="data.source" />
+          :source="localSource" />
       </td>
       <td style="padding: 0;">
-        <RenderCloudArea
-          :model-value="data.source" />
+        <RenderCloudArea :source="localSource" />
       </td>
       <td style="padding: 0;">
         <RenderTarget
           ref="targetRef"
           :model-value="data.target"
-          :source="data.source" />
+          :source="localSource" />
       </td>
       <td :class="{'shadow-column': isFixed}">
         <div class="action-box">
@@ -56,8 +55,6 @@
   </tbody>
 </template>
 <script lang="ts">
-  import type { HostDetails  } from '@services/types/ip';
-
   import { random } from '@utils';
 
   import RenderCloudArea from './RenderCloudArea.vue';
@@ -67,7 +64,11 @@
 
   export interface IDataRow {
     rowKey: string;
-    source?: HostDetails,
+    source?: {
+      bk_cloud_id: number,
+      bk_host_id: number,
+      ip: string,
+    },
     module?: string,
     target: string[]
   }
@@ -102,6 +103,16 @@
   const sourceRef = ref();
   const moduleRef = ref();
   const targetRef = ref();
+
+  const localSource = ref<IDataRow['source']>();
+
+  watch(() => props.data, () => {
+    if (props.data) {
+      localSource.value = props.data.source;
+    }
+  }, {
+    immediate: true,
+  });
 
   const handleAppend = () => {
     emits('add', [createRowData()]);

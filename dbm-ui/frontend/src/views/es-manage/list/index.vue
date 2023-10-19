@@ -38,7 +38,6 @@
         ref="tableRef"
         :columns="columns"
         :data-source="dataSource"
-        fixed-pagination
         :pagination-extra="paginationExtra"
         :row-class="getRowClass"
         :settings="tableSetting"
@@ -622,8 +621,7 @@
 
     .is-shrink-table {
       .bk-table-body {
-        overflow-x: hidden;
-        overflow-y: auto;
+        overflow: hidden auto;
       }
     }
 

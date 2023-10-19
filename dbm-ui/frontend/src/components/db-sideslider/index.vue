@@ -23,9 +23,7 @@
       <slot name="header" />
     </template>
     <template #default>
-      <div v-if="isShow">
-        <slot />
-      </div>
+      <slot />
     </template>
     <template #footer>
       <template v-if="showFooter">
