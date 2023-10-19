@@ -63,6 +63,7 @@ def master_and_slave_switch(root_id: str, ticket_data: dict, cluster: Cluster, c
     switch_sub_flow_context["locked_switch"] = True
     switch_sub_flow_context["switch_pwd"] = switch_pwd
     switch_sub_flow_context["switch_account"] = switch_account
+    switch_sub_flow_context["change_master_force"] = True
 
     # 针对集群维度声明子流程
     cluster_switch_sub_pipeline = SubBuilder(root_id=root_id, data=copy.deepcopy(switch_sub_flow_context))

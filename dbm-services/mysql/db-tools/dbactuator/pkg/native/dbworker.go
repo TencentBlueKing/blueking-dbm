@@ -402,7 +402,7 @@ func (h *DbWorker) SelectProcesslist(usersIn []string) (processList []SelectProc
 
 // SelectLongRunningProcesslist 查询Time > ? And state != 'Sleep'的processLists
 func (h *DbWorker) SelectLongRunningProcesslist(time int) ([]SelectProcessListResp, error) {
-	var userExcluded []string = []string{"'repl'", "'system user'", "'event_scheduler'"}
+	var userExcluded []string = []string{"repl", "system user", "event_scheduler"}
 	var processList []SelectProcessListResp
 	query, args, err := sqlx.In(
 		"select * from information_schema.processlist where  Command <> 'Sleep' and Time > ? and User Not In (?)",

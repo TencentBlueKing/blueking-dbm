@@ -404,6 +404,7 @@ class MySQLMigrateClusterFlow(object):
         switch_sub_flow_context["locked_switch"] = True
         switch_sub_flow_context["switch_pwd"] = switch_pwd
         switch_sub_flow_context["switch_account"] = switch_account
+        switch_sub_flow_context["change_master_force"] = True
 
         # 拼接执行原子任务的活动节点需要的通用的私有参数，引用注意参数覆盖的问题
         cluster_sw_kwargs = ExecActuatorKwargs(cluster=cluster, bk_cloud_id=cluster["bk_cloud_id"])
