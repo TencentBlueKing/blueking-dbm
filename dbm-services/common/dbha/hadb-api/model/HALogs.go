@@ -5,17 +5,19 @@ import (
 	"time"
 )
 
+// HaLogs gm logs
 type HaLogs struct {
-	Uid      uint      `gorm:"column:uid;primary_key;AUTO_INCREMENT" json:"uid"`
-	IP       string    `gorm:"column:ip;NOT NULL" json:"ip"`
-	Port     uint      `gorm:"column:port;NOT NULL" json:"port"`
-	MonIP    string    `gorm:"column:mon_ip;NOT NULL" json:"mon_ip"`
-	Module   string    `gorm:"column:module;NOT NULL" json:"module"`
-	Cloud    string    `gorm:"column:cloud;NOT NULL" json:"cloud"`
-	DateTime time.Time `gorm:"column:date_time;type:datetime;default:CURRENT_TIMESTAMP;NOT NULL" json:"date_time"`
-	Comment  string    `gorm:"column:comment;NOT NULL" json:"comment"`
+	Uid      uint       `gorm:"column:uid;primary_key;AUTO_INCREMENT" json:"uid"`
+	IP       string     `gorm:"column:ip;NOT NULL" json:"ip"`
+	Port     uint       `gorm:"column:port;NOT NULL" json:"port"`
+	MonIP    string     `gorm:"column:mon_ip;NOT NULL" json:"mon_ip"`
+	Module   string     `gorm:"column:module;NOT NULL" json:"module"`
+	Cloud    string     `gorm:"column:cloud;NOT NULL" json:"cloud"`
+	DateTime *time.Time `gorm:"column:date_time;type:datetime;default:CURRENT_TIMESTAMP;NOT NULL" json:"date_time,omitempty"`
+	Comment  string     `gorm:"column:comment;NOT NULL" json:"comment"`
 }
 
+// TableName table name
 func (m *HaLogs) TableName() string {
 	return "ha_logs"
 }

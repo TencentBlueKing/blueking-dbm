@@ -32,14 +32,14 @@ type TbMonSwitchQueueApi struct {
 	Uid                uint   `json:"uid"`
 	IP                 string `json:"ip"`
 	Port               int    `json:"port"`
-	ConfirmCheckTime   string `json:"confirm_check_time"`
+	ConfirmCheckTime   string `json:"confirm_check_time,omitempty"`
 	DbRole             string `json:"db_role"`
 	SlaveIP            string `json:"slave_ip"`
 	SlavePort          int    `json:"slave_port"`
 	Status             string `json:"status"`
 	ConfirmResult      string `json:"confirm_result"`
-	SwitchStartTime    string `json:"switch_start_time"`
-	SwitchFinishedTime string `json:"switch_finished_time"`
+	SwitchStartTime    string `json:"switch_start_time,omitempty"`
+	SwitchFinishedTime string `json:"switch_finished_time,omitempty"`
 	SwitchResult       string `json:"switch_result"`
 	Remark             string `json:"remark"`
 	App                string `json:"app"`
