@@ -196,15 +196,18 @@ func (c *DeployMySQLCrondComp) Start() (err error) {
 	errChan := make(chan error)
 	go func() {
 		// 重装的时候无脑尝试关闭一次
-		resp, err := http.Get("http://127.0.0.1:9999/quit")
+		req, _ := http.NewRequest(http.MethodGet, "http://127.0.0.1:9999/quit", nil)
+		req.Close = true
+
+		resp, err := http.DefaultClient.Do(req)
 		if err != nil {
 			logger.Error("send quit request failed for forehead start", err.Error())
-			errChan <- errors.Wrap(err, "send quit request failed for forehead start")
-			return
+			//errChan <- errors.Wrap(err, "send quit request failed for forehead start")
+			//return
 		}
-		defer func() {
+		if resp != nil {
 			_ = resp.Body.Close()
-		}()
+		}
 
 		time.Sleep(15 * time.Second)
 
@@ -212,7 +215,7 @@ func (c *DeployMySQLCrondComp) Start() (err error) {
 			"su", "-", "mysql", "-c",
 			fmt.Sprintf(
 				`%s -c %s`,
-				path.Join(cst.MySQLCrondInstallPath, "mysql-crond"),
+				path.Join(cst.MySQLCrondInstallPath, "start.sh"),
 				path.Join(cst.MySQLCrondInstallPath, "runtime.yaml"),
 			),
 		)
@@ -234,9 +237,11 @@ LabelSelectLoop:
 				logger.Error("start mysql-crond failed: %s", err.Error())
 				return err
 			}
-		case <-time.After(1 * time.Second):
+		case <-time.After(2 * time.Second):
 			logger.Info("try to connect mysql-crond %d times", i)
-			resp, err := http.Get("http://127.0.0.1:9999/entries")
+			req, _ := http.NewRequest(http.MethodGet, "http://127.0.0.1:9999/entries", nil)
+			req.Close = true
+			resp, err := http.DefaultClient.Do(req)
 			if err != nil {
 				logger.Info("try to connect mysql-crond %d times failed: %s", i, err.Error())
 				break
@@ -255,14 +260,18 @@ LabelSelectLoop:
 	}
 
 	// 关闭前台启动的 mysql-crond
-	resp, err := http.Get("http://127.0.0.1:9999/quit")
+	//err = (*cmd).Process.Kill()
+	req, _ := http.NewRequest(http.MethodGet, "http://127.0.0.1:9999/quit", nil)
+	req.Close = true
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		logger.Error("send quit request failed", err.Error())
+		logger.Error("quit forehead mysql-crond failed: ", err.Error())
 		return err
 	}
-	defer func() {
+	if resp != nil {
 		_ = resp.Body.Close()
-	}()
+	}
+
 	logger.Info("send quit request success")
 
 	time.Sleep(15 * time.Second)
@@ -309,7 +318,9 @@ LabelSelectLoop:
 	started = false
 	for i := 1; i <= 10; i++ {
 		logger.Info("try to connect mysql-crond %d times", i)
-		resp, err := http.Get("http://127.0.0.1:9999/entries")
+		req, _ := http.NewRequest(http.MethodGet, "http://127.0.0.1:9999/entries", nil)
+		req.Close = true
+		resp, err := http.DefaultClient.Do(req)
 		if err != nil {
 			logger.Info("try to connect mysql-crond %d times failed: %s", i, err.Error())
 			time.Sleep(2 * time.Second)

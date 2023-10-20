@@ -61,8 +61,6 @@ var rootCmd = &cobra.Command{
 
 		go func() {
 			<-quit
-			//time.Sleep(10 * time.Second)
-			//crond.Stop()
 			slog.Info("quit mysql-crond")
 			os.Exit(0)
 		}()
