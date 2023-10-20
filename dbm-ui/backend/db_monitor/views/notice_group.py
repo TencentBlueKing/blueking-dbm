@@ -49,7 +49,7 @@ class MonitorPolicyListFilter(django_filters.FilterSet):
 
     class Meta:
         model = NoticeGroup
-        fields = ["bk_biz_id", "name"]
+        fields = ["bk_biz_id", "name", "db_type"]
 
 
 @method_decorator(
