@@ -56,6 +56,8 @@
 
   import { useGlobalBizs } from '@stores';
 
+  import MiniTag from '@components/mini-tag/index.vue';
+
   import { messageSuccess } from '@utils';
 
   import DetailDialog from './components/DetailDialog.vue';
@@ -95,7 +97,7 @@
             <span class="alarm-group-name">{ row.name }</span>
             {
               isRenderTag
-                ? <bk-tag class="ml-4">{ t('内置')}</bk-tag>
+                ? <MiniTag content={ t('内置') } class="ml-4"></MiniTag>
                 : null
               }
           </>
@@ -157,7 +159,7 @@
     },
     {
       label: t('操作'),
-      width: 150,
+      width: 180,
       render: ({ row }: TableRenderData) => {
         const tipDisabled = isPlatform || !row.is_built_in;
         const btnDisabled = (!isPlatform && row.is_built_in) || row.related_policy_count > 0;
@@ -169,14 +171,14 @@
         return (
           <>
             <bk-button
-              class="mr-8"
+              class="mr-24"
               text
               theme="primary"
               onClick={ () => handleOpenDetail('edit', row) }>
               { t('编辑') }
             </bk-button>
             <bk-button
-              class="mr-8"
+              class="mr-24"
               text
               theme="primary"
               onClick={ () => handleOpenDetail('copy', row) }>
