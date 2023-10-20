@@ -265,6 +265,8 @@ class RedisDataStructurePrecheckComponent(Component):
     name = __name__
     code = "redis_dataStructure_precheck"
     bound_service = RedisDataStructurePrecheckService
+
+
 class ExecuteShellReloadMetaService(BkJobService):
     """
     执行shell命令
