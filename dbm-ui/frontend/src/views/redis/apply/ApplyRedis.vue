@@ -19,7 +19,7 @@
       class="apply-form"
       :model="state.formdata"
       :rules="rules">
-      <DbCard :title="$t('业务信息')">
+      <DbCard :title="t('业务信息')">
         <BusinessItems
           v-model:app-abbr="state.formdata.details.db_app_abbr"
           v-model:biz-id="state.formdata.bk_biz_id"
@@ -34,9 +34,9 @@
           @change="handleChangeCloud" />
       </DbCard>
       <RegionItem v-model="state.formdata.details.city_code" />
-      <DbCard :title="$t('部署需求')">
+      <DbCard :title="t('部署需求')">
         <BkFormItem
-          :label="$t('部署架构')"
+          :label="t('部署架构')"
           property="details.cluster_type"
           required>
           <BkRadioGroup
@@ -66,7 +66,7 @@
           </BkRadioGroup>
         </BkFormItem>
         <BkFormItem
-          :label="$t('版本')"
+          :label="t('版本')"
           property="details.db_version"
           required>
           <BkSelect
@@ -79,7 +79,7 @@
             :loading="state.isLoadVersion" />
         </BkFormItem>
         <BkFormItem
-          :label="$t('服务器选择')"
+          :label="t('服务器选择')"
           property="details.ip_source"
           required>
           <BkRadioGroup
@@ -112,7 +112,7 @@
                 :disable-host-method="proxyDisableHostMethod"
                 @change="handleProxyIpChange">
                 <template #desc>
-                  {{ $t('至少n台', { n: 2 }) }}
+                  {{ t('至少n台', { n: 2 }) }}
                 </template>
                 <template #submitTips="{ hostList }">
                   <I18nT
@@ -130,7 +130,7 @@
               label="">
               <div class="apply-instance__inline">
                 <BkFormItem
-                  :label="$t('Proxy端口')"
+                  :label="t('Proxy端口')"
                   label-width="110"
                   property="details.proxy_port"
                   required>
@@ -140,7 +140,7 @@
                     :min="1025"
                     style="width: 120px;"
                     type="number" />
-                  <span class="ml-16">{{ $t('从n起', { n: state.formdata.details.proxy_port }) }}</span>
+                  <span class="ml-16">{{ t('从n起', { n: state.formdata.details.proxy_port }) }}</span>
                 </BkFormItem>
               </div>
             </BkFormItem>
@@ -157,7 +157,7 @@
                 :disable-host-method="masterDisableHostMethod"
                 @change="handleMasterIpChange">
                 <template #desc>
-                  {{ $t('至少1台_且机器数要和Slave相等') }}
+                  {{ t('至少1台_且机器数要和Slave相等') }}
                 </template>
                 <template #submitTips="{ hostList }">
                   <I18nT
@@ -183,7 +183,7 @@
                 :disable-host-method="slaveDisableHostMethod"
                 @change="handleSlaveIpChange">
                 <template #desc>
-                  {{ $t('至少1台_且机器数要和Master相等') }}
+                  {{ t('至少1台_且机器数要和Master相等') }}
                 </template>
                 <template #submitTips="{ hostList }">
                   <I18nT
@@ -198,14 +198,14 @@
             </DbFormItem>
             <!-- 保留了资源池逻辑，后续确认不需要可以去掉 -->
             <BkFormItem
-              :label="isManualInput ? $t('总容量') : $t('申请容量')"
+              :label="isManualInput ? t('总容量') : t('申请容量')"
               property="details.cap_key"
               required>
               <div
                 :key="capSpecsKey"
                 v-bk-tooltips="{
                   disabled: !disableCapSpecs,
-                  content: $t('请确保Master和Slave的机器数量至少1台且机器数要相等')
+                  content: t('请确保Master和Slave的机器数量至少1台且机器数要相等')
                 }"
                 class="item-input">
                 <BkSelect
@@ -226,7 +226,7 @@
               <p
                 v-if="isManualInput"
                 class="apply-form__tips">
-                {{ $t('单实例容量x分片数_根据选择的主机自动计算所有的组合') }}
+                {{ t('单实例容量x分片数_根据选择的主机自动计算所有的组合') }}
               </p>
             </BkFormItem>
           </div>
@@ -234,11 +234,11 @@
             v-else
             class="mb-24">
             <BkFormItem
-              :label="$t('Proxy规格')"
+              :label="t('Proxy规格')"
               required>
               <div class="resource-pool-item">
                 <BkFormItem
-                  :label="$t('规格')"
+                  :label="t('规格')"
                   property="details.resource_spec.proxy.spec_id"
                   required>
                   <SpecSelector
@@ -251,19 +251,19 @@
                     style="width: 314px;" />
                 </BkFormItem>
                 <BkFormItem
-                  :label="$t('数量')"
+                  :label="t('数量')"
                   property="details.resource_spec.proxy.count"
                   required>
                   <BkInput
                     v-model="state.formdata.details.resource_spec.proxy.count"
                     :min="2"
                     type="number" />
-                  <span class="input-desc">{{ $t('至少n台', {n: 2}) }}</span>
+                  <span class="input-desc">{{ t('至少n台', {n: 2}) }}</span>
                 </BkFormItem>
               </div>
             </BkFormItem>
             <BkFormItem
-              :label="$t('后端存储规格')"
+              :label="t('后端存储规格')"
               required>
               <BackendQPSSpec
                 ref="specBackendRef"
@@ -275,11 +275,11 @@
             </BkFormItem>
           </div>
         </Transition>
-        <BkFormItem :label="$t('备注')">
+        <BkFormItem :label="t('备注')">
           <BkInput
             v-model="state.formdata.remark"
             :maxlength="100"
-            :placeholder="$t('请提供更多有用信息申请信息_以获得更快审批')"
+            :placeholder="t('请提供更多有用信息申请信息_以获得更快审批')"
             style="width: 655px;"
             type="textarea" />
         </BkFormItem>
@@ -290,17 +290,17 @@
         :loading="baseState.isSubmitting"
         theme="primary"
         @click="handleSubmit">
-        {{ $t('提交') }}
+        {{ t('提交') }}
       </BkButton>
       <BkButton
         :disabled="baseState.isSubmitting"
         @click="handleResetFormdata">
-        {{ $t('重置') }}
+        {{ t('重置') }}
       </BkButton>
       <BkButton
         :disabled="baseState.isSubmitting"
         @click="handleCancel">
-        {{ $t('取消') }}
+        {{ t('取消') }}
       </BkButton>
     </div>
   </div>

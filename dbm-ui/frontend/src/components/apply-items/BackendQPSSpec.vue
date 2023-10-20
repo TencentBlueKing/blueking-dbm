@@ -1,7 +1,7 @@
 <template>
   <div class="redis-backend-spec">
     <BkFormItem
-      :label="$t('集群容量需求')"
+      :label="targetCapacityTitle"
       property="details.resource_spec.backend_group.capacity"
       required>
       <BkInput
@@ -15,7 +15,7 @@
       <span class="input-desc">G</span>
     </BkFormItem>
     <BkFormItem
-      :label="$t('未来集群容量需求')"
+      :label="futureCapacityTitle"
       property="details.resource_spec.backend_group.future_capacity"
       required>
       <BkInput
@@ -29,7 +29,7 @@
       <span class="input-desc">G</span>
     </BkFormItem>
     <BkFormItem
-      :label="$t('QPS预估范围')"
+      :label="t('QPS预估范围')"
       required>
       <BkSlider
         v-model="sliderProps.value"
@@ -45,7 +45,7 @@
     </BkFormItem>
     <BkFormItem
       ref="specRef"
-      :label="$t('集群部署方案')"
+      :label="t('集群部署方案')"
       property="details.resource_spec.backend_group.spec_id"
       required>
       <DbOriginalTable
@@ -61,11 +61,11 @@
             <DbIcon
               class="mr-4"
               type="attention" />
-            <span>{{ $t('请先设置容量及QPS范围') }}</span>
+            <span>{{ t('请先设置容量及QPS范围') }}</span>
           </p>
           <BkException
             v-else
-            :description="$t('无匹配的资源规格_请先修改容量及QPS设置')"
+            :description="t('无匹配的资源规格_请先修改容量及QPS设置')"
             scene="part"
             style="font-size: 12px;"
             type="empty" />
@@ -85,6 +85,8 @@
     getFilterClusterSpec,
     queryQPSRange,
   } from '@services/resourceSpec';
+
+  import { ClusterTypes } from '@common/const';
 
   interface ModelValue {
     spec_id: number,
@@ -115,6 +117,11 @@
     min: 0,
     disabled: true,
   });
+
+  const isTendisCache = computed(() => props.clusterType === ClusterTypes.TWEMPROXY_REDIS_INSTANCE);
+  const targetCapacityTitle = computed(() => (isTendisCache.value ? t('集群容量需求(内存容量)') : t('集群容量需求(磁盘容量)')));
+  const futureCapacityTitle = computed(() => (isTendisCache.value ? t('未来集群容量需求(内存容量)') : t('未来集群容量需求(磁盘容量)')));
+
   const columns = [
     {
       field: 'spec_name',
@@ -334,7 +341,7 @@
 <style lang="less" scoped>
   .redis-backend-spec {
     max-width: 1200px;
-    padding: 24px 24px 24px 0;
+    padding: 24px 24px 24px 10px;
     background-color: #F5F7FA;
     border-radius: 2px;
 

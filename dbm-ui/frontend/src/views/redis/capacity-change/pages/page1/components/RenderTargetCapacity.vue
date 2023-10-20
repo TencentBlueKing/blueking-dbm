@@ -56,7 +56,7 @@
         :data="activeRowData"
         is-same-shard-num
         :is-show="showChooseClusterTargetPlan"
-        :title="t('选择集群目标方案')"
+        :title="t('选择集群容量变更部署方案')"
         @click-cancel="() => showChooseClusterTargetPlan = false"
         @click-confirm="handleChoosedTargetCapacity" />
     </Teleport>

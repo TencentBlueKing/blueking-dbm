@@ -240,10 +240,10 @@
 
     &__label {
       display: flex;
-      flex-shrink: 0;
-      width: 140px;
+      min-width: 80px !important;
       padding-left: 10px;
       text-align: right;
+      flex-shrink: 0;
       justify-content: flex-end;
     }
 
