@@ -366,7 +366,8 @@ func ReplaceHaInfo(ctx *fasthttp.RequestCtx, queryParam interface{}, setParam in
 			return
 		}
 	}
-	whereCond.set.LastTime = time.Now()
+	currentTime := time.Now()
+	whereCond.set.LastTime = &currentTime
 
 	log.Logger.Debugf("%+v", whereCond)
 
