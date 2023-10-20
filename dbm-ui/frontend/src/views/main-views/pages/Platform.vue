@@ -68,7 +68,7 @@
                 module-id="monitor">
                 <BkMenuItem key="PlatMonitorAlarmGroup">
                   <template #icon>
-                    <i class="db-icon-db-config" />
+                    <i class="db-icon-yonghuzu" />
                   </template>
                   <span
                     v-overflow-tips.right

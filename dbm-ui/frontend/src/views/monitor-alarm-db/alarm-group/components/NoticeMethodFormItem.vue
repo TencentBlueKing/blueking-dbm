@@ -370,47 +370,51 @@
     if (type === 'add') {
       addPanel();
     } else if (type === 'edit' || type === 'copy') {
-      panelList.value = details.alert_notice.map((item) => {
-        const name = Math.random()
-          .toString(16)
-          .substring(4, 10);
+      if (details?.alert_notice) {
+        panelList.value = details.alert_notice.map((item) => {
+          const name = Math.random()
+            .toString(16)
+            .substring(4, 10);
 
-        const dataList = item.notify_config.map((configItem) => {
-          const checkboxArr = _.cloneDeep(panelInitData.checkboxArr);
-          const inputArr = _.cloneDeep(panelInitData.inputArr);
+          const dataList = item.notify_config.map((configItem) => {
+            const checkboxArr = _.cloneDeep(panelInitData.checkboxArr);
+            const inputArr = _.cloneDeep(panelInitData.inputArr);
 
-          configItem.notice_ways.forEach((wayItem) => {
-            if (inputTypes.includes(wayItem.name)) {
-              const idx = inputArr.findIndex(inputItem => inputItem.type === wayItem.name);
+            configItem.notice_ways.forEach((wayItem) => {
+              if (inputTypes.includes(wayItem.name)) {
+                const idx = inputArr.findIndex(inputItem => inputItem.type === wayItem.name);
 
-              if (idx > -1) {
-                inputArr[idx].value = wayItem.receivers?.join(',') as string;
+                if (idx > -1) {
+                  inputArr[idx].value = wayItem.receivers?.join(',') as string;
+                }
+              } else {
+                const idx = checkboxArr.findIndex(checkboxItem => checkboxItem.type === wayItem.name);
+
+                if (idx > -1) {
+                  checkboxArr[idx].checked = true;
+                }
               }
-            } else {
-              const idx = checkboxArr.findIndex(checkboxItem => checkboxItem.type === wayItem.name);
+            });
 
-              if (idx > -1) {
-                checkboxArr[idx].checked = true;
-              }
-            }
+            return {
+              ...levelMap[configItem.level],
+              checkboxArr,
+              inputArr,
+            };
           });
 
           return {
-            ...levelMap[configItem.level],
-            checkboxArr,
-            inputArr,
+            name,
+            open: false,
+            timeRange: item.time_range.split('--'),
+            dataList,
           };
         });
 
-        return {
-          name,
-          open: false,
-          timeRange: item.time_range.split('--'),
-          dataList,
-        };
-      });
-
-      active.value = panelList.value[0].name;
+        active.value = panelList.value[0].name;
+      } else {
+        addPanel();
+      }
     }
   };
 
