@@ -21,7 +21,7 @@ from backend import env
 from backend.components import BKMonitorV3Api
 from backend.configuration.constants import DEFAULT_DB_ADMINISTRATORS, PLAT_BIZ_ID
 from backend.configuration.models import DBAdministrator
-from backend.db_monitor.constants import MONITOR_EVENTS, TPLS_ALARM_DIR, TargetPriority
+from backend.db_monitor.constants import DEFAULT_ALERT_NOTICE, MONITOR_EVENTS, TPLS_ALARM_DIR, TargetPriority
 from backend.db_monitor.exceptions import BkMonitorSaveAlarmException
 from backend.db_monitor.models import DispatchGroup, MonitorPolicy, NoticeGroup
 from backend.db_monitor.tasks import update_app_policy
@@ -43,25 +43,30 @@ def update_local_notice_group():
 
     for dba in dbas:
         receiver_users = dba.users or DEFAULT_DB_ADMINISTRATORS
-
         try:
             group_name = f"{dba.get_db_type_display()}_DBA"
+            group_receivers = [{"id": user, "type": "user"} for user in receiver_users]
             logger.info("[local_notice_group] update_or_create notice group: %s", group_name)
-
-            obj, created = NoticeGroup.objects.update_or_create(
-                defaults={
-                    "name": group_name,
-                    "receivers": [{"id": user, "type": "user"} for user in receiver_users],
-                },
-                bk_biz_id=dba.bk_biz_id,
-                db_type=dba.db_type,
-                is_built_in=True,
-            )
-
-            if created:
+            try:
+                group = NoticeGroup.objects.get(bk_biz_id=dba.bk_biz_id, db_type=dba.db_type, is_built_in=True)
+            except NoticeGroup.DoesNotExist:
+                NoticeGroup.objects.create(
+                    name=group_name,
+                    receivers=group_receivers,
+                    details={"alert_notice": DEFAULT_ALERT_NOTICE},
+                    bk_biz_id=dba.bk_biz_id,
+                    db_type=dba.db_type,
+                    is_built_in=True,
+                )
                 created_groups += 1
             else:
+                group.name = group_name
+                group.receivers = group_receivers
+                if not group.details:
+                    group.details = {"alert_notice": DEFAULT_ALERT_NOTICE}
+                group.save(update_fields=["name", "receivers", "details"])
                 updated_groups += 1
+
         except Exception as e:
             logger.error("[local_notice_group] update_or_create notice group error: %s", e)
             continue

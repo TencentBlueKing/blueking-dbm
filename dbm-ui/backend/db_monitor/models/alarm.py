@@ -43,7 +43,7 @@ from backend.db_monitor.exceptions import (
     BuiltInNotAllowDeleteException,
 )
 from backend.db_monitor.tasks import update_app_policy
-from backend.exceptions import ApiError
+from backend.exceptions import ApiError, ApiResultError
 
 __all__ = ["NoticeGroup", "AlertRule", "RuleTemplate", "DispatchGroup", "MonitorPolicy", "DutyRule"]
 
@@ -60,19 +60,17 @@ class NoticeGroup(AuditedModel):
     db_type = models.CharField(_("数据库类型"), choices=DBType.get_choices(), max_length=LEN_SHORT, default="")
     receivers = models.JSONField(_("告警接收人员/组列表"), default=dict)
     details = models.JSONField(verbose_name=_("通知方式详情"), default=dict)
-    # is_synced = models.BooleanField(verbose_name=_("是否已同步到监控"), default=False)
     is_built_in = models.BooleanField(verbose_name=_("是否内置"), default=False)
     sync_at = models.DateTimeField(_("最近一次的同步时间"), null=True)
     dba_sync = models.BooleanField(help_text=_("自动同步DBA人员配置"), default=True)
 
     class Meta:
-        verbose_name = _("告警通知组")
-        verbose_name_plural = verbose_name
+        verbose_name_plural = verbose_name = _("告警通知组")
+        unique_together = ("bk_biz_id", "name")
 
     @classmethod
     def get_monitor_groups(cls, db_type=None, group_ids=None, **kwargs):
         """查询监控告警组id"""
-
         qs = cls.objects.all()
 
         if db_type:
@@ -88,18 +86,6 @@ class NoticeGroup(AuditedModel):
         return list(qs.values_list("monitor_group_id", flat=True))
 
     @classmethod
-    def get_notify_groups(cls, group_ids, **kwargs):
-        """查询告警组id"""
-
-        qs = cls.objects.filter(monitor_group_id__in=group_ids)
-
-        # is_built_in/bk_biz_id等
-        if kwargs:
-            qs = qs.filter(**kwargs)
-
-        return list(qs.values_list("id", flat=True))
-
-    @classmethod
     def get_groups(cls, bk_biz_id, id_name="monitor_group_id") -> dict:
         """业务内置"""
         return dict(cls.objects.filter(bk_biz_id=bk_biz_id, is_built_in=True).values_list("db_type", id_name))
@@ -108,9 +94,10 @@ class NoticeGroup(AuditedModel):
         # 深拷贝保存用户组的模板
         save_monitor_group_params = copy.deepcopy(BK_MONITOR_SAVE_USER_GROUP_TEMPLATE)
         # 更新差异字段
+        bk_monitor_group_name = f"{self.name}_{self.bk_biz_id}"
         save_monitor_group_params.update(
             {
-                "name": f"{self.name}_{self.bk_biz_id}",
+                "name": bk_monitor_group_name,
                 "alert_notice": self.details.get("alert_notice") or DEFAULT_ALERT_NOTICE,
                 "bk_biz_id": env.DBA_APP_BK_BIZ_ID,
             }
@@ -155,8 +142,17 @@ class NoticeGroup(AuditedModel):
         if self.monitor_group_id:
             save_monitor_group_params["id"] = self.monitor_group_id
         # 调用监控接口写入
-        resp = BKMonitorV3Api.save_user_group(save_monitor_group_params)
-
+        try:
+            resp = BKMonitorV3Api.save_user_group(save_monitor_group_params)
+        except ApiResultError:
+            # 告警组重名的情况下，匹配告警组名称，获取 id 进行更新
+            bk_monitor_groups = BKMonitorV3Api.search_user_groups({"bk_biz_ids": [env.DBA_APP_BK_BIZ_ID]})
+            for group in bk_monitor_groups:
+                if group["name"] == bk_monitor_group_name:
+                    save_monitor_group_params["id"] = group["id"]
+                    break
+            resp = BKMonitorV3Api.save_user_group(save_monitor_group_params)
+        self.sync_at = datetime.datetime.now()
         return resp["id"]
 
     def save(self, *args, **kwargs):
