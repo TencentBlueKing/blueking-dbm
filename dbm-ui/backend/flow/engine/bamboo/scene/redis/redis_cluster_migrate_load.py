@@ -20,7 +20,7 @@ from backend.configuration.constants import DBType
 from backend.db_meta.enums import InstanceRole
 from backend.db_meta.enums.cluster_type import ClusterType
 from backend.db_meta.enums.machine_type import MachineType
-from backend.db_meta.models import AppCache
+from backend.db_meta.models import AppCache, Spec
 from backend.flow.consts import ClusterStatus, InstanceStatus
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
@@ -94,6 +94,7 @@ class RedisClusterMigrateLoadFlow(object):
             "proxy_ips": proxy_ips,
             "proxy_port": proxy_port,
             "proxy_spec_id": proxy_spec_id,
+            "proxy_spec_config": Spec.objects.get(spec_id=proxy_spec_id).get_spec_info(),
             "master_ips": list(set(master_ips)),
             "slave_ips": list(set(slave_ips)),
             "server_shards": dict(server_shards),
@@ -140,7 +141,7 @@ class RedisClusterMigrateLoadFlow(object):
                 acts_list = []
                 for redis_ip in cluster["master_ips"] + cluster["slave_ips"]:
                     act_kwargs.cluster["meta_update_ip"] = redis_ip
-                    act_kwargs.cluster["meta_udpate_ports"] = cluster["ip_port_dict"][redis_ip]
+                    act_kwargs.cluster["meta_update_ports"] = cluster["ip_port_dict"][redis_ip]
                     act_kwargs.cluster["meta_update_status"] = InstanceStatus.RUNNING
                     act_kwargs.cluster["meta_func_name"] = RedisDBMeta.instances_status_update.__name__
                     acts_list.append(
@@ -152,7 +153,7 @@ class RedisClusterMigrateLoadFlow(object):
                     )
                 for proxy_ip in cluster["proxy_ips"]:
                     act_kwargs.cluster["meta_update_ip"] = proxy_ip
-                    act_kwargs.cluster["meta_udpate_ports"] = [cluster["proxy_port"]]
+                    act_kwargs.cluster["meta_update_ports"] = [cluster["proxy_port"]]
                     act_kwargs.cluster["meta_update_status"] = InstanceStatus.RUNNING
                     act_kwargs.cluster["meta_func_name"] = RedisDBMeta.instances_status_update.__name__
                     acts_list.append(
@@ -235,7 +236,7 @@ class RedisClusterMigrateLoadFlow(object):
             act_kwargs.cluster["new_proxy_ips"] = cluster["proxy_ips"]
             act_kwargs.cluster["port"] = cluster["proxy_port"]
             act_kwargs.cluster["spec_id"] = cluster["proxy_spec_id"]
-            act_kwargs.cluster["spec_config"] = {}
+            act_kwargs.cluster["spec_config"] = cluster["proxy_spec_config"]
             act_kwargs.cluster["meta_func_name"] = RedisDBMeta.proxy_install.__name__
             sub_pipeline.add_act(
                 act_name=_("Proxy写入元数据"),
@@ -283,7 +284,9 @@ class RedisClusterMigrateLoadFlow(object):
                 act_kwargs.cluster[cluster["role_dict"][redis_ip]] = [redis_ip]
                 act_kwargs.cluster["ports"] = cluster["ip_port_dict"][redis_ip]
                 act_kwargs.cluster["spec_id"] = cluster["spec_id_dict"][redis_ip]
-                act_kwargs.cluster["spec_config"] = {}
+                act_kwargs.cluster["spec_config"] = Spec.objects.get(
+                    spec_id=cluster["spec_id_dict"][redis_ip]
+                ).get_spec_info()
                 act_kwargs.cluster["meta_func_name"] = RedisDBMeta.redis_install.__name__
                 acts_list.append(
                     {
