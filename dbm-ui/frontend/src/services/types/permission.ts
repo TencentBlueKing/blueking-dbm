@@ -76,22 +76,6 @@ export interface CreateAccountParams {
 }
 
 /**
- * 查询公钥参数
- */
-export interface RSAPublicKeyParams {
-  names: string[]
-}
-
-/**
- * 公钥信息
- */
-export interface RSAPublicKey {
-  content: string,
-  description: string,
-  name: string,
-}
-
-/**
  * 密码强度
  */
 export interface PasswordStrength {
@@ -115,18 +99,7 @@ export interface PasswordStrengthVerifyInfo {
   uppercase_valid: boolean
 }
 
-
-/**
- * 更新密码策略
- */
-export interface PasswordPolicyParams {
-  account_type: string,
-  policy: PasswordPolicy
-}
-
-/**
- * 密码策略
- */
+// 密码策略
 export interface PasswordPolicy {
   follow: PasswordPolicyFollow,
   lowercase: boolean,
@@ -141,6 +114,24 @@ export interface PasswordPolicy {
  * 密码策略 follow
  */
 export interface PasswordPolicyFollow {
+  limit: number,
+  letters: boolean,
+  numbers: boolean,
+  repeats: boolean,
+  symbols: boolean,
+  keyboards: boolean
+}
+
+// 密码策略 include_rule
+export interface PasswordPolicyIncludeRule {
+  numbers: boolean,
+  symbols: boolean,
+  lowercase: boolean,
+  uppercase: boolean
+}
+
+// 密码策略 exclude_continuous_rule
+export interface PasswordPolicyExcludeContinuousRule {
   limit: number,
   letters: boolean,
   numbers: boolean,

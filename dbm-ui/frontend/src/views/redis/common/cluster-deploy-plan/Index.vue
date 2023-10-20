@@ -113,15 +113,16 @@
       <div class="select-group">
         <div class="select-box">
           <div class="title-spot">
-            {{ t('目标集群容量需求') }}<span class="required" />
+            {{ targetCapacityTitle }}<span class="required" />
           </div>
           <div class="input-box">
             <BkInput
-              v-model="capacityNeed"
               class="mb10 num-input"
               :min="0"
+              :model-value="capacityNeed"
               size="small"
               type="number"
+              @blur="handleSearchClusterSpec"
               @change="(value) => capacityNeed = Number(value)" />
             <div class="uint">
               G
@@ -130,15 +131,16 @@
         </div>
         <div class="select-box">
           <div class="title-spot">
-            {{ t('未来集群容量需求') }}<span class="required" />
+            {{ futureCapacityTitle }}<span class="required" />
           </div>
           <div class="input-box">
             <BkInput
-              v-model="capacityFutureNeed"
               class="mb10 num-input"
               :min="0"
+              :model-value="capacityFutureNeed"
               size="small"
               type="number"
+              @blur="handleSearchClusterSpec"
               @change="(value) => capacityFutureNeed = Number(value)" />
             <div class="uint">
               G
@@ -147,26 +149,9 @@
           <div
             v-if="isShowGreaterTip"
             class="gt-tip">
-            <span>{{ t('未来容量必须大于目标容量') }}</span>
+            <span>{{ t('未来容量必须大于等于目标容量') }}</span>
           </div>
         </div>
-      </div>
-      <div class="qps-box">
-        <div class="title-spot">
-          {{ t('QPS 预估范围') }}<span class="required" />
-        </div>
-        <BkLoading :loading="isSliderLoading">
-          <BkSlider
-            v-model="qpsRange"
-            :formatter-label="formatterLabel"
-            :max-value="qpsSelectRange.max"
-            :min-value="qpsSelectRange.min"
-            range
-            show-between-label
-            show-input
-            show-tip
-            style="width: 800px;font-size: 12px;" />
-        </BkLoading>
       </div>
       <div class="deploy-box">
         <div class="title-spot">
@@ -177,19 +162,20 @@
             class="deploy-table"
             :columns="columns"
             :data="tableData"
+            @column-sort="handleColumnSort"
             @row-click.stop="handleRowClick">
             <template #empty>
               <p
-                v-if="!qpsRange[1]"
+                v-if="!capacityNeed || !capacityFutureNeed"
                 style="width: 100%; line-height: 128px; text-align: center;">
                 <DbIcon
                   class="mr-4"
                   type="attention" />
-                <span>{{ t('请先设置容量及QPS范围') }}</span>
+                <span>{{ t('请先设置容量') }}</span>
               </p>
               <BkException
                 v-else
-                :description="t('无匹配的资源规格_请先修改容量及QPS设置')"
+                :description="t('无匹配的资源规格_请先修改容量设置')"
                 scene="part"
                 style="font-size: 12px;"
                 type="empty" />
@@ -202,6 +188,7 @@
     <template #footer>
       <BkButton
         class="mr-8"
+        :disabled="!isAbleSubmit"
         :loading="isConfirmLoading"
         theme="primary"
         @click="handleConfirm">
@@ -215,7 +202,16 @@
     </template>
   </BkSideslider>
 </template>
-<script lang="tsx">
+<script setup lang="tsx">
+  import _ from 'lodash';
+  import { useI18n } from 'vue-i18n';
+
+  import { RedisClusterTypes } from '@services/model/redis/redis';
+  import RedisClusterSpecModel from '@services/model/resource-spec/redis-cluster-sepc';
+  import { getFilterClusterSpec } from '@services/resourceSpec';
+
+  import { useBeforeClose } from '@hooks';
+
   export interface Props {
     isShow?: boolean;
     isSameShardNum?: boolean;
@@ -231,28 +227,24 @@
     };
     title?: string,
     showTitleTag?: boolean,
-    showGreaterTip?: boolean,
   }
-</script>
-<script setup lang="tsx">
-  import { useI18n } from 'vue-i18n';
 
-  import { RedisClusterTypes } from '@services/model/redis/redis';
-  import RedisClusterSpecModel from '@services/model/resource-spec/redis-cluster-sepc';
-  import { type FilterClusterSpecItem, getFilterClusterSpec, queryQPSRange } from '@services/resourceSpec';
+  export interface CapacityNeed {
+    current: number,
+    future: number,
+  }
 
-  import { useBeforeClose } from '@hooks';
-
-  import specTipImg from '@images/spec-tip.png';
+  type FilterClusterSpecItem = ServiceReturnType<typeof getFilterClusterSpec>[0];
 
   interface Emits {
-    (e: 'click-confirm', obj: FilterClusterSpecItem): void
+    (e: 'click-confirm', obj: FilterClusterSpecItem, capacity: CapacityNeed): void
     (e: 'click-cancel'): void
   }
 
+
   const props  = withDefaults(defineProps<Props>(), {
     isShow: false,
-    isSameShardNum: false,
+    isSameShardNum: false, // 集群容量变更才需要
     data: () => ({
       targetCluster: '',
       currentSepc: '',
@@ -265,7 +257,6 @@
     }),
     title: '',
     showTitleTag: true,
-    showGreaterTip: false,
   });
 
   const emits = defineEmits<Emits>();
@@ -273,18 +264,11 @@
   const { t } = useI18n();
   const handleBeforeClose = useBeforeClose();
 
-  const capacityNeed = ref(0);
-  const capacityFutureNeed = ref(0);
+  const capacityNeed = ref();
+  const capacityFutureNeed = ref();
   const radioValue  = ref(-1);
-  const qpsSelectRange = ref({
-    min: 0,
-    max: 1,
-  });
-  const qpsRange = ref([0, 1]);
-  const isSliderLoading = ref(false);
+  const radioChoosedId  = ref(''); // 标记，sort重新定位index用
   const isTableLoading = ref(false);
-
-  const timer = ref();
   const isConfirmLoading = ref(false);
   const tableData = ref<FilterClusterSpecItem[]>([]);
   const targetCapacity = ref({
@@ -292,9 +276,12 @@
     total: 1,
   });
   const targetSepc = ref('');
-  const queryTimer = ref();
 
-  const isShowGreaterTip = computed(() => props.showGreaterTip && capacityFutureNeed.value < capacityNeed.value);
+  const isShowGreaterTip = computed(() => capacityFutureNeed.value < capacityNeed.value);
+  const isAbleSubmit = computed(() => radioValue.value !== -1);
+  const isTendisCache = computed(() => props.data.clusterType === RedisClusterTypes.TwemproxyRedisInstance);
+  const targetCapacityTitle = computed(() => (isTendisCache.value ? t('目标集群容量需求(内存容量)') : t('目标集群容量需求(磁盘容量)')));
+  const futureCapacityTitle = computed(() => (isTendisCache.value ? t('未来集群容量需求(内存容量)') : t('未来集群容量需求(磁盘容量)')));
 
   // const currentPercent = computed(() => {
   //   if (props?.data) {
@@ -335,9 +322,8 @@
     };
   });
 
-  const isDataChange = computed(() => capacityNeed.value !== 0 || capacityFutureNeed.value !== 0
+  const isDataChange = computed(() => capacityNeed.value !== undefined || capacityFutureNeed.value !== undefined
     || radioValue.value !== -1);
-
 
   const cluserMachineMap = {
     [RedisClusterTypes.PredixyTendisplusCluster]: 'tendisplus',
@@ -345,72 +331,58 @@
     [RedisClusterTypes.TwemproxyTendisSSDInstance]: 'tendisssd',
   };
 
-  const columns = [
-    {
-      label: () => <bk-popover
-        theme="light"
-        class="tip-box"
-        width="210"
-        height="78"
-        >
-          {{
-            default: () => <div style="border-bottom: 1px dashed #979BA5;">{t('资源规格')}</div>,
-            content: () => <img style="width:182px;height:63px" src={specTipImg} />,
-          }}
-        </bk-popover>,
-      field: 'spec',
-      showOverflowTooltip: false,
-      width: 260,
-      render: ({ index, row }: { index: number, row: RedisClusterSpecModel }) => (
-      <div style="display:flex;align-items:center;">
-        <bk-radio label={index} v-model={radioValue.value}>{row.spec_name}</bk-radio>
-        {/* <bk-tag theme={data.tip_type === 'recommand' ?
-          'success' : data.tip_type === 'current_plan' ? 'info' : 'danger'} style="margin-left:5px">
-          {data.tip_type}
-        </bk-tag> */}
-      </div>
-    ),
-    },
-    {
-      label: t('需机器组数'),
-      field: 'machine_pair',
-      sort: true,
-    },
-    {
-      label: t('集群分片'),
-      field: 'cluster_shard_num',
-      sort: true,
-    },
-    {
-      label: t('集群容量(G)'),
-      field: 'cluster_capacity',
-      sort: true,
-    },
-    {
-      label: t('集群QPS(每秒)'),
-      field: 'qps',
-      sort: {
-        sortFn: (a: RedisClusterSpecModel, b: RedisClusterSpecModel, type: 'asc' | 'desc') => handleSortQPS(a, b, type),
+  const columns = computed(() => {
+    const totalColums = [
+      {
+        label: t('资源规格'),
+        field: 'spec',
+        showOverflowTooltip: true,
+        width: 260,
+        render: ({ index, row }: { index: number, row: RedisClusterSpecModel }) => (
+          <div style="display:flex;align-items:center;">
+            <bk-radio label={index} v-model={radioValue.value}>{row.spec_name}</bk-radio>
+          </div>
+        ),
       },
-      render: ({ row }: { row: RedisClusterSpecModel }) => <div>{row.cluster_qps}/s</div>,
-    },
-  ];
+      {
+        label: t('需机器组数'),
+        field: 'machine_pair',
+        sort: true,
+      },
+      {
+        label: t('集群分片'),
+        field: 'cluster_shard_num',
+        sort: true,
+      },
+      {
+        label: t('集群容量(G)'),
+        field: 'cluster_capacity',
+        sort: true,
+      },
+    ];
+    if (props.isSameShardNum) {
+      // 集群容量变更，去除集群分片列
+      totalColums.splice(2, 1);
+    }
+    return totalColums;
+  });
 
-  watch(() => props.isShow, () => {
-    resetInfo();
+  let rawTableData: FilterClusterSpecItem[] = [];
+
+  watch(() => props.data, (data) => {
+    if (data) {
+      targetCapacity.value.current = data.capacity.total;
+    }
   }, {
     immediate: true,
   });
 
-  watch(() => [capacityNeed.value, capacityFutureNeed.value], (data) => {
-    const [capacityNeed, capacityFutureNeed] = data;
-    if (capacityNeed > 0 && capacityFutureNeed > 0) {
-      isSliderLoading.value = true;
-      clearTimeout(timer.value);
-      timer.value = setTimeout(() => {
-        queryLatestQPS();
-      }, 1000);
+  watch(capacityNeed, (data) => {
+    if (data && data > 0 && data !== capacityFutureNeed.value) {
+      capacityFutureNeed.value = data;
     }
+  }, {
+    immediate: true,
   });
 
   watch(radioValue, (index) => {
@@ -420,52 +392,29 @@
     targetSepc.value = plan.spec_name;
   });
 
-  watch(qpsRange, (data) => {
-    clearTimeout(queryTimer.value);
-    queryTimer.value = setTimeout(() => {
-      handleSliderChange(data as [number, number]);
-    }, 1000);
-  });
-
-  watch(qpsRange, (data) => {
-    clearTimeout(queryTimer.value);
-    queryTimer.value = setTimeout(() => {
-      handleSliderChange(data as [number, number]);
-    }, 1000);
-  });
-
-  const formatterLabel = (value: string) => `${value}/s`;
-
-  // Slider变动
-  const handleSliderChange = async (data: [number, number]) => {
-    isTableLoading.value = true;
-    qpsRange.value = data;
-    const clusterType = props.data?.clusterType ?? RedisClusterTypes.TwemproxyRedisInstance;
-    const params = {
-      spec_cluster_type: clusterType,
-      spec_machine_type: cluserMachineMap[clusterType],
-      shard_num: props.data.shardNum === 0 ? undefined : props.data.shardNum,
-      capacity: capacityNeed.value,
-      future_capacity: capacityNeed.value <= capacityFutureNeed.value ? capacityFutureNeed.value : capacityNeed.value,
-      qps: {
-        min: data[0],
-        max: data[1],
-      },
-    };
-    if (!props.isSameShardNum) {
-      delete params.shard_num;
+  const handleSearchClusterSpec = async () => {
+    if (capacityNeed.value === undefined || capacityFutureNeed.value === undefined) {
+      return;
     }
-    const retArr = await getFilterClusterSpec(params).finally(() => {
-      isTableLoading.value = false;
-    });
-    tableData.value = retArr;
-  };
-
-  const handleSortQPS = (a: RedisClusterSpecModel, b: RedisClusterSpecModel, type: 'asc' | 'desc') => {
-    if (type === 'asc') {
-      return a.cluster_qps - b.cluster_qps;
+    if (capacityNeed.value > 0 && capacityFutureNeed.value > 0) {
+      isTableLoading.value = true;
+      const clusterType = props.data?.clusterType ?? RedisClusterTypes.TwemproxyRedisInstance;
+      const params = {
+        spec_cluster_type: clusterType,
+        spec_machine_type: cluserMachineMap[clusterType],
+        shard_num: props.data.shardNum === 0 ? undefined : props.data.shardNum,
+        capacity: capacityNeed.value,
+        future_capacity: capacityNeed.value <= capacityFutureNeed.value ? capacityFutureNeed.value : capacityNeed.value,
+      };
+      if (!props.isSameShardNum) {
+        delete params.shard_num;
+      }
+      const retArr = await getFilterClusterSpec(params).finally(() => {
+        isTableLoading.value = false;
+      });
+      tableData.value = retArr;
+      rawTableData = _.cloneDeep(retArr);
     }
-    return b.cluster_qps - a.cluster_qps;
   };
 
   // 点击确定
@@ -474,56 +423,34 @@
     if (index === -1) {
       return;
     }
-    emits('click-confirm', tableData.value[index]);
+    emits('click-confirm', tableData.value[index], { current: capacityNeed.value, future: capacityFutureNeed.value });
   };
 
   async function handleClose() {
     const result = await handleBeforeClose(isDataChange.value);
     if (!result) return;
-    resetInfo();
     window.changeConfirm = false;
     emits('click-cancel');
   }
 
-  // 查询最新的QPS
-  const queryLatestQPS = async () => {
-    const clusterType = props.data?.clusterType ?? RedisClusterTypes.TwemproxyRedisInstance;
-    const ret = await queryQPSRange({
-      spec_cluster_type: clusterType,
-      spec_machine_type: cluserMachineMap[clusterType],
-      capacity: capacityNeed.value,
-      future_capacity: capacityNeed.value <= capacityFutureNeed.value ? capacityFutureNeed.value : capacityNeed.value,
-    }).finally(() => {
-      isSliderLoading.value = false;
-    });
-    const { min, max } = ret;
-    qpsSelectRange.value = {
-      min,
-      max: max === 0 ? 10 : max,
-    };
-    qpsRange.value = [min, max];
-  };
-
   const handleRowClick = (event: PointerEvent, row: FilterClusterSpecItem, index: number) => {
     radioValue.value = index;
+    radioChoosedId.value = row.spec_name;
   };
 
-  function resetInfo() {
-    capacityNeed.value = 0;
-    capacityFutureNeed.value = 0;
-    targetSepc.value = '';
-    targetCapacity.value = {
-      current: props.data?.capacity.total ?? 1,
-      total: 1,
-    };
-    radioValue.value = -1;
-    qpsSelectRange.value = {
-      min: 0,
-      max: 1,
-    };
-    qpsRange.value = [0, 1];
-    tableData.value = [];
-  }
+  const handleColumnSort = (data: { column: { field: string }, index: number, type: string }) => {
+    const { column, type } = data;
+    const filed = column.field as keyof FilterClusterSpecItem;
+    if (type === 'asc') {
+      tableData.value.sort((prevItem, nextItem) => prevItem[filed] as number - (nextItem[filed] as number));
+    } else if (type === 'desc') {
+      tableData.value.sort((prevItem, nextItem) => nextItem[filed] as number - (prevItem[filed] as number));
+    } else {
+      tableData.value = rawTableData;
+    }
+    const index = tableData.value.findIndex(item => item.spec_name === radioChoosedId.value);
+    radioValue.value = index;
+  };
 </script>
 
 <style lang="less" scoped>
@@ -544,7 +471,6 @@
 
   .capacity-panel {
     width: 880px;
-    height: 78px;
     padding: 16px;
     margin-bottom: 24px;
     background: #FAFBFD;
@@ -583,7 +509,8 @@
           .spec {
             margin-left: 2px;
             font-size: 12px;
-            color: #979BA5;
+            font-weight: bold;
+            color: #63656E;
           }
 
           .scale-percent {
@@ -600,7 +527,6 @@
     position: relative;
     display: flex;
     width: 880px;
-    margin-bottom: 24px;
     gap: 38px;
 
     .select-box {
@@ -627,7 +553,7 @@
 
       .gt-tip {
         position: absolute;
-        right: 275px;
+        right: 252px;
         bottom: -20px;
 
         span {
@@ -638,16 +564,8 @@
     }
   }
 
-  .qps-box {
-    display: flex;
-    width: 100%;
-    margin-bottom: 12px;
-    flex-direction: column;
-    gap: 10px;
-  }
-
   .deploy-box {
-    margin-top: 34px;
+    margin-top: 24px;
 
     .deploy-table {
       margin-top: 6px;

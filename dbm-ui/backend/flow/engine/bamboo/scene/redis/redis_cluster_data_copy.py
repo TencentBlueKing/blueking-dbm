@@ -22,7 +22,6 @@ from backend.configuration.constants import DBType
 from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.enums import InstanceRole, InstanceStatus
 from backend.db_meta.models import AppCache, Cluster
-from backend.db_package.models import Package
 from backend.db_proxy.constants import ExtensionType
 from backend.db_proxy.models import DBExtension
 from backend.db_services.redis.redis_dts.constants import (
@@ -43,6 +42,7 @@ from backend.db_services.redis.redis_dts.enums import (
 )
 from backend.db_services.redis.redis_dts.models import TbTendisDTSJob, TbTendisDtsTask
 from backend.db_services.redis.redis_dts.util import (
+    common_cluster_precheck,
     complete_redis_dts_kwargs_dst_data,
     complete_redis_dts_kwargs_src_data,
     get_cluster_info_by_id,
@@ -57,7 +57,7 @@ from backend.db_services.redis.util import (
     is_tendisssd_instance_type,
     is_twemproxy_proxy_type,
 )
-from backend.flow.consts import ConfigFileEnum, MediumEnum, StateType, WriteContextOpType
+from backend.flow.consts import ConfigFileEnum, StateType, WriteContextOpType
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.redis.atom_jobs.redis_dts import (
@@ -86,6 +86,7 @@ from backend.flow.utils.redis.redis_db_meta import RedisDBMeta
 from backend.flow.utils.redis.redis_proxy_util import (
     check_cluster_proxy_backends_consistent,
     get_cache_backup_mode,
+    get_db_versions_by_cluster_type,
     get_twemproxy_cluster_server_shards,
 )
 from backend.utils.time import datetime2str
@@ -208,7 +209,7 @@ class RedisClusterDataCopyFlow(object):
             return self.data["bk_biz_id"]
 
     def __get_dns_nameserver(self, bk_cloud_id: int) -> str:
-        dns_rows = DBExtension.get_extension_in_cloud(0, ExtensionType.DNS)
+        dns_rows = DBExtension.get_extension_in_cloud(bk_cloud_id, ExtensionType.DNS)
         if len(dns_rows) == 0:
             raise Exception(_("bk_cloud_id:{} 未找到DNS nameserver").format(bk_cloud_id))
         dns_row = dns_rows[0]
@@ -236,14 +237,7 @@ class RedisClusterDataCopyFlow(object):
                     src_cluster = Cluster.objects.get(bk_biz_id=bk_biz_id, id=int(info["src_cluster"]))
                 except Cluster.DoesNotExist:
                     raise Exception("src_cluster {} does not exist".format(info["src_cluster"]))
-                # 源集群是否每个running的master都有slave
-                running_masters = src_cluster.storageinstance_set.filter(
-                    status=InstanceStatus.RUNNING.value, instance_role=InstanceRole.REDIS_MASTER.value
-                )
-                for master in running_masters:
-                    if not master.as_ejector or not master.as_ejector.first():
-                        master_inst = "{}:{}".format(master.machine.ip, master.port)
-                        raise Exception(_("源集群{}存在master:{}没有slave").format(info["src_cluster"], master_inst))
+                common_cluster_precheck(bk_biz_id, src_cluster.id)
 
                 # 检查源集群 bk_cloud_id 是否有dns nameserver
                 self.__get_dns_nameserver(src_cluster.bk_cloud_id)
@@ -252,8 +246,9 @@ class RedisClusterDataCopyFlow(object):
                 try:
                     dst_cluster = Cluster.objects.get(bk_biz_id=bk_biz_id, id=int(info["dst_cluster"]))
                 except Cluster.DoesNotExist:
-                    raise Exception("dst_cluster {} does not exist".format(info["dst_cluster"]))
+                    raise Exception(_("目标集群 {} 不存在").format(info["dst_cluster"]))
 
+                common_cluster_precheck(bk_biz_id, dst_cluster.id)
                 # 检查目标集群 bk_cloud_id 是否有dns nameserver
                 self.__get_dns_nameserver(dst_cluster.bk_cloud_id)
 
@@ -268,10 +263,10 @@ class RedisClusterDataCopyFlow(object):
                     )
                 except TbTendisRollbackTasks.DoesNotExist:
                     raise Exception(
-                        "rollback task(src_cluster:{} recovery_time_point:{} \
-                                     destroyed_status:0) does not exist".format(
-                            info["src_cluster"], info["recovery_time_point"]
-                        )
+                        _(
+                            "回档任务(src_cluster:{} recovery_time_point:{} \
+                                     destroyed_status:0) 不存在?"
+                        ).format(info["src_cluster"], info["recovery_time_point"])
                     )
                 # 数据构造临时集群是否可访问
                 proxy_password_bytes = ast.literal_eval(rollback_task.temp_proxy_password)
@@ -288,9 +283,7 @@ class RedisClusterDataCopyFlow(object):
                     )
                 except Exception as e:
                     raise Exception(
-                        "rollback task(temp_cluster_proxy:{}) redis ping failed".format(
-                            rollback_task.temp_cluster_proxy
-                        )
+                        _("回档临时环境如何(temp_cluster_proxy:{}) ping 失败").format(rollback_task.temp_cluster_proxy)
                     )
                 try:
                     DRSApi.redis_rpc(
@@ -348,24 +341,6 @@ class RedisClusterDataCopyFlow(object):
         install_param["resource_spec"] = info["resource_spec"]
         return install_param
 
-    def get_db_versions_by_cluster_type(self, cluster_type: str) -> list:
-        if is_redis_instance_type(cluster_type):
-            ret = Package.objects.filter(db_type=DBType.Redis.value, pkg_type=MediumEnum.Redis.value).values_list(
-                "version", flat=True
-            )
-            return list(ret)
-        elif is_tendisplus_instance_type(cluster_type):
-            ret = Package.objects.filter(db_type=DBType.Redis.value, pkg_type=MediumEnum.TendisPlus.value).values_list(
-                "version", flat=True
-            )
-            return list(ret)
-        elif is_tendisssd_instance_type(cluster_type):
-            ret = Package.objects.filter(db_type=DBType.Redis.value, pkg_type=MediumEnum.TendisSsd.value).values_list(
-                "version", flat=True
-            )
-            return list(ret)
-        raise Exception("cluster_type:{} not a redis cluster type?".format(cluster_type))
-
     def shard_num_or_cluster_type_update_precheck(self):
         src_cluster_set: set = set()
         bk_biz_id = self.data["bk_biz_id"]
@@ -374,11 +349,8 @@ class RedisClusterDataCopyFlow(object):
                 raise Exception(_("源集群{}重复了").format(info["src_cluster"]))
             src_cluster_set.add(info["src_cluster"])
 
-            src_cluster: Cluster = None
-            try:
-                src_cluster = Cluster.objects.get(bk_biz_id=bk_biz_id, id=int(info["src_cluster"]))
-            except Cluster.DoesNotExist:
-                raise Exception("src_cluster {} does not exist".format(info["src_cluster"]))
+            common_cluster_precheck(bk_biz_id, int(info["src_cluster"]))
+            src_cluster = Cluster.objects.get(bk_biz_id=bk_biz_id, id=int(info["src_cluster"]))
 
             # 检查源集群 bk_cloud_id 是否有dns nameserver
             self.__get_dns_nameserver(src_cluster.bk_cloud_id)
@@ -386,51 +358,47 @@ class RedisClusterDataCopyFlow(object):
             if self.data["ticket_type"] == DtsBillType.REDIS_CLUSTER_SHARD_NUM_UPDATE.value:
                 if info["current_shard_num"] == info["cluster_shard_num"]:
                     raise Exception(
-                        "current_shard_num:{} == cluster_shard_num:{}".format(
-                            info["current_shard_num"], info["cluster_shard_num"]
-                        ),
+                        _("集群当前分片数:{} 等于 目标分片数:{}").format(info["current_shard_num"], info["cluster_shard_num"]),
                     )
                 running_masters = src_cluster.storageinstance_set.filter(
                     status=InstanceStatus.RUNNING.value, instance_role=InstanceRole.REDIS_MASTER.value
                 )
                 if running_masters.count() == info["cluster_shard_num"]:
                     raise Exception(
-                        "src_cluster:{} running_masters:{} == cluster_shard_num:{}".format(
+                        _("集群:{} 当前running_master个数:{} 等于 目标分片数:{}").format(
                             src_cluster.immute_domain, running_masters.count(), info["cluster_shard_num"]
                         ),
                     )
                 if info.get("db_version", "") != "":
-                    if info["db_version"] not in self.get_db_versions_by_cluster_type(src_cluster.cluster_type):
+                    if info["db_version"] not in get_db_versions_by_cluster_type(src_cluster.cluster_type):
                         raise Exception(
-                            "src_cluster:{} db_version:{} not in src_cluster_type:{} db_versions:{}".format(
+                            _("集群:{} 目标版本:{} 不在 集群类型:{} 版本列表:{}中").format(
                                 src_cluster.immute_domain,
                                 info["db_version"],
                                 src_cluster.cluster_type,
-                                self.get_db_versions_by_cluster_type(src_cluster.cluster_type),
+                                get_db_versions_by_cluster_type(src_cluster.cluster_type),
                             )
                         )
             elif self.data["ticket_type"] == DtsBillType.REDIS_CLUSTER_TYPE_UPDATE.value:
                 if info["current_cluster_type"] == info["target_cluster_type"]:
                     raise Exception(
-                        "current_cluster_type:{} == target_cluster_type:{}".format(
-                            info["current_cluster_type"], info["target_cluster_type"]
-                        ),
+                        _("当前集群类型:{} == 目标集群类型:{}").format(info["current_cluster_type"], info["target_cluster_type"]),
                     )
                 if info["target_cluster_type"] == src_cluster.cluster_type:
                     raise Exception(
-                        "target_cluster_type:{} == src_cluster:{} cluster_type:{}".format(
+                        _("目标集群类型:{} == 集群:{} 当前类型:{}").format(
                             info["target_cluster_type"], src_cluster.immute_domain, src_cluster.cluster_type
                         ),
                     )
                 if info.get("db_version", "") == "":
-                    raise Exception("src_cluster:{} db_version is empty".format(info["src_cluster"]))
-                if info["db_version"] not in self.get_db_versions_by_cluster_type(info["target_cluster_type"]):
+                    raise Exception(_("集群:{} 目标版本为空").format(info["src_cluster"]))
+                if info["db_version"] not in get_db_versions_by_cluster_type(info["target_cluster_type"]):
                     raise Exception(
-                        "src_cluster:{} db_version:{} not in target_cluster_type:{} db_versions:{}".format(
+                        _("集群:{} 目标版本:{} 不在 集群类型:{} 版本列表:{}中").format(
                             info["src_cluster"],
                             info["db_version"],
                             info["target_cluster_type"],
-                            self.get_db_versions_by_cluster_type(info["target_cluster_type"]),
+                            get_db_versions_by_cluster_type(info["target_cluster_type"]),
                         )
                     )
             # 检查所有 src proxys backends 一致
@@ -690,6 +658,17 @@ class RedisClusterDataCopyFlow(object):
             "slave_ports": slave_ports,
         }
 
+    def __get_cluster_master_slave_ips(self, bk_biz_id: int, cluster_id: int) -> list:
+        cluster = Cluster.objects.get(id=cluster_id, bk_biz_id=bk_biz_id)
+        ips = set()
+
+        for master_obj in cluster.storageinstance_set.filter(instance_role=InstanceRole.REDIS_MASTER.value):
+            ips.add(master_obj.machine.ip)
+            if master_obj.as_ejector and master_obj.as_ejector.first():
+                my_slave_obj = master_obj.as_ejector.get().receiver
+                ips.add(my_slave_obj.machine.ip)
+        return list(ips)
+
     def online_switch_flow(self):
         self.__online_switch_precheck()
         redis_pipeline = Builder(root_id=self.root_id, data=self.data)
@@ -776,7 +755,7 @@ class RedisClusterDataCopyFlow(object):
             act_kwargs.exec_ip = src_cluster_info["proxy_ips"]
             acts_list.append(
                 {
-                    "act_name": _("{} proxys下发介质").format(src_cluster_info["cluster_domain"]),
+                    "act_name": _("{} proxys下发介质").format(src_cluster_info["cluster_name"]),
                     "act_component_code": TransFileComponent.code,
                     "kwargs": asdict(act_kwargs),
                 }
@@ -786,7 +765,28 @@ class RedisClusterDataCopyFlow(object):
             act_kwargs.exec_ip = dst_cluster_info["proxy_ips"]
             acts_list.append(
                 {
-                    "act_name": _("{} proxys下发介质").format(dst_cluster_info["cluster_domain"]),
+                    "act_name": _("{} proxys下发介质").format(dst_cluster_info["cluster_name"]),
+                    "act_component_code": TransFileComponent.code,
+                    "kwargs": asdict(act_kwargs),
+                }
+            )
+
+            # backend 下发actuator和 dbmon介质
+            act_kwargs.file_list = trans_files.redis_dbmon()
+            act_kwargs.exec_ip = self.__get_cluster_master_slave_ips(int(job_row.app), job_row.src_cluster_id)
+            acts_list.append(
+                {
+                    "act_name": _("{} backend下发介质").format(src_cluster_info["cluster_name"]),
+                    "act_component_code": TransFileComponent.code,
+                    "kwargs": asdict(act_kwargs),
+                }
+            )
+
+            act_kwargs.file_list = trans_files.redis_dbmon()
+            act_kwargs.exec_ip = self.__get_cluster_master_slave_ips(int(job_row.app), job_row.dst_cluster_id)
+            acts_list.append(
+                {
+                    "act_name": _("{} backend下发介质").format(dst_cluster_info["cluster_name"]),
                     "act_component_code": TransFileComponent.code,
                     "kwargs": asdict(act_kwargs),
                 }
@@ -804,12 +804,14 @@ class RedisClusterDataCopyFlow(object):
                 act_kwargs.cluster["src_proxy_port"] = int(src_cluster_info["cluster_port"])
                 act_kwargs.cluster["src_proxy_password"] = src_cluster_info["cluster_password"]
                 act_kwargs.cluster["src_cluster_type"] = src_cluster_info["cluster_type"]
+                act_kwargs.cluster["src_cluster_name"] = src_cluster_info["cluster_name"]
                 act_kwargs.cluster["my_dst_proxy_ip"] = target_proxy_ip
                 act_kwargs.cluster["dst_proxy_port"] = int(dst_cluster_info["cluster_port"])
                 act_kwargs.cluster["dst_proxy_password"] = dst_cluster_info["cluster_password"]
                 act_kwargs.cluster["dst_cluster_type"] = dst_cluster_info["cluster_type"]
                 act_kwargs.cluster["dst_redis_ip"] = dst_running_master.machine.ip
                 act_kwargs.cluster["dst_redis_port"] = int(dst_running_master.port)
+                act_kwargs.cluster["dst_cluster_name"] = dst_cluster_info["cluster_name"]
                 act_kwargs.get_redis_payload_func = RedisActPayload.redis_dts_src_proxys_online_switch_payload.__name__
                 acts_list.append(
                     {
@@ -842,12 +844,14 @@ class RedisClusterDataCopyFlow(object):
                 act_kwargs.cluster["src_proxy_port"] = int(dst_cluster_info["cluster_port"])
                 act_kwargs.cluster["src_proxy_password"] = dst_cluster_info["cluster_password"]
                 act_kwargs.cluster["src_cluster_type"] = dst_cluster_info["cluster_type"]
+                act_kwargs.cluster["src_cluster_name"] = dst_cluster_info["cluster_name"]
                 act_kwargs.cluster["my_dst_proxy_ip"] = target_proxy_ip
                 act_kwargs.cluster["dst_proxy_port"] = int(src_cluster_info["cluster_port"])
                 act_kwargs.cluster["dst_proxy_password"] = src_cluster_info["cluster_password"]
                 act_kwargs.cluster["dst_cluster_type"] = src_cluster_info["cluster_type"]
                 act_kwargs.cluster["dst_redis_ip"] = src_running_master.machine.ip
                 act_kwargs.cluster["dst_redis_port"] = int(src_running_master.port)
+                act_kwargs.cluster["dst_cluster_name"] = src_cluster_info["cluster_name"]
                 act_kwargs.get_redis_payload_func = RedisActPayload.redis_dts_dst_proxys_online_switch_payload.__name__
                 acts_list.append(
                     {

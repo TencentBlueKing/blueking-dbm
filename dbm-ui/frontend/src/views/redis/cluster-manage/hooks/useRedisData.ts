@@ -33,6 +33,7 @@ export const useRedisData = (state: RedisState) => {
    */
   function fetchResources(extraParams = {}, isLoading = true) {
     const params = {
+      dbType: DBTypes.REDIS,
       bk_biz_id: globalBizsStore.currentBizId,
       type: DBTypes.REDIS,
       ...state.pagination.getFetchParams(),
@@ -42,7 +43,7 @@ export const useRedisData = (state: RedisState) => {
 
     state.isInit = false;
     state.isLoading = isLoading;
-    return getResources<ResourceRedisItem>(DBTypes.REDIS, params)
+    return getResources<ResourceRedisItem>(params)
       .then((res) => {
         state.pagination.count = res.count;
         state.data = res.results;

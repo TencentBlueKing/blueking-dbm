@@ -71,10 +71,12 @@
     {
       label: t('目标集群'),
       field: 'clusterName',
+      showOverflowTooltip: true,
     },
     {
       label: t('备份位置'),
       field: 'position',
+      showOverflowTooltip: true,
     },
   ];
 
@@ -87,10 +89,9 @@
         Object.assign(obj, { [item.id]: item.master_domain });
         return obj;
       }, {} as Record<number, string>);
-
       tableData.value = infos.clusters.reduce((results, item) => {
         const obj = {
-          clusterName: clusterMap[item.id],
+          clusterName: clusterMap[item.cluster_id],
           position: item.backup_local,
         };
         results.push(obj);

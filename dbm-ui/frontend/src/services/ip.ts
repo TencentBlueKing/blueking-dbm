@@ -67,12 +67,15 @@ export const getHostTopoInfos = (params: {
     bk_host_id?: string[],
     mode?: string
   }
-}): Promise<{total: number, hosts_topo_info: Array<HostTopoInfo>}> => http.post('/apis/ipchooser/topo/query_host_topo_infos/', params);
+}) => http.post<{
+  total: number,
+  hosts_topo_info: Array<HostTopoInfo>
+}>('/apis/ipchooser/topo/query_host_topo_infos/', params);
 
 /**
  * 获取管控区域列表
  */
-export const getCloudList = (): Promise<CloudAreaInfo[]> => http.post('/apis/ipchooser/settings/search_cloud_area/');
+export const getCloudList = () => http.post<CloudAreaInfo[]>('/apis/ipchooser/settings/search_cloud_area/');
 
 /**
  * 查询磁盘类型

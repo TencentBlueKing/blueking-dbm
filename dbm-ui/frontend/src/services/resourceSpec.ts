@@ -12,42 +12,9 @@
 */
 
 import http from './http';
+import RedisClusterSpecModel from './model/resource-spec/redis-cluster-sepc';
 import ResourceSpecModel from './model/resource-spec/resourceSpec';
 import type { ListBase } from './types/common';
-
-export interface FilterClusterSpecItem {
-  creator: string,
-  updater: string,
-  spec_id: number,
-  spec_name: string,
-  spec_cluster_type: string,
-  spec_machine_type: string,
-  cpu: {
-    max: number,
-    min: number
-  },
-  mem: {
-    max: number,
-    min: number
-  },
-  device_class: string[],
-  storage_spec: {
-    size: number,
-    type: string,
-    mount_point: string
-  }[],
-  desc: string,
-  instance_num: number,
-  qps: {
-    max: number,
-    min: number
-  },
-  cluster_qps: string,
-  capacity: number,
-  machine_pair: number,
-  cluster_capacity: number,
-  cluster_shard_num: number
-}
 
 // 获取资源规格列表
 export const getResourceSpecList = function (params: Record<string, any> & {
@@ -62,13 +29,13 @@ export const getResourceSpecList = function (params: Record<string, any> & {
 };
 
 // 新建规格
-export const createResourceSpec = function (params: Record<any, any>): Promise<ResourceSpecModel> {
-  return http.post('/apis/dbresource/spec/', params);
+export const createResourceSpec = function (params: Record<any, any>) {
+  return http.post<ResourceSpecModel>('/apis/dbresource/spec/', params);
 };
 
 // 更新规格
-export const updateResourceSpec = function (specId: number, params: Record<string, any>): Promise<ResourceSpecModel> {
-  return http.put(`/apis/dbresource/spec/${specId}/`, params);
+export const updateResourceSpec = function (params: Record<string, any> & { specId: number }) {
+  return http.put<ResourceSpecModel>(`/apis/dbresource/spec/${params.specId}/`, params);
 };
 
 // 批量删除规格
@@ -77,8 +44,8 @@ export const batchDeleteResourceSpec = function (params: Record<string, any> & {
 };
 
 // 删除规格
-export const deleteResourceSpec = function (specId: number) {
-  return http.delete(`/apis/dbresource/spec/${specId}/`);
+export const deleteResourceSpec = function (params: { specId: number }) {
+  return http.delete(`/apis/dbresource/spec/${params.specId}/`);
 };
 
 // 校验规格名称是否重复
@@ -97,7 +64,10 @@ export const queryQPSRange = (params: {
   spec_machine_type: string,
   capacity: number,
   future_capacity: number,
-}) => http.get<{ max: number, min: number }>('/apis/dbresource/spec/query_qps_range/', params);
+}) => http.get<{
+  max: number,
+  min: number
+}>('/apis/dbresource/spec/query_qps_range/', params);
 
 // 筛选集群部署规格方案
 export const getFilterClusterSpec = (params: {
@@ -105,14 +75,14 @@ export const getFilterClusterSpec = (params: {
   spec_machine_type: string,
   capacity: number,
   future_capacity: number,
-  qps: {
+  qps?: {
     min: number,
     max: number
   },
   shard_num?: number,
-}) => http.post<FilterClusterSpecItem[]>('/apis/dbresource/spec/filter_cluster_spec/', params);
+}) => http.post<RedisClusterSpecModel[]>('/apis/dbresource/spec/filter_cluster_spec/', params);
 
 // 规格详情
-export const getResourceSpec = function (params: {spec_id: number}) {
+export const getResourceSpec = function (params: { spec_id: number }) {
   return http.get<ResourceSpecModel>(`/apis/dbresource/spec/${params.spec_id}/`);
 };

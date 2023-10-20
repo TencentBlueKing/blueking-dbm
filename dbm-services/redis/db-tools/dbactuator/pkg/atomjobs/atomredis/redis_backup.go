@@ -226,8 +226,8 @@ func (job *RedisBackup) GetBackupClient() (err error) {
 	if job.params.BackupType == consts.ForeverBackupType {
 		bkTag = consts.RedisForeverBackupTAG
 	}
-	job.backupClient = backupsys.NewIBSBackupClient(consts.IBSBackupClient, bkTag)
-	// job.backupClient,err=backupsys.NewCosBackupClient(consts.IBSBackupClient,"", bkTag)
+	// job.backupClient = backupsys.NewIBSBackupClient(consts.IBSBackupClient, bkTag)
+	job.backupClient, err = backupsys.NewCosBackupClient(consts.COSBackupClient, consts.COSInfoFile, bkTag)
 	return
 }
 
@@ -419,6 +419,7 @@ func (task *BackupTask) newConnect() {
 	if task.Err != nil {
 		return
 	}
+	mylog.Logger.Info("redis(%s) role:%s,dataDir:%s,dbType:%s", task.Addr(), task.Role, task.DataDir, task.DbType)
 	// 获取数据量大小
 	if task.DbType == consts.TendisTypeRedisInstance {
 		task.DataSize, task.Err = task.Cli.RedisInstanceDataSize()
@@ -439,11 +440,13 @@ func (task *BackupTask) PrecheckDisk() {
 	bakDiskUsg, err := util.GetLocalDirDiskUsg(task.BackupDir)
 	task.Err = err
 	if task.Err != nil {
+		mylog.Logger.Error("redis:%s backupDir:%s GetLocalDirDiskUsg fail,err:%v", task.Addr(), task.BackupDir, err)
 		return
 	}
 	dataDiskUsg, err := util.GetLocalDirDiskUsg(task.DataDir)
 	task.Err = err
 	if task.Err != nil {
+		mylog.Logger.Error("redis:%s dataDir:%s GetLocalDirDiskUsg fail,err:%v", task.Addr(), task.DataDir, err)
 		return
 	}
 	// 磁盘空间使用已有85%,则报错
@@ -742,14 +745,14 @@ func (task *BackupTask) TendisSSDSetLougCount() {
 // TransferToBackupSystem 备份文件上传到备份系统
 func (task *BackupTask) TransferToBackupSystem() {
 	var msg string
-	cliFileInfo, err := os.Stat(consts.IBSBackupClient)
+	cliFileInfo, err := os.Stat(consts.COSBackupClient)
 	if err != nil {
-		err = fmt.Errorf("os.stat(%s) failed,err:%v", consts.IBSBackupClient, err)
+		err = fmt.Errorf("os.stat(%s) failed,err:%v", consts.COSBackupClient, err)
 		mylog.Logger.Error(err.Error())
 		return
 	}
 	if !util.IsExecOther(cliFileInfo.Mode().Perm()) {
-		err = fmt.Errorf("%s is unable to execute by other", consts.IBSBackupClient)
+		err = fmt.Errorf("%s is unable to execute by other", consts.COSBackupClient)
 		mylog.Logger.Error(err.Error())
 		return
 	}

@@ -10,11 +10,14 @@ definitions:
       device:
         type: string
       free:
-        description: Free 不包括 fs reserved block 部分
+        description: Free 真实可用量，不包括 fs reserved 部分，相当于 available
         type: integer
       fstype:
         type: string
       inodes_total:
+        description: |-
+          UsedPercentReal Used / (Total - Reserved), stat.UsedPercent
+          UsedPercentReal   float64 `json:"used_percent_real"`
         type: integer
       inodes_used:
         type: integer
@@ -30,10 +33,14 @@ definitions:
       total:
         type: integer
       used:
-        description: Used truly used, not include reserved
+        description: Used 真实使用量, 不包含 fs reserved
         type: integer
       used_percent:
+        description: UsedPercent 在os层面看到的磁盘利用率，包括 reserved (Used + Reserved) / Total
         type: number
+      used_total:
+        description: UsedTotal 总使用量，Used + Reserved
+        type: integer
     type: object
   cmutil.MemoryInfo:
     properties:
@@ -470,6 +477,20 @@ definitions:
       extend:
         $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_fileserver.FileServer'
     type: object
+  dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.AdditionalAccount:
+    properties:
+      access_hosts:
+        items:
+          type: string
+        type: array
+      pwd:
+        type: string
+      user:
+        type: string
+    required:
+    - pwd
+    - user
+    type: object
   dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.BackupOptions:
     properties:
       BackupType:
@@ -625,20 +646,6 @@ definitions:
     required:
     - op_type
     type: object
-  dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.DBHAAccount:
-    properties:
-      access_hosts:
-        items:
-          type: string
-        type: array
-      pwd:
-        type: string
-      user:
-        type: string
-    required:
-    - pwd
-    - user
-    type: object
   dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.DumpSchemaParam:
     properties:
       backup_dir:
@@ -791,7 +798,7 @@ definitions:
         description: 字符集参数
         type: string
       dbha_account:
-        $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.DBHAAccount'
+        $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.AdditionalAccount'
       host:
         type: string
       inst_mem:
@@ -821,7 +828,7 @@ definitions:
           type: integer
         type: array
       super_account:
-        $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.SuperAccount'
+        $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.AdditionalAccount'
     required:
     - charset
     - host
@@ -915,6 +922,8 @@ definitions:
         description: 0 被视为空, 不序列化
         type: integer
       cluster_id:
+        type: integer
+      db_module_id:
         type: integer
       immute_domain:
         type: string
@@ -1221,20 +1230,6 @@ definitions:
       port:
         description: slave port
         type: integer
-    type: object
-  dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.SuperAccount:
-    properties:
-      access_hosts:
-        items:
-          type: string
-        type: array
-      pwd:
-        type: string
-      user:
-        type: string
-    required:
-    - pwd
-    - user
     type: object
   dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.UnInstallMySQLParam:
     properties:

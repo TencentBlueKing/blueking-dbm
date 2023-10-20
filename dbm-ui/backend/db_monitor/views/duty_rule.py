@@ -10,18 +10,15 @@ specific language governing permissions and limitations under the License.
 """
 from django.utils.decorators import method_decorator
 from django.utils.translation import ugettext_lazy as _
-from rest_framework.decorators import action
-from rest_framework.response import Response
 
 from backend.bk_web import viewsets
 from backend.bk_web.swagger import common_swagger_auto_schema
-from backend.components import CmsiApi
 from backend.db_monitor import serializers
 from backend.db_monitor.models.alarm import DutyRule
 from backend.db_monitor.serializers import DutyRuleSerializer
-from backend.iam_app.handlers.drf_perm import DBManageIAMPermission, GlobalManageIAMPermission
+from backend.iam_app.handlers.drf_perm import GlobalManageIAMPermission
 
-SWAGGER_TAG = _("轮值规则")
+SWAGGER_TAG = _("告警轮值规则")
 
 
 @method_decorator(
@@ -42,6 +39,12 @@ SWAGGER_TAG = _("轮值规则")
     name="update",
     decorator=common_swagger_auto_schema(
         operation_summary=_("更新轮值规则"), tags=[SWAGGER_TAG], request_body=serializers.DutyRuleUpdateSerializer()
+    ),
+)
+@method_decorator(
+    name="partial_update",
+    decorator=common_swagger_auto_schema(
+        operation_summary=_("部分更新轮值规则"), tags=[SWAGGER_TAG], request_body=serializers.DutyRuleUpdateSerializer()
     ),
 )
 @method_decorator(

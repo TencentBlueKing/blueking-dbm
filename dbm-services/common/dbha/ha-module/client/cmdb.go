@@ -60,9 +60,9 @@ type SwapRedisRolePayload struct {
 
 // SwapRedisRoleRequest swap redis instance's role in cmdb
 type SwapRedisRoleRequest struct {
-	DBCloudToken string                 `json:"db_cloud_token"`
-	BKCloudID    int                    `json:"bk_cloud_id"`
-	Payloads     []SwapRedisRolePayload `json:"payloads"`
+	DBCloudToken string               `json:"db_cloud_token"`
+	BKCloudID    int                  `json:"bk_cloud_id"`
+	Payload      SwapRedisRolePayload `json:"payload"`
 }
 
 // UpdateInstanceStatusPayload update instance status
@@ -223,7 +223,8 @@ func (c *CmDBClient) SwapRedisRole(domain string, masterIp string,
 	req := SwapRedisRoleRequest{
 		DBCloudToken: c.Conf.BKConf.BkToken,
 		BKCloudID:    c.CloudId,
-		Payloads:     []SwapRedisRolePayload{payload},
+		// not array, only support single object
+		Payload: payload,
 	}
 
 	log.Logger.Debugf("SwapRedisRole param:%v", req)

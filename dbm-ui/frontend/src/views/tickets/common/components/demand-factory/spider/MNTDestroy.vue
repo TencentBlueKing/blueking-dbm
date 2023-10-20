@@ -46,10 +46,12 @@
     {
       label: t('集群'),
       field: 'clusterName',
+      showOverflowTooltip: true,
     },
     {
       label: t('节点IP'),
       field: 'ip',
+      showOverflowTooltip: true,
     },
   ];
 

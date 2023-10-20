@@ -46,6 +46,11 @@ class OpenAreaViewSet(viewsets.AuditedModelViewSet):
     def _get_custom_permissions(self):
         return [DBManageIAMPermission()]
 
+    def get_queryset(self):
+        # 过滤业务下的集群模板
+        bk_biz_id = self.request.parser_context["kwargs"].get("bk_biz_id")
+        return self.queryset.filter(bk_biz_id=bk_biz_id)
+
     @common_swagger_auto_schema(
         operation_summary=_("创建开区模板"),
         auto_schema=ResponseSwaggerAutoSchema,
@@ -108,4 +113,5 @@ class OpenAreaViewSet(viewsets.AuditedModelViewSet):
     @action(methods=["POST"], detail=False, serializer_class=TendbOpenAreaResultPreviewSerializer)
     def preview(self, request, *args, **kwargs):
         validated_data = self.params_validate(self.get_serializer_class())
+        validated_data["operator"] = request.user.username
         return Response(OpenAreaHandler.openarea_result_preview(**validated_data))

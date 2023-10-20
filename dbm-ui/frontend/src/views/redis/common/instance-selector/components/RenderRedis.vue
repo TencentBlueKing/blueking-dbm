@@ -65,7 +65,7 @@
           </div>
         </template>
         <template #main>
-          <div style="height: 490px;">
+          <div style="height: 570px;">
             <RenderRedisFailHost
               v-if="activeTab === 'masterFailHosts'"
               :last-values="lastValues"

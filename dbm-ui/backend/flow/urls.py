@@ -9,12 +9,15 @@ specific language governing permissions and limitations under the License.
 """
 
 from django.conf.urls import url
-from rest_framework.routers import DefaultRouter
 
 from backend.flow.views.cloud_dbha_apply import CloudDBHAApplySceneApiView
 from backend.flow.views.cloud_dns_bind_apply import CloudDNSApplySceneApiView
 from backend.flow.views.cloud_drs_apply import CloudDRSApplySceneApiView
 from backend.flow.views.cloud_nginx_apply import CloudNginxApplySceneApiView, CloudNginxReplaceSceneApiView
+from backend.flow.views.cloud_redis_dts_server_apply import (
+    CloudRedisDTSServerApplySceneApiView,
+    CloudRedisDTSServerReduceSceneApiView,
+)
 from backend.flow.views.es_apply import InstallEsSceneApiView
 from backend.flow.views.es_destroy import DestroyEsSceneApiView
 from backend.flow.views.es_disable import DisableEsSceneApiView
@@ -63,7 +66,6 @@ from backend.flow.views.mysql_ha_destroy import (
 )
 from backend.flow.views.mysql_ha_full_backup import MySQLHAFullBackup
 from backend.flow.views.mysql_ha_master_fail_over import MySQLHAMasterFailOverApiView
-from backend.flow.views.mysql_ha_metadata_import import TenDBHAMetadataImportViewSet
 from backend.flow.views.mysql_ha_rename_database import MySQLHARenameDatabaseView
 from backend.flow.views.mysql_ha_switch import MySQLHASwitchSceneApiView
 from backend.flow.views.mysql_ha_truncate_data import MySQLHATruncateDataView
@@ -99,6 +101,7 @@ from backend.flow.views.pulsar_apply import InstallPulsarSceneApiView
 from backend.flow.views.pulsar_destroy import DestroyPulsarSceneApiView
 from backend.flow.views.pulsar_disable import DisablePulsarSceneApiView
 from backend.flow.views.pulsar_enable import EnablePulsarSceneApiView
+from backend.flow.views.pulsar_fake_apply import FakeInstallPulsarSceneApiView
 from backend.flow.views.pulsar_reboot import RebootPulsarSceneApiView
 from backend.flow.views.pulsar_scale_up import ScaleUpPulsarSceneApiView
 from backend.flow.views.redis_cluster import (
@@ -114,6 +117,7 @@ from backend.flow.views.redis_cluster import (
     RedisClusterShardNumUpdateSceneApiView,
     RedisClusterShutdownSceneApiView,
     RedisClusterTypeUpdateSceneApiView,
+    RedisClusterVersionUpdateOnlineApiView,
     RedisDataStructureSceneApiView,
     RedisDataStructureTaskDeleteSceneApiView,
     RedisFlushDataSceneApiView,
@@ -194,6 +198,7 @@ urlpatterns = [
     url(r"^scene/redis_data_structure$", RedisDataStructureSceneApiView.as_view()),
     url(r"^scene/redis_data_structure_task_delete$", RedisDataStructureTaskDeleteSceneApiView.as_view()),
     url(r"^scene/redis_cluster_add_slave$", RedisClusterAddSlaveApiView.as_view()),
+    url(r"^scene/redis_cluster_version_update_online$", RedisClusterVersionUpdateOnlineApiView.as_view()),
     # redis api url end
     # name_service start
     # name_service clb
@@ -285,12 +290,15 @@ urlpatterns = [
     url(r"^scene/nginx_apply$", CloudNginxApplySceneApiView.as_view()),
     url(r"^scene/nginx_replace$", CloudNginxReplaceSceneApiView.as_view()),
     url(r"^scene/drs_apply$", CloudDRSApplySceneApiView.as_view()),
+    url(r"^scene/redis_dts_server_apply$", CloudRedisDTSServerApplySceneApiView.as_view()),
+    url(r"^scene/redis_dts_server_reduce$", CloudRedisDTSServerReduceSceneApiView.as_view()),
     url(r"^scene/install_pulsar$", InstallPulsarSceneApiView.as_view()),
     url(r"^scene/scale_up_pulsar$", ScaleUpPulsarSceneApiView.as_view()),
     url(r"^scene/enable_pulsar$", EnablePulsarSceneApiView.as_view()),
     url(r"^scene/disable_pulsar$", DisablePulsarSceneApiView.as_view()),
     url(r"^scene/destroy_pulsar$", DestroyPulsarSceneApiView.as_view()),
     url(r"^scene/reboot_pulsar$", RebootPulsarSceneApiView.as_view()),
+    url(r"^scene/fake_install_pulsar$", FakeInstallPulsarSceneApiView.as_view()),
     url(r"^scene/import_resource_init$", ImportResourceInitStepApiView.as_view()),
     # spider
     url(r"^scene/add_spider_mnt$", AddSpiderMNTSceneApiView.as_view()),
@@ -341,10 +349,4 @@ urlpatterns = [
     url("^scene/switch_tbinlogumper$", SwitchTBinlogDumperSceneApiView.as_view()),
     url("^scene/tendbha_standardize$", TenDBHAStandardizeView.as_view()),
     url("^scene/mysql_open_area$", MysqlOpenAreaSceneApiView.as_view()),
-    url("^scene/tendbha_metadata_import$", TenDBHAMetadataImportViewSet.as_view({"post": "create"})),
 ]
-
-# routers = DefaultRouter(trailing_slash=True)
-# routers.register("scene/tendb_ha_import_metadata", TenDBHAMetadataImportViewSet, basename="")
-#
-# urlpatterns+=routers.urls

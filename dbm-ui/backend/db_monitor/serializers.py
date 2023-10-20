@@ -8,11 +8,14 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import urllib.parse
 
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
+from backend import env
 from backend.bk_web.serializers import AuditedSerializer
+from backend.configuration.constants import DBType
 from backend.db_meta.enums import ClusterType
 from backend.db_monitor import mock_data
 from backend.db_monitor.constants import AlertLevelEnum, DetectAlgEnum, OperatorEnum, TargetLevel
@@ -33,6 +36,11 @@ class DashboardUrlSerializer(serializers.Serializer):
 
 
 class NoticeGroupSerializer(AuditedSerializer, serializers.ModelSerializer):
+    used_count = serializers.SerializerMethodField()
+
+    def get_used_count(self, obj):
+        return self.context["group_used"].get(obj.id, 0)
+
     class Meta:
         model = NoticeGroup
         fields = "__all__"
@@ -85,12 +93,38 @@ class RuleTemplateSerializer(AuditedSerializer, serializers.ModelSerializer):
 
 
 class MonitorPolicySerializer(AuditedSerializer, serializers.ModelSerializer):
+    event_url = serializers.SerializerMethodField(method_name="get_event_url")
+
+    def get_event_url(self, obj):
+        """监控事件跳转链接"""
+
+        bk_biz_id = obj.bk_biz_id or env.DBA_APP_BK_BIZ_ID
+        query_string = urllib.parse.urlencode(
+            {
+                "queryString": _("策略ID : {} AND 状态 : {}").format(obj.monitor_policy_id, _("未恢复")),
+                "from": "now-30d",
+                "to": "now",
+                "bizIds": bk_biz_id,
+            }
+        )
+
+        return f"{env.BKMONITOR_URL}/?bizId={bk_biz_id}#/event-center?{query_string}"
+
     class Meta:
         model = MonitorPolicy
         fields = "__all__"
 
 
 class MonitorPolicyListSerializer(MonitorPolicySerializer):
+    event_count = serializers.SerializerMethodField(method_name="get_event_count")
+
+    def get_event_count(self, obj):
+        bk_biz_id = int(self.context["request"].query_params.get("bk_biz_id"))
+        policy_events = self.context["events"].get(str(obj.monitor_policy_id), {})
+        if bk_biz_id > 0:
+            return int(policy_events.get(str(bk_biz_id), 0))
+        return sum(map(lambda x: int(x), policy_events.values()))
+
     class Meta:
         model = MonitorPolicy
         exclude = ["details", "parent_details"]
@@ -102,7 +136,7 @@ class MonitorPolicyUpdateSerializer(AuditedSerializer, serializers.ModelSerializ
 
         class TargetRuleSerializer(serializers.Serializer):
             key = serializers.ChoiceField(choices=TargetLevel.get_choices())
-            value = serializers.ListSerializer(child=serializers.CharField(), allow_empty=False)
+            value = serializers.ListSerializer(child=serializers.CharField(), allow_empty=True)
 
         level = serializers.ChoiceField(choices=TargetLevel.get_choices())
         rule = TargetRuleSerializer()
@@ -126,7 +160,7 @@ class MonitorPolicyUpdateSerializer(AuditedSerializer, serializers.ModelSerializ
     notify_rules = serializers.ListField(
         child=serializers.ChoiceField(choices=NoticeSignalEnum.get_choices()), allow_empty=False
     )
-    notify_groups = serializers.ListField(child=serializers.IntegerField(), allow_empty=False)
+    notify_groups = serializers.ListField(child=serializers.IntegerField(), allow_empty=True)
 
     class Meta:
         model = MonitorPolicy
@@ -156,4 +190,12 @@ class MonitorPolicyCloneSerializer(MonitorPolicyUpdateSerializer):
 
 
 class MonitorPolicyEmptySerializer(serializers.Serializer):
+    pass
+
+
+class ListClusterSerializer(serializers.Serializer):
+    dbtype = serializers.ChoiceField(help_text=_("数据库类型"), choices=DBType.get_choices())
+
+
+class ListModuleSerializer(ListClusterSerializer):
     pass

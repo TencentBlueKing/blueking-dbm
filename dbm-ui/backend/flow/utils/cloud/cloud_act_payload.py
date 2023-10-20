@@ -8,20 +8,28 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import base64
+import json
 
 from django.utils.translation import ugettext as _
 
 from backend import env
+from backend.components import DBConfigApi
+from backend.components.dbconfig.constants import FormatType, LevelName
 from backend.configuration.models import SystemSettings
 from backend.core.encrypt.constants import RSAConfigType
 from backend.core.encrypt.handlers import RSAHandler
-from backend.db_proxy.constants import NGINX_PUSH_TARGET_PATH, ExtensionType
+from backend.db_proxy.constants import NGINX_PUSH_TARGET_PATH, ExtensionServiceStatus
+from backend.db_proxy.models import DBExtension
 from backend.flow.consts import (
     CLOUD_NGINX_DBM_DEFAULT_PORT,
     CLOUD_NGINX_MANAGE_DEFAULT_HOST,
     CloudDBHATypeEnum,
     CloudServiceConfFileEnum,
     CloudServiceName,
+    ConfigFileEnum,
+    ConfigTypeEnum,
+    NameSpaceEnum,
 )
 from backend.flow.engine.exceptions import ServiceDoesNotApply
 
@@ -113,6 +121,7 @@ class CloudServiceActPayload(object):
             "city": self.kwargs["exec_ip"]["bk_city_code"],
             "campus": self.kwargs["exec_ip"]["bk_city_name"],
             "nginx_domain": self.kwargs["nginx_internal_domain"],
+            "name_service_domain": self.kwargs["name_service_domain"],
             "dbha_user": self.kwargs["plain_user"],
             "dbha_password": self.kwargs["plain_pwd"],
             "mysql_crond_metrics_data_id": bkm_dbm_report["metric"]["data_id"],
@@ -153,3 +162,66 @@ class CloudServiceActPayload(object):
 
     def privilege_flush_payload(self):
         return {"access_hosts": self.kwargs["access_hosts"], "user": self.kwargs["user"], "pwd": self.kwargs["pwd"]}
+
+    def __get_redis_os_user_info(self):
+        data = DBConfigApi.query_conf_item(
+            params={
+                "bk_biz_id": "3",
+                "level_name": LevelName.APP,
+                "level_value": "3",
+                "conf_file": ConfigFileEnum.OS,
+                "conf_type": ConfigTypeEnum.OSConf,
+                "namespace": NameSpaceEnum.Common,
+                "format": FormatType.MAP,
+            }
+        )
+        return {
+            "system_user": data["content"]["user"],
+            "system_password": data["content"]["user_pwd"],
+        }
+
+    @staticmethod
+    def get_cloud_nginx_url(bk_cloud_id: int):
+        nginx = DBExtension.objects.filter(
+            bk_cloud_id=bk_cloud_id, extension=CloudServiceName.Nginx, status=ExtensionServiceStatus.RUNNING
+        ).last()
+        if not nginx:
+            raise ServiceDoesNotApply(_("Nginx服务未部署,请在Nginx服务部署后再进行该服务的部署"))
+        return "http://{}".format(nginx.details["ip"])
+
+    @staticmethod
+    def get_dns_nameservers(bk_cloud_id):
+        dns_rows = DBExtension.get_extension_in_cloud(bk_cloud_id=bk_cloud_id, extension_type=CloudServiceName.DNS)
+        if not dns_rows:
+            raise ServiceDoesNotApply(_("DNS服务未部署,请在DNS服务部署后再进行该服务的部署"))
+        dns_nameservers = ["nameserver {}".format(dns.details["ip"]) for dns in dns_rows]
+        return "\n".join(dns_nameservers)
+
+    def get_redis_dts_server_apply_payload(self):
+        nginx_url = self.get_cloud_nginx_url(self.cloud_id)
+        dns_servers = self.get_dns_nameservers(self.cloud_id)
+        cloud_token = self.__generate_service_token(service_type=CloudServiceName.RedisDTS.value)
+        redis_os_info = self.__get_redis_os_user_info()
+        paylod_obj = {
+            "user": redis_os_info["system_user"],
+            "password": redis_os_info["system_password"],
+        }
+        paylod_json = json.dumps(paylod_obj)
+        payload_base64 = str(base64.b64encode(paylod_json.encode("utf-8")), "utf-8")
+        return {
+            "bk_dbm_nginx_url": nginx_url,
+            "bk_dbm_cloud_id": self.cloud_id,
+            "bk_dbm_cloud_token": cloud_token,
+            "system_user": redis_os_info["system_user"],
+            "system_password": redis_os_info["system_password"],
+            "city_name": self.kwargs["exec_ip"]["bk_city_name"],
+            "warning_msg_notifiers": "xxxxx",
+            "sys_init_paylod": payload_base64,
+            "dns_servers": dns_servers,
+        }
+
+    def get_redis_dts_server_reduce_payload(self):
+        dns_servers = self.get_dns_nameservers(self.cloud_id)
+        return {
+            "dns_servers": dns_servers,
+        }

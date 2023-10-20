@@ -60,7 +60,7 @@
           </div>
         </template>
         <template #main>
-          <div style="height: 490px;">
+          <div style="height: 574px;">
             <RenderTopoHost
               :cluster-id="selectClusterId"
               :last-values="lastValues"
@@ -141,7 +141,7 @@
         },
       ],
     }).then((data) => {
-      const formatData = data.map((item: any) => ({ ...item, count: item.instance_count }));
+      const formatData = data.map((item: any) => ({ ...item, count: item.remote_db.length }));
       treeData.value = [
         {
           name: currentBizInfo?.display_name || '--',

@@ -45,6 +45,7 @@
     isAnomalies: false,
     isSearching: false,
   });
+
   const emits = defineEmits<Emits>();
 
   const handleRefresh = () => emits('refresh');

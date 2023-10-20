@@ -60,3 +60,14 @@ Create the name of the service account to use
 {{- default "default" .Values.serviceAccount.name }}
 {{- end }}
 {{- end }}
+
+{{/*
+k8sWaitFor Image
+*/}}
+{{- define "dbpartition.k8sWaitFor.image" -}}
+{{- if and .Values.global .Values.global.imageRegistry -}}
+  {{- include "common.images.image" (dict "imageRoot" .Values.image.k8sWaitFor "global" .Values.global) -}}
+{{- else -}}
+  {{- include "dbm.migration.image" (dict "image" .Values.image.k8sWaitFor "imageRoot" .Values.image) -}}
+{{- end -}}
+{{- end -}}

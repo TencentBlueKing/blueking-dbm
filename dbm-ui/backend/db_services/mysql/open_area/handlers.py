@@ -32,7 +32,7 @@ class OpenAreaHandler:
 
     @classmethod
     def openarea_result_preview(
-        cls, config_id: int, config_data: List[Dict[str, Union[int, str, Dict]]]
+        cls, operator: str, config_id: int, config_data: List[Dict[str, Union[int, str, Dict]]]
     ) -> Dict[str, List[Dict[str, Any]]]:
         config = TendbOpenAreaConfig.objects.get(id=config_id)
         clusters = Cluster.objects.filter(id__in=[info["cluster_id"] for info in config_data])
@@ -73,10 +73,14 @@ class OpenAreaHandler:
         # 根据当前的规则生成授权数据
         authorize_details: List[Dict[str, Any]] = [
             {
+                "bk_biz_id": config.bk_biz_id,
+                "operator": operator,
                 "user": user,
                 "source_ips": data["authorize_ips"],
                 "target_instances": [cluster_id__cluster[data["cluster_id"]].immute_domain],
-                "dbname": user__dbs_rules[user],
+                "account_rules": [
+                    {"bk_biz_id": config.bk_biz_id, "dbname": dbname} for dbname in user__dbs_rules[user]
+                ],
                 "cluster_type": cluster_type,
             }
             for data in config_data

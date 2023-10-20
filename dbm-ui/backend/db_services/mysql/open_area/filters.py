@@ -18,6 +18,7 @@ from backend.db_services.mysql.open_area.models import TendbOpenAreaConfig
 
 class TendbOpenAreaConfigListFilter(filters.FilterSet):
     config_name = filters.CharFilter(field_name="config_name", lookup_expr="icontains", label=_("模板名称"))
+    bk_biz_id = filters.NumberFilter(field_name="bk_biz_id", label=_("业务ID"))
 
     class Meta:
         model = TendbOpenAreaConfig

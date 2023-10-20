@@ -74,21 +74,10 @@ CreateTableRule:
     item: 1
     desc: "建议包含主键"
   DefinerRule:
-    expr: " Val in Item "
-    desc: "不允许指定definer"
+    expr: " Val not in Item "
+    desc: "definer必须指定用户"
     ban: true
-    item:
-      [
-        "create_function",
-        "create_trigger",
-        "create_event",
-        "create_procedure",
-        "create_view",
-      ]
-  NormalizedName:
-    expr: " Val in Item "
-    desc: "规范化命名"
-    item: ["first_char_exception", "special_char", "Keyword_exception"]
+    item: ["ADMIN@localhost"]
 
 AlterTableRule:
   HighRiskType:
@@ -111,6 +100,6 @@ AlterTableRule:
 
 DmlRule:
   DmlNotHasWhere:
-    #  expr: ' Val != Item '
+    expr: " Val != Item "
     item: true
     desc: "没有使用WHERE或者LIMIT,可能会导致全表数据更改"

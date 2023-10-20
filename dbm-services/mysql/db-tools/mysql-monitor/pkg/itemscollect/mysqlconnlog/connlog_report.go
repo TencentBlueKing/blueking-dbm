@@ -10,6 +10,7 @@ package mysqlconnlog
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"log/slog"
@@ -22,6 +23,7 @@ import (
 
 	"github.com/jmoiron/sqlx"
 	"github.com/juju/ratelimit"
+	"github.com/pkg/errors"
 )
 
 type connRecord struct {
@@ -47,6 +49,24 @@ func mysqlConnLogReport(db *sqlx.DB) (string, error) {
 	if err != nil {
 		slog.Error("connlog report get conn from db", slog.String("error", err.Error()))
 		return "", err
+	}
+	defer func() {
+		_ = conn.Close()
+	}()
+
+	var _r interface{}
+	err = conn.GetContext(ctx, &_r,
+		`SELECT 1 FROM INFORMATION_SCHEMA.TABLES 
+					WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? AND TABLE_TYPE='BASE TABLE'`,
+		cst.DBASchema, "conn_log_old")
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			slog.Info("conn_log_old not found, skip report")
+			return "", nil
+		} else {
+			slog.Error("check conn_log_old exists", slog.String("error", err.Error()))
+			return "", err
+		}
 	}
 
 	// report 会把 old 表删掉, 所以也要禁用 binlog 防止从 master 到 slave

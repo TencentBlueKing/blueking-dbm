@@ -25,7 +25,10 @@
           v-model:biz-id="formdata.bk_biz_id"
           @change-biz="handleChangeBiz" />
         <ClusterName v-model="formdata.details.cluster_name" />
-        <ClusterAlias v-model="formdata.details.cluster_alias" />
+        <ClusterAlias
+          v-model="formdata.details.cluster_alias"
+          :biz-id="formdata.bk_biz_id"
+          cluster-type="pulsar" />
         <CloudItem
           v-model="formdata.details.bk_cloud_id"
           @change="handleChangeCloud" />

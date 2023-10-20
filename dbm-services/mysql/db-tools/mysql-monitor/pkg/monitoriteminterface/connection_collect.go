@@ -51,7 +51,7 @@ func (c *ConnectionCollect) Close() {
 // NewConnectionCollect 新建连接
 func NewConnectionCollect() (*ConnectionCollect, error) {
 	switch config.MonitorConfig.MachineType {
-	case "backend", "remote":
+	case "backend", "remote", "single":
 		db, err := connectDB(
 			config.MonitorConfig.Ip,
 			config.MonitorConfig.Port,

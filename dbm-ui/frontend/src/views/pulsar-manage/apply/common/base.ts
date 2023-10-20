@@ -18,7 +18,7 @@ import type { HostDetails } from '@services/types/ip';
  * @returns formdata
  */
 export const getInitFormdata = () => ({
-  bk_biz_id: '',
+  bk_biz_id: '' as number|'',
   remark: '',
   ticket_type: 'PULSAR_APPLY',
   details: {

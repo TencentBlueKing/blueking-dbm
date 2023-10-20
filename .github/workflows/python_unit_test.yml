@@ -44,6 +44,7 @@ jobs:
         source ./dbm-ui/scripts/ci/env.sh
         export DBA_APP_BK_BIZ_ID=0
         export DB_PASSWORD=root
+        export REPORT_DB_PASSWORD=root
         export REDIS_HOST="localhost"
         export REDIS_PORT=6379
         export BROKER_URL="redis://localhost:6379/0"

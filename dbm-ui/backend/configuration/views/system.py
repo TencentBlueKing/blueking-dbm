@@ -18,15 +18,17 @@ from backend.bk_web import viewsets
 from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.components import domains
 from backend.configuration.constants import DISK_CLASSES, SystemSettingsEnum
-from backend.iam_app.handlers.drf_perm import RejectPermission
 from backend.configuration.models.system import BizSettings, SystemSettings
 from backend.configuration.serializers import (
     BizSettingsSerializer,
     ListBizSettingsResponseSerializer,
     ListBizSettingsSerializer,
     UpdateBizSettingsSerializer,
+    UpdateDutyNoticeSerializer,
 )
-from backend.iam_app.handlers.drf_perm import DBManageIAMPermission
+from backend.db_services.ipchooser.constants import IDLE_HOST_MODULE
+from backend.flow.utils.cc_manage import CcManage
+from backend.iam_app.handlers.drf_perm import DBManageIAMPermission, RejectPermission
 
 tags = [_("系统设置")]
 
@@ -57,6 +59,25 @@ class SystemSettingsViewSet(viewsets.SystemViewSet):
     def device_classes(self, request, *args, **kwargs):
         return Response(SystemSettings.get_setting_value(SystemSettingsEnum.DEVICE_CLASSES.value, default=[]))
 
+    @common_swagger_auto_schema(
+        operation_summary=_("查询轮值通知配置"),
+        tags=tags,
+    )
+    @action(methods=["GET"], detail=False, pagination_class=None)
+    def duty_notice_config(self, request, *args, **kwargs):
+        return Response(SystemSettings.get_setting_value(SystemSettingsEnum.BKM_DUTY_NOTICE.value, default={}))
+
+    @common_swagger_auto_schema(
+        operation_summary=_("更新轮值通知配置"),
+        tags=tags,
+        request_body=UpdateDutyNoticeSerializer(),
+    )
+    @action(methods=["POST"], detail=False, pagination_class=None, serializer_class=UpdateDutyNoticeSerializer)
+    def update_duty_notice_config(self, request, *args, **kwargs):
+        """"""
+        SystemSettings.insert_setting_value(SystemSettingsEnum.BKM_DUTY_NOTICE.value, self.validated_data, "dict")
+        return Response(SystemSettings.get_setting_value(SystemSettingsEnum.BKM_DUTY_NOTICE.value, default={}))
+
     @common_swagger_auto_schema(operation_summary=_("查询环境变量"), tags=tags)
     @action(detail=False, methods=["get"])
     def environ(self, request):
@@ -69,6 +90,11 @@ class SystemSettingsViewSet(viewsets.SystemViewSet):
                 "BK_NODEMAN_URL": env.BK_NODEMAN_URL,
                 "BK_SCR_URL": env.BK_SCR_URL,
                 "BK_HELPER_URL": env.BK_HELPER_URL,
+                "BK_DBM_URL": env.BK_SAAS_HOST,
+                "CC_IDLE_MODULE_ID": CcManage(env.DBA_APP_BK_BIZ_ID).get_biz_internal_module(env.DBA_APP_BK_BIZ_ID)[
+                    IDLE_HOST_MODULE
+                ]["bk_module_id"],
+                "CC_MANAGE_TOPO": SystemSettings.get_setting_value(key=SystemSettingsEnum.MANAGE_TOPO.value),
             }
         )
 
@@ -83,7 +109,7 @@ class SystemSettingsViewSet(viewsets.SystemViewSet):
                 "MONITOR_EVENT_DATA_ID": dbm_report["event"]["data_id"],
                 "MONITOR_METRIC_ACCESS_TOKEN": dbm_report["metric"]["token"],
                 "MONITOR_EVENT_ACCESS_TOKEN": dbm_report["event"]["token"],
-                "MONITOR_SERVICE": domains.BKMONITORV3_APIGW_DOMAIN,
+                "MONITOR_SERVICE": dbm_report["proxy"],
             }
         )
 

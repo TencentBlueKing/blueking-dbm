@@ -44,7 +44,7 @@ class TargetLevel(str, StructuredEnum):
     """
 
     PLATFORM = EnumField("platform", _("platform"))
-    APP = EnumField("app_id", _("app id"))
+    APP = EnumField("appid", _("app id"))
     MODULE = EnumField("db_module", _("db module"))
     CLUSTER = EnumField("cluster_domain", _("cluster domain"))
     CUSTOM = EnumField("custom", _("custom"))
@@ -82,7 +82,7 @@ class OperatorEnum(str, StructuredEnum):
     EQ = EnumField("eq", _("等于"))
     NEQ = EnumField("neq", _("不等于"))
     LT = EnumField("lt", _("小于"))
-    GT = EnumField("lt", _("大于"))
+    GT = EnumField("gt", _("大于"))
     LTE = EnumField("lte", _("小于等于"))
     GTE = EnumField("gte", _("大于等于"))
 
@@ -95,28 +95,47 @@ class AlertLevelEnum(int, StructuredEnum):
     LOW = EnumField(3, _("提醒"))
 
 
+class AlertSourceEnum(str, StructuredEnum):
+    """告警数据来源"""
+
+    TIME_SERIES = EnumField("time_series", _("时序数据"))
+    EVENT = EnumField("event", _("事件数据"))
+    LOG = EnumField("log", _("日志关键字"))
+
+
 class DetectAlgEnum(str, StructuredEnum):
     """检测算法"""
 
     THRESHOLD = EnumField("Threshold", _("阈值检测"))
 
 
+class NoticeWayEnum(str, StructuredEnum):
+    """通知方式"""
+
+    BY_RULE = EnumField("by_rule", _("基于分派规则通知"))
+    ONLY_NOTICE = EnumField("only_notice", _("基于告警组直接通知"))
+
+
+# 非ui方式监控策略模板占位符
+PROMQL_FILTER_TPL = "__COND__"
+
 # 蓝鲸监控保存用户组模板
+DEFAULT_ALERT_NOTICE = [
+    {
+        "time_range": "00:00:00--23:59:00",
+        "notify_config": [
+            {"notice_ways": [{"name": "mail"}], "level": 3},
+            {"notice_ways": [{"name": "mail"}], "level": 2},
+            {"notice_ways": [{"name": "mail"}], "level": 1},
+        ],
+    }
+]
 BK_MONITOR_SAVE_USER_GROUP_TEMPLATE = {
     "name": "",
     "desc": "",
     "need_duty": False,
     "duty_arranges": [{"duty_type": "always", "work_time": "always", "users": []}],
-    "alert_notice": [
-        {
-            "time_range": "00:00:00--23:59:00",
-            "notify_config": [
-                {"level": 3, "notice_ways": [{"name": "mail"}]},
-                {"level": 2, "notice_ways": [{"name": "mail"}]},
-                {"level": 1, "notice_ways": [{"name": "mail"}]},
-            ],
-        }
-    ],
+    "alert_notice": DEFAULT_ALERT_NOTICE,
     "action_notice": [
         {
             "time_range": "00:00:00--23:59:00",
@@ -130,3 +149,37 @@ BK_MONITOR_SAVE_USER_GROUP_TEMPLATE = {
     "channels": ["user"],
     "bk_biz_id": 0,
 }
+
+# 分派优先级定义
+PLAT_PRIORITY = 100
+APP_PRIORITY = 1000
+
+# 分派规则模板
+BK_MONITOR_SAVE_DISPATCH_GROUP_TEMPLATE = {
+    "id": 0,
+    "bk_biz_id": 0,
+    "priority": PLAT_PRIORITY,
+    "name": _("平台级分派给业务"),
+    "rules": [
+        {
+            "id": 2,
+            "user_groups": [],
+            "conditions": [
+                {"field": "alert.strategy_id", "value": ["95"], "method": "eq", "condition": "and"},
+                {"field": "appid", "value": ["1", "2", "3"], "method": "eq", "condition": "and"},
+            ],
+            "actions": [
+                {
+                    "action_type": "notice",
+                    "is_enabled": True,
+                    "upgrade_config": {"is_enabled": False, "user_groups": [], "upgrade_interval": 0},
+                }
+            ],
+            "alert_severity": 0,
+            "additional_tags": [],
+            "is_enabled": True,
+        },
+    ],
+}
+
+MONITOR_EVENTS = "monitor_events"

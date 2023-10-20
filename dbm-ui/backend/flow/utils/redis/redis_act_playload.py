@@ -47,6 +47,7 @@ from backend.flow.consts import (
     NameSpaceEnum,
     RedisActuatorActionEnum,
 )
+from backend.flow.utils.redis.redis_util import get_latest_redis_package_by_version
 from backend.ticket.constants import TicketType
 
 logger = logging.getLogger("flow")
@@ -191,7 +192,8 @@ class RedisActPayload(object):
         )
         return data
 
-    def redis_conf_names_by_cluster_type(self, cluster_type: str) -> list:
+    @staticmethod
+    def redis_conf_names_by_cluster_type(cluster_type: str) -> list:
         conf_names: list = ["requirepass"]
         if is_redis_instance_type(cluster_type) or is_tendisplus_instance_type(cluster_type):
             conf_names.append("cluster-enabled")
@@ -360,7 +362,7 @@ class RedisActPayload(object):
 
     def dts_swap_proxy_config_version(self, clusterMap: dict) -> Any:
         """
-        交换源集群和目标集群 dbconfig 中的proxy版本信息,有可能 twemproxy集群 切换到 predixy集群 s
+        交换源集群和目标集群 dbconfig 中的proxy版本信息,有可能 twemproxy集群 切换到 predixy集群
         """
         proxy_conf_names = ["password", "redis_password", "port"]
         logger.info(_("交换源集群和目标集群 dbconfig 中的proxy版本信息"))
@@ -760,21 +762,27 @@ class RedisActPayload(object):
         redis清档
         """
         ip = kwargs["ip"]
-        redis_config = self.__get_cluster_config(
-            self.cluster["domain_name"], self.cluster["db_version"], ConfigTypeEnum.DBConf
-        )
+        params = kwargs["params"]
+        domain_name = params.get("domain_name", self.cluster["domain_name"])
+        db_version = params.get("db_version", self.cluster["db_version"])
+        cluster_type = params.get("cluster_type", self.cluster["cluster_type"])
+        ports = params.get("ports", self.cluster[ip])
+        force = params.get("force", self.cluster["force"])
+        db_list = params.get("db_list", self.cluster["db_list"])
+        flushall = params.get("flushall", self.cluster["flushall"])
 
+        redis_config = self.__get_cluster_config(domain_name, db_version, ConfigTypeEnum.DBConf)
         return {
             "db_type": DBActuatorTypeEnum.Redis.value,
             "action": DBActuatorTypeEnum.Redis.value + "_" + RedisActuatorActionEnum.FlushData.value,
             "payload": {
                 "ip": ip,
-                "db_type": self.cluster["cluster_type"],
-                "ports": self.cluster[ip],
-                "is_force": self.cluster["force"],
+                "db_type": cluster_type,
+                "ports": ports,
+                "is_force": force,
                 "password": redis_config["requirepass"],
-                "db_list": self.cluster["db_list"],
-                "is_flush_all": self.cluster["flushall"],
+                "db_list": db_list,
+                "is_flush_all": flushall,
             },
         }
 
@@ -845,6 +853,7 @@ class RedisActPayload(object):
             "payload": {
                 "bkdbmonpkg": {"pkg": bkdbmon_pkg.name, "pkg_md5": bkdbmon_pkg.md5},
                 "dbtoolspkg": {"pkg": self.tools_pkg.name, "pkg_md5": self.tools_pkg.md5},
+                "agent_address": env.MYSQL_CROND_AGENT_ADDRESS,
                 "gsepath": DirEnum.GSE_DIR,
                 "redis_fullbackup": fullbackup_config,
                 "redis_binlogbackup": binlogbackup_config,
@@ -1207,12 +1216,14 @@ class RedisActPayload(object):
                 "src_proxy_port": int(params["src_proxy_port"]),
                 "src_proxy_password": params["src_proxy_password"],
                 "src_cluster_type": params["src_cluster_type"],
+                "src_cluster_name": params["src_cluster_name"],
                 "dst_proxy_ip": dst_proxy_ip,
                 "dst_proxy_port": int(params["dst_proxy_port"]),
                 "dst_proxy_password": params["dst_proxy_password"],
                 "dst_cluster_type": params["dst_cluster_type"],
                 "dst_redis_ip": params["dst_redis_ip"],
                 "dst_redis_port": int(params["dst_redis_port"]),
+                "dst_cluster_name": params["dst_cluster_name"],
                 "dst_proxy_config_content": dst_proxy_config_data,
             },
         }
@@ -1258,12 +1269,14 @@ class RedisActPayload(object):
                 "src_proxy_port": int(params["src_proxy_port"]),
                 "src_proxy_password": params["src_proxy_password"],
                 "src_cluster_type": params["src_cluster_type"],
+                "src_cluster_name": params["src_cluster_name"],
                 "dst_proxy_ip": dst_proxy_ip,
                 "dst_proxy_port": int(params["dst_proxy_port"]),
                 "dst_proxy_password": params["dst_proxy_password"],
                 "dst_cluster_type": params["dst_cluster_type"],
                 "dst_redis_ip": params["dst_redis_ip"],
                 "dst_redis_port": int(params["dst_redis_port"]),
+                "dst_cluster_name": params["dst_cluster_name"],
                 "dst_proxy_config_content": src_proxy_config_data,
             },
         }
@@ -1341,10 +1354,9 @@ class RedisActPayload(object):
 
     def redis_data_structure(self, **kwargs) -> dict:
         """
-        redis 数据构造
+        redis 数据构造 新备份系统
         """
         params = kwargs["params"]
-        print("params", params)
         return {
             "db_type": DBActuatorTypeEnum.Redis.value,
             "action": DBActuatorTypeEnum.Redis.value + "_" + RedisActuatorActionEnum.DATA_STRUCTURE.value,
@@ -1354,15 +1366,10 @@ class RedisActPayload(object):
                 "new_temp_ip": params["data_params"]["new_temp_ip"],
                 "new_temp_ports": params["data_params"]["new_temp_ports"],
                 "recovery_time_point": params["data_params"]["recovery_time_point"],
-                "is_precheck": params["data_params"]["is_precheck"],
                 "tendis_type": params["data_params"]["tendis_type"],
-                "user": self.account["user"],
-                "password": self.account["user_pwd"],
-                "base_info": {
-                    "url": env.IBS_INFO_URL,
-                    "sys_id": env.IBS_INFO_SYSID,
-                    "key": env.IBS_INFO_KEY,
-                },
+                "dest_dir": params["data_params"]["dest_dir"],
+                "full_file_list": params["data_params"]["full_file_list"],
+                "binlog_file_list": params["data_params"]["binlog_file_list"],
             },
         }
 
@@ -1492,5 +1499,108 @@ class RedisActPayload(object):
                     "redis_master_set": cluster_info["redis_master_set"],
                 },
                 "forget_list": params["forget_instances"],
+            },
+        }
+
+    # redis 原地升级
+    def redis_cluster_version_update_online_payload(self, **kwargs) -> dict:
+        params = kwargs["params"]
+        db_version = params["target_version"]
+        redis_pkg = get_latest_redis_package_by_version(db_version)
+        return {
+            "db_type": DBActuatorTypeEnum.Redis.value,
+            "action": DBActuatorTypeEnum.Redis.value + "_" + RedisActuatorActionEnum.VERSION_UPDATE.value,
+            "payload": {
+                "pkg": redis_pkg.name,
+                "pkg_md5": redis_pkg.md5,
+                "ip": params["ip"],
+                "ports": params["ports"],
+                "password": params["password"],
+                "role": params["role"],
+            },
+        }
+
+    # redis 原地升级更新dbconfig
+    def redis_cluster_version_update_dbconfig(self, cluster_map: dict):
+        # 如果版本没变化，不需要更新
+        if cluster_map["current_version"] == cluster_map["target_version"]:
+            return
+        src_resp = DBConfigApi.query_conf_item(
+            params={
+                "bk_biz_id": str(cluster_map["bk_biz_id"]),
+                "level_name": LevelName.CLUSTER,
+                "level_value": cluster_map["cluster_domain"],
+                "level_info": {"module": str(DEFAULT_DB_MODULE_ID)},
+                "conf_file": cluster_map["current_version"],
+                "conf_type": ConfigTypeEnum.DBConf,
+                "namespace": cluster_map["cluster_type"],
+                "format": FormatType.MAP,
+            }
+        )
+        conf_names = self.redis_conf_names_by_cluster_type(cluster_map["cluster_type"])
+        conf_items = []
+        for conf_name in conf_names:
+            if conf_name in src_resp["content"]:
+                conf_items.append(
+                    {"conf_name": conf_name, "conf_value": src_resp["content"][conf_name], "op_type": OpType.UPDATE}
+                )
+        remove_items = [{"conf_name": conf_name, "op_type": OpType.REMOVE} for conf_name in conf_names]
+        upsert_param = {
+            "conf_file_info": {
+                "conf_file": "",  # 需要替换成真实值
+                "conf_type": ConfigTypeEnum.DBConf,
+                "namespace": "",  # 需要替换成真实值
+            },
+            "conf_items": [],  # 需要替换成真实值
+            "level_info": {"module": str(DEFAULT_DB_MODULE_ID)},
+            "confirm": DEFAULT_CONFIG_CONFIRM,
+            "req_type": ReqType.SAVE_AND_PUBLISH,
+            "bk_biz_id": str(cluster_map["bk_biz_id"]),
+            "level_name": LevelName.CLUSTER,
+            "level_value": "",  # 需要替换成真实值
+        }
+        # 先删除
+        upsert_param["conf_file_info"]["namespace"] = cluster_map["cluster_type"]
+        upsert_param["conf_file_info"]["conf_file"] = cluster_map["current_version"]
+        upsert_param["conf_items"] = remove_items
+        upsert_param["level_value"] = cluster_map["cluster_domain"]
+        logger.info(_("删除集群:{} redis配置,upsert_param:{}".format(cluster_map["cluster_domain"], upsert_param)))
+        DBConfigApi.upsert_conf_item(upsert_param)
+
+        # 再写入
+        upsert_param["conf_file_info"]["namespace"] = cluster_map["cluster_type"]
+        upsert_param["conf_file_info"]["conf_file"] = cluster_map["target_version"]
+        upsert_param["conf_items"] = conf_items
+        upsert_param["level_value"] = cluster_map["cluster_domain"]
+        logger.info(_("更新集群:{} redis配置 为 目标集群的配置,upsert_param:{}".format(cluster_map["cluster_domain"], upsert_param)))
+        DBConfigApi.upsert_conf_item(upsert_param)
+
+    # redis cluster failover
+    def redis_cluster_failover(self, **kwargs) -> dict:
+        """
+        params:
+        {
+            "redis_password":"xxxx",
+            "redis_master_slave_pairs":[
+                {
+                    "master": {"ip":"a.a.a.a","port":"30000"},
+                    "slave": {"ip":"b.b.b.b","port":"30000"}
+                },
+                {
+                    "master": {"ip":"a.a.a.a","port":"30001"},
+                    "slave": {"ip":"b.b.b.b","port":"30001"}
+                }
+            ],
+            "force":false
+        }
+        """
+        params = kwargs["params"]
+        return {
+            "db_type": DBActuatorTypeEnum.Redis.value,
+            "action": DBActuatorTypeEnum.Redis.value + "_" + RedisActuatorActionEnum.CLUSTER_FAILOVER.value,
+            "payload": {
+                "redis_password": params["redis_password"],
+                "redis_master_slave_pairs": params["redis_master_slave_pairs"],
+                "force": False,
             },
         }

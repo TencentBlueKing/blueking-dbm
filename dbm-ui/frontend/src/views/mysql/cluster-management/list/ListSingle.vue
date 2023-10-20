@@ -515,6 +515,7 @@
    */
   function fetchResources(isLoading = false) {
     const params = {
+      dbType: DBTypes.MYSQL,
       bk_biz_id: globalBizsStore.currentBizId,
       type: ClusterTypes.TENDBSINGLE,
       ...state.pagination.getFetchParams(),
@@ -522,7 +523,7 @@
     };
     isInit.value = false;
     state.isLoading = isLoading;
-    return getResources<ResourceItem>(DBTypes.MYSQL, params)
+    return getResources<ResourceItem>(params)
       .then((res) => {
         state.pagination.count = res.count;
         state.data = res.results;

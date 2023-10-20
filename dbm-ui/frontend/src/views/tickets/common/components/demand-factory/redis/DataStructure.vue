@@ -60,15 +60,18 @@
     {
       label: t('待构造的集群'),
       field: 'clusterName',
+      showOverflowTooltip: true,
     },
     {
       label: t('待构造的实例'),
       field: 'instances',
+      showOverflowTooltip: true,
       render: ({ data }: {data: RowData}) => <span>{data.instances.join(',')}</span>,
     },
     {
       label: t('规格需求'),
       field: 'sepc',
+      showOverflowTooltip: true,
       render: ({ data }: {data: RowData}) => <span>{data.sepc.name}</span>,
     },
     {
@@ -78,6 +81,7 @@
     {
       label: t('构造到指定时间'),
       field: 'time',
+      showOverflowTooltip: true,
     },
   ];
 

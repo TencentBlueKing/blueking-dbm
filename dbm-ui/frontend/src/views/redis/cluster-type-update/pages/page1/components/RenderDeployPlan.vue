@@ -31,24 +31,28 @@
     </Teleport>
   </BkLoading>
 </template>
-<script lang="ts">
-  export interface ExposeValue {
-    spec_id: number,
-    count: number,
-    target_shard_num: number,
-  }
-</script>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
   import { RedisClusterTypes } from '@services/model/redis/redis';
-  import type { FilterClusterSpecItem } from '@services/resourceSpec';
+  import RedisClusterSpecModel from '@services/model/resource-spec/redis-cluster-sepc';
 
   import DisableSelect from '@components/tools-select-disable/index.vue';
 
-  import ChooseClusterTargetPlan, { type Props as TargetPlanProps } from '@views/redis/common/cluster-deploy-plan/Index.vue';
+  import ChooseClusterTargetPlan, {
+    type CapacityNeed,
+    type Props as TargetPlanProps,
+  } from '@views/redis/common/cluster-deploy-plan/Index.vue';
 
   import type { IDataRow } from './Row.vue';
+
+  export interface ExposeValue {
+    spec_id: number,
+    count: number,
+    target_shard_num: number,
+    capacity: number,
+    future_capacity: number,
+  }
 
   interface Props {
     rowData: IDataRow;
@@ -78,6 +82,8 @@
     spec_id: 0,
     count: 0,
     target_shard_num: 0,
+    capacity: 0,
+    future_capacity: 0,
   });
 
   const rules = [
@@ -85,19 +91,17 @@
       validator: (value: string) => Boolean(value),
       message: t('请选择目标容量'),
     },
-    {
-      validator: () => props.rowData.currentShardNum !== localValue.value.target_shard_num,
-      message: t('目标分片数不能与当前分片数相同'),
-    },
   ];
 
   // 从侧边窗点击确认后触发
-  const handleChoosedTargetCapacity = (choosedObj: FilterClusterSpecItem) => {
+  const handleChoosedTargetCapacity = (choosedObj: RedisClusterSpecModel, capacity: CapacityNeed) => {
     displayText.value = `${choosedObj.cluster_capacity}G_${choosedObj.qps.min}/s（${choosedObj.cluster_shard_num} 分片）`;
     localValue.value = {
       spec_id: choosedObj.spec_id,
       count: choosedObj.machine_pair,
       target_shard_num: choosedObj.cluster_shard_num,
+      capacity: capacity.current,
+      future_capacity: capacity.future,
     };
     showChooseClusterTargetPlan.value = false;
   };

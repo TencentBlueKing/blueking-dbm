@@ -16,7 +16,7 @@ from drf_yasg.views import get_schema_view
 from rest_framework import permissions
 
 from backend.bk_web.swagger import BothHttpAndHttpsSchemaGenerator
-from backend.homepage.views import HomeView, LoginSuccessView, LogOutView, VersionView
+from backend.homepage.views import HomeView, LoginSuccessView, LogOutView, VersionView, ping
 
 schema_view = get_schema_view(
     openapi.Info(
@@ -42,7 +42,6 @@ api_patterns = [
     path("packages/", include("backend.db_package.urls")),
     path("version/", include("backend.db_services.version.urls")),
     path("metadata/", include("backend.db_services.meta_import.urls")),
-    path("report/", include("backend.db_services.report.urls")),
     path("mysql/", include("backend.db_services.mysql.urls")),
     path("redis/", include("backend.db_services.redis.urls")),
     path("bigdata/", include("backend.db_services.bigdata.urls")),
@@ -54,6 +53,7 @@ api_patterns = [
     path("monitor/", include("backend.db_monitor.urls")),
     path("event/", include("backend.db_event.urls")),
     path("db_dirty/", include("backend.db_dirty.urls")),
+    path("dbbase/", include("backend.db_services.dbbase.urls")),
 ]
 
 urlpatterns = [
@@ -65,6 +65,7 @@ urlpatterns = [
     path("grafana/", include("backend.bk_dataview.grafana.urls")),
     # 版本日志
     path("version_log/", include("backend.version_log.urls")),
+    path("db_report/", include("backend.db_report.urls")),
 ]
 
 # TODO 正式环境屏蔽swagger访问路径，目前开发测试只使用了 prod
@@ -76,7 +77,8 @@ if getattr(settings, "ENVIRONMENT", "") not in []:
 vue_patterns = [
     path("login_success.html", LoginSuccessView.as_view()),
     path("logout/", LogOutView.as_view()),
-    path("version/", VersionView.as_view()),
+    re_path("^version/?$", VersionView.as_view()),
+    re_path("^ping/?$", ping, name="ping"),
     re_path("", HomeView.as_view()),
 ]
 urlpatterns += vue_patterns

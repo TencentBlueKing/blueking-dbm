@@ -1,41 +1,19 @@
 {
   "bk_biz_id": 0,
-  "name": "Proxy 后端",
+  "name": "Proxy \u540e\u7aef",
   "db_type": "mysql",
   "details": {
     "app": "",
-    "name": "Proxy 后端",
+    "name": "Proxy \u540e\u7aef",
     "path": "",
     "type": "monitor",
     "items": [
       {
         "name": "COUNT(proxy-backend)",
-        "target": [
-          [
-            {
-              "field": "host_topo_node",
-              "value": [
-                {
-                  "bk_obj_id": "set",
-                  "bk_inst_id": 2000008148
-                },
-                {
-                  "bk_obj_id": "set",
-                  "bk_inst_id": 2000008149
-                },
-                {
-                  "bk_obj_id": "set",
-                  "bk_inst_id": 2000008149
-                }
-              ],
-              "method": "eq"
-            }
-          ]
-        ],
+        "target": [],
         "functions": [],
         "algorithms": [
           {
-            "id": 79036,
             "type": "Threshold",
             "level": 1,
             "config": [
@@ -53,25 +31,24 @@
         "origin_sql": "",
         "query_configs": [
           {
-            "id": 78127,
             "name": "proxy-backend",
             "alias": "a",
             "functions": [],
-            "metric_id": "custom.event.{bk_biz_id}_bkmonitor_event_{event_data_id}.proxy-backend",
+            "metric_id": "custom.event.bkmonitor_event_{event_data_id}.proxy-backend",
             "agg_method": "COUNT",
             "agg_interval": 60,
             "agg_condition": [],
             "agg_dimension": [
-              "app_id",
-              "role",
-              "port",
+              "appid",
+              "instance_role",
+              "instance_port",
               "machine_type",
-              "immute_domain",
+              "cluster_domain",
               "bk_cloud_id",
-              "server_ip"
+              "instance_host"
             ],
             "data_type_label": "event",
-            "result_table_id": "{bk_biz_id}_bkmonitor_event_{event_data_id}",
+            "result_table_id": "bkmonitor_event_{event_data_id}",
             "custom_event_name": "proxy-backend",
             "data_source_label": "custom"
           }
@@ -85,8 +62,8 @@
       }
     ],
     "labels": [
-      "DBM_MYSQL",
-      "DBM"
+      "DBM",
+      "DBM_MYSQL"
     ],
     "notice": {
       "config": {
@@ -119,7 +96,6 @@
         "end_time": "23:59:59",
         "start_time": "00:00:00",
         "assign_mode": [
-          "only_notice",
           "by_rule"
         ],
         "converge_config": {
@@ -225,11 +201,9 @@
       },
       "config_id": 72372,
       "relate_type": "NOTICE",
-      "user_groups": [
-        0
-      ]
+      "user_groups": []
     },
-    "source": "bkmonitorv3",
+    "source": "dbm",
     "actions": [],
     "detects": [
       {
@@ -256,8 +230,12 @@
       }
     ],
     "scenario": "other_rt",
-    "bk_biz_id": 100465,
-    "data_source_type": "自定义事件"
+    "bk_biz_id": "",
+    "data_source_type": "\u81ea\u5b9a\u4e49\u4e8b\u4ef6",
+    "priority": 0
   },
-  "is_enabled": true
+  "is_enabled": true,
+  "monitor_indicator": "COUNT(proxy-backend)",
+  "version": 8,
+  "alert_source": "event"
 }

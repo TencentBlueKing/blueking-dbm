@@ -71,7 +71,8 @@
       message: t('源实例不能为空'),
     },
     {
-      validator: () => checkInstances(currentBizId, {
+      validator: () => checkInstances({
+        bizId: currentBizId,
         instance_addresses: [localInstanceAddress.value],
       }).then((data) => {
         if (data.length < 1) {

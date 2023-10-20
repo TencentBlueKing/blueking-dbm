@@ -93,14 +93,17 @@
     {
       label: t('域名'),
       field: 'master_domain',
+      showOverflowTooltip: true,
     },
     {
       label: t('集群'),
       field: 'cluster_name',
+      showOverflowTooltip: true,
     },
     {
       label: t('所属DB模块'),
       field: 'db_module_name',
+      showOverflowTooltip: true,
     },
     {
       label: t('状态'),

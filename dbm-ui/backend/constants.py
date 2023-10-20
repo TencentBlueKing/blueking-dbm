@@ -41,7 +41,7 @@ QUERY_CMDB_LIMIT = 500
 @dataclass
 class CommonInstanceLabels:
     app: str
-    app_id: str
+    appid: str
     app_name: str
     bk_biz_id: str
     bk_cloud_id: str
@@ -52,13 +52,18 @@ class CommonInstanceLabels:
     instance_role: str
     instance_host: str
     instance_port: str
+    db_module: str
 
 
 # 定义添加host的公共固定标签结构
 @dataclass
 class CommonHostDBMeta:
     app: str
-    app_id: str
+    appid: str
     cluster_domain: str
     cluster_type: str
     instance_role: str
+
+
+# 集群状态数据缓存key
+CACHE_CLUSTER_STATS = "cluster_stats"

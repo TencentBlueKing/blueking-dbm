@@ -47,6 +47,16 @@ class DBPackageViewSet(viewsets.AuditedModelViewSet):
         return super().create(request, *args, **kwargs)
 
     @common_swagger_auto_schema(
+        operation_summary=_("新建或者更新版本文件"),
+        tags=[DB_PACKAGE_TAG],
+    )
+    @action(methods=["POST"], detail=False)
+    def update_or_create(self, request, *args, **kwargs):
+        data = self.params_validate(self.get_serializer_class())
+        Package.objects.update_or_create(**data)
+        return Response()
+
+    @common_swagger_auto_schema(
         operation_summary=_("查询版本文件列表"),
         tags=[DB_PACKAGE_TAG],
     )

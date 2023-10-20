@@ -65,9 +65,9 @@ type Task struct {
 // NewBinlogBackupTask new binlog backup task
 func NewBinlogBackupTask(bkBizID string, bkCloudID int64, domain, ip string, port int,
 	password, toBackupSys, backupDir, shardValue string, oldFileLeftDay int,
-	reporter report.Reporter) *Task {
+	reporter report.Reporter) (ret *Task, err error) {
 
-	ret := &Task{
+	ret = &Task{
 		ReportType:     consts.RedisBinlogBackupReportType,
 		BkBizID:        bkBizID,
 		BkCloudID:      bkCloudID,
@@ -82,9 +82,9 @@ func NewBinlogBackupTask(bkBizID string, bkCloudID int64, domain, ip string, por
 		reporter:       reporter,
 		ShardValue:     shardValue,
 	}
-	ret.backupClient = backupsys.NewIBSBackupClient(consts.IBSBackupClient, consts.RedisBinlogTAG)
-	// ret.backupClient, ret.Err = backupsys.NewCosBackupClient(consts.COSBackupClient, "", consts.RedisBinlogTAG)
-	return ret
+	// ret.backupClient = backupsys.NewIBSBackupClient(consts.IBSBackupClient, consts.RedisBinlogTAG)
+	ret.backupClient, err = backupsys.NewCosBackupClient(consts.COSBackupClient, "", consts.RedisBinlogTAG)
+	return ret, err
 }
 
 // Addr string
@@ -390,14 +390,14 @@ func (task *Task) compressAndUpload() {
 // TransferToBackupSystem 备份文件上传到备份系统
 func (task *Task) TransferToBackupSystem() {
 	var msg string
-	cliFileInfo, err := os.Stat(consts.IBSBackupClient)
+	cliFileInfo, err := os.Stat(consts.COSBackupClient)
 	if err != nil {
-		err = fmt.Errorf("os.stat(%s) failed,err:%v", consts.IBSBackupClient, err)
+		err = fmt.Errorf("os.stat(%s) failed,err:%v", consts.COSBackupClient, err)
 		mylog.Logger.Error(err.Error())
 		return
 	}
 	if !util.IsExecOther(cliFileInfo.Mode().Perm()) {
-		err = fmt.Errorf("%s is unable to execute by other", consts.IBSBackupClient)
+		err = fmt.Errorf("%s is unable to execute by other", consts.COSBackupClient)
 		mylog.Logger.Error(err.Error())
 		return
 	}

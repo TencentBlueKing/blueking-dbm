@@ -179,25 +179,53 @@ done <<< "$lines"
 
 # 添加 /etc/resolv.conf
 SERVERS_ADD_RESOLV_CONF = """
-line="{}"
-# skip empty line
-if [[ "$line" =~ ^[[:space:]]*$ ]]; then
-    continue
-fi
-if ! grep -qF "$line" /etc/resolv.conf; then
-    sed -i "1i $line" /etc/resolv.conf
-    echo "Added: $line"
-else
-    echo "Skipped: $line"
-fi
+lines="{}"
+
+while read -r line
+do
+    # skip empty line
+    if [[ "$line" =~ ^[[:space:]]*$ ]]; then
+        continue
+    fi
+    if ! grep -qF "$line" /etc/resolv.conf; then
+        sed -i "1i $line" /etc/resolv.conf
+        echo "Added: $line"
+    else
+        echo "Skipped: $line"
+    fi
+done <<< "$lines"
 """
 
 # 删除 /etc/resolv.conf
 SERVERS_DEL_RESOLV_CONF = """
-line="{}"
-# skip empty line
-if [[ "$line" =~ ^[[:space:]]*$ ]]; then
-    continue
-fi
-sed -i "/$line/d" /etc/resolv.conf
+lines="{}"
+
+while read -r line
+do
+    # skip empty line
+    if [[ "$line" =~ ^[[:space:]]*$ ]]; then
+        continue
+    fi
+    sed -i "/$line/d" /etc/resolv.conf
+done <<< "$lines"
+"""
+
+# 删除 redis config 文件中 slaveof 配置
+REDIS_CONF_DEL_SLAVEOF = """
+source /etc/profile
+ports="{}"
+
+while read -r port
+do
+    # skip empty line
+    if [[ "$line" =~ ^[[:space:]]*$ ]]; then
+        continue
+    fi
+    if [[ ! -e $REDIS_DATA_DIR/redis/$port ]]
+    then
+        echo "$REDIS_DATA_DIR/redis/$port not exist"
+        exit -1
+    fi
+    sed -e '/^slaveof/d' $REDIS_DATA_DIR/redis/$port/*.conf
+done <<< "$ports"
 """

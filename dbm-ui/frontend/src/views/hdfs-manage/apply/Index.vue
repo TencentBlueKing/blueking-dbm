@@ -28,7 +28,10 @@
           v-model:biz-id="formData.bk_biz_id"
           @change-biz="handleChangeBiz" />
         <ClusterName v-model="formData.details.cluster_name" />
-        <ClusterAlias v-model="formData.details.cluster_alias" />
+        <ClusterAlias
+          v-model="formData.details.cluster_alias"
+          :biz-id="formData.bk_biz_id"
+          cluster-type="hdfs" />
         <CloudItem
           v-model="formData.details.bk_cloud_id"
           @change="handleChangeCloud" />

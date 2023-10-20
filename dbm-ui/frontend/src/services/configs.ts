@@ -33,49 +33,49 @@ import type {
 /**
  * 查询平台配置列表
  */
-export const getPlatformConfigList = (params: PlatConfListParams): Promise<ConfigListItem[]> => http.get('/apis/configs/list_platform_configs/', params);
+export const getPlatformConfigList = (params: PlatConfListParams) => http.get<ConfigListItem[]>('/apis/configs/list_platform_configs/', params);
 
 /**
  * 查询平台配置详情
  */
-export const getConfigBaseDetails = (params: PlatConfDetailsParams): Promise<ConfigBaseDetails> => http.get('/apis/configs/get_platform_config/', params);
+export const getConfigBaseDetails = (params: PlatConfDetailsParams) => http.get<ConfigBaseDetails>('/apis/configs/get_platform_config/', params);
 
 /**
  * 编辑平台配置
  */
-export const updatePlatformConfig = (params: PlatConfDetailsUpdateParams): Promise<ConfigSaveResult> => http.post('/apis/configs/upsert_platform_config/', params);
+export const updatePlatformConfig = (params: PlatConfDetailsUpdateParams) => http.post<ConfigSaveResult>('/apis/configs/upsert_platform_config/', params);
 
 /**
  * 查询配置发布历史记录
  */
-export const getConfigVersionList = (params: ConfigVersionParams): Promise<ConfigVersionListResult> => http.get('/apis/configs/list_config_version_history/', params);
+export const getConfigVersionList = (params: ConfigVersionParams) => http.get<ConfigVersionListResult>('/apis/configs/list_config_version_history/', params);
 
 /**
  * 查询配置发布记录详情
  */
-export const getConfigVersionDetails = (params: ConfigVersionParams): Promise<ConfigVersionDetails> => http.get('/apis/configs/get_config_version_detail/', params);
+export const getConfigVersionDetails = (params: ConfigVersionParams) => http.get<ConfigVersionDetails>('/apis/configs/get_config_version_detail/', params);
 
 /**
  * 查询配置项名称列表
  */
-export const getConfigNames = (params: PlatConfDetailsParams): Promise<ParameterConfigItem[]> => http.get('/apis/configs/list_config_names/', params);
+export const getConfigNames = (params: PlatConfDetailsParams) => http.get<ParameterConfigItem[]>('/apis/configs/list_config_names/', params);
 
 /**
  * 获取查询层级（业务、模块、集群）配置详情
  */
-export const getLevelConfig = (params: GetLevelConfigParams): Promise<ConfigBaseDetails> => http.post('/apis/configs/get_level_config/', params);
+export const getLevelConfig = (params: GetLevelConfigParams) => http.post<ConfigBaseDetails>('/apis/configs/get_level_config/', params);
 
 /**
  * 查询业务配置列表
  */
-export const getBusinessConfigList = (params: BizConfListParams): Promise<ConfigListItem[]> => http.get('/apis/configs/list_biz_configs/', params);
+export const getBusinessConfigList = (params: BizConfListParams) => http.get<ConfigListItem[]>('/apis/configs/list_biz_configs/', params);
 
 /**
  * 编辑层级（业务、模块、集群）配置
  */
-export const updateBusinessConfig = (params: BizConfDetailsUpdateParams): Promise<ConfigListItem[]> => http.post('/apis/configs/upsert_level_config/', params);
+export const updateBusinessConfig = (params: BizConfDetailsUpdateParams) => http.post<ConfigListItem[]>('/apis/configs/upsert_level_config/', params);
 
 /**
  * 获取业务拓扑树
  */
-export const getBusinessTopoTree = (params: BizConfTopoTreeParams): Promise<BizConfTopoTreeModel[]> => http.get(`/apis/${params.db_type}/bizs/${params.bk_biz_id}/resource_tree/`, { cluster_type: params.cluster_type });
+export const getBusinessTopoTree = (params: BizConfTopoTreeParams) => http.get<BizConfTopoTreeModel[]>(`/apis/${params.db_type}/bizs/${params.bk_biz_id}/resource_tree/`, { cluster_type: params.cluster_type });

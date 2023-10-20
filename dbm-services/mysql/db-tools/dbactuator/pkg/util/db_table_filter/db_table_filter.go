@@ -203,6 +203,7 @@ func (c *DbTableFilter) getDbsByRegexp(ip string, port int, user string, passwor
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 
 	pattern, err := regexp2.Compile(reg, regexp2.None)
 	if err != nil {
@@ -248,6 +249,7 @@ func (c *DbTableFilter) getTablesByRegexp(ip string, port int, user string, pass
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 
 	pattern, err := regexp2.Compile(reg, regexp2.None)
 	if err != nil {

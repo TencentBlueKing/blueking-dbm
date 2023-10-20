@@ -10,32 +10,10 @@
     "items": [
       {
         "name": "AVG(mysql_global_status_uptime)",
-        "target": [
-          [
-            {
-              "field": "host_topo_node",
-              "value": [
-                {
-                  "bk_obj_id": "set",
-                  "bk_inst_id": 2000008148
-                },
-                {
-                  "bk_obj_id": "set",
-                  "bk_inst_id": 2000008149
-                },
-                {
-                  "bk_obj_id": "set",
-                  "bk_inst_id": 2000008149
-                }
-              ],
-              "method": "eq"
-            }
-          ]
-        ],
+        "target": [],
         "functions": [],
         "algorithms": [
           {
-            "id": 6247,
             "type": "Threshold",
             "level": 2,
             "config": [
@@ -53,12 +31,11 @@
         "origin_sql": "",
         "query_configs": [
           {
-            "id": 6243,
             "name": "mysql_global_status_uptime",
             "unit": "",
             "alias": "a",
             "functions": [],
-            "metric_id": "bk_monitor.exporter_dbm_mysqld_exporter.gstatus.mysql_global_sta",
+            "metric_id": "bk_monitor.exporter_dbm_mysqld_exporter.gstatus.mysql_global_status_uptime",
             "agg_method": "AVG",
             "agg_interval": 60,
             "metric_field": "mysql_global_status_uptime",
@@ -68,7 +45,8 @@
               "app",
               "cluster_domain",
               "instance_role",
-              "instance"
+              "instance",
+              "appid"
             ],
             "data_type_label": "time_series",
             "result_table_id": "exporter_dbm_mysqld_exporter.gstatus",
@@ -86,10 +64,9 @@
       }
     ],
     "labels": [
-      "MySQL",
+      "DBM",
       "DBM_MYSQL",
-      "DBM_MYSQL",
-      "DBM"
+      "MySQL"
     ],
     "notice": {
       "config": {
@@ -121,7 +98,9 @@
       "options": {
         "end_time": "23:59:59",
         "start_time": "00:00:00",
-        "assign_mode": [],
+        "assign_mode": [
+          "by_rule"
+        ],
         "upgrade_config": {},
         "converge_config": {
           "count": 1,
@@ -225,11 +204,9 @@
       },
       "config_id": 8758,
       "relate_type": "NOTICE",
-      "user_groups": [
-        0
-      ]
+      "user_groups": []
     },
-    "source": "bkmonitorv3",
+    "source": "dbm",
     "actions": [],
     "detects": [
       {
@@ -256,8 +233,12 @@
       }
     ],
     "scenario": "component",
-    "bk_biz_id": 2005000194,
-    "data_source_type": "监控采集指标"
+    "bk_biz_id": "",
+    "data_source_type": "\u76d1\u63a7\u91c7\u96c6\u6307\u6807",
+    "priority": 0
   },
-  "is_enabled": true
+  "is_enabled": true,
+  "monitor_indicator": "AVG(mysql_global_status_uptime)",
+  "version": 8,
+  "alert_source": "time_series"
 }

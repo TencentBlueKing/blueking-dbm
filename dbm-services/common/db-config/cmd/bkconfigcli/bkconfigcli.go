@@ -220,6 +220,14 @@ func queryEncryptConfValues(decrypt bool, keyPrefix string, db *gorm.DB) ([]*Con
 	if names := config.GetStringSlice("conf-name"); len(names) != 0 {
 		sqlRes = sqlRes.Where("conf_name in ?", names)
 	}
+	if levelInfo := config.GetString("level-value"); levelInfo != "" {
+		level := strings.SplitN(levelInfo, ":", 2)
+		if len(level) == 2 {
+			sqlRes = sqlRes.Where("level_name = ? and level_value = ?", level[0], level[1])
+		} else {
+			return nil, errors.Errorf("level-value info error:%s", levelInfo)
+		}
+	}
 
 	var err error
 	if err = sqlRes.Find(&confItems).Error; err != nil {

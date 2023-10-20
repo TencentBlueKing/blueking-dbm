@@ -46,7 +46,6 @@
 </template>
 
 <script setup lang="tsx">
-  import type { PropType } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import { getModules } from '@services/common';
@@ -62,22 +61,17 @@
 
   import { useTargetClusterData } from '@views/tickets/common/hooks/useTargetClusterData';
 
-  const props = defineProps({
-    isShow: {
-      type: Boolean,
-      default: false,
-    },
-    title: {
-      type: String,
-      default: '',
-    },
-    ticketDetails: {
-      required: true,
-      type: Object as PropType<TicketDetails<MysqlAuthorizationDetails>>,
-    },
-  });
+  interface Props {
+    title?: string,
+    ticketDetails: TicketDetails<MysqlAuthorizationDetails>,
+  }
 
-  const emits = defineEmits(['update:isShow']);
+  const props = withDefaults(defineProps<Props>(), {
+    title: '',
+  });
+  const isShow = defineModel<boolean>('isShow', {
+    default: false,
+  });
 
   const { t } = useI18n();
 
@@ -116,8 +110,10 @@
     },
   }];
 
-  watch(() => props.isShow, () => {
-    props.isShow && handleChangePage(1);
+  watch(isShow, (isShowNew) => {
+    if (isShowNew) {
+      handleChangePage(1);
+    }
   });
 
   function handleClearSearch() {
@@ -126,7 +122,7 @@
   }
 
   function handleClose() {
-    emits('update:isShow', false);
+    isShow.value = false;
     listState.filters.search = [];
     listState.pagination = useDefaultPagination();
   }

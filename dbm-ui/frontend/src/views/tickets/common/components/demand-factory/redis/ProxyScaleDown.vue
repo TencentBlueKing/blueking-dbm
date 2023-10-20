@@ -58,6 +58,7 @@
     {
       label: t('目标集群'),
       field: 'clusterName',
+      showOverflowTooltip: true,
     },
     {
       label: t('缩容节点类型'),
@@ -66,6 +67,7 @@
     {
       label: t('当前规格'),
       field: 'sepc',
+      showOverflowTooltip: true,
       render: ({ data }: {data: RowData}) => <span>{data.sepc.name}</span>,
     },
     {
@@ -75,6 +77,7 @@
     {
       label: t('切换模式'),
       field: 'switchMode',
+      showOverflowTooltip: true,
       render: ({ data }: {data: RowData}) => <span>{data.switchMode === 'user_confirm' ? t('需人工确认') : t('无需确认')}</span>,
     },
   ];

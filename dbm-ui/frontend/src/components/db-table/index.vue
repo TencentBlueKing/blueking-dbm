@@ -156,6 +156,10 @@
 
   const emits = defineEmits<Emits>();
 
+  defineOptions({
+    inheritAttrs: false,
+  });
+
   // 生成可选中列配置
   const genSelectionColumn = () => ({
     width: 80,
@@ -327,7 +331,6 @@
             emits('requestSuccess', data);
           })
           .catch((error) => {
-            console.error('request error: ', error);
             tableData.value.results = [];
             pagination.count = 0;
             isAnomalies.value = true;

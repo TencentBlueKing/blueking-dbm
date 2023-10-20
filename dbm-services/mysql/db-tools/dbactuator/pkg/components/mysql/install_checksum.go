@@ -36,6 +36,7 @@ type InstanceInfo struct {
 	ClusterId    int    `json:"cluster_id"`
 	ImmuteDomain string `json:"immute_domain"`
 	BkInstanceId int64  `json:"bk_instance_id,omitempty"` // 0 被视为空, 不序列化
+	DBModuleId   int    `json:"db_module_id"`
 }
 
 // InstallMySQLChecksumParam 输入参数

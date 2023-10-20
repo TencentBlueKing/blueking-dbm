@@ -72,42 +72,36 @@
 </script>
 
 <script setup lang="ts">
-  const props = defineProps({
-    loading: {
-      type: Boolean,
-      default: false,
-    },
-    data: {
-      type: Array<{[key: string]: string}>,
-      default: () => ([]),
-    },
-    activeItem: {
-      type: Object,
-      default: () => ({}),
-    },
-    total: {
-      type: Number,
-      default: 0,
-    },
-    limit: {
-      type: Number,
-      default: 50,
-    },
-    showKey: {
-      type: String,
-      default: 'master_domain',
-    },
-    placeholder: {
-      type: String,
-      default: '',
-    },
-    isAnomalies: {
-      type: Boolean,
-      default: false,
-    },
-  });
+  interface Props {
+    loading?: boolean,
+    data?:  { [key: string]: string }[],
+    activeItem?: Record<string, any>,
+    total?: number,
+    limit?: number,
+    showKey?: string,
+    placeholder?: string,
+    isAnomalies?: boolean,
+  }
 
-  const emits = defineEmits(['searchEnter', 'searchClear', 'returnPage', 'changePage', 'itemSelected']);
+  interface Emits {
+    (e: 'searchEnter', value: string): void
+    (e: 'searchClear', value: string): void
+    (e: 'changePage', value: number): void
+    (e: 'itemSelected', value: { [key: string]: string }): void
+    // (e: 'returnPage'): void
+  }
+
+  const props = withDefaults(defineProps<Props>(), {
+    loading: false,
+    data: () => ([]),
+    activeItem: () => ({}),
+    total: 0,
+    limit: 50,
+    showKey: 'master_domain',
+    placeholder: '',
+    isAnomalies: false,
+  });
+  const emits = defineEmits<Emits>();
 
   const state = reactive({
     search: '',
@@ -197,7 +191,7 @@
   /**
    * 选中列表项
    */
-  function handleClickItem(data: any) {
+  function handleClickItem(data: { [key: string]: string }) {
     setActiveLocationPage(state.pagination.current);
     emits('itemSelected', data);
   }

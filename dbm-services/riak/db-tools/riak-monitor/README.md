@@ -60,7 +60,7 @@ type MonitorItem struct {
 | 监控项                      |调度计划| 机器类型           | 实例角色            |级别| 说明                          |自定义|
 |--------------------------|-----|----------------|-----------------|-----|-----------------------------|-----|
 | riak-err-notice          |@every 1m| riak           |                 | 预警           | 预警错误日志                      |schedule, enable
-| db-up                    |@every 10s| backend, proxy |                 | 致命           | db 连通性. 硬编码, 不可配置, 无需录入配置系统 |enable
+| riak-db-up                    |@every 10s| backend, proxy |                 | 致命           | db 连通性. 硬编码, 不可配置, 无需录入配置系统 |enable
 | riak_monitor_heart_beat |@every 10s| riak           |                 | 致命             | 监控心跳. 硬编码, 不可配置, 无需录入配置系统   |enable
 | riak-load-health |@every 1m| riak           |                 | 致命             | 检查负载与响应情况                   |enable
 | riak-ring-status |@every 10s| riak           |                 | 致命             | 检查ring status, 发现集群中所有的故障节点 |enable
@@ -139,7 +139,7 @@ jobs_config: /data/monitor/riak-crond/jobs-config.yaml
   args:
     - hardcode-run
     - --items
-    - db-up,riak_monitor_heart_beat
+    - riak-db-up,riak_monitor_heart_beat
     - -c
     - /data/monitor/riak-monitor/runtime.yaml
       schedule: '@every 10s'
@@ -182,7 +182,7 @@ default_schedule: '@every 1m'
   schedule: '@every 10s'
   machine_type:
     - riak
-- name: db-up
+- name: riak-db-up
   enable: true
   schedule: '@every 10s'
   machine_type:

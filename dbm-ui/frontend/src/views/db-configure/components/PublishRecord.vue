@@ -73,7 +73,12 @@
   import { useI18n } from 'vue-i18n';
 
   import { getConfigVersionDetails, getConfigVersionList } from '@services/configs';
-  import type { ConfigVersionDetails, ConfigVersionItem, ConfigVersionListResult, ConfigVersionParams } from '@services/types/configs';
+  import type {
+    ConfigVersionDetails,
+    ConfigVersionItem,
+    ConfigVersionListResult,
+    ConfigVersionParams,
+  } from '@services/types/configs';
 
   import { useTableMaxHeight } from '@hooks';
 

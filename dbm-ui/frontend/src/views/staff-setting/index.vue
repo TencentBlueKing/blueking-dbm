@@ -96,7 +96,7 @@
    */
   const fetchAdmins = (id: number) => {
     state.loading = true;
-    getAdmins(id)
+    getAdmins({ bk_biz_id: id })
       .then((res) => {
         state.admins = res;
       })

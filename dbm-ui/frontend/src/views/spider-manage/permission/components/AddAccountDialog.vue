@@ -88,7 +88,7 @@
         <span
           class="strength-status"
           :class="[getStrenthStatus(item)]" />
-        <span class="password-strength__content">{{ item.text }}</span>
+        <span>{{ item.text }}</span>
       </div>
     </div>
   </div>
@@ -108,12 +108,6 @@
     getRSAPublicKeys,
     verifyPasswordStrength,
   } from '@services/permission';
-  import type {
-    PasswordPolicy,
-    PasswordPolicyFollow,
-    PasswordStrength,
-    PasswordStrengthVerifyInfo,
-  } from '@services/types/permission';
 
   import { AccountTypes } from '@common/const';
   import { dbTippy } from '@common/tippy';
@@ -129,6 +123,12 @@
   interface Emits {
     (e: 'success'): void,
   }
+
+  type PasswordPolicy = ServiceReturnType<typeof getPasswordPolicy>;
+  type IncludeRule = PasswordPolicy
+  type ExcludeContinuousRule = PasswordPolicy['follow']
+  type PasswordStrength = ServiceReturnType<typeof verifyPasswordStrength>;
+  type PasswordStrengthVerifyInfo = PasswordStrength['password_verify_info']
 
   const emits = defineEmits<Emits>();
   const isShow = defineModel<boolean>({
@@ -146,8 +146,11 @@
   const followKeys: string[] = [];
 
   Object.keys(PASSWORD_POLICY).forEach((key) => {
-    if (key.includes('follow_')) followKeys.push(key);
-    else keys.push(key);
+    if (key.includes('follow_')) {
+      followKeys.push(key);
+    } else {
+      keys.push(key);
+    }
   });
 
   const formData = reactive({
@@ -228,7 +231,7 @@
 
       // 常规提示
       for (const key of keys) {
-        if (res[key as keyof PasswordPolicy]) {
+        if (res[key as keyof IncludeRule]) {
           strength.value.push({
             keys: [`${key}_valid`],
             text: t(PASSWORD_POLICY[key as PasswordPolicyKeys]),
@@ -246,7 +249,7 @@
 
       // 特殊提示（键盘序、字符序、数字序等）
       const special = followKeys.reduce((values, key: string) => {
-        const valueKey = key.replace('follow_', '') as keyof PasswordPolicyFollow;
+        const valueKey = key.replace('follow_', '') as keyof ExcludeContinuousRule;
         if (res.follow[valueKey]) {
           values.push({
             keys: [`${key}_valid`],

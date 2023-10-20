@@ -32,7 +32,6 @@
           :removeable="tableData.length < 2"
           :versions-map="versionsMap"
           @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
-          @click-select="() => handleClickSelect(index)"
           @cluster-input-finish="(domain: string) => handleChangeCluster(index, domain)"
           @remove="handleRemove(index)" />
       </RenderData>
@@ -59,16 +58,9 @@
     </template>
     <ClusterSelector
       v-model:is-show="isShowMasterInstanceSelector"
+      :selected="selectedClusters"
       :tab-list="clusterSelectorTabList"
       @change="handelClusterChange" />
-    <ChooseClusterTargetPlan
-      :data="activeRowData"
-      is-same-shard-num
-      :is-show="showChooseClusterTargetPlan"
-      show-greater-tip
-      :title="t('选择集群目标方案')"
-      @click-cancel="() => showChooseClusterTargetPlan = false"
-      @click-confirm="handleChoosedTargetCapacity" />
   </SmartAction>
 </template>
 
@@ -78,9 +70,8 @@
   import { useRouter } from 'vue-router';
 
   import { getClusterTypeToVersions } from '@services/clusters';
-  import RedisModel, { RedisClusterTypes } from '@services/model/redis/redis';
+  import RedisModel from '@services/model/redis/redis';
   import { listClusterList } from '@services/redis/toolbox';
-  import type { FilterClusterSpecItem } from '@services/resourceSpec';
   import { createTicket } from '@services/ticket';
   import type { SubmitTicket } from '@services/types/ticket';
 
@@ -88,7 +79,6 @@
 
   import { ClusterTypes, TicketTypes } from '@common/const';
 
-  import ChooseClusterTargetPlan, { type Props as TargetPlanProps } from '@views/redis/common/cluster-deploy-plan/Index.vue';
   import ClusterSelector from '@views/redis/common/cluster-selector/ClusterSelector.vue';
 
   import RenderData from './components/Index.vue';
@@ -106,10 +96,9 @@
   const isShowMasterInstanceSelector = ref(false);
   const isSubmitting  = ref(false);
   const tableData = ref([createRowData()]);
-  const showChooseClusterTargetPlan = ref(false);
-  const activeRowData = ref<TargetPlanProps['data']>();
-  const activeRowIndex = ref(0);
   const versionsMap = ref<Record<string, string[]>>({});
+  const selectedClusters = shallowRef<{[key: string]: Array<RedisModel>}>({ [ClusterTypes.REDIS]: [] });
+
   const inputedClusters = computed(() => tableData.value.map(item => item.targetCluster));
   const totalNum = computed(() => tableData.value.filter(item => Boolean(item.targetCluster)).length);
 
@@ -127,20 +116,6 @@
     versionsMap.value = ret;
   };
 
-  // 从侧边窗点击确认后触发
-  const handleChoosedTargetCapacity = (obj: FilterClusterSpecItem) => {
-    const currentRow = tableData.value[activeRowIndex.value];
-    currentRow.sepcId = obj.spec_id;
-    currentRow.targetShardNum = obj.cluster_shard_num;
-    currentRow.targetGroupNum = obj.machine_pair;
-    currentRow.targetCapacity = {
-      current: currentRow.currentCapacity?.total ?? 0,
-      used: currentRow.currentCapacity?.used ?? 0,
-      total: obj.cluster_capacity,
-    };
-    showChooseClusterTargetPlan.value = false;
-  };
-
   // 检测列表是否为空
   const checkListEmpty = (list: Array<IDataRow>) => {
     if (list.length > 1) {
@@ -148,23 +123,6 @@
     }
     const [firstRow] = list;
     return !firstRow.targetCluster;
-  };
-
-  // 点击目标容量
-  const handleClickSelect = (index: number) => {
-    activeRowIndex.value = index;
-    const rowData = tableData.value[index];
-    if (rowData.targetCluster) {
-      const obj = {
-        targetCluster: rowData.targetCluster,
-        currentSepc: rowData.currentSepc ?? '',
-        capacity: rowData.currentCapacity ?? { total: 1, used: 0 },
-        clusterType: rowData.clusterType ?? RedisClusterTypes.TwemproxyRedisInstance,
-        shardNum: rowData.shardNum ?? 0,
-      };
-      activeRowData.value = obj;
-      showChooseClusterTargetPlan.value = true;
-    }
   };
 
   // 根据集群选择返回的数据加工成table所需的数据
@@ -190,6 +148,7 @@
 
   // 批量选择
   const handelClusterChange = async (selected: {[key: string]: Array<RedisModel>}) => {
+    selectedClusters.value = selected;
     const list = selected[ClusterTypes.REDIS];
     const newList = list.reduce((result, item) => {
       const domain = item.master_domain;
@@ -215,14 +174,25 @@
 
   // 输入集群后查询集群信息并填充到table
   const handleChangeCluster = async (index: number, domain: string) => {
-    const ret = await listClusterList(currentBizId, { domain });
+    if (!domain) {
+      const cluster = tableData.value[index].targetCluster;
+      domainMemo[cluster] = false;
+      tableData.value[index].targetCluster = '';
+      return;
+    }
+    tableData.value[index].isLoading = true;
+    const ret = await listClusterList(currentBizId, { domain }).finally(() => {
+      tableData.value[index].isLoading = false;
+    });
     if (ret.length < 1) {
       return;
     }
+
     const data = ret[0];
     const row = generateRowDateFromRequest(data);
     tableData.value[index] = row;
     domainMemo[domain] = true;
+    selectedClusters.value[ClusterTypes.REDIS].push(data);
   };
 
   // 追加一个集群
@@ -234,6 +204,9 @@
     const { targetCluster } = tableData.value[index];
     tableData.value.splice(index, 1);
     delete domainMemo[targetCluster];
+    const clustersArr = selectedClusters.value[ClusterTypes.REDIS];
+    // eslint-disable-next-line max-len
+    selectedClusters.value[ClusterTypes.REDIS] = clustersArr.filter(item => item.master_domain !== targetCluster);
   };
 
   // 点击提交按钮
@@ -241,7 +214,6 @@
     const infos = await Promise.all<InfoItem[]>(rowRefs.value.map((item: {
       getValue: () => Promise<InfoItem>
     }) => item.getValue()));
-
     const params: SubmitTicket<TicketTypes, InfoItem[]> = {
       bk_biz_id: currentBizId,
       ticket_type: TicketTypes.REDIS_SCALE_UPDOWN,
@@ -279,6 +251,7 @@
 
   const handleReset = () => {
     tableData.value = [createRowData()];
+    selectedClusters.value[ClusterTypes.REDIS] = [];
     domainMemo = {};
     window.changeConfirm = false;
   };

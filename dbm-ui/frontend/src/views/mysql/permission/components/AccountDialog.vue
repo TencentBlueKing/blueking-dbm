@@ -101,8 +101,12 @@
   import type { Instance } from 'tippy.js';
   import { useI18n } from 'vue-i18n';
 
-  import { createAccount, getPasswordPolicy, getRSAPublicKeys, verifyPasswordStrength } from '@services/permission';
-  import type { PasswordPolicy, PasswordPolicyFollow, PasswordStrength, PasswordStrengthVerifyInfo } from '@services/types/permission';
+  import {
+    createAccount,
+    getPasswordPolicy,
+    getRSAPublicKeys,
+    verifyPasswordStrength,
+  } from '@services/permission';
 
   import { useGlobalBizs } from '@stores';
 
@@ -117,6 +121,12 @@
     keys: string[],
     text: string
   }
+
+  type PasswordPolicy = ServiceReturnType<typeof getPasswordPolicy>;
+  type IncludeRule = PasswordPolicy
+  type ExcludeContinuousRule = PasswordPolicy['follow']
+  type PasswordStrength = ServiceReturnType<typeof verifyPasswordStrength>;
+  type PasswordStrengthVerifyInfo = PasswordStrength['password_verify_info']
 
   export default {
     name: 'PermissionAccount',
@@ -233,7 +243,7 @@
         }];
         // 常规提示
         for (const key of passwordState.keys) {
-          if (res[key as keyof PasswordPolicy]) {
+          if (res[key as keyof IncludeRule]) {
             passwordState.strength.push({
               keys: [`${key}_valid`],
               text: t(PASSWORD_POLICY[key as PasswordPolicyKeys]),
@@ -251,7 +261,7 @@
 
         // 特殊提示（键盘序、字符序、数字序等）
         const special = passwordState.followKeys.reduce((values: StrengthItem[], key: string) => {
-          const valueKey = key.replace('follow_', '') as keyof PasswordPolicyFollow;
+          const valueKey = key.replace('follow_', '') as keyof ExcludeContinuousRule;
           if (res.follow[valueKey]) {
             values.push({
               keys: [`${key}_valid`],

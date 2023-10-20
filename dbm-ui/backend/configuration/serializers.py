@@ -122,6 +122,11 @@ class ListIPWhitelistSerializer(serializers.Serializer):
     offset = serializers.IntegerField(help_text=_("分页起始"), default=0, required=False)
 
 
+class UpdateDutyNoticeSerializer(serializers.Serializer):
+    schedule_table = serializers.JSONField(help_text=_("排期表通知"))
+    person_duty = serializers.JSONField(help_text=_("个人轮值通知"))
+
+
 class FunctionControllerSerializer(serializers.Serializer):
     class Meta:
         model = FunctionController

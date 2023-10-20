@@ -42,8 +42,6 @@ func (r *Checker) moveResult() error {
 	}
 	slog.Info("move result validate history table again success")
 
-	slog.Info("move result", slog.Time("ts", r.startTS))
-
 	conn, err := r.db.Conn(context.Background())
 	if err != nil {
 		slog.Error("get connect", slog.String("error", err.Error()))
@@ -58,6 +56,8 @@ func (r *Checker) moveResult() error {
 		slog.Error("set binlog_format = 'statement'", slog.String("error", err.Error()))
 		return err
 	}
+
+	slog.Info("move result", slog.Time("from", r.startTS))
 	_, err = conn.ExecContext(
 		context.Background(),
 		fmt.Sprintf(

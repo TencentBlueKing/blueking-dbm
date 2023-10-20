@@ -16,7 +16,7 @@ func SendMonitorMetrics(name string, value int64, customDimension map[string]int
 	crondManager := ma.NewManager(config.MonitorConfig.ApiUrl)
 	// 指标的维度信息
 	additionDimension := map[string]interface{}{
-		"immute_domain":                 config.MonitorConfig.ImmuteDomain,
+		"cluster_domain":                config.MonitorConfig.ImmuteDomain,
 		"machine_type":                  config.MonitorConfig.MachineType,
 		"bk_cloud_id":                   strconv.Itoa(*config.MonitorConfig.BkCloudID),
 		"port":                          strconv.Itoa(config.MonitorConfig.Port),

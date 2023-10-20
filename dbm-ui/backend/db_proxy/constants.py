@@ -27,6 +27,7 @@ class ExtensionType(str, StructuredEnum):
     DNS = EnumField("DNS", _("域名解析服务"))
     DRS = EnumField("DRS", _("SQL 远程执行服务"))
     DBHA = EnumField("DBHA", _("数据库高可用服务"))
+    REDIS_DTS = EnumField("REDIS_DTS", _("Redis DTS服务"))
 
 
 class ExtensionServiceStatus(str, StructuredEnum):

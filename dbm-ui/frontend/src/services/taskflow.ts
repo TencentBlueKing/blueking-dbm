@@ -25,44 +25,56 @@ import type {
 /**
  * 查询任务列表
  */
-export const getTaskflow = (params: GetTaskflowParams): Promise<TaskflowResult> => http.get('/apis/taskflow/', params);
+export const getTaskflow = (params: GetTaskflowParams) => http.get<TaskflowResult>('/apis/taskflow/', params);
 
 /**
  * 查询任务详情流程
  */
-export const getTaskflowDetails = (rootId: string): Promise<FlowsData> => http.get(`/apis/taskflow/${rootId}/`);
+export const getTaskflowDetails = (params: { rootId: string }) => http.get<FlowsData>(`/apis/taskflow/${params.rootId}/`);
 
 /**
  * 重试任务详情节点
  */
-export const retryTaskflowNode = ({ root_id: rootId, node_id }: { root_id: string, node_id: string }): Promise<{ node_id: string}> => http.post(`/apis/taskflow/${rootId}/retry_node/`, { node_id });
+export const retryTaskflowNode = (params: {
+  root_id: string,
+  node_id: string
+}) => http.post<{ node_id: string}>(`/apis/taskflow/${params.root_id}/retry_node/`, params);
 
 /**
  * 跳过任务详情节点
  */
-export const skipTaskflowNode = ({ root_id: rootId, node_id }: { root_id: string, node_id: string }): Promise<{ node_id: string}> => http.post(`/apis/taskflow/${rootId}/skip_node/`, { node_id });
+export const skipTaskflowNode = (params: {
+  root_id: string,
+  node_id: string
+}) => http.post<{ node_id: string}>(`/apis/taskflow/${params.root_id}/skip_node/`, params);
 
 /**
  * 终止任务流程
  */
-export const revokePipeline = (rootId: string) => http.post(`/apis/taskflow/${rootId}/revoke_pipeline/`);
+export const revokePipeline = (params: { rootId: string }) => http.post(`/apis/taskflow/${params.rootId}/revoke_pipeline/`);
 
 /**
  * 节点重试版本列表
  */
-export const getRetryNodeHistories = ({ root_id: rootId, node_id }: { root_id: string, node_id: string }): Promise<RetryNodeItem[]> => http.get(`/apis/taskflow/${rootId}/node_histories/`, { node_id });
+export const getRetryNodeHistories = (params: {
+  root_id: string,
+  node_id: string
+}) => http.get<RetryNodeItem[]>(`/apis/taskflow/${params.root_id}/node_histories/`, params);
 
 /**
  * 节点重试版本列表
  */
-export const getNodeLog = (params: GetNodeLogParams): Promise<NodeLog[]> => http.get(`/apis/taskflow/${params.root_id}/node_log/`, params);
+export const getNodeLog = (params: GetNodeLogParams) => http.get<NodeLog[]>(`/apis/taskflow/${params.root_id}/node_log/`, params);
 
 /**
  * 获取结果文件列表
  */
-export const getKeyFiles = (rootId: string): Promise<KeyFileItem[]> => http.get(`/apis/taskflow/redis/${rootId}/key_files/`);
+export const getKeyFiles = (params: { rootId: string }) => http.get<KeyFileItem[]>(`/apis/taskflow/redis/${params.rootId}/key_files/`);
 
 /**
  * 获取结果文件地址
  */
-export const getRedisFileUrls = (rootId: string, paths: string[]): Promise<Record<string, string>> => http.post('/apis/taskflow/redis/download_dirs/', { paths, root_id: rootId });
+export const getRedisFileUrls = (params: {
+  root_id: string,
+  paths: string[]
+}) => http.post<Record<string, string>>('/apis/taskflow/redis/download_dirs/', params);

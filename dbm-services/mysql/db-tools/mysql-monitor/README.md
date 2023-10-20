@@ -193,6 +193,10 @@ type ConnectionCollect struct {
 |db-up|@every 10s|backend, proxy|                 | 致命              |db 连通性. 硬编码, 不可配置, 无需录入配置系统|enable
 |mysql_monitor_heart_beat|@every 10s|backend, proxy|                 | 无               |监控心跳. 硬编码, 不可配置, 无需录入配置系统|enable
 
+## 生成dbconfig 配置
+```
+perl config2sql.pl | sed  's/"enable":"1"/"enable":true/g'
+```
 
 ## 重要
 * `character-consistency, ext3-check, *-definer, engine` 不要在 _spider_ 执行

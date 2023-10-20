@@ -759,7 +759,10 @@
 
     if (domains.length === 0) return Promise.resolve();
 
-    return getClusterInfoByDomains(globalBizsStore.currentBizId, { cluster_filters: _.uniq(domains) })
+    return getClusterInfoByDomains({
+      bizId: globalBizsStore.currentBizId,
+      cluster_filters: _.uniq(domains),
+    })
       .then((res) => {
         for (const item of res) {
           clusterInfoMap.set(item.master_domain, item);
@@ -833,7 +836,10 @@
    * 查询实例信息
    */
   function fetchInstanceInfos(instances: string[]) {
-    return checkInstances(globalBizsStore.currentBizId, { instance_addresses: instances })
+    return checkInstances({
+      bizId: globalBizsStore.currentBizId,
+      instance_addresses: instances,
+    })
       .then((res) => {
         for (const item of res) {
           const { ip, port } = item;

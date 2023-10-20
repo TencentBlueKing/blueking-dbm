@@ -10,7 +10,6 @@ specific language governing permissions and limitations under the License.
 """
 import base64
 import datetime
-import hashlib
 import logging
 import re
 import traceback
@@ -162,6 +161,7 @@ class RedisDtsPrecheckService(BaseService):
             self.log_error(_("源redis集群{}存在{}个非running状态的slave".format(src_data["cluster_addr"], unrunning_slave_cnt)))
             return False
         slaves_addr = [slave["ip"] + ":" + str(slave["port"]) for slave in src_data["slave_instances"]]
+        self.log_info("check_all_src_slaves_running slaves_addr:{}".format(slaves_addr))
         DRSApi.redis_rpc(
             {
                 "addresses": slaves_addr,
@@ -241,6 +241,9 @@ class RedisDtsPrecheckService(BaseService):
         # 获取集群cluster nodes信息
         running_master = src_data["one_running_master"]
         master_addr = running_master["ip"] + ":" + str(running_master["port"])
+        self.log_info(
+            "check src_cluster:{} cluster_nodes is ok,master_addr:{}".format(src_data["cluster_addr"], master_addr)
+        )
         resp = DRSApi.redis_rpc(
             {
                 "addresses": [master_addr],
@@ -301,6 +304,9 @@ class RedisDtsPrecheckService(BaseService):
             return True
         running_master = src_data["one_running_master"]
         master_addr = running_master["ip"] + ":" + str(running_master["port"])
+        self.log_info(
+            "check src_cluster:{} cluster_state is ok,master_addr:{}".format(src_data["cluster_addr"], master_addr)
+        )
         resp = DRSApi.redis_rpc(
             {
                 "addresses": [master_addr],
@@ -351,6 +357,7 @@ class RedisDtsPrecheckService(BaseService):
                 cluster = Cluster.objects.get(id=dst_data["cluster_id"])
             for proxy in cluster.proxyinstance_set.all():
                 dst_proxy_addrs.append(proxy.machine.ip + ":" + str(proxy.port))
+        self.log_info("check dst_cluster:{} proxy:{} connect".format(dst_domain, dst_proxy_addrs))
         DRSApi.redis_rpc(
             {
                 "addresses": dst_proxy_addrs,
@@ -855,7 +862,7 @@ class RedisDtsExecuteService(BaseService):
             ],
         }
         self.log_info(f"new_data_check_repair_job ticket_data:{ticket_data}")
-        root_id = uuid.uuid1().hex
+        root_id = f"{datetime.date.today()}{uuid.uuid1().hex[:6]}".replace("-", "")
         flow = RedisClusterDataCheckRepairFlow(root_id=root_id, data=ticket_data)
         flow.redis_cluster_data_check_repair_flow()
         self.log_info(f"new_data_check_repair_job flow_id:{root_id}")
@@ -919,7 +926,7 @@ class NewDstClusterInstallJobAndWatchStatus(BaseService):
             "resource_spec": kwargs["cluster"]["dst_install_param"]["resource_spec"],
         }
         self.log_info("NewDstClusterInstallJobAndWatchStatus ticket_data==>:{}".format(ticket_data))
-        root_id = uuid.uuid1().hex
+        root_id = f"{datetime.date.today()}{uuid.uuid1().hex[:6]}".replace("-", "")
         if ticket_data["cluster_type"] == ClusterType.TendisPredixyTendisplusCluster.value:
             flow = TendisPlusApplyFlow(root_id=root_id, data=ticket_data)
             flow.deploy_tendisplus_cluster_flow()
@@ -1021,7 +1028,7 @@ class NewDstClusterFlushJobAndWatchStatus(BaseService):
             ],
         }
         self.log_info("NewDstClusterFlushJobAndWatchStatus ticket_data==>:{}".format(ticket_data))
-        root_id = uuid.uuid1().hex
+        root_id = f"{datetime.date.today()}{uuid.uuid1().hex[:6]}".replace("-", "")
         flow = RedisFlushDataFlow(root_id=root_id, data=ticket_data)
         flow.redis_flush_data_flow()
 
@@ -1115,7 +1122,7 @@ class NewDtsOnlineSwitchJobAndWatchStatus(BaseService):
         self.log_info(f"new_dts_online_switch_job ticket_data:{ticket_data}")
         from backend.flow.engine.bamboo.scene.redis.redis_cluster_data_copy import RedisClusterDataCopyFlow
 
-        root_id = uuid.uuid1().hex
+        root_id = f"{datetime.date.today()}{uuid.uuid1().hex[:6]}".replace("-", "")
         flow = RedisClusterDataCopyFlow(root_id=root_id, data=ticket_data)
         flow.online_switch_flow()
 
@@ -1317,7 +1324,7 @@ class NewDstClusterCloseJobAndWatchStatus(BaseService):
             "force": False,
         }
         self.log_info(f"redis_cluster_close dst_cluster:{job_row.dst_cluster} ticket_data:{ticket_data}")
-        root_id = uuid.uuid1().hex
+        root_id = f"{datetime.date.today()}{uuid.uuid1().hex[:6]}".replace("-", "")
         flow = RedisClusterOpenCloseFlow(root_id=root_id, data=ticket_data)
         flow.redis_cluster_open_close_flow()
 
@@ -1410,7 +1417,7 @@ class NewDstClusterShutdownJobAndWatchStatus(BaseService):
             "cluster_id": job_row.dst_cluster_id,
         }
         self.log_info(f"redis_cluster_shutdown ticket_data:{ticket_data}")
-        root_id = uuid.uuid1().hex
+        root_id = f"{datetime.date.today()}{uuid.uuid1().hex[:6]}".replace("-", "")
         flow = RedisClusterShutdownFlow(root_id=root_id, data=ticket_data)
         flow.redis_cluster_shutdown_flow()
 

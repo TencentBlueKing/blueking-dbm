@@ -97,34 +97,42 @@
     {
       label: t('目标集群'),
       field: 'clusterName',
+      showOverflowTooltip: true,
     },
     {
       label: t('校验范围'),
       field: 'scope',
+      showOverflowTooltip: true,
     },
     {
       label: t('校验从库'),
       field: 'slave',
+      showOverflowTooltip: true,
     },
     {
       label: t('校验主库'),
       field: 'master',
+      showOverflowTooltip: true,
     },
     {
       label: t('校验DB名'),
       field: 'dbName',
+      showOverflowTooltip: true,
     },
     {
       label: t('忽略DB名'),
       field: 'ignoreDbName',
+      showOverflowTooltip: true,
     },
     {
       label: t('校验表名'),
       field: 'tableName',
+      showOverflowTooltip: true,
     },
     {
       label: t('忽略表名'),
       field: 'ignoreTableName',
+      showOverflowTooltip: true,
     },
   ];
 

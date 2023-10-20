@@ -81,11 +81,11 @@ func LoadMonitorItemsConfig() error {
 	return nil
 }
 
-// InjectHardCodeItem 注入硬编码的心跳和db-up监控
+// InjectHardCodeItem 注入硬编码的心跳和riak-db-up监控
 func InjectHardCodeItem() {
 	enable := true
 	dbUpItem := &MonitorItem{
-		Name:        "db-up",
+		Name:        "riak-db-up",
 		Enable:      &enable,
 		Schedule:    &HardCodeSchedule, //&MonitorConfig.DefaultSchedule,
 		MachineType: []string{MonitorConfig.MachineType},

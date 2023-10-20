@@ -145,7 +145,7 @@ CREATE_HANDOFF_DUTY_RULE = {
             "duty_number": 2,
             "duty_day": 1,
             "members": ["admin"],
-            "work_type": "daily",
+            "work_type": "weekly",
             "work_days": [6, 7],
             "work_times": ["00:00--11:59", "12:00--23:59"],
         }

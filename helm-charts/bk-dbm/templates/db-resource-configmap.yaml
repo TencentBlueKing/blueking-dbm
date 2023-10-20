@@ -13,6 +13,7 @@ data:
   config.yaml: |-
     gormlog: true
     listenAddress: 0.0.0.0:80
+    dbmeta: {{ .Values.dbm.internalDomain | default "http://bk-dbm" }}
     db:
       name:  "{{ $dbResourceDB.name }}"
       addr:  "{{ $dbResourceDB.host }}:{{ $dbResourceDB.port }}"

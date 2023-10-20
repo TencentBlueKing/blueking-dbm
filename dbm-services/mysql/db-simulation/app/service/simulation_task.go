@@ -31,17 +31,16 @@ var DelPod bool = true
 
 // BaseParam TODO
 type BaseParam struct {
-	Uid       string `json:"uid"`
-	NodeId    string `json:"node_id"`
-	RootId    string `json:"root_id"`
-	VersionId string `json:"version_id"`
-	// app
+	Uid           string             `json:"uid"`
+	NodeId        string             `json:"node_id"`
+	RootId        string             `json:"root_id"`
+	VersionId     string             `json:"version_id"`
 	TaskId        string             `json:"task_id"  binding:"required"`
 	MySQLVersion  string             `json:"mysql_version"  binding:"required"`
 	MySQLCharSet  string             `json:"mysql_charset"  binding:"required"`
 	Path          string             `json:"path"  binding:"required"`
-	ExcuteObjects []ExcuteSQLFileObj `json:"execute_objects"  binding:"gt=0,dive,required"`
 	SchemaSQLFile string             `json:"schema_sql_file"  binding:"required"`
+	ExcuteObjects []ExcuteSQLFileObj `json:"execute_objects"  binding:"gt=0,dive,required"`
 }
 
 // SpiderSimulationExecParam TODO
@@ -125,8 +124,8 @@ func GetImgFromMySQLVersion(verion string) (img string, err error) {
 
 // TaskRuntimCtx TODO
 type TaskRuntimCtx struct {
-	dbsExcludeSysDb []string // 过滤了系统库的全部db list
 	version         string
+	dbsExcludeSysDb []string
 }
 
 // TaskChan TODO
@@ -294,9 +293,11 @@ func (t *SimulationTask) SimulationRun(containerName string, xlogger *logger.Log
 					xlogger.Error("download file failed:%s", err.Error())
 					return sstdout, sstderr, fmt.Errorf("download file %s failed:%s", e.SQLFile, err.Error())
 				}
-				xlogger.Error("%s[%s]:ExecuteInPod failed %s", e.SQLFile, realexcutedbs[idx-1], err.Error())
-				return sstdout, sstderr, fmt.Errorf("exec %s in %s failed:%s", e.SQLFile, realexcutedbs[idx-1],
-					err.Error())
+				xlogger.Error("when execute %s at %s, failed  %s\n", e.SQLFile, realexcutedbs[idx-1], err.Error())
+				xlogger.Error("stderr:\n	%s", stderr.String())
+				xlogger.Error("stdout:\n	%s", stdout.String())
+				return sstdout, sstderr, fmt.Errorf("\nexec %s in %s failed:%s\n %s", e.SQLFile, realexcutedbs[idx-1],
+					err.Error(), stderr.String())
 			}
 			xlogger.Info("%s \n %s", stdout.String(), stderr.String())
 		}

@@ -71,20 +71,24 @@
 
   const columns = [
     {
-      label: t('故障主库主机'),
+      label: t('主库主机'),
       field: 'masterIp',
+      showOverflowTooltip: true,
     },
     {
       label: t('所属集群'),
       field: 'clusterName',
+      showOverflowTooltip: true,
     },
     {
       label: t('待切换的从库主机'),
       field: 'slaveIp',
+      showOverflowTooltip: true,
     },
     {
       label: t('切换模式'),
       field: 'switchMode',
+      showOverflowTooltip: true,
       render: ({ data }: {data: RowData}) => <span>{data.switchMode === 'user_confirm' ? t('需人工确认') : t('无需确认')}</span>,
     },
   ];

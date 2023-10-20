@@ -48,13 +48,28 @@ bk:
   mysqlCrondAgentAddress: "/var/run/ipc.state.report"
   mysqlCrondMetricsDataToken: "bk-monitor-custom-token"
   mysqlCrondMetricsDataId: "bk-monitor-custom-data-id"
-
+  # 蓝鲸网关
+  bkApigwStaticVersion: "1.0.0"
+  bkApigwManagerMaintainers: "admin"
+  bkApigwStageName: "prod"
+  bkApigwGrantApps: []
+  bkApigwResourceDocsArchiveFile: ""
 
 # bk-dbm values
 dbm:
   extraEnvVarsCM: bk-dbm-db-env
   enabled: true
   replicaCount: 1
+
+  serviceInit:
+    itsmEnabled: true
+    apigwEnabled: true
+    bklogEnabled: true
+    bkccEnabled: true
+    bkjobEnabled: true
+    mediumEnabled: true
+    bkmonitorEnabled: true
+    sslEnabled: true
 
   image:
     registry: "mirrors.tencent.com"
@@ -132,9 +147,16 @@ dbm:
     dataId: "1"
     logConfigType: "std_log_config"
 
+  ## 版本文件初始化
+  dbmedium:
+    extraEnvVarsCM: bk-dbmedium-db-env
+    image:
+      registry: "mirrors.tencent.com"
+      repository: "build/blueking/dbmedium"
+      pullPolicy: IfNotPresent
+      tag: ""
 
   securityContext: {}
-
 
   resources:
     limits:
@@ -159,7 +181,6 @@ dbconfig:
     # your rand key to encrypt sensitive value
     ENCRYPT_KEY_PREFIX: ""
 
-
 dbpriv:
   enabled: true
 
@@ -171,12 +192,6 @@ dbpartition:
     PT_MAX_LOAD_THREADS_RUNNING: "80"
     PT_MAX_ROWS: "10000000"
     PT_MAX_SIZE: "322122547200"
-    # bk monitor
-    MONITOR_SERVICE: "http://bk-report/"
-    MONITOR_METRIC_DATA_ID: "543957"
-    MONITOR_METRIC_ACCESS_TOKEN: "metric_token"
-    MONITOR_EVENT_DATA_ID: "542898"
-    MONITOR_EVENT_ACCESS_TOKEN: "event_token"
     DB_REMOTE_SERVICE: "http://bk-dbm/apis/proxypass/drs/"
     CRON_RETRY_HOUR: "7,15"
     CRON_TIMING_HOUR: "3"
@@ -236,6 +251,11 @@ backup-consumer:
 
 backup-server:
   enabled: true
+  hdfs:
+    enable: false
+    server_addr: "http://example.com"
+    api_sys_id: "test"
+    api_key: "test key"
 
 # bitnami mysql 配置项
 mysql:
@@ -347,6 +367,12 @@ externalDatabase:
     host: external-db-host-example
     port: 3306
     name: bk_dbm
+  dbmReport:
+    username: bk-dbm
+    password: external-db-pwd-example
+    host: external-db-host-example
+    port: 3306
+    name: bk_dbm_report
   dbConfig:
     username: bk-dbm
     password: external-db-pwd-example

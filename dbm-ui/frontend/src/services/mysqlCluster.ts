@@ -18,12 +18,14 @@ import { useGlobalBizs } from '@stores';
 import http from './http';
 import type { MySQLClusterInfos } from './types/clusters';
 
-export const findRelatedClustersByClusterIds = (params: { cluster_ids: number [] } & {bk_biz_id: number})
-:Promise<Array<{
+export const findRelatedClustersByClusterIds = (params: {
+  cluster_ids: number []
+  bk_biz_id: number
+}) => http.post<Array<{
   cluster_id: number,
   cluster_info: MySQLClusterInfos,
   related_clusters: Array<MySQLClusterInfos>
- }>> => http.post(`/apis/mysql/bizs/${params.bk_biz_id}/cluster/find_related_clusters_by_cluster_ids/`, params);
+ }>>(`/apis/mysql/bizs/${params.bk_biz_id}/cluster/find_related_clusters_by_cluster_ids/`, params);
 
 export const findRelatedClustersByInstances = (params: {
   instances: Array<{
@@ -37,12 +39,12 @@ export const findRelatedClustersByInstances = (params: {
 export const getIntersectedSlaveMachinesFromClusters = (params: {
   bk_biz_id: number,
   cluster_ids: number[],
-}): Promise<Array<{
+}) => http.post<Array<{
   bk_biz_id: number,
   bk_cloud_id: number,
   bk_host_id: number,
   ip: string,
-}>> => http.post(`/apis/mysql/bizs/${params.bk_biz_id}/cluster/get_intersected_slave_machines_from_clusters/`, params);
+}>>(`/apis/mysql/bizs/${params.bk_biz_id}/cluster/get_intersected_slave_machines_from_clusters/`, params);
 
 // 通过过滤条件批量查询集群
 export const queryClusters = (params: {
@@ -57,7 +59,11 @@ export const queryClusters = (params: {
 // 批量下载文件
 export const batchFetchFile = (params: {
   file_path_list: string[]
-}) => http.post<Array<{content: string}>>('/apis/core/storage/batch_fetch_file_content/', params);
+}) => http.post<Array<{
+  content: string,
+  path: string,
+  url: string
+}>>('/apis/core/storage/batch_fetch_file_content/', params);
 
 // 查询tendbcluster集群的remote_db/remote_dr
 export const getRemoteParis = function (params: {

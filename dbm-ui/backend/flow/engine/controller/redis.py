@@ -23,6 +23,7 @@ from backend.flow.engine.bamboo.scene.redis.redis_cluster_scene_auotfix import R
 from backend.flow.engine.bamboo.scene.redis.redis_cluster_scene_cmr import RedisClusterCMRSceneFlow
 from backend.flow.engine.bamboo.scene.redis.redis_cluster_scene_mss import RedisClusterMSSSceneFlow
 from backend.flow.engine.bamboo.scene.redis.redis_cluster_shutdown import RedisClusterShutdownFlow
+from backend.flow.engine.bamboo.scene.redis.redis_cluster_version_update_online import RedisClusterVersionUpdateOnline
 from backend.flow.engine.bamboo.scene.redis.redis_data_structure import RedisDataStructureFlow
 from backend.flow.engine.bamboo.scene.redis.redis_data_structure_task_delete import RedisDataStructureTaskDeleteFlow
 from backend.flow.engine.bamboo.scene.redis.redis_dbmon import RedisDbmonSceneFlow
@@ -230,3 +231,10 @@ class RedisController(BaseController):
         """
         flow = RedisClusterAddSlaveFlow(root_id=self.root_id, data=self.ticket_data)
         flow.add_slave_flow()
+
+    def redis_cluster_version_update_online(self):
+        """
+        redis 集群版本在线升级
+        """
+        flow = RedisClusterVersionUpdateOnline(root_id=self.root_id, data=self.ticket_data)
+        flow.version_update_flow()

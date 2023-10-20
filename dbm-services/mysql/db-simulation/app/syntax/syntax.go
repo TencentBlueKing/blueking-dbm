@@ -51,29 +51,29 @@ type TmysqlParseSQL struct {
 // TmysqlParseFile TODO
 type TmysqlParseFile struct {
 	TmysqlParse
-	IsLocalFile bool
 	Param       CheckSqlFileParam
+	IsLocalFile bool
 }
 
 // CheckSqlFileParam TODO
 type CheckSqlFileParam struct {
-	BkRepoBasePath string   `json:"bkrepo_base_path"` // 制品库相对路径
-	FileNames      []string `json:"file_names"`       // SQL文件名称
-	MysqlVersion   string   `json:"mysql_version"`    // mysql版本
+	BkRepoBasePath string   `json:"bkrepo_base_path"`
+	MysqlVersion   string   `json:"mysql_version"`
+	FileNames      []string `json:"file_names"`
 }
 
 // TmysqlParse TODO
 type TmysqlParse struct {
+	runtimeCtx
+	result             map[string]*CheckInfo
+	bkRepoClient       *bkrepo.BkRepoClient
 	TmysqlParseBinPath string
 	BaseWorkdir        string
-	result             map[string]*CheckInfo
-	runtimeCtx
-	bkRepoClient *bkrepo.BkRepoClient
 }
 
 type runtimeCtx struct {
-	tmpWorkdir string
 	fileMap    map[inputFileName]outputFileName
+	tmpWorkdir string
 }
 
 // CheckInfo TODO
@@ -85,18 +85,18 @@ type CheckInfo struct {
 
 // FailedInfo TODO
 type FailedInfo struct {
-	Line      int64  `json:"line"`
 	Sqltext   string `json:"sqltext"`
-	ErrorCode int64  `json:"error_code"`
 	ErrorMsg  string `json:"error_msg"`
+	Line      int64  `json:"line"`
+	ErrorCode int64  `json:"error_code"`
 }
 
 // RiskInfo TODO
 type RiskInfo struct {
-	Line        int64  `json:"line"`
 	CommandType string `json:"command_type"`
 	Sqltext     string `json:"sqltext"`
 	WarnInfo    string `json:"warn_info"`
+	Line        int64  `json:"line"`
 }
 
 // DDLMAP_FILE_SUFFIX TODO
@@ -124,7 +124,7 @@ func (tf *TmysqlParseFile) Do(dbtype string) (result map[string]*CheckInfo, err 
 	}
 	// 最后删除临时目录,不会返回错误
 	// 暂时屏蔽 观察过程文件
-	defer tf.delTempDir()
+	// defer tf.delTempDir()
 	errChan := make(chan error)
 	resultfileChan := make(chan string, 10)
 	signalChan := make(chan struct{})
@@ -500,7 +500,7 @@ func (tf *TmysqlParse) AnalyzeOne(inputfileName string, mysqlVersion string, dbt
 		buf = []byte{}
 
 		var res ParseLineQueryBase
-		logger.Debug("buf: %s", string(bs))
+		//	logger.Debug("buf: %s", string(bs))
 		if len(bs) == 0 {
 			logger.Info("blank line skip")
 			continue
@@ -563,7 +563,7 @@ func (ch *CheckInfo) runSpidercheck(ddlTbls map[string][]string, res ParseLineQu
 		var o CreateTableResult
 		if err = json.Unmarshal(bs, &o); err != nil {
 			logger.Error("json unmasrshal line failed %s", err.Error())
-			return
+			return err
 		}
 		o.TableOptionMap = ConverTableOptionToMap(o.TableOptions)
 		c = o
@@ -573,24 +573,24 @@ func (ch *CheckInfo) runSpidercheck(ddlTbls map[string][]string, res ParseLineQu
 		var o CreateDBResult
 		if err = json.Unmarshal(bs, &o); err != nil {
 			logger.Error("json unmasrshal line failed %s", err.Error())
-			return
+			return err
 		}
 		c = o
 	case "alter_table":
 		var o AlterTableResult
 		if err = json.Unmarshal(bs, &o); err != nil {
 			logger.Error("json unmasrshal line failed %s", err.Error())
-			return
+			return err
 		}
 		ddlTbls[o.DbName] = append(ddlTbls[o.DbName], o.TableName)
 	}
 	if c == nil {
-		return
+		return nil
 	}
 	// 不同结构体绑定不同的Checker
 	result := c.SpiderChecker(mysqlVersion)
 	if result.IsPass() {
-		return
+		return nil
 	}
 	if len(result.BanWarns) > 0 {
 		ch.BanWarnings = append(ch.BanWarnings, RiskInfo{
@@ -619,54 +619,53 @@ func (ch *CheckInfo) runcheck(res ParseLineQueryBase, bs []byte, mysqlVersion st
 		var o CreateTableResult
 		if err = json.Unmarshal(bs, &o); err != nil {
 			logger.Error("json unmasrshal line failed %s", err.Error())
-			return
+			return err
 		}
 		c = o
 	case "alter_table":
 		var o AlterTableResult
 		if err = json.Unmarshal(bs, &o); err != nil {
 			logger.Error("json unmasrshal line failed %s", err.Error())
-			return
+			return err
 		}
 		c = o
 	case "delete":
 		var o DeleteResult
 		if err = json.Unmarshal(bs, &o); err != nil {
 			logger.Error("json unmasrshal line failed %s", err.Error())
-			return
+			return err
 		}
 		c = o
 	case "update":
 		var o UpdateResult
 		if err = json.Unmarshal(bs, &o); err != nil {
 			logger.Error("json unmasrshal line failed %s", err.Error())
-			return
+			return err
 		}
 		c = o
 	case "create_function", "create_trigger", "create_event", "create_procedure", "create_view":
 		var o DefinerBase
 		if err = json.Unmarshal(bs, &o); err != nil {
 			logger.Error("json unmasrshal line failed %s", err.Error())
-			return
+			return err
 		}
-		logger.Info("detail %v", o.Definer)
 		c = o
 	case "create_db":
 		var o CreateDBResult
 		if err = json.Unmarshal(bs, &o); err != nil {
 			logger.Error("json unmasrshal line failed %s", err.Error())
-			return
+			return err
 		}
 		c = o
 	}
 
 	if c == nil {
-		return
+		return nil
 	}
 	// 不同结构体绑定不同的Checker
 	result := c.Checker(mysqlVersion)
 	if result.IsPass() {
-		return
+		return nil
 	}
 	if len(result.BanWarns) > 0 {
 		ch.BanWarnings = append(ch.BanWarnings, RiskInfo{

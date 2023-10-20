@@ -50,14 +50,14 @@
   import { getInfrasCities } from '@services/ticket';
   import type { CitiyItem } from '@services/types/ticket';
 
-  const props = defineProps({
-    modelValue: {
-      type: String,
-      default: '',
-    },
-  });
+  interface Emits {
+    (e: 'change', value: string): void
+  }
 
-  const emits = defineEmits(['update:modelValue', 'change']);
+  const emits = defineEmits<Emits>();
+  const modelValue = defineModel<string>({
+    default: '',
+  });
 
   const { t } = useI18n();
 
@@ -70,11 +70,11 @@
   const state = reactive({
     isLoading: false,
     regions: [] as CitiyItem[],
-    cityCode: props.modelValue,
+    cityCode: modelValue.value,
   });
 
-  watch(() => props.modelValue, () => {
-    state.cityCode = props.modelValue;
+  watch(modelValue, () => {
+    state.cityCode = modelValue.value;
   });
 
 
@@ -106,7 +106,7 @@
   }
 
   function handleChange(value: string) {
-    emits('update:modelValue', value);
+    modelValue.value = value;
     emits('change', value);
   }
 </script>

@@ -66,8 +66,8 @@ type BackupTask struct {
 // NewFullBackupTask new backup task
 func NewFullBackupTask(bkBizID string, bkCloudID int64, domain, ip string, port int, password,
 	toBackupSys, backupType, cacheBackupMode, backupDir string, tarSplit bool, tarSplitSize, shardValue string,
-	reporter report.Reporter) *BackupTask {
-	ret := &BackupTask{
+	reporter report.Reporter) (ret *BackupTask, err error) {
+	ret = &BackupTask{
 		ReportType:       consts.RedisFullBackupReportType,
 		BkBizID:          bkBizID,
 		BkCloudID:        bkCloudID,
@@ -87,12 +87,9 @@ func NewFullBackupTask(bkBizID string, bkCloudID int64, domain, ip string, port 
 		ShardValue:       shardValue,
 		reporter:         reporter,
 	}
-	ret.backupClient = backupsys.NewIBSBackupClient(consts.IBSBackupClient, consts.RedisFullBackupTAG)
-	// ret.backupClient, ret.Err = backupsys.NewCosBackupClient(consts.COSBackupClient, "", consts.RedisBinlogTAG)
-	// if ret.Err != nil {
-	// 	return ret
-	// }
-	return ret
+	// ret.backupClient = backupsys.NewIBSBackupClient(consts.IBSBackupClient, consts.RedisFullBackupTAG)
+	ret.backupClient, err = backupsys.NewCosBackupClient(consts.COSBackupClient, "", consts.RedisFullBackupTAG)
+	return
 }
 
 // Addr string
@@ -489,14 +486,14 @@ func (task *BackupTask) TendisSSDSetLougCount() {
 // TransferToBackupSystem 备份文件上传到备份系统
 func (task *BackupTask) TransferToBackupSystem() {
 	var msg string
-	cliFileInfo, err := os.Stat(consts.IBSBackupClient)
+	cliFileInfo, err := os.Stat(consts.COSBackupClient)
 	if err != nil {
-		err = fmt.Errorf("os.stat(%s) failed,err:%v", consts.IBSBackupClient, err)
+		err = fmt.Errorf("os.stat(%s) failed,err:%v", consts.COSBackupClient, err)
 		mylog.Logger.Error(err.Error())
 		return
 	}
 	if !util.IsExecOther(cliFileInfo.Mode().Perm()) {
-		err = fmt.Errorf("%s is unable to execute by other", consts.IBSBackupClient)
+		err = fmt.Errorf("%s is unable to execute by other", consts.COSBackupClient)
 		mylog.Logger.Error(err.Error())
 		return
 	}

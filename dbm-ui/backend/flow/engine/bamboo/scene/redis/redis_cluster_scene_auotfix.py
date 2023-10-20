@@ -46,6 +46,7 @@ from backend.flow.plugins.components.collections.redis.redis_db_meta import Redi
 from backend.flow.plugins.components.collections.redis.redis_ticket import RedisTicketComponent
 from backend.flow.utils.redis.redis_context_dataclass import ActKwargs, CommonContext, DnsKwargs
 from backend.flow.utils.redis.redis_db_meta import RedisDBMeta
+from backend.flow.utils.redis.redis_proxy_util import get_cache_backup_mode, get_twemproxy_cluster_server_shards
 from backend.ticket.constants import TicketStatus, TicketType
 
 logger = logging.getLogger("flow")
@@ -323,6 +324,9 @@ class RedisClusterAutoFixSceneFlow(object):
 
     def slave_fix(self, flow_data, sub_kwargs, slave_fix_info):
         sub_pipeline = SubBuilder(root_id=self.root_id, data=flow_data)
+        twemproxy_server_shards = get_twemproxy_cluster_server_shards(
+            sub_kwargs.cluster["bk_biz_id"], sub_kwargs.cluster["cluster_id"], sub_kwargs.cluster["slave_ins_map"]
+        )
         # ### 部署实例 ###############################################################################
         sub_pipelines = []
         slave_fix_detail = slave_fix_info["redis_slave"]
@@ -337,6 +341,10 @@ class RedisClusterAutoFixSceneFlow(object):
                 "instance_numb": len(sub_kwargs.cluster["slave_ports"][old_slave]),
                 "spec_id": slave_fix_info["slave_spec"].get("id", 0),
                 "spec_config": slave_fix_info["slave_spec"],
+                "server_shards": twemproxy_server_shards.get(new_slave, {}),
+                "cache_backup_mode": get_cache_backup_mode(
+                    sub_kwargs.cluster["bk_biz_id"], sub_kwargs.cluster["cluster_id"]
+                ),
             }
             sub_builder = RedisBatchInstallAtomJob(self.root_id, flow_data, sub_kwargs, params)
             sub_pipelines.append(sub_builder)
@@ -355,6 +363,10 @@ class RedisClusterAutoFixSceneFlow(object):
                 "origin_2": old_slave,
                 "sync_dst1": new_slave,
                 "ins_link": [],
+                "server_shards": twemproxy_server_shards.get(new_slave, {}),
+                "cache_backup_mode": get_cache_backup_mode(
+                    sub_kwargs.cluster["bk_biz_id"], sub_kwargs.cluster["cluster_id"]
+                ),
             }
             for slave_port in sub_kwargs.cluster["slave_ports"][old_slave]:
                 old_ins = "{}{}{}".format(old_slave, IP_PORT_DIVIDER, slave_port)

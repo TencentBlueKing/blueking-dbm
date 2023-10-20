@@ -139,7 +139,7 @@
 .instance-selector-preview-result {
   display: flex;
   height: 100%;
-  max-height: 590px;
+  max-height: 630px;
   padding: 12px 24px;
   overflow: hidden;
   font-size: @font-size-mini;

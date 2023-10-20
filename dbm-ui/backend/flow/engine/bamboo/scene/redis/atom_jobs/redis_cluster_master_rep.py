@@ -29,6 +29,7 @@ from backend.flow.plugins.components.collections.redis.exec_shell_script import 
 from backend.flow.plugins.components.collections.redis.redis_db_meta import RedisDBMetaComponent
 from backend.flow.utils.redis.redis_context_dataclass import ActKwargs, CommonContext
 from backend.flow.utils.redis.redis_db_meta import RedisDBMeta
+from backend.flow.utils.redis.redis_proxy_util import get_cache_backup_mode, get_twemproxy_cluster_server_shards
 
 from .redis_cluster_slave_rep import RedisClusterSlaveReplaceJob
 from .redis_install import RedisBatchInstallAtomJob
@@ -74,6 +75,10 @@ def TwemproxyClusterMasterReplaceJob(
     """
     act_kwargs = deepcopy(sub_kwargs)
     redis_pipeline = SubBuilder(root_id=root_id, data=ticket_data)
+    twemproxy_server_shards = get_twemproxy_cluster_server_shards(
+        act_kwargs.cluster["bk_biz_id"], act_kwargs.cluster["cluster_id"], act_kwargs.cluster["slave_ins_map"]
+    )
+
     # ## 部署实例 #############################################################################
     sub_pipelines = []
     master_replace_detail = master_replace_info["redis_master"]
@@ -90,6 +95,10 @@ def TwemproxyClusterMasterReplaceJob(
             "instance_numb": len(act_kwargs.cluster["master_ports"][old_master]),
             "spec_id": master_replace_info["master_spec"].get("id", 0),
             "spec_config": master_replace_info["master_spec"],
+            "server_shards": twemproxy_server_shards.get(new_host_master, {}),
+            "cache_backup_mode": get_cache_backup_mode(
+                act_kwargs.cluster["bk_biz_id"], act_kwargs.cluster["cluster_id"]
+            ),
         }
         sub_pipelines.append(RedisBatchInstallAtomJob(root_id, ticket_data, act_kwargs, params))
 
@@ -98,6 +107,7 @@ def TwemproxyClusterMasterReplaceJob(
         params["meta_role"] = InstanceRole.REDIS_SLAVE.value
         params["spec_id"] = master_replace_info["slave_spec"].get("id", 0)
         params["spec_config"] = master_replace_info["slave_spec"]
+        params["server_shards"] = twemproxy_server_shards.get(new_host_slave, {})
         sub_pipelines.append(RedisBatchInstallAtomJob(root_id, ticket_data, act_kwargs, params))
     redis_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
     # ### 部署实例 ####################################################################### 完毕 ###
@@ -130,6 +140,10 @@ def TwemproxyClusterMasterReplaceJob(
                     "origin_2": old_slave_ins.split(IP_PORT_DIVIDER)[1],
                     "sync_dst1": new_ins_port,
                     "sync_dst2": new_ins_port,
+                    "server_shards": twemproxy_server_shards.get(new_host_master, {}),
+                    "cache_backup_mode": get_cache_backup_mode(
+                        act_kwargs.cluster["bk_biz_id"], act_kwargs.cluster["cluster_id"]
+                    ),
                 }
             )
             sed_links.append({"old": old_master_ins, "new": "{}:{}".format(new_host_master, new_ins_port)})

@@ -1751,6 +1751,32 @@ func (db *RedisClient) ClusterReset() (err error) {
 	return nil
 }
 
+// ClusterFailOver 执行cluster failover,opt: force or takeover
+func (db *RedisClient) ClusterFailOver(opt string) (err error) {
+	var ret string
+	if opt == "" {
+		ret, err = db.InstanceClient.ClusterFailover(context.Background()).Result()
+	} else if strings.ToLower(opt) == "force" || strings.ToLower(opt) == "takeover" {
+		cmds := []string{"cluster", "failover", opt}
+		tmpRet, err := db.DoCommand(cmds, 0)
+		if err != nil {
+			return err
+		}
+		ret = tmpRet.(string)
+	}
+	if err != nil {
+		err = fmt.Errorf("ClusterFailOver fail,err:%v,addr:%s", err, db.Addr)
+		mylog.Logger.Error(err.Error())
+		return
+	}
+	if strings.ToLower(ret) != "ok" {
+		err = fmt.Errorf("ClusterFailOver fail,ret:%s,addr:%s", ret, db.Addr)
+		mylog.Logger.Error(err.Error())
+		return
+	}
+	return nil
+}
+
 // GetClusterNodesStr 获取tendisplus集群cluster nodes命令结果,并返回字符串
 func (db *RedisClient) GetClusterNodesStr() (ret string, err error) {
 	ret, err = db.InstanceClient.ClusterNodes(context.TODO()).Result()

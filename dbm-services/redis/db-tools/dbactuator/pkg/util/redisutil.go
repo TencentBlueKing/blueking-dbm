@@ -101,3 +101,15 @@ func StartBkDbmon() (err error) {
 
 	return
 }
+
+// GetRedisDbTypeByPkgName 根据包名推断 dbtype
+func GetRedisDbTypeByPkgName(pkgName string) (dbType string) {
+	if strings.Contains(pkgName, "tendisplus") {
+		dbType = consts.TendisTypeTendisplusInsance
+	} else if strings.Contains(pkgName, "2.8.17") && strings.Contains(pkgName, "-rocksdb-") {
+		dbType = consts.TendisTypeTendisSSDInsance
+	} else {
+		dbType = consts.TendisTypeRedisInstance
+	}
+	return
+}

@@ -65,9 +65,7 @@
     (e: 'change', value: string[]): void
   }
   interface Exposes {
-    getValue: () => Promise<{
-      slave: string[]
-    }>
+    getValue: () => Promise<string[]>
   }
 
   const props = defineProps<Props>();

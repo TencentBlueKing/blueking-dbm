@@ -14,6 +14,7 @@ from typing import Dict, List, Tuple, Union
 from bamboo_engine.builder import SubProcess
 from django.utils.translation import ugettext as _
 
+from backend import env
 from backend.flow.consts import CloudDBHATypeEnum, CloudServiceName
 from backend.flow.engine.bamboo.scene.cloud.base_service_flow import CloudBaseServiceFlow
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
@@ -30,7 +31,10 @@ class CloudDBHAServiceFlow(CloudBaseServiceFlow):
         """构建gm部署流程"""
         nginx_internal_domain = self.data["nginx"]["host_infos"][0]["ip"]
         dbha_kwargs = CloudDBHAKwargs(
-            dbha_type=CloudDBHATypeEnum.GM, nginx_internal_domain=nginx_internal_domain, **super_account
+            dbha_type=CloudDBHATypeEnum.GM,
+            nginx_internal_domain=nginx_internal_domain,
+            name_service_domain=env.NAMESERVICE_APIGW_DOMAIN,
+            **super_account
         )
         sub_gm_pipeline_list: List[SubProcess] = []
         for host_info in self.data["dbha"]["gm"]:
@@ -49,7 +53,10 @@ class CloudDBHAServiceFlow(CloudBaseServiceFlow):
         """构建agent部署流程"""
         nginx_internal_domain = self.data["nginx"]["host_infos"][0]["ip"]
         dbha_kwargs = CloudDBHAKwargs(
-            dbha_type=CloudDBHATypeEnum.AGENT.value, nginx_internal_domain=nginx_internal_domain, **super_account
+            dbha_type=CloudDBHATypeEnum.AGENT.value,
+            nginx_internal_domain=nginx_internal_domain,
+            name_service_domain=env.NAMESERVICE_APIGW_DOMAIN,
+            **super_account
         )
         sub_agent_pipeline_list: List[SubProcess] = []
         for host_info in self.data["dbha"]["agent"]:

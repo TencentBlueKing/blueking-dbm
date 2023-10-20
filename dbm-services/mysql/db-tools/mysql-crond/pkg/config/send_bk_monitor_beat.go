@@ -166,7 +166,7 @@ func SendMetrics(mKey string, mValue int64, additionDimension map[string]interfa
 func buildDimension(addition map[string]interface{}) map[string]interface{} {
 	dimension := make(map[string]interface{})
 	dimension["bk_biz_id"] = strconv.Itoa(JobsConfig.BkBizId)
-	dimension["app_id"] = strconv.Itoa(JobsConfig.BkBizId)
+	dimension["appid"] = strconv.Itoa(JobsConfig.BkBizId)
 	dimension["bk_cloud_id"] = strconv.Itoa(*RuntimeConfig.BkCloudID)
 	dimension["server_ip"] = RuntimeConfig.Ip
 	dimension["bk_target_ip"] = RuntimeConfig.Ip
