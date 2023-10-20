@@ -192,7 +192,7 @@
             row.targets.map((item) => {
               const title = item.rule.key;
               let list = item.rule.value;
-              if (title === 'app_id') {
+              if (title === 'appid') {
                 // 业务级
                 list = [bizsMap.value[list[0]]];
               }

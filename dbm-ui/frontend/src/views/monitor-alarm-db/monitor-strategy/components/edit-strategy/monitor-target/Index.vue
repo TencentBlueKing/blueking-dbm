@@ -259,7 +259,7 @@
   }
 
   const enum TargetType {
-    BIZ = 'app_id',
+    BIZ = 'appid',
     CLUSTER = 'cluster_domain',
     MODULE = 'db_module',
     PLATFORM = 'platform'
