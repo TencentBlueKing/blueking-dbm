@@ -15,7 +15,6 @@
   <tr>
     <td style="padding: 0;">
       <RenderTargetCluster
-        :check-duplicate="false"
         :data="data.cluster"
         @on-input-finish="handleInputFinish" />
     </td>

@@ -22,15 +22,39 @@
       :popover-delay="0"
       theme="light"
       trigger="manual">
-      <TableEditInput
-        ref="inputRef"
-        class="host-input"
-        :model-value="localHostList.map(item => item.ip).join(',  ')"
-        :placeholder="t('请选择主机')"
-        readonly
-        :rules="rules"
-        textarea
-        @overflow-change="handleOverflow" />
+      <div
+        class="content-box"
+        :class="{'is-empty': !clusterData, 'is-error': Boolean(errorMessage)}">
+        <span
+          v-if="localHostList.length === 0"
+          class="placehold">{{ t('请选择主机') }}</span>
+        <span
+          v-else
+          ref="contentRef"
+          class="content-text">{{ localHostList.map(item => item.ip).join(',  ') }}</span>
+        <BkPopover
+          v-if="!!clusterData && showEditIcon"
+          :content="t('从业务拓扑选择')"
+          placement="top"
+          theme="dark">
+          <div
+            class="edit-btn"
+            @click="handleShowIpSelector">
+            <div class="edit-btn-inner">
+              <DbIcon
+                class="select-icon"
+                type="host-select" />
+            </div>
+          </div>
+        </BkPopover>
+        <div
+          v-if="errorMessage"
+          class="input-error">
+          <DbIcon
+            v-bk-tooltips="errorMessage"
+            type="exclamation-fill" />
+        </div>
+      </div>
       <template #content>
         <div
           v-for="item in localHostList"
@@ -38,20 +62,6 @@
           {{ item.ip }}
         </div>
       </template>
-    </BkPopover>
-
-    <BkPopover
-      v-if="!!clusterData && showEditIcon"
-      :content="t('从业务拓扑选择')"
-      placement="top"
-      theme="dark">
-      <div
-        class="edit-btn"
-        @click="handleShowIpSelector">
-        <div class="edit-btn-inner">
-          <DbIcon type="host-select" />
-        </div>
-      </div>
     </BkPopover>
   </div>
   <IpSelector
@@ -80,37 +90,56 @@
 
   import IpSelector from '@components/ip-selector/IpSelector.vue';
 
-  import TableEditInput from '@views/spider-manage/common/edit/Input.vue';
+  import useValidtor from './useValidtor';
 
   interface Props {
     clusterData?: SpiderModel
   }
 
   interface Exposes {
-    getValue: () => Promise<Array<string>>
+    getValue: () => Promise<{ spider_ip_list: {
+      bk_host_id: number,
+      ip: string,
+      bk_cloud_id: number
+    }[]}>
   }
 
   defineProps<Props>();
 
   const { t } = useI18n();
-  const inputRef = ref();
+  const contentRef = ref();
   const isShowIpSelector = ref(false);
   const showEditIcon = ref(false);
   const isOverflow = ref(false);
 
-  const isShowOverflowTip = computed(() => isOverflow.value && showEditIcon.value);
   const localHostList = shallowRef<HostDetails[]>([]);
+
+  const isShowOverflowTip = computed(() => isOverflow.value && showEditIcon.value);
 
   const rules = [
     {
-      validator: (value: string) => Boolean(value),
+      validator: (value: string[]) => value.length > 0,
       message: t('运维节点 IP 不能为空'),
     },
   ];
 
-  const handleOverflow = (status: boolean) => {
-    isOverflow.value = status;
-  };
+  const {
+    message: errorMessage,
+    validator,
+  } = useValidtor(rules);
+
+  watch(localHostList, (list) => {
+    if (list.length > 0) {
+      validator(localHostList.value).finally(() => {
+        setTimeout(() => {
+          console.log(contentRef.value.clientWidth, contentRef.value.scrollWidth);
+          isOverflow.value =  contentRef.value.clientWidth < contentRef.value.scrollWidth;
+        });
+      });
+    }
+  }, {
+    deep: true,
+  });
 
   const handleControlShowEdit = (isShow: boolean) => {
     showEditIcon.value = isShow;
@@ -132,8 +161,7 @@
         bk_cloud_id: item.cloud_area.id,
       }));
 
-      return inputRef.value
-        .getValue()
+      return validator(localHostList.value)
         .then(() => Promise.resolve({
           spider_ip_list: formatHost(localHostList.value),
         }));
@@ -141,31 +169,48 @@
   });
 </script>
 <style lang="less" scoped>
-  .render-host-box {
+.render-host-box {
+  position: relative;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+
+  .content-box {
     position: relative;
     display: flex;
-    align-items: center;
+    width: 100%;
+    padding: 0 25px 0 17px;
     overflow: hidden;
+    border: solid transparent 1px;
 
     &:hover {
+      cursor: pointer;
       border-color: #a3c5fd;
-    }
 
-    .host-input{
-      flex: 1;
-
-      &:hover {
-        cursor: pointer;
+      .edit-btn-inner {
+        background-color: #F0F1F5;
       }
     }
 
+    .placehold {
+      color: #C4C6CC;
+    }
+
+    .content-text {
+      flex: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
     .edit-btn{
+      position: absolute;
+      right: 5px;
+      z-index: 999;
       display: flex;
       width: 24px;
       height: 40px;
       align-items: center;
-      justify-content: center;
-      background-color: #fafbfd;
 
       .edit-btn-inner {
         display: flex;
@@ -176,12 +221,70 @@
         align-items: center;
         justify-content: center;
 
+        .select-icon {
+          font-size: 16px;
+          color: #979BA5;
+        }
+
         &:hover {
           background: #F0F1F5;
+
+          .select-icon {
+            color: #3A84FF;
+          }
+
         }
+      }
+    }
+
+    .input-error {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      // padding-right: 10px;
+      font-size: 14px;
+      color: #ea3636;
+      align-items: center;
+      justify-content: center;
+    }
+  }
+
+  .is-empty {
+    background-color: #fafbfd;
+    border: none;
+
+    :hover {
+      border: none;
+    }
+  }
+
+  .is-error {
+    background-color: #fff1f1;
+
+  }
+
+
+  .host-input{
+    flex: 1;
+
+    :deep(.inner-input) {
+      padding-right: 24px;
+      background-color: #fff;
+      border: solid transparent 1px;
+
+      &:hover {
+        background-color: #fafbfd;
+        border-color: #a3c5fd;
       }
 
 
     }
+
+    &:hover {
+      cursor: pointer;
+    }
   }
+
+
+}
 </style>

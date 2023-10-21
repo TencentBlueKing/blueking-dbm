@@ -97,7 +97,7 @@
     clusterId?: number;
     panelList?: Array<PanelTypes>,
     role?: string,
-    values?: InstanceSelectorValues,
+    selected?: InstanceSelectorValues,
     ticketType?: string,
   }
 
@@ -111,7 +111,7 @@
     clusterId: undefined,
     panelList: () => [...defaultPanelList],
     role: '',
-    values: undefined,
+    selected: undefined,
     ticketType: '',
   });
   const emits = defineEmits<Emits>();
@@ -131,8 +131,8 @@
   const renderCom = computed(() => comMap[panelTabActive.value as keyof typeof comMap]);
 
   watch(() => props.isShow, (show) => {
-    if (show && props.values) {
-      Object.assign(lastValues, props.values);
+    if (show && props.selected) {
+      Object.assign(lastValues, props.selected);
     }
   });
 

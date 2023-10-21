@@ -12,8 +12,7 @@
 -->
 
 <template>
-  <div v-if="(taskCount <= 0)" />
-  <div v-else>
+  <div v-show="taskCount > 0">
     <div
       ref="rootRef"
       class="task-count">

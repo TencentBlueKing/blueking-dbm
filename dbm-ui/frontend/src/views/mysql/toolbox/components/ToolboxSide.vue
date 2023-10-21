@@ -451,7 +451,7 @@
     }
   }
 
-  .toolbox-side-item-active {
+  .toolbox-side-item--active {
     color: @primary-color;
     background-color: #e1ecff;
   }

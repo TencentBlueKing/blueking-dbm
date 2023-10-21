@@ -268,7 +268,7 @@
 
 <style lang="less">
   .instance-selector-manual-input {
-    height: 600px;
+    height: 590px;
     padding-top: 16px;
 
     .bk-resize-layout {

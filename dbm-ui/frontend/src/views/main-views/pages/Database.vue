@@ -90,16 +90,9 @@
               <FunController
                 controller-id="toolbox"
                 module-id="mysql">
-                <BkMenuItem key="MySQLToolbox">
-                  <template #icon>
-                    <i class="db-icon-tools" />
-                  </template>
-                  <span
-                    v-overflow-tips.right
-                    class="text-overflow">
-                    {{ $t('工具箱') }}
-                  </span>
-                </BkMenuItem>
+                <li class="main-views-toolbox-split">
+                  <span class="split-line" />
+                </li>
                 <BkSubmenu
                   v-for="group of mysqlToolboxFavorMenus"
                   :key="group.id"
@@ -117,6 +110,16 @@
                     </span>
                   </BkMenuItem>
                 </BkSubmenu>
+                <BkMenuItem key="MySQLToolbox">
+                  <template #icon>
+                    <i class="db-icon-tools" />
+                  </template>
+                  <span
+                    v-overflow-tips.right
+                    class="text-overflow">
+                    {{ $t('工具箱') }}
+                  </span>
+                </BkMenuItem>
               </FunController>
             </BkMenuGroup>
             <FunController
@@ -141,33 +144,6 @@
                       v-overflow-tips.right
                       class="text-overflow">
                       {{ $t('实例视图') }}
-                    </span>
-                  </BkMenuItem>
-                </BkSubmenu>
-                <BkMenuItem key="spiderToolbox">
-                  <template #icon>
-                    <i class="db-icon-tools" />
-                  </template>
-                  <span
-                    v-overflow-tips.right
-                    class="text-overflow">
-                    {{ $t('工具箱') }}
-                  </span>
-                </BkMenuItem>
-                <BkSubmenu
-                  v-for="group of spiderToolboxFavorMenus"
-                  :key="group.id"
-                  :title="group.name">
-                  <template #icon>
-                    <i :class="group.icon" />
-                  </template>
-                  <BkMenuItem
-                    v-for="item of group.children"
-                    :key="item.name">
-                    <span
-                      v-overflow-tips.right
-                      class="text-overflow">
-                      {{ item.meta?.navName }}
                     </span>
                   </BkMenuItem>
                 </BkSubmenu>
@@ -211,6 +187,36 @@
                 </span>
               </BkMenuItem>
             </BkSubmenu>
+            <li class="main-views-toolbox-split">
+              <span class="split-line" />
+            </li>
+            <BkSubmenu
+              v-for="group of spiderToolboxFavorMenus"
+              :key="group.id"
+              :title="group.name">
+              <template #icon>
+                <i :class="group.icon" />
+              </template>
+              <BkMenuItem
+                v-for="item of group.children"
+                :key="item.name">
+                <span
+                  v-overflow-tips.right
+                  class="text-overflow">
+                  {{ item.meta?.navName }}
+                </span>
+              </BkMenuItem>
+            </BkSubmenu>
+            <BkMenuItem key="spiderToolbox">
+              <template #icon>
+                <i class="db-icon-tools" />
+              </template>
+              <span
+                v-overflow-tips.right
+                class="text-overflow">
+                {{ $t('工具箱') }}
+              </span>
+            </BkMenuItem>
           </FunController>
           <FunController module-id="redis">
             <BkMenuGroup name="Redis">
@@ -227,16 +233,9 @@
               <FunController
                 controller-id="toolbox"
                 module-id="redis">
-                <BkMenuItem key="RedisToolbox">
-                  <template #icon>
-                    <i class="db-icon-tools" />
-                  </template>
-                  <span
-                    v-overflow-tips.right
-                    class="text-overflow">
-                    {{ $t('工具箱') }}
-                  </span>
-                </BkMenuItem>
+                <li class="main-views-toolbox-split">
+                  <span class="split-line" />
+                </li>
                 <BkSubmenu
                   v-for="group of redisToolboxFavorMenus"
                   :key="group.id"
@@ -254,6 +253,16 @@
                     </span>
                   </BkMenuItem>
                 </BkSubmenu>
+                <BkMenuItem key="RedisToolbox">
+                  <template #icon>
+                    <i class="db-icon-tools" />
+                  </template>
+                  <span
+                    v-overflow-tips.right
+                    class="text-overflow">
+                    {{ $t('工具箱') }}
+                  </span>
+                </BkMenuItem>
               </FunController>
             </BkMenuGroup>
           </FunController>
@@ -551,3 +560,16 @@
     eventBus.off('collapse', handleToggleCollapse);
   });
 </script>
+
+<style lang="less">
+.main-views-toolbox-split {
+  width: 100%;
+  padding: 0 16px;
+
+  .split-line {
+    display: inline-block;
+    width: 100%;
+    border-bottom: solid #35415D 1px;
+  }
+}
+</style>

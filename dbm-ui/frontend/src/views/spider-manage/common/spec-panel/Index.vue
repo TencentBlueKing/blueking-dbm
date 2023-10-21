@@ -16,12 +16,13 @@
     height="0"
     :is-show="isShow"
     placement="bottom"
+    :popover-delay="0"
     theme="light"
     trigger="manual"
     width="514">
     <slot />
     <template #content>
-      <div class="panel">
+      <div class="spider-sepc-panel">
         <div class="title">
           {{ data.name }} {{ $t('规格') }}
         </div>
@@ -151,8 +152,7 @@
   });
 </script>
 <style lang="less" scoped>
-
-.panel {
+.spider-sepc-panel {
   display: flex;
   width: 514px;
   padding: 16px 24px 20px 16px;

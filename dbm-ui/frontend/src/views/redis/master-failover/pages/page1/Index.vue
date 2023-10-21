@@ -19,18 +19,6 @@
         closable
         theme="info"
         :title="$t('主从切换：针对TendisSSD、TendisCache，主从切换是把Slave提升为Master，原Master被剔除，针对Tendisplus集群，主从切换是把Slave和Master互换')" />
-      <div class="top-opeartion">
-        <BkPopover
-          :content="$t('强制切换，将忽略同步连接')"
-          placement="top"
-          theme="dark">
-          <div class="switch-box">
-            <BkCheckbox v-model="isForceSwitch" />
-            <span class="ml-6 force-switch">{{ $t('强制切换') }}</span>
-          </div>
-        </BkPopover>
-      </div>
-
       <BkLoading :loading="isLoading">
         <RenderData
           v-slot="slotProps"
@@ -49,6 +37,17 @@
             @remove="handleRemove(index)" />
         </RenderData>
       </BkLoading>
+      <div class="bottom-opeartion">
+        <BkPopover
+          :content="$t('强制切换，将忽略同步连接')"
+          placement="top"
+          theme="dark">
+          <div class="switch-box">
+            <BkCheckbox v-model="isForceSwitch" />
+            <span class="ml-6 force-switch">{{ $t('强制切换') }}</span>
+          </div>
+        </BkPopover>
+      </div>
     </div>
     <template #action>
       <BkButton
@@ -117,6 +116,7 @@
   const isForceSwitch = ref(false);
   const tableData = ref([createRowData()]);
   const isLoading = ref(false);
+
   const selected = shallowRef({
     createSlaveIdleHosts: [],
     masterFailHosts: [],
@@ -125,6 +125,9 @@
 
   const totalNum = computed(() => tableData.value.filter(item => Boolean(item.ip)).length);
   const inputedIps = computed(() => tableData.value.map(item => item.ip));
+
+  // ip 是否已存在表格的映射表
+  let ipMemo = {} as Record<string, boolean>;
 
 
   // 检测列表是否为空
@@ -140,9 +143,6 @@
   const handleShowMasterBatchSelector = () => {
     isShowMasterInstanceSelector.value = true;
   };
-
-  // ip 是否已存在表格的映射表
-  let ipMemo = {} as Record<string, boolean>;
 
   // 批量选择
   const handelMasterProxyChange = async (data: InstanceSelectorValues) => {
@@ -291,11 +291,10 @@
   .redis-master-failover-page {
     padding-bottom: 20px;
 
-    .top-opeartion {
+    .bottom-opeartion {
       display: flex;
       width: 100%;
       height: 30px;
-      justify-content: flex-end;
       align-items: flex-end;
 
       .switch-box {

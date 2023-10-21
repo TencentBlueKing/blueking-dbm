@@ -24,16 +24,6 @@
           <DbIcon type="add" />
           {{ $t('批量录入') }}
         </BkButton>
-        <div
-          v-bk-tooltips="$t('安全模式下_存在业务连接时需要人工确认')"
-          class="safe-action">
-          <BkCheckbox
-            v-model="isSafe"
-            :false-label="false"
-            true-label>
-            <span class="safe-action-text">{{ $t('安全模式') }}</span>
-          </BkCheckbox>
-        </div>
       </div>
       <RenderData
         class="mt16"
@@ -47,6 +37,16 @@
           @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
           @remove="handleRemove(index)" />
       </RenderData>
+      <div
+        v-bk-tooltips="$t('安全模式下_存在业务连接时需要人工确认')"
+        class="safe-action">
+        <BkCheckbox
+          v-model="isSafe"
+          :false-label="false"
+          true-label>
+          <span class="safe-action-text">{{ $t('安全模式') }}</span>
+        </BkCheckbox>
+      </div>
       <InstanceSelector
         v-model:is-show="isShowMasterInstanceSelector"
         :panel-list="['tendbha', 'manualInput']"
@@ -225,14 +225,14 @@
       display: flex;
       align-items: center;
       margin-top: 16px;
+    }
 
-      .safe-action {
-        margin-left: auto;
+    .safe-action {
+      margin-top: 20px;
 
-        .safe-action-text {
-          padding-bottom: 2px;
-          border-bottom: 1px dashed #979ba5;
-        }
+      .safe-action-text {
+        padding-bottom: 2px;
+        border-bottom: 1px dashed #979ba5;
       }
     }
   }
