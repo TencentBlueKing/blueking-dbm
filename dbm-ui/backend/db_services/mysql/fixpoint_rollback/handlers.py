@@ -400,12 +400,13 @@ class FixPointRollbackHandler:
             "port": binlogs[0]["port"],
             "file_list_details": [],
         }
-        collector_fields = ["file_mtime", "start_time", "stop_time", "size", "task_id"]
+        collector_fields = ["file_mtime", "start_time", "stop_time", "size", "task_id", "filename"]
         for log in binlogs:
             if str2datetime(log["stop_time"]) > end_time or str2datetime(log["stop_time"]) < start_time:
                 continue
 
             detail = {field: log[field] for field in collector_fields}
+            detail["file_name"] = detail.pop("filename")
             binlog_record["file_list_details"].append(detail)
 
         return binlog_record

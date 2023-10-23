@@ -21,7 +21,10 @@ from backend.db_meta.models import Cluster
 from backend.db_package.models import Package
 from backend.flow.consts import MediumEnum, RollbackType
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
-from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import install_mysql_in_cluster_sub_flow
+from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import (
+    build_surrounding_apps_sub_flow,
+    install_mysql_in_cluster_sub_flow,
+)
 from backend.flow.engine.bamboo.scene.mysql.common.exceptions import NormalTenDBFlowException
 from backend.flow.engine.bamboo.scene.mysql.mysql_rollback_data_sub_flow import (
     rollback_local_and_backupid,
@@ -126,6 +129,18 @@ class MySQLRollbackDataFlow(object):
                         download_host_list=[self.data["rollback_ip"]],
                     )
                 ),
+            )
+
+            sub_pipeline.add_sub_pipeline(
+                sub_flow=build_surrounding_apps_sub_flow(
+                    bk_cloud_id=cluster_class.bk_cloud_id,
+                    master_ip_list=None,
+                    slave_ip_list=[self.data["rollback_ip"]],
+                    root_id=self.root_id,
+                    parent_global_data=copy.deepcopy(self.data),
+                    is_init=True,
+                    cluster_type=ClusterType.TenDBHA.value,
+                )
             )
 
             exec_act_kwargs = ExecActuatorKwargs(

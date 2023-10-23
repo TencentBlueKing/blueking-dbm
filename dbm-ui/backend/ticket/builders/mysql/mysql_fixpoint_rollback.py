@@ -43,7 +43,7 @@ class MySQLFixPointRollbackDetailSerializer(MySQLBaseOperateDetailSerializer):
         tables = serializers.ListField(help_text=_("目标table列表"), child=DBTableField())
         tables_ignore = serializers.ListField(help_text=_("忽略table列表"), child=DBTableField())
 
-    infos = serializers.ListSerializer(help_text=_("定点回档信息"), child=FixPointRollbackSerializer())
+    infos = serializers.ListSerializer(help_text=_("定点构造信息"), child=FixPointRollbackSerializer())
 
     @classmethod
     def validate_rollback_info(cls, info, now):
@@ -86,5 +86,5 @@ class MySQLFixPointRollbackFlowParamBuilder(builders.FlowParamBuilder):
 class MysqlFixPointRollbackFlowBuilder(BaseMySQLTicketFlowBuilder):
     serializer = MySQLFixPointRollbackDetailSerializer
     inner_flow_builder = MySQLFixPointRollbackFlowParamBuilder
-    inner_flow_name = _("定点回档执行")
+    inner_flow_name = _("定点构造执行")
     retry_type = FlowRetryType.MANUAL_RETRY

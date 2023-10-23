@@ -1866,6 +1866,7 @@ class MysqlActPayload(PayloadHandler, TBinlogDumperActPayload):
         else:
             binlog_files = self.cluster["binlog_files"]
             backup_time = self.cluster["backup_time"]
+        binlog_files_list = binlog_files.split(",")
         payload = {
             "db_type": DBActuatorTypeEnum.MySQL.value,
             "action": DBActuatorActionEnum.RecoverBinlog.value,
@@ -1874,7 +1875,7 @@ class MysqlActPayload(PayloadHandler, TBinlogDumperActPayload):
                 "extend": {
                     "work_dir": self.cluster["file_target_path"],
                     "binlog_dir": self.cluster["file_target_path"],
-                    "binlog_files": binlog_files,
+                    "binlog_files": binlog_files_list,
                     "tgt_instance": {
                         "host": kwargs["ip"],
                         "port": self.cluster["rollback_port"],
