@@ -73,10 +73,8 @@
 
   // TODO INTERFACE done
   // import { checkInstances } from '@services/clusters';
-  // import { precheckPermissionClone } from '@services/permission';
-  // import { createTicket } from '@services/ticket';
-  import { checkInstances } from '@services/source/instances';
-  import { precheckPermissionClone } from '@services/source/permissionClone';
+  import { precheckPermissionClone } from '@services/permission';
+  import { checkMysqlInstances } from '@services/source/instances';
   import { createTicket } from '@services/ticket';
   import type { InstanceInfos } from '@services/types/clusters';
 
@@ -281,7 +279,7 @@
    * 查询实例信息
    */
   function fetchInstanceInfos(instances: string[]) {
-    return checkInstances({
+    return checkMysqlInstances({
       bizId: globalBizsStore.currentBizId,
       instance_addresses: instances,
     })

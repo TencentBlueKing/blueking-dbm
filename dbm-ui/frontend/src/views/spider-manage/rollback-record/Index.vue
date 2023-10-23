@@ -30,9 +30,9 @@
   } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  // TODO INTERFACE
-  import { queryFixpointLog } from '@services/fixpointRollback';
   import FixpointLogModel from '@services/model/fixpoint-rollback/fixpoint-log';
+  // TODO INTERFACE done
+  import { queryFixpointLog } from '@services/source/fixpointRollback';
   import { createTicket } from '@services/ticket';
 
   import { useTicketMessage } from '@hooks';

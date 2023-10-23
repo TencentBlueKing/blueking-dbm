@@ -32,7 +32,7 @@
   import { useI18n } from 'vue-i18n';
 
   // TODO INTERFACE
-  import { checkInstances } from '@services/clusters';
+  import { checkMysqlInstances } from '@services/source/instances';
   import type { InstanceInfos } from '@services/types/clusters';
 
   import { useGlobalBizs } from '@stores';
@@ -86,7 +86,7 @@
       message: t('IP格式不正确'),
     },
     {
-      validator: () => checkInstances({
+      validator: () => checkMysqlInstances({
         bizId: currentBizId,
         instance_addresses: [localValue.value],
       }).then((data) => {

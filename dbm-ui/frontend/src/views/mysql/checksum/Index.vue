@@ -158,7 +158,7 @@
   // } from '@services/clusters';
   // import { getClusterDBNames } from '@services/remoteService';
   // import { createTicket } from '@services/ticket';
-  import { checkInstances } from '@services/source/instances';
+  import { checkMysqlInstances } from '@services/source/instances';
   import { getClusterInfoByDomains } from '@services/source/mysqlCluster';
   import { getClusterDBNames } from '@services/source/remoteService';
   import { createTicket } from '@services/ticket';
@@ -841,7 +841,7 @@
    * 查询实例信息
    */
   function fetchInstanceInfos(instances: string[]) {
-    return checkInstances({
+    return checkMysqlInstances({
       bizId: globalBizsStore.currentBizId,
       instance_addresses: instances,
     })

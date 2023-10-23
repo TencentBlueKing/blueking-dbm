@@ -111,7 +111,7 @@
   import { findRelatedClustersByClusterIds } from '@services/mysqlCluster';
   // TODO INTERFACE done
   // import { checkInstances } from '@services/clusters';
-  import { checkInstances } from '@services/source/instances';
+  import { checkMysqlInstances } from '@services/source/instances';
 
   import { useGlobalBizs } from '@stores';
 
@@ -174,7 +174,7 @@
       message: t('目标Proxy不能为空'),
     },
     {
-      validator: () => checkInstances({
+      validator: () => checkMysqlInstances({
         bizId: currentBizId,
         instance_addresses: [localInstanceAddress.value],
       }).then((data) => {

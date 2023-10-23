@@ -25,7 +25,7 @@
   import { useI18n } from 'vue-i18n';
 
   // TODO INTERFACE
-  import { checkInstances } from '@services/redis/toolbox';
+  import { checkRedisInstances } from '@services/source/instances';
 
   import { useGlobalBizs } from '@stores';
 
@@ -68,7 +68,7 @@
     },
     {
       validator: async (value: string) => {
-        const r = await checkInstances({
+        const r = await checkRedisInstances({
           bizId: currentBizId,
           instance_addresses: [value],
         });

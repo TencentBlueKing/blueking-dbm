@@ -71,7 +71,7 @@
   import { useRouter } from 'vue-router';
 
   // TODO INTERFACE
-  import { checkFlashbackDatabase } from '@services/remoteService';
+  import { checkFlashbackDatabase } from '@services/source/remoteService';
   import { getSpiderList } from '@services/source/resourceSpider';
   import { createTicket } from '@services/ticket';
 

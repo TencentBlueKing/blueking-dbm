@@ -30,7 +30,7 @@
   import { useI18n } from 'vue-i18n';
 
   // TODO INTERFACE
-  import { checkInstances } from '@services/clusters';
+  import { checkMysqlInstances } from '@services/source/instances';
 
   import { useGlobalBizs } from '@stores';
 
@@ -72,7 +72,7 @@
       message: t('源实例不能为空'),
     },
     {
-      validator: () => checkInstances({
+      validator: () => checkMysqlInstances({
         bizId: currentBizId,
         instance_addresses: [localInstanceAddress.value],
       }).then((data) => {

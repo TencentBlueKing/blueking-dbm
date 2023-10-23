@@ -92,7 +92,7 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import { checkInstances, type InstanceItem } from '@services/redis/toolbox';
+  import { checkRedisInstances, type InstanceItem } from '@services/source/instances';
 
   import { useGlobalBizs } from '@stores';
 
@@ -193,7 +193,7 @@
     errorState.format.selectionEnd = formatErrorLines.join('\n').length;
     // 检查 IP 是否存在
     inputState.isLoading = true;
-    const res = await checkInstances({
+    const res = await checkRedisInstances({
       bizId: currentBizId,
       instance_addresses: availableLines,
     });

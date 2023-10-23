@@ -87,7 +87,7 @@
   // TODO INTERFACE done
   // import { checkInstances } from '@services/clusters';
   // import { createTicket } from '@services/ticket';
-  import { checkInstances } from '@services/source/instances';
+  import { checkMysqlInstances } from '@services/source/instances';
   import { createTicket } from '@services/ticket';
   import type { InstanceInfos } from '@services/types/clusters';
 
@@ -262,7 +262,7 @@
    */
   function fetchInstanceInfos() {
     const instances = tableData.value.map(item => item.instance_address).filter(inst => ipPort.test(inst));
-    return checkInstances({
+    return checkMysqlInstances({
       bizId: globalBizsStore.currentBizId,
       instance_addresses: instances,
     })

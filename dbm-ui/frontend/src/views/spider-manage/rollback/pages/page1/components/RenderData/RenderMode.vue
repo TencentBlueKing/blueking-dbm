@@ -56,8 +56,8 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  // TODO INTERFACE
-  import { queryBackupLogFromBklog } from '@services/fixpointRollback';
+  // TODO INTERFACE done
+  import { queryBackupLogFromBklog } from '@services/source/fixpointRollback';
 
   import TableEditDateTime from '@views/mysql/common/edit/DateTime.vue';
   import TableEditSelect from '@views/mysql/common/edit/Select.vue';

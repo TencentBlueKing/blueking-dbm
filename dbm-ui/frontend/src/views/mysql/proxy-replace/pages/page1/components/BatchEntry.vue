@@ -115,7 +115,7 @@
 
   // TODO INTERFACE done
   // import { checkInstances } from '@services/clusters';
-  import { checkInstances } from '@services/source/instances';
+  import { checkMysqlInstances } from '@services/source/instances';
   import type { InstanceInfos  } from '@services/types/clusters';
 
   import { useGlobalBizs } from '@stores';
@@ -206,7 +206,7 @@
       ...result,
       item.originIp,
     ], [] as string[]);
-    checkInstances({
+    checkMysqlInstances({
       bizId: currentBizId,
       instance_addresses: allValidOriginIpList,
     }).then((data) => {

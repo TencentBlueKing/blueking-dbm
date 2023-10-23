@@ -29,9 +29,9 @@
   } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  // TODO INTERFACE
-  import { checkInstances } from '@services/clusters';
   import type SpiderModel from '@services/model/spider/spider';
+  // TODO INTERFACE
+  import { checkMysqlInstances } from '@services/source/instances';
   import type { InstanceInfos } from '@services/types/clusters';
 
   import { useGlobalBizs } from '@stores';
@@ -70,7 +70,7 @@
       message: t('新实例不能为空'),
     },
     {
-      validator: () => checkInstances({
+      validator: () => checkMysqlInstances({
         bizId: currentBizId,
         instance_addresses: [localInstanceAddress.value],
       }).then((data) => {

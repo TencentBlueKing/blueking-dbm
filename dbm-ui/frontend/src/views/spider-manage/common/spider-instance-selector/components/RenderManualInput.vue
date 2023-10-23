@@ -93,7 +93,7 @@
   import { useI18n } from 'vue-i18n';
 
   // TODO INTERFACE done
-  import { checkInstances } from '@services/source/instances';
+  import { checkMysqlInstances } from '@services/source/instances';
   import type { InstanceInfos } from '@services/types/clusters';
 
   import { useGlobalBizs } from '@stores';
@@ -205,7 +205,7 @@
           cluster_ids: [props.clusterId],
         });
       }
-      const res = await checkInstances(params);
+      const res = await checkMysqlInstances(params);
       const legalInstances: InstanceInfos[] = [];
       for (let i = lines.length - 1; i >= 0; i--) {
         const item = lines[i];
