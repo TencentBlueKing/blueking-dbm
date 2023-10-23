@@ -1,11 +1,14 @@
 package osutil
 
 import (
+	"bufio"
 	"bytes"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"strings"
+	"sync"
 
 	"dbm-services/common/go-pubpkg/logger"
 
@@ -166,4 +169,100 @@ func StandardShellCommand(isSudo bool, param string) (stdoutStr string, err erro
 		return stderr.String(), errors.WithMessage(err, stderr.String())
 	}
 	return stdout.String(), nil
+}
+
+// ComplexCommand 捕获标准错误和标准输出io copy 到需要文件里面
+// 不影响正常的输出
+type ComplexCommand struct {
+	Command     string
+	WriteStdout bool
+	WriteStderr bool
+	StdoutFile  string
+	StderrFile  string
+	Logger      bool
+}
+
+// Run Command Run
+func (c *ComplexCommand) Run() (err error) {
+	var stderrBuf bytes.Buffer
+	var errStdout, errStderr error
+	var stderrWs, stdoutWs []io.Writer
+	cmd := exec.Command("/bin/bash", "-c", c.Command)
+	stdoutIn, _ := cmd.StdoutPipe()
+	stderrIn, _ := cmd.StderrPipe()
+	// 写入error 文件
+	if c.WriteStderr {
+		ef, errO := os.OpenFile(c.StderrFile, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
+		if errO != nil {
+			logger.Warn("打开日志时失败! %s", errO.Error())
+			return errO
+		}
+		defer ef.Close()
+		defer ef.Sync()
+		stderrWs = append(stderrWs, ef)
+	}
+	if c.WriteStdout {
+		of, errO := os.OpenFile(c.StdoutFile, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
+		if errO != nil {
+			logger.Warn("打开日志时失败! %s", errO.Error())
+			return errO
+		}
+		defer of.Close()
+		defer of.Sync()
+		stdoutWs = append(stdoutWs, of)
+	}
+	if c.Logger {
+		reader, writer := io.Pipe()
+		stderrWs = append(stderrWs, writer)
+		stdoutWs = append(stdoutWs, writer)
+		go func() {
+			buf := []byte{}
+			sc := bufio.NewScanner(reader)
+			sc.Buffer(buf, 2048*1024)
+			lineNumber := 1
+			for sc.Scan() {
+				logger.Info(sc.Text())
+				lineNumber++
+			}
+			if err := sc.Err(); err != nil {
+				logger.Error("something bad happened in the line %v: %v", lineNumber, err)
+				return
+			}
+		}()
+	}
+	stdout := io.MultiWriter(stdoutWs...)
+	stderr := io.MultiWriter(stderrWs...)
+
+	if err = cmd.Start(); err != nil {
+		logger.Error("start command failed:%s", err.Error())
+		return err
+	}
+
+	var wg sync.WaitGroup
+	wg.Add(1)
+
+	go func() {
+		_, errStdout = io.Copy(stdout, stdoutIn)
+		wg.Done()
+	}()
+
+	_, errStderr = io.Copy(stderr, stderrIn)
+	wg.Wait()
+
+	if errStdout != nil {
+		logger.Error("failed to capture stdout or stderr%v\n", errStdout)
+		return errStdout
+	}
+	if errStderr != nil {
+		logger.Error("failed to capture stderr or stderr,%v\n", errStderr)
+		return errStderr
+	}
+
+	if err = cmd.Wait(); err != nil {
+		errStr := string(stderrBuf.Bytes())
+		logger.Error("exec failed:%s,stderr: %s", err.Error(), errStr)
+		return err
+	}
+
+	return nil
 }
