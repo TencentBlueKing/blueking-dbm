@@ -1,6 +1,7 @@
 <template>
   <div>
     <IpSelector
+      v-model:show-dialog="isShowIpSelector"
       :biz-id="bizId"
       class="mt-12"
       :cloud-info="cloudInfo"
@@ -115,6 +116,7 @@
 
   const bizId = globalBizsStore.currentBizId;
 
+  const isShowIpSelector = ref(false);
   const hostTableData = shallowRef<TExpansionNode['hostList']>(props.data.hostList || []);
 
   // 目标容量和实际容量误差

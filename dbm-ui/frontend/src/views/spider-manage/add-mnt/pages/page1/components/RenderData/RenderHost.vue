@@ -79,10 +79,6 @@
     @change="handleHostChange" />
 </template>
 <script setup lang="ts">
-  import {
-    ref,
-    shallowRef,
-  } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import type SpiderModel from '@services/model/spider/spider';
@@ -132,7 +128,6 @@
     if (list.length > 0) {
       validator(localHostList.value).finally(() => {
         setTimeout(() => {
-          console.log(contentRef.value.clientWidth, contentRef.value.scrollWidth);
           isOverflow.value =  contentRef.value.clientWidth < contentRef.value.scrollWidth;
         });
       });

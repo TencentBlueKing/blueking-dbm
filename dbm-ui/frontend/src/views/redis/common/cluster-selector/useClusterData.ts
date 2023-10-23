@@ -28,6 +28,7 @@ export function useClusterData(state: ClusterSelectorState, ticketType = TicketT
   const fetchResources = () => {
     const { currentBizId } = useGlobalBizs();
     state.isLoading = true;
+    // 全量数据
     return listClusterList(currentBizId)
       .then((res) => {
         if (ticketType === TicketTypes.REDIS_PROXY_SCALE_DOWN) {
@@ -56,7 +57,6 @@ export function useClusterData(state: ClusterSelectorState, ticketType = TicketT
    */
   const handleChangePage = (value: number) => {
     state.pagination.current = value;
-    return fetchResources();
   };
 
   /**

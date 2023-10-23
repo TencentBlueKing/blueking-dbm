@@ -84,7 +84,7 @@
 
   import { ClusterTypes } from '@common/const';
 
-  import ClusterSelector from '@components/cluster-selector/SpiderClusterSelector.vue';
+  import ClusterSelector from '@components/cluster-selector-new/Index.vue';
 
   import RenderData from './components/RenderData/Index.vue';
   import RenderDataRow, {

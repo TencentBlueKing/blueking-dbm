@@ -70,7 +70,7 @@
             <BkButton
               class="w-88"
               size="small"
-              @click="() => inputState.values = ''">
+              @click="handleClear">
               {{ $t('清空') }}
             </BkButton>
           </div>
@@ -79,37 +79,39 @@
       <template #main>
         <BkLoading :loading="inputState.isLoading">
           <RenderManualHost
+            is-manul
             :last-values="lastValues"
+            :manual-table-data="inputState.tableData"
             :role="role"
-            :table-data="inputState.tableData"
-            :table-settings="tableSettings"
+            :table-setting="tableSetting"
             @change="handleHostChange" />
         </BkLoading>
       </template>
     </BkResizeLayout>
   </div>
 </template>
-<script setup lang="ts">
+<script setup lang="ts" generic="T extends any">
   import { useI18n } from 'vue-i18n';
 
-  import { checkInstances, type InstanceItem } from '@services/redis/toolbox';
+  import { checkInstances } from '@services/clusters';
+  import type { InstanceInfos } from '@services/types/clusters';
+  import type { ListBase } from '@services/types/common';
 
   import { useGlobalBizs } from '@stores';
 
-  import { ipv4 } from '@common/regex';
+  import { ipPort } from '@common/regex';
 
-  import type { InstanceSelectorValues } from '../Index.vue';
+  import type { InstanceSelectorValues, TableSetting } from '../Index.vue';
 
-  import  type { PanelTypes }  from './PanelTab.vue';
-  import RenderManualHost from './RenderManualHost.vue';
-
-  import type { TableProps } from '@/types/bkui-vue';
+  import RenderManualHost from './table-content/table/Index.vue';
 
   interface Props {
-    validTab: Exclude<PanelTypes, 'manualInput'>,
-    lastValues: InstanceSelectorValues,
-    tableSettings: TableProps['settings'],
     role?: string,
+    clusterId?: number,
+    lastValues: InstanceSelectorValues,
+    tableSetting: TableSetting,
+    // eslint-disable-next-line vue/no-unused-properties
+    getTableList: (params: Record<string, any>) => ListBase<T[]>
   }
 
   interface Emits {
@@ -124,9 +126,9 @@
 
   const inputState = reactive({
     values: '',
-    placeholder: t('请输入IP如_1_1_1_1多个可使用换行_空格或_分隔'),
+    placeholder: t('请输入IP_Port_如_1_1_1_1_10000_多个可使用换行_空格或_分隔'),
     isLoading: false,
-    tableData: [] as InstanceItem[],
+    tableData: [] as InstanceInfos[],
   });
   const errorState = reactive({
     format: {
@@ -168,7 +170,7 @@
    * 处理分隔内容，过滤空内容
    */
   const getValues = () => inputState.values
-    .replace(/\s+|[;,|]/g, ' ') // 将空格 换行符 ；，｜符号统一为空格
+    .replace(/\s+|[；，｜]/g, ' ') // 将空格 换行符 ；，｜符号统一为空格
     .split(' ')
     .filter(value => value);
 
@@ -176,67 +178,93 @@
    * 解析输入内容
    */
   const handleParsingValues = async () => {
-    const formatErrorLines: string[] = [];
+    const newLines: string[] = [];
     const lines = getValues();
-    const availableLines: string[] = [];
+
     // 处理格式错误
-    lines.forEach((line) => {
-      if (!ipv4.test(line)) {
-        formatErrorLines.push(line);
-      } else {
-        availableLines.push(line);
-      }
-    });
-    const count = formatErrorLines.length;
-    errorState.format.count = count;
-    errorState.format.selectionStart = 0;
-    errorState.format.selectionEnd = formatErrorLines.join('\n').length;
-    // 检查 IP 是否存在
-    inputState.isLoading = true;
-    const res = await checkInstances({
-      bizId: currentBizId,
-      instance_addresses: availableLines,
-    });
-    inputState.isLoading = false;
-    const ipsSet = new Set(availableLines);
-    // 同ip不同端口，取任意一个即可
-    const legalInstances = res.reduce((result, item) => {
-      if (ipsSet.has(item.ip)) {
-        result.push(item);
-        ipsSet.delete(item.ip);
-      }
-      return result;
-    }, [] as InstanceItem[]);
-    const checkErrorLines = [...ipsSet];
-
-    inputState.tableData.splice(0, inputState.tableData.length, ...legalInstances);
-    errorState.instance.count = checkErrorLines.length;
-    const { selectionEnd } = errorState.format;
-    errorState.instance.selectionStart = selectionEnd === 0 ? 0 : selectionEnd + 1;
-    errorState.instance.selectionEnd = checkErrorLines.join('\n').length + errorState.format.selectionEnd + 1;
-
-    // 解析完成后选中
-    const lastValues = { ...props.lastValues };
-    const currentTab = props.validTab;
-    for (const item of inputState.tableData) {
-      const list = lastValues[currentTab];
-      const isExisted = list.find(i => i.ip === item.ip);
-      if (!isExisted) {
-        item.cluster_domain = item.master_domain;
-        lastValues[currentTab].push(item);
+    for (let i = lines.length - 1; i >= 0; i--) {
+      const value = lines[i];
+      if (!ipPort.test(value)) {
+        const remove = lines.splice(i, 1);
+        newLines.push(...remove);
       }
     }
-    emits('change', {
-      ...props.lastValues,
-      ...lastValues,
-    });
+    const count = newLines.length;
+    errorState.format.count = count;
+    errorState.format.selectionStart = 0;
+    errorState.format.selectionEnd = newLines.join('\n').length;
+
+    // 检查 IP:Port 是否存在
+    inputState.isLoading = true;
+    try {
+      const params = {
+        bizId: currentBizId,
+        instance_addresses: lines,
+      };
+      if (props.clusterId) {
+        Object.assign(params, {
+          cluster_ids: [props.clusterId],
+        });
+      }
+      const res = await checkInstances(params);
+      const legalInstances: InstanceInfos[] = [];
+      for (let i = lines.length - 1; i >= 0; i--) {
+        const item = lines[i];
+        const infos = res[i];
+        const remove = lines.splice(i, 1);
+        const isExisted = res.find(existItem => (
+          existItem.instance_address === item
+        ));
+        if (!isExisted) {
+          newLines.push(...remove);
+        } else {
+          legalInstances.push(infos);
+        }
+      }
+      inputState.tableData.splice(0, inputState.tableData.length, ...legalInstances);
+      errorState.instance.count = newLines.length - count;
+      const { selectionEnd } = errorState.format;
+      errorState.instance.selectionStart = selectionEnd === 0 ? 0 : selectionEnd + 1;
+      errorState.instance.selectionEnd = newLines.join('\n').length;
+
+      // 解析完成后选中
+      const lastValues = { ...props.lastValues };
+      for (const item of inputState.tableData) {
+        const type = item.cluster_type as 'tendbcluster';
+        const list = lastValues[type];
+        const isExisted = list.find(i => `${i.instance_address}_${i.bk_cloud_id}` === `${item.instance_address}_${item.bk_cloud_id}`);
+        if (!isExisted) {
+          lastValues[type].push({
+            bk_host_id: item.bk_host_id,
+            instance_address: item.instance_address,
+            cluster_id: item.cluster_id,
+            cluster_type: item.cluster_type as 'tendbcluster',
+            bk_cloud_id: item.host_info.cloud_id,
+            port: item.port,
+            ip: item.ip,
+          });
+        }
+      }
+      emits('change', {
+        ...props.lastValues,
+        ...lastValues,
+      });
+    } catch (_) {
+      console.log(_);
+    }
     errorState.format.show = count > 0;
-    errorState.instance.show = checkErrorLines.length > 0;
+    errorState.instance.show = newLines.slice(count).length > 0;
     inputState.isLoading = false;
 
-    const newLines = [...formatErrorLines, ...checkErrorLines];
     // 将调整好的内容回填显示
+    newLines.push(...lines); // 没有错误内容回填
     inputState.values = newLines.join('\n');
+  };
+
+  const handleClear = () => {
+    inputState.values = '';
+    errorState.format.show = false;
+    errorState.instance.show = false;
   };
 </script>
 

@@ -13,7 +13,7 @@
 
 <template>
   <BkDialog
-    class="dbm-proxy-selector"
+    class="spider-instance-selector"
     :close-icon="false"
     :draggable="false"
     :esc-close="false"
@@ -34,20 +34,19 @@
         <Component
           :is="renderCom"
           :key="panelTabActive"
-          :active-tab="panelTabActive"
-          :db-type="dbType"
-          :is-radio-mode="isRadioMode"
+          :cluster-id="clusterId"
+          :get-table-list="getTableList"
+          :get-topo-list="getTopoList"
           :last-values="lastValues"
           :role="role"
-          :table-settings="tableSettings"
-          :valid-tab="panelList[0]"
+          :table-setting="tableSettings"
+          :ticket-type="ticketType"
           @change="handleChange" />
       </template>
       <template #aside>
         <PreviewResult
-          :active-tab="panelTabActive"
+          :get-table-list="getTableList"
           :last-values="lastValues"
-          table-key="ip"
           @change="handleChange" />
       </template>
     </BkResizeLayout>
@@ -67,7 +66,7 @@
         </BkButton>
       </span>
       <BkButton
-        class="ml-8 w-88"
+        class="ml8 w-88"
         @click="handleClose">
         {{ $t('取消') }}
       </BkButton>
@@ -75,34 +74,46 @@
   </BkDialog>
 </template>
 <script lang="ts">
-  import type { ChoosedFailedMasterItem } from './components/RenderRedisFailHost.vue';
-  import type { ChoosedItem } from './components/RenderRedisHost.vue';
+  import type { IValue, MySQLClusterTypes } from './common/types';
 
+  export type InstanceSelectorValue = IValue
+  export type SupportClusterTypes = MySQLClusterTypes
   export type InstanceSelectorValues = {
-    idleHosts: ChoosedItem[],
-    createSlaveIdleHosts: ChoosedItem[],
-    masterFailHosts: ChoosedFailedMasterItem[],
+    tendbcluster: IValue[],
   }
 
   export default {
-    name: 'InstanceSelector',
+    name: 'SpiderInstanceSelector',
   };
 </script>
-<script setup lang="ts">
-  import getSettings from './common/tableSettings';
-  import PanelTab, { activePanelInjectionKey, defaultPanelList, type PanelTypes } from './components/PanelTab.vue';
-  import PreviewResult from './components/preview-result/Index.vue';
-  import RenderManualInput from './components/RenderManualInput.vue';
-  import RenderRedis from './components/RenderRedis.vue';
+<script setup lang="ts" generic="T extends any">
+  import { getResourceInstances } from '@services/clusters';
+  import { queryClusters } from '@services/mysqlCluster';
+  import type { ListBase } from '@services/types/common';
+
+  import getSettings from '@components/instance-selector-new/common/tableSettings';
+
+  import RenderManualInput from './components/ManualInputContent.vue';
+  import PanelTab, {
+    activePanelInjectionKey,
+    defaultPanelList,
+  } from './components/PanelTab.vue';
+  import PreviewResult from './components/preview-result/PreviewResult.vue';
+  import RenderTopo from './components/table-content/topo/Index.vue';
+
+  export type TableSetting = ReturnType<typeof getSettings>;
 
   interface Props {
     isShow?: boolean;
-    panelList?: Array<PanelTypes>,
+    clusterId?: number;
+    panelList?: { name: string; id: string, content?: Element }[],
     role?: string,
     selected?: InstanceSelectorValues,
-    dbType?: string,
-    activeTab?: PanelTypes
-    isRadioMode?: boolean,
+    ticketType?: string,
+    // eslint-disable-next-line vue/no-unused-properties
+    getTopoList?: (params: Record<any, any>) => T[]
+    // eslint-disable-next-line vue/no-unused-properties
+    getTableList?: (params: Record<string, any>) => ListBase<T[]>
   }
 
   interface Emits {
@@ -112,45 +123,37 @@
 
   const props = withDefaults(defineProps<Props>(), {
     isShow: false,
+    clusterId: undefined,
     panelList: () => [...defaultPanelList],
     role: '',
     selected: undefined,
-    dbType: 'redis',
-    activeTab: 'idleHosts',
-    isRadioMode: false,
+    ticketType: '',
+    getTopoList: queryClusters as unknown as (params: Record<any, any>) => T[],
+    getTableList: getResourceInstances as unknown as (params: Record<string, any>) => ListBase<T[]>,
   });
+
   const emits = defineEmits<Emits>();
 
-  const defaultSettings = getSettings(props.role);
-  let tableSettings = defaultSettings;
-  if (props.activeTab === 'masterFailHosts') {
-    defaultSettings.checked = ['instance_address', 'cloud_area', 'status', 'host_name', 'os_name'];
-  } else if (props.activeTab === 'createSlaveIdleHosts') {
-    defaultSettings.checked = ['instance_address', 'role', 'cloud_area', 'status', 'host_name'];
-  }
-  tableSettings = defaultSettings;
-  const panelTabActive = ref<PanelTypes>(props.activeTab);
-
+  const panelTabActive = ref<'tendbcluster'|'manualInput'>('tendbcluster');
   const lastValues = reactive<InstanceSelectorValues>({
-    idleHosts: [],
-    createSlaveIdleHosts: [],
-    masterFailHosts: [],
+    tendbcluster: [],
   });
-  const isEmpty = computed(() => !Object.values(lastValues).some(values => values.length > 0));
-  provide(activePanelInjectionKey, panelTabActive);
 
   const comMap = {
-    masterFailHosts: RenderRedis,
-    idleHosts: RenderRedis,
-    createSlaveIdleHosts: RenderRedis,
+    tendbcluster: RenderTopo,
     manualInput: RenderManualInput,
   };
 
+  const tableSettings = getSettings(props.role);
+
+  const isEmpty = computed(() => !Object.values(lastValues).some(values => values.length > 0));
   const renderCom = computed(() => comMap[panelTabActive.value as keyof typeof comMap]);
 
-  watch(() => [props.isShow, props.selected], ([show, selected]) => {
-    if (show && selected) {
-      Object.assign(lastValues, selected);
+  provide(activePanelInjectionKey, panelTabActive);
+
+  watch(() => props.isShow, (show) => {
+    if (show && props.selected) {
+      Object.assign(lastValues, props.selected);
     }
   });
 
@@ -168,7 +171,7 @@
   };
 </script>
 <style lang="less">
-  .dbm-proxy-selector {
+  .spider-instance-selector {
     display: block;
     width: 80%;
     max-width: 1600px;
@@ -182,6 +185,5 @@
       padding: 0 !important;
       overflow-y: hidden !important;
     }
-
   }
 </style>

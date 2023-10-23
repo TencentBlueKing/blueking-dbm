@@ -81,6 +81,7 @@
               required>
               <div>
                 <IpSelector
+                  v-model:show-dialog="isShowIpSelector"
                   :biz-id="formData.bk_biz_id"
                   :cloud-info="cloudInfo"
                   :data="formData.details.nodes.master"
@@ -113,6 +114,7 @@
               property="details.nodes.client"
               required>
               <IpSelector
+                v-model:show-dialog="isShowIpSelector"
                 :biz-id="formData.bk_biz_id"
                 :cloud-info="cloudInfo"
                 :data="formData.details.nodes.client"
@@ -133,6 +135,7 @@
               property="details.nodes.hot"
               required>
               <IpSelector
+                v-model:show-dialog="isShowIpSelector"
                 :biz-id="formData.bk_biz_id"
                 :cloud-info="cloudInfo"
                 :data="formData.details.nodes.hot"
@@ -153,6 +156,7 @@
               property="details.nodes.cold"
               required>
               <IpSelector
+                v-model:show-dialog="isShowIpSelector"
                 :biz-id="formData.bk_biz_id"
                 :cloud-info="cloudInfo"
                 :data="formData.details.nodes.cold"
@@ -426,6 +430,7 @@
   const specClientRef = ref();
   const specHotRef = ref();
   const specColdRef = ref();
+  const isShowIpSelector = ref(false);
   const formData = reactive(genDefaultFormData());
 
   const totalCapacity = ref(0);

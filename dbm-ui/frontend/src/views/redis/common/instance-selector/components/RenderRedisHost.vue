@@ -23,6 +23,7 @@
       :loading="isTableDataLoading"
       :z-index="2">
       <DbOriginalTable
+        class="table-box"
         :columns="columns"
         :data="tableData"
         :is-anomalies="isAnomalies"
@@ -65,14 +66,15 @@
   }
 
   export interface Props {
+    tableSettings: TableProps['settings'],
+    lastValues: InstanceSelectorValues,
     node?: {
       id: number,
       name: string
       clusterDomain: string
     },
-    role?: string
-    tableSettings: TableProps['settings'],
-    lastValues: InstanceSelectorValues,
+    role?: string,
+    isRadioMode?: boolean,
   }
 
   interface Emits {
@@ -94,20 +96,23 @@
     }
   }
 
-  const props = defineProps<Props>();
+  const props = withDefaults(defineProps<Props>(), {
+    node: undefined,
+    role: '',
+    isRadioMode: false,
+  });
   const emits = defineEmits<Emits>();
 
 
   const { t } = useI18n();
   const activePanel = inject(activePanelInjectionKey);
 
+
+  const showTipLocalValue = localStorage.getItem(LocalStorageKeys.REDIS_DB_REPLACE_MASTER_TIP);
+
   const search = ref('');
   const isAnomalies = ref(false);
-  const checkedMap = shallowRef<Record<string, ChoosedItem>>({});
-  const masterSlaveMap: Record<string, string> = {};
-  const showTipLocalValue = localStorage.getItem(LocalStorageKeys.REDIS_DB_REPLACE_MASTER_TIP);
   const showMasterTip = ref(!showTipLocalValue);
-
   const pagination = reactive({
     count: 0,
     current: 1,
@@ -118,6 +123,8 @@
   });
   const isTableDataLoading = ref(false);
   const tableData = ref<RedisHostModel []>([]);
+  const checkedMap = shallowRef<Record<string, ChoosedItem>>({});
+
   const isSelectedAll = computed(() => (
     tableData.value.length > 0
     && tableData.value.length === tableData.value.filter(item => checkedMap.value[item.ip]).length
@@ -125,18 +132,25 @@
 
   const isIndeterminate = computed(() => !isSelectedAll.value && Object.values(checkedMap.value).length > 0);
 
+  const isSingleSelect = computed(() => props.isRadioMode);
+
+  // 选中域名列表
+  const selectedDomains = computed(() => Object.values(checkedMap.value).map(item => item.ip));
+
+  const masterSlaveMap: Record<string, string> = {};
+
   const columns = [
     {
       width: 60,
       fixed: 'left',
-      label: () => (
+      label: () => (isSingleSelect.value ? '' : (
         <bk-checkbox
           indeterminate={isIndeterminate.value}
           model-value={isSelectedAll.value}
           onClick={(e: Event) => e.stopPropagation()}
           onChange={handleSelectPageAll}
         />
-      ),
+      )),
       render: ({ index, data }: {index: number, data: RedisHostModel}) => {
         if (data.role === 'master' && showMasterTip.value) {
           return <bk-popover
@@ -147,7 +161,14 @@
             theme="light"
             placement="top">
             {{
-              default: () => (
+              default: () => (isSingleSelect.value ? (
+                <bk-radio
+                  class="check-box"
+                  label={data.ip}
+                  model-value={selectedDomains.value[0]}
+                  onChange={() => handleTableSelectOne(true, data)}
+                />
+              ) : (
                 <bk-checkbox
                   style="vertical-align:middle;padding-top:5px;"
                   model-value={Boolean(checkedMap.value[data.ip])}
@@ -155,7 +176,7 @@
                   onMouseenter={() => handleControlTip(index, true)}
                   onChange={(value: boolean) => handleTableSelectOne(value, data)}
                 />
-              ),
+              )),
               content: () => (
                 <div class="redis-host-master-tip-box">
                   <span>{t('选择 Master IP 会默认选上关联的 Slave IP，一同替换')}</span>
@@ -165,7 +186,14 @@
             }}
           </bk-popover>;
         }
-        return (
+        return isSingleSelect.value ? (
+          <bk-radio
+            class="check-box"
+            label={data.ip}
+            model-value={selectedDomains.value[0]}
+            onChange={() => handleTableSelectOne(true, data)}
+          />
+          ) : (
           <bk-checkbox
             style="vertical-align: middle;"
             model-value={Boolean(checkedMap.value[data.ip])}
@@ -352,7 +380,7 @@
   };
 
   const handleTableSelectOne = (checked: boolean, data: RedisHostModel) => {
-    const lastCheckMap = { ...checkedMap.value };
+    const lastCheckMap = isSingleSelect.value ? {} : { ...checkedMap.value };
     if (checked) {
       lastCheckMap[data.ip] = formatValue(data);
       // master 与 slave 关联选择
@@ -361,7 +389,17 @@
         const slaveNode = tableData.value.filter(item => item.ip === slaveIp)[0];
         lastCheckMap[slaveIp] = formatValue(slaveNode);
       }
+      if (isSingleSelect.value) {
+        // 单选
+        selectedDomains.value[0] = data.ip;
+        checkedMap.value = lastCheckMap;
+        triggerChange();
+        return;
+      }
     } else {
+      if (isSingleSelect.value) {
+        return;
+      }
       delete lastCheckMap[data.ip];
     }
     checkedMap.value = lastCheckMap;
@@ -415,13 +453,21 @@
   };
 </script>
 
-<style lang="less">
+<style lang="less" scoped>
   .instance-selector-render-topo-host {
     padding: 0 24px;
 
     .bk-table-body {
       tr {
         cursor: pointer;
+      }
+    }
+  }
+
+  .table-box {
+    :deep(.check-box) {
+      .bk-radio-label {
+        display: none;
       }
     }
   }

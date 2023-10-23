@@ -12,8 +12,10 @@
 -->
 
 <template>
-  <BkLoading :loading="isTreeDataLoading">
-    <div class="instance-selector-topo">
+  <BkLoading :loading="isLoading">
+    <div
+      class="instance-selector-topo"
+      :class="{'single-cluster': Boolean(clusterId)}">
       <BkResizeLayout
         :border="false"
         collapsible
@@ -27,18 +29,10 @@
               clearable
               :placeholder="$t('搜索拓扑节点')" />
             <div style="height: calc(100% - 50px); margin-top: 12px;">
-              <BkAlert
-                v-if="activeTab === 'createSlaveIdleHosts'"
-                closable
-                style="margin-bottom: 12px;"
-                theme="info"
-                :title="$t('仅支持从库有故障的集群新建从库')" />
               <BkTree
-                ref="treeRef"
                 children="children"
                 :data="treeData"
-                :empty-text="$t('暂无从库故障集群')"
-                label="cluster_name"
+                label="name"
                 :node-content-action="['click']"
                 :search="treeSearch"
                 selectable
@@ -53,7 +47,7 @@
                     <span
                       v-overflow-tips
                       class="custom-tree-node__name text-overflow">
-                      {{ item.master_domain }}
+                      {{ item.name }}
                     </span>
                     <span class="custom-tree-node__count">
                       {{ item.count }}
@@ -66,12 +60,13 @@
         </template>
         <template #main>
           <div style="height: 570px;">
-            <RenderContent
-              :is-radio-mode="isRadioMode"
+            <RenderTopoHost
+              :cluster-id="selectClusterId"
+              :get-table-list="getTableList"
               :last-values="lastValues"
-              :node="selectNode"
               :role="role"
-              :table-settings="tableSettings"
+              :table-setting="tableSetting"
+              :ticket-type="ticketType"
               @change="handleHostChange" />
           </div>
         </template>
@@ -79,21 +74,24 @@
     </div>
   </BkLoading>
 </template>
-<script setup lang="ts">
+<script setup lang="ts" generic="T extends ResourceInstance">
+  import type { ResourceInstance } from '@services/types/clusters';
+  import type { ListBase } from '@services/types/common';
 
-  import RedisModel from '@services/model/redis/redis';
-  import { listClusterList } from '@services/redis/toolbox';
+  import { activePanelInjectionKey } from '@components/instance-selector-new/components/PanelTab.vue';
+  import type { InstanceSelectorValues, TableSetting } from '@components/instance-selector-new/Index.vue';
 
-  import { useGlobalBizs } from '@stores';
+  import RenderTopoHost from '../table/Index.vue';
 
-  import type { InstanceSelectorValues } from '../Index.vue';
+  import { useTopoData } from './useTopoData';
 
-  import type { PanelTypes } from './PanelTab.vue';
-  import RenderCreateSlaveRedisHost from './RenderCreateSlaveRedisHost.vue';
-  import RenderRedisFailHost from './RenderRedisFailHost.vue';
-  import RenderRedisHost from './RenderRedisHost.vue';
-
-  import type { TableProps } from '@/types/bkui-vue';
+  interface TopoTreeData {
+    id: number;
+    name: string;
+    obj: 'biz' | 'cluster',
+    count: number,
+    children: Array<TopoTreeData>;
+  }
 
   interface Emits {
     (e: 'change', value: InstanceSelectorValues): void
@@ -101,119 +99,39 @@
 
   interface Props {
     lastValues: InstanceSelectorValues,
-    tableSettings: TableProps['settings'],
+    clusterId?: number,
     role?: string,
-    activeTab?: PanelTypes,
-    isRadioMode?: boolean,
+    ticketType?: string,
+    // eslint-disable-next-line vue/no-unused-properties
+    getTopoList: (params: Record<string, any>) => T[]
+    // eslint-disable-next-line vue/no-unused-properties
+    getTableList: (params: Record<string, any>) => ListBase<T[]>,
+    tableSetting: TableSetting
   }
 
-  const props = withDefaults(defineProps<Props>(), {
+  withDefaults(defineProps<Props>(), {
+    clusterId: undefined,
     role: '',
-    activeTab: 'idleHosts',
-    isRadioMode: false,
+    ticketType: '',
   });
   const emits = defineEmits<Emits>();
 
-  const { currentBizId } = useGlobalBizs();
-
-  const isTreeDataLoading = ref(false);
-  const treeRef = ref();
+  const activePanel = inject(activePanelInjectionKey);
   const treeSearch = ref('');
-  const selectNode = ref<{
-    id: number;
-    name: string;
-    clusterDomain: string;
-  }>();
-  const treeData = shallowRef<RedisModel[]>([]);
 
-  const renderMap = {
-    masterFailHosts: RenderRedisFailHost,
-    createSlaveIdleHosts: RenderCreateSlaveRedisHost,
-    idleHosts: RenderRedisHost,
-  } as Record<string, any>;
+  const {
+    isLoading,
+    treeData,
+    selectClusterId,
+    fetchResources,
+  } = useTopoData(activePanel);
 
-  const RenderContent = computed(() => renderMap[props.activeTab as string]);
+  fetchResources();
 
-  const fetchClusterTopo = () => {
-    isTreeDataLoading.value = true;
-    listClusterList(currentBizId).then((data) => {
-      let arr = data;
-      if (props.activeTab === 'masterFailHosts') {
-        // 主故障切换，展示master数量
-        arr.forEach((item) => {
-          Object.assign(item, {
-            count: item.redisMasterCount,
-          });
-        });
-      }
-      if (props.activeTab === 'createSlaveIdleHosts') {
-        // 只展示master数量
-        arr.forEach((item) => {
-          Object.assign(item, {
-            count: item.redisSlaveFaults,
-          });
-        });
-        arr = arr.filter(item => item.redis_slave.filter(slave => slave.status !== 'running').length > 0);
-      }
-      treeData.value = arr;
-      setTimeout(() => {
-        if (arr.length > 0) {
-          const [firstNode] = treeData.value;
-          const [firstRawNode] = treeRef.value.getData().data;
-          const node = {
-            id: firstNode.id,
-            name: firstNode.cluster_name,
-            clusterDomain: firstNode.master_domain,
-          };
-          treeRef.value.setOpen(firstRawNode);
-          treeRef.value.setSelect(firstRawNode);
-          selectNode.value = node;
-        }
-      });
-    })
-      .catch((e) => {
-        console.error(e);
-      })
-      .finally(() => {
-        isTreeDataLoading.value = false;
-      });
-  };
-
-  fetchClusterTopo();
 
   // 选中topo节点，获取topo节点下面的所有主机
-  const handleNodeClick = (
-    node: RedisModel,
-    info: unknown,
-    {
-      __is_open: isOpen,
-      __is_selected: isSelected,
-      __index: index }: {
-        __is_open: boolean,
-        __is_selected: boolean,
-        __index: number },
-  ) => {
-    const rawNode = treeRef.value.getData().data[index];
-    const item = {
-      id: node.id,
-      name: node.cluster_name,
-      clusterDomain: node.master_domain,
-    };
-    selectNode.value = item;
-    if (!isOpen && !isSelected) {
-      treeRef.value.setNodeOpened(rawNode, true);
-      treeRef.value.setSelect(rawNode, true);
-      return;
-    }
-
-    if (isOpen && !isSelected) {
-      treeRef.value.setSelect(rawNode, true);
-      return;
-    }
-
-    if (isSelected) {
-      treeRef.value.setNodeOpened(rawNode, !isOpen);
-    }
+  const handleNodeClick = (node: TopoTreeData) => {
+    selectClusterId.value = node.id;
   };
 
   const handleHostChange = (values: InstanceSelectorValues) => {
@@ -225,6 +143,13 @@
   .instance-selector-topo {
     display: block;
     padding-top: 16px;
+
+    // &.single-cluster{
+    //   .bk-resize-layout-aside{
+    //     width: 0 !important;
+    //     overflow: hidden !important;
+    //   }
+    // }
 
     .bk-resize-layout {
       height: 100%;
@@ -299,4 +224,3 @@
     }
   }
 </style>
-@services/model/redis/redis

@@ -87,9 +87,7 @@
 
   import { TicketTypes } from '@common/const';
 
-  import InstanceSelector, {
-    type InstanceSelectorValues,
-  } from '@views/spider-manage/common/spider-instance-selector/Index.vue';
+  import InstanceSelector, { type InstanceSelectorValues } from '@components/instance-selector-new/Index.vue';
 
   import RenderData from './components/RenderData/Index.vue';
   import RenderDataRow, {
