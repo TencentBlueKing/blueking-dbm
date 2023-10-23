@@ -1,10 +1,10 @@
 {
   "bk_biz_id": 0,
-  "name": "Redis cluster_state.error\u4e8b\u4ef6\u544a\u8b66.json",
+  "name": "Redis cluster_state.error\u4e8b\u4ef6\u544a\u8b66",
   "db_type": "redis",
   "details": {
     "app": "",
-    "name": "Redis cluster_state.error\u4e8b\u4ef6\u544a\u8b66.json",
+    "name": "Redis cluster_state.error\u4e8b\u4ef6\u544a\u8b66",
     "path": "",
     "type": "monitor",
     "items": [
