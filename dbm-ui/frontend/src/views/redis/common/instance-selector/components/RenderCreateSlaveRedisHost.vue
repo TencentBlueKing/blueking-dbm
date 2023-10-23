@@ -65,14 +65,16 @@
   }
 
   export interface Props {
+    tableSettings: TableProps['settings'],
+    lastValues: InstanceSelectorValues,
     node?: {
       id: number,
       name: string
       clusterDomain: string
     },
-    role?: string
-    tableSettings: TableProps['settings'],
-    lastValues: InstanceSelectorValues,
+    role?: string,
+    isRadioMode?: boolean,
+
   }
 
   interface Emits {
@@ -90,28 +92,19 @@
     instance_count?: number;
   }
 
-  const props = defineProps<Props>();
+  const props = withDefaults(defineProps<Props>(), {
+    node: undefined,
+    role: '',
+    isRadioMode: false,
+  });
   const emits = defineEmits<Emits>();
-
 
   const { t } = useI18n();
   const activePanel = inject(activePanelInjectionKey);
 
   const search = ref('');
   const isAnomalies = ref(false);
-
-  const checkedMap = shallowRef({} as Record<string, ChoosedItem>);
-
-
-  watch(() => props.lastValues, (lastValues) => {
-    // 切换 tab 回显选中状态 \ 预览结果操作选中状态
-    checkedMap.value = {};
-    const checkedList = lastValues.createSlaveIdleHosts;
-    for (const item of checkedList) {
-      checkedMap.value[item.ip] = item;
-    }
-  }, { immediate: true, deep: true });
-
+  const isTableDataLoading = ref(false);
   const pagination = reactive({
     count: 0,
     current: 1,
@@ -120,38 +113,55 @@
     align: 'right',
     layout: ['total', 'limit', 'list'],
   });
-  const isTableDataLoading = ref(false);
+
   const tableData = shallowRef<RedisHostModel []>([]);
+  const checkedMap = shallowRef({} as Record<string, ChoosedItem>);
+
   const isSelectedAll = computed(() => (
     tableData.value.length > 0
     && tableData.value.length === tableData.value.filter(item => checkedMap.value[item.ip]).length
   ));
   const isIndeterminate = computed(() => !isSelectedAll.value && Object.values(checkedMap.value).length > 0);
+  const isSingleSelect = computed(() => props.isRadioMode);
+  // 选中域名列表
+  const selectedDomains = computed(() => Object.values(checkedMap.value).map(item => item.ip));
 
   const columns = [
     {
       width: 60,
       fixed: 'left',
-      label: () => (
+      label: () => (isSingleSelect.value ? '' : (
         <bk-checkbox
           indeterminate={isIndeterminate.value}
           model-value={isSelectedAll.value}
           onClick={(e: Event) => e.stopPropagation()}
           onChange={handleSelectPageAll}
         />
-      ),
+      )),
       render: ({ data }: {data: RedisHostModel}) => {
         if (data.running_slave !== 0) {
           return (
             <bk-popover theme="dark" placement="top">
               {{
-                default: () => <bk-checkbox style="vertical-align: middle;" disabled />,
+                default: () => (isSingleSelect.value ? (
+                <bk-radio
+                  class="check-box"
+                  disabled
+                />
+                ) : <bk-checkbox style="vertical-align: middle;" disabled />),
                 content: () => <span>{t('已存在正常运行的从库')}</span>,
               }}
           </bk-popover>
           );
         }
-        return (
+        return isSingleSelect.value ? (
+          <bk-radio
+            class="check-box"
+            label={data.ip}
+            model-value={selectedDomains.value[0]}
+            onChange={() => handleTableSelectOne(true, data)}
+          />
+          ) : (
           <bk-checkbox
             style="vertical-align: middle;"
             model-value={Boolean(checkedMap.value[data.ip])}
@@ -238,6 +248,15 @@
     },
   ];
 
+  watch(() => props.lastValues, (lastValues) => {
+    // 切换 tab 回显选中状态 \ 预览结果操作选中状态
+    checkedMap.value = {};
+    const checkedList = lastValues.createSlaveIdleHosts;
+    for (const item of checkedList) {
+      checkedMap.value[item.ip] = item;
+    }
+  }, { immediate: true, deep: true });
+
   const fetchData = () => {
     if (props.node) {
       isTableDataLoading.value = true;
@@ -309,7 +328,15 @@
     const lastCheckMap = { ...checkedMap.value };
     if (checked) {
       lastCheckMap[data.ip] = formatValue(data);
+      if (isSingleSelect.value) {
+        // 单选
+        selectedDomains.value[0] = data.ip;
+        return;
+      }
     } else {
+      if (isSingleSelect.value) {
+        return;
+      }
       delete lastCheckMap[data.ip];
     }
     checkedMap.value = lastCheckMap;

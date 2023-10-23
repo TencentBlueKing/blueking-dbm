@@ -10,17 +10,11 @@
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
 */
-import dayjs from 'dayjs';
 
-// 首字母大写
-export const firstLetterToUpper = (str?: string) => {
-  if (!str) {
-    return '';
-  }
-  if (str.length === 1) {
-    return str.charAt(0).toUpperCase();
-  }
-  return str.charAt(0).toUpperCase() + str.slice(1);
+import { t } from '@locales/index';
+
+export const textMap = {
+  tendbha: t('高可用'),
+  tendbsingle: t('单节点'),
+  manualInput: t('手动输入'),
 };
-
-export const formatDatetime = (data: Date) => dayjs(data).format('YYYY-MM-DD HH:mm:ss');

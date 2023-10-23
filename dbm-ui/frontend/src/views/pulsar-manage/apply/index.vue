@@ -78,6 +78,7 @@
               required>
               <div>
                 <IpSelector
+                  v-model:show-dialog="isShowIpSelector"
                   :biz-id="formdata.bk_biz_id"
                   :cloud-info="cloudInfo"
                   :data="formdata.details.nodes.bookkeeper"
@@ -106,6 +107,7 @@
               property="details.nodes.zookeeper"
               required>
               <IpSelector
+                v-model:show-dialog="isShowIpSelector"
                 :biz-id="formdata.bk_biz_id"
                 :cloud-info="cloudInfo"
                 :data="formdata.details.nodes.zookeeper"
@@ -132,6 +134,7 @@
               property="details.nodes.broker"
               required>
               <IpSelector
+                v-model:show-dialog="isShowIpSelector"
                 :biz-id="formdata.bk_biz_id"
                 :cloud-info="cloudInfo"
                 :data="formdata.details.nodes.broker"
@@ -392,6 +395,8 @@
   const specZookeeperRef = ref();
   const specBrokerRef = ref();
   const totalCapacity = ref(0);
+  const isShowIpSelector = ref(false);
+
   const ackQuorumMax = computed(() => {
     const max = formdata.details.ip_source === 'resource_pool'
       ? formdata.details.resource_spec.bookkeeper.count

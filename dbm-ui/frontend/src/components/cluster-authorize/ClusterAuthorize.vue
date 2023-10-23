@@ -44,6 +44,7 @@
         property="source_ips"
         required>
         <IpSelector
+          v-model:show-dialog="isShowIpSelector"
           :biz-id="globalBizsStore.currentBizId"
           button-text="添加 IP"
           :is-cloud-area-restrictions="false"
@@ -214,6 +215,7 @@
   const { t } = useI18n();
   const ticketMessage = useTicketMessage();
 
+  const isShowIpSelector = ref(false);
   const formRef = ref();
   /** 设置底部按钮粘性布局 */
   useStickyFooter(formRef);

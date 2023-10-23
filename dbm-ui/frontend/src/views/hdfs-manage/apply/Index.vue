@@ -86,6 +86,7 @@
               </template>
               <div>
                 <IpSelector
+                  v-model:show-dialog="isShowIpSelector"
                   :biz-id="formData.bk_biz_id"
                   :cloud-info="cloudInfo"
                   :data="nodeAndZookerperMergeList"
@@ -121,6 +122,7 @@
               required>
               <div>
                 <IpSelector
+                  v-model:show-dialog="isShowIpSelector"
                   :biz-id="formData.bk_biz_id"
                   :cloud-info="cloudInfo"
                   :data="formData.details.nodes.datanode"
@@ -402,6 +404,8 @@
   const specNamenodeRef = ref();
   const specZookeeperRef = ref();
   const isDbVersionLoading = ref(true);
+  const isShowIpSelector = ref(false);
+
   const dbVersionList = shallowRef<Array<string>>([]);
   const formData = reactive(genDefaultFormData());
   const nodeAndZookerperMergeList = shallowRef<Array<IHostTableData>>([]);

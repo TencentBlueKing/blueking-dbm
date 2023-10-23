@@ -81,6 +81,7 @@
               required>
               <div>
                 <IpSelector
+                  v-model:show-dialog="isShowIpSelector"
                   :biz-id="formData.bk_biz_id"
                   :cloud-info="cloudInfo"
                   :data="formData.details.nodes.zookeeper"
@@ -114,6 +115,7 @@
               required>
               <div>
                 <IpSelector
+                  v-model:show-dialog="isShowIpSelector"
                   :biz-id="formData.bk_biz_id"
                   :cloud-info="cloudInfo"
                   :data="formData.details.nodes.broker"
@@ -424,6 +426,7 @@
   const dbVersionList = shallowRef<Array<string>>([]);
   const formData = reactive(genDefaultFormData());
   const totalCapacity = ref(0);
+  const isShowIpSelector = ref(false);
 
   watch(() => formData.details.resource_spec.broker, () => {
     const count = Number(formData.details.resource_spec.broker.count);

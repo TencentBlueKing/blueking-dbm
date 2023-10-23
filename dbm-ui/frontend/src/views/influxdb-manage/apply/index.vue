@@ -76,6 +76,7 @@
             required>
             <div>
               <IpSelector
+                v-model:show-dialog="isShowIpSelector"
                 :biz-id="formdata.bk_biz_id"
                 :cloud-info="cloudInfo"
                 :data="formdata.details.nodes.influxdb"
@@ -198,6 +199,7 @@
   } = useApplyBase();
 
   const formdata = reactive(getInitFormdata());
+  const isShowIpSelector = ref(false);
   const formRef = ref();
   const specRef = ref();
   const rules = {

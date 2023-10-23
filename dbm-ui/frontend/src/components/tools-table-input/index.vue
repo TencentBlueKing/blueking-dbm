@@ -207,9 +207,7 @@
 
   .input-error {
     position: absolute;
-    top: 0;
-    right: 0;
-    bottom: 0;
+    inset: 0;
     display: flex;
     padding-right: 10px;
     font-size: 14px;

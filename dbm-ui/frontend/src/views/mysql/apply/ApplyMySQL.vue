@@ -195,6 +195,7 @@
               property="details.nodes.proxy"
               required>
               <IpSelector
+                v-model:show-dialog="isShowIpSelector"
                 :biz-id="formdata.bk_biz_id"
                 :cloud-info="cloudInfo"
                 :data="formdata.details.nodes.proxy"
@@ -221,6 +222,7 @@
               property="details.nodes.backend"
               required>
               <IpSelector
+                v-model:show-dialog="isShowIpSelector"
                 :biz-id="formdata.bk_biz_id"
                 :cloud-info="cloudInfo"
                 :data="formdata.details.nodes.backend"
@@ -397,6 +399,8 @@
   const proxyRef = ref();
   const moduleRef = ref();
   const isBindModule = ref(false);
+  const isShowIpSelector = ref(false);
+
   const cloudInfo = reactive({
     id: '' as number | string,
     name: '',

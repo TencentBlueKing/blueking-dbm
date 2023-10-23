@@ -76,11 +76,11 @@
 
   import { messageWarn } from '@utils';
 
-  import { textMap } from '../common/utils';
-  import CollapseMini from '../components/CollapseMini.vue';
-  import type { InstanceSelectorValues } from '../Index.vue';
+  import { textMap } from '../../common/utils';
+  import type { InstanceSelectorValues } from '../../Index.vue';
+  import type { PanelTypes } from '../PanelTab.vue';
 
-  import type { PanelTypes } from './PanelTab.vue';
+  import CollapseMini from './CollapseMini.vue';
 
   interface Props {
     lastValues: InstanceSelectorValues;
@@ -139,7 +139,7 @@
 .instance-selector-preview-result {
   display: flex;
   height: 100%;
-  max-height: 630px;
+  max-height: 625px;
   padding: 12px 24px;
   overflow: hidden;
   font-size: @font-size-mini;
