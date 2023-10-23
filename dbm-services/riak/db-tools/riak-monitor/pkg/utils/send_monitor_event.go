@@ -26,10 +26,6 @@ func SendMonitorEvent(name string, msg string) {
 		"bk_target_service_instance_id": strconv.FormatInt(config.MonitorConfig.BkInstanceId, 10),
 	}
 
-	if config.MonitorConfig.Role != nil {
-		additionDimension["instance_role"] = *config.MonitorConfig.Role
-	}
-
 	err := crondManager.SendEvent(
 		name,
 		msg,
