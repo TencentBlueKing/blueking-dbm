@@ -44,6 +44,7 @@ from backend.flow.utils.mysql.mysql_act_dataclass import (
 from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
 from backend.flow.utils.mysql.mysql_db_meta import MySQLDBMeta
 from backend.utils import time
+from backend.utils.time import str2datetime
 
 logger = logging.getLogger("flow")
 
@@ -237,8 +238,8 @@ def rollback_remote_and_time(root_id: str, ticket_data: dict, cluster_info: dict
         kwargs=asdict(exec_act_kwargs),
         write_payload_var="change_master_info",
     )
-    backup_time = time.strptime(backupinfo["backup_time"], "%Y-%m-%d %H:%M:%S")
-    rollback_time = time.strptime(cluster_info["rollback_time"], "%Y-%m-%d %H:%M:%S")
+    backup_time = str2datetime(backupinfo["backup_time"], "%Y-%m-%d %H:%M:%S")
+    rollback_time = str2datetime(cluster_info["rollback_time"], "%Y-%m-%d %H:%M:%S")
     rollback_handler = FixPointRollbackHandler(cluster_info["cluster_id"])
     backup_binlog = rollback_handler.query_binlog_from_bklog(
         start_time=backup_time,
