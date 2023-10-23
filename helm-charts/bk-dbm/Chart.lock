@@ -4,51 +4,57 @@ dependencies:
   version: 1.13.0
 - name: mysql
   repository: https://charts.bitnami.com/bitnami
-  version: 9.12.4
+  version: 9.12.5
 - name: redis
   repository: https://charts.bitnami.com/bitnami
   version: 16.13.2
 - name: etcd
   repository: https://charts.bitnami.com/bitnami
-  version: 9.5.5
+  version: 9.5.6
+- name: reloader
+  repository: https://stakater.github.io/stakater-charts
+  version: 1.0.46
 - name: grafana
   repository: file://./charts/grafana
   version: 7.9.8
 - name: dbm
   repository: file://charts/dbm
-  version: 0.1.20
+  version: 0.1.21
 - name: dbconfig
   repository: file://charts/dbconfig
-  version: 0.1.6
+  version: 0.1.7
 - name: dbpriv
   repository: file://charts/dbpriv
-  version: 0.1.28
+  version: 0.1.29
 - name: dbpartition
   repository: file://charts/dbpartition
-  version: 0.1.4
+  version: 0.1.5
 - name: db-simulation
   repository: file://charts/db-simulation
-  version: 0.1.7
+  version: 0.1.8
 - name: db-remote-service
   repository: file://charts/db-remote-service
   version: 0.9.5
 - name: db-dns-api
   repository: file://charts/db-dns-api
-  version: 0.1.3
+  version: 0.1.4
 - name: hadb-api
   repository: file://charts/hadb-api
-  version: 0.0.10
+  version: 0.0.11
 - name: db-resource
   repository: file://charts/db-resource
-  version: 0.0.7
+  version: 0.0.8
 - name: db-celery-service
   repository: file://charts/db-celery-service
-  version: 0.0.4
+  version: 0.0.5
+- name: slow-query-parser-service
+  repository: file://charts/slow-query-parser-service
+  version: 0.0.1
 - name: backup-server
   repository: file://charts/backup-server
-  version: 0.0.2
+  version: 0.0.3
 - name: backup-consumer
   repository: file://charts/backup-consumer
-  version: 0.0.2
-digest: sha256:bca62d6538530facd8b271d761816f51bf547f767d6757f238b00c9e6469565e
-generated: "2023-10-12T10:20:26.956839+08:00"
+  version: 0.0.3
+digest: sha256:2441eb65d88a908703d8d83b392ad5472d9469ef532aecc8e0b12c112e80b114
+generated: "2023-10-23T21:16:42.422636+08:00"

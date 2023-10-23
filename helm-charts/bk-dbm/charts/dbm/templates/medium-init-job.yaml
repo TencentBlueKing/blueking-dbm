@@ -37,14 +37,6 @@ spec:
                 name: {{ .Values.dbmedium.extraEnvVarsCM }}
             {{- end }}
           resources:
-            {{- toYaml .Values.resources | nindent 12 }}
-      initContainers:
-        - name: check-saas-api
-          image: {{ include "dbm.migration.k8sWaitFor.image" . }}
-          imagePullPolicy: {{ .Values.image.pullPolicy }}
-          args:
-            - pod
-            - -lapp.kubernetes.io/component={{ include "dbm.saas-api.fullname" .}}
-          resources:
-            {{- toYaml .Values.resources | nindent 12 }}
+            {{- toYaml .Values.initJob.resources | nindent 12 }}
+      {{- include "dbm.initContainersWaitForSaaS" . | nindent 6 }}
 {{- end }}

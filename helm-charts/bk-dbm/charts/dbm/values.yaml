@@ -1,1 +1,45 @@
 # use parent values
+
+nameOverride: ""
+fullnameOverride: ""
+
+podAnnotations: {}
+
+podSecurityContext: {}
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+securityContext: {}
+
+livenessProbe:
+  enabled: true
+  path: /ping
+  initialDelaySeconds: 5
+  periodSeconds: 30
+  timeoutSeconds: 5
+  failureThreshold: 6
+  successThreshold: 1
+
+replicaCount: 1
+resources: {}
+
+initJob:
+  resources: {}
+
+saas:
+  api:
+    resources: {}
+    replicaCount: 1
+  celeryBeat:
+    resources: {}
+    replicaCount: 1
+  celeryWorker:
+    resources: {}
+    replicaCount: 1
+  pipelineWorker:
+    resources: {}
+    replicaCount: 1

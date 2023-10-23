@@ -8,7 +8,7 @@ metadata:
     {{- include "dbm.labels" . | nindent 4 }}
 spec:
   {{- if not .Values.autoscaling.enabled }}
-  replicas: {{ .Values.replicaCount }}
+  replicas: 1
   {{- end }}
   selector:
     matchLabels:
@@ -42,24 +42,10 @@ spec:
             - -c
           args:
             - celery beat -A {{ .Values.envs.djangoSettingsModule }} -l info
-          env:
-            {{- include "dbm.envs" . | trim | nindent 12 }}
-          envFrom:
-            {{- if .Values.extraEnvVarsCM }}
-            - configMapRef:
-                name: {{ .Values.extraEnvVarsCM }}
-            {{- end }}
+          {{- include "dbm.container_env" . | nindent 10 }}
           resources:
-            {{- toYaml .Values.resources | nindent 12 }}
-      initContainers:
-        - name: check-migrate-job
-          image: {{ include "dbm.migration.k8sWaitFor.image" . }}
-          imagePullPolicy: {{ .Values.image.pullPolicy }}
-          args:
-            - job
-            - {{ include "dbm.migrateJobName" . }}
-          resources:
-            {{- toYaml .Values.resources | nindent 12 }}
+            {{- toYaml .Values.saas.celeryBeat.resources | nindent 12 }}
+      {{- include "dbm.initContainersWaitForMigrate" . | nindent 6 }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}

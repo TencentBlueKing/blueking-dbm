@@ -27,22 +27,8 @@ spec:
             - -c
           args:
             - "python manage.py services_init itsm"
-          env:
-            {{- include "dbm.envs" . | trim | nindent 12 }}
-          envFrom:
-            {{- if .Values.extraEnvVarsCM }}
-            - configMapRef:
-                name: {{ .Values.extraEnvVarsCM }}
-            {{- end }}
+          {{- include "dbm.container_env" . | nindent 10 }}
           resources:
-            {{- toYaml .Values.resources | nindent 12 }}
-      initContainers:
-        - name: check-saas-api
-          image: {{ include "dbm.migration.k8sWaitFor.image" . }}
-          imagePullPolicy: {{ .Values.image.pullPolicy }}
-          args:
-            - pod
-            - -lapp.kubernetes.io/component={{ include "dbm.saas-api.fullname" .}}
-          resources:
-            {{- toYaml .Values.resources | nindent 12 }}
+            {{- toYaml .Values.initJob.resources | nindent 12 }}
+      {{- include "dbm.initContainersWaitForMigrate" . | nindent 6 }}
 {{- end }}
