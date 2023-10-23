@@ -34,5 +34,5 @@ spec:
                 name: {{ .Values.extraEnvVarsCM }}
             {{- end }}
           resources:
-            {{- toYaml .Values.resources | nindent 12 }}
+            {{- toYaml .Values.initJob.resources | nindent 12 }}
 {{- end }}

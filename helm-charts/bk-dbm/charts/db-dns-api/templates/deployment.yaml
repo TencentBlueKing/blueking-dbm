@@ -12,6 +12,8 @@ spec:
       app.kubernetes.io/instance: {{ .Release.Name }}
   template:
     metadata:
+      annotations:
+        reloader.stakater.com/auto: "true"
       labels:
         app.kubernetes.io/name: {{ include "db-dns-api.name" . }}
         app.kubernetes.io/instance: {{ .Release.Name }}

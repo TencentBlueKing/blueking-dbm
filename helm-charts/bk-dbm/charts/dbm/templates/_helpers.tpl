@@ -145,3 +145,33 @@ environment variables
 {{- define "dbm.celery-worker.fullname" -}}
 {{- printf "%s-%s" (include "dbm.fullname" .) "celery-worker" -}}
 {{- end -}}
+
+{{- define "dbm.initContainersWaitForSaaS" -}}
+initContainers:
+  - name: check-saas-api
+    image: {{ include "dbm.migration.k8sWaitFor.image" . }}
+    imagePullPolicy: {{ .Values.image.pullPolicy }}
+    args:
+      - pod
+      - -lapp.kubernetes.io/component={{ include "dbm.saas-api.fullname" .}}
+{{- end }}
+
+{{- define "dbm.initContainersWaitForMigrate" -}}
+initContainers:
+  - name: check-migrate-job
+    image: {{ include "dbm.migration.k8sWaitFor.image" . }}
+    imagePullPolicy: {{ .Values.image.pullPolicy }}
+    args:
+      - job
+      - {{ include "dbm.migrateJobName" . }}
+{{- end }}
+
+{{- define "dbm.container_env" -}}
+env:
+  {{- include "dbm.envs" . | trim | nindent 2 }}
+envFrom:
+  {{- if .Values.extraEnvVarsCM }}
+  - configMapRef:
+      name: {{ .Values.extraEnvVarsCM }}
+  {{- end }}
+{{- end }}
