@@ -31,6 +31,7 @@ import MoreActionExtend from '@components/more-action-extend/Index.vue';
 import SmartAction from '@components/smart-action/index.vue';
 import { ipSelector } from '@components/vue2/ip-selector';
 
+import UserSelector from '@patch/user-selector/selector.vue';
 
 export const setGlobalComps = (app: App<Element>) => {
   app.component('DbCard', DbCard);
@@ -50,4 +51,5 @@ export const setGlobalComps = (app: App<Element>) => {
   app.component('I18nT', Translation);
   app.component('FunController', FunController);
   app.component('MoreActionExtend', MoreActionExtend);
+  app.component('UserSelector', UserSelector);
 };

@@ -18,6 +18,7 @@
     "@blueking/bk-weweb": "0.0.15",
     "@blueking/bkflow.js": "0.1.10",
     "@blueking/ip-selector": "0.0.1-beta.126",
+    "@icon-cool/bk-icon-bk-biz-components": "0.0.4",
     "@vueuse/core": "10.2.1",
     "axios": "1.2.1",
     "bkui-vue": "0.0.2-beta.68",

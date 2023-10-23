@@ -126,6 +126,9 @@
         </template>
       </BkTabPanel>
     </BkTab>
+    <div
+      :class="{'notice-mothod-open-mask': isTimePickerOpen}"
+      @click="handleOpenMackClick" />
   </BkFormItem>
 </template>
 
@@ -223,6 +226,7 @@
   ];
 
   const active = ref('');
+  const currentPanelIndex = ref(-1);
   const panelList = ref<{
     name: string,
     open: boolean,
@@ -247,6 +251,8 @@
 
     return !isIntervalsFullDay(timeArr);
   });
+
+  const isTimePickerOpen = computed(() => panelList.value.some(panelItem => panelItem.open));
 
   useRequest(getAlarmGroupNotifyList, {
     onSuccess(notifyList) {
@@ -427,6 +433,7 @@
 
     if (item.name === active.value) {
       item.open = !item.open;
+      currentPanelIndex.value = index;
     }
   };
 
@@ -442,6 +449,11 @@
     }
 
     return '';
+  };
+
+  const handleOpenMackClick = () => {
+    panelList.value[currentPanelIndex.value].open = false;
+    currentPanelIndex.value = -1;
   };
 
   defineExpose<Exposes>({
@@ -599,6 +611,15 @@
       .table-content-row {
         height: 52px;
       }
+    }
+
+    .notice-mothod-open-mask {
+      position: fixed;
+      top: 0;
+      left: 0;
+      z-index: 1;
+      width: 100%;
+      height: 100%
     }
   }
 </style>
