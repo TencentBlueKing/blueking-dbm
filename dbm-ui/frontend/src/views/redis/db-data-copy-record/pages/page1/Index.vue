@@ -257,7 +257,7 @@
       width: 120,
       render: ({ data }: {data: RedisDSTHistoryJobModel}) => {
         if (data.key_white_regex) {
-          const tags = ['asfdaffa', 'sdgfrgerhgwer', 'sfgsrgdhdhdh'];// data.key_white_regex.split('\n');
+          const tags = data.key_white_regex.split('\n');
           return <KeyTags maxRow={2} data={tags} />;
         }
         return <span>--</span>;
