@@ -84,7 +84,7 @@ func (p *StartMySQLParam) StartMysqlInstance() (pid int, err error) {
 		myCnfName = p.MyCnfName
 		startCmd  = fmt.Sprintf(
 			`ulimit -n 204800; 
-		cd %s && %s ./bin/mysqld_safe --defaults-file=%s --user=mysql `, mediaDir, numaStr, myCnfName,
+cd %s && %s ./bin/mysqld_safe --defaults-file=%s --user=mysql `, mediaDir, numaStr, myCnfName,
 		)
 	)
 	if p.SkipSlaveFlag {

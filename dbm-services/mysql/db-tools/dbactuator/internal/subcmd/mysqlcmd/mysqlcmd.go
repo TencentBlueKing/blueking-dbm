@@ -35,6 +35,7 @@ func NewMysqlCommand() *cobra.Command {
 				NewExecSQLFileCommand(),
 				CloneClientGrantCommand(),
 				NewBackupTruncateDatabaseCommand(),
+				NewUpgradeMySQLCommand(),
 				// NewBackupDatabaseTableCommand(),
 				MycnfChangeCommand(),
 				FindLocalBackupCommand(),
