@@ -33,6 +33,7 @@ var rootCmd = &cobra.Command{
 	Short: "rotate binlog and backup them to remote",
 	Long: `rotate binlog files and backup them to remote
                 backup system`,
+	SilenceUsage: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		comp := rotate.RotateBinlogComp{Config: viper.GetString("config")}
 		if removeConfigs, err := cmd.PersistentFlags().GetStringSlice("removeConfig"); err != nil {
