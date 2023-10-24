@@ -63,8 +63,14 @@ func (i *ServerObj) Rotate() (err error) {
 		logger.Warn("max_keep_duration=%s is too small, set to %s", maxKeepDuration, cst.MaxKeepDurationMin)
 		maxKeepDuration = cst.MaxKeepDurationMin
 	}
+
+	if i.dbWorker, err = i.instance.Conn(); err != nil {
+		return err
+	}
+	if i.binlogDir, _, err = i.dbWorker.GetBinlogDir(i.Port); err != nil {
+		return err
+	}
 	rotate := &BinlogRotate{
-		// binlogDir:    i.binlogDir,
 		backupClient: i.backupClient,
 		binlogInst: models.BinlogFileModel{
 			BkBizId:   i.Tags.BkBizId,
@@ -75,17 +81,10 @@ func (i *ServerObj) Rotate() (err error) {
 		purgeInterval:   timeutil.ViperGetDuration("public.purge_interval"),
 		rotateInterval:  timeutil.ViperGetDuration("public.rotate_interval"),
 		maxKeepDuration: maxKeepDuration,
+		binlogDir:       i.binlogDir,
 	}
 	i.rotate = rotate
 	logger.Info("rotate obj: %+v", rotate)
-	if i.dbWorker, err = i.instance.Conn(); err != nil {
-		return err
-	}
-	if i.binlogDir, _, err = i.dbWorker.GetBinlogDir(i.Port); err != nil {
-		return err
-	} else {
-		i.rotate.binlogDir = i.binlogDir
-	}
 	if err := os.Chmod(i.binlogDir, 0755); err != nil {
 		return errors.Wrap(err, "chmod 655")
 	}

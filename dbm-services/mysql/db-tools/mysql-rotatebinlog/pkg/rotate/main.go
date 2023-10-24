@@ -82,14 +82,6 @@ func (c *RotateBinlogComp) Start() (err error) {
 	}
 	var errRet error
 	for _, inst := range servers {
-		var backupClient backup.BackupClient
-		if backupClient, err = backup.InitBackupClient(); err != nil {
-			err = errs.WithMessagef(err, "init backup_client")
-			logger.Error("%+v", err.Error())
-			errRet = errors.Join(errRet, err)
-			continue
-		}
-		inst.backupClient = backupClient // if nil, ignore backup
 		inst.instance = &native.InsObject{
 			Host:   inst.Host,
 			Port:   inst.Port,
@@ -114,10 +106,22 @@ func (c *RotateBinlogComp) Start() (err error) {
 		return errors.Join(errRet, err)
 	}
 	for _, inst := range servers {
+		if inst.rotate == nil {
+			continue
+		}
 		if err = inst.FreeSpace(); err != nil {
 			logger.Error("FreeSpace %+v", err)
 			errRet = errors.Join(errRet, err)
 		}
+
+		var backupClient backup.BackupClient
+		if backupClient, err = backup.InitBackupClient(); err != nil {
+			err = errs.WithMessagef(err, "init backup_client")
+			logger.Error("%+v", err.Error())
+			errRet = errors.Join(errRet, err)
+			continue
+		}
+		inst.backupClient = backupClient // if nil, ignore backup
 		if err = inst.rotate.Backup(); err != nil {
 			logger.Error("Backup %+v", err)
 			errRet = errors.Join(errRet, err)
@@ -222,6 +226,9 @@ func (c *RotateBinlogComp) decideSizeToFree(servers []*ServerObj) error {
 	var diskPartInst = make(map[string][]*ServerObj)      // 每个挂载目录上，放了哪些binlog实例以及对应的binlog空间
 	var diskParts = make(map[string]*cmutil.DiskPartInfo) // 目录对应的空间信息
 	for _, inst := range servers {
+		if inst.rotate == nil {
+			continue
+		}
 		diskPart, err := util.GetDiskPartitionWithDir(inst.binlogDir)
 		if err != nil {
 			logger.Warn("fail to get binlog_dir %s disk partition info", inst.binlogDir)
