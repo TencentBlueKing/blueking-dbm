@@ -114,6 +114,9 @@ from backend.flow.views.redis_cluster import (
     RedisClusterBackupSceneApiView,
     RedisClusterDataCheckRepairApiView,
     RedisClusterDataCopySceneApiView,
+    RedisClusterMigrateCompair,
+    RedisClusterMigrateLoad,
+    RedisClusterMigratePrecheck,
     RedisClusterOpenCloseSceneApiView,
     RedisClusterShardNumUpdateSceneApiView,
     RedisClusterShutdownSceneApiView,
@@ -199,6 +202,9 @@ urlpatterns = [
     url(r"^scene/redis_data_structure$", RedisDataStructureSceneApiView.as_view()),
     url(r"^scene/redis_data_structure_task_delete$", RedisDataStructureTaskDeleteSceneApiView.as_view()),
     url(r"^scene/redis_cluster_add_slave$", RedisClusterAddSlaveApiView.as_view()),
+    url(r"^scene/redis_migrate_precheck$", RedisClusterMigratePrecheck.as_view()),
+    url(r"^scene/redis_migrate_load$", RedisClusterMigrateLoad.as_view()),
+    url(r"^scene/redis_migrate_compair$", RedisClusterMigrateCompair.as_view()),
     url(r"^scene/redis_cluster_version_update_online$", RedisClusterVersionUpdateOnlineApiView.as_view()),
     # redis api url end
     # dns api

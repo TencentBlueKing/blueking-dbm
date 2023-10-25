@@ -281,7 +281,7 @@ class RedisClusterApplyFlow(object):
             "db_version": self.data["db_version"],
             "domain_name": self.data["domain_name"],
         }
-        if self.data["cluster_type"] != ClusterType.TwemproxyTendisSSDInstance.value:
+        if self.data["cluster_type"] == ClusterType.TendisTwemproxyRedisInstance.value:
             act_kwargs.cluster["conf"]["cluster-enabled"] = ClusterStatus.REDIS_CLUSTER_NO
 
         act_kwargs.get_redis_payload_func = RedisActPayload.set_redis_config.__name__
