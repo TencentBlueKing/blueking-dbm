@@ -221,19 +221,19 @@ def pkg_create_twemproxy_cluster(
 
 @transaction.atomic
 def update_storage_cluster_type(ins_obj: StorageInstance, cluster_type: str):
-    slave_obj = ins_obj.as_ejector.get().receiver
+    if cluster_type not in (ClusterType.MongoReplicaSet.value, ClusterType.MongoShardedCluster.value):
+        slave_obj = ins_obj.as_ejector.get().receiver
+        slave_obj.cluster_type = cluster_type
+        slave_obj.save(update_fields=["cluster_type"])
+        slave_machine = slave_obj.machine
+        slave_machine.cluster_type = cluster_type
+        slave_machine.save(update_fields=["cluster_type"])
 
-    slave_obj.cluster_type = cluster_type
     ins_obj.cluster_type = cluster_type
-    slave_obj.save(update_fields=["cluster_type"])
     ins_obj.save(update_fields=["cluster_type"])
-
     master_machine = ins_obj.machine
-    slave_machine = slave_obj.machine
     master_machine.cluster_type = cluster_type
-    slave_machine.cluster_type = cluster_type
     master_machine.save(update_fields=["cluster_type"])
-    slave_machine.save(update_fields=["cluster_type"])
 
 
 @transaction.atomic

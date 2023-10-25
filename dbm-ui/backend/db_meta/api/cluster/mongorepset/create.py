@@ -143,6 +143,18 @@ def create_mongoset(
         cluster.storageinstance_set.add(*storage_objs)
         cluster.save()
 
+        # for storage in storages:
+        #     if storage["role"] != InstanceRole.MONGO_M1:
+        #         tuple.append(
+        #             {
+        #                 "ejector": {"ip": primary["ip"], "port": primary["port"]},
+        #                 "receiver": {"ip": storage["ip"], "port": storage["port"]},
+        #             }
+        #         )
+        # machine.create(machines=list(machines.values()), bk_cloud_id=bk_cloud_id)
+        # storage_instance.create(instances=instances)
+        # storage_instance_tuple.create(tuple)
+
         update_cluster_type(storage_objs, cluster_type)
     except Exception as e:  # NOCC:broad-except(检查工具误报)
         logger.error(traceback.format_exc())
