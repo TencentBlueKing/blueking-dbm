@@ -8,8 +8,23 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from .checksum_check_report_view import ChecksumCheckReportViewSet
-from .checksum_instance_view import ChecksumInstanceViewSet
-from .meta_check_view import MetaCheckReportInstanceBelongViewSet
-from .mysqlbackup_check_view import MysqlBinlogBackupCheckReportViewSet, MysqlFullBackupCheckReportViewSet
-from .redisbackup_check_view import RedisBinlogBackupCheckReportViewSet, RedisFullBackupCheckReportViewSet
+import logging
+
+from celery.schedules import crontab
+
+from backend.db_periodic_task.local_tasks.register import register_periodic_task
+
+from .check_binlog_backup import check_binlog_backup
+from .check_full_backup import check_full_backup
+
+logger = logging.getLogger("celery")
+
+
+# @register_periodic_task(run_every=crontab(minute="*/1"))
+@register_periodic_task(run_every=crontab(minute=0, hour=0))
+def redis_backup_check_task():
+    """
+    redis 备份巡检
+    """
+    check_full_backup()
+    check_binlog_backup()

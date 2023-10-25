@@ -8,8 +8,10 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from .checksum_check_report_view import ChecksumCheckReportViewSet
-from .checksum_instance_view import ChecksumInstanceViewSet
-from .meta_check_view import MetaCheckReportInstanceBelongViewSet
-from .mysqlbackup_check_view import MysqlBinlogBackupCheckReportViewSet, MysqlFullBackupCheckReportViewSet
-from .redisbackup_check_view import RedisBinlogBackupCheckReportViewSet, RedisFullBackupCheckReportViewSet
+from blue_krill.data_types.enum import EnumField, StructuredEnum
+from django.utils.translation import gettext_lazy as _
+
+
+class RedisBackupCheckSubType(str, StructuredEnum):
+    FullBackup = EnumField("full_backup", _("集群全备"))
+    BinlogBackup = EnumField("binlog_slave", _("从库binlog备份"))

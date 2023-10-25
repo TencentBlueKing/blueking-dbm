@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
 Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
@@ -8,8 +7,18 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from .checksum_check_report_view import ChecksumCheckReportViewSet
-from .checksum_instance_view import ChecksumInstanceViewSet
-from .meta_check_view import MetaCheckReportInstanceBelongViewSet
-from .mysqlbackup_check_view import MysqlBinlogBackupCheckReportViewSet, MysqlFullBackupCheckReportViewSet
-from .redisbackup_check_view import RedisBinlogBackupCheckReportViewSet, RedisFullBackupCheckReportViewSet
+from django.db import models
+from django.utils.translation import ugettext_lazy as _
+
+from backend.db_meta.enums import ClusterType
+from backend.db_report.enums import RedisBackupCheckSubType
+from backend.db_report.report_basemodel import BaseReportABS
+
+
+class RedisBackupCheckReport(BaseReportABS):
+    cluster = models.CharField(max_length=255, default="")
+    cluster_type = models.CharField(max_length=64, choices=ClusterType.get_choices(), default="")
+    instance = models.CharField(max_length=100, verbose_name=_("实例节点 ip:port"))
+    subtype = models.CharField(
+        max_length=64, choices=RedisBackupCheckSubType.get_choices(), default="", help_text=_("备份检查子项")
+    )

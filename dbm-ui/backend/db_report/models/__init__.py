@@ -11,3 +11,4 @@ specific language governing permissions and limitations under the License.
 from .checksum_check_report import ChecksumCheckReport, ChecksumInstance
 from .meta_check_report import MetaCheckReport
 from .mysqlbackup_check_report import MysqlBackupCheckReport
+from .redisbackup_check_report import RedisBackupCheckReport

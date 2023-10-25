@@ -14,6 +14,7 @@ from backend.db_periodic_task.local_tasks.db_meta import *
 from backend.db_periodic_task.local_tasks.db_monitor import *
 from backend.db_periodic_task.local_tasks.db_proxy import *
 from backend.db_periodic_task.local_tasks.redis_autofix import *
+from backend.db_periodic_task.local_tasks.redis_backup import *
 from backend.db_periodic_task.local_tasks.ticket import *
 from backend.db_periodic_task.models import DBPeriodicTask
 
