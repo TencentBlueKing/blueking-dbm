@@ -172,6 +172,8 @@
     }
     const ret = await getResourceSpecList({
       spec_cluster_type: type,
+      limit: -1,
+      offset: 0,
     });
     const retArr = ret.results;
     const arr = retArr.map(item => ({
