@@ -88,7 +88,8 @@ func NewFullBackupTask(bkBizID string, bkCloudID int64, domain, ip string, port 
 		reporter:         reporter,
 	}
 	// ret.backupClient = backupsys.NewIBSBackupClient(consts.IBSBackupClient, consts.RedisFullBackupTAG)
-	ret.backupClient, err = backupsys.NewCosBackupClient(consts.COSBackupClient, "", consts.RedisFullBackupTAG)
+	ret.backupClient, err = backupsys.NewCosBackupClient(consts.COSBackupClient,
+		consts.COSInfoFile, consts.RedisFullBackupTAG)
 	return
 }
 

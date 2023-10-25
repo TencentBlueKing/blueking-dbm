@@ -5,26 +5,25 @@ cd $DIR
 
 make build
 
-version=$(./bin/bk-dbmon -v|awk '{print $2}')
-version="v0.14"
+cd build
+
+version=$(./bk-dbmon -v | awk '{print $2}')
 targetDir="bk-dbmon-$version"
 tarName="$targetDir.tar.gz"
 
-if [[ ! -d $targetDir ]]
-then
+if [[ ! -d $targetDir ]]; then
     mkdir -p $targetDir
 fi
 
-cp ./bin/bk-dbmon $targetDir/
-cp ./start.sh $targetDir/
-cp ./stop.sh $targetDir/
-cp ./dbmon-config.yaml $targetDir/
+cp ./bk-dbmon $targetDir/
+cp ../start.sh $targetDir/
+cp ../stop.sh $targetDir/
+cp ../dbmon-config.yaml $targetDir/
 
-if [[ -e $tarName ]]
-then
-rm -rf $tarName
+if [[ -e $tarName ]]; then
+    rm -rf $tarName
 fi
 
-tar -zcf $tarName $targetDir
+tar --remove-files -zcf $tarName $targetDir
 
 echo "$tarName success"

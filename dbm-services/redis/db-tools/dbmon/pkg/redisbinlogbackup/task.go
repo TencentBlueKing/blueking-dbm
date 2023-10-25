@@ -83,7 +83,8 @@ func NewBinlogBackupTask(bkBizID string, bkCloudID int64, domain, ip string, por
 		ShardValue:     shardValue,
 	}
 	// ret.backupClient = backupsys.NewIBSBackupClient(consts.IBSBackupClient, consts.RedisBinlogTAG)
-	ret.backupClient, err = backupsys.NewCosBackupClient(consts.COSBackupClient, "", consts.RedisBinlogTAG)
+	ret.backupClient, err = backupsys.NewCosBackupClient(consts.COSBackupClient,
+		consts.COSInfoFile, consts.RedisBinlogTAG)
 	return ret, err
 }
 
