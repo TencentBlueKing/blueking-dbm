@@ -16,6 +16,7 @@ from backend.db_meta.enums.extra_process_type import ExtraProcessType
 from backend.db_meta.models.extra_process import ExtraProcessInstance
 from backend.flow.engine.controller.mysql import MySQLController
 from backend.flow.engine.controller.tbinlogdumper import TBinlogDumperController
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.mysql.base import BaseMySQLTicketFlowBuilder, MySQLClustersTakeDownDetailsSerializer
 from backend.ticket.builders.tbinlogdumper.dumper_reduce_nodes import TbinlogdumperReduceNodesFlowParamBuilder
@@ -39,7 +40,9 @@ class MysqlDumperDestroyParamBuilder(builders.FlowParamBuilder):
         self.ticket_data["infos"] = self.ticket_data.pop("dumper_destroy_infos")
 
 
-@builders.BuilderFactory.register(TicketType.MYSQL_HA_DESTROY, phase=ClusterPhase.DESTROY)
+@builders.BuilderFactory.register(
+    TicketType.MYSQL_HA_DESTROY, phase=ClusterPhase.DESTROY, iam=ActionEnum.MYSQL_DESTROY
+)
 class MysqlHaDestroyFlowBuilder(BaseMySQLTicketFlowBuilder):
     """Mysql下架流程的构建基类"""
 

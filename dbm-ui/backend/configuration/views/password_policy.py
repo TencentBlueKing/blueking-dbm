@@ -32,7 +32,8 @@ from backend.configuration.serializers import (
     VerifyPasswordSerializer,
 )
 from backend.db_periodic_task.models import DBPeriodicTask
-from backend.iam_app.handlers.drf_perm import DBManageIAMPermission, GlobalManageIAMPermission
+from backend.iam_app.dataclass.actions import ActionEnum
+from backend.iam_app.handlers.drf_perm.base import ResourceActionPermission
 
 SWAGGER_TAG = _("密码安全策略")
 
@@ -41,14 +42,9 @@ class PasswordPolicyViewSet(viewsets.SystemViewSet):
     pagination_class = None
 
     def _get_custom_permissions(self):
-        if self.action == self.get_password_policy.__name__:
+        if self.action == "get_password_policy":
             return []
-
-        bk_biz_id = self.request.query_params.get("bk_biz_id", 0) or self.request.data.get("bk_biz_id", 0)
-        if bk_biz_id:
-            return [DBManageIAMPermission()]
-
-        return [GlobalManageIAMPermission()]
+        return [ResourceActionPermission([ActionEnum.PASSWORD_POLICY_SET])]
 
     @common_swagger_auto_schema(
         operation_summary=_("查询密码安全策略"),

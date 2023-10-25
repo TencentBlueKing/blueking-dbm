@@ -19,10 +19,15 @@ from rest_framework.response import Response
 from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.components import DBConfigApi, MySQLPrivManagerApi
 from backend.components.dbconfig.constants import FormatType, LevelName
+from backend.configuration.constants import DBType
 from backend.db_meta.models import Cluster
-from backend.db_services.dbbase.resources import serializers, viewsets
+from backend.db_services.dbbase.resources import serializers
+from backend.db_services.dbbase.resources.viewsets import ResourceViewSet
 from backend.db_services.redis.resources import constants
 from backend.flow.consts import DEFAULT_DB_MODULE_ID, ConfigTypeEnum, MySQLPrivComponent, UserName
+from backend.iam_app.dataclass import ResourceEnum
+from backend.iam_app.dataclass.actions import ActionEnum
+from backend.iam_app.handlers.permission import Permission
 
 from . import yasg_slz
 from .query import ListRetrieveResource
@@ -83,9 +88,32 @@ from .query import ListRetrieveResource
         tags=[constants.RESOURCE_TAG],
     ),
 )
-class RedisClusterViewSet(viewsets.ResourceViewSet):
+class RedisClusterViewSet(ResourceViewSet):
     query_class = ListRetrieveResource
     query_serializer_class = serializers.ListResourceSLZ
+    db_type = DBType.Redis
+
+    @Permission.decorator_permission_field(
+        id_field=lambda d: d["id"],
+        data_field=lambda d: d["results"],
+        actions=[
+            ActionEnum.REDIS_KEYS_DELETE,
+            ActionEnum.REDIS_KEYS_EXTRACT,
+            ActionEnum.REDIS_DESTROY,
+            ActionEnum.REDIS_OPEN_CLOSE,
+            ActionEnum.REDIS_PURGE,
+            ActionEnum.REDIS_VIEW,
+            ActionEnum.REDIS_BACKUP,
+        ],
+        resource_meta=ResourceEnum.REDIS,
+    )
+    @Permission.decorator_external_permission_field(
+        param_field=lambda d: d["view_class"].db_type,
+        actions=[ActionEnum.ACCESS_ENTRY_EDIT],
+        resource_meta=ResourceEnum.DBTYPE,
+    )
+    def list(self, request, bk_biz_id: int, *args, **kwargs):
+        return super().list(request, bk_biz_id)
 
     @action(methods=["GET"], detail=True, url_path="get_nodes", serializer_class=serializers.ListNodesSLZ)
     def get_nodes(self, request, bk_biz_id: int, cluster_id: int):

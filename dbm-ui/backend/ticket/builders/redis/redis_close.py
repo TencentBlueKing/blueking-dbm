@@ -12,6 +12,7 @@ from django.utils.translation import ugettext_lazy as _
 
 from backend.db_meta.enums import ClusterPhase
 from backend.flow.engine.controller.redis import RedisController
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.redis.base import BaseRedisTicketFlowBuilder, RedisSingleOpsBaseDetailSerializer
 from backend.ticket.constants import TicketType
@@ -39,7 +40,7 @@ class RedisCloseFlowParamBuilder(builders.FlowParamBuilder):
         super().format_ticket_data()
 
 
-@builders.BuilderFactory.register(TicketType.REDIS_CLOSE, phase=ClusterPhase.OFFLINE)
+@builders.BuilderFactory.register(TicketType.REDIS_CLOSE, phase=ClusterPhase.OFFLINE, iam=ActionEnum.REDIS_OPEN_CLOSE)
 class RedisCloseFlowBuilder(BaseRedisTicketFlowBuilder):
     serializer = RedisCloseDetailSerializer
     inner_flow_builder = RedisCloseFlowParamBuilder

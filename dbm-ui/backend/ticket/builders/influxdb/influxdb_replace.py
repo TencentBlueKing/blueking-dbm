@@ -27,7 +27,6 @@ logger = logging.getLogger("root")
 
 
 class InfluxDBReplaceDetailSerializer(BigDataReplaceDetailSerializer):
-    # influxdb无需cluster id
     cluster_id = serializers.IntegerField(required=False)
 
 

@@ -21,12 +21,12 @@ from backend.db_services.plugin.mysql.authorize.serializers import (
     AuthorizeApplySerializer,
     QueryAuthorizeApplySerializer,
 )
-from backend.iam_app.handlers.drf_perm import DBManageIAMPermission
+from backend.iam_app.handlers.drf_perm.base import DBManagePermission
 
 
 class AuthorizePluginViewSet(viewsets.SystemViewSet):
     def _get_custom_permissions(self):
-        return [DBManageIAMPermission()]
+        return [DBManagePermission()]
 
     @common_swagger_auto_schema(
         operation_summary=_("第三方权限申请(兼容GCS)"),

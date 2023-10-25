@@ -16,21 +16,25 @@ from backend.bk_web import viewsets
 from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.configuration.models.dba import DBAdministrator
 from backend.configuration.serializers import ListDBAdminSerializer, UpsertDBAdminSerializer
-from backend.iam_app.handlers.drf_perm import DBManageIAMPermission, GlobalManageIAMPermission
+from backend.iam_app.dataclass import ResourceEnum
+from backend.iam_app.dataclass.actions import ActionEnum
+from backend.iam_app.handlers.drf_perm.base import ResourceActionPermission
 
 SWAGGER_TAG = _("DBA人员")
 
 
 class DBAdminViewSet(viewsets.SystemViewSet):
     def _get_custom_permissions(self):
-        if self.action == self.list_admins.__name__:
+        if self.action == "list_admins":
             return []
 
-        bk_biz_id = self.request.query_params.get("bk_biz_id", 0) or self.request.data.get("bk_biz_id", 0)
-        if int(bk_biz_id):
-            return [DBManageIAMPermission()]
-
-        return [GlobalManageIAMPermission()]
+        if not int(self.request.data.get("bk_biz_id", 0)):
+            return [ResourceActionPermission([ActionEnum.GLOBAL_DBA_ADMINISTRATOR_EDIT])]
+        else:
+            instance_getter = lambda request, view: [request.data["bk_biz_id"]]  # noqa: E731
+            return [
+                ResourceActionPermission([ActionEnum.DBA_ADMINISTRATOR_EDIT], ResourceEnum.BUSINESS, instance_getter)
+            ]
 
     @common_swagger_auto_schema(
         operation_summary=_("查询DBA人员列表"), query_serializer=ListDBAdminSerializer, tags=[SWAGGER_TAG]

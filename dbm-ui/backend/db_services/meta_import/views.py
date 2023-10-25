@@ -31,7 +31,7 @@ from backend.db_services.meta_import.serializers import (
     TenDBHAMetadataImportSerializer,
     TenDBHAStandardizeSerializer,
 )
-from backend.iam_app.handlers.drf_perm import RejectPermission
+from backend.iam_app.handlers.drf_perm.base import RejectPermission
 from backend.ticket.builders.mysql.mysql_ha_metadata_import import TenDBHAMetadataImportDetailSerializer
 from backend.ticket.builders.mysql.mysql_ha_standardize import TenDBHAStandardizeDetailSerializer
 from backend.ticket.builders.spider.metadata_import import TenDBClusterMetadataImportDetailSerializer
@@ -48,9 +48,9 @@ class DBMetadataImportViewSet(viewsets.SystemViewSet):
 
     def _get_custom_permissions(self):
         migrate_users = SystemSettings.get_setting_value(key=SystemSettingsEnum.DBM_MIGRATE_USER, default=[])
-        if not self.request.user.is_superuser and self.request.user.username not in migrate_users:
-            return [RejectPermission()]
-        return []
+        if self.request.user.is_superuser or self.request.user.username in migrate_users:
+            return []
+        return [RejectPermission()]
 
     @common_swagger_auto_schema(
         operation_summary=_("TenDB HA 元数据导入"),

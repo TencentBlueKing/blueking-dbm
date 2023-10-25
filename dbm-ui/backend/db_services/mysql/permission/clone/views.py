@@ -27,14 +27,14 @@ from backend.db_services.mysql.permission.clone.serializers import (
     PreCheckExcelCloneResponseSerializer,
     PreCheckExcelCloneSerializere,
 )
-from backend.iam_app.handlers.drf_perm import DBManageIAMPermission
+from backend.iam_app.handlers.drf_perm.base import DBManagePermission
 
 SWAGGER_TAG = "db_services/permission/clone"
 
 
 class DBCloneViewSet(viewsets.SystemViewSet):
     def _get_custom_permissions(self):
-        return [DBManageIAMPermission()]
+        return [DBManagePermission()]
 
     def _view_common_handler(
         self, request, bk_biz_id: int, meta: Type[CloneMeta], func: str

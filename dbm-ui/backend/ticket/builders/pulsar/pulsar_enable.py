@@ -15,6 +15,7 @@ from django.utils.translation import ugettext as _
 
 from backend.db_meta.enums import ClusterPhase
 from backend.flow.engine.controller.pulsar import PulsarController
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.common.bigdata import BasePulsarTicketFlowBuilder, BigDataTakeDownDetailSerializer
 from backend.ticket.constants import TicketType
@@ -30,7 +31,9 @@ class PulsarEnableFlowParamBuilder(builders.FlowParamBuilder):
     controller = PulsarController.pulsar_enable_scene
 
 
-@builders.BuilderFactory.register(TicketType.PULSAR_ENABLE, phase=ClusterPhase.ONLINE)
+@builders.BuilderFactory.register(
+    TicketType.PULSAR_ENABLE, phase=ClusterPhase.ONLINE, iam=ActionEnum.PULSAR_ENABLE_DISABLE
+)
 class PulsarEnableFlowBuilder(BasePulsarTicketFlowBuilder):
     serializer = PulsarEnableDetailSerializer
     inner_flow_builder = PulsarEnableFlowParamBuilder

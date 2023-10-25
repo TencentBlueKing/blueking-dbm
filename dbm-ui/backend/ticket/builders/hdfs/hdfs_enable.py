@@ -15,6 +15,7 @@ from django.utils.translation import ugettext as _
 
 from backend.db_meta.enums import ClusterPhase
 from backend.flow.engine.controller.hdfs import HdfsController
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.common.bigdata import BaseHdfsTicketFlowBuilder, BigDataTakeDownDetailSerializer
 from backend.ticket.constants import TicketType
@@ -30,7 +31,9 @@ class HdfsEnableFlowParamBuilder(builders.FlowParamBuilder):
     controller = HdfsController.hdfs_enable_scene
 
 
-@builders.BuilderFactory.register(TicketType.HDFS_ENABLE, phase=ClusterPhase.ONLINE)
+@builders.BuilderFactory.register(
+    TicketType.HDFS_ENABLE, phase=ClusterPhase.ONLINE, iam=ActionEnum.HDFS_ENABLE_DISABLE
+)
 class HdfsEnableFlowBuilder(BaseHdfsTicketFlowBuilder):
     serializer = HdfsEnableDetailSerializer
     inner_flow_builder = HdfsEnableFlowParamBuilder

@@ -15,6 +15,7 @@ from rest_framework import serializers
 
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.redis import RedisController
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.common.base import BaseOperateResourceParamBuilder
 from backend.ticket.builders.redis.base import BaseRedisTicketFlowBuilder, ClusterValidateMixin
@@ -57,7 +58,7 @@ class ProxyScaleUpResourceParamBuilder(BaseOperateResourceParamBuilder):
         super().post_callback()
 
 
-@builders.BuilderFactory.register(TicketType.PROXY_SCALE_UP, is_apply=True)
+@builders.BuilderFactory.register(TicketType.PROXY_SCALE_UP, is_apply=True, iam=ActionEnum.REDIS_PROXY_SCALE_UP)
 class ProxyScaleUpFlowBuilder(BaseRedisTicketFlowBuilder):
     serializer = ProxyScaleUpDetailSerializer
     inner_flow_builder = ProxyScaleUpParamBuilder

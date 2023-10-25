@@ -19,6 +19,10 @@ from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.db_services.mysql.dumper.filters import DumperConfigListFilter
 from backend.db_services.mysql.dumper.models import DumperSubscribeConfig
 from backend.db_services.mysql.dumper.serializers import DumperSubscribeConfigSerializer, VerifyDuplicateNamsSerializer
+from backend.iam_app.dataclass import ResourceEnum
+from backend.iam_app.dataclass.actions import ActionEnum
+from backend.iam_app.handlers.drf_perm.base import DBManagePermission, ResourceActionPermission
+from backend.iam_app.handlers.permission import Permission
 
 SWAGGER_TAG = "dumper"
 
@@ -29,12 +33,32 @@ class DumperConfigViewSet(viewsets.AuditedModelViewSet):
     serializer_class = DumperSubscribeConfigSerializer
     filter_class = DumperConfigListFilter
 
+    def inst_getter(self, request, view):
+        return [view.kwargs["pk"]]
+
+    def _get_custom_permissions(self):
+        resource_meta = ResourceEnum.DUMPER_SUBSCRIBE_CONFIG
+        if self.action == "retrieve":
+            return [ResourceActionPermission([ActionEnum.DUMPER_CONFIG_VIEW], resource_meta, self.inst_getter)]
+        elif self.action in ["update", "partial_update"]:
+            return [ResourceActionPermission([ActionEnum.DUMPER_CONFIG_UPDATE], resource_meta, self.inst_getter)]
+        elif self.action in ["destroy"]:
+            return [ResourceActionPermission([ActionEnum.DUMPER_CONFIG_DESTROY], resource_meta, self.inst_getter)]
+
+        return [DBManagePermission()]
+
     def get_queryset(self):
         return self.queryset.filter(bk_biz_id=self.kwargs["bk_biz_id"])
 
     @common_swagger_auto_schema(
         operation_summary=_("查询数据订阅配置列表"),
         tags=[SWAGGER_TAG],
+    )
+    @Permission.decorator_permission_field(
+        id_field=lambda d: d["id"],
+        data_field=lambda d: d["results"],
+        actions=ActionEnum.get_actions_by_resource(ResourceEnum.DUMPER_SUBSCRIBE_CONFIG.id),
+        resource_meta=ResourceEnum.MYSQL,
     )
     def list(self, request, *args, **kwargs):
         return super().list(request, *args, **kwargs)

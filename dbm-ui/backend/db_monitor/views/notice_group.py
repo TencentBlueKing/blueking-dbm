@@ -25,7 +25,11 @@ from backend.configuration.constants import PLAT_BIZ_ID
 from backend.db_monitor import serializers
 from backend.db_monitor.models import MonitorPolicy, NoticeGroup
 from backend.db_monitor.serializers import NoticeGroupSerializer
-from backend.iam_app.handlers.drf_perm import DBManageIAMPermission
+from backend.iam_app.dataclass import ResourceEnum
+from backend.iam_app.dataclass.actions import ActionEnum
+from backend.iam_app.handlers.drf_perm.base import DBManagePermission
+from backend.iam_app.handlers.drf_perm.monitor import NotifyGroupPermission
+from backend.iam_app.handlers.permission import Permission
 
 SWAGGER_TAG = _("监控告警组")
 
@@ -97,7 +101,12 @@ class MonitorNoticeGroupViewSet(viewsets.AuditedModelViewSet):
     filter_class = MonitorGroupListFilter
 
     def _get_custom_permissions(self):
-        return [DBManageIAMPermission()]
+        if self.action in ["list", "destroy", "create", "update"]:
+            return [NotifyGroupPermission(view_action=self.action)]
+        elif self.action in ["get_msg_type"]:
+            return []
+
+        return [DBManagePermission()]
 
     def get_serializer_context(self):
         context = super().get_serializer_context()
@@ -109,3 +118,18 @@ class MonitorNoticeGroupViewSet(viewsets.AuditedModelViewSet):
     @action(methods=["GET"], detail=False)
     def get_msg_type(self, request, *args, **kwargs):
         return Response(CmsiApi.get_msg_type())
+
+    @Permission.decorator_external_permission_field(
+        param_field=lambda d: d["bk_biz_id"],
+        actions=[
+            ActionEnum.GLOBAL_NOTIFY_GROUP_CREATE,
+            ActionEnum.GLOBAL_NOTIFY_GROUP_DESTROY,
+            ActionEnum.GLOBAL_NOTIFY_GROUP_UPDATE,
+            ActionEnum.NOTIFY_GROUP_CREATE,
+            ActionEnum.NOTIFY_GROUP_DESTROY,
+            ActionEnum.NOTIFY_GROUP_UPDATE,
+        ],
+        resource_meta=ResourceEnum.BUSINESS,
+    )
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)

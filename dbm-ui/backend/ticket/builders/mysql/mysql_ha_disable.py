@@ -13,6 +13,7 @@ from django.utils.translation import ugettext_lazy as _
 
 from backend.db_meta.enums import ClusterPhase
 from backend.flow.engine.controller.mysql import MySQLController
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.mysql.base import BaseMySQLTicketFlowBuilder, MySQLClustersTakeDownDetailsSerializer
 from backend.ticket.constants import FlowRetryType, TicketType
@@ -26,7 +27,9 @@ class MysqlHADisableFlowParamBuilder(builders.FlowParamBuilder):
     controller = MySQLController.mysql_ha_disable_scene
 
 
-@builders.BuilderFactory.register(TicketType.MYSQL_HA_DISABLE, phase=ClusterPhase.OFFLINE)
+@builders.BuilderFactory.register(
+    TicketType.MYSQL_HA_DISABLE, phase=ClusterPhase.OFFLINE, iam=ActionEnum.MYSQL_ENABLE_DISABLE
+)
 class MysqlHaDisableFlowBuilder(BaseMySQLTicketFlowBuilder):
     """Mysql下架流程的构建基类"""
 

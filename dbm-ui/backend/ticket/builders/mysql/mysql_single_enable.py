@@ -13,6 +13,7 @@ from django.utils.translation import ugettext_lazy as _
 
 from backend.db_meta.enums import ClusterPhase
 from backend.flow.engine.controller.mysql import MySQLController
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.mysql.base import BaseMySQLTicketFlowBuilder, MySQLClustersTakeDownDetailsSerializer
 from backend.ticket.constants import TicketType
@@ -26,7 +27,9 @@ class MysqlSingleEnableFlowParamBuilder(builders.FlowParamBuilder):
     controller = MySQLController.mysql_single_enable_scene
 
 
-@builders.BuilderFactory.register(TicketType.MYSQL_SINGLE_ENABLE, phase=ClusterPhase.ONLINE)
+@builders.BuilderFactory.register(
+    TicketType.MYSQL_SINGLE_ENABLE, phase=ClusterPhase.ONLINE, iam=ActionEnum.MYSQL_ENABLE_DISABLE
+)
 class MysqlSingleEnableFlowBuilder(BaseMySQLTicketFlowBuilder):
     serializer = MysqlSingleEnableDetailSerializer
     inner_flow_builder = MysqlSingleEnableFlowParamBuilder

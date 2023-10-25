@@ -13,6 +13,7 @@ from django.utils.translation import ugettext as _
 from rest_framework import status
 
 from backend.bk_web.swagger import common_swagger_auto_schema
+from backend.configuration.constants import DBType
 from backend.db_services.bigdata.kafka import constants
 from backend.db_services.bigdata.resources import yasg_slz
 from backend.db_services.bigdata.resources.views import BigdataResourceViewSet
@@ -73,3 +74,4 @@ from backend.db_services.dbbase.resources import serializers
 class RiakClusterViewSetBigdata(BigdataResourceViewSet):
     query_class = RiakListRetrieveResource
     query_serializer_class = serializers.ListResourceSLZ
+    db_type = DBType.Riak

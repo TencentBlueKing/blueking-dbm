@@ -101,3 +101,19 @@ class ClusterType(str, StructuredEnum):
             if cluster_type in cluster_types:
                 return db_type
         raise ValueError(f"cluster_type:{cluster_type} dose not define db type")
+
+    @classmethod
+    def redis_cluster_types(cls):
+        return [
+            cls.RedisCluster,
+            cls.TendisPredixyRedisCluster,
+            cls.TendisPredixyTendisplusCluster,
+            cls.TendisTwemproxyRedisInstance,
+            cls.TwemproxyTendisSSDInstance,
+            cls.TendisTwemproxyTendisplusIns,
+            cls.TendisRedisInstance,
+            cls.TendisTendisSSDInstance,
+            cls.TendisTendisplusInsance,
+            cls.TendisRedisCluster,
+            cls.TendisTendisplusCluster,
+        ]

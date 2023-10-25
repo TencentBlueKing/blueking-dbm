@@ -341,7 +341,7 @@ REST_FRAMEWORK = {
         # "backend.bk_web.authentication.BKTicketAuthentication",
         "rest_framework.authentication.SessionAuthentication",
     ],
-    "DEFAULT_PERMISSION_CLASSES": ["backend.iam_app.handlers.drf_perm.IsAuthenticatedPermission"],
+    "DEFAULT_PERMISSION_CLASSES": ["backend.iam_app.handlers.drf_perm.base.IsAuthenticatedPermission"],
     "DEFAULT_FILTER_BACKENDS": ["django_filters.rest_framework.DjangoFilterBackend"],
     "DEFAULT_RENDERER_CLASSES": [
         "backend.bk_web.renderers.BKAPIRenderer",

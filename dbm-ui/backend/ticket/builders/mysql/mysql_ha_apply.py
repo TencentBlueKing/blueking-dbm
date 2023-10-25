@@ -22,6 +22,7 @@ from backend.db_services.cmdb.biz import get_db_app_abbr
 from backend.db_services.dbbase.constants import IpSource
 from backend.db_services.mysql.constants import DEFAULT_ORIGIN_PROXY_PORT, SERVER_PORT_LIMIT_MAX, SERVER_PORT_LIMIT_MIN
 from backend.flow.engine.controller.mysql import MySQLController
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket.builders import BuilderFactory
 from backend.ticket.builders.mysql.base import BaseMySQLTicketFlowBuilder
 from backend.ticket.builders.mysql.mysql_single_apply import (
@@ -121,7 +122,9 @@ class MysqlHaApplyResourceParamBuilder(MysqlSingleApplyResourceParamBuilder):
         next_flow.save(update_fields=["details"])
 
 
-@BuilderFactory.register(TicketType.MYSQL_HA_APPLY, is_apply=True, cluster_type=ClusterType.TenDBHA)
+@BuilderFactory.register(
+    TicketType.MYSQL_HA_APPLY, is_apply=True, cluster_type=ClusterType.TenDBHA, iam=ActionEnum.MYSQL_APPLY
+)
 class MysqlHAApplyFlowBuilder(BaseMySQLTicketFlowBuilder):
     serializer = MysqlHAApplyDetailSerializer
     inner_flow_builder = MysqlHAApplyFlowParamBuilder
