@@ -13,6 +13,7 @@ from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
 from backend.flow.engine.controller.tbinlogdumper import TBinlogDumperController
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.common.base import SkipToRepresentationMixin
 from backend.ticket.builders.tendbcluster.base import BaseDumperTicketFlowBuilder
@@ -30,7 +31,7 @@ class TbinlogdumperEnableFlowParamBuilder(builders.FlowParamBuilder):
         self.ticket_data["enable_ids"] = self.ticket_data.pop("dumper_instance_ids")
 
 
-@builders.BuilderFactory.register(TicketType.TBINLOGDUMPER_ENABLE_NODES)
+@builders.BuilderFactory.register(TicketType.TBINLOGDUMPER_ENABLE_NODES, iam=ActionEnum.TBINLOGDUMPER_ENABLE_DISABLE)
 class TbinlogdumperEnableFlowBuilder(BaseDumperTicketFlowBuilder):
     serializer = TbinlogdumperEnableDetailSerializer
     inner_flow_builder = TbinlogdumperEnableFlowParamBuilder

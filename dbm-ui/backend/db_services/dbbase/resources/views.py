@@ -12,7 +12,7 @@ from django_filters import rest_framework as filters
 
 from backend.bk_web.viewsets import AuditedModelViewSet
 from backend.db_meta.models.cluster import Cluster
-from backend.iam_app.handlers.drf_perm import DBManageIAMPermission
+from backend.iam_app.handlers.drf_perm.base import DBManagePermission
 
 from ...dbbase.resources.serializers import ClusterSLZ
 
@@ -56,7 +56,7 @@ class BaseListResourceViewSet(AuditedModelViewSet):
     pagination_class = None
 
     def _get_custom_permissions(self):
-        return [DBManageIAMPermission()]
+        return [DBManagePermission()]
 
     def get_filterset_kwargs(self):
         return {"bk_biz_id": self.kwargs["bk_biz_id"]}

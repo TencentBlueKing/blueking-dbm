@@ -13,6 +13,7 @@ from django.utils.translation import ugettext_lazy as _
 
 from backend.db_meta.enums import ClusterPhase
 from backend.flow.engine.controller.spider import SpiderController
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.tendbcluster.base import (
     BaseTendbTicketFlowBuilder,
@@ -29,7 +30,9 @@ class TendbEnableFlowParamBuilder(builders.FlowParamBuilder):
     controller = SpiderController.spider_cluster_enable_scene
 
 
-@builders.BuilderFactory.register(TicketType.TENDBCLUSTER_ENABLE, phase=ClusterPhase.ONLINE)
+@builders.BuilderFactory.register(
+    TicketType.TENDBCLUSTER_ENABLE, phase=ClusterPhase.ONLINE, iam=ActionEnum.TENDBCLUSTER_ENABLE_DISABLE
+)
 class TendbEnableFlowBuilder(BaseTendbTicketFlowBuilder):
 
     serializer = TendbEnableDetailSerializer

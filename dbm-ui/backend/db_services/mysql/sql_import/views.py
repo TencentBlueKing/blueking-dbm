@@ -35,16 +35,28 @@ from backend.db_services.mysql.sql_import.serializers import (
     SQLSemanticCheckSerializer,
     SQLUserConfigSerializer,
 )
-from backend.iam_app.handlers.drf_perm import DBManageIAMPermission
+from backend.iam_app.dataclass.actions import ActionEnum
+from backend.iam_app.dataclass.resources import ResourceEnum
+from backend.iam_app.handlers.drf_perm.base import DBManagePermission
+from backend.iam_app.handlers.drf_perm.taskflow import TaskFlowPermission
+from backend.iam_app.handlers.drf_perm.ticket import CreateTicketPermission
+from backend.ticket.constants import TicketType
 
 SWAGGER_TAG = "db_services/sql_import"
 
 
 class SQLImportViewSet(viewsets.SystemViewSet):
     def _get_custom_permissions(self):
-        if self.action == "get_user_semantic_tasks":
+        if self.action == "semantic_check":
+            cluster_type = self.request.data["cluster_type"]
+            ticket_type = getattr(TicketType, f"{cluster_type.upper()}_IMPORT_SQLFILE")
+            return [CreateTicketPermission(ticket_type)]
+        elif self.action == "revoke_semantic_check":
+            return [TaskFlowPermission([ActionEnum.FLOW_DETAIL], ResourceEnum.TASKFLOW)]
+        elif self.action == "get_user_semantic_tasks":
             return []
-        return [DBManageIAMPermission()]
+
+        return [DBManagePermission()]
 
     def _view_common_handler(
         self,
@@ -87,7 +99,7 @@ class SQLImportViewSet(viewsets.SystemViewSet):
         return self._view_common_handler(request, bk_biz_id, SQLExecuteMeta, SQLHandler.semantic_check.__name__)
 
     @common_swagger_auto_schema(
-        operation_summary=_("改变流程配置"),
+        operation_summary=_("改变用户流程配置"),
         request_body=SQLUserConfigSerializer(),
         tags=[SWAGGER_TAG],
     )
@@ -98,7 +110,7 @@ class SQLImportViewSet(viewsets.SystemViewSet):
         )
 
     @common_swagger_auto_schema(
-        operation_summary=_("查询流程配置"),
+        operation_summary=_("查询用户流程配置"),
         query_serializer=QuerySQLUserConfigSerializer(),
         responses={status.HTTP_200_OK: QuerySQLUserConfigResponseSerializer()},
         tags=[SWAGGER_TAG],

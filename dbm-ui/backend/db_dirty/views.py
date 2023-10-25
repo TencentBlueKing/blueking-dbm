@@ -29,7 +29,9 @@ from backend.db_dirty.serializers import (
 )
 from backend.db_meta.models import AppCache
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
-from backend.iam_app.handlers.drf_perm import GlobalManageIAMPermission
+from backend.iam_app.dataclass.actions import ActionEnum
+from backend.iam_app.handlers.drf_perm.base import ResourceActionPermission
+from backend.iam_app.handlers.permission import Permission
 
 
 class DBDirtyMachineViewSet(viewsets.SystemViewSet):
@@ -37,12 +39,19 @@ class DBDirtyMachineViewSet(viewsets.SystemViewSet):
     filter_class = None
 
     def _get_custom_permissions(self):
-        return [GlobalManageIAMPermission()]
+        if self.action == "query_operation_list":
+            return []
+        return [ResourceActionPermission([ActionEnum.DIRTY_POLL_MANAGE])]
 
     @common_swagger_auto_schema(
         operation_summary=_("查询污点池列表"),
         responses={status.HTTP_200_OK: QueryDirtyMachineResponseSerializer()},
         tags=[SWAGGER_TAG],
+    )
+    @Permission.decorator_external_permission_field(
+        param_field=lambda d: None,
+        actions=[ActionEnum.DIRTY_POLL_MANAGE],
+        resource_meta=None,
     )
     @action(
         detail=False,

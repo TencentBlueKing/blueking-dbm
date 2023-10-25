@@ -15,21 +15,42 @@ from rest_framework.response import Response
 
 from backend.bk_web import viewsets
 from backend.bk_web.swagger import common_swagger_auto_schema
+from backend.db_meta.enums import ClusterType
 from backend.db_services.dbconfig import serializers
 from backend.db_services.dbconfig.dataclass import DBBaseConfig, DBConfigLevelData, UpsertConfigData
 from backend.db_services.dbconfig.handlers import DBConfigHandler
-from backend.iam_app.handlers.drf_perm import DBManageIAMPermission, GlobalManageIAMPermission
+from backend.iam_app.dataclass import ResourceEnum
+from backend.iam_app.dataclass.actions import ActionEnum
+from backend.iam_app.handlers.drf_perm.base import ResourceActionPermission
+from backend.iam_app.handlers.drf_perm.dbconfig import (
+    BizDBConfigPermission,
+    GlobalConfigPermission,
+    decorator_biz_config_permission_field,
+)
+from backend.iam_app.handlers.permission import Permission
 
 SWAGGER_TAG = "config"
 
 
 class ConfigViewSet(viewsets.SystemViewSet):
     def _get_custom_permissions(self):
-        bk_biz_id = self.request.query_params.get("bk_biz_id", 0) or self.request.data.get("bk_biz_id", 0)
-        if int(bk_biz_id):
-            return [DBManageIAMPermission()]
+        if self.action in [
+            "list_biz_configs",
+            "get_level_config",
+            "list_config_version_history",
+            "get_config_version_detail",
+        ]:
+            return [BizDBConfigPermission([ActionEnum.DBCONFIG_VIEW])]
+        elif self.action in ["upsert_level_config", "save_module_deploy_info"]:
+            return [BizDBConfigPermission([ActionEnum.DBCONFIG_EDIT])]
+        elif self.action in ["list_platform_configs", "get_platform_config"]:
+            return [GlobalConfigPermission([ActionEnum.GLOBAL_DBCONFIG_VIEW])]
+        elif self.action in ["create_platform_config"]:
+            return [GlobalConfigPermission([ActionEnum.GLOBAL_DBCONFIG_CREATE])]
+        elif self.action in ["upsert_platform_config"]:
+            return [GlobalConfigPermission([ActionEnum.GLOBAL_DBCONFIG_EDIT])]
 
-        return [GlobalManageIAMPermission()]
+        return [ResourceActionPermission([ActionEnum.GLOBAL_MANAGE])]
 
     @common_swagger_auto_schema(
         operation_summary=_("查询配置项名称列表"),
@@ -48,6 +69,11 @@ class ConfigViewSet(viewsets.SystemViewSet):
         query_serializer=serializers.ListPublicConfigRequestSerializer(),
         responses={status.HTTP_200_OK: serializers.ListPublicConfigResponseSerializer(many=True)},
         tags=[SWAGGER_TAG],
+    )
+    @Permission.decorator_external_permission_field(
+        param_field=lambda d: ClusterType.cluster_type_to_db_type(d["meta_cluster_type"]),
+        actions=[ActionEnum.GLOBAL_DBCONFIG_EDIT],
+        resource_meta=ResourceEnum.DBTYPE,
     )
     @action(methods=["GET"], detail=False, serializer_class=serializers.ListPublicConfigRequestSerializer)
     def list_platform_configs(self, request):
@@ -101,6 +127,7 @@ class ConfigViewSet(viewsets.SystemViewSet):
         responses={status.HTTP_200_OK: serializers.ListPublicConfigResponseSerializer(many=True)},
         tags=[SWAGGER_TAG],
     )
+    @decorator_biz_config_permission_field()
     @action(methods=["GET"], detail=False, serializer_class=serializers.ListBizConfigRequestSerializer)
     def list_biz_configs(self, request):
         validated_data = self.params_validate(self.get_serializer_class())

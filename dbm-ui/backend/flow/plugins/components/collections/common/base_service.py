@@ -73,7 +73,6 @@ class BaseService(Service, ServiceLogMixin, metaclass=ABCMeta):
         # 激活国际化
         blueking_language = data.get_one_of_inputs("global_data").get("blueking_language", Language.ZH_CN.value)
         translation.activate(blueking_language)
-        # self.log_info(f"System language: {blueking_language}")
 
     def execute(self, data, parent_data):
         self.active_language(data)

@@ -35,7 +35,7 @@ from backend.db_services.mysql.fixpoint_rollback.serializers import (
     QueryFixpointLogResponseSerializer,
     QueryFixpointLogSerializer,
 )
-from backend.iam_app.handlers.drf_perm import DBManageIAMPermission
+from backend.iam_app.handlers.drf_perm.base import DBManagePermission
 from backend.ticket.constants import TicketType
 from backend.ticket.models import ClusterOperateRecord
 from backend.utils.time import str2datetime
@@ -45,7 +45,7 @@ SWAGGER_TAG = "db_services/fixpoint_rollback"
 
 class FixPointRollbackViewSet(viewsets.SystemViewSet):
     def _get_custom_permissions(self):
-        return [DBManageIAMPermission()]
+        return [DBManagePermission()]
 
     @common_swagger_auto_schema(
         operation_summary=_("通过日志平台获取集群备份记录"),

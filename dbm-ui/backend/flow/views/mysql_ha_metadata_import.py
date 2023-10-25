@@ -24,7 +24,6 @@ specific language governing permissions and limitations under the License.
 # from backend.bk_web.swagger import common_swagger_auto_schema
 # from backend.configuration.constants import DBType
 # from backend.flow.engine.controller.mysql import MySQLController
-# from backend.iam_app.handlers.drf_perm import GlobalManageIAMPermission
 # from backend.ticket import constants
 # from backend.ticket.models import Ticket
 #
@@ -46,7 +45,7 @@ specific language governing permissions and limitations under the License.
 #     parser_classes = [MultiPartParser]
 #
 #     def _get_custom_permissions(self):
-#         return [GlobalManageIAMPermission()]
+#         return []
 #
 #     @common_swagger_auto_schema(operation_summary=_("tendbha 元数据迁移"))
 #     def create(self, request, *args, **kwargs):

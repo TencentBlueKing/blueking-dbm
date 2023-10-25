@@ -9,13 +9,19 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 from django.utils.translation import ugettext as _
+from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from backend.bk_web import viewsets
 from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.iam_app.handlers.permission import Permission
-from backend.iam_app.serializers import IamActionResourceRequestSerializer
+from backend.iam_app.serializers import (
+    CheckAllowedResSerializer,
+    GetApplyDataResSerializer,
+    IamActionResourceRequestSerializer,
+    SimpleIamActionResourceRequestSerializer,
+)
 
 SWAGGER_TAG = "iam"
 
@@ -31,7 +37,10 @@ class IAMViewSet(viewsets.SystemViewSet):
         return Response(result)
 
     @common_swagger_auto_schema(
-        operation_summary=_("检查当前用户对该动作是否有权限"), request_body=IamActionResourceRequestSerializer(), tags=[SWAGGER_TAG]
+        operation_summary=_("检查当前用户对该动作是否有权限"),
+        request_body=IamActionResourceRequestSerializer(),
+        responses={status.HTTP_200_OK: CheckAllowedResSerializer()},
+        tags=[SWAGGER_TAG],
     )
     @action(detail=False, methods=["POST"], serializer_class=IamActionResourceRequestSerializer)
     def check_allowed(self, request, *args, **kwargs):
@@ -48,7 +57,21 @@ class IAMViewSet(viewsets.SystemViewSet):
         return Response(result)
 
     @common_swagger_auto_schema(
-        operation_summary=_("获取权限申请数据"), request_body=IamActionResourceRequestSerializer(), tags=[SWAGGER_TAG]
+        operation_summary=_("检查当前用户对该动作是否有权限(仅适用于鉴权业务下一个动作对应一种资源类型，如果是多种动作对应多种资源类型，请切换为check_allowed接口)"),
+        request_body=SimpleIamActionResourceRequestSerializer(),
+        tags=[SWAGGER_TAG],
+    )
+    @action(detail=False, methods=["POST"], serializer_class=SimpleIamActionResourceRequestSerializer)
+    def simple_check_allowed(self, request, *args, **kwargs):
+        client = Permission(username=request.user.username)
+        resources = client.batch_make_resource_instance(self.validated_data["resources"])
+        return Response(client.is_allowed(self.validated_data["action_id"], resources))
+
+    @common_swagger_auto_schema(
+        operation_summary=_("获取权限申请数据"),
+        request_body=IamActionResourceRequestSerializer(),
+        responses={status.HTTP_200_OK: GetApplyDataResSerializer()},
+        tags=[SWAGGER_TAG],
     )
     @action(detail=False, methods=["POST"], serializer_class=IamActionResourceRequestSerializer)
     def get_apply_data(self, request, *args, **kwargs):
@@ -57,4 +80,17 @@ class IAMViewSet(viewsets.SystemViewSet):
         client = Permission(username=request.user.username)
         resources = client.batch_make_resource_instance(resources)
         apply_data, apply_url = client.get_apply_data(action_ids, resources)
+        return Response({"permission": apply_data, "apply_url": apply_url})
+
+    @common_swagger_auto_schema(
+        operation_summary=_("单个获取权限申请数据(仅适用于鉴权业务下一个动作对应一种资源类型，如果是多种动作对应多种资源类型，请切换为get_apply_data接口)"),
+        request_body=SimpleIamActionResourceRequestSerializer(),
+        responses={status.HTTP_200_OK: GetApplyDataResSerializer()},
+        tags=[SWAGGER_TAG],
+    )
+    @action(detail=False, methods=["POST"], serializer_class=SimpleIamActionResourceRequestSerializer)
+    def simple_get_apply_data(self, request, *args, **kwargs):
+        client = Permission(username=request.user.username)
+        resources = client.batch_make_resource_instance(self.validated_data["resources"])
+        apply_data, apply_url = client.get_apply_data([self.validated_data["action_id"]], resources)
         return Response({"permission": apply_data, "apply_url": apply_url})

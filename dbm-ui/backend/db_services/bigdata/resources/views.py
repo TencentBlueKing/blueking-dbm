@@ -9,6 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import base64
+from functools import wraps
 
 from django.utils.decorators import method_decorator
 from django.utils.translation import ugettext as _
@@ -30,6 +31,44 @@ from backend.db_services.dbbase.resources.viewsets import ResourceViewSet
 from backend.db_services.dbbase.resources.yasg_slz import ResourceTreeSLZ
 from backend.flow.consts import ConfigTypeEnum, LevelInfoEnum, UserName
 from backend.flow.utils.pulsar.consts import PulsarConfigEnum
+from backend.iam_app.dataclass import ResourceEnum
+from backend.iam_app.dataclass.actions import ActionEnum
+from backend.iam_app.handlers.drf_perm.base import get_request_key_id
+from backend.iam_app.handlers.permission import Permission
+
+
+def decorator_nodes_permission_field():
+    def wrapper(view_func):
+        @wraps(view_func)
+        def wrapped_view(*args, **kwargs):
+            cluster_id = get_request_key_id(args[1], key="cluster_id")
+            response = view_func(*args, **kwargs)
+            resource_meta = getattr(ResourceEnum, args[0].db_type.upper())
+            actions = ActionEnum.get_actions_by_resource(resource_meta.id)
+            Permission.insert_external_permission_field(response, actions, resource_meta, cluster_id)
+
+            return response
+
+        return wrapped_view
+
+    return wrapper
+
+
+def decorator_cluster_permission_field():
+    def wrapper(view_func):
+        @wraps(view_func)
+        def wrapped_view(*args, **kwargs):
+            response = view_func(*args, **kwargs)
+            resource_meta = getattr(ResourceEnum, args[0].db_type.upper())
+            actions = ActionEnum.get_actions_by_resource(resource_meta.id)
+            Permission.insert_permission_field(
+                response, actions, resource_meta, id_field=lambda d: d["id"], data_field=lambda d: d["results"]
+            )
+            return response
+
+        return wrapped_view
+
+    return wrapper
 
 
 @method_decorator(
@@ -41,15 +80,13 @@ class ListResourceViewSet(BaseListResourceViewSet):
 
 
 class BigdataResourceViewSet(ResourceViewSet):
+    @classmethod
     def _get_password(cls, cluster, username, port=0):
         """查询密码"""
         query_params = {
             "instances": [{"ip": cluster.immute_domain, "port": port, "bk_cloud_id": cluster.bk_cloud_id}],
-            "users": [
-                {"username": username, "component": cluster.cluster_type},
-            ],
+            "users": [{"username": username, "component": cluster.cluster_type}],
         }
-
         resp = MySQLPrivManagerApi.get_password(query_params)
         if resp.get("count") > 0:
             return base64.b64decode(resp["items"][0]["password"]).decode("utf-8")
@@ -122,12 +159,22 @@ class BigdataResourceViewSet(ResourceViewSet):
         tags=[constants.RESOURCE_TAG],
     )
     @action(methods=["GET"], detail=True, url_path="list_nodes", serializer_class=None)
+    @decorator_nodes_permission_field()
     def list_nodes(self, request, bk_biz_id: int, cluster_id: int):
         """获取集群节点列表信息"""
         data = self.paginator.paginate_list(
             request, bk_biz_id, self.query_class.list_nodes, {"cluster_id": cluster_id}
         )
         return self.get_paginated_response(data)
+
+    @decorator_cluster_permission_field()
+    @Permission.decorator_external_permission_field(
+        param_field=lambda d: d["view_class"].db_type,
+        actions=[ActionEnum.ACCESS_ENTRY_EDIT],
+        resource_meta=ResourceEnum.DBTYPE,
+    )
+    def list(self, request, bk_biz_id: int, *args, **kwargs):
+        return super().list(request, bk_biz_id)
 
 
 class ResourceTreeViewSet(SystemViewSet):

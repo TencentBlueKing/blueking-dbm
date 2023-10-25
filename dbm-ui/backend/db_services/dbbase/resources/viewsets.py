@@ -8,21 +8,52 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+from functools import wraps
+from typing import Callable
+
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from backend.bk_web.viewsets import SystemViewSet
-from backend.iam_app.handlers.drf_perm import DBManageIAMPermission
+from backend.iam_app.dataclass import ResourceEnum
+from backend.iam_app.dataclass.actions import ActionEnum
+from backend.iam_app.handlers.drf_perm.base import DBManagePermission
+from backend.iam_app.handlers.drf_perm.cluster import ClusterDetailPermission
+from backend.iam_app.handlers.permission import Permission
 
 from . import serializers
 from .pagination import ResourceLimitOffsetPagination
 from .query import ListRetrieveResource
 
 
+def decorator_cluster_instance_permission_field(
+    id_field: Callable = lambda item: item["id"],
+    data_field: Callable = lambda data_list: data_list,
+    always_allowed: Callable = lambda item: False,
+    many: bool = True,
+):
+    def wrapper(view_func):
+        @wraps(view_func)
+        def wrapped_view(*args, **kwargs):
+            db_type = args[0].db_type.upper()
+            # 默认实例鉴权只有集群详情动作
+            actions = [getattr(ActionEnum, f"{db_type}_VIEW")]
+            resource_meta = getattr(ResourceEnum, db_type)
+            response = view_func(*args, **kwargs)
+            return Permission.insert_permission_field(
+                response, actions, resource_meta, id_field, data_field, always_allowed, many
+            )
+
+        return wrapped_view
+
+    return wrapper
+
+
 class ResourceViewSet(SystemViewSet):
     """资源查询基类"""
 
     lookup_field = "cluster_id"
+    db_type = None
 
     query_class = ListRetrieveResource
     query_serializer_class = None
@@ -32,7 +63,9 @@ class ResourceViewSet(SystemViewSet):
     pagination_class = ResourceLimitOffsetPagination
 
     def _get_custom_permissions(self):
-        return [DBManageIAMPermission()]
+        if self.detail or self.action in ["retrieve_instance"]:
+            return [ClusterDetailPermission()]
+        return [DBManagePermission()]
 
     def retrieve(self, request, bk_biz_id: int, cluster_id: int):
         """查询集群详情"""
@@ -45,6 +78,10 @@ class ResourceViewSet(SystemViewSet):
         return self.get_paginated_response(data)
 
     @action(methods=["GET"], detail=False, url_path="list_instances")
+    @decorator_cluster_instance_permission_field(
+        id_field=lambda d: d["cluster_id"],
+        data_field=lambda d: d["results"],
+    )
     def list_instances(self, request, bk_biz_id: int):
         """查询实例列表"""
         query_params = self.params_validate(self.list_instances_slz)

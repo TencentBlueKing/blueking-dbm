@@ -25,7 +25,9 @@ from backend.bk_web import viewsets
 from backend.bk_web.swagger import PaginatedResponseSwaggerAutoSchema, common_swagger_auto_schema
 from backend.configuration.models import DBAdministrator
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
-from backend.iam_app.handlers.drf_perm import TicketIAMPermission
+from backend.iam_app.handlers.drf_perm.base import RejectPermission
+from backend.iam_app.handlers.drf_perm.cluster import ClusterDetailPermission, InstanceDetailPermission
+from backend.iam_app.handlers.drf_perm.ticket import CreateTicketPermission
 from backend.ticket.builders import BuilderFactory
 from backend.ticket.builders.common.base import InfluxdbTicketFlowBuilderPatchMixin, fetch_cluster_ids
 from backend.ticket.constants import DONE_STATUS, CountType, TicketStatus, TicketType, TodoStatus
@@ -75,9 +77,27 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
 
     def _get_custom_permissions(self):
         if self.action == "create":
-            return [TicketIAMPermission()]
+            # 开区关联集群和开区模板，需特殊写一个permission类
+            return [CreateTicketPermission(self.request.data["ticket_type"])]
+        elif self.action == "get_cluster_operate_records":
+            return [ClusterDetailPermission()]
+        elif self.action == "get_instance_operate_records":
+            return [InstanceDetailPermission()]
+        elif self.action in [
+            "retrieve",
+            "list",
+            "flows",
+            "flow_types",
+            "get_nodes",
+            "get_todo_tickets",
+            "get_tickets_count",
+        ]:
+            return []
+        # 回调和处理todo单据认为无需鉴权
+        elif self.action in ["callback", "process_todo"]:
+            return []
 
-        return []
+        return [RejectPermission()]
 
     @classmethod
     def _get_login_exempt_view_func(cls):

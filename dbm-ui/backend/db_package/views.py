@@ -33,7 +33,10 @@ from backend.db_package.serializers import (
     UploadPackageSerializer,
 )
 from backend.flow.consts import MediumEnum
-from backend.iam_app.handlers.drf_perm import GlobalManageIAMPermission
+from backend.iam_app.dataclass import ResourceEnum
+from backend.iam_app.dataclass.actions import ActionEnum
+from backend.iam_app.handlers.drf_perm.base import ResourceActionPermission, get_request_key_id
+from backend.iam_app.handlers.permission import Permission
 from backend.utils.files import md5sum
 
 DB_PACKAGE_TAG = "db_package"
@@ -45,10 +48,20 @@ class DBPackageViewSet(viewsets.AuditedModelViewSet):
     filter_class = PackageListFilter
     serializer_class = PackageSerializer
 
+    @staticmethod
+    def instance_getter(request, view):
+        if view.action == "destroy":
+            return [Package.objects.get(id=view.kwargs["pk"]).db_type]
+        else:
+            return [get_request_key_id(request, "db_type")]
+
     def _get_custom_permissions(self):
         if self.action in ["list_install_pkg_types", "list_install_packages"]:
             return []
-        return [GlobalManageIAMPermission()]
+        elif self.action == "list":
+            return [ResourceActionPermission([ActionEnum.PACKAGE_VIEW], ResourceEnum.DBTYPE, self.instance_getter)]
+        else:
+            return [ResourceActionPermission([ActionEnum.PACKAGE_MANAGE], ResourceEnum.DBTYPE, self.instance_getter)]
 
     @common_swagger_auto_schema(
         operation_summary=_("新建版本文件"),
@@ -87,6 +100,11 @@ class DBPackageViewSet(viewsets.AuditedModelViewSet):
     @common_swagger_auto_schema(
         operation_summary=_("查询版本文件列表"),
         tags=[DB_PACKAGE_TAG],
+    )
+    @Permission.decorator_external_permission_field(
+        param_field=lambda d: d["db_type"],
+        actions=[ActionEnum.PACKAGE_MANAGE],
+        resource_meta=ResourceEnum.DBTYPE,
     )
     def list(self, request, *args, **kwargs):
         return super().list(request, *args, **kwargs)

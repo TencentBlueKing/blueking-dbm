@@ -199,14 +199,14 @@ wrapt = ">=1.15.0,<2.0.0"
 
 [[package]]
 name = "bk-iam"
-version = "1.2.0"
+version = "1.3.5"
 description = "bk-iam python sdk"
 category = "main"
 optional = false
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*, !=3.5.*, <4"
 
 [package.dependencies]
-cachetools = "3.1.1"
+cachetools = ">=3.1.1,<6.0"
 curlify = "2.2.1"
 requests = "*"
 six = ">=1.11.0"
@@ -2346,8 +2346,7 @@ bk-crypto-python-sdk = [
     {file = "bk_crypto_python_sdk-1.1.1-py3-none-any.whl", hash = "sha256:042f1651a927cbf3e3cae2b3c2688b8151d572032e480bff7aa9d96405632c0a"},
 ]
 bk-iam = [
-    {file = "bk-iam-1.2.0.tar.gz", hash = "sha256:26559daf5a92bcd2d6ff2a2b34bd09c2854693f20f8637d6d5ac7d6e28c92400"},
-    {file = "bk_iam-1.2.0-py2.py3-none-any.whl", hash = "sha256:76d60ae7b911d787afeb375a51df137daa63822cfb08495720c4d89a6e161108"},
+    {file = "bk-iam-1.3.5.tar.gz", hash = "sha256:690c23db5a75c83c1cf305d323212c9f872127d0ceba9a527a80288e1cf7d2d6"},
 ]
 bk-notice-sdk = [
     {file = "bk-notice-sdk-1.2.0.tar.gz", hash = "sha256:e013a45e15259b78c12242401c7d2aa36f9e8407aab00fd301d1f034c9ad47ca"},

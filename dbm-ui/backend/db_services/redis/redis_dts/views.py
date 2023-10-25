@@ -17,7 +17,7 @@ from rest_framework.response import Response
 
 from backend.bk_web import viewsets
 from backend.bk_web.swagger import common_swagger_auto_schema
-from backend.iam_app.handlers.drf_perm import DBManageIAMPermission
+from backend.iam_app.handlers.drf_perm.base import DBManagePermission
 
 from .apis import (
     dts_job_disconnct_sync,
@@ -42,7 +42,7 @@ class TendisDtsJobViewSet(viewsets.AuditedModelViewSet):
     serializer_class = TbTendisDTSJobSerializer
 
     def _get_custom_permissions(self):
-        return [DBManageIAMPermission()]
+        return [DBManagePermission()]
 
     @common_swagger_auto_schema(
         operation_summary=_("获取DTS历史任务以及其对应task cnt"),

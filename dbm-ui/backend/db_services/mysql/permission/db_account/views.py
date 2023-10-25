@@ -17,6 +17,7 @@ from rest_framework.response import Response
 
 from backend.bk_web import viewsets
 from backend.bk_web.swagger import common_swagger_auto_schema
+from backend.db_services.mysql.permission.constants import AccountType
 from backend.db_services.mysql.permission.db_account.dataclass import AccountMeta, AccountRuleMeta
 from backend.db_services.mysql.permission.db_account.handlers import AccountHandler
 from backend.db_services.mysql.permission.db_account.serializers import (
@@ -30,14 +31,24 @@ from backend.db_services.mysql.permission.db_account.serializers import (
     QueryMySQLAccountRulesSerializer,
     UpdateMySQLAccountSerializer,
 )
-from backend.iam_app.handlers.drf_perm import DBManageIAMPermission
+from backend.iam_app.dataclass.actions import ActionEnum
+from backend.iam_app.dataclass.resources import ResourceEnum
+from backend.iam_app.handlers.drf_perm.base import DBManagePermission, ResourceActionPermission
+from backend.iam_app.handlers.permission import Permission
 
 SWAGGER_TAG = "db_services/permission/account"
 
 
 class DBAccountViewSet(viewsets.SystemViewSet):
+    lookup_field = "bk_biz_id"
+
     def _get_custom_permissions(self):
-        return [DBManageIAMPermission()]
+        if self.action not in ["create_account", "delete_account", "add_account_rule"]:
+            return [DBManagePermission()]
+
+        account_type = self.request.data.get("account_type", AccountType.MYSQL)
+        account_action = getattr(ActionEnum, f"{account_type}_{self.action}".upper())
+        return [ResourceActionPermission([account_action], ResourceEnum.BUSINESS)]
 
     def _view_common_handler(
         self, request, bk_biz_id: int, meta: Union[Type[AccountMeta], Type[AccountRuleMeta]], func: str
@@ -94,6 +105,11 @@ class DBAccountViewSet(viewsets.SystemViewSet):
         tags=[SWAGGER_TAG],
     )
     @action(methods=["GET"], detail=False, serializer_class=FilterMySQLAccountRulesSerializer)
+    @Permission.decorator_external_permission_field(
+        param_field=lambda d: d["bk_biz_id"],
+        actions=ActionEnum.get_match_actions(name="account"),
+        resource_meta=ResourceEnum.BUSINESS,
+    )
     def list_account_rules(self, request, bk_biz_id):
         return self._view_common_handler(
             request, bk_biz_id, AccountRuleMeta, AccountHandler.list_account_rules.__name__

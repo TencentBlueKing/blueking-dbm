@@ -14,8 +14,10 @@ from rest_framework.response import Response
 
 from backend.bk_web import viewsets
 from backend.bk_web.swagger import common_swagger_auto_schema
-from backend.configuration.models import DBAdministrator, Profile
+from backend.configuration.models import Profile
 from backend.configuration.serializers import ProfileSerializer
+from backend.iam_app.dataclass.actions import ActionEnum
+from backend.iam_app.handlers.permission import Permission
 
 SWAGGER_TAG = _("个人配置")
 
@@ -30,12 +32,16 @@ class ProfileViewSet(viewsets.SystemViewSet):
     @action(methods=["GET"], detail=False)
     def get_profile(self, request, *args, **kwargs):
         username = request.user.username
-        is_manager = DBAdministrator.objects.filter(users__contains=username).exists() or request.user.is_superuser
+        # 鉴权资源管理和平台管理
+        client = Permission()
+        resource_manage = client.is_allowed(action=ActionEnum.RESOURCE_MANAGE, resources=[])
+        global_manage = client.is_allowed(action=ActionEnum.GLOBAL_MANAGE, resources=[])
         return Response(
             {
+                "resource_manage": resource_manage,
+                "global_manage": global_manage,
                 "username": username,
                 "profile": list(Profile.objects.filter(username=username).values("label", "values")),
-                "is_manager": is_manager,
             }
         )
 

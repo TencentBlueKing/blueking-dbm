@@ -13,6 +13,7 @@ from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
 from backend.flow.engine.controller.redis import RedisController
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.redis.base import BaseRedisTicketFlowBuilder, ClusterValidateMixin
 from backend.ticket.constants import SwitchConfirmType, TicketType
@@ -38,7 +39,7 @@ class ProxyScaleDownParamBuilder(builders.FlowParamBuilder):
         super().format_ticket_data()
 
 
-@builders.BuilderFactory.register(TicketType.PROXY_SCALE_DOWN)
+@builders.BuilderFactory.register(TicketType.PROXY_SCALE_DOWN, iam=ActionEnum.REDIS_PROXY_SCALE_DOWN)
 class ProxyScaleDownFlowBuilder(BaseRedisTicketFlowBuilder):
     serializer = ProxyScaleDownDetailSerializer
     inner_flow_builder = ProxyScaleDownParamBuilder

@@ -16,9 +16,10 @@ from rest_framework.response import Response
 from backend.bk_dataview.grafana.constants import DEFAULT_ORG_ID, DEFAULT_ORG_NAME
 from backend.bk_web import viewsets
 from backend.bk_web.swagger import common_swagger_auto_schema
+from backend.db_meta.enums.cluster_type import ClusterType
 from backend.db_monitor.models import Dashboard
 from backend.db_monitor.serializers import DashboardUrlSerializer, GetDashboardSerializer
-from backend.iam_app.handlers.drf_perm import DBManageIAMPermission
+from backend.iam_app.handlers.drf_perm.cluster import ClusterDetailPermission, InstanceDetailPermission
 
 from .. import constants
 
@@ -26,8 +27,10 @@ from .. import constants
 class MonitorGrafanaViewSet(viewsets.SystemViewSet):
     def _get_custom_permissions(self):
         if self.action == "get_dashboard":
-            bk_biz_id = self.request.query_params["bk_biz_id"]
-            return [DBManageIAMPermission(bk_biz_id)]
+            if self.request.query_params["cluster_type"] == ClusterType.Influxdb:
+                return [InstanceDetailPermission()]
+            else:
+                return [ClusterDetailPermission()]
 
         return super()._get_custom_permissions()
 

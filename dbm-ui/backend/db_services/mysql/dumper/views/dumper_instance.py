@@ -19,6 +19,9 @@ from backend.db_meta.models.extra_process import ExtraProcessInstance
 from backend.db_services.mysql.dumper.filters import DumperInstanceListFilter
 from backend.db_services.mysql.dumper.handlers import DumperHandler
 from backend.db_services.mysql.dumper.serializers import DumperInstanceConfigSerializer
+from backend.iam_app.dataclass import ResourceEnum
+from backend.iam_app.dataclass.actions import ActionEnum
+from backend.iam_app.handlers.permission import Permission
 
 SWAGGER_TAG = "dumper"
 
@@ -35,6 +38,16 @@ class DumperInstanceViewSet(viewsets.AuditedModelViewSet):
     @common_swagger_auto_schema(
         operation_summary=_("查询数据订阅实例列表"),
         tags=[SWAGGER_TAG],
+    )
+    @Permission.decorator_permission_field(
+        id_field=lambda d: d["cluster_id"],
+        data_field=lambda d: d["results"],
+        actions=[
+            ActionEnum.TBINLOGDUMPER_ENABLE_DISABLE,
+            ActionEnum.TBINLOGDUMPER_REDUCE_NODES,
+            ActionEnum.TBINLOGDUMPER_SWITCH_NODES,
+        ],
+        resource_meta=ResourceEnum.MYSQL,
     )
     def list(self, request, *args, **kwargs):
         resp = super().list(request, *args, **kwargs)

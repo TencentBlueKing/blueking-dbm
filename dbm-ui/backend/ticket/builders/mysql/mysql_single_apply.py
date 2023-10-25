@@ -26,6 +26,7 @@ from backend.db_services.dbbase.constants import IpSource
 from backend.db_services.mysql.constants import DEFAULT_ORIGIN_MYSQL_PORT, SERVER_PORT_LIMIT_MAX, SERVER_PORT_LIMIT_MIN
 from backend.exceptions import ValidationError
 from backend.flow.engine.controller.mysql import MySQLController
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.common.base import CommonValidate
 from backend.ticket.builders.mysql.base import BaseMySQLTicketFlowBuilder
@@ -195,7 +196,9 @@ class MysqlSingleApplyResourceParamBuilder(builders.ResourceApplyParamBuilder):
         next_flow.save(update_fields=["details"])
 
 
-@builders.BuilderFactory.register(TicketType.MYSQL_SINGLE_APPLY, is_apply=True, cluster_type=ClusterType.TenDBSingle)
+@builders.BuilderFactory.register(
+    TicketType.MYSQL_SINGLE_APPLY, is_apply=True, cluster_type=ClusterType.TenDBSingle, iam=ActionEnum.MYSQL_APPLY
+)
 class MysqlSingleApplyFlowBuilder(BaseMySQLTicketFlowBuilder):
     serializer = MysqlSingleApplyDetailSerializer
     inner_flow_builder = MysqlSingleApplyFlowParamBuilder

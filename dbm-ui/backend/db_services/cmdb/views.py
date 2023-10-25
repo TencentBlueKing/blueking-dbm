@@ -16,7 +16,7 @@ from rest_framework.response import Response
 from backend.bk_web import viewsets
 from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.db_meta.api import db_module
-from backend.iam_app.handlers.drf_perm import DBManageIAMPermission
+from backend.iam_app.handlers.drf_perm.base import DBManagePermission
 
 from . import biz, serializers
 
@@ -30,7 +30,7 @@ class CMDBViewSet(viewsets.SystemViewSet):
         if self.action in ["list_bizs", "list_modules", "list_cc_obj_user"]:
             return []
 
-        return [DBManageIAMPermission()]
+        return [DBManagePermission()]
 
     @common_swagger_auto_schema(
         operation_summary=_("业务列表"),

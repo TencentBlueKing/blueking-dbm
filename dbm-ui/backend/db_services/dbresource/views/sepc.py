@@ -20,7 +20,7 @@ from backend.bk_web import viewsets
 from backend.bk_web.models import AuditedModel
 from backend.bk_web.pagination import AuditedLimitOffsetPagination
 from backend.bk_web.swagger import common_swagger_auto_schema
-from backend.db_meta.enums import InstanceRole, MachineType
+from backend.db_meta.enums import ClusterType, InstanceRole, MachineType
 from backend.db_meta.models import Cluster, Machine, ProxyInstance, StorageInstance
 from backend.db_meta.models.spec import Spec
 from backend.db_services.dbresource.constants import CLUSTER_TYPE__SPEC_FILTER, SWAGGER_TAG
@@ -38,7 +38,10 @@ from backend.db_services.dbresource.serializers import (
     SpecSerializer,
     VerifyDuplicatedSpecNameSerializer,
 )
-from backend.iam_app.handlers.drf_perm import GlobalManageIAMPermission
+from backend.iam_app.dataclass import ResourceEnum
+from backend.iam_app.dataclass.actions import ActionEnum
+from backend.iam_app.handlers.drf_perm.base import ResourceActionPermission
+from backend.iam_app.handlers.permission import Permission
 
 
 class DBSpecViewSet(viewsets.AuditedModelViewSet):
@@ -51,16 +54,30 @@ class DBSpecViewSet(viewsets.AuditedModelViewSet):
     serializer_class = SpecSerializer
     filter_class = SpecListFilter
 
+    @staticmethod
+    def instance_getter(request, view):
+        # 如果是单个操作
+        convert = ClusterType.cluster_type_to_db_type
+        if view.kwargs.get("pk"):
+            return [convert(Spec.objects.get(spec_id=view.kwargs["pk"]).spec_cluster_type)]
+        elif request.data.get("spec_ids"):
+            specs = Spec.objects.filter(pk__in=request.data["spec_ids"])
+            return list(set([convert(spec.spec_cluster_type) for spec in specs]))
+        elif request.data.get("spec_cluster_type"):
+            return [convert(request.data["spec_cluster_type"])]
+        return []
+
     def _get_custom_permissions(self):
-        if self.action in [
-            DBSpecViewSet.list.__name__,
-            DBSpecViewSet.recommend_spec.__name__,
-            DBSpecViewSet.query_qps_range.__name__,
-            DBSpecViewSet.filter_cluster_spec.__name__,
-        ]:
+        if self.action in ["delete", "batch_delete"]:
+            return [ResourceActionPermission([ActionEnum.SPEC_DESTROY], ResourceEnum.DBTYPE, self.instance_getter)]
+        elif self.action == "create":
+            return [ResourceActionPermission([ActionEnum.SPEC_CREATE], ResourceEnum.DBTYPE, self.instance_getter)]
+        elif self.action == "update":
+            return [ResourceActionPermission([ActionEnum.SPEC_UPDATE], ResourceEnum.DBTYPE, self.instance_getter)]
+        elif self.action in ["list", "recommend_spec", "query_qps_range", "filter_cluster_spec"]:
             return []
 
-        return [GlobalManageIAMPermission()]
+        return [ResourceActionPermission([ActionEnum.RESOURCE_MANAGE])]
 
     def _remove_spec_fields(self, machine_type, data):
         """移除无需的字段"""
@@ -132,6 +149,11 @@ class DBSpecViewSet(viewsets.AuditedModelViewSet):
     @common_swagger_auto_schema(
         operation_summary=_("查询规格列表"),
         tags=[SWAGGER_TAG],
+    )
+    @Permission.decorator_external_permission_field(
+        param_field=lambda d: ClusterType.cluster_type_to_db_type(d["spec_cluster_type"]),
+        actions=[ActionEnum.SPEC_CREATE, ActionEnum.SPEC_DESTROY, ActionEnum.SPEC_UPDATE],
+        resource_meta=ResourceEnum.DBTYPE,
     )
     def list(self, request, *args, **kwargs):
         resp = super().list(request, *args, **kwargs)

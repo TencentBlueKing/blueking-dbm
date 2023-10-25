@@ -52,7 +52,7 @@ def remove_useless_spec(attrs: Dict[str, Any]) -> Dict[str, Any]:
     # 只保存有意义的规格资源申请
     real_resource_spec = {}
     if "resource_spec" not in attrs:
-        return
+        return attrs
 
     for role, spec in attrs["resource_spec"].items():
         if spec and spec["count"]:

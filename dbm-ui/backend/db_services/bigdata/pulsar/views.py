@@ -13,6 +13,7 @@ from django.utils.translation import ugettext as _
 from rest_framework import status
 
 from backend.bk_web.swagger import common_swagger_auto_schema
+from backend.configuration.constants import DBType
 from backend.db_services.bigdata.pulsar import constants
 from backend.db_services.bigdata.pulsar.query import PulsarListRetrieveResource
 from backend.db_services.bigdata.resources import yasg_slz
@@ -73,3 +74,4 @@ from backend.db_services.dbbase.resources import serializers
 class PulsarClusterViewSetBigdata(BigdataResourceViewSet):
     query_class = PulsarListRetrieveResource
     query_serializer_class = serializers.ListResourceSLZ
+    db_type = DBType.Pulsar

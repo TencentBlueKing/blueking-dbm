@@ -16,6 +16,7 @@ from django.utils.translation import ugettext as _
 from backend.db_meta.enums import ClusterPhase
 from backend.db_meta.models import Cluster
 from backend.flow.engine.controller.riak import RiakController
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.common.bigdata import BigDataTakeDownDetailSerializer
 from backend.ticket.builders.riak.base import BaseRiakTicketFlowBuilder
@@ -36,7 +37,9 @@ class RiakDisableFlowParamBuilder(builders.FlowParamBuilder):
         self.ticket_data["bk_cloud_id"] = cluster.bk_cloud_id
 
 
-@builders.BuilderFactory.register(TicketType.RIAK_CLUSTER_DISABLE, phase=ClusterPhase.OFFLINE)
+@builders.BuilderFactory.register(
+    TicketType.RIAK_CLUSTER_DISABLE, phase=ClusterPhase.OFFLINE, iam=ActionEnum.RIAK_ENABLE_DISABLE
+)
 class RiakEnableFlowBuilder(BaseRiakTicketFlowBuilder):
     serializer = RiakDisableDetailSerializer
     inner_flow_builder = RiakDisableFlowParamBuilder

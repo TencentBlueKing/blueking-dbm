@@ -15,6 +15,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from backend.bk_web.swagger import common_swagger_auto_schema
+from backend.configuration.constants import DBType
 from backend.db_services.bigdata.es import constants
 from backend.db_services.bigdata.es.query import ESListRetrieveResource
 from backend.db_services.bigdata.resources import yasg_slz
@@ -83,6 +84,7 @@ from backend.db_services.dbbase.resources import serializers
 class EsClusterViewSetBigdata(BigdataResourceViewSet):
     query_class = ESListRetrieveResource
     query_serializer_class = serializers.ListResourceSLZ
+    db_type = DBType.Es
 
     @action(methods=["GET"], detail=True, url_path="get_nodes", serializer_class=serializers.ListNodesSLZ)
     def get_nodes(self, request, bk_biz_id: int, cluster_id: int):

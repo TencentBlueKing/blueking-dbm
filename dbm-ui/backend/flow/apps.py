@@ -22,6 +22,7 @@ class FlowConfig(AppConfig):
     def ready(self):
         from pipeline.eri.signals import post_set_state
 
+        import backend.iam_app.handlers.signal  # noqa
         from backend.flow.signal.handlers import post_set_state_signal_handler
 
         post_set_state.connect(post_set_state_signal_handler, dispatch_uid="_post_set_state_handler")

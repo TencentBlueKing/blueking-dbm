@@ -16,6 +16,7 @@ from backend.db_meta.enums import DestroyedStatus
 from backend.db_meta.models import Cluster
 from backend.db_services.redis.rollback.models import TbTendisRollbackTasks
 from backend.flow.engine.controller.redis import RedisController
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.redis.base import BaseRedisTicketFlowBuilder, RedisBasePauseParamBuilder
 from backend.ticket.constants import TicketType
@@ -53,7 +54,9 @@ class RedisDataStructureTaskDeleteParamBuilder(builders.FlowParamBuilder):
     controller = RedisController.redis_data_structure_task_delete
 
 
-@builders.BuilderFactory.register(TicketType.REDIS_DATA_STRUCTURE_TASK_DELETE)
+@builders.BuilderFactory.register(
+    TicketType.REDIS_DATA_STRUCTURE_TASK_DELETE, iam=ActionEnum.REDIS_DATA_STRUCTURE_MANAGE
+)
 class RedisDataStructureTaskDeleteFlowBuilder(BaseRedisTicketFlowBuilder):
     serializer = RedisDataStructureTaskDeleteDetailSerializer
     inner_flow_builder = RedisDataStructureTaskDeleteParamBuilder

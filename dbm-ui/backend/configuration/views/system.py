@@ -29,7 +29,8 @@ from backend.configuration.serializers import (
 from backend.db_meta.models import AppCache
 from backend.db_services.ipchooser.constants import IDLE_HOST_MODULE
 from backend.flow.utils.cc_manage import CcManage
-from backend.iam_app.handlers.drf_perm import DBManageIAMPermission, RejectPermission
+from backend.iam_app.dataclass.actions import ActionEnum
+from backend.iam_app.handlers.drf_perm.base import DBManagePermission, RejectPermission, ResourceActionPermission
 
 tags = [_("系统设置")]
 
@@ -39,10 +40,14 @@ class SystemSettingsViewSet(viewsets.SystemViewSet):
 
     def _get_custom_permissions(self):
         # 非超级用户拒绝访问敏感信息
-        if self.action == self.sensitive_environ.__name__ and not self.request.user.is_superuser:
+        if self.action == "sensitive_environ":
             return [RejectPermission()]
+        if self.action == "update_duty_notice_config":
+            return [ResourceActionPermission([ActionEnum.UPDATE_DUTY_NOTICE_CONFIG])]
+        if self.action in ["disk_classes", "device_classes", "duty_notice_config", "environ"]:
+            return []
 
-        return []
+        return [ResourceActionPermission([ActionEnum.GLOBAL_MANAGE])]
 
     @common_swagger_auto_schema(
         operation_summary=_("查询磁盘类型"),
@@ -125,7 +130,7 @@ class BizSettingsViewSet(viewsets.AuditedModelViewSet):
     queryset = BizSettings.objects.all()
 
     def _get_custom_permissions(self):
-        return [DBManageIAMPermission()]
+        return [DBManagePermission()]
 
     @common_swagger_auto_schema(
         operation_summary=_("业务设置列表"),

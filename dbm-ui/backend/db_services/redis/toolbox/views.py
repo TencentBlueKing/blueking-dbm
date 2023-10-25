@@ -25,14 +25,14 @@ from backend.db_services.redis.toolbox.serializers import (
     QueryClusterIpsSerializer,
     QueryMasterSlaveByIpResultSerializer,
 )
-from backend.iam_app.handlers.drf_perm import DBManageIAMPermission
+from backend.iam_app.handlers.drf_perm.base import DBManagePermission
 
 SWAGGER_TAG = "db_services/redis/toolbox"
 
 
 class ToolboxViewSet(viewsets.SystemViewSet):
     def _get_custom_permissions(self):
-        return [DBManageIAMPermission()]
+        return [DBManagePermission()]
 
     @common_swagger_auto_schema(
         operation_summary=_("根据IP查询集群、角色和规格"),

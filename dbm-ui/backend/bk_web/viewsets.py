@@ -95,6 +95,8 @@ class GenericMixin:
 
     def _get_custom_permissions(self):
         """用户自定义的permission类,由子类继承覆写"""
+        # TODO: ⚠️为了避免权限泄露，希望默认权限是永假来兜底，所以请写每一个视图的时候都覆写该方法
+        # return [RejectPermission()]
         return []
 
     @classmethod

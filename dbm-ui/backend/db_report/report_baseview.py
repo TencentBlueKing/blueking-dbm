@@ -12,11 +12,12 @@ from rest_framework import mixins
 from rest_framework.viewsets import GenericViewSet
 
 from backend.bk_web.pagination import AuditedLimitOffsetPagination
-from backend.iam_app.handlers.drf_perm import DBManageIAMPermission
+from backend.iam_app.dataclass import ResourceEnum
+from backend.iam_app.dataclass.actions import ActionEnum
+from backend.iam_app.handlers.drf_perm.base import ResourceActionPermission, get_request_key_id
 
 
 class ReportBaseViewSet(GenericViewSet, mixins.ListModelMixin):
-    permission_classes = [DBManageIAMPermission]
     pagination_class = AuditedLimitOffsetPagination
 
     filter_fields = {
@@ -29,6 +30,15 @@ class ReportBaseViewSet(GenericViewSet, mixins.ListModelMixin):
 
     report_name = ""
     report_title = []
+
+    @staticmethod
+    def instance_getter(request, view):
+        return [get_request_key_id(request, "bk_biz_id")]
+
+    def get_permissions(self):
+        return [
+            ResourceActionPermission([ActionEnum.HEALTHY_REPORT_VIEW], ResourceEnum.BUSINESS, self.instance_getter)
+        ]
 
     def list(self, request, *args, **kwargs):
         response = super().list(request, *args, **kwargs)
