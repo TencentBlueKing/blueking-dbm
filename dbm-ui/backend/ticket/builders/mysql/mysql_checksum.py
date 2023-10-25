@@ -155,7 +155,11 @@ class MySQLChecksumFlowBuilder(BaseMySQLTicketFlowBuilder):
             cluster__id__in=cluster_ids, instance_inner_role=InstanceInnerRole.MASTER
         )
         cluster_id__master_map = {
-            master.cluster.first().id: {"id": master.id, **DBInstance.from_inst_obj(master).as_dict()}
+            master.cluster.first().id: {
+                "id": master.id,
+                "instance_inner_role": master.instance_inner_role,
+                **DBInstance.from_inst_obj(master).as_dict(),
+            }
             for master in masters
         }
         for info in self.ticket.details["infos"]:
@@ -164,7 +168,14 @@ class MySQLChecksumFlowBuilder(BaseMySQLTicketFlowBuilder):
             # 补充slave信息
             slave_insts = StorageInstance.find_insts_by_addresses(info["slaves"])
             ip_port__slave_info = {f"{slave['ip']}:{slave['port']}": slave for slave in info.pop("slaves")}
-            info["slaves"] = [{"id": slave.id, **ip_port__slave_info[slave.ip_port]} for slave in slave_insts]
+            info["slaves"] = [
+                {
+                    "id": slave.id,
+                    "instance_inner_role": slave.instance_inner_role,
+                    **ip_port__slave_info[slave.ip_port],
+                }
+                for slave in slave_insts
+            ]
 
         self.ticket.save(update_fields=["details"])
 
