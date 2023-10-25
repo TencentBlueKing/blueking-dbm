@@ -33,7 +33,16 @@ from backend.db_meta.enums import (
     InstanceRole,
     MachineType,
 )
-from backend.db_meta.models import Cluster, ClusterEntry, Machine, ProxyInstance, StorageInstance, StorageInstanceTuple
+from backend.db_meta.models import (
+    CLBEntryDetail,
+    Cluster,
+    ClusterEntry,
+    Machine,
+    PolarisEntryDetail,
+    ProxyInstance,
+    StorageInstance,
+    StorageInstanceTuple,
+)
 from backend.db_services.dbbase.constants import IP_PORT_DIVIDER, SPACE_DIVIDER
 from backend.db_services.redis.rollback.models import TbTendisRollbackTasks
 from backend.flow.consts import DEFAULT_DB_MODULE_ID, ConfigFileEnum, ConfigTypeEnum, InstanceStatus
@@ -92,12 +101,13 @@ class RedisDBMeta(object):
             proxies.append({"ip": ip, "port": self.cluster["port"]})
 
         with atomic():
+            ins_status = InstanceStatus.RUNNING
+            if self.cluster.get("ins_status"):
+                ins_status = self.cluster["ins_status"]
             api.machine.create(
                 machines=machines, creator=self.cluster["created_by"], bk_cloud_id=self.cluster["bk_cloud_id"]
             )
-            api.proxy_instance.create(
-                proxies=proxies, creator=self.cluster["created_by"], status=InstanceStatus.RUNNING
-            )
+            api.proxy_instance.create(proxies=proxies, creator=self.cluster["created_by"], status=ins_status)
         return True
 
     def proxy_add_cluster(self) -> bool:
@@ -190,9 +200,13 @@ class RedisDBMeta(object):
                         "spec_config": self.cluster["spec_config"],
                     }
                 )
-                for n in range(0, self.cluster["inst_num"]):
-                    port = n + self.cluster["start_port"]
-                    ins.append({"ip": ip, "port": port, "instance_role": InstanceRole.REDIS_MASTER.value})
+                if self.cluster.get("inst_num"):
+                    for n in range(0, self.cluster["inst_num"]):
+                        port = n + self.cluster["start_port"]
+                        ins.append({"ip": ip, "port": port, "instance_role": InstanceRole.REDIS_MASTER.value})
+                elif self.cluster.get("ports"):
+                    for port in self.cluster["ports"]:
+                        ins.append({"ip": ip, "port": port, "instance_role": InstanceRole.REDIS_MASTER.value})
 
         if self.cluster.get("new_slave_ips"):
             for ip in self.cluster.get("new_slave_ips"):
@@ -205,23 +219,38 @@ class RedisDBMeta(object):
                         "spec_config": self.cluster["spec_config"],
                     }
                 )
-                for n in range(0, self.cluster["inst_num"]):
-                    port = n + self.cluster["start_port"]
-                    ins.append({"ip": ip, "port": port, "instance_role": InstanceRole.REDIS_SLAVE.value})
+                if self.cluster.get("inst_num"):
+                    for n in range(0, self.cluster["inst_num"]):
+                        port = n + self.cluster["start_port"]
+                        ins.append({"ip": ip, "port": port, "instance_role": InstanceRole.REDIS_SLAVE.value})
+                elif self.cluster.get("ports"):
+                    for port in self.cluster["ports"]:
+                        ins.append({"ip": ip, "port": port, "instance_role": InstanceRole.REDIS_SLAVE.value})
 
         with atomic():
             bk_cloud_id = 0
+            ins_status = InstanceStatus.RUNNING
+            if self.cluster.get("ins_status"):
+                ins_status = self.cluster["ins_status"]
             if "bk_cloud_id" in self.ticket_data:
                 bk_cloud_id = self.ticket_data["bk_cloud_id"]
             else:
                 bk_cloud_id = self.cluster["bk_cloud_id"]
             api.machine.create(machines=machines, creator=self.ticket_data["created_by"], bk_cloud_id=bk_cloud_id)
-            api.storage_instance.create(instances=ins, creator=self.ticket_data["created_by"])
+            api.storage_instance.create(instances=ins, creator=self.ticket_data["created_by"], status=ins_status)
         return True
 
     def replicaof(self) -> bool:
         """
-        批量配置主从关系
+        批量配置主从关系,传参为cluster。 主要是在安装时使用
+        "inst_num":xx,
+        "start_port":xx,
+        "bacth_pairs": [
+            {
+                "master_ip":xxx,
+                "slave_ip":xxx,
+            }
+        ]
         """
         replic_tuple = []
         for pair in self.cluster["bacth_pairs"]:
@@ -244,6 +273,33 @@ class RedisDBMeta(object):
                         },
                     }
                 )
+        api.storage_instance_tuple.create(replic_tuple, creator=self.cluster["created_by"])
+        return True
+
+    def replicaof_link(self) -> bool:
+        """
+        批量配置主从关系。传参为实例对应关系列表
+        [
+            {
+                "master_ip":xxx,
+                "master_port:xx,
+                "slave_ip":xxx,
+                "slave_port":xx
+            }
+        ]
+        """
+        replic_tuple = []
+        for repl_info in self.cluster["repl"]:
+            master_ip = repl_info["master_ip"]
+            master_port = repl_info["master_port"]
+            slave_ip = repl_info["slave_ip"]
+            slave_port = repl_info["slave_port"]
+            replic_tuple.append(
+                {
+                    "ejector": {"ip": master_ip, "port": master_port},
+                    "receiver": {"ip": slave_ip, "port": slave_port},
+                }
+            )
         api.storage_instance_tuple.create(replic_tuple, creator=self.cluster["created_by"])
         return True
 
@@ -576,6 +632,60 @@ class RedisDBMeta(object):
                 ins2.save(update_fields=["instance_role", "instance_inner_role"])
 
         return True
+
+    def add_clb_domain(self):
+        """
+        增加clb记录
+        """
+        entry_type = ClusterEntryType.CLB
+        if self.cluster["clb_domain"] != "":
+            entry_type = ClusterEntryType.CLBDNS
+        cluster = Cluster.objects.get(
+            bk_cloud_id=self.cluster["bk_cloud_id"], immute_domain=self.cluster["immute_domain"]
+        )
+        cluster_entry = ClusterEntry.objects.create(
+            cluster=cluster,
+            cluster_entry_type=entry_type,
+            entry=self.cluster["ip"],
+            creator=self.cluster["created_by"],
+        )
+        cluster_entry.save()
+        clb_entry = CLBEntryDetail.objects.create(
+            clb_ip=self.cluster["ip"],
+            clb_id=self.cluster["id"],
+            listener_id=self.cluster["listener_id"],
+            clb_region=self.cluster["region"],
+            entry_id=cluster_entry.id,
+            creator=self.cluster["created_by"],
+        )
+        clb_entry.save()
+
+    def add_polairs_domain(self):
+        """
+        增加polairs记录
+        """
+        cluster = Cluster.objects.get(
+            bk_cloud_id=self.cluster["bk_cloud_id"], immute_domain=self.cluster["immute_domain"]
+        )
+        cluster_entry = ClusterEntry.objects.create(
+            cluster=cluster,
+            cluster_entry_type=ClusterEntryType.POLARIS,
+            entry=self.cluster["name"],
+            creator=self.cluster["created_by"],
+        )
+        cluster_entry.save()
+        alias_token = ""
+        if self.cluster.get("alias_token"):
+            alias_token = self.cluster["alias_token"]
+        polaris_entry = PolarisEntryDetail.objects.create(
+            polaris_name=self.cluster["name"],
+            polaris_l5=self.cluster["l5"],
+            polaris_token=self.cluster["token"],
+            alias_token=alias_token,
+            entry_id=cluster_entry.id,
+            creator=self.cluster["created_by"],
+        )
+        polaris_entry.save()
 
     def tendis_add_clb_domain_4_scene(self):
         """ 增加CLB 域名 """
