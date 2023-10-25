@@ -29,13 +29,11 @@
       @paste="handlePaste">
       <template #suffix />
     </BkInput>
-    <div
+    <DbIcon
       v-if="errorMessage"
-      class="input-error">
-      <DbIcon
-        v-bk-tooltips="errorMessage"
-        type="exclamation-fill" />
-    </div>
+      v-bk-tooltips="errorMessage"
+      class="error-icon"
+      type="exclamation-fill" />
   </div>
 </template>
 <script setup lang="ts">
@@ -204,15 +202,13 @@
     }
   }
 
-
-  .input-error {
+  .error-icon {
     position: absolute;
-    inset: 0;
+    top: 14px;
+    right: 10px;
     display: flex;
-    padding-right: 10px;
     font-size: 14px;
     color: #ea3636;
-    align-items: center;
   }
 }
 </style>

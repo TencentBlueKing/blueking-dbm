@@ -16,6 +16,7 @@
     height="0"
     :is-show="isShow"
     placement="bottom"
+    :popover-delay="0"
     theme="light"
     trigger="manual"
     width="514">

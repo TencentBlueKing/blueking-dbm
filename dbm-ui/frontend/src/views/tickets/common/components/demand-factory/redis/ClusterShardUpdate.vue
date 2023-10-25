@@ -147,6 +147,8 @@
       await Promise.all(clusterTypes.map(async (type) => {
         const ret = await getResourceSpecList({
           spec_cluster_type: type,
+          limit: -1,
+          offset: 0,
         });
         sepcMap[type] = ret.results;
       }));
