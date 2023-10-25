@@ -12,7 +12,7 @@ specific language governing permissions and limitations under the License.
 import logging
 
 from backend.bk_web import viewsets
-from backend.iam_app.handlers.drf_perm import ProxyPassPermission
+from backend.iam_app.handlers.drf_perm.proxypass import ProxyPassPermission
 
 logger = logging.getLogger("root")
 

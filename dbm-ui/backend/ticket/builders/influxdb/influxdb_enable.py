@@ -15,6 +15,7 @@ from django.utils.translation import ugettext as _
 
 from backend.db_meta.enums import ClusterPhase
 from backend.flow.engine.controller.influxdb import InfluxdbController
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.common.bigdata import BaseInfluxDBOpsDetailSerializer, BaseInfluxDBTicketFlowBuilder
 from backend.ticket.constants import TicketType
@@ -30,7 +31,9 @@ class InfluxDBEnableFlowParamBuilder(builders.FlowParamBuilder):
     controller = InfluxdbController.influxdb_enable_scene
 
 
-@builders.BuilderFactory.register(TicketType.INFLUXDB_ENABLE, phase=ClusterPhase.ONLINE)
+@builders.BuilderFactory.register(
+    TicketType.INFLUXDB_ENABLE, phase=ClusterPhase.ONLINE, iam=ActionEnum.INFLUXDB_ENABLE_DISABLE
+)
 class InfluxDBEnableFlowBuilder(BaseInfluxDBTicketFlowBuilder):
     serializer = InfluxDBEnableDetailSerializer
     inner_flow_builder = InfluxDBEnableFlowParamBuilder

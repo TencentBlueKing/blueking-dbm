@@ -20,7 +20,10 @@ from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.db_monitor import serializers
 from backend.db_monitor.models.alarm import DutyRule
 from backend.db_monitor.serializers import DutyRuleSerializer
-from backend.iam_app.handlers.drf_perm import GlobalManageIAMPermission
+from backend.iam_app.dataclass import ResourceEnum
+from backend.iam_app.dataclass.actions import ActionEnum
+from backend.iam_app.handlers.drf_perm.base import ResourceActionPermission, get_request_key_id
+from backend.iam_app.handlers.permission import Permission
 
 SWAGGER_TAG = _("告警轮值规则")
 
@@ -67,10 +70,35 @@ class MonitorDutyRuleViewSet(viewsets.AuditedModelViewSet):
     filter_fields = {"db_type": ["exact"], "name": ["exact"]}
     search_fields = ["name"]
 
+    @staticmethod
+    def inst_getter(request, view):
+        if view.action in ["list", "create"]:
+            return [get_request_key_id(request, key="db_type")]
+        if view.action in ["update", "partial_update", "destroy"]:
+            return [view.kwargs.get("pk")]
+
     def _get_custom_permissions(self):
-        if self.action in ["priority_distinct"]:
+        if self.action == "list":
+            return [ResourceActionPermission([ActionEnum.DUTY_RULE_LIST], ResourceEnum.DBTYPE, self.inst_getter)]
+        elif self.action == "create":
+            return [ResourceActionPermission([ActionEnum.DUTY_RULE_CREATE], ResourceEnum.DBTYPE, self.inst_getter)]
+        elif self.action in ["update", "partial_update"]:
+            return [ResourceActionPermission([ActionEnum.DUTY_RULE_UPDATE], ResourceEnum.DUTY_RULE, self.inst_getter)]
+        elif self.action == "destroy":
+            return [ResourceActionPermission([ActionEnum.DUTY_RULE_DESTROY], ResourceEnum.DUTY_RULE, self.inst_getter)]
+        elif self.action in ["priority_distinct"]:
             return []
-        return [GlobalManageIAMPermission()]
+
+        return [ResourceActionPermission([ActionEnum.GLOBAL_MANAGE])]
+
+    @Permission.decorator_permission_field(
+        id_field=lambda d: d["id"],
+        data_field=lambda d: d["results"],
+        actions=ActionEnum.get_actions_by_resource(ResourceEnum.DUTY_RULE.id),
+        resource_meta=ResourceEnum.DUTY_RULE,
+    )
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
 
     @common_swagger_auto_schema(operation_summary=_("轮值规则优先级统计"), tags=[SWAGGER_TAG])
     @action(methods=["GET"], detail=False)

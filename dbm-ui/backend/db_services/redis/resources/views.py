@@ -16,7 +16,7 @@ from rest_framework.response import Response
 from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.bk_web.viewsets import SystemViewSet
 from backend.db_meta.models.cluster import Cluster
-from backend.iam_app.handlers.drf_perm import DBManageIAMPermission
+from backend.iam_app.handlers.drf_perm.base import DBManagePermission
 
 from ...dbbase.resources.constants import ResourceNodeType
 from ...dbbase.resources.serializers import SearchResourceTreeSLZ
@@ -37,7 +37,7 @@ class ResourceTreeViewSet(SystemViewSet):
     pagination_class = None
 
     def _get_custom_permissions(self):
-        return [DBManageIAMPermission()]
+        return [DBManagePermission()]
 
     @common_swagger_auto_schema(
         operation_summary=_("获取资源拓扑树"),

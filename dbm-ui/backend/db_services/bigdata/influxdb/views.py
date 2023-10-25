@@ -11,6 +11,7 @@ specific language governing permissions and limitations under the License.
 from django.utils.decorators import method_decorator
 from django.utils.translation import ugettext as _
 from rest_framework import status
+from rest_framework.decorators import action
 
 from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.db_services.bigdata.influxdb import constants
@@ -19,6 +20,11 @@ from backend.db_services.bigdata.influxdb.serializers import ListInfluxDBInstanc
 from backend.db_services.bigdata.resources import yasg_slz
 from backend.db_services.bigdata.resources.views import BigdataResourceViewSet
 from backend.db_services.dbbase.resources import serializers
+from backend.iam_app.dataclass import ResourceEnum
+from backend.iam_app.dataclass.actions import ActionEnum
+from backend.iam_app.handlers.drf_perm.base import DBManagePermission
+from backend.iam_app.handlers.drf_perm.cluster import InstanceDetailPermission
+from backend.iam_app.handlers.permission import Permission
 
 
 @method_decorator(
@@ -57,3 +63,28 @@ from backend.db_services.dbbase.resources import serializers
 class InfluxDBClusterViewSetBigdata(BigdataResourceViewSet):
     query_class = InfluxDBListRetrieveResource
     query_serializer_class = serializers.ListResourceSLZ
+
+    def list(self, request, bk_biz_id: int, *args, **kwargs):
+        """influxdb没有集群，不实现list方法"""
+        raise NotImplementedError()
+
+    def list_nodes(self, request, bk_biz_id: int, cluster_id: int):
+        """influxdb没有节点，不实现list_nodes"""
+        raise NotImplementedError()
+
+    @Permission.decorator_permission_field(
+        id_field=lambda d: d["id"],
+        data_field=lambda d: d["results"],
+        actions=ActionEnum.get_actions_by_resource(ResourceEnum.INFLUXDB.id),
+        resource_meta=ResourceEnum.INFLUXDB,
+    )
+    @action(methods=["GET"], detail=False, url_path="list_instances")
+    def list_instances(self, request, bk_biz_id: int, *args, **kwargs):
+        query_params = self.params_validate(self.list_instances_slz)
+        data = self.paginator.paginate_list(request, bk_biz_id, self.query_class.list_instances, query_params)
+        return self.get_paginated_response(data)
+
+    def _get_custom_permissions(self):
+        if self.detail or self.action == "retrieve_instance":
+            return [InstanceDetailPermission()]
+        return [DBManagePermission()]

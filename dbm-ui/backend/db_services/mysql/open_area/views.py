@@ -33,7 +33,11 @@ from backend.db_services.mysql.open_area.serializers import (
     TendbOpenAreaResultPreviewSerializer,
     VarAlterSerializer,
 )
-from backend.iam_app.handlers.drf_perm import DBManageIAMPermission
+from backend.iam_app.dataclass import ResourceEnum
+from backend.iam_app.dataclass.actions import ActionEnum
+from backend.iam_app.handlers.drf_perm.base import DBManagePermission
+from backend.iam_app.handlers.drf_perm.openarea import OpenareaConfigPermission
+from backend.iam_app.handlers.permission import Permission
 
 SWAGGER_TAG = "db_services/openarea"
 
@@ -47,7 +51,9 @@ class OpenAreaViewSet(viewsets.AuditedModelViewSet):
     filter_class = TendbOpenAreaConfigListFilter
 
     def _get_custom_permissions(self):
-        return [DBManageIAMPermission()]
+        if self.action in ["create", "update", "destroy"]:
+            return [OpenareaConfigPermission(self.action)]
+        return [DBManagePermission()]
 
     def get_queryset(self):
         # 过滤业务下的集群模板
@@ -67,6 +73,17 @@ class OpenAreaViewSet(viewsets.AuditedModelViewSet):
         operation_summary=_("开区模板列表"),
         auto_schema=PaginatedResponseSwaggerAutoSchema,
         tags=[SWAGGER_TAG],
+    )
+    @Permission.decorator_permission_field(
+        id_field=lambda d: d["id"],
+        data_field=lambda d: d["results"],
+        actions=[
+            ActionEnum.TENDBCLUSTER_OPENAREA_CONFIG_UPDATE,
+            ActionEnum.TENDBCLUSTER_OPENAREA_CONFIG_DESTROY,
+            ActionEnum.MYSQL_OPENAREA_CONFIG_DESTROY,
+            ActionEnum.MYSQL_OPENAREA_CONFIG_UPDATE,
+        ],
+        resource_meta=ResourceEnum.OPENAREA_CONFIG,
     )
     def list(self, request, *args, **kwargs):
         resp = super().list(request, *args, **kwargs)

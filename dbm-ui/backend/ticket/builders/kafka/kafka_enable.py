@@ -15,6 +15,7 @@ from django.utils.translation import ugettext as _
 
 from backend.db_meta.enums import ClusterPhase
 from backend.flow.engine.controller.kafka import KafkaController
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.common.bigdata import BaseKafkaTicketFlowBuilder, BigDataTakeDownDetailSerializer
 from backend.ticket.constants import TicketType
@@ -30,7 +31,9 @@ class KafkaEnableFlowParamBuilder(builders.FlowParamBuilder):
     controller = KafkaController.kafka_enable_scene
 
 
-@builders.BuilderFactory.register(TicketType.KAFKA_ENABLE, phase=ClusterPhase.ONLINE)
+@builders.BuilderFactory.register(
+    TicketType.KAFKA_ENABLE, phase=ClusterPhase.ONLINE, iam=ActionEnum.KAFKA_ENABLE_DISABLE
+)
 class KafkaEnableFlowBuilder(BaseKafkaTicketFlowBuilder):
     serializer = KafkaEnableDetailSerializer
     inner_flow_builder = KafkaEnableFlowParamBuilder

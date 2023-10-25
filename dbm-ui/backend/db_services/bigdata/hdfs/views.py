@@ -19,6 +19,7 @@ from rest_framework.response import Response
 from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.components import DBConfigApi
 from backend.components.dbconfig.constants import FormatType, LevelName
+from backend.configuration.constants import DBType
 from backend.db_meta.enums import InstanceRole
 from backend.db_meta.models import Cluster
 from backend.db_services.bigdata.hdfs import constants
@@ -83,6 +84,7 @@ from backend.flow.consts import ConfigTypeEnum, LevelInfoEnum
 class HDFSClusterViewSetBigdata(BigdataResourceViewSet):
     query_class = HDFSListRetrieveResource
     query_serializer_class = serializers.ListResourceSLZ
+    db_type = DBType.Hdfs
 
     @common_swagger_auto_schema(
         operation_summary=_("获取集群访问xml配置"),

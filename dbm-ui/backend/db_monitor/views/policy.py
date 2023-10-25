@@ -21,12 +21,24 @@ from rest_framework.response import Response
 
 from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.bk_web.viewsets import AuditedModelViewSet
-from backend.configuration.constants import PLAT_BIZ_ID, DBType
-from backend.db_meta.enums import ClusterType, InstanceRole
-from backend.db_meta.models import Cluster, DBModule, StorageInstance
-from backend.db_monitor import constants, serializers
-from backend.db_monitor.models import MonitorPolicy
-from backend.iam_app.handlers.drf_perm import DBManageIAMPermission
+
+from backend.db_monitor import serializers
+
+from ...configuration.constants import PLAT_BIZ_ID, DBType
+from ...db_meta.enums import ClusterType, InstanceRole
+from ...db_meta.models import Cluster, DBModule, StorageInstance
+from ...iam_app.dataclass import ResourceEnum
+from ...iam_app.dataclass.actions import ActionEnum
+from ...iam_app.handlers.drf_perm.base import (
+    BizDBTypeResourceActionPermission,
+    DBManagePermission,
+    ResourceActionPermission,
+    get_request_key_id,
+)
+from ...iam_app.handlers.drf_perm.monitor import MonitorPolicyPermission
+from ...iam_app.handlers.permission import Permission
+from .. import constants
+from ..models import MonitorPolicy
 
 
 class MonitorPolicyListFilter(filters.FilterSet):
@@ -115,8 +127,31 @@ class MonitorPolicyViewSet(AuditedModelViewSet):
     filter_class = MonitorPolicyListFilter
     ordering_fields = ("-create_at",)
 
+    @staticmethod
+    def instance_getter(key):
+        return lambda request, view: [get_request_key_id(request, key)]
+
     def _get_custom_permissions(self):
-        return [DBManageIAMPermission()]
+        if self.action == "list":
+            if not int(self.request.query_params["bk_biz_id"]):
+                list_permission = ResourceActionPermission(
+                    [ActionEnum.GLOBAL_MONITOR_POLICY_LIST],
+                    ResourceEnum.DBTYPE,
+                    instance_ids_getter=self.instance_getter("db_type"),
+                )
+            else:
+                list_permission = BizDBTypeResourceActionPermission(
+                    [ActionEnum.MONITOR_POLICY_LIST],
+                    instance_biz_getter=self.instance_getter("bk_biz_id"),
+                    instance_dbtype_getter=self.instance_getter("db_type"),
+                )
+            return [list_permission]
+        elif self.action in ["update_strategy", "destroy", "clone_strategy"]:
+            return [MonitorPolicyPermission(view_action=self.action)]
+        elif self.action in ["disable", "enable"]:
+            return [MonitorPolicyPermission(view_action="enable_disable")]
+
+        return [DBManagePermission()]
 
     def get_serializer_class(self):
         if self.action == "list":
@@ -127,6 +162,15 @@ class MonitorPolicyViewSet(AuditedModelViewSet):
         context = super().get_serializer_context()
         context["events"] = json.loads(cache.get(constants.MONITOR_EVENTS, "{}"))
         return context
+
+    @Permission.decorator_permission_field(
+        id_field=lambda d: d["id"],
+        data_field=lambda d: d["results"],
+        actions=ActionEnum.get_actions_by_resource(ResourceEnum.MONITOR_POLICY.id),
+        resource_meta=ResourceEnum.MONITOR_POLICY,
+    )
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
 
     @common_swagger_auto_schema(
         operation_summary=_("启用策略"),

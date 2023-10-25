@@ -23,6 +23,7 @@ from backend.configuration.constants import SystemSettingsEnum
 from backend.configuration.models import DBAdministrator, SystemSettings
 from backend.db_meta.models import Cluster
 from backend.db_services.dbbase.constants import IpSource
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket.constants import FlowRetryType, FlowType
 from backend.ticket.models import Flow, Ticket, TicketFlowConfig
 
@@ -425,8 +426,10 @@ class BuilderFactory:
     apply_ticket_type = []
     # 单据与集群状态的映射
     ticket_type__cluster_phase = {}
-    # 单据和集群类型的映射
+    # 部署类单据和集群类型的映射
     ticket_type__cluster_type = {}
+    # 单据和权限动作/资源类型的映射
+    ticket_type__iam_action = {}
 
     @classmethod
     def register(cls, ticket_type: str, **kwargs) -> Callable:
@@ -437,6 +440,7 @@ class BuilderFactory:
         1. is_apply: bool ---- 表示单据是否是部署类单据(类似集群的部署，扩容，替换等)
         2. phase: ClusterPhase ---- 表示单据与集群状态的映射
         3. cluster_type: ClusterType ---- 表示单据与集群类型的映射
+        4. action: ActionMeta ---- 表示单据与权限动作的映射
         """
 
         def inner_wrapper(wrapped_class: TicketFlowBuilder) -> TicketFlowBuilder:
@@ -451,6 +455,9 @@ class BuilderFactory:
                 cls.ticket_type__cluster_phase[ticket_type] = kwargs["phase"]
             if kwargs.get("cluster_type"):
                 cls.ticket_type__cluster_type[ticket_type] = kwargs["cluster_type"]
+            if hasattr(ActionEnum, ticket_type) or kwargs.get("iam"):
+                # 单据类型和权限动作默认一一对应，如果是特殊指定的则通过iam参数传递
+                cls.ticket_type__iam_action[ticket_type] = getattr(ActionEnum, ticket_type, None) or kwargs.get("iam")
 
             return wrapped_class
 

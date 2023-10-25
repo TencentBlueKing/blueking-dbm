@@ -34,14 +34,14 @@ from backend.db_services.mysql.cluster.serializers import (
     QueryClustersResponseSerializer,
 )
 from backend.db_services.mysql.dataclass import ClusterFilter, DBInstance
-from backend.iam_app.handlers.drf_perm import DBManageIAMPermission
+from backend.iam_app.handlers.drf_perm.base import DBManagePermission
 
 SWAGGER_TAG = "db_services/mysql/cluster"
 
 
 class ClusterViewSet(viewsets.SystemViewSet):
     def _get_custom_permissions(self):
-        return [DBManageIAMPermission()]
+        return [DBManagePermission()]
 
     @common_swagger_auto_schema(
         operation_summary=_("通过集群查询同机关联集群"),

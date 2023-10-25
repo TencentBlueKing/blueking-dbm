@@ -16,7 +16,8 @@ from backend.bk_web import viewsets
 from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.core.encrypt.handlers import AsymmetricHandler
 from backend.core.encrypt.serializers import FetchPublicKeysSerializer
-from backend.iam_app.handlers.drf_perm import GlobalManageIAMPermission
+from backend.iam_app.dataclass.actions import ActionEnum
+from backend.iam_app.handlers.drf_perm.base import ResourceActionPermission
 
 SWAGGER_TAG = _("秘钥管理")
 
@@ -25,7 +26,7 @@ class EncryptViewSet(viewsets.SystemViewSet):
     def _get_custom_permissions(self):
         if self.action == "fetch_public_keys":
             return []
-        return [GlobalManageIAMPermission()]
+        return [ResourceActionPermission([ActionEnum.GLOBAL_MANAGE])]
 
     @common_swagger_auto_schema(
         operation_summary=_("查询公钥列表"), request_body=FetchPublicKeysSerializer(), tags=[SWAGGER_TAG]

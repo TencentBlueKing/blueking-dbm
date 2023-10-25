@@ -18,12 +18,12 @@ from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.db_services.dbbase.instances import constants
 from backend.db_services.dbbase.instances.handlers import InstanceHandler
 from backend.db_services.dbbase.instances.yasg_slz import CheckInstancesResSLZ, CheckInstancesSLZ
-from backend.iam_app.handlers.drf_perm import DBManageIAMPermission
+from backend.iam_app.handlers.drf_perm.base import DBManagePermission
 
 
 class InstanceViewSet(viewsets.SystemViewSet):
     def _get_custom_permissions(self):
-        return [DBManageIAMPermission()]
+        return [DBManagePermission()]
 
     @common_swagger_auto_schema(
         operation_summary=_("根据用户手动输入的 ip:port 查询真实的实例"),

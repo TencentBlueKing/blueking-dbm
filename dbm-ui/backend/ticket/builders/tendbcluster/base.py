@@ -155,6 +155,9 @@ class TendbBaseOperateDetailSerializer(MySQLBaseOperateDetailSerializer):
                 )
             )
 
+    def validate_cluster_can_access(self, attrs):
+        return super().validate_cluster_can_access(attrs=attrs)
+
 
 class TendbClustersTakeDownDetailsSerializer(MySQLClustersTakeDownDetailsSerializer):
     is_only_delete_slave_domain = serializers.BooleanField(help_text=_("是否只禁用只读接入层"), required=False, default=False)

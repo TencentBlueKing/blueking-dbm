@@ -19,22 +19,34 @@ from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.components.hadb.client import HADBApi
 from backend.db_event.serializers import QueryDetailSerializer, QueryListSerializer
 from backend.db_meta.models import AppCache, Cluster
-from backend.iam_app.handlers.drf_perm import DBEventIAMPermission
+from backend.iam_app.dataclass import ResourceEnum
+from backend.iam_app.dataclass.actions import ActionEnum
+from backend.iam_app.handlers.drf_perm.base import ResourceActionPermission, get_request_key_id
+from backend.iam_app.handlers.permission import Permission
 
 SWAGGER_TAG = _("DBHA事件")
 
 
 class DBHAEventViewSet(viewsets.SystemViewSet):
+    @staticmethod
+    def biz_getter(request, view):
+        return [get_request_key_id(request, "app")]
+
     def _get_custom_permissions(self):
         if self.action == "cat":
             # TODO: 暂时豁免，后续cat接口带上业务属性后再放开
             return []
-        return [DBEventIAMPermission()]
+        return [ResourceActionPermission([ActionEnum.DBHA_SWITCH_EVENT_VIEW], ResourceEnum.BUSINESS, self.biz_getter)]
 
     @common_swagger_auto_schema(
         operation_summary=_("DBHA切换事件列表"),
         query_serializer=QueryListSerializer,
         tags=[SWAGGER_TAG],
+    )
+    @Permission.decorator_external_permission_field(
+        param_field=lambda d: d["app"],
+        actions=[ActionEnum.DBHA_SWITCH_EVENT_VIEW],
+        resource_meta=ResourceEnum.BUSINESS,
     )
     @action(methods=["GET"], detail=False, serializer_class=QueryListSerializer, pagination_class=None)
     def ls(self, request):

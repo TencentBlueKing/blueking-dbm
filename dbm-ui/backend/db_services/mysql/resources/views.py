@@ -24,7 +24,7 @@ from backend.db_services.dbbase.resources.constants import ResourceNodeType
 from backend.db_services.dbbase.resources.serializers import SearchResourceTreeSLZ
 from backend.db_services.dbbase.resources.views import BaseListResourceViewSet
 from backend.db_services.dbbase.resources.yasg_slz import ResourceTreeSLZ
-from backend.iam_app.handlers.drf_perm import DBManageIAMPermission
+from backend.iam_app.handlers.drf_perm.base import DBManagePermission
 
 
 @method_decorator(
@@ -39,7 +39,7 @@ class ResourceTreeViewSet(SystemViewSet):
     pagination_class = None
 
     def _get_custom_permissions(self):
-        return [DBManageIAMPermission()]
+        return [DBManagePermission()]
 
     @common_swagger_auto_schema(
         operation_summary=_("获取资源拓扑树"),

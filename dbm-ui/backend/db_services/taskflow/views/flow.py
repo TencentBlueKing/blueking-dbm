@@ -29,7 +29,11 @@ from backend.db_services.taskflow.serializers import (
 from backend.flow.consts import StateType
 from backend.flow.engine.bamboo.engine import BambooEngine
 from backend.flow.models import FlowTree
-from backend.iam_app.handlers.drf_perm import TaskFlowIAMPermission
+from backend.iam_app.dataclass.actions import ActionEnum
+from backend.iam_app.dataclass.resources import ResourceEnum
+from backend.iam_app.handlers.drf_perm.base import DBManagePermission
+from backend.iam_app.handlers.drf_perm.taskflow import TaskFlowPermission
+from backend.iam_app.handlers.permission import Permission
 from backend.ticket.models import Flow
 from backend.utils.basic import get_target_items_from_details
 
@@ -51,10 +55,12 @@ class TaskFlowViewSet(viewsets.AuditedModelViewSet):
     }
 
     def _get_custom_permissions(self):
-        return [TaskFlowIAMPermission()]
+        if self.action == "list":
+            return [DBManagePermission()]
+        return [TaskFlowPermission([ActionEnum.FLOW_DETAIL], ResourceEnum.TASKFLOW)]
 
     def get_queryset(self):
-        if self.action != "list":
+        if self.action != self.list.__name__:
             return super().get_queryset()
 
         # 对root_ids支持批量过滤
@@ -67,6 +73,12 @@ class TaskFlowViewSet(viewsets.AuditedModelViewSet):
     @common_swagger_auto_schema(
         operation_summary=_("任务列表"),
         tags=[SWAGGER_TAG],
+    )
+    @Permission.decorator_permission_field(
+        id_field=lambda d: d["root_id"],
+        data_field=lambda d: d["results"],
+        actions=[ActionEnum.FLOW_DETAIL],
+        resource_meta=ResourceEnum.TASKFLOW,
     )
     def list(self, requests, *args, **kwargs):
         return super().list(requests, *args, **kwargs)

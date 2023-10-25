@@ -24,7 +24,7 @@ from backend.bk_web.swagger import (
 from backend.db_meta.models import Group
 from backend.db_services.group.handlers import GroupHandler
 from backend.db_services.group.serializers import GroupMoveInstancesSerializer, GroupSerializer
-from backend.iam_app.handlers.drf_perm import DBManageIAMPermission, GlobalManageIAMPermission
+from backend.iam_app.handlers.drf_perm.base import DBManagePermission, get_request_key_id
 
 SWAGGER_TAG = _("分组")
 
@@ -39,11 +39,11 @@ class GroupViewSet(viewsets.AuditedModelViewSet):
     pagination_class = AuditedLimitOffsetPagination
 
     def _get_custom_permissions(self):
-        bk_biz_id = self.request.query_params.get("bk_biz_id", 0) or self.request.data.get("bk_biz_id", 0)
+        bk_biz_id = get_request_key_id(self.request, key="bk_biz_id", default=0)
         if int(bk_biz_id):
-            return [DBManageIAMPermission()]
+            return [DBManagePermission()]
 
-        return [GlobalManageIAMPermission()]
+        return []
 
     def get_queryset(self):
         queryset = super().get_queryset()

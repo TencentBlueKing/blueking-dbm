@@ -14,6 +14,7 @@ from django.utils.translation import ugettext_lazy as _
 
 from backend.db_meta.enums import ClusterPhase
 from backend.flow.engine.controller.es import EsController
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.common.bigdata import BaseEsTicketFlowBuilder, BigDataTakeDownDetailSerializer
 from backend.ticket.constants import TicketType
@@ -29,7 +30,7 @@ class EsEnableFlowParamBuilder(builders.FlowParamBuilder):
     controller = EsController.es_enable_scene
 
 
-@builders.BuilderFactory.register(TicketType.ES_ENABLE, phase=ClusterPhase.ONLINE)
+@builders.BuilderFactory.register(TicketType.ES_ENABLE, phase=ClusterPhase.ONLINE, iam=ActionEnum.ES_ENABLE_DISABLE)
 class EsEnableFlowBuilder(BaseEsTicketFlowBuilder):
     serializer = EsEnableDetailSerializer
     inner_flow_builder = EsEnableFlowParamBuilder

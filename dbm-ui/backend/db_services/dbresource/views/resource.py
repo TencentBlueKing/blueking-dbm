@@ -59,7 +59,9 @@ from backend.db_services.ipchooser.types import ScopeList
 from backend.flow.consts import FAILED_STATES, SUCCEED_STATES
 from backend.flow.engine.controller.base import BaseController
 from backend.flow.models import FlowTree
-from backend.iam_app.handlers.drf_perm import GlobalManageIAMPermission
+from backend.iam_app.dataclass.actions import ActionEnum
+from backend.iam_app.handlers.drf_perm.base import ResourceActionPermission
+from backend.iam_app.handlers.permission import Permission
 from backend.ticket.constants import BAMBOO_STATE__TICKET_STATE_MAP, TicketStatus, TicketType
 from backend.ticket.models import Ticket
 from backend.utils.basic import generate_root_id
@@ -68,28 +70,36 @@ from backend.utils.redis import RedisConn
 
 class DBResourceViewSet(viewsets.SystemViewSet):
     def _get_custom_permissions(self):
-        # 查询类的接口暂不鉴权
         if self.action in [
-            "list_dba_hosts",
-            "query_dba_hosts",
+            "resource_import",
+            "resource_apply",
+            "resource_pre_apply",
+            "resource_confirm",
+            "resource_delete",
+            "resource_update",
+        ]:
+            return [ResourceActionPermission([ActionEnum.RESOURCE_POLL_MANAGE])]
+        elif self.action in [
+            "spec_resource_count",
             "get_mountpoints",
-            "query_resource_import_tasks",
             "get_disktypes",
             "get_subzones",
             "get_device_class",
-            "resource_import_urls",
-            "query_operation_list",
-            "spec_resource_count",
         ]:
             return []
 
-        return [GlobalManageIAMPermission()]
+        return [ResourceActionPermission([ActionEnum.RESOURCE_MANAGE])]
 
     @common_swagger_auto_schema(
         operation_summary=_("资源池资源列表"),
         request_body=ResourceListSerializer(),
         responses={status.HTTP_200_OK: ResourceListResponseSerializer()},
         tags=[SWAGGER_TAG],
+    )
+    @Permission.decorator_external_permission_field(
+        param_field=lambda d: None,
+        actions=[ActionEnum.RESOURCE_POLL_MANAGE],
+        resource_meta=None,
     )
     @action(detail=False, methods=["POST"], url_path="list", serializer_class=ResourceListSerializer)
     def resource_list(self, request):

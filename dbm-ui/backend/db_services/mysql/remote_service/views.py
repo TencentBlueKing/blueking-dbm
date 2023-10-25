@@ -26,14 +26,14 @@ from backend.db_services.mysql.remote_service.serializers import (
     ShowTablesRequestSerializer,
     ShowTablesResponseSerializer,
 )
-from backend.iam_app.handlers.drf_perm import DBManageIAMPermission
+from backend.iam_app.handlers.drf_perm.base import DBManagePermission
 
 SWAGGER_TAG = "db_services/remote_service"
 
 
 class RemoteServiceViewSet(viewsets.SystemViewSet):
     def _get_custom_permissions(self):
-        return [DBManageIAMPermission()]
+        return [DBManagePermission()]
 
     def _get_cluster_id_and_role(self, validated_data):
         cluster_id__role_map = {}

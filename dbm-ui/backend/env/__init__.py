@@ -59,6 +59,7 @@ BK_IAM_SYSTEM_NAME = get_type_env(key="BK_IAM_SYSTEM_NAME", _type=str, default="
 BK_IAM_INNER_HOST = get_type_env(key="BK_IAM_V3_INNER_HOST", _type=str, default="https://iam-inner.example.com")
 BK_IAM_USE_APIGATEWAY = True
 BK_IAM_APIGATEWAY = get_type_env(key="BK_IAM_APIGATEWAY", _type=str, default="https://iam-apigw.example.com")
+BK_IAM_API_VERSION = get_type_env(key="BK_IAM_API_VERSION", _type=str, default="v1")
 IAM_APP_URL = get_type_env(key="IAM_APP_URL", _type=str, default="https://iam.example.com")
 BK_IAM_RESOURCE_API_HOST = get_type_env(key="BK_IAM_RESOURCE_API_HOST", _type=str, default="https://bkdbm.example.com")
 
