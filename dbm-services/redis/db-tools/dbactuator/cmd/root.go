@@ -6,14 +6,15 @@ Copyright © 2022 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
-	"dbm-services/redis/db-tools/dbactuator/pkg/consts"
-	"dbm-services/redis/db-tools/dbactuator/pkg/jobmanager"
-	"dbm-services/redis/db-tools/dbactuator/pkg/util"
 	"encoding/base64"
 	"fmt"
 	"log"
 	"os"
 	"strings"
+
+	"dbm-services/redis/db-tools/dbactuator/pkg/consts"
+	"dbm-services/redis/db-tools/dbactuator/pkg/jobmanager"
+	"dbm-services/redis/db-tools/dbactuator/pkg/util"
 
 	"github.com/spf13/cobra"
 )
@@ -34,11 +35,23 @@ var multiProcessConcurrency int
 
 var showSupportedAtomJobs bool
 
+var (
+	buildstamp, githash, version, external string
+)
+
 // RootCmd represents the base command when called without any subcommands
 var RootCmd = &cobra.Command{
-	Use:   "dbactuator_redis",
-	Short: "redis原子任务合集",
-	Long:  `redis原子任务合集,包含Redis 以及 RedisProxy 安装、集群创建、备份、回档等等原子任务`,
+	Use: "dbactuator_redis",
+	Short: fmt.Sprintf(`redis原子任务合集
+Version: %s
+Githash: %s
+External: %s
+Buildstamp:%s`, version, githash, strings.ToUpper(external), buildstamp),
+	Long: fmt.Sprintf(`redis原子任务合集,包含Redis 以及 RedisProxy 安装、集群创建、备份、回档等等原子任务
+Version: %s
+Githash: %s
+External: %s
+Buildstamp:%s`, version, githash, strings.ToUpper(external), buildstamp),
 	// Uncomment the following line if your bare application
 	// has an action associated with it:
 	Run: func(cmd *cobra.Command, args []string) {
