@@ -73,6 +73,11 @@ INSTANCE_MONITOR_PLUGINS = {
     DBType.Riak: {
         MachineType.RIAK: {"name": "riak", "plugin_id": "dbm_riak_exporter", "func_name": "beam.smp"},
     },
+    DBType.MongoDB: {
+        MachineType.MONGODB: {"name": "mongodb", "plugin_id": "dbm_mongodb_exporter", "func_name": "mongod"},
+        MachineType.MONGOS: {"name": "mongos", "plugin_id": "dbm_mongodb_exporter", "func_name": "mongos"},
+        MachineType.MONOG_CONFIG: {"name": "mongo_config", "plugin_id": "dbm_mongodb_exporter", "func_name": "mongod"},
+    },
 }
 
 SET_NAME_TEMPLATE = "db.{db_type}.{monitor_plugin_name}"
