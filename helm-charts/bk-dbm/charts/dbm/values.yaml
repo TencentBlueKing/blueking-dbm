@@ -24,9 +24,6 @@ livenessProbe:
   failureThreshold: 6
   successThreshold: 1
 
-replicaCount: 1
-resources: {}
-
 initJob:
   resources: {}
 

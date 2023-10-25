@@ -242,10 +242,6 @@ stakater:
   enabled: true
   reloader:
     watchGlobally: false
-    deployment:
-      image:
-        name: stakater/reloader
-        tag: v0.0.114
 
 # bitnami mysql 配置项
 mysql:

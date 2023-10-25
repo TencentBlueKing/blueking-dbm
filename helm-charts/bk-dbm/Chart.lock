@@ -4,7 +4,7 @@ dependencies:
   version: 1.13.0
 - name: mysql
   repository: https://charts.bitnami.com/bitnami
-  version: 9.12.5
+  version: 9.14.0
 - name: redis
   repository: https://charts.bitnami.com/bitnami
   version: 16.13.2
@@ -19,7 +19,7 @@ dependencies:
   version: 7.9.8
 - name: dbm
   repository: file://charts/dbm
-  version: 0.1.21
+  version: 0.1.22
 - name: dbconfig
   repository: file://charts/dbconfig
   version: 0.1.7
@@ -56,5 +56,5 @@ dependencies:
 - name: backup-consumer
   repository: file://charts/backup-consumer
   version: 0.0.3
-digest: sha256:2441eb65d88a908703d8d83b392ad5472d9469ef532aecc8e0b12c112e80b114
-generated: "2023-10-23T21:16:42.422636+08:00"
+digest: sha256:fc6656e9c319a982cb14882ecb6dd68d6516569b5882eb79c9033e1c2050c73a
+generated: "2023-10-25T15:54:18.652012+08:00"
