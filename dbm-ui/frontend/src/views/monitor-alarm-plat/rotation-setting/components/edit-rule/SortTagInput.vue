@@ -13,14 +13,14 @@
 
 <template>
   <BkSelect
-    v-model="tagsList"
     class="people-select"
     :clearable="false"
     filterable
-    :input-search="false"
+    :model-value="tagsList"
     multiple
     multiple-mode="tag"
-    :placeholder="$t('请输入/选择人员')">
+    :placeholder="$t('请输入/选择人员')"
+    @change="handleChange">
     <template #trigger>
       <div
         class="sort-tag-input"
@@ -34,6 +34,9 @@
           @dragend="handleDragEnd"
           @dragenter="(e) => handleDragEnterItem(e)"
           @dragstart="(e) => handleDragStartItemEnd(e)">
+          <span
+            v-show="targetIndex === index"
+            class="split-line" />
           <DbIcon
             class="drag-icon"
             type="drag" />
@@ -41,12 +44,13 @@
           <DbIcon
             class="close-icon"
             type="close"
-            @click="() => handleDeleteTag(index)" />
+            @click="(e: MouseEvent) => handleDeleteTag(e, index)" />
         </div>
         <input
           ref="inputRef"
           v-model="localValue"
           :placeholder="$t('请输入')"
+          @input="handleInputChange"
           @keyup.enter="handleClickEnter">
       </div>
     </template>
@@ -80,18 +84,12 @@
   const localValue = ref('');
   const inputRef = ref();
   const tagsList = ref<string[]>([]);
-
   const contactList = ref<SelectItem<string>[]>([]);
+  const targetIndex = ref(-1);
 
+  let searchTimer = 0;
   let sourceValue = '';
   let targetValue = '';
-
-  useRequest(getUseList, {
-    onSuccess: (res) => {
-      const list = res.results.map(item => ({ label: item.username, value: item.username }));
-      contactList.value = list;
-    },
-  });
 
   watch(() => props.list, (list) => {
     if (list) {
@@ -110,6 +108,37 @@
     immediate: true,
   });
 
+  const { run: fetchUseList } = useRequest(getUseList, {
+    manual: true,
+    onSuccess: (res) => {
+      contactList.value = res.results.filter(item => !tagsList.value?.includes(item.username))
+        .map(item => ({ label: item.username, value: item.username }));
+    },
+  });
+
+  const handleChange = (values: string[]) => {
+    localValue.value = '';
+    tagsList.value = values;
+    remoteFilter('');
+  };
+
+  // 初始化加载
+  fetchUseList({ limit: -1, offset: 0 });
+
+  const handleInputChange = (e: any) => {
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(() => {
+      remoteFilter(e.target.value);
+    }, 200);
+  };
+
+  /**
+   * 远程搜索人员
+   */
+  const remoteFilter = (value: string) => {
+    fetchUseList({ fuzzy_lookups: value });
+  };
+
   const handleMouseEnter = () => {
     inputRef.value.focus();
   };
@@ -124,8 +153,11 @@
     }
   };
 
-  const handleDeleteTag = (index: number) => {
+  const handleDeleteTag = (e: MouseEvent, index: number) => {
+    e.preventDefault();
+    e.stopPropagation();
     tagsList.value.splice(index, 1);
+    remoteFilter('');
   };
 
   const handleDragStartItemEnd = (e: DragEvent) => {
@@ -134,11 +166,15 @@
 
   const handleDragEnterItem = (e: DragEvent) => {
     if (e.relatedTarget !== null) {
-      targetValue = e.relatedTarget.innerText;
+      const targetText = e.relatedTarget.innerText;
+      const index = tagsList.value.findIndex(item => item === targetText);
+      targetIndex.value = index === -1 ? -1 : index + 1;
+      targetValue = targetText;
     }
   };
 
   const handleDragEnd = () => {
+    targetIndex.value = -1;
     if (targetValue && sourceValue && targetValue !== sourceValue) {
       let sourceIndex = -1;
       let targetIndex = -1;
@@ -177,7 +213,7 @@
   border: 1px solid #C4C6CC;
   border-radius: 2px;
   flex-wrap: wrap;
-  gap: 4px;
+  gap: 5px;
 
   .tag-box {
     display: flex;
@@ -188,6 +224,14 @@
     border-radius: 2px;
     transition: 0.5s all;
     align-items: center;
+
+    .split-line {
+      display: inline-block;
+      width: 2px;
+      height: 22px;
+      margin-left: -8px;
+      background-color: #3a84ff;
+    }
 
     .drag-icon {
       font-size: 18px;

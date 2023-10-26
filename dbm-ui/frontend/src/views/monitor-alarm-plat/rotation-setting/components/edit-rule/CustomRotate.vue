@@ -76,6 +76,15 @@
     return dayjs(date).format('YYYY-MM-DD');
   }
 
+  // 临时处理，待时间选择器修复后去除
+  function transferToTimePicker(timeStr: string) {
+    const arr = timeStr.split(':');
+    if (arr.length === 2) {
+      return `${timeStr}:00`;
+    }
+    return timeStr;
+  }
+
   function initDateRange() {
     return [
       formatDate(new Date().toISOString()),
@@ -197,7 +206,7 @@
           dateTime: item.date,
           timeRange: item.work_times.map(i => ({
             id: random(),
-            value: i.split('--'),
+            value: i.split('--').map(time => transferToTimePicker(time)),
           })),
           peoples: item.members,
         }));
@@ -305,6 +314,14 @@
     width: 100%;
     flex-wrap: wrap;
 
+    &:hover{
+      .operate-box {
+        .operate-icon {
+          display: block !important;
+        }
+      }
+    }
+
     .people-select {
       width: 100%;
 
@@ -328,9 +345,11 @@
       align-items: center;
 
       .operate-icon {
+        display: none !important;
         font-size: 16px;
         color: #737987;
         cursor: pointer;
+
       }
     }
   }

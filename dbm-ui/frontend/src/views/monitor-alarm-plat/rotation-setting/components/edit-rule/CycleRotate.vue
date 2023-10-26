@@ -35,6 +35,7 @@
         <BkInput
           v-model="formModel.singleDutyPeoples"
           class="input-item"
+          :max="formModel.peopleList.length"
           type="number">
           <template #suffix>
             <span class="suffix-slot">人</span>
@@ -123,6 +124,11 @@
       class="table-box"
       :columns="columns"
       :data="tableData" />
+    <div
+      v-if="showMoreTip"
+      class="more-tip">
+      {{ t('以此类推') }}...
+    </div>
   </div>
 </template>
 
@@ -173,6 +179,15 @@
     return dayjs(date).format('YYYY-MM-DD');
   }
 
+  // 临时处理，待时间选择器修复后去除
+  function transferToTimePicker(timeStr: string) {
+    const arr = timeStr.split(':');
+    if (arr.length === 2) {
+      return `${timeStr}:00`;
+    }
+    return timeStr;
+  }
+
   function initDateTimrRange() {
     return [
       formatDate(new Date().toISOString()),
@@ -197,6 +212,7 @@
   const dateSelect = ref(initDateSelect());
   const tableData = ref<RowData[]>([]);
   const formRef = ref();
+  const showMoreTip = ref(false);
   const formModel = reactive({
     peopleList: [] as string[],
     singleDutyPeoples: 1,
@@ -302,7 +318,7 @@
         const isSelectedWeekday = data.date !== 'daily' && data.weekday.length > 0;
         let daysCount = 0;
         let startIndex = 0;
-        tableData.value = dateArr.reduce((results, item) => {
+        const targetArr = dateArr.reduce((results, item) => {
           if (isSelectedWeekday) {
             // 只取选中的星期几显示
             const weekday = dayjs(item).day();
@@ -328,6 +344,13 @@
           results.push(obj);
           return results;
         }, [] as RowData[]);
+        if (targetArr.length > 5) {
+          showMoreTip.value = true;
+          tableData.value = targetArr.slice(0, 5);
+          return;
+        }
+        showMoreTip.value = false;
+        tableData.value = targetArr;
       }
     }, {
       immediate: true,
@@ -341,7 +364,7 @@
       const arranges = data.duty_arranges as DutyCycleItem[];
       dateSelect.value.timeList = arranges[0].work_times.map(item => ({
         id: random(),
-        value: item.split('--'),
+        value: item.split('--').map(time => transferToTimePicker(time)),
       }));
       formModel.sinlgeDutyDays = arranges[0].duty_day;
       formModel.singleDutyPeoples = arranges[0].duty_number;
@@ -515,6 +538,16 @@
       display: flex;
       flex-wrap: wrap;
     }
+  }
+
+  .more-tip {
+    width: 100%;
+    height: 42px;
+    padding-left: 16px;
+    font-size: 12px;
+    line-height: 42px;
+    color: #63656E;
+    background: #FFF;
   }
 }
 </style>

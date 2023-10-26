@@ -51,16 +51,14 @@
             '#EA3636' : '#2DCB56'}">{{ `(${changeObj.num}G)` }}</span>
       </div>
     </div>
-    <Teleport to="body">
-      <ChooseClusterTargetPlan
-        :data="activeRowData"
-        is-same-shard-num
-        :is-show="showChooseClusterTargetPlan"
-        :title="t('选择集群容量变更部署方案')"
-        @click-cancel="() => showChooseClusterTargetPlan = false"
-        @click-confirm="handleChoosedTargetCapacity" />
-    </Teleport>
   </BkLoading>
+  <ChooseClusterTargetPlan
+    :data="activeRowData"
+    is-same-shard-num
+    :is-show="showChooseClusterTargetPlan"
+    :title="t('选择集群容量变更部署方案')"
+    @click-cancel="() => showChooseClusterTargetPlan = false"
+    @click-confirm="handleChoosedTargetCapacity" />
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';

@@ -37,7 +37,7 @@
 <style lang="less" scoped>
   .tag-box{
     padding: 0 6px;
-    margin-left: 4px;
+    margin-left: 2px;
     transform: scale(0.83, 0.83);
 
   }

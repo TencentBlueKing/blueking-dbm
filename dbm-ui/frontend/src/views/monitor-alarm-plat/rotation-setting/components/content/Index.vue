@@ -103,9 +103,15 @@
       field: 'name',
       minWidth: 220,
       render: ({ row }: {row: RowData}) => {
-        const isNotActive = true; // row.status === RuleStatus.TERMINATED || row.status === RuleStatus.EXPIRED;
-        const color = isNotActive ? '#63656E' : '#3A84FF';
-        return <span style={{ color, cursor: 'pointer' }}>{row.name}</span>;
+        const isNotActive = row.status === RuleStatus.TERMINATED || row.status === RuleStatus.EXPIRED;
+        const color = (isNotActive || !row.is_enabled) ? '#63656E' : '#3A84FF';
+        return <bk-button
+          text
+          theme="primary"
+          style={{ color }}
+          onClick={() => handleOperate('edit', row)}>
+            {row.name}
+        </bk-button>;
       },
     },
     {
@@ -142,9 +148,17 @@
           <div class="priority-box">
             {
               !row.is_show_edit ? <>
-              {!theme ? <bk-tag>{level}</bk-tag> : <bk-tag theme={theme} type="filled">{level}</bk-tag>}
-              <db-icon class="edit-icon" type="edit" style="font-size: 18px"onClick={() => handleClickEditPriority(row)} />
-              </> : <NumberInput type='number' placeholder={t('请输入 1～100 的数值')} onSubmit={(value: string) => handlePriorityChange(row, value)}/>
+                {!theme ? <bk-tag>{level}</bk-tag> : <bk-tag theme={theme} type="filled">{level}</bk-tag>}
+                <db-icon
+                  class="edit-icon"
+                  type="edit"
+                  style="font-size: 18px"
+                  onClick={() => handleClickEditPriority(row)} />
+              </> : <NumberInput
+                  type='number'
+                  model-value={level}
+                  placeholder={t('请输入 1～100 的数值')}
+                  onSubmit={(value: string) => handlePriorityChange(row, value)}/>
             }
           </div>
         );
@@ -173,7 +187,7 @@
         const peoples = [...peopleSet].join(' , ');
         return (
           <div class="rotate-table-column">
-            <bk-popover placement="bottom" theme="light" width={780} popoverDelay={0}>
+            <bk-popover placement="bottom" theme="light" width={780} popoverDelay={80}>
               {{
                 default: () => (
                   <div class="display-text">{title}: {peoples}</div>
@@ -230,9 +244,24 @@
       width: 180,
       render: ({ row }: {row: RowData}) => (
       <div class="operate-box">
-        <span onClick={() => handleOperate('edit', row)}>{t('编辑')}</span>
-        <span onClick={() => handleOperate('clone', row)}>{t('克隆')}</span>
-        {!row.is_enabled && <span onClick={() => handleDelete(row)}>{t('删除')}</span>}
+        <bk-button
+          text
+          theme="primary"
+          onClick={() => handleOperate('edit', row)}>
+          {t('编辑')}
+        </bk-button>
+        <bk-button
+          text
+          theme="primary"
+          onClick={() => handleOperate('clone', row)}>
+          {t('克隆')}
+        </bk-button>
+        {!row.is_enabled && <bk-button
+          text
+          theme="primary"
+          onClick={() => handleDelete(row)}>
+          {t('删除')}
+        </bk-button>}
       </div>),
     },
   ];
@@ -311,6 +340,7 @@
     if (updateResult.priority === priority) {
       // 设置成功
       messageSuccess(t('优先级设置成功'));
+      window.changeConfirm = false;
     }
     fetchHostNodes();
   };

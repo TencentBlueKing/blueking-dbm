@@ -215,11 +215,28 @@
 
     return (<div style="color:#3A84FF;cursor:pointer;'">
         {showRecopy
-          ? <span onClick={() => handleClickRecopy(data)}>{t('重新复制')}</span>
+          ? <bk-button
+              text
+              theme="primary"
+              onClick={() => handleClickRecopy(data)}>
+              {t('重新复制')}
+            </bk-button>
           : <>
-          <span style={{ color: showDisconnect ? '#3A84FF' : '#C4C6CC' }} onClick={() => handleClickDisconnectSync(data, index, showDisconnect)}>{t('断开同步')}</span>
-          <span style={{ color: showDataCheckAndRepair ? '#3A84FF' : '#C4C6CC', marginLeft: '10px' }} onClick={() => handleClickDataCheckAndRepair(data, showDataCheckAndRepair)}>{t('数据校验与修复')}</span>
-          </>
+            <bk-button
+              text
+              theme="primary"
+              style={{ color: showDisconnect ? '#3A84FF' : '#C4C6CC' }}
+              onClick={() => handleClickDisconnectSync(data, index, showDisconnect)}>
+              {t('断开同步')}
+              </bk-button>
+            <bk-button
+              text
+              theme="primary"
+              style={{ color: showDataCheckAndRepair ? '#3A84FF' : '#C4C6CC', marginLeft: '10px' }}
+              onClick={() => handleClickDataCheckAndRepair(data, showDataCheckAndRepair)}>
+              {t('数据校验与修复')}
+            </bk-button>
+            </>
         }
       </div>);
   };

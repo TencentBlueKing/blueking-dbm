@@ -35,25 +35,22 @@
             v-for="(rule, innerIndex) in item"
             :key="innerIndex">
             <template v-if="rule.method !== ''">
-              <div
-                class="select-box">
-                <BkSelect
-                  v-model="rule.method"
-                  :clearable="false"
-                  disabled>
-                  <template #trigger>
-                    <div
-                      class="common-disply">
-                      {{ signMap[rule.method] }}
-                    </div>
-                  </template>
-                  <BkOption
-                    v-for="(signItem, signIndex) in signList"
-                    :key="signIndex"
-                    :label="signItem.label"
-                    :value="signItem.value" />
-                </BkSelect>
-              </div>
+              <BkSelect
+                v-model="rule.method"
+                :clearable="false"
+                disabled>
+                <template #trigger>
+                  <div
+                    class="common-disply">
+                    {{ signMap[rule.method] }}
+                  </div>
+                </template>
+                <BkOption
+                  v-for="(signItem, signIndex) in signList"
+                  :key="signIndex"
+                  :label="signItem.label"
+                  :value="signItem.value" />
+              </BkSelect>
               <div class="input-box">
                 <NumberInput
                   v-model="rule.threshold"
@@ -78,7 +75,7 @@
     </div>
     <div class="else-box">
       <div class="control">
-        else
+        then
       </div>
       <span>{{ t('触发告警') }}</span>
     </div>
@@ -196,9 +193,9 @@
         font-size: 12px;
         line-height: 32px;
         text-align: center;
-        cursor: pointer;
         background: #F0F1F5;
         border-radius: 2px 0 0 2px;
+
       }
 
       .io-box {
@@ -227,6 +224,10 @@
     width: 100%;
     align-items: center;
     gap: 9px;
+
+    span {
+      font-size: 12px;
+    }
   }
 }
 
