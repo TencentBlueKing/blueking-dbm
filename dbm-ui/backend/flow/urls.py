@@ -32,6 +32,7 @@ from backend.flow.views.hdfs_apply import InstallHdfsSceneApiView
 from backend.flow.views.hdfs_destroy import DestroyHdfsSceneApiView
 from backend.flow.views.hdfs_disable import DisableHdfsSceneApiView
 from backend.flow.views.hdfs_enable import EnableHdfsSceneApiView
+from backend.flow.views.hdfs_fake_apply import FakeInstallHdfsSceneApiView
 from backend.flow.views.hdfs_reboot import RebootHdfsSceneApiView
 from backend.flow.views.hdfs_replace import ReplaceHdfsSceneApiView
 from backend.flow.views.hdfs_scale_up import ScaleUpHdfsSceneApiView
@@ -42,6 +43,7 @@ from backend.flow.views.influxdb_apply import InstallInfluxdbSceneApiView
 from backend.flow.views.influxdb_destroy import DestroyInfluxdbSceneApiView
 from backend.flow.views.influxdb_disable import DisableInfluxdbSceneApiView
 from backend.flow.views.influxdb_enable import EnableInfluxdbSceneApiView
+from backend.flow.views.influxdb_fake_apply import FakeInstallInfluxdbSceneApiView
 from backend.flow.views.influxdb_reboot import RebootInfluxdbSceneApiView
 from backend.flow.views.influxdb_replace import ReplaceInfluxdbSceneApiView
 from backend.flow.views.kafka_apply import InstallKafkaSceneApiView
@@ -239,6 +241,7 @@ urlpatterns = [
     url(r"^scene/destroy_influxdb$", DestroyInfluxdbSceneApiView.as_view()),
     url(r"^scene/reboot_influxdb$", RebootInfluxdbSceneApiView.as_view()),
     url(r"^scene/replace_influxdb$", ReplaceInfluxdbSceneApiView.as_view()),
+    url(r"^scene/fake_install_influxdb$", FakeInstallInfluxdbSceneApiView.as_view()),
     url(r"^scene/install_kafka$", InstallKafkaSceneApiView.as_view()),
     url(r"^scene/fake_install_kafka$", FakeInstallKafkaSceneApiView.as_view()),
     url(r"^scene/scale_up_kafka$", ScaleUpKafkaSceneApiView.as_view()),
@@ -288,6 +291,7 @@ urlpatterns = [
     url(r"^scene/shrink_hdfs$", ShrinkHdfsSceneApiView.as_view()),
     url(r"^scene/reboot_hdfs$", RebootHdfsSceneApiView.as_view()),
     url(r"^scene/replace_hdfs$", ReplaceHdfsSceneApiView.as_view()),
+    url(r"^scene/fake_install_hdfs$", FakeInstallHdfsSceneApiView.as_view()),
     url(r"^scene/switch_mysql_ha$", MySQLHASwitchSceneApiView.as_view()),
     url(r"^scene/master_ha_master_fail_over$", MySQLHAMasterFailOverApiView.as_view()),
     url(r"^scene/master_pt_table_sync$", MySQLPtTableSyncApiView.as_view()),
