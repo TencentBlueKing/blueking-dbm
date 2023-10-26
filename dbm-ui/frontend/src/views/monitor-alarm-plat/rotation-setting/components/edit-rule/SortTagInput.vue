@@ -111,8 +111,13 @@
   const { run: fetchUseList } = useRequest(getUseList, {
     manual: true,
     onSuccess: (res) => {
-      contactList.value = res.results.filter(item => !tagsList.value?.includes(item.username))
-        .map(item => ({ label: item.username, value: item.username }));
+      contactList.value = res.results.reduce((results, item) => {
+        if (!tagsList.value?.includes(item.username)) {
+          const obj = { label: item.username, value: item.username };
+          results.push(obj);
+        }
+        return results;
+      }, [] as { label: string, value: string }[]);
     },
   });
 
