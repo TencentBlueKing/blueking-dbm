@@ -25,8 +25,7 @@
       ref="tableRef"
       class="table-box"
       :columns="columns"
-      :data-source="queryMonitorPolicyList"
-      :page-offset-bottom="35" />
+      :data-source="queryMonitorPolicyList" />
   </div>
   <EditRule
     v-model="isShowEditStrrategySideSilder"

@@ -103,7 +103,7 @@
       field: 'name',
       minWidth: 220,
       render: ({ row }: {row: RowData}) => {
-        const isNotActive = row.status === RuleStatus.TERMINATED || row.status === RuleStatus.EXPIRED;
+        const isNotActive = [RuleStatus.TERMINATED, RuleStatus.EXPIRED].includes(row.status as RuleStatus);
         const color = (isNotActive || !row.is_enabled) ? '#63656E' : '#3A84FF';
         return <bk-button
           text
