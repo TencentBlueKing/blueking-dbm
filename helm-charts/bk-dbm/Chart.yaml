@@ -39,7 +39,7 @@ dependencies:
   - condition: dbpartition.enabled
     name: dbpartition
     repository: file://charts/dbpartition
-    version: 0.1.6
+    version: 0.1.7
   - condition: db-simulation.enabled
     name: db-simulation
     repository: file://charts/db-simulation
@@ -63,7 +63,7 @@ dependencies:
   - condition: db-celery-service.enabled
     name: db-celery-service
     repository: file://charts/db-celery-service
-    version: 0.0.6
+    version: 0.0.8
   - condition: slow-query-parser-service.enabled
     name: slow-query-parser-service
     repository: file://charts/slow-query-parser-service
@@ -79,5 +79,5 @@ dependencies:
 description: A Helm chart for bkdbm
 name: bk-dbm
 type: application
-version: 1.2.0-alpha.63
-appVersion: 1.2.0-alpha.63
+version: 1.2.0-alpha.65
+appVersion: 1.2.0-alpha.65

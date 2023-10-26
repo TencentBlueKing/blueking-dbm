@@ -28,7 +28,7 @@ dependencies:
   version: 0.1.30
 - name: dbpartition
   repository: file://charts/dbpartition
-  version: 0.1.6
+  version: 0.1.7
 - name: db-simulation
   repository: file://charts/db-simulation
   version: 0.1.9
@@ -46,7 +46,7 @@ dependencies:
   version: 0.0.9
 - name: db-celery-service
   repository: file://charts/db-celery-service
-  version: 0.0.6
+  version: 0.0.8
 - name: slow-query-parser-service
   repository: file://charts/slow-query-parser-service
   version: 0.0.2
@@ -56,5 +56,5 @@ dependencies:
 - name: backup-consumer
   repository: file://charts/backup-consumer
   version: 0.0.3
-digest: sha256:2ea68d751cc7a6cd16d67e194850ad831687cc31c334b5a78bf603cef7751503
-generated: "2023-10-26T11:47:16.130137+08:00"
+digest: sha256:79f8e300ba516183dc9e8dc2322fc113c6e3b09092e3dd51be7bf59ab4464c04
+generated: "2023-10-27T10:09:52.649624+08:00"
