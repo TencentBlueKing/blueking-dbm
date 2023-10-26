@@ -32,7 +32,8 @@ FROM go-mod-builder as redis-medium-builder
 
 ## 构建redis介质
 RUN set -ex && \
-    echo TODO....
+    cd /blueking-dbm/dbm-services/redis/db-tools/dbactuator && make -j4
+#    cd /blueking-dbm/dbm-services/redis/db-tools/dbmon/ && sh package.sh TODO: 该命令还有问题
 
 
 FROM go-mod-builder as bigdata-medium-builder
@@ -106,10 +107,14 @@ RUN set -ex &&  \
 WORKDIR /app
 USER root
 
-ADD ./dbm-ui/backend/dbm_init/medium/ ./
-
 ## 拷贝虚拟环境
 COPY --from=builder /venv /venv
+
+## 拷贝第一阶段的文件，构建制品
+COPY --from=medium-builder /blueking-dbm /blueking-dbm
+
+## 拷贝脚本文件
+ADD ./dbm-ui/backend/dbm_init/medium/ ./
 
 ENV DJANGO_SETTINGS_MODULE=settings
 ENV MEDIUM_PATH=dbm-ui/backend/dbm_init/medium
@@ -118,9 +123,6 @@ ARG MEDIUM_BUILDER_BRANCH=master
 ARG GITHUB_TOKEN=''
 ARG GITHUB_USERNAME=''
 ARG GITHUB_USER_EMAIL=''
-
-## 拷贝第一阶段的文件，构建制品
-COPY --from=medium-builder /blueking-dbm /blueking-dbm
 
 ## 将相关制品移动到指定目录，提交medicum.lock文件
 RUN set -ex && \

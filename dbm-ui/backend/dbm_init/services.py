@@ -281,6 +281,11 @@ class Services:
     @staticmethod
     def init_custom_metric_and_event():
         """初始化自定义指标和采集项"""
+
+        # 如果这个自定义指标已经存在，则不进行初始化
+        if SystemSettings.get_setting_value(key=SystemSettingsEnum.BKM_DBM_REPORT.value):
+            return
+
         custom_name = "dbm_report_channel"
         logger.info("init_custom_metric_and_event: create metric/event channel for dbmon and mysqlcrond")
 
