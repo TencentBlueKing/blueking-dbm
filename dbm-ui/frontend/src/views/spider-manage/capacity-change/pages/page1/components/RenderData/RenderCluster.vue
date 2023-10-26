@@ -16,7 +16,7 @@
     <TableEditInput
       ref="editRef"
       v-model="localDomain"
-      :placeholder="t('请输入')"
+      :placeholder="t('请输入或选择集群')"
       :rules="rules" />
   </div>
 </template>
@@ -35,7 +35,7 @@
 
   import { useGlobalBizs } from '@stores';
 
-  import TableEditInput from '@views/spider-manage/common/edit/Input.vue';
+  import TableEditInput from '@components/tools-table-input/index.vue';
 
   import { random } from '@utils';
 

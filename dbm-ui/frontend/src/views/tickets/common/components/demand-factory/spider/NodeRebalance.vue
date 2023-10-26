@@ -37,10 +37,12 @@
       <div class="ticket-details__item">
         <span class="ticket-details__item-label">{{ t('校验时间') }}：</span>
         <span class="ticket-details__item-value">
-          {{ ticketDetails.details.trigger_checksum_type === 'timer' ? t('定时执行') : t('立即执行') }}
+          {{ isTimer ? t('定时执行') : t('立即执行') }}
         </span>
       </div>
-      <div class="ticket-details__item">
+      <div
+        v-if="isTimer"
+        class="ticket-details__item">
         <span class="ticket-details__item-label">{{ t('定时执行时间') }}：</span>
         <span class="ticket-details__item-value">{{ ticketDetails.details.trigger_checksum_time }}</span>
       </div>
@@ -77,10 +79,11 @@
 
   const { t } = useI18n();
 
-  // eslint-disable-next-line vue/no-setup-props-destructure
-  const { infos } = props.ticketDetails.details;
   const tableData = ref<RowData[]>([]);
 
+  // eslint-disable-next-line vue/no-setup-props-destructure
+  const { infos } = props.ticketDetails.details;
+  const isTimer = props.ticketDetails.details.trigger_checksum_type === 'timer';
   const columns = [
     {
       label: t('目标集群'),

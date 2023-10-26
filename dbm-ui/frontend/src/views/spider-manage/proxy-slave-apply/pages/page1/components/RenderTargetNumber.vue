@@ -16,7 +16,7 @@
     <TableEditInput
       ref="editRef"
       v-model="localValue"
-      :placeholder="$t('请输入')"
+      :placeholder="$t('请输入部署数量')"
       :rules="rules" />
   </BkLoading>
 </template>

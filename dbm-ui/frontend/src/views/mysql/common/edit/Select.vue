@@ -242,7 +242,7 @@
   .table-edit-select {
     position: relative;
     display: flex;
-    height: 40px;
+    height: 42px;
     overflow: hidden;
     color: #63656e;
     cursor: pointer;
@@ -295,7 +295,7 @@
       margin-right: 16px;
       margin-left: 16px;
       overflow: hidden;
-      line-height: 40px;
+      line-height: 42px;
       text-overflow: ellipsis;
       white-space: pre;
     }

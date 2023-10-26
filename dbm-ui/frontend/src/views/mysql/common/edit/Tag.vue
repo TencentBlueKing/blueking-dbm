@@ -105,7 +105,7 @@
           background: rgb(255 221 221 / 20%);
 
           .placeholder {
-            line-height: 40px;
+            line-height: 42px;
           }
         }
       }
@@ -113,7 +113,7 @@
 
     .bk-tag-input {
       .bk-tag-input-trigger {
-        min-height: 40px;
+        min-height: 42px;
         border-color: transparent;
         border-radius: 0;
 
@@ -132,8 +132,8 @@
 
         .placeholder {
           top: 0;
-          height: 40px;
-          line-height: 40px;
+          height: 42px;
+          line-height: 42px;
         }
       }
     }
