@@ -50,20 +50,6 @@
                 </BkMenuItem>
               </FunController>
               <FunController
-                controller-id="duty_rule"
-                module-id="monitor">
-                <BkMenuItem key="PlatRotateSet">
-                  <template #icon>
-                    <i class="db-icon-db-config" />
-                  </template>
-                  <span
-                    v-overflow-tips.right
-                    class="text-overflow">
-                    {{ $t('轮值设置') }}
-                  </span>
-                </BkMenuItem>
-              </FunController>
-              <FunController
                 controller-id="notice_group"
                 module-id="monitor">
                 <BkMenuItem key="PlatMonitorAlarmGroup">
@@ -74,6 +60,20 @@
                     v-overflow-tips.right
                     class="text-overflow">
                     {{ $t('告警组') }}
+                  </span>
+                </BkMenuItem>
+              </FunController>
+              <FunController
+                controller-id="duty_rule"
+                module-id="monitor">
+                <BkMenuItem key="PlatRotateSet">
+                  <template #icon>
+                    <i class="db-icon-db-config" />
+                  </template>
+                  <span
+                    v-overflow-tips.right
+                    class="text-overflow">
+                    {{ $t('轮值策略') }}
                   </span>
                 </BkMenuItem>
               </FunController>

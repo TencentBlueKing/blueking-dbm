@@ -25,8 +25,8 @@
       @click="handleShowSelector" />
   </div>
   <DbSideslider
-    v-model:is-show="isShowSelector"
     :before-close="handleClose"
+    :is-show="isShowSelector"
     :width="960"
     @closed="handleClose">
     <template #header>

@@ -170,7 +170,7 @@ export const getDbModuleList = (params: { dbtype: string }) => http.get<{
  */
 export const getAlarmGroupList = (params: {
   bk_biz_id: number,
-  dbtype: string,
+  db_type: string,
 }) => http.get<ListBase<AlarmGroupItem[]>>('/apis/monitor/notice_group/', params);
 
 // 查询轮值规则列表

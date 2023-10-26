@@ -14,7 +14,9 @@
 <template>
   <div class="monitor-targets-box">
     <div class="left-box">
-      <div class="item-box">
+      <div
+        v-show="flowList.length > 0"
+        class="item-box">
         <div class="item">
           <span class="top-bar" />
           AND
@@ -36,7 +38,9 @@
     </div>
     <div class="right-box">
       <div class="item-box biz">
-        <span class="left-bar" />
+        <span
+          v-show="flowList.length > 0"
+          class="left-bar" />
         <div class="title-box">
           <BkSelect
             v-model="bizObj.title"
@@ -252,7 +256,7 @@
     Object.assign(item, {
       selectList: isMySql.value ? props.moduleList : props.clusterList,
       titleList: _.cloneDeep(titleListRaw),
-      activeAdd: false,
+      activeAdd: isMySql.value,
       activeMinus: true,
     });
     return item;
@@ -454,6 +458,12 @@
     .biz {
       .content {
         background-color: #FAFBFD;
+
+        :deep(.bk-input) {
+          border-left-width: 0;
+          border-bottom-left-radius: 0;
+          border-top-left-radius: 0;
+        }
       }
 
     }
@@ -488,13 +498,23 @@
 
           :deep(.bk-input) {
             border-radius: 2px 0 0 2px;
-            outline: none;
           }
         }
       }
 
       .content {
         flex: 1;
+
+        .is-focus {
+          :deep(.bk-select-tag) {
+            border-left-color: #3a84ff;
+
+            &:hover {
+              border-left-color: #3a84ff;
+            }
+          }
+
+        }
 
         :deep(.bk-input) {
           outline: none;
@@ -504,17 +524,21 @@
           width: 100%;
           min-height: 30px;
           overflow: hidden;
-          // border: none;
-          // outline: none;
+          border-left-color: transparent;
+          border-bottom-left-radius: 0;
+          border-top-left-radius: 0;
+
+          &:hover {
+            border-left-color: #a4a2a2;
+          }
+
 
           .bk-select-tag-wrapper {
             height: auto;
             max-height: 100px;
             overflow-y: auto;
-            // padding: 5px 8px;
           }
         }
-
 
         .content-custom {
           display: flex;
@@ -547,6 +571,7 @@
 
         .icon {
           font-size: 18px;
+          color: #979BA5;
           cursor: pointer;
         }
 

@@ -28,6 +28,7 @@
     <div class="monitor-strategy-box">
       <BkForm
         ref="formRef"
+        class="edit-form"
         form-type="vertical"
         :model="formModel"
         :rules="formRules">
@@ -106,11 +107,11 @@
           </BkCheckboxGroup>
         </BkFormItem>
         <BkFormItem
-          :label="t('默认通知对象')"
-          property="nofityTarget"
+          :label="t('告警组')"
+          property="notifyTarget"
           required>
           <BkSelect
-            v-model="formModel.nofityTarget"
+            v-model="formModel.notifyTarget"
             class="notify-select"
             collapse-tags
             :disabled="isReadonlyPage"
@@ -118,19 +119,18 @@
             multiple
             multiple-mode="tag">
             <template #tag>
-              <div
-                v-for="item in formModel.nofityTarget"
+              <BkTag
+                v-for="item in formModel.notifyTarget"
                 :key="item"
-                class="notify-tag-box">
-                <DbIcon
-                  style="font-size: 16px"
-                  type="auth" />
-                <span class="dba">{{ alarmGroupNameMap[item] }}</span>
-                <DbIcon
-                  class="close-icon"
-                  type="close"
-                  @click="() => handleDeleteNotifyTargetItem(item)" />
-              </div>
+                closable
+                @close="() => handleDeleteNotifyTargetItem(item)">
+                <template #icon>
+                  <DbIcon
+                    class="alarm-icon"
+                    type="yonghuzu" />
+                </template>
+                {{ alarmGroupNameMap[item] }}
+              </BkTag>
             </template>
             <BkOption
               v-for="item in alarmGroupList"
@@ -233,7 +233,7 @@
   const formModel = reactive({
     strategyName: '',
     notifyRules: [] as string[],
-    nofityTarget: [] as number[],
+    notifyTarget: [] as number[],
   });
 
   const isEditPage = computed(() => props.pageStatus === 'edit');
@@ -330,25 +330,31 @@
     if (data) {
       formModel.strategyName = data.name;
       formModel.notifyRules = _.cloneDeep(data.notify_rules);
-      formModel.nofityTarget = _.cloneDeep(data.notify_groups);
+      formModel.notifyTarget = _.cloneDeep(data.notify_groups);
     }
   }, {
     immediate: true,
   });
 
   const handleDeleteNotifyTargetItem = (id: number) => {
-    const index = formModel.nofityTarget.findIndex(item => item === id);
-    formModel.nofityTarget.splice(index, 1);
+    const index = formModel.notifyTarget.findIndex(item => item === id);
+    formModel.notifyTarget.splice(index, 1);
   };
 
   const handleClickConfirmRecoverDefault = () => {
     formModel.strategyName = props.data.name;
     formModel.notifyRules = _.cloneDeep(props.data.notify_rules);
-    formModel.nofityTarget = _.cloneDeep(props.data.notify_groups);
+    formModel.notifyTarget = _.cloneDeep(props.data.notify_groups);
     monitorTargetRef.value.resetValue();
-    infoValueRef.value.resetValue();
-    warnValueRef.value.resetValue();
-    dangerValueRef.value.resetValue();
+    if (infoValueRef.value) {
+      infoValueRef.value.resetValue();
+    }
+    if (warnValueRef.value) {
+      warnValueRef.value.resetValue();
+    }
+    if (dangerValueRef.value) {
+      dangerValueRef.value.resetValue();
+    }
   };
 
   // 点击确定
@@ -369,7 +375,7 @@
       })),
       test_rules: testRules.filter(item => item && item.config.length !== 0),
       notify_rules: formModel.notifyRules,
-      notify_groups: formModel.nofityTarget,
+      notify_groups: formModel.notifyTarget,
     };
     if (!isEditPage.value) {
       // 克隆额外参数
@@ -400,6 +406,12 @@
   width: 100%;
   padding: 24px 40px;
   flex-direction: column;
+
+  .edit-form {
+    :deep(.bk-form-label) {
+      font-weight: 700;
+    }
+  }
 
   .item-title {
     margin-bottom: 6px;
@@ -444,9 +456,9 @@
   }
 
   .notify-select {
-    :deep(.bk-select-tag-wrapper) {
-      // padding: 4px;
-      gap: 4px
+    :deep(.alarm-icon) {
+      font-size: 18px;
+      color: #979BA5;
     }
 
     :deep(.notify-tag-box) {

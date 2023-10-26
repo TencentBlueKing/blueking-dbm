@@ -123,6 +123,7 @@
     releateUrlQuery?: boolean,
     // 没提供默认使用浏览器窗口的高度 window.innerHeight
     containerHeight?: number,
+    pageOffsetBottom?: number,
   }
 
   interface Emits {
@@ -152,6 +153,7 @@
     primaryKey: 'id',
     releateUrlQuery: false,
     containerHeight: undefined,
+    pageOffsetBottom: 48,
   });
 
   const emits = defineEmits<Emits>();
@@ -496,7 +498,7 @@
       const totalHeight = props.containerHeight ? props.containerHeight : window.innerHeight;
       const tableHeaderHeight = 42;
       const paginationHeight = 60;
-      const pageOffsetBottom = props.containerHeight ? 0 : 48;
+      const pageOffsetBottom = props.containerHeight ? 0 : props.pageOffsetBottom;
       const tableRowHeight = 42;
 
       const tableRowTotalHeight = totalHeight - top - tableHeaderHeight - paginationHeight - pageOffsetBottom;

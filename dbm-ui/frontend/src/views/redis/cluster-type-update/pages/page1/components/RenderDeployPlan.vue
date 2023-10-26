@@ -20,16 +20,14 @@
       :placeholder="t('请选择')"
       :rules="rules"
       @click="handleClickSelect" />
-    <Teleport to="body">
-      <ChooseClusterTargetPlan
-        :data="activeRowData"
-        :is-show="showChooseClusterTargetPlan"
-        :show-title-tag="false"
-        :title="t('选择集群类型变更部署方案')"
-        @click-cancel="() => showChooseClusterTargetPlan = false"
-        @click-confirm="handleChoosedTargetCapacity" />
-    </Teleport>
   </BkLoading>
+  <ChooseClusterTargetPlan
+    :data="activeRowData"
+    :is-show="showChooseClusterTargetPlan"
+    :show-title-tag="false"
+    :title="t('选择集群类型变更部署方案')"
+    @click-cancel="() => showChooseClusterTargetPlan = false"
+    @click-confirm="handleChoosedTargetCapacity" />
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';

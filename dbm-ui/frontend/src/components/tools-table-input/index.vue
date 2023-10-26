@@ -21,6 +21,8 @@
       v-model="localValue"
       class="input-box"
       :disabled="disabled"
+      :max="max"
+      :min="min"
       :placeholder="placeholder"
       :type="type"
       @blur="handleBlur"
@@ -46,6 +48,8 @@
     rules?: Rules,
     disabled?: boolean,
     type?: string,
+    min?: number,
+    max?: number
   }
 
   interface Emits {
@@ -61,6 +65,8 @@
     rules: undefined,
     disabled: false,
     type: 'text',
+    min: 1,
+    max: 100,
   });
 
   const emits = defineEmits<Emits>();

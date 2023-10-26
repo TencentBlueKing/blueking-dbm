@@ -21,13 +21,12 @@
       unique-select
       value-split-code="+"
       @search="fetchHostNodes" />
-    <BkLoading :loading="isTableLoading">
-      <DbTable
-        ref="tableRef"
-        class="table-box"
-        :columns="columns"
-        :data-source="queryMonitorPolicyList" />
-    </BkLoading>
+    <DbTable
+      ref="tableRef"
+      class="table-box"
+      :columns="columns"
+      :data-source="queryMonitorPolicyList"
+      :page-offset-bottom="35" />
   </div>
   <EditRule
     v-model="isShowEditStrrategySideSilder"
@@ -43,6 +42,7 @@
 </template>
 <script setup lang="tsx">
   import { InfoBox } from 'bkui-vue';
+  import dayjs from 'dayjs';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
   import { useRoute } from 'vue-router';
@@ -159,10 +159,17 @@
         const isInner = row.bk_biz_id === 0;
         const isDanger = row.event_count > 0;
         const pageType = isInner ? 'read' : 'edit';
+        const isNew = dayjs().isBefore(dayjs(row.update_at).add(1, 'day'));
         // const isInvalid = status === 3;
         return (
           <div class="strategy-title">
-            <span class="name" style={{ color: !row.is_enabled ? '#979BA5' : '#3A84FF' }} onClick={() => handleOpenSlider(row, pageType)}>{row.name}</span>
+            <bk-button
+              text
+              theme="primary"
+              style={{ color: !row.is_enabled ? '#979BA5' : '#3A84FF' }}
+              onClick={() => handleOpenSlider(row, pageType)}>
+              {row.name}
+            </bk-button>
             {isInner && <MiniTag content={t('内置')} />}
             {!row.is_enabled && <MiniTag content={t('已停用')} />}
              {isDanger && (
@@ -173,6 +180,7 @@
                 <span class="text">{row.event_count}</span>
               </div>
             )}
+            {isNew && <MiniTag theme='success' content="NEW" />}
             {/* {
               isInvalid && <i v-bk-tooltips={{
                 content: '监控目标失效',
@@ -209,7 +217,7 @@
     {
       label: t('告警组'),
       field: 'notify_groups',
-      minWidth: 280,
+      minWidth: 180,
       render: ({ row }: {row: RowData}) => (
         <div class="alarm-group">
           {
@@ -217,7 +225,7 @@
               if (alarmGroupNameMap[item]) {
                 return (
                   <span class="notify-box">
-                    <db-icon type="yonghuzu" style="font-size: 16px" />
+                    <db-icon type="yonghuzu" style="font-size: 18px;color:#979BA5" />
                     <span class="dba">{alarmGroupNameMap[item]}</span>
                   </span>
                 );
@@ -232,7 +240,7 @@
       label: t('启停'),
       field: 'is_enabled',
       showOverflowTooltip: true,
-      width: 120,
+      minWidth: 60,
       render: ({ row }: {row: RowData}) => {
         const isInner = row.bk_biz_id === 0;
         return (
@@ -257,13 +265,13 @@
       field: 'update_at',
       showOverflowTooltip: true,
       sort: true,
-      width: 180,
+      minWidth: 160,
     },
     {
       label: t('更新人'),
       field: 'updater',
       showOverflowTooltip: true,
-      width: 120,
+      minWidth: 100,
     },
     {
       label: t('操作'),
@@ -271,18 +279,42 @@
       field: '',
       width: 180,
       render: ({ row }: {row: RowData}) => {
-        const isShowEdit = row.bk_biz_id !== 0;
+        const isInner = row.bk_biz_id === 0;
         return (
           <div class="operate-box">
-          {isShowEdit && <span onClick={() => handleOpenSlider(row, 'edit')}>{t('编辑')}</span>}
-          <span onClick={() => handleOpenSlider(row, 'clone')}>{t('克隆')}</span>
-          <span onClick={() => handleOpenMonitorAlarmPage(row.event_url)}>{t('监控告警')}</span>
-          <bk-dropdown class="operations-more" popover-options={{ popoverDelay: 0, trigger: 'click' }}>
+          {!isInner && <bk-button
+            text
+            theme="primary"
+            onClick={() => handleOpenSlider(row, 'edit')}>
+            {t('编辑')}
+          </bk-button>}
+          <bk-button
+            text
+            theme="primary"
+            onClick={() => handleOpenSlider(row, 'clone')}>
+            {t('克隆')}
+          </bk-button>
+          <bk-button
+            text
+            theme="primary"
+            onClick={() => handleOpenMonitorAlarmPage(row.event_url)}>
+            {t('监控告警')}
+          </bk-button>
+          <bk-dropdown
+            class="operations-more"
+            popover-options={{ popoverDelay: 0, trigger: 'click' }}>
             {{
               default: () => <db-icon type="more" class="icon"/>,
               content: () => (
                 <bk-dropdown-menu class="operations-menu">
-                  <bk-dropdown-item onClick={() => handleClickDelete(row)}>{t('删除')}</bk-dropdown-item>
+                  <bk-dropdown-item>
+                    <bk-button
+                      disabled={isInner}
+                      text
+                      onClick={() => handleClickDelete(row)}>
+                        {t('删除')}
+                      </bk-button>
+                    </bk-dropdown-item>
                 </bk-dropdown-menu>
               ),
             }}
@@ -390,7 +422,7 @@
         });
         fetchAlarmGroupList({
           bk_biz_id: currentBizId,
-          dbtype: type,
+          db_type: type,
         });
         fetchDbModuleList({
           dbtype: type,
@@ -549,12 +581,6 @@
           color:#63656E;
           cursor: pointer;
         }
-      }
-
-
-      span {
-        color: #3A84FF;
-        cursor: pointer;
       }
     }
   }

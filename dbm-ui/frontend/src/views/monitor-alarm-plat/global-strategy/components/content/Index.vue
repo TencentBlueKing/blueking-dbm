@@ -36,6 +36,7 @@
     @success="fetchHostNodes" />
 </template>
 <script setup lang="tsx">
+  import dayjs from 'dayjs';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
@@ -47,6 +48,8 @@
   } from '@services/monitor';
 
   import { useGlobalBizs } from '@stores';
+
+  import MiniTag from '@components/mini-tag/index.vue';
 
   import { messageSuccess } from '@utils';
 
@@ -130,6 +133,13 @@
       label: t('策略名称'),
       field: 'name',
       minWidth: 150,
+      render: ({ row }: { row: RowData }) => {
+        const isNew = dayjs().isBefore(dayjs(row.create_at).add(1, 'day'));
+        return (<span>
+          {row.name}
+          {isNew && <MiniTag theme='success' content="NEW" />}
+        </span>);
+      },
     },
     {
       label: t('监控目标'),
@@ -141,25 +151,25 @@
       label: t('默认通知对象'),
       field: 'notify_groups',
       showOverflowTooltip: true,
-      width: 120,
+      width: 130,
       render: () => (
-        <div class="notify-box">
-          <db-icon type="auth" style="font-size: 16px" />
+        <span class="notify-box">
+          <db-icon type="yonghuzu" style="font-size: 16px;color: #979BA5" />
           <span class="dba">{t('业务 DBA')}</span>
-        </div>),
+        </span>),
     },
     {
       label: t('更新时间'),
       field: 'update_at',
       showOverflowTooltip: true,
       sort: true,
-      minWidth: 180,
+      width: 180,
     },
     {
       label: t('更新人'),
       field: 'updater',
       showOverflowTooltip: true,
-      width: 120,
+      width: 150,
     },
     {
       label: t('启停'),
@@ -187,7 +197,12 @@
       width: 180,
       render: ({ row }: { row: RowData }) => (
       <div class="operate-box">
-        <span onClick={() => handleEdit(row)}>{t('编辑')}</span>
+        <bk-button
+          text
+          theme="primary"
+          onClick={() => handleEdit(row)}>
+          {t('编辑')}
+        </bk-button>
       </div>),
     },
   ];
@@ -270,7 +285,7 @@
       setTimeout(() => {
         fetchAlarmGroupList({
           bk_biz_id: currentBizId,
-          dbtype: type,
+          db_type: type,
         });
         fetchHostNodes();
       });
@@ -330,14 +345,11 @@
     }
 
     .notify-box {
-      display: flex;
-      width: 100%;
+      display: inline-block;
       height: 22px;
       padding: 2.5px 5px;
       background: #F0F1F5;
       border-radius: 2px;
-      box-sizing: border-box;
-      align-items: center;
 
       .dba {
         margin-left: 8px;
@@ -348,11 +360,6 @@
       display: flex;
       gap: 15px;
       align-items: center;
-
-      span {
-        color: #3A84FF;
-        cursor: pointer;
-      }
     }
   }
 
