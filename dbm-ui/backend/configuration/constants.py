@@ -82,7 +82,7 @@ INIT_PASSWORD_POLICY = {
 
 # 监控数据自定义上报配置
 DBM_REPORT_INITIAL_VALUE = {
-    "proxy": {DEFAULT_CLOUD: _("请补充：指定云区域的proxy信息")},
+    "proxy": "127.0.0.1",
     "metric": {
         "data_id": _("请补充：自定义指标-数据ID"),
         "token": _("请补充：自定义指标-Token"),

@@ -25,10 +25,10 @@ from backend.ticket.constants import FlowRetryType, TicketType
 
 class TendbFlashbackDetailSerializer(MySQLFlashbackDetailSerializer, TendbBaseOperateDetailSerializer):
     def validate(self, attrs):
-        # 校验集群是否可用
-        super(TendbBaseOperateDetailSerializer, self).validate_cluster_can_access(attrs)
         # 校验闪回时间
         super().validate_flash_time(attrs)
+        # 校验集群是否可用
+        super(TendbBaseOperateDetailSerializer, self).validate_cluster_can_access(attrs)
         # 校验flash的库表选择器
         RemoteServiceHandler(bk_biz_id=self.context["bk_biz_id"]).check_flashback_database(attrs["infos"])
 
