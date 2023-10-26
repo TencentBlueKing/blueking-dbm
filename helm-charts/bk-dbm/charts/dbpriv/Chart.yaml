@@ -2,6 +2,5 @@ apiVersion: v2
 name: dbpriv
 description: A Helm chart for dbpriv
 type: application
-version: 0.1.29
+version: 0.1.30
 appVersion: 0.0.1-alpha.51
-

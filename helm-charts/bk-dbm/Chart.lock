@@ -4,7 +4,7 @@ dependencies:
   version: 1.13.0
 - name: mysql
   repository: https://charts.bitnami.com/bitnami
-  version: 9.14.0
+  version: 9.14.1
 - name: redis
   repository: https://charts.bitnami.com/bitnami
   version: 16.13.2
@@ -13,25 +13,25 @@ dependencies:
   version: 9.5.6
 - name: reloader
   repository: https://stakater.github.io/stakater-charts
-  version: 1.0.46
+  version: 1.0.48
 - name: grafana
   repository: file://./charts/grafana
   version: 7.9.8
 - name: dbm
   repository: file://charts/dbm
-  version: 0.1.22
+  version: 0.1.23
 - name: dbconfig
   repository: file://charts/dbconfig
-  version: 0.1.7
+  version: 0.1.8
 - name: dbpriv
   repository: file://charts/dbpriv
-  version: 0.1.29
+  version: 0.1.30
 - name: dbpartition
   repository: file://charts/dbpartition
-  version: 0.1.5
+  version: 0.1.6
 - name: db-simulation
   repository: file://charts/db-simulation
-  version: 0.1.8
+  version: 0.1.9
 - name: db-remote-service
   repository: file://charts/db-remote-service
   version: 0.9.5
@@ -43,18 +43,18 @@ dependencies:
   version: 0.0.11
 - name: db-resource
   repository: file://charts/db-resource
-  version: 0.0.8
+  version: 0.0.9
 - name: db-celery-service
   repository: file://charts/db-celery-service
-  version: 0.0.5
+  version: 0.0.6
 - name: slow-query-parser-service
   repository: file://charts/slow-query-parser-service
-  version: 0.0.1
+  version: 0.0.2
 - name: backup-server
   repository: file://charts/backup-server
   version: 0.0.3
 - name: backup-consumer
   repository: file://charts/backup-consumer
   version: 0.0.3
-digest: sha256:fc6656e9c319a982cb14882ecb6dd68d6516569b5882eb79c9033e1c2050c73a
-generated: "2023-10-25T15:54:18.652012+08:00"
+digest: sha256:2ea68d751cc7a6cd16d67e194850ad831687cc31c334b5a78bf603cef7751503
+generated: "2023-10-26T11:47:16.130137+08:00"

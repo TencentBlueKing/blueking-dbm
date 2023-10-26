@@ -15,14 +15,9 @@ affinity: {}
 
 securityContext: {}
 
-livenessProbe:
-  enabled: true
-  path: /ping
-  initialDelaySeconds: 5
-  periodSeconds: 30
-  timeoutSeconds: 5
-  failureThreshold: 6
-  successThreshold: 1
+livenessProbe: {}
+
+readinessProbe: {}
 
 initJob:
   resources: {}
