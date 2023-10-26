@@ -27,24 +27,24 @@ dependencies:
   - condition: dbm.enabled
     name: dbm
     repository: file://charts/dbm
-    version: 0.1.22
+    version: 0.1.23
   - condition: dbconfig.enabled
     name: dbconfig
     repository: file://charts/dbconfig
-    version: 0.1.7
+    version: 0.1.8
   - condition: dbpriv.enabled
     name: dbpriv
     repository: file://charts/dbpriv
-    version: 0.1.29
+    version: 0.1.30
   - condition: dbpartition.enabled
     name: dbpartition
     repository: file://charts/dbpartition
-    version: 0.1.5
+    version: 0.1.6
   - condition: db-simulation.enabled
     name: db-simulation
     repository: file://charts/db-simulation
-    version: 0.1.8
-  - condition: dbRemoteService.enabled
+    version: 0.1.9
+  - condition: db-remote-service.enabled
     name: db-remote-service
     repository: file://charts/db-remote-service
     version: 0.9.5
@@ -59,15 +59,15 @@ dependencies:
   - condition: db-resource.enabled
     name: db-resource
     repository: file://charts/db-resource
-    version: 0.0.8
+    version: 0.0.9
   - condition: db-celery-service.enabled
     name: db-celery-service
     repository: file://charts/db-celery-service
-    version: 0.0.5
+    version: 0.0.6
   - condition: slow-query-parser-service.enabled
     name: slow-query-parser-service
     repository: file://charts/slow-query-parser-service
-    version: 0.0.1
+    version: 0.0.2
   - condition: backup-server.enabled
     name: backup-server
     repository: file://charts/backup-server
@@ -79,5 +79,5 @@ dependencies:
 description: A Helm chart for bkdbm
 name: bk-dbm
 type: application
-version: 1.2.0-alpha.62
-appVersion: 1.2.0-alpha.62
+version: 1.2.0-alpha.63
+appVersion: 1.2.0-alpha.63

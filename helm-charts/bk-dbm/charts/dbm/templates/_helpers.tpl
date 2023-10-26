@@ -164,6 +164,8 @@ initContainers:
     args:
       - job
       - {{ include "dbm.migrateJobName" . }}
+    resources:
+      {{- toYaml .Values.initJob.resources | nindent 6 }}
 {{- end }}
 
 {{- define "dbm.container_env" -}}

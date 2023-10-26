@@ -3,4 +3,4 @@ appVersion: 0.0.1-alpha.4
 description: A Helm chart for Kubernetes
 name: slow-query-parser-service
 type: application
-version: 0.0.1
+version: 0.0.2
