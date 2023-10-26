@@ -60,9 +60,7 @@
     watch,
   } from 'vue';
 
-  import {
-    querySemanticData,
-  } from '@services/sqlImport';
+  import { querySemanticData } from '@services/source/sqlImport';
 
   import { useGlobalBizs } from '@stores';
 

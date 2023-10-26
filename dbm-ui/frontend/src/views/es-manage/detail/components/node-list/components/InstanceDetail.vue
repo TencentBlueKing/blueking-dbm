@@ -42,9 +42,9 @@
   } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import { getListInstance } from '@services/es';
   import type EsInstanceModel from '@services/model/es/es-instance';
   import type EsNodeModel from '@services/model/es/es-node';
+  import { getListInstance } from '@services/source/es';
   import { createTicket } from '@services/ticket';
 
   import { useTicketMessage } from '@hooks';

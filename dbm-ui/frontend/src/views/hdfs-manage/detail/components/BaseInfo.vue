@@ -24,7 +24,7 @@
     watch,
   } from 'vue';
 
-  import { getClusterDetail } from '@services/hdfs';
+  import { getClusterDetail } from '@services/source/hdfs';
 
   import { useGlobalBizs } from '@stores';
 

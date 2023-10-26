@@ -100,11 +100,11 @@
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
+  import type HdfsModel from '@services/model/hdfs/hdfs';
   import {
     getList,
     getListInstance,
-  } from '@services/hdfs';
-  import type HdfsModel from '@services/model/hdfs/hdfs';
+  } from '@services/source/hdfs';
   import { createTicket  } from '@services/ticket';
 
   import { useCopy, useTicketMessage } from '@hooks';

@@ -21,6 +21,7 @@ import http from '../http';
 import type { ListBase } from '../types/common';
 
 const { currentBizId } = useGlobalBizs();
+
 const path = `/apis/bigdata/bizs/${currentBizId}/hdfs/hdfs_resources`;
 
 /**

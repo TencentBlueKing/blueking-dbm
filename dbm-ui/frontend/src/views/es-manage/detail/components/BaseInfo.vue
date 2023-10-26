@@ -24,7 +24,7 @@
     watch,
   } from 'vue';
 
-  import { getClusterDetail } from '@services/es';
+  import { getClusterDetail } from '@services/source/es';
 
   import { useGlobalBizs } from '@stores';
 

@@ -7,9 +7,9 @@ import SemanticCheckResultModel from '@services/model/sql-import/semantic-check-
 import SemanticDataModel from '@services/model/sql-import/semantic-data';
 import UserSemanticTaskModel from '@services/model/sql-import/user-semantic-task';
 
-import http from '../http';
+import { useGlobalBizs } from '@stores';
 
-import { useGlobalBizs } from '@/stores';
+import http from '../http';
 
 const { currentBizId } = useGlobalBizs();
 

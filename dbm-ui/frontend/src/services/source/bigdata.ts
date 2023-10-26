@@ -27,6 +27,7 @@ import http from '../http';
 import type { ListBase } from '../types/common';
 
 const { currentBizId } = useGlobalBizs();
+
 const path = `/apis/bigdata/bizs/${currentBizId}`;
 
 // 获取 ES 集群访问密码

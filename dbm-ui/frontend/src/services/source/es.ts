@@ -20,6 +20,7 @@ import http from '../http';
 import type { ListBase } from '../types/common';
 
 const { currentBizId } = useGlobalBizs();
+
 const path = `/apis/bigdata/bizs/${currentBizId}/es/es_resources`;
 
 /**

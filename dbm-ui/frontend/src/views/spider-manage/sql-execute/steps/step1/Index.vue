@@ -105,7 +105,7 @@
   import {
     querySemanticData,
     semanticCheck,
-  } from '@services/sqlImport';
+  } from '@services/source/sqlImport';
 
   import { useGlobalBizs } from '@stores';
 

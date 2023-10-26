@@ -22,40 +22,42 @@ import type {
   HostTopoInfo,
 } from './types/ip';
 
+const path = '/apis/ipchooser';
+
 /**
  * 根据用户手动输入的`IP`/`IPv6`/`主机名`/`host_id`等关键字信息获取真实存在的机器信息
  */
-export const checkHost = (params: CheckIpParams) => http.post<HostDetails[]>('/apis/ipchooser/host/check/', params);
+export const checkHost = (params: CheckIpParams) => http.post<HostDetails[]>(`${path}/host/check/`, params);
 
 /**
  * 根据主机关键信息获取机器详情信息
  */
-export const getHostDetails = (params: FetchHostDetailsParams) => http.post<HostDetails[]>('/apis/ipchooser/host/details/', params);
+export const getHostDetails = (params: FetchHostDetailsParams) => http.post<HostDetails[]>(`${path}/host/details/`, params);
 
 /**
  * 获取自定义配置，比如表格列字段及顺序
  */
-export const getIpSelectorSettings = () => http.post('/apis/ipchooser/settings/batch_get/');
+export const getIpSelectorSettings = () => http.post(`${path}/settings/batch_get/`);
 
 /**
  * 保存用户自定义配置
  */
-export const updateIpSelectorSettings = (params: any) => http.post('/apis/ipchooser/settings/set/', params);
+export const updateIpSelectorSettings = (params: any) => http.post(`${path}/settings/set/`, params);
 
 /**
  * 根据多个拓扑节点与搜索条件批量分页查询所包含的主机 ID 信息
  */
-export const getHostIdInfos = (params: FetchHostInfosParams) => http.post('/apis/ipchooser/topo/query_host_id_infos/', params);
+export const getHostIdInfos = (params: FetchHostInfosParams) => http.post(`${path}/topo/query_host_id_infos/`, params);
 
 /**
  * 根据多个拓扑节点与搜索条件批量分页查询所包含的主机信息
  */
-export const getHosts = (params: FetchHostInfosParams) => http.post('/apis/ipchooser/topo/query_hosts/', params);
+export const getHosts = (params: FetchHostInfosParams) => http.post(`${path}/topo/query_hosts/`, params);
 
 /**
  * 批量获取含各节点主机数量的拓扑树
  */
-export const getHostTopo = (params: FetchHostTopoParams) => http.post('/apis/ipchooser/topo/trees/', params);
+export const getHostTopo = (params: FetchHostTopoParams) => http.post(`${path}/topo/trees/`, params);
 
 /**
  * 查询主机拓扑信息
@@ -70,14 +72,14 @@ export const getHostTopoInfos = (params: {
 }) => http.post<{
   total: number,
   hosts_topo_info: Array<HostTopoInfo>
-}>('/apis/ipchooser/topo/query_host_topo_infos/', params);
+}>(`${path}/topo/query_host_topo_infos/`, params);
 
 /**
  * 获取管控区域列表
  */
-export const getCloudList = () => http.post<CloudAreaInfo[]>('/apis/ipchooser/settings/search_cloud_area/');
+export const getCloudList = () => http.post<CloudAreaInfo[]>(`${path}/settings/search_cloud_area/`);
 
 /**
  * 查询磁盘类型
  */
-export const searchDeviceClass = () => http.get<string[]>('/apis/ipchooser/settings/search_device_class/');
+export const searchDeviceClass = () => http.get<string[]>(`${path}/settings/search_device_class/`);
