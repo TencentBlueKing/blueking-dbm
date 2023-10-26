@@ -203,7 +203,7 @@
       }
 
       &:focus {
-        border-color: 1px solid #3a84ff;
+        border-color: #3a84ff;
       }
     }
   }

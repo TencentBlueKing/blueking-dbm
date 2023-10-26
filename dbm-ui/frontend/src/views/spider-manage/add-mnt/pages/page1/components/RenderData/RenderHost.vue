@@ -174,6 +174,8 @@
     position: relative;
     display: flex;
     width: 100%;
+    height: 42px;
+    align-items: center;
     padding: 0 25px 0 17px;
     overflow: hidden;
     border: solid transparent 1px;
@@ -236,11 +238,11 @@
       position: absolute;
       inset: 0;
       display: flex;
-      // padding-right: 10px;
+      padding-right: 35px;
       font-size: 14px;
       color: #ea3636;
       align-items: center;
-      justify-content: center;
+      justify-content: flex-end;
     }
   }
 
