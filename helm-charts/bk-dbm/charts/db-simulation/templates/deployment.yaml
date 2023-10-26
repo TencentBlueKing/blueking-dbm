@@ -54,7 +54,7 @@ spec:
             initialDelaySeconds: {{ .Values.livenessProbe.initialDelaySeconds | default 5}}
             periodSeconds: {{ .Values.livenessProbe.periodSeconds | default 30}}
             timeoutSeconds: {{ .Values.livenessProbe.timeoutSeconds | default 5}}
-            successThreshold: {{ .Values.livenessProbe.successThreshold | default 6}}
+            successThreshold: {{ .Values.livenessProbe.successThreshold | default 1}}
             failureThreshold: {{ .Values.livenessProbe.failureThreshold | default 1}}
           readinessProbe:
             httpGet:
@@ -63,7 +63,7 @@ spec:
             initialDelaySeconds: {{ .Values.readinessProbe.initialDelaySeconds | default 5}}
             periodSeconds: {{ .Values.readinessProbe.periodSeconds | default 30}}
             timeoutSeconds: {{ .Values.readinessProbe.timeoutSeconds | default 5}}
-            successThreshold: {{ .Values.readinessProbe.successThreshold | default 6}}
+            successThreshold: {{ .Values.readinessProbe.successThreshold | default 1}}
             failureThreshold: {{ .Values.readinessProbe.failureThreshold | default 1}}
           envFrom:
             {{- if .Values.extraEnvVarsCM }}
