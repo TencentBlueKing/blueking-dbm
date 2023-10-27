@@ -28,6 +28,7 @@
             content: t('已配置全天24小时生效时段，无需额外添加生效时段'),
             disabled: addPanelTipDiabled
           }"
+          class="add-panel-button"
           :disabled="!addPanelTipDiabled"
           text
           theme="primary"
@@ -367,7 +368,9 @@
       ],
     });
 
-    active.value = name;
+    setTimeout(() => {
+      active.value = name;
+    });
   };
 
   const setInitPanelList = () => {
@@ -523,9 +526,17 @@
       font-size: 18px;
     }
 
-    :deep(.bk-tab-header-item:hover) {
-      .tab-delete-btn {
-        display: inherit;
+    :deep(.bk-tab-header-item) {
+      min-height: 42px;
+
+      &:hover {
+        .tab-delete-btn {
+          display: inherit;
+        }
+      }
+
+      .add-panel-button {
+        height: 100%;
       }
     }
 

@@ -154,7 +154,7 @@
             ? <bk-button
               text
               theme="primary"
-              onClick={ () => toRelatedPolicy(row.id) }>
+              onClick={ () => toRelatedPolicy(row.id, row.db_type) }>
               { usedCount }
             </bk-button>
             : <span>0</span>
@@ -245,11 +245,15 @@
 
   const setRowClass = (row: AlarmGroupItem) => (isNewUser(row.create_at) ? 'is-new' : '');
 
-  const toRelatedPolicy = (notifyGroupId: number) => {
+  const toRelatedPolicy = (notifyGroupId: number, dbType: string) => {
     const routerData = router.resolve({
       name: 'DBMonitorStrategy',
       params: {
+        bizId: currentBizId,
+      },
+      query: {
         notifyGroupId,
+        dbType,
       },
     });
 

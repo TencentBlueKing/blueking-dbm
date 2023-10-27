@@ -15,6 +15,7 @@
   <div class="receivers-selector-wrapper">
     <UserSelector
       v-if="!loading"
+      ref="userSelectorRef"
       v-model="modelValue"
       class="receivers-selector"
       :default-alternate="defaultAlternate"
@@ -22,7 +23,8 @@
       :render-list="renderList"
       :render-tag="renderTag"
       :search-from-default-alternate="false"
-      tag-clearable />
+      tag-clearable
+      @remove-selected="handleRemoveSelected" />
   </div>
 </template>
 
@@ -68,6 +70,7 @@
   const modelValueOrigin = _.cloneDeep(modelValue.value);
   const itemMap: Record<string, RecipientItem> = {};
 
+  const userSelectorRef = ref();
   const roleList = ref<RecipientItem[]>([]);
 
   // 获取用户组数据
@@ -155,6 +158,10 @@
       }),
       renderMethod('span', displayName),
     ]);
+  };
+
+  const handleRemoveSelected = () => {
+    userSelectorRef.value.search();
   };
 
   defineExpose<Exposes>({
