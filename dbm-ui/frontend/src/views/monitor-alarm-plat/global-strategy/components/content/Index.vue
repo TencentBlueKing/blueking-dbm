@@ -27,6 +27,7 @@
         class="table-box"
         :columns="columns"
         :data-source="queryMonitorPolicyList"
+        :row-class="updateRowClass"
         :settings="settings" />
     </BkLoading>
   </div>
@@ -134,7 +135,7 @@
       field: 'name',
       minWidth: 150,
       render: ({ row }: { row: RowData }) => {
-        const isNew = dayjs().isBefore(dayjs(row.create_at).add(1, 'day'));
+        const isNew = dayjs().isBefore(dayjs(row.create_at).add(24, 'hour'));
         return (<span>
           {row.name}
           {isNew && <MiniTag theme='success' content="NEW" />}
@@ -294,6 +295,8 @@
     immediate: true,
   });
 
+  const updateRowClass = (row: RowData) => (dayjs().isBefore(dayjs(row.create_at).add(24, 'hour')) ? 'is-new' : '');
+
   const handleChangeSwitch = (row: RowData) => {
     if (!row.is_enabled) {
       nextTick(() => {
@@ -360,6 +363,12 @@
       display: flex;
       gap: 15px;
       align-items: center;
+    }
+
+    .is-new {
+      td {
+        background-color: #f3fcf5 !important;
+      }
     }
   }
 

@@ -207,7 +207,8 @@
   }
 
   interface Emits {
-    (e: 'success'): void
+    (e: 'success'): void,
+    (e: 'cancel'): void,
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -216,9 +217,18 @@
   const emits = defineEmits<Emits>();
   const isShow = defineModel<boolean>();
 
+  let rawFormData = '';
+
   function generateRule(data: RowData, level: number) {
     const arr = data.test_rules.filter(item => item.level === level);
     return arr.length > 0 ? arr[0] : undefined;
+  }
+
+  function initFormData() {
+    formModel.strategyName = '';
+    formModel.notifyRules = [] as string[];
+    formModel.notifyTarget = [] as number[];
+    rawFormData = '';
   }
 
   const { t } = useI18n();
@@ -309,6 +319,7 @@
     onSuccess: (cloneResponse) => {
       if (cloneResponse.bkm_id) {
         messageSuccess(t('克隆成功'));
+        initFormData();
         emits('success');
         isShow.value = false;
       }
@@ -320,10 +331,23 @@
     onSuccess: (updateResponse) => {
       if (updateResponse.bkm_id) {
         messageSuccess(t('保存成功'));
+        initFormData();
         emits('success');
         isShow.value = false;
       }
     },
+  });
+
+  watch(formModel, (data) => {
+    if (rawFormData === '' && data.notifyRules !== undefined) {
+      rawFormData = JSON.stringify(data);
+      return;
+    }
+    if (rawFormData !== '' && rawFormData !== JSON.stringify(data)) {
+      window.changeConfirm = true;
+    }
+  }, {
+    deep: true,
   });
 
   watch(() => props.data, (data) => {
@@ -395,6 +419,8 @@
     const result = await handleBeforeClose();
     if (!result) return;
     window.changeConfirm = false;
+    initFormData();
+    emits('cancel');
     isShow.value = false;
   }
 

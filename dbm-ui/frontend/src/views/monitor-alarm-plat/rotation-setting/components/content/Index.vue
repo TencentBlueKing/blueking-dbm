@@ -27,6 +27,7 @@
         class="table-box"
         :columns="columns"
         :data-source="queryDutyRuleList"
+        :row-class="updateRowClass"
         :settings="settings" />
     </BkLoading>
   </div>
@@ -39,6 +40,7 @@
 </template>
 <script setup lang="tsx">
   import { InfoBox } from 'bkui-vue';
+  import dayjs from 'dayjs';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
@@ -49,6 +51,7 @@
     updatePartialDutyRule,
   } from '@services/monitor';
 
+  import MiniTag from '@components/mini-tag/index.vue';
   import NumberInput from '@components/tools-table-input/index.vue';
 
   import { messageSuccess } from '@utils';
@@ -106,15 +109,20 @@
       field: 'name',
       minWidth: 220,
       render: ({ row }: {row: RowData}) => {
+        const isNew = dayjs().isBefore(dayjs(row.create_at).add(24, 'hour'));
         const isNotActive = [RuleStatus.TERMINATED, RuleStatus.EXPIRED].includes(row.status as RuleStatus);
         const color = (isNotActive || !row.is_enabled) ? '#63656E' : '#3A84FF';
-        return <bk-button
-          text
-          theme="primary"
-          style={{ color }}
-          onClick={() => handleOperate('edit', row)}>
-            {row.name}
-        </bk-button>;
+        return <>
+          <bk-button
+            text
+            theme="primary"
+            style={{ color }}
+            onClick={() => handleOperate('edit', row)}>
+              {row.name}
+          </bk-button>
+          {isNew && <MiniTag theme='success' content="NEW" />}
+        </>
+        ;
       },
     },
     {
@@ -162,6 +170,8 @@
               </> : <NumberInput
                   type='number'
                   model-value={level}
+                  min={1}
+                  max={100}
                   placeholder={t('请输入 1～100 的数值')}
                   onSubmit={(value: string) => handlePriorityChange(row, value)}/>
             }
@@ -192,10 +202,10 @@
         const peoples = [...peopleSet].join(' , ');
         return (
           <div class="rotate-table-column">
-            <bk-popover placement="bottom" theme="light" width={780} popoverDelay={80}>
+            <bk-popover placement="bottom" theme="light" width={780} popoverDelay={50}>
               {{
                 default: () => (
-                  <div class="display-text">{title}: {peoples}</div>
+                  <span class="display-text">{title}: {peoples}</span>
                 ),
                 content: () => <RenderRotateTable data={row} />,
               }}
@@ -329,6 +339,7 @@
     immediate: true,
   });
 
+  const updateRowClass = (row: RowData) => (dayjs().isBefore(dayjs(row.create_at).add(24, 'hour')) ? 'is-new' : '');
 
   const fetchHostNodes = async () => {
     isTableLoading.value = true;
@@ -348,16 +359,23 @@
   };
 
   const handlePriorityChange = async (row: RowData, value: string) => {
-    const priority = Number(value);
+    let priority = Number(value);
+    if (priority < 1) {
+      priority = 1;
+    } else if (priority > 100) {
+      priority = 100;
+    }
     const updateResult = await updatePartialDutyRule(row.id, {
       priority,
     });
     if (updateResult.priority === priority) {
       // 设置成功
       messageSuccess(t('优先级设置成功'));
-      window.changeConfirm = false;
     }
     fetchHostNodes();
+    setTimeout(() => {
+      window.changeConfirm = false;
+    });
   };
 
   const handleChangeSwitch = async (row: RowData) => {
@@ -446,6 +464,7 @@
     }
 
     .display-text {
+      display: inline-block;
       height: 22px;
       padding: 0 8px;
       overflow: hidden;
@@ -466,6 +485,12 @@
       span {
         color: #3A84FF;
         cursor: pointer;
+      }
+    }
+
+    .is-new {
+      td {
+        background-color: #f3fcf5 !important;
       }
     }
   }

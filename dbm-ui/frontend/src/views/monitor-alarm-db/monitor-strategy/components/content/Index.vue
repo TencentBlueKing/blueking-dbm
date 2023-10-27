@@ -25,7 +25,8 @@
       ref="tableRef"
       class="table-box"
       :columns="columns"
-      :data-source="queryMonitorPolicyList" />
+      :data-source="queryMonitorPolicyList"
+      :row-class="updateRowClass" />
   </div>
   <EditRule
     v-model="isShowEditStrrategySideSilder"
@@ -37,6 +38,7 @@
     :db-type="activeDbType"
     :module-list="moduleList"
     :page-status="sliderPageType"
+    @cancel="handleUpdatePolicyCancel"
     @success="handleUpdatePolicySuccess" />
 </template>
 <script setup lang="tsx">
@@ -81,7 +83,7 @@
 
   const { t } = useI18n();
   const { currentBizId, bizs } = useGlobalBizs();
-  const { notifyGroupId } = useRoute().params as { notifyGroupId: string };
+  const { notifyGroupId } = useRoute().query as { notifyGroupId: string };
 
   const tableRef = ref();
   const isShowEditStrrategySideSilder = ref(false);
@@ -154,11 +156,12 @@
       label: t('策略名称'),
       field: 'name',
       minWidth: 150,
+      width: 280,
       render: ({ row }: {row: RowData}) => {
         const isInner = row.bk_biz_id === 0;
         const isDanger = row.event_count > 0;
         const pageType = isInner ? 'read' : 'edit';
-        const isNew = dayjs().isBefore(dayjs(row.update_at).add(1, 'day'));
+        const isNew = dayjs().isBefore(dayjs(row.create_at).add(24, 'hour'));
         // const isInvalid = status === 3;
         return (
           <div class="strategy-title">
@@ -421,6 +424,8 @@
         });
         fetchAlarmGroupList({
           bk_biz_id: currentBizId,
+          offset: 0,
+          limit: -1,
           db_type: type,
         });
         fetchDbModuleList({
@@ -431,6 +436,8 @@
   }, {
     immediate: true,
   });
+
+  const updateRowClass = (row: RowData) => (dayjs().isBefore(dayjs(row.create_at).add(24, 'hour')) ? 'is-new' : '');
 
   const handleClickDelete = (data: RowData) => {
     InfoBox({
@@ -479,6 +486,10 @@
 
   const handleUpdatePolicySuccess = () => {
     fetchHostNodes();
+  };
+
+  const handleUpdatePolicyCancel = () => {
+    currentChoosedRow.value = {} as RowData;
   };
 
 </script>
@@ -580,6 +591,12 @@
           color:#63656E;
           cursor: pointer;
         }
+      }
+    }
+
+    .is-new {
+      td {
+        background-color: #f3fcf5 !important;
       }
     }
   }

@@ -28,7 +28,11 @@
 </template>
 
 <script setup lang="ts">
+  import { useRoute } from 'vue-router';
+
   import TypeContent from './components/content/Index.vue';
+
+  const { dbType } = useRoute().query as { dbType: string };
 
   const tabs = [
     {
@@ -73,7 +77,7 @@
     },
   ];
 
-  const activeTab = ref(tabs[0].value);
+  const activeTab = ref(dbType ? dbType : tabs[0].value);
 
 </script>
 <style lang="less" scoped>
