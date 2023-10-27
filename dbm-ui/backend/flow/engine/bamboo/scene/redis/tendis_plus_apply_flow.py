@@ -47,21 +47,6 @@ class TendisPlusApplyFlow(object):
         self.root_id = root_id
         self.data = data
 
-        # 兼容手工部署,填充fake的规格信息，将master/slave进行分组。TODO：去掉手动部署后需要废弃
-        if "resource_spec" not in self.data:
-            self.data["resource_spec"] = {
-                "master": {"id": 0},
-                "slave": {"id": 0},
-                "proxy": {"id": 0},
-            }
-            self.data["nodes"]["backend_group"] = []
-            for index in range(len(self.data["nodes"]["master"])):
-                master, slave = self.data["nodes"]["master"][index], self.data["nodes"]["slave"][index]
-                self.data["nodes"]["backend_group"].append({"master": master, "slave": slave})
-
-            self.data["nodes"].pop("master")
-            self.data["nodes"].pop("slave")
-
     def __pre_check(self, proxy_ips, master_ips, slave_ips, group_num, shard_num, servers, domain):
         """
         前置检查，检查传参
@@ -222,6 +207,7 @@ class TendisPlusApplyFlow(object):
             "spec_config": self.data["resource_spec"]["proxy"],
             "redis_pwd": self.data["redis_pwd"],
             "proxy_pwd": self.data["proxy_pwd"],
+            "proxy_admin_pwd": self.data["proxy_admin_pwd"],
             "proxy_port": self.data["proxy_port"],
             "servers": servers,
         }
@@ -274,6 +260,7 @@ class TendisPlusApplyFlow(object):
         act_kwargs.cluster = {
             "conf": {
                 "password": self.data["proxy_pwd"],
+                "predixy_admin_passwd": self.data["proxy_admin_pwd"],
                 "redis_password": self.data["redis_pwd"],
                 "port": str(self.data["proxy_port"]),
             },
