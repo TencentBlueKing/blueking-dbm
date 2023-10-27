@@ -17,8 +17,9 @@ import { useGlobalBizs } from '@stores';
 
 import http from '../http';
 import type {
-  MySQLClusterInfos,  ResourceItem } from '../types/clusters';
-import type { ListBase } from '../types/common';
+  MySQLClusterInfos,
+  ResourceItem }
+  from '../types/clusters';
 
 const { currentBizId } = useGlobalBizs();
 
@@ -49,11 +50,8 @@ export const findRelatedClustersByInstances = (params: {
 } & {bk_biz_id: number}) => http.post(`${path}/find_related_clusters_by_instances/`, params);
 
 /**
- * 通过集群域名获取集群详情
+ * 获取关联集群从库的交集
  */
-export const getClusterInfoByDomains = (params: Record<'cluster_filters', Array<{ immute_domain: string }>> & { bizId: number }) => http.post<ResourceItem[]>(`${path}/query_clusters/`, params);
-
-// 获取关联集群从库的交集
 export const getIntersectedSlaveMachinesFromClusters = (params: {
   bk_biz_id: number,
   cluster_ids: number[],
@@ -64,6 +62,9 @@ export const getIntersectedSlaveMachinesFromClusters = (params: {
   ip: string,
 }>>(`${path}/get_intersected_slave_machines_from_clusters/`, params);
 
+/**
+ * [tendbcluster]根据实例/机器查询关联对
+ */
 export const getRemoteMachineInstancePair = (params: {
   instances?: string[],
   machines?: string[],
@@ -72,7 +73,9 @@ export const getRemoteMachineInstancePair = (params: {
     machines: Record<string, RemotePairInstanceModel>
   }>(`${path}/get_remote_machine_instance_pair/`, params);
 
-// 查询tendbcluster集群的remote_db/remote_dr
+/**
+ * 查询tendbcluster集群的remote_db/remote_dr
+ */
 export const getRemoteParis = (params: {
   cluster_ids: number[]
 }) => http.post<Array<{
@@ -90,7 +93,9 @@ export const getRemoteParis = (params: {
     })),
   })));
 
-// 通过过滤条件批量查询集群
+/**
+ * 通过过滤条件批量查询集群
+ */
 export const queryClusters = (params: {
   cluster_filters: Array<{
     id?: number,
@@ -99,3 +104,9 @@ export const queryClusters = (params: {
     bk_biz_id?: number
   }>
 } & {bk_biz_id: number}) => http.post<MySQLClusterInfos[]>(`${path}/query_clusters/`, params);
+
+/**
+ * 通过集群域名获取集群详情
+ */
+export const getClusterInfoByDomains = (params: Record<'cluster_filters', Array<{ immute_domain: string }>> & { bizId: number }) => http.post<ResourceItem[]>(`${path}/query_clusters/`, params);
+

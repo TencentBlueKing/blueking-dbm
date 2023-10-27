@@ -34,7 +34,6 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  // TODO INTERFACE
   import { RedisClusterTypes } from '@services/model/redis/redis';
   import RedisClusterSpecModel from '@services/model/resource-spec/redis-cluster-sepc';
 

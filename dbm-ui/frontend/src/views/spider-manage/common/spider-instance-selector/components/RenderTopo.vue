@@ -80,7 +80,6 @@
     shallowRef,
   } from 'vue';
 
-  // TODO INTERFACE done
   import { queryClusters } from '@services/source/mysqlCluster';
 
   import { useGlobalBizs } from '@stores';

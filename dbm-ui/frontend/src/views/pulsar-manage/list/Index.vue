@@ -81,7 +81,7 @@
   import {
     getList,
     getListInstance,
-  } from '@services/pulsar';
+  } from '@services/source/pulsar';
   import { createTicket } from '@services/ticket';
 
   import { useCopy, useTicketMessage } from '@hooks';

@@ -378,7 +378,7 @@
    */
   function fetchRelatedClusters(clusterIds: number[]) {
     return findRelatedClustersByClusterIds({
-      bizId: globalBizsStore.currentBizId,
+      bk_biz_id: globalBizsStore.currentBizId,
       cluster_ids: clusterIds,
     }).then((res) => {
       for (const item of res) {

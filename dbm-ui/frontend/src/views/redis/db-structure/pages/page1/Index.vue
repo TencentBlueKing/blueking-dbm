@@ -69,7 +69,7 @@
   import { useRouter } from 'vue-router';
 
   import RedisModel from '@services/model/redis/redis';
-  import { listClusterList  } from '@services/redis/toolbox';
+  import { listClusterList  } from '@services/source/resourceRedis';
   // TODO INTERFACE
   import { createTicket } from '@services/ticket';
   import type { SubmitTicket } from '@services/types/ticket';

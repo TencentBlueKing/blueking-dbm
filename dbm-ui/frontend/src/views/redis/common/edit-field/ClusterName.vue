@@ -23,7 +23,7 @@
   import { useI18n } from 'vue-i18n';
 
   // TODO INTERFACE
-  import { listClusterList } from '@services/redis/toolbox';
+  import { listClusterList } from '@services/source/resourceRedis';
 
   import { useGlobalBizs } from '@stores';
 

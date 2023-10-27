@@ -105,7 +105,7 @@
 </script>
 <script setup lang="ts">
   // TODO INTERFACE
-  import { listClusterList } from '@services/redis/toolbox';
+  import { listClusterList } from '@services/source/resourceRedis';
 
   interface Props {
     data: IDataRow,

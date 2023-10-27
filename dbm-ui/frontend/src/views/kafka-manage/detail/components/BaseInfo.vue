@@ -24,7 +24,7 @@
     watch,
   } from 'vue';
 
-  import { getClusterDetail } from '@services/kafka';
+  import { getClusterDetail } from '@services/source/kafka';
 
   import { useGlobalBizs } from '@stores';
 

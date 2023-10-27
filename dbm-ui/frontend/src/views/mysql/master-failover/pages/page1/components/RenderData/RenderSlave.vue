@@ -33,8 +33,6 @@
   } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  // TODO INTERFACE done
-  // import { getIntersectedSlaveMachinesFromClusters } from '@services/mysqlCluster';
   import { getIntersectedSlaveMachinesFromClusters } from '@services/source/mysqlCluster';
 
   import { useGlobalBizs } from '@stores';

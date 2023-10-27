@@ -32,10 +32,6 @@
   } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  // TODO INTERFACE DONE
-  // import {
-  //   queryClusters,
-  // } from '@services/mysqlCluster';
   import { queryClusters } from '@services/source/mysqlCluster';
 
   import { useGlobalBizs } from '@stores';

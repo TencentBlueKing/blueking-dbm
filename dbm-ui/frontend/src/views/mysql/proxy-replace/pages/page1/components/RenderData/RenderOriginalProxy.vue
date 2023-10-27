@@ -108,10 +108,10 @@
   } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import { findRelatedClustersByClusterIds } from '@services/mysqlCluster';
   // TODO INTERFACE done
   // import { checkInstances } from '@services/clusters';
   import { checkMysqlInstances } from '@services/source/instances';
+  import { findRelatedClustersByClusterIds } from '@services/source/mysqlCluster';
 
   import { useGlobalBizs } from '@stores';
 

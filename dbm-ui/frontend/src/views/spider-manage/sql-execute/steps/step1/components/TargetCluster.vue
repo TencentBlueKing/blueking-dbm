@@ -61,7 +61,6 @@
   } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  // TODO INTERFACE
   import { queryClusters } from '@services/source/mysqlCluster';
   import { getSpiderList } from '@services/source/resourceSpider';
 

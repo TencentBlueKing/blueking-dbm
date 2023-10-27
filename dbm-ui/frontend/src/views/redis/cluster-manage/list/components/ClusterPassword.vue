@@ -68,14 +68,14 @@
   } from 'bkui-vue/lib/icon';
 
   // TODO INTERFACE
-  import { getClusterPassword } from '@services/clusters';
+  import { getClusterPassword } from '@services/source/resourceRedis';
   import type { ClusterPasswordParams } from '@services/types/clusters';
 
   import { useCopy } from '@hooks';
 
   interface Props {
     title?: string,
-    fetchParams: ClusterPasswordParams,
+    // fetchParams: ClusterPasswordParams,
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -97,7 +97,7 @@
   watch(isShow, (isShow) => {
     if (isShow) {
       state.isLoading = true;
-      getClusterPassword(props.fetchParams)
+      getClusterPassword()
         .then((res) => {
           state.data = res;
         })

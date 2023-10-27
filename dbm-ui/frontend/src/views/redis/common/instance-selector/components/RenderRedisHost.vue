@@ -46,7 +46,10 @@
 
   import RedisHostModel from '@services/model/redis/redis-host';
   // TODO INTERFACE
-  import {  queryClusterHostList, queryMasterSlavePairs } from '@services/redis/toolbox';
+  import {
+    queryClusterHostList,
+    queryMasterSlavePairs,
+  } from '@services/source/redisToolbox';
 
   import { LocalStorageKeys } from '@common/const';
   import { ipv4 } from '@common/regex';

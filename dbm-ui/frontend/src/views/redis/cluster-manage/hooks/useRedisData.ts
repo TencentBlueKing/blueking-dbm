@@ -12,8 +12,7 @@
 */
 
 // TODO INTERFACE
-import { getResources } from '@services/clusters';
-import type { ResourceRedisItem } from '@services/types/clusters';
+import { getResources } from '@services/source/resourceRedis';
 
 import { useGlobalBizs } from '@stores';
 
@@ -44,7 +43,7 @@ export const useRedisData = (state: RedisState) => {
 
     state.isInit = false;
     state.isLoading = isLoading;
-    return getResources<ResourceRedisItem>(params)
+    return getResources(params)
       .then((res) => {
         state.pagination.count = res.count;
         state.data = res.results;

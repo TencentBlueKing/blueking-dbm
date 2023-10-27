@@ -54,7 +54,7 @@
 
 <script setup lang="ts">
 // TODO INTERFACE
-  import { getResourceDetails } from '@services/clusters';
+  import { getResourceDetails } from '@services/source/resourceRedis';
   import type { ResourceRedisItem } from '@services/types/clusters';
 
   import {
@@ -99,7 +99,7 @@
       id: currentClusterId.value,
     };
     isLoading.value = true;
-    getResourceDetails<ResourceRedisItem>(params)
+    getResourceDetails(params)
       .then((res) => {
         data.value = res;
         emits('change', res);

@@ -39,7 +39,7 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import { getClusterDetail } from '@services/pulsar';
+  import { getClusterDetail } from '@services/source/pulsar';
 
   import { useGlobalBizs, useMainViewStore  } from '@stores';
 

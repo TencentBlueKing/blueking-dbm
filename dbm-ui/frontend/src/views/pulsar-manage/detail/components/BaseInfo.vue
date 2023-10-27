@@ -24,7 +24,7 @@
     watch,
   } from 'vue';
 
-  import { getClusterDetail } from '@services/pulsar';
+  import { getClusterDetail } from '@services/source/pulsar';
 
   import { useGlobalBizs } from '@stores';
 

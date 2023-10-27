@@ -116,7 +116,7 @@
   import { useI18n } from 'vue-i18n';
 
   // TODO INTERFACE
-  import { getRedisInstances } from '@services/redis';
+  import { getRedisInstances } from '@services/source/resourceRedis';
   import { createTicket } from '@services/ticket';
   import {
     ClusterNodeKeys,

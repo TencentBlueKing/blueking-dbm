@@ -13,8 +13,6 @@
 
 import KafkaModel from '@services/model/kafka/kafka';
 import KafkaInstanceModel from '@services/model/kafka/kafka-instance';
-import KafkaNodeModel from '@services/model/kafka/kafka-node';
-import KafkaPasswordModel from '@services/model/kafka/kafka-password';
 
 import { useGlobalBizs } from '@stores';
 
@@ -25,34 +23,46 @@ const { currentBizId } = useGlobalBizs();
 
 const path = `/apis/bigdata/bizs/${currentBizId}/kafka/kafka_resources`;
 
-// 获取集群列表
+/**
+ * 获取集群列表
+ */
 export const getList = (params: Record<string, any> & {bk_biz_id: number}) => http.get<ListBase<KafkaModel[]>>(`${path}/`, params)
   .then(data => ({
     ...data,
     results: data.results.map((item: KafkaModel) => new KafkaModel(item)),
   }));
 
-// 获取查询返回字段
-export const getTableFields = (params: Record<string, any> & {bk_biz_id: number}) => http.get<ListBase<KafkaModel[]>>(`${path}/get_table_fields/`);
+/**
+ * 获取查询返回字段
+ */
+export const getTableFields = () => http.get<ListBase<KafkaModel[]>>(`${path}/get_table_fields/`);
 
-// 获取实例列表
+/**
+ * 获取实例列表
+ */
 export const getListInstance = (params: Record<string, any> & {bk_biz_id: number}) => http.get<ListBase<KafkaInstanceModel[]>>(`${path}/list_instances/`, params)
   .then(data => ({
     ...data,
     results: data.results.map((item: KafkaInstanceModel) => new KafkaInstanceModel(item)),
   }));
 
-// 获取实例详情
+/**
+ * 获取实例详情
+ */
 export const getRetrieveInstance = (params: {bk_biz_id: number}) => http.get<ListBase<KafkaModel[]>>(`${path}/retrieve_instance/`, params);
 
-// 获取集群详情
+/**
+ * 获取集群详情
+ */
 export const getClusterDetail = (params: {
   bk_biz_id: number,
   cluster_id: number
 }) => http.get<KafkaModel>(`${path}/${params.cluster_id}/`)
   .then(data => new KafkaModel(data));
 
-// 获取集群拓扑
+/**
+ * 获取集群拓扑
+ */
 export const getTopoGraph = (params: {
   bk_biz_id: number,
   cluster_id: number

@@ -16,10 +16,10 @@ import type { Instance } from 'tippy.js';
 import type { VNode } from 'vue';
 
 import { getResourceInstanceDetails } from '@services/clusters';
-import { getRetrieveInstance as getESRetrieveInstance } from '@services/es';
-import { getRetrieveInstance as getHDFSRetrieveInstance } from '@services/hdfs';
-import { getRetrieveInstance as getKafkaRetrieveInstance } from '@services/kafka';
-import { getRetrieveInstance as getPulsarRetrieveInstance } from '@services/pulsar';
+import { getRetrieveInstance as getESRetrieveInstance } from '@services/source/es';
+import { getRetrieveInstance as getHDFSRetrieveInstance } from '@services/source/hdfs';
+import { getRetrieveInstance as getKafkaRetrieveInstance } from '@services/source/kafka';
+import { getRetrieveInstance as getPulsarRetrieveInstance } from '@services/source/pulsar';
 import type { InstanceDetails, ResourceTopoNode } from '@services/types/clusters';
 
 import { useGlobalBizs } from '@stores';

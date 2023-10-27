@@ -73,7 +73,10 @@
 
   import RedisClusterNodeByIpModel from '@services/model/redis/redis-cluster-node-by-ip';
   // TODO INTERFACE
-  import { queryInfoByIp, queryMasterSlavePairs } from '@services/redis/toolbox';
+  import {
+    queryInfoByIp,
+    queryMasterSlavePairs,
+  } from '@services/source/redisToolbox';
   import { createTicket } from '@services/ticket';
   import type { SubmitTicket } from '@services/types/ticket';
 

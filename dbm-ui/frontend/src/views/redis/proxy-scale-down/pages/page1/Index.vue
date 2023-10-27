@@ -71,7 +71,7 @@
 
   import RedisModel from '@services/model/redis/redis';
   // TODO INTERFACE
-  import { listClusterList } from '@services/redis/toolbox';
+  import { listClusterList } from '@services/source/resourceRedis';
   import { createTicket } from '@services/ticket';
   import type { SubmitTicket } from '@services/types/ticket';
 

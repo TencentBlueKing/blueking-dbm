@@ -99,7 +99,7 @@
   import RedisModel from '@services/model/redis/redis';
   import RedisDSTHistoryJobModel  from '@services/model/redis/redis-dst-history-job';
   // TODO INTERFACE
-  import { listClusterList } from '@services/redis/toolbox';
+  import { listClusterList } from '@services/source/resourceRedis';
 
   import { useGlobalBizs } from '@stores';
 

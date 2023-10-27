@@ -39,7 +39,7 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import { getClusterDetail } from '@services/kafka';
+  import { getClusterDetail } from '@services/source/kafka';
 
   import { useGlobalBizs, useMainViewStore  } from '@stores';
 

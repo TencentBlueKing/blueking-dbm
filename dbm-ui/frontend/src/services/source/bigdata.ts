@@ -30,14 +30,18 @@ const { currentBizId } = useGlobalBizs();
 
 const path = `/apis/bigdata/bizs/${currentBizId}`;
 
-// 获取 ES 集群访问密码
+/**
+ * 获取 ES 集群访问密码
+ */
 export const getESPassword = (params: {
   bk_biz_id: number,
   cluster_id: number
 }) => http.get<EsPasswordModel>(`${path}/es/es_resources/${params.cluster_id}/get_password/`)
   .then(data => new EsPasswordModel(data));
 
-// 获取 ES 集群节点列表信息
+/**
+ * 获取 ES 集群节点列表信息
+ */
 export const getESListNodes = (params: Record<string, any> & {
   bk_biz_id: number,
   cluster_id: number
@@ -47,14 +51,18 @@ export const getESListNodes = (params: Record<string, any> & {
     results: data.results.map((item: EsNodeModel) => new EsNodeModel(item)),
   }));
 
-// 获取 HDFS 集群访问密码
+/**
+ * 获取 HDFS 集群访问密码
+ */
 export const getHDFSPassword = (params: Record<string, any> & {
   bk_biz_id: number,
   cluster_id: number
 }) => http.get<HdfsPasswordModel>(`${path}/hdfs/hdfs_resources/${params.cluster_id}/get_password/`)
   .then(data => new HdfsPasswordModel(data));
 
-// 获取 HDFS 集群节点列表信息
+/**
+ * 获取 HDFS 集群节点列表信息
+ */
 export const getHDFSListNodes = (params: Record<string, any> & {
   bk_biz_id: number,
   cluster_id: number
@@ -64,17 +72,18 @@ export const getHDFSListNodes = (params: Record<string, any> & {
     results: data.results.map((item: HdfsNodeModel) => new HdfsNodeModel(item)),
   }));
 
-// TODO INTERFACE influxdb get_password
-// TODO INTERFACE influxdb list_nodes
-
-// 获取 Kafka 集群访问密码
+/**
+ * 获取 Kafka 集群访问密码
+ */
 export const getKafkaPassword = (params: Record<string, any> & {
     bk_biz_id: number,
     cluster_id: number
   }) => http.get<KafkaPasswordModel>(`${path}/kafka/kafka_resources/${params.cluster_id}/get_password/`)
   .then(data => new KafkaPasswordModel(data));
 
-// 获取 Kafka 集群节点列表信息
+/**
+ * 获取 Kafka 集群节点列表信息
+ */
 export const getKafkaListNodes = (params: Record<string, any> & {
     bk_biz_id: number,
     cluster_id: number
@@ -84,14 +93,18 @@ export const getKafkaListNodes = (params: Record<string, any> & {
     results: data.results.map((item: KafkaNodeModel) => new KafkaNodeModel(item)),
   }));
 
-// 获取 Pulsar 集群访问密码
+/**
+ * 获取 Pulsar 集群访问密码
+ */
 export const getPulsarPassword = (params: Record<string, any> & {
     bk_biz_id: number,
     cluster_id: number
   }) => http.get<PulsarPasswordModel>(`${path}/pulsar/pulsar_resources/${params.cluster_id}/get_password/`)
   .then(data => new PulsarPasswordModel(data));
 
-// 获取 Pulsar 集群节点列表信息
+/**
+ * 获取 Pulsar 集群节点列表信息
+ */
 export const getPulsarListNodes = (params: Record<string, any> & {
     bk_biz_id: number,
     cluster_id: number
@@ -109,5 +122,3 @@ export const getBusinessTopoTree = (params: {
   db_type: string,
   bk_biz_id: number
 }) => http.get<BizConfTopoTreeModel[]>(`${path}/resource_tree/`, { cluster_type: params.cluster_type });
-
-// TODO INTERFACE resources

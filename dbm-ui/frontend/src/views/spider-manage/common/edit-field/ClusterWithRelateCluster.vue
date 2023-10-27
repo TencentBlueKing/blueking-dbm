@@ -106,7 +106,6 @@
     watch,
   } from 'vue';
 
-  // TODO INTERFACE done
   import {
     findRelatedClustersByClusterIds,
     queryClusters,
