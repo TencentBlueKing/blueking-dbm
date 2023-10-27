@@ -14,10 +14,12 @@ from dataclasses import asdict
 from django.utils.crypto import get_random_string
 from django.utils.translation import ugettext as _
 
+from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.enums import ClusterEntryType, InstanceInnerRole
 from backend.db_meta.models import Cluster, ClusterEntry
 from backend.flow.consts import ACCOUNT_PREFIX, AUTH_ADDRESS_DIVIDER, InstanceStatus
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
+from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import check_sub_flow
 from backend.flow.plugins.components.collections.mysql.add_user_for_cluster_switch import AddSwitchUserComponent
 from backend.flow.plugins.components.collections.mysql.clone_user import CloneUserComponent
 from backend.flow.plugins.components.collections.mysql.dns_manage import MySQLDnsManageComponent
@@ -57,7 +59,6 @@ def master_and_slave_switch(root_id: str, ticket_data: dict, cluster: Cluster, c
     # 拼接子流程需要全局参数
     switch_sub_flow_context = copy.deepcopy(ticket_data)
     # 把公共参数拼接到子流程的全局只读上下文
-    switch_sub_flow_context["is_safe"] = True
     switch_sub_flow_context["is_dead_master"] = False
     switch_sub_flow_context["grant_repl"] = True
     switch_sub_flow_context["locked_switch"] = True
@@ -67,6 +68,27 @@ def master_and_slave_switch(root_id: str, ticket_data: dict, cluster: Cluster, c
 
     # 针对集群维度声明子流程
     cluster_switch_sub_pipeline = SubBuilder(root_id=root_id, data=copy.deepcopy(switch_sub_flow_context))
+
+    # 切换前做预检测, 克隆主从时客户端连接检测和checksum检验默认检测
+    sub_flow = check_sub_flow(
+        uid=ticket_data["uid"],
+        root_id=root_id,
+        cluster=cluster,
+        is_check_client_conn=True,
+        is_verify_checksum=True,
+        check_client_conn_inst=[
+            f"{cluster_info['old_master_ip']}{IP_PORT_DIVIDER}{cluster_info['mysql_port']}",
+            f"{cluster_info['old_slave_ip']}{IP_PORT_DIVIDER}{cluster_info['mysql_port']}",
+        ],
+        verify_checksum_tuples=[
+            {
+                "master": f"{cluster_info['old_master_ip']}{IP_PORT_DIVIDER}{cluster_info['mysql_port']}",
+                "slave": f"{cluster_info['new_master_ip']}{IP_PORT_DIVIDER}{cluster_info['mysql_port']}",
+            }
+        ],
+    )
+    if sub_flow:
+        cluster_switch_sub_pipeline.add_sub_pipeline(sub_flow=sub_flow)
 
     # todo ？授权切换账号
     add_sw_user_kwargs = AddSwitchUserKwargs(
