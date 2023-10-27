@@ -32,7 +32,8 @@
       ref="tableRef"
       class="alert-group-table"
       :columns="columns"
-      :data-source="getAlarmGroupList" />
+      :data-source="getAlarmGroupList"
+      :row-class="setRowClass" />
     <DetailDialog
       v-model="detailDialogShow"
       :biz-id="bizId"
@@ -43,6 +44,7 @@
 </template>
 
 <script setup lang="tsx">
+  import dayjs from 'dayjs';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
@@ -62,6 +64,16 @@
 
   import DetailDialog from './components/DetailDialog.vue';
   import RenderRow from './components/RenderRow.vue';
+
+  const isNewUser = (createTime: string) => {
+    if (!createTime) {
+      return '';
+    }
+
+    const createDay = dayjs(createTime);
+    const today = dayjs();
+    return today.diff(createDay, 'hour') <= 24;
+  };
 
   type AlarmGroupItem = ServiceReturnType<typeof getAlarmGroupList>['results'][number]
 
@@ -99,7 +111,12 @@
               isRenderTag
                 ? <MiniTag content={ t('内置') } class="ml-4"></MiniTag>
                 : null
-              }
+            }
+            {
+              isNewUser(row.create_at)
+                ? <span class="glob-new-tag ml-4" data-text="NEW" />
+                : null
+            }
           </>
         );
       },
@@ -130,15 +147,15 @@
       field: 'relatedPolicyCount',
       width: 100,
       render: ({ row }: TableRenderData) => {
-        const { related_policy_count: relatedPolicyCount } = row;
+        const { used_count: usedCount } = row;
 
         return (
-          relatedPolicyCount
+          usedCount
             ? <bk-button
               text
               theme="primary"
               onClick={ () => toRelatedPolicy(row.id) }>
-              { relatedPolicyCount }
+              { usedCount }
             </bk-button>
             : <span>0</span>
         );
@@ -162,7 +179,7 @@
       width: 180,
       render: ({ row }: TableRenderData) => {
         const tipDisabled = isPlatform || !row.is_built_in;
-        const btnDisabled = (!isPlatform && row.is_built_in) || row.related_policy_count > 0;
+        const btnDisabled = (!isPlatform && row.is_built_in) || row.used_count > 0;
         const tips = {
           disabled: tipDisabled,
           content: t('内置告警不支持删除'),
@@ -226,6 +243,8 @@
     });
   };
 
+  const setRowClass = (row: AlarmGroupItem) => (isNewUser(row.create_at) ? 'is-new' : '');
+
   const toRelatedPolicy = (notifyGroupId: number) => {
     const routerData = router.resolve({
       name: 'DBMonitorStrategy',
@@ -282,6 +301,12 @@
     :deep(.alert-group-table) {
       .alarm-group-name {
         color: @primary-color;
+      }
+
+      .is-new {
+        td {
+          background-color: #f3fcf5 !important;
+        }
       }
     }
   }
