@@ -180,6 +180,7 @@ class RedisClusterApplyFlowParamBuilder(builders.FlowParamBuilder):
         """
         # 生成随机密码，长度16位，英文大小写+数字
         proxy_pwd = get_random_string(16)
+        proxy_admin_pwd = get_random_string(16)
         redis_pwd = get_random_string(16)
         ticket_type = self.ticket_data["cluster_type"]
 
@@ -218,6 +219,8 @@ class RedisClusterApplyFlowParamBuilder(builders.FlowParamBuilder):
                 "domain_name": domain_name,
                 # proxy密码
                 "proxy_pwd": proxy_pwd,
+                # proxy管理密码
+                "proxy_admin_pwd": proxy_admin_pwd,
                 # redis密码
                 "redis_pwd": redis_pwd,
             }

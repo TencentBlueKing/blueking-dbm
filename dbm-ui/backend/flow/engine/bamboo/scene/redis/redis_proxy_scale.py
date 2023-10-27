@@ -160,6 +160,9 @@ class RedisProxyScaleFlow(object):
                 "spec_id": info["resource_spec"]["proxy"]["id"],
                 "spec_config": info["resource_spec"]["proxy"],
             }
+            # 如果从config_info中取出了admin_pwd，则说明是predixy，需要补充进params
+            if config_info["predixy_admin_passwd"]:
+                params["proxy_admin_pwd"] = config_info["predixy_admin_passwd"]
             for proxy_info in info["proxy"]:
                 ip = proxy_info["ip"]
                 act_kwargs.cluster = copy.deepcopy(cluster_tpl)
