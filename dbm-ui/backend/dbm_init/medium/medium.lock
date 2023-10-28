@@ -65,3 +65,8 @@ redis:
     commitId: xxx
     name: dbactuator_redis
     version: 1.0.1
+- dbmon:
+    buildPath: /blueking-dbm/dbm-services/redis/db-tools/dbmon/build/bk-dbmon-*.tar.gz
+    commitId: xxx
+    name: dbmon
+    version: 1.0.1

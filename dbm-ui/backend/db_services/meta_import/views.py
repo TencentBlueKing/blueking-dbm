@@ -18,6 +18,8 @@ from rest_framework.response import Response
 
 from backend.bk_web import viewsets
 from backend.bk_web.swagger import common_swagger_auto_schema
+from backend.configuration.constants import SystemSettingsEnum
+from backend.configuration.models import SystemSettings
 from backend.db_services.meta_import.constants import SWAGGER_TAG
 from backend.db_services.meta_import.serializers import MySQLHaMetadataImportSerializer
 from backend.iam_app.handlers.drf_perm import RejectPermission
@@ -31,7 +33,8 @@ class DBMetadataImportViewSet(viewsets.SystemViewSet):
     pagination_class = None
 
     def _get_custom_permissions(self):
-        if not self.request.user.is_superuser:
+        migrate_users = SystemSettings.get_setting_value(key=SystemSettingsEnum.DBM_MIGRATE_USER, default=[])
+        if not self.request.user.is_superuser and self.request.user.username not in migrate_users:
             return [RejectPermission()]
         return []
 

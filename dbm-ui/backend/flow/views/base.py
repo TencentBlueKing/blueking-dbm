@@ -18,6 +18,9 @@ from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import AllowAny
 from rest_framework.views import APIView
 
+from backend.configuration.constants import SystemSettingsEnum
+from backend.configuration.models import SystemSettings
+
 logger = logging.getLogger("root")
 
 
@@ -35,3 +38,13 @@ class FlowTestView(APIView):
         if not self.request.user.is_superuser and not settings.DEBUG:
             raise PermissionDenied(_("权限不足，无法访问!"))
         return []
+
+
+class MigrateFlowView(FlowTestView):
+    """迁移流程的view视图"""
+
+    def get_permissions(self):
+        migrate_users = SystemSettings.get_setting_value(key=SystemSettingsEnum.DBM_MIGRATE_USER, default=[])
+        if self.request.user.username in migrate_users:
+            return []
+        return super().get_permissions()
