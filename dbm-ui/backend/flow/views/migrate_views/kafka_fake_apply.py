@@ -14,38 +14,51 @@ import uuid
 from django.utils.translation import ugettext as _
 from rest_framework.response import Response
 
-from backend.flow.engine.controller.influxdb import InfluxdbController
-from backend.flow.views.base import FlowTestView
+from backend.flow.engine.controller.kafka import KafkaController
+from backend.flow.views.base import FlowTestView, MigrateFlowView
 
 logger = logging.getLogger("root")
 
 
-class FakeInstallInfluxdbSceneApiView(FlowTestView):
+class FakeInstallKafkaSceneApiView(MigrateFlowView):
     """
-    api: /apis/v1/flow/scene/fake_install_influxdb
+    api: /apis/v1/flow/scene/fake_install_kafka
     params:
     {
         "uid": "2022921034",
-        "created_by": "xxx",
+        "created_by": "admin",
         "bk_biz_id": "2005000002",
-        "ticket_type": "INFLUXDB_APPLY",
+        "ticket_type": "KAFKA_APPLY",
         "city_code": "\u6df1\u5733",
         "version": "2.4.0",
-        "port": 8080,
+        "port": 9092,
+      "replication_num": 2,
+      "partition_num": 2,
+      "retention_hours": 2,
       "username": "username",
       "password": "password",
           "nodes": {
-            "influxdb": [
+            "zookeeper": [
               {
-                "ip": "xxx.xxx.xx.x",
+                "ip": "127.0.0.1",
                 "bk_cloud_id": 0
               },
               {
-                "ip": "xxx.xxx.xx.x",
+                "ip": "127.0.0.2",
                 "bk_cloud_id": 0
               },
               {
-                "ip": "xxx.xxx.xx.x",
+                "ip": "127.0.0.3",
+                "bk_cloud_id": 0
+              }
+            ],
+            "broker": [
+              {
+                "ip": "127.0.0.3",
+                "bk_cloud_id": 0
+              },
+              {
+                "ip": "127.0.0.4",
                 "bk_cloud_id": 0
               }
             ]
@@ -54,8 +67,8 @@ class FakeInstallInfluxdbSceneApiView(FlowTestView):
     """
 
     def post(self, request):
-        logger.info(_("开始部署influxdb场景"))
+        logger.info(_("开始部署kafka场景"))
         root_id = uuid.uuid1().hex
         logger.info("define root_id: {}".format(root_id))
-        InfluxdbController(root_id=root_id, ticket_data=request.data).influxdb_fake_apply_scene()
+        KafkaController(root_id=root_id, ticket_data=request.data).kafka_fake_apply_scene()
         return Response({"root_id": root_id})

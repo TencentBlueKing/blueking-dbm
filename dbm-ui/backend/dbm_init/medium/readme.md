@@ -1,5 +1,22 @@
 # 版本文件初始化镜像
 
+## medium.lock文件
+lock文件记录了每种db类型打包的介质文件信息，以redis为例：
+```yaml
+redis: # dbtype
+- actuator:
+    buildPath: /blueking-dbm/dbm-services/redis/db-tools/dbactuator/build/dbactuator_redis # 介质路径
+    commitId: xxx # 最新编译代码的commit id，这个一般自动生成
+    name: dbactuator_redis # 介质文件名称
+    version: 1.0.1 # 介质文件版本
+- dbmon:
+    buildPath: /blueking-dbm/dbm-services/redis/db-tools/dbmon/build/bk-dbmon-*.tar.gz
+    commitId: xxx
+    name: dbmon
+    version: 1.0.1
+```
+如果我们有新加的打包文件，只需按照上面格式填写即可，commit id可以为xxx，version按照x.y.z格式填写
+
 ## 打包
 
 在blueking目录下执行

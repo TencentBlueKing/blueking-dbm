@@ -14,55 +14,54 @@ import uuid
 from django.utils.translation import ugettext as _
 from rest_framework.response import Response
 
-from backend.flow.engine.controller.es import EsController
-from backend.flow.views.base import FlowTestView
+from backend.flow.engine.controller.hdfs import HdfsController
+from backend.flow.views.base import FlowTestView, MigrateFlowView
 
 logger = logging.getLogger("root")
 
 
-class FakeInstallEsSceneApiView(FlowTestView):
+class FakeInstallHdfsSceneApiView(MigrateFlowView):
     """
-    api: /apis/v1/flow/scene/fake_install_es
+    api: /apis/v1/flow/scene/fake_install_hdfs
     params:
     {
-        "bk_biz_id": 2005000002,
-        "remark": "测试创建es集群",
-        "ticket_type": "ES_APPLY",
-        "cluster_name": "viper-cluster",
-        "cluster_alias": "测试集群",
-        "ip_source": "manual_input",
+        "bk_biz_id": "2005000002",
+        "remark": "测试创建hdfs集群",
+        "ticket_type": "HDFS_APPLY",
+        "cluster_name": "cluster_name",
+        "cluster_alias": "cluster_alias"
         "city_code": "深圳",
         "db_app_abbr": "blueking",
-        "db_version": "7.10.2",
-        "username": "username",
-        "password": "password",
-        "http_port": 9200,
+        "db_version": "2.6.0-cdh5.4.11-tendataV0.2",
+        "rpc_port": 9000
+        "http_port": 50070,
         "uid":"2111"
-        "created_by": "rtx",
-        "domain": "es.viper-cluster.blueking.db",
+        "created_by": "xxxx",
+        "ip_source": "manual_input",
         "nodes": {
-            "hot": [
-                {"ip": "127.0.0.1", "bk_cloud_id": 0, "instance_num": 1}
+            "nn1": {"ip": "127.0.0.1", "hostname": "nn1-host-name"},
+            "nn2": {"ip": "127.0.0.2", "hostname": "nn2-host-name"},
+            "namenode": [
+                {"ip": "127.0.0.1", "bk_cloud_id": 0},
+                {"ip": "127.0.0.2", "bk_cloud_id": 0},
             ],
-            "cold": [
-                {"ip": "127.0.0.2", "bk_cloud_id": 0, "instance_num": 1}
-            ],
-            "client": [
-                {"ip": "127.0.0.3", "bk_cloud_id": 0}
-            ],
-            "master": [
+            "zookeeper": [
+                {"ip": "127.0.0.3", "bk_cloud_id": 0},
                 {"ip": "127.0.0.4", "bk_cloud_id": 0},
-                {"ip": "127.0.0.5", "bk_cloud_id": 0},
-                {"ip": "127.0.0.6", "bk_cloud_id": 0}
+                {"ip": "127.0.0.5", "bk_cloud_id": 0}
+
+            ],
+            "datanode": [
+                {"ip": "127.0.0.6", "bk_cloud_id": 0},
+                {"ip": "127.0.0.7", "bk_cloud_id": 0}
             ]
         }
     }
     """
 
     def post(self, request):
-        logger.info(_("开始部署ES场景"))
-
+        logger.info(_("开始部署hdfs场景"))
         root_id = uuid.uuid1().hex
         logger.info("define root_id: {}".format(root_id))
-        EsController(root_id=root_id, ticket_data=request.data).es_fake_apply_scene()
+        HdfsController(root_id=root_id, ticket_data=request.data).hdfs_fake_apply_scene()
         return Response({"root_id": root_id})

@@ -14,12 +14,12 @@ import uuid
 from rest_framework.response import Response
 
 from backend.flow.engine.controller.pulsar import PulsarController
-from backend.flow.views.base import FlowTestView
+from backend.flow.views.base import FlowTestView, MigrateFlowView
 
 logger = logging.getLogger("root")
 
 
-class FakeInstallPulsarSceneApiView(FlowTestView):
+class FakeInstallPulsarSceneApiView(MigrateFlowView):
     """
     api: /apis/v1/flow/scene/fake_install_pulsar
     params:

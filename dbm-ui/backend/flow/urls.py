@@ -23,7 +23,6 @@ from backend.flow.views.es_apply import InstallEsSceneApiView
 from backend.flow.views.es_destroy import DestroyEsSceneApiView
 from backend.flow.views.es_disable import DisableEsSceneApiView
 from backend.flow.views.es_enable import EnableEsSceneApiView
-from backend.flow.views.es_fake_apply import FakeInstallEsSceneApiView
 from backend.flow.views.es_reboot import RebootEsSceneApiView
 from backend.flow.views.es_replace import ReplaceEsSceneApiView
 from backend.flow.views.es_scale_up import ScaleUpEsSceneApiView
@@ -32,7 +31,6 @@ from backend.flow.views.hdfs_apply import InstallHdfsSceneApiView
 from backend.flow.views.hdfs_destroy import DestroyHdfsSceneApiView
 from backend.flow.views.hdfs_disable import DisableHdfsSceneApiView
 from backend.flow.views.hdfs_enable import EnableHdfsSceneApiView
-from backend.flow.views.hdfs_fake_apply import FakeInstallHdfsSceneApiView
 from backend.flow.views.hdfs_reboot import RebootHdfsSceneApiView
 from backend.flow.views.hdfs_replace import ReplaceHdfsSceneApiView
 from backend.flow.views.hdfs_scale_up import ScaleUpHdfsSceneApiView
@@ -43,18 +41,26 @@ from backend.flow.views.influxdb_apply import InstallInfluxdbSceneApiView
 from backend.flow.views.influxdb_destroy import DestroyInfluxdbSceneApiView
 from backend.flow.views.influxdb_disable import DisableInfluxdbSceneApiView
 from backend.flow.views.influxdb_enable import EnableInfluxdbSceneApiView
-from backend.flow.views.influxdb_fake_apply import FakeInstallInfluxdbSceneApiView
 from backend.flow.views.influxdb_reboot import RebootInfluxdbSceneApiView
 from backend.flow.views.influxdb_replace import ReplaceInfluxdbSceneApiView
 from backend.flow.views.kafka_apply import InstallKafkaSceneApiView
 from backend.flow.views.kafka_destroy import DestroyKafkaSceneApiView
 from backend.flow.views.kafka_disable import DisableKafkaSceneApiView
 from backend.flow.views.kafka_enable import EnableKafkaSceneApiView
-from backend.flow.views.kafka_fake_apply import FakeInstallKafkaSceneApiView
 from backend.flow.views.kafka_reboot import RebootKafkaSceneApiView
 from backend.flow.views.kafka_replace import ReplaceKafkaSceneApiView
 from backend.flow.views.kafka_scale_up import ScaleUpKafkaSceneApiView
 from backend.flow.views.kafka_shrink import ShrinkKafkaSceneApiView
+from backend.flow.views.migrate_views.es_fake_apply import FakeInstallEsSceneApiView
+from backend.flow.views.migrate_views.hdfs_fake_apply import FakeInstallHdfsSceneApiView
+from backend.flow.views.migrate_views.influxdb_fake_apply import FakeInstallInfluxdbSceneApiView
+from backend.flow.views.migrate_views.kafka_fake_apply import FakeInstallKafkaSceneApiView
+from backend.flow.views.migrate_views.pulsar_fake_apply import FakeInstallPulsarSceneApiView
+from backend.flow.views.migrate_views.redis_migrate import (
+    RedisClusterMigrateCompair,
+    RedisClusterMigrateLoad,
+    RedisClusterMigratePrecheck,
+)
 from backend.flow.views.mysql_add_slave import AddMysqlSlaveSceneApiView
 from backend.flow.views.mysql_add_slave_remote import AddMysqlSlaveRemoteSceneApiView
 from backend.flow.views.mysql_checksum import MysqlChecksumSceneApiView
@@ -104,7 +110,6 @@ from backend.flow.views.pulsar_apply import InstallPulsarSceneApiView
 from backend.flow.views.pulsar_destroy import DestroyPulsarSceneApiView
 from backend.flow.views.pulsar_disable import DisablePulsarSceneApiView
 from backend.flow.views.pulsar_enable import EnablePulsarSceneApiView
-from backend.flow.views.pulsar_fake_apply import FakeInstallPulsarSceneApiView
 from backend.flow.views.pulsar_reboot import RebootPulsarSceneApiView
 from backend.flow.views.pulsar_scale_up import ScaleUpPulsarSceneApiView
 from backend.flow.views.redis_cluster import (
@@ -116,9 +121,6 @@ from backend.flow.views.redis_cluster import (
     RedisClusterBackupSceneApiView,
     RedisClusterDataCheckRepairApiView,
     RedisClusterDataCopySceneApiView,
-    RedisClusterMigrateCompair,
-    RedisClusterMigrateLoad,
-    RedisClusterMigratePrecheck,
     RedisClusterOpenCloseSceneApiView,
     RedisClusterShardNumUpdateSceneApiView,
     RedisClusterShutdownSceneApiView,
