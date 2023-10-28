@@ -15,6 +15,7 @@ import logging
 from collections import defaultdict
 
 from django.db import models
+from django.db.models import Count
 from django.utils.translation import gettext_lazy as _
 
 from backend import env
@@ -293,6 +294,10 @@ class DutyRule(AuditedModel):
     def delete(self, using=None, keep_parents=False):
         BKMonitorV3Api.delete_duty_rules({"ids": [self.monitor_duty_rule_id], "bk_biz_ids": [env.DBA_APP_BK_BIZ_ID]})
         super().delete()
+
+    @classmethod
+    def priority_distinct(cls) -> list:
+        return list(cls.objects.values_list("priority", flat=True).distinct().order_by("-priority"))
 
     class Meta:
         verbose_name_plural = verbose_name = _("轮值规则")

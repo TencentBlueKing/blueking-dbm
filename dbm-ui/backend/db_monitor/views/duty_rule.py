@@ -8,10 +8,14 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+from django.db.models import Count
 from django.utils.decorators import method_decorator
 from django.utils.translation import ugettext_lazy as _
+from rest_framework.decorators import action
+from rest_framework.response import Response
 
 from backend.bk_web import viewsets
+from backend.bk_web.pagination import AuditedLimitOffsetPagination
 from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.db_monitor import serializers
 from backend.db_monitor.models.alarm import DutyRule
@@ -58,7 +62,13 @@ class MonitorDutyRuleViewSet(viewsets.AuditedModelViewSet):
 
     queryset = DutyRule.objects.all()
     serializer_class = DutyRuleSerializer
+    pagination_class = AuditedLimitOffsetPagination
     filter_fields = {"db_type": ["exact"]}
 
     def _get_custom_permissions(self):
         return [GlobalManageIAMPermission()]
+
+    @common_swagger_auto_schema(operation_summary=_("轮值规则优先级统计"), tags=[SWAGGER_TAG])
+    @action(methods=["GET"], detail=False)
+    def priority_distinct(self, request, *args, **kwargs):
+        return Response(DutyRule.priority_distinct())
