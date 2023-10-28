@@ -14,13 +14,13 @@ import django_filters
 from django.db.models import Q
 from django.utils.decorators import method_decorator
 from django.utils.translation import ugettext_lazy as _
-from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from backend.bk_web import viewsets
+from backend.bk_web.pagination import AuditedLimitOffsetPagination
 from backend.bk_web.swagger import common_swagger_auto_schema
-from backend.components import CCApi, CmsiApi
+from backend.components import CmsiApi
 from backend.configuration.constants import PLAT_BIZ_ID
 from backend.db_monitor import serializers
 from backend.db_monitor.models import MonitorPolicy, NoticeGroup
@@ -83,6 +83,7 @@ class MonitorNoticeGroupViewSet(viewsets.AuditedModelViewSet):
 
     queryset = NoticeGroup.objects.all()
     serializer_class = NoticeGroupSerializer
+    pagination_class = AuditedLimitOffsetPagination
     filter_class = MonitorPolicyListFilter
 
     def _get_custom_permissions(self):
