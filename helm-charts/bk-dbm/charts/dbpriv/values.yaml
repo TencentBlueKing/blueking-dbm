@@ -91,6 +91,8 @@ tolerations: []
 
 affinity: {}
 
-livenessProbe: {}
+livenessProbe:
+  enabled: false
 
-readinessProbe: {}
+readinessProbe:
+  enabled: false

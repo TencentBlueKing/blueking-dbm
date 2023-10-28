@@ -6,7 +6,6 @@ metadata:
   labels:
     {{- include "dbm.labels" . | nindent 4 }}
 spec:
-  backoffLimit: 0
   template:
     metadata:
       labels:

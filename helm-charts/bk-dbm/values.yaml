@@ -241,6 +241,9 @@ backup-server:
 stakater:
   enabled: true
   reloader:
+    deployment:
+      image:
+        name: stakater/reloader
     watchGlobally: false
 
 # bitnami mysql 配置项
