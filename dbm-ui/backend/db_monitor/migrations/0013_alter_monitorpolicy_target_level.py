@@ -2,6 +2,8 @@
 
 from django.db import migrations, models
 
+from backend.db_monitor.constants import TargetLevel
+
 
 class Migration(migrations.Migration):
 
@@ -14,13 +16,7 @@ class Migration(migrations.Migration):
             model_name="monitorpolicy",
             name="target_level",
             field=models.CharField(
-                choices=[
-                    ("platform", "platform"),
-                    ("appid", "app id"),
-                    ("db_module", "db module"),
-                    ("cluster_domain", "cluster domain"),
-                    ("custom", "custom"),
-                ],
+                choices=TargetLevel.get_choices(),
                 default="appid",
                 max_length=64,
                 verbose_name="监控目标级别，跟随targets调整",

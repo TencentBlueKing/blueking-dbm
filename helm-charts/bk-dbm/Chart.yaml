@@ -27,7 +27,7 @@ dependencies:
   - condition: dbm.enabled
     name: dbm
     repository: file://charts/dbm
-    version: 0.1.23
+    version: 0.1.28
   - condition: dbconfig.enabled
     name: dbconfig
     repository: file://charts/dbconfig
@@ -35,7 +35,7 @@ dependencies:
   - condition: dbpriv.enabled
     name: dbpriv
     repository: file://charts/dbpriv
-    version: 0.1.30
+    version: 0.1.31
   - condition: dbpartition.enabled
     name: dbpartition
     repository: file://charts/dbpartition
@@ -79,5 +79,5 @@ dependencies:
 description: A Helm chart for bkdbm
 name: bk-dbm
 type: application
-version: 1.2.0-alpha.65
-appVersion: 1.2.0-alpha.65
+version: 1.2.0-alpha.70
+appVersion: 1.2.0-alpha.70

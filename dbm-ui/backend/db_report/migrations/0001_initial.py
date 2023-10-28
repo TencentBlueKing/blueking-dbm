@@ -2,6 +2,9 @@
 import django.db.models.deletion
 from django.db import migrations, models
 
+from backend.db_meta.enums import ClusterType, MachineType
+from backend.db_report.enums import MetaCheckSubType
+
 
 class Migration(migrations.Migration):
 
@@ -28,33 +31,7 @@ class Migration(migrations.Migration):
                 (
                     "cluster_type",
                     models.CharField(
-                        choices=[
-                            ("tendbsingle", "tendbsingle"),
-                            ("tendbha", "tendbha"),
-                            ("tendbcluster", "tendbcluster"),
-                            ("redis", "Redis集群"),
-                            ("PredixyRedisCluster", "Redis集群"),
-                            ("PredixyTendisplusCluster", "Tendisplus存储版集群"),
-                            ("TwemproxyRedisInstance", "TendisCache集群"),
-                            ("TwemproxyTendisSSDInstance", "TendisSSD集群"),
-                            ("TwemproxyTendisplusInstance", "Tendis存储版集群"),
-                            ("RedisInstance", "RedisCache主从版"),
-                            ("TendisSSDInstance", "TendisSSD主从版"),
-                            ("TendisplusInstance", "Tendisplus主从版"),
-                            ("RedisCluster", "RedisCluster集群"),
-                            ("TendisplusCluster", "TendisplusCluster集群"),
-                            ("TendisplusInstance", "Tendisplus存储版集群 GetTendisType 获取redis类型值"),
-                            ("RedisInstance", "TendisCache集群 GetTendisType 获取redis类型值"),
-                            ("TendisSSDInstance", "TendisSSD集群 GetTendisType 获取redis类型值"),
-                            ("es", "ES集群"),
-                            ("kafka", "Kafka集群"),
-                            ("hdfs", "Hdfs集群"),
-                            ("influxdb", "Influxdb实例"),
-                            ("pulsar", "Pulsar集群"),
-                            ("MongoReplicaSet", "Mongo副本集"),
-                            ("MongoShardedCluster", "Mongo分片集群"),
-                            ("riak", "Riak集群"),
-                        ],
+                        choices=ClusterType.get_choices(),
                         default="",
                         max_length=64,
                     ),
@@ -62,34 +39,7 @@ class Migration(migrations.Migration):
                 (
                     "machine_type",
                     models.CharField(
-                        choices=[
-                            ("spider", "spider"),
-                            ("remote", "remote"),
-                            ("proxy", "proxy"),
-                            ("backend", "backend"),
-                            ("single", "single"),
-                            ("predixy", "predixy"),
-                            ("twemproxy", "twemproxy"),
-                            ("redis", "redis"),
-                            ("tendiscache", "tendiscache"),
-                            ("tendisssd", "tendisssd"),
-                            ("tendisplus", "tendisplus"),
-                            ("es_datanode", "es_datanode"),
-                            ("es_master", "es_master"),
-                            ("es_client", "es_client"),
-                            ("broker", "broker"),
-                            ("zookeeper", "zookeeper"),
-                            ("hdfs_master", "hdfs_master"),
-                            ("hdfs_datanode", "hdfs_datanode"),
-                            ("mongos", "mongos"),
-                            ("mongodb", "mongodb"),
-                            ("mongo_config", "mongo_config"),
-                            ("influxdb", "influxdb"),
-                            ("pulsar_zookeeper", "pulsar_zookeeper"),
-                            ("pulsar_bookkeeper", "pulsar_bookkeeper"),
-                            ("pulsar_broker", "pulsar_broker"),
-                            ("riak", "riak"),
-                        ],
+                        choices=MachineType.get_choices(),
                         default="",
                         max_length=64,
                     ),
@@ -97,11 +47,7 @@ class Migration(migrations.Migration):
                 (
                     "subtype",
                     models.CharField(
-                        choices=[
-                            ("instance_belong", "实例集群归属"),
-                            ("replicate_role", "数据同步实例角色"),
-                            ("cluster_topo", "集群结构"),
-                        ],
+                        choices=MetaCheckSubType.get_choices(),
                         default="",
                         help_text="元数据检查子项",
                         max_length=64,
