@@ -284,6 +284,6 @@
   },
   "is_enabled": true,
   "monitor_indicator": "\u4e3b\u4ece\u590d\u5236\u4e2dSlave\u72b6\u6001\u7684\u5e73\u5747\u503c",
-  "version": 9,
+  "version": 10,
   "alert_source": "time_series"
 }
