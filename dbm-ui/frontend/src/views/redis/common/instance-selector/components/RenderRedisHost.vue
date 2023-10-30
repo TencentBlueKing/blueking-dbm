@@ -453,7 +453,7 @@
   };
 </script>
 
-<style lang="less" scoped>
+<style lang="less">
   .instance-selector-render-topo-host {
     padding: 0 24px;
 
