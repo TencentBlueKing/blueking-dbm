@@ -527,7 +527,7 @@
               "method": "COUNT",
               "metric_field": "elasticsearch_indices_docs_primary",
               "refId": "a",
-              "result_table_id": "exporter_dbm_elasticsearch_exporter.group11",
+              "result_table_id": "exporter_dbm_elasticsearch_exporter.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -550,7 +550,7 @@
             }
           ],
           "refId": "A",
-          "source": "sum(count_over_time(bkmonitor:exporter_dbm_elasticsearch_exporter:group11:elasticsearch_indices_docs_primary{app=\"$app\",cluster_domain=\"$cluster_domain\"}[1m]))",
+          "source": "sum(count_over_time(bkmonitor:exporter_dbm_elasticsearch_exporter:__default__:elasticsearch_indices_docs_primary{app=\"$app\",cluster_domain=\"$cluster_domain\"}[1m]))",
           "step": "",
           "type": "range"
         }
@@ -630,7 +630,7 @@
               "method": "sum_without_time",
               "metric_field": "elasticsearch_node_shards_total",
               "refId": "a",
-              "result_table_id": "exporter_dbm_elasticsearch_exporter.group2",
+              "result_table_id": "exporter_dbm_elasticsearch_exporter.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -653,7 +653,7 @@
             }
           ],
           "refId": "A",
-          "source": "sum(bkmonitor:exporter_dbm_elasticsearch_exporter:group2:elasticsearch_node_shards_total{app=\"$app\",cluster_domain=\"$cluster_domain\"})",
+          "source": "sum(bkmonitor:exporter_dbm_elasticsearch_exporter:__default__:elasticsearch_node_shards_total{app=\"$app\",cluster_domain=\"$cluster_domain\"})",
           "step": "",
           "type": "range"
         }
@@ -734,7 +734,7 @@
               "method": "SUM",
               "metric_field": "elasticsearch_indices_docs_primary",
               "refId": "a",
-              "result_table_id": "exporter_dbm_elasticsearch_exporter.group11",
+              "result_table_id": "exporter_dbm_elasticsearch_exporter.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -838,7 +838,7 @@
               "method": "SUM",
               "metric_field": "elasticsearch_indices_store_size_bytes",
               "refId": "a",
-              "result_table_id": "exporter_dbm_elasticsearch_exporter.group2",
+              "result_table_id": "exporter_dbm_elasticsearch_exporter.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -861,7 +861,7 @@
             }
           ],
           "refId": "A",
-          "source": "sum(sum_over_time(bkmonitor:exporter_dbm_elasticsearch_exporter:group2:elasticsearch_indices_store_size_bytes{app=\"$app\",cluster_domain=\"$cluster_domain\"}[1m]))",
+          "source": "sum(sum_over_time(bkmonitor:exporter_dbm_elasticsearch_exporter:__default__:elasticsearch_indices_store_size_bytes{app=\"$app\",cluster_domain=\"$cluster_domain\"}[1m]))",
           "step": "",
           "type": "range"
         }
@@ -945,7 +945,7 @@
               "method": "COUNT",
               "metric_field": "elasticsearch_jvm_uptime_seconds",
               "refId": "a",
-              "result_table_id": "exporter_dbm_elasticsearch_exporter.group6",
+              "result_table_id": "exporter_dbm_elasticsearch_exporter.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -976,7 +976,7 @@
             }
           ],
           "refId": "A",
-          "source": "sum(count_over_time(bkmonitor:exporter_dbm_elasticsearch_exporter:group6:elasticsearch_jvm_uptime_seconds{app=\"$app\",cluster_domain=\"$cluster_domain\",es_master_node=\"true\"}[1m]))",
+          "source": "sum(count_over_time(bkmonitor:exporter_dbm_elasticsearch_exporter:__default__:elasticsearch_jvm_uptime_seconds{app=\"$app\",cluster_domain=\"$cluster_domain\",es_master_node=\"true\"}[1m]))",
           "step": "",
           "type": "range"
         }
@@ -1059,7 +1059,7 @@
               "method": "count_without_time",
               "metric_field": "elasticsearch_jvm_uptime_seconds",
               "refId": "a",
-              "result_table_id": "exporter_dbm_elasticsearch_exporter.group6",
+              "result_table_id": "exporter_dbm_elasticsearch_exporter.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -1090,7 +1090,7 @@
             }
           ],
           "refId": "A",
-          "source": "count(bkmonitor:exporter_dbm_elasticsearch_exporter:group6:elasticsearch_jvm_uptime_seconds{__name=~\"hot-.*\",app=\"$app\",cluster_domain=\"$cluster_domain\"})",
+          "source": "count(bkmonitor:exporter_dbm_elasticsearch_exporter:__default__:elasticsearch_jvm_uptime_seconds{__name=~\"hot-.*\",app=\"$app\",cluster_domain=\"$cluster_domain\"})",
           "step": "",
           "type": "range"
         }
@@ -1163,7 +1163,7 @@
           "promqlAlias": "",
           "query_configs": [],
           "refId": "A",
-          "source": "count(bkmonitor:exporter_dbm_elasticsearch_exporter:group6:elasticsearch_jvm_uptime_seconds{__name=~\"hot-.*\",app=\"$app\",cluster_domain=\"$cluster_domain\"})",
+          "source": "count(bkmonitor:exporter_dbm_elasticsearch_exporter:__default__:elasticsearch_jvm_uptime_seconds{__name=~\"hot-.*\",app=\"$app\",cluster_domain=\"$cluster_domain\"})",
           "step": "",
           "type": "range"
         }
@@ -1236,7 +1236,7 @@
           "promqlAlias": "",
           "query_configs": [],
           "refId": "A",
-          "source": "sum(count_over_time(bkmonitor:exporter_dbm_elasticsearch_exporter:group6:elasticsearch_jvm_uptime_seconds{app=\"$app\",cluster_domain=\"$cluster_domain\",es_data_node=\"false\",es_master_node=\"false\"}[1m]))",
+          "source": "sum(count_over_time(bkmonitor:exporter_dbm_elasticsearch_exporter:__default__:elasticsearch_jvm_uptime_seconds{app=\"$app\",cluster_domain=\"$cluster_domain\",es_data_node=\"false\",es_master_node=\"false\"}[1m]))",
           "step": "",
           "type": "range"
         }
@@ -1320,7 +1320,7 @@
               "method": "AVG",
               "metric_field": "elasticsearch_cluster_health_unassigned_shards",
               "refId": "a",
-              "result_table_id": "exporter_dbm_elasticsearch_exporter.group2",
+              "result_table_id": "exporter_dbm_elasticsearch_exporter.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -1427,7 +1427,7 @@
               "method": "max_without_time",
               "metric_field": "elasticsearch_cluster_health_number_of_pending_tasks",
               "refId": "a",
-              "result_table_id": "exporter_dbm_elasticsearch_exporter.group2",
+              "result_table_id": "exporter_dbm_elasticsearch_exporter.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -1450,7 +1450,7 @@
             }
           ],
           "refId": "A",
-          "source": "max(bkmonitor:exporter_dbm_elasticsearch_exporter:group2:elasticsearch_cluster_health_number_of_pending_tasks{app=\"$app\",cluster_domain=\"$cluster_domain\"})",
+          "source": "max(bkmonitor:exporter_dbm_elasticsearch_exporter:__default__:elasticsearch_cluster_health_number_of_pending_tasks{app=\"$app\",cluster_domain=\"$cluster_domain\"})",
           "step": "",
           "type": "range"
         }
@@ -1536,7 +1536,7 @@
               "method": "max_without_time",
               "metric_field": "elasticsearch_cluster_health_active_shards",
               "refId": "a",
-              "result_table_id": "exporter_dbm_elasticsearch_exporter.group2",
+              "result_table_id": "exporter_dbm_elasticsearch_exporter.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -1559,7 +1559,7 @@
             }
           ],
           "refId": "A",
-          "source": "max(bkmonitor:exporter_dbm_elasticsearch_exporter:group2:elasticsearch_cluster_health_active_shards{app=\"$app\",cluster_domain=\"$cluster_domain\"})/sum(bkmonitor:exporter_dbm_elasticsearch_exporter:group2:elasticsearch_node_shards_total{app=\"$app\",cluster_domain=\"$cluster_domain\"})",
+          "source": "max(bkmonitor:exporter_dbm_elasticsearch_exporter:__default__:elasticsearch_cluster_health_active_shards{app=\"$app\",cluster_domain=\"$cluster_domain\"})/sum(bkmonitor:exporter_dbm_elasticsearch_exporter:__default__:elasticsearch_node_shards_total{app=\"$app\",cluster_domain=\"$cluster_domain\"})",
           "step": "",
           "type": "range"
         }
@@ -1672,7 +1672,7 @@
               "method": "max_without_time",
               "metric_field": "elasticsearch_cluster_health_status",
               "refId": "a",
-              "result_table_id": "exporter_dbm_elasticsearch_exporter.group15",
+              "result_table_id": "exporter_dbm_elasticsearch_exporter.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -1779,7 +1779,7 @@
               "method": "max_without_time",
               "metric_field": "elasticsearch_cluster_health_relocating_shards",
               "refId": "a",
-              "result_table_id": "exporter_dbm_elasticsearch_exporter.group2",
+              "result_table_id": "exporter_dbm_elasticsearch_exporter.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -1802,7 +1802,7 @@
             }
           ],
           "refId": "A",
-          "source": "max(bkmonitor:exporter_dbm_elasticsearch_exporter:group2:elasticsearch_cluster_health_relocating_shards)",
+          "source": "max(bkmonitor:exporter_dbm_elasticsearch_exporter:__default__:elasticsearch_cluster_health_relocating_shards)",
           "step": "",
           "type": "range"
         }
@@ -1886,7 +1886,7 @@
               "method": "max_without_time",
               "metric_field": "elasticsearch_cluster_health_initializing_shards",
               "refId": "a",
-              "result_table_id": "exporter_dbm_elasticsearch_exporter.group2",
+              "result_table_id": "exporter_dbm_elasticsearch_exporter.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -2258,7 +2258,7 @@
               "method": "max_without_time",
               "metric_field": "elasticsearch_cluster_health_status",
               "refId": "a",
-              "result_table_id": "exporter_dbm_elasticsearch_exporter.group15",
+              "result_table_id": "exporter_dbm_elasticsearch_exporter.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -2281,7 +2281,7 @@
             }
           ],
           "refId": "A",
-          "source": "max(bkmonitor:exporter_dbm_elasticsearch_exporter:group15:elasticsearch_cluster_health_status{app=\"$app\",cluster_domain=\"$cluster_domain\"})",
+          "source": "max(bkmonitor:exporter_dbm_elasticsearch_exporter:__default__:elasticsearch_cluster_health_status{app=\"$app\",cluster_domain=\"$cluster_domain\"})",
           "step": "",
           "type": "range"
         }
@@ -2395,7 +2395,7 @@
               "method": "max_without_time",
               "metric_field": "elasticsearch_cluster_health_relocating_shards",
               "refId": "a",
-              "result_table_id": "exporter_dbm_elasticsearch_exporter.group2",
+              "result_table_id": "exporter_dbm_elasticsearch_exporter.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -2449,7 +2449,7 @@
               "method": "max_without_time",
               "metric_field": "elasticsearch_cluster_health_initializing_shards",
               "refId": "a",
-              "result_table_id": "exporter_dbm_elasticsearch_exporter.group2",
+              "result_table_id": "exporter_dbm_elasticsearch_exporter.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -2503,7 +2503,7 @@
               "method": "max_without_time",
               "metric_field": "elasticsearch_cluster_health_unassigned_shards",
               "refId": "a",
-              "result_table_id": "exporter_dbm_elasticsearch_exporter.group2",
+              "result_table_id": "exporter_dbm_elasticsearch_exporter.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -2640,7 +2640,7 @@
               "method": "sum_without_time",
               "metric_field": "elasticsearch_node_shards_total",
               "refId": "a",
-              "result_table_id": "exporter_dbm_elasticsearch_exporter.group2",
+              "result_table_id": "exporter_dbm_elasticsearch_exporter.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -2777,7 +2777,7 @@
               "method": "count_without_time",
               "metric_field": "elasticsearch_indices_docs_primary",
               "refId": "a",
-              "result_table_id": "exporter_dbm_elasticsearch_exporter.group11",
+              "result_table_id": "exporter_dbm_elasticsearch_exporter.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -2924,7 +2924,7 @@
               "method": "sum_without_time",
               "metric_field": "elasticsearch_indices_indexing_index_total",
               "refId": "a",
-              "result_table_id": "exporter_dbm_elasticsearch_exporter.group2",
+              "result_table_id": "exporter_dbm_elasticsearch_exporter.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -2968,7 +2968,7 @@
               "method": "sum_without_time",
               "metric_field": "elasticsearch_indices_search_query_total",
               "refId": "b",
-              "result_table_id": "exporter_dbm_elasticsearch_exporter.group2",
+              "result_table_id": "exporter_dbm_elasticsearch_exporter.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -3032,7 +3032,7 @@
               "method": "sum_without_time",
               "metric_field": "elasticsearch_indices_merges_total",
               "refId": "a",
-              "result_table_id": "exporter_dbm_elasticsearch_exporter.group2",
+              "result_table_id": "exporter_dbm_elasticsearch_exporter.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -3171,7 +3171,7 @@
               "method": "AVG",
               "metric_field": "elasticsearch_indices_indexing_index_total",
               "refId": "a",
-              "result_table_id": "exporter_dbm_elasticsearch_exporter.group2",
+              "result_table_id": "exporter_dbm_elasticsearch_exporter.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -3184,7 +3184,7 @@
             }
           ],
           "refId": "A",
-          "source": "avg(irate(bkmonitor:exporter_dbm_elasticsearch_exporter:group2:elasticsearch_indices_indexing_index_time_seconds_total{__name=~\"hot-.*\",app=\"$app\",cluster_domain=\"$cluster_domain\"}[3m]))/avg(irate(bkmonitor:exporter_dbm_elasticsearch_exporter:group2:elasticsearch_indices_indexing_index_total{app=\"$app\", cluster_domain=\"$cluster_domain\",__name=~\"hot-.*\"}[3m]))",
+          "source": "avg(irate(bkmonitor:exporter_dbm_elasticsearch_exporter:__default__:elasticsearch_indices_indexing_index_time_seconds_total{__name=~\"hot-.*\",app=\"$app\",cluster_domain=\"$cluster_domain\"}[3m]))/avg(irate(bkmonitor:exporter_dbm_elasticsearch_exporter:__default__:elasticsearch_indices_indexing_index_total{app=\"$app\", cluster_domain=\"$cluster_domain\",__name=~\"hot-.*\"}[3m]))",
           "step": "",
           "type": "range"
         },
@@ -3232,7 +3232,7 @@
               "method": "AVG",
               "metric_field": "elasticsearch_indices_search_query_time_seconds",
               "refId": "a",
-              "result_table_id": "exporter_dbm_elasticsearch_exporter.group2",
+              "result_table_id": "exporter_dbm_elasticsearch_exporter.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -3284,7 +3284,7 @@
               "method": "AVG",
               "metric_field": "elasticsearch_indices_search_query_total",
               "refId": "b",
-              "result_table_id": "exporter_dbm_elasticsearch_exporter.group2",
+              "result_table_id": "exporter_dbm_elasticsearch_exporter.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -3315,7 +3315,7 @@
             }
           ],
           "refId": "B",
-          "source": "avg(irate(bkmonitor:exporter_dbm_elasticsearch_exporter:group2:elasticsearch_indices_search_query_time_seconds{__name=~\"hot-.*\",app=\"$app\",cluster_domain=\"$cluster_domain\"}[3m])) / avg(irate(bkmonitor:exporter_dbm_elasticsearch_exporter:group2:elasticsearch_indices_search_query_total{__name=~\"hot-.*\",app=\"$app\",cluster_domain=\"$cluster_domain\"}[3m]))",
+          "source": "avg(irate(bkmonitor:exporter_dbm_elasticsearch_exporter:__default__:elasticsearch_indices_search_query_time_seconds{__name=~\"hot-.*\",app=\"$app\",cluster_domain=\"$cluster_domain\"}[3m])) / avg(irate(bkmonitor:exporter_dbm_elasticsearch_exporter:__default__:elasticsearch_indices_search_query_total{__name=~\"hot-.*\",app=\"$app\",cluster_domain=\"$cluster_domain\"}[3m]))",
           "step": "",
           "type": "range"
         },
@@ -3346,14 +3346,14 @@
               "method": "AVG",
               "metric_field": "elasticsearch_indices_merges_total",
               "refId": "a",
-              "result_table_id": "exporter_dbm_elasticsearch_exporter.group2",
+              "result_table_id": "exporter_dbm_elasticsearch_exporter.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": []
             }
           ],
           "refId": "C",
-          "source": "avg(irate(bkmonitor:exporter_dbm_elasticsearch_exporter:group2:elasticsearch_indices_merges_total_time_seconds_total{__name=~\"hot-.*\",app=\"$app\",cluster_domain=\"$cluster_domain\"}[3m]))/avg(irate(bkmonitor:exporter_dbm_elasticsearch_exporter:group2:elasticsearch_indices_merges_total{app=\"$app\", cluster_domain=\"$cluster_domain\",__name=~\"hot-.*\"}[3m]))",
+          "source": "avg(irate(bkmonitor:exporter_dbm_elasticsearch_exporter:__default__:elasticsearch_indices_merges_total_time_seconds_total{__name=~\"hot-.*\",app=\"$app\",cluster_domain=\"$cluster_domain\"}[3m]))/avg(irate(bkmonitor:exporter_dbm_elasticsearch_exporter:__default__:elasticsearch_indices_merges_total{app=\"$app\", cluster_domain=\"$cluster_domain\",__name=~\"hot-.*\"}[3m]))",
           "step": "",
           "type": "range"
         }
@@ -3468,7 +3468,7 @@
               "method": "sum_without_time",
               "metric_field": "elasticsearch_indices_docs_primary",
               "refId": "a",
-              "result_table_id": "exporter_dbm_elasticsearch_exporter.group11",
+              "result_table_id": "exporter_dbm_elasticsearch_exporter.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -3605,7 +3605,7 @@
               "method": "count_without_time",
               "metric_field": "elasticsearch_jvm_uptime_seconds",
               "refId": "a",
-              "result_table_id": "exporter_dbm_elasticsearch_exporter.group6",
+              "result_table_id": "exporter_dbm_elasticsearch_exporter.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -3636,7 +3636,7 @@
             }
           ],
           "refId": "A",
-          "source": "count(bkmonitor:exporter_dbm_elasticsearch_exporter:group6:elasticsearch_jvm_uptime_seconds{app=\"$app\",cluster_domain=\"$cluster_domain\",es_master_node=\"true\"})",
+          "source": "count(bkmonitor:exporter_dbm_elasticsearch_exporter:__default__:elasticsearch_jvm_uptime_seconds{app=\"$app\",cluster_domain=\"$cluster_domain\",es_master_node=\"true\"})",
           "step": "",
           "type": "range"
         },
@@ -3666,7 +3666,7 @@
               "method": "count_without_time",
               "metric_field": "elasticsearch_jvm_uptime_seconds",
               "refId": "a",
-              "result_table_id": "exporter_dbm_elasticsearch_exporter.group6",
+              "result_table_id": "exporter_dbm_elasticsearch_exporter.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -3697,7 +3697,7 @@
             }
           ],
           "refId": "B",
-          "source": "count(bkmonitor:exporter_dbm_elasticsearch_exporter:group6:elasticsearch_jvm_uptime_seconds{app=\"$app\",cluster_domain=\"$cluster_domain\",__name=~\"dn-.*|hot-.*\"})",
+          "source": "count(bkmonitor:exporter_dbm_elasticsearch_exporter:__default__:elasticsearch_jvm_uptime_seconds{app=\"$app\",cluster_domain=\"$cluster_domain\",__name=~\"dn-.*|hot-.*\"})",
           "step": "",
           "type": "range"
         },
@@ -3727,7 +3727,7 @@
               "method": "count_without_time",
               "metric_field": "elasticsearch_jvm_uptime_seconds",
               "refId": "a",
-              "result_table_id": "exporter_dbm_elasticsearch_exporter.group6",
+              "result_table_id": "exporter_dbm_elasticsearch_exporter.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -3758,7 +3758,7 @@
             }
           ],
           "refId": "C",
-          "source": "count(bkmonitor:exporter_dbm_elasticsearch_exporter:group6:elasticsearch_jvm_uptime_seconds{app=\"$app\",cluster_domain=\"$cluster_domain\",__name=~\"cold-.*\"})",
+          "source": "count(bkmonitor:exporter_dbm_elasticsearch_exporter:__default__:elasticsearch_jvm_uptime_seconds{app=\"$app\",cluster_domain=\"$cluster_domain\",__name=~\"cold-.*\"})",
           "step": "",
           "type": "range"
         },
@@ -3788,7 +3788,7 @@
               "method": "count_without_time",
               "metric_field": "elasticsearch_jvm_uptime_seconds",
               "refId": "a",
-              "result_table_id": "exporter_dbm_elasticsearch_exporter.group6",
+              "result_table_id": "exporter_dbm_elasticsearch_exporter.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -3819,7 +3819,7 @@
             }
           ],
           "refId": "D",
-          "source": "count(bkmonitor:exporter_dbm_elasticsearch_exporter:group6:elasticsearch_jvm_uptime_seconds{app=\"$app\",cluster_domain=\"$cluster_domain\",__name=~\"client-.*\"})",
+          "source": "count(bkmonitor:exporter_dbm_elasticsearch_exporter:__default__:elasticsearch_jvm_uptime_seconds{app=\"$app\",cluster_domain=\"$cluster_domain\",__name=~\"client-.*\"})",
           "step": "",
           "type": "range"
         }
@@ -3933,7 +3933,7 @@
               "method": "max_without_time",
               "metric_field": "elasticsearch_cluster_health_number_of_pending_tasks",
               "refId": "a",
-              "result_table_id": "exporter_dbm_elasticsearch_exporter.group2",
+              "result_table_id": "exporter_dbm_elasticsearch_exporter.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -4059,7 +4059,7 @@
           "promqlAlias": "数据量",
           "query_configs": [],
           "refId": "A",
-          "source": "sum(sum_over_time(bkmonitor:exporter_dbm_elasticsearch_exporter:group2:elasticsearch_indices_store_size_bytes{app=\"$app\",cluster_domain=\"$cluster_domain\"}[1m]))",
+          "source": "sum(sum_over_time(bkmonitor:exporter_dbm_elasticsearch_exporter:__default__:elasticsearch_indices_store_size_bytes{app=\"$app\",cluster_domain=\"$cluster_domain\"}[1m]))",
           "step": "",
           "type": "range"
         }
@@ -4213,7 +4213,7 @@
                   "method": "sum_without_time",
                   "metric_field": "elasticsearch_index_stats_indexing_index_total",
                   "refId": "a",
-                  "result_table_id": "exporter_dbm_elasticsearch_exporter.group11",
+                  "result_table_id": "exporter_dbm_elasticsearch_exporter.__default__",
                   "result_table_label": "component",
                   "time_field": "",
                   "where": [
@@ -4236,7 +4236,7 @@
                 }
               ],
               "refId": "A",
-              "source": "topk(20, sum by(index) (rate(bkmonitor:exporter_dbm_elasticsearch_exporter:group11:elasticsearch_index_stats_indexing_index_total{app=\"$app\",cluster_domain=\"$cluster_domain\"}[2m])))",
+              "source": "topk(20, sum by(index) (rate(bkmonitor:exporter_dbm_elasticsearch_exporter:__default__:elasticsearch_index_stats_indexing_index_total{app=\"$app\",cluster_domain=\"$cluster_domain\"}[2m])))",
               "step": "",
               "type": "range"
             }
@@ -4370,7 +4370,7 @@
                   "method": "SUM",
                   "metric_field": "elasticsearch_index_stats_search_query_total",
                   "refId": "a",
-                  "result_table_id": "exporter_dbm_elasticsearch_exporter.group11",
+                  "result_table_id": "exporter_dbm_elasticsearch_exporter.__default__",
                   "result_table_label": "component",
                   "time_field": "",
                   "where": [
@@ -4393,7 +4393,7 @@
                 }
               ],
               "refId": "A",
-              "source": "topk(20, sum by(index) (rate(bkmonitor:exporter_dbm_elasticsearch_exporter:group11:elasticsearch_index_stats_search_query_total{app=\"$app\",cluster_domain=\"$cluster_domain\"}[2m])))",
+              "source": "topk(20, sum by(index) (rate(bkmonitor:exporter_dbm_elasticsearch_exporter:__default__:elasticsearch_index_stats_search_query_total{app=\"$app\",cluster_domain=\"$cluster_domain\"}[2m])))",
               "step": "",
               "type": "range"
             }
@@ -4522,7 +4522,7 @@
                   "method": "max_without_time",
                   "metric_field": "elasticsearch_indices_store_size_bytes_total",
                   "refId": "a",
-                  "result_table_id": "exporter_dbm_elasticsearch_exporter.group11",
+                  "result_table_id": "exporter_dbm_elasticsearch_exporter.__default__",
                   "result_table_label": "component",
                   "time_field": "",
                   "where": [
@@ -4675,7 +4675,7 @@
                   "method": "avg_without_time",
                   "metric_field": "elasticsearch_indices_shards_docs",
                   "refId": "a",
-                  "result_table_id": "exporter_dbm_elasticsearch_exporter.group11",
+                  "result_table_id": "exporter_dbm_elasticsearch_exporter.__default__",
                   "result_table_label": "component",
                   "time_field": "",
                   "where": [
@@ -4698,7 +4698,7 @@
                 }
               ],
               "refId": "A",
-              "source": "topk(5, bkmonitor:exporter_dbm_elasticsearch_exporter:group11:elasticsearch_indices_shards_docs{app=\"$app\",cluster_domain=\"$cluster_domain\"})",
+              "source": "topk(5, bkmonitor:exporter_dbm_elasticsearch_exporter:__default__:elasticsearch_indices_shards_docs{app=\"$app\",cluster_domain=\"$cluster_domain\"})",
               "step": "",
               "type": "range"
             }
@@ -4836,7 +4836,7 @@
                   "method": "max_without_time",
                   "metric_field": "elasticsearch_jvm_memory_used_bytes",
                   "refId": "a",
-                  "result_table_id": "exporter_dbm_elasticsearch_exporter.group8",
+                  "result_table_id": "exporter_dbm_elasticsearch_exporter.__default__",
                   "result_table_label": "component",
                   "time_field": "",
                   "where": [
@@ -4879,7 +4879,7 @@
                   "method": "max_without_time",
                   "metric_field": "elasticsearch_jvm_memory_max_bytes",
                   "refId": "b",
-                  "result_table_id": "exporter_dbm_elasticsearch_exporter.group8",
+                  "result_table_id": "exporter_dbm_elasticsearch_exporter.__default__",
                   "result_table_label": "component",
                   "time_field": "",
                   "where": [
@@ -4910,7 +4910,7 @@
                 }
               ],
               "refId": "A",
-              "source": "max by (__name) (bkmonitor:exporter_dbm_elasticsearch_exporter:group8:elasticsearch_jvm_memory_used_bytes{app=\"$app\",cluster_domain=\"$cluster_domain\",es_master_node=\"true\"}) / max by (__name) (bkmonitor:exporter_dbm_elasticsearch_exporter:group8:elasticsearch_jvm_memory_max_bytes{app=\"$app\",cluster_domain=\"$cluster_domain\",es_master_node=\"true\"})",
+              "source": "max by (__name) (bkmonitor:exporter_dbm_elasticsearch_exporter:__default__:elasticsearch_jvm_memory_used_bytes{app=\"$app\",cluster_domain=\"$cluster_domain\",es_master_node=\"true\"}) / max by (__name) (bkmonitor:exporter_dbm_elasticsearch_exporter:__default__:elasticsearch_jvm_memory_max_bytes{app=\"$app\",cluster_domain=\"$cluster_domain\",es_master_node=\"true\"})",
               "step": "",
               "type": "range"
             }
@@ -5043,7 +5043,7 @@
                   "method": "AVG",
                   "metric_field": "elasticsearch_jvm_gc_collection_seconds_count",
                   "refId": "a",
-                  "result_table_id": "exporter_dbm_elasticsearch_exporter.group7",
+                  "result_table_id": "exporter_dbm_elasticsearch_exporter.__default__",
                   "result_table_label": "component",
                   "time_field": "",
                   "where": [
@@ -5082,7 +5082,7 @@
                 }
               ],
               "refId": "A",
-              "source": "avg by(__name) (irate(bkmonitor:exporter_dbm_elasticsearch_exporter:group7:elasticsearch_jvm_gc_collection_seconds_count{app=\"$app\",cluster_domain=\"$cluster_domain\",es_master_node=\"true\",gc=\"young\"}[2m])) * 60",
+              "source": "avg by(__name) (irate(bkmonitor:exporter_dbm_elasticsearch_exporter:__default__:elasticsearch_jvm_gc_collection_seconds_count{app=\"$app\",cluster_domain=\"$cluster_domain\",es_master_node=\"true\",gc=\"young\"}[2m])) * 60",
               "step": "",
               "type": "range"
             },
@@ -5131,7 +5131,7 @@
                   "method": "AVG",
                   "metric_field": "elasticsearch_jvm_gc_collection_seconds_count",
                   "refId": "a",
-                  "result_table_id": "exporter_dbm_elasticsearch_exporter.group7",
+                  "result_table_id": "exporter_dbm_elasticsearch_exporter.__default__",
                   "result_table_label": "component",
                   "time_field": "",
                   "where": [
@@ -5170,7 +5170,7 @@
                 }
               ],
               "refId": "B",
-              "source": "avg by(__name) (irate(bkmonitor:exporter_dbm_elasticsearch_exporter:group7:elasticsearch_jvm_gc_collection_seconds_count{app=\"$app\",cluster_domain=\"$cluster_domain\",es_master_node=\"true\",gc=\"old\"}[2m])) * 60",
+              "source": "avg by(__name) (irate(bkmonitor:exporter_dbm_elasticsearch_exporter:__default__:elasticsearch_jvm_gc_collection_seconds_count{app=\"$app\",cluster_domain=\"$cluster_domain\",es_master_node=\"true\",gc=\"old\"}[2m])) * 60",
               "step": "",
               "type": "range"
             }
@@ -5304,7 +5304,7 @@
                   "method": "AVG",
                   "metric_field": "elasticsearch_jvm_gc_collection_seconds_sum",
                   "refId": "a",
-                  "result_table_id": "exporter_dbm_elasticsearch_exporter.group7",
+                  "result_table_id": "exporter_dbm_elasticsearch_exporter.__default__",
                   "result_table_label": "component",
                   "time_field": "",
                   "where": [
@@ -5365,7 +5365,7 @@
                   "method": "AVG",
                   "metric_field": "elasticsearch_jvm_gc_collection_seconds_sum",
                   "refId": "b",
-                  "result_table_id": "exporter_dbm_elasticsearch_exporter.group7",
+                  "result_table_id": "exporter_dbm_elasticsearch_exporter.__default__",
                   "result_table_label": "component",
                   "time_field": "",
                   "where": [
@@ -5404,7 +5404,7 @@
                 }
               ],
               "refId": "A",
-              "source": "avg by (__name) (irate(bkmonitor:exporter_dbm_elasticsearch_exporter:group7:elasticsearch_jvm_gc_collection_seconds_sum{__name=~\"master-.*|Master-.*\",app=\"$app\",cluster_domain=\"$cluster_domain\",gc=\"old\"}[3m])) + avg by (__name) (irate(bkmonitor:exporter_dbm_elasticsearch_exporter:group7:elasticsearch_jvm_gc_collection_seconds_sum{__name=~\"master-.*|Master-.*\",app=\"$app\",cluster_domain=\"$cluster_domain\",gc=\"young\"}[3m]))",
+              "source": "avg by (__name) (irate(bkmonitor:exporter_dbm_elasticsearch_exporter:__default__:elasticsearch_jvm_gc_collection_seconds_sum{__name=~\"master-.*|Master-.*\",app=\"$app\",cluster_domain=\"$cluster_domain\",gc=\"old\"}[3m])) + avg by (__name) (irate(bkmonitor:exporter_dbm_elasticsearch_exporter:__default__:elasticsearch_jvm_gc_collection_seconds_sum{__name=~\"master-.*|Master-.*\",app=\"$app\",cluster_domain=\"$cluster_domain\",gc=\"young\"}[3m]))",
               "step": "",
               "type": "range"
             }
@@ -5521,7 +5521,7 @@
                   "method": "max_without_time",
                   "metric_field": "elasticsearch_jvm_uptime_seconds",
                   "refId": "a",
-                  "result_table_id": "exporter_dbm_elasticsearch_exporter.group6",
+                  "result_table_id": "exporter_dbm_elasticsearch_exporter.__default__",
                   "result_table_label": "component",
                   "time_field": "",
                   "where": [
@@ -5552,7 +5552,7 @@
                 }
               ],
               "refId": "A",
-              "source": "max by(__name) (bkmonitor:exporter_dbm_elasticsearch_exporter:group6:elasticsearch_jvm_uptime_seconds{app=\"$app\",cluster_domain=\"$cluster_domain\",es_master_node=\"true\"})",
+              "source": "max by(__name) (bkmonitor:exporter_dbm_elasticsearch_exporter:__default__:elasticsearch_jvm_uptime_seconds{app=\"$app\",cluster_domain=\"$cluster_domain\",es_master_node=\"true\"})",
               "step": "",
               "type": "range"
             }
@@ -7129,7 +7129,7 @@
                   "method": "max_without_time",
                   "metric_field": "elasticsearch_indices_indexing_index_total",
                   "refId": "a",
-                  "result_table_id": "exporter_dbm_elasticsearch_exporter.group2",
+                  "result_table_id": "exporter_dbm_elasticsearch_exporter.__default__",
                   "result_table_label": "component",
                   "time_field": "",
                   "where": [
@@ -7168,7 +7168,7 @@
                 }
               ],
               "refId": "A",
-              "source": "max by(__name) (irate(bkmonitor:exporter_dbm_elasticsearch_exporter:group2:elasticsearch_indices_indexing_index_total{__name=~\"dn-.*|hot-.*\",app=\"$app\",cluster_domain=\"$cluster_domain\",es_data_node=\"true\"}[2m]))",
+              "source": "max by(__name) (irate(bkmonitor:exporter_dbm_elasticsearch_exporter:__default__:elasticsearch_indices_indexing_index_total{__name=~\"dn-.*|hot-.*\",app=\"$app\",cluster_domain=\"$cluster_domain\",es_data_node=\"true\"}[2m]))",
               "step": "",
               "type": "range"
             }
@@ -7294,7 +7294,7 @@
                   "method": "MAX",
                   "metric_field": "elasticsearch_indices_search_query_total",
                   "refId": "a",
-                  "result_table_id": "exporter_dbm_elasticsearch_exporter.group2",
+                  "result_table_id": "exporter_dbm_elasticsearch_exporter.__default__",
                   "result_table_label": "component",
                   "time_field": "",
                   "where": [
@@ -7325,7 +7325,7 @@
                 }
               ],
               "refId": "A",
-              "source": "max by (__name) (irate(bkmonitor:exporter_dbm_elasticsearch_exporter:group2:elasticsearch_indices_search_query_total{app=\"$app\",cluster_domain=\"$cluster_domain\",es_data_node=\"true\",__name=~\"hot-.*|dn-.*\"}[2m]))",
+              "source": "max by (__name) (irate(bkmonitor:exporter_dbm_elasticsearch_exporter:__default__:elasticsearch_indices_search_query_total{app=\"$app\",cluster_domain=\"$cluster_domain\",es_data_node=\"true\",__name=~\"hot-.*|dn-.*\"}[2m]))",
               "step": "",
               "type": "range"
             }
@@ -7441,7 +7441,7 @@
                   "method": "max_without_time",
                   "metric_field": "elasticsearch_thread_pool_queue_count",
                   "refId": "a",
-                  "result_table_id": "exporter_dbm_elasticsearch_exporter.group6",
+                  "result_table_id": "exporter_dbm_elasticsearch_exporter.__default__",
                   "result_table_label": "component",
                   "time_field": "",
                   "where": [
@@ -7488,7 +7488,7 @@
                 }
               ],
               "refId": "A",
-              "source": "max by(__name) (bkmonitor:exporter_dbm_elasticsearch_exporter:group6:elasticsearch_thread_pool_queue_count{__name=~\"dn-.*|hot-.*\",app=\"$app\",cluster_domain=\"$cluster_domain\",es_data_node=\"true\",type=\"write\"})",
+              "source": "max by(__name) (bkmonitor:exporter_dbm_elasticsearch_exporter:__default__:elasticsearch_thread_pool_queue_count{__name=~\"dn-.*|hot-.*\",app=\"$app\",cluster_domain=\"$cluster_domain\",es_data_node=\"true\",type=\"write\"})",
               "step": "",
               "type": "range"
             }
@@ -7604,7 +7604,7 @@
                   "method": "max_without_time",
                   "metric_field": "elasticsearch_thread_pool_rejected_count",
                   "refId": "a",
-                  "result_table_id": "exporter_dbm_elasticsearch_exporter.group6",
+                  "result_table_id": "exporter_dbm_elasticsearch_exporter.__default__",
                   "result_table_label": "component",
                   "time_field": "",
                   "where": [
@@ -7651,7 +7651,7 @@
                 }
               ],
               "refId": "A",
-              "source": "max by (__name) (bkmonitor:exporter_dbm_elasticsearch_exporter:group6:elasticsearch_thread_pool_rejected_count{__name=~\"dn-.*|hot-.*\",app=\"$app\",cluster_domain=\"$cluster_domain\",es_data_node=\"true\",type=\"write\"})",
+              "source": "max by (__name) (bkmonitor:exporter_dbm_elasticsearch_exporter:__default__:elasticsearch_thread_pool_rejected_count{__name=~\"dn-.*|hot-.*\",app=\"$app\",cluster_domain=\"$cluster_domain\",es_data_node=\"true\",type=\"write\"})",
               "step": "",
               "type": "range"
             }
@@ -7767,7 +7767,7 @@
                   "method": "max_without_time",
                   "metric_field": "elasticsearch_thread_pool_queue_count",
                   "refId": "a",
-                  "result_table_id": "exporter_dbm_elasticsearch_exporter.group6",
+                  "result_table_id": "exporter_dbm_elasticsearch_exporter.__default__",
                   "result_table_label": "component",
                   "time_field": "",
                   "where": [
@@ -7814,7 +7814,7 @@
                 }
               ],
               "refId": "A",
-              "source": "max by(__name) (bkmonitor:exporter_dbm_elasticsearch_exporter:group6:elasticsearch_thread_pool_queue_count{__name=~\"dn-.*|hot-.*\",app=\"$app\",cluster_domain=\"$cluster_domain\",es_data_node=\"true\",type=\"search\"})",
+              "source": "max by(__name) (bkmonitor:exporter_dbm_elasticsearch_exporter:__default__:elasticsearch_thread_pool_queue_count{__name=~\"dn-.*|hot-.*\",app=\"$app\",cluster_domain=\"$cluster_domain\",es_data_node=\"true\",type=\"search\"})",
               "step": "",
               "type": "range"
             }
@@ -7930,7 +7930,7 @@
                   "method": "max_without_time",
                   "metric_field": "elasticsearch_thread_pool_rejected_count",
                   "refId": "a",
-                  "result_table_id": "exporter_dbm_elasticsearch_exporter.group6",
+                  "result_table_id": "exporter_dbm_elasticsearch_exporter.__default__",
                   "result_table_label": "component",
                   "time_field": "",
                   "where": [
@@ -7977,7 +7977,7 @@
                 }
               ],
               "refId": "A",
-              "source": "max by(__name) (bkmonitor:exporter_dbm_elasticsearch_exporter:group6:elasticsearch_thread_pool_rejected_count{__name=~\"dn-.*|hot-.*\",app=\"$app\",cluster_domain=\"$cluster_domain\",es_data_node=\"true\",type=\"search\"})",
+              "source": "max by(__name) (bkmonitor:exporter_dbm_elasticsearch_exporter:__default__:elasticsearch_thread_pool_rejected_count{__name=~\"dn-.*|hot-.*\",app=\"$app\",cluster_domain=\"$cluster_domain\",es_data_node=\"true\",type=\"search\"})",
               "step": "",
               "type": "range"
             }
@@ -8080,7 +8080,7 @@
               "promqlAlias": "$tag___name",
               "query_configs": [],
               "refId": "A",
-              "source": "max by (__name) (bkmonitor:exporter_dbm_elasticsearch_exporter:group8:elasticsearch_jvm_memory_used_bytes{app=\"$app\",cluster_domain=\"$cluster_domain\",__name=~\"dn-.*|hot-.*\"}) / max by (__name) (bkmonitor:exporter_dbm_elasticsearch_exporter:group8:elasticsearch_jvm_memory_max_bytes{app=\"$app\",cluster_domain=\"$cluster_domain\",__name=~\"dn-.*|hot-.*\"})",
+              "source": "max by (__name) (bkmonitor:exporter_dbm_elasticsearch_exporter:__default__:elasticsearch_jvm_memory_used_bytes{app=\"$app\",cluster_domain=\"$cluster_domain\",__name=~\"dn-.*|hot-.*\"}) / max by (__name) (bkmonitor:exporter_dbm_elasticsearch_exporter:__default__:elasticsearch_jvm_memory_max_bytes{app=\"$app\",cluster_domain=\"$cluster_domain\",__name=~\"dn-.*|hot-.*\"})",
               "step": "",
               "type": "range"
             }
@@ -8214,7 +8214,7 @@
                   "method": "AVG",
                   "metric_field": "elasticsearch_jvm_gc_collection_seconds_count",
                   "refId": "a",
-                  "result_table_id": "exporter_dbm_elasticsearch_exporter.group7",
+                  "result_table_id": "exporter_dbm_elasticsearch_exporter.__default__",
                   "result_table_label": "component",
                   "time_field": "",
                   "where": [
@@ -8261,7 +8261,7 @@
                 }
               ],
               "refId": "A",
-              "source": "avg by(__name) (irate(bkmonitor:exporter_dbm_elasticsearch_exporter:group7:elasticsearch_jvm_gc_collection_seconds_count{__name=~\"dn-*|hot-.*\",app=\"$app\",cluster_domain=\"$cluster_domain\",es_data_node=\"true\",gc=\"young\"}[2m])) * 60",
+              "source": "avg by(__name) (irate(bkmonitor:exporter_dbm_elasticsearch_exporter:__default__:elasticsearch_jvm_gc_collection_seconds_count{__name=~\"dn-*|hot-.*\",app=\"$app\",cluster_domain=\"$cluster_domain\",es_data_node=\"true\",gc=\"young\"}[2m])) * 60",
               "step": "",
               "type": "range"
             },
@@ -8311,7 +8311,7 @@
                   "method": "AVG",
                   "metric_field": "elasticsearch_jvm_gc_collection_seconds_count",
                   "refId": "a",
-                  "result_table_id": "exporter_dbm_elasticsearch_exporter.group7",
+                  "result_table_id": "exporter_dbm_elasticsearch_exporter.__default__",
                   "result_table_label": "component",
                   "time_field": "",
                   "where": [
@@ -8358,7 +8358,7 @@
                 }
               ],
               "refId": "B",
-              "source": "avg by (__name) (irate(bkmonitor:exporter_dbm_elasticsearch_exporter:group7:elasticsearch_jvm_gc_collection_seconds_count{__name=~\"dn-*|hot-.*\",app=\"$app\",cluster_domain=\"$cluster_domain\",es_data_node=\"true\",gc=\"old\"}[2m])) * 60",
+              "source": "avg by (__name) (irate(bkmonitor:exporter_dbm_elasticsearch_exporter:__default__:elasticsearch_jvm_gc_collection_seconds_count{__name=~\"dn-*|hot-.*\",app=\"$app\",cluster_domain=\"$cluster_domain\",es_data_node=\"true\",gc=\"old\"}[2m])) * 60",
               "step": "",
               "type": "range"
             }
@@ -8491,7 +8491,7 @@
                   "method": "AVG",
                   "metric_field": "elasticsearch_jvm_gc_collection_seconds_sum",
                   "refId": "a",
-                  "result_table_id": "exporter_dbm_elasticsearch_exporter.group7",
+                  "result_table_id": "exporter_dbm_elasticsearch_exporter.__default__",
                   "result_table_label": "component",
                   "time_field": "",
                   "where": [
@@ -8552,7 +8552,7 @@
                   "method": "AVG",
                   "metric_field": "elasticsearch_jvm_gc_collection_seconds_sum",
                   "refId": "b",
-                  "result_table_id": "exporter_dbm_elasticsearch_exporter.group7",
+                  "result_table_id": "exporter_dbm_elasticsearch_exporter.__default__",
                   "result_table_label": "component",
                   "time_field": "",
                   "where": [
@@ -8591,7 +8591,7 @@
                 }
               ],
               "refId": "A",
-              "source": "avg by (__name) (increase(bkmonitor:exporter_dbm_elasticsearch_exporter:group7:elasticsearch_jvm_gc_collection_seconds_sum{__name=~\"dn-.*|hot-.*\",app=\"$app\",cluster_domain=\"$cluster_domain\",gc=\"old\"}[3m])) / 180 / 1000 + avg by (__name) (increase(bkmonitor:exporter_dbm_elasticsearch_exporter:group7:elasticsearch_jvm_gc_collection_seconds_sum{__name=~\"dn-.*|hot-.*\",app=\"$app\",cluster_domain=\"$cluster_domain\",gc=\"young\"}[3m])) / 180 / 1000",
+              "source": "avg by (__name) (increase(bkmonitor:exporter_dbm_elasticsearch_exporter:__default__:elasticsearch_jvm_gc_collection_seconds_sum{__name=~\"dn-.*|hot-.*\",app=\"$app\",cluster_domain=\"$cluster_domain\",gc=\"old\"}[3m])) / 180 / 1000 + avg by (__name) (increase(bkmonitor:exporter_dbm_elasticsearch_exporter:__default__:elasticsearch_jvm_gc_collection_seconds_sum{__name=~\"dn-.*|hot-.*\",app=\"$app\",cluster_domain=\"$cluster_domain\",gc=\"young\"}[3m])) / 180 / 1000",
               "step": "",
               "type": "range"
             }
@@ -8708,7 +8708,7 @@
                   "method": "max_without_time",
                   "metric_field": "elasticsearch_indices_segments_memory_bytes",
                   "refId": "a",
-                  "result_table_id": "exporter_dbm_elasticsearch_exporter.group2",
+                  "result_table_id": "exporter_dbm_elasticsearch_exporter.__default__",
                   "result_table_label": "component",
                   "time_field": "",
                   "where": [
@@ -8747,7 +8747,7 @@
                 }
               ],
               "refId": "A",
-              "source": "max by (__name) (bkmonitor:exporter_dbm_elasticsearch_exporter:group2:elasticsearch_indices_segments_memory_bytes{__name=~\"dn-*|hot-.*\",app=\"$app\",cluster_domain=\"$cluster_domain\",es_data_node=\"true\"})",
+              "source": "max by (__name) (bkmonitor:exporter_dbm_elasticsearch_exporter:__default__:elasticsearch_indices_segments_memory_bytes{__name=~\"dn-*|hot-.*\",app=\"$app\",cluster_domain=\"$cluster_domain\",es_data_node=\"true\"})",
               "step": "",
               "type": "range"
             }
@@ -10725,7 +10725,7 @@
                   "method": "max_without_time",
                   "metric_field": "elasticsearch_jvm_uptime_seconds",
                   "refId": "a",
-                  "result_table_id": "exporter_dbm_elasticsearch_exporter.group6",
+                  "result_table_id": "exporter_dbm_elasticsearch_exporter.__default__",
                   "result_table_label": "component",
                   "time_field": "",
                   "where": [
@@ -10762,7 +10762,7 @@
                 }
               ],
               "refId": "A",
-              "source": "max by(__name) (bkmonitor:exporter_dbm_elasticsearch_exporter:group6:elasticsearch_jvm_uptime_seconds{__name=~\"dn-.*|hot-.*\",app=\"$app\",cluster_domain=\"$cluster_domain\"})",
+              "source": "max by(__name) (bkmonitor:exporter_dbm_elasticsearch_exporter:__default__:elasticsearch_jvm_uptime_seconds{__name=~\"dn-.*|hot-.*\",app=\"$app\",cluster_domain=\"$cluster_domain\"})",
               "step": "",
               "type": "range"
             }
@@ -10901,7 +10901,7 @@
                   "method": "MAX",
                   "metric_field": "elasticsearch_indices_indexing_index_total",
                   "refId": "a",
-                  "result_table_id": "exporter_dbm_elasticsearch_exporter.group2",
+                  "result_table_id": "exporter_dbm_elasticsearch_exporter.__default__",
                   "result_table_label": "component",
                   "time_field": "",
                   "where": [
@@ -10940,7 +10940,7 @@
                 }
               ],
               "refId": "A",
-              "source": "max by (__name) (irate(bkmonitor:exporter_dbm_elasticsearch_exporter:group2:elasticsearch_indices_indexing_index_total{__name=~\"cold-.*\",app=\"$app\",cluster_domain=\"$cluster_domain\",es_data_node=\"true\"}[2m]))",
+              "source": "max by (__name) (irate(bkmonitor:exporter_dbm_elasticsearch_exporter:__default__:elasticsearch_indices_indexing_index_total{__name=~\"cold-.*\",app=\"$app\",cluster_domain=\"$cluster_domain\",es_data_node=\"true\"}[2m]))",
               "step": "",
               "type": "range"
             }
@@ -11042,7 +11042,7 @@
               "promqlAlias": "$tag___name",
               "query_configs": [],
               "refId": "A",
-              "source": "max by(__name) (irate(bkmonitor:exporter_dbm_elasticsearch_exporter:group2:elasticsearch_indices_search_query_total{app=\"$app\",cluster_domain=\"$cluster_domain\",es_data_node=\"true\",__name=~\"cold-.*\"}[2m]))",
+              "source": "max by(__name) (irate(bkmonitor:exporter_dbm_elasticsearch_exporter:__default__:elasticsearch_indices_search_query_total{app=\"$app\",cluster_domain=\"$cluster_domain\",es_data_node=\"true\",__name=~\"cold-.*\"}[2m]))",
               "step": "",
               "type": "range"
             }
@@ -11145,7 +11145,7 @@
               "promqlAlias": "$tag___name",
               "query_configs": [],
               "refId": "A",
-              "source": "max by (__name) (bkmonitor:exporter_dbm_elasticsearch_exporter:group8:elasticsearch_jvm_memory_used_bytes{app=\"$app\",cluster_domain=\"$cluster_domain\",__name=~\"cold-.*\"}) / max by (__name) (bkmonitor:exporter_dbm_elasticsearch_exporter:group8:elasticsearch_jvm_memory_max_bytes{app=\"$app\",cluster_domain=\"$cluster_domain\",__name=~\"cold-.*\"})",
+              "source": "max by (__name) (bkmonitor:exporter_dbm_elasticsearch_exporter:__default__:elasticsearch_jvm_memory_used_bytes{app=\"$app\",cluster_domain=\"$cluster_domain\",__name=~\"cold-.*\"}) / max by (__name) (bkmonitor:exporter_dbm_elasticsearch_exporter:__default__:elasticsearch_jvm_memory_max_bytes{app=\"$app\",cluster_domain=\"$cluster_domain\",__name=~\"cold-.*\"})",
               "step": "",
               "type": "range"
             }
@@ -11277,7 +11277,7 @@
                   "method": "AVG",
                   "metric_field": "elasticsearch_jvm_gc_collection_seconds_count",
                   "refId": "a",
-                  "result_table_id": "exporter_dbm_elasticsearch_exporter.group7",
+                  "result_table_id": "exporter_dbm_elasticsearch_exporter.__default__",
                   "result_table_label": "component",
                   "time_field": "",
                   "where": [
@@ -11324,7 +11324,7 @@
                 }
               ],
               "refId": "A",
-              "source": "avg by(__name) (irate(bkmonitor:exporter_dbm_elasticsearch_exporter:group7:elasticsearch_jvm_gc_collection_seconds_count{__name=~\"cold-*\",app=\"$app\",cluster_domain=\"$cluster_domain\",es_data_node=\"true\",gc=\"young\"}[2m])) * 60",
+              "source": "avg by(__name) (irate(bkmonitor:exporter_dbm_elasticsearch_exporter:__default__:elasticsearch_jvm_gc_collection_seconds_count{__name=~\"cold-*\",app=\"$app\",cluster_domain=\"$cluster_domain\",es_data_node=\"true\",gc=\"young\"}[2m])) * 60",
               "step": "",
               "type": "range"
             },
@@ -11373,7 +11373,7 @@
                   "method": "AVG",
                   "metric_field": "elasticsearch_jvm_gc_collection_seconds_count",
                   "refId": "a",
-                  "result_table_id": "exporter_dbm_elasticsearch_exporter.group7",
+                  "result_table_id": "exporter_dbm_elasticsearch_exporter.__default__",
                   "result_table_label": "component",
                   "time_field": "",
                   "where": [
@@ -11420,7 +11420,7 @@
                 }
               ],
               "refId": "B",
-              "source": "avg by(__name) (irate(bkmonitor:exporter_dbm_elasticsearch_exporter:group7:elasticsearch_jvm_gc_collection_seconds_count{__name=~\"cold-*\",app=\"$app\",cluster_domain=\"$cluster_domain\",es_data_node=\"true\",gc=\"old\"}[2m])) * 60",
+              "source": "avg by(__name) (irate(bkmonitor:exporter_dbm_elasticsearch_exporter:__default__:elasticsearch_jvm_gc_collection_seconds_count{__name=~\"cold-*\",app=\"$app\",cluster_domain=\"$cluster_domain\",es_data_node=\"true\",gc=\"old\"}[2m])) * 60",
               "step": "",
               "type": "range"
             }
@@ -11553,7 +11553,7 @@
                   "method": "AVG",
                   "metric_field": "elasticsearch_jvm_gc_collection_seconds_sum",
                   "refId": "a",
-                  "result_table_id": "exporter_dbm_elasticsearch_exporter.group7",
+                  "result_table_id": "exporter_dbm_elasticsearch_exporter.__default__",
                   "result_table_label": "component",
                   "time_field": "",
                   "where": [
@@ -11614,7 +11614,7 @@
                   "method": "AVG",
                   "metric_field": "elasticsearch_jvm_gc_collection_seconds_sum",
                   "refId": "b",
-                  "result_table_id": "exporter_dbm_elasticsearch_exporter.group7",
+                  "result_table_id": "exporter_dbm_elasticsearch_exporter.__default__",
                   "result_table_label": "component",
                   "time_field": "",
                   "where": [
@@ -11653,7 +11653,7 @@
                 }
               ],
               "refId": "A",
-              "source": "avg by (__name) (increase(bkmonitor:exporter_dbm_elasticsearch_exporter:group7:elasticsearch_jvm_gc_collection_seconds_sum{app=\"$app\",cluster_domain=\"$cluster_domain\",gc=\"old\",__name=~\"cold-.*\"}[3m])) / 180 / 1000 + avg by (__name) (increase(bkmonitor:exporter_dbm_elasticsearch_exporter:group7:elasticsearch_jvm_gc_collection_seconds_sum{__name=~\"cold-.*\",app=\"$app\",cluster_domain=\"$cluster_domain\",gc=\"young\"}[3m])) / 180 / 1000",
+              "source": "avg by (__name) (increase(bkmonitor:exporter_dbm_elasticsearch_exporter:__default__:elasticsearch_jvm_gc_collection_seconds_sum{app=\"$app\",cluster_domain=\"$cluster_domain\",gc=\"old\",__name=~\"cold-.*\"}[3m])) / 180 / 1000 + avg by (__name) (increase(bkmonitor:exporter_dbm_elasticsearch_exporter:__default__:elasticsearch_jvm_gc_collection_seconds_sum{__name=~\"cold-.*\",app=\"$app\",cluster_domain=\"$cluster_domain\",gc=\"young\"}[3m])) / 180 / 1000",
               "step": "",
               "type": "range"
             }
@@ -11769,7 +11769,7 @@
                   "method": "max_without_time",
                   "metric_field": "elasticsearch_indices_segments_memory_bytes",
                   "refId": "a",
-                  "result_table_id": "exporter_dbm_elasticsearch_exporter.group2",
+                  "result_table_id": "exporter_dbm_elasticsearch_exporter.__default__",
                   "result_table_label": "component",
                   "time_field": "",
                   "where": [
@@ -11808,7 +11808,7 @@
                 }
               ],
               "refId": "A",
-              "source": "max by (__name) (bkmonitor:exporter_dbm_elasticsearch_exporter:group2:elasticsearch_indices_segments_memory_bytes{__name=~\"cold-*\",app=\"$app\",cluster_domain=\"$cluster_domain\",es_data_node=\"true\"})",
+              "source": "max by (__name) (bkmonitor:exporter_dbm_elasticsearch_exporter:__default__:elasticsearch_indices_segments_memory_bytes{__name=~\"cold-*\",app=\"$app\",cluster_domain=\"$cluster_domain\",es_data_node=\"true\"})",
               "step": "",
               "type": "range"
             }
@@ -13541,7 +13541,7 @@
                   "method": "max_without_time",
                   "metric_field": "elasticsearch_jvm_uptime_seconds",
                   "refId": "a",
-                  "result_table_id": "exporter_dbm_elasticsearch_exporter.group6",
+                  "result_table_id": "exporter_dbm_elasticsearch_exporter.__default__",
                   "result_table_label": "component",
                   "time_field": "",
                   "where": [
@@ -13572,7 +13572,7 @@
                 }
               ],
               "refId": "A",
-              "source": "max by(__name) (bkmonitor:exporter_dbm_elasticsearch_exporter:group6:elasticsearch_jvm_uptime_seconds{__name=~\"cold-.*\",app=\"$app\",cluster_domain=\"$cluster_domain\"})",
+              "source": "max by(__name) (bkmonitor:exporter_dbm_elasticsearch_exporter:__default__:elasticsearch_jvm_uptime_seconds{__name=~\"cold-.*\",app=\"$app\",cluster_domain=\"$cluster_domain\"})",
               "step": "",
               "type": "range"
             }
@@ -13853,7 +13853,7 @@
               "promqlAlias": "$tag___name",
               "query_configs": [],
               "refId": "A",
-              "source": "max by (__name) (bkmonitor:exporter_dbm_elasticsearch_exporter:group8:elasticsearch_jvm_memory_used_bytes{app=\"$app\",cluster_domain=\"$cluster_domain\",__name=~\"client-.*\"}) / max by (__name) (bkmonitor:exporter_dbm_elasticsearch_exporter:group8:elasticsearch_jvm_memory_max_bytes{app=\"$app\",cluster_domain=\"$cluster_domain\",__name=~\"client-.*\"})",
+              "source": "max by (__name) (bkmonitor:exporter_dbm_elasticsearch_exporter:__default__:elasticsearch_jvm_memory_used_bytes{app=\"$app\",cluster_domain=\"$cluster_domain\",__name=~\"client-.*\"}) / max by (__name) (bkmonitor:exporter_dbm_elasticsearch_exporter:__default__:elasticsearch_jvm_memory_max_bytes{app=\"$app\",cluster_domain=\"$cluster_domain\",__name=~\"client-.*\"})",
               "step": "",
               "type": "range"
             }
@@ -13985,7 +13985,7 @@
                   "method": "AVG",
                   "metric_field": "elasticsearch_jvm_gc_collection_seconds_count",
                   "refId": "a",
-                  "result_table_id": "exporter_dbm_elasticsearch_exporter.group7",
+                  "result_table_id": "exporter_dbm_elasticsearch_exporter.__default__",
                   "result_table_label": "component",
                   "time_field": "",
                   "where": [
@@ -14024,7 +14024,7 @@
                 }
               ],
               "refId": "A",
-              "source": "avg by(__name) (irate(bkmonitor:exporter_dbm_elasticsearch_exporter:group7:elasticsearch_jvm_gc_collection_seconds_count{__name=~\"client-*\",app=\"$app\",cluster_domain=\"$cluster_domain\",gc=\"young\"}[2m])) * 60",
+              "source": "avg by(__name) (irate(bkmonitor:exporter_dbm_elasticsearch_exporter:__default__:elasticsearch_jvm_gc_collection_seconds_count{__name=~\"client-*\",app=\"$app\",cluster_domain=\"$cluster_domain\",gc=\"young\"}[2m])) * 60",
               "step": "",
               "type": "range"
             },
@@ -14073,7 +14073,7 @@
                   "method": "AVG",
                   "metric_field": "elasticsearch_jvm_gc_collection_seconds_count",
                   "refId": "a",
-                  "result_table_id": "exporter_dbm_elasticsearch_exporter.group7",
+                  "result_table_id": "exporter_dbm_elasticsearch_exporter.__default__",
                   "result_table_label": "component",
                   "time_field": "",
                   "where": [
@@ -14112,7 +14112,7 @@
                 }
               ],
               "refId": "B",
-              "source": "avg by(__name) (irate(bkmonitor:exporter_dbm_elasticsearch_exporter:group7:elasticsearch_jvm_gc_collection_seconds_count{__name=~\"client-*\",app=\"$app\",cluster_domain=\"$cluster_domain\",gc=\"old\"}[2m])) * 60",
+              "source": "avg by(__name) (irate(bkmonitor:exporter_dbm_elasticsearch_exporter:__default__:elasticsearch_jvm_gc_collection_seconds_count{__name=~\"client-*\",app=\"$app\",cluster_domain=\"$cluster_domain\",gc=\"old\"}[2m])) * 60",
               "step": "",
               "type": "range"
             }
@@ -14215,7 +14215,7 @@
               "promqlAlias": "$tag___name",
               "query_configs": [],
               "refId": "A",
-              "source": "avg by (__name) (increase(bkmonitor:exporter_dbm_elasticsearch_exporter:group7:elasticsearch_jvm_gc_collection_seconds_sum{app=\"$app\",cluster_domain=\"$cluster_domain\",gc=\"old\",__name=~\"client-.*\"}[3m])) / 180 / 1000 + avg by (__name) (increase(bkmonitor:exporter_dbm_elasticsearch_exporter:group7:elasticsearch_jvm_gc_collection_seconds_sum{__name=~\"client-.*\",app=\"$app\",cluster_domain=\"$cluster_domain\",gc=\"young\"}[3m])) / 180 / 1000",
+              "source": "avg by (__name) (increase(bkmonitor:exporter_dbm_elasticsearch_exporter:__default__:elasticsearch_jvm_gc_collection_seconds_sum{app=\"$app\",cluster_domain=\"$cluster_domain\",gc=\"old\",__name=~\"client-.*\"}[3m])) / 180 / 1000 + avg by (__name) (increase(bkmonitor:exporter_dbm_elasticsearch_exporter:__default__:elasticsearch_jvm_gc_collection_seconds_sum{__name=~\"client-.*\",app=\"$app\",cluster_domain=\"$cluster_domain\",gc=\"young\"}[3m])) / 180 / 1000",
               "step": "",
               "type": "range"
             }
@@ -14331,7 +14331,7 @@
                   "method": "max_without_time",
                   "metric_field": "elasticsearch_jvm_uptime_seconds",
                   "refId": "a",
-                  "result_table_id": "exporter_dbm_elasticsearch_exporter.group6",
+                  "result_table_id": "exporter_dbm_elasticsearch_exporter.__default__",
                   "result_table_label": "component",
                   "time_field": "",
                   "where": [
@@ -14362,7 +14362,7 @@
                 }
               ],
               "refId": "A",
-              "source": "max by (__name) (bkmonitor:exporter_dbm_elasticsearch_exporter:group6:elasticsearch_jvm_uptime_seconds{__name=~\"client-.*\",app=\"$app\",cluster_domain=\"$cluster_domain\"})",
+              "source": "max by (__name) (bkmonitor:exporter_dbm_elasticsearch_exporter:__default__:elasticsearch_jvm_uptime_seconds{__name=~\"client-.*\",app=\"$app\",cluster_domain=\"$cluster_domain\"})",
               "step": "",
               "type": "range"
             }
