@@ -478,6 +478,7 @@ class RiakActuatorActionEnum(str, StructuredEnum):
     ClearCrontab = EnumField("clear-crontab", _("clear-crontab"))
     UnInstall = EnumField("uninstall", _("uninstall"))
     Start = EnumField("start", _("start"))
+    Restart = EnumField("restart", _("restart"))
     Stop = EnumField("stop", _("stop"))
     DeployMonitor = EnumField("deploy-monitor", _("deploy-monitor"))
     StartMonitor = EnumField("start-monitor", _("start-monitor"))

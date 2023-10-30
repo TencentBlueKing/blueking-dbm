@@ -73,6 +73,7 @@ class RiakClusterApplyFlow(object):
         # 获取机器资源
         sub_pipeline.add_act(act_name=_("获取机器信息"), act_component_code=GetRiakResourceComponent.code, kwargs={})
         ips = [node["ip"] for node in self.data["nodes"]]
+
         sub_pipeline.add_act(
             act_name=_("下发actuator以及riak介质"),
             act_component_code=TransFileComponent.code,
@@ -173,7 +174,7 @@ class RiakClusterApplyFlow(object):
                 get_riak_payload_func=RiakActPayload.get_install_monitor_payload.__name__,
             )
             act_info = dict()
-            act_info["act_name"] = (_("actuator_{}部署定时任务和riak监控".format(ip)),)
+            act_info["act_name"] = _("actuator_{}部署定时任务和riak监控".format(ip))
             act_info["act_component_code"] = ExecuteRiakActuatorScriptComponent.code
             act_info["kwargs"] = asdict(monitor_kwargs)
             acts_list.append(act_info)
@@ -184,13 +185,14 @@ class RiakClusterApplyFlow(object):
 
     def _get_riak_config(self):
         # 从dbconfig获取配置信息
+        version = self.data["db_version"].replace(".", "")
         resp = DBConfigApi.get_instance_config(
             {
                 "bk_biz_id": str(self.data["bk_biz_id"]),
                 "level_name": LevelName.CLUSTER,
                 "level_value": self.data["domain"],
-                "level_info": {"module": "riak-{}-{}".format(self.data["db_version"], self.data["db_module_name"])},
-                "conf_file": "riak-{}-{}".format(self.data["db_version"], self.data["db_module_name"]),
+                "level_info": {"module": self.data["db_module_name"]},
+                "conf_file": "riak-{}".format(version),
                 "conf_type": ConfType.DBCONF,
                 "namespace": NameSpaceEnum.Riak,
                 "format": FormatType.MAP_LEVEL,

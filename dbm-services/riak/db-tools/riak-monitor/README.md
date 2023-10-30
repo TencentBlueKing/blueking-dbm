@@ -57,13 +57,14 @@ type MonitorItem struct {
 
 # 监控项
 
-| 监控项                      |调度计划| 机器类型           | 实例角色            |级别| 说明                          |自定义|
-|--------------------------|-----|----------------|-----------------|-----|-----------------------------|-----|
-| riak-err-notice          |@every 1m| riak           |                 | 预警           | 预警错误日志                      |schedule, enable
-| riak-db-up                    |@every 10s| backend, proxy |                 | 致命           | db 连通性. 硬编码, 不可配置, 无需录入配置系统 |enable
-| riak_monitor_heart_beat |@every 10s| riak           |                 | 致命             | 监控心跳. 硬编码, 不可配置, 无需录入配置系统   |enable
-| riak-load-health |@every 1m| riak           |                 | 致命             | 检查负载与响应情况                   |enable
-| riak-ring-status |@every 10s| riak           |                 | 致命             | 检查ring status, 发现集群中所有的故障节点 |enable
+| 监控项                         |调度计划| 机器类型           | 实例角色            | 级别 | 说明                                 |自定义|
+|-----------------------------|-----|----------------|-----------------|----|------------------------------------|-----|
+| riak-err-notice             |@every 1m| riak           |                 | 预警 | 预警错误日志                             |schedule, enable
+| riak-db-up                  |@every 30s| backend, proxy |                 | 致命 | db连通性事件以及连通心跳. 硬编码, 不可配置, 无需录入配置系统 |enable
+| riak_monitor_heart_beat     |@every 30s| riak           |                 | 致命 | 监控心跳. 硬编码, 不可配置, 无需录入配置系统          |enable
+| riak-load-health            |@every 1m| riak           |                 | 致命 | 检查负载与响应情况                          |enable
+| riak-ring-status            |@every 30s| riak           |                 | 致命 | 检查ring status, 发现集群中所有的故障节点        |enable
+| riak_connections_heart_beat |@every 1m| riak           |                 | 预警 | 实例连接数目心跳                           |enable
 
   
 ## 示例文件：
@@ -109,6 +110,18 @@ jobs_config: /data/monitor/riak-crond/jobs-config.yaml
       schedule: '@every 1m'
       creator: admin
       work_dir: ""
+- name: riak_connections_heart_beat@every 1m
+  enable: true
+  command: /data/monitor/riak-monitor/riak-monitor
+  args:
+  - run
+  - --items
+  - riak_connections_heart_beat
+  - -c
+  - /data/monitor/riak-monitor/runtime.yaml
+    schedule: '@every 1m'
+    creator: admin
+    work_dir: ""
 - name: riak-load-health@every 1m
   enable: true
   command: /data/monitor/riak-monitor/riak-monitor
@@ -121,7 +134,7 @@ jobs_config: /data/monitor/riak-crond/jobs-config.yaml
       schedule: '@every 1m'
       creator: admin
       work_dir: ""
-- name: riak-ring-status@every 10s
+- name: riak-ring-status@every 30s
   enable: true
   command: /data/monitor/riak-monitor/riak-monitor
   args:
@@ -130,10 +143,10 @@ jobs_config: /data/monitor/riak-crond/jobs-config.yaml
     - riak-ring-status
     - -c
     - /data/monitor/riak-monitor/runtime.yaml
-      schedule: '@every 10s'
+      schedule: '@every 30s'
       creator: admin
       work_dir: ""
-- name: riak-monitor-hardcode@every 10s
+- name: riak-monitor-hardcode@every 30s
   enable: true
   command: /data/monitor/riak-monitor/riak-monitor
   args:
@@ -142,7 +155,7 @@ jobs_config: /data/monitor/riak-crond/jobs-config.yaml
     - riak-db-up,riak_monitor_heart_beat
     - -c
     - /data/monitor/riak-monitor/runtime.yaml
-      schedule: '@every 10s'
+      schedule: '@every 30s'
       creator: admin
       work_dir: ""
       bk_biz_id: xxx
@@ -177,18 +190,23 @@ default_schedule: '@every 1m'
   schedule: '@every 1m'
   machine_type:
     - riak
+- name: riak_connections_heart_beat
+  enable: true
+  schedule: '@every 1m'
+  machine_type:
+  - riak
 - name: riak-ring-status
   enable: true
-  schedule: '@every 10s'
+  schedule: '@every 30s'
   machine_type:
     - riak
 - name: riak-db-up
   enable: true
-  schedule: '@every 10s'
+  schedule: '@every 30s'
   machine_type:
     - riak
 - name: riak_monitor_heart_beat
   enable: true
-  schedule: '@every 10s'
+  schedule: '@every 30s'
   machine_type:
     - riak

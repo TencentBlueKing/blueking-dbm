@@ -12,10 +12,10 @@ package itemscollect
 import (
 	"dbm-services/riak/db-tools/riak-monitor/pkg/itemscollect/checkload"
 	"dbm-services/riak/db-tools/riak-monitor/pkg/itemscollect/checkringstatus"
+	"dbm-services/riak/db-tools/riak-monitor/pkg/itemscollect/connections"
 	"dbm-services/riak/db-tools/riak-monitor/pkg/itemscollect/riakconsolelog"
-	"fmt"
-
 	mi "dbm-services/riak/db-tools/riak-monitor/pkg/monitoriteminterface"
+	"fmt"
 
 	"golang.org/x/exp/slog"
 )
@@ -47,4 +47,5 @@ func init() {
 	_ = registerItemConstructor(riakconsolelog.RegisterRiakErrNotice())
 	_ = registerItemConstructor(checkringstatus.RegisterCheckRingStatus())
 	_ = registerItemConstructor(checkload.RegisterCheckLoadHealth())
+	_ = registerItemConstructor(connections.RegisterConnections())
 }

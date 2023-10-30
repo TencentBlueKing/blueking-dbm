@@ -33,6 +33,7 @@ func NewRiakCommand() *cobra.Command {
 				NewUninstallCommand(),
 				NewStopCommand(),
 				NewStartCommand(),
+				NewRestartCommand(),
 				NewDeployMonitorCommand(),
 				NewStartMonitorCommand(),
 				NewStopMonitorCommand(),

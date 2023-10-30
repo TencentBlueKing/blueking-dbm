@@ -243,6 +243,19 @@ class RiakActPayload(object):
             },
         }
 
+    def get_restart_payload(self, **kwargs) -> dict:
+        """
+        启用
+        """
+        return {
+            "db_type": DBActuatorTypeEnum.Riak.value,
+            "action": RiakActuatorActionEnum.Restart.value,
+            "payload": {
+                "general": {},
+                "extend": {},
+            },
+        }
+
     def get_install_monitor_payload(self, **kwargs) -> dict:
         """
         启用
