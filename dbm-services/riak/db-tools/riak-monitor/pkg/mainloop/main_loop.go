@@ -11,6 +11,7 @@ package mainloop
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 
 	"dbm-services/riak/db-tools/riak-monitor/pkg/config"
@@ -40,20 +41,21 @@ func Run(hardcode bool) error {
 		utils.SendMonitorMetrics(config.HeartBeatName, 1, nil)
 	}
 
-	cc, err := monitoriteminterface.NewConnectionCollect()
-	if err != nil {
+	cc, errOuter := monitoriteminterface.NewConnectionCollect()
+	if errOuter != nil {
 		if hardcode && slices.Index(iNames, "riak-db-up") >= 0 {
-			utils.SendMonitorEvent("riak-db-up", err.Error())
+			utils.SendMonitorEvent("riak-db-up", errOuter.Error())
+			utils.SendMonitorMetrics("riak_db_up_heart_beat", 0, nil)
 		}
 		return nil
 	}
 
 	if hardcode {
+		utils.SendMonitorMetrics("riak_db_up_heart_beat", 1, nil)
 		return nil
 	}
 
 	for _, iName := range iNames {
-
 		if constructor, ok := itemscollect.RegisteredItemConstructor()[iName]; ok {
 			msg, err := constructor(cc).Run()
 			if err != nil {
@@ -66,17 +68,20 @@ func Run(hardcode bool) error {
 			}
 
 			if msg != "" {
-				slog.Info(
-					"run monitor items",
-					slog.String("name", iName),
-					slog.String("msg", msg),
-				)
-				utils.SendMonitorEvent(iName, msg)
+				slog.Info("run monitor items", slog.String("name", iName), slog.String("msg", msg))
+				if strings.Contains(iName, "heart_beat") {
+					value, errInner := strconv.ParseInt(msg, 10, 64)
+					if errInner != nil {
+						slog.Error("run monitor item", errInner, slog.String("name", iName))
+						continue
+					}
+					utils.SendMonitorMetrics(iName, value, nil)
+				} else {
+					utils.SendMonitorEvent(iName, msg)
+				}
 				continue
 			}
-
 			slog.Info("run monitor item pass", slog.String("name", iName))
-
 		} else {
 			err := errors.Errorf("%s not registered", iName)
 			slog.Error("run monitor item", err)

@@ -11,21 +11,21 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// RemoveNodeAct 剔除节点 riak dbactor参数
-type RemoveNodeAct struct {
+// RestartAct 重启riak dbactor参数
+type RestartAct struct {
 	*subcmd.BaseOptions
-	Payload riak.RemoveNodeComp
+	Payload riak.RestartComp
 }
 
-// NewRemoveNodeCommand 剔除节点 riak节点
-func NewRemoveNodeCommand() *cobra.Command {
-	act := RemoveNodeAct{
+// NewRestartCommand riak重启节点
+func NewRestartCommand() *cobra.Command {
+	act := RestartAct{
 		BaseOptions: subcmd.GBaseOptions,
 	}
 	cmd := &cobra.Command{
-		Use:     "remove-node",
-		Short:   "集群剔除节点",
-		Example: fmt.Sprintf("dbactuator riak remove-node %s", subcmd.CmdBaseExampleStr),
+		Use:     "restart",
+		Short:   "重启节点",
+		Example: fmt.Sprintf("dbactuator riak restart %s", subcmd.CmdBaseExampleStr),
 		Run: func(cmd *cobra.Command, args []string) {
 			util.CheckErr(act.Validator())
 			util.CheckErr(act.Init())
@@ -36,12 +36,12 @@ func NewRemoveNodeCommand() *cobra.Command {
 }
 
 // Validator TODO
-func (d *RemoveNodeAct) Validator() error {
+func (d *RestartAct) Validator() error {
 	return d.BaseOptions.Validate()
 }
 
 // Init 反序列化并检查
-func (d *RemoveNodeAct) Init() error {
+func (d *RestartAct) Init() error {
 	if err := d.DeserializeAndValidate(&d.Payload); err != nil {
 		logger.Error("DeserializeAndValidate err %s", err.Error())
 		return err
@@ -49,27 +49,17 @@ func (d *RemoveNodeAct) Init() error {
 	return nil
 }
 
-// Run 运行
-func (d *RemoveNodeAct) Run() error {
+// Run 运行，重启节点
+func (d *RestartAct) Run() error {
 	steps := subcmd.Steps{
 		{
-			FunName: "环境预检查",
-			Func:    d.Payload.PreCheck,
-		},
-		// 在剔除状态异常的状态为"down!"节点前，先down节点
-		{
-			FunName: "down异常节点，保障集群ring正常",
-			Func:    d.Payload.MarkInvalidNodeDown,
-		},
-		{
-			FunName: "集群剔除节点",
-			Func:    d.Payload.RemoveNode,
+			FunName: "重启节点",
+			Func:    d.Payload.Restart,
 		},
 	}
-
 	if err := steps.Run(); err != nil {
 		return err
 	}
-	logger.Info("remove node success")
+	logger.Info("restart success")
 	return nil
 }

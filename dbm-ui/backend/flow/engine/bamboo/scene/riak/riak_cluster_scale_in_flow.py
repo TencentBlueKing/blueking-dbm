@@ -41,7 +41,6 @@ class RiakClusterScaleInFlow(object):
     "created_by": "admin",
     "bk_biz_id": 0,
     "ticket_type": "RIAK_CLUSTER_SCALE_IN",
-    "ip_source": "manual_input",
     "bk_cloud_id": 0,
     "cluster_id": 5,
     "nodes": [
