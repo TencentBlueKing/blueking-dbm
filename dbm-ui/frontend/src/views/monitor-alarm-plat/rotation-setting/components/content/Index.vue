@@ -40,9 +40,11 @@
 <script setup lang="tsx">
   import { InfoBox } from 'bkui-vue';
   import { useI18n } from 'vue-i18n';
+  import { useRequest } from 'vue-request';
 
   import {
     deleteDutyRule,
+    getPriorityDistinct,
     queryDutyRuleList,
     updatePartialDutyRule,
   } from '@services/monitor';
@@ -77,6 +79,7 @@
   const isShowEditRuleSideSilder = ref(false);
   const currentRowData = ref<RowData>();
   const isTableLoading = ref(false);
+  const sortedPriority = ref<number[]>([]);
 
   const statusMap = {
     [RuleStatus.ACTIVE]: {
@@ -97,7 +100,7 @@
     },
   };
 
-  const columns = [
+  const columns = computed(() => [
     {
       label: t('规则名称'),
       field: 'name',
@@ -134,16 +137,18 @@
       width: 120,
       render: ({ row }: {row: RowData}) => {
         const level = row.priority;
-        let theme = 'success';
-        if (level >= 10) {
-          theme = 'danger';
-        } else if (level === 9) {
-          theme = 'warning';
-        } else if (level === 8) {
-          theme = 'success';
-        } else {
-          theme = '';
+        let theme = '';
+        if (sortedPriority.value.length === 3) {
+          const [largest, medium, least] = sortedPriority.value;
+          if (level === largest) {
+            theme = 'danger';
+          } else if (level === medium) {
+            theme = 'warning';
+          } else if (level === least) {
+            theme = 'success';
+          }
         }
+
         return (
           <div class="priority-box">
             {
@@ -264,7 +269,7 @@
         </bk-button>}
       </div>),
     },
-  ];
+  ]);
 
   const settings = {
     fields: [
@@ -303,6 +308,16 @@
     ],
     checked: ['name', 'status', 'priority', 'duty_arranges', 'effective_time', 'update_at', 'updater', 'is_enabled'],
   };
+
+  useRequest(getPriorityDistinct, {
+    onSuccess: (list) => {
+      if (list.length > 3) {
+        sortedPriority.value = list.slice(0, 3);
+        return;
+      }
+      sortedPriority.value = list;
+    },
+  });
 
   watch(() => props.activeDbType, (type) => {
     if (type) {
