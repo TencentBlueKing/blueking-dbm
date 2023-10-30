@@ -2356,7 +2356,7 @@
                   "method":"MAX",
                   "metric_field":"mysqlproxy_process_total",
                   "refId":"a",
-                  "result_table_id":"exporter_dbm_mysqlproxy_exporter.mproxy",
+                  "result_table_id":"exporter_dbm_mysqlproxy_exporter.__default__",
                   "result_table_label":"component",
                   "time_field":"",
                   "where":[
@@ -7469,7 +7469,7 @@
                   "method":"AVG",
                   "metric_field":"mysqlproxy_process_total",
                   "refId":"a",
-                  "result_table_id":"exporter_dbm_mysqlproxy_exporter.mproxy",
+                  "result_table_id":"exporter_dbm_mysqlproxy_exporter.__default__",
                   "result_table_label":"component",
                   "time_field":"",
                   "where":[
@@ -9391,7 +9391,7 @@
             "data_type_label":"time_series",
             "group_by":"instance_host",
             "metric_field":"mysqlproxy_up",
-            "result_table_id":"exporter_dbm_mysqlproxy_exporter.mproxy",
+            "result_table_id":"exporter_dbm_mysqlproxy_exporter.__default__",
             "result_table_label":"component",
             "where":[
               {
