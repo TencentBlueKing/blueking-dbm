@@ -3961,7 +3961,7 @@
               "method": "count_without_time",
               "metric_field": "twemproxy_up",
               "refId": "a",
-              "result_table_id": "exporter_dbm_twemproxy_exporter.group1",
+              "result_table_id": "exporter_dbm_twemproxy_exporter.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -3976,7 +3976,7 @@
             }
           ],
           "refId": "A",
-          "source": "count(bkmonitor:exporter_dbm_twemproxy_exporter:group1:twemproxy_up{cluster_domain=\"$cluster_name\"})",
+          "source": "count(bkmonitor:exporter_dbm_twemproxy_exporter:__default__:twemproxy_up{cluster_domain=\"$cluster_name\"})",
           "step": "",
           "type": "instant"
         }
@@ -4063,7 +4063,7 @@
               "method": "sum_without_time",
               "metric_field": "twemproxy_connections_curr",
               "refId": "a",
-              "result_table_id": "exporter_dbm_twemproxy_exporter.group1",
+              "result_table_id": "exporter_dbm_twemproxy_exporter.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -4078,7 +4078,7 @@
             }
           ],
           "refId": "A",
-          "source": "sum(bkmonitor:exporter_dbm_twemproxy_exporter:group1:twemproxy_connections_curr{cluster_domain=\"$cluster_domain\"})",
+          "source": "sum(bkmonitor:exporter_dbm_twemproxy_exporter:__default__:twemproxy_connections_curr{cluster_domain=\"$cluster_domain\"})",
           "step": "",
           "type": "instant"
         }
@@ -4172,7 +4172,7 @@
               "method": "SUM",
               "metric_field": "twemproxy_cmdstat_response_latency_sum",
               "refId": "a",
-              "result_table_id": "exporter_dbm_twemproxy_exporter.group1",
+              "result_table_id": "exporter_dbm_twemproxy_exporter.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -4187,7 +4187,7 @@
             }
           ],
           "refId": "A",
-          "source": "sum(irate(bkmonitor:exporter_dbm_twemproxy_exporter:group4:twemproxy_cmdstat_calls_total{cluster_domain=\"$cluster_domain\"}[2m]))",
+          "source": "sum(irate(bkmonitor:exporter_dbm_twemproxy_exporter:__default__:twemproxy_cmdstat_calls_total{cluster_domain=\"$cluster_domain\"}[2m]))",
           "step": "",
           "type": "instant"
         }
@@ -4280,7 +4280,7 @@
               "method": "SUM",
               "metric_field": "redis_commands_total",
               "refId": "a",
-              "result_table_id": "exporter_dbm_redis_exporter.group1",
+              "result_table_id": "exporter_dbm_redis_exporter.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -4303,7 +4303,7 @@
             }
           ],
           "refId": "A",
-          "source": "sum(irate(bkmonitor:exporter_dbm_redis_exporter:group1:redis_commands_total{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[2m]))",
+          "source": "sum(irate(bkmonitor:exporter_dbm_redis_exporter:__default__:redis_commands_total{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[2m]))",
           "step": "",
           "type": "instant"
         }
@@ -4389,7 +4389,7 @@
               "method": "max_without_time",
               "metric_field": "twemproxy_version",
               "refId": "a",
-              "result_table_id": "exporter_twemproxy_exporter_2.group2",
+              "result_table_id": "exporter_dbm_twemproxy_exporter.__default__",
               "time_field": "",
               "where": [
                 {
@@ -4403,7 +4403,7 @@
             }
           ],
           "refId": "A",
-          "source": "max by(version) (bkmonitor:exporter_dbm_twemproxy_exporter:group2:twemproxy_version{cluster_domain=\"$cluster_domain\"})",
+          "source": "max by(version) (bkmonitor:exporter_dbm_twemproxy_exporter:__default__:twemproxy_version{cluster_domain=\"$cluster_domain\"})",
           "step": "",
           "type": "instant"
         }
@@ -4488,7 +4488,7 @@
               "method": "max_without_time",
               "metric_field": "redis_instance_info",
               "refId": "a",
-              "result_table_id": "exporter_dbm_redis_exporter.group1",
+              "result_table_id": "exporter_dbm_redis_exporter.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -4511,7 +4511,7 @@
             }
           ],
           "refId": "A",
-          "source": "max by(redis_version, maxmemory_policy) (bkmonitor:exporter_dbm_redis_exporter:group1:redis_instance_info{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"})",
+          "source": "max by(redis_version, maxmemory_policy) (bkmonitor:exporter_dbm_redis_exporter:__default__:redis_instance_info{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"})",
           "step": "",
           "type": "instant"
         }
@@ -4600,7 +4600,7 @@
               "method": "SUM",
               "metric_field": "redis_memory_used_bytes",
               "refId": "a",
-              "result_table_id": "exporter_dbm_redis_exporter.group1",
+              "result_table_id": "exporter_dbm_redis_exporter.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -4623,7 +4623,7 @@
             }
           ],
           "refId": "A",
-          "source": "sum(irate(bkmonitor:exporter_dbm_redis_exporter:group1:redis_commands_total{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[2m]))",
+          "source": "sum(irate(bkmonitor:exporter_dbm_redis_exporter:__default__:redis_commands_total{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[2m]))",
           "step": "",
           "type": "instant"
         }
@@ -4712,7 +4712,7 @@
               "method": "SUM",
               "metric_field": "redis_memory_used_rss_bytes",
               "refId": "a",
-              "result_table_id": "exporter_dbm_redis_exporter.group1",
+              "result_table_id": "exporter_dbm_redis_exporter.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -4735,7 +4735,7 @@
             }
           ],
           "refId": "A",
-          "source": "sum(irate(bkmonitor:exporter_dbm_redis_exporter:group1:redis_commands_total{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[2m]))",
+          "source": "sum(irate(bkmonitor:exporter_dbm_redis_exporter:__default__:redis_commands_total{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[2m]))",
           "step": "",
           "type": "instant"
         }
@@ -4824,7 +4824,7 @@
               "method": "SUM",
               "metric_field": "redis_db_keys",
               "refId": "a",
-              "result_table_id": "exporter_dbm_redis_exporter.group1",
+              "result_table_id": "exporter_dbm_redis_exporter.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -4847,7 +4847,7 @@
             }
           ],
           "refId": "A",
-          "source": "sum(irate(bkmonitor:exporter_dbm_redis_exporter:group1:redis_commands_total{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[2m]))",
+          "source": "sum(irate(bkmonitor:exporter_dbm_redis_exporter:__default__:redis_commands_total{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[2m]))",
           "step": "",
           "type": "instant"
         }
@@ -4932,7 +4932,7 @@
               "method": "count_without_time",
               "metric_field": "redis_up",
               "refId": "a",
-              "result_table_id": "exporter_dbm_redis_exporter.group1",
+              "result_table_id": "exporter_dbm_redis_exporter.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -4955,7 +4955,7 @@
             }
           ],
           "refId": "A",
-          "source": "count(bkmonitor:exporter_dbm_redis_exporter:group1:redis_up{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"})",
+          "source": "count(bkmonitor:exporter_dbm_redis_exporter:__default__:redis_up{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"})",
           "step": "",
           "type": "instant"
         }
@@ -5085,7 +5085,7 @@
               "method": "SUM",
               "metric_field": "twemproxy_cmdstat_calls_total",
               "refId": "a",
-              "result_table_id": "exporter_dbm_twemproxy_exporter.group4",
+              "result_table_id": "exporter_dbm_twemproxy_exporter.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -5100,7 +5100,7 @@
             }
           ],
           "refId": "A",
-          "source": "sum by(cluster_domain) (irate(bkmonitor:exporter_dbm_twemproxy_exporter:group4:twemproxy_cmdstat_calls_total{cluster_domain=\"$cluster_domain\"}[$__interval]))",
+          "source": "sum by(cluster_domain) (irate(bkmonitor:exporter_dbm_twemproxy_exporter:__default__:twemproxy_cmdstat_calls_total{cluster_domain=\"$cluster_domain\"}[$__interval]))",
           "step": "",
           "type": "range"
         },
@@ -5143,7 +5143,7 @@
               "method": "SUM",
               "metric_field": "twemproxy_cmdstat_calls_total",
               "refId": "a",
-              "result_table_id": "exporter_dbm_twemproxy_exporter.group4",
+              "result_table_id": "exporter_dbm_twemproxy_exporter.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -5158,7 +5158,7 @@
             }
           ],
           "refId": "B",
-          "source": "sum by(cmd) (irate(bkmonitor:exporter_dbm_twemproxy_exporter:group4:twemproxy_cmdstat_calls_total{cluster_domain=\"$cluster_domain\"}[$__interval]))",
+          "source": "sum by(cmd) (irate(bkmonitor:exporter_dbm_twemproxy_exporter:__default__:twemproxy_cmdstat_calls_total{cluster_domain=\"$cluster_domain\"}[$__interval]))",
           "step": "",
           "type": "range"
         }
@@ -5292,7 +5292,7 @@
               "method": "SUM",
               "metric_field": "redis_commands_total",
               "refId": "a",
-              "result_table_id": "exporter_dbm_redis_exporter.group1",
+              "result_table_id": "exporter_dbm_redis_exporter.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -5315,7 +5315,7 @@
             }
           ],
           "refId": "A",
-          "source": "sum by(cmd) (irate(bkmonitor:exporter_dbm_redis_exporter:group1:redis_commands_total{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[$__interval]))",
+          "source": "sum by(cmd) (irate(bkmonitor:exporter_dbm_redis_exporter:__default__:redis_commands_total{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[$__interval]))",
           "step": "",
           "type": "range"
         }
@@ -5451,7 +5451,7 @@
               "method": "sum_without_time",
               "metric_field": "twemproxy_cmdstat_calls_total",
               "refId": "a",
-              "result_table_id": "exporter_dbm_twemproxy_exporter.group4",
+              "result_table_id": "exporter_dbm_twemproxy_exporter.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -5489,7 +5489,7 @@
               "method": "AVG",
               "metric_field": "twemproxy_cmdstat_usec_total",
               "refId": "b",
-              "result_table_id": "exporter_dbm_twemproxy_exporter.group4",
+              "result_table_id": "exporter_dbm_twemproxy_exporter.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -5504,7 +5504,7 @@
             }
           ],
           "refId": "B",
-          "source": "sum by(cluster_domain) (bkmonitor:exporter_dbm_twemproxy_exporter:group4:twemproxy_cmdstat_calls_total{cluster_domain=\"$cluster_domain\"})",
+          "source": "sum by(cluster_domain) (bkmonitor:exporter_dbm_twemproxy_exporter:__default__:twemproxy_cmdstat_calls_total{cluster_domain=\"$cluster_domain\"})",
           "step": "",
           "type": "range"
         }
@@ -5642,7 +5642,7 @@
               "method": "max_without_time",
               "metric_field": "redis_commands_duration_seconds_total",
               "refId": "a",
-              "result_table_id": "exporter_dbm_redis_exporter.group1",
+              "result_table_id": "exporter_dbm_redis_exporter.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -5680,7 +5680,7 @@
               "method": "max_without_time",
               "metric_field": "redis_commands_total",
               "refId": "b",
-              "result_table_id": "exporter_dbm_redis_exporter.group1",
+              "result_table_id": "exporter_dbm_redis_exporter.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -5695,7 +5695,7 @@
             }
           ],
           "refId": "B",
-          "source": "max(10000000*(irate(bkmonitor:exporter_dbm_redis_exporter:group1:redis_commands_duration_seconds_total{cluster_domain=\"$cluster_domain\"}[2m])/irate(bkmonitor:exporter_dbm_redis_exporter:group1:redis_commands_total{cluster_domain=\"$cluster_domain\"}[2m]) ) > 10 ) by (cmd)",
+          "source": "max(10000000*(irate(bkmonitor:exporter_dbm_redis_exporter:__default__:redis_commands_duration_seconds_total{cluster_domain=\"$cluster_domain\"}[2m])/irate(bkmonitor:exporter_dbm_redis_exporter:__default__:redis_commands_total{cluster_domain=\"$cluster_domain\"}[2m]) ) > 10 ) by (cmd)",
           "step": "",
           "type": "range"
         }
@@ -5861,7 +5861,7 @@
               "method": "sum_without_time",
               "metric_field": "twemproxy_cmdstat_response_latency_bucket",
               "refId": "a",
-              "result_table_id": "exporter_dbm_twemproxy_exporter.group5",
+              "result_table_id": "exporter_dbm_twemproxy_exporter.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -5905,7 +5905,7 @@
               "method": "sum_without_time",
               "metric_field": "twemproxy_cmdstat_response_latency_bucket",
               "refId": "b",
-              "result_table_id": "exporter_dbm_twemproxy_exporter.group5",
+              "result_table_id": "exporter_dbm_twemproxy_exporter.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -5949,7 +5949,7 @@
               "method": "sum_without_time",
               "metric_field": "twemproxy_cmdstat_response_latency_bucket",
               "refId": "c",
-              "result_table_id": "exporter_dbm_twemproxy_exporter.group5",
+              "result_table_id": "exporter_dbm_twemproxy_exporter.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -5993,7 +5993,7 @@
               "method": "sum_without_time",
               "metric_field": "twemproxy_cmdstat_response_latency_bucket",
               "refId": "d",
-              "result_table_id": "exporter_dbm_twemproxy_exporter.group5",
+              "result_table_id": "exporter_dbm_twemproxy_exporter.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -6037,7 +6037,7 @@
               "method": "sum_without_time",
               "metric_field": "twemproxy_cmdstat_response_latency_bucket",
               "refId": "e",
-              "result_table_id": "exporter_dbm_twemproxy_exporter.group5",
+              "result_table_id": "exporter_dbm_twemproxy_exporter.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -6081,7 +6081,7 @@
               "method": "sum_without_time",
               "metric_field": "twemproxy_cmdstat_response_latency_bucket",
               "refId": "f",
-              "result_table_id": "exporter_dbm_twemproxy_exporter.group5",
+              "result_table_id": "exporter_dbm_twemproxy_exporter.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -6125,7 +6125,7 @@
               "method": "sum_without_time",
               "metric_field": "twemproxy_cmdstat_response_latency_bucket",
               "refId": "g",
-              "result_table_id": "exporter_dbm_twemproxy_exporter.group5",
+              "result_table_id": "exporter_dbm_twemproxy_exporter.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -6148,7 +6148,7 @@
             }
           ],
           "refId": "B",
-          "source": "sum(irate(bkmonitor:exporter_dbm_twemproxy_exporter:group5:twemproxy_cmdstat_response_latency_bucket{cluster_domain=\"$cluster_domain\",le=\"+Inf\"}[2m])) by (le)",
+          "source": "sum(irate(bkmonitor:exporter_dbm_twemproxy_exporter:__default__:twemproxy_cmdstat_response_latency_bucket{cluster_domain=\"$cluster_domain\",le=\"+Inf\"}[2m])) by (le)",
           "step": "",
           "type": "range"
         }
@@ -6272,7 +6272,7 @@
               "method": "sum_without_time",
               "metric_field": "redis_memory_used_rss_bytes",
               "refId": "a",
-              "result_table_id": "exporter_dbm_redis_exporter.group1",
+              "result_table_id": "exporter_dbm_redis_exporter.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -6295,7 +6295,7 @@
             }
           ],
           "refId": "A",
-          "source": "sum(bkmonitor:exporter_dbm_redis_exporter:group1:redis_memory_used_rss_bytes{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"})",
+          "source": "sum(bkmonitor:exporter_dbm_redis_exporter:__default__:redis_memory_used_rss_bytes{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"})",
           "step": "2m",
           "type": "range"
         },
@@ -6328,7 +6328,7 @@
               "method": "sum_without_time",
               "metric_field": "redis_memory_used_bytes",
               "refId": "a",
-              "result_table_id": "exporter_dbm_redis_exporter.group1",
+              "result_table_id": "exporter_dbm_redis_exporter.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -6351,7 +6351,7 @@
             }
           ],
           "refId": "B",
-          "source": "sum by(cluster_domain) (bkmonitor:exporter_dbm_redis_exporter:group1:redis_memory_used_bytes{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"})",
+          "source": "sum by(cluster_domain) (bkmonitor:exporter_dbm_redis_exporter:__default__:redis_memory_used_bytes{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"})",
           "step": "2m",
           "type": "range"
         }
@@ -6487,7 +6487,7 @@
               "method": "AVG",
               "metric_field": "twemproxy_cmdstat_usec_total",
               "refId": "a",
-              "result_table_id": "exporter_dbm_twemproxy_exporter.group4",
+              "result_table_id": "exporter_dbm_twemproxy_exporter.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -6525,7 +6525,7 @@
               "method": "AVG",
               "metric_field": "twemproxy_cmdstat_calls_total",
               "refId": "b",
-              "result_table_id": "exporter_dbm_twemproxy_exporter.group4",
+              "result_table_id": "exporter_dbm_twemproxy_exporter.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -6540,7 +6540,7 @@
             }
           ],
           "refId": "B",
-          "source": "irate(bkmonitor:exporter_dbm_twemproxy_exporter:group4:twemproxy_cmdstat_usec_total{cluster_domain=\"$cluster_domain\"}[2m])  / irate(bkmonitor:exporter_dbm_twemproxy_exporter:group4:twemproxy_cmdstat_calls_total{cluster_domain=\"$cluster_domain\"}[2m])",
+          "source": "irate(bkmonitor:exporter_dbm_twemproxy_exporter:__default__:twemproxy_cmdstat_usec_total{cluster_domain=\"$cluster_domain\"}[2m])  / irate(bkmonitor:exporter_dbm_twemproxy_exporter:__default__:twemproxy_cmdstat_calls_total{cluster_domain=\"$cluster_domain\"}[2m])",
           "step": "",
           "type": "range"
         }
@@ -6678,7 +6678,7 @@
               "method": "max_without_time",
               "metric_field": "redis_commands_duration_seconds_total",
               "refId": "a",
-              "result_table_id": "exporter_dbm_redis_exporter.group1",
+              "result_table_id": "exporter_dbm_redis_exporter.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -6716,7 +6716,7 @@
               "method": "max_without_time",
               "metric_field": "redis_commands_total",
               "refId": "b",
-              "result_table_id": "exporter_dbm_redis_exporter.group1",
+              "result_table_id": "exporter_dbm_redis_exporter.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -6731,7 +6731,7 @@
             }
           ],
           "refId": "B",
-          "source": "1e+06 * (avg by(instance) (irate(bkmonitor:exporter_dbm_redis_exporter:group1:redis_commands_duration_seconds_total{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[2m])) / avg by(instance) (irate(bkmonitor:exporter_dbm_redis_exporter:group1:redis_commands_total{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[2m]))) ",
+          "source": "1e+06 * (avg by(instance) (irate(bkmonitor:exporter_dbm_redis_exporter:__default__:redis_commands_duration_seconds_total{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[2m])) / avg by(instance) (irate(bkmonitor:exporter_dbm_redis_exporter:__default__:redis_commands_total{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[2m]))) ",
           "step": "",
           "type": "range"
         }
@@ -6863,7 +6863,7 @@
               "method": "sum_without_time",
               "metric_field": "twemproxy_connections_total",
               "refId": "a",
-              "result_table_id": "exporter_dbm_twemproxy_exporter.group1",
+              "result_table_id": "exporter_dbm_twemproxy_exporter.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -6878,7 +6878,7 @@
             }
           ],
           "refId": "B",
-          "source": "sum by(cluster_domain) (bkmonitor:exporter_dbm_twemproxy_exporter:group4:twemproxy_cmdstat_calls_total{cluster_domain=\"$cluster_domain\"})",
+          "source": "sum by(cluster_domain) (bkmonitor:exporter_dbm_twemproxy_exporter:__default__:twemproxy_cmdstat_calls_total{cluster_domain=\"$cluster_domain\"})",
           "step": "",
           "type": "range"
         }
@@ -7009,7 +7009,7 @@
               "method": "sum_without_time",
               "metric_field": "redis_commands_processed_total",
               "refId": "a",
-              "result_table_id": "exporter_dbm_redis_exporter.group1",
+              "result_table_id": "exporter_dbm_redis_exporter.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -7032,7 +7032,7 @@
             }
           ],
           "refId": "B",
-          "source": "max(10000000*(irate(bkmonitor:exporter_dbm_redis_exporter:group1:redis_commands_duration_seconds_total{cluster_domain=\"$cluster_domain\"}[2m])/irate(bkmonitor:exporter_dbm_redis_exporter:group1:redis_commands_total{cluster_domain=\"$cluster_domain\"}[2m]) ) > 10 ) by (cmd)",
+          "source": "max(10000000*(irate(bkmonitor:exporter_dbm_redis_exporter:__default__:redis_commands_duration_seconds_total{cluster_domain=\"$cluster_domain\"}[2m])/irate(bkmonitor:exporter_dbm_redis_exporter:__default__:redis_commands_total{cluster_domain=\"$cluster_domain\"}[2m]) ) > 10 ) by (cmd)",
           "step": "",
           "type": "range"
         }
@@ -7159,7 +7159,7 @@
               "method": "sum_without_time",
               "metric_field": "twemproxy_connections_curr",
               "refId": "a",
-              "result_table_id": "exporter_dbm_twemproxy_exporter.group1",
+              "result_table_id": "exporter_dbm_twemproxy_exporter.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -7174,7 +7174,7 @@
             }
           ],
           "refId": "B",
-          "source": "sum by(cluster_domain) (bkmonitor:exporter_dbm_twemproxy_exporter:group4:twemproxy_cmdstat_calls_total{cluster_domain=\"$cluster_domain\"})",
+          "source": "sum by(cluster_domain) (bkmonitor:exporter_dbm_twemproxy_exporter:__default__:twemproxy_cmdstat_calls_total{cluster_domain=\"$cluster_domain\"})",
           "step": "",
           "type": "range"
         }
@@ -7300,7 +7300,7 @@
               "method": "sum_without_time",
               "metric_field": "redis_db_keys",
               "refId": "a",
-              "result_table_id": "exporter_dbm_redis_exporter.group1",
+              "result_table_id": "exporter_dbm_redis_exporter.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -7334,7 +7334,7 @@
               "method": "sum_without_time",
               "metric_field": "redis_db_keys_expiring",
               "refId": "b",
-              "result_table_id": "exporter_dbm_redis_exporter.group1",
+              "result_table_id": "exporter_dbm_redis_exporter.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -7398,7 +7398,7 @@
               "method": "sum_without_time",
               "metric_field": "redis_expired_keys_total",
               "refId": "a",
-              "result_table_id": "exporter_dbm_redis_exporter.group1",
+              "result_table_id": "exporter_dbm_redis_exporter.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -7462,7 +7462,7 @@
               "method": "sum_without_time",
               "metric_field": "redis_evicted_keys_total",
               "refId": "a",
-              "result_table_id": "exporter_dbm_redis_exporter.group1",
+              "result_table_id": "exporter_dbm_redis_exporter.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -7615,7 +7615,7 @@
               "method": "sum_without_time",
               "metric_field": "twemproxy_cmdstat_response_latency_count",
               "refId": "a",
-              "result_table_id": "exporter_dbm_twemproxy_exporter.group1",
+              "result_table_id": "exporter_dbm_twemproxy_exporter.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -7630,7 +7630,7 @@
             }
           ],
           "refId": "B",
-          "source": "sum by(instance_host) (irate(bkmonitor:exporter_dbm_twemproxy_exporter:group1:twemproxy_cmdstat_response_latency_count{cluster_domain=\"$cluster_domain\"}[$__interval]))",
+          "source": "sum by(instance_host) (irate(bkmonitor:exporter_dbm_twemproxy_exporter:__default__:twemproxy_cmdstat_response_latency_count{cluster_domain=\"$cluster_domain\"}[$__interval]))",
           "step": "",
           "type": "range"
         }
@@ -7755,7 +7755,7 @@
               "method": "sum_without_time",
               "metric_field": "redis_db_keys",
               "refId": "a",
-              "result_table_id": "exporter_dbm_redis_exporter.group1",
+              "result_table_id": "exporter_dbm_redis_exporter.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -7789,7 +7789,7 @@
               "method": "sum_without_time",
               "metric_field": "redis_db_keys_expiring",
               "refId": "b",
-              "result_table_id": "exporter_dbm_redis_exporter.group1",
+              "result_table_id": "exporter_dbm_redis_exporter.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -7853,7 +7853,7 @@
               "method": "sum_without_time",
               "metric_field": "redis_expired_keys_total",
               "refId": "a",
-              "result_table_id": "exporter_dbm_redis_exporter.group1",
+              "result_table_id": "exporter_dbm_redis_exporter.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -7917,7 +7917,7 @@
               "method": "sum_without_time",
               "metric_field": "redis_evicted_keys_total",
               "refId": "a",
-              "result_table_id": "exporter_dbm_redis_exporter.group1",
+              "result_table_id": "exporter_dbm_redis_exporter.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -8065,7 +8065,7 @@
               "method": "sum_without_time",
               "metric_field": "redis_keyspace_hits_total",
               "refId": "a",
-              "result_table_id": "exporter_dbm_redis_exporter.group1",
+              "result_table_id": "exporter_dbm_redis_exporter.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -8129,7 +8129,7 @@
               "method": "sum_without_time",
               "metric_field": "redis_keyspace_misses_total",
               "refId": "a",
-              "result_table_id": "exporter_dbm_redis_exporter.group1",
+              "result_table_id": "exporter_dbm_redis_exporter.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -8273,7 +8273,7 @@
               "method": "sum_without_time",
               "metric_field": "redis_memory_used_bytes",
               "refId": "a",
-              "result_table_id": "exporter_dbm_redis_exporter.group1",
+              "result_table_id": "exporter_dbm_redis_exporter.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -8414,7 +8414,7 @@
               "method": "sum_without_time",
               "metric_field": "redis_memory_used_rss_bytes",
               "refId": "a",
-              "result_table_id": "exporter_dbm_redis_exporter.group1",
+              "result_table_id": "exporter_dbm_redis_exporter.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -8577,7 +8577,7 @@
               "method": "sum_without_time",
               "metric_field": "redis_master_repl_offset",
               "refId": "a",
-              "result_table_id": "exporter_dbm_redis_exporter.group1",
+              "result_table_id": "exporter_dbm_redis_exporter.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -8727,7 +8727,7 @@
               "method": "sum_without_time",
               "metric_field": "redis_net_input_bytes_total",
               "refId": "a",
-              "result_table_id": "exporter_dbm_redis_exporter.group1",
+              "result_table_id": "exporter_dbm_redis_exporter.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -8793,7 +8793,7 @@
               "method": "sum_without_time",
               "metric_field": "redis_net_output_bytes_total",
               "refId": "a",
-              "result_table_id": "exporter_dbm_redis_exporter.group1",
+              "result_table_id": "exporter_dbm_redis_exporter.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -8950,7 +8950,7 @@
               "method": "sum_without_time",
               "metric_field": "redis_cpu_user_seconds_total",
               "refId": "a",
-              "result_table_id": "exporter_dbm_redis_exporter.group1",
+              "result_table_id": "exporter_dbm_redis_exporter.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -8996,7 +8996,7 @@
               "method": "sum_without_time",
               "metric_field": "redis_cpu_sys_seconds_total",
               "refId": "b",
-              "result_table_id": "exporter_dbm_redis_exporter.group1",
+              "result_table_id": "exporter_dbm_redis_exporter.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -9052,7 +9052,7 @@
             "data_type_label": "time_series",
             "group_by": "cluster_domain",
             "metric_field": "twemproxy_up",
-            "result_table_id": "exporter_dbm_twemproxy_exporter.group1",
+            "result_table_id": "exporter_dbm_twemproxy_exporter.__default__",
             "result_table_label": "component",
             "where": [
               {
