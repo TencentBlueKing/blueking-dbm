@@ -319,7 +319,7 @@
     checked: ['name', 'status', 'priority', 'duty_arranges', 'effective_time', 'update_at', 'updater', 'is_enabled'],
   };
 
-  useRequest(getPriorityDistinct, {
+  const { run: runGetPriorityDistinct } = useRequest(getPriorityDistinct, {
     onSuccess: (list) => {
       if (list.length > 3) {
         sortedPriority.value = list.slice(0, 3);
@@ -372,7 +372,8 @@
       // 设置成功
       messageSuccess(t('优先级设置成功'));
     }
-    fetchHostNodes();
+    runGetPriorityDistinct();
+    await fetchHostNodes();
     setTimeout(() => {
       window.changeConfirm = false;
     });
