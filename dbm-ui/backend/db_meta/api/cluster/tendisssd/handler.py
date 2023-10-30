@@ -16,9 +16,9 @@ from backend.constants import DEFAULT_BK_CLOUD_ID
 from backend.db_meta.api.cluster.base.handler import ClusterHandler
 from backend.db_meta.api.cluster.nosqlcomm.create_cluster import create_twemproxy_cluster
 from backend.db_meta.api.cluster.nosqlcomm.decommission import (
+    decommission_backends,
     decommission_cluster,
     decommission_proxies,
-    decommission_tendis,
 )
 from backend.db_meta.api.cluster.nosqlcomm.detail_cluster import scan_cluster
 from backend.db_meta.api.cluster.nosqlcomm.scale_proxy import add_proxies, delete_proxies
@@ -72,7 +72,7 @@ class TendisSSDClusterHandler(ClusterHandler):
         return decommission_proxies(self.cluster, proxies, False)
 
     def decommission_tendis(self, tendiss: List[Dict]):
-        return decommission_tendis(self.cluster, tendiss, False)
+        return decommission_backends(self.cluster, tendiss, False)
 
     def add_proxies(self, proxies: List[Dict]):
         return add_proxies(self.cluster, proxies)

@@ -15,7 +15,7 @@ from .create_cluster import (
     update_storage_cluster_type,
 )
 from .create_instances import create_mongo_instances, create_proxies, create_tendis_instances
-from .decommission import decommission_cluster, decommission_instances, decommission_proxies, decommission_tendis
+from .decommission import decommission_backends, decommission_cluster, decommission_instances, decommission_proxies
 from .detail_cluster import scan_cluster
 from .other import get_cluster_detail, get_clusters_details
 from .precheck import (
