@@ -16,10 +16,10 @@
 /dbm-services/common/dbha @zyqlzr @xjxia
 
 # bigdata
-/dbm-services/bigdata @zhangrq5 @zvictorino @santu
-/dbm-services/es @zhangrq5 @zvictorino @santu
-/dbm-services/hdfs @zhangrq5 @zvictorino @santu
-/dbm-services/kafka @zhangrq5 @zvictorino @santu
+/dbm-services/bigdata @zhangrq5 @zvictorino @wangyao963
+/dbm-services/es @zhangrq5 @zvictorino @wangyao963
+/dbm-services/hdfs @zhangrq5 @zvictorino @wangyao963
+/dbm-services/kafka @zhangrq5 @zvictorino @wangyao963
 
 # mysql
 /dbm-services/mysql @seanlook @xfwduke @yksitu @ymakedaq
