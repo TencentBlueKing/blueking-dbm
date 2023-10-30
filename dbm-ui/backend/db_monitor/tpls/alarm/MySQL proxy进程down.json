@@ -35,7 +35,7 @@
             "unit": "",
             "alias": "a",
             "functions": [],
-            "metric_id": "bk_monitor.exporter_dbm_mysqlproxy_exporter.mproxy.mysqlproxy_up",
+            "metric_id": "bk_monitor.exporter_dbm_mysqlproxy_exporter.__default__.mysqlproxy_up",
             "agg_method": "AVG",
             "agg_interval": 60,
             "metric_field": "mysqlproxy_up",
@@ -48,7 +48,7 @@
               "appid"
             ],
             "data_type_label": "time_series",
-            "result_table_id": "exporter_dbm_mysqlproxy_exporter.mproxy",
+            "result_table_id": "exporter_dbm_mysqlproxy_exporter.__default__",
             "data_source_label": "bk_monitor"
           }
         ],
