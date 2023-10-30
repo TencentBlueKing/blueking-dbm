@@ -136,7 +136,7 @@ class CollectInstance(CollectTemplateBase):
                         logger.warning("[init_collect_strategy] sync bkmonitor collector: %s " % template.db_type)
                     else:
                         logger.warning("[init_collect_strategy] create bkmonitor collector: %s " % template.db_type)
-                    logger.warning("[init_collect_strategy] create bkmonitor collector: %s " % template.db_type)
+
                 # TODO: 非DBA业务支持待验证
                 collect_params.update(
                     bk_biz_id=bk_biz_id,

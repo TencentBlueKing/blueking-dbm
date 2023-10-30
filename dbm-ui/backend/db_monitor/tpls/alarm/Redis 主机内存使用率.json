@@ -281,6 +281,6 @@
   },
   "is_enabled": true,
   "monitor_indicator": "MIN(\u5e94\u7528\u7a0b\u5e8f\u5185\u5b58\u4f7f\u7528\u5360\u6bd4)",
-  "version": 8,
+  "version": 9,
   "alert_source": "time_series"
 }

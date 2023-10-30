@@ -26,7 +26,7 @@ INSTANCE_MONITOR_PLUGINS = {
     DBType.MySQL: {
         MachineType.PROXY: {"name": "proxy", "plugin_id": "dbm_mysqlproxy_exporter", "func_name": "mysql-proxy"},
         MachineType.BACKEND: {"name": "mysql", "plugin_id": "dbm_mysqld_exporter", "func_name": "mysqld"},
-        MachineType.SPIDER: {"name": "spider", "plugin_id": "dbm_spider_exporter", "func_name": "mysqld"},
+        MachineType.SPIDER: {"name": "spider", "plugin_id": "dbm_mysqld_exporter", "func_name": "mysqld"},
         MachineType.REMOTE: {"name": "mysql", "plugin_id": "dbm_mysqld_exporter", "func_name": "mysqld"},
         MachineType.SINGLE: {"name": "mysql", "plugin_id": "dbm_mysqld_exporter", "func_name": "mysqld"},
     },

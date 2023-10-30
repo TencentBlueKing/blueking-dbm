@@ -297,6 +297,6 @@
   },
   "is_enabled": true,
   "monitor_indicator": "NameNode\u6545\u969c\u8f6c\u79fb\u6b21\u6570",
-  "version": 8,
+  "version": 9,
   "alert_source": "time_series"
 }
