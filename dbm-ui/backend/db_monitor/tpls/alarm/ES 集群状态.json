@@ -35,7 +35,7 @@
             "unit": "",
             "alias": "a",
             "functions": [],
-            "metric_id": "bk_monitor.exporter_dbm_elasticsearch_exporter.group15.elasticsearch_cluster_health_status",
+            "metric_id": "bk_monitor.exporter_dbm_elasticsearch_exporter.__default__.elasticsearch_cluster_health_status",
             "agg_method": "MAX",
             "agg_interval": 60,
             "metric_field": "elasticsearch_cluster_health_status",
@@ -57,7 +57,7 @@
               "appid"
             ],
             "data_type_label": "time_series",
-            "result_table_id": "exporter_dbm_elasticsearch_exporter.group15",
+            "result_table_id": "exporter_dbm_elasticsearch_exporter.__default__",
             "data_source_label": "bk_monitor"
           }
         ],
