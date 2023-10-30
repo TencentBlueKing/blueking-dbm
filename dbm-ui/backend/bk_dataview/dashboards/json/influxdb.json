@@ -178,7 +178,7 @@
               "method":"AVG",
               "metric_field":"influxdb_httpd_pointsWrittenOK",
               "refId":"a",
-              "result_table_id":"pushgateway_dbm_influxdb_bkpull.group6",
+              "result_table_id":"pushgateway_dbm_influxdb_bkpull.__default__",
               "result_table_label":"component",
               "time_field":"",
               "where":[
@@ -218,7 +218,7 @@
               "method":"AVG",
               "metric_field":"influxdb_httpd_pointsWrittenFail",
               "refId":"b",
-              "result_table_id":"pushgateway_dbm_influxdb_bkpull.group6",
+              "result_table_id":"pushgateway_dbm_influxdb_bkpull.__default__",
               "result_table_label":"component",
               "time_field":"",
               "where":[
@@ -258,7 +258,7 @@
               "method":"AVG",
               "metric_field":"influxdb_httpd_pointsWrittenDropped",
               "refId":"c",
-              "result_table_id":"pushgateway_dbm_influxdb_bkpull.group6",
+              "result_table_id":"pushgateway_dbm_influxdb_bkpull.__default__",
               "result_table_label":"component",
               "time_field":"",
               "where":[
@@ -273,7 +273,7 @@
             }
           ],
           "refId":"A",
-          "source":"avg by(host) (rate(bkmonitor:pushgateway_dbm_influxdb_bkpull:group6:influxdb_httpd_pointsWrittenOK{host=\"$host\"}[2m]))",
+          "source":"avg by(host) (rate(bkmonitor:pushgateway_dbm_influxdb_bkpull:__default__:influxdb_httpd_pointsWrittenOK{host=\"$host\"}[2m]))",
           "step":"",
           "type":"range"
         }
@@ -404,7 +404,7 @@
               "method":"AVG",
               "metric_field":"cpu_usage_user",
               "refId":"a",
-              "result_table_id":"pushgateway_dbm_influxdb_bkpull.group7",
+              "result_table_id":"pushgateway_dbm_influxdb_bkpull.__default__",
               "result_table_label":"component",
               "time_field":"",
               "where":[
@@ -444,7 +444,7 @@
               "method":"AVG",
               "metric_field":"cpu_usage_iowait",
               "refId":"b",
-              "result_table_id":"pushgateway_dbm_influxdb_bkpull.group7",
+              "result_table_id":"pushgateway_dbm_influxdb_bkpull.__default__",
               "result_table_label":"component",
               "time_field":"",
               "where":[
@@ -484,7 +484,7 @@
               "method":"AVG",
               "metric_field":"cpu_usage_system",
               "refId":"c",
-              "result_table_id":"pushgateway_dbm_influxdb_bkpull.group7",
+              "result_table_id":"pushgateway_dbm_influxdb_bkpull.__default__",
               "result_table_label":"component",
               "time_field":"",
               "where":[
@@ -639,7 +639,7 @@
               "method":"AVG",
               "metric_field":"http_response_result_code",
               "refId":"a",
-              "result_table_id":"pushgateway_dbm_influxdb_bkpull.group2",
+              "result_table_id":"pushgateway_dbm_influxdb_bkpull.__default__",
               "result_table_label":"component",
               "time_field":"",
               "where":[
@@ -654,7 +654,7 @@
             }
           ],
           "refId":"A",
-          "source":"avg by (host, influx_port) (avg_over_time(bkmonitor:pushgateway_dbm_influxdb_bkpull:group2:http_response_result_code{host=\"$host\"}[1m]))",
+          "source":"avg by (host, influx_port) (avg_over_time(bkmonitor:pushgateway_dbm_influxdb_bkpull:__default__:http_response_result_code{host=\"$host\"}[1m]))",
           "step":"",
           "type":"range"
         }
@@ -757,7 +757,7 @@
               "method":"MAX",
               "metric_field":"disk_used_percent",
               "refId":"a",
-              "result_table_id":"pushgateway_dbm_influxdb_bkpull.group3",
+              "result_table_id":"pushgateway_dbm_influxdb_bkpull.__default__",
               "result_table_label":"component",
               "time_field":"",
               "where":[
@@ -780,7 +780,7 @@
             }
           ],
           "refId":"A",
-          "source":"max(max_over_time(bkmonitor:pushgateway_dbm_influxdb_bkpull:group3:disk_used_percent{instance_host=\"$host\",path=~\"/data|/data1\"}[1m]))",
+          "source":"max(max_over_time(bkmonitor:pushgateway_dbm_influxdb_bkpull:__default__:disk_used_percent{instance_host=\"$host\",path=~\"/data|/data1\"}[1m]))",
           "step":"",
           "type":"range"
         }
@@ -929,7 +929,7 @@
               "method":"AVG",
               "metric_field":"mem_used_percent",
               "refId":"a",
-              "result_table_id":"pushgateway_dbm_influxdb_bkpull.group1",
+              "result_table_id":"pushgateway_dbm_influxdb_bkpull.__default__",
               "result_table_label":"component",
               "time_field":"",
               "where":[
@@ -1094,7 +1094,7 @@
               "method":"AVG",
               "metric_field":"mem_used",
               "refId":"a",
-              "result_table_id":"pushgateway_dbm_influxdb_bkpull.group1",
+              "result_table_id":"pushgateway_dbm_influxdb_bkpull.__default__",
               "result_table_label":"component",
               "time_field":"",
               "where":[
@@ -1126,7 +1126,7 @@
               "method":"SUM",
               "metric_field":"procstat_memory_rss",
               "refId":"b",
-              "result_table_id":"pushgateway_dbm_influxdb_bkpull.group4",
+              "result_table_id":"pushgateway_dbm_influxdb_bkpull.__default__",
               "result_table_label":"component",
               "time_field":"",
               "where":[
@@ -1251,7 +1251,7 @@
               "method":"SUM",
               "metric_field":"influxdb_database_numMeasurements",
               "refId":"a",
-              "result_table_id":"pushgateway_dbm_influxdb_bkpull.group1",
+              "result_table_id":"pushgateway_dbm_influxdb_bkpull.__default__",
               "result_table_label":"component",
               "time_field":"",
               "where":[
@@ -1368,7 +1368,7 @@
               "method":"SUM",
               "metric_field":"influxdb_n_shards",
               "refId":"a",
-              "result_table_id":"pushgateway_dbm_influxdb_bkpull.group1",
+              "result_table_id":"pushgateway_dbm_influxdb_bkpull.__default__",
               "result_table_label":"component",
               "time_field":"",
               "where":[
@@ -1485,7 +1485,7 @@
               "method":"SUM",
               "metric_field":"influxdb_database_numSeries",
               "refId":"a",
-              "result_table_id":"pushgateway_dbm_influxdb_bkpull.group1",
+              "result_table_id":"pushgateway_dbm_influxdb_bkpull.__default__",
               "result_table_label":"component",
               "time_field":"",
               "where":[
@@ -1631,7 +1631,7 @@
               "method":"AVG",
               "metric_field":"influxdb_tsm1_engine_tsmLevel1CompactionsActive",
               "refId":"a",
-              "result_table_id":"pushgateway_dbm_influxdb_bkpull.group1",
+              "result_table_id":"pushgateway_dbm_influxdb_bkpull.__default__",
               "result_table_label":"component",
               "time_field":"",
               "where":[
@@ -1663,7 +1663,7 @@
               "method":"AVG",
               "metric_field":"influxdb_tsm1_engine_tsmLevel2CompactionsActive",
               "refId":"b",
-              "result_table_id":"pushgateway_dbm_influxdb_bkpull.group1",
+              "result_table_id":"pushgateway_dbm_influxdb_bkpull.__default__",
               "result_table_label":"component",
               "time_field":"",
               "where":[
@@ -1695,7 +1695,7 @@
               "method":"AVG",
               "metric_field":"influxdb_tsm1_engine_tsmLevel3CompactionsActive",
               "refId":"c",
-              "result_table_id":"pushgateway_dbm_influxdb_bkpull.group1",
+              "result_table_id":"pushgateway_dbm_influxdb_bkpull.__default__",
               "result_table_label":"component",
               "time_field":"",
               "where":[
@@ -1727,7 +1727,7 @@
               "method":"AVG",
               "metric_field":"influxdb_tsm1_engine_tsmFullCompactionsActive",
               "refId":"d",
-              "result_table_id":"pushgateway_dbm_influxdb_bkpull.group1",
+              "result_table_id":"pushgateway_dbm_influxdb_bkpull.__default__",
               "result_table_label":"component",
               "time_field":"",
               "where":[
@@ -1873,7 +1873,7 @@
               "method":"AVG",
               "metric_field":"influxdb_tsm1_engine_tsmLevel1CompactionQueue",
               "refId":"a",
-              "result_table_id":"pushgateway_dbm_influxdb_bkpull.group1",
+              "result_table_id":"pushgateway_dbm_influxdb_bkpull.__default__",
               "result_table_label":"component",
               "time_field":"",
               "where":[
@@ -1905,7 +1905,7 @@
               "method":"AVG",
               "metric_field":"influxdb_tsm1_engine_tsmLevel2CompactionQueue",
               "refId":"b",
-              "result_table_id":"pushgateway_dbm_influxdb_bkpull.group1",
+              "result_table_id":"pushgateway_dbm_influxdb_bkpull.__default__",
               "result_table_label":"component",
               "time_field":"",
               "where":[
@@ -1937,7 +1937,7 @@
               "method":"AVG",
               "metric_field":"influxdb_tsm1_engine_tsmLevel3CompactionQueue",
               "refId":"c",
-              "result_table_id":"pushgateway_dbm_influxdb_bkpull.group1",
+              "result_table_id":"pushgateway_dbm_influxdb_bkpull.__default__",
               "result_table_label":"component",
               "time_field":"",
               "where":[
@@ -1969,7 +1969,7 @@
               "method":"AVG",
               "metric_field":"influxdb_tsm1_engine_tsmFullCompactionQueue",
               "refId":"d",
-              "result_table_id":"pushgateway_dbm_influxdb_bkpull.group1",
+              "result_table_id":"pushgateway_dbm_influxdb_bkpull.__default__",
               "result_table_label":"component",
               "time_field":"",
               "where":[
@@ -2125,7 +2125,7 @@
                   "method":"AVG",
                   "metric_field":"influxdb_database_numSeries",
                   "refId":"a",
-                  "result_table_id":"pushgateway_dbm_influxdb_bkpull.group1",
+                  "result_table_id":"pushgateway_dbm_influxdb_bkpull.__default__",
                   "result_table_label":"component",
                   "time_field":"",
                   "where":[
@@ -2287,7 +2287,7 @@
                   "method":"AVG",
                   "metric_field":"influxdb_database_numSeries",
                   "refId":"a",
-                  "result_table_id":"pushgateway_dbm_influxdb_bkpull.group1",
+                  "result_table_id":"pushgateway_dbm_influxdb_bkpull.__default__",
                   "result_table_label":"component",
                   "time_field":"",
                   "where":[
@@ -2440,7 +2440,7 @@
                   "method":"AVG",
                   "metric_field":"influxdb_shard_writePointsOk",
                   "refId":"a",
-                  "result_table_id":"pushgateway_dbm_influxdb_bkpull.group1",
+                  "result_table_id":"pushgateway_dbm_influxdb_bkpull.__default__",
                   "result_table_label":"component",
                   "time_field":"",
                   "where":[
@@ -2585,7 +2585,7 @@
                   "method":"COUNT",
                   "metric_field":"influxdb_shard_writePointsOk",
                   "refId":"a",
-                  "result_table_id":"pushgateway_dbm_influxdb_bkpull.group1",
+                  "result_table_id":"pushgateway_dbm_influxdb_bkpull.__default__",
                   "result_table_label":"component",
                   "time_field":"",
                   "where":[
@@ -2643,7 +2643,7 @@
             "data_type_label":"time_series",
             "group_by":"cluster",
             "metric_field":"influxdb_write_writeOk",
-            "result_table_id":"pushgateway_dbm_influxdb_bkpull.group1",
+            "result_table_id":"pushgateway_dbm_influxdb_bkpull.__default__",
             "result_table_label":"component",
             "where":[
 
@@ -2681,7 +2681,7 @@
             "data_type_label":"time_series",
             "group_by":"host",
             "metric_field":"http_response_result_code",
-            "result_table_id":"pushgateway_dbm_influxdb_bkpull.group2",
+            "result_table_id":"pushgateway_dbm_influxdb_bkpull.__default__",
             "result_table_label":"component",
             "where":[
               {

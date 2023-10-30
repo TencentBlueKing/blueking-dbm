@@ -391,7 +391,7 @@
               "method": "count_without_time",
               "metric_field": "kafka_cluster_partition_replicascount",
               "refId": "a",
-              "result_table_id": "pushgateway_dbm_kafka_bkpull.group1",
+              "result_table_id": "pushgateway_dbm_kafka_bkpull.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -422,7 +422,7 @@
             }
           ],
           "refId": "A",
-          "source": "count(count by (topic) (bkmonitor:pushgateway_dbm_kafka_bkpull:group1:kafka_cluster_partition_replicascount{app=\"$app\",cluster_domain=\"$cluster_domain\",partition=\"0\"}))",
+          "source": "count(count by (topic) (bkmonitor:pushgateway_dbm_kafka_bkpull:__default__:kafka_cluster_partition_replicascount{app=\"$app\",cluster_domain=\"$cluster_domain\",partition=\"0\"}))",
           "step": "",
           "type": "range"
         }
@@ -502,7 +502,7 @@
               "method": "count_without_time",
               "metric_field": "kafka_cluster_partition_replicascount",
               "refId": "a",
-              "result_table_id": "pushgateway_dbm_kafka_bkpull.group1",
+              "result_table_id": "pushgateway_dbm_kafka_bkpull.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -605,7 +605,7 @@
               "method": "sum_without_time",
               "metric_field": "kafka_controller_kafkacontroller_activecontrollercount",
               "refId": "a",
-              "result_table_id": "pushgateway_dbm_kafka_bkpull.group1",
+              "result_table_id": "pushgateway_dbm_kafka_bkpull.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -752,7 +752,7 @@
               "method": "MAX",
               "metric_field": "kafka_server_brokertopicmetrics_messagesin_total",
               "refId": "a",
-              "result_table_id": "pushgateway_dbm_kafka_bkpull.group1",
+              "result_table_id": "pushgateway_dbm_kafka_bkpull.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -775,7 +775,7 @@
             }
           ],
           "refId": "A",
-          "source": "max(irate(bkmonitor:pushgateway_dbm_kafka_bkpull:group1:kafka_server_brokertopicmetrics_messagesin_total{app=\"$app\",cluster_domain=\"$cluser_domain\"}[2m]))",
+          "source": "max(irate(bkmonitor:pushgateway_dbm_kafka_bkpull:__default__:kafka_server_brokertopicmetrics_messagesin_total{app=\"$app\",cluster_domain=\"$cluser_domain\"}[2m]))",
           "step": "",
           "type": "range"
         },
@@ -816,7 +816,7 @@
               "method": "SUM",
               "metric_field": "kafka_server_brokertopicmetrics_fetchmessageconversions_total",
               "refId": "a",
-              "result_table_id": "pushgateway_dbm_kafka_bkpull.group1",
+              "result_table_id": "pushgateway_dbm_kafka_bkpull.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -839,7 +839,7 @@
             }
           ],
           "refId": "B",
-          "source": "sum(irate(bkmonitor:pushgateway_dbm_kafka_bkpull:group1:kafka_server_brokertopicmetrics_fetchmessageconversions_total{app=\"$app\",cluster_domain=\"$cluster_domain\"}[2m]))",
+          "source": "sum(irate(bkmonitor:pushgateway_dbm_kafka_bkpull:__default__:kafka_server_brokertopicmetrics_fetchmessageconversions_total{app=\"$app\",cluster_domain=\"$cluster_domain\"}[2m]))",
           "step": "",
           "type": "range"
         }
@@ -986,7 +986,7 @@
             }
           ],
           "refId": "A",
-          "source": "sum(irate(bkmonitor:pushgateway_dbm_kafka_bkpull:group1:kafka_server_brokertopicmetrics_totalproducerequests_total{app=\"$app\",cluster_domain=\"$cluster_domain\"}[2m]))",
+          "source": "sum(irate(bkmonitor:pushgateway_dbm_kafka_bkpull:__default__:kafka_server_brokertopicmetrics_totalproducerequests_total{app=\"$app\",cluster_domain=\"$cluster_domain\"}[2m]))",
           "step": "",
           "type": "range"
         },
@@ -1050,7 +1050,7 @@
             }
           ],
           "refId": "B",
-          "source": "sum(irate(bkmonitor:pushgateway_dbm_kafka_bkpull:group1:kafka_server_brokertopicmetrics_totalfetchrequests_total{app=\"$app\",cluster_domain=\"$cluster_domain\"}[2m]))",
+          "source": "sum(irate(bkmonitor:pushgateway_dbm_kafka_bkpull:__default__:kafka_server_brokertopicmetrics_totalfetchrequests_total{app=\"$app\",cluster_domain=\"$cluster_domain\"}[2m]))",
           "step": "",
           "type": "range"
         },
@@ -1114,7 +1114,7 @@
             }
           ],
           "refId": "C",
-          "source": "sum(irate(bkmonitor:pushgateway_dbm_kafka_bkpull:group1:kafka_server_brokertopicmetrics_failedproducerequests_total{app=\"$app\",cluster_domain=\"$cluster_domain\"}[2m]))",
+          "source": "sum(irate(bkmonitor:pushgateway_dbm_kafka_bkpull:__default__:kafka_server_brokertopicmetrics_failedproducerequests_total{app=\"$app\",cluster_domain=\"$cluster_domain\"}[2m]))",
           "step": "",
           "type": "range"
         },
@@ -1178,7 +1178,7 @@
             }
           ],
           "refId": "D",
-          "source": "sum(irate(bkmonitor:pushgateway_dbm_kafka_bkpull:group1:kafka_server_brokertopicmetrics_failedfetchrequests_total{app=\"$app\",cluster_domain=\"$cluster_domain\"}[2m]))",
+          "source": "sum(irate(bkmonitor:pushgateway_dbm_kafka_bkpull:__default__:kafka_server_brokertopicmetrics_failedfetchrequests_total{app=\"$app\",cluster_domain=\"$cluster_domain\"}[2m]))",
           "step": "",
           "type": "range"
         }
@@ -1303,7 +1303,7 @@
               "method": "SUM",
               "metric_field": "kafka_server_brokertopicmetrics_replicationbytesin_total",
               "refId": "a",
-              "result_table_id": "pushgateway_dbm_kafka_bkpull.group1",
+              "result_table_id": "pushgateway_dbm_kafka_bkpull.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -1326,7 +1326,7 @@
             }
           ],
           "refId": "A",
-          "source": "sum(irate(bkmonitor:pushgateway_dbm_kafka_bkpull:group1:kafka_server_brokertopicmetrics_replicationbytesin_total{app=\"$app\",cluster_domain=\"$cluster_domain\"}[2m]))",
+          "source": "sum(irate(bkmonitor:pushgateway_dbm_kafka_bkpull:__default__:kafka_server_brokertopicmetrics_replicationbytesin_total{app=\"$app\",cluster_domain=\"$cluster_domain\"}[2m]))",
           "step": "",
           "type": "range"
         },
@@ -1367,7 +1367,7 @@
               "method": "SUM",
               "metric_field": "kafka_server_brokertopicmetrics_bytesout_total",
               "refId": "a",
-              "result_table_id": "pushgateway_dbm_kafka_bkpull.group1",
+              "result_table_id": "pushgateway_dbm_kafka_bkpull.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -1390,7 +1390,7 @@
             }
           ],
           "refId": "B",
-          "source": "sum(irate(bkmonitor:pushgateway_dbm_kafka_bkpull:group1:kafka_server_brokertopicmetrics_bytesout_total{app=\"$app\",cluster_domain=\"$cluster_domain\"}[2m]))",
+          "source": "sum(irate(bkmonitor:pushgateway_dbm_kafka_bkpull:__default__:kafka_server_brokertopicmetrics_bytesout_total{app=\"$app\",cluster_domain=\"$cluster_domain\"}[2m]))",
           "step": "",
           "type": "range"
         },
@@ -1431,7 +1431,7 @@
               "method": "SUM",
               "metric_field": "kafka_server_brokertopicmetrics_bytesrejected_total",
               "refId": "a",
-              "result_table_id": "pushgateway_dbm_kafka_bkpull.group1",
+              "result_table_id": "pushgateway_dbm_kafka_bkpull.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -1454,7 +1454,7 @@
             }
           ],
           "refId": "C",
-          "source": "sum(irate(bkmonitor:pushgateway_dbm_kafka_bkpull:group1:kafka_server_brokertopicmetrics_bytesrejected_total{app=\"$app\",cluster_domain=\"$cluster_domain\"}[2m]))",
+          "source": "sum(irate(bkmonitor:pushgateway_dbm_kafka_bkpull:__default__:kafka_server_brokertopicmetrics_bytesrejected_total{app=\"$app\",cluster_domain=\"$cluster_domain\"}[2m]))",
           "step": "",
           "type": "range"
         }
@@ -1608,7 +1608,7 @@
             }
           ],
           "refId": "A",
-          "source": "avg(bkmonitor:pushgateway_dbm_kafka_bkpull:group1:kafka_network_requestmetrics_totaltimems{app=\"$app\",cluster_domain=\"$cluster_domain\",quantile=\"0.99\",request=\"Produce\"})",
+          "source": "avg(bkmonitor:pushgateway_dbm_kafka_bkpull:__default__:kafka_network_requestmetrics_totaltimems{app=\"$app\",cluster_domain=\"$cluster_domain\",quantile=\"0.99\",request=\"Produce\"})",
           "step": "",
           "type": "range"
         },
@@ -1678,7 +1678,7 @@
             }
           ],
           "refId": "B",
-          "source": "avg(bkmonitor:pushgateway_dbm_kafka_bkpull:group1:kafka_network_requestmetrics_totaltimems{app=\"$app\",cluster_domain=\"$cluster_domain\",quantile=\"0.99\",request=\"FetchConsumer\"})",
+          "source": "avg(bkmonitor:pushgateway_dbm_kafka_bkpull:__default__:kafka_network_requestmetrics_totaltimems{app=\"$app\",cluster_domain=\"$cluster_domain\",quantile=\"0.99\",request=\"FetchConsumer\"})",
           "step": "",
           "type": "range"
         },
@@ -1748,7 +1748,7 @@
             }
           ],
           "refId": "C",
-          "source": "avg(bkmonitor:pushgateway_dbm_kafka_bkpull:group1:kafka_network_requestmetrics_totaltimems{app=\"$app\",cluster_domain=\"$cluster_domain\",quantile=\"0.99\",request=\"FetchFollower\"})",
+          "source": "avg(bkmonitor:pushgateway_dbm_kafka_bkpull:__default__:kafka_network_requestmetrics_totaltimems{app=\"$app\",cluster_domain=\"$cluster_domain\",quantile=\"0.99\",request=\"FetchFollower\"})",
           "step": "",
           "type": "range"
         }
@@ -1895,7 +1895,7 @@
             }
           ],
           "refId": "A",
-          "source": "sum(irate(bkmonitor:pushgateway_dbm_kafka_bkpull:group1:kafka_server_replicamanager_isrshrinks_total{app=\"$app\",cluster_domain=\"$cluster_domain\"}[2m]))",
+          "source": "sum(irate(bkmonitor:pushgateway_dbm_kafka_bkpull:__default__:kafka_server_replicamanager_isrshrinks_total{app=\"$app\",cluster_domain=\"$cluster_domain\"}[2m]))",
           "step": "",
           "type": "range"
         },
@@ -1936,7 +1936,7 @@
               "method": "SUM",
               "metric_field": "kafka_server_replicamanager_isrexpands_total",
               "refId": "a",
-              "result_table_id": "pushgateway_dbm_kafka_bkpull.group1",
+              "result_table_id": "pushgateway_dbm_kafka_bkpull.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -1959,7 +1959,7 @@
             }
           ],
           "refId": "B",
-          "source": "sum(irate(bkmonitor:pushgateway_dbm_kafka_bkpull:group1:kafka_server_replicamanager_isrexpands_total{app=\"$app\",cluster_domain=\"$cluster_domain\"}[2m]))",
+          "source": "sum(irate(bkmonitor:pushgateway_dbm_kafka_bkpull:__default__:kafka_server_replicamanager_isrexpands_total{app=\"$app\",cluster_domain=\"$cluster_domain\"}[2m]))",
           "step": "",
           "type": "range"
         }
@@ -2126,7 +2126,7 @@
                 }
               ],
               "refId": "A",
-              "source": "topk(20, sum by (topic) (irate(bkmonitor:pushgateway_dbm_kafka_bkpull:group1:kafka_server_brokertopicmetrics_messagesin_total{app=\"$app\",cluster_domain=\"$cluster_domain\"}[2m])))",
+              "source": "topk(20, sum by (topic) (irate(bkmonitor:pushgateway_dbm_kafka_bkpull:__default__:kafka_server_brokertopicmetrics_messagesin_total{app=\"$app\",cluster_domain=\"$cluster_domain\"}[2m])))",
               "step": "",
               "type": "range"
             }
@@ -2275,7 +2275,7 @@
                 }
               ],
               "refId": "A",
-              "source": "topk(20, sum by (topic) (bkmonitor:pushgateway_dbm_kafka_bkpull:group1:kafka_log_log_size{app=\"$app\",cluster_domain=\"$cluster_domain\"}))",
+              "source": "topk(20, sum by (topic) (bkmonitor:pushgateway_dbm_kafka_bkpull:__default__:kafka_log_log_size{app=\"$app\",cluster_domain=\"$cluster_domain\"}))",
               "step": "",
               "type": "range"
             }
@@ -2388,7 +2388,7 @@
                   "method": "count_without_time",
                   "metric_field": "kafka_topic_partitions",
                   "refId": "a",
-                  "result_table_id": "exporter_dbm_kafka_exporter.group4",
+                  "result_table_id": "exporter_dbm_kafka_exporter.__default__",
                   "result_table_label": "component",
                   "time_field": "",
                   "where": [
@@ -2411,7 +2411,7 @@
                 }
               ],
               "refId": "A",
-              "source": "count(count by (topic) (bkmonitor:pushgateway_dbm_kafka_bkpull:group1:kafka_cluster_partition_replicascount{app=\"$app\",cluster_domain=\"$cluster_domain\",partition=\"0\"}))",
+              "source": "count(count by (topic) (bkmonitor:pushgateway_dbm_kafka_bkpull:__default__:kafka_cluster_partition_replicascount{app=\"$app\",cluster_domain=\"$cluster_domain\",partition=\"0\"}))",
               "step": "",
               "type": "range"
             }
@@ -2539,7 +2539,7 @@
                   "method": "max_without_time",
                   "metric_field": "kafka_consumergroup_lag_sum",
                   "refId": "a",
-                  "result_table_id": "exporter_dbm_kafka_exporter.group1",
+                  "result_table_id": "exporter_dbm_kafka_exporter.__default__",
                   "result_table_label": "component",
                   "time_field": "",
                   "where": [
@@ -2562,7 +2562,7 @@
                 }
               ],
               "refId": "A",
-              "source": "topk(20, max by (consumergroup) (bkmonitor:exporter_dbm_kafka_exporter:group1:kafka_consumergroup_lag_sum{app=\"$app\",cluster_domain=\"$cluster_domain\"}))",
+              "source": "topk(20, max by (consumergroup) (bkmonitor:exporter_dbm_kafka_exporter:__default__:kafka_consumergroup_lag_sum{app=\"$app\",cluster_domain=\"$cluster_domain\"}))",
               "step": "",
               "type": "range"
             }
@@ -2689,7 +2689,7 @@
                 }
               ],
               "refId": "A",
-              "source": "sum(bkmonitor:pushgateway_dbm_kafka_bkpull:group1:kafka_server_brokertopicmetrics_messagesin_total{app=\"$app\",cluster_domain=\"$cluster_domain\"}  - (bkmonitor:pushgateway_dbm_kafka_bkpull:group1:kafka_server_brokertopicmetrics_messagesin_total{app=\"$app\",cluster_domain=\"$cluster_domain\"}  offset $__range)) by ( topic )",
+              "source": "sum(bkmonitor:pushgateway_dbm_kafka_bkpull:__default__:kafka_server_brokertopicmetrics_messagesin_total{app=\"$app\",cluster_domain=\"$cluster_domain\"}  - (bkmonitor:pushgateway_dbm_kafka_bkpull:__default__:kafka_server_brokertopicmetrics_messagesin_total{app=\"$app\",cluster_domain=\"$cluster_domain\"}  offset $__range)) by ( topic )",
               "step": "",
               "type": "instant"
             }
@@ -2818,7 +2818,7 @@
                   "method": "max_without_time",
                   "metric_field": "kafka_server_replicamanager_partitioncount",
                   "refId": "a",
-                  "result_table_id": "pushgateway_dbm_kafka_bkpull.group1",
+                  "result_table_id": "pushgateway_dbm_kafka_bkpull.__default__",
                   "result_table_label": "component",
                   "time_field": "",
                   "where": [
@@ -2841,7 +2841,7 @@
                 }
               ],
               "refId": "A",
-              "source": "max by (instance) (bkmonitor:pushgateway_dbm_kafka_bkpull:group1:kafka_server_replicamanager_partitioncount{app=\"$app\",cluster_domain=\"$cluster_domain\"})",
+              "source": "max by (instance) (bkmonitor:pushgateway_dbm_kafka_bkpull:__default__:kafka_server_replicamanager_partitioncount{app=\"$app\",cluster_domain=\"$cluster_domain\"})",
               "step": "",
               "type": "range"
             }
@@ -2979,7 +2979,7 @@
                 }
               ],
               "refId": "A",
-              "source": "min by (instance) (bkmonitor:pushgateway_dbm_kafka_bkpull:group1:kafka_server_replicamanager_underreplicatedpartitions{app=\"$app\",cluster_domain=\"$cluster_domain\"})",
+              "source": "min by (instance) (bkmonitor:pushgateway_dbm_kafka_bkpull:__default__:kafka_server_replicamanager_underreplicatedpartitions{app=\"$app\",cluster_domain=\"$cluster_domain\"})",
               "step": "",
               "type": "range"
             }
@@ -3127,7 +3127,7 @@
                 }
               ],
               "refId": "A",
-              "source": "max by (instance) (irate(bkmonitor:pushgateway_dbm_kafka_bkpull:group1:kafka_server_brokertopicmetrics_totalproducerequests_total{app=\"$app\",cluster_domain=\"$cluster_domain\"}[2m]))",
+              "source": "max by (instance) (irate(bkmonitor:pushgateway_dbm_kafka_bkpull:__default__:kafka_server_brokertopicmetrics_totalproducerequests_total{app=\"$app\",cluster_domain=\"$cluster_domain\"}[2m]))",
               "step": "",
               "type": "range"
             }
@@ -3275,7 +3275,7 @@
                 }
               ],
               "refId": "A",
-              "source": "max by (instance) (irate(bkmonitor:pushgateway_dbm_kafka_bkpull:group1:kafka_server_brokertopicmetrics_totalfetchrequests_total{app=\"$app\",cluster_domain=\"$cluster_domain\"}[2m]))",
+              "source": "max by (instance) (irate(bkmonitor:pushgateway_dbm_kafka_bkpull:__default__:kafka_server_brokertopicmetrics_totalfetchrequests_total{app=\"$app\",cluster_domain=\"$cluster_domain\"}[2m]))",
               "step": "",
               "type": "range"
             }
@@ -3430,7 +3430,7 @@
                 }
               ],
               "refId": "A",
-              "source": "max by(instance) (bkmonitor:pushgateway_dbm_kafka_bkpull:group1:kafka_network_requestmetrics_totaltimems{app=\"$app\",cluster_domain=\"$cluster_domain\",quantile=\"0.99\",request=\"Produce\"})",
+              "source": "max by(instance) (bkmonitor:pushgateway_dbm_kafka_bkpull:__default__:kafka_network_requestmetrics_totaltimems{app=\"$app\",cluster_domain=\"$cluster_domain\",quantile=\"0.99\",request=\"Produce\"})",
               "step": "",
               "type": "range"
             }
@@ -3586,7 +3586,7 @@
                 }
               ],
               "refId": "A",
-              "source": "max by (instance) (bkmonitor:pushgateway_dbm_kafka_bkpull:group1:kafka_network_requestmetrics_totaltimems{app=\"$app\",cluster_domain=\"$cluster_domain\",quantile=\"0.99\",request=\"FetchConsumer\"})",
+              "source": "max by (instance) (bkmonitor:pushgateway_dbm_kafka_bkpull:__default__:kafka_network_requestmetrics_totaltimems{app=\"$app\",cluster_domain=\"$cluster_domain\",quantile=\"0.99\",request=\"FetchConsumer\"})",
               "step": "",
               "type": "range"
             }
@@ -3741,7 +3741,7 @@
                 }
               ],
               "refId": "A",
-              "source": "max by (instance) (bkmonitor:pushgateway_dbm_kafka_bkpull:group1:kafka_network_requestmetrics_totaltimems{app=\"$app\",cluster_domain=\"$cluster_domain\",quantile=\"0.99\",request=\"FetchFollower\"})",
+              "source": "max by (instance) (bkmonitor:pushgateway_dbm_kafka_bkpull:__default__:kafka_network_requestmetrics_totaltimems{app=\"$app\",cluster_domain=\"$cluster_domain\",quantile=\"0.99\",request=\"FetchFollower\"})",
               "step": "",
               "type": "range"
             }
