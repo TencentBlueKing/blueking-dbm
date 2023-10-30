@@ -236,6 +236,6 @@
   },
   "is_enabled": true,
   "monitor_indicator": "\u6d88\u8d39\u7ec4\u4e2d\u6d88\u8d39\u8005\u6ede\u540e\u603b\u548c\u7684\u5e73\u5747\u503c",
-  "version": 8,
+  "version": 9,
   "alert_source": "time_series"
 }

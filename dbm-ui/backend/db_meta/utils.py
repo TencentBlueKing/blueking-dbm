@@ -30,6 +30,7 @@ from backend.db_meta.models import (
     StorageInstanceTuple,
 )
 from backend.db_periodic_task.local_tasks import update_host_dbmeta
+from backend.db_services.ipchooser.constants import DB_MANAGE_SET
 from backend.db_services.ipchooser.query import resource
 from backend.flow.utils.cc_manage import CcManage
 
@@ -177,6 +178,10 @@ def remove_cluster_ips(cluster_ips, job_clean=True, cc_clean=True):
 def clean_cc_topo(bk_biz_id=env.DBA_APP_BK_BIZ_ID):
     """清理dbm的cc拓扑"""
 
+    manage_set_id = CCApi.search_set(
+        {"bk_biz_id": env.DBA_APP_BK_BIZ_ID, "condition": {"bk_set_name": DB_MANAGE_SET}}
+    )["info"][0]["bk_set_id"]
+
     # 排除default非0的模块(内置模块）
     res = CCApi.search_module({"bk_biz_id": bk_biz_id, "condition": {"default": 0}})
     # 查询模块下的主机数量
@@ -190,6 +195,9 @@ def clean_cc_topo(bk_biz_id=env.DBA_APP_BK_BIZ_ID):
     bk_modules = res["info"]
     for bk_module in bk_modules:
         if bk_module_ip_counts[bk_module["bk_module_id"]] > 0:
+            continue
+
+        if bk_module["bk_set_id"] == manage_set_id:
             continue
 
         # 清理空模块
