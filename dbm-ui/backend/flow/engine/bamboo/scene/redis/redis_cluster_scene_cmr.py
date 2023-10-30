@@ -28,11 +28,13 @@ from backend.flow.consts import DEFAULT_DB_MODULE_ID, ConfigFileEnum, ConfigType
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.redis.atom_jobs import (
+    AccessManagerAtomJob,
     ProxyBatchInstallAtomJob,
     ProxyUnInstallAtomJob,
     RedisClusterMasterReplaceJob,
     RedisClusterSlaveReplaceJob,
 )
+from backend.flow.plugins.components.collections.common.pause import PauseComponent
 from backend.flow.plugins.components.collections.redis.dns_manage import RedisDnsManageComponent
 from backend.flow.plugins.components.collections.redis.get_redis_payload import GetRedisActPayloadComponent
 from backend.flow.plugins.components.collections.redis.redis_db_meta import RedisDBMetaComponent
@@ -320,29 +322,37 @@ class RedisClusterCMRSceneFlow(object):
         )
 
         # 第二步：接入层管理：填加新接入层
-        dns_kwargs = DnsKwargs(
-            dns_op_type=DnsOpType.CREATE.value,
-            add_domain_name=act_kwargs.cluster["immute_domain"],
-            dns_op_exec_port=int(config_info["port"]),
-        )
-        act_kwargs.exec_ip = new_proxies
-        sub_pipeline.add_act(
-            act_name=_("Proxy-注册域名-{}".format(act_kwargs.cluster["immute_domain"])),
-            act_component_code=RedisDnsManageComponent.code,
-            kwargs={**asdict(act_kwargs), **asdict(dns_kwargs)},
+        sub_pipeline.add_sub_pipeline(
+            sub_flow=AccessManagerAtomJob(
+                self.root_id,
+                self.data,
+                act_kwargs,
+                {
+                    "cluster_id": act_kwargs.cluster["cluster_id"],
+                    "port": act_kwargs.cluster["proxy_port"],
+                    "add_ips": new_proxies,
+                    "op_type": DnsOpType.CREATE.value,
+                },
+            )
         )
         # 第三步：接入层管理：清理旧接入层(这里可能需要留点时间然后在执行下一步)
-        dns_kwargs = DnsKwargs(
-            dns_op_type=DnsOpType.RECYCLE_RECORD,
-            add_domain_name=act_kwargs.cluster["immute_domain"],
-            dns_op_exec_port=int(config_info["port"]),
+        sub_pipeline.add_sub_pipeline(
+            sub_flow=AccessManagerAtomJob(
+                self.root_id,
+                self.data,
+                act_kwargs,
+                {
+                    "cluster_id": act_kwargs.cluster["cluster_id"],
+                    "port": act_kwargs.cluster["proxy_port"],
+                    "del_ips": old_proxies,
+                    "op_type": DnsOpType.RECYCLE_RECORD.value,
+                },
+            )
         )
-        act_kwargs.exec_ip = old_proxies
-        sub_pipeline.add_act(
-            act_name=_("Proxy-回收域名-{}".format(act_kwargs.cluster["immute_domain"])),
-            act_component_code=RedisDnsManageComponent.code,
-            kwargs={**asdict(act_kwargs), **asdict(dns_kwargs)},
-        )
+
+        # 第四步：人工确认
+        sub_pipeline.add_act(act_name=_("旧Proxy下架-等待确认"), act_component_code=PauseComponent.code, kwargs={})
+
         # 第四步：卸载Proxy
         proxy_down_pipelines = []
         for proxy_ip in old_proxies:
