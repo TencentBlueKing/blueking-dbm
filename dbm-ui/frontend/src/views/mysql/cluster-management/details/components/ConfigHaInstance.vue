@@ -27,8 +27,7 @@
   import { useI18n } from 'vue-i18n';
 
   // TODO INTERFACE done
-  // import { getLevelConfig } from '@services/configs';
-  import { getLevelConfig } from '@services/source/configs';
+  import { getLevelConfig } from '@services/configs';
   import type { ConfigBaseDetails } from '@services/types/configs';
 
   import { ClusterTypes } from '@/common/const';

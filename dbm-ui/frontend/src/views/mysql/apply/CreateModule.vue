@@ -131,15 +131,8 @@
   import { useI18n } from 'vue-i18n';
 
   // TODO INTERFACE DONE
-  // import { getConfigNames, getLevelConfig, updateBusinessConfig } from '@services/configs';
-  // import { createModules, saveModulesDeployInfo } from '@services/ticket';
-  import { createModules } from '@services/source/cmdb';
-  import {
-    getConfigNames,
-    getLevelConfig,
-    saveModulesDeployInfo,
-    updateBusinessConfig,
-  } from '@services/source/configs';
+  import { getConfigNames, getLevelConfig, updateBusinessConfig } from '@services/configs';
+  import { createModules, saveModulesDeployInfo } from '@services/ticket';
   import type { ConfigBaseDetails, ParameterConfigItem } from '@services/types/configs';
   import { getVersions } from '@services/versionFiles';
 

@@ -98,19 +98,17 @@
   import { useI18n } from 'vue-i18n';
 
   // TODO INTERFACE done
-  // import {
-  //   getModules,
-  //   getUseList,
-  // } from '@services/common';
+  import {
+    getModules,
+    getUseList,
+  } from '@services/common';
   // import { getHaInstances } from '@services/mysqlHa';
   // import { getResources } from '@services/clusters';
   // import { createTicket } from '@services/ticket';
-  import { getModules } from '@services/source/cmdb';
   import {
     getResourceInstances,
     getResources,
   } from '@services/source/resourceTendbha';
-  import { getUseList } from '@services/source/user';
   import { createTicket } from '@services/ticket';
   import type { ResourceItem } from '@services/types/clusters';
   import type { SearchFilterItem } from '@services/types/common';

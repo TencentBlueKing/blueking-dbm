@@ -14,11 +14,9 @@
 import _ from 'lodash';
 import { useI18n } from 'vue-i18n';
 
-import { getModules } from '@services/source/cmdb';
-import { getLevelConfig } from '@services/source/configs';
+import { getModules } from '@services/common';
 // TODO INTERFACE
-// import { getLevelConfig } from '@services/configs';
-// import { getModules } from '@services/common';
+import { getLevelConfig } from '@services/configs';
 import { createTicket, getInfrasHostSpecs } from '@services/ticket';
 import type { ModuleItem } from '@services/types/common';
 import type { ParameterConfigItem } from '@services/types/configs';

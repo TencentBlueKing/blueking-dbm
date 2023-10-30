@@ -150,9 +150,7 @@
   import { useRequest } from 'vue-request';
 
   // TODO INTERFACE done
-  // import { createModules, saveModulesDeployInfo } from '@services/ticket';
-  import { createModules } from '@services/source/cmdb';
-  import { saveModulesDeployInfo } from '@services/source/configs';
+  import { createModules, saveModulesDeployInfo } from '@services/ticket';
   import { getVersions } from '@services/versionFiles';
 
   import { useInfo } from '@hooks';

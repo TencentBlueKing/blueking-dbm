@@ -98,15 +98,13 @@
 
   // TODO INTERFACE done
   // import { getResources } from '@services/clusters';
-  // import { getModules, getUseList  } from '@services/common';
   // import { getSingleInstances } from '@services/mysqlSingle';
   // import { createTicket } from '@services/ticket';
-  import { getModules } from '@services/source/cmdb';
+  import { getModules, getUseList  } from '@services/common';
   import {
     getResourceInstances,
     getResources,
   } from '@services/source/resourceTendbsingle';
-  import { getUseList } from '@services/source/user';
   import { createTicket } from '@services/ticket';
   import type { ResourceItem } from '@services/types/clusters';
   import type { SearchFilterItem } from '@services/types/common';

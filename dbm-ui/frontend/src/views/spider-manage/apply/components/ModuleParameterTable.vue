@@ -28,7 +28,7 @@
     getConfigNames,
     getLevelConfig,
     updateBusinessConfig,
-  } from '@services/source/configs';
+  } from '@services/configs';
   import type { ConfigBaseDetails, ParameterConfigItem } from '@services/types/configs';
 
   import ParameterTable from '@views/db-configure/components/ParameterTable.vue';
