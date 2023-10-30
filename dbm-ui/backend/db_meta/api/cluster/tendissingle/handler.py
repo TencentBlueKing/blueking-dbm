@@ -14,7 +14,7 @@ from django.db import transaction
 
 from backend.constants import DEFAULT_BK_CLOUD_ID
 from backend.db_meta.api.cluster.base.handler import ClusterHandler
-from backend.db_meta.api.cluster.nosqlcomm.decommission import decommission_cluster, decommission_tendis
+from backend.db_meta.api.cluster.nosqlcomm.decommission import decommission_backends, decommission_cluster
 from backend.db_meta.api.cluster.nosqlcomm.detail_cluster import scan_cluster
 from backend.db_meta.api.cluster.nosqlcomm.scale_tendis import make_sync_mms
 from backend.db_meta.enums import ClusterType
