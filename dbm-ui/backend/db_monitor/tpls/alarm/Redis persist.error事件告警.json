@@ -247,6 +247,6 @@
   },
   "is_enabled": true,
   "monitor_indicator": "COUNT(redis_persist)",
-  "version": 9,
+  "version": 10,
   "alert_source": "event"
 }
