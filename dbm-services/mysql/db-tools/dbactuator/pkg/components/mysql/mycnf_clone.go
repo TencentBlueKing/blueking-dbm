@@ -42,6 +42,7 @@ var MycnfCloneItemsDefault = []string{
 	"max_allowed_packet",
 	"time_zone",
 	"binlog_format",
+	"binlog_row_image",
 	"lower_case_table_names",
 	"character_set_server",
 	"collation_server",
@@ -51,7 +52,11 @@ var MycnfCloneItemsDefault = []string{
 	"interactive_timeout",
 	"wait_timeout",
 	"relay_log_uncompress",
+
 	"slave_parallel_workers",
+	"slave_parallel_type",
+	"replica_parallel_workers",
+	"replica_parallel_type",
 }
 
 // MycnfCloneParam godoc
