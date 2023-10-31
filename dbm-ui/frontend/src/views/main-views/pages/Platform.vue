@@ -33,6 +33,7 @@
               </span>
             </BkMenuItem>
           </BkMenuGroup>
+          <div class="main-views-space-line" />
           <FunController module-id="monitor">
             <BkMenuGroup :name="$t('监控告警')">
               <FunController
@@ -93,7 +94,7 @@
               </FunController>
             </BkMenuGroup>
           </FunController>
-
+          <div class="main-views-space-line" />
           <BkMenuGroup :name="$t('事件中心')">
             <BkMenuItem key="PlatDBMASwitchEvents">
               <template #icon>
@@ -106,6 +107,7 @@
               </span>
             </BkMenuItem>
           </BkMenuGroup>
+          <div class="main-views-space-line" />
           <BkMenuGroup :name="$t('文件管理')">
             <BkMenuItem key="PlatformVersionFiles">
               <template #icon>
@@ -118,6 +120,7 @@
               </span>
             </BkMenuItem>
           </BkMenuGroup>
+          <div class="main-views-space-line" />
           <BkMenuGroup :name="$t('资源管理')">
             <BkMenuItem key="ResourceSpec">
               <template #icon>
@@ -163,6 +166,7 @@
                 class="main-menu__count">{{ dirtyHostNums > 99 ? '99+' : dirtyHostNums }}</span>
             </BkMenuItem>
           </BkMenuGroup>
+          <div class="main-views-space-line" />
           <BkMenuGroup :name="$t('设置')">
             <FunController module-id="mysql">
               <BkSubmenu
