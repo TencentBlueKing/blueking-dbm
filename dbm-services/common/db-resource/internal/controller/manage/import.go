@@ -31,7 +31,6 @@ import (
 
 // ImportMachParam TODO
 type ImportMachParam struct {
-	BkCloudId int `json:"bk_cloud_id"`
 	// ForBizs 业务标签,表示这个资源将来给ForBizs这个业务使用
 	ForBizs []int             `json:"for_bizs"`
 	RsTypes []string          `json:"resource_types"`
@@ -43,8 +42,9 @@ type ImportMachParam struct {
 
 // HostBase TODO
 type HostBase struct {
-	Ip     string `json:"ip"  binding:"required,ip"`
-	HostId int    `json:"host_id" binding:"required"`
+	Ip        string `json:"ip"  binding:"required,ip"`
+	HostId    int    `json:"host_id" binding:"required"`
+	BkCloudId int    `json:"bk_cloud_id"`
 }
 
 func (p ImportMachParam) getOperationInfo(requestId string, hostIds json.RawMessage,
@@ -72,6 +72,16 @@ func (p ImportMachParam) getIps() (ips []string) {
 	return
 }
 
+func (p ImportMachParam) getIpsByCloudId() (ipMap map[int][]string) {
+	ipMap = make(map[int][]string)
+	for _, v := range p.Hosts {
+		if !cmutil.IsEmpty(v.Ip) {
+			ipMap[v.BkCloudId] = append(ipMap[v.BkCloudId], v.Ip)
+		}
+	}
+	return
+}
+
 func (p ImportMachParam) getHostIds() (hostIds []int) {
 	for _, v := range p.Hosts {
 		if v.HostId > 0 {
@@ -83,17 +93,20 @@ func (p ImportMachParam) getHostIds() (hostIds []int) {
 
 func (p *ImportMachParam) existCheck() (err error) {
 	var alreadyExistRs []model.TbRpDetail
-	err = model.DB.Self.Table(model.TbRpDetailName()).Where("bk_cloud_id = ? and ip in (?)", p.BkCloudId, p.getIps()).
-		Scan(&alreadyExistRs).Error
-	if err != nil {
-		return errno.ErrDBQuery.Add(err.Error())
-	}
-	if len(alreadyExistRs) > 0 {
-		errMsg := "already exist:\n "
-		for _, r := range alreadyExistRs {
-			errMsg += fmt.Sprintf(" bk_cloud_id:%d,ip:%s \n", r.BkCloudID, r.IP)
+	ipmap := p.getIpsByCloudId()
+	for cloudId, ips := range ipmap {
+		err = model.DB.Self.Table(model.TbRpDetailName()).Where("bk_cloud_id = ? and ip in (?)", cloudId, ips).
+			Scan(&alreadyExistRs).Error
+		if err != nil {
+			return errno.ErrDBQuery.Add(err.Error())
 		}
-		return fmt.Errorf(errMsg)
+		if len(alreadyExistRs) > 0 {
+			errMsg := "already exist:\n "
+			for _, r := range alreadyExistRs {
+				errMsg += fmt.Sprintf(" bk_cloud_id:%d,ip:%s \n", r.BkCloudID, r.IP)
+			}
+			return fmt.Errorf(errMsg)
+		}
 	}
 	return nil
 }
@@ -184,7 +197,14 @@ func Doimport(param ImportMachParam) (resp *ImportHostResp, err error) {
 		ccHostsInfo, notFoundHosts, derr = bk.BatchQueryHostsInfo(param.BkBizId, targetHosts)
 	}()
 	// get disk information in batch
-	diskResp, err = bk.GetDiskInfo(targetHosts, param.BkCloudId, param.BkBizId)
+	var ipList []bk.IPList
+	for _, host := range param.Hosts {
+		ipList = append(ipList, bk.IPList{
+			IP:        host.Ip,
+			BkCloudID: host.BkCloudId,
+		})
+	}
+	diskResp, err = bk.GetDiskInfo(ipList, param.BkBizId)
 	if err != nil {
 		logger.Error("query host cc info failed %s", err.Error())
 		return resp, err
@@ -217,12 +237,12 @@ func Doimport(param ImportMachParam) (resp *ImportHostResp, err error) {
 	logger.Info("more info %v", ccHostsInfo)
 	for _, h := range ccHostsInfo {
 		delete(hostsMap, h.InnerIP)
-		el := transHostInfoToDbModule(h, param.BkCloudId, param.BkBizId, rstypes, bizJson, lableJson)
+		el := transHostInfoToDbModule(h, h.BkCloudId, param.BkBizId, rstypes, bizJson, lableJson)
 		el.SetMore(h.InnerIP, diskResp.IpLogContentMap)
 		// gse agent 1.0的 agent 是用 cloudid:ip
 		gseAgentId := h.BkAgentId
 		if cmutil.IsEmpty(gseAgentId) {
-			gseAgentId = fmt.Sprintf("%d:%s", param.BkCloudId, h.InnerIP)
+			gseAgentId = fmt.Sprintf("%d:%s", h.BkCloudId, h.InnerIP)
 		}
 		gseAgentIds = append(gseAgentIds, gseAgentId)
 		el.BkAgentId = gseAgentId
