@@ -90,7 +90,9 @@
               <FunController
                 controller-id="toolbox"
                 module-id="mysql">
-                <li class="main-views-toolbox-split">
+                <li
+                  v-show="mysqlToolboxFavorMenus.length > 0"
+                  class="main-views-toolbox-split">
                   <span class="split-line" />
                 </li>
                 <BkSubmenu
@@ -122,6 +124,7 @@
                 </BkMenuItem>
               </FunController>
             </BkMenuGroup>
+            <div class="main-views-space-line" />
             <FunController
               controller-id="tendbcluster"
               module-id="mysql">
@@ -187,7 +190,9 @@
                 </span>
               </BkMenuItem>
             </BkSubmenu>
-            <li class="main-views-toolbox-split">
+            <li
+              v-show="spiderToolboxFavorMenus.length > 0"
+              class="main-views-toolbox-split">
               <span class="split-line" />
             </li>
             <BkSubmenu
@@ -218,6 +223,7 @@
               </span>
             </BkMenuItem>
           </FunController>
+          <div class="main-views-space-line" />
           <FunController module-id="redis">
             <BkMenuGroup name="Redis">
               <BkMenuItem key="DatabaseRedis">
@@ -233,7 +239,9 @@
               <FunController
                 controller-id="toolbox"
                 module-id="redis">
-                <li class="main-views-toolbox-split">
+                <li
+                  v-show="redisToolboxFavorMenus.length > 0"
+                  class="main-views-toolbox-split">
                   <span class="split-line" />
                 </li>
                 <BkSubmenu
@@ -266,6 +274,7 @@
               </FunController>
             </BkMenuGroup>
           </FunController>
+          <div class="main-views-space-line" />
           <FunController
             controller-id="es"
             module-id="bigdata">
@@ -282,6 +291,7 @@
               </BkMenuItem>
             </BkMenuGroup>
           </FunController>
+          <div class="main-views-space-line" />
           <FunController
             controller-id="hdfs"
             module-id="bigdata">
@@ -298,6 +308,7 @@
               </BkMenuItem>
             </BkMenuGroup>
           </FunController>
+          <div class="main-views-space-line" />
           <FunController
             controller-id="kafka"
             module-id="bigdata">
@@ -314,6 +325,7 @@
               </BkMenuItem>
             </BkMenuGroup>
           </FunController>
+          <div class="main-views-space-line" />
           <FunController
             controller-id="pulsar"
             module-id="bigdata">
@@ -330,6 +342,7 @@
               </BkMenuItem>
             </BkMenuGroup>
           </FunController>
+          <div class="main-views-space-line" />
           <FunController
             controller-id="influxdb"
             module-id="bigdata">
@@ -346,6 +359,7 @@
               </BkMenuItem>
             </BkMenuGroup>
           </FunController>
+          <div class="main-views-space-line" />
           <BkMenuGroup :name="$t('配置管理')">
             <BkMenuItem key="DbConfigure">
               <template #icon>
@@ -358,6 +372,7 @@
               </span>
             </BkMenuItem>
           </BkMenuGroup>
+          <div class="main-views-space-line" />
           <FunController module-id="monitor">
             <BkMenuGroup :name="$t('监控告警')">
               <FunController
@@ -390,7 +405,7 @@
               </FunController>
             </BkMenuGroup>
           </FunController>
-
+          <div class="main-views-space-line" />
           <BkMenuGroup :name="$t('任务中心')">
             <BkMenuItem key="DatabaseMission">
               <template #icon>
@@ -403,6 +418,7 @@
               </span>
             </BkMenuItem>
           </BkMenuGroup>
+          <div class="main-views-space-line" />
           <BkMenuGroup :name="$t('安全')">
             <BkMenuItem key="DBPasswordTemporaryModify">
               <template #icon>
@@ -415,6 +431,7 @@
               </span>
             </BkMenuItem>
           </BkMenuGroup>
+          <div class="main-views-space-line" />
           <BkMenuGroup :name="$t('设置')">
             <BkMenuItem key="DatabaseStaff">
               <template #icon>
@@ -564,12 +581,19 @@
 <style lang="less">
 .main-views-toolbox-split {
   width: 100%;
-  padding: 0 16px;
+  height: 0;
+  padding: 0 20px 0 60px;
 
   .split-line {
     display: inline-block;
     width: 100%;
-    border-bottom: solid #35415D 1px;
+    margin-bottom: 15px;
+    border-bottom: solid #29344c 1px;
   }
+}
+
+.main-views-space-line {
+  width: 100%;
+  height: 16px;
 }
 </style>

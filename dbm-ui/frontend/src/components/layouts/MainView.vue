@@ -95,6 +95,12 @@
           }
         }
       }
+
+      .bk-menu-group {
+        .group-name {
+          color: #788499
+        }
+      }
     }
 
     &__toggle {
