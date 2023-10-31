@@ -1,15 +1,12 @@
 <template>
   <RenderDynamicTable
-    :service="getReport"
-    v-bind="attrs" />
-  <RenderDynamicTable
-    :service="getReport"
+    :service="getMetaCheckInsganceBelong"
     v-bind="attrs" />
 </template>
 <script setup lang="tsx">
   import { useAttrs } from 'vue';
 
-  import { getReport } from '@services/report';
+  import { getMetaCheckInsganceBelong } from '@services/report';
 
   import RenderDynamicTable from '../RenderDynamicTable.vue';
 
