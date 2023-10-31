@@ -39,7 +39,7 @@ dependencies:
   - condition: dbpartition.enabled
     name: dbpartition
     repository: file://charts/dbpartition
-    version: 0.1.7
+    version: 0.1.8
   - condition: db-simulation.enabled
     name: db-simulation
     repository: file://charts/db-simulation
@@ -79,5 +79,5 @@ dependencies:
 description: A Helm chart for bkdbm
 name: bk-dbm
 type: application
-version: 1.2.0-alpha.71
-appVersion: 1.2.0-alpha.71
+version: 1.2.0-alpha.72
+appVersion: 1.2.0-alpha.72
