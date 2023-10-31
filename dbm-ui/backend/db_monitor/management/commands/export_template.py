@@ -28,7 +28,7 @@ class Command(BaseCommand):
 
     COLLECT_FIELDS = [
         "name",
-        "short_name",
+        "machine_types",
         "bk_biz_id",
         "plugin_id",
         "db_type",
@@ -70,7 +70,7 @@ class Command(BaseCommand):
                 template = model_to_dict(template, fields=self.COLLECT_FIELDS)
                 template["version"] = template.get("version", 1)
                 template_json = json.dumps(template, indent=2)
-                template_file_name = "{db_type}.{name}.{short_name}.json".format(**template)
+                template_file_name = "{db_type}.{name}.json".format(**template)
                 with open(os.path.join(TPLS_COLLECT_DIR, template_file_name), "w") as template_file:
                     template_file.write(template_json)
                     print(f"export db: {db_type}'s {template_type}: {template['name']}")

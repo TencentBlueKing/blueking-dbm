@@ -133,10 +133,13 @@ class AppMonitorTopo(AuditedModel):
         ]
 
     @classmethod
-    def get_set_by_plugin_id(cls, plugin_id):
-        return list(
-            cls.objects.filter(monitor_plugin_id__contains=plugin_id).values_list("bk_set_id", "bk_biz_id").distinct()
-        )
+    def get_set_by_plugin_id(cls, plugin_id, machine_types=None):
+        print(plugin_id, machine_types)
+        qs = cls.objects.filter(monitor_plugin_id__contains=plugin_id)
+        if machine_types:
+            qs = qs.filter(machine_type__in=machine_types)
+
+        return list(qs.values_list("bk_set_id", "bk_biz_id").distinct())
 
     @classmethod
     @transaction.atomic
