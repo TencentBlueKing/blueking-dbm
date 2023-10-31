@@ -12,339 +12,345 @@
 -->
 
 <template>
-  <div class="apply-instance">
-    <DbForm
-      ref="formRef"
-      auto-label-width
-      class="apply-form"
-      :model="formdata"
-      :rules="rules">
-      <DbCard :title="$t('部署模块')">
-        <BusinessItems
-          v-model:app-abbr="formdata.details.db_app_abbr"
-          v-model:biz-id="formdata.bk_biz_id"
-          @change-biz="handleChangeBiz" />
-        <BkFormItem
-          ref="moduleRef"
-          class="is-required"
-          :description="$t('表示DB的用途')"
-          :label="$t('DB模块名')"
-          property="details.db_module_id">
-          <BkSelect
-            v-model="formdata.details.db_module_id"
-            class="item-input"
-            :clearable="false"
-            filterable
-            :input-search="false"
-            :loading="loading.modules"
-            style="display: inline-block;">
-            <BkOption
-              v-for="(item) in fetchState.moduleList"
-              :key="item.db_module_id"
-              :label="item.name"
-              :value="item.db_module_id" />
-            <template #extension>
-              <p
-                v-bk-tooltips.top="{
-                  content: $t('请先选择所属业务'),
-                  disabled: !!formdata.bk_biz_id
-                }">
-                <BkButton
-                  class="create-module"
-                  :disabled="!formdata.bk_biz_id"
-                  text
-                  @click="handleCreateModule">
-                  <i class="db-icon-plus-circle" />
-                  {{ $t('新建模块') }}
-                </BkButton>
-              </p>
-            </template>
-          </BkSelect>
-          <span
-            v-if="formdata.bk_biz_id"
-            v-bk-tooltips.top="$t('刷新获取最新DB模块名')"
-            class="refresh-module"
-            @click="fetchModules(Number(formdata.bk_biz_id))">
-            <i class="db-icon-refresh" />
-          </span>
-          <div
-            v-if="formdata.details.db_module_id"
-            class="apply-form__database">
-            <BkLoading :loading="loading.levelConfigs">
-              <div v-if="fetchState.levelConfigList.length">
-                <div
-                  v-for="(item, index) in fetchState.levelConfigList"
-                  :key="index"
-                  class="apply-form__database-item">
-                  <span class="apply-form__database-label">{{ item.description || item.conf_name }}:</span>
-                  <span class="apply-form__database-value">{{ item.conf_value }}</span>
+  <SmartAction :offset-target="getSmartActionOffsetTarget">
+    <div class="apply-instance">
+      <DbForm
+        ref="formRef"
+        auto-label-width
+        class="apply-form"
+        :model="formdata"
+        :rules="rules">
+        <DbCard :title="$t('部署模块')">
+          <BusinessItems
+            v-model:app-abbr="formdata.details.db_app_abbr"
+            v-model:biz-id="formdata.bk_biz_id"
+            @change-biz="handleChangeBiz" />
+          <BkFormItem
+            ref="moduleRef"
+            class="is-required"
+            :description="$t('表示DB的用途')"
+            :label="$t('DB模块名')"
+            property="details.db_module_id">
+            <BkSelect
+              v-model="formdata.details.db_module_id"
+              class="item-input"
+              :clearable="false"
+              filterable
+              :input-search="false"
+              :loading="loading.modules"
+              style="display: inline-block;">
+              <BkOption
+                v-for="(item) in fetchState.moduleList"
+                :key="item.db_module_id"
+                :label="item.name"
+                :value="item.db_module_id" />
+              <template #extension>
+                <p
+                  v-bk-tooltips.top="{
+                    content: $t('请先选择所属业务'),
+                    disabled: !!formdata.bk_biz_id
+                  }">
+                  <BkButton
+                    class="create-module"
+                    :disabled="!formdata.bk_biz_id"
+                    text
+                    @click="handleCreateModule">
+                    <i class="db-icon-plus-circle" />
+                    {{ $t('新建模块') }}
+                  </BkButton>
+                </p>
+              </template>
+            </BkSelect>
+            <span
+              v-if="formdata.bk_biz_id"
+              v-bk-tooltips.top="$t('刷新获取最新DB模块名')"
+              class="refresh-module"
+              @click="fetchModules(Number(formdata.bk_biz_id))">
+              <i class="db-icon-refresh" />
+            </span>
+            <div
+              v-if="formdata.details.db_module_id"
+              class="apply-form__database">
+              <BkLoading :loading="loading.levelConfigs">
+                <div v-if="fetchState.levelConfigList.length">
+                  <div
+                    v-for="(item, index) in fetchState.levelConfigList"
+                    :key="index"
+                    class="apply-form__database-item">
+                    <span class="apply-form__database-label">{{ item.description || item.conf_name }}:</span>
+                    <span class="apply-form__database-value">{{ item.conf_value }}</span>
+                  </div>
                 </div>
-              </div>
-              <div
-                v-else
-                class="no-items">
-                {{ $t('该模块暂未绑定数据库相关配置') }}
-                <span
-                  class="bind-module"
-                  @click="handleBindConfig">{{ isBindModule ? $t('已完成') : $t('去绑定') }}</span>
-              </div>
-              <div
-                v-if="!fetchState.levelConfigList.length"
-                class="bk-form-error mt-10">
-                {{ $t('需要绑定数据库相关配置') }}
-              </div>
-            </BkLoading>
-          </div>
-        </BkFormItem>
-        <CloudItem
-          v-model="formdata.details.bk_cloud_id"
-          @change="handleChangeCloud" />
-      </DbCard>
-      <DbCard :title="$t('数据库部署信息')">
-        <BkFormItem
-          v-if="!isSingleType"
-          :label="$t('Proxy起始端口')"
-          property="details.start_proxy_port"
-          required>
-          <BkInput
-            v-model="formdata.details.start_proxy_port"
-            class="inline-box"
-            :max="65535"
-            :min="1025"
-            type="number" />
-          <span class="apply-form__tips ml-10">{{ $t('多集群部署时_系统将从起始端口开始自动分配') }}</span>
-        </BkFormItem>
-        <BkFormItem
-          :label="$t('MySQL起始端口')"
-          property="details.start_mysql_port"
-          required>
-          <BkInput
-            v-model="formdata.details.start_mysql_port"
-            class="inline-box"
-            :max="65535"
-            :min="1025"
-            type="number" />
-          <span
-            v-if="isSingleType"
-            class="apply-form__tips ml-10">{{ $t('多实例部署时_系统将从起始端口开始自动分配') }}</span>
-          <span
-            v-else
-            class="apply-form__tips ml-10">{{ $t('多集群部署时_系统将从起始端口开始自动分配') }}</span>
-        </BkFormItem>
-      </DbCard>
-      <DbCard :title="$t('需求信息')">
-        <BkFormItem
-          :label="formItemLabels.clusterCount"
-          property="details.cluster_count"
-          required>
-          <BkInput
-            v-model="formdata.details.cluster_count"
-            class="inline-box"
-            :min="1"
-            :placeholder="$t('请输入')"
-            type="number"
-            @blur="handleCalcIps"
-            @change="handleChangeClusterCount" />
-        </BkFormItem>
-        <BkFormItem
-          :label="formItemLabels.instNums"
-          property="details.inst_num"
-          required>
-          <BkInput
-            v-model="formdata.details.inst_num"
-            class="inline-box"
-            :max="formdata.details.cluster_count"
-            :min="1"
-            type="number"
-            @blur="handleCalcIps" />
-        </BkFormItem>
-        <BkFormItem
-          class="service"
-          :label="$t('域名设置')"
-          required>
-          <DomainTable
-            v-model:domains="formdata.details.domains"
-            :formdata="formdata"
-            :module-name="moduleName"
-            :ticket-type="type" />
-        </BkFormItem>
-        <BkFormItem
-          :label="$t('服务器选择')"
-          property="details.ip_source"
-          required>
-          <BkRadioGroup
-            v-model="formdata.details.ip_source">
-            <BkRadioButton label="resource_pool">
-              {{ $t('自动从资源池匹配') }}
-            </BkRadioButton>
-            <BkRadioButton label="manual_input">
-              {{ $t('手动录入IP') }}
-            </BkRadioButton>
-          </BkRadioGroup>
-        </BkFormItem>
-        <Transition
-          mode="out-in"
-          name="dbm-fade">
-          <div
-            v-if="formdata.details.ip_source === 'manual_input'"
-            class="mb-24">
-            <DbFormItem
-              v-if="!isSingleType"
-              ref="proxyRef"
-              label="Proxy"
-              property="details.nodes.proxy"
-              required>
-              <IpSelector
-                v-model:show-dialog="isShowIpSelector"
-                :biz-id="formdata.bk_biz_id"
-                :cloud-info="cloudInfo"
-                :data="formdata.details.nodes.proxy"
-                :disable-dialog-submit-method="disableHostSubmitMethods.proxy"
-                :disable-host-method="proxyDisableHostMethod"
-                @change="handleProxyIpChange">
-                <template #desc>
-                  {{ $t('需n台', { n: hostNums }) }}
-                </template>
-                <template #submitTips="{ hostList }">
-                  <I18nT
-                    keypath="需n台_已选n台"
-                    style="font-size: 14px; color: #63656e;"
-                    tag="span">
-                    <span style="font-weight: bold; color: #2dcb56;"> {{ hostNums }} </span>
-                    <span style="font-weight: bold; color: #3a84ff;"> {{ hostList.length }} </span>
-                  </I18nT>
-                </template>
-              </IpSelector>
-            </DbFormItem>
-            <DbFormItem
-              ref="backendRef"
-              :label="formItemLabels.backend"
-              property="details.nodes.backend"
-              required>
-              <IpSelector
-                v-model:show-dialog="isShowIpSelector"
-                :biz-id="formdata.bk_biz_id"
-                :cloud-info="cloudInfo"
-                :data="formdata.details.nodes.backend"
-                :disable-dialog-submit-method="disableHostSubmitMethods.backend"
-                :disable-host-method="backendDisableHostMethod"
-                @change="handleBackendIpChange">
-                <template #desc>
-                  {{ $t('需n台', { n: hostNums }) }}
-                </template>
-                <template #submitTips="{ hostList }">
-                  <I18nT
-                    keypath="需n台_已选n台"
-                    style="font-size: 14px; color: #63656e;"
-                    tag="span">
-                    <span style="font-weight: bold; color: #2dcb56;"> {{ hostNums }} </span>
-                    <span style="font-weight: bold; color: #3a84ff;"> {{ hostList.length }} </span>
-                  </I18nT>
-                </template>
-              </IpSelector>
-            </DbFormItem>
-          </div>
-          <div
-            v-else
-            class="mb-24">
-            <BkFormItem
+                <div
+                  v-else
+                  class="no-items">
+                  {{ $t('该模块暂未绑定数据库相关配置') }}
+                  <span
+                    class="bind-module"
+                    @click="handleBindConfig">{{ isBindModule ? $t('已完成') : $t('去绑定') }}</span>
+                </div>
+                <div
+                  v-if="!fetchState.levelConfigList.length"
+                  class="bk-form-error mt-10">
+                  {{ $t('需要绑定数据库相关配置') }}
+                </div>
+              </BkLoading>
+            </div>
+          </BkFormItem>
+          <CloudItem
+            v-model="formdata.details.bk_cloud_id"
+            @change="handleChangeCloud" />
+        </DbCard>
+        <DbCard :title="$t('数据库部署信息')">
+          <BkFormItem
+            v-if="!isSingleType"
+            :label="$t('Proxy起始端口')"
+            property="details.start_proxy_port"
+            required>
+            <BkInput
+              v-model="formdata.details.start_proxy_port"
+              class="inline-box"
+              :max="65535"
+              :min="1025"
+              type="number" />
+            <span class="apply-form__tips ml-10">{{ $t('多集群部署时_系统将从起始端口开始自动分配') }}</span>
+          </BkFormItem>
+          <BkFormItem
+            :label="$t('MySQL起始端口')"
+            property="details.start_mysql_port"
+            required>
+            <BkInput
+              v-model="formdata.details.start_mysql_port"
+              class="inline-box"
+              :max="65535"
+              :min="1025"
+              type="number" />
+            <span
               v-if="isSingleType"
-              :label="$t('后端存储资源规格')"
-              property="details.resource_spec.single.spec_id"
-              required>
-              <SpecSelector
-                ref="specSingleRef"
-                v-model="formdata.details.resource_spec.single.spec_id"
-                :biz-id="formdata.bk_biz_id"
-                :cloud-id="formdata.details.bk_cloud_id"
-                :cluster-type="ClusterTypes.TENDBSINGLE"
-                machine-type="single"
-                style="width: 435px;" />
-            </BkFormItem>
-            <template v-else>
-              <BkFormItem
-                :label="$t('Proxy存储资源规格')"
-                property="details.resource_spec.proxy.spec_id"
+              class="apply-form__tips ml-10">{{ $t('多实例部署时_系统将从起始端口开始自动分配') }}</span>
+            <span
+              v-else
+              class="apply-form__tips ml-10">{{ $t('多集群部署时_系统将从起始端口开始自动分配') }}</span>
+          </BkFormItem>
+        </DbCard>
+        <DbCard :title="$t('需求信息')">
+          <BkFormItem
+            :label="formItemLabels.clusterCount"
+            property="details.cluster_count"
+            required>
+            <BkInput
+              v-model="formdata.details.cluster_count"
+              class="inline-box"
+              :min="1"
+              :placeholder="$t('请输入')"
+              type="number"
+              @blur="handleCalcIps"
+              @change="handleChangeClusterCount" />
+          </BkFormItem>
+          <BkFormItem
+            :label="formItemLabels.instNums"
+            property="details.inst_num"
+            required>
+            <BkInput
+              v-model="formdata.details.inst_num"
+              class="inline-box"
+              :max="formdata.details.cluster_count"
+              :min="1"
+              type="number"
+              @blur="handleCalcIps" />
+          </BkFormItem>
+          <BkFormItem
+            class="service"
+            :label="$t('域名设置')"
+            required>
+            <DomainTable
+              v-model:domains="formdata.details.domains"
+              :formdata="formdata"
+              :module-name="moduleName"
+              :ticket-type="type" />
+          </BkFormItem>
+          <BkFormItem
+            :label="$t('服务器选择')"
+            property="details.ip_source"
+            required>
+            <BkRadioGroup
+              v-model="formdata.details.ip_source">
+              <BkRadioButton label="resource_pool">
+                {{ $t('自动从资源池匹配') }}
+              </BkRadioButton>
+              <BkRadioButton label="manual_input">
+                {{ $t('手动录入IP') }}
+              </BkRadioButton>
+            </BkRadioGroup>
+          </BkFormItem>
+          <Transition
+            mode="out-in"
+            name="dbm-fade">
+            <div
+              v-if="formdata.details.ip_source === 'manual_input'"
+              class="mb-24">
+              <DbFormItem
+                v-if="!isSingleType"
+                ref="proxyRef"
+                label="Proxy"
+                property="details.nodes.proxy"
                 required>
-                <SpecSelector
-                  ref="specProxyRef"
-                  v-model="formdata.details.resource_spec.proxy.spec_id"
+                <IpSelector
                   :biz-id="formdata.bk_biz_id"
-                  :cloud-id="formdata.details.bk_cloud_id"
-                  :cluster-type="ClusterTypes.TENDBHA"
-                  machine-type="proxy"
-                  style="width: 435px;" />
-              </BkFormItem>
+                  :cloud-info="cloudInfo"
+                  :data="formdata.details.nodes.proxy"
+                  :disable-dialog-submit-method="disableHostSubmitMethods.proxy"
+                  :disable-host-method="proxyDisableHostMethod"
+                  @change="handleProxyIpChange">
+                  <template #desc>
+                    {{ $t('需n台', { n: hostNums }) }}
+                  </template>
+                  <template #submitTips="{ hostList }">
+                    <I18nT
+                      keypath="需n台_已选n台"
+                      style="font-size: 14px; color: #63656e;"
+                      tag="span">
+                      <span style="font-weight: bold; color: #2dcb56;"> {{ hostNums }} </span>
+                      <span style="font-weight: bold; color: #3a84ff;"> {{ hostList.length }} </span>
+                    </I18nT>
+                  </template>
+                </IpSelector>
+              </DbFormItem>
+              <DbFormItem
+                ref="backendRef"
+                :label="formItemLabels.backend"
+                property="details.nodes.backend"
+                required>
+                <IpSelector
+                  :biz-id="formdata.bk_biz_id"
+                  :cloud-info="cloudInfo"
+                  :data="formdata.details.nodes.backend"
+                  :disable-dialog-submit-method="disableHostSubmitMethods.backend"
+                  :disable-host-method="backendDisableHostMethod"
+                  @change="handleBackendIpChange">
+                  <template #desc>
+                    {{ $t('需n台', { n: hostNums }) }}
+                  </template>
+                  <template #submitTips="{ hostList }">
+                    <I18nT
+                      keypath="需n台_已选n台"
+                      style="font-size: 14px; color: #63656e;"
+                      tag="span">
+                      <span style="font-weight: bold; color: #2dcb56;"> {{ hostNums }} </span>
+                      <span style="font-weight: bold; color: #3a84ff;"> {{ hostList.length }} </span>
+                    </I18nT>
+                  </template>
+                </IpSelector>
+              </DbFormItem>
+            </div>
+            <div
+              v-else
+              class="mb-24">
               <BkFormItem
+                v-if="isSingleType"
                 :label="$t('后端存储资源规格')"
-                property="details.resource_spec.backend.spec_id"
+                property="details.resource_spec.single.spec_id"
                 required>
                 <SpecSelector
-                  ref="specBackendRef"
-                  v-model="formdata.details.resource_spec.backend.spec_id"
+                  ref="specSingleRef"
+                  v-model="formdata.details.resource_spec.single.spec_id"
                   :biz-id="formdata.bk_biz_id"
                   :cloud-id="formdata.details.bk_cloud_id"
-                  :cluster-type="ClusterTypes.TENDBHA"
-                  machine-type="backend"
+                  :cluster-type="ClusterTypes.TENDBSINGLE"
+                  machine-type="single"
                   style="width: 435px;" />
               </BkFormItem>
-            </template>
-          </div>
-        </Transition>
-        <BkFormItem :label="$t('备注')">
-          <BkInput
-            v-model="formdata.remark"
-            :maxlength="100"
-            :placeholder="$t('请提供更多有用信息申请信息_以获得更快审批')"
-            style="width: 655px;"
-            type="textarea" />
-        </BkFormItem>
-      </DbCard>
-    </DbForm>
-    <div class="absolute-footer">
-      <BkButton
-        :loading="baseState.isSubmitting"
-        theme="primary"
-        @click="handleSubmit">
-        {{ $t('提交') }}
-      </BkButton>
-      <BkButton @click="handleShowPreview">
-        {{ $t('预览') }}
-      </BkButton>
-      <BkButton
-        :disabled="baseState.isSubmitting"
-        @click="handleResetFormdata">
-        {{ $t('重置') }}
-      </BkButton>
-      <BkButton
-        :disabled="baseState.isSubmitting"
-        @click="handleCancel">
-        {{ $t('取消') }}
-      </BkButton>
+              <template v-else>
+                <BkFormItem
+                  :label="$t('Proxy存储资源规格')"
+                  property="details.resource_spec.proxy.spec_id"
+                  required>
+                  <SpecSelector
+                    ref="specProxyRef"
+                    v-model="formdata.details.resource_spec.proxy.spec_id"
+                    :biz-id="formdata.bk_biz_id"
+                    :cloud-id="formdata.details.bk_cloud_id"
+                    :cluster-type="ClusterTypes.TENDBHA"
+                    machine-type="proxy"
+                    style="width: 435px;" />
+                </BkFormItem>
+                <BkFormItem
+                  :label="$t('后端存储资源规格')"
+                  property="details.resource_spec.backend.spec_id"
+                  required>
+                  <SpecSelector
+                    ref="specBackendRef"
+                    v-model="formdata.details.resource_spec.backend.spec_id"
+                    :biz-id="formdata.bk_biz_id"
+                    :cloud-id="formdata.details.bk_cloud_id"
+                    :cluster-type="ClusterTypes.TENDBHA"
+                    machine-type="backend"
+                    style="width: 435px;" />
+                </BkFormItem>
+              </template>
+            </div>
+          </Transition>
+          <BkFormItem :label="$t('备注')">
+            <BkInput
+              v-model="formdata.remark"
+              :maxlength="100"
+              :placeholder="$t('请提供更多有用信息申请信息_以获得更快审批')"
+              style="width: 655px;"
+              type="textarea" />
+          </BkFormItem>
+        </DbCard>
+      </DbForm>
     </div>
-    <!-- 预览功能 -->
-    <BkDialog
-      v-model:is-show="isShowPreview"
-      header-position="left"
-      :height="624"
-      :width="1180">
-      <template #header>
-        {{ $t('实例预览') }}
-        <span class="apply-dialog__quantity">{{ $t('共n条', { n: formdata.details.cluster_count }) }}</span>
-      </template>
-      <PreviewTable
-        :data="previewData"
-        :is-show-nodes="formdata.details.ip_source === 'manual_input'"
-        :is-single-type="isSingleType"
-        :nodes="previewNodes" />
-      <template #footer>
+    <template #action>
+      <div>
         <BkButton
-          @click="() => isShowPreview = false">
-          {{ $t('关闭') }}
+          :loading="baseState.isSubmitting"
+          theme="primary"
+          @click="handleSubmit">
+          {{ $t('提交') }}
         </BkButton>
-      </template>
-    </BkDialog>
-  </div>
+        <BkButton
+          class="ml-8"
+          @click="handleShowPreview">
+          {{ $t('预览') }}
+        </BkButton>
+        <BkButton
+          class="ml-8"
+          :disabled="baseState.isSubmitting"
+          @click="handleResetFormdata">
+          {{ $t('重置') }}
+        </BkButton>
+        <BkButton
+          class="ml-8"
+          :disabled="baseState.isSubmitting"
+          @click="handleCancel">
+          {{ $t('取消') }}
+        </BkButton>
+      </div>
+    </template>
+  </SmartAction>
+  <!-- 预览功能 -->
+  <BkDialog
+    v-model:is-show="isShowPreview"
+    header-position="left"
+    :height="624"
+    :width="1180">
+    <template #header>
+      {{ $t('实例预览') }}
+      <span class="apply-dialog__quantity">{{ $t('共n条', { n: formdata.details.cluster_count }) }}</span>
+    </template>
+    <PreviewTable
+      :data="previewData"
+      :is-show-nodes="formdata.details.ip_source === 'manual_input'"
+      :is-single-type="isSingleType"
+      :nodes="previewNodes" />
+    <template #footer>
+      <BkButton
+        @click="() => isShowPreview = false">
+        {{ $t('关闭') }}
+      </BkButton>
+    </template>
+  </BkDialog>
 </template>
 
 <script setup lang="tsx">
@@ -391,6 +397,7 @@
 
   const { t } = useI18n();
   const router = useRouter();
+  const getSmartActionOffsetTarget = () => document.querySelector('.bk-form-content');
 
   const specProxyRef = ref();
   const specBackendRef = ref();
@@ -399,7 +406,6 @@
   const proxyRef = ref();
   const moduleRef = ref();
   const isBindModule = ref(false);
-  const isShowIpSelector = ref(false);
 
   const cloudInfo = reactive({
     id: '' as number | string,

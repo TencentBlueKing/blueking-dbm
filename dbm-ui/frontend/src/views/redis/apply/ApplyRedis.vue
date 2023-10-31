@@ -105,7 +105,6 @@
               property="details.nodes.proxy"
               required>
               <IpSelector
-                v-model:show-dialog="isShowIpSelector"
                 :biz-id="state.formdata.bk_biz_id"
                 :cloud-info="cloudInfo"
                 :data="state.formdata.details.nodes.proxy"
@@ -151,7 +150,6 @@
               property="details.nodes.master"
               required>
               <IpSelector
-                v-model:show-dialog="isShowIpSelector"
                 :biz-id="state.formdata.bk_biz_id"
                 :cloud-info="cloudInfo"
                 :data="state.formdata.details.nodes.master"
@@ -178,7 +176,6 @@
               property="details.nodes.slave"
               required>
               <IpSelector
-                v-model:show-dialog="isShowIpSelector"
                 :biz-id="state.formdata.bk_biz_id"
                 :cloud-info="cloudInfo"
                 :data="state.formdata.details.nodes.slave"
@@ -361,7 +358,6 @@
   const specProxyRef = ref();
   const specBackendRef = ref();
   const capSpecsKey  = ref(generateId('CLUSTER_APPLAY_CAP_'));
-  const isShowIpSelector = ref(false);
 
   const renderRedisClusterTypes = computed(() => {
     const values = Object.values(redisClusterTypes);
