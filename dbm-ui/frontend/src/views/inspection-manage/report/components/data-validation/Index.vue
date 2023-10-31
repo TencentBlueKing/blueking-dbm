@@ -1,12 +1,18 @@
 <template>
   <RenderDynamicTable
-    :service="getReport"
+    :service="getChecksumReport"
+    v-bind="attrs" />
+  <RenderDynamicTable
+    :service="getChecksumInstance"
     v-bind="attrs" />
 </template>
 <script setup lang="tsx">
   import { useAttrs } from 'vue';
 
-  import { getReport } from '@services/report';
+  import {
+    getChecksumInstance,
+    getChecksumReport,
+  } from '@services/report';
 
   import RenderDynamicTable from '../RenderDynamicTable.vue';
 

@@ -23,15 +23,15 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import { getReport } from '@services/report';
+  import { getChecksumReport } from '@services/report';
 
   import DbStatus from '@components/db-status/index.vue';
 
   import BlockCard from './BlockCard.vue';
 
   interface Props {
-    searchParams: Record<string, any>,
-    service: (params: Props['searchParams']) => Promise<ServiceReturnType<typeof getReport>>
+    searchParams?: Record<string, any>,
+    service: (params: Props['searchParams']) => Promise<ServiceReturnType<typeof getChecksumReport>>
   }
 
   const props = defineProps<Props>();
