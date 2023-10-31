@@ -48,7 +48,7 @@
             "unit": "",
             "alias": "a",
             "functions": [],
-            "metric_id": "bk_monitor.exporter_dbm_hdfs_exporter.group1.hadoop_namenode_transactions_since_last_checkpoint",
+            "metric_id": "bk_monitor.exporter_dbm_hdfs_exporter.__default__.hadoop_namenode_transactions_since_last_checkpoint",
             "agg_method": "AVG",
             "data_label": "exporter_dbm_hdfs_exporter",
             "agg_interval": 60,
@@ -62,7 +62,7 @@
               "appid"
             ],
             "data_type_label": "time_series",
-            "result_table_id": "exporter_dbm_hdfs_exporter.group1",
+            "result_table_id": "exporter_dbm_hdfs_exporter.__default__",
             "data_source_label": "bk_monitor"
           },
           {
@@ -70,7 +70,7 @@
             "unit": "",
             "alias": "b",
             "functions": [],
-            "metric_id": "bk_monitor.exporter_dbm_hdfs_exporter.group1.hadoop_namenode_State",
+            "metric_id": "bk_monitor.exporter_dbm_hdfs_exporter.__default__.hadoop_namenode_State",
             "agg_method": "MIN",
             "data_label": "exporter_dbm_hdfs_exporter",
             "agg_interval": 60,
@@ -84,7 +84,7 @@
               "appid"
             ],
             "data_type_label": "time_series",
-            "result_table_id": "exporter_dbm_hdfs_exporter.group1",
+            "result_table_id": "exporter_dbm_hdfs_exporter.__default__",
             "data_source_label": "bk_monitor"
           }
         ],
@@ -306,6 +306,6 @@
   },
   "is_enabled": true,
   "monitor_indicator": "NameNode\u7f16\u8f91\u65e5\u5fd7\u6eda\u52a8\u64cd\u4f5c\u6570",
-  "version": 8,
+  "version": 10,
   "alert_source": "time_series"
 }

@@ -48,7 +48,7 @@
             "unit": "",
             "alias": "a",
             "functions": [],
-            "metric_id": "bk_monitor.exporter_dbm_mysqld_exporter.gstatus.mysql_global_status_threads_connected",
+            "metric_id": "bk_monitor.exporter_dbm_mysqld_exporter.__default__.mysql_global_status_threads_connected",
             "agg_method": "AVG",
             "agg_interval": 60,
             "metric_field": "mysql_global_status_threads_connected",
@@ -62,7 +62,7 @@
               "appid"
             ],
             "data_type_label": "time_series",
-            "result_table_id": "exporter_dbm_mysqld_exporter.gstatus",
+            "result_table_id": "exporter_dbm_mysqld_exporter.__default__",
             "data_source_label": "bk_monitor"
           },
           {
@@ -70,7 +70,7 @@
             "unit": "",
             "alias": "b",
             "functions": [],
-            "metric_id": "bk_monitor.exporter_dbm_mysqld_exporter.gvars.mysql_global_variables_max_connections",
+            "metric_id": "bk_monitor.exporter_dbm_mysqld_exporter.__default__.mysql_global_variables_max_connections",
             "agg_method": "AVG",
             "agg_interval": 60,
             "metric_field": "mysql_global_variables_max_connections",
@@ -84,7 +84,7 @@
               "appid"
             ],
             "data_type_label": "time_series",
-            "result_table_id": "exporter_dbm_mysqld_exporter.gvars",
+            "result_table_id": "exporter_dbm_mysqld_exporter.__default__",
             "data_source_label": "bk_monitor"
           }
         ],
@@ -296,6 +296,6 @@
   },
   "is_enabled": true,
   "monitor_indicator": "\u6570\u636e\u5e93\u8fde\u63a5\u6570\u5e73\u5747\u4f7f\u7528\u7387",
-  "version": 8,
+  "version": 10,
   "alert_source": "time_series"
 }

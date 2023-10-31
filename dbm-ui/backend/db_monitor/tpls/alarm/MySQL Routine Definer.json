@@ -236,6 +236,6 @@
   },
   "is_enabled": true,
   "monitor_indicator": "COUNT(routine-definer)",
-  "version": 8,
+  "version": 10,
   "alert_source": "event"
 }

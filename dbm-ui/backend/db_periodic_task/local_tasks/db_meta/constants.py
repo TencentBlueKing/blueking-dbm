@@ -45,21 +45,20 @@ QUERY_TEMPLATE = {
                 )
             ))""",
     },
-    # TODO: 待完善，从采集器出发，直接上报total
     ClusterType.TwemproxyTendisSSDInstance: {
         "range": 5,
-        "used": """sum by (cluster_domain) (
-            sum_over_time(
-                bkmonitor:exporter_dbm_redis_exporter:redis_rocksdb_datadir_size_kb{ instance_role="redis_master"}[1m]
-            ) * 1024)""",
-        "total": """sum by (cluster_domain) (
-            sum_over_time(
-                bkmonitor:dbm_system:disk:total{ instance_role="redis_master", mount_point=~"^/data|/data1$"}[1m]
-            ))""",
+        "used": """sum by (cluster_domain) (max by (cluster_domain,ip,mount_point) (
+            max_over_time(
+                bkmonitor:exporter_dbm_redis_exporter:redis_datadir_df_used_mb{instance_role="redis_master"}[1m]
+            ) * 1024 * 1024))""",
+        "total": """sum by (cluster_domain) (max by (cluster_domain,ip,mount_point) (
+            max_over_time(
+                bkmonitor:exporter_dbm_redis_exporter:redis_datadir_df_total_mb{instance_role="redis_master"}[1m]
+            ) * 1024 * 1024))""",
     },
     ClusterType.TenDBSingle: {
         "range": 15,
-        "used": """max by (cluster_domain) (
+        "used": """sum by (cluster_domain) (
                     max_over_time(
                         bkmonitor:exporter_dbm_mysqld_exporter:mysql_datadir_df_used_mb{instance_role="orphan"}[5m]
                     ) * 1024 * 1024 )""",

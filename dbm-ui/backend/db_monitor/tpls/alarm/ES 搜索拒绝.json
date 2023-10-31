@@ -26,7 +26,7 @@
             "data_source_label": "bk_monitor",
             "data_type_label": "time_series",
             "alias": "a",
-            "result_table_id": "exporter_dbm_elasticsearch_exporter.group6",
+            "result_table_id": "exporter_dbm_elasticsearch_exporter.__default__",
             "agg_method": "max_without_time",
             "agg_interval": 60,
             "agg_dimension": [
@@ -48,7 +48,7 @@
             ],
             "metric_field": "elasticsearch_thread_pool_rejected_count",
             "unit": "",
-            "metric_id": "bk_monitor.exporter_dbm_elasticsearch_exporter.group6.elasticsearch_thread_pool_rejected_count",
+            "metric_id": "bk_monitor.exporter_dbm_elasticsearch_exporter.__default__.elasticsearch_thread_pool_rejected_count",
             "index_set_id": "",
             "query_string": "*",
             "custom_event_name": "elasticsearch_thread_pool_rejected_count",
@@ -251,6 +251,6 @@
   },
   "is_enabled": true,
   "monitor_indicator": "MAX(ES\u7ebf\u7a0b\u6c60\u4e2d\u88ab\u62d2\u7edd\u7684\u4efb\u52a1\u6570)",
-  "version": 9,
+  "version": 10,
   "alert_source": "time_series"
 }

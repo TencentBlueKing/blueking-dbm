@@ -81,6 +81,9 @@ def update_host_dbmeta(bk_biz_id=None, cluster_id=None, cluster_ips=None, dbm_me
     TODO 应该挪到转移主机的时候做，每两分钟对全量主机更新一次 db_meta，太频繁了
     """
 
+    # 释放1周前报错的主机
+    SyncFailedMachine.objects.filter(create_at__lte=datetime.datetime.now() - datetime.timedelta(days=7)).delete()
+
     now = datetime.datetime.now()
     logger.info("[update_host_dbmeta] start update begin: %s", now)
 
@@ -118,13 +121,15 @@ def update_host_dbmeta(bk_biz_id=None, cluster_id=None, cluster_ips=None, dbm_me
             updates.append(
                 {"properties": {CC_HOST_DBM_ATTR: json.dumps(cc_dbm_meta)}, "bk_host_id": machine.bk_host_id}
             )
-        updated_hosts.extend(updates)
 
-        try:
-            CCApi.batch_update_host({"update": updates}, use_admin=True)
-        except Exception as e:  # pylint: disable=wildcard-import
+        updated_hosts.extend(updates)
+        res = CCApi.batch_update_host({"update": updates}, use_admin=True, raw=True)
+        # proxy request failed - 1199036
+        # failed to request http://bkauth - 1306000
+        # 权限校验失败 - 1199048
+        if res.get("code") not in [0, 1199036, 1199048, 1306000]:
+            logger.error("[update_host_dbmeta] batch update failed: %s (%s)", updates, res.get("code"))
             failed_updates.extend(updates)
-            logger.error("[update_host_dbmeta] batch update exception: %s (%s)", updates, e)
 
     # 容错处理：逐个更新，避免批量更新误伤有效ip
     for fail_update in failed_updates:
