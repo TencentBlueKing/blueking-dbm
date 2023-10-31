@@ -12,87 +12,34 @@
 -->
 
 <template>
-  <MainBreadcrumbs v-if="showDetails && showCustomBreadcrumbs">
-    <template #append>
-      <div class="status">
-        <span class="status__label">{{ $t('状态') }}：</span>
-        <span class="status__value">
-          <DbStatus :theme="statusInfo.theme">{{ statusInfo.text }}</DbStatus>
-        </span>
-      </div>
-    </template>
-  </MainBreadcrumbs>
   <StretchLayout
-    class="wrapper"
-    :has-details="showDetails"
-    :style="{'--top-height': showDetails ? '52px' : '0px'}">
-    <template #list="{ isCollapseRight, renderWidth, dragTrigger }">
-      <List
-        :drag-trigger="dragTrigger"
-        :is-full-width="isCollapseRight || !showDetails"
-        style="height: 100%; overflow: hidden;"
-        :width="renderWidth" />
+    :min-left-width="368"
+    name="spiderClusterList">
+    <template #list>
+      <List v-model:clusterId="clusterId" />
     </template>
-    <Details @change="handleChangeDetails" />
+    <template
+      v-if="clusterId"
+      #right>
+      <Detail :cluster-id="clusterId" />
+    </template>
   </StretchLayout>
 </template>
 
 <script setup lang="ts">
-  import { useI18n } from 'vue-i18n';
-
-  import type TendbClusterModel from '@services/model/spider/tendbCluster';
+  import { ref } from 'vue';
 
   import { useMainViewStore } from '@stores';
 
-  import MainBreadcrumbs from '@components/layouts/MainBreadcrumbs.vue';
   import StretchLayout from '@components/stretch-layout/StretchLayout.vue';
 
-  import Details from './details/Index.vue';
-  import List from './list/Index.vue';
-
-  const route = useRoute();
-  const { t } = useI18n();
+  import Detail from './components/detail/Index.vue';
+  import List from './components/list/Index.vue';
 
   // 设置主视图padding
   const mainViewStore = useMainViewStore();
   mainViewStore.hasPadding = false;
 
-  const showCustomBreadcrumbs = ref(false);
-  const clusterId = computed(() => route.query.cluster_id);
-  const showDetails = computed(() => !!clusterId.value);
-  const statusInfo = shallowRef({
-    theme: 'danger',
-    text: t('异常'),
-  });
+  const clusterId = ref(0);
 
-  const handleChangeDetails = (data: TendbClusterModel) => {
-    showCustomBreadcrumbs.value = true;
-    mainViewStore.customBreadcrumbs = true;
-    mainViewStore.$patch({
-      breadCrumbsTitle: t('xx集群详情【inst】', { title: t('TendbCluster分布式'), inst: data.master_domain }),
-    });
-
-    if (data.status === 'normal') {
-      statusInfo.value = {
-        theme: 'success',
-        text: t('正常'),
-      };
-    } else {
-      statusInfo.value = {
-        theme: 'danger',
-        text: t('异常'),
-      };
-    }
-  };
 </script>
-
-<style lang="less" scoped>
-.wrapper {
-  height: calc(100% - var(--top-height));
-}
-
-.status {
-  display: flex;
-  align-items: center;
-}
-</style>

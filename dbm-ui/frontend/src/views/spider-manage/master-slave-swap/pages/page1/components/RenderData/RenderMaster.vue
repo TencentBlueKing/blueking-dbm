@@ -42,15 +42,15 @@
 
   import { random } from '@utils';
 
-  import type { IHostData } from './Row.vue';
+  import type { IDataRow } from './Row.vue';
 
 
   interface Props {
-    modelValue?: IHostData
+    modelValue?: IDataRow['masterData']
   }
 
   interface Emits {
-    (e: 'change', value: IHostData): void
+    (e: 'change', value: Props['modelValue']): void
   }
 
   interface IValue {
@@ -122,6 +122,15 @@
     }
   }, {
     immediate: true,
+  });
+
+  watch(localValue, () => {
+    if (localValue.value
+      && props.modelValue
+      && localValue.value === props.modelValue.ip) {
+      return;
+    }
+    emits('change', undefined);
   });
 
 
