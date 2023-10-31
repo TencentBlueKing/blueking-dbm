@@ -54,8 +54,8 @@ class ImportResourceInitStepFlow(object):
         # 在执行sa初始化
         if env.SA_INIT_TEMPLATE_ID:
             ips = []
-            for ip in ip_list:
-                ips.append(ip)
+            for host_info in ip_list:
+                ips.append(host_info["bk_cloud_id"] + ":" + host_info["ip"])
             p.add_act(
                 act_name=_("执行sa初始化"),
                 act_component_code=SaInitComponent.code,
