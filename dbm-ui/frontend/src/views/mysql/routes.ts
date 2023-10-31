@@ -230,65 +230,40 @@ export const mysqlToolboxChildrenRouters: RouteRecordRaw[] = [
 
 const singleRoutes: RouteRecordRaw[] = [
   {
-    name: 'SelfServiceApplySingle',
-    path: 'apply/single',
-    meta: {
-      routeParentName: MainViewRouteNames.SelfService,
-      navName: t('申请MySQL单节点部署'),
-      activeMenu: 'SelfServiceApply',
-    },
-    props: {
-      type: TicketTypes.MYSQL_SINGLE_APPLY,
-    },
-    component: () => import('@views/mysql/apply/ApplyMySQL.vue'),
-  },
-  {
     name: 'DatabaseTendbsingle',
-    path: 'tendbsingle',
+    path: 'single-cluster-list',
     meta: {
       routeParentName: MainViewRouteNames.Database,
       navName: t('MySQL单节点_集群管理'),
       isMenu: true,
+      submenuId: 'database-tendbha-cluster',
     },
-    component: () => import('@views/mysql/cluster-management/ClusterSingle.vue'),
+    component: () => import('@views/mysql/single-cluster-list/Index.vue'),
   },
 ];
 
 const haRoutes: RouteRecordRaw[] = [
   {
-    name: 'SelfServiceApplyHa',
-    path: 'apply/ha',
-    meta: {
-      routeParentName: MainViewRouteNames.SelfService,
-      navName: t('申请MySQL高可用部署'),
-      activeMenu: 'SelfServiceApply',
-    },
-    props: {
-      type: TicketTypes.MYSQL_HA_APPLY,
-    },
-    component: () => import('@views/mysql/apply/ApplyMySQL.vue'),
-  },
-  {
     name: 'DatabaseTendbha',
-    path: 'tendbha',
+    path: 'ha-cluster-list',
     meta: {
       routeParentName: MainViewRouteNames.Database,
       navName: t('MySQL高可用集群_集群管理'),
       isMenu: true,
       submenuId: 'database-tendbha-cluster',
     },
-    component: () => import('@views/mysql/cluster-management/ClusterHa.vue'),
+    component: () => import('@views/mysql/ha-cluster-list/Index.vue'),
   },
   {
     name: 'DatabaseTendbhaInstance',
-    path: 'tendbha-instance',
+    path: 'ha-instance-list',
     meta: {
       routeParentName: MainViewRouteNames.Database,
       navName: t('MySQL高可用集群_实例视图'),
       isMenu: true,
       submenuId: 'database-tendbha-cluster',
     },
-    component: () => import('@views/mysql/cluster-management/ClusterHaInstance.vue'),
+    component: () => import('@views/mysql/ha-instance-list/Index.vue'),
   },
 ];
 
@@ -311,6 +286,32 @@ const mysqlToolboxRouters: RouteRecordRaw[] = [
 
 const commonRouters: RouteRecordRaw[] = [
   {
+    name: 'SelfServiceApplySingle',
+    path: 'apply/single',
+    meta: {
+      routeParentName: MainViewRouteNames.SelfService,
+      navName: t('申请MySQL单节点部署'),
+      activeMenu: 'SelfServiceApply',
+    },
+    props: {
+      type: TicketTypes.MYSQL_SINGLE_APPLY,
+    },
+    component: () => import('@views/mysql/apply/ApplyMySQL.vue'),
+  },
+  {
+    name: 'SelfServiceApplyHa',
+    path: 'apply/ha',
+    meta: {
+      routeParentName: MainViewRouteNames.SelfService,
+      navName: t('申请MySQL高可用部署'),
+      activeMenu: 'SelfServiceApply',
+    },
+    props: {
+      type: TicketTypes.MYSQL_HA_APPLY,
+    },
+    component: () => import('@views/mysql/apply/ApplyMySQL.vue'),
+  },
+  {
     name: 'SelfServiceCreateDbModule',
     path: 'create-db-module/:type/:bk_biz_id/',
     meta: {
@@ -331,33 +332,54 @@ const commonRouters: RouteRecordRaw[] = [
     component: () => import('@views/mysql/apply/CreateModule.vue'),
   },
   {
-    name: 'PermissionRules',
-    path: 'permission-rules',
+    name: 'MysqlManage',
+    path: 'mysql-manage',
     meta: {
       routeParentName: MainViewRouteNames.Database,
-      navName: t('MySQL_授权规则'),
-      isMenu: true,
-      submenuId: 'database-permission',
+      navName: t('Mysql 集群管理'),
     },
-    component: () => import('@views/mysql/permission/index.vue'),
+    redirect: {
+      name: 'DatabaseTendbha',
+    },
+    component: () => import('@views/mysql/Index.vue'),
+    children: [
+      {
+        name: 'PermissionRules',
+        path: 'permission-rules',
+        meta: {
+          routeParentName: MainViewRouteNames.Database,
+          navName: t('MySQL_授权规则'),
+          isMenu: true,
+          submenuId: 'database-permission',
+        },
+        component: () => import('@views/mysql/permission/index.vue'),
+      },
+    ],
   },
+
 ];
 
 export default function getRoutes(controller: Record<MySQLFunctions | 'mysql', boolean>) {
   // 关闭 mysql 功能
-  if (controller.mysql !== true) return [];
+  if (controller.mysql !== true) {
+    return [];
+  }
 
-  const renderRoutes = [...commonRouters];
+  const renderRoutes = commonRouters.find(item => item.name === 'MysqlManage');
+
+  if (!renderRoutes) {
+    return commonRouters;
+  }
 
   if (controller.tendbsingle) {
-    renderRoutes.push(...singleRoutes);
+    renderRoutes.children?.push(...singleRoutes);
   }
   if (controller.tendbha) {
-    renderRoutes.push(...haRoutes);
+    renderRoutes.children?.push(...haRoutes);
   }
   if (controller.toolbox) {
-    renderRoutes.push(...mysqlToolboxRouters);
+    renderRoutes.children?.push(...mysqlToolboxRouters);
   }
 
-  return renderRoutes;
+  return commonRouters;
 }

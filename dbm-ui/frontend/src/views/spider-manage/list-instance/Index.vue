@@ -13,16 +13,16 @@
 
 <template>
   <StretchLayout
-    class="wrapper"
-    :has-details="showDetails">
-    <template #list="{ isCollapseRight, renderWidth, dragTrigger }">
-      <List
-        :drag-trigger="dragTrigger"
-        :is-full-width="isCollapseRight || !showDetails"
-        style="height: 100%; overflow: hidden;"
-        :width="renderWidth" />
+    :min-left-width="368"
+    name="spiderClusterInstanceList">
+    <template #list>
+      <List v-model:instance-data="instanceData" />
     </template>
-    <Details />
+    <template
+      v-if="instanceData"
+      #right>
+      <Detail :instance-data="instanceData" />
+    </template>
   </StretchLayout>
 </template>
 
@@ -31,14 +31,13 @@
 
   import StretchLayout from '@components/stretch-layout/StretchLayout.vue';
 
-  import Details from './details/Index.vue';
-  import List from './list/Index.vue';
-
-  const route = useRoute();
+  import Detail from './components/detail/Index.vue';
+  import List from './components/list/Index.vue';
 
   // 设置主视图padding
   const mainViewStore = useMainViewStore();
   mainViewStore.hasPadding = false;
 
-  const showDetails = computed(() => Boolean(route.query.cluster_id && route.query.instance_address));
+  const instanceData = ref<{instanceAddress: string, clusterId: number}>();
+
 </script>

@@ -28,6 +28,7 @@ export * from './useProps';
 export * from './useSelectorDialogWidth';
 export * from './useSQLTaskNotify';
 export * from './useStickyFooter';
+export * from './useStretchLayout';
 export * from './useTableMaxHeight';
 export * from './useTableSettings';
 export * from './useTagsOverflow';
