@@ -130,7 +130,7 @@ def sync_plat_monitor_policy():
                 bk_biz_id=policy.bk_biz_id, db_type=policy.db_type, name=policy_name
             )
 
-            if synced_policy.version >= policy.version:
+            if synced_policy.version != policy.version:
                 logger.info("[sync_plat_monitor_policy] skip same version alarm: %s " % policy_name)
                 continue
 

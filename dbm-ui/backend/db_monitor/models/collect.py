@@ -45,8 +45,7 @@ class CollectTemplateBase(AuditedModel):
     db_type = models.CharField(
         _("DB类型"), choices=DBType.get_choices(), max_length=LEN_NORMAL, default=DBType.MySQL.value
     )
-    # 与INSTANCE_MONITOR_PLUGINS的name对应
-    short_name = models.CharField(max_length=LEN_MIDDLE, default="")
+    machine_types = models.JSONField(verbose_name=_("绑定machine"), default=list)
     details = models.JSONField(verbose_name=_("详情"), default=dict)
 
     # 支持版本管理
@@ -112,11 +111,11 @@ class CollectInstance(CollectTemplateBase):
                         db_type=template.db_type,
                         plugin_id=template.plugin_id,
                         name=template.name,
-                        short_name=template.short_name,
+                        machine_types=template.machine_types,
                     )
                     collect_params["id"] = collect_instance.collect_id
 
-                    if template.version <= collect_instance.version:
+                    if template.version != collect_instance.version:
                         logger.warning("[init_collect_strategy] skip update bkmonitor collector: %s " % template.name)
                         continue
 
@@ -143,10 +142,12 @@ class CollectInstance(CollectTemplateBase):
                     plugin_id=template.plugin_id,
                     target_nodes=[
                         {"bk_inst_id": bk_set_id, "bk_obj_id": "set", "bk_biz_id": bk_biz_id}
-                        for bk_set_id, bk_biz_id in AppMonitorTopo.get_set_by_plugin_id(plugin_id=template.plugin_id)
+                        for bk_set_id, bk_biz_id in AppMonitorTopo.get_set_by_plugin_id(
+                            plugin_id=template.plugin_id,
+                            machine_types=template.machine_types,
+                        )
                     ],
                 )
-
                 res = BKMonitorV3Api.save_collect_config(collect_params, use_admin=True)
 
                 # 实例化Rule
@@ -156,7 +157,7 @@ class CollectInstance(CollectTemplateBase):
                     db_type=template.db_type,
                     plugin_id=template.plugin_id,
                     name=template.name,
-                    short_name=template.short_name,
+                    machine_types=template.machine_types,
                 )
 
                 updated_collectors += 1
