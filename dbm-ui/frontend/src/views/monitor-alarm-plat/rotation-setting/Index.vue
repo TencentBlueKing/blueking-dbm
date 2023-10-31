@@ -33,7 +33,7 @@
   const tabs = [
     {
       value: 'mysql',
-      label: 'Mysql',
+      label: 'MySQL',
     },
     {
       value: 'tendbcluster',
@@ -53,11 +53,11 @@
     },
     {
       value: 'hdfs',
-      label: 'Hdfs',
+      label: 'HDFS',
     },
     {
       value: 'es',
-      label: 'Es',
+      label: 'ES',
     },
     {
       value: 'pulsar',
