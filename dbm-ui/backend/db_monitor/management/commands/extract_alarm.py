@@ -31,6 +31,7 @@ class Command(BaseCommand):
     def add_arguments(self, parser):
         parser.add_argument("db_type", choices=DBType.get_values(), type=str, help="db类型")
         parser.add_argument("bkmonitor_strategy_list", nargs="+", type=int, help="监控策略ID列表")
+        parser.add_argument("-c", "--custom-conditions", nargs="*", help="自定义过滤条件的key列表", type=str)
         parser.add_argument("-d", "--disabled", dest="is_disabled", action="store_true", help="disable by default")
 
     def to_template(self, db_type: str, instance: dict):
@@ -99,9 +100,10 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         bkmonitor_strategy_list = options["bkmonitor_strategy_list"]
+        custom_conditions = options["custom_conditions"] or []
         db_type = options["db_type"]
         is_disabled = options["is_disabled"]
-
+        print(custom_conditions)
         res = BKMonitorV3Api.search_alarm_strategy_v3(
             {
                 "page": 1,
@@ -143,6 +145,7 @@ class Command(BaseCommand):
             strategy_template["labels"] = sorted(set(strategy_template["labels"]))
 
             data_type_label = ""
+            custom_agg_conditions = []
             for item in strategy_template["items"]:
                 # 清空监控目标
                 item["target"] = []
@@ -178,19 +181,26 @@ class Command(BaseCommand):
                     if "agg_dimension" in query_config and "appid" not in query_config["agg_dimension"]:
                         query_config["agg_dimension"].append("appid")
 
+                    custom_agg_conditions = list(
+                        filter(lambda x: x["key"] in custom_conditions, query_config.get("agg_condition", []))
+                    )
+
             self.clear_id(strategy_template["items"])
 
-            with open(os.path.join(TPLS_ALARM_DIR, f"{template_name}_test.json"), "w") as template_file:
+            with open(os.path.join(TPLS_ALARM_DIR, f"{template_name}.json"), "w") as template_file:
+                is_enabled = not is_disabled
+                strategy_template["is_enabled"] = is_enabled
                 template_dict = OrderedDict(
                     {
                         "bk_biz_id": 0,
-                        "version": 0,
-                        "is_enabled": not is_disabled,
                         "name": template_name,
-                        "details": strategy_template,
                         "db_type": db_type,
-                        "alert_source": data_type_label,
+                        "details": strategy_template,
+                        "is_enabled": is_enabled,
                         "monitor_indicator": strategy_template["items"][0]["name"],
+                        "version": 0,
+                        "alert_source": data_type_label,
+                        "custom_conditions": custom_agg_conditions,
                     }
                 )
 

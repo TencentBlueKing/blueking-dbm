@@ -251,6 +251,7 @@
   },
   "is_enabled": true,
   "monitor_indicator": "MAX(ES\u7ebf\u7a0b\u6c60\u4e2d\u88ab\u62d2\u7edd\u4efb\u52a1\u6570)",
-  "version": 10,
-  "alert_source": "time_series"
+  "version": 11,
+  "alert_source": "time_series",
+  "custom_conditions": []
 }

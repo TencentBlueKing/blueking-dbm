@@ -115,7 +115,7 @@ class CollectInstance(CollectTemplateBase):
                     )
                     collect_params["id"] = collect_instance.collect_id
 
-                    if template.version != collect_instance.version:
+                    if template.version <= collect_instance.version:
                         logger.warning("[init_collect_strategy] skip update bkmonitor collector: %s " % template.name)
                         continue
 
