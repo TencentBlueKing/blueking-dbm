@@ -9,14 +9,14 @@ DEV_BUILD_FLAG = "-X ${MODULE}/cmd.version="develop" -X ${MODULE}/cmd.buildStamp
 
 .PHONY: release-bin
 release-bin:
-	@CGO_ENABLE=0 GOARCH=amd64 GOOS=linux go build -ldflags ${RELEASE_BUILD_FLAG} -o ${OUTPUT_DIR}/${$PROJ}
+	@CGO_ENABLED=0 GOARCH=amd64 GOOS=linux go build -ldflags ${RELEASE_BUILD_FLAG} -o ${OUTPUT_DIR}/${$PROJ}
 	@cp mysql-crond.conf.go.tpl $(OUTPUT_DIR)
 	@cp start.sh $(OUTPUT_DIR) && chmod +x $(OUTPUT_DIR)/start.sh
 	@tar -C ${OUTPUT_DIR} -zcf ${OUTPUT_DIR}/${PKG} mysql-crond mysql-crond.conf.go.tpl start.sh
 
 .PHONY: dev-bin
 dev-bin:
-	@CGO_ENABLE=0 go build -ldflags ${DEV_BUILD_FLAG} -o ${OUTPUT_DIR}/${$PROJ}
+	@CGO_ENABLED=0 go build -ldflags ${DEV_BUILD_FLAG} -o ${OUTPUT_DIR}/${$PROJ}
 	@cp mysql-crond.conf.go.tpl $(OUTPUT_DIR)
 	@cp start.sh $(OUTPUT_DIR)
 	@tar -C ${OUTPUT_DIR} -zcf ${OUTPUT_DIR}/${PKG} mysql-crond mysql-crond.conf.go.tpl start.sh
