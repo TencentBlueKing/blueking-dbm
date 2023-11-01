@@ -25,15 +25,19 @@
             :data="state.ticketData"
             width="30%" />
         </DbCard>
-        <DbCard
-          v-model:collapse="demandCollapse"
-          :class="{'is-fullscreen': isFullscreen}"
-          mode="collapse"
-          :title="$t('需求信息')">
-          <DemandInfo
-            :data="state.ticketData"
-            :is-loading="state.isLoading" />
-        </DbCard>
+        <Teleport
+          :disabled="!isFullscreen"
+          to="body">
+          <DbCard
+            v-model:collapse="demandCollapse"
+            :class="{'tickets-main-is-fullscreen' : isFullscreen}"
+            mode="collapse"
+            :title="$t('需求信息')">
+            <DemandInfo
+              :data="state.ticketData"
+              :is-loading="state.isLoading" />
+          </DbCard>
+        </Teleport>
         <DbCard
           class="ticket-flows"
           mode="collapse"
@@ -48,6 +52,7 @@
 <script setup lang="tsx">
   import { format } from 'date-fns';
   import { useI18n } from 'vue-i18n';
+  import type { LocationQueryValue } from 'vue-router';
 
   import TicketModel from '@services/model/ticket/ticket';
   import { getTicketDetails } from '@services/ticket';
@@ -67,23 +72,46 @@
 
   const props = defineProps<Props>();
 
+  /**
+   * 获取单据详情
+   */
+  const fetchTicketDetails = (id: number, isPoll = false) => {
+    state.isLoading = !isPoll;
+    getTicketDetails({ id })
+      .then((res) => {
+        state.ticketData = res;
+        // 设置轮询
+        if (currentScope?.active) {
+          !isActive.value && ['PENDING', 'RUNNING'].includes(state.ticketData?.status) && resume();
+        } else {
+          pause();
+        }
+      })
+      .catch(() => {
+        state.ticketData = null;
+      })
+      .finally(() => {
+        state.isLoading = false;
+      });
+  };
+
   const currentScope = getCurrentScope();
   const { t } = useI18n();
   const route = useRoute();
 
+  const isFullscreen = ref<LocationQueryValue | LocationQueryValue[]>();
+  const demandCollapse = ref(false);
   const state = reactive({
     isLoading: false,
     ticketData: null as TicketModel | null,
   });
-  const isFullscreen = computed(() => route.query.isFullscreen);
-  const demandCollapse = ref(false);
+
   // 轮询
   const { isActive, resume, pause } = useTimeoutPoll(() => {
     if (props.data) {
       fetchTicketDetails(props.data.id, true);
     }
   }, 10000);
-
 
   /**
    * 基础信息配置
@@ -129,29 +157,6 @@
     ],
   ];
 
-  /**
-   * 获取单据详情
-   */
-  const fetchTicketDetails = (id: number, isPoll = false) => {
-    state.isLoading = !isPoll;
-    getTicketDetails({ id })
-      .then((res) => {
-        state.ticketData = res;
-        // 设置轮询
-        if (currentScope?.active) {
-          !isActive.value && ['PENDING', 'RUNNING'].includes(state.ticketData?.status) && resume();
-        } else {
-          pause();
-        }
-      })
-      .catch(() => {
-        state.ticketData = null;
-      })
-      .finally(() => {
-        state.isLoading = false;
-      });
-  };
-
   watch(() => props.data?.id, (id) => {
     if (id) {
       state.ticketData = null;
@@ -164,20 +169,34 @@
       demandCollapse.value = true;
     }
   }, { immediate: true });
+
+  watch(() => route.query.isFullscreen, (value) => {
+    setTimeout(() => {
+      isFullscreen.value = value;
+    });
+  }, {
+    immediate: true,
+  });
+
+  const exitFullscreen = (e: KeyboardEvent) => {
+    if (e.keyCode === 27) {
+      isFullscreen.value = undefined;
+    }
+  };
+
+  onMounted(() => {
+    window.addEventListener('keydown', exitFullscreen);
+  });
+
+  onBeforeUnmount(() => {
+    window.removeEventListener('keydown', exitFullscreen);
+  });
+
 </script>
 
 <style lang="less" scoped>
 .ticket-details {
   padding: 24px;
-
-  :deep(.is-fullscreen) {
-    position: fixed;
-    top: 0;
-    right: 0;
-    z-index: 9999;
-    width: 100%;
-    height: 100%;
-  }
 
   .db-card {
     margin-bottom: 16px;
