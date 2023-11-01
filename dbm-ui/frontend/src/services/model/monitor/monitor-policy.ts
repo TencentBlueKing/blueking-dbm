@@ -15,6 +15,13 @@ export default class MonitorPolicy {
   bk_biz_id: number;  // 所属业务，等于0则属于平台策略
   creator: string;
   create_at: string;
+  custom_conditions: {
+    condition: string,
+    dimension_name: string,
+    key: string,
+    method: string,
+    value: string[],
+  }[];
   dispatch_group_id: number;
   db_type: string; // 所属db组件
   event_count: number; // 事件数量，-1代表未知，实际数量应为>=0
@@ -60,6 +67,7 @@ export default class MonitorPolicy {
     this.bk_biz_id = payload.bk_biz_id;
     this.creator = payload.creator;
     this.create_at = payload.create_at;
+    this.custom_conditions = payload.custom_conditions;
     this.dispatch_group_id = payload.dispatch_group_id;
     this.db_type = payload.db_type;
     this.event_count = payload.event_count;

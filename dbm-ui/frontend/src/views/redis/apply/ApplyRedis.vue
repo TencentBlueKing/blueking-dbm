@@ -87,12 +87,18 @@
               v-model="state.formdata.details.ip_source"
               class="item-input"
               @change="fetchCapSpecs(state.formdata.details.city_code)">
+              <!-- 暂时去掉手动录入IP -->
               <BkRadioButton
+                :key="redisIpSources.resource_pool.id"
+                :label="redisIpSources.resource_pool.id">
+                {{ redisIpSources.resource_pool.text }}
+              </BkRadioButton>
+              <!-- <BkRadioButton
                 v-for="item of Object.values(redisIpSources)"
                 :key="item.id"
                 :label="item.id">
                 {{ item.text }}
-              </BkRadioButton>
+              </BkRadioButton> -->
             </BkRadioGroup>
           </BkFormItem>
           <Transition

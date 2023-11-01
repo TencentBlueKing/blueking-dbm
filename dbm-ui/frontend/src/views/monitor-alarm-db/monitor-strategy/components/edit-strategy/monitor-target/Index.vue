@@ -88,11 +88,7 @@
           </BkSelect>
           <span v-else>{{ item.title }}</span>
         </div>
-        <div
-          class="content"
-          :class="{
-            'content-other': item.isCustom
-          }">
+        <div class="content">
           <BkSelect
             v-if="item.isSelect"
             v-model="item.value"
@@ -109,11 +105,13 @@
           <div
             v-else
             class="content-custom">
-            <span class="condition">{{ signMap[item.value[0]] }}</span>
-            <BkInput
-              v-model="item.value[1]"
-              :placeholder="t('请输入')"
-              size="default" />
+            <span class="condition">{{ signMap[item.method] }}</span>
+            <BkTagInput
+              v-model="item.valueList"
+              allow-create
+              collapse-tags
+              has-delete-icon
+              :placeholder="t('请输入')" />
           </div>
         </div>
         <div class="operate-box">
@@ -144,6 +142,7 @@
   import { signMap } from '@components/monitor-rule-check/index.vue';
 
   type TargetItem = MonitorPolicyModel['targets'][0];
+  type CustomItem = MonitorPolicyModel['custom_conditions'][0]
 
   type FlowListType = ReturnType<typeof initFlowList>;
 
@@ -155,6 +154,7 @@
   interface Props {
     dbType: string,
     targets: TargetItem[],
+    customs: CustomItem[],
     bizsMap: Record<string, string>,
     moduleList: SelectItem<string>[],
     clusterList: SelectItem<string>[],
@@ -177,7 +177,7 @@
       }
       return results;
     }, [] as TargetItem[]);
-    return targets.map((item) => {
+    const targetList = targets.map((item) => {
       let title = '';
       const isCustom = !titles.includes(item.level);
       if (isCustom) {
@@ -227,8 +227,25 @@
         selectList,
         activeAdd: isMySql.value ? selectCounts < 2 : false,
         activeMinus: !isCustom,
+        method: '',
+        valueList: [],
       };
     });
+
+    const customeList = props.customs.map(item => ({
+      id: item.key,
+      title: item.dimension_name,
+      isCustom: true,
+      isSelect: false,
+      method: item.method,
+      titleList: [],
+      valueList: item.value,
+      selectList: [],
+      value: '',
+      activeAdd: false,
+      activeMinus: false,
+    }));
+    return [...targetList, ...customeList];
   }
 
   function generateFlowSelectItem(item: SelectObjType) {
@@ -250,7 +267,7 @@
           activeAdd: false,
           activeMinus: true,
         });
-        return item;
+        return item as unknown as FlowListType[number];
       }
     }
     Object.assign(item, {
@@ -259,7 +276,7 @@
       activeAdd: isMySql.value,
       activeMinus: true,
     });
-    return item;
+    return item as unknown as FlowListType[number];
   }
 
   const enum TargetType {
@@ -396,11 +413,32 @@
   defineExpose<Exposes>({
     getValue() {
       const defalutObj =  {
-        id: TargetType.BIZ,
-        value: isPlatform.value ? [currentBizId]
-          : [props.targets.filter(item => item.level === TargetType.BIZ)[0].rule.value[0]],
+        rule: {
+          key: TargetType.BIZ,
+          // eslint-disable-next-line max-len
+          value: isPlatform.value ? [currentBizId] : [props.targets.filter(item => item.level === TargetType.BIZ)[0].rule.value[0]],
+        },
+        level: TargetType.BIZ,
       };
-      return [defalutObj, ...flowList.value];
+      const targetList = flowList.value.filter(item => !item.isCustom).map(row => ({
+        rule: {
+          key: row.id,
+          value: row.value,
+        },
+        level: row.id,
+      }));
+      const targets = [defalutObj, ...targetList];
+      const customs = flowList.value.filter(item => item.isCustom).map(item => ({
+        condition: 'and',
+        dimension_name: item.title,
+        key: item.id,
+        method: item.method,
+        value: item.valueList,
+      }));
+      return {
+        targets,
+        custom_conditions: customs,
+      };
     },
     resetValue() {
       flowList.value = initFlowList();
@@ -430,10 +468,10 @@
 
       .top-bar {
         position: absolute;
-        top: -15px;
+        top: -16px;
         left: 20px;
         width: 0;
-        height: 15px;
+        height: 16px;
         border-left: 1px solid #C4C6CC;
       }
 
@@ -522,7 +560,7 @@
 
         :deep(.bk-select-tag) {
           width: 100%;
-          min-height: 30px;
+          min-height: 32px;
           overflow: hidden;
           border-left-color: transparent;
           border-bottom-left-radius: 0;
@@ -546,17 +584,21 @@
 
           .condition {
             width: 60px;
-            height: 30px;
-            line-height: 30px;
+            height: 32px;
+            line-height: 32px;
             text-align: center;
-            border-right: 1px solid #C4C6CC;
+            border: 1px solid #C4C6CC;
+            border-right: none;
+          }
+
+          .bk-tag-input {
+            flex: 1;
+
+            :deep(.bk-tag-input-trigger) {
+              border-radius: 0;
+            }
           }
         }
-      }
-
-      .content-other {
-        border: 1px solid #C4C6CC;
-        border-left: none;
       }
 
       .operate-box {
@@ -591,11 +633,12 @@
 
     .custom {
       .title-box {
-        padding: 0;
+        width: auto;
+        min-width: 80px;
+        padding: 0 8px;
         background: #F5F7FA;
         border: none;
         justify-content: center;
-        border-right: 1px solid #C4C6CC;
 
         span {
           font-size: 12px;
