@@ -13,12 +13,18 @@ package util
 import (
 	"fmt"
 	"reflect"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
 
 	"github.com/pkg/errors"
 )
+
+// ContainElem 判断val 是否在elems 中
+func ContainElem[T int | int64 | string](elems []T, val T) bool {
+	return slices.Contains(elems, val)
+}
 
 // IntsHas check the []int contains the given value
 func IntsHas(ints []int, val int) bool {
@@ -211,7 +217,7 @@ func StringsInsertIndex(ss []string, index int, new string) []string {
 //	@return dst
 func FilterOutStringSlice(src []string, filters []string) (dst []string) {
 	for _, v := range src {
-		if !StringsHas(filters, v) {
+		if !ContainElem(filters, v) {
 			dst = append(dst, v)
 		}
 	}

@@ -416,3 +416,43 @@ func FileIsEmpty(path string) error {
 	}
 	return nil
 }
+
+// ChangeToMatch 将输入的匹配参数转成正则匹配的格式
+// 运用DB或者table过滤场景
+func ChangeToMatch(input []string) []string {
+	var result []string
+	for _, str := range input {
+		str = strings.Replace(str, "?", ".", -1)
+		str = strings.Replace(str, "%", ".*", -1)
+		str = `^` + str + `$`
+		result = append(result, str)
+	}
+	return result
+}
+
+// GetSysDBS 获取mssql系统数据库
+// Monitor是自定义的系统数据库，股作为系统数据库返回
+func GetSysDBS() []string {
+	return []string{"msdb", "master", "model", "tempdb", "Monitor"}
+}
+
+// match 根据show databases 返回的实际db,匹配出dbname
+//
+//	@receiver e
+//	@receiver regularDbNames
+//	@return matched
+func DbMatch(dbs, regularDbNames []string) (matched []string, err error) {
+	for _, regexpStr := range regularDbNames {
+		re, err := regexp.Compile(regexpStr)
+		if err != nil {
+			logger.Error(" regexp.Compile(%s) failed:%s", regexpStr, err.Error())
+			return nil, err
+		}
+		for _, db := range dbs {
+			if re.MatchString(db) {
+				matched = append(matched, db)
+			}
+		}
+	}
+	return
+}

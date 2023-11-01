@@ -31,6 +31,7 @@ func NewSQLserverCommand() *cobra.Command {
 			Commands: []*cobra.Command{
 				NewDeploySqlServerCommand(),
 				NewUnInstallSqlServerCommand(),
+				ExecuteSQLFilesCommand(),
 			},
 		},
 	}

@@ -97,7 +97,7 @@ func (u *UnInstallSQLServerComp) PreCheck() error {
 			if err := dbWork.Queryxs(
 				&u.insObj[port].InstanceName,
 				"SELECT SERVERPROPERTY('InstanceName') ;"); err != nil {
-				return fmt.Errorf("[%s] check InstanceName failed %v", port, err)
+				return fmt.Errorf("[%d] check InstanceName failed %v", port, err)
 			}
 		}
 	}
