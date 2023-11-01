@@ -880,7 +880,7 @@ class MonitorPolicy(AuditedModel):
     def update(self, params, username="system") -> dict:
         """更新：patch -> update"""
 
-        update_fields = ["targets", "test_rules", "notify_rules", "notify_groups"]
+        update_fields = ["targets", "test_rules", "notify_rules", "notify_groups", "custom_conditions"]
 
         # param -> model
         for key in update_fields:

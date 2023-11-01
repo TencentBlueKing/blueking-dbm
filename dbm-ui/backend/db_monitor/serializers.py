@@ -161,7 +161,6 @@ class MonitorPolicyUpdateSerializer(AuditedSerializer, serializers.ModelSerializ
         child=serializers.ChoiceField(choices=NoticeSignalEnum.get_choices()), allow_empty=False
     )
     notify_groups = serializers.ListField(child=serializers.IntegerField(), allow_empty=True)
-    custom_conditions = serializers.ListSerializer(child=serializers.JSONField(), allow_empty=True)
 
     class Meta:
         model = MonitorPolicy
@@ -170,6 +169,7 @@ class MonitorPolicyUpdateSerializer(AuditedSerializer, serializers.ModelSerializ
 
 class MonitorPolicyCloneSerializer(MonitorPolicyUpdateSerializer):
     bk_biz_id = serializers.IntegerField(help_text=_("业务ID"), min_value=1)
+    custom_conditions = serializers.ListSerializer(child=serializers.JSONField(), allow_empty=True)
 
     def validate(self, attrs):
         """补充校验
