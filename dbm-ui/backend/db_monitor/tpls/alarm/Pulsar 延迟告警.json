@@ -42,24 +42,6 @@
             ],
             "agg_condition": [
               {
-                "key": "app",
-                "value": [
-                  "dba"
-                ],
-                "method": "eq",
-                "condition": "and",
-                "dimension_name": "app"
-              },
-              {
-                "key": "cluster_domain",
-                "value": [
-                  "pulsar.shenzhen.dba.db"
-                ],
-                "method": "eq",
-                "condition": "and",
-                "dimension_name": "cluster_domain"
-              },
-              {
                 "key": "namespace",
                 "value": [
                   "testname"
@@ -282,7 +264,7 @@
   },
   "is_enabled": false,
   "monitor_indicator": "SUM(pulsar_msg_backlog)",
-  "version": 0,
+  "version": 1,
   "alert_source": "time_series",
   "custom_conditions": [
     {
