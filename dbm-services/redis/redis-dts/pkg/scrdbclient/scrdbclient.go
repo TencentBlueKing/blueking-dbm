@@ -184,7 +184,7 @@ func (c *Client) DoNew(method, url string, params interface{}, others map[string
 				"an error occur while invoking client.Do, error:%v,url:%s,params:%s,resp:%s,retry...",
 				err, req.URL.String(), util.ToString(params), util.ToString(resp))
 			c.logger.Error(err.Error())
-			time.Sleep(5 * time.Second)
+			time.Sleep(3 * time.Second)
 			continue
 		}
 		if resp.StatusCode != http.StatusOK {
@@ -193,7 +193,7 @@ func (c *Client) DoNew(method, url string, params interface{}, others map[string
 				string(bodyBytes), resp.StatusCode, method, req.URL.String(), string(body))
 			c.logger.Error(err.Error(), zap.String("Authorization", req.Header.Get("Authorization")))
 			resp.Body.Close()
-			time.Sleep(5 * time.Second)
+			time.Sleep(3 * time.Second)
 			continue
 		}
 		break
