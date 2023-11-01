@@ -19,7 +19,7 @@ from django.core.management.base import BaseCommand
 from backend import env
 from backend.components import BKMonitorV3Api
 from backend.configuration.constants import DBType
-from backend.db_monitor.constants import TPLS_ALARM_DIR, TargetPriority
+from backend.db_monitor.constants import TPLS_ALARM_DIR, TargetLevel, TargetPriority
 from backend.db_monitor.models import RuleTemplate
 
 logger = logging.getLogger("root")
@@ -183,6 +183,14 @@ class Command(BaseCommand):
                     custom_agg_conditions = list(
                         filter(lambda x: x["key"] in custom_conditions, query_config.get("agg_condition", []))
                     )
+
+                    if "agg_condition" in query_config:
+                        query_config["agg_condition"] = list(
+                            filter(
+                                lambda x: x["key"] not in ["app"] + TargetLevel.get_values(),
+                                query_config["agg_condition"],
+                            )
+                        )
 
             self.clear_id(strategy_template["items"])
 
