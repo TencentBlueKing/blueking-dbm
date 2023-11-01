@@ -89,7 +89,7 @@
   const isShowEditStrrategySideSilder = ref(false);
   const currentChoosedRow = ref({} as RowData);
   const searchValue = ref<Array<SearchSelectItem & {values: SearchSelectItem[]}>>([]);
-  const alarmGroupList = ref<SelectItem<string>[]>([]);
+  const alarmGroupList = ref<SelectItem<number>[]>([]);
   const sliderPageType = ref('edit');
   const moduleList = ref<SelectItem<string>[]>([]);
   const clusterList = ref<SelectItem<string>[]>([]);
@@ -334,7 +334,7 @@
         alarmGroupNameMap[item.id] = item.name;
         return ({
           label: item.name,
-          value: String(item.id),
+          value: item.id,
         });
       });
       if (notifyGroupId !== undefined) {

@@ -17,6 +17,13 @@ import MonitorPolicyModel from '@services/model/monitor/monitor-policy';
 import type { ListBase } from './types/common';
 
 interface UpdatePolicyParams {
+  custom_conditions: {
+    condition: string,
+    dimension_name: string,
+    key: string,
+    method: string,
+    value: string[],
+  }[];
   targets: {
     level: string,
     rule: {

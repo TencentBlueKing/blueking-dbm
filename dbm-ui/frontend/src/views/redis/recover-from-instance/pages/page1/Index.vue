@@ -186,11 +186,9 @@
   const handleRemove = (index: number) => {
     const removeItem = tableData.value[index];
     const { srcCluster } = removeItem;
-    console.log('srcCluster>>', srcCluster);
     tableData.value.splice(index, 1);
     delete domainMemo[srcCluster];
     const clustersArr = selectedClusters.value[ClusterTypes.REDIS];
-    console.log('tableData.value>>>', tableData.value);
     selectedClusters.value[ClusterTypes.REDIS] = clustersArr.filter(item => item.temp_cluster_proxy !== srcCluster);
   };
 

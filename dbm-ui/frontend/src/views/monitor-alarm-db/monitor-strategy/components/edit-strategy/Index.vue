@@ -47,6 +47,7 @@
             ref="monitorTargetRef"
             :bizs-map="bizsMap"
             :cluster-list="clusterList"
+            :customs="data.custom_conditions"
             :db-type="dbType"
             :disabled="isReadonlyPage"
             :module-list="moduleList"
@@ -199,7 +200,7 @@
     data: RowData,
     bizsMap: Record<string, string>,
     dbType: string,
-    alarmGroupList: SelectItem<string>[],
+    alarmGroupList: SelectItem<number>[],
     alarmGroupNameMap: Record<string, string>,
     moduleList: SelectItem<string>[],
     clusterList: SelectItem<string>[],
@@ -389,14 +390,10 @@
       warnRule.value ? warnValueRef.value.getValue() : undefined,
       dangerRule.value ? dangerValueRef.value.getValue() : undefined,
     ];
+    const { targets, custom_conditions } = monitorTargetRef.value.getValue();
     const reqParams = {
-      targets: monitorTargetRef.value.getValue().map((item: { id: string; value: string[]; }) => ({
-        rule: {
-          key: item.id,
-          value: item.value,
-        },
-        level: item.id,
-      })),
+      targets,
+      custom_conditions,
       test_rules: testRules.filter(item => item && item.config.length !== 0),
       notify_rules: formModel.notifyRules,
       notify_groups: formModel.notifyTarget,
