@@ -187,7 +187,16 @@ class MonitorPolicyCloneSerializer(MonitorPolicyUpdateSerializer):
 
     class Meta:
         model = MonitorPolicy
-        fields = ["name", "bk_biz_id", "parent_id", "targets", "test_rules", "notify_rules", "notify_groups"]
+        fields = [
+            "name",
+            "bk_biz_id",
+            "parent_id",
+            "targets",
+            "test_rules",
+            "notify_rules",
+            "notify_groups",
+            "custom_conditions",
+        ]
 
 
 class MonitorPolicyEmptySerializer(serializers.Serializer):
