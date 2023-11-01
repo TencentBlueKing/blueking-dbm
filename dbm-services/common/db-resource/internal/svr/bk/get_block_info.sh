@@ -90,10 +90,12 @@ do
     do
                     # 不采集根目录磁盘的大小
                     mp=`getMountPoint ${part}`
+                    if [ -z "$mp" ];then
+                        continue
+                    fi 
                     if [ ${mp} == "/" ];then
                         continue
                     fi
-
                     if [ "$partitioned" = true ];then
                         sz=`cat ${SYSBLOCK_DIR}/${dname}/${part}/size`
                     else
