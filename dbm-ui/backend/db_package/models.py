@@ -8,8 +8,10 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import datetime
 from typing import Optional
 
+import django.utils.timezone as timezone
 from django.db import models
 from django.db.models import Q
 from django.utils.translation import ugettext_lazy as _
@@ -35,6 +37,9 @@ class Package(AuditedModel):
     # allow_biz_ids 主要用于灰度场景，部分业务先用，不配置/为空 代表全业务可用
     allow_biz_ids = models.JSONField(_("允许的业务列表"), null=True)
     mode = models.CharField(_("安装包模式"), choices=PackageMode.get_choices(), max_length=LEN_SHORT, default="system")
+    # package独立出时间字段
+    create_at = models.DateTimeField(_("创建时间"), default=timezone.now)
+    update_at = models.DateTimeField(_("更新时间"), default=timezone.now)
 
     class Meta:
         verbose_name = _("介质包（Package）")

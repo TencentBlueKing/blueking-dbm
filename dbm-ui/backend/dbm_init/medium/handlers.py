@@ -9,6 +9,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import hashlib
 import json
 import logging
 import os
@@ -73,7 +74,7 @@ class MediumHandler:
                 project_id=os.getenv("BKREPO_PROJECT"),
                 bucket=os.getenv("BKREPO_PUBLIC_BUCKET"),
                 endpoint_url=os.getenv("BKREPO_ENDPOINT_URL"),
-                file_overwrite=os.getenv("FILE_OVERWRITE", False),
+                file_overwrite=os.getenv("FILE_OVERWRITE", True),
             )
             self.storage.client = MediumBKGenericRepoClient(
                 bucket=os.getenv("BKREPO_PUBLIC_BUCKET"),
@@ -147,10 +148,15 @@ class MediumHandler:
                     # 分割路径，保留制品路径(db_type/name/version/file)
                     file_path = os.path.join(root, file)
                     file_path_bkrepo = file_path.split(file_path.rsplit("/", 4)[0])[1]
-                    # 如果文件已存在，则不进行上传更新
                     logger.info("upload file: %s -> %s", file_path, file_path_bkrepo)
-                    if not self.storage.listdir(file_path_bkrepo.rsplit("/", 1)[0])[1]:
-                        with open(file_path, "rb") as f:
+                    with open(file_path, "rb") as f:
+                        # 如果当前版本不存在，则更新介质
+                        if not self.storage.listdir(file_path_bkrepo.rsplit("/", 1)[0])[1]:
+                            self.storage.save(file_path_bkrepo, f)
+                        # 如果文件md5不相等，则更新介质
+                        bkrepo_file_md5 = self.storage.listdir(file_path_bkrepo.rsplit("/", 1)[0])[1][0]["md5"]
+                        pkg_file_md5 = hashlib.md5(f.read()).hexdigest()
+                        if bkrepo_file_md5 != pkg_file_md5:
                             self.storage.save(file_path_bkrepo, f)
 
     def sync_from_bkrepo(self, db_type):
@@ -159,6 +165,10 @@ class MediumHandler:
 
         http = HttpHandler()
         for pkg_type in self.storage.listdir(f"/{db_type}")[0]:
+            # 排除非介质文件
+            if pkg_type["name"] in ["keyfiles", "db-remote-service", "sqlfile"]:
+                continue
+
             for version in self.storage.listdir(pkg_type["fullPath"])[0]:
                 for media in self.storage.listdir(version["fullPath"])[1]:
                     package_params = {
@@ -170,6 +180,9 @@ class MediumHandler:
                         "size": media["size"],
                         "md5": media["md5"],
                         "create_at": str(datetime.strptime(media["createdDate"], "%Y-%m-%dT%H:%M:%S.%f")),
+                        "creator": "system",
+                        "update_at": str(datetime.strptime(media["lastModifiedDate"], "%Y-%m-%dT%H:%M:%S.%f")),
+                        "updater": "system",
                     }
                     logger.info("sync info %s", json.dumps(package_params, indent=4))
                     http.post(url="apis/packages/update_or_create/", data=package_params)
