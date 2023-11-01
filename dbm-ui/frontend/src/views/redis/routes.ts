@@ -208,6 +208,7 @@ const routes: RouteRecordRaw[] = [
         meta: {
           routeParentName: MainViewRouteNames.Database,
           navName: t('Redis_集群管理'),
+          activeMenu: 'DatabaseRedis',
         },
         component: () => import('@views/redis/list/Index.vue'),
       },

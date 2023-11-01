@@ -12,9 +12,6 @@
 -->
 
 <template>
-  <MainBreadcrumbs>
-    <span class="custom-breadcrumbs">{{ $t('Redis_工具箱') }}</span>
-  </MainBreadcrumbs>
   <BkResizeLayout
     :border="false"
     class="toolbox"
@@ -33,8 +30,6 @@
 <script setup lang="ts">
   import { useMainViewStore } from '@stores';
 
-  import MainBreadcrumbs from '@components/layouts/MainBreadcrumbs.vue';
-
   import ToolboxContent from './components/ToolboxContent.vue';
   import ToolboxSide from './components/ToolboxSide.vue';
 
@@ -50,11 +45,6 @@
 </script>
 
 <style lang="less" scoped>
-.custom-breadcrumbs {
-  font-size: @font-size-large;
-  color: @title-color;
-}
-
 .toolbox {
   height: calc(100% - 52px);
 

@@ -12,94 +12,96 @@
 -->
 
 <template>
-  <div class="apply-instance">
-    <DbForm
-      ref="formRef"
-      auto-label-width
-      class="apply-form"
-      :model="formdata"
-      :rules="rules">
-      <DbCard :title="$t('业务信息')">
-        <BusinessItems
-          v-model:app-abbr="formdata.details.db_app_abbr"
-          v-model:biz-id="formdata.bk_biz_id"
-          @change-biz="handleChangeBiz" />
-        <ClusterName v-model="formdata.details.cluster_name" />
-        <ClusterAlias
-          v-model="formdata.details.cluster_alias"
-          :biz-id="formdata.bk_biz_id"
-          cluster-type="tendbcluster" />
-        <CloudItem v-model="formdata.details.bk_cloud_id" />
-      </DbCard>
-      <DbCard :title="$t('部署需求')">
-        <ModuleItem
-          v-model="formdata.details.db_module_id"
-          :biz-id="formdata.bk_biz_id" />
-        <BkFormItem
-          :label="$t('接入层Master')"
-          required>
-          <div class="resource-pool-item">
-            <BkFormItem
-              :label="$t('规格')"
-              property="details.resource_spec.spider.spec_id"
-              required>
-              <SpecSelector
-                ref="specProxyRef"
-                v-model="formdata.details.resource_spec.spider.spec_id"
-                :biz-id="formdata.bk_biz_id"
-                :cloud-id="formdata.details.bk_cloud_id"
-                cluster-type="tendbcluster"
-                machine-type="spider" />
-            </BkFormItem>
-            <BkFormItem
-              :label="$t('数量')"
-              property="details.resource_spec.spider.count"
-              required>
-              <BkInput
-                v-model="formdata.details.resource_spec.spider.count"
-                :min="2"
-                type="number" />
-              <span class="input-desc">{{ $t('至少n台', {n: 2}) }}</span>
-            </BkFormItem>
-          </div>
-        </BkFormItem>
-        <BkFormItem
-          :label="$t('后端存储规格')"
-          required>
-          <BackendQPSSpec
-            ref="specBackendRef"
-            v-model="formdata.details.resource_spec.backend_group"
+  <SmartAction :offset-target="getSmartActionOffsetTarget">
+    <div class="apply-instance">
+      <DbForm
+        ref="formRef"
+        auto-label-width
+        class="apply-form"
+        :model="formdata"
+        :rules="rules">
+        <DbCard :title="$t('业务信息')">
+          <BusinessItems
+            v-model:app-abbr="formdata.details.db_app_abbr"
+            v-model:biz-id="formdata.bk_biz_id"
+            @change-biz="handleChangeBiz" />
+          <ClusterName v-model="formdata.details.cluster_name" />
+          <ClusterAlias
+            v-model="formdata.details.cluster_alias"
             :biz-id="formdata.bk_biz_id"
-            :cloud-id="formdata.details.bk_cloud_id"
-            cluster-type="tendbcluster"
-            machine-type="remote" />
-        </BkFormItem>
-        <BkFormItem
-          :label="$t('访问端口')"
-          property="details.spider_port"
-          required>
-          <BkInput
-            v-model="formdata.details.spider_port"
-            clearable
-            :max="65535"
-            :min="25000"
-            style="width: 185px;"
-            type="number" />
-          <span class="input-desc">
-            {{ $t('范围min_max', {min: 25000, max: 65535}) }}
-          </span>
-        </BkFormItem>
-        <BkFormItem :label="$t('备注')">
-          <BkInput
-            v-model="formdata.remark"
-            :maxlength="100"
-            :placeholder="$t('请提供更多有用信息申请信息_以获得更快审批')"
-            style="width: 655px;"
-            type="textarea" />
-        </BkFormItem>
-      </DbCard>
-    </DbForm>
-    <div class="absolute-footer">
+            cluster-type="tendbcluster" />
+          <CloudItem v-model="formdata.details.bk_cloud_id" />
+        </DbCard>
+        <DbCard :title="$t('部署需求')">
+          <ModuleItem
+            v-model="formdata.details.db_module_id"
+            :biz-id="formdata.bk_biz_id" />
+          <BkFormItem
+            :label="$t('接入层Master')"
+            required>
+            <div class="resource-pool-item">
+              <BkFormItem
+                :label="$t('规格')"
+                property="details.resource_spec.spider.spec_id"
+                required>
+                <SpecSelector
+                  ref="specProxyRef"
+                  v-model="formdata.details.resource_spec.spider.spec_id"
+                  :biz-id="formdata.bk_biz_id"
+                  :cloud-id="formdata.details.bk_cloud_id"
+                  cluster-type="tendbcluster"
+                  machine-type="spider" />
+              </BkFormItem>
+              <BkFormItem
+                :label="$t('数量')"
+                property="details.resource_spec.spider.count"
+                required>
+                <BkInput
+                  v-model="formdata.details.resource_spec.spider.count"
+                  :min="2"
+                  type="number" />
+                <span class="input-desc">{{ $t('至少n台', {n: 2}) }}</span>
+              </BkFormItem>
+            </div>
+          </BkFormItem>
+          <BkFormItem
+            :label="$t('后端存储规格')"
+            required>
+            <BackendQPSSpec
+              ref="specBackendRef"
+              v-model="formdata.details.resource_spec.backend_group"
+              :biz-id="formdata.bk_biz_id"
+              :cloud-id="formdata.details.bk_cloud_id"
+              cluster-type="tendbcluster"
+              machine-type="remote" />
+          </BkFormItem>
+          <BkFormItem
+            :label="$t('访问端口')"
+            property="details.spider_port"
+            required>
+            <BkInput
+              v-model="formdata.details.spider_port"
+              clearable
+              :max="65535"
+              :min="25000"
+              style="width: 185px;"
+              type="number" />
+            <span class="input-desc">
+              {{ $t('范围min_max', {min: 25000, max: 65535}) }}
+            </span>
+          </BkFormItem>
+          <BkFormItem :label="$t('备注')">
+            <BkInput
+              v-model="formdata.remark"
+              :maxlength="100"
+              :placeholder="$t('请提供更多有用信息申请信息_以获得更快审批')"
+              style="width: 655px;"
+              type="textarea" />
+          </BkFormItem>
+        </DbCard>
+      </DbForm>
+    </div>
+    <template #action>
       <BkButton
         :loading="baseState.isSubmitting"
         theme="primary"
@@ -107,17 +109,19 @@
         {{ $t('提交') }}
       </BkButton>
       <BkButton
+        class="ml-8"
         :disabled="baseState.isSubmitting"
         @click="handleResetFormdata">
         {{ $t('重置') }}
       </BkButton>
       <BkButton
+        class="ml-8"
         :disabled="baseState.isSubmitting"
         @click="handleCancel">
         {{ $t('取消') }}
       </BkButton>
-    </div>
-  </div>
+    </template>
+  </SmartAction>
 </template>
 
 <script setup lang="ts">
@@ -140,6 +144,8 @@
   import ModuleItem from './components/ModuleItem.vue';
 
   const { t } = useI18n();
+
+  const getSmartActionOffsetTarget = () => document.querySelector('.bk-form-content');
 
   const initData = () => ({
     bk_biz_id: '' as number | '',

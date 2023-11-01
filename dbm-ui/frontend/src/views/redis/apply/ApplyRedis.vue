@@ -12,280 +12,282 @@
 -->
 
 <template>
-  <div class="apply-instance">
-    <DbForm
-      ref="formRef"
-      auto-label-width
-      class="apply-form"
-      :model="state.formdata"
-      :rules="rules">
-      <DbCard :title="t('业务信息')">
-        <BusinessItems
-          v-model:app-abbr="state.formdata.details.db_app_abbr"
-          v-model:biz-id="state.formdata.bk_biz_id"
-          @change-biz="handleChangeBiz" />
-        <ClusterName v-model="state.formdata.details.cluster_name" />
-        <ClusterAlias
-          v-model="state.formdata.details.cluster_alias"
-          :biz-id="state.formdata.bk_biz_id"
-          cluster-type="redis" />
-        <CloudItem
-          v-model="state.formdata.details.bk_cloud_id"
-          @change="handleChangeCloud" />
-      </DbCard>
-      <RegionItem v-model="state.formdata.details.city_code" />
-      <DbCard :title="t('部署需求')">
-        <BkFormItem
-          :label="t('部署架构')"
-          property="details.cluster_type"
-          required>
-          <BkRadioGroup
-            v-model="state.formdata.details.cluster_type"
-            class="item-input"
-            @change="handleChangeClusterType">
-            <BkPopover
-              v-for="item of renderRedisClusterTypes"
-              :key="item.id"
-              placement="top"
-              :popover-delay="0"
-              theme="light"
-              trigger="hover">
-              <BkRadioButton :label="item.id">
+  <SmartAction :offset-target="getSmartActionOffsetTarget">
+    <div class="apply-instance">
+      <DbForm
+        ref="formRef"
+        auto-label-width
+        class="apply-form"
+        :model="state.formdata"
+        :rules="rules">
+        <DbCard :title="t('业务信息')">
+          <BusinessItems
+            v-model:app-abbr="state.formdata.details.db_app_abbr"
+            v-model:biz-id="state.formdata.bk_biz_id"
+            @change-biz="handleChangeBiz" />
+          <ClusterName v-model="state.formdata.details.cluster_name" />
+          <ClusterAlias
+            v-model="state.formdata.details.cluster_alias"
+            :biz-id="state.formdata.bk_biz_id"
+            cluster-type="redis" />
+          <CloudItem
+            v-model="state.formdata.details.bk_cloud_id"
+            @change="handleChangeCloud" />
+        </DbCard>
+        <RegionItem v-model="state.formdata.details.city_code" />
+        <DbCard :title="t('部署需求')">
+          <BkFormItem
+            :label="t('部署架构')"
+            property="details.cluster_type"
+            required>
+            <BkRadioGroup
+              v-model="state.formdata.details.cluster_type"
+              class="item-input"
+              @change="handleChangeClusterType">
+              <BkPopover
+                v-for="item of renderRedisClusterTypes"
+                :key="item.id"
+                placement="top"
+                :popover-delay="0"
+                theme="light"
+                trigger="hover">
+                <BkRadioButton :label="item.id">
+                  {{ item.text }}
+                </BkRadioButton>
+                <template #content>
+                  <div class="apply-instance__content">
+                    <h4>{{ item.tipContent.title }}</h4>
+                    <p>{{ item.tipContent.desc }}</p>
+                    <img
+                      :src="item.tipContent.img"
+                      width="550">
+                  </div>
+                </template>
+              </BkPopover>
+            </BkRadioGroup>
+          </BkFormItem>
+          <BkFormItem
+            :label="t('版本')"
+            property="details.db_version"
+            required>
+            <BkSelect
+              v-model="state.formdata.details.db_version"
+              class="item-input"
+              :clearable="false"
+              filterable
+              :input-search="false"
+              :list="state.versions"
+              :loading="state.isLoadVersion" />
+          </BkFormItem>
+          <BkFormItem
+            :label="t('服务器选择')"
+            property="details.ip_source"
+            required>
+            <BkRadioGroup
+              v-model="state.formdata.details.ip_source"
+              class="item-input"
+              @change="fetchCapSpecs(state.formdata.details.city_code)">
+              <BkRadioButton
+                v-for="item of Object.values(redisIpSources)"
+                :key="item.id"
+                :label="item.id">
                 {{ item.text }}
               </BkRadioButton>
-              <template #content>
-                <div class="apply-instance__content">
-                  <h4>{{ item.tipContent.title }}</h4>
-                  <p>{{ item.tipContent.desc }}</p>
-                  <img
-                    :src="item.tipContent.img"
-                    width="550">
+            </BkRadioGroup>
+          </BkFormItem>
+          <Transition
+            mode="out-in"
+            name="dbm-fade">
+            <div
+              v-if="isManualInput"
+              class="mb-24">
+              <DbFormItem
+                label="Proxy"
+                property="details.nodes.proxy"
+                required>
+                <IpSelector
+                  :biz-id="state.formdata.bk_biz_id"
+                  :cloud-info="cloudInfo"
+                  :data="state.formdata.details.nodes.proxy"
+                  :disable-dialog-submit-method="ipSelectorDisableSubmitMethods.proxy"
+                  :disable-host-method="proxyDisableHostMethod"
+                  @change="handleProxyIpChange">
+                  <template #desc>
+                    {{ t('至少n台', { n: 2 }) }}
+                  </template>
+                  <template #submitTips="{ hostList }">
+                    <I18nT
+                      keypath="至少n台_已选n台"
+                      style="font-size: 14px; color: #63656e;"
+                      tag="span">
+                      <span style="font-weight: bold; color: #2dcb56;"> 2 </span>
+                      <span style="font-weight: bold; color: #3a84ff;"> {{ hostList.length }} </span>
+                    </I18nT>
+                  </template>
+                </IpSelector>
+              </DbFormItem>
+              <BkFormItem
+                v-if="state.formdata.details.nodes.proxy.length > 0"
+                label="">
+                <div class="apply-instance__inline">
+                  <BkFormItem
+                    :label="t('Proxy端口')"
+                    label-width="110"
+                    property="details.proxy_port"
+                    required>
+                    <BkInput
+                      v-model="state.formdata.details.proxy_port"
+                      :max="65535"
+                      :min="1025"
+                      style="width: 120px;"
+                      type="number" />
+                    <span class="ml-16">{{ t('从n起', { n: state.formdata.details.proxy_port }) }}</span>
+                  </BkFormItem>
                 </div>
-              </template>
-            </BkPopover>
-          </BkRadioGroup>
-        </BkFormItem>
-        <BkFormItem
-          :label="t('版本')"
-          property="details.db_version"
-          required>
-          <BkSelect
-            v-model="state.formdata.details.db_version"
-            class="item-input"
-            :clearable="false"
-            filterable
-            :input-search="false"
-            :list="state.versions"
-            :loading="state.isLoadVersion" />
-        </BkFormItem>
-        <BkFormItem
-          :label="t('服务器选择')"
-          property="details.ip_source"
-          required>
-          <BkRadioGroup
-            v-model="state.formdata.details.ip_source"
-            class="item-input"
-            @change="fetchCapSpecs(state.formdata.details.city_code)">
-            <BkRadioButton
-              v-for="item of Object.values(redisIpSources)"
-              :key="item.id"
-              :label="item.id">
-              {{ item.text }}
-            </BkRadioButton>
-          </BkRadioGroup>
-        </BkFormItem>
-        <Transition
-          mode="out-in"
-          name="dbm-fade">
-          <div
-            v-if="isManualInput"
-            class="mb-24">
-            <DbFormItem
-              label="Proxy"
-              property="details.nodes.proxy"
-              required>
-              <IpSelector
-                :biz-id="state.formdata.bk_biz_id"
-                :cloud-info="cloudInfo"
-                :data="state.formdata.details.nodes.proxy"
-                :disable-dialog-submit-method="ipSelectorDisableSubmitMethods.proxy"
-                :disable-host-method="proxyDisableHostMethod"
-                @change="handleProxyIpChange">
-                <template #desc>
-                  {{ t('至少n台', { n: 2 }) }}
-                </template>
-                <template #submitTips="{ hostList }">
-                  <I18nT
-                    keypath="至少n台_已选n台"
-                    style="font-size: 14px; color: #63656e;"
-                    tag="span">
-                    <span style="font-weight: bold; color: #2dcb56;"> 2 </span>
-                    <span style="font-weight: bold; color: #3a84ff;"> {{ hostList.length }} </span>
-                  </I18nT>
-                </template>
-              </IpSelector>
-            </DbFormItem>
-            <BkFormItem
-              v-if="state.formdata.details.nodes.proxy.length > 0"
-              label="">
-              <div class="apply-instance__inline">
-                <BkFormItem
-                  :label="t('Proxy端口')"
-                  label-width="110"
-                  property="details.proxy_port"
-                  required>
-                  <BkInput
-                    v-model="state.formdata.details.proxy_port"
-                    :max="65535"
-                    :min="1025"
-                    style="width: 120px;"
-                    type="number" />
-                  <span class="ml-16">{{ t('从n起', { n: state.formdata.details.proxy_port }) }}</span>
-                </BkFormItem>
-              </div>
-            </BkFormItem>
-            <DbFormItem
-              ref="masterRef"
-              label="Master"
-              property="details.nodes.master"
-              required>
-              <IpSelector
-                :biz-id="state.formdata.bk_biz_id"
-                :cloud-info="cloudInfo"
-                :data="state.formdata.details.nodes.master"
-                :disable-dialog-submit-method="ipSelectorDisableSubmitMethods.master"
-                :disable-host-method="masterDisableHostMethod"
-                @change="handleMasterIpChange">
-                <template #desc>
-                  {{ t('至少1台_且机器数要和Slave相等') }}
-                </template>
-                <template #submitTips="{ hostList }">
-                  <I18nT
-                    keypath="至少n台_已选n台"
-                    style="font-size: 14px; color: #63656e;"
-                    tag="span">
-                    <span style="font-weight: bold; color: #2dcb56;"> 1 </span>
-                    <span style="font-weight: bold; color: #3a84ff;"> {{ hostList.length }} </span>
-                  </I18nT>
-                </template>
-              </IpSelector>
-            </DbFormItem>
-            <DbFormItem
-              ref="slaveRef"
-              label="Slave"
-              property="details.nodes.slave"
-              required>
-              <IpSelector
-                :biz-id="state.formdata.bk_biz_id"
-                :cloud-info="cloudInfo"
-                :data="state.formdata.details.nodes.slave"
-                :disable-dialog-submit-method="ipSelectorDisableSubmitMethods.slave"
-                :disable-host-method="slaveDisableHostMethod"
-                @change="handleSlaveIpChange">
-                <template #desc>
-                  {{ t('至少1台_且机器数要和Master相等') }}
-                </template>
-                <template #submitTips="{ hostList }">
-                  <I18nT
-                    keypath="至少n台_已选n台"
-                    style="font-size: 14px; color: #63656e;"
-                    tag="span">
-                    <span style="font-weight: bold; color: #2dcb56;"> 1 </span>
-                    <span style="font-weight: bold; color: #3a84ff;"> {{ hostList.length }} </span>
-                  </I18nT>
-                </template>
-              </IpSelector>
-            </DbFormItem>
-            <!-- 保留了资源池逻辑，后续确认不需要可以去掉 -->
-            <BkFormItem
-              :label="isManualInput ? t('总容量') : t('申请容量')"
-              property="details.cap_key"
-              required>
-              <div
-                :key="capSpecsKey"
-                v-bk-tooltips="{
-                  disabled: !disableCapSpecs,
-                  content: t('请确保Master和Slave的机器数量至少1台且机器数要相等')
-                }"
-                class="item-input">
-                <BkSelect
-                  v-model="state.formdata.details.cap_key"
-                  class="item-input"
-                  :clearable="false"
-                  :disabled="disableCapSpecs"
-                  filterable
-                  :input-search="false"
-                  :loading="state.isLoadCapSpecs">
-                  <BkOption
-                    v-for="item of state.capSpecs"
-                    :key="item.cap_key"
-                    :label="getDispalyCapSpecs(item)"
-                    :value="item.cap_key" />
-                </BkSelect>
-              </div>
-              <p
-                v-if="isManualInput"
-                class="apply-form__tips">
-                {{ t('单实例容量x分片数_根据选择的主机自动计算所有的组合') }}
-              </p>
-            </BkFormItem>
-          </div>
-          <div
-            v-else
-            class="mb-24">
-            <BkFormItem
-              :label="t('Proxy规格')"
-              required>
-              <div class="resource-pool-item">
-                <BkFormItem
-                  :label="t('规格')"
-                  property="details.resource_spec.proxy.spec_id"
-                  required>
-                  <SpecSelector
-                    ref="specProxyRef"
-                    v-model="state.formdata.details.resource_spec.proxy.spec_id"
-                    :biz-id="state.formdata.bk_biz_id"
-                    :cloud-id="state.formdata.details.bk_cloud_id"
-                    :cluster-type="typeInfos.cluster_type"
-                    :machine-type="typeInfos.machine_type"
-                    style="width: 314px;" />
-                </BkFormItem>
-                <BkFormItem
-                  :label="t('数量')"
-                  property="details.resource_spec.proxy.count"
-                  required>
-                  <BkInput
-                    v-model="state.formdata.details.resource_spec.proxy.count"
-                    :min="2"
-                    type="number" />
-                  <span class="input-desc">{{ t('至少n台', {n: 2}) }}</span>
-                </BkFormItem>
-              </div>
-            </BkFormItem>
-            <BkFormItem
-              :label="t('后端存储规格')"
-              required>
-              <BackendQPSSpec
-                ref="specBackendRef"
-                v-model="state.formdata.details.resource_spec.backend_group"
-                :biz-id="state.formdata.bk_biz_id"
-                :cloud-id="state.formdata.details.bk_cloud_id"
-                :cluster-type="typeInfos.cluster_type"
-                :machine-type="typeInfos.backend_machine_type" />
-            </BkFormItem>
-          </div>
-        </Transition>
-        <BkFormItem :label="t('备注')">
-          <BkInput
-            v-model="state.formdata.remark"
-            :maxlength="100"
-            :placeholder="t('请提供更多有用信息申请信息_以获得更快审批')"
-            style="width: 655px;"
-            type="textarea" />
-        </BkFormItem>
-      </DbCard>
-    </DbForm>
-    <div class="absolute-footer">
+              </BkFormItem>
+              <DbFormItem
+                ref="masterRef"
+                label="Master"
+                property="details.nodes.master"
+                required>
+                <IpSelector
+                  :biz-id="state.formdata.bk_biz_id"
+                  :cloud-info="cloudInfo"
+                  :data="state.formdata.details.nodes.master"
+                  :disable-dialog-submit-method="ipSelectorDisableSubmitMethods.master"
+                  :disable-host-method="masterDisableHostMethod"
+                  @change="handleMasterIpChange">
+                  <template #desc>
+                    {{ t('至少1台_且机器数要和Slave相等') }}
+                  </template>
+                  <template #submitTips="{ hostList }">
+                    <I18nT
+                      keypath="至少n台_已选n台"
+                      style="font-size: 14px; color: #63656e;"
+                      tag="span">
+                      <span style="font-weight: bold; color: #2dcb56;"> 1 </span>
+                      <span style="font-weight: bold; color: #3a84ff;"> {{ hostList.length }} </span>
+                    </I18nT>
+                  </template>
+                </IpSelector>
+              </DbFormItem>
+              <DbFormItem
+                ref="slaveRef"
+                label="Slave"
+                property="details.nodes.slave"
+                required>
+                <IpSelector
+                  :biz-id="state.formdata.bk_biz_id"
+                  :cloud-info="cloudInfo"
+                  :data="state.formdata.details.nodes.slave"
+                  :disable-dialog-submit-method="ipSelectorDisableSubmitMethods.slave"
+                  :disable-host-method="slaveDisableHostMethod"
+                  @change="handleSlaveIpChange">
+                  <template #desc>
+                    {{ t('至少1台_且机器数要和Master相等') }}
+                  </template>
+                  <template #submitTips="{ hostList }">
+                    <I18nT
+                      keypath="至少n台_已选n台"
+                      style="font-size: 14px; color: #63656e;"
+                      tag="span">
+                      <span style="font-weight: bold; color: #2dcb56;"> 1 </span>
+                      <span style="font-weight: bold; color: #3a84ff;"> {{ hostList.length }} </span>
+                    </I18nT>
+                  </template>
+                </IpSelector>
+              </DbFormItem>
+              <!-- 保留了资源池逻辑，后续确认不需要可以去掉 -->
+              <BkFormItem
+                :label="isManualInput ? t('总容量') : t('申请容量')"
+                property="details.cap_key"
+                required>
+                <div
+                  :key="capSpecsKey"
+                  v-bk-tooltips="{
+                    disabled: !disableCapSpecs,
+                    content: t('请确保Master和Slave的机器数量至少1台且机器数要相等')
+                  }"
+                  class="item-input">
+                  <BkSelect
+                    v-model="state.formdata.details.cap_key"
+                    class="item-input"
+                    :clearable="false"
+                    :disabled="disableCapSpecs"
+                    filterable
+                    :input-search="false"
+                    :loading="state.isLoadCapSpecs">
+                    <BkOption
+                      v-for="item of state.capSpecs"
+                      :key="item.cap_key"
+                      :label="getDispalyCapSpecs(item)"
+                      :value="item.cap_key" />
+                  </BkSelect>
+                </div>
+                <p
+                  v-if="isManualInput"
+                  class="apply-form__tips">
+                  {{ t('单实例容量x分片数_根据选择的主机自动计算所有的组合') }}
+                </p>
+              </BkFormItem>
+            </div>
+            <div
+              v-else
+              class="mb-24">
+              <BkFormItem
+                :label="t('Proxy规格')"
+                required>
+                <div class="resource-pool-item">
+                  <BkFormItem
+                    :label="t('规格')"
+                    property="details.resource_spec.proxy.spec_id"
+                    required>
+                    <SpecSelector
+                      ref="specProxyRef"
+                      v-model="state.formdata.details.resource_spec.proxy.spec_id"
+                      :biz-id="state.formdata.bk_biz_id"
+                      :cloud-id="state.formdata.details.bk_cloud_id"
+                      :cluster-type="typeInfos.cluster_type"
+                      :machine-type="typeInfos.machine_type"
+                      style="width: 314px;" />
+                  </BkFormItem>
+                  <BkFormItem
+                    :label="t('数量')"
+                    property="details.resource_spec.proxy.count"
+                    required>
+                    <BkInput
+                      v-model="state.formdata.details.resource_spec.proxy.count"
+                      :min="2"
+                      type="number" />
+                    <span class="input-desc">{{ t('至少n台', {n: 2}) }}</span>
+                  </BkFormItem>
+                </div>
+              </BkFormItem>
+              <BkFormItem
+                :label="t('后端存储规格')"
+                required>
+                <BackendQPSSpec
+                  ref="specBackendRef"
+                  v-model="state.formdata.details.resource_spec.backend_group"
+                  :biz-id="state.formdata.bk_biz_id"
+                  :cloud-id="state.formdata.details.bk_cloud_id"
+                  :cluster-type="typeInfos.cluster_type"
+                  :machine-type="typeInfos.backend_machine_type" />
+              </BkFormItem>
+            </div>
+          </Transition>
+          <BkFormItem :label="t('备注')">
+            <BkInput
+              v-model="state.formdata.remark"
+              :maxlength="100"
+              :placeholder="t('请提供更多有用信息申请信息_以获得更快审批')"
+              style="width: 655px;"
+              type="textarea" />
+          </BkFormItem>
+        </DbCard>
+      </DbForm>
+    </div>
+    <template #action>
       <BkButton
         :loading="baseState.isSubmitting"
         theme="primary"
@@ -293,17 +295,19 @@
         {{ t('提交') }}
       </BkButton>
       <BkButton
+        class="ml-8"
         :disabled="baseState.isSubmitting"
         @click="handleResetFormdata">
         {{ t('重置') }}
       </BkButton>
       <BkButton
+        class="ml-8"
         :disabled="baseState.isSubmitting"
         @click="handleCancel">
         {{ t('取消') }}
       </BkButton>
-    </div>
-  </div>
+    </template>
+  </SmartAction>
 </template>
 
 <script setup lang="ts">
@@ -358,6 +362,8 @@
   const specProxyRef = ref();
   const specBackendRef = ref();
   const capSpecsKey  = ref(generateId('CLUSTER_APPLAY_CAP_'));
+
+  const getSmartActionOffsetTarget = () => document.querySelector('.bk-form-content');
 
   const renderRedisClusterTypes = computed(() => {
     const values = Object.values(redisClusterTypes);

@@ -12,21 +12,22 @@
 -->
 
 <template>
-  <BkTab
-    v-model:active="activeTab"
-    class="top-tabs"
-    type="unborder-card">
-    <BkTabPanel
-      v-for="tab of tabs"
-      :key="tab.label"
-      :label="tab.label"
-      :name="tab.value" />
-  </BkTab>
-  <div class="content">
-    <TypeContent :active-db-type="activeTab" />
+  <div class="monitor-alarm-plat-page">
+    <BkTab
+      v-model:active="activeTab"
+      class="top-tabs"
+      type="unborder-card">
+      <BkTabPanel
+        v-for="tab of tabs"
+        :key="tab.label"
+        :label="tab.label"
+        :name="tab.value" />
+    </BkTab>
+    <div class="content">
+      <TypeContent :active-db-type="activeTab" />
+    </div>
   </div>
 </template>
-
 <script setup lang="ts">
   import TypeContent from './components/content/Index.vue';
 
@@ -77,7 +78,20 @@
 
 </script>
 <style lang="less" scoped>
-.content {
-  margin-top: 36px;
+
+.monitor-alarm-plat-page{
+  .top-tabs{
+    background: #fff;
+    box-shadow: 0 3px 4px 0 rgb(0 0 0 / 4%);
+
+    .bk-tab-content{
+      display: none;
+    }
+  }
+
+  .content {
+    height: calc(100vh - 150px);
+    padding: 24px;
+  }
 }
 </style>

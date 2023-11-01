@@ -28,7 +28,6 @@
       :info="activeTabInfo" />
   </div>
 </template>
-
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
@@ -290,9 +289,15 @@
   });
 </script>
 
-<style lang="less" scoped>
+<style lang="less">
   .version-files-view {
-    height: 100%;
-    padding-top: 42px;
+    .top-tabs{
+      background: #fff;
+      box-shadow: 0 3px 4px 0 rgb(0 0 0 / 4%);
+
+      .bk-tab-content{
+        display: none;
+      }
+    }
   }
 </style>

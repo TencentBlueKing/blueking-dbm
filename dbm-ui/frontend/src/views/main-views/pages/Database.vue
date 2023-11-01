@@ -172,7 +172,7 @@
                 <span
                   v-overflow-tips.right
                   class="text-overflow">
-                  {{ $t('账号规则') }}
+                  {{ $t('授权规则') }}
                 </span>
               </BkMenuItem>
               <!-- <BkMenuItem key="spiderPermissionList">

@@ -14,7 +14,7 @@
 <template>
   <BkTab
     v-model:active="active"
-    class="top-tabs"
+    class="db-configur-type-tab"
     type="unborder-card"
     @change="handleChange">
     <BkTabPanel
@@ -24,7 +24,6 @@
       :name="tab.id" />
   </BkTab>
 </template>
-
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
@@ -117,3 +116,13 @@
     emit('change', value);
   }
 </script>
+<style lang="less">
+.db-configur-type-tab{
+  background: #fff;
+  box-shadow: 0 3px 4px 0 rgb(0 0 0 / 4%);
+
+  .bk-tab-content{
+    display: none;
+  }
+}
+</style>
