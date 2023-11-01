@@ -8,7 +8,7 @@ DEV_BUILD_FLAG = "-X ${MODULE}/cmd.version="develop" -X ${MODULE}/cmd.buildStamp
 
 .PHONY: release-bin
 release-bin:
-	@CGO_ENABLE=0 GOARCH=amd64 GOOS=linux go build -ldflags ${RELEASE_BUILD_FLAG} -o ${OUTPUT_DIR}/${PROJ}
+	@CGO_ENABLED=0 GOARCH=amd64 GOOS=linux go build -ldflags ${RELEASE_BUILD_FLAG} -o ${OUTPUT_DIR}/${PROJ}
 	@chmod +x pt-table-checksum pt-table-sync
 	@cp -a pt-table-checksum ${OUTPUT_DIR}/
 	@cp -a pt-table-sync ${OUTPUT_DIR}/

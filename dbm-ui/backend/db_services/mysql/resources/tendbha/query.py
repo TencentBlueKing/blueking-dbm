@@ -251,6 +251,7 @@ class ListRetrieveResource(query.ListRetrieveResource):
         return {
             "id": cluster.id,
             "phase": cluster.phase,
+            "phase_name": cluster.get_phase_display(),
             "status": cluster.status,
             "operations": ClusterOperateRecord.objects.get_cluster_operations(cluster.id),
             "cluster_name": cluster.name,

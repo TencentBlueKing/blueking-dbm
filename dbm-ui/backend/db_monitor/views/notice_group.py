@@ -30,9 +30,10 @@ from backend.iam_app.handlers.drf_perm import DBManageIAMPermission
 SWAGGER_TAG = _("监控告警组")
 
 
-class MonitorPolicyListFilter(django_filters.FilterSet):
+class MonitorGroupListFilter(django_filters.FilterSet):
     name = django_filters.CharFilter(field_name="name", lookup_expr="icontains", label=_("告警组名称"))
     bk_biz_id = django_filters.NumberFilter(method="filter_bk_biz_id", label=_("业务ID"))
+    db_type = django_filters.CharFilter(method="filter_db_type", label=_("DB类型"))
 
     def filter_bk_biz_id(self, queryset, name, value):
         """
@@ -46,6 +47,10 @@ class MonitorPolicyListFilter(django_filters.FilterSet):
             .values_list("id", flat=True)
         )
         return queryset.filter(Q(bk_biz_id=value) | Q(id__in=plat_built_in_group_ids)).order_by("is_built_in")
+
+    def filter_db_type(self, queryset, name, value):
+        # 返回告警组时，需同时返回没有 db_type 的
+        return queryset.filter(Q(db_type=value) | Q(db_type=""))
 
     class Meta:
         model = NoticeGroup
@@ -84,7 +89,7 @@ class MonitorNoticeGroupViewSet(viewsets.AuditedModelViewSet):
     queryset = NoticeGroup.objects.all()
     serializer_class = NoticeGroupSerializer
     pagination_class = AuditedLimitOffsetPagination
-    filter_class = MonitorPolicyListFilter
+    filter_class = MonitorGroupListFilter
 
     def _get_custom_permissions(self):
         return [DBManageIAMPermission()]
