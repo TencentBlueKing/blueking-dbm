@@ -161,10 +161,11 @@ class MonitorPolicyUpdateSerializer(AuditedSerializer, serializers.ModelSerializ
         child=serializers.ChoiceField(choices=NoticeSignalEnum.get_choices()), allow_empty=False
     )
     notify_groups = serializers.ListField(child=serializers.IntegerField(), allow_empty=True)
+    custom_conditions = serializers.ListSerializer(child=serializers.JSONField(), allow_empty=True)
 
     class Meta:
         model = MonitorPolicy
-        fields = ["targets", "test_rules", "notify_rules", "notify_groups"]
+        fields = ["targets", "test_rules", "notify_rules", "notify_groups", "custom_conditions"]
 
 
 class MonitorPolicyCloneSerializer(MonitorPolicyUpdateSerializer):

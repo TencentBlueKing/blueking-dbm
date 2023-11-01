@@ -232,6 +232,7 @@
   },
   "is_enabled": true,
   "monitor_indicator": "DataNode\u6700\u540e\u4e00\u6b21\u901a\u4fe1\u65f6\u95f4",
-  "version": 10,
-  "alert_source": "time_series"
+  "version": 11,
+  "alert_source": "time_series",
+  "custom_conditions": []
 }

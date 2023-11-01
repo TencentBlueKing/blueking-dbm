@@ -239,6 +239,7 @@
   },
   "is_enabled": true,
   "monitor_indicator": "AVG(mysql_engine_innodb_trx_idle_time_max)",
-  "version": 10,
-  "alert_source": "time_series"
+  "version": 11,
+  "alert_source": "time_series",
+  "custom_conditions": []
 }

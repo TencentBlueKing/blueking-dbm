@@ -283,6 +283,7 @@
   },
   "is_enabled": true,
   "monitor_indicator": "\u81ea\u589e\u5217\u7684\u5e73\u5747\u4f7f\u7528\u7387",
-  "version": 10,
-  "alert_source": "time_series"
+  "version": 11,
+  "alert_source": "time_series",
+  "custom_conditions": []
 }

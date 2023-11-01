@@ -56,6 +56,7 @@ class Command(BaseCommand):
         for alarm_json in alarm_jsons:
             with open(alarm_json, "r+") as f:
                 template_dict = json.loads(f.read())
+                template_dict["custom_conditions"] = []
 
                 old_template_name = template_dict["name"]
                 template_name = template_dict["name"]

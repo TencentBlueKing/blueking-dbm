@@ -246,6 +246,7 @@
   },
   "is_enabled": true,
   "monitor_indicator": "COUNT(redis_cluster_state)",
-  "version": 10,
-  "alert_source": "event"
+  "version": 11,
+  "alert_source": "event",
+  "custom_conditions": []
 }

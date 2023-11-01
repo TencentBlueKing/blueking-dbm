@@ -523,6 +523,9 @@ class MonitorPolicy(AuditedModel):
     target_priority = models.PositiveIntegerField(verbose_name=_("监控策略优先级，跟随targets调整"))
     target_keyword = models.TextField(verbose_name=_("监控目标检索冗余字段"), default="")
 
+    # [{"key": "abc", "method": "eq", "value": ["aa", "bb"], "condition": "and", "dimension_name": "abc"}]
+    custom_conditions = models.JSONField(verbose_name=_("自定义过滤列表"), default=list)
+
     # Type 目前仅支持 Threshold
     # level: 1（致命）、2（预警）、3(提醒)
     # item[*].algorithms[*]:
@@ -707,10 +710,13 @@ class MonitorPolicy(AuditedModel):
             for query_config in item["query_configs"]:
                 if "agg_condition" in query_config:
                     # remove same type conditions
+                    exclude_keys = list(map(lambda x: x["key"], self.custom_conditions)) + TargetLevel.get_values()
                     query_config_agg_condition = list(
-                        filter(lambda cond: cond["key"] not in TargetLevel.get_values(), query_config["agg_condition"])
+                        filter(lambda cond: cond["key"] not in exclude_keys, query_config["agg_condition"])
                     )
                     query_config_agg_condition.extend(agg_conditions)
+                    query_config_agg_condition.extend(self.custom_conditions)
+
                     # overwrite agg_condition
                     query_config["agg_condition"] = query_config_agg_condition
                 else:
@@ -807,8 +813,8 @@ class MonitorPolicy(AuditedModel):
         super().save(force_insert, force_update, using, update_fields)
 
     def delete(self, using=None, keep_parents=False):
-        if self.bk_biz_id == PLAT_BIZ_ID:
-            raise BuiltInNotAllowDeleteException
+        # if self.bk_biz_id == PLAT_BIZ_ID:
+        #     raise BuiltInNotAllowDeleteException
 
         if self.monitor_policy_id:
             self.bkm_delete_alarm_strategy()
