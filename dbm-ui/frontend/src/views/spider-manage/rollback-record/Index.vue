@@ -30,8 +30,8 @@
   } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import { queryFixpointLog } from '@services/fixpointRollback';
   import FixpointLogModel from '@services/model/fixpoint-rollback/fixpoint-log';
+  import { queryFixpointLog } from '@services/source/fixpointRollback';
   import { createTicket } from '@services/ticket';
 
   import { useTicketMessage } from '@hooks';

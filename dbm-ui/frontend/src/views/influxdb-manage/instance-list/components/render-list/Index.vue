@@ -142,9 +142,9 @@
   import type { Emitter } from 'mitt';
   import { useI18n } from 'vue-i18n';
 
-  import { getListInstance } from '@services/influxdb';
-  import { moveInstancesToGroup } from '@services/influxdbGroup';
   import type InfluxDBInstanceModel from '@services/model/influxdb/influxdbInstance';
+  import { getListInstance } from '@services/source/influxdb';
+  import { moveInstancesToGroup } from '@services/source/influxdbGroup';
   import { createTicket } from '@services/ticket';
   import type { InfluxDBGroupItem } from '@services/types/influxdbGroup';
 

@@ -44,7 +44,7 @@
 
   import type PulsarInstanceModel from '@services/model/pulsar/pulsar-instance';
   import type PulsarNodeModel from '@services/model/pulsar/pulsar-node';
-  import { getListInstance } from '@services/pulsar';
+  import { getListInstance } from '@services/source/pulsar';
   import { createTicket } from '@services/ticket';
 
   import { useTicketMessage } from '@hooks';

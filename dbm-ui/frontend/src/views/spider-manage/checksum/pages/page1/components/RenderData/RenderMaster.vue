@@ -29,7 +29,7 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import { getRemoteMachineInstancePair } from '@services/mysqlCluster';
+  import { getRemoteMachineInstancePair } from '@services/source/mysqlCluster';
 
   import TableEditInput from '@views/spider-manage/common/edit/Input.vue';
 

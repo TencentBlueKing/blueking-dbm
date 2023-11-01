@@ -75,8 +75,8 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import { getInstanceDetails } from '@services/influxdb';
   import type InfluxDBInstanceModel from '@services/model/influxdb/influxdbInstance';
+  import { getInstanceDetails } from '@services/source/influxdb';
 
   import { useGlobalBizs, useMainViewStore } from '@stores';
 

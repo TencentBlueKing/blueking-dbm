@@ -89,7 +89,7 @@
   import { Message } from 'bkui-vue';
   import { useI18n } from 'vue-i18n';
 
-  import { saveModulesDeployInfo } from '@services/ticket';
+  import { saveModulesDeployInfo } from '@services/source/configs';
   import { getVersions } from '@services/versionFiles';
 
   import { useGlobalBizs } from '@stores';

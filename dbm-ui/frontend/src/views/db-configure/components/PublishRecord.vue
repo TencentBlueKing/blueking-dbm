@@ -72,7 +72,10 @@
   import type { Column } from 'bkui-vue/lib/table/props';
   import { useI18n } from 'vue-i18n';
 
-  import { getConfigVersionDetails, getConfigVersionList } from '@services/configs';
+  import {
+    getConfigVersionDetails,
+    getConfigVersionList,
+  } from '@services/source/configs';
   import type {
     ConfigVersionDetails,
     ConfigVersionItem,

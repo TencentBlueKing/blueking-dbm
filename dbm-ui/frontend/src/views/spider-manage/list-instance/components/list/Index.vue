@@ -34,7 +34,7 @@
       <DbTable
         ref="tableRef"
         :columns="columns"
-        :data-source="getSpiderInstances"
+        :data-source="getResourceInstances"
         :pagination-extra="paginationExtra"
         :row-class="setRowClass"
         :settings="settings"
@@ -47,7 +47,7 @@
   import { useI18n } from 'vue-i18n';
 
   import type TendbInstanceModel from '@services/model/spider/tendbInstance';
-  import { getSpiderInstances } from '@services/spider';
+  import { getResourceInstances } from '@services/source/resourceSpider';
 
   import {
     useCopy,

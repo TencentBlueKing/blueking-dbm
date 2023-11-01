@@ -71,8 +71,8 @@
   import type FormItem from 'bkui-vue/lib/form/form-item';
   import { useI18n } from 'vue-i18n';
 
-  import { checkInstances } from '@services/clusters';
   import { precheckPermissionClone } from '@services/permission';
+  import { checkMysqlInstances } from '@services/source/instances';
   import { createTicket } from '@services/ticket';
   import type { InstanceInfos } from '@services/types/clusters';
 
@@ -277,7 +277,7 @@
    * 查询实例信息
    */
   function fetchInstanceInfos(instances: string[]) {
-    return checkInstances({
+    return checkMysqlInstances({
       bizId: globalBizsStore.currentBizId,
       instance_addresses: instances,
     })

@@ -45,7 +45,7 @@
   import type { Column } from 'bkui-vue/lib/table/props';
   import { useI18n } from 'vue-i18n';
 
-  import { getPlatformConfigList } from '@services/configs';
+  import { getPlatformConfigList } from '@services/source/configs';
   import type { ConfigListItem } from '@services/types/configs';
 
   import { useTableMaxHeight } from '@hooks';

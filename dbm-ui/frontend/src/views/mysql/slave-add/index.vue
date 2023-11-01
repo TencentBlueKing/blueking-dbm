@@ -86,11 +86,11 @@
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
+  import { checkHost } from '@services/source/ipchooser';
   import {
     findRelatedClustersByClusterIds,
     getClusterInfoByDomains,
-  } from '@services/clusters';
-  import { checkHost } from '@services/ip';
+  } from '@services/source/mysqlCluster';
   import { createTicket } from '@services/ticket';
   import type { ResourceItem } from '@services/types/clusters';
   import type { HostDetails } from '@services/types/ip';
@@ -365,7 +365,7 @@
    */
   function fetchRelatedClusters(clusterIds: number[]) {
     return findRelatedClustersByClusterIds({
-      bizId: globalBizsStore.currentBizId,
+      bk_biz_id: globalBizsStore.currentBizId,
       cluster_ids: clusterIds,
     }).then((res) => {
       for (const item of res) {

@@ -17,7 +17,7 @@
   </div>
 </template>
 <script setup lang="ts">
-  import { getClusterDetail } from '@services/kafka';
+  import { getClusterDetail } from '@services/source/kafka';
 
   import RenderBaseInfo from '@components/cluster-common/RenderBaseInfo.vue';
 

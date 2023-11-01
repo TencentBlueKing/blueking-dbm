@@ -76,7 +76,7 @@
   import { useRequest } from 'vue-request';
 
   import { getModules } from '@services/common';
-  import { getLevelConfig } from '@services/configs';
+  import { getLevelConfig } from '@services/source/configs';
   import type { ParameterConfigItem } from '@services/types/configs';
 
   interface Props {

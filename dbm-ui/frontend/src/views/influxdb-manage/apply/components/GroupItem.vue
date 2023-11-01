@@ -90,7 +90,10 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import { createGroup, getGroupList } from '@services/influxdbGroup';
+  import {
+    createGroup,
+    getGroupList,
+  } from '@services/source/influxdbGroup';
   import type { InfluxDBGroupItem } from '@services/types/influxdbGroup';
 
   import { nameRegx } from '@common/regex';

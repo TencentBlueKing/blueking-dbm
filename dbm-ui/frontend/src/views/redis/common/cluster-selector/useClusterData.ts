@@ -11,9 +11,7 @@
  * the specific language governing permissions and limitations under the License.
 */
 
-import { listClusterList } from '@services/redis/toolbox';
-
-import { useGlobalBizs } from '@stores';
+import { listClusterList } from '@services/source/resourceRedis';
 
 import { TicketTypes } from '@common/const';
 
@@ -26,10 +24,9 @@ export function useClusterData(state: ClusterSelectorState, ticketType = TicketT
    * 获取列表
    */
   const fetchResources = () => {
-    const { currentBizId } = useGlobalBizs();
     state.isLoading = true;
     // 全量数据
-    return listClusterList(currentBizId)
+    return listClusterList()
       .then((res) => {
         if (ticketType === TicketTypes.REDIS_PROXY_SCALE_DOWN) {
           // 缩容接入层特殊处理

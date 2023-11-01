@@ -68,7 +68,7 @@
   import {
     updateBusinessConfig,
     updatePlatformConfig,
-  } from '@services/configs';
+  } from '@services/source/configs';
   import type {
     BizConfDetailsUpdateParams,
     ConfigBaseDetails,

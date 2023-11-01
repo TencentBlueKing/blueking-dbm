@@ -27,7 +27,7 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import { getCloudList } from '@services/ip';
+  import { getCloudList } from '@services/source/ipchooser';
 
   import TableEditInput from '@views/spider-manage/common/edit/Input.vue';
 

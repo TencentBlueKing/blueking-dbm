@@ -77,9 +77,7 @@
 
 </script>
 <script setup lang="ts">
-  import { listClusterList } from '@services/redis/toolbox';
-
-  import { useGlobalBizs } from '@stores';
+  import { listClusterList } from '@services/source/resourceRedis';
 
   interface Props {
     data: IDataRow,
@@ -91,7 +89,6 @@
 
   const props = defineProps<Props>();
 
-  const { currentBizId } = useGlobalBizs();
   const instanceRef = ref();
   const includeKeyRef = ref();
   const excludeKeyRef = ref();
@@ -118,7 +115,7 @@
 
   const queryInstances = async (domain: string) => {
     const [cluster] = domain.split(':');
-    const ret = await listClusterList(currentBizId, { domain: cluster });
+    const ret = await listClusterList({ domain: cluster });
     if (ret.length < 1) {
       return;
     }

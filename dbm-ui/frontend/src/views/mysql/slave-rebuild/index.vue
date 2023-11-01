@@ -106,13 +106,12 @@
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
 
-  import { checkInstances } from '@services/clusters';
+  import { checkMysqlInstances } from '@services/source/instances';
   import { createTicket } from '@services/ticket';
   import type { InstanceInfos } from '@services/types/clusters';
 
   import { useInfo, useTableMaxHeight } from '@hooks';
 
-  import { TicketTypes } from '@common/const';
   import { ipPort } from '@common/regex';
 
   import CardCheckbox from '@components/db-card-checkbox/CardCheckbox.vue';
@@ -256,7 +255,7 @@
    */
   function fetchInstanceInfos() {
     const instances = tableData.value.map(item => item.instance_address).filter(inst => ipPort.test(inst));
-    return checkInstances({
+    return checkMysqlInstances({
       bizId: globalBizsStore.currentBizId,
       instance_addresses: instances,
     })

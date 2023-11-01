@@ -42,7 +42,7 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import { getLevelConfig } from '@services/configs';
+  import { getLevelConfig } from '@services/source/configs';
   import type {
     ConfigBaseDetails,
     GetLevelConfigParams,

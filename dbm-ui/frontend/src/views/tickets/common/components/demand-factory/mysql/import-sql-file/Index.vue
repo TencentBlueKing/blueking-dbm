@@ -124,8 +124,10 @@
   import type { TablePropTypes } from 'bkui-vue/lib/table/props';
   import { useI18n } from 'vue-i18n';
 
-  import { getResources } from '@services/clusters';
   import { batchFetchFile } from '@services/mysqlCluster';
+  import { getResources as getSpiderResources } from '@services/source/resourceSpider';
+  import { getResources as getTendbhaResources } from '@services/source/resourceTendbha';
+  import { getResources as getTendbsingleResources } from '@services/source/resourceTendbsingle';
   import type { ResourceItem } from '@services/types/clusters';
   import type {
     MySQLImportSQLFileDetails,
@@ -134,7 +136,10 @@
 
   import { useDefaultPagination } from '@hooks';
 
-  import { DBTypes } from '@common/const';
+  import {
+    ClusterTypes,
+    DBTypes,
+  } from '@common/const';
 
   import DBCollapseTable from '@components/db-collapse-table/DBCollapseTable.vue';
 
@@ -157,6 +162,12 @@
     db_patterns: [],
     table_patterns: [],
   }
+
+  const apiMap: Record<string, (params: any) => ReturnType<typeof getTendbsingleResources>> = {
+    [ClusterTypes.TENDBSINGLE]: getTendbsingleResources,
+    [ClusterTypes.TENDBHA]: getTendbhaResources,
+    [ClusterTypes.TENDBCLUSTER]: getSpiderResources,
+  };
 
   const { t } = useI18n();
   const selectFileName = ref('');
@@ -357,14 +368,15 @@
       clusterState.clusterType = clusterType === 'tendbha' ? t('高可用') : t('单节点');
       const { pagination } = clusterState.tableProps;
       const paginationParams = typeof pagination === 'boolean' ? {} : pagination.getFetchParams();
+      const type = clusterType === 'tendbcluster' ? 'spider' : clusterType;
       const params = {
         dbType: DBTypes.MYSQL,
         bk_biz_id: props.ticketDetails.bk_biz_id,
-        type: clusterType === 'tendbcluster' ? 'spider' : clusterType,
+        type,
         cluster_ids: clusterId,
         ...paginationParams,
       };
-      getResources<ResourceItem>(params)
+      apiMap[clusterType](params)
         .then((res) => {
           res.results.forEach((item) => {
             clusterState.tableProps.data.push(Object.assign({

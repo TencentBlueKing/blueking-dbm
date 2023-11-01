@@ -63,7 +63,7 @@
   import { ref } from 'vue';
   import { useRequest } from 'vue-request';
 
-  import { getClusterDetail } from '@services/es';
+  import { getClusterDetail } from '@services/source/es';
 
   import { useGlobalBizs } from '@stores';
 

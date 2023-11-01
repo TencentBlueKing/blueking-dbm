@@ -14,7 +14,9 @@
 import type { ISearchValue } from 'bkui-vue/lib/search-select/utils';
 import { useI18n } from 'vue-i18n';
 
-import { getResources } from '@services/clusters';
+import { getResources as getSpiderResources } from '@services/source/resourceSpider';
+import { getResources as getTendbhaResources } from '@services/source/resourceTendbha';
+import { getResources as getTendbsingleResources } from '@services/source/resourceTendbsingle';
 import type { ResourceItem } from '@services/types/clusters';
 import type { SearchFilterItem } from '@services/types/common';
 import type { MysqlAuthorizationDetails, TicketDetails } from '@services/types/ticket';
@@ -33,6 +35,11 @@ import { getSearchSelectorParams } from '@utils';
 export function useTargetClusterData(ticketDetails: TicketDetails<MysqlAuthorizationDetails>) {
   const { t } = useI18n();
   const globalBizsStore = useGlobalBizs();
+  const apiMap: Record<string, (params: any) => ReturnType<typeof getTendbsingleResources>> = {
+    [ClusterTypes.TENDBSINGLE]: getTendbsingleResources,
+    [ClusterTypes.TENDBHA]: getTendbhaResources,
+    spider: getSpiderResources,
+  };
   const listState = reactive({
     isAnomalies: false,
     isLoading: false,
@@ -77,7 +84,7 @@ export function useTargetClusterData(ticketDetails: TicketDetails<MysqlAuthoriza
       ...listState.pagination.getFetchParams(),
       ...getSearchSelectorParams(listState.filters.search),
     };
-    getResources<ResourceItem>(params)
+    apiMap[type](params)
       .then((res) => {
         listState.pagination.count = res.count;
         listState.data = res.results;

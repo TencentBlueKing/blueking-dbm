@@ -42,9 +42,9 @@
   } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import { getListNodes } from '@services/hdfs';
   import type HdfsModel from '@services/model/hdfs/hdfs';
   import type HdfsNodeModel from '@services/model/hdfs/hdfs-node';
+  import { getHDFSListNodes } from '@services/source/bigdata';
   import { createTicket } from '@services/ticket';
 
   import { useTicketMessage } from '@hooks';
@@ -115,7 +115,7 @@
     const datanodeOriginalNodeList: TNodeInfo['nodeList'] = [];
 
     isLoading.value = true;
-    getListNodes({
+    getHDFSListNodes({
       bk_biz_id: globalBizsStore.currentBizId,
       cluster_id: props.data.id,
       no_limit: 1,

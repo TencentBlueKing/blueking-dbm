@@ -70,7 +70,7 @@
   import { useRouter } from 'vue-router';
 
   import SpiderModel from '@services/model/spider/spider';
-  import { getList } from '@services/spider';
+  import { getList } from '@services/source/resourceSpider';
   import { createTicket } from '@services/ticket';
   import type { SubmitTicket } from '@services/types/ticket';
 

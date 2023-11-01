@@ -11,9 +11,10 @@
  * the specific language governing permissions and limitations under the License.
 */
 
-import { getResources } from '@services/clusters';
 import { getModules } from '@services/common';
-import type { ResourceItem } from '@services/types/clusters';
+import { getResources as getSpiderResources } from '@services/source/resourceSpider';
+import { getResources as getTendbhaResources } from '@services/source/resourceTendbha';
+import { getResources as getTendbsingleResources } from '@services/source/resourceTendbsingle';
 
 import { useGlobalBizs } from '@stores';
 
@@ -31,6 +32,12 @@ import type { ClusterSelectorState } from './types';
  */
 export function useClusterData(state: ClusterSelectorState) {
   const globalBizsStore = useGlobalBizs();
+
+  const apiMap: Record<string, (params: any) => ReturnType<typeof getTendbsingleResources>> = {
+    [ClusterTypes.TENDBSINGLE]: getTendbsingleResources,
+    [ClusterTypes.TENDBHA]: getTendbhaResources,
+    [ClusterTypes.TENDBCLUSTER]: getSpiderResources,
+  };
 
   /**
    * 获取集群列表请求参数
@@ -50,7 +57,7 @@ export function useClusterData(state: ClusterSelectorState) {
    */
   const fetchResources = () => {
     state.isLoading = true;
-    return getResources<ResourceItem>(getResourcesParams())
+    return apiMap[state.activeTab](getResourcesParams())
       .then((res) => {
         state.pagination.count = res.count;
         state.tableData = res.results;

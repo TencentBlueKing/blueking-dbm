@@ -151,11 +151,9 @@
   import type { Instance, SingleTarget } from 'tippy.js';
   import { useI18n } from 'vue-i18n';
 
-  import {
-    checkInstances,
-    getClusterInfoByDomains,
-  } from '@services/clusters';
-  import { getClusterDBNames } from '@services/remoteService';
+  import { checkMysqlInstances } from '@services/source/instances';
+  import { getClusterInfoByDomains } from '@services/source/mysqlCluster';
+  import { getClusterDBNames } from '@services/source/remoteService';
   import { createTicket } from '@services/ticket';
   import type {
     InstanceInfos,
@@ -836,7 +834,7 @@
    * 查询实例信息
    */
   function fetchInstanceInfos(instances: string[]) {
-    return checkInstances({
+    return checkMysqlInstances({
       bizId: globalBizsStore.currentBizId,
       instance_addresses: instances,
     })

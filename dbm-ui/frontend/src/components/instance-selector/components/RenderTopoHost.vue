@@ -47,12 +47,13 @@
   } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import {
-    getResourceInstances,
-  } from '@services/clusters';
+  import { getResourceInstances as getTendbhaResourceInstances } from '@services/source/resourceTendbha';
+  import { getResourceInstances as getTendbsingleResourceInstances } from '@services/source/resourceTendbsingle';
   import type { InstanceInfos, ResourceInstance } from '@services/types/clusters';
 
   import { useGlobalBizs } from '@stores';
+
+  import { ClusterTypes } from '@common/const';
 
   import DbStatus from '@components/db-status/index.vue';
 
@@ -81,6 +82,11 @@
 
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
+
+  const apiMap: Record<string, (params: any) => ReturnType<typeof getTendbsingleResourceInstances>> = {
+    [ClusterTypes.TENDBSINGLE]: getTendbsingleResourceInstances,
+    [ClusterTypes.TENDBHA]: getTendbhaResourceInstances,
+  };
 
   const formatValue = (data: ResourceInstance) => ({
     bk_host_id: data.bk_host_id,
@@ -240,7 +246,7 @@
         cluster_id: props.node.id,
       });
     }
-    getResourceInstances(params)
+    apiMap[activePanel?.value || 'tendbsingle'](params)
       .then((data) => {
         tableData.value = data.results;
         pagination.count = data.count;

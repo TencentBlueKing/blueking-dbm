@@ -53,7 +53,11 @@
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
-  import { getConfigBaseDetails, getConfigNames, getLevelConfig } from '@services/configs';
+  import {
+    getConfigBaseDetails,
+    getConfigNames,
+    getLevelConfig,
+  } from '@services/source/configs';
   import type { ConfigBaseDetails, ParameterConfigItem } from '@services/types/configs';
 
   import { useMainViewStore } from '@stores';

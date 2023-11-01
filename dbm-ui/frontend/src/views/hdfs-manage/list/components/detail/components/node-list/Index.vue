@@ -157,12 +157,10 @@
   } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import {
-    getClusterDetail,
-    getListNodes,
-  } from '@services/hdfs';
   import type HdfsModel from '@services/model/hdfs/hdfs';
   import HdfsNodeModel from '@services/model/hdfs/hdfs-node';
+  import { getHDFSListNodes } from '@services/source/bigdata';
+  import { getClusterDetail } from '@services/source/hdfs';
 
   import {
     useCopy,
@@ -447,7 +445,7 @@
 
   const fetchNodeList = () => {
     isLoading.value = true;
-    getListNodes({
+    getHDFSListNodes({
       bk_biz_id: globalBizsStore.currentBizId,
       cluster_id: props.clusterId,
       no_limit: 1,

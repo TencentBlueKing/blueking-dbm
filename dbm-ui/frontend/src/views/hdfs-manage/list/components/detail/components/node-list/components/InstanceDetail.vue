@@ -40,9 +40,9 @@
   } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import { getListInstance } from '@services/hdfs';
   import type HdfsInstanceModel from '@services/model/hdfs/hdfs-instance';
   import type HdfsNodeModel from '@services/model/hdfs/hdfs-node';
+  import { getListInstance } from '@services/source/hdfs';
   import { createTicket } from '@services/ticket';
 
   import { useTicketMessage } from '@hooks';

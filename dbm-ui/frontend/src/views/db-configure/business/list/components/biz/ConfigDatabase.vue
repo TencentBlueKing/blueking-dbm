@@ -46,7 +46,7 @@
   import type { ComputedRef, Ref } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import { getBusinessConfigList } from '@services/configs';
+  import { getBusinessConfigList } from '@services/source/configs';
   import type { ConfigListItem } from '@services/types/configs';
 
   import { useGlobalBizs } from '@stores';

@@ -23,7 +23,11 @@
   import _ from 'lodash';
   import { useRequest } from 'vue-request';
 
-  import { getConfigNames, getLevelConfig, updateBusinessConfig } from '@services/configs';
+  import {
+    getConfigNames,
+    getLevelConfig,
+    updateBusinessConfig,
+  } from '@services/source/configs';
   import type { ConfigBaseDetails, ParameterConfigItem } from '@services/types/configs';
 
   import ParameterTable from '@views/db-configure/components/ParameterTable.vue';

@@ -164,12 +164,10 @@
   } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import {
-    getClusterDetail,
-    getListNodes,
-  } from '@services/es';
   import type EsModel from '@services/model/es/es';
   import EsNodeModel from '@services/model/es/es-node';
+  import { getESListNodes } from '@services/source/bigdata';
+  import { getClusterDetail } from '@services/source/es';
 
   import {
     useCopy,
@@ -452,7 +450,7 @@
 
   const fetchNodeList = () => {
     isLoading.value = true;
-    getListNodes({
+    getESListNodes({
       bk_biz_id: globalBizsStore.currentBizId,
       cluster_id: props.clusterId,
       no_limit: 1,

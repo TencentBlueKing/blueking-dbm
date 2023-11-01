@@ -122,7 +122,7 @@
     edit as editPartition,
     verifyPartitionField,
   } from '@services/partitionManage';
-  import { getList } from '@services/spider';
+  import { getList } from '@services/source/resourceSpider';
 
   import { dbSysExclude } from '@common/const';
   import { dbRegex } from '@common/regex';

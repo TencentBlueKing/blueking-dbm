@@ -22,7 +22,7 @@ import type UserSemanticTaskModel from '@services/model/sql-import/user-semantic
 import {
   deleteUserSemanticTasks,
   getUserSemanticTasks,
-} from '@services/sqlImport';
+} from '@services/source/sqlImport';
 
 import { useGlobalBizs, useSQLTaskCount } from '@stores';
 

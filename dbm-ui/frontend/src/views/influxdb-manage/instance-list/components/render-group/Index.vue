@@ -108,7 +108,7 @@
     deleteGroup,
     getGroupList,
     updateGroupInfo,
-  } from '@services/influxdbGroup';
+  } from '@services/source/influxdbGroup';
   import type { InfluxDBGroupItem } from '@services/types/influxdbGroup';
 
   import GroupCreate from './components/Create.vue';

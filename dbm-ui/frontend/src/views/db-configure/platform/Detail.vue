@@ -41,7 +41,7 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import { getConfigBaseDetails } from '@services/configs';
+  import { getConfigBaseDetails } from '@services/source/configs';
   import type { ConfigBaseDetails } from '@services/types/configs';
 
   import { useMainViewStore } from '@stores';

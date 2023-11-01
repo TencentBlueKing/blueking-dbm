@@ -143,7 +143,7 @@
   import { Message } from 'bkui-vue';
   import { useI18n } from 'vue-i18n';
 
-  import { updateBusinessConfig } from '@services/configs';
+  import { updateBusinessConfig } from '@services/source/configs';
   import type { BizConfDetailsUpdateParams, ConfigBaseDetails, ParameterConfigItem } from '@services/types/configs';
 
   import { ConfLevels } from '@common/const';

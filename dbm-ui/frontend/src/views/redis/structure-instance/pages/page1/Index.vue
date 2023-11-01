@@ -56,7 +56,7 @@
   import { useRouter } from 'vue-router';
 
   import RedisRollbackModel from '@services/model/redis/redis-rollback';
-  import { getRollbackList } from '@services/redis/toolbox';
+  import { getRollbackList } from '@services/source/redisRollback';
   import { createTicket } from '@services/ticket';
   import type { SubmitTicket } from '@services/types/ticket';
 

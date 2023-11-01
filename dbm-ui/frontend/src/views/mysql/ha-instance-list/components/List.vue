@@ -53,7 +53,7 @@
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
 
-  import { getResourceInstances } from '@services/clusters';
+  import { getResourceInstances } from '@services/source/resourceTendbha';
   import type { ResourceInstance } from '@services/types/clusters';
 
   import {

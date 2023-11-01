@@ -105,7 +105,7 @@
   import { Message } from 'bkui-vue';
   import { useI18n } from 'vue-i18n';
 
-  import { updatePlatformConfig } from '@services/configs';
+  import { updatePlatformConfig } from '@services/source/configs';
   import type { ConfigBaseDetails, ParameterConfigItem } from '@services/types/configs';
 
   import DiffCompare from '../components/DiffCompare.vue';

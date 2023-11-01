@@ -67,8 +67,8 @@
   import { useRouter } from 'vue-router';
 
   import SpiderModel from '@services/model/spider/spider';
-  import { checkFlashbackDatabase } from '@services/remoteService';
-  import { getList } from '@services/spider';
+  import { checkFlashbackDatabase } from '@services/source/remoteService';
+  import { getList } from '@services/source/resourceSpider';
   import { createTicket } from '@services/ticket';
 
   import { useGlobalBizs } from '@stores';
