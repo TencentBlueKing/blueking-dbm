@@ -28,7 +28,6 @@
   } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import { getHostTopoInfos } from '@services/ip';
   import type { HostTopoInfo } from '@services/types/ip';
 
   import { useGlobalBizs } from '@stores';
@@ -38,6 +37,8 @@
   import TableEditInput from '@views/mysql/common/edit/Input.vue';
 
   import type {  IDataRow } from './Row.vue';
+
+  import { getHostTopoInfos } from '@/services/source/ipchooser';
 
   interface Props {
     modelValue: IDataRow['proxyIp'],

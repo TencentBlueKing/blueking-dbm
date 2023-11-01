@@ -87,11 +87,11 @@
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
+  import type KafkaModel from '@services/model/kafka/kafka';
   import {
     getList,
     getListInstance,
-  } from '@services/kafka';
-  import type KafkaModel from '@services/model/kafka/kafka';
+  } from '@services/source/kafka';
   import { createTicket } from '@services/ticket';
 
   import {

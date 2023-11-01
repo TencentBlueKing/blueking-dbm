@@ -54,7 +54,6 @@
 </template>
 
 <script setup lang="ts">
-  import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
   import type TendbClusterModel from '@services/model/spider/tendbCluster';

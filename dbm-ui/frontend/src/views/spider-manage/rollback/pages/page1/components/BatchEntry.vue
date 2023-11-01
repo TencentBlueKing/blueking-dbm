@@ -126,7 +126,7 @@
   import { ref } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import { queryClusters } from '@services/mysqlCluster';
+  import { queryClusters } from '@services/source/mysqlCluster';
 
   import { useGlobalBizs } from '@stores';
 

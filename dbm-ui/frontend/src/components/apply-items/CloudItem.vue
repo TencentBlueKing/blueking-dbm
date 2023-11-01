@@ -35,7 +35,7 @@
 </template>
 
 <script setup lang="ts">
-  import { getCloudList } from '@services/ip';
+  import { getCloudList } from '@services/source/ipchooser';
   import type { CloudAreaInfo } from '@services/types/ip';
 
   interface Props {

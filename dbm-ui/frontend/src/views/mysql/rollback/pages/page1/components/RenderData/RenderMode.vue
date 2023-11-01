@@ -60,7 +60,7 @@
     executeBackupLogScript,
     queryBackupLogFromBklog,
     queryBackupLogJob,
-  } from '@services/fixpointRollback';
+  } from '@services/source/fixpointRollback';
 
   import TableEditDateTime from '@views/mysql/common/edit/DateTime.vue';
   import TableEditSelect from '@views/mysql/common/edit/Select.vue';

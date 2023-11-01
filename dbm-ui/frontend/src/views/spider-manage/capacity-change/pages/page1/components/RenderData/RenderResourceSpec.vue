@@ -25,7 +25,7 @@
   import { useRequest } from 'vue-request';
 
   import type SpiderModel from '@services/model/spider/spider';
-  import { getDetail } from '@services/spider';
+  import { getResourceDetails } from '@services/source/resourceSpider';
 
   import TableEditInput from '@views/spider-manage/common/edit/Input.vue';
 
@@ -53,7 +53,7 @@
   const {
     loading: isLoading,
     run: fetchClusetrData,
-  } = useRequest(getDetail, {
+  } = useRequest(getResourceDetails, {
     manual: true,
     onSuccess(data) {
       [masterInstance.value] = data.spider_master[0].instance;
@@ -65,7 +65,7 @@
   watch(() => props.clusterId, () => {
     if (props.clusterId) {
       fetchClusetrData({
-        id: props.clusterId,
+        clusterId: props.clusterId,
       });
     } else {
       localClusterData.value = undefined;

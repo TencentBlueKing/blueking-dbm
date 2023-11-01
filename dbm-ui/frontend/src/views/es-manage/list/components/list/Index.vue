@@ -84,11 +84,11 @@
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
+  import type EsModel from '@services/model/es/es';
   import {
     getList,
     getListInstance,
-  } from '@services/es';
-  import type EsModel from '@services/model/es/es';
+  } from '@services/source/es';
   import { createTicket  } from '@services/ticket';
 
   import {

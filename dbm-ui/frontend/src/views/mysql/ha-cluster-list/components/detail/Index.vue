@@ -56,12 +56,8 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import { getResourceDetails } from '@services/clusters';
+  import { getResourceDetails } from '@services/source/resourceTendbha';
   import type { ResourceItem } from '@services/types/clusters';
-
-  import {
-    useGlobalBizs,
-  } from '@stores';
 
   import { ClusterTypes, DBTypes } from '@common/const';
 
@@ -77,7 +73,6 @@
 
   const props = defineProps<Props>();
 
-  const globalBizsStore = useGlobalBizs();
   const { t } = useI18n();
 
   const activePanel = ref('topo');
@@ -98,10 +93,7 @@
       return;
     }
     fetchResourceDetails({
-      dbType: DBTypes.MYSQL,
-      type: ClusterTypes.TENDBHA,
-      bk_biz_id: globalBizsStore.currentBizId,
-      id: props.clusterId,
+      clusterId: props.clusterId,
     });
   }, {
     immediate: true,

@@ -45,10 +45,8 @@
 </template>
 
 <script setup lang="ts">
-  import {
-    getClusterXmls,
-  } from '@services/hdfs';
   import ClusterConfigXmlsModel from '@services/model/hdfs/hdfs-cluster-config-xmls';
+  import { getClusterXmls } from '@services/source/hdfs';
 
   import { useGlobalBizs } from '@stores';
 

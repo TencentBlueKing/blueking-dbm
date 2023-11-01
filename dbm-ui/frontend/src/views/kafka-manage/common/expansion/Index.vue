@@ -59,8 +59,8 @@
   } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import { getHostDetails } from '@services/ip';
   import type KafkaModel from '@services/model/kafka/kafka';
+  import { getHostDetails } from '@services/source/ipchooser';
   import { createTicket } from '@services/ticket';
   import type { HostDetails } from '@services/types/ip';
 

@@ -38,7 +38,7 @@
     watch,
   } from 'vue';
 
-  import { checkInstances  } from '@services/clusters';
+  import { checkMysqlInstances } from '@services/source/instances';
   import type { InstanceInfos } from '@services/types/clusters';
 
   import { useGlobalBizs } from '@stores';
@@ -69,7 +69,7 @@
     emits('change', []);
     if (props.masterData && props.masterData.ip) {
       isLoading.value = true;
-      checkInstances({
+      checkMysqlInstances({
         bizId: currentBizId,
         instance_addresses: [props.masterData.ip],
       }).then((data) => {

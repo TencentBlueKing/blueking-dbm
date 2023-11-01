@@ -106,7 +106,7 @@
   import {
     getRedisDTSHistoryJobs,
     setJobDisconnectSync,
-  } from '@services/redis/toolbox';
+  } from '@services/source/redisDts';
 
   import { useDefaultPagination } from '@hooks';
 

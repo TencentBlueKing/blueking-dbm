@@ -46,7 +46,10 @@
   import { useI18n } from 'vue-i18n';
 
   import RedisHostModel from '@services/model/redis/redis-host';
-  import {  queryClusterHostList, queryMasterSlavePairs } from '@services/redis/toolbox';
+  import {
+    queryClusterHostList,
+    queryMasterSlavePairs,
+  } from '@services/source/redisToolbox';
 
   import { LocalStorageKeys } from '@common/const';
   import { ipv4 } from '@common/regex';

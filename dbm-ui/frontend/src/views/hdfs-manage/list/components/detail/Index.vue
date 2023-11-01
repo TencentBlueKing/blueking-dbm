@@ -63,7 +63,7 @@
   import { ref } from 'vue';
   import { useRequest } from 'vue-request';
 
-  import { getClusterDetail } from '@services/hdfs';
+  import { getClusterDetail } from '@services/source/hdfs';
 
   import { useGlobalBizs } from '@stores';
 

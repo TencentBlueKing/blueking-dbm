@@ -108,8 +108,8 @@
   } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import { checkInstances } from '@services/clusters';
-  import { findRelatedClustersByClusterIds } from '@services/mysqlCluster';
+  import { checkMysqlInstances } from '@services/source/instances';
+  import { findRelatedClustersByClusterIds } from '@services/source/mysqlCluster';
 
   import { useGlobalBizs } from '@stores';
 
@@ -172,7 +172,7 @@
       message: t('目标Proxy不能为空'),
     },
     {
-      validator: () => checkInstances({
+      validator: () => checkMysqlInstances({
         bizId: currentBizId,
         instance_addresses: [localInstanceAddress.value],
       }).then((data) => {

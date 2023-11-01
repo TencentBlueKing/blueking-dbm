@@ -63,8 +63,8 @@
   } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import { getHostDetails } from '@services/ip';
   import type PulsarModel from '@services/model/pulsar/pulsar';
+  import { getHostDetails } from '@services/source/ipchooser';
   import { createTicket } from '@services/ticket';
   import type { HostDetails } from '@services/types/ip';
 

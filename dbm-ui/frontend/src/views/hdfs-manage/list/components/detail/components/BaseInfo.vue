@@ -17,7 +17,7 @@
   </div>
 </template>
 <script setup lang="ts">
-  import { getClusterDetail } from '@services/hdfs';
+  import { getClusterDetail } from '@services/source/hdfs';
 
   import RenderBaseInfo from '@components/cluster-common/RenderBaseInfo.vue';
 

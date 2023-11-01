@@ -98,9 +98,7 @@
 <script setup lang="ts">
   import RedisModel from '@services/model/redis/redis';
   import RedisDSTHistoryJobModel  from '@services/model/redis/redis-dst-history-job';
-  import { listClusterList } from '@services/redis/toolbox';
-
-  import { useGlobalBizs } from '@stores';
+  import { listClusterList } from '@services/source/resourceRedis';
 
   import {
     ClusterTypes,
@@ -129,7 +127,6 @@
     'change-table-available': [status: boolean]
   }>();
 
-  const { currentBizId } = useGlobalBizs();
   const tableData = ref([createRowData()]);
   const isShowClusterSelector = ref(false);
   const rowRefs = ref();
@@ -237,7 +234,7 @@
       return;
     }
     tableData.value[index].isLoading = true;
-    const ret = await listClusterList(currentBizId, { domain }).finally(() => {
+    const ret = await listClusterList({ domain }).finally(() => {
       tableData.value[index].isLoading = false;
     });
     if (ret.length < 1) {

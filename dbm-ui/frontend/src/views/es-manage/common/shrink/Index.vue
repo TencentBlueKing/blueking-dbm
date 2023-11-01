@@ -45,9 +45,9 @@
   } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import { getListNodes } from '@services/es';
   import type EsModel from '@services/model/es/es';
   import type EsNodeModel from '@services/model/es/es-node';
+  import { getESListNodes } from '@services/source/bigdata';
   import { createTicket } from '@services/ticket';
 
   import { useTicketMessage } from '@hooks';
@@ -142,7 +142,7 @@
     const clientOriginalNodeList: TNodeInfo['nodeList'] = [];
 
     isLoading.value = true;
-    getListNodes({
+    getESListNodes({
       bk_biz_id: globalBizsStore.currentBizId,
       cluster_id: props.data.id,
       no_limit: 1,

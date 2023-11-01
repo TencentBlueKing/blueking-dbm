@@ -30,7 +30,7 @@
   } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import { getHostTopoInfos } from '@services/ip';
+  import { getHostTopoInfos } from '@services/source/ipchooser';
 
   import { useGlobalBizs } from '@stores';
 

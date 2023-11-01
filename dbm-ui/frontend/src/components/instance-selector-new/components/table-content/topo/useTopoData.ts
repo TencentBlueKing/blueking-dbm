@@ -13,7 +13,6 @@
 import {
   type ComponentInternalInstance,
   getCurrentInstance,
-  reactive,
   type Ref,
   ref,
   shallowRef,

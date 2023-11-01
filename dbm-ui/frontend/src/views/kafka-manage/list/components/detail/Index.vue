@@ -63,7 +63,7 @@
   import { ref } from 'vue';
   import { useRequest } from 'vue-request';
 
-  import { getClusterDetail } from '@services/kafka';
+  import { getClusterDetail } from '@services/source/kafka';
 
   import { useGlobalBizs } from '@stores';
 

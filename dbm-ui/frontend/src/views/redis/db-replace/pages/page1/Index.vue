@@ -71,7 +71,10 @@
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
-  import { queryInfoByIp, queryMasterSlavePairs } from '@services/redis/toolbox';
+  import {
+    queryInfoByIp,
+    queryMasterSlavePairs,
+  } from '@services/source/redisToolbox';
   import { createTicket } from '@services/ticket';
   import type { SubmitTicket } from '@services/types/ticket';
 

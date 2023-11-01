@@ -225,7 +225,7 @@
   import {
     getRedisDTSJobTasks,
     setJobTaskFailedRetry,
-  } from '@services/redis/toolbox';
+  } from '@services/source/redisDts';
 
   import { useBeforeClose } from '@hooks';
 

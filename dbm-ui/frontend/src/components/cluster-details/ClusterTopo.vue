@@ -85,7 +85,14 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import { getBigdataResourceTopo, getResourceTopo } from '@services/clusters';
+  import { getTopoGraph as getESTopoGraph } from '@services/source/es';
+  import { getTopoGraph as getHDFSTopoGraph } from '@services/source/hdfs';
+  import { getTopoGraph as getKafkaTopoGraph } from '@services/source/kafka';
+  import { getTopoGraph as getPulsarTopoGraph } from '@services/source/pulsar';
+  import { getResourceTopo as getRedisResourceTopo } from '@services/source/resourceRedis';
+  import { getResourceTopo as getSpiderResourceTopo } from '@services/source/resourceSpider';
+  import { getResourceTopo as getTendbhaResourceTopo } from '@services/source/resourceTendbha';
+  import { getResourceTopo as getTendbsingleResourceTopo } from '@services/source/resourceTendbsingle';
 
   import { useGlobalBizs } from '@stores';
 
@@ -119,6 +126,17 @@
   const { t } = useI18n();
   const globalBizsStore = useGlobalBizs();
   const showMore = computed(() => props.clusterType === ClusterTypes.TENDBHA);
+
+  const apiMap: Record<string, (params: any) => Promise<any>> = {
+    es: getESTopoGraph,
+    hdfs: getHDFSTopoGraph,
+    kafka: getKafkaTopoGraph,
+    pulsar: getPulsarTopoGraph,
+    redis: getRedisResourceTopo,
+    tendbsingle: getSpiderResourceTopo,
+    tendbha: getTendbhaResourceTopo,
+    spider: getTendbsingleResourceTopo,
+  };
 
   /** 拓扑功能 */
   const topoState = reactive<TopoState>({
@@ -175,8 +193,7 @@
       resource_id: id,
     };
     topoState.loading = true;
-    const fetchTopoApi = dbType === 'bigdata' ? getBigdataResourceTopo : getResourceTopo;
-    return fetchTopoApi(params)
+    return apiMap[clusterType](params)
       .then((res) => {
         try {
           const { locations, lines } = graphDataInst.formatGraphData(res);

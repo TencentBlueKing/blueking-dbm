@@ -88,7 +88,7 @@
 </script>
 <script setup lang="ts" generic="T extends any">
   import { getResourceInstances } from '@services/clusters';
-  import { queryClusters } from '@services/mysqlCluster';
+  import { queryClusters } from '@services/source/mysqlCluster';
   import type { ListBase } from '@services/types/common';
 
   import getSettings from '@components/instance-selector-new/common/tableSettings';

@@ -14,8 +14,10 @@
 import type { SearchOption } from 'bkui-vue/lib/tree/props';
 import type { Ref } from 'vue';
 
-import { getBusinessTopoTree } from '@services/configs';
 import BizConfTopoTreeModel from '@services/model/config/biz-conf-topo-tree';
+import { getBusinessTopoTree as getBigdataBusinessTopoTree } from '@services/source/bigdata';
+import { getBusinessTopoTree as getRedisBusinessTopoTree } from '@services/source/resourceRedis';
+import { getBusinessTopoTree as getMysqlBusinessTopoTree } from '@services/source/resources';
 
 import { useGlobalBizs } from '@stores';
 
@@ -37,6 +39,12 @@ export const useTreeData = (treeState: TreeState) => {
   const router = useRouter();
   const route = useRoute();
   const globalBizsStore = useGlobalBizs();
+
+  const apiMap: Record<string, (params: any) => ReturnType<typeof getBigdataBusinessTopoTree>> = {
+    bigdata: getBigdataBusinessTopoTree,
+    redis: getRedisBusinessTopoTree,
+    mysql: getMysqlBusinessTopoTree,
+  };
 
   const activeTreeNode = computed(() => treeState.activeNode);
   provide('treeNode', readonly(activeTreeNode));
@@ -121,7 +129,7 @@ export const useTreeData = (treeState: TreeState) => {
   const fetchBusinessTopoTree = (dbType: string) => {
     // eslint-disable-next-line no-param-reassign
     treeState.loading = true;
-    getBusinessTopoTree({
+    apiMap[dbType]({
       bk_biz_id: globalBizsStore.currentBizId,
       cluster_type: clusterType?.value as string,
       db_type: dbType,

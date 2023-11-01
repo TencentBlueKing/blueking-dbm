@@ -78,7 +78,7 @@
   } from 'bkui-vue/lib/icon';
   import { ref } from 'vue';
 
-  import { getPassword } from '@services/pulsar';
+  import { getPulsarPassword } from '@services/source/bigdata';
 
   import { useCopy } from '@hooks';
 
@@ -105,7 +105,7 @@
     token: '',
   });
 
-  getPassword({
+  getPulsarPassword({
     bk_biz_id: currentBizId,
     cluster_id: props.clusterId,
   })

@@ -159,7 +159,7 @@
   import { useI18n } from 'vue-i18n';
 
   import RedisRollbackModel from '@services/model/redis/redis-rollback';
-  import { getRollbackList } from '@services/redis/toolbox';
+  import { getRollbackList } from '@services/source/redisRollback';
 
   import { useCopy, useDefaultPagination, useSelectorDialogWidth } from '@hooks';
 

@@ -24,7 +24,7 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import { getHostTopoInfos } from '@services/ip';
+  import { getHostTopoInfos } from '@services/source/ipchooser';
 
   import { useGlobalBizs } from '@stores';
 
