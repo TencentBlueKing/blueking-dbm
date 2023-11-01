@@ -131,7 +131,7 @@ func StandardPowerShellCommand(param string) (stdoutStr string, err error) {
 	cmd.Stderr = &stderr
 	err = cmd.Run()
 	if err != nil {
-		return stderr.String(), errors.WithMessage(err, stderr.String())
+		return stdout.String(), errors.WithMessage(err, stderr.String())
 	}
 	return stdout.String(), nil
 }

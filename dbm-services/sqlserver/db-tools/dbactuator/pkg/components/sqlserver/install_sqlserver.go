@@ -182,7 +182,7 @@ func (i *InstallSqlServerComp) CheckDataDir() error {
 		return err
 	}
 	if !check {
-		return fmt.Errorf("data dir [%s] not exists!", i.DataRootPath)
+		return fmt.Errorf("data dir [%s] not exists", i.DataRootPath)
 	}
 	return nil
 }
@@ -199,7 +199,7 @@ func (i *InstallSqlServerComp) CheckMssqlProcess() error {
 	}
 	if ret != "" {
 		// 输出不为空则表示有部署进程
-		return fmt.Errorf("There is a mssql process, check!:[%s]", osutil.CleanExecOutput(ret))
+		return fmt.Errorf("There is a mssql process check [%s]", osutil.CleanExecOutput(ret))
 	}
 	return nil
 }
@@ -238,7 +238,7 @@ func (i *InstallSqlServerComp) GenerateCnf() error {
 		}
 		// 生成对应配置文件
 		if err := osutil.CreateInstallConf(
-			[]byte(rendered.String()), i.CnfTpls[port].ConfFile, i.Params.SQlServerVersion); err != nil {
+			rendered.Bytes(), i.CnfTpls[port].ConfFile, i.Params.SQlServerVersion); err != nil {
 			return err
 		}
 	}
@@ -403,7 +403,7 @@ func (i *InstallSqlServerComp) InitDB() error {
 		return err
 	}
 	for _, port := range i.InsPorts {
-		if err := sqlserver.ExecLocalSQLFile(i.Params.SQlServerVersion, files, port); err != nil {
+		if err := sqlserver.ExecLocalSQLFile(i.Params.SQlServerVersion, "master", 0, files, port); err != nil {
 			return err
 		}
 	}

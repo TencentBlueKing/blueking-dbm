@@ -99,10 +99,10 @@ func (h *DbWorker) ExecMore(sqls []string) (rowsAffectedCount int64, err error) 
 
 // Queryx execute query use sqlx
 func (h *DbWorker) Queryx(data interface{}, query string, args ...interface{}) error {
-	logger.Info("Queryx:%s, args:%v", query, args)
 	db := sqlx.NewDb(h.Db, "mssql")
 	udb := db.Unsafe()
 	if err := udb.Select(data, query, args...); err != nil {
+		logger.Info("Queryx:%s, args:%v", query, args)
 		return fmt.Errorf("sqlx select failed, err:%w", err)
 	}
 	return nil
@@ -119,34 +119,58 @@ func (h *DbWorker) Queryxs(data interface{}, query string) error {
 	return nil
 }
 
+// ShowDatabases 执行show database 获取所有的dbName
+// 正常情况值遍历可读写以及状态为running 的 业务数据库列表
+func (h *DbWorker) ShowDatabases() (databases []string, err error) {
+	cmd := "select name from sys.databases where is_read_only=0 and state=0 " +
+		"and name not in ('msdb', 'master', 'model', 'tempdb', 'Monitor');"
+	err = h.Queryx(&databases, cmd)
+	return
+}
+
+// ShowDatabases 执行show database 获取所有的dbName
+// 正常情况值遍历可读写以及状态为running 的 业务数据库列表
+func (h *DbWorker) GetVersion() (version string, err error) {
+	cmd := "select SUBSTRING(@@VERSION, 1, CHARINDEX('-', @@VERSION) - 2) AS VersionInfo;"
+	err = h.Queryxs(&version, cmd)
+	return
+}
+
 // ExecLocalSQLFile TODO
 // 调用本地的sqlcmd执行本地sql脚本，识别smss的语法（主要是go语法）
 // 适配sql脚本执行、初始化等相关大脚本操作
-func ExecLocalSQLFile(sqlVeriosn string, filenames []string, port int) error {
+// 目前执行sql脚本出现错误则异常退出
+func ExecLocalSQLFile(sqlVersion string, dbName string, charsetNO int, filenames []string, port int) error {
 	var cmdSql string
+	if charsetNO == 0 {
+		charsetNO = 936
+	}
 	switch {
-	case strings.Contains(sqlVeriosn, "2008"):
+	case strings.Contains(sqlVersion, "2008"):
 		cmdSql = cst.SQLCMD_2008
-	case strings.Contains(sqlVeriosn, "2012"):
+	case strings.Contains(sqlVersion, "2012"):
 		cmdSql = cst.SQLCMD_2012
-	case strings.Contains(sqlVeriosn, "2014"):
+	case strings.Contains(sqlVersion, "2014"):
 		cmdSql = cst.SQLCMD_2014
-	case strings.Contains(sqlVeriosn, "2016"):
+	case strings.Contains(sqlVersion, "2016"):
 		cmdSql = cst.SQLCMD_2016
-	case strings.Contains(sqlVeriosn, "2017"):
+	case strings.Contains(sqlVersion, "2017"):
 		cmdSql = cst.SQLCMD_2017
-	case strings.Contains(sqlVeriosn, "2019"):
+	case strings.Contains(sqlVersion, "2019"):
 		cmdSql = cst.SQLCMD_2019
 	default:
-		return fmt.Errorf("This version [%s] is not supported", sqlVeriosn)
+		return fmt.Errorf("this version [%s] is not supported", sqlVersion)
 	}
 	for _, filename := range filenames {
-		cmd := fmt.Sprintf("& '%s' -S \"127.0.0.1,%d\" -C -i %s", cmdSql, port, filename)
-		if _, err := osutil.StandardPowerShellCommand(cmd); err != nil {
-			logger.Error("exec init script failed %s", err.Error())
+		cmd := fmt.Sprintf(
+			"& '%s' -S \"127.0.0.1,%d\" -C -d %s -f %d -b -i %s",
+			cmdSql, port, dbName, charsetNO, filename,
+		)
+		if ret, err := osutil.StandardPowerShellCommand(cmd); err != nil {
+			logger.Error("exec sql script failed %s, result: %s ", err.Error(), ret)
 			return err
 		}
-		logger.Info("exec init script success  [%d:%s]", port, filename)
+		logger.Info("exec sql script success  [%d:%s]", port, filename)
 	}
 
 	return nil
