@@ -13,11 +13,6 @@
 
 <template>
   <div class="config-biz-details">
-    <MainBreadcrumbs>
-      <template #append>
-        <div class="operations" />
-      </template>
-    </MainBreadcrumbs>
     <BkTab
       v-model:active="state.activeTab"
       class="top-tabs"
@@ -56,8 +51,6 @@
   import { useMainViewStore } from '@stores';
 
   import { confLevelInfos, ConfLevels } from '@common/const';
-
-  import MainBreadcrumbs from '@components/layouts/MainBreadcrumbs.vue';
 
   import DetailsBase from '../components/DetailsBase.vue';
   import PublishRecord from '../components/PublishRecord.vue';
@@ -140,47 +133,35 @@
   }
 </script>
 
-<style lang="less" scoped>
+<style lang="less">
   @import "@styles/mixins.less";
 
-  .config-biz-details {
-    height: 100%;
+  .config-biz-details{
+    .top-tabs{
+      background: #fff;
+      box-shadow: 0 3px 4px 0 rgb(0 0 0 / 4%);
 
-    :deep(.base-card) {
-      margin-bottom: 16px;
-    }
-  }
-
-  .operations {
-    .flex-center();
-
-    &__button {
-      width: 76px;
-      margin-left: 8px;
-      font-size: @font-size-mini;
+      .bk-tab-content{
+        display: none;
+      }
     }
 
-    &__more {
-      display: block;
-      width: 26px;
-      margin-left: 8px;
-      font-size: @font-size-large;
-      line-height: 26px;
-      cursor: pointer;
-      border-radius: 2px;
+    .config-biz-details {
+      height: 100%;
 
-      &:hover {
-        background-color: @bg-dark-gray;
+      .base-card {
+        margin-bottom: 16px;
+      }
+    }
+
+    .details-content {
+      height: calc(100vh - 152px);
+      padding: 24px;
+
+      .details-base {
+        height: 100%;
       }
     }
   }
 
-  .details-content {
-    height: calc(100% - 52px);
-    padding: 66px 24px 24px;
-
-    :deep(.details-base) {
-      height: 100%;
-    }
-  }
 </style>

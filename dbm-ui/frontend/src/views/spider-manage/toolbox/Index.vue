@@ -12,11 +12,6 @@
 -->
 
 <template>
-  <div class="top-title">
-    <MainBreadcrumbs>
-      <span class="custom-breadcrumbs">{{ $t('TendbCluster_工具箱') }}</span>
-    </MainBreadcrumbs>
-  </div>
   <BkResizeLayout
     :border="false"
     class="toolbox"
@@ -36,8 +31,6 @@
 
   import { useMainViewStore } from '@stores';
 
-  import MainBreadcrumbs from '@components/layouts/MainBreadcrumbs.vue';
-
   import ToolboxContent from './components/ToolboxContent.vue';
   import ToolboxSide from './components/ToolboxSide.vue';
 
@@ -55,17 +48,6 @@
   });
 </script>
 <style lang="less" scoped>
-.top-title {
-  position: absolute;
-  top: 0;
-  left: 0;
-}
-
-.custom-breadcrumbs {
-  font-size: @font-size-large;
-  color: @title-color;
-}
-
 .toolbox {
   height: 100%;
 

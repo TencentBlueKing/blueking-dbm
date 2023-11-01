@@ -57,7 +57,7 @@
     modelValue?: string [],
     clusterId: number,
     required?: boolean,
-    single: boolean,
+    single?: boolean,
     checkExist?: boolean
     rules?: {
       validator: (value: string[]) => boolean,

@@ -12,18 +12,20 @@
 -->
 
 <template>
-  <BkTab
-    v-model:active="activeTab"
-    class="top-tabs"
-    type="unborder-card">
-    <BkTabPanel
-      v-for="tab of tabs"
-      :key="tab.label"
-      :label="tab.label"
-      :name="tab.value" />
-  </BkTab>
-  <div class="global-strategy-content">
-    <TypeContent :active-db-type="activeTab" />
+  <div class="monitor-alart-global-strategy-page">
+    <BkTab
+      v-model:active="activeTab"
+      class="top-tabs"
+      type="unborder-card">
+      <BkTabPanel
+        v-for="tab of tabs"
+        :key="tab.label"
+        :label="tab.label"
+        :name="tab.value" />
+    </BkTab>
+    <div class="global-strategy-content">
+      <TypeContent :active-db-type="activeTab" />
+    </div>
   </div>
 </template>
 
@@ -76,9 +78,11 @@
   const activeTab = ref(tabs[0].value);
 
 </script>
-<style lang="less" scoped>
-
-.global-strategy-content {
-  margin-top: 35px;
+<style lang="less">
+.monitor-alart-global-strategy-page{
+  .global-strategy-content {
+    margin-top: 35px;
+  }
 }
+
 </style>
