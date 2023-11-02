@@ -21,9 +21,10 @@ from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.configuration.constants import SystemSettingsEnum
 from backend.configuration.models import SystemSettings
 from backend.db_services.meta_import.constants import SWAGGER_TAG
-from backend.db_services.meta_import.serializers import MySQLHaMetadataImportSerializer
+from backend.db_services.meta_import.serializers import MySQLHaMetadataImportSerializer, MySQLStandardSerializer
 from backend.iam_app.handlers.drf_perm import RejectPermission
 from backend.ticket.builders.mysql.mysql_ha_metadata_import import MySQLHaMetadataImportDetailSerializer
+from backend.ticket.builders.mysql.mysql_ha_standardize import MysqlStandardizeDetailSerializer
 from backend.ticket.constants import TicketType
 from backend.ticket.models import Ticket
 
@@ -59,6 +60,30 @@ class DBMetadataImportViewSet(viewsets.SystemViewSet):
             creator=request.user.username,
             bk_biz_id=data["bk_biz_id"],
             remark=self.tendbha_metadata_import.__name__,
+            details=data,
+        )
+        return Response(data)
+
+    @common_swagger_auto_schema(
+        operation_summary=_("mysql标准化接入"),
+        tags=[SWAGGER_TAG],
+    )
+    @action(
+        methods=["POST"],
+        detail=False,
+        serializer_class=MySQLStandardSerializer,
+        parser_classes=[MultiPartParser],
+    )
+    def mysql_standardize(self, request, *args, **kwargs):
+        data = self.params_validate(self.get_serializer_class())
+        data["infos"] = {"cluster_ids": data["cluster_ids"]}
+        # 创建标准化ticket
+        MysqlStandardizeDetailSerializer(data=data).is_valid(raise_exception=True)
+        Ticket.create_ticket(
+            ticket_type=TicketType.MYSQL_HA_STANDARDIZE,
+            creator=request.user.username,
+            bk_biz_id=data["bk_biz_id"],
+            remark=self.mysql_standardize.__name__,
             details=data,
         )
         return Response(data)
