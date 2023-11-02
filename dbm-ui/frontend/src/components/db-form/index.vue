@@ -26,7 +26,7 @@
 
   interface Props {
     model?: Record<string, any>,
-    autoLabelWidth: boolean,
+    autoLabelWidth?: boolean,
   }
 
   const props = withDefaults(defineProps<Props>(), {

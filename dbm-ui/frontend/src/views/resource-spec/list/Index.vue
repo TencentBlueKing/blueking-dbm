@@ -12,37 +12,38 @@
 -->
 
 <template>
-  <BkTab
-    v-model:active="curTab"
-    class="top-tabs"
-    type="unborder-card"
-    @change="handleChangeClusterType">
-    <BkTabPanel
-      v-for="tab of renderTabs"
-      :key="tab.name"
-      :label="tab.label"
-      :name="tab.name" />
-  </BkTab>
-  <div
-    :key="curTab"
-    class="resource-spec-page">
+  <div class="resource-spec-list-page">
     <BkTab
-      v-model:active="curChildTab"
-      type="card">
+      v-model:active="curTab"
+      class="top-tabs"
+      type="unborder-card"
+      @change="handleChangeClusterType">
       <BkTabPanel
-        v-for="childTab of childrenTabs"
-        :key="childTab.name"
-        :label="childTab.label"
-        :name="childTab.name" />
+        v-for="tab of renderTabs"
+        :key="tab.name"
+        :label="tab.label"
+        :name="tab.name" />
     </BkTab>
-    <SpecList
-      :cluster-type="curTab"
-      :cluster-type-label="clusterTypeLabel"
-      :machine-type="curChildTab"
-      :machine-type-label="machineTypeLabel" />
+    <div
+      :key="curTab"
+      class="wrapper">
+      <BkTab
+        v-model:active="curChildTab"
+        type="card">
+        <BkTabPanel
+          v-for="childTab of childrenTabs"
+          :key="childTab.name"
+          :label="childTab.label"
+          :name="childTab.name" />
+      </BkTab>
+      <SpecList
+        :cluster-type="curTab"
+        :cluster-type-label="clusterTypeLabel"
+        :machine-type="curChildTab"
+        :machine-type-label="machineTypeLabel" />
+    </div>
   </div>
 </template>
-
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
@@ -52,7 +53,7 @@
     FunctionKeys,
   } from '@services/model/function-controller/functionController';
 
-  import { useFunController } from '@stores';
+  import { useFunController, useMainViewStore  } from '@stores';
 
   import { ClusterTypes } from '@common/const';
 
@@ -72,6 +73,8 @@
   const { t } = useI18n();
   const route = useRoute();
   const funControllerStore = useFunController();
+  const mainViewStore = useMainViewStore();
+  mainViewStore.hasPadding = false;
 
   const tabs: TabItem[] = [
     {
@@ -267,13 +270,19 @@
     }
   });
 </script>
+<style lang="less">
+  .resource-spec-list-page{
+    .bk-tab-content{
+      display: none;
+    }
 
-<style lang="less" scoped>
-  .resource-spec-page {
-    padding-top: 42px;
+    .top-tabs{
+      background: #fff;
+      box-shadow: 0 3px 4px 0 rgb(0 0 0 / 4%);
+    }
 
-    :deep(.bk-tab-content) {
-      padding: 0;
+    .wrapper{
+      padding: 24px;
     }
   }
 </style>

@@ -26,7 +26,7 @@ const routes: RouteRecordRaw[] = [
       navName: t('版本文件'),
       isMenu: true,
     },
-    component: () => import('@views/version-files/pages/VersionFiles.vue'),
+    component: () => import('@views/version-files/list/Index.vue'),
   },
 ];
 

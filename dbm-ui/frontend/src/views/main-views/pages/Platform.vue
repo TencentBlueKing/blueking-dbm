@@ -94,6 +94,18 @@
               </FunController>
             </BkMenuGroup>
           </FunController>
+          <BkMenuGroup :name="$t('巡检')">
+            <BkMenuItem key="inspectionManage">
+              <template #icon>
+                <i class="db-icon-db-config" />
+              </template>
+              <span
+                v-overflow-tips.right
+                class="text-overflow">
+                {{ $t('健康报告') }}
+              </span>
+            </BkMenuItem>
+          </BkMenuGroup>
           <div class="main-views-space-line" />
           <BkMenuGroup :name="$t('事件中心')">
             <BkMenuItem key="PlatDBMASwitchEvents">

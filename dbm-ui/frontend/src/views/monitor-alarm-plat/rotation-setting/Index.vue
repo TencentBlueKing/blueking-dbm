@@ -29,6 +29,8 @@
   </div>
 </template>
 <script setup lang="ts">
+  import { useMainViewStore } from '@stores';
+
   import TypeContent from './components/content/Index.vue';
 
   const tabs = [
@@ -74,11 +76,13 @@
     },
   ];
 
+  const mainViewStore = useMainViewStore();
+  mainViewStore.hasPadding = false;
+
   const activeTab = ref(tabs[0].value);
 
 </script>
-<style lang="less" scoped>
-
+<style lang="less">
 .monitor-alarm-plat-page{
   .top-tabs{
     background: #fff;

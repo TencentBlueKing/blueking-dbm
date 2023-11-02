@@ -50,10 +50,10 @@
   ];
 
   const list = [
-    // {
-    //   id: 'remote',
-    //   name: t('远程备份'),
-    // },
+    {
+      id: 'remote',
+      name: t('远程备份'),
+    },
     {
       id: 'local',
       name: t('本地备份'),

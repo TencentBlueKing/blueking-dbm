@@ -116,7 +116,7 @@
     placeholder?: string,
     rules?: Rules,
     disabled?: boolean,
-    clearable: boolean,
+    clearable?: boolean,
   }
   interface Emits {
     (e: 'update:modelValue', value: IKey): void,

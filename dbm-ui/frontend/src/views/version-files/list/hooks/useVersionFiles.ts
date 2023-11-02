@@ -20,7 +20,7 @@ import { deletePackage, getPackages } from '@services/versionFiles';
 
 import { useInfo } from '@hooks';
 
-import type { IState, TypeParams } from '../common/types';
+import type { IState, TypeParams } from '../components/types';
 
 /**
  * 列表基础操作
