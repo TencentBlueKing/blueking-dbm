@@ -15,6 +15,7 @@ from django.db.models import Q
 
 from backend.bk_web.models import AuditedModel
 from backend.db_meta.enums import ClusterEntryType, MachineType
+from backend.db_meta.models import AppCache
 
 logger = logging.getLogger("root")
 
@@ -60,10 +61,25 @@ class DBModule(AuditedModel):
 
             # logger.info("get db module choices with filter: {}".format(q))
 
-            db_module_choices = [
-                (module.db_module_id, f"[{module.db_module_id}]{module.cluster_type}-{module.db_module_name}")
-                for module in cls.objects.filter(q)
-            ]
+            db_module_choices = []
+
+            for dm in cls.objects.filter(q).all():
+
+                try:
+                    app = AppCache.objects.get(bk_biz_id=dm.bk_biz_id)
+                    db_module_choices.append(
+                        (
+                            dm.db_module_id,
+                            f"[{dm.db_module_id}]-[{dm.cluster_type}]-[app:{app.db_app_abbr}]-{dm.db_module_name}",
+                        )
+                    )
+                except AppCache.DoesNotExist:
+                    continue
+
+            # db_module_choices = [
+            #     (module.db_module_id, f"[{module.db_module_id}]{module.cluster_type}-{module.db_module_name}")
+            #     for module in cls.objects.filter(q)
+            # ]
         except Exception:  # pylint: disable=broad-except
             # 忽略出现的异常，此时可能因为表未初始化
             db_module_choices = []

@@ -9,9 +9,10 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import json
+import logging
 
 from django.utils.translation import ugettext_lazy as _
-from rest_framework import status
+from rest_framework import serializers
 from rest_framework.decorators import action
 from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
@@ -20,13 +21,16 @@ from backend.bk_web import viewsets
 from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.configuration.constants import SystemSettingsEnum
 from backend.configuration.models import SystemSettings
+from backend.db_meta.models import Cluster
 from backend.db_services.meta_import.constants import SWAGGER_TAG
-from backend.db_services.meta_import.serializers import MySQLHaMetadataImportSerializer, MySQLStandardSerializer
+from backend.db_services.meta_import.serializers import MySQLHaMetadataImportSerializer, MySQLHaStandardSerializer
 from backend.iam_app.handlers.drf_perm import RejectPermission
 from backend.ticket.builders.mysql.mysql_ha_metadata_import import MySQLHaMetadataImportDetailSerializer
-from backend.ticket.builders.mysql.mysql_ha_standardize import MysqlStandardizeDetailSerializer
+from backend.ticket.builders.mysql.mysql_ha_standardize import MysqlHaStandardizeDetailSerializer
 from backend.ticket.constants import TicketType
 from backend.ticket.models import Ticket
+
+logger = logging.getLogger("root")
 
 
 class DBMetadataImportViewSet(viewsets.SystemViewSet):
@@ -65,25 +69,42 @@ class DBMetadataImportViewSet(viewsets.SystemViewSet):
         return Response(data)
 
     @common_swagger_auto_schema(
-        operation_summary=_("mysql标准化接入"),
+        operation_summary=_("tendbha标准化接入"),
         tags=[SWAGGER_TAG],
     )
     @action(
         methods=["POST"],
         detail=False,
-        serializer_class=MySQLStandardSerializer,
+        serializer_class=MySQLHaStandardSerializer,
         parser_classes=[MultiPartParser],
     )
-    def mysql_standardize(self, request, *args, **kwargs):
+    def tendbha_standardize(self, request, *args, **kwargs):
         data = self.params_validate(self.get_serializer_class())
+
+        domain_list = []
+        for line in data.pop("file").readlines():
+            domain_list.append(line.decode("utf-8").strip().rstrip("."))
+
+        cluster_ids = list(Cluster.objects.filter(immute_domain__in=domain_list).values_list("id", flat=True))
+        logger.info("domains: {}, ids: {}".format(domain_list, cluster_ids))
+
+        exists_domains = list(
+            Cluster.objects.filter(immute_domain__in=domain_list).values_list("immute_domain", flat=True)
+        )
+        diff = list(set(domain_list) - set(exists_domains))
+        if diff:
+            raise serializers.ValidationError(_("cluster {} not found".format(diff)))
+
+        data["cluster_ids"] = cluster_ids
+
         data["infos"] = {"cluster_ids": data["cluster_ids"]}
         # 创建标准化ticket
-        MysqlStandardizeDetailSerializer(data=data).is_valid(raise_exception=True)
+        MysqlHaStandardizeDetailSerializer(data=data).is_valid(raise_exception=True)
         Ticket.create_ticket(
             ticket_type=TicketType.MYSQL_HA_STANDARDIZE,
             creator=request.user.username,
             bk_biz_id=data["bk_biz_id"],
-            remark=self.mysql_standardize.__name__,
+            remark=self.tendbha_standardize.__name__,
             details=data,
         )
         return Response(data)

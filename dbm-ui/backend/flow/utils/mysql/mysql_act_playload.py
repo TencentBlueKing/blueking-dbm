@@ -2106,3 +2106,32 @@ class MysqlActPayload(PayloadHandler, TBinlogDumperActPayload):
                 },
             },
         }
+
+    def get_adopt_tendbha_storage_payload(self, **kwargs):
+        db_version = self.cluster["version"]
+        self.mysql_pkg = Package.get_latest_package(version=db_version, pkg_type=MediumEnum.MySQL)
+
+        drs_account, dbha_account = self.get_super_account()
+        return {
+            "db_type": DBActuatorTypeEnum.MySQL.value,
+            "action": DBActuatorActionEnum.AdoptTendbHAStorage.value,
+            "payload": {
+                "general": {"runtime_account": self.account},
+                "extend": {
+                    "pkg": self.mysql_pkg.name,
+                    "pkg_md5": self.mysql_pkg.md5,
+                    "ip": kwargs["ip"],
+                    "ports": self.cluster["ports"],
+                    "mysql_version": self.cluster["version"],
+                    "super_account": drs_account,
+                    "dbha_account": dbha_account,
+                },
+            },
+        }
+
+    def get_adopt_tendbha_proxy_payload(self, **kwargs):
+        return {
+            "db_type": DBActuatorTypeEnum.MySQL.value,
+            "action": DBActuatorActionEnum.AdoptTendbHAProxy.value,
+            "payload": {"general": {}, "extend": {}},  # {"runtime_account": self.account},
+        }
