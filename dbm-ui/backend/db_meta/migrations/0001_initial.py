@@ -12,6 +12,7 @@ from backend.db_meta.enums import (
     ClusterStatus,
     ClusterType,
     InstanceInnerRole,
+    InstancePhase,
     InstanceRole,
     MachineType,
 )
@@ -365,7 +366,7 @@ class Migration(migrations.Migration):
                 (
                     "phase",
                     models.CharField(
-                        choices=ClusterPhase.get_choices(),
+                        choices=InstancePhase.get_choices(),
                         default="online",
                         max_length=64,
                     ),

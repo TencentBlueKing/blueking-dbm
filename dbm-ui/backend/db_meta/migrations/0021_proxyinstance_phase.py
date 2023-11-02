@@ -2,6 +2,8 @@
 
 from django.db import migrations, models
 
+from backend.db_meta.enums import InstancePhase
+
 
 class Migration(migrations.Migration):
 
@@ -14,12 +16,7 @@ class Migration(migrations.Migration):
             model_name="proxyinstance",
             name="phase",
             field=models.CharField(
-                choices=[
-                    ("online", "online"),
-                    ("offline", "offline"),
-                    ("destroy", "destroy"),
-                    ("trans_stage", "trans_stage"),
-                ],
+                choices=InstancePhase.get_choices(),
                 default="online",
                 max_length=64,
             ),

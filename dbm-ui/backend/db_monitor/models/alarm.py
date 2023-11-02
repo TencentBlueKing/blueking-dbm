@@ -55,7 +55,7 @@ class NoticeGroup(AuditedModel):
     """告警通知组：一期粒度仅支持到业务级，可开关是否同步DBA人员数据"""
 
     bk_biz_id = models.IntegerField(help_text=_("业务ID, 0代表全业务"), default=PLAT_BIZ_ID)
-    name = models.CharField(_("告警通知组名称"), max_length=LEN_LONG, default="")
+    name = models.CharField(_("告警通知组名称"), max_length=LEN_MIDDLE, default="")
     monitor_group_id = models.BigIntegerField(help_text=_("监控通知组ID"), default=0)
     monitor_duty_rule_id = models.IntegerField(verbose_name=_("监控轮值规则 ID"), default=0)
     db_type = models.CharField(_("数据库类型"), choices=DBType.get_choices(), max_length=LEN_SHORT, default="")
@@ -128,15 +128,17 @@ class NoticeGroup(AuditedModel):
                 self.monitor_duty_rule_id = resp["id"]
             except ApiError as err:
                 logger.error(f"request monitor api error: {err}")
-            # 把相同 db_type 的轮值应用到此告警组中
-            monitor_duty_rule_ids = (
-                DutyRule.objects.filter(db_type=self.db_type)
-                .exclude(monitor_duty_rule_id=0)
-                .order_by("-priority")
-                .values_list("monitor_duty_rule_id", flat=True)
-            )
-            save_monitor_group_params["need_duty"] = True
-            save_monitor_group_params["duty_rules"] = list(monitor_duty_rule_ids)
+                save_monitor_group_params["duty_arranges"][0]["users"] = self.receivers
+            else:
+                # 轮值生效，把相同 db_type 的轮值应用到此告警组中
+                monitor_duty_rule_ids = (
+                    DutyRule.objects.filter(db_type=self.db_type)
+                    .exclude(monitor_duty_rule_id=0)
+                    .order_by("-priority")
+                    .values_list("monitor_duty_rule_id", flat=True)
+                )
+                save_monitor_group_params["need_duty"] = True
+                save_monitor_group_params["duty_rules"] = list(monitor_duty_rule_ids)
         else:
             save_monitor_group_params["duty_arranges"][0]["users"] = self.receivers
 
@@ -208,7 +210,7 @@ class DutyRule(AuditedModel):
     ]
     """
 
-    name = models.CharField(verbose_name=_("轮值规则名称"), max_length=LEN_LONG)
+    name = models.CharField(verbose_name=_("轮值规则名称"), max_length=LEN_MIDDLE)
     monitor_duty_rule_id = models.IntegerField(verbose_name=_("监控轮值规则 ID"), default=0)
     priority = models.PositiveIntegerField(verbose_name=_("优先级"))
     is_enabled = models.BooleanField(verbose_name=_("是否启用"), default=True)
