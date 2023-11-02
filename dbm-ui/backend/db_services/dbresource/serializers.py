@@ -281,10 +281,8 @@ class SpecSerializer(serializers.ModelSerializer):
             ]
             and attrs["spec_machine_type"] in [MachineType.TENDISPLUS, MachineType.TENDISSSD]
         ):
-            if set(mount_points) != set(standard_mount_points):
-                raise serializers.ValidationError(
-                    _("【{}】后端磁盘挂载点必须且只能包含/data，/data1").format(attrs["spec_cluster_type"])
-                )
+            if "/data" not in set(mount_points):
+                raise serializers.ValidationError(_("【{}】后端磁盘挂载点必须包含/data").format(attrs["spec_cluster_type"]))
 
     def validate(self, attrs):
         self.validate_valid_cpu_mem(attrs)
