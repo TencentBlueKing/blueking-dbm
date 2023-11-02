@@ -65,6 +65,8 @@ func NewMysqlCommand() *cobra.Command {
 				NewOpenAreaImportData(),
 				OSCmdRunCommand(),
 				OSInfoGetCommand(),
+				NewAdoptScrTendbHAStorageCommand(),
+				NewAdoptScrTendbHAProxyCommand(),
 			},
 		},
 		{

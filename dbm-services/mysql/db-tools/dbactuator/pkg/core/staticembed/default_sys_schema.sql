@@ -48,7 +48,7 @@ CREATE TABLE IF NOT EXISTS infodba_schema.query_response_time(
     PRIMARY KEY (time_min, time)
 ) engine = InnoDB;
 -- conn_log 所有用户可写. 注会导致所有用户可以看见 infodba_schema
-insert into `mysql`.`db`(`Host`,`Db`,`User`,`Select_priv`,`Insert_priv`, `Update_priv`,`Delete_priv`,`Create_priv`,`Drop_priv`)
+REPLACE into `mysql`.`db`(`Host`,`Db`,`User`,`Select_priv`,`Insert_priv`, `Update_priv`,`Delete_priv`,`Create_priv`,`Drop_priv`)
  values('%','infodba_schema','','Y','Y',  'N','N','N','N');
 
 flush privileges;

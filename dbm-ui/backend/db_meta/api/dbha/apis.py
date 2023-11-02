@@ -19,7 +19,14 @@ from django.utils.translation import ugettext_lazy as _
 
 from backend.constants import DEFAULT_BK_CLOUD_ID, IP_PORT_DIVIDER
 from backend.db_meta import flatten, request_validator, validators
-from backend.db_meta.enums import ClusterEntryType, ClusterStatus, ClusterType, InstanceInnerRole, InstanceStatus
+from backend.db_meta.enums import (
+    ClusterEntryType,
+    ClusterStatus,
+    ClusterType,
+    InstanceInnerRole,
+    InstancePhase,
+    InstanceStatus,
+)
 from backend.db_meta.exceptions import (
     ClusterNotExistException,
     ClusterSetDtlExistException,
@@ -124,6 +131,8 @@ def instances(
         queries &= Q(**{"status__in": statuses})
 
     queries &= Q(**{"machine__bk_cloud_id": bk_cloud_id})
+
+    queries &= ~Q(**{"phase": InstancePhase.TRANS_STAGE})  # 排除 scr/gcs 迁移状态实例
 
     return flatten.storage_instance(StorageInstance.objects.filter(queries)) + flatten.proxy_instance(
         ProxyInstance.objects.filter(queries)

@@ -17,17 +17,16 @@ from rest_framework import serializers
 from backend.components import DBConfigApi
 from backend.components.dbconfig import constants as dbconf_const
 from backend.db_meta.enums import ClusterType
-from backend.db_meta.models import App, DBModule, Spec
+from backend.db_meta.models import AppCache, DBModule, Spec
 from backend.flow.engine.controller.mysql import MySQLController
 from backend.ticket import builders
 from backend.ticket.builders.mysql.base import BaseMySQLTicketFlowBuilder, MySQLBaseOperateDetailSerializer
-from backend.ticket.constants import FlowRetryType, TicketType
+from backend.ticket.constants import AffinityEnum, FlowRetryType, TicketType
 
 logger = logging.getLogger("root")
 
 
 class MySQLHaMetadataImportDetailSerializer(MySQLBaseOperateDetailSerializer):
-    # file = serializers.FileField(help_text=_("元数据json文件"))
     json_content = serializers.JSONField(help_text=_("元数据json内容"))
     bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
     db_module_id = serializers.IntegerField(help_text=_("模块ID"))
@@ -57,7 +56,7 @@ class MySQLHaMetadataImportDetailSerializer(MySQLBaseOperateDetailSerializer):
     @staticmethod
     def __validate_bk_biz_id_exists(attrs):
         bk_biz_id = attrs["bk_biz_id"]
-        if not App.objects.filter(bk_biz_id=bk_biz_id).exists():
+        if not AppCache.objects.filter(bk_biz_id=bk_biz_id).exists():
             raise serializers.ValidationError(_("bk_biz_id: {} 不存在".format(bk_biz_id)))
 
     def __validate_db_module_id_exists(self, attrs):
@@ -106,6 +105,13 @@ class MySQLHaMetadataImportDetailSerializer(MySQLBaseOperateDetailSerializer):
         self.__validate_cluster_version_charset(cluster_json=cluster_json, attrs=attrs)
         self.__validate_proxy_spec_match(cluster_json=cluster_json)
         self.__validate_storage_spec_match(cluster_json=cluster_json)
+        self.__validate_cluster_disaster(cluster_json=cluster_json)
+
+    @staticmethod
+    def __validate_cluster_disaster(cluster_json):
+        disaster = cluster_json["disaster_level"]
+        if disaster not in AffinityEnum.get_values():
+            raise serializers.ValidationError(_("隔离级别 {} 不支持".format(disaster)))
 
     def __validate_cluster_version_charset(self, cluster_json, attrs):
         db_module_id = attrs["db_module_id"]

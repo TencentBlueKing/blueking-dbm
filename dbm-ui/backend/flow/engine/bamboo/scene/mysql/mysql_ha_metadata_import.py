@@ -11,12 +11,15 @@ specific language governing permissions and limitations under the License.
 
 import copy
 import logging
+from collections import defaultdict
+from dataclasses import asdict
 from typing import Dict, Optional
 
 from django.utils.translation import ugettext as _
 
 from backend.configuration.constants import DBType
 from backend.db_meta.enums import ClusterType
+from backend.flow.consts import DBA_ROOT_USER
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder, SubProcess
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.plugins.components.collections.common.pause import PauseComponent
@@ -54,22 +57,8 @@ class TenDBHAMetadataImportFlow(object):
         )
 
         proxy_machines = []
-        storage_machines = []
         for cluster_json in self.data["json_content"]:
             proxy_machines += [ele["ip"] for ele in cluster_json["proxies"]]
-            storage_machines.append(cluster_json["master"]["ip"])
-            storage_machines += [ele["ip"] for ele in cluster_json["slaves"]]
-
-        proxy_machines = list(set(proxy_machines))
-        storage_machines = list(set(storage_machines))
-
-        # 不做这个, 导入后有独立单据做
-        # import_pipe.add_parallel_sub_pipeline(
-        #     sub_flow_list=[
-        #         self._build_install_dbatool_sub(ips=proxy_machines, is_proxy=True),
-        #         self._build_install_dbatool_sub(ips=storage_machines, is_proxy=False),
-        #     ]
-        # )
 
         import_pipe_sub.add_act(act_name=_("人工确认"), act_component_code=PauseComponent.code, kwargs={})
 
@@ -77,156 +66,85 @@ class TenDBHAMetadataImportFlow(object):
             act_name=_("修改集群状态"), act_component_code=MySQLHAModifyClusterPhaseComponent.code, kwargs={}
         )
 
+        storage_machine_ports = defaultdict(list)
+        version = ""
+        for cluster_json in self.data["json_content"]:
+            version = cluster_json["version"]  # 取了多次问题不大, 这个单据的前置检查要求版本一致
+            storage_machine_ports[cluster_json["master"]["ip"]].append(cluster_json["master"]["port"])
+            for slave in cluster_json["slaves"]:
+                storage_machine_ports[slave["ip"]].append(slave["port"])
+
+        version = "MySQL-" + ".".join(version.split(".")[:2])  # 改写成配置系统的形式
+
+        adopt_pipes = []
+        for ip, ports in storage_machine_ports.items():
+            adopt_storage_pipe = SubBuilder(root_id=self.root_id, data=self.data)
+
+            adopt_storage_pipe.add_act(
+                act_name=_("下发actuator介质"),
+                act_component_code=TransFileComponent.code,
+                kwargs=asdict(
+                    DownloadMediaKwargs(
+                        bk_cloud_id=0,
+                        exec_ip=ip,
+                        file_list=GetFileList(db_type=DBType.MySQL).get_db_actuator_package(),
+                    )
+                ),
+            )
+
+            adopt_storage_pipe.add_act(
+                act_name=_("接管存储层 {}".format(ip)),
+                act_component_code=ExecuteDBActuatorScriptComponent.code,
+                kwargs=asdict(
+                    ExecActuatorKwargs(
+                        exec_ip=ip,
+                        run_as_system_user=DBA_ROOT_USER,
+                        cluster_type=ClusterType.TenDBHA.value,
+                        cluster={"ports": ports, "version": version},
+                        bk_cloud_id=0,  # 国内迁移写死
+                        get_mysql_payload_func=MysqlActPayload.get_adopt_tendbha_storage_payload.__name__,
+                    )
+                ),
+            )
+
+            adopt_pipes.append(adopt_storage_pipe.build_sub_process(sub_name=_("接管存储层 {}".format(ip))))
+
+        # import_pipe_sub.add_parallel_sub_pipeline(adopt_pipes)
+
+        # adopt_proxy_pipes = []
+        for ip in proxy_machines:
+            adopt_proxy_pipe = SubBuilder(root_id=self.root_id, data=self.data)
+
+            adopt_proxy_pipe.add_act(
+                act_name=_("下发actuator介质"),
+                act_component_code=TransFileComponent.code,
+                kwargs=asdict(
+                    DownloadMediaKwargs(
+                        bk_cloud_id=0,
+                        exec_ip=ip,
+                        file_list=GetFileList(db_type=DBType.MySQL).get_db_actuator_package(),
+                    )
+                ),
+            )
+
+            adopt_proxy_pipe.add_act(
+                act_name=_("接管接入层 {}".format(ip)),
+                act_component_code=ExecuteDBActuatorScriptComponent.code,
+                kwargs=asdict(
+                    ExecActuatorKwargs(
+                        exec_ip=ip,
+                        run_as_system_user=DBA_ROOT_USER,
+                        bk_cloud_id=0,
+                        get_mysql_payload_func=MysqlActPayload.get_adopt_tendbha_proxy_payload.__name__,
+                    )
+                ),
+            )
+
+            adopt_pipes.append(adopt_proxy_pipe.build_sub_process(sub_name=_("接管接入层 {}".format(ip))))
+
+        import_pipe_sub.add_parallel_sub_pipeline(adopt_pipes)
+
         import_pipe.add_sub_pipeline(sub_flow=import_pipe_sub.build_sub_process(sub_name=_("TenDBHA 元数据导入")))
 
         logger.info(_("构建TenDBHA元数据导入流程成功"))
         import_pipe.run_pipeline(init_trans_data_class=MySQLHAImportMetadataContext())
-
-    # def _build_install_dbatool_sub(self, ips: List[str], is_proxy: bool) -> SubProcess:
-    #     bk_cloud_id = 0
-    #     cluster_type = ClusterType.TenDBHA.value
-    #
-    #     pipes = []
-    #
-    #     for ip in ips:
-    #         pipe = SubBuilder(root_id=self.root_id, data=self.data)
-    #
-    #         pipe.add_act(
-    #             act_name=_("下发MySQL周边程序介质"),
-    #             act_component_code=TransFileComponent.code,
-    #             kwargs=asdict(
-    #                 DownloadMediaKwargs(
-    #                     bk_cloud_id=bk_cloud_id,
-    #                     exec_ip=ip,
-    #                     file_list=GetFileList(db_type=DBType.MySQL).get_mysql_surrounding_apps_package(),
-    #                 )
-    #             ),
-    #         )
-    #         pipe.add_act(
-    #             act_name=_("下发actuator介质"),
-    #             act_component_code=TransFileComponent.code,
-    #             kwargs=asdict(
-    #                 DownloadMediaKwargs(
-    #                     bk_cloud_id=bk_cloud_id,
-    #                     exec_ip=ip,
-    #                     file_list=GetFileList(db_type=DBType.MySQL).get_db_actuator_package(),
-    #                 )
-    #             ),
-    #         )
-    #         pipe.add_act(
-    #             act_name=_("部署mysql-crond"),
-    #             act_component_code=ExecuteDBActuatorScriptComponent.code,
-    #             kwargs=asdict(
-    #                 ExecActuatorKwargs(
-    #                     exec_ip=ip,
-    #                     bk_cloud_id=bk_cloud_id,
-    #                     get_mysql_payload_func=MysqlActPayload.get_deploy_mysql_crond_payload.__name__,
-    #                     cluster_type=cluster_type,
-    #                 )
-    #             ),
-    #         )
-    #         pipe.add_act(
-    #             act_name=_("部署监控程序"),
-    #             act_component_code=ExecuteDBActuatorScriptComponent.code,
-    #             kwargs=asdict(
-    #                 ExecActuatorKwargs(
-    #                     exec_ip=ip,
-    #                     bk_cloud_id=bk_cloud_id,
-    #                     get_mysql_payload_func=MysqlActPayload.get_deploy_mysql_monitor_payload.__name__,
-    #                     cluster_type=cluster_type,
-    #                 )
-    #             ),
-    #         )
-    #
-    #         if not is_proxy:
-    #             pipe.add_act(
-    #                 act_name=_("部署备份程序"),
-    #                 act_component_code=ExecuteDBActuatorScriptComponent.code,
-    #                 kwargs=asdict(
-    #                     ExecActuatorKwargs(
-    #                         exec_ip=ip,
-    #                         bk_cloud_id=bk_cloud_id,
-    #                         get_mysql_payload_func=MysqlActPayload.get_install_db_backup_payload.__name__,
-    #                         cluster_type=cluster_type,
-    #                     )
-    #                 ),
-    #             )
-    #
-    #             pipe.add_act(
-    #                 act_name=_("部署rotate binlog"),
-    #                 act_component_code=ExecuteDBActuatorScriptComponent.code,
-    #                 kwargs=asdict(
-    #                     ExecActuatorKwargs(
-    #                         exec_ip=ip,
-    #                         bk_cloud_id=bk_cloud_id,
-    #                         get_mysql_payload_func=MysqlActPayload.get_install_mysql_rotatebinlog_payload.__name__,
-    #                         cluster_type=cluster_type,
-    #                     )
-    #                 ),
-    #             )
-    #
-    #             pipe.add_act(
-    #                 act_name=_("部署数据校验程序"),
-    #                 act_component_code=ExecuteDBActuatorScriptComponent.code,
-    #                 kwargs=asdict(
-    #                     ExecActuatorKwargs(
-    #                         exec_ip=ip,
-    #                         bk_cloud_id=bk_cloud_id,
-    #                         get_mysql_payload_func=MysqlActPayload.get_install_mysql_checksum_payload.__name__,
-    #                         cluster_type=cluster_type,
-    #                     )
-    #                 ),
-    #             )
-    #
-    #         pipes.append(pipe.build_sub_process(sub_name=_("{} 部署dba工具".format(ip))))
-    #
-    #     p = SubBuilder(root_id=self.root_id, data=self.data)
-    #     p.add_parallel_sub_pipeline(sub_flow_list=pipes)
-    #     return p.build_sub_process(sub_name=_("部署 dba 工具"))
-
-
-# @transaction.atomic
-# def clear_trans_stage(cluster_ids: List[int]):
-#     StorageInstanceTuple.objects.filter(
-#         Q(ejector__cluster__in=cluster_ids)
-#         & Q(ejector__phase=InstancePhase.TRANS_STAGE.value)
-#         & Q(ejector__cluster__phase=ClusterPhase.TRANS_STAGE)
-#     ).delete()
-#
-#     # 这样其实不对, 因为延迟执行, 等到删除 machine 的时候已经找不到了
-#     machines = Machine.objects.filter(
-#         Q(
-#             Q(proxyinstance__cluster__in=cluster_ids)
-#             & Q(proxyinstance__cluster__phase=ClusterPhase.TRANS_STAGE.value)
-#             & Q(proxyinstance__phase=InstancePhase.TRANS_STAGE.value)
-#         )
-#         | Q(
-#             Q(storageinstance__cluster__in=cluster_ids)
-#             & Q(storageinstance__cluster__phase=ClusterPhase.TRANS_STAGE.value)
-#             & Q(storageinstance__phase=InstancePhase.TRANS_STAGE.value)
-#         )
-#     )
-#
-#
-#     StorageInstance.objects.filter(
-#         Q(cluster__in=cluster_ids)
-#         & Q(cluster__phase=ClusterPhase.TRANS_STAGE.value)
-#         & Q(phase=InstancePhase.TRANS_STAGE.value)
-#     ).delete()
-#
-#     ProxyInstance.objects.filter(
-#         Q(cluster__in=cluster_ids)
-#         & Q(cluster__phase=ClusterPhase.TRANS_STAGE.value)
-#         & Q(phase=InstancePhase.TRANS_STAGE.value)
-#     ).delete()
-#
-#     print(machines)
-#     machines.delete()
-#     # try:
-#     #     machines.delete()
-#     # except ProtectedError:
-#     #     pass
-#
-#     ClusterEntry.objects.filter(
-#     Q(cluster__in=cluster_ids) & Q(cluster__phase=ClusterPhase.TRANS_STAGE.value)).delete()
-#     Cluster.objects.filter(Q(id__in=cluster_ids) & Q(phase=ClusterPhase.TRANS_STAGE.value)).delete()

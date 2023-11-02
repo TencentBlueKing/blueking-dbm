@@ -60,6 +60,7 @@ class AffinityEnum(str, StructuredEnum):
     亲和性枚举类
     """
 
+    # 这个swtich 拼写错误不要改, 可能会影响老集群
     SAME_SUBZONE_CROSS_SWTICH = EnumField("SAME_SUBZONE_CROSS_SWTICH", _("同城同subzone跨交换机跨机架"))
     SAME_SUBZONE = EnumField("SAME_SUBZONE", _("同城同subzone"))
     CROS_SUBZONE = EnumField("CROS_SUBZONE", _("CROS_SUBZONE"))
