@@ -208,7 +208,7 @@ class KafkaMeta(object):
             )
             new_cluster = api.cluster.kafka.create(**cluster)
             # 生成模块、转移主机、添加服务实例
-            KafkaCCTopoOperator(new_cluster).transfer_instances_to_cluster_module(storage_objs)
+            KafkaCCTopoOperator(new_cluster, self.ticket_data).transfer_instances_to_cluster_module(storage_objs)
 
         return True
 
@@ -229,7 +229,7 @@ class KafkaMeta(object):
                 instances=storage_instances, creator=self.ticket_data["created_by"]
             )
             api.cluster.kafka.scale_up(cluster_id=self.ticket_data["cluster_id"], storages=storage_instances)
-            KafkaCCTopoOperator(cluster).transfer_instances_to_cluster_module(storage_objs)
+            KafkaCCTopoOperator(cluster, self.ticket_data).transfer_instances_to_cluster_module(storage_objs)
 
         return True
 
@@ -278,5 +278,5 @@ class KafkaMeta(object):
                 old_storages=old_storage_instances,
                 new_storages=new_storage_instances,
             )
-            KafkaCCTopoOperator(cluster).transfer_instances_to_cluster_module(storage_objs)
+            KafkaCCTopoOperator(cluster, self.ticket_data).transfer_instances_to_cluster_module(storage_objs)
         return True
