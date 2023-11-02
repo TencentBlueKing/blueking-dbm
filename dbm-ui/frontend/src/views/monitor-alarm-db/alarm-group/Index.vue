@@ -106,7 +106,12 @@
 
         return (
           <>
-            <span class="alarm-group-name">{ row.name }</span>
+            <bk-button
+              text
+              theme="primary"
+              onClick={ () => handleOpenDetail('edit', row) }>
+              { row.name }
+            </bk-button>
             {
               isRenderTag
                 ? <MiniTag content={ t('内置') } class="ml-4"></MiniTag>
@@ -303,10 +308,6 @@
     }
 
     :deep(.alert-group-table) {
-      .alarm-group-name {
-        color: @primary-color;
-      }
-
       .is-new {
         td {
           background-color: #f3fcf5 !important;
