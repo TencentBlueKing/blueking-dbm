@@ -140,7 +140,7 @@
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
 
-  const isFixedDiskMountPoint = ['tendisssd', 'tendisplus'].includes(props.machineType);
+  const isFixedDiskMountPoint = false; // ['tendisssd', 'tendisplus'].includes(props.machineType);
 
   const initFormdata = () => {
     if (props.data) {
