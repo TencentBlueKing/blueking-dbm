@@ -242,7 +242,7 @@
 
 <style lang="less">
   .instance-selector-manual-input {
-    height: 600px;
+    height: 585px;
     padding-top: 16px;
 
     .bk-resize-layout {
@@ -282,7 +282,7 @@
     .manual-input-buttons {
       display: flex;
       align-items: center;
-      margin-top: 12px;
+      margin-top: 5px;
 
       .bk-button {
         &:first-child {

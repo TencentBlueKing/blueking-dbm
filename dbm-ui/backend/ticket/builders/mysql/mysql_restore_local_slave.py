@@ -32,6 +32,7 @@ class MysqlRestoreLocalSlaveDetailSerializer(MySQLBaseOperateDetailSerializer):
         )
 
     infos = serializers.ListField(help_text=_("重建从库列表"), child=SlaveInfoSerializer())
+    force = serializers.BooleanField(help_text=_("是否强制执行"), required=False, default=False)
 
     def validate(self, attrs):
         # 校验集群是否可用，集群类型为高可用
@@ -52,7 +53,13 @@ class MysqlRestoreLocalSlaveDetailSerializer(MySQLBaseOperateDetailSerializer):
 
 
 class MysqlRestoreLocalSlaveParamBuilder(builders.FlowParamBuilder):
-    controller = MySQLController.mysql_restore_local_slave_scene
+    controller_remote = MySQLController.mysql_restore_local_remote_scene
+    controller_local = MySQLController.mysql_restore_local_slave_scene
+
+    def build_controller_info(self) -> dict:
+        backup_source = self.ticket_data.get("backup_source", MySQLBackupSource.LOCAL)
+        self.controller = getattr(self, f"controller_{backup_source}")
+        return super().build_controller_info()
 
     def format_ticket_data(self):
         for index, info in enumerate(self.ticket_data["infos"]):

@@ -13,6 +13,14 @@
 import dayjs from 'dayjs';
 
 // 首字母大写
-export const firstLetterToUpper = (str: string) => str.charAt(0).toUpperCase() + str.slice(1);
+export const firstLetterToUpper = (str?: string) => {
+  if (!str) {
+    return '';
+  }
+  if (str.length === 1) {
+    return str.charAt(0).toUpperCase();
+  }
+  return str.charAt(0).toUpperCase() + str.slice(1);
+};
 
 export const formatDatetime = (data: Date) => dayjs(data).format('YYYY-MM-DD HH:mm:ss');

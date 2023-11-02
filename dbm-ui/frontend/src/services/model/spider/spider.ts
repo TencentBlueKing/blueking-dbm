@@ -115,4 +115,8 @@ export default class Spider {
     this.spider_slave = payload.spider_slave || [];
     this.status = payload.status;
   }
+
+  get isClusterNormal() {
+    return this.status === 'normal';
+  }
 }

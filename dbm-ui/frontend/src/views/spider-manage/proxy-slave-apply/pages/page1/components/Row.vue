@@ -138,6 +138,8 @@
   const querySpecList = async (type: string) => {
     const ret = await getResourceSpecList({
       spec_cluster_type: type,
+      limit: -1,
+      offset: 0,
     });
     const retArr = ret.results;
     const res  = await getSpecResourceCount({

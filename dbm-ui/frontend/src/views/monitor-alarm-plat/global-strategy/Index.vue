@@ -12,28 +12,31 @@
 -->
 
 <template>
-  <BkTab
-    v-model:active="activeTab"
-    class="global-strategy-panel"
-    type="unborder-card">
-    <BkTabPanel
-      v-for="tab of tabs"
-      :key="tab.label"
-      :label="tab.label"
-      :name="tab.value" />
-  </BkTab>
-  <div class="global-strategy-content">
-    <TypeContent :active-db-type="activeTab" />
+  <div class="monitor-alart-global-strategy-page">
+    <BkTab
+      v-model:active="activeTab"
+      class="top-tabs"
+      type="unborder-card">
+      <BkTabPanel
+        v-for="tab of tabs"
+        :key="tab.label"
+        :label="tab.label"
+        :name="tab.value" />
+    </BkTab>
+    <div class="global-strategy-content">
+      <TypeContent :active-db-type="activeTab" />
+    </div>
   </div>
 </template>
-
 <script setup lang="ts">
+  import { useMainViewStore } from '@stores';
+
   import TypeContent from './components/content/Index.vue';
 
   const tabs = [
     {
       value: 'mysql',
-      label: 'Mysql',
+      label: 'MySQL',
     },
     {
       value: 'tendbcluster',
@@ -53,11 +56,11 @@
     },
     {
       value: 'hdfs',
-      label: 'Hdfs',
+      label: 'HDFS',
     },
     {
       value: 'es',
-      label: 'Es',
+      label: 'ES',
     },
     {
       value: 'pulsar',
@@ -73,17 +76,26 @@
     },
   ];
 
+  const mainViewStore = useMainViewStore();
+  mainViewStore.hasPadding = false;
+
   const activeTab = ref(tabs[0].value);
 
 </script>
-<style lang="less" scoped>
-.global-strategy-panel {
-  :deep(.bk-tab-content) {
-    display: none;
+<style lang="less">
+.monitor-alart-global-strategy-page{
+  .top-tabs{
+    background: #fff;
+    box-shadow: 0 3px 4px 0 rgb(0 0 0 / 4%);
+
+    .bk-tab-content{
+      display: none;
+    }
+  }
+
+  .global-strategy-content {
+    padding: 24px;
   }
 }
 
-.global-strategy-content {
-  margin-top: 20px;
-}
 </style>

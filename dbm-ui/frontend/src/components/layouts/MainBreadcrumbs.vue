@@ -88,7 +88,7 @@
     .flex-center();
 
     position: relative;
-    z-index: 11;
+    z-index: 999;
     width: 100%;
     height: 52px;
     padding: 0 24px;

@@ -19,7 +19,6 @@
     </template>
   </div>
 </template>
-
 <script setup lang="ts">
   import { useMainViewStore } from '@stores';
 
@@ -59,10 +58,8 @@
     });
   });
 </script>
-
 <style lang="less">
   .business-db-configure-list-page {
-    height: 100%;
-    padding-top: 41px;
+    height: calc(100vh - 150px);
   }
 </style>

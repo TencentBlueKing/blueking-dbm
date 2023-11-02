@@ -14,7 +14,9 @@
 <template>
   <div class="monitor-targets-box">
     <div class="left-box">
-      <div class="item-box">
+      <div
+        v-show="flowList.length > 0"
+        class="item-box">
         <div class="item">
           <span class="top-bar" />
           AND
@@ -36,7 +38,9 @@
     </div>
     <div class="right-box">
       <div class="item-box biz">
-        <span class="left-bar" />
+        <span
+          v-show="flowList.length > 0"
+          class="left-bar" />
         <div class="title-box">
           <BkSelect
             v-model="bizObj.title"
@@ -84,11 +88,7 @@
           </BkSelect>
           <span v-else>{{ item.title }}</span>
         </div>
-        <div
-          class="content"
-          :class="{
-            'content-other': item.isCustom
-          }">
+        <div class="content">
           <BkSelect
             v-if="item.isSelect"
             v-model="item.value"
@@ -105,11 +105,13 @@
           <div
             v-else
             class="content-custom">
-            <span class="condition">{{ signMap[item.value[0]] }}</span>
-            <BkInput
-              v-model="item.value[1]"
-              :placeholder="t('请输入')"
-              size="default" />
+            <span class="condition">{{ signMap[item.method] }}</span>
+            <BkTagInput
+              v-model="item.valueList"
+              allow-create
+              collapse-tags
+              has-delete-icon
+              :placeholder="t('请输入')" />
           </div>
         </div>
         <div class="operate-box">
@@ -140,6 +142,7 @@
   import { signMap } from '@components/monitor-rule-check/index.vue';
 
   type TargetItem = MonitorPolicyModel['targets'][0];
+  type CustomItem = MonitorPolicyModel['custom_conditions'][0]
 
   type FlowListType = ReturnType<typeof initFlowList>;
 
@@ -151,6 +154,7 @@
   interface Props {
     dbType: string,
     targets: TargetItem[],
+    customs: CustomItem[],
     bizsMap: Record<string, string>,
     moduleList: SelectItem<string>[],
     clusterList: SelectItem<string>[],
@@ -173,7 +177,7 @@
       }
       return results;
     }, [] as TargetItem[]);
-    return targets.map((item) => {
+    const targetList = targets.map((item) => {
       let title = '';
       const isCustom = !titles.includes(item.level);
       if (isCustom) {
@@ -223,8 +227,25 @@
         selectList,
         activeAdd: isMySql.value ? selectCounts < 2 : false,
         activeMinus: !isCustom,
+        method: '',
+        valueList: [],
       };
     });
+
+    const customeList = props.customs.map(item => ({
+      id: item.key,
+      title: item.dimension_name,
+      isCustom: true,
+      isSelect: false,
+      method: item.method,
+      titleList: [],
+      valueList: item.value,
+      selectList: [],
+      value: '',
+      activeAdd: false,
+      activeMinus: false,
+    }));
+    return [...targetList, ...customeList];
   }
 
   function generateFlowSelectItem(item: SelectObjType) {
@@ -246,20 +267,20 @@
           activeAdd: false,
           activeMinus: true,
         });
-        return item;
+        return item as unknown as FlowListType[number];
       }
     }
     Object.assign(item, {
       selectList: isMySql.value ? props.moduleList : props.clusterList,
       titleList: _.cloneDeep(titleListRaw),
-      activeAdd: false,
+      activeAdd: isMySql.value,
       activeMinus: true,
     });
-    return item;
+    return item as unknown as FlowListType[number];
   }
 
   const enum TargetType {
-    BIZ = 'app_id',
+    BIZ = 'appid',
     CLUSTER = 'cluster_domain',
     MODULE = 'db_module',
     PLATFORM = 'platform'
@@ -392,11 +413,32 @@
   defineExpose<Exposes>({
     getValue() {
       const defalutObj =  {
-        id: TargetType.BIZ,
-        value: isPlatform.value ? [currentBizId]
-          : [props.targets.filter(item => item.level === TargetType.BIZ)[0].rule.value[0]],
+        rule: {
+          key: TargetType.BIZ,
+          // eslint-disable-next-line max-len
+          value: isPlatform.value ? [currentBizId] : [props.targets.filter(item => item.level === TargetType.BIZ)[0].rule.value[0]],
+        },
+        level: TargetType.BIZ,
       };
-      return [defalutObj, ...flowList.value];
+      const targetList = flowList.value.filter(item => !item.isCustom).map(row => ({
+        rule: {
+          key: row.id,
+          value: row.value,
+        },
+        level: row.id,
+      }));
+      const targets = [defalutObj, ...targetList];
+      const customs = flowList.value.filter(item => item.isCustom).map(item => ({
+        condition: 'and',
+        dimension_name: item.title,
+        key: item.id,
+        method: item.method,
+        value: item.valueList,
+      }));
+      return {
+        targets,
+        custom_conditions: customs,
+      };
     },
     resetValue() {
       flowList.value = initFlowList();
@@ -426,10 +468,10 @@
 
       .top-bar {
         position: absolute;
-        top: -15px;
+        top: -16px;
         left: 20px;
         width: 0;
-        height: 15px;
+        height: 16px;
         border-left: 1px solid #C4C6CC;
       }
 
@@ -454,6 +496,12 @@
     .biz {
       .content {
         background-color: #FAFBFD;
+
+        :deep(.bk-input) {
+          border-left-width: 0;
+          border-bottom-left-radius: 0;
+          border-top-left-radius: 0;
+        }
       }
 
     }
@@ -488,7 +536,6 @@
 
           :deep(.bk-input) {
             border-radius: 2px 0 0 2px;
-            outline: none;
           }
         }
       }
@@ -496,25 +543,40 @@
       .content {
         flex: 1;
 
+        .is-focus {
+          :deep(.bk-select-tag) {
+            border-left-color: #3a84ff;
+
+            &:hover {
+              border-left-color: #3a84ff;
+            }
+          }
+
+        }
+
         :deep(.bk-input) {
           outline: none;
         }
 
         :deep(.bk-select-tag) {
           width: 100%;
-          min-height: 30px;
+          min-height: 32px;
           overflow: hidden;
-          // border: none;
-          // outline: none;
+          border-left-color: transparent;
+          border-bottom-left-radius: 0;
+          border-top-left-radius: 0;
+
+          &:hover {
+            border-left-color: #a4a2a2;
+          }
+
 
           .bk-select-tag-wrapper {
             height: auto;
             max-height: 100px;
             overflow-y: auto;
-            // padding: 5px 8px;
           }
         }
-
 
         .content-custom {
           display: flex;
@@ -522,17 +584,21 @@
 
           .condition {
             width: 60px;
-            height: 30px;
-            line-height: 30px;
+            height: 32px;
+            line-height: 32px;
             text-align: center;
-            border-right: 1px solid #C4C6CC;
+            border: 1px solid #C4C6CC;
+            border-right: none;
+          }
+
+          .bk-tag-input {
+            flex: 1;
+
+            :deep(.bk-tag-input-trigger) {
+              border-radius: 0;
+            }
           }
         }
-      }
-
-      .content-other {
-        border: 1px solid #C4C6CC;
-        border-left: none;
       }
 
       .operate-box {
@@ -547,6 +613,7 @@
 
         .icon {
           font-size: 18px;
+          color: #979BA5;
           cursor: pointer;
         }
 
@@ -566,11 +633,12 @@
 
     .custom {
       .title-box {
-        padding: 0;
+        width: auto;
+        min-width: 80px;
+        padding: 0 8px;
         background: #F5F7FA;
         border: none;
         justify-content: center;
-        border-right: 1px solid #C4C6CC;
 
         span {
           font-size: 12px;

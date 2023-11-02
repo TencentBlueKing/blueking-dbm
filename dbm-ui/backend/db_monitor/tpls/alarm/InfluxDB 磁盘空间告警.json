@@ -57,7 +57,7 @@
               "bk_target_ip",
               "bk_target_cloud_id",
               "mount_point",
-              "app_id"
+              "appid"
             ],
             "data_type_label": "time_series",
             "result_table_id": "dbm_system.disk",
@@ -278,6 +278,7 @@
   },
   "is_enabled": true,
   "monitor_indicator": "MAX(\u78c1\u76d8\u7a7a\u95f4\u4f7f\u7528\u7387)",
-  "version": 2,
-  "alert_source": "time_series"
+  "version": 11,
+  "alert_source": "time_series",
+  "custom_conditions": []
 }

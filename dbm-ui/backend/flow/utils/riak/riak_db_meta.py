@@ -14,6 +14,7 @@ from django.db.transaction import atomic
 
 from backend.db_meta import api
 from backend.db_meta.enums import InstanceRole, MachineType
+from backend.db_meta.models import Spec
 from backend.flow.consts import DEFAULT_DB_MODULE_ID, DEFAULT_RIAK_PORT
 
 logger = logging.getLogger("flow")
@@ -35,8 +36,16 @@ class RiakDBMeta(object):
 
     def riak_cluster_apply(self) -> bool:
         ips = self.cluster.nodes
+        spec_id = self.ticket_data["resource_spec"]["riak"]["spec_id"]
+        spec_config = Spec.objects.get(spec_id=spec_id).get_spec_info()
         machines = [
-            {"ip": ip, "bk_biz_id": int(self.ticket_data["bk_biz_id"]), "machine_type": MachineType.RIAK.value}
+            {
+                "ip": ip,
+                "bk_biz_id": int(self.ticket_data["bk_biz_id"]),
+                "machine_type": MachineType.RIAK.value,
+                "spec_id": spec_id,
+                "spec_config": spec_config,
+            }
             for ip in ips
         ]
         instances = [
@@ -48,7 +57,7 @@ class RiakDBMeta(object):
             "name": self.ticket_data["cluster_name"],
             "alias": self.ticket_data["cluster_alias"],
             "immute_domain": self.ticket_data["domain"],
-            "db_module_id": DEFAULT_DB_MODULE_ID,
+            "db_module_id": self.ticket_data["db_module_id"],
             "storages": instances,
             "creator": self.ticket_data["created_by"],
             "major_version": self.ticket_data["db_version"],

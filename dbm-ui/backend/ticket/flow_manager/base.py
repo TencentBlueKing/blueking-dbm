@@ -8,7 +8,9 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import logging
 import operator
+import traceback
 from abc import ABC, abstractmethod
 from functools import reduce
 from typing import Any, Optional, Union
@@ -20,6 +22,8 @@ from backend.ticket import constants
 from backend.ticket.constants import FLOW_FINISHED_STATUS, FLOW_NOT_EXECUTE_STATUS, FlowErrCode, TicketFlowStatus
 from backend.ticket.models import ClusterOperateRecord, Flow, InstanceOperateRecord
 from backend.utils.basic import get_target_items_from_details
+
+logger = logging.getLogger("root")
 
 
 class BaseTicketFlow(ABC):
@@ -113,9 +117,11 @@ class BaseTicketFlow(ABC):
         self.ticket.status = constants.TicketStatus.FAILED
         self.ticket.save(update_fields=["status", "update_at"])
 
-        # 如果是自动重试，则认为flow和ticket都在执行
+        # 如果是自动重试，则认为flow和ticket都在执行，否则打印异常的堆栈
         if err_code == FlowErrCode.AUTO_EXCLUSIVE_ERROR.value:
-            self.run_status_handler(flow_obj_id="")
+            self.run_status_handler(flow_obj_id=self.flow_obj.flow_obj_id)
+        else:
+            logger.error(traceback.format_exc())
 
     def run_status_handler(self, flow_obj_id: str):
         """run成功时，更新相关状态为RUNNING中"""

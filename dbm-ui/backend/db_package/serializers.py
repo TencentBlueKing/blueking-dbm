@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+from datetime import datetime
 
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
@@ -29,3 +30,12 @@ class UploadPackageSerializer(serializers.Serializer):
     version = serializers.CharField(help_text=_("数据库版本"), required=False, allow_blank=True)
     pkg_type = serializers.ChoiceField(help_text=_("包类型"), choices=PackageType.get_choices())
     db_type = serializers.ChoiceField(help_text=_("存储类型"), choices=DBType.get_choices())
+
+
+class UpdateOrCreateSerializer(serializers.ModelSerializer):
+    create_at = serializers.DateTimeField(required=False, default=datetime.now())
+    update_at = serializers.DateTimeField(required=False, default=datetime.now())
+
+    class Meta:
+        model = Package
+        fields = "__all__"

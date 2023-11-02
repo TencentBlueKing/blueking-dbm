@@ -12,16 +12,15 @@
 -->
 
 <template>
-  <div class="my-tickets">
+  <div class="my-tickets-page">
     <List @change="handleChangeTicket" />
     <div
       v-if="activeTicket?.id"
-      class="my-tickets-details db-scroll-y">
+      class="ticket-detail-wrapper db-scroll-y">
       <Details :data="activeTicket" />
     </div>
   </div>
 </template>
-
 <script setup lang="ts">
   import TicketModel from '@services/model/ticket/ticket';
 
@@ -40,13 +39,12 @@
     activeTicket.value = data;
   }
 </script>
-
-<style lang="less" scoped>
-.my-tickets {
+<style lang="less">
+.my-tickets-page {
   display: flex;
   height: 100%;
 
-  .my-tickets-details {
+  .ticket-detail-wrapper {
     flex: 1;
     height: 100%;
   }

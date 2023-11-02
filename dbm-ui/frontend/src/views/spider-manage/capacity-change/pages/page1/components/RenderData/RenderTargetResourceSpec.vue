@@ -25,8 +25,8 @@
       @click="handleShowSelector" />
   </div>
   <DbSideslider
-    v-model:is-show="isShowSelector"
     :before-close="handleClose"
+    :is-show="isShowSelector"
     :width="960"
     @closed="handleClose">
     <template #header>
@@ -78,11 +78,6 @@
     </template>
   </DbSideslider>
 </template>
-<script lang="ts">
-  export default {
-    inheritAttrs: false,
-  };
-</script>
 <script setup lang="ts">
   import {
     ref,
@@ -108,6 +103,9 @@
   }
 
   const props = defineProps<Props>();
+  defineOptions({
+    inheritAttrs: false,
+  });
 
   const { t } = useI18n();
   const handleBeforeClose = useBeforeClose();
@@ -121,10 +119,6 @@
   const choosedSpecId = ref(-1);
   const localSpec = shallowRef<IRowData>();
   const showText = computed(() => `${localSpec.value ? `${localSpec.value.capacity} G` : ''}`);
-  // const selectList = computed(() => (showText.value ? [{
-  //   label: showText.value,
-  //   value: showText.value,
-  // }] : []));
 
   const rules = [
     {
@@ -157,8 +151,12 @@
   };
 
   const handlePlanChange = (specId: number, specData: IRowData) => {
+    choosedSpecId.value = specId;
     localSpec.value = specData;
-    choosedSpecId.value = specData.spec_id;
+    futureSpec.value = {
+      name: specData.spec_name,
+      futureCapacity: specData.capacity,
+    };
   };
 
   const handleConfirm = () => {
@@ -175,15 +173,20 @@
     getValue() {
       return inputRef.value
         .getValue()
-        .then(() => ({
-          resource_spec: {
-            backend_group: {
-              spec_id: localSpec.value?.spec_id,
-              count: localSpec.value?.machine_pair,
-              affinity: '',
+        .then(() => {
+          if (!localSpec.value) {
+            return Promise.reject();
+          }
+          return ({
+            resource_spec: {
+              backend_group: {
+                spec_id: localSpec.value.spec_id,
+                count: localSpec.value.machine_pair,
+                affinity: '',
+              },
             },
-          },
-        }));
+          });
+        });
     },
   });
 </script>

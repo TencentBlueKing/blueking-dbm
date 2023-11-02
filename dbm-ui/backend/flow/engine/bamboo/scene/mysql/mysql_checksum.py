@@ -112,13 +112,17 @@ class MysqlChecksumFlow(object):
         ran_str_obj = {"ran_str": ran_str}
 
         for info in self.data["infos"]:
-            bk_cloud_id = Cluster.objects.get(id=info["cluster_id"]).bk_cloud_id
+            cluster = Cluster.objects.get(id=info["cluster_id"])
+            bk_cloud_id = cluster.bk_cloud_id
+            immute_domain_obj = {"immute_domain": cluster.immute_domain}
+            time_zone_obj = {"time_zone": cluster.time_zone}
 
             sub_data = copy.deepcopy(self.data)
             sub_data.pop("infos")
 
-            sub_pipeline = SubBuilder(root_id=self.root_id, data={**info, **sub_data, **ran_str_obj})
-
+            sub_pipeline = SubBuilder(
+                root_id=self.root_id, data={**info, **sub_data, **ran_str_obj, **immute_domain_obj, **time_zone_obj}
+            )
             sub_pipeline.add_act(
                 act_name=_("检查元数据信息是否存在主备关系"),
                 act_component_code=MysqlMasterSlaveRelationshipCheckServiceComponent.code,

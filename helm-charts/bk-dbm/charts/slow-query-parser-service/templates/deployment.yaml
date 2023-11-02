@@ -1,0 +1,71 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "slow-query-parser-service.fullname" . }}
+  labels:
+    {{- include "slow-query-parser-service.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "slow-query-parser-service.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "slow-query-parser-service.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "slow-query-parser-service.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.global.imageRegistry | default .Values.image.registry }}/{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 80
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: {{ .Values.livenessProbe.path | default "/ping"}}
+              port: http
+            initialDelaySeconds: {{ .Values.livenessProbe.initialDelaySeconds | default 5}}
+            periodSeconds: {{ .Values.livenessProbe.periodSeconds | default 30}}
+            timeoutSeconds: {{ .Values.livenessProbe.timeoutSeconds | default 5}}
+            successThreshold: {{ .Values.livenessProbe.successThreshold | default 1}}
+            failureThreshold: {{ .Values.livenessProbe.failureThreshold | default 1}}
+          readinessProbe:
+            httpGet:
+              path: {{ .Values.readinessProbe.path | default "/ping"}}
+              port: http
+            initialDelaySeconds: {{ .Values.readinessProbe.initialDelaySeconds | default 5}}
+            periodSeconds: {{ .Values.readinessProbe.periodSeconds | default 30}}
+            timeoutSeconds: {{ .Values.readinessProbe.timeoutSeconds | default 5}}
+            successThreshold: {{ .Values.readinessProbe.successThreshold | default 1}}
+            failureThreshold: {{ .Values.readinessProbe.failureThreshold | default 1}}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

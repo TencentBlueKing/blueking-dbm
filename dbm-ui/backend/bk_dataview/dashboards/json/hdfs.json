@@ -356,7 +356,7 @@
               "method": "AVG",
               "metric_field": "hadoop_namenode_files_total",
               "refId": "a",
-              "result_table_id": "exporter_dbm_hdfs_exporter.group1",
+              "result_table_id": "exporter_dbm_hdfs_exporter.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -379,7 +379,7 @@
             }
           ],
           "refId": "A",
-          "source": "avg(avg_over_time(bkmonitor:exporter_dbm_hdfs_exporter:group1:hadoop_namenode_files_total{app=\"$app\",cluster_domain=\"$cluster_domain\"}[1m]))",
+          "source": "avg(avg_over_time(bkmonitor:exporter_dbm_hdfs_exporter:__default__:hadoop_namenode_files_total{app=\"$app\",cluster_domain=\"$cluster_domain\"}[1m]))",
           "step": "",
           "type": "range"
         }
@@ -460,7 +460,7 @@
               "method": "avg_without_time",
               "metric_field": "hadoop_namenode_blocks_total",
               "refId": "a",
-              "result_table_id": "exporter_dbm_hdfs_exporter.group1",
+              "result_table_id": "exporter_dbm_hdfs_exporter.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -564,7 +564,7 @@
               "method": "avg_without_time",
               "metric_field": "hadoop_namenode_capacity_used",
               "refId": "a",
-              "result_table_id": "exporter_dbm_hdfs_exporter.group1",
+              "result_table_id": "exporter_dbm_hdfs_exporter.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -691,7 +691,7 @@
             }
           ],
           "refId": "A",
-          "source": "avg(sum_over_time(bk_monitor:exporter_dbm_hdfs_exporter:group1:hadoop_namenode_capacity_total{app=\"$app\",cluster_domain=\"$cluster_domain\"}[1m]))",
+          "source": "avg(sum_over_time(bk_monitor:exporter_dbm_hdfs_exporter:__default__:hadoop_namenode_capacity_total{app=\"$app\",cluster_domain=\"$cluster_domain\"}[1m]))",
           "step": "",
           "type": "range"
         }
@@ -775,7 +775,7 @@
               "method": "COUNT",
               "metric_field": "hadoop_namenode_State",
               "refId": "a",
-              "result_table_id": "exporter_dbm_hdfs_exporter.group1",
+              "result_table_id": "exporter_dbm_hdfs_exporter.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -883,7 +883,7 @@
               "method": "COUNT",
               "metric_field": "hadoop_datanode_call_queue_length",
               "refId": "a",
-              "result_table_id": "exporter_dbm_hdfs_exporter.group1",
+              "result_table_id": "exporter_dbm_hdfs_exporter.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -990,7 +990,7 @@
               "method": "AVG",
               "metric_field": "hadoop_namenode_under_replicated_blocks",
               "refId": "a",
-              "result_table_id": "exporter_dbm_hdfs_exporter.group1",
+              "result_table_id": "exporter_dbm_hdfs_exporter.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -1097,7 +1097,7 @@
               "method": "max_without_time",
               "metric_field": "hadoop_namenode_pending_deletion_blocks",
               "refId": "a",
-              "result_table_id": "exporter_dbm_hdfs_exporter.group1",
+              "result_table_id": "exporter_dbm_hdfs_exporter.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -1215,7 +1215,7 @@
               "method": "avg_without_time",
               "metric_field": "hadoop_namenode_capacity_used",
               "refId": "a",
-              "result_table_id": "exporter_dbm_hdfs_exporter.group1",
+              "result_table_id": "exporter_dbm_hdfs_exporter.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -1249,7 +1249,7 @@
               "method": "avg_without_time",
               "metric_field": "hadoop_namenode_capacity_total",
               "refId": "b",
-              "result_table_id": "exporter_dbm_hdfs_exporter.group1",
+              "result_table_id": "exporter_dbm_hdfs_exporter.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -1385,7 +1385,7 @@
               "method": "max_without_time",
               "metric_field": "hadoop_namenode_State",
               "refId": "a",
-              "result_table_id": "exporter_dbm_hdfs_exporter.group1",
+              "result_table_id": "exporter_dbm_hdfs_exporter.__default__",
               "result_table_label": "component",
               "time_field": "time",
               "where": [
@@ -1538,7 +1538,7 @@
               "method": "AVG",
               "metric_field": "hadoop_namenode_capacity_total",
               "refId": "a",
-              "result_table_id": "exporter_dbm_hdfs_exporter.group1",
+              "result_table_id": "exporter_dbm_hdfs_exporter.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -1574,7 +1574,7 @@
               "method": "AVG",
               "metric_field": "hadoop_namenode_capacity_used",
               "refId": "b",
-              "result_table_id": "exporter_dbm_hdfs_exporter.group1",
+              "result_table_id": "exporter_dbm_hdfs_exporter.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -1610,7 +1610,7 @@
               "method": "MIN",
               "metric_field": "hadoop_namenode_State",
               "refId": "c",
-              "result_table_id": "exporter_dbm_hdfs_exporter.group1",
+              "result_table_id": "exporter_dbm_hdfs_exporter.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -1763,7 +1763,7 @@
               "method": "AVG",
               "metric_field": "hadoop_namenode_blocks_total",
               "refId": "a",
-              "result_table_id": "exporter_dbm_hdfs_exporter.group1",
+              "result_table_id": "exporter_dbm_hdfs_exporter.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -1799,7 +1799,7 @@
               "method": "MIN",
               "metric_field": "hadoop_namenode_State",
               "refId": "b",
-              "result_table_id": "exporter_dbm_hdfs_exporter.group1",
+              "result_table_id": "exporter_dbm_hdfs_exporter.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -1835,7 +1835,7 @@
               "method": "AVG",
               "metric_field": "hadoop_namenode_files_total",
               "refId": "c",
-              "result_table_id": "exporter_dbm_hdfs_exporter.group1",
+              "result_table_id": "exporter_dbm_hdfs_exporter.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -1983,7 +1983,7 @@
               "method": "avg_without_time",
               "metric_field": "hadoop_namenode_total_load",
               "refId": "a",
-              "result_table_id": "exporter_dbm_hdfs_exporter.group1",
+              "result_table_id": "exporter_dbm_hdfs_exporter.__default__",
               "result_table_label": "component",
               "time_field": "time",
               "where": [
@@ -2020,7 +2020,7 @@
               "method": "MIN",
               "metric_field": "hadoop_namenode_State",
               "refId": "b",
-              "result_table_id": "exporter_dbm_hdfs_exporter.group1",
+              "result_table_id": "exporter_dbm_hdfs_exporter.__default__",
               "result_table_label": "component",
               "time_field": "time",
               "where": [
@@ -2043,7 +2043,7 @@
             }
           ],
           "refId": "A",
-          "source": "avg(bkmonitor:exporter_dbm_hdfs_exporter:group1:hadoop_namenode_total_load{app=\"$app\",cluster_domain=\"$cluster_domain\",instance_host=\"$namenode_ip\"})",
+          "source": "avg(bkmonitor:exporter_dbm_hdfs_exporter:__default__:hadoop_namenode_total_load{app=\"$app\",cluster_domain=\"$cluster_domain\",instance_host=\"$namenode_ip\"})",
           "step": "",
           "type": "range"
         }
@@ -2155,7 +2155,7 @@
               "method": "avg_without_time",
               "metric_field": "hadoop_namenode_f_s_state",
               "refId": "a",
-              "result_table_id": "exporter_dbm_hdfs_exporter.group1",
+              "result_table_id": "exporter_dbm_hdfs_exporter.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -2191,7 +2191,7 @@
               "method": "AVG",
               "metric_field": "hadoop_namenode_State",
               "refId": "b",
-              "result_table_id": "exporter_dbm_hdfs_exporter.group1",
+              "result_table_id": "exporter_dbm_hdfs_exporter.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -2214,7 +2214,7 @@
             }
           ],
           "refId": "A",
-          "source": "avg(bkmonitor:exporter_dbm_hdfs_exporter:group1:hadoop_namenode_f_s_state{app=\"$app\",cluster_domain=\"$cluster_domain\"})",
+          "source": "avg(bkmonitor:exporter_dbm_hdfs_exporter:__default__:hadoop_namenode_f_s_state{app=\"$app\",cluster_domain=\"$cluster_domain\"})",
           "step": "",
           "type": "range"
         }
@@ -2369,7 +2369,7 @@
               "method": "AVG",
               "metric_field": "hadoop_namenode_State",
               "refId": "a",
-              "result_table_id": "exporter_dbm_hdfs_exporter.group1",
+              "result_table_id": "exporter_dbm_hdfs_exporter.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -2405,7 +2405,7 @@
               "method": "AVG",
               "metric_field": "hadoop_namenode_rpc_queue_time_avg_time",
               "refId": "b",
-              "result_table_id": "exporter_dbm_hdfs_exporter.group1",
+              "result_table_id": "exporter_dbm_hdfs_exporter.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -2441,7 +2441,7 @@
               "method": "AVG",
               "metric_field": "hadoop_namenode_rpc_processing_time_avg_time",
               "refId": "c",
-              "result_table_id": "exporter_dbm_hdfs_exporter.group1",
+              "result_table_id": "exporter_dbm_hdfs_exporter.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -2588,7 +2588,7 @@
               "method": "AVG",
               "metric_field": "hadoop_namenode_call_queue_length",
               "refId": "a",
-              "result_table_id": "exporter_dbm_hdfs_exporter.group1",
+              "result_table_id": "exporter_dbm_hdfs_exporter.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -2624,7 +2624,7 @@
               "method": "AVG",
               "metric_field": "hadoop_namenode_State",
               "refId": "b",
-              "result_table_id": "exporter_dbm_hdfs_exporter.group1",
+              "result_table_id": "exporter_dbm_hdfs_exporter.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -2788,7 +2788,7 @@
               "method": "AVG",
               "metric_field": "hadoop_namenode_pending_replication_blocks",
               "refId": "a",
-              "result_table_id": "exporter_dbm_hdfs_exporter.group1",
+              "result_table_id": "exporter_dbm_hdfs_exporter.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -2824,7 +2824,7 @@
               "method": "AVG",
               "metric_field": "hadoop_namenode_under_replicated_blocks",
               "refId": "b",
-              "result_table_id": "exporter_dbm_hdfs_exporter.group1",
+              "result_table_id": "exporter_dbm_hdfs_exporter.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -2860,7 +2860,7 @@
               "method": "AVG",
               "metric_field": "hadoop_namenode_pending_deletion_blocks",
               "refId": "c",
-              "result_table_id": "exporter_dbm_hdfs_exporter.group1",
+              "result_table_id": "exporter_dbm_hdfs_exporter.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -2896,7 +2896,7 @@
               "method": "AVG",
               "metric_field": "hadoop_namenode_scheduled_replication_blocks",
               "refId": "d",
-              "result_table_id": "exporter_dbm_hdfs_exporter.group1",
+              "result_table_id": "exporter_dbm_hdfs_exporter.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -2932,7 +2932,7 @@
               "method": "AVG",
               "metric_field": "hadoop_namenode_State",
               "refId": "e",
-              "result_table_id": "exporter_dbm_hdfs_exporter.group1",
+              "result_table_id": "exporter_dbm_hdfs_exporter.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -3090,7 +3090,7 @@
               "method": "AVG",
               "metric_field": "hadoop_namenode_corrupt_blocks",
               "refId": "a",
-              "result_table_id": "exporter_dbm_hdfs_exporter.group1",
+              "result_table_id": "exporter_dbm_hdfs_exporter.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -3126,7 +3126,7 @@
               "method": "AVG",
               "metric_field": "hadoop_namenode_missing_blocks",
               "refId": "b",
-              "result_table_id": "exporter_dbm_hdfs_exporter.group1",
+              "result_table_id": "exporter_dbm_hdfs_exporter.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -3162,7 +3162,7 @@
               "method": "AVG",
               "metric_field": "hadoop_namenode_excess_blocks",
               "refId": "c",
-              "result_table_id": "exporter_dbm_hdfs_exporter.group1",
+              "result_table_id": "exporter_dbm_hdfs_exporter.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -3198,7 +3198,7 @@
               "method": "AVG",
               "metric_field": "hadoop_namenode_State",
               "refId": "d",
-              "result_table_id": "exporter_dbm_hdfs_exporter.group1",
+              "result_table_id": "exporter_dbm_hdfs_exporter.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -3346,7 +3346,7 @@
               "method": "SUM",
               "metric_field": "hadoop_datanode_bytes_read",
               "refId": "a",
-              "result_table_id": "exporter_dbm_hdfs_exporter.group1",
+              "result_table_id": "exporter_dbm_hdfs_exporter.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -3494,7 +3494,7 @@
               "method": "MAX",
               "metric_field": "hadoop_datanode_bytes_written",
               "refId": "a",
-              "result_table_id": "exporter_dbm_hdfs_exporter.group1",
+              "result_table_id": "exporter_dbm_hdfs_exporter.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -3668,7 +3668,7 @@
               "method": "AVG",
               "metric_field": "hadoop_namenode_create_file_ops",
               "refId": "a",
-              "result_table_id": "exporter_dbm_hdfs_exporter.group1",
+              "result_table_id": "exporter_dbm_hdfs_exporter.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -3714,7 +3714,7 @@
               "method": "AVG",
               "metric_field": "hadoop_namenode_delete_file_ops",
               "refId": "b",
-              "result_table_id": "exporter_dbm_hdfs_exporter.group1",
+              "result_table_id": "exporter_dbm_hdfs_exporter.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -3760,7 +3760,7 @@
               "method": "AVG",
               "metric_field": "hadoop_namenode_files_appended",
               "refId": "c",
-              "result_table_id": "exporter_dbm_hdfs_exporter.group1",
+              "result_table_id": "exporter_dbm_hdfs_exporter.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -3806,7 +3806,7 @@
               "method": "AVG",
               "metric_field": "hadoop_namenode_get_file_info_num_ops",
               "refId": "d",
-              "result_table_id": "exporter_dbm_hdfs_exporter.group1",
+              "result_table_id": "exporter_dbm_hdfs_exporter.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -3842,7 +3842,7 @@
               "method": "MIN",
               "metric_field": "hadoop_namenode_State",
               "refId": "e",
-              "result_table_id": "exporter_dbm_hdfs_exporter.group1",
+              "result_table_id": "exporter_dbm_hdfs_exporter.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -4005,7 +4005,7 @@
               "method": "avg_without_time",
               "metric_field": "hadoop_namenode_last_written_transaction_id",
               "refId": "a",
-              "result_table_id": "exporter_dbm_hdfs_exporter.group1",
+              "result_table_id": "exporter_dbm_hdfs_exporter.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -4041,7 +4041,7 @@
               "method": "AVG",
               "metric_field": "hadoop_namenode_transactions_since_last_checkpoint",
               "refId": "b",
-              "result_table_id": "exporter_dbm_hdfs_exporter.group1",
+              "result_table_id": "exporter_dbm_hdfs_exporter.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -4077,7 +4077,7 @@
               "method": "MIN",
               "metric_field": "hadoop_namenode_State",
               "refId": "c",
-              "result_table_id": "exporter_dbm_hdfs_exporter.group1",
+              "result_table_id": "exporter_dbm_hdfs_exporter.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -4235,7 +4235,7 @@
               "method": "avg_without_time",
               "metric_field": "hadoop_namenode_block_report_num_ops",
               "refId": "a",
-              "result_table_id": "exporter_dbm_hdfs_exporter.group1",
+              "result_table_id": "exporter_dbm_hdfs_exporter.__default__",
               "result_table_label": "component",
               "time_field": "time",
               "where": [
@@ -4272,7 +4272,7 @@
               "method": "MIN",
               "metric_field": "hadoop_namenode_State",
               "refId": "c",
-              "result_table_id": "exporter_dbm_hdfs_exporter.group1",
+              "result_table_id": "exporter_dbm_hdfs_exporter.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -4420,7 +4420,7 @@
               "method": "AVG",
               "metric_field": "hadoop_namenode_block_report_avg_time",
               "refId": "a",
-              "result_table_id": "exporter_dbm_hdfs_exporter.group1",
+              "result_table_id": "exporter_dbm_hdfs_exporter.__default__",
               "result_table_label": "component",
               "time_field": "time",
               "where": [
@@ -4457,7 +4457,7 @@
               "method": "MIN",
               "metric_field": "hadoop_namenode_State",
               "refId": "c",
-              "result_table_id": "exporter_dbm_hdfs_exporter.group1",
+              "result_table_id": "exporter_dbm_hdfs_exporter.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -4608,7 +4608,7 @@
               "method": "AVG",
               "metric_field": "hadoop_namenode_live_nodes_last_contact",
               "refId": "a",
-              "result_table_id": "exporter_dbm_hdfs_exporter.group3",
+              "result_table_id": "exporter_dbm_hdfs_exporter.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -4647,7 +4647,7 @@
               "method": "MIN",
               "metric_field": "hadoop_namenode_State",
               "refId": "b",
-              "result_table_id": "exporter_dbm_hdfs_exporter.group1",
+              "result_table_id": "exporter_dbm_hdfs_exporter.__default__",
               "result_table_label": "component",
               "time_field": "time",
               "where": []
@@ -4791,7 +4791,7 @@
               "method": "max_without_time",
               "metric_field": "hadoop_namenode_mem_heap_used_m",
               "refId": "a",
-              "result_table_id": "exporter_dbm_hdfs_exporter.group1",
+              "result_table_id": "exporter_dbm_hdfs_exporter.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -4827,7 +4827,7 @@
               "method": "max_without_time",
               "metric_field": "hadoop_namenode_mem_heap_max_m",
               "refId": "b",
-              "result_table_id": "exporter_dbm_hdfs_exporter.group1",
+              "result_table_id": "exporter_dbm_hdfs_exporter.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -5487,7 +5487,7 @@
               "method": "AVG",
               "metric_field": "hadoop_namenode_log_error",
               "refId": "a",
-              "result_table_id": "exporter_dbm_hdfs_exporter.group1",
+              "result_table_id": "exporter_dbm_hdfs_exporter.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -5647,7 +5647,7 @@
                   "method": "MAX",
                   "metric_field": "hadoop_datanode_blocks_read",
                   "refId": "a",
-                  "result_table_id": "exporter_dbm_hdfs_exporter.group1",
+                  "result_table_id": "exporter_dbm_hdfs_exporter.__default__",
                   "result_table_label": "component",
                   "time_field": "",
                   "where": [
@@ -5670,7 +5670,7 @@
                 }
               ],
               "refId": "A",
-              "source": "max by(__name) (irate(bkmonitor:exporter_dbm_hdfs_exporter:group1:hadoop_datanode_blocks_read{__name=~\"dn-.*|DN-.*\",app=\"$app\",cluster_domain=\"$cluster_domain\"}[2m]))",
+              "source": "max by(__name) (irate(bkmonitor:exporter_dbm_hdfs_exporter:__default__:hadoop_datanode_blocks_read{__name=~\"dn-.*|DN-.*\",app=\"$app\",cluster_domain=\"$cluster_domain\"}[2m]))",
               "step": "",
               "type": "range"
             }
@@ -5797,7 +5797,7 @@
                   "method": "MAX",
                   "metric_field": "hadoop_datanode_blocks_written",
                   "refId": "a",
-                  "result_table_id": "exporter_dbm_hdfs_exporter.group1",
+                  "result_table_id": "exporter_dbm_hdfs_exporter.__default__",
                   "result_table_label": "component",
                   "time_field": "",
                   "where": [
@@ -5820,7 +5820,7 @@
                 }
               ],
               "refId": "A",
-              "source": "max by(__name) (irate(bkmonitor:exporter_dbm_hdfs_exporter:group1:hadoop_datanode_blocks_read{__name=~\"dn-.*|DN-.*\",app=\"$app\",cluster_domain=\"$cluster_domain\"}[2m]))",
+              "source": "max by(__name) (irate(bkmonitor:exporter_dbm_hdfs_exporter:__default__:hadoop_datanode_blocks_read{__name=~\"dn-.*|DN-.*\",app=\"$app\",cluster_domain=\"$cluster_domain\"}[2m]))",
               "step": "",
               "type": "range"
             }
@@ -5948,7 +5948,7 @@
                   "method": "MAX",
                   "metric_field": "hadoop_datanode_bytes_written",
                   "refId": "a",
-                  "result_table_id": "exporter_dbm_hdfs_exporter.group1",
+                  "result_table_id": "exporter_dbm_hdfs_exporter.__default__",
                   "result_table_label": "component",
                   "time_field": "",
                   "where": [
@@ -5971,7 +5971,7 @@
                 }
               ],
               "refId": "A",
-              "source": "max by(__name) (irate(bkmonitor:exporter_dbm_hdfs_exporter:group1:hadoop_datanode_blocks_read{__name=~\"dn-.*|DN-.*\",app=\"$app\",cluster_domain=\"$cluster_domain\"}[2m]))",
+              "source": "max by(__name) (irate(bkmonitor:exporter_dbm_hdfs_exporter:__default__:hadoop_datanode_blocks_read{__name=~\"dn-.*|DN-.*\",app=\"$app\",cluster_domain=\"$cluster_domain\"}[2m]))",
               "step": "",
               "type": "range"
             }
@@ -6099,7 +6099,7 @@
                   "method": "MAX",
                   "metric_field": "hadoop_datanode_bytes_read",
                   "refId": "a",
-                  "result_table_id": "exporter_dbm_hdfs_exporter.group1",
+                  "result_table_id": "exporter_dbm_hdfs_exporter.__default__",
                   "result_table_label": "component",
                   "time_field": "",
                   "where": [
@@ -6122,7 +6122,7 @@
                 }
               ],
               "refId": "A",
-              "source": "max by(__name) (irate(bkmonitor:exporter_dbm_hdfs_exporter:group1:hadoop_datanode_blocks_read{__name=~\"dn-.*|DN-.*\",app=\"$app\",cluster_domain=\"$cluster_domain\"}[2m]))",
+              "source": "max by(__name) (irate(bkmonitor:exporter_dbm_hdfs_exporter:__default__:hadoop_datanode_blocks_read{__name=~\"dn-.*|DN-.*\",app=\"$app\",cluster_domain=\"$cluster_domain\"}[2m]))",
               "step": "",
               "type": "range"
             }
@@ -6249,7 +6249,7 @@
                   "method": "MAX",
                   "metric_field": "hadoop_datanode_blocks_removed",
                   "refId": "a",
-                  "result_table_id": "exporter_dbm_hdfs_exporter.group1",
+                  "result_table_id": "exporter_dbm_hdfs_exporter.__default__",
                   "result_table_label": "component",
                   "time_field": "",
                   "where": [
@@ -6272,7 +6272,7 @@
                 }
               ],
               "refId": "A",
-              "source": "max by(__name) (irate(bkmonitor:exporter_dbm_hdfs_exporter:group1:hadoop_datanode_blocks_read{__name=~\"dn-.*|DN-.*\",app=\"$app\",cluster_domain=\"$cluster_domain\"}[2m]))",
+              "source": "max by(__name) (irate(bkmonitor:exporter_dbm_hdfs_exporter:__default__:hadoop_datanode_blocks_read{__name=~\"dn-.*|DN-.*\",app=\"$app\",cluster_domain=\"$cluster_domain\"}[2m]))",
               "step": "",
               "type": "range"
             }
@@ -6399,7 +6399,7 @@
                   "method": "MAX",
                   "metric_field": "hadoop_datanode_blocks_replicated",
                   "refId": "a",
-                  "result_table_id": "exporter_dbm_hdfs_exporter.group1",
+                  "result_table_id": "exporter_dbm_hdfs_exporter.__default__",
                   "result_table_label": "component",
                   "time_field": "",
                   "where": [
@@ -6422,7 +6422,7 @@
                 }
               ],
               "refId": "A",
-              "source": "max by(__name) (irate(bkmonitor:exporter_dbm_hdfs_exporter:group1:hadoop_datanode_blocks_read{__name=~\"dn-.*|DN-.*\",app=\"$app\",cluster_domain=\"$cluster_domain\"}[2m]))",
+              "source": "max by(__name) (irate(bkmonitor:exporter_dbm_hdfs_exporter:__default__:hadoop_datanode_blocks_read{__name=~\"dn-.*|DN-.*\",app=\"$app\",cluster_domain=\"$cluster_domain\"}[2m]))",
               "step": "",
               "type": "range"
             }
@@ -6537,7 +6537,7 @@
                   "method": "avg_without_time",
                   "metric_field": "hadoop_datanode_call_queue_length",
                   "refId": "a",
-                  "result_table_id": "exporter_dbm_hdfs_exporter.group1",
+                  "result_table_id": "exporter_dbm_hdfs_exporter.__default__",
                   "result_table_label": "component",
                   "time_field": "",
                   "where": [
@@ -6675,7 +6675,7 @@
                   "method": "avg_without_time",
                   "metric_field": "hadoop_datanode_xceiver_count",
                   "refId": "a",
-                  "result_table_id": "exporter_dbm_hdfs_exporter.group1",
+                  "result_table_id": "exporter_dbm_hdfs_exporter.__default__",
                   "result_table_label": "component",
                   "time_field": "",
                   "where": [
@@ -6814,7 +6814,7 @@
                   "method": "avg_without_time",
                   "metric_field": "hadoop_datanode_rpc_queue_time_avg_time",
                   "refId": "a",
-                  "result_table_id": "exporter_dbm_hdfs_exporter.group1",
+                  "result_table_id": "exporter_dbm_hdfs_exporter.__default__",
                   "result_table_label": "component",
                   "time_field": "",
                   "where": [
@@ -6953,7 +6953,7 @@
                   "method": "avg_without_time",
                   "metric_field": "hadoop_datanode_rpc_processing_time_avg_time",
                   "refId": "a",
-                  "result_table_id": "exporter_dbm_hdfs_exporter.group1",
+                  "result_table_id": "exporter_dbm_hdfs_exporter.__default__",
                   "result_table_label": "component",
                   "time_field": "",
                   "where": [
@@ -7099,7 +7099,7 @@
                   "method": "max_without_time",
                   "metric_field": "hadoop_datanode_mem_heap_used_m",
                   "refId": "a",
-                  "result_table_id": "exporter_dbm_hdfs_exporter.group1",
+                  "result_table_id": "exporter_dbm_hdfs_exporter.__default__",
                   "result_table_label": "component",
                   "time_field": "",
                   "where": [
@@ -7135,7 +7135,7 @@
                   "method": "max_without_time",
                   "metric_field": "hadoop_datanode_mem_heap_max_m",
                   "refId": "b",
-                  "result_table_id": "exporter_dbm_hdfs_exporter.group1",
+                  "result_table_id": "exporter_dbm_hdfs_exporter.__default__",
                   "result_table_label": "component",
                   "time_field": "",
                   "where": [
@@ -7284,7 +7284,7 @@
                   "method": "AVG",
                   "metric_field": "hadoop_datanode_gc_count",
                   "refId": "a",
-                  "result_table_id": "exporter_dbm_hdfs_exporter.group1",
+                  "result_table_id": "exporter_dbm_hdfs_exporter.__default__",
                   "result_table_label": "component",
                   "time_field": "",
                   "where": [

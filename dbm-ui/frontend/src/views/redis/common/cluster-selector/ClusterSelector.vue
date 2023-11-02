@@ -87,7 +87,7 @@
               v-for="item of tabs"
               :key="item.id"
               ref="tabTipsRef"
-              :disabled="!showSwitchTabTips"
+              :disabled="showSwitchTabTips"
               theme="light">
               <div
                 class="tabs__item tabs__item--active"
@@ -130,7 +130,6 @@
                 :is-anomalies="state.isAnomalies"
                 :is-searching="state.search !== ''"
                 :pagination="state.pagination.count < 10 ? false : state.pagination"
-                remote-pagination
                 row-style="cursor: pointer;"
                 @clear-search="handleClearSearch"
                 @page-limit-change="handleTableLimitChange"
@@ -183,6 +182,7 @@
     selected: ClusterSelectorResult;
     tabList: Array<string>,
     ticketType?: TicketTypes,
+    isRadioMode?: boolean,
   }
 
   interface Emits {
@@ -195,6 +195,7 @@
     selected: () => ({ [ClusterTypes.REDIS]: [] }),
     tabList: () => [ClusterTypes.REDIS],
     ticketType: TicketTypes.ES_APPLY,
+    isRadioMode: false, // 默认多选
   });
 
   const emits = defineEmits<Emits>();
@@ -237,26 +238,35 @@
 
   const isIndeterminate = computed(() => !state.isSelectedAll && state.selected[state.activeTab].length > 0);
 
+  const isSingleSelect = computed(() => props.isRadioMode);
+
   const columns = [
     {
       width: 60,
-      label: () => (
+      label: () => (isSingleSelect.value ? '' : (
+        <bk-checkbox
+          key={`${state.pagination.current}_${state.activeTab}`}
+          indeterminate={isIndeterminate.value}
+          model-value={state.isSelectedAll}
+          onClick={(e: Event) => e.stopPropagation()}
+          onChange={handleSelectedAll}
+        />
+      )),
+      render: ({ data }: { data: RedisModel }) => (isSingleSelect.value ? (
+        <bk-radio
+          class="check-box"
+          label={data.master_domain}
+          model-value={selectedDomains.value[0]}
+          onChange={() => handleSelected(data, true)}
+        />
+        ) : (
       <bk-checkbox
-        key={`${state.pagination.current}_${state.activeTab}`}
-        indeterminate={isIndeterminate.value}
-        model-value={state.isSelectedAll}
-        onClick={(e: Event) => e.stopPropagation()}
-        onChange={handleSelectedAll}
-      />
-    ),
-      render: ({ data }: { data: RedisModel }) => (
-      <bk-checkbox
-        style="vertical-align: middle;"
+        class="check-box"
         model-value={selectedDomains.value.includes(data.master_domain)}
         onClick={(e: Event) => e.stopPropagation()}
         onChange={(value: boolean) => handleSelected(data, value)}
       />
-    ),
+      )),
     },
     {
       label: t('集群'),
@@ -305,6 +315,7 @@
   const tabState = reactive({
     showTips: false,
   });
+
   const tabTextMap: Record<string, string> = {
     [ClusterTypes.REDIS]: t('集群选择'),
   };
@@ -322,12 +333,16 @@
     handeChangeLimit,
   } = useClusterData(state, props.ticketType);
 
+  fetchResources();
+
   watch(() => props.isShow, (show) => {
     if (show) {
       state.selected = _.cloneDeep(props.selected);
       tabState.showTips = true;
       handleTablePageChange(1);
     }
+  }, {
+    immediate: true,
   });
 
   watch(() => state.activeTab, () => {
@@ -414,8 +429,17 @@
       if (selectedDomains.value.includes(targetValue)) {
         return;
       }
+      if (isSingleSelect.value) {
+        // 单选
+        state.selected[state.activeTab] = [data];
+        selectedDomains.value[0] = data.master_domain;
+        return;
+      }
       state.selected[state.activeTab].push(data);
     } else {
+      if (isSingleSelect.value) {
+        return;
+      }
       const index = selectedDomains.value.findIndex(val => val === targetValue);
       state.selected[state.activeTab].splice(index, 1);
     }
@@ -464,15 +488,14 @@
   }
 
   function handleTablePageChange(value: number) {
-    handleChangePage(value).then(() => {
-      state.isSelectedAll = isSelectedAll();
-    });
+    handleChangePage(value);
+    state.isSelectedAll = isSelectedAll();
   }
 
   function handleTableLimitChange(value: number) {
-    handeChangeLimit(value).then(() => {
-      state.isSelectedAll = isSelectedAll();
-    });
+    handeChangeLimit(value);
+
+    state.isSelectedAll = isSelectedAll();
   }
 </script>
 
@@ -617,6 +640,14 @@
         height: 16px;
         color: #3A84FF;
         border-radius: 8px !important;
+      }
+    }
+
+    :deep(.check-box) {
+      vertical-align: middle;
+
+      .bk-radio-label {
+        display: none;
       }
     }
   }

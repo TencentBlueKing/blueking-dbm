@@ -392,6 +392,7 @@
   const specZookeeperRef = ref();
   const specBrokerRef = ref();
   const totalCapacity = ref(0);
+
   const ackQuorumMax = computed(() => {
     const max = formdata.details.ip_source === 'resource_pool'
       ? formdata.details.resource_spec.bookkeeper.count

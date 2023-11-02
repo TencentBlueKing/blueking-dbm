@@ -28,6 +28,7 @@
             content: t('已配置全天24小时生效时段，无需额外添加生效时段'),
             disabled: addPanelTipDiabled
           }"
+          class="add-panel-button"
           :disabled="!addPanelTipDiabled"
           text
           theme="primary"
@@ -126,6 +127,9 @@
         </template>
       </BkTabPanel>
     </BkTab>
+    <div
+      :class="{'notice-mothod-open-mask': isTimePickerOpen}"
+      @click="handleOpenMackClick" />
   </BkFormItem>
 </template>
 
@@ -223,6 +227,7 @@
   ];
 
   const active = ref('');
+  const currentPanelIndex = ref(-1);
   const panelList = ref<{
     name: string,
     open: boolean,
@@ -247,6 +252,8 @@
 
     return !isIntervalsFullDay(timeArr);
   });
+
+  const isTimePickerOpen = computed(() => panelList.value.some(panelItem => panelItem.open));
 
   useRequest(getAlarmGroupNotifyList, {
     onSuccess(notifyList) {
@@ -361,7 +368,9 @@
       ],
     });
 
-    active.value = name;
+    setTimeout(() => {
+      active.value = name;
+    });
   };
 
   const setInitPanelList = () => {
@@ -370,47 +379,51 @@
     if (type === 'add') {
       addPanel();
     } else if (type === 'edit' || type === 'copy') {
-      panelList.value = details.alert_notice.map((item) => {
-        const name = Math.random()
-          .toString(16)
-          .substring(4, 10);
+      if (details?.alert_notice) {
+        panelList.value = details.alert_notice.map((item) => {
+          const name = Math.random()
+            .toString(16)
+            .substring(4, 10);
 
-        const dataList = item.notify_config.map((configItem) => {
-          const checkboxArr = _.cloneDeep(panelInitData.checkboxArr);
-          const inputArr = _.cloneDeep(panelInitData.inputArr);
+          const dataList = item.notify_config.map((configItem) => {
+            const checkboxArr = _.cloneDeep(panelInitData.checkboxArr);
+            const inputArr = _.cloneDeep(panelInitData.inputArr);
 
-          configItem.notice_ways.forEach((wayItem) => {
-            if (inputTypes.includes(wayItem.name)) {
-              const idx = inputArr.findIndex(inputItem => inputItem.type === wayItem.name);
+            configItem.notice_ways.forEach((wayItem) => {
+              if (inputTypes.includes(wayItem.name)) {
+                const idx = inputArr.findIndex(inputItem => inputItem.type === wayItem.name);
 
-              if (idx > -1) {
-                inputArr[idx].value = wayItem.receivers?.join(',') as string;
+                if (idx > -1) {
+                  inputArr[idx].value = wayItem.receivers?.join(',') as string;
+                }
+              } else {
+                const idx = checkboxArr.findIndex(checkboxItem => checkboxItem.type === wayItem.name);
+
+                if (idx > -1) {
+                  checkboxArr[idx].checked = true;
+                }
               }
-            } else {
-              const idx = checkboxArr.findIndex(checkboxItem => checkboxItem.type === wayItem.name);
+            });
 
-              if (idx > -1) {
-                checkboxArr[idx].checked = true;
-              }
-            }
+            return {
+              ...levelMap[configItem.level],
+              checkboxArr,
+              inputArr,
+            };
           });
 
           return {
-            ...levelMap[configItem.level],
-            checkboxArr,
-            inputArr,
+            name,
+            open: false,
+            timeRange: item.time_range.split('--'),
+            dataList,
           };
         });
 
-        return {
-          name,
-          open: false,
-          timeRange: item.time_range.split('--'),
-          dataList,
-        };
-      });
-
-      active.value = panelList.value[0].name;
+        active.value = panelList.value[0].name;
+      } else {
+        addPanel();
+      }
     }
   };
 
@@ -423,6 +436,7 @@
 
     if (item.name === active.value) {
       item.open = !item.open;
+      currentPanelIndex.value = index;
     }
   };
 
@@ -438,6 +452,11 @@
     }
 
     return '';
+  };
+
+  const handleOpenMackClick = () => {
+    panelList.value[currentPanelIndex.value].open = false;
+    currentPanelIndex.value = -1;
   };
 
   defineExpose<Exposes>({
@@ -507,9 +526,17 @@
       font-size: 18px;
     }
 
-    :deep(.bk-tab-header-item:hover) {
-      .tab-delete-btn {
-        display: inherit;
+    :deep(.bk-tab-header-item) {
+      min-height: 42px;
+
+      &:hover {
+        .tab-delete-btn {
+          display: inherit;
+        }
+      }
+
+      .add-panel-button {
+        height: 100%;
       }
     }
 
@@ -595,6 +622,15 @@
       .table-content-row {
         height: 52px;
       }
+    }
+
+    .notice-mothod-open-mask {
+      position: fixed;
+      top: 0;
+      left: 0;
+      z-index: 1;
+      width: 100%;
+      height: 100%
     }
   }
 </style>

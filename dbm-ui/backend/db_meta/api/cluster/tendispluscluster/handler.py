@@ -15,9 +15,9 @@ from django.db import transaction
 from backend.constants import DEFAULT_BK_CLOUD_ID
 from backend.db_meta.api.cluster.base.handler import ClusterHandler
 from backend.db_meta.api.cluster.nosqlcomm.decommission import (
+    decommission_backends,
     decommission_cluster,
     decommission_proxies,
-    decommission_tendis,
 )
 from backend.db_meta.api.cluster.nosqlcomm.scale_proxy import add_proxies, delete_proxies
 from backend.db_meta.api.cluster.nosqlcomm.scale_tendis import make_sync_mms, redo_slaves, switch_tendis
@@ -72,7 +72,7 @@ class TendisPlusClusterHandler(ClusterHandler):
         return decommission_proxies(self.cluster, proxies, False)
 
     def decommission_tendis(self, tendiss: List[Dict]):
-        return decommission_tendis(self.cluster, tendiss, False)
+        return decommission_backends(self.cluster, tendiss, False)
 
     def topo_graph(self):
         """「必须」提供集群关系拓扑图"""

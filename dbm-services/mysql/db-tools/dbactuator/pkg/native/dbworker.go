@@ -341,11 +341,14 @@ func (h *DbWorker) SelectVersion() (version string, err error) {
 	return
 }
 
-// HasTokudb TODO
+// HasTokudb 判断是否安装tokudb引擎
 func (h *DbWorker) HasTokudb() (has bool, err error) {
 	var engine string
 	err = h.Queryxs(&engine, "select engine from information_schema.engines where engine='tokudb';")
-	return cmutil.IsEmpty(engine), err
+	if err == sql.ErrNoRows {
+		return false, nil
+	}
+	return cmutil.IsNotEmpty(engine), err
 }
 
 // SelectNow 获取实例的当前时间。不是获取机器的，因为可能存在时区不一样
@@ -402,7 +405,7 @@ func (h *DbWorker) SelectProcesslist(usersIn []string) (processList []SelectProc
 
 // SelectLongRunningProcesslist 查询Time > ? And state != 'Sleep'的processLists
 func (h *DbWorker) SelectLongRunningProcesslist(time int) ([]SelectProcessListResp, error) {
-	var userExcluded []string = []string{"'repl'", "'system user'", "'event_scheduler'"}
+	var userExcluded []string = []string{"repl", "system user", "event_scheduler"}
 	var processList []SelectProcessListResp
 	query, args, err := sqlx.In(
 		"select * from information_schema.processlist where  Command <> 'Sleep' and Time > ? and User Not In (?)",
@@ -662,6 +665,27 @@ func (h *DbWorker) IsEmptyInstance() bool {
 func (h *DbWorker) GetUserHosts() (users []UserHosts, err error) {
 	err = h.Queryx(&users, "select user,host from mysql.user")
 	return
+}
+
+// GetIsOldPasswordUsers TODO
+func (h *DbWorker) GetIsOldPasswordUsers(upgradeUsers []string) (users []UserHosts, err error) {
+	q, args, err := sqlx.In(`select User,
+    Host,
+    Password
+from mysql.user
+where (
+        (
+            plugin = ''
+            AND LENGTH(Password) = 16
+        )
+        or plugin = 'mysql_old_password'
+    )
+    and User in (?)`, upgradeUsers)
+	if err != nil {
+		return nil, err
+	}
+	err = h.Queryx(&users, q, args...)
+	return users, err
 }
 
 // ShowPrivForUser 获取create user &&  grant user 语句

@@ -160,6 +160,13 @@ type ShowEnginesResp struct {
 
 // UserHosts TODO
 type UserHosts struct {
-	User string `db:"user"`
-	Host string `db:"host"`
+	Host string `db:"Host"`
+	User string `db:"User"`
+}
+
+// Warning show warnings respone
+type Warning struct {
+	Level   string `db:"Level"`
+	Code    int    `db:"Code"`
+	Message string `db:"Message"`
 }

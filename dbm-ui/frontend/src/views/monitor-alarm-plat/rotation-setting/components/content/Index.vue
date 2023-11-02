@@ -27,6 +27,7 @@
         class="table-box"
         :columns="columns"
         :data-source="queryDutyRuleList"
+        :row-class="updateRowClass"
         :settings="settings" />
     </BkLoading>
   </div>
@@ -39,14 +40,18 @@
 </template>
 <script setup lang="tsx">
   import { InfoBox } from 'bkui-vue';
+  import dayjs from 'dayjs';
   import { useI18n } from 'vue-i18n';
+  import { useRequest } from 'vue-request';
 
   import {
     deleteDutyRule,
+    getPriorityDistinct,
     queryDutyRuleList,
     updatePartialDutyRule,
   } from '@services/monitor';
 
+  import MiniTag from '@components/mini-tag/index.vue';
   import NumberInput from '@components/tools-table-input/index.vue';
 
   import { messageSuccess } from '@utils';
@@ -77,6 +82,7 @@
   const isShowEditRuleSideSilder = ref(false);
   const currentRowData = ref<RowData>();
   const isTableLoading = ref(false);
+  const sortedPriority = ref<number[]>([]);
 
   const statusMap = {
     [RuleStatus.ACTIVE]: {
@@ -97,15 +103,26 @@
     },
   };
 
-  const columns = [
+  const columns = computed(() => [
     {
       label: t('规则名称'),
       field: 'name',
       minWidth: 220,
       render: ({ row }: {row: RowData}) => {
-        const isNotActive = true; // row.status === RuleStatus.TERMINATED || row.status === RuleStatus.EXPIRED;
-        const color = isNotActive ? '#63656E' : '#3A84FF';
-        return <span style={{ color, cursor: 'pointer' }}>{row.name}</span>;
+        const isNew = dayjs().isBefore(dayjs(row.create_at).add(24, 'hour'));
+        const isNotActive = [RuleStatus.TERMINATED, RuleStatus.EXPIRED].includes(row.status as RuleStatus);
+        const color = (isNotActive || !row.is_enabled) ? '#63656E' : '#3A84FF';
+        return <>
+          <bk-button
+            text
+            theme="primary"
+            style={{ color }}
+            onClick={() => handleOperate('edit', row)}>
+              {row.name}
+          </bk-button>
+          {isNew && <MiniTag theme='success' content="NEW" />}
+        </>
+        ;
       },
     },
     {
@@ -128,23 +145,35 @@
       width: 120,
       render: ({ row }: {row: RowData}) => {
         const level = row.priority;
-        let theme = 'success';
-        if (level >= 10) {
-          theme = 'danger';
-        } else if (level === 9) {
-          theme = 'warning';
-        } else if (level === 8) {
-          theme = 'success';
-        } else {
-          theme = '';
+        let theme = '';
+        if (sortedPriority.value.length === 3) {
+          const [largest, medium, least] = sortedPriority.value;
+          if (level === largest) {
+            theme = 'danger';
+          } else if (level === medium) {
+            theme = 'warning';
+          } else if (level === least) {
+            theme = 'success';
+          }
         }
+
         return (
           <div class="priority-box">
             {
               !row.is_show_edit ? <>
-              {!theme ? <bk-tag>{level}</bk-tag> : <bk-tag theme={theme} type="filled">{level}</bk-tag>}
-              <db-icon class="edit-icon" type="edit" style="font-size: 18px"onClick={() => handleClickEditPriority(row)} />
-              </> : <NumberInput type='number' placeholder={t('请输入 1～100 的数值')} onSubmit={(value: string) => handlePriorityChange(row, value)}/>
+                {!theme ? <bk-tag>{level}</bk-tag> : <bk-tag theme={theme} type="filled">{level}</bk-tag>}
+                <db-icon
+                  class="edit-icon"
+                  type="edit"
+                  style="font-size: 18px"
+                  onClick={() => handleClickEditPriority(row)} />
+              </> : <NumberInput
+                  type='number'
+                  model-value={level}
+                  min={1}
+                  max={100}
+                  placeholder={t('请输入 1～100 的数值')}
+                  onSubmit={(value: string) => handlePriorityChange(row, value)}/>
             }
           </div>
         );
@@ -173,10 +202,10 @@
         const peoples = [...peopleSet].join(' , ');
         return (
           <div class="rotate-table-column">
-            <bk-popover placement="bottom" theme="light" width={780} popoverDelay={0}>
+            <bk-popover placement="bottom" theme="light" width={780} popoverDelay={50}>
               {{
                 default: () => (
-                  <div class="display-text">{title}: {peoples}</div>
+                  <span class="display-text">{title}: {peoples}</span>
                 ),
                 content: () => <RenderRotateTable data={row} />,
               }}
@@ -230,12 +259,27 @@
       width: 180,
       render: ({ row }: {row: RowData}) => (
       <div class="operate-box">
-        <span onClick={() => handleOperate('edit', row)}>{t('编辑')}</span>
-        <span onClick={() => handleOperate('clone', row)}>{t('克隆')}</span>
-        {!row.is_enabled && <span onClick={() => handleDelete(row)}>{t('删除')}</span>}
+        <bk-button
+          text
+          theme="primary"
+          onClick={() => handleOperate('edit', row)}>
+          {t('编辑')}
+        </bk-button>
+        <bk-button
+          text
+          theme="primary"
+          onClick={() => handleOperate('clone', row)}>
+          {t('克隆')}
+        </bk-button>
+        {!row.is_enabled && <bk-button
+          text
+          theme="primary"
+          onClick={() => handleDelete(row)}>
+          {t('删除')}
+        </bk-button>}
       </div>),
     },
-  ];
+  ]);
 
   const settings = {
     fields: [
@@ -275,6 +319,16 @@
     checked: ['name', 'status', 'priority', 'duty_arranges', 'effective_time', 'update_at', 'updater', 'is_enabled'],
   };
 
+  const { run: runGetPriorityDistinct } = useRequest(getPriorityDistinct, {
+    onSuccess: (list) => {
+      if (list.length > 3) {
+        sortedPriority.value = list.slice(0, 3);
+        return;
+      }
+      sortedPriority.value = list;
+    },
+  });
+
   watch(() => props.activeDbType, (type) => {
     if (type) {
       setTimeout(() => {
@@ -285,6 +339,7 @@
     immediate: true,
   });
 
+  const updateRowClass = (row: RowData) => (dayjs().isBefore(dayjs(row.create_at).add(24, 'hour')) ? 'is-new' : '');
 
   const fetchHostNodes = async () => {
     isTableLoading.value = true;
@@ -304,7 +359,12 @@
   };
 
   const handlePriorityChange = async (row: RowData, value: string) => {
-    const priority = Number(value);
+    let priority = Number(value);
+    if (priority < 1) {
+      priority = 1;
+    } else if (priority > 100) {
+      priority = 100;
+    }
     const updateResult = await updatePartialDutyRule(row.id, {
       priority,
     });
@@ -312,7 +372,11 @@
       // 设置成功
       messageSuccess(t('优先级设置成功'));
     }
-    fetchHostNodes();
+    runGetPriorityDistinct();
+    await fetchHostNodes();
+    setTimeout(() => {
+      window.changeConfirm = false;
+    });
   };
 
   const handleChangeSwitch = async (row: RowData) => {
@@ -401,6 +465,7 @@
     }
 
     .display-text {
+      display: inline-block;
       height: 22px;
       padding: 0 8px;
       overflow: hidden;
@@ -421,6 +486,12 @@
       span {
         color: #3A84FF;
         cursor: pointer;
+      }
+    }
+
+    .is-new {
+      td {
+        background-color: #f3fcf5 !important;
       }
     }
   }

@@ -154,7 +154,7 @@
               "method": "count_without_time",
               "metric_field": "process_start_time_seconds",
               "refId": "a",
-              "result_table_id": "pushgateway_dbm_pulsarbroker_bkpull.group1",
+              "result_table_id": "pushgateway_dbm_pulsarbroker_bkpull.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -261,7 +261,7 @@
               "method": "count_without_time",
               "metric_field": "process_start_time_seconds",
               "refId": "a",
-              "result_table_id": "pushgateway_dbm_pulsarbookkeeper_bkpull.group1",
+              "result_table_id": "pushgateway_dbm_pulsarbookkeeper_bkpull.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -284,7 +284,7 @@
             }
           ],
           "refId": "A",
-          "source": "count(bkmonitor:pushgateway_dbm_pulsarbookkeeper_bkpull:group1:process_start_time_seconds{app=\"$app\",cluster_domain=\"$cluster_domain\"})",
+          "source": "count(bkmonitor:pushgateway_dbm_pulsarbookkeeper_bkpull:__default__:process_start_time_seconds{app=\"$app\",cluster_domain=\"$cluster_domain\"})",
           "step": "",
           "type": "range"
         }
@@ -368,7 +368,7 @@
               "method": "count_without_time",
               "metric_field": "jvm_info",
               "refId": "a",
-              "result_table_id": "pushgateway_dbm_pulsarzookeeper_bkpull.group1",
+              "result_table_id": "pushgateway_dbm_pulsarzookeeper_bkpull.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -471,7 +471,7 @@
               "method": "sum_without_time",
               "metric_field": "pulsar_producers_count",
               "refId": "a",
-              "result_table_id": "pushgateway_dbm_pulsarbroker_bkpull.group1",
+              "result_table_id": "pushgateway_dbm_pulsarbroker_bkpull.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -574,7 +574,7 @@
               "method": "sum_without_time",
               "metric_field": "pulsar_consumers_count",
               "refId": "a",
-              "result_table_id": "pushgateway_dbm_pulsarbroker_bkpull.group1",
+              "result_table_id": "pushgateway_dbm_pulsarbroker_bkpull.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -677,7 +677,7 @@
               "method": "sum_without_time",
               "metric_field": "pulsar_topics_count",
               "refId": "a",
-              "result_table_id": "pushgateway_dbm_pulsarbroker_bkpull.group1",
+              "result_table_id": "pushgateway_dbm_pulsarbroker_bkpull.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -814,7 +814,7 @@
               "method": "sum_without_time",
               "metric_field": "pulsar_rate_in",
               "refId": "a",
-              "result_table_id": "pushgateway_dbm_pulsarbroker_bkpull.group1",
+              "result_table_id": "pushgateway_dbm_pulsarbroker_bkpull.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -868,7 +868,7 @@
               "method": "AVG",
               "metric_field": "pulsar_rate_out",
               "refId": "a",
-              "result_table_id": "pushgateway_dbm_pulsarbroker_bkpull.group1",
+              "result_table_id": "pushgateway_dbm_pulsarbroker_bkpull.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -1005,7 +1005,7 @@
               "method": "AVG",
               "metric_field": "pulsar_throughput_in",
               "refId": "a",
-              "result_table_id": "pushgateway_dbm_pulsarbroker_bkpull.group1",
+              "result_table_id": "pushgateway_dbm_pulsarbroker_bkpull.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": []
@@ -1043,7 +1043,7 @@
               "method": "AVG",
               "metric_field": "pulsar_throughput_out",
               "refId": "a",
-              "result_table_id": "pushgateway_dbm_pulsarbroker_bkpull.group1",
+              "result_table_id": "pushgateway_dbm_pulsarbroker_bkpull.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -1181,7 +1181,7 @@
               "method": "sum_without_time",
               "metric_field": "pulsar_storage_size",
               "refId": "a",
-              "result_table_id": "pushgateway_dbm_pulsarbroker_bkpull.group1",
+              "result_table_id": "pushgateway_dbm_pulsarbroker_bkpull.__default__",
               "result_table_label": "component",
               "time_field": "",
               "where": [
@@ -1340,7 +1340,7 @@
                   "method": "sum_without_time",
                   "metric_field": "pulsar_rate_in",
                   "refId": "a",
-                  "result_table_id": "pushgateway_dbm_pulsarbroker_bkpull.group1",
+                  "result_table_id": "pushgateway_dbm_pulsarbroker_bkpull.__default__",
                   "result_table_label": "component",
                   "time_field": "",
                   "where": [
@@ -1369,7 +1369,7 @@
                 }
               ],
               "refId": "A",
-              "source": "topk(20, sum by (topic) (bkmonitor:pushgateway_dbm_pulsarbroker_bkpull:group1:pulsar_rate_in{app=\"$app\",cluster_domain=\"$cluster_domain\",topic!=\"\"}))",
+              "source": "topk(20, sum by (topic) (bkmonitor:pushgateway_dbm_pulsarbroker_bkpull:__default__:pulsar_rate_in{app=\"$app\",cluster_domain=\"$cluster_domain\",topic!=\"\"}))",
               "step": "",
               "type": "range"
             }
@@ -1495,7 +1495,7 @@
                   "method": "sum_without_time",
                   "metric_field": "pulsar_subscription_msg_rate_out",
                   "refId": "a",
-                  "result_table_id": "pushgateway_dbm_pulsarbroker_bkpull.group1",
+                  "result_table_id": "pushgateway_dbm_pulsarbroker_bkpull.__default__",
                   "result_table_label": "component",
                   "time_field": "",
                   "where": [
@@ -1518,7 +1518,7 @@
                 }
               ],
               "refId": "A",
-              "source": "topk(20, sum by (topic) (bkmonitor:pushgateway_dbm_pulsarbroker_bkpull:group1:pulsar_subscription_msg_rate_out{app=\"$app\",cluster_domain=\"$cluster_domain\"}))",
+              "source": "topk(20, sum by (topic) (bkmonitor:pushgateway_dbm_pulsarbroker_bkpull:__default__:pulsar_subscription_msg_rate_out{app=\"$app\",cluster_domain=\"$cluster_domain\"}))",
               "step": "",
               "type": "range"
             }
@@ -1645,7 +1645,7 @@
                   "method": "sum_without_time",
                   "metric_field": "pulsar_throughput_in",
                   "refId": "a",
-                  "result_table_id": "pushgateway_dbm_pulsarbroker_bkpull.group1",
+                  "result_table_id": "pushgateway_dbm_pulsarbroker_bkpull.__default__",
                   "result_table_label": "component",
                   "time_field": "",
                   "where": [
@@ -1676,7 +1676,7 @@
                 }
               ],
               "refId": "A",
-              "source": "topk(20, sum by (topic) (bkmonitor:pushgateway_dbm_pulsarbroker_bkpull:group1:pulsar_throughput_in{app=\"$app\",cluster_domain=\"$cluster_domain\"}))",
+              "source": "topk(20, sum by (topic) (bkmonitor:pushgateway_dbm_pulsarbroker_bkpull:__default__:pulsar_throughput_in{app=\"$app\",cluster_domain=\"$cluster_domain\"}))",
               "step": "",
               "type": "range"
             }
@@ -1805,7 +1805,7 @@
                   "method": "sum_without_time",
                   "metric_field": "pulsar_subscription_msg_throughput_out",
                   "refId": "a",
-                  "result_table_id": "pushgateway_dbm_pulsarbroker_bkpull.group1",
+                  "result_table_id": "pushgateway_dbm_pulsarbroker_bkpull.__default__",
                   "result_table_label": "component",
                   "time_field": "",
                   "where": [
@@ -1828,7 +1828,7 @@
                 }
               ],
               "refId": "A",
-              "source": "topk(20, sum by (topic) (bkmonitor:pushgateway_dbm_pulsarbroker_bkpull:group1:pulsar_subscription_msg_throughput_out{app=\"$app\",cluster_domain=\"$cluster_domain\"}))",
+              "source": "topk(20, sum by (topic) (bkmonitor:pushgateway_dbm_pulsarbroker_bkpull:__default__:pulsar_subscription_msg_throughput_out{app=\"$app\",cluster_domain=\"$cluster_domain\"}))",
               "step": "",
               "type": "range"
             }
@@ -1941,7 +1941,7 @@
                   "method": "sum_without_time",
                   "metric_field": "pulsar_producers_count",
                   "refId": "a",
-                  "result_table_id": "pushgateway_dbm_pulsarbroker_bkpull.group1",
+                  "result_table_id": "pushgateway_dbm_pulsarbroker_bkpull.__default__",
                   "result_table_label": "component",
                   "time_field": "",
                   "where": [
@@ -2088,7 +2088,7 @@
                   "method": "sum_without_time",
                   "metric_field": "pulsar_subscriptions_count",
                   "refId": "a",
-                  "result_table_id": "pushgateway_dbm_pulsarbroker_bkpull.group1",
+                  "result_table_id": "pushgateway_dbm_pulsarbroker_bkpull.__default__",
                   "result_table_label": "component",
                   "time_field": "",
                   "where": [
@@ -2235,7 +2235,7 @@
                   "method": "sum_without_time",
                   "metric_field": "pulsar_consumers_count",
                   "refId": "a",
-                  "result_table_id": "pushgateway_dbm_pulsarbroker_bkpull.group1",
+                  "result_table_id": "pushgateway_dbm_pulsarbroker_bkpull.__default__",
                   "result_table_label": "component",
                   "time_field": "",
                   "where": [
@@ -2382,7 +2382,7 @@
                   "method": "sum_without_time",
                   "metric_field": "pulsar_subscription_back_log",
                   "refId": "a",
-                  "result_table_id": "pushgateway_dbm_pulsarbroker_bkpull.group1",
+                  "result_table_id": "pushgateway_dbm_pulsarbroker_bkpull.__default__",
                   "result_table_label": "component",
                   "time_field": "",
                   "where": [
@@ -2405,7 +2405,7 @@
                 }
               ],
               "refId": "A",
-              "source": "sum by (topic,_subscription) (bkmonitor:pushgateway_dbm_pulsarbroker_bkpull:group1:pulsar_subscription_back_log{app=\"$app\",cluster_domain=\"$cluster_domain\"})",
+              "source": "sum by (topic,_subscription) (bkmonitor:pushgateway_dbm_pulsarbroker_bkpull:__default__:pulsar_subscription_back_log{app=\"$app\",cluster_domain=\"$cluster_domain\"})",
               "step": "",
               "type": "range"
             }
@@ -2524,7 +2524,7 @@
                   "method": "avg_without_time",
                   "metric_field": "pulsar_storage_backlog_size",
                   "refId": "a",
-                  "result_table_id": "pushgateway_dbm_pulsarbroker_bkpull.group1",
+                  "result_table_id": "pushgateway_dbm_pulsarbroker_bkpull.__default__",
                   "result_table_label": "component",
                   "time_field": "",
                   "where": [
@@ -2661,7 +2661,7 @@
                   "method": "sum_without_time",
                   "metric_field": "pulsar_topics_count",
                   "refId": "a",
-                  "result_table_id": "pushgateway_dbm_pulsarbroker_bkpull.group1",
+                  "result_table_id": "pushgateway_dbm_pulsarbroker_bkpull.__default__",
                   "result_table_label": "component",
                   "time_field": "",
                   "where": [
@@ -2811,7 +2811,7 @@
                   "method": "sum_without_time",
                   "metric_field": "pulsar_storage_size",
                   "refId": "a",
-                  "result_table_id": "pushgateway_dbm_pulsarbroker_bkpull.group1",
+                  "result_table_id": "pushgateway_dbm_pulsarbroker_bkpull.__default__",
                   "result_table_label": "component",
                   "time_field": "",
                   "where": [
@@ -2972,7 +2972,7 @@
                   "method": "sum_without_time",
                   "metric_field": "pulsar_rate_in",
                   "refId": "a",
-                  "result_table_id": "pushgateway_dbm_pulsarbroker_bkpull.group1",
+                  "result_table_id": "pushgateway_dbm_pulsarbroker_bkpull.__default__",
                   "result_table_label": "component",
                   "time_field": "",
                   "where": [
@@ -3119,7 +3119,7 @@
                   "method": "sum_without_time",
                   "metric_field": "pulsar_rate_out",
                   "refId": "a",
-                  "result_table_id": "pushgateway_dbm_pulsarbroker_bkpull.group1",
+                  "result_table_id": "pushgateway_dbm_pulsarbroker_bkpull.__default__",
                   "result_table_label": "component",
                   "time_field": "",
                   "where": [
@@ -3267,7 +3267,7 @@
                   "method": "sum_without_time",
                   "metric_field": "pulsar_throughput_in",
                   "refId": "a",
-                  "result_table_id": "pushgateway_dbm_pulsarbroker_bkpull.group1",
+                  "result_table_id": "pushgateway_dbm_pulsarbroker_bkpull.__default__",
                   "result_table_label": "component",
                   "time_field": "",
                   "where": [
@@ -3407,7 +3407,7 @@
                   "method": "sum_without_time",
                   "metric_field": "pulsar_throughput_out",
                   "refId": "a",
-                  "result_table_id": "pushgateway_dbm_pulsarbroker_bkpull.group1",
+                  "result_table_id": "pushgateway_dbm_pulsarbroker_bkpull.__default__",
                   "result_table_label": "component",
                   "time_field": "",
                   "where": [
@@ -3554,7 +3554,7 @@
                   "method": "sum_without_time",
                   "metric_field": "pulsar_topics_count",
                   "refId": "a",
-                  "result_table_id": "pushgateway_dbm_pulsarbroker_bkpull.group1",
+                  "result_table_id": "pushgateway_dbm_pulsarbroker_bkpull.__default__",
                   "result_table_label": "component",
                   "time_field": "",
                   "where": [
@@ -3694,7 +3694,7 @@
                   "method": "sum_without_time",
                   "metric_field": "pulsar_msg_backlog",
                   "refId": "a",
-                  "result_table_id": "pushgateway_dbm_pulsarbroker_bkpull.group1",
+                  "result_table_id": "pushgateway_dbm_pulsarbroker_bkpull.__default__",
                   "result_table_label": "component",
                   "time_field": "",
                   "where": [
@@ -3833,7 +3833,7 @@
                   "method": "sum_without_time",
                   "metric_field": "pulsar_producers_count",
                   "refId": "a",
-                  "result_table_id": "pushgateway_dbm_pulsarbroker_bkpull.group1",
+                  "result_table_id": "pushgateway_dbm_pulsarbroker_bkpull.__default__",
                   "result_table_label": "component",
                   "time_field": "",
                   "where": [
@@ -3972,7 +3972,7 @@
                   "method": "sum_without_time",
                   "metric_field": "pulsar_consumers_count",
                   "refId": "a",
-                  "result_table_id": "pushgateway_dbm_pulsarbroker_bkpull.group1",
+                  "result_table_id": "pushgateway_dbm_pulsarbroker_bkpull.__default__",
                   "result_table_label": "component",
                   "time_field": "",
                   "where": [
@@ -5028,7 +5028,7 @@
                   "method": "sum_without_time",
                   "metric_field": "bookie_WRITE_BYTES",
                   "refId": "a",
-                  "result_table_id": "pushgateway_dbm_pulsarbookkeeper_bkpull.group1",
+                  "result_table_id": "pushgateway_dbm_pulsarbookkeeper_bkpull.__default__",
                   "result_table_label": "component",
                   "time_field": "",
                   "where": [
@@ -5092,7 +5092,7 @@
                   "method": "sum_without_time",
                   "metric_field": "bookie_READ_BYTES",
                   "refId": "a",
-                  "result_table_id": "pushgateway_dbm_pulsarbookkeeper_bkpull.group1",
+                  "result_table_id": "pushgateway_dbm_pulsarbookkeeper_bkpull.__default__",
                   "result_table_label": "component",
                   "time_field": "",
                   "where": [
@@ -5239,7 +5239,7 @@
                   "method": "sum_without_time",
                   "metric_field": "bookkeeper_server_READ_ENTRY_count",
                   "refId": "a",
-                  "result_table_id": "pushgateway_dbm_pulsarbookkeeper_bkpull.group2",
+                  "result_table_id": "pushgateway_dbm_pulsarbookkeeper_bkpull.__default__",
                   "result_table_label": "component",
                   "time_field": "",
                   "where": [
@@ -5311,7 +5311,7 @@
                   "method": "sum_without_time",
                   "metric_field": "bookkeeper_server_ADD_ENTRY_count",
                   "refId": "a",
-                  "result_table_id": "pushgateway_dbm_pulsarbookkeeper_bkpull.group2",
+                  "result_table_id": "pushgateway_dbm_pulsarbookkeeper_bkpull.__default__",
                   "result_table_label": "component",
                   "time_field": "",
                   "where": [
@@ -5342,7 +5342,7 @@
                 }
               ],
               "refId": "B",
-              "source": "sum(irate(bkmonitor:pushgateway_dbm_pulsarbookkeeper_bkpull:group1:bookkeeper_server_ADD_ENTRY_count{app=\"$app\",cluster_domain=\"$cluster_domain\",success=\"true\"}[2m]))",
+              "source": "sum(irate(bkmonitor:pushgateway_dbm_pulsarbookkeeper_bkpull:__default__:bookkeeper_server_ADD_ENTRY_count{app=\"$app\",cluster_domain=\"$cluster_domain\",success=\"true\"}[2m]))",
               "step": "",
               "type": "range"
             }
@@ -5469,7 +5469,7 @@
                   "method": "sum_without_time",
                   "metric_field": "bookie_WRITE_BYTES",
                   "refId": "a",
-                  "result_table_id": "pushgateway_dbm_pulsarbookkeeper_bkpull.group1",
+                  "result_table_id": "pushgateway_dbm_pulsarbookkeeper_bkpull.__default__",
                   "result_table_label": "component",
                   "time_field": "",
                   "where": [
@@ -5619,7 +5619,7 @@
                   "method": "sum_without_time",
                   "metric_field": "bookie_READ_BYTES",
                   "refId": "a",
-                  "result_table_id": "pushgateway_dbm_pulsarbookkeeper_bkpull.group1",
+                  "result_table_id": "pushgateway_dbm_pulsarbookkeeper_bkpull.__default__",
                   "result_table_label": "component",
                   "time_field": "",
                   "where": [
@@ -5768,7 +5768,7 @@
                   "method": "sum_without_time",
                   "metric_field": "bookkeeper_server_ADD_ENTRY_REQUEST_count",
                   "refId": "a",
-                  "result_table_id": "pushgateway_dbm_pulsarbookkeeper_bkpull.group2",
+                  "result_table_id": "pushgateway_dbm_pulsarbookkeeper_bkpull.__default__",
                   "result_table_label": "component",
                   "time_field": "",
                   "where": [
@@ -5791,7 +5791,7 @@
                 }
               ],
               "refId": "A",
-              "source": "sum by (instance_host) (irate(bkmonitor:pushgateway_dbm_pulsarbookkeeper_bkpull:group1:bookkeeper_server_ADD_ENTRY_REQUEST_count{app=\"$app\",cluster_domain=\"$cluster_domain\"}[2m]))",
+              "source": "sum by (instance_host) (irate(bkmonitor:pushgateway_dbm_pulsarbookkeeper_bkpull:__default__:bookkeeper_server_ADD_ENTRY_REQUEST_count{app=\"$app\",cluster_domain=\"$cluster_domain\"}[2m]))",
               "step": "",
               "type": "range"
             }
@@ -5917,7 +5917,7 @@
                   "method": "sum_without_time",
                   "metric_field": "bookkeeper_server_READ_ENTRY_REQUEST_count",
                   "refId": "a",
-                  "result_table_id": "pushgateway_dbm_pulsarbookkeeper_bkpull.group2",
+                  "result_table_id": "pushgateway_dbm_pulsarbookkeeper_bkpull.__default__",
                   "result_table_label": "component",
                   "time_field": "",
                   "where": [
@@ -5940,7 +5940,7 @@
                 }
               ],
               "refId": "A",
-              "source": "sum by (instance_host) (irate(bkmonitor:pushgateway_dbm_pulsarbookkeeper_bkpull:group1:bookkeeper_server_READ_ENTRY_REQUEST_count{app=\"$app\",cluster_domain=\"$cluster_domain\"}[2m]))",
+              "source": "sum by (instance_host) (irate(bkmonitor:pushgateway_dbm_pulsarbookkeeper_bkpull:__default__:bookkeeper_server_READ_ENTRY_REQUEST_count{app=\"$app\",cluster_domain=\"$cluster_domain\"}[2m]))",
               "step": "",
               "type": "range"
             }
@@ -6066,7 +6066,7 @@
                   "method": "sum_without_time",
                   "metric_field": "bookie_journal_JOURNAL_SYNC_count",
                   "refId": "a",
-                  "result_table_id": "pushgateway_dbm_pulsarbookkeeper_bkpull.group2",
+                  "result_table_id": "pushgateway_dbm_pulsarbookkeeper_bkpull.__default__",
                   "result_table_label": "component",
                   "time_field": "",
                   "where": [
@@ -6089,7 +6089,7 @@
                 }
               ],
               "refId": "A",
-              "source": "sum by (instance_host) (irate(bkmonitor:pushgateway_dbm_pulsarbookkeeper_bkpull:group1:bookie_journal_JOURNAL_SYNC_count{app=\"$app\",cluster_domain=\"$cluster_domain\"}[2m]))",
+              "source": "sum by (instance_host) (irate(bkmonitor:pushgateway_dbm_pulsarbookkeeper_bkpull:__default__:bookie_journal_JOURNAL_SYNC_count{app=\"$app\",cluster_domain=\"$cluster_domain\"}[2m]))",
               "step": "",
               "type": "range"
             }
@@ -6215,7 +6215,7 @@
                   "method": "sum_without_time",
                   "metric_field": "bookie_journal_JOURNAL_SYNC_count",
                   "refId": "a",
-                  "result_table_id": "pushgateway_dbm_pulsarbookkeeper_bkpull.group2",
+                  "result_table_id": "pushgateway_dbm_pulsarbookkeeper_bkpull.__default__",
                   "result_table_label": "component",
                   "time_field": "",
                   "where": [
@@ -6238,7 +6238,7 @@
                 }
               ],
               "refId": "A",
-              "source": "sum by (instance_host) (irate(bkmonitor:pushgateway_dbm_pulsarbookkeeper_bkpull:group1:bookie_journal_JOURNAL_SYNC_count{app=\"$app\",cluster_domain=\"$cluster_domain\"}[2m]))",
+              "source": "sum by (instance_host) (irate(bkmonitor:pushgateway_dbm_pulsarbookkeeper_bkpull:__default__:bookie_journal_JOURNAL_SYNC_count{app=\"$app\",cluster_domain=\"$cluster_domain\"}[2m]))",
               "step": "",
               "type": "range"
             }
@@ -6354,7 +6354,7 @@
                   "method": "sum_without_time",
                   "metric_field": "bookie_journal_JOURNAL_QUEUE_SIZE",
                   "refId": "a",
-                  "result_table_id": "pushgateway_dbm_pulsarbookkeeper_bkpull.group1",
+                  "result_table_id": "pushgateway_dbm_pulsarbookkeeper_bkpull.__default__",
                   "result_table_label": "component",
                   "time_field": "",
                   "where": [
@@ -6493,7 +6493,7 @@
                   "method": "sum_without_time",
                   "metric_field": "bookie_journal_JOURNAL_FORCE_WRITE_QUEUE_SIZE",
                   "refId": "a",
-                  "result_table_id": "pushgateway_dbm_pulsarbookkeeper_bkpull.group1",
+                  "result_table_id": "pushgateway_dbm_pulsarbookkeeper_bkpull.__default__",
                   "result_table_label": "component",
                   "time_field": "",
                   "where": [
@@ -6632,7 +6632,7 @@
                   "method": "sum_without_time",
                   "metric_field": "bookie_journal_JOURNAL_CB_QUEUE_SIZE",
                   "refId": "a",
-                  "result_table_id": "pushgateway_dbm_pulsarbookkeeper_bkpull.group1",
+                  "result_table_id": "pushgateway_dbm_pulsarbookkeeper_bkpull.__default__",
                   "result_table_label": "component",
                   "time_field": "",
                   "where": [
@@ -6772,7 +6772,7 @@
                   "method": "sum_without_time",
                   "metric_field": "bookie_ledgers_count",
                   "refId": "a",
-                  "result_table_id": "pushgateway_dbm_pulsarbookkeeper_bkpull.group1",
+                  "result_table_id": "pushgateway_dbm_pulsarbookkeeper_bkpull.__default__",
                   "result_table_label": "component",
                   "time_field": "",
                   "where": [
@@ -6912,7 +6912,7 @@
                   "method": "sum_without_time",
                   "metric_field": "bookie_entries_count",
                   "refId": "a",
-                  "result_table_id": "pushgateway_dbm_pulsarbookkeeper_bkpull.group1",
+                  "result_table_id": "pushgateway_dbm_pulsarbookkeeper_bkpull.__default__",
                   "result_table_label": "component",
                   "time_field": "",
                   "where": [
@@ -7052,7 +7052,7 @@
                   "method": "sum_without_time",
                   "metric_field": "bookie_write_cache_size",
                   "refId": "a",
-                  "result_table_id": "pushgateway_dbm_pulsarbookkeeper_bkpull.group1",
+                  "result_table_id": "pushgateway_dbm_pulsarbookkeeper_bkpull.__default__",
                   "result_table_label": "component",
                   "time_field": "",
                   "where": [
@@ -7192,7 +7192,7 @@
                   "method": "sum_without_time",
                   "metric_field": "bookie_read_cache_size",
                   "refId": "a",
-                  "result_table_id": "pushgateway_dbm_pulsarbookkeeper_bkpull.group1",
+                  "result_table_id": "pushgateway_dbm_pulsarbookkeeper_bkpull.__default__",
                   "result_table_label": "component",
                   "time_field": "",
                   "where": [
@@ -7332,7 +7332,7 @@
                   "method": "sum_without_time",
                   "metric_field": "bookie_DELETED_LEDGER_COUNT",
                   "refId": "a",
-                  "result_table_id": "pushgateway_dbm_pulsarbookkeeper_bkpull.group1",
+                  "result_table_id": "pushgateway_dbm_pulsarbookkeeper_bkpull.__default__",
                   "result_table_label": "component",
                   "time_field": "",
                   "where": [
@@ -7472,7 +7472,7 @@
                   "method": "sum_without_time",
                   "metric_field": "bookie_ledger_writable_dirs",
                   "refId": "a",
-                  "result_table_id": "pushgateway_dbm_pulsarbookkeeper_bkpull.group1",
+                  "result_table_id": "pushgateway_dbm_pulsarbookkeeper_bkpull.__default__",
                   "result_table_label": "component",
                   "time_field": "",
                   "where": [
@@ -9363,7 +9363,7 @@
                   "method": "max_without_time",
                   "metric_field": "write_per_namespace_sum",
                   "refId": "a",
-                  "result_table_id": "pushgateway_dbm_pulsarzookeeper_bkpull.group1",
+                  "result_table_id": "pushgateway_dbm_pulsarzookeeper_bkpull.__default__",
                   "result_table_label": "component",
                   "time_field": "",
                   "where": [
@@ -9386,7 +9386,7 @@
                 }
               ],
               "refId": "A",
-              "source": "max by (instance_host, _key) (bkmonitor:pushgateway_dbm_pulsarzookeeper_bkpull:group1:write_per_namespace_sum{app=\"$app\",cluster_domain=\"$cluster_domain\",_key!=\"\"})",
+              "source": "max by (instance_host, _key) (bkmonitor:pushgateway_dbm_pulsarzookeeper_bkpull:__default__:write_per_namespace_sum{app=\"$app\",cluster_domain=\"$cluster_domain\",_key!=\"\"})",
               "step": "",
               "type": "range"
             }
@@ -9504,7 +9504,7 @@
                   "method": "max_without_time",
                   "metric_field": "read_per_namespace_sum",
                   "refId": "a",
-                  "result_table_id": "pushgateway_dbm_pulsarzookeeper_bkpull.group3",
+                  "result_table_id": "pushgateway_dbm_pulsarzookeeper_bkpull.__default__",
                   "result_table_label": "component",
                   "time_field": "",
                   "where": [
@@ -9527,7 +9527,7 @@
                 }
               ],
               "refId": "A",
-              "source": "max by (instance_host, _key) (bkmonitor:pushgateway_dbm_pulsarzookeeper_bkpull:group1:read_per_namespace_sum{app=\"$app\",cluster_domain=\"$cluster_domain\",_key!=\"\"})",
+              "source": "max by (instance_host, _key) (bkmonitor:pushgateway_dbm_pulsarzookeeper_bkpull:__default__:read_per_namespace_sum{app=\"$app\",cluster_domain=\"$cluster_domain\",_key!=\"\"})",
               "step": "",
               "type": "range"
             }
@@ -9646,7 +9646,7 @@
                   "method": "max_without_time",
                   "metric_field": "uptime",
                   "refId": "a",
-                  "result_table_id": "pushgateway_dbm_pulsarzookeeper_bkpull.group1",
+                  "result_table_id": "pushgateway_dbm_pulsarzookeeper_bkpull.__default__",
                   "result_table_label": "component",
                   "time_field": "",
                   "where": [
@@ -9796,7 +9796,7 @@
                   "method": "max_without_time",
                   "metric_field": "jvm_pause_time_ms_sum",
                   "refId": "a",
-                  "result_table_id": "pushgateway_dbm_pulsarzookeeper_bkpull.group1",
+                  "result_table_id": "pushgateway_dbm_pulsarzookeeper_bkpull.__default__",
                   "result_table_label": "component",
                   "time_field": "",
                   "where": [

@@ -32,7 +32,8 @@
       ref="tableRef"
       class="alert-group-table"
       :columns="columns"
-      :data-source="getAlarmGroupList" />
+      :data-source="getAlarmGroupList"
+      :row-class="setRowClass" />
     <DetailDialog
       v-model="detailDialogShow"
       :biz-id="bizId"
@@ -43,6 +44,7 @@
 </template>
 
 <script setup lang="tsx">
+  import dayjs from 'dayjs';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
@@ -56,10 +58,22 @@
 
   import { useGlobalBizs } from '@stores';
 
+  import MiniTag from '@components/mini-tag/index.vue';
+
   import { messageSuccess } from '@utils';
 
   import DetailDialog from './components/DetailDialog.vue';
   import RenderRow from './components/RenderRow.vue';
+
+  const isNewUser = (createTime: string) => {
+    if (!createTime) {
+      return '';
+    }
+
+    const createDay = dayjs(createTime);
+    const today = dayjs();
+    return today.diff(createDay, 'hour') <= 24;
+  };
 
   type AlarmGroupItem = ServiceReturnType<typeof getAlarmGroupList>['results'][number]
 
@@ -95,9 +109,14 @@
             <span class="alarm-group-name">{ row.name }</span>
             {
               isRenderTag
-                ? <bk-tag class="ml-4">{ t('内置')}</bk-tag>
+                ? <MiniTag content={ t('内置') } class="ml-4"></MiniTag>
                 : null
-              }
+            }
+            {
+              isNewUser(row.create_at)
+                ? <span class="glob-new-tag ml-4" data-text="NEW" />
+                : null
+            }
           </>
         );
       },
@@ -128,15 +147,15 @@
       field: 'relatedPolicyCount',
       width: 100,
       render: ({ row }: TableRenderData) => {
-        const { related_policy_count: relatedPolicyCount } = row;
+        const { used_count: usedCount } = row;
 
         return (
-          relatedPolicyCount
+          usedCount
             ? <bk-button
               text
               theme="primary"
-              onClick={ () => toRelatedPolicy(row.id) }>
-              { relatedPolicyCount }
+              onClick={ () => toRelatedPolicy(row.id, row.db_type) }>
+              { usedCount }
             </bk-button>
             : <span>0</span>
         );
@@ -157,10 +176,10 @@
     },
     {
       label: t('操作'),
-      width: 150,
+      width: 180,
       render: ({ row }: TableRenderData) => {
         const tipDisabled = isPlatform || !row.is_built_in;
-        const btnDisabled = (!isPlatform && row.is_built_in) || row.related_policy_count > 0;
+        const btnDisabled = (!isPlatform && row.is_built_in) || row.used_count > 0;
         const tips = {
           disabled: tipDisabled,
           content: t('内置告警不支持删除'),
@@ -169,14 +188,14 @@
         return (
           <>
             <bk-button
-              class="mr-8"
+              class="mr-24"
               text
               theme="primary"
               onClick={ () => handleOpenDetail('edit', row) }>
               { t('编辑') }
             </bk-button>
             <bk-button
-              class="mr-8"
+              class="mr-24"
               text
               theme="primary"
               onClick={ () => handleOpenDetail('copy', row) }>
@@ -224,11 +243,17 @@
     });
   };
 
-  const toRelatedPolicy = (notifyGroupId: number) => {
+  const setRowClass = (row: AlarmGroupItem) => (isNewUser(row.create_at) ? 'is-new' : '');
+
+  const toRelatedPolicy = (notifyGroupId: number, dbType: string) => {
     const routerData = router.resolve({
       name: 'DBMonitorStrategy',
       params: {
+        bizId: currentBizId,
+      },
+      query: {
         notifyGroupId,
+        dbType,
       },
     });
 
@@ -280,6 +305,12 @@
     :deep(.alert-group-table) {
       .alarm-group-name {
         color: @primary-color;
+      }
+
+      .is-new {
+        td {
+          background-color: #f3fcf5 !important;
+        }
       }
     }
   }

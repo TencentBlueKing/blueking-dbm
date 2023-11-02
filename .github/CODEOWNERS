@@ -16,10 +16,10 @@
 /dbm-services/common/dbha @zyqlzr @xjxia
 
 # bigdata
-/dbm-services/bigdata @zhangrq5 @zvictorino
-/dbm-services/es @zhangrq5 @zvictorino
-/dbm-services/hdfs @zhangrq5 @zvictorino
-/dbm-services/kafka @zhangrq5 @zvictorino
+/dbm-services/bigdata @zhangrq5 @zvictorino @wangyao963
+/dbm-services/es @zhangrq5 @zvictorino @wangyao963
+/dbm-services/hdfs @zhangrq5 @zvictorino @wangyao963
+/dbm-services/kafka @zhangrq5 @zvictorino @wangyao963
 
 # mysql
 /dbm-services/mysql @seanlook @xfwduke @yksitu @ymakedaq
@@ -30,3 +30,12 @@
 
 # redis
 /dbm-services/redis @lukemakeit @xiepaup @omg-by @mikluo @yyhenryyy @cycker @cuiguobin
+
+# riak
+/dbm-services/riak @fanfanyangyang
+
+# sqlserver
+/dbm-services/sqlserver @yksitu
+
+# mongodb
+/dbm-services/mongodb @cycker @yyhenryyy @xiepaup

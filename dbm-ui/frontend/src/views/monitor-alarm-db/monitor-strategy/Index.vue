@@ -12,28 +12,35 @@
 -->
 
 <template>
-  <BkTab
-    v-model:active="activeTab"
-    class="monitor-strategy-panel"
-    type="unborder-card">
-    <BkTabPanel
-      v-for="tab of tabs"
-      :key="tab.label"
-      :label="tab.label"
-      :name="tab.value" />
-  </BkTab>
-  <div class="monitor-strategy-content">
-    <TypeContent :active-db-type="activeTab" />
+  <div class="monitor-strategy-page">
+    <BkTab
+      v-model:active="activeTab"
+      class="top-tabs"
+      type="unborder-card">
+      <BkTabPanel
+        v-for="tab of tabs"
+        :key="tab.label"
+        :label="tab.label"
+        :name="tab.value" />
+    </BkTab>
+    <div class="monitor-strategy-content">
+      <TypeContent :active-db-type="activeTab" />
+    </div>
   </div>
 </template>
-
 <script setup lang="ts">
+  import { useRoute } from 'vue-router';
+
+  import { useMainViewStore } from '@stores';
+
   import TypeContent from './components/content/Index.vue';
+
+  const { dbType } = useRoute().query as { dbType: string };
 
   const tabs = [
     {
       value: 'mysql',
-      label: 'Mysql',
+      label: 'MySQL',
     },
     {
       value: 'tendbcluster',
@@ -53,11 +60,11 @@
     },
     {
       value: 'hdfs',
-      label: 'Hdfs',
+      label: 'HDFS',
     },
     {
       value: 'es',
-      label: 'Es',
+      label: 'ES',
     },
     {
       value: 'pulsar',
@@ -73,17 +80,26 @@
     },
   ];
 
-  const activeTab = ref(tabs[0].value);
+  const mainViewStore = useMainViewStore();
+  mainViewStore.hasPadding = false;
+
+  const activeTab = ref(dbType ? dbType : tabs[0].value);
 
 </script>
-<style lang="less" scoped>
-.monitor-strategy-panel {
-  :deep(.bk-tab-content) {
-    display: none;
-  }
-}
+<style lang="less">
+.monitor-strategy-page{
+  .top-tabs{
+    background: #fff;
+    box-shadow: 0 3px 4px 0 rgb(0 0 0 / 4%);
 
-.monitor-strategy-content {
-  margin-top: 20px;
+    .bk-tab-content{
+      display: none;
+    }
+  }
+
+  .monitor-strategy-content {
+    height: calc(100vh - 150px);
+    padding: 24px;
+  }
 }
 </style>

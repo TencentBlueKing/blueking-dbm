@@ -9,7 +9,7 @@ DEV_BUILD_FLAG = "-X ${MODULE}/cmd.version="develop" -X ${MODULE}/cmd.buildStamp
 
 .PHONY: release-bin
 release-bin:
-	@CGO_ENABLE=0 GOARCH=amd64 GOOS=linux go build -ldflags ${RELEASE_BUILD_FLAG} -o ${OUTPUT_DIR}/${$PROJ}
+	@CGO_ENABLED=0 GOARCH=amd64 GOOS=linux go build -ldflags ${RELEASE_BUILD_FLAG} -o ${OUTPUT_DIR}/${$PROJ}
 	@cp config.yaml.go.tpl ${OUTPUT_DIR}/config.yaml.go.tpl
 	@tar -C ${OUTPUT_DIR} -zcf ${OUTPUT_DIR}/${PKG} riak-monitor config.yaml.go.tpl
 

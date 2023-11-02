@@ -85,7 +85,7 @@
     },
     {
       validator: () => !!props.clusterData && localInstanceData.bk_cloud_id === props.clusterData.bk_cloud_id,
-      message: t('新实例和源实例的云区域不一致'),
+      message: t('新实例和源实例的管控区域不一致'),
     },
     {
       validator: () => {

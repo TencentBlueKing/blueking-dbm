@@ -246,6 +246,7 @@ class BigDataBaseListRetrieveResource(query.ListRetrieveResource):
         cluster_info = {
             "id": cluster.id,
             "phase": cluster.phase,
+            "phase_name": cluster.get_phase_display(),
             "status": cluster.status,
             "cluster_name": cluster.name,
             "cluster_alias": cluster.alias,

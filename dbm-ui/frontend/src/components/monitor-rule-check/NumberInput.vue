@@ -14,7 +14,7 @@
 <template>
   <div class="input-box">
     <BkInput
-      v-model="moduleValue"
+      v-model="modelValue"
       class="input"
       :disabled="disabled"
       :placeholder="t('请输入')"
@@ -52,30 +52,34 @@
     getValue: () => number
   }
 
-  const moduleValue = defineModel<number>({
+  const modelValue = defineModel<number>({
     default: 0,
+  });
+
+  watch(modelValue, () => {
+    window.changeConfirm = true;
   });
 
   const handleClickUp = () => {
     if (props.disabled) {
       return;
     }
-    moduleValue.value += 1;
+    modelValue.value += 1;
   };
 
   const handleClickDown = () => {
     if (props.disabled) {
       return;
     }
-    if (moduleValue.value === 0) {
+    if (modelValue.value === 0) {
       return;
     }
-    moduleValue.value -= 1;
+    modelValue.value -= 1;
   };
 
   defineExpose<Exposes>({
     getValue() {
-      return moduleValue.value;
+      return modelValue.value;
     },
   });
 

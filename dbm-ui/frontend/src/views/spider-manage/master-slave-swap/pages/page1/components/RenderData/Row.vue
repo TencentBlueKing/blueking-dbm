@@ -21,7 +21,7 @@
           @change="handleMasterHostChange" />
       </td>
       <td style="padding: 0;">
-        <RenderHost
+        <RenderSlave
           ref="slaveHostRef"
           :master-data="localMasterData"
           :model-value="data.slaveData" />
@@ -56,7 +56,7 @@
 
   import RenderCluster from './RenderCluster.vue';
   import RenderMaster from './RenderMaster.vue';
-  import RenderHost from './RenderSlave.vue';
+  import RenderSlave from './RenderSlave.vue';
 
   export type IHostData = {
     bk_host_id: number,

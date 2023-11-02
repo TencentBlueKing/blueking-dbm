@@ -80,3 +80,7 @@ nodeSelector: {}
 tolerations: []
 
 affinity: {}
+
+livenessProbe: {}
+
+readinessProbe: {}

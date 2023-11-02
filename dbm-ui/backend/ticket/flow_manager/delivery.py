@@ -72,11 +72,23 @@ class DescribeTaskFlow(DeliveryFlow):
     def __init__(self, flow_obj: Flow):
         super().__init__(flow_obj=flow_obj)
         self.pre_root_id = self.ticket.details["root_id"]
+        self.pre_flow_tree = FlowTree.objects.get(root_id=self.pre_root_id)
+
+    @property
+    def _start_time(self) -> str:
+        return datetime2str(self.pre_flow_tree.created_at)
+
+    @property
+    def _end_time(self) -> Optional[str]:
+        return datetime2str(self.pre_flow_tree.updated_at)
 
     @property
     def _summary(self) -> str:
-        flow_tree = FlowTree.objects.get(root_id=self.pre_root_id)
-        return _("{}执行{}".format(flow_tree.get_ticket_type_display(), StateType.get_choice_label(flow_tree.status)))
+        return _(
+            "{}执行{}".format(
+                self.pre_flow_tree.get_ticket_type_display(), StateType.get_choice_label(self.pre_flow_tree.status)
+            )
+        )
 
     @property
     def _url(self) -> str:

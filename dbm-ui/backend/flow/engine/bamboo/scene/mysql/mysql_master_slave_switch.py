@@ -17,12 +17,17 @@ from django.utils.crypto import get_random_string
 from django.utils.translation import ugettext as _
 
 from backend.configuration.constants import DBType
+from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.enums import ClusterEntryType, ClusterType, InstanceInnerRole
+from backend.db_meta.exceptions import ClusterNotExistException
 from backend.db_meta.models import Cluster, ProxyInstance, StorageInstance
 from backend.flow.consts import ACCOUNT_PREFIX, AUTH_ADDRESS_DIVIDER
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
-from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import build_surrounding_apps_sub_flow
+from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import (
+    build_surrounding_apps_sub_flow,
+    check_sub_flow,
+)
 from backend.flow.engine.bamboo.scene.mysql.common.exceptions import NormalTenDBFlowException
 from backend.flow.plugins.components.collections.mysql.add_user_for_cluster_switch import AddSwitchUserComponent
 from backend.flow.plugins.components.collections.mysql.clone_user import CloneUserComponent
@@ -70,14 +75,19 @@ class MySQLMasterSlaveSwitchFlow(object):
         self.data = data
 
     @staticmethod
-    def get_cluster_info(cluster_id: int, new_master_ip: str, old_master_ip: str) -> dict:
+    def get_cluster_info(cluster_id: int, bk_biz_id: int, new_master_ip: str, old_master_ip: str) -> dict:
         """
         定义获取切换集群的基本信息的方法
         @param cluster_id :集群id
+        @param bk_biz_id: 业务id
         @param new_master_ip: 待升主的slave ip
         @param old_master_ip: 目前的集群的master ip
         """
-        cluster = Cluster.objects.get(id=cluster_id)
+        try:
+            cluster = Cluster.objects.get(id=cluster_id, bk_biz_id=bk_biz_id)
+        except Cluster.DoesNotExist:
+            raise ClusterNotExistException(cluster_id=cluster_id, bk_biz_id=bk_biz_id, message=_("集群不存在"))
+
         proxy_info = ProxyInstance.objects.filter(cluster=cluster).all()
         new_master = StorageInstance.objects.get(machine__ip=new_master_ip, cluster=cluster)
 
@@ -205,7 +215,6 @@ class MySQLMasterSlaveSwitchFlow(object):
                 sub_sub_flow_context.pop("infos")
 
                 # 把公共参数拼接到子流程的全局只读上下文
-                sub_sub_flow_context["is_safe"] = info["is_safe"]
                 sub_sub_flow_context["is_dead_master"] = False
                 sub_sub_flow_context["grant_repl"] = True
                 sub_sub_flow_context["locked_switch"] = True
@@ -215,7 +224,10 @@ class MySQLMasterSlaveSwitchFlow(object):
 
                 # 获取对应的集群信息
                 cluster = self.get_cluster_info(
-                    cluster_id=cluster_id, new_master_ip=info["slave_ip"]["ip"], old_master_ip=info["master_ip"]["ip"]
+                    cluster_id=cluster_id,
+                    bk_biz_id=sub_sub_flow_context["bk_biz_id"],
+                    new_master_ip=info["slave_ip"]["ip"],
+                    old_master_ip=info["master_ip"]["ip"],
                 )
 
                 # 拼接切换执行活动节点需要的通用的私有参数
@@ -225,6 +237,27 @@ class MySQLMasterSlaveSwitchFlow(object):
                 cluster_switch_sub_pipeline = SubBuilder(
                     root_id=self.root_id, data=copy.deepcopy(sub_sub_flow_context)
                 )
+
+                # 切换前做预检测
+                sub_flow = check_sub_flow(
+                    uid=self.data["uid"],
+                    root_id=self.root_id,
+                    cluster=Cluster.objects.get(id=cluster_id, bk_biz_id=sub_sub_flow_context["bk_biz_id"]),
+                    is_check_client_conn=sub_sub_flow_context["is_check_process"],
+                    is_verify_checksum=sub_sub_flow_context["is_verify_checksum"],
+                    check_client_conn_inst=[
+                        f"{cluster['old_master_ip']}{IP_PORT_DIVIDER}{cluster['mysql_port']}",
+                        f"{cluster['new_master_ip']}{IP_PORT_DIVIDER}{cluster['mysql_port']}",
+                    ],
+                    verify_checksum_tuples=[
+                        {
+                            "master": f"{cluster['old_master_ip']}{IP_PORT_DIVIDER}{cluster['mysql_port']}",
+                            "slave": f"{cluster['new_master_ip']}{IP_PORT_DIVIDER}{cluster['mysql_port']}",
+                        }
+                    ],
+                )
+                if sub_flow:
+                    cluster_switch_sub_pipeline.add_sub_pipeline(sub_flow=sub_flow)
 
                 # 阶段1 添加切换的临时账号
                 cluster_switch_sub_pipeline.add_act(

@@ -25,6 +25,7 @@ from backend.flow.consts import (
     SyncType,
 )
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
+from backend.flow.plugins.components.collections.redis.exec_shell_script import ExecuteShellReloadMetaComponent
 from backend.flow.plugins.components.collections.redis.redis_db_meta import RedisDBMetaComponent
 from backend.flow.utils.redis.redis_context_dataclass import ActKwargs, CommonContext
 from backend.flow.utils.redis.redis_db_meta import RedisDBMeta
@@ -113,7 +114,7 @@ def TwemproxyClusterMasterReplaceJob(
 
     sync_relations, new_slave_ports = [], []  # 按照机器对组合
     # #### 建同步关系 #############################################################################
-    sub_pipelines, sync_kwargs = [], deepcopy(act_kwargs)
+    sub_pipelines, sync_kwargs, sed_links = [], deepcopy(act_kwargs), []
     for replace_info in master_replace_detail:
         old_master = replace_info["ip"]
         new_host_master = replace_info["target"]["master"]["ip"]
@@ -145,6 +146,8 @@ def TwemproxyClusterMasterReplaceJob(
                     ),
                 }
             )
+            sed_links.append({"old": old_master_ins, "new": "{}:{}".format(new_host_master, new_ins_port)})
+            sed_links.append({"old": old_slave_ins, "new": "{}:{}".format(new_host_slave, new_ins_port)})
             new_ins_port = new_ins_port + 1
         sync_relations.append(sync_params)
         sub_builder = RedisMakeSyncAtomJob(root_id, ticket_data, sync_kwargs, sync_params)
@@ -163,6 +166,31 @@ def TwemproxyClusterMasterReplaceJob(
     sub_pipeline = RedisClusterSwitchAtomJob(root_id, ticket_data, act_kwargs, sync_relations)
     redis_pipeline.add_sub_pipeline(sub_flow=sub_pipeline)
     # #### 执行切换 ###############################################################################
+
+    # predixy类型的集群需要刷新配置文件 #################################################################
+    if act_kwargs.cluster["cluster_type"] == ClusterType.TendisPredixyTendisplusCluster.value:
+        sed_args = ['''-e "s/{}/{}/"'''.format(sss["old"], sss["new"]) for sss in sed_links]
+        sed_seed = " ".join(sed_args)
+
+        # act_kwargs.exec_ip = act_kwargs.cluster["proxy_ips"]  # predixy ips ... 这里需要动态的获取IP 列表额。。s
+        act_kwargs.cluster[
+            "shell_command"
+        ] = """
+        cnf="$REDIS_DATA_DIR/predixy/{}/predixy.conf"
+        echo "`date "+%F %T"` : before sed config $cnf: : `cat $cnf |grep  "+"|grep ":"`"
+        echo "`date "+%F %T"` : exec sed -i {}"
+        sed -i {} $cnf
+        echo "`date "+%F %T"` : after sed configs : `cat $cnf|grep  "+"|grep ":"`"
+        """.format(
+            act_kwargs.cluster["proxy_port"], sed_seed, sed_seed
+        )
+
+        redis_pipeline.add_act(
+            act_name=_("刷新Predixy本地配置"),
+            act_component_code=ExecuteShellReloadMetaComponent.code,
+            kwargs=asdict(act_kwargs),
+        )
+    # predixy类型的集群需要刷新配置文件 ######################################################## 完毕 ###
 
     # #### 下架旧实例 #############################################################################
     sub_pipelines, shutdown_kwargs = [], deepcopy(act_kwargs)

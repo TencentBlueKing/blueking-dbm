@@ -193,7 +193,7 @@ class Spec(AuditedModel):
             if machine_type:
                 qmt = Q(spec_machine_type=machine_type)
 
-            logger.info("get spec choices with filter: {}".format(qct & qmt))
+            # logger.info("get spec choices with filter: {}".format(qct & qmt))
 
             spec_choices = [
                 (spec.spec_id, f"[{spec.spec_id}]{spec.spec_cluster_type}-{spec.spec_machine_type}-{spec.spec_name}")

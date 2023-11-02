@@ -88,7 +88,7 @@ echo "DIR==$DIR"
 
 cd .. && make build
 
-cp ./bin/dbactuator_redis /data/install/
+cp ./build/dbactuator_redis /data/install/
 
 localTendisplusPkgName="/data/install/$tendisplusPkgName"
 localTendisplusPkgMd5=""

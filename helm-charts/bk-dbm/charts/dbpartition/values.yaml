@@ -86,4 +86,8 @@ tolerations: []
 
 affinity: {}
 
+livenessProbe: {}
+
+readinessProbe: {}
+
 

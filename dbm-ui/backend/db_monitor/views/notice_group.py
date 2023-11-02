@@ -14,13 +14,13 @@ import django_filters
 from django.db.models import Q
 from django.utils.decorators import method_decorator
 from django.utils.translation import ugettext_lazy as _
-from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from backend.bk_web import viewsets
+from backend.bk_web.pagination import AuditedLimitOffsetPagination
 from backend.bk_web.swagger import common_swagger_auto_schema
-from backend.components import CCApi, CmsiApi
+from backend.components import CmsiApi
 from backend.configuration.constants import PLAT_BIZ_ID
 from backend.db_monitor import serializers
 from backend.db_monitor.models import MonitorPolicy, NoticeGroup
@@ -30,9 +30,10 @@ from backend.iam_app.handlers.drf_perm import DBManageIAMPermission
 SWAGGER_TAG = _("监控告警组")
 
 
-class MonitorPolicyListFilter(django_filters.FilterSet):
+class MonitorGroupListFilter(django_filters.FilterSet):
     name = django_filters.CharFilter(field_name="name", lookup_expr="icontains", label=_("告警组名称"))
     bk_biz_id = django_filters.NumberFilter(method="filter_bk_biz_id", label=_("业务ID"))
+    db_type = django_filters.CharFilter(method="filter_db_type", label=_("DB类型"))
 
     def filter_bk_biz_id(self, queryset, name, value):
         """
@@ -47,9 +48,13 @@ class MonitorPolicyListFilter(django_filters.FilterSet):
         )
         return queryset.filter(Q(bk_biz_id=value) | Q(id__in=plat_built_in_group_ids)).order_by("is_built_in")
 
+    def filter_db_type(self, queryset, name, value):
+        # 返回告警组时，需同时返回没有 db_type 的
+        return queryset.filter(Q(db_type=value) | Q(db_type=""))
+
     class Meta:
         model = NoticeGroup
-        fields = ["bk_biz_id", "name"]
+        fields = ["bk_biz_id", "name", "db_type"]
 
 
 @method_decorator(
@@ -83,7 +88,8 @@ class MonitorNoticeGroupViewSet(viewsets.AuditedModelViewSet):
 
     queryset = NoticeGroup.objects.all()
     serializer_class = NoticeGroupSerializer
-    filter_class = MonitorPolicyListFilter
+    pagination_class = AuditedLimitOffsetPagination
+    filter_class = MonitorGroupListFilter
 
     def _get_custom_permissions(self):
         return [DBManageIAMPermission()]

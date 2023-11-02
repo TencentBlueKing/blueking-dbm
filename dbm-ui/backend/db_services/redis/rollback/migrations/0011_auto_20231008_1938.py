@@ -2,6 +2,8 @@
 
 from django.db import migrations, models
 
+from backend.db_meta.enums import ClusterType
+
 
 class Migration(migrations.Migration):
 
@@ -14,33 +16,7 @@ class Migration(migrations.Migration):
             model_name="tbtendisrollbacktasks",
             name="prod_cluster_type",
             field=models.CharField(
-                choices=[
-                    ("tendbsingle", "tendbsingle"),
-                    ("tendbha", "tendbha"),
-                    ("tendbcluster", "tendbcluster"),
-                    ("redis", "Redis集群"),
-                    ("PredixyRedisCluster", "Tendisplus集群"),
-                    ("PredixyTendisplusCluster", "Tendisplus存储版集群"),
-                    ("TwemproxyRedisInstance", "TendisCache集群"),
-                    ("TwemproxyTendisSSDInstance", "TendisSSD集群"),
-                    ("TwemproxyTendisplusInstance", "Tendis存储版集群"),
-                    ("RedisInstance", "RedisCache主从版"),
-                    ("TendisSSDInstance", "TendisSSD主从版"),
-                    ("TendisplusInstance", "Tendisplus主从版"),
-                    ("RedisCluster", "RedisCluster集群"),
-                    ("TendisplusCluster", "TendisplusCluster集群"),
-                    ("TendisplusInstance", "Tendisplus存储版集群 GetTendisType 获取redis类型值"),
-                    ("RedisInstance", "TendisCache集群 GetTendisType 获取redis类型值"),
-                    ("TendisSSDInstance", "TendisSSD集群 GetTendisType 获取redis类型值"),
-                    ("es", "ES集群"),
-                    ("kafka", "Kafka集群"),
-                    ("hdfs", "Hdfs集群"),
-                    ("influxdb", "Influxdb实例"),
-                    ("pulsar", "Pulsar集群"),
-                    ("MongoReplicaSet", "Mongo副本集"),
-                    ("MongoShardedCluster", "Mongo分片集群"),
-                    ("riak", "Riak集群"),
-                ],
+                choices=ClusterType.get_choices(),
                 default="",
                 max_length=64,
                 verbose_name="构造源集群类型",
@@ -50,33 +26,7 @@ class Migration(migrations.Migration):
             model_name="tbtendisrollbacktasks",
             name="temp_cluster_type",
             field=models.CharField(
-                choices=[
-                    ("tendbsingle", "tendbsingle"),
-                    ("tendbha", "tendbha"),
-                    ("tendbcluster", "tendbcluster"),
-                    ("redis", "Redis集群"),
-                    ("PredixyRedisCluster", "Tendisplus集群"),
-                    ("PredixyTendisplusCluster", "Tendisplus存储版集群"),
-                    ("TwemproxyRedisInstance", "TendisCache集群"),
-                    ("TwemproxyTendisSSDInstance", "TendisSSD集群"),
-                    ("TwemproxyTendisplusInstance", "Tendis存储版集群"),
-                    ("RedisInstance", "RedisCache主从版"),
-                    ("TendisSSDInstance", "TendisSSD主从版"),
-                    ("TendisplusInstance", "Tendisplus主从版"),
-                    ("RedisCluster", "RedisCluster集群"),
-                    ("TendisplusCluster", "TendisplusCluster集群"),
-                    ("TendisplusInstance", "Tendisplus存储版集群 GetTendisType 获取redis类型值"),
-                    ("RedisInstance", "TendisCache集群 GetTendisType 获取redis类型值"),
-                    ("TendisSSDInstance", "TendisSSD集群 GetTendisType 获取redis类型值"),
-                    ("es", "ES集群"),
-                    ("kafka", "Kafka集群"),
-                    ("hdfs", "Hdfs集群"),
-                    ("influxdb", "Influxdb实例"),
-                    ("pulsar", "Pulsar集群"),
-                    ("MongoReplicaSet", "Mongo副本集"),
-                    ("MongoShardedCluster", "Mongo分片集群"),
-                    ("riak", "Riak集群"),
-                ],
+                choices=ClusterType.get_choices(),
                 default="",
                 max_length=64,
                 verbose_name="临时集群类型",

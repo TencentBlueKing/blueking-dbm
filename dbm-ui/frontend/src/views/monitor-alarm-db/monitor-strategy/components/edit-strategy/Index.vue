@@ -28,6 +28,7 @@
     <div class="monitor-strategy-box">
       <BkForm
         ref="formRef"
+        class="edit-form"
         form-type="vertical"
         :model="formModel"
         :rules="formRules">
@@ -46,6 +47,7 @@
             ref="monitorTargetRef"
             :bizs-map="bizsMap"
             :cluster-list="clusterList"
+            :customs="data.custom_conditions"
             :db-type="dbType"
             :disabled="isReadonlyPage"
             :module-list="moduleList"
@@ -106,11 +108,11 @@
           </BkCheckboxGroup>
         </BkFormItem>
         <BkFormItem
-          :label="t('默认通知对象')"
-          property="nofityTarget"
+          :label="t('告警组')"
+          property="notifyTarget"
           required>
           <BkSelect
-            v-model="formModel.nofityTarget"
+            v-model="formModel.notifyTarget"
             class="notify-select"
             collapse-tags
             :disabled="isReadonlyPage"
@@ -118,19 +120,18 @@
             multiple
             multiple-mode="tag">
             <template #tag>
-              <div
-                v-for="item in formModel.nofityTarget"
+              <BkTag
+                v-for="item in formModel.notifyTarget"
                 :key="item"
-                class="notify-tag-box">
-                <DbIcon
-                  style="font-size: 16px"
-                  type="auth" />
-                <span class="dba">{{ alarmGroupNameMap[item] }}</span>
-                <DbIcon
-                  class="close-icon"
-                  type="close"
-                  @click="() => handleDeleteNotifyTargetItem(item)" />
-              </div>
+                closable
+                @close="() => handleDeleteNotifyTargetItem(item)">
+                <template #icon>
+                  <DbIcon
+                    class="alarm-icon"
+                    type="yonghuzu" />
+                </template>
+                {{ alarmGroupNameMap[item] }}
+              </BkTag>
             </template>
             <BkOption
               v-for="item in alarmGroupList"
@@ -199,7 +200,7 @@
     data: RowData,
     bizsMap: Record<string, string>,
     dbType: string,
-    alarmGroupList: SelectItem<string>[],
+    alarmGroupList: SelectItem<number>[],
     alarmGroupNameMap: Record<string, string>,
     moduleList: SelectItem<string>[],
     clusterList: SelectItem<string>[],
@@ -207,7 +208,8 @@
   }
 
   interface Emits {
-    (e: 'success'): void
+    (e: 'success'): void,
+    (e: 'cancel'): void,
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -216,9 +218,18 @@
   const emits = defineEmits<Emits>();
   const isShow = defineModel<boolean>();
 
+  let rawFormData = '';
+
   function generateRule(data: RowData, level: number) {
     const arr = data.test_rules.filter(item => item.level === level);
     return arr.length > 0 ? arr[0] : undefined;
+  }
+
+  function initFormData() {
+    formModel.strategyName = '';
+    formModel.notifyRules = [] as string[];
+    formModel.notifyTarget = [] as number[];
+    rawFormData = '';
   }
 
   const { t } = useI18n();
@@ -233,7 +244,7 @@
   const formModel = reactive({
     strategyName: '',
     notifyRules: [] as string[],
-    nofityTarget: [] as number[],
+    notifyTarget: [] as number[],
   });
 
   const isEditPage = computed(() => props.pageStatus === 'edit');
@@ -309,6 +320,7 @@
     onSuccess: (cloneResponse) => {
       if (cloneResponse.bkm_id) {
         messageSuccess(t('克隆成功'));
+        initFormData();
         emits('success');
         isShow.value = false;
       }
@@ -320,35 +332,54 @@
     onSuccess: (updateResponse) => {
       if (updateResponse.bkm_id) {
         messageSuccess(t('保存成功'));
+        initFormData();
         emits('success');
         isShow.value = false;
       }
     },
   });
 
+  watch(formModel, (data) => {
+    if (rawFormData === '' && data.notifyRules !== undefined) {
+      rawFormData = JSON.stringify(data);
+      return;
+    }
+    if (rawFormData !== '' && rawFormData !== JSON.stringify(data)) {
+      window.changeConfirm = true;
+    }
+  }, {
+    deep: true,
+  });
+
   watch(() => props.data, (data) => {
     if (data) {
       formModel.strategyName = data.name;
       formModel.notifyRules = _.cloneDeep(data.notify_rules);
-      formModel.nofityTarget = _.cloneDeep(data.notify_groups);
+      formModel.notifyTarget = _.cloneDeep(data.notify_groups);
     }
   }, {
     immediate: true,
   });
 
   const handleDeleteNotifyTargetItem = (id: number) => {
-    const index = formModel.nofityTarget.findIndex(item => item === id);
-    formModel.nofityTarget.splice(index, 1);
+    const index = formModel.notifyTarget.findIndex(item => item === id);
+    formModel.notifyTarget.splice(index, 1);
   };
 
   const handleClickConfirmRecoverDefault = () => {
     formModel.strategyName = props.data.name;
     formModel.notifyRules = _.cloneDeep(props.data.notify_rules);
-    formModel.nofityTarget = _.cloneDeep(props.data.notify_groups);
+    formModel.notifyTarget = _.cloneDeep(props.data.notify_groups);
     monitorTargetRef.value.resetValue();
-    infoValueRef.value.resetValue();
-    warnValueRef.value.resetValue();
-    dangerValueRef.value.resetValue();
+    if (infoValueRef.value) {
+      infoValueRef.value.resetValue();
+    }
+    if (warnValueRef.value) {
+      warnValueRef.value.resetValue();
+    }
+    if (dangerValueRef.value) {
+      dangerValueRef.value.resetValue();
+    }
   };
 
   // 点击确定
@@ -359,17 +390,13 @@
       warnRule.value ? warnValueRef.value.getValue() : undefined,
       dangerRule.value ? dangerValueRef.value.getValue() : undefined,
     ];
+    const { targets, custom_conditions } = monitorTargetRef.value.getValue();
     const reqParams = {
-      targets: monitorTargetRef.value.getValue().map((item: { id: string; value: string[]; }) => ({
-        rule: {
-          key: item.id,
-          value: item.value,
-        },
-        level: item.id,
-      })),
+      targets,
+      custom_conditions,
       test_rules: testRules.filter(item => item && item.config.length !== 0),
       notify_rules: formModel.notifyRules,
-      notify_groups: formModel.nofityTarget,
+      notify_groups: formModel.notifyTarget,
     };
     if (!isEditPage.value) {
       // 克隆额外参数
@@ -389,6 +416,8 @@
     const result = await handleBeforeClose();
     if (!result) return;
     window.changeConfirm = false;
+    initFormData();
+    emits('cancel');
     isShow.value = false;
   }
 
@@ -400,6 +429,12 @@
   width: 100%;
   padding: 24px 40px;
   flex-direction: column;
+
+  .edit-form {
+    :deep(.bk-form-label) {
+      font-weight: 700;
+    }
+  }
 
   .item-title {
     margin-bottom: 6px;
@@ -444,9 +479,9 @@
   }
 
   .notify-select {
-    :deep(.bk-select-tag-wrapper) {
-      // padding: 4px;
-      gap: 4px
+    :deep(.alarm-icon) {
+      font-size: 18px;
+      color: #979BA5;
     }
 
     :deep(.notify-tag-box) {

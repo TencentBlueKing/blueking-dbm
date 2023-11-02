@@ -53,7 +53,8 @@ func (job *CheckJob) Run() {
 	defer job.Reporter.Close()
 
 	// job.backupClient = backupsys.NewIBSBackupClient(consts.IBSBackupClient, consts.RedisFullBackupTAG)
-	job.backupClient, job.Err = backupsys.NewCosBackupClient(consts.COSBackupClient, "", consts.RedisFullBackupTAG)
+	job.backupClient, job.Err = backupsys.NewCosBackupClient(consts.COSBackupClient,
+		consts.COSInfoFile, consts.RedisFullBackupTAG)
 	if job.Err != nil {
 		return
 	}

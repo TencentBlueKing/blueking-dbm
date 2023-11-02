@@ -145,3 +145,57 @@ environment variables
 {{- define "dbm.celery-worker.fullname" -}}
 {{- printf "%s-%s" (include "dbm.fullname" .) "celery-worker" -}}
 {{- end -}}
+
+{{- define "dbm.initContainersWaitForSaaS" -}}
+initContainers:
+  - name: check-saas-api
+    image: {{ include "dbm.migration.k8sWaitFor.image" . }}
+    imagePullPolicy: {{ .Values.image.pullPolicy }}
+    args:
+      - pod
+      - -lapp.kubernetes.io/component={{ include "dbm.saas-api.fullname" .}}
+    resources:
+      {{- toYaml .Values.initJob.resources | nindent 6 }}
+{{- end }}
+
+{{- define "dbm.initContainersWaitForMigrate" -}}
+initContainers:
+  - name: check-migrate-job
+    image: {{ include "dbm.migration.k8sWaitFor.image" . }}
+    imagePullPolicy: {{ .Values.image.pullPolicy }}
+    args:
+      - job
+      - {{ include "dbm.migrateJobName" . }}
+    resources:
+      {{- toYaml .Values.initJob.resources | nindent 6 }}
+{{- end }}
+
+{{- define "dbm.initMedium" -}}
+{{- $root := first . -}}
+{{- $db_type := last . -}}
+- name: dbm-medium-init-{{ $db_type }}
+  image: "{{ $root.Values.global.imageRegistry | default $root.Values.dbmedium.image.registry }}/{{ $root.Values.dbmedium.image.repository }}:{{ $root.Values.dbmedium.image.tag | default $root.Chart.AppVersion }}"
+  imagePullPolicy: {{ $root.Values.dbmedium.image.pullPolicy }}
+  command:
+    - /bin/bash
+    - -c
+  args:
+    - "python main.py --type upload --db {{ $db_type }} && python main.py --type sync --db {{ $db_type }}"
+  envFrom:
+    {{- if $root.Values.dbmedium.extraEnvVarsCM }}
+    - configMapRef:
+        name: {{ $root.Values.dbmedium.extraEnvVarsCM }}
+    {{- end }}
+  resources:
+    {{- toYaml $root.Values.initJob.resources | nindent 4 }}
+{{- end }}
+
+{{- define "dbm.container_env" -}}
+env:
+  {{- include "dbm.envs" . | trim | nindent 2 }}
+envFrom:
+  {{- if .Values.extraEnvVarsCM }}
+  - configMapRef:
+      name: {{ .Values.extraEnvVarsCM }}
+  {{- end }}
+{{- end }}

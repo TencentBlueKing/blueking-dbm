@@ -16,10 +16,15 @@ from django.utils.crypto import get_random_string
 from django.utils.translation import ugettext as _
 
 from backend.configuration.constants import DBType
+from backend.constants import IP_PORT_DIVIDER
+from backend.db_meta.models import Cluster
 from backend.flow.consts import ACCOUNT_PREFIX, AUTH_ADDRESS_DIVIDER
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
-from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import build_surrounding_apps_sub_flow
+from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import (
+    build_surrounding_apps_sub_flow,
+    check_sub_flow,
+)
 from backend.flow.plugins.components.collections.common.pause import PauseComponent
 from backend.flow.plugins.components.collections.mysql.add_user_for_cluster_switch import AddSwitchUserComponent
 from backend.flow.plugins.components.collections.mysql.clear_machine import MySQLClearMachineComponent
@@ -368,6 +373,18 @@ class MySQLMigrateClusterFlow(object):
 
             # 流程: 恢复数据>切换>安装周边>卸载
             sub_pipeline.add_parallel_sub_pipeline(sub_flow_list=restore_sub_list)
+            # 切换前安装周边组件
+            sub_pipeline.add_sub_pipeline(
+                sub_flow=build_surrounding_apps_sub_flow(
+                    bk_cloud_id=one_machine["bk_cloud_id"],
+                    master_ip_list=[one_machine["new_master_ip"]],
+                    slave_ip_list=[one_machine["new_slave_ip"]],
+                    root_id=self.root_id,
+                    parent_global_data=copy.deepcopy(ticket_data),
+                    is_init=True,
+                    cluster_type=one_machine["cluster_type"],
+                )
+            )
             sub_pipeline.add_act(act_name=_("人工确认"), act_component_code=PauseComponent.code, kwargs={})
             sub_pipeline.add_parallel_sub_pipeline(sub_flow_list=switch_sub_list)
             # 第三步，机器级别再次先安装周边程序
@@ -407,18 +424,39 @@ class MySQLMigrateClusterFlow(object):
         switch_sub_flow_context.pop("infos")
 
         # 把公共参数拼接到子流程的全局只读上下文
-        switch_sub_flow_context["is_safe"] = True
         switch_sub_flow_context["is_dead_master"] = False
         switch_sub_flow_context["grant_repl"] = True
         switch_sub_flow_context["locked_switch"] = True
         switch_sub_flow_context["switch_pwd"] = switch_pwd
         switch_sub_flow_context["switch_account"] = switch_account
+        switch_sub_flow_context["change_master_force"] = True
 
         # 拼接执行原子任务的活动节点需要的通用的私有参数，引用注意参数覆盖的问题
         cluster_sw_kwargs = ExecActuatorKwargs(cluster=cluster, bk_cloud_id=cluster["bk_cloud_id"])
 
         # 针对集群维度声明子流程
         cluster_switch_sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(switch_sub_flow_context))
+
+        # 切换前做预检测, 克隆主从时客户端连接检测和checksum检验默认检测
+        sub_flow = check_sub_flow(
+            uid=self.data["uid"],
+            root_id=self.root_id,
+            cluster=Cluster.objects.get(id=cluster["cluster_id"], bk_biz_id=cluster["bk_biz_id"]),
+            is_check_client_conn=True,
+            is_verify_checksum=True,
+            check_client_conn_inst=[
+                f"{cluster['old_master_ip']}{IP_PORT_DIVIDER}{cluster['mysql_port']}",
+                f"{cluster['old_slave_ip']}{IP_PORT_DIVIDER}{cluster['mysql_port']}",
+            ],
+            verify_checksum_tuples=[
+                {
+                    "master": f"{cluster['old_master_ip']}{IP_PORT_DIVIDER}{cluster['mysql_port']}",
+                    "slave": f"{cluster['new_master_ip']}{IP_PORT_DIVIDER}{cluster['mysql_port']}",
+                }
+            ],
+        )
+        if sub_flow:
+            cluster_switch_sub_pipeline.add_sub_pipeline(sub_flow=sub_flow)
 
         add_sw_user_kwargs = AddSwitchUserKwargs(
             bk_cloud_id=cluster["bk_cloud_id"],

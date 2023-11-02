@@ -90,3 +90,9 @@ nodeSelector: {}
 tolerations: []
 
 affinity: {}
+
+livenessProbe:
+  enabled: false
+
+readinessProbe:
+  enabled: false

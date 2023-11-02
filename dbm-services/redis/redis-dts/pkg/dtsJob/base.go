@@ -97,26 +97,27 @@ func (job *DtsJobBase) BgDtsTaskRunnerWithConcurrency(taskType, dbType string) {
 	}
 	go func() {
 		defer close(genChan)
-		var toExecuteTasks []*tendisdb.TbTendisDTSTask
+		var toExecuteRows []*tendisdb.TbTendisDTSTask
 		for {
-			if !tendisdb.IsAllDtsTasksToForceKill(toExecuteTasks) {
+			if !tendisdb.IsAllDtsTasksToForceKill(toExecuteRows) {
 				// 如果所有dts tasks都是 ForceKillTaskTodo 状态,则大概率该dts job用户已强制终止, 无需sleep
 				// 否则 sleep 10s
 				time.Sleep(10 * time.Second)
 			}
-			toExecuteTasks, err = tendisdb.GetLast30DaysToExecuteTasks(job.BkCloudID, job.ServerIP, taskType, dbType,
+			toExecuteRows, err = tendisdb.GetLast30DaysToExecuteTasks(job.BkCloudID, job.ServerIP, taskType, dbType,
 				status, perTaskNum, job.logger)
 			if err != nil {
 				continue
 			}
-			if len(toExecuteTasks) == 0 {
+			if len(toExecuteRows) == 0 {
 				job.logger.Info(fmt.Sprintf("not found to be executed %q task,sleep 10s", taskType),
 					zap.String("serverIP", job.ServerIP))
 				continue
 			}
-			for _, task01 := range toExecuteTasks {
-				task02 := task01
-				genChan <- task02
+			for _, row := range toExecuteRows {
+				toDoRow := row
+				// 将task放入channel,等待消费者goroutine真正处理
+				genChan <- toDoRow
 			}
 		}
 	}()
@@ -160,27 +161,28 @@ func (job *DtsJobBase) BgDtsTaskRunnerWithoutLimit(taskType, dbType string) {
 	go func() {
 		defer wg.Done()
 		defer close(genChan)
-		var toExecuteTasks []*tendisdb.TbTendisDTSTask
+		var toExecuteRows []*tendisdb.TbTendisDTSTask
 		for {
 			// 生产者: 获取task
 			// 如果所有dts tasks都是 ForceKillTaskTodo 状态,则大概率该dts job用户已强制终止, 无需sleep
 			// 否则 sleep 10s
-			if !tendisdb.IsAllDtsTasksToForceKill(toExecuteTasks) {
+			if !tendisdb.IsAllDtsTasksToForceKill(toExecuteRows) {
 				time.Sleep(10 * time.Second)
 			}
-			toExecuteTasks, err = tendisdb.GetLast30DaysToExecuteTasks(job.BkCloudID, job.ServerIP, taskType, dbType,
+			toExecuteRows, err = tendisdb.GetLast30DaysToExecuteTasks(job.BkCloudID, job.ServerIP, taskType, dbType,
 				status, perTaskNum, job.logger)
 			if err != nil {
 				continue
 			}
-			if len(toExecuteTasks) == 0 {
+			if len(toExecuteRows) == 0 {
 				job.logger.Info(fmt.Sprintf("not found to be executed %q task,sleep 10s", taskType),
 					zap.String("serverIP", job.ServerIP))
 				continue
 			}
-			for _, task01 := range toExecuteTasks {
-				task02 := task01
-				genChan <- task02
+			for _, row := range toExecuteRows {
+				toDoRow := row
+				// 将task放入channel,等待消费者goroutine真正处理
+				genChan <- toDoRow
 			}
 		}
 	}()

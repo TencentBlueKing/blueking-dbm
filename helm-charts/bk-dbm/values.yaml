@@ -59,7 +59,6 @@ bk:
 dbm:
   extraEnvVarsCM: bk-dbm-db-env
   enabled: true
-  replicaCount: 1
 
   serviceInit:
     itsmEnabled: true
@@ -77,13 +76,6 @@ dbm:
     pullPolicy: IfNotPresent
     # Overrides the image tag whose default is the chart appVersion.
     tag: ""
-
-  nameOverride: ""
-  fullnameOverride: ""
-
-  podAnnotations: {}
-
-  podSecurityContext: {}
 
   serviceAccount:
     # Specifies whether a service account should be created
@@ -156,21 +148,6 @@ dbm:
       pullPolicy: IfNotPresent
       tag: ""
 
-  securityContext: {}
-
-  resources:
-    limits:
-      cpu: 2000m
-      memory: 2048Mi
-    requests:
-      cpu: 300m
-      memory: 512Mi
-
-  nodeSelector: {}
-
-  tolerations: []
-
-  affinity: {}
 
 # bk-dbconfig values
 
@@ -242,7 +219,10 @@ db-remote-service:
   enabled: false
 
 db-celery-service:
-  enabled: false
+  enabled: true
+
+slow-query-parser-service:
+  enabled: true
 
 backup-consumer:
   enabled: true
@@ -256,6 +236,15 @@ backup-server:
     server_addr: "http://example.com"
     api_sys_id: "test"
     api_key: "test key"
+
+# reloader
+stakater:
+  enabled: true
+  reloader:
+    deployment:
+      image:
+        name: stakater/reloader
+    watchGlobally: false
 
 # bitnami mysql 配置项
 mysql:
@@ -343,7 +332,7 @@ redis:
 etcd:
   enabled: false
 
-## 第三方 etcd 配置（TODO）
+## 第三方 etcd 配置
 externalEtcd:
   ## 地址
   host: "etcd.example.com"

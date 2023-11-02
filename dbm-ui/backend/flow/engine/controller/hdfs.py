@@ -12,6 +12,7 @@ from backend.flow.engine.bamboo.scene.hdfs.hdfs_apply_flow import HdfsApplyFlow
 from backend.flow.engine.bamboo.scene.hdfs.hdfs_destroy_flow import HdfsDestroyFlow
 from backend.flow.engine.bamboo.scene.hdfs.hdfs_disable_flow import HdfsDisableFlow
 from backend.flow.engine.bamboo.scene.hdfs.hdfs_enable_flow import HdfsEnableFlow
+from backend.flow.engine.bamboo.scene.hdfs.hdfs_fake_apply_flow import HdfsFakeApplyFlow
 from backend.flow.engine.bamboo.scene.hdfs.hdfs_reboot_flow import HdfsRebootFlow
 from backend.flow.engine.bamboo.scene.hdfs.hdfs_replace_flow import HdfsReplaceFlow
 from backend.flow.engine.bamboo.scene.hdfs.hdfs_scale_up_flow import HdfsScaleUpFlow
@@ -79,3 +80,10 @@ class HdfsController(BaseController):
         """
         flow = HdfsRebootFlow(root_id=self.root_id, data=self.ticket_data)
         flow.reboot_hdfs_flow()
+
+    def hdfs_fake_apply_scene(self):
+        """
+        hdfs 假部署流程，用于集群IP等数据迁移
+        """
+        flow = HdfsFakeApplyFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.fake_deploy_hdfs_flow()

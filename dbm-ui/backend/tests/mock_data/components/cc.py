@@ -15,6 +15,7 @@ from backend.tests.mock_data import constant
 MOCK_SEARCH_BUSINESS_RETURN = {"info": [{"bk_biz_id": constant.BK_BIZ_ID, "bk_biz_name": "蓝鲸"}], "count": 1}
 MOCK_SEARCH_SET_RETURN = {"info": [{"bk_set_id": constant.BK_SET_ID, "bk_set_name": "mock集群"}], "count": 1}
 MOCK_SEARCH_MODULE_RETURN = {"info": [{"bk_module_id": constant.DB_MODULE_ID, "bk_biz_name": "mock模块"}], "count": 1}
+MOCK_LIST_SERVICE_INSTANCE_DETAIL_RETURN = {"info": []}
 
 MOCK_SEARCH_BUSINESS_WITH_MULTI_BIZ_RETURN = {
     "info": [
@@ -156,6 +157,7 @@ class CCApiMock(object):
     search_module_return = copy.deepcopy(MOCK_SEARCH_MODULE_RETURN)
     find_host_biz_relations_return = copy.deepcopy(MOCK_FIND_HOST_BIZ_RELATIONS_RETURN)
     get_biz_internal_module_return = copy.deepcopy(MOCK_GET_BIZ_INTERNAL_MODULE_RETURN)
+    list_service_instance_detail_return = copy.deepcopy(MOCK_LIST_SERVICE_INSTANCE_DETAIL_RETURN)
 
     def __init__(
         self,
@@ -164,6 +166,7 @@ class CCApiMock(object):
         search_set_return=None,
         search_module_return=None,
         find_host_biz_relations_return=None,
+        list_service_instance_detail_return=None,
     ):
         # 提供接口默认返回值，可根据不同的需求进行构造
         self.search_business_return = search_business_return or self.search_business_return
@@ -171,6 +174,9 @@ class CCApiMock(object):
         self.search_set_return = search_set_return or self.search_set_return
         self.search_module_return = search_module_return or self.search_module_return
         self.find_host_biz_relations_return = find_host_biz_relations_return or self.find_host_biz_relations_return
+        self.list_service_instance_detail_return = (
+            list_service_instance_detail_return or self.list_service_instance_detail_return
+        )
 
     def search_business(self, *args, **kwargs):
         return self.search_business_return
@@ -183,6 +189,9 @@ class CCApiMock(object):
 
     def find_host_biz_relations(self, *args, **kwargs):
         return self.find_host_biz_relations_return
+
+    def list_service_instance_detail(self, *args, **kwargs):
+        return self.list_service_instance_detail_return
 
     def search_cloud_area(self, *args, **kwargs):
         return {"result": True, "count": len(MOCK_CLOUD_AREA), "info": MOCK_CLOUD_AREA}

@@ -9,11 +9,13 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
+from backend.db_periodic_task.local_tasks.check_checksum import *
 from backend.db_periodic_task.local_tasks.db_meta import *
 from backend.db_periodic_task.local_tasks.db_monitor import *
 from backend.db_periodic_task.local_tasks.db_proxy import *
 from backend.db_periodic_task.local_tasks.randomize_password import *
 from backend.db_periodic_task.local_tasks.redis_autofix import *
+from backend.db_periodic_task.local_tasks.redis_backup import *
 from backend.db_periodic_task.local_tasks.ticket import *
 from backend.db_periodic_task.models import DBPeriodicTask
 

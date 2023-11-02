@@ -1,0 +1,288 @@
+<!--
+ * TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
+ *
+ * Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
+ *
+ * Licensed under the MIT License (the "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License athttps://opensource.org/licenses/MIT
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
+ * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
+ * the specific language governing permissions and limitations under the License.
+-->
+
+<template>
+  <div class="resource-spec-list-page">
+    <BkTab
+      v-model:active="curTab"
+      class="top-tabs"
+      type="unborder-card"
+      @change="handleChangeClusterType">
+      <BkTabPanel
+        v-for="tab of renderTabs"
+        :key="tab.name"
+        :label="tab.label"
+        :name="tab.name" />
+    </BkTab>
+    <div
+      :key="curTab"
+      class="wrapper">
+      <BkTab
+        v-model:active="curChildTab"
+        type="card">
+        <BkTabPanel
+          v-for="childTab of childrenTabs"
+          :key="childTab.name"
+          :label="childTab.label"
+          :name="childTab.name" />
+      </BkTab>
+      <SpecList
+        :cluster-type="curTab"
+        :cluster-type-label="clusterTypeLabel"
+        :machine-type="curChildTab"
+        :machine-type-label="machineTypeLabel" />
+    </div>
+  </div>
+</template>
+<script setup lang="ts">
+  import { useI18n } from 'vue-i18n';
+
+  import type {
+    ControllerBaseInfo,
+    ExtractedControllerDataKeys,
+    FunctionKeys,
+  } from '@services/model/function-controller/functionController';
+
+  import { useFunController, useMainViewStore  } from '@stores';
+
+  import { ClusterTypes } from '@common/const';
+
+  import SpecList from './components/SpecList.vue';
+
+  interface TabItem {
+    moduleId: ExtractedControllerDataKeys,
+    label: string,
+    name: FunctionKeys,
+    children: {
+      label: string,
+      name: string,
+    }[]
+  }
+
+
+  const { t } = useI18n();
+  const route = useRoute();
+  const funControllerStore = useFunController();
+  const mainViewStore = useMainViewStore();
+  mainViewStore.hasPadding = false;
+
+  const tabs: TabItem[] = [
+    {
+      moduleId: 'mysql',
+      label: t('MySQL单节点'),
+      name: ClusterTypes.TENDBSINGLE,
+      children: [
+        {
+          label: t('后端存储机型'),
+          name: 'single',
+        },
+      ],
+    },
+    {
+      moduleId: 'mysql',
+      label: t('MySQL高可用'),
+      name: ClusterTypes.TENDBHA,
+      children: [
+        {
+          label: t('后端存储机型'),
+          name: 'backend',
+        },
+        {
+          label: t('Proxy机型'),
+          name: 'proxy',
+        },
+      ],
+    },
+    {
+      moduleId: 'redis',
+      label: 'TendisCache',
+      name: ClusterTypes.TWEMPROXY_REDIS_INSTANCE,
+      children: [
+        {
+          label: t('后端存储机型'),
+          name: 'tendiscache',
+        },
+        {
+          label: t('Proxy机型'),
+          name: 'twemproxy',
+        },
+      ],
+    },
+    {
+      moduleId: 'redis',
+      label: 'TendisSSD',
+      name: ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE,
+      children: [
+        {
+          label: t('后端存储机型'),
+          name: 'tendisssd',
+        },
+        {
+          label: t('Proxy机型'),
+          name: 'twemproxy',
+        },
+      ],
+    },
+    {
+      moduleId: 'redis',
+      label: 'Tendisplus',
+      name: ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER,
+      children: [
+        {
+          label: t('后端存储机型'),
+          name: 'tendisplus',
+        },
+        {
+          label: t('Proxy机型'),
+          name: 'predixy',
+        },
+      ],
+    },
+    {
+      moduleId: 'bigdata',
+      label: 'ES',
+      name: ClusterTypes.ES,
+      children: [
+        {
+          label: t('Master节点规格'),
+          name: 'es_master',
+        },
+        {
+          label: t('Client节点规格'),
+          name: 'es_client',
+        },
+        {
+          label: t('冷_热节点规格'),
+          name: 'es_datanode',
+        },
+      ],
+    },
+    {
+      moduleId: 'bigdata',
+      label: 'HDFS',
+      name: ClusterTypes.HDFS,
+      children: [
+        {
+          label: t('DataNode节点规格'),
+          name: 'hdfs_datanode',
+        },
+        {
+          label: t('NameNode_Zookeeper_JournalNode节点规格'),
+          name: 'hdfs_master',
+        },
+      ],
+    },
+    {
+      moduleId: 'bigdata',
+      label: 'Kafka',
+      name: ClusterTypes.KAFKA,
+      children: [
+        {
+          label: t('Zookeeper节点规格'),
+          name: 'zookeeper',
+        },
+        {
+          label: t('Broker节点规格'),
+          name: 'broker',
+        },
+      ],
+    },
+    {
+      moduleId: 'bigdata',
+      label: 'InfluxDB',
+      name: ClusterTypes.INFLUXDB,
+      children: [
+        {
+          label: t('后端存储机型'),
+          name: 'influxdb',
+        },
+      ],
+    },
+    {
+      moduleId: 'bigdata',
+      label: 'Pulsar',
+      name: ClusterTypes.PULSAE,
+      children: [
+        {
+          label: t('Bookkeeper节点规格'),
+          name: 'pulsar_bookkeeper',
+        },
+        {
+          label: t('Zookeeper节点规格'),
+          name: 'pulsar_zookeeper',
+        },
+        {
+          label: t('Broker节点规格'),
+          name: 'pulsar_broker',
+        },
+      ],
+    },
+    {
+      moduleId: 'mysql',
+      label: 'TenDBCluster',
+      name: ClusterTypes.TENDBCLUSTER,
+      children: [
+        {
+          label: t('接入层Master'),
+          name: 'spider',
+        },
+        {
+          label: t('后端存储规格'),
+          name: 'remote',
+        },
+      ],
+    },
+  ];
+
+  const curTab = ref<string>(ClusterTypes.TENDBSINGLE);
+  const curChildTab = ref('');
+
+  const renderTabs = computed(() => tabs.filter((item) => {
+    const data = funControllerStore.funControllerData[item.moduleId];
+    return data
+      && data.is_enabled
+      && (data.children as Record<FunctionKeys, ControllerBaseInfo>)[item.name]?.is_enabled;
+  }));
+  const childrenTabs = computed(() => renderTabs.value.find(item => item.name === curTab.value)?.children || []);
+  const clusterTypeLabel = computed(() => renderTabs.value.find(item => item.name === curTab.value)?.label ?? '');
+  const machineTypeLabel = computed(() => childrenTabs.value.find(item => item.name === curChildTab.value)?.label ?? '');
+
+  const handleChangeClusterType = (value: string) => {
+    if (curTab.value !== value) {
+      curChildTab.value = '';
+    }
+  };
+
+  onBeforeMount(() => {
+    const { spec_cluster_type: clusterType } = route.query;
+    if (clusterType) {
+      curTab.value = clusterType as string;
+    }
+  });
+</script>
+<style lang="less">
+  .resource-spec-list-page{
+    .bk-tab-content{
+      display: none;
+    }
+
+    .top-tabs{
+      background: #fff;
+      box-shadow: 0 3px 4px 0 rgb(0 0 0 / 4%);
+    }
+
+    .wrapper{
+      padding: 24px;
+    }
+  }
+</style>

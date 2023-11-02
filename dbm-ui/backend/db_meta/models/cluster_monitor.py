@@ -26,7 +26,7 @@ INSTANCE_MONITOR_PLUGINS = {
     DBType.MySQL: {
         MachineType.PROXY: {"name": "proxy", "plugin_id": "dbm_mysqlproxy_exporter", "func_name": "mysql-proxy"},
         MachineType.BACKEND: {"name": "mysql", "plugin_id": "dbm_mysqld_exporter", "func_name": "mysqld"},
-        MachineType.SPIDER: {"name": "spider", "plugin_id": "dbm_spider_exporter", "func_name": "mysqld"},
+        MachineType.SPIDER: {"name": "spider", "plugin_id": "dbm_mysqld_exporter", "func_name": "mysqld"},
         MachineType.REMOTE: {"name": "mysql", "plugin_id": "dbm_mysqld_exporter", "func_name": "mysqld"},
         MachineType.SINGLE: {"name": "mysql", "plugin_id": "dbm_mysqld_exporter", "func_name": "mysqld"},
     },
@@ -72,6 +72,11 @@ INSTANCE_MONITOR_PLUGINS = {
     },
     DBType.Riak: {
         MachineType.RIAK: {"name": "riak", "plugin_id": "dbm_riak_exporter", "func_name": "beam.smp"},
+    },
+    DBType.MongoDB: {
+        MachineType.MONGODB: {"name": "mongodb", "plugin_id": "dbm_mongodb_exporter", "func_name": "mongod"},
+        MachineType.MONGOS: {"name": "mongos", "plugin_id": "dbm_mongodb_exporter", "func_name": "mongos"},
+        MachineType.MONOG_CONFIG: {"name": "mongo_config", "plugin_id": "dbm_mongodb_exporter", "func_name": "mongod"},
     },
 }
 
@@ -128,10 +133,13 @@ class AppMonitorTopo(AuditedModel):
         ]
 
     @classmethod
-    def get_set_by_plugin_id(cls, plugin_id):
-        return list(
-            cls.objects.filter(monitor_plugin_id__contains=plugin_id).values_list("bk_set_id", "bk_biz_id").distinct()
-        )
+    def get_set_by_plugin_id(cls, plugin_id, machine_types=None):
+        print(plugin_id, machine_types)
+        qs = cls.objects.filter(monitor_plugin_id__contains=plugin_id)
+        if machine_types:
+            qs = qs.filter(machine_type__in=machine_types)
+
+        return list(qs.values_list("bk_set_id", "bk_biz_id").distinct())
 
     @classmethod
     @transaction.atomic

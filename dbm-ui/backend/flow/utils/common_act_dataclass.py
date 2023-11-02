@@ -8,7 +8,8 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from typing import Any, Optional
 
 from backend.flow.consts import BACKUP_DEFAULT_OS_USER
 
@@ -24,3 +25,9 @@ class DownloadBackupClientKwargs:
     bk_biz_id: int
     download_host_list: list
     backup_os_user: str = BACKUP_DEFAULT_OS_USER
+
+
+@dataclass()
+class DNSContext:
+    redis_act_payload: Optional[Any] = None  # 代表获取payload参数的类
+    resolv_content: dict = field(default_factory=dict)

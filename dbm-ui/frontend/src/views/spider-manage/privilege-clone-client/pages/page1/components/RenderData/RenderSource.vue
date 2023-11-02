@@ -40,28 +40,18 @@
 
   import type { IDataRow } from './Row.vue';
 
-  interface Props {
-    modelValue: IDataRow['source']
-  }
-
   interface Exposes {
     getValue: (field: string) => Promise<string>
   }
 
-  const props = defineProps<Props>();
-
   const { currentBizId } = useGlobalBizs();
   const { t } = useI18n();
+
+  const modelValue = defineModel<IDataRow['source']>();
 
   const editRef = ref();
   const localValue = ref('');
   const isLoading = ref(false);
-
-  let hostDataMemo = {
-    bk_cloud_id: 0,
-    bk_host_id: 0,
-    ip: '',
-  };
 
   const rules = [
     {
@@ -83,7 +73,7 @@
           return false;
         }
         const [hostData] = data.hosts_topo_info;
-        hostDataMemo = {
+        modelValue.value = {
           bk_cloud_id: hostData.bk_cloud_id,
           bk_host_id: hostData.bk_host_id,
           ip: hostData.ip,
@@ -94,16 +84,11 @@
     },
   ];
 
-  watch(() => props.modelValue, () => {
-    if (!props.modelValue) {
+  watch(() => modelValue.value, () => {
+    if (!modelValue.value) {
       return;
     }
-    hostDataMemo = {
-      bk_cloud_id: props.modelValue.cloud_area.id,
-      bk_host_id: props.modelValue.host_id,
-      ip: props.modelValue.ip,
-    };
-    localValue.value = `${props.modelValue.cloud_area.id}:${props.modelValue.ip}`;
+    localValue.value = `${modelValue.value.bk_cloud_id}:${modelValue.value.ip}`;
   }, {
     immediate: true,
   });
@@ -112,10 +97,15 @@
     getValue() {
       return editRef.value
         .getValue()
-        .then(() => ({
-          source: hostDataMemo.ip,
-          bk_cloud_id: hostDataMemo.bk_cloud_id,
-        }));
+        .then(() => {
+          if (!modelValue.value) {
+            return Promise.reject();
+          }
+          return ({
+            source: modelValue.value.ip,
+            bk_cloud_id: modelValue.value.bk_cloud_id,
+          });
+        });
     },
   });
 </script>

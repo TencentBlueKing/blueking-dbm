@@ -19,7 +19,30 @@
       :placeholder="$t('请输入IP（单个）')"
       :rules="rules"
       @submit="handleInputFinish" />
+    <!-- <BkPopover
+      :content="t('从业务拓扑选择')"
+      placement="top"
+      :popover-delay="0">
+      <div
+        class="edit-btn"
+        @click="handleOpenSeletor">
+        <div class="edit-btn-inner">
+          <DbIcon
+            class="select-icon"
+            type="host-select" />
+        </div>
+      </div>
+    </BkPopover> -->
   </div>
+  <!-- <InstanceSelector
+    v-model:is-show="isShowSelector"
+    :active-tab="activeTab"
+    db-type="redis"
+    is-radio-mode
+    :panel-list="[activeTab, 'manualInput']"
+    :role="role"
+    :selected="selected"
+    @change="handelRadioChange" /> -->
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
@@ -32,7 +55,13 @@
 
   import TableEditInput from '@components/tools-table-input/index.vue';
 
+  // import InstanceSelector, {
+  //   type InstanceSelectorValues,
+  // } from '@views/redis/common/instance-selector/Index.vue';
+
   interface Props {
+    // activeTab: 'idleHosts' | 'masterFailHosts' | 'createSlaveIdleHosts',
+    // role: string,
     data?: string;
     inputed?: string[];
   }
@@ -53,8 +82,16 @@
 
   const { currentBizId } = useGlobalBizs();
   const { t } = useI18n();
+
+  // const isShowSelector = ref(false);
   const localValue = ref(props.data);
   const editRef = ref();
+
+  // const selected = shallowRef({
+  //   createSlaveIdleHosts: [],
+  //   masterFailHosts: [],
+  //   idleHosts: [],
+  // } as InstanceSelectorValues);
 
   const rules = [
     {
@@ -83,9 +120,27 @@
 
   watch(() => props.data, (data) => {
     localValue.value = data;
+    // selected.value = {
+    //   [props.activeTab]: [{
+    //     ip: data,
+    //   }],
+    // } as InstanceSelectorValues;
   }, {
     immediate: true,
   });
+
+  // const handelRadioChange = (data: InstanceSelectorValues) => {
+  //   selected.value = data;
+  //   const list = selected.value[props.activeTab];
+  //   const domain = list[0].ip;
+  //   localValue.value = domain;
+  //   emits('onInputFinish', data[props.activeTab][0].ip);
+  //   window.changeConfirm = true;
+  // };
+
+  // const handleOpenSeletor = () => {
+  //   isShowSelector.value = true;
+  // };
 
   const handleInputFinish = (value: string) => {
     emits('onInputFinish', value);
@@ -103,5 +158,53 @@
 <style lang="less" scoped>
   .render-host-box {
     position: relative;
+
+    // &:hover {
+    //   .edit-btn {
+    //     z-index: 999;
+    //   }
+    // }
+
+    // .is-error {
+    //   :deep(.input-error) {
+    //     justify-content: center;
+    //   }
+    // }
+
+
+    .edit-btn{
+      position: absolute;
+      top: 0;
+      right: 5px;
+      z-index: -1;
+      display: flex;
+      width: 24px;
+      height: 40px;
+      align-items: center;
+
+      .edit-btn-inner {
+        display: flex;
+        width: 24px;
+        height: 24px;
+        cursor: pointer;
+        border-radius: 2px;
+        align-items: center;
+        justify-content: center;
+
+        .select-icon {
+          font-size: 16px;
+          color: #979BA5;
+        }
+
+        &:hover {
+          background: #F0F1F5;
+
+          .select-icon {
+            color: #3A84FF;
+          }
+
+        }
+      }
+    }
   }
 </style>

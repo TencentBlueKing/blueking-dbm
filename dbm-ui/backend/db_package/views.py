@@ -22,7 +22,7 @@ from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.core.storages.storage import get_storage
 from backend.db_package.filters import PackageListFilter
 from backend.db_package.models import Package
-from backend.db_package.serializers import PackageSerializer, UploadPackageSerializer
+from backend.db_package.serializers import PackageSerializer, UpdateOrCreateSerializer, UploadPackageSerializer
 from backend.flow.consts import MediumEnum
 from backend.iam_app.handlers.drf_perm import GlobalManageIAMPermission
 from backend.utils.files import md5sum
@@ -47,13 +47,13 @@ class DBPackageViewSet(viewsets.AuditedModelViewSet):
         return super().create(request, *args, **kwargs)
 
     @common_swagger_auto_schema(
-        operation_summary=_("新建或者更新版本文件"),
+        operation_summary=_("新建或者更新版本文件(适用于medium初始化)"),
         tags=[DB_PACKAGE_TAG],
     )
-    @action(methods=["POST"], detail=False)
+    @action(methods=["POST"], detail=False, serializer_class=UpdateOrCreateSerializer)
     def update_or_create(self, request, *args, **kwargs):
         data = self.params_validate(self.get_serializer_class())
-        Package.objects.update_or_create(**data)
+        Package.objects.update_or_create(md5=data["md5"], defaults=data)
         return Response()
 
     @common_swagger_auto_schema(

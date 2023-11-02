@@ -253,7 +253,7 @@
   position: relative;
   display: block;
   width: 100%;
-  height: 40px;
+  height: 42px;
   cursor: pointer;
   background: #fff;
 
@@ -296,7 +296,7 @@
     right: 0;
     left: 0;
     max-height: 300px;
-    min-height: 40px;
+    min-height: 42px;
     padding: 8px 16px;
     overflow-y: auto;
     font-size: 12px;

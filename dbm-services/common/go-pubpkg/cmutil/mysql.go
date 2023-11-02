@@ -39,6 +39,19 @@ func GetGcsSystemDatabasesIgnoreTest(version string) []string {
 	return DBs
 }
 
+// TmysqlVersionParse TODO
+/*
+input: select version() 获取到的string
+output: 获取tmysql带的版本号
+example:
+5.7.20-tmysql-3.1.5-log ==> 3*1000000 + 1*1000 + 5 ==> 3001005
+返回0，表示非tmysql
+*/
+func TmysqlVersionParse(version string) uint64 {
+	re := regexp.MustCompile(`tmysql-([\d]+).?([\d]+)?.?([\d]+)?`)
+	return mysqlVersionParse(re, version)
+}
+
 // MySQLVersionParse ():
 // input: select version() 获取到的string
 // output: 获取tmysql中的mysql前缀版本

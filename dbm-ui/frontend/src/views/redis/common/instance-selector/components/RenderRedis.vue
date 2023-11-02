@@ -66,22 +66,8 @@
         </template>
         <template #main>
           <div style="height: 570px;">
-            <RenderRedisFailHost
-              v-if="activeTab === 'masterFailHosts'"
-              :last-values="lastValues"
-              :node="selectNode"
-              :role="role"
-              :table-settings="tableSettings"
-              @change="handleHostChange" />
-            <RenderCreateSlaveRedisHost
-              v-else-if="activeTab === 'createSlaveIdleHosts'"
-              :last-values="lastValues"
-              :node="selectNode"
-              :role="role"
-              :table-settings="tableSettings"
-              @change="handleHostChange" />
-            <RenderRedisHost
-              v-else
+            <RenderContent
+              :is-radio-mode="isRadioMode"
               :last-values="lastValues"
               :node="selectNode"
               :role="role"
@@ -118,36 +104,40 @@
     tableSettings: TableProps['settings'],
     role?: string,
     activeTab?: PanelTypes,
+    isRadioMode?: boolean,
   }
 
-  const props = defineProps<Props>();
+  const props = withDefaults(defineProps<Props>(), {
+    role: '',
+    activeTab: 'idleHosts',
+    isRadioMode: false,
+  });
   const emits = defineEmits<Emits>();
 
   const { currentBizId } = useGlobalBizs();
 
   const isTreeDataLoading = ref(false);
   const treeRef = ref();
-  const treeData = shallowRef<RedisModel[]>([]);
   const treeSearch = ref('');
   const selectNode = ref<{
     id: number;
     name: string;
     clusterDomain: string;
   }>();
+  const treeData = shallowRef<RedisModel[]>([]);
+
+  const renderMap = {
+    masterFailHosts: RenderRedisFailHost,
+    createSlaveIdleHosts: RenderCreateSlaveRedisHost,
+    idleHosts: RenderRedisHost,
+  } as Record<string, any>;
+
+  const RenderContent = computed(() => renderMap[props.activeTab as string]);
 
   const fetchClusterTopo = () => {
     isTreeDataLoading.value = true;
     listClusterList(currentBizId).then((data) => {
       let arr = data;
-      // 取消限制
-      // if (props.activeTab === 'masterFailHosts') {
-      //   // 主故障切换，展示master数量
-      //   arr.forEach((item) => {
-      //     Object.assign(item, {
-      //       count: item.redis_master_faults,
-      //     });
-      //   });
-      // }
       if (props.activeTab === 'masterFailHosts') {
         // 主故障切换，展示master数量
         arr.forEach((item) => {

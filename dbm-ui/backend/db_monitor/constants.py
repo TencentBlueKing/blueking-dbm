@@ -44,7 +44,7 @@ class TargetLevel(str, StructuredEnum):
     """
 
     PLATFORM = EnumField("platform", _("platform"))
-    APP = EnumField("app_id", _("app id"))
+    APP = EnumField("appid", _("app id"))
     MODULE = EnumField("db_module", _("db module"))
     CLUSTER = EnumField("cluster_domain", _("cluster domain"))
     CUSTOM = EnumField("custom", _("custom"))
@@ -166,7 +166,7 @@ BK_MONITOR_SAVE_DISPATCH_GROUP_TEMPLATE = {
             "user_groups": [],
             "conditions": [
                 {"field": "alert.strategy_id", "value": ["95"], "method": "eq", "condition": "and"},
-                {"field": "app_id", "value": ["1", "2", "3"], "method": "eq", "condition": "and"},
+                {"field": "appid", "value": ["1", "2", "3"], "method": "eq", "condition": "and"},
             ],
             "actions": [
                 {
@@ -182,4 +182,4 @@ BK_MONITOR_SAVE_DISPATCH_GROUP_TEMPLATE = {
     ],
 }
 
-MONITOR_EVENTS_PREFIX = "monitor_events"
+MONITOR_EVENTS = "monitor_events"

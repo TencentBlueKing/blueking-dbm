@@ -40,12 +40,12 @@
             "agg_condition": [],
             "agg_dimension": [
               "bk_cloud_id",
-              "server_ip",
-              "role",
+              "instance_host",
+              "instance_role",
               "machine_type",
               "cluster_domain",
-              "app_id",
-              "port"
+              "appid",
+              "instance_port"
             ],
             "data_type_label": "event",
             "result_table_id": "bkmonitor_event_{event_data_id}",
@@ -236,6 +236,7 @@
   },
   "is_enabled": true,
   "monitor_indicator": "COUNT(mysql-err-notice)",
-  "version": 2,
-  "alert_source": "event"
+  "version": 11,
+  "alert_source": "event",
+  "custom_conditions": []
 }

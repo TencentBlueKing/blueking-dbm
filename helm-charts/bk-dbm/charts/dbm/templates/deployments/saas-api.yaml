@@ -8,7 +8,7 @@ metadata:
     {{- include "dbm.labels" . | nindent 4 }}
 spec:
   {{- if not .Values.autoscaling.enabled }}
-  replicas: {{ .Values.replicaCount }}
+  replicas: {{ .Values.saas.api.replicaCount }}
   {{- end }}
   selector:
     matchLabels:
@@ -46,24 +46,28 @@ spec:
             - name: http
               containerPort: 8000
               protocol: TCP
-          env:
-            {{- include "dbm.envs" . | trim | nindent 12 }}
-          envFrom:
-            {{- if .Values.extraEnvVarsCM }}
-            - configMapRef:
-                name: {{ .Values.extraEnvVarsCM }}
-            {{- end }}
+          livenessProbe:
+            httpGet:
+              path: {{ .Values.livenessProbe.path | default "/ping"}}
+              port: http
+            initialDelaySeconds: {{ .Values.livenessProbe.initialDelaySeconds | default 5}}
+            periodSeconds: {{ .Values.livenessProbe.periodSeconds | default 30}}
+            timeoutSeconds: {{ .Values.livenessProbe.timeoutSeconds | default 5}}
+            successThreshold: {{ .Values.livenessProbe.successThreshold | default 1}}
+            failureThreshold: {{ .Values.livenessProbe.failureThreshold | default 1}}
+          readinessProbe:
+            httpGet:
+              path: {{ .Values.readinessProbe.path | default "/ping"}}
+              port: http
+            initialDelaySeconds: {{ .Values.readinessProbe.initialDelaySeconds | default 5}}
+            periodSeconds: {{ .Values.readinessProbe.periodSeconds | default 30}}
+            timeoutSeconds: {{ .Values.readinessProbe.timeoutSeconds | default 5}}
+            successThreshold: {{ .Values.readinessProbe.successThreshold | default 1}}
+            failureThreshold: {{ .Values.readinessProbe.failureThreshold | default 1}}
+          {{- include "dbm.container_env" . | nindent 10 }}
           resources:
-            {{- toYaml .Values.resources | nindent 12 }}
-      initContainers:
-        - name: check-migrate-job
-          image: {{ include "dbm.migration.k8sWaitFor.image" . }}
-          imagePullPolicy: {{ .Values.image.pullPolicy }}
-          args:
-            - job
-            - {{ include "dbm.migrateJobName" . }}
-          resources:
-            {{- toYaml .Values.resources | nindent 12 }}
+            {{- toYaml .Values.saas.api.resources | nindent 12 }}
+      {{- include "dbm.initContainersWaitForMigrate" . | nindent 6 }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}

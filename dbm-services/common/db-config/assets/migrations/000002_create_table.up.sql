@@ -122,7 +122,7 @@ CREATE TABLE IF NOT EXISTS `tb_config_name_def` (
   `value_default` text,
   `value_allowed` text,
   `value_type_sub` varchar(100) NOT NULL DEFAULT '' COMMENT 'STRING,ENUM,RANGE,REGEX,JSON,COMPLEX',
-  `flag_status` tinyint(4) NOT NULL DEFAULT '0' COMMENT '1: 显式的公共配置 0:不会显式出现在配置文件的全量配置项, 2: 显式的公共配置且只读',
+  `flag_status` tinyint(4) NOT NULL COMMENT '1: 显式的公共配置 -1:不会显式出现在配置文件的全量配置项, 2: 显式的公共配置且只读',
   `flag_disable` tinyint(4) NOT NULL DEFAULT '0' COMMENT '2:readonly, 1:disable, 0:enable, -2: not_allowed_given, -3:must_given',
   `flag_locked` tinyint(4) NOT NULL DEFAULT '0',
   `flag_encrypt` tinyint(4) NOT NULL DEFAULT '0',

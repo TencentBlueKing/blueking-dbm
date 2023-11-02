@@ -33,6 +33,7 @@
               </span>
             </BkMenuItem>
           </BkMenuGroup>
+          <div class="main-views-space-line" />
           <FunController module-id="monitor">
             <BkMenuGroup :name="$t('监控告警')">
               <FunController
@@ -50,6 +51,20 @@
                 </BkMenuItem>
               </FunController>
               <FunController
+                controller-id="notice_group"
+                module-id="monitor">
+                <BkMenuItem key="PlatMonitorAlarmGroup">
+                  <template #icon>
+                    <i class="db-icon-yonghuzu" />
+                  </template>
+                  <span
+                    v-overflow-tips.right
+                    class="text-overflow">
+                    {{ $t('告警组') }}
+                  </span>
+                </BkMenuItem>
+              </FunController>
+              <FunController
                 controller-id="duty_rule"
                 module-id="monitor">
                 <BkMenuItem key="PlatRotateSet">
@@ -59,21 +74,7 @@
                   <span
                     v-overflow-tips.right
                     class="text-overflow">
-                    {{ $t('轮值设置') }}
-                  </span>
-                </BkMenuItem>
-              </FunController>
-              <FunController
-                controller-id="notice_group"
-                module-id="monitor">
-                <BkMenuItem key="PlatMonitorAlarmGroup">
-                  <template #icon>
-                    <i class="db-icon-db-config" />
-                  </template>
-                  <span
-                    v-overflow-tips.right
-                    class="text-overflow">
-                    {{ $t('告警组') }}
+                    {{ $t('轮值策略') }}
                   </span>
                 </BkMenuItem>
               </FunController>
@@ -93,7 +94,19 @@
               </FunController>
             </BkMenuGroup>
           </FunController>
-
+          <BkMenuGroup :name="$t('巡检')">
+            <BkMenuItem key="inspectionManage">
+              <template #icon>
+                <i class="db-icon-db-config" />
+              </template>
+              <span
+                v-overflow-tips.right
+                class="text-overflow">
+                {{ $t('健康报告') }}
+              </span>
+            </BkMenuItem>
+          </BkMenuGroup>
+          <div class="main-views-space-line" />
           <BkMenuGroup :name="$t('事件中心')">
             <BkMenuItem key="PlatDBMASwitchEvents">
               <template #icon>
@@ -106,6 +119,7 @@
               </span>
             </BkMenuItem>
           </BkMenuGroup>
+          <div class="main-views-space-line" />
           <BkMenuGroup :name="$t('文件管理')">
             <BkMenuItem key="PlatformVersionFiles">
               <template #icon>
@@ -118,8 +132,9 @@
               </span>
             </BkMenuItem>
           </BkMenuGroup>
+          <div class="main-views-space-line" />
           <BkMenuGroup :name="$t('资源管理')">
-            <BkMenuItem key="ResourceSpec">
+            <BkMenuItem key="ResourceSpecList">
               <template #icon>
                 <i class="db-icon-spec" />
               </template>
@@ -163,6 +178,7 @@
                 class="main-menu__count">{{ dirtyHostNums > 99 ? '99+' : dirtyHostNums }}</span>
             </BkMenuItem>
           </BkMenuGroup>
+          <div class="main-views-space-line" />
           <BkMenuGroup :name="$t('设置')">
             <FunController module-id="mysql">
               <BkSubmenu
@@ -193,7 +209,7 @@
                 </BkMenuItem>
               </BkSubmenu>
             </FunController>
-            <BkMenuItem key="PlatformPasswordRandomization">
+            <!-- <BkMenuItem key="PlatformPasswordRandomization">
               <template #icon>
                 <i class="db-icon-pingbi" />
               </template>
@@ -202,7 +218,7 @@
                 class="text-overflow">
                 {{ $t('密码随机化管理') }}
               </span>
-            </BkMenuItem>
+            </BkMenuItem> -->
             <BkMenuItem key="PlatformStaff">
               <template #icon>
                 <i class="db-icon-dba-config" />

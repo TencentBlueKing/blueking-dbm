@@ -45,7 +45,7 @@
                 ]
               }
             ],
-            "metric_id": "bk_monitor.pushgateway_dbm_influxdb_bkpull.group6.influxdb_httpd_pointsWrittenFail",
+            "metric_id": "bk_monitor.pushgateway_dbm_influxdb_bkpull.__default__.influxdb_httpd_pointsWrittenFail",
             "agg_method": "AVG",
             "agg_interval": 120,
             "metric_field": "influxdb_httpd_pointsWrittenFail",
@@ -53,10 +53,10 @@
             "agg_dimension": [
               "bk_target_service_instance_id",
               "ip",
-              "app_id"
+              "appid"
             ],
             "data_type_label": "time_series",
-            "result_table_id": "pushgateway_dbm_influxdb_bkpull.group6",
+            "result_table_id": "pushgateway_dbm_influxdb_bkpull.__default__",
             "data_source_label": "bk_monitor"
           }
         ],
@@ -251,6 +251,7 @@
   },
   "is_enabled": true,
   "monitor_indicator": "AVG(\u5199\u5165\u5931\u8d25\u7684\u6570\u636e\u70b9\u6570\u91cf)",
-  "version": 2,
-  "alert_source": "time_series"
+  "version": 11,
+  "alert_source": "time_series",
+  "custom_conditions": []
 }

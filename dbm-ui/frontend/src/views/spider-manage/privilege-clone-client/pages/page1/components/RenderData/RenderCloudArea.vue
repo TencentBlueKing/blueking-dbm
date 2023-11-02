@@ -12,23 +12,50 @@
 -->
 
 <template>
-  <TableEditInput
-    ref="inputRef"
-    :model-value="modelValue?.cloud_area.name"
-    :placeholder="$t('输入集群后自动生成')"
-    readonly
-    textarea />
+  <BkLoading :loading="isLoading">
+    <TableEditInput
+      ref="inputRef"
+      :model-value="localValue"
+      :placeholder="t('输入集群后自动生成')"
+      readonly
+      textarea />
+  </BkLoading>
 </template>
 <script setup lang="ts">
+  import _ from 'lodash';
+  import { computed } from 'vue';
+  import { useI18n } from 'vue-i18n';
+  import { useRequest } from 'vue-request';
+
+  import { getCloudList } from '@services/ip';
+
   import TableEditInput from '@views/spider-manage/common/edit/Input.vue';
 
   import type { IDataRow } from './Row.vue';
 
 
   interface Props {
-    modelValue: IDataRow['source'],
+    source: IDataRow['source']
   }
 
-  defineProps<Props>();
+  const props = defineProps<Props>();
+
+  const { t } = useI18n();
+
+  const {
+    loading: isLoading,
+    data: bkNetList,
+  } = useRequest(getCloudList);
+
+  const localValue = computed(() => {
+    if (!bkNetList.value || bkNetList.value.length < 1 || !props.source) {
+      return '';
+    }
+
+    const { source } = props;
+    const netData = _.find(bkNetList.value, item => item.bk_cloud_id === source.bk_cloud_id);
+
+    return netData ? netData.bk_cloud_name : '';
+  });
 
 </script>

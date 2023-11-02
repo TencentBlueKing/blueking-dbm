@@ -65,7 +65,7 @@
     </div>
   </div>
   <BkDialog
-    v-model:is-show="selectorState.isShow"
+    v-model:is-show="showDialog"
     class="db-ip-selector-dialog"
     :close-icon="false"
     :esc-close="false"
@@ -181,8 +181,10 @@
     disableTips: '',
   });
   const emits = defineEmits<Emits>();
+
   const showDialog = defineModel<boolean>('showDialog', {
     default: false,
+    local: true,
   });
 
   const copy = useCopy();
@@ -194,7 +196,6 @@
     return t('已过滤出管控区域xx可选的主机', { name: props.cloudInfo.name });
   });
   const selectorState = reactive({
-    isShow: false,
     selected: {
       dynamic_group_list: [],
       host_list: [],
@@ -344,31 +345,35 @@
   });
 
   // IP 操作
-  const operations = [{
-    label: t('清除所有'),
-    onClick: () => handleClearSelected('host_list'),
-  }, {
-    label: t('清除异常IP'),
-    onClick: () => {
-      const removeData = _.remove(selectorState.tableData, (item: any) => item.alive === 0);
-      // 删除异常IP
-      _.pullAllBy(selectorState.selected.host_list, removeData, 'host_id');
-      handleEmitsChange();
+  const operations = [
+    {
+      label: t('清除所有'),
+      onClick: () => handleClearSelected('host_list'),
     },
-  }, {
-    label: t('复制所有IP'),
-    onClick: () => {
-      const ips = selectorState.selected.host_list.map((item: any) => item.ip);
-      copy(ips.join('\n'));
+    {
+      label: t('清除异常IP'),
+      onClick: () => {
+        const removeData = _.remove(selectorState.tableData, (item: any) => item.alive === 0);
+        // 删除异常IP
+        _.pullAllBy(selectorState.selected.host_list, removeData, 'host_id');
+        handleEmitsChange();
+      },
     },
-  }, {
-    label: t('复制异常IP'),
-    onClick: () => {
-      const abnormalHosts = selectorState.selected.host_list.filter((item: any) => item.alive === 0);
-      const abnormalIps = abnormalHosts.map((item: any) => item.ip);
-      copy(abnormalIps.join('\n'));
+    {
+      label: t('复制所有IP'),
+      onClick: () => {
+        const ips = selectorState.selected.host_list.map((item: any) => item.ip);
+        copy(ips.join('\n'));
+      },
     },
-  }];
+    {
+      label: t('复制异常IP'),
+      onClick: () => {
+        const abnormalHosts = selectorState.selected.host_list.filter((item: any) => item.alive === 0);
+        const abnormalIps = abnormalHosts.map((item: any) => item.ip);
+        copy(abnormalIps.join('\n'));
+      },
+    }];
 
   // 处理选中列表中添加额外的数据操作
   watch(() => props.data, (data) => {
@@ -384,66 +389,77 @@
     selectorState.tableData = cloneData;
   }, { immediate: true, deep: true });
 
-  watch(showDialog, () => {
-    selectorState.isShow = showDialog.value;
-  });
-
-  watch(() => selectorState.isShow, (isShow) => {
-    showDialog.value = isShow;
-  });
-
   /**
    * ip 选择器预览表默认配置
    */
   function initTableProps() {
-    const columns = [{
-      label: 'IP',
-      field: 'ip',
-    }, {
-      label: t('管控区域'),
-      field: 'cloud_area',
-      render: ({ cell }: any) => <span>{cell?.name || '--'}</span>,
-    }, {
-      label: t('Agent状态'),
-      field: 'alive',
-      render: ({ cell }: { cell: number }) => {
-        const info = cell === 1 ? { theme: 'success', text: t('正常') } : { theme: 'danger', text: t('异常') };
-        return <DbStatus theme={info.theme}>{info.text}</DbStatus>;
+    const columns = [
+      {
+        label: 'IP',
+        field: 'ip',
       },
-    }, {
-      label: t('主机名称'),
-      field: 'host_name',
-      render: ({ cell }: TableColumnRender) => <span>{cell || '--'}</span>,
-    }, {
-      label: t('OS名称'),
-      field: 'os_name',
-      render: ({ cell }: TableColumnRender) => <span>{cell || '--'}</span>,
-    }, {
-      label: t('所属云厂商'),
-      field: 'cloud_vendor',
-      render: ({ cell }: TableColumnRender) => <span>{cell || '--'}</span>,
-    }, {
-      label: t('OS类型'),
-      field: 'os_type',
-      render: ({ cell }: TableColumnRender) => <span>{cell || '--'}</span>,
-    }, {
-      label: t('主机ID'),
-      field: 'host_id',
-      render: ({ cell }: TableColumnRender) => <span>{cell || '--'}</span>,
-    }, {
-      label: 'Agent ID',
-      field: 'agent_id',
-      render: ({ cell }: TableColumnRender) => <span>{cell || '--'}</span>,
-    }, {
-      label: 'IPv6',
-      field: 'ipv6',
-      render: ({ cell }: TableColumnRender) => <span>{cell || '--'}</span>,
-    }, {
-      label: t('操作'),
-      field: 'operation',
-      width: 100,
-      render: ({ index }: TableColumnRender) => <bk-button text theme="primary" onClick={() => handleRemoveSelected(index)}>{ t('删除') }</bk-button>,
-    }];
+      {
+        label: t('管控区域'),
+        field: 'cloud_area',
+        render: ({ cell }: any) => <span>{cell?.name || '--'}</span>,
+      },
+      {
+        label: t('Agent状态'),
+        field: 'alive',
+        render: ({ cell }: { cell: number }) => {
+          const info = cell === 1 ? { theme: 'success', text: t('正常') } : { theme: 'danger', text: t('异常') };
+          return <DbStatus theme={info.theme}>{info.text}</DbStatus>;
+        },
+      },
+      {
+        label: t('主机名称'),
+        field: 'host_name',
+        render: ({ cell }: TableColumnRender) => <span>{cell || '--'}</span>,
+      },
+      {
+        label: t('OS名称'),
+        field: 'os_name',
+        render: ({ cell }: TableColumnRender) => <span>{cell || '--'}</span>,
+      },
+      {
+        label: t('所属云厂商'),
+        field: 'cloud_vendor',
+        render: ({ cell }: TableColumnRender) => <span>{cell || '--'}</span>,
+      },
+      {
+        label: t('OS类型'),
+        field: 'os_type',
+        render: ({ cell }: TableColumnRender) => <span>{cell || '--'}</span>,
+      },
+      {
+        label: t('主机ID'),
+        field: 'host_id',
+        render: ({ cell }: TableColumnRender) => <span>{cell || '--'}</span>,
+      },
+      {
+        label: 'Agent ID',
+        field: 'agent_id',
+        render: ({ cell }: TableColumnRender) => <span>{cell || '--'}</span>,
+      },
+      {
+        label: 'IPv6',
+        field: 'ipv6',
+        render: ({ cell }: TableColumnRender) => <span>{cell || '--'}</span>,
+      },
+      {
+        label: t('操作'),
+        field: 'operation',
+        width: 100,
+        render: ({ index }: TableColumnRender) => (
+          <bk-button
+            text
+            theme="primary"
+            onClick={() => handleRemoveSelected(index)}>
+            { t('删除') }
+          </bk-button>
+        ),
+      },
+    ];
     const checked = ['ip', 'host_name', 'alive', 'operation'];
     const disabledKeys = ['ip', 'operation'];
     return {
@@ -540,12 +556,12 @@
       handleClearSelected();
     }
     fetchHostDetails();
-    selectorState.isShow = false;
+    showDialog.value = false;
   }
 
   function handleCancelChange() {
     selectorState.cacheSelected = _.cloneDeep(selectorState.selected);
-    selectorState.isShow = false;
+    showDialog.value = false;
   }
 
   /**
@@ -563,7 +579,7 @@
     if (!props.bizId) {
       return;
     }
-    selectorState.isShow = true;
+    showDialog.value = true;
   }
 </script>
 

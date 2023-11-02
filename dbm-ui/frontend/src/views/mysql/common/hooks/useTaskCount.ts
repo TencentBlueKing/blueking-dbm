@@ -121,8 +121,8 @@ export const useTaskCount = (clusterType: string) => {
   };
 
   onBeforeUnmount(() => {
-    destroyPopover();
     pause();
+    destroyPopover();
     taskCountStore.$reset();
   });
 

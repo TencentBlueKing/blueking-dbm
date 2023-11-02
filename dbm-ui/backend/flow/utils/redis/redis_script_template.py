@@ -24,3 +24,17 @@ chmod +x dbactuator_redis
 ./dbactuator_redis --uid {{uid}} --root_id {{root_id}} --node_id {{node_id}} \
 --version_id {{version_id}} --payload {{payload}} --atom-job-list {{action}}
 """
+
+
+redis_data_structure_payload_template = """
+{{payload}}
+"""
+
+redis_data_structure_actuator_template = """
+mkdir -p {{data_dir}}/install/dbactuator-{{uid}}/logs
+cp {{data_dir}}/install/dbactuator_redis {{data_dir}}/install/dbactuator-{{uid}}
+cd {{data_dir}}/install/dbactuator-{{uid}}
+chmod +x dbactuator_redis
+./dbactuator_redis --uid {{uid}} --root_id {{root_id}} --node_id {{node_id}} \
+--version_id {{version_id}} --payload_file={{data_dir}}/install/{{file_name}} --atom-job-list {{action}}
+"""

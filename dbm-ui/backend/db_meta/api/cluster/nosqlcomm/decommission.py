@@ -18,7 +18,7 @@ from django.utils.translation import ugettext as _
 
 from backend.configuration.constants import DBType
 from backend.db_meta.api import common
-from backend.db_meta.enums import AccessLayer, InstanceStatus
+from backend.db_meta.enums import AccessLayer, ClusterType, InstanceStatus
 from backend.db_meta.models import Cluster, Machine, ProxyInstance, StorageInstance
 from backend.flow.utils.cc_manage import CcManage
 
@@ -86,21 +86,22 @@ def decommission_proxies(cluster: Cluster, proxies: List[Dict], is_all: bool = F
 
 
 @transaction.atomic
-def decommission_tendis(cluster: Cluster, tendiss: List[Dict], is_all: bool = False):
+def decommission_backends(cluster: Cluster, backends: List[Dict], is_all: bool = False):
     """
     1. 扩缩容替换场景
     2. 裁撤替换场景
     3. 故障自愈场景
+    4. 集群下架场景
 
     要求：
-        1. 如果是下架集群， 必须先下架proxy,然后再下架tendis
+        1. 如果是下架集群， 必须先下架proxy,然后再下架 backends
         2. 不允许直接下架RUNNING状态实例
     """
-    logger.info("user request decmmission tendiss {} {}".format(cluster.immute_domain, tendiss))
+    logger.info("user request decmmission backends {} {}".format(cluster.immute_domain, backends))
     cc_manage = CcManage(cluster.bk_biz_id)
     try:
-        storage_objs = common.filter_out_instance_obj(tendiss, cluster.storageinstance_set.all())
-        _t = common.not_exists(tendiss, storage_objs)
+        storage_objs = common.filter_out_instance_obj(backends, cluster.storageinstance_set.all())
+        _t = common.not_exists(backends, storage_objs)
         if _t:
             raise Exception("{} not match".format(_t))
 
@@ -136,23 +137,27 @@ def decommission_cluster(cluster: Cluster):
     logger.info("user request decmmission cluster {}".format(cluster.immute_domain))
 
     try:
-        proxies = [
-            {"ip": proxy_obj.machine.ip, "port": proxy_obj.port} for proxy_obj in cluster.proxyinstance_set.all()
-        ]
-        decommission_proxies(cluster, proxies, True)
+        if cluster.cluster_type not in (ClusterType.MongoReplicaSet.value):
+            proxies = [
+                {"ip": proxy_obj.machine.ip, "port": proxy_obj.port} for proxy_obj in cluster.proxyinstance_set.all()
+            ]
+            decommission_proxies(cluster, proxies, True)
 
         storages = [
             {"ip": storage_obj.machine.ip, "port": storage_obj.port}
             for storage_obj in cluster.storageinstance_set.all()
         ]
-        decommission_tendis(cluster, storages, True)
+        decommission_backends(cluster, storages, True)
 
         for cluster_entry_obj in cluster.clusterentry_set.all():
             logger.info("cluster entry {} for cluster {}".format(cluster_entry_obj, cluster.immute_domain))
             cluster_entry_obj.delete()
 
         logger.info("cluster {}".format(cluster.__dict__))
-        CcManage(cluster.bk_biz_id).delete_cluster_modules(db_type=DBType.Redis.value, cluster=cluster)
+        db_type = DBType.Redis.value
+        if cluster.cluster_type in (ClusterType.MongoReplicaSet.value, ClusterType.MongoShardedCluster.value):
+            db_type = DBType.MongoDB.value
+        CcManage(cluster.bk_biz_id).delete_cluster_modules(db_type=db_type, cluster=cluster)
         cluster.delete()
 
     except Exception as e:

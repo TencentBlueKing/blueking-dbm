@@ -85,16 +85,16 @@ class MySQLRestoreSlaveRemoteFlow(object):
             self.data["db_module_id"] = cluster_class.db_module_id
             self.data["time_zone"] = cluster_class.time_zone
             self.data["created_by"] = self.ticket_data["created_by"]
-            self.data["module"] = self.ticket_data["module"]
+            self.data["module"] = cluster_class.db_module_id
             self.data["ticket_type"] = self.ticket_data["ticket_type"]
             self.data["cluster_type"] = cluster_class.cluster_type
             self.data["uid"] = self.ticket_data["uid"]
             self.data["package"] = Package.get_latest_package(
                 version=cluster_class.major_version, pkg_type=MediumEnum.MySQL, db_type=DBType.MySQL
-            )
+            ).name
             # self.data["package"] = "5.7.20"
             self.data["ports"] = get_ports(info["cluster_ids"])
-            self.data["force"] = info.get("force", False)
+            self.data["force"] = self.ticket_data.get("force", False)
             self.data["charset"], self.data["db_version"] = get_version_and_charset(
                 self.data["bk_biz_id"],
                 db_module_id=self.data["db_module_id"],
@@ -165,6 +165,7 @@ class MySQLRestoreSlaveRemoteFlow(object):
                 master = cluster_model.storageinstance_set.get(instance_inner_role=InstanceInnerRole.MASTER.value)
                 cluster = {
                     "cluster_id": cluster_model.id,
+                    "cluster_type": cluster_class.cluster_type,
                     "master_ip": master.machine.ip,
                     "master_port": master.port,
                     "new_slave_ip": self.data["new_slave_ip"],
@@ -293,6 +294,8 @@ class MySQLRestoreSlaveRemoteFlow(object):
                 tendb_migrate_pipeline.add_act(act_name=_("人工确认切换"), act_component_code=PauseComponent.code, kwargs={})
                 # 切换迁移实例
                 tendb_migrate_pipeline.add_parallel_sub_pipeline(sub_flow_list=switch_sub_pipeline_list)
+                # 切换后再次刷新周边
+                tendb_migrate_pipeline.add_parallel_sub_pipeline(sub_flow_list=surrounding_sub_pipeline_list)
                 # 卸载流程人工确认
                 tendb_migrate_pipeline.add_act(
                     act_name=_("人工确认卸载实例"), act_component_code=PauseComponent.code, kwargs={}
@@ -316,7 +319,7 @@ class MySQLRestoreSlaveRemoteFlow(object):
         tendb_migrate_pipeline_list = []
         for info in self.ticket_data["infos"]:
             self.data = copy.deepcopy(info)
-            cluster_model = Cluster.objects.get(id=self.data["clusterid"])
+            cluster_model = Cluster.objects.get(id=self.data["cluster_id"])
             target_slave = cluster_model.storageinstance_set.get(
                 machine__bk_cloud_id=cluster_model.bk_cloud_id,
                 machine__ip=self.data["slave_ip"],
@@ -327,7 +330,8 @@ class MySQLRestoreSlaveRemoteFlow(object):
             self.data["db_module_id"] = cluster_model.db_module_id
             self.data["time_zone"] = cluster_model.time_zone
             self.data["created_by"] = self.ticket_data["created_by"]
-            self.data["module"] = self.ticket_data["module"]
+            self.data["module"] = cluster_model.db_module_id
+            self.data["force"] = self.ticket_data.get("force", False)
             self.data["ticket_type"] = self.ticket_data["ticket_type"]
             self.data["cluster_type"] = cluster_model.cluster_type
             self.data["uid"] = self.ticket_data["uid"]
@@ -415,6 +419,16 @@ class MySQLRestoreSlaveRemoteFlow(object):
                         is_update_trans_data=False,
                     )
                 ),
+            )
+            tendb_migrate_pipeline.add_sub_pipeline(
+                sub_flow=build_surrounding_apps_sub_flow(
+                    bk_cloud_id=cluster_model.bk_cloud_id,
+                    slave_ip_list=[target_slave.machine.ip],
+                    root_id=self.root_id,
+                    parent_global_data=self.data,
+                    is_init=True,
+                    cluster_type=cluster_model.cluster_type,
+                )
             )
             tendb_migrate_pipeline_list.append(
                 tendb_migrate_pipeline.build_sub_process(_("slave原地重建{}").format(self.data["slave_ip"]))

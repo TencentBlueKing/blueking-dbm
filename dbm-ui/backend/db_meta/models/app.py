@@ -88,3 +88,12 @@ class AppCache(AuditedModel):
 
         app_infos = {info["bk_biz_id"]: info[attr_name] for info in infos}
         return app_infos
+
+    @classmethod
+    def get_choices(cls):
+        try:
+            biz_choices = [(biz.bk_biz_id, f"[{biz.bk_biz_id}]{biz.bk_biz_name}") for biz in cls.objects.all()]
+        except Exception:  # pylint: disable=broad-except
+            # 忽略出现的异常，此时可能因为表未初始化
+            biz_choices = []
+        return biz_choices

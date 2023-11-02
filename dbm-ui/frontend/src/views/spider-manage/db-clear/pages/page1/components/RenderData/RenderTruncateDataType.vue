@@ -24,7 +24,7 @@
   import { ref } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import TableEditSelect from '@views/mysql/common/edit/Select.vue';
+  import TableEditSelect from '@components/tools-table-select/index.vue';
 
   interface Props {
     modelValue: string
@@ -46,16 +46,16 @@
 
   const list = [
     {
-      id: 'truncate_table',
-      name: t('清除表数据_truncatetable'),
+      value: 'truncate_table',
+      label: t('清除表数据_truncatetable'),
     },
     {
-      id: 'drop_table',
-      name: t('清除表数据和结构_droptable'),
+      value: 'drop_table',
+      label: t('清除表数据和结构_droptable'),
     },
     {
-      id: 'drop_database',
-      name: t('删除整库_dropdatabase'),
+      value: 'drop_database',
+      label: t('删除整库_dropdatabase'),
     },
   ];
 

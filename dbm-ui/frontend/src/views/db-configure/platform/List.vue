@@ -12,27 +12,25 @@
 -->
 
 <template>
-  <div class="configure-container">
+  <div class="platform-db-configure-page">
     <TopTab @change="handleChangeTab" />
-    <BkTab
-      v-show="showTabs"
-      v-model:active="state.confType"
-      class="conf-tabs"
-      type="border-card"
-      @change="fetchPlatformConfigList">
-      <BkTabPanel
-        v-for="tab of state.tabs"
-        :key="tab.confType"
-        :label="tab.name"
-        :name="tab.confType" />
-    </BkTab>
-    <div
-      class="configure-content"
-      :class="[{ 'configure-content--padding': showTabs }]">
+    <div class="configure-content">
+      <BkTab
+        v-show="showTabs"
+        v-model:active="state.confType"
+        class="conf-tabs"
+        type="border-card"
+        @change="fetchPlatformConfigList">
+        <BkTabPanel
+          v-for="tab of state.tabs"
+          :key="tab.confType"
+          :label="tab.name"
+          :name="tab.confType" />
+      </BkTab>
       <BkLoading :loading="state.loading">
         <DbOriginalTable
           :key="state.clusterType"
-          class="configure-content__table"
+          class="configure-content-table"
           :columns="columns"
           :data="state.data"
           :is-anomalies="isAnomalies"
@@ -52,6 +50,8 @@
 
   import { useTableMaxHeight } from '@hooks';
 
+  import { useMainViewStore } from '@stores';
+
   import type { ClusterTypesValues } from '@common/const';
 
   import { extraClusterConfs, getDefaultConf } from '../common/const';
@@ -60,6 +60,8 @@
 
   const { t } = useI18n();
   const router = useRouter();
+  const mainViewStore = useMainViewStore();
+  mainViewStore.hasPadding = false;
 
   const state = reactive({
     confType: 'dbconf',
@@ -76,31 +78,37 @@
   /**
    * table 设置
    */
-  const columns: Column[] = [{
-    label: t('名称'),
-    field: 'name',
-    render: ({ cell, data }: { cell: string, data: ConfigListItem }) => (
+  const columns: Column[] = [
+    {
+      label: t('名称'),
+      field: 'name',
+      render: ({ cell, data }: { cell: string, data: ConfigListItem }) => (
       <bk-button text theme="primary" onClick={handleToDetails.bind(this, data)}>{cell}</bk-button>
     ),
-  }, {
-    label: t('数据库版本'),
-    field: 'version',
-  }, {
-    label: t('更新时间'),
-    field: 'updated_at',
-  }, {
-    label: t('更新人'),
-    field: 'updated_by',
-    render: ({ cell }: { cell: string }) => cell || '--',
-  }, {
-    label: t('操作'),
-    field: 'operation',
-    render: ({ data }: { data: ConfigListItem }) => (
+    },
+    {
+      label: t('数据库版本'),
+      field: 'version',
+    },
+    {
+      label: t('更新时间'),
+      field: 'updated_at',
+    },
+    {
+      label: t('更新人'),
+      field: 'updated_by',
+      render: ({ cell }: { cell: string }) => cell || '--',
+    },
+    {
+      label: t('操作'),
+      field: 'operation',
+      render: ({ data }: { data: ConfigListItem }) => (
       <div class="operation">
         <bk-button text theme="primary" class="mr-24" onClick={handleUpdateDetails.bind(this, data)}>{ t('编辑') }</bk-button>
       </div>
     ),
-  }];
+    },
+  ];
 
   /**
    * 集群配置
@@ -184,36 +192,27 @@
   };
 </script>
 
-<style lang="less" scoped>
-  .configure-container {
-    height: calc(100% - 42px);
-    margin-top: 42px;
-    background-color: @bg-white;
-  }
+<style lang="less">
+  .platform-db-configure-page{
+    height: calc(100vh - 150px);
 
-  .conf-tabs {
-    margin-bottom: 16px;
-    background-color: #fafbfd;
+    .conf-tabs {
+      background: #fff;
+      box-shadow: 0 3px 4px 0 rgb(0 0 0 / 4%);
 
-    :deep(.bk-tab-content) {
-      display: none;
-      padding: 0;
+      .bk-tab-content{
+        display: none;
+      }
     }
 
-    :deep(.bk-tab-header--active) {
-      background-color: @bg-white;
-    }
-  }
+    .configure-content {
+      padding: 24px;
 
-  .configure-content {
-    &--padding {
-      padding: 0 16px;
-    }
-
-    &__table {
-      :deep(.table-header-type) {
-        line-height: 20px;
-        border-bottom: 1px dashed @light-gray;
+      .configure-content-table{
+        .table-header-type {
+          line-height: 20px;
+          border-bottom: 1px dashed @light-gray;
+        }
       }
     }
   }

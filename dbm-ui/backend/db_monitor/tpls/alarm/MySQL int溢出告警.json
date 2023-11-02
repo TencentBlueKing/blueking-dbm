@@ -35,7 +35,7 @@
             "unit": "",
             "alias": "a",
             "functions": [],
-            "metric_id": "bk_monitor.exporter_dbm_mysqld_exporter.tableincr.mysql_info_schema_auto_increment_column",
+            "metric_id": "bk_monitor.exporter_dbm_mysqld_exporter.__default__.mysql_info_schema_auto_increment_column",
             "agg_method": "AVG",
             "agg_interval": 60,
             "metric_field": "mysql_info_schema_auto_increment_column",
@@ -57,10 +57,10 @@
               "schema",
               "table",
               "column",
-              "app_id"
+              "appid"
             ],
             "data_type_label": "time_series",
-            "result_table_id": "exporter_dbm_mysqld_exporter.tableincr",
+            "result_table_id": "exporter_dbm_mysqld_exporter.__default__",
             "data_source_label": "bk_monitor"
           },
           {
@@ -68,7 +68,7 @@
             "unit": "",
             "alias": "b",
             "functions": [],
-            "metric_id": "bk_monitor.exporter_dbm_mysqld_exporter.tableincr.mysql_info_schema_auto_increment_column_max",
+            "metric_id": "bk_monitor.exporter_dbm_mysqld_exporter.__default__.mysql_info_schema_auto_increment_column_max",
             "agg_method": "AVG",
             "agg_interval": 60,
             "metric_field": "mysql_info_schema_auto_increment_column_max",
@@ -90,10 +90,10 @@
               "schema",
               "table",
               "column",
-              "app_id"
+              "appid"
             ],
             "data_type_label": "time_series",
-            "result_table_id": "exporter_dbm_mysqld_exporter.tableincr",
+            "result_table_id": "exporter_dbm_mysqld_exporter.__default__",
             "data_source_label": "bk_monitor"
           }
         ],
@@ -283,6 +283,7 @@
   },
   "is_enabled": true,
   "monitor_indicator": "\u81ea\u589e\u5217\u7684\u5e73\u5747\u4f7f\u7528\u7387",
-  "version": 2,
-  "alert_source": "time_series"
+  "version": 11,
+  "alert_source": "time_series",
+  "custom_conditions": []
 }

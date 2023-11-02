@@ -93,12 +93,12 @@ class MySQLMigrateClusterRemoteFlow(object):
             self.data["db_module_id"] = cluster_class.db_module_id
             self.data["time_zone"] = cluster_class.time_zone
             self.data["created_by"] = self.ticket_data["created_by"]
-            self.data["module"] = self.ticket_data["module"]
+            self.data["module"] = cluster_class.db_module_id
             self.data["ticket_type"] = self.ticket_data["ticket_type"]
             self.data["uid"] = self.ticket_data["uid"]
             self.data["package"] = Package.get_latest_package(
                 version=cluster_class.major_version, pkg_type=MediumEnum.MySQL, db_type=DBType.MySQL
-            )
+            ).name
             self.data["ports"] = get_ports(info["cluster_ids"])
             self.data["force"] = info.get("force", False)
             self.data["charset"], self.data["db_version"] = get_version_and_charset(
@@ -308,6 +308,7 @@ class MySQLMigrateClusterRemoteFlow(object):
             tendb_migrate_pipeline.add_act(act_name=_("人工确认切换"), act_component_code=PauseComponent.code, kwargs={})
             # 切换迁移实例
             tendb_migrate_pipeline.add_parallel_sub_pipeline(sub_flow_list=switch_sub_pipeline_list)
+            tendb_migrate_pipeline.add_parallel_sub_pipeline(sub_flow_list=surrounding_sub_pipeline_list)
             # 卸载流程人工确认
             tendb_migrate_pipeline.add_act(act_name=_("人工确认卸载实例"), act_component_code=PauseComponent.code, kwargs={})
             # 卸载remote节点

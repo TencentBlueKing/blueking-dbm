@@ -69,7 +69,8 @@
   } from '@utils';
 
   interface Props {
-    data?: PartitionModel
+    partitionData?: PartitionModel,
+    operationDryRunData?: ServiceReturnType<typeof dryRun>,
   }
 
   interface ITableData {
@@ -93,7 +94,7 @@
   const tableData = shallowRef<ITableData[]>([]);
   const dryRunData = shallowRef<ServiceReturnType<typeof dryRun>>({});
 
-  const isExecSubmitEnable = computed(() => props.data && dryRunData.value[props.data.id]?.length > 0);
+  const isExecSubmitEnable = computed(() => Object.values(dryRunData.value).length > 0);
 
   const renderTableData = computed(() => {
     if (searchValues.value.length < 1) {
@@ -221,63 +222,84 @@
     },
   ];
 
+  const formatTableData = (data: ValueOf<ServiceReturnType<typeof dryRun>>) => data.reduce((result, recordItem) => {
+    const { message } = recordItem;
+    recordItem.execute_objects.forEach((executeItem) => {
+      const dataObj = {
+        dblike: executeItem.dblike,
+        tblike: executeItem.tblike,
+        message,
+        action: [] as string[],
+        sql: [] as string[],
+      };
+      if (executeItem.init_partition && executeItem.init_partition.length > 0) {
+        dataObj.action.push(t('初始化分区'));
+        dataObj.sql.push(...executeItem.init_partition.map(sqlItem => sqlItem.sql));
+      }
+      if (executeItem.add_partition && executeItem.add_partition.length > 0) {
+        dataObj.action.push(t('增加分区'));
+        dataObj.sql.push(...executeItem.add_partition);
+      }
+      if (executeItem.drop_partition && executeItem.drop_partition.length > 0) {
+        dataObj.action.push(t('删除分区'));
+        dataObj.sql.push(...executeItem.drop_partition);
+      }
+      result.push(dataObj);
+    });
+    return result;
+  }, [] as ITableData[]);
+
   const {
     loading: isLoading,
     run: fetchDryRun,
   } = useRequest(dryRun, {
     manual: true,
     onSuccess(data) {
-      if (!props.data || Object.values(data).length < 1) {
+      if (!props.partitionData || Object.values(data).length < 1) {
         return;
       }
 
-      const detailList = data[props.data.id];
+      const detailList = data[props.partitionData.id];
 
       dryRunData.value = {
-        [props.data.id]: _.filter(detailList, item => !item.message),
+        [props.partitionData.id]: _.filter(detailList, item => !item.message),
       };
 
-      tableData.value = detailList.reduce((result, recordItem) => {
-        const { message } = recordItem;
-        recordItem.execute_objects.forEach((executeItem) => {
-          const dataObj = {
-            dblike: executeItem.dblike,
-            tblike: executeItem.tblike,
-            message,
-            action: [] as string[],
-            sql: [] as string[],
-          };
-          if (executeItem.init_partition && executeItem.init_partition.length > 0) {
-            dataObj.action.push(t('初始化分区'));
-            dataObj.sql.push(...executeItem.init_partition.map(sqlItem => sqlItem.sql));
-          }
-          if (executeItem.add_partition && executeItem.add_partition.length > 0) {
-            dataObj.action.push(t('增加分区'));
-            dataObj.sql.push(...executeItem.add_partition);
-          }
-          if (executeItem.drop_partition && executeItem.drop_partition.length > 0) {
-            dataObj.action.push(t('删除分区'));
-            dataObj.sql.push(...executeItem.drop_partition);
-          }
-          result.push(dataObj);
-        });
-        return result;
-      }, [] as ITableData[]);
+      tableData.value = formatTableData(detailList);
     },
   });
 
   const fetchData = () => {
-    if (!props.data) {
+    if (!props.partitionData) {
       return;
     }
     fetchDryRun({
-      config_id: props.data.id,
-      cluster_id: props.data.cluster_id,
+      config_id: props.partitionData.id,
+      cluster_id: props.partitionData.cluster_id,
       cluster_type: ClusterTypes.SPIDER,
     });
   };
 
-  watch(() => props.data, () => {
+  watch(() => [props.partitionData, props.operationDryRunData], () => {
+    // 用户主动执行通过分区数据获取最新的 dryData
+    if (props.partitionData) {
+      fetchData();
+    } else if (props.operationDryRunData) {
+      // 用户新建分区时新建成功后端会返回 dryData
+      const [partitionId] = Object.keys(props.operationDryRunData);
+      const detailList = props.operationDryRunData[Number(partitionId)];
+      dryRunData.value = {
+        [partitionId]: _.filter(detailList, item => !item.message),
+      };
+      tableData.value = formatTableData(detailList);
+
+      console.log('from watch = ', props.operationDryRunData, tableData.value);
+    }
+  }, {
+    immediate: true,
+  });
+
+  watch(() => props.partitionData, () => {
     fetchData();
   }, {
     immediate: true,
@@ -292,12 +314,12 @@
   };
 
   const handleExec = () => {
-    if (!props.data) {
+    if (!props.partitionData) {
       return;
     }
     isExecSubmiting.value = true;
     execute({
-      cluster_id: props.data.cluster_id,
+      cluster_id: props.partitionData.cluster_id,
       partition_objects: dryRunData.value,
     })
       .then((data) => {

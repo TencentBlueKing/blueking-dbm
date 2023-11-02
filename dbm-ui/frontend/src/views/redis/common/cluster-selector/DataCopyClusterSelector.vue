@@ -317,6 +317,8 @@
     handeChangeLimit,
   } = useClusterData(state, props.ticketType);
 
+  fetchResources();
+
   watch(() => props.isShow, (show) => {
     if (show) {
       state.selected = _.cloneDeep(props.selected);
@@ -489,15 +491,13 @@
   }
 
   function handleTablePageChange(value: number) {
-    handleChangePage(value).then(() => {
-      state.isSelectedAll = isSelectedAll();
-    });
+    handleChangePage(value);
+    state.isSelectedAll = isSelectedAll();
   }
 
   function handleTableLimitChange(value: number) {
-    handeChangeLimit(value).then(() => {
-      state.isSelectedAll = isSelectedAll();
-    });
+    handeChangeLimit(value);
+    state.isSelectedAll = isSelectedAll();
   }
 </script>
 

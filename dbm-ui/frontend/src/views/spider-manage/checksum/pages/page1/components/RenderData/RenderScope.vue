@@ -28,7 +28,7 @@
 
   import { getRemoteParis } from '@services/mysqlCluster';
 
-  import TableEditSelect from '@views/mysql/common/edit/Select.vue';
+  import TableEditSelect from '@components/tools-table-select/index.vue';
 
   interface Props {
     modelValue: string,
@@ -55,12 +55,12 @@
 
   const list = [
     {
-      id: 'all',
-      name: t('整个集群'),
+      value: 'all',
+      label: t('整个集群'),
     },
     {
-      id: 'partial',
-      name: t('部分实例'),
+      value: 'partial',
+      label: t('部分实例'),
     },
   ];
 

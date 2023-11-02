@@ -90,16 +90,11 @@
               <FunController
                 controller-id="toolbox"
                 module-id="mysql">
-                <BkMenuItem key="MySQLToolbox">
-                  <template #icon>
-                    <i class="db-icon-tools" />
-                  </template>
-                  <span
-                    v-overflow-tips.right
-                    class="text-overflow">
-                    {{ $t('工具箱') }}
-                  </span>
-                </BkMenuItem>
+                <li
+                  v-show="mysqlToolboxFavorMenus.length > 0"
+                  class="main-views-toolbox-split">
+                  <span class="split-line" />
+                </li>
                 <BkSubmenu
                   v-for="group of mysqlToolboxFavorMenus"
                   :key="group.id"
@@ -117,8 +112,19 @@
                     </span>
                   </BkMenuItem>
                 </BkSubmenu>
+                <BkMenuItem key="MySQLToolbox">
+                  <template #icon>
+                    <i class="db-icon-tools" />
+                  </template>
+                  <span
+                    v-overflow-tips.right
+                    class="text-overflow">
+                    {{ $t('工具箱') }}
+                  </span>
+                </BkMenuItem>
               </FunController>
             </BkMenuGroup>
+            <div class="main-views-space-line" />
             <FunController
               controller-id="tendbcluster"
               module-id="mysql">
@@ -144,33 +150,6 @@
                     </span>
                   </BkMenuItem>
                 </BkSubmenu>
-                <BkMenuItem key="spiderToolbox">
-                  <template #icon>
-                    <i class="db-icon-tools" />
-                  </template>
-                  <span
-                    v-overflow-tips.right
-                    class="text-overflow">
-                    {{ $t('工具箱') }}
-                  </span>
-                </BkMenuItem>
-                <BkSubmenu
-                  v-for="group of spiderToolboxFavorMenus"
-                  :key="group.id"
-                  :title="group.name">
-                  <template #icon>
-                    <i :class="group.icon" />
-                  </template>
-                  <BkMenuItem
-                    v-for="item of group.children"
-                    :key="item.name">
-                    <span
-                      v-overflow-tips.right
-                      class="text-overflow">
-                      {{ item.meta?.navName }}
-                    </span>
-                  </BkMenuItem>
-                </BkSubmenu>
                 <BkMenuItem key="spiderPartitionManage">
                   <template #icon>
                     <i class="db-icon-mobanshili" />
@@ -193,7 +172,7 @@
                 <span
                   v-overflow-tips.right
                   class="text-overflow">
-                  {{ $t('账号规则') }}
+                  {{ $t('授权规则') }}
                 </span>
               </BkMenuItem>
               <!-- <BkMenuItem key="spiderPermissionList">
@@ -211,7 +190,40 @@
                 </span>
               </BkMenuItem>
             </BkSubmenu>
+            <li
+              v-show="spiderToolboxFavorMenus.length > 0"
+              class="main-views-toolbox-split">
+              <span class="split-line" />
+            </li>
+            <BkSubmenu
+              v-for="group of spiderToolboxFavorMenus"
+              :key="group.id"
+              :title="group.name">
+              <template #icon>
+                <i :class="group.icon" />
+              </template>
+              <BkMenuItem
+                v-for="item of group.children"
+                :key="item.name">
+                <span
+                  v-overflow-tips.right
+                  class="text-overflow">
+                  {{ item.meta?.navName }}
+                </span>
+              </BkMenuItem>
+            </BkSubmenu>
+            <BkMenuItem key="spiderToolbox">
+              <template #icon>
+                <i class="db-icon-tools" />
+              </template>
+              <span
+                v-overflow-tips.right
+                class="text-overflow">
+                {{ $t('工具箱') }}
+              </span>
+            </BkMenuItem>
           </FunController>
+          <div class="main-views-space-line" />
           <FunController module-id="redis">
             <BkMenuGroup name="Redis">
               <BkMenuItem key="DatabaseRedis">
@@ -227,16 +239,11 @@
               <FunController
                 controller-id="toolbox"
                 module-id="redis">
-                <BkMenuItem key="RedisToolbox">
-                  <template #icon>
-                    <i class="db-icon-tools" />
-                  </template>
-                  <span
-                    v-overflow-tips.right
-                    class="text-overflow">
-                    {{ $t('工具箱') }}
-                  </span>
-                </BkMenuItem>
+                <li
+                  v-show="redisToolboxFavorMenus.length > 0"
+                  class="main-views-toolbox-split">
+                  <span class="split-line" />
+                </li>
                 <BkSubmenu
                   v-for="group of redisToolboxFavorMenus"
                   :key="group.id"
@@ -254,9 +261,20 @@
                     </span>
                   </BkMenuItem>
                 </BkSubmenu>
+                <BkMenuItem key="RedisToolbox">
+                  <template #icon>
+                    <i class="db-icon-tools" />
+                  </template>
+                  <span
+                    v-overflow-tips.right
+                    class="text-overflow">
+                    {{ $t('工具箱') }}
+                  </span>
+                </BkMenuItem>
               </FunController>
             </BkMenuGroup>
           </FunController>
+          <div class="main-views-space-line" />
           <FunController
             controller-id="es"
             module-id="bigdata">
@@ -273,6 +291,7 @@
               </BkMenuItem>
             </BkMenuGroup>
           </FunController>
+          <div class="main-views-space-line" />
           <FunController
             controller-id="hdfs"
             module-id="bigdata">
@@ -289,6 +308,7 @@
               </BkMenuItem>
             </BkMenuGroup>
           </FunController>
+          <div class="main-views-space-line" />
           <FunController
             controller-id="kafka"
             module-id="bigdata">
@@ -305,6 +325,7 @@
               </BkMenuItem>
             </BkMenuGroup>
           </FunController>
+          <div class="main-views-space-line" />
           <FunController
             controller-id="pulsar"
             module-id="bigdata">
@@ -321,11 +342,12 @@
               </BkMenuItem>
             </BkMenuGroup>
           </FunController>
+          <div class="main-views-space-line" />
           <FunController
             controller-id="influxdb"
             module-id="bigdata">
             <BkMenuGroup name="InfluxDB">
-              <BkMenuItem key="InfluxDBManage">
+              <BkMenuItem key="InfluxDBInstances">
                 <template #icon>
                   <i class="db-icon-influxdb" />
                 </template>
@@ -337,6 +359,7 @@
               </BkMenuItem>
             </BkMenuGroup>
           </FunController>
+          <div class="main-views-space-line" />
           <BkMenuGroup :name="$t('配置管理')">
             <BkMenuItem key="DbConfigure">
               <template #icon>
@@ -349,6 +372,7 @@
               </span>
             </BkMenuItem>
           </BkMenuGroup>
+          <div class="main-views-space-line" />
           <FunController module-id="monitor">
             <BkMenuGroup :name="$t('监控告警')">
               <FunController
@@ -370,7 +394,7 @@
                 module-id="monitor">
                 <BkMenuItem key="DBMonitorAlarmGroup">
                   <template #icon>
-                    <i class="db-icon-db-config" />
+                    <i class="db-icon-yonghuzu" />
                   </template>
                   <span
                     v-overflow-tips.right
@@ -381,7 +405,7 @@
               </FunController>
             </BkMenuGroup>
           </FunController>
-
+          <div class="main-views-space-line" />
           <BkMenuGroup :name="$t('任务中心')">
             <BkMenuItem key="DatabaseMission">
               <template #icon>
@@ -394,7 +418,8 @@
               </span>
             </BkMenuItem>
           </BkMenuGroup>
-          <BkMenuGroup :name="$t('安全')">
+          <div class="main-views-space-line" />
+          <!-- <BkMenuGroup :name="$t('安全')">
             <BkMenuItem key="DBPasswordTemporaryModify">
               <template #icon>
                 <i class="db-icon-password" />
@@ -406,6 +431,7 @@
               </span>
             </BkMenuItem>
           </BkMenuGroup>
+          <div class="main-views-space-line" /> -->
           <BkMenuGroup :name="$t('设置')">
             <BkMenuItem key="DatabaseStaff">
               <template #icon>
@@ -551,3 +577,23 @@
     eventBus.off('collapse', handleToggleCollapse);
   });
 </script>
+
+<style lang="less">
+.main-views-toolbox-split {
+  width: 100%;
+  height: 0;
+  padding: 0 20px 0 60px;
+
+  .split-line {
+    display: inline-block;
+    width: 100%;
+    margin-bottom: 15px;
+    border-bottom: solid #29344c 1px;
+  }
+}
+
+.main-views-space-line {
+  width: 100%;
+  height: 16px;
+}
+</style>

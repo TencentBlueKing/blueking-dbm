@@ -496,7 +496,7 @@
       const totalHeight = props.containerHeight ? props.containerHeight : window.innerHeight;
       const tableHeaderHeight = 42;
       const paginationHeight = 60;
-      const pageOffsetBottom = props.containerHeight ? 0 : 48;
+      const pageOffsetBottom = props.containerHeight ? 0 : 20;
       const tableRowHeight = 42;
 
       const tableRowTotalHeight = totalHeight - top - tableHeaderHeight - paginationHeight - pageOffsetBottom;

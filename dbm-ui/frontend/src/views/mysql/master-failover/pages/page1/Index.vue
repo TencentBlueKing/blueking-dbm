@@ -24,16 +24,6 @@
           <DbIcon type="add" />
           {{ $t('批量录入') }}
         </BkButton>
-        <div
-          v-bk-tooltips="$t('安全模式下_存在业务连接时需要人工确认')"
-          class="safe-action">
-          <BkCheckbox
-            v-model="isSafe"
-            :false-label="false"
-            true-label>
-            <span class="safe-action-text">{{ $t('安全模式') }}</span>
-          </BkCheckbox>
-        </div>
       </div>
       <RenderData
         class="mt16"
@@ -47,6 +37,21 @@
           @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
           @remove="handleRemove(index)" />
       </RenderData>
+      <div class="item-block">
+        <BkCheckbox v-model="formData.is_check_process">
+          {{ t('检查业务来源的连接') }}
+        </BkCheckbox>
+      </div>
+      <div class="item-block">
+        <BkCheckbox v-model="formData.is_check_delay">
+          {{ t('检查主从同步延迟') }}
+        </BkCheckbox>
+      </div>
+      <div class="item-block">
+        <BkCheckbox v-model="formData.is_verify_checksum">
+          {{ t('检查主从数据校验结果') }}
+        </BkCheckbox>
+      </div>
       <InstanceSelector
         v-model:is-show="isShowMasterInstanceSelector"
         :panel-list="['tendbha', 'manualInput']"
@@ -83,6 +88,7 @@
     ref,
     shallowRef,
   } from 'vue';
+  import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
   import { createTicket } from '@services/ticket';
@@ -114,15 +120,21 @@
   };
 
   const router = useRouter();
+  const { t } = useI18n();
   const { currentBizId } = useGlobalBizs();
 
   const rowRefs = ref();
   const isShowMasterInstanceSelector = ref(false);
   const isShowBatchEntry = ref(false);
   const isSubmitting  = ref(false);
-  const isSafe = ref(false);
 
   const tableData = shallowRef<Array<IDataRow>>([createRowData({})]);
+
+  const formData = reactive({
+    is_check_process: false,
+    is_verify_checksum: false,
+    is_check_delay: false,
+  });
 
   // 批量录入
   const handleShowBatchEntry = () => {
@@ -192,8 +204,8 @@
         ticket_type: 'MYSQL_MASTER_FAIL_OVER',
         remark: '',
         details: {
+          ...formData,
           infos: data,
-          is_safe: isSafe.value,
         },
         bk_biz_id: currentBizId,
       }).then((data) => {
@@ -223,19 +235,14 @@
   .master-failover-page {
     padding-bottom: 20px;
 
+    .item-block{
+      margin-top: 24px;
+    }
+
     .page-action-box {
       display: flex;
       align-items: center;
       margin-top: 16px;
-
-      .safe-action {
-        margin-left: auto;
-
-        .safe-action-text {
-          padding-bottom: 2px;
-          border-bottom: 1px dashed #979ba5;
-        }
-      }
     }
   }
 </style>

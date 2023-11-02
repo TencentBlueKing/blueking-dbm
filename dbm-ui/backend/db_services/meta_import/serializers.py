@@ -13,37 +13,43 @@ from django.utils.translation import ugettext as _
 from rest_framework import serializers
 
 from backend.db_meta.enums import ClusterType, MachineType
-from backend.db_meta.models import DBModule, Spec
+from backend.db_meta.models import AppCache, Cluster, DBModule, Spec
 
 
-class MetadataImportDBModuleField(serializers.ChoiceField):
+class CustomChoiceField(serializers.ChoiceField):
+    def __init__(self, choices, **kwargs):
+        super().__init__(choices, **kwargs)
+        self._choices_label_to_value = {value: key for key, value in self.choices.items()}
+
+    def to_representation(self, value):
+        return self._choices[value]
+
+    def to_internal_value(self, data):
+        return self._choices_label_to_value[data]
+
+
+class MetadataImportDBModuleField(CustomChoiceField):
     model = DBModule
 
     def __init__(self, cluster_type, **kwargs):
         choices = self.model.get_choices_with_filter(cluster_type=cluster_type)
         super().__init__(choices, **kwargs)
-        self._choices_label_to_value = {value: key for key, value in self.choices.items()}
-
-    def to_representation(self, value):
-        return self._choices[value]
-
-    def to_internal_value(self, data):
-        return self._choices_label_to_value[data]
 
 
-class MetadataImportSpecField(serializers.ChoiceField):
+class MetadataImportSpecField(CustomChoiceField):
     model = Spec
 
     def __init__(self, cluster_type, machine_type, **kwargs):
         choices = self.model.get_choices_with_filter(cluster_type=cluster_type, machine_type=machine_type)
         super().__init__(choices, **kwargs)
-        self._choices_label_to_value = {value: key for key, value in self.choices.items()}
 
-    def to_representation(self, value):
-        return self._choices[value]
 
-    def to_internal_value(self, data):
-        return self._choices_label_to_value[data]
+class BizChoiceField(CustomChoiceField):
+    model = AppCache
+
+    def __init__(self, **kwargs):
+        choices = self.model.get_choices()
+        super().__init__(choices, **kwargs)
 
 
 class MySQLHaMetadataImportSerializer(serializers.Serializer):
@@ -58,4 +64,15 @@ class MySQLHaMetadataImportSerializer(serializers.Serializer):
     )
 
     def validate(self, attrs):
+        return attrs
+
+
+class MySQLStandardSerializer(serializers.Serializer):
+    bk_biz_id = BizChoiceField(help_text=_("业务ID"))
+    immute_domains = serializers.CharField(help_text=_("集群域名(多个域名用空格分隔)"))
+
+    def validate(self, attrs):
+        domain_list = attrs.pop("immute_domains").split(",")
+        cluster_ids = list(Cluster.objects.filter(immute_domain__in=domain_list).values_list("id", flat=True))
+        attrs["cluster_ids"] = cluster_ids
         return attrs

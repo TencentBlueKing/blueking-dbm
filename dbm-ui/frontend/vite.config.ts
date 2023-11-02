@@ -51,6 +51,7 @@ export default defineConfig(({ mode }) => {
         '@locales': resolve(__dirname, 'src/locales'),
         '@images': resolve(__dirname, 'src/images'),
         '@lib': resolve(__dirname, 'lib'),
+        '@patch': resolve(__dirname, 'patch'),
       },
       extensions: ['.tsx', '.ts', '.js'],
     },

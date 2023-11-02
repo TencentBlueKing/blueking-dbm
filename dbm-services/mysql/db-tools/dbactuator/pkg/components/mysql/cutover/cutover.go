@@ -27,7 +27,12 @@ import (
 type CutOverParam struct {
 	Host    string              `json:"host"  validate:"required,ip"`
 	Cluster *MySQLClusterDetail `json:"cluster"`
-	IsSafe  bool                `json:"is_safe"`
+	// 客户端连接检查
+	ClientConnCheck bool `json:"client_conn_check"`
+	// 主从延迟检查
+	SlaveDelayCheck bool `json:"slave_delay_check"`
+	// 数据校验结果检查
+	VerifyChecksum bool `json:"verify_checksum"`
 	// Master 是否已经dead
 	IsDeadMaster bool `json:"is_dead_master"`
 	// 切换完成，是都需要为源Master,获取其他Slave增加复制账户
@@ -163,9 +168,11 @@ func (m *CutOverToSlaveComp) Example() interface{} {
 					},
 				},
 			},
-			IsSafe:       true,
-			IsDeadMaster: false,
-			LockedSwitch: true,
+			ClientConnCheck: true,
+			SlaveDelayCheck: true,
+			VerifyChecksum:  true,
+			IsDeadMaster:    false,
+			LockedSwitch:    true,
 		},
 	}
 	return comp
@@ -183,11 +190,19 @@ func (m *CutOverToSlaveComp) PreCheck() (err error) {
 		return err
 	}
 
-	// 安全模式下，检查下CheckSum,检查业务连接
-	if m.Params.IsSafe {
+	// table checksum 结果校验
+	if m.Params.VerifyChecksum {
 		if err = m.cluster.AltSlaveIns.CheckCheckSum(); err != nil {
 			return err
 		}
+		if m.isCutOverPair {
+			if err = m.cluster.AltSlaveIns.Slave.CheckCheckSum(); err != nil {
+				return err
+			}
+		}
+	}
+	// 客户端连接检查
+	if m.Params.ClientConnCheck {
 		prcsls, err := m.cluster.AltSlaveIns.dbConn.ShowApplicationProcesslist(m.sysUsers)
 		if err != nil {
 			logger.Error("show processlist failed %s", err.Error())
@@ -195,11 +210,6 @@ func (m *CutOverToSlaveComp) PreCheck() (err error) {
 		}
 		if len(prcsls) > 0 {
 			return fmt.Errorf("there is a connection for non system users %v", prcsls)
-		}
-		if m.isCutOverPair {
-			if err = m.cluster.AltSlaveIns.Slave.CheckCheckSum(); err != nil {
-				return err
-			}
 		}
 	}
 
@@ -299,7 +309,7 @@ func (m *CutOverToSlaveComp) CutOver() (binPos string, err error) {
 	// record cutover bin pos
 	if binPos, err = m.cluster.AltSlaveIns.RecordBinPos(); err != nil {
 		logger.Error("获取切换时候的位点信息失败: %s", err.Error())
-		return
+		return "{}", err
 	}
 	// proxy switch 待切换slave
 	logger.Info("proxy backend switch to %s", m.cluster.AltSlaveIns.Addr())

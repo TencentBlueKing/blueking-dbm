@@ -6,14 +6,15 @@ Copyright © 2022 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
-	"dbm-services/redis/db-tools/dbactuator/pkg/consts"
-	"dbm-services/redis/db-tools/dbactuator/pkg/jobmanager"
-	"dbm-services/redis/db-tools/dbactuator/pkg/util"
 	"encoding/base64"
 	"fmt"
 	"log"
 	"os"
 	"strings"
+
+	"dbm-services/redis/db-tools/dbactuator/pkg/consts"
+	"dbm-services/redis/db-tools/dbactuator/pkg/jobmanager"
+	"dbm-services/redis/db-tools/dbactuator/pkg/util"
 
 	"github.com/spf13/cobra"
 )
@@ -34,16 +35,39 @@ var multiProcessConcurrency int
 
 var showSupportedAtomJobs bool
 
+var (
+	buildstamp, githash, version, external string
+)
+
 // RootCmd represents the base command when called without any subcommands
 var RootCmd = &cobra.Command{
-	Use:   "dbactuator_redis",
-	Short: "redis原子任务合集",
-	Long:  `redis原子任务合集,包含Redis 以及 RedisProxy 安装、集群创建、备份、回档等等原子任务`,
+	Use: "dbactuator_redis",
+	Short: fmt.Sprintf(`redis原子任务合集
+Version: %s
+Githash: %s
+External: %s
+Buildstamp:%s`, version, githash, strings.ToUpper(external), buildstamp),
+	Long: fmt.Sprintf(`redis原子任务合集,包含Redis 以及 RedisProxy 安装、集群创建、备份、回档等等原子任务
+Version: %s
+Githash: %s
+External: %s
+Buildstamp:%s`, version, githash, strings.ToUpper(external), buildstamp),
 	// Uncomment the following line if your bare application
 	// has an action associated with it:
 	Run: func(cmd *cobra.Command, args []string) {
 		var err error
 		dir, _ := util.GetCurrentDirectory()
+
+		// payLoadFile 数据构造的时候使用的
+		// 解决命令行参数超限问题:./dbactuator_redis: Argument list too long 问题
+		if payLoad == "" && payLoadFile != "" {
+			if o, err := os.ReadFile(payLoadFile); err == nil {
+				payLoad = base64.StdEncoding.EncodeToString(o)
+				log.Printf("using payload file %s", payLoadFile)
+			} else {
+				log.Printf("using payload file %s err %v", payLoadFile, err)
+			}
+		}
 
 		manager, err := jobmanager.NewJobGenericManager(uid, rootID, nodeID, versionID,
 			payLoad, payLoadFormat, atomJobList, dir, multiProcessConcurrency)
@@ -56,15 +80,6 @@ var RootCmd = &cobra.Command{
 			return
 		}
 
-		// 优先使用payLoad。 payLoadFile 个人测试的时候使用的.
-		if payLoad == "" && payLoadFile != "" {
-			if o, err := os.ReadFile(payLoadFile); err == nil {
-				payLoad = base64.StdEncoding.EncodeToString(o)
-				log.Printf("using payload file %s", payLoadFile)
-			} else {
-				log.Printf("using payload file %s err %v", payLoadFile, err)
-			}
-		}
 		err = consts.SetRedisDataDir(dataDir)
 		if err != nil {
 			log.Println(err.Error())

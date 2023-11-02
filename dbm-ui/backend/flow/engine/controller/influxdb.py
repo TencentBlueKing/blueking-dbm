@@ -12,6 +12,7 @@ from backend.flow.engine.bamboo.scene.influxdb.influxdb_apply_flow import Influx
 from backend.flow.engine.bamboo.scene.influxdb.influxdb_destroy_flow import InfluxdbDestroyFlow
 from backend.flow.engine.bamboo.scene.influxdb.influxdb_disable_flow import InfluxdbDisableFlow
 from backend.flow.engine.bamboo.scene.influxdb.influxdb_enable_flow import InfluxdbEnableFlow
+from backend.flow.engine.bamboo.scene.influxdb.influxdb_fake_apply_flow import InfluxdbFakeApplyFlow
 from backend.flow.engine.bamboo.scene.influxdb.influxdb_reboot_flow import InfluxdbRebootFlow
 from backend.flow.engine.bamboo.scene.influxdb.influxdb_replace_flow import InfluxdbReplaceFlow
 from backend.flow.engine.controller.base import BaseController
@@ -63,3 +64,10 @@ class InfluxdbController(BaseController):
         """
         flow = InfluxdbReplaceFlow(root_id=self.root_id, data=self.ticket_data)
         flow.replace_influxdb_flow()
+
+    def influxdb_fake_apply_scene(self):
+        """
+        hdfs 假部署流程，用于集群IP等数据迁移
+        """
+        flow = InfluxdbFakeApplyFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.fake_deploy_influxdb_flow()

@@ -35,7 +35,7 @@
       <ClusterSelector
         v-model:is-show="isShowBatchSelector"
         :get-resource-list="getList"
-        :selected="{}"
+        :selected="selectedClusters"
         :tab-list="clusterSelectorTabList"
         @change="handelClusterChange" />
     </div>
@@ -63,13 +63,10 @@
 
 <script setup lang="tsx">
   import _ from 'lodash';
-  import {
-    ref,
-    shallowRef,
-  } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
+  import SpiderModel from '@services/model/spider/spider';
   import { checkFlashbackDatabase } from '@services/remoteService';
   import { getList } from '@services/spider';
   import { createTicket } from '@services/ticket';
@@ -78,7 +75,7 @@
 
   import { ClusterTypes } from '@common/const';
 
-  import ClusterSelector from '@components/cluster-selector/SpiderClusterSelector.vue';
+  import ClusterSelector from '@components/cluster-selector-new/Index.vue';
 
   import { messageError } from '@utils';
 
@@ -88,10 +85,23 @@
     type IDataRow,
   } from './components/RenderData/Row.vue';
 
-  interface IClusterData {
-    id: number,
-    master_domain: string
-  }
+  const { t } = useI18n();
+  const router = useRouter();
+  const { currentBizId } = useGlobalBizs();
+
+  const rowRefs = ref();
+  const isShowBatchSelector = ref(false);
+  const isSubmitting  = ref(false);
+
+  const tableData = shallowRef<Array<IDataRow>>([createRowData({})]);
+  const selectedClusters = shallowRef<{[key: string]: Array<SpiderModel>}>({ [ClusterTypes.SPIDER]: [] });
+
+  const clusterSelectorTabList = [{
+    id: ClusterTypes.SPIDER,
+    name: '集群',
+  }];
+  // 集群域名是否已存在表格的映射表
+  let domainMemo: Record<string, boolean> = {};
 
   // 检测列表是否为空
   const checkListEmpty = (list: Array<IDataRow>) => {
@@ -106,50 +116,54 @@
       && !firstRow.tablesIgnore;
   };
 
-  const clusterSelectorTabList = [{
-    id: ClusterTypes.SPIDER,
-    name: '集群',
-  }];
-
-  const { t } = useI18n();
-  const router = useRouter();
-  const { currentBizId } = useGlobalBizs();
-
-  const rowRefs = ref();
-  const isShowBatchSelector = ref(false);
-  const isSubmitting  = ref(false);
-
-  const tableData = shallowRef<Array<IDataRow>>([createRowData({})]);
-
   // 批量选择
   const handleShowBatchSelector = () => {
     isShowBatchSelector.value = true;
   };
+
   // 批量选择
-  const handelClusterChange = (selected: {[key: string]: Array<IClusterData>}) => {
-    const newList = selected[ClusterTypes.SPIDER].map(clusterData => createRowData({
-      clusterData: {
-        id: clusterData.id,
-        domain: clusterData.master_domain,
-      },
-    }));
+  const handelClusterChange = (selected: {[key: string]: Array<SpiderModel>}) => {
+    selectedClusters.value = selected;
+    const list = selected[ClusterTypes.SPIDER];
+    const newList = list.reduce((result, item) => {
+      const domain = item.master_domain;
+      if (!domainMemo[domain]) {
+        const row = createRowData({
+          clusterData: {
+            id: item.id,
+            domain: item.master_domain,
+          },
+        });
+        result.push(row);
+        domainMemo[domain] = true;
+      }
+      return result;
+    }, [] as IDataRow[]);
     if (checkListEmpty(tableData.value)) {
       tableData.value = newList;
     } else {
       tableData.value = [...tableData.value, ...newList];
     }
   };
+
   // 追加一个集群
   const handleAppend = (index: number, appendList: Array<IDataRow>) => {
     const dataList = [...tableData.value];
     dataList.splice(index + 1, 0, ...appendList);
     tableData.value = dataList;
   };
+
   // 删除一个集群
   const handleRemove = (index: number) => {
     const dataList = [...tableData.value];
+    const domain = dataList[index].clusterData?.domain;
     dataList.splice(index, 1);
     tableData.value = dataList;
+    if (domain) {
+      delete domainMemo[domain];
+      const clustersArr = selectedClusters.value[ClusterTypes.SPIDER];
+      selectedClusters.value[ClusterTypes.SPIDER] = clustersArr.filter(item => item.master_domain !== domain);
+    }
   };
 
   const handleSubmit = () => {
@@ -190,6 +204,9 @@
 
   const handleReset = () => {
     tableData.value = [createRowData()];
+    selectedClusters.value[ClusterTypes.SPIDER] = [];
+    domainMemo = {};
+    window.changeConfirm = false;
   };
 </script>
 

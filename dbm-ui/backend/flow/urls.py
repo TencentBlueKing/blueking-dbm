@@ -10,6 +10,7 @@ specific language governing permissions and limitations under the License.
 
 from django.conf.urls import url
 
+from backend.flow.views.client_set_dns_server import ClientSetDnsServerSceneApiView
 from backend.flow.views.cloud_dbha_apply import CloudDBHAApplySceneApiView
 from backend.flow.views.cloud_dns_bind_apply import CloudDNSApplySceneApiView
 from backend.flow.views.cloud_drs_apply import CloudDRSApplySceneApiView
@@ -22,7 +23,6 @@ from backend.flow.views.es_apply import InstallEsSceneApiView
 from backend.flow.views.es_destroy import DestroyEsSceneApiView
 from backend.flow.views.es_disable import DisableEsSceneApiView
 from backend.flow.views.es_enable import EnableEsSceneApiView
-from backend.flow.views.es_fake_apply import FakeInstallEsSceneApiView
 from backend.flow.views.es_reboot import RebootEsSceneApiView
 from backend.flow.views.es_replace import ReplaceEsSceneApiView
 from backend.flow.views.es_scale_up import ScaleUpEsSceneApiView
@@ -47,11 +47,20 @@ from backend.flow.views.kafka_apply import InstallKafkaSceneApiView
 from backend.flow.views.kafka_destroy import DestroyKafkaSceneApiView
 from backend.flow.views.kafka_disable import DisableKafkaSceneApiView
 from backend.flow.views.kafka_enable import EnableKafkaSceneApiView
-from backend.flow.views.kafka_fake_apply import FakeInstallKafkaSceneApiView
 from backend.flow.views.kafka_reboot import RebootKafkaSceneApiView
 from backend.flow.views.kafka_replace import ReplaceKafkaSceneApiView
 from backend.flow.views.kafka_scale_up import ScaleUpKafkaSceneApiView
 from backend.flow.views.kafka_shrink import ShrinkKafkaSceneApiView
+from backend.flow.views.migrate_views.es_fake_apply import FakeInstallEsSceneApiView
+from backend.flow.views.migrate_views.hdfs_fake_apply import FakeInstallHdfsSceneApiView
+from backend.flow.views.migrate_views.influxdb_fake_apply import FakeInstallInfluxdbSceneApiView
+from backend.flow.views.migrate_views.kafka_fake_apply import FakeInstallKafkaSceneApiView
+from backend.flow.views.migrate_views.pulsar_fake_apply import FakeInstallPulsarSceneApiView
+from backend.flow.views.migrate_views.redis_migrate import (
+    RedisClusterMigrateCompair,
+    RedisClusterMigrateLoad,
+    RedisClusterMigratePrecheck,
+)
 from backend.flow.views.mysql_add_slave import AddMysqlSlaveSceneApiView
 from backend.flow.views.mysql_add_slave_remote import AddMysqlSlaveRemoteSceneApiView
 from backend.flow.views.mysql_checksum import MysqlChecksumSceneApiView
@@ -101,7 +110,6 @@ from backend.flow.views.pulsar_apply import InstallPulsarSceneApiView
 from backend.flow.views.pulsar_destroy import DestroyPulsarSceneApiView
 from backend.flow.views.pulsar_disable import DisablePulsarSceneApiView
 from backend.flow.views.pulsar_enable import EnablePulsarSceneApiView
-from backend.flow.views.pulsar_fake_apply import FakeInstallPulsarSceneApiView
 from backend.flow.views.pulsar_reboot import RebootPulsarSceneApiView
 from backend.flow.views.pulsar_scale_up import ScaleUpPulsarSceneApiView
 from backend.flow.views.redis_cluster import (
@@ -198,8 +206,13 @@ urlpatterns = [
     url(r"^scene/redis_data_structure$", RedisDataStructureSceneApiView.as_view()),
     url(r"^scene/redis_data_structure_task_delete$", RedisDataStructureTaskDeleteSceneApiView.as_view()),
     url(r"^scene/redis_cluster_add_slave$", RedisClusterAddSlaveApiView.as_view()),
+    url(r"^scene/redis_migrate_precheck$", RedisClusterMigratePrecheck.as_view()),
+    url(r"^scene/redis_migrate_load$", RedisClusterMigrateLoad.as_view()),
+    url(r"^scene/redis_migrate_compair$", RedisClusterMigrateCompair.as_view()),
     url(r"^scene/redis_cluster_version_update_online$", RedisClusterVersionUpdateOnlineApiView.as_view()),
     # redis api url end
+    # dns api
+    url(r"^scene/client_set_dns_server$", ClientSetDnsServerSceneApiView.as_view()),
     # name_service start
     # name_service clb
     url(r"^scene/nameservice_clb_create$", ClbCreateSceneApiView.as_view()),
@@ -230,6 +243,7 @@ urlpatterns = [
     url(r"^scene/destroy_influxdb$", DestroyInfluxdbSceneApiView.as_view()),
     url(r"^scene/reboot_influxdb$", RebootInfluxdbSceneApiView.as_view()),
     url(r"^scene/replace_influxdb$", ReplaceInfluxdbSceneApiView.as_view()),
+    url(r"^scene/fake_install_influxdb$", FakeInstallInfluxdbSceneApiView.as_view()),
     url(r"^scene/install_kafka$", InstallKafkaSceneApiView.as_view()),
     url(r"^scene/fake_install_kafka$", FakeInstallKafkaSceneApiView.as_view()),
     url(r"^scene/scale_up_kafka$", ScaleUpKafkaSceneApiView.as_view()),
@@ -279,6 +293,7 @@ urlpatterns = [
     url(r"^scene/shrink_hdfs$", ShrinkHdfsSceneApiView.as_view()),
     url(r"^scene/reboot_hdfs$", RebootHdfsSceneApiView.as_view()),
     url(r"^scene/replace_hdfs$", ReplaceHdfsSceneApiView.as_view()),
+    url(r"^scene/fake_install_hdfs$", FakeInstallHdfsSceneApiView.as_view()),
     url(r"^scene/switch_mysql_ha$", MySQLHASwitchSceneApiView.as_view()),
     url(r"^scene/master_ha_master_fail_over$", MySQLHAMasterFailOverApiView.as_view()),
     url(r"^scene/master_pt_table_sync$", MySQLPtTableSyncApiView.as_view()),

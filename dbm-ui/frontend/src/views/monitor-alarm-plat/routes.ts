@@ -37,7 +37,7 @@ const routes: RouteRecordRaw[] = [
     path: 'rotation-setting',
     meta: {
       routeParentName: MainViewRouteNames.Platform,
-      navName: t('轮值设置'),
+      navName: t('轮值策略'),
       isMenu: true,
       tags: [{
         theme: 'info',

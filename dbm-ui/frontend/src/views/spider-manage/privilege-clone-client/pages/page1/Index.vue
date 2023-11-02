@@ -36,7 +36,7 @@
         v-model:show-dialog="isShowIpSelector"
         :biz-id="currentBizId"
         button-text=""
-        :data="[]"
+        :data="selectedIps"
         service-mode="all"
         :show-view="false"
         @change="handleHostChange" />
@@ -63,10 +63,6 @@
   </SmartAction>
 </template>
 <script setup lang="tsx">
-  import {
-    ref,
-    shallowRef,
-  } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
@@ -84,15 +80,6 @@
     type IDataRow,
   } from './components/RenderData/Row.vue';
 
-  // 检测列表是否为空
-  const checkListEmpty = (list: Array<IDataRow>) => {
-    if (list.length > 1) {
-      return false;
-    }
-    const [firstRow] = list;
-    return !firstRow.source && firstRow.target.length < 1;
-  };
-
   const { t } = useI18n();
   const router = useRouter();
   const { currentBizId } = useGlobalBizs();
@@ -102,6 +89,18 @@
   const isSubmitting  = ref(false);
 
   const tableData = shallowRef<Array<IDataRow>>([createRowData({})]);
+  const selectedIps = shallowRef<HostDetails[]>([]);
+
+  let ipMemo = {} as Record<string, boolean>;
+
+  // 检测列表是否为空
+  const checkListEmpty = (list: Array<IDataRow>) => {
+    if (list.length > 1) {
+      return false;
+    }
+    const [firstRow] = list;
+    return !firstRow.source && firstRow.target.length < 1;
+  };
 
   // Master 批量选择
   const handleShowIpSelector = () => {
@@ -109,9 +108,22 @@
   };
 
   const handleHostChange = (data: HostDetails[]) => {
-    const newList = data.map(hostData => createRowData({
-      source: hostData,
-    }));
+    selectedIps.value = data;
+    const newList = data.reduce((result, item) => {
+      const { ip } = item;
+      if (!ipMemo[ip]) {
+        const row = createRowData({
+          source: {
+            bk_cloud_id: item.cloud_id,
+            bk_host_id: item.host_id,
+            ip: item.ip,
+          },
+        });
+        result.push(row);
+        ipMemo[ip] = true;
+      }
+      return result;
+    }, [] as IDataRow[]);
     if (checkListEmpty(tableData.value)) {
       tableData.value = newList;
     } else {
@@ -126,11 +138,17 @@
     dataList.splice(index + 1, 0, ...appendList);
     tableData.value = dataList;
   };
+
   // 删除一个集群
   const handleRemove = (index: number) => {
     const dataList = [...tableData.value];
+    const ip = dataList[index].source?.ip;
     dataList.splice(index, 1);
     tableData.value = dataList;
+    if (ip) {
+      delete ipMemo[ip];
+      selectedIps.value = selectedIps.value.filter(item => item.ip !== ip);
+    }
   };
 
   const handleSubmit = () => {
@@ -175,6 +193,9 @@
 
   const handleReset = () => {
     tableData.value = [createRowData()];
+    ipMemo = {};
+    selectedIps.value = [];
+    window.changeConfirm = false;
   };
 </script>
 

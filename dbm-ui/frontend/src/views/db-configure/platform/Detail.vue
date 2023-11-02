@@ -12,8 +12,7 @@
 -->
 
 <template>
-  <div class="configure-details">
-    <MainBreadcrumbs class="custom-main-breadcrumbs" />
+  <div class="configure-details-page">
     <BkTab
       v-model:active="state.activeTab"
       class="top-tabs"
@@ -48,8 +47,6 @@
   import { useMainViewStore } from '@stores';
 
   import { confLevelInfos, ConfLevels } from '@common/const';
-
-  import MainBreadcrumbs from '@components/layouts/MainBreadcrumbs.vue';
 
   import DetailsBase from '../components/DetailsBase.vue';
   import PublishRecord from '../components/PublishRecord.vue';
@@ -132,25 +129,32 @@
   }
 </script>
 
-<style lang="less" scoped>
+<style lang="less">
   @import "@styles/mixins.less";
 
-  .configure-details {
-    height: 100%;
-  }
+  .configure-details-page{
+    .top-tabs{
+      background: #fff;
+      box-shadow: 0 3px 4px 0 rgb(0 0 0 / 4%);
 
-  .operations {
-    .flex-center();
-
-    &__button {
-      width: 76px;
-      margin-left: 8px;
-      font-size: @font-size-mini;
+      .bk-tab-content{
+        display: none;
+      }
     }
-  }
 
-  .details-content {
-    height: 100%;
-    padding: 118px 24px 24px;
+    .operations {
+      .flex-center();
+
+      &__button {
+        width: 76px;
+        margin-left: 8px;
+        font-size: @font-size-mini;
+      }
+    }
+
+    .details-content {
+      height: calc(100vh - 105px);
+      padding: 24px;
+    }
   }
 </style>

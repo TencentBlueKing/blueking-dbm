@@ -142,7 +142,6 @@ def create_mongoset(
         )
         cluster.storageinstance_set.add(*storage_objs)
         cluster.save()
-
         update_cluster_type(storage_objs, cluster_type)
     except Exception as e:  # NOCC:broad-except(检查工具误报)
         logger.error(traceback.format_exc())

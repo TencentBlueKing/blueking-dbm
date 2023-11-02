@@ -12,6 +12,8 @@ from blue_krill.data_types.enum import EnumField, StructuredEnum
 from django.utils.translation import ugettext_lazy as _
 
 from .meta_check_sub_type import MetaCheckSubType
+from .mysqlbackup_check_sub_type import MysqlBackupCheckSubType
+from .redisbackup_check_sub_type import RedisBackupCheckSubType
 
 SWAGGER_TAG = _("巡检报告")
 

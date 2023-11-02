@@ -117,8 +117,7 @@ func getIpList(hosts []string, bk_cloud_id int) []IPList {
 }
 
 // GetDiskInfo TODO
-func GetDiskInfo(hosts []string, bk_cloud_id, bk_biz_id int) (resp GetDiskResp, err error) {
-	iplist := getIpList(hosts, bk_cloud_id)
+func GetDiskInfo(hosts []IPList, bk_biz_id int) (resp GetDiskResp, err error) {
 	jober := JobV3{
 		Client: EsbClient,
 	}
@@ -129,7 +128,7 @@ func GetDiskInfo(hosts []string, bk_cloud_id, bk_biz_id int) (resp GetDiskResp, 
 		ScriptLanguage: 1,
 		AccountAlias:   "root",
 		TargetServer: TargetServer{
-			IPList: iplist,
+			IPList: hosts,
 		},
 	},
 	)
@@ -174,7 +173,7 @@ func GetDiskInfo(hosts []string, bk_cloud_id, bk_biz_id int) (resp GetDiskResp, 
 		BKBizId:        bk_biz_id,
 		JobInstanceID:  job.JobInstanceID,
 		StepInstanceID: job.StepInstanceID,
-		IPList:         iplist,
+		IPList:         hosts,
 	})
 	resp.IpLogContentMap = make(map[string]*ShellResCollection)
 	for _, d := range ipLogs.ScriptTaskLogs {

@@ -143,7 +143,7 @@
               "method":"max_without_time",
               "metric_field":"mysql_version_info",
               "refId":"a",
-              "result_table_id":"exporter_dbm_mysqld_exporter.version",
+              "result_table_id":"exporter_dbm_mysqld_exporter.__default__",
               "result_table_label":"component",
               "time_field":"",
               "where":[
@@ -259,7 +259,7 @@
               "method":"max_without_time",
               "metric_field":"mysql_datadir_df_usage",
               "refId":"a",
-              "result_table_id":"exporter_dbm_mysqld_exporter.datasize",
+              "result_table_id":"exporter_dbm_mysqld_exporter.__default__",
               "result_table_label":"component",
               "time_field":"",
               "where":[
@@ -417,7 +417,7 @@
               "method":"AVG",
               "metric_field":"mysql_global_status_commands_total",
               "refId":"a",
-              "result_table_id":"exporter_dbm_mysqld_exporter.gstatus",
+              "result_table_id":"exporter_dbm_mysqld_exporter.__default__",
               "result_table_label":"component",
               "time_field":"",
               "where":[
@@ -448,7 +448,7 @@
             }
           ],
           "refId":"B",
-          "source":"sum by(command) (rate(bkmonitor:exporter_dbm_mysqld_exporter:gstatus:mysql_global_status_commands_total{cluster_domain=\"$cluster_domain\",command=~\"select|insert|update|delete|replace|commit\",instance_role=\"$dbrole\"}[2m])) >0",
+          "source":"sum by(command) (rate(bkmonitor:exporter_dbm_mysqld_exporter:__default__:mysql_global_status_commands_total{cluster_domain=\"$cluster_domain\",command=~\"select|insert|update|delete|replace|commit\",instance_role=\"$dbrole\"}[2m])) >0",
           "step":"",
           "type":"range"
         }
@@ -784,7 +784,7 @@
               "method":"max_without_time",
               "metric_field":"mysql_global_status_uptime",
               "refId":"a",
-              "result_table_id":"exporter_dbm_mysqld_exporter.gstatus",
+              "result_table_id":"exporter_dbm_mysqld_exporter.__default__",
               "result_table_label":"component",
               "time_field":"",
               "where":[
@@ -958,7 +958,7 @@
               "method":"AVG",
               "metric_field":"mysql_up",
               "refId":"a",
-              "result_table_id":"exporter_dbm_mysqld_exporter.mysqlup",
+              "result_table_id":"exporter_dbm_mysqld_exporter.__default__",
               "result_table_label":"component",
               "time_field":"",
               "where":[
@@ -1136,7 +1136,7 @@
               "method":"SUM",
               "metric_field":"mysql_global_status_slow_queries",
               "refId":"a",
-              "result_table_id":"exporter_dbm_mysqld_exporter.gstatus",
+              "result_table_id":"exporter_dbm_mysqld_exporter.__default__",
               "result_table_label":"component",
               "time_field":"",
               "where":[
@@ -1159,7 +1159,7 @@
             }
           ],
           "refId":"B",
-          "source":"sum by(command) (rate(bkmonitor:exporter_dbm_mysqld_exporter:gstatus:mysql_global_status_commands_total{cluster_domain=\"$cluster_domain\",instance_role=\"$dbrole\"}[2m]) > 0)",
+          "source":"sum by(command) (rate(bkmonitor:exporter_dbm_mysqld_exporter:__default__:mysql_global_status_commands_total{cluster_domain=\"$cluster_domain\",instance_role=\"$dbrole\"}[2m]) > 0)",
           "step":"",
           "type":"range"
         }
@@ -1309,7 +1309,7 @@
               "method":"AVG",
               "metric_field":"mysql_info_schema_query_response_time_seconds_sum",
               "refId":"a",
-              "result_table_id":"exporter_dbm_mysqld_exporter.resptime",
+              "result_table_id":"exporter_dbm_mysqld_exporter.__default__",
               "result_table_label":"component",
               "time_field":"",
               "where":[
@@ -1357,7 +1357,7 @@
               "method":"AVG",
               "metric_field":"mysql_info_schema_query_response_time_seconds_count",
               "refId":"b",
-              "result_table_id":"exporter_dbm_mysqld_exporter.resptime",
+              "result_table_id":"exporter_dbm_mysqld_exporter.__default__",
               "result_table_label":"component",
               "time_field":"",
               "where":[
@@ -1380,7 +1380,7 @@
             }
           ],
           "refId":"B",
-          "source":"sum(rate(bkmonitor:exporter_dbm_mysqld_exporter:gstatus:mysql_global_status_created_tmp_tables{cluster_domain=\"$cluster_domain\",instance_role=\"$dbrole\"}[2m]))",
+          "source":"sum(rate(bkmonitor:exporter_dbm_mysqld_exporter:__default__:mysql_global_status_created_tmp_tables{cluster_domain=\"$cluster_domain\",instance_role=\"$dbrole\"}[2m]))",
           "step":"",
           "type":"range"
         }
@@ -1534,7 +1534,7 @@
                   "method":"sum_without_time",
                   "metric_field":"mysql_global_status_commands_total",
                   "refId":"a",
-                  "result_table_id":"exporter_dbm_mysqld_exporter.gstatus",
+                  "result_table_id":"exporter_dbm_mysqld_exporter.__default__",
                   "result_table_label":"component",
                   "time_field":"",
                   "where":[
@@ -1557,7 +1557,7 @@
                 }
               ],
               "refId":"B",
-              "source":"sum by(command) (rate(bkmonitor:exporter_dbm_mysqld_exporter:gstatus:mysql_global_status_commands_total{cluster_domain=\"$cluster_domain\",instance_role=\"$dbrole\"}[2m]) > 0)",
+              "source":"sum by(command) (rate(bkmonitor:exporter_dbm_mysqld_exporter:__default__:mysql_global_status_commands_total{cluster_domain=\"$cluster_domain\",instance_role=\"$dbrole\"}[2m]) > 0)",
               "step":"",
               "type":"range"
             }
@@ -1705,7 +1705,7 @@
                   "method":"sum_without_time",
                   "metric_field":"mysql_global_status_handlers_total",
                   "refId":"a",
-                  "result_table_id":"exporter_dbm_mysqld_exporter.gstatus",
+                  "result_table_id":"exporter_dbm_mysqld_exporter.__default__",
                   "result_table_label":"component",
                   "time_field":"",
                   "where":[
@@ -1728,7 +1728,7 @@
                 }
               ],
               "refId":"B",
-              "source":"sum by(handler) (rate(bkmonitor:exporter_dbm_mysqld_exporter:gstatus:mysql_global_status_handlers_total{cluster_domain=\"$cluster_domain\",instance_role=\"$dbrole\",handler!~\"commit|rollback|savepoint.*|prepare\"}[2m]))",
+              "source":"sum by(handler) (rate(bkmonitor:exporter_dbm_mysqld_exporter:__default__:mysql_global_status_handlers_total{cluster_domain=\"$cluster_domain\",instance_role=\"$dbrole\",handler!~\"commit|rollback|savepoint.*|prepare\"}[2m]))",
               "step":"",
               "type":"range"
             }
@@ -1876,7 +1876,7 @@
                   "method":"sum_without_time",
                   "metric_field":"mysql_global_status_handlers_total",
                   "refId":"a",
-                  "result_table_id":"exporter_dbm_mysqld_exporter.gstatus",
+                  "result_table_id":"exporter_dbm_mysqld_exporter.__default__",
                   "result_table_label":"component",
                   "time_field":"",
                   "where":[
@@ -1899,7 +1899,7 @@
                 }
               ],
               "refId":"B",
-              "source":"sum by(handler) (rate(bkmonitor:exporter_dbm_mysqld_exporter:gstatus:mysql_global_status_handlers_total{cluster_domain=\"$cluster_domain\",instance_role=\"$dbrole\",handler=~\"commit|rollback|savepoint.*|prepare\"}[2m]))",
+              "source":"sum by(handler) (rate(bkmonitor:exporter_dbm_mysqld_exporter:__default__:mysql_global_status_handlers_total{cluster_domain=\"$cluster_domain\",instance_role=\"$dbrole\",handler=~\"commit|rollback|savepoint.*|prepare\"}[2m]))",
               "step":"",
               "type":"range"
             }
@@ -2053,7 +2053,7 @@
                   "method":"AVG",
                   "metric_field":"mysql_global_status_questions",
                   "refId":"a",
-                  "result_table_id":"exporter_dbm_mysqld_exporter.gstatus",
+                  "result_table_id":"exporter_dbm_mysqld_exporter.__default__",
                   "result_table_label":"component",
                   "time_field":"",
                   "where":[
@@ -2076,7 +2076,7 @@
                 }
               ],
               "refId":"B",
-              "source":"avg(rate(bkmonitor:exporter_dbm_mysqld_exporter:gstatus:mysql_global_status_questions{cluster_domain=\"$cluster_domain\",instance_role=\"$dbrole\"}[2m]))",
+              "source":"avg(rate(bkmonitor:exporter_dbm_mysqld_exporter:__default__:mysql_global_status_questions{cluster_domain=\"$cluster_domain\",instance_role=\"$dbrole\"}[2m]))",
               "step":"",
               "type":"range"
             }
@@ -2208,7 +2208,7 @@
                   "method":"MAX",
                   "metric_field":"mysql_global_status_threads_connected",
                   "refId":"a",
-                  "result_table_id":"exporter_dbm_mysqld_exporter.gstatus",
+                  "result_table_id":"exporter_dbm_mysqld_exporter.__default__",
                   "result_table_label":"component",
                   "time_field":"",
                   "where":[
@@ -2231,7 +2231,7 @@
                 }
               ],
               "refId":"A",
-              "source":"max(max_over_time(bkmonitor:exporter_dbm_mysqld_exporter:gstatus:mysql_global_status_threads_connected{cluster_domain=~\"$cluster_domain\",instance_role=~\"$dbrole\"}[1m]))",
+              "source":"max(max_over_time(bkmonitor:exporter_dbm_mysqld_exporter:__default__:mysql_global_status_threads_connected{cluster_domain=~\"$cluster_domain\",instance_role=~\"$dbrole\"}[1m]))",
               "step":"",
               "type":"range"
             },
@@ -2260,7 +2260,7 @@
 
               ],
               "refId":"B",
-              "source":"max(max_over_time(bkmonitor:exporter_dbm_mysqld_exporter:gstatus:mysql_global_status_threads_running{cluster_domain=~\"$cluster_domain\",instance_role=~\"$dbrole\"}[1m]))",
+              "source":"max(max_over_time(bkmonitor:exporter_dbm_mysqld_exporter:__default__:mysql_global_status_threads_running{cluster_domain=~\"$cluster_domain\",instance_role=~\"$dbrole\"}[1m]))",
               "step":"",
               "type":"range"
             },
@@ -2289,7 +2289,7 @@
 
               ],
               "refId":"C",
-              "source":"avg(avg_over_time(bkmonitor:exporter_dbm_mysqld_exporter:gstatus:mysql_global_status_threads_running{cluster_domain=~\"$cluster_domain\",instance_role=~\"$dbrole\"}[1m]))",
+              "source":"avg(avg_over_time(bkmonitor:exporter_dbm_mysqld_exporter:__default__:mysql_global_status_threads_running{cluster_domain=~\"$cluster_domain\",instance_role=~\"$dbrole\"}[1m]))",
               "step":"",
               "type":"range"
             }
@@ -2421,7 +2421,7 @@
                   "method":"MAX",
                   "metric_field":"mysql_global_status_threads_connected",
                   "refId":"a",
-                  "result_table_id":"exporter_dbm_mysqld_exporter.gstatus",
+                  "result_table_id":"exporter_dbm_mysqld_exporter.__default__",
                   "result_table_label":"component",
                   "time_field":"",
                   "where":[
@@ -2444,7 +2444,7 @@
                 }
               ],
               "refId":"A",
-              "source":"max(max_over_time(bkmonitor:exporter_dbm_mysqld_exporter:gstatus:mysql_global_status_threads_connected{cluster_domain=~\"$cluster_domain\",instance_role=~\"$dbrole\"}[1m]))",
+              "source":"max(max_over_time(bkmonitor:exporter_dbm_mysqld_exporter:__default__:mysql_global_status_threads_connected{cluster_domain=~\"$cluster_domain\",instance_role=~\"$dbrole\"}[1m]))",
               "step":"",
               "type":"range"
             },
@@ -2473,7 +2473,7 @@
 
               ],
               "refId":"B",
-              "source":"max(max_over_time(bkmonitor:exporter_dbm_mysqld_exporter:gstatus:mysql_global_status_max_used_connections{cluster_domain=~\"$cluster_domain\",instance_role=~\"$dbrole\"}[1m]))",
+              "source":"max(max_over_time(bkmonitor:exporter_dbm_mysqld_exporter:__default__:mysql_global_status_max_used_connections{cluster_domain=~\"$cluster_domain\",instance_role=~\"$dbrole\"}[1m]))",
               "step":"",
               "type":"range"
             },
@@ -2502,7 +2502,7 @@
 
               ],
               "refId":"C",
-              "source":"avg(avg_over_time(bkmonitor:exporter_dbm_mysqld_exporter:gvars:mysql_global_variables_max_connections{cluster_domain=~\"$cluster_domain\",instance_role=~\"$dbrole\"}[1m]))",
+              "source":"avg(avg_over_time(bkmonitor:exporter_dbm_mysqld_exporter:__default__:mysql_global_variables_max_connections{cluster_domain=~\"$cluster_domain\",instance_role=~\"$dbrole\"}[1m]))",
               "step":"",
               "type":"range"
             }
@@ -2634,7 +2634,7 @@
                   "method":"MAX",
                   "metric_field":"mysql_global_status_threads_connected",
                   "refId":"a",
-                  "result_table_id":"exporter_dbm_mysqld_exporter.gstatus",
+                  "result_table_id":"exporter_dbm_mysqld_exporter.__default__",
                   "result_table_label":"component",
                   "time_field":"",
                   "where":[
@@ -2657,7 +2657,7 @@
                 }
               ],
               "refId":"A",
-              "source":"max(max_over_time(bkmonitor:exporter_dbm_mysqld_exporter:gvars:mysql_global_variables_thread_cache_size{cluster_domain=~\"$cluster_domain\",instance_role=~\"$dbrole\"}[1m]))",
+              "source":"max(max_over_time(bkmonitor:exporter_dbm_mysqld_exporter:__default__:mysql_global_variables_thread_cache_size{cluster_domain=~\"$cluster_domain\",instance_role=~\"$dbrole\"}[1m]))",
               "step":"",
               "type":"range"
             },
@@ -2686,7 +2686,7 @@
 
               ],
               "refId":"B",
-              "source":"max(max_over_time(bkmonitor:exporter_dbm_mysqld_exporter:gstatus:mysql_global_status_threads_created{cluster_domain=~\"$cluster_domain\",instance_role=~\"$dbrole\"}[1m]))",
+              "source":"max(max_over_time(bkmonitor:exporter_dbm_mysqld_exporter:__default__:mysql_global_status_threads_created{cluster_domain=~\"$cluster_domain\",instance_role=~\"$dbrole\"}[1m]))",
               "step":"",
               "type":"range"
             },
@@ -2715,7 +2715,7 @@
 
               ],
               "refId":"C",
-              "source":"avg(avg_over_time(bkmonitor:exporter_dbm_mysqld_exporter:gstatus:mysql_global_status_threads_cached{cluster_domain=~\"$cluster_domain\",instance_role=~\"$dbrole\"}[1m]))",
+              "source":"avg(avg_over_time(bkmonitor:exporter_dbm_mysqld_exporter:__default__:mysql_global_status_threads_cached{cluster_domain=~\"$cluster_domain\",instance_role=~\"$dbrole\"}[1m]))",
               "step":"",
               "type":"range"
             }
@@ -2878,7 +2878,7 @@
                   "method":"AVG",
                   "metric_field":"mysql_global_status_innodb_buffer_pool_read_requests",
                   "refId":"a",
-                  "result_table_id":"exporter_dbm_mysqld_exporter.gstatus",
+                  "result_table_id":"exporter_dbm_mysqld_exporter.__default__",
                   "result_table_label":"component",
                   "time_field":"",
                   "where":[
@@ -2926,7 +2926,7 @@
                   "method":"AVG",
                   "metric_field":"mysql_global_status_innodb_buffer_pool_reads",
                   "refId":"b",
-                  "result_table_id":"exporter_dbm_mysqld_exporter.gstatus",
+                  "result_table_id":"exporter_dbm_mysqld_exporter.__default__",
                   "result_table_label":"component",
                   "time_field":"",
                   "where":[
@@ -2974,7 +2974,7 @@
                   "method":"AVG",
                   "metric_field":"mysql_global_status_innodb_buffer_pool_read_requests",
                   "refId":"c",
-                  "result_table_id":"exporter_dbm_mysqld_exporter.gstatus",
+                  "result_table_id":"exporter_dbm_mysqld_exporter.__default__",
                   "result_table_label":"component",
                   "time_field":"",
                   "where":[
@@ -2997,7 +2997,7 @@
                 }
               ],
               "refId":"B",
-              "source":"avg((avg(rate(bkmonitor:exporter_dbm_mysqld_exporter:gstatus:mysql_global_status_innodb_buffer_pool_read_requests{cluster_domain=\"$cluster_domain\",instance_role=\"$dbrole\"}[2m])) - avg(rate(bkmonitor:exporter_dbm_mysqld_exporter:gstatus:mysql_global_status_innodb_buffer_pool_reads{cluster_domain=\"$cluster_domain\",instance_role=\"$dbrole\"}[2m]))) / avg(rate(bkmonitor:exporter_dbm_mysqld_exporter:gstatus:mysql_global_status_innodb_buffer_pool_read_requests{cluster_domain=\"$cluster_domain\",instance_role=\"$dbrole\"}[2m]))) * 100",
+              "source":"avg((avg(rate(bkmonitor:exporter_dbm_mysqld_exporter:__default__:mysql_global_status_innodb_buffer_pool_read_requests{cluster_domain=\"$cluster_domain\",instance_role=\"$dbrole\"}[2m])) - avg(rate(bkmonitor:exporter_dbm_mysqld_exporter:__default__:mysql_global_status_innodb_buffer_pool_reads{cluster_domain=\"$cluster_domain\",instance_role=\"$dbrole\"}[2m]))) / avg(rate(bkmonitor:exporter_dbm_mysqld_exporter:__default__:mysql_global_status_innodb_buffer_pool_read_requests{cluster_domain=\"$cluster_domain\",instance_role=\"$dbrole\"}[2m]))) * 100",
               "step":"",
               "type":"range"
             }
@@ -3146,7 +3146,7 @@
                   "method":"AVG",
                   "metric_field":"mysql_global_status_table_open_cache_hits",
                   "refId":"a",
-                  "result_table_id":"exporter_dbm_mysqld_exporter.gstatus",
+                  "result_table_id":"exporter_dbm_mysqld_exporter.__default__",
                   "result_table_label":"component",
                   "time_field":"",
                   "where":[
@@ -3194,7 +3194,7 @@
                   "method":"AVG",
                   "metric_field":"mysql_global_status_table_open_cache_hits",
                   "refId":"b",
-                  "result_table_id":"exporter_dbm_mysqld_exporter.gstatus",
+                  "result_table_id":"exporter_dbm_mysqld_exporter.__default__",
                   "result_table_label":"component",
                   "time_field":"",
                   "where":[
@@ -3242,7 +3242,7 @@
                   "method":"AVG",
                   "metric_field":"mysql_global_status_table_open_cache_misses",
                   "refId":"c",
-                  "result_table_id":"exporter_dbm_mysqld_exporter.gstatus",
+                  "result_table_id":"exporter_dbm_mysqld_exporter.__default__",
                   "result_table_label":"component",
                   "time_field":"",
                   "where":[
@@ -3265,7 +3265,7 @@
                 }
               ],
               "refId":"B",
-              "source":"avg((avg(rate(bkmonitor:exporter_dbm_mysqld_exporter:gstatus:mysql_global_status_innodb_buffer_pool_read_requests{cluster_domain=\"$cluster_domain\",instance_role=\"$dbrole\"}[2m])) - avg(rate(bkmonitor:exporter_dbm_mysqld_exporter:gstatus:mysql_global_status_innodb_buffer_pool_reads{cluster_domain=\"$cluster_domain\",instance_role=\"$dbrole\"}[2m]))) / avg(rate(bkmonitor:exporter_dbm_mysqld_exporter:gstatus:mysql_global_status_innodb_buffer_pool_read_requests{cluster_domain=\"$cluster_domain\",instance_role=\"$dbrole\"}[2m]))) * 100",
+              "source":"avg((avg(rate(bkmonitor:exporter_dbm_mysqld_exporter:__default__:mysql_global_status_innodb_buffer_pool_read_requests{cluster_domain=\"$cluster_domain\",instance_role=\"$dbrole\"}[2m])) - avg(rate(bkmonitor:exporter_dbm_mysqld_exporter:__default__:mysql_global_status_innodb_buffer_pool_reads{cluster_domain=\"$cluster_domain\",instance_role=\"$dbrole\"}[2m]))) / avg(rate(bkmonitor:exporter_dbm_mysqld_exporter:__default__:mysql_global_status_innodb_buffer_pool_read_requests{cluster_domain=\"$cluster_domain\",instance_role=\"$dbrole\"}[2m]))) * 100",
               "step":"",
               "type":"range"
             }
@@ -3420,7 +3420,7 @@
                   "method":"AVG",
                   "metric_field":"mysql_info_schema_query_response_time_seconds_bucket",
                   "refId":"a",
-                  "result_table_id":"exporter_dbm_mysqld_exporter.resptime",
+                  "result_table_id":"exporter_dbm_mysqld_exporter.__default__",
                   "result_table_label":"component",
                   "time_field":"",
                   "where":[
@@ -3443,7 +3443,7 @@
                 }
               ],
               "refId":"B",
-              "source":"sum(rate(bkmonitor:exporter_dbm_mysqld_exporter:gstatus:mysql_global_status_created_tmp_tables{cluster_domain=\"$cluster_domain\",instance_role=\"$dbrole\"}[2m]))",
+              "source":"sum(rate(bkmonitor:exporter_dbm_mysqld_exporter:__default__:mysql_global_status_created_tmp_tables{cluster_domain=\"$cluster_domain\",instance_role=\"$dbrole\"}[2m]))",
               "step":"",
               "type":"range"
             }
@@ -3595,7 +3595,7 @@
                   "method":"AVG",
                   "metric_field":"mysql_info_schema_query_response_time_seconds_sum",
                   "refId":"a",
-                  "result_table_id":"exporter_dbm_mysqld_exporter.resptime",
+                  "result_table_id":"exporter_dbm_mysqld_exporter.__default__",
                   "result_table_label":"component",
                   "time_field":"",
                   "where":[
@@ -3643,7 +3643,7 @@
                   "method":"AVG",
                   "metric_field":"mysql_info_schema_query_response_time_seconds_count",
                   "refId":"b",
-                  "result_table_id":"exporter_dbm_mysqld_exporter.resptime",
+                  "result_table_id":"exporter_dbm_mysqld_exporter.__default__",
                   "result_table_label":"component",
                   "time_field":"",
                   "where":[
@@ -3666,7 +3666,7 @@
                 }
               ],
               "refId":"B",
-              "source":"sum(rate(bkmonitor:exporter_dbm_mysqld_exporter:gstatus:mysql_global_status_created_tmp_tables{cluster_domain=\"$cluster_domain\",instance_role=\"$dbrole\"}[2m]))",
+              "source":"sum(rate(bkmonitor:exporter_dbm_mysqld_exporter:__default__:mysql_global_status_created_tmp_tables{cluster_domain=\"$cluster_domain\",instance_role=\"$dbrole\"}[2m]))",
               "step":"",
               "type":"range"
             }
@@ -3824,7 +3824,7 @@
                   "method":"SUM",
                   "metric_field":"mysql_global_status_opened_files",
                   "refId":"a",
-                  "result_table_id":"exporter_dbm_mysqld_exporter.gstatus",
+                  "result_table_id":"exporter_dbm_mysqld_exporter.__default__",
                   "result_table_label":"component",
                   "time_field":"",
                   "where":[
@@ -3847,7 +3847,7 @@
                 }
               ],
               "refId":"B",
-              "source":"sum by(command) (rate(bkmonitor:exporter_dbm_mysqld_exporter:gstatus:mysql_global_status_commands_total{cluster_domain=\"$cluster_domain\",command=~\"select|insert|update|delete|replace|commit\",instance_role=\"$dbrole\"}[2m])) >0",
+              "source":"sum by(command) (rate(bkmonitor:exporter_dbm_mysqld_exporter:__default__:mysql_global_status_commands_total{cluster_domain=\"$cluster_domain\",command=~\"select|insert|update|delete|replace|commit\",instance_role=\"$dbrole\"}[2m])) >0",
               "step":"",
               "type":"range"
             }
@@ -4040,7 +4040,7 @@
                   "method":"SUM",
                   "metric_field":"mysql_global_status_innodb_num_open_files",
                   "refId":"b",
-                  "result_table_id":"exporter_dbm_mysqld_exporter.gstatus",
+                  "result_table_id":"exporter_dbm_mysqld_exporter.__default__",
                   "result_table_label":"component",
                   "time_field":"",
                   "where":[
@@ -4063,7 +4063,7 @@
                 }
               ],
               "refId":"B",
-              "source":"sum by(command) (rate(bkmonitor:exporter_dbm_mysqld_exporter:gstatus:mysql_global_status_commands_total{cluster_domain=\"$cluster_domain\",command=~\"select|insert|update|delete|replace|commit\",instance_role=\"$dbrole\"}[2m])) >0",
+              "source":"sum by(command) (rate(bkmonitor:exporter_dbm_mysqld_exporter:__default__:mysql_global_status_commands_total{cluster_domain=\"$cluster_domain\",command=~\"select|insert|update|delete|replace|commit\",instance_role=\"$dbrole\"}[2m])) >0",
               "step":"",
               "type":"range"
             },
@@ -4108,7 +4108,7 @@
                   "method":"AVG",
                   "metric_field":"mysql_global_variables_open_files_limit",
                   "refId":"a",
-                  "result_table_id":"exporter_dbm_mysqld_exporter.gvars",
+                  "result_table_id":"exporter_dbm_mysqld_exporter.__default__",
                   "result_table_label":"component",
                   "time_field":"",
                   "where":[
@@ -4276,7 +4276,7 @@
                   "method":"SUM",
                   "metric_field":"mysql_global_status_open_table_definitions",
                   "refId":"a",
-                  "result_table_id":"exporter_dbm_mysqld_exporter.gstatus",
+                  "result_table_id":"exporter_dbm_mysqld_exporter.__default__",
                   "result_table_label":"component",
                   "time_field":"",
                   "where":[
@@ -4324,7 +4324,7 @@
                   "method":"SUM",
                   "metric_field":"mysql_global_status_opened_table_definitions",
                   "refId":"b",
-                  "result_table_id":"exporter_dbm_mysqld_exporter.gstatus",
+                  "result_table_id":"exporter_dbm_mysqld_exporter.__default__",
                   "result_table_label":"component",
                   "time_field":"",
                   "where":[
@@ -4347,7 +4347,7 @@
                 }
               ],
               "refId":"B",
-              "source":"sum by(command) (rate(bkmonitor:exporter_dbm_mysqld_exporter:gstatus:mysql_global_status_commands_total{cluster_domain=\"$cluster_domain\",command=~\"select|insert|update|delete|replace|commit\",instance_role=\"$dbrole\"}[2m])) >0",
+              "source":"sum by(command) (rate(bkmonitor:exporter_dbm_mysqld_exporter:__default__:mysql_global_status_commands_total{cluster_domain=\"$cluster_domain\",command=~\"select|insert|update|delete|replace|commit\",instance_role=\"$dbrole\"}[2m])) >0",
               "step":"",
               "type":"range"
             },
@@ -4392,7 +4392,7 @@
                   "method":"AVG",
                   "metric_field":"mysql_global_variables_table_definition_cache",
                   "refId":"a",
-                  "result_table_id":"exporter_dbm_mysqld_exporter.gvars",
+                  "result_table_id":"exporter_dbm_mysqld_exporter.__default__",
                   "result_table_label":"component",
                   "time_field":"",
                   "where":[
@@ -4560,7 +4560,7 @@
                   "method":"SUM",
                   "metric_field":"mysql_global_status_open_tables",
                   "refId":"a",
-                  "result_table_id":"exporter_dbm_mysqld_exporter.gstatus",
+                  "result_table_id":"exporter_dbm_mysqld_exporter.__default__",
                   "result_table_label":"component",
                   "time_field":"",
                   "where":[
@@ -4608,7 +4608,7 @@
                   "method":"SUM",
                   "metric_field":"mysql_global_variables_table_open_cache",
                   "refId":"b",
-                  "result_table_id":"exporter_dbm_mysqld_exporter.gvars",
+                  "result_table_id":"exporter_dbm_mysqld_exporter.__default__",
                   "result_table_label":"component",
                   "time_field":"",
                   "where":[
@@ -4631,7 +4631,7 @@
                 }
               ],
               "refId":"B",
-              "source":"sum by(command) (rate(bkmonitor:exporter_dbm_mysqld_exporter:gstatus:mysql_global_status_commands_total{cluster_domain=\"$cluster_domain\",command=~\"select|insert|update|delete|replace|commit\",instance_role=\"$dbrole\"}[2m])) >0",
+              "source":"sum by(command) (rate(bkmonitor:exporter_dbm_mysqld_exporter:__default__:mysql_global_status_commands_total{cluster_domain=\"$cluster_domain\",command=~\"select|insert|update|delete|replace|commit\",instance_role=\"$dbrole\"}[2m])) >0",
               "step":"",
               "type":"range"
             }
@@ -4789,7 +4789,7 @@
                   "method":"SUM",
                   "metric_field":"mysql_global_status_created_tmp_tables",
                   "refId":"a",
-                  "result_table_id":"exporter_dbm_mysqld_exporter.gstatus",
+                  "result_table_id":"exporter_dbm_mysqld_exporter.__default__",
                   "result_table_label":"component",
                   "time_field":"",
                   "where":[
@@ -4837,7 +4837,7 @@
                   "method":"SUM",
                   "metric_field":"mysql_global_status_created_tmp_disk_tables",
                   "refId":"b",
-                  "result_table_id":"exporter_dbm_mysqld_exporter.gstatus",
+                  "result_table_id":"exporter_dbm_mysqld_exporter.__default__",
                   "result_table_label":"component",
                   "time_field":"",
                   "where":[
@@ -4885,7 +4885,7 @@
                   "method":"SUM",
                   "metric_field":"mysql_global_status_created_tmp_files",
                   "refId":"c",
-                  "result_table_id":"exporter_dbm_mysqld_exporter.gstatus",
+                  "result_table_id":"exporter_dbm_mysqld_exporter.__default__",
                   "result_table_label":"component",
                   "time_field":"",
                   "where":[
@@ -4908,7 +4908,7 @@
                 }
               ],
               "refId":"B",
-              "source":"sum(rate(bkmonitor:exporter_dbm_mysqld_exporter:gstatus:mysql_global_status_created_tmp_tables{cluster_domain=\"$cluster_domain\",instance_role=\"$dbrole\"}[2m]))",
+              "source":"sum(rate(bkmonitor:exporter_dbm_mysqld_exporter:__default__:mysql_global_status_created_tmp_tables{cluster_domain=\"$cluster_domain\",instance_role=\"$dbrole\"}[2m]))",
               "step":"",
               "type":"range"
             }
@@ -5052,7 +5052,7 @@
                   "method":"SUM",
                   "metric_field":"mysql_global_status_select_full_join",
                   "refId":"a",
-                  "result_table_id":"exporter_dbm_mysqld_exporter.gstatus",
+                  "result_table_id":"exporter_dbm_mysqld_exporter.__default__",
                   "result_table_label":"component",
                   "time_field":"",
                   "where":[
@@ -5100,7 +5100,7 @@
                   "method":"SUM",
                   "metric_field":"mysql_global_status_select_full_range_join",
                   "refId":"b",
-                  "result_table_id":"exporter_dbm_mysqld_exporter.gstatus",
+                  "result_table_id":"exporter_dbm_mysqld_exporter.__default__",
                   "result_table_label":"component",
                   "time_field":"",
                   "where":[
@@ -5123,7 +5123,7 @@
                 }
               ],
               "refId":"B",
-              "source":"sum(rate(bkmonitor:exporter_dbm_mysqld_exporter:gstatus:mysql_global_status_created_tmp_tables{cluster_domain=\"$cluster_domain\",instance_role=\"$dbrole\"}[2m]))",
+              "source":"sum(rate(bkmonitor:exporter_dbm_mysqld_exporter:__default__:mysql_global_status_created_tmp_tables{cluster_domain=\"$cluster_domain\",instance_role=\"$dbrole\"}[2m]))",
               "step":"",
               "type":"range"
             }
@@ -5273,7 +5273,7 @@
                   "method":"AVG",
                   "metric_field":"mysql_datadir_du_used_mb",
                   "refId":"a",
-                  "result_table_id":"exporter_dbm_mysqld_exporter.datasize",
+                  "result_table_id":"exporter_dbm_mysqld_exporter.__default__",
                   "result_table_label":"component",
                   "time_field":"",
                   "where":[
@@ -5421,7 +5421,7 @@
                   "method":"AVG",
                   "metric_field":"mysql_datadir_du_used_mb",
                   "refId":"a",
-                  "result_table_id":"exporter_dbm_mysqld_exporter.datasize",
+                  "result_table_id":"exporter_dbm_mysqld_exporter.__default__",
                   "result_table_label":"component",
                   "time_field":"",
                   "where":[
@@ -5453,7 +5453,7 @@
                   "method":"AVG",
                   "metric_field":"mysql_datadir_df_total_mb",
                   "refId":"b",
-                  "result_table_id":"exporter_dbm_mysqld_exporter.datasize",
+                  "result_table_id":"exporter_dbm_mysqld_exporter.__default__",
                   "result_table_label":"component",
                   "time_field":"",
                   "where":[
@@ -5600,7 +5600,7 @@
                   "method":"AVG",
                   "metric_field":"mysql_info_schema_total_size",
                   "refId":"a",
-                  "result_table_id":"exporter_dbm_mysqld_exporter.tablesize",
+                  "result_table_id":"exporter_dbm_mysqld_exporter.__default__",
                   "result_table_label":"component",
                   "time_field":"",
                   "where":[
@@ -5755,7 +5755,7 @@
                   "method":"SUM",
                   "metric_field":"mysql_info_schema_table_size",
                   "refId":"a",
-                  "result_table_id":"exporter_dbm_mysqld_exporter.tablesize",
+                  "result_table_id":"exporter_dbm_mysqld_exporter.__default__",
                   "result_table_label":"component",
                   "time_field":"",
                   "where":[
@@ -5811,7 +5811,7 @@
                   "method":"SUM",
                   "metric_field":"mysql_info_schema_table_size",
                   "refId":"b",
-                  "result_table_id":"exporter_dbm_mysqld_exporter.tablesize",
+                  "result_table_id":"exporter_dbm_mysqld_exporter.__default__",
                   "result_table_label":"component",
                   "time_field":"",
                   "where":[
@@ -5998,7 +5998,7 @@
                   "method":"AVG",
                   "metric_field":"mysql_info_schema_processlist_threads",
                   "refId":"a",
-                  "result_table_id":"exporter_dbm_mysqld_exporter.plist",
+                  "result_table_id":"exporter_dbm_mysqld_exporter.__default__",
                   "result_table_label":"component",
                   "time_field":"",
                   "where":[
@@ -6154,7 +6154,7 @@
                   "method":"SUM",
                   "metric_field":"mysql_info_schema_processlist_processes_by_user",
                   "refId":"a",
-                  "result_table_id":"exporter_dbm_mysqld_exporter.plist",
+                  "result_table_id":"exporter_dbm_mysqld_exporter.__default__",
                   "result_table_label":"component",
                   "time_field":"",
                   "where":[
@@ -6334,7 +6334,7 @@
                   "method":"AVG",
                   "metric_field":"mysql_info_schema_auto_increment_column",
                   "refId":"a",
-                  "result_table_id":"exporter_dbm_mysqld_exporter.tableincr",
+                  "result_table_id":"exporter_dbm_mysqld_exporter.__default__",
                   "result_table_label":"component",
                   "time_field":"",
                   "where":[
@@ -6377,7 +6377,7 @@
                   "method":"AVG",
                   "metric_field":"mysql_info_schema_auto_increment_column_max",
                   "refId":"b",
-                  "result_table_id":"exporter_dbm_mysqld_exporter.tableincr",
+                  "result_table_id":"exporter_dbm_mysqld_exporter.__default__",
                   "result_table_label":"component",
                   "time_field":"",
                   "where":[
@@ -6532,7 +6532,7 @@
                   "method":"AVG",
                   "metric_field":"mysql_engine_innodb_trx_idle_time_max",
                   "refId":"a",
-                  "result_table_id":"exporter_dbm_mysqld_exporter.innodbtrx",
+                  "result_table_id":"exporter_dbm_mysqld_exporter.__default__",
                   "result_table_label":"component",
                   "time_field":"",
                   "where":[
@@ -6679,7 +6679,7 @@
                   "method":"AVG",
                   "metric_field":"mysql_engine_innodb_trx_count",
                   "refId":"a",
-                  "result_table_id":"exporter_dbm_mysqld_exporter.innodbtrx",
+                  "result_table_id":"exporter_dbm_mysqld_exporter.__default__",
                   "result_table_label":"component",
                   "time_field":"",
                   "where":[
@@ -8214,9 +8214,9 @@
         "definition":"- Blueking Monitor - 维度",
         "hide":0,
         "includeAll":false,
-        "label":"app_id",
+        "label":"app",
         "multi":false,
-        "name":"app_id",
+        "name":"app",
         "options":[
 
         ],
@@ -8226,7 +8226,7 @@
             "data_type_label":"time_series",
             "group_by":"app",
             "metric_field":"mysql_up",
-            "result_table_id":"exporter_dbm_mysqld_exporter.mysqlup",
+            "result_table_id":"exporter_dbm_mysqld_exporter.__default__",
             "result_table_label":"component",
             "where":[
 
@@ -8264,14 +8264,14 @@
             "data_type_label":"time_series",
             "group_by":"cluster_domain",
             "metric_field":"mysql_up",
-            "result_table_id":"exporter_dbm_mysqld_exporter.mysqlup",
+            "result_table_id":"exporter_dbm_mysqld_exporter.__default__",
             "result_table_label":"component",
             "where":[
               {
                 "key":"app",
                 "method":"eq",
                 "value":[
-                  "$app_id"
+                  "$app"
                 ]
               },
               {
@@ -8285,7 +8285,7 @@
             ]
           },
           "queryType":"dimension",
-          "variables":"$app_id"
+          "variables":"$app"
         },
         "refresh":1,
         "regex":"",
@@ -8317,7 +8317,7 @@
             "data_type_label":"time_series",
             "group_by":"instance",
             "metric_field":"mysql_up",
-            "result_table_id":"exporter_dbm_mysqld_exporter.mysqlup",
+            "result_table_id":"exporter_dbm_mysqld_exporter.__default__",
             "result_table_label":"component",
             "where":[
               {
@@ -8370,7 +8370,7 @@
             "data_type_label":"time_series",
             "group_by":"instance_host",
             "metric_field":"mysql_up",
-            "result_table_id":"exporter_dbm_mysqld_exporter.mysqlup",
+            "result_table_id":"exporter_dbm_mysqld_exporter.__default__",
             "result_table_label":"component",
             "where":[
               {
@@ -8422,7 +8422,7 @@
             "data_type_label":"time_series",
             "group_by":"schema",
             "metric_field":"mysql_info_schema_total_size",
-            "result_table_id":"exporter_dbm_mysqld_exporter.tablesize",
+            "result_table_id":"exporter_dbm_mysqld_exporter.__default__",
             "result_table_label":"component",
             "where":[
               {

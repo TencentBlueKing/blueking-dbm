@@ -6,7 +6,6 @@ metadata:
   labels:
     {{- include "dbm.labels" . | nindent 4 }}
 spec:
-  backoffLimit: 0
   template:
     metadata:
       labels:
@@ -25,7 +24,7 @@ spec:
             - /bin/bash
             - -c
           args:
-            - "python manage.py migrate && python manage.py migrate --database=report_db && python manage.py createcachetable django_cache"
+            - "python manage.py migrate db_report --database=report_db && python manage.py migrate && python manage.py createcachetable django_cache"
           env: 
             {{- include "dbm.envs" . | trim | nindent 12 }}
           envFrom:
@@ -34,5 +33,5 @@ spec:
                 name: {{ .Values.extraEnvVarsCM }}
             {{- end }}
           resources:
-            {{- toYaml .Values.resources | nindent 12 }}
+            {{- toYaml .Values.initJob.resources | nindent 12 }}
 {{- end }}

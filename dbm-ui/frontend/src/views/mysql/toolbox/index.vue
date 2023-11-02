@@ -12,9 +12,6 @@
 -->
 
 <template>
-  <MainBreadcrumbs>
-    <span class="custom-breadcrumbs">{{ $t('MySQL_工具箱') }}</span>
-  </MainBreadcrumbs>
   <BkResizeLayout
     :border="false"
     class="toolbox"
@@ -33,8 +30,6 @@
 <script setup lang="ts">
   import { useMainViewStore } from '@stores';
 
-  import MainBreadcrumbs from '@components/layouts/MainBreadcrumbs.vue';
-
   import ToolboxContent from './components/ToolboxContent.vue';
   import ToolboxSide from './components/ToolboxSide.vue';
 
@@ -46,7 +41,9 @@
       mainViewStore.hasPadding = false;
       mainViewStore.customBreadcrumbs = true;
     }
-  }, { immediate: true });
+  }, {
+    immediate: true,
+  });
 </script>
 
 <style lang="less" scoped>

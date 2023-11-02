@@ -46,13 +46,11 @@
         {{ item.displayName }}
       </BkTag>
       <BkPopover
+        v-if="overflowData.length > 0"
         placement="top"
-        render-type="auto"
         theme="light"
-        width="400px">
-        <BkTag
-          v-if="overflowData.length > 0"
-          class="overflow-collapse-tag">
+        width="400">
+        <BkTag class="overflow-collapse-tag">
           +{{ overflowData.length }}
         </BkTag>
         <template #content>

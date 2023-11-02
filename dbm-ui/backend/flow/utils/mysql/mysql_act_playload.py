@@ -792,7 +792,7 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
                 "general": {"runtime_account": {**mysql_count, **proxy_count}},
                 "extend": {
                     "host": kwargs["ip"],
-                    "is_safe": self.ticket_data["is_safe"],
+                    "slave_delay_check": self.ticket_data["is_check_delay"],
                     "is_dead_master": self.ticket_data["is_dead_master"],
                     "grant_repl": self.ticket_data["grant_repl"],
                     "locked_switch": self.ticket_data["locked_switch"],
@@ -944,14 +944,20 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
         """
         数据校验
         """
-        db_patterns = [
-            ele if ele.endswith("%") or ele == "*" else "{}_{}".format(ele, self.ticket_data["shard_id"])
-            for ele in self.ticket_data["db_patterns"]
-        ]
-        ignore_dbs = [
-            ele if ele.endswith("%") or ele == "*" else "{}_{}".format(ele, self.ticket_data["shard_id"])
-            for ele in self.ticket_data["ignore_dbs"]
-        ]
+        db_patterns = []
+        ignore_dbs = []
+        if self.ticket_data["ticket_type"] == TicketType.TENDBCLUSTER_CHECKSUM:
+            db_patterns = [
+                ele if ele.endswith("%") or ele == "*" else "{}_{}".format(ele, self.ticket_data["shard_id"])
+                for ele in self.ticket_data["db_patterns"]
+            ]
+            ignore_dbs = [
+                ele if ele.endswith("%") or ele == "*" else "{}_{}".format(ele, self.ticket_data["shard_id"])
+                for ele in self.ticket_data["ignore_dbs"]
+            ]
+        elif self.ticket_data["ticket_type"] == TicketType.MYSQL_CHECKSUM:
+            db_patterns = self.ticket_data["db_patterns"]
+            ignore_dbs = self.ticket_data["ignore_dbs"]
         return {
             "db_type": DBActuatorTypeEnum.MySQL.value,
             "action": DBActuatorActionEnum.Checksum.value,
@@ -1749,6 +1755,7 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
         else:
             binlog_files = self.cluster["binlog_files"]
             backup_time = self.cluster["backup_time"]
+        binlog_files_list = binlog_files.split(",")
         payload = {
             "db_type": DBActuatorTypeEnum.MySQL.value,
             "action": DBActuatorActionEnum.RecoverBinlog.value,
@@ -1757,7 +1764,7 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
                 "extend": {
                     "work_dir": self.cluster["file_target_path"],
                     "binlog_dir": self.cluster["file_target_path"],
-                    "binlog_files": binlog_files,
+                    "binlog_files": binlog_files_list,
                     "tgt_instance": {
                         "host": kwargs["ip"],
                         "port": self.cluster["rollback_port"],

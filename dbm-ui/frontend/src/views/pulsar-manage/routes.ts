@@ -37,8 +37,24 @@ const routes: RouteRecordRaw[] = [
       routeParentName: MainViewRouteNames.Database,
       navName: t('Pulsar集群管理'),
       isMenu: true,
+      activeMenu: 'PulsarManage',
+    },
+    redirect: {
+      name: 'PulsarList',
     },
     component: () => import('@views/pulsar-manage/Index.vue'),
+    children: [
+      {
+        name: 'PulsarList',
+        path: 'list',
+        meta: {
+          routeParentName: MainViewRouteNames.Database,
+          navName: t('Pulsar集群管理'),
+          activeMenu: 'PulsarManage',
+        },
+        component: () => import('@views/pulsar-manage/list/Index.vue'),
+      },
+    ],
   },
 ];
 

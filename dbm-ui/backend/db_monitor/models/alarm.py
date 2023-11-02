@@ -10,10 +10,12 @@ specific language governing permissions and limitations under the License.
 """
 import copy
 import datetime
+import json
 import logging
 from collections import defaultdict
 
 from django.db import models
+from django.db.models import Count
 from django.utils.translation import gettext_lazy as _
 
 from backend import env
@@ -42,7 +44,7 @@ from backend.db_monitor.exceptions import (
     BuiltInNotAllowDeleteException,
 )
 from backend.db_monitor.tasks import update_app_policy
-from backend.exceptions import ApiError
+from backend.exceptions import ApiError, ApiResultError
 
 __all__ = ["NoticeGroup", "AlertRule", "RuleTemplate", "DispatchGroup", "MonitorPolicy", "DutyRule"]
 
@@ -59,19 +61,17 @@ class NoticeGroup(AuditedModel):
     db_type = models.CharField(_("数据库类型"), choices=DBType.get_choices(), max_length=LEN_SHORT, default="")
     receivers = models.JSONField(_("告警接收人员/组列表"), default=dict)
     details = models.JSONField(verbose_name=_("通知方式详情"), default=dict)
-    # is_synced = models.BooleanField(verbose_name=_("是否已同步到监控"), default=False)
     is_built_in = models.BooleanField(verbose_name=_("是否内置"), default=False)
     sync_at = models.DateTimeField(_("最近一次的同步时间"), null=True)
     dba_sync = models.BooleanField(help_text=_("自动同步DBA人员配置"), default=True)
 
     class Meta:
-        verbose_name = _("告警通知组")
-        verbose_name_plural = verbose_name
+        verbose_name_plural = verbose_name = _("告警通知组")
+        unique_together = ("bk_biz_id", "name")
 
     @classmethod
     def get_monitor_groups(cls, db_type=None, group_ids=None, **kwargs):
         """查询监控告警组id"""
-
         qs = cls.objects.all()
 
         if db_type:
@@ -87,32 +87,18 @@ class NoticeGroup(AuditedModel):
         return list(qs.values_list("monitor_group_id", flat=True))
 
     @classmethod
-    def get_notify_groups(cls, group_ids, **kwargs):
-        """查询告警组id"""
-
-        qs = cls.objects.filter(monitor_group_id__in=group_ids)
-
-        # is_built_in/bk_biz_id等
-        if kwargs:
-            qs = qs.filter(**kwargs)
-
-        return list(qs.values_list("id", flat=True))
-
-    @classmethod
     def get_groups(cls, bk_biz_id, id_name="monitor_group_id") -> dict:
         """业务内置"""
         return dict(cls.objects.filter(bk_biz_id=bk_biz_id, is_built_in=True).values_list("db_type", id_name))
 
-    def save(self, *args, **kwargs):
-        """
-        保存告警组
-        """
+    def save_monitor_group(self) -> int:
         # 深拷贝保存用户组的模板
         save_monitor_group_params = copy.deepcopy(BK_MONITOR_SAVE_USER_GROUP_TEMPLATE)
         # 更新差异字段
+        bk_monitor_group_name = f"{self.name}_{self.bk_biz_id}"
         save_monitor_group_params.update(
             {
-                "name": f"{self.name}_{self.bk_biz_id}",
+                "name": bk_monitor_group_name,
                 "alert_notice": self.details.get("alert_notice") or DEFAULT_ALERT_NOTICE,
                 "bk_biz_id": env.DBA_APP_BK_BIZ_ID,
             }
@@ -157,9 +143,24 @@ class NoticeGroup(AuditedModel):
         if self.monitor_group_id:
             save_monitor_group_params["id"] = self.monitor_group_id
         # 调用监控接口写入
-        resp = BKMonitorV3Api.save_user_group(save_monitor_group_params)
-        self.monitor_group_id = resp["id"]
+        try:
+            resp = BKMonitorV3Api.save_user_group(save_monitor_group_params)
+        except ApiResultError:
+            # 告警组重名的情况下，匹配告警组名称，获取 id 进行更新
+            bk_monitor_groups = BKMonitorV3Api.search_user_groups({"bk_biz_ids": [env.DBA_APP_BK_BIZ_ID]})
+            for group in bk_monitor_groups:
+                if group["name"] == bk_monitor_group_name:
+                    save_monitor_group_params["id"] = group["id"]
+                    break
+            resp = BKMonitorV3Api.save_user_group(save_monitor_group_params)
+        self.sync_at = datetime.datetime.now()
+        return resp["id"]
 
+    def save(self, *args, **kwargs):
+        """
+        保存告警组
+        """
+        self.monitor_group_id = self.save_monitor_group()
         if self.is_built_in:
             # 更新业务策略绑定的告警组
             update_app_policy.delay(self.bk_biz_id, self.id, self.db_type)
@@ -269,16 +270,24 @@ class DutyRule(AuditedModel):
                     "group_number": self.duty_arranges[0]["duty_number"],
                 }
             )
-        # 判断是否存量的轮值规则
+        #  2. 判断是否存量的轮值规则，如果是，则走更新流程
         is_old_rule = bool(self.monitor_duty_rule_id)
-        if is_old_rule:
+        if bool(self.monitor_duty_rule_id):
             params["id"] = self.monitor_duty_rule_id
         resp = BKMonitorV3Api.save_duty_rule(params)
         self.monitor_duty_rule_id = resp["id"]
-        # 2. 保存本地轮值规则
+        # 3. 判断是否需要变更用户组
+        # 3.1 非老规则（即新建的规则）
+        need_update_user_group = not is_old_rule
+        # 3.2 调整了优先级的规则
+        if self.pk:
+            old_rule = DutyRule.objects.get(pk=self.pk)
+            if old_rule.priority != self.priority:
+                need_update_user_group = True
+        # 4. 保存本地轮值规则
         super().save(*args, **kwargs)
-        # 3. 如果是新增的轮值，则还需要把新的轮值规则绑定到内置告警组中
-        if not is_old_rule:
+        # 5. 变更告警组
+        if need_update_user_group:
             for notice_group in NoticeGroup.objects.filter(is_built_in=True, db_type=self.db_type):
                 notice_group.save()
 
@@ -286,9 +295,12 @@ class DutyRule(AuditedModel):
         BKMonitorV3Api.delete_duty_rules({"ids": [self.monitor_duty_rule_id], "bk_biz_ids": [env.DBA_APP_BK_BIZ_ID]})
         super().delete()
 
+    @classmethod
+    def priority_distinct(cls) -> list:
+        return list(cls.objects.values_list("priority", flat=True).distinct().order_by("-priority"))
+
     class Meta:
-        verbose_name = _("轮值规则")
-        verbose_name_plural = verbose_name
+        verbose_name_plural = verbose_name = _("轮值规则")
 
 
 class RuleTemplate(AuditedModel):
@@ -391,7 +403,7 @@ class DispatchGroup(AuditedModel):
 
         # 业务级分派策略
         if bk_biz_id != PLAT_BIZ_ID:
-            conditions.append({"field": "app_id", "value": [str(bk_biz_id)], "method": "eq", "condition": "and"})
+            conditions.append({"field": "appid", "value": [str(bk_biz_id)], "method": "eq", "condition": "and"})
 
         return {
             "user_groups": [user_groups.get(db_type)],
@@ -472,7 +484,7 @@ class MonitorPolicy(AuditedModel):
     # {
     #     "agg_condition": [
     #         {
-    #             "key": "app_id",
+    #             "key": "appid",
     #             "dimension_name": "dbm_meta app id",
     #             "value": [
     #                 "2"
@@ -500,7 +512,7 @@ class MonitorPolicy(AuditedModel):
     #         },
     #     ]
     # }
-    # [{"level": platform, "rule":{"key": "app_id/db_module/cluster_domain", "value": ["aa", "bb"]}}]
+    # [{"level": platform, "rule":{"key": "appid/db_module/cluster_domain", "value": ["aa", "bb"]}}]
     targets = models.JSONField(verbose_name=_("监控目标"), default=list)
     target_level = models.CharField(
         verbose_name=_("监控目标级别，跟随targets调整"),
@@ -510,6 +522,9 @@ class MonitorPolicy(AuditedModel):
     )
     target_priority = models.PositiveIntegerField(verbose_name=_("监控策略优先级，跟随targets调整"))
     target_keyword = models.TextField(verbose_name=_("监控目标检索冗余字段"), default="")
+
+    # [{"key": "abc", "method": "eq", "value": ["aa", "bb"], "condition": "and", "dimension_name": "abc"}]
+    custom_conditions = models.JSONField(verbose_name=_("自定义过滤列表"), default=list)
 
     # Type 目前仅支持 Threshold
     # level: 1（致命）、2（预警）、3(提醒)
@@ -606,20 +621,25 @@ class MonitorPolicy(AuditedModel):
         bkm_dbm_report = SystemSettings.get_setting_value(key=SystemSettingsEnum.BKM_DBM_REPORT.value)
 
         items = details["items"]
+        # 事件类告警，无需设置告警目标，否则要求上报的数据必须携带服务实例id（告警目标匹配依据）
         for item in items:
             # 更新监控目标为db_type对应的cmdb拓扑
-            item["target"] = [
+            item["target"] = (
                 [
-                    {
-                        "field": "host_topo_node",
-                        "method": "eq",
-                        "value": [
-                            {"bk_inst_id": obj["bk_set_id"], "bk_obj_id": "set"}
-                            for obj in AppMonitorTopo.get_set_by_dbtype(db_type=self.db_type)
-                        ],
-                    }
+                    [
+                        {
+                            "field": "host_topo_node",
+                            "method": "eq",
+                            "value": [
+                                {"bk_inst_id": obj["bk_set_id"], "bk_obj_id": "set"}
+                                for obj in AppMonitorTopo.get_set_by_dbtype(db_type=self.db_type)
+                            ],
+                        }
+                    ]
                 ]
-            ]
+                if self.alert_source == AlertSourceEnum.TIME_SERIES.value
+                else []
+            )
 
             for query_config in item["query_configs"]:
                 # data_type_label: time_series | event(自定义上报，需要填充data_id)
@@ -690,10 +710,13 @@ class MonitorPolicy(AuditedModel):
             for query_config in item["query_configs"]:
                 if "agg_condition" in query_config:
                     # remove same type conditions
+                    exclude_keys = list(map(lambda x: x["key"], self.custom_conditions)) + TargetLevel.get_values()
                     query_config_agg_condition = list(
-                        filter(lambda cond: cond["key"] not in TargetLevel.get_values(), query_config["agg_condition"])
+                        filter(lambda cond: cond["key"] not in exclude_keys, query_config["agg_condition"])
                     )
                     query_config_agg_condition.extend(agg_conditions)
+                    query_config_agg_condition.extend(self.custom_conditions)
+
                     # overwrite agg_condition
                     query_config["agg_condition"] = query_config_agg_condition
                 else:
@@ -790,8 +813,8 @@ class MonitorPolicy(AuditedModel):
         super().save(force_insert, force_update, using, update_fields)
 
     def delete(self, using=None, keep_parents=False):
-        if self.bk_biz_id == PLAT_BIZ_ID:
-            raise BuiltInNotAllowDeleteException
+        # if self.bk_biz_id == PLAT_BIZ_ID:
+        #     raise BuiltInNotAllowDeleteException
 
         if self.monitor_policy_id:
             self.bkm_delete_alarm_strategy()
@@ -857,7 +880,7 @@ class MonitorPolicy(AuditedModel):
     def update(self, params, username="system") -> dict:
         """更新：patch -> update"""
 
-        update_fields = ["targets", "test_rules", "notify_rules", "notify_groups"]
+        update_fields = ["targets", "test_rules", "notify_rules", "notify_groups", "custom_conditions"]
 
         # param -> model
         for key in update_fields:
@@ -1047,21 +1070,16 @@ class MonitorPolicy(AuditedModel):
         if group_count:
             tmp = defaultdict(int)
             for event in events:
-                # 监控对外返回json中会将app_id映射为bk_app_code： tapd:1010104091006892981
-                bk_app_code = event["origin_alarm"]["data"]["dimensions"].get("bk_app_code")
-                app_id = event["origin_alarm"]["data"]["dimensions"].get("app_id") or bk_app_code
-
+                app_id = event["origin_alarm"]["data"]["dimensions"].get("appid") or 0
                 # 缺少业app_id维度的策略
                 if not app_id:
-                    app_id = 0
-                    logger.error("find bad bkmonitor event: %s", event)
-                    # continue
+                    logger.error("find bad appid event: %s", json.dumps(event))
 
                 tmp[(event["strategy_id"], app_id)] += 1
 
             event_counts = defaultdict(dict)
-            for (strategy_id, app_id), event_count in tmp.items():
-                event_counts[strategy_id][app_id] = event_count
+            for (strategy_id, appid), event_count in tmp.items():
+                event_counts[strategy_id][appid] = event_count
             # return dict(Counter(event["strategy_id"] for event in events))
             return event_counts
 

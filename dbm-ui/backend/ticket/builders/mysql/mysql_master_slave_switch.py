@@ -33,6 +33,13 @@ class MysqlMasterSlaveSwitchDetailSerializer(MySQLBaseOperateDetailSerializer):
         cluster_ids = serializers.ListField(help_text=_("集群ID列表"), child=serializers.IntegerField())
 
     infos = serializers.ListField(help_text=_("单据信息"), child=InfoSerializer())
+    # TODO: 后续会删除is_safe参数
+    is_safe = serializers.BooleanField(help_text=_("安全模式"), default=False, required=False)
+    is_check_process = serializers.BooleanField(help_text=_("是否检测连接"), default=False, required=False)
+    is_check_delay = serializers.BooleanField(
+        help_text=_("是否检测数据同步延时情况(互切单据延时属于强制检测，故必须传True)"), default=False, required=False
+    )
+    is_verify_checksum = serializers.BooleanField(help_text=_("是否检测历史数据检验结果"), default=False, required=False)
 
     def validate(self, attrs):
         # 校验集群是否可用，集群类型为高可用

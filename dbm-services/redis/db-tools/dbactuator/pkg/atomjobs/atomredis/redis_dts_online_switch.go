@@ -27,12 +27,14 @@ type RedisDtsOnlineSwitchParams struct {
 	SrcProxyPort          int             `json:"src_proxy_port" validate:"required"`
 	SrcProxyPassword      string          `json:"src_proxy_password" validate:"required"`
 	SrcClusterType        string          `json:"src_cluster_type" validate:"required"`
+	SrcClusterName        string          `json:"src_cluster_name" validate:"required"`
 	DstProxyIP            string          `json:"dst_proxy_ip" validate:"required"`
 	DstProxyPort          int             `json:"dst_proxy_port" validate:"required"`
 	DstProxyPassword      string          `json:"dst_proxy_password" validate:"required"`
 	DstClusterType        string          `json:"dst_cluster_type" validate:"required"`
 	DstRedisIP            string          `json:"dst_redis_ip" validate:"required"`
 	DstRedisPort          int             `json:"dst_redis_port" validate:"required"`
+	DstClusterName        string          `json:"dst_cluster_name" validate:"required"`
 	DstProxyConfigContent string          `json:"dst_proxy_config_content" validate:"required"`
 }
 
@@ -371,6 +373,9 @@ func (job *RedisDtsOnlineSwitch) NewProxyConfigFileForDiffType() (err error) {
 		re := regexp.MustCompile(`\s\spassword\s*:\s*` + job.params.DstProxyPassword)
 		dstConfContent = re.ReplaceAllString(dstConfContent, "  password: "+job.params.SrcProxyPassword)
 		dstConfContent = strings.ReplaceAll(dstConfContent, "hash_tag: {}", "hash_tag: '{}'")
+		dstConfContent = strings.ReplaceAll(dstConfContent,
+			":1 "+job.params.DstClusterName+" ",
+			":1 "+job.params.SrcClusterName+" ")
 	} else if consts.IsPredixyClusterType(job.params.DstClusterType) {
 		re := regexp.MustCompile(`Auth\s*"` + job.params.DstProxyPassword + `"`)
 		dstConfContent = re.ReplaceAllString(dstConfContent, `Auth "`+job.params.SrcProxyPassword+`"`)

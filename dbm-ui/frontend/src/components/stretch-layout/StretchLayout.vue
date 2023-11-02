@@ -13,192 +13,139 @@
 
 <template>
   <div
-    class="main-page">
+    ref="rootRef"
+    class="stretch-layout">
     <div
-      class="main-page-list"
+      class="stretch-layout-left"
       :style="{
-        width: renderWidth + 'px'
+        width: `${renderLeftWidth}px`
       }">
-      <slot
-        :drag-trigger="handleUserTrigger"
-        :is-collapse-right="isCollapseRight"
-        name="list"
-        :render-width="renderWidth" />
-      <DbDragResize
-        :class="{
-          'is-collapse-left': isCollapseLeft,
-          'is-collapse-right': isCollapseRight
-        }"
-        :max-width="10000"
-        :min-width="dragState.minWidth"
-        :show-trigger="hasDetails"
-        @move="handleDragMove"
-        @trigger="handleDragTrigger" />
+      <slot name="list" />
     </div>
+    <DragResize
+      :show-trigger="isShowTrigger"
+      :style="{
+        left: `${renderLeftWidth-1}px`
+      }"
+      @change="handleLeftWidthChange"
+      @open="handleOpenChange" />
     <div
-      v-if="hasDetails"
-      class="main-page-details">
-      <slot />
+      v-if="isShowTrigger"
+      class="stretch-layout-right">
+      <slot name="right" />
     </div>
   </div>
 </template>
+<script lang="ts">
+  import {
+    type InjectionKey,
+    provide,
+    type Ref,
+  } from 'vue';
 
+  export const provideKey: InjectionKey<{
+    isOpen: Ref<boolean>,
+    splitScreen: () => void
+  }> = Symbol.for('stretch-layout');
+</script>
 <script setup lang="ts">
-  import { useMainViewStore, useMenu } from '@stores';
+  import { readonly } from 'vue';
 
-  import DbDragResize from '@components/db-drag-resize/index.vue';
-
-  import { random } from '@utils';
+  import DragResize from './components/DragResize.vue';
 
   interface Props {
-    hasDetails: boolean
+    name: string,
+    minLeftWidth?: number
   }
 
   const props = withDefaults(defineProps<Props>(), {
-    hasDetails: false,
+    minLeftWidth: 456,
   });
 
-  const menuStore = useMenu();
-  const mainViewStore = useMainViewStore();
+  defineSlots<{
+    list(): any,
+    default(): any,
+    right(): any,
+  }>();
 
-  mainViewStore.hasPadding = false;
-  const storageKey = 'DBM_DRAG_RESIZE_MANAGE';
-  const storageDragState = JSON.parse(localStorage.getItem(storageKey) ?? '{}');
-  const refreshMaxWidth = ref(random());
-  const dragState = reactive({
-    width: storageDragState?.width || 456,
-    left: storageDragState?.left || 456,
-    minWidth: 456,
-    minWidthRight: 640,
-  });
-  const maxWidth = computed(() => {
-    if (refreshMaxWidth.value) {
-      return window.innerWidth - (menuStore.collapsed ? 60 : 260);
-    }
-    return 10000;
-  });
+  const storageKey = 'STRECHE_LAYOUT_CACHE';
+  const storageDragState = localStorage.getItem(`${storageKey}_${props.name}`) ?? 0;
 
-  const isCollapseLeft = computed(() => dragState.width === 0);
-  const isCollapseRight = computed(() => dragState.width === maxWidth.value);
-  const renderWidth = computed<number>(() => (props.hasDetails ? dragState.width : maxWidth.value));
+  const rootRef = ref();
+  const isShowTrigger = ref(false);
+  const isOpen = ref(false);
+  const renderLeftWidth = ref(0);
 
-  const handleDragMove = (left: number, swipeRight: boolean, cancelFn: () => void) => {
-    if (left > maxWidth.value - dragState.minWidthRight) {
-      dragState.width = swipeRight ? maxWidth.value : maxWidth.value - dragState.minWidthRight;
-      nextTick(cancelFn);
-    } else if (left < dragState.minWidth)  {
-      dragState.width = swipeRight ? dragState.minWidth : 0;
-      nextTick(cancelFn);
+  const getMaxWidth = () => rootRef.value.getBoundingClientRect().width;
+  // 拖动改变左侧宽度
+  const handleLeftWidthChange = (newLeftWidth: number) => {
+    const maxWidth = getMaxWidth();
+    if (newLeftWidth < 100) {
+      isOpen.value = false;
+      renderLeftWidth.value = 0;
+    } else if (newLeftWidth > maxWidth - 100) {
+      isOpen.value = false;
+      renderLeftWidth.value = maxWidth;
     } else {
-      dragState.width = left;
+      renderLeftWidth.value = newLeftWidth;
     }
-
-    dragState.left = swipeRight
-      ? Math.min(left, maxWidth.value - dragState.minWidthRight)
-      : Math.max(left, dragState.minWidth);
   };
 
-  const handleDragTrigger = (isLeft: boolean) => {
-    const {
-      width,
-      left,
-      minWidth,
-    } = dragState;
-    // 是否在左侧最小值与右侧最小值之间
-    const withinTheZone = left >= minWidth && left <= maxWidth.value - dragState.minWidthRight;
-    if (isLeft) {
-      if (dragState.width === maxWidth.value) {
-        dragState.width = withinTheZone ? left : maxWidth.value - dragState.minWidthRight;
-      } else {
-        dragState.width = 0;
-      }
+  // 切换展开收起
+  const handleOpenChange = (direction: string) => {
+    renderLeftWidth.value = isOpen.value ? 0 : props.minLeftWidth;
+    if (isOpen.value) {
+      renderLeftWidth.value = direction === 'left' ? 0 : getMaxWidth();
     } else {
-      if (width === 0) {
-        dragState.width = withinTheZone ? left : minWidth;
-      } else {
-        dragState.width = maxWidth.value;
-      }
+      renderLeftWidth.value = props.minLeftWidth;
     }
+    isOpen.value = !isOpen.value;
   };
 
-  const handleUserTrigger = () => {
-    const {
-      left,
-      minWidth,
-    } = dragState;
-    // 是否在左侧最小值与右侧最小值之间
-    const withinTheZone = left >= minWidth && left <= maxWidth.value - dragState.minWidthRight;
-    dragState.width = withinTheZone ? left : maxWidth.value - dragState.minWidthRight;
-  };
-
+  // 拖拽改变浏览器大小
   const handleWindowResize = () => {
-    const isCollapseRightClone = isCollapseRight.value;
-    refreshMaxWidth.value = random();
-    nextTick(() => {
-      if (isCollapseRightClone || dragState.width > (maxWidth.value - dragState.minWidthRight)) {
-        dragState.width = maxWidth.value;
+    if (!isOpen.value) {
+      renderLeftWidth.value = renderLeftWidth.value === 0 ? 0 : getMaxWidth();
+    }
+  };
+
+  provide(provideKey, {
+    isOpen: readonly(isOpen),
+    splitScreen() {
+      isShowTrigger.value = true;
+      if (isOpen.value) {
         return;
       }
-    });
-  };
-
-  const handleUnload = () => {
-    const data = JSON.stringify({
-      width: dragState.width,
-      left: dragState.left,
-    });
-    localStorage.setItem(storageKey, data);
-    window.removeEventListener('resize', handleWindowResize);
-  };
-
-  onMounted(() => {
-    window.addEventListener('resize', handleWindowResize);
-
-    window.onbeforeunload = handleUnload;
+      handleOpenChange('left');
+    },
   });
 
-  onBeforeUnmount(handleUnload);
+  onMounted(() => {
+    if (Number(storageDragState)) {
+      isOpen.value = true;
+      renderLeftWidth.value = Number(storageDragState);
+    } else {
+      renderLeftWidth.value = getMaxWidth();
+    }
+    window.addEventListener('resize', handleWindowResize);
+  });
+
+  onBeforeUnmount(() => {
+    localStorage.setItem(storageKey, `${renderLeftWidth.value}`);
+    window.removeEventListener('resize', handleWindowResize);
+  });
 </script>
 
-<style lang="less" scoped>
-.main-page {
+<style lang="less">
+.stretch-layout {
   display: flex;
   width: 100%;
   height: 100%;
   overflow: hidden;
-  align-items: center;
 
-  .main-page-list {
-    height: 100%;
-  }
-
-  .main-page-details {
+  .stretch-layout-right {
     width: 0;
-    height: 100%;
-    background-color: white;
     flex: 1;
-  }
-
-  :deep(.db-drag-resize) {
-    &.is-collapse-left {
-      .resize-trigger-right {
-        color: white;
-        background-color: @bg-primary;
-        border-color: @border-primary;
-      }
-    }
-
-    &.is-collapse-right {
-      .resize-trigger-left {
-        color: white;
-        background-color: @bg-primary;
-        border-color: @border-primary;
-      }
-
-      .drag-wrapper {
-        display: none;
-      }
-    }
   }
 }
 </style>

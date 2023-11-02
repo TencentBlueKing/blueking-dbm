@@ -1,1 +1,37 @@
 # use parent values
+
+nameOverride: ""
+fullnameOverride: ""
+
+podAnnotations: {}
+
+podSecurityContext: {}
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+securityContext: {}
+
+livenessProbe: {}
+
+readinessProbe: {}
+
+initJob:
+  resources: {}
+
+saas:
+  api:
+    resources: {}
+    replicaCount: 1
+  celeryBeat:
+    resources: {}
+    replicaCount: 1
+  celeryWorker:
+    resources: {}
+    replicaCount: 1
+  pipelineWorker:
+    resources: {}
+    replicaCount: 1

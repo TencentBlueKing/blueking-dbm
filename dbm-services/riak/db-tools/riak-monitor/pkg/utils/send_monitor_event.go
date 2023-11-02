@@ -20,6 +20,8 @@ func SendMonitorEvent(name string, msg string) {
 		"machine_type":   config.MonitorConfig.MachineType,
 		"bk_cloud_id":    *config.MonitorConfig.BkCloudID,
 		"port":           config.MonitorConfig.Port,
+		"instance_port":  config.MonitorConfig.Port,
+		"instance_host":  config.MonitorConfig.Ip,
 		// 实例id
 		"bk_target_service_instance_id": strconv.FormatInt(config.MonitorConfig.BkInstanceId, 10),
 	}

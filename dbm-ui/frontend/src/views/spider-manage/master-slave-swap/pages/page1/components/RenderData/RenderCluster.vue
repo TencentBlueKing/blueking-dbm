@@ -86,6 +86,8 @@
         .finally(() => {
           isLoading.value = false;
         });
+    } else {
+      relatedClusterList.value = [];
     }
   }, {
     immediate: true,

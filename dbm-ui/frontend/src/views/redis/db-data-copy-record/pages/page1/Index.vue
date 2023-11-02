@@ -215,11 +215,28 @@
 
     return (<div style="color:#3A84FF;cursor:pointer;'">
         {showRecopy
-          ? <span onClick={() => handleClickRecopy(data)}>{t('重新复制')}</span>
+          ? <bk-button
+              text
+              theme="primary"
+              onClick={() => handleClickRecopy(data)}>
+              {t('重新复制')}
+            </bk-button>
           : <>
-          <span style={{ color: showDisconnect ? '#3A84FF' : '#C4C6CC' }} onClick={() => handleClickDisconnectSync(data, index, showDisconnect)}>{t('断开同步')}</span>
-          <span style={{ color: showDataCheckAndRepair ? '#3A84FF' : '#C4C6CC', marginLeft: '10px' }} onClick={() => handleClickDataCheckAndRepair(data, showDataCheckAndRepair)}>{t('数据校验与修复')}</span>
-          </>
+            <bk-button
+              text
+              theme="primary"
+              style={{ color: showDisconnect ? '#3A84FF' : '#C4C6CC' }}
+              onClick={() => handleClickDisconnectSync(data, index, showDisconnect)}>
+              {t('断开同步')}
+              </bk-button>
+            <bk-button
+              text
+              theme="primary"
+              style={{ color: showDataCheckAndRepair ? '#3A84FF' : '#C4C6CC', marginLeft: '10px' }}
+              onClick={() => handleClickDataCheckAndRepair(data, showDataCheckAndRepair)}>
+              {t('数据校验与修复')}
+            </bk-button>
+            </>
         }
       </div>);
   };
@@ -257,7 +274,7 @@
       width: 120,
       render: ({ data }: {data: RedisDSTHistoryJobModel}) => {
         if (data.key_white_regex) {
-          const tags = ['asfdaffa', 'sdgfrgerhgwer', 'sfgsrgdhdhdh'];// data.key_white_regex.split('\n');
+          const tags = data.key_white_regex.split('\n');
           return <KeyTags maxRow={2} data={tags} />;
         }
         return <span>--</span>;

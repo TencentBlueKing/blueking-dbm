@@ -3,7 +3,7 @@ package consts
 
 // version
 const (
-	BkDbmonVersion = "v0.13"
+	BkDbmonVersion = "v0.14"
 )
 
 const (
@@ -138,6 +138,7 @@ const (
 	ForeverBackupType = "forever_backup"
 	IBSBackupClient   = "/usr/local/bin/backup_client"
 	COSBackupClient   = "/usr/local/backup_client/bin/backup_client"
+	COSInfoFile       = "/home/mysql/.cosinfo.toml"
 
 	RedisFullBackupTAG    = "REDIS_FULL"
 	RedisBinlogTAG        = "REDIS_BINLOG"

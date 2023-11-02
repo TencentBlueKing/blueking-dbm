@@ -29,6 +29,7 @@ import getESRoutes from '@views/es-manage/routes';
 import getEventCenterRouters from '@views/event-center/routes';
 import getHDFSRoutes from '@views/hdfs-manage/routes';
 import getInfluxDBRoutes from '@views/influxdb-manage/routes';
+import getInspectionRoutes from '@views/inspection-manage/routes';
 import getKafkaRoutes from '@views/kafka-manage/routes';
 import getMissionRoutes from '@views/mission/routes';
 import getDBMonitorAlarmRoutes from '@views/monitor-alarm-db/routes';
@@ -53,6 +54,7 @@ import getWhitelistRoutes from '@views/whitelist/routes';
 import { t } from '@locales/index';
 
 import { MainViewRouteNames, type MainViewRouteNameValues } from './common/const';
+
 
 const selfServiceRoute = {
   name: MainViewRouteNames.SelfService,
@@ -161,6 +163,7 @@ export default async function getRouters() {
     ...getNotificationSettingRoutes(),
     ...getPasswordTemporaryModify(),
     ...getPlatformDbConfigureRoutes(),
+    ...getInspectionRoutes(),
     // ...deploymentPlanRoutes,
   ];
 

@@ -1,61 +1,72 @@
-mysql:
-- actuator:
-    buildPath: /blueking-dbm/dbm-services/mysql/db-tools/dbactuator/build/dbactuator
-    commitId: ''
-    name: dbactuator
-    version: 1.0.0
-- dbbackup:
-    buildPath: /blueking-dbm/dbm-services/mysql/db-tools/mysql-dbbackup/build/dbbackup-go-txsql.tar.gz
-    commitId: ''
-    name: dbbackup-go-txsql.tar.gz
-    version: 1.0.0
-- mysql-checksum:
-    buildPath: /blueking-dbm/dbm-services/mysql/db-tools/mysql-table-checksum/build/mysql-checksum.tar.gz
-    commitId: ''
-    name: mysql-checksum.tar.gz
-    version: 1.0.0
-- mysql-crond:
-    buildPath: /blueking-dbm/dbm-services/mysql/db-tools/mysql-crond/build/mysql-crond.tar.gz
-    commitId: ''
-    name: mysql-crond.tar.gz
-    version: 1.0.0
-- rotate-binlog:
-    buildPath: /blueking-dbm/dbm-services/mysql/db-tools/mysql-rotatebinlog/build/mysql-rotatebinlog.tar.gz
-    commitId: ''
-    name: mysql-rotatebinlog.tar.gz
-    version: 1.0.0
-- mysql-monitor:
-    buildPath: /blueking-dbm/dbm-services/mysql/db-tools/mysql-monitor/build/mysql-monitor.tar.gz
-    commitId: ''
-    name: mysql-monitor.tar.gz
-    version: 1.0.0
 es:
 - actuator:
     buildPath: /blueking-dbm/dbm-services/bigdata/db-tools/dbactuator/build/dbactuator
-    commitId: ''
+    commitId: bb54e3676a01ce41e6c3b432c4892acf168f2f56
     name: dbactuator
-    version: 1.0.0
-kafka:
-- actuator:
-    buildPath: /blueking-dbm/dbm-services/bigdata/db-tools/dbactuator/build/dbactuator
-    commitId: ''
-    name: dbactuator
-    version: 1.0.0
+    version: 1.0.1
 hdfs:
 - actuator:
     buildPath: /blueking-dbm/dbm-services/bigdata/db-tools/dbactuator/build/dbactuator
-    commitId: ''
+    commitId: bb54e3676a01ce41e6c3b432c4892acf168f2f56
     name: dbactuator
-    version: 1.0.0
-pulsar:
-- actuator:
-    buildPath: /blueking-dbm/dbm-services/bigdata/db-tools/dbactuator/build/dbactuator
-    commitId: ''
-    name: dbactuator
-    version: 1.0.0
+    version: 1.0.1
 influxdb:
 - actuator:
     buildPath: /blueking-dbm/dbm-services/bigdata/db-tools/dbactuator/build/dbactuator
-    commitId: ''
+    commitId: bb54e3676a01ce41e6c3b432c4892acf168f2f56
     name: dbactuator
-    version: 1.0.0
+    version: 1.0.1
+kafka:
+- actuator:
+    buildPath: /blueking-dbm/dbm-services/bigdata/db-tools/dbactuator/build/dbactuator
+    commitId: bb54e3676a01ce41e6c3b432c4892acf168f2f56
+    name: dbactuator
+    version: 1.0.1
+mysql:
+- actuator:
+    buildPath: /blueking-dbm/dbm-services/mysql/db-tools/dbactuator/build/dbactuator
+    commitId: bbcfbeca66df2f63d1ad57d531520274ab849639
+    name: dbactuator
+    version: 1.0.2
+- dbbackup:
+    buildPath: /blueking-dbm/dbm-services/mysql/db-tools/mysql-dbbackup/build/dbbackup-go-txsql.tar.gz
+    commitId: d451a96ded6f360315b236dddcec5a8db80e7c9f
+    name: dbbackup-go-txsql.tar.gz
+    version: 1.0.1
+- mysql-checksum:
+    buildPath: /blueking-dbm/dbm-services/mysql/db-tools/mysql-table-checksum/build/mysql-checksum.tar.gz
+    commitId: 9fd6f5d3978a5f4f2648695c59c076501f1688de
+    name: mysql-checksum.tar.gz
+    version: 1.0.2
+- mysql-crond:
+    buildPath: /blueking-dbm/dbm-services/mysql/db-tools/mysql-crond/build/mysql-crond.tar.gz
+    commitId: 9fd6f5d3978a5f4f2648695c59c076501f1688de
+    name: mysql-crond.tar.gz
+    version: 1.0.2
+- rotate-binlog:
+    buildPath: /blueking-dbm/dbm-services/mysql/db-tools/mysql-rotatebinlog/build/mysql-rotatebinlog.tar.gz
+    commitId: 9fd6f5d3978a5f4f2648695c59c076501f1688de
+    name: mysql-rotatebinlog.tar.gz
+    version: 1.0.2
+- mysql-monitor:
+    buildPath: /blueking-dbm/dbm-services/mysql/db-tools/mysql-monitor/build/mysql-monitor.tar.gz
+    commitId: 9fd6f5d3978a5f4f2648695c59c076501f1688de
+    name: mysql-monitor.tar.gz
+    version: 1.0.2
+pulsar:
+- actuator:
+    buildPath: /blueking-dbm/dbm-services/bigdata/db-tools/dbactuator/build/dbactuator
+    commitId: bb54e3676a01ce41e6c3b432c4892acf168f2f56
+    name: dbactuator
+    version: 1.0.1
+redis:
+- actuator:
+    buildPath: /blueking-dbm/dbm-services/redis/db-tools/dbactuator/build/dbactuator_redis
+    commitId: 2c51ae5a3e6aa1f04930224b61650e469080cedc
+    name: dbactuator_redis
+    version: 1.0.2
+- dbmon:
+    buildPath: /blueking-dbm/dbm-services/redis/db-tools/dbmon/build/bk-dbmon-*.tar.gz
+    commitId: 2c51ae5a3e6aa1f04930224b61650e469080cedc
+    name: dbmon
+    version: 1.0.2

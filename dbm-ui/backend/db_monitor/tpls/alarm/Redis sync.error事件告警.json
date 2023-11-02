@@ -49,13 +49,12 @@
               }
             ],
             "agg_dimension": [
-              "bk_cloud_id",
-              "role",
-              "server_ip",
-              "server_port",
-              "domain",
-              "warn_level",
-              "app_id"
+              "appid",
+              "cluster_domain",
+              "target",
+              "instance_role",
+              "instance",
+              "warn_level"
             ],
             "data_type_label": "event",
             "result_table_id": "bkmonitor_event_{event_data_id}",
@@ -247,6 +246,7 @@
   },
   "is_enabled": true,
   "monitor_indicator": "COUNT(redis_sync)",
-  "version": 2,
-  "alert_source": "event"
+  "version": 11,
+  "alert_source": "event",
+  "custom_conditions": []
 }

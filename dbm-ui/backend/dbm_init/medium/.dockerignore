@@ -1,2 +1,6 @@
 .venv
+.codecc
+.idea
+.vscode
 tmp*
+pkg/

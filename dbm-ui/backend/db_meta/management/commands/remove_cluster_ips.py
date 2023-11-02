@@ -18,9 +18,11 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument("cluster_ips", nargs="+", type=str, help="cluster ips to remove")
-        parser.add_argument("-i", "--ignore-clean", dest="ignore_clean", action="store_true", help="skip job/cc clean")
+        parser.add_argument("-i", "--job-clean", dest="job_clean", action="store_true", help="do job clean")
+        parser.add_argument("-c", "--cc-clean", dest="cc_clean", action="store_true", help="do cc clean")
 
     def handle(self, *args, **options):
         cluster_ips = options.get("cluster_ips")
-        ignore_clean = options.get("ignore_clean")
-        remove_cluster_ips(cluster_ips, ignore_clean, ignore_clean)
+        job_clean = options.get("job_clean")
+        cc_clean = options.get("cc_clean")
+        remove_cluster_ips(cluster_ips, job_clean, cc_clean)

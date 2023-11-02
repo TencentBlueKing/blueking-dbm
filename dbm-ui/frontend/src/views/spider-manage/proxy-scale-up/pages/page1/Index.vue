@@ -38,9 +38,10 @@
       <ClusterSelector
         v-model:is-show="isShowMasterInstanceSelector"
         :get-resource-list="getList"
-        :selected="{}"
+        :selected="selectedClusters"
+        :show-preview-result-title="false"
         :tab-list="clusterSelectorTabList"
-        @change="handelClusterChange" />
+        @change="handelClusterChoosed" />
     </div>
     <template #action>
       <BkButton
@@ -82,10 +83,11 @@
     TicketTypes,
   } from '@common/const';
 
-  import ClusterSelector from '@components/cluster-selector/SpiderClusterSelector.vue';
+  import ClusterSelector from '@components/cluster-selector-new/Index.vue';
 
   import { random } from '@utils';
 
+  import SpiderTable from './components/cluster-selector-table/Index.vue';
   import RenderData from './components/Index.vue';
   import RenderDataRow, {
     createRowData,
@@ -93,14 +95,18 @@
     type InfoItem,
   } from './components/Row.vue';
 
-
   const { currentBizId } = useGlobalBizs();
   const { t } = useI18n();
   const router = useRouter();
+
   const rowRefs = ref();
   const isShowMasterInstanceSelector = ref(false);
   const isSubmitting  = ref(false);
   const tableData = ref([createRowData()]);
+  const clusterNodeTypeMap = ref<Record<string, string[]>>({});
+
+  const selectedClusters = shallowRef<{[key: string]: Array<SpiderModel>}>({ [ClusterTypes.SPIDER]: [] });
+
   const totalNum = computed(() => (tableData.value.length > 0
     ? new Set(tableData.value.map(item => item.cluster)).size : 0));
   const canSubmit = computed(() => tableData.value.filter(item => Boolean(item.cluster)).length > 0);
@@ -108,8 +114,11 @@
   const clusterSelectorTabList = [{
     id: ClusterTypes.SPIDER as string,
     name: t('集群选择'),
+    content: SpiderTable as unknown as Element,
   }];
-  const clusterNodeTypeMap = ref<Record<string, string[]>>({});
+
+  // 集群域名是否已存在表格的映射表
+  let domainMemo: Record<string, boolean> = {};
 
   const handleChangeNodeType = (index: number, domain: string, label: string) => {
     tableData.value[index].nodeType = label;
@@ -168,11 +177,16 @@
   };
 
   // 批量选择
-  const handelClusterChange = async (selected: {[key: string]: Array<SpiderModel>}) => {
+  const handelClusterChoosed = async (selected: {[key: string]: Array<SpiderModel>}) => {
+    selectedClusters.value = selected;
     const list = selected[ClusterTypes.SPIDER];
     const newList = list.reduce((result, item) => {
-      const row = generateRowDateFromRequest(item);
-      result.push(row);
+      const domain = item.master_domain;
+      if (!domainMemo[domain]) {
+        const row = generateRowDateFromRequest(item);
+        result.push(row);
+        domainMemo[domain] = true;
+      }
       return result;
     }, [] as IDataRow[]);
     if (checkListEmpty(tableData.value)) {
@@ -185,6 +199,12 @@
 
   // 输入集群后查询集群信息并填充到table
   const handleChangeCluster = async (index: number, domain: string) => {
+    if (!domain) {
+      const { cluster } = tableData.value[index];
+      domainMemo[cluster] = false;
+      tableData.value[index].cluster = '';
+      return;
+    }
     if (tableData.value[index].cluster === domain) return;
     tableData.value[index].isLoading = true;
     const ret = await getList({ domain }).finally(() => {
@@ -196,6 +216,8 @@
     const data = ret.results[0];
     const row = generateRowDateFromRequest(data);
     tableData.value[index] = row;
+    domainMemo[domain] = true;
+    selectedClusters.value[ClusterTypes.SPIDER].push(data);
   };
 
   // 追加一个集群
@@ -208,6 +230,7 @@
       tableData.value.splice(index, 1);
       return;
     }
+    delete domainMemo[cluster];
     const { nodeType } = tableData.value[index];
     // 恢复已选择的节点类型到列表
     const sameClusterArr = clusterNodeTypeMap.value[cluster];
@@ -218,6 +241,8 @@
       }
     }
     tableData.value.splice(index, 1);
+    const clustersArr = selectedClusters.value[ClusterTypes.SPIDER];
+    selectedClusters.value[ClusterTypes.SPIDER] = clustersArr.filter(item => item.master_domain !== cluster);
   };
 
   // 点击提交按钮
@@ -264,6 +289,8 @@
 
   const handleReset = () => {
     tableData.value = [createRowData()];
+    selectedClusters.value[ClusterTypes.SPIDER] = [];
+    domainMemo = {};
     clusterNodeTypeMap.value = {};
     window.changeConfirm = false;
   };

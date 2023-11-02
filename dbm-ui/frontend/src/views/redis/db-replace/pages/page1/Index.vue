@@ -83,6 +83,8 @@
     type InstanceSelectorValues,
   } from '@views/redis/common/instance-selector/Index.vue';
 
+  import { switchToNormalRole } from '@utils';
+
   import RenderData from './components/Index.vue';
   import RenderDataRow, {
     createRowData,
@@ -210,7 +212,7 @@
       rowKey: tableData.value[index].rowKey,
       isLoading: false,
       ip,
-      role: data.role,
+      role: switchToNormalRole(data.role),
       clusterId: data.cluster.id,
       bkCloudId: data.cluster.bk_cloud_id,
       cluster: {

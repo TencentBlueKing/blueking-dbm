@@ -22,8 +22,7 @@ from backend.ticket.builders.mysql.base import (
     DBTableField,
     MySQLBaseOperateDetailSerializer,
 )
-from backend.ticket.constants import FlowRetryType, FlowType, TicketType
-from backend.ticket.models import Flow
+from backend.ticket.constants import FlowRetryType, TicketType
 from backend.utils.time import str2datetime
 
 
@@ -31,7 +30,7 @@ class MySQLFlashbackDetailSerializer(MySQLBaseOperateDetailSerializer):
     class FlashbackSerializer(serializers.Serializer):
         cluster_id = serializers.IntegerField(help_text=_("集群ID"))
         start_time = serializers.CharField(help_text=_("开始时间"))
-        end_time = serializers.CharField(help_text=_("结束时间"))
+        end_time = serializers.CharField(help_text=_("结束时间"), allow_blank=True)
         databases = serializers.ListField(help_text=_("目标库列表"), child=DBTableField(db_field=True))
         databases_ignore = serializers.ListField(help_text=_("忽略库列表"), child=DBTableField(db_field=True))
         tables = serializers.ListField(help_text=_("目标table列表"), child=DBTableField())
@@ -47,18 +46,19 @@ class MySQLFlashbackDetailSerializer(MySQLBaseOperateDetailSerializer):
     def validate_flash_time(self, attrs):
         # 校验start time和end time的合法性
         for info in attrs["infos"]:
-            start_time, end_time = str2datetime(info["start_time"]), str2datetime(info["start_time"])
             now = datetime.datetime.now()
+            info["end_time"] = info["end_time"] or now
+            start_time, end_time = str2datetime(info["start_time"]), str2datetime(info["end_time"])
             if start_time > end_time or start_time > now or end_time > now:
                 raise serializers.ValidationError(
                     _("flash的起止时间{}--{}不合法，请保证开始时间小于结束时间，并且二者不大于当前时间").format(start_time, end_time)
                 )
 
     def validate(self, attrs):
-        # 校验集群是否可用，集群类型为高可用
-        super(MySQLFlashbackDetailSerializer, self).validate_cluster_can_access(attrs)
         # 校验闪回的时间
         self.validate_flash_time(attrs)
+        # 校验集群是否可用，集群类型为高可用
+        super(MySQLFlashbackDetailSerializer, self).validate_cluster_can_access(attrs)
         # 校验库表是否存在
         RemoteServiceHandler(bk_biz_id=self.context["bk_biz_id"]).check_flashback_database(attrs["infos"])
 
@@ -67,9 +67,6 @@ class MySQLFlashbackDetailSerializer(MySQLBaseOperateDetailSerializer):
 
 class MySQLFlashbackFlowParamBuilder(builders.FlowParamBuilder):
     controller = MySQLController.mysql_flashback_scene
-
-    def format_ticket_data(self):
-        pass
 
 
 @builders.BuilderFactory.register(TicketType.MYSQL_FLASHBACK)

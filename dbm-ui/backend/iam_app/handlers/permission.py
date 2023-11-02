@@ -56,6 +56,7 @@ class Permission(object):
             self.bk_token = request.COOKIES.get("bk_token", "")
             self.username = request.user.username
 
+        self.is_superuser = User.objects.filter(username=self.username, is_superuser=True).exists()
         self._iam = self.get_iam_client()
 
     @classmethod
@@ -167,6 +168,10 @@ class Permission(object):
         :param: is_raise_exception: 当鉴权失败时是否抛出异常
         """
 
+        # 如果是超级管理员，则检查通过
+        if self.is_superuser:
+            return True
+
         action = ActionEnum.get_action_by_id(action)
         # 若action不关联任何资源，则将resources置为空
         if not action.related_resource_types:
@@ -224,8 +229,7 @@ class Permission(object):
         :return 返回符合鉴权的对象
         """
 
-        is_superuser = User.objects.filter(username=self.username, is_superuser=True).exists()
-        if env.BK_IAM_SKIP or is_superuser:
+        if env.BK_IAM_SKIP or self.is_superuser:
             return obj_list
 
         # 获得策略数据

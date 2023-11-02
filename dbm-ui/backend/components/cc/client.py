@@ -213,12 +213,28 @@ class _CCApi(object):
             description=_("直接通过bk_host_id查询服务实例详细信息"),
         )
 
+        self.list_service_instance_detail = DataAPI(
+            method="POST",
+            base=CC_APIGW_DOMAIN,
+            url="list_service_instance_detail/",
+            module=self.MODULE,
+            description=_("获取服务实例详细信息"),
+        )
+
         self.add_label_for_service_instance = DataAPI(
             method="POST",
             base=CC_APIGW_DOMAIN,
             url="add_label_for_service_instance/",
             module=self.MODULE,
             description=_("服务实例添加标签"),
+        )
+
+        self.remove_label_from_service_instance = DataAPI(
+            method="POST",
+            base=CC_APIGW_DOMAIN,
+            url="remove_label_from_service_instance/",
+            module=self.MODULE,
+            description=_("从服务实例移除标签"),
         )
 
         self.delete_service_instance = DataAPI(

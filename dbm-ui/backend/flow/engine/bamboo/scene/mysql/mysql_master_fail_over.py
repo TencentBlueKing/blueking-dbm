@@ -16,10 +16,15 @@ from typing import Dict, Optional
 from django.utils.translation import ugettext as _
 
 from backend.configuration.constants import DBType
+from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.enums import ClusterType
+from backend.db_meta.models import Cluster
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
-from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import build_surrounding_apps_sub_flow
+from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import (
+    build_surrounding_apps_sub_flow,
+    check_sub_flow,
+)
 from backend.flow.engine.bamboo.scene.mysql.mysql_master_slave_switch import MySQLMasterSlaveSwitchFlow
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.mysql.mysql_db_meta import MySQLDBMetaComponent
@@ -98,7 +103,6 @@ class MySQLMasterFailOverFlow(object):
                 sub_sub_flow_context.pop("infos")
 
                 # 把公共参数拼接到子流程的全局只读上下文
-                sub_sub_flow_context["is_safe"] = info["is_safe"]
                 sub_sub_flow_context["is_dead_master"] = True
                 sub_sub_flow_context["grant_repl"] = True
                 sub_sub_flow_context["locked_switch"] = False
@@ -106,7 +110,10 @@ class MySQLMasterFailOverFlow(object):
 
                 # 获取对应的集群信息
                 cluster = MySQLMasterSlaveSwitchFlow.get_cluster_info(
-                    cluster_id=cluster_id, new_master_ip=info["slave_ip"]["ip"], old_master_ip=info["master_ip"]["ip"]
+                    cluster_id=cluster_id,
+                    bk_biz_id=sub_sub_flow_context["bk_biz_id"],
+                    new_master_ip=info["slave_ip"]["ip"],
+                    old_master_ip=info["master_ip"]["ip"],
                 )
 
                 # 拼接执行原子任务的活动节点需要的通用的私有参数
@@ -116,6 +123,24 @@ class MySQLMasterFailOverFlow(object):
                 cluster_switch_sub_pipeline = SubBuilder(
                     root_id=self.root_id, data=copy.deepcopy(sub_sub_flow_context)
                 )
+
+                # 切换前做预检测, 强切场景理论上不需要对原来master做连接检测
+                sub_flow = check_sub_flow(
+                    uid=self.data["uid"],
+                    root_id=self.root_id,
+                    cluster=Cluster.objects.get(id=cluster_id, bk_biz_id=sub_sub_flow_context["bk_biz_id"]),
+                    is_check_client_conn=sub_sub_flow_context["is_check_process"],
+                    is_verify_checksum=sub_sub_flow_context["is_verify_checksum"],
+                    check_client_conn_inst=[f"{cluster['new_master_ip']}{IP_PORT_DIVIDER}{cluster['mysql_port']}"],
+                    verify_checksum_tuples=[
+                        {
+                            "master": f"{cluster['old_master_ip']}{IP_PORT_DIVIDER}{cluster['mysql_port']}",
+                            "slave": f"{cluster['new_master_ip']}{IP_PORT_DIVIDER}{cluster['mysql_port']}",
+                        }
+                    ],
+                )
+                if sub_flow:
+                    cluster_switch_sub_pipeline.add_sub_pipeline(sub_flow=sub_flow)
 
                 # 阶段2 执行故障切换的原子任务
                 cluster_sw_kwargs.exec_ip = info["slave_ip"]["ip"]

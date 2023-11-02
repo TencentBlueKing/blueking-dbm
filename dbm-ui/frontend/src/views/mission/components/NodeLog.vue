@@ -23,7 +23,10 @@
       <div class="log-header">
         <div class="log-header-left">
           <span
-            v-overflow-tips="{ content: `【${nodeData.name}】 ${t('日志详情')}`, theme: 'light' }"
+            v-overflow-tips="{
+              content: `【${nodeData.name}】 ${t('日志详情')}`,
+              theme: 'light'
+            }"
             class="log-header__title text-overflow">
             {{ `【${nodeData.name}】 ${t('日志详情')}` }}
           </span>
@@ -152,15 +155,16 @@
   });
   const nodeData = computed(() => props.node.data || {});
   const status = computed(() => {
-    const themes = {
-      FINISHED: 'success',
-      RUNNING: 'info',
-      FAILED: 'danger',
-      REVOKED: 'danger',
-      READY: undefined,
-      CREATED: undefined,
-    } as Record<string, string|undefined>;
-    const status = nodeData.value.status ? nodeData.value.status : 'READY';
+    enum themes  {
+      FINISHED='success',
+      RUNNING='info',
+      FAILED='danger',
+      SKIPPED='danger',
+      READY='',
+      CREATED='',
+    }
+
+    const status: keyof typeof themes = nodeData.value.status ? nodeData.value.status : 'READY';
 
     return {
       text: NODE_STATUS_TEXT[status],

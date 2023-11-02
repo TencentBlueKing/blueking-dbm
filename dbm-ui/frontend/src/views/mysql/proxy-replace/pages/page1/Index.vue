@@ -24,16 +24,6 @@
           <DbIcon type="add" />
           {{ $t('批量录入') }}
         </BkButton>
-        <div
-          v-bk-tooltips="$t('如忽略_在有连接的情况下Proxy也会执行替换')"
-          class="safe-action">
-          <BkCheckbox
-            v-model="isSafe"
-            :false-label="false"
-            true-label>
-            <span class="safe-action-text">{{ $t('忽略业务连接') }}</span>
-          </BkCheckbox>
-        </div>
       </div>
       <RenderData
         class="mt16"
@@ -47,6 +37,16 @@
           @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
           @remove="handleRemove(index)" />
       </RenderData>
+      <div
+        v-bk-tooltips="$t('如忽略_在有连接的情况下Proxy也会执行替换')"
+        class="safe-action">
+        <BkCheckbox
+          v-model="isSafe"
+          :false-label="false"
+          true-label>
+          <span class="safe-action-text">{{ $t('忽略业务连接') }}</span>
+        </BkCheckbox>
+      </div>
       <ProxySelector
         v-model:is-show="isShowBatchProxySelector"
         :panel-list="['tendbha', 'manualInput']"
@@ -204,14 +204,14 @@
     .page-action-box {
       display: flex;
       align-items: center;
+    }
 
-      .safe-action {
-        margin-left: auto;
+    .safe-action {
+      margin-top: 20px;
 
-        .safe-action-text {
-          padding-bottom: 2px;
-          border-bottom: 1px dashed #979ba5;
-        }
+      .safe-action-text {
+        padding-bottom: 2px;
+        border-bottom: 1px dashed #979ba5;
       }
     }
   }

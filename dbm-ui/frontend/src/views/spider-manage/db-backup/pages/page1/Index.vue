@@ -66,7 +66,7 @@
       <ClusterSelector
         v-model:is-show="isShowBatchSelector"
         :get-resource-list="getList"
-        :selected="{}"
+        :selected="selectedClusters"
         :tab-list="clusterSelectorTabList"
         @change="handelClusterChange" />
     </div>
@@ -96,6 +96,7 @@
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
+  import SpiderModel from '@services/model/spider/spider';
   import { getList } from '@services/spider';
   import { createTicket } from '@services/ticket';
 
@@ -103,7 +104,7 @@
 
   import { ClusterTypes } from '@common/const';
 
-  import ClusterSelector from '@components/cluster-selector/SpiderClusterSelector.vue';
+  import ClusterSelector from '@components/cluster-selector-new/Index.vue';
 
   import RenderData from './components/RenderData/Index.vue';
   import RenderDataRow, {
@@ -111,56 +112,63 @@
     type IDataRow,
   } from './components/RenderData/Row.vue';
 
-  interface IClusterData {
-    id: number,
-    master_domain: string
-  }
-
   const createDefaultData = () => ({
     backup_type: 'logical',
     file_tag: 'MYSQL_FULL_BACKUP',
   });
+
+  const { t } = useI18n();
+  const router = useRouter();
+  const { currentBizId } = useGlobalBizs();
+
+  const formRef = ref();
+  const rowRefs = ref();
+  const isShowBatchSelector = ref(false);
+  const isSubmitting = ref(false);
+  const formData = reactive(createDefaultData());
+
+  const tableData = shallowRef<Array<IDataRow>>([createRowData({})]);
+  const selectedClusters = shallowRef<{[key: string]: Array<SpiderModel>}>({ [ClusterTypes.SPIDER]: [] });
+
+  const clusterSelectorTabList = [{
+    id: ClusterTypes.SPIDER,
+    name: '集群',
+  }];
+  // 集群域名是否已存在表格的映射表
+  let domainMemo: Record<string, boolean> = {};
 
   // 检测列表是否为空
   const checkListEmpty = (list: Array<IDataRow>) => {
     if (list.length > 1) {
       return false;
     }
-
     const [firstRow] = list;
     return !firstRow.clusterData && !firstRow.backupLocal;
   };
-
-  const { t } = useI18n();
-  const router = useRouter();
-  const { currentBizId } = useGlobalBizs();
-
-  const clusterSelectorTabList = [{
-    id: ClusterTypes.SPIDER,
-    name: '集群',
-  }];
-
-  const formRef = ref();
-  const rowRefs = ref();
-  const isShowBatchSelector = ref(false);
-  const tableData = shallowRef<Array<IDataRow>>([createRowData({})]);
-  const formData = reactive(createDefaultData());
-
-  const isSubmitting = ref(false);
 
   // 批量选择
   const handleShowBatchSelector = () => {
     isShowBatchSelector.value = true;
   };
-  // 批量选择
-  const handelClusterChange = (selected: {[key: string]: Array<IClusterData>}) => {
-    const newList = selected[ClusterTypes.SPIDER].map(clusterData => createRowData({
-      clusterData: {
-        id: clusterData.id,
-        domain: clusterData.master_domain,
-      },
-    }));
 
+  // 批量选择
+  const handelClusterChange = (selected: {[key: string]: Array<SpiderModel>}) => {
+    selectedClusters.value = selected;
+    const list = selected[ClusterTypes.SPIDER];
+    const newList = list.reduce((result, item) => {
+      const domain = item.master_domain;
+      if (!domainMemo[domain]) {
+        const row = createRowData({
+          clusterData: {
+            id: item.id,
+            domain: item.master_domain,
+          },
+        });
+        result.push(row);
+        domainMemo[domain] = true;
+      }
+      return result;
+    }, [] as IDataRow[]);
     if (checkListEmpty(tableData.value)) {
       tableData.value = newList;
     } else {
@@ -168,17 +176,25 @@
     }
     window.changeConfirm = true;
   };
+
   // 追加一个集群
   const handleAppend = (index: number, appendList: Array<IDataRow>) => {
     const dataList = [...tableData.value];
     dataList.splice(index + 1, 0, ...appendList);
     tableData.value = dataList;
   };
+
   // 删除一个集群
   const handleRemove = (index: number) => {
     const dataList = [...tableData.value];
+    const domain = dataList[index].clusterData?.domain;
     dataList.splice(index, 1);
     tableData.value = dataList;
+    if (domain) {
+      delete domainMemo[domain];
+      const clustersArr = selectedClusters.value[ClusterTypes.SPIDER];
+      selectedClusters.value[ClusterTypes.SPIDER] = clustersArr.filter(item => item.master_domain !== domain);
+    }
   };
 
   const handleSubmit = () => {
@@ -215,6 +231,9 @@
 
   const handleReset = () => {
     Object.assign(formData, createDefaultData());
+    selectedClusters.value[ClusterTypes.SPIDER] = [];
+    domainMemo = {};
+    window.changeConfirm = false;
   };
 </script>
 

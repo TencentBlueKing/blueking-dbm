@@ -402,6 +402,7 @@
   const specNamenodeRef = ref();
   const specZookeeperRef = ref();
   const isDbVersionLoading = ref(true);
+
   const dbVersionList = shallowRef<Array<string>>([]);
   const formData = reactive(genDefaultFormData());
   const nodeAndZookerperMergeList = shallowRef<Array<IHostTableData>>([]);

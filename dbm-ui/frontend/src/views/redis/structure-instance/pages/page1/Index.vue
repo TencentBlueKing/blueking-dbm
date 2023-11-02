@@ -298,8 +298,8 @@
       width: 180,
       render: ({ data }: {data: RedisRollbackModel}) => (
       <div class="operate-box" style={{ color: data.isNotDestroyed ? '#3A84FF' : '#C4C6CC' }}>
-        <span onClick={() => handleClickDestructItem(data)}>{t('销毁')}</span>
-        <span onClick={() => handleClickDataCopy(data)} style="margin-left:10px;">{t('回写数据')}</span>
+        <bk-button text theme="primary" onClick={() => handleClickDestructItem(data)}>{t('销毁')}</bk-button>
+        <bk-button text theme="primary" onClick={() => handleClickDataCopy(data)} style="margin-left:10px;">{t('回写数据')}</bk-button>
       </div>),
     },
   ];

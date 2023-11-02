@@ -197,7 +197,22 @@ const routes: RouteRecordRaw[] = [
       navName: t('Redis_集群管理'),
       isMenu: true,
     },
-    component: () => import('@views/redis/cluster-manage/Index.vue'),
+    redirect: {
+      name: 'DatabaseRedisList',
+    },
+    component: () => import('@views/redis/Index.vue'),
+    children: [
+      {
+        name: 'DatabaseRedisList',
+        path: 'list',
+        meta: {
+          routeParentName: MainViewRouteNames.Database,
+          navName: t('Redis_集群管理'),
+          activeMenu: 'DatabaseRedis',
+        },
+        component: () => import('@views/redis/list/Index.vue'),
+      },
+    ],
   },
 ];
 
@@ -228,12 +243,17 @@ const toolboxRoutes: RouteRecordRaw[] = [
 ];
 
 export default function getRoutes(controller: Record<RedisFunctions | 'redis', boolean>) {
-  if (controller.redis !== true) return [];
-
-  const renderRoutes: RouteRecordRaw[] = [...routes];
-  if (controller.toolbox) {
-    renderRoutes.push(...toolboxRoutes);
+  if (controller.redis !== true) {
+    return [];
   }
 
-  return renderRoutes;
+  const renderRoutes = routes.find(item => item.name === 'DatabaseRedis');
+  if (!renderRoutes) {
+    return routes;
+  }
+  if (controller.toolbox) {
+    renderRoutes.children?.push(...toolboxRoutes);
+  }
+
+  return routes;
 }

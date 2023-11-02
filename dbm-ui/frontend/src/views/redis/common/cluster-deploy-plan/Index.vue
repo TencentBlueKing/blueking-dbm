@@ -113,7 +113,7 @@
       <div class="select-group">
         <div class="select-box">
           <div class="title-spot">
-            {{ t('目标集群容量需求') }}<span class="required" />
+            {{ targetCapacityTitle }}<span class="required" />
           </div>
           <div class="input-box">
             <BkInput
@@ -131,7 +131,7 @@
         </div>
         <div class="select-box">
           <div class="title-spot">
-            {{ t('未来集群容量需求') }}<span class="required" />
+            {{ futureCapacityTitle }}<span class="required" />
           </div>
           <div class="input-box">
             <BkInput
@@ -279,6 +279,9 @@
 
   const isShowGreaterTip = computed(() => capacityFutureNeed.value < capacityNeed.value);
   const isAbleSubmit = computed(() => radioValue.value !== -1);
+  const isTendisCache = computed(() => props.data.clusterType === RedisClusterTypes.TwemproxyRedisInstance);
+  const targetCapacityTitle = computed(() => (isTendisCache.value ? t('目标集群容量需求(内存容量)') : t('目标集群容量需求(磁盘容量)')));
+  const futureCapacityTitle = computed(() => (isTendisCache.value ? t('未来集群容量需求(内存容量)') : t('未来集群容量需求(磁盘容量)')));
 
   // const currentPercent = computed(() => {
   //   if (props?.data) {
@@ -319,7 +322,7 @@
     };
   });
 
-  const isDataChange = computed(() => capacityNeed.value !== 0 || capacityFutureNeed.value !== 0
+  const isDataChange = computed(() => capacityNeed.value !== undefined || capacityFutureNeed.value !== undefined
     || radioValue.value !== -1);
 
   const cluserMachineMap = {

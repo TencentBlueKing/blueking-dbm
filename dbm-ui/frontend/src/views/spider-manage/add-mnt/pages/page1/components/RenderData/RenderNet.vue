@@ -12,14 +12,12 @@
 -->
 
 <template>
-  <BkLoading :loading="isLoading || isClusterDataLoading">
-    <TableEditInput
-      ref="editRef"
-      :model-value="localValue"
-      :placeholder="t('请先输入集群')"
-      readonly
-      :rules="rules" />
-  </BkLoading>
+  <RenderText
+    ref="editRef"
+    :data="localValue"
+    :is-loading="isLoading || isClusterDataLoading"
+    :placeholder="t('请先输入集群')"
+    :rules="rules" />
 </template>
 <script setup lang="ts">
   import _ from 'lodash';
@@ -36,7 +34,7 @@
   import type SpiderModel from '@services/model/spider/spider';
   import { getDetail } from '@services/spider';
 
-  import TableEditInput from '@views/mysql/common/edit/Input.vue';
+  import RenderText from '@components/tools-table-common/RenderText.vue';
 
   interface Props {
     clusterId: number
@@ -70,7 +68,7 @@
   const rules = [
     {
       validator: () => Number(localBkNetId.value) > -1,
-      message: t('云区域不能为空'),
+      message: t('管控区域不能为空'),
     },
   ];
 

@@ -18,7 +18,7 @@
 </template>
 
 <script lang="tsx">
-  import { beforeLoad, loadInstance, mount, unmount } from '@blueking/bk-weweb';
+  import { loadInstance, mount, unmount } from '@blueking/bk-weweb';
 
   export default {
     name: 'BkLog',
@@ -76,7 +76,6 @@
     handleLogAdd,
   });
 
-  beforeLoad();
   onMounted(async () => {
     const { VITE_PUBLIC_PATH } = window.PROJECT_ENV;
     await loadInstance({

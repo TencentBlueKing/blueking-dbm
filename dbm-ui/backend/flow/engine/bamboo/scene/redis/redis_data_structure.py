@@ -49,6 +49,9 @@ from backend.flow.plugins.components.collections.redis.exec_shell_script import 
     RedisDataStructurePrecheckComponent,
 )
 from backend.flow.plugins.components.collections.redis.get_redis_payload import GetRedisActPayloadComponent
+from backend.flow.plugins.components.collections.redis.psuh_data_structure_json_script import (
+    PushDataStructureJsonScriptComponent,
+)
 from backend.flow.plugins.components.collections.redis.redis_db_meta import RedisDBMetaComponent
 from backend.flow.plugins.components.collections.redis.trans_flies import TransFileComponent
 from backend.flow.utils.common_act_dataclass import DownloadBackupClientKwargs
@@ -263,7 +266,9 @@ class RedisDataStructureFlow(object):
             # 目录设置为空，根据获取到的机器备份目录来设置
             dest_dir = ""
             # 整理数据构造下发actuator 源节点和临时集群节点之间的对应关系，# 获取备份信息，用于磁盘空间是否足够的前置检查
-            acts_list = self.get_prod_temp_instance_pairs(act_kwargs, node_pairs, info, tendis_type, dest_dir)
+            acts_list, acts_list_push_json = self.get_prod_temp_instance_pairs(
+                act_kwargs, node_pairs, info, tendis_type, dest_dir
+            )
 
             # ### 检查新机器磁盘空间和内存是否够##############################################
             acts_list_disk_check = []
@@ -401,7 +406,8 @@ class RedisDataStructureFlow(object):
                 act_component_code=ExecuteDBActuatorScriptComponent.code,
                 kwargs=asdict(act_kwargs),
             )
-
+            # ### 数据构造payload json下发 #########################################################################
+            redis_pipeline.add_parallel_acts(acts_list=acts_list_push_json)
             # ### 数据构造下发actuator #############################################################################
             redis_pipeline.add_parallel_acts(acts_list=acts_list)
 
@@ -565,7 +571,7 @@ class RedisDataStructureFlow(object):
         info: dict,
         tendis_type: str,
         dest_dir: str,
-    ) -> list:
+    ) -> (list, list):
         # ### 整理 数据构造源节点和临时集群节点之间的对应关系 ######################################################
         """
         1、有一对多：1台源主机对应多台临时主机->加快数据构造进度
@@ -631,6 +637,7 @@ class RedisDataStructureFlow(object):
         # 并发执行redis数据构造
         act_kwargs = deepcopy(sub_kwargs)
         acts_list = []
+        acts_list_push_json = []
 
         rollback_time = time.strptime(info["recovery_time_point"], "%Y-%m-%d %H:%M:%S")
         rollback_handler = DataStructureHandler(info["cluster_id"])
@@ -710,6 +717,13 @@ class RedisDataStructureFlow(object):
                     act_kwargs.exec_ip = new_temp_ip
                     act_kwargs.get_redis_payload_func = RedisActPayload.redis_data_structure.__name__
                     act_kwargs.act_name = _("源{}构造到临时机{}").format(source_ip, act_kwargs.exec_ip)
+                    acts_list_push_json.append(
+                        {
+                            "act_name": _("源{}payload json下发到临时机{}").format(source_ip, act_kwargs.exec_ip),
+                            "act_component_code": PushDataStructureJsonScriptComponent.code,
+                            "kwargs": asdict(act_kwargs),
+                        }
+                    )
                     acts_list.append(
                         {
                             "act_name": act_kwargs.act_name,
@@ -766,6 +780,13 @@ class RedisDataStructureFlow(object):
                 act_kwargs.exec_ip = new_temp_ip
                 act_kwargs.get_redis_payload_func = RedisActPayload.redis_data_structure.__name__
                 act_kwargs.act_name = _("源{}构造到临时机{}").format(source_ip, act_kwargs.exec_ip)
+                acts_list_push_json.append(
+                    {
+                        "act_name": _("源{}payload json下发到临时机{}").format(source_ip, act_kwargs.exec_ip),
+                        "act_component_code": PushDataStructureJsonScriptComponent.code,
+                        "kwargs": asdict(act_kwargs),
+                    }
+                )
                 acts_list.append(
                     {
                         "act_name": act_kwargs.act_name,
@@ -773,4 +794,4 @@ class RedisDataStructureFlow(object):
                         "kwargs": asdict(act_kwargs),
                     }
                 )
-        return acts_list
+        return acts_list, acts_list_push_json

@@ -20,7 +20,6 @@
     </div>
     <div class="main-container__content">
       <MainBreadcrumbs
-        v-if="!mainViewStore.customBreadcrumbs"
         class="main-container__breadcrumbs" />
       <slot name="main-content">
         <div
@@ -95,6 +94,12 @@
           }
         }
       }
+
+      .bk-menu-group {
+        .group-name {
+          color: #788499
+        }
+      }
     }
 
     &__toggle {
@@ -156,11 +161,9 @@
   }
 
   .main-container__view {
-    height: 100%;
+    position: relative;
+    z-index: 0;
+    height: calc(100% - 52px);
     background-color: #f5f7fa;
-
-    &.has-breadcrumbs {
-      height: calc(100% - 52px);
-    }
   }
 </style>

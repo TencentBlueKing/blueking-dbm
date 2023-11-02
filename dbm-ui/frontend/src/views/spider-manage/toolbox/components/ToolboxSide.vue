@@ -69,7 +69,7 @@
                     {{ item.name }}
                   </span>
                   <TaskCount
-                    v-if="item.id === 'MySQLExecute'"
+                    v-if="item.id === 'spiderSqlExecute'"
                     class="count" />
                 </div>
                 <i
@@ -117,7 +117,7 @@
   const router = useRouter();
   const route = useRoute();
   const userProfileStore = useUserProfile();
-  const menuActives = ['sql', 'migrate', 'entry', 'mnt', 'fileback', 'privilege', 'copy', 'data'];
+  const menuActives = ['spider_sql', 'spider_cluster_maintain', 'spider_entry', 'spider_mnt', 'spider_fileback', 'spider_privilege', 'spider_copy', 'spider_data'];
 
   const sideListRef = ref();
   const state = reactive<State>({

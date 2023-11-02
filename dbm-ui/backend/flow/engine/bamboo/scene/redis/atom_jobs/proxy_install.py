@@ -106,6 +106,7 @@ def ProxyBatchInstallAtomJob(root_id, ticket_data, act_kwargs: ActKwargs, param:
         act_kwargs.cluster["machine_type"] = MachineType.PREDIXY.value
         act_kwargs.cluster["redispasswd"] = param["redis_pwd"]
         act_kwargs.cluster["predixypasswd"] = param["proxy_pwd"]
+        act_kwargs.cluster["predixyadminpasswd"] = param["proxy_admin_pwd"]
         act_kwargs.cluster["port"] = param["proxy_port"]
         act_kwargs.cluster["servers"] = param["servers"]
         act_kwargs.get_redis_payload_func = RedisActPayload.get_install_predixy_payload.__name__

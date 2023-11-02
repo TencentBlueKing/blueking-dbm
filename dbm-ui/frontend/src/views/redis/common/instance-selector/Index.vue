@@ -36,6 +36,7 @@
           :key="panelTabActive"
           :active-tab="panelTabActive"
           :db-type="dbType"
+          :is-radio-mode="isRadioMode"
           :last-values="lastValues"
           :role="role"
           :table-settings="tableSettings"
@@ -90,7 +91,7 @@
 <script setup lang="ts">
   import getSettings from './common/tableSettings';
   import PanelTab, { activePanelInjectionKey, defaultPanelList, type PanelTypes } from './components/PanelTab.vue';
-  import PreviewResult from './components/PreviewResult.vue';
+  import PreviewResult from './components/preview-result/Index.vue';
   import RenderManualInput from './components/RenderManualInput.vue';
   import RenderRedis from './components/RenderRedis.vue';
 
@@ -101,6 +102,7 @@
     selected?: InstanceSelectorValues,
     dbType?: string,
     activeTab?: PanelTypes
+    isRadioMode?: boolean,
   }
 
   interface Emits {
@@ -115,6 +117,7 @@
     selected: undefined,
     dbType: 'redis',
     activeTab: 'idleHosts',
+    isRadioMode: false,
   });
   const emits = defineEmits<Emits>();
 

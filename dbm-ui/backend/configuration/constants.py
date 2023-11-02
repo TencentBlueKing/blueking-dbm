@@ -49,6 +49,7 @@ class SystemSettingsEnum(str, StructuredEnum):
     SPEC_OFFSET = EnumField("SPEC_OFFSET", _("默认的规格参数偏移量"))
     DEVICE_CLASSES = EnumField("DEVICE_CLASSES", _("机型列表"))
     BKM_DUTY_NOTICE = EnumField("BKM_DUTY_NOTICE", _("轮值通知设置"))
+    DBM_MIGRATE_USER = EnumField("DBM_MIGRATE_USER", _("具备迁移权限的人员名单"))
 
 
 class BizSettingsEnum(str, StructuredEnum):
@@ -84,7 +85,7 @@ INIT_PASSWORD_POLICY = {
 
 # 监控数据自定义上报配置
 DBM_REPORT_INITIAL_VALUE = {
-    "proxy": {DEFAULT_CLOUD: _("请补充：指定云区域的proxy信息")},
+    "proxy": "127.0.0.1",
     "metric": {
         "data_id": _("请补充：自定义指标-数据ID"),
         "token": _("请补充：自定义指标-Token"),
@@ -118,6 +119,9 @@ BKM_DUTY_NOTICE_VALUE = {
     },
 }
 
+# 默认具备迁移权限的人员
+DBM_DEFAULT_MIGRATE_USER = ["admin"]
+
 DEFAULT_SETTINGS = [
     # [key, 类型，初始值, 描述]
     [SystemSettingsEnum.BKM_DBM_TOKEN.value, "str", "", _("监控数据源token")],
@@ -126,6 +130,7 @@ DEFAULT_SETTINGS = [
     [SystemSettingsEnum.INDEPENDENT_HOSTING_BIZS.value, "list", [], _("独立托管机器的业务列表")],
     [SystemSettingsEnum.SPEC_OFFSET.value, "dict", SPEC_OFFSET_VALUE, _("默认的规格参数偏移量")],
     [SystemSettingsEnum.BKM_DUTY_NOTICE.value, "dict", BKM_DUTY_NOTICE_VALUE, _("默认通知配置")],
+    [SystemSettingsEnum.DBM_MIGRATE_USER, "list", DBM_DEFAULT_MIGRATE_USER, _("具备迁移权限的人员名单")],
 ]
 
 # 环境配置项 是否支持DNS解析 pulsar flow used

@@ -1,0 +1,27 @@
+# This workflow will install Python dependencies, run tests and lint with a single version of Python
+# For more information see: https://help.github.com/actions/language-and-framework-guides/using-python-with-github-actions
+
+name: Helm Template Check
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "helm-charts/**"
+  pull_request:
+    paths:
+      - "helm-charts/**"
+
+jobs:
+  helm-check:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@master
+    - name: helm-check
+      run: |-
+        cd ./helm-charts/bk-dbm
+        helm repo add bitnami https://charts.bitnami.com/bitnami
+        helm repo add stakater-charts https://stakater.github.io/stakater-charts
+        helm dependency build
+        helm template . -f values.yaml
+        exit $?

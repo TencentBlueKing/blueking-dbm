@@ -26,7 +26,22 @@ const routes: RouteRecordRaw[] = [
       navName: t('资源规格管理'),
       isMenu: true,
     },
-    component: () => import('@views/resource-spec/pages/Index.vue'),
+    redirect: {
+      name: 'ResourceSpecList',
+    },
+    component: () => import('@views/resource-spec/Index.vue'),
+    children: [
+      {
+        name: 'ResourceSpecList',
+        path: 'list',
+        meta: {
+          routeParentName: MainViewRouteNames.Platform,
+          navName: t('资源规格管理'),
+          isMenu: true,
+        },
+        component: () => import('@views/resource-spec/list/Index.vue'),
+      },
+    ],
   },
 ];
 

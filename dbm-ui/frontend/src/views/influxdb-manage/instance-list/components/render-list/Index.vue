@@ -117,7 +117,6 @@
       :clear-selection="false"
       :columns="columns"
       :data-source="getListInstance"
-      fixed-pagination
       :row-class="setRowClass"
       :settings="renderSettings"
       style="margin-bottom: 34px;"
@@ -359,7 +358,7 @@
                   loading={tableDataActionLoadingMap.value[data?.id]}
                   text
                   theme="primary"
-                  onClick={() => handlDelete.bind(data)}>
+                  onClick={() => handlDelete(data)}>
                   { t('删除') }
                 </bk-button>
               </>

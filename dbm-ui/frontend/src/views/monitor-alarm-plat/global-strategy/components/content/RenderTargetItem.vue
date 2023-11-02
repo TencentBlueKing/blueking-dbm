@@ -41,7 +41,7 @@
   const isShowToolTip = ref(false);
 
   const titleMap = {
-    app_id: t('业务'),
+    appid: t('业务'),
     cluster_domain: t('集群'),
     db_module: t('模块'),
   } as Record<string, string>;

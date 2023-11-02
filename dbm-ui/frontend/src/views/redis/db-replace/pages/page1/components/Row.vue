@@ -40,6 +40,7 @@
       <RenderSpec
         :data="data.spec"
         :hide-qps="data.role === 'proxy'"
+        is-ignore-counts
         :is-loading="data.isLoading" />
     </td>
     <td :class="{'shadow-column': isFixed}">
