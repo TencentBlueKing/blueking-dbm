@@ -187,7 +187,11 @@
         onConfirm={() => handleClickConfirm(row)}
         onCancel={() => handleCancelConfirm(row)}
       >
-        <bk-switcher size="small" v-model={row.is_enabled} theme="primary" onChange={() => handleChangeSwitch(row)} />
+        <bk-switcher
+          v-model={row.is_enabled}
+          size="small"
+          theme="primary"
+          onChange={() => handleChangeSwitch(row)} />
       </bk-pop-confirm>
     ),
     },
@@ -195,7 +199,7 @@
       label: t('操作'),
       fixed: 'right',
       field: '',
-      width: 180,
+      width: 120,
       render: ({ row }: { row: RowData }) => (
       <div class="operate-box">
         <bk-button

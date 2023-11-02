@@ -20,24 +20,24 @@ import { t } from '@locales/index';
 const routes: RouteRecordRaw[] = [
   {
     name: 'PlatformWhitelist',
-    path: 'whitelist',
+    path: 'whitelist_platform',
     meta: {
       routeParentName: MainViewRouteNames.Platform,
       navName: t('授权白名单'),
       isMenu: true,
     },
-    component: () => import('@views/whitelist/pages/Index.vue'),
+    component: () => import('@views/whitelist/list/Index.vue'),
   },
   {
     name: 'DatabaseWhitelist',
-    path: 'whitelist',
+    path: 'whitelist_database',
     meta: {
       routeParentName: MainViewRouteNames.Database,
       navName: t('授权白名单'),
       isMenu: true,
       submenuId: 'database-permission',
     },
-    component: () => import('@views/whitelist/pages/Index.vue'),
+    component: () => import('@views/whitelist/list/Index.vue'),
   },
 ];
 

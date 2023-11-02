@@ -55,7 +55,6 @@
       </BkLoading>
     </div>
   </div>
-
   <!-- 新增版本 -->
   <BkDialog
     v-model:is-show="createFileState.isShow"
@@ -132,7 +131,6 @@
     </template>
   </BkDialog>
 </template>
-
 <script setup lang="tsx">
   import { Form, Message } from 'bkui-vue';
   import Cookies from 'js-cookie';
@@ -141,12 +139,17 @@
   import type { PackageItem } from '@services/types/versionFiles';
   import { createPackage, getVersions } from '@services/versionFiles';
 
-  import { useCopy, useDefaultPagination, useTableMaxHeight } from '@hooks';
+  import {
+    useCopy,
+    useDefaultPagination,
+    useTableMaxHeight,
+  } from '@hooks';
 
   import { DBTypes } from '@common/const';
 
-  import type { IState, VersionFileType } from '../common/types';
   import { useVersionFiles } from '../hooks/useVersionFiles';
+
+  import type { IState, VersionFileType } from './types';
 
   import type { TableColumnRender } from '@/types/bkui-vue';
 
@@ -365,16 +368,15 @@
     Object.assign(createFileState.formdata, initCreateFormdata());
   }
 </script>
-
 <style lang="less" scoped>
   @import "@styles/mixins.less";
 
   .version-files {
-    height: 100%;
-    background-color: @bg-white;
+    padding: 24px;
 
     .version-files-content {
       padding: 16px;
+      background: #fff;
     }
 
     .version-files-operations {

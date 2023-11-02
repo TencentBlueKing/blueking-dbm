@@ -51,12 +51,14 @@
     loading,
     run,
   } = useRequest(props.service, {
+    manual: true,
     onSuccess(result) {
       tableName.value = result.name;
 
       tableColumns.value = result.title.map(titleItem => ({
         label: titleItem.display_name,
         render: ({ data: fieldData }: {data:any}) => {
+          console.log(fieldData);
           const fieldValue = fieldData[titleItem.name];
           if (titleItem.format === 'status') {
             const isSuccess = fieldValue === true;
@@ -70,7 +72,7 @@
         },
       }));
 
-      tableData.value = result.data;
+      tableData.value = result.results;
     },
   });
 

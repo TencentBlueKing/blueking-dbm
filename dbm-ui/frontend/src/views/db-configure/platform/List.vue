@@ -14,19 +14,19 @@
 <template>
   <div class="platform-db-configure-page">
     <TopTab @change="handleChangeTab" />
-    <BkTab
-      v-show="showTabs"
-      v-model:active="state.confType"
-      class="conf-tabs"
-      type="border-card"
-      @change="fetchPlatformConfigList">
-      <BkTabPanel
-        v-for="tab of state.tabs"
-        :key="tab.confType"
-        :label="tab.name"
-        :name="tab.confType" />
-    </BkTab>
     <div class="configure-content">
+      <BkTab
+        v-show="showTabs"
+        v-model:active="state.confType"
+        class="conf-tabs"
+        type="border-card"
+        @change="fetchPlatformConfigList">
+        <BkTabPanel
+          v-for="tab of state.tabs"
+          :key="tab.confType"
+          :label="tab.name"
+          :name="tab.confType" />
+      </BkTab>
       <BkLoading :loading="state.loading">
         <DbOriginalTable
           :key="state.clusterType"

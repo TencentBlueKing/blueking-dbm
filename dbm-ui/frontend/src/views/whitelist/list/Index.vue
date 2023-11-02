@@ -75,7 +75,7 @@
 
   import RenderRow from '@components/render-row/index.vue';
 
-  import WhitelistOperation from '../components/WhitelistOperation.vue';
+  import WhitelistOperation from './components/WhitelistOperation.vue';
 
   import { useGlobalBizs } from '@/stores';
   import { messageSuccess } from '@/utils';

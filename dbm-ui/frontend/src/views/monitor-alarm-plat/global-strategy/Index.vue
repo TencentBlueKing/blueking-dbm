@@ -28,8 +28,9 @@
     </div>
   </div>
 </template>
-
 <script setup lang="ts">
+  import { useMainViewStore } from '@stores';
+
   import TypeContent from './components/content/Index.vue';
 
   const tabs = [
@@ -75,13 +76,25 @@
     },
   ];
 
+  const mainViewStore = useMainViewStore();
+  mainViewStore.hasPadding = false;
+
   const activeTab = ref(tabs[0].value);
 
 </script>
 <style lang="less">
 .monitor-alart-global-strategy-page{
+  .top-tabs{
+    background: #fff;
+    box-shadow: 0 3px 4px 0 rgb(0 0 0 / 4%);
+
+    .bk-tab-content{
+      display: none;
+    }
+  }
+
   .global-strategy-content {
-    margin-top: 35px;
+    padding: 24px;
   }
 }
 

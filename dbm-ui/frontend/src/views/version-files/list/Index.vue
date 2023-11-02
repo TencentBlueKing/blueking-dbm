@@ -23,7 +23,7 @@
         :label="tab.label"
         :name="tab.name" />
     </BkTab>
-    <VersionFileContent
+    <FileContent
       :key="tabActive"
       :info="activeTabInfo" />
   </div>
@@ -37,11 +37,14 @@
     FunctionKeys,
   } from '@services/model/function-controller/functionController';
 
-  import { useFunController } from '@stores';
+  import {
+    useFunController,
+    useMainViewStore,
+  } from '@stores';
 
   import { DBTypes } from '@common/const';
 
-  import VersionFileContent from './VersionFileContent.vue';
+  import FileContent from './components/FileContent.vue';
 
   interface TabItem {
     controller: {
@@ -59,6 +62,8 @@
 
   const { t } = useI18n();
   const funControllerStore = useFunController();
+  const mainViewStore = useMainViewStore();
+  mainViewStore.hasPadding = false;
 
   const tabs: TabItem[] = [
     {
@@ -288,7 +293,6 @@
     };
   });
 </script>
-
 <style lang="less">
   .version-files-view {
     .top-tabs{
