@@ -91,6 +91,9 @@ do
                     # 不采集根目录磁盘的大小
                     mp=`getMountPoint ${part}`
                     if [ -z "$mp" ];then
+                        mp=`getMountPoint ${dname}`
+                    fi 
+                    if [ -z "$mp" ];then
                         continue
                     fi 
                     if [ ${mp} == "/" ];then

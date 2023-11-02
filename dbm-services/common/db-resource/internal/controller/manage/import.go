@@ -206,14 +206,14 @@ func Doimport(param ImportMachParam) (resp *ImportHostResp, err error) {
 	}
 	diskResp, err = bk.GetDiskInfo(ipList, param.BkBizId)
 	if err != nil {
-		logger.Error("query host cc info failed %s", err.Error())
-		return resp, err
+		logger.Error("get disk info failed %s", err.Error())
+		return resp, fmt.Errorf("execute job get disk info failed %w", err)
 	}
 	wg.Wait()
 	resp.SearchDiskErrInfo = diskResp.IpFailedLogMap
 	resp.NotFoundInCCHosts = notFoundHosts
 	if derr != nil {
-		logger.Error("search disk info by job  failed %s", derr.Error())
+		logger.Error("query cc info from cmdb failed %s", derr.Error())
 		resp.GetDiskInfoJobErrMsg = derr.Error()
 		// return
 	}

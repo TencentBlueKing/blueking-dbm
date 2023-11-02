@@ -55,7 +55,8 @@ class ImportResourceInitStepFlow(object):
         if env.SA_INIT_TEMPLATE_ID:
             ips = []
             for host_info in ip_list:
-                ips.append(host_info["bk_cloud_id"] + ":" + host_info["ip"])
+                resource_id = f'{host_info["bk_cloud_id"]}: {host_info["ip"]}'
+                ips.append(resource_id)
             p.add_act(
                 act_name=_("执行sa初始化"),
                 act_component_code=SaInitComponent.code,
