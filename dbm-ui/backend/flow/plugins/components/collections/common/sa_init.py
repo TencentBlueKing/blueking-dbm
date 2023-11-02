@@ -63,7 +63,7 @@ class SaInit(BaseService):
             return True
         if state in [states.FAILED, states.REVOKED, states.SUSPENDED]:
             if state == states.FAILED:
-                self.log_error(_("空闲检查失败"))
+                self.log_error(_("SA初始化失败"))
             else:
                 self.log_error(_("任务状态异常{}").format(state))
             # 查询异常日志
