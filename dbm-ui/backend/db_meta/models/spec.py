@@ -69,7 +69,7 @@ class Spec(AuditedModel):
             ClusterType.TwemproxyTendisSSDInstance,
             ClusterType.TendisPredixyTendisplusCluster,
         ]:
-            return mount_point__size["/data1"]
+            return mount_point__size.get("/data1") or mount_point__size["/data"] / 2
 
         if self.spec_cluster_type == ClusterType.TendisTwemproxyRedisInstance:
             # 取min, max都一样
