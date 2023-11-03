@@ -48,6 +48,7 @@ class SystemSettingsEnum(str, StructuredEnum):
     DEVICE_CLASSES = EnumField("DEVICE_CLASSES", _("机型列表"))
     BKM_DUTY_NOTICE = EnumField("BKM_DUTY_NOTICE", _("轮值通知设置"))
     DBM_MIGRATE_USER = EnumField("DBM_MIGRATE_USER", _("具备迁移权限的人员名单"))
+    BIZ_CONFIG = EnumField("BIZ_CONFIG", _("全业务通用配置信息"))
 
 
 class BizSettingsEnum(str, StructuredEnum):
@@ -117,6 +118,12 @@ BKM_DUTY_NOTICE_VALUE = {
     },
 }
 
+# 默认的全业务配置信息
+BIZ_CONFIG_INFO = {
+    # 开区默认内置变量
+    "OPEN_AREA_VARS": [{"desc": "APP", "name": "APP", "builtin": True}]
+}
+
 # 默认具备迁移权限的人员
 DBM_DEFAULT_MIGRATE_USER = ["admin"]
 
@@ -129,6 +136,7 @@ DEFAULT_SETTINGS = [
     [SystemSettingsEnum.SPEC_OFFSET.value, "dict", SPEC_OFFSET_VALUE, _("默认的规格参数偏移量")],
     [SystemSettingsEnum.BKM_DUTY_NOTICE.value, "dict", BKM_DUTY_NOTICE_VALUE, _("默认通知配置")],
     [SystemSettingsEnum.DBM_MIGRATE_USER, "list", DBM_DEFAULT_MIGRATE_USER, _("具备迁移权限的人员名单")],
+    [SystemSettingsEnum.BIZ_CONFIG, "dict", BIZ_CONFIG_INFO, _("默认的全业务配置信息")],
 ]
 
 # 环境配置项 是否支持DNS解析 pulsar flow used

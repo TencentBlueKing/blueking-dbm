@@ -62,6 +62,7 @@ def decommission(cluster: Cluster):
     cluster.delete(keep_parents=True)
     # 删除集群相关的配置模板
     TendbOpenAreaConfig.objects.filter(source_cluster_id=cluster.id).delete()
+    # TODO: 删除分区策略
 
 
 @transaction.atomic

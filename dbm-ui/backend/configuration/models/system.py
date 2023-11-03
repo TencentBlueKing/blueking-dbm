@@ -28,7 +28,7 @@ class AbstractSettings(AuditedModel):
     """定义配置表的基本字段"""
 
     type = models.CharField(_("类型"), max_length=LEN_NORMAL)
-    key = models.CharField(_("关键字唯一标识"), max_length=LEN_NORMAL, unique=True)
+    key = models.CharField(_("关键字唯一标识"), max_length=LEN_NORMAL)
     value = models.JSONField(_("系统设置值"))
     desc = models.CharField(_("描述"), max_length=LEN_LONG)
 
@@ -70,6 +70,7 @@ class SystemSettings(AbstractSettings):
         verbose_name = _("系统设置")
         verbose_name_plural = _("系统设置")
         ordering = ("id",)
+        unique_together = ("key",)
 
     @classmethod
     def init_default_settings(cls, *args, **kwargs):
@@ -140,6 +141,10 @@ class BizSettings(AbstractSettings):
         indexes = [
             models.Index(fields=["bk_biz_id"]),
         ]
+        unique_together = (
+            "bk_biz_id",
+            "key",
+        )
         verbose_name = _("业务配置")
         verbose_name_plural = _("业务配置")
         ordering = ("id",)

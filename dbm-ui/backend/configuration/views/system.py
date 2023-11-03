@@ -8,6 +8,10 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import operator
+from functools import reduce
+
+from django.db.models import Q
 from django.utils.translation import ugettext_lazy as _
 from rest_framework import status
 from rest_framework.decorators import action
@@ -98,7 +102,7 @@ class SystemSettingsViewSet(viewsets.SystemViewSet):
             }
         )
 
-    @common_swagger_auto_schema(operation_summary=_("查询环境变量"), tags=tags)
+    @common_swagger_auto_schema(operation_summary=_("查询敏感环境变量"), tags=tags)
     @action(detail=False, methods=["get"])
     def sensitive_environ(self, request):
         """按需提供敏感环境变量"""
@@ -140,7 +144,17 @@ class BizSettingsViewSet(viewsets.AuditedModelViewSet):
     @action(detail=False, methods=["GET"], serializer_class=ListBizSettingsSerializer)
     def simple(self, request, *args, **kwargs):
         filter_field = self.params_validate(self.get_serializer_class())
-        return Response({q.key: q.value for q in self.queryset.filter(**filter_field)})
+        data = {q.key: q.value for q in self.queryset.filter(**filter_field)}
+        # 从systemsettings获取全局的默认业务配置
+        biz_configs = SystemSettings.get_setting_value(key=SystemSettingsEnum.BIZ_CONFIG)
+        # 如果配置是list, dict则合并，其他类型则首先以业务为准
+        for key, value in data.items():
+            if isinstance(value, dict):
+                data[key].update(biz_configs[key])
+            elif isinstance(value, list):
+                data[key].extend(biz_configs[key])
+
+        return Response(data)
 
     @common_swagger_auto_schema(
         operation_summary=_("更新业务设置列表键值"),
