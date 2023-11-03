@@ -272,7 +272,7 @@ class SpecSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError(
                     _("【{}】后端磁盘挂载点必须包含/data，可选/data1").format(attrs["spec_cluster_type"])
                 )
-        # TendisPlus/TendisSSD 磁盘必须包含/data和/data1
+        # TendisPlus/TendisSSD 磁盘必须包含/data，/data1可选
         if (
             attrs["spec_cluster_type"]
             in [
