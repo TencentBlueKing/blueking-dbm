@@ -45,7 +45,10 @@
           <RouterLink
             active-class="main-navigation__nav--active"
             class="main-navigation__nav"
-            :to="{ name: MainViewRouteNames.Database, params: { bizId: globalBizsStore.currentBizId } }">
+            :to="{
+              name: MainViewRouteNames.Database,
+              params: { bizId: globalBizsStore.currentBizId }
+            }">
             {{ $t('数据库管理') }}
           </RouterLink>
           <AuthComponent

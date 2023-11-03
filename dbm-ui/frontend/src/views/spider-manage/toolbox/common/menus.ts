@@ -165,4 +165,16 @@ export default [
       },
     ],
   },
+  {
+    name: t('克隆开区'),
+    id: 'spider_openarea',
+    icon: 'db-icon-clone',
+    children: [
+      {
+        name: t('开区模版'),
+        id: 'spiderOpenarea',
+        parentId: 'spider_openarea',
+      },
+    ],
+  },
 ];
