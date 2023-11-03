@@ -354,6 +354,16 @@ const commonRouters: RouteRecordRaw[] = [
         },
         component: () => import('@views/mysql/permission/index.vue'),
       },
+      {
+        path: 'partition-manage',
+        name: 'mysqlPartitionManage',
+        meta: {
+          routeParentName: MainViewRouteNames.Database,
+          navName: t('Mysql 分区管理'),
+          isMenu: true,
+        },
+        component: () => import('@views/mysql/partition-manage/Index.vue'),
+      },
     ],
   },
 

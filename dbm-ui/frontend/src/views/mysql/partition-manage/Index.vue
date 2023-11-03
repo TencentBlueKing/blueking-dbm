@@ -299,7 +299,7 @@
   const fetchData = () => {
     const searchParams = getSearchSelectorParams(searchValues.value);
     tableRef.value?.fetchData(searchParams, {
-      cluster_type: ClusterTypes.TENDBCLUSTER,
+      cluster_type: ClusterTypes.TENDBHA,
     });
   };
 
@@ -314,7 +314,7 @@
   const handleBatchRemove = () => {
     operationData.value = undefined;
     return batchRemove({
-      cluster_type: ClusterTypes.TENDBCLUSTER,
+      cluster_type: ClusterTypes.TENDBHA,
       ids: selectionList.value,
     }).then(() => {
       fetchData();
@@ -368,7 +368,7 @@
 
   const handleDisable  =  (payload: PartitionModel) => {
     disablePartition({
-      cluster_type: ClusterTypes.TENDBCLUSTER,
+      cluster_type: ClusterTypes.TENDBHA,
       ids: [payload.id],
     }).then(() => {
       fetchData();
@@ -378,7 +378,7 @@
 
   const handleEnable = (payload: PartitionModel) => {
     enablePartition({
-      cluster_type: ClusterTypes.TENDBCLUSTER,
+      cluster_type: ClusterTypes.TENDBHA,
       ids: [payload.id],
     }).then(() => {
       fetchData();
@@ -393,7 +393,7 @@
   };
 
   const handleRemove = (payload: PartitionModel) => batchRemove({
-    cluster_type: ClusterTypes.TENDBCLUSTER,
+    cluster_type: ClusterTypes.TENDBHA,
     ids: [payload.id],
   }).then(() => {
     fetchData();

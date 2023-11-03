@@ -150,7 +150,7 @@
     selected: () =>  ({}),
     tabList: () => ([
       {
-        id: ClusterTypes.SPIDER,
+        id: ClusterTypes.TENDBCLUSTER,
         name: '集群选择',
       },
     ]),
@@ -192,7 +192,7 @@
       };
     }
     return {
-      [ClusterTypes.SPIDER]: SpiderTable,
+      [ClusterTypes.TENDBCLUSTER]: SpiderTable,
     };
   });
 

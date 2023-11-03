@@ -78,7 +78,7 @@
   const emits = defineEmits<Emits>();
 
   const clusterSelectorTabList = [{
-    id: ClusterTypes.SPIDER,
+    id: ClusterTypes.TENDBCLUSTER,
     name: '集群',
   }];
 
