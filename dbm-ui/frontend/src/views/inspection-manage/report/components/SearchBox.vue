@@ -1,5 +1,5 @@
 <template>
-  <div class="search-box">
+  <div class="inspection-search-box">
     <BkForm form-type="vertical">
       <BkFormItem :label="t('日期')">
         <BkDatePicker v-model="formData.date" />
@@ -110,7 +110,7 @@
   };
 </script>
 <style lang="less">
-  .search-box {
+  .inspection-search-box {
     padding: 16px 12px 36px;
     background: #fff;
 

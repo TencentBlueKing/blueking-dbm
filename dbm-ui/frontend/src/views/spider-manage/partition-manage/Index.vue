@@ -37,8 +37,8 @@
       @setting-change="handleSettingChange" />
     <DryRun
       v-model="isShowDryRun"
-      :data="operationData"
-      :operation-dry-run-data="operationDryRunData" />
+      :operation-dry-run-data="operationDryRunData"
+      :partition-data="operationData" />
     <DbSideslider
       v-model:is-show="isShowOperation"
       :confirm-text="operationData && operationData.id ? t('保存并执行') : t('提交')"
@@ -345,6 +345,8 @@
   const handleExecute = (payload: PartitionModel) => {
     isShowDryRun.value = true;
     operationData.value = payload;
+    operationDryRunData.value = undefined;
+    console.log('operationData = ', operationData.value);
   };
   // 编辑
   const handleEdit  = (payload: PartitionModel) => {
