@@ -192,6 +192,8 @@ const (
 const (
 	MetaRoleRedisMaster = "redis_master"
 	MetaRoleRedisSlave  = "redis_slave"
+	MetaRolePredixy     = "predixy"
+	MetaRoleTwemproxy   = "twemproxy"
 )
 
 // proxy operations

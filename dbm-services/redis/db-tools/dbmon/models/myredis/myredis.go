@@ -50,13 +50,13 @@ func GetRedisPasswdFromConfFile(port int) (password string, err error) {
 
 // GetProxyPasswdFromConfFlie (从配置文件中)获取本地proxy实例密码
 func GetProxyPasswdFromConfFlie(port int, role string) (password string, err error) {
-	dataDir := consts.GetRedisDataDir()
 	var grepCmd string
 	if role == consts.MetaRoleTwemproxy {
 		grepCmd = fmt.Sprintf(`grep -w "password" %s/twemproxy*/%d/nutcracker.%d.yml|grep -vE "#"|awk '{print $2}'`,
-			dataDir, port, port)
+			consts.DataPath, port, port)
 	} else if role == consts.MetaRolePredixy {
-		grepCmd = fmt.Sprintf(`grep -iw "auth" %s/predixy/%d/predixy.conf|awk '{print $2}'`, dataDir, port)
+		grepCmd = fmt.Sprintf(`grep -iw "auth" %s/predixy/%d/predixy.conf|awk '{print $2}'`,
+			consts.Data1Path, port)
 	}
 	password, err = util.RunBashCmd(grepCmd, "", nil, 10*time.Second)
 	if err != nil {
