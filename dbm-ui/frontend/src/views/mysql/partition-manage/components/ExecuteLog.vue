@@ -102,7 +102,7 @@
       });
     }
     tableRef.value.fetchData(params, {
-      cluster_type: ClusterTypes.TENDBCLUSTER,
+      cluster_type: ClusterTypes.TENDBHA,
       config_id: props.data.id,
     });
   };

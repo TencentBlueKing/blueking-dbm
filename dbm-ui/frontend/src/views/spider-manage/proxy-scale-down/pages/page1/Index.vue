@@ -115,7 +115,7 @@
   const tableData = ref([createRowData()]);
   const isIgnoreBusinessAccess = ref(false);
   const clusterNodeTypeMap = ref<Record<string, string[]>>({});
-  const selectedClusters = shallowRef<{[key: string]: Array<SpiderModel>}>({ [ClusterTypes.SPIDER]: [] });
+  const selectedClusters = shallowRef<{[key: string]: Array<SpiderModel>}>({ [ClusterTypes.TENDBCLUSTER]: [] });
 
 
   const totalNum = computed(() => (tableData.value.length > 0
@@ -123,7 +123,7 @@
   const canSubmit = computed(() => tableData.value.filter(item => Boolean(item.cluster)).length > 0);
 
   const clusterSelectorTabList = [{
-    id: ClusterTypes.SPIDER as string,
+    id: ClusterTypes.TENDBCLUSTER as string,
     name: t('集群选择'),
     content: SpiderTable as unknown as Element,
   }];
@@ -184,7 +184,7 @@
   // 批量选择
   const handelClusterChange = async (selected: {[key: string]: Array<SpiderModel>}) => {
     selectedClusters.value = selected;
-    const list = selected[ClusterTypes.SPIDER];
+    const list = selected[ClusterTypes.TENDBCLUSTER];
     const newList = list.reduce((result, item) => {
       const domain = item.master_domain;
       if (!domainMemo[domain]) {
@@ -223,7 +223,7 @@
     const row = generateRowDateFromRequest(data);
     tableData.value[index] = row;
     domainMemo[domain] = true;
-    selectedClusters.value[ClusterTypes.SPIDER].push(data);
+    selectedClusters.value[ClusterTypes.TENDBCLUSTER].push(data);
   };
 
   // 追加一个集群
@@ -248,8 +248,8 @@
       }
     }
     tableData.value.splice(index, 1);
-    const clustersArr = selectedClusters.value[ClusterTypes.SPIDER];
-    selectedClusters.value[ClusterTypes.SPIDER] = clustersArr.filter(item => item.master_domain !== cluster);
+    const clustersArr = selectedClusters.value[ClusterTypes.TENDBCLUSTER];
+    selectedClusters.value[ClusterTypes.TENDBCLUSTER] = clustersArr.filter(item => item.master_domain !== cluster);
   };
 
   // 点击提交按钮
@@ -295,7 +295,7 @@
   // 重置
   const handleReset = () => {
     tableData.value = [createRowData()];
-    selectedClusters.value[ClusterTypes.SPIDER] = [];
+    selectedClusters.value[ClusterTypes.TENDBCLUSTER] = [];
     domainMemo = {};
     clusterNodeTypeMap.value = {};
     window.changeConfirm = false;

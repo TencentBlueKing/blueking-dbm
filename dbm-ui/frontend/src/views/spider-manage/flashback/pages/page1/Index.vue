@@ -94,10 +94,10 @@
   const isSubmitting  = ref(false);
 
   const tableData = shallowRef<Array<IDataRow>>([createRowData({})]);
-  const selectedClusters = shallowRef<{[key: string]: Array<SpiderModel>}>({ [ClusterTypes.SPIDER]: [] });
+  const selectedClusters = shallowRef<{[key: string]: Array<SpiderModel>}>({ [ClusterTypes.TENDBCLUSTER]: [] });
 
   const clusterSelectorTabList = [{
-    id: ClusterTypes.SPIDER,
+    id: ClusterTypes.TENDBCLUSTER,
     name: '集群',
   }];
   // 集群域名是否已存在表格的映射表
@@ -124,7 +124,7 @@
   // 批量选择
   const handelClusterChange = (selected: {[key: string]: Array<SpiderModel>}) => {
     selectedClusters.value = selected;
-    const list = selected[ClusterTypes.SPIDER];
+    const list = selected[ClusterTypes.TENDBCLUSTER];
     const newList = list.reduce((result, item) => {
       const domain = item.master_domain;
       if (!domainMemo[domain]) {
@@ -161,8 +161,8 @@
     tableData.value = dataList;
     if (domain) {
       delete domainMemo[domain];
-      const clustersArr = selectedClusters.value[ClusterTypes.SPIDER];
-      selectedClusters.value[ClusterTypes.SPIDER] = clustersArr.filter(item => item.master_domain !== domain);
+      const clustersArr = selectedClusters.value[ClusterTypes.TENDBCLUSTER];
+      selectedClusters.value[ClusterTypes.TENDBCLUSTER] = clustersArr.filter(item => item.master_domain !== domain);
     }
   };
 
@@ -204,7 +204,7 @@
 
   const handleReset = () => {
     tableData.value = [createRowData()];
-    selectedClusters.value[ClusterTypes.SPIDER] = [];
+    selectedClusters.value[ClusterTypes.TENDBCLUSTER] = [];
     domainMemo = {};
     window.changeConfirm = false;
   };

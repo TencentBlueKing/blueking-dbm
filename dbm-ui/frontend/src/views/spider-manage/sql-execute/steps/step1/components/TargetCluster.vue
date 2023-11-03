@@ -85,7 +85,7 @@
   const { t } = useI18n();
 
   const clusterSelectorTabList = [{
-    id: ClusterTypes.SPIDER,
+    id: ClusterTypes.TENDBCLUSTER,
     name: '集群',
   }];
 
@@ -184,7 +184,7 @@
 
     // ClusterSelector 的值回填
     clusterSelectorValue.value = {
-      [ClusterTypes.SPIDER]: _.filter(result, item => item.cluster_type === ClusterTypes.SPIDER),
+      [ClusterTypes.TENDBCLUSTER]: _.filter(result, item => item.cluster_type === ClusterTypes.TENDBCLUSTER),
     };
     triggerChange();
   };

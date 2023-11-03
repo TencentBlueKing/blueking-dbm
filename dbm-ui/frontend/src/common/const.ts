@@ -54,7 +54,6 @@ export enum ClusterTypes {
   MONGO_REPLICA_SET = 'MongoReplicaSet',
   MONGO_SHARED_CLUSTER = 'MongoShardedCluster',
   RIAK = 'riak',
-  SPIDER = 'tendbcluster'
 
 }
 

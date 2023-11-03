@@ -276,7 +276,7 @@
     fetchDryRun({
       config_id: props.partitionData.id,
       cluster_id: props.partitionData.cluster_id,
-      cluster_type: ClusterTypes.TENDBCLUSTER,
+      cluster_type: ClusterTypes.TENDBHA,
     });
   };
 
