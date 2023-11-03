@@ -24,3 +24,23 @@ class IsClusterDuplicatedSerializer(serializers.Serializer):
 class IsClusterDuplicatedResponseSerializer(serializers.Serializer):
     class Meta:
         swagger_schema_fields = {"example": {"is_duplicated": True}}
+
+
+class QueryAllTypeClusterSerializer(serializers.Serializer):
+    bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
+    cluster_types = serializers.CharField(help_text=_("集群类型(逗号分隔)"), required=False)
+    immute_domain = serializers.CharField(help_text=_("集群域名"), required=False)
+
+    def get_conditions(self, attr):
+        conditions = {"bk_biz_id": attr["bk_biz_id"]}
+        if attr.get("cluster_types"):
+            conditions["cluster_type__in"] = attr["cluster_types"].split(",")
+        if attr.get("immute_domain"):
+            conditions["immute_domain__icontains"] = attr["immute_domain"]
+
+        return conditions
+
+
+class QueryAllTypeClusterResponseSerializer(serializers.Serializer):
+    class Meta:
+        swagger_schema_fields = {"example": {"count": 1, "results": [{"id": 47, "immute_domain": "mysql.dba.db.com"}]}}

@@ -303,6 +303,16 @@ class InfluxdbTicketFlowBuilderPatchMixin(object):
             instance_list = _details.get("old_nodes", {}).get("influxdb", [])
         else:
             instance_list = _details.get("instance_list")
+
+        if not instance_list[0].get("instance_id"):
+            return list(map(lambda x: x["ip"], instance_list))
+
+        # 通过instance_id来更新instance信息
+        instance_ids = [instance.get("instance_id") for instance in instance_list]
+        id__instance = {s.id: s for s in StorageInstance.objects.filter(id__in=instance_ids)}
+        for instance in instance_list:
+            instance.update(id__instance[instance["instance_id"]].simple_desc)
+
         return list(map(lambda x: x["ip"], instance_list))
 
     def patch_ticket_detail(self):

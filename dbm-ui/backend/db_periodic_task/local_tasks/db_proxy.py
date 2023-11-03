@@ -21,7 +21,6 @@ from jinja2 import Environment
 
 from backend import env
 from backend.components import JobApi
-from backend.components.gse.client import GseApi
 from backend.configuration.constants import DBType
 from backend.core.consts import BK_PUSH_CONFIG_PAYLOAD
 from backend.db_periodic_task.local_tasks import register_periodic_task
@@ -29,6 +28,7 @@ from backend.db_proxy import nginxconf_tpl
 from backend.db_proxy.constants import JOB_INSTANCE_EXPIRE_TIME, NGINX_PUSH_TARGET_PATH, ExtensionType
 from backend.db_proxy.exceptions import ProxyPassBaseException
 from backend.db_proxy.models import ClusterExtension, DBCloudProxy, DBExtension
+from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.utils.redis import RedisConn
 
 logger = logging.getLogger("celery")
@@ -40,9 +40,11 @@ def fill_cluster_service_nginx_conf():
 
     def _job_push_config_file(_cloud_id, _file_list, _nginx):
         # 如果当前nginx的机器agent异常，则抛出日志且不下发。避免阻塞job
-        nginx_ip_list = [{"bk_cloud_id": _cloud_id, "ip": _nginx.internal_address}]
-        status_map = GseApi.get_agent_status({"hosts": nginx_ip_list})
-        if not status_map[f"{_cloud_id}:{_nginx.internal_address}"]["bk_agent_alive"]:
+        nginx_ip_list = [
+            {"bk_cloud_id": _cloud_id, "ip": _nginx.internal_address, "bk_host_innerip": _nginx.internal_address}
+        ]
+        ResourceQueryHelper.fill_agent_status(nginx_ip_list)
+        if not nginx_ip_list[0]["status"]:
             logger.error(_("nginx机器{}当前agent异常，跳过文件下发。请管理员检查机器运行状态").format(_nginx.internal_address))
             return None
 
