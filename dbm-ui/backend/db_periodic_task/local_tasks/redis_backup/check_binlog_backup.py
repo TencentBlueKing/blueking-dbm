@@ -112,7 +112,7 @@ def _check_tendis_binlog_backup():
                     instance=instance,
                     status=False,
                     msg=msg,
-                    subtype=RedisBackupCheckSubType.BinlogSlave.value,
+                    subtype=RedisBackupCheckSubType.BinlogBackup.value,
                 )
 
             else:

@@ -8,26 +8,3 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-
-from blue_krill.data_types.enum import StructuredEnum
-
-
-class DestroyedStatus(int, StructuredEnum):
-    """
-    销毁状态枚举
-    """
-
-    NOT_DESTROYED = 0  # 未销毁
-    DESTROYING = 1  # 销毁中
-    DESTROYED = 2  # 已销毁
-
-
-class MigrateStatus(int, StructuredEnum):
-    """
-    slots 迁移状态枚举
-    """
-
-    NOT_STARTED = 0  # 未开始
-    EXECUTING = 1  # 执行中
-    COMPLETED = 2  # 已完成
-    ErrorOccurred = -1  # 错误

@@ -279,6 +279,7 @@ class DBActuatorTypeEnum(str, StructuredEnum):
     Proxy = EnumField("proxy", _("proxy"))
     Redis = EnumField("redis", _("redis"))
     Tendis = EnumField("tendis", _("tendis"))
+    Tendisplus = EnumField("tendisplus", _("tendisplus"))
     TendisSSD = EnumField("tendisssd", _("tendisssd"))
     Twemproxy = EnumField("twemproxy", _("twemproxy"))
     Predixy = EnumField("predixy", _("predixy"))
@@ -379,6 +380,7 @@ class RedisActuatorActionEnum(str, StructuredEnum):
     CLUSTER_MEET_CHECK = EnumField("clustermeet_checkfinish", _("clustermeet_checkfinish"))
     VERSION_UPDATE = EnumField("version_update", _("version_update"))
     CLUSTER_FAILOVER = EnumField("cluster_failover", _("cluster_failover"))
+    SLOTS_MIGRATE = EnumField("migrate_slots", _("migrate_slots"))
 
 
 class EsActuatorActionEnum(str, StructuredEnum):

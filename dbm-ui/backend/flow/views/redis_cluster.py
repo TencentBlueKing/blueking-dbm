@@ -564,3 +564,145 @@ class RedisClusterVersionUpdateOnlineApiView(FlowTestView):
         root_id = uuid.uuid1().hex
         RedisController(root_id=root_id, ticket_data=request.data).redis_cluster_version_update_online()
         return Response({"root_id": root_id})
+
+
+class RedisClusterMigratePrecheck(FlowTestView):
+    """
+    集群迁移前置检查
+    """
+
+    @staticmethod
+    def post(request):
+        root_id = uuid.uuid1().hex
+        RedisController(root_id=root_id, ticket_data=request.data).redis_cluster_migrate_precheck()
+        return Response({"root_id": root_id})
+
+
+class RedisClusterMigrateLoad(FlowTestView):
+    """
+    集群迁移
+    """
+
+    @staticmethod
+    def post(request):
+        root_id = uuid.uuid1().hex
+        RedisController(root_id=root_id, ticket_data=request.data).redis_cluster_migrate_load()
+        return Response({"root_id": root_id})
+
+
+class RedisClusterMigrateCompair(FlowTestView):
+    """
+    集群迁移数据对比
+    """
+
+    @staticmethod
+    def post(request):
+        root_id = uuid.uuid1().hex
+        RedisController(root_id=root_id, ticket_data=request.data).redis_cluster_migrate_compair()
+        return Response({"root_id": root_id})
+
+
+class RedisSlotsMigrateForExpansionSceneApiView(FlowTestView):
+    """
+        api: /apis/v1/flow/scene/redis_slots_migrate_for_expansion
+        params:
+       {
+        "bk_biz_id": 3,
+        "uid": "2022051612120001",
+        "created_by":"admin",
+        "ticket_type":"REDIS_SLOTS_MIGRATE",
+        "infos": [
+            {
+            "cluster_id": 12,
+            "bk_cloud_id": 0,
+            "current_group_num": 1,
+            "target_group_num": 2,
+            "new_ip_group":[
+                {
+                    "master":"aa.bb.cc.dd",
+                    "slave":"xx.bb.cc.dd"
+                }
+
+            ],
+         "resource_spec": {
+            "redis": {
+                "id": 1}}
+           }
+
+        ]
+    }
+    """
+
+    @staticmethod
+    def post(request):
+        root_id = uuid.uuid1().hex
+        RedisController(root_id=root_id, ticket_data=request.data).redis_slots_migrate_for_expansion()
+        return Response({"root_id": root_id})
+
+
+class RedisSlotsMigrateForContractionSceneApiView(FlowTestView):
+    """
+        api: /apis/v1/flow/scene/redis_slots_migrate_for_contraction
+        params:
+    {
+         "bk_biz_id": 3,
+         "uid": "2022051612120001",
+         "created_by":"admin",
+         "ticket_type":"REDIS_SLOTS_MIGRATE",
+         "infos": [
+             {
+             "cluster_id": 12,
+             "bk_cloud_id": 0,
+             "is_delete_node":true,
+             "current_group_num": 2,
+             "target_group_num": 1
+             }
+         ]
+     }
+    """
+
+    @staticmethod
+    def post(request):
+        root_id = uuid.uuid1().hex
+        RedisController(root_id=root_id, ticket_data=request.data).redis_slots_migrate_for_contraction()
+        return Response({"root_id": root_id})
+
+
+class RedisSlotsMigrateForHotkeySceneApiView(FlowTestView):
+    """
+      api:   /apis/v1/flow/scene/redis_slots_migrate_for_hotkey
+    params:
+     {
+    "bk_biz_id": 3,
+    "uid": "2022051612120001",
+    "created_by":"admin",
+    "ticket_type":"REDIS_SLOTS_MIGRATE",
+    "infos": [
+        {
+        "cluster_id": 12,
+        "bk_cloud_id": 0,
+        "batch_migrate":[
+            {
+                "slots":"12015-13653",
+                "src_node": "xx.xx.xx.xx:30002",
+                "dst_node": "xx.xx.xx.xx:30000"
+            },
+            {
+                "slots":"10378-10922",
+                "src_node": "xx.xx.xx.xx:30002",
+                "dst_node": "xx.xx.xx.xx:30001"
+            }
+
+        ]
+       }
+
+    ]
+    }
+
+    """
+
+    @staticmethod
+    def post(request):
+        root_id = uuid.uuid1().hex
+        RedisController(root_id=root_id, ticket_data=request.data).redis_slots_migrate_for_hotkey()
+        return Response({"root_id": root_id})

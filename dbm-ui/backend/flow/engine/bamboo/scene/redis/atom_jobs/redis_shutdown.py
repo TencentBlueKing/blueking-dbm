@@ -85,8 +85,11 @@ def RedisBatchShutdownAtomJob(root_id, ticket_data, sub_kwargs: ActKwargs, shutd
 
     # 从集群踢掉
     if act_kwargs.cluster["cluster_type"] == ClusterType.TendisPredixyTendisplusCluster:
-        # 定点构造的节点没有加入集群，所以这里不能执行这个逻辑
-        if act_kwargs.cluster.get("operate", "") != TicketType.REDIS_DATA_STRUCTURE_TASK_DELETE.value:
+        # 定点构造的节点没有加入集群，所以这里不能执行这个逻辑 ,slots 迁移缩容已经在actuator逻辑中forget了
+        if (
+            act_kwargs.cluster.get("operate", "") != TicketType.REDIS_DATA_STRUCTURE_TASK_DELETE.value
+            and act_kwargs.cluster.get("operate", "") != TicketType.REDIS_SLOTS_MIGRATE.value
+        ):
             act_kwargs.cluster["forget_instances"] = [
                 {"ip": exec_ip, "port": port} for port in shutdown_param["ports"]
             ]
