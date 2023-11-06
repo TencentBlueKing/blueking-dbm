@@ -28,7 +28,6 @@ try:
 except Exception:  # pylint: disable=broad-except
     pass
 
-
 logger = logging.getLogger("component")
 
 
@@ -89,9 +88,7 @@ class BaseComponentClient(object):
 
     def merge_params_data_with_common_args(self, method, params, data, enable_app_secret=False):
         """get common args when request"""
-        common_args = dict(bk_app_code=self.app_code, **self.common_args)
-        if enable_app_secret:
-            common_args["bk_app_secret"] = self.app_secret
+        common_args = dict(**self.common_args)
         if method == "GET":
             _params = common_args.copy()
             _params.update(params or {})
@@ -110,8 +107,19 @@ class BaseComponentClient(object):
             headers["x-use-test-env"] = "1"
         if self.language:
             headers["blueking-language"] = self.language
+        headers.update({
+            "X-Bkapi-Authorization": json.dumps(
+                {
+                    "bk_app_code": self.app_code,
+                    "bk_app_secret": self.app_secret,
+                    "bk_username": params.get("bk_username", ""),
+                    "bk_token": params.get("bk_token", ""),
+                    "bk_ticket": params.get("bk_ticket", ""),
+                }
+            )
+        })
 
-        params, data = self.merge_params_data_with_common_args(method, params, data, enable_app_secret=True)
+        params, data = self.merge_params_data_with_common_args(method, params, data)
         logger.debug("Calling %s %s with params=%s, data=%s, headers=%s", method, url, params, data, headers)
         return requests.request(method, url, params=params, data=data, verify=False, headers=headers, **kwargs)
 
@@ -137,7 +145,7 @@ class ComponentClientWithSignature(BaseComponentClient):
         if self.language:
             headers["blueking-language"] = self.language
 
-        params, data = self.merge_params_data_with_common_args(method, params, data, enable_app_secret=False)
+        params, data = self.merge_params_data_with_common_args(method, params, data)
         if method == "POST":
             params = {}
 
