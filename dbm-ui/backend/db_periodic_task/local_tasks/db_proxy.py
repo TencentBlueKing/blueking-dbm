@@ -23,6 +23,7 @@ from backend import env
 from backend.components import JobApi
 from backend.configuration.constants import DBType
 from backend.core.consts import BK_PUSH_CONFIG_PAYLOAD
+from backend.db_meta.models import Machine
 from backend.db_periodic_task.local_tasks import register_periodic_task
 from backend.db_proxy import nginxconf_tpl
 from backend.db_proxy.constants import JOB_INSTANCE_EXPIRE_TIME, NGINX_PUSH_TARGET_PATH, ExtensionType
@@ -38,10 +39,15 @@ logger = logging.getLogger("celery")
 def fill_cluster_service_nginx_conf():
     """填充集群额外服务的配置信息"""
 
-    def _job_push_config_file(_cloud_id, _file_list, _nginx):
+    def _job_push_config_file(_cloud_id, _agent_id, _file_list, _nginx):
         # 如果当前nginx的机器agent异常，则抛出日志且不下发。避免阻塞job
         nginx_ip_list = [
-            {"bk_cloud_id": _cloud_id, "ip": _nginx.internal_address, "bk_host_innerip": _nginx.internal_address}
+            {
+                "bk_cloud_id": _cloud_id,
+                "bk_agent_id": _agent_id,
+                "ip": _nginx.internal_address,
+                "bk_host_innerip": _nginx.internal_address,
+            }
         ]
         ResourceQueryHelper.fill_agent_status(nginx_ip_list)
         if not nginx_ip_list[0]["status"]:
@@ -71,9 +77,14 @@ def fill_cluster_service_nginx_conf():
     for cloud_id in cloud__db_type__extension.keys():
         # 获取下发nginx conf的机器 TODO: 后续要改为clb的地址进行转发
         nginx = DBCloudProxy.objects.filter(bk_cloud_id=cloud_id).last()
-        nginx_detail = DBExtension.get_latest_extension(
-            bk_cloud_id=cloud_id, extension_type=ExtensionType.NGINX
-        ).details
+        nginx_extension = DBExtension.get_latest_extension(bk_cloud_id=cloud_id, extension_type=ExtensionType.NGINX)
+        # 获取nginx的bk_agent_id(兼容gse2.0的agent查询)
+        if "bk_agent_id" not in nginx_extension.details:
+            host_info = Machine.get_host_info_from_cmdb(bk_host_id=nginx_extension.details["bk_host_id"])
+            nginx_extension.details["bk_agent_id"] = host_info.get("bk_agent_id", "")
+            nginx_extension.save(update_fields=["details"])
+
+        nginx_detail = nginx_extension.details
 
         file_list: List[Dict[str, str]] = []
         extension_ids: List[int] = []
@@ -105,7 +116,9 @@ def fill_cluster_service_nginx_conf():
                 extension_ids.append(extension.id)
 
         # 下发nginx服务配置
-        resp = _job_push_config_file(_cloud_id=cloud_id, _file_list=file_list, _nginx=nginx)
+        resp = _job_push_config_file(
+            _cloud_id=cloud_id, _agent_id=nginx_detail["bk_agent_id"], _file_list=file_list, _nginx=nginx
+        )
         if resp:
             # 缓存inst_id和nginx id，用于回调job，默认缓存时间和定时周期一致
             RedisConn.lpush(resp["data"]["job_instance_id"], *extension_ids, nginx.id)

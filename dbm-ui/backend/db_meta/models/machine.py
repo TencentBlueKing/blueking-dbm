@@ -45,6 +45,7 @@ class Machine(AuditedModel):
     bk_idc_name = models.CharField(max_length=128, default="", help_text=_("机房"))
     bk_idc_id = models.IntegerField(default=0, help_text=_("机房 ID"))
     bk_cloud_id = models.IntegerField(default=0, help_text=_("云区域 ID"))
+    bk_agent_id = models.CharField(max_length=128, default="", help_text=_("Agent ID"))
     net_device_id = models.CharField(max_length=256, default="")  # 这个 id 是个逗号分割的字符串
     spec_id = models.PositiveBigIntegerField(default=0, help_text=_("虚拟规格ID"))
     spec_config = models.JSONField(default=dict, help_text=_("当前的虚拟规格配置"))
@@ -141,6 +142,7 @@ class Machine(AuditedModel):
                     "bk_cpu",
                     "bk_disk",
                     "bk_mem",
+                    "bk_agent_id",
                 ],
                 "host_property_filter": {
                     "condition": "AND",
