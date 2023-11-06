@@ -189,7 +189,7 @@ class ClusterNodeData:
         if status == RedisLinkStatus.CONNECTED.value:
             self.link_state = RedisLinkStatus.CONNECTED.value
         elif status == RedisLinkStatus.DISCONNECTED.value:
-            self.link_state = RedisLinkStatus.CONNECTED.value
+            self.link_state = RedisLinkStatus.DISCONNECTED.value
 
         if self.link_state == "":
             raise Exception(f"Node SetLinkStatus failed,addr:{self.addr},status:{status}")
@@ -215,16 +215,17 @@ class ClusterNodeData:
             return
         self.master_id = ref
 
-    def is_running(self):
+    def is_running(self) -> bool:
         return len(self.fail_status) == 0 and self.link_state == RedisLinkStatus.CONNECTED.value
 
 
-def decode_cluster_nodes(input: str) -> List[ClusterNodeData]:
+def decode_cluster_nodes(input: str) -> Tuple[List[ClusterNodeData], Dict[str, ClusterNodeData]]:
     """
     解析redis cluster nodes命令返回的信息
     与'cluster nodes'命令返回的信息对应
     """
-    infos = []
+    node_list = []
+    node_map = {}
     lines = input.split("\n")
     for line in lines:
         values = line.split()
@@ -273,16 +274,17 @@ def decode_cluster_nodes(input: str) -> List[ClusterNodeData]:
 
             if values[2].startswith("myself"):
                 node.is_myself = True
-            infos.append(node)
+            node_list.append(node)
+            node_map[node.addr] = node
 
-    return infos
+    return node_list, node_map
 
 
 def get_masters_with_slots(input: str) -> List[ClusterNodeData]:
     """
     获取所有有slots的master节点
     """
-    nodes = decode_cluster_nodes(input)
+    nodes, _ = decode_cluster_nodes(input)
     masters = []
     for node in nodes:
         if node.get_role() == RedisRole.MASTER.value and node.slot_cnt > 0:
@@ -294,7 +296,7 @@ def group_slaves_by_master_id(input: str) -> Dict[str, List[ClusterNodeData]]:
     """
     按照master id分组slave节点
     """
-    nodes = decode_cluster_nodes(input)
+    nodes, _ = decode_cluster_nodes(input)
     masters = {}
     for node in nodes:
         if node.get_role() == RedisRole.SLAVE.value:

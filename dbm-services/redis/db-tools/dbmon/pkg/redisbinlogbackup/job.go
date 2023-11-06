@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"sync"
 	"time"
 
 	"dbm-services/redis/db-tools/dbmon/config"
@@ -18,8 +19,9 @@ import (
 	"dbm-services/redis/db-tools/dbmon/util"
 )
 
-// GlobRedisBinlogBakJob global var
-var GlobRedisBinlogBakJob *Job
+// globRedisBinlogBakJob global var
+var globRedisBinlogBakJob *Job
+var binlogOnce sync.Once
 
 // Job 例行备份任务
 type Job struct { // NOCC:golint/naming(其他:设计如此)
@@ -31,11 +33,14 @@ type Job struct { // NOCC:golint/naming(其他:设计如此)
 	Err           error `json:"-"`
 }
 
-// InitGlobRedisBinlogBackupJob 新建例行binlog备份任务
-func InitGlobRedisBinlogBackupJob(conf *config.Configuration) {
-	GlobRedisBinlogBakJob = &Job{
-		Conf: conf,
-	}
+// GetGlobRedisBinlogBackupJob 新建例行binlog备份任务
+func GetGlobRedisBinlogBackupJob(conf *config.Configuration) *Job {
+	binlogOnce.Do(func() {
+		globRedisBinlogBakJob = &Job{
+			Conf: conf,
+		}
+	})
+	return globRedisBinlogBakJob
 }
 
 // Run 执行例行备份

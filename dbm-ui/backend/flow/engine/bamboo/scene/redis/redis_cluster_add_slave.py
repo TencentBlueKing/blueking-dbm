@@ -230,7 +230,8 @@ class RedisClusterAddSlaveFlow(object):
                         },
                     )
                     child_pipelines.append(shutdown_builder)
-            sub_pipeline.add_parallel_sub_pipeline(child_pipelines)
+            if child_pipelines:
+                sub_pipeline.add_parallel_sub_pipeline(child_pipelines)
 
             sub_pipelines.append(
                 sub_pipeline.build_sub_process(sub_name=_("Redis-{}-新建从库").format(cluster_info["immute_domain"]))

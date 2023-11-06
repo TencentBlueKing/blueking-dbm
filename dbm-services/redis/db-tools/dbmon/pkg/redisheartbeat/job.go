@@ -9,8 +9,9 @@ import (
 	"dbm-services/redis/db-tools/dbmon/pkg/consts"
 )
 
-// GlobRedisHeartbeatJob global var
-var GlobRedisHeartbeatJob *Job
+// globRedisHeartbeatJob global var
+var globRedisHeartbeatJob *Job
+var heartOnce sync.Once
 
 // Job 心跳job
 type Job struct {
@@ -19,11 +20,14 @@ type Job struct {
 	Err   error                 `json:"-"`
 }
 
-// InitGlobRedisHeartbeatJob 新建更新心跳任务
-func InitGlobRedisHeartbeatJob(conf *config.Configuration) {
-	GlobRedisHeartbeatJob = &Job{
-		Conf: conf,
-	}
+// GetGlobRedisHeartbeatJob 新建更新心跳任务
+func GetGlobRedisHeartbeatJob(conf *config.Configuration) *Job {
+	heartOnce.Do(func() {
+		globRedisHeartbeatJob = &Job{
+			Conf: conf,
+		}
+	})
+	return globRedisHeartbeatJob
 }
 
 func (job *Job) createTasks() {

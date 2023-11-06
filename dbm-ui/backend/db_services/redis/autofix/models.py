@@ -11,6 +11,7 @@ specific language governing permissions and limitations under the License.
 
 import logging
 
+from blue_krill.data_types.enum import EnumField, StructuredEnum
 from django.db import models
 from django.utils.translation import ugettext_lazy as _
 
@@ -65,3 +66,36 @@ class RedisIgnoreAutofix(AuditedModel):
 
     class Meta:
         db_table = "tb_tendis_autofix_ignore"
+
+
+class NodeUpdateTaskStatus(str, StructuredEnum):
+    TODO = EnumField("todo", _("待处理"))
+    CANCELED = EnumField("canceled", _("已取消"))
+    FAILED = EnumField("failed", _("失败"))
+    DOING = EnumField("doing", _("执行中"))
+    SUCCESS = EnumField("success", _("成功"))
+
+
+class TbRedisClusterNodesUpdateTask(models.Model):
+    id = models.BigAutoField(primary_key=True)
+    bk_biz_id = models.IntegerField(verbose_name=_("业务ID"), default=0)
+    cluster_id = models.IntegerField(verbose_name=_("集群ID"), default=0)
+    cluster_type = models.CharField(verbose_name=_("集群类型"), choices=ClusterType.get_choices(), max_length=LEN_NORMAL)
+    immute_domain = models.CharField(verbose_name=_("集群域名"), max_length=LEN_LONG, default="")
+    message = models.TextField(default="", verbose_name=_("信息"))
+    status = models.CharField(
+        verbose_name=_("任务状态"), max_length=LEN_NORMAL, choices=NodeUpdateTaskStatus.get_choices()
+    )
+    report_server_ip = models.GenericIPAddressField(verbose_name=_("上报IP"), default="")
+    report_server_port = models.IntegerField(verbose_name=_("上报端口"), default=0)
+    report_nodes_data = models.TextField(default="", verbose_name=_("上报的nodes data"))
+    report_time = models.DateTimeField(verbose_name=_("上报时间"), default="1970-01-01 08:00:01")
+    create_time = models.DateTimeField(auto_now_add=True, verbose_name=_("创建时间"))
+
+    class Meta:
+        db_table = "tb_tendis_cluster_nodes_update_task"
+        indexes = [
+            models.Index(fields=["create_time"], name="idx_create_time"),
+            models.Index(fields=["bk_biz_id", "create_time"], name="idx_biz_create_time"),
+            models.Index(fields=["immute_domain", "create_time"], name="idx_domain_create_time"),
+        ]

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sync"
 	"time"
 
 	"dbm-services/redis/db-tools/dbmon/config"
@@ -20,8 +21,9 @@ import (
 	"go.uber.org/zap"
 )
 
-// GlobRedisFullBackupJob global var
-var GlobRedisFullBackupJob *Job
+// globRedisFullBackupJob global var
+var globRedisFullBackupJob *Job
+var fullOnce sync.Once
 
 // Job 例行备份任务
 type Job struct { // NOCC:golint/naming(其他:设计如此)
@@ -33,11 +35,14 @@ type Job struct { // NOCC:golint/naming(其他:设计如此)
 	Err           error `json:"-"`
 }
 
-// InitGlobRedisFullBackupJob 新建例行备份任务
-func InitGlobRedisFullBackupJob(conf *config.Configuration) {
-	GlobRedisFullBackupJob = &Job{
-		Conf: conf,
-	}
+// GetGlobRedisFullBackupJob 新建例行备份任务
+func GetGlobRedisFullBackupJob(conf *config.Configuration) *Job {
+	fullOnce.Do(func() {
+		globRedisFullBackupJob = &Job{
+			Conf: conf,
+		}
+	})
+	return globRedisFullBackupJob
 }
 
 // Run 执行例行备份
