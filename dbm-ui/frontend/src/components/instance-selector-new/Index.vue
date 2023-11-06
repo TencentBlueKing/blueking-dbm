@@ -30,30 +30,43 @@
       <template #main>
         <PanelTab
           v-model="panelTabActive"
-          :panel-list="panelList" />
+          :panel-list="panelList"
+          @change="handleChangePanel" />
         <Component
           :is="renderCom"
           :key="panelTabActive"
-          :cluster-id="clusterId"
-          :get-table-list="getTableList"
-          :get-topo-list="getTopoList"
+          :active-panel-id="panelTabActive"
+          :check-instances="activePanelObj?.manualConfig?.checkInstances"
+          :count-func="activePanelObj?.topoConfig?.countFunc"
+          :disabled-row-config="activePanelObj?.tableConfig?.disabledRowConfig"
+          :filter-cluster-id="activePanelObj?.topoConfig?.filterClusterId"
+          :firsr-column="activePanelObj?.tableConfig?.firsrColumn"
+          :get-table-list="activePanelObj?.tableConfig?.getTableList"
+          :get-topo-list="activePanelObj?.topoConfig?.getTopoList"
+          :is-remote-pagination="activePanelObj?.tableConfig?.isRemotePagination"
           :last-values="lastValues"
-          :role="role"
+          :manual-config="activePanelObj?.manualConfig"
+          :role-filter-list="activePanelObj?.tableConfig?.roleFilterList"
+          :status-filter="activePanelObj?.tableConfig?.statusFilter"
           :table-setting="tableSettings"
-          :ticket-type="ticketType"
+          :topo-alert-content="activePanelObj?.topoConfig?.topoAlertContent"
           @change="handleChange" />
       </template>
       <template #aside>
         <PreviewResult
-          :get-table-list="getTableList"
+          :active-panel-id="panelTabActive"
+          :display-key="activePanelObj?.previewConfig?.displayKey"
+          :get-table-list="activePanelObj?.tableConfig?.getTableList"
           :last-values="lastValues"
+          :show-title="activePanelObj?.previewConfig?.showTitle"
+          :title="activePanelObj?.previewConfig?.title"
           @change="handleChange" />
       </template>
     </BkResizeLayout>
     <template #footer>
       <span
         v-bk-tooltips="{
-          content: $t('请选择实例'),
+          content: t('请选择实例'),
           disabled: !isEmpty
         }"
         class="inline-block">
@@ -62,100 +75,358 @@
           :disabled="isEmpty"
           theme="primary"
           @click="handleSubmit">
-          {{ $t('确定') }}
+          {{ t('确定') }}
         </BkButton>
       </span>
       <BkButton
         class="ml8 w-88"
         @click="handleClose">
-        {{ $t('取消') }}
+        {{ t('取消') }}
       </BkButton>
     </template>
   </BkDialog>
 </template>
 <script lang="ts">
-  import type { IValue, MySQLClusterTypes } from './common/types';
+  import { t } from '@locales/index';
+  export default { name: 'InstanceSelector' };
 
-  export type InstanceSelectorValue = IValue
-  export type SupportClusterTypes = MySQLClusterTypes
-  export type InstanceSelectorValues = {
-    tendbcluster: IValue[],
+  export interface IValue {
+    bk_host_id: number,
+    bk_cloud_id: number,
+    ip: string,
+    port: number,
+    instance_address: string,
+    cluster_id: number,
+    cluster_type: string,
   }
 
-  export default {
-    name: 'SpiderInstanceSelector',
-  };
+  export type InstanceSelectorValues<T = IValue> = Record<string, T[]>
+
+  export const activePanelInjectionKey = Symbol('activePanel');
+
+  const getSettings = (role?: string) => ({
+    fields: [
+      {
+        label: role ? role.charAt(0).toUpperCase() + role.slice(1) : t('实例'),
+        field: 'instance_address',
+        disabled: true,
+      },
+      {
+        label: t('角色'),
+        field: 'role',
+      },
+      {
+        label: t('实例状态'),
+        field: 'status',
+      },
+      {
+        label: t('管控区域'),
+        field: 'cloud_area',
+      },
+      {
+        label: t('Agent状态'),
+        field: 'alive',
+      },
+      {
+        label: t('主机名称'),
+        field: 'host_name',
+      },
+      {
+        label: t('OS名称'),
+        field: 'os_name',
+      },
+      {
+        label: t('所属云厂商'),
+        field: 'cloud_vendor',
+      },
+      {
+        label: t('OS类型'),
+        field: 'os_type',
+      },
+      {
+        label: t('主机ID'),
+        field: 'host_id',
+      },
+      {
+        label: 'Agent ID',
+        field: 'agent_id',
+      },
+    ],
+    checked: ['instance_address', 'role', 'status', 'cloud_area', 'alive', 'host_name', 'os_name'],
+  });
 </script>
-<script setup lang="ts" generic="T extends any">
-  import { getResourceInstances } from '@services/clusters';
-  import { queryClusters } from '@services/source/mysqlCluster';
-  import type { ListBase } from '@services/types/common';
 
-  import getSettings from '@components/instance-selector-new/common/tableSettings';
+<script setup lang="ts">
+  import _ from 'lodash';
 
-  import RenderManualInput from './components/ManualInputContent.vue';
-  import PanelTab, {
-    activePanelInjectionKey,
-    defaultPanelList,
-  } from './components/PanelTab.vue';
-  import PreviewResult from './components/preview-result/PreviewResult.vue';
-  import RenderTopo from './components/table-content/topo/Index.vue';
+  import { checkInstances as spiderCheckInstances } from '@services/clusters';
+  import { queryClusters } from '@services/mysqlCluster';
+  import {
+    checkInstances as redisCheckInstances,
+    listClusterHostsMasterFailoverProxy,
+    listClustersMasterFailoverProxy,
+  } from '@services/redis/toolbox';
+  import { listSpiderResourceInstances } from '@services/spider';
+
+  import { ClusterTypes } from '@common/const';
+
+  import ManualInputContent from './components/common/manual-content/Index.vue';
+  import PanelTab  from './components/common/PanelTab.vue';
+  import PreviewResult from './components/common/preview-result/Index.vue';
+  import RedisContent from './components/redis/Index.vue';
+  import TendbClusterContent from './components/tendb-cluster/Index.vue';
 
   export type TableSetting = ReturnType<typeof getSettings>;
 
+  export type PanelListType = {
+    name: string,
+    id: string,
+    topoConfig?: {
+      topoAlertContent?: Element,
+      filterClusterId?: number,
+      getTopoList?: (params: any) => Promise<any[]>,
+      countFunc?: (data: any) => number,
+    }
+    tableConfig?: {
+      isRemotePagination?: boolean,
+      columnsChecked?: string[],
+      firsrColumn?: {
+        label: string,
+        field: string,
+        role: string, // 接口过滤
+      },
+      roleFilterList?: {
+        list: { text: string, value: string }[],
+      }
+      disabledRowConfig?: {
+        handler: (data: any) => boolean,
+        tip?: string,
+      },
+      getTableList?: (params: any) => Promise<any>,
+      statusFilter?: (data: any) => boolean,
+    },
+    manualConfig?: {
+      checkType: 'ip' | 'instance',
+      checkKey: keyof IValue,
+      activePanelId?: string
+      checkInstances?: (params: any) => Promise<any[]>,
+    },
+    previewConfig?: {
+      displayKey?: keyof IValue,
+      showTitle?: boolean,
+      title?: string,
+    },
+    content?: any,
+  }[]
+
+  type PanelListItem = PanelListType[number];
+
+  type RedisModel = ServiceReturnType<typeof listClustersMasterFailoverProxy>[number]
+  type RedisHostModel = ServiceReturnType<typeof listClusterHostsMasterFailoverProxy>['results'][number]
+
   interface Props {
-    isShow?: boolean;
-    clusterId?: number;
-    panelList?: { name: string; id: string, content?: Element }[],
-    role?: string,
+    clusterTypes: ClusterTypes[],
+    tabListConfig?: Record<string, PanelListType>,
     selected?: InstanceSelectorValues,
-    ticketType?: string,
-    // eslint-disable-next-line vue/no-unused-properties
-    getTopoList?: (params: Record<any, any>) => T[]
-    // eslint-disable-next-line vue/no-unused-properties
-    getTableList?: (params: Record<string, any>) => ListBase<T[]>
   }
 
   interface Emits {
-    (e: 'update:isShow', value: boolean): void,
     (e: 'change', value: InstanceSelectorValues): void
   }
 
   const props = withDefaults(defineProps<Props>(), {
-    isShow: false,
-    clusterId: undefined,
-    panelList: () => [...defaultPanelList],
-    role: '',
+    tabListConfig: undefined,
     selected: undefined,
-    ticketType: '',
-    getTopoList: queryClusters as unknown as (params: Record<any, any>) => T[],
-    getTableList: getResourceInstances as unknown as (params: Record<string, any>) => ListBase<T[]>,
   });
 
   const emits = defineEmits<Emits>();
 
-  const panelTabActive = ref<'tendbcluster'|'manualInput'>('tendbcluster');
-  const lastValues = reactive<InstanceSelectorValues>({
-    tendbcluster: [],
+  const isShow = defineModel<boolean>('isShow', {
+    default: false,
   });
 
-  const comMap = {
-    tendbcluster: RenderTopo,
-    manualInput: RenderManualInput,
+  const tabListMap: Record<string, PanelListType> = {
+    [ClusterTypes.REDIS]: [
+      {
+        id: 'redis',
+        name: t('主库主机'),
+        topoConfig: {
+          getTopoList: listClustersMasterFailoverProxy,
+          countFunc: (item: RedisModel) => item.redisMasterCount,
+        },
+        tableConfig: {
+          getTableList: listClusterHostsMasterFailoverProxy,
+          firsrColumn: {
+            label: 'master Ip',
+            role: 'redis_master',
+            field: 'ip',
+          },
+          columnsChecked: ['ip', 'cloud_area', 'status', 'host_name', 'os_name'],
+          statusFilter: (data: RedisHostModel) => !data.isMasterFailover,
+          isRemotePagination: false,
+        },
+        previewConfig: {
+          displayKey: 'ip',
+          showTitle: false,
+        },
+        content: RedisContent,
+      },
+      {
+        id: 'manualInput',
+        name: t('手动输入'),
+        tableConfig: {
+          getTableList: listClusterHostsMasterFailoverProxy,
+          firsrColumn: {
+            label: 'master Ip',
+            role: 'redis_master',
+            field: 'ip',
+          },
+          columnsChecked: ['ip', 'cloud_area', 'status', 'host_name', 'os_name'],
+          statusFilter: (data: RedisHostModel) => !data.isMasterFailover,
+          isRemotePagination: false,
+        },
+        manualConfig: {
+          checkInstances: redisCheckInstances,
+          checkType: 'ip',
+          checkKey: 'ip',
+          activePanelId: 'redis',
+        },
+        previewConfig: {
+          displayKey: 'ip',
+          showTitle: false,
+        },
+        content: ManualInputContent,
+      },
+    ],
+    [ClusterTypes.TENDBCLUSTER]: [
+      {
+        id: 'tendbcluster',
+        name: t('主库主机'),
+        topoConfig: {
+          getTopoList: queryClusters,
+        },
+        tableConfig: {
+          getTableList: listSpiderResourceInstances,
+          firsrColumn: {
+            label: 'remote_master',
+            field: 'instance_address',
+            role: 'remote_master',
+          },
+        },
+        content: TendbClusterContent,
+      },
+      {
+        id: 'manualInput',
+        name: t('手动输入'),
+        tableConfig: {
+          getTableList: listSpiderResourceInstances,
+          firsrColumn: {
+            label: 'remote_master',
+            field: 'instance_address',
+            role: 'remote_master',
+          },
+        },
+        manualConfig: {
+          checkInstances: spiderCheckInstances,
+          checkType: 'instance',
+          checkKey: 'instance_address',
+          activePanelId: 'tendbcluster',
+        },
+        content: ManualInputContent,
+      },
+    ],
   };
 
-  const tableSettings = getSettings(props.role);
+  const diffComposeObjs = (objA: Record<string, any>, objB: Record<string, any>) => {
+    const obj: Record<string, any> = {};
+    Object.keys(objA).forEach((key) => {
+      if (Object.prototype.toString.call(objB[key]) === '[object Object]') {
+        obj[key] = diffComposeObjs(_.cloneDeep(objA[key]), _.cloneDeep(objB[key]));
+        return;
+      }
+      if (objB[key] !== undefined) {
+        obj[key] = objB[key];
+        // eslint-disable-next-line no-param-reassign
+        delete objB[key];
+      } else {
+        obj[key] = objA[key];
+      }
+    });
+    if (Object.keys(objB).length > 0) {
+      Object.keys(objB).forEach((key) => {
+        if (obj[key] === undefined) {
+          obj[key] = objB[key];
+        }
+      });
+    }
+    return obj;
+  };
 
-  const isEmpty = computed(() => !Object.values(lastValues).some(values => values.length > 0));
-  const renderCom = computed(() => comMap[panelTabActive.value as keyof typeof comMap]);
+  const panelTabActive = ref<string>();
+  const activePanelObj = ref<PanelListItem>();
+
+  const lastValues = reactive<InstanceSelectorValues>({});
 
   provide(activePanelInjectionKey, panelTabActive);
 
-  watch(() => props.isShow, (show) => {
+  const clusterTabListMap = computed<Record<string, PanelListType>>(() => {
+    if (props.tabListConfig) {
+      Object.keys(props.tabListConfig).forEach((type) => {
+        const configArr = props.tabListConfig?.[type];
+        if (configArr) {
+          configArr.forEach((config, index) => {
+            let objItem = {};
+            const baseObj = tabListMap[type][index] as Record<string, any>;
+            if (baseObj) {
+              objItem = {
+                ...diffComposeObjs(_.cloneDeep(baseObj), _.cloneDeep(config)),
+              };
+            } else {
+              objItem = baseObj;
+            }
+            tabListMap[type][index] = objItem as PanelListItem;
+          });
+        }
+      });
+    }
+    return tabListMap;
+  });
+
+  const panelList = computed<PanelListType>(() => _.flatMap(props.clusterTypes.map(type => tabListMap[type])));
+
+  const tableSettings = computed(() => {
+    const setting = getSettings(activePanelObj.value?.tableConfig?.firsrColumn?.label);
+    const checked = activePanelObj?.value?.tableConfig?.columnsChecked;
+    if (checked) {
+      // 自定义列项
+      setting.checked = checked;
+    }
+    return setting;
+  });
+
+  const isEmpty = computed(() => !Object.values(lastValues).some(values => values.length > 0));
+  const renderCom = computed(() => activePanelObj.value?.content);
+
+  watch(() => props.clusterTypes, (types) => {
+    if (types) {
+      const activeObj = clusterTabListMap.value[types[0]];
+      [activePanelObj.value] = activeObj;
+      panelTabActive.value = activeObj[0].id;
+    }
+  }, {
+    immediate: true,
+    deep: true,
+  });
+
+  watch(() => isShow, (show) => {
     if (show && props.selected) {
       Object.assign(lastValues, props.selected);
     }
   });
+
+  const handleChangePanel = (obj: PanelListItem) => {
+    activePanelObj.value = obj;
+  };
 
   const handleChange = (values: InstanceSelectorValues) => {
     Object.assign(lastValues, values);
@@ -167,7 +438,7 @@
   };
 
   const handleClose = () => {
-    emits('update:isShow', false);
+    isShow.value = false;
   };
 </script>
 <style lang="less">

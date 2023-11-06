@@ -17,11 +17,16 @@ import RedisDSTHistoryJobModel from '@services/model/redis/redis-dst-history-job
 import RedisDSTJobTaskModel from '@services/model/redis/redis-dst-job-task';
 import RedisHostModel from '@services/model/redis/redis-host';
 import RedisRollbackModel from '@services/model/redis/redis-rollback';
+import type { ResourceInstance } from '@services/types/clusters';
 
 import { useGlobalBizs } from '@stores';
 
 import type { InstanceInfos } from '../types/clusters';
 import type { ListBase } from '../types/common';
+
+interface InstanceItem extends Omit<InstanceInfos, 'spec_config'> {
+  spec_config: RedisClusterNodeByIpModel['spec_config']
+}
 
 interface MasterSlaveByIp {
   cluster: {
@@ -71,13 +76,71 @@ export const queryMasterSlavePairs = (params: {
 };
 
 // 查询集群下的主机列表
-export const queryClusterHostList = (params: {
+export const queryClusterHostList = async (params: {
   cluster_id?: number;
   ip?: string;
 }) => {
   const { currentBizId } = useGlobalBizs();
   return http.post<RedisHostModel[]>(`/apis/redis/bizs/${currentBizId}/toolbox/query_cluster_ips/`, params)
     .then(data => data.map(item => new RedisHostModel(item)));
+};
+
+// 查询集群下的主机列表(主从切换)
+export const listClusterHostsMasterFailoverProxy = async (obj: {
+  bk_biz_id: number,
+  role?: string,
+  cluster_id?: number;
+  instance_address?: string;
+}) => {
+  const params = {
+    ip: obj.instance_address,
+    cluster_id: obj.cluster_id,
+    role: obj.role,
+  };
+  if (!obj.instance_address) {
+    delete params.ip;
+  }
+  if (!obj.role) {
+    delete params.role;
+  }
+  return http.post<RedisHostModel[]>(`/apis/redis/bizs/${obj.bk_biz_id}/toolbox/query_cluster_ips/`, params)
+    .then((data) => {
+      const filterArr = data.map(item => new RedisHostModel(item)).filter(item => item.isMaster);
+      const count = filterArr.length;
+      return ({
+        count,
+        results: filterArr,
+      });
+    });
+};
+
+// 查询集群下的主机列表(重建从库)
+export const listClusterHostsCreateSlaveProxy = async (obj: {
+  bk_biz_id: number,
+  role?: string,
+  cluster_id?: number;
+  instance_address?: string;
+}) => {
+  const params = {
+    ip: obj.instance_address,
+    cluster_id: obj.cluster_id,
+    role: obj.role,
+  };
+  if (!obj.instance_address) {
+    delete params.ip;
+  }
+  if (!obj.role) {
+    delete params.role;
+  }
+  return http.post<RedisHostModel[]>(`/apis/redis/bizs/${obj.bk_biz_id}/toolbox/query_cluster_ips/`, params)
+    .then((data) => {
+      const filterArr = data.map(item => new RedisHostModel(item)).filter(item => item.isSlaveFailover);
+      const count = filterArr.length;
+      return ({
+        count,
+        results: filterArr,
+      });
+    });
 };
 
 // 根据masterIP查询集群、实例和slave
@@ -89,13 +152,18 @@ export const queryMasterSlaveByIp = (params: {
 };
 
 // 获取集群列表
-export const listClusterList = (bizId: number, params?: {
-  domain: string
-}) => http.get<ListBase<RedisModel[]>>(`/apis/redis/bizs/${bizId}/redis_resources/`, params).then(data => data.results.map(item => new RedisModel(item)));
+export const listClusterList = (params: Record<string, any>) => http.get<ListBase<RedisModel[]>>(`/apis/redis/bizs/${params.bk_biz_id}/redis_resources/`, params).then(data => ({
+  ...data,
+  results: data.results.map(item => new RedisModel(item)),
+}));
 
-export interface InstanceItem extends Omit<InstanceInfos, 'spec_config'> {
-  spec_config: RedisClusterNodeByIpModel['spec_config']
-}
+// 获取集群列表(主从切换)
+export const listClustersMasterFailoverProxy = async (params: { bk_biz_id: number }) => http.get<ListBase<RedisModel[]>>(`/apis/redis/bizs/${params.bk_biz_id}/redis_resources/`, params)
+  .then(data => data.results.map(item => new RedisModel(item)));
+
+// 获取集群列表(重建从库)
+export const listClustersCreateSlaveProxy = async (params: { bk_biz_id: number }) => http.get<ListBase<RedisModel[]>>(`/apis/redis/bizs/${params.bk_biz_id}/redis_resources/`, params)
+  .then(data => data.results.map(item => new RedisModel(item)).filter(item => item.redis_slave.filter(slave => slave.status !== 'running').length > 0));
 
 /**
  * 判断实例是否存在
@@ -103,19 +171,16 @@ export interface InstanceItem extends Omit<InstanceInfos, 'spec_config'> {
 export const checkInstances = (params: Record<'instance_addresses', Array<string>> & { bizId: number }) => http.post<InstanceItem[]>(`/apis/redis/bizs/${params.bizId}/instance/check_instances/`, params);
 
 // 构造实例列表
-export const getRollbackList = (params?: {
-  limit: number;
-  offset: number;
+export const getRollbackList = async (params: {
+  bk_biz_id: number,
+  limit?: number;
+  offset?: number;
   temp_cluster_proxy?: string; // ip:port
-}) => {
-  const { currentBizId } = useGlobalBizs();
-  return http.get<ListBase<RedisRollbackModel[]>>(`/apis/redis/bizs/${currentBizId}/rollback/`, params)
-    .then(res => ({
-      ...res,
-      results: res.results.map(item => new RedisRollbackModel(item)),
-    }));
-};
-
+} & Record<string, any>) => http.get<ListBase<RedisRollbackModel[]>>(`/apis/redis/bizs/${params.bk_biz_id}/rollback/`, params)
+  .then(res => ({
+    ...res,
+    results: res.results.map(item => new RedisRollbackModel(item)),
+  }));
 
 // 获取DTS历史任务以及其对应task cnt
 export const getRedisDTSHistoryJobs = (params: {
@@ -170,3 +235,8 @@ export const testRedisConnection = (params: {
   const { currentBizId } = useGlobalBizs();
   return http.post<boolean>(`/apis/redis/bizs/${currentBizId}/dts/test_redis_connection/`, params);
 };
+
+/**
+ * 获取 redis 实例列表
+ */
+export const getRedisInstances = (params: { bk_biz_id: number } & Record<string, any>) => http.get<ListBase<ResourceInstance[]>>(`/apis/redis/bizs/${params.bk_biz_id}/redis_resources/list_instances/`, params);

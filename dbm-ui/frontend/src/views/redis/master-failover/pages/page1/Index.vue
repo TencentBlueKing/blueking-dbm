@@ -18,7 +18,7 @@
       <BkAlert
         closable
         theme="info"
-        :title="$t('主从切换：针对TendisSSD、TendisCache，主从切换是把Slave提升为Master，原Master被剔除，针对Tendisplus集群，主从切换是把Slave和Master互换')" />
+        :title="t('主从切换：针对TendisSSD、TendisCache，主从切换是把Slave提升为Master，原Master被剔除，针对Tendisplus集群，主从切换是把Slave和Master互换')" />
       <BkLoading :loading="isLoading">
         <RenderData
           v-slot="slotProps"
@@ -39,12 +39,12 @@
       </BkLoading>
       <div class="bottom-opeartion">
         <BkPopover
-          :content="$t('强制切换，将忽略同步连接')"
+          :content="t('强制切换，将忽略同步连接')"
           placement="top"
           theme="dark">
           <div class="switch-box">
             <BkCheckbox v-model="isForceSwitch" />
-            <span class="ml-6 force-switch">{{ $t('强制切换') }}</span>
+            <span class="ml-6 force-switch">{{ t('强制切换') }}</span>
           </div>
         </BkPopover>
       </div>
@@ -56,25 +56,22 @@
         :loading="isSubmitting"
         theme="primary"
         @click="handleSubmit">
-        {{ $t('提交') }}
+        {{ t('提交') }}
       </BkButton>
       <DbPopconfirm
         :confirm-handler="handleReset"
-        :content="$t('重置将会情况当前填写的所有内容_请谨慎操作')"
-        :title="$t('确认重置页面')">
+        :content="t('重置将会情况当前填写的所有内容_请谨慎操作')"
+        :title="t('确认重置页面')">
         <BkButton
           class="ml-8 w-88"
           :disabled="isSubmitting">
-          {{ $t('重置') }}
+          {{ t('重置') }}
         </BkButton>
       </DbPopconfirm>
     </template>
     <InstanceSelector
       v-model:is-show="isShowMasterInstanceSelector"
-      active-tab="masterFailHosts"
-      db-type="redis"
-      :panel-list="['masterFailHosts', 'manualInput']"
-      role="Master Ip"
+      :cluster-types="[ClusterTypes.REDIS]"
       :selected="selected"
       @change="handelMasterProxyChange" />
   </SmartAction>
@@ -91,11 +88,11 @@
 
   import { useGlobalBizs } from '@stores';
 
-  import { TicketTypes } from '@common/const';
+  import { ClusterTypes, TicketTypes } from '@common/const';
 
   import InstanceSelector, {
     type InstanceSelectorValues,
-  } from '@views/redis/common/instance-selector/Index.vue';
+  } from '@components/instance-selector-new/Index.vue';
 
   import RenderData from './components/Index.vue';
   import RenderDataRow, {
@@ -105,6 +102,12 @@
   } from './components/Row.vue';
 
   type MasterSlaveByIp = ServiceReturnType<typeof queryMasterSlaveByIp>[number];
+
+  interface ChoosedFailedMasterItem {
+    cluster_id: number;
+    ip: string;
+    role?: string;
+  }
 
   const { currentBizId } = useGlobalBizs();
   const { t } = useI18n();
@@ -117,11 +120,7 @@
   const tableData = ref([createRowData()]);
   const isLoading = ref(false);
 
-  const selected = shallowRef({
-    createSlaveIdleHosts: [],
-    masterFailHosts: [],
-    idleHosts: [],
-  } as InstanceSelectorValues);
+  const selected = shallowRef({ redis: [] } as InstanceSelectorValues<ChoosedFailedMasterItem>);
 
   const totalNum = computed(() => tableData.value.filter(item => Boolean(item.ip)).length);
   const inputedIps = computed(() => tableData.value.map(item => item.ip));
@@ -147,7 +146,7 @@
   // 批量选择
   const handelMasterProxyChange = async (data: InstanceSelectorValues) => {
     selected.value = data;
-    const ips = data.masterFailHosts.map(item => item.ip);
+    const ips = data.redis.map(item => item.ip);
     isLoading.value = true;
     const ret = await queryMasterSlaveByIp({ ips }).finally(() => {
       isLoading.value  = false;
@@ -157,7 +156,7 @@
       masterIpMap[item.master_ip] = item;
     });
     const newList = [] as IDataRow [];
-    data.masterFailHosts.forEach((proxyData) => {
+    data.redis.forEach((proxyData) => {
       const { ip } = proxyData;
       if (!ipMemo[ip]) {
         newList.push({
@@ -211,7 +210,7 @@
       };
       tableData.value[index] = obj;
       ipMemo[ip]  = true;
-      selected.value.masterFailHosts.push(Object.assign(data, {
+      selected.value.redis.push(Object.assign(data, {
         cluster_id: obj.clusterId,
         ip,
       }));
@@ -231,8 +230,8 @@
     const removeIp = removeItem.ip;
     tableData.value.splice(index, 1);
     delete ipMemo[removeIp];
-    const arr = selected.value.masterFailHosts;
-    selected.value.masterFailHosts = arr.filter(item => item.ip !== removeIp);
+    const arr = selected.value.redis;
+    selected.value.redis = arr.filter(item => item.ip !== removeIp);
   };
 
   // 提交
@@ -280,7 +279,7 @@
   // 重置
   const handleReset = () => {
     tableData.value = [createRowData()];
-    selected.value.masterFailHosts = [];
+    selected.value.redis = [];
     ipMemo = {};
     window.changeConfirm = false;
   };

@@ -151,12 +151,12 @@
   };
 
   const { loading } = useRequest(listClusterList, {
-    defaultParams: [currentBizId],
-    onSuccess: async (r) => {
-      if (r.length < 1) {
+    defaultParams: [{ bk_biz_id: currentBizId }],
+    onSuccess: async (result) => {
+      if (result.results.length < 1) {
         return;
       }
-      const clusterMap = r.reduce((obj, item) => {
+      const clusterMap = result.results.reduce((obj, item) => {
         Object.assign(obj, { [item.id]: item });
         return obj;
       }, {} as Record<string, RedisModel>);

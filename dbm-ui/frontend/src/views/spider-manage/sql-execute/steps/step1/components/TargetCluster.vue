@@ -37,9 +37,8 @@
     </DbFormItem>
     <ClusterSelector
       v-model:is-show="isShowClusterSelector"
-      :get-resource-list="getList"
+      :cluster-types="[ClusterTypes.TENDBCLUSTER]"
       :selected="clusterSelectorValue"
-      :tab-list="clusterSelectorTabList"
       @change="handelClusterChange" />
   </div>
 </template>
@@ -61,8 +60,7 @@
   } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import { queryClusters } from '@services/source/mysqlCluster';
-  import { getList } from '@services/source/resourceSpider';
+  import { queryClusters } from '@services/mysqlCluster';
 
   import { useGlobalBizs } from '@stores';
 
@@ -83,11 +81,6 @@
 
   const { currentBizId } = useGlobalBizs();
   const { t } = useI18n();
-
-  const clusterSelectorTabList = [{
-    id: ClusterTypes.TENDBCLUSTER,
-    name: '集群',
-  }];
 
   const colums = [
     {

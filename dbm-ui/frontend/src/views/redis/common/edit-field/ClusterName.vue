@@ -52,7 +52,7 @@
 
   import TableEditInput from '@components/tools-table-input/index.vue';
 
-  // import ClusterSelector from '@views/redis/common/cluster-selector/ClusterSelector.vue';
+  // import ClusterSelector from '@components/cluster-selector-new/Index.vue';
 
   interface Props {
     data?: string;

@@ -72,8 +72,9 @@
     </template>
     <VisitEntrySelector
       v-model:is-show="isShowClusterSelector"
+      :cluster-types="[ClusterTypes.REDIS]"
       :selected="selectedClusters"
-      :tab-list="clusterSelectorTabList"
+      :tab-list-config="tabListConfig"
       @change="handelClusterChange" />
   </SmartAction>
 </template>
@@ -97,7 +98,7 @@
     TicketTypes,
   } from '@common/const';
 
-  import VisitEntrySelector from '@views/redis/common/cluster-selector/VisitEntrySelector.vue';
+  import VisitEntrySelector from '@components/cluster-selector-new/Index.vue';
 
   import RenderData from './components/Index.vue';
   import RenderDataRow, {
@@ -122,7 +123,38 @@
   const totalNum = computed(() => tableData.value.filter(item => Boolean(item.srcCluster)).length);
   const inputedClusters = computed(() => tableData.value.map(item => item.srcCluster));
 
-  const clusterSelectorTabList = [ClusterTypes.REDIS];
+  const tabListConfig = {
+    [ClusterTypes.REDIS]: {
+      getResourceList: getRollbackList,
+      customColums: [
+        {
+          label: t('构造产物访问入口'),
+          field: 'temp_cluster_proxy',
+          showOverflowTooltip: true,
+        },
+        {
+          label: t('目标集群'),
+          field: 'prod_cluster',
+          showOverflowTooltip: true,
+          minWidth: 100,
+        },
+        {
+          label: t('构造到指定时间'),
+          field: 'recovery_time_point',
+          showOverflowTooltip: true,
+        },
+      ],
+      previewResultKey: 'temp_cluster_proxy',
+      searchSelectList: [{
+        name: t('访问入口'),
+        id: 'temp_cluster_proxy',
+      }, {
+        name: t('目标集群'),
+        id: 'prod_cluster',
+      }],
+      searchPlaceholder: t('访问入口_目标集群'),
+    },
+  };
 
   const writeTypeList = [
     {
@@ -233,7 +265,12 @@
       return;
     }
     tableData.value[index].isLoading = true;
-    const ret = await getRollbackList({ limit: 10, offset: 0, temp_cluster_proxy: domain }).finally(() => {
+    const ret = await getRollbackList({
+      bk_biz_id: currentBizId,
+      limit: 10,
+      offset: 0,
+      temp_cluster_proxy: domain,
+    }).finally(() => {
       tableData.value[index].isLoading = false;
     });
     if (ret.results.length < 1) {

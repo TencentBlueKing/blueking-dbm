@@ -82,13 +82,12 @@
 
   import { TicketTypes } from '@common/const';
 
-  import InstanceSelector, {
-    type InstanceSelectorValues,
-  } from '@views/redis/common/instance-selector/Index.vue';
-
   import { switchToNormalRole } from '@utils';
 
   import RenderData from './components/Index.vue';
+  import InstanceSelector, {
+    type InstanceSelectorValues,
+  } from './components/instance-selector/Index.vue';
   import RenderDataRow, {
     createRowData,
     type IDataRow,

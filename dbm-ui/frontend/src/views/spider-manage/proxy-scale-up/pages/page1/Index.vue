@@ -37,10 +37,9 @@
       </RenderData>
       <ClusterSelector
         v-model:is-show="isShowMasterInstanceSelector"
-        :get-resource-list="getList"
+        :cluster-types="[ClusterTypes.TENDBCLUSTER]"
         :selected="selectedClusters"
-        :show-preview-result-title="false"
-        :tab-list="clusterSelectorTabList"
+        :tab-list-config="tabListConfig"
         @change="handelClusterChoosed" />
     </div>
     <template #action>
@@ -87,7 +86,6 @@
 
   import { random } from '@utils';
 
-  import SpiderTable from './components/cluster-selector-table/Index.vue';
   import RenderData from './components/Index.vue';
   import RenderDataRow, {
     createRowData,
@@ -111,11 +109,14 @@
     ? new Set(tableData.value.map(item => item.cluster)).size : 0));
   const canSubmit = computed(() => tableData.value.filter(item => Boolean(item.cluster)).length > 0);
 
-  const clusterSelectorTabList = [{
-    id: ClusterTypes.TENDBCLUSTER as string,
-    name: t('集群选择'),
-    content: SpiderTable as unknown as Element,
-  }];
+  const tabListConfig = {
+    [ClusterTypes.TENDBCLUSTER]: {
+      disabledRowConfig: {
+        handler: (data: SpiderModel) => data.status !== 'normal',
+        tip: t('集群异常'),
+      },
+    },
+  };
 
   // 集群域名是否已存在表格的映射表
   let domainMemo: Record<string, boolean> = {};

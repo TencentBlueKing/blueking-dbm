@@ -18,6 +18,7 @@ import TendbInstanceModel from '@services/model/spider/tendbInstance';
 import { useGlobalBizs } from '@stores';
 
 import http from './http';
+import type { ResourceInstance } from './types/clusters';
 import type { ListBase } from './types/common';
 
 const { currentBizId } = useGlobalBizs();
@@ -77,3 +78,9 @@ export const getDetail = function (params: { id: number }) {
   return http.get<SpiderModel>(`/apis/mysql/bizs/${currentBizId}/spider_resources/${params.id}/`)
     .then(data => new SpiderModel(data));
 };
+
+/**
+ * 获取集群实例列表
+ */
+export const listSpiderResourceInstances = (params: { bk_biz_id: number } & Record<string, any>) => http.get<ListBase<ResourceInstance[]>>(`/apis/mysql/bizs/${params.bk_biz_id}/spider_resources/list_instances/`, params);
+

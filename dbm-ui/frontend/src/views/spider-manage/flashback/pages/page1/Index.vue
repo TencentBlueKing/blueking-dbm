@@ -34,9 +34,8 @@
       </RenderData>
       <ClusterSelector
         v-model:is-show="isShowBatchSelector"
-        :get-resource-list="getList"
+        :cluster-types="[ClusterTypes.TENDBCLUSTER]"
         :selected="selectedClusters"
-        :tab-list="clusterSelectorTabList"
         @change="handelClusterChange" />
     </div>
     <template #action>
@@ -67,8 +66,7 @@
   import { useRouter } from 'vue-router';
 
   import SpiderModel from '@services/model/spider/spider';
-  import { checkFlashbackDatabase } from '@services/source/remoteService';
-  import { getList } from '@services/source/resourceSpider';
+  import { checkFlashbackDatabase } from '@services/remoteService';
   import { createTicket } from '@services/ticket';
 
   import { useGlobalBizs } from '@stores';
@@ -96,10 +94,6 @@
   const tableData = shallowRef<Array<IDataRow>>([createRowData({})]);
   const selectedClusters = shallowRef<{[key: string]: Array<SpiderModel>}>({ [ClusterTypes.TENDBCLUSTER]: [] });
 
-  const clusterSelectorTabList = [{
-    id: ClusterTypes.TENDBCLUSTER,
-    name: '集群',
-  }];
   // 集群域名是否已存在表格的映射表
   let domainMemo: Record<string, boolean> = {};
 
