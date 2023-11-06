@@ -56,6 +56,7 @@ def create(
             "idc_id",
             "bk_cloud_id",
             "net_device_id",
+            "bk_agent_id",
         ],
         "host_property_filter": {
             "condition": "AND",
@@ -105,6 +106,7 @@ def create(
             bk_idc_name=inf.get("idc_name") or "",
             bk_idc_id=inf.get("idc_id") or 0,
             bk_cloud_id=inf.get("bk_cloud_id") or 0,
+            bk_agent_id=inf.get("bk_agent_id") or "",
             net_device_id=inf.get("net_device_id") or "",  # 这个 id 是个逗号分割的字符串
             spec_id=spec_id,
             spec_config=spec_config,
