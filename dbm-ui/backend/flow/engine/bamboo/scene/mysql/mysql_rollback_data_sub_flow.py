@@ -28,6 +28,7 @@ from backend.flow.plugins.components.collections.mysql.mysql_download_backupfile
 )
 from backend.flow.plugins.components.collections.mysql.mysql_rollback_data_download_binlog import (
     MySQLRollbackDownloadBinlog,
+    MySQLRollbackDownloadBinlogComponent,
 )
 from backend.flow.plugins.components.collections.mysql.rollback_local_trans_flies import (
     RollBackLocalTransFileComponent,
@@ -173,7 +174,7 @@ def rollback_local_and_time(root_id: str, ticket_data: dict, cluster_info: dict)
     )
     sub_pipeline.add_act(
         act_name=_("下载定点恢复的binlog到{}").format(cluster_info["rollback_ip"]),
-        act_component_code=MySQLRollbackDownloadBinlog.code,
+        act_component_code=MySQLRollbackDownloadBinlogComponent.code,
         kwargs=asdict(download_kwargs),
     )
 
@@ -340,14 +341,13 @@ def rollback_local_and_backupid(root_id: str, ticket_data: dict, cluster_info: d
 
     exec_act_kwargs.exec_ip = cluster_info["rollback_ip"]
     exec_act_kwargs.cluster = cluster_info
-    task_ids = [i["task_id"] for i in backupinfo["file_list_details"]]
     sub_pipeline.add_act(
         act_name=_("传输文件{}").format(cluster_info["rollback_ip"]),
         act_component_code=RollBackLocalTransFileComponent.code,
         kwargs=asdict(
             RollBackTransFileKwargs(
                 bk_cloud_id=cluster_info["bk_cloud_id"],
-                file_list=task_ids,
+                file_list=[],
                 file_target_path=cluster_info["file_target_path"],
                 source_ip_list=[],
                 exec_ip=cluster_info["rollback_ip"],

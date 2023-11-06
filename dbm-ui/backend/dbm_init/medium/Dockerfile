@@ -33,7 +33,7 @@ FROM go-mod-builder as redis-medium-builder
 ## 构建redis介质
 RUN set -ex && \
     cd /blueking-dbm/dbm-services/redis/db-tools/dbactuator && make -j4 && \
-    cd /blueking-dbm/dbm-services/redis/db-tools/dbmon && sh package.sh
+    cd /blueking-dbm/dbm-services/redis/db-tools/dbmon && bash package.sh
 
 
 FROM go-mod-builder as bigdata-medium-builder
