@@ -34,8 +34,8 @@ FUNCTION_CONTROLLER_INIT_MAP = {
             CustomFuncNameEnum.ToolBox.value: {"is_enabled": True},
             ClusterType.TenDBSingle.value: {"is_enabled": True},
             ClusterType.TenDBHA.value: {"is_enabled": True},
-            ClusterType.TenDBCluster.value: {"is_enabled": False},
-            CustomFuncNameEnum.TenDBClusterToolBox.value: {"is_enabled": False},
+            ClusterType.TenDBCluster.value: {"is_enabled": True},
+            CustomFuncNameEnum.TenDBClusterToolBox.value: {"is_enabled": True},
         },
     },
     DBType.Redis.value: {
@@ -44,7 +44,7 @@ FUNCTION_CONTROLLER_INIT_MAP = {
             ClusterType.TendisPredixyTendisplusCluster.value: {"is_enabled": True},
             ClusterType.TendisTwemproxyRedisInstance.value: {"is_enabled": True},
             ClusterType.TwemproxyTendisSSDInstance.value: {"is_enabled": True},
-            CustomFuncNameEnum.ToolBox.value: {"is_enabled": False},
+            CustomFuncNameEnum.ToolBox.value: {"is_enabled": True},
         },
     },
     CustomFuncNameEnum.BigData.value: {
@@ -64,11 +64,11 @@ FUNCTION_CONTROLLER_INIT_MAP = {
         },
     },
     CustomFuncNameEnum.Monitor.value: {
-        "is_enabled": False,
+        "is_enabled": True,
         "children": {
-            "monitor_policy": {"is_enabled": False},
+            "monitor_policy": {"is_enabled": True},
             "duty_rule": {"is_enabled": False},
-            "notice_group": {"is_enabled": False},
+            "notice_group": {"is_enabled": True},
         },
     },
 }

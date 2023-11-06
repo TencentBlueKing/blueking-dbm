@@ -38,7 +38,7 @@ class RiakShrinkFlowParamBuilder(builders.FlowParamBuilder):
         self.ticket_data["bk_cloud_id"] = cluster.bk_cloud_id
 
 
-@builders.BuilderFactory.register(TicketType.RIAK_CLUSTER_DISABLE, phase=ClusterPhase.OFFLINE)
+@builders.BuilderFactory.register(TicketType.RIAK_CLUSTER_SCALE_IN, phase=ClusterPhase.OFFLINE)
 class RiakShrinkFlowBuilder(BaseRiakTicketFlowBuilder):
     serializer = RiakShrinkDetailSerializer
     inner_flow_builder = RiakShrinkFlowParamBuilder
