@@ -23,7 +23,7 @@
         v-model="keyword"
         class="search-input"
         clearable
-        :placeholder="t('请输入策略名称')"
+        :placeholder="t('请输入告警组名称')"
         type="search"
         @clear="fetchTableData"
         @enter="fetchTableData" />
@@ -33,11 +33,13 @@
       class="alert-group-table"
       :columns="columns"
       :data-source="getAlarmGroupList"
-      :row-class="setRowClass" />
+      :row-class="setRowClass"
+      @request-success="handleRequestSuccess" />
     <DetailDialog
       v-model="detailDialogShow"
       :biz-id="bizId"
       :detail-data="detailData"
+      :name-list="nameList"
       :type="detailType"
       @successed="fetchTableData" />
   </div>
@@ -64,6 +66,8 @@
 
   import DetailDialog from './components/DetailDialog.vue';
   import RenderRow from './components/RenderRow.vue';
+
+  import type { ListBase } from '@/services/types/common';
 
   const isNewUser = (createTime: string) => {
     if (!createTime) {
@@ -105,10 +109,11 @@
         const isRenderTag = !isPlatform && row.is_built_in;
 
         return (
-          <>
+          <div class="name-cell">
             <bk-button
               text
               theme="primary"
+              class="name-button"
               onClick={ () => handleOpenDetail('edit', row) }>
               { row.name }
             </bk-button>
@@ -122,7 +127,7 @@
                 ? <span class="glob-new-tag ml-4" data-text="NEW" />
                 : null
             }
-          </>
+          </div>
         );
       },
     },
@@ -226,6 +231,7 @@
   const detailDialogShow = ref(false);
   const detailType = ref<'add' | 'edit' | 'copy'>('add');
   const detailData = ref({} as AlarmGroupItem);
+  const nameList = ref<string[]>([]);
   const userGroupMap = shallowRef<UserGroupMap>({});
 
   useRequest(getUserGroupList, {
@@ -291,6 +297,10 @@
     });
   };
 
+  const handleRequestSuccess = (tableData: ListBase<AlarmGroupItem[]>) => {
+    nameList.value = tableData.results.map(tableItem => tableItem.name);
+  };
+
   onMounted(() => {
     fetchTableData();
   });
@@ -308,6 +318,26 @@
     }
 
     :deep(.alert-group-table) {
+      .name-cell {
+        display: flex;
+        align-items: center;
+
+        .name-button {
+          display: block;
+          overflow: hidden;
+          line-height: 1.5;
+          flex: 0 1 auto;
+
+          .bk-button-text {
+            display: block;
+            overflow: hidden;
+            line-height: inherit;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+          }
+        }
+      }
+
       .is-new {
         td {
           background-color: #f3fcf5 !important;
