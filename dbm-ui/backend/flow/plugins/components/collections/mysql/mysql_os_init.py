@@ -14,11 +14,12 @@ import re
 
 from django.utils.translation import ugettext as _
 from pipeline.component_framework.component import Component
+from pipeline.core.flow.activity import StaticIntervalGenerator
 
 from backend import env
 from backend.components import JobApi
 from backend.configuration.constants import DBType
-from backend.flow.consts import DBA_ROOT_USER
+from backend.flow.consts import DBA_ROOT_USER, SUCCESS_LIST, WriteContextOpType
 from backend.flow.plugins.components.collections.common.base_service import BkJobService
 from backend.flow.utils.script_template import fast_execute_script_common_kwargs
 
@@ -37,25 +38,69 @@ cenos_script_content = """
         fi 
         yum install -y ${pkg}   
     done
+    ret=`perldoc -l Digest::MD5`
+    if [[  $ret =~ "No documentation found" ]]
+    then
+        echo "not not find Digest::MD5"
+    fi
+    ret=`perldoc -l Data::Dumper`
+    if [[  $ret =~ "No documentation found" ]]
+    then
+        echo "not not find Data::Dumper"
+    fi
+    ret=`perldoc -l  JSON`
+    if [[  $ret =~ "No documentation found" ]]
+    then
+        echo "not not find JSON"
+    fi
+    ret=`perldoc -l  DBD::mysql`
+    if [[  $ret =~ "No documentation found" ]]
+    then
+        echo "not not find DBD::mysql"
+    fi
+    ret=`perldoc -l  DBI`
+    if [[  $ret =~ "No documentation found" ]]
+    then
+        echo "not not find DBI"
+    fi
+    ret=`perldoc -l Encode`
+    if [[  $ret =~ "No documentation found" ]]
+    then
+        echo "not not find Encode"
+    fi
 """  # noqa
 
 
 class MySQLOsInit(BkJobService):
+    def __get_exec_ips(self, kwargs, trans_data) -> list:
+        """
+        获取需要执行的ip list
+        """
+        # 拼接节点执行ip所需要的信息，ip信息统一用list处理拼接
+        if kwargs.get("get_trans_data_ip_var"):
+            exec_ips = self.splice_exec_ips_list(pool_ips=getattr(trans_data, kwargs["get_trans_data_ip_var"]))
+        else:
+            exec_ips = self.splice_exec_ips_list(ticket_ips=kwargs["exec_ip"])
+
+        return exec_ips
+
     def _execute(self, data, parent_data) -> bool:
+        trans_data = data.get_one_of_inputs("trans_data")
         kwargs = data.get_one_of_inputs("kwargs")
-        os_type = kwargs["os_type"]
-        bk_biz_id = kwargs["bk_biz_id"]
-        if re.match("centos", os_type, re.I):
+        os_name = "centos"  # kwargs["os_name"]
+        if re.search("centos", os_name, re.I) is not None:
             script_content = cenos_script_content
         else:
+            # 待补充其他os的初始化脚本
             script_content = cenos_script_content
 
-        target_ip_info = kwargs["ip_list"]
+        exec_ips = self.__get_exec_ips(kwargs=kwargs, trans_data=trans_data)
+        target_ip_info = [{"bk_cloud_id": kwargs["bk_cloud_id"], "ip": ip} for ip in exec_ips]
         ips = []
         for info in target_ip_info:
             ips.append(info["ip"])
         body = {
-            "bk_biz_id": bk_biz_id,
+            "bk_biz_id": env.JOB_BLUEKING_BIZ_ID,
             "task_name": f"DBM_MySQL_OS_Init",
             "script_content": str(base64.b64encode(script_content.encode("utf-8")), "utf-8"),
             "script_language": 1,
@@ -71,7 +116,7 @@ class MySQLOsInit(BkJobService):
         self.log_info(f"job url:{env.BK_JOB_URL}/api_execute/{resp['data']['job_instance_id']}")
         # 传入调用结果，并单调监听任务状态
         data.outputs.ext_result = resp
-        data.outputs.exec_ips = ips
+        data.outputs.exec_ips = exec_ips
         return True
 
 

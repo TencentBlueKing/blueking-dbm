@@ -15,6 +15,7 @@ from typing import Dict, Optional
 from django.utils.crypto import get_random_string
 from django.utils.translation import ugettext as _
 
+from backend import env
 from backend.configuration.constants import DBType
 from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.models import Cluster
@@ -32,6 +33,7 @@ from backend.flow.plugins.components.collections.mysql.clone_user import CloneUs
 from backend.flow.plugins.components.collections.mysql.dns_manage import MySQLDnsManageComponent
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.mysql.mysql_db_meta import MySQLDBMetaComponent
+from backend.flow.plugins.components.collections.mysql.mysql_os_init import MySQLOsInitComponent
 from backend.flow.plugins.components.collections.mysql.slave_trans_flies import SlaveTransFileComponent
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
 from backend.flow.utils.mysql.common.mysql_cluster_info import (
@@ -135,6 +137,15 @@ class MySQLMigrateClusterFlow(object):
                 act_component_code=ExecuteDBActuatorScriptComponent.code,
                 kwargs=asdict(exec_act_kwargs),
             )
+
+            # 判断是否需要执行按照MySQL Perl依赖
+            if env.YUM_INSTALL_PERL:
+                exec_act_kwargs.exec_ip = [one_machine["new_slave_ip"], one_machine["new_master_ip"]]
+                sub_pipeline.add_act(
+                    act_name=_("安装MySQL Perl相关依赖"),
+                    act_component_code=MySQLOsInitComponent.code,
+                    kwargs=asdict(exec_act_kwargs),
+                )
 
             # 并发安装mysql-crond
             acts_list = []

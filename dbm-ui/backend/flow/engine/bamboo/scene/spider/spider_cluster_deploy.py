@@ -16,6 +16,7 @@ from typing import Dict, List, Optional
 from django.utils.crypto import get_random_string
 from django.utils.translation import ugettext as _
 
+from backend import env
 from backend.configuration.constants import DBType
 from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.enums import ClusterType, TenDBClusterSpiderRole
@@ -32,6 +33,7 @@ from backend.flow.engine.bamboo.scene.spider.common.common_sub_flow import (
 )
 from backend.flow.plugins.components.collections.mysql.dns_manage import MySQLDnsManageComponent
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
+from backend.flow.plugins.components.collections.mysql.mysql_os_init import MySQLOsInitComponent
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
 from backend.flow.plugins.components.collections.spider.add_system_user_in_cluster import (
     AddSystemUserInClusterComponent,
@@ -226,6 +228,17 @@ class TenDBClusterApplyFlow(object):
             act_component_code=ExecuteDBActuatorScriptComponent.code,
             kwargs=asdict(exec_act_kwargs),
         )
+
+        # 判断是否需要执行按照MySQL Perl依赖
+        if env.YUM_INSTALL_PERL:
+            exec_act_kwargs.exec_ip = [
+                ip_info["ip"] for ip_info in self.data["mysql_ip_list"] + self.data["spider_ip_list"]
+            ]
+            deploy_pipeline.add_act(
+                act_name=_("安装MySQL Perl相关依赖"),
+                act_component_code=MySQLOsInitComponent.code,
+                kwargs=asdict(exec_act_kwargs),
+            )
 
         acts_list = []
         for ip_info in self.data["mysql_ip_list"] + self.data["spider_ip_list"]:
