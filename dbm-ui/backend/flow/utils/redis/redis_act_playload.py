@@ -47,6 +47,7 @@ from backend.flow.consts import (
     NameSpaceEnum,
     RedisActuatorActionEnum,
 )
+from backend.flow.utils.base.payload_handler import PayloadHandler
 from backend.flow.utils.redis.redis_util import get_latest_redis_package_by_version
 from backend.ticket.constants import TicketType
 
@@ -325,6 +326,7 @@ class RedisActPayload(object):
         """
         获取已部署的实例配置
         """
+        passwd_ret = PayloadHandler.redis_get_password_by_domain(domain_name)
         data = DBConfigApi.query_conf_item(
             params={
                 "bk_biz_id": self.bk_biz_id,
@@ -337,6 +339,15 @@ class RedisActPayload(object):
                 "format": FormatType.MAP,
             }
         )
+        if conf_type == ConfigTypeEnum.ProxyConf.value:
+            if passwd_ret.get("redis_password"):
+                data["content"]["redis_password"] = passwd_ret.get("redis_password")
+            if passwd_ret.get("redis_proxy_password"):
+                data["content"]["password"] = passwd_ret.get("redis_proxy_password")
+        elif conf_type == ConfigTypeEnum.DBConf.value:
+            if passwd_ret.get("redis_password"):
+                data["content"]["requirepass"] = passwd_ret.get("redis_password")
+
         return data["content"]
 
     def set_proxy_config(self, clusterMap: dict) -> Any:

@@ -892,6 +892,7 @@ class UserName(str, StructuredEnum):
     REPL = EnumField("repl", _("MYSQL实例同步账号"))
     YW = EnumField("yw", _("MYSQL实例只读账号"))
     PROXY = EnumField("proxy", _("PROXY实例账号"))
+    REDIS_DEFAULT = EnumField("default", _("REDIS默认账号"))
 
 
 class MySQLPrivComponent(str, StructuredEnum):
@@ -902,3 +903,6 @@ class MySQLPrivComponent(str, StructuredEnum):
     MYSQL = EnumField("mysql", _("mysql"))
     PROXY = EnumField("proxy", _("proxy"))
     TBINLOGDUMPER = EnumField("tbinlogdumper", _("tbinlogdumper"))
+    REDIS = EnumField("redis", _("redis"))
+    REDIS_PROXY = EnumField("redis_proxy", _("redis_proxy"))
+    REDIS_PROXY_ADMIN = EnumField("redis_proxy_admin", _("redis_proxy_admin"))

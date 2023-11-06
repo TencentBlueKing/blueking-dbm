@@ -8,17 +8,20 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
+import base64
 import logging
 import re
 
 from backend import env
-from backend.components import MySQLPrivManagerApi
+from backend.components import DBConfigApi, MySQLPrivManagerApi
+from backend.components.dbconfig.constants import FormatType, LevelName
 from backend.constants import IP_RE_PATTERN
 from backend.core.encrypt.constants import AsymmetricCipherConfigType
 from backend.core.encrypt.handlers import AsymmetricHandler
+from backend.db_meta.models import Cluster
 from backend.db_proxy.constants import ExtensionType
 from backend.db_proxy.models import DBExtension
-from backend.flow.consts import DBM_JOB, DEFAULT_INSTANCE, MySQLPrivComponent, UserName
+from backend.flow.consts import DBM_JOB, DEFAULT_INSTANCE, ConfigTypeEnum, MySQLPrivComponent, UserName
 from backend.ticket.constants import TicketType
 
 apply_list = [
@@ -165,3 +168,185 @@ class PayloadHandler(object):
         }
 
         return drs_account_data, dbha_account_data
+
+    @staticmethod
+    def redis_get_cluster_pass_from_dbconfig(cluster: Cluster):
+        proxy_conf = DBConfigApi.query_conf_item(
+            params={
+                "bk_biz_id": str(cluster.bk_biz_id),
+                "level_name": LevelName.CLUSTER.value,
+                "level_value": cluster.immute_domain,
+                "level_info": {"module": str(cluster.db_module_id)},
+                "conf_file": cluster.proxy_version,
+                "conf_type": ConfigTypeEnum.ProxyConf,
+                "namespace": cluster.cluster_type,
+                "format": FormatType.MAP,
+            }
+        )
+        proxy_content = proxy_conf.get("content", {})
+
+        redis_conf = DBConfigApi.query_conf_item(
+            params={
+                "bk_biz_id": str(cluster.bk_biz_id),
+                "level_name": LevelName.CLUSTER.value,
+                "level_value": cluster.immute_domain,
+                "level_info": {"module": str(cluster.db_module_id)},
+                "conf_file": cluster.major_version,
+                "conf_type": ConfigTypeEnum.DBConf,
+                "namespace": cluster.cluster_type,
+                "format": FormatType.MAP,
+            }
+        )
+        redis_content = redis_conf.get("content", {})
+        return {
+            "redis_password": redis_content.get("requirepass", ""),
+            "redis_proxy_password": proxy_content.get("password", ""),
+            "redis_proxy_admin_password": proxy_content.get("predixy_admin_passwd", ""),
+        }
+
+    @staticmethod
+    def redis_get_cluster_password(cluster: Cluster):
+        """
+        获取redis集群的密码
+        - 优先从密码服务中获取
+        - 如果密码服务为空,则从dbconfig中获取
+        """
+        cluster_port = cluster.proxyinstance_set.first().port
+        query_params = {
+            "instances": [{"ip": str(cluster.id), "port": cluster_port, "bk_cloud_id": cluster.bk_cloud_id}],
+            "users": [
+                {"username": UserName.REDIS_DEFAULT.value, "component": MySQLPrivComponent.REDIS_PROXY_ADMIN.value},
+                {"username": UserName.REDIS_DEFAULT.value, "component": MySQLPrivComponent.REDIS_PROXY.value},
+                {"username": UserName.REDIS_DEFAULT.value, "component": MySQLPrivComponent.REDIS.value},
+            ],
+        }
+        data = MySQLPrivManagerApi.get_password(query_params)
+        ret = {"redis_password": "", "redis_proxy_admin_password": "", "redis_proxy_password": ""}
+        for item in data["items"]:
+            if (
+                item["username"] == UserName.REDIS_DEFAULT.value
+                and item["component"] == MySQLPrivComponent.REDIS_PROXY_ADMIN.value
+            ):
+                ret["redis_proxy_admin_password"] = base64.b64decode(item["password"]).decode("utf-8")
+            elif (
+                item["username"] == UserName.REDIS_DEFAULT.value
+                and item["component"] == MySQLPrivComponent.REDIS_PROXY.value
+            ):
+                ret["redis_proxy_password"] = base64.b64decode(item["password"]).decode("utf-8")
+            elif (
+                item["username"] == UserName.REDIS_DEFAULT.value
+                and item["component"] == MySQLPrivComponent.REDIS.value
+            ):
+                ret["redis_password"] = base64.b64decode(item["password"]).decode("utf-8")
+        if (
+            ret["redis_password"] == ""
+            and ret["redis_proxy_password"] == ""
+            and ret["redis_proxy_admin_password"] == ""
+        ):
+            # 密码服务为空,从dbconfig中获取
+            ret = PayloadHandler.redis_get_cluster_pass_from_dbconfig(cluster)
+        return ret
+
+    @staticmethod
+    def redis_get_password_by_cluster_id(cluster_id: int):
+        """
+        根据集群ID获取redis集群的密码
+        """
+        cluster = Cluster.objects.get(id=cluster_id)
+        return PayloadHandler.redis_get_cluster_password(cluster)
+
+    @staticmethod
+    def redis_get_password_by_domain(immute_domain: str):
+        """
+        根据集群域名获取redis集群的密码
+        """
+        cluster = Cluster.objects.get(immute_domain=immute_domain)
+        return PayloadHandler.redis_get_cluster_password(cluster)
+
+    @staticmethod
+    def redis_save_cluster_password(
+        cluster_id: int,
+        cluster_port: int,
+        bk_cloud_id: int,
+        redis_password: str = "",
+        redis_proxy_password: str = "",
+        redis_proxy_admin_password: str = "",
+    ):
+        """
+        存储redis集群的密码到密码服务
+        """
+        query_params = {
+            "instances": [{"ip": str(cluster_id), "port": cluster_port, "bk_cloud_id": bk_cloud_id}],
+            "username": UserName.REDIS_DEFAULT.value,
+            "component": "",
+            "password": "",
+            "operator": "admin",
+            "security_rule_name": "",
+        }
+
+        if not redis_password.isspace():
+            query_params["component"] = MySQLPrivComponent.REDIS.value
+            query_params["password"] = base64.b64encode(redis_password.encode("utf-8")).decode("utf-8")
+            MySQLPrivManagerApi.modify_password(params=query_params)
+
+        if not redis_proxy_password.isspace():
+            query_params["component"] = MySQLPrivComponent.REDIS_PROXY.value
+            query_params["password"] = base64.b64encode(redis_proxy_password.encode("utf-8")).decode("utf-8")
+            MySQLPrivManagerApi.modify_password(params=query_params)
+
+        if not redis_proxy_admin_password.isspace():
+            query_params["component"] = MySQLPrivComponent.REDIS_PROXY_ADMIN.value
+            query_params["password"] = base64.b64encode(redis_proxy_admin_password.encode("utf-8")).decode("utf-8")
+            MySQLPrivManagerApi.modify_password(params=query_params)
+
+        return True
+
+    @staticmethod
+    def redis_save_password_by_cluster(
+        cluster: Cluster,
+        redis_password: str = "",
+        redis_proxy_password: str = "",
+        redis_proxy_admin_password: str = "",
+    ):
+        cluster_port = cluster.proxyinstance_set.first().port
+        return PayloadHandler.redis_save_cluster_password(
+            cluster.id,
+            cluster_port,
+            cluster.bk_cloud_id,
+            redis_password,
+            redis_proxy_password,
+            redis_proxy_admin_password,
+        )
+
+    @staticmethod
+    def redis_save_password_by_cluster_id(
+        cluster_id: int, redis_password: str = "", redis_proxy_password: str = "", redis_proxy_admin_password: str = ""
+    ):
+        cluster = Cluster.objects.get(id=cluster_id)
+        cluster_port = cluster.proxyinstance_set.first().port
+        return PayloadHandler.redis_save_cluster_password(
+            cluster.id,
+            cluster_port,
+            cluster.bk_cloud_id,
+            redis_password,
+            redis_proxy_password,
+            redis_proxy_admin_password,
+        )
+
+    @staticmethod
+    def redis_save_password_by_domain(
+        immute_domain: str,
+        redis_password: str = "",
+        redis_proxy_password: str = "",
+        redis_proxy_admin_password: str = "",
+    ):
+        cluster = Cluster.objects.get(immute_domain=immute_domain)
+        cluster_port = cluster.proxyinstance_set.first().port
+        return PayloadHandler.redis_save_cluster_password(
+            cluster.id,
+            cluster_port,
+            cluster.bk_cloud_id,
+            redis_password,
+            redis_proxy_password,
+            redis_proxy_admin_password,
+        )
