@@ -35,6 +35,7 @@ from backend.flow.engine.bamboo.scene.redis.redis_keys_delete import RedisKeysDe
 from backend.flow.engine.bamboo.scene.redis.redis_keys_extract import RedisKeysExtractFlow
 from backend.flow.engine.bamboo.scene.redis.redis_proxy_scale import RedisProxyScaleFlow
 from backend.flow.engine.bamboo.scene.redis.redis_remove_dts_server import RedisRemoveDtsServerFlow
+from backend.flow.engine.bamboo.scene.redis.redis_slots_migrate import RedisSlotsMigrateFlow
 from backend.flow.engine.bamboo.scene.redis.singele_redis_shutdown import SingleRedisShutdownFlow
 from backend.flow.engine.bamboo.scene.redis.single_proxy_shutdown import SingleProxyShutdownFlow
 from backend.flow.engine.bamboo.scene.redis.tendis_plus_apply_flow import TendisPlusApplyFlow
@@ -262,3 +263,24 @@ class RedisController(BaseController):
         """
         flow = RedisClusterVersionUpdateOnline(root_id=self.root_id, data=self.ticket_data)
         flow.version_update_flow()
+
+    def redis_slots_migrate_for_expansion(self):
+        """
+        redis slots migrate for 扩容
+        """
+        flow = RedisSlotsMigrateFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.redis_migrate_4_expansion_flow()
+
+    def redis_slots_migrate_for_contraction(self):
+        """
+        redis slots migrate for 缩容
+        """
+        flow = RedisSlotsMigrateFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.redis_migrate_4_contraction_flow()
+
+    def redis_slots_migrate_for_hotkey(self):
+        """
+        redis slots migrate for 热点key
+        """
+        flow = RedisSlotsMigrateFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.redis_slots_migrate_for_hotkey_flow()

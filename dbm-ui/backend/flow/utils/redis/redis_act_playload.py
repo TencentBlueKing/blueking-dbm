@@ -62,9 +62,7 @@ proxy_scale_list = [
     TicketType.PROXY_SCALE_UP.value,
     TicketType.PROXY_SCALE_DOWN.value,
 ]
-redis_scale_list = [
-    TicketType.REDIS_SCALE_UPDOWN.value,
-]
+redis_scale_list = [TicketType.REDIS_SCALE_UPDOWN.value, TicketType.REDIS_SLOTS_MIGRATE.value]
 cutoff_list = [
     TicketType.REDIS_CLUSTER_CUTOFF.value,
     TicketType.REDIS_CLUSTER_ADD_SLAVE.value,
@@ -1454,6 +1452,14 @@ class RedisActPayload(object):
             "db_version":"",
             "meet_instances":[],
         }
+         # slots 方式扩容，新节点加到源集群和做主从，这里都可以完成，按下面参数传递就行
+        "meet_instances":[
+        {
+            "master_ip":"aa.bb.cc.dd",
+            "master_port":30000,
+            "slave_ip":"aa.bb.cc.ff",
+            "slave_port":30000
+        }
         """
         params = kwargs["params"]
         redis_config = self.__get_cluster_config(params["immute_domain"], params["db_version"], ConfigTypeEnum.DBConf)
@@ -1606,5 +1612,109 @@ class RedisActPayload(object):
                 "redis_password": params["redis_password"],
                 "redis_master_slave_pairs": params["redis_master_slave_pairs"],
                 "force": False,
+            },
+        }
+
+    # redis slots 迁移，redis slots migrate
+
+    def redis_slots_migrate_4_expansion(self, **kwargs) -> dict:
+        """
+        {
+            "src_node":{
+                "ip":"a.0.0.1",
+                "port":40000,
+                "password":"xxxx"
+            },
+            "dst_node":{
+                "ip":"b.0.0.1",
+                "port":47001,
+                "password":"xxxx"
+            },
+            "is_delete_node":false,
+            "migrate_specified_slot":false,
+            "to_be_del_nodes_addr":[]
+            "slots":""
+        }
+        """
+        params = kwargs["params"]
+        print(f"params:{params}")
+        return {
+            "db_type": DBActuatorTypeEnum.Redis.value,
+            "action": DBActuatorTypeEnum.Tendisplus.value + "_" + RedisActuatorActionEnum.SLOTS_MIGRATE.value,
+            "payload": {
+                "src_node": params["src_node"],
+                "dst_node": params["dst_node"],
+                "is_delete_node": False,
+                "to_be_del_nodes_addr": [],
+                "migrate_specified_slot": False,
+                "slots": "",
+            },
+        }
+
+    def redis_slots_migrate_4_hotkey(self, **kwargs) -> dict:
+        """
+        {
+            "src_node":{
+                "ip":"a.0.0.1",
+                "port":40000,
+                "password":"xxxx"
+            },
+            "dst_node":{
+                "ip":"b.0.0.1",
+                "port":47001,
+                "password":"xxxx"
+            },
+            "slots":"0-100"
+            "is_delete_node":false,
+            "migrate_specified_slot":true,
+            "to_be_del_nodes_addr":[]
+        }
+        """
+        params = kwargs["params"]
+        print(f"params:{params}")
+        return {
+            "db_type": DBActuatorTypeEnum.Redis.value,
+            "action": DBActuatorTypeEnum.Tendisplus.value + "_" + RedisActuatorActionEnum.SLOTS_MIGRATE.value,
+            "payload": {
+                "src_node": params["src_node"],
+                "dst_node": params["dst_node"],
+                "slots": params["slots"],
+                "migrate_specified_slot": True,
+                "is_delete_node": False,
+                "to_be_del_nodes_addr": [],
+            },
+        }
+
+    def redis_slots_migrate_4_contraction(self, **kwargs) -> dict:
+        """
+        {
+            "src_node":{
+                "ip":"a.0.0.1",
+                "port":40000,
+                "password":"xxxx"
+            },
+            "dst_node":{
+                "ip":"b.0.0.1",
+                "port":47001,
+                "password":"xxxx"
+            },
+            "is_delete_node":True,
+            to_be_del_nodes_addr:[xx,xx]
+            "migrate_specified_slot":false,
+            "slots":""
+        }
+        """
+        params = kwargs["params"]
+        print(f"params:{params}")
+        return {
+            "db_type": DBActuatorTypeEnum.Redis.value,
+            "action": DBActuatorTypeEnum.Tendisplus.value + "_" + RedisActuatorActionEnum.SLOTS_MIGRATE.value,
+            "payload": {
+                "src_node": params["src_node"],
+                "dst_node": params["dst_node"],
+                "is_delete_node": True,
+                "to_be_del_nodes_addr": params["to_be_del_nodes_addr"],
+                "migrate_specified_slot": False,
+                "slots": "",
             },
         }

@@ -26,6 +26,8 @@ type TendisPlusMigrateSlotsParams struct {
 	DstNode TendisPlusNodeItem `json:"dst_node" validate:"required"`
 	// 用于缩容场景，迁移DstNode slot ，然后删除节点
 	IsDeleteNode bool `json:"is_delete_node"`
+	// 缩容节点的地址信息[aa.bb:port,cc.dd:port]
+	ToBeDelNodesAddr []string `json:"to_be_del_nodes_addr"`
 	// 迁移特定的slot,一般用于热点key情况，把该key所属slot迁移到单独节点
 	MigrateSpecifiedSlot bool `json:"migrate_specified_slot" `
 	// 如 0-4095 6000 6002-60010,
@@ -117,20 +119,31 @@ func (job *TendisPlusMigrateSlots) Run() error {
 	if job.Err != nil {
 		return job.Err
 	}
+	// 缩容
 	if job.params.IsDeleteNode {
-		var toBeDelNodesAddr []string
-		toBeDelNodesAddr = append(toBeDelNodesAddr, job.dstNodeAddr())
-		err := job.MigrateSlotsFromToBeDelNode(toBeDelNodesAddr)
-		if err != nil {
-			return err
+		// 传入多个节点信息
+		if len(job.params.ToBeDelNodesAddr) != 0 {
+			err := job.MigrateSlotsFromToBeDelNode(job.params.ToBeDelNodesAddr)
+			if err != nil {
+				return err
+			}
+		} else {
+			var toBeDelNodesAddr []string
+			toBeDelNodesAddr = append(toBeDelNodesAddr, job.dstNodeAddr())
+			err := job.MigrateSlotsFromToBeDelNode(toBeDelNodesAddr)
+			if err != nil {
+				return err
+			}
 		}
+
 		return nil
 	}
 
-	job.dstClusterMeetSrc()
-	if job.Err != nil {
-		return job.Err
-	}
+	//这一步放到flow来做会更好些，扩容的时候
+	// job.dstClusterMeetSrc()
+	// if job.Err != nil {
+	// 	return job.Err
+	// }
 
 	if job.params.MigrateSpecifiedSlot {
 		slots, _, _, _, err := myredis.DecodeSlotsFromStr(job.params.Slots, " ")
@@ -607,8 +620,8 @@ func (job *TendisPlusMigrateSlots) MigrateSpecificSlots(srcAddr,
 		job.runtime.Logger.Info(msg)
 		importRet, err = dstCli.DoCommand(cmd, 0)
 		if err != nil && strings.Contains(err.Error(), "slot in deleting") == true {
-			msg = fmt.Sprintf(`slot in deleting : MigrateSpecificSlots execute cluster setslot importing fail,
-			err:%v,srcAddr:%s,dstAddr:%s,cmd: cluster setslot importing %s %s`, err, srcAddr, dstAddr, srcNodeInfo.NodeID, myredis.ConvertSlotToShellFormat(slots))
+			msg = fmt.Sprintf(`slot in deleting : MigrateSpecificSlots execute cluster setslot importing fail,err:%v,srcAddr:%s,dstAddr:%s,cmd:  cluster
+			setslot importing %s %s`, err, srcAddr, dstAddr, srcNodeInfo.NodeID, myredis.ConvertSlotToShellFormat(slots))
 			job.runtime.Logger.Warn(msg)
 			time.Sleep(1 * time.Minute)
 			deleteSlotErrRetryTimes++
@@ -616,15 +629,15 @@ func (job *TendisPlusMigrateSlots) MigrateSpecificSlots(srcAddr,
 		} else if err != nil && strings.Contains(err.Error(), "slot not empty") == true {
 			dstCli.ClusterClear()
 			srcCli.ClusterClear()
-			msg = fmt.Sprintf(`slot not empty : MigrateSpecificSlots execute cluster setslot importing fail,
-			err:%v,srcAddr:%s,dstAddr:%s,cmd: cluster setslot importing %s %s`, err, srcAddr, dstAddr, srcNodeInfo.NodeID, myredis.ConvertSlotToShellFormat(slots))
+			msg = fmt.Sprintf(`slot not empty : MigrateSpecificSlots execute cluster setslot importing fail,err:%v,srcAddr:%s,dstAddr:%s,cmd: cluster
+ 			setslot importing %s %s`, err, srcAddr, dstAddr, srcNodeInfo.NodeID, myredis.ConvertSlotToShellFormat(slots))
 			job.runtime.Logger.Warn(msg)
 			time.Sleep(1 * time.Minute)
 			deleteSlotErrRetryTimes++
 			continue
 		} else if err != nil {
-			err = fmt.Errorf(`MigrateSpecificSlots execute cluster setslot importing fail,
-			err:%v,srcAddr:%s,dstAddr:%s,cmd: cluster setslot importing %s %s`, err, srcAddr, dstAddr, srcNodeInfo.NodeID, myredis.ConvertSlotToShellFormat(slots))
+			err = fmt.Errorf(`MigrateSpecificSlots execute cluster setslot importing fail,err:%v,srcAddr:%s,dstAddr:%s,cmd: cluster
+ 			setslot importing %s %s`, err, srcAddr, dstAddr, srcNodeInfo.NodeID, myredis.ConvertSlotToShellFormat(slots))
 			job.runtime.Logger.Warn(err.Error())
 			time.Sleep(1 * time.Minute)
 			otherErrRetryTimes++
