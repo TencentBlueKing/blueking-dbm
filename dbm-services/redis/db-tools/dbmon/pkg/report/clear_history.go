@@ -3,6 +3,7 @@ package report
 import (
 	"fmt"
 	"path/filepath"
+	"sync"
 	"time"
 
 	"dbm-services/redis/db-tools/dbmon/config"
@@ -12,19 +13,23 @@ import (
 	"go.uber.org/zap"
 )
 
-// GlobHistoryClearJob global var
-var GlobHistoryClearJob *HistoryClearJob
+// globHistoryClearJob global var
+var globHistoryClearJob *HistoryClearJob
+var clearOnce sync.Once
 
 // HistoryClearJob 清理历史report记录
 type HistoryClearJob struct {
 	Conf *config.Configuration `json:"conf"`
 }
 
-// InitGlobalHistoryClearJob new
-func InitGlobalHistoryClearJob(conf *config.Configuration) {
-	GlobHistoryClearJob = &HistoryClearJob{
-		Conf: conf,
-	}
+// GetGlobalHistoryClearJob new
+func GetGlobalHistoryClearJob(conf *config.Configuration) *HistoryClearJob {
+	clearOnce.Do(func() {
+		globHistoryClearJob = &HistoryClearJob{
+			Conf: conf,
+		}
+	})
+	return globHistoryClearJob
 }
 
 // Run run
@@ -37,7 +42,7 @@ func (job *HistoryClearJob) Run() {
 // ClearRedisHistoryReport 清理redis历史report记录
 func (job *HistoryClearJob) ClearRedisHistoryReport() (err error) {
 	var clearCmd string
-	redisReportPath := filepath.Join(job.Conf.GsePath, "redis")
+	redisReportPath := filepath.Join(job.Conf.ReportSaveDir, "redis")
 	if !util.FileExists(redisReportPath) {
 		return
 	}

@@ -304,6 +304,8 @@ class CcManage(object):
                         process["process"]["bind_info"][0]["port"] == str(listen_port),
                     ]
                 ):
+                    # 如果服务实例已存在,则只更新其标签即可
+                    self.add_label_for_service_instance([ins["id"]], labels_dict)
                     return ins["id"]
 
         # 添加服务实例信息，目前只操作一个，所以返回也是只有一个元素

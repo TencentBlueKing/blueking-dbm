@@ -118,6 +118,12 @@ func (job *RedisVersionUpdate) Run() (err error) {
 	if err != nil {
 		return err
 	}
+	// 关闭 dbmon,最后再拉起
+	err = util.StopBkDbmon()
+	if err != nil {
+		return err
+	}
+	defer util.StartBkDbmon()
 	// 当前/usr/local/redis 指向版本不是 目标版本
 	if job.localPkgBaseName != job.params.GePkgBaseName() {
 		err = job.untarMedia()
