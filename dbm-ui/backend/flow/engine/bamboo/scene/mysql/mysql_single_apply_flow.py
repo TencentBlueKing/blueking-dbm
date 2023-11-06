@@ -15,6 +15,7 @@ from typing import Dict, Optional
 
 from django.utils.translation import ugettext as _
 
+from backend import env
 from backend.configuration.constants import DBType
 from backend.db_meta.enums import ClusterType
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
@@ -23,6 +24,7 @@ from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import build_
 from backend.flow.plugins.components.collections.mysql.dns_manage import MySQLDnsManageComponent
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.mysql.mysql_db_meta import MySQLDBMetaComponent
+from backend.flow.plugins.components.collections.mysql.mysql_os_init import MySQLOsInitComponent
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
 from backend.flow.utils.mysql.mysql_act_dataclass import (
     CreateDnsKwargs,
@@ -121,6 +123,15 @@ class MySQLSingleApplyFlow(object):
                 act_component_code=ExecuteDBActuatorScriptComponent.code,
                 kwargs=asdict(exec_act_kwargs),
             )
+
+            # 判断是否需要执行按照MySQL Perl依赖
+            if env.YUM_INSTALL_PERL:
+                exec_act_kwargs.exec_ip = info["new_ip"]["ip"]
+                sub_pipeline.add_act(
+                    act_name=_("安装MySQL Perl相关依赖"),
+                    act_component_code=MySQLOsInitComponent.code,
+                    kwargs=asdict(exec_act_kwargs),
+                )
 
             exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_deploy_mysql_crond_payload.__name__
             sub_pipeline.add_act(

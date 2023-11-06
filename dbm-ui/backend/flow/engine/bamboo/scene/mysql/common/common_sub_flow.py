@@ -13,6 +13,7 @@ from typing import Optional
 
 from django.utils.translation import gettext as _
 
+from backend import env
 from backend.components import DBConfigApi
 from backend.components.dbconfig.constants import FormatType, LevelName
 from backend.configuration.constants import DBType
@@ -25,6 +26,7 @@ from backend.flow.plugins.components.collections.common.download_backup_client i
 from backend.flow.plugins.components.collections.mysql.check_client_connections import CheckClientConnComponent
 from backend.flow.plugins.components.collections.mysql.clone_user import CloneUserComponent
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
+from backend.flow.plugins.components.collections.mysql.mysql_os_init import MySQLOsInitComponent
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
 from backend.flow.plugins.components.collections.mysql.verify_checksum import VerifyChecksumComponent
 from backend.flow.utils.common_act_dataclass import DownloadBackupClientKwargs
@@ -424,6 +426,15 @@ def install_mysql_in_cluster_sub_flow(
         act_component_code=ExecuteDBActuatorScriptComponent.code,
         kwargs=asdict(exec_act_kwargs),
     )
+
+    # 判断是否需要执行按照MySQL Perl依赖
+    if env.YUM_INSTALL_PERL:
+        exec_act_kwargs.exec_ip = new_mysql_list
+        sub_pipeline.add_act(
+            act_name=_("安装MySQL Perl相关依赖"),
+            act_component_code=MySQLOsInitComponent.code,
+            kwargs=asdict(exec_act_kwargs),
+        )
 
     acts_list = []
     for mysql_ip in new_mysql_list:

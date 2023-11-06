@@ -25,6 +25,7 @@ from backend.flow.plugins.components.collections.common.sa_idle_check import Che
 from backend.flow.plugins.components.collections.mysql.dns_manage import MySQLDnsManageComponent
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.mysql.mysql_db_meta import MySQLDBMetaComponent
+from backend.flow.plugins.components.collections.mysql.mysql_os_init import MySQLOsInitComponent
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
 from backend.flow.utils.mysql.mysql_act_dataclass import (
     CreateDnsKwargs,
@@ -160,6 +161,14 @@ class MySQLHAApplyFlow(object):
                 act_component_code=ExecuteDBActuatorScriptComponent.code,
                 kwargs=asdict(exec_act_kwargs),
             )
+            # 判断是否需要执行按照MySQL Perl依赖
+            if env.YUM_INSTALL_PERL:
+                exec_act_kwargs.exec_ip = [ip_info["ip"] for ip_info in info["mysql_ip_list"]]
+                sub_pipeline.add_act(
+                    act_name=_("安装MySQL Perl相关依赖"),
+                    act_component_code=MySQLOsInitComponent.code,
+                    kwargs=asdict(exec_act_kwargs),
+                )
 
             acts_list = []
             for ip_info in info["mysql_ip_list"] + info["proxy_ip_list"]:
