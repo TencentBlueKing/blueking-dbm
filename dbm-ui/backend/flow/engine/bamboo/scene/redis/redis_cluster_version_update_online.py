@@ -117,7 +117,7 @@ class RedisClusterVersionUpdateOnline(object):
                 "addresses": [master_addr],
                 "db_num": 0,
                 "password": redis_password,
-                "command": "ping",
+                "command": "info server",
                 "bk_cloud_id": cluster.bk_cloud_id,
             }
         )
