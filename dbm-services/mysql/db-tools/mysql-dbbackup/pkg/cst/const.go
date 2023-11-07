@@ -52,3 +52,6 @@ const (
 // 比如 为 0，则 spider node 备份任务会写到 spt0 节点，spider node备份任务查询spider表时，实际是从 spt0 获取的
 // 注意不能指定负数，因为 -1 mod 2 的结果也为负数，会无法写入数据
 const SpiderNodeShardValue = 0
+
+// ZstdSuffix zstd compress file suffix
+const ZstdSuffix = ".zst"

@@ -59,25 +59,26 @@ const (
 
 // IndexContent the content of the index file
 type IndexContent struct {
-	BackupType           string                     `json:"backup_type"`
-	StorageEngine        string                     `json:"storage_engine"`
-	MysqlVersion         string                     `json:"mysql_version"`
-	BkBizId              int                        `json:"bk_biz_id"`
-	BackupId             string                     `json:"backup_id"`
-	BillId               string                     `json:"bill_id"`
-	ClusterId            int                        `json:"cluster_id"`
-	ClusterAddress       string                     `json:"cluster_address"`
-	ShardValue           int                        `json:"shard_value"`
-	BackupHost           string                     `json:"backup_host"`
-	BackupPort           int                        `json:"backup_port"`
-	BackupCharset        string                     `json:"backup_charset"`
-	MysqlRole            string                     `json:"mysql_role"`
-	DataSchemaGrant      string                     `json:"data_schema_grant"`
-	ConsistentBackupTime string                     `json:"consistent_backup_time"`
-	BackupBeginTime      string                     `json:"backup_begin_time"`
-	BackupEndTime        string                     `json:"backup_end_time"`
-	TotalFilesize        uint64                     `json:"total_filesize"`
-	BinlogInfo           dbareport.BinlogStatusInfo `json:"binlog_info"`
+	BackupType              string                     `json:"backup_type"`
+	StorageEngine           string                     `json:"storage_engine"`
+	MysqlVersion            string                     `json:"mysql_version"`
+	BkBizId                 int                        `json:"bk_biz_id"`
+	BackupId                string                     `json:"backup_id"`
+	BillId                  string                     `json:"bill_id"`
+	ClusterId               int                        `json:"cluster_id"`
+	ClusterAddress          string                     `json:"cluster_address"`
+	ShardValue              int                        `json:"shard_value"`
+	BackupHost              string                     `json:"backup_host"`
+	BackupPort              int                        `json:"backup_port"`
+	BackupCharset           string                     `json:"backup_charset"`
+	MysqlRole               string                     `json:"mysql_role"`
+	DataSchemaGrant         string                     `json:"data_schema_grant"`
+	ConsistentBackupTime    string                     `json:"consistent_backup_time"`
+	BackupBeginTime         string                     `json:"backup_begin_time"`
+	BackupEndTime           string                     `json:"backup_end_time"`
+	TotalFilesize           uint64                     `json:"total_filesize"`
+	TotalFilesizeUncompress uint64                     `json:"total_filesize_uncompress"`
+	BinlogInfo              dbareport.BinlogStatusInfo `json:"binlog_info"`
 
 	FileList []FileIndex `json:"file_list"`
 

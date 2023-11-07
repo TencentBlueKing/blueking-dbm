@@ -20,7 +20,7 @@ FROM go-mod-builder as mysql-medium-builder
 
 ## 构建mysql介质
 RUN set -ex && \
-    cd /blueking-dbm/dbm-services/mysql/db-tools/dbactuator && make -j4 && \
+    cd /blueking-dbm/dbm-services/mysql/db-tools/dbactuator && make VERSION= -j4 && \
     cd /blueking-dbm/dbm-services/mysql/db-tools/mysql-dbbackup && sh build.sh -t txsql && \
     cd /blueking-dbm/dbm-services/mysql/db-tools/mysql-table-checksum && make release-bin VERSION= -j4 && \
     cd /blueking-dbm/dbm-services/mysql/db-tools/mysql-crond && make release-bin VERSION= -j4 && \
@@ -32,7 +32,7 @@ FROM go-mod-builder as redis-medium-builder
 
 ## 构建redis介质
 RUN set -ex && \
-    cd /blueking-dbm/dbm-services/redis/db-tools/dbactuator && make -j4 && \
+    cd /blueking-dbm/dbm-services/redis/db-tools/dbactuator && make VERSION= -j4 && \
     cd /blueking-dbm/dbm-services/redis/db-tools/dbmon && bash package.sh
 
 
@@ -40,7 +40,7 @@ FROM go-mod-builder as bigdata-medium-builder
 
 ## 构建大数据介质
 RUN set -ex && \
-    cd /blueking-dbm/dbm-services/bigdata/db-tools/dbactuator && make -j4
+    cd /blueking-dbm/dbm-services/bigdata/db-tools/dbactuator && make VERSION= -j4
 
 
 FROM go-builder as medium-builder
