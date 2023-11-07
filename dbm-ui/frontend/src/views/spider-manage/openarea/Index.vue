@@ -30,7 +30,10 @@
   import { useRouter } from 'vue-router';
 
   import OpenareaModel from '@services/model/openarea/openarea';
-  import { getList } from '@services/openarea';
+  import {
+    getList,
+    remove,
+  } from '@services/openarea';
 
   const { t } = useI18n();
   const router = useRouter();
@@ -80,12 +83,17 @@
               theme="primary">
               { t('编辑') }
             </bk-button>
-            <bk-button
-              class="ml-16"
-              text
-              theme="primary">
-              { t('删除') }
-            </bk-button>
+            <db-popconfirm
+              title={t('确认删除该模板？')}
+              content={t('删除操作无法撤回，请谨慎操作！')}
+              confirmHandler={() => handleRemove(data)}>
+              <bk-button
+                class="ml-16"
+                text
+                theme="primary">
+                { t('删除') }
+              </bk-button>
+            </db-popconfirm>
           </>
         );
       },
@@ -106,11 +114,13 @@
     console.log(data);
   };
 
+  const handleRemove = (data: OpenareaModel) => remove(data);
+
   onMounted(() => {
     fetchData();
   });
 </script>
-<style lang="postcss">
+<style lang="less">
   .spider-openarea-page {
     .header-action{
       display: flex;

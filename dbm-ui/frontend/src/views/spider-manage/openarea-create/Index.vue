@@ -8,8 +8,9 @@
           :label="t('模块名称')"
           required>
           <BkInput
-            maxlength="32"
+            :maxlength="32"
             :placeholder="t('请输入模板名称')"
+            show-word-limit
             style="width: 560px" />
         </BkFormItem>
       </DbCard>

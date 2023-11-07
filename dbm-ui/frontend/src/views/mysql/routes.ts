@@ -72,7 +72,7 @@ export const mysqlToolboxChildrenRouters: RouteRecordRaw[] = [
   },
   {
     name: 'MySQLSlaveRebuild',
-    path: '/database/:bizId(\\d+)/mysql-toolbox/slave-rebuild',
+    path: '/database/:bizId(\\d+)/mysql-toolbox/slave-rebuild/:page?',
     meta: {
       routeParentName: MainViewRouteNames.Database,
       activeMenu: 'MySQLToolbox',
