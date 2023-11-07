@@ -2,9 +2,10 @@ PROJ="mysql-rotatebinlog"
 PROJ_BIN="rotatebinlog"
 MODULE="dbm-services/mysql/db-tools/mysql-rotatebinlog"
 VERSION = $(error please set VERSION flag)
+GITHASH = ""
 PROJ_PKG = ${PROJ}.tar.gz
 OUTPUT_DIR = build
-RELEASE_BUILD_FLAG = "-X ${MODULE}/cmd.version=${VERSION} -X ${MODULE}/cmd.buildStamp=`date -u '+%Y-%m-%d_%I:%M:%S%p'` -X ${MODULE}/cmd.gitHash=`git rev-parse HEAD` "
+RELEASE_BUILD_FLAG = "-X ${MODULE}/cmd.version=${VERSION} -X ${MODULE}/cmd.buildStamp=`date -u '+%Y-%m-%d_%I:%M:%S%p'` -X ${MODULE}/cmd.gitHash=${GITHASH} "
 BETA_BUILD_FLAG = "-X ${MODULE}/cmd.version="develop" -X ${MODULE}/cmd.buildStamp=`date -u '+%Y-%m-%d_%I:%M:%S%p'` -X ${MODULE}/cmd.gitHash="" "
 BASE_DIR = $(shell pwd)
 

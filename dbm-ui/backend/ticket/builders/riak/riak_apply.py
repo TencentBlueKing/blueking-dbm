@@ -18,7 +18,7 @@ from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.flow.engine.controller.riak import RiakController
 from backend.ticket import builders
 from backend.ticket.builders.common.base import CommonValidate
-from backend.ticket.builders.riak.base import BaseRiakTicketFlowBuilder
+from backend.ticket.builders.riak.base import RIAK_VERSION, BaseRiakTicketFlowBuilder
 from backend.ticket.constants import TicketType
 
 
@@ -34,7 +34,7 @@ class RiakApplyDetailSerializer(serializers.Serializer):
     ip_source = serializers.ChoiceField(
         help_text=_("主机来源"), choices=IpSource.get_choices(), default=IpSource.RESOURCE_POOL.value
     )
-    db_version = serializers.CharField(help_text=_("riak数据库版本"))
+    db_version = serializers.CharField(help_text=_("riak数据库版本"), required=False, default=RIAK_VERSION)
     resource_spec = serializers.JSONField(help_text=_("部署规格"))
 
     # display fields
@@ -88,8 +88,6 @@ class RiakApplyFlowBuilder(BaseRiakTicketFlowBuilder):
         details = self.ticket.details
         db_module_name = DBModule.objects.get(db_module_id=details["db_module_id"]).db_module_name
         riak_cluster_name = riak_domain = f"{details['cluster_name']}.{db_module_name}"
-
-        # TODO: 可能需要补充version等信息
         details.update(
             db_module_name=db_module_name,
             cluster_name=riak_cluster_name,

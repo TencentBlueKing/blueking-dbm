@@ -1,9 +1,10 @@
 SHELL := /bin/bash
 BASE_DIR = $(shell pwd)
 VERSION = 0.0.1
+GITHASH = ""
 APPNAME = dbactuator
 GOOS ?= linux
-BUILD_FLAG = "-X main.version=${VERSION} -X main.buildstamp=`date -u '+%Y-%m-%d_%I:%M:%S%p'` -X main.githash=`git rev-parse HEAD` "
+BUILD_FLAG = "-X main.version=${VERSION} -X main.buildstamp=`date -u '+%Y-%m-%d_%I:%M:%S%p'` -X main.githash=${GITHASH} "
 
 .PHONY: all build clean
 

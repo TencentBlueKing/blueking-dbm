@@ -1,9 +1,10 @@
 PROJ="mysql-table-checksum"
 MODULE="dbm-services/mysql/db-tools/mysql-table-checksum"
 VERSION = $(error please set VERSION flag)
+GITHASH = ""
 PKG="mysql-checksum.tar.gz" # 这是个不太好改的错误了
 OUTPUT_DIR=build
-RELEASE_BUILD_FLAG = "-X ${MODULE}/cmd.version=${VERSION} -X ${MODULE}/cmd.buildStamp=`date -u '+%Y-%m-%d_%I:%M:%S%p'` -X ${MODULE}/cmd.gitHash=`git rev-parse HEAD` "
+RELEASE_BUILD_FLAG = "-X ${MODULE}/cmd.version=${VERSION} -X ${MODULE}/cmd.buildStamp=`date -u '+%Y-%m-%d_%I:%M:%S%p'` -X ${MODULE}/cmd.gitHash=${GITHASH} "
 DEV_BUILD_FLAG = "-X ${MODULE}/cmd.version="develop" -X ${MODULE}/cmd.buildStamp=`date -u '+%Y-%m-%d_%I:%M:%S%p'` -X ${MODULE}/cmd.gitHash="" "
 
 .PHONY: release-bin
