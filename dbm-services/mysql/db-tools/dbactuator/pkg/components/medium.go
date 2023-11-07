@@ -54,6 +54,7 @@ func (m *Medium) GePkgBaseName() string {
 // 比如  mariadb-10.3.7-linux-x86_64-tspider-3.7.8-gcs.tar.gz 解析成 mariadb
 // tdbctl mysql-5.7.20-linux-x86_64-tdbctl-2.4.2.tar.gz
 // 官方包名：mysql-8.0.32-linux-glibc2.12-x86_64.tar.xz mysql-5.7.42-linux-glibc2.12-x86_64.tar.gz
+// txsql: mysql-txsql-8.0.30-12345678-linux-x86_64.tar.gz
 func (m *Medium) GetPkgTypeName() string {
 	if strings.Contains(m.Pkg, "tdbctl") {
 		return cst.PkgTypeTdbctl

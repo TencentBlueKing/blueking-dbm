@@ -13,6 +13,7 @@ import (
 
 	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/config"
+	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/cst"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/dbareport"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/logger"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/util"
@@ -59,6 +60,7 @@ func (p *PackageFile) MappingPackage() error {
 		_ = tarUtil.Close()
 	}()
 
+	var totalSizeUncompress int64 = 0 // -1 means does not calculate size before compress
 	tarSizeMaxBytes := p.cnf.Public.TarSizeThreshold * 1024 * 1024
 	// The files are walked in lexical order
 	walkErr := filepath.Walk(p.srcDir, func(filename string, info fs.FileInfo, err error) error {
@@ -78,8 +80,16 @@ func (p *PackageFile) MappingPackage() error {
 		}
 
 		p.indexFile.addFileContent(dstTarName, filename, written)
-		if err = os.Remove(filename); err != nil {
+		if err = os.Remove(filename); err != nil { //TODO 限速？
 			logger.Log.Error("failed to remove file while taring, err:", err)
+		}
+		if totalSizeUncompress > -1 && strings.HasSuffix(filename, cst.ZstdSuffix) {
+			if sizeUncompress, err := readUncompressSizeForZstd("", filename); err != nil {
+				logger.Log.Warnf("fail to readUncompressSizeForZstd for file %s, err: %s", filename, err.Error())
+				totalSizeUncompress = -1
+			} else {
+				totalSizeUncompress += sizeUncompress
+			}
 		}
 
 		tarSize += uint64(written)
@@ -101,6 +111,7 @@ func (p *PackageFile) MappingPackage() error {
 	})
 	logger.Log.Infof("need to tar file, accumulated tar size: %d bytes, dstFile: %s", tarSize, dstTarName)
 	p.indexFile.TotalFilesize += tarSize
+	p.indexFile.TotalFilesizeUncompress = uint64(totalSizeUncompress)
 	if walkErr != nil {
 		logger.Log.Error("walk dir, err: ", walkErr)
 		return walkErr
@@ -161,6 +172,7 @@ func (p *PackageFile) tarballDir() error {
 		_ = tarUtil.Close()
 	}()
 
+	var totalSizeUncompress int64 = 0
 	walkErr := filepath.Walk(p.srcDir, func(filename string, info fs.FileInfo, err error) error {
 		if err != nil {
 			return err
@@ -179,6 +191,14 @@ func (p *PackageFile) tarballDir() error {
 		// TODO limit io rate when removing
 		if err = os.Remove(filename); err != nil {
 			logger.Log.Error("failed to remove file while taring, err:", err)
+		}
+		if totalSizeUncompress > -1 && strings.HasSuffix(filename, cst.ZstdSuffix) {
+			if sizeUncompress, err := readUncompressSizeForZstd("", filename); err != nil {
+				logger.Log.Warnf("fail to readUncompressSizeForZstd for file %s, err: %s", filename, err.Error())
+				totalSizeUncompress = -1
+			} else {
+				totalSizeUncompress += sizeUncompress
+			}
 		}
 		return nil
 	})
@@ -277,4 +297,40 @@ func PackageBackupFiles(cnf *config.BackupConfig, resultInfo *dbareport.BackupRe
 	}
 
 	return nil
+}
+
+// readUncompressSizeForZstd godoc
+// Frames  Skips  Compressed  Uncompressed  Ratio  Check  Filename
+//
+//	1      0     187 MiB      1.20 GiB  6.606  XXH64  mysqldata.tar.zst
+func readUncompressSizeForZstd(zstdCmd string, fileName string) (int64, error) {
+	outStr, _, err := cmutil.ExecCommand(false, "", zstdCmd, "-l", fileName)
+	if err != nil {
+		return 0, errors.Wrapf(err, "zst command failed %s -l %s", zstdCmd, fileName)
+	}
+	outLines := strings.Split(outStr, "\n")
+	for i, line := range outLines {
+		if i == 0 {
+			if strings.Contains(line, "Uncompressed") {
+				continue
+			} else {
+				return 0, errors.Errorf("can not get Uncompressed for %s", fileName)
+			}
+		}
+		if i == 1 {
+			cols := strings.FieldsFunc(line, func(r rune) bool {
+				if r == '\t' {
+					return true
+				}
+				return false
+			})
+			readableBytes := strings.ReplaceAll(strings.ReplaceAll(cols[3], "i", ""), " ", "")
+			bytesNum, err := cmutil.ParseSizeInBytesE(readableBytes)
+			if err != nil {
+				return 0, errors.Wrapf(err, "fail to parse size %s for %s", readableBytes, fileName)
+			}
+			return bytesNum, nil
+		}
+	}
+	return 0, errors.Errorf("unknown error, zst -l %s output error", fileName)
 }
