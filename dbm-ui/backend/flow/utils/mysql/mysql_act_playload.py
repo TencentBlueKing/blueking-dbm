@@ -1012,6 +1012,8 @@ class MysqlActPayload(PayloadHandler, TBinlogDumperActPayload):
         """
         if self.cluster.get("rollback_type", "") == RollbackType.LOCAL_AND_TIME:
             index_file = os.path.basename(kwargs["trans_data"]["backupinfo"]["index_file"])
+        elif self.cluster.get("rollback_type", "") == RollbackType.LOCAL_AND_BACKUPID:
+            index_file = os.path.basename(self.cluster["backupinfo"]["index_file"])
         else:
             index_file = os.path.basename(self.cluster["backupinfo"]["index"]["file_name"])
         payload = {

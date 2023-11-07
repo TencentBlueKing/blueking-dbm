@@ -36,7 +36,7 @@ class RiakDBMeta(object):
 
     def riak_cluster_apply(self) -> bool:
         ips = self.cluster.nodes
-        spec_id = self.ticket_data["resource_spec"]["riak"]["spec_id"]
+        spec_id = self.ticket_data["resource_spec"]["riak"]["id"]
         spec_config = Spec.objects.get(spec_id=spec_id).get_spec_info()
         machines = [
             {

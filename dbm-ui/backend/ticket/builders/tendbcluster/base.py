@@ -8,7 +8,6 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-
 from django.db.models import Q
 from django.utils.translation import ugettext as _
 from rest_framework import serializers
@@ -44,9 +43,25 @@ class TendbBaseOperateDetailSerializer(MySQLBaseOperateDetailSerializer):
     """
 
     #  实例不可用时，还能正常提单类型的白名单
+    # spider 接入层异常, 只允许修复接入层异常的单据 1. 踢出故障 spider 2. 上架 (扩容) 新的 spider
     SPIDER_UNAVAILABLE_WHITELIST = []
-    REMOTE_MASTER_UNAVAILABLE_WHITELIST = []
-    REMOTE_SLAVE_UNAVAILABLE_WHITELIST = []
+    # 存储层 master 异常 (dbha 因为某些问题未正常介入),只有切换单据可用
+    REMOTE_MASTER_UNAVAILABLE_WHITELIST = [
+        TicketType.TENDBCLUSTER_MASTER_SLAVE_SWITCH,
+        TicketType.TENDBCLUSTER_MASTER_FAIL_OVER,
+    ]
+    # 存储层 slave 异常 (正常情况下,所有存储异常最终都会变成slave异常),备份, 校验单据不可用
+    REMOTE_SLAVE_UNAVAILABLE_WHITELIST = [
+        t
+        for t in TicketType.get_ticket_type_by_db(DBType.TenDBCluster.value)
+        if t
+        not in [
+            TicketType.TENDBCLUSTER_FULL_BACKUP,
+            TicketType.TENDBCLUSTER_DB_TABLE_BACKUP,
+            TicketType.TENDBCLUSTER_CHECKSUM,
+        ]
+    ]
+
     # 集群的flag状态与白名单的映射表
     unavailable_whitelist__status_flag = {
         ClusterTenDBClusterStatusFlag.SpiderUnavailable: SPIDER_UNAVAILABLE_WHITELIST,

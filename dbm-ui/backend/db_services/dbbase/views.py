@@ -61,4 +61,4 @@ class DBBaseViewSet(viewsets.SystemViewSet):
         conditions = self.get_serializer().get_conditions(data)
         cluster_queryset = self.paginate_queryset(Cluster.objects.filter(**conditions))
         cluster_infos = [cluster.simple_desc for cluster in cluster_queryset]
-        return Response({"count": len(cluster_infos), "results": cluster_infos})
+        return Response(cluster_infos)

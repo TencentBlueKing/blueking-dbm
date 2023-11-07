@@ -43,4 +43,4 @@ class QueryAllTypeClusterSerializer(serializers.Serializer):
 
 class QueryAllTypeClusterResponseSerializer(serializers.Serializer):
     class Meta:
-        swagger_schema_fields = {"example": {"count": 1, "results": [{"id": 47, "immute_domain": "mysql.dba.db.com"}]}}
+        swagger_schema_fields = {"example": [{"id": 47, "immute_domain": "mysql.dba.db.com"}]}
