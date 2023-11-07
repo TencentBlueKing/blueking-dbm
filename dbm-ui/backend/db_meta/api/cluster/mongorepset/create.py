@@ -46,6 +46,7 @@ def pkg_create_mongoset(
     spec_id: int = 0,
     spec_config: str = "",
     cluster_type=ClusterType.MongoReplicaSet.value,
+    skip_machine: bool = False,
 ):
     """
     这里打包从头开始创建一个 MongoSet
@@ -68,7 +69,9 @@ def pkg_create_mongoset(
     before_create_domain_precheck(domains)
     before_create_storage_precheck(storages)
 
-    create_mongo_instances(bk_biz_id, bk_cloud_id, MachineType.MONGODB.value, storages, spec_id, spec_config)
+    create_mongo_instances(
+        bk_biz_id, bk_cloud_id, MachineType.MONGODB.value, storages, spec_id, spec_config, skip_machine
+    )
     create_mongoset(
         bk_biz_id=bk_biz_id,
         name=name,
