@@ -8,14 +8,18 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from django.urls import include, path
 
-urlpatterns = [
-    path("bizs/<int:bk_biz_id>/", include("backend.db_services.bigdata.resources.urls")),
-    path("bizs/<int:bk_biz_id>/es/", include("backend.db_services.bigdata.es.urls")),
-    path("bizs/<int:bk_biz_id>/hdfs/", include("backend.db_services.bigdata.hdfs.urls")),
-    path("bizs/<int:bk_biz_id>/kafka/", include("backend.db_services.bigdata.kafka.urls")),
-    path("bizs/<int:bk_biz_id>/pulsar/", include("backend.db_services.bigdata.pulsar.urls")),
-    path("bizs/<int:bk_biz_id>/influxdb/", include("backend.db_services.bigdata.influxdb.urls")),
-    path("bizs/<int:bk_biz_id>/riak/", include("backend.db_services.bigdata.riak.urls")),
-]
+from django.utils.translation import gettext as _
+
+from backend.db_meta.api.cluster.base.graph import Graphic, LineLabel
+from backend.db_meta.enums import InstanceRole
+from backend.db_meta.models import Cluster
+
+
+def scan_cluster(cluster: Cluster) -> Graphic:
+    """
+    绘制kafka的拓扑结构图
+    """
+    graph = Graphic(node_id=Graphic.generate_graphic_id(cluster))
+    graph.add_instance_nodes(cluster=cluster, roles=InstanceRole.RIAK_NODE, group_name=_("Riak 节点"))
+    return graph

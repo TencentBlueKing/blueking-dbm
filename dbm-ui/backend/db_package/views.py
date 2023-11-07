@@ -53,7 +53,7 @@ class DBPackageViewSet(viewsets.AuditedModelViewSet):
     @action(methods=["POST"], detail=False, serializer_class=UpdateOrCreateSerializer)
     def update_or_create(self, request, *args, **kwargs):
         data = self.params_validate(self.get_serializer_class())
-        Package.objects.update_or_create(md5=data["md5"], defaults=data)
+        Package.objects.update_or_create(md5=data["md5"], db_type=data["db_type"], defaults=data)
         return Response()
 
     @common_swagger_auto_schema(
