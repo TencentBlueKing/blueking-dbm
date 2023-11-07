@@ -35,7 +35,7 @@ class MySQLRollbackDownloadBinlog(MySQLDownloadBackupfile):
         self.log_info(kwargs)
         self.log_info(trans_data)
         cluster = kwargs["cluster"]
-        backup_time = trans_data["backupinfo"]["backup_time"]
+        backup_time = trans_data.backupinfo["backup_time"]
         rollback_time = cluster["rollback_time"]
         self.log_info("backup time is {}".format(backup_time))
         self.log_info("rollback time is {}".format(rollback_time))
