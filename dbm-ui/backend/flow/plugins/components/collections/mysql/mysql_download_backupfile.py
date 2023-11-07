@@ -15,12 +15,12 @@ from pipeline.component_framework.component import Component
 from pipeline.core.flow.activity import StaticIntervalGenerator
 
 from backend.components.mysql_backup.client import MysqlBackupApi
-from backend.flow.plugins.components.collections.common.base_service import BaseService
+from backend.flow.plugins.components.collections.common.base_service import BaseService, BkJobService
 
 logger = logging.getLogger("flow")
 
 
-class MySQLDownloadBackupfile(BaseService):
+class MySQLDownloadBackupfile(BkJobService):
     """
     MySQL下载备份文件
     """
@@ -30,6 +30,8 @@ class MySQLDownloadBackupfile(BaseService):
 
     def _execute(self, data, parent_data) -> bool:
         kwargs = data.get_one_of_inputs("kwargs")
+        if not kwargs["task_ids"]:
+            return False
 
         params = {
             "bk_cloud_id": kwargs["bk_cloud_id"],

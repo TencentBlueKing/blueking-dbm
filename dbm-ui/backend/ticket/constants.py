@@ -12,8 +12,7 @@ specific language governing permissions and limitations under the License.
 from blue_krill.data_types.enum import EnumField, StructuredEnum
 from django.utils.translation import ugettext_lazy as _
 
-from backend.db_meta.enums import ClusterType
-from backend.db_meta.enums.cluster_phase import ClusterPhase
+from backend.configuration.constants import DBType
 from backend.db_meta.exceptions import ClusterExclusiveOperateException
 from backend.flow.consts import StateType
 
@@ -126,6 +125,17 @@ class TicketType(str, StructuredEnum):
                 return field.real_value
 
         return label
+
+    @classmethod
+    def get_ticket_type_by_db(cls, db_type):
+        """找到相关type的单据"""
+        db_type = db_type.upper()
+        ticket_types = [t for t in cls.get_values() if db_type in t]
+        if db_type == DBType.Redis.upper():
+            ticket_types.extend([cls.TENDIS_META_MITRATE.value, cls.PROXY_SCALE_UP, cls.PROXY_SCALE_DOWN])
+        elif db_type == DBType.TenDBCluster.upper():
+            ticket_types.append(cls.MYSQL_PARTITION)
+        return ticket_types
 
     # MYSQL
     MYSQL_SINGLE_APPLY = EnumField("MYSQL_SINGLE_APPLY", _("MySQL 单节点部署"))

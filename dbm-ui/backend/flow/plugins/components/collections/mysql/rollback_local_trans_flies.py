@@ -31,7 +31,7 @@ class RollBackLocalTransFileService(TransFileService):
         global_data = data.get_one_of_inputs("global_data")
         trans_data = data.get_one_of_inputs("trans_data")
         one_cluster = kwargs.get("cluster", None)
-        backup_info = one_cluster["total_backupinfo"]
+        backup_info = one_cluster["backupinfo"]
         self.log_info(f"backup_info: {backup_info}")
 
         # 构造数据
