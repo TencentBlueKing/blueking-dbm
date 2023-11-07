@@ -84,6 +84,7 @@
       :height="700"
       mode="section"
       :service="services"
+      :single-host-select="singleHostSelect"
       :value="selectorState.selected"
       @change="handleChange" />
     <template #footer>
@@ -157,6 +158,7 @@
     serviceMode?: 'all' | 'idle_only',
     panelList?: Array<'staticTopo' | 'manualInput' | 'dbmWhitelist'>,
     disableTips?: string,
+    singleHostSelect: boolean
   }
 
   interface Emits {
@@ -179,6 +181,7 @@
     serviceMode: 'idle_only',
     panelList: () => ['staticTopo', 'manualInput'],
     disableTips: '',
+    singleHostSelect: false,
   });
   const emits = defineEmits<Emits>();
 
