@@ -24,7 +24,7 @@ from backend.bk_web.models import AuditedModel
 from backend.components import BKMonitorV3Api
 from backend.configuration.constants import PLAT_BIZ_ID, DBType, SystemSettingsEnum
 from backend.configuration.models import SystemSettings
-from backend.db_meta.models import AppMonitorTopo
+from backend.db_meta.models import AppMonitorTopo, DBModule
 from backend.db_monitor.constants import (
     APP_PRIORITY,
     BK_MONITOR_SAVE_DISPATCH_GROUP_TEMPLATE,
@@ -603,8 +603,13 @@ class MonitorPolicy(AuditedModel):
         self.target_level = target_level
         self.target_priority = TARGET_LEVEL_TO_PRIORITY.get(target_level).value
 
+        db_module_map = DBModule.db_module_map()
         self.target_keyword = ",".join(
-            [str(value) for target_level in self.targets for value in target_level["rule"]["value"]]
+            [
+                db_module_map.get(int(value), value) if t["rule"]["key"] == TargetLevel.MODULE.value else value
+                for t in self.targets
+                for value in t["rule"]["value"]
+            ]
         )
 
         self.local_save()
@@ -882,11 +887,15 @@ class MonitorPolicy(AuditedModel):
     def update(self, params, username="system") -> dict:
         """更新：patch -> update"""
 
-        update_fields = ["targets", "test_rules", "notify_rules", "notify_groups", "custom_conditions"]
+        update_fields = ["targets", "test_rules", "notify_rules", "notify_groups"]
 
         # param -> model
         for key in update_fields:
             setattr(self, key, params[key])
+
+        # 可选参数
+        if "custom_conditions" in params:
+            self.custom_conditions = params["custom_conditions"]
 
         # update -> overwrite details
         self.creator = self.updater = username

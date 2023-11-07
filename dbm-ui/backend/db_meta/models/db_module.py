@@ -36,6 +36,10 @@ class DBModule(AuditedModel):
         ]
 
     @classmethod
+    def db_module_map(cls):
+        return dict(cls.objects.values_list("db_module_id", "db_module_name"))
+
+    @classmethod
     def get_choices(cls):
         try:
             db_module_choices = [
