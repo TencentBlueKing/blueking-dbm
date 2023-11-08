@@ -63,7 +63,7 @@ class MonitorDutyRuleViewSet(viewsets.AuditedModelViewSet):
     queryset = DutyRule.objects.all()
     serializer_class = DutyRuleSerializer
     pagination_class = AuditedLimitOffsetPagination
-    filter_fields = {"db_type": ["exact"]}
+    filter_fields = {"db_type": ["exact"], "name": ["exact"]}
 
     def _get_custom_permissions(self):
         return [GlobalManageIAMPermission()]
