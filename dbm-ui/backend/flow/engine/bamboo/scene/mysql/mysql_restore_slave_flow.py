@@ -28,7 +28,7 @@ from backend.flow.plugins.components.collections.mysql.clone_user import CloneUs
 from backend.flow.plugins.components.collections.mysql.dns_manage import MySQLDnsManageComponent
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.mysql.mysql_db_meta import MySQLDBMetaComponent
-from backend.flow.plugins.components.collections.mysql.mysql_os_init import MySQLOsInitComponent
+from backend.flow.plugins.components.collections.mysql.mysql_os_init import MySQLOsInitComponent, SysInitComponent
 from backend.flow.plugins.components.collections.mysql.slave_trans_flies import SlaveTransFileComponent
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
 from backend.flow.utils.mysql.common.mysql_cluster_info import (
@@ -607,6 +607,26 @@ class MySQLRestoreSlaveFlow(object):
             bk_cloud_id=one_machine["bk_cloud_id"],
         )
 
+        # 初始化机器
+        account = MysqlActPayload.get_mysql_account()
+        install_sub_pipeline.add_act(
+            act_name=_("初始化机器"),
+            act_component_code=SysInitComponent.code,
+            kwargs={
+                "mysql_os_password": account["os_mysql_pwd"],
+                "exec_ip": one_machine["new_slave_ip"],
+                "bk_cloud_id": one_machine["bk_cloud_id"],
+            },
+        )
+        # 判断是否需要执行按照MySQL Perl依赖
+        if env.YUM_INSTALL_PERL:
+            exec_act_kwargs.exec_ip = one_machine["new_slave_ip"]
+            install_sub_pipeline.add_act(
+                act_name=_("安装MySQL Perl相关依赖"),
+                act_component_code=MySQLOsInitComponent.code,
+                kwargs=asdict(exec_act_kwargs),
+            )
+
         install_sub_pipeline.add_act(
             act_name=_("下发MySQL介质{}").format(one_machine["new_slave_ip"]),
             act_component_code=TransFileComponent.code,
@@ -620,21 +640,6 @@ class MySQLRestoreSlaveFlow(object):
                 )
             ),
         )
-
-        exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_sys_init_payload.__name__
-        install_sub_pipeline.add_act(
-            act_name=_("初始化机器{}").format(one_machine["new_slave_ip"]),
-            act_component_code=ExecuteDBActuatorScriptComponent.code,
-            kwargs=asdict(exec_act_kwargs),
-        )
-
-        # 判断是否需要执行按照MySQL Perl依赖
-        if env.YUM_INSTALL_PERL:
-            install_sub_pipeline.add_act(
-                act_name=_("{}:安装MySQL Perl相关依赖").format(one_machine["new_slave_ip"]),
-                act_component_code=MySQLOsInitComponent.code,
-                kwargs=asdict(exec_act_kwargs),
-            )
 
         exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_deploy_mysql_crond_payload.__name__
         install_sub_pipeline.add_act(

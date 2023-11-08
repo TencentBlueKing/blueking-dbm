@@ -62,14 +62,6 @@ func (s *SysInitAct) Run() (err error) {
 			Func:    s.Service.SysInitMachine,
 		},
 	}
-	if s.IsExternal() {
-		steps = append(
-			steps, subcmd.StepFunc{
-				FunName: "安装Perl以及相关依赖",
-				Func:    s.Service.InitExternal,
-			},
-		)
-	}
 	steps = append(
 		steps, subcmd.StepFunc{
 			FunName: fmt.Sprintf("重置%sOS密码", s.Service.OsMysqlUser),

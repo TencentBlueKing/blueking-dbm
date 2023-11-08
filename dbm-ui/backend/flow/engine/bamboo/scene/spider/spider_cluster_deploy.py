@@ -33,7 +33,7 @@ from backend.flow.engine.bamboo.scene.spider.common.common_sub_flow import (
 )
 from backend.flow.plugins.components.collections.mysql.dns_manage import MySQLDnsManageComponent
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
-from backend.flow.plugins.components.collections.mysql.mysql_os_init import MySQLOsInitComponent
+from backend.flow.plugins.components.collections.mysql.mysql_os_init import MySQLOsInitComponent, SysInitComponent
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
 from backend.flow.plugins.components.collections.spider.add_system_user_in_cluster import (
     AddSystemUserInClusterComponent,
@@ -186,6 +186,29 @@ class TenDBClusterApplyFlow(object):
             cluster_type=ClusterType.TenDBCluster,
         )
 
+        # 机器系统初始化
+        exec_ips = [ip_info["ip"] for ip_info in self.data["mysql_ip_list"] + self.data["spider_ip_list"]]
+        account = MysqlActPayload.get_mysql_account()
+        deploy_pipeline.add_act(
+            act_name=_("初始化机器"),
+            act_component_code=SysInitComponent.code,
+            kwargs={
+                "mysql_os_password": account["os_mysql_pwd"],
+                "exec_ip": exec_ips,
+                "bk_cloud_id": int(self.data["bk_cloud_id"]),
+            },
+        )
+        # 判断是否需要执行按照MySQL Perl依赖
+        if env.YUM_INSTALL_PERL:
+            exec_act_kwargs.exec_ip = [
+                ip_info["ip"] for ip_info in self.data["mysql_ip_list"] + self.data["spider_ip_list"]
+            ]
+            deploy_pipeline.add_act(
+                act_name=_("安装MySQL Perl相关依赖"),
+                act_component_code=MySQLOsInitComponent.code,
+                kwargs=asdict(exec_act_kwargs),
+            )
+
         # 阶段1 并行分发安装文件
         deploy_pipeline.add_parallel_acts(
             acts_list=[
@@ -217,28 +240,6 @@ class TenDBClusterApplyFlow(object):
                 },
             ]
         )
-
-        # 阶段2 批量初始化所有机器,安装crond进程
-        exec_act_kwargs.exec_ip = [
-            ip_info["ip"] for ip_info in self.data["mysql_ip_list"] + self.data["spider_ip_list"]
-        ]
-        exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_sys_init_payload.__name__
-        deploy_pipeline.add_act(
-            act_name=_("初始化机器"),
-            act_component_code=ExecuteDBActuatorScriptComponent.code,
-            kwargs=asdict(exec_act_kwargs),
-        )
-
-        # 判断是否需要执行按照MySQL Perl依赖
-        if env.YUM_INSTALL_PERL:
-            exec_act_kwargs.exec_ip = [
-                ip_info["ip"] for ip_info in self.data["mysql_ip_list"] + self.data["spider_ip_list"]
-            ]
-            deploy_pipeline.add_act(
-                act_name=_("安装MySQL Perl相关依赖"),
-                act_component_code=MySQLOsInitComponent.code,
-                kwargs=asdict(exec_act_kwargs),
-            )
 
         acts_list = []
         for ip_info in self.data["mysql_ip_list"] + self.data["spider_ip_list"]:
