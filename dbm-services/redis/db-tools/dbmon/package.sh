@@ -1,14 +1,31 @@
 #!/usr/bin/env sh
 
+repoVersion=0.0.1
+respGitHash=$(git rev-parse --short HEAD)
+
+# 解析传入的 --version=xxx 和 --git-hash=xxx 参数
+while [ $# -gt 0 ]; do
+    case "$1" in
+    --version=*)
+        repoVersion="${1#*=}"
+        ;;
+    --git-hash=*)
+        respGitHash="${1#*=}"
+        ;;
+    *) ;;
+    esac
+    shift
+done
+
 DIR=$(dirname $0)
 cd $DIR
 
-make build
+make build VERSION=$repoVersion GITHASH=$respGitHash
 
 cd build
 
-version=$(./bk-dbmon -v | awk '{print $2}') || ""
-targetDir="bk-dbmon-$version"
+toolVersion=$(./bk-dbmon -v | awk '{print $2}') || ""
+targetDir="bk-dbmon-$toolVersion"
 tarName="$targetDir.tar"
 
 if [[ ! -d $targetDir ]]; then
