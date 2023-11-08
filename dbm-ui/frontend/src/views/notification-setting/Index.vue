@@ -88,9 +88,9 @@
           <BkInput
             v-model="formData.schedule_table.qywx_id"
             style="width:300px" />
-          <DbIcon
+          <!-- <DbIcon
             class="icon"
-            type="attention-fill" />
+            type="attention-fill" /> -->
         </div>
       </div>
     </template>
@@ -112,6 +112,8 @@
           <BkInput
             v-model="formData.person_duty.send_at.num"
             :clearable="false"
+            :max="14"
+            :min="1"
             style="width: 178px;"
             type="number">
             <template #suffix>
@@ -333,6 +335,11 @@
       .icon {
         font-size: 18px;
         color: #C4C6CC;
+        cursor: pointer;
+
+        &:hover {
+          color: #979BA5;
+        }
       }
 
       .suffix-box {

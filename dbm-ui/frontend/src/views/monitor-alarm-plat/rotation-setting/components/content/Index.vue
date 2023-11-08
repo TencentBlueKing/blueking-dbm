@@ -35,6 +35,7 @@
     v-model="isShowEditRuleSideSilder"
     :data="currentRowData"
     :db-type="activeDbType"
+    :existed-names="existedNames"
     :page-type="pageType"
     @success="handleSuccess" />
 </template>
@@ -52,6 +53,7 @@
   } from '@services/monitor';
 
   import MiniTag from '@components/mini-tag/index.vue';
+  import RenderTextEllipsisOneLine from '@components/text-ellipsis-one-line/index.vue';
   import NumberInput from '@components/tools-table-input/index.vue';
 
   import { messageSuccess } from '@utils';
@@ -83,23 +85,28 @@
   const currentRowData = ref<RowData>();
   const isTableLoading = ref(false);
   const sortedPriority = ref<number[]>([]);
+  const existedNames = ref<string[]>([]);
 
   const statusMap = {
     [RuleStatus.ACTIVE]: {
       label: t('当前生效'),
       theme: 'success',
+      title: t('当前值班人'),
     },
     [RuleStatus.NOT_ACTIVE]: {
       label: t('未生效'),
       theme: 'info',
+      title: t('待值班人'),
     },
     [RuleStatus.EXPIRED]: {
       label: t('已失效'),
       theme: '',
+      title: t('已值班人'),
     },
     [RuleStatus.TERMINATED]: {
       label: t('已停用'),
       theme: '',
+      title: t('待值班人'),
     },
   };
 
@@ -112,23 +119,21 @@
         const isNew = dayjs().isBefore(dayjs(row.create_at).add(24, 'hour'));
         const isNotActive = [RuleStatus.TERMINATED, RuleStatus.EXPIRED].includes(row.status as RuleStatus);
         const color = (isNotActive || !row.is_enabled) ? '#63656E' : '#3A84FF';
-        return <>
-          <bk-button
-            text
-            theme="primary"
-            style={{ color }}
-            onClick={() => handleOperate('edit', row)}>
-              {row.name}
-          </bk-button>
+        const content = <>
           {isNew && <MiniTag theme='success' content="NEW" />}
-        </>
-        ;
+        </>;
+        return <RenderTextEllipsisOneLine
+          text={row.name}
+          textStyle={{ color }}
+          onText-click={() => handleOperate('edit', row)}>
+          {content}
+        </RenderTextEllipsisOneLine>;
       },
     },
     {
       label: t('状态'),
       field: 'status',
-      minWidth: 220,
+      minWidth: 150,
       render: ({ row }: {row: RowData}) => {
         const { label, theme } = statusMap[row.status as RuleStatus];
         return <bk-tag theme={theme}>{label}</bk-tag>;
@@ -182,14 +187,12 @@
     {
       label: t('轮值表'),
       field: 'duty_arranges',
-      showOverflowTooltip: true,
+      showOverflowTooltip: false,
       width: 250,
       render: ({ row }: {row: RowData}) => {
         let title = '';
-        if (row.status === RuleStatus.ACTIVE) {
-          title = t('当前值班人');
-        } else if (row.status === RuleStatus.NOT_ACTIVE) {
-          title = t('待值班人');
+        if (row.status in statusMap) {
+          title = statusMap[row.status as RuleStatus].title;
         } else {
           return <div class="display-text" style="width: 27px;">--</div>;
         }
@@ -202,10 +205,10 @@
         const peoples = [...peopleSet].join(' , ');
         return (
           <div class="rotate-table-column">
-            <bk-popover placement="bottom" theme="light" width={780} popoverDelay={50}>
+            <bk-popover placement="bottom" theme="light" width={780} popoverDelay={40}>
               {{
                 default: () => (
-                  <span class="display-text">{title}: {peoples}</span>
+                  <div class="display-text">{title}: {peoples}</div>
                 ),
                 content: () => <RenderRotateTable data={row} />,
               }}
@@ -255,6 +258,7 @@
     {
       label: t('操作'),
       fixed: 'right',
+      showOverflowTooltip: false,
       field: '',
       width: 180,
       render: ({ row }: {row: RowData}) => (
@@ -417,6 +421,7 @@
   };
 
   const handleOperate = (type: string, row?: RowData) => {
+    existedNames.value = tableRef.value.getData().map((item: { name: string; }) => item.name);
     currentRowData.value = row;
     pageType.value = type;
     isShowEditRuleSideSilder.value = true;
@@ -435,6 +440,7 @@
 
   const handleSuccess = () => {
     fetchHostNodes();
+    window.changeConfirm = false;
   };
 </script>
 <style lang="less" scoped>
@@ -464,8 +470,12 @@
       }
     }
 
+    .rotate-table-column {
+      width: 100%;
+      overflow: hidden;
+    }
+
     .display-text {
-      display: inline-block;
       height: 22px;
       padding: 0 8px;
       overflow: hidden;

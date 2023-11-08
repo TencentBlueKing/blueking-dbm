@@ -99,9 +99,9 @@
     immediate: true,
   });
 
-  watch(tagsList, (list) => {
+  watch(tagsList, (list, oldList) => {
     emits('change', list);
-    if (list.length > 0) {
+    if (oldList && list.length > 0) {
       window.changeConfirm = true;
     }
   }, {

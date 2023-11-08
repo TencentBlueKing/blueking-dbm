@@ -12,53 +12,52 @@
 -->
 
 <template>
-  <BkTag
-    class="tag-box"
-    :theme="theme"
-    :type="type"
-    @click="handleTagClick">
-    <template
-      v-if="iconType"
-      #icon>
-      <DbIcon
-        class="icon-dander"
-        :type="iconType" />
-    </template>
-    {{ content }}
-  </BkTag>
+  <div class="toolbox-title-box">
+    <span class="title">{{ toolboxTitle }}</span>
+    <slot />
+  </div>
 </template>
 
 <script setup lang="ts">
+  import type { RouteRecordRaw } from 'vue-router';
+
   interface Props {
-    content?: string | number,
-    type?: '' | 'stroke' | 'filled',
-    theme?: 'info' | 'success' | 'warning' | 'danger',
-    iconType?: string,
+    toolboxRoutes: RouteRecordRaw[];
   }
 
-  interface Emits {
-    (e: 'tag-click'): void
-  }
+  const props = defineProps<Props>();
 
-  withDefaults(defineProps<Props>(), {
-    content: '',
-    type: '',
-    theme: undefined,
-    iconType: '',
+  const route = useRoute();
+
+  const toolboxTitle = ref('');
+
+  const titleMap = computed(() => props.toolboxRoutes.reduce((results, item) => {
+    Object.assign(results, {
+      [item.name as string]: item.meta?.navName,
+    });
+    return results;
+  }, {} as Record<string, string>));
+
+  watch(() => route.name, (name) => {
+    toolboxTitle.value = titleMap.value[name as string];
+  }, {
+    immediate: true,
   });
-
-  const emits = defineEmits<Emits>();
-
-  const handleTagClick = () => {
-    emits('tag-click');
-  };
 </script>
 
 <style lang="less" scoped>
-  .tag-box{
-    padding: 0 6px;
-    margin: 0;
-    transform: scale(0.83, 0.83);
+.toolbox-title-box {
+  display: flex;
+  width: 100%;
+  height: 54px;
+  padding: 0 24px;
+  align-items: center;
 
+  .title {
+    margin-right: 8px;
+    font-size: 14px;
+    font-weight: 700;
+    color: #313238;
   }
+}
 </style>

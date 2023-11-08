@@ -12,9 +12,11 @@
 -->
 
 <template>
-  <div class="input-box">
+  <div
+    class="input-box"
+    :class="{'is-input-empty': isEmpty}">
     <BkInput
-      v-model="modelValue"
+      v-model.number="modelValue"
       class="input"
       :disabled="disabled"
       :placeholder="t('请输入')"
@@ -56,6 +58,8 @@
     default: 0,
   });
 
+  const isEmpty = computed(() => typeof modelValue.value === 'string');
+
   watch(modelValue, () => {
     window.changeConfirm = true;
   });
@@ -64,7 +68,7 @@
     if (props.disabled) {
       return;
     }
-    modelValue.value += 1;
+    modelValue.value = Number(modelValue.value) + 1;
   };
 
   const handleClickDown = () => {
@@ -74,7 +78,7 @@
     if (modelValue.value === 0) {
       return;
     }
-    modelValue.value -= 1;
+    modelValue.value = Number(modelValue.value) - 1;
   };
 
   defineExpose<Exposes>({
@@ -118,6 +122,12 @@
 
   :deep(.bk-input--number-control) {
     display: none;
+  }
+}
+
+.is-input-empty {
+  :deep(.bk-input--text) {
+    background-color: #fff0f1;
   }
 }
 </style>

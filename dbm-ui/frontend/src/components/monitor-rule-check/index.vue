@@ -150,7 +150,8 @@
   defineExpose<Exposes>({
     getValue() {
       const retData = _.cloneDeep(localValue.value);
-      retData.config = retData.config.filter(item => item.filter(data => data.method !== '' && typeof data.threshold !== 'string').length > 0);
+      // eslint-disable-next-line max-len
+      // retData.config = retData.config.filter(item => item.filter(data => data.method !== '' && typeof data.threshold !== 'string').length > 0);
       return retData;
     },
     resetValue() {
