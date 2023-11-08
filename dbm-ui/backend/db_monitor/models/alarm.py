@@ -226,7 +226,7 @@ class DutyRule(AuditedModel):
         """
         # 1. 新建监控轮值
         params = {
-            "name": self.name,
+            "name": f"{self.db_type}_{self.name}",
             "bk_biz_id": env.DBA_APP_BK_BIZ_ID,
             "effective_time": self.effective_time.strftime("%Y-%m-%d %H:%M:%S"),
             "end_time": self.end_time.strftime("%Y-%m-%d %H:%M:%S") if self.end_time else "",
@@ -249,6 +249,10 @@ class DutyRule(AuditedModel):
                 for arrange in self.duty_arranges
             ]
         else:
+            try:
+                group_number = self.duty_arranges[0]["duty_number"]
+            except (IndexError, ValueError):
+                group_number = 1
             params.update(
                 **{
                     "duty_arranges": [
@@ -269,7 +273,7 @@ class DutyRule(AuditedModel):
                         for arrange in self.duty_arranges
                     ],
                     "group_type": "auto",
-                    "group_number": self.duty_arranges[0]["duty_number"],
+                    "group_number": group_number,
                 }
             )
         #  2. 判断是否存量的轮值规则，如果是，则走更新流程

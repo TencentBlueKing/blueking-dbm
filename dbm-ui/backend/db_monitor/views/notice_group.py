@@ -17,6 +17,7 @@ from django.utils.translation import ugettext_lazy as _
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
+from backend import env
 from backend.bk_web import viewsets
 from backend.bk_web.pagination import AuditedLimitOffsetPagination
 from backend.bk_web.swagger import common_swagger_auto_schema
@@ -32,25 +33,26 @@ SWAGGER_TAG = _("监控告警组")
 
 class MonitorGroupListFilter(django_filters.FilterSet):
     name = django_filters.CharFilter(field_name="name", lookup_expr="icontains", label=_("告警组名称"))
-    bk_biz_id = django_filters.NumberFilter(method="filter_bk_biz_id", label=_("业务ID"))
-    db_type = django_filters.CharFilter(method="filter_db_type", label=_("DB类型"))
+    bk_biz_id = django_filters.NumberFilter(field_name="bk_biz_id", label=_("业务ID"))
+    db_type = django_filters.CharFilter(field_name="db_type", label=_("DB类型"))
 
-    def filter_bk_biz_id(self, queryset, name, value):
-        """
-        内置告警组优先使用业务配置，
-        """
-        biz_built_in_group = queryset.filter(bk_biz_id=value, is_built_in=True)
-        db_types = set(list(biz_built_in_group.values_list("db_type", flat=True)))
-        plat_built_in_group_ids = (
-            queryset.filter(bk_biz_id=PLAT_BIZ_ID, is_built_in=True)
-            .exclude(db_type__in=db_types)
-            .values_list("id", flat=True)
-        )
-        return queryset.filter(Q(bk_biz_id=value) | Q(id__in=plat_built_in_group_ids)).order_by("is_built_in")
+    def filter_queryset(self, queryset):
+        # 1. 在指定业务和平台业务的告警组中过滤
+        bk_biz_id = self.form.cleaned_data.get("bk_biz_id", PLAT_BIZ_ID)
+        queryset = queryset.filter(bk_biz_id__in=(PLAT_BIZ_ID, bk_biz_id))
 
-    def filter_db_type(self, queryset, name, value):
-        # 返回告警组时，需同时返回没有 db_type 的
-        return queryset.filter(Q(db_type=value) | Q(db_type=""))
+        # 2. 指定告警组名字查询
+        name = self.form.cleaned_data.get("name", "")
+        if name:
+            queryset = queryset.filter(name__icontains=name)
+
+        # 3. 获取业务下指定 db 类型的告警组，如果业务
+        db_type = self.form.cleaned_data.get("db_type")
+        if db_type:
+            db_type_group = queryset.filter(db_type=db_type).order_by("bk_biz_id").first()
+            group_id = getattr(db_type_group, "id", 0)
+            queryset = queryset.filter(Q(id=group_id) | Q(db_type=""))
+        return queryset
 
     class Meta:
         model = NoticeGroup
