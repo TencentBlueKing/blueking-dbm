@@ -34,9 +34,11 @@ func ParseBinlogTimeCommand() *cobra.Command {
 		Use:   "parse-binlog-time",
 		Short: "获取 binlog 起止时间",
 		Example: fmt.Sprintf(
-			"dbactuator mysql parse-binlog-time %s %s",
+			"dbactuator mysql parse-binlog-time %s %s"+
+				"\nOutput examples:\n%s",
 			subcmd.CmdBaseExampleStr,
 			subcmd.ToPrettyJson(act.Payload.Example()),
+			subcmd.ToPrettyJson(act.Payload.ExampleOutput()),
 		),
 		Run: func(cmd *cobra.Command, args []string) {
 			util.CheckErr(act.Validate())

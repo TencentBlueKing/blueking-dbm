@@ -202,7 +202,7 @@
   };
 
   const tableOperationWidth = computed(() => {
-    if (isStretchLayoutOpen.value) {
+    if (!isStretchLayoutOpen.value) {
       return isCN.value ? 350 : 520;
     }
     return 100;

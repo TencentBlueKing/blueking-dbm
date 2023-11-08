@@ -92,6 +92,7 @@
   });
 
   watch(() => props.clusterId, () => {
+    console.log('form watch cluser id = ', props.clusterId);
     if (props.clusterId) {
       fetchResourceDetails({
         bk_biz_id: globalBizsStore.currentBizId,

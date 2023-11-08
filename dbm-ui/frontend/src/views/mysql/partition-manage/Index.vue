@@ -400,7 +400,7 @@
     messageSuccess(t('移除成功'));
   });
 </script>
-<style lang="postcss">
+<style lang="less">
   .spider-manage-paritition-page {
     .header-action{
       display: flex;

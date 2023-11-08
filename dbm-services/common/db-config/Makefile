@@ -45,15 +45,15 @@ alpha:build
 
 
 gotool:
-	@-gofmt -w .
-	@-go tool vet . 2>&1 | grep -v vendor;true
+	-gofmt -w .
+	-go tool vet . 2>&1 | grep -v vendor;true
 clean:
 	rm -f ${SRV_NAME_CMD} ${CLI_NAME_CMD}
 curl:
-	@echo curl -XGET -H "Content-Type: application/json" http://127.0.0.1:8080/user
+	echo curl -XGET -H "Content-Type: application/json" http://127.0.0.1:8080/user
 help:
-	@echo "make - compile go source"
-	@echo "make gotool - run gofmt & go too vet"
-	@echo "make clean - do some clean job"
+	echo "make - compile go source"
+	echo "make gotool - run gofmt & go too vet"
+	echo "make clean - do some clean job"
 
 .PHONY: all gotool clean help api curl

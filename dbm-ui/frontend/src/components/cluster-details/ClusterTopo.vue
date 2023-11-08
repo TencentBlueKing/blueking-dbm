@@ -191,6 +191,7 @@
       type: clusterType,
       bk_biz_id: globalBizsStore.currentBizId,
       resource_id: id,
+      cluster_id: id,
     };
     topoState.loading = true;
     return apiMap[clusterType](params)

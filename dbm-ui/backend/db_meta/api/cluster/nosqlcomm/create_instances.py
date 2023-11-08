@@ -21,7 +21,9 @@ logger = logging.getLogger("flow")
 
 
 @transaction.atomic
-def create_mongo_instances(bk_biz_id, bk_cloud_id, machine_type, storages, spec_id: int = 0, spec_config: str = ""):
+def create_mongo_instances(
+    bk_biz_id, bk_cloud_id, machine_type, storages, spec_id: int = 0, spec_config: str = "", skip_machine: bool = False
+):
     """打包创建 MongoShard/MongoConfig 类型实例， 一主N从
 
     Args:
@@ -51,7 +53,8 @@ def create_mongo_instances(bk_biz_id, bk_cloud_id, machine_type, storages, spec_
                         "receiver": {"ip": storage["ip"], "port": storage["port"]},
                     }
                 )
-        machine.create(machines=list(machines.values()), bk_cloud_id=bk_cloud_id)
+        if not skip_machine:
+            machine.create(machines=list(machines.values()), bk_cloud_id=bk_cloud_id)
         storage_instance.create(instances=instances)
         storage_instance_tuple.create(tuple)
     except Exception as e:

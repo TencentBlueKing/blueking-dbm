@@ -31,7 +31,9 @@ if __name__ == "__main__":
     """版本镜像脚本执行入口"""
     path = os.path.join(os.path.abspath(os.path.dirname(__file__)), "medium")
 
-    if args.type == "build":
+    if args.type == "update_lock":
+        MediumHandler.update_lock(bkrepo_tmp_dir=path)
+    elif args.type == "build":
         MediumHandler.build_medium(bkrepo_tmp_dir=path)
     elif args.type == "upload":
         MediumHandler().upload_medium(path=args.db, bkrepo_tmp_dir=path)

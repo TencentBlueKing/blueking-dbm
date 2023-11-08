@@ -97,7 +97,7 @@ class MySQLBaseOperateDetailSerializer(SkipToRepresentationMixin, serializers.Se
             for status_flag, whitelist in self.unavailable_whitelist__status_flag.items():
                 if cluster.status_flag & status_flag and ticket_type not in whitelist:
                     raise serializers.ValidationError(
-                        _("高可用实例状态异常:{}，暂时无法执行该单据类型：{}").format(status_flag.flag_text(), ticket_type)
+                        _("集群实例状态异常:{}，暂时无法执行该单据类型：{}").format(status_flag.flag_text(), ticket_type)
                     )
 
         return attrs
