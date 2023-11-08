@@ -84,6 +84,7 @@ INSTALLED_APPS += (
     "backend.db_services.mysql.open_area",
     "backend.db_services.ipchooser",
     "backend.dbm_init",
+    "backend.dbm_tools",
     "backend.db_proxy",
     "backend.db_monitor",
     "backend.db_services.redis.redis_dts",

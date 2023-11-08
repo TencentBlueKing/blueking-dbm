@@ -109,7 +109,6 @@ class CCTopoOperator:
             # 查询实例对应的模块 ID
             bk_module_id = cluster_module_id_map.get(cluster.id)
             if not bk_module_id:
-                print(ClusterMonitorTopo.objects.all().values())
                 bk_module_id = ClusterMonitorTopo.objects.get(
                     bk_biz_id=self.hosting_biz_id, cluster_id=cluster.id, machine_type=machine_type
                 ).bk_module_id
