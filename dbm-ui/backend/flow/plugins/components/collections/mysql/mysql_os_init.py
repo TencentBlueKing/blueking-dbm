@@ -145,7 +145,7 @@ os_sysctl_init = """
             chmod 755 /home/mysql
             usermod -d /home/mysql mysql
     fi
-    # 如果存在mysql用户,上面那一步会报错，也不会创建/home/mysql,所以判断下并创建/home/mysql
+    # if there is a mysql user an error will be reported in the previous step and home mysql will not be created so make a judgment and create home mysql
     if [ ! -d /data ];
     then
         mkdir -p /data1/data/
