@@ -4,9 +4,9 @@ VERSION = 0.0.1
 GITHASH = ""
 APPNAME = dbactuator
 GOOS ?= linux
-BUILD_FLAG = " -X main.version=${VERSION} -X main.buildstamp=`date -u '+%Y-%m-%d_%I:%M:%S%p'` -X main.githash=${GITHASH} "
-BUILD_EXTERNAL_FLAG = " -X main.external=ON -X main.version=${VERSION} -X main.buildstamp=`date -u '+%Y-%m-%d_%I:%M:%S%p'` -X main.githash=${GITHASH} "
-BUILD_MINI_FLAG = " -s -w -X main.version=${VERSION} -X main.buildstamp=`date -u '+%Y-%m-%d_%I:%M:%S%p'` -X main.githash=${GITHASH} "
+BUILD_FLAG = " -X main.version=${VERSION} -X main.githash=${GITHASH} "
+BUILD_EXTERNAL_FLAG = " -X main.external=ON -X main.version=${VERSION} -X main.githash=${GITHASH} "
+BUILD_MINI_FLAG = " -s -w -X main.version=${VERSION} -X main.githash=${GITHASH} "
 
 .PHONY: all build clean
 
@@ -22,12 +22,12 @@ mini:
 	upx $(BASE_DIR)/build/$(APPNAME)
 	
 clean:
-	cd ${BASE_DIR}/build && rm -rf ${APPNAME}
+	rm -rf ${BASE_DIR}/build && go clean -cache
 
 gotool:
-	@-gofmt -w .
+	-gofmt -w .
 
 help:
-	@echo "make - compile go source"
-	@echo "make gotool - run gofmt"
-	@echo "make clean - do some clean job"
+	echo "make - compile go source"
+	echo "make gotool - run gofmt"
+	echo "make clean - do some clean job"
