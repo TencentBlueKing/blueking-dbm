@@ -40,7 +40,8 @@ class Command(BaseCommand):
                 }
             )
             for p in processes:
-                p["property"]["bind_info"][0]["ip"] = "0.0.0.0"
+                if p["property"]["bind_info"][0]["port"] == "50010":
+                    p["property"]["bind_info"][0]["ip"] = "0.0.0.0"
 
             updated_processes = [p["property"] for p in processes]
             res = CCApi.update_process_instance({"bk_biz_id": bk_biz_id, "processes": updated_processes})
