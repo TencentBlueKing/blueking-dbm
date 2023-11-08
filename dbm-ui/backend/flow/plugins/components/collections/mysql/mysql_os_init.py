@@ -13,6 +13,7 @@ import copy
 import re
 
 from django.utils.translation import ugettext as _
+from jinja2 import Environment
 from pipeline.component_framework.component import Component
 from pipeline.core.flow.activity import StaticIntervalGenerator
 
@@ -96,9 +97,6 @@ class MySQLOsInit(BkJobService):
 
         exec_ips = self.__get_exec_ips(kwargs=kwargs, trans_data=trans_data)
         target_ip_info = [{"bk_cloud_id": kwargs["bk_cloud_id"], "ip": ip} for ip in exec_ips]
-        ips = []
-        for info in target_ip_info:
-            ips.append(info["ip"])
         body = {
             "bk_biz_id": env.JOB_BLUEKING_BIZ_ID,
             "task_name": f"DBM_MySQL_OS_Init",
@@ -124,3 +122,127 @@ class MySQLOsInitComponent(Component):
     name = __name__
     code = "mysql_os_init"
     bound_service = MySQLOsInit
+
+
+# 异步 I/O（AIO）操作的最大并发请求数
+# fs.aio-max-nr=1024000
+os_sysctl_init = """
+    #/bin/bash 
+    egrep "^mysql" /etc/group >& /dev/null
+    if [ $? -ne 0 ]
+    then
+    groupadd mysql -g 202
+    fi
+    id mysql >& /dev/null
+    if [ $? -ne 0 ]
+    then
+            useradd -m -d /home/mysql -g 202 -G users -u 30019 mysql
+            chage -M 99999 mysql
+            if [ ! -d /home/mysql ]; 
+            then
+                    mkdir -p /home/mysql
+            fi
+            chmod 755 /home/mysql
+            usermod -d /home/mysql mysql
+    fi
+    # 如果存在mysql用户,上面那一步会报错，也不会创建/home/mysql,所以判断下并创建/home/mysql
+    if [ ! -d /data ];
+    then
+        mkdir -p /data1/data/
+        ln -s /data1/data/ /data
+    fi
+    if [ ! -d /data1 ];
+    then
+        mkdir -p /data/data1/
+        ln -s /data/data1 /data1
+    fi
+    mkdir -p /data1/dbha
+    chown -R mysql /data1/dbha
+    mkdir -p /data/dbha
+    chown -R mysql /data/dbha
+    #mkdir -p /home/mysql/install
+    #chown -R mysql /home/mysql
+    #chmod -R a+rwx /home/mysql/install
+    mkdir -p /data/install
+    chown -R mysql /home/mysql
+    chown -R mysql /data/install
+    chmod -R a+rwx /data/install
+    rm -rf /home/mysql/install
+    ln -s /data/install /home/mysql/install
+    chown -R mysql /home/mysql/install
+    echo "mysql:{{mysql_os_password}}" | chpasswd
+    FOUND=$(grep 'ulimit -n' /etc/profile)
+    if [ -z "$FOUND" ]; then
+            echo 'ulimit -n {{max_open_file}}' >> /etc/profile
+    fi
+    FOUND=$(grep 'fs.aio-max-nr' /etc/sysctl.conf)
+    if [ -z "$FOUND" ];then
+        echo "fs.aio-max-nr={{aio_max_nr}}" >> /etc/sysctl.conf
+        /sbin/sysctl -p
+    fi
+    FOUND=$(grep 'export LC_ALL=en_US' /etc/profile)
+    if [ -z "$FOUND" ]; then
+            echo 'export LC_ALL=en_US' >> /etc/profile
+    fi
+    FOUND=$(grep 'export PATH=/usr/local/mysql/bin/:$PATH' /etc/profile)
+    if [ -z "$FOUND" ]; then
+            echo 'export PATH=/usr/local/mysql/bin/:$PATH' >> /etc/profile
+    fi
+"""  # noqa
+
+
+class SysInit(BkJobService):
+    def __get_exec_ips(self, kwargs, trans_data) -> list:
+        """
+        获取需要执行的ip list
+        """
+        # 拼接节点执行ip所需要的信息，ip信息统一用list处理拼接
+        if kwargs.get("get_trans_data_ip_var"):
+            exec_ips = self.splice_exec_ips_list(pool_ips=getattr(trans_data, kwargs["get_trans_data_ip_var"]))
+        else:
+            exec_ips = self.splice_exec_ips_list(ticket_ips=kwargs["exec_ip"])
+
+        return exec_ips
+
+    def _execute(self, data, parent_data) -> bool:
+        trans_data = data.get_one_of_inputs("trans_data")
+        kwargs = data.get_one_of_inputs("kwargs")
+        aio_max_nr = 1024000
+        max_open_file = 204800
+        mysql_os_password = kwargs["mysql_os_password"]
+        if kwargs.get("aio_max_nr"):
+            aio_max_nr = kwargs["aio_max_nr"]
+        if kwargs.get("max_open_file"):
+            max_open_file = kwargs["max_open_file"]
+        # 脚本内容
+        jinja_env = Environment()
+        template = jinja_env.from_string(os_sysctl_init)
+        script_content = template.render(
+            max_open_file=max_open_file, aio_max_nr=aio_max_nr, mysql_os_password=mysql_os_password
+        )
+        exec_ips = self.__get_exec_ips(kwargs=kwargs, trans_data=trans_data)
+        target_ip_info = [{"bk_cloud_id": kwargs["bk_cloud_id"], "ip": ip} for ip in exec_ips]
+        body = {
+            "bk_biz_id": env.JOB_BLUEKING_BIZ_ID,
+            "task_name": f"DBM-Init-Mysql-Os",
+            "script_content": str(base64.b64encode(script_content.encode("utf-8")), "utf-8"),
+            "script_language": 1,
+            "target_server": {"ip_list": target_ip_info},
+        }
+        self.log_info("ready start task with body {}".format(body))
+
+        common_kwargs = copy.deepcopy(fast_execute_script_common_kwargs)
+        common_kwargs["account_alias"] = DBA_ROOT_USER
+
+        resp = JobApi.fast_execute_script({**common_kwargs, **body}, raw=True)
+        self.log_info(f"fast execute script response: {resp}")
+        self.log_info(f"job url:{env.BK_JOB_URL}/api_execute/{resp['data']['job_instance_id']}")
+        data.outputs.ext_result = resp
+        data.outputs.exec_ips = exec_ips
+        return True
+
+
+class SysInitComponent(Component):
+    name = __name__
+    code = "sys_init"
+    bound_service = SysInit

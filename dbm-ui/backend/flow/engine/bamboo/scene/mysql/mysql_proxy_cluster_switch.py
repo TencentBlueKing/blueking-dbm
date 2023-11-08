@@ -15,6 +15,7 @@ from typing import Dict, Optional
 
 from django.utils.translation import ugettext as _
 
+from backend import env
 from backend.configuration.constants import DBType
 from backend.db_meta.enums import ClusterEntryType, ClusterType, InstanceInnerRole, InstanceStatus
 from backend.db_meta.models import Cluster, ProxyInstance, StorageInstance
@@ -25,6 +26,7 @@ from backend.flow.plugins.components.collections.mysql.clear_machine import MySQ
 from backend.flow.plugins.components.collections.mysql.dns_manage import MySQLDnsManageComponent
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.mysql.mysql_db_meta import MySQLDBMetaComponent
+from backend.flow.plugins.components.collections.mysql.mysql_os_init import MySQLOsInitComponent, SysInitComponent
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
 from backend.flow.utils.mysql.mysql_act_dataclass import (
     CreateDnsKwargs,
@@ -127,6 +129,26 @@ class MySQLProxyClusterSwitchFlow(object):
                 bk_cloud_id=info["target_proxy_ip"]["bk_cloud_id"],
             )
 
+            # 初始化机器
+            account = MysqlActPayload.get_mysql_account()
+            sub_pipeline.add_act(
+                act_name=_("初始化机器"),
+                act_component_code=SysInitComponent.code,
+                kwargs={
+                    "mysql_os_password": account["os_mysql_pwd"],
+                    "exec_ip": info["target_proxy_ip"]["ip"],
+                    "bk_cloud_id": info["target_proxy_ip"]["bk_cloud_id"],
+                },
+            )
+            # 判断是否需要执行按照MySQL Perl依赖
+            if env.YUM_INSTALL_PERL:
+                exec_act_kwargs.exec_ip = info["target_proxy_ip"]["ip"]
+                sub_pipeline.add_act(
+                    act_name=_("安装MySQL Perl相关依赖"),
+                    act_component_code=MySQLOsInitComponent.code,
+                    kwargs=asdict(exec_act_kwargs),
+                )
+
             # 阶段1 已机器维度，安装先上架的proxy实例
             sub_pipeline.add_act(
                 act_name=_("下发proxy安装介质"),
@@ -139,14 +161,7 @@ class MySQLProxyClusterSwitchFlow(object):
                     )
                 ),
             )
-
-            exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_sys_init_payload.__name__
-            sub_pipeline.add_act(
-                act_name=_("初始化机器"),
-                act_component_code=ExecuteDBActuatorScriptComponent.code,
-                kwargs=asdict(exec_act_kwargs),
-            )
-
+            # 阶段2 部署mysql-crond
             exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_deploy_mysql_crond_payload.__name__
             sub_pipeline.add_act(
                 act_name=_("部署mysql-crond"),
