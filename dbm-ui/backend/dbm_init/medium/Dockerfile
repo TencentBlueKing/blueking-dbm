@@ -143,7 +143,7 @@ RUN set -ex && \
     cd /blueking-dbm/dbm-services/mysql/db-tools/mysql-crond && \
     make release-bin VERSION=$(/lock.sh mysql mysql-crond version) GITHASH=$(/lock.sh mysql mysql-crond commitId) -j4 && \
     cd /blueking-dbm/dbm-services/mysql/db-tools/mysql-rotatebinlog && \
-    make release VERSION=$(/lock.sh mysql rotate-binlog version) GITHASH=$(/lock.sh mysql rotate-binlog commitId) -j4 && \
+    make release-bin VERSION=$(/lock.sh mysql rotate-binlog version) GITHASH=$(/lock.sh mysql rotate-binlog commitId) -j4 && \
     cd /blueking-dbm/dbm-services/mysql/db-tools/mysql-monitor && \
     make release-bin VERSION=$(/lock.sh mysql mysql-monitor version) GITHASH=$(/lock.sh mysql mysql-monitor commitId) -j4
 
