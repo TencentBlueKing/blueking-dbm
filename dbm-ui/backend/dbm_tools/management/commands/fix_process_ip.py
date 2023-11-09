@@ -11,6 +11,7 @@ specific language governing permissions and limitations under the License.
 import logging
 
 from django.core.management.base import BaseCommand
+from django.utils.translation import gettext_lazy as _
 
 from backend import env
 from backend.components import CCApi
@@ -19,7 +20,7 @@ logger = logging.getLogger("root")
 
 
 class Command(BaseCommand):
-    help = "修改指定模块的服务实例进程绑定的ip为0.0.0.0"
+    help = _("修改指定模块的服务实例进程绑定的ip为0.0.0.0")
 
     def add_arguments(self, parser):
         parser.add_argument("bk_module_id", type=int, help="模块ID")
@@ -40,7 +41,7 @@ class Command(BaseCommand):
                 }
             )
             for p in processes:
-                if p["property"]["bind_info"][0]["port"] == "50010":
+                if p["property"]["bind_info"][0]["port"] == "9000":
                     p["property"]["bind_info"][0]["ip"] = "0.0.0.0"
 
             updated_processes = [p["property"] for p in processes]
