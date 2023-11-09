@@ -21,7 +21,7 @@ from backend.bk_web.viewsets import ReadOnlyAuditedModelViewSet
 from backend.components import DBConfigApi
 from backend.components.dbconfig.constants import FormatType, LevelName
 from backend.db_meta.enums import ClusterType, DestroyedStatus
-from backend.db_meta.models import Cluster
+from backend.db_meta.models import Cluster, StorageInstanceTuple
 from backend.exceptions import AppBaseException
 from backend.flow.consts import DEFAULT_DB_MODULE_ID, ConfigTypeEnum
 
@@ -79,6 +79,9 @@ class RollbackViewSet(ReadOnlyAuditedModelViewSet):
         ip = self.validated_data["ip"]
         port = self.validated_data["port"]
 
+        storage_pair = StorageInstanceTuple.objects.filter(ejector__machine__ip=ip, ejector__port=port).first()
+        slave_ip, slave_port = storage_pair.receiver.machine.ip, storage_pair.receiver.port
+
         cluster = Cluster.objects.get(bk_biz_id=bk_biz_id, id=cluster_id)
         rollback_handler = DataStructureHandler(cluster.id)
 
@@ -110,8 +113,8 @@ class RollbackViewSet(ReadOnlyAuditedModelViewSet):
                     start_time=backup_time,
                     end_time=rollback_time,
                     minute_range=120,
-                    host_ip=ip,
-                    port=port,
+                    host_ip=slave_ip,
+                    port=slave_port,
                     kvstorecount=kvstore_count,
                     tendis_type=cluster.cluster_type,
                 )
