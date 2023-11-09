@@ -52,7 +52,7 @@ func GetPasswordFromLocalConfFile(port int) (password string, err error) {
 func GetProxyPasswdFromConfFlie(port int, role string) (password string, err error) {
 	var grepCmd string
 	if role == consts.MetaRoleTwemproxy {
-		grepCmd = fmt.Sprintf(`grep -w "password" %s/twemproxy*/%d/nutcracker.%d.yml|grep -vE "#"|awk '{print $2}'`,
+		grepCmd = fmt.Sprintf(`grep -w "password" %s/twemproxy*/%d/nutcracker.%d.yml|grep -vE "#"|awk '{print $NF}'`,
 			consts.DataPath, port, port)
 	} else if role == consts.MetaRolePredixy {
 		grepCmd = fmt.Sprintf(`grep -iw "auth" %s/predixy/%d/predixy.conf|awk '{print $2}'`,
@@ -64,6 +64,8 @@ func GetProxyPasswdFromConfFlie(port int, role string) (password string, err err
 	}
 	password = strings.TrimPrefix(password, "\"")
 	password = strings.TrimSuffix(password, "\"")
+	password = strings.TrimPrefix(password, "'")
+	password = strings.TrimSuffix(password, "'")
 	return
 }
 
