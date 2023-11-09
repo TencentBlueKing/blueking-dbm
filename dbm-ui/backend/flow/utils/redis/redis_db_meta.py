@@ -708,15 +708,15 @@ class RedisDBMeta(object):
         cluster = Cluster.objects.get(
             bk_cloud_id=self.cluster["bk_cloud_id"], immute_domain=self.cluster["immute_domain"]
         )
-        immuteEntry = cluster.clusterentry_set.filter(
+        immute_entry = cluster.clusterentry_set.filter(
             cluster_entry_type=ClusterEntryType.DNS.value, entry=cluster.immute_domain
         ).first()
-        clbEntry = cluster.clusterentry_set.filter(cluster_entry_type=ClusterEntryType.CLB.value).first()
+        clb_entry = cluster.clusterentry_set.filter(cluster_entry_type=ClusterEntryType.CLB.value).first()
 
-        logger.info("bind immute domain {} 2 clb {}".format(cluster.immute_domain, clbEntry.entry))
-        immuteEntry.forward_to_id = clbEntry.id
-        immuteEntry.creator = self.ticket_data["created_by"]
-        immuteEntry.save(update_fields=["forward_to_id", "creator"])
+        logger.info("bind immute domain {} 2 clb {}".format(cluster.immute_domain, clb_entry.entry))
+        immute_entry.forward_to_id = clb_entry.id
+        immute_entry.creator = self.ticket_data["created_by"]
+        immute_entry.save(update_fields=["forward_to_id", "creator"])
 
     # 主域名解绑CLB
     def tendis_unBind_clb_domain_4_scene(self):
@@ -724,14 +724,14 @@ class RedisDBMeta(object):
         cluster = Cluster.objects.get(
             bk_cloud_id=self.cluster["bk_cloud_id"], immute_domain=self.cluster["immute_domain"]
         )
-        immuteEntry = cluster.clusterentry_set.filter(
+        immute_entry = cluster.clusterentry_set.filter(
             cluster_entry_type=ClusterEntryType.DNS.value, entry=cluster.immute_domain
         ).first()
-        logger.info("Unbind immute domain {} 2 clbid: {}".format(cluster.immute_domain, immuteEntry.forward_to_id))
+        logger.info("Unbind immute domain {} 2 clbid: {}".format(cluster.immute_domain, immute_entry.forward_to_id))
 
-        immuteEntry.forward_to_id = None
-        immuteEntry.creator = self.ticket_data["created_by"]
-        immuteEntry.save(update_fields=["forward_to_id", "creator"])
+        immute_entry.forward_to_id = None
+        immute_entry.creator = self.ticket_data["created_by"]
+        immute_entry.save(update_fields=["forward_to_id", "creator"])
 
     def get_inst_list(self, storageinstances) -> list:
         src_host = []

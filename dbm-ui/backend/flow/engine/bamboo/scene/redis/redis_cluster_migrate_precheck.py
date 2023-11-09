@@ -18,7 +18,7 @@ from django.utils.translation import ugettext as _
 from backend.components import DBConfigApi
 from backend.components.db_name_service.client import NameServiceApi
 from backend.components.dbconfig.constants import FormatType, LevelName
-from backend.components.gcs_dns.client import GcsDnsApi
+from backend.components.dns.client import DnsApi
 from backend.configuration.constants import DBType
 from backend.db_meta.enums import InstanceRole
 from backend.db_meta.models import Cluster, Machine
@@ -106,7 +106,7 @@ class RedisClusterMigratePrecheckFlow(object):
         if len(data["content"]) == 0:
             raise Exception("db_version config is not definition")
 
-        res = GcsDnsApi.get_domain({"domain_name": f"{domain}."})
+        res = DnsApi.get_domain({"domain_name": f"{domain}."})
         if len(res["detail"]) != 0:
             raise Exception("domain_name {} is exist".format(domain))
         if len(clb) != 0:

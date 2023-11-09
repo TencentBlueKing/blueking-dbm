@@ -20,7 +20,7 @@ FAILED_COUNT=$[$FAILED_COUNT+$?]
 echo "命令执行失败数量：$FAILED_COUNT"
 if [[ $FAILED_COUNT -ne 0 ]];
 then
-  echo "单元测试未通过!"
+  echo "Error: 单元测试未通过!"
   exit 1
 else
   echo "单元测试已通过"

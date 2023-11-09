@@ -17,7 +17,7 @@ from pipeline.core.flow.activity import Service
 
 from backend.flow.consts import DnsOpType
 from backend.flow.plugins.components.collections.common.base_service import BaseService
-from backend.flow.utils.clb_manage import GetClbByIp
+from backend.flow.utils.clb_manage import get_clb_by_ip
 
 logger = logging.getLogger("flow")
 
@@ -51,7 +51,7 @@ class RedisClbManageService(BaseService):
 
         # 传入调用结果
         dns_op_type = kwargs["clb_op_type"]
-        clb_manager = GetClbByIp(kwargs["clb_ip"])
+        clb_manager = get_clb_by_ip(kwargs["clb_ip"])
 
         if dns_op_type == DnsOpType.CREATE:
             # 添加CLB映射,proxy扩容场景

@@ -15,8 +15,8 @@ from ..base import DataAPI
 from ..domains import DNS_APIGW_DOMAIN
 
 
-class _GcsDnsApi(object):
-    MODULE = _("GCSDNS域名管理")
+class _DnsApi(object):
+    MODULE = _("DNS域名管理")
 
     def __init__(self):
         self.get_domain = DataAPI(
@@ -63,4 +63,4 @@ class _GcsDnsApi(object):
         )
 
 
-GcsDnsApi = _GcsDnsApi()
+DnsApi = _DnsApi()

@@ -15,7 +15,7 @@ from backend.db_proxy.views.bkrepo.views import BKRepoProxyPassViewSet
 from backend.db_proxy.views.db_meta.views import DBMetaApiProxyPassViewSet
 from backend.db_proxy.views.db_remote_service.views import DRSApiProxyPassViewSet
 from backend.db_proxy.views.dbconfig.views import DBConfigProxyPassViewSet
-from backend.db_proxy.views.gcs_dns.views import GcsDnsProxyPassViewSet
+from backend.db_proxy.views.dns.views import DnsProxyPassViewSet
 from backend.db_proxy.views.hadb.views import HADBProxyPassViewSet
 from backend.db_proxy.views.jobapi.views import JobApiProxyPassViewSet
 from backend.db_proxy.views.nameservice.views import NameServiceProxyPassViewSet
@@ -23,7 +23,7 @@ from backend.db_proxy.views.redis_dts.views import DtsApiProxyPassViewSet
 from backend.db_proxy.views.views import JobCallBackViewSet
 
 routers = DefaultRouter(trailing_slash=True)
-routers.register(r"", GcsDnsProxyPassViewSet, basename="dns")
+routers.register(r"", DnsProxyPassViewSet, basename="dns")
 routers.register(r"", DBConfigProxyPassViewSet, basename="bkconfig")
 routers.register(r"", DBMetaApiProxyPassViewSet, basename="dbmeta")
 routers.register(r"", NameServiceProxyPassViewSet, basename="nameservice")

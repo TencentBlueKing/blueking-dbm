@@ -99,14 +99,14 @@ def get_cluster_info(cluster_id: int) -> Dict[str, Any]:
 def get_dns_status_by_domain(bk_biz_id: int, bk_cloud_id: int, domain: str) -> bool:
     """判断域名是否存在"""
 
-    result = dns_manage.DnsManage(bk_biz_id=bk_biz_id, bk_cloud_id=bk_cloud_id).get_domain(get_domain_name=domain)
+    result = dns_manage.DnsManage(bk_biz_id=bk_biz_id, bk_cloud_id=bk_cloud_id).get_domain(domain_name=domain)
     return len(result) > 0
 
 
 def get_dns_status_by_ip(bk_biz_id: int, bk_cloud_id: int, domain: str, ip: str) -> bool:
     """判断ip是否在域名映射中"""
 
-    results = dns_manage.DnsManage(bk_biz_id=bk_biz_id, bk_cloud_id=bk_cloud_id).get_domain(get_domain_name=domain)
+    results = dns_manage.DnsManage(bk_biz_id=bk_biz_id, bk_cloud_id=bk_cloud_id).get_domain(domain_name=domain)
     for result in results:
         if result["ip"] == ip:
             return True
