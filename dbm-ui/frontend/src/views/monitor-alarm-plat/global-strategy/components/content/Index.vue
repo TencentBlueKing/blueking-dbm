@@ -114,6 +114,7 @@
     {
       label: t('策略名称'),
       field: 'name',
+      fixed: 'left',
       minWidth: 150,
       render: ({ row }: { row: RowData }) => {
         const isNew = dayjs().isBefore(dayjs(row.create_at).add(24, 'hour'));

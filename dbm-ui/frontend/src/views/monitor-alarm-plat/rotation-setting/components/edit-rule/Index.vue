@@ -225,13 +225,12 @@
     ruleName: [
       {
         validator: (value: string) => {
-          if (value.length > 128) {
-            // 克隆才需要校验
+          if (value.length > 80) {
             return false;
           }
           return true;
         },
-        message: t('不能超过 128 个字符'),
+        message: t('不能超过n个字符', { n: 80 }),
         trigger: 'blur',
       },
       {

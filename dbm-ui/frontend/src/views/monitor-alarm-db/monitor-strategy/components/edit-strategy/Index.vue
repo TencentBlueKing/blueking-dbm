@@ -288,6 +288,16 @@
       },
       {
         validator: (value: string) => {
+          if (value.length > 128) {
+            return false;
+          }
+          return true;
+        },
+        message: t('不能超过n个字符', { n: 128 }),
+        trigger: 'blur',
+      },
+      {
+        validator: (value: string) => {
           if (!isEditPage.value) {
             return value !== props.data.name;
           }

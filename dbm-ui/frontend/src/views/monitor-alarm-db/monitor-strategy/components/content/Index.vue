@@ -160,8 +160,10 @@
     {
       label: t('策略名称'),
       field: 'name',
+      fixed: 'left',
       minWidth: 150,
       width: 280,
+      showOverflowTooltip: false,
       render: ({ row }: {row: RowData}) => {
         const isInner = row.bk_biz_id === 0;
         const isDanger = row.event_count > 0;
