@@ -33,16 +33,14 @@ class RollbackSerializer(AuditedSerializer, serializers.ModelSerializer):
 
 class CheckTimeSerializer(serializers.Serializer):
     cluster_id = serializers.IntegerField(help_text=_("集群id"))
-    ip = serializers.IPAddressField()
-    port = serializers.IntegerField()
+    master_instances = serializers.ListField(help_text=_("master实例列表"))
     rollback_time = serializers.DateTimeField(help_text=_("构造时间"))
 
     class Meta:
         swagger_schema_fields = {
             "example": {
                 "cluster_id": 1,
-                "ip": "127.0.0.1",
-                "port": 1,
+                "master_instances": ["127.0.0.1:30004", "127.0.0.1:30005"],
                 "rollback_time": "2022-11-22 11:22:33",
             }
         }
