@@ -43,6 +43,10 @@
         :name="item.name">
         <template #label>
           <BkTimePicker
+            :ref="(el: TimePickerRef) => {
+              setTimePickerRef(el, index)
+              return void 0
+            }"
             append-to-body
             format="HH:mm"
             :open="item.open"
@@ -134,7 +138,9 @@
 </template>
 
 <script setup lang="ts">
+  import BkTimePicker from 'bkui-vue/lib/time-picker';
   import _ from 'lodash';
+  import type ComponentPublicInstance from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
@@ -142,6 +148,8 @@
     getAlarmGroupList,
     getAlarmGroupNotifyList,
   } from '@services/monitorAlarm';
+
+  import { messageWarn } from '@utils';
 
   interface Props {
     type: 'add' | 'edit' | 'copy' | '',
@@ -152,6 +160,7 @@
     getSubmitData: () => AlarmGroupNotice[];
   }
 
+  type TimePickerRef = ComponentPublicInstance<typeof BkTimePicker>
   type AlarmGroupDetail = ServiceReturnType<typeof getAlarmGroupList>['results'][number]['details']
   type AlarmGroupNotice = AlarmGroupDetail['alert_notice'][number]
   type AlarmGroupNotifyDisplay = Omit<ServiceReturnType<typeof getAlarmGroupNotifyList>[number], 'is_active'>
@@ -179,6 +188,17 @@
   }
 
   const props = defineProps<Props>();
+
+  const timeRangeFormatter = (timeRange: string[]) => {
+    const [start, end] = timeRange;
+    const [startHour, startMinute] = start.split(':');
+    const [endHour, endMinute] = end.split(':');
+
+    return {
+      start: Number(startHour) * 60 + Number(startMinute),
+      end: Number(endHour) * 60 + Number(endMinute),
+    };
+  };
 
   const { t } = useI18n();
 
@@ -226,8 +246,11 @@
     },
   ];
 
+  const timePickerRefs: Record<number, TimePickerRef> = {};
+  let currentPanelIndex = -1;
+  let currentPanelTimeRange:string[] = [];
+
   const active = ref('');
-  const currentPanelIndex = ref(-1);
   const panelList = ref<{
     name: string,
     open: boolean,
@@ -239,16 +262,7 @@
   }[]>([]);
 
   const addPanelTipDiabled = computed(() => {
-    const timeArr = panelList.value.map((item) => {
-      const [start, end] = item.timeRange;
-      const [startHour, startMinute] = start.split(':');
-      const [endHour, endMinute] = end.split(':');
-
-      return {
-        start: Number(startHour) * 60 +  Number(startMinute),
-        end: Number(endHour) * 60 + Number(endMinute),
-      };
-    });
+    const timeArr = panelList.value.map(item => timeRangeFormatter(item.timeRange));
 
     return !isIntervalsFullDay(timeArr);
   });
@@ -335,9 +349,62 @@
     mergedIntervals.push(currentInterval);
 
     // 计算合并后的时间段总时长是否为一天的总分钟数
-    const totalMinutes = mergedIntervals.reduce((total, interval) => total + (interval.end - interval.start), 0);
+    const totalMinutes = mergedIntervals.reduce((total, interval) => total + (interval.end - interval.start + 1), 0);
 
-    return totalMinutes === 24 * 60 - 1;
+    return totalMinutes === 24 * 60;
+  };
+
+  const minutesToHoursAndMinutes = (minutes: number) => {
+    const hour = Math.floor(minutes / 60);
+    const minute = minutes % 60;
+    const hoursStr = String(hour).padStart(2, '0');
+    const minuteStr = String(minute).padStart(2, '0');
+
+    return `${hoursStr}:${minuteStr}`;
+  };
+
+  const findFirstAvailableTimeSlot = () => {
+    const timeRanges = panelList.value.map(item => item.timeRange);
+    const fullDayInMinutes = 24 * 60;
+
+    // 创建一个数组，用于表示整天的占用情况，初始都为空闲
+    const availableMinutes = new Array(fullDayInMinutes).fill(true);
+
+    // 根据给定的时间段将已占用的分钟设置为 false
+    for (const timeRangeItem of timeRanges) {
+      const {
+        start,
+        end,
+      } = timeRangeFormatter(timeRangeItem);
+
+      for (let i = start; i <= end; i++) {
+        availableMinutes[i] = false;
+      }
+    }
+
+    // 查找第一个可用时间段的开始和结束分钟数
+    let firstAvailableStart = null;
+    let firstAvailableEnd = null;
+
+    for (let i = 0; i < fullDayInMinutes; i++) {
+      if (availableMinutes[i]) {
+        firstAvailableStart = i;
+        while (i < fullDayInMinutes && availableMinutes[i]) {
+          i += 1;
+        }
+        firstAvailableEnd = i - 1;
+        break;
+      }
+    }
+
+    if (firstAvailableStart && firstAvailableEnd) {
+      return [
+        minutesToHoursAndMinutes(firstAvailableStart),
+        minutesToHoursAndMinutes(firstAvailableEnd),
+      ];
+    }
+
+    return ['00:00', '23:59'];
   };
 
   const addPanel = () => {
@@ -348,7 +415,7 @@
     panelList.value.push({
       name,
       open: false,
-      timeRange: ['00:00', '23:59'],
+      timeRange: findFirstAvailableTimeSlot(),
       dataList: [
         {
           ...levelMap[3],
@@ -427,8 +494,36 @@
     }
   };
 
+  const areTimeRangesOverlapping = () => {
+    const minuteOccupied = new Array(24 * 60).fill(false); // 创建一个布尔数组，用于跟踪每分钟的占用情况
+    const timeRanges = panelList.value.map(item => item.timeRange);
+
+    for (const timeRangeItem of timeRanges) {
+      const {
+        start,
+        end,
+      } = timeRangeFormatter(timeRangeItem);
+
+      // 检查时间段是否和已占用的时间冲突
+      for (let i = start; i < end; i++) {
+        if (minuteOccupied[i]) {
+          return true; // 时间段重叠
+        }
+        minuteOccupied[i] = true;
+      }
+    }
+
+    return false; // 时间段不重叠
+  };
+
   const handleTimeChange = (date: string[], index: number) => {
     panelList.value[index].timeRange = date;
+  };
+
+  const setTimePickerRef = (el: TimePickerRef, index: number) => {
+    if (el) {
+      timePickerRefs[index] = el;
+    }
   };
 
   const handleTabClick = (index: number) => {
@@ -436,7 +531,12 @@
 
     if (item.name === active.value) {
       item.open = !item.open;
-      currentPanelIndex.value = index;
+      currentPanelIndex = index;
+      currentPanelTimeRange = _.cloneDeep(item.timeRange);
+
+      nextTick(() => {
+        timePickerRefs[index].pickerDropdownRef.forceUpdate();
+      });
     }
   };
 
@@ -455,8 +555,16 @@
   };
 
   const handleOpenMackClick = () => {
-    panelList.value[currentPanelIndex.value].open = false;
-    currentPanelIndex.value = -1;
+    const panelItem = panelList.value[currentPanelIndex];
+
+    if (areTimeRangesOverlapping()) {
+      messageWarn(t('时间段重叠了'));
+      panelItem.timeRange = currentPanelTimeRange;
+    }
+
+    panelItem.open = false;
+    currentPanelIndex = -1;
+    currentPanelTimeRange = [];
   };
 
   defineExpose<Exposes>({
