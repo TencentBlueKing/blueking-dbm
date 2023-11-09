@@ -16,7 +16,8 @@ func OneAddressExecuteSqlBasic(vtype string, queryRequest QueryRequest) (oneAddr
 	var errMsg []string
 	var result oneAddressResult
 	var temp []oneAddressResult
-	c := util.NewClientByHosts(viper.GetString("dbRemoteService"))
+	host := viper.GetString("dbRemoteService")
+	c := util.NewClientByHosts(host)
 
 	var url string
 	if vtype == "mysql" {
@@ -27,12 +28,12 @@ func OneAddressExecuteSqlBasic(vtype string, queryRequest QueryRequest) (oneAddr
 
 	apiResp, err := c.Do(http.MethodPost, url, queryRequest)
 	if err != nil {
-		slog.Error("drs err", err)
-		return result, err
+		slog.Error("msg", "host", host, "url", url, "drs err", err)
+		return result, fmt.Errorf("%s%s drs error: %s", host, url, err.Error())
 	}
 	if apiResp.Code != 0 {
-		slog.Error("remote service api", fmt.Errorf(apiResp.Message))
-		return result, fmt.Errorf(apiResp.Message)
+		slog.Error("remote service api", "error", fmt.Errorf(apiResp.Message))
+		return result, fmt.Errorf("%s%s error: %s", host, url, apiResp.Message)
 	} else {
 		if err := json.Unmarshal(apiResp.Data, &temp); err != nil {
 			return result, err
@@ -50,7 +51,7 @@ func OneAddressExecuteSqlBasic(vtype string, queryRequest QueryRequest) (oneAddr
 	}
 
 	if len(errMsg) > 0 {
-		slog.Error("msg", fmt.Errorf(strings.Join(errMsg, "\n")))
+		slog.Error("msg", "url", url, "error", fmt.Errorf(strings.Join(errMsg, "\n")))
 		return result, fmt.Errorf(strings.Join(errMsg, "\n"))
 	}
 	return temp[0], nil

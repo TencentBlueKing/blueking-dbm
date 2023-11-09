@@ -109,8 +109,8 @@ func (m *PrivTaskPara) AddPriv(jsonPara string) error {
 							continue
 						}
 						address = fmt.Sprintf("%s:%d", storage.IP, storage.Port)
-						err = ImportBackendPrivilege(account, accountRule, address, proxyIPs, m.SourceIPs, instance.ClusterType,
-							tendbhaMasterDomain, instance.BkCloudId)
+						err = ImportBackendPrivilege(account, accountRule, address, proxyIPs, m.SourceIPs,
+							instance.ClusterType, tendbhaMasterDomain, instance.BkCloudId, false)
 						if err != nil {
 							errMsgInner = append(errMsgInner, err.Error())
 						}
@@ -149,8 +149,8 @@ func (m *PrivTaskPara) AddPriv(jsonPara string) error {
 					spiders = append(append(spiders, instance.SpiderMaster...), instance.SpiderSlave...)
 					for _, spider := range spiders {
 						address = fmt.Sprintf("%s:%d", spider.IP, spider.Port)
-						err = ImportBackendPrivilege(account, accountRule, address, proxyIPs, m.SourceIPs, instance.ClusterType,
-							tendbhaMasterDomain, instance.BkCloudId)
+						err = ImportBackendPrivilege(account, accountRule, address, proxyIPs, m.SourceIPs,
+							instance.ClusterType, tendbhaMasterDomain, instance.BkCloudId, false)
 						if err != nil {
 							errMsgInner = append(errMsgInner, err.Error())
 						}
@@ -203,7 +203,8 @@ func (m *AddPrivWithoutAccountRule) AddPrivWithoutAccountRule(jsonPara string) e
 	} else {
 		clusterType = tendbsingle
 	}
-	err = ImportBackendPrivilege(tmpAccount, tmpAccountRule, m.Address, nil, m.Hosts, clusterType, false, *m.BkCloudId)
+	err = ImportBackendPrivilege(tmpAccount, tmpAccountRule, m.Address, nil, m.Hosts,
+		clusterType, false, *m.BkCloudId, true)
 	if err != nil {
 		return errno.GrantPrivilegesFail.Add(err.Error())
 	}

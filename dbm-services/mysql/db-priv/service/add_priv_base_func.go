@@ -45,7 +45,7 @@ func GetAccountRuleInfo(bkBizId int64, clusterType string, user, dbname string) 
 
 // ImportBackendPrivilege 生成 mysql 授权语句，mysql 执行授权语句
 func ImportBackendPrivilege(account TbAccounts, accountRule TbAccountRules, address string, proxyIPs []string,
-	sourceIps []string, clusterType string, tendbhaMasterDomain bool, bkCloudId int64) error {
+	sourceIps []string, clusterType string, tendbhaMasterDomain bool, bkCloudId int64, dedicated bool) error {
 	var backendSQL []string
 	mysqlVersion, err := GetMySQLVersion(address, bkCloudId)
 	if err != nil {
@@ -54,14 +54,14 @@ func ImportBackendPrivilege(account TbAccounts, accountRule TbAccountRules, addr
 	}
 	if tendbhaMasterDomain {
 		backendSQL, err = GenerateBackendSQL(account, accountRule, proxyIPs, mysqlVersion, address, clusterType,
-			tendbhaMasterDomain, bkCloudId)
+			tendbhaMasterDomain, bkCloudId, dedicated)
 		if err != nil {
 			slog.Error("backendSQL", err)
 			return err
 		}
 	} else {
 		backendSQL, err = GenerateBackendSQL(account, accountRule, sourceIps, mysqlVersion, address, clusterType,
-			tendbhaMasterDomain, bkCloudId)
+			tendbhaMasterDomain, bkCloudId, dedicated)
 		if err != nil {
 			slog.Error("backendSQL", err)
 			return err
@@ -78,7 +78,7 @@ func ImportBackendPrivilege(account TbAccounts, accountRule TbAccountRules, addr
 
 // GenerateBackendSQL 生成 mysql 授权语句
 func GenerateBackendSQL(account TbAccounts, rule TbAccountRules, ips []string, mysqlVersion string, address string,
-	clusterType string, tendbhaMasterDomain bool, bkCloudId int64) ([]string, error) {
+	clusterType string, tendbhaMasterDomain bool, bkCloudId int64, dedicated bool) ([]string, error) {
 	var multiPsw MultiPsw
 	var wg sync.WaitGroup
 	var errOuter error
@@ -217,8 +217,8 @@ func GenerateBackendSQL(account TbAccounts, rule TbAccountRules, ips []string, m
 			if rule.GlobalPriv != "" {
 				sql = fmt.Sprintf(`GRANT %s ON *.* TO '%s'@'%s' %s;`,
 					rule.GlobalPriv, account.User, ip, identifiedByPassword)
-				// all privileges授予with grant option, 内部调用
-				if strings.Contains(strings.ToLower(rule.GlobalPriv), "all privileges") {
+				// 内部调用的all privileges需要包含with grant option
+				if strings.Contains(strings.ToLower(rule.GlobalPriv), "all privileges") && dedicated {
 					sql = fmt.Sprintf(`GRANT %s ON *.* TO '%s'@'%s' %s with grant option;`,
 						rule.GlobalPriv, account.User, ip, identifiedByPassword)
 				}

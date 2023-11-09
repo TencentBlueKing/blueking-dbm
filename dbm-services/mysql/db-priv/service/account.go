@@ -1,10 +1,13 @@
 package service
 
 import (
+	"encoding/base64"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"strings"
+
+	"github.com/jinzhu/gorm"
 
 	"dbm-services/common/go-pubpkg/errno"
 	"dbm-services/mysql/priv-service/util"
@@ -43,9 +46,19 @@ func (m *AccountPara) AddAccount(jsonPara string) error {
 	if count != 0 {
 		return errno.AccountExisted.AddBefore(m.User)
 	}
-	psw, err = DecryptPsw(m.Psw)
-	if err != nil {
-		return err
+	if !m.MigrateFlag {
+		psw, err = DecryptPsw(m.Psw)
+		if err != nil {
+			slog.Error("msg", "decrypt psw error", err)
+			return fmt.Errorf("decrypt psw error: %s", err.Error())
+		}
+	} else {
+		plain, err := base64.StdEncoding.DecodeString(m.Psw)
+		if err != nil {
+			slog.Error("msg", "base64 decode error", err)
+			return fmt.Errorf("base64 decode error: %s", err.Error())
+		}
+		psw = string(plain)
 	}
 
 	if psw == m.User {
@@ -153,6 +166,24 @@ func (m *AccountPara) DeleteAccount(jsonPara string) error {
 	log := PrivLog{BkBizId: m.BkBizId, Operator: m.Operator, Para: jsonPara, Time: util.NowTimeFormat()}
 	AddPrivLog(log)
 	return nil
+}
+
+// GetAccount 获取账号
+func (m *AccountPara) GetAccount() ([]*TbAccounts, int64, error) {
+	var (
+		accounts []*TbAccounts
+		result   *gorm.DB
+	)
+	if m.BkBizId == 0 {
+		return nil, 0, errno.BkBizIdIsEmpty
+	}
+	result = DB.Self.Model(&TbAccounts{}).Where(&TbAccounts{
+		BkBizId: m.BkBizId, ClusterType: *m.ClusterType, User: m.User}).Select(
+		"id,bk_biz_id,user,cluster_type,creator,create_time,update_time").Scan(&accounts)
+	if result.Error != nil {
+		return nil, 0, result.Error
+	}
+	return accounts, int64(len(accounts)), nil
 }
 
 // DecryptPsw 对使用公钥加密的密文，用私钥解密
