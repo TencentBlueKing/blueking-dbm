@@ -34,7 +34,7 @@ type DbWorker struct {
 // NewDbWorker 初始化SQLserver实例对象
 func NewDbWorker(user string, pass string, server string, port int) (dbw *DbWorker, err error) {
 	dsn := fmt.Sprintf(
-		"server=%s;port=%d;user id=%s;password=%s;database=master;encrypt=disable",
+		"server=%s;port=%d;user id=%s;password=%s;database=master;encrypt=disable;collation=utf8mb4_unicode_ci",
 		server, port, user, pass,
 	)
 	dbw = &DbWorker{
@@ -110,7 +110,7 @@ func (h *DbWorker) Queryx(data interface{}, query string, args ...interface{}) e
 
 // Queryxs execute query use sqlx return Single column
 func (h *DbWorker) Queryxs(data interface{}, query string) error {
-	logger.Info("Queryxs:%s", query)
+	// logger.Info("Queryxs:%s", query)
 	db := sqlx.NewDb(h.Db, "mssql")
 	udb := db.Unsafe()
 	if err := udb.Get(data, query); err != nil {

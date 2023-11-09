@@ -9,7 +9,7 @@
  */
 
 // Package sqlservercmd TODO
-package sqlservercmd
+package checkcmd
 
 import (
 	"dbm-services/sqlserver/db-tools/dbactuator/internal/subcmd"
@@ -18,24 +18,19 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// NewSQLserverCommand mysql子命令
-func NewSQLserverCommand() *cobra.Command {
+// NewSQLserverCommand check子命令
+func CheckCommand() *cobra.Command {
 	cmds := &cobra.Command{
-		Use:   "sqlserver [sqlserver operation]",
-		Short: "SQLServer Operation Command Line Interface",
+		Use:   "check [check operation]",
+		Short: "check Operation Command Line Interface",
 		RunE:  subcmd.ValidateSubCommand(),
 	}
 	groups := templates.CommandGroups{
 		{
-			Message: "sqlserver operation sets",
+			Message: "check operation sets",
 			Commands: []*cobra.Command{
-				NewDeploySqlServerCommand(),
-				NewUnInstallSqlServerCommand(),
-				ExecuteSQLFilesCommand(),
-				ClusterRoleSwitchCommand(),
-				CloneLoginUsersCommand(),
-				CloneLinkserversCommand(),
-				CloneJobsCommand(),
+				CheckAbnormalDBCommand(),
+				CheckInstProcessCommand(),
 			},
 		},
 	}
