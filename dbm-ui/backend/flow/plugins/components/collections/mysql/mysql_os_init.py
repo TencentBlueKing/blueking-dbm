@@ -246,3 +246,40 @@ class SysInitComponent(Component):
     name = __name__
     code = "sys_init"
     bound_service = SysInit
+
+
+get_os_sys_param = """
+#!/bin/bash 
+    sys_max_open_file=`cat /proc/sys/fs/file-max`
+    user_max_open_file=`ulimit -n`
+    printf "<ctx>{\\\"sys_max_open_file\\\":${sys_max_open_file},\\\"user_max_open_file\\\":${user_max_open_file}}</ctx>"
+"""  # noqa
+
+
+class GetOsSysParam(BkJobService):
+    def _execute(self, data, parent_data) -> bool:
+        kwargs = data.get_one_of_inputs("kwargs")
+        script_content = get_os_sys_param
+        exec_ips = self.splice_exec_ips_list(ticket_ips=kwargs["exec_ip"])
+        target_ip_info = [{"bk_cloud_id": kwargs["bk_cloud_id"], "ip": ip} for ip in exec_ips]
+        body = {
+            "bk_biz_id": env.JOB_BLUEKING_BIZ_ID,
+            "task_name": f"DBM-Get-Os-Sys-Param",
+            "script_content": str(base64.b64encode(script_content.encode("utf-8")), "utf-8"),
+            "script_language": 1,
+            "target_server": {"ip_list": target_ip_info},
+        }
+        common_kwargs = copy.deepcopy(fast_execute_script_common_kwargs)
+        common_kwargs["account_alias"] = DBA_ROOT_USER
+        resp = JobApi.fast_execute_script({**common_kwargs, **body}, raw=True)
+        self.log_info(f"fast execute script response: {resp}")
+        self.log_info(f"job url:{env.BK_JOB_URL}/api_execute/{resp['data']['job_instance_id']}")
+        data.outputs.ext_result = resp
+        data.outputs.exec_ips = exec_ips
+        return True
+
+
+class GetOsSysParamComponent(Component):
+    name = __name__
+    code = "get_os_sys_param"
+    bound_service = GetOsSysParam
