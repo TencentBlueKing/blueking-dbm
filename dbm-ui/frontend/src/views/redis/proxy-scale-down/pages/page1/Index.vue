@@ -36,9 +36,9 @@
       </RenderData>
       <ClusterSelector
         v-model:is-show="isShowClusterSelector"
+        :cluster-types="[ClusterTypes.REDIS]"
         :selected="selectedClusters"
-        :tab-list="clusterSelectorTabList"
-        :ticket-type="TicketTypes.REDIS_PROXY_SCALE_DOWN"
+        :tab-list-config="tabListConfig"
         @change="handelClusterChange" />
     </div>
     <template #action>
@@ -78,7 +78,7 @@
 
   import { ClusterTypes, TicketTypes } from '@common/const';
 
-  import ClusterSelector from '@views/redis/common/cluster-selector/ClusterSelector.vue';
+  import ClusterSelector from '@components/cluster-selector-new/Index.vue';
 
   import RenderData from './components/Index.vue';
   import RenderDataRow, {
@@ -106,7 +106,15 @@
   const totalNum = computed(() => tableData.value.filter(item => Boolean(item.cluster)).length);
   const inputedClusters = computed(() => tableData.value.map(item => item.cluster));
   const selectedClusters = shallowRef<{[key: string]: Array<RedisModel>}>({ [ClusterTypes.REDIS]: [] });
-  const clusterSelectorTabList = [ClusterTypes.REDIS];
+
+  const tabListConfig = {
+    [ClusterTypes.REDIS]: {
+      disabledRowConfig: {
+        handler: (data: RedisModel) => data.proxy.length < 3,
+        tip: t('Proxy数量不足，至少 3 台'),
+      },
+    },
+  };
   // 集群域名是否已存在表格的映射表
   let domainMemo: Record<string, boolean> = {};
 

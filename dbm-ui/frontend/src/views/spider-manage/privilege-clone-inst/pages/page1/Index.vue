@@ -17,7 +17,7 @@
       <BkAlert
         closable
         theme="info"
-        :title="$t('DB 实例权限克隆：DB 实例 IP 替换时，克隆原实例的所有权限到新实例中')" />
+        :title="t('DB 实例权限克隆：DB 实例 IP 替换时，克隆原实例的所有权限到新实例中')" />
       <RenderData
         v-slot="slotProps"
         class="mt16"
@@ -34,6 +34,7 @@
       </RenderData>
       <InstanceSelector
         v-model:is-show="isShowBatchInstanceSelector"
+        :cluster-types="[ClusterTypes.TENDBCLUSTER]"
         :selected="selectedIps"
         @change="handelInstanceSelectorChange" />
     </div>
@@ -43,16 +44,16 @@
         :loading="isSubmitting"
         theme="primary"
         @click="handleSubmit">
-        {{ $t('提交') }}
+        {{ t('提交') }}
       </BkButton>
       <DbPopconfirm
         :confirm-handler="handleReset"
-        :content="$t('重置将会情况当前填写的所有内容_请谨慎操作')"
-        :title="$t('确认重置页面')">
+        :content="t('重置将会情况当前填写的所有内容_请谨慎操作')"
+        :title="t('确认重置页面')">
         <BkButton
           class="ml8 w-88"
           :disabled="isSubmitting">
-          {{ $t('重置') }}
+          {{ t('重置') }}
         </BkButton>
       </DbPopconfirm>
     </template>
@@ -60,12 +61,15 @@
 </template>
 
 <script setup lang="tsx">
+  import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
   import { precheckPermissionClone } from '@services/permission';
   import { createTicket } from '@services/ticket';
 
   import { useGlobalBizs } from '@stores';
+
+  import { ClusterTypes } from '@common/const';
 
   import InstanceSelector, {
     type InstanceSelectorValues,
@@ -79,6 +83,7 @@
 
   const router = useRouter();
   const { currentBizId } = useGlobalBizs();
+  const { t } = useI18n();
 
   const rowRefs = ref();
   const isShowBatchInstanceSelector = ref(false);

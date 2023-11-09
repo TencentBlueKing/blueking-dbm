@@ -104,9 +104,8 @@
       </BkForm>
       <ClusterSelector
         v-model:is-show="isShowBatchSelector"
-        :get-resource-list="getList"
+        :cluster-types="[ClusterTypes.TENDBCLUSTER]"
         :selected="selectedClusters"
-        :tab-list="clusterSelectorTabList"
         @change="handelClusterChange" />
     </div>
     <template #action>
@@ -136,7 +135,6 @@
   import { useRouter } from 'vue-router';
 
   import SpiderModel from '@services/model/spider/spider';
-  import { getList } from '@services/source/resourceSpider';
   import { createTicket } from '@services/ticket';
 
   import { useGlobalBizs } from '@stores';
@@ -174,11 +172,6 @@
 
   // 集群域名是否已存在表格的映射表
   let domainMemo: Record<string, boolean> = {};
-
-  const clusterSelectorTabList = [{
-    id: ClusterTypes.TENDBCLUSTER,
-    name: '集群',
-  }];
 
   // 检测列表是否为空
   const checkListEmpty = (list: Array<IDataRow>) => {

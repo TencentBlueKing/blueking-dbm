@@ -153,6 +153,7 @@
 
   const fetchHostNodes = async () => {
     const ret = await getRollbackList({
+      bk_biz_id: currentBizId,
       limit: pagination.value.limit,
       offset: (pagination.value.current - 1) * pagination.value.limit,
     });

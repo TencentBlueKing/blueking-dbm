@@ -36,11 +36,9 @@
       </RenderData>
       <InstanceSelector
         v-model:is-show="isShowMasterInstanceSelector"
-        active-tab="createSlaveIdleHosts"
-        db-type="redis"
-        :panel-list="['createSlaveIdleHosts', 'manualInput']"
-        role="Master IP"
+        :cluster-types="[ClusterTypes.REDIS]"
         :selected="selected"
+        :tab-list-config="tabListConfig"
         @change="handelMasterProxyChange" />
     </div>
     <template #action>
@@ -71,21 +69,23 @@
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
-  import RedisClusterNodeByIpModel from '@services/model/redis/redis-cluster-node-by-ip';
   import {
+    listClusterHostsCreateSlaveProxy,
+    listClustersCreateSlaveProxy,
     queryInfoByIp,
     queryMasterSlavePairs,
-  } from '@services/source/redisToolbox';
+  } from '@services/redis/toolbox';
   import { createTicket } from '@services/ticket';
   import type { SubmitTicket } from '@services/types/ticket';
 
   import { useGlobalBizs } from '@stores';
 
-  import { TicketTypes } from '@common/const';
+  import { ClusterTypes, TicketTypes } from '@common/const';
 
   import InstanceSelector, {
     type InstanceSelectorValues,
-  } from '@views/redis/common/instance-selector/Index.vue';
+    type PanelListType,
+  } from '@components/instance-selector-new/Index.vue';
 
   import RenderData from './components/Index.vue';
   import RenderDataRow, {
@@ -109,6 +109,11 @@
     }[]
   }
 
+  type RedisModel = ServiceReturnType<typeof listClustersCreateSlaveProxy>[number]
+  type RedisHostModel = ServiceReturnType<typeof listClusterHostsCreateSlaveProxy>['results'][number]
+  type RedisClusterNodeByIpModel = ServiceReturnType<typeof queryInfoByIp>[number]
+
+
   const { currentBizId } = useGlobalBizs();
   const { t } = useI18n();
   const router = useRouter();
@@ -116,16 +121,48 @@
   const isShowMasterInstanceSelector = ref(false);
   const isSubmitting  = ref(false);
   const tableData = ref([createRowData()]);
-  const selected = shallowRef({
-    createSlaveIdleHosts: [],
-    masterFailHosts: [],
-    idleHosts: [],
-  } as InstanceSelectorValues);
+  const selected = shallowRef({ createSlaveIdleHosts: [] } as InstanceSelectorValues);
   const totalNum = computed(() => tableData.value.filter(item => Boolean(item.ip)).length);
   const inputedIps = computed(() => tableData.value.map(item => item.ip));
 
   // slave -> master
   const slaveMasterMap: Record<string, string> = {};
+
+  const tabListConfig = {
+    [ClusterTypes.REDIS]: [
+      {
+        id: 'createSlaveIdleHosts',
+        name: t('主库故障主机'),
+        topoConfig: {
+          getTopoList: listClustersCreateSlaveProxy,
+          countFunc: (item: RedisModel) => item.redisSlaveFaults,
+          topoAlertContent: <bk-alert closable style="margin-bottom: 12px;" theme="info" title={t('仅支持从库有故障的集群新建从库')} />,
+        },
+        tableConfig: {
+          getTableList: listClusterHostsCreateSlaveProxy,
+          columnsChecked: ['ip', 'role', 'cloud_area', 'status', 'host_name'],
+          statusFilter: (data: RedisHostModel) => !data.isSlaveFailover,
+          disabledRowConfig: {
+            handler: (data: RedisHostModel) => data.running_slave !== 0,
+            tip: t('已存在正常运行的从库'),
+          },
+          roleFilterList: {
+            list: [{ text: 'master', value: 'master' }, { text: 'slave', value: 'slave' }, { text: 'proxy', value: 'proxy' }],
+          },
+        },
+      },
+      {
+        tableConfig: {
+          getTableList: listClusterHostsCreateSlaveProxy,
+          columnsChecked: ['ip', 'role', 'cloud_area', 'status', 'host_name'],
+          statusFilter: (data: RedisHostModel) => !data.isMasterFailover,
+        },
+        manualConfig: {
+          activePanelId: 'createSlaveIdleHosts',
+        },
+      },
+    ],
+  } as unknown as Record<ClusterTypes, PanelListType>;
 
   // 检测列表是否为空
   const checkListEmpty = (list: IDataRow[]) => {
@@ -181,16 +218,16 @@
           bkHostId: item.bk_host_id,
           slaveNum: infoMap[ip].cluster.redis_slave_count,
           cluster: {
-            domain: item.cluster_domain,
+            domain: infoMap[item.ip].cluster.immute_domain,
             isStart: false,
             isGeneral: true,
             rowSpan: 1,
           },
-          spec: item.spec_config,
+          spec: infoMap[item.ip].spec_config,
           targetNum: 1,
           slaveHost: {
-            faults: item.slaveHost?.faults ?? 0,
-            total: item.slaveHost?.total ?? 0,
+            faults: infoMap[item.ip].unavailable_slave,
+            total: infoMap[item.ip].total_slave,
           },
         });
         ipMemo[ip] = true;
@@ -251,6 +288,9 @@
       selected.value.createSlaveIdleHosts.push(Object.assign(data, {
         cluster_id: obj.clusterId,
         cluster_domain: data.cluster?.immute_domain,
+        port: 0,
+        instance_address: '',
+        cluster_type: '',
       }));
     } else {
       tableData.value[index].ip = '';

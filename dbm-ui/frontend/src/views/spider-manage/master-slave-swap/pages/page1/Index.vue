@@ -49,8 +49,7 @@
       </div>
       <InstanceSelector
         v-model:is-show="isShowMasterInstanceSelector"
-        :panel-list="panelList"
-        role="remote_master"
+        :cluster-types="[ClusterTypes.TENDBCLUSTER]"
         :selected="selectedIps"
         @change="handelMasterProxyChange" />
     </div>
@@ -83,6 +82,8 @@
 
   import { useGlobalBizs } from '@stores';
 
+  import { ClusterTypes } from '@common/const';
+
   import InstanceSelector, {
     type InstanceSelectorValues,
   } from '@components/instance-selector-new/Index.vue';
@@ -109,17 +110,6 @@
     is_verify_checksum: false,
     is_check_delay: false,
   });
-
-  const panelList = [
-    {
-      id: 'tendbcluster',
-      name: t('主库主机'),
-    },
-    {
-      id: 'manualInput',
-      name: t('手动输入'),
-    },
-  ];
 
   let ipMemo = {} as Record<string, boolean>;
 

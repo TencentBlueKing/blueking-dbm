@@ -14,9 +14,7 @@
 import { useGlobalBizs } from '@stores';
 
 import http from './http';
-import type {
-  ResourceInstance,
-} from './types/clusters';
+import type { ResourceInstance } from './types/clusters';
 import type { ListBase } from './types/common';
 
 const { currentBizId } = useGlobalBizs();

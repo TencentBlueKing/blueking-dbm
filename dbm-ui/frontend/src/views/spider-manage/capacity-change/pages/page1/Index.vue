@@ -72,9 +72,8 @@
       </BkForm>
       <ClusterSelector
         v-model:is-show="isShowBatchSelector"
-        :get-resource-list="getList"
+        :cluster-types="[ClusterTypes.TENDBCLUSTER]"
         :selected="selectedClusters"
-        :tab-list="clusterSelectorTabList"
         @change="handelClusterChange" />
     </div>
     <template #action>
@@ -104,7 +103,6 @@
   import { useRouter } from 'vue-router';
 
   import SpiderModel from '@services/model/spider/spider';
-  import { getList } from '@services/source/resourceSpider';
   import { createTicket } from '@services/ticket';
 
   import { useGlobalBizs } from '@stores';
@@ -136,11 +134,6 @@
     trigger_checksum_time: dayjs().format('YYYY-MM-DD HH:mm:ss'),
   });
 
-  const clusterSelectorTabList = [{
-    id: ClusterTypes.TENDBCLUSTER,
-    name: '集群',
-  }];
-
   // 集群域名是否已存在表格的映射表
   let domainMemo: Record<string, boolean> = {};
 
@@ -159,7 +152,7 @@
   };
 
   // 批量选择
-  const handelClusterChange = (selected: {[key: string]: Array<SpiderModel>}) => {
+  const handelClusterChange = (selected: Record<string, Array<SpiderModel>>) => {
     selectedClusters.value = selected;
     const list = selected[ClusterTypes.TENDBCLUSTER];
     const newList = list.reduce((result, item) => {

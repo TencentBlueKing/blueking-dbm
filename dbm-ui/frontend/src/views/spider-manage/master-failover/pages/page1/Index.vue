@@ -49,10 +49,8 @@
       </div>
       <InstanceSelector
         v-model:isShow="isShowMasterInstanceSelector"
-        :panel-list="panelList"
-        role="remote_master"
+        :cluster-types="[ClusterTypes.TENDBCLUSTER]"
         :selected="selectedIps"
-        :ticket-type="TicketTypes.TENDBCLUSTER_MASTER_FAIL_OVER"
         @change="handelMasterProxyChange" />
     </div>
     <template #action>
@@ -85,9 +83,11 @@
 
   import { useGlobalBizs } from '@stores';
 
-  import { TicketTypes } from '@common/const';
+  import { ClusterTypes, TicketTypes } from '@common/const';
 
-  import InstanceSelector, { type InstanceSelectorValues } from '@components/instance-selector-new/Index.vue';
+  import InstanceSelector, {
+    type InstanceSelectorValues,
+  } from '@components/instance-selector-new/Index.vue';
 
   import RenderData from './components/RenderData/Index.vue';
   import RenderDataRow, {
@@ -111,17 +111,6 @@
     is_verify_checksum: false,
     is_check_delay: false,
   });
-
-  const panelList = [
-    {
-      id: 'tendbcluster',
-      name: t('主库故障主机'),
-    },
-    {
-      id: 'manualInput',
-      name: t('手动输入'),
-    },
-  ];
 
   let ipMemo = {} as Record<string, boolean>;
 
