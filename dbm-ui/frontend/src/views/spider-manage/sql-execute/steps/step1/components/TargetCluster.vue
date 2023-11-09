@@ -35,12 +35,13 @@
         </BkLoading>
       </div>
     </DbFormItem>
-    <ClusterSelector
-      v-model:is-show="isShowClusterSelector"
-      :cluster-types="[ClusterTypes.TENDBCLUSTER]"
-      :selected="clusterSelectorValue"
-      @change="handelClusterChange" />
   </div>
+  <ClusterSelector
+    v-model:is-show="isShowClusterSelector"
+    :cluster-types="[ClusterTypes.TENDBCLUSTER]"
+    :selected="clusterSelectorValue"
+    :tab-list-config="tabListConfig"
+    @change="handelClusterChange" />
 </template>
 <script lang="tsx">
   export interface IClusterData {
@@ -81,6 +82,15 @@
 
   const { currentBizId } = useGlobalBizs();
   const { t } = useI18n();
+
+  const tabListConfig = {
+    [ClusterTypes.TENDBCLUSTER]: {
+      disabledRowConfig: {
+        handler: (data: IClusterData) => data.status !== 'normal',
+        tip: t('集群异常'),
+      },
+    },
+  };
 
   const colums = [
     {
@@ -124,7 +134,7 @@
   const isLoading = ref(false);
   const isShowClusterSelector = ref(false);
   const formItemRef = ref();
-  const clusterSelectorValue = shallowRef();
+  const clusterSelectorValue = shallowRef<{[key: string]: Array<IClusterData>}>({ [ClusterTypes.TENDBCLUSTER]: [] });
   const targetClusterList = shallowRef<Array<IClusterData>>([]);
 
   let isInnerChange = false;
