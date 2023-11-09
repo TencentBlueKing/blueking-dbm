@@ -22,6 +22,7 @@ func (m *PrivService) Routes() []*gin.RouteInfo {
 	return []*gin.RouteInfo{
 		// 账号
 		{Method: http.MethodPost, Path: "add_account", HandlerFunc: m.AddAccount},
+		{Method: http.MethodPost, Path: "get_account", HandlerFunc: m.GetAccount},
 		{Method: http.MethodPost, Path: "modify_account", HandlerFunc: m.ModifyAccount},
 		{Method: http.MethodPost, Path: "delete_account", HandlerFunc: m.DeleteAccount},
 
