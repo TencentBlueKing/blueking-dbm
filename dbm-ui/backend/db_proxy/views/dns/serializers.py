@@ -60,12 +60,12 @@ class BatchPostDomainSerializer(BaseProxyPassSerialier):
     sets = serializers.ListField(help_text=_("修改数组"), child=BatchPostInstanceSetSerializer())
 
 
-class BatchPostDomainResponseSerializerte(serializers.Serializer):
+class BatchPostDomainResponseSerializer(serializers.Serializer):
     class Meta:
         swagger_schema_fields = {"example": mock_data.BATCH_DELETE_DOMAIN_DATA_RESPONSE}
 
 
-class PostDoaminSerializer(BaseProxyPassSerialier):
+class PostDomainSerializer(BaseProxyPassSerialier):
     class PostInstanceSetSerializer(serializers.Serializer):
         instance = serializers.CharField(help_text=_("新的实例节点"))
 
@@ -75,12 +75,12 @@ class PostDoaminSerializer(BaseProxyPassSerialier):
     instance = serializers.CharField(help_text=_("实例节点"))
 
 
-class PostDoaminResponseSerializerte(serializers.Serializer):
+class PostDomainResponseSerializer(serializers.Serializer):
     class Meta:
         swagger_schema_fields = {"example": mock_data.POST_DOMAIN_DATA_RESPONSE}
 
 
-class PutDoaminSerializer(BaseProxyPassSerialier):
+class PutDomainSerializer(BaseProxyPassSerialier):
     class PutDomainDetailSerializer(serializers.Serializer):
         domain_name = serializers.CharField(help_text=_("查询的域名"))
         instances = serializers.ListField(help_text=_("实例列表"), child=serializers.CharField())
@@ -92,6 +92,6 @@ class PutDoaminSerializer(BaseProxyPassSerialier):
     domains = serializers.ListSerializer(help_text=_("域名列表"), child=PutDomainDetailSerializer())
 
 
-class PutDoaminResponseSerializerte(serializers.Serializer):
+class PutDomainResponseSerializer(serializers.Serializer):
     class Meta:
         swagger_schema_fields = {"example": mock_data.PUT_DOMAIN_DATA_RESPONSE}

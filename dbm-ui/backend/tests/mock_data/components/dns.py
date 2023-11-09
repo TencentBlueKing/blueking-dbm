@@ -10,7 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 
 
-class GcsDnsApiMock(object):
+class DnsApiMock(object):
     """GcsDns的mock类"""
 
     @classmethod

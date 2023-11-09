@@ -9,12 +9,17 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import abc
+import logging
 from typing import Dict, List
 
 import attr
 from django.utils.translation import ugettext_lazy as _
 
-from backend.db_meta.models import Cluster, Machine
+from backend.db_meta.enums import ClusterEntryType
+from backend.db_meta.models import Cluster, ClusterEntry, Machine
+from backend.flow.utils.dns_manage import DnsManage
+
+logger = logging.getLogger("root")
 
 
 @attr.s
@@ -28,13 +33,49 @@ class ListRetrieveResource(abc.ABC):
 
     @classmethod
     @abc.abstractmethod
-    def list_clusters(cls, bk_biz_id: int, query_params: Dict, limit: int, offset: int) -> ResourceList:
+    def _list_clusters(cls, bk_biz_id: int, query_params: Dict, limit: int, offset: int) -> ResourceList:
         """查询集群列表. 具体方法在子类中实现"""
 
     @classmethod
+    def list_clusters(cls, bk_biz_id: int, query_params: Dict, limit: int, offset: int) -> ResourceList:
+        """查询集群列表，补充公共字段"""
+        resource_list = cls._list_clusters(bk_biz_id, query_params, limit, offset)
+        return resource_list
+
+    @classmethod
     @abc.abstractmethod
-    def retrieve_cluster(cls, bk_biz_id: int, cluster_id: int) -> dict:
+    def _retrieve_cluster(cls, bk_biz_id: int, cluster_id: int) -> dict:
         """查询集群详情. 具体方法在子类中实现"""
+
+    @classmethod
+    def retrieve_cluster(cls, bk_biz_id: int, cluster_id: int) -> dict:
+        """查询集群详情，补充通用字段"""
+        cluster_details = cls._retrieve_cluster(bk_biz_id, cluster_id)
+        cluster_details["cluster_entry_details"] = cls.query_cluster_entry_details(cluster_details)
+        return cluster_details
+
+    @classmethod
+    def query_cluster_entry_details(cls, cluster_details):
+        """查询集群访问入口详情"""
+        entries = ClusterEntry.objects.filter(cluster_id=cluster_details["id"])
+        entry_details = []
+        for entry in entries:
+            if entry.cluster_entry_type == ClusterEntryType.DNS:
+                target_details = DnsManage(
+                    bk_biz_id=cluster_details["bk_biz_id"], bk_cloud_id=cluster_details["bk_cloud_id"]
+                ).get_domain(entry.entry)
+                # TODO clb, polaris
+            else:
+                target_details = []
+            entry_details.append(
+                {
+                    "cluster_entry_type": entry.cluster_entry_type,
+                    "role": entry.role,
+                    "entry": entry.entry,
+                    "target_details": target_details,
+                }
+            )
+        return entry_details
 
     @classmethod
     @abc.abstractmethod

@@ -67,7 +67,7 @@ class ListRetrieveResource(query.ListRetrieveResource):
     ]
 
     @classmethod
-    def list_clusters(cls, bk_biz_id: int, query_params: Dict, limit: int, offset: int) -> query.ResourceList:
+    def _list_clusters(cls, bk_biz_id: int, query_params: Dict, limit: int, offset: int) -> query.ResourceList:
         """查询集群信息
 
         :param bk_biz_id: 业务 ID
@@ -167,7 +167,7 @@ class ListRetrieveResource(query.ListRetrieveResource):
         return query.ResourceList(count=instances.count(), data=paginated_instances)
 
     @classmethod
-    def retrieve_cluster(cls, bk_biz_id: int, cluster_id: int) -> dict:
+    def _retrieve_cluster(cls, bk_biz_id: int, cluster_id: int) -> dict:
         """获取单个集群详情"""
         cluster = Cluster.objects.get(id=cluster_id)
 
