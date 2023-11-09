@@ -73,17 +73,17 @@ class RollbackViewSet(ReadOnlyAuditedModelViewSet):
         tags=[constants.RESOURCE_TAG],
     )
     @action(methods=["POST"], detail=False, serializer_class=CheckTimeSerializer)
-    def check_time(self, request, **kwargs):
+    def check_time(self, request, bk_biz_id, **kwargs):
         cluster_id = self.validated_data["cluster_id"]
         rollback_time = self.validated_data["rollback_time"]
-        source_ip = self.validated_data["source_ip"]
-        source_port = self.validated_data["source_port"]
+        ip = self.validated_data["ip"]
+        port = self.validated_data["port"]
 
-        cluster = Cluster.objects.get(id=cluster_id)
+        cluster = Cluster.objects.get(bk_biz_id=bk_biz_id, id=cluster_id)
         rollback_handler = DataStructureHandler(cluster.id)
 
         try:
-            backup_info = rollback_handler.query_latest_backup_log(rollback_time, source_ip, source_port)
+            backup_info = rollback_handler.query_latest_backup_log(rollback_time, ip, port)
         except AppBaseException:
             return Response({"exist": False, "msg": "query backup info exception failed"})
 
@@ -91,7 +91,6 @@ class RollbackViewSet(ReadOnlyAuditedModelViewSet):
         backup_time = time.strptime(backup_info["file_last_mtime"], "%Y-%m-%d %H:%M:%S")
         if cluster.cluster_type in [ClusterType.TendisplusInstance.value, ClusterType.TendisSSDInstance.value]:
             try:
-                # 获取 kvstorecount
                 kvstore_count = None
                 if cluster.cluster_type == ClusterType.TendisplusInstance.value:
                     kvstore_count = DBConfigApi.query_conf_item(
@@ -111,8 +110,8 @@ class RollbackViewSet(ReadOnlyAuditedModelViewSet):
                     start_time=backup_time,
                     end_time=rollback_time,
                     minute_range=120,
-                    host_ip=source_ip,
-                    port=source_port,
+                    host_ip=ip,
+                    port=port,
                     kvstorecount=kvstore_count,
                     tendis_type=cluster.cluster_type,
                 )
