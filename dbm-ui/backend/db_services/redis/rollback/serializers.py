@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from backend.bk_web.serializers import AuditedSerializer
@@ -28,3 +29,20 @@ class RollbackSerializer(AuditedSerializer, serializers.ModelSerializer):
             "temp_proxy_password",
             "status",
         )
+
+
+class CheckTimeSerializer(serializers.Serializer):
+    cluster_id = serializers.IntegerField(help_text=_("集群id"))
+    ip = serializers.IPAddressField()
+    port = serializers.IntegerField()
+    rollback_time = serializers.DateTimeField(help_text=_("构造时间"))
+
+    class Meta:
+        swagger_schema_fields = {
+            "example": {
+                "cluster_id": 1,
+                "ip": "127.0.0.1",
+                "port": 1,
+                "rollback_time": "2022-11-22 11:22:33",
+            }
+        }
