@@ -17,7 +17,7 @@
       v-model="searchValue"
       class="input-box"
       :data="searchSelectList"
-      :placeholder="t('请输入策略关键字或选择条件搜索')"
+      :placeholder="t('请选择条件搜索')"
       unique-select
       value-split-code="+"
       @search="fetchHostNodes" />
@@ -26,7 +26,8 @@
       class="table-box"
       :columns="columns"
       :data-source="queryMonitorPolicyList"
-      :row-class="updateRowClass" />
+      :row-class="updateRowClass"
+      @clear-search="handleClearSearch" />
   </div>
   <EditRule
     v-model="isShowEditStrrategySideSilder"
@@ -36,6 +37,7 @@
     :cluster-list="clusterList"
     :data="currentChoosedRow"
     :db-type="activeDbType"
+    :existed-names="existedNames"
     :module-list="moduleList"
     :page-status="sliderPageType"
     @cancel="handleUpdatePolicyCancel"
@@ -61,11 +63,13 @@
   import { useGlobalBizs } from '@stores';
 
   import MiniTag from '@components/mini-tag/index.vue';
+  import RenderTextEllipsisOneLine from '@components/text-ellipsis-one-line/index.vue';
 
   import { messageSuccess } from '@utils';
 
   import EditRule from '../edit-strategy/Index.vue';
 
+  import RenderAlarmGroup from './RenderAlarmGroup.vue';
   import RenderTargetItem from './RenderTargetItem.vue';
 
   export type RowData = ServiceReturnType<typeof queryMonitorPolicyList>['results'][0];
@@ -94,6 +98,7 @@
   const moduleList = ref<SelectItem<string>[]>([]);
   const clusterList = ref<SelectItem<string>[]>([]);
   const isTableLoading = ref(false);
+  const existedNames = ref<string[]>([]);
 
   async function fetchHostNodes() {
     isTableLoading.value = true;
@@ -162,34 +167,27 @@
         const isDanger = row.event_count > 0;
         const pageType = isInner ? 'read' : 'edit';
         const isNew = dayjs().isBefore(dayjs(row.create_at).add(24, 'hour'));
-        // const isInvalid = status === 3;
-        return (
-          <div class="strategy-title">
-            <bk-button
-              text
-              theme="primary"
-              style={{ color: !row.is_enabled ? '#979BA5' : '#3A84FF' }}
-              onClick={() => handleOpenSlider(row, pageType)}>
-              {row.name}
-            </bk-button>
-            {isInner && <MiniTag content={t('内置')} />}
-            {!row.is_enabled && <MiniTag content={t('已停用')} />}
-             {isDanger && (
-              <div class="danger-box" v-bk-tooltips={{
-                content: t('当前有n个未恢复事件', { n: row.event_count }),
-              }}>
-                <db-icon type="alert" class="icon-dander" />
-                <span class="text">{row.event_count}</span>
-              </div>
-            )}
-            {isNew && <MiniTag theme='success' content="NEW" />}
-            {/* {
-              isInvalid && <i v-bk-tooltips={{
-                content: '监控目标失效',
-              }} class="db-icon-warn-lightning icon-warn" />
-            } */}
-          </div>
-        );
+        const content = <>
+          {isInner && <MiniTag content={t('内置')} />}
+          {!row.is_enabled && <MiniTag content={t('已停用')} />}
+          {isDanger && (
+            <div class="monitor-alarm-danger-box" v-bk-tooltips={{
+              content: t('当前有n个未恢复事件', { n: row.event_count }),
+            }}>
+            <MiniTag theme='danger'
+              iconType='alert'
+              content={row.event_count}
+              onTag-click={() => handleGoMonitorPage(row.event_url)}/>
+            </div>
+          )}
+          {isNew && <MiniTag theme='success' content="NEW" />}
+        </>;
+        return <RenderTextEllipsisOneLine
+          text={row.name}
+          textStyle={{ color: !row.is_enabled ? '#979BA5' : '#3A84FF' }}
+          onText-click={() => handleOpenSlider(row, pageType)}>
+          {content}
+        </RenderTextEllipsisOneLine>;
       },
     },
     {
@@ -220,23 +218,13 @@
       label: t('告警组'),
       field: 'notify_groups',
       minWidth: 180,
-      render: ({ row }: {row: RowData}) => (
-        <div class="alarm-group">
-          {
-            row.notify_groups.map((item) => {
-              if (alarmGroupNameMap[item]) {
-                return (
-                  <span class="notify-box">
-                    <db-icon type="yonghuzu" style="font-size: 18px;color:#979BA5" />
-                    <span class="dba">{alarmGroupNameMap[item]}</span>
-                  </span>
-                );
-              }
-              return null;
-            })
-          }
-        </div>
-      ),
+      render: ({ row }: {row: RowData}) => {
+        const dataList = row.notify_groups.map(item => ({
+          id: `${item}`,
+          displayName: alarmGroupNameMap[item],
+        }));
+        return <RenderAlarmGroup data={dataList} />;
+      },
     },
     {
       label: t('启停'),
@@ -437,6 +425,14 @@
     immediate: true,
   });
 
+  const handleClearSearch = () => {
+    searchValue.value = [];
+  };
+
+  const handleGoMonitorPage = (url: string) => {
+    window.open(url);
+  };
+
   const updateRowClass = (row: RowData) => (dayjs().isBefore(dayjs(row.create_at).add(24, 'hour')) ? 'is-new' : '');
 
   const handleClickDelete = (data: RowData) => {
@@ -445,6 +441,7 @@
       title: t('确认删除该策略？'),
       subTitle: t('将会删除所有内容，请谨慎操作！'),
       width: 400,
+      zIndex: 999999,
       onConfirm: () => {
         runDeletePolicy({ id: data.id });
       } });
@@ -475,6 +472,7 @@
   };
 
   const handleOpenSlider = (row: RowData, type: string) => {
+    existedNames.value = tableRef.value.getData().map((item: { name: string; }) => item.name);
     sliderPageType.value = type;
     currentChoosedRow.value = row;
     isShowEditStrrategySideSilder.value = true;
@@ -486,10 +484,12 @@
 
   const handleUpdatePolicySuccess = () => {
     fetchHostNodes();
+    window.changeConfirm = false;
   };
 
   const handleUpdatePolicyCancel = () => {
     currentChoosedRow.value = {} as RowData;
+    window.changeConfirm = false;
   };
 
 </script>
@@ -505,78 +505,11 @@
   }
 
   :deep(.table-box) {
-    .strategy-title {
-      display: flex;
-      align-items: center;
-
-      .name {
-        margin-left: 8px;
-        cursor: pointer;
-      }
-
-      .bk-tag {
-        margin-right: -2px !important;
-      }
-
-      .danger-box {
-        display: flex;
-        height: 16px;
-        padding: 0 7px;
-        margin-left: 10px;
-        cursor: pointer;
-        background: #FDD;
-        border-radius: 8px;
-        align-items: center;
-
-
-        .icon-dander {
-          color: #EA3636;
-        }
-
-        .text {
-          margin-left: 2px;
-          color: #EA3636;
-        }
-
-      }
-
-      .icon-warn {
-        margin-left: 8px;
-        color: #FF9C01;
-        cursor: pointer;
-      }
-    }
-
     .targets-box {
       display: flex;
       width: 100%;
       flex-flow: column wrap;
       padding: 5px 15px;
-    }
-
-    .alarm-group {
-      display: flex;
-      width: 100%;
-      padding: 5px 15px;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      flex-wrap: wrap;
-      gap: 5px;
-
-      .notify-box{
-        display: flex;
-        height: 22px;
-        padding: 2.5px 5px;
-        background: #F0F1F5;
-        border-radius: 2px;
-        box-sizing: border-box;
-        align-items: center;
-
-        .dba {
-          margin-left: 8px;
-        }
-      }
-
     }
 
     .operate-box {
@@ -600,7 +533,12 @@
       }
     }
   }
-
 }
-
+</style>
+<style lang="less">
+.monitor-alarm-danger-box {
+  .bk-tag {
+    cursor: pointer;
+  }
+}
 </style>

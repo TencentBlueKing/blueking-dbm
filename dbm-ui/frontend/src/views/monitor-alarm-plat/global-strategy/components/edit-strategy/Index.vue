@@ -18,12 +18,12 @@
     :width="960"
     @closed="handleClose">
     <template #header>
-      <span>
-        {{ t('编辑策略') }}【{{ data.name }}】
+      <div class="header-main">
+        {{ t('编辑策略') }}【<span class="name">{{ data.name }}</span>】
         <BkTag theme="info">
           {{ t('平台配置') }}
         </BkTag>
-      </span>
+      </div>
     </template>
     <div class="edit-strategy-main-box">
       <BkForm
@@ -249,6 +249,7 @@
     ];
     const reqParams = {
       targets: props.data.targets,
+      custom_conditions: props.data.custom_conditions,
       test_rules: testRules.filter(item => item && item.config.length !== 0),
       notify_rules: formModel.notifyRules,
       notify_groups: props.data.notify_groups,
@@ -266,6 +267,21 @@
 </script>
 
 <style lang="less" scoped>
+.header-main {
+  display: flex;
+  width: 100%;
+  overflow: hidden;
+  align-items: center;
+
+  .name {
+    width: auto;
+    max-width: 720px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
 .edit-strategy-main-box {
   display: flex;
   width: 100%;

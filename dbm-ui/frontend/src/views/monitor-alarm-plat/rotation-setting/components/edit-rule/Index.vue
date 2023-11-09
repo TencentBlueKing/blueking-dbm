@@ -170,6 +170,7 @@
     dbType: string;
     data?: RowData;
     pageType?: string;
+    existedNames?: string[];
   }
 
   interface Emits {
@@ -179,6 +180,7 @@
   const props = withDefaults(defineProps<Props>(), {
     pageType: 'create',
     data: undefined,
+    existedNames: () => ([]),
   });
   const emits = defineEmits<Emits>();
   const isShow = defineModel<boolean>();
@@ -223,6 +225,17 @@
     ruleName: [
       {
         validator: (value: string) => {
+          if (value.length > 128) {
+            // 克隆才需要校验
+            return false;
+          }
+          return true;
+        },
+        message: t('不能超过 128 个字符'),
+        trigger: 'blur',
+      },
+      {
+        validator: (value: string) => {
           if (props.pageType === 'clone' && props.data && value === props.data.name) {
             // 克隆才需要校验
             return false;
@@ -230,6 +243,12 @@
           return true;
         },
         message: t('策略名称与原策略名称相同'),
+        trigger: 'blur',
+      },
+      // TODO: 以后看情况是否增加接口支持，暂时先用当前页做冲突检测
+      {
+        validator: async (value: string) => props.existedNames.every(item => item !== value),
+        message: t('策略名称重复'),
         trigger: 'blur',
       },
     ],
@@ -259,6 +278,10 @@
   // const bizList = ref<SelectItem[]>([]);
 
   watch(() => [props.pageType, props.data], () => {
+    checkPageTypeAndData();
+  });
+
+  const checkPageTypeAndData = () => {
     if (props.pageType !== 'create' && props.data) {
       // 编辑或者克隆
       formModel.ruleName = props.data.name;
@@ -266,7 +289,7 @@
       return;
     }
     formModel.ruleName = '';
-  });
+  };
 
   const handleChangeRotateType = (value: string) => {
     isSetCutomEmpty.value = value === '1';
@@ -333,6 +356,7 @@
   async function handleClose() {
     const result = await handleBeforeClose();
     if (!result) return;
+    checkPageTypeAndData();
     window.changeConfirm = false;
     isShow.value = false;
   }

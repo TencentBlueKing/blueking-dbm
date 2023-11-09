@@ -24,7 +24,9 @@
 </template>
 
 <script setup lang="ts">
-  import { useI18n } from 'vue-i18n';
+  import { t } from '@locales/index';
+
+  import { useResizeObserver } from '@vueuse/core';
 
   interface Props {
     title?: string,
@@ -36,10 +38,12 @@
     list: () => ([]),
   });
 
-  const { t } = useI18n();
-
-  const itemRef = ref();
-  const isShowToolTip = ref(false);
+  function checkOveflow() {
+    clearTimeout(timer);
+    timer = setTimeout(() => {
+      isShowToolTip.value = itemRef.value.clientWidth < itemRef.value.scrollWidth;
+    }, 300);
+  }
 
   const titleMap = {
     appid: t('业务'),
@@ -48,11 +52,15 @@
     platform: t('业务下全部对象'),
   } as Record<string, string>;
 
+  let timer = 0;
+
+  const itemRef = ref();
+  const isShowToolTip = ref(false);
+
   const titleText = computed(() => (titleMap[props.title] === undefined ? props.title : titleMap[props.title]));
 
-  onMounted(() => {
-    isShowToolTip.value = itemRef.value.clientWidth < itemRef.value.scrollWidth;
-  });
+  useResizeObserver(itemRef, checkOveflow);
+
 </script>
 <style lang="less" scoped>
 .monitor-strategy-content-target {

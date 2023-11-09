@@ -13,13 +13,11 @@
 
 <template>
   <div class="toolbox-main">
-    <MainBreadcrumbs>
-      <template #append>
-        <BkTag theme="info">
-          MySQL
-        </BkTag>
-      </template>
-    </MainBreadcrumbs>
+    <ToolsPageTitle :toolbox-routes="mysqlToolboxChildrenRouters">
+      <BkTag theme="info">
+        MySQL
+      </BkTag>
+    </ToolsPageTitle>
     <div class="toolbox-content db-scroll-y">
       <RouterView />
     </div>
@@ -27,27 +25,20 @@
 </template>
 
 <script setup lang="ts">
-  import MainBreadcrumbs from '@components/layouts/MainBreadcrumbs.vue';
+  import ToolsPageTitle from '@components/tools-page-title/index.vue';
+
+  import { mysqlToolboxChildrenRouters } from '../../routes';
+
 </script>
 
 <style lang="less" scoped>
-  .toolbox-main {
-    height: 100%;
-    background-color: white;
+.toolbox-main {
+  height: 100%;
+  background-color: white;
 
-    :deep(.main-breadcrumbs) {
-      z-index: 10;
-      box-shadow: unset;
-
-      .main-breadcrumbs__current {
-        font-size: @font-size-normal;
-        font-weight: bold;
-      }
-    }
-
-    .toolbox-content {
-      height: calc(100% - 52px);
-      padding: 0 24px;
-    }
+  .toolbox-content {
+    height: calc(100% - 52px);
+    padding: 0 24px;
   }
+}
 </style>

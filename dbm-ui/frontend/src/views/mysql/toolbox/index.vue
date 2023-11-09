@@ -30,16 +30,19 @@
 <script setup lang="ts">
   import { useMainViewStore } from '@stores';
 
+  import { t } from '@locales/index';
+
   import ToolboxContent from './components/ToolboxContent.vue';
   import ToolboxSide from './components/ToolboxSide.vue';
 
   const route = useRoute();
+  const mainViewStore = useMainViewStore();
 
   watch(() => route.fullPath, () => {
     if (route.fullPath.includes('mysql-toolbox')) {
-      const mainViewStore = useMainViewStore();
       mainViewStore.hasPadding = false;
       mainViewStore.customBreadcrumbs = true;
+      mainViewStore.breadCrumbsTitle = t('MySQL_工具箱');
     }
   }, {
     immediate: true,

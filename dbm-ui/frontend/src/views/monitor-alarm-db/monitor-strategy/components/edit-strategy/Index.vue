@@ -18,12 +18,12 @@
     :width="960"
     @closed="handleClose">
     <template #header>
-      <span>
-        {{ titleMap[pageStatus] }}【{{ data.name }}】
+      <div class="header-main">
+        {{ titleMap[pageStatus] }}【<span class="name">{{ data.name }}</span>】
         <BkTag theme="info">
           {{ t('业务') }}
         </BkTag>
-      </span>
+      </div>
     </template>
     <div class="monitor-strategy-box">
       <BkForm
@@ -119,18 +119,18 @@
             filterable
             multiple
             multiple-mode="tag">
-            <template #tag>
+            <template #tag="{selected}">
               <BkTag
-                v-for="item in formModel.notifyTarget"
+                v-for="item in selected"
                 :key="item"
                 closable
-                @close="() => handleDeleteNotifyTargetItem(item)">
+                @close="() => handleDeleteNotifyTargetItem(item.value)">
                 <template #icon>
                   <DbIcon
                     class="alarm-icon"
                     type="yonghuzu" />
                 </template>
-                {{ alarmGroupNameMap[item] }}
+                {{ alarmGroupNameMap[item.value] }}
               </BkTag>
             </template>
             <BkOption
@@ -180,7 +180,6 @@
 
   import {
     clonePolicy,
-    queryMonitorPolicyList,
     updatePolicy,
   } from '@services/monitor';
 
@@ -205,6 +204,7 @@
     moduleList: SelectItem<string>[],
     clusterList: SelectItem<string>[],
     pageStatus?: string,
+    existedNames?: string[];
   }
 
   interface Emits {
@@ -214,6 +214,7 @@
 
   const props = withDefaults(defineProps<Props>(), {
     pageStatus: 'edit',
+    existedNames: () => ([]),
   });
   const emits = defineEmits<Emits>();
   const isShow = defineModel<boolean>();
@@ -298,14 +299,8 @@
       {
         validator: async (value: string) => {
           if (!isEditPage.value) {
-            const ret = await queryMonitorPolicyList({
-              bk_biz_id: currentBizId,
-              db_type: props.dbType,
-              name: value,
-              limit: 10,
-              offset: 0,
-            });
-            return ret.results.length === 0;
+            // TODO: 以后看情况是否增加接口支持，暂时先用当前页做冲突检测
+            return props.existedNames.every(item => item !== value);
           }
           return true;
         },
@@ -424,6 +419,22 @@
 </script>
 
 <style lang="less" scoped>
+
+.header-main {
+  display: flex;
+  width: 100%;
+  overflow: hidden;
+  align-items: center;
+
+  .name {
+    width: auto;
+    max-width: 720px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
 .monitor-strategy-box {
   display: flex;
   width: 100%;

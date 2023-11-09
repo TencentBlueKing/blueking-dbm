@@ -40,7 +40,7 @@
     },
     {
       value: 'tendbcluster',
-      label: 'TenDBCluster',
+      label: 'TendbCluster',
     },
     {
       value: 'redis',

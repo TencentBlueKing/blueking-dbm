@@ -19,7 +19,8 @@
     class="render-rotate-table-box"
     :columns="columns"
     :data="tableData"
-    :max-height="300" />
+    :max-height="300"
+    @scroll-bottom="handleScrollToBottom" />
 </template>
 
 <script setup lang="tsx">
@@ -51,10 +52,13 @@
 
   const { t } = useI18n();
 
+  const isShowAllData = ref(false);
+
   const tableData = computed(() => {
     if (props.data.category === 'regular') {
       // 自定义轮值
-      return (props.data.duty_arranges as DutyCustomItem[]).map(item => ({
+      // eslint-disable-next-line max-len
+      return (isShowAllData.value ? props.data.duty_arranges as DutyCustomItem[] : props.data.duty_arranges.slice(0, 8) as DutyCustomItem[]).map(item => ({
         dateTime: item.date,
         timeRange: item.work_times.map(data => data.replace('--', '~')),
         peoples: item.members,
@@ -110,6 +114,12 @@
       render: ({ data }: {data: RowData}) => <div class="peoples">{data.peoples.map(item => <bk-tag>{item}</bk-tag>)}</div>,
     },
   ];
+
+  const handleScrollToBottom = () => {
+    if (props.data.duty_arranges.length > 8) {
+      isShowAllData.value = true;
+    }
+  };
 
 </script>
 <style lang="less" scoped>

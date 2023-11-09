@@ -197,7 +197,7 @@
 
   function initDateSelect() {
     return ({
-      date: '',
+      date: 'daily',
       weekday: [] as number[],
       timeList: [{
         id: random(),
@@ -233,31 +233,31 @@
   const weekdayList = [
     {
       value: 1,
-      label: '周一',
+      label: t('周一'),
     },
     {
       value: 2,
-      label: '周二',
+      label: t('周二'),
     },
     {
       value: 3,
-      label: '每三',
+      label: t('周三'),
     },
     {
       value: 4,
-      label: '周四',
+      label: t('周四'),
     },
     {
       value: 5,
-      label: '每五',
+      label: t('周五'),
     },
     {
       value: 6,
-      label: '周六',
+      label: t('周六'),
     },
     {
       value: 0,
-      label: '每日',
+      label: t('周日'),
     },
   ];
 
@@ -308,7 +308,7 @@
   watch(
     [dateTimeRange, dateSelect, formModel],
     ([dateRange, data, formModel]) => {
-      if (data.date) {
+      if (data.date && formModel.peopleList.length > 0) {
         const { singleDutyPeoples, sinlgeDutyDays, peopleList } = formModel;
         const days = sinlgeDutyDays;
         const peoplesCount = Math.min(singleDutyPeoples, peopleList.length);
