@@ -76,52 +76,54 @@ class RollbackViewSet(ReadOnlyAuditedModelViewSet):
     def check_time(self, request, bk_biz_id, **kwargs):
         cluster_id = self.validated_data["cluster_id"]
         rollback_time = self.validated_data["rollback_time"]
-        ip = self.validated_data["ip"]
-        port = self.validated_data["port"]
 
-        storage_pair = StorageInstanceTuple.objects.filter(ejector__machine__ip=ip, ejector__port=port).first()
-        slave_ip, slave_port = storage_pair.receiver.machine.ip, storage_pair.receiver.port
+        master_instances = self.validated_data["master_instances"]
+        for master_instance in master_instances:
+            ip, port = master_instance.split(":")
 
-        cluster = Cluster.objects.get(bk_biz_id=bk_biz_id, id=cluster_id)
-        rollback_handler = DataStructureHandler(cluster.id)
+            storage_pair = StorageInstanceTuple.objects.filter(ejector__machine__ip=ip, ejector__port=port).first()
+            slave_ip, slave_port = storage_pair.receiver.machine.ip, storage_pair.receiver.port
 
-        try:
-            backup_info = rollback_handler.query_latest_backup_log(rollback_time, ip, port)
-        except AppBaseException:
-            return Response({"exist": False, "msg": "query backup info exception failed"})
+            cluster = Cluster.objects.get(bk_biz_id=bk_biz_id, id=cluster_id)
+            rollback_handler = DataStructureHandler(cluster.id)
 
-        # 全备份的开始时间
-        backup_time = time.strptime(backup_info["file_last_mtime"], "%Y-%m-%d %H:%M:%S")
-        if cluster.cluster_type in [ClusterType.TendisplusInstance.value, ClusterType.TendisSSDInstance.value]:
             try:
-                kvstore_count = None
-                if cluster.cluster_type == ClusterType.TendisplusInstance.value:
-                    kvstore_count = DBConfigApi.query_conf_item(
-                        params={
-                            "bk_biz_id": str(self.data["bk_biz_id"]),
-                            "level_name": LevelName.CLUSTER,
-                            "level_value": cluster.immute_domain,
-                            "level_info": {"module": str(DEFAULT_DB_MODULE_ID)},
-                            "conf_file": cluster.major_version,
-                            "conf_type": ConfigTypeEnum.DBConf,
-                            "namespace": cluster.cluster_type,
-                            "format": FormatType.MAP,
-                        }
-                    )["content"]["kvstorecount"]
-
-                backup_binlog = rollback_handler.query_binlog_from_bklog(
-                    start_time=backup_time,
-                    end_time=rollback_time,
-                    minute_range=120,
-                    host_ip=slave_ip,
-                    port=slave_port,
-                    kvstorecount=kvstore_count,
-                    tendis_type=cluster.cluster_type,
-                )
+                backup_info = rollback_handler.query_latest_backup_log(rollback_time, ip, port)
             except AppBaseException:
-                return Response({"exist": False, "msg": "query binlog info exception failed"})
+                return Response({"exist": False, "msg": f"[{master_instance}] query backup info exception failed"})
 
-            if backup_binlog is None:
-                return Response({"exist": False, "msg": "query binlog info failed"})
+            # 全备份的开始时间
+            backup_time = time.strptime(backup_info["file_last_mtime"], "%Y-%m-%d %H:%M:%S")
+            if cluster.cluster_type in [ClusterType.TendisplusInstance.value, ClusterType.TendisSSDInstance.value]:
+                try:
+                    kvstore_count = None
+                    if cluster.cluster_type == ClusterType.TendisplusInstance.value:
+                        kvstore_count = DBConfigApi.query_conf_item(
+                            params={
+                                "bk_biz_id": str(self.data["bk_biz_id"]),
+                                "level_name": LevelName.CLUSTER,
+                                "level_value": cluster.immute_domain,
+                                "level_info": {"module": str(DEFAULT_DB_MODULE_ID)},
+                                "conf_file": cluster.major_version,
+                                "conf_type": ConfigTypeEnum.DBConf,
+                                "namespace": cluster.cluster_type,
+                                "format": FormatType.MAP,
+                            }
+                        )["content"]["kvstorecount"]
+
+                    backup_binlog = rollback_handler.query_binlog_from_bklog(
+                        start_time=backup_time,
+                        end_time=rollback_time,
+                        minute_range=120,
+                        host_ip=slave_ip,
+                        port=slave_port,
+                        kvstorecount=kvstore_count,
+                        tendis_type=cluster.cluster_type,
+                    )
+                except AppBaseException:
+                    return Response({"exist": False, "msg": f"[{master_instance}] query binlog info exception failed"})
+
+                if backup_binlog is None:
+                    return Response({"exist": False, "msg": f"[{master_instance}] query binlog info failed"})
 
             return Response({"exist": True, "msg": "success"})
