@@ -20,13 +20,20 @@ logger = logging.getLogger("root")
 
 
 class Command(BaseCommand):
-    help = _("修改指定模块的服务实例进程绑定的ip为0.0.0.0")
+    help = _("修改指定模块的服务实例进程绑定的ip")
 
     def add_arguments(self, parser):
-        parser.add_argument("bk_module_id", type=int, help="模块ID")
+        parser.add_argument("bk_module_id", type=int, help=_("模块ID"))
+        parser.add_argument("-p", "--port", type=str, help=_("目标端口"))
+        parser.add_argument("-i", "--ip", type=str, help=_("目标ip"))
+        parser.add_argument("-t", "--type", choices=["real", "zeros"], default="real", help=_("替换方式"))
 
     def handle(self, *args, **options):
         bk_module_id = options.get("bk_module_id")
+        port = options.get("port")
+        replace_type = options.get("type")
+        ip = options.get("ip")
+
         bk_biz_id = env.DBA_APP_BK_BIZ_ID
 
         instances = CCApi.list_service_instance(
@@ -40,10 +47,15 @@ class Command(BaseCommand):
                     "service_instance_id": instance["id"],
                 }
             )
+
+            target_ip = instance["name"].split("_")[0] if replace_type == "real" else "0.0.0.0"
             for p in processes:
-                if p["property"]["bind_info"][0]["port"] == "9000":
-                    p["property"]["bind_info"][0]["ip"] = "0.0.0.0"
+                bind_info = p["property"]["bind_info"]
+                if port and bind_info[0]["port"] != port:
+                    continue
+                if ip and bind_info[0]["ip"] != ip:
+                    continue
+                bind_info[0]["ip"] = target_ip
 
             updated_processes = [p["property"] for p in processes]
-            res = CCApi.update_process_instance({"bk_biz_id": bk_biz_id, "processes": updated_processes})
-            logger.info(updated_processes, res)
+            CCApi.update_process_instance({"bk_biz_id": bk_biz_id, "processes": updated_processes})
