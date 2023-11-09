@@ -188,7 +188,6 @@ func (gqa *GQA) Process(cmdbInfos []dbutil.DataBaseSwitch) {
 		}
 
 		// query instance and proxy info
-
 		log.Logger.Infof("start switch. ip:%s, port:%d, cluster_Type:%s, app:%s",
 			ip, port, instanceInfo.GetClusterType(), instanceInfo.GetApp())
 		gqa.PushInstance2Next(instanceInfo)

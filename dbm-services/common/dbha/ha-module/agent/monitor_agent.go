@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"dbm-services/common/dbha/hadb-api/model"
 	"fmt"
 	"net"
 	"strconv"
@@ -396,10 +397,21 @@ func (a *MonitorAgent) moduloHashSharding(allDbInstance []dbutil.DataBaseDetect)
 		log.Logger.Errorf("get Modulo failed and wait next refresh time. err:%s", err.Error())
 		return nil, err
 	}
+	shieldConfig, err := a.HaDBClient.GetShieldConfig(&model.HAShield{
+		ShieldType: string(model.ShieldSwitch),
+	})
+	if err != nil {
+		log.Logger.Errorf("get shield config failed:%s", err.Error())
+		return nil, err
+	}
 
 	result := make(map[string]dbutil.DataBaseDetect)
 	for _, rawIns := range allDbInstance {
 		rawIp, rawPort := rawIns.GetAddress()
+		if _, ok := shieldConfig[rawIp]; ok {
+			log.Logger.Debugf("shield config exist this ip, skip detect :%s", rawIp)
+			continue
+		}
 		if ins, ok := result[rawIp]; !ok {
 			if util.CRC32(rawIp)%mod == modValue {
 				result[rawIp] = rawIns

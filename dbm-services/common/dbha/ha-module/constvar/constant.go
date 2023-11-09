@@ -166,6 +166,8 @@ const (
 	SwitchQueueUrl = "switchqueue/"
 	// SwitchLogUrl TODO
 	SwitchLogUrl = "switchlogs/"
+	// ShieldConfigUrl api route to request ha_shield_config table
+	ShieldConfigUrl = "shieldconfig/"
 )
 
 const (

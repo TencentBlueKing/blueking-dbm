@@ -13,6 +13,7 @@ package dbmysql
 
 import (
 	"database/sql"
+	"dbm-services/common/dbha/hadb-api/model"
 	"encoding/json"
 	"fmt"
 	"strconv"
@@ -217,29 +218,52 @@ func (ins *MySQLCommonSwitch) GetRole() string {
 func (ins *MySQLCommonSwitch) CheckSlaveStatus() error {
 	var (
 		checksumCnt, checksumFailCnt, slaveDelay, timeDelay int
+		ignoreCheckSum, ignoreSlaveDelay                    bool
 	)
+	shieldConfig, err := ins.HaDBClient.GetShieldConfig(&model.HAShield{
+		APP:        ins.App,
+		ShieldType: string(model.ShieldCheck),
+		Ip:         ins.Ip,
+	})
+	if err != nil {
+		return fmt.Errorf("get shield config failed:%s", err.Error())
+	}
+	if len(shieldConfig) > 0 {
+		ignoreCheckSum = shieldConfig[ins.Ip].IgnoreCheckSum
+		ignoreSlaveDelay = shieldConfig[ins.Ip].IgnoreSlaveDelay
+	}
+
 	gmConf := ins.Config.GMConf
 	// check_slave_status
 	ins.ReportLogs(constvar.InfoResult, "try to check slave status info.")
-	if err := ins.CheckSlaveSlow(); err != nil {
+	if err = ins.CheckSlaveSlow(ignoreSlaveDelay); err != nil {
 		return fmt.Errorf("check slave delay failed,err:%s", err.Error())
+	}
+	if ignoreSlaveDelay {
+		slaveDelay = 0
+		timeDelay = 0
+	} else {
+		slaveDelay, timeDelay, err = ins.GetSlaveDelay()
+		if err != nil {
+			return fmt.Errorf("check slave checksum info failed. err:%s", err.Error())
+		}
 	}
 
 	needCheck, err := ins.FindUsefulDatabase()
 	if err != nil {
-		log.Logger.Errorf("found user-created database failed. err:%s", err.Error())
+		return fmt.Errorf("found user-created database failed. err:%s", err.Error())
 	}
 
 	ins.ReportLogs(constvar.InfoResult, "try to check slave checksum info.")
-	checksumCnt, checksumFailCnt, err = ins.GetSlaveCheckSum()
-	if err != nil {
-		log.Logger.Errorf("check slave checksum info failed. err:%s", err.Error())
-		return err
-	}
-	slaveDelay, timeDelay, err = ins.GetSlaveDelay()
-	if err != nil {
-		log.Logger.Errorf("check slave checksum info failed. err:%s", err.Error())
-		return err
+
+	if ignoreCheckSum {
+		checksumCnt = 1
+		checksumFailCnt = 0
+	} else {
+		checksumCnt, checksumFailCnt, err = ins.GetSlaveCheckSum()
+		if err != nil {
+			return fmt.Errorf("check slave checksum info failed. err:%s", err.Error())
+		}
 	}
 
 	ins.ReportLogs(constvar.InfoResult, fmt.Sprintf("checksumCnt:%d, checksumFail:%d, slaveDelay:%d, timeDelay:%d",
@@ -418,7 +442,7 @@ func (ins *MySQLCommonSwitch) FindUsefulDatabase() (bool, error) {
 }
 
 // CheckSlaveSlow check whether slave replication delay
-func (ins *MySQLCommonSwitch) CheckSlaveSlow() error {
+func (ins *MySQLCommonSwitch) CheckSlaveSlow(ignoreDelay bool) error {
 	ip := ins.StandBySlave.Ip
 	port := ins.StandBySlave.Port
 	user := ins.Config.DBConf.MySQL.User
@@ -456,6 +480,11 @@ func (ins *MySQLCommonSwitch) CheckSlaveSlow() error {
 	}
 	log.Logger.Infof("Relay_Master_Log_File_Index:%d, Exec_Master_Log_Pos:%d",
 		status.RelayMasterLogFileIndex, status.ReadMasterLogPos)
+
+	if ignoreDelay {
+		log.Logger.Infof("ignore delay check configured, skip check replication delay")
+		return nil
+	}
 
 	execSlowKBytes := binlogSizeMByte*1024*uint64(status.MasterLogFileIndex-status.RelayMasterLogFileIndex) -
 		status.ExecMasterLogPos/1024 + status.ReadMasterLogPos/1024
