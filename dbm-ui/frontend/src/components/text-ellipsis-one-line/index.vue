@@ -33,7 +33,7 @@
     (e: 'text-click'): void,
   }
 
-  withDefaults(defineProps<Props>(), {
+  const props = withDefaults(defineProps<Props>(), {
     text: '',
     textStyle: undefined,
   });
@@ -46,12 +46,18 @@
 
   let timer = 0;
 
+  watch(() => props.text, () => {
+    checkOveflow();
+  }, {
+    immediate: true,
+  });
+
   const checkOveflow = () => {
     clearTimeout(timer);
     timer = setTimeout(() => {
       // eslint-disable-next-line max-len
       isOverflow.value = rowRef.value.scrollWidth > rowRef.value.clientWidth || mainRef.value.scrollWidth > mainRef.value.clientWidth;
-    }, 300);
+    });
   };
 
   useResizeObserver(mainRef, checkOveflow);
