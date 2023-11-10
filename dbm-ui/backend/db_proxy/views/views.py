@@ -22,9 +22,9 @@ from backend import env
 from backend.bk_web import viewsets
 from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.components import JobApi
-from backend.db_proxy.constants import SWAGGER_TAG
+from backend.db_proxy.constants import SWAGGER_TAG, ExtensionType
 from backend.db_proxy.exceptions import ProxyPassBaseException
-from backend.db_proxy.models import ClusterExtension, DBCloudProxy
+from backend.db_proxy.models import ClusterExtension, DBCloudProxy, DBExtension
 from backend.db_proxy.nginxconf_tpl import restart_nginx_tpl
 from backend.db_proxy.views.serialiers import JobCallBackSerializer
 from backend.flow.consts import SUCCESS_LIST
@@ -73,9 +73,11 @@ class JobCallBackViewSet(viewsets.SystemViewSet):
             logger.error(_("[{}]nginx文件下发job信息缓存已过期，请考虑是否下发时间过长").format(job_inst_id))
             return Response()
 
-        nginx_id, extension_ids = cache_ids[0], cache_ids[1:]
+        bk_cloud_id, extension_ids = cache_ids[0], cache_ids[1:]
         # 更新extension表的状态
-        nginx = DBCloudProxy.objects.filter(id=nginx_id).last()
+        nginx_extensions = DBExtension.get_extension_in_cloud(
+            bk_cloud_id=bk_cloud_id, extension_type=ExtensionType.NGINX
+        )
         ClusterExtension.objects.filter(id__in=extension_ids).update(is_flush=True)
 
         # 重启nginx进程
@@ -84,11 +86,16 @@ class JobCallBackViewSet(viewsets.SystemViewSet):
             "task_name": "restart_nginx",
             "script_content": str(base64.b64encode(restart_nginx_tpl.encode("utf-8")), "utf-8"),
             "script_language": 1,
-            "target_server": {"ip_list": [{"bk_cloud_id": nginx.bk_cloud_id, "ip": nginx.internal_address}]},
+            "target_server": {
+                "ip_list": [
+                    {"bk_cloud_id": nginx.details["bk_cloud_id"], "ip": nginx.details["ip"]}
+                    for nginx in nginx_extensions
+                ]
+            },
             # 因为证书原因，让job请求http的地址
             "callback_url": f"{env.BK_SAAS_CALLBACK_URL}/apis/proxypass/restart_callback/",
         }
-        logger.info(_("[{}] nginx重启参数：{}").format(nginx.internal_address, job_payload))
+        logger.info(_("nginx重启参数：{}").format(job_payload))
         resp = JobApi.fast_execute_script(
             {**fast_execute_script_common_kwargs, **job_payload}, use_admin=True, raw=True
         )
