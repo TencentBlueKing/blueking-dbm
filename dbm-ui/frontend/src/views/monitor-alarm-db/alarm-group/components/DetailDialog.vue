@@ -129,6 +129,10 @@
 
   const nameRules = [
     {
+      message: t('长度不能大于n', [80]),
+      validator: (value: string)  => value.length <= 80,
+    },
+    {
       message: t('告警组名称重复'),
       validator: (name: string) => {
         if (props.type === 'copy') {
@@ -250,5 +254,11 @@
 
   .detail-form {
     padding: 24px 40px 40px;
+  }
+
+  :deep(.bk-tab-header-nav::-webkit-scrollbar) {
+    display: block;
+    width: 4px;
+    height: 4px;
   }
 </style>

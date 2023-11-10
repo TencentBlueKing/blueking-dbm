@@ -61,6 +61,7 @@
   import { useGlobalBizs } from '@stores';
 
   import MiniTag from '@components/mini-tag/index.vue';
+  import RenderTextEllipsisOneLine from '@components/text-ellipsis-one-line/index.vue';
 
   import { messageSuccess } from '@utils';
 
@@ -107,27 +108,31 @@
       width: 240,
       render: ({ row }: TableRenderData) => {
         const isRenderTag = !isPlatform && row.is_built_in;
-
-        return (
-          <div class="name-cell">
-            <bk-button
-              text
-              theme="primary"
-              class="name-button"
-              onClick={ () => handleOpenDetail('edit', row) }>
-              { row.name }
-            </bk-button>
+        const content = <>
             {
               isRenderTag
-                ? <MiniTag content={ t('内置') } class="ml-4"></MiniTag>
+                ? <MiniTag
+                    content={ t('内置') }
+                    class="ml-4" />
                 : null
             }
             {
               isNewUser(row.create_at)
-                ? <span class="glob-new-tag ml-4" data-text="NEW" />
+                ? <MiniTag
+                    content='NEW'
+                    theme='success'
+                    class="ml-4">
+                  </MiniTag>
                 : null
             }
-          </div>
+        </>;
+
+        return (
+          <RenderTextEllipsisOneLine
+            text={row.name}
+            onText-click={ () => handleOpenDetail('edit', row) }>
+            { content }
+          </RenderTextEllipsisOneLine>
         );
       },
     },
