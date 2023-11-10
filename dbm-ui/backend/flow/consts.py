@@ -906,3 +906,8 @@ class MySQLPrivComponent(str, StructuredEnum):
     REDIS = EnumField("redis", _("redis"))
     REDIS_PROXY = EnumField("redis_proxy", _("redis_proxy"))
     REDIS_PROXY_ADMIN = EnumField("redis_proxy_admin", _("redis_proxy_admin"))
+    ES_FAKE_USER = EnumField("es_user", _("es_user"))
+    KAFKA_FAKE_USER = EnumField("kafka_user", _("kafka_user"))
+    INFLUXDB_FAKE_USER = EnumField("influxdb_user", _("influxdb_user"))
+    HDFS_FAKE_USER = EnumField("hdfs_user", _("hdfs_user"))
+    PULSAR_FAKE_USER = EnumField("pulsar_user", _("pulsar_user"))
