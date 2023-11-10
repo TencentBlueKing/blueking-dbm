@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import base64
 import logging
 from typing import List
 
@@ -16,10 +17,11 @@ from pipeline.core.flow.activity import Service
 
 from backend.components import DBConfigApi
 from backend.components.dbconfig.constants import LevelName, OpType, ReqType
+from backend.components.mysql_priv_manager.client import MySQLPrivManagerApi
 from backend.db_meta.api import common
 from backend.db_meta.enums import InstanceRole
 from backend.db_meta.models import StorageInstance
-from backend.flow.consts import ConfigTypeEnum, LevelInfoEnum, NameSpaceEnum
+from backend.flow.consts import ConfigTypeEnum, LevelInfoEnum, MySQLPrivComponent, NameSpaceEnum
 from backend.flow.plugins.components.collections.common.base_service import BaseService
 
 logger = logging.getLogger("flow")
@@ -70,6 +72,31 @@ class InfluxdbConfigService(BaseService):
                     "req_type": ReqType.SAVE_AND_PUBLISH,
                 }
             )
+
+            # Writing to password service, using instance_id as ip
+            self.log_info(f"Writing password to service...")
+            # 把用户名当密码存
+            query_params = {
+                "instances": [
+                    {"ip": str(storage_obj.id), "port": global_data["port"], "bk_cloud_id": global_data["bk_cloud_id"]}
+                ],
+                "password": base64.b64encode(str(global_data["username"]).encode("utf-8")).decode("utf-8"),
+                "username": MySQLPrivComponent.INFLUXDB_FAKE_USER.value,
+                "component": NameSpaceEnum.Influxdb,
+                "operator": "admin",
+            }
+            MySQLPrivManagerApi.modify_password(params=query_params)
+            # 存真实的用户名密码
+            query_params = {
+                "instances": [
+                    {"ip": str(storage_obj.id), "port": global_data["port"], "bk_cloud_id": global_data["bk_cloud_id"]}
+                ],
+                "password": base64.b64encode(str(global_data["password"]).encode("utf-8")).decode("utf-8"),
+                "username": global_data["username"],
+                "component": NameSpaceEnum.Influxdb,
+                "operator": "admin",
+            }
+            MySQLPrivManagerApi.modify_password(params=query_params)
 
         self.log_info(f"DBConfig re successfully")
         return True
