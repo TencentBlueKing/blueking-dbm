@@ -48,6 +48,8 @@ class OpenAreaHandler:
                         "target_db": config_rule["target_db_pattern"].format(**data["vars"]),
                         "schema_tblist": config_rule["schema_tblist"],
                         "data_tblist": config_rule["data_tblist"],
+                        "priv_data": config_rule["priv_data"],
+                        "authorize_ips": data["authorize_ips"],
                     }
                     for config_rule in config.config_rules
                 ]
@@ -57,7 +59,7 @@ class OpenAreaHandler:
             openarea_results.append(
                 {
                     "cluster_id": data["cluster_id"],
-                    "target_cluster_name": cluster_id__cluster[data["cluster_id"]].name,
+                    "target_cluster_domain": cluster_id__cluster[data["cluster_id"]].immute_domain,
                     "execute_objects": execute_objects,
                 }
             )

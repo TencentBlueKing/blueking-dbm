@@ -18,7 +18,7 @@ from backend.constants import DEFAULT_BK_CLOUD_ID
 class TendbOpenAreaConfig(AuditedModel):
     """开区模板表"""
 
-    bk_biz_id = models.IntegerField(default=0, help_text=_("业务ID"))
+    bk_biz_id = models.IntegerField(help_text=_("业务ID"))
     config_name = models.CharField(max_length=256, help_text=_("开区模板名"))
     source_cluster_id = models.BigIntegerField(help_text=_("源集群ID"))
     config_rules = models.JSONField(help_text=_("模板克隆规则列表"))
