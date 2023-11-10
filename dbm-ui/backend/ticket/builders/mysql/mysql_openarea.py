@@ -44,7 +44,6 @@ class MysqlOpenAreaDetailSerializer(MySQLBaseOperateDetailSerializer):
         cluster_type = serializers.ChoiceField(help_text=_("集群类型"), choices=ClusterType.get_choices())
 
     cluster_id = serializers.IntegerField(help_text=_("源集群ID"))
-    path = serializers.CharField(help_text=_("SQL文件路径"), required=False, default=BKREPO_SQLFILE_PATH)
     force = serializers.BooleanField(help_text=_("是否强制执行"), required=False, default=False)
     config_data = serializers.ListSerializer(help_text=_("分区信息"), child=ConfigDataSerializer())
     rules_set = serializers.ListSerializer(help_text=_("授权信息"), child=PrivDataSerializer())
