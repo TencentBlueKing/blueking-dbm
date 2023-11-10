@@ -16,7 +16,9 @@ from django.db.models import QuerySet
 
 from backend.db_meta.enums import ClusterEntryType
 
+from ..enums.extra_process_type import ExtraProcessType
 from ..models import StorageInstance
+from ..models.extra_process import ExtraProcessInstance
 from .machine import _machine_prefetch, _single_machine_cc_info, _single_machine_city_info
 
 logger = logging.getLogger("root")
@@ -124,6 +126,18 @@ def storage_instance(storages: QuerySet) -> List[Dict]:
         cluster_qs = ins.cluster.all()
         if cluster_qs.exists():
             info["cluster"] = cluster_qs.first().immute_domain
+
+            # 增加对tbinlogdumper实例信息输出
+            dumpers = []
+            for dumper in ExtraProcessInstance.objects.filter(
+                cluster_id=cluster_qs.first().id,
+                bk_cloud_id=cluster_qs.first().bk_cloud_id,
+                proc_type=ExtraProcessType.TBINLOGDUMPER,
+                extra_config__source_data_ip=ins.machine.ip,
+                extra_config__source_data_port=ins.port,
+            ).all():
+                dumpers.append({"ip": dumper.ip, "port": dumper.listen_port})
+            info["tbinlogdumpers"] = dumpers
 
         res.append(info)
 

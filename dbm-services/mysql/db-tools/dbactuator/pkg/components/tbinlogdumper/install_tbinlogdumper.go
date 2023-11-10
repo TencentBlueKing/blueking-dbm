@@ -49,6 +49,7 @@ type Configs struct {
 type DumperParams struct {
 	DumperId string `json:"dumper_id" `
 	AreaName string `json:"area_name" `
+	ServerID uint64 `json:"server_id" `
 }
 
 // RenderDumperConfigs TODO
@@ -93,6 +94,8 @@ func (i *InstallTbinlogDumperComp) InitDumperDefaultParam() error {
 	i.DefaultMysqlLogDirName = cst.DefaultMysqlLogBasePath
 	i.DataBaseDir = path.Join(cst.DumperDefaultDir, cst.DefaultMysqlDataBasePath)
 	i.LogBaseDir = path.Join(cst.DumperDefaultDir, cst.DefaultMysqlLogBasePath)
+	i.WorkUser = "root"
+	i.WorkPassword = ""
 
 	// 计算获取需要安装的ports
 	i.InsPorts = i.Params.Ports
@@ -249,17 +252,11 @@ func (i *InstallTbinlogDumperComp) initInsReplaceConfigs() error {
 	for _, port := range i.InsPorts {
 		insBaseDataDir := path.Join(i.DataBaseDir, strconv.Itoa(port))
 		insBaseLogDir := path.Join(i.LogBaseDir, strconv.Itoa(port))
-		serverId, err := mysqlutil.GenMysqlServerId(i.Params.Host, port)
-		if err != nil {
-			logger.Error("%s:%d generation serverId Failed %s", i.Params.Host, port, err.Error())
-			return err
-		}
-		DumperServerId, _ := strconv.ParseUint(fmt.Sprintf("%d%d", serverId, port), 10, 64)
 		i.RenderConfigs[port] = renderDumperConfigs{Mysqld{
 			Basedir:            i.MysqlInstallDir,
 			Datadir:            insBaseDataDir,
 			Logdir:             insBaseLogDir,
-			ServerId:           DumperServerId,
+			ServerId:           i.DumperConfigs[port].ServerID,
 			Port:               strconv.Itoa(port),
 			CharacterSetServer: i.Params.CharSet,
 			BindAddress:        i.Params.Host,
@@ -267,7 +264,8 @@ func (i *InstallTbinlogDumperComp) initInsReplaceConfigs() error {
 			Dumperid:           i.DumperConfigs[port].DumperId,
 		}}
 
-		i.InsInitDirs[port] = append(i.InsInitDirs[port], []string{insBaseDataDir, insBaseLogDir}...)
+		i.InsInitDirs[port] = append(
+			i.InsInitDirs[port], []string{insBaseDataDir, insBaseLogDir, cst.DumperDefaultBakDir}...)
 	}
 	return nil
 	//	return i.calInsInitDirs()
