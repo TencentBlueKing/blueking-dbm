@@ -344,6 +344,8 @@ class RedisActPayload(object):
                 data["content"]["redis_password"] = passwd_ret.get("redis_password")
             if passwd_ret.get("redis_proxy_password"):
                 data["content"]["password"] = passwd_ret.get("redis_proxy_password")
+            if passwd_ret.get("redis_proxy_admin_password"):
+                data["content"]["redis_proxy_admin_password"] = passwd_ret.get("redis_proxy_admin_password")
         elif conf_type == ConfigTypeEnum.DBConf.value:
             if passwd_ret.get("redis_password"):
                 data["content"]["requirepass"] = passwd_ret.get("redis_password")
@@ -354,6 +356,14 @@ class RedisActPayload(object):
         """
         集群初始化的时候twemproxy没做变动，直接写入集群就OK
         """
+        # 密码随机化
+        PayloadHandler.redis_save_password_by_domain(
+            immute_domain=clusterMap["domain_name"],
+            redis_password=clusterMap["pwd_conf"]["redis_pwd"],
+            redis_proxy_password=clusterMap["pwd_conf"]["proxy_pwd"],
+            redis_proxy_admin_password=clusterMap["pwd_conf"]["proxy_admin_pwd"],
+        )
+
         conf_items = []
         for conf_name, conf_value in clusterMap["conf"].items():
             conf_items.append({"conf_name": conf_name, "conf_value": conf_value, "op_type": OpType.UPDATE})
@@ -533,6 +543,7 @@ class RedisActPayload(object):
                 "ip": kwargs["ip"],
                 "port": self.cluster["proxy_port"],
                 "predixypasswd": proxy_config["password"],
+                "predixyadminpasswd": proxy_config["redis_proxy_admin_password"],
                 "redispasswd": proxy_config["redis_password"],
                 "servers": self.cluster["servers"],
                 "dbconfig": proxy_config,
