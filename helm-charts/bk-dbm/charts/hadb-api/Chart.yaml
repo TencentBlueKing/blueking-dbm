@@ -3,4 +3,4 @@ name: hadb-api
 description: A Helm chart for Kubernetes
 type: application
 version: 0.0.11
-appVersion: 0.0.1-alpha.11
+appVersion: 0.0.1-alpha.16
