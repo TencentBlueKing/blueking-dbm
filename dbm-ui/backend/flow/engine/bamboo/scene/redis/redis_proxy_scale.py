@@ -31,6 +31,8 @@ from backend.flow.engine.bamboo.scene.redis.atom_jobs import (
 from backend.flow.plugins.components.collections.common.pause import PauseComponent
 from backend.flow.plugins.components.collections.redis.get_redis_payload import GetRedisActPayloadComponent
 from backend.flow.plugins.components.collections.redis.redis_db_meta import RedisDBMetaComponent
+from backend.flow.utils.base.payload_handler import PayloadHandler
+from backend.flow.utils.redis.redis_act_playload import RedisActPayload
 from backend.flow.utils.redis.redis_context_dataclass import ActKwargs, CommonContext
 from backend.flow.utils.redis.redis_db_meta import RedisDBMeta
 from backend.ticket.constants import SwitchConfirmType, TicketType
@@ -91,6 +93,7 @@ class RedisProxyScaleFlow(object):
 
     @staticmethod
     def __get_cluster_config(bk_biz_id: int, namespace: str, domain_name: str, db_version: str) -> Any:
+        passwd_ret = PayloadHandler.redis_get_password_by_domain(domain_name)
         data = DBConfigApi.query_conf_item(
             params={
                 "bk_biz_id": str(bk_biz_id),
@@ -103,6 +106,12 @@ class RedisProxyScaleFlow(object):
                 "format": FormatType.MAP,
             }
         )
+        if passwd_ret.get("redis_password"):
+            data["content"]["redis_password"] = passwd_ret.get("redis_password")
+        if passwd_ret.get("redis_proxy_password"):
+            data["content"]["password"] = passwd_ret.get("redis_proxy_password")
+        if passwd_ret.get("redis_proxy_admin_password"):
+            data["content"]["redis_proxy_admin_password"] = passwd_ret.get("redis_proxy_admin_password")
         return data["content"]
 
     def redis_proxy_scale_up_flow(self):
@@ -161,8 +170,8 @@ class RedisProxyScaleFlow(object):
                 "spec_config": info["resource_spec"]["proxy"],
             }
             # 如果从config_info中取出了admin_pwd，则说明是predixy，需要补充进params
-            if config_info["predixy_admin_passwd"]:
-                params["proxy_admin_pwd"] = config_info["predixy_admin_passwd"]
+            if config_info["redis_proxy_admin_password"]:
+                params["proxy_admin_pwd"] = config_info["redis_proxy_admin_password"]
             for proxy_info in info["proxy"]:
                 ip = proxy_info["ip"]
                 act_kwargs.cluster = copy.deepcopy(cluster_tpl)

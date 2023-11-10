@@ -242,7 +242,6 @@ class TendisPlusApplyFlow(object):
         acts_list = []
         act_kwargs.cluster = {
             "conf": {
-                "requirepass": self.data["redis_pwd"],
                 "cluster-enabled": ClusterStatus.REDIS_CLUSTER_YES,
             },
             "db_version": self.data["db_version"],
@@ -259,10 +258,12 @@ class TendisPlusApplyFlow(object):
 
         act_kwargs.cluster = {
             "conf": {
-                "password": self.data["proxy_pwd"],
-                "predixy_admin_passwd": self.data["proxy_admin_pwd"],
-                "redis_password": self.data["redis_pwd"],
                 "port": str(self.data["proxy_port"]),
+            },
+            "pwd_conf": {
+                "proxy_pwd": self.data["proxy_pwd"],
+                "proxy_admin_pwd": self.data["proxy_admin_pwd"],
+                "redis_pwd": self.data["redis_pwd"],
             },
             "domain_name": self.data["domain_name"],
         }
