@@ -36,7 +36,7 @@ CREATE TABLE if not exists infodba_schema.spes_status(
     PRIMARY KEY ip_id_day (ip, spes_id, report_day)
 ) engine = InnoDB;
 CREATE TABLE IF NOT EXISTS infodba_schema.check_heartbeat (
-    uid INT NOT NULL PRIMARY KEY,
+    uid INT UNSIGNED  NOT NULL PRIMARY KEY,
     ck_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP on  UPDATE CURRENT_TIMESTAMP
 ) ENGINE = InnoDB;
 REPLACE INTO infodba_schema.check_heartbeat(uid) value(@@server_id);

@@ -21,7 +21,10 @@ from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import build_repl_by_manual_input_sub_flow
 from backend.flow.engine.bamboo.scene.tbinlogdumper.common.exceptions import NormalTBinlogDumperFlowException
-from backend.flow.engine.bamboo.scene.tbinlogdumper.common.util import get_tbinlogdumper_charset
+from backend.flow.engine.bamboo.scene.tbinlogdumper.common.util import (
+    get_tbinlogdumper_charset,
+    get_tbinlogdumper_server_id,
+)
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
 from backend.flow.plugins.components.collections.tbinlogdumper.dumper_data import TBinlogDumperFullSyncDataComponent
@@ -57,6 +60,10 @@ def add_tbinlogdumper_sub_flow(
 
     # 获取TBinlogDumper的字符集配置，以mysql数据源的为准
     charset = get_tbinlogdumper_charset(ip=master.machine.ip, port=master.port, bk_cloud_id=cluster.bk_cloud_id)
+
+    # 计算每个tbinlogdumper的serverid
+    for conf in add_conf_list:
+        conf["server_id"] = get_tbinlogdumper_server_id(master=master, tbinlogdumper_port=conf["port"])
 
     # 拼接子流程的只读全局参数
     parent_global_data = {

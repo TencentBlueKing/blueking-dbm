@@ -52,7 +52,11 @@ class TBinlogDumperActPayload(object):
             mycnf_configs[conf["port"]] = self.get_tbinlogdumper_config(
                 bk_biz_id=self.ticket_data["bk_biz_id"], module_id=conf["module_id"]
             )
-            dumper_configs[conf["port"]] = {"dumper_id": conf["area_name"], "area_name": conf["area_name"]}
+            dumper_configs[conf["port"]] = {
+                "dumper_id": conf["area_name"],
+                "area_name": conf["area_name"],
+                "server_id": conf["server_id"],
+            }
 
         drs_account, dbha_account = self.get_super_account()
         return {
