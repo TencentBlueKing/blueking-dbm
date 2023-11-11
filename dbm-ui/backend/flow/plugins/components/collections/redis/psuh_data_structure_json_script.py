@@ -73,7 +73,7 @@ class PushDataStructureJsonScriptService(BkJobService):
         if kwargs["cluster"]["ticket_type"] == TicketType.REDIS_DATA_STRUCTURE.value and getattr(
             trans_data, "backup_dir"
         ):
-            kwargs["cluster"]["data_params"]["dest_dir"] = trans_data.backup_dir + "/dbbak/recover_redis"
+            kwargs["cluster"]["dest_dir"] = trans_data.backup_dir + "/dbbak/recover_redis"
 
         root_id = kwargs["root_id"]
         node_name = kwargs["node_name"]
@@ -123,7 +123,7 @@ class PushDataStructureJsonScriptService(BkJobService):
         payload["file_list"] = [
             {
                 "file_name": (
-                    f"{kwargs['cluster']['data_params']['source_ip']}_"
+                    f"{kwargs['cluster']['source_ip']}_"
                     f"{global_data['uid']}_{kwargs['root_id']}_{kwargs['exec_ip']}.json"
                 ),
                 "content": str(template.render(db_act_template)),

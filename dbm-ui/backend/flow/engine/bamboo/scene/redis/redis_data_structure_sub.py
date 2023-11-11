@@ -31,9 +31,7 @@ from backend.flow.utils.redis.redis_context_dataclass import (
 logger = logging.getLogger("flow")
 
 
-def redis_backupfile_download(
-    root_id: str, ticket_data: dict, cluster_info: dict, sub_kwargs: ActKwargs, param: Dict
-) -> SubBuilder:
+def redis_backupfile_download(root_id: str, ticket_data: dict, cluster_info: dict, param: Dict) -> SubBuilder:
     """
     redis  指定时间拉取远程备份文件用于后续的数据构造
     @param root_id: flow 流程root_id

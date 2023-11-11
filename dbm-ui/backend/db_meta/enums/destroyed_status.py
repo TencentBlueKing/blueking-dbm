@@ -30,4 +30,15 @@ class MigrateStatus(int, StructuredEnum):
     NOT_STARTED = 0  # 未开始
     EXECUTING = 1  # 执行中
     COMPLETED = 2  # 已完成
-    ErrorOccurred = -1  # 错误
+    ERROR_OCCURRED = -1  # 错误
+
+
+class DataStructureStatus(int, StructuredEnum):
+    """
+    数据构造状态枚举
+    """
+
+    NOT_STARTED = 0  # 未开始
+    EXECUTING = 1  # 执行中
+    COMPLETED = 2  # 已完成
+    ERROR_OCCURRED = -1  # 错误
