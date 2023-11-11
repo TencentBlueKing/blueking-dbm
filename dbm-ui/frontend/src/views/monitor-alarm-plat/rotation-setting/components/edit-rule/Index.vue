@@ -241,13 +241,18 @@
           }
           return true;
         },
-        message: t('策略名称与原策略名称相同'),
+        message: t('规则名称与原规则名称相同'),
         trigger: 'blur',
       },
       // TODO: 以后看情况是否增加接口支持，暂时先用当前页做冲突检测
       {
-        validator: async (value: string) => props.existedNames.every(item => item !== value),
-        message: t('策略名称重复'),
+        validator: async (value: string) => {
+          if (['clone', 'create'].includes(props.pageType)) {
+            return props.existedNames.every(item => item !== value);
+          }
+          return true;
+        },
+        message: t('规则名称重复'),
         trigger: 'blur',
       },
     ],
