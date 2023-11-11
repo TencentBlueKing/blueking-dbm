@@ -20,7 +20,6 @@ from backend.components.mysql_priv_manager.client import MySQLPrivManagerApi
 from backend.db_services.mysql.permission.clone.handlers import CloneHandler
 from backend.db_services.mysql.permission.clone.models import MySQLPermissionCloneRecord
 from backend.db_services.mysql.permission.constants import CloneType
-from backend.exceptions import ApiResultError
 from backend.flow.plugins.components.collections.common.base_service import BaseService
 
 logger = logging.getLogger("flow")

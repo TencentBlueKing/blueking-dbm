@@ -13,7 +13,7 @@ import logging.config
 from collections import defaultdict
 from copy import deepcopy
 from dataclasses import asdict
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 from django.utils.translation import ugettext as _
 
@@ -44,10 +44,10 @@ from backend.flow.plugins.components.collections.redis.exec_shell_script import 
 from backend.flow.plugins.components.collections.redis.get_redis_payload import GetRedisActPayloadComponent
 from backend.flow.plugins.components.collections.redis.redis_db_meta import RedisDBMetaComponent
 from backend.flow.plugins.components.collections.redis.redis_ticket import RedisTicketComponent
-from backend.flow.utils.redis.redis_context_dataclass import ActKwargs, CommonContext, DnsKwargs
+from backend.flow.utils.redis.redis_context_dataclass import ActKwargs, CommonContext
 from backend.flow.utils.redis.redis_db_meta import RedisDBMeta
 from backend.flow.utils.redis.redis_proxy_util import get_cache_backup_mode, get_twemproxy_cluster_server_shards
-from backend.ticket.constants import TicketStatus, TicketType
+from backend.ticket.constants import TicketType
 
 logger = logging.getLogger("flow")
 

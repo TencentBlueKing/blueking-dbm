@@ -11,16 +11,14 @@ specific language governing permissions and limitations under the License.
 import datetime
 import json
 import logging
-from typing import Dict, List
+from typing import Dict
 
 from django.utils.crypto import get_random_string
-from django.utils.translation import ugettext as _
 
 from backend.components.hadb.client import HADBApi
 from backend.constants import DEFAULT_BK_CLOUD_ID
 from backend.db_meta import api
 from backend.exceptions import ApiRequestError, ApiResultError
-from backend.utils.redis import RedisConn
 from backend.utils.time import datetime2timestamp
 
 from .const import REDIS_SWITCH_WAITER, SWITCH_MAX_WAIT_SECONDS, SWITCH_SMALL, RedisSwitchHost, RedisSwitchWait

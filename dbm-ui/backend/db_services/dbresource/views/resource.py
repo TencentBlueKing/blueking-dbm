@@ -27,7 +27,7 @@ from backend.components import CCApi
 from backend.components.dbresource.client import DBResourceApi
 from backend.configuration.constants import SystemSettingsEnum
 from backend.configuration.models import SystemSettings
-from backend.db_meta.models import AppCache, Spec
+from backend.db_meta.models import AppCache
 from backend.db_services.dbresource.constants import (
     GSE_AGENT_RUNNING_CODE,
     RESOURCE_IMPORT_EXPIRE_TIME,

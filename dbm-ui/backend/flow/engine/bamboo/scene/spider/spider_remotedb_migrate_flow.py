@@ -11,7 +11,7 @@ specific language governing permissions and limitations under the License.
 import copy
 import logging
 from dataclasses import asdict
-from typing import Dict, List, Optional
+from typing import Dict, Optional
 
 from django.utils.translation import ugettext as _
 

@@ -16,7 +16,7 @@ from rest_framework.response import Response
 
 from backend.bk_web import viewsets
 from backend.bk_web.pagination import AuditedLimitOffsetPagination
-from backend.bk_web.swagger import ResponseSwaggerAutoSchema, common_swagger_auto_schema
+from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.db_meta.models import Cluster
 from backend.db_services.dbbase.serializers import (
     IsClusterDuplicatedResponseSerializer,
@@ -37,7 +37,6 @@ class DBBaseViewSet(viewsets.SystemViewSet):
 
     @common_swagger_auto_schema(
         operation_summary=_("查询集群名字是否重复"),
-        auto_schema=ResponseSwaggerAutoSchema,
         query_serializer=IsClusterDuplicatedSerializer(),
         responses={status.HTTP_200_OK: IsClusterDuplicatedResponseSerializer()},
         tags=[SWAGGER_TAG],
@@ -50,7 +49,6 @@ class DBBaseViewSet(viewsets.SystemViewSet):
 
     @common_swagger_auto_schema(
         operation_summary=_("查询全集群信息"),
-        auto_schema=ResponseSwaggerAutoSchema,
         query_serializer=QueryAllTypeClusterSerializer(),
         responses={status.HTTP_200_OK: QueryAllTypeClusterResponseSerializer()},
         tags=[SWAGGER_TAG],

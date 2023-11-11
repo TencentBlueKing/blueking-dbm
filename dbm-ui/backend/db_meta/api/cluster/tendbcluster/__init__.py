@@ -12,3 +12,13 @@ from .add_spider_mnt import add_spider_mnt
 from .create_cluster import create, create_pre_check
 from .create_slave_cluster import slave_cluster_create_pre_check
 from .decommission import decommission, decommission_precheck
+
+__all__ = [
+    "add_spiders",
+    "add_spider_mnt",
+    "create",
+    "create_pre_check",
+    "slave_cluster_create_pre_check",
+    "decommission",
+    "decommission_precheck",
+]

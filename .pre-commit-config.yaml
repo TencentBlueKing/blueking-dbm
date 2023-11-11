@@ -16,16 +16,8 @@ repos:
   - id: black
     args: [--config=./dbm-ui/pyproject.toml]
     language_version: "3.6"
-    exclude: >
-      (?x)^(
-          backend/packages/.*
-      )$
 - repo: https://github.com/PyCQA/flake8
   rev: 3.8.0
   hooks:
   - id: flake8
     args: [--config=./dbm-ui/backend/.flake8]
-    exclude: >
-      (?x)^(
-          backend/packages/.*
-      )$

@@ -18,7 +18,6 @@ from django.utils.translation import ugettext as _
 from backend.db_meta.enums import InstanceRole
 from backend.flow.consts import TBinlogDumperAddType
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
-from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import build_repl_by_manual_input_sub_flow
 from backend.flow.engine.bamboo.scene.tbinlogdumper.common.common_sub_flow import (
     add_tbinlogdumper_sub_flow,
     full_sync_sub_flow,

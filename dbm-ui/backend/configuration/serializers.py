@@ -15,7 +15,7 @@ from rest_framework import serializers
 from backend.bk_web.constants import LEN_NORMAL, LEN_SHORT
 from backend.bk_web.serializers import AuditedSerializer
 from backend.configuration import mock_data
-from backend.configuration.constants import DEFAULT_SETTINGS, DBType
+from backend.configuration.constants import DBType
 from backend.configuration.mock_data import BIZ_SETTINGS_DATA, PASSWORD_POLICY
 from backend.configuration.models.function_controller import FunctionController
 from backend.configuration.models.ip_whitelist import IPWhitelist

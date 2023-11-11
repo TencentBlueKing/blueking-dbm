@@ -24,10 +24,8 @@ class MySQLHAModifyClusterPhaseService(BaseService):
     def _execute(self, data, parent_data):
         kwargs = data.get_one_of_inputs("kwargs")
         trans_data = data.get_one_of_inputs("trans_data")
-        global_data = data.get_one_of_inputs("global_data")
 
         cluster_ids = trans_data.cluster_ids
-
         Cluster.objects.filter(id__in=cluster_ids).update(phase=ClusterPhase.ONLINE.value)
         ProxyInstance.objects.filter(cluster__in=cluster_ids).update(phase=InstancePhase.ONLINE.value)
         StorageInstance.objects.filter(cluster__in=cluster_ids).update(phase=InstancePhase.ONLINE.value)

@@ -20,7 +20,6 @@ from backend import env
 from backend.components import BKMonitorV3Api
 from backend.configuration.constants import DBType
 from backend.db_monitor.constants import TPLS_ALARM_DIR, TargetLevel, TargetPriority
-from backend.db_monitor.models import RuleTemplate
 
 logger = logging.getLogger("root")
 

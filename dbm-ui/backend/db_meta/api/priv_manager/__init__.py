@@ -12,3 +12,5 @@ from . import tendbcluster, tendbha, tendbsingle
 from .biz_clusters import biz_clusters
 from .cluster_instances import cluster_instances
 from .instance_detail import instance_detail
+
+__all__ = [tendbcluster, tendbha, tendbsingle, biz_clusters, cluster_instances, instance_detail]

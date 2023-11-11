@@ -13,8 +13,7 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from backend.db_meta.enums import ClusterType
-from backend.db_meta.models import Cluster
-from backend.db_services.mysql.sql_import.constants import BKREPO_SQLFILE_PATH, SQLCharset
+from backend.db_services.mysql.sql_import import constants
 from backend.flow.engine.controller.mysql import MySQLController
 from backend.ticket import builders
 from backend.ticket.builders.mysql.base import BaseMySQLTicketFlowBuilder, MySQLBaseOperateDetailSerializer
@@ -54,7 +53,7 @@ class MysqlOpenAreaParamBuilder(builders.FlowParamBuilder):
 
     def format_ticket_data(self):
         # 字符集先默认为default
-        self.ticket_data["charset"] = SQLCharset.DEFAULT.value
+        self.ticket_data["charset"] = constants.SQLCharset.DEFAULT.value
         self.ticket_data["source_cluster"] = self.ticket_data.pop("cluster_id")
         self.ticket_data["target_clusters"] = self.ticket_data.pop("config_data")
         for info in self.ticket_data["target_clusters"]:

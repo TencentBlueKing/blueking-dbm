@@ -27,7 +27,6 @@ from backend.db_meta.models import Spec
 from backend.db_services.dbresource.exceptions import ResourceApplyException, ResourceApplyInsufficientException
 from backend.db_services.ipchooser.constants import CommonEnum
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
-from backend.tests.mock_data import ticket
 from backend.ticket import constants
 from backend.ticket.constants import AffinityEnum, FlowCallbackType, FlowType, ResourceApplyErrCode, TodoType
 from backend.ticket.flow_manager.base import BaseTicketFlow

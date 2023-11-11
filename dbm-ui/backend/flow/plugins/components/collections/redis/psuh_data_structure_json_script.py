@@ -21,18 +21,12 @@ from pipeline.component_framework.component import Component
 from pipeline.core.flow.activity import Service
 
 import backend.flow.utils.redis.redis_context_dataclass as flow_context
-from backend import env
 from backend.components import JobApi
 from backend.core import consts
 from backend.flow.consts import ConfigDefaultEnum
 from backend.flow.models import FlowNode
 from backend.flow.plugins.components.collections.common.base_service import BkJobService
-from backend.flow.utils.redis.redis_script_template import (
-    redis_actuator_template,
-    redis_data_structure_actuator_template,
-    redis_data_structure_payload_template,
-    redis_fast_execute_script_common_kwargs,
-)
+from backend.flow.utils.redis.redis_script_template import redis_data_structure_payload_template
 from backend.ticket.constants import TicketType
 
 logger = logging.getLogger("json")

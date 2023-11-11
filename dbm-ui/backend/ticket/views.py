@@ -20,7 +20,7 @@ from rest_framework.response import Response
 
 from backend import env
 from backend.bk_web import viewsets
-from backend.bk_web.swagger import PaginatedResponseSwaggerAutoSchema, ResponseSwaggerAutoSchema
+from backend.bk_web.swagger import PaginatedResponseSwaggerAutoSchema, common_swagger_auto_schema
 from backend.configuration.models import DBAdministrator
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.iam_app.handlers.drf_perm import TicketIAMPermission
@@ -185,7 +185,7 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
 
         return super().retrieve(request, *args, **kwargs)
 
-    @swagger_auto_schema(
+    @common_swagger_auto_schema(
         operation_summary=_("单据列表"),
         auto_schema=PaginatedResponseSwaggerAutoSchema,
         tags=[TICKET_TAG],
@@ -195,18 +195,16 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
         resp.data["results"] = TicketHandler.add_related_object(resp.data["results"])
         return resp
 
-    @swagger_auto_schema(
+    @common_swagger_auto_schema(
         operation_summary=_("创建单据"),
-        auto_schema=ResponseSwaggerAutoSchema,
         responses={status.HTTP_200_OK: TicketSerializer(label=_("创建单据"))},
         tags=[TICKET_TAG],
     )
     def create(self, request, *args, **kwargs):
         return super().create(request, *args, **kwargs)
 
-    @swagger_auto_schema(
+    @common_swagger_auto_schema(
         operation_summary=_("获取单据流程"),
-        auto_schema=ResponseSwaggerAutoSchema,
         responses={status.HTTP_200_OK: TicketFlowSerializer(label=_("流程信息"), many=True)},
         tags=[TICKET_TAG],
     )
@@ -217,10 +215,9 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
         serializer = self.get_serializer(ticket.flows, many=True)
         return Response(serializer.data)
 
-    @swagger_auto_schema(
+    @common_swagger_auto_schema(
         operation_summary=_("单据回调"),
         request_body=serializers.Serializer(),
-        auto_schema=ResponseSwaggerAutoSchema,
         tags=[TICKET_TAG],
     )
     @action(methods=["POST"], detail=True, permission_classes=[AllowAny])
@@ -230,10 +227,9 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
         manager.run_next_flow()
         return Response()
 
-    @swagger_auto_schema(
+    @common_swagger_auto_schema(
         operation_summary=_("单据流程重试"),
         request_body=RetryFlowSLZ(),
-        auto_schema=ResponseSwaggerAutoSchema,
         tags=[TICKET_TAG],
     )
     @action(methods=["POST"], detail=True, serializer_class=RetryFlowSLZ)
@@ -244,7 +240,7 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
         TicketFlowManager(ticket=ticket).get_ticket_flow_cls(flow_instance.flow_type)(flow_instance).retry()
         return Response()
 
-    @swagger_auto_schema(
+    @common_swagger_auto_schema(
         operation_summary=_("获取单据类型列表"),
         query_serializer=TicketTypeSLZ(),
         responses={status.HTTP_200_OK: TicketTypeResponseSLZ(many=True)},
@@ -259,10 +255,9 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
                 ticket_type_list.append({"key": choice[0], "value": choice[1]})
         return Response(ticket_type_list)
 
-    @swagger_auto_schema(
+    @common_swagger_auto_schema(
         operation_summary=_("节点列表"),
         query_serializer=GetNodesSLZ(),
-        auto_schema=ResponseSwaggerAutoSchema,
         tags=[TICKET_TAG],
     )
     @action(methods=["GET"], detail=True, serializer_class=GetNodesSLZ)
@@ -272,7 +267,7 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
         ticket = self.get_object()
 
         validated_data = self.params_validate(self.get_serializer_class())
-        role, keyword, bk_biz_id = validated_data["role"], validated_data.get("keyword"), validated_data["bk_biz_id"]
+        role, keyword = validated_data["role"], validated_data.get("keyword")
         role_nodes = ticket.details["nodes"].get(role, [])
         instances_hash = {role_node["bk_host_id"]: role_node.get("instance_num", 1) for role_node in role_nodes}
         role_host_ids = [role_node["bk_host_id"] for role_node in role_nodes]
@@ -288,10 +283,9 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
 
         return Response(hosts)
 
-    @swagger_auto_schema(
+    @common_swagger_auto_schema(
         operation_summary=_("待办单据列表"),
         query_serializer=GetTodosSLZ(),
-        auto_schema=ResponseSwaggerAutoSchema,
         tags=[TICKET_TAG],
     )
     @action(methods=["GET"], detail=False, serializer_class=GetTodosSLZ)
@@ -327,7 +321,7 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
         serializer.data["results"] = TicketHandler.add_related_object(serializer.data["results"])
         return Response(serializer.data)
 
-    @swagger_auto_schema(
+    @common_swagger_auto_schema(
         operation_summary=_("待办处理"),
         request_body=TodoOperateSerializer(),
         responses={status.HTTP_200_OK: TodoSerializer()},
@@ -348,10 +342,9 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
 
         return Response(TodoSerializer(ticket.todo_of_ticket.all(), many=True).data)
 
-    @swagger_auto_schema(
+    @common_swagger_auto_schema(
         operation_summary=_("待办单据数"),
         query_serializer=CountTicketSLZ(),
-        auto_schema=ResponseSwaggerAutoSchema,
         tags=[TICKET_TAG],
     )
     @action(methods=["GET"], detail=False, serializer_class=CountTicketSLZ)
@@ -372,10 +365,9 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
 
         return Response(my_tickets.count())
 
-    @swagger_auto_schema(
+    @common_swagger_auto_schema(
         operation_summary=_("查询集群变更单据事件"),
         query_serializer=ClusterModifyOpSerializer(),
-        auto_schema=ResponseSwaggerAutoSchema,
         tags=[TICKET_TAG],
     )
     @action(methods=["GET"], detail=False, serializer_class=ClusterModifyOpSerializer)
@@ -408,10 +400,9 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
         op_records_page = self.paginate_queryset(op_records_info)
         return self.get_paginated_response(op_records_page)
 
-    @swagger_auto_schema(
+    @common_swagger_auto_schema(
         operation_summary=_("查询集群实例变更单据事件"),
         query_serializer=InstanceModifyOpSerializer(),
-        auto_schema=ResponseSwaggerAutoSchema,
         tags=[TICKET_TAG],
     )
     @action(methods=["GET"], detail=False, serializer_class=InstanceModifyOpSerializer)
@@ -444,10 +435,9 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
         op_records_page = self.paginate_queryset(op_records_info)
         return self.get_paginated_response(op_records_page)
 
-    @swagger_auto_schema(
+    @common_swagger_auto_schema(
         operation_summary=_("快速部署云区域组件"),
         query_serializer=FastCreateCloudComponentSerializer(),
-        auto_schema=ResponseSwaggerAutoSchema,
         tags=[TICKET_TAG],
     )
     @action(methods=["POST"], detail=False, serializer_class=FastCreateCloudComponentSerializer)

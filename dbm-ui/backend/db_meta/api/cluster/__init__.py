@@ -27,3 +27,23 @@ from . import (
     tendisssd,
 )
 from .apis import domain_exists, query_instances
+
+__all__ = [
+    es,
+    hdfs,
+    influxdb,
+    kafka,
+    mongocluster,
+    mongorepset,
+    nosqlcomm,
+    pulsar,
+    riak,
+    tendbha,
+    tendbsingle,
+    tendiscache,
+    tendispluscluster,
+    tendissingle,
+    tendisssd,
+    domain_exists,
+    query_instances,
+]

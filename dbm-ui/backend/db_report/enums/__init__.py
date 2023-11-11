@@ -17,6 +17,12 @@ from .redisbackup_check_sub_type import RedisBackupCheckSubType
 
 SWAGGER_TAG = _("巡检报告")
 
+__all__ = [
+    MetaCheckSubType,
+    MysqlBackupCheckSubType,
+    RedisBackupCheckSubType,
+]
+
 
 class ReportFieldFormat(str, StructuredEnum):
     TEXT = EnumField("text", _("文本渲染"))

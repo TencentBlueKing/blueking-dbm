@@ -15,11 +15,7 @@ from rest_framework.response import Response
 
 from backend.bk_web import viewsets
 from backend.bk_web.pagination import AuditedLimitOffsetPagination
-from backend.bk_web.swagger import (
-    PaginatedResponseSwaggerAutoSchema,
-    ResponseSwaggerAutoSchema,
-    common_swagger_auto_schema,
-)
+from backend.bk_web.swagger import PaginatedResponseSwaggerAutoSchema, common_swagger_auto_schema
 from backend.configuration.models.ip_whitelist import IPWhitelist
 from backend.configuration.serializers import (
     DeleteIPWhitelistSerializer,
@@ -77,7 +73,6 @@ class IPWhitelistViewSet(viewsets.AuditedModelViewSet):
 
     @common_swagger_auto_schema(
         operation_summary=_("创建IP白名单"),
-        auto_schema=ResponseSwaggerAutoSchema,
         responses={status.HTTP_200_OK: IPWhitelistSerializer(label=_("创建IP白名单"))},
         tags=[SWAGGER_TAG],
     )
@@ -86,7 +81,6 @@ class IPWhitelistViewSet(viewsets.AuditedModelViewSet):
 
     @common_swagger_auto_schema(
         operation_summary=_("更新IP白名单"),
-        auto_schema=ResponseSwaggerAutoSchema,
         responses={status.HTTP_200_OK: IPWhitelistSerializer(label=_("更新IP白名单"))},
         tags=[SWAGGER_TAG],
     )
@@ -95,7 +89,6 @@ class IPWhitelistViewSet(viewsets.AuditedModelViewSet):
 
     @common_swagger_auto_schema(
         operation_summary=_("删除IP白名单"),
-        auto_schema=ResponseSwaggerAutoSchema,
         responses={status.HTTP_200_OK: IPWhitelistSerializer(label=_("更新IP白名单"))},
         tags=[SWAGGER_TAG],
     )

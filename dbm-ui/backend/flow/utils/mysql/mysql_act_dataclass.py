@@ -12,8 +12,6 @@ specific language governing permissions and limitations under the License.
 from dataclasses import dataclass, field
 from typing import Any, Optional
 
-from backend.configuration.constants import DBType
-from backend.db_meta.enums import ClusterType
 from backend.env import BACKUP_DOWNLOAD_USER
 from backend.flow.consts import DBA_ROOT_USER, DnsOpType, MediumFileTypeEnum
 from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload

@@ -15,7 +15,6 @@ from typing import Dict, List
 from django.db import models
 
 from backend.bk_web.models import AuditedModel
-from backend.components import DnsApi
 from backend.db_meta.enums import ClusterEntryRole, ClusterEntryType
 from backend.db_meta.models import Cluster
 

@@ -11,7 +11,6 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import ugettext as _
 from pipeline.component_framework.component import Component
 
-import backend.flow.utils.mysql.mysql_context_dataclass as flow_context
 from backend.flow.plugins.components.collections.common.base_service import BaseService
 from backend.ticket.models import TicketResultRelation
 
@@ -19,10 +18,7 @@ from backend.ticket.models import TicketResultRelation
 class MySQLLinkBackupIdBillIdService(BaseService):
     def _execute(self, data, parent_data) -> bool:
         kwargs = data.get_one_of_inputs("kwargs")
-        trans_data = data.get_one_of_inputs("trans_data")
         global_data = data.get_one_of_inputs("global_data")
-
-        # self.log_info("[{}] backup response: {}".format(kwargs["node_name"], trans_data.backup_report_response))
 
         backup_id = global_data["backup_id"]  # trans_data.backup_report_response["report_status"]["backup_id"]
         self.log_info(_("[{}] 备份 id: {}").format(kwargs["node_name"], backup_id))

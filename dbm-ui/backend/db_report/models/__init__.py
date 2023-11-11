@@ -12,3 +12,11 @@ from .checksum_check_report import ChecksumCheckReport, ChecksumInstance
 from .meta_check_report import MetaCheckReport
 from .mysqlbackup_check_report import MysqlBackupCheckReport
 from .redisbackup_check_report import RedisBackupCheckReport
+
+__all__ = [
+    ChecksumCheckReport,
+    ChecksumInstance,
+    MetaCheckReport,
+    MysqlBackupCheckReport,
+    RedisBackupCheckReport,
+]

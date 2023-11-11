@@ -12,7 +12,6 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
-from backend.db_meta.models import Cluster
 from backend.flow.engine.controller.mysql import MySQLController
 from backend.ticket import builders
 from backend.ticket.builders.mysql.base import (
@@ -20,8 +19,7 @@ from backend.ticket.builders.mysql.base import (
     DBTableField,
     MySQLBaseOperateDetailSerializer,
 )
-from backend.ticket.constants import FlowRetryType, FlowType, TicketType
-from backend.ticket.models import Flow
+from backend.ticket.constants import TicketType
 
 
 class InitPartitionSerializer(serializers.Serializer):

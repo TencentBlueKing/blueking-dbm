@@ -12,7 +12,6 @@ from django.db import models
 from django.utils.translation import ugettext_lazy as _
 
 from backend.bk_web.models import AuditedModel
-from backend.constants import DEFAULT_BK_CLOUD_ID
 
 
 class TendbOpenAreaConfig(AuditedModel):

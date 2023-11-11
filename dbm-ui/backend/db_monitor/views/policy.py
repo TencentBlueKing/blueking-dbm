@@ -120,20 +120,9 @@ class MonitorPolicyListFilter(filters.FilterSet):
 class MonitorPolicyViewSet(AuditedModelViewSet):
     """监控策略管理"""
 
-    queryset = MonitorPolicy.objects.order_by("-create_at")
-
+    queryset = MonitorPolicy.objects.order_by("-update_at")
     http_method_names = ["get", "post", "delete"]
-
-    # filter_fields = {
-    #     "name": ["exact", "contains"],
-    #     "bk_biz_id": ["exact", "in"],
-    #     "db_type": ["exact", "in"],
-    #     "is_enabled": ["exact"],
-    #     "policy_status": ["exact", "in"],
-    #     "create_at": ["lte", "gte"],
-    # }
     filter_class = MonitorPolicyListFilter
-    ordering_fields = ("-create_at",)
 
     def _get_custom_permissions(self):
         return [DBManageIAMPermission()]

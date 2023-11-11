@@ -30,7 +30,6 @@ pytestmark = pytest.mark.django_db
 class TestHandler:
     @patch("backend.db_meta.api.machine.apis.CCApi", CCApiMock())
     @patch("backend.db_meta.models.app.CCApi", CCApiMock())
-    @patch("backend.db_meta.api.common.common.CCApi", CCApiMock())
     @patch("backend.flow.utils.cc_manage.CCApi", CCApiMock())
     @patch("backend.flow.utils.cc_manage.ResourceQueryHelper", ResourceQueryHelperMock())
     def test_create_success(self, init_db_module, create_city):

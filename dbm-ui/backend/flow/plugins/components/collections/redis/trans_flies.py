@@ -38,7 +38,6 @@ class TransFileService(BkJobService):
         执行传输文件的原子任务
         """
         kwargs = data.get_one_of_inputs("kwargs")
-        global_data = data.get_one_of_inputs("global_data")
         trans_data = data.get_one_of_inputs("trans_data")
 
         if trans_data is None or trans_data == "${trans_data}":

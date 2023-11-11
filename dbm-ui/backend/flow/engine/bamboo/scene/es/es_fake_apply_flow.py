@@ -15,7 +15,7 @@ from typing import Dict, Optional
 from django.utils.translation import ugettext as _
 
 from backend.configuration.constants import DBType
-from backend.flow.consts import ES_DEFAULT_INSTANCE_NUM, ManagerDefaultPort, ManagerOpType, ManagerServiceType
+from backend.flow.consts import ManagerDefaultPort, ManagerOpType, ManagerServiceType
 from backend.flow.engine.bamboo.scene.common.builder import Builder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.es.es_flow import EsFlow, get_node_in_ticket_preferred_hot

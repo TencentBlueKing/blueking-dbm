@@ -18,7 +18,7 @@ from django.db.models import QuerySet
 from backend.configuration.models import SystemSettings
 from backend.constants import CommonInstanceLabels
 from backend.db_meta.enums import AccessLayer
-from backend.db_meta.models import AppCache, Cluster, ClusterMonitorTopo, Machine, ProxyInstance, StorageInstance
+from backend.db_meta.models import AppCache, Cluster, ClusterMonitorTopo, ProxyInstance, StorageInstance
 from backend.db_meta.models.cluster_monitor import INSTANCE_MONITOR_PLUGINS
 from backend.exceptions import ValidationError
 from backend.flow.utils.cc_manage import CcManage

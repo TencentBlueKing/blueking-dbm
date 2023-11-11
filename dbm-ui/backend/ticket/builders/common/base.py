@@ -23,7 +23,7 @@ from backend.db_meta.models import Cluster, ProxyInstance, StorageInstance
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.db_services.mysql.cluster.handlers import ClusterServiceHandler
 from backend.db_services.mysql.remote_service.handlers import RemoteServiceHandler
-from backend.flow.utils.mysql.db_table_filter import DbTableFilter
+from backend.flow.utils.mysql.db_table_filter.filter import DbTableFilter
 from backend.ticket import builders
 from backend.ticket.builders import BuilderFactory
 from backend.ticket.builders.common.constants import MAX_DOMAIN_LEN_LIMIT

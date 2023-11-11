@@ -13,15 +13,12 @@ import copy
 import json
 import re
 
-from django.utils.translation import ugettext as _
 from jinja2 import Environment
 from pipeline.component_framework.component import Component
-from pipeline.core.flow.activity import StaticIntervalGenerator
 
 from backend import env
 from backend.components import JobApi
-from backend.configuration.constants import DBType
-from backend.flow.consts import DBA_ROOT_USER, SUCCESS_LIST, WriteContextOpType
+from backend.flow.consts import DBA_ROOT_USER
 from backend.flow.plugins.components.collections.common.base_service import BkJobService
 from backend.flow.utils.script_template import fast_execute_script_common_kwargs
 
@@ -102,7 +99,7 @@ class MySQLOsInit(BkJobService):
         target_ip_info = [{"bk_cloud_id": kwargs["bk_cloud_id"], "ip": ip} for ip in exec_ips]
         body = {
             "bk_biz_id": env.JOB_BLUEKING_BIZ_ID,
-            "task_name": f"DBM_MySQL_OS_Init",
+            "task_name": "DBM_MySQL_OS_Init",
             "script_content": str(base64.b64encode(script_content.encode("utf-8")), "utf-8"),
             "script_language": 1,
             "target_server": {"ip_list": target_ip_info},
@@ -233,7 +230,7 @@ class SysInit(BkJobService):
         target_ip_info = [{"bk_cloud_id": kwargs["bk_cloud_id"], "ip": ip} for ip in exec_ips]
         body = {
             "bk_biz_id": env.JOB_BLUEKING_BIZ_ID,
-            "task_name": f"DBM-Init-Mysql-Os",
+            "task_name": "DBM-Init-Mysql-Os",
             "script_content": str(base64.b64encode(script_content.encode("utf-8")), "utf-8"),
             "script_language": 1,
             "target_server": {"ip_list": target_ip_info},
@@ -274,7 +271,7 @@ class GetOsSysParam(BkJobService):
         target_ip_info = [{"bk_cloud_id": kwargs["bk_cloud_id"], "ip": ip} for ip in exec_ips]
         body = {
             "bk_biz_id": env.JOB_BLUEKING_BIZ_ID,
-            "task_name": f"DBM-Get-Os-Sys-Param",
+            "task_name": "DBM-Get-Os-Sys-Param",
             "script_content": str(base64.b64encode(script_content.encode("utf-8")), "utf-8"),
             "script_language": 1,
             "target_server": {"ip_list": target_ip_info},

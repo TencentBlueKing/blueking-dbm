@@ -9,18 +9,15 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
-from django.core.cache import cache
 from django.utils.translation import ugettext_lazy as _
 
 from backend.configuration.constants import DBType
-from backend.db_services.mysql.permission.exceptions import CloneDataHasExpiredException
 from backend.ticket import builders
 from backend.ticket.builders.mysql.mysql_clone_rules import (
     MySQLClientCloneRulesFlowBuilder,
     MySQLCloneRulesFlowParamBuilder,
     MySQLCloneRulesSerializer,
 )
-from backend.ticket.builders.tendbcluster.base import BaseTendbTicketFlowBuilder
 from backend.ticket.constants import TicketType
 
 

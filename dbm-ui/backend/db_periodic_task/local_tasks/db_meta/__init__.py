@@ -12,3 +12,10 @@ from .db_meta_check import db_meta_check_task
 from .sync_cluster_stat import sync_cluster_stat_from_monitor
 from .update_app_cache import update_app_cache
 from .update_host_dbmeta import update_host_dbmeta
+
+__all__ = [
+    "db_meta_check_task",
+    "sync_cluster_stat_from_monitor",
+    "update_app_cache",
+    "update_host_dbmeta",
+]

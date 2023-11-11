@@ -10,23 +10,17 @@ specific language governing permissions and limitations under the License.
 """
 import logging.config
 from dataclasses import asdict
-from typing import Dict, Optional
+from typing import Dict
 
-from bamboo_engine.builder import Data, ExclusiveGateway, NodeOutput, ServiceActivity, Var
 from django.utils.translation import ugettext as _
 
 from backend.configuration.constants import DBType
-from backend.db_meta.enums import InstanceStatus
-from backend.db_meta.models import AppCache
-from backend.flow.consts import DEFAULT_MONITOR_TIME, DEFAULT_REDIS_SYSTEM_CMDS
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.plugins.components.collections.redis.exec_actuator_script import ExecuteDBActuatorScriptComponent
-from backend.flow.plugins.components.collections.redis.redis_db_meta import RedisDBMetaComponent
 from backend.flow.plugins.components.collections.redis.trans_flies import TransFileComponent
 from backend.flow.utils.redis.redis_act_playload import RedisActPayload
 from backend.flow.utils.redis.redis_context_dataclass import ActKwargs
-from backend.flow.utils.redis.redis_db_meta import RedisDBMeta
 
 logger = logging.getLogger("flow")
 
@@ -42,8 +36,6 @@ def RedisLocalRepairAtomJob(root_id, ticket_data, act_kwargs: ActKwargs, params:
     """
     exec_ip = params["ip"]
     sub_pipeline = SubBuilder(root_id=root_id, data=ticket_data)
-    app = AppCache.get_app_attr(act_kwargs.cluster["bk_biz_id"], "db_app_abbr")
-    app_name = AppCache.get_app_attr(act_kwargs.cluster["bk_biz_id"], "bk_biz_name")
 
     # 下发介质包 （这里可能机器真的挂了，也可能是暂时的网络不通） 需要有一段时间内的重试
     trans_files = GetFileList(db_type=DBType.Redis)
@@ -66,7 +58,7 @@ def RedisLocalRepairAtomJob(root_id, ticket_data, act_kwargs: ActKwargs, params:
     act_kwargs.cluster["watch_seconds"] = 600
     act_kwargs.cluster["last_io_second_ago"] = params["last_io_second_ago"]
     act_kwargs.get_redis_payload_func = RedisActPayload.redis_checksync_4_scene.__name__
-    check_sync_act = sub_pipeline.add_act(
+    sub_pipeline.add_act(
         act_name=_("Redis-302-{}-检查同步状态").format(exec_ip),
         act_component_code=ExecuteDBActuatorScriptComponent.code,
         kwargs=asdict(act_kwargs),

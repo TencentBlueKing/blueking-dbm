@@ -15,7 +15,6 @@ from rest_framework import serializers
 
 from backend.configuration.constants import DBType
 from backend.constants import DATETIME_PATTERN
-from backend.db_meta.enums import ClusterType, InstanceInnerRole
 from backend.db_services.mysql.sql_import import mock_data
 from backend.db_services.mysql.sql_import.constants import (
     BKREPO_SQLFILE_PATH,

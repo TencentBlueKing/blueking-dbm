@@ -10,9 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 
 
-from dataclasses import dataclass, field
-
-from django.utils.translation import ugettext_lazy as _
+from dataclasses import dataclass
 
 # 等待切换成功的机器列表
 REDIS_SWITCH_WAITER = {}

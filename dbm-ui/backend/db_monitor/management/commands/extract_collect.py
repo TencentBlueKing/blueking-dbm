@@ -17,12 +17,8 @@ from typing import List
 
 from django.core.management.base import BaseCommand
 
-from backend import env
 from backend.components import BKMonitorV3Api
-from backend.db_meta.enums import MachineType
-from backend.db_meta.models.cluster_monitor import SHORT_NAMES
 from backend.db_monitor.constants import TPLS_COLLECT_DIR
-from backend.db_monitor.models import CollectTemplate
 
 logger = logging.getLogger("root")
 

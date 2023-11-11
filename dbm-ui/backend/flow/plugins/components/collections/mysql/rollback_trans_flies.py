@@ -30,7 +30,6 @@ class RollBackTransFileService(TransFileService):
         kwargs.get('file_type') 参数用来控传输模式，如果等于1，则采用服务之间的文件传输。否则都作为第三方cos原文件传输
         """
         kwargs = data.get_one_of_inputs("kwargs")
-        global_data = data.get_one_of_inputs("global_data")
         trans_data = data.get_one_of_inputs("trans_data")
         one_cluster = kwargs.get("cluster", None)
 

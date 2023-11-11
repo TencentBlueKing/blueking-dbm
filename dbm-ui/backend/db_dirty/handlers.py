@@ -17,7 +17,6 @@ from backend.components.dbresource.client import DBResourceApi
 from backend.configuration.constants import SystemSettingsEnum
 from backend.configuration.models import SystemSettings
 from backend.db_dirty.models import DirtyMachine
-from backend.db_meta.models import Machine
 from backend.db_services.ipchooser.constants import IDLE_HOST_MODULE
 from backend.db_services.ipchooser.handlers.topo_handler import TopoHandler
 from backend.flow.utils.cc_manage import CcManage

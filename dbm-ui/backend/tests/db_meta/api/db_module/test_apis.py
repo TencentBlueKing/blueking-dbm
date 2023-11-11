@@ -9,14 +9,12 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import pytest
-from mock.mock import patch
 
 from backend.db_meta import api
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.exceptions import DbModuleExistException
-from backend.db_meta.models import BKModule, DBModule
+from backend.db_meta.models import DBModule
 from backend.tests.mock_data import constant
-from backend.tests.mock_data.components.cc import CCApiMock
 
 pytestmark = pytest.mark.django_db
 

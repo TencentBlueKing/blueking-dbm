@@ -13,7 +13,6 @@ import logging
 from django.db import transaction
 from django.utils.translation import ugettext as _
 
-from backend.configuration.constants import DBType
 from backend.db_meta.exceptions import DBMetaException
 from backend.db_meta.models import Cluster, ClusterEntry, StorageInstanceTuple
 from backend.db_services.mysql.open_area.models import TendbOpenAreaConfig

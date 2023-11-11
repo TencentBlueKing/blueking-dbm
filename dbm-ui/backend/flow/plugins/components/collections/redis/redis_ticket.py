@@ -8,7 +8,6 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-import copy
 import logging
 from typing import List
 
@@ -20,7 +19,7 @@ from backend.configuration.constants import DBType
 from backend.configuration.models.dba import DBAdministrator
 from backend.flow.plugins.components.collections.common.base_service import BaseService
 from backend.ticket.builders import BuilderFactory
-from backend.ticket.constants import TicketStatus, TicketType
+from backend.ticket.constants import TicketStatus
 from backend.ticket.flow_manager.manager import TicketFlowManager
 from backend.ticket.models import Ticket
 
@@ -34,15 +33,13 @@ class RedisTicketService(BaseService):
 
     def _execute(self, data, parent_data) -> bool:
         kwargs = data.get_one_of_inputs("kwargs")
-        global_data = data.get_one_of_inputs("global_data")
-        trans_data = data.get_one_of_inputs("trans_data")
 
-        logger.info(
+        self.log_info(
             "create ticket for cluster {} , details : {}".format(kwargs["immute_domain"], kwargs["ticket_details"])
         )
-        redisDBA = DBAdministrator.objects.get(bk_biz_id=kwargs["bk_biz_id"], db_type=DBType.Redis.value)
+        redis_dba = DBAdministrator.objects.get(bk_biz_id=kwargs["bk_biz_id"], db_type=DBType.Redis.value)
         ticket = Ticket.objects.create(
-            creator=redisDBA.users[0],
+            creator=redis_dba.users[0],
             bk_biz_id=kwargs["bk_biz_id"],
             ticket_type=kwargs["ticket_type"],
             group=DBType.Redis.value,
@@ -58,7 +55,7 @@ class RedisTicketService(BaseService):
         builder.init_ticket_flows()
         TicketFlowManager(ticket=ticket).run_next_flow()
 
-        logger.info("succ create ticket for cluster {} : {}".format(kwargs["immute_domain"], ticket))
+        self.log_info("succ create ticket for cluster {} : {}".format(kwargs["immute_domain"], ticket))
 
         return True
 

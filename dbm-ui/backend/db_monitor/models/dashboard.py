@@ -12,7 +12,7 @@ specific language governing permissions and limitations under the License.
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
-from backend.bk_web.constants import LEN_LONG, LEN_MIDDLE, LEN_NORMAL, LEN_SHORT
+from backend.bk_web.constants import LEN_LONG, LEN_MIDDLE, LEN_NORMAL
 from backend.bk_web.models import AuditedModel
 from backend.db_meta.enums import ClusterType
 

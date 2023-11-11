@@ -14,7 +14,6 @@ from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
 from backend.db_meta.enums.instance_role import InstanceRole
-from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.hdfs import HdfsController
 from backend.ticket import builders
 from backend.ticket.builders.common.bigdata import (

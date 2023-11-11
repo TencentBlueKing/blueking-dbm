@@ -11,7 +11,6 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import ugettext as _
 from pipeline.component_framework.component import Component
 
-import backend.flow.utils.mysql.mysql_context_dataclass as flow_context
 from backend.components import DRSApi
 from backend.constants import IP_PORT_DIVIDER
 from backend.flow.plugins.components.collections.common.base_service import BaseService

@@ -14,7 +14,7 @@ FAILED_COUNT=$[$FAILED_COUNT+$?]
 ${SCRIPT_DIR}/install.sh
 FAILED_COUNT=$[$FAILED_COUNT+$?]
 
-${SCRIPT_DIR}/code_quality.sh
+${SCRIPT_DIR}/unit_test.sh
 FAILED_COUNT=$[$FAILED_COUNT+$?]
 
 echo "命令执行失败数量：$FAILED_COUNT"

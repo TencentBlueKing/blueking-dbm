@@ -15,7 +15,7 @@ from pipeline.component_framework.component import Component
 from pipeline.core.flow.activity import StaticIntervalGenerator
 
 from backend.components.mysql_backup.client import MysqlBackupApi
-from backend.flow.plugins.components.collections.common.base_service import BaseService, BkJobService
+from backend.flow.plugins.components.collections.common.base_service import BkJobService
 
 logger = logging.getLogger("flow")
 

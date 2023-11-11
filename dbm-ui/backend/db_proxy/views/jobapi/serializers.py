@@ -11,7 +11,6 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
-from backend.constants import DATETIME_PATTERN
 from backend.db_proxy.views import mock_data
 from backend.db_proxy.views.serialiers import BaseProxyPassSerialier
 

@@ -101,7 +101,7 @@ class TenDBClusterApplyResourceParamBuilder(builders.ResourceApplyParamBuilder):
         resource_spec = next_flow.details["ticket_data"]["resource_spec"]
 
         # 格式化后台角色信息
-        resource_spec["remote"], __ = resource_spec.pop("master"), resource_spec.pop("slave")
+        resource_spec["remote"] = resource_spec.pop("master")
         next_flow.details["ticket_data"].update(
             spider_ip_list=nodes["spider"], remote_group=nodes["backend_group"], resource_spec=resource_spec
         )

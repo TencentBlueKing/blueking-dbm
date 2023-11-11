@@ -13,9 +13,6 @@ from typing import Dict, List
 
 from django.db.models import Q, QuerySet
 
-from backend import env
-from backend.components import CCApi
-
 logger = logging.getLogger("root")
 
 

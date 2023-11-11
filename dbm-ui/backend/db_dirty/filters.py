@@ -13,7 +13,6 @@ from django.utils.translation import ugettext_lazy as _
 from django_filters import rest_framework as filters
 
 from backend.db_dirty.models import DirtyMachine
-from backend.ticket.constants import TicketType
 
 
 class DirtyMachineFilter(filters.FilterSet):

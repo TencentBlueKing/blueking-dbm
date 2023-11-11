@@ -120,7 +120,7 @@ class AuthorizeHandler(object):
         for future in as_completed(tasks):
             # 获取线程执行的授权结果
             task_result = future.result()
-            uid, __, index = task_result["authorize_uid"], task_result["message"], task_result["task_index"]
+            uid, index = task_result["authorize_uid"], task_result["task_index"]
 
             # 将缓存数据取出放到excel缓存数据的切片中
             data = cache.get(uid)[0]

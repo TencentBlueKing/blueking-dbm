@@ -15,9 +15,7 @@ from django.db.models import Prefetch, Q
 from django.db.models.query import QuerySet
 from django.utils.translation import ugettext_lazy as _
 
-from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.api.cluster.tendbsingle.detail import scan_cluster
-from backend.db_meta.enums import ClusterStatus
 from backend.db_meta.enums.cluster_type import ClusterType
 from backend.db_meta.models import AppCache
 from backend.db_meta.models.cluster import Cluster

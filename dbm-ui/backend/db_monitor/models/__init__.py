@@ -12,3 +12,9 @@ specific language governing permissions and limitations under the License.
 from .alarm import *
 from .collect import *
 from .dashboard import *
+
+__all__ = [
+    alarm,
+    collect,
+    dashboard,
+]

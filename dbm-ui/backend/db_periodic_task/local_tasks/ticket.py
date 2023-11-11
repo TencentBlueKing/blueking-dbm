@@ -9,7 +9,6 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 from celery.schedules import crontab
-from celery.task import periodic_task
 
 from backend.db_periodic_task.local_tasks import register_periodic_task
 from backend.ticket.tasks.ticket_tasks import TicketTask

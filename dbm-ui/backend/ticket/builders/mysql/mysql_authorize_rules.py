@@ -19,8 +19,7 @@ from backend.db_services.mysql.permission.exceptions import AuthorizeDataHasExpi
 from backend.flow.engine.controller.mysql import MySQLController
 from backend.ticket import builders
 from backend.ticket.builders.mysql.base import BaseMySQLTicketFlowBuilder
-from backend.ticket.constants import FlowRetryType, FlowType, TicketType
-from backend.ticket.models import Flow
+from backend.ticket.constants import TicketType
 
 
 class MySQLAuthorizeDataSerializer(PreCheckAuthorizeRulesSerializer):

@@ -9,7 +9,6 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 from backend.db_services.ipchooser import constants
-from backend.db_services.ipchooser.constants import IDLE_HOST_MODULE
 from backend.db_services.ipchooser.handlers.base import BaseHandler
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 
@@ -44,7 +43,7 @@ class TopoCacheManager:
         }
 
         for internal_module in idle_set.get("module") or []:
-            if not internal_module["default"] == IDLE_HOST_MODULE:
+            if not internal_module["default"] == constants.IDLE_HOST_MODULE:
                 continue
 
             idle_node.update(

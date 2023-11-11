@@ -8,7 +8,6 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-import copy
 import datetime
 import glob
 import json
@@ -19,19 +18,18 @@ from django.db import models
 from django.utils.translation import gettext_lazy as _
 
 from backend import env
-from backend.bk_web.constants import LEN_LONG, LEN_MIDDLE, LEN_NORMAL, LEN_SHORT
+from backend.bk_web.constants import LEN_MIDDLE, LEN_NORMAL
 from backend.bk_web.models import AuditedModel
 from backend.components import BKMonitorV3Api
 from backend.configuration.constants import PLAT_BIZ_ID, DBType
+from backend.db_meta.models import AppMonitorTopo
+from backend.db_monitor.constants import TPLS_COLLECT_DIR
+from backend.dbm_init.services import EXCLUDE_DB_TYPES
 
 __all__ = [
     "CollectTemplate",
     "CollectInstance",
 ]
-
-from backend.db_meta.models import AppMonitorTopo
-from backend.db_monitor.constants import TPLS_COLLECT_DIR
-from backend.dbm_init.services import EXCLUDE_DB_TYPES
 
 logger = logging.getLogger("root")
 

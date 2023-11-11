@@ -12,9 +12,9 @@ specific language governing permissions and limitations under the License.
 import logging.config
 from collections import defaultdict
 from copy import deepcopy
-from dataclasses import asdict
 from typing import Any, Dict, Optional
 
+from dataclasses import asdict
 from django.utils.translation import ugettext as _
 
 from backend.components import DBConfigApi
@@ -24,23 +24,12 @@ from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta import api
 from backend.db_meta.enums import (
     DataStructureStatus,
-    DBCCModule,
-    InstanceInnerRole,
     InstanceRole,
-    InstanceStatus,
-    SyncType,
 )
 from backend.db_meta.enums.cluster_type import ClusterType
-from backend.db_meta.models import Cluster, StorageInstance, StorageInstanceTuple
+from backend.db_meta.models import Cluster
 from backend.db_services.redis.rollback.handlers import DataStructureHandler
-from backend.flow.consts import (
-    DEFAULT_DB_MODULE_ID,
-    DEFAULT_REDIS_START_PORT,
-    DEFAULT_TWEMPROXY_SEG_TOTOL_NUM,
-    ConfigTypeEnum,
-    OperateTypeEnum,
-    WriteContextOpType,
-)
+from backend.flow.consts import DEFAULT_DB_MODULE_ID, DEFAULT_REDIS_START_PORT, ConfigTypeEnum, WriteContextOpType
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.redis.atom_jobs import RedisBatchInstallAtomJob
@@ -63,7 +52,7 @@ from backend.flow.plugins.components.collections.redis.redis_db_meta import Redi
 from backend.flow.plugins.components.collections.redis.trans_flies import TransFileComponent
 from backend.flow.utils.common_act_dataclass import DownloadBackupClientKwargs
 from backend.flow.utils.redis.redis_act_playload import RedisActPayload
-from backend.flow.utils.redis.redis_context_dataclass import ActKwargs, CommonContext, RedisDataStructureContext
+from backend.flow.utils.redis.redis_context_dataclass import ActKwargs, RedisDataStructureContext
 from backend.flow.utils.redis.redis_db_meta import RedisDBMeta
 from backend.utils import time
 

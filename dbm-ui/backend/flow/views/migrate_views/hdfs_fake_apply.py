@@ -15,7 +15,7 @@ from django.utils.translation import ugettext as _
 from rest_framework.response import Response
 
 from backend.flow.engine.controller.hdfs import HdfsController
-from backend.flow.views.base import FlowTestView, MigrateFlowView
+from backend.flow.views.base import MigrateFlowView
 
 logger = logging.getLogger("root")
 

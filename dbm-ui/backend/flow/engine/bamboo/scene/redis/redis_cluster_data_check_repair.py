@@ -47,7 +47,6 @@ class RedisClusterDataCheckRepairFlow(object):
     def redis_cluster_data_check_repair_flow(self):
         redis_pipeline = Builder(root_id=self.root_id, data=self.data)
         trans_files = GetFileList(db_type=DBType.Redis)
-        bk_biz_id = self.data["bk_biz_id"]
         execution_time: dict = self.__get_exection_time()
         sub_pipelines = []
         for info in self.data["infos"]:

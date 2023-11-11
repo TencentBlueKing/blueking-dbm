@@ -16,3 +16,23 @@ from .storage_tuple import add_storage_tuple, remove_storage_tuple
 from .switch_proxy import switch_proxy
 from .switch_slave import add_slave, remove_slave, switch_slave
 from .switch_storage import change_proxy_storage_entry, change_storage_cluster_entry, switch_storage
+
+__all__ = [
+    add_proxy,
+    cluster_add_storage,
+    cluster_remove_storage,
+    create,
+    create_precheck,
+    decommission,
+    decommission_precheck,
+    scan_cluster,
+    add_storage_tuple,
+    remove_storage_tuple,
+    switch_proxy,
+    add_slave,
+    remove_slave,
+    switch_slave,
+    change_proxy_storage_entry,
+    change_storage_cluster_entry,
+    switch_storage,
+]

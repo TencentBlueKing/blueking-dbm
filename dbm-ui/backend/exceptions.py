@@ -10,7 +10,6 @@ specific language governing permissions and limitations under the License.
 """
 import logging
 
-from django.conf import settings
 from django.utils.translation import ugettext_lazy as _
 from iam import IAM
 

@@ -8,13 +8,13 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from typing import Dict, List, Optional
+from typing import List, Optional
 
 from django.db import transaction
 
 from backend.constants import DEFAULT_BK_CLOUD_ID
 from backend.db_meta.api.cluster.base.handler import ClusterHandler
-from backend.db_meta.api.cluster.nosqlcomm.decommission import decommission_backends, decommission_cluster
+from backend.db_meta.api.cluster.nosqlcomm.decommission import decommission_cluster
 from backend.db_meta.api.cluster.nosqlcomm.detail_cluster import scan_cluster
 from backend.db_meta.api.cluster.nosqlcomm.scale_tendis import make_sync_mms
 from backend.db_meta.enums import ClusterType

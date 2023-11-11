@@ -24,7 +24,7 @@ from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.components import JobApi
 from backend.db_proxy.constants import SWAGGER_TAG, ExtensionType
 from backend.db_proxy.exceptions import ProxyPassBaseException
-from backend.db_proxy.models import ClusterExtension, DBCloudProxy, DBExtension
+from backend.db_proxy.models import ClusterExtension, DBExtension
 from backend.db_proxy.nginxconf_tpl import restart_nginx_tpl
 from backend.db_proxy.views.serialiers import JobCallBackSerializer
 from backend.flow.consts import SUCCESS_LIST

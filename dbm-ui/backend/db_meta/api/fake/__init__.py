@@ -11,3 +11,10 @@ specific language governing permissions and limitations under the License.
 from .fake_tendbcluster import fake_reset_tendbcluster_cluster
 from .fake_tendbha import fake_create_tendbha_cluster, fake_reset_tendbha_cluster
 from .fake_tendbsingle import fake_create_tendbsingle
+
+__all__ = [
+    fake_reset_tendbcluster_cluster,
+    fake_create_tendbha_cluster,
+    fake_reset_tendbha_cluster,
+    fake_create_tendbsingle,
+]

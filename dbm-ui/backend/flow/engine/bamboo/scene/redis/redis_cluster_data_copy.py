@@ -28,7 +28,6 @@ from backend.db_services.redis.redis_dts.constants import (
     DTS_SWITCH_PREDIXY_PRECHECK,
     DTS_SWITCH_TWEMPROXY_PRECHECK,
     SERVERS_ADD_RESOLV_CONF,
-    SERVERS_DEL_RESOLV_CONF,
 )
 from backend.db_services.redis.redis_dts.enums import (
     DtsBillType,
@@ -254,8 +253,6 @@ class RedisClusterDataCopyFlow(object):
 
             if dts_copy_type == DtsCopyType.COPY_FROM_ROLLBACK_INSTANCE.value:
                 # 数据构造任务是否存在
-                rollback_task: TbTendisRollbackTasks = None
-                recovery_time = None
                 try:
                     recovery_time = datetime2str(info["recovery_time_point"])
                     rollback_task = TbTendisRollbackTasks.objects.get(
@@ -281,9 +278,9 @@ class RedisClusterDataCopyFlow(object):
                             "bk_cloud_id": dst_cluster.bk_cloud_id,
                         }
                     )
-                except Exception as e:
+                except Exception as err:
                     raise Exception(
-                        _("回档临时环境如何(temp_cluster_proxy:{}) ping 失败").format(rollback_task.temp_cluster_proxy)
+                        _("回档临时环境如何(temp_cluster_proxy:{}) ping 失败").format(rollback_task.temp_cluster_proxy, err)
                     )
                 try:
                     DRSApi.redis_rpc(
@@ -295,9 +292,9 @@ class RedisClusterDataCopyFlow(object):
                             "bk_cloud_id": dst_cluster.bk_cloud_id,
                         }
                     )
-                except Exception as e:
+                except Exception as err:
                     raise Exception(
-                        _("数据构造临时集群存在 redis 访问失败的情况,临时集群 redis:{}").format(rollback_task.temp_instance_range)
+                        _("数据构造临时集群存在 redis 访问失败的情况,临时集群 redis:{}, {}").format(rollback_task.temp_instance_range, err)
                     )
 
     def __get_domain_prefix_by_cluster_type(self, cluster_type: str) -> str:

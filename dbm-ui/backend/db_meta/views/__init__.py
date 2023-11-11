@@ -10,3 +10,5 @@ specific language governing permissions and limitations under the License.
 """
 
 from backend.db_meta.views import dbha, fake, meta, nosql, priv_manager
+
+__all__ = [dbha, fake, meta, nosql, priv_manager]

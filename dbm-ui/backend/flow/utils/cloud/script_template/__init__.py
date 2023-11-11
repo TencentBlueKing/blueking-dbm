@@ -14,3 +14,11 @@ from .dns_template import *
 from .drs_template import *
 from .nginx_template import *
 from .redis_dts_server_template import *
+
+__all__ = [
+    "dbha_template",
+    "dns_template",
+    "drs_template",
+    "nginx_template",
+    "redis_dts_server_template",
+]

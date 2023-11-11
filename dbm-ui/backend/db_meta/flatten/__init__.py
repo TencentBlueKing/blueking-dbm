@@ -8,8 +8,16 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from .cities import cities
-from .machine import machine
+from .cities import *
+from .machine import *
 from .proxy_instance import *
 from .storage_instance import *
 from .tendis_cluster import *
+
+__all__ = [
+    cities,
+    machine,
+    proxy_instance,
+    storage_instance,
+    tendis_cluster,
+]

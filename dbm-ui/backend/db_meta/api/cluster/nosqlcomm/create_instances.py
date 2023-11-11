@@ -12,7 +12,6 @@ import logging
 import traceback
 
 from django.db import transaction
-from django.utils.translation import gettext_lazy as _
 
 from backend.db_meta.api import machine, proxy_instance, storage_instance, storage_instance_tuple
 from backend.db_meta.enums import InstanceRole

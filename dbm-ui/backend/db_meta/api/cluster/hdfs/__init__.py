@@ -15,3 +15,5 @@ from .enable import enable
 from .replace import replace
 from .scale_up import scale_up
 from .shrink import shrink
+
+__all__ = [create, destroy, disable, enable, replace, scale_up, shrink]

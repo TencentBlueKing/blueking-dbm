@@ -8,16 +8,11 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-import logging
-import traceback
-
-from django.utils.translation import gettext_lazy as _
 
 from backend.db_meta.api import common
 from backend.db_meta.enums import ClusterEntryType
+from backend.db_meta.exceptions import CreateTendisPreCheckException, ProxyBackendNotEmptyException
 from backend.db_meta.models import Cluster, ClusterEntry, ProxyInstance, StorageInstance
-
-from ....exceptions import CreateTendisPreCheckException, ProxyBackendNotEmptyException
 
 
 def before_create_storage_precheck(storages):

@@ -20,3 +20,17 @@ from .redis_makesync import RedisMakeSyncAtomJob
 from .redis_repair import RedisLocalRepairAtomJob
 from .redis_shutdown import RedisBatchShutdownAtomJob
 from .redis_switch import RedisClusterSwitchAtomJob
+
+__all__ = [
+    "AccessManagerAtomJob",
+    "ProxyBatchInstallAtomJob",
+    "ProxyUnInstallAtomJob",
+    "RedisClusterMasterReplaceJob",
+    "RedisClusterSlaveReplaceJob",
+    "RedisDbmonAtomJob",
+    "RedisBatchInstallAtomJob",
+    "RedisMakeSyncAtomJob",
+    "RedisLocalRepairAtomJob",
+    "RedisBatchShutdownAtomJob",
+    "RedisClusterSwitchAtomJob",
+]

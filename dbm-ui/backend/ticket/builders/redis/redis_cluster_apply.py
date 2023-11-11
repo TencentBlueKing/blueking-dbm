@@ -8,7 +8,6 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-import humanize
 from django.utils.crypto import get_random_string
 from django.utils.translation import ugettext as _
 from rest_framework import serializers
@@ -16,11 +15,10 @@ from rest_framework import serializers
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Machine
 from backend.db_services.dbbase.constants import IpSource
-from backend.exceptions import ValidationError
 from backend.flow.engine.controller.redis import RedisController
 from backend.ticket import builders
 from backend.ticket.builders.common.base import CommonValidate
-from backend.ticket.builders.common.constants import MAX_DOMAIN_LEN_LIMIT, REDIS_PROXY_MIN, RedisRole
+from backend.ticket.builders.common.constants import REDIS_PROXY_MIN, RedisRole
 from backend.ticket.builders.redis.base import BaseRedisTicketFlowBuilder, RedisBasePauseParamBuilder
 from backend.ticket.constants import TicketType
 

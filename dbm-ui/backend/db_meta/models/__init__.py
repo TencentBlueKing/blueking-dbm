@@ -22,3 +22,30 @@ from .spec import SnapshotSpec, Spec
 from .storage_instance_tuple import StorageInstanceTuple
 from .storage_set_dtl import NosqlStorageSetDtl, TenDBClusterStorageSet
 from .tag import Tag
+
+__all__ = [
+    App,
+    AppCache,
+    BKCity,
+    LogicalCity,
+    Cluster,
+    CLBEntryDetail,
+    ClusterEntry,
+    PolarisEntryDetail,
+    AppMonitorTopo,
+    ClusterMonitorTopo,
+    BKModule,
+    DBModule,
+    Group,
+    GroupInstance,
+    ProxyInstance,
+    StorageInstance,
+    Machine,
+    TenDBClusterSpiderExt,
+    SnapshotSpec,
+    Spec,
+    StorageInstanceTuple,
+    NosqlStorageSetDtl,
+    TenDBClusterStorageSet,
+    Tag,
+]

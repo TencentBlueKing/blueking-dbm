@@ -22,3 +22,18 @@ from backend.db_meta.api import (
     storage_instance,
     storage_instance_tuple,
 )
+
+__all__ = [
+    cluster,
+    common,
+    db_module,
+    dbha,
+    entry,
+    fake,
+    machine,
+    meta,
+    priv_manager,
+    proxy_instance,
+    storage_instance,
+    storage_instance_tuple,
+]

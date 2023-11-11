@@ -16,7 +16,7 @@ from django.utils.translation import ugettext_lazy as _
 
 from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.api.cluster.tendbha.detail import scan_cluster
-from backend.db_meta.enums import ClusterStatus, InstanceInnerRole
+from backend.db_meta.enums import InstanceInnerRole
 from backend.db_meta.enums.cluster_type import ClusterType
 from backend.db_meta.models import AppCache
 from backend.db_meta.models.cluster import Cluster

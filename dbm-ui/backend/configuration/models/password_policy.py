@@ -15,7 +15,7 @@ from django.db import models
 from django.utils.translation import ugettext_lazy as _
 
 from backend.bk_web.constants import LEN_SHORT
-from backend.configuration.constants import INIT_PASSWORD_POLICY, DBType
+from backend.configuration.constants import INIT_PASSWORD_POLICY
 from backend.db_services.mysql.permission.constants import AccountType
 
 

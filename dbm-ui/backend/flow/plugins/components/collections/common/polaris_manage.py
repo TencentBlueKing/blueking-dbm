@@ -46,14 +46,12 @@ class RedisPolarisManageService(BaseService):
 
     def _execute(self, data, parent_data) -> bool:
         kwargs = data.get_one_of_inputs("kwargs")
-        global_data = data.get_one_of_inputs("global_data")
         trans_data = data.get_one_of_inputs("trans_data")
 
         # 传入调用结果
         dns_op_type = kwargs["polaris_op_type"]
         polaris_manager = GetPolarisManageByName(kwargs["servicename"])
 
-        result = False
         if dns_op_type == DnsOpType.CREATE:
             # 添加polaris映射,proxy扩容场景
             exec_ips = self.__get_exec_ips(kwargs=kwargs, trans_data=trans_data)

@@ -12,7 +12,6 @@ from blue_krill.data_types.enum import EnumField, StructuredEnum
 from django.utils.translation import ugettext as _
 
 # 平台业务ID
-from backend.db_services.ipchooser.constants import DEFAULT_CLOUD
 
 PLAT_BIZ_ID = 0
 

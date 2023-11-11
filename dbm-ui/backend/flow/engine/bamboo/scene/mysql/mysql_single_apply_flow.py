@@ -33,7 +33,7 @@ from backend.flow.utils.mysql.mysql_act_dataclass import (
     ExecActuatorKwargs,
 )
 from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
-from backend.flow.utils.mysql.mysql_context_dataclass import SingleApplyAutoContext, SingleApplyManualContext
+from backend.flow.utils.mysql.mysql_context_dataclass import SingleApplyManualContext
 from backend.flow.utils.mysql.mysql_db_meta import MySQLDBMeta
 
 logger = logging.getLogger("flow")

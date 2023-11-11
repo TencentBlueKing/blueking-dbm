@@ -14,7 +14,7 @@ import uuid
 from rest_framework.response import Response
 
 from backend.flow.engine.controller.pulsar import PulsarController
-from backend.flow.views.base import FlowTestView, MigrateFlowView
+from backend.flow.views.base import MigrateFlowView
 
 logger = logging.getLogger("root")
 

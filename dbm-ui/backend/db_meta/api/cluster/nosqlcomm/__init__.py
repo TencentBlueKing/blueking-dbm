@@ -29,3 +29,35 @@ from .precheck import (
 )
 from .scale_proxy import add_proxies, delete_proxies
 from .scale_tendis import make_sync, make_sync_mms, make_sync_msms, precheck, redo_slaves, switch_tendis
+
+__all__ = [
+    create_twemproxy_cluster,
+    pkg_create_twemproxy_cluster,
+    update_cluster_type,
+    update_storage_cluster_type,
+    create_mongo_instances,
+    create_proxies,
+    create_tendis_instances,
+    decommission_backends,
+    decommission_cluster,
+    decommission_instances,
+    decommission_proxies,
+    scan_cluster,
+    get_cluster_detail,
+    get_clusters_details,
+    before_create_domain_precheck,
+    before_create_proxy_precheck,
+    before_create_storage_precheck,
+    create_domain_precheck,
+    create_precheck,
+    create_proxies_precheck,
+    create_storage_precheck,
+    add_proxies,
+    delete_proxies,
+    make_sync,
+    make_sync_mms,
+    make_sync_msms,
+    precheck,
+    redo_slaves,
+    switch_tendis,
+]

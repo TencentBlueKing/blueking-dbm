@@ -3,7 +3,7 @@
 # 将本地设置文件放到配置目录，该配置会优先生效，用于配置测试DB等
 # -f 表示直接覆盖文件不提示
 SCRIPT_DIR=$(dirname $(readlink -f "$0"))
-DBM_DIR="./dbm-ui"
+WORKSPACE="./dbm-ui"
 FAILED_COUNT=0
 
 cat << EOF
@@ -16,8 +16,8 @@ echo "开始执行 poetry & pip 安装依赖"
 source "${VENV_DIR}/bin/activate"
 pip install poetry >> /tmp/pip_install.log
 
-# 进入dbm-ui进行操作
-cd $DBM_DIR
+# 进入工作空间进行操作
+cd $WORKSPACE || exit
 poetry export --without-hashes -f requirements.txt --output requirements.txt
 pip install -r requirements.txt >> /tmp/pip_install.log
 if [[ $? -ne 0 ]];

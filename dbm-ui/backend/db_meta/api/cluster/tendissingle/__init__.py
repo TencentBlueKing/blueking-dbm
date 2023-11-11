@@ -9,3 +9,5 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 from .single import pkg_create_single, redo_slave, switch_2_pair, switch_2_slave
+
+__all__ = [pkg_create_single, redo_slave, switch_2_pair, switch_2_slave]

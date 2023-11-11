@@ -8,18 +8,28 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-
+from backend.db_periodic_task.constants import PeriodicTaskType
 from backend.db_periodic_task.local_tasks.check_checksum import *
 from backend.db_periodic_task.local_tasks.db_meta import *
 from backend.db_periodic_task.local_tasks.db_monitor import *
 from backend.db_periodic_task.local_tasks.db_proxy import *
 from backend.db_periodic_task.local_tasks.redis_autofix import *
 from backend.db_periodic_task.local_tasks.redis_backup import *
+from backend.db_periodic_task.local_tasks.register import registered_local_tasks
 from backend.db_periodic_task.local_tasks.ticket import *
 from backend.db_periodic_task.models import DBPeriodicTask
 
-from ..constants import PeriodicTaskType
-from .register import registered_local_tasks
-
 # 删除过期的本地周期任务
 DBPeriodicTask.delete_legacy_periodic_task(registered_local_tasks, PeriodicTaskType.LOCAL.value)
+
+__all__ = [
+    "check_checksum",
+    "db_meta",
+    "db_monitor",
+    "db_proxy",
+    "redis_autofix",
+    "redis_backup",
+    "DBPeriodicTask",
+    "PeriodicTaskType",
+    "registered_local_tasks",
+]

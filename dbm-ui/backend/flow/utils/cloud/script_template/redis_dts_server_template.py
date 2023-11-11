@@ -9,6 +9,8 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 # 启用redis dts_server的脚本
+__all__ = ["start_redis_dts_server_template", "stop_redis_dts_server_template"]
+
 start_redis_dts_server_template = """
 chmod a+x /data/install/dbactuator_redis
 cd /data/install && ./dbactuator_redis  --uid=1111 --root_id=2222 --node_id=3333 --version_id=v1 \

@@ -9,13 +9,9 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
-from typing import List
-
 from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
-from backend.db_meta.enums import InstanceInnerRole
-from backend.db_meta.models import Cluster
 from backend.flow.engine.controller.mysql import MySQLController
 from backend.ticket import builders
 from backend.ticket.builders.mysql.base import (
@@ -23,8 +19,7 @@ from backend.ticket.builders.mysql.base import (
     DBTableField,
     MySQLBaseOperateDetailSerializer,
 )
-from backend.ticket.constants import FlowRetryType, FlowType, TicketType
-from backend.ticket.models import Flow
+from backend.ticket.constants import FlowRetryType, TicketType
 
 
 class MySQLHaBackupDetailSerializer(MySQLBaseOperateDetailSerializer):

@@ -11,7 +11,7 @@ specific language governing permissions and limitations under the License.
 
 from django.utils.translation import gettext as _
 
-from backend.db_meta.api.cluster.base.graph import Graphic, LineLabel
+from backend.db_meta.api.cluster.base.graph import Graphic
 from backend.db_meta.enums import InstanceRole
 from backend.db_meta.models import Cluster
 

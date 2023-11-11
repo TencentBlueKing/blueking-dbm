@@ -10,12 +10,12 @@ specific language governing permissions and limitations under the License.
 """
 import logging
 from collections import defaultdict
-from typing import Dict, List
+from typing import List
 
 from django.db.models import Q
 
-from backend.db_meta import flatten, request_validator, validators
-from backend.db_meta.models import Cluster, Machine, ProxyInstance, StorageInstance
+from backend.db_meta import request_validator, validators
+from backend.db_meta.models import Machine, ProxyInstance, StorageInstance
 from backend.db_services.dbbase.constants import IP_PORT_DIVIDER
 
 logger = logging.getLogger("root")

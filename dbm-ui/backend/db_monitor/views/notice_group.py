@@ -17,7 +17,6 @@ from django.utils.translation import ugettext_lazy as _
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from backend import env
 from backend.bk_web import viewsets
 from backend.bk_web.pagination import AuditedLimitOffsetPagination
 from backend.bk_web.swagger import common_swagger_auto_schema
@@ -57,6 +56,7 @@ class MonitorGroupListFilter(django_filters.FilterSet):
     class Meta:
         model = NoticeGroup
         fields = ["bk_biz_id", "name", "db_type"]
+        ordering = ["-update_at"]
 
 
 @method_decorator(
@@ -88,7 +88,7 @@ class MonitorNoticeGroupViewSet(viewsets.AuditedModelViewSet):
     监控告警组视图
     """
 
-    queryset = NoticeGroup.objects.all()
+    queryset = NoticeGroup.objects.all().order_by("-update_at")
     serializer_class = NoticeGroupSerializer
     pagination_class = AuditedLimitOffsetPagination
     filter_class = MonitorGroupListFilter

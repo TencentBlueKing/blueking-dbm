@@ -21,17 +21,10 @@ from backend.configuration.constants import DBType
 from backend.db_meta.api.cluster import nosqlcomm
 from backend.db_meta.enums import InstanceRole, InstanceStatus
 from backend.db_meta.models import AppCache, Cluster
-from backend.db_package.models import Package
 from backend.db_services.redis.redis_dts.constants import REDIS_CONF_DEL_SLAVEOF
 from backend.db_services.redis.redis_dts.util import common_cluster_precheck, get_cluster_info_by_id
 from backend.db_services.redis.util import is_redis_cluster_protocal, is_twemproxy_proxy_type
-from backend.flow.consts import (
-    DEFAULT_LAST_IO_SECOND_AGO,
-    DEFAULT_MASTER_DIFF_TIME,
-    MediumEnum,
-    SyncType,
-    WriteContextOpType,
-)
+from backend.flow.consts import DEFAULT_LAST_IO_SECOND_AGO, DEFAULT_MASTER_DIFF_TIME, SyncType, WriteContextOpType
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.redis.atom_jobs.redis_makesync import RedisMakeSyncAtomJob

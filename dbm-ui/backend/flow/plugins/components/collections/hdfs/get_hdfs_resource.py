@@ -16,7 +16,6 @@ from pipeline.component_framework.component import Component
 from pipeline.core.flow.activity import Service
 
 import backend.flow.utils.hdfs.hdfs_context_dataclass as flow_context
-from backend.db_services.dbbase.constants import IpSource
 from backend.flow.plugins.components.collections.common.base_service import BaseService
 from backend.ticket.constants import TicketType
 

@@ -12,7 +12,7 @@ import logging.config
 from collections import defaultdict
 from copy import deepcopy
 from dataclasses import asdict
-from typing import Any, Dict, List, Optional
+from typing import Dict, Optional
 
 from django.utils.translation import ugettext as _
 

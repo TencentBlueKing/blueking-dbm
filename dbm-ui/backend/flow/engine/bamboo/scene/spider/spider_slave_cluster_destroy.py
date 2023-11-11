@@ -15,7 +15,7 @@ from typing import Dict, Optional
 from django.utils.translation import ugettext as _
 
 from backend.db_meta.enums import ClusterEntryRole, ClusterEntryType, TenDBClusterSpiderRole
-from backend.db_meta.models import Cluster, ClusterEntry, ProxyInstance
+from backend.db_meta.models import Cluster, ProxyInstance
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.spider.common.common_sub_flow import reduce_spider_slaves_flow
 from backend.flow.plugins.components.collections.common.pause import PauseComponent

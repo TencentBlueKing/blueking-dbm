@@ -16,11 +16,7 @@ from rest_framework.response import Response
 
 from backend.bk_web import viewsets
 from backend.bk_web.pagination import AuditedLimitOffsetPagination
-from backend.bk_web.swagger import (
-    PaginatedResponseSwaggerAutoSchema,
-    ResponseSwaggerAutoSchema,
-    common_swagger_auto_schema,
-)
+from backend.bk_web.swagger import PaginatedResponseSwaggerAutoSchema, common_swagger_auto_schema
 from backend.db_meta.models import Cluster
 from backend.db_services.mysql.open_area.filters import TendbOpenAreaConfigListFilter
 from backend.db_services.mysql.open_area.handlers import OpenAreaHandler
@@ -53,7 +49,6 @@ class OpenAreaViewSet(viewsets.AuditedModelViewSet):
 
     @common_swagger_auto_schema(
         operation_summary=_("创建开区模板"),
-        auto_schema=ResponseSwaggerAutoSchema,
         responses={status.HTTP_200_OK: TendbOpenAreaConfigSerializer(label=_("创建开区模板"))},
         tags=[SWAGGER_TAG],
     )
@@ -88,7 +83,6 @@ class OpenAreaViewSet(viewsets.AuditedModelViewSet):
 
     @common_swagger_auto_schema(
         operation_summary=_("更新开区模板"),
-        auto_schema=ResponseSwaggerAutoSchema,
         responses={status.HTTP_200_OK: TendbOpenAreaConfigSerializer(label=_("更新开区模板"))},
         tags=[SWAGGER_TAG],
     )
@@ -97,7 +91,6 @@ class OpenAreaViewSet(viewsets.AuditedModelViewSet):
 
     @common_swagger_auto_schema(
         operation_summary=_("删除开区模板"),
-        auto_schema=ResponseSwaggerAutoSchema,
         tags=[SWAGGER_TAG],
     )
     def destroy(self, request, *args, **kwargs):
@@ -107,7 +100,6 @@ class OpenAreaViewSet(viewsets.AuditedModelViewSet):
         operation_summary=_("获取开区结果预览"),
         request_body=TendbOpenAreaResultPreviewSerializer(),
         responses={status.HTTP_200_OK: TendbOpenAreaResultPreviewResponseSerializer()},
-        auto_schema=ResponseSwaggerAutoSchema,
         tags=[SWAGGER_TAG],
     )
     @action(methods=["POST"], detail=False, serializer_class=TendbOpenAreaResultPreviewSerializer)
