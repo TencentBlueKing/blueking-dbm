@@ -74,7 +74,6 @@
     groupNum: number
   }
 
-
   const props = defineProps<Props>();
 
   const { t } = useI18n();
@@ -122,7 +121,6 @@
       // 避免重复查询
       const clusterTypes = [...new Set(Object.values(clusterMap).map(item => item.clusterType))];
       const sepcMap: Record<string, ResourceSpecModel[]> = {};
-
       await Promise.all(clusterTypes.map(async (type) => {
         const ret = await getResourceSpecList({
           spec_cluster_type: type,

@@ -12,38 +12,26 @@
 -->
 
 <template>
-  <div
-    ref="rootRef"
-    class="render-db-name">
-    <span @click="handleShowTips">
-      <TableEditTag
-        ref="editTagRef"
-        :model-value="localValue"
-        :placeholder="$t('请输入正则表达式')"
-        :rules="rules"
-        @change="handleChange"
-        @keydown="handleKeyDown" />
-    </span>
-    <div
-      ref="popRef"
-      style=" font-size: 12px; line-height: 24px;color: #63656e;">
+  <TableTagInput
+    ref="editTagRef"
+    :model-value="localValue"
+    :placeholder="t('请输入正则表达式')"
+    :rules="rules"
+    @change="handleChange">
+    <template #tip>
       <p style="font-weight: bold;">
         {{ $t('可使用通配符进行提取，如：') }}
       </p>
       <p>{{ $t('*Key$ ：提取以 Key 结尾的 key，包括 Key') }}</p>
       <p>{{ $t('^Key$：提取精确匹配的Key') }}</p>
       <p>{{ $t('* ：代表所有') }}</p>
-    </div>
-  </div>
+    </template>
+  </TableTagInput>
 </template>
 <script setup lang="ts">
-  import tippy, {
-    type Instance,
-    type SingleTarget,
-  } from 'tippy.js';
   import { useI18n } from 'vue-i18n';
 
-  import TableEditTag from '@views/redis/common/edit/Tag.vue';
+  import TableTagInput from '@components/tools-table-tag-input/index.vue';
 
   interface Props {
     data: string [],
@@ -62,9 +50,6 @@
 
   const emits = defineEmits<Emits>();
 
-  const rootRef = ref();
-  const popRef = ref();
-
   const { t } = useI18n();
   const rules = [
     {
@@ -80,9 +65,6 @@
 
   const editTagRef = ref();
   const localValue = ref(props.data);
-  let clipBoardData = '';
-
-  let tippyIns: Instance | undefined;
 
   const handleChange = (value: string[]) => {
     if (value.includes('*') && value.length > 1) {
@@ -92,61 +74,9 @@
     emits('change', value);
   };
 
-  const handleClipboardPaste = (e: ClipboardEvent) => {
-    const clipboard = e.clipboardData || window.clipboardData;
-    clipBoardData = clipboard.getData('text/plain');
-  };
-
-  const handleKeyDown = async (e: KeyboardEvent) => {
-    if (e.ctrlKey && e.key === 'v') {
-      setTimeout(() => {
-        if (clipBoardData === '') {
-          return;
-        }
-        localValue.value = clipBoardData.split('\n');
-      });
-    }
-  };
-
-  const handleShowTips = () => {
-    tippyIns?.show();
-  };
-
-  onMounted(() => {
-    window.addEventListener('paste', handleClipboardPaste);
-    tippyIns = tippy(rootRef.value as SingleTarget, {
-      content: popRef.value,
-      placement: 'top',
-      appendTo: () => document.body,
-      theme: 'light',
-      maxWidth: 'none',
-      trigger: 'manual',
-      interactive: true,
-      arrow: true,
-      offset: [0, 8],
-      zIndex: 999999,
-      hideOnClick: true,
-    });
-  });
-
-  onBeforeUnmount(() => {
-    window.removeEventListener('paste', handleClipboardPaste);
-    if (tippyIns) {
-      tippyIns.hide();
-      tippyIns.unmount();
-      tippyIns.destroy();
-      tippyIns = undefined;
-    }
-  });
-
   defineExpose<Exposes>({
     getValue() {
       return editTagRef.value.getValue(localValue.value);
     },
   });
 </script>
-<style lang="less" scoped>
-  .render-db-name {
-    display: block;
-  }
-</style>

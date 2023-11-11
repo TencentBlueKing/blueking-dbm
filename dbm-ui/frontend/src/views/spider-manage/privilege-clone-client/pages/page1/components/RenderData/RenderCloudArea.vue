@@ -12,14 +12,10 @@
 -->
 
 <template>
-  <BkLoading :loading="isLoading">
-    <TableEditInput
-      ref="inputRef"
-      :model-value="localValue"
-      :placeholder="t('输入集群后自动生成')"
-      readonly
-      textarea />
-  </BkLoading>
+  <RenderText
+    :data="localValue"
+    :is-loading="isLoading"
+    :placeholder="t('输入集群后自动生成')" />
 </template>
 <script setup lang="ts">
   import _ from 'lodash';
@@ -29,10 +25,9 @@
 
   import { getCloudList } from '@services/source/ipchooser';
 
-  import TableEditInput from '@views/spider-manage/common/edit/Input.vue';
+  import RenderText from '@components/tools-table-common/RenderText.vue';
 
   import type { IDataRow } from './Row.vue';
-
 
   interface Props {
     source: IDataRow['source']

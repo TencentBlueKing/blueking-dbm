@@ -10,11 +10,13 @@
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
 */
+import { useResizeObserver } from '@vueuse/core';
 export function useIsWidthOverflow<T extends Ref<any> | ComputedRef<any>>(
   domRef: Ref<HTMLDivElement>,
   watchVariable?: T,
 ) {
   const isOverflow = ref(false);
+  const watchValue = computed(() => watchVariable);
 
   const checkOverflow = () => {
     if (domRef.value) {
@@ -22,19 +24,15 @@ export function useIsWidthOverflow<T extends Ref<any> | ComputedRef<any>>(
     }
   };
 
-  if (watchVariable) {
-    watch(watchVariable, () => {
-      setTimeout(() => {
-        checkOverflow();
-      });
-    }, {
-      immediate: true,
-    });
-  } else {
-    onMounted(() => {
+  useResizeObserver(domRef, checkOverflow);
+
+  watch(watchValue, () => {
+    setTimeout(() => {
       checkOverflow();
     });
-  }
+  }, {
+    immediate: true,
+  });
 
 
   return { isOverflow };
