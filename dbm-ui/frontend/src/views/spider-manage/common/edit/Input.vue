@@ -297,10 +297,10 @@
     left: 0;
     max-height: 300px;
     min-height: 42px;
-    padding: 8px 16px;
+    padding: 0 16px;
     overflow-y: auto;
     font-size: 12px;
-    line-height: 20px;
+    line-height: 40px;
     color: #63656e;
     word-break: break-all;
     background: inherit;

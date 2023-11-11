@@ -22,7 +22,9 @@
       has-delete-icon
       :max-data="single ? 1 : -1"
       :placeholder="placeholder"
-      @change="handleChange" />
+      @blur="handleBlur"
+      @change="handleChange"
+      @focus="handleFocus" />
     <div
       v-if="errorMessage"
       class="input-error">
@@ -52,6 +54,8 @@
   interface Emits {
     (e: 'update:modelValue', value: Required<Props>['modelValue']): void;
     (e: 'change', value: Required<Props>['modelValue']): void;
+    (e: 'focus'): void;
+    (e: 'blur'): void
   }
 
   interface Exposes {
@@ -88,6 +92,14 @@
       });
   };
 
+  const handleFocus = () => {
+    emits('focus');
+  };
+
+  const handleBlur = () => {
+    emits('blur');
+  };
+
   defineExpose<Exposes>({
     getValue() {
       return validator(localValue.value)
@@ -102,7 +114,7 @@
     &.is-error {
       .bk-tag-input {
         .bk-tag-input-trigger {
-          background: rgb(255 221 221 / 20%);
+          background: #fff0f1;
 
           .placeholder {
             line-height: 42px;

@@ -12,37 +12,16 @@
 -->
 
 <template>
-  <div
-    ref="rootRef"
-    class="render-table-name">
-    <span @click="handleShowTips">
-      <TableEditTag
-        ref="tagRef"
-        :model-value="localValue"
-        :placeholder="t('请输入表名称，支持通配符“%”，含通配符的仅支持单个')"
-        :rules="rules"
-        :single="single"
-        @change="handleChange" />
-    </span>
-    <div style="display: none;">
-      <div
-        ref="popRef"
-        style=" font-size: 12px; line-height: 24px; color: #63656e;">
-        <p>{{ t('%：匹配任意长度字符串，如 a%， 不允许独立使用') }}</p>
-        <p>{{ t('？： 匹配任意单一字符，如 a%?%d') }}</p>
-        <p>{{ t('* ：专门指代 ALL 语义, 只能独立使用') }}</p>
-        <p>{{ t('注：含通配符的单元格仅支持输入单个对象') }}</p>
-        <p>{{ t('Enter 完成内容输入') }}</p>
-      </div>
-    </div>
-  </div>
+  <TableTagInput
+    ref="tagRef"
+    :model-value="localValue"
+    :placeholder="t('请输入表名称，支持通配符“%”，含通配符的仅支持单个')"
+    :rules="rules"
+    :single="single"
+    @change="handleChange" />
 </template>
 <script setup lang="ts">
   import _ from 'lodash';
-  import tippy, {
-    type Instance,
-    type SingleTarget,
-  } from 'tippy.js';
   import {
     computed,
     ref,
@@ -50,7 +29,7 @@
   } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import TableEditTag from '@views/mysql/common/edit/Tag.vue';
+  import TableTagInput from '@components/tools-table-tag-input/index.vue';
 
   interface Props {
     modelValue?: string [],
@@ -82,6 +61,9 @@
   const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
+
+  const tagRef = ref();
+  const localValue  = ref(props.modelValue);
 
   const rules = computed(() => {
     if (props.rules && props.rules.length > 0) {
@@ -121,11 +103,6 @@
     ];
   });
 
-  const rootRef = ref();
-  const popRef = ref();
-  const tagRef = ref();
-  const localValue  = ref(props.modelValue);
-
   // 集群改变时表名需要重置
   watch(() => props.clusterId, () => {
     localValue.value = [];
@@ -146,37 +123,6 @@
     emits('update:modelValue', value);
     emits('change', value);
   };
-
-  let tippyIns: Instance | undefined;
-
-  const handleShowTips = () => {
-    tippyIns?.show();
-  };
-
-  onMounted(() => {
-    tippyIns = tippy(rootRef.value as SingleTarget, {
-      content: popRef.value,
-      placement: 'top',
-      appendTo: () => document.body,
-      theme: 'light',
-      maxWidth: 'none',
-      trigger: 'manual',
-      interactive: true,
-      arrow: true,
-      offset: [0, 8],
-      zIndex: 9998,
-      hideOnClick: true,
-    });
-  });
-
-  onBeforeUnmount(() => {
-    if (tippyIns) {
-      tippyIns.hide();
-      tippyIns.unmount();
-      tippyIns.destroy();
-      tippyIns = undefined;
-    }
-  });
 
   defineExpose<Exposes>({
     getValue(field: string) {

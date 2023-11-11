@@ -202,7 +202,7 @@
   ];
   const filters = reactive({
     search: [] as SearchSelectValues,
-    daterange: [subDays(new Date(), 6).toString(), new Date().toString()] as [string, string],
+    daterange: [subDays(new Date(), 6).toISOString(), new Date().toISOString()] as [string, string],
   });
   const filterParams = computed(() => {
     const params: Record<string, any> = {};

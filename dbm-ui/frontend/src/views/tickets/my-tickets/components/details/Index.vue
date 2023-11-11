@@ -159,7 +159,6 @@
 
   watch(() => props.data?.id, (id) => {
     if (id) {
-      state.ticketData = null;
       fetchTicketDetails(id);
     }
   }, { immediate: true });
