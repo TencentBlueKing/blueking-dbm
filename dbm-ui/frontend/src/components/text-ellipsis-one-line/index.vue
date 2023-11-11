@@ -40,6 +40,14 @@
 
   const emits = defineEmits<Emits>();
 
+  function checkOveflow() {
+    clearTimeout(timer);
+    timer = setTimeout(() => {
+      // eslint-disable-next-line max-len
+      isOverflow.value = rowRef.value.scrollWidth > rowRef.value.clientWidth || mainRef.value.scrollWidth > mainRef.value.clientWidth;
+    });
+  }
+
   const mainRef = ref();
   const rowRef = ref();
   const isOverflow = ref(true);
@@ -52,13 +60,6 @@
     immediate: true,
   });
 
-  const checkOveflow = () => {
-    clearTimeout(timer);
-    timer = setTimeout(() => {
-      // eslint-disable-next-line max-len
-      isOverflow.value = rowRef.value.scrollWidth > rowRef.value.clientWidth || mainRef.value.scrollWidth > mainRef.value.clientWidth;
-    });
-  };
 
   useResizeObserver(mainRef, checkOveflow);
 
