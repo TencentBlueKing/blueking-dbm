@@ -100,7 +100,7 @@ class MySQLRestoreSlaveFlow(object):
 
             sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(ticket_data))
             sub_pipeline.add_act(
-                act_name="获取初始化信息",
+                act_name=_("获取初始化信息"),
                 act_component_code=GetOsSysParamComponent.code,
                 kwargs=asdict(
                     ExecActuatorKwargs(bk_cloud_id=self.data["bk_cloud_id"], exec_ip=one_machine["old_slave_ip"])

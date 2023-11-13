@@ -123,7 +123,7 @@ class MySQLMigrateClusterFlow(object):
             cluster_class = Cluster.objects.get(id=self.data["cluster_ids"][0])
             master = cluster_class.storageinstance_set.get(instance_inner_role=InstanceInnerRole.MASTER.value)
             sub_pipeline.add_act(
-                act_name="获取初始化信息",
+                act_name=_("获取初始化信息"),
                 act_component_code=GetOsSysParamComponent.code,
                 kwargs=asdict(ExecActuatorKwargs(bk_cloud_id=cluster_class.bk_cloud_id, exec_ip=master.machine.ip)),
             )
