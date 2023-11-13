@@ -4,13 +4,14 @@ package dbareport
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/pkg/errors"
 
 	"dbm-services/common/go-pubpkg/backupclient"
 	"dbm-services/common/go-pubpkg/cmutil"
@@ -21,8 +22,11 @@ import (
 
 // Reporter TODO
 type Reporter struct {
-	cfg  *config.BackupConfig
+	cfg *config.BackupConfig
+	// Uuid backup_uuid 代表一次备份
 	Uuid string
+	// EncryptedKey 如果备份加密，上报加密 key。加密短语 key 会通过 rsa 加密成密文 再上报
+	EncryptedKey string
 }
 
 // NewReporter TODO
@@ -38,7 +42,15 @@ func NewReporter(cfg *config.BackupConfig) (reporter *Reporter, err error) {
 			return nil, err
 		}
 	}
-
+	if cfg.Public.EncryptOpt.EncryptEnable {
+		if ekey := cfg.Public.EncryptOpt.GetEncryptedKey(); len(ekey) <= 32 {
+			logger.Log.Warnf("Not safe because EncryptPublicKey is not set, key=%s", ekey)
+			reporter.EncryptedKey = ekey
+		} else {
+			logger.Log.Infof("Passphrase encrypted=%s passphrase=%s", ekey, cfg.Public.EncryptOpt.GetPassphrase())
+			reporter.EncryptedKey = ekey
+		}
+	}
 	return reporter, nil
 }
 

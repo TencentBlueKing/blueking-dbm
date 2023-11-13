@@ -20,9 +20,10 @@ func ViperGetSizeInBytesE(key string) (int64, error) {
 }
 
 // ParseSizeInBytesE converts strings like 1GB or 12 mb into an unsigned integer number of bytes
-// withB indicate where sizeStr has suffix b/B
-func ParseSizeInBytesE(sizeStr string) (int64, error) {
-	sizeStr = strings.TrimSpace(sizeStr)
+// if sizeStr has no suffix b/B, append to it
+// b will be treated as B, can not handle 1GiB like
+func ParseSizeInBytesE(sizeStr string) (size int64, err error) {
+	sizeStr = strings.TrimSpace(strings.ToLower(sizeStr))
 	if unicode.ToLower(rune(sizeStr[len(sizeStr)-1])) != 'b' {
 		sizeStr += "b"
 	}
@@ -51,13 +52,23 @@ func ParseSizeInBytesE(sizeStr string) (int64, error) {
 			}
 		}
 	}
-	size, err := cast.ToInt64E(sizeStr)
-	if err != nil {
-		return -1, errors.Errorf("parse failed to bytes: %s", sizeStr)
-	} else if size < 0 {
+	if strings.Contains(sizeStr, ".") {
+		sizeFloat, err := cast.ToFloat64E(sizeStr)
+		if err != nil {
+			return -1, errors.Errorf("parse failed to bytes: %s", sizeStr)
+		}
+		size = safeMulFloat(sizeFloat, int64(multiplier))
+	} else {
+		size, err = cast.ToInt64E(sizeStr)
+		if err != nil {
+			return -1, errors.Errorf("parse failed to bytes: %s", sizeStr)
+		}
+		size = safeMul(size, int64(multiplier))
+	}
+	if size < 0 {
 		return -2, errors.Errorf("bytes canot be negative: %s", sizeStr)
 	}
-	return safeMul(size, int64(multiplier)), nil
+	return size, nil
 }
 
 func safeMul(a, b int64) int64 {
@@ -66,6 +77,12 @@ func safeMul(a, b int64) int64 {
 		return 0
 	}
 	return c
+}
+
+// safeMulFloat WARN: bytes will lose precision
+func safeMulFloat(a float64, b int64) int64 {
+	c := a * float64(b)
+	return int64(c)
 }
 
 // ParseSizeInBytes 将 gb, MB 转换成 bytes 数字. b 不区分大小写，代表 1字节

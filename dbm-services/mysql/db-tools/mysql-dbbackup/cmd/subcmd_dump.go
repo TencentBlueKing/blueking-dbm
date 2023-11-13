@@ -6,6 +6,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 
+	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/validate"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/config"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/backupexe"
@@ -80,16 +81,25 @@ var dumpCmd = &cobra.Command{
 	},
 }
 
-func backupData(cnf *config.BackupConfig) error {
-	logger.Log.Info("begin backup")
-
+func backupData(cnf *config.BackupConfig) (err error) {
+	logger.Log.Info("Dbbackup begin")
 	// validate dumpBackup
-	if err := validate.GoValidateStruct(cnf.Public, false, false); err != nil {
+	if err = validate.GoValidateStruct(cnf.Public, false, false); err != nil {
 		return err
 	}
-	//if err := cnf.Public.ParseDataSchemaGrant(); err != nil {
-	//	return err
-	//}
+	if cnf.Public.EncryptOpt == nil {
+		cnf.Public.EncryptOpt = &cmutil.EncryptOpt{EncryptEnable: false}
+	}
+	encOpt := cnf.Public.EncryptOpt
+	if encOpt.EncryptEnable {
+		if encOpt.EncryptCmd == "xbcrypt" {
+			encOpt.EncryptCmd = filepath.Join(backupexe.ExecuteHome, "bin/xbcrypt")
+		}
+		if err := encOpt.Init(); err != nil {
+			return errors.Wrap(err, "fail to init crypt tool")
+		}
+		cnf.Public.EncryptOpt = encOpt
+	}
 	cnfPublic := cnf.Public
 
 	DBAReporter, err := dbareport.NewReporter(cnf)
@@ -102,14 +112,7 @@ func backupData(cnf *config.BackupConfig) error {
 		logger.Log.Error("report begin failed: ", err)
 		return err
 	}
-
 	logger.Log.Info("parse config file: end")
-	//// produce a unique targetname
-	//var tnameErr error
-	//common.TargetName, tnameErr = backupexe.GetTargetName(&cnfPublic)
-	//if tnameErr != nil {
-	//	return tnameErr
-	//}
 
 	// backup grant info
 	if cnf.Public.IfBackupGrant() {
@@ -152,7 +155,7 @@ func backupData(cnf *config.BackupConfig) error {
 	}
 
 	var baseBackupResult dbareport.BackupResult
-	if err := baseBackupResult.BuildBaseBackupResult(cnf, DBAReporter.Uuid); err != nil {
+	if err := baseBackupResult.BuildBaseBackupResult(cnf, DBAReporter); err != nil {
 		return err
 	}
 

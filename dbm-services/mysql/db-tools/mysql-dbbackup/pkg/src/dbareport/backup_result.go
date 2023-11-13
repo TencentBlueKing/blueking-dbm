@@ -41,6 +41,8 @@ type BackupResult struct {
 	FileSize             int64            `json:"file_size"`
 	FileType             string           `json:"file_type"`
 	TaskId               string           `json:"task_id"`
+	// EncryptedKey encrypted passphrase using public key
+	EncryptedKey string `json:"encrypted_key"`
 }
 
 // BinlogStatusInfo master status and slave status
@@ -140,8 +142,9 @@ func (b *BackupResult) PrepareXtraBackupInfo(cnf *config.BackupConfig) error {
 }
 
 // BuildBaseBackupResult Build based BackupResult
-func (b *BackupResult) BuildBaseBackupResult(cnf *config.BackupConfig, uuid string) error {
-	b.BackupId = uuid
+func (b *BackupResult) BuildBaseBackupResult(cnf *config.BackupConfig, reporter *Reporter) error {
+	b.BackupId = reporter.Uuid
+	b.EncryptedKey = reporter.EncryptedKey
 	b.BillId = cnf.Public.BillId
 	b.BkBizId = cnf.Public.BkBizId
 	b.BkCloudId = cnf.Public.BkCloudId

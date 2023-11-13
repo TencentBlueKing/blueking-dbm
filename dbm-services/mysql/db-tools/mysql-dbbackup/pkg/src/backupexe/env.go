@@ -17,7 +17,17 @@ import (
 type InnodbCommand struct {
 	innobackupexBin string
 	xtrabackupBin   string
+	xbcryptBin      string
 }
+
+var (
+	// ExecuteHome executable home dir, like /home/mysql/dbbackup-go/
+	ExecuteHome = ""
+	// CmdZstd zstd command path, need call SetEnv to init
+	CmdZstd = ""
+	// CmdQpress qpress command path, need call SetEnv to init
+	CmdQpress = ""
+)
 
 // ChooseXtrabackupTool Decide the version of xtrabackup tool
 func (i *InnodbCommand) ChooseXtrabackupTool(mysqlVersion string, isOfficial bool) error {
@@ -27,20 +37,24 @@ func (i *InnodbCommand) ChooseXtrabackupTool(mysqlVersion string, isOfficial boo
 			// tmysql 5.5
 			i.innobackupexBin = "/bin/xtrabackup/innobackupex_55.pl"
 			i.xtrabackupBin = "/bin/xtrabackup/xtrabackup_55"
+			i.xbcryptBin = "/bin/xtrabackup/xbcrypt"
 		} else if strings.Compare(mysqlVersion, "005006000") >= 0 &&
 			strings.Compare(mysqlVersion, "005007000") < 0 {
 			// tmysql 5.6
 			i.innobackupexBin = "/bin/xtrabackup/innobackupex_56.pl"
 			i.xtrabackupBin = "/bin/xtrabackup/xtrabackup_56"
+			i.xbcryptBin = "/bin/xtrabackup/xbcrypt"
 		} else if strings.Compare(mysqlVersion, "005007000") >= 0 &&
 			strings.Compare(mysqlVersion, "008000000") < 0 {
 			// tmysql 5.7
 			i.innobackupexBin = "/bin/xtrabackup/xtrabackup_57"
 			i.xtrabackupBin = "/bin/xtrabackup/xtrabackup_57"
+			i.xbcryptBin = "/bin/xtrabackup/xbcrypt_57"
 		} else if strings.Compare(mysqlVersion, "008000000") >= 0 {
 			// tmysql 8.0
 			i.innobackupexBin = "/bin/xtrabackup/xtrabackup_80"
 			i.xtrabackupBin = "/bin/xtrabackup/xtrabackup_80"
+			i.xbcryptBin = "/bin/xtrabackup/xbcrypt_80"
 		} else {
 			return fmt.Errorf("unrecognizable mysql version")
 		}
@@ -50,10 +64,12 @@ func (i *InnodbCommand) ChooseXtrabackupTool(mysqlVersion string, isOfficial boo
 			// official_mysql_5.7
 			i.innobackupexBin = "/bin/xtrabackup_official/xtrabackup_57/xtrabackup"
 			i.xtrabackupBin = "/bin/xtrabackup_official/xtrabackup_57/xtrabackup"
+			i.xbcryptBin = "/bin/xtrabackup_official/xtrabackup_57/xbcrypt"
 		} else if strings.Compare(mysqlVersion, "008000000") >= 0 {
 			//official_mysql_8.0
 			i.innobackupexBin = "/bin/xtrabackup_official/xtrabackup_80/xtrabackup"
 			i.xtrabackupBin = "/bin/xtrabackup_official/xtrabackup_80/xtrabackup"
+			i.xbcryptBin = "/bin/xtrabackup_official/xtrabackup_80/xbcrypt"
 		} else {
 			return fmt.Errorf("unrecognizable mysql version")
 		}
@@ -67,31 +83,33 @@ func SetEnv(backupType string, mysqlVersionStr string) error {
 	if err != nil {
 		return err
 	}
-	exePath = filepath.Dir(exePath)
+	ExecuteHome = filepath.Dir(exePath)
 	var libPath []string
 	var binPath []string
 	if strings.ToLower(backupType) == "logical" {
-		libPath = append(libPath, filepath.Join(exePath, "lib/libmydumper"))
+		libPath = append(libPath, filepath.Join(ExecuteHome, "lib/libmydumper"))
 	} else if strings.ToLower(backupType) == "physical" {
 		_, isOfficial := util.VersionParser(mysqlVersionStr)
 		if !isOfficial {
-			libPath = append(libPath, filepath.Join(exePath, "lib/libxtra"))
-			libPath = append(libPath, filepath.Join(exePath, "lib/libxtra_80"))
+			libPath = append(libPath, filepath.Join(ExecuteHome, "lib/libxtra"))
+			libPath = append(libPath, filepath.Join(ExecuteHome, "lib/libxtra_80"))
 
-			binPath = append(binPath, filepath.Join(exePath, "bin/xtrabackup"))
+			binPath = append(binPath, filepath.Join(ExecuteHome, "bin/xtrabackup"))
 		} else {
-			libPath = append(libPath, filepath.Join(exePath, "lib/libxtra_57_official/private"))
-			libPath = append(libPath, filepath.Join(exePath, "lib/libxtra_57_official/plugin"))
-			libPath = append(libPath, filepath.Join(exePath, "lib/libxtra_80_official/private"))
-			libPath = append(libPath, filepath.Join(exePath, "lib/libxtra_80_official/plugin"))
+			libPath = append(libPath, filepath.Join(ExecuteHome, "lib/libxtra_57_official/private"))
+			libPath = append(libPath, filepath.Join(ExecuteHome, "lib/libxtra_57_official/plugin"))
+			libPath = append(libPath, filepath.Join(ExecuteHome, "lib/libxtra_80_official/private"))
+			libPath = append(libPath, filepath.Join(ExecuteHome, "lib/libxtra_80_official/plugin"))
 
-			binPath = append(binPath, filepath.Join(exePath, "bin/xtrabackup_official"))
+			binPath = append(binPath, filepath.Join(ExecuteHome, "bin/xtrabackup_official"))
 		}
 	} else {
 		return fmt.Errorf("setEnv: unknown backupType")
 	}
 	// xtrabackup --decompress 需要找到 qpress 命令
-	binPath = append(binPath, filepath.Join(exePath, "bin"))
+	binPath = append(binPath, filepath.Join(ExecuteHome, "bin"))
+	CmdZstd = filepath.Join(ExecuteHome, "bin/zstd")
+	CmdQpress = filepath.Join(ExecuteHome, "bin/qpress")
 
 	logger.Log.Info(fmt.Sprintf("export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:%s", strings.Join(libPath, ":")))
 	logger.Log.Info(fmt.Sprintf("export PATH=$PATH:%s", strings.Join(binPath, ":")))
