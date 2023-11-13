@@ -31,7 +31,7 @@ dependencies:
   - condition: dbconfig.enabled
     name: dbconfig
     repository: file://charts/dbconfig
-    version: 0.1.8
+    version: 0.1.9
   - condition: dbpriv.enabled
     name: dbpriv
     repository: file://charts/dbpriv
