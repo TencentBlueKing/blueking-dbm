@@ -18,6 +18,7 @@ from django.utils.translation import ugettext as _
 from backend import env
 from backend.configuration.constants import DBType
 from backend.constants import IP_PORT_DIVIDER
+from backend.db_meta.enums import InstanceInnerRole
 from backend.db_meta.models import Cluster
 from backend.flow.consts import ACCOUNT_PREFIX, AUTH_ADDRESS_DIVIDER
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
@@ -33,7 +34,11 @@ from backend.flow.plugins.components.collections.mysql.clone_user import CloneUs
 from backend.flow.plugins.components.collections.mysql.dns_manage import MySQLDnsManageComponent
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.mysql.mysql_db_meta import MySQLDBMetaComponent
-from backend.flow.plugins.components.collections.mysql.mysql_os_init import MySQLOsInitComponent, SysInitComponent
+from backend.flow.plugins.components.collections.mysql.mysql_os_init import (
+    GetOsSysParamComponent,
+    MySQLOsInitComponent,
+    SysInitComponent,
+)
 from backend.flow.plugins.components.collections.mysql.slave_trans_flies import SlaveTransFileComponent
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
 from backend.flow.utils.mysql.common.mysql_cluster_info import (
@@ -115,6 +120,13 @@ class MySQLMigrateClusterFlow(object):
             )
 
             # 初始化机器
+            cluster_class = Cluster.objects.get(id=self.data["cluster_ids"][0])
+            master = cluster_class.storageinstance_set.get(instance_inner_role=InstanceInnerRole.MASTER.value)
+            sub_pipeline.add_act(
+                act_name=_("获取初始化信息"),
+                act_component_code=GetOsSysParamComponent.code,
+                kwargs=asdict(ExecActuatorKwargs(bk_cloud_id=cluster_class.bk_cloud_id, exec_ip=master.machine.ip)),
+            )
             exec_ips = [one_machine["new_slave_ip"], one_machine["new_master_ip"]]
             account = MysqlActPayload.get_mysql_account()
             sub_pipeline.add_act(

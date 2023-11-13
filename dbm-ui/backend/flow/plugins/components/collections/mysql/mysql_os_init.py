@@ -10,6 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 import base64
 import copy
+import json
 import re
 
 from django.utils.translation import ugettext as _
@@ -23,6 +24,8 @@ from backend.configuration.constants import DBType
 from backend.flow.consts import DBA_ROOT_USER, SUCCESS_LIST, WriteContextOpType
 from backend.flow.plugins.components.collections.common.base_service import BkJobService
 from backend.flow.utils.script_template import fast_execute_script_common_kwargs
+
+cpl = re.compile("<ctx>(?P<context>.+?)</ctx>")
 
 cenos_script_content = """
     #/bin/bash 
@@ -214,6 +217,12 @@ class SysInit(BkJobService):
             aio_max_nr = kwargs["aio_max_nr"]
         if kwargs.get("max_open_file"):
             max_open_file = kwargs["max_open_file"]
+
+        max_open_file_old = trans_data.max_open_file
+        if isinstance(max_open_file_old, dict):
+            if "sys_max_open_file" in max_open_file_old:
+                max_open_file = max_open_file_old["sys_max_open_file"]
+
         # 脚本内容
         jinja_env = Environment()
         template = jinja_env.from_string(os_sysctl_init)
@@ -258,6 +267,7 @@ get_os_sys_param = """
 
 class GetOsSysParam(BkJobService):
     def _execute(self, data, parent_data) -> bool:
+        trans_data = data.get_one_of_inputs("trans_data")
         kwargs = data.get_one_of_inputs("kwargs")
         script_content = get_os_sys_param
         exec_ips = self.splice_exec_ips_list(ticket_ips=kwargs["exec_ip"])
@@ -275,6 +285,9 @@ class GetOsSysParam(BkJobService):
         self.log_info(f"fast execute script response: {resp}")
         self.log_info(f"job url:{env.BK_JOB_URL}/api_execute/{resp['data']['job_instance_id']}")
         data.outputs.ext_result = resp
+        result = json.loads(re.search(cpl, resp["data"]["log_content"]).group("context"))
+        setattr(trans_data, "max_open_file", copy.deepcopy(result))
+        data.outputs["trans_data"] = trans_data
         data.outputs.exec_ips = exec_ips
         return True
 
