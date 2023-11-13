@@ -9,6 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import logging.config
+import re
 from dataclasses import asdict
 from typing import Dict, Optional
 
@@ -150,7 +151,7 @@ class KafkaReplaceFlow(object):
         old_my_id_list = []
         old_zookeeper_ip_set = {zookeeper["ip"] for zookeeper in self.data["old_nodes"]["zookeeper"]}
         for old_zookeeper_conf in old_zookeeper_conf_list:
-            result = old_zookeeper_conf.strip("server").strip(ZK_PORT).split("=")
+            result = re.sub(ZK_PORT, "", old_zookeeper_conf.strip("server")).split("=")
             list_str = list(result[0])
             list_str.pop(0)
             my_id = int("".join(list_str))
