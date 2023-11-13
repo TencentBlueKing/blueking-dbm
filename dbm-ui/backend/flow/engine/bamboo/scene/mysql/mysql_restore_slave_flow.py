@@ -28,7 +28,11 @@ from backend.flow.plugins.components.collections.mysql.clone_user import CloneUs
 from backend.flow.plugins.components.collections.mysql.dns_manage import MySQLDnsManageComponent
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.mysql.mysql_db_meta import MySQLDBMetaComponent
-from backend.flow.plugins.components.collections.mysql.mysql_os_init import MySQLOsInitComponent, SysInitComponent
+from backend.flow.plugins.components.collections.mysql.mysql_os_init import (
+    GetOsSysParamComponent,
+    MySQLOsInitComponent,
+    SysInitComponent,
+)
 from backend.flow.plugins.components.collections.mysql.slave_trans_flies import SlaveTransFileComponent
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
 from backend.flow.utils.mysql.common.mysql_cluster_info import (
@@ -95,6 +99,13 @@ class MySQLRestoreSlaveFlow(object):
             ticket_data["force"] = one_machine.get("force", False)
 
             sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(ticket_data))
+            sub_pipeline.add_act(
+                act_name="获取初始化信息",
+                act_component_code=GetOsSysParamComponent.code,
+                kwargs=asdict(
+                    ExecActuatorKwargs(bk_cloud_id=self.data["bk_cloud_id"], exec_ip=one_machine["old_slave_ip"])
+                ),
+            )
             sub_pipeline.add_sub_pipeline(
                 sub_flow=self.install_instance_sub_flow(ticket_data=ticket_data, one_machine=one_machine)
             )
