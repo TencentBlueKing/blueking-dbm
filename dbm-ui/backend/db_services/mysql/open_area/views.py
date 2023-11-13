@@ -84,7 +84,10 @@ class OpenAreaViewSet(viewsets.AuditedModelViewSet):
         tags=[SWAGGER_TAG],
     )
     def retrieve(self, request, *args, **kwargs):
-        return super().retrieve(request, *args, **kwargs)
+        resp = super().retrieve(request, *args, **kwargs)
+        # 补充源集群信息
+        resp.data["source_cluster"] = Cluster.objects.get(id=resp.data["source_cluster_id"]).simple_desc
+        return resp
 
     @common_swagger_auto_schema(
         operation_summary=_("更新开区模板"),
