@@ -49,15 +49,22 @@ func (p *PackageFile) MappingPackage() error {
 		return err
 	}
 
-	tarFileNum := 0
-	dstTarName := fmt.Sprintf(`%s_%d.tar`, p.dstDir, tarFileNum)
 	var tarSize uint64 = 0
+	tarFileNum := 0
 	var tarUtil = util.TarWriter{IOLimitMB: p.cnf.Public.IOLimitMBPerSec}
+	var dstTarName = fmt.Sprintf(`%s_%d.tar`, p.dstDir, tarFileNum)
+	if p.cnf.Public.EncryptOpt.EncryptEnable {
+		logger.Log.Infof("tar file encrypt enabled for port: %d", p.cnf.Public.MysqlPort)
+		tarUtil.Encrypt = true
+		tarUtil.EncryptTool = p.cnf.Public.EncryptOpt.GetEncryptTool()
+		dstTarName = fmt.Sprintf(`%s_%d.tar.%s`, p.dstDir, tarFileNum, tarUtil.EncryptTool.DefaultSuffix())
+	}
+
 	if err := tarUtil.New(dstTarName); err != nil {
 		return err
 	}
 	defer func() {
-		_ = tarUtil.Close()
+		_ = tarUtil.Close() // the last tar file to close
 	}()
 
 	var totalSizeUncompress int64 = 0 // -1 means does not calculate size before compress
@@ -78,31 +85,34 @@ func (p *PackageFile) MappingPackage() error {
 		} else if !isFile {
 			return nil
 		}
-
 		p.indexFile.addFileContent(dstTarName, filename, written)
-		if err = os.Remove(filename); err != nil { //TODO 限速？
-			logger.Log.Error("failed to remove file while taring, err:", err)
-		}
+
 		if totalSizeUncompress > -1 && strings.HasSuffix(filename, cst.ZstdSuffix) {
-			if sizeUncompress, err := readUncompressSizeForZstd("", filename); err != nil {
+			if sizeUncompress, err := readUncompressSizeForZstd(CmdZstd, filename); err != nil {
 				logger.Log.Warnf("fail to readUncompressSizeForZstd for file %s, err: %s", filename, err.Error())
 				totalSizeUncompress = -1
 			} else {
 				totalSizeUncompress += sizeUncompress
 			}
 		}
+		if err = os.Remove(filename); err != nil { //TODO 限速？
+			logger.Log.Error("failed to remove file while taring, err:", err)
+		}
 
 		tarSize += uint64(written)
 		if tarSize >= tarSizeMaxBytes {
 			logger.Log.Infof("need to tar file, accumulated tar size: %d bytes, dstFile: %s", tarSize, dstTarName)
-			if err = tarUtil.Close(); err != nil {
-				return err
-			}
 			p.indexFile.TotalFilesize += tarSize
 			tarSize = 0
 			tarFileNum++
+			if err = tarUtil.Close(); err != nil {
+				return err
+			}
 			// new tarUtil object will be used for next loop
 			dstTarName = fmt.Sprintf(`%s_%d.tar`, p.dstDir, tarFileNum)
+			if p.cnf.Public.EncryptOpt.EncryptEnable {
+				dstTarName = fmt.Sprintf(`%s_%d.tar.%s`, p.dstDir, tarFileNum, tarUtil.EncryptTool.DefaultSuffix())
+			}
 			if err = tarUtil.New(dstTarName); err != nil {
 				return err
 			}
@@ -111,7 +121,7 @@ func (p *PackageFile) MappingPackage() error {
 	})
 	logger.Log.Infof("need to tar file, accumulated tar size: %d bytes, dstFile: %s", tarSize, dstTarName)
 	p.indexFile.TotalFilesize += tarSize
-	p.indexFile.TotalFilesizeUncompress = uint64(totalSizeUncompress)
+	p.indexFile.TotalSizeKBUncompress = totalSizeUncompress / 1024
 	if walkErr != nil {
 		logger.Log.Error("walk dir, err: ", walkErr)
 		return walkErr
@@ -188,18 +198,20 @@ func (p *PackageFile) tarballDir() error {
 		} else if !isFile {
 			return nil
 		}
-		// TODO limit io rate when removing
-		if err = os.Remove(filename); err != nil {
-			logger.Log.Error("failed to remove file while taring, err:", err)
-		}
 		if totalSizeUncompress > -1 && strings.HasSuffix(filename, cst.ZstdSuffix) {
-			if sizeUncompress, err := readUncompressSizeForZstd("", filename); err != nil {
+			if sizeUncompress, err := readUncompressSizeForZstd(CmdZstd, filename); err != nil {
 				logger.Log.Warnf("fail to readUncompressSizeForZstd for file %s, err: %s", filename, err.Error())
 				totalSizeUncompress = -1
 			} else {
 				totalSizeUncompress += sizeUncompress
 			}
 		}
+
+		// TODO limit io rate when removing
+		if err = os.Remove(filename); err != nil {
+			logger.Log.Error("failed to remove file while taring, err:", err)
+		}
+
 		return nil
 	})
 	if walkErr != nil {
@@ -318,13 +330,8 @@ func readUncompressSizeForZstd(zstdCmd string, fileName string) (int64, error) {
 			}
 		}
 		if i == 1 {
-			cols := strings.FieldsFunc(line, func(r rune) bool {
-				if r == '\t' {
-					return true
-				}
-				return false
-			})
-			readableBytes := strings.ReplaceAll(strings.ReplaceAll(cols[3], "i", ""), " ", "")
+			cols := strings.Fields(line)
+			readableBytes := strings.ReplaceAll(strings.ReplaceAll(cols[4]+cols[5], "i", ""), " ", "")
 			bytesNum, err := cmutil.ParseSizeInBytesE(readableBytes)
 			if err != nil {
 				return 0, errors.Wrapf(err, "fail to parse size %s for %s", readableBytes, fileName)
@@ -333,4 +340,13 @@ func readUncompressSizeForZstd(zstdCmd string, fileName string) (int64, error) {
 		}
 	}
 	return 0, errors.Errorf("unknown error, zst -l %s output error", fileName)
+}
+
+func tarBallWithEncrypt(tarFilename string, srcFilename string) error {
+	encryptCmd := []string{"openssl", "enc", "-aes-256-cbc", "-salt", "-k", "aaaa", "-out", "aaaa.tar.enc"}
+	//encryptCmd := []string{"xbcrypt", "--encrypt=AES256"}
+	tarCmd := []string{"tar", "-rf", "-", "dir1"}
+	cmdStr := fmt.Sprintf("%s| pv | %s ", strings.Join(tarCmd, " "), strings.Join(encryptCmd, " "))
+	fmt.Println(cmdStr)
+	return nil
 }

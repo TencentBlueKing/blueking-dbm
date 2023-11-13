@@ -15,34 +15,56 @@ import (
 
 	"golang.org/x/exp/slices"
 
+	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/cst"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/logger"
 )
 
+// Public 公共配置
 type Public struct {
-	BkBizId        int    `ini:"BkBizId" validate:"required"`
-	BkCloudId      int    `ini:"BkCloudId"`
-	BillId         string `ini:"BillId"`
-	BackupId       string `ini:"BackupId"`
-	ClusterId      int    `ini:"ClusterId"`
+	// BkBizId bk_biz_id
+	BkBizId int `ini:"BkBizId" validate:"required"`
+	// BkCloudId 云区域id
+	BkCloudId int `ini:"BkCloudId"`
+	// BillId 备份单据id，例行备份为空，单据发起的备份请设置单据id
+	BillId string `ini:"BillId"`
+	// BackupId backup uuid，代表一次备份
+	BackupId string `ini:"BackupId"`
+	// ClusterId cluster_id
+	ClusterId int `ini:"ClusterId"`
+	// ClusterAddress cluster_domain
 	ClusterAddress string `ini:"ClusterAddress"`
-	ShardValue     int    `ini:"ShardValue"` // 分片 id，仅 spider 有用
-	MysqlHost      string `ini:"MysqlHost" validate:"required,ip"`
-	MysqlPort      int    `ini:"MysqlPort" validate:"required"`
-	MysqlUser      string `ini:"MysqlUser" validate:"required"`
-	MysqlPasswd    string `ini:"MysqlPasswd"`
+	// ShardValue for spider
+	ShardValue int `ini:"ShardValue"` // 分片 id，仅 spider 有用
+	// MysqlHost backup host
+	MysqlHost string `ini:"MysqlHost" validate:"required,ip"`
+	// MysqlPort backup port
+	MysqlPort int `ini:"MysqlPort" validate:"required"`
+	// MysqlUser backup user to login
+	MysqlUser string `ini:"MysqlUser" validate:"required"`
+	// MysqlPasswd backup user's password
+	MysqlPasswd string `ini:"MysqlPasswd"`
 	// DataSchemaGrant data,grant,schema,priv,all，写了 data 则只备data，不备份 schema
-	DataSchemaGrant  string `ini:"DataSchemaGrant" validate:"required"`
-	BackupDir        string `ini:"BackupDir" validate:"required"`
-	MysqlRole        string `ini:"MysqlRole" validate:"required"` // oneof=master slave
-	MysqlCharset     string `ini:"MysqlCharset"`
-	BackupTimeOut    string `ini:"BackupTimeout"`                                // 备份时间阈值，格式 09:00:01
-	BackupType       string `ini:"BackupType" validate:"required"`               // oneof=logical physical
-	OldFileLeftDay   int    `ini:"OldFileLeftDay"`                               // will remove old backup files before the days
-	TarSizeThreshold uint64 `ini:"TarSizeThreshold" validate:"required,gte=128"` // tar file size. MB
-	IOLimitMBPerSec  int    `ini:"IOLimitMBPerSec"`                              // tar speed, mb/s. 0 means no limit
+	DataSchemaGrant string `ini:"DataSchemaGrant" validate:"required"`
+	// BackupDir backup files to save
+	BackupDir    string `ini:"BackupDir" validate:"required"`
+	MysqlRole    string `ini:"MysqlRole" validate:"required"` // oneof=master slave
+	MysqlCharset string `ini:"MysqlCharset"`
+	// BackupTimeOut 备份时间阈值，格式 09:00:01
+	BackupTimeOut string `ini:"BackupTimeout"`
+	// BackupType backup type,  oneof=logical physical
+	BackupType string `ini:"BackupType" validate:"required"`
+	// OldFileLeftDay will remove old backup files before the days
+	OldFileLeftDay int `ini:"OldFileLeftDay"`
+	// TarSizeThreshold tar file size. MB
+	TarSizeThreshold uint64 `ini:"TarSizeThreshold" validate:"required,gte=128"`
+	// IOLimitMBPerSec tar speed, mb/s. 0 means no limit
+	IOLimitMBPerSec  int    `ini:"IOLimitMBPerSec"`
 	ResultReportPath string `ini:"ResultReportPath" validate:"required"`
 	StatusReportPath string `ini:"StatusReportPath" validate:"required"`
+
+	// EncryptOpt backup files encrypt options
+	EncryptOpt *cmutil.EncryptOpt `ini:"EncryptOpt"`
 
 	cnfFilename string
 	targetName  string
