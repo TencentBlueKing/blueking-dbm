@@ -25,8 +25,8 @@ DEFAULT_CONFIG_CONFIRM = 0
 DEFAULT_IP = "127.0.0.1"
 
 # zookeeper配置文件模板
-ZK_CONF = "server.{i}={zk_ip}:2888:3888;2181"
-ZK_PORT = ":2888:3888;2181"
+ZK_CONF = "server.{i}={zk_ip}:2888:3888;{zk_ip}:2181"
+ZK_PORT = ":2888:3888;.*2181"
 
 DEFAULT_FACTOR = 3
 
