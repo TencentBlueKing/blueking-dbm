@@ -88,7 +88,7 @@ class RollbackViewSet(ReadOnlyAuditedModelViewSet):
             rollback_handler = DataStructureHandler(cluster.id)
 
             try:
-                backup_info = rollback_handler.query_latest_backup_log(rollback_time, ip, port)
+                backup_info = rollback_handler.query_latest_backup_log(rollback_time, slave_ip, slave_port)
             except AppBaseException:
                 return Response({"exist": False, "msg": f"[{master_instance}] query backup info exception failed"})
 

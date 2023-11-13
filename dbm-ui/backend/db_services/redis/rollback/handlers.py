@@ -46,19 +46,13 @@ class DataStructureHandler:
     def __init__(self, cluster_id: int):
         self.cluster = Cluster.objects.get(id=cluster_id)
 
-    def query_latest_backup_log(
-        self, rollback_time: datetime, host_ip: str, port: int, job_instance_id: int = None
-    ) -> Dict[str, Any]:
-        if job_instance_id:
-            # 本地查询,这里暂时没测试
-            backup_logs = self.query_backup_log_from_job(job_instance_id)["backup_logs"]
-        else:
-            # 日志平台查询
-            end_time = rollback_time
-            start_time = end_time - timedelta(days=BACKUP_LOG_ROLLBACK_TIME_RANGE_DAYS)
-            backup_logs = self.redis_query_backup_log_from_bklog(
-                start_time=datetime2str(start_time), end_time=datetime2str(end_time), host_ip=host_ip, port=port
-            )
+    def query_latest_backup_log(self, rollback_time: datetime, host_ip: str, port: int) -> Dict[str, Any]:
+        # 日志平台查询
+        end_time = rollback_time
+        start_time = end_time - timedelta(days=BACKUP_LOG_ROLLBACK_TIME_RANGE_DAYS)
+        backup_logs = self.redis_query_backup_log_from_bklog(
+            start_time=datetime2str(start_time), end_time=datetime2str(end_time), host_ip=host_ip, port=port
+        )
 
         if not backup_logs:
             raise AppBaseException(_("无法查找到在时间范围内{}-{}，主机{}的全备份日志").format(start_time, end_time, host_ip))
@@ -68,7 +62,7 @@ class DataStructureHandler:
         try:
             latest_log = backup_logs[find_nearby_time(time_keys, rollback_time.strftime(DATETIME_PATTERN), 1)]
         except IndexError:
-            raise AppBaseException(_("无法找到小于时间点{}附近的日志记录，请检查时间点的合法性或稍后重试").format(rollback_time))
+            raise AppBaseException(_("没有找到小于时间点{}附近的备份日志记录，请检查时间点的合法性或稍后重试").format(rollback_time))
         # 转化为直接查询备份系统返回的格式
         return self.convert_to_backup_system_format(latest_log)
 
@@ -131,7 +125,7 @@ class DataStructureHandler:
         kvstorecount: str = None,
         tendis_type: str = None,
         minute_range: int = 120,
-    ) -> Dict:
+    ) -> List[Dict]:
         """
         通过日志平台查询集群的时间范围内的binlog记录
         :param start_time: 开始时间
@@ -178,38 +172,12 @@ class DataStructureHandler:
         if kvstorecount is not None:
             # 每个节点又分不同kvstore
             for i in range(0, int(kvstorecount)):
-                # 过滤不同kvstore
+                # tendisplus 过滤不同kvstore
                 kvstore_filter = "-".join([str(host_ip), str(port), str(i)])
-
-                # 过滤后的包含指定kvstore的binlog列表
-                kvstore_binlogs = [
-                    binlog for binlog in binlogs if kvstore_filter in binlog["backup_file"].split("/")[-1]
-                ]
-                kvstore_binlogs.sort(key=lambda x: x["start_time"])
-                # 时间键的列表，应按升序排序
-                time_keys = [log["start_time"] for log in kvstore_binlogs]
-                try:
-                    # 获取小于且最接近start_time 的一个binlog文件 ；flag为1，则搜索小于或等于start_time的最近时间点
-                    latest_start_time_binlog = kvstore_binlogs[
-                        find_nearby_time(time_keys, start_time.strftime(DATETIME_PATTERN), 1)
-                    ]
-                except IndexError:
-                    raise AppBaseException(_("无法找到小于时间点{}附近的日志记录，请检查时间点的合法性或稍后重试").format(start_time))
-                # 转化为直接查询备份系统返回的格式
-                backup_binlog = self.convert_to_backup_system_format(latest_start_time_binlog)
-                binlog_file_list.append(backup_binlog)
-
-                try:
-                    # 获取大于且最接近end_time 的一个binlog文件 ；flag为0，则搜索大于或等于end_time的最近时间点
-                    latest_end_time_binlog = kvstore_binlogs[
-                        find_nearby_time(time_keys, end_time.strftime(DATETIME_PATTERN), 0)
-                    ]
-                except IndexError:
-                    raise AppBaseException(_("无法找到大于时间点{}附近的日志记录，请检查时间点的合法性或稍后重试").format(end_time))
-
-                # 转化为直接查询备份系统返回的格式
-                backup_binlog = self.convert_to_backup_system_format(latest_end_time_binlog)
-                binlog_file_list.append(backup_binlog)
+                # 添加instance不同kvstore的小于且最接近start_time和大于且最接近end_time的binlog备份文件
+                binlog_file_list.extend(
+                    self.get_specified_format_binlog(binlogs, kvstore_filter, start_time, end_time)
+                )
 
             # 每个节点又分不同kvstore,校验binlog完整性
             for i in range(0, int(kvstorecount)):
@@ -234,43 +202,16 @@ class DataStructureHandler:
                     )
 
         elif kvstorecount is None:
-            # 过滤不同kvstore
+            # ssd 过滤不同instance
             instance_filter = "-".join([str(host_ip), str(port)])
-            # 过滤后的包含指定kvstore的binlog列表
-            kvstore_binlogs = [binlog for binlog in binlogs if instance_filter in binlog["backup_file"].split("/")[-1]]
-            kvstore_binlogs.sort(key=lambda x: x["start_time"])
-            # 时间键的列表，应按升序排序
-            time_keys = [log["start_time"] for log in kvstore_binlogs]
-            try:
-                # 获取小于且最接近start_time 的一个binlog文件 ；flag为1，则搜索小于或等于start_time的最近时间点
-                latest_start_time_binlog = kvstore_binlogs[
-                    find_nearby_time(time_keys, start_time.strftime(DATETIME_PATTERN), 1)
-                ]
-            except IndexError:
-                raise AppBaseException(_("无法找到小于时间点{}附近的日志记录，请检查时间点的合法性或稍后重试").format(start_time))
-            # 转化为直接查询备份系统返回的格式
-            backup_binlog = self.convert_to_backup_system_format(latest_start_time_binlog)
-            binlog_file_list.append(backup_binlog)
-            try:
-                # 获取大于且最接近end_time 的一个binlog文件 ；flag为0，则搜索大于或等于end_time的最近时间点
-                latest_end_time_binlog = kvstore_binlogs[
-                    find_nearby_time(time_keys, end_time.strftime(DATETIME_PATTERN), 0)
-                ]
-            except IndexError:
-                raise AppBaseException(_("无法找到大于时间点{}附近的日志记录，请检查时间点的合法性或稍后重试").format(end_time))
+            # 添加instance小于且最接近start_time和大于且最接近end_time的binlog备份文件
+            binlog_file_list.extend(self.get_specified_format_binlog(binlogs, instance_filter, start_time, end_time))
 
-            # 转化为直接查询备份系统返回的格式
-            backup_binlog = self.convert_to_backup_system_format(latest_end_time_binlog)
-            binlog_file_list.append(backup_binlog)
-
-            # 校验binlog完整性
-            instance_filter = "-".join([str(host_ip), str(port)])
-            # 过滤后的包含指定kvstore的binlog列表
             binlogs_list = [binlog for binlog in binlog_file_list if instance_filter in binlog["file_name"]]
             # 至少会包含两个binlog文件,第一个BackupStart小于 start_time, 第二个BackupStart 大于 end_time
             if len(binlogs_list) < 2:
                 logger.error(_("binlog全部文件信息:{}".format(binlog_file_list)))
-                raise AppBaseException(_("节点{}:{}的kvstore:{}的binlog 数少于2，不符合预期，请检查error日志").format(host_ip, port, i))
+                raise AppBaseException(_("节点{}:{}的binlog 数少于2，不符合预期，请检查error日志").format(host_ip, port))
 
             # 检查是否获取到所有binlog
             bin_index_list = self.__is_get_all_binlog(binlogs_list, tendis_type)
@@ -297,6 +238,8 @@ class DataStructureHandler:
         elif tendis_type == ClusterType.TendisSSDInstance.value:
             # binlog-xxxx-30002-0002500-20230913101206.log.zst
             sorted_binlog_file_name_list = sorted(binlog_file_name_list, key=lambda x: int(x.split("-")[3]))
+        else:
+            raise NotImplementedError("Not supported tendis type: %s" % tendis_type)
         # 3. 判断是否连续重复
         missing_files = []
         duplicate_files = set()
@@ -305,20 +248,20 @@ class DataStructureHandler:
 
         for file_name in sorted_binlog_file_name_list:
             if tendis_type == ClusterType.TendisplusInstance.value:
-                current_number = int(file_name.split("-")[4])
+                current_index_number = int(file_name.split("-")[4])
             elif tendis_type == ClusterType.TendisSSDInstance.value:
-                current_number = int(file_name.split("-")[3])
-            # 检查是否重复
-            if current_number in duplicate_files:
-                logger.error(_("文件序号重复: {}".format(current_number)))
-                logger.error(_("文件重复: {}".format(file_name)))
-                return [current_number]
-            # 检查是否连续
-            if previous_number is not None and current_number - previous_number > 1:
-                logger.error(_("缺失时打印排序后的当前文件:{}和上一个文件: {}".format(previous_file_name, file_name)))
-                missing_files.extend(range(previous_number + 1, current_number))
-            duplicate_files.add(current_number)
-            previous_number = current_number
+                current_index_number = int(file_name.split("-")[3])
+            else:
+                raise NotImplementedError("Not supported tendis type: %s" % tendis_type)
+            if current_index_number in duplicate_files:
+                logger.error(_("文件序号重复: {}，文件重复: {}".format(current_index_number, file_name)))
+                return [current_index_number]
+            # 检查文件index序号是否连续
+            if previous_number is not None and current_index_number - previous_number > 1:
+                logger.error(_("缺失时打印当前文件:{}和上一个文件: {}".format(previous_file_name, file_name)))
+                missing_files.extend(range(previous_number + 1, current_index_number))
+            duplicate_files.add(current_index_number)
+            previous_number = current_index_number
             previous_file_name = file_name
         # 4. 判断是否连续的结果
         if missing_files:
@@ -338,3 +281,44 @@ class DataStructureHandler:
             "task_id": bk_binlog["backup_taskid"],
             "file_name": bk_binlog["backup_file"].split("/")[-1],
         }
+
+    def get_specified_format_binlog(
+        self, binlogs: List, filter: str, start_time: Union[datetime, str], end_time: Union[datetime, str]
+    ) -> list:
+        """
+        从批量大范围的备份记录中过滤出特定的instance或者kvstore的小于且最接近start_time和大于且最接近end_time的binlog备份文件
+        :param binlogs: 大范围的binlog备份记录
+        :param filter: 过滤的的包含的内容
+        :param start_time: 开始时间
+        :param end_time: 结束时间
+        """
+
+        binlog_file_list = []
+        # 过滤后的包含指定filter的binlog列表
+        filtered_binlogs = [binlog for binlog in binlogs if filter in binlog["backup_file"].split("/")[-1]]
+        filtered_binlogs.sort(key=lambda x: x["start_time"])
+        # 时间键的列表，应按升序排序
+        time_keys = [log["start_time"] for log in filtered_binlogs]
+        try:
+            # 获取小于且最接近start_time 的一个binlog文件 ；flag为1，则搜索小于或等于start_time的最近时间点
+            latest_start_time_binlog = filtered_binlogs[
+                find_nearby_time(time_keys, start_time.strftime(DATETIME_PATTERN), 1)
+            ]
+        except IndexError:
+            raise AppBaseException(_("无法找到小于时间点{}附近的日志记录，请检查时间点的合法性或稍后重试").format(start_time))
+        # 转化为直接查询备份系统返回的格式
+        backup_binlog = self.convert_to_backup_system_format(latest_start_time_binlog)
+        binlog_file_list.append(backup_binlog)
+
+        try:
+            # 获取大于且最接近end_time 的一个binlog文件 ；flag为0，则搜索大于或等于end_time的最近时间点
+            latest_end_time_binlog = filtered_binlogs[
+                find_nearby_time(time_keys, end_time.strftime(DATETIME_PATTERN), 0)
+            ]
+        except IndexError:
+            raise AppBaseException(_("无法找到大于时间点{}附近的日志记录，请检查时间点的合法性或稍后重试").format(end_time))
+
+        # 转化为直接查询备份系统返回的格式
+        backup_binlog = self.convert_to_backup_system_format(latest_end_time_binlog)
+        binlog_file_list.append(backup_binlog)
+        return binlog_file_list
