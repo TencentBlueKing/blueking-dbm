@@ -6,6 +6,8 @@ import (
 	"os"
 )
 
+// doEncryptFile example
+// usually use cmutil EncryptOpt
 func doEncryptFile() error {
 	srcFilename := "aaa.tar"
 	srcFile, err := os.Open(srcFilename)

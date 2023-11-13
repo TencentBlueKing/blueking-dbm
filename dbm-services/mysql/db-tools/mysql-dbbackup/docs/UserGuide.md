@@ -204,7 +204,8 @@ EncryptElgo =
   - 留空默认为 openssl
   - 如果是 xbcrypt,默认从工具目录下找 `bin/xbcrypt`，也可以指定工具全路径  
 3. EncryptAlgo: 加密算法，留空会有默认加密算法
-   - openssl [aes-256-cbc, aes-128-cbc, sm4-cbc]，文件后缀 `.enc`。sm4-cbc 为国密对称加密算法
+   - openssl [aes-256-cbc, aes-128-cbc, sm4-cbc]，文件后缀 `.enc`。
+    sm4-cbc 为国密对称加密算法，需要 mysql 本机上的 openssl>1.1.1
    - xbcrypt [AES256, AES192, AES128]，文件后缀 `.xb`
 4. EncryptPublicKey: public key 文件  
   - 用于 对 passphrase 加密，上报加密字符串。需要对应的平台 私钥 secret key 才能对 加密后的passphrase 解密
@@ -231,7 +232,8 @@ openssl rsautl -decrypt -inkey rsa.pem -in encrypted.key
 
 // 3. 使用密码 passphrase 解密文件
 ```
-一般 passphrase 需要从平台的页面获取，因为私钥不能泄露给使用者。
+
+**用户只能拿到加密后的密码，明文 passphrase 需要从平台的页面解密获取，因为解密用的私钥不能泄露。**
 
 - openssl 解密文件
 ```
