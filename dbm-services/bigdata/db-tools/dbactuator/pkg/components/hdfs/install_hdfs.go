@@ -3,8 +3,8 @@ package hdfs
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
 	"math"
+	"os"
 	"strings"
 
 	"dbm-services/bigdata/db-tools/dbactuator/pkg/components"
@@ -126,7 +126,7 @@ func (i *InstallHdfsService) InstallSupervisor() (err error) {
 		logger.Error("read shell template failed %s", err.Error())
 		return err
 	}
-	if err = ioutil.WriteFile(i.HdfsHomeDir+"/sbin/"+config_tpl.HadoopDaemonWrapperFileName, data, 07555); err != nil {
+	if err = os.WriteFile(i.HdfsHomeDir+"/sbin/"+config_tpl.HadoopDaemonWrapperFileName, data, 07555); err != nil {
 		logger.Error("write hadoop-daemon shell failed %s", err.Error())
 		return err
 	}
@@ -172,11 +172,9 @@ func (i *InstallHdfsService) InstallNn1() (err error) {
 		logger.Error("get metadata dir execute failed, %v", err)
 		return err
 	}
-	logger.Info("richie-test: %s", nameDir)
 	if strings.HasPrefix(nameDir, "file://") {
 		nameDir = strings.TrimPrefix(nameDir, "file://")
 	}
-	logger.Info("richie-test after Trim Prefix: %s", nameDir)
 
 	checkCmd := fmt.Sprintf("ls -ltr %s/current/ | grep fsimage", nameDir)
 	if _, err = osutil.ExecShellCommand(false, checkCmd); err != nil {
@@ -269,6 +267,14 @@ func (i *InstallHdfsService) InstallDataNode() (err error) {
 	if _, err = osutil.ExecShellCommand(false, replaceConfCmd); err != nil {
 		logger.Error("%s execute failed, %v", replaceConfCmd, err)
 	}
+	// 增加DN配置: 磁盘预留，坏盘容忍
+	reservedDiskSize := util2.GetReservedDiskSize()
+	tolerateFailedVolumes := util2.GetTolerateFailedVolumes()
+	replaceConfCmd = fmt.Sprintf(`sed -i -e "s/{{reserved}}/%d/g" -e "s/{{tolerated_failed_disk_num}}/%d/g" %s`,
+		reservedDiskSize, tolerateFailedVolumes, i.HdfsConfDir+"/hdfs-site.xml")
+	if _, err = osutil.ExecShellCommand(false, replaceConfCmd); err != nil {
+		logger.Error("%s execute failed, %v", replaceConfCmd, err)
+	}
 	return i.SupervisorUpdateConfig(DataNode)
 }
 
@@ -308,7 +314,7 @@ func (i *InstallHdfsService) RenderHaProxyConfig() (err error) {
 		logger.Error("read config template failed %s", err.Error())
 		return err
 	}
-	if err = ioutil.WriteFile("/etc/haproxy/haproxy.cfg", data, 07555); err != nil {
+	if err = os.WriteFile("/etc/haproxy/haproxy.cfg", data, 07555); err != nil {
 		logger.Error("write haproxy config failed %s", err.Error())
 		return err
 	}
@@ -339,16 +345,6 @@ func (i *InstallHdfsService) StartHaProxy() (err error) {
 	return ServiceCommand("haproxy", Start)
 }
 
-// HadoopDaemonCommand TODO
-func HadoopDaemonCommand(component string, options string) (err error) {
-	execCommand := fmt.Sprintf("su - hadoop -c \"hadoop-daemon.sh %s %s\"", options, component)
-	if _, err = osutil.ExecShellCommand(false, execCommand); err != nil {
-		logger.Error("%s execute failed, %v", execCommand, err)
-		return err
-	}
-	return nil
-}
-
 // SupervisorUpdateConfig TODO
 func (i *InstallHdfsService) SupervisorUpdateConfig(component string) (err error) {
 	return SupervisorUpdateHdfsConfig(i.SupervisorConfDir, component)
@@ -356,43 +352,36 @@ func (i *InstallHdfsService) SupervisorUpdateConfig(component string) (err error
 
 // RenderHdfsConfig TODO
 func (i *InstallHdfsService) RenderHdfsConfig() (err error) {
-
-	logger.Info("now hdfs conf dir is %s", i.HdfsConfDir)
 	// 封装hdfs-site.xml
 	hdfsSiteData, _ := util2.TransMap2Xml(i.Params.HdfsSite)
-	if err = ioutil.WriteFile(i.HdfsConfDir+"/"+"hdfs-site.xml", hdfsSiteData, 0644); err != nil {
+	if err = os.WriteFile(i.HdfsConfDir+"/"+"hdfs-site.xml", hdfsSiteData, 0644); err != nil {
 		logger.Error("write config failed %s", err.Error())
 		return err
 	}
 	// 封装core-site.xml
 	coreSiteData, _ := util2.TransMap2Xml(i.Params.CoreSite)
-	if err = ioutil.WriteFile(i.HdfsConfDir+"/"+"core-site.xml", coreSiteData, 0644); err != nil {
+	if err = os.WriteFile(i.HdfsConfDir+"/"+"core-site.xml", coreSiteData, 0644); err != nil {
 		logger.Error("write config failed %s", err.Error())
 		return err
 	}
-
-	dnIps := strings.Split(i.Params.DnIps, ",")
-	buf := bytes.NewBufferString("")
-	for index, _ := range dnIps {
-		dnHost := i.Params.HostMap[dnIps[index]]
-		buf.WriteString(fmt.Sprintln(dnHost))
-	}
-	if err = ioutil.WriteFile(i.HdfsConfDir+"/"+"dfs.include", buf.Bytes(), 0644); err != nil {
-		logger.Error("write config failed %s", err.Error())
+	// 封装dfs.include
+	if err = i.WriteDfsHostConfig(); err != nil {
+		logger.Error("write dfs.hosts config failed %s", err.Error())
 		return err
 	}
-
 	nn1Host := i.Params.HostMap[i.Params.Nn1Ip]
 	nn2Host := i.Params.HostMap[i.Params.Nn2Ip]
-	extraCmd := fmt.Sprintf(`sed -i -e "s/{{cluster_name}}/%s/" -e "s/{{nn1_host}}/%s/"  -e "s/{{nn2_host}}/%s/"  %s`,
-		i.Params.ClusterName,
-		nn1Host, nn2Host, i.HdfsConfDir+"/*")
-	if _, err = osutil.ExecShellCommand(false, extraCmd); err != nil {
-		logger.Error("%s execute failed, %v", extraCmd, err)
+	// 获取本地主机对应的DN域名/主机名
+	hostName := util2.GetLocalHostNameByMap(i.Params.HostMap)
+	// 需要提前修改DN配置，否则NN无法启动 caused by bk-monitor
+	replaceDnHostCmd := fmt.Sprintf(`sed -i -e "s/{{dn_host}}/%s/" %s`, hostName, i.HdfsConfDir+"/*")
+	if _, err = osutil.ExecShellCommand(false, replaceDnHostCmd); err != nil {
+		logger.Error("%s execute failed, %v", replaceDnHostCmd, err)
 		return err
 	}
-	extraCmd = fmt.Sprintf(`sed -i -e "s/{{http_port}}/%d/" -e "s/{{rpc_port}}/%d/" %s`, i.Params.HttpPort,
-		i.Params.RpcPort, i.HdfsConfDir+"/*")
+
+	extraCmd := fmt.Sprintf(`sed -i -e "s/{{cluster_name}}/%s/" -e "s/{{nn1_host}}/%s/"  -e "s/{{nn2_host}}/%s/" -e "s/{{http_port}}/%d/" -e "s/{{rpc_port}}/%d/" %s`,
+		i.Params.ClusterName, nn1Host, nn2Host, i.Params.HttpPort, i.Params.RpcPort, i.HdfsConfDir+"/*")
 	if _, err = osutil.ExecShellCommand(false, extraCmd); err != nil {
 		logger.Error("%s execute failed, %v", extraCmd, err)
 		return err
@@ -416,7 +405,6 @@ func (i *InstallHdfsService) RenderHdfsConfig() (err error) {
 
 	// 配置jvm参数
 	var instMem uint64
-
 	if instMem, err = esutil.GetInstMem(); err != nil {
 		logger.Error("获取实例内存失败, err: %w", err)
 		return fmt.Errorf("获取实例内存失败, err: %w", err)
@@ -424,7 +412,6 @@ func (i *InstallHdfsService) RenderHdfsConfig() (err error) {
 	jvmNameNodeSize := int(math.Floor(0.8 * float64(instMem) / 1024))
 	jvmDataNodeSize := int(math.Floor(0.6 * float64(instMem) / 1024))
 
-	// Todo 修改DataNode 数据目录配置，mkdir
 	extraCmd = fmt.Sprintf(`sed -i -e "s/{{NN_JVM_MEM}}/%s/" -e "s/{{DN_JVM_MEM}}/%s/" %s`,
 		fmt.Sprintf("-Xms%dG -Xmx%dG", jvmNameNodeSize, jvmNameNodeSize),
 		fmt.Sprintf("-Xms%dG -Xmx%dG", jvmDataNodeSize, jvmDataNodeSize),
@@ -438,6 +425,18 @@ func (i *InstallHdfsService) RenderHdfsConfig() (err error) {
 
 }
 
+// WriteDfsHostConfig 写入dfs.include
+func (i *InstallHdfsService) WriteDfsHostConfig() error {
+
+	dnIps := strings.Split(i.Params.DnIps, ",")
+	buf := bytes.NewBufferString("")
+	for _, dnIp := range dnIps {
+		dnHost := i.Params.HostMap[dnIp]
+		buf.WriteString(fmt.Sprintln(dnHost))
+	}
+	return os.WriteFile(i.HdfsConfDir+"/"+"dfs.include", buf.Bytes(), 0644)
+}
+
 // RenderHdfsConfigWithoutParams TODO
 func (i *InstallHdfsService) RenderHdfsConfigWithoutParams() (err error) {
 	// 写入log4j.properties
@@ -446,7 +445,7 @@ func (i *InstallHdfsService) RenderHdfsConfigWithoutParams() (err error) {
 		logger.Error("read config template failed %s", err.Error())
 		return err
 	}
-	if err = ioutil.WriteFile(i.HdfsConfDir+"/"+config_tpl.Log4jPropertiesFileName, data, 07555); err != nil {
+	if err = os.WriteFile(i.HdfsConfDir+"/"+config_tpl.Log4jPropertiesFileName, data, 07555); err != nil {
 		logger.Error("write tmp config failed %s", err.Error())
 		return err
 	}
@@ -457,7 +456,7 @@ func (i *InstallHdfsService) RenderHdfsConfigWithoutParams() (err error) {
 		logger.Error("read config template script failed %s", err.Error())
 		return err
 	}
-	if err = ioutil.WriteFile(i.HdfsConfDir+"/"+config_tpl.RackAwareFileName, data, 07555); err != nil {
+	if err = os.WriteFile(i.HdfsConfDir+"/"+config_tpl.RackAwareFileName, data, 07555); err != nil {
 		logger.Error("write tmp config failed %s", err.Error())
 		return err
 	}
