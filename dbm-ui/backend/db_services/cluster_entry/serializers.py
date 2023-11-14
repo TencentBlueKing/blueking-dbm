@@ -16,16 +16,24 @@ from backend.db_meta.enums import ClusterEntryType
 
 
 class ModifyClusterEntrySerializer(serializers.Serializer):
-    cluster_id = serializers.IntegerField(help_text=_("集群 ID"))
-    cluster_entry_type = serializers.ChoiceField(help_text=_("集群 ID"), choices=ClusterEntryType.get_choices())
+    class ClusterEntryDetailsSerializer(serializers.Serializer):
+        cluster_entry_type = serializers.ChoiceField(help_text=_("访问入口类型"), choices=ClusterEntryType.get_choices())
+        # DNS 域名修改
+        domain_name = serializers.CharField(help_text=_("域名"), required=False)
+        target_instances = serializers.ListSerializer(
+            child=serializers.CharField(help_text=_("目标实例，格式为 ip#port ")), help_text=_("目标实例列表"), required=False
+        )
 
-    domain_name = serializers.CharField(help_text=_("域名"), required=False)
-    target_instances = serializers.ListSerializer(
-        child=serializers.CharField(help_text=_("目标实例，格式为 ip#port ")), help_text=_("目标实例列表"), required=False
+    cluster_id = serializers.IntegerField(help_text=_("集群 ID"))
+    cluster_entry_details = serializers.ListSerializer(
+        help_text=_("访问入口详情"), child=ClusterEntryDetailsSerializer(), allow_empty=False
     )
 
     def validate(self, attrs):
-        if attrs["cluster_entry_type"] == ClusterEntryType.DNS:
-            if not all(key in attrs for key in ("domain_name", "target_instances")):
-                raise serializers.ValidationError(_("修改 DNS 访问入口需要传入 domain_name 和 target_instances"))
+        for detail in attrs["cluster_entry_details"]:
+            if detail["cluster_entry_type"] == ClusterEntryType.DNS:
+                if not all(key in detail for key in ("domain_name", "target_instances")):
+                    raise serializers.ValidationError(_("修改 DNS 访问入口需要传入 domain_name 和 target_instances"))
+                if not detail["target_instances"]:
+                    raise serializers.ValidationError(_("修改 DNS，目标实例列表不能为空"))
         return attrs

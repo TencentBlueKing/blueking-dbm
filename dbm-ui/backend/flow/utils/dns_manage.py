@@ -33,6 +33,16 @@ class DnsManage(object):
         self.bk_biz_id = bk_biz_id
         self.bk_cloud_id = bk_cloud_id
 
+    @staticmethod
+    def format_domain(domain_name: str) -> str:
+        """
+        保证域名的格式为，保留最后一个英文句号 "."
+        """
+        if domain_name.endswith("."):
+            return domain_name
+        else:
+            return f"{domain_name}."
+
     def create_domain(self, instance_list: list, add_domain_name: str) -> bool:
         """
         创建域名
@@ -41,7 +51,7 @@ class DnsManage(object):
         """
         create_domain_payload = [
             {
-                "domain_name": f"{add_domain_name}.",
+                "domain_name": self.format_domain(add_domain_name),
                 "instances": instance_list,
             }
         ]
@@ -66,7 +76,7 @@ class DnsManage(object):
         else:
             dns_info = ClusterEntry.objects.filter(cluster=cluster, cluster_entry_type=ClusterEntryType.DNS).all()
         for d in dns_info:
-            delete_domain_payload = [{"domain_name": f"{d.entry}."}]
+            delete_domain_payload = [{"domain_name": self.format_domain(d.entry)}]
             logger.info(d.entry)
             res = DnsApi.delete_domain(
                 {"app": str(self.bk_biz_id), "domains": delete_domain_payload, "bk_cloud_id": self.bk_cloud_id}
@@ -100,7 +110,7 @@ class DnsManage(object):
         DnsApi.update_domain(
             {
                 "app": str(self.bk_biz_id),
-                "domain_name": f"{update_domain_name}.",
+                "domain_name": self.format_domain(update_domain_name),
                 "instance": f"{old_instance}",
                 "set": {"instance": f"{new_instance}"},
                 "bk_cloud_id": self.bk_cloud_id,
@@ -115,14 +125,14 @@ class DnsManage(object):
         res = DnsApi.get_domain(
             {
                 "app": str(self.bk_biz_id),
-                "domain_name": f"{domain_name}.",
+                "domain_name": self.format_domain(domain_name),
                 "bk_cloud_id": self.bk_cloud_id,
             }
         )
         return res["detail"]
 
     def remove_domain_ip(self, domain: str, del_instance_list: list) -> bool:
-        delete_domain_payload = [{"domain_name": f"{domain}.", "instances": del_instance_list}]
+        delete_domain_payload = [{"domain_name": self.format_domain(domain), "instances": del_instance_list}]
         res = DnsApi.delete_domain(
             {"app": str(self.bk_biz_id), "domains": delete_domain_payload, "bk_cloud_id": self.bk_cloud_id}
         )
@@ -154,7 +164,7 @@ class DnsManage(object):
         DnsApi.batch_update_domain(
             {
                 "app": str(self.bk_biz_id),
-                "domain_name": f"{update_domain_name}.",
+                "domain_name": self.format_domain(update_domain_name),
                 "set": sets,
                 "bk_cloud_id": self.bk_cloud_id,
             }
