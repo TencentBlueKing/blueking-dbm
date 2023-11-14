@@ -34,8 +34,9 @@ class ClusterEntryViewSet(viewsets.SystemViewSet):
     def refresh_cluster_domain(self, request, *args, **kwargs):
         data = self.params_validate(self.get_serializer_class())
         cluster = Cluster.objects.get(id=data["cluster_id"])
-        if data["cluster_entry_type"] == ClusterEntryType.DNS:
-            DnsManage(cluster.bk_biz_id, cluster.bk_cloud_id).refresh_cluster_domain(
-                data["domain_name"], data["target_instances"]
-            )
+        for detail in data["cluster_entry_details"]:
+            if detail["cluster_entry_type"] == ClusterEntryType.DNS:
+                DnsManage(cluster.bk_biz_id, cluster.bk_cloud_id).refresh_cluster_domain(
+                    detail["domain_name"], detail["target_instances"]
+                )
         return Response({})
