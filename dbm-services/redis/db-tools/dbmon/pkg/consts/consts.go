@@ -153,8 +153,9 @@ const (
 	DoingRedisBinlogFileList = "redis_binlog_file_list_%d_doing"
 	DoneRedisBinlogFileList  = "redis_binlog_file_list_%d_done"
 
-	RedisFullbackupRepoter = "redis_fullbackup_%s.log"
-	RedisBinlogRepoter     = "redis_binlog_%s.log"
+	RedisFullbackupRepoter   = "redis_fullbackup_%s.log"
+	RedisBinlogRepoter       = "redis_binlog_%s.log"
+	RedisClusterNodesRepoter = "redis_cluster_nodes_%s.log"
 
 	BackupStatusStart             = "start"
 	BackupStatusRunning           = "running"

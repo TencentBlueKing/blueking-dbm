@@ -18,6 +18,10 @@ from ..domains import CC_APIGW_DOMAIN
 class _CCApi(object):
     MODULE = _("配置平台")
 
+    class ErrorCode:
+        HOST_NOT_BELONG_BIZ = 1113002
+        HOST_NOT_BELONG_MODULE = 1110056
+
     def __init__(self):
         self.list_hosts_without_biz = DataAPI(
             method="POST",

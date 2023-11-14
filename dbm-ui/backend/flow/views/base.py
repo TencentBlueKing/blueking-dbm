@@ -40,11 +40,12 @@ class FlowTestView(APIView):
         return []
 
 
-class MigrateFlowView(FlowTestView):
+class MigrateFlowView(APIView):
     """迁移流程的view视图"""
 
     def get_permissions(self):
         migrate_users = SystemSettings.get_setting_value(key=SystemSettingsEnum.DBM_MIGRATE_USER, default=[])
-        if self.request.user.username in migrate_users:
+        if self.request.user.username in migrate_users or self.request.user.is_superuser:
             return []
-        return super().get_permissions()
+        else:
+            raise PermissionDenied(_("权限不足，无法访问!"))

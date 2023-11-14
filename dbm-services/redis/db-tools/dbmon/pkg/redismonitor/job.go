@@ -2,6 +2,7 @@ package redismonitor
 
 import (
 	"fmt"
+	"sync"
 
 	"dbm-services/redis/db-tools/dbmon/config"
 	"dbm-services/redis/db-tools/dbmon/models/myredis"
@@ -9,8 +10,9 @@ import (
 	"dbm-services/redis/db-tools/dbmon/pkg/consts"
 )
 
-// GlobRedisMonitorJob global var
-var GlobRedisMonitorJob *Job
+// globRedisMonitorJob global var
+var globRedisMonitorJob *Job
+var monitorOnce sync.Once
 
 // Job 监控任务
 type Job struct {
@@ -18,11 +20,14 @@ type Job struct {
 	Err  error                 `json:"-"`
 }
 
-// InitGlobRedisMonitorJob 新建监控任务
-func InitGlobRedisMonitorJob(conf *config.Configuration) {
-	GlobRedisMonitorJob = &Job{
-		Conf: conf,
-	}
+// GetGlobRedisMonitorJob 新建监控任务
+func GetGlobRedisMonitorJob(conf *config.Configuration) *Job {
+	monitorOnce.Do(func() {
+		globRedisMonitorJob = &Job{
+			Conf: conf,
+		}
+	})
+	return globRedisMonitorJob
 }
 
 // Run new monitor tasks and run

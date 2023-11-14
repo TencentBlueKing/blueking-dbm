@@ -5,6 +5,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"sync"
 	"time"
 
 	"dbm-services/redis/db-tools/dbmon/config"
@@ -15,8 +16,9 @@ import (
 	"dbm-services/redis/db-tools/dbmon/util"
 )
 
-// GlobRedisKeyLifeCycleJob global var
-var GlobRedisKeyLifeCycleJob *Job
+// globRedisKeyLifeCycleJob global var
+var globRedisKeyLifeCycleJob *Job
+var keylifecycleOnce sync.Once
 
 // Job tendis key 生命周期Job 入口
 type Job struct { // NOCC:golint/naming(其他:设计如此)
@@ -30,11 +32,14 @@ type Job struct { // NOCC:golint/naming(其他:设计如此)
 	Err           error                 `json:"-"`
 }
 
-// InitRedisKeyLifeCycleJob tendis key 生命周期Job
-func InitRedisKeyLifeCycleJob(conf *config.Configuration) {
-	GlobRedisKeyLifeCycleJob = &Job{
-		Conf: conf,
-	}
+// GetRedisKeyLifeCycleJob tendis key 生命周期Job
+func GetRedisKeyLifeCycleJob(conf *config.Configuration) *Job {
+	keylifecycleOnce.Do(func() {
+		globRedisKeyLifeCycleJob = &Job{
+			Conf: conf,
+		}
+	})
+	return globRedisKeyLifeCycleJob
 }
 
 // Run 执行例行任务

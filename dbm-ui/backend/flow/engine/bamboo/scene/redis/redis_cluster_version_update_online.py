@@ -203,6 +203,55 @@ class RedisClusterVersionUpdateOnline(object):
             sub_pipeline.add_act(
                 act_name=_("主从所有IP 下发介质包"), act_component_code=TransFileComponent.code, kwargs=asdict(act_kwargs)
             )
+            # 卸载 dbmon
+            acts_list = []
+            act_kwargs.cluster = {}
+            act_kwargs.cluster["servers"] = [
+                {
+                    "app": AppCache.get_app_attr(bk_biz_id, "db_app_abbr"),
+                    "app_name": AppCache.get_app_attr(bk_biz_id, "bk_biz_name"),
+                    "bk_biz_id": str(bk_biz_id),
+                    "bk_cloud_id": int(cluster_meta_data["bk_cloud_id"]),
+                    "cluster_name": cluster_meta_data["cluster_name"],
+                    "cluster_type": cluster_meta_data["cluster_type"],
+                    "cluster_domain": cluster_info["cluster_domain"],
+                }
+            ]
+            for ip, ports in cluster_meta_data["master_ports"].items():
+                act_kwargs.cluster["servers"][0]["server_ip"] = ip
+                act_kwargs.cluster["servers"][0]["server_ports"] = []  # 留空
+                act_kwargs.cluster["servers"][0]["meta_role"] = InstanceRole.REDIS_MASTER.value
+                act_kwargs.cluster["servers"][0]["server_shards"] = {}
+                act_kwargs.cluster["servers"][0]["cache_backup_mode"] = get_cache_backup_mode(
+                    bk_biz_id, int(input_item["cluster_id"])
+                )
+                act_kwargs.exec_ip = ip
+                act_kwargs.get_redis_payload_func = RedisActPayload.bkdbmon_install.__name__
+                acts_list.append(
+                    {
+                        "act_name": _("old_master {} 卸载 dbmon").format(ip),
+                        "act_component_code": ExecuteDBActuatorScriptComponent.code,
+                        "kwargs": asdict(act_kwargs),
+                    }
+                )
+            for ip, ports in cluster_meta_data["slave_ports"].items():
+                act_kwargs.cluster["servers"][0]["server_ip"] = ip
+                act_kwargs.cluster["servers"][0]["server_ports"] = []
+                act_kwargs.cluster["servers"][0]["meta_role"] = InstanceRole.REDIS_SLAVE.value
+                act_kwargs.cluster["servers"][0]["server_shards"] = {}
+                act_kwargs.cluster["servers"][0]["cache_backup_mode"] = get_cache_backup_mode(
+                    bk_biz_id, int(input_item["cluster_id"])
+                )
+                act_kwargs.exec_ip = ip
+                act_kwargs.get_redis_payload_func = RedisActPayload.bkdbmon_install.__name__
+                acts_list.append(
+                    {
+                        "act_name": _("old_slave {} 卸载 dbmon").format(ip),
+                        "act_component_code": ExecuteDBActuatorScriptComponent.code,
+                        "kwargs": asdict(act_kwargs),
+                    }
+                )
+            sub_pipeline.add_parallel_acts(acts_list=acts_list)
 
             act_kwargs.cluster = {}
             acts_list = []

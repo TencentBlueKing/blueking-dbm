@@ -3,6 +3,7 @@ package redisfullbackup
 
 import (
 	"fmt"
+	"sync"
 
 	"dbm-services/redis/db-tools/dbmon/config"
 	"dbm-services/redis/db-tools/dbmon/mylog"
@@ -13,8 +14,9 @@ import (
 	"go.uber.org/zap"
 )
 
-// GlobRedisFullCheckJob global var
-var GlobRedisFullCheckJob *CheckJob
+// globRedisFullCheckJob global var
+var globRedisFullCheckJob *CheckJob
+var checkOnce sync.Once
 
 // CheckJob TODO
 // Job 例行备份任务
@@ -22,13 +24,16 @@ type CheckJob struct { // NOCC:golint/naming(其他:设计如此)
 	Job
 }
 
-// InitGlobRedisFullCheckJob 新建例行备份任务
-func InitGlobRedisFullCheckJob(conf *config.Configuration) {
-	GlobRedisFullCheckJob = &CheckJob{
-		Job: Job{
-			Conf: conf,
-		},
-	}
+// GetGlobRedisFullCheckJob 新建例行备份任务
+func GetGlobRedisFullCheckJob(conf *config.Configuration) *CheckJob {
+	checkOnce.Do(func() {
+		globRedisFullCheckJob = &CheckJob{
+			Job: Job{
+				Conf: conf,
+			},
+		}
+	})
+	return globRedisFullCheckJob
 }
 
 // Run 执行例行备份

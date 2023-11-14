@@ -18,6 +18,7 @@ from typing import Dict, List, Optional
 from django.utils.translation import ugettext as _
 
 from backend.configuration.constants import DBType
+from backend.db_meta.exceptions import DBMetaException
 from backend.db_meta.models import Cluster
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder, SubProcess
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
@@ -51,18 +52,22 @@ class MySQLHAStandardizeFlow(object):
         增加单据临时ADMIN账号的添加和删除逻辑
         """
         cluster_objects = Cluster.objects.filter(pk__in=self.data["infos"]["cluster_ids"])
-        if len(cluster_objects) != len(self.data["infos"]["cluster_ids"]):
-            pass  # ToDo
+        if cluster_objects.count() != len(self.data["infos"]["cluster_ids"]):
+            raise DBMetaException(
+                message="input {} clusters, but found {}".format(
+                    len(self.data["infos"]["cluster_ids"]), cluster_objects.count()
+                )
+            )
 
         standardize_pipe = Builder(
             root_id=self.root_id,
             data=self.data,
             need_random_pass_cluster_ids=list(set(self.data["infos"]["cluster_ids"])),
         )
+        standardize_pipe.add_sub_pipeline(self._build_trans_module_sub(clusters=cluster_objects))
 
         standardize_pipe.add_parallel_sub_pipeline(
             sub_flow_list=[
-                self._build_trans_module_sub(clusters=cluster_objects),
                 self._build_proxy_sub(clusters=cluster_objects),
                 self._build_storage_sub(clusters=cluster_objects),
             ]

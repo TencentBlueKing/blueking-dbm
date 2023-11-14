@@ -120,6 +120,15 @@ func (task *BackupTask) BakcupToLocal() {
 		mylog.Logger.Info(fmt.Sprintf("redis(%s) is master and has slaves,skip backup", task.Addr()))
 		return
 	}
+	// 如果是 tendisSSD 或 tenidsplus,早上12点后不做备份
+	if task.DbType == consts.TendisTypeTendisplusInsance ||
+		task.DbType == consts.TendisTypeTendisSSDInsance {
+		if time.Now().Local().Hour() >= 12 {
+			mylog.Logger.Info(fmt.Sprintf("tendis(%s) is %s and now is after 11 o'clock,skip backup",
+				task.Addr(), task.DbType))
+			return
+		}
+	}
 	task.reGetShardValWhenClusterEnabled()
 	if task.Err != nil {
 		return

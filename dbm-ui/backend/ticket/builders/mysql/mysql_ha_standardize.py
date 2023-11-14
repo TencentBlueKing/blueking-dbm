@@ -77,3 +77,7 @@ class MysqlStandardizeFlowBuilder(BaseMySQLTicketFlowBuilder):
     inner_flow_builder = MysqlHaStandardizeFlowParamBuilder
     inner_flow_name = _("MySQL高可用标准化")
     retry_type = FlowRetryType.MANUAL_RETRY
+
+    @property
+    def need_manual_confirm(self):
+        return True

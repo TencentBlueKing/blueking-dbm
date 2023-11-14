@@ -338,7 +338,7 @@ def build_repl_by_manual_input_sub_flow(
                 exec_ip=master_ip,
                 get_mysql_payload_func=MysqlActPayload.get_grant_mysql_repl_user_payload.__name__,
                 cluster={"new_slave_ip": slave_ip, "mysql_port": master_port},
-                run_as_system_user=DBA_SYSTEM_USER,
+                run_as_system_user=DBA_ROOT_USER,
             )
         ),
         write_payload_var=write_payload_var_name,
@@ -358,7 +358,7 @@ def build_repl_by_manual_input_sub_flow(
                 exec_ip=slave_ip,
                 get_mysql_payload_func=get_mysql_payload_func,
                 cluster={"new_master_ip": master_ip, "master_port": master_port, "slave_port": slave_port},
-                run_as_system_user=DBA_SYSTEM_USER,
+                run_as_system_user=DBA_ROOT_USER,
             )
         ),
     )
