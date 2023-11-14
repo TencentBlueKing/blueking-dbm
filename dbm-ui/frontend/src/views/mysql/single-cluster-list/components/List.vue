@@ -88,6 +88,10 @@
   <ExcelAuthorize
     v-model:is-show="isShowExcelAuthorize"
     :cluster-type="ClusterTypes.TENDBSINGLE" />
+  <EditEntryConfig
+    :id="clusterId"
+    v-model:is-show="showEditEntryConfig"
+    :get-detail-info="getResourceDetails" />
 </template>
 
 <script setup lang="tsx">
@@ -95,9 +99,9 @@
 
   import { getModules, getUseList  } from '@services/common';
   import {
+    getResourceDetails,
     getResourceInstances,
-    getResources,
-  } from '@services/source/resourceTendbsingle';
+    getResources  } from '@services/source/resourceTendbsingle';
   import { createTicket } from '@services/ticket';
   import type { ResourceItem } from '@services/types/clusters';
   import type { SearchFilterItem } from '@services/types/common';
@@ -112,7 +116,7 @@
     useTicketMessage,
   } from '@hooks';
 
-  import { useGlobalBizs } from '@stores';
+  import { useGlobalBizs, useUserProfile } from '@stores';
 
   import {
     ClusterTypes,
@@ -124,6 +128,7 @@
 
   import ClusterAuthorize from '@components/cluster-authorize/ClusterAuthorize.vue';
   import ExcelAuthorize from '@components/cluster-common/ExcelAuthorize.vue';
+  import EditEntryConfig from '@components/cluster-entry-config/Index.vue';
   import DbStatus from '@components/db-status/index.vue';
   import RenderInstances from '@components/render-instances/RenderInstances.vue';
 
@@ -162,6 +167,7 @@
 
   const router = useRouter();
   const globalBizsStore = useGlobalBizs();
+  const userProfileStore = useUserProfile();
   const copy = useCopy();
   const { t, locale } = useI18n();
   const ticketMessage = useTicketMessage();
@@ -171,9 +177,10 @@
   } = useStretchLayout();
 
   const tableKey = ref(random());
-  const isCN = computed(() => locale.value === 'zh-cn');
   const isAnomalies = ref(false);
   const isInit = ref(true);
+  const showEditEntryConfig = ref(false);
+
   const state = reactive<State>({
     isLoading: false,
     pagination: useDefaultPagination(),
@@ -182,6 +189,8 @@
     filters: [],
     dbModuleList: [],
   });
+
+  const isCN = computed(() => locale.value === 'zh-cn');
   const hasSelected = computed(() => state.selected.length > 0);
   const hasData = computed(() => state.data.length > 0);
   const searchSelectData = computed(() => [
@@ -257,11 +266,12 @@
             isRecentDays(data.create_at, 24 * 3)
              && <span class="glob-new-tag cluster-tag ml-4" data-text="NEW" />
           }
+          <db-icon
+            v-bk-tooltips={t('复制集群名称')}
+            type="copy"
+            onClick={() => copy(data.cluster_name)} />
         </div>
-        <db-icon
-          v-bk-tooltips={t('复制集群名称')}
-          type="copy"
-          onClick={() => copy(data.cluster_name)} />
+
       </div>
     ),
     },
@@ -283,10 +293,14 @@
       field: 'master_domain',
       minWidth: 200,
       showOverflowTooltip: false,
-      render: ({ cell }: ColumnData) => (
+      render: ({ cell, data }: ColumnData) => (
       <div class="domain">
         <span class="text-overflow" v-overflow-tips>{cell}</span>
         <i class="db-icon-copy" v-bk-tooltips={t('复制主访问入口')} onClick={() => copy(cell)} />
+        {userProfileStore.isManager && <db-icon
+            type="edit"
+            v-bk-tooltips={t('修改入口配置')}
+            onClick={() => handleOpenEntryConfig(data)} />}
       </div>
     ),
     },
@@ -397,6 +411,11 @@
       },
     },
   ]);
+
+  const handleOpenEntryConfig = (row: ResourceItem) => {
+    showEditEntryConfig.value  = true;
+    clusterId.value = row.id;
+  };
 
   // 设置行样式
   const setRowClass = (row: ResourceItem) => {
@@ -746,7 +765,7 @@
       align-items: center;
     }
 
-    .db-icon-copy {
+    .db-icon-copy, .db-icon-edit {
       display: none;
       margin-left: 4px;
       color: @primary-color;
@@ -770,7 +789,7 @@
   }
 
   :deep(tr:hover) {
-    .db-icon-copy {
+    .db-icon-copy, .db-icon-edit {
       display: inline-block !important;
     }
   }
@@ -784,32 +803,49 @@
       color: @disable-color;
     }
   }
+}
+</style>
+<style lang="less">
 
-  .cluster-name-container {
-    display: flex;
-    align-items: center;
-    padding: 8px 0;
-    overflow: hidden;
+.cluster-name-container {
+  display: flex;
+  align-items: center;
+  padding: 8px 0;
+  overflow: hidden;
 
-    .cluster-name {
-      line-height: 16px;
+  .cluster-name {
+    .bk-button {
+      display: inline-block;
+      width: 100%;
+      overflow: hidden;
 
-      &__alias {
-        color: @light-gray;
+      .bk-button-text {
+        display: inline-block;
+        width: 100%;
+        overflow: hidden;
+        line-height: 15px;
+        text-overflow: ellipsis;
+        white-space: nowrap;
       }
     }
 
-    .cluster-tags {
-      display: flex;
-      margin-left: 4px;
-      align-items: center;
-      flex-wrap: wrap;
+    &__alias {
+      color: @light-gray;
     }
+  }
+
+  .cluster-tags {
+    display: flex;
+    max-width: 150px;
+    margin-left: 4px;
+    align-items: center;
 
     .cluster-tag {
       margin: 2px 0;
       flex-shrink: 0;
     }
   }
+
+
 }
 </style>

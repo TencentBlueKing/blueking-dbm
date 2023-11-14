@@ -38,7 +38,7 @@ export default function () {
         field: 'bk_cloud_name',
       },
       {
-        label: t('域名'),
+        label: t('访问入口'),
         field: 'domain',
       },
       {

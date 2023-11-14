@@ -64,6 +64,10 @@
       </template>
     </BkDialog>
   </div>
+  <EditEntryConfig
+    :id="clusterId"
+    v-model:is-show="showEditEntryConfig"
+    :get-detail-info="getClusterDetail" />
 </template>
 <script setup lang="tsx">
   import { InfoBox } from 'bkui-vue';
@@ -77,9 +81,9 @@
 
   import type PulsarModel from '@services/model/pulsar/pulsar';
   import {
+    getClusterDetail,
     getList,
-    getListInstance,
-  } from '@services/source/pulsar';
+    getListInstance  } from '@services/source/pulsar';
   import { createTicket } from '@services/ticket';
 
   import {
@@ -88,12 +92,13 @@
     useTicketMessage,
   } from '@hooks';
 
-  import { useGlobalBizs } from '@stores';
+  import { useGlobalBizs, useUserProfile } from '@stores';
 
   import OperationStatusTips from '@components/cluster-common/OperationStatusTips.vue';
   import RenderNodeInstance from '@components/cluster-common/RenderNodeInstance.vue';
   import RenderOperationTag from '@components/cluster-common/RenderOperationTag.vue';
   import RenderClusterStatus from '@components/cluster-common/RenderStatus.vue';
+  import EditEntryConfig from '@components/cluster-entry-config/Index.vue';
 
   import ClusterExpansion from '@views/pulsar-manage/common/expansion/Index.vue';
   import ClusterShrink from '@views/pulsar-manage/common/shrink/Index.vue';
@@ -107,6 +112,7 @@
 
   const router = useRouter();
   const { currentBizId } = useGlobalBizs();
+  const userProfileStore = useUserProfile();
   const { t, locale } = useI18n();
   const {
     isOpen: isStretchLayoutOpen,
@@ -142,6 +148,8 @@
   const isShowShrink = ref(false);
   const isShowPassword = ref(false);
   const isInit = ref(true);
+  const showEditEntryConfig = ref(false);
+
   const operationData = shallowRef<PulsarModel>();
 
   const isCN = computed(() => locale.value === 'zh-cn');
@@ -204,14 +212,23 @@
       ),
     },
     {
-      label: t('域名'),
+      label: t('访问入口'),
       field: 'domain',
       minWidth: 100,
-      showOverflowTooltip: {
-        content: 'asdadasd',
-        disabled: false,
-      },
-      render: ({ data }: {data: PulsarModel}) => data.domain || '--',
+      showOverflowTooltip: false,
+      render: ({ data }: {data: PulsarModel}) => (
+        <div class="domain">
+          <span
+            class="text-overflow"
+            v-overflow-tips>
+            {data.domain || '--'}
+          </span>
+          {userProfileStore.isManager && <db-icon
+            type="edit"
+            v-bk-tooltips={t('修改入口配置')}
+            onClick={() => handleOpenEntryConfig(data)} />}
+        </div>
+      ),
     },
     {
       label: t('版本'),
@@ -384,6 +401,10 @@
     },
   ]);
 
+  const handleOpenEntryConfig = (row: PulsarModel) => {
+    showEditEntryConfig.value  = true;
+    clusterId.value = row.id;
+  };
 
   const fetchTableData = (loading?:boolean) => {
     tableRef.value?.fetchData({}, {}, loading);
@@ -637,6 +658,32 @@
         color: #3a84ff;
         vertical-align: middle;
         cursor: pointer;
+      }
+    }
+  }
+</style>
+<style lang="less" scoped>
+  .pulsar-list-page {
+    :deep(.cell) {
+      line-height: normal !important;
+
+      .domain {
+        display: flex;
+        align-items: center;
+      }
+
+      .db-icon-edit {
+        display: none;
+        margin-left: 4px;
+        color: @primary-color;
+        cursor: pointer;
+      }
+
+    }
+
+    :deep(tr:hover) {
+      .db-icon-edit {
+        display: inline-block !important;
       }
     }
   }

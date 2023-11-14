@@ -461,7 +461,7 @@
   "请选择备份目标": "Please select backup target",
   "请选择备份类型": "Please select backup type",
   "请选择操作集群": "Please select cluster",
-  "输入集群名_IP_域名关键字": "Enter the cluster name/IP/domain keyword",
+  "输入集群名_IP_访问入口关键字": "Enter the cluster name/IP/domain keyword",
   "选中集群存在删除中的集群无法操作": "The selected cluster exists and the cluster being deleted cannot be operated",
   "部署架构": "Deployment architecture",
   "重置后_将会清空当前填写的内容": "After reset, the currently filled content will be cleared",

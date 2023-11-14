@@ -26,7 +26,7 @@ const path = `/apis/bigdata/bizs/${currentBizId}/es/es_resources`;
 /**
  * 获取集群列表
  */
-export const getList = (params: Record<string, any> & {bk_biz_id: number}) => http.get<ListBase<EsModel[]>>(`${path}/`, params)
+export const getList = (params: Record<string, any> & { bk_biz_id: number }) => http.get<ListBase<EsModel[]>>(`${path}/`, params)
   .then(data => ({
     ...data,
     results: data.results.map((item: EsModel) => new EsModel(item)),
@@ -40,7 +40,7 @@ export const getTableFields = () => http.get<ListBase<EsModel[]>>(`${path}/get_t
 /**
  * 获取实例列表
  */
-export const getListInstance = (params: Record<string, any> & {bk_biz_id: number}) => http.get<ListBase<EsInstanceModel[]>>(`${path}/list_instances/`, params)
+export const getListInstance = (params: Record<string, any> & { bk_biz_id: number }) => http.get<ListBase<EsInstanceModel[]>>(`${path}/list_instances/`, params)
   .then(data => ({
     ...data,
     results: data.results.map((item: EsInstanceModel) => new EsInstanceModel(item)),
@@ -49,16 +49,12 @@ export const getListInstance = (params: Record<string, any> & {bk_biz_id: number
 /**
  * 获取实例详情
  */
-export const getRetrieveInstance = (params: {bk_biz_id: number}) => http.get<ListBase<EsModel[]>>(`${path}/retrieve_instance/`, params);
+export const getRetrieveInstance = (params: { bk_biz_id: number }) => http.get<ListBase<EsModel[]>>(`${path}/retrieve_instance/`, params);
 
 /**
  * 获取集群详情
  */
-export const getClusterDetail = (params: {
-  bk_biz_id: number,
-  cluster_id: number
-}) => http.get<EsModel>(`${path}/${params.cluster_id}/`)
-  .then(data => new EsModel(data));
+export const getClusterDetail = (params: { id: number }) => http.get<EsModel>(`${path}/${params.id}/`).then(data => new EsModel(data));
 
 /**
  * 获取集群节点
@@ -66,7 +62,7 @@ export const getClusterDetail = (params: {
 export const getNodes = (params: {
   bk_biz_id: number,
   cluster_id: number
-})  => http.get<ListBase<EsModel[]>>(`${path}/${params.cluster_id}/get_nodes/`);
+}) => http.get<ListBase<EsModel[]>>(`${path}/${params.cluster_id}/get_nodes/`);
 
 /**
  * 获取集群拓扑

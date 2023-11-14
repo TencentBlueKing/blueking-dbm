@@ -33,7 +33,7 @@ export default function () {
         disabled: true,
       },
       {
-        label: t('域名'),
+        label: t('访问入口'),
         field: 'domain',
       },
       {
