@@ -76,3 +76,14 @@ class TendbOpenAreaResultPreviewSerializer(serializers.Serializer):
 class TendbOpenAreaResultPreviewResponseSerializer(serializers.Serializer):
     class Meta:
         swagger_schema_fields = {"example": mock_data.OPENAREA_PREVIEW_DATA}
+
+
+class VarAlterSerializer(serializers.Serializer):
+    op_type = serializers.CharField(help_text=_("操作类型"))
+    old_var = serializers.JSONField(help_text=_("旧变量(delete/update)"), required=False)
+    new_var = serializers.JSONField(help_text=_("新变量(add/update)"), required=False)
+
+    class Meta:
+        swagger_schema_fields = {
+            "example": {"op_type": "add(delete, update)", "var": {"name": "APP", "desc": "xxx", "builtin": False}}
+        }

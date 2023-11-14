@@ -14,13 +14,22 @@ from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
 from backend import env
+from backend.db_meta.enums import ClusterType
 from backend.db_services.mysql.permission.authorize.serializers import PreCheckAuthorizeRulesSerializer
 from backend.db_services.mysql.permission.exceptions import AuthorizeDataHasExpiredException
 from backend.flow.engine.controller.mysql import MySQLController
 from backend.ticket import builders
 from backend.ticket.builders.mysql.base import BaseMySQLTicketFlowBuilder
-from backend.ticket.constants import FlowRetryType, FlowType, TicketType
-from backend.ticket.models import Flow
+from backend.ticket.constants import TicketType
+
+
+class MySQLPluginInfoSerializer(serializers.Serializer):
+    bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
+    user = serializers.CharField(help_text=_("授权账号"))
+    access_dbs = serializers.ListSerializer(child=serializers.CharField(), help_text=_("准入DB"))
+    source_ips = serializers.ListField(help_text=_("源IP列表"), child=serializers.CharField())
+    target_instances = serializers.ListField(help_text=_("目标集群域名"), child=serializers.CharField())
+    cluster_type = serializers.ChoiceField(help_text=_("集群类型"), choices=ClusterType.get_choices())
 
 
 class MySQLAuthorizeDataSerializer(PreCheckAuthorizeRulesSerializer):
@@ -28,8 +37,23 @@ class MySQLAuthorizeDataSerializer(PreCheckAuthorizeRulesSerializer):
 
 
 class MySQLAuthorizeRulesSerializer(serializers.Serializer):
-    authorize_uid = serializers.CharField(help_text=_("授权数据缓存uid"))
-    authorize_data = MySQLAuthorizeDataSerializer(help_text=_("授权数据信息"))
+    authorize_uid = serializers.CharField(help_text=_("授权数据缓存uid"), required=False)
+    authorize_data = MySQLAuthorizeDataSerializer(help_text=_("授权数据信息"), required=False)
+    authorize_plugin_infos = serializers.ListSerializer(
+        help_text=_("第三方接口/插件授权信息"), child=MySQLPluginInfoSerializer(), required=False
+    )
+
+    def validate(self, attrs):
+        if not (attrs.get("authorize_plugin_infos") or attrs.get("authorize_uid")):
+            raise serializers.ValidationError(_("请保证授权数据存在"))
+
+        if attrs.get("authorize_plugin_infos"):
+            infos = attrs["authorize_plugin_infos"]
+            for info in infos:
+                info["account_rules"] = [{"bk_biz_id": info["bk_biz_id"], "dbname": db} for db in info["access_dbs"]]
+                info["operator"] = self.context["request"].user.username
+
+        return attrs
 
 
 class MySQLExcelAuthorizeDataSerializer(PreCheckAuthorizeRulesSerializer):
@@ -48,11 +72,9 @@ class MySQLAuthorizeRulesFlowParamBuilder(builders.FlowParamBuilder):
     controller = MySQLController.mysql_authorize_rules
 
     def format_ticket_data(self):
-        authorize_uid = self.ticket_data["authorize_uid"]
-        data = cache.get(authorize_uid)
-
+        data = cache.get(self.ticket_data.get("authorize_uid")) or self.ticket_data.get("authorize_plugin_infos")
         if not data:
-            raise AuthorizeDataHasExpiredException(_("授权数据已过期，请重新提交授权表单或excel文件"))
+            raise AuthorizeDataHasExpiredException(_("授权数据不存在/已过期，请重新提交授权表单或excel文件"))
 
         self.ticket_data.update({"rules_set": data})
 

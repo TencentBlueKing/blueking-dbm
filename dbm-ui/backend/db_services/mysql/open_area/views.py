@@ -21,6 +21,8 @@ from backend.bk_web.swagger import (
     ResponseSwaggerAutoSchema,
     common_swagger_auto_schema,
 )
+from backend.configuration.constants import BizSettingsEnum
+from backend.configuration.models import BizSettings
 from backend.db_meta.models import Cluster
 from backend.db_services.mysql.open_area.filters import TendbOpenAreaConfigListFilter
 from backend.db_services.mysql.open_area.handlers import OpenAreaHandler
@@ -29,6 +31,7 @@ from backend.db_services.mysql.open_area.serializers import (
     TendbOpenAreaConfigSerializer,
     TendbOpenAreaResultPreviewResponseSerializer,
     TendbOpenAreaResultPreviewSerializer,
+    VarAlterSerializer,
 )
 from backend.iam_app.handlers.drf_perm import DBManageIAMPermission
 
@@ -118,3 +121,30 @@ class OpenAreaViewSet(viewsets.AuditedModelViewSet):
         validated_data = self.params_validate(self.get_serializer_class())
         validated_data["operator"] = request.user.username
         return Response(OpenAreaHandler.openarea_result_preview(**validated_data))
+
+    @common_swagger_auto_schema(
+        operation_summary=_("变量表修改"),
+        request_body=VarAlterSerializer(),
+        auto_schema=ResponseSwaggerAutoSchema,
+        tags=[SWAGGER_TAG],
+    )
+    @action(methods=["POST"], detail=False, serializer_class=VarAlterSerializer)
+    def alter_var(self, request, *args, **kwargs):
+        bk_biz_id = kwargs["bk_biz_id"]
+        biz_vars: list = BizSettings.get_setting_value(bk_biz_id=bk_biz_id, key=BizSettingsEnum.OPEN_AREA_VARS)
+        data = self.params_validate(self.get_serializer_class())
+
+        try:
+            # 对变量表进行简单的新增/删除和更新
+            if data["op_type"] in ["add", "update"]:
+                biz_vars.append(data["new_var"])
+            if data["op_type"] in ["delete", "update"]:
+                biz_vars.remove(data["old_var"])
+        except ValueError:
+            # 如果var不存在，remove会触发ValueError，忽略
+            pass
+
+        BizSettings.insert_setting_value(
+            bk_biz_id=bk_biz_id, key=BizSettingsEnum.OPEN_AREA_VARS, value_type="dict", value=biz_vars
+        )
+        return Response()

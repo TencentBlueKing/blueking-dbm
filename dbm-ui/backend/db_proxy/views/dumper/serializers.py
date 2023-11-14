@@ -9,16 +9,13 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
-from backend.flow.engine.controller.tbinlogdumper import TBinlogDumperController
-from backend.ticket import builders
-from backend.ticket.builders.tendbcluster.base import BaseTendbTicketFlowBuilder
-from backend.ticket.constants import TicketType
+from backend.db_proxy.views.serialiers import BaseProxyPassSerialier
 
 
-class TbinlogdumperSwitchNodesDetailSerializer(serializers.Serializer):
+class DumperMigrateProxyPassSerializer(BaseProxyPassSerialier):
     class DumperSwitchInfoSerializer(serializers.Serializer):
         class SwitchInstanceSerializer(serializers.Serializer):
             host = serializers.CharField(help_text=_("主机IP"))
@@ -26,19 +23,9 @@ class TbinlogdumperSwitchNodesDetailSerializer(serializers.Serializer):
             repl_binlog_file = serializers.CharField(help_text=_("待切换后需要同步的binlog文件"))
             repl_binlog_pos = serializers.IntegerField(help_text=_("待切换后需要同步的binlog文件的为位点"))
 
-        cluster_id = serializers.IntegerField(help_text=_("集群ID"))
+        cluster_domain = serializers.IntegerField(help_text=_("集群域名"))
         switch_instances = serializers.ListSerializer(help_text=_("dumper切换信息"), child=SwitchInstanceSerializer())
 
     infos = serializers.ListSerializer(child=DumperSwitchInfoSerializer())
+    bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
     is_safe = serializers.BooleanField(help_text=_("是否安全切换"), required=False, default=True)
-
-
-class TbinlogdumperSwitchNodesFlowParamBuilder(builders.FlowParamBuilder):
-    controller = TBinlogDumperController.switch_nodes_scene
-
-
-@builders.BuilderFactory.register(TicketType.TBINLOGDUMPER_SWITCH_NODES)
-class TbinlogdumperSwitchNodesFlowBuilder(BaseTendbTicketFlowBuilder):
-    serializer = TbinlogdumperSwitchNodesDetailSerializer
-    inner_flow_builder = TbinlogdumperSwitchNodesFlowParamBuilder
-    inner_flow_name = _("Tbinlogdumper 切换")
