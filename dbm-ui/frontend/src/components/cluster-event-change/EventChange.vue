@@ -39,7 +39,10 @@
   import { nextTick } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import { getClusterOperateRecords, getInstanceOperateRecords } from '@services/ticket';
+  import {
+    getClusterOperateRecords,
+    getInstanceOperateRecords,
+  } from '@services/source/ticket';
   import type { ClusterOperateRecord } from '@services/types/ticket';
 
   import DbStatus from '@components/db-status/index.vue';

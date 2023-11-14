@@ -54,8 +54,8 @@
 
   import RedisModel from '@services/model/redis/redis';
   import ResourceSpecModel from '@services/model/resource-spec/resourceSpec';
-  import { listClusterList } from '@services/redis/toolbox';
-  import { getResourceSpecList } from '@services/resourceSpec';
+  import { getResourceSpecList } from '@services/source/dbresourceSpec';
+  import { getRedisList } from '@services/source/redis';
   import type { RedisClusterTypeUpdateDetails, TicketDetails } from '@services/types/ticket';
 
   import { useGlobalBizs } from '@stores';
@@ -63,6 +63,7 @@
   import { ClusterTypes } from '@common/const';
 
   import { repairAndVerifyFrequencyList, repairAndVerifyTypeList } from '@views/redis/common/const';
+
 
   interface Props {
     ticketDetails: TicketDetails<RedisClusterTypeUpdateDetails>
@@ -150,7 +151,7 @@
     [ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER]: t('Tendisplus'),
   };
 
-  const { loading } = useRequest(listClusterList, {
+  const { loading } = useRequest(getRedisList, {
     defaultParams: [{ bk_biz_id: currentBizId }],
     onSuccess: async (result) => {
       if (result.results.length < 1) {

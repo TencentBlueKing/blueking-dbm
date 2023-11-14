@@ -81,9 +81,9 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import { getSpecResourceCount } from '@services/dbResource';
   import ResourceSpecModel from '@services/model/resource-spec/resourceSpec';
-  import { getResourceSpecList } from '@services/resourceSpec';
+  import { getSpecResourceCount } from '@services/source/dbresourceResource';
+  import { getResourceSpecList } from '@services/source/dbresourceSpec';
 
   interface ResourceSpecData extends ResourceSpecModel {
     count?: number,

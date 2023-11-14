@@ -15,9 +15,7 @@ import {
   onBeforeUnmount,
   ref } from 'vue';
 
-import {
-  getTaskflowDetails,
-} from '@services/taskflow';
+import { getTaskflowDetails } from '@services/source/taskflow';
 
 
 export default function (rootId: string) {

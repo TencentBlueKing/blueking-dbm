@@ -122,7 +122,7 @@
     edit as editPartition,
     verifyPartitionField,
   } from '@services/partitionManage';
-  import { getList } from '@services/source/resourceSpider';
+  import { getSpiderList } from '@services/source/spider';
 
   import { dbSysExclude } from '@common/const';
   import { dbRegex } from '@common/regex';
@@ -241,7 +241,7 @@
   const {
     loading: isCluserListLoading,
     data: clusterList,
-  } = useRequest(getList, {
+  } = useRequest(getSpiderList, {
     defaultParams: [{
       limit: -1,
     }],

@@ -44,8 +44,8 @@
 
   import type KafkaModel from '@services/model/kafka/kafka';
   import type KafkaNodeModel from '@services/model/kafka/kafka-node';
-  import { getKafkaListNodes } from '@services/source/bigdata';
-  import { createTicket } from '@services/ticket';
+  import { getKafkaNodeList } from '@services/source/kafka';
+  import { createTicket } from '@services/source/ticket';
 
   import { useTicketMessage } from '@hooks';
 
@@ -114,7 +114,7 @@
     const brokerOriginalNodeList: TNodeInfo['nodeList'] = [];
 
     isLoading.value = true;
-    getKafkaListNodes({
+    getKafkaNodeList({
       bk_biz_id: globalBizsStore.currentBizId,
       cluster_id: props.data.id,
       no_limit: 1,

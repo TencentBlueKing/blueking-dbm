@@ -69,8 +69,8 @@
   import { useRouter } from 'vue-router';
 
   import SpiderModel from '@services/model/spider/spider';
-  import { getList } from '@services/source/resourceSpider';
-  import { createTicket } from '@services/ticket';
+  import { getSpiderList } from '@services/source/spider';
+  import { createTicket } from '@services/source/ticket';
   import type { SubmitTicket } from '@services/types/ticket';
 
   import { useGlobalBizs } from '@stores';
@@ -178,7 +178,7 @@
     }
     if (tableData.value[index].cluster === domain) return;
     tableData.value[index].isLoading = true;
-    const ret = await getList({ domain }).finally(() => {
+    const ret = await getSpiderList({ domain }).finally(() => {
       tableData.value[index].isLoading = false;
     });
     if (ret.results.length < 1) {

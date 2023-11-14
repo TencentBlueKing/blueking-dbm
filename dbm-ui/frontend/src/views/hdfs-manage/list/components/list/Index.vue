@@ -98,10 +98,10 @@
 
   import type HdfsModel from '@services/model/hdfs/hdfs';
   import {
-    getList,
-    getListInstance,
+    getHdfsInstanceList,
+    getHdfsList,
   } from '@services/source/hdfs';
-  import { createTicket  } from '@services/ticket';
+  import { createTicket  } from '@services/source/ticket';
 
   import {
     useCopy,
@@ -149,7 +149,7 @@
   const { currentBizId } = useGlobalBizs();
   const router = useRouter();
 
-  const dataSource = getList;
+  const dataSource = getHdfsList;
 
   const tableRef = ref();
   const tableDataActionLoadingMap = shallowRef<Record<number, boolean>>({});
@@ -284,7 +284,7 @@
           title={`【${data.domain}】NameNode`}
           clusterId={data.id}
           originalList={data.hdfs_namenode}
-          dataSource={getListInstance} />
+          dataSource={getHdfsInstanceList} />
       ),
     },
     {
@@ -298,7 +298,7 @@
           title={`【${data.domain}】Zookeeper`}
           clusterId={data.id}
           originalList={data.hdfs_zookeeper}
-          dataSource={getListInstance} />
+          dataSource={getHdfsInstanceList} />
       ),
     },
     {
@@ -312,7 +312,7 @@
           title={`【${data.domain}】Journalnode`}
           clusterId={data.id}
           originalList={data.hdfs_journalnode}
-          dataSource={getListInstance} />
+          dataSource={getHdfsInstanceList} />
       ),
     },
     {
@@ -326,7 +326,7 @@
           title={`【${data.domain}】DataNode`}
           clusterId={data.id}
           originalList={data.hdfs_datanode}
-          dataSource={getListInstance} />
+          dataSource={getHdfsInstanceList} />
       ),
     },
     {

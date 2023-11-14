@@ -95,7 +95,7 @@
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
 
-  import { createTicket } from '@services/ticket';
+  import { createTicket } from '@services/source/ticket';
   import type { ResourceRedisItem } from '@services/types/clusters';
 
   import { useBeforeClose, useInfoWithIcon, useStickyFooter, useTicketMessage } from '@hooks';

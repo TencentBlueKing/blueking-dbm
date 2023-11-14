@@ -86,10 +86,10 @@
 
   import type EsModel from '@services/model/es/es';
   import {
-    getList,
-    getListInstance,
+    getEsInstanceList,
+    getEsList,
   } from '@services/source/es';
-  import { createTicket  } from '@services/ticket';
+  import { createTicket  } from '@services/source/ticket';
 
   import {
     useCopy,
@@ -149,7 +149,7 @@
     },
   ];
 
-  const dataSource = getList;
+  const dataSource = getEsList;
   const tableRef = ref();
   const isShowExpandsion = ref(false);
   const isShowShrink = ref(false);
@@ -262,7 +262,7 @@
           title={`【${data.domain}】master`}
           clusterId={data.id}
           originalList={data.es_master}
-          dataSource={getListInstance} />
+          dataSource={getEsInstanceList} />
       ),
     },
     {
@@ -276,7 +276,7 @@
           title={`【${data.domain}】client`}
           clusterId={data.id}
           originalList={data.es_client}
-          dataSource={getListInstance} />
+          dataSource={getEsInstanceList} />
       ),
     },
     {
@@ -290,7 +290,7 @@
           title={t('【xx】热节点', { name: data.domain })}
           clusterId={data.id}
           originalList={data.es_datanode_hot}
-          dataSource={getListInstance} />
+          dataSource={getEsInstanceList} />
       ),
     },
     {
@@ -304,7 +304,7 @@
           title={t('【xx】冷节点', { name: data.domain })}
           clusterId={data.id}
           originalList={data.es_datanode_cold}
-          dataSource={getListInstance} />
+          dataSource={getEsInstanceList} />
       ),
     },
     {

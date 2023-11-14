@@ -42,7 +42,7 @@
 </template>
 
 <script setup lang="tsx">
-  import { getUseList } from '@services/common';
+  import { getUserList } from '@services/source/user';
   import type { GetUsesParams } from '@services/types/common';
 
   import { useCopy } from '@hooks';
@@ -69,7 +69,7 @@
    * 获取人员列表
    */
   const fetchUseList = async (params: GetUsesParams = {}) => {
-    await getUseList(params).then((res) => {
+    await getUserList(params).then((res) => {
       // 过滤已经选中的用户
       state.list = res.results.filter(item => !modelValue.value?.includes(item.username));
     });

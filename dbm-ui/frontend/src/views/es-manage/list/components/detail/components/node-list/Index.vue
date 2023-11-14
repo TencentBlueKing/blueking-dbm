@@ -166,8 +166,10 @@
 
   import type EsModel from '@services/model/es/es';
   import EsNodeModel from '@services/model/es/es-node';
-  import { getESListNodes } from '@services/source/bigdata';
-  import { getClusterDetail } from '@services/source/es';
+  import {
+    getEsDetail,
+    getEsNodeList,
+  } from '@services/source/es';
 
   import {
     useCopy,
@@ -439,7 +441,7 @@
 
   const fetchClusterDetail = () => {
     // 获取集群详情
-    getClusterDetail({
+    getEsDetail({
       bk_biz_id: globalBizsStore.currentBizId,
       cluster_id: props.clusterId,
     })
@@ -450,7 +452,7 @@
 
   const fetchNodeList = () => {
     isLoading.value = true;
-    getESListNodes({
+    getEsNodeList({
       bk_biz_id: globalBizsStore.currentBizId,
       cluster_id: props.clusterId,
       no_limit: 1,

@@ -77,10 +77,10 @@
 
   import type PulsarModel from '@services/model/pulsar/pulsar';
   import {
-    getList,
-    getListInstance,
+    getPulsarInstanceList,
+    getPulsarList,
   } from '@services/source/pulsar';
-  import { createTicket } from '@services/ticket';
+  import { createTicket } from '@services/source/ticket';
 
   import {
     useCopy,
@@ -120,7 +120,7 @@
 
   const copy = useCopy();
 
-  const dataSource = getList;
+  const dataSource = getPulsarList;
   const checkClusterOnline = (data: PulsarModel) => data.phase === 'online';
   const getRowClass = (data: PulsarModel) => {
     const classStack = [];
@@ -234,7 +234,7 @@
           title={`【${data.domain}】Bookkeeper`}
           clusterId={data.id}
           originalList={data.pulsar_bookkeeper}
-          dataSource={getListInstance} />
+          dataSource={getPulsarInstanceList} />
       ),
     },
     {
@@ -248,7 +248,7 @@
           title={`【${data.domain}】Zookeeper`}
           clusterId={data.id}
           originalList={data.pulsar_zookeeper}
-          dataSource={getListInstance} />
+          dataSource={getPulsarInstanceList} />
       ),
     },
     {
@@ -262,7 +262,7 @@
           title={`【${data.domain} Broker`}
           clusterId={data.id}
           originalList={data.pulsar_broker}
-          dataSource={getListInstance} />
+          dataSource={getPulsarInstanceList} />
       ),
     },
     {

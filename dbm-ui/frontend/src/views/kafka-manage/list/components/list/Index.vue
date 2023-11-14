@@ -89,10 +89,10 @@
 
   import type KafkaModel from '@services/model/kafka/kafka';
   import {
-    getList,
-    getListInstance,
+    getKafkaInstanceList,
+    getKafkaList,
   } from '@services/source/kafka';
-  import { createTicket } from '@services/ticket';
+  import { createTicket } from '@services/source/ticket';
 
   import {
     useCopy,
@@ -131,7 +131,7 @@
   } = useStretchLayout();
 
 
-  const dataSource = getList;
+  const dataSource = getKafkaList;
   const checkClusterOnline = (data: KafkaModel) => data.phase === 'online';
   const getRowClass = (data: KafkaModel) => {
     const classList = [checkClusterOnline(data) ? '' : 'is-offline'];
@@ -265,7 +265,7 @@
           title={`【${data.domain}】Zookeeper`}
           clusterId={data.id}
           originalList={data.zookeeper}
-          dataSource={getListInstance} />
+          dataSource={getKafkaInstanceList} />
       ),
     },
     {
@@ -279,7 +279,7 @@
           title={`【${data.domain} Broker`}
           clusterId={data.id}
           originalList={data.broker}
-          dataSource={getListInstance} />
+          dataSource={getKafkaInstanceList} />
       ),
     },
     {

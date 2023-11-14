@@ -24,8 +24,8 @@
   import { useRequest } from 'vue-request';
 
   import ResourceSpecModel from '@services/model/resource-spec/resourceSpec';
-  import { listClusterList } from '@services/redis/toolbox';
-  import { getResourceSpecList } from '@services/resourceSpec';
+  import { getResourceSpecList } from '@services/source/dbresourceSpec';
+  import { getRedisList } from '@services/source/redis';
   import type { RedisDataStructrue, TicketDetails } from '@services/types/ticket';
 
   import { useGlobalBizs } from '@stores';
@@ -85,7 +85,7 @@
     },
   ];
 
-  const { loading } = useRequest(listClusterList, {
+  const { loading } = useRequest(getRedisList, {
     defaultParams: [{ bk_biz_id: currentBizId }],
     onSuccess: async (result) => {
       if (result.results.length < 1) {

@@ -76,7 +76,7 @@
   import { useI18n } from 'vue-i18n';
 
   import type InfluxDBInstanceModel from '@services/model/influxdb/influxdbInstance';
-  import { getInstanceDetails } from '@services/source/influxdb';
+  import { retrieveInfluxdbInstance } from '@services/source/influxdb';
 
   import { useGlobalBizs, useMainViewStore } from '@stores';
 
@@ -160,7 +160,7 @@
 
   const fetchInstanceDetails = () => {
     isLoading.value = true;
-    getInstanceDetails({
+    retrieveInfluxdbInstance({
       bk_biz_id: currentBizId,
       instance_address: instInfo.address,
     })

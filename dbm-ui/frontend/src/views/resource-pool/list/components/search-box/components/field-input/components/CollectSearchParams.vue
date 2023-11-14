@@ -107,11 +107,12 @@
   import {
     getProfile,
     upsertProfile,
-  } from '@services/common';
+  } from '@services/source/profile';
 
   interface Props {
     searchParams: Record<string, any>
   }
+
   interface Emits{
     (e: 'change', value: Props['searchParams']): void
   }

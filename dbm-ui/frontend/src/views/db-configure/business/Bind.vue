@@ -90,7 +90,7 @@
   import { useI18n } from 'vue-i18n';
 
   import { saveModulesDeployInfo } from '@services/source/configs';
-  import { getVersions } from '@services/versionFiles';
+  import { getVersions } from '@services/source/version';
 
   import { useGlobalBizs } from '@stores';
 

@@ -77,8 +77,10 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import { fetchRecommendSpec } from '@services/dbResource';
-  import { getResourceSpecList } from '@services/resourceSpec';
+  import {
+    fetchRecommendSpec,
+    getResourceSpecList,
+  } from '@services/source/dbresourceSpec';
 
   import SpecDetail from '@components/cluster-common/SpecDetailForPopover.vue';
 

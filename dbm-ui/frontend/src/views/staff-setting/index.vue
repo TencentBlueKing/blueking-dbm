@@ -63,7 +63,7 @@
   import {
     getAdmins,
     updateAdmins,
-  } from '@services/source/dbAdmin';
+  } from '@services/source/dbadmin';
   import type { AdminItem } from '@services/types/staffSetting';
 
   import { useInfo } from '@hooks';

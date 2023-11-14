@@ -167,8 +167,10 @@
 
   import type KafkaModel from '@services/model/kafka/kafka';
   import KafkaNodeModel from '@services/model/kafka/kafka-node';
-  import { getKafkaListNodes } from '@services/source/bigdata';
-  import { getClusterDetail } from '@services/source/kafka';
+  import {
+    getKafkaDetail,
+    getKafkaNodeList,
+  } from '@services/source/kafka';
 
   import {
     useCopy,
@@ -413,7 +415,7 @@
 
   const fetchClusterDetail = () => {
     // 获取集群详情
-    getClusterDetail({
+    getKafkaDetail({
       bk_biz_id: globalBizsStore.currentBizId,
       cluster_id: props.clusterId,
     })
@@ -424,7 +426,7 @@
 
   const fetchNodeList = () => {
     isLoading.value = true;
-    getKafkaListNodes({
+    getKafkaNodeList({
       bk_biz_id: globalBizsStore.currentBizId,
       cluster_id: props.clusterId,
       no_limit: 1,

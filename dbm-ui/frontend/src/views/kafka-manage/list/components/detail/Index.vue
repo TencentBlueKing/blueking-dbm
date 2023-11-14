@@ -63,7 +63,7 @@
   import { ref } from 'vue';
   import { useRequest } from 'vue-request';
 
-  import { getClusterDetail } from '@services/source/kafka';
+  import { getKafkaDetail } from '@services/source/kafka';
 
   import { useGlobalBizs } from '@stores';
 
@@ -87,7 +87,7 @@
     loading: isLoading,
     data: clusterData,
     run: fetchResourceDetails,
-  } = useRequest(getClusterDetail, {
+  } = useRequest(getKafkaDetail, {
     manual: true,
   });
 

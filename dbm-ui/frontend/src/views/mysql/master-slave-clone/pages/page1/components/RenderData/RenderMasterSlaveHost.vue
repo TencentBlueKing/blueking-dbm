@@ -41,7 +41,6 @@
   import { useI18n } from 'vue-i18n';
 
   import { getHostTopoInfos } from '@services/source/ipchooser';
-  import type { HostTopoInfo } from '@services/types/ip';
 
   import { useGlobalBizs } from '@stores';
 
@@ -52,6 +51,8 @@
   import { random } from '@utils';
 
   import type { IHostData } from './Row.vue';
+
+  type HostTopoInfo = ServiceReturnType<typeof getHostTopoInfos>['hosts_topo_info'][number]
 
   interface Props {
     masterHost?: IHostData,

@@ -17,12 +17,12 @@
   </div>
 </template>
 <script setup lang="ts">
-  import { getClusterDetail } from '@services/source/es';
+  import { getEsDetail } from '@services/source/es';
 
   import RenderBaseInfo from '@components/cluster-common/RenderBaseInfo.vue';
 
   interface Props {
-    data: ServiceReturnType<typeof getClusterDetail>
+    data: ServiceReturnType<typeof getEsDetail>
   }
 
   defineProps<Props>();

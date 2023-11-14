@@ -67,7 +67,7 @@
     Unvisible,
   } from 'bkui-vue/lib/icon';
 
-  import { getClusterPassword } from '@services/source/resourceRedis';
+  import { getRedisPassword } from '@services/source/redis';
   import type { ClusterPasswordParams } from '@services/types/clusters';
 
   import { useCopy } from '@hooks';
@@ -96,7 +96,7 @@
   watch(isShow, (isShow) => {
     if (isShow) {
       state.isLoading = true;
-      getClusterPassword(props.fetchParams)
+      getRedisPassword(props.fetchParams)
         .then((res) => {
           state.data = res;
         })

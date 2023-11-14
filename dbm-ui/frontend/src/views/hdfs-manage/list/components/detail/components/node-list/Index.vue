@@ -159,8 +159,10 @@
 
   import type HdfsModel from '@services/model/hdfs/hdfs';
   import HdfsNodeModel from '@services/model/hdfs/hdfs-node';
-  import { getHDFSListNodes } from '@services/source/bigdata';
-  import { getClusterDetail } from '@services/source/hdfs';
+  import {
+    getHdfsDetail,
+    getHdfsNodeList,
+  } from '@services/source/hdfs';
 
   import {
     useCopy,
@@ -434,7 +436,7 @@
 
   const fetchClusterDetail = () => {
     // 获取集群详情
-    getClusterDetail({
+    getHdfsDetail({
       bk_biz_id: globalBizsStore.currentBizId,
       cluster_id: props.clusterId,
     })
@@ -445,7 +447,7 @@
 
   const fetchNodeList = () => {
     isLoading.value = true;
-    getHDFSListNodes({
+    getHdfsNodeList({
       bk_biz_id: globalBizsStore.currentBizId,
       cluster_id: props.clusterId,
       no_limit: 1,

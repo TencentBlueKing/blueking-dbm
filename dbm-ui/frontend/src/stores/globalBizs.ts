@@ -13,7 +13,7 @@
 
 import { defineStore } from 'pinia';
 
-import { getBizs } from '@services/common';
+import { getBizs } from '@services/source/cmdb';
 import type { BizItem } from '@services/types/common';
 
 import { useUserProfile } from '@stores';

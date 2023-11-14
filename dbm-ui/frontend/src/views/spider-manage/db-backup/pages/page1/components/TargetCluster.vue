@@ -35,7 +35,7 @@
     </BkFormItem>
     <ClusterSelector
       v-model:is-show="isShowClusterSelector"
-      :get-resource-list="getList"
+      :get-resource-list="getSpiderList"
       :selected="{}"
       :tab-list="clusterSelectorTabList"
       @change="handelClusterChange" />
@@ -58,7 +58,7 @@
   import { useI18n } from 'vue-i18n';
 
   import { queryClusters } from '@services/source/mysqlCluster';
-  import { getList } from '@services/source/resourceSpider';
+  import { getSpiderList } from '@services/source/spider';
 
   import { useGlobalBizs } from '@stores';
 

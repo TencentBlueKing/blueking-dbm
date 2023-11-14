@@ -124,10 +124,10 @@
   import type { TablePropTypes } from 'bkui-vue/lib/table/props';
   import { useI18n } from 'vue-i18n';
 
-  import { batchFetchFile } from '@services/mysqlCluster';
-  import { getResources as getSpiderResources } from '@services/source/resourceSpider';
-  import { getResources as getTendbhaResources } from '@services/source/resourceTendbha';
-  import { getResources as getTendbsingleResources } from '@services/source/resourceTendbsingle';
+  import { getResources as getSpiderResources } from '@services/source/spider';
+  import { batchFetchFile } from '@services/source/storage';
+  import { getTendbhaList } from '@services/source/tendbha';
+  import { getTendbsingleList } from '@services/source/tendbsingle';
   import type { ResourceItem } from '@services/types/clusters';
   import type {
     MySQLImportSQLFileDetails,
@@ -163,9 +163,9 @@
     table_patterns: [],
   }
 
-  const apiMap: Record<string, (params: any) => ReturnType<typeof getTendbsingleResources>> = {
-    [ClusterTypes.TENDBSINGLE]: getTendbsingleResources,
-    [ClusterTypes.TENDBHA]: getTendbhaResources,
+  const apiMap: Record<string, (params: any) => ReturnType<typeof getTendbsingleList>> = {
+    [ClusterTypes.TENDBSINGLE]: getTendbsingleList,
+    [ClusterTypes.TENDBHA]: getTendbhaList,
     [ClusterTypes.TENDBCLUSTER]: getSpiderResources,
   };
 

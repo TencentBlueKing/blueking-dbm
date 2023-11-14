@@ -32,9 +32,7 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import {
-    fetchMountPoints,
-  } from '@services/dbResource';
+  import { fetchMountPoints } from '@services/source/dbresourceResource';
 
   interface Props {
     defaultValue?: string,

@@ -17,12 +17,12 @@
   </div>
 </template>
 <script setup lang="ts">
-  import { getClusterDetail } from '@services/source/kafka';
+  import { getKafkaDetail } from '@services/source/kafka';
 
   import RenderBaseInfo from '@components/cluster-common/RenderBaseInfo.vue';
 
   interface Props {
-    data: ServiceReturnType<typeof getClusterDetail>
+    data: ServiceReturnType<typeof getKafkaDetail>
   }
 
   defineProps<Props>();

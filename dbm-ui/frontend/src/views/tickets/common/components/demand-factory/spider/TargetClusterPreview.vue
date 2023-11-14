@@ -50,7 +50,7 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import { getModules } from '@services/common';
+  import { getModules } from '@services/source/cmdb';
   import type {
     MysqlAuthorizationDetails,
     TicketDetails,

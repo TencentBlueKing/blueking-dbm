@@ -79,9 +79,8 @@
   import { format, subDays } from 'date-fns';
   import { useI18n } from 'vue-i18n';
 
-  import { getBizs } from '@services/common';
-  import { getEventSwitchList } from '@services/eventSwitch';
-  import type { EventSwtichItem } from '@services/types/eventSwitch';
+  import { getBizs } from '@services/source/cmdb';
+  import { getEventSwitchList } from '@services/source/dbha';
 
   import { useTableMaxHeight, useTableSettings } from '@hooks';
 
@@ -95,6 +94,8 @@
   import type { SearchSelectValues } from '@/types/bkui-vue';
 
   // type TimeType = string | Date;
+
+  type EventSwtichItem = ServiceReturnType<typeof getEventSwitchList>[number]
 
   interface BizItem {
     id: number,

@@ -47,8 +47,8 @@
   } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import { getResourceInstances as getTendbhaResourceInstances } from '@services/source/resourceTendbha';
-  import { getResourceInstances as getTendbsingleResourceInstances } from '@services/source/resourceTendbsingle';
+  import { getTendbhaInstanceList } from '@services/source/tendbha';
+  import { getTendbsingleInstanceList } from '@services/source/tendbsingle';
   import type { InstanceInfos, ResourceInstance } from '@services/types/clusters';
 
   import { useGlobalBizs } from '@stores';
@@ -83,9 +83,9 @@
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
 
-  const apiMap: Record<string, (params: any) => ReturnType<typeof getTendbsingleResourceInstances>> = {
-    [ClusterTypes.TENDBSINGLE]: getTendbsingleResourceInstances,
-    [ClusterTypes.TENDBHA]: getTendbhaResourceInstances,
+  const apiMap: Record<string, (params: any) => ReturnType<typeof getTendbsingleInstanceList>> = {
+    [ClusterTypes.TENDBSINGLE]: getTendbsingleInstanceList,
+    [ClusterTypes.TENDBHA]: getTendbhaInstanceList,
   };
 
   const formatValue = (data: ResourceInstance) => ({

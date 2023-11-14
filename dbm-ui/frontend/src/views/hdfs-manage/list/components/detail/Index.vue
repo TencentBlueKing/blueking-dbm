@@ -63,7 +63,7 @@
   import { ref } from 'vue';
   import { useRequest } from 'vue-request';
 
-  import { getClusterDetail } from '@services/source/hdfs';
+  import { getHdfsDetail } from '@services/source/hdfs';
 
   import { useGlobalBizs } from '@stores';
 
@@ -87,7 +87,7 @@
     loading: isLoading,
     data: clusterData,
     run: fetchResourceDetails,
-  } = useRequest(getClusterDetail, {
+  } = useRequest(getHdfsDetail, {
     manual: true,
   });
 

@@ -135,7 +135,7 @@
   import { useRouter } from 'vue-router';
 
   import SpiderModel from '@services/model/spider/spider';
-  import { createTicket } from '@services/ticket';
+  import { createTicket } from '@services/source/ticket';
 
   import { useGlobalBizs } from '@stores';
 

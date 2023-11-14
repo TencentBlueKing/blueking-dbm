@@ -56,7 +56,7 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import { getResourceDetails } from '@services/source/resourceTendbsingle';
+  import { getTendbsingleDetail } from '@services/source/tendbsingle';
   import type { ResourceItem } from '@services/types/clusters';
 
   import { ClusterTypes, DBTypes } from '@common/const';
@@ -81,7 +81,7 @@
   const {
     loading: isLoading,
     run: fetchResourceDetails,
-  } = useRequest(getResourceDetails, {
+  } = useRequest(getTendbsingleDetail, {
     manual: true,
     onSuccess(result: ResourceItem) {
       data.value = result;

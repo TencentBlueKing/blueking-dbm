@@ -11,18 +11,14 @@
  * the specific language governing permissions and limitations under the License.
 */
 
-import {
-  getBizs,
-} from '@services/common';
+import { getBizs } from '@services/source/cmdb';
 import {
   fetchMountPoints,
   fetchSubzones,
-} from '@services/dbResource';
-import { fetchDbTypeList } from '@services/infras';
-import { getCloudList } from '@services/ip';
-import {
-  getResourceSpec,
-} from '@services/resourceSpec';
+} from '@services/source/dbresourceResource';
+import { getResourceSpec } from '@services/source/dbresourceSpec';
+import { fetchDbTypeList } from '@services/source/infras';
+import { getCloudList } from '@services/source/ipchooser';
 import {
   getInfrasCities,
 } from '@services/ticket';

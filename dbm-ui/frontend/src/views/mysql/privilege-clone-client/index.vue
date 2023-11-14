@@ -77,9 +77,11 @@
   import { useI18n } from 'vue-i18n';
 
   import { precheckPermissionClone } from '@services/permission';
-  import { getHostTopoInfos } from '@services/source/ipchooser';
-  import { createTicket } from '@services/ticket';
-  import type { HostDetails, HostTopoInfo  } from '@services/types/ip';
+  import {
+    checkHost,
+    getHostTopoInfos,
+  } from '@services/source/ipchooser';
+  import { createTicket } from '@services/source/ticket';
 
   import { useInfo, useTableMaxHeight } from '@hooks';
 
@@ -124,7 +126,7 @@
   const isShowBatchInput = ref(false);
   const isSubmitting = ref(false);
   const isShowIpSelector = ref(false);
-  const hostTopoMap: Map<string, HostTopoInfo> = reactive(new Map());
+  const hostTopoMap: Map<string, ServiceReturnType<typeof getHostTopoInfos>['hosts_topo_info'][number]> = reactive(new Map());
   const targetHostNotExistMap: Map<string, string[]> = reactive(new Map());
   const tableData = ref<Array<TableItem>>([getTableItem()]);
   const columns: TableProps['columns'] = [
@@ -407,7 +409,7 @@
     });
   }
 
-  async function handleHostChange(data: HostDetails[]) {
+  async function handleHostChange(data: ServiceReturnType<typeof checkHost>) {
     const newList = data.map(item => ({
       ...getTableItem(),
       source: `${item.cloud_id}:${item.ip}`,

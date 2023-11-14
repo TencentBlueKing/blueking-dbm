@@ -46,9 +46,9 @@
   import { format } from 'date-fns';
   import { useI18n } from 'vue-i18n';
 
-  import { getUseList } from '@services/common';
-  import { getTaskflow } from '@services/taskflow';
-  import { getTicketTypes } from '@services/ticket';
+  import { getTaskflow } from '@services/source/taskflow';
+  import { getTicketTypes } from '@services/source/ticket';
+  import { getUserList } from '@services/source/user';
   import type { TaskflowItem } from '@services/types/taskflow';
 
   import {
@@ -294,7 +294,7 @@
   function fetchUseList(fuzzyLookups: string) {
     if (!fuzzyLookups) return [];
 
-    return getUseList({ fuzzy_lookups: fuzzyLookups }).then(res => res.results.map(item => ({
+    return getUserList({ fuzzy_lookups: fuzzyLookups }).then(res => res.results.map(item => ({
       id: item.username,
       name: item.username,
     })));

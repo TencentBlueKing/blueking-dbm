@@ -53,7 +53,7 @@
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
 
-  import { getResourceInstances } from '@services/source/resourceTendbha';
+  import { getTendbhaInstanceList } from '@services/source/tendbha';
   import type { ResourceInstance } from '@services/types/clusters';
 
   import {
@@ -315,7 +315,7 @@
       ...state.pagination.getFetchParams(),
       ...getSearchSelectorParams(state.filters),
     };
-    getResourceInstances(params)
+    getTendbhaInstanceList(params)
       .then((res) => {
         state.pagination.count = res.count;
         state.data = res.results;

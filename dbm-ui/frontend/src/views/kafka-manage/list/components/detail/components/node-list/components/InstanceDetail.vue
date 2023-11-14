@@ -44,8 +44,8 @@
 
   import type KafkaInstanceModel from '@services/model/kafka/kafka-instance';
   import type KafkaNodeModel from '@services/model/kafka/kafka-node';
-  import { getListInstance } from '@services/source/kafka';
-  import { createTicket } from '@services/ticket';
+  import { getKafkaInstanceList } from '@services/source/kafka';
+  import { createTicket } from '@services/source/ticket';
 
   import { useTicketMessage } from '@hooks';
 
@@ -157,7 +157,7 @@
 
   const fetchData = (hasLoading = false) => {
     isLoading.value = hasLoading;
-    getListInstance({
+    getKafkaInstanceList({
       bk_biz_id: globalBizsStore.currentBizId,
       cluster_id: props.clusterId,
       ip: props.data.ip,

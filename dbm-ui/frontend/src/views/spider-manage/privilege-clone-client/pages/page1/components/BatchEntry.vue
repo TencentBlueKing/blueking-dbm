@@ -111,7 +111,6 @@
   import { useI18n } from 'vue-i18n';
 
   import { getHostTopoInfos } from '@services/source/ipchooser';
-  import type { HostTopoInfo } from '@services/types/ip';
 
   import { useGlobalBizs } from '@stores';
 
@@ -119,6 +118,7 @@
 
   import { execCopy } from '@/utils';
 
+  type HostTopoInfo = ServiceReturnType<typeof getHostTopoInfos>['hosts_topo_info'][number]
 
   interface IInputParse {
     masterIp: string,
@@ -128,6 +128,7 @@
   interface Props {
     isShow: boolean;
   }
+
   interface Emits {
     (e: 'update:isShow', value: boolean): void;
     (e: 'change', value: Array<IValue>): void;

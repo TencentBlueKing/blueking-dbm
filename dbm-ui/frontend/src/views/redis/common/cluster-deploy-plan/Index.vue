@@ -208,7 +208,7 @@
 
   import { RedisClusterTypes } from '@services/model/redis/redis';
   import RedisClusterSpecModel from '@services/model/resource-spec/redis-cluster-sepc';
-  import { getFilterClusterSpec } from '@services/resourceSpec';
+  import { getFilterClusterSpec } from '@services/source/dbresourceSpec';
 
   import { useBeforeClose } from '@hooks';
 
