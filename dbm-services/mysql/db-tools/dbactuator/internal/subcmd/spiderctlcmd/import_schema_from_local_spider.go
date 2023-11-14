@@ -8,43 +8,35 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package mysqlcmd
+package spiderctlcmd
 
 import (
 	"fmt"
 
+	"github.com/spf13/cobra"
+
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-tools/dbactuator/internal/subcmd"
-	"dbm-services/mysql/db-tools/dbactuator/pkg/components/mysql"
+	"dbm-services/mysql/db-tools/dbactuator/pkg/components/spiderctl"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util"
-
-	"github.com/spf13/cobra"
 )
 
-// SenmanticDumpSchemaAct TODO
-type SenmanticDumpSchemaAct struct {
+// ImportSchemaFromLocalSpiderAct 从本地Spider导入表结构到中控节点
+type ImportSchemaFromLocalSpiderAct struct {
 	*subcmd.BaseOptions
-	Service mysql.SemanticDumpSchemaComp
+	Service spiderctl.ImportSchemaFromLocalSpiderComp
 }
 
-// NewSenmanticDumpSchemaCommand godoc
-//
-// @Summary      运行语义检查
-// @Description  运行语义检查
-// @Tags         mysql
-// @Accept       json
-// @Produce      json
-// @Param        body body      mysql.SemanticDumpSchemaComp  true  "short description"
-// @Router       /mysql/semantic-dumpschema [post]
-func NewSenmanticDumpSchemaCommand() *cobra.Command {
-	act := SenmanticDumpSchemaAct{
+// NewImportSchemaToTdbctlCommand create new subcommand
+func NewImportSchemaToTdbctlCommand() *cobra.Command {
+	act := ImportSchemaFromLocalSpiderAct{
 		BaseOptions: subcmd.GBaseOptions,
 	}
 	cmd := &cobra.Command{
-		Use:   "semantic-dumpschema",
-		Short: "运行导出表结构",
+		Use:   "import-schema-to-tdbctl",
+		Short: "从spider节点导入表结构到中控节点",
 		Example: fmt.Sprintf(
-			`dbactuator mysql senmantic-dumpschema %s %s`,
+			`dbactuator spiderctl import-schema-to-tdbctl %s %s`,
 			subcmd.CmdBaseExampleStr, subcmd.ToPrettyJson(act.Service.Example()),
 		),
 		Run: func(cmd *cobra.Command, args []string) {
@@ -56,45 +48,34 @@ func NewSenmanticDumpSchemaCommand() *cobra.Command {
 	return cmd
 }
 
-// Validate TODO
-func (d *SenmanticDumpSchemaAct) Validate() (err error) {
-	return d.BaseOptions.Validate()
-}
-
-// Init TODO
-func (d *SenmanticDumpSchemaAct) Init() (err error) {
+// Init 初始化
+func (d *ImportSchemaFromLocalSpiderAct) Init() (err error) {
+	logger.Info("InitCLusterRoutingAct Init")
 	if err = d.Deserialize(&d.Service.Params); err != nil {
 		logger.Error("DeserializeAndValidate failed, %v", err)
 		return err
 	}
 	d.Service.GeneralParam = subcmd.GeneralRuntimeParam
-	return nil
+	return
 }
 
-// Run TODO
-func (d *SenmanticDumpSchemaAct) Run() (err error) {
+// Run 执行
+func (d *ImportSchemaFromLocalSpiderAct) Run() (err error) {
 	steps := subcmd.Steps{
 		{
-			FunName: "init",
+			FunName: "初始化",
 			Func:    d.Service.Init,
 		},
 		{
-			FunName: "precheck",
-			Func:    d.Service.Precheck,
-		},
-		{
-			FunName: "运行导出表结构",
-			Func:    d.Service.DumpSchema,
-		},
-		{
-			FunName: "上传表结构",
-			Func:    d.Service.Upload,
+			FunName: "从本地spider导出表结构至tdbctl",
+			Func:    d.Service.Migrate,
 		},
 	}
-	if err := steps.Run(); err != nil {
+
+	if err = steps.Run(); err != nil {
 		return err
 	}
 
-	logger.Info("导出表结构成功")
+	logger.Info("import schema to empty tdbctl succcess ~")
 	return nil
 }

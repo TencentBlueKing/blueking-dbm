@@ -10,6 +10,7 @@ specific language governing permissions and limitations under the License.
 
 from backend.db_meta.enums import ClusterType
 from backend.flow.engine.bamboo.scene.spider.import_sqlfile_flow import ImportSQLFlow
+from backend.flow.engine.bamboo.scene.spider.migrate_spider_cluster_from_gcs import MigrateClusterFromGcsFlow
 from backend.flow.engine.bamboo.scene.spider.remote_local_slave_recover import TenDBRemoteSlaveLocalRecoverFlow
 from backend.flow.engine.bamboo.scene.spider.remote_master_fail_over import RemoteMasterFailOverFlow
 from backend.flow.engine.bamboo.scene.spider.remote_master_slave_swtich import RemoteMasterSlaveSwitchFlow
@@ -208,3 +209,10 @@ class SpiderController(BaseController):
         """
         flow = TenDBClusterReduceMNTFlow(root_id=self.root_id, data=self.ticket_data)
         flow.reduce_spider_mnt()
+
+    def migrate_spider_cluster_from_gcs(self):
+        """
+        转移spider cluster 从Gcs到dbm 系统需要的操作
+        """
+        flow = MigrateClusterFromGcsFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.run()

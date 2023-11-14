@@ -51,6 +51,7 @@ from backend.flow.views.kafka_reboot import RebootKafkaSceneApiView
 from backend.flow.views.kafka_replace import ReplaceKafkaSceneApiView
 from backend.flow.views.kafka_scale_up import ScaleUpKafkaSceneApiView
 from backend.flow.views.kafka_shrink import ShrinkKafkaSceneApiView
+from backend.flow.views.migrate_spider_cluster_from_gcs import MigrateSpiderClusterFromGcsView
 from backend.flow.views.migrate_views.es_fake_apply import FakeInstallEsSceneApiView
 from backend.flow.views.migrate_views.hdfs_fake_apply import FakeInstallHdfsSceneApiView
 from backend.flow.views.migrate_views.influxdb_fake_apply import FakeInstallInfluxdbSceneApiView
@@ -374,4 +375,6 @@ urlpatterns = [
     url("^scene/switch_tbinlogumper$", SwitchTBinlogDumperSceneApiView.as_view()),
     url("^scene/tendbha_standardize$", TenDBHAStandardizeView.as_view()),
     url("^scene/mysql_open_area$", MysqlOpenAreaSceneApiView.as_view()),
+    # migrate
+    url("^scene/migrate_spider_cluster_from_gcs$", MigrateSpiderClusterFromGcsView.as_view()),
 ]

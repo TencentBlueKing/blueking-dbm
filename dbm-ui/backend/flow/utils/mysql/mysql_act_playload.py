@@ -262,6 +262,40 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
             content["payload"]["extend"]["mycnf_configs"][key]["mysqld"].update(slave_config)
         return content
 
+    def get_append_deploy_spider_ctl_payload(self, **kwargs):
+        """
+        拼接spider-ctl节点添加单实例的payload
+        """
+        ctl_charset = self.cluster["ctl_charset"]
+
+        ctl_pkg = Package.get_latest_package(version=MediumEnum.Latest, pkg_type=MediumEnum.tdbCtl)
+        version_no = get_mysql_real_version(ctl_pkg.name)
+
+        drs_account, dbha_account = self.get_super_account()
+        return {
+            "db_type": DBActuatorTypeEnum.SpiderCtl.value,
+            "action": DBActuatorActionEnum.AppendDeploy.value,
+            "payload": {
+                "general": {"runtime_account": self.account},
+                "extend": {
+                    "host": kwargs["ip"],
+                    "pkg": ctl_pkg.name,
+                    "pkg_md5": ctl_pkg.md5,
+                    "mysql_version": version_no,
+                    "charset": ctl_charset,
+                    "inst_mem": 0,
+                    "ports": [self.cluster["ctl_port"]],
+                    "super_account": drs_account,
+                    "dbha_account": dbha_account,
+                    "mycnf_configs": {
+                        self.cluster["ctl_port"]: self.__get_mysql_config(
+                            immutable_domain=self.cluster["immutable_domain"], db_version="Tdbctl"
+                        )
+                    },
+                },
+            },
+        }
+
     def get_install_spider_ctl_payload(self, **kwargs):
         """
         拼接spider-ctl节点安装的payload, ctl是单机单实例, 所以代码兼容多实例传入

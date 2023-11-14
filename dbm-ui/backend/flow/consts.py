@@ -306,6 +306,7 @@ class DBActuatorTypeEnum(str, StructuredEnum):
 class DBActuatorActionEnum(str, StructuredEnum):
     Sysinit = EnumField("sysinit", _("sysinit"))
     Deploy = EnumField("deploy", _("deploy"))
+    AppendDeploy = EnumField("append-deploy", _("append-deploy"))
     GetBackupFile = EnumField("find-local-backup", _("find-local-backup"))
     RestoreSlave = EnumField("restore-dr", _("restore-dr"))
     RecoverBinlog = EnumField("recover-binlog", _("recover-binlog"))
