@@ -491,6 +491,15 @@ class GetFileList(object):
             f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{mysql_crond_pkg.path}",
         ]
 
+    def tdbctl_install_package(self) -> list:
+        tdbctl_pkg = Package.get_latest_package(
+            version=MediumEnum.Latest, pkg_type=MediumEnum.tdbCtl, db_type=DBType.MySQL
+        )
+        return [
+            f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{self.actuator_pkg.path}",
+            f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{tdbctl_pkg.path}",
+        ]
+
     @staticmethod
     def get_spider_apps_package():
         """
