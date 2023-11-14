@@ -21,7 +21,7 @@
       ref="inputRef"
       v-model="localIpText"
       :disabled="!Boolean(source)"
-      :placeholder="t('请选择或输入IP，多个英文逗号分隔')"
+      :placeholder="t('请输入IP，多个英文逗号分隔')"
       :rules="rules"
       textarea />
     <div

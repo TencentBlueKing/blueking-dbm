@@ -20,3 +20,25 @@ class DestroyedStatus(int, StructuredEnum):
     NOT_DESTROYED = 0  # 未销毁
     DESTROYING = 1  # 销毁中
     DESTROYED = 2  # 已销毁
+
+
+class MigrateStatus(int, StructuredEnum):
+    """
+    slots 迁移状态枚举
+    """
+
+    NOT_STARTED = 0  # 未开始
+    EXECUTING = 1  # 执行中
+    COMPLETED = 2  # 已完成
+    ERROR_OCCURRED = -1  # 错误
+
+
+class DataStructureStatus(int, StructuredEnum):
+    """
+    数据构造状态枚举
+    """
+
+    NOT_STARTED = 0  # 未开始
+    EXECUTING = 1  # 执行中
+    COMPLETED = 2  # 已完成
+    ERROR_OCCURRED = -1  # 错误

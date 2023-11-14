@@ -32,24 +32,26 @@
       <template #aside>
         <div class="cluster-selector__result">
           <div class="result__title">
-            <span>{{ $t('结果预览') }}</span>
+            <span>{{ t('结果预览') }}</span>
             <BkDropdown class="result__dropdown">
               <i class="db-icon-more result__trigger" />
               <template #content>
                 <BkDropdownMenu>
                   <BkDropdownItem @click="handleClearSelected">
-                    {{ $t('清空所有') }}
+                    {{ t('清空所有') }}
                   </BkDropdownItem>
                   <BkDropdownItem @click="handleCopyCluster">
-                    {{ $t('复制所有集群') }}
+                    {{ t('复制所有集群') }}
                   </BkDropdownItem>
                 </BkDropdownMenu>
               </template>
             </BkDropdown>
           </div>
-          <ResultPreview
+          <Component
+            :is="activePanelObj.resultContent"
+            :display-key="activePanelObj.previewResultKey"
             :selected-map="selectedMap"
-            :show-title="showPreviewResultTitle"
+            :show-title="activePanelObj.showPreviewResultTitle"
             :tab-list="tabList"
             @delete-item="handleSelecteRow" />
         </div>
@@ -68,28 +70,34 @@
               <div
                 class="tabs__item"
                 :class="[{ 'tabs__item--active': tabItem.id === activeTab }]"
-                @click.stop="handleChangeTab(tabItem.id)">
+                @click.stop="handleChangeTab(tabItem)">
                 {{ tabItem.name }}
               </div>
               <template
                 #content>
                 <div class="tab-tips">
-                  <h4>{{ $t('切换类型说明') }}</h4>
-                  <p>{{ $t('切换后如果重新选择_选择结果将会覆盖原来选择的内容') }}</p>
+                  <h4>{{ t('切换类型说明') }}</h4>
+                  <p>{{ t('切换后如果重新选择_选择结果将会覆盖原来选择的内容') }}</p>
                   <BkButton
                     size="small"
                     theme="primary"
                     @click="handleCloseTabTips">
-                    {{ $t('我知道了') }}
+                    {{ t('我知道了') }}
                   </BkButton>
                 </div>
               </template>
             </BkPopover>
           </div>
           <div class="cluster-selector__content">
-            <CurrentContent
+            <Component
+              :is="activePanelObj.tableContent"
               :active-tab="activeTab"
-              :get-resource-list="getResourceList"
+              :column-status-filter="activePanelObj.columnStatusFilter"
+              :custom-colums="activePanelObj.customColums"
+              :disabled-row-config="activePanelObj.disabledRowConfig"
+              :get-resource-list="activePanelObj.getResourceList"
+              :search-placeholder="activePanelObj.searchPlaceholder"
+              :search-select-list="activePanelObj.searchSelectList"
               :selected="selectedArr"
               @change="handleSelectTable" />
           </div>
@@ -102,23 +110,22 @@
         :disabled="isEmpty"
         theme="primary"
         @click="handleConfirm">
-        {{ $t('确定') }}
+        {{ t('确定') }}
       </BkButton>
       <BkButton
         class="cluster-selector__button"
         @click="handleClose">
-        {{ $t('取消') }}
+        {{ t('取消') }}
       </BkButton>
     </template>
   </BkDialog>
 </template>
-<script setup lang="tsx" generic="T extends SpiderModel">
-  import { useFormItem } from 'bkui-vue/lib/shared';
+<script setup lang="tsx" generic="T extends ClusterTypes">
   import _ from 'lodash';
   import { shallowRef } from 'vue';
-  import { useI18n } from 'vue-i18n';
 
-  import SpiderModel from '@services/model/spider/spider';
+  import { listClusterList } from '@services/redis/toolbox';
+  import { getList } from '@services/spider';
   import type { ListBase } from '@services/types/common';
 
   import { useCopy, useSelectorDialogWidth } from '@hooks';
@@ -127,100 +134,151 @@
 
   import { messageWarn } from '@utils';
 
-  import ResultPreview from './components/ResultPreview.vue';
-  import SpiderTable from './components/spider-table/Index.vue';
+  import { t } from '@locales/index';
 
+  import ResultPreview from './components/common/result-preview/Index.vue';
+  import type { SearchSelectList } from './components/common/SearchBar.vue';
+  import RedisTable from './components/redis/Index.vue';
+  import SpiderTable from './components/tendb-cluster/Index.vue';
 
-  interface Props {
-    selected: Record<string, T[]>,
-    tabList?: { name: string; id: string, content?: Element }[],
+  export type TabListType = {
+    name: string,
+    id: ClusterTypes,
+    // 不可选行及提示
+    disabledRowConfig?: {
+      handler: (data: any) => boolean,
+      tip?: string,
+    },
+    // 自定义列
+    customColums?: any[],
+    // 结果预览使用的key
+    previewResultKey?: string,
+    // 搜索栏下拉选项
+    searchSelectList?: SearchSelectList,
+    // 搜索栏的placeholder
+    searchPlaceholder?: string
     showPreviewResultTitle?: boolean,
-    // eslint-disable-next-line vue/no-unused-properties
-    getResourceList: (params: Record<string, any>) => Promise<ListBase<T[]>>
-  }
+    // 状态列
+    columnStatusFilter?: (data: any) => boolean,
+    // 查询接口
+    getResourceList?: (params: any) => Promise<ListBase<Record<string, any>[]>>,
+    tableContent: any,
+    resultContent: any,
+  }[];
 
-  interface Emits {
-    (e: 'change', value: SelectedMap): void,
-  }
+  export type TabItem = TabListType[number];
 
-  type SelectedMap = Props['selected'];
+  type TabConfig = Omit<TabItem, 'name' | 'id' | 'tableContent' | 'resultContent'>
 
-  const props = withDefaults(defineProps<Props>(), {
-    isShow: false,
-    selected: () =>  ({}),
-    tabList: () => ([
-      {
-        id: ClusterTypes.SPIDER,
-        name: '集群选择',
-      },
-    ]),
-    showPreviewResultTitle: true,
-  });
+  type SpiderModel = ServiceReturnType<typeof getList>['results'][number];
+  type RedisModel = ServiceReturnType<typeof listClusterList>['results'][number];
+
+  const props = defineProps<Props>();
 
   const emits = defineEmits<Emits>();
 
-  const { t } = useI18n();
+  type SelectedItems<T extends ClusterTypes> = T extends ClusterTypes.REDIS ? RedisModel[] : SpiderModel[];
+
+  interface Props {
+    selected: Record<string, SelectedItems<T>>,
+    clusterTypes: T[],
+    tabListConfig?: Record<string, TabConfig>
+  }
+
+  interface Emits {
+    (e: 'change', value: Props['selected']): void,
+  }
 
   const isShow = defineModel<boolean>('isShow', {
     default: false,
   });
 
+  const tabListMap: Record<string, TabItem> = {
+    [ClusterTypes.TENDBCLUSTER]: {
+      id: ClusterTypes.TENDBCLUSTER,
+      name: t('集群选择'),
+      getResourceList: getList,
+      tableContent: SpiderTable,
+      resultContent: ResultPreview,
+    },
+    [ClusterTypes.REDIS]: {
+      id: ClusterTypes.REDIS,
+      name: t('集群选择'),
+      getResourceList: listClusterList,
+      tableContent: RedisTable,
+      resultContent: ResultPreview,
+      searchSelectList: [{
+        name: t('集群'),
+        id: 'domain',
+      }, {
+        name: t('集群别名'),
+        id: 'name',
+      }],
+      searchPlaceholder: t('集群_集群别名'),
+    },
+  };
 
   const copy = useCopy();
-  const formItem = useFormItem();
   const { dialogWidth } = useSelectorDialogWidth();
 
   const tabTipsRef = ref();
-  const activeTab = ref(props.tabList[0].id);
+  const activeTab = ref();
+  const activePanelObj = ref(tabListMap[ClusterTypes.TENDBCLUSTER]);
   const showTabTips = ref(false);
-  const selectedMap = shallowRef<Record<string, Record<string, ValueOf<SelectedMap>[0]>>>({});
   const isSelectedAll = ref(false);
 
-  const contentMap = computed(() => {
-    if (props.tabList.length > 1) {
-      return props.tabList.reduce((result, item) => {
-        if (item.content) {
-          // eslint-disable-next-line no-param-reassign
-          result[item.id] = item.content;
+  const selectedMap = shallowRef<Record<string, Record<string, any>>>({});
+
+  const clusterTabListMap = computed<Record<string, TabItem>>(() => {
+    if (props.tabListConfig) {
+      Object.keys(props.tabListConfig).forEach((type) => {
+        if (props.tabListConfig?.[type]) {
+          tabListMap[type] = {
+            ...tabListMap[type],
+            ...props.tabListConfig[type],
+          };
         }
-        return result;
-      }, {} as Record<string, Element>);
+      });
     }
-    if (props.tabList[0].content) {
-      return {
-        [props.tabList[0].id]: props.tabList[0].content,
-      };
-    }
-    return {
-      [ClusterTypes.SPIDER]: SpiderTable,
-    };
+    return tabListMap;
   });
 
-  const CurrentContent = computed(() => (contentMap.value as unknown as Record<string, Element>)[activeTab.value]);
+  // eslint-disable-next-line max-len
+  const tabList = computed(() => (props.clusterTypes ? props.clusterTypes.map(type => clusterTabListMap.value[type]) : []));
 
-  const selectedArr = computed(() => (Object.keys(selectedMap.value).length > 0
+  const selectedArr = computed(() => (activeTab.value && (Object.keys(selectedMap.value).length > 0)
     ? ({ [activeTab.value]: Object.values(selectedMap.value[activeTab.value]) }) :  {}));
 
   // 显示切换 tab tips
-  const showSwitchTabTips = computed(() => showTabTips.value && props.tabList.length > 1);
+  const showSwitchTabTips = computed(() => showTabTips.value && tabList.value.length > 1);
   // 选中结果是否为空
   const isEmpty = computed(() => _.every(Object.values(selectedMap.value), item => Object.keys(item).length < 1));
 
+  watch(() => props.clusterTypes, (types) => {
+    if (types) {
+      activePanelObj.value = clusterTabListMap.value[types[0]];
+      [activeTab.value] = types;
+    }
+  }, {
+    immediate: true,
+    deep: true,
+  });
+
   watch(isShow, (show) => {
-    if (show) {
-      selectedMap.value = props.tabList.map(({ id }) => id).reduce((result, tabKey) => {
+    if (show && tabList.value) {
+      selectedMap.value = tabList.value.map(item => item.id).reduce((result, tabKey) => {
         if (!props.selected[tabKey]) {
           return result;
         }
         const tabSelectMap = props.selected[tabKey].reduce((selectResult, selectItem) => ({
           ...selectResult,
           [selectItem.id]: selectItem,
-        }), {} as Record<string, ValueOf<SelectedMap>[0]>);
+        }), {} as Record<string, any>);
         return {
           ...result,
           [tabKey]: tabSelectMap,
         };
-      }, {} as Record<string, Record<string, ValueOf<SelectedMap>[0]>>);
+      }, {} as Record<string, Record<string, any>>);
       showTabTips.value = true;
     }
   });
@@ -228,16 +286,20 @@
   /**
    * 切换 tab
    */
-  const handleChangeTab = (id: string) => {
-    if (activeTab.value === id) {
+  const handleChangeTab = (obj: TabItem) => {
+    if (activeTab.value === obj.id) {
       return;
     }
-    activeTab.value = id;
+    const currentTab = tabList.value.find(item => item.id === obj.id);
+    activeTab.value = obj.id;
+    if (currentTab) {
+      activePanelObj.value = currentTab;
+    }
   };
+
   /**
    * 关闭提示
    */
-
   const handleCloseTabTips = () => {
     showTabTips.value = false;
     if (tabTipsRef.value) {
@@ -246,7 +308,6 @@
       }
     }
   };
-
 
   /**
    * 清空选中项
@@ -259,7 +320,6 @@
   /**
    * 复制集群域名
    */
-
   function handleCopyCluster() {
     const copyValues = Object.values(selectedMap.value).reduce((result, selectItem) => {
       result.push(...Object.values(selectItem).map(item => item.master_domain));
@@ -280,10 +340,6 @@
       [tabKey]: Object.values(selectedMap.value[tabKey]),
     }), {});
     emits('change', result);
-    nextTick(() => {
-      formItem?.validate?.('change');
-      formItem?.validate?.('blur');
-    });
     handleClose();
   }
 
@@ -294,7 +350,7 @@
   /**
    * 选择当行数据
    */
-  const handleSelecteRow = (data: ValueOf<SelectedMap>[0], value: boolean) => {
+  const handleSelecteRow = (data: any, value: boolean) => {
     const selectedMapMemo = { ...selectedMap.value };
     if (!selectedMapMemo[activeTab.value]) {
       selectedMapMemo[activeTab.value] = {};
@@ -307,7 +363,7 @@
     selectedMap.value = selectedMapMemo;
   };
 
-  const handleSelectTable = (selected: Record<string, Record<string, ValueOf<SelectedMap>[0]>>) => {
+  const handleSelectTable = (selected: Record<string, Record<string, any>>) => {
     selectedMap.value = selected;
   };
 </script>
@@ -352,7 +408,7 @@
     }
 
     &__content {
-      height: 585px;
+      height: 580px;
       padding: 16px 24px 0;
 
       :deep(.bk-pagination-small-list) {

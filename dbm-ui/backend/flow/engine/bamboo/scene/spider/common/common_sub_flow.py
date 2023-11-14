@@ -12,6 +12,7 @@ from dataclasses import asdict
 from django.utils.crypto import get_random_string
 from django.utils.translation import ugettext as _
 
+from backend import env
 from backend.configuration.constants import DBType
 from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.enums import ClusterType, InstanceStatus, MachineType, TenDBClusterSpiderRole
@@ -26,6 +27,7 @@ from backend.flow.plugins.components.collections.mysql.clear_machine import MySQ
 from backend.flow.plugins.components.collections.mysql.clone_user import CloneUserComponent
 from backend.flow.plugins.components.collections.mysql.dns_manage import MySQLDnsManageComponent
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
+from backend.flow.plugins.components.collections.mysql.mysql_os_init import MySQLOsInitComponent, SysInitComponent
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
 from backend.flow.plugins.components.collections.spider.add_spider_routing import AddSpiderRoutingComponent
 from backend.flow.plugins.components.collections.spider.ctl_drop_routing import CtlDropRoutingComponent
@@ -83,6 +85,24 @@ def add_spider_slaves_sub_flow(
         bk_cloud_id=cluster.bk_cloud_id,
     )
 
+    # 机器系统初始化
+    exec_ips = [ip_info["ip"] for ip_info in add_spider_slaves]
+    account = MysqlActPayload.get_mysql_account()
+    sub_pipeline.add_act(
+        act_name=_("初始化机器"),
+        act_component_code=SysInitComponent.code,
+        kwargs={"mysql_os_password": account["os_mysql_pwd"], "exec_ip": exec_ips, "bk_cloud_id": cluster.bk_cloud_id},
+    )
+
+    # 判断是否需要执行按照MySQL Perl依赖
+    if env.YUM_INSTALL_PERL:
+        exec_act_kwargs.exec_ip = exec_ips
+        sub_pipeline.add_act(
+            act_name=_("安装MySQL Perl相关依赖"),
+            act_component_code=MySQLOsInitComponent.code,
+            kwargs=asdict(exec_act_kwargs),
+        )
+
     # 阶段1 下发spider安装介质包
     sub_pipeline.add_act(
         act_name=_("下发spider安装介质"),
@@ -98,16 +118,7 @@ def add_spider_slaves_sub_flow(
         ),
     )
 
-    # 阶段2 初始化待安装机器
-    exec_act_kwargs.exec_ip = [ip_info["ip"] for ip_info in add_spider_slaves]
-    exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_sys_init_payload.__name__
-    sub_pipeline.add_act(
-        act_name=_("初始化机器"),
-        act_component_code=ExecuteDBActuatorScriptComponent.code,
-        kwargs=asdict(exec_act_kwargs),
-    )
-
-    # 阶段3 安装mysql-crond组件
+    # 阶段2 安装mysql-crond组件
     exec_act_kwargs.exec_ip = [ip_info["ip"] for ip_info in add_spider_slaves]
     exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_deploy_mysql_crond_payload.__name__
     sub_pipeline.add_act(
@@ -116,7 +127,7 @@ def add_spider_slaves_sub_flow(
         kwargs=asdict(exec_act_kwargs),
     )
 
-    # 阶段4 安装spider-slave实例，目前spider-slave机器属于单机单实例部署方式，专属一套集群
+    # 阶段3 安装spider-slave实例，目前spider-slave机器属于单机单实例部署方式，专属一套集群
     acts_list = []
     for spider_ip in add_spider_slaves:
         exec_act_kwargs.exec_ip = spider_ip["ip"]
@@ -223,6 +234,22 @@ def add_spider_masters_sub_flow(
         cluster_type=ClusterType.TenDBCluster,
         bk_cloud_id=cluster.bk_cloud_id,
     )
+    # 机器系统初始化
+    exec_ips = [ip_info["ip"] for ip_info in add_spider_masters]
+    account = MysqlActPayload.get_mysql_account()
+    sub_pipeline.add_act(
+        act_name=_("初始化机器"),
+        act_component_code=SysInitComponent.code,
+        kwargs={"mysql_os_password": account["os_mysql_pwd"], "exec_ip": exec_ips, "bk_cloud_id": cluster.bk_cloud_id},
+    )
+    # 判断是否需要执行按照MySQL Perl依赖
+    if env.YUM_INSTALL_PERL:
+        exec_act_kwargs.exec_ip = exec_ips
+        sub_pipeline.add_act(
+            act_name=_("安装MySQL Perl相关依赖"),
+            act_component_code=MySQLOsInitComponent.code,
+            kwargs=asdict(exec_act_kwargs),
+        )
 
     # 阶段1 下发spider安装介质包
     sub_pipeline.add_act(
@@ -237,16 +264,6 @@ def add_spider_masters_sub_flow(
                 ),
             )
         ),
-    )
-
-    # 阶段2 初始化待安装机器
-    exec_act_kwargs.exec_ip = [ip_info["ip"] for ip_info in add_spider_masters]
-    exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_sys_init_payload.__name__
-
-    sub_pipeline.add_act(
-        act_name=_("初始化机器"),
-        act_component_code=ExecuteDBActuatorScriptComponent.code,
-        kwargs=asdict(exec_act_kwargs),
     )
 
     # 阶段3 安装mysql-crond组件

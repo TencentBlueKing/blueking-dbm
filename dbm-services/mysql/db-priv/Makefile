@@ -35,10 +35,10 @@ test_mac:build
 	docker push $(DH_URL)/${NAMESPACE}/$(SRV_NAME):$(TEST_VERSION)
 
 curl:
-	@echo curl -XGET -H "Content-Type: application/json" http://127.0.0.1:8080/user
+	echo curl -XGET -H "Content-Type: application/json" http://127.0.0.1:8080/user
 help:
-	@echo "make - compile go source"
-	@echo "make gotool - run gofmt & go too vet"
-	@echo "make clean - do some clean job"
+	echo "make - compile go source"
+	echo "make gotool - run gofmt & go too vet"
+	echo "make clean - do some clean job"
 
 .PHONY: all gotool clean help api curl

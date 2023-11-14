@@ -38,11 +38,11 @@ def scan_cluster(cluster: Cluster) -> Graphic:
         cluster=cluster, roles=InstanceRole.ES_DATANODE_COLD, group_name=_("冷节点")
     )
 
-    # 获得访问入口节点组
-    entry = client_insts.first().bind_entry.first()
-    _dummy, entry_group = graph.add_node(entry)
-
     if client_group:
+        # 获得访问入口节点组
+        entry = client_insts.first().bind_entry.first()
+        _dummy, entry_group = graph.add_node(entry)
+
         # 访问入口 ---> Client节点，关系为：访问
         graph.add_line(source=entry_group, target=client_group, label=LineLabel.Access)
         # Client节点 ---> Master/冷/热节点，关系为：访问

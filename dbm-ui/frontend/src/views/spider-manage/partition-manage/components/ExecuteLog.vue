@@ -102,7 +102,7 @@
       });
     }
     tableRef.value.fetchData(params, {
-      cluster_type: ClusterTypes.SPIDER,
+      cluster_type: ClusterTypes.TENDBCLUSTER,
       config_id: props.data.id,
     });
   };

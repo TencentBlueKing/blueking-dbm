@@ -9,6 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import json
+import logging
 from typing import Dict, List, Optional, Union
 
 from django.db import transaction
@@ -40,6 +41,8 @@ from backend.db_meta.models import (
 )
 from backend.flow.plugins.components.collections.common.base_service import BaseService
 
+logger = logging.getLogger("celery")
+
 
 def _get_machine_addition_info(ip: str, cluster_json: Dict) -> Dict:
     for ele in cluster_json["machines"]:
@@ -57,6 +60,8 @@ def _setup_standby_slave(cluster_json: Dict):
 
 def _create_entries(cluster_json: Dict, cluster_obj: Cluster):
     for entry_json in cluster_json["entries"]:
+        logging.info("entry_json: {}".format(entry_json))
+
         if entry_json["entry_role"] == ClusterEntryRole.MASTER_ENTRY.value:
             entry_role = ClusterEntryRole.MASTER_ENTRY.value
         else:
@@ -65,7 +70,7 @@ def _create_entries(cluster_json: Dict, cluster_obj: Cluster):
         entry_obj = ClusterEntry.objects.create(
             cluster=cluster_obj,
             cluster_entry_type=ClusterEntryType.DNS.value,
-            entry=entry_json["domain"],
+            entry=entry_json["domain"].rstrip("."),
             role=entry_role,
         )
         for ij in entry_json["instance"]:
@@ -76,6 +81,7 @@ def _create_entries(cluster_json: Dict, cluster_obj: Cluster):
                 entry_obj.storageinstance_set.add(
                     *list(StorageInstance.objects.filter(machine__ip=ij["ip"], port=ij["port"]))
                 )
+        logging.info("create entry_json:{} success".format(entry_json))
 
 
 class MySQLHAImportMetadataService(BaseService):
@@ -107,7 +113,10 @@ class MySQLHAImportMetadataService(BaseService):
         cluster_ids = []
         for cluster_json in json_content:
             cluster_obj = self._create_cluster(
-                cluster_json["name"], cluster_json["immute_domain"], cluster_json["master"]["Version"]
+                name=cluster_json["name"],
+                immute_domain=cluster_json["immute_domain"].rstrip("."),
+                version=cluster_json["version"],  # ["master"]["Version"],
+                disaster=cluster_json["disaster_level"],
             )
 
             master_obj = self._create_master_instance(cluster_json=cluster_json)
@@ -189,6 +198,7 @@ class MySQLHAImportMetadataService(BaseService):
             access_layer = AccessLayer.PROXY
         else:
             access_layer = AccessLayer.STORAGE
+
         machine = self._create_machine(
             ip=ip, addition_info=addition_info, access_layer=access_layer, machine_type=machine_type
         )
@@ -236,7 +246,7 @@ class MySQLHAImportMetadataService(BaseService):
             phase=InstancePhase.TRANS_STAGE.value,
         )
 
-    def _create_cluster(self, name: str, immute_domain: str, version: str) -> Cluster:
+    def _create_cluster(self, name: str, immute_domain: str, version: str, disaster: str) -> Cluster:
         return Cluster.objects.create(
             name=name,
             bk_biz_id=self.bk_biz_id,
@@ -247,6 +257,7 @@ class MySQLHAImportMetadataService(BaseService):
             phase=ClusterPhase.TRANS_STAGE.value,
             status=ClusterStatus.NORMAL.value,
             bk_cloud_id=0,
+            disaster_tolerance_level=disaster,
         )
 
     def _create_master_instance(self, cluster_json: Dict) -> StorageInstance:

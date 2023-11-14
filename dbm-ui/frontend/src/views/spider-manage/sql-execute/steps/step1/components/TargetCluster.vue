@@ -35,13 +35,13 @@
         </BkLoading>
       </div>
     </DbFormItem>
-    <ClusterSelector
-      v-model:is-show="isShowClusterSelector"
-      :get-resource-list="getList"
-      :selected="clusterSelectorValue"
-      :tab-list="clusterSelectorTabList"
-      @change="handelClusterChange" />
   </div>
+  <ClusterSelector
+    v-model:is-show="isShowClusterSelector"
+    :cluster-types="[ClusterTypes.TENDBCLUSTER]"
+    :selected="clusterSelectorValue"
+    :tab-list-config="tabListConfig"
+    @change="handelClusterChange" />
 </template>
 <script lang="tsx">
   export interface IClusterData {
@@ -62,7 +62,6 @@
   import { useI18n } from 'vue-i18n';
 
   import { queryClusters } from '@services/mysqlCluster';
-  import { getList } from '@services/spider';
 
   import { useGlobalBizs } from '@stores';
 
@@ -84,10 +83,14 @@
   const { currentBizId } = useGlobalBizs();
   const { t } = useI18n();
 
-  const clusterSelectorTabList = [{
-    id: ClusterTypes.SPIDER,
-    name: '集群',
-  }];
+  const tabListConfig = {
+    [ClusterTypes.TENDBCLUSTER]: {
+      disabledRowConfig: {
+        handler: (data: IClusterData) => data.status !== 'normal',
+        tip: t('集群异常'),
+      },
+    },
+  };
 
   const colums = [
     {
@@ -131,7 +134,7 @@
   const isLoading = ref(false);
   const isShowClusterSelector = ref(false);
   const formItemRef = ref();
-  const clusterSelectorValue = shallowRef();
+  const clusterSelectorValue = shallowRef<{[key: string]: Array<IClusterData>}>({ [ClusterTypes.TENDBCLUSTER]: [] });
   const targetClusterList = shallowRef<Array<IClusterData>>([]);
 
   let isInnerChange = false;
@@ -184,7 +187,7 @@
 
     // ClusterSelector 的值回填
     clusterSelectorValue.value = {
-      [ClusterTypes.SPIDER]: _.filter(result, item => item.cluster_type === ClusterTypes.SPIDER),
+      [ClusterTypes.TENDBCLUSTER]: _.filter(result, item => item.cluster_type === ClusterTypes.TENDBCLUSTER),
     };
     triggerChange();
   };

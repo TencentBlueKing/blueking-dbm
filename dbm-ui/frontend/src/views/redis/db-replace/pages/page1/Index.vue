@@ -71,7 +71,10 @@
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
-  import { queryInfoByIp, queryMasterSlavePairs } from '@services/redis/toolbox';
+  import {
+    queryInfoByIp,
+    queryMasterSlavePairs,
+  } from '@services/source/redisToolbox';
   import { createTicket } from '@services/ticket';
   import type { SubmitTicket } from '@services/types/ticket';
 
@@ -79,13 +82,12 @@
 
   import { TicketTypes } from '@common/const';
 
-  import InstanceSelector, {
-    type InstanceSelectorValues,
-  } from '@views/redis/common/instance-selector/Index.vue';
-
   import { switchToNormalRole } from '@utils';
 
   import RenderData from './components/Index.vue';
+  import InstanceSelector, {
+    type InstanceSelectorValues,
+  } from './components/instance-selector/Index.vue';
   import RenderDataRow, {
     createRowData,
     type IDataRow,

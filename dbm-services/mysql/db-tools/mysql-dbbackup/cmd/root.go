@@ -13,7 +13,7 @@ import (
 )
 
 // DbbackupVersion TODO
-var DbbackupVersion = "1.0.3"
+var DbbackupVersion = "undef"
 
 var cnfFile string
 

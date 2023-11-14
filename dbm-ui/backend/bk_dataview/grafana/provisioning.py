@@ -92,6 +92,9 @@ class SimpleProvisioning(BaseProvisioning):
 
     def dashboards(self, request, org_name: str, org_id: int) -> List[Dashboard]:
         """固定目录下的json文件, 自动注入"""
+
+        bkm_dbm_report = SystemSettings.get_setting_value(key=SystemSettingsEnum.BKM_DBM_REPORT.value)
+
         with os_env(ORG_NAME=org_name, ORG_ID=org_id):
             for suffix in self.file_suffix:
                 for conf in self.read_conf("dashboards", suffix):
@@ -100,7 +103,17 @@ class SimpleProvisioning(BaseProvisioning):
                         paths = os.path.join(dashboard_path, f"*.json")
                         for path in glob.glob(paths):
                             with open(path, "rb") as fh:
-                                dashboard = json.loads(fh.read())
+                                file_content = fh.read().decode()
+
+                                # 全局变量替换
+                                file_content = file_content.replace(
+                                    "{event_data_id}", str(bkm_dbm_report["event"]["data_id"])
+                                )
+                                file_content = file_content.replace(
+                                    "{metric_data_id}", str(bkm_dbm_report["metric"]["data_id"])
+                                )
+
+                                dashboard = json.loads(file_content)
                                 title = dashboard.get("title")
                                 if not title:
                                     continue

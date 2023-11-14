@@ -17,7 +17,22 @@
     :width="960"
     @closed="handleClose">
     <template #header>
-      {{ sidesliderTitle }} {{ type === 'copy' ? `【${detailData.name}】` : '' }}
+      <div
+        v-if="type === 'copy'"
+        class="detail-dialog-head">
+        <div class="detail-dialog-head-text">
+          {{ sidesliderTitle }}【
+        </div>
+        <div class="detail-dialog-head-name">
+          {{ detailData.name }}
+        </div>
+        <div class="detail-dialog-head-text">
+          】
+        </div>
+      </div>
+      <div v-else>
+        {{ sidesliderTitle }}
+      </div>
     </template>
     <DbForm
       ref="formRef"
@@ -27,7 +42,8 @@
       <BkFormItem
         :label="t('告警组名称')"
         property="name"
-        required>
+        required
+        :rules="nameRules">
         <BkInput
           v-model="formData.name"
           :disabled="editDisabled"
@@ -86,7 +102,8 @@
   interface Props {
     type: 'add' | 'edit' | 'copy',
     detailData: ServiceReturnType<typeof getAlarmGroupList>['results'][number],
-    bizId: number
+    bizId: number,
+    nameList: string[]
   }
 
   interface Emits {
@@ -109,6 +126,23 @@
     edit: t('编辑告警组'),
     copy: t('克隆告警组'),
   };
+
+  const nameRules = [
+    {
+      message: t('长度不能大于n', [80]),
+      validator: (value: string)  => value.length <= 80,
+    },
+    {
+      message: t('告警组名称重复'),
+      validator: (name: string) => {
+        if (props.type === 'copy') {
+          return !props.nameList.includes(name);
+        }
+
+        return true;
+      },
+    },
+  ];
 
   const formRef = ref();
   const receiversSelectorRef = ref();
@@ -193,14 +227,38 @@
 
     formData.name = '';
     formData.receivers = [] as string[];
-
-    window.changeConfirm = false;
     isShow.value = false;
+
+    nextTick(() => {
+      window.changeConfirm = false;
+    });
   };
 </script>
 
 <style lang="less" scoped>
+  .detail-dialog-head {
+    display: flex;
+    width: 100%;
+    padding-right: 16px;
+
+    .detail-dialog-head-name {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .detail-dialog-head-text {
+      flex-shrink: 0;
+    }
+  }
+
   .detail-form {
     padding: 24px 40px 40px;
+  }
+
+  :deep(.bk-tab-header-nav::-webkit-scrollbar) {
+    display: block;
+    width: 4px;
+    height: 4px;
   }
 </style>

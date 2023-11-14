@@ -12,23 +12,21 @@
 -->
 
 <template>
-  <BkLoading :loading="isLoading">
-    <TableEditInput
-      ref="editSelectRef"
-      :model-value="localValue"
-      :placeholder="t('输入集群后自动生成')"
-      readonly />
-  </BkLoading>
+  <RenderText
+    ref="editSelectRef"
+    :data="localValue"
+    :is-loading="isLoading"
+    :placeholder="t('输入集群后自动生成')" />
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import { getHostTopoInfos } from '@services/ip';
+  import { getHostTopoInfos } from '@services/source/ipchooser';
 
   import { useGlobalBizs } from '@stores';
 
-  import TableEditInput from '@views/spider-manage/common/edit/Input.vue';
+  import RenderText from '@components/tools-table-common/RenderText.vue';
 
   import type { IDataRow } from './Row.vue';
 

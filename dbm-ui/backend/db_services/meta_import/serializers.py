@@ -13,7 +13,7 @@ from django.utils.translation import ugettext as _
 from rest_framework import serializers
 
 from backend.db_meta.enums import ClusterType, MachineType
-from backend.db_meta.models import AppCache, Cluster, DBModule, Spec
+from backend.db_meta.models import AppCache, DBModule, Spec
 
 
 class CustomChoiceField(serializers.ChoiceField):
@@ -54,7 +54,7 @@ class BizChoiceField(CustomChoiceField):
 
 class MySQLHaMetadataImportSerializer(serializers.Serializer):
     file = serializers.FileField(help_text=_("元数据json文件"))
-    bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
+    bk_biz_id = BizChoiceField(help_text=_("业务"))
     db_module_id = MetadataImportDBModuleField(help_text=_("模块ID"), cluster_type=ClusterType.TenDBHA.value)
     proxy_spec_id = MetadataImportSpecField(
         help_text=_("代理层规格ID"), cluster_type=ClusterType.TenDBHA.value, machine_type=MachineType.PROXY.value
@@ -67,12 +67,9 @@ class MySQLHaMetadataImportSerializer(serializers.Serializer):
         return attrs
 
 
-class MySQLStandardSerializer(serializers.Serializer):
+class MySQLHaStandardSerializer(serializers.Serializer):
     bk_biz_id = BizChoiceField(help_text=_("业务ID"))
-    immute_domains = serializers.CharField(help_text=_("集群域名(多个域名用空格分隔)"))
+    file = serializers.FileField(help_text=_("域名列表文件"))
 
     def validate(self, attrs):
-        domain_list = attrs.pop("immute_domains").split(",")
-        cluster_ids = list(Cluster.objects.filter(immute_domain__in=domain_list).values_list("id", flat=True))
-        attrs["cluster_ids"] = cluster_ids
         return attrs

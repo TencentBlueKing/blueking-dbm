@@ -86,3 +86,23 @@ def get_cluster(cluster_id: int, bk_biz_id: int) -> Cluster:
         raise NormalTBinlogDumperFlowException(message=_("非TenDB-HA架构不支持添加TBinlogDumper实例"))
 
     return cluster
+
+
+def get_tbinlogdumper_server_id(master: StorageInstance, tbinlogdumper_port: int) -> int:
+    """
+    根据数据源的serverid，和tbinlogdumper端口号，计算出对应serverid
+    确保主从同步是serverid不一致
+    """
+    res = DRSApi.rpc(
+        {
+            "addresses": [master.ip_port],
+            "cmds": ["select @@server_id as id ;"],
+            "force": False,
+            "bk_cloud_id": master.machine.bk_cloud_id,
+        }
+    )
+    if res[0]["error_msg"]:
+        raise NormalTBinlogDumperFlowException(message=_("get server_id failed: {}".format(res[0]["error_msg"])))
+
+    master_server_id = res[0]["cmd_results"][0]["table_data"][0]["id"]
+    return int(master_server_id) + tbinlogdumper_port

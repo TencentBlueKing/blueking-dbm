@@ -4,16 +4,16 @@ dependencies:
   version: 1.13.0
 - name: mysql
   repository: https://charts.bitnami.com/bitnami
-  version: 9.14.1
+  version: 9.14.3
 - name: redis
   repository: https://charts.bitnami.com/bitnami
   version: 16.13.2
 - name: etcd
   repository: https://charts.bitnami.com/bitnami
-  version: 9.6.0
+  version: 9.6.2
 - name: reloader
   repository: https://stakater.github.io/stakater-charts
-  version: 1.0.50
+  version: 1.0.51
 - name: grafana
   repository: file://./charts/grafana
   version: 7.9.8
@@ -22,7 +22,7 @@ dependencies:
   version: 0.1.28
 - name: dbconfig
   repository: file://charts/dbconfig
-  version: 0.1.8
+  version: 0.1.9
 - name: dbpriv
   repository: file://charts/dbpriv
   version: 0.1.31
@@ -56,5 +56,5 @@ dependencies:
 - name: backup-consumer
   repository: file://charts/backup-consumer
   version: 0.0.3
-digest: sha256:2980ed56f192ffd9fa531dc1668522eefacd827580a900509ba0e4a78a826946
-generated: "2023-11-01T15:09:09.075761+08:00"
+digest: sha256:3de5f96c055c450856010568192660ef672f1216eb7d3b9d9bf81faa255df2f9
+generated: "2023-11-14T10:53:10.905277+08:00"

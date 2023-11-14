@@ -188,8 +188,8 @@ class MediumHandler:
                     http.post(url="apis/packages/update_or_create/", data=package_params)
 
     @classmethod
-    def build_medium(cls, bkrepo_tmp_dir):
-        """同步构建好的介质，并更新.lock文件"""
+    def update_lock(cls, bkrepo_tmp_dir):
+        """更新.lock文件"""
 
         def add_version(version):
             # TODO: 这里版本号叠加规则是怎样？默认只是小版本+1
@@ -220,6 +220,20 @@ class MediumHandler:
                         medium_info["version"] = add_version(medium_info["version"])
                         medium_info["commitId"] = dir_commit
 
+        # 更新lock文件
+        with open(medium_lock_path, "w") as lock_file:
+            lock_file.write(yaml.safe_dump(lock_info))
+
+    @classmethod
+    def build_medium(cls, bkrepo_tmp_dir):
+        # 加载lock文件，获取介质的版本信息
+        medium_lock_path = os.path.join(os.path.abspath(os.path.dirname(__file__)), "medium.lock")
+        with open(medium_lock_path, "r") as lock_file:
+            lock_info = yaml.safe_load(lock_file)
+
+        for db_type, mediums in lock_info.items():
+            for medium in mediums:
+                for medium_type, medium_info in medium.items():
                     # 将编译好的介质复制到指定目录
                     target_medium_path = f"{bkrepo_tmp_dir}/{db_type}/{medium_type}/{medium_info['version']}"
                     result = subprocess.run(
@@ -230,7 +244,3 @@ class MediumHandler:
                     )
                     if result.returncode:
                         logger.error("Error: move medium fail! message: %s", result.stderr)
-
-        # 更新lock文件
-        with open(medium_lock_path, "w") as lock_file:
-            lock_file.write(yaml.safe_dump(lock_info))

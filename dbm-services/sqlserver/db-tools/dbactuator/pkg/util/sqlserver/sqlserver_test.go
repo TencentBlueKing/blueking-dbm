@@ -11,34 +11,37 @@
 package sqlserver_test
 
 import (
+	"fmt"
 	"testing"
 
-	"dbm-services/sqlserver/db-tools/dbactuator/pkg/util/sqlserver"
+	mssql "github.com/denisenkom/go-mssqldb"
 
-	_ "github.com/denisenkom/go-mssqldb"
+	"dbm-services/sqlserver/db-tools/dbactuator/pkg/util/sqlserver"
 )
 
 func Test(t *testing.T) {
-	checkCmd := "SELECT count(0) FROM SYS.SYSPROCESSES WHERE 1!=1"
 
+	checkCmd := "select password_hash from master.sys.sql_logins"
+
+	type LoginInfo struct {
+		PasswordHash mssql.VarChar `db:"password_hash"`
+	}
 	var dbWork *sqlserver.DbWorker
 	var err error
-	var cnt int
 	if dbWork, err = sqlserver.NewDbWorker(
 		"xxx",
-		"xxx",
+		"xxx!",
 		"xxx",
 		1433,
 	); err != nil {
 		t.Log(err)
 		return
 	}
-	// 到最后回收db连接
-	defer dbWork.Stop()
-
-	if err := dbWork.Queryxs(&cnt, checkCmd); err != nil {
+	var getJobs []LoginInfo
+	if err := dbWork.Queryxs(&getJobs, checkCmd); err != nil {
 		t.Log(err)
+		return
 	}
-	t.Log(cnt)
+	fmt.Printf("%+v\n", getJobs)
 
 }

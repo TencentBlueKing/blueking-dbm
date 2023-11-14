@@ -146,7 +146,8 @@ func UpdateDBStatus(ctx *fasthttp.RequestCtx, queryParam interface{}, setParam i
 			return
 		}
 	}
-	whereCond.set.LastTime = time.Now()
+	currentTime := time.Now()
+	whereCond.set.LastTime = &currentTime
 	log.Logger.Debugf("%+v", whereCond)
 
 	db := model.HADB.Self.Table(whereCond.query.TableName()).Where(whereCond.query).Updates(whereCond.set)

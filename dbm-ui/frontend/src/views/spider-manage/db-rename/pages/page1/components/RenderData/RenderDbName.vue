@@ -27,7 +27,7 @@
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
-  import { checkClusterDatabase } from '@services/remoteService';
+  import { checkClusterDatabase } from '@services/source/remoteService';
 
   import TableEditInput from '@components/tools-table-input/index.vue';
 

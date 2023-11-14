@@ -107,8 +107,8 @@
     </template>
     <ClusterSelector
       v-model:is-show="isShowClusterSelector"
+      :cluster-types="[ClusterTypes.REDIS]"
       :selected="selectedClusters"
-      :tab-list="clusterSelectorTabList"
       @change="handelClusterChange" />
   </SmartAction>
 </template>
@@ -121,7 +121,7 @@
   import { getClusterTypeToVersions } from '@services/clusters';
   import RedisModel from '@services/model/redis/redis';
   import { RepairAndVerifyFrequencyModes, RepairAndVerifyModes } from '@services/model/redis/redis-dst-history-job';
-  import { listClusterList } from '@services/redis/toolbox';
+  import { listClusterList } from '@services/source/resourceRedis';
   import { createTicket } from '@services/ticket';
   import type { SubmitTicket } from '@services/types/ticket';
 
@@ -129,7 +129,8 @@
 
   import { ClusterTypes, TicketTypes } from '@common/const';
 
-  import ClusterSelector from '@views/redis/common/cluster-selector/ClusterSelector.vue';
+  import ClusterSelector from '@components/cluster-selector-new/Index.vue';
+
   import { repairAndVerifyFrequencyList, repairAndVerifyTypeList } from '@views/redis/common/const';
 
   import RenderData from './components/Index.vue';
@@ -162,7 +163,6 @@
   const selectedClusters = shallowRef<{[key: string]: Array<RedisModel>}>({ [ClusterTypes.REDIS]: [] });
   const totalNum = computed(() => tableData.value.filter(item => Boolean(item.srcCluster)).length);
   const inputedClusters = computed(() => tableData.value.map(item => item.srcCluster));
-  const clusterSelectorTabList = [ClusterTypes.REDIS];
 
   // 集群域名是否已存在表格的映射表
   let domainMemo = {} as Record<string, boolean>;
@@ -250,7 +250,7 @@
       return;
     }
     tableData.value[index].isLoading = true;
-    const ret = await listClusterList(currentBizId, { domain }).finally(() => {
+    const ret = await listClusterList({ domain }).finally(() => {
       tableData.value[index].isLoading = false;
     });
     if (ret.length < 1) {

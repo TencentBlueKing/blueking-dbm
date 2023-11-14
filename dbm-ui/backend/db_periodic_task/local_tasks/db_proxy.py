@@ -21,14 +21,15 @@ from jinja2 import Environment
 
 from backend import env
 from backend.components import JobApi
-from backend.components.gse.client import GseApi
 from backend.configuration.constants import DBType
 from backend.core.consts import BK_PUSH_CONFIG_PAYLOAD
+from backend.db_meta.models import Machine
 from backend.db_periodic_task.local_tasks import register_periodic_task
 from backend.db_proxy import nginxconf_tpl
 from backend.db_proxy.constants import JOB_INSTANCE_EXPIRE_TIME, NGINX_PUSH_TARGET_PATH, ExtensionType
 from backend.db_proxy.exceptions import ProxyPassBaseException
 from backend.db_proxy.models import ClusterExtension, DBCloudProxy, DBExtension
+from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.utils.redis import RedisConn
 
 logger = logging.getLogger("celery")
@@ -38,12 +39,21 @@ logger = logging.getLogger("celery")
 def fill_cluster_service_nginx_conf():
     """填充集群额外服务的配置信息"""
 
-    def _job_push_config_file(_cloud_id, _file_list, _nginx):
+    def _job_push_config_file(_cloud_id, _file_list, _nginx_list):
         # 如果当前nginx的机器agent异常，则抛出日志且不下发。避免阻塞job
-        nginx_ip_list = [{"bk_cloud_id": _cloud_id, "ip": _nginx.internal_address}]
-        status_map = GseApi.get_agent_status({"hosts": nginx_ip_list})
-        if not status_map[f"{_cloud_id}:{_nginx.internal_address}"]["bk_agent_alive"]:
-            logger.error(_("nginx机器{}当前agent异常，跳过文件下发。请管理员检查机器运行状态").format(_nginx.internal_address))
+        nginx_ip_list = [
+            {
+                "bk_cloud_id": _cloud_id,
+                "bk_agent_id": _nginx["bk_agent_id"],
+                "ip": _nginx["ip"],
+                "bk_host_innerip": _nginx["ip"],
+            }
+            for _nginx in _nginx_list
+        ]
+        ResourceQueryHelper.fill_agent_status(nginx_ip_list)
+        status_code = sum([nginx["status"] for nginx in nginx_ip_list])
+        if status_code != len(nginx_ip_list):
+            logger.error(_("nginx机器{}当前agent异常，跳过文件下发。请管理员检查机器运行状态").format(nginx_ip_list))
             return None
 
         job_payload = copy.deepcopy(BK_PUSH_CONFIG_PAYLOAD)
@@ -53,7 +63,7 @@ def fill_cluster_service_nginx_conf():
         job_payload["target_server"]["ip_list"] = nginx_ip_list
         job_payload["callback_url"] = f"{env.BK_SAAS_CALLBACK_URL}/apis/proxypass/push_conf_callback/"
 
-        logger.info(_("[{}] nginx配置文件下发参数：{}").format(nginx.internal_address, job_payload))
+        logger.info(_("nginx配置文件下发参数：{}").format(job_payload))
         _resp = JobApi.push_config_file(job_payload, raw=True)
         if not _resp["result"]:
             raise ProxyPassBaseException(_("下发文件job启动失败，错误信息: {}").format(_resp["message"]))
@@ -68,11 +78,16 @@ def fill_cluster_service_nginx_conf():
 
     for cloud_id in cloud__db_type__extension.keys():
         # 获取下发nginx conf的机器 TODO: 后续要改为clb的地址进行转发
-        nginx = DBCloudProxy.objects.filter(bk_cloud_id=cloud_id).last()
-        nginx_detail = DBExtension.get_latest_extension(
-            bk_cloud_id=cloud_id, extension_type=ExtensionType.NGINX
-        ).details
+        proxy = DBCloudProxy.objects.filter(bk_cloud_id=cloud_id).last()
+        nginx_extensions = DBExtension.get_extension_in_cloud(bk_cloud_id=cloud_id, extension_type=ExtensionType.NGINX)
+        # 获取nginx的bk_agent_id(兼容gse2.0的agent查询)
+        for nginx_extension in nginx_extensions:
+            if "bk_agent_id" not in nginx_extension.details:
+                host_info = Machine.get_host_info_from_cmdb(bk_host_id=nginx_extension.details["bk_host_id"])
+                nginx_extension.details["bk_agent_id"] = host_info.get("bk_agent_id", "")
+                nginx_extension.save(update_fields=["details"])
 
+        manage_port = nginx_extensions.first().details["manage_port"]
         file_list: List[Dict[str, str]] = []
         extension_ids: List[int] = []
         for db_type in cloud__db_type__extension[cloud_id].keys():
@@ -99,12 +114,13 @@ def fill_cluster_service_nginx_conf():
                 file_list.append({"file_name": file_name, "content": file_content})
 
                 # 这里先提前写入access url，至于是否执行成功根据is_flush
-                extension.save_access_url(nginx_url=f"{nginx.external_address}:{nginx_detail['manage_port']}")
+                extension.save_access_url(nginx_url=f"{proxy.external_address}:{manage_port}")
                 extension_ids.append(extension.id)
 
         # 下发nginx服务配置
-        resp = _job_push_config_file(_cloud_id=cloud_id, _file_list=file_list, _nginx=nginx)
+        nginx_list = [nginx.details for nginx in nginx_extensions]
+        resp = _job_push_config_file(_cloud_id=cloud_id, _nginx_list=nginx_list, _file_list=file_list)
         if resp:
             # 缓存inst_id和nginx id，用于回调job，默认缓存时间和定时周期一致
-            RedisConn.lpush(resp["data"]["job_instance_id"], *extension_ids, nginx.id)
+            RedisConn.lpush(resp["data"]["job_instance_id"], *extension_ids, proxy.bk_cloud_id)
             RedisConn.expire(resp["data"]["job_instance_id"], JOB_INSTANCE_EXPIRE_TIME)

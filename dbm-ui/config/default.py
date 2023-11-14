@@ -87,6 +87,7 @@ INSTALLED_APPS += (
     "backend.db_services.mysql.open_area",
     "backend.db_services.ipchooser",
     "backend.dbm_init",
+    "backend.dbm_tools",
     "backend.db_proxy",
     "backend.db_monitor",
     "backend.db_services.redis.redis_dts",
@@ -95,7 +96,8 @@ INSTALLED_APPS += (
     "backend.db_dirty",
     "apigw_manager.apigw",
     "backend.db_periodic_task",
-    "backend.db_report"
+    "backend.db_report",
+    "backend.db_services.redis.slots_migrate",
 )
 
 
@@ -233,7 +235,10 @@ BK_AUDIT_SETTINGS = {
     "formatter": "bk_audit.contrib.django.formatters.DjangoFormatter",
 }
 
-# APIGW配置
+# BAMBOO PIPELINE 配置
+AUTO_UPDATE_COMPONENT_MODELS = False
+
+# APIGW 蓝鲸网关配置
 BK_APIGW_STATIC_VERSION = env.BK_APIGW_STATIC_VERSION
 BK_APIGW_MANAGER_MAINTAINERS = env.BK_APIGW_MANAGER_MAINTAINERS
 BK_APIGW_STAGE_NAME = env.BK_APIGW_STAGE_NAME

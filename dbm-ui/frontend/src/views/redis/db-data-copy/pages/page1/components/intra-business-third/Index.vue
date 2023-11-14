@@ -91,27 +91,28 @@
     </RenderTable>
     <ClusterSelector
       v-model:is-show="isShowClusterSelector"
+      :cluster-types="[ClusterTypes.REDIS]"
       :selected="selectedClusters"
-      :tab-list="clusterSelectorTabList"
+      :tab-list-config="tabListConfig"
       @change="handelClusterChange" />
   </div>
 </template>
 <script setup lang="ts">
+  import { useI18n } from 'vue-i18n';
+
   import RedisModel from '@services/model/redis/redis';
   import RedisDSTHistoryJobModel  from '@services/model/redis/redis-dst-history-job';
-  import { listClusterList } from '@services/redis/toolbox';
-
-  import { useGlobalBizs } from '@stores';
+  import { listClusterList } from '@services/source/resourceRedis';
 
   import {
     ClusterTypes,
     LocalStorageKeys,
   } from '@common/const';
 
+  import ClusterSelector from '@components/cluster-selector-new/Index.vue';
+  import RenderTableHeadColumn from '@components/render-table/HeadColumn.vue';
   import RenderTable from '@components/render-table/Index.vue';
 
-  import ClusterSelector from '@views/redis/common/cluster-selector/DataCopyClusterSelector.vue';
-  import RenderTableHeadColumn from '@views/redis/common/render-table/HeadColumn.vue';
   import type { SelectItem } from '@views/redis/db-data-copy/pages/page1/components/RenderTargetCluster.vue';
   import type { IntraBusinessToThirdInfoItem } from '@views/redis/db-data-copy/pages/page1/Index.vue';
 
@@ -137,17 +138,29 @@
     'change-table-available': [status: boolean]
   }>();
 
-  const { currentBizId } = useGlobalBizs();
+  const { t } = useI18n();
+
   const tableData = ref([createRowData()]);
   const isShowClusterSelector = ref(false);
   const rowRefs = ref();
+
   const selectedClusters = shallowRef<{[key: string]: Array<RedisModel>}>({ [ClusterTypes.REDIS]: [] });
+
   const tableAvailable = computed(() => tableData.value.findIndex(item => Boolean(item.srcCluster)) > -1);
   const inputedClusters = computed(() => tableData.value.map(item => item.srcCluster));
-  const clusterSelectorTabList = [ClusterTypes.REDIS];
+
+  const tabListConfig = {
+    [ClusterTypes.REDIS]: {
+      disabledRowConfig: {
+        handler: (data: RedisModel) => data.redis_slave.filter(item => item.status !== 'running').length > 0,
+        tip: t('slave 状态异常，无法选择'),
+      },
+      columnStatusFilter: (data: RedisModel) => data.redis_slave.filter(item => item.status !== 'running').length === 0,
+    },
+  };
 
   // 集群域名是否已存在表格的映射表
-  const domainMemo = {} as Record<string, boolean>;
+  let domainMemo = {} as Record<string, boolean>;
 
   watch(() => tableAvailable.value, (status) => {
     emits('change-table-available', status);
@@ -247,7 +260,7 @@
       return;
     }
     tableData.value[index].isLoading = true;
-    const ret = await listClusterList(currentBizId, { domain }).finally(() => {
+    const ret = await listClusterList({ domain }).finally(() => {
       tableData.value[index].isLoading = false;
     });
     if (ret.length < 1) {
@@ -267,6 +280,7 @@
     resetTable: () => {
       tableData.value = [createRowData()];
       selectedClusters.value[ClusterTypes.REDIS] = [];
+      domainMemo = {};
     },
   });
 </script>

@@ -234,6 +234,18 @@ export const spiderToolboxChildrenRoutes: RouteRecordRaw[] = [
     },
     component: () => import('@views/spider-manage/privilege-clone-inst/Index.vue'),
   },
+  {
+    path: 'openarea',
+    name: 'spiderOpenarea',
+    meta: {
+      routeParentName: MainViewRouteNames.Database,
+      navName: t('开区模版'),
+      isMenu: true,
+      activeMenu: 'spiderToolbox',
+      submenuId: 'spider_openarea',
+    },
+    component: () => import('@views/spider-manage/openarea/Index.vue'),
+  },
 ];
 
 const renderRoutes: RouteRecordRaw[] = [
@@ -347,6 +359,15 @@ const renderRoutes: RouteRecordRaw[] = [
         },
         component: () => import('@views/spider-manage/toolbox/Index.vue'),
         children: spiderToolboxChildrenRoutes,
+      },
+      {
+        path: 'openarea-create',
+        name: 'spiderOpenareaCreate',
+        meta: {
+          routeParentName: MainViewRouteNames.Database,
+          navName: t('新建开区模板'),
+        },
+        component: () => import('@views/spider-manage/openarea-create/Index.vue'),
       },
     ],
   },

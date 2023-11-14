@@ -14,6 +14,7 @@ import (
 
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/sqlserver/db-tools/dbactuator/internal/subcmd"
+	"dbm-services/sqlserver/db-tools/dbactuator/internal/subcmd/checkcmd"
 	"dbm-services/sqlserver/db-tools/dbactuator/internal/subcmd/sqlservercmd"
 	"dbm-services/sqlserver/db-tools/dbactuator/internal/subcmd/sysinitcmd"
 	"dbm-services/sqlserver/db-tools/dbactuator/pkg/core/cst"
@@ -99,6 +100,12 @@ Buildstamp:%s`, version, githash, strings.ToUpper(external), buildstamp),
 			Message: "sqlserver operation sets",
 			Commands: []*cobra.Command{
 				sqlservercmd.NewSQLserverCommand(),
+			},
+		},
+		{
+			Message: "check operation sets",
+			Commands: []*cobra.Command{
+				checkcmd.CheckCommand(),
 			},
 		},
 	}

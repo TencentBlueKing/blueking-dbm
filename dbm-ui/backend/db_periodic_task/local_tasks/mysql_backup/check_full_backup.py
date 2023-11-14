@@ -8,8 +8,8 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-import datetime
 from collections import defaultdict
+from datetime import datetime, timedelta
 
 from django.utils.translation import ugettext as _
 
@@ -54,12 +54,13 @@ def _check_tendbha_full_backup():
     """
     for c in Cluster.objects.filter(cluster_type=ClusterType.TenDBHA):
         backup = ClusterBackup(c.id, c.immute_domain)
-        now_time = datetime.datetime.now().date()
-        start_time = datetime.datetime.combine(now_time, datetime.time())
-        end_time = start_time + datetime.timedelta(hours=23, minutes=59, seconds=59)
+        now = datetime.now()
+        yesterday = now - timedelta(days=1)
+        start_time = datetime(yesterday.year, yesterday.month, yesterday.day)
+        end_time = datetime(yesterday.year, yesterday.month, yesterday.day, 23, 59, 59)
+
         items = backup.query_backup_log_from_bklog(start_time, end_time)
         # print("cluster={} backup_items:{}".format(c.immute_domain, items))
-
         for i in items:
             if i.get("data_schema_grant", "") == "all":
                 bid = i.get("backup_id")
@@ -99,12 +100,13 @@ def _check_tendbcluster_full_backup():
     """
     for c in Cluster.objects.filter(cluster_type=ClusterType.TenDBCluster):
         backup = ClusterBackup(c.id, c.immute_domain)
-        now_time = datetime.datetime.now().date()
-        start_time = datetime.datetime.combine(now_time, datetime.time())
-        end_time = start_time + datetime.timedelta(hours=23, minutes=59, seconds=59)
+        now = datetime.now()
+        yesterday = now - timedelta(days=1)
+        start_time = datetime(yesterday.year, yesterday.month, yesterday.day)
+        end_time = datetime(yesterday.year, yesterday.month, yesterday.day, 23, 59, 59)
+
         items = backup.query_backup_log_from_bklog(start_time, end_time)
         # print("cluster={} backup_items:{}".format(c.immute_domain, items))
-
         for i in items:
             if i.get("data_schema_grant", "") == "all":
                 bid = "{}#{}".format(i.get("backup_id"), i.get("shard_value"))

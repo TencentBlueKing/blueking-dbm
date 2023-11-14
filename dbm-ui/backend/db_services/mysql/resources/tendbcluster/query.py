@@ -48,8 +48,8 @@ class ListRetrieveResource(DBHAListRetrieveResource):
     ]
 
     @classmethod
-    def list_clusters(cls, bk_biz_id: int, query_params: Dict, limit: int, offset: int) -> query.ResourceList:
-        return super().list_clusters(bk_biz_id, query_params, limit, offset)
+    def _list_clusters(cls, bk_biz_id: int, query_params: Dict, limit: int, offset: int) -> query.ResourceList:
+        return super()._list_clusters(bk_biz_id, query_params, limit, offset)
 
     @classmethod
     def _list(

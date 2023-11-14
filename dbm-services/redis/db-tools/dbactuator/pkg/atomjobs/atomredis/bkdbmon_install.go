@@ -158,6 +158,10 @@ func (job *BkDbmonInstall) Run() (err error) {
 	if err != nil {
 		return
 	}
+	err = job.newExporterConfig()
+	if err != nil {
+		return
+	}
 
 	return
 }
@@ -396,6 +400,25 @@ func (job *BkDbmonInstall) GenerateConfigFile() (err error) {
 	}
 	util.LocalDirChownMysql(consts.BkDbmonConfFile)
 	return
+}
+
+func (job *BkDbmonInstall) newExporterConfig() (err error) {
+	job.runtime.Logger.Info("begin to new exporter config file")
+	err = util.MkDirsIfNotExists([]string{consts.ExporterConfDir})
+	if err != nil {
+		job.runtime.Logger.Error("newExporterConfig mkdirIfNotExists %s failed,err:%v", consts.ExporterConfDir, err)
+		return err
+	}
+	for _, server := range job.params.Servers {
+		for _, port := range server.ServerPorts {
+			err = common.CreateLocalExporterConfigFile(server.ServerIP, port, server.MetaRole, "")
+			if err != nil {
+				return
+			}
+		}
+	}
+	util.LocalDirChownMysql(consts.ExporterConfDir)
+	return nil
 }
 
 // Retry times

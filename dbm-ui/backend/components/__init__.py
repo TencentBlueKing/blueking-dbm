@@ -18,7 +18,7 @@ from .cmsi.client import CmsiApi
 from .db_name_service.client import NameServiceApi
 from .db_remote_service.client import DRSApi
 from .dbconfig.client import DBConfigApi
-from .gcs_dns.client import GcsDnsApi
+from .dns.client import DnsApi
 from .itsm.client import ItsmApi
 from .job.client import JobApi
 from .mysql_priv_manager.client import MySQLPrivManagerApi
@@ -39,7 +39,7 @@ __all__ = [
     "CmsiApi",
     "BKLogApi",
     "DBConfigApi",
-    "GcsDnsApi",
+    "DnsApi",
     "MySQLPrivManagerApi",
     "DRSApi",
     "BKMonitorV3Api",

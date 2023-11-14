@@ -177,7 +177,7 @@
       RepairAndVerifyModes,
       WriteModes,
     } from '@services/model/redis/redis-dst-history-job';
-  import { listClusterList } from '@services/redis/toolbox';
+  import { listClusterList } from '@services/source/resourceRedis';
   import { createTicket } from '@services/ticket';
   import type { SubmitTicket } from '@services/types/ticket';
 
@@ -278,7 +278,7 @@
   };
 
   const queryClusterList = async () => {
-    const arr = await listClusterList(currentBizId);
+    const arr = await listClusterList();
     clusterList.value = arr.map(item => ({
       value: item.id,
       label: item.master_domain,

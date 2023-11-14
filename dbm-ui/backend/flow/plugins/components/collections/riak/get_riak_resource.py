@@ -30,22 +30,19 @@ class GetRiakResourceService(BaseService):
         global_data = data.get_one_of_inputs("global_data")
         trans_data = data.get_one_of_inputs("trans_data")
 
-        if global_data["ip_source"] == "manual_input":
-            ips = [node["ip"] for node in global_data["nodes"]]
-            if global_data["ticket_type"] == TicketType.RIAK_CLUSTER_APPLY and len(ips) >= 3:
-                trans_data.nodes = ips
-                trans_data.base_node = ips[0]
-                trans_data.operate_nodes = ips[1:]
-            elif (
-                global_data["ticket_type"] == TicketType.RIAK_CLUSTER_SCALE_OUT
-                or global_data["ticket_type"] == TicketType.RIAK_CLUSTER_SCALE_IN
-            ) and len(ips) >= 1:
-                trans_data.operate_nodes = ips
-            else:
-                self.log_error(_("获取机器资源失败，新建集群至少选择3台机器，扩容或缩容至少选择1台机器"))
-                return False
-        elif self.data["ip_source"] == "resource_pool":
-            pass
+        ips = [node["ip"] for node in global_data["nodes"]]
+        if global_data["ticket_type"] == TicketType.RIAK_CLUSTER_APPLY and len(ips) >= 3:
+            trans_data.nodes = ips
+            trans_data.base_node = ips[0]
+            trans_data.operate_nodes = ips[1:]
+        elif (
+            global_data["ticket_type"] == TicketType.RIAK_CLUSTER_SCALE_OUT
+            or global_data["ticket_type"] == TicketType.RIAK_CLUSTER_SCALE_IN
+        ) and len(ips) >= 1:
+            trans_data.operate_nodes = ips
+        else:
+            self.log_error(_("获取机器资源失败，新建集群至少选择3台机器，扩容或缩容至少选择1台机器"))
+            return False
 
         self.log_info(_("获取机器资源成功。 {}").format(trans_data))
         data.outputs["trans_data"] = trans_data

@@ -55,7 +55,7 @@
 <script setup lang="ts">
   import { useRequest } from 'vue-request';
 
-  import { getResourceDetails } from '@services/clusters';
+  import { getResourceDetails } from '@services/source/resourceRedis';
   import type { ResourceRedisItem } from '@services/types/clusters';
 
   import {

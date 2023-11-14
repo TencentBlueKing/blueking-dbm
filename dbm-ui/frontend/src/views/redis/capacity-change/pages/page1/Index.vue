@@ -17,7 +17,7 @@
       <BkAlert
         closable
         theme="info"
-        :title="t('集群容量变更：通过部署新集群来实现原机群的扩容或缩容（集群分片数不变），可以指定新的版本')" />
+        :title="t('集群容量变更：通过部署新集群来实现原集群的扩容或缩容（集群分片数不变），可以指定新的版本')" />
       <RenderData
         v-slot="slotProps"
         class="mt16"
@@ -58,8 +58,8 @@
     </template>
     <ClusterSelector
       v-model:is-show="isShowMasterInstanceSelector"
+      :cluster-types="[ClusterTypes.REDIS]"
       :selected="selectedClusters"
-      :tab-list="clusterSelectorTabList"
       @change="handelClusterChange" />
   </SmartAction>
 </template>
@@ -70,8 +70,7 @@
   import { useRouter } from 'vue-router';
 
   import { getClusterTypeToVersions } from '@services/clusters';
-  import RedisModel from '@services/model/redis/redis';
-  import { listClusterList } from '@services/redis/toolbox';
+  import { listClusterList } from '@services/source/resourceRedis';
   import { createTicket } from '@services/ticket';
   import type { SubmitTicket } from '@services/types/ticket';
 
@@ -79,7 +78,7 @@
 
   import { ClusterTypes, TicketTypes } from '@common/const';
 
-  import ClusterSelector from '@views/redis/common/cluster-selector/ClusterSelector.vue';
+  import ClusterSelector from '@components/cluster-selector-new/Index.vue';
 
   import RenderData from './components/Index.vue';
   import RenderDataRow, {
@@ -88,6 +87,7 @@
     type InfoItem,
   } from './components/Row.vue';
 
+  type RedisModel = ServiceReturnType<typeof listClusterList>[number];
 
   const router = useRouter();
   const { currentBizId } = useGlobalBizs();
@@ -101,8 +101,6 @@
 
   const inputedClusters = computed(() => tableData.value.map(item => item.targetCluster));
   const totalNum = computed(() => tableData.value.filter(item => Boolean(item.targetCluster)).length);
-
-  const clusterSelectorTabList = [ClusterTypes.REDIS];
 
   // 集群域名是否已存在表格的映射表
   let domainMemo: Record<string, boolean> = {};
@@ -147,7 +145,7 @@
   });
 
   // 批量选择
-  const handelClusterChange = async (selected: {[key: string]: Array<RedisModel>}) => {
+  const handelClusterChange = (selected: Record<string, RedisModel[]>) => {
     selectedClusters.value = selected;
     const list = selected[ClusterTypes.REDIS];
     const newList = list.reduce((result, item) => {
@@ -181,7 +179,7 @@
       return;
     }
     tableData.value[index].isLoading = true;
-    const ret = await listClusterList(currentBizId, { domain }).finally(() => {
+    const ret = await listClusterList({ domain }).finally(() => {
       tableData.value[index].isLoading = false;
     });
     if (ret.length < 1) {

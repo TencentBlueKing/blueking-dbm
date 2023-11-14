@@ -37,8 +37,8 @@
       @setting-change="handleSettingChange" />
     <DryRun
       v-model="isShowDryRun"
-      :data="operationData"
-      :operation-dry-run-data="operationDryRunData" />
+      :operation-dry-run-data="operationDryRunData"
+      :partition-data="operationData" />
     <DbSideslider
       v-model:is-show="isShowOperation"
       :confirm-text="operationData && operationData.id ? t('保存并执行') : t('提交')"
@@ -299,7 +299,7 @@
   const fetchData = () => {
     const searchParams = getSearchSelectorParams(searchValues.value);
     tableRef.value?.fetchData(searchParams, {
-      cluster_type: ClusterTypes.SPIDER,
+      cluster_type: ClusterTypes.TENDBCLUSTER,
     });
   };
 
@@ -314,7 +314,7 @@
   const handleBatchRemove = () => {
     operationData.value = undefined;
     return batchRemove({
-      cluster_type: ClusterTypes.SPIDER,
+      cluster_type: ClusterTypes.TENDBCLUSTER,
       ids: selectionList.value,
     }).then(() => {
       fetchData();
@@ -345,6 +345,8 @@
   const handleExecute = (payload: PartitionModel) => {
     isShowDryRun.value = true;
     operationData.value = payload;
+    operationDryRunData.value = undefined;
+    console.log('operationData = ', operationData.value);
   };
   // 编辑
   const handleEdit  = (payload: PartitionModel) => {
@@ -368,7 +370,7 @@
 
   const handleDisable  =  (payload: PartitionModel) => {
     disablePartition({
-      cluster_type: ClusterTypes.SPIDER,
+      cluster_type: ClusterTypes.TENDBCLUSTER,
       ids: [payload.id],
     }).then(() => {
       fetchData();
@@ -378,7 +380,7 @@
 
   const handleEnable = (payload: PartitionModel) => {
     enablePartition({
-      cluster_type: ClusterTypes.SPIDER,
+      cluster_type: ClusterTypes.TENDBCLUSTER,
       ids: [payload.id],
     }).then(() => {
       fetchData();
@@ -393,14 +395,14 @@
   };
 
   const handleRemove = (payload: PartitionModel) => batchRemove({
-    cluster_type: ClusterTypes.SPIDER,
+    cluster_type: ClusterTypes.TENDBCLUSTER,
     ids: [payload.id],
   }).then(() => {
     fetchData();
     messageSuccess(t('移除成功'));
   });
 </script>
-<style lang="postcss">
+<style lang="less">
   .spider-manage-paritition-page {
     .header-action{
       display: flex;

@@ -17,7 +17,7 @@
       v-model="searchValue"
       class="input-box"
       :data="searchSelectList"
-      :placeholder="t('请输入策略关键字或选择条件搜索')"
+      :placeholder="t('请选择条件搜索')"
       unique-select
       value-split-code="+"
       @search="fetchHostNodes" />
@@ -28,13 +28,14 @@
         :columns="columns"
         :data-source="queryMonitorPolicyList"
         :row-class="updateRowClass"
-        :settings="settings" />
+        :settings="settings"
+        @clear-search="handleClearSearch" />
     </BkLoading>
   </div>
   <EditRule
     v-model="isShowEditStrrategySideSilder"
     :data="currentChoosedRow"
-    @success="fetchHostNodes" />
+    @success="handleEditRuleSuccess" />
 </template>
 <script setup lang="tsx">
   import dayjs from 'dayjs';
@@ -44,11 +45,8 @@
   import {
     disablePolicy,
     enablePolicy,
-    getAlarmGroupList,
     queryMonitorPolicyList,
   } from '@services/monitor';
-
-  import { useGlobalBizs } from '@stores';
 
   import MiniTag from '@components/mini-tag/index.vue';
 
@@ -70,13 +68,11 @@
   const props = defineProps<Props>();
 
   const { t } = useI18n();
-  const { currentBizId } = useGlobalBizs();
 
   const tableRef = ref();
   const searchValue = ref<Array<SearchSelectItem & {values: SearchSelectItem[]}>>([]);
   const isShowEditStrrategySideSilder = ref(false);
   const currentChoosedRow = ref({} as RowData);
-  const alarmGroupList = ref<SelectItem<string>[]>([]);
   const isTableLoading = ref(false);
 
   async function fetchHostNodes() {
@@ -109,30 +105,16 @@
       id: 'name',
     },
     {
-      name: t('监控目标'),
-      id: 'target_keyword',
-    },
-    {
-      name: t('告警组'),
-      id: 'notify_groups',
-      multiple: true,
-      children: alarmGroupList.value.map(item => ({
-        id: item.value,
-        name: item.label,
-      })) as SearchSelectItem[],
-    },
-    {
       name: t('更新人'),
       id: 'updater',
     },
   ]));
 
-  const alarmGroupNameMap: Record<string, string> = {};
-
   const columns = [
     {
       label: t('策略名称'),
       field: 'name',
+      fixed: 'left',
       minWidth: 150,
       render: ({ row }: { row: RowData }) => {
         const isNew = dayjs().isBefore(dayjs(row.create_at).add(24, 'hour'));
@@ -198,6 +180,7 @@
     {
       label: t('操作'),
       fixed: 'right',
+      showOverflowTooltip: false,
       field: '',
       width: 120,
       render: ({ row }: { row: RowData }) => (
@@ -215,7 +198,7 @@
   const settings = {
     fields: [
       {
-        label: t('规则名称'),
+        label: t('策略名称'),
         field: 'name',
       },
       {
@@ -241,19 +224,6 @@
     ],
     checked: ['name', 'targets', 'notify_groups', 'update_at', 'updater', 'is_enabled'],
   };
-
-  const { run: fetchAlarmGroupList } = useRequest(getAlarmGroupList, {
-    manual: true,
-    onSuccess: (res) => {
-      alarmGroupList.value = res.results.map((item) => {
-        alarmGroupNameMap[item.id] = item.name;
-        return ({
-          label: item.name,
-          value: String(item.id),
-        });
-      });
-    },
-  });
 
   const { run: runEnablePolicy } = useRequest(enablePolicy, {
     manual: true,
@@ -288,10 +258,6 @@
   watch(() => props.activeDbType, (type) => {
     if (type) {
       setTimeout(() => {
-        fetchAlarmGroupList({
-          bk_biz_id: currentBizId,
-          db_type: type,
-        });
         fetchHostNodes();
       });
     }
@@ -330,6 +296,15 @@
     isShowEditStrrategySideSilder.value = true;
   };
 
+  const handleEditRuleSuccess = () => {
+    fetchHostNodes();
+    window.changeConfirm = false;
+  };
+
+  const handleClearSearch = () => {
+    searchValue.value = [];
+  };
+
 </script>
 <style lang="less" scoped>
 .global-strategy-type-content {
@@ -365,7 +340,6 @@
 
     .operate-box {
       display: flex;
-      gap: 15px;
       align-items: center;
     }
 

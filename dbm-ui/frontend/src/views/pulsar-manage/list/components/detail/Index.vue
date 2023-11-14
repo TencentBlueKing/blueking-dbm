@@ -62,7 +62,7 @@
   import { ref } from 'vue';
   import { useRequest } from 'vue-request';
 
-  import { getClusterDetail } from '@services/pulsar';
+  import { getClusterDetail } from '@services/source/pulsar';
 
   import { useGlobalBizs } from '@stores';
 

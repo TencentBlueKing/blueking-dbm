@@ -26,7 +26,7 @@
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
 
-  import { getLevelConfig } from '@services/configs';
+  import { getLevelConfig } from '@services/source/configs';
   import type { ConfigBaseDetails } from '@services/types/configs';
 
   import { ClusterTypes } from '@/common/const';

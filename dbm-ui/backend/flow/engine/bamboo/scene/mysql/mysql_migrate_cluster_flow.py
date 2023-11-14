@@ -15,8 +15,10 @@ from typing import Dict, Optional
 from django.utils.crypto import get_random_string
 from django.utils.translation import ugettext as _
 
+from backend import env
 from backend.configuration.constants import DBType
 from backend.constants import IP_PORT_DIVIDER
+from backend.db_meta.enums import InstanceInnerRole
 from backend.db_meta.models import Cluster
 from backend.flow.consts import ACCOUNT_PREFIX, AUTH_ADDRESS_DIVIDER
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
@@ -32,6 +34,11 @@ from backend.flow.plugins.components.collections.mysql.clone_user import CloneUs
 from backend.flow.plugins.components.collections.mysql.dns_manage import MySQLDnsManageComponent
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.mysql.mysql_db_meta import MySQLDBMetaComponent
+from backend.flow.plugins.components.collections.mysql.mysql_os_init import (
+    GetOsSysParamComponent,
+    MySQLOsInitComponent,
+    SysInitComponent,
+)
 from backend.flow.plugins.components.collections.mysql.slave_trans_flies import SlaveTransFileComponent
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
 from backend.flow.utils.mysql.common.mysql_cluster_info import (
@@ -119,6 +126,34 @@ class MySQLMigrateClusterFlow(object):
                 cluster=one_machine,
             )
 
+            # 初始化机器
+            cluster_class = Cluster.objects.get(id=self.data["cluster_ids"][0])
+            master = cluster_class.storageinstance_set.get(instance_inner_role=InstanceInnerRole.MASTER.value)
+            sub_pipeline.add_act(
+                act_name=_("获取初始化信息"),
+                act_component_code=GetOsSysParamComponent.code,
+                kwargs=asdict(ExecActuatorKwargs(bk_cloud_id=cluster_class.bk_cloud_id, exec_ip=master.machine.ip)),
+            )
+            exec_ips = [one_machine["new_slave_ip"], one_machine["new_master_ip"]]
+            account = MysqlActPayload.get_mysql_account()
+            sub_pipeline.add_act(
+                act_name=_("初始化机器"),
+                act_component_code=SysInitComponent.code,
+                kwargs={
+                    "mysql_os_password": account["os_mysql_pwd"],
+                    "exec_ip": exec_ips,
+                    "bk_cloud_id": one_machine["bk_cloud_id"],
+                },
+            )
+            # 判断是否需要执行按照MySQL Perl依赖
+            if env.YUM_INSTALL_PERL:
+                exec_act_kwargs.exec_ip = exec_ips
+                sub_pipeline.add_act(
+                    act_name=_("安装MySQL Perl相关依赖"),
+                    act_component_code=MySQLOsInitComponent.code,
+                    kwargs=asdict(exec_act_kwargs),
+                )
+
             # 下发介质包
             sub_pipeline.add_act(
                 act_name=_("下发MySQL介质{}").format([one_machine["new_slave_ip"], one_machine["new_master_ip"]]),
@@ -132,15 +167,6 @@ class MySQLMigrateClusterFlow(object):
                         ),
                     )
                 ),
-            )
-
-            # 初始化机器配置
-            exec_act_kwargs.exec_ip = [one_machine["new_slave_ip"], one_machine["new_master_ip"]]
-            exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_sys_init_payload.__name__
-            sub_pipeline.add_act(
-                act_name=_("初始化机器{}").format(exec_act_kwargs.exec_ip),
-                act_component_code=ExecuteDBActuatorScriptComponent.code,
-                kwargs=asdict(exec_act_kwargs),
             )
 
             # 并发安装mysql-crond

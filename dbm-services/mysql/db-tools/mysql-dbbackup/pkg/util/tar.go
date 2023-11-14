@@ -3,10 +3,13 @@ package util
 
 import (
 	"archive/tar"
+	"fmt"
+	"io"
 	"os"
 	"sync"
 
 	"dbm-services/common/go-pubpkg/cmutil"
+	"dbm-services/common/go-pubpkg/iocrypt"
 )
 
 // TarWriterFiles tarFile: writer object
@@ -17,21 +20,37 @@ type TarWriterFiles struct {
 
 // TarWriter TODO
 type TarWriter struct {
-	IOLimitMB int
+	IOLimitMB   int
+	EncryptTool iocrypt.EncryptTool
+	Encrypt     bool
 
-	tarSize        uint64
-	destFileWriter *os.File
-	tarWriter      *tar.Writer
-	mu             sync.Mutex
+	tarSize           uint64
+	destFileWriter    *os.File
+	destEncryptWriter io.WriteCloser
+	tarWriter         *tar.Writer
+	mu                sync.Mutex
 }
 
 // New TODO
+// init tarWriter destFileWriter destEncryptWriter
+// will open destFile
+// destFileWriter or destEncryptWriter need to close outside
+// need to call tarWriter.Close()
 func (t *TarWriter) New(dstTarName string) (err error) {
 	t.destFileWriter, err = os.Create(dstTarName)
 	if err != nil {
 		return err
 	}
-	t.tarWriter = tar.NewWriter(t.destFileWriter)
+	if t.Encrypt {
+		t.destEncryptWriter, err = iocrypt.FileEncryptWriter(t.EncryptTool, t.destFileWriter)
+		if err != nil {
+			fmt.Println("TarWriter new error", err)
+			return err
+		}
+		t.tarWriter = tar.NewWriter(t.destEncryptWriter)
+	} else {
+		t.tarWriter = tar.NewWriter(t.destFileWriter)
+	}
 	return nil
 }
 
@@ -53,6 +72,7 @@ func (t *TarWriter) WriteTar(header *tar.Header, srcFile string) (isFile bool, w
 		return isFile, 0, err
 	}
 	defer rFile.Close()
+
 	written, err = cmutil.IOLimitRate(t.tarWriter, rFile, int64(t.IOLimitMB))
 	if err != nil {
 		return isFile, 0, err
@@ -60,15 +80,19 @@ func (t *TarWriter) WriteTar(header *tar.Header, srcFile string) (isFile bool, w
 	return isFile, written, nil
 }
 
-// Close TODO
+// Close tar writer
+// will close destFile
+// close won't reset IOLimitMB EncryptTool, could reuse it with new tarFilename
 func (t *TarWriter) Close() error {
 	if err := t.tarWriter.Close(); err != nil {
+		_ = t.destFileWriter.Close()
 		return err
 	}
-	if err := t.destFileWriter.Close(); err != nil {
-		return err
+	if t.Encrypt {
+		return t.destEncryptWriter.Close()
+	} else {
+		return t.destFileWriter.Close()
 	}
-	return nil
 }
 
 /*func tarCmd(filepath string, cnf *parsecnf.CnfShared) error {

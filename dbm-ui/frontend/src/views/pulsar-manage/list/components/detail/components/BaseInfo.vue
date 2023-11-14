@@ -18,7 +18,7 @@
 </template>
 <script setup lang="ts">
 
-  import { getClusterDetail } from '@services/pulsar';
+  import { getClusterDetail } from '@services/source/pulsar';
 
   import RenderBaseInfo from '@components/cluster-common/RenderBaseInfo.vue';
 

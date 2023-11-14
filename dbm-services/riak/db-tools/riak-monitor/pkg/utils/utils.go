@@ -4,6 +4,7 @@ package utils
 import (
 	"bytes"
 	"fmt"
+	"net"
 	"os/exec"
 
 	"github.com/pkg/errors"
@@ -35,4 +36,24 @@ func ExecShellCommand(isSudo bool, param string) (stdoutStr string, err error) {
 	}
 
 	return stdout.String(), nil
+}
+
+// GetLocalIP 获得本地IP
+func GetLocalIP() (string, error) {
+	var localIP string
+	var err error
+	addrs, err := net.InterfaceAddrs()
+	if err != nil {
+		return localIP, err
+	}
+	for _, addr := range addrs {
+		if ipnet, ok := addr.(*net.IPNet); ok && !ipnet.IP.IsLoopback() {
+			if ipnet.IP.To4() != nil {
+				localIP = ipnet.IP.String()
+				return localIP, nil
+			}
+		}
+	}
+	err = fmt.Errorf("can't find local ip")
+	return localIP, err
 }

@@ -114,7 +114,7 @@
     deleteUserSemanticTasks,
     querySemanticData,
     revokeSemanticCheck,
-  } from '@services/sqlImport';
+  } from '@services/source/sqlImport';
   import { createTicket } from '@services/ticket';
 
   import { useGlobalBizs } from '@stores';

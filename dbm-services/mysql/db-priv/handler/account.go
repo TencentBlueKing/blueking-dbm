@@ -90,3 +90,29 @@ func (m *PrivService) ModifyAccount(c *gin.Context) {
 	SendResponse(c, nil, nil)
 	return
 }
+
+// GetAccount 获取账号
+func (m *PrivService) GetAccount(c *gin.Context) {
+	slog.Info("do GetAccount!")
+	var input service.AccountPara
+
+	body, err := ioutil.ReadAll(c.Request.Body)
+	if err != nil {
+		slog.Error("msg", err)
+		SendResponse(c, errno.ErrBind, err)
+		return
+	}
+
+	if err := json.Unmarshal(body, &input); err != nil {
+		slog.Error("msg", err)
+		SendResponse(c, errno.ErrBind, err)
+		return
+	}
+
+	accounts, count, err := input.GetAccount()
+	SendResponse(c, err, ListResponse{
+		Count: count,
+		Items: accounts,
+	})
+	return
+}

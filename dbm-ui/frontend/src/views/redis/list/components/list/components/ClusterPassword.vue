@@ -67,7 +67,7 @@
     Unvisible,
   } from 'bkui-vue/lib/icon';
 
-  import { getClusterPassword } from '@services/clusters';
+  import { getClusterPassword } from '@services/source/resourceRedis';
   import type { ClusterPasswordParams } from '@services/types/clusters';
 
   import { useCopy } from '@hooks';

@@ -96,11 +96,11 @@
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
+  import type HdfsModel from '@services/model/hdfs/hdfs';
   import {
     getList,
     getListInstance,
-  } from '@services/hdfs';
-  import type HdfsModel from '@services/model/hdfs/hdfs';
+  } from '@services/source/hdfs';
   import { createTicket  } from '@services/ticket';
 
   import {
@@ -202,7 +202,7 @@
   };
 
   const tableOperationWidth = computed(() => {
-    if (isStretchLayoutOpen.value) {
+    if (!isStretchLayoutOpen.value) {
       return isCN.value ? 350 : 520;
     }
     return 100;

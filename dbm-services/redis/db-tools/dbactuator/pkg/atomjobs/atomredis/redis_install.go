@@ -434,25 +434,14 @@ func (job *RedisInstall) GenerateConfigFile(port int) error {
 }
 func (job *RedisInstall) newExporterConfig() (err error) {
 	job.runtime.Logger.Info("begin to new exporter config file")
-	var addr map[string]string
-	var key, val string
-	var fileData []byte
-	var confFile string
 	err = util.MkDirsIfNotExists([]string{consts.ExporterConfDir})
 	if err != nil {
 		job.runtime.Logger.Error("newExporterConfig mkdirIfNotExists %s failed,err:%v", consts.ExporterConfDir, err)
 		return err
 	}
 	for _, port := range job.params.Ports {
-		addr = map[string]string{}
-		confFile = filepath.Join(consts.ExporterConfDir, fmt.Sprintf("%d.conf", port))
-		key = fmt.Sprintf("redis://%s:%d", job.params.IP, port)
-		val = job.params.Password
-		addr[key] = val
-		fileData, _ = json.Marshal(addr)
-		err = ioutil.WriteFile(confFile, fileData, 0755)
+		err = common.CreateLocalExporterConfigFile(job.params.IP, port, consts.MetaRoleRedisMaster, job.params.Password)
 		if err != nil {
-			job.runtime.Logger.Error("newExporterConfig writeFile %s fail,err:%v", confFile, err)
 			return err
 		}
 	}

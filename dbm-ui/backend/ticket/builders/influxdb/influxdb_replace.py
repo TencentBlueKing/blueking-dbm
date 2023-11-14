@@ -12,12 +12,13 @@ See the License for the specific language governing permissions and limitations 
 import logging
 
 from django.utils.translation import ugettext as _
+from rest_framework import serializers
 
 from backend.flow.engine.controller.influxdb import InfluxdbController
 from backend.ticket import builders
 from backend.ticket.builders.common.bigdata import (
-    BaseInfluxDBReplaceDetailSerializer,
     BaseInfluxDBTicketFlowBuilder,
+    BigDataReplaceDetailSerializer,
     BigDataReplaceResourceParamBuilder,
 )
 from backend.ticket.constants import TicketType
@@ -25,8 +26,9 @@ from backend.ticket.constants import TicketType
 logger = logging.getLogger("root")
 
 
-class InfluxDBReplaceDetailSerializer(BaseInfluxDBReplaceDetailSerializer):
-    pass
+class InfluxDBReplaceDetailSerializer(BigDataReplaceDetailSerializer):
+    # influxdb无需cluster id
+    cluster_id = serializers.IntegerField(required=False)
 
 
 class InfluxDBReplaceFlowParamBuilder(builders.FlowParamBuilder):

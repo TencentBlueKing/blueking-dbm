@@ -13,7 +13,7 @@
 
 import type { ComputedRef } from 'vue';
 
-import { getLevelConfig } from '@services/configs';
+import { getLevelConfig } from '@services/source/configs';
 import type { ConfigBaseDetails, GetLevelConfigParams } from '@services/types/configs';
 
 import {

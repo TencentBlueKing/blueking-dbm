@@ -27,14 +27,22 @@ import (
 
 var cfgFile string
 var showversion = false
+var version string
+var githash string
+var buildstamp string
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Use:   "bk-dbmon",
-	Short: "redis local crontab job,include routine_backup,heartbeat etc",
-	Long: `redis local crontab job,include routine_backup,heartbeat etc.
-	Wait each job finish,the job result would write to local file, and other program would report the result.
-	`,
+	Use: "bk-dbmon",
+	Short: fmt.Sprintf(`redis local crontab job,include routine_backup,heartbeat etc
+Version: %s
+Githash: %s
+Buildstamp:%s`, version, githash, buildstamp),
+	Long: fmt.Sprintf(`redis local crontab job,include routine_backup,heartbeat etc.
+Wait each job finish,the job result would write to local file, and other program would report the result.
+Version: %s
+Githash: %s
+Buildstamp:%s`, version, githash, buildstamp),
 	// Uncomment the following line if your bare application
 	// has an action associated with it:
 	Run: func(cmd *cobra.Command, args []string) {

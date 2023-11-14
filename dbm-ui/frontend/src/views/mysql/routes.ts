@@ -72,7 +72,7 @@ export const mysqlToolboxChildrenRouters: RouteRecordRaw[] = [
   },
   {
     name: 'MySQLSlaveRebuild',
-    path: '/database/:bizId(\\d+)/mysql-toolbox/slave-rebuild',
+    path: '/database/:bizId(\\d+)/mysql-toolbox/slave-rebuild/:page?',
     meta: {
       routeParentName: MainViewRouteNames.Database,
       activeMenu: 'MySQLToolbox',
@@ -353,6 +353,16 @@ const commonRouters: RouteRecordRaw[] = [
           submenuId: 'database-permission',
         },
         component: () => import('@views/mysql/permission/index.vue'),
+      },
+      {
+        path: 'partition-manage',
+        name: 'mysqlPartitionManage',
+        meta: {
+          routeParentName: MainViewRouteNames.Database,
+          navName: t('Mysql 分区管理'),
+          isMenu: true,
+        },
+        component: () => import('@views/mysql/partition-manage/Index.vue'),
       },
     ],
   },

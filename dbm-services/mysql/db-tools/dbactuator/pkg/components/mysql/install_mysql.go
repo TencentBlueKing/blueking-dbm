@@ -33,6 +33,12 @@ type InstallMySQLComp struct {
 	installMySQLConfig `json:"-"`
 	RollBackContext    rollback.RollBackObjects `json:"-"`
 	TimeZone           string
+
+	// 执行这个 comp 时用的 mysql 帐号
+	// 初始化安装的时候是 root, ""
+	// 其他情况下用管理员帐号
+	WorkUser     string `json:"-"`
+	WorkPassword string `json:"-"`
 }
 
 // InstallMySQLParams TODO
@@ -140,6 +146,9 @@ func (i *InstallMySQLComp) Example() interface{} {
 
 // InitDefaultParam TODO
 func (i *InstallMySQLComp) InitDefaultParam() (err error) {
+	i.WorkUser = "root"
+	i.WorkPassword = ""
+
 	var mountpoint string
 	i.InstallDir = cst.UsrLocal
 	i.MysqlInstallDir = cst.MysqldInstallPath
@@ -588,8 +597,8 @@ func (i *InstallMySQLComp) Startup() (err error) {
 		s := computil.StartMySQLParam{
 			MediaDir:      i.MysqlInstallDir,
 			MyCnfName:     util.GetMyCnfFileName(port),
-			MySQLUser:     "root",
-			MySQLPwd:      "",
+			MySQLUser:     i.WorkUser,     //"root",
+			MySQLPwd:      i.WorkPassword, //"",
 			Socket:        i.InsSockets[port],
 			SkipSlaveFlag: false,
 		}
@@ -633,7 +642,7 @@ func (i *InstallMySQLComp) generateDefaultMysqlAccount(realVersion string) (init
 	}
 	if mysqlutil.MySQLVersionParse(realVersion) >= mysqlutil.MySQLVersionParse("5.7.18") {
 		s :=
-			`INSERT INTO mysql.db(Host,Db,User,Select_priv,Insert_priv,Update_priv,Delete_priv,Create_priv,Drop_priv,
+			`REPLACE INTO mysql.db(Host,Db,User,Select_priv,Insert_priv,Update_priv,Delete_priv,Create_priv,Drop_priv,
                      Grant_priv,References_priv,Index_priv,Alter_priv,Create_tmp_table_priv,Lock_tables_priv,
                      Create_view_priv,Show_view_priv,Create_routine_priv,Alter_routine_priv,Execute_priv,
                      Event_priv,Trigger_priv)
@@ -661,7 +670,7 @@ func (a *AdditionalAccount) GetSuperUserAccount(realVersion string) (initAccount
 	for _, host := range cmutil.RemoveDuplicate(a.AccessHosts) {
 		if mysqlutil.MySQLVersionParse(realVersion) >= mysqlutil.MySQLVersionParse("5.7.18") {
 			initAccountsql = append(initAccountsql,
-				fmt.Sprintf("CREATE USER '%s'@'%s' IDENTIFIED WITH mysql_native_password BY '%s' ;",
+				fmt.Sprintf("CREATE USER IF NOT EXISTS '%s'@'%s' IDENTIFIED WITH mysql_native_password BY '%s' ;",
 					a.User, host, a.Pwd))
 			initAccountsql = append(initAccountsql, fmt.Sprintf("GRANT ALL PRIVILEGES ON *.* TO '%s'@'%s' WITH GRANT OPTION ; ",
 				a.User, host))
@@ -680,7 +689,7 @@ func (a *AdditionalAccount) GetDBHAAccount(realVersion string) (initAccountsql [
 	for _, host := range cmutil.RemoveDuplicate(a.AccessHosts) {
 		if mysqlutil.MySQLVersionParse(realVersion) >= mysqlutil.MySQLVersionParse("5.7.18") {
 			initAccountsql = append(initAccountsql,
-				fmt.Sprintf("CREATE USER '%s'@'%s' IDENTIFIED WITH mysql_native_password BY '%s' ;",
+				fmt.Sprintf("CREATE USER IF NOT EXISTS '%s'@'%s' IDENTIFIED WITH mysql_native_password BY '%s' ;",
 					a.User, host, a.Pwd))
 			initAccountsql = append(initAccountsql, fmt.Sprintf(
 				"GRANT RELOAD, PROCESS, SHOW DATABASES, SUPER, REPLICATION CLIENT, SHOW VIEW "+
@@ -708,6 +717,7 @@ func (i *InstallMySQLComp) InitDefaultPrivAndSchema() (err error) {
 
 	// 拼接tdbctl session级命令，初始化session设置tc_admin=0
 	if i.Params.GetPkgTypeName() == cst.PkgTypeTdbctl {
+		logger.Info("on tdbctl")
 		initSQLs = append(initSQLs, "set tc_admin = 0;")
 	}
 
@@ -715,6 +725,8 @@ func (i *InstallMySQLComp) InitDefaultPrivAndSchema() (err error) {
 		logger.Error("读取嵌入文件%s失败", staticembed.DefaultSysSchemaSQLFileName)
 		return err
 	}
+	logger.Info("read embed sql success: %s", bsql)
+
 	for _, value := range strings.SplitAfterN(string(bsql), ";", -1) {
 		if !regexp.MustCompile(`^\\s*$`).MatchString(value) {
 			initSQLs = append(initSQLs, value)
@@ -735,8 +747,10 @@ func (i *InstallMySQLComp) InitDefaultPrivAndSchema() (err error) {
 	}
 
 	for _, port := range i.InsPorts {
+		logger.Info("do init on %d", port)
 		var dbWork *native.DbWorker
-		if dbWork, err = native.NewDbWorker(native.DsnBySocket(i.InsSockets[port], "root", "")); err != nil {
+		if dbWork, err = native.NewDbWorker(
+			native.DsnBySocket(i.InsSockets[port] /*"root", ""*/, i.WorkUser, i.WorkPassword)); err != nil {
 			logger.Error("connenct by %s failed,err:%s", port, err.Error())
 			return err
 		}
@@ -939,8 +953,8 @@ func (i *InstallMySQLComp) TdbctlStartup() (err error) {
 		s := computil.StartMySQLParam{
 			MediaDir:      i.TdbctlInstallDir,
 			MyCnfName:     util.GetMyCnfFileName(port),
-			MySQLUser:     "root",
-			MySQLPwd:      "",
+			MySQLUser:     i.WorkUser,     //"root",
+			MySQLPwd:      i.WorkPassword, //"",
 			Socket:        i.InsSockets[port],
 			SkipSlaveFlag: false,
 		}
@@ -1017,8 +1031,8 @@ func (i *InstallMySQLComp) getSuperUserAccountForSpider() (initAccountsql []stri
 
 func (i *InstallMySQLComp) create_spider_table(socket string) (err error) {
 	return mysqlutil.ExecuteSqlAtLocal{
-		User:     "root",
-		Password: "",
+		User:     i.WorkUser,     //"root",
+		Password: i.WorkPassword, //"",
 		Socket:   socket,
 		Charset:  i.Params.CharSet,
 	}.ExcuteSqlByMySQLClientOne(path.Join(i.MysqlInstallDir, "scripts/install_spider.sql"), "")

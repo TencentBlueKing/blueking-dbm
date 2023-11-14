@@ -42,20 +42,20 @@
     </div>
     <InstanceSelector
       v-model:is-show="isShowInstanceSelector"
-      :cluster-id="clusterId"
-      role="remote_slave"
+      :cluster-types="[ClusterTypes.TENDBCLUSTER]"
+      :tab-list-config="tabListConfig"
       @change="handelInstanceSelectorChange" />
   </div>
 </template>
 <script setup lang="ts">
-  import {
-    shallowRef,
-  } from 'vue';
   import { useI18n } from 'vue-i18n';
+
+  import { ClusterTypes } from '@common/const';
 
   import InstanceSelector, {
     type InstanceSelectorValues,
-  } from '@views/spider-manage/common/spider-instance-selector/Index.vue';
+    type PanelListType,
+  } from '@components/instance-selector-new/Index.vue';
 
   interface Props {
     clusterId: number,
@@ -73,8 +73,23 @@
 
   const { t } = useI18n();
 
-  const localSlaveInstanceList = shallowRef<string[]>([]);
   const isShowInstanceSelector = ref(false);
+
+  const localSlaveInstanceList = shallowRef<string[]>([]);
+
+  const tabListConfig = {
+    [ClusterTypes.TENDBCLUSTER]: [{
+      name: t('主库故障主机'),
+      topoConfig: {
+        filterClusterId: props.clusterId,
+      },
+      tableConfig: {
+        firsrColumn: {
+          label: 'slave', field: 'instance_address', role: 'remote_slave',
+        },
+      },
+    }],
+  } as unknown as Record<ClusterTypes, PanelListType>;
 
   // 批量选择
   const handleShowBatchSelector = () => {

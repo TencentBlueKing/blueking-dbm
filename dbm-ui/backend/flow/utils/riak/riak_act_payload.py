@@ -243,6 +243,19 @@ class RiakActPayload(object):
             },
         }
 
+    def get_restart_payload(self, **kwargs) -> dict:
+        """
+        启用
+        """
+        return {
+            "db_type": DBActuatorTypeEnum.Riak.value,
+            "action": RiakActuatorActionEnum.Restart.value,
+            "payload": {
+                "general": {},
+                "extend": {},
+            },
+        }
+
     def get_install_monitor_payload(self, **kwargs) -> dict:
         """
         启用
@@ -264,8 +277,9 @@ class RiakActPayload(object):
         schedules = [
             {"name": "riak-err-notice", "expression": "@every 1m"},
             {"name": "riak-load-health", "expression": "@every 1m"},
-            {"name": "riak-ring-status", "expression": "@every 10s"},
-            {"name": "riak-monitor-hardcode", "expression": "@every 10s"},
+            {"name": "riak-ring-status", "expression": "@every 30s"},
+            {"name": "riak-monitor-hardcode", "expression": "@every 30s"},
+            {"name": "riak_connections_heart_beat", "expression": "@every 1m"},
         ]
         if self.ticket_data["ticket_type"] == TicketType.RIAK_CLUSTER_SCALE_OUT:
             cluster = Cluster.objects.get(id=self.ticket_data["cluster_id"])
@@ -354,7 +368,7 @@ def create_crond_jobs(self: list) -> list:
         items = schedule["name"]
         if "hardcode" in schedule["name"]:
             cmd = "hardcode-run"
-            items = "db-up,riak_monitor_heart_beat"
+            items = "riak-db-up,riak_monitor_heart_beat"
         job = {
             "name": "{}{}".format(schedule["name"], schedule["expression"]),
             "enable": True,
@@ -379,7 +393,7 @@ def create_riak_monitor_items(self: list) -> list:
     for schedule in self:
         if "hardcode" in schedule["name"]:
             item = {
-                "name": "db-up",
+                "name": "riak-db-up",
                 "enable": True,
                 "schedule": schedule["expression"],
                 "machine_type": [MachineType.RIAK.value],

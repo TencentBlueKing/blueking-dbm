@@ -93,9 +93,11 @@
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
 
-  import { getResources } from '@services/clusters';
   import { getModules, getUseList  } from '@services/common';
-  import { getSingleInstances } from '@services/mysqlSingle';
+  import {
+    getResourceInstances,
+    getResources,
+  } from '@services/source/resourceTendbsingle';
   import { createTicket } from '@services/ticket';
   import type { ResourceItem } from '@services/types/clusters';
   import type { SearchFilterItem } from '@services/types/common';
@@ -299,7 +301,7 @@
         title={t('【inst】实例预览', { inst: data.master_domain })}
         role="orphan"
         clusterId={data.id}
-        dataSource={getSingleInstances}
+        dataSource={getResourceInstances}
       />
     ),
     },
@@ -532,7 +534,7 @@
     };
     isInit.value = false;
     state.isLoading = isLoading;
-    return getResources<ResourceItem>(params)
+    return getResources(params)
       .then((res) => {
         state.pagination.count = res.count;
         state.data = res.results;

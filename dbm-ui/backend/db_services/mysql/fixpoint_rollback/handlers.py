@@ -351,7 +351,7 @@ class FixPointRollbackHandler:
             collector="mysql_backup_result",
             start_time=start_time,
             end_time=end_time,
-            query_string=f'log: "cluster_address: \\"{cluster_domain}\\""',
+            query_string=f'log: "cluster_id: \\"{self.cluster.id}\\""',
         )
 
         if self.cluster.cluster_type == ClusterType.TenDBCluster:

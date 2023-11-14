@@ -9,6 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
+import re
 from typing import Dict, Optional
 
 from django.utils.translation import ugettext as _
@@ -37,7 +38,6 @@ class ImportResourceInitStepFlow(object):
         p = Builder(root_id=self.root_id, data=self.data)
         ip_list = self.data["hosts"]
         bk_biz_id = self.data["bk_biz_id"]
-
         # 先执行空闲检查
         if env.SA_CHECK_TEMPLATE_ID:
             acts_list = []
@@ -55,8 +55,10 @@ class ImportResourceInitStepFlow(object):
         if env.SA_INIT_TEMPLATE_ID:
             ips = []
             for host_info in ip_list:
-                resource_id = f'{host_info["bk_cloud_id"]}: {host_info["ip"]}'
+                resource_id = f'{host_info["bk_cloud_id"]}:{host_info["ip"]}'
                 ips.append(resource_id)
+
+            # 执行sa初始化
             p.add_act(
                 act_name=_("执行sa初始化"),
                 act_component_code=SaInitComponent.code,

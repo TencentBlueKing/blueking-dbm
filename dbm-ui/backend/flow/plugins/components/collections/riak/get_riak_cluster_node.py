@@ -61,8 +61,8 @@ class GetRiakClusterNodeService(BaseService):
             running_nodes = list(
                 set([storage.machine.ip for storage in storages if storage.machine.ip not in scale_in_nodes])
             )
-            if len(running_nodes) < 2:
-                self.log_error("exclude scale in nodes, number of running nodes less than 2")
+            if len(running_nodes) < 3:
+                self.log_error("exclude scale in nodes, number of running nodes less than 3")
             base_node = running_nodes[0]
             trans_data.base_node = base_node
 

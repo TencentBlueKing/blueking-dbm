@@ -27,7 +27,7 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import { getList } from '@services/spider';
+  import { getList } from '@services/source/resourceSpider';
 
   import TableEditSelect from '@views/redis/common/edit/Select.vue';
 

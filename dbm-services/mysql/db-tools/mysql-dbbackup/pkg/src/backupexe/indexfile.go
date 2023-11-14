@@ -59,25 +59,28 @@ const (
 
 // IndexContent the content of the index file
 type IndexContent struct {
-	BackupType           string                     `json:"backup_type"`
-	StorageEngine        string                     `json:"storage_engine"`
-	MysqlVersion         string                     `json:"mysql_version"`
-	BkBizId              int                        `json:"bk_biz_id"`
-	BackupId             string                     `json:"backup_id"`
-	BillId               string                     `json:"bill_id"`
-	ClusterId            int                        `json:"cluster_id"`
-	ClusterAddress       string                     `json:"cluster_address"`
-	ShardValue           int                        `json:"shard_value"`
-	BackupHost           string                     `json:"backup_host"`
-	BackupPort           int                        `json:"backup_port"`
-	BackupCharset        string                     `json:"backup_charset"`
-	MysqlRole            string                     `json:"mysql_role"`
-	DataSchemaGrant      string                     `json:"data_schema_grant"`
-	ConsistentBackupTime string                     `json:"consistent_backup_time"`
-	BackupBeginTime      string                     `json:"backup_begin_time"`
-	BackupEndTime        string                     `json:"backup_end_time"`
-	TotalFilesize        uint64                     `json:"total_filesize"`
-	BinlogInfo           dbareport.BinlogStatusInfo `json:"binlog_info"`
+	BackupType           string `json:"backup_type"`
+	StorageEngine        string `json:"storage_engine"`
+	MysqlVersion         string `json:"mysql_version"`
+	BkBizId              int    `json:"bk_biz_id"`
+	BackupId             string `json:"backup_id"`
+	BillId               string `json:"bill_id"`
+	ClusterId            int    `json:"cluster_id"`
+	ClusterAddress       string `json:"cluster_address"`
+	ShardValue           int    `json:"shard_value"`
+	BackupHost           string `json:"backup_host"`
+	BackupPort           int    `json:"backup_port"`
+	BackupCharset        string `json:"backup_charset"`
+	MysqlRole            string `json:"mysql_role"`
+	DataSchemaGrant      string `json:"data_schema_grant"`
+	ConsistentBackupTime string `json:"consistent_backup_time"`
+	BackupBeginTime      string `json:"backup_begin_time"`
+	BackupEndTime        string `json:"backup_end_time"`
+	TotalFilesize        uint64 `json:"total_filesize"`
+	// TotalSizeKBUncompress 压缩前大小，如果是zstd压缩会提供压缩前大小，-1,0 都是无效值。这不是精确大小，可能存在四舍五入
+	TotalSizeKBUncompress int64                      `json:"total_size_kb_uncompress"`
+	BinlogInfo            dbareport.BinlogStatusInfo `json:"binlog_info"`
+	EncryptEnable         bool                       `json:"encrypt_enable"`
 
 	FileList []FileIndex `json:"file_list"`
 
@@ -127,6 +130,9 @@ func (i *IndexContent) Init(cnf *config.Public, resultInfo *dbareport.BackupResu
 	i.BackupEndTime = resultInfo.BackupEndTime
 	i.BackupId = resultInfo.BackupId
 	i.BinlogInfo = resultInfo.BinlogInfo
+	if resultInfo.EncryptedKey != "" {
+		i.EncryptEnable = true
+	}
 
 	i.reData = regexp.MustCompile(ReData)
 	i.reSchema = regexp.MustCompile(ReSchema)

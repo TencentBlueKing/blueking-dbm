@@ -8,13 +8,24 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+from typing import Union
+
 from backend.configuration.constants import DBType
 from backend.db_meta.enums import MachineType
+from backend.db_meta.models import ProxyInstance, StorageInstance
 from backend.flow.utils.base.cc_topo_operate import CCTopoOperator
 
 
 class KafkaCCTopoOperator(CCTopoOperator):
     db_type = DBType.Kafka.value
+
+    def generate_custom_labels(self, ins: Union[StorageInstance, ProxyInstance]) -> dict:
+        # 用于采集Kafka消费延迟的标签
+
+        return {
+            "brokers": self.ticket_data["nodes"]["broker"][0]["ip"],
+            "broker_port": str(self.ticket_data["port"]),
+        }
 
     def init_instances_service(self, machine_type, instances=None):
         """

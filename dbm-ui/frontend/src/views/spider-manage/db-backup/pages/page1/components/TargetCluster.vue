@@ -57,8 +57,8 @@
   } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import { queryClusters } from '@services/mysqlCluster';
-  import { getList } from '@services/spider';
+  import { queryClusters } from '@services/source/mysqlCluster';
+  import { getList } from '@services/source/resourceSpider';
 
   import { useGlobalBizs } from '@stores';
 
@@ -78,7 +78,7 @@
   const emits = defineEmits<Emits>();
 
   const clusterSelectorTabList = [{
-    id: ClusterTypes.SPIDER,
+    id: ClusterTypes.TENDBCLUSTER,
     name: '集群',
   }];
 

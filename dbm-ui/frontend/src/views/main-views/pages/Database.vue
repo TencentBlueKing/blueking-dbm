@@ -66,6 +66,16 @@
                   </BkMenuItem>
                 </BkSubmenu>
               </FunController>
+              <BkMenuItem key="mysqlPartitionManage">
+                <template #icon>
+                  <i class="db-icon-mobanshili" />
+                </template>
+                <span
+                  v-overflow-tips.right
+                  class="text-overflow">
+                  {{ $t('分区管理') }}
+                </span>
+              </BkMenuItem>
               <BkSubmenu
                 key="database-permission"
                 :title="$t('权限管理')">

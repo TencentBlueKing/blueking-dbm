@@ -15,11 +15,13 @@ import _ from 'lodash';
 import type { Instance } from 'tippy.js';
 import type { VNode } from 'vue';
 
-import { getResourceInstanceDetails } from '@services/clusters';
-import { getRetrieveInstance as getESRetrieveInstance } from '@services/es';
-import { getRetrieveInstance as getHDFSRetrieveInstance } from '@services/hdfs';
-import { getRetrieveInstance as getKafkaRetrieveInstance } from '@services/kafka';
-import { getRetrieveInstance as getPulsarRetrieveInstance } from '@services/pulsar';
+import { getRetrieveInstance as getESRetrieveInstance } from '@services/source/es';
+import { getRetrieveInstance as getHDFSRetrieveInstance } from '@services/source/hdfs';
+import { getRetrieveInstance as getKafkaRetrieveInstance } from '@services/source/kafka';
+import { getRetrieveInstance as getPulsarRetrieveInstance } from '@services/source/pulsar';
+import { getResourceInstanceDetails as getSpiderResourceInstanceDetails } from '@services/source/resourceSpider';
+import { getResourceInstanceDetails as getTendbhaResourceInstanceDetails } from '@services/source/resourceTendbha';
+import { getResourceInstanceDetails as getTendbsingleResourceInstanceDetails } from '@services/source/resourceTendbsingle';
 import type { InstanceDetails, ResourceTopoNode } from '@services/types/clusters';
 
 import { useGlobalBizs } from '@stores';
@@ -112,6 +114,9 @@ const apiMap: Record<string, (params: any) => Promise<any>> = {
   hdfs: getHDFSRetrieveInstance,
   es: getESRetrieveInstance,
   pulsar: getPulsarRetrieveInstance,
+  tendbsingle: getTendbsingleResourceInstanceDetails,
+  tendbha: getTendbhaResourceInstanceDetails,
+  spider: getSpiderResourceInstanceDetails,
 };
 
 const entryTagMap: Record<string, string> = {
@@ -267,8 +272,7 @@ export const useRenderGraph = (props: ClusterTopoProps, nodeConfig: NodeConfig =
       dbType: props.dbType,
     };
     instState.isLoading = true;
-    const fetchApi = apiMap[props.clusterType] || getResourceInstanceDetails;
-    return fetchApi(params)
+    return apiMap[props.clusterType](params)
       .then((res) => {
         instState.detailsCaches.set(address, res);
       })

@@ -45,16 +45,14 @@
   import { useI18n } from 'vue-i18n';
 
   // import RedisModel from '@services/model/redis/redis';
-  import { listClusterList } from '@services/redis/toolbox';
-
-  import { useGlobalBizs } from '@stores';
+  import { listClusterList } from '@services/source/resourceRedis';
 
   // import { ClusterTypes } from '@common/const';
   import { domainRegex } from '@common/regex';
 
   import TableEditInput from '@components/tools-table-input/index.vue';
 
-  // import ClusterSelector from '@views/redis/common/cluster-selector/ClusterSelector.vue';
+  // import ClusterSelector from '@components/cluster-selector-new/Index.vue';
 
   interface Props {
     data?: string;
@@ -75,7 +73,6 @@
   });
   const emits = defineEmits<Emits>();
 
-  const { currentBizId } = useGlobalBizs();
   const { t } = useI18n();
 
   // const isShowSelector = ref(false);
@@ -96,7 +93,7 @@
     },
     {
       validator: async (value: string) => {
-        const r = await listClusterList(currentBizId, { domain: value });
+        const r = await listClusterList({ domain: value });
         return r.length > 0;
       },
       message: t('目标集群不存在'),

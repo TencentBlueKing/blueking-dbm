@@ -245,6 +245,38 @@ class _CCApi(object):
             description=_("删除服务实例"),
         )
 
+        self.create_process_instance = DataAPI(
+            method="POST",
+            base=CC_APIGW_DOMAIN,
+            url="create_process_instance/",
+            module=self.MODULE,
+            description=_("创建实例进程"),
+        )
+
+        self.delete_process_instance = DataAPI(
+            method="POST",
+            base=CC_APIGW_DOMAIN,
+            url="delete_process_instance/",
+            module=self.MODULE,
+            description=_("删除实例进程"),
+        )
+
+        self.list_process_instance = DataAPI(
+            method="POST",
+            base=CC_APIGW_DOMAIN,
+            url="list_process_instance/",
+            module=self.MODULE,
+            description=_("查询实例进程列表"),
+        )
+
+        self.update_process_instance = DataAPI(
+            method="POST",
+            base=CC_APIGW_DOMAIN,
+            url="update_process_instance/",
+            module=self.MODULE,
+            description=_("更新实例进程"),
+        )
+
         self.delete_module = DataAPI(
             method="POST",
             base=CC_APIGW_DOMAIN,

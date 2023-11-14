@@ -11,6 +11,7 @@ specific language governing permissions and limitations under the License.
 from django.db.models import Count
 from django.utils.decorators import method_decorator
 from django.utils.translation import ugettext_lazy as _
+from rest_framework import filters
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
@@ -60,10 +61,12 @@ class MonitorDutyRuleViewSet(viewsets.AuditedModelViewSet):
     轮值规则视图
     """
 
-    queryset = DutyRule.objects.all()
+    queryset = DutyRule.objects.all().order_by("-update_at")
     serializer_class = DutyRuleSerializer
     pagination_class = AuditedLimitOffsetPagination
-    filter_fields = {"db_type": ["exact"]}
+    filter_backends = [filters.SearchFilter]
+    filter_fields = {"db_type": ["exact"], "name": ["exact"]}
+    search_fields = ["name"]
 
     def _get_custom_permissions(self):
         return [GlobalManageIAMPermission()]

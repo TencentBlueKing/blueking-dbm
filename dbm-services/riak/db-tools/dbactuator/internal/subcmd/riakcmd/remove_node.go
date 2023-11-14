@@ -56,6 +56,11 @@ func (d *RemoveNodeAct) Run() error {
 			FunName: "环境预检查",
 			Func:    d.Payload.PreCheck,
 		},
+		// 在剔除状态异常的状态为"down!"节点前，先down节点
+		{
+			FunName: "down异常节点，保障集群ring正常",
+			Func:    d.Payload.MarkInvalidNodeDown,
+		},
 		{
 			FunName: "集群剔除节点",
 			Func:    d.Payload.RemoveNode,

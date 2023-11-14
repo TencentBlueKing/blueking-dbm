@@ -11,8 +11,7 @@
  * the specific language governing permissions and limitations under the License.
 */
 
-import { getResources } from '@services/clusters';
-import type { ResourceRedisItem } from '@services/types/clusters';
+import { getRedisResources } from '@services/source/resourceRedis';
 
 import { useGlobalBizs } from '@stores';
 
@@ -43,7 +42,7 @@ export const useRedisData = (state: RedisState) => {
 
     state.isInit = false;
     state.isLoading = isLoading;
-    return getResources<ResourceRedisItem>(params)
+    return getRedisResources(params)
       .then((res) => {
         state.pagination.count = res.count;
         state.data = res.results;

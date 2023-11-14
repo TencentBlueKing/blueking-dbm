@@ -10,6 +10,7 @@ import (
 	"dbm-services/riak/db-tools/dbactuator/pkg/util/osutil"
 	"fmt"
 	"strings"
+	"time"
 )
 
 // RemoveNodeComp TODO
@@ -76,6 +77,7 @@ func (i *RemoveNodeComp) MarkInvalidNodeDown() error {
 				return fmt.Errorf("execute shell [%s] error: %s", cmd, err.Error())
 			}
 			logger.Info("execute shell [%s] success", cmd)
+			time.Sleep(10 * time.Second)
 		}
 	}
 	return nil

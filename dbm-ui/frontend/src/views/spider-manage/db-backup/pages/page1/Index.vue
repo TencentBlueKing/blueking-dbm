@@ -65,9 +65,8 @@
       </DbForm>
       <ClusterSelector
         v-model:is-show="isShowBatchSelector"
-        :get-resource-list="getList"
+        :cluster-types="[ClusterTypes.TENDBCLUSTER]"
         :selected="selectedClusters"
-        :tab-list="clusterSelectorTabList"
         @change="handelClusterChange" />
     </div>
     <template #action>
@@ -97,7 +96,6 @@
   import { useRouter } from 'vue-router';
 
   import SpiderModel from '@services/model/spider/spider';
-  import { getList } from '@services/spider';
   import { createTicket } from '@services/ticket';
 
   import { useGlobalBizs } from '@stores';
@@ -128,12 +126,8 @@
   const formData = reactive(createDefaultData());
 
   const tableData = shallowRef<Array<IDataRow>>([createRowData({})]);
-  const selectedClusters = shallowRef<{[key: string]: Array<SpiderModel>}>({ [ClusterTypes.SPIDER]: [] });
+  const selectedClusters = shallowRef<{[key: string]: Array<SpiderModel>}>({ [ClusterTypes.TENDBCLUSTER]: [] });
 
-  const clusterSelectorTabList = [{
-    id: ClusterTypes.SPIDER,
-    name: '集群',
-  }];
   // 集群域名是否已存在表格的映射表
   let domainMemo: Record<string, boolean> = {};
 
@@ -154,7 +148,7 @@
   // 批量选择
   const handelClusterChange = (selected: {[key: string]: Array<SpiderModel>}) => {
     selectedClusters.value = selected;
-    const list = selected[ClusterTypes.SPIDER];
+    const list = selected[ClusterTypes.TENDBCLUSTER];
     const newList = list.reduce((result, item) => {
       const domain = item.master_domain;
       if (!domainMemo[domain]) {
@@ -192,8 +186,8 @@
     tableData.value = dataList;
     if (domain) {
       delete domainMemo[domain];
-      const clustersArr = selectedClusters.value[ClusterTypes.SPIDER];
-      selectedClusters.value[ClusterTypes.SPIDER] = clustersArr.filter(item => item.master_domain !== domain);
+      const clustersArr = selectedClusters.value[ClusterTypes.TENDBCLUSTER];
+      selectedClusters.value[ClusterTypes.TENDBCLUSTER] = clustersArr.filter(item => item.master_domain !== domain);
     }
   };
 
@@ -231,7 +225,7 @@
 
   const handleReset = () => {
     Object.assign(formData, createDefaultData());
-    selectedClusters.value[ClusterTypes.SPIDER] = [];
+    selectedClusters.value[ClusterTypes.TENDBCLUSTER] = [];
     domainMemo = {};
     window.changeConfirm = false;
   };

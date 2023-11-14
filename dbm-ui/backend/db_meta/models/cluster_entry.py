@@ -8,14 +8,18 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import logging
 from collections import defaultdict
 from typing import Dict, List
 
 from django.db import models
 
 from backend.bk_web.models import AuditedModel
+from backend.components import DnsApi
 from backend.db_meta.enums import ClusterEntryRole, ClusterEntryType
 from backend.db_meta.models import Cluster
+
+logger = logging.getLogger("root")
 
 
 class ClusterEntry(AuditedModel):

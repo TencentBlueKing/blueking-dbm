@@ -25,7 +25,7 @@ type SwitchLogsApi struct {
 	SwitchID int    `json:"sw_id"`
 	IP       string `json:"ip"`
 	Result   string `json:"result"`
-	Datetime string `json:"datetime"`
+	Datetime string `json:"datetime,omitempty"`
 	Comment  string `json:"comment"`
 	Port     int    `json:"port"`
 }

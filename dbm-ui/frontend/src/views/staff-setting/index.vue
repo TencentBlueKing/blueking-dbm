@@ -60,7 +60,10 @@
   import { Message } from 'bkui-vue';
   import { useI18n } from 'vue-i18n';
 
-  import { getAdmins, updateAdmins  } from '@services/staffSetting';
+  import {
+    getAdmins,
+    updateAdmins,
+  } from '@services/source/dbAdmin';
   import type { AdminItem } from '@services/types/staffSetting';
 
   import { useInfo } from '@hooks';

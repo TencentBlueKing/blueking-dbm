@@ -26,7 +26,7 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import { getRemoteParis } from '@services/mysqlCluster';
+  import { getRemoteParis } from '@services/source/mysqlCluster';
 
   import TableEditSelect from '@components/tools-table-select/index.vue';
 

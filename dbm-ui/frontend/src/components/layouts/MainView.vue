@@ -15,20 +15,21 @@
   <div class="main-container">
     <div
       class="main-menu"
-      :class="[{ 'main-menu--collapsed': menuStore.toggleCollapsed }]">
+      :class="{
+        'is-collapsed': menuStore.toggleCollapsed
+      }">
       <slot name="menu" />
     </div>
-    <div class="main-container__content">
-      <MainBreadcrumbs
-        class="main-container__breadcrumbs" />
+    <div class="main-container-content">
+      <MainBreadcrumbs />
       <slot name="main-content">
         <div
           id="mainContainerView"
-          class="main-container__view db-scroll-y db-scroll-x"
-          :class="[{
+          class="main-container-view db-scroll-y db-scroll-x"
+          :class="{
             'pd-24': mainViewStore.hasPadding,
             'has-breadcrumbs': !mainViewStore.customBreadcrumbs
-          }]">
+          }">
           <!-- 这里是用 route.name 作为 key 是考虑到 repalce params/query 的使用 -->
           <!-- <RouterView :key="key" /> -->
           <RouterView />
@@ -37,7 +38,6 @@
     </div>
   </div>
 </template>
-
 <script setup lang="ts">
   import {
     useMainViewStore,
@@ -50,7 +50,6 @@
 
   const menuStore = useMenu();
 </script>
-
 <style lang="less">
   @import "@styles/mixins.less";
 
@@ -61,12 +60,16 @@
 
   .main-menu {
     position: relative;
-    z-index: 101;
+    z-index: 100;
     height: 100%;
     background-color: #1e2634;
     flex-shrink: 0;
 
-    &--collapsed {
+    &:hover{
+      z-index: 999;
+    }
+
+    &.is-collapsed {
       width: 60px;
     }
 
@@ -152,17 +155,14 @@
     }
   }
 
-  .main-container__content {
-    position: relative;
+  .main-container-content {
     width: 0;
     height: 100%;
     min-width: 940px;
     flex: 1;
   }
 
-  .main-container__view {
-    position: relative;
-    z-index: 0;
+  .main-container-view {
     height: calc(100% - 52px);
     background-color: #f5f7fa;
   }

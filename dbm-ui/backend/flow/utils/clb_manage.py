@@ -16,7 +16,7 @@ from backend.db_meta.models import CLBEntryDetail
 logger = logging.getLogger("flow")
 
 
-def GetClbByIp(clb_ip: str):
+def get_clb_by_ip(clb_ip: str):
     clb_info = CLBEntryDetail.objects.filter(clb_ip=clb_ip).values()[0]
     return CLBManage(clb_info["clb_id"], clb_info["clb_ip"], clb_info["listener_id"], clb_info["clb_region"])
 

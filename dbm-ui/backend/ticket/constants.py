@@ -12,8 +12,7 @@ specific language governing permissions and limitations under the License.
 from blue_krill.data_types.enum import EnumField, StructuredEnum
 from django.utils.translation import ugettext_lazy as _
 
-from backend.db_meta.enums import ClusterType
-from backend.db_meta.enums.cluster_phase import ClusterPhase
+from backend.configuration.constants import DBType
 from backend.db_meta.exceptions import ClusterExclusiveOperateException
 from backend.flow.consts import StateType
 
@@ -60,6 +59,7 @@ class AffinityEnum(str, StructuredEnum):
     亲和性枚举类
     """
 
+    # 这个swtich 拼写错误不要改, 可能会影响老集群
     SAME_SUBZONE_CROSS_SWTICH = EnumField("SAME_SUBZONE_CROSS_SWTICH", _("同城同subzone跨交换机跨机架"))
     SAME_SUBZONE = EnumField("SAME_SUBZONE", _("同城同subzone"))
     CROS_SUBZONE = EnumField("CROS_SUBZONE", _("CROS_SUBZONE"))
@@ -125,6 +125,17 @@ class TicketType(str, StructuredEnum):
                 return field.real_value
 
         return label
+
+    @classmethod
+    def get_ticket_type_by_db(cls, db_type):
+        """找到相关type的单据"""
+        db_type = db_type.upper()
+        ticket_types = [t for t in cls.get_values() if db_type in t]
+        if db_type == DBType.Redis.upper():
+            ticket_types.extend([cls.TENDIS_META_MITRATE.value, cls.PROXY_SCALE_UP, cls.PROXY_SCALE_DOWN])
+        elif db_type == DBType.TenDBCluster.upper():
+            ticket_types.append(cls.MYSQL_PARTITION)
+        return ticket_types
 
     # MYSQL
     MYSQL_SINGLE_APPLY = EnumField("MYSQL_SINGLE_APPLY", _("MySQL 单节点部署"))
@@ -236,6 +247,7 @@ class TicketType(str, StructuredEnum):
     REDIS_CLUSTER_ADD_SLAVE = EnumField("REDIS_CLUSTER_ADD_SLAVE", _("Redis 新增slave节点"))
     REDIS_DTS_ONLINE_SWITCH = EnumField("REDIS_DTS_ONLINE_SWITCH", _("Redis DTS在线切换"))
     TENDIS_META_MITRATE = EnumField("TENDIS_META_MITRATE", _("Redis 数据迁移"))
+    REDIS_SLOTS_MIGRATE = EnumField("REDIS_SLOTS_MIGRATE", _("Redis slots 迁移"))
 
     # 大数据
     KAFKA_APPLY = EnumField("KAFKA_APPLY", _("Kafka 集群部署"))

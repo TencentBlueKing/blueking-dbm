@@ -32,6 +32,10 @@ func NewSQLserverCommand() *cobra.Command {
 				NewDeploySqlServerCommand(),
 				NewUnInstallSqlServerCommand(),
 				ExecuteSQLFilesCommand(),
+				ClusterRoleSwitchCommand(),
+				CloneLoginUsersCommand(),
+				CloneLinkserversCommand(),
+				CloneJobsCommand(),
 			},
 		},
 	}

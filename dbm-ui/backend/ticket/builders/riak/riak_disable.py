@@ -25,7 +25,7 @@ logger = logging.getLogger("root")
 
 
 class RiakDisableDetailSerializer(serializers.Serializer):
-    cluster_id = serializers.Serializer(help_text=_("集群ID"))
+    cluster_id = serializers.IntegerField(help_text=_("集群ID"))
 
 
 class RiakDisableFlowParamBuilder(builders.FlowParamBuilder):

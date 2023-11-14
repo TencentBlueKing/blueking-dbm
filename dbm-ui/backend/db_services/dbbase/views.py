@@ -16,16 +16,14 @@ from rest_framework.response import Response
 
 from backend.bk_web import viewsets
 from backend.bk_web.pagination import AuditedLimitOffsetPagination
-from backend.bk_web.swagger import (
-    PaginatedResponseSwaggerAutoSchema,
-    ResponseSwaggerAutoSchema,
-    common_swagger_auto_schema,
+from backend.bk_web.swagger import ResponseSwaggerAutoSchema, common_swagger_auto_schema
+from backend.db_meta.models import Cluster
+from backend.db_services.dbbase.serializers import (
+    IsClusterDuplicatedResponseSerializer,
+    IsClusterDuplicatedSerializer,
+    QueryAllTypeClusterResponseSerializer,
+    QueryAllTypeClusterSerializer,
 )
-from backend.db_meta.models import Cluster, Group
-from backend.db_services.dbbase.serializers import IsClusterDuplicatedResponseSerializer, IsClusterDuplicatedSerializer
-from backend.db_services.group.handlers import GroupHandler
-from backend.db_services.group.serializers import GroupMoveInstancesSerializer, GroupSerializer
-from backend.iam_app.handlers.drf_perm import DBManageIAMPermission, GlobalManageIAMPermission
 
 SWAGGER_TAG = _("集群通用接口")
 
@@ -34,6 +32,8 @@ class DBBaseViewSet(viewsets.SystemViewSet):
     """
     集群通用接口，用于查询/操作集群公共的属性
     """
+
+    pagination_class = AuditedLimitOffsetPagination
 
     @common_swagger_auto_schema(
         operation_summary=_("查询集群名字是否重复"),
@@ -47,3 +47,18 @@ class DBBaseViewSet(viewsets.SystemViewSet):
         validate_data = self.params_validate(self.get_serializer_class())
         is_duplicated = Cluster.objects.filter(**validate_data).exists()
         return Response(is_duplicated)
+
+    @common_swagger_auto_schema(
+        operation_summary=_("查询全集群信息"),
+        auto_schema=ResponseSwaggerAutoSchema,
+        query_serializer=QueryAllTypeClusterSerializer(),
+        responses={status.HTTP_200_OK: QueryAllTypeClusterResponseSerializer()},
+        tags=[SWAGGER_TAG],
+    )
+    @action(methods=["GET"], detail=False, serializer_class=QueryAllTypeClusterSerializer)
+    def query_all_type_cluster(self, request, *args, **kwargs):
+        data = self.params_validate(self.get_serializer_class())
+        conditions = self.get_serializer().get_conditions(data)
+        cluster_queryset = self.paginate_queryset(Cluster.objects.filter(**conditions))
+        cluster_infos = [cluster.simple_desc for cluster in cluster_queryset]
+        return Response(cluster_infos)

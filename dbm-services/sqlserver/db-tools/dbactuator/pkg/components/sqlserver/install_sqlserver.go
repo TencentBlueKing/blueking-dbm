@@ -199,7 +199,7 @@ func (i *InstallSqlServerComp) CheckMssqlProcess() error {
 	}
 	if ret != "" {
 		// 输出不为空则表示有部署进程
-		return fmt.Errorf("There is a mssql process check [%s]", osutil.CleanExecOutput(ret))
+		return fmt.Errorf("there is a mssql process check [%s]", osutil.CleanExecOutput(ret))
 	}
 	return nil
 }

@@ -82,3 +82,57 @@ const (
 	// SQLCMD_2008 TODO
 	SQLCMD_2008 = "C:\\Program Files\\Microsoft SQL Server\\100\\Tools\\Binn\\SQLCMD.EXE"
 )
+
+// 定义数据同步模式
+const (
+	MIRRORING = 1
+	ALWAYSON  = 2
+)
+
+// 定义一些常用的检查SQL
+
+const (
+	// 查出业务数据库，过滤只读库,异常库 和系统库
+	GET_BUSINESS_DATABASE = "select name from master.sys.databases " +
+		"where is_read_only=0 and database_id>4 and name not in('monitor') " +
+		"and state = 0"
+
+	// 查看镜像库连接异常的情况
+	CHECK_MIRRORING_ABNORMAL = "SELECT name from  master.sys.databases " +
+		"where database_id in " +
+		"(select database_id from master.sys.database_mirroring " +
+		"where mirroring_guid is not null and mirroring_state<>4)"
+	// 查看ALWAYSON异常的情况(没有副本)
+	CHECK_ALWAYSON_NO_COPY = "select count(1) from sys.dm_hadr_availability_replica_states where is_local=0"
+	// 查看ALWAYSON异常的情况（副本异常）
+	CHECK_ALWAYSON_ABNORMAL = "select count(1) from sys.dm_hadr_availability_replica_states " +
+		"where is_local=0 and connected_state=0"
+	// 查看ALWAYSON情况下，数据库同步异常的情况
+	CHECK_ALWAYSON_DB_ABNORMAL = "SELECT name from master.sys.databases " +
+		"where database_id in(SELECT database_id from sys.dm_hadr_database_replica_states " +
+		"where is_local=0 and synchronization_state<>1)"
+	// 查看ALWAYSON情况下，数据库没有配置同步的情况
+	CHECK_ALWAYSON_DB_NO_DEPLOY = "SELECT name from master.sys.databases " +
+		" where state=0 and is_read_only=0 and  database_id>4 and name not in('monitor') " +
+		" and database_id not in(SELECT database_id from sys.dm_hadr_database_replica_states " +
+		"where is_local=0 and synchronization_state=1)"
+	// 查看镜像库延时落后大于1GB的情况
+	CHECK_MIRRORING_DB_DELAY = "SELECT instance_name FROM master.sys.dm_os_performance_counters " +
+		"WHERE object_name LIKE '%Database Mirroring%' AND counter_name='Log Send Queue KB' " +
+		"and instance_name !='_Total' and cntr_value>1048576"
+	// 查看ALWAYSON延时落后大于1GB的情况
+	CHECK_ALWAYSON_DB_DELAY = "SELECT name from master.sys.databases " +
+		" where state=0 and is_read_only=0 " +
+		" and database_id in(SELECT database_id from sys.dm_hadr_database_replica_states " +
+		" where is_local=0 and secondary_lag_seconds>1048576)"
+)
+
+// 获取实例的login user 的相关信息
+
+const (
+	GET_LOGIN_INFO = "select a.name as login_name ,a.sid as sid, " +
+		"password_hash,default_database_name,dbcreator,sysadmin, " +
+		"securityadmin,serveradmin,setupadmin,processadmin,diskadmin,bulkadmin " +
+		"from master.sys.sql_logins a left join sys.syslogins b " +
+		"on a.name=b.name where principal_id>4 and a.name not in('monitor') and a.is_disabled = 0"
+)

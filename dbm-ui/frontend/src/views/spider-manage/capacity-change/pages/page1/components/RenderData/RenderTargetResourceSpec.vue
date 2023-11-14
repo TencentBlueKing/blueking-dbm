@@ -43,16 +43,12 @@
       <div class="spec-box mb-24">
         <table>
           <tr>
-            <td>{{ t('当前规格') }}:</td>
-            <td>{{ clusterData.cluster_spec.spec_name }}</td>
-            <td>{{ t('变更后规格') }}:</td>
-            <td>{{ futureSpec.name }}</td>
+            <td>{{ t('当前规格') }}： {{ clusterData.cluster_spec.spec_name }}</td>
+            <td>{{ t('变更后规格') }}： {{ futureSpec.name }}</td>
           </tr>
           <tr>
-            <td>{{ t('当前容量') }}:</td>
-            <td>{{ clusterData.cluster_capacity }} G</td>
-            <td>{{ t('变更后容量') }}:</td>
-            <td>{{ futureSpec.futureCapacity }} G</td>
+            <td>{{ t('当前容量') }}： <span class="text-bold">{{ clusterData.cluster_capacity }} G</span></td>
+            <td>{{ t('变更后容量') }}： <span class="text-bold">{{ futureSpec.futureCapacity }} G</span></td>
           </tr>
         </table>
       </div>
@@ -191,33 +187,34 @@
   });
 </script>
 <style lang="less">
-  .cluster-spec-plan-selector-box{
-    padding: 20px 40px;
+.cluster-spec-plan-selector-box{
+  padding: 20px 40px;
 
-    .bk-form-label{
-      font-weight: bold;
+  .bk-form-label{
+    font-weight: bold;
+  }
+
+  .spec-box{
+    width: 100%;
+    padding: 16px;
+    font-size: 12px;
+    line-height: 18px;
+    background-color: #FAFBFD;
+
+    table{
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 8px 0;
+      table-layout: fixed;
     }
 
-    .spec-box{
-      width: 100%;
-      padding: 16px 0;
-      font-size: 12px;
-      line-height: 18px;
-      background-color: #FAFBFD;
+    td{
+      height: 18px;
 
-      table{
-        width: 100%;
-        table-layout: fixed;
-      }
-
-      td{
-        height: 18px;
-        padding-left: 16px;
-
-        &:nth-child(2n+1){
-          text-align: right;
-        }
+      .text-bold {
+        font-weight: bold;
       }
     }
   }
+}
 </style>

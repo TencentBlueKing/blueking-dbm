@@ -45,6 +45,7 @@ from backend.db_meta.models import (
 )
 from backend.db_services.dbbase.constants import IP_PORT_DIVIDER, SPACE_DIVIDER
 from backend.db_services.redis.rollback.models import TbTendisRollbackTasks
+from backend.db_services.redis.slots_migrate.models import TbTendisSlotsMigrateRecord
 from backend.flow.consts import DEFAULT_DB_MODULE_ID, ConfigFileEnum, ConfigTypeEnum, InstanceStatus
 from backend.flow.utils.redis.redis_module_operate import RedisCCTopoOperator
 from backend.ticket.constants import TicketType
@@ -708,15 +709,15 @@ class RedisDBMeta(object):
         cluster = Cluster.objects.get(
             bk_cloud_id=self.cluster["bk_cloud_id"], immute_domain=self.cluster["immute_domain"]
         )
-        immuteEntry = cluster.clusterentry_set.filter(
+        immute_entry = cluster.clusterentry_set.filter(
             cluster_entry_type=ClusterEntryType.DNS.value, entry=cluster.immute_domain
         ).first()
-        clbEntry = cluster.clusterentry_set.filter(cluster_entry_type=ClusterEntryType.CLB.value).first()
+        clb_entry = cluster.clusterentry_set.filter(cluster_entry_type=ClusterEntryType.CLB.value).first()
 
-        logger.info("bind immute domain {} 2 clb {}".format(cluster.immute_domain, clbEntry.entry))
-        immuteEntry.forward_to_id = clbEntry.id
-        immuteEntry.creator = self.ticket_data["created_by"]
-        immuteEntry.save(update_fields=["forward_to_id", "creator"])
+        logger.info("bind immute domain {} 2 clb {}".format(cluster.immute_domain, clb_entry.entry))
+        immute_entry.forward_to_id = clb_entry.id
+        immute_entry.creator = self.ticket_data["created_by"]
+        immute_entry.save(update_fields=["forward_to_id", "creator"])
 
     # 主域名解绑CLB
     def tendis_unBind_clb_domain_4_scene(self):
@@ -724,14 +725,14 @@ class RedisDBMeta(object):
         cluster = Cluster.objects.get(
             bk_cloud_id=self.cluster["bk_cloud_id"], immute_domain=self.cluster["immute_domain"]
         )
-        immuteEntry = cluster.clusterentry_set.filter(
+        immute_entry = cluster.clusterentry_set.filter(
             cluster_entry_type=ClusterEntryType.DNS.value, entry=cluster.immute_domain
         ).first()
-        logger.info("Unbind immute domain {} 2 clbid: {}".format(cluster.immute_domain, immuteEntry.forward_to_id))
+        logger.info("Unbind immute domain {} 2 clbid: {}".format(cluster.immute_domain, immute_entry.forward_to_id))
 
-        immuteEntry.forward_to_id = None
-        immuteEntry.creator = self.ticket_data["created_by"]
-        immuteEntry.save(update_fields=["forward_to_id", "creator"])
+        immute_entry.forward_to_id = None
+        immute_entry.creator = self.ticket_data["created_by"]
+        immute_entry.save(update_fields=["forward_to_id", "creator"])
 
     def get_inst_list(self, storageinstances) -> list:
         src_host = []
@@ -880,3 +881,65 @@ class RedisDBMeta(object):
         cluster.major_version = self.cluster["target_version"]
         cluster.save(update_fields=["major_version"])
         return True
+
+    @transaction.atomic
+    def specifed_slots_migrate_record(self):
+        """
+        写入slot迁移记录
+        """
+        record = TbTendisSlotsMigrateRecord(
+            creator=self.ticket_data["created_by"],
+            related_slots_migrate_bill_id=self.ticket_data["uid"],
+            bk_biz_id=self.ticket_data["bk_biz_id"],
+            bk_cloud_id=self.cluster["bk_cloud_id"],
+            cluster_type=self.cluster["cluster_type"],
+            cluster_id=self.cluster["cluster_id"],
+            cluster_name=self.cluster["cluster_name"],
+            status=self.cluster["status"],
+            migrate_specified_slot=self.cluster["migrate_specified_slot"],
+        )
+        record.save()
+
+    @transaction.atomic
+    def redis_rebalance_4_expansion(self):
+        """
+        写入slot迁移扩容记录
+        """
+        record = TbTendisSlotsMigrateRecord(
+            creator=self.ticket_data["created_by"],
+            related_slots_migrate_bill_id=self.ticket_data["uid"],
+            bk_biz_id=self.ticket_data["bk_biz_id"],
+            bk_cloud_id=self.cluster["bk_cloud_id"],
+            cluster_type=self.cluster["cluster_type"],
+            cluster_id=self.cluster["cluster_id"],
+            cluster_name=self.cluster["cluster_name"],
+            status=self.cluster["status"],
+            old_instance_pair=self.cluster["old_instance_pair"],
+            current_group_num=self.cluster["current_group_num"],
+            target_group_num=self.cluster["target_group_num"],
+            new_ip_group=self.cluster["new_ip_group"],
+            specification=self.cluster["specification"],
+            add_new_master_slave_pair=self.cluster["add_new_master_slave_pair"],
+        )
+        record.save()
+
+    @transaction.atomic
+    def redis_migrate_4_contraction(self):
+        """
+        写入slot迁移缩容记录
+        """
+        record = TbTendisSlotsMigrateRecord(
+            creator=self.ticket_data["created_by"],
+            related_slots_migrate_bill_id=self.ticket_data["uid"],
+            bk_biz_id=self.ticket_data["bk_biz_id"],
+            bk_cloud_id=self.cluster["bk_cloud_id"],
+            cluster_type=self.cluster["cluster_type"],
+            cluster_id=self.cluster["cluster_id"],
+            cluster_name=self.cluster["cluster_name"],
+            status=self.cluster["status"],
+            old_instance_pair=self.cluster["old_instance_pair"],
+            current_group_num=self.cluster["current_group_num"],
+            target_group_num=self.cluster["target_group_num"],
+            shutdown_master_slave_pair=self.cluster["shutdown_master_slave_pair"],
+        )
+        record.save()

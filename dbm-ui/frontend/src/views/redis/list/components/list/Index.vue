@@ -114,7 +114,7 @@
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
-  import { getRedisInstances } from '@services/redis';
+  import { getResourceInstances } from '@services/source/resourceRedis';
   import { createTicket } from '@services/ticket';
   import {
     ClusterNodeKeys,
@@ -322,7 +322,7 @@
         title={t('【inst】实例预览', { title: 'Proxy', inst: data.master_domain })}
         role={ClusterNodeKeys.PROXY}
         clusterId={data.id}
-        dataSource={getRedisInstances}
+        dataSource={getResourceInstances}
       />
     ),
     },
@@ -337,7 +337,7 @@
           title={t('【inst】实例预览', { title: 'Master', inst: data.master_domain })}
           role={ClusterNodeKeys.REDIS_MASTER}
           clusterId={data.id}
-          dataSource={getRedisInstances}
+          dataSource={getResourceInstances}
         />
       ),
     },
@@ -352,7 +352,7 @@
           title={t('【inst】实例预览', { title: 'Slave', inst: data.master_domain })}
           role={ClusterNodeKeys.REDIS_SLAVE}
           clusterId={data.id}
-          dataSource={getRedisInstances}
+          dataSource={getResourceInstances}
         />
       ),
     },

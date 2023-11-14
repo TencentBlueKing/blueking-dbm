@@ -30,9 +30,9 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import { getCloudList } from '@services/ip';
   import type SpiderModel from '@services/model/spider/spider';
-  import { getDetail } from '@services/spider';
+  import { getCloudList } from '@services/source/ipchooser';
+  import { getResourceDetails } from '@services/source/resourceSpider';
 
   import RenderText from '@components/tools-table-common/RenderText.vue';
 
@@ -84,7 +84,7 @@
   const {
     loading: isClusterDataLoading,
     run: fetchClusetrData,
-  } = useRequest(getDetail, {
+  } = useRequest(getResourceDetails, {
     manual: true,
     onSuccess(data) {
       localBkNetId.value = data.bk_cloud_id;
@@ -95,7 +95,7 @@
   watch(() => props.clusterId, () => {
     if (props.clusterId) {
       fetchClusetrData({
-        id: props.clusterId,
+        clusterId: props.clusterId,
       });
     }
   }, {

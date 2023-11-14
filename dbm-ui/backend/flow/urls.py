@@ -131,6 +131,9 @@ from backend.flow.views.redis_cluster import (
     RedisFlushDataSceneApiView,
     RedisProxyScaleSceneApiView,
     RedisRemoveDtsServerSceneApiView,
+    RedisSlotsMigrateForContractionSceneApiView,
+    RedisSlotsMigrateForExpansionSceneApiView,
+    RedisSlotsMigrateForHotkeySceneApiView,
     SingleProxyShutdownSceneApiView,
     SingleRedisShutdownSceneApiView,
 )
@@ -144,6 +147,7 @@ from backend.flow.views.riak_apply import RiakApplySceneApiView
 from backend.flow.views.riak_destroy import RiakClusterDestroyApiView
 from backend.flow.views.riak_disable import RiakClusterDisableApiView
 from backend.flow.views.riak_enable import RiakClusterEnableApiView
+from backend.flow.views.riak_reboot import RiakRebootApiView
 from backend.flow.views.riak_scale_in import RiakClusterScaleInApiView
 from backend.flow.views.riak_scale_out import RiakClusterScaleOutApiView
 from backend.flow.views.spider_add_mnt import AddSpiderMNTSceneApiView
@@ -210,6 +214,9 @@ urlpatterns = [
     url(r"^scene/redis_migrate_load$", RedisClusterMigrateLoad.as_view()),
     url(r"^scene/redis_migrate_compair$", RedisClusterMigrateCompair.as_view()),
     url(r"^scene/redis_cluster_version_update_online$", RedisClusterVersionUpdateOnlineApiView.as_view()),
+    url(r"^scene/redis_slots_migrate_for_expansion$", RedisSlotsMigrateForExpansionSceneApiView.as_view()),
+    url(r"^scene/redis_slots_migrate_for_contraction$", RedisSlotsMigrateForContractionSceneApiView.as_view()),
+    url(r"^scene/redis_slots_migrate_for_hotkey$", RedisSlotsMigrateForHotkeySceneApiView.as_view()),
     # redis api url end
     # dns api
     url(r"^scene/client_set_dns_server$", ClientSetDnsServerSceneApiView.as_view()),
@@ -348,6 +355,7 @@ urlpatterns = [
     url(r"^scene/riak_cluster_destroy$", RiakClusterDestroyApiView.as_view()),
     url(r"^scene/riak_cluster_enable$", RiakClusterEnableApiView.as_view()),
     url(r"^scene/riak_cluster_disable$", RiakClusterDisableApiView.as_view()),
+    url(r"^scene/riak_reboot$", RiakRebootApiView.as_view()),
     # tendbcluster 切换类
     url(r"^scene/tendb_cluster_remote_switch$", RemoteSwitchSceneApiView.as_view()),
     url(r"^scene/tendb_cluster_remote_fail_over$", RemoteFailOverSceneApiView.as_view()),

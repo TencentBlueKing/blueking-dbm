@@ -90,9 +90,8 @@
   </div>
 </template>
 <script setup lang="ts">
+  import RenderTableHeadColumn from '@components/render-table/HeadColumn.vue';
   import RenderTable from '@components/render-table/Index.vue';
-
-  import RenderTableHeadColumn from '@views/redis/common/render-table/HeadColumn.vue';
 
   interface Emits{
     (e: 'showMasterBatchSelector'): void

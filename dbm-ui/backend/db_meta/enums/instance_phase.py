@@ -14,13 +14,13 @@ from django.utils.translation import gettext_lazy as _
 
 class InstancePhase(str, StructuredEnum):
     # instance实际可能存在的phase状态
-    ONLINE = EnumField("online", _("online"))
-    OFFLINE = EnumField("offline", _("offline"))
+    ONLINE = EnumField("online", _("正常"))
+    OFFLINE = EnumField("offline", _("下架"))
 
     # 仅用作单据校验，不实际写入，销毁集群时，请直接删除Instance
-    DESTROY = EnumField("destroy", _("destroy"))
+    DESTROY = EnumField("destroy", _("销毁"))
 
-    TRANS_STAGE = EnumField("trans_stage", _("trans_stage"))
+    TRANS_STAGE = EnumField("trans_stage", _(" scr/gcs迁移中"))
 
     @classmethod
     def instance_status_transfer_valid(cls, source_phase, target_phase) -> bool:

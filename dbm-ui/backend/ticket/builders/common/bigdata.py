@@ -293,39 +293,3 @@ class BaseInfluxDBOpsDetailSerializer(BigDataDetailsSerializer):
             if not instance.exists():
                 raise serializers.ValidationError(_("实例{}不存在, 请重新确认实例的合法性").format(instance_info["instance_name"]))
         return attrs
-
-
-class BaseInfluxDBReplaceDetailSerializer(BigDataDetailsSerializer):
-    ip_source = serializers.ChoiceField(help_text=_("主机来源"), choices=IpSource.get_choices())
-    old_nodes = serializers.DictField(help_text=_("旧节点信息集合"), child=serializers.ListField(help_text=_("节点信息")))
-    new_nodes = serializers.DictField(
-        help_text=_("新节点信息集合"), child=serializers.ListField(help_text=_("节点信息")), required=False
-    )
-    resource_spec = serializers.JSONField(help_text=_("规格"), required=False)
-
-    def validate(self, attrs):
-        # 校验替换前后角色类型和数量一致
-        old_nodes = attrs["old_nodes"]
-        new_nodes = attrs["new_nodes"] if attrs["ip_source"] == IpSource.MANUAL_INPUT else attrs["resource_spec"]
-        if set(old_nodes.keys()) != set(new_nodes.keys()):
-            raise serializers.ValidationError(_("替换前后角色类型不一致，请保证替换前后角色类型和数量一致！"))
-
-        for role in old_nodes:
-            old_nodes_len = len(old_nodes[role])
-            new_nodes_len = (
-                len(new_nodes[role]) if attrs["ip_source"] == IpSource.MANUAL_INPUT else new_nodes[role]["count"]
-            )
-            if old_nodes_len != new_nodes_len:
-                raise serializers.ValidationError(_("角色{}替换前后数量不一致，请保证替换前后角色类型和数量一致！").format(role))
-
-        # 判断主机是否来自手工输入，从资源池拿到的主机不需要校验
-        if attrs["ip_source"] == IpSource.RESOURCE_POOL:
-            return attrs
-
-        # 校验替换后新的主机是否存在于空闲机
-        self.validate_hosts_from_idle_pool(self.context["bk_biz_id"], attrs["new_nodes"])
-
-        # 判断主机是否已经存在db_meta信息中
-        self.validate_hosts_not_in_db_meta(nodes=attrs["new_nodes"])
-
-        return attrs

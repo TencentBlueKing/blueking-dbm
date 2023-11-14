@@ -23,7 +23,7 @@
         v-model="keyword"
         class="search-input"
         clearable
-        :placeholder="t('请输入策略名称')"
+        :placeholder="t('请输入告警组名称')"
         type="search"
         @clear="fetchTableData"
         @enter="fetchTableData" />
@@ -33,11 +33,13 @@
       class="alert-group-table"
       :columns="columns"
       :data-source="getAlarmGroupList"
-      :row-class="setRowClass" />
+      :row-class="setRowClass"
+      @request-success="handleRequestSuccess" />
     <DetailDialog
       v-model="detailDialogShow"
       :biz-id="bizId"
       :detail-data="detailData"
+      :name-list="nameList"
       :type="detailType"
       @successed="fetchTableData" />
   </div>
@@ -59,11 +61,14 @@
   import { useGlobalBizs } from '@stores';
 
   import MiniTag from '@components/mini-tag/index.vue';
+  import RenderTextEllipsisOneLine from '@components/text-ellipsis-one-line/index.vue';
 
   import { messageSuccess } from '@utils';
 
   import DetailDialog from './components/DetailDialog.vue';
   import RenderRow from './components/RenderRow.vue';
+
+  import type { ListBase } from '@/services/types/common';
 
   const isNewUser = (createTime: string) => {
     if (!createTime) {
@@ -103,21 +108,31 @@
       width: 240,
       render: ({ row }: TableRenderData) => {
         const isRenderTag = !isPlatform && row.is_built_in;
-
-        return (
-          <>
-            <span class="alarm-group-name">{ row.name }</span>
+        const content = <>
             {
               isRenderTag
-                ? <MiniTag content={ t('内置') } class="ml-4"></MiniTag>
+                ? <MiniTag
+                    content={ t('内置') }
+                    class="ml-4" />
                 : null
             }
             {
               isNewUser(row.create_at)
-                ? <span class="glob-new-tag ml-4" data-text="NEW" />
+                ? <MiniTag
+                    content='NEW'
+                    theme='success'
+                    class="ml-4">
+                  </MiniTag>
                 : null
             }
-          </>
+        </>;
+
+        return (
+          <RenderTextEllipsisOneLine
+            text={row.name}
+            onText-click={ () => handleOpenDetail('edit', row) }>
+            { content }
+          </RenderTextEllipsisOneLine>
         );
       },
     },
@@ -221,6 +236,7 @@
   const detailDialogShow = ref(false);
   const detailType = ref<'add' | 'edit' | 'copy'>('add');
   const detailData = ref({} as AlarmGroupItem);
+  const nameList = ref<string[]>([]);
   const userGroupMap = shallowRef<UserGroupMap>({});
 
   useRequest(getUserGroupList, {
@@ -286,6 +302,10 @@
     });
   };
 
+  const handleRequestSuccess = (tableData: ListBase<AlarmGroupItem[]>) => {
+    nameList.value = tableData.results.map(tableItem => tableItem.name);
+  };
+
   onMounted(() => {
     fetchTableData();
   });
@@ -303,8 +323,24 @@
     }
 
     :deep(.alert-group-table) {
-      .alarm-group-name {
-        color: @primary-color;
+      .name-cell {
+        display: flex;
+        align-items: center;
+
+        .name-button {
+          display: block;
+          overflow: hidden;
+          line-height: 1.5;
+          flex: 0 1 auto;
+
+          .bk-button-text {
+            display: block;
+            overflow: hidden;
+            line-height: inherit;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+          }
+        }
       }
 
       .is-new {

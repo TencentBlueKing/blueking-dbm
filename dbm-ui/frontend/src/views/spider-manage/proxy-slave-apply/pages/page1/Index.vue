@@ -35,10 +35,9 @@
       </RenderData>
       <ClusterSelector
         v-model:is-show="isShowMasterInstanceSelector"
-        :get-resource-list="getList"
+        :cluster-types="[ClusterTypes.TENDBCLUSTER]"
         :selected="selectedClusters"
-        :show-preview-result-title="false"
-        :tab-list="clusterSelectorTabList"
+        :tab-list-config="tabListConfig"
         @change="handelClusterChange" />
     </div>
     <template #action>
@@ -70,7 +69,7 @@
   import { useRouter } from 'vue-router';
 
   import SpiderModel from '@services/model/spider/spider';
-  import { getList } from '@services/spider';
+  import { getList } from '@services/source/resourceSpider';
   import { createTicket } from '@services/ticket';
   import type { SubmitTicket } from '@services/types/ticket';
 
@@ -85,7 +84,6 @@
 
   import { random } from '@utils';
 
-  import SpiderTable from './components/cluster-selector-table/Index.vue';
   import RenderData from './components/Index.vue';
   import RenderDataRow, {
     createRowData,
@@ -102,15 +100,18 @@
   const isSubmitting  = ref(false);
   const tableData = ref([createRowData()]);
 
-  const selectedClusters = shallowRef<{[key: string]: Array<SpiderModel>}>({ [ClusterTypes.SPIDER]: [] });
+  const selectedClusters = shallowRef<{[key: string]: Array<SpiderModel>}>({ [ClusterTypes.TENDBCLUSTER]: [] });
 
   const totalNum = computed(() => tableData.value.filter(item => Boolean(item.cluster)).length);
 
-  const clusterSelectorTabList = [{
-    id: ClusterTypes.SPIDER as string,
-    name: t('集群选择'),
-    content: SpiderTable as unknown as Element,
-  }];
+  const tabListConfig = {
+    [ClusterTypes.TENDBCLUSTER]: {
+      disabledRowConfig: {
+        handler: (data: SpiderModel) => data.spider_slave.length > 0,
+        tip: t('该集群已有只读集群'),
+      },
+    },
+  };
 
   // 集群域名是否已存在表格的映射表
   let domainMemo:Record<string, boolean> = {};
@@ -149,7 +150,7 @@
   // 批量选择
   const handelClusterChange = async (selected: {[key: string]: Array<SpiderModel>}) => {
     selectedClusters.value = selected;
-    const list = selected[ClusterTypes.SPIDER];
+    const list = selected[ClusterTypes.TENDBCLUSTER];
     const newList = list.reduce((result, item) => {
       const domain = item.master_domain;
       if (!domainMemo[domain]) {
@@ -187,7 +188,7 @@
     const row = generateRowDateFromRequest(data);
     tableData.value[index] = row;
     domainMemo[domain] = true;
-    selectedClusters.value[ClusterTypes.SPIDER].push(data);
+    selectedClusters.value[ClusterTypes.TENDBCLUSTER].push(data);
   };
 
   // 追加一个集群
@@ -199,8 +200,8 @@
   const handleRemove = async (index: number, domain: string) => {
     tableData.value.splice(index, 1);
     delete domainMemo[domain];
-    const clustersArr = selectedClusters.value[ClusterTypes.SPIDER];
-    selectedClusters.value[ClusterTypes.SPIDER] = clustersArr.filter(item => item.master_domain !== domain);
+    const clustersArr = selectedClusters.value[ClusterTypes.TENDBCLUSTER];
+    selectedClusters.value[ClusterTypes.TENDBCLUSTER] = clustersArr.filter(item => item.master_domain !== domain);
   };
 
   // 点击提交按钮
@@ -246,7 +247,7 @@
 
   const handleReset = () => {
     tableData.value = [createRowData()];
-    selectedClusters.value[ClusterTypes.SPIDER] = [];
+    selectedClusters.value[ClusterTypes.TENDBCLUSTER] = [];
     domainMemo = {};
     window.changeConfirm = false;
   };

@@ -42,9 +42,9 @@
   } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import { getListInstance } from '@services/kafka';
   import type KafkaInstanceModel from '@services/model/kafka/kafka-instance';
   import type KafkaNodeModel from '@services/model/kafka/kafka-node';
+  import { getListInstance } from '@services/source/kafka';
   import { createTicket } from '@services/ticket';
 
   import { useTicketMessage } from '@hooks';

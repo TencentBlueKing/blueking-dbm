@@ -27,8 +27,8 @@ DEFAULT_CONFIG_CONFIRM = 0
 DEFAULT_IP = "127.0.0.1"
 
 # zookeeper配置文件模板
-ZK_CONF = "server.{i}={zk_ip}:2888:3888;2181"
-ZK_PORT = ":2888:3888;2181"
+ZK_CONF = "server.{i}={zk_ip}:2888:3888;{zk_ip}:2181"
+ZK_PORT = ":2888:3888;.*2181"
 
 DEFAULT_FACTOR = 3
 
@@ -286,6 +286,7 @@ class DBActuatorTypeEnum(str, StructuredEnum):
     Proxy = EnumField("proxy", _("proxy"))
     Redis = EnumField("redis", _("redis"))
     Tendis = EnumField("tendis", _("tendis"))
+    Tendisplus = EnumField("tendisplus", _("tendisplus"))
     TendisSSD = EnumField("tendisssd", _("tendisssd"))
     Twemproxy = EnumField("twemproxy", _("twemproxy"))
     Predixy = EnumField("predixy", _("predixy"))
@@ -352,6 +353,8 @@ class DBActuatorActionEnum(str, StructuredEnum):
     MysqlOpenAreaDumpData = EnumField("open_area_dumpdata", _("Mysql开区导出库表数据"))
     MysqlOpenAreaImportData = EnumField("open_area_importdata", _("Mysql开区导入库表数据"))
     EnableTokudb = EnumField("enable-tokudb-engine", _("MySQL实例安装tokudb引擎"))
+    AdoptTendbHAStorage = EnumField("adopt-tendbha-storage", _("接管TendbHA 存储层"))
+    AdoptTendbHAProxy = EnumField("adopt-tendbha-proxy", _("接管TendbHA 接入层"))
 
 
 class RedisActuatorActionEnum(str, StructuredEnum):
@@ -386,6 +389,7 @@ class RedisActuatorActionEnum(str, StructuredEnum):
     CLUSTER_MEET_CHECK = EnumField("clustermeet_checkfinish", _("clustermeet_checkfinish"))
     VERSION_UPDATE = EnumField("version_update", _("version_update"))
     CLUSTER_FAILOVER = EnumField("cluster_failover", _("cluster_failover"))
+    SLOTS_MIGRATE = EnumField("migrate_slots", _("migrate_slots"))
 
 
 class EsActuatorActionEnum(str, StructuredEnum):
@@ -485,6 +489,7 @@ class RiakActuatorActionEnum(str, StructuredEnum):
     ClearCrontab = EnumField("clear-crontab", _("clear-crontab"))
     UnInstall = EnumField("uninstall", _("uninstall"))
     Start = EnumField("start", _("start"))
+    Restart = EnumField("restart", _("restart"))
     Stop = EnumField("stop", _("stop"))
     DeployMonitor = EnumField("deploy-monitor", _("deploy-monitor"))
     StartMonitor = EnumField("start-monitor", _("start-monitor"))

@@ -11,9 +11,11 @@ package config
 // LogicalBackup the config of logical backup
 // data or schema is controlled by Public.DataSchemaGrant
 type LogicalBackup struct {
-	ChunkFilesize   uint64 `ini:"ChunkFilesize"` // split tables into chunks of this output file size. This value is in MB
-	Regex           string `ini:"Regex"`
-	Threads         int    `ini:"Threads"`
+	// ChunkFilesize split tables into chunks of this output file size. This value is in MB
+	ChunkFilesize uint64 `ini:"ChunkFilesize"`
+	Regex         string `ini:"Regex"`
+	Threads       int    `ini:"Threads"`
+	// DisableCompress disable zstd compress. compress is enable by default
 	DisableCompress bool   `ini:"DisableCompress"`
 	FlushRetryCount int    `ini:"FlushRetryCount"`
 	DefaultsFile    string `ini:"DefaultsFile"`

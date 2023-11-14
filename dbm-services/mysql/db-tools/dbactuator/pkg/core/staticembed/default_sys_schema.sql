@@ -36,7 +36,7 @@ CREATE TABLE if not exists infodba_schema.spes_status(
     PRIMARY KEY ip_id_day (ip, spes_id, report_day)
 ) engine = InnoDB;
 CREATE TABLE IF NOT EXISTS infodba_schema.check_heartbeat (
-    uid INT NOT NULL PRIMARY KEY,
+    uid INT UNSIGNED  NOT NULL PRIMARY KEY,
     ck_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP on  UPDATE CURRENT_TIMESTAMP
 ) ENGINE = InnoDB;
 REPLACE INTO infodba_schema.check_heartbeat(uid) value(@@server_id);
@@ -48,7 +48,7 @@ CREATE TABLE IF NOT EXISTS infodba_schema.query_response_time(
     PRIMARY KEY (time_min, time)
 ) engine = InnoDB;
 -- conn_log 所有用户可写. 注会导致所有用户可以看见 infodba_schema
-insert into `mysql`.`db`(`Host`,`Db`,`User`,`Select_priv`,`Insert_priv`, `Update_priv`,`Delete_priv`,`Create_priv`,`Drop_priv`)
+REPLACE into `mysql`.`db`(`Host`,`Db`,`User`,`Select_priv`,`Insert_priv`, `Update_priv`,`Delete_priv`,`Create_priv`,`Drop_priv`)
  values('%','infodba_schema','','Y','Y',  'N','N','N','N');
 
 flush privileges;

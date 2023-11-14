@@ -22,7 +22,14 @@ from backend.components.dbconfig.constants import FormatType, LevelName
 from backend.configuration.constants import DBType
 from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta import api
-from backend.db_meta.enums import DBCCModule, InstanceInnerRole, InstanceRole, InstanceStatus, SyncType
+from backend.db_meta.enums import (
+    DataStructureStatus,
+    DBCCModule,
+    InstanceInnerRole,
+    InstanceRole,
+    InstanceStatus,
+    SyncType,
+)
 from backend.db_meta.enums.cluster_type import ClusterType
 from backend.db_meta.models import Cluster, StorageInstance, StorageInstanceTuple
 from backend.db_services.redis.rollback.handlers import DataStructureHandler
@@ -277,7 +284,7 @@ class RedisDataStructureFlow(object):
                 # 计算待下载的备份文件大小和获取对应机器磁盘大小,这里是单个任务的时候，还有多个任务的时候
                 multi_total_size = 0
                 for act in acts_list:
-                    data_params = act["kwargs"]["cluster"]["data_params"]
+                    data_params = act["kwargs"]["cluster"]
                     full_size = 0
                     all_binlog_size = 0
                     for full in data_params["full_file_list"]:
@@ -307,16 +314,14 @@ class RedisDataStructureFlow(object):
             # 并发下载 节点维度的备份文件
             sub_pipelines = []
             for act in acts_list:
-                data_params = act["kwargs"]["cluster"]["data_params"]
-                source_ports = data_params["source_ports"]
-
+                data_params = act["kwargs"]["cluster"]
+                # source_ports = data_params["source_ports"]
                 # for source_port in source_ports:
                 # 这里可以一次下载，不用按端口分批下载
                 sub_builder = redis_backupfile_download(
                     self.root_id,
                     self.data,
                     info,
-                    act_kwargs,
                     {
                         "source_ip": data_params["source_ip"],
                         # "source_port": source_port,
@@ -442,7 +447,7 @@ class RedisDataStructureFlow(object):
                 "prod_temp_instance_pairs": node_pairs,
                 "host_count": len(info["redis"]),
                 "recovery_time_point": info["recovery_time_point"],
-                "status": 2,
+                "status": DataStructureStatus.COMPLETED,
                 "meta_func_name": RedisDBMeta.data_construction_tasks_operate.__name__,
                 "cluster_type": cluster_type,
             }
@@ -640,7 +645,7 @@ class RedisDataStructureFlow(object):
         acts_list_push_json = []
 
         rollback_time = time.strptime(info["recovery_time_point"], "%Y-%m-%d %H:%M:%S")
-        rollback_handler = DataStructureHandler(info["cluster_id"])
+
         kvstorecount = None
         if tendis_type == ClusterType.TendisplusInstance.value:
             kvstorecount = act_kwargs.cluster["kvstorecount"]
@@ -660,7 +665,6 @@ class RedisDataStructureFlow(object):
                     source_ports.append(int(pair[0].split(IP_PORT_DIVIDER)[1]))
                     new_temp_ports.append(int(pair[1].split(IP_PORT_DIVIDER)[1]))
 
-            # TODO-MY: 下面两段代码的重复率太高了
             # 将多个source_ip的情况继续拆分,每个source_ip是一个actuator
             if len(source_ip_map) > 1:
                 for source_temp_ip in source_ip_map:
@@ -674,124 +678,114 @@ class RedisDataStructureFlow(object):
                             new_temp_ports.append(int(temp_pair[1].split(IP_PORT_DIVIDER)[1]))
                         source_ip = source_temp_ip
 
-                    # TODO-MY: 重复代码片段
                     for source_port in source_ports:
-                        backupinfo = rollback_handler.query_latest_backup_log(rollback_time, source_ip, source_port)
-                        if backupinfo is not None:
-                            #  拼接多个节点的全备份文件
-                            full_backupinfo.append(backupinfo)
-                        # 全备份的开始时间
-                        backup_time = time.strptime(backupinfo["file_last_mtime"], "%Y-%m-%d %H:%M:%S")
-                        # ssd 和tendisplus才有binlog
-                        if tendis_type in [ClusterType.TendisplusInstance.value, ClusterType.TendisSSDInstance.value]:
-                            # 查询binlog
-                            backup_binlog = rollback_handler.query_binlog_from_bklog(
-                                start_time=backup_time,
-                                end_time=rollback_time,
-                                minute_range=120,
-                                host_ip=source_ip,
-                                port=source_port,
-                                kvstorecount=kvstorecount,
-                                tendis_type=tendis_type,
-                            )
-                            if backup_binlog is None:
-                                raise TendisGetBinlogFailedException(
-                                    message=_("获取实例 {}:{} 的binlog备份信息失败".format(source_ip, source_port))
-                                )
-                            else:
-                                # print(f"backup_binlog:{backup_binlog}")
-                                # # 拼接多个节点的binlog备份文件
-                                binlog_backupinfo.extend(backup_binlog)
-                    act_kwargs.cluster["data_params"] = {
-                        "source_ip": source_ip,
-                        "source_ports": source_ports,
-                        "new_temp_ip": new_temp_ip,
-                        "new_temp_ports": new_temp_ports,
-                        "recovery_time_point": info["recovery_time_point"],
-                        "tendis_type": tendis_type,
-                        "dest_dir": dest_dir,
-                        "full_file_list": full_backupinfo,
-                        "binlog_file_list": binlog_backupinfo,
-                    }
-                    logger.info("Data structure delivery data_params：{}".format(act_kwargs.cluster["data_params"]))
-                    act_kwargs.exec_ip = new_temp_ip
-                    act_kwargs.get_redis_payload_func = RedisActPayload.redis_data_structure.__name__
-                    act_kwargs.act_name = _("源{}构造到临时机{}").format(source_ip, act_kwargs.exec_ip)
-                    acts_list_push_json.append(
-                        {
-                            "act_name": _("源{}payload json下发到临时机{}").format(source_ip, act_kwargs.exec_ip),
-                            "act_component_code": PushDataStructureJsonScriptComponent.code,
-                            "kwargs": asdict(act_kwargs),
-                        }
-                    )
-                    acts_list.append(
-                        {
-                            "act_name": act_kwargs.act_name,
-                            "act_component_code": ExecuteDataStructureActuatorScriptComponent.code,
-                            "kwargs": asdict(act_kwargs),
-                        }
+                        instance_full_backup, instance_binlog_backup = self.get_backupfile(
+                            info["cluster_id"], rollback_time, source_ip, source_port, tendis_type, kvstorecount
+                        )
+                        full_backupinfo.extend(instance_full_backup)
+                        binlog_backupinfo.extend(instance_binlog_backup)
+                    acts_list_new_ip, acts_list_push_json_new_ip = self.get_acts_list(
+                        source_ip,
+                        source_ports,
+                        new_temp_ip,
+                        new_temp_ports,
+                        info["recovery_time_point"],
+                        tendis_type,
+                        dest_dir,
+                        full_backupinfo,
+                        binlog_backupinfo,
+                        act_kwargs,
                     )
             elif len(source_ip_map) == 1:
                 source_ip = next(iter(source_ip_map))
                 for source_port in source_ports:
-                    # 查询全备份日志
-                    backupinfo = rollback_handler.query_latest_backup_log(rollback_time, source_ip, source_port)
-                    if backupinfo is not None:
-                        # 拼接多个节点的备份文件
-                        full_backupinfo.append(backupinfo)
-                    # 全备份的开始时间
-                    backup_time = time.strptime(backupinfo["file_last_mtime"], "%Y-%m-%d %H:%M:%S")
-                    # ssd 和tendisplus才有binlog
-                    if tendis_type in [ClusterType.TendisplusInstance.value, ClusterType.TendisSSDInstance.value]:
-                        # 查询binlog
-                        backup_binlog = rollback_handler.query_binlog_from_bklog(
-                            start_time=backup_time,
-                            end_time=rollback_time,
-                            minute_range=120,
-                            host_ip=source_ip,
-                            port=source_port,
-                            kvstorecount=kvstorecount,
-                            tendis_type=tendis_type,
-                        )
+                    full_backup, binlog_backup = self.get_backupfile(
+                        info["cluster_id"], rollback_time, source_ip, source_port, tendis_type, kvstorecount
+                    )
+                    full_backupinfo.append(full_backup)
+                    binlog_backupinfo.extend(binlog_backup)
 
-                        if backup_binlog is None:
-                            raise TendisGetBinlogFailedException(
-                                message=_("获取实例 {}:{} 的binlog备份信息失败".format(source_ip, source_port))
-                            )
-                        else:
-                            # print(f"backup_binlog:{backup_binlog}")
-                            # # 拼接多个节点的binlog备份文件
-                            binlog_backupinfo.extend(backup_binlog)
+                acts_list_new_ip, acts_list_push_json_new_ip = self.get_acts_list(
+                    source_ip,
+                    source_ports,
+                    new_temp_ip,
+                    new_temp_ports,
+                    info["recovery_time_point"],
+                    tendis_type,
+                    dest_dir,
+                    full_backupinfo,
+                    binlog_backupinfo,
+                    act_kwargs,
+                )
+            acts_list.append(acts_list_new_ip)
+            acts_list_push_json.append(acts_list_push_json_new_ip)
 
-                # TODO-MY: 重复代码片段
-                data_params = {
-                    "source_ip": source_ip,
-                    "source_ports": source_ports,
-                    "new_temp_ip": new_temp_ip,
-                    "new_temp_ports": new_temp_ports,
-                    "recovery_time_point": info["recovery_time_point"],
-                    "tendis_type": tendis_type,
-                    "dest_dir": dest_dir,
-                    "full_file_list": full_backupinfo,
-                    "binlog_file_list": binlog_backupinfo,
-                }
-                act_kwargs.cluster["data_params"] = data_params
-                logger.info("Data structure delivery data_params：{}".format(act_kwargs.cluster["data_params"]))
-                act_kwargs.exec_ip = new_temp_ip
-                act_kwargs.get_redis_payload_func = RedisActPayload.redis_data_structure.__name__
-                act_kwargs.act_name = _("源{}构造到临时机{}").format(source_ip, act_kwargs.exec_ip)
-                acts_list_push_json.append(
-                    {
-                        "act_name": _("源{}payload json下发到临时机{}").format(source_ip, act_kwargs.exec_ip),
-                        "act_component_code": PushDataStructureJsonScriptComponent.code,
-                        "kwargs": asdict(act_kwargs),
-                    }
-                )
-                acts_list.append(
-                    {
-                        "act_name": act_kwargs.act_name,
-                        "act_component_code": ExecuteDataStructureActuatorScriptComponent.code,
-                        "kwargs": asdict(act_kwargs),
-                    }
-                )
         return acts_list, acts_list_push_json
+
+    @staticmethod
+    def get_backupfile(cluster_id, rollback_time, source_ip, source_port, tendis_type, kvstorecount) -> (dict, dict):
+        rollback_handler = DataStructureHandler(cluster_id)
+        instance_binlog_backup = []
+        instance_full_backup = rollback_handler.query_latest_backup_log(rollback_time, source_ip, source_port)
+        if instance_full_backup is None:
+            raise TendisGetBinlogFailedException(message=_("获取实例 {}:{} 的binlog备份信息失败".format(source_ip, source_port)))
+        # 全备份的开始时间
+        backup_time = time.strptime(instance_full_backup["file_last_mtime"], "%Y-%m-%d %H:%M:%S")
+        # ssd 和tendisplus才有binlog
+        if tendis_type in [ClusterType.TendisplusInstance.value, ClusterType.TendisSSDInstance.value]:
+            # 查询binlog
+            instance_binlog_backup = rollback_handler.query_binlog_from_bklog(
+                start_time=backup_time,
+                end_time=rollback_time,
+                minute_range=120,
+                host_ip=source_ip,
+                port=source_port,
+                kvstorecount=kvstorecount,
+                tendis_type=tendis_type,
+            )
+
+            if instance_binlog_backup is None:
+                raise TendisGetBinlogFailedException(
+                    message=_("获取实例 {}:{} 的binlog备份信息失败".format(source_ip, source_port))
+                )
+
+        return instance_full_backup, instance_binlog_backup
+
+    @staticmethod
+    def get_acts_list(
+        source_ip,
+        source_ports,
+        new_temp_ip,
+        new_temp_ports,
+        recovery_time_point,
+        tendis_type,
+        dest_dir,
+        full_backupinfo,
+        binlog_backupinfo,
+        act_kwargs,
+    ) -> (dict, dict):
+        act_kwargs.cluster["source_ip"] = source_ip
+        act_kwargs.cluster["source_ports"] = source_ports
+        act_kwargs.cluster["new_temp_ip"] = new_temp_ip
+        act_kwargs.cluster["new_temp_ports"] = new_temp_ports
+        act_kwargs.cluster["recovery_time_point"] = recovery_time_point
+        act_kwargs.cluster["tendis_type"] = tendis_type
+        act_kwargs.cluster["dest_dir"] = dest_dir
+        act_kwargs.cluster["full_file_list"] = full_backupinfo
+        act_kwargs.cluster["binlog_file_list"] = binlog_backupinfo
+
+        act_kwargs.exec_ip = new_temp_ip
+        act_kwargs.get_redis_payload_func = RedisActPayload.redis_data_structure.__name__
+        act_kwargs.act_name = _("源{}构造到临时机{}").format(source_ip, act_kwargs.exec_ip)
+        node_acts_list_push_json = {
+            "act_name": _("源{}payload json下发到临时机{}").format(source_ip, act_kwargs.exec_ip),
+            "act_component_code": PushDataStructureJsonScriptComponent.code,
+            "kwargs": asdict(act_kwargs),
+        }
+        node_acts_list = {
+            "act_name": act_kwargs.act_name,
+            "act_component_code": ExecuteDataStructureActuatorScriptComponent.code,
+            "kwargs": asdict(act_kwargs),
+        }
+
+        return node_acts_list, node_acts_list_push_json

@@ -105,6 +105,10 @@ SA_CHECK_TEMPLATE_ID = get_type_env(key="SA_CHECK_TEMPLATE_ID", _type=int)
 # 标准运维SA 初始化任务模版ID
 SA_INIT_TEMPLATE_ID = get_type_env(key="SA_INIT_TEMPLATE_ID", _type=int)
 
+# 标准运维SA 初始化任务模版ID
+YUM_INSTALL_PERL = get_type_env(key="YUM_INSTALL_PERL", _type=bool, default=False)
+
+
 # 内嵌grafana地址
 GRAFANA_URL = get_type_env(key="GRAFANA_URL", _type=str, default="")
 

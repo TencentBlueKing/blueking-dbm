@@ -80,7 +80,7 @@
   } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import { grammarCheck } from '@services/sqlImport';
+  import { grammarCheck } from '@services/source/sqlImport';
   import { getFileContent } from '@services/storage';
 
   import { useGlobalBizs } from '@stores';

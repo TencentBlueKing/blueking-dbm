@@ -12,6 +12,9 @@ specific language governing permissions and limitations under the License.
 from backend.configuration.constants import DBType
 from backend.ticket.builders import TicketFlowBuilder
 
+# 默认riak的版本为2.2
+RIAK_VERSION = "2.2"
+
 
 class BaseRiakTicketFlowBuilder(TicketFlowBuilder):
     group = DBType.Riak.value

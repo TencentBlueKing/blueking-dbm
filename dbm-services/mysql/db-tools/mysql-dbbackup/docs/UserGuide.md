@@ -189,6 +189,69 @@ index文件内容格式为：
 {"backup_id":"23d29c7a-7773-11ed-b724-525400b22106","bill_id":"","status":"Success","report_time":"2022-12-09 11:39:53"}
 ```
 
+## 3.4 备份加密
+### 加密选项
+```
+[Public.EncryptOpt]
+EncryptEnable = true
+EncryptCmd = openssl
+EncryptPublicKey =
+EncryptElgo =
+```
+1. EncryptEnable: 是否启用备份文件加密  
+   对称加密,加密密码 passphrase 随机生成
+2. EncryptCmd: 加密工具，支持 `openssl`,`xbcrypt`  
+  - 留空默认为 openssl
+  - 如果是 xbcrypt,默认从工具目录下找 `bin/xbcrypt`，也可以指定工具全路径  
+3. EncryptAlgo: 加密算法，留空会有默认加密算法
+   - openssl [aes-256-cbc, aes-128-cbc, sm4-cbc]，文件后缀 `.enc`。
+    sm4-cbc 为国密对称加密算法，需要 mysql 本机上的 openssl>1.1.1
+   - xbcrypt [AES256, AES192, AES128]，文件后缀 `.xb`
+4. EncryptPublicKey: public key 文件  
+  - 用于 对 passphrase 加密，上报加密字符串。需要对应的平台 私钥 secret key 才能对 加密后的passphrase 解密
+  - EncryptPublicKey 如果为空，会上报密码，仅测试用途
+
+### EncryptPublicKey 生成示例
+```
+# 生成秘钥
+openssl genrsa -out rsa.pem 2048
+# 从秘钥文件 rsa.pem 中提取公钥
+openssl rsa -pubout -in rsa.pem -out pubkey.pem
+```
+把 pubkey.pem 路径设置到 EncryptPublicKey
+
+### 手动解密文件
+如果没有设置 EncryptPublicKey ，可直接使用上报记录里的 key 解密，但这不安全，仅测试使用。
+如果设置了 EncryptPublicKey，先要通过私钥解密出 passphrase：
+```
+// 1. 被加密密码 base64 解码成文件
+echo -n "GiySD...bbw==" |base64 -d > encrypted.key
+
+// 2. 使用私钥 rsa.pem 解密出 passphrase
+openssl rsautl -decrypt -inkey rsa.pem -in encrypted.key
+
+// 3. 使用密码 passphrase 解密文件
+```
+
+**用户只能拿到加密后的密码，明文 passphrase 需要从平台的页面解密获取，因为解密用的私钥不能泄露。**
+
+- openssl 解密文件
+```
+openssl aes-256-cbc -d -k your_passphrase -in backupfile.tar.enc -out backupfile.tar
+```
+- xbcrypt 解密文件
+```
+xbcrypt -d -a AES256 -k your_passphrase -i backupfile.tar.xb -o backupfile.tar
+```
+
+### dbbackup filecrypt 解密文件
+自动识别后缀，使用对应的解密工具
+```
+dbbackup filecrypt -d -k your_passphrase \
+--remove-files -i backupfile.tar.xb -o backupfile.tar
+// --source-dir /xxx/ --target-dir=/yyy
+```
+
 # 4. 配置文件示例
 
 ```
@@ -213,6 +276,7 @@ TarSizeThreshold = 8192
 IOLimitMBPerSec  = 500
 ResultReportPath = /home/mysql/dbareport/mysql/dbbackup/result
 StatusReportPath = /home/mysql/dbareport/mysql/dbbackup/status
+
 
 [BackupClient]
 Enable = false

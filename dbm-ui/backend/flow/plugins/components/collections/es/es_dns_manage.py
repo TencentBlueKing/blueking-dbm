@@ -94,7 +94,7 @@ class EsDnsManageService(BaseService):
             # 更新域名
             cluster = Cluster.objects.get(id=global_data["cluster_id"])
             # 获取域名映射的IP
-            dns_details = dns_manage.get_domain(get_domain_name=cluster.immute_domain)
+            dns_details = dns_manage.get_domain(domain_name=cluster.immute_domain)
             dns_ips = [item["ip"] for item in dns_details]
             # 先加入，后删除
             for role in self.order_list:
@@ -118,7 +118,7 @@ class EsDnsManageService(BaseService):
             result = dns_manage.delete_domain(cluster_id=global_data["cluster_id"])
         elif dns_op_type == DnsOpType.RECYCLE_RECORD:
             # 修改域名映射（如果某个角色的机器被全部下掉，要修改域名到更低优先级角色的机器上）
-            dns_details = dns_manage.get_domain(get_domain_name=kwargs["domain_name"])
+            dns_details = dns_manage.get_domain(domain_name=kwargs["domain_name"])
             # 域名映射的IP
             dns_ips = [item["ip"] for item in dns_details]
             # 下架的IP

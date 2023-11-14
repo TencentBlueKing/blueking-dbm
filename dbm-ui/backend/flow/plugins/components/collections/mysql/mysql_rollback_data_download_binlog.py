@@ -32,11 +32,13 @@ class MySQLRollbackDownloadBinlog(MySQLDownloadBackupfile):
     def _execute(self, data, parent_data) -> bool:
         kwargs = data.get_one_of_inputs("kwargs")
         trans_data = data.get_one_of_inputs("trans_data")
+        self.log_info(kwargs)
+        self.log_info(trans_data)
         cluster = kwargs["cluster"]
-        backup_time = trans_data["backupinfo"]["backup_time"]
+        backup_time = trans_data.backupinfo["backup_time"]
         rollback_time = cluster["rollback_time"]
-        logger.info("backup time is {}".format(backup_time))
-        logger.info("rollback time is {}".format(rollback_time))
+        self.log_info("backup time is {}".format(backup_time))
+        self.log_info("rollback time is {}".format(rollback_time))
         # 查询binlog
         rollback_handler = FixPointRollbackHandler(cluster["cluster_id"])
         backup_binlog = rollback_handler.query_binlog_from_bklog(
@@ -46,6 +48,7 @@ class MySQLRollbackDownloadBinlog(MySQLDownloadBackupfile):
             host_ip=cluster["master_ip"],
             port=cluster["master_port"],
         )
+        self.log_info(backup_binlog)
 
         if backup_binlog is None:
             raise TenDBGetBackupInfoFailedException(message=_("获取实例 {} 的备份信息失败".format(cluster["master_ip"])))
@@ -57,6 +60,7 @@ class MySQLRollbackDownloadBinlog(MySQLDownloadBackupfile):
         trans_data.backup_time = backup_time
         # trans_data["binlog_files_list"] = binlog_files_list
         # trans_data["binlog_files"] = ",".join(binlog_files_list)
+        self.log_info(kwargs)
         data.outputs["kwargs"] = kwargs
         data.outputs["trans_data"] = trans_data
         return super()._execute(data, parent_data)
@@ -65,4 +69,4 @@ class MySQLRollbackDownloadBinlog(MySQLDownloadBackupfile):
 class MySQLRollbackDownloadBinlogComponent(Component):
     name = __name__
     code = "rollback_download_binlog"
-    bound_service = MySQLDownloadBackupfile
+    bound_service = MySQLRollbackDownloadBinlog

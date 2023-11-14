@@ -8,8 +8,8 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-import datetime
 from collections import defaultdict
+from datetime import datetime, timedelta
 
 from django.utils.translation import ugettext as _
 
@@ -49,9 +49,11 @@ def _check_binlog_backup(cluster_type):
     """
     for c in Cluster.objects.filter(cluster_type=cluster_type):
         backup = ClusterBackup(c.id, c.immute_domain)
-        now_time = datetime.datetime.now().date()
-        start_time = datetime.datetime.combine(now_time, datetime.time())
-        end_time = start_time + datetime.timedelta(hours=23, minutes=59, seconds=59)
+        now = datetime.now()
+        yesterday = now - timedelta(days=1)
+        start_time = datetime(yesterday.year, yesterday.month, yesterday.day)
+        end_time = datetime(yesterday.year, yesterday.month, yesterday.day, 23, 59, 59)
+
         items = backup.query_binlog_from_bklog(start_time, end_time)
         instance_binlogs = defaultdict(list)
         shard_binlog_stat = {}

@@ -270,13 +270,13 @@
   });
 
   const fetchData = () => {
-    if (!props.partitionData) {
+    if (!modelValue.value || !props.partitionData) {
       return;
     }
     fetchDryRun({
       config_id: props.partitionData.id,
       cluster_id: props.partitionData.cluster_id,
-      cluster_type: ClusterTypes.SPIDER,
+      cluster_type: ClusterTypes.TENDBCLUSTER,
     });
   };
 
@@ -292,8 +292,6 @@
         [partitionId]: _.filter(detailList, item => !item.message),
       };
       tableData.value = formatTableData(detailList);
-
-      console.log('from watch = ', props.operationDryRunData, tableData.value);
     }
   }, {
     immediate: true,

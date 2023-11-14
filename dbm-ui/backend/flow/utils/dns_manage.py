@@ -9,8 +9,9 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import logging
+from typing import List
 
-from backend.components import CCApi, GcsDnsApi
+from backend.components import CCApi, DnsApi
 from backend.db_meta.enums import ClusterEntryRole, ClusterEntryType
 from backend.db_meta.models import Cluster, ClusterEntry
 from backend.dbm_init.constants import CC_APP_ABBR_ATTR
@@ -32,24 +33,15 @@ class DnsManage(object):
         self.bk_biz_id = bk_biz_id
         self.bk_cloud_id = bk_cloud_id
 
-    def __get_app_name(self) -> str:
+    @staticmethod
+    def format_domain(domain_name: str) -> str:
         """
-        根据bk_biz_id 来获取业务名称（可能后续不需要）
+        保证域名的格式为，保留最后一个英文句号 "."
         """
-        res = CCApi.search_business(
-            {
-                "fields": ["bk_biz_id", CC_APP_ABBR_ATTR],
-                "biz_property_filter": {
-                    "condition": "AND",
-                    "rules": [{"field": "bk_biz_id", "operator": "equal", "value": self.bk_biz_id}],
-                },
-            }
-        )
-
-        if res["count"] != 1:
-            raise Exception(f"{res['count']} app found in cc by bk_biz_id: {self.bk_biz_id}")
-
-        return res["info"][0][CC_APP_ABBR_ATTR]
+        if domain_name.endswith("."):
+            return domain_name
+        else:
+            return f"{domain_name}."
 
     def create_domain(self, instance_list: list, add_domain_name: str) -> bool:
         """
@@ -59,11 +51,11 @@ class DnsManage(object):
         """
         create_domain_payload = [
             {
-                "domain_name": f"{add_domain_name}.",
+                "domain_name": self.format_domain(add_domain_name),
                 "instances": instance_list,
             }
         ]
-        GcsDnsApi.create_domain(
+        DnsApi.create_domain(
             {"app": str(self.bk_biz_id), "domains": create_domain_payload, "bk_cloud_id": self.bk_cloud_id}
         )
         return True
@@ -72,6 +64,7 @@ class DnsManage(object):
         """
         删除域名， 删除域名的方式是传入的集群id(cluster_id) ，清理db-meta注册的域名信息, 适用场景：集群回收
         @param cluster_id : 集群id
+        @param is_only_delete_slave_domain : 是否只删除从域名
         """
 
         # ClusterEntry表查询出所有dns类型的访问方式
@@ -83,9 +76,9 @@ class DnsManage(object):
         else:
             dns_info = ClusterEntry.objects.filter(cluster=cluster, cluster_entry_type=ClusterEntryType.DNS).all()
         for d in dns_info:
-            delete_domain_payload = [{"domain_name": f"{d.entry}."}]
+            delete_domain_payload = [{"domain_name": self.format_domain(d.entry)}]
             logger.info(d.entry)
-            res = GcsDnsApi.delete_domain(
+            res = DnsApi.delete_domain(
                 {"app": str(self.bk_biz_id), "domains": delete_domain_payload, "bk_cloud_id": self.bk_cloud_id}
             )
             logger.info(res)
@@ -99,7 +92,7 @@ class DnsManage(object):
         """
         # 默认认为回收域名的实例所属机器都在同一云区域下
         delete_domain_payload = [{"instances": del_instance_list}]
-        res = GcsDnsApi.delete_domain(
+        res = DnsApi.delete_domain(
             {"app": str(self.bk_biz_id), "domains": delete_domain_payload, "bk_cloud_id": self.bk_cloud_id}
         )
         logger.info(res)
@@ -114,10 +107,10 @@ class DnsManage(object):
         @param update_domain_name : 更改映射的域名名称
         """
         # TODO: 这个接口需要del_instance_list(或者其他方式)传入bk_cloud_id
-        GcsDnsApi.update_domain(
+        DnsApi.update_domain(
             {
                 "app": str(self.bk_biz_id),
-                "domain_name": f"{update_domain_name}.",
+                "domain_name": self.format_domain(update_domain_name),
                 "instance": f"{old_instance}",
                 "set": {"instance": f"{new_instance}"},
                 "bk_cloud_id": self.bk_cloud_id,
@@ -125,23 +118,22 @@ class DnsManage(object):
         )
         return True
 
-    def get_domain(self, get_domain_name: str) -> list:
+    def get_domain(self, domain_name: str) -> list:
         """
         根据域名信息查询映射关系
-        todo 功能尚未完善
         """
-        res = GcsDnsApi.get_domain(
+        res = DnsApi.get_domain(
             {
                 "app": str(self.bk_biz_id),
-                "domain_name": f"{get_domain_name}.",
+                "domain_name": self.format_domain(domain_name),
                 "bk_cloud_id": self.bk_cloud_id,
             }
         )
         return res["detail"]
 
     def remove_domain_ip(self, domain: str, del_instance_list: list) -> bool:
-        delete_domain_payload = [{"domain_name": f"{domain}.", "instances": del_instance_list}]
-        res = GcsDnsApi.delete_domain(
+        delete_domain_payload = [{"domain_name": self.format_domain(domain), "instances": del_instance_list}]
+        res = DnsApi.delete_domain(
             {"app": str(self.bk_biz_id), "domains": delete_domain_payload, "bk_cloud_id": self.bk_cloud_id}
         )
         logger.info(res)
@@ -169,12 +161,28 @@ class DnsManage(object):
                     "new_instance": f"{new_instance}",
                 }
             )
-        GcsDnsApi.batch_update_domain(
+        DnsApi.batch_update_domain(
             {
                 "app": str(self.bk_biz_id),
-                "domain_name": f"{update_domain_name}.",
+                "domain_name": self.format_domain(update_domain_name),
                 "set": sets,
                 "bk_cloud_id": self.bk_cloud_id,
             }
         )
         return True
+
+    def refresh_cluster_domain(self, domain_name: str, target_instance_list: List[str]):
+        """
+        刷新 DNS，数据以 DNS API 为准
+        """
+        domain_details = self.get_domain(domain_name)
+        old_instance_list = []
+        for domain in domain_details:
+            instance = f'{domain["ip"]}#{domain["port"]}'
+            old_instance_list.append(instance)
+            # 不在新目标实例中的映射，需要删除
+            if instance not in target_instance_list:
+                self.remove_domain_ip(domain_name, [instance])
+        # 差集需要新增映射（新实例不在旧实例中）
+        new_instance_list = list(set(target_instance_list) - set(old_instance_list))
+        self.create_domain(instance_list=new_instance_list, add_domain_name=domain_name)

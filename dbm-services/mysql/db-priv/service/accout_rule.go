@@ -101,6 +101,11 @@ func (m *AccountRulePara) AddAccountRule(jsonPara string) error {
 		globalPriv  string
 		err         error
 	)
+	// dml: select，insert，update，delete
+	// ddl: create，alter，drop，index，execute，create view
+	// global:
+	// 		(1)非常规权限：file, trigger, event, create routine, alter routine, replication client，replication slave
+	// 		(2)所有权限： all privileges (如果选择这个权限，其他权限不可选)
 	ConstPrivType := []string{"dml", "ddl", "global"}
 
 	err = m.ParaPreCheck()

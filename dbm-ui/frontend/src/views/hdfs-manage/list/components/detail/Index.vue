@@ -63,7 +63,7 @@
   import { ref } from 'vue';
   import { useRequest } from 'vue-request';
 
-  import { getClusterDetail } from '@services/hdfs';
+  import { getClusterDetail } from '@services/source/hdfs';
 
   import { useGlobalBizs } from '@stores';
 
@@ -92,6 +92,7 @@
   });
 
   watch(() => props.clusterId, () => {
+    console.log('form watch cluser id = ', props.clusterId);
     if (props.clusterId) {
       fetchResourceDetails({
         bk_biz_id: globalBizsStore.currentBizId,

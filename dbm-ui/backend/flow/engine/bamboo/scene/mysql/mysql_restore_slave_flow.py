@@ -15,6 +15,7 @@ from typing import Dict, Optional
 
 from django.utils.translation import ugettext as _
 
+from backend import env
 from backend.configuration.constants import DBType
 from backend.db_services.mysql.permission.constants import CloneType
 from backend.flow.consts import AUTH_ADDRESS_DIVIDER
@@ -27,6 +28,11 @@ from backend.flow.plugins.components.collections.mysql.clone_user import CloneUs
 from backend.flow.plugins.components.collections.mysql.dns_manage import MySQLDnsManageComponent
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.mysql.mysql_db_meta import MySQLDBMetaComponent
+from backend.flow.plugins.components.collections.mysql.mysql_os_init import (
+    GetOsSysParamComponent,
+    MySQLOsInitComponent,
+    SysInitComponent,
+)
 from backend.flow.plugins.components.collections.mysql.slave_trans_flies import SlaveTransFileComponent
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
 from backend.flow.utils.mysql.common.mysql_cluster_info import (
@@ -100,6 +106,13 @@ class MySQLRestoreSlaveFlow(object):
             ticket_data["force"] = one_machine.get("force", False)
 
             sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(ticket_data))
+            sub_pipeline.add_act(
+                act_name=_("获取初始化信息"),
+                act_component_code=GetOsSysParamComponent.code,
+                kwargs=asdict(
+                    ExecActuatorKwargs(bk_cloud_id=self.data["bk_cloud_id"], exec_ip=one_machine["old_slave_ip"])
+                ),
+            )
             sub_pipeline.add_sub_pipeline(
                 sub_flow=self.install_instance_sub_flow(ticket_data=ticket_data, one_machine=one_machine)
             )
@@ -625,6 +638,26 @@ class MySQLRestoreSlaveFlow(object):
             bk_cloud_id=one_machine["bk_cloud_id"],
         )
 
+        # 初始化机器
+        account = MysqlActPayload.get_mysql_account()
+        install_sub_pipeline.add_act(
+            act_name=_("初始化机器"),
+            act_component_code=SysInitComponent.code,
+            kwargs={
+                "mysql_os_password": account["os_mysql_pwd"],
+                "exec_ip": one_machine["new_slave_ip"],
+                "bk_cloud_id": one_machine["bk_cloud_id"],
+            },
+        )
+        # 判断是否需要执行按照MySQL Perl依赖
+        if env.YUM_INSTALL_PERL:
+            exec_act_kwargs.exec_ip = one_machine["new_slave_ip"]
+            install_sub_pipeline.add_act(
+                act_name=_("安装MySQL Perl相关依赖"),
+                act_component_code=MySQLOsInitComponent.code,
+                kwargs=asdict(exec_act_kwargs),
+            )
+
         install_sub_pipeline.add_act(
             act_name=_("下发MySQL介质{}").format(one_machine["new_slave_ip"]),
             act_component_code=TransFileComponent.code,
@@ -637,13 +670,6 @@ class MySQLRestoreSlaveFlow(object):
                     ),
                 )
             ),
-        )
-
-        exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_sys_init_payload.__name__
-        install_sub_pipeline.add_act(
-            act_name=_("初始化机器{}").format(one_machine["new_slave_ip"]),
-            act_component_code=ExecuteDBActuatorScriptComponent.code,
-            kwargs=asdict(exec_act_kwargs),
         )
 
         exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_deploy_mysql_crond_payload.__name__

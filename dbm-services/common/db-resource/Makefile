@@ -8,7 +8,7 @@ CURRENT_VERSION = release-$(VER)
 TEST_VERSION = test-$(VER)
 NAMESPACE = sccmsp
 DH_URL = mirrors.tencent.com
-BUILD_FLAG = "-X main.version=${VER} -X main.buildstamp=`date -u '+%Y-%m-%d_%I:%M:%S%p'` -X main.githash=`git rev-parse HEAD` "
+BUILD_FLAG = "-X main.version=${VER} -X main.githash=`git rev-parse HEAD` "
 all: build
 api:
 	go build  -gcflags=-trimpath=${PWD} -asmflags=-trimpath=${PWD} -ldflags ${BUILD_FLAG}    -o bkdbrms  -v .
@@ -32,14 +32,14 @@ test:build
 	docker push $(DH_URL)/${NAMESPACE}/$(SRV_NAME):$(TEST_VERSION)
 
 gotool:
-	@-gofmt -w  .
-	@-go tool vet . 2>&1 | grep -v vendor;true
+	-gofmt -w  .
+	-go tool vet . 2>&1 | grep -v vendor;true
 clean:
 	# find . -name "[._]*.s[a-w][a-z]" | xargs -i rm -f {}
 	rm -f bkdbrms
 help:
-	@echo "make - compile go source"
-	@echo "make gotool - run gofmt & go too vet"
-	@echo "make clean - do some clean job"
+	echo "make - compile go source"
+	echo "make gotool - run gofmt & go too vet"
+	echo "make clean - do some clean job"
 
 .PHONY: all gotool clean help api curl

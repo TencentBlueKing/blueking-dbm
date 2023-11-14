@@ -29,9 +29,8 @@
       </RenderData>
       <ClusterSelector
         v-model:is-show="isShowBatchSelector"
-        :get-resource-list="getList"
+        :cluster-types="[ClusterTypes.TENDBCLUSTER]"
         :selected="selectedClusters"
-        :tab-list="clusterSelectorTabList"
         @change="handelClusterChange" />
       <BatchEntry
         v-model:is-show="isShowBatchEntry"
@@ -63,7 +62,6 @@
   import { useRouter } from 'vue-router';
 
   import SpiderModel from '@services/model/spider/spider';
-  import { getList } from '@services/spider';
   import { createTicket } from '@services/ticket';
 
   import { useGlobalBizs } from '@stores';
@@ -90,12 +88,7 @@
   const isSubmitting  = ref(false);
 
   const tableData = shallowRef<Array<IDataRow>>([createRowData({})]);
-  const selectedClusters = shallowRef<{[key: string]: Array<SpiderModel>}>({ [ClusterTypes.SPIDER]: [] });
-
-  const clusterSelectorTabList = [{
-    id: ClusterTypes.SPIDER,
-    name: '集群',
-  }];
+  const selectedClusters = shallowRef<{[key: string]: Array<SpiderModel>}>({ [ClusterTypes.TENDBCLUSTER]: [] });
 
   // 集群域名是否已存在表格的映射表
   let domainMemo: Record<string, boolean> = {};
@@ -133,7 +126,7 @@
   // 批量选择
   const handelClusterChange = (selected: {[key: string]: Array<SpiderModel>}) => {
     selectedClusters.value = selected;
-    const list = selected[ClusterTypes.SPIDER];
+    const list = selected[ClusterTypes.TENDBCLUSTER];
     const newList = list.reduce((result, item) => {
       const domain = item.master_domain;
       if (!domainMemo[domain]) {
@@ -184,7 +177,7 @@
 
   const handleReset = () => {
     tableData.value = [createRowData()];
-    selectedClusters.value[ClusterTypes.SPIDER] = [];
+    selectedClusters.value[ClusterTypes.TENDBCLUSTER] = [];
     domainMemo = {};
     window.changeConfirm = false;
   };

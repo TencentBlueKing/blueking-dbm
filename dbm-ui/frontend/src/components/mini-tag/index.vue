@@ -15,29 +15,49 @@
   <BkTag
     class="tag-box"
     :theme="theme"
-    :type="type">
+    :type="type"
+    @click="handleTagClick">
+    <template
+      v-if="iconType"
+      #icon>
+      <DbIcon
+        class="icon-dander"
+        :type="iconType" />
+    </template>
     {{ content }}
   </BkTag>
 </template>
 
 <script setup lang="ts">
   interface Props {
-    content?: string,
+    content?: string | number,
     type?: '' | 'stroke' | 'filled',
     theme?: 'info' | 'success' | 'warning' | 'danger',
+    iconType?: string,
+  }
+
+  interface Emits {
+    (e: 'tag-click'): void
   }
 
   withDefaults(defineProps<Props>(), {
     content: '',
     type: '',
     theme: undefined,
+    iconType: '',
   });
+
+  const emits = defineEmits<Emits>();
+
+  const handleTagClick = () => {
+    emits('tag-click');
+  };
 </script>
 
 <style lang="less" scoped>
   .tag-box{
     padding: 0 6px;
-    margin-left: 2px;
+    margin: 0;
     transform: scale(0.83, 0.83);
 
   }

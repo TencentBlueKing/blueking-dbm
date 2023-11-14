@@ -43,6 +43,7 @@ type AccountPara struct {
 	Psw         string  `json:"psw"`
 	Operator    string  `json:"operator"`
 	ClusterType *string `json:"cluster_type" `
+	MigrateFlag bool    `json:"migrate_flag"`
 }
 
 // PrivLog 记录权限相关接口的调用日志

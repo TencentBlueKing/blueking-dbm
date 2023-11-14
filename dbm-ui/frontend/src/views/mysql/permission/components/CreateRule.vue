@@ -69,10 +69,10 @@
             v-model="state.formdata.privilege.dml"
             class="rule-form__checkbox-group">
             <BkCheckbox
-              v-for="type of dbOperations.dml"
-              :key="type"
-              :label="type">
-              {{ type }}
+              v-for="dmlItem of dbOperations.dml"
+              :key="dmlItem"
+              :label="dmlItem">
+              {{ dmlItem }}
             </BkCheckbox>
           </BkCheckboxGroup>
         </BkFormItem>
@@ -88,10 +88,10 @@
             v-model="state.formdata.privilege.ddl"
             class="rule-form__checkbox-group">
             <BkCheckbox
-              v-for="type of dbOperations.ddl"
-              :key="type"
-              :label="type">
-              {{ type }}
+              v-for="ddlItem of dbOperations.ddl"
+              :key="ddlItem"
+              :label="ddlItem">
+              {{ ddlItem }}
             </BkCheckbox>
           </BkCheckboxGroup>
         </BkFormItem>
@@ -109,9 +109,9 @@
             v-model="state.formdata.privilege.glob"
             class="rule-form__checkbox-group">
             <BkCheckbox
-              v-for="type of dbOperations.glob"
-              :key="type"
-              :label="type" />
+              v-for="globItem of dbOperations.glob"
+              :key="globItem"
+              :label="globItem" />
           </BkCheckboxGroup>
         </BkFormItem>
       </BkFormItem>
