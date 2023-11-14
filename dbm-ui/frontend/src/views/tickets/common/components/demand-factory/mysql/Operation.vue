@@ -146,7 +146,7 @@
    */
   const clusterType = computed(() => {
     if (props.ticketDetails?.details?.authorize_data?.cluster_type === ClusterTypes.TENDBHA) {
-      return t('高可用');
+      return t('主从');
     }
     return t('单节点');
   });

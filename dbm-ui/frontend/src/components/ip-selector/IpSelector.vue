@@ -133,7 +133,7 @@
   /** IP 选择器返回结果 */
   export type IPSelectorResult = {
     dynamic_group_list: any[],
-    host_list: Array<Partial<HostDetails>>,
+    host_list: Array<HostDetails>,
     node_list: any[],
     dbm_whitelist: any[],
   }
@@ -158,7 +158,7 @@
     serviceMode?: 'all' | 'idle_only',
     panelList?: Array<'staticTopo' | 'manualInput' | 'dbmWhitelist'>,
     disableTips?: string,
-    singleHostSelect: boolean
+    singleHostSelect?: boolean
   }
 
   interface Emits {
@@ -381,16 +381,13 @@
   // 处理选中列表中添加额外的数据操作
   watch(() => props.data, (data) => {
     const cloneData = _.cloneDeep(data);
-    const hostList = cloneData.map(item => ({
-      host_id: item.host_id,
-      ip: item.ip,
-      ipv6: item.ipv6,
-      meta: item.meta,
-    }));
-    selectorState.selected.host_list = [...hostList];
-    selectorState.cacheSelected.host_list = [...hostList];
-    selectorState.tableData = cloneData;
-  }, { immediate: true, deep: true });
+    selectorState.selected.host_list = [...cloneData];
+    selectorState.cacheSelected.host_list = [...cloneData];
+    selectorState.tableData = [...cloneData];
+  }, {
+    immediate: true,
+    deep: true,
+  });
 
   /**
    * ip 选择器预览表默认配置

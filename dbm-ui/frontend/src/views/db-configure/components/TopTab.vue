@@ -60,7 +60,7 @@
   }, {
     moduleId: 'mysql',
     id: ClusterTypes.TENDBHA,
-    name: t('MySQL高可用'),
+    name: t('MySQL主从'),
   }, {
     moduleId: 'redis',
     id: ClusterTypes.TWEMPROXY_REDIS_INSTANCE,

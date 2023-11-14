@@ -69,7 +69,7 @@
   }, {
     label: t('集群类型'),
     field: 'cluster_type_name',
-    render: ({ cell }: { cell: string }) => <span>{cell === 'tendbha' ? t('高可用') : t('单节点')}</span>,
+    render: ({ cell }: { cell: string }) => <span>{cell === 'tendbha' ? t('主从') : t('单节点')}</span>,
   }];
 
   const dataList = computed(() => {

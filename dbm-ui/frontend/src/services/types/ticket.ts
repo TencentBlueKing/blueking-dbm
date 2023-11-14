@@ -496,7 +496,7 @@ export interface MySQLTableBackupDetails {
 }
 
 /**
- * MySQL 高可用清档
+ * MySQL 主从清档
  */
 export interface MySQLHATruncateDetails {
   clusters: clustersItems,

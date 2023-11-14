@@ -248,7 +248,7 @@ const haRoutes: RouteRecordRaw[] = [
     path: 'ha-cluster-list',
     meta: {
       routeParentName: MainViewRouteNames.Database,
-      navName: t('MySQL高可用集群_集群管理'),
+      navName: t('MySQL主从集群_集群管理'),
       isMenu: true,
       submenuId: 'database-tendbha-cluster',
     },
@@ -259,7 +259,7 @@ const haRoutes: RouteRecordRaw[] = [
     path: 'ha-instance-list',
     meta: {
       routeParentName: MainViewRouteNames.Database,
-      navName: t('MySQL高可用集群_实例视图'),
+      navName: t('MySQL主从集群_实例视图'),
       isMenu: true,
       submenuId: 'database-tendbha-cluster',
     },
@@ -303,7 +303,7 @@ const commonRouters: RouteRecordRaw[] = [
     path: 'apply/ha',
     meta: {
       routeParentName: MainViewRouteNames.SelfService,
-      navName: t('申请MySQL高可用部署'),
+      navName: t('申请MySQL主从部署'),
       activeMenu: 'SelfServiceApply',
     },
     props: {

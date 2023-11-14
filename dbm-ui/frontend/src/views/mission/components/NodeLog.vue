@@ -134,9 +134,7 @@
 
   interface Emits {
     (e: 'close'): void
-    (e: 'refresh', value: {
-      data: GraphNode['data']
-    }): void
+    (e: 'refresh'): void
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -155,20 +153,20 @@
   });
   const nodeData = computed(() => props.node.data || {});
   const status = computed(() => {
-    enum themes  {
-      FINISHED='success',
-      RUNNING='info',
-      FAILED='danger',
-      SKIPPED='danger',
-      READY='',
-      CREATED='',
-    }
+    const themesMap =  {
+      FINISHED: 'success',
+      RUNNING: 'info',
+      FAILED: 'danger',
+      SKIPPED: 'danger',
+      READY: '',
+      CREATED: '',
+    };
 
-    const status: keyof typeof themes = nodeData.value.status ? nodeData.value.status : 'READY';
+    const status = nodeData.value.status ? nodeData.value.status : 'READY';
 
     return {
       text: NODE_STATUS_TEXT[status],
-      theme: themes[status],
+      theme: themesMap[status],
     };
   });
 
@@ -298,7 +296,6 @@
   };
 
   const handleRefresh = () => {
-    emits('refresh', { data: nodeData.value });
     refreshShow.value = false;
   };
 

@@ -1,4 +1,4 @@
-import OpenareaModel from '@services/model/openarea/openarea';
+import OpenareaTemplateModel from '@services/model/openarea/openareaTemplate';
 
 import { useGlobalBizs } from '@stores';
 
@@ -9,14 +9,95 @@ const { currentBizId } = useGlobalBizs();
 
 // 开区模板列表
 export const getList = function (params: Record<string, any>) {
-  return http.get<ListBase<OpenareaModel[]>>(`/apis/mysql/bizs/${currentBizId}/openarea/`, params)
+  return http.get<ListBase<OpenareaTemplateModel[]>>(`/apis/mysql/bizs/${currentBizId}/openarea/`, params)
     .then(data => ({
       ...data,
-      results: data.results.map((item: OpenareaModel) => new OpenareaModel(item)),
+      results: data.results.map((item: OpenareaTemplateModel) => new OpenareaTemplateModel(item)),
     }));
+};
+
+// 新建开区
+export const create = function (params: {
+  bk_biz_id: number,
+  config_name: string,
+  config_rules: {
+    data_tblist: string[],
+    priv_data: number[],
+    schema_tblist: string[],
+    source_db: string,
+    target_db_pattern: string
+  }[],
+  source_cluster_id: number
+}) {
+  return http.post(`/apis/mysql/bizs/${currentBizId}/openarea/`, params);
 };
 
 // 删除开区模板
 export const remove = function (params: { id: number }) {
-  return http.delete(`/apis/mysql/bizs/${currentBizId}/openarea/${params.id}`);
+  return http.delete(`/apis/mysql/bizs/${currentBizId}/openarea/${params.id}/`);
+};
+
+// 获取开区结果预览
+export const getPreview = function (params: {
+  config_id: number,
+  config_data: {
+    cluster_id: number,
+    vars: Record<string, any>,
+    authorize_ips: string[]
+  }[]
+}) {
+  return http.post<{
+    config_data: {
+      cluster_id: number,
+      execute_objects: {
+        authorize_ips: string[],
+        data_tblist: string[],
+        priv_data: string[],
+        schema_tblist: string[],
+        source_db: string,
+        target_db: string,
+      }[],
+      target_cluster_domain: string,
+    }[],
+    rules_set: {
+      account_rules: {
+        bk_biz_id: number,
+        dbname: string,
+      }[],
+      bk_biz_id: number,
+      cluster_type: string,
+      operator: string,
+      source_ips: string[],
+      target_instances: string[],
+      user: string,
+    }[]
+  }>(`/apis/mysql/bizs/${currentBizId}/openarea/preview/`, params);
+};
+
+// 开区模板详情
+export const getDetail = function (params: {
+  id: number
+}) {
+  return http.get<OpenareaTemplateModel>(`/apis/mysql/bizs/${currentBizId}/openarea/${params.id}/`)
+    .then(data => new OpenareaTemplateModel(data));
+};
+
+// 更新开区模板
+export const update = function (params: {
+  id: number,
+  bk_biz_id: number,
+  config_name: string,
+  config_rules: {
+    data_tblist: string[],
+    priv_data: number[],
+    schema_tblist: string[],
+    source_db: string,
+    target_db_pattern: string
+  }[],
+  source_cluster_id: number,
+}) {
+  const realParams = { ...params } as { id?: number };
+  delete realParams.id;
+
+  return http.get(`/apis/mysql/bizs/${currentBizId}/openarea/${params.id}/`, realParams);
 };

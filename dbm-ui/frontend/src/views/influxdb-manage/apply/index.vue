@@ -12,7 +12,9 @@
 -->
 
 <template>
-  <SmartAction class="apply-influxdb">
+  <SmartAction
+    class="apply-influxdb"
+    :offset-target="getSmartActionOffsetTarget">
     <DbForm
       ref="formRef"
       auto-label-width
@@ -182,6 +184,8 @@
 
   import { getInitFormdata } from './common/base';
   import GroupItem from './components/GroupItem.vue';
+
+  const getSmartActionOffsetTarget = () => document.querySelector('.bk-form-content');
 
   const cloudInfo = reactive({
     id: '' as number | string,

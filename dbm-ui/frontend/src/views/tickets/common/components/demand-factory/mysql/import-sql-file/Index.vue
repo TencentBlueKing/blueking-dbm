@@ -365,7 +365,7 @@
     clusterIds.forEach((id) => {
       const clusterId = clustersData[id].id;
       const clusterType = clustersData[id].cluster_type;
-      clusterState.clusterType = clusterType === 'tendbha' ? t('高可用') : t('单节点');
+      clusterState.clusterType = clusterType === 'tendbha' ? t('主从') : t('单节点');
       const { pagination } = clusterState.tableProps;
       const paginationParams = typeof pagination === 'boolean' ? {} : pagination.getFetchParams();
       const type = clusterType === 'tendbcluster' ? 'spider' : clusterType;

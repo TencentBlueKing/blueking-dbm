@@ -85,7 +85,7 @@
     </template>
   </div>
 </template>
-<script lang="tsx">
+<script lang="ts">
   import type { VNode } from 'vue';
 
   import { useCopy } from '@hooks';
@@ -140,7 +140,7 @@
   };
 </script>
 
-<script setup lang="tsx">
+<script setup lang="ts">
   interface Props {
     readonly?: boolean,
     columns?: Array<Array<InfoColumn>>,

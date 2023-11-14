@@ -39,7 +39,16 @@
   import type { IDataRow } from './Row.vue';
 
   interface Exposes {
-    getValue: (field: string) => Promise<string>
+    getValue: () => Promise<{
+      old_slave: {
+        bk_biz_id: number,
+        bk_cloud_id: number,
+        ip: string,
+        bk_host_id: number,
+        port: number,
+        instance_address: string
+      }
+    }>
   }
 
   const { currentBizId } = useGlobalBizs();
@@ -47,7 +56,7 @@
 
   const modelValue = defineModel<IDataRow['oldSlave']>();
 
-  const editRef = ref();
+  const editRef = ref<InstanceType<typeof TableEditInput>>();
   const localValue = ref('');
   const isLoading = ref(false);
 
@@ -95,7 +104,7 @@
 
   defineExpose<Exposes>({
     getValue() {
-      return editRef.value
+      return (editRef.value as InstanceType<typeof TableEditInput>)
         .getValue()
         .then(() => {
           if (!modelValue.value) {
@@ -103,6 +112,7 @@
           }
           return ({
             old_slave: {
+              bk_biz_id: currentBizId,
               bk_cloud_id: modelValue.value.bkCloudId,
               ip: modelValue.value.ip,
               bk_host_id: modelValue.value.bkHostId,

@@ -271,7 +271,7 @@ export const mysqlType = {
   },
   [TicketTypes.MYSQL_HA_APPLY]: {
     id: TicketTypes.MYSQL_HA_APPLY,
-    name: t('高可用部署'),
+    name: t('主从部署'),
     type: ClusterTypes.TENDBHA,
     dbType: DBTypes.MYSQL,
   },

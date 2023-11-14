@@ -13,6 +13,7 @@
 
 <template>
   <div
+    ref="rootRef"
     class="table-edit-input"
     :class="{
       'is-error': Boolean(errorMessage),
@@ -57,7 +58,8 @@
   }
 
   interface Exposes {
-    getValue: () => Promise<string>
+    getValue: () => Promise<string>,
+    focus: () => void,
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -75,6 +77,7 @@
     default: '',
   });
 
+  const rootRef = ref<HTMLElement>();
   const localValue = ref('');
 
   const {
@@ -152,6 +155,9 @@
   defineExpose<Exposes>({
     getValue() {
       return validator(localValue.value).then(() => localValue.value);
+    },
+    focus() {
+      (rootRef.value as HTMLElement).querySelector('input')?.focus();
     },
   });
 </script>

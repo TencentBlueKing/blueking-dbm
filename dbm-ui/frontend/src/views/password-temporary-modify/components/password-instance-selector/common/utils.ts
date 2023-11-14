@@ -14,7 +14,7 @@
 import { t } from '@locales/index';
 
 export const textMap = {
-  tendbha: t('高可用'),
+  tendbha: t('主从'),
   tendbsingle: t('单节点'),
   tendbcluster: 'spider',
   manualInput: t('手动输入'),
