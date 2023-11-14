@@ -46,7 +46,7 @@
                 module-id="mysql">
                 <BkSubmenu
                   key="database-tendbha-cluster"
-                  :title="$t('高可用集群')">
+                  :title="$t('主从')">
                   <template #icon>
                     <i class="db-icon-cluster" />
                   </template>

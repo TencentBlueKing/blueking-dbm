@@ -37,6 +37,7 @@ module.exports = {
     ValueOf: false,
     ServiceReturnType: false,
     SelectItem: false,
+    KeyExpand: false,
   },
   rules: {
     '@typescript-eslint/no-explicit-any': 'off',

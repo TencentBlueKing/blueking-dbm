@@ -111,7 +111,7 @@
     },
     {
       moduleId: 'mysql',
-      label: t('MySQL高可用'),
+      label: t('MySQL主从'),
       name: ClusterTypes.TENDBHA,
       children: [
         {

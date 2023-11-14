@@ -13,25 +13,15 @@
 
 <template>
   <div class="main-breadcrumbs">
-    <slot>
-      <i
-        v-if="showBack"
-        class="db-icon-arrow-left main-breadcrumbs__back"
-        @click="handleBack" />
-      <span class="main-breadcrumbs__current">
-        <span>{{ current }}</span>
-        <span id="dbmPageSubtitle" />
-      </span>
-      <template v-if="tags.length !== 0">
-        <BkTag
-          v-for="(tag, index) of tags"
-          :key="index"
-          :theme="tag.theme">
-          {{ tag.text }}
-        </BkTag>
-      </template>
-    </slot>
-    <slot name="append" />
+    <DbIcon
+      v-if="showBack"
+      class="main-breadcrumbs-back"
+      type="arrow-left"
+      @click="handleBack" />
+    <span class="main-breadcrumbs-current">
+      <span>{{ current }}</span>
+      <span id="dbmPageSubtitle" />
+    </span>
   </div>
 </template>
 
@@ -46,21 +36,6 @@
    * 当前面包屑展示文案
    */
   const current = computed(() => store.breadCrumbsTitle || route.meta.navName);
-
-  /**
-   * tags
-   */
-  const tags = computed(() => {
-    if (store.tags.length !== 0) {
-      return store.tags;
-    }
-
-    if (route.meta.tags && route.meta.tags.length !== 0) {
-      return route.meta.tags;
-    }
-
-    return [];
-  });
 
   /**
    * back control
@@ -95,21 +70,17 @@
     background-color: @white-color;
     box-shadow: 0 3px 4px 0 rgb(0 0 0 / 4%);
 
-    &__back {
+    .main-breadcrumbs-back {
       margin-right: 16px;
       font-size: @font-size-large;
       color: @primary-color;
       cursor: pointer;
     }
 
-    &__current {
+    .main-breadcrumbs-current {
       margin-right: 8px;
       font-size: @font-size-large;
       color: @title-color;
-    }
-
-    .bk-tag {
-      margin-right: 4px;
     }
   }
 </style>

@@ -25,11 +25,12 @@
         style="height: 100%;"
         :z-index="12">
         <div class="content-tree">
-          <BkInput
-            v-model="treeState.search"
-            class="content-tree-search"
-            :placeholder="$t('请输入节点名称')"
-            type="search" />
+          <div class="content-tree-search">
+            <BkInput
+              v-model="treeState.search"
+              :placeholder="$t('请输入节点名称')"
+              type="search" />
+          </div>
           <BkTree
             ref="treeRef"
             class="db-scroll-y"
@@ -265,9 +266,8 @@
 
     .content-tree-search {
       display: flex;
-      width: 280px;
-      margin: 0 auto 12px;
-      background: @bg-white;
+      padding: 0 12px;
+      margin-bottom: 12px;
     }
   }
 

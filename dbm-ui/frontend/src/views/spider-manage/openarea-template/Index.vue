@@ -3,7 +3,7 @@
     <BkAlert
       closable
       theme="info"
-      :title="t('开区模板  ：通过开区模板，可以快速创建集群开区')" />
+      :title="t('开区模板：通过开区模板，可以快速创建集群开区')" />
     <div class="header-action mt-16 mb-16">
       <BkButton
         class="w-88"
@@ -12,6 +12,7 @@
         {{ t('新建') }}
       </BkButton>
       <BkInput
+        v-model="serachKey"
         class="search-box"
         :placeholder="t('请输入模板关键字')" />
     </div>
@@ -29,16 +30,22 @@
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
-  import OpenareaModel from '@services/model/openarea/openarea';
+  import OpenareaTemplateModel from '@services/model/openarea/openareaTemplate';
   import {
     getList,
     remove,
   } from '@services/openarea';
 
+  import { useDebouncedRef } from '@hooks';
+
+  import { messageSuccess } from '@utils';
+
+
   const { t } = useI18n();
   const router = useRouter();
 
   const tableRef = ref();
+  const serachKey = useDebouncedRef('');
 
   const tableColumns = [
     {
@@ -48,41 +55,48 @@
     {
       label: t('源集群'),
       field: 'config_name',
-      render: ({ data }: {data: OpenareaModel}) => (
+      render: ({ data }: {data: OpenareaTemplateModel}) => (
         data.source_cluster.immute_domain || '--'
       ),
     },
     {
       label: t('更新人'),
-      render: ({ data }: {data: OpenareaModel}) => (
+      render: ({ data }: {data: OpenareaTemplateModel}) => (
         data.updater || '--'
       ),
     },
     {
       label: t('更新时间'),
-      render: ({ data }: {data: OpenareaModel}) => (
+      render: ({ data }: {data: OpenareaTemplateModel}) => (
         data.update_at || '--'
       ),
     },
     {
       label: t('操作'),
       width: 190,
-      render: (data: any) => {
+      render: ({ data }: {data: OpenareaTemplateModel}) => {
         console.log(data);
         return (
           <>
-            <bk-button
-              text
-              theme="primary"
-              onClick={handleSubmit}>
+            <router-link
+              to={{
+                name: 'spiderOpenareaCreate',
+                params: {
+                  id: data.id,
+                },
+              }}>
               { t('开区') }
-            </bk-button>
-            <bk-button
+            </router-link>
+            <router-link
               class="ml-16"
-              text
-              theme="primary">
+              to={{
+                name: 'spiderOpenareaTemplateEdit',
+                params: {
+                  id: data.id,
+                },
+              }}>
               { t('编辑') }
-            </bk-button>
+            </router-link>
             <db-popconfirm
               title={t('确认删除该模板？')}
               content={t('删除操作无法撤回，请谨慎操作！')}
@@ -104,17 +118,22 @@
     tableRef.value.fetchData();
   };
 
+  watch(serachKey, () => {
+    tableRef.value.fetchData({
+      config_name: serachKey.value,
+    });
+  });
+
   const handleGoCreate = () => {
     router.push({
-      name: 'spiderOpenareaCreate',
+      name: 'spiderOpenareaTemplateCreate',
     });
   };
 
-  const handleSubmit = (data: OpenareaModel) => {
-    console.log(data);
-  };
-
-  const handleRemove = (data: OpenareaModel) => remove(data);
+  const handleRemove = (data: OpenareaTemplateModel) => remove(data).then(() => {
+    messageSuccess(t('删除成功'));
+    fetchData();
+  });
 
   onMounted(() => {
     fetchData();

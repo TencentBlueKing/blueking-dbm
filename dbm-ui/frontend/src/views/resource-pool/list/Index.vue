@@ -37,6 +37,27 @@
           {{ t('批量移除') }}
         </BkButton>
       </DbPopconfirm>
+      <BkDropdown trigger="click">
+        <BkButton
+          class="ml-8"
+          style="width: 80px">
+          {{ t('复制') }}
+          <DbIcon type="down-big" />
+        </BkButton>
+        <template #content>
+          <BkDropdownMenu>
+            <BkDropdownItem @click="handleCopyAllHost">
+              {{ t('所有主机') }}
+            </BkDropdownItem>
+            <BkDropdownItem @click="handleCopySelectHost">
+              {{ t('已选主机') }}
+            </BkDropdownItem>
+            <BkDropdownItem @click="handleCopyAllAbnormalHost">
+              {{ t('所有异常主机') }}
+            </BkDropdownItem>
+          </BkDropdownMenu>
+        </template>
+      </BkDropdown>
       <BkButton
         class="quick-search-btn"
         @click="handleGoOperationRecord">
@@ -78,6 +99,7 @@
   import HostAgentStatus from '@components/cluster-common/HostAgentStatus.vue';
 
   import {
+    execCopy,
     messageSuccess,
   } from '@utils';
 
@@ -103,6 +125,7 @@
   const tableRef = ref();
   const isShowBatchSetting = ref(false);
   const selectionHostIdList = ref<number[]>([]);
+  let selectionListWholeDataMemo: DbResourceModel[] = [];
 
   const tableColumn = [
     {
@@ -249,6 +272,39 @@
     messageSuccess(t('移除成功'));
   });
 
+  // 复制所有主机
+  const handleCopyAllHost = () => {
+    fetchList({
+      offset: 0,
+      limit: -1,
+    }).then((data) => {
+      const ipList = data.results.map(item => item.ip);
+      execCopy(ipList.join('\n'), `${t('复制成功n个IP', { n: ipList.length })}\n`);
+    });
+  };
+
+  // 复制已选主机
+  const handleCopySelectHost = () => {
+    const ipList = selectionListWholeDataMemo.map(item => item.ip);
+    execCopy(ipList.join('\n'), `${t('复制成功n个IP', { n: ipList.length })}\n`);
+  };
+
+  // 复制所有异常主机
+  const handleCopyAllAbnormalHost = () => {
+    fetchList({
+      offset: 0,
+      limit: -1,
+    }).then((data) => {
+      const ipList = data.results.reduce((result, item) => {
+        if (!item.agent_status) {
+          result.push(item.ip);
+        }
+        return result;
+      }, [] as string[]);
+      execCopy(ipList.join('\n'), `${t('复制成功n个IP', { n: ipList.length })}\n`);
+    });
+  };
+
   // 批量编辑后刷新列表
   const handleBatchSettingChange = () => {
     fetchData();
@@ -265,8 +321,9 @@
     });
   };
 
-  const handleSelection = (list: number[]) => {
+  const handleSelection = (list: number[], selectionListWholeData: DbResourceModel[]) => {
     selectionHostIdList.value = list;
+    selectionListWholeDataMemo = selectionListWholeData;
   };
 
   const handleClearSearch = () => {

@@ -43,10 +43,23 @@ export const checkFlashbackDatabase = (params: {
 /**
  * 查询集群数据库列表
  */
-export const getClusterDBNames = (params: {
+export const getClusterDatabaseNameList = (params: {
   cluster_ids: Array<number>
 }) => http.post<Array<{
     cluster_id: number,
     databases: Array<string>,
     system_databases: Array<string>
   }>>(`${path}/show_cluster_databases/`, params);
+
+// 查询集群数据表列表
+export const getClusterTablesNameList = function (params: {
+  cluster_db_infos: {
+    cluster_id: number,
+    dbs: string[],
+  }[]
+}) {
+  return http.post<{
+    cluster_id: number,
+    table_data: Record<string, string[]>
+  }[]>(`${path}/show_cluster_tables/`, params);
+};
