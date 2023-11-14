@@ -9,7 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import logging
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
 from django.conf import settings
 from django.db import connection, models
@@ -150,7 +150,7 @@ class BizSettings(AbstractSettings):
         ordering = ("id",)
 
     @classmethod
-    def get_setting_value(cls, bk_biz_id: int, key: str, default: Optional[Any] = None) -> Union[str, Dict]:
+    def get_setting_value(cls, bk_biz_id: int, key: str, default: Optional[Any] = None) -> Union[str, Dict, List]:
         return super().get_setting_value(key={"key": key, "bk_biz_id": bk_biz_id}, default=default)
 
     @classmethod

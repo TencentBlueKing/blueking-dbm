@@ -23,11 +23,13 @@ class TbinlogdumperApplyDetailSerializer(serializers.Serializer):
     class DumperInfoSerializer(serializers.Serializer):
         class AddInfoSerializer(serializers.Serializer):
             area_name = serializers.IntegerField(help_text=_("dumper安装的大区"))
+            dumper_id = serializers.IntegerField(help_text=_("dumper实例ID(目前同大区名一样)"))
             module_id = serializers.IntegerField(help_text=_("dumper的模块"))
             add_type = serializers.ChoiceField(help_text=_("dumper的安装方式"), choices=TBinlogDumperAddType.get_choices())
 
         cluster_id = serializers.IntegerField(help_text=_("集群ID"))
         add_infos = serializers.ListSerializer(help_text=_("dumper部署信息"), child=AddInfoSerializer())
+        dumper_config_id = serializers.IntegerField(help_text=_("数据订阅配置ID"))
 
     infos = serializers.ListSerializer(child=DumperInfoSerializer())
 
