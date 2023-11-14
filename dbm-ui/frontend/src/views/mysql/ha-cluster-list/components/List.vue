@@ -88,6 +88,10 @@
   <ExcelAuthorize
     v-model:is-show="isShowExcelAuthorize"
     :cluster-type="ClusterTypes.TENDBHA" />
+  <EditEntryConfig
+    :id="clusterId"
+    v-model:is-show="showEditEntryConfig"
+    :get-detail-info="getResourceDetails" />
 </template>
 
 <script setup lang="tsx">
@@ -98,9 +102,9 @@
     getUseList,
   } from '@services/common';
   import {
+    getResourceDetails,
     getResourceInstances,
-    getResources,
-  } from '@services/source/resourceTendbha';
+    getResources  } from '@services/source/resourceTendbha';
   import { createTicket } from '@services/ticket';
   import type { ResourceItem } from '@services/types/clusters';
   import type { SearchFilterItem } from '@services/types/common';
@@ -115,7 +119,7 @@
     useTicketMessage,
   } from '@hooks';
 
-  import { useGlobalBizs } from '@stores';
+  import { useGlobalBizs, useUserProfile } from '@stores';
 
   import {
     ClusterTypes,
@@ -127,6 +131,7 @@
 
   import ClusterAuthorize from '@components/cluster-authorize/ClusterAuthorize.vue';
   import ExcelAuthorize from '@components/cluster-common/ExcelAuthorize.vue';
+  import EditEntryConfig from '@components/cluster-entry-config/Index.vue';
   import DbStatus from '@components/db-status/index.vue';
   import RenderInstances from '@components/render-instances/RenderInstances.vue';
 
@@ -175,6 +180,7 @@
 
   const router = useRouter();
   const globalBizsStore = useGlobalBizs();
+  const userProfileStore = useUserProfile();
   const copy = useCopy();
   const ticketMessage = useTicketMessage();
   const { t, locale } = useI18n();
@@ -187,6 +193,8 @@
   const isAnomalies = ref(false);
   const isShowExcelAuthorize = ref(false);
   const isInit = ref(true);
+  const showEditEntryConfig = ref(false);
+
   const state = reactive<State>({
     isLoading: false,
     pagination: useDefaultPagination(),
@@ -317,13 +325,17 @@
       field: 'master_domain',
       minWidth: 200,
       showOverflowTooltip: false,
-      render: ({ cell }: ColumnData) => (
+      render: ({ cell, data }: ColumnData) => (
       <div class="domain">
         <span class="text-overflow" v-overflow-tips>{cell}</span>
         <db-icon
           type="copy"
           v-bk-tooltips={t('复制主访问入口')}
           onClick={() => copy(cell)} />
+          {userProfileStore.isManager && <db-icon
+            type="edit"
+            v-bk-tooltips={t('修改入口配置')}
+            onClick={() => handleOpenEntryConfig(data)} />}
       </div>
     ),
     },
@@ -482,6 +494,12 @@
       },
     },
   ]);
+
+  const handleOpenEntryConfig = (row: ResourceItem) => {
+    showEditEntryConfig.value  = true;
+    clusterId.value = row.id;
+  };
+
   // 设置用户个人表头信息
   const defaultSettings = {
     fields: (columns.value || []).filter(item => item.field).map(item => ({
@@ -800,7 +818,7 @@
       align-items: center;
     }
 
-    .db-icon-copy {
+    .db-icon-copy, .db-icon-edit {
       display: none;
       margin-left: 4px;
       color: @primary-color;
@@ -824,7 +842,7 @@
   }
 
   :deep(tr:hover) {
-    .db-icon-copy {
+    .db-icon-copy, .db-icon-edit {
       display: inline-block !important;
     }
   }

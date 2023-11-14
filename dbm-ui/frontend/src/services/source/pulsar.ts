@@ -24,7 +24,7 @@ const { currentBizId } = useGlobalBizs();
 const path = `/apis/bigdata/bizs/${currentBizId}/pulsar/pulsar_resources`;
 
 // 获取集群列表
-export const getList = (params: Record<string, any> & {bk_biz_id: number}) => http.get<ListBase<PulsarModel[]>>(`${path}/`, params)
+export const getList = (params: Record<string, any> & { bk_biz_id: number }) => http.get<ListBase<PulsarModel[]>>(`${path}/`, params)
   .then(data => ({
     ...data,
     results: data.results.map((item: PulsarModel) => new PulsarModel(item)),
@@ -34,24 +34,20 @@ export const getList = (params: Record<string, any> & {bk_biz_id: number}) => ht
 export const getTableFields = () => http.get<ListBase<PulsarModel[]>>(`${path}/get_table_fields/`);
 
 // 获取实例列表
-export const getListInstance = (params: Record<string, any> & {bk_biz_id: number}) => http.get<ListBase<PulsarInstanceModel[]>>(`${path}/list_instances/`, params)
+export const getListInstance = (params: Record<string, any> & { bk_biz_id: number }) => http.get<ListBase<PulsarInstanceModel[]>>(`${path}/list_instances/`, params)
   .then(data => ({
     ...data,
     results: data.results.map((item: PulsarInstanceModel) => new PulsarInstanceModel(item)),
   }));
 
 // 获取实例详情
-export const getRetrieveInstance = (params: {bk_biz_id: number}) => http.get<ListBase<PulsarModel[]>>(`${path}/retrieve_instance/`, params);
+export const getRetrieveInstance = (params: { bk_biz_id: number }) => http.get<ListBase<PulsarModel[]>>(`${path}/retrieve_instance/`, params);
 
 // 获取集群详情
-export const getClusterDetail = (params: {
-  bk_biz_id: number,
-  cluster_id: number
-}) => http.get<PulsarModel>(`${path}/${params.cluster_id}/`)
-  .then(data => new PulsarModel(data));
+export const getClusterDetail = (params: { id: number }) => http.get<PulsarModel>(`${path}/${params.id}/`).then(data => new PulsarModel(data));
 
 // 获取集群拓扑
 export const getTopoGraph = (params: {
   bk_biz_id: number,
   cluster_id: number
-})  => http.get<ListBase<PulsarModel[]>>(`${path}/${params.cluster_id}/get_topo_graph/`);
+}) => http.get<ListBase<PulsarModel[]>>(`${path}/${params.cluster_id}/get_topo_graph/`);

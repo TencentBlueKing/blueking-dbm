@@ -68,12 +68,7 @@ export const getResourceInstanceDetails = (params: InstanceDetailsParams & { dbT
 /**
  * 获取集群详情
  */
-export const getResourceDetails = (params: {
-  bk_biz_id: number,
-  id: number,
-  type: string
-  dbType: string
-}) => http.get<ResourceRedisItem>(`${path}/${params.id}/`);
+export const getResourceDetails = (params: { id: number }) => http.get<ResourceRedisItem>(`${path}/${params.id}/`);
 
 /**
  * 查询集群主机列表

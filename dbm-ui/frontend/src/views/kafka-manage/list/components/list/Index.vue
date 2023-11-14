@@ -24,7 +24,7 @@
         v-model="searchValues"
         class="mb16"
         :data="serachData"
-        :placeholder="$t('输入集群名_IP_域名关键字')"
+        :placeholder="$t('输入集群名_IP_访问入口关键字')"
         unique-select
         @change="handleSearch" />
     </div>
@@ -75,6 +75,10 @@
       </template>
     </BkDialog>
   </div>
+  <EditEntryConfig
+    :id="clusterId"
+    v-model:is-show="showEditEntryConfig"
+    :get-detail-info="getClusterDetail" />
 </template>
 <script setup lang="tsx">
   import type { Table } from 'bkui-vue';
@@ -89,6 +93,7 @@
 
   import type KafkaModel from '@services/model/kafka/kafka';
   import {
+    getClusterDetail,
     getList,
     getListInstance,
   } from '@services/source/kafka';
@@ -100,13 +105,14 @@
     useTicketMessage,
   } from '@hooks';
 
-  import { useGlobalBizs } from '@stores';
+  import { useGlobalBizs, useUserProfile } from '@stores';
 
   import OperationStatusTips from '@components/cluster-common/OperationStatusTips.vue';
   import RenderNodeInstance from '@components/cluster-common/RenderNodeInstance.vue';
   import RenderOperationTag from '@components/cluster-common/RenderOperationTag.vue';
   import RenderPassword from '@components/cluster-common/RenderPassword.vue';
   import RenderClusterStatus from '@components/cluster-common/RenderStatus.vue';
+  import EditEntryConfig from '@components/cluster-entry-config/Index.vue';
 
   import ClusterExpansion from '@views/kafka-manage/common/expansion/Index.vue';
   import ClusterShrink from '@views/kafka-manage/common/shrink/Index.vue';
@@ -124,6 +130,7 @@
 
   const router = useRouter();
   const { currentBizId } = useGlobalBizs();
+  const userProfileStore = useUserProfile();
   const { t, locale } = useI18n();
   const {
     isOpen: isStretchLayoutOpen,
@@ -148,8 +155,11 @@
   const isShowShrink = ref(false);
   const isShowPassword = ref(false);
   const isInit = ref(true);
+  const showEditEntryConfig = ref(false);
   const searchValues = ref([]);
+
   const operationData = shallowRef<KafkaModel>();
+
   const isCN = computed(() => locale.value === 'zh-cn');
   const paginationExtra = computed(() => {
     if (!isStretchLayoutOpen.value) {
@@ -244,10 +254,22 @@
       render: ({ data }: {data: KafkaModel}) => <RenderClusterStatus data={data.status} />,
     },
     {
-      label: t('域名'),
+      label: t('访问入口'),
       field: 'domain',
       minWidth: 200,
-      render: ({ data }: {data: KafkaModel}) => data.domain || '--',
+      render: ({ data }: {data: KafkaModel}) => (
+        <div class="domain">
+          <span
+            class="text-overflow"
+            v-overflow-tips>
+            {data.domain || '--'}
+          </span>
+          {userProfileStore.isManager && <db-icon
+            type="edit"
+            v-bk-tooltips={t('修改入口配置')}
+            onClick={() => handleOpenEntryConfig(data)} />}
+        </div>
+      ),
     },
     {
       label: t('版本'),
@@ -409,6 +431,10 @@
     },
   ]);
 
+  const handleOpenEntryConfig = (row: KafkaModel) => {
+    showEditEntryConfig.value  = true;
+    clusterId.value = row.id;
+  };
 
   const fetchTableData = (loading?:boolean) => {
     const searchParams = getSearchSelectorParams(searchValues.value);
@@ -655,6 +681,32 @@
         color: #3a84ff;
         vertical-align: middle;
         cursor: pointer;
+      }
+    }
+  }
+</style>
+<style lang="less" scoped>
+  .kafka-list-page {
+    :deep(.cell) {
+      line-height: normal !important;
+
+      .domain {
+        display: flex;
+        align-items: center;
+      }
+
+      .db-icon-edit {
+        display: none;
+        margin-left: 4px;
+        color: @primary-color;
+        cursor: pointer;
+      }
+
+    }
+
+    :deep(tr:hover) {
+      .db-icon-edit {
+        display: inline-block !important;
       }
     }
   }

@@ -93,7 +93,7 @@
       return;
     }
     fetchResourceDetails({
-      clusterId: props.clusterId,
+      id: props.clusterId,
     });
   }, {
     immediate: true,

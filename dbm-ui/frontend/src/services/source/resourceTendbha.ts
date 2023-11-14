@@ -53,7 +53,7 @@ export const getResourceInstanceDetails = (params: InstanceDetailsParams & { dbT
 /**
  * 获取集群详情
  */
-export const getResourceDetails = (params: { clusterId: number }) => http.get<ResourceItem>(`${path}/${params.clusterId}/`);
+export const getResourceDetails = (params: { id: number }) => http.get<ResourceItem>(`${path}/${params.id}/`);
 
 /**
  * 获取集群拓扑
