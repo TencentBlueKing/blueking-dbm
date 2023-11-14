@@ -1,6 +1,7 @@
 <template>
   <div
     v-if="modelValue"
+    v-clickoutside="handleClickOutside"
     class="openarea-variable-box">
     <div class="title">
       {{ t('变量') }}
@@ -11,9 +12,24 @@
       <BkAlert
         class="mb-16"
         :title="t('可以在命名范式与 xxx 中使用')" />
-      <BkTable
-        :columns="talbeColumns"
-        :data="variableList" />
+      <RenderTable
+        v-slot="slotProps"
+        class="mt16">
+        <template
+          v-for="(item, index) in variableList"
+          :key="`${item.name}#${index}`">
+          <RenderRow
+            v-if="item.name"
+            :data="item"
+            :is-fixed="slotProps.isOverflow"
+            @add="(data: IVariable) => handleAdd(data, index)"
+            @remove="handleRemove" />
+          <CreateRow
+            v-else
+            v-model:list="variableList"
+            :index="index" />
+        </template>
+      </RenderTable>
     </div>
     <div
       class="close-btn"
@@ -23,6 +39,7 @@
   </div>
 </template>
 <script setup lang="tsx">
+  import _ from 'lodash';
   import {
     shallowRef,
     watch,
@@ -30,13 +47,25 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import { getBizSettingList } from '@services/system-setting';
+  import {
+    getBizSettingList,
+    updateBizSetting,
+  } from '@services/system-setting';
 
   import { useGlobalBizs } from '@stores';
 
-  interface IVariable {
+  import {
+    messageSuccess,
+  } from '@utils';
+
+  import CreateRow from './components/CreateRow.vue';
+  import RenderRow from './components/Row.vue';
+  import RenderTable from './components/Table.vue';
+
+  export interface IVariable {
     name: string,
-    desc: string
+    desc: string,
+    builtin: boolean,
   }
 
   const OPEN_AREA_VARS_KEY = 'OPEN_AREA_VARS';
@@ -49,48 +78,13 @@
   });
   const variableList = shallowRef<IVariable[]>([]);
 
-  const talbeColumns = [
-    {
-      label: t('变量名'),
-      field: 'name',
-    },
-    {
-      label: t('说明'),
-      field: 'desc',
-    },
-    {
-      label: t('类型'),
-      width: 80,
-      render: () => 'string',
-    },
-    {
-      label: t('操作'),
-      width: 80,
-      render: ({ data }: {data: IVariable}) => (
-        <>
-          <div class="action-btn">
-            <db-icon
-              type="plus-fill"
-              onClick={() => handleAdd(data)} />
-          </div>
-          <div class="action-btn">
-            <db-icon
-              class="ml-16"
-              type="minus-fill"
-              onClick={() => handleRemove(data)} />
-          </div>
-        </>
-      ),
-    },
-  ];
-
   const {
     loading: isLoading,
     run: fetchVariableList,
   } = useRequest(getBizSettingList, {
     manual: true,
     onSuccess(data) {
-      variableList.value = data[OPEN_AREA_VARS_KEY];
+      variableList.value = _.sortBy(data[OPEN_AREA_VARS_KEY], item => !item.builtin);
     },
   });
 
@@ -103,12 +97,25 @@
     }
   });
 
-  const handleAdd = (variable: IVariable) => {
-    console.log(variable);
+  const handleClickOutside = () => {
+    modelValue.value = false;
+  };
+
+  const handleAdd = (variable: IVariable, index: number) => {
+    const lastVariableList = [...variableList.value];
+    lastVariableList.splice(index + 1, 0, variable);
+    variableList.value = lastVariableList;
   };
 
   const handleRemove = (variable: IVariable) => {
-    console.log(variable);
+    variableList.value = _.filter(variableList.value, item => item.name === variable.name);
+    updateBizSetting({
+      bk_biz_id: currentBizId,
+      key: OPEN_AREA_VARS_KEY,
+      value: variableList.value,
+    }).then(() => {
+      messageSuccess(t('删除成功'));
+    });
   };
 
   const handleClose = () => {
@@ -121,9 +128,29 @@
     top: 104px;
     right: 0;
     bottom: 0;
+    z-index: 99;
     width: 600px;
     background-color: #fff;
     box-shadow: -1px 0 0 0 #DCDEE5;
+
+    .bk-table{
+      .bk-table-body{
+        tr{
+          .copy-btn{
+            cursor: pointer;
+            opacity: 0%;
+          }
+
+          &:hover{
+            .copy-btn{
+              color: #3a84ff;
+              opacity: 100%;
+              transition: 0.1s;
+            }
+          }
+        }
+      }
+    }
 
     .title{
       display: flex;
@@ -147,7 +174,7 @@
           color: #979ba5;
         }
 
-        &.disbled{
+        &.is-disabled{
           color: #dcdee5;
           cursor: not-allowed;
         }
@@ -167,6 +194,7 @@
       border-radius: 50%;
       align-items: center;
       justify-content: center;
+
 
       &:hover{
         background-color: #f0f1f5;

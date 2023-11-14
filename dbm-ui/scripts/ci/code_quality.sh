@@ -57,6 +57,7 @@ echo "未通过数: $TEST_NOT_SUCCESS_COUNT"
 
 if [[ $TEST_NOT_SUCCESS_COUNT -ne 0 ]];
 then
+  echo $TEST_LOGS
   exit 1
 fi
 

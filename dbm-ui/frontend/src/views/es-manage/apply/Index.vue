@@ -200,8 +200,7 @@
                 </BkFormItem>
               </div>
             </BkFormItem>
-            <BkFormItem
-              :label="$t('Client节点')">
+            <BkFormItem :label="$t('Client节点')">
               <div class="resource-pool-item">
                 <BkFormItem
                   :label="$t('规格')"
@@ -235,11 +234,13 @@
                 :title="$t('请保证冷热节点至少存在一台')" />
             </BkFormItem>
             <BkFormItem
-              :label="$t('热节点')">
+              :label="$t('热节点')"
+              required>
               <div class="resource-pool-item">
                 <BkFormItem
                   :label="$t('规格')"
-                  property="details.resource_spec.hot.spec_id">
+                  property="details.resource_spec.hot.spec_id"
+                  required>
                   <SpecSelector
                     ref="specHotRef"
                     v-model="formData.details.resource_spec.hot.spec_id"
@@ -250,7 +251,8 @@
                 </BkFormItem>
                 <BkFormItem
                   :label="$t('数量')"
-                  property="details.resource_spec.hot.count">
+                  property="details.resource_spec.hot.count"
+                  required>
                   <BkInput
                     v-model="formData.details.resource_spec.hot.count"
                     :min="0"

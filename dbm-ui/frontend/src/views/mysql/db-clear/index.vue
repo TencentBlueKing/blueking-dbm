@@ -98,7 +98,7 @@
   import { useI18n } from 'vue-i18n';
 
   import { getClusterInfoByDomains } from '@services/source/mysqlCluster';
-  import { getClusterDBNames } from '@services/source/remoteService';
+  import { getClusterDatabaseNameList } from '@services/source/remoteService';
   import { createTicket } from '@services/ticket';
   import type { ResourceItem } from '@services/types/clusters';
 
@@ -638,7 +638,7 @@
    */
   function fetchClusterDBNames() {
     const ids = tableData.value.map(item => item.cluster_id).filter(id => id);
-    return getClusterDBNames({
+    return getClusterDatabaseNameList({
       cluster_ids: ids,
     })
       .then((res) => {

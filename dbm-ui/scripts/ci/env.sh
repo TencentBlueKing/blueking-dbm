@@ -27,3 +27,6 @@ export REPORT_DB_PORT=${DB_PORT}
 
 # iam
 export BK_IAM_SKIP=true
+
+# dbm
+export DBA_APP_BK_BIZ_ID=3

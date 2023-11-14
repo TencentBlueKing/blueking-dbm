@@ -12,40 +12,173 @@
 -->
 
 <template>
-  <div
-    v-show="skippState.isShow"
-    ref="skippTipsRef"
-    class="mission-tips-content">
-    <div class="title">
-      {{ $t('确定忽略错误吗') }}
+  <div class="mission-detail-page">
+    <div
+      v-show="skippState.isShow"
+      ref="skippTipsRef"
+      class="mission-tips-content">
+      <div class="title">
+        {{ $t('确定忽略错误吗') }}
+      </div>
+      <div class="btn">
+        <span
+          class="bk-button-primary bk-button mr-8"
+          @click.stop="handleSkippClick">{{ $t('确定') }}</span>
+        <span
+          class="bk-button"
+          @click.stop="handleSkippCancel">{{ $t('取消') }}</span>
+      </div>
     </div>
-    <div class="btn">
-      <span
-        class="bk-button-primary bk-button mr-8"
-        @click.stop="handleSkippClick">{{ $t('确定') }}</span>
-      <span
-        class="bk-button"
-        @click.stop="handleSkippCancel">{{ $t('取消') }}</span>
+    <div
+      v-show="refreshState.isShow"
+      ref="refreshTemplateRef"
+      class="mission-tips-content">
+      <div class="title">
+        {{ $t('确定重试吗') }}
+      </div>
+      <div class="btn">
+        <span
+          class="bk-button-primary bk-button mr-8"
+          @click.stop="handleRefreshClick">{{ $t('确定') }}</span>
+        <span
+          class="bk-button"
+          @click.stop="handleRefreshCancel">{{ $t('取消') }}</span>
+      </div>
     </div>
-  </div>
-  <div
-    v-show="refreshState.isShow"
-    ref="refreshTemplateRef"
-    class="mission-tips-content">
-    <div class="title">
-      {{ $t('确定重试吗') }}
+    <div class="mission-details">
+      <BkLoading
+        :loading="flowState.loading"
+        style="height: 100%;">
+        <DbCard
+          mode="collapse"
+          :title="$t('基本信息')">
+          <EditInfo
+            class="mission-details-base"
+            :columns="baseColumns"
+            :data="baseInfo"
+            readonly
+            width="25%" />
+        </DbCard>
+        <DbCard
+          ref="flowTopoRef"
+          class="mission-details-flows"
+          :mode="cardMode"
+          :title="$t('任务流程')">
+          <template #header-right>
+            <div
+              class="flow-tools"
+              @click.stop>
+              <i
+                v-bk-tooltips="$t('放大')"
+                class="flow-tools-icon db-icon-plus-circle"
+                @click.stop="handleZoomIn" />
+              <i
+                v-bk-tooltips="$t('缩小')"
+                class="flow-tools-icon db-icon-minus-circle"
+                @click.stop="handleZoomOut" />
+              <i
+                v-bk-tooltips="$t('还原')"
+                class="flow-tools-icon db-icon-position"
+                @click.stop="handleZoomReset" />
+              <BkPopover
+                v-model:is-show="flowState.minimap.isShow"
+                boundary="parent"
+                :offset="{
+                  mainAxis: 12,
+                  crossAxis: 48,
+                }"
+                placement="bottom-end"
+                theme="light mission-minimap-popover"
+                trigger="manual"
+                :z-index="9999"
+                @click.stop>
+                <DbIcon
+                  ref="minimapTriggerRef"
+                  v-bk-tooltips="$t('缩略图')"
+                  class="flow-tools-icon"
+                  :class="{ 'flow-tools-icon-active': flowState.minimap.isShow }"
+                  type="minimap"
+                  @click.stop="handleShowMinimap" />
+                <template #content>
+                  <Minimap
+                    ref="minimapRef"
+                    v-clickoutside:[minimapTriggerRef?.$el]="handleHiddenMinimap"
+                    style="background-color: rgb(245 247 251);"
+                    @change="handleTranslate" />
+                </template>
+              </BkPopover>
+              <i
+                v-bk-tooltips="screenIcon.text"
+                class="flow-tools-icon"
+                :class="[screenIcon.icon]"
+                @click.stop="toggle" />
+              <BkPopover
+                v-model:is-show="isShowHotKey"
+                boundary="parent"
+                placement="bottom"
+                theme="light"
+                trigger="manual"
+                :z-index="9999"
+                @click.stop>
+                <DbIcon
+                  ref="hotKeyTriggerRef"
+                  v-bk-tooltips="$t('快捷键')"
+                  class="flow-tools-icon"
+                  :class="{ 'flow-tools-icon-active': isShowHotKey }"
+                  type="keyboard"
+                  @click.stop="handleShowHotKey" />
+                <template #content>
+                  <div
+                    v-clickoutside:[hotKeyTriggerRef?.$el]="handleHiddenHotKey"
+                    class="hot-key">
+                    <div class="hot-key-title">
+                      {{ $t('快捷键') }}
+                    </div>
+                    <div class="hot-key-list">
+                      <div class="hot-key-item">
+                        <span class="hot-key-text">{{ $t('放大') }}</span>
+                        <span class="hot-key-code">Ctrl</span>
+                        <span class="hot-key-code">+</span>
+                      </div>
+                      <div class="hot-key-item">
+                        <span class="hot-key-text">{{ $t('缩小') }}</span>
+                        <span class="hot-key-code">Ctrl</span>
+                        <span class="hot-key-code">-</span>
+                      </div>
+                      <div class="hot-key-item">
+                        <span class="hot-key-text">{{ $t('还原') }}</span>
+                        <span class="hot-key-code">Ctrl</span>
+                        <span class="hot-key-code">0</span>
+                      </div>
+                    </div>
+                  </div>
+                </template>
+              </BkPopover>
+            </div>
+          </template>
+          <div
+            :id="flowState.flowSelectorId"
+            ref="flowRef"
+            class="mission-flows"
+            @click="handleHiddenTips" />
+        </DbCard>
+      </BkLoading>
     </div>
-    <div class="btn">
-      <span
-        class="bk-button-primary bk-button mr-8"
-        @click.stop="handleRefreshClick">{{ $t('确定') }}</span>
-      <span
-        class="bk-button"
-        @click.stop="handleRefreshCancel">{{ $t('取消') }}</span>
-    </div>
-  </div>
-  <MainBreadcrumbs class="custom-main-breadcrumbs">
-    <template #append>
+    <NodeLog
+      :is-show="logState.isShow"
+      :node="logState.node"
+      @close="() => logState.isShow = false"
+      @refresh="handleRefresh" />
+    <!-- 结果文件功能 -->
+    <RedisResultFiles
+      :id="rootId"
+      v-model="isShowResultFile" />
+    <!-- 主机预览 -->
+    <HostPreview
+      v-model:is-show="showHostPreview"
+      :biz-id="baseInfo.bk_biz_id"
+      :host-ids="baseInfo.bk_host_ids || []" />
+    <Teleport to="#dbmPageSubtitle">
       <div
         v-if="statusText"
         class="status-info">
@@ -96,143 +229,9 @@
           </div>
         </template>
       </BkPopover>
-    </template>
-  </MainBreadcrumbs>
-  <div class="mission-details">
-    <BkLoading
-      :loading="flowState.loading"
-      style="height: 100%;">
-      <DbCard
-        mode="collapse"
-        :title="$t('基本信息')">
-        <EditInfo
-          class="mission-details-base"
-          :columns="baseColumns"
-          :data="baseInfo"
-          readonly
-          width="25%" />
-      </DbCard>
-      <DbCard
-        ref="flowTopoRef"
-        class="mission-details-flows"
-        :mode="cardMode"
-        :title="$t('任务流程')">
-        <template #header-right>
-          <div
-            class="flow-tools"
-            @click.stop>
-            <i
-              v-bk-tooltips="$t('放大')"
-              class="flow-tools-icon db-icon-plus-circle"
-              @click.stop="handleZoomIn" />
-            <i
-              v-bk-tooltips="$t('缩小')"
-              class="flow-tools-icon db-icon-minus-circle"
-              @click.stop="handleZoomOut" />
-            <i
-              v-bk-tooltips="$t('还原')"
-              class="flow-tools-icon db-icon-position"
-              @click.stop="handleZoomReset" />
-            <BkPopover
-              v-model:is-show="flowState.minimap.isShow"
-              boundary="parent"
-              :offset="{
-                mainAxis: 12,
-                crossAxis: 48,
-              }"
-              placement="bottom-end"
-              theme="light mission-minimap-popover"
-              trigger="manual"
-              :z-index="9999"
-              @click.stop>
-              <DbIcon
-                ref="minimapTriggerRef"
-                v-bk-tooltips="$t('缩略图')"
-                class="flow-tools-icon"
-                :class="{ 'flow-tools-icon-active': flowState.minimap.isShow }"
-                type="minimap"
-                @click.stop="handleShowMinimap" />
-              <template #content>
-                <Minimap
-                  ref="minimapRef"
-                  v-clickoutside:[minimapTriggerRef?.$el]="handleHiddenMinimap"
-                  style="background-color: rgb(245 247 251);"
-                  @change="handleTranslate" />
-              </template>
-            </BkPopover>
-            <i
-              v-bk-tooltips="screenIcon.text"
-              class="flow-tools-icon"
-              :class="[screenIcon.icon]"
-              @click.stop="toggle" />
-            <BkPopover
-              v-model:is-show="isShowHotKey"
-              boundary="parent"
-              placement="bottom"
-              theme="light"
-              trigger="manual"
-              :z-index="9999"
-              @click.stop>
-              <DbIcon
-                ref="hotKeyTriggerRef"
-                v-bk-tooltips="$t('快捷键')"
-                class="flow-tools-icon"
-                :class="{ 'flow-tools-icon-active': isShowHotKey }"
-                type="keyboard"
-                @click.stop="handleShowHotKey" />
-              <template #content>
-                <div
-                  v-clickoutside:[hotKeyTriggerRef?.$el]="handleHiddenHotKey"
-                  class="hot-key">
-                  <div class="hot-key-title">
-                    {{ $t('快捷键') }}
-                  </div>
-                  <div class="hot-key-list">
-                    <div class="hot-key-item">
-                      <span class="hot-key-text">{{ $t('放大') }}</span>
-                      <span class="hot-key-code">Ctrl</span>
-                      <span class="hot-key-code">+</span>
-                    </div>
-                    <div class="hot-key-item">
-                      <span class="hot-key-text">{{ $t('缩小') }}</span>
-                      <span class="hot-key-code">Ctrl</span>
-                      <span class="hot-key-code">-</span>
-                    </div>
-                    <div class="hot-key-item">
-                      <span class="hot-key-text">{{ $t('还原') }}</span>
-                      <span class="hot-key-code">Ctrl</span>
-                      <span class="hot-key-code">0</span>
-                    </div>
-                  </div>
-                </div>
-              </template>
-            </BkPopover>
-          </div>
-        </template>
-        <div
-          :id="flowState.flowSelectorId"
-          ref="flowRef"
-          class="mission-flows"
-          @click="handleHiddenTips" />
-      </DbCard>
-    </BkLoading>
+    </Teleport>
   </div>
-  <NodeLog
-    :is-show="logState.isShow"
-    :node="logState.node"
-    @close="() => logState.isShow = false"
-    @refresh="handleRefresh" />
-  <!-- 结果文件功能 -->
-  <RedisResultFiles
-    :id="rootId"
-    v-model="isShowResultFile" />
-  <!-- 主机预览 -->
-  <HostPreview
-    v-model:is-show="showHostPreview"
-    :biz-id="baseInfo.bk_biz_id"
-    :host-ids="baseInfo.bk_host_ids || []" />
 </template>
-
 <script setup lang="tsx">
   import type { Instance } from 'tippy.js';
   import { useI18n } from 'vue-i18n';
@@ -249,7 +248,6 @@
   import EditInfo, {
     type InfoColumn,
   } from '@components/editable-info/index.vue';
-  import MainBreadcrumbs from '@components/layouts/MainBreadcrumbs.vue';
   import Minimap from '@components/minimap/Minimap.vue';
 
   import { generateId, getCostTimeDisplay, messageSuccess } from '@utils';
@@ -512,13 +510,11 @@
   /**
    * 重试节点
    */
-  const handleRefresh = (node: GraphNode) => {
+  const handleRefresh = () => {
     retryTaskflowNode({
       root_id: rootId.value,
-      node_id: node.data.id,
+      node_id: logState.node.id,
     }).then(() => {
-      // eslint-disable-next-line no-param-reassign
-      node.data.status = 'RUNNING';
       renderNodes();
       fetchTaskflowDetails();
     });
@@ -707,9 +703,7 @@
    * 确认刷新节点
    */
   const handleRefreshClick = () => {
-    if (refreshState.node) {
-      handleRefresh(refreshState.node);
-    }
+    handleRefresh();
     handleRefreshCancel();
   };
 
@@ -804,110 +798,116 @@
 
 </script>
 
-<style lang="less" scoped>
+<style lang="less">
   @import "@styles/mixins";
 
-  :deep(.db-card__content),
-  .mission-flows {
-    height: 100%;
-  }
+  .mission-detail-page{
+    position: relative;
 
-  .status-info {
-    .flex-center();
-
-    margin-right: 24px;
-  }
-
-  .status-stop-button {
-    padding: 5px 8px;
-    border-radius: 50px;
-
-    .db-icon-revoke {
-      margin-right: 4px;
-    }
-  }
-
-  .mission-details {
-    height: 100%;
-    padding-top: 52px;
-
-    .mission-details-base {
-      width: 80%;
-      padding-left: 40px;
-
-      :deep(.base-info__label) {
-        min-width: 100px;
-        justify-content: flex-end;
-      }
+    .custom-main-breadcrumbs{
+      top: -52px;
     }
 
-    .mission-details-flows {
-      height: calc(100% - 150px);
-      padding: 14px 0;
-      overflow: hidden;
-      border-top: 1px solid @border-disable;
-
-      :deep(.db-card__header) {
-        padding: 0 24px;
-      }
-
-      :deep(.db-card__content) {
-        padding-top: 14px;
-      }
+    .db-card__content,
+    .mission-flows {
+      height: 100%;
     }
 
-    .flow-tools {
-      padding-bottom: 2px;
+    .status-info {
       .flex-center();
 
-      .flow-tools-icon {
-        display: block;
-        margin-left: 16px;
-        font-size: @font-size-large;
-        text-align: center;
-        cursor: pointer;
+      margin-right: 24px;
+    }
 
-      }
+    .status-stop-button {
+      padding: 5px 8px;
+      border-radius: 50px;
 
-      .flow-tools-icon:hover,
-      .flow-tools-icon-active {
-        color: @primary-color;
+      .db-icon-revoke {
+        margin-right: 4px;
       }
     }
+
+    .mission-details {
+      height: 100%;
+
+      .mission-details-base {
+        width: 80%;
+        padding-left: 40px;
+
+        .base-info__label {
+          min-width: 100px;
+          justify-content: flex-end;
+        }
+      }
+
+      .mission-details-flows {
+        height: calc(100% - 150px);
+        padding: 14px 0;
+        overflow: hidden;
+        border-top: 1px solid @border-disable;
+
+        .db-card__header {
+          padding: 0 24px;
+        }
+
+        .db-card__content {
+          padding-top: 14px;
+        }
+      }
+
+      .flow-tools {
+        padding-bottom: 2px;
+        .flex-center();
+
+        .flow-tools-icon {
+          display: block;
+          margin-left: 16px;
+          font-size: @font-size-large;
+          text-align: center;
+          cursor: pointer;
+
+        }
+
+        .flow-tools-icon:hover,
+        .flow-tools-icon-active {
+          color: @primary-color;
+        }
+      }
+    }
+
+    .hot-key {
+      width: 230px;
+
+      .hot-key-title {
+        padding-bottom: 8px;
+        color: @title-color;
+        border-bottom: 1px solid #eaebf0;
+      }
+
+      .hot-key-item {
+        display: flex;
+        padding: 8px 0 6px;
+        color: @default-color;
+        align-items: center;
+      }
+
+      .hot-key-text {
+        margin-right: 32px;
+      }
+
+      .hot-key-code {
+        min-width: 20px;
+        padding: 0 6px;
+        margin-right: 8px;
+        line-height: 18px;
+        border: 1px solid #dcdee5;
+        border-radius: 2px;
+      }
+    }
+
   }
 
-  .hot-key {
-    width: 230px;
-
-    .hot-key-title {
-      padding-bottom: 8px;
-      color: @title-color;
-      border-bottom: 1px solid #eaebf0;
-    }
-
-    .hot-key-item {
-      display: flex;
-      padding: 8px 0 6px;
-      color: @default-color;
-      align-items: center;
-    }
-
-    .hot-key-text {
-      margin-right: 32px;
-    }
-
-    .hot-key-code {
-      min-width: 20px;
-      padding: 0 6px;
-      margin-right: 8px;
-      line-height: 18px;
-      border: 1px solid #dcdee5;
-      border-radius: 2px;
-    }
-  }
-</style>
-
-<style lang="less">
   .mission-tips-content {
     width: 240px;
     padding: 8px 0;

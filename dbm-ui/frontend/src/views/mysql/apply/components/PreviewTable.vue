@@ -211,7 +211,7 @@
   };
 
   /**
-   * 高可用分组渲染
+   * 主从分组渲染
    */
   function getRenderHosts(hosts: Array<HostInfo>) {
     const renderHosts: Array<Array<HostInfo>> = [];

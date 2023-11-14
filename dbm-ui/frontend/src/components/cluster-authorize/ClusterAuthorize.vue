@@ -381,7 +381,7 @@
     selected[clusterType] = tableProps.data;
     return selected;
   });
-  const clusterTypeTitle = computed(() => (clusterState.clusterType === ClusterTypes.TENDBHA ? t('高可用') : t('单节点')));
+  const clusterTypeTitle = computed(() => (clusterState.clusterType === ClusterTypes.TENDBHA ? t('主从') : t('单节点')));
   // 获取选中集群
   watch(() => clusterState.tableProps.data, (data) => {
     state.formdata.target_instances = data.map(item => item.master_domain);

@@ -172,7 +172,7 @@ export default [
     children: [
       {
         name: t('开区模版'),
-        id: 'spiderOpenarea',
+        id: 'spiderOpenareaTemplate',
         parentId: 'spider_openarea',
       },
     ],

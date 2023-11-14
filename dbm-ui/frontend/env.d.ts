@@ -61,3 +61,7 @@ type ValueOf<T> = T[keyof T];
 
 type ServiceReturnType<T extends (...args: any) => Promise<any>> = T extends (...args: any) => Promise<infer R>
 ? R : any
+
+type KeyExpand<T> = {
+  [K in keyof T]: T[K];
+};

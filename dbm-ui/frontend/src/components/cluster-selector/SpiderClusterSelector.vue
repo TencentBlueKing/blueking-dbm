@@ -204,7 +204,7 @@
     onlyOneType: false,
     tabList: () => [
       {
-        name: '高可用集群',
+        name: '主从集群',
         id: ClusterTypes.TENDBHA,
       },
       {

@@ -55,6 +55,7 @@ api_patterns = [
     path("event/", include("backend.db_event.urls")),
     path("db_dirty/", include("backend.db_dirty.urls")),
     path("dbbase/", include("backend.db_services.dbbase.urls")),
+    path("quick_search/", include("backend.db_services.quick_search.urls")),
 ]
 
 urlpatterns = [

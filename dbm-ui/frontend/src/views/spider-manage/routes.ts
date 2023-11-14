@@ -235,8 +235,8 @@ export const spiderToolboxChildrenRoutes: RouteRecordRaw[] = [
     component: () => import('@views/spider-manage/privilege-clone-inst/Index.vue'),
   },
   {
-    path: 'openarea',
-    name: 'spiderOpenarea',
+    path: 'openarea-template',
+    name: 'spiderOpenareaTemplate',
     meta: {
       routeParentName: MainViewRouteNames.Database,
       navName: t('开区模版'),
@@ -244,7 +244,7 @@ export const spiderToolboxChildrenRoutes: RouteRecordRaw[] = [
       activeMenu: 'spiderToolbox',
       submenuId: 'spider_openarea',
     },
-    component: () => import('@views/spider-manage/openarea/Index.vue'),
+    component: () => import('@views/spider-manage/openarea-template/Index.vue'),
   },
 ];
 
@@ -361,11 +361,29 @@ const renderRoutes: RouteRecordRaw[] = [
         children: spiderToolboxChildrenRoutes,
       },
       {
-        path: 'openarea-create',
-        name: 'spiderOpenareaCreate',
+        path: 'openarea-template-create',
+        name: 'spiderOpenareaTemplateCreate',
         meta: {
           routeParentName: MainViewRouteNames.Database,
           navName: t('新建开区模板'),
+        },
+        component: () => import('@views/spider-manage/openarea-template-create/Index.vue'),
+      },
+      {
+        path: 'openarea-template-edit/:id',
+        name: 'spiderOpenareaTemplateEdit',
+        meta: {
+          routeParentName: MainViewRouteNames.Database,
+          navName: t('编辑开区模板'),
+        },
+        component: () => import('@views/spider-manage/openarea-template-create/Index.vue'),
+      },
+      {
+        path: 'openarea-create/:id',
+        name: 'spiderOpenareaCreate',
+        meta: {
+          routeParentName: MainViewRouteNames.Database,
+          navName: t('新建开区'),
         },
         component: () => import('@views/spider-manage/openarea-create/Index.vue'),
       },

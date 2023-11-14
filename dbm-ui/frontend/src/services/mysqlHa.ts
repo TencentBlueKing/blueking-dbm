@@ -22,6 +22,6 @@ import type { ListBase } from './types/common';
 const { currentBizId } = useGlobalBizs();
 
 /**
- * 获取高可用实例列表
+ * 获取主从实例列表
  */
 export const getHaInstances = (params: Record<string, any>) => http.get<ListBase<ResourceInstance[]>>(`/apis/mysql/bizs/${currentBizId}/tendbha_resources/list_instances/`, params);

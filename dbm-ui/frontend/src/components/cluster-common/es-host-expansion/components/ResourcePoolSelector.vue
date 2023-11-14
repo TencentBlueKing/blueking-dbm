@@ -148,12 +148,6 @@
         role: props.data.role,
       },
     ],
-    onSuccess(recommendSpecList) {
-      if (recommendSpecList.length > 0) {
-        specId.value = recommendSpecList[0].spec_id;
-        triggerChange();
-      }
-    },
   });
 
   const handleSpecChange = (value: number) => {

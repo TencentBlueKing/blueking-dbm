@@ -307,7 +307,7 @@
     showTips: false,
   });
   const tabTextMap: Record<string, string> = {
-    [ClusterTypes.TENDBHA]: t('高可用集群'),
+    [ClusterTypes.TENDBHA]: t('主从集群'),
     [ClusterTypes.TENDBSINGLE]: t('单节点集群'),
     [ClusterTypes.TENDBCLUSTER]: t('TendbCluster集群'),
   };

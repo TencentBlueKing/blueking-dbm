@@ -48,7 +48,7 @@
     modelValue?: string[],
     placeholder?: string,
     rules?: Rules,
-    single: boolean,
+    single?: boolean,
   }
 
   interface Emits {

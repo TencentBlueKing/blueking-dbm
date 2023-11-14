@@ -234,8 +234,12 @@ class CCApiMock(object):
 
     @staticmethod
     def transfer_host_across_biz(*args, **kwargs):
+        if kwargs.get("raw"):
+            return {"result": True}
         return
 
     @staticmethod
     def transfer_host_to_idlemodule(*args, **kwargs):
+        if kwargs.get("raw"):
+            return {"result": True}
         return

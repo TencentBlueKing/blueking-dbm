@@ -17,8 +17,8 @@ export const getBizSettingList = function (params: {
 export const updateBizSetting = function (params: {
   bk_biz_id: number,
   key: string,
-  value: Record<string, any>,
-  value_type: string,
+  value: any,
+  value_type?: string,
 }) {
   return http.post('/apis/conf/biz_settings/update_settings/', params);
 };

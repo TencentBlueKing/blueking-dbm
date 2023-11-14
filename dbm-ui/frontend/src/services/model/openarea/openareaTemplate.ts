@@ -3,13 +3,14 @@ export default class Opeanarea {
   config_name: string;
   config_rules: {
     data_tblist: string[],
-    priv_data: string[],
+    priv_data: number[],
     schema_tblist: string[],
     source_db: string,
-    target_db_pattern: string[]
+    target_db_pattern: string
   }[];
   create_at: string;
   creator: string;
+  id: number;
   source_cluster: {
     bk_cloud_id: number;
     cluster_type: string;
@@ -29,6 +30,7 @@ export default class Opeanarea {
     this.config_rules = payload.config_rules || [];
     this.create_at = payload.create_at;
     this.creator = payload.creator;
+    this.id = payload.id;
     this.source_cluster = payload.source_cluster || {};
     this.source_cluster_id = payload.source_cluster_id;
     this.update_at = payload.update_at;
