@@ -22,6 +22,7 @@ from backend.db_meta.models import AppMonitorTopo, Cluster, ClusterMonitorTopo, 
 from backend.db_meta.models.cluster_monitor import INSTANCE_MONITOR_PLUGINS, SET_NAME_TEMPLATE
 from backend.db_services.ipchooser.constants import IDLE_HOST_MODULE
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
+from backend.exceptions import ApiError
 
 logger = logging.getLogger("flow")
 
@@ -198,7 +199,16 @@ class CcManage(object):
             host_id for host_id in bk_host_ids if host__idle_module[host_id] != biz_idle_module
         ]
         if transfer_host_ids:
-            CCApi.transfer_host_to_idlemodule({"bk_biz_id": bk_biz_id, "bk_host_id": transfer_host_ids})
+            resp = CCApi.transfer_host_to_idlemodule(
+                {"bk_biz_id": bk_biz_id, "bk_host_id": transfer_host_ids}, raw=True
+            )
+            if resp.get("result"):
+                return
+            # 针对主机已经转移过的场景，直接忽略即可
+            if resp.get("bk_error_code") == CCApi.ErrorCode.HOST_NOT_BELONG_BIZ:
+                logger.warning(f"transfer_host_to_idlemodule, resp:{resp}")
+            else:
+                raise ApiError(f"transfer_host_to_idlemodule error, resp:{resp}")
 
     def transfer_host_module(self, bk_host_ids: list, target_module_ids: list):
         """
@@ -241,16 +251,23 @@ class CcManage(object):
             self.transfer_host_to_idlemodule(
                 bk_biz_id=src_bk_biz_id, bk_host_ids=need_across_biz_host_ids, host_topo=hosts
             )
-            CCApi.transfer_host_across_biz(
+            resp = CCApi.transfer_host_across_biz(
                 {
                     "src_bk_biz_id": src_bk_biz_id,
                     "dst_bk_biz_id": self.hosting_biz_id,
                     "bk_host_id": need_across_biz_host_ids,
                     "bk_module_id": free_bk_module_id,
-                    "is_increment": False,
                 },
                 use_admin=True,
+                raw=True,
             )
+            if resp.get("result"):
+                return
+            # 针对主机已经转移过的场景，直接忽略即可
+            if resp.get("bk_error_code") == CCApi.ErrorCode.HOST_NOT_BELONG_MODULE:
+                logger.warning(f"transfer_host_across_biz, resp:{resp}")
+            else:
+                raise ApiError(f"transfer_host_across_biz error, resp:{resp}")
 
         # 主机转移到对应的模块下，机器可能对应多个集群，所有主机转移到多个模块下是合理的
         CCApi.transfer_host_module(
@@ -258,7 +275,7 @@ class CcManage(object):
                 "bk_biz_id": self.hosting_biz_id,
                 "bk_host_id": bk_host_ids,
                 "bk_module_id": target_module_ids,
-                "is_increment": False,
+                "is_increment": True,
             },
             use_admin=True,
         )
