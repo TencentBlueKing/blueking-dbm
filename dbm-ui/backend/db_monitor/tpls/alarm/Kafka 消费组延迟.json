@@ -266,24 +266,5 @@
   "monitor_indicator": "avg_without_time(kafka_consumergroup_lag_sum)",
   "version": 12,
   "alert_source": "time_series",
-  "custom_conditions": [
-    {
-      "key": "consumergroup",
-      "value": [
-        "gsin"
-      ],
-      "method": "eq",
-      "condition": "and",
-      "dimension_name": "consumergroup"
-    },
-    {
-      "key": "topic",
-      "value": [
-        "sinsin"
-      ],
-      "method": "eq",
-      "condition": "and",
-      "dimension_name": "topic"
-    }
-  ]
+  "custom_conditions": []
 }
