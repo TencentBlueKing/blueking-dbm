@@ -72,9 +72,11 @@ class CCTopoOperator:
         self.is_bk_module_created = True
 
     def transfer_instances_to_cluster_module(
-        self, instances: Union[List[StorageInstance], List[ProxyInstance], QuerySet]
+        self, instances: Union[List[StorageInstance], List[ProxyInstance], QuerySet], is_increment=False
     ):
         """
+        @params instances 实例列表
+        @params is_increment 是否为增量操作，即主机处于多模块
         转移实例到对应的集群模块下，并添加服务实例
         """
         if not self.is_bk_module_created:
@@ -94,7 +96,7 @@ class CCTopoOperator:
                 )
             )
             # 批量转移主机
-            CcManage(self.bk_biz_id).transfer_host_module(bk_host_ids, bk_module_ids)
+            CcManage(self.bk_biz_id).transfer_host_module(bk_host_ids, bk_module_ids, is_increment)
             # 创建 CMDB 服务实例
             self.init_instances_service(machine_type, ins_list)
 
