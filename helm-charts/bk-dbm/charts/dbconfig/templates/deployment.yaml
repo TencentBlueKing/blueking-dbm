@@ -79,9 +79,6 @@ spec:
               name: config-volume
               subPath: path/to/config.yaml
               mountPath: /conf/config.yaml
-        - name: mysqlclient
-          image: joseluisq/mysql-client
-          command: [ "/bin/sh", "-ec", "sleep infinity" ]
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}

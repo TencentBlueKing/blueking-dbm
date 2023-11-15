@@ -22,7 +22,7 @@ dependencies:
   version: 0.1.28
 - name: dbconfig
   repository: file://charts/dbconfig
-  version: 0.1.9
+  version: 0.1.10
 - name: dbpriv
   repository: file://charts/dbpriv
   version: 0.1.31
@@ -56,5 +56,5 @@ dependencies:
 - name: backup-consumer
   repository: file://charts/backup-consumer
   version: 0.0.3
-digest: sha256:3de5f96c055c450856010568192660ef672f1216eb7d3b9d9bf81faa255df2f9
-generated: "2023-11-14T10:53:10.905277+08:00"
+digest: sha256:fc3aec4f77331f0458f628effc785beaeb2035b7cdd83c5466bf6711a7495781
+generated: "2023-11-15T10:12:34.005059+08:00"
