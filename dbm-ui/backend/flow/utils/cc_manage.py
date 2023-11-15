@@ -210,8 +210,11 @@ class CcManage(object):
             else:
                 raise ApiError(f"transfer_host_to_idlemodule error, resp:{resp}")
 
-    def transfer_host_module(self, bk_host_ids: list, target_module_ids: list):
+    def transfer_host_module(self, bk_host_ids: list, target_module_ids: list, is_increment=False):
         """
+        @params bk_host_ids 主机id列表
+        @params target_module_ids 目标模块id列表
+        @params is_increment 是否增量转移，即主机处于多模块
         跨业务转移主机，需要先做中转处理
         循环判断处理，逻辑保证幂等操作
         考虑这几种情况：
@@ -275,7 +278,7 @@ class CcManage(object):
                 "bk_biz_id": self.hosting_biz_id,
                 "bk_host_id": bk_host_ids,
                 "bk_module_id": target_module_ids,
-                "is_increment": True,
+                "is_increment": is_increment,
             },
             use_admin=True,
         )
