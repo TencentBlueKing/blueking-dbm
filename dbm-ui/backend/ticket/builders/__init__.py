@@ -242,7 +242,7 @@ class TicketFlowBuilder:
     # 默认的参数构造器
     inner_flow_name: str = ""
     inner_flow_builder: FlowParamBuilder = None
-    pause_node_builder: PauseParamBuilder = None
+    pause_node_builder: PauseParamBuilder = PauseParamBuilder
     # resource_apply_builder和resource_batch_apply_builder只能存在其一，表示是资源池单次申请还是批量申请
     resource_apply_builder: ResourceApplyParamBuilder = None
     resource_batch_apply_builder: ResourceApplyParamBuilder = None
