@@ -166,8 +166,10 @@
 
   import type PulsarModel from '@services/model/pulsar/pulsar';
   import PulsarNodeModel from '@services/model/pulsar/pulsar-node';
-  import { getPulsarListNodes } from '@services/source/bigdata';
-  import { getClusterDetail } from '@services/source/pulsar';
+  import {
+    getPulsarDetail,
+    getPulsarNodeList,
+  } from '@services/source/pulsar';
 
   import {
     useCopy,
@@ -415,7 +417,7 @@
 
   const fetchClusterDetail = () => {
     // 获取集群详情
-    getClusterDetail({
+    getPulsarDetail({
       id: props.clusterId,
     })
       .then((data) => {
@@ -425,7 +427,7 @@
 
   const fetchNodeList = () => {
     isLoading.value = true;
-    getPulsarListNodes({
+    getPulsarNodeList({
       bk_biz_id: globalBizsStore.currentBizId,
       cluster_id: props.clusterId,
       no_limit: 1,

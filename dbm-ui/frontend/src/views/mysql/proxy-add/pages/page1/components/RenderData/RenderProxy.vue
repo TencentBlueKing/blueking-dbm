@@ -28,7 +28,7 @@
   } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import type { HostTopoInfo } from '@services/types/ip';
+  import { getHostTopoInfos } from '@services/source/ipchooser';
 
   import { useGlobalBizs } from '@stores';
 
@@ -38,7 +38,7 @@
 
   import type {  IDataRow } from './Row.vue';
 
-  import { getHostTopoInfos } from '@/services/source/ipchooser';
+  type HostTopoInfo = ServiceReturnType<typeof getHostTopoInfos>['hosts_topo_info'][number]
 
   interface Props {
     modelValue: IDataRow['proxyIp'],

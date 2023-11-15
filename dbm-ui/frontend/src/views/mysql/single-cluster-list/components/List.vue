@@ -91,18 +91,20 @@
   <EditEntryConfig
     :id="clusterId"
     v-model:is-show="showEditEntryConfig"
-    :get-detail-info="getResourceDetails" />
+    :get-detail-info="getTendbsingleDetail" />
 </template>
 
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
 
-  import { getModules, getUseList  } from '@services/common';
+  import { getModules } from '@services/source/cmdb';
   import {
-    getResourceDetails,
-    getResourceInstances,
-    getResources  } from '@services/source/resourceTendbsingle';
-  import { createTicket } from '@services/ticket';
+    getTendbsingleDetail,
+    getTendbsingleInstanceList,
+    getTendbsingleList,
+  } from '@services/source/tendbsingle';
+  import { createTicket } from '@services/source/ticket';
+  import { getUserList } from '@services/source/user';
   import type { ResourceItem } from '@services/types/clusters';
   import type { SearchFilterItem } from '@services/types/common';
 
@@ -315,7 +317,7 @@
         title={t('【inst】实例预览', { inst: data.master_domain })}
         role="orphan"
         clusterId={data.id}
-        dataSource={getResourceInstances}
+        dataSource={getTendbsingleInstanceList}
       />
     ),
     },
@@ -497,7 +499,7 @@
   function fetchUseList(fuzzyLookups: string) {
     if (!fuzzyLookups) return [];
 
-    return getUseList({ fuzzy_lookups: fuzzyLookups }).then(res => res.results.map(item => ({
+    return getUserList({ fuzzy_lookups: fuzzyLookups }).then(res => res.results.map(item => ({
       id: item.username,
       name: item.username,
     })));
@@ -553,7 +555,7 @@
     };
     isInit.value = false;
     state.isLoading = isLoading;
-    return getResources(params)
+    return getTendbsingleList(params)
       .then((res) => {
         state.pagination.count = res.count;
         state.data = res.results;

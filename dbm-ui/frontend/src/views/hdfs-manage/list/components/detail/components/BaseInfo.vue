@@ -17,12 +17,12 @@
   </div>
 </template>
 <script setup lang="ts">
-  import { getClusterDetail } from '@services/source/hdfs';
+  import { getHdfsDetail } from '@services/source/hdfs';
 
   import RenderBaseInfo from '@components/cluster-common/RenderBaseInfo.vue';
 
   interface Props {
-    data: ServiceReturnType<typeof getClusterDetail>
+    data: ServiceReturnType<typeof getHdfsDetail>
   }
 
   defineProps<Props>();

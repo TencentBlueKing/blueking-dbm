@@ -1,8 +1,6 @@
 import { useRequest } from 'vue-request';
 
-import {
-  getDirtyMachines,
-} from '@services/dbResource';
+import { getDirtyMachines } from '@services/source/dbdirty';
 
 export const useLoopDirtyPool = () => {
   const {

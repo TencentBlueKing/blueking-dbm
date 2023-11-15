@@ -130,15 +130,15 @@
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
+  import { createModules } from '@services/source/cmdb';
   import {
     getConfigNames,
     getLevelConfig,
     saveModulesDeployInfo,
     updateBusinessConfig,
   } from '@services/source/configs';
-  import { createModules } from '@services/ticket';
+  import { getVersions } from '@services/source/version';
   import type { ConfigBaseDetails, ParameterConfigItem } from '@services/types/configs';
-  import { getVersions } from '@services/versionFiles';
 
   import { useInfo } from '@hooks';
 

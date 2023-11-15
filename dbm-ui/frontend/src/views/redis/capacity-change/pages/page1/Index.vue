@@ -69,9 +69,9 @@
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
-  import { getClusterTypeToVersions } from '@services/clusters';
-  import { listClusterList } from '@services/source/resourceRedis';
-  import { createTicket } from '@services/ticket';
+  import { getRedisList } from '@services/source/redis';
+  import { createTicket } from '@services/source/ticket';
+  import { getClusterTypeToVersions } from '@services/source/version';
   import type { SubmitTicket } from '@services/types/ticket';
 
   import { useGlobalBizs } from '@stores';
@@ -87,7 +87,7 @@
     type InfoItem,
   } from './components/Row.vue';
 
-  type RedisModel = ServiceReturnType<typeof listClusterList>[number];
+  type RedisModel = ServiceReturnType<typeof getRedisList>['results'][number];
 
   const router = useRouter();
   const { currentBizId } = useGlobalBizs();
@@ -179,14 +179,14 @@
       return;
     }
     tableData.value[index].isLoading = true;
-    const ret = await listClusterList({ domain }).finally(() => {
+    const result = await getRedisList({ domain }).finally(() => {
       tableData.value[index].isLoading = false;
     });
-    if (ret.length < 1) {
+    if (result.results.length < 1) {
       return;
     }
 
-    const data = ret[0];
+    const data = result.results[0];
     const row = generateRowDateFromRequest(data);
     tableData.value[index] = row;
     domainMemo[domain] = true;

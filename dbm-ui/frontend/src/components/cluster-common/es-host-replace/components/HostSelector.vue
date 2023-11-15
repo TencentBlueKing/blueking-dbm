@@ -66,7 +66,7 @@
   import { ref } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import type { HostDetails } from '@services/types/ip';
+  import { checkHost } from '@services/source/ipchooser';
 
   import { useGlobalBizs } from '@stores';
 
@@ -74,6 +74,8 @@
   import IpSelector from '@components/ip-selector/IpSelector.vue';
 
   import type { TReplaceNode } from '../Index.vue';
+
+  type HostDetails = ServiceReturnType<typeof checkHost>[number]
 
   interface Props {
     data: TReplaceNode,

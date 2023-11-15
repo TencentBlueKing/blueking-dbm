@@ -44,8 +44,8 @@
 
   import type EsInstanceModel from '@services/model/es/es-instance';
   import type EsNodeModel from '@services/model/es/es-node';
-  import { getListInstance } from '@services/source/es';
-  import { createTicket } from '@services/ticket';
+  import { getEsInstanceList } from '@services/source/es';
+  import { createTicket } from '@services/source/ticket';
 
   import { useTicketMessage } from '@hooks';
 
@@ -157,7 +157,7 @@
 
   const fetchData = (hasLoading = false) => {
     isLoading.value = hasLoading;
-    getListInstance({
+    getEsInstanceList({
       bk_biz_id: globalBizsStore.currentBizId,
       cluster_id: props.clusterId,
       ip: props.data.ip,

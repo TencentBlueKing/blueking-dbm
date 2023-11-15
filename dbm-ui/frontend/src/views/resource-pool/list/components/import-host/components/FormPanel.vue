@@ -150,9 +150,9 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import { getBizs } from '@services/common';
-  import { fetchDbTypeList } from '@services/infras';
   import type ImportHostModel from '@services/model/db-resource/import-host';
+  import { getBizs } from '@services/source/cmdb';
+  import { fetchDbTypeList } from '@services/source/infras';
 
   import { useCopy } from '@hooks';
 

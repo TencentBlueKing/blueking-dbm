@@ -11,16 +11,13 @@
  * the specific language governing permissions and limitations under the License.
 */
 
-
-import BizConfTopoTreeModel from '@services/model/config/biz-conf-topo-tree';
-
-import { useGlobalBizs } from '@stores';
-
 import http from '../http';
 
-const { currentBizId } = useGlobalBizs();
+const path = '/apis/infras';
 
-/**
- * 获取业务拓扑树
- */
-export const getBusinessTopoTree = (params: { cluster_type: string }) => http.get<BizConfTopoTreeModel[]>(`/apis/mysql/bizs/${currentBizId}/resource_tree/`, params);
+export const fetchDbTypeList = function () {
+  return http.get<Array<{
+    id: string,
+    name: string
+  }>>(`${path}/dbtype/list_db_types/`);
+};

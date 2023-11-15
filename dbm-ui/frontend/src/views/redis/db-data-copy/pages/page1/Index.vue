@@ -177,8 +177,8 @@
       RepairAndVerifyModes,
       WriteModes,
     } from '@services/model/redis/redis-dst-history-job';
-  import { listClusterList } from '@services/source/resourceRedis';
-  import { createTicket } from '@services/ticket';
+  import { getRedisList } from '@services/source/redis';
+  import { createTicket } from '@services/source/ticket';
   import type { SubmitTicket } from '@services/types/ticket';
 
   import { useGlobalBizs } from '@stores';
@@ -278,8 +278,8 @@
   };
 
   const queryClusterList = async () => {
-    const arr = await listClusterList();
-    clusterList.value = arr.map(item => ({
+    const result = await getRedisList();
+    clusterList.value = result.results.map(item => ({
       value: item.id,
       label: item.master_domain,
     }));
@@ -381,4 +381,3 @@
     }
   }
 </style>
-

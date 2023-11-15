@@ -85,14 +85,14 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import { getTopoGraph as getESTopoGraph } from '@services/source/es';
-  import { getTopoGraph as getHDFSTopoGraph } from '@services/source/hdfs';
-  import { getTopoGraph as getKafkaTopoGraph } from '@services/source/kafka';
-  import { getTopoGraph as getPulsarTopoGraph } from '@services/source/pulsar';
-  import { getResourceTopo as getRedisResourceTopo } from '@services/source/resourceRedis';
-  import { getResourceTopo as getSpiderResourceTopo } from '@services/source/resourceSpider';
-  import { getResourceTopo as getTendbhaResourceTopo } from '@services/source/resourceTendbha';
-  import { getResourceTopo as getTendbsingleResourceTopo } from '@services/source/resourceTendbsingle';
+  import { getEsTopoGraph } from '@services/source/es';
+  import { getHdfsTopoGraph } from '@services/source/hdfs';
+  import { getKafkaTopoGraph } from '@services/source/kafka';
+  import { getPulsarTopoGraph } from '@services/source/pulsar';
+  import { getRedisTopoGraph } from '@services/source/redis';
+  import { getSpiderTopoGraph } from '@services/source/spider';
+  import { getTendbhaTopoGraph } from '@services/source/tendbha';
+  import { getTendbsingleTopoGraph } from '@services/source/tendbsingle';
 
   import { useGlobalBizs } from '@stores';
 
@@ -128,14 +128,14 @@
   const showMore = computed(() => props.clusterType === ClusterTypes.TENDBHA);
 
   const apiMap: Record<string, (params: any) => Promise<any>> = {
-    es: getESTopoGraph,
-    hdfs: getHDFSTopoGraph,
+    es: getEsTopoGraph,
+    hdfs: getHdfsTopoGraph,
     kafka: getKafkaTopoGraph,
     pulsar: getPulsarTopoGraph,
-    redis: getRedisResourceTopo,
-    tendbsingle: getSpiderResourceTopo,
-    tendbha: getTendbhaResourceTopo,
-    spider: getTendbsingleResourceTopo,
+    redis: getRedisTopoGraph,
+    tendbsingle: getTendbsingleTopoGraph,
+    tendbha: getTendbhaTopoGraph,
+    spider: getSpiderTopoGraph,
   };
 
   /** 拓扑功能 */

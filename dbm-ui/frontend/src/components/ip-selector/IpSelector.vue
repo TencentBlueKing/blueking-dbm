@@ -113,7 +113,12 @@
   import type { TablePropTypes } from 'bkui-vue/lib/table/props';
   import _ from 'lodash';
 
-  import { checkHost, getHostDetails, getHosts, getHostTopo } from '@services/ip';
+  import {
+    checkHost,
+    getHostDetails,
+    getHosts,
+    getHostTopo,
+  } from '@services/source/ipchooser';
   import type { HostDetails } from '@services/types/ip';
   import {
     getWhitelist,

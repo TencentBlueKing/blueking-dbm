@@ -112,14 +112,17 @@
   <EditEntryConfig
     :id="clusterId"
     v-model:is-show="showEditEntryConfig"
-    :get-detail-info="getResourceDetails" />
+    :get-detail-info="getRedisDetail" />
 </template>
 <script setup lang="tsx">
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
-  import { getResourceDetails, getResourceInstances } from '@services/source/resourceRedis';
-  import { createTicket } from '@services/ticket';
+  import {
+    getRedisDetail,
+    getRedisInstances,
+  } from '@services/source/redis';
+  import { createTicket } from '@services/source/ticket';
   import {
     ClusterNodeKeys,
     type ResourceRedisItem,
@@ -343,7 +346,7 @@
         title={t('【inst】实例预览', { title: 'Proxy', inst: data.master_domain })}
         role={ClusterNodeKeys.PROXY}
         clusterId={data.id}
-        dataSource={getResourceInstances}
+        dataSource={getRedisInstances}
       />
     ),
     },
@@ -358,7 +361,7 @@
           title={t('【inst】实例预览', { title: 'Master', inst: data.master_domain })}
           role={ClusterNodeKeys.REDIS_MASTER}
           clusterId={data.id}
-          dataSource={getResourceInstances}
+          dataSource={getRedisInstances}
         />
       ),
     },
@@ -373,7 +376,7 @@
           title={t('【inst】实例预览', { title: 'Slave', inst: data.master_domain })}
           role={ClusterNodeKeys.REDIS_SLAVE}
           clusterId={data.id}
-          dataSource={getResourceInstances}
+          dataSource={getRedisInstances}
         />
       ),
     },

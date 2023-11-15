@@ -12,7 +12,7 @@
 */
 
 import RedisClusterNodeByIpModel from '@services/model/redis/redis-cluster-node-by-ip';
-import type { HostDetails } from '@services/types/ip';
+import type { HostDetails } from '@services/source/ipchooser';
 
 import { switchToNormalRole } from '@utils';
 export default class RedisHost {

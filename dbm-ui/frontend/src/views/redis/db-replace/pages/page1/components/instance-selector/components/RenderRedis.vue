@@ -75,7 +75,7 @@
 <script setup lang="ts">
 
   import RedisModel from '@services/model/redis/redis';
-  import { listClusterList } from '@services/source/resourceRedis';
+  import { getRedisList } from '@services/source/redis';
 
   import type { InstanceSelectorValues } from '../Index.vue';
 
@@ -119,8 +119,8 @@
 
   const fetchClusterTopo = () => {
     isTreeDataLoading.value = true;
-    listClusterList().then((data) => {
-      const arr = data;
+    getRedisList().then((data) => {
+      const arr = data.results;
       treeData.value = arr;
       setTimeout(() => {
         if (arr.length > 0) {
@@ -265,4 +265,3 @@
     }
   }
 </style>
-@services/model/redis/redis

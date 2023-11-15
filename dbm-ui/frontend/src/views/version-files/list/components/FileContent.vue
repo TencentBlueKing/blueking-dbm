@@ -136,8 +136,9 @@
   import Cookies from 'js-cookie';
   import { useI18n } from 'vue-i18n';
 
+  import { createPackage } from '@services/source/package';
+  import { getVersions } from '@services/source/version';
   import type { PackageItem } from '@services/types/versionFiles';
-  import { createPackage, getVersions } from '@services/versionFiles';
 
   import {
     useCopy,

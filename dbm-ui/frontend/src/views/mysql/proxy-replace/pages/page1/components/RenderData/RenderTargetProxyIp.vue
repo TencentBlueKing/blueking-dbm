@@ -30,7 +30,6 @@
   import { useI18n } from 'vue-i18n';
 
   import { getHostTopoInfos } from '@services/source/ipchooser';
-  import type { HostTopoInfo } from '@services/types/ip';
 
   import { useGlobalBizs } from '@stores';
 
@@ -59,7 +58,7 @@
   const inputRef = ref();
   const localValue = ref('');
 
-  let hostDataMemo  = {} as HostTopoInfo;
+  let hostDataMemo  = {} as ServiceReturnType<typeof getHostTopoInfos>['hosts_topo_info'][number];
   let errorMessage = t('IP不存在');
 
   const rules = [

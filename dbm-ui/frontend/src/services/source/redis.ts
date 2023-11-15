@@ -19,7 +19,6 @@ import { useGlobalBizs } from '@stores';
 import http from '../http';
 import type {
   ClusterPasswordParams,
-  GetResourcesParams,
   InstanceDetails,
   InstanceDetailsParams,
   ResourceInstance,
@@ -40,60 +39,81 @@ const path = `/apis/redis/bizs/${currentBizId}/redis_resources`;
 /**
  * 获取集群列表
  */
-export const listClusterList = (params: {
-  domain?: string
-} = {}) => http.get<ListBase<RedisModel[]>>(`${path}/`, params).then(data => data.results.map(item => new RedisModel(item)));
-
-/**
- * 获取集群列表
- */
-export const getRedisResources = (params: GetResourcesParams & { dbType: string }) => http.get<ListBase<ResourceRedisItem[]>>(`${path}/`, params);
+export const getRedisList = function (params: {
+  limit?: number,
+  offset?: number,
+  type?: string,
+  dbType?: string,
+  cluster_ids?: number[] | number,
+  domain?: string,
+  bk_biz_id?: number,
+} = {}) {
+  return http.get<ListBase<RedisModel[]>>(`${path}/`, params).then(data => ({
+    ...data,
+    results: data.results.map(item => new RedisModel(item)),
+  }));
+};
 
 /**
  * 查询表格信息
  */
-export const getTableFields = () => http.get<TableFieldsItem[]>(`${path}/get_table_fields/`);
-
+export const getRedisTableFields = function () {
+  return http.get<TableFieldsItem[]>(`${path}/get_table_fields/`);
+};
 
 /**
  * 获取集群实例列表
  */
-export const getResourceInstances = (params: Record<string, any>) => http.get<ListBase<ResourceInstance[]>>(`${path}/list_instances/`, params);
+export const getRedisInstances = function (params: Record<string, any>) {
+  return http.get<ListBase<ResourceInstance[]>>(`${path}/list_instances/`, params);
+};
 
 /**
  * 获取集群实例详情
  */
-export const getResourceInstanceDetails = (params: InstanceDetailsParams & { dbType: string }) => http.get<InstanceDetails>(`${path}/retrieve_instance/`, params);
+export const retrieveRedisInstance = function (params: InstanceDetailsParams & { dbType: string }) {
+  return http.get<InstanceDetails>(`${path}/retrieve_instance/`, params);
+};
 
 /**
  * 获取集群详情
  */
-export const getResourceDetails = (params: { id: number }) => http.get<ResourceRedisItem>(`${path}/${params.id}/`);
+export const getRedisDetail = function (params: { id: number }) {
+  return http.get<ResourceRedisItem>(`${path}/${params.id}/`);
+};
 
 /**
  * 查询集群主机列表
  */
-export const getClusterHostNodes = (params: {
+export const getRedisNodes = function (params: {
   db_type: string;
   bk_biz_id: string;
   cluster_id: string;
-}) => http.get<HostNode[]>(`${path}/${params.cluster_id}/get_nodes/`, params);
+}) {
+  return http.get<HostNode[]>(`${path}/${params.cluster_id}/get_nodes/`, params);
+};
 
 /**
  * 获取集群密码
  */
-export const getClusterPassword = (params: ClusterPasswordParams) => http.get<{
-  cluster_name: string,
-  domain: string,
-  password: string
-}>(`${path}/${params.cluster_id}/get_password/`);
+export const getRedisPassword = function (params: ClusterPasswordParams) {
+  return http.get<{
+    cluster_name: string,
+    domain: string,
+    password: string
+  }>(`${path}/${params.cluster_id}/get_password/`);
+};
 
 /**
  * 获取集群拓扑
  */
-export const getResourceTopo = (params: ResourceTopoParams & { dbType: string }) => http.get<ResourceTopo>(`${path}/${params.resource_id}/get_topo_graph/`);
+export const getRedisTopoGraph = function (params: ResourceTopoParams & { dbType: string }) {
+  return http.get<ResourceTopo>(`${path}/${params.resource_id}/get_topo_graph/`);
+};
 
 /**
  * 获取业务拓扑树
  */
-export const getBusinessTopoTree = (params: { cluster_type: string }) => http.get<BizConfTopoTreeModel[]>(`/apis/redis/bizs/${currentBizId}/resource_tree/`, params);
+export const getRedisResourceTree = function (params: { cluster_type: string }) {
+  return http.get<BizConfTopoTreeModel[]>(`/apis/redis/bizs/${currentBizId}/resource_tree/`, params);
+};

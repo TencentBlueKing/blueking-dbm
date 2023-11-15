@@ -24,8 +24,8 @@
   import { useRequest } from 'vue-request';
 
   import ResourceSpecModel from '@services/model/resource-spec/resourceSpec';
-  import { getResourceSpecList } from '@services/resourceSpec';
-  import { getList } from '@services/spider';
+  import { getResourceSpecList } from '@services/source/dbresourceSpec';
+  import { getSpiderList } from '@services/source/spider';
   import type { SpiderReduceNodesDetails, TicketDetails } from '@services/types/ticket';
 
   interface Props {
@@ -73,7 +73,7 @@
     },
   ];
 
-  const { loading } = useRequest(getList, {
+  const { loading } = useRequest(getSpiderList, {
     onSuccess: async (r) => {
       if (r.results.length < 1) {
         return;
@@ -119,4 +119,3 @@
   });
 
 </script>
-

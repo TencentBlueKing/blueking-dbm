@@ -29,7 +29,7 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import { verifyDuplicatedClusterName } from '@services/dbbase';
+  import { verifyDuplicatedClusterName } from '@services/source/dbbase';
 
   interface Props {
     modelValue: string,

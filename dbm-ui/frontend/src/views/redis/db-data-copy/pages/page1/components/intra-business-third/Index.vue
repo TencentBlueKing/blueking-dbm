@@ -102,7 +102,7 @@
 
   import RedisModel from '@services/model/redis/redis';
   import RedisDSTHistoryJobModel  from '@services/model/redis/redis-dst-history-job';
-  import { listClusterList } from '@services/source/resourceRedis';
+  import { getRedisList } from '@services/source/redis';
 
   import {
     ClusterTypes,
@@ -260,13 +260,13 @@
       return;
     }
     tableData.value[index].isLoading = true;
-    const ret = await listClusterList({ domain }).finally(() => {
+    const result = await getRedisList({ domain }).finally(() => {
       tableData.value[index].isLoading = false;
     });
-    if (ret.length < 1) {
+    if (result.results.length < 1) {
       return;
     }
-    const data = ret[0];
+    const data = result.results[0];
     const row = generateTableRow(data);
     tableData.value[index] = row;
     domainMemo[domain] = true;

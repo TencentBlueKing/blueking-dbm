@@ -91,21 +91,20 @@
   <EditEntryConfig
     :id="clusterId"
     v-model:is-show="showEditEntryConfig"
-    :get-detail-info="getResourceDetails" />
+    :get-detail-info="getTendbhaDetail" />
 </template>
 
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
 
+  import { getModules } from '@services/source/cmdb';
   import {
-    getModules,
-    getUseList,
-  } from '@services/common';
-  import {
-    getResourceDetails,
-    getResourceInstances,
-    getResources  } from '@services/source/resourceTendbha';
-  import { createTicket } from '@services/ticket';
+    getTendbhaDetail,
+    getTendbhaInstanceList,
+    getTendbhaList,
+  } from '@services/source/tendbha';
+  import { createTicket } from '@services/source/ticket';
+  import { getUserList } from '@services/source/user';
   import type { ResourceItem } from '@services/types/clusters';
   import type { SearchFilterItem } from '@services/types/common';
 
@@ -369,7 +368,7 @@
           title={t('【inst】实例预览', { inst: data.master_domain, title: 'Proxy' })}
           role="proxy"
           clusterId={data.id}
-          dataSource={getResourceInstances}
+          dataSource={getTendbhaInstanceList}
         />
       ),
     },
@@ -384,7 +383,7 @@
           title={t('【inst】实例预览', { inst: data.master_domain, title: 'Master' })}
           role="proxy"
           clusterId={data.id}
-          dataSource={getResourceInstances}
+          dataSource={getTendbhaInstanceList}
         />
       ),
     },
@@ -399,7 +398,7 @@
           title={t('【inst】实例预览', { inst: data.master_domain, title: 'Slave' })}
           role="slave"
           clusterId={data.id}
-          dataSource={getResourceInstances}
+          dataSource={getTendbhaInstanceList}
         />
       ),
     },
@@ -548,7 +547,7 @@
   function fetchUseList(fuzzyLookups: string) {
     if (!fuzzyLookups) return [];
 
-    return getUseList({ fuzzy_lookups: fuzzyLookups }).then(res => res.results.map(item => ({
+    return getUserList({ fuzzy_lookups: fuzzyLookups }).then(res => res.results.map(item => ({
       id: item.username,
       name: item.username,
     })));
@@ -600,7 +599,7 @@
     };
     isInit.value = false;
     state.isLoading = isLoading;
-    return getResources(params)
+    return getTendbhaList(params)
       .then((res) => {
         state.pagination.count = res.count;
         state.data = res.results;

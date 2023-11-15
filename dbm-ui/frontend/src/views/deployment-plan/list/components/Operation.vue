@@ -85,7 +85,7 @@
 
   import { createDeployPlan } from '@services/dbResource';
   import type DeployPlanModel from '@services/model/db-resource/DeployPlan';
-  import { getResourceSpecList } from '@services/resourceSpec';
+  import { getResourceSpecList } from '@services/source/dbresourceSpec';
 
   interface Props {
     clusterType: string,

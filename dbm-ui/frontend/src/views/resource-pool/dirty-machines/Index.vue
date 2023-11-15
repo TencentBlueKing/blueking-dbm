@@ -53,12 +53,12 @@
   } from 'vue';
   import { useI18n } from 'vue-i18n';
 
+  import DirtyMachinesModel from '@services/model/db-resource/dirtyMachines';
   import {
     getDirtyMachines,
     transferDirtyMachines,
-  } from '@services/dbResource';
-  import DirtyMachinesModel from '@services/model/db-resource/dirtyMachines';
-  import { getTicketTypes } from '@services/ticket';
+  } from '@services/source/dbdirty';
+  import { getTicketTypes } from '@services/source/ticket';
 
   import { useCopy, useInfoWithIcon } from '@hooks';
 

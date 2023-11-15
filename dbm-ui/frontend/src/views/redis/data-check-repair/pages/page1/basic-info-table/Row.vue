@@ -77,7 +77,7 @@
 
 </script>
 <script setup lang="ts">
-  import { listClusterList } from '@services/source/resourceRedis';
+  import { getRedisList } from '@services/source/redis';
 
   interface Props {
     data: IDataRow,
@@ -115,11 +115,11 @@
 
   const queryInstances = async (domain: string) => {
     const [cluster] = domain.split(':');
-    const ret = await listClusterList({ domain: cluster });
-    if (ret.length < 1) {
+    const result = await getRedisList({ domain: cluster });
+    if (result.results.length < 1) {
       return;
     }
-    const data = ret[0];
+    const data = result.results[0];
     instances.value = data.redis_master.map(row => `${row.ip}:${row.port}`);
   };
 

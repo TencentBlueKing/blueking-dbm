@@ -121,11 +121,12 @@
   import { useI18n } from 'vue-i18n';
 
   import TicketModel from '@services/model/ticket/ticket';
-  import { getTicketTypes, getTodoTickets } from '@services/ticket';
-
   import {
-    useGlobalBizs,
-  } from '@stores';
+    getTicketTypes,
+    getTodoTickets,
+  } from '@services/source/ticket';
+
+  import { useGlobalBizs } from '@stores';
 
   import EmptyStatus from '@components/empty-status/EmptyStatus.vue';
 

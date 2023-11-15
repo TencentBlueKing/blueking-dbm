@@ -69,9 +69,9 @@
   import { useRouter } from 'vue-router';
 
   import RedisModel from '@services/model/redis/redis';
-  import { getResourceSpecList } from '@services/resourceSpec';
-  import { listClusterList } from '@services/source/resourceRedis';
-  import { createTicket } from '@services/ticket';
+  import { getResourceSpecList } from '@services/source/dbresourceSpec';
+  import { getRedisList } from '@services/source/redis';
+  import { createTicket } from '@services/source/ticket';
   import type { SubmitTicket } from '@services/types/ticket';
 
   import { useGlobalBizs } from '@stores';
@@ -200,13 +200,13 @@
       return;
     }
     tableData.value[index].isLoading = true;
-    const ret = await listClusterList({ domain }).finally(() => {
+    const result = await getRedisList({ domain }).finally(() => {
       tableData.value[index].isLoading = false;
     });
-    if (ret.length < 1) {
+    if (result.results.length < 1) {
       return;
     }
-    const data = ret[0];
+    const data = result.results[0];
     const row = await generateRowDateFromRequest(data);
     tableData.value[index] = row;
     domainMemo[domain] = true;

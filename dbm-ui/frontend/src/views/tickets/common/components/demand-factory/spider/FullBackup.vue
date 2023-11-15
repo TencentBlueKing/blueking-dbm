@@ -48,7 +48,7 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import { getList } from '@services/spider';
+  import { getSpiderList } from '@services/source/spider';
   import type { SpiderFullBackupDetails, TicketDetails } from '@services/types/ticket';
 
   interface Props {
@@ -80,7 +80,7 @@
     },
   ];
 
-  const { loading } = useRequest(getList, {
+  const { loading } = useRequest(getSpiderList, {
     onSuccess: (r) => {
       if (r.results.length < 1) {
         return;

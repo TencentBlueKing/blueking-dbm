@@ -71,7 +71,7 @@
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
-  import { getRetryNodeHistories } from '@services/taskflow';
+  import { getRetryNodeHistories } from '@services/source/taskflow';
   import type { RetryNodeItem } from '@services/types/taskflow';
 
   import { getCostTimeDisplay } from '@utils';

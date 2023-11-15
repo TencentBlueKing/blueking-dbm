@@ -63,7 +63,7 @@
   import { ref } from 'vue';
   import { useRequest } from 'vue-request';
 
-  import { getClusterDetail } from '@services/source/kafka';
+  import { getKafkaDetail } from '@services/source/kafka';
 
   import ClusterTopo from '@components/cluster-details/ClusterTopo.vue';
   import ClusterEventChange from '@components/cluster-event-change/EventChange.vue';
@@ -84,7 +84,7 @@
     loading: isLoading,
     data: clusterData,
     run: fetchResourceDetails,
-  } = useRequest(getClusterDetail, {
+  } = useRequest(getKafkaDetail, {
     manual: true,
   });
 

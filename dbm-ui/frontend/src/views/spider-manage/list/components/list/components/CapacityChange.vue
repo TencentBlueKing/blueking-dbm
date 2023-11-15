@@ -71,7 +71,7 @@
   import dayjs from 'dayjs';
 
   import type TendbClusterModel from '@services/model/spider/tendbCluster';
-  import { createTicket } from '@services/ticket';
+  import { createTicket } from '@services/source/ticket';
 
   import { useTicketMessage } from '@hooks';
 

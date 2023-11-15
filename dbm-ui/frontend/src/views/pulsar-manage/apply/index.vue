@@ -357,9 +357,9 @@
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
+  import { checkHost } from '@services/source/ipchooser';
+  import { getVersions } from '@services/source/version';
   import type { BizItem } from '@services/types/common';
-  import type { HostDetails } from '@services/types/ip';
-  import { getVersions } from '@services/versionFiles';
 
   import { useApplyBase, useInfo } from '@hooks';
 
@@ -372,6 +372,8 @@
   import IpSelector from '@components/ip-selector/IpSelector.vue';
 
   import { getInitFormdata } from './common/base';
+
+  type HostDetails = ServiceReturnType<typeof checkHost>
 
   const { t } = useI18n();
   const {
@@ -483,7 +485,7 @@
       isDbVersionLoading.value = false;
     });
 
-  const makeMapByHostId = (hostList: Array<HostDetails>) =>  hostList.reduce((result, item) => ({
+  const makeMapByHostId = (hostList: HostDetails) =>  hostList.reduce((result, item) => ({
     ...result,
     [item.host_id]: true,
   }), {} as Record<number, boolean>);
@@ -537,15 +539,15 @@
     return false;
   };
   // 更新 bookkeeper 节点
-  const handleBookkeeperIpListChange = (data: Array<HostDetails>) => {
+  const handleBookkeeperIpListChange = (data: HostDetails) => {
     formdata.details.nodes.bookkeeper = data;
   };
   // 更新 zookeeper 节点
-  const handleZookeeperIpListChange = (data: Array<HostDetails>) => {
+  const handleZookeeperIpListChange = (data: HostDetails) => {
     formdata.details.nodes.zookeeper = data;
   };
   // 更新 broker 节点
-  const handleBrokerIpListChange = (data: Array<HostDetails>) => {
+  const handleBrokerIpListChange = (data: HostDetails) => {
     formdata.details.nodes.broker = data;
   };
 
@@ -553,7 +555,7 @@
     formRef.value.validate()
       .then(() => {
         baseState.isSubmitting = true;
-        const mapIpField = (ipList: Array<HostDetails>) => ipList.map(item => ({
+        const mapIpField = (ipList: HostDetails) => ipList.map(item => ({
           bk_host_id: item.host_id,
           ip: item.ip,
           bk_cloud_id: item.cloud_area.id,

@@ -56,8 +56,8 @@
   } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import { fetchListDbaHost } from '@services/dbResource';
   import type ImportHostModel from '@services/model/db-resource/import-host';
+  import { fetchListDbaHost } from '@services/source/dbresourceResource';
 
   import DbStatus from '@components/db-status/index.vue';
 

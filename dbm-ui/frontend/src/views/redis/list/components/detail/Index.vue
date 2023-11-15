@@ -55,7 +55,7 @@
 <script setup lang="ts">
   import { useRequest } from 'vue-request';
 
-  import { getResourceDetails } from '@services/source/resourceRedis';
+  import { getRedisDetail } from '@services/source/redis';
   import type { ResourceRedisItem } from '@services/types/clusters';
 
   import { DBTypes } from '@common/const';
@@ -79,7 +79,7 @@
   const {
     loading: isLoading,
     run: fetchResourceDetails,
-  } = useRequest(getResourceDetails, {
+  } = useRequest(getRedisDetail, {
     manual: true,
     onSuccess(result: ResourceRedisItem) {
       data.value = result;

@@ -28,34 +28,46 @@ import type { ListBase } from '../types/common';
 
 const { currentBizId } = useGlobalBizs();
 
-const path = `/apis/mysql/bizs/${currentBizId}/tendbha_resources`;
+const path = `/apis/mysql/bizs/${currentBizId}/tendbsingle_resources`;
 
 /**
  * 查询资源列表
  */
-export const getResources = (params: GetResourcesParams & { dbType: string }) => http.get<ListBase<ResourceItem[]>>(`${path}/`, params);
+export const getTendbsingleList = function (params: GetResourcesParams & { dbType: string }) {
+  return http.get<ListBase<ResourceItem[]>>(`${path}/`, params);
+};
 
 /**
  * 查询表格信息
  */
-export const getTableFields = () => http.get<TableFieldsItem[]>(`${path}/get_table_fields/`);
+export const getTendbsingleTableFields = function () {
+  return http.get<TableFieldsItem[]>(`${path}/get_table_fields/`);
+};
 
 /**
  * 获取集群实例列表
  */
-export const getResourceInstances = (params: Record<string, any>) => http.get<ListBase<ResourceInstance[]>>(`${path}/list_instances/`, params);
+export const getTendbsingleInstanceList = function (params: Record<string, any>) {
+  return http.get<ListBase<ResourceInstance[]>>(`${path}/list_instances/`, params);
+};
 
 /**
  * 获取集群实例详情
  */
-export const getResourceInstanceDetails = (params: InstanceDetailsParams & { dbType: string }) => http.get<InstanceDetails>(`${path}/retrieve_instance/`, params);
+export const retrieveTendbsingleInstance = function (params: InstanceDetailsParams & { dbType: string }) {
+  return http.get<InstanceDetails>(`${path}/retrieve_instance/`, params);
+};
 
 /**
  * 获取集群详情
  */
-export const getResourceDetails = (params: { id: number }) => http.get<ResourceItem>(`${path}/${params.id}/`);
+export const getTendbsingleDetail = function (params: { id: number }) {
+  return http.get<ResourceItem>(`${path}/${params.id}/`);
+};
 
 /**
  * 获取集群拓扑
  */
-export const getResourceTopo = (params: ResourceTopoParams & { dbType: string }) => http.get<ResourceTopo>(`${path}/${params.resource_id}/get_topo_graph/`);
+export const getTendbsingleTopoGraph = function (params: ResourceTopoParams & { dbType: string }) {
+  return http.get<ResourceTopo>(`${path}/${params.resource_id}/get_topo_graph/`);
+};

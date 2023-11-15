@@ -47,8 +47,8 @@
 
   import type PulsarModel from '@services/model/pulsar/pulsar';
   import type PulsarNodeModel from '@services/model/pulsar/pulsar-node';
-  import { getPulsarListNodes } from '@services/source/bigdata';
-  import { createTicket } from '@services/ticket';
+  import { getPulsarNodeList } from '@services/source/pulsar';
+  import { createTicket } from '@services/source/ticket';
 
   import { useTicketMessage } from '@hooks';
 
@@ -131,7 +131,7 @@
     const brokerOriginalNodeList: TNodeInfo['nodeList'] = [];
 
     isLoading.value = true;
-    getPulsarListNodes({
+    getPulsarNodeList({
       bk_biz_id: globalBizsStore.currentBizId,
       cluster_id: props.data.id,
       no_limit: 1,

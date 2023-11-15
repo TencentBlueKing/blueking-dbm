@@ -65,7 +65,7 @@
 
 <script setup lang="ts">
   import type InfluxdbInstanceModel from '@services/model/influxdb/influxdbInstance';
-  import { getListInstance } from '@services/source/influxdb';
+  import { getInfluxdbInstanceList } from '@services/source/influxdb';
 
   import DbStatus from '@components/db-status/index.vue';
   import EmptyStatus from '@components/empty-status/EmptyStatus.vue';
@@ -108,7 +108,7 @@
 
   const fetchList = () => {
     isLoading.value = true;
-    getListInstance({
+    getInfluxdbInstanceList({
       bk_biz_id: currentBizId,
       limit: pagination.limit,
       offset: pagination.limit * (pagination.current - 1),

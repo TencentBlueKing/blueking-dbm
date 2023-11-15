@@ -349,11 +349,9 @@
   } from 'vue';
   import { useI18n } from 'vue-i18n';
 
+  import { checkHost } from '@services/source/ipchooser';
+  import { getVersions } from '@services/source/version';
   import type { BizItem } from '@services/types/common';
-  import type {
-    HostDetails,
-  } from '@services/types/ip';
-  import { getVersions } from '@services/versionFiles';
 
   import { useApplyBase, useInfo  } from '@hooks';
 
@@ -370,9 +368,11 @@
   } from '@components/cluster-common/big-data-host-table/RenderHostTable.vue';
   import IpSelector from '@components/ip-selector/IpSelector.vue';
 
+  type HostDetails = ServiceReturnType<typeof checkHost>
+
   const { t } = useI18n();
 
-  const makeMapByHostId = (hostList: Array<HostDetails>) =>  hostList.reduce((result, item) => ({
+  const makeMapByHostId = (hostList: HostDetails) =>  hostList.reduce((result, item) => ({
     ...result,
     [item.host_id]: true,
   }), {} as Record<number, boolean>);
@@ -417,7 +417,7 @@
     },
   });
 
-  const formatIpDataWidthInstance = (data: Array<HostDetails>) => data.map(item => ({
+  const formatIpDataWidthInstance = (data: HostDetails) => data.map(item => ({
     instance_num: 1,
     ...item,
   }));
@@ -624,19 +624,19 @@
   // master 节点 IP 选择器提交
   const masterDisableDialogSubmitMethod = (hostList: Array<any>) => (hostList.length >= 3 ? false : t('至少n台', { n: 3 }));
   // 更新 master 节点
-  const handleMasterIpListChange = (data: Array<HostDetails>) => {
+  const handleMasterIpListChange = (data: HostDetails) => {
     formData.details.nodes.master = data;
   };
   // 更新 client 节点IP
-  const handleClientIpListChange = (data: Array<HostDetails>) => {
+  const handleClientIpListChange = (data: HostDetails) => {
     formData.details.nodes.client = data;
   };
   // 更新热节点IP
-  const handleHotIpListChange = (data: Array<HostDetails>) => {
+  const handleHotIpListChange = (data: HostDetails) => {
     formData.details.nodes.hot = formatIpDataWidthInstance(data);
   };
   // 更新冷节点IP
-  const handleColdIpListChange = (data: Array<HostDetails>) => {
+  const handleColdIpListChange = (data: HostDetails) => {
     formData.details.nodes.cold = formatIpDataWidthInstance(data);
   };
 

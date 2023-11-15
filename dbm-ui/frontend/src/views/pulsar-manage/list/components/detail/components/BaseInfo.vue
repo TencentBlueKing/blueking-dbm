@@ -18,12 +18,12 @@
 </template>
 <script setup lang="ts">
 
-  import { getClusterDetail } from '@services/source/pulsar';
+  import { getPulsarDetail } from '@services/source/pulsar';
 
   import RenderBaseInfo from '@components/cluster-common/RenderBaseInfo.vue';
 
   interface Props {
-    data: ServiceReturnType<typeof getClusterDetail>
+    data: ServiceReturnType<typeof getPulsarDetail>
   }
 
   defineProps<Props>();

@@ -21,12 +21,14 @@ const { currentBizId } = useGlobalBizs();
 
 const path = `/apis/redis/bizs/${currentBizId}/rollback`;
 
-export const getRollbackList = (params?: {
-  limit: number;
-  offset: number;
+export const getRollbackList = function (params?: {
+  bk_biz_id: number,
+  limit?: number;
+  offset?: number;
   temp_cluster_proxy?: string; // ip:port
-}) => http.get<ListBase<RedisRollbackModel[]>>(`${path}/`, params)
-  .then(res => ({
+} & Record<string, any>) {
+  return http.get<ListBase<RedisRollbackModel[]>>(`${path}/`, params).then(res => ({
     ...res,
     results: res.results.map(item => new RedisRollbackModel(item)),
   }));
+};

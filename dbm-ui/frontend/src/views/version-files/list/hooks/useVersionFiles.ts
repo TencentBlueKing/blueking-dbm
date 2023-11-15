@@ -15,8 +15,10 @@ import { Message } from 'bkui-vue';
 import type { Ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
-import type { PackageItem } from '@services/types/versionFiles';
-import { deletePackage, getPackages } from '@services/versionFiles';
+import {
+  deletePackage,
+  getPackages,
+} from '@services/source/package';
 
 import { useInfo } from '@hooks';
 
@@ -69,7 +71,7 @@ export const useVersionFiles = (state: IState, typeParams: Ref<TypeParams>) => {
   /**
    * 删除版本
    */
-  function handleConfirmDelete(data: PackageItem) {
+  function handleConfirmDelete(data: ServiceReturnType<typeof getPackages>['results'][number]) {
     useInfo({
       title: t('确认删除'),
       content: t('确认删除xx', [data.name]),

@@ -11,7 +11,10 @@
  * the specific language governing permissions and limitations under the License.
 */
 
-import { checkAuthAllowed, getApplyDataLink } from '@services/common';
+import {
+  checkAuthAllowed,
+  getApplyDataLink,
+} from '@services/source/iam';
 
 import './style.less';
 

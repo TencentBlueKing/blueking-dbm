@@ -30,44 +30,57 @@ const path = '/apis/configs';
 /**
  * 查询配置发布记录详情
  */
-export const getConfigVersionDetails = (params: ConfigVersionParams) => http.get<ConfigVersionDetails>(`${path}/get_config_version_detail/`, params);
+export const getConfigVersionDetails = function (params: ConfigVersionParams) {
+  return http.get<ConfigVersionDetails>(`${path}/get_config_version_detail/`, params);
+};
 
 /**
  * 获取查询层级（业务、模块、集群）配置详情
  */
-export const getLevelConfig = (params: GetLevelConfigParams) => http.post<ConfigBaseDetails>(`${path}/get_level_config/`, params);
-
+export const getLevelConfig = function (params: GetLevelConfigParams) {
+  return http.post<ConfigBaseDetails>(`${path}/get_level_config/`, params);
+};
 /**
  * 查询平台配置详情
  */
-export const getConfigBaseDetails = (params: PlatConfDetailsParams) => http.get<ConfigBaseDetails>(`${path}/get_platform_config/`, params);
+export const getConfigBaseDetails = function (params: PlatConfDetailsParams) {
+  return http.get<ConfigBaseDetails>(`${path}/get_platform_config/`, params);
+};
 
 /**
  * 查询业务配置列表
  */
-export const getBusinessConfigList = (params: {
+export const getBusinessConfigList = function (params: {
   meta_cluster_type: string,
   conf_type: string,
   bk_biz_id: number
-}) => http.get<ConfigListItem[]>(`${path}/list_biz_configs/`, params);
+}) {
+  return http.get<ConfigListItem[]>(`${path}/list_biz_configs/`, params);
+};
 
 /**
  * 查询配置项名称列表
  */
-export const getConfigNames = (params: PlatConfDetailsParams) => http.get<ParameterConfigItem[]>(`${path}/list_config_names/`, params);
+export const getConfigNames = function (params: PlatConfDetailsParams) {
+  return http.get<ParameterConfigItem[]>(`${path}/list_config_names/`, params);
+};
 
 /**
  * 查询配置发布历史记录
  */
-export const getConfigVersionList = (params: ConfigVersionParams) => http.get<ConfigVersionListResult>(`${path}/list_config_version_history/`, params);
+export const getConfigVersionList = function (params: ConfigVersionParams) {
+  return http.get<ConfigVersionListResult>(`${path}/list_config_version_history/`, params);
+};
 
 /**
  * 查询平台配置列表
  */
-export const getPlatformConfigList = (params: {
+export const getPlatformConfigList = function (params: {
   meta_cluster_type: string,
   conf_type: string,
-}) => http.get<ConfigListItem[]>(`${path}/list_platform_configs/`, params);
+}) {
+  return http.get<ConfigListItem[]>(`${path}/list_platform_configs/`, params);
+};
 
 /**
  * 保存模块部署配置
@@ -89,21 +102,27 @@ export interface CreateModuleDeployInfo {
 /**
  * 保存模块配置
  */
-export const saveModulesDeployInfo = (params: CreateModuleDeployInfo) => http.post<CreateModuleDeployInfo>(`${path}/save_module_deploy_info/`, params);
+export const saveModulesDeployInfo = function (params: CreateModuleDeployInfo) {
+  return http.post<CreateModuleDeployInfo>(`${path}/save_module_deploy_info/`, params);
+};
 
 /**
  * 编辑层级（业务、模块、集群）配置
  */
-export const updateBusinessConfig = (params: BizConfDetailsUpdateParams) => http.post<ConfigListItem[]>(`${path}/upsert_level_config/`, params);
+export const updateBusinessConfig = function (params: BizConfDetailsUpdateParams) {
+  return http.post<ConfigListItem[]>(`${path}/upsert_level_config/`, params);
+};
 
 /**
  * 编辑平台配置
  */
-export const updatePlatformConfig = (params: PlatConfDetailsUpdateParams) => http.post<{
-  conf_file: string
-  conf_type: string
-  file_id: number
-  is_published: number
-  namespace: string
-  revision: string
-}>(`${path}/upsert_platform_config/`, params);
+export const updatePlatformConfig = function (params: PlatConfDetailsUpdateParams) {
+  return http.post<{
+    conf_file: string
+    conf_type: string
+    file_id: number
+    is_published: number
+    namespace: string
+    revision: string
+  }>(`${path}/upsert_platform_config/`, params);
+};

@@ -42,8 +42,8 @@
 
   import type HdfsInstanceModel from '@services/model/hdfs/hdfs-instance';
   import type HdfsNodeModel from '@services/model/hdfs/hdfs-node';
-  import { getListInstance } from '@services/source/hdfs';
-  import { createTicket } from '@services/ticket';
+  import { getHdfsInstanceList } from '@services/source/hdfs';
+  import { createTicket } from '@services/source/ticket';
 
   import { useTicketMessage } from '@hooks';
 
@@ -156,7 +156,7 @@
 
   const fetchData = (hasLoading = false) => {
     isLoading.value = hasLoading;
-    getListInstance({
+    getHdfsInstanceList({
       bk_biz_id: globalBizsStore.currentBizId,
       cluster_id: props.clusterId,
       ip: props.data.ip,

@@ -310,9 +310,9 @@
   import { reactive } from 'vue';
   import { useI18n } from 'vue-i18n';
 
+  import { checkHost } from '@services/source/ipchooser';
+  import { getVersions } from '@services/source/version';
   import type { BizItem } from '@services/types/common';
-  import type { HostDetails } from '@services/types/ip';
-  import { getVersions } from '@services/versionFiles';
 
   import {
     useApplyBase,
@@ -328,9 +328,12 @@
     type IHostTableData,
   } from '@components/cluster-common/big-data-host-table/RenderHostTable.vue';
   import IpSelector from '@components/ip-selector/IpSelector.vue';
+
+  type HostDetails = ServiceReturnType<typeof checkHost>
+
   const { t } = useI18n();
 
-  const formatIpData = (data: Array<HostDetails>) => data.map(item => ({
+  const formatIpData = (data: HostDetails) => data.map(item => ({
     ...item,
     instance_num: 1,
   }));
@@ -490,11 +493,11 @@
     formData.details.nodes.broker = [];
   }
 
-  const handleZookeeperChange = (data: Array<HostDetails>) => {
+  const handleZookeeperChange = (data: HostDetails) => {
     formData.details.nodes.zookeeper = formatIpData(data);
   };
 
-  const handleBrokerChange = (data: Array<HostDetails>) => {
+  const handleBrokerChange = (data: HostDetails) => {
     formData.details.nodes.broker = formatIpData(data);
   };
 

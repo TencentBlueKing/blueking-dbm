@@ -52,7 +52,7 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import { getHostDetails } from '@services/ip';
+  import { getHostDetails } from '@services/source/ipchooser';
 
   import { useCopy } from '@hooks';
 

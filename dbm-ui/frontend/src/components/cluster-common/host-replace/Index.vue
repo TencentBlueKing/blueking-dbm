@@ -116,7 +116,7 @@ generic="T extends EsNodeModel|HdfsNodeModel|KafkaNodeModel|PulsarNodeModel|Infl
   import type InfluxdbInstanceModel from '@services/model/influxdb/influxdbInstance';
   import type KafkaNodeModel from '@services/model/kafka/kafka-node';
   import type PulsarNodeModel from '@services/model/pulsar/pulsar-node';
-  import type { HostDetails } from '@services/types/ip';
+  import { checkHost } from '@services/source/ipchooser';
 
   import { random } from '@utils';
 
@@ -129,7 +129,7 @@ generic="T extends EsNodeModel|HdfsNodeModel|KafkaNodeModel|PulsarNodeModel|Infl
     // 集群的节点类型
     role: string,
     nodeList: N[],
-    hostList: HostDetails[],
+    hostList: ServiceReturnType<typeof checkHost>,
     // 资源池规格集群类型
     specClusterType: string,
     // 资源池规格集群类型

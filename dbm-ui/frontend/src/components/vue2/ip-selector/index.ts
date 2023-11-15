@@ -19,7 +19,7 @@ import {
   getHostTopo,
   getIpSelectorSettings,
   updateIpSelectorSettings,
-} from '@services/ip';
+} from '@services/source/ipchooser';
 
 import { t } from '@locales/index';
 

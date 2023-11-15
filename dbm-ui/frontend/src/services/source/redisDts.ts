@@ -23,43 +23,51 @@ const path = `/apis/redis/bizs/${currentBizId}/dts`;
 /**
  * 获取DTS历史任务以及其对应task cnt
  */
-export const getRedisDTSHistoryJobs = (params: {
+export const getRedisDTSHistoryJobs = function (params: {
   start_time?: string,
   end_time?: string,
   cluster_name?: string,
   page?: number,
   page_size?: number,
-}) => http.post<{ total_cnt: number, jobs: RedisDSTHistoryJobModel[]}>(`${path}/history_jobs/`, params);
+}) {
+  return http.post<{ total_cnt: number, jobs: RedisDSTHistoryJobModel[]}>(`${path}/history_jobs/`, params);
+};
 
 /**
  * dts job批量断开同步
  */
-export const setJobDisconnectSync = (params: {
+export const setJobDisconnectSync = function (params: {
   bill_id: number,
   src_cluster: string,
   dst_cluster: string,
-}) => http.post<unknown>(`${path}/job_disconnect_sync/`, params);
+}) {
+  return http.post<unknown>(`${path}/job_disconnect_sync/`, params);
+};
 
 /**
  * dts job 批量失败重试
  */
-export const setJobTaskFailedRetry = (params: {
+export const setJobTaskFailedRetry = function (params: {
   task_ids: number[]
-}) => http.post<number[]>(`${path}/job_task_failed_retry/`, params);
+}) {
+  return http.post<number[]>(`${path}/job_task_failed_retry/`, params);
+};
 
 /**
  * 获取迁移任务task列表,失败的排在前面
  */
-export const getRedisDTSJobTasks = (params: {
+export const getRedisDTSJobTasks = function (params: {
   bill_id: number,
   src_cluster: string,
   dst_cluster: string,
-}) => http.post<RedisDSTJobTaskModel[]>(`${path}/job_tasks/`, params).then(arr => arr.map(item => new RedisDSTJobTaskModel(item)));
+}) {
+  return http.post<RedisDSTJobTaskModel[]>(`${path}/job_tasks/`, params).then(arr => arr.map(item => new RedisDSTJobTaskModel(item)));
+};
 
 /**
  * dts 外部redis连接行测试
  */
-export const testRedisConnection = (params: {
+export const testRedisConnection = function (params: {
   data_copy_type: string,
   infos: {
     src_cluster: string,
@@ -67,4 +75,6 @@ export const testRedisConnection = (params: {
     dst_cluster: string,
     dst_cluster_password: string,
   }[]
-}) => http.post<boolean>(`${path}/test_redis_connection/`, params);
+}) {
+  return http.post<boolean>(`${path}/test_redis_connection/`, params);
+};

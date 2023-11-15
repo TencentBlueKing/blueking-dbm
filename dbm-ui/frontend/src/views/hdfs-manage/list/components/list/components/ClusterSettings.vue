@@ -46,7 +46,7 @@
 
 <script setup lang="ts">
   import ClusterConfigXmlsModel from '@services/model/hdfs/hdfs-cluster-config-xmls';
-  import { getClusterXmls } from '@services/source/hdfs';
+  import { getHdfsXmls } from '@services/source/hdfs';
 
   import { useGlobalBizs } from '@stores';
 
@@ -76,7 +76,7 @@
     if (!props.clusterId) return;
 
     isLoading.value = true;
-    getClusterXmls({
+    getHdfsXmls({
       bk_biz_id: currentBizId,
       cluster_id: props.clusterId,
     })

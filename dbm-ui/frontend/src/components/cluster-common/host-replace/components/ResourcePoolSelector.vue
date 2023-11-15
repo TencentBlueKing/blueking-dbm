@@ -44,13 +44,15 @@ generic="T extends EsNodeModel|HdfsNodeModel|KafkaNodeModel|PulsarNodeModel|Infl
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import { fetchRecommendSpec } from '@services/dbResource';
   import type EsNodeModel from '@services/model/es/es-node';
   import type HdfsNodeModel from '@services/model/hdfs/hdfs-node';
   import InfluxdbInstanceModel from '@services/model/influxdb/influxdbInstance';
   import type KafkaNodeModel from '@services/model/kafka/kafka-node';
   import type PulsarNodeModel from '@services/model/pulsar/pulsar-node';
-  import { getResourceSpecList } from '@services/resourceSpec';
+  import {
+    fetchRecommendSpec,
+    getResourceSpecList,
+  } from '@services/source/dbresourceSpec';
 
   import SpecDetail from '@components/cluster-common/SpecDetailForPopover.vue';
 

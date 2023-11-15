@@ -12,27 +12,19 @@
 */
 
 import http from '../http';
+import type {
+  GetUsesParams,
+  ListBase,
+} from '../types/common';
 
-const path = '/apis/conf/db_admin';
-
-interface AdminItem {
-  db_type: string,
-  users: string[],
-  db_type_display: string
-}
-
-interface UpdateAdminsParams {
-  bk_biz_id: number,
-  db_admins: AdminItem[]
-}
+const path = '/apis/users';
 
 /**
- * 查询 DBA 人员列表
+ * 获取人员列表
  */
-export const getAdmins = (params: { bk_biz_id: number }) => http.get<AdminItem[]>(`${path}/list_admins/`, params);
-
-/**
- * 更新 DBA 人员列表
- */
-export const updateAdmins = (params: UpdateAdminsParams) => http.post<UpdateAdminsParams>(`${path}/upsert_admins/`, params);
-
+export const getUserList = function (params: GetUsesParams) {
+  return http.get<ListBase<{
+    username: string,
+    display_name: string
+  }[]>>(`${path}/list_users/`, params);
+};

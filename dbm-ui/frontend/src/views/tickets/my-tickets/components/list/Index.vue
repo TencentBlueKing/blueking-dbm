@@ -146,7 +146,10 @@
   import { useI18n } from 'vue-i18n';
 
   import { type StatusTypeKeys, StatusTypes } from '@services/model/ticket/ticket';
-  import { getTickets, getTicketTypes } from '@services/ticket';
+  import {
+    getTickets,
+    getTicketTypes,
+  } from '@services/source/ticket';
 
   import {
     useGlobalBizs,
