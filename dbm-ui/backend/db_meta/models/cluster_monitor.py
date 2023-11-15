@@ -134,7 +134,6 @@ class AppMonitorTopo(AuditedModel):
 
     @classmethod
     def get_set_by_plugin_id(cls, plugin_id, machine_types=None):
-        print(plugin_id, machine_types)
         qs = cls.objects.filter(monitor_plugin_id__contains=plugin_id)
         if machine_types:
             qs = qs.filter(machine_type__in=machine_types)

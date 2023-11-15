@@ -398,7 +398,7 @@ class Services:
         logger.info("auto_create_bkmonitor_service")
 
         # 加载采集策略
-        CollectInstance.init_collect_strategy()
+        CollectInstance.sync_collect_strategy()
 
         # 加载告警策略
         sync_plat_monitor_policy()
