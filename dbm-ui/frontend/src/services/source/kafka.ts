@@ -26,7 +26,7 @@ const path = `/apis/bigdata/bizs/${currentBizId}/kafka/kafka_resources`;
 /**
  * 获取集群列表
  */
-export const getList = (params: Record<string, any> & {bk_biz_id: number}) => http.get<ListBase<KafkaModel[]>>(`${path}/`, params)
+export const getList = (params: Record<string, any> & { bk_biz_id: number }) => http.get<ListBase<KafkaModel[]>>(`${path}/`, params)
   .then(data => ({
     ...data,
     results: data.results.map((item: KafkaModel) => new KafkaModel(item)),
@@ -40,7 +40,7 @@ export const getTableFields = () => http.get<ListBase<KafkaModel[]>>(`${path}/ge
 /**
  * 获取实例列表
  */
-export const getListInstance = (params: Record<string, any> & {bk_biz_id: number}) => http.get<ListBase<KafkaInstanceModel[]>>(`${path}/list_instances/`, params)
+export const getListInstance = (params: Record<string, any> & { bk_biz_id: number }) => http.get<ListBase<KafkaInstanceModel[]>>(`${path}/list_instances/`, params)
   .then(data => ({
     ...data,
     results: data.results.map((item: KafkaInstanceModel) => new KafkaInstanceModel(item)),
@@ -49,16 +49,15 @@ export const getListInstance = (params: Record<string, any> & {bk_biz_id: number
 /**
  * 获取实例详情
  */
-export const getRetrieveInstance = (params: {bk_biz_id: number}) => http.get<ListBase<KafkaModel[]>>(`${path}/retrieve_instance/`, params);
+export const getRetrieveInstance = (params: { bk_biz_id: number }) => http.get<ListBase<KafkaModel[]>>(`${path}/retrieve_instance/`, params);
 
 /**
  * 获取集群详情
  */
-export const getClusterDetail = (params: {
-  bk_biz_id: number,
-  cluster_id: number
-}) => http.get<KafkaModel>(`${path}/${params.cluster_id}/`)
-  .then(data => new KafkaModel(data));
+export const getClusterDetail = (params: { id: number }) => http.get<KafkaModel>(`${path}/${params.id}/`).then(data => new KafkaModel(data));
+
+// 获取集群详情（入口配置）
+export const getClusterDetailEntryConfig = (params: { id: number }) => http.get<KafkaModel>(`${path}/${params.id}/`).then(data => new KafkaModel(data));
 
 /**
  * 获取集群拓扑

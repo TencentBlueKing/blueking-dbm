@@ -634,23 +634,25 @@ class MonitorPolicy(AuditedModel):
         items = details["items"]
         # 事件类告警，无需设置告警目标，否则要求上报的数据必须携带服务实例id（告警目标匹配依据）
         for item in items:
+            # 去掉目标范围，支持跨业务告警
+            item["target"] = []
             # 更新监控目标为db_type对应的cmdb拓扑
-            item["target"] = (
-                [
-                    [
-                        {
-                            "field": "host_topo_node",
-                            "method": "eq",
-                            "value": [
-                                {"bk_inst_id": obj["bk_set_id"], "bk_obj_id": "set"}
-                                for obj in AppMonitorTopo.get_set_by_dbtype(db_type=self.db_type)
-                            ],
-                        }
-                    ]
-                ]
-                if self.alert_source == AlertSourceEnum.TIME_SERIES.value
-                else []
-            )
+            # item["target"] = (
+            #     [
+            #         [
+            #             {
+            #                 "field": "host_topo_node",
+            #                 "method": "eq",
+            #                 "value": [
+            #                     {"bk_inst_id": obj["bk_set_id"], "bk_obj_id": "set"}
+            #                     for obj in AppMonitorTopo.get_set_by_dbtype(db_type=self.db_type)
+            #                 ],
+            #             }
+            #         ]
+            #     ]
+            #     if self.alert_source == AlertSourceEnum.TIME_SERIES.value
+            #     else []
+            # )
 
             for query_config in item["query_configs"]:
                 # data_type_label: time_series | event(自定义上报，需要填充data_id)

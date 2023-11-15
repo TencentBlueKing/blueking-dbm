@@ -49,6 +49,7 @@ const routes: RouteRecordRaw[] = [
         meta: {
           routeParentName: MainViewRouteNames.Database,
           navName: t('Kafka_集群管理'),
+          activeMenu: 'KafkaManage',
           isMenu: true,
         },
         component: () => import('@views/kafka-manage/list/Index.vue'),

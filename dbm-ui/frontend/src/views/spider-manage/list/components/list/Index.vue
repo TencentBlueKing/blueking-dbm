@@ -108,6 +108,10 @@
     v-model:is-show="excelAuthorizeShow"
     :cluster-type="ClusterTypes.TENDBCLUSTER"
     :ticket-type="TicketTypes.TENDBCLUSTER_EXCEL_AUTHORIZE_RULES" />
+  <EditEntryConfig
+    :id="clusterId"
+    v-model:is-show="showEditEntryConfig"
+    :get-detail-info="getDetail" />
 </template>
 
 <script setup lang="tsx">
@@ -120,6 +124,7 @@
     getList,
     getResourceInstances,
   } from '@services/source/resourceSpider';
+  import { getDetail } from '@services/spider';
   import { createTicket } from '@services/ticket';
   import type { ResourceItem } from '@services/types/clusters';
 
@@ -132,7 +137,7 @@
     useTicketMessage,
   } from '@hooks';
 
-  import { useGlobalBizs } from '@stores';
+  import { useGlobalBizs, useUserProfile } from '@stores';
 
   import {
     AccountTypes,
@@ -146,6 +151,7 @@
   import ExcelAuthorize from '@components/cluster-common/ExcelAuthorize.vue';
   import OperationStatusTips from '@components/cluster-common/OperationStatusTips.vue';
   import RenderOperationTag from '@components/cluster-common/RenderOperationTag.vue';
+  import EditEntryConfig from '@components/cluster-entry-config/Index.vue';
   import DbStatus from '@components/db-status/index.vue';
   import RenderInstances from '@components/render-instances/RenderInstances.vue';
 
@@ -172,6 +178,7 @@
     splitScreen: stretchLayoutSplitScreen,
   } = useStretchLayout();
   const { currentBizId } = useGlobalBizs();
+  const userProfileStore = useUserProfile();
   const copy = useCopy();
   const ticketMessage = useTicketMessage();
 
@@ -203,6 +210,8 @@
   const searchValues = ref([]);
   const operationData = shallowRef({} as TendbClusterModel);
   const excelAuthorizeShow = ref(false);
+  const showEditEntryConfig = ref(false);
+
   // excel 授权
   const hasData = computed(() => tableRef.value?.getData().length > 0);
   const isCN = computed(() => locale.value === 'zh-cn');
@@ -300,6 +309,10 @@
                 onClick={() => copy(data.master_domain)} />
             )
           }
+          {userProfileStore.isManager && <db-icon
+            type="edit"
+            v-bk-tooltips={t('修改入口配置')}
+            onClick={() => handleOpenEntryConfig(data)} />}
         </div>
       ),
     },
@@ -590,6 +603,11 @@
     },
   ]);
 
+  const handleOpenEntryConfig = (row: TendbClusterModel) => {
+    showEditEntryConfig.value  = true;
+    clusterId.value = row.id;
+  };
+
   // 设置行样式
   const setRowClass = (row: TendbClusterModel) => {
     const classList = [row.phase === 'offline' ? 'is-offline' : ''];
@@ -876,7 +894,7 @@
       align-items: center;
     }
 
-    .db-icon-copy {
+    .db-icon-copy, .db-icon-edit {
       display: none;
       margin-left: 4px;
       color: @primary-color;
@@ -899,7 +917,7 @@
   }
 
   :deep(tr:hover) {
-    .db-icon-copy {
+    .db-icon-copy, .db-icon-edit {
       display: inline-block !important;
     }
   }

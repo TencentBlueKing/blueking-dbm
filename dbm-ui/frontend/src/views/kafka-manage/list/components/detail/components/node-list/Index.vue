@@ -414,8 +414,7 @@
   const fetchClusterDetail = () => {
     // 获取集群详情
     getClusterDetail({
-      bk_biz_id: globalBizsStore.currentBizId,
-      cluster_id: props.clusterId,
+      id: props.clusterId,
     })
       .then((data) => {
         operationData.value = data;

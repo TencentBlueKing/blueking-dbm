@@ -65,8 +65,6 @@
 
   import { getClusterDetail } from '@services/source/hdfs';
 
-  import { useGlobalBizs } from '@stores';
-
   import ClusterTopo from '@components/cluster-details/ClusterTopo.vue';
   import ClusterEventChange from '@components/cluster-event-change/EventChange.vue';
   import MonitorDashboard from '@components/cluster-monitor/MonitorDashboard.vue';
@@ -81,7 +79,6 @@
   const props = defineProps<Props>();
 
   const activePanel = ref('topo');
-  const globalBizsStore = useGlobalBizs();
 
   const {
     loading: isLoading,
@@ -95,8 +92,7 @@
     console.log('form watch cluser id = ', props.clusterId);
     if (props.clusterId) {
       fetchResourceDetails({
-        bk_biz_id: globalBizsStore.currentBizId,
-        cluster_id: props.clusterId,
+        id: props.clusterId,
       });
     }
   }, {

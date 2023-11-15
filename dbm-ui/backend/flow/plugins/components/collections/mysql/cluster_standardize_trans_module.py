@@ -24,8 +24,12 @@ class ClusterStandardizeTransModuleService(BaseService):
         cluster_id = global_data["cluster_id"]
         cluster_obj = Cluster.objects.get(pk=cluster_id)
 
-        MysqlCCTopoOperator(cluster_obj).transfer_instances_to_cluster_module(cluster_obj.storageinstance_set.all())
-        MysqlCCTopoOperator(cluster_obj).transfer_instances_to_cluster_module(cluster_obj.proxyinstance_set.all())
+        MysqlCCTopoOperator(cluster_obj).transfer_instances_to_cluster_module(
+            cluster_obj.storageinstance_set.all(), is_increment=True
+        )
+        MysqlCCTopoOperator(cluster_obj).transfer_instances_to_cluster_module(
+            cluster_obj.proxyinstance_set.all(), is_increment=True
+        )
         self.log_info(_("[{}] CC 模块标准化完成".format(kwargs["node_name"])))
         return True
 

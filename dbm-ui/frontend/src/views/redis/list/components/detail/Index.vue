@@ -58,10 +58,6 @@
   import { getResourceDetails } from '@services/source/resourceRedis';
   import type { ResourceRedisItem } from '@services/types/clusters';
 
-  import {
-    useGlobalBizs,
-  } from '@stores';
-
   import { DBTypes } from '@common/const';
 
   import ClusterTopo from '@components/cluster-details/ClusterTopo.vue';
@@ -75,8 +71,6 @@
   }
 
   const props = defineProps<Props>();
-
-  const globalBizsStore = useGlobalBizs();
 
   const activePanel = ref('topo');
   const data = ref<ResourceRedisItem>();
@@ -97,9 +91,6 @@
       return;
     }
     fetchResourceDetails({
-      dbType: DBTypes.REDIS,
-      type: DBTypes.REDIS,
-      bk_biz_id: globalBizsStore.currentBizId,
       id: props.clusterId,
     });
   }, {

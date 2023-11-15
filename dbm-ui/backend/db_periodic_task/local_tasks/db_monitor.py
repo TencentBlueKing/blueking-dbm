@@ -19,11 +19,11 @@ from django.core.cache import cache
 
 from backend import env
 from backend.components import BKMonitorV3Api
-from backend.configuration.constants import DEFAULT_DB_ADMINISTRATORS, PLAT_BIZ_ID
-from backend.configuration.models import DBAdministrator
+from backend.configuration.constants import DEFAULT_DB_ADMINISTRATORS, PLAT_BIZ_ID, SystemSettingsEnum
+from backend.configuration.models import DBAdministrator, SystemSettings
 from backend.db_monitor.constants import DEFAULT_ALERT_NOTICE, MONITOR_EVENTS, TPLS_ALARM_DIR, TargetPriority
 from backend.db_monitor.exceptions import BkMonitorSaveAlarmException
-from backend.db_monitor.models import DispatchGroup, MonitorPolicy, NoticeGroup
+from backend.db_monitor.models import CollectInstance, DispatchGroup, MonitorPolicy, NoticeGroup
 from backend.db_monitor.tasks import update_app_policy
 
 from .register import register_periodic_task
@@ -236,6 +236,30 @@ def sync_monitor_policy_events():
         )
         event_counts.update(biz_event_counts)
 
-    print(event_counts)
     logger.info("sync_monitor_policy_events -> policy_event_counts = %s", event_counts)
     cache.set(MONITOR_EVENTS, json.dumps(event_counts))
+
+
+@register_periodic_task(run_every=crontab(minute="*/5"))
+def sync_monitor_collect_strategy():
+    """
+    同步监控采集项
+    新增一个周期任务来做周期刷新，处理非DBM业务中的采集项
+    """
+
+    key = "unmanaged_biz"
+    logger.info("sync_monitor_collect_strategy started")
+    unmanaged_biz = set(
+        SystemSettings.get_setting_value(SystemSettingsEnum.INDEPENDENT_HOSTING_BIZS.value, default=[])
+    )
+    cached_unmanaged_biz = set(cache.get(key, []))
+    logger.info(
+        "sync_monitor_collect_strategy: unmanaged_biz = %s, cached_unmanaged_biz = %s",
+        unmanaged_biz,
+        cached_unmanaged_biz,
+    )
+    if cached_unmanaged_biz == unmanaged_biz:
+        logger.info("sync_monitor_collect_strategy skipped for: %s", unmanaged_biz)
+
+    logger.info("sync_monitor_collect_strategy update for: %s", unmanaged_biz)
+    CollectInstance.sync_collect_strategy()

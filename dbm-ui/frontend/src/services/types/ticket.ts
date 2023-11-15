@@ -740,6 +740,18 @@ export interface BigDataCapacityDetails {
   clusters: clustersItems
   cluster_id: number,
   nodes: NodesType,
+  resource_spec: {
+    cold: {
+      count: number,
+      instance_num: number,
+      spec_id: number
+    },
+    hot: {
+      count: number,
+      instance_num: number,
+      spec_id: number
+    }
+  }
 }
 
 // Redis 提交单据

@@ -1,7 +1,6 @@
-FROM node:16.20.1-slim AS frontend-installer
+FROM node:18.18.2-slim AS frontend-installer
 
-ENV NPM_VERSION 8.19.4
-RUN npm config set registry https://mirrors.tencent.com/npm/ && yarn config set registry https://mirrors.tencent.com/npm/
+RUN yarn config set registry https://mirrors.tencent.com/npm/
 
 WORKDIR /frontend
 COPY frontend/package.json ./

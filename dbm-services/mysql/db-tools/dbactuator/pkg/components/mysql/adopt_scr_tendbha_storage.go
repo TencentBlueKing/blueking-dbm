@@ -49,6 +49,7 @@ func (c *AdoptScrTenDBHAStorageComp) Init() error {
 	c.inner.InsPorts = c.Params.Ports
 	c.inner.WorkUser = c.GeneralParam.RuntimeAccountParam.AdminUser
 	c.inner.WorkPassword = c.GeneralParam.RuntimeAccountParam.AdminPwd
+	c.inner.AvoidReset = true
 	c.inner.InsSockets = make(map[Port]string)
 	c.workers = make(map[int]*native.DbWorker)
 

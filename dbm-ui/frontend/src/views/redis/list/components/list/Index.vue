@@ -62,7 +62,7 @@
         v-model="state.searchValues"
         class="operations-right mb-16"
         :data="filterItems"
-        :placeholder="$t('输入集群名_IP_域名关键字')"
+        :placeholder="$t('输入集群名_IP_访问入口关键字')"
         unique-select
         @change="handleFilter" />
     </div>
@@ -109,12 +109,16 @@
   <RedisPurge
     v-model:is-show="purgeState.isShow"
     :data="purgeState.data" />
+  <EditEntryConfig
+    :id="clusterId"
+    v-model:is-show="showEditEntryConfig"
+    :get-detail-info="getResourceDetails" />
 </template>
 <script setup lang="tsx">
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
-  import { getResourceInstances } from '@services/source/resourceRedis';
+  import { getResourceDetails, getResourceInstances } from '@services/source/resourceRedis';
   import { createTicket } from '@services/ticket';
   import {
     ClusterNodeKeys,
@@ -130,7 +134,7 @@
     useTicketMessage,
   } from '@hooks';
 
-  import { useGlobalBizs } from '@stores';
+  import { useGlobalBizs, useUserProfile } from '@stores';
 
   import {
     DBTypes,
@@ -139,6 +143,7 @@
     UserPersonalSettings,
   } from '@common/const';
 
+  import EditEntryConfig from '@components/cluster-entry-config/Index.vue';
   import DbStatus from '@components/db-status/index.vue';
   import RenderInstances from '@components/render-instances/RenderInstances.vue';
 
@@ -170,6 +175,7 @@
   const copy = useCopy();
   const router = useRouter();
   const globalBizsStore = useGlobalBizs();
+  const userProfileStore = useUserProfile();
   const ticketMessage = useTicketMessage();
   const {
     isOpen: isStretchLayoutOpen,
@@ -194,6 +200,8 @@
   const disabledOperations: string[] = [TicketTypes.REDIS_DESTROY, TicketTypes.REDIS_PROXY_CLOSE];
 
   const isShowDropdown = ref(false);
+  const showEditEntryConfig = ref(false);
+
   const state = reactive<RedisState>({
     isInit: true,
     isAnomalies: false,
@@ -310,6 +318,19 @@
       label: t('访问入口'),
       field: 'master_domain',
       minWidth: 200,
+      render: ({ data }: ColumnRenderData) => (
+        <div class="domain">
+          <span
+            class="text-overflow"
+            v-overflow-tips>
+            {data.master_domain || '--'}
+          </span>
+          {userProfileStore.isManager && <db-icon
+            type="edit"
+            v-bk-tooltips={t('修改入口配置')}
+            onClick={() => handleOpenEntryConfig(data)} />}
+        </div>
+      ),
     },
     {
       label: 'Proxy',
@@ -661,6 +682,11 @@
     handleChangePage,
     handleFilter,
   } = useRedisData(state);
+
+  const handleOpenEntryConfig = (row: ResourceRedisItem) => {
+    showEditEntryConfig.value  = true;
+    clusterId.value = row.id;
+  };
 
 
   // 设置行样式
@@ -1017,6 +1043,28 @@
     padding: 24px 0;
     margin: 0 24px;
     overflow: hidden;
+
+    :deep(.cell) {
+      line-height: normal !important;
+
+      .domain {
+        display: flex;
+        align-items: center;
+      }
+
+      .db-icon-copy, .db-icon-edit {
+        display: none;
+        margin-left: 4px;
+        color: @primary-color;
+        cursor: pointer;
+      }
+    }
+
+    :deep(tr:hover) {
+      .db-icon-copy, .db-icon-edit {
+        display: inline-block !important;
+      }
+    }
 
     .operation-box{
       display: flex;

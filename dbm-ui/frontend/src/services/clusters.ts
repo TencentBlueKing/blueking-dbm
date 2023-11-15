@@ -101,3 +101,15 @@ export const findRelatedClustersByClusterIds = (params: Record<'cluster_ids', Ar
  * 查询所有数据库的版本列表
  */
 export const getClusterTypeToVersions = () => http.get<Record<string, string[]>>('/apis/version/cluster_type_to_versions/');
+
+/**
+ * 修改集群访问入口
+ */
+export const updateClusterEntryConfig = (params: {
+  cluster_id: number,
+  cluster_entry_details: {
+    cluster_entry_type: string,
+    domain_name: string,
+    target_instances: string[],
+  }[]
+}) => http.post<{ cluster_id?: number }>('/apis/cluster_entry/refresh_cluster_domain/', params);

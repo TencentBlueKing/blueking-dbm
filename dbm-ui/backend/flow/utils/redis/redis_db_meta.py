@@ -639,24 +639,32 @@ class RedisDBMeta(object):
         增加clb记录
         """
         entry_type = ClusterEntryType.CLB
-        if self.cluster["clb_domain"] != "":
-            entry_type = ClusterEntryType.CLBDNS
         cluster = Cluster.objects.get(
             bk_cloud_id=self.cluster["bk_cloud_id"], immute_domain=self.cluster["immute_domain"]
         )
-        cluster_entry = ClusterEntry.objects.create(
+        clb_cluster_entry = ClusterEntry.objects.create(
             cluster=cluster,
             cluster_entry_type=entry_type,
             entry=self.cluster["ip"],
             creator=self.cluster["created_by"],
         )
-        cluster_entry.save()
+        clb_cluster_entry.save()
+        if self.cluster["clb_domain"] != "":
+            entry_type = ClusterEntryType.CLBDNS
+            clbdns_cluster_entry = ClusterEntry.objects.create(
+                cluster=cluster,
+                cluster_entry_type=entry_type,
+                forward_to_id=clb_cluster_entry.id,
+                entry=self.cluster["clb_domain"],
+                creator=self.cluster["created_by"],
+            )
+            clbdns_cluster_entry.save()
         clb_entry = CLBEntryDetail.objects.create(
             clb_ip=self.cluster["ip"],
             clb_id=self.cluster["id"],
             listener_id=self.cluster["listener_id"],
             clb_region=self.cluster["region"],
-            entry_id=cluster_entry.id,
+            entry_id=clb_cluster_entry.id,
             creator=self.cluster["created_by"],
         )
         clb_entry.save()
