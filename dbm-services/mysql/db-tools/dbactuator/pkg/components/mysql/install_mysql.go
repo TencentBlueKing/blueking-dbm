@@ -39,6 +39,7 @@ type InstallMySQLComp struct {
 	// 其他情况下用管理员帐号
 	WorkUser     string `json:"-"`
 	WorkPassword string `json:"-"`
+	AvoidReset   bool   `json:"-"` // 迁移单据复用了这个 actor, 需要不做reset
 }
 
 // InstallMySQLParams TODO
@@ -148,6 +149,7 @@ func (i *InstallMySQLComp) Example() interface{} {
 func (i *InstallMySQLComp) InitDefaultParam() (err error) {
 	i.WorkUser = "root"
 	i.WorkPassword = ""
+	i.AvoidReset = false
 
 	var mountpoint string
 	i.InstallDir = cst.UsrLocal
@@ -775,7 +777,10 @@ func (i *InstallMySQLComp) InitDefaultPrivAndSchema() (err error) {
 			initAccountSqls = i.generateDefaultMysqlAccount(version)
 		}
 		// 初始化数据库之后，reset master，标记binlog重头开始，避免同步干扰
-		initAccountSqls = append(initAccountSqls, "reset master;")
+		// 新安装db, avoid == false, 表示需要做 reset
+		if !i.AvoidReset {
+			initAccountSqls = append(initAccountSqls, "reset master;")
+		}
 
 		if _, err := dbWork.ExecMore(initAccountSqls); err != nil {
 			logger.Error("flush privileges failed %v", err)

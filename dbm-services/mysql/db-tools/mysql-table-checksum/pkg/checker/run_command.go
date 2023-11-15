@@ -129,7 +129,7 @@ func (r *Checker) Run() error {
 	// 固定写入一行恒为真的站位数据
 	ts := time.Now()
 	_, err = r.db.Exec(
-		fmt.Sprintf("INSERT INTO %s("+
+		fmt.Sprintf("REPLACE INTO %s("+
 			"master_ip, master_port, "+
 			"`db`, tbl, chunk, chunk_time, chunk_index, "+
 			"lower_boundary, upper_boundary, "+
