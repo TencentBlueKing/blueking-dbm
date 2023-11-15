@@ -70,7 +70,7 @@ def create_mongo_cluster(
         all_confies.extend(config["nodes"])
         for shard in config["nodes"]:
             if shard["role"] == InstanceRole.MONGO_M1:
-                primaries.append({"ip": shard["ip"], "port": shard["port"], "shard": storage["shard"]})
+                primaries.append({"ip": shard["ip"], "port": shard["port"], "shard": config["shard"]})
 
     create_domain_precheck(bk_biz_id=bk_biz_id, name=name, immute_domain=immute_domain, cluster_type=cluster_type)
     storage_objs = create_storage_precheck(all_storages)
