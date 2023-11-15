@@ -56,20 +56,25 @@ def create_mongo_cluster(
     Args:
         immute_domain (str): _description_
         proxies: [{},{}]
-        configes: [{},{},{}]
+        configes: [{"shard":"S1","nodes":[{"ip":,"port":,"role":},{},{}]},{},{}]
         storages: [{"shard":"S1","nodes":[{"ip":,"port":,"role":},{},{}]},]
     """
 
-    all_objs, primaries = [], []
+    all_storages, all_confies, primaries = [], [], []
     for storage in storages:
-        all_objs.extend(storage["nodes"])
+        all_storages.extend(storage["nodes"])
         for shard in storage["nodes"]:
             if shard["role"] == InstanceRole.MONGO_M1:
                 primaries.append({"ip": shard["ip"], "port": shard["port"], "shard": storage["shard"]})
+    for config in configs:
+        all_confies.extend(config["nodes"])
+        for shard in config["nodes"]:
+            if shard["role"] == InstanceRole.MONGO_M1:
+                primaries.append({"ip": shard["ip"], "port": shard["port"], "shard": config["shard"]})
 
     create_domain_precheck(bk_biz_id=bk_biz_id, name=name, immute_domain=immute_domain, cluster_type=cluster_type)
-    storage_objs = create_storage_precheck(all_objs)
-    config_objs = create_storage_precheck(configs)
+    storage_objs = create_storage_precheck(all_storages)
+    config_objs = create_storage_precheck(all_confies)
     mongos_objs = create_proxies_precheck(proxies)
 
     # 创建集群, 添加存储和接入实例
@@ -162,7 +167,6 @@ def pkg_create_mongo_cluster(
     immute_domain = request_validator.validated_domain(immute_domain)
     db_module_id = request_validator.validated_integer(db_module_id)
     proxies = request_validator.validated_storage_list(proxies, allow_empty=False, allow_null=False)
-    request_validator.validated_storage_list(configs, allow_empty=False, allow_null=False)
 
     # 空实例检查
     before_create_domain_precheck([immute_domain])
@@ -170,6 +174,8 @@ def pkg_create_mongo_cluster(
     all_instances = []
     for storage in storages:
         all_instances.extend(storage["nodes"])
+    for config in configs:
+        all_instances.extend(config["nodes"])
     request_validator.validated_storage_list(all_instances, allow_empty=False, allow_null=False)
     before_create_storage_precheck(all_instances)
 
@@ -181,11 +187,14 @@ def pkg_create_mongo_cluster(
         spec_config = machine_specs[MachineType.MONGOS.value]["spec_config"]
     create_proxies(bk_biz_id, bk_cloud_id, MachineType.MONGOS.value, proxies, spec_id, spec_config)
 
-    spec_id, spec_config = 0, ""
-    if machine_specs.get(MachineType.MONOG_CONFIG.value):
-        spec_id = machine_specs[MachineType.MONOG_CONFIG.value]["spec_id"]
-        spec_config = machine_specs[MachineType.MONOG_CONFIG.value]["spec_config"]
-    create_mongo_instances(bk_biz_id, bk_cloud_id, MachineType.MONOG_CONFIG.value, configs, spec_id, spec_config)
+    for config_pair in configs:
+        spec_id, spec_config = 0, ""
+        if machine_specs.get(MachineType.MONOG_CONFIG.value):
+            spec_id = machine_specs[MachineType.MONOG_CONFIG.value]["spec_id"]
+            spec_config = machine_specs[MachineType.MONOG_CONFIG.value]["spec_config"]
+        create_mongo_instances(
+            bk_biz_id, bk_cloud_id, MachineType.MONOG_CONFIG.value, config_pair["nodes"], spec_id, spec_config
+        )
     for shard_pair in storages:
         spec_id, spec_config = 0, ""
         if machine_specs.get(MachineType.MONGODB.value):
