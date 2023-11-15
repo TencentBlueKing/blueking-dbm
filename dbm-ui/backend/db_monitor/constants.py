@@ -122,14 +122,15 @@ PROMQL_FILTER_TPL = "__COND__"
 # 蓝鲸监控保存用户组模板
 DEFAULT_ALERT_NOTICE = [
     {
-        "time_range": "00:00:00--23:59:00",
+        "time_range": "00:00:00--23:59:59",
         "notify_config": [
-            {"notice_ways": [{"name": "mail"}], "level": 3},
-            {"notice_ways": [{"name": "mail"}], "level": 2},
-            {"notice_ways": [{"name": "mail"}], "level": 1},
+            {"notice_ways": [{"name": "rtx"}], "level": 3},
+            {"notice_ways": [{"name": "rtx"}, {"name": "sms"}], "level": 2},
+            {"notice_ways": [{"name": "rtx"}, {"name": "voice"}], "level": 1},
         ],
     }
 ]
+
 BK_MONITOR_SAVE_USER_GROUP_TEMPLATE = {
     "name": "",
     "desc": "",

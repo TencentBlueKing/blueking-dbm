@@ -82,10 +82,8 @@ class CollectInstance(CollectTemplateBase):
         super().save(force_insert, force_update, using)
 
     @staticmethod
-    def init_collect_strategy(bk_biz_id=env.DBA_APP_BK_BIZ_ID):
-        """初始化监控采集项
-        TODO: 新增一个周期任务来做周期刷新，处理非DBM业务中的采集项
-        """
+    def sync_collect_strategy(bk_biz_id=env.DBA_APP_BK_BIZ_ID):
+        """同步监控采集项"""
         now = datetime.datetime.now()
         updated_collectors = 0
 
@@ -115,9 +113,9 @@ class CollectInstance(CollectTemplateBase):
                     )
                     collect_params["id"] = collect_instance.collect_id
 
-                    if template.version <= collect_instance.version:
-                        logger.warning("[init_collect_strategy] skip update bkmonitor collector: %s " % template.name)
-                        continue
+                    # if template.version <= collect_instance.version:
+                    #     logger.warning("[init_collect_strategy] skip update bkmonitor collector: %s " % template.name)
+                    #     continue
 
                     logger.info("[init_collect_strategy] update bkmonitor collector: %s " % template.name)
                 except CollectInstance.DoesNotExist:
@@ -136,7 +134,6 @@ class CollectInstance(CollectTemplateBase):
                     else:
                         logger.warning("[init_collect_strategy] create bkmonitor collector: %s " % template.db_type)
 
-                # TODO: 非DBA业务支持待验证
                 collect_params.update(
                     bk_biz_id=bk_biz_id,
                     plugin_id=template.plugin_id,
