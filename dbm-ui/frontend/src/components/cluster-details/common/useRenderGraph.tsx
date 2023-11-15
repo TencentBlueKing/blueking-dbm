@@ -15,13 +15,14 @@ import _ from 'lodash';
 import type { Instance } from 'tippy.js';
 import type { VNode } from 'vue';
 
-import { getRetrieveInstance as getESRetrieveInstance } from '@services/source/es';
-import { getRetrieveInstance as getHDFSRetrieveInstance } from '@services/source/hdfs';
-import { getRetrieveInstance as getKafkaRetrieveInstance } from '@services/source/kafka';
-import { getRetrieveInstance as getPulsarRetrieveInstance } from '@services/source/pulsar';
-import { getResourceInstanceDetails as getSpiderResourceInstanceDetails } from '@services/source/resourceSpider';
-import { getResourceInstanceDetails as getTendbhaResourceInstanceDetails } from '@services/source/resourceTendbha';
-import { getResourceInstanceDetails as getTendbsingleResourceInstanceDetails } from '@services/source/resourceTendbsingle';
+import { retrieveEsInstance } from '@services/source/es';
+import { retrieveHdfsInstance } from '@services/source/hdfs';
+import { retrieveKafkaInstance } from '@services/source/kafka';
+import { retrievePulsarInstance } from '@services/source/pulsar';
+import { retrieveRedisInstance } from '@services/source/redis';
+import { retrieveSpiderInstance } from '@services/source/spider';
+import { retrieveTendbhaInstance } from '@services/source/tendbha';
+import { retrieveTendbsingleInstance } from '@services/source/tendbsingle';
 import type { InstanceDetails, ResourceTopoNode } from '@services/types/clusters';
 
 import { useGlobalBizs } from '@stores';
@@ -110,13 +111,14 @@ export const detailColumns: DetailColumns<any> = [{
 }];
 
 const apiMap: Record<string, (params: any) => Promise<any>> = {
-  kafka: getKafkaRetrieveInstance,
-  hdfs: getHDFSRetrieveInstance,
-  es: getESRetrieveInstance,
-  pulsar: getPulsarRetrieveInstance,
-  tendbsingle: getTendbsingleResourceInstanceDetails,
-  tendbha: getTendbhaResourceInstanceDetails,
-  spider: getSpiderResourceInstanceDetails,
+  es: retrieveEsInstance,
+  kafka: retrieveKafkaInstance,
+  hdfs: retrieveHdfsInstance,
+  pulsar: retrievePulsarInstance,
+  redis: retrieveRedisInstance,
+  tendbsingle: retrieveTendbsingleInstance,
+  tendbha: retrieveTendbhaInstance,
+  spider: retrieveSpiderInstance,
 };
 
 const entryTagMap: Record<string, string> = {

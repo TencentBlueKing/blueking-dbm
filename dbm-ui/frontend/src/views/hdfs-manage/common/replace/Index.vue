@@ -65,7 +65,7 @@
 
   import type HdfsModel from '@services/model/hdfs/hdfs';
   import type HdfsNodeModel from '@services/model/hdfs/hdfs-node';
-  import { createTicket } from '@services/ticket';
+  import { createTicket } from '@services/source/ticket';
 
   import { useGlobalBizs } from '@stores';
 

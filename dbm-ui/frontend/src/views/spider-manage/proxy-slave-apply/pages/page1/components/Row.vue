@@ -53,8 +53,8 @@
   </tr>
 </template>
 <script lang="ts">
-  import { getSpecResourceCount } from '@services/dbResource';
-  import { getResourceSpecList } from '@services/resourceSpec';
+  import { getSpecResourceCount } from '@services/source/dbresourceResource';
+  import { getResourceSpecList } from '@services/source/dbresourceSpec';
 
   import RenderTargetCluster from '@views/spider-manage/common/edit-field/ClusterName.vue';
 

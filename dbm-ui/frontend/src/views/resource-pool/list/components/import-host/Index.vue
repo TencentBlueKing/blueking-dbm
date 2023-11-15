@@ -67,8 +67,8 @@
   } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import { importResource } from '@services/dbResource';
   import type ImportHostModel from '@services/model/db-resource/import-host';
+  import { importResource } from '@services/source/dbresourceResource';
 
   import { messageSuccess } from '@utils';
 

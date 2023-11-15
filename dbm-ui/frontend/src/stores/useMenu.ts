@@ -13,7 +13,7 @@
 
 import { defineStore } from 'pinia';
 
-import { getTicketsCount } from '@services/ticket';
+import { getTicketsCount } from '@services/source/ticket';
 
 export const useMenu = defineStore('useMenu', {
   state: () => ({

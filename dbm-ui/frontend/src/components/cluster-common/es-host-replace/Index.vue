@@ -120,7 +120,7 @@
   import { useI18n } from 'vue-i18n';
 
   import type EsNodeModel from '@services/model/es/es-node';
-  import type { HostDetails } from '@services/types/ip';
+  import { checkHost } from '@services/source/ipchooser';
 
   import {
     type IHostTableDataWithInstance,
@@ -131,7 +131,7 @@
   import HostSelector from './components/HostSelector.vue';
   import ResourcePoolSelector from './components/ResourcePoolSelector.vue';
 
-  export interface TReplaceNode{
+  export interface TReplaceNode {
     // 集群id
     clusterId: number,
     // 集群的节点类型
@@ -159,7 +159,7 @@
   interface Props {
     data: TReplaceNode,
     ipSource: string,
-    disableHostMethod?: (params: HostDetails) => string | boolean
+    disableHostMethod?: (params: ServiceReturnType<typeof checkHost>[number]) => string | boolean
   }
 
   interface Emits {

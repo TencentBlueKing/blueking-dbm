@@ -45,7 +45,7 @@
   import { useI18n } from 'vue-i18n';
 
   // import RedisModel from '@services/model/redis/redis';
-  import { listClusterList } from '@services/source/resourceRedis';
+  import { getRedisList } from '@services/source/redis';
 
   // import { ClusterTypes } from '@common/const';
   import { domainRegex } from '@common/regex';
@@ -93,8 +93,8 @@
     },
     {
       validator: async (value: string) => {
-        const r = await listClusterList({ domain: value });
-        return r.length > 0;
+        const result = await getRedisList({ domain: value });
+        return result.results.length > 0;
       },
       message: t('目标集群不存在'),
     },
@@ -194,4 +194,3 @@
   }
 }
 </style>
-

@@ -11,10 +11,10 @@
  * the specific language governing permissions and limitations under the License.
 */
 
-import { getModules } from '@services/common';
-import { getResources as getSpiderResources } from '@services/source/resourceSpider';
-import { getResources as getTendbhaResources } from '@services/source/resourceTendbha';
-import { getResources as getTendbsingleResources } from '@services/source/resourceTendbsingle';
+import { getModules } from '@services/source/cmdb';
+import { getResources as getSpiderResources } from '@services/source/spider';
+import { getTendbhaList } from '@services/source/tendbha';
+import { getTendbsingleList } from '@services/source/tendbsingle';
 
 import { useGlobalBizs } from '@stores';
 
@@ -33,9 +33,9 @@ import type { ClusterSelectorState } from './types';
 export function useClusterData(state: ClusterSelectorState) {
   const globalBizsStore = useGlobalBizs();
 
-  const apiMap: Record<string, (params: any) => ReturnType<typeof getTendbsingleResources>> = {
-    [ClusterTypes.TENDBSINGLE]: getTendbsingleResources,
-    [ClusterTypes.TENDBHA]: getTendbhaResources,
+  const apiMap: Record<string, (params: any) => ReturnType<typeof getTendbsingleList>> = {
+    [ClusterTypes.TENDBSINGLE]: getTendbsingleList,
+    [ClusterTypes.TENDBHA]: getTendbhaList,
     [ClusterTypes.TENDBCLUSTER]: getSpiderResources,
   };
 

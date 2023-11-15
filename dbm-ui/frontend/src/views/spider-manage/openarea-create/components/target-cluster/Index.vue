@@ -18,7 +18,7 @@
     </RenderTable>
     <ClusterSelector
       v-model:is-show="isShowBatchSelector"
-      :get-resource-list="getList"
+      :get-resource-list="getSpiderList"
       :selected="selectedClusters"
       :tab-list="clusterSelectorTabList"
       @change="handelClusterChange" />
@@ -28,7 +28,7 @@
   import { shallowRef } from 'vue';
 
   import SpiderModel from '@services/model/spider/spider';
-  import { getList } from '@services/source/resourceSpider';
+  import { getSpiderList } from '@services/source/spider';
 
   import { ClusterTypes } from '@common/const';
 

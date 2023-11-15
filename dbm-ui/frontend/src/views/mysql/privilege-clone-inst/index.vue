@@ -73,7 +73,7 @@
 
   import { precheckPermissionClone } from '@services/permission';
   import { checkMysqlInstances } from '@services/source/instances';
-  import { createTicket } from '@services/ticket';
+  import { createTicket } from '@services/source/ticket';
   import type { InstanceInfos } from '@services/types/clusters';
 
   import { useInfo, useTableMaxHeight } from '@hooks';

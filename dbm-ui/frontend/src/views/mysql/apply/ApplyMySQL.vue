@@ -357,8 +357,8 @@
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
+  import { checkHost } from '@services/source/ipchooser';
   import type { BizItem, ModuleItem } from '@services/types/common';
-  import type { HostDetails } from '@services/types/ip';
   import type { HostSpec } from '@services/types/ticket';
 
   import { useApplyBase } from '@hooks';
@@ -379,6 +379,8 @@
   import DomainTable from './components/MySQLDomainTable.vue';
   import PreviewTable from './components/PreviewTable.vue';
   import { useMysqlData } from './hooks/useMysqlData';
+
+  type HostDetails = ServiceReturnType<typeof checkHost>
 
   interface Props {
     type: string
@@ -540,7 +542,7 @@
     proxy: (hostList: Array<any>) => (hostList.length !== hostNums.value ? t('xx共需n台', { title: 'Proxy', n: hostNums.value }) : false),
     backend: (hostList: Array<any>) => (hostList.length !== hostNums.value ? t('xx共需n台', { title: 'Master / Slave', n: hostNums.value }) : false),
   };
-  const makeMapByHostId = (hostList: Array<HostDetails>) => hostList.reduce((result, item) => ({
+  const makeMapByHostId = (hostList: HostDetails) => hostList.reduce((result, item) => ({
     ...result,
     [item.host_id]: true,
   }), {} as Record<number, boolean>);
@@ -575,7 +577,7 @@
   /**
    * 更新 Proxy IP
    */
-  function handleProxyIpChange(data: HostDetails[]) {
+  function handleProxyIpChange(data: HostDetails) {
     formdata.details.nodes.proxy = [...data];
     if (formdata.details.nodes.proxy.length > 0) {
       proxyRef.value.clearValidate();
@@ -585,7 +587,7 @@
   /**
    * 更新 Backend
    */
-  function handleBackendIpChange(data: HostDetails[]) {
+  function handleBackendIpChange(data: HostDetails) {
     formdata.details.nodes.backend = [...data];
     if (formdata.details.nodes.backend.length > 0) {
       backendRef.value.clearValidate();
@@ -629,7 +631,7 @@
   /**
    * 格式化 IP 提交格式
    */
-  function formatNodes(hosts: HostDetails[]) {
+  function formatNodes(hosts: HostDetails) {
     return hosts.map(host => ({
       ip: host.ip,
       bk_host_id: host.host_id,

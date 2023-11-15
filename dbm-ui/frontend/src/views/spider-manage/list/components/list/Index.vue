@@ -62,7 +62,7 @@
       <DbTable
         ref="tableRef"
         :columns="columns"
-        :data-source="getList"
+        :data-source="getSpiderList"
         :pagination-extra="paginationExtra"
         :row-class="setRowClass"
         :settings="settings"
@@ -111,7 +111,7 @@
   <EditEntryConfig
     :id="clusterId"
     v-model:is-show="showEditEntryConfig"
-    :get-detail-info="getDetail" />
+    :get-detail-info="getSpiderDetail" />
 </template>
 
 <script setup lang="tsx">
@@ -121,11 +121,11 @@
 
   import type TendbClusterModel from '@services/model/spider/tendbCluster';
   import {
-    getList,
-    getResourceInstances,
-  } from '@services/source/resourceSpider';
-  import { getDetail } from '@services/spider';
-  import { createTicket } from '@services/ticket';
+    getSpiderDetail,
+    getSpiderInstanceList,
+    getSpiderList,
+  } from '@services/source/spider';
+  import { createTicket } from '@services/source/ticket';
   import type { ResourceItem } from '@services/types/clusters';
 
   import {
@@ -375,7 +375,7 @@
             })}
             role="spider_master"
             clusterId={data.id}
-            dataSource={getResourceInstances}
+            dataSource={getSpiderInstanceList}
           />
         );
       },
@@ -395,7 +395,7 @@
             })}
             role="spider_slave"
             clusterId={data.id}
-            dataSource={getResourceInstances}
+            dataSource={getSpiderInstanceList}
           />
         );
       },
@@ -415,7 +415,7 @@
             })}
             role="spider_mnt"
             clusterId={data.id}
-            dataSource={getResourceInstances}
+            dataSource={getSpiderInstanceList}
           />
         );
       },
@@ -433,7 +433,7 @@
             title={t('【inst】实例预览', { inst: data.master_domain, title: 'RemoteDB' })}
             role="remote_master"
             clusterId={data.id}
-            dataSource={getResourceInstances}>
+            dataSource={getSpiderInstanceList}>
             {{
               default: ({ data }: { data:TendbClusterModel['remote_db'][0] }) => {
                 if (data.shard_id !== undefined) {
@@ -459,7 +459,7 @@
             title={t('【inst】实例预览', { inst: data.master_domain, title: 'RemoteDR' })}
             role="remote_slave"
             clusterId={data.id}
-            dataSource={getResourceInstances}>
+            dataSource={getSpiderInstanceList}>
             {{
               default: ({ data }: { data:TendbClusterModel['remote_dr'][0] }) => {
                 if (data.shard_id !== undefined) {

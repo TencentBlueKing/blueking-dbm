@@ -28,7 +28,7 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import { getList } from '@services/source/resourceSpider';
+  import { getSpiderList } from '@services/source/spider';
 
   import TableEditSelect from '@components/tools-table-select/index.vue';
 
@@ -65,7 +65,7 @@
   const {
     run: fetchClusterList,
     loading: isListLoading,
-  } = useRequest(getList, {
+  } = useRequest(getSpiderList, {
     onSuccess(data) {
       if (data.results.length < 1) {
         backupList.value = [remoteValue];

@@ -321,11 +321,11 @@
   import { useI18n } from 'vue-i18n';
 
   import type { RedisFunctions } from '@services/model/function-controller/functionController';
+  import { checkHost } from '@services/source/ipchooser';
+  import { getVersions } from '@services/source/version';
   import { getCapSpecs } from '@services/ticket';
   import type { BizItem } from '@services/types/common';
-  import type { HostDetails } from '@services/types/ip';
   import type { CapSepcs } from '@services/types/ticket';
-  import { getVersions } from '@services/versionFiles';
 
   import { useApplyBase, useInfo  } from '@hooks';
 
@@ -346,6 +346,8 @@
   import { generateId } from '@utils';
 
   import { redisClusterTypes, redisIpSources } from './common/const';
+
+  type HostDetails = ServiceReturnType<typeof checkHost>
 
   type Version = {
     value: string,
@@ -399,14 +401,14 @@
       {
         message: t('Proxy数量至少为2台'),
         trigger: 'change',
-        validator: (value: HostDetails[]) => value.length >= 2,
+        validator: (value: HostDetails) => value.length >= 2,
       },
     ],
     'details.nodes.master': [
       {
         message: t('Master数量至少为1台_且机器数要和Slave相等'),
         trigger: 'change',
-        validator: (value: HostDetails[]) => (
+        validator: (value: HostDetails) => (
           value.length > 0
           && state.formdata.details.nodes.slave.length === value.length
         ),
@@ -416,7 +418,7 @@
       {
         message: t('Slave数量至少为1台_且机器数要和Master相等'),
         trigger: 'change',
-        validator: (value: HostDetails[]) => (
+        validator: (value: HostDetails) => (
           value.length > 0
           && state.formdata.details.nodes.master.length === value.length
         ),
@@ -469,9 +471,9 @@
         cap_key: '',
         ip_source: redisIpSources.resource_pool.id,
         nodes: {
-          proxy: [] as HostDetails[],
-          master: [] as HostDetails[],
-          slave: [] as HostDetails[],
+          proxy: [] as HostDetails,
+          master: [] as HostDetails,
+          slave: [] as HostDetails,
         },
         resource_spec: {
           proxy: {
@@ -611,7 +613,7 @@
     slave: (hostList: Array<any>) => (hostList.length >= 1 ? false : t('至少n台', { n: 1 })),
   };
 
-  const makeMapByHostId = (hostList: Array<HostDetails>) => hostList.reduce((result, item) => ({
+  const makeMapByHostId = (hostList: HostDetails) => hostList.reduce((result, item) => ({
     ...result,
     [item.host_id]: true,
   }), {} as Record<number, boolean>);
@@ -660,14 +662,14 @@
   /**
    * 更新 Proxy IP
    */
-  function handleProxyIpChange(data: HostDetails[]) {
+  function handleProxyIpChange(data: HostDetails) {
     state.formdata.details.nodes.proxy = [...data];
   }
 
   /**
    * 更新 Master IP
    */
-  function handleMasterIpChange(data: HostDetails[]) {
+  function handleMasterIpChange(data: HostDetails) {
     state.formdata.details.nodes.master = [...data];
     fetchCapSpecs(state.formdata.details.city_code);
     masterRef.value?.validate?.();
@@ -678,7 +680,7 @@
   /**
    * 更新 Slave IP
    */
-  function handleSlaveIpChange(data: HostDetails[]) {
+  function handleSlaveIpChange(data: HostDetails) {
     state.formdata.details.nodes.slave = [...data];
     fetchCapSpecs(state.formdata.details.city_code);
     masterRef.value?.validate?.();
@@ -689,7 +691,7 @@
   /**
    * 格式化 IP 提交格式
    */
-  function formatNodes(hosts: HostDetails[]) {
+  function formatNodes(hosts: HostDetails) {
     return hosts.map(host => ({
       ip: host.ip,
       bk_host_id: host.host_id,

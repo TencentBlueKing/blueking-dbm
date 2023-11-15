@@ -23,7 +23,7 @@
 
 <script setup lang="ts">
   import TicketModel from '@services/model/ticket/ticket';
-  import { getTicketFlows } from '@services/ticket';
+  import { getTicketFlows } from '@services/source/ticket';
   import type { FlowItem } from '@services/types/ticket';
 
   import { TicketTypes } from '@common/const';

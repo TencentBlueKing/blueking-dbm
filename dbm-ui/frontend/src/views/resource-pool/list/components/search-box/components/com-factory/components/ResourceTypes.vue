@@ -58,7 +58,7 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import { fetchDbTypeList } from '@services/infras';
+  import { fetchDbTypeList } from '@services/source/infras';
 
   interface Props {
     defaultValue?: string[],

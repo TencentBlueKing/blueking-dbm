@@ -236,7 +236,12 @@
   import type { Instance } from 'tippy.js';
   import { useI18n } from 'vue-i18n';
 
-  import { getTaskflowDetails, retryTaskflowNode, revokePipeline, skipTaskflowNode } from '@services/taskflow';
+  import {
+    getTaskflowDetails,
+    retryTaskflowNode,
+    revokePipeline,
+    skipTaskflowNode,
+  } from '@services/source/taskflow';
   import type { FlowsData } from '@services/types/taskflow';
 
   import { useMainViewStore } from '@stores';

@@ -33,7 +33,7 @@
 </template>
 
 <script setup lang="ts">
-  import { getProjectVersion } from '@services/common';
+  import { getProjectVersion } from '@services/source/version';
 
   const currentYear = new Date().getFullYear();
   const version = ref('V1.0.0');

@@ -116,7 +116,7 @@
 </template>
 
 <script setup lang="ts">
-  import { retryTicketFlow } from '@services/ticket';
+  import { retryTicketFlow } from '@services/source/ticket';
   import type { FlowItem } from '@services/types/ticket';
 
   import CostTimer from '@components/cost-timer/CostTimer.vue';

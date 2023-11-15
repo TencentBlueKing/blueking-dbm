@@ -41,7 +41,7 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import { getResourceInstanceDetails } from '@services/source/resourceTendbha';
+  import { retrieveTendbhaInstance } from '@services/source/tendbha';
   import type { InstanceDetails } from '@services/types/clusters';
 
   import { useGlobalBizs } from '@stores';
@@ -74,7 +74,7 @@
   const {
     loading: isLoading,
     run: fetchInstDetails,
-  } = useRequest(getResourceInstanceDetails, {
+  } = useRequest(retrieveTendbhaInstance, {
     manual: true,
     onSuccess(result) {
       data.value = result;

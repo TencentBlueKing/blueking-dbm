@@ -83,7 +83,6 @@
   import { useI18n } from 'vue-i18n';
 
   import { getHostTopoInfos } from '@services/source/ipchooser';
-  import type { HostTopoInfo } from '@services/types/ip';
 
   import { useGlobalBizs } from '@stores';
 
@@ -92,6 +91,8 @@
   import TableEditInput from '@views/mysql/common/edit/Input.vue';
 
   import { random } from '@utils';
+
+  type HostTopoInfo = ServiceReturnType<typeof getHostTopoInfos>['hosts_topo_info'][number]
 
   interface Props {
     modelValue: string
@@ -102,7 +103,6 @@
   }
 
   const props = defineProps<Props>();
-
 
   const genHostKey = (hostData: HostTopoInfo) => `#${hostData.bk_cloud_id}#${hostData.ip}`;
 

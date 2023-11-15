@@ -61,8 +61,7 @@
 
   import type KafkaModel from '@services/model/kafka/kafka';
   import { getHostDetails } from '@services/source/ipchooser';
-  import { createTicket } from '@services/ticket';
-  import type { HostDetails } from '@services/types/ip';
+  import { createTicket } from '@services/source/ticket';
 
   import { useTicketMessage } from '@hooks';
 
@@ -156,7 +155,7 @@
         scope_type: 'biz',
       }],
     }).then((data) => {
-      const brokerOriginalHostList: HostDetails[] = [];
+      const brokerOriginalHostList: ServiceReturnType<typeof getHostDetails> = [];
 
       let brokerDiskTotal = 0;
 

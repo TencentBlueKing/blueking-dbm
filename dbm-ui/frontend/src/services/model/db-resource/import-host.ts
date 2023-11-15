@@ -1,4 +1,4 @@
-import type { HostDetails, HostMeta } from '@services/types/ip';
+import type { HostDetails } from '@services/source/ipchooser';
 
 export default class ImportHost implements HostDetails {
   alive: number;
@@ -9,7 +9,7 @@ export default class ImportHost implements HostDetails {
   host_name: string;
   ip: string;
   ipv6: string;
-  meta: HostMeta;
+  meta: HostDetails['meta'];
   scope_id: string;
   scope_type: string;
   os_name: string;

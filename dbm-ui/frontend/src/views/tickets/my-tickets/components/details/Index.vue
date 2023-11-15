@@ -55,7 +55,7 @@
   import type { LocationQueryValue } from 'vue-router';
 
   import TicketModel from '@services/model/ticket/ticket';
-  import { getTicketDetails } from '@services/ticket';
+  import { getTicketDetails } from '@services/source/ticket';
 
   import CostTimer from '@components/cost-timer/CostTimer.vue';
 

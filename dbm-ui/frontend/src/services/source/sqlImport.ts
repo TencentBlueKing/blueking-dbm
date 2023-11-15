@@ -18,77 +18,86 @@ const path = `/apis/mysql/bizs/${currentBizId}/sql_import`;
 /**
  * 删除用户语义检查任务列表
  */
-export const deleteUserSemanticTasks = (params: {
+export const deleteUserSemanticTasks = function (params: {
   bk_biz_id: number,
   task_ids: string[],
   cluster_type: string,
-}) => http.delete<number>(`${path}/delete_user_semantic_tasks/`, params);
+}) {
+  return http.delete<number>(`${path}/delete_user_semantic_tasks/`, params);
+};
 
 /**
  * 获取用户语义检查任务列表
  */
-export const getUserSemanticTasks = (params: {
+export const getUserSemanticTasks = function (params: {
   bk_biz_id: number,
   cluster_type?: string
-}) => {
+}) {
   const realParams = { ...params } as Record<string, any>;
   delete realParams.bk_biz_id;
 
-  return http.get<UserSemanticTaskModel[]>(`${path}/get_user_semantic_tasks/`, realParams)
-    .then(data => data.map(item => new UserSemanticTaskModel(item)));
+  return http.get<UserSemanticTaskModel[]>(`${path}/get_user_semantic_tasks/`, realParams).then(data => data.map(item => new UserSemanticTaskModel(item)));
 };
 
 /**
  * sql 语法检测
  */
-export const grammarCheck = (params: {
+export const grammarCheck = function (params: {
   bk_biz_id: number,
   body: FormData
-}) => axios({
-  baseURL: window.PROJECT_ENV.VITE_AJAX_URL_PREFIX,
-  url: `${path}/grammar_check/`,
-  method: 'POST',
-  data: params.body,
-  timeout: 60000,
-  headers: {
-    'X-CSRFToken': Cookies.get('dbm_csrftoken'),
-  },
-  withCredentials: true,
-}).then((data) => {
-  if (data.data.code !== 0) {
-    throw new Error(data.data.message);
-  }
-  return data.data.data;
-})
-  .then(data => Object.keys(data).reduce((result, key) => ({
-    ...result,
-    [key]: new GrammarCheckModel(data[key]),
-  }), {} as Record<string, GrammarCheckModel>));
+}) {
+  return axios({
+    baseURL: window.PROJECT_ENV.VITE_AJAX_URL_PREFIX,
+    url: `${path}/grammar_check/`,
+    method: 'POST',
+    data: params.body,
+    timeout: 60000,
+    headers: {
+      'X-CSRFToken': Cookies.get('dbm_csrftoken'),
+    },
+    withCredentials: true,
+  })
+    .then((data) => {
+      if (data.data.code !== 0) {
+        throw new Error(data.data.message);
+      }
+      return data.data.data;
+    })
+    .then(data => Object.keys(data).reduce((result, key) => ({
+      ...result,
+      [key]: new GrammarCheckModel(data[key]),
+    }), {} as Record<string, GrammarCheckModel>));
+};
 
 /**
  * 查询语义执行的数据
  */
-export const querySemanticData = (params: {
+export const querySemanticData = function (params: {
   bk_biz_id: number,
   root_id: string
-}) => http.post<QuerySemanticExecuteResultModel>(`${path}/query_semantic_data/`, params)
-  .then(data => ({
+}) {
+  return http.post<QuerySemanticExecuteResultModel>(`${path}/query_semantic_data/`, params).then(data => ({
     ...data,
     semantic_data: new SemanticDataModel(data.semantic_data),
   }));
+};
 
 /**
  * 终止语义检测流程
  */
-export const revokeSemanticCheck = (params: {
+export const revokeSemanticCheck = function (params: {
   bk_biz_id: number,
   root_id: string
-}) => http.post(`${path}/revoke_semantic_check/`, params);
+}) {
+  return http.post(`${path}/revoke_semantic_check/`, params);
+};
 
 /**
  * sql 语义检测
  */
-export const semanticCheck = (params: {
+export const semanticCheck = function (params: {
   bk_biz_id: number,
   cluster_type: string
-}) => http.post<SemanticCheckResultModel>(`${path}/semantic_check/`, params);
+}) {
+  return http.post<SemanticCheckResultModel>(`${path}/semantic_check/`, params);
+};

@@ -90,7 +90,10 @@
   import { useI18n } from 'vue-i18n';
 
   import type ResourceSpecModel from '@services/model/resource-spec/resourceSpec';
-  import { batchDeleteResourceSpec, getResourceSpecList } from '@services/resourceSpec';
+  import {
+    batchDeleteResourceSpec,
+    getResourceSpecList,
+  } from '@services/source/dbresourceSpec';
 
   import { useBeforeClose, useDebouncedRef, useInfoWithIcon, useTableSettings } from '@hooks';
 

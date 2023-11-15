@@ -87,7 +87,7 @@
 
   import { getClusterInfoByDomains } from '@services/source/mysqlCluster';
   import { getClusterDatabaseNameList } from '@services/source/remoteService';
-  import { createTicket } from '@services/ticket';
+  import { createTicket } from '@services/source/ticket';
   import type { ResourceItem } from '@services/types/clusters';
 
   import { useInfo, useTableMaxHeight } from '@hooks';

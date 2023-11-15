@@ -20,10 +20,11 @@
 <script setup lang="ts">
   import { format } from 'date-fns';
 
-  import { getEventSwitchLog } from '@services/eventSwitch';
-  import type { EventSwitchLogItem } from '@services/types/eventSwitch';
+  import { getEventSwitchLog } from '@services/source/dbha';
 
   import BkLog from '@components/vue2/bk-log/index.vue';
+
+  type EventSwitchLogItem = ServiceReturnType<typeof getEventSwitchLog>[number]
 
   interface Props {
     uid: number

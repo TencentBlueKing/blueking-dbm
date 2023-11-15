@@ -114,7 +114,7 @@
     createResourceSpec,
     updateResourceSpec,
     verifyDuplicatedSpecName,
-  } from '@services/resourceSpec';
+  } from '@services/source/dbresourceSpec';
 
   import { useStickyFooter  } from '@hooks';
 

@@ -25,7 +25,7 @@
   import { useRequest } from 'vue-request';
 
   import type SpiderModel from '@services/model/spider/spider';
-  import { getResourceDetails } from '@services/source/resourceSpider';
+  import { getSpiderDetail } from '@services/source/spider';
 
   import TableEditInput from '@views/spider-manage/common/edit/Input.vue';
 
@@ -50,7 +50,7 @@
   const {
     loading: isLoading,
     run: fetchClusetrData,
-  } = useRequest(getResourceDetails, {
+  } = useRequest(getSpiderDetail, {
     manual: true,
     onSuccess(data) {
       clusterData.value = data;

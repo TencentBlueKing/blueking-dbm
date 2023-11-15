@@ -62,7 +62,7 @@
   import { ref } from 'vue';
   import { useRequest } from 'vue-request';
 
-  import { getClusterDetail } from '@services/source/pulsar';
+  import { getPulsarDetail } from '@services/source/pulsar';
 
   import ClusterTopo from '@components/cluster-details/ClusterTopo.vue';
   import ClusterEventChange from '@components/cluster-event-change/EventChange.vue';
@@ -83,7 +83,7 @@
     loading: isLoading,
     data: clusterData,
     run: fetchResourceDetails,
-  } = useRequest(getClusterDetail, {
+  } = useRequest(getPulsarDetail, {
     manual: true,
   });
 

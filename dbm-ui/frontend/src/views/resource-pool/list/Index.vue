@@ -90,11 +90,11 @@
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
+  import DbResourceModel from '@services/model/db-resource/DbResource';
   import {
     fetchList,
     removeResource,
-  } from '@services/dbResource';
-  import DbResourceModel from '@services/model/db-resource/DbResource';
+  } from '@services/source/dbresourceResource';
 
   import HostAgentStatus from '@components/cluster-common/HostAgentStatus.vue';
 

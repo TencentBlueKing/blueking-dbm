@@ -60,9 +60,8 @@
   import { useI18n } from 'vue-i18n';
 
   import type HdfsModel from '@services/model/hdfs/hdfs';
-  import { getHostDetails } from '@services/source/ipchooser';
-  import { createTicket } from '@services/ticket';
-  import type { HostDetails } from '@services/types/ip';
+  import { getHostDetails  } from '@services/source/ipchooser';
+  import { createTicket } from '@services/source/ticket';
 
   import { useTicketMessage } from '@hooks';
 
@@ -76,7 +75,6 @@
   import NodeStatusList from '@components/cluster-common/host-expansion/NodeStatusList.vue';
 
   import { messageError } from '@utils';
-
 
   interface Props {
     data: HdfsModel,
@@ -155,7 +153,7 @@
         scope_type: 'biz',
       }],
     }).then((data) => {
-      const datanodeOriginalHostList: HostDetails[] = [];
+      const datanodeOriginalHostList: ServiceReturnType<typeof getHostDetails> = [];
 
       let datanodeDiskTotal = 0;
 

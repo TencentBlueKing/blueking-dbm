@@ -16,15 +16,15 @@ import {
   ref,
 } from 'vue';
 
-import type {
-  HostDetails,
-} from '@services/types/ip';
+import { checkHost } from '@services/source/ipchooser';
 
 import { useDebouncedRef } from '@hooks';
 
 import { encodeRegexp } from '@utils';
 
-export default function (originalData: Ref<Array<HostDetails>>) {
+type HostDetails = ServiceReturnType<typeof checkHost>
+
+export default function (originalData: Ref<HostDetails>) {
   const pagination = reactive({
     count: 0,
     current: 1,
@@ -44,7 +44,7 @@ export default function (originalData: Ref<Array<HostDetails>>) {
         result.push(item);
       }
       return result;
-    }, [] as Array<HostDetails>);
+    }, [] as HostDetails);
   });
 
   const isShowPagination = ref(false);

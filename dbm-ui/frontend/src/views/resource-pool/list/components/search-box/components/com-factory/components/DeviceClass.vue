@@ -32,9 +32,7 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import {
-    fetchDeviceClass,
-  } from '@services/dbResource';
+  import { fetchDeviceClass } from '@services/source/dbresourceResource';
 
   interface Props {
     defaultValue?: string

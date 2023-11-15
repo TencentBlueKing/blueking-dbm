@@ -78,7 +78,7 @@
   <EditEntryConfig
     :id="clusterId"
     v-model:is-show="showEditEntryConfig"
-    :get-detail-info="getClusterDetail" />
+    :get-detail-info="getKafkaDetail" />
 </template>
 <script setup lang="tsx">
   import type { Table } from 'bkui-vue';
@@ -93,11 +93,11 @@
 
   import type KafkaModel from '@services/model/kafka/kafka';
   import {
-    getClusterDetail,
-    getList,
-    getListInstance,
+    getKafkaDetail,
+    getKafkaInstanceList,
+    getKafkaList,
   } from '@services/source/kafka';
-  import { createTicket } from '@services/ticket';
+  import { createTicket } from '@services/source/ticket';
 
   import {
     useCopy,
@@ -138,7 +138,7 @@
   } = useStretchLayout();
 
 
-  const dataSource = getList;
+  const dataSource = getKafkaList;
   const checkClusterOnline = (data: KafkaModel) => data.phase === 'online';
   const getRowClass = (data: KafkaModel) => {
     const classList = [checkClusterOnline(data) ? '' : 'is-offline'];
@@ -287,7 +287,7 @@
           title={`【${data.domain}】Zookeeper`}
           clusterId={data.id}
           originalList={data.zookeeper}
-          dataSource={getListInstance} />
+          dataSource={getKafkaInstanceList} />
       ),
     },
     {
@@ -301,7 +301,7 @@
           title={`【${data.domain} Broker`}
           clusterId={data.id}
           originalList={data.broker}
-          dataSource={getListInstance} />
+          dataSource={getKafkaInstanceList} />
       ),
     },
     {

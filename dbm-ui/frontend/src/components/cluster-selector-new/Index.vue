@@ -124,7 +124,7 @@
   import _ from 'lodash';
   import { shallowRef } from 'vue';
 
-  import { listClusterList } from '@services/redis/toolbox';
+  import { getRedisList } from '@services/source/redis';
   import { getList } from '@services/spider';
   import type { ListBase } from '@services/types/common';
 
@@ -171,7 +171,7 @@
   type TabConfig = Omit<TabItem, 'name' | 'id' | 'tableContent' | 'resultContent'>
 
   type SpiderModel = ServiceReturnType<typeof getList>['results'][number];
-  type RedisModel = ServiceReturnType<typeof listClusterList>['results'][number];
+  type RedisModel = ServiceReturnType<typeof getRedisList>['results'][number];
 
   const props = defineProps<Props>();
 
@@ -204,7 +204,7 @@
     [ClusterTypes.REDIS]: {
       id: ClusterTypes.REDIS,
       name: t('集群选择'),
-      getResourceList: listClusterList,
+      getResourceList: getRedisList,
       tableContent: RedisTable,
       resultContent: ResultPreview,
       searchSelectList: [{

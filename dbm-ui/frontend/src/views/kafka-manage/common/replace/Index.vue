@@ -82,7 +82,7 @@
 
   import type KafkaModel from '@services/model/kafka/kafka';
   import type KafkaNodeModel from '@services/model/kafka/kafka-node';
-  import { createTicket } from '@services/ticket';
+  import { createTicket } from '@services/source/ticket';
 
   import { useGlobalBizs } from '@stores';
 

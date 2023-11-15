@@ -145,7 +145,7 @@
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
 
-  import { processTicketTodo } from '@services/ticket';
+  import { processTicketTodo } from '@services/source/ticket';
   import type {
     FlowItem,
     FlowItemTodo,

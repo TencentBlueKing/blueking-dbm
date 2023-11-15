@@ -63,7 +63,7 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import { getBizs } from '@services/common';
+  import { getBizs } from '@services/source/cmdb';
 
   interface Emits{
     (e: 'change', value: Record<string, any>): void

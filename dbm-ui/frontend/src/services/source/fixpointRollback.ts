@@ -25,56 +25,65 @@ const path = `/apis/mysql/bizs/${currentBizId}/fixpoint_rollback`;
 /**
  * 通过下发脚本到机器获取集群备份记录
  */
-export const executeBackupLogScript = (params: {
+export const executeBackupLogScript = function (params: {
   cluster_id: number
-}) => http.get<number>(`${path}/execute_backup_log_script/`, params);
+}) {
+  return http.get<number>(`${path}/execute_backup_log_script/`, params);
+};
 
 /**
  * 通过日志平台获取集群备份记录
  */
-export const queryBackupLogFromBklog = (params: {
-   cluster_id: number
-  }) => http.get<{
+export const queryBackupLogFromBklog = function (params: {
+  cluster_id: number
+}) {
+  return http.get<{
     backup_id: string,
     backup_time: string,
     mysql_role: string
   }[]>(`${path}/query_backup_log_from_bklog/`, params);
+};
 
 /**
  * 根据job id查询任务执行状态和执行结果
  */
-export const queryBackupLogJob = (params: {
+export const queryBackupLogJob = function (params: {
   cluster_id: number,
   job_instance_id: number
-}) => http.get<{
+}) {
+  return http.get<{
     backup_logs: Array<any>,
     job_status: string,
     message: string
   }>(`${path}/query_backup_log_job/`, params);
+};
 
 /**
  * 获取集群列表
  */
-export const queryFixpointLog = (params: {
+export const queryFixpointLog = function (params: {
   cluster_id: number,
   rollback_time: string,
   job_instance_id: number
-}) => http.get<ListBase<FixpointLogModel[]>>(`${path}/query_fixpoint_log/`, params)
-  .then(data => ({
+}) {
+  return http.get<ListBase<FixpointLogModel[]>>(`${path}/query_fixpoint_log/`, params).then(data => ({
     ...data,
     results: data.results.map(item => new FixpointLogModel(item)),
   }));
+};
 
 /**
  * 获取定点构造记录
  */
-export const queryLatesBackupLog = (params: {
+export const queryLatesBackupLog = function (params: {
   bk_biz_id: number,
   cluster_id: number,
   rollback_time: string,
   job_instance_id: number
-}) => http.get<{
+}) {
+  return http.get<{
     backup_logs: Array<any>,
     job_status: string,
     message: string
   }>(`${path}/query_latest_backup_log/`, params);
+};

@@ -13,8 +13,12 @@
 
 import { defineStore } from 'pinia';
 
-import { getProfile, upsertProfile } from '@services/common';
-import type { ProfileItem } from '@services/types/common';
+import {
+  getProfile,
+  upsertProfile,
+} from '@services/source/profile';
+
+type ProfileItem = ServiceReturnType<typeof getProfile>['profile'][number]
 
 interface ProfileMap {
   [key: string]: any

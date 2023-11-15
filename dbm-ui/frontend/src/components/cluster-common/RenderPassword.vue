@@ -54,7 +54,7 @@
   } from 'bkui-vue/lib/icon';
   import { ref } from 'vue';
 
-  import { getPulsarPassword } from '@services/source/bigdata';
+  import { getPulsarPassword } from '@services/source/pulsar';
 
   import { useCopy } from '@hooks';
 

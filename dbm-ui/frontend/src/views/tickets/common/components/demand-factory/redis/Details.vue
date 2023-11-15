@@ -144,7 +144,7 @@
   import { useI18n } from 'vue-i18n';
 
   import RedisClusterSpecModel from '@services/model/resource-spec/redis-cluster-sepc';
-  import { getTicketHostNodes } from '@services/ticket';
+  import { getTicketHostNodes } from '@services/source/ticket';
   import type { TicketDetails, TicketDetailsRedis } from '@services/types/ticket';
 
   import HostPreview from '@components/host-preview/HostPreview.vue';
