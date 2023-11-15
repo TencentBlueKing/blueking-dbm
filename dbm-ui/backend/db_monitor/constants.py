@@ -122,7 +122,7 @@ PROMQL_FILTER_TPL = "__COND__"
 # 蓝鲸监控保存用户组模板
 DEFAULT_ALERT_NOTICE = [
     {
-        "time_range": "00:00:00--23:59:59",
+        "time_range": "00:00:00--23:59:00",
         "notify_config": [
             {"notice_ways": [{"name": "rtx"}], "level": 3},
             {"notice_ways": [{"name": "rtx"}, {"name": "sms"}], "level": 2},
