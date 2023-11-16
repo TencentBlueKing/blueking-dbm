@@ -150,7 +150,7 @@ RUN set -ex && \
     cd /blueking-dbm/dbm-services/mysql/db-tools/mysql-dbbackup && \
     download_url=https://github.com/TencentBlueKing/blueking-dbm/releases/download && \
     wget -qO dbbackup-go-deps-community.tar.gz ${download_url}/v1.0.0/dbbackup-go-deps-community.tar.gz && \
-    make package VERSION=$(/lock.sh mysql mysql-dbbackup version) DIST=community GITHASH=$(/lock.sh mysql mysql-dbbackup commitId) -j4
+    make package VERSION=$(/lock.sh mysql dbbackup version) DIST=community GITHASH=$(/lock.sh mysql dbbackup commitId) -j4
 
 
 FROM medium-builder as redis-medium-builder

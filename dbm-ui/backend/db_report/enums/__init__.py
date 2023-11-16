@@ -21,3 +21,5 @@ SWAGGER_TAG = _("巡检报告")
 class ReportFieldFormat(str, StructuredEnum):
     TEXT = EnumField("text", _("文本渲染"))
     STATUS = EnumField("status", _("状态渲染"))
+    # 数据校验失败详情字段
+    FAIL_SLAVE_INSTANCE = EnumField("fail_slave_instance", _("数据校验失败详情渲染"))
