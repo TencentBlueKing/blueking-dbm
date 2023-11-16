@@ -88,6 +88,7 @@ class RedisDeleteKeyContext:
     redis_act_payload: Optional[Any] = None  # 代表获取payload参数的类
     disk_used: dict = field(default_factory=dict)
     disk_free_max_ip: str = None
+    tendis_backup_info: list = None  # 占位：执行备份后的信息
 
     @staticmethod
     def get_disk_free_max_ip_name() -> str:
@@ -103,6 +104,7 @@ class ProxyScaleContext:
     new_proxy_ips: list = None  # 代表在资源池分配的proxy列表
     servers: list = None  # proxy分片规则数组
     redis_act_payload: Optional[Any] = None  # 代表获取payload参数的类
+    tendis_backup_info: list = None  # 占位：执行备份后的信息
 
 
 @dataclass()
@@ -199,3 +201,4 @@ class DownloadBackupFileKwargs:
     reason: str
     login_user: str = BACKUP_DOWNLOAD_USER
     cluster: dict = None
+    tendis_backup_info: list = None  # 占位：执行备份后的信息
