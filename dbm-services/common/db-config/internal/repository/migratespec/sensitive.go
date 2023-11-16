@@ -77,6 +77,12 @@ func MigrateSensitive(db *gorm.DB) error {
 		{
 			Namespace: "kafka", ConfType: "dbconf", ConfFile: "2.4.0", ConfName: "password", FlagEncrypt: 1,
 		},
+		{
+			Namespace: "kafka", ConfType: "dbconf", ConfFile: "0.10.2", ConfName: "adminPassword", FlagEncrypt: 1,
+		},
+		{
+			Namespace: "kafka", ConfType: "dbconf", ConfFile: "0.10.2", ConfName: "password", FlagEncrypt: 1,
+		},
 		// hdfs
 		{
 			Namespace: "hdfs", ConfType: "dbconf", ConfFile: "2.6.0-cdh5.4.11-tendataV0.2", ConfName: "password", FlagEncrypt: 1,
@@ -96,6 +102,14 @@ func MigrateSensitive(db *gorm.DB) error {
 		},
 		{
 			Namespace: "es", ConfType: "dbconf", ConfFile: "7.10.2", ConfName: "http_pemkey_password",
+			ValueDefault: "", FlagEncrypt: 1,
+		},
+		{
+			Namespace: "es", ConfType: "dbconf", ConfFile: "7.14.2", ConfName: "transport_pemkey_password",
+			ValueDefault: "", FlagEncrypt: 1,
+		},
+		{
+			Namespace: "es", ConfType: "dbconf", ConfFile: "7.14.2", ConfName: "http_pemkey_password",
 			ValueDefault: "", FlagEncrypt: 1,
 		},
 	}
