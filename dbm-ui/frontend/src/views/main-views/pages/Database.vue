@@ -417,7 +417,7 @@
           </FunController>
           <div class="main-views-space-line" />
           <BkMenuGroup :name="$t('任务中心')">
-            <BkMenuItem key="DatabaseMission">
+            <BkMenuItem key="MissionManage">
               <template #icon>
                 <i class="db-icon-history" />
               </template>

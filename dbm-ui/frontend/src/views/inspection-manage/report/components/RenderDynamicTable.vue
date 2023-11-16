@@ -31,7 +31,7 @@
 
   interface Props {
     searchParams?: Record<string, any>,
-    service: (params: Props['searchParams']) => Promise<ServiceReturnType<typeof getChecksumReport>>
+    service: (params: Record<string, any>) => Promise<ServiceReturnType<typeof getChecksumReport>>
   }
 
   const props = defineProps<Props>();
