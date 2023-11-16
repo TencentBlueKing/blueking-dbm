@@ -34,7 +34,7 @@
 
   import { useGlobalBizs } from '@stores';
 
-  import { ipPort } from '@common/regex';
+  import { netIp } from '@common/regex';
 
   import TableEditInput from '@views/spider-manage/common/edit/Input.vue';
 
@@ -59,7 +59,7 @@
       message: t('目标从库实例不能为空'),
     },
     {
-      validator: (value: string) => ipPort.test(value),
+      validator: (value: string) => netIp.test(value),
       message: t('目标从库实例格式不正确'),
     },
     {

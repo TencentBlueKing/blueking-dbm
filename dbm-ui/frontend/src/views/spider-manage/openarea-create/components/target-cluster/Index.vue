@@ -18,6 +18,7 @@
     </RenderTable>
     <ClusterSelector
       v-model:is-show="isShowBatchSelector"
+      :cluster-types="[ClusterTypes.TENDBCLUSTER]"
       :get-resource-list="getSpiderList"
       :selected="selectedClusters"
       :tab-list="clusterSelectorTabList"

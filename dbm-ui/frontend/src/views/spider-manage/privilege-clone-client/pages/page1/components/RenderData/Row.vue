@@ -66,7 +66,6 @@
     rowKey: string;
     source?: {
       bk_cloud_id: number,
-      bk_host_id: number,
       ip: string,
     },
     module?: string,

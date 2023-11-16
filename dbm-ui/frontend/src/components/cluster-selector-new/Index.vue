@@ -122,7 +122,10 @@
 </template>
 <script setup lang="tsx" generic="T extends ClusterTypes">
   import _ from 'lodash';
-  import { shallowRef } from 'vue';
+  import {
+    ref,
+    shallowRef,
+  } from 'vue';
 
   import { getRedisList } from '@services/source/redis';
   import { getList } from '@services/spider';
@@ -223,7 +226,7 @@
 
   const tabTipsRef = ref();
   const activeTab = ref();
-  const activePanelObj = ref(tabListMap[ClusterTypes.TENDBCLUSTER]);
+  const activePanelObj = shallowRef(tabListMap[ClusterTypes.TENDBCLUSTER]);
   const showTabTips = ref(false);
   const isSelectedAll = ref(false);
 

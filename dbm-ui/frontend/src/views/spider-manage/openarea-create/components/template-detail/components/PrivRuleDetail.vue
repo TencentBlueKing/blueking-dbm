@@ -123,6 +123,7 @@
 </script>
 <style lang="less">
   .openarea-template-detail-priv-rule {
+    min-height: 624px;
     padding-bottom: 24px;
 
     .account-box{
