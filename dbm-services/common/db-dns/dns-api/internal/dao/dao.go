@@ -1,21 +1,19 @@
-// Package dao TODO
 package dao
 
 import (
 	"bk-dnsapi/internal/domain/entity"
 
 	"github.com/jinzhu/gorm"
-	_ "github.com/jinzhu/gorm/dialects/mysql" // mysql TODO
+	_ "github.com/jinzhu/gorm/dialects/mysql"
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 )
 
 var (
-	// DnsDB TODO
 	DnsDB *gorm.DB
 )
 
-// Init TODO
+// Init 初始化
 func Init() error {
 	if err := InitDnsDB(); err != nil {
 		return err
@@ -23,7 +21,7 @@ func Init() error {
 	return nil
 }
 
-// InitDnsDB TODO
+// InitDnsDB 初始化DB
 func InitDnsDB() error {
 	db, err := gorm.Open("mysql", viper.GetString("db.dns_conn"))
 	if err != nil {
@@ -33,13 +31,13 @@ func InitDnsDB() error {
 	db.LogMode(viper.GetBool("debug"))
 
 	// 自动建表
-	// TODO 没建立索引
 	if viper.GetBool("db.auto_migration") {
 		db.Set("gorm:table_options", "ENGINE=InnoDB").
 			Set("gorm:table_options", "CHARSET=utf8").AutoMigrate(
 			&entity.TbDnsBase{},
 			&entity.TbDnsIdcMap{},
-			&entity.TbDnsServer{})
+			&entity.TbDnsServer{},
+			&entity.TbDnsConfig{})
 		// 创建索引
 		db.Table("tb_dns_base").AddIndex("idx_ip_port", "ip", "port")
 		db.Table("tb_dns_base").AddIndex("idx_domain_name_app", "domain_name", "app")
@@ -47,14 +45,13 @@ func InitDnsDB() error {
 		db.Table("tb_dns_base").AddUniqueIndex("uidx_domain_name_ip_port", "domain_name", "ip", "port")
 
 		db.Table("tb_dns_server").AddUniqueIndex("uidx_ip", "ip")
-
-		db.Table("")
+		db.Table("tb_dns_config").AddUniqueIndex("inx_p", "paraname")
 	}
 	DnsDB = db
 	return nil
 }
 
-// Close TODO
+// Close 关闭连接
 func Close() error {
 	if err := DnsDB.Close(); err != nil {
 		return errors.Wrap(err, "close config db failed")

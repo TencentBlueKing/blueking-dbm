@@ -104,3 +104,29 @@ type TbDnsIdcMap struct {
 func (t *TbDnsIdcMap) TableName() string {
 	return "tb_dns_idc_map"
 }
+
+// TbDnsConfig dns配置表
+type TbDnsConfig struct {
+	Uid           int64  `gorm:"column:uid;size:11;primary_key;AUTO_INCREMENT"  json:"uid"`
+	Paraname      string `gorm:"column:paraname" json:"paraname"`
+	Paravalue     string `gorm:"column:paravalue" json:"paravalue"`
+	Pararemark    string `gorm:"column:pararemark" json:"pararemark"`
+	UpdateCounter int64  `gorm:"column:update_counter" json:"update_counter"`
+}
+
+// TableName tb_dns_config
+func (t *TbDnsConfig) TableName() string {
+	return "tb_dns_config"
+}
+
+// Columns tb_dns_base col
+func (t *TbDnsConfig) Columns() []string {
+	return []string{"uid", "paraname", "paravalue", "pararemark", "update_counter"}
+}
+
+// TableUnique 唯一索引
+func (t *TbDnsConfig) TableUnique() [][]string {
+	return [][]string{
+		[]string{"paraname"},
+	}
+}

@@ -2,7 +2,7 @@ package entity
 
 import "strings"
 
-// IsNoRowFoundError TODO
+// IsNoRowFoundError 是够是空报错
 func IsNoRowFoundError(err error) bool {
 	if err == nil {
 		return false

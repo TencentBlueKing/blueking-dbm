@@ -25,4 +25,5 @@ use (
 	redis/redis-dts
 	common/celery-service
   sqlserver/db-tools/dbactuator
+	common/db-dns/dns-api
 )
