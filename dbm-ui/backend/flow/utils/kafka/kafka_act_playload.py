@@ -82,9 +82,11 @@ class KafkaActPayload(object):
                 "extend": {
                     "my_id": my_id,
                     "host": host,
-                    "username": self.kafka_config["adminUser"],
-                    "password": self.kafka_config["adminPassword"],
+                    "username": self.ticket_data["username"],
+                    "password": self.ticket_data["password"],
                     "zookeeper_conf": zookeeper_conf,
+                    "no_security": self.ticket_data["no_security"],
+                    "version": self.ticket_data["db_version"],
                 },
             },
         }
@@ -94,9 +96,6 @@ class KafkaActPayload(object):
         拼接安装payload参数
         """
         kafka_config = copy.deepcopy(self.kafka_config)
-        if not self.ticket_data.get("adminUser"):
-            self.ticket_data["adminUser"] = self.kafka_config["adminUser"]
-            self.ticket_data["adminPassword"] = self.kafka_config["adminPassword"]
         if not self.ticket_data.get("no_security"):
             self.ticket_data["no_security"] = 0
         return {
@@ -116,8 +115,8 @@ class KafkaActPayload(object):
                     "partition": self.ticket_data["partition_num"],
                     "factor": self.ticket_data["factor"],
                     "cluster_name": self.ticket_data["cluster_name"],
-                    "username": self.ticket_data["adminUser"],
-                    "password": self.ticket_data["adminPassword"],
+                    "username": self.ticket_data["username"],
+                    "password": self.ticket_data["password"],
                     "no_security": self.ticket_data["no_security"],
                 },
             },
@@ -137,8 +136,8 @@ class KafkaActPayload(object):
                     "port": ManagerDefaultPort.KAFKA_MANAGER,
                     "zookeeper_ip": self.zookeeper_ip,
                     "version": self.ticket_data["db_version"],
-                    "username": self.kafka_config["adminUser"],
-                    "password": self.kafka_config["adminPassword"],
+                    "username": self.ticket_data["username"],
+                    "password": self.ticket_data["password"],
                     "cluster_name": self.ticket_data["cluster_name"],
                     "bk_biz_id": self.ticket_data["bk_biz_id"],
                     "db_type": DBType.Kafka,
@@ -159,8 +158,8 @@ class KafkaActPayload(object):
                 "extend": {
                     "zookeeper_ip": self.zookeeper_ip,
                     "version": self.ticket_data["db_version"],
-                    "username": self.kafka_config["adminUser"],
-                    "password": self.kafka_config["adminPassword"],
+                    "username": self.ticket_data["username"],
+                    "password": self.ticket_data["password"],
                 },
             },
         }

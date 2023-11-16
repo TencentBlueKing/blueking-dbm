@@ -17,6 +17,7 @@ import (
 	"dbm-services/bigdata/db-tools/dbactuator/pkg/rollback"
 	"dbm-services/bigdata/db-tools/dbactuator/pkg/util"
 	"dbm-services/bigdata/db-tools/dbactuator/pkg/util/esutil"
+	"dbm-services/bigdata/db-tools/dbactuator/pkg/util/kafkautil"
 	"dbm-services/bigdata/db-tools/dbactuator/pkg/util/osutil"
 	"dbm-services/common/go-pubpkg/logger"
 
@@ -332,6 +333,8 @@ func (i *InstallKafkaComp) InstallZookeeper() error {
 		zookeeperConf    = i.Params.ZookeeperConf
 		username         = i.Params.Username
 		password         = i.Params.Password
+		noSecurity       = i.Params.NoSecurity
+		version          = i.Params.Version
 		ZookeeperBaseDir = fmt.Sprintf("%s/zookeeper-%s", cst.DefaultKafkaEnv, cst.DefaultZookeeperVersion)
 	)
 
@@ -363,6 +366,12 @@ func (i *InstallKafkaComp) InstallZookeeper() error {
 	}
 
 	if err := configZookeeper(username, password, zookeeperLink, zookeeperConf, myID); err != nil {
+		return err
+	}
+
+	// 将expoter参数写入环境变量
+	logger.Info("Wring exporter parameter to env...")
+	if err := kafkautil.ExporterParam(noSecurity, username, password, version); err != nil {
 		return err
 	}
 
