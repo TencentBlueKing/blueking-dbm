@@ -178,7 +178,9 @@
       v-model:is-show="showHostPreview"
       :biz-id="baseInfo.bk_biz_id"
       :host-ids="baseInfo.bk_host_ids || []" />
-    <Teleport to="#dbmPageSubtitle">
+    <Teleport
+      v-if="false"
+      to="#dbmPageSubtitle">
       <div class="mission-detail-status-box">
         <div
           v-if="statusText"

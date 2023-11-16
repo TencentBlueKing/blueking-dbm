@@ -1,13 +1,12 @@
 <template>
   <RenderDynamicTable
-    :service="getChecksumReport"
-    v-bind="attrs" />
+    :search-params="searchParams"
+    :service="getChecksumReport" />
   <RenderDynamicTable
-    :service="getChecksumInstance"
-    v-bind="attrs" />
+    :search-params="searchParams"
+    :service="getChecksumInstance" />
 </template>
 <script setup lang="tsx">
-  import { useAttrs } from 'vue';
 
   import {
     getChecksumInstance,
@@ -16,7 +15,11 @@
 
   import RenderDynamicTable from '../RenderDynamicTable.vue';
 
-  const attrs = useAttrs();
+  interface Props {
+    searchParams: Record<string, any>
+  }
+
+  defineProps<Props>();
 
 </script>
 

@@ -20,7 +20,7 @@
         @change="handleSearchChange" />
       <Component
         :is="renderCom"
-        :serach-params="serachParams" />
+        :search-params="serachParams" />
     </div>
   </div>
 </template>
