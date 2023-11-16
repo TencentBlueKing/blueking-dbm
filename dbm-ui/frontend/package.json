@@ -7,7 +7,7 @@
     "dev-https": "vite --https",
     "build": "run-p build-only",
     "preview": "vite preview",
-    "build-only": "vite build",
+    "build-only": "vite build --mode production",
     "type-check": "vue-tsc --noEmit",
     "prepare": "cd ../.. && husky install dbm-ui/frontend/.husky",
     "lint:lint-staged": "lint-staged",

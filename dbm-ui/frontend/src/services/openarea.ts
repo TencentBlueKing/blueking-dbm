@@ -7,9 +7,11 @@ import type { ListBase } from './types/common';
 
 const { currentBizId } = useGlobalBizs();
 
+const path = '/apis/mysql/bizs';
+
 // 开区模板列表
 export const getList = function (params: Record<string, any>) {
-  return http.get<ListBase<OpenareaTemplateModel[]>>(`/apis/mysql/bizs/${currentBizId}/openarea/`, params)
+  return http.get<ListBase<OpenareaTemplateModel[]>>(`${path}/${currentBizId}/openarea/`, params)
     .then(data => ({
       ...data,
       results: data.results.map((item: OpenareaTemplateModel) => new OpenareaTemplateModel(item)),
@@ -29,12 +31,12 @@ export const create = function (params: {
   }[],
   source_cluster_id: number
 }) {
-  return http.post(`/apis/mysql/bizs/${currentBizId}/openarea/`, params);
+  return http.post(`${path}/${currentBizId}/openarea/`, params);
 };
 
 // 删除开区模板
 export const remove = function (params: { id: number }) {
-  return http.delete(`/apis/mysql/bizs/${currentBizId}/openarea/${params.id}/`);
+  return http.delete(`${path}/${currentBizId}/openarea/${params.id}/`);
 };
 
 // 获取开区结果预览
@@ -71,14 +73,14 @@ export const getPreview = function (params: {
       target_instances: string[],
       user: string,
     }[]
-  }>(`/apis/mysql/bizs/${currentBizId}/openarea/preview/`, params);
+  }>(`${path}/${currentBizId}/openarea/preview/`, params);
 };
 
 // 开区模板详情
 export const getDetail = function (params: {
   id: number
 }) {
-  return http.get<OpenareaTemplateModel>(`/apis/mysql/bizs/${currentBizId}/openarea/${params.id}/`)
+  return http.get<OpenareaTemplateModel>(`${path}/${currentBizId}/openarea/${params.id}/`)
     .then(data => new OpenareaTemplateModel(data));
 };
 
@@ -99,5 +101,22 @@ export const update = function (params: {
   const realParams = { ...params } as { id?: number };
   delete realParams.id;
 
-  return http.get(`/apis/mysql/bizs/${currentBizId}/openarea/${params.id}/`, realParams);
+  return http.get(`${path}/${currentBizId}/openarea/${params.id}/`, realParams);
+};
+
+
+export const updateVariable = function <T extends 'add'|'update'|'delete'> (params: {
+  op_type: T,
+  old_var: T extends 'update'|'delete' ? {
+    name: string,
+    builtin: boolean,
+    desc: string
+  }: undefined,
+  new_var: T extends 'add'|'update' ? {
+    name: string,
+    builtin: boolean,
+    desc: string
+  }: undefined,
+}) {
+  return http.post(`${path}/${currentBizId}/openarea/alter_var/`, params);
 };

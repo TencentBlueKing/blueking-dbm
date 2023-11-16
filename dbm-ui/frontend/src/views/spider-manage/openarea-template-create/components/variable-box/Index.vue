@@ -47,9 +47,9 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
+  import { updateVariable } from '@services/openarea';
   import {
     getBizSettingList,
-    updateBizSetting,
   } from '@services/system-setting';
 
   import { useGlobalBizs } from '@stores';
@@ -88,6 +88,16 @@
     },
   });
 
+  const {
+    // loading: isSubmiting,
+    run: deleteVariableMethod,
+  } = useRequest(updateVariable<'delete'>, {
+    manual: true,
+    onSuccess() {
+      messageSuccess(t('删除成功'));
+    },
+  });
+
   watch(modelValue, () => {
     if (modelValue.value) {
       fetchVariableList({
@@ -108,13 +118,12 @@
   };
 
   const handleRemove = (variable: IVariable) => {
-    variableList.value = _.filter(variableList.value, item => item.name === variable.name);
-    updateBizSetting({
-      bk_biz_id: currentBizId,
-      key: OPEN_AREA_VARS_KEY,
-      value: variableList.value,
-    }).then(() => {
-      messageSuccess(t('删除成功'));
+    deleteVariableMethod({
+      op_type: 'delete',
+      old_var: {
+        ...variable,
+      },
+      new_var: undefined,
     });
   };
 

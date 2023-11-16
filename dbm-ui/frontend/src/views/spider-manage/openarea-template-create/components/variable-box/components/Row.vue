@@ -17,7 +17,8 @@
       <td style="padding: 0;">
         <CellName
           ref="nameRef"
-          v-model="localRowData.name"
+          :data="localRowData"
+          :model-value="localRowData.name"
           @change="handleNameChange" />
       </td>
       <td style="padding: 0;">
