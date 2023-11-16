@@ -13,6 +13,9 @@
         @page-limit-change="pageLimitChange"
         @page-value-change="pageValueChange" />
     </BlockCard>
+    <FailSlaveInstance
+      :id="failSlaveInstanceReportId"
+      v-model="isShowFailSlaveInstance" />
   </BkLoading>
 </template>
 <script setup lang="tsx">
@@ -27,7 +30,8 @@
 
   import DbStatus from '@components/db-status/index.vue';
 
-  import BlockCard from './BlockCard.vue';
+  import BlockCard from './components/BlockCard.vue';
+  import FailSlaveInstance from './components/FailSlaveInstance.vue';
 
   interface Props {
     searchParams?: Record<string, any>,
@@ -47,6 +51,14 @@
   const tableColumns = shallowRef<{label: string, render:(data: any) => any }[]>([]);
   const tableData = shallowRef<any[]>([]);
 
+  const isShowFailSlaveInstance = ref(false);
+  const failSlaveInstanceReportId = ref(0);
+
+  const handleShowFailSlaveInstance = (data: any) => {
+    isShowFailSlaveInstance.value = true;
+    failSlaveInstanceReportId.value = data.id;
+  };
+
   const {
     loading,
     run,
@@ -65,6 +77,16 @@
               <DbStatus theme={isSuccess ? 'success' : 'danger'}>
                 { isSuccess ? t('成功') : t('失败') }
               </DbStatus>
+            );
+          }
+          if (titleItem.format === 'fail_slave_instance') {
+            return (
+              <bk-button
+                text
+                theme="primary"
+                onClick={() => handleShowFailSlaveInstance(fieldData)}>
+                {fieldData[titleItem.name]}
+              </bk-button>
             );
           }
           return fieldData[titleItem.name] || '--';

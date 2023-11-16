@@ -48,6 +48,9 @@
   }
 
   const props = defineProps<Props>();
+  const emits = defineEmits<{
+    'edit-change': []
+  }>();
 
   const modelValue = defineModel<string>({
     default: '',
@@ -68,6 +71,7 @@
     onSuccess() {
       messageSuccess(t('编辑成功'));
       isEditing.value = false;
+      emits('edit-change');
     },
   });
 

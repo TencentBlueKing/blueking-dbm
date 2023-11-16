@@ -66,3 +66,4 @@ type KeyExpand<T> = {
   [K in keyof T]: T[K];
 };
 
+type LeftIsExtendsRightReturnValue<L, R, V> = L extends R ? never : V

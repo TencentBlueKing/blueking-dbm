@@ -19,7 +19,7 @@
           ref="nameRef"
           :data="localRowData"
           :model-value="localRowData.name"
-          @change="handleNameChange" />
+          @edit-change="handleNameChange" />
       </td>
       <td style="padding: 0;">
         <CellDesc
@@ -76,6 +76,7 @@
   }
 
   interface Emits {
+    (e: 'edit-change'): void,
     (e: 'add', params: IDataRow): void,
     (e: 'remove', data: IDataRow): void,
   }
@@ -97,8 +98,8 @@
     immediate: true,
   });
 
-  const handleNameChange = (name: IVariable['name']) => {
-    console.log('ad = ', name);
+  const handleNameChange = () => {
+    emits('edit-change');
   };
 
   const handleAppend = () => {
@@ -129,7 +130,7 @@
       }
 
       &.disabled {
-        color: #dcdee5;
+        color: #dcdee5 !important;
         cursor: not-allowed;
       }
 

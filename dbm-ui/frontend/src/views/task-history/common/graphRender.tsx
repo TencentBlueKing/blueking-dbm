@@ -27,15 +27,15 @@ enum NODE_ICON {
   actuator_script = 'db-icon-deploy',
 }
 
-export enum NODE_STATUS_TEXT {
-  FINISHED = '执行成功',
-  RUNNING = '执行中',
-  FAILED = '执行失败',
-  READY = '待执行',
-  CREATED = '待执行',
-  SKIPPED = '忽略错误',
-  REVOKED = '已终止',
-}
+export const NODE_STATUS_TEXT = {
+  FINISHED: '执行成功',
+  RUNNING: '执行中',
+  FAILED: '执行失败',
+  READY: '待执行',
+  CREATED: '待执行',
+  SKIPPED: '忽略错误',
+  REVOKED: '已终止',
+} as Readonly<Record<string, string>>;
 
 interface RenderCollectionItem {
   render: (args: any[]) => VNode
@@ -104,7 +104,7 @@ export default class GraphRender {
     const createdStatus = status && status.toLowerCase() === 'created';
     const nodeClickType = type === 'ServiceActivity' && !createdStatus ? 'log' : '';
     const isShowTime = status !== 'CREATED' && updatedAt && startedAt && (updatedAt - startedAt) >= 0;
-    const nodeStatusText = status ? NODE_STATUS_TEXT[status as keyof typeof NODE_STATUS_TEXT] : '';
+    const nodeStatusText = status ? NODE_STATUS_TEXT[status] : '';
     return (
       <div class={['node-ractangle-layout', { 'node-hover': node.children || nodeClickType }]}>
         {

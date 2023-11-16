@@ -19,36 +19,36 @@ import { t } from '@locales/index';
 
 const routes: RouteRecordRaw[] = [
   {
-    name: 'MissionManage',
-    path: 'mission-manage',
-    component: () => import('@views/mission/Index.vue'),
+    name: 'taskHistory',
+    path: 'task-history',
+    component: () => import('@views/task-history/Index.vue'),
     meta: {
       routeParentName: MainViewRouteNames.Database,
       navName: t('历史任务'),
     },
     redirect: {
-      name: 'DatabaseMissionList',
+      name: 'taskHistoryList',
     },
     children: [
       {
-        name: 'DatabaseMissionList',
-        path: 'mission',
+        name: 'taskHistoryList',
+        path: 'list',
         meta: {
           routeParentName: MainViewRouteNames.Database,
           navName: t('历史任务'),
           isMenu: true,
         },
-        component: () => import('@views/mission/pages/index.vue'),
+        component: () => import('@views/task-history/pages/index.vue'),
       },
       {
-        name: 'DatabaseMissionDetails',
-        path: 'mission-details/:root_id',
+        name: 'taskHistoryDetail',
+        path: 'detail/:root_id',
         meta: {
           routeParentName: MainViewRouteNames.Database,
           navName: t('任务详情'),
-          activeMenu: 'DatabaseMissionList',
+          activeMenu: 'taskHistoryList',
         },
-        component: () => import('@views/mission/pages/Details.vue'),
+        component: () => import('@views/task-history/pages/Details.vue'),
       },
     ],
   },

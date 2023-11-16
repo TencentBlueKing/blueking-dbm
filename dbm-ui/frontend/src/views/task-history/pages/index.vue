@@ -69,10 +69,6 @@
     getSearchSelectorParams,
   } from '@utils';
 
-  import {
-    STATUS,
-    type STATUS_STRING,
-  } from '../common/const';
   import type { ListState } from '../common/types';
   import RedisResultFiles from '../components/RedisResultFiles.vue';
 
@@ -80,6 +76,17 @@
 
   const { t } = useI18n();
   const { currentBizId } = useGlobalBizs();
+
+  const statusMap = {
+    CREATED: '等待执行',
+    READY: '等待执行',
+    RUNNING: '执行中',
+    SUSPENDED: '执行中',
+    BLOCKED: '执行中',
+    FINISHED: '执行成功',
+    FAILED: '执行失败',
+    REVOKED: '已终止',
+  } as Record<string, string>;
 
   // 可查看结果文件类型
   const includesResultFiles: TicketTypesStrings[] = [TicketTypes.REDIS_KEYS_EXTRACT, TicketTypes.REDIS_KEYS_DELETE];
@@ -115,7 +122,7 @@
       <div class="text-overflow" v-overflow-tips>
         <router-link
           to={{
-            name: 'DatabaseMissionDetails',
+            name: 'taskHistoryDetail',
             params: {
               root_id: data.root_id,
             },
@@ -138,12 +145,12 @@
         label: t('状态'),
         field: 'status',
         filter: {
-          list: Object.keys(STATUS).map(id => ({
-            text: t(STATUS[id as STATUS_STRING]), value: id,
+          list: Object.keys(statusMap).map(id => ({
+            text: t(statusMap[id]), value: id,
           })),
         },
-        render: ({ cell }: { cell: STATUS_STRING }) => {
-          const themes: Partial<Record<STATUS_STRING, string>> = {
+        render: ({ cell }: { cell: string }) => {
+          const themes: Partial<Record<string, string>> = {
             RUNNING: 'loading',
             SUSPENDED: 'loading',
             BLOCKED: 'loading',
@@ -151,7 +158,7 @@
             READY: 'default',
             FINISHED: 'success',
           };
-          const text = STATUS[cell] ? t(STATUS[cell]) : '--';
+          const text = statusMap[cell] ? t(statusMap[cell]) : '--';
           return <DbStatus type="linear" theme={themes[cell] || 'danger'}>{text}</DbStatus>;
         },
       },
@@ -182,7 +189,7 @@
       <div class="table-operations">
         <router-link
           to={{
-            name: 'DatabaseMissionDetails',
+            name: 'taskHistoryDetail',
             params: {
               root_id: data.root_id,
             },
@@ -212,9 +219,9 @@
     name: t('状态'),
     id: 'status__in',
     multiple: true,
-    children: Object.keys(STATUS).map((id: string) => ({
+    children: Object.keys(statusMap).map((id: string) => ({
       id,
-      name: t(STATUS[id as STATUS_STRING]),
+      name: t(statusMap[id]),
     })),
   }, {
     name: t('关联单据'),
@@ -312,7 +319,7 @@
   const router = useRouter();
   // const handleToDetails = (row: TaskflowItem) => {
   //   router.push({
-  //     name: 'DatabaseMissionDetails',
+  //     name: 'taskHistoryDetail',
   //     params: {
   //       root_id: row.root_id,
   //     },

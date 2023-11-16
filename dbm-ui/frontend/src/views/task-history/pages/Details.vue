@@ -263,10 +263,6 @@
 
   import { useFullscreen, useTimeoutPoll } from '@vueuse/core';
 
-  import {
-    STATUS,
-    type STATUS_STRING,
-  } from '../common/const';
   import GraphCanvas from '../common/graphCanvas';
   import {
     formatGraphData,
@@ -331,8 +327,18 @@
   const expandNodes: string[] = [];
   const baseInfo = computed(() => flowState.details.flow_info || {});
   const statusText = computed(() => {
-    const value = baseInfo.value.status as STATUS_STRING;
-    return value && STATUS[value] ? t(STATUS[value]) : '';
+    const statusMap = {
+      CREATED: '等待执行',
+      READY: '等待执行',
+      RUNNING: '执行中',
+      SUSPENDED: '执行中',
+      BLOCKED: '执行中',
+      FINISHED: '执行成功',
+      FAILED: '执行失败',
+      REVOKED: '已终止',
+    };
+    const value = baseInfo.value.status as keyof typeof statusMap;
+    return value && statusMap[value] ? t(statusMap[value]) : '';
   });
 
   const getStatusTheme = (isTag = false) => {
