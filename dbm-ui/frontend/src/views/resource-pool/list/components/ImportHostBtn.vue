@@ -61,7 +61,7 @@
 
   const handleGoDatabaseMission = () => {
     router.push({
-      name: 'DatabaseMission',
+      name: 'DatabaseMissionList',
       params: {
         bizId: taskInfo.value?.bk_biz_id,
       },

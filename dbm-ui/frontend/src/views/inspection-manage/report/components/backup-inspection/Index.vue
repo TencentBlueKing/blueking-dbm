@@ -1,14 +1,12 @@
 <template>
   <RenderDynamicTable
-    :service="getmysqlCheckFullBackup"
-    v-bind="attrs" />
+    :search-params="searchParams"
+    :service="getmysqlCheckFullBackup" />
   <RenderDynamicTable
-    :service="getmysqlCheckBinlogBackup"
-    v-bind="attrs" />
+    :search-params="searchParams"
+    :service="getmysqlCheckBinlogBackup" />
 </template>
 <script setup lang="tsx">
-  import { useAttrs } from 'vue';
-
   import {
     getmysqlCheckBinlogBackup,
     getmysqlCheckFullBackup,
@@ -16,7 +14,11 @@
 
   import RenderDynamicTable from '../RenderDynamicTable.vue';
 
-  const attrs = useAttrs();
+  interface Props {
+    searchParams: Record<string, any>
+  }
+
+  defineProps<Props>();
 
 </script>
 
