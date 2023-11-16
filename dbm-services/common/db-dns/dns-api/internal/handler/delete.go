@@ -1,4 +1,4 @@
-package domain
+package handler
 
 import (
 	"bk-dnsapi/internal/domain/entity"
@@ -12,7 +12,7 @@ import (
 	"github.com/go-mesh/openlogging"
 )
 
-// DnsBaseDelReqParam TODO
+// DnsBaseDelReqParam base表删除参数
 type DnsBaseDelReqParam struct {
 	// Appid 	int64		`json:"appid"`
 	App       string `json:"app,required"`
@@ -23,7 +23,7 @@ type DnsBaseDelReqParam struct {
 	} `json:"domains"`
 }
 
-// DelDns TODO
+// DelDns 删除入口
 func (h *Handler) DelDns(c *gin.Context) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -55,22 +55,22 @@ func (h *Handler) DelDns(c *gin.Context) {
 
 	dnsBase := &entity.TbDnsBase{}
 	for i := 0; i < len(delParam.Domains); i++ {
-		domain := delParam.Domains[i]
-		if domain.DomainName != "" {
-			if domain.DomainName, err = tools.CheckDomain(domain.DomainName); err != nil {
+		domains := delParam.Domains[i]
+		if domains.DomainName != "" {
+			if domains.DomainName, err = tools.CheckDomain(domains.DomainName); err != nil {
 				errMsg += err.Error() + "\r\n"
 				continue
 			}
 		} else {
 			// 不允许域名和实例同时为空
-			if len(domain.Instances) == 0 {
+			if len(domains.Instances) == 0 {
 				errMsg += "domain_name and instances is empty" + "\r\n"
 				continue
 			}
 		}
 		var ips []string
-		for j := 0; j < len(domain.Instances); j++ {
-			ins := strings.TrimSpace(domain.Instances[j])
+		for j := 0; j < len(domains.Instances); j++ {
+			ins := strings.TrimSpace(domains.Instances[j])
 			if !strings.Contains(ins, "#") {
 				ins += "#0"
 			}
@@ -82,7 +82,7 @@ func (h *Handler) DelDns(c *gin.Context) {
 			ips = append(ips, ins)
 		}
 
-		domainList = append(domainList, domain.DomainName)
+		domainList = append(domainList, domains.DomainName)
 		ipsList = append(ipsList, ips)
 	}
 	if errMsg != "" {
@@ -95,6 +95,7 @@ func (h *Handler) DelDns(c *gin.Context) {
 			domainList[i], delParam.BkCloudId, ipsList[i])
 		rowsAffected += rowsNum
 	}
+	_, _ = domain.DnsConfigResource().UpdateLaseUpdateTime()
 
 	SendResponse(c, nil, Data{
 		Detail:  nil,

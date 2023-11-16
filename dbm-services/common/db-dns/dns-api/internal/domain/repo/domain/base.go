@@ -10,7 +10,7 @@ import (
 	"github.com/go-mesh/openlogging"
 )
 
-// DnsDomainBaseRepo TODO
+// DnsDomainBaseRepo dns_base方法接口
 type DnsDomainBaseRepo interface {
 	Get(map[string]interface{}, []string) ([]interface{}, error)
 	Insert(d []*entity.TbDnsBase) (num int64, err error)
@@ -19,11 +19,11 @@ type DnsDomainBaseRepo interface {
 	UpdateDomainBatch(bs []UpdateBatchDnsBase) (rowsAffected int64, err error)
 }
 
-// DnsDomainBaseImpl TODO
+// DnsDomainBaseImpl dns_base方法实现
 type DnsDomainBaseImpl struct {
 }
 
-// UpdateBatchDnsBase TODO
+// UpdateBatchDnsBase 批量update参数
 type UpdateBatchDnsBase struct {
 	App        string
 	DomainName string
@@ -34,12 +34,12 @@ type UpdateBatchDnsBase struct {
 	BkCloudId  int64
 }
 
-// DnsDomainResource TODO
+// DnsDomainResource dns表构建类
 func DnsDomainResource() DnsDomainBaseRepo {
 	return &DnsDomainBaseImpl{}
 }
 
-// Get TODO
+// Get 查询域名
 func (base *DnsDomainBaseImpl) Get(query map[string]interface{}, fields []string) (
 	[]interface{}, error) {
 	rs := []interface{}{}
@@ -108,7 +108,7 @@ func (base *DnsDomainBaseImpl) Get(query map[string]interface{}, fields []string
 	return rs, err
 }
 
-// Insert TODO
+// Insert 插入域名
 func (base *DnsDomainBaseImpl) Insert(dnsList []*entity.TbDnsBase) (num int64, err error) {
 	tx := dao.DnsDB.Begin()
 	for _, l := range dnsList {
@@ -125,7 +125,7 @@ func (base *DnsDomainBaseImpl) Insert(dnsList []*entity.TbDnsBase) (num int64, e
 	return
 }
 
-// Delete TODO
+// Delete 删除域名
 func (base *DnsDomainBaseImpl) Delete(tableName, app, domainName string, bkCloudId int64,
 	ins []string) (rowsAffected int64, err error) {
 	execSql := fmt.Sprintf("delete from %s where  app = '%s' and bk_cloud_id = '%d'",
@@ -161,13 +161,13 @@ func (base *DnsDomainBaseImpl) Delete(tableName, app, domainName string, bkCloud
 	return r.RowsAffected, nil
 }
 
-// Update TODO
+// Update 更新单个域名
 func (base *DnsDomainBaseImpl) Update(d *entity.TbDnsBase, newIP string, newPort int) (rowsAffected int64, err error) {
 	r := dao.DnsDB.Model(d).Update(map[string]interface{}{"ip": newIP, "port": newPort})
 	return r.RowsAffected, r.Error
 }
 
-// UpdateDomainBatch TODO
+// UpdateDomainBatch 批量更新域名
 func (base *DnsDomainBaseImpl) UpdateDomainBatch(bs []UpdateBatchDnsBase) (rowsAffected int64, err error) {
 	rowsAffected = 0
 	tx := dao.DnsDB.Begin()

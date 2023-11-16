@@ -2,7 +2,7 @@ package main
 
 import (
 	"bk-dnsapi/internal/dao"
-	"bk-dnsapi/internal/handler/domain"
+	"bk-dnsapi/internal/handler"
 	"log"
 	"strings"
 
@@ -31,11 +31,11 @@ func main() {
 
 // RouterGroup 注册路由
 func RouterGroup(engine *gin.Engine) {
-	h := domain.Handler{}
-	RegisterRoutes(engine, "/api/v1/dns/domain", h.Routes())
+	h := handler.Handler{}
+	RegisterRoutes(engine, "/api/v1/dns/", h.Routes())
 }
 
-// RegisterRoutes TODO
+// RegisterRoutes 注册路由
 func RegisterRoutes(router *gin.Engine, group string, routesInfo []*gin.RouteInfo) {
 	r := router.Group(group)
 	for _, route := range routesInfo {

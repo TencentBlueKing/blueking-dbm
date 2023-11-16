@@ -1,4 +1,4 @@
-package domain
+package handler
 
 import (
 	"bk-dnsapi/internal/domain/repo/domain"
@@ -10,7 +10,7 @@ import (
 	"github.com/go-mesh/openlogging"
 )
 
-// DnsBasePostReqParam TODO
+// DnsBasePostReqParam 更新结构体
 type DnsBasePostReqParam struct {
 	App        string `json:"app,required"`
 	BkCloudId  int64  `json:"bk_cloud_id"`
@@ -21,7 +21,7 @@ type DnsBasePostReqParam struct {
 	} `json:"set,required"`
 }
 
-// DnsBaseBatchPostReqParam TODO
+// DnsBaseBatchPostReqParam 批量更新参数
 type DnsBaseBatchPostReqParam struct {
 	App        string `json:"app,required"`
 	DomainName string `json:"domain_name,required"`
@@ -32,7 +32,7 @@ type DnsBaseBatchPostReqParam struct {
 	} `json:"sets,required"`
 }
 
-// UpdateDns TODO
+// UpdateDns 更新域名
 func (h *Handler) UpdateDns(c *gin.Context) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -90,14 +90,14 @@ func (h *Handler) UpdateDns(c *gin.Context) {
 		OPort: port, NIp: newIp, NPort: newPort, BkCloudId: updateParam.BkCloudId})
 
 	rowsAffected, err := domain.DnsDomainResource().UpdateDomainBatch(batchDnsBases)
-
+	_, _ = domain.DnsConfigResource().UpdateLaseUpdateTime()
 	SendResponse(c, err, Data{
 		Detail:  nil,
 		RowsNum: rowsAffected,
 	})
 }
 
-// UpdateBatchDns TODO
+// UpdateBatchDns 批量更新
 func (h *Handler) UpdateBatchDns(c *gin.Context) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -149,6 +149,41 @@ func (h *Handler) UpdateBatchDns(c *gin.Context) {
 	}
 
 	rowsAffected, err := domain.DnsDomainResource().UpdateDomainBatch(batchDnsBases)
+	_, _ = domain.DnsConfigResource().UpdateLaseUpdateTime()
+
+	SendResponse(c, err, Data{
+		Detail:  nil,
+		RowsNum: rowsAffected,
+	})
+}
+
+type DnsConfigPostReqParam struct {
+	Paraname   string `json:"paraname,required"`
+	Paravalue  string `json:"paravalue,required"`
+	Pararemark string `json:"pararemark"`
+}
+
+// UpdateConfig 更新配置
+func (h *Handler) UpdateConfig(c *gin.Context) {
+	defer func() {
+		if r := recover(); r != nil {
+			openlogging.Error(fmt.Sprintf("panic error:%v,stack:%s", r, string(debug.Stack())))
+			SendResponse(c,
+				fmt.Errorf("panic error:%v", r),
+				Data{})
+		}
+	}()
+
+	var updateParam DnsConfigPostReqParam
+	err := c.BindJSON(&updateParam)
+	if err != nil {
+		SendResponse(c, err, Data{})
+		return
+	}
+
+	rowsAffected, err := domain.DnsConfigResource().Update(updateParam.Paraname, map[string]interface{}{
+		"paravalue":  updateParam.Paravalue,
+		"pararemark": updateParam.Pararemark})
 	SendResponse(c, err, Data{
 		Detail:  nil,
 		RowsNum: rowsAffected,

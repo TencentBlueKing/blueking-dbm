@@ -1,4 +1,4 @@
-package domain
+package handler
 
 import (
 	"bk-dnsapi/internal/domain/entity"
@@ -124,4 +124,25 @@ func (h *Handler) GetAllDns(c *gin.Context) {
 
 	return
 
+}
+
+// GetAllConfig 查询所有config表配置
+func (h *Handler) GetAllConfig(c *gin.Context) {
+	defer func() {
+		if r := recover(); r != nil {
+			openlogging.Error(fmt.Sprintf("panic error:%v,stack:%s", r, string(debug.Stack())))
+			SendResponse(c,
+				fmt.Errorf("panic error:%v", r),
+				Data{})
+		}
+	}()
+	params := make(map[string]interface{})
+	rs, err := domain.DnsConfigResource().Get(params)
+	if err != nil {
+		SendResponse(c, err, Data{})
+		return
+	}
+	SendResponse(c, nil, Data{rs, int64(len(rs))})
+
+	return
 }

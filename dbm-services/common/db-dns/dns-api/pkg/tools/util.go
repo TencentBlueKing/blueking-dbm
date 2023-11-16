@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-// CheckDomain TODO
+// CheckDomain 检查域名格式正则
 func CheckDomain(domain string) (string, error) {
 	domain = strings.TrimSpace(domain)
 	if !strings.HasSuffix(domain, ".") {
@@ -26,7 +26,7 @@ func CheckDomain(domain string) (string, error) {
 	}
 }
 
-// CheckIp TODO
+// CheckIp 检查ip正则
 func CheckIp(ip string) (string, error) {
 	ip = strings.TrimSpace(ip)
 	var pattern string = `^(\d+)\.(\d+)\.(\d+)\.(\d+)$`
@@ -56,7 +56,7 @@ func CheckInstance(instance string) (string, error) {
 	}
 }
 
-// GetIpPortByIns TODO
+// GetIpPortByIns 拆分ip,port
 func GetIpPortByIns(ins string) (ip string, port int, err error) {
 	if strings.Contains(ins, "#") {
 		ins, err = CheckInstance(ins)
@@ -80,7 +80,7 @@ func GetIpPortByIns(ins string) (ip string, port int, err error) {
 	return
 }
 
-// TransZeroStrings TODO
+// TransZeroStrings 转换空值
 func TransZeroStrings(s []string) []string {
 	if s == nil {
 		return []string{}
@@ -88,7 +88,7 @@ func TransZeroStrings(s []string) []string {
 	return s
 }
 
-// TransZeroString TODO
+// TransZeroString 转换空值
 func TransZeroString(s string) string {
 	if s == "" {
 		return "0"
