@@ -12,10 +12,16 @@ function build_package() {
     exit 1
   fi
   # skip go build, we hope txsql/community has the same dbbackup binary
-  #sh ./build.sh -s -t $1
-  make package VERSION=$VERSION DIST=$1
+  sh ./build.sh -s -t $1
 }
 
+echo "go build dbbackup"
+rm -f build/dbbackup
+make && [ -f build/dbbackup ]
+if [ $? -gt 0 ];then
+  echo "go build dbbackup failed"
+  exit 1
+fi
 
 # txsql
 echo

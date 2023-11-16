@@ -452,8 +452,6 @@ func (i *InstallNewDbBackupComp) ChownGroup() (err error) {
 	return nil
 }
 
-// saveTplConfigfile 渲染ini模板
-// todo: 将 Configs 转换成 struct，再把 struct 转换成 ini. 方便渲染 Public.EncryptOpt
 func (i *InstallNewDbBackupComp) saveTplConfigfile(tmpl string) (err error) {
 	f, err := os.OpenFile(tmpl, os.O_CREATE|os.O_RDWR|os.O_TRUNC, 0755)
 	if err != nil {
@@ -462,30 +460,19 @@ func (i *InstallNewDbBackupComp) saveTplConfigfile(tmpl string) (err error) {
 	defer func() {
 		_ = f.Close()
 	}()
-	var encryptOpt = make(map[string]string)
-	var encryptOptPrefix = "EncryptOpt"
-	for key, val := range i.Params.Configs {
-		_, err := fmt.Fprintf(f, "[%s]\n", key)
+
+	for k, v := range i.Params.Configs {
+		_, err := fmt.Fprintf(f, "[%s]\n", k)
 		if err != nil {
-			return errors.WithMessagef(err, "写配置模版 %s 失败", key)
+			return errors.WithMessagef(err, "写配置模版 %s 失败", k)
 		}
-		for k, v := range val {
-			if strings.HasPrefix(k, encryptOptPrefix+".") {
-				encryptOpt[strings.TrimPrefix(k, encryptOptPrefix+".")] = v
-				continue
-			}
+		for k, v := range v {
 			_, err := fmt.Fprintf(f, "%s = %s\n", k, v)
 			if err != nil {
 				return errors.WithMessagef(err, "写配置模版 %s, %s 失败", k, v)
 			}
 		}
 		fmt.Fprintf(f, "\n")
-	}
-	if len(encryptOpt) > 0 {
-		fmt.Fprintf(f, "[%s]\n", encryptOptPrefix)
-		for k, v := range encryptOpt {
-			fmt.Fprintf(f, "%s = %s\n", k, v)
-		}
 	}
 	return
 }
