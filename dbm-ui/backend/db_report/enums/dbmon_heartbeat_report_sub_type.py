@@ -8,8 +8,13 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from .checksum_check_report import ChecksumCheckReport, ChecksumInstance
-from .dbmon_heartbeat_report import DbmonHeartbeatReport
-from .meta_check_report import MetaCheckReport
-from .mysqlbackup_check_report import MysqlBackupCheckReport
-from .redisbackup_check_report import RedisBackupCheckReport
+from blue_krill.data_types.enum import EnumField, StructuredEnum
+from django.utils.translation import gettext_lazy as _
+
+
+class DbmonHeartbeatReportSubType(str, StructuredEnum):
+    TWEMPROXY = EnumField("TWEMPROXY", _("TWEMPROXY"))
+    PREDIXY = EnumField("PREDIXY", _("PREDIXY"))
+    REDIS_SSD = EnumField("REDIS_SSD", _("REDIS_SSD"))
+    REDIS_CACHE = EnumField("REDIS_CACHE", _("REDIS_CACHE"))
+    TENDISPLUS = EnumField("TENDISPLUS", _("TENDISPLUS"))

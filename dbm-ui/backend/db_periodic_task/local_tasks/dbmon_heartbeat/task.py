@@ -8,8 +8,23 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from .checksum_check_report import ChecksumCheckReport, ChecksumInstance
-from .dbmon_heartbeat_report import DbmonHeartbeatReport
-from .meta_check_report import MetaCheckReport
-from .mysqlbackup_check_report import MysqlBackupCheckReport
-from .redisbackup_check_report import RedisBackupCheckReport
+import logging
+
+from celery.schedules import crontab
+
+from backend.db_periodic_task.local_tasks.register import register_periodic_task
+
+from .heartbeat_report import check_dbmon_heart_beat
+
+logger = logging.getLogger("celery")
+
+
+# 测试每分钟一次
+# @register_periodic_task(run_every=crontab(minute="*/1"))
+# 每小时一次
+@register_periodic_task(run_every=crontab(minute="0", hour="*/1"))
+def dbmon_heartbear_report_task():
+    """
+    dbmon 心跳报告
+    """
+    check_dbmon_heart_beat()
