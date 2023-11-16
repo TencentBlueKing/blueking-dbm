@@ -30,7 +30,7 @@
   import type { IDataRow } from './Row.vue';
 
   interface Props {
-    source: IDataRow['source']
+    source?: IDataRow['source']
   }
 
   const props = defineProps<Props>();
