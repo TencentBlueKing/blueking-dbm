@@ -31,7 +31,6 @@ import getHDFSRoutes from '@views/hdfs-manage/routes';
 import getInfluxDBRoutes from '@views/influxdb-manage/routes';
 import getInspectionRoutes from '@views/inspection-manage/routes';
 import getKafkaRoutes from '@views/kafka-manage/routes';
-import getMissionRoutes from '@views/mission/routes';
 import getDBMonitorAlarmRoutes from '@views/monitor-alarm-db/routes';
 import getPlatMonitorAlarmRoutes from '@views/monitor-alarm-plat/routes';
 import getMysqlRoutes from '@views/mysql/routes';
@@ -47,6 +46,7 @@ import getResourceSpecRouters from '@views/resource-spec/routes';
 import getServiceApplyRoutes from '@views/service-apply/routes';
 import getSpiderManageRoutes from '@views/spider-manage/routes';
 import getStaffSettingRoutes from '@views/staff-setting/routes';
+import getTaskHistoryRoutes from '@views/task-history/routes';
 import getTicketsRoutes from '@views/tickets/routes';
 import getVersionFilesRoutes from '@views/version-files/routes';
 import getWhitelistRoutes from '@views/whitelist/routes';
@@ -146,7 +146,7 @@ export default async function getRouters() {
     ...getInfluxDBRoutes(bigdataController),
     ...getSpiderManageRoutes(),
     ...getDbConfRoutes(),
-    ...getMissionRoutes(),
+    ...getTaskHistoryRoutes(),
     ...getPasswordPolicyRoutes(),
     ...getServiceApplyRoutes(),
     ...getStaffSettingRoutes(),
@@ -167,6 +167,8 @@ export default async function getRouters() {
   ];
 
   const mainRoutes = getMainRoutes(routes);
+
+  console.log('mainRoutes = ', mainRoutes);
 
   const renderRoutes: RouteRecordRaw[] = [];
 

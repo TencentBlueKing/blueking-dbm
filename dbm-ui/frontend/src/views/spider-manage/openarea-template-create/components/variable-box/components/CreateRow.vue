@@ -38,11 +38,7 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import {
-    updateBizSetting,
-  } from '@services/system-setting';
-
-  import { useGlobalBizs } from '@stores';
+  import { updateVariable } from '@services/openarea';
 
   import TableEditInput from '@components/tools-table-input/index.vue';
 
@@ -50,14 +46,11 @@
 
   import type { IVariable } from '../Index.vue';
 
-  interface Props {
-    index: number
-  }
-
-  const props = defineProps<Props>();
+  const emits = defineEmits<{
+    'create-change': []
+  }>();
 
   const { t } = useI18n();
-  const { currentBizId } = useGlobalBizs();
 
   const list = defineModel<IVariable[]>('list', {
     local: true,
@@ -66,7 +59,7 @@
 
   const nameRef = ref<InstanceType<typeof TableEditInput>>();
   const descRef = ref<InstanceType<typeof TableEditInput>>();
-  const isSubmiting = ref(false);
+
   const formData = reactive({
     name: '',
     desc: '',
@@ -91,34 +84,29 @@
   ];
 
   const {
-    run: updateVariableList,
-  } = useRequest(updateBizSetting, {
+    loading: isSubmiting,
+    run: updateVariableMethod,
+  } = useRequest(updateVariable<'add'>, {
     manual: true,
     onSuccess() {
-      const lastVariableList = [...list.value];
-      lastVariableList.splice(props.index, 1, formData);
-      list.value = lastVariableList;
       messageSuccess('添加变量成功');
+      emits('create-change');
     },
   });
 
   const handleSubmit = () => {
-    isSubmiting.value = true;
     Promise.all([
       (nameRef.value as InstanceType<typeof TableEditInput>).getValue(),
       (descRef.value as InstanceType<typeof TableEditInput>).getValue(),
     ]).then(() => {
-      const lastVariableList = _.filter(list.value, item => ((item.name && item.desc) || item.builtin));
-      lastVariableList.push(formData);
-      return updateVariableList({
-        bk_biz_id: currentBizId,
-        key: 'OPEN_AREA_VARS',
-        value: lastVariableList,
+      updateVariableMethod({
+        op_type: 'add',
+        new_var: {
+          ...formData,
+        },
+        old_var: undefined,
       });
-    })
-      .finally(() => {
-        isSubmiting.value = false;
-      });
+    });
   };
 </script>
 

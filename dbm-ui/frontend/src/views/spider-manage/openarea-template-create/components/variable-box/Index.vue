@@ -21,11 +21,12 @@
             v-if="item.name"
             :data="item"
             @add="(data: IVariable) => handleAdd(data, index)"
+            @edit-change="handleRefreshList"
             @remove="handleRemove" />
           <CreateRow
             v-else
             v-model:list="variableList"
-            :index="index" />
+            @create-change="handleRefreshList" />
         </template>
       </RenderTable>
     </div>
@@ -87,21 +88,25 @@
   });
 
   const {
-    // loading: isSubmiting,
     run: deleteVariableMethod,
   } = useRequest(updateVariable<'delete'>, {
     manual: true,
     onSuccess() {
       messageSuccess(t('删除成功'));
+      fetchData();
     },
   });
 
+  const fetchData = () => {
+    fetchVariableList({
+      bk_biz_id: currentBizId,
+      key: OPEN_AREA_VARS_KEY,
+    });
+  };
+
   watch(modelValue, () => {
     if (modelValue.value) {
-      fetchVariableList({
-        bk_biz_id: currentBizId,
-        key: OPEN_AREA_VARS_KEY,
-      });
+      fetchData();
     }
   });
 
@@ -113,6 +118,10 @@
     const lastVariableList = [...variableList.value];
     lastVariableList.splice(index + 1, 0, variable);
     variableList.value = lastVariableList;
+  };
+
+  const handleRefreshList = () => {
+    fetchData();
   };
 
   const handleRemove = (variable: IVariable) => {

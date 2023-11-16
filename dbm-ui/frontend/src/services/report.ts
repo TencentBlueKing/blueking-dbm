@@ -1,4 +1,5 @@
 import http from './http';
+import type { ListBase } from './types/common';
 
 interface IResult {
   results: Record<string, unknown>[],
@@ -6,7 +7,7 @@ interface IResult {
   title: {
     name: string,
     display_name: string,
-    format: 'text'|'status'
+    format: 'text'|'status'|'fail_slave_instance'
   }[]
 }
 // 数据校验
@@ -16,7 +17,14 @@ export const getChecksumReport = function (params: Record<string, any>) {
 
 // 失败的从库实例详情
 export const getChecksumInstance = function (params: Record<string, any>) {
-  return http.get<IResult>('/db_report/checksum_check/instance', params);
+  return http.get<ListBase<{
+    details: Record<string, string[]>,
+    id: number,
+    ip: string,
+    master_ip: string,
+    master_port: string,
+    port: string
+  }[]>>('/db_report/checksum_check/instance', params);
 };
 
 

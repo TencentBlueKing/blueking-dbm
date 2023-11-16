@@ -150,7 +150,7 @@
       render: ({ data }: {data: DirtyMachinesModel}) => (data.task_id
         ? <router-link
             to={{
-              name: 'DatabaseMissionDetails',
+              name: 'taskHistoryDetail',
               params: {
                 bizId: data.bk_biz_id,
                 root_id: data.task_id,
