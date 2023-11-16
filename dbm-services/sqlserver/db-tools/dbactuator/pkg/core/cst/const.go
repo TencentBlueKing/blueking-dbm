@@ -66,6 +66,12 @@ const (
 	DETAIL_HADR_KEY  = "\\MSSQLServer"
 )
 
+// 定义一些部署alwayon专用的注册表信息
+const (
+	WOW6432NODE_CONNECT_TO_KEY = "HKLM:\\SOFTWARE\\Wow6432Node\\Microsoft\\MSSQLServer\\Client\\ConnectTo"
+	MICROSOFT_CONNECT_TO_KEY   = "HKLM:\\SOFTWARE\\Microsoft\\MSSQLServer\\Client\\ConnectTo"
+)
+
 // 定义不同mssql版本的sqlcmd的文件路径
 
 const (
@@ -136,3 +142,18 @@ const (
 		"from master.sys.sql_logins a left join sys.syslogins b " +
 		"on a.name=b.name where principal_id>4 and a.name not in('monitor') and a.is_disabled = 0"
 )
+
+// 定义SQL版本兼容性级别范围
+
+type SQLServerVersion int
+type SupportedValues []int
+
+var CompatibilityLevelMap = map[SQLServerVersion]SupportedValues{
+	2008: {100, 90, 80},
+	2012: {110, 100, 90},
+	2014: {120, 110, 100},
+	2016: {130, 120, 110, 100},
+	2017: {140, 130, 120, 110, 100},
+	2019: {150, 140, 130, 120, 110, 100},
+	2022: {160, 150, 140, 130, 120, 110, 100},
+}

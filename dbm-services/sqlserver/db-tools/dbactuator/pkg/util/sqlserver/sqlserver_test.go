@@ -13,35 +13,41 @@ package sqlserver_test
 import (
 	"fmt"
 	"testing"
-
-	mssql "github.com/denisenkom/go-mssqldb"
-
-	"dbm-services/sqlserver/db-tools/dbactuator/pkg/util/sqlserver"
 )
 
 func Test(t *testing.T) {
 
-	checkCmd := "select password_hash from master.sys.sql_logins"
+	checkCmd := fmt.Sprintf(`IF EXISTS(select 1 from [master].[sys].[database_mirroring_endpoints] where name='endpoint_mirroring') 
+	DROP ENDPOINT [endpoint_mirroring]
+	CREATE ENDPOINT [endpoint_mirroring] STATE=STARTED AS TCP (LISTENER_PORT = %d, LISTENER_IP = ALL) 
+	FOR DATA_MIRRORING (ROLE = PARTNER, AUTHENTICATION = WINDOWS NEGOTIATE, ENCRYPTION = REQUIRED ALGORITHM AES);
+	DECLARE @Login sysname;
+	SELECT @Login=name FROM sys.syslogins WHERE isntuser=1 and name like '%%sqlserver'
+	EXEC sp_addsrvrolemember @Login, 'sysadmin'
+	`, 111)
 
-	type LoginInfo struct {
-		PasswordHash mssql.VarChar `db:"password_hash"`
-	}
-	var dbWork *sqlserver.DbWorker
-	var err error
-	if dbWork, err = sqlserver.NewDbWorker(
-		"xxx",
-		"xxx!",
-		"xxx",
-		1433,
-	); err != nil {
-		t.Log(err)
-		return
-	}
-	var getJobs []LoginInfo
-	if err := dbWork.Queryxs(&getJobs, checkCmd); err != nil {
-		t.Log(err)
-		return
-	}
-	fmt.Printf("%+v\n", getJobs)
+	// type InstanceInfo struct {
+	// 	ServerName string `db:"servername"`
+	// 	Hostname   string `db:"hostname"`
+	// }
+
+	// var dbWork *sqlserver.DbWorker
+	// var err error
+	// if dbWork, err = sqlserver.NewDbWorker(
+	// 	"xxxx",
+	// 	"xxxx",
+	// 	"xxxx",
+	// 	1433,
+	// ); err != nil {
+	// 	t.Log(err)
+	// 	return
+	// }
+	// var getJobs InstanceInfo
+	// if err := dbWork.Queryxs(&getJobs, checkCmd); err != nil {
+	// 	t.Log(err)
+	// 	return
+	// }
+	// fmt.Printf("%+v\n", getJobs)
+	t.Log(checkCmd)
 
 }
