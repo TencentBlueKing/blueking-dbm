@@ -36,11 +36,13 @@ func (r *Checker) Report() error {
 	}
 
 	// Todo 这里其实有个风险, 单独在 slave 上修改数据了
+	// 为了兼容 flashback, 这里拼上库前缀
 	stmt, err := r.db.Preparex(
 		fmt.Sprintf(
-			`UPDATE %s `+
+			`UPDATE %s.%s `+
 				`SET reported = 1 `+
 				`WHERE master_ip = ? AND master_port = ? AND db = ? AND tbl = ? AND chunk = ? AND ts = ?`,
+			r.resultDB,
 			r.resultHistoryTable,
 		),
 	)

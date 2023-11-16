@@ -58,12 +58,18 @@ func (r *Checker) moveResult() error {
 	}
 
 	slog.Info("move result", slog.Time("from", r.startTS))
+
+	columnsStr := strings.Join(columns, ",")
+	// 为了兼容 flashback, 这里拼上库前缀
 	_, err = conn.ExecContext(
 		context.Background(),
 		fmt.Sprintf(
-			`INSERT INTO %s (%[2]s) SELECT %[2]s FROM %s WHERE ts >= ?`,
+			`INSERT INTO %s.%s (%s) SELECT %s FROM %s.%s WHERE ts >= ?`,
+			r.resultDB,
 			r.resultHistoryTable,
-			strings.Join(columns, ","),
+			columnsStr,
+			columnsStr,
+			r.resultDB,
 			r.resultTbl,
 		), r.startTS,
 	)

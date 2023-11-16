@@ -123,7 +123,7 @@ func (d *DeployTbinlogDumperAct) Run() (err error) {
 		},
 		{
 			FunName: "执行初始化系统基础权限、库表SQL",
-			Func:    d.Service.InitDefaultPrivAndSchema,
+			Func:    d.Service.InitDefaultPrivAndSchemaWithResetMaster,
 		},
 	}
 

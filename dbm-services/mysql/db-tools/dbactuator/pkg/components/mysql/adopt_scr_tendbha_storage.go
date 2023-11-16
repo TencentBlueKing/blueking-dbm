@@ -139,7 +139,7 @@ func (c *AdoptScrTenDBHAStorageComp) DropOldAccounts() error {
 }
 
 func (c *AdoptScrTenDBHAStorageComp) InitDefaultPrivAndSchema() error {
-	err := c.inner.InitDefaultPrivAndSchema()
+	err := c.inner.InitDefaultPrivAndSchemaWithResetMaster()
 	if err != nil {
 		logger.Error("init default priv and schema failed: %s", err.Error())
 		return err
