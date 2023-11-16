@@ -99,13 +99,6 @@ class MySQLRestoreSlaveFlow(object):
             ticket_data["force"] = one_machine.get("force", False)
 
             sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(ticket_data))
-            sub_pipeline.add_act(
-                act_name=_("获取初始化信息"),
-                act_component_code=GetOsSysParamComponent.code,
-                kwargs=asdict(
-                    ExecActuatorKwargs(bk_cloud_id=self.data["bk_cloud_id"], exec_ip=one_machine["old_slave_ip"])
-                ),
-            )
             sub_pipeline.add_sub_pipeline(
                 sub_flow=self.install_instance_sub_flow(ticket_data=ticket_data, one_machine=one_machine)
             )
@@ -619,6 +612,13 @@ class MySQLRestoreSlaveFlow(object):
         )
 
         # 初始化机器
+        install_sub_pipeline.add_act(
+            act_name=_("获取初始化信息"),
+            act_component_code=GetOsSysParamComponent.code,
+            kwargs=asdict(
+                ExecActuatorKwargs(bk_cloud_id=one_machine["bk_cloud_id"], exec_ip=one_machine["master_ip"])
+            ),
+        )
         account = MysqlActPayload.get_mysql_account()
         install_sub_pipeline.add_act(
             act_name=_("初始化机器"),
