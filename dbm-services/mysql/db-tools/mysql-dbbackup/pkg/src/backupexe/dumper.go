@@ -12,11 +12,11 @@ import (
 
 // Dumper TODO
 type Dumper interface {
-	initConfig(mysqlVersion string) error
+	initConfig() error
 	Execute(enableTimeOut bool) error
 }
 
-// BuildDumper return logical or physical dumper
+// BuildDumper TODO
 func BuildDumper(cnf *config.BackupConfig) (dumper Dumper, err error) {
 	if strings.ToLower(cnf.Public.BackupType) == "logical" {
 		if err := validate.GoValidateStruct(cnf.LogicalBackup, false, false); err != nil {
@@ -29,6 +29,7 @@ func BuildDumper(cnf *config.BackupConfig) (dumper Dumper, err error) {
 		if err := validate.GoValidateStruct(cnf.PhysicalBackup, false, false); err != nil {
 			return nil, err
 		}
+
 		dumper = &PhysicalDumper{
 			cnf: cnf,
 		}
@@ -37,5 +38,6 @@ func BuildDumper(cnf *config.BackupConfig) (dumper Dumper, err error) {
 		err := fmt.Errorf("unknown BackupType: %s", cnf.Public.BackupType)
 		return nil, err
 	}
+
 	return dumper, nil
 }

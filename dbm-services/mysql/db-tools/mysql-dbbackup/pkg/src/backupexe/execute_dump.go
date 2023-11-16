@@ -1,10 +1,8 @@
 package backupexe
 
 import (
-	"strings"
-
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/mysqlconn"
-	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/util"
+	"strings"
 
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/config"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/cst"
@@ -20,21 +18,20 @@ func ExecuteBackup(cnf *config.BackupConfig) error {
 	defer func() {
 		_ = db.Close()
 	}()
-	versionStr, err := mysqlconn.GetMysqlVersion(db)
-	if err != nil {
-		return err
+	versionStr, verErr := mysqlconn.GetMysqlVersion(db)
+	if verErr != nil {
+		return verErr
 	}
 	if envErr := SetEnv(cnf.Public.BackupType, versionStr); envErr != nil {
 		return envErr
 	}
-	mysqlVersion, isOfficial := util.VersionParser(versionStr)
-	XbcryptBin = GetXbcryptBin(mysqlVersion, isOfficial)
 
 	dumper, err := BuildDumper(cnf)
 	if err != nil {
 		return err
 	}
-	if err := dumper.initConfig(mysqlVersion); err != nil {
+
+	if err := dumper.initConfig(); err != nil {
 		return err
 	}
 
