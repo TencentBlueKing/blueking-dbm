@@ -1,4 +1,5 @@
-set binlog_formant='statement';
+SET SESSION TRANSACTION ISOLATION LEVEL REPEATABLE READ;
+set binlog_format=statement;
 CREATE DATABASE if not exists test;
 CREATE DATABASE IF NOT EXISTS `infodba_schema` DEFAULT CHARACTER SET utf8;
 create table IF NOT EXISTS infodba_schema.free_space(a int) engine = InnoDB;
