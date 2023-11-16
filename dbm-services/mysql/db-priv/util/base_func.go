@@ -2,6 +2,7 @@ package util
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"os/exec"
 	"reflect"
@@ -95,4 +96,18 @@ func ExecShellCommand(isSudo bool, param string) ([]byte, error) {
 		return stderr.Bytes(), err
 	}
 	return stdout.Bytes(), nil
+}
+
+// JsonToMap Convert json string to map
+func JsonToMap(jsonStr string) (map[string]int64, error) {
+	m := make(map[string]int64)
+	err := json.Unmarshal([]byte(jsonStr), &m)
+	if err != nil {
+		fmt.Printf("Unmarshal with error: %+v\n", err)
+		return nil, err
+	}
+	for k, v := range m {
+		fmt.Printf("%v: %v\n", k, v)
+	}
+	return m, nil
 }

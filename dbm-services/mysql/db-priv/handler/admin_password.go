@@ -134,3 +134,25 @@ func (m *PrivService) ModifyMysqlAdminPassword(c *gin.Context) {
 	}
 	return
 }
+
+func (m *PrivService) MigratePlatformPassword(c *gin.Context) {
+	slog.Info("do MigratePlatformPassword!")
+	var input service.PlatformPara
+	body, err := ioutil.ReadAll(c.Request.Body)
+	if err != nil {
+		slog.Error("msg", err)
+		SendResponse(c, errno.ErrBind, err)
+		return
+	}
+	if err = json.Unmarshal(body, &input); err != nil {
+		slog.Error("msg", err)
+		SendResponse(c, errno.ErrBind, err)
+		return
+	}
+	err = input.MigratePlatformPassword()
+	if err != nil {
+		slog.Error("msg", "MigratePlatformPassword", err)
+	}
+	SendResponse(c, err, nil)
+	return
+}
