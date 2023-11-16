@@ -12,15 +12,14 @@
 -->
 
 <template>
-  <div class="render-source-box">
-    <BkLoading :loading="isLoading">
-      <TableEditInput
-        ref="editRef"
-        v-model="localValue"
-        :placeholder="t('请输入管控区域:IP')"
-        :rules="rules" />
-    </BkLoading>
-  </div>
+  <BkLoading :loading="isLoading">
+    <TableEditInput
+      ref="editRef"
+      v-model="localValue"
+      :placeholder="t('请输入管控区域:IP')"
+      :rules="rules"
+      @submit="handleChange" />
+  </BkLoading>
 </template>
 <script setup lang="ts">
   import _ from 'lodash';
@@ -29,10 +28,6 @@
     watch,
   } from 'vue';
   import { useI18n } from 'vue-i18n';
-
-  import { getHostTopoInfos } from '@services/source/ipchooser';
-
-  import { useGlobalBizs } from '@stores';
 
   import { netIp } from '@common/regex';
 
@@ -44,7 +39,6 @@
     getValue: (field: string) => Promise<string>
   }
 
-  const { currentBizId } = useGlobalBizs();
   const { t } = useI18n();
 
   const modelValue = defineModel<IDataRow['source']>();
@@ -62,26 +56,6 @@
       validator: (value: string) => netIp.test(value),
       message: t('源客户端 IP 格式不正确'),
     },
-    {
-      validator: (value: string) => getHostTopoInfos({
-        bk_biz_id: currentBizId,
-        filter_conditions: {
-          bk_host_innerip: [value],
-        },
-      }).then((data) => {
-        if (data.hosts_topo_info.length < 1) {
-          return false;
-        }
-        const [hostData] = data.hosts_topo_info;
-        modelValue.value = {
-          bk_cloud_id: hostData.bk_cloud_id,
-          bk_host_id: hostData.bk_host_id,
-          ip: hostData.ip,
-        };
-        return true;
-      }),
-      message: t('IP不存在'),
-    },
   ];
 
   watch(() => modelValue.value, () => {
@@ -92,6 +66,15 @@
   }, {
     immediate: true,
   });
+
+  const handleChange = (value: string) => {
+    const [bkCloudId, ip] = value.split(':');
+    modelValue.value = {
+      ip,
+      bk_cloud_id: Number(bkCloudId),
+    };
+  };
+
 
   defineExpose<Exposes>({
     getValue() {
@@ -109,8 +92,3 @@
     },
   });
 </script>
-<style lang="less" scoped>
-  .render-source-box {
-    position: relative;
-  }
-</style>

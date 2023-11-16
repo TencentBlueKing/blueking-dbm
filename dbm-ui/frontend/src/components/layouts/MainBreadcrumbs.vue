@@ -18,29 +18,26 @@
       class="main-breadcrumbs-back"
       type="arrow-left"
       @click="handleBack" />
-    <span class="main-breadcrumbs-current">
-      <span>{{ current }}</span>
-      <span id="dbmPageSubtitle" />
-    </span>
+    <div class="main-breadcrumbs-current">
+      <div>{{ current }}</div>
+      <div id="dbmPageSubtitle" />
+    </div>
   </div>
 </template>
-
 <script setup lang="ts">
-  import { useMainViewStore } from '@stores';
 
-  const store = useMainViewStore();
   const route = useRoute();
   const router = useRouter();
 
   /**
    * 当前面包屑展示文案
    */
-  const current = computed(() => store.breadCrumbsTitle || route.meta.navName);
+  const current = computed(() => route.meta.navName);
 
   /**
    * back control
    */
-  const showBack = computed(() => !route.meta.isMenu && [undefined, true].includes(route.meta.showBack));
+  const showBack = computed(() => false);
   const handleBack = () => {
     const { back } = window.history.state;
     if (back) {
@@ -78,7 +75,8 @@
     }
 
     .main-breadcrumbs-current {
-      margin-right: 8px;
+      display: flex;
+      margin-right: 24px;
       font-size: @font-size-large;
       color: @title-color;
     }

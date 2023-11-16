@@ -54,6 +54,8 @@
     onSuccess(data) {
       if (data.hosts_topo_info.length > 0) {
         [localValue.value] = data.hosts_topo_info[0].topo;
+      } else {
+        localValue.value = '--';
       }
     },
   });

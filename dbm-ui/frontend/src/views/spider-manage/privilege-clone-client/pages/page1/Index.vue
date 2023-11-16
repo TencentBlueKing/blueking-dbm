@@ -117,7 +117,6 @@
         const row = createRowData({
           source: {
             bk_cloud_id: item.cloud_id,
-            bk_host_id: item.host_id,
             ip: item.ip,
           },
         });

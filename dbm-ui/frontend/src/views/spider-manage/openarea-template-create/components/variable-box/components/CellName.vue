@@ -80,6 +80,7 @@
       }
 
       .copy-btn{
+        padding: 5px;
         opacity: 0%;
       }
     }
