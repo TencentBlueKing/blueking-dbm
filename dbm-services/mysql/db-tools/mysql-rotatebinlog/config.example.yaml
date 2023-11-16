@@ -52,9 +52,9 @@ encrypt:
   key_prefix: "bkdbm"
   
 backup_client:
-  ibs:
+  bkbs:
     enable: true
-    ibs_mode: hdfs
+    storage_type: cos
     with_md5: true
     file_tag: INCREMENT_BACKUP
-    tool_path: backup_client
+    tool_path: /usr/local/backup_client/bin/backup_client

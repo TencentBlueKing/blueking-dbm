@@ -12,7 +12,17 @@ import (
 func InitBackupClient() (backupClient BackupClient, err error) {
 	backupClients := viper.GetStringMap("backup_client")
 	for name, cfgClient := range backupClients {
-		if name == "ibs" {
+		if name == "bkbs" { // blueking backup system
+			if !viper.GetBool("backup_client.bkbs.enable") {
+				continue
+			}
+			var bkbsClient BKBackupClient
+			if err := mapstructure.Decode(cfgClient, &bkbsClient); err != nil {
+				return nil, err
+			} else {
+				backupClient = &bkbsClient
+			}
+		} else if name == "ibs" {
 			if !viper.GetBool("backup_client.ibs.enable") {
 				continue
 			}
@@ -21,16 +31,6 @@ func InitBackupClient() (backupClient BackupClient, err error) {
 				return nil, err
 			} else {
 				backupClient = &ibsClient
-			}
-		} else if name == "cos" {
-			if !viper.GetBool("backup_client.cos.enable") {
-				continue
-			}
-			var cosClient COSBackupClient
-			if err := mapstructure.Decode(cfgClient, &cosClient); err != nil {
-				return nil, err
-			} else {
-				backupClient = &cosClient
 			}
 		} else {
 			logger.Error("unknown backup_client %s", name)

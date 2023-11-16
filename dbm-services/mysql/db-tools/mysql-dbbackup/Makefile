@@ -19,7 +19,9 @@ build:
 	GOOS=linux GOARCH=amd64 go build -ldflags ${RELEASE_BUILD_FLAG} -gcflags="all=-trimpath=${PWD}" -asmflags="all=-trimpath=${PWD}" -o ${OUTPUT_DIR}/${PROJ_BIN}
 
 .PHONY: package
-package:build
+package:
+	make clean
+	make build
 	echo "Packaging ${PROJ_PKG} using dependency ${PROJ_PKG_DEPS}"
 	mkdir -p ${PKG_DIR}
 	cp ${OUTPUT_DIR}/${PROJ_BIN} ${PKG_DIR}/
@@ -29,10 +31,11 @@ package:build
 	cp -r ${PROJ_PKG_DEPS}/* ${PKG_DIR}/
 	chmod +x ${PKG_DIR}/*.sh && chmod +x ${PKG_DIR}/dbbackup
 	chmod +x ${PKG_DIR}/bin/* && chmod +x ${PKG_DIR}/bin/*/*
-	tar -C ${OUTPUT_DIR} -zcvf ${OUTPUT_DIR}/${PROJ_PKG} ${PROJ}
+	tar -C ${OUTPUT_DIR} -zcf ${OUTPUT_DIR}/${PROJ_PKG} ${PROJ}
 	md5sum ${OUTPUT_DIR}/${PROJ_PKG}
 
 .PHONY: clean
 clean:
-	rm -rf ${OUTPUT_DIR}
-	rm -rf ${PROJ}
+	rm -rf ${PKG_DIR}/*
+	rm -rf ${OUTPUT_DIR}/${PROJ_PKG}
+	rm -rf ${PROJ_PKG_DEPS}
