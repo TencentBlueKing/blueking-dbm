@@ -55,6 +55,12 @@ def randomize_admin_password(if_async: bool, range_type: str):
 
 def get_mysql_instance(cluster_id: int):
     def _get_instances(_role, _instances):
+        if _role == MySQLPasswordRole.TDBCTL_USER.value:
+            instance_info = {
+                "role": _role,
+                "addresses": [{"ip": instance.machine.ip, "port": instance.admin_port} for instance in _instances],
+            }
+            return instance_info
         instance_info = {
             "role": _role,
             "addresses": [{"ip": instance.machine.ip, "port": instance.admin_port} for instance in _instances],

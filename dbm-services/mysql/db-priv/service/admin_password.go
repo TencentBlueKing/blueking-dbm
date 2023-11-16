@@ -423,3 +423,44 @@ func (m *ModifyAdminUserPasswordPara) ModifyMysqlAdminPassword() (BatchResult, e
 	}
 	return batch, nil
 }
+
+// MigratePlatformPassword 从dbconfig迁移帐号信息，内部使用
+func (m *PlatformPara) MigratePlatformPassword() error {
+	// 从dbconfig获取账号信息
+	// migrate platform users for redis/mysql (not include mango)
+	var users []ComponentPlatformUser
+	// 从dbconfig获取mysql帐号
+	err := GetMysqlInitUser(&users, m.DbConfig)
+	if err != nil {
+		slog.Error("msg", "GetMysqlInitUser", err)
+		return fmt.Errorf("GetMysqlInitUser: %s", err.Error())
+	}
+	err = GetProxyInitUser(&users, m.DbConfig)
+	if err != nil {
+		slog.Error("msg", "GetProxyInitUser", err)
+		return fmt.Errorf("GetProxyInitUser: %s", err.Error())
+	}
+	// 从dbconfig获取redis os帐号信息
+	err = GetRedisOsUser(&users, m.DbConfig)
+	if err != nil {
+		slog.Error("msg", "GetRedisOsUser", err)
+		return fmt.Errorf("GetRedisOsUser: %s", err.Error())
+
+	}
+	slog.Info("msg", "migrate users", users)
+	for _, component := range users {
+		for _, user := range component.NamePassword {
+			defaultCloudId := int64(0)
+			para := &ModifyPasswordPara{UserName: user.Name, Component: component.Component, Operator: "migrate",
+				Instances:    []Address{{"0.0.0.0", 0, &defaultCloudId}},
+				InitPlatform: true, Psw: base64.StdEncoding.EncodeToString([]byte(user.Password))}
+			err = para.ModifyPassword()
+			if err != nil {
+				slog.Error("modify platform user password", "error", err)
+				return fmt.Errorf("modify platform user password error: %s", err.Error())
+			}
+		}
+	}
+	slog.Info("migrate success")
+	return nil
+}

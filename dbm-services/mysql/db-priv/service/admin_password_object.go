@@ -103,3 +103,7 @@ type AdminPasswordResp struct {
 type Password struct {
 	Password string `gorm:"column:password;not_null" json:"password"`
 }
+
+type PlatformPara struct {
+	DbConfig string `json:"db_config"`
+}
