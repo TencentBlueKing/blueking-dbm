@@ -15,6 +15,7 @@ import (
 type eventBodyItem struct {
 	EventName string `json:"event_name"`
 	Target    string `json:"target"`
+	Timestamp int64  `json:"timestamp"`
 	Event     struct {
 		Content string `json:"content"`
 	} `json:"event"`
@@ -121,6 +122,30 @@ func (bm *BkMonitorEventSender) SendWarning(eventName, warnmsg, warnLevel, targe
 	mylog.Logger.Info(sendCmd)
 	_, err = util.RunBashCmd(sendCmd, "", nil, 20*time.Second)
 	if err != nil {
+		return
+	}
+	return nil
+}
+
+// SendDbmonHeartBeat dbmon心跳检测
+func (bm *BkMonitorEventSender) SendDbmonHeartBeat(targetIP string) (err error) {
+	mylog.Logger.Info("SendDbmonHeartBeat start")
+	bm.newDimenSion()
+	bm.Data[0].Target = targetIP
+	l, _ := time.LoadLocation("Local")
+	// 毫秒级时间戳
+	bm.Data[0].Timestamp = time.Now().In(l).UnixMilli()
+	metrics := make(map[string]float64)
+	metrics["redis_dbmon_heart_beat"] = 1
+	bm.Data[0].Metrics = metrics
+	tempBytes, _ := json.Marshal(bm)
+	sendCmd := fmt.Sprintf(
+		`%s -report -report.bk_data_id %d -report.type agent  -report.message.kind timeseries -report.agent.address %s -report.message.body '%s'`,
+		bm.ToolBkMonitorBeat, bm.DataID, bm.AgentAddress, string(tempBytes))
+	mylog.Logger.Info(sendCmd)
+	_, err = util.RunBashCmd(sendCmd, "", nil, 20*time.Second)
+	if err != nil {
+		mylog.Logger.Error(fmt.Sprintf("send metric failed: %s", err.Error()))
 		return
 	}
 	return nil

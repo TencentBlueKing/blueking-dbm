@@ -13,6 +13,7 @@ from backend.db_periodic_task.local_tasks.check_checksum import *
 from backend.db_periodic_task.local_tasks.db_meta import *
 from backend.db_periodic_task.local_tasks.db_monitor import *
 from backend.db_periodic_task.local_tasks.db_proxy import *
+from backend.db_periodic_task.local_tasks.dbmon_heartbeat import *
 from backend.db_periodic_task.local_tasks.redis_autofix import *
 from backend.db_periodic_task.local_tasks.redis_backup import *
 from backend.db_periodic_task.local_tasks.redis_clusternodes_update import *

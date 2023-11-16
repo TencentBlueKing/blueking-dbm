@@ -12,6 +12,7 @@ import (
 	"dbm-services/redis/db-tools/dbmon/config"
 	"dbm-services/redis/db-tools/dbmon/mylog"
 	"dbm-services/redis/db-tools/dbmon/pkg/consts"
+	"dbm-services/redis/db-tools/dbmon/pkg/dbmonheartbeat"
 	"dbm-services/redis/db-tools/dbmon/pkg/httpapi"
 	"dbm-services/redis/db-tools/dbmon/pkg/keylifecycle"
 	"dbm-services/redis/db-tools/dbmon/pkg/mongojob"
@@ -82,6 +83,16 @@ Buildstamp:%s`, version, githash, buildstamp),
 				log.Panicf("reportHistoryClear addjob fail,entryID:%d,err:%v\n", entryID, err)
 				return
 			}
+			// dbmon 心跳
+			entryID, err = c.AddJob("@every 1m",
+				cron.NewChain(cron.SkipIfStillRunning(mylog.AdapterLog)).Then(
+					dbmonheartbeat.GetGlobDbmonHeartbeatJob(config.GlobalConf)))
+			if err != nil {
+				fmt.Printf("dbmonheartbeat addjob fail,entryID:%d,err:%v\n", entryID, err)
+				return
+			}
+			mylog.Logger.Info(fmt.Sprintf("create cron GlobDbmonHeartbeatJob success,entryID:%d", entryID))
+
 			mylog.Logger.Info(fmt.Sprintf("create cron GlobHistoryClearJob success,entryID:%d", entryID))
 
 			if config.GlobalConf.RedisFullBackup.Cron != "" {

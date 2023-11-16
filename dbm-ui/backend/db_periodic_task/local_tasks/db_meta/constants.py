@@ -166,4 +166,10 @@ QUERY_TEMPLATE = {
         "total": """max by (instance_host) (
             max_over_time(bkmonitor:pushgateway_dbm_influxdb_bkpull:disk_total{path=~"^/data|/data1$"}[1m]))""",
     },
+    ClusterType.Dbmon: {
+        "range": 5,
+        "heartbeat": """
+        avg by (target,bk_biz_id,app,bk_cloud_id, cluster_domain, cluster_type, instance_role)
+        (avg_over_time(custom:dbm_report_channel:redis_dbmon_heart_beat{{cluster_domain="{cluster_domain}"}}[1m]))""",
+    },
 }
