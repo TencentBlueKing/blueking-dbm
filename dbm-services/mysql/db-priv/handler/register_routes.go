@@ -70,6 +70,12 @@ func (m *PrivService) Routes() []*gin.RouteInfo {
 		{Method: http.MethodPost, Path: "add_security_rule", HandlerFunc: m.AddSecurityRule},
 		{Method: http.MethodPost, Path: "modify_security_rule", HandlerFunc: m.ModifySecurityRule},
 		{Method: http.MethodPost, Path: "delete_security_rule", HandlerFunc: m.DeleteSecurityRule},
+
+		// 迁移平台密码
+		{Method: http.MethodPost, Path: "migrate_platform_password", HandlerFunc: m.MigratePlatformPassword},
+
+		// 检查和迁移账号规则
+		{Method: http.MethodPost, Path: "migrate_account_rule", HandlerFunc: m.MigrateAccountRule},
 	}
 }
 
