@@ -616,7 +616,9 @@ class MySQLRestoreSlaveFlow(object):
             act_name=_("获取初始化信息"),
             act_component_code=GetOsSysParamComponent.code,
             kwargs=asdict(
-                ExecActuatorKwargs(bk_cloud_id=one_machine["bk_cloud_id"], exec_ip=one_machine["master_ip"])
+                ExecActuatorKwargs(
+                    bk_cloud_id=one_machine["bk_cloud_id"], exec_ip=one_machine["clusters"][0]["master_ip"]
+                )
             ),
         )
         account = MysqlActPayload.get_mysql_account()

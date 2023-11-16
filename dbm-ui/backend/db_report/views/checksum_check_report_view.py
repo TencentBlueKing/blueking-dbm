@@ -66,7 +66,7 @@ class ChecksumCheckReportViewSet(ReportBaseViewSet):
         {
             "name": "fail_slaves",
             "display_name": _("失败的从库实例数量"),
-            "format": ReportFieldFormat.TEXT.value,
+            "format": ReportFieldFormat.FAIL_SLAVE_INSTANCE.value,
         },
         {
             "name": "msg",
