@@ -118,7 +118,7 @@ func (d *DeploySpiderAct) Run() (err error) {
 		},
 		{
 			FunName: "执行初始化系统基础权限、库表SQL",
-			Func:    d.BaseService.InitDefaultPrivAndSchema,
+			Func:    d.BaseService.InitDefaultPrivAndSchemaWithResetMaster,
 		},
 		{
 			FunName: "生成exporter配置文件",

@@ -700,12 +700,12 @@ func (a *AdditionalAccount) GetDBHAAccount(realVersion string) (initAccountsql [
 	return
 }
 
-// InitDefaultPrivAndSchema TODO
+// InitDefaultPrivAndSchemaWithResetMaster TODO
 /**
  * @description: 执行初始化默认库表语句&初始化默认账户sql
  * @return {*}
  */
-func (i *InstallMySQLComp) InitDefaultPrivAndSchema() (err error) {
+func (i *InstallMySQLComp) InitDefaultPrivAndSchemaWithResetMaster() (err error) {
 	var bsql []byte
 	var initSQLs []string
 
