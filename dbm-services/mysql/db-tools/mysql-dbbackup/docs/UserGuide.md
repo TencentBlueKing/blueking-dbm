@@ -49,7 +49,7 @@ Flags:
   TarSizeThreshold uint64 `ini:"TarSizeThreshold"`
 [BackupClient]
   FileTag          string `ini:"FileTag"`
-  RemoteFileSystem string `ini:"RemoteFileSystem"`  [hdfs|cos]
+  StorageType string `ini:"StorageType"`  [hdfs|cos]
   DoChecksum       bool   `ini:"DoChecksum"`    //默认为true
 [LogicalBackup]
   PartMaxRows          uint64 `ini:"PartMaxRows"`
@@ -165,7 +165,7 @@ index文件内容格式为：
 * 备份配置信息 (暂不上报)
 文件名为：dbareport_cnf_[mysqlport].log
 ```
-{"Public":{"BkBizId":"1111","BkCloudId":"","BillId":"","ClusterAddress":"","MysqlHost":"127.0.0.1","MysqlPort":"12000","MysqlUser":"tt","MysqlPasswd":"123456","DataSchemaGrant":"data, schema, grant","BackupDir":"/data/git-code/dbbackup/file","MysqlRole":"master","MysqlCharset":"binary","BackupTimeOut":"09:00:00","BackupType":"Logical","OldFileLeftDay":0,"TarSizeThreshold":1048576},"BackupClient":{"FileTag":"MYSQL_FULL_BACKUP","RemoteFileSystem":"hdfs","DoChecksum":true},"LogicalBackup":{"PartMaxRows":1000000,"PartChunSize":1000000,"Regex":"","Threads":4,"FlushRetryCount":3,"MydumperDefaultsFile":"/data/mydumper.cnf"},"LogicalLoad":{"MysqlHost":"127.0.0.1","MysqlPort":"12001","MysqlUser":"tt","MysqlPasswd":"123456","MysqlCharset":"utf8","MysqlLoadDir":"/data/git-code/dbbackup/file/1111_VM-165-14-centos_127.0.0.1_12000_20221121_112545_Logical","Regex":"","Threads":4,"RecordBinlog":false,"MyloaderDefaultsFile":""}}
+{"Public":{"BkBizId":"1111","BkCloudId":"","BillId":"","ClusterAddress":"","MysqlHost":"127.0.0.1","MysqlPort":"12000","MysqlUser":"tt","MysqlPasswd":"123456","DataSchemaGrant":"data, schema, grant","BackupDir":"/data/git-code/dbbackup/file","MysqlRole":"master","MysqlCharset":"binary","BackupTimeOut":"09:00:00","BackupType":"Logical","OldFileLeftDay":0,"TarSizeThreshold":1048576},"BackupClient":{"FileTag":"MYSQL_FULL_BACKUP","StorageType":"hdfs","DoChecksum":true},"LogicalBackup":{"PartMaxRows":1000000,"PartChunSize":1000000,"Regex":"","Threads":4,"FlushRetryCount":3,"MydumperDefaultsFile":"/data/mydumper.cnf"},"LogicalLoad":{"MysqlHost":"127.0.0.1","MysqlPort":"12001","MysqlUser":"tt","MysqlPasswd":"123456","MysqlCharset":"utf8","MysqlLoadDir":"/data/git-code/dbbackup/file/1111_VM-165-14-centos_127.0.0.1_12000_20221121_112545_Logical","Regex":"","Threads":4,"RecordBinlog":false,"MyloaderDefaultsFile":""}}
 ```
 
 * 备份结果信息
@@ -280,7 +280,7 @@ StatusReportPath = /home/mysql/dbareport/mysql/dbbackup/status
 
 [BackupClient]
 Enable = false
-RemoteFileSystem = hdfs
+StorageType = hdfs
 FileTag          = MYSQL_FULL_BACKUP
 DoChecksum       = true
 

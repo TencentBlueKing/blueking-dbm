@@ -20,23 +20,23 @@ type BackupClient interface {
 	TaskStatus(taskId string) (int, string, error)
 }
 
-// COSBackupClient 新备份系统
-type COSBackupClient struct {
+// BKBackupClient 新备份系统
+type BKBackupClient struct {
 	backupClient *backupclient.BackupClient
 }
 
 // NewCosBackupClient new
-func NewCosBackupClient(toolPath string, authFile string, fileTag string) (*COSBackupClient, error) {
-	if backupClient, err := backupclient.New(toolPath, authFile, fileTag); err != nil {
+func NewCosBackupClient(toolPath string, authFile string, fileTag string) (*BKBackupClient, error) {
+	if backupClient, err := backupclient.New(toolPath, authFile, fileTag, ""); err != nil {
 		mylog.Logger.Error(fmt.Sprintf("NewCosBackupClient failed,err:%v", err))
 		return nil, err
 	} else {
-		return &COSBackupClient{backupClient: backupClient}, nil
+		return &BKBackupClient{backupClient: backupClient}, nil
 	}
 }
 
 // Upload 上传文件
-func (o *COSBackupClient) Upload(fileName string) (taskId string, err error) {
+func (o *BKBackupClient) Upload(fileName string) (taskId string, err error) {
 	taskId, err = o.backupClient.Upload(fileName)
 	if err != nil {
 		mylog.Logger.Error(fmt.Sprintf("CosBackupClient upload failed,err:%v", err))
@@ -46,7 +46,7 @@ func (o *COSBackupClient) Upload(fileName string) (taskId string, err error) {
 }
 
 // TaskStatus 备份任务状态
-func (o *COSBackupClient) TaskStatus(taskId string) (status int, statusMsg string, err error) {
+func (o *BKBackupClient) TaskStatus(taskId string) (status int, statusMsg string, err error) {
 	status, statusMsg, err = o.backupClient.Query2(taskId)
 	if err != nil {
 		mylog.Logger.Error(fmt.Sprintf("CosBackupClient Query2 failed,err:%v", err))

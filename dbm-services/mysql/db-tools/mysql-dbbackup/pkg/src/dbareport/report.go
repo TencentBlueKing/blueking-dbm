@@ -134,7 +134,12 @@ func (r *Reporter) ReportBackupStatus(status string) error {
 // ExecuteBackupClient execute backup_client which sends files to backup system
 func (r *Reporter) ExecuteBackupClient(fileName string) (taskid string, err error) {
 	if r.cfg.BackupClient.Enable {
-		backupClient, err := backupclient.New(r.cfg.BackupClient.BackupClientBin, "", r.cfg.BackupClient.FileTag)
+		backupClient, err := backupclient.New(
+			r.cfg.BackupClient.BackupClientBin,
+			"",
+			r.cfg.BackupClient.FileTag,
+			r.cfg.BackupClient.StorageType,
+		)
 		if err != nil {
 			return "", err
 		}
@@ -161,12 +166,12 @@ func (r *Reporter) ExecuteBackupClient2(fileName string) (taskid string, err err
 		} else {
 			checksumStr = "--without-md5"
 		}
-		if strings.ToLower(r.cfg.BackupClient.RemoteFileSystem) == "hdfs" {
+		if strings.ToLower(r.cfg.BackupClient.StorageType) == "hdfs" {
 			filesystemStr = "-n"
-		} else if strings.ToLower(r.cfg.BackupClient.RemoteFileSystem) == "cos" {
+		} else if strings.ToLower(r.cfg.BackupClient.StorageType) == "cos" {
 			filesystemStr = "-c"
 		} else {
-			err = errors.New("unknown RemoteFileSystem for backupclient")
+			err = errors.New("unknown StorageType for backupclient")
 			return "-1", err
 		}
 		backupClientStr := fmt.Sprintf(

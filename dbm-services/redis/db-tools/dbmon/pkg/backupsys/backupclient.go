@@ -27,7 +27,7 @@ type COSBackupClient struct {
 
 // NewCosBackupClient new
 func NewCosBackupClient(toolPath string, authFile string, fileTag string) (*COSBackupClient, error) {
-	if backupClient, err := backupclient.New(toolPath, authFile, fileTag); err != nil {
+	if backupClient, err := backupclient.New(toolPath, authFile, fileTag, ""); err != nil {
 		mylog.Logger.Error(fmt.Sprintf("NewCosBackupClient failed,err:%v", err))
 		return nil, err
 	} else {

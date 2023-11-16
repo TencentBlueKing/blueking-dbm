@@ -4,9 +4,11 @@ package backupclient
 import (
 	"encoding/json"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"github.com/pkg/errors"
+	"github.com/spf13/cast"
 
 	"dbm-services/common/go-pubpkg/cmutil"
 )
@@ -22,7 +24,11 @@ const (
 type BackupClient struct {
 	ClientPath string
 	AuthFile   string
-	FileTag    string
+	// FileTag allowed:
+	//  REDIS_BINLOG,INCREMENT_BACKUP,REDIS_FULL,MYSQL_FULL_BACKUP,BINLOG,OSDATA,MONGO_INCR_BACKUP,LOG,ORACLE,OTHER
+	FileTag string
+	// StorageType hdfs or cos
+	StorageType string
 
 	registerArgs []string
 	queryArgs    []string
@@ -40,9 +46,11 @@ type QueryResp struct {
 	StatusMsg string `json:"status_msg"`
 }
 
+var storageTypeAllowed = []string{"hdfs", "cos"}
+
 // New 初始一个 backup_client 命令
 // 默认使用 /usr/local/backup_client/bin/backup_client --auth-file $HOME/.cosinfo.toml
-func New(clientPath string, authFile string, fileTag string) (*BackupClient, error) {
+func New(clientPath string, authFile string, fileTag string, storageType string) (*BackupClient, error) {
 	if clientPath == "" {
 		clientPath = BackupClientPath
 	}
@@ -51,9 +59,10 @@ func New(clientPath string, authFile string, fileTag string) (*BackupClient, err
 	}
 
 	b := &BackupClient{
-		ClientPath: clientPath,
-		AuthFile:   authFile,
-		FileTag:    fileTag,
+		ClientPath:  clientPath,
+		AuthFile:    authFile,
+		FileTag:     fileTag,
+		StorageType: storageType,
 	}
 	if b.FileTag == "" {
 		return nil, errors.New("file_tag is required")
@@ -64,6 +73,12 @@ func New(clientPath string, authFile string, fileTag string) (*BackupClient, err
 			return nil, errors.Errorf("auth-file not found:%s", clientPath)
 		}
 		b.registerArgs = append(b.registerArgs, "--auth-file", b.AuthFile)
+	}
+	if b.StorageType != "" {
+		if !slices.Contains(storageTypeAllowed, b.StorageType) {
+			return nil, errors.Errorf("unknown backup_client storage_type %s", b.StorageType)
+		}
+		b.registerArgs = append(b.registerArgs, "--storage-type", b.StorageType)
 	}
 	b.queryArgs = []string{b.ClientPath, "query"}
 	return b, nil
@@ -78,8 +93,11 @@ func (b *BackupClient) register(filePath string) (backupTaskId string, err error
 	if err != nil {
 		return "", errors.Wrapf(err, "register cmd failed %v with %s", registerArgs, stderrStr)
 	}
-	if strings.Count(stdoutStr, "-") == 3 && len(stdoutStr) < 80 {
-		// 这里粗略判断是否是合法的 task_id
+	if _, err := cast.ToInt64E(stdoutStr); err == nil {
+		// hdfs backup_taskid format
+		return stdoutStr, nil
+	} else if strings.Count(stdoutStr, "-") == 3 && len(stdoutStr) < 80 {
+		// 这里粗略判断是否是合法的 cos backup_taskid
 		return stdoutStr, nil
 	} else {
 		return "", errors.Errorf("illegal backup_task_id %s for %s", stdoutStr, filePath)
@@ -99,6 +117,7 @@ func (b *BackupClient) Query(backupTaskId string) (uploadStatus int, err error) 
 		return 0, errors.Wrapf(err, "query cmd failed %v with %s", queryArgs, string(stderr))
 	}
 	return 4, nil
+
 	var resp QueryResp
 	if err := json.Unmarshal(stdout, &resp); err != nil {
 		return 0, errors.Wrapf(err, "parse query response %s", string(stdout))
