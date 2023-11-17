@@ -80,7 +80,10 @@ class Command(BaseCommand):
                 "os_type_list",
             ],
         )
+
         template["target_nodes"] = []
+        template["plugin_id"] = plugin_info["plugin_id"]
+        template.pop("plugin_info")
 
         return template
 
