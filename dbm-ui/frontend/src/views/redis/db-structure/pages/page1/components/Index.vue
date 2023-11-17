@@ -14,12 +14,9 @@
 <template>
   <div class="render-data">
     <RenderTable>
-      <template
-        #default="slotProps">
+      <template #default>
         <RenderTableHeadColumn
-          :is-minimize="slotProps.isOverflow"
           :min-width="140"
-          :row-width="slotProps.rowWidth"
           :width="240">
           <span>{{ $t('待构造的集群') }}</span>
           <template #append>
@@ -35,17 +32,13 @@
           </template>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
-          :is-minimize="slotProps.isOverflow"
           :min-width="120"
-          :row-width="slotProps.rowWidth"
           :width="200">
           <span>{{ $t('待构造的实例') }}</span>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
-          :is-minimize="slotProps.isOverflow"
           :min-width="130"
           :required="false"
-          :row-width="slotProps.rowWidth"
           :width="240">
           <BkPopover
             :content="$t('默认使用部署时选定的规格，将从资源池自动匹配机器')"
@@ -54,32 +47,26 @@
           </BkPopover>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
-          :is-minimize="slotProps.isOverflow"
           :min-width="100"
-          :row-width="slotProps.rowWidth"
           :width="120">
           <span>{{ $t('构造主机数量') }}</span>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
-          :is-minimize="slotProps.isOverflow"
           :min-width="160"
-          :row-width="slotProps.rowWidth"
           :width="220">
           <span>{{ $t('构造到指定时间') }}</span>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
-          :is-fixed="slotProps.isOverflow"
-          :is-minimize="slotProps.isOverflow"
+          fixed="right"
           :min-width="90"
           :required="false"
-          :row-width="slotProps.rowWidth"
           :width="120">
           {{ $t('操作') }}
         </RenderTableHeadColumn>
       </template>
 
-      <template #data="slotProps">
-        <slot :is-overflow="slotProps.isOverflow" />
+      <template #data>
+        <slot />
       </template>
     </RenderTable>
   </div>

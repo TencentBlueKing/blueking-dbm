@@ -19,7 +19,6 @@
         theme="info"
         :title="t('集群类型变更：通过部署新集群来实现原集群的类型变更，可以指定新的版本')" />
       <RenderData
-        v-slot="slotProps"
         class="mt16"
         @show-master-batch-selector="handleShowMasterBatchSelector">
         <RenderDataRow
@@ -29,7 +28,6 @@
           :cluster-types-map="clusterTypesMap"
           :data="item"
           :inputed-clusters="inputedClusters"
-          :is-fixed="slotProps.isOverflow"
           :removeable="tableData.length < 2"
           @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
           @cluster-input-finish="(domain: string) => handleChangeCluster(index, domain)"

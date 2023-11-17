@@ -66,7 +66,7 @@
   import { RedisClusterTypes } from '@services/model/redis/redis';
   import RedisClusterSpecModel from '@services/model/resource-spec/redis-cluster-sepc';
 
-  import DisableSelect from '@components/tools-select-disable/index.vue';
+  import DisableSelect from '@components/render-table/columns/select-disable/index.vue';
 
   import ChooseClusterTargetPlan, {
     type CapacityNeed,

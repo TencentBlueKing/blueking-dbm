@@ -27,27 +27,16 @@
           :cluster-data="data.clusterData"
           :model-value="data.backupLocal" />
       </td>
-      <td :class="{'shadow-column': isFixed}">
-        <div class="action-box">
-          <div
-            class="action-btn ml-2"
-            @click="handleAppend">
-            <DbIcon type="plus-fill" />
-          </div>
-          <div
-            class="action-btn"
-            :class="{
-              disabled: removeable
-            }"
-            @click="handleRemove">
-            <DbIcon type="minus-fill" />
-          </div>
-        </div>
-      </td>
+      <OperateColumn
+        :removeable="removeable"
+        @add="handleAppend"
+        @remove="handleRemove" />
     </tr>
   </tbody>
 </template>
 <script lang="ts">
+  import OperateColumn from '@components/render-table/columns/operate-column/index.vue';
+
   import { random } from '@utils';
 
   export interface IDataRow {
@@ -74,7 +63,6 @@
   interface Props {
     data: IDataRow,
     removeable: boolean,
-    isFixed?: boolean,
   }
   interface Emits {
     (e: 'add', params: Array<IDataRow>): void,
@@ -140,30 +128,3 @@
     },
   });
 </script>
-<style lang="less" scoped>
-.action-box {
-  display: flex;
-  align-items: center;
-
-  .action-btn {
-    display: flex;
-    font-size: 14px;
-    color: #c4c6cc;
-    cursor: pointer;
-    transition: all 0.15s;
-
-    &:hover {
-      color: #979ba5;
-    }
-
-    &.disabled {
-      color: #dcdee5;
-      cursor: not-allowed;
-    }
-
-    & ~ .action-btn {
-      margin-left: 18px;
-    }
-  }
-}
-</style>

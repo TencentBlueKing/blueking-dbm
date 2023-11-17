@@ -50,7 +50,7 @@
 </template>
 <script lang="ts">
 
-  import RenderText from '@components/tools-table-common/RenderText.vue';
+  import RenderText from '@components/render-table/columns/text-plain/index.vue';
 
   import RenderKeyRelated from '@views/redis/common/edit-field/RegexKeys.vue';
 

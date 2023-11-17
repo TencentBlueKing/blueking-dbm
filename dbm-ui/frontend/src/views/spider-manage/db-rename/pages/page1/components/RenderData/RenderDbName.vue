@@ -29,7 +29,7 @@
 
   import { checkClusterDatabase } from '@services/source/remoteService';
 
-  import TableEditInput from '@components/tools-table-input/index.vue';
+  import TableEditInput from '@components/render-table/columns/input/index.vue';
 
   interface Props {
     clusterId: number,

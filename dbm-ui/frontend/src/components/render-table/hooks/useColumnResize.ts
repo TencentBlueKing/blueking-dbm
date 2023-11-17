@@ -11,15 +11,9 @@
  * the specific language governing permissions and limitations under the License.
 */
 
-import _ from 'lodash';
-import {
-  onBeforeUnmount,
-  onMounted,
-  type Ref,
-  ref,
-} from 'vue';
+// import _ from 'lodash';
 
-export default function (tableRef: Ref<Element>, tableColumnResizeRef: Ref<HTMLElement>) {
+export default function (tableRef: Ref<Element>, tableColumnResizeRef: Ref<HTMLElement>, mouseupCallback: () => void) {
   let dragable = false;
 
   const dragging = ref(false);
@@ -29,10 +23,8 @@ export default function (tableRef: Ref<Element>, tableColumnResizeRef: Ref<HTMLE
     setTimeout(() => {
       const tableEl = tableRef.value;
       tableEl.querySelectorAll('th').forEach((columnEl) => {
-        const {
-          width,
-        } = columnEl.getBoundingClientRect();
-        const renderWidth = Math.max(parseInt(columnEl.getAttribute('data-minwidth') || '', 10), width);
+        const { width } = columnEl.getBoundingClientRect();
+        const renderWidth = Math.max(parseInt(columnEl.getAttribute('data-minWidth') || '', 10), width);
         // eslint-disable-next-line no-param-reassign
         columnEl.style.width = `${renderWidth}px`;
       });
@@ -53,23 +45,23 @@ export default function (tableRef: Ref<Element>, tableColumnResizeRef: Ref<HTMLE
       columnKey,
       minWidth = 100,
     } = payload;
-    dragging.value = true;
 
     const tableEl = tableRef.value;
-    const tableLeft = tableEl.getBoundingClientRect().left;
     const columnEl = tableEl.querySelector(`th.column-${columnKey}`) as HTMLElement;
+    const tableLeft = tableEl.getBoundingClientRect().left;
     const columnRect = columnEl.getBoundingClientRect();
     const minLeft = columnRect.left - tableLeft + 30;
-
+    const scrollLetf = tableRef.value.scrollLeft;
     dragState.value = {
       startMouseLeft: event.clientX,
-      startLeft: columnRect.right - tableLeft,
+      startLeft: columnRect.right - tableLeft + scrollLetf,
       startColumnLeft: columnRect.left - tableLeft,
       tableLeft,
     };
     const resizeProxy = tableColumnResizeRef.value;
+    let resizeProxyLeft = dragState.value.startLeft;
     resizeProxy.style.display = 'block';
-    resizeProxy.style.left = `${dragState.value.startLeft}px`;
+    resizeProxy.style.left = `${resizeProxyLeft}px`;
 
     document.onselectstart = function () {
       return false;
@@ -79,25 +71,27 @@ export default function (tableRef: Ref<Element>, tableColumnResizeRef: Ref<HTMLE
     };
 
     const handleMouseMove = (event: MouseEvent) => {
+      dragging.value = true;
       const deltaLeft = event.clientX - (dragState.value).startMouseLeft;
       const proxyLeft = (dragState.value).startLeft + deltaLeft;
       resizeProxy.style.display = 'block';
-      resizeProxy.style.left = `${Math.max(minLeft, proxyLeft)}px`;
+      resizeProxyLeft = Math.max(minLeft, proxyLeft);
+      resizeProxy.style.left = `${resizeProxyLeft}px`;
     };
 
     const handleMouseUp = () => {
       if (dragging.value) {
         const { startColumnLeft } = dragState.value;
-        const finalLeft = Number.parseInt(resizeProxy.style.left, 10);
-        const columnWidth = Math.max(finalLeft - startColumnLeft, minWidth);
-
+        const columnWidth = Math.max(resizeProxyLeft - startColumnLeft - scrollLetf, minWidth);
         columnEl.style.width = `${columnWidth}px`;
         resizeProxy.style.display = 'none';
         document.body.style.cursor = '';
         dragging.value = false;
         dragState.value = {};
       }
+      resizeProxy.style.display = 'none';
       dragable = false;
+      mouseupCallback();
 
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
@@ -124,24 +118,32 @@ export default function (tableRef: Ref<Element>, tableColumnResizeRef: Ref<HTMLE
     }
   };
 
-  const handleOuterMousemove = _.throttle((event) => {
-    let i = event.composedPath().length - 1;
-    while (i >= 0) {
-      if (event.composedPath()[i].id === 'mysqlToolRenderTable') {
-        return;
-      }
-      i = i - 1;
-    }
-    document.body.style.cursor = '';
-  }, 500);
+  // const handleOuterMousemove = _.throttle((event) => {
+  //   let i = event.composedPath().length - 1;
+  //   while (i >= 0) {
+  //     if (event.composedPath()[i].id === 'toolboxRenderTableKey') {
+  //       return;
+  //     }
+  //     i = i - 1;
+  //   }
+  //   document.body.style.cursor = '';
+  // }, 100);
+
+
+  provide('toolboxRenderTableKey', {
+    columnMousedown: handleMouseDown,
+    columnMouseMove: handleMouseMove,
+  });
 
   onMounted(() => {
-    document.addEventListener('mousemove', handleOuterMousemove);
+    initColumnWidth();
+    // document.addEventListener('mousemove', handleOuterMousemove);
   });
 
   onBeforeUnmount(() => {
-    document.removeEventListener('mousemove', handleOuterMousemove);
+    // document.removeEventListener('mousemove', handleOuterMousemove);
   });
+
   return {
     initColumnWidth,
     handleMouseDown,

@@ -19,7 +19,6 @@
         theme="info"
         :title="$t('扩容接入层：增加集群的Proxy数量')" />
       <RenderData
-        v-slot="slotProps"
         class="mt16"
         @show-batch-selector="handleShowBatchSelector">
         <RenderDataRow
@@ -28,7 +27,6 @@
           ref="rowRefs"
           :choosed-node-type="clusterNodeTypeMap[item.cluster]"
           :data="item"
-          :is-fixed="slotProps.isOverflow"
           :removeable="tableData.length < 2"
           @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
           @cluster-input-finish="(domain: string) => handleChangeCluster(index, domain)"
@@ -300,21 +298,6 @@
 <style lang="less" scoped>
   .proxy-scale-up-page {
     padding-bottom: 20px;
-
-    .page-action-box {
-      display: flex;
-      align-items: center;
-      margin-top: 16px;
-
-      .safe-action {
-        margin-left: auto;
-
-        .safe-action-text {
-          padding-bottom: 2px;
-          border-bottom: 1px dashed #979ba5;
-        }
-      }
-    }
   }
 
   .bottom-btn {

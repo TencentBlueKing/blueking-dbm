@@ -54,7 +54,7 @@
   }
 </script>
 <script setup lang="ts">
-  import useValidtor, { type Rules } from './hooks/useValidtor';
+  import useValidtor, { type Rules } from '@components/render-table/hooks/useValidtor';
 
   interface Props {
     list: Array<IListItem>,

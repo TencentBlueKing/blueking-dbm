@@ -21,7 +21,6 @@
         :title="t('主从切换：针对TendisSSD、TendisCache，主从切换是把Slave提升为Master，原Master被剔除，针对Tendisplus集群，主从切换是把Slave和Master互换')" />
       <BkLoading :loading="isLoading">
         <RenderData
-          v-slot="slotProps"
           class="mt16"
           @show-master-batch-selector="handleShowMasterBatchSelector">
           <RenderDataRow
@@ -30,7 +29,6 @@
             ref="rowRefs"
             :data="item"
             :inputed-ips="inputedIps"
-            :is-fixed="slotProps.isOverflow"
             :removeable="tableData.length <2"
             @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
             @on-ip-input-finish="(ip: string) => handleChangeHostIp(index, ip)"
