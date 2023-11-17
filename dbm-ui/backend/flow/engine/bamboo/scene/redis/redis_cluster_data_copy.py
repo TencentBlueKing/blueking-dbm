@@ -327,6 +327,7 @@ class RedisClusterDataCopyFlow(object):
         install_param["src_db_version"] = src_cluster_info["cluster_version"]
         install_param["cluster_password"] = src_cluster_info["cluster_password"]
         install_param["redis_password"] = src_cluster_info["redis_password"]
+        install_param["redis_proxy_admin_password"] = src_cluster_info.get("redis_proxy_admin_password", "")
         install_param["redis_databases"] = src_cluster_info["redis_databases"]
         install_param["max_disk"] = info["max_disk"]
         install_param["maxmemory"] = info["maxmemory"]
@@ -894,7 +895,7 @@ class RedisClusterDataCopyFlow(object):
                 }
             )
 
-            # 交换源集群、目标集群的 proxy 版本信息
+            # 交换源集群、目标集群的 proxy 配置
             act_kwargs.cluster = {
                 "bk_biz_id": int(job_row.app),
                 "src_cluster_domain": src_cluster_info["cluster_domain"],

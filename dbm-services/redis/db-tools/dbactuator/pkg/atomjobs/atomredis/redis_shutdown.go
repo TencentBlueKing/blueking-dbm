@@ -126,7 +126,7 @@ func (job *RedisShutdown) Shutdown(port int) {
 	var err error
 	stopScript := filepath.Join(job.RedisBinDir, "stop-redis.sh")
 	job.runtime.Logger.Info("get port[%d] pwd begin.", port)
-	pwd, err := myredis.GetPasswordFromLocalConfFile(port)
+	pwd, err := myredis.GetRedisPasswdFromConfFile(port)
 	if err != nil {
 		job.errChan <- fmt.Errorf("get redis port[%d] password failed err[%s]", port, err.Error())
 		return

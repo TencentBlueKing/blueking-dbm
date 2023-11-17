@@ -139,7 +139,7 @@ func (job *TendisPlusMigrateSlots) Run() error {
 		return nil
 	}
 
-	//这一步放到flow来做会更好些，扩容的时候
+	// 这一步放到flow来做会更好些，扩容的时候
 	// job.dstClusterMeetSrc()
 	// if job.Err != nil {
 	// 	return job.Err
@@ -185,7 +185,7 @@ func (job *TendisPlusMigrateSlots) dstNodeAddr() string {
 // dstClusterMeetSrc 新建节点加入源集群
 func (job *TendisPlusMigrateSlots) dstClusterMeetSrc() {
 	var err error
-	nodePasswordOnMachine, err := myredis.GetPasswordFromLocalConfFile(job.params.SrcNode.Port)
+	nodePasswordOnMachine, err := myredis.GetRedisPasswdFromConfFile(job.params.SrcNode.Port)
 	if err != nil {
 		job.Err = fmt.Errorf("SrcNode GetPassword GetPasswordFromLocalConfFile filed: %+v", err)
 		job.runtime.Logger.Error(job.Err.Error())
@@ -620,7 +620,8 @@ func (job *TendisPlusMigrateSlots) MigrateSpecificSlots(srcAddr,
 		job.runtime.Logger.Info(msg)
 		importRet, err = dstCli.DoCommand(cmd, 0)
 		if err != nil && strings.Contains(err.Error(), "slot in deleting") == true {
-			msg = fmt.Sprintf(`slot in deleting : MigrateSpecificSlots execute cluster setslot importing fail,err:%v,srcAddr:%s,dstAddr:%s,cmd:  cluster
+			msg = fmt.Sprintf(
+				`slot in deleting : MigrateSpecificSlots execute cluster setslot importing fail,err:%v,srcAddr:%s,dstAddr:%s,cmd:  cluster
 			setslot importing %s %s`, err, srcAddr, dstAddr, srcNodeInfo.NodeID, myredis.ConvertSlotToShellFormat(slots))
 			job.runtime.Logger.Warn(msg)
 			time.Sleep(1 * time.Minute)
@@ -629,14 +630,16 @@ func (job *TendisPlusMigrateSlots) MigrateSpecificSlots(srcAddr,
 		} else if err != nil && strings.Contains(err.Error(), "slot not empty") == true {
 			dstCli.ClusterClear()
 			srcCli.ClusterClear()
-			msg = fmt.Sprintf(`slot not empty : MigrateSpecificSlots execute cluster setslot importing fail,err:%v,srcAddr:%s,dstAddr:%s,cmd: cluster
+			msg = fmt.Sprintf(
+				`slot not empty : MigrateSpecificSlots execute cluster setslot importing fail,err:%v,srcAddr:%s,dstAddr:%s,cmd: cluster
  			setslot importing %s %s`, err, srcAddr, dstAddr, srcNodeInfo.NodeID, myredis.ConvertSlotToShellFormat(slots))
 			job.runtime.Logger.Warn(msg)
 			time.Sleep(1 * time.Minute)
 			deleteSlotErrRetryTimes++
 			continue
 		} else if err != nil {
-			err = fmt.Errorf(`MigrateSpecificSlots execute cluster setslot importing fail,err:%v,srcAddr:%s,dstAddr:%s,cmd: cluster
+			err = fmt.Errorf(
+				`MigrateSpecificSlots execute cluster setslot importing fail,err:%v,srcAddr:%s,dstAddr:%s,cmd: cluster
  			setslot importing %s %s`, err, srcAddr, dstAddr, srcNodeInfo.NodeID, myredis.ConvertSlotToShellFormat(slots))
 			job.runtime.Logger.Warn(err.Error())
 			time.Sleep(1 * time.Minute)

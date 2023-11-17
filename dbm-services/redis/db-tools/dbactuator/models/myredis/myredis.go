@@ -30,8 +30,8 @@ func GetRedisLoccalConfFile(port int) (confFile string, err error) {
 	return
 }
 
-// GetPasswordFromLocalConfFile (从配置文件中)获取本地redis实例密码
-func GetPasswordFromLocalConfFile(port int) (password string, err error) {
+// GetRedisPasswdFromConfFile (从配置文件中)获取本地redis实例密码
+func GetRedisPasswdFromConfFile(port int) (password string, err error) {
 	confFile, err := GetRedisLoccalConfFile(port)
 	if err != nil {
 		err = fmt.Errorf("get redis local config file failed,err:%v,port:%d", err, port)
@@ -55,8 +55,8 @@ func GetProxyPasswdFromConfFlie(port int, role string) (password string, err err
 		grepCmd = fmt.Sprintf(`grep -w "password" %s/twemproxy*/%d/nutcracker.%d.yml|grep -vE "#"|awk '{print $NF}'`,
 			consts.DataPath, port, port)
 	} else if role == consts.MetaRolePredixy {
-		grepCmd = fmt.Sprintf(`grep -iw "auth" %s/predixy/%d/predixy.conf|awk '{print $2}'`,
-			consts.Data1Path, port)
+		grepCmd = fmt.Sprintf(`grep -Pi -B 2 "Mode\s*?write" %s/predixy/%d/predixy.conf|grep -iw "auth"|awk '{print $2}'`,
+			consts.GetRedisDataDir(), port)
 	}
 	password, err = util.RunBashCmd(grepCmd, "", nil, 10*time.Second)
 	if err != nil {
@@ -90,7 +90,7 @@ func LocalRedisConnectTest(ip string, ports []int, password string) (err error) 
 	l01 := make([]*connTestItem, 0, len(ports))
 	for _, port := range ports {
 		if password == "" {
-			password, err = GetPasswordFromLocalConfFile(port)
+			password, err = GetRedisPasswdFromConfFile(port)
 			if err != nil {
 				return
 			}
