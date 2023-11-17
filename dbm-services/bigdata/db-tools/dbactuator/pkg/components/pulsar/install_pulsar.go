@@ -32,7 +32,7 @@ type InstallPulsarParams struct {
 	ZkHost               string          `json:"zk_host"`                             // zk列表，逗号分隔，域名/IP
 	Domain               string          `json:"domain"`                              // 域名
 	ClusterName          string          `json:"cluster_name"`                        // 集群名
-	ZkId                 int             `json:"zk_id" `                              // zookeeper的id
+	ZkID                 int             `json:"zk_id" `                              // zookeeper的id
 	ZkConfigs            json.RawMessage `json:"zk_configs"`                          // 从dbconfig获取的zookeeper的配置信息
 	BkConfigs            json.RawMessage `json:"bk_configs"`                          // 从dbconfig获取的bookkeeper的配置信息
 	BrokerConfigs        json.RawMessage `json:"broker_configs"`                      // 从dbconfig获取的broker的配置信息
@@ -58,7 +58,7 @@ type InitDirs = []string
 // Port TODO
 type Port = int
 
-// PulsarConfig 目录定义等
+// PulsarConfig ig 目录定义等
 type PulsarConfig struct {
 	InstallDir   string `json:"install_dir"`   // /data
 	PulsarenvDir string `json:"pulsarenv_dir"` //  /data/pulsarenv
@@ -86,7 +86,7 @@ func (i *InstallPulsarComp) InitDefaultParam() (err error) {
 /*
 创建实例相关的数据，日志目录以及修改权限
 */
-func (i *InstallPulsarComp) InitPulsarDirs() (err error) {
+func (i *InstallPulsarComp) InitPulsarDirs() error {
 	execUser := cst.DefaultExecUser
 	logger.Info("检查用户[%s]是否存在", execUser)
 	if _, err := user.Lookup(execUser); err != nil {
@@ -110,9 +110,9 @@ func (i *InstallPulsarComp) InitPulsarDirs() (err error) {
 	}
 
 	// mkdir /data*/pulsardata
-	dataDir, err := pulsarutil.GetAllDataDir()
+	dataDir, _ := pulsarutil.GetAllDataDir()
 	for _, dir := range dataDir {
-		extraCmd := fmt.Sprintf("mkdir -p /%s/pulsardata", dir)
+		extraCmd = fmt.Sprintf("mkdir -p /%s/pulsardata", dir)
 		if _, err := osutil.ExecShellCommand(false, extraCmd); err != nil {
 			logger.Error("创建目录/%s/pulsardata失败: %s", dir, err.Error())
 			return err
@@ -127,7 +127,7 @@ func (i *InstallPulsarComp) InitPulsarDirs() (err error) {
 	}
 
 	logger.Info("写入/etc/profile")
-	scripts := []byte(fmt.Sprintf(`cat << 'EOF' > /data/pulsarenv/pulsarprofile
+	scripts := []byte(`cat << 'EOF' > /data/pulsarenv/pulsarprofile
 ulimit -n 500000
 export JAVA_HOME=/data/pulsarenv/java/jdk
 export JRE=$JAVA_HOME/jre
@@ -139,10 +139,10 @@ EOF
 chown mysql  /data/pulsarenv/pulsarprofile
 
 sed -i '/pulsarprofile/d' /etc/profile
-echo "source /data/pulsarenv/pulsarprofile" >>/etc/profile`))
+echo "source /data/pulsarenv/pulsarprofile" >>/etc/profile`)
 
 	scriptFile := fmt.Sprintf("%s/init.sh", cst.DefaultPulsarEnvDir)
-	if err = ioutil.WriteFile(scriptFile, scripts, 0644); err != nil {
+	if err := ioutil.WriteFile(scriptFile, scripts, 0644); err != nil {
 		logger.Error("write %s failed, %v", scriptFile, err)
 	}
 
@@ -162,7 +162,8 @@ echo "source /data/pulsarenv/pulsarprofile" >>/etc/profile`))
 func (i *InstallPulsarComp) InstallZookeeper() (err error) {
 	var (
 		// version   string   = i.Params.PulsarVersion
-		zkHost []string = strings.Split(i.Params.ZkHost, ",")
+		zkHost = strings.Split(i.Params.ZkHost, ",")
+		host   = i.Params.Host
 		// zkBaseDir string   = fmt.Sprintf("%s/apache-pulsar-%s", cst.DefaultPulsarEnvDir, version)
 	)
 	logger.Info("部署zookeeper开始...")
@@ -176,19 +177,19 @@ func (i *InstallPulsarComp) InstallZookeeper() (err error) {
 	*/
 
 	// 创建数据目录
-	pulsarlogDir := fmt.Sprintf("%s", cst.DefaultPulsarLogDir)
-	pulsardataDir := fmt.Sprintf("%s", cst.DefaultPulsarDataDir)
+	pulsarlogDir := cst.DefaultPulsarLogDir
+	pulsardataDir := cst.DefaultPulsarDataDir
 	extraCmd := fmt.Sprintf(`mkdir -p %s ;
 		chown -R mysql  %s ;
 		mkdir -p %s ;
 		chown -R mysql %s`, pulsarlogDir, pulsarlogDir, pulsardataDir, pulsardataDir)
-	if _, err := osutil.ExecShellCommand(false, extraCmd); err != nil {
+	if _, err = osutil.ExecShellCommand(false, extraCmd); err != nil {
 		logger.Error("初始化实例目录失败:%s", err.Error())
 		return err
 	}
 
-	extraCmd = fmt.Sprintf("echo %d > %s/myid", i.Params.ZkId, cst.DefaultPulsarDataDir)
-	if _, err := osutil.ExecShellCommand(false, extraCmd); err != nil {
+	extraCmd = fmt.Sprintf("echo %d > %s/myid", i.Params.ZkID, cst.DefaultPulsarDataDir)
+	if _, err = osutil.ExecShellCommand(false, extraCmd); err != nil {
 		logger.Error("写入myid失败:%s", err.Error())
 		return err
 	}
@@ -207,6 +208,8 @@ func (i *InstallPulsarComp) InstallZookeeper() (err error) {
 	zkCfg = strings.ReplaceAll(zkCfg, "{{zk_host_list[0]}}", zkHost[0])
 	zkCfg = strings.ReplaceAll(zkCfg, "{{zk_host_list[1]}}", zkHost[1])
 	zkCfg = strings.ReplaceAll(zkCfg, "{{zk_host_list[2]}}", zkHost[2])
+	// 监听本机IP
+	zkCfg = strings.ReplaceAll(zkCfg, "{{client_port_address}}", host)
 
 	logger.Info("zookeeper.conf:\n%s", zkCfg)
 
@@ -238,7 +241,7 @@ func (i *InstallPulsarComp) InstallZookeeper() (err error) {
  * @description: 初始化集群信息，并创建密钥和token
  * @return {*}
  */
-func (i *InstallPulsarComp) InitCluster() (err error) {
+func (i *InstallPulsarComp) InitCluster() error {
 	logger.Info("初始化集群信息开始...")
 	extraCmd := fmt.Sprintf("%s/bin/pulsar initialize-cluster-metadata "+
 		"--cluster %s "+
@@ -295,14 +298,14 @@ func (i *InstallPulsarComp) InitCluster() (err error) {
  * @description: 安装bookkeeper
  * @return {*}
  */
-func (i *InstallPulsarComp) InstallBookkeeper() (err error) {
+func (i *InstallPulsarComp) InstallBookkeeper() error {
 
 	logger.Info("部署Pulsar Bookkeeper开始...")
 	var (
-		zkHost []string = strings.Split(i.Params.ZkHost, ",")
+		zkHost = strings.Split(i.Params.ZkHost, ",")
 	)
 
-	dataDir, err := pulsarutil.GetAllDataDir()
+	dataDir, _ := pulsarutil.GetAllDataDir()
 	for _, dir := range dataDir {
 		extraCmd := fmt.Sprintf("mkdir -p /%s/pulsardata", dir)
 		if _, err := osutil.ExecShellCommand(false, extraCmd); err != nil {
@@ -347,7 +350,7 @@ func (i *InstallPulsarComp) InstallBookkeeper() (err error) {
 	extraCmd := fmt.Sprintf(
 		"sed -i \"s/-Xms2g -Xmx2g -XX:MaxDirectMemorySize=2g/-Xms%s -Xmx%s -XX:MaxDirectMemorySize=%s/g\" "+
 			"%s/conf/bkenv.sh", heapSize, heapSize, directMemSize, cst.DefaultPulsarBkDir)
-	if _, err := osutil.ExecShellCommand(false, extraCmd); err != nil {
+	if _, err = osutil.ExecShellCommand(false, extraCmd); err != nil {
 		logger.Error("替换Heap Size和DirectMemSize失败:%s, command: %s", err.Error(), extraCmd)
 		return err
 	}
@@ -382,7 +385,7 @@ func (i *InstallPulsarComp) InstallBroker() (err error) {
 
 	logger.Info("部署Pulsar Broker开始...")
 	var (
-		zkHost []string = strings.Split(i.Params.ZkHost, ",")
+		zkHost = strings.Split(i.Params.ZkHost, ",")
 	)
 
 	// 生成broker.conf
@@ -421,8 +424,10 @@ func (i *InstallPulsarComp) InstallBroker() (err error) {
 		return err
 	}
 	extraCmd := fmt.Sprintf(
-		"sed -i \"s/-Xms2g -Xmx2g -XX:MaxDirectMemorySize=2g/-Xms%s -Xmx%s -XX:MaxDirectMemorySize=%s/g\" %s/conf/pulsar_env.sh", heapSize, heapSize, directMemSize, cst.DefaultPulsarBrokerDir)
-	if _, err := osutil.ExecShellCommand(false, extraCmd); err != nil {
+		"sed -i "+
+			"\"s/-Xms2g -Xmx2g -XX:MaxDirectMemorySize=2g/-Xms%s -Xmx%s -XX:MaxDirectMemorySize=%s/g\" %s/conf/pulsar_env.sh",
+		heapSize, heapSize, directMemSize, cst.DefaultPulsarBrokerDir)
+	if _, err = osutil.ExecShellCommand(false, extraCmd); err != nil {
 		logger.Error("替换Heap Size和DirectMemSize失败:%s, command: %s", err.Error(), extraCmd)
 		return err
 	}
@@ -484,13 +489,13 @@ func (i *InstallPulsarComp) StartBroker() (err error) {
  * @description:  校验、解压pulsar安装包
  * @return {*}
  */
-func (i *InstallPulsarComp) DecompressPulsarPkg() (err error) {
-	if err = os.Chdir(i.PulsarenvDir); err != nil {
+func (i *InstallPulsarComp) DecompressPulsarPkg() error {
+	if err := os.Chdir(i.PulsarenvDir); err != nil {
 		return fmt.Errorf("cd to dir %s failed, err:%w", i.InstallDir, err)
 	}
 	// 判断 /data/pulsarenv 目录是否已经存在,如果存在则删除掉
 	if util.FileExists(i.PulsarDir) {
-		if _, err = osutil.ExecShellCommand(false, "rm -rf "+i.PulsarDir); err != nil {
+		if _, err := osutil.ExecShellCommand(false, "rm -rf "+i.PulsarDir); err != nil {
 			logger.Error("rm -rf %s error: %w", i.PulsarenvDir, err)
 			return err
 		}
@@ -591,7 +596,8 @@ func (i *InstallPulsarComp) InstallSupervisor() (err error) {
 	}
 
 	extraCmd =
-		`echo '*/1 * * * *  /data/pulsarenv/supervisor/check_supervisord.sh >> /data/pulsarenv/supervisor/check_supervisord.err 2>&1' >>/home/mysql/crontab.bak`
+		`echo '*/1 * * * *  /data/pulsarenv/supervisor/check_supervisord.sh ` +
+			`>> /data/pulsarenv/supervisor/check_supervisord.err 2>&1' >>/home/mysql/crontab.bak`
 	if _, err = osutil.ExecShellCommand(false, extraCmd); err != nil {
 		logger.Error("%s execute failed, %v", extraCmd, err)
 		return err
@@ -642,21 +648,21 @@ func (i *InstallPulsarComp) InstallPulsarManager() (err error) {
 	extraCmd := fmt.Sprintf(
 		"sed -i \"s/backend.broker.pulsarAdmin.authParams=/backend.broker.pulsarAdmin.authParams=%s/g\" %s", i.Params.Token,
 		cst.DefaultPulsarManagerConf)
-	if _, err := osutil.ExecShellCommand(false, extraCmd); err != nil {
+	if _, err = osutil.ExecShellCommand(false, extraCmd); err != nil {
 		logger.Error("修改backend.broker.pulsarAdmin.authParams失败: %s, command: %s", err.Error(), extraCmd)
 		return err
 	}
 	// 设置默认环境
 	extraCmd = fmt.Sprintf("sed -i \"s/default.environment.name=/default.environment.name=%s/g\" %s", i.Params.ClusterName,
 		cst.DefaultPulsarManagerConf)
-	if _, err := osutil.ExecShellCommand(false, extraCmd); err != nil {
+	if _, err = osutil.ExecShellCommand(false, extraCmd); err != nil {
 		logger.Error("修改default.environment.name失败: %s, command: %s", err.Error(), extraCmd)
 		return err
 	}
 	extraCmd = fmt.Sprintf(
 		"sed -i \"s/default.environment.service_url=/default.environment.service_url=http:\\/\\/%s:%d/g\" %s",
 		i.Params.Domain, i.Params.BrokerWebServicePort, cst.DefaultPulsarManagerConf)
-	if _, err := osutil.ExecShellCommand(false, extraCmd); err != nil {
+	if _, err = osutil.ExecShellCommand(false, extraCmd); err != nil {
 		logger.Error("修改default.environment.name失败: %s, command: %s", err.Error(), extraCmd)
 		return err
 	}
@@ -664,7 +670,7 @@ func (i *InstallPulsarComp) InstallPulsarManager() (err error) {
 	// 修改ui中反向代理的子路径
 	extraCmd = fmt.Sprintf("sed -i \"s#{{nginx_sub_path}}#%s#g\" `grep \"{{nginx_sub_path}}\" -rl %s`",
 		i.Params.NginxSubPath, cst.DefaultPulsarManagerDir)
-	if _, err := osutil.ExecShellCommand(false, extraCmd); err != nil {
+	if _, err = osutil.ExecShellCommand(false, extraCmd); err != nil {
 		logger.Error("修改nginx子路径失败: %s, command: %s", err.Error(), extraCmd)
 		return err
 	}
@@ -701,18 +707,21 @@ func (i *InstallPulsarComp) InstallPulsarManager() (err error) {
 func (i *InstallPulsarComp) InitPulsarManager() (err error) {
 	logger.Info("初始化Pulsar Manager开始...")
 	logger.Info("生成csrf token")
-	extraCmd := fmt.Sprintf("curl http://localhost:7750/pulsar-manager/csrf-token -s")
+	extraCmd := "curl http://localhost:7750/pulsar-manager/csrf-token -s"
 	csrfToken := ""
-	if output, err := osutil.ExecShellCommand(false, extraCmd); err != nil {
+	output, err := osutil.ExecShellCommand(false, extraCmd)
+	if err != nil {
 		logger.Error("get csrf token failed, %s, %s", output, err.Error())
 		return err
-	} else {
-		csrfToken = output
 	}
+	csrfToken = output
 
 	logger.Info("设置pulsar manager 用户名、密码")
 	extraCmd = fmt.Sprintf(
-		`curl -H "X-XSRF-TOKEN: %s" -H "Cookie: XSRF-TOKEN=%s;" -H "Content-Type: application/json" -X PUT "http://localhost:7750/pulsar-manager/users/superuser" -s -d '{"name": "%s", "password": "%s", "description": "admin", "email": "username@test.org"}'`, csrfToken, csrfToken, i.Params.Username, i.Params.Password)
+		`curl -H "X-XSRF-TOKEN: %s" -H "Cookie: XSRF-TOKEN=%s;"`+
+			` -H "Content-Type: application/json" -X PUT "http://localhost:7750/pulsar-manager/users/superuser"`+
+			` -s -d '{"name": "%s", "password": "%s", "description": "admin", "email": "username@test.org"}'`, csrfToken,
+		csrfToken, i.Params.Username, i.Params.Password)
 
 	if output, err := osutil.ExecShellCommand(false, extraCmd); err != nil {
 		logger.Error("set username/password failed, %s, %s", output, err.Error())
@@ -728,27 +737,27 @@ func (i *InstallPulsarComp) InitPulsarManager() (err error) {
  * @description: 增加hosts文件配置，仅用于内部测试
  * @return {*}
  */
-func (i *InstallPulsarComp) AddHostsFile() (err error) {
+func (i *InstallPulsarComp) AddHostsFile() error {
 	logger.Info("增加hosts文件配置开始....")
 	logger.Info("原始hosts文件: ")
-	extraCmd := fmt.Sprintf("cat /etc/hosts")
-	if output, err := osutil.ExecShellCommand(false, extraCmd); err != nil {
+	extraCmd := "cat  /etc/hosts"
+	output, err := osutil.ExecShellCommand(false, extraCmd)
+	if err != nil {
 		logger.Error("cat /etc/hosts failed, %s, %s", output, err.Error())
 		return err
-	} else {
-		logger.Info("%s", output)
 	}
+	logger.Info("%s", output)
 
 	logger.Info("备份hosts文件")
-	extraCmd = fmt.Sprintf("cp /etc/hosts /etc/hosts.backup")
-	if _, err := osutil.ExecShellCommand(false, extraCmd); err != nil {
+	extraCmd = "cp /etc/hosts /etc/hosts.backup"
+	if _, err = osutil.ExecShellCommand(false, extraCmd); err != nil {
 		logger.Error("%s exec failed, %s", extraCmd, err.Error())
 		return err
 	}
 
 	logger.Info("清理历史测试信息")
-	extraCmd = fmt.Sprintf("sed -i \"/# dba test for dbm/d\" /etc/hosts")
-	if _, err := osutil.ExecShellCommand(false, extraCmd); err != nil {
+	extraCmd = "sed -i \"/# dba test for dbm/d\" /etc/hosts"
+	if _, err = osutil.ExecShellCommand(false, extraCmd); err != nil {
 		logger.Error("%s exec failed, %s", extraCmd, err.Error())
 		return err
 	}
@@ -765,7 +774,7 @@ func (i *InstallPulsarComp) AddHostsFile() (err error) {
 	for k, v := range hostMap {
 		strResult = fmt.Sprintf("%s\n%s %s # dba test for dbm", strResult, k, v)
 	}
-	logger.Info("写入host内容：%s", strResult)
+	logger.Info("写入host内容: %s", strResult)
 	extraCmd = fmt.Sprintf("echo \"%s\" >> /etc/hosts", strResult)
 	if _, err := osutil.ExecShellCommand(false, extraCmd); err != nil {
 		logger.Error("%s exec failed, %s", extraCmd, err.Error())
@@ -780,16 +789,16 @@ func (i *InstallPulsarComp) AddHostsFile() (err error) {
  * @description: 修改hosts文件配置，仅用于内部测试
  * @return {*}
  */
-func (i *InstallPulsarComp) ModifyHostsFile() (err error) {
+func (i *InstallPulsarComp) ModifyHostsFile() error {
 	logger.Info("修改hosts文件配置开始....")
 	logger.Info("原始hosts文件: ")
-	extraCmd := fmt.Sprintf("cat /etc/hosts")
-	if output, err := osutil.ExecShellCommand(false, extraCmd); err != nil {
+	extraCmd := "cat /etc/hosts"
+	output, err := osutil.ExecShellCommand(false, extraCmd)
+	if err != nil {
 		logger.Error("cat /etc/hosts failed, %s, %s", output, err.Error())
 		return err
-	} else {
-		logger.Info("%s", output)
 	}
+	logger.Info("%s", output)
 
 	logger.Info("修改host文件")
 	hostMap := make(map[string]string)
@@ -811,7 +820,7 @@ func (i *InstallPulsarComp) ModifyHostsFile() (err error) {
 	for k, v := range hostMap {
 		strResult = fmt.Sprintf("%s\n%s %s # dba test for dbm", strResult, k, v)
 	}
-	logger.Info("写入host内容：%s", strResult)
+	logger.Info("写入host内容: %s", strResult)
 	extraCmd = fmt.Sprintf("echo \"%s\" >> /etc/hosts", strResult)
 	if _, err := osutil.ExecShellCommand(false, extraCmd); err != nil {
 		logger.Error("%s exec failed, %s", extraCmd, err.Error())
