@@ -20,7 +20,7 @@ import { t } from '@locales/index';
 const routes: RouteRecordRaw[] = [
   {
     name: 'MissionManage',
-    path: 'mession-manage',
+    path: 'mission-manage',
     component: () => import('@views/mission/Index.vue'),
     meta: {
       routeParentName: MainViewRouteNames.Database,

@@ -19,6 +19,7 @@ from datetime import datetime
 
 import yaml
 from bkstorages.backends.bkrepo import TIMEOUT_THRESHOLD, BKGenericRepoClient, BKRepoStorage, urljoin
+from django.conf import settings
 
 logger = logging.getLogger("root")
 
@@ -124,6 +125,9 @@ class MediumHandler:
         for root, dirs, files in os.walk(bkrepo_tmp_dir):
             for file in files:
                 if "?" in file:
+                    continue
+                if settings.RUN_VER == "ieod" and "dbbackup-go" in file:
+                    # 内部版本不自动上传 dbbackup
                     continue
 
                 for suffix in [
