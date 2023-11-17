@@ -119,8 +119,6 @@ class KafkaReplaceFlow(object):
         self.data["factor"] = int(kafka_config["factor"])
         self.data["old_zookeeper_conf"] = kafka_config["zookeeper_conf"]
         self.data["zookeeper_conf"] = self.data["old_zookeeper_conf"]
-        self.data["adminUser"] = kafka_config["adminUser"]
-        self.data["adminPassword"] = kafka_config["adminPassword"]
 
     def __get_node_ips_by_role(self, role: str) -> list:
         if role not in self.data["new_nodes"]:
