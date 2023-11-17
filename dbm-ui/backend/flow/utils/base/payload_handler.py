@@ -290,17 +290,17 @@ class PayloadHandler(object):
             "security_rule_name": "",
         }
 
-        if not redis_password.isspace():
+        if redis_password and (not redis_password.isspace()):
             query_params["component"] = MySQLPrivComponent.REDIS.value
             query_params["password"] = base64.b64encode(redis_password.encode("utf-8")).decode("utf-8")
             MySQLPrivManagerApi.modify_password(params=query_params)
 
-        if not redis_proxy_password.isspace():
+        if redis_proxy_password and (not redis_proxy_password.isspace()):
             query_params["component"] = MySQLPrivComponent.REDIS_PROXY.value
             query_params["password"] = base64.b64encode(redis_proxy_password.encode("utf-8")).decode("utf-8")
             MySQLPrivManagerApi.modify_password(params=query_params)
 
-        if not redis_proxy_admin_password.isspace():
+        if redis_proxy_admin_password and (not redis_proxy_admin_password.isspace()):
             query_params["component"] = MySQLPrivComponent.REDIS_PROXY_ADMIN.value
             query_params["password"] = base64.b64encode(redis_proxy_admin_password.encode("utf-8")).decode("utf-8")
             MySQLPrivManagerApi.modify_password(params=query_params)
@@ -356,3 +356,23 @@ class PayloadHandler(object):
             redis_proxy_password,
             redis_proxy_admin_password,
         )
+
+    @staticmethod
+    def redis_get_os_account() -> dict:
+        """
+        获取redis os内置帐户密码
+        """
+        user_map = {}
+        data = MySQLPrivManagerApi.get_password(
+            {
+                "instances": [DEFAULT_INSTANCE],
+                "users": [
+                    {"username": UserName.OS_MYSQL.value, "component": MySQLPrivComponent.REDIS.value},
+                ],
+            }
+        )
+        for user in data["items"]:
+            user_map["os_user"] = user["username"]
+            user_map["os_password"] = base64.b64decode(user["password"]).decode("utf-8")
+            break
+        return user_map
