@@ -44,8 +44,8 @@
 
   import type PulsarInstanceModel from '@services/model/pulsar/pulsar-instance';
   import type PulsarNodeModel from '@services/model/pulsar/pulsar-node';
-  import { getListInstance } from '@services/source/pulsar';
-  import { createTicket } from '@services/ticket';
+  import { getPulsarInstanceList } from '@services/source/pulsar';
+  import { createTicket } from '@services/source/ticket';
 
   import { useTicketMessage } from '@hooks';
 
@@ -154,7 +154,7 @@
 
   const fetchData = (hasLoading = false) => {
     isLoading.value = hasLoading;
-    getListInstance({
+    getPulsarInstanceList({
       bk_biz_id: globalBizsStore.currentBizId,
       cluster_id: props.clusterId,
       ip: props.data.ip,

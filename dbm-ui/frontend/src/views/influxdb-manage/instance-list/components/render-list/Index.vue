@@ -116,7 +116,7 @@
       ref="tableRef"
       :clear-selection="false"
       :columns="columns"
-      :data-source="getListInstance"
+      :data-source="getInfluxdbInstanceList"
       :row-class="setRowClass"
       :settings="renderSettings"
       style="margin-bottom: 34px;"
@@ -143,9 +143,9 @@
   import { useI18n } from 'vue-i18n';
 
   import type InfluxDBInstanceModel from '@services/model/influxdb/influxdbInstance';
-  import { getListInstance } from '@services/source/influxdb';
+  import { getInfluxdbInstanceList } from '@services/source/influxdb';
   import { moveInstancesToGroup } from '@services/source/influxdbGroup';
-  import { createTicket } from '@services/ticket';
+  import { createTicket } from '@services/source/ticket';
   import type { InfluxDBGroupItem } from '@services/types/influxdbGroup';
 
   import { useCopy, useInfoWithIcon, useTableSettings, useTicketMessage } from '@hooks';

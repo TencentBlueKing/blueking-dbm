@@ -79,12 +79,12 @@
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
-  import { getSpecResourceCount } from '@services/dbResource';
   import RedisClusterSpecModel from '@services/model/resource-spec/redis-cluster-sepc';
+  import { getSpecResourceCount } from '@services/source/dbresourceResource';
   import {
     getFilterClusterSpec,
     queryQPSRange,
-  } from '@services/resourceSpec';
+  } from '@services/source/dbresourceSpec';
 
   import { ClusterTypes } from '@common/const';
 

@@ -15,6 +15,8 @@ from rest_framework import serializers
 from backend.db_meta.models.dumper import DumperSubscribeConfig
 from backend.db_meta.models.extra_process import ExtraProcessInstance
 
+from . import mock_data
+
 
 class DumperSubscribeConfigSerializer(serializers.ModelSerializer):
     class SubscribeInfoSerializer(serializers.Serializer):
@@ -32,6 +34,7 @@ class DumperInstanceConfigSerializer(serializers.ModelSerializer):
     class Meta:
         model = ExtraProcessInstance
         fields = "__all__"
+        swagger_schema_fields = {"example": mock_data.DUMPER_INSTANCE_LIST_DATA}
 
 
 class VerifyDuplicateNamsSerializer(serializers.Serializer):

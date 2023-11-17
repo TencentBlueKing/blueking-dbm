@@ -205,7 +205,7 @@ class CcManage(object):
             if resp.get("result"):
                 return
             # 针对主机已经转移过的场景，直接忽略即可
-            if resp.get("bk_error_code") == CCApi.ErrorCode.HOST_NOT_BELONG_BIZ:
+            if resp.get("code") == CCApi.ErrorCode.HOST_NOT_BELONG_BIZ:
                 logger.warning(f"transfer_host_to_idlemodule, resp:{resp}")
             else:
                 raise ApiError(f"transfer_host_to_idlemodule error, resp:{resp}")
@@ -267,7 +267,7 @@ class CcManage(object):
             if resp.get("result"):
                 return
             # 针对主机已经转移过的场景，直接忽略即可
-            if resp.get("bk_error_code") == CCApi.ErrorCode.HOST_NOT_BELONG_MODULE:
+            if resp.get("code") == CCApi.ErrorCode.HOST_NOT_BELONG_MODULE:
                 logger.warning(f"transfer_host_across_biz, resp:{resp}")
             else:
                 raise ApiError(f"transfer_host_across_biz error, resp:{resp}")

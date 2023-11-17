@@ -33,4 +33,6 @@ const (
 	DefaultTopicBin = DefaultKafkaDir + "/bin/kafka-topics.sh"
 	// DefaultReassignPartitionsBin TODO
 	DefaultReassignPartitionsBin = DefaultKafkaDir + "/bin/kafka-reassign-partitions.sh"
+	// Kafka0102 TODO
+	Kafka0102 = "0.10.2"
 )

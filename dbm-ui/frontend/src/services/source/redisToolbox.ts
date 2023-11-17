@@ -50,33 +50,37 @@ interface MasterSlaveByIp {
 /**
  * 根据IP查询集群、角色和规格
  */
-export const queryInfoByIp = (params: {
+export const queryInfoByIp = function (params: {
   ips: string[];
-}) => http.post<RedisClusterNodeByIpModel[]>(`${path}/query_by_ip/`, params)
-  .then(data => data.map(item => new RedisClusterNodeByIpModel(item)));
+}) {
+  return http.post<RedisClusterNodeByIpModel[]>(`${path}/query_by_ip/`, params).then(data => data.map(item => new RedisClusterNodeByIpModel(item)));
+};
 
 /**
  * 查询集群下的主机列表
  */
-export const queryClusterHostList = (params: {
+export const queryClusterHostList = function (params: {
   cluster_id?: number;
   ip?: string;
-}) => http.post<RedisHostModel[]>(`${path}/query_cluster_ips/`, params)
-  .then(data => data.map(item => new RedisHostModel(item)));
+}) {
+  return http.post<RedisHostModel[]>(`${path}/query_cluster_ips/`, params).then(data => data.map(item => new RedisHostModel(item)));
+};
 
 /**
  * 根据masterIP查询集群、实例和slave
  */
-export const queryMasterSlaveByIp = (params: {
-  ips: string[]
-}) => http.post<MasterSlaveByIp[]>(`${path}/query_master_slave_by_ip/`, params);
+export const queryMasterSlaveByIp = function (params: { ips: string[] }) {
+  return http.post<MasterSlaveByIp[]>(`${path}/query_master_slave_by_ip/`, params);
+};
 
 /**
  * 根据cluster_id查询主从关系对
  */
-export const queryMasterSlavePairs = (params: {
+export const queryMasterSlavePairs = function (params: {
   cluster_id: number;
-}) => http.post<{
+}) {
+  return http.post<{
     master_ip: string;
     slave_ip: string
   }[]>(`${path}/query_master_slave_pairs/`, params);
+};

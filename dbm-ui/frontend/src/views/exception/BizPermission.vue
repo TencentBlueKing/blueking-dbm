@@ -35,7 +35,7 @@
 </template>
 
 <script setup lang="ts">
-  import { getApplyDataLink } from '@services/common';
+  import { getApplyDataLink } from '@services/source/iam';
 
   import { useSystemEnviron } from '@stores';
 

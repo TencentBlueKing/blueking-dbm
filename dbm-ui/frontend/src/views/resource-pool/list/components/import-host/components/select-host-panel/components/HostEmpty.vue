@@ -54,7 +54,7 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import { fetchResourceImportUrls } from '@services/dbResource';
+  import { fetchResourceImportUrls } from '@services/source/dbresourceResource';
 
   const { t } = useI18n();
 

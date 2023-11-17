@@ -156,9 +156,9 @@
   import { useI18n } from 'vue-i18n';
 
   import { getPermissionRules, preCheckAuthorizeRules } from '@services/permission';
-  import { createTicket } from '@services/ticket';
+  import { checkHost } from '@services/source/ipchooser';
+  import { createTicket } from '@services/source/ticket';
   import type { ResourceItem } from '@services/types/clusters';
-  import type { HostDetails } from '@services/types/ip';
   import type { AuthorizePreCheckData, PermissionRule } from '@services/types/permission';
   import type { WhitelistItem } from '@services/types/whitelist';
 
@@ -317,7 +317,7 @@
   /**
    * ip 选择
    */
-  function handleChangeIP(data: HostDetails[]) {
+  function handleChangeIP(data: ServiceReturnType<typeof checkHost>) {
     state.formdata.source_ips = data.map(item => ({
       ip: item.ip,
       bk_host_id: item.host_id,

@@ -98,7 +98,7 @@
 
   import type PulsarModel from '@services/model/pulsar/pulsar';
   import type PulsarNodeModel from '@services/model/pulsar/pulsar-node';
-  import { createTicket } from '@services/ticket';
+  import { createTicket } from '@services/source/ticket';
 
   import { useGlobalBizs } from '@stores';
 

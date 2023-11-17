@@ -18,28 +18,58 @@
         type="copy"
         @click.stop="handleCopy" />
     </div>
+    <div
+      v-if="isSubmiting"
+      class="submit-loading rotate-loading">
+      <DbIcon
+        svg
+        type="sync-pending" />
+    </div>
   </div>
 </template>
 <script setup lang="ts">
   import { ref } from 'vue';
   import { useI18n } from 'vue-i18n';
+  import { useRequest } from 'vue-request';
+
+  import { updateVariable } from '@services/openarea';
 
   import TableEditInput from '@components/tools-table-input/index.vue';
 
   import {
     execCopy,
+    messageSuccess,
   } from '@utils';
 
-  const { t } = useI18n();
+  import type { IVariable } from '../Index.vue';
+
+  interface Props {
+    data: IVariable
+  }
+
+  const props = defineProps<Props>();
 
   const modelValue = defineModel<string>({
-    required: false,
     default: '',
+    required: true,
     local: true,
   });
+  const { t } = useI18n();
+
 
   const inputRef = ref<InstanceType<typeof TableEditInput>>();
   const isEditing = ref(false);
+
+  const {
+    loading: isSubmiting,
+    run: updateVariableMethod,
+  } = useRequest(updateVariable<'update'>, {
+    manual: true,
+    onSuccess() {
+      messageSuccess(t('编辑成功'));
+      isEditing.value = false;
+    },
+  });
 
   const handleEdit = () => {
     isEditing.value = true;
@@ -47,7 +77,16 @@
   };
 
   const handleEditSubmit = () => {
-    isEditing.value = false;
+    updateVariableMethod({
+      op_type: 'update',
+      new_var: {
+        ...props.data,
+        name: modelValue.value,
+      },
+      old_var: {
+        ...props.data,
+      },
+    });
   };
 
   const handleCopy = () => {
@@ -80,8 +119,19 @@
       }
 
       .copy-btn{
+        padding: 5px;
         opacity: 0%;
       }
+    }
+
+    .submit-loading{
+      position: absolute;
+      top: 0;
+      right: 10px;
+      bottom: 0;
+      display: flex;
+      align-items: center;
+      color: #3a84ff;
     }
   }
 </style>

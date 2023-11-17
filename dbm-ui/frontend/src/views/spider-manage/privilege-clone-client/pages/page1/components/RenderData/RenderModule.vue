@@ -31,7 +31,7 @@
   import type { IDataRow } from './Row.vue';
 
   interface Props {
-    source: IDataRow['source']
+    source?: IDataRow['source']
   }
 
   interface Exposes {
@@ -54,6 +54,8 @@
     onSuccess(data) {
       if (data.hosts_topo_info.length > 0) {
         [localValue.value] = data.hosts_topo_info[0].topo;
+      } else {
+        localValue.value = '--';
       }
     },
   });

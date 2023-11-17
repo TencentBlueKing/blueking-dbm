@@ -32,9 +32,7 @@
   import { useRequest } from 'vue-request';
   import { useRouter } from 'vue-router';
 
-  import {
-    fetchImportTask,
-  } from '@services/dbResource';
+  import { fetchImportTask } from '@services/source/dbresourceResource';
 
   interface Emits{
     (e: 'exportHost'): void
@@ -63,7 +61,7 @@
 
   const handleGoDatabaseMission = () => {
     router.push({
-      name: 'DatabaseMission',
+      name: 'DatabaseMissionList',
       params: {
         bizId: taskInfo.value?.bk_biz_id,
       },

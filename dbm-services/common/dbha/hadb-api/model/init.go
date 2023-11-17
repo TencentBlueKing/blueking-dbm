@@ -101,7 +101,7 @@ func DoCreateDBIfNotExist() error {
 
 // DoAutoMigrate do gorm auto migrate
 func DoAutoMigrate(db *gorm.DB) error {
-	return db.AutoMigrate(&DbStatus{}, &HaLogs{}, &HaStatus{}, &SwitchLogs{}, &TbMonSwitchQueue{})
+	return db.AutoMigrate(&DbStatus{}, &HaLogs{}, &HaStatus{}, &SwitchLogs{}, &TbMonSwitchQueue{}, &HAShield{})
 }
 
 // GenerateGormConfig generate GORM.config

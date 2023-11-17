@@ -27,7 +27,7 @@
   import { watch } from 'vue';
   import { useRequest } from 'vue-request';
 
-  import { fetchSubzones } from '@services/dbResource';
+  import { fetchSubzones } from '@services/source/dbresourceResource';
 
   interface Props {
     model: Record<string, any>;

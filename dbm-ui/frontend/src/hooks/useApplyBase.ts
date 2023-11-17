@@ -14,7 +14,8 @@
 import { Message } from 'bkui-vue';
 import { useI18n } from 'vue-i18n';
 
-import { createAppAbbr, createTicket } from '@services/ticket';
+import { createAppAbbr } from '@services/source/cmdb';
+import { createTicket } from '@services/source/ticket';
 import type { BizItem } from '@services/types/common';
 
 import { useInfo } from '@hooks';

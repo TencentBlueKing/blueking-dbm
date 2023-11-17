@@ -97,9 +97,9 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import { getBizs } from '@services/common';
-  import { updateResource } from '@services/dbResource';
-  import { fetchDbTypeList } from '@services/infras';
+  import { getBizs } from '@services/source/cmdb';
+  import { updateResource } from '@services/source/dbresourceResource';
+  import { fetchDbTypeList } from '@services/source/infras';
 
   import { leaveConfirm } from '@utils';
 

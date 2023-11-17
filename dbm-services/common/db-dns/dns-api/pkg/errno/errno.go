@@ -1,9 +1,8 @@
-// Package errno TODO
 package errno
 
 import "fmt"
 
-// Errno TODO
+// Errno 错误编码
 type Errno struct {
 	Code    int
 	Message string
@@ -21,35 +20,12 @@ type Err struct {
 	Err     error
 }
 
-// New TODO
-func New(errno *Errno, err error) *Err {
-	return &Err{Code: errno.Code, Message: errno.Message, Err: err}
-}
-
-// Add TODO
-func (err *Err) Add(message string) error {
-	err.Message += " " + message
-	return err
-}
-
-// Addf TODO
-func (err *Err) Addf(format string, args ...interface{}) error {
-	err.Message += " " + fmt.Sprintf(format, args...)
-	return err
-}
-
 // Error 用于错误处理
 func (err *Err) Error() string {
 	return fmt.Sprintf("Err - code: %d, message: %s, error: %s", err.Code, err.Message, err.Err)
 }
 
-// IsErrUserNotFound TODO
-func IsErrUserNotFound(err error) bool {
-	code, _ := DecodeErr(err)
-	return code == ErrUserNotFound.Code
-}
-
-// DecodeErr TODO
+// DecodeErr 编码错误
 func DecodeErr(err error) (int, string) {
 	if err == nil {
 		return OK.Code, OK.Message

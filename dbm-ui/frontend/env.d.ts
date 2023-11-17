@@ -65,3 +65,4 @@ type ServiceReturnType<T extends (...args: any) => Promise<any>> = T extends (..
 type KeyExpand<T> = {
   [K in keyof T]: T[K];
 };
+

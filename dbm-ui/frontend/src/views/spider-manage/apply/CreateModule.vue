@@ -149,9 +149,9 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
+  import { createModules } from '@services/source/cmdb';
   import { saveModulesDeployInfo } from '@services/source/configs';
-  import { createModules } from '@services/ticket';
-  import { getVersions } from '@services/versionFiles';
+  import { getVersions } from '@services/source/version';
 
   import { useInfo } from '@hooks';
 

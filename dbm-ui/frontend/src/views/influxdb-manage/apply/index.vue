@@ -170,9 +170,9 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
+  import { checkHost } from '@services/source/ipchooser';
+  import { getVersions } from '@services/source/version';
   import type { BizItem } from '@services/types/common';
-  import type { HostDetails } from '@services/types/ip';
-  import { getVersions } from '@services/versionFiles';
 
   import { useApplyBase, useInfo } from '@hooks';
 
@@ -261,7 +261,7 @@
     });
 
   // 更新 bookkeeper 节点
-  const handleIpChange = (data: Array<HostDetails>) => {
+  const handleIpChange = (data: ServiceReturnType<typeof checkHost>) => {
     formdata.details.nodes.influxdb = data;
   };
 

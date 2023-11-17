@@ -57,8 +57,10 @@ class DumperInstanceViewSet(viewsets.AuditedModelViewSet):
             source_cluster = id__cluster[data["cluster_id"]]
             master = source_cluster.storageinstance_set.get(instance_inner_role=InstanceInnerRole.MASTER.value)
             data["need_transfer"] = data["ip"] != master.machine.ip
-            # 补充集群信息
+            # 补充集群信息和集群的master计信系
             data["source_cluster"] = source_cluster.simple_desc
+            data["source_cluster"]["master_ip"] = master.machine.ip
+            data["source_cluster"]["master_port"] = master.port
             # 补充订阅配置信息
             dumper_config_id = extra_config["dumper_config_id"]
             data["dumper_config"] = model_to_dict(id__dumper_config[dumper_config_id])

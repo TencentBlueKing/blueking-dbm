@@ -48,7 +48,7 @@
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
 
-  import { getModules } from '@services/common';
+  import { getModules } from '@services/source/cmdb';
   import type { MysqlAuthorizationDetails, TicketDetails } from '@services/types/ticket';
 
   import { useDefaultPagination } from '@hooks';

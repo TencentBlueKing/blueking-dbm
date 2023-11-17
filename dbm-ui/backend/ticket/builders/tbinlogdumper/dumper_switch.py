@@ -30,6 +30,7 @@ class TbinlogdumperSwitchNodesDetailSerializer(serializers.Serializer):
         switch_instances = serializers.ListSerializer(help_text=_("dumper切换信息"), child=SwitchInstanceSerializer())
 
     infos = serializers.ListSerializer(child=DumperSwitchInfoSerializer())
+    is_safe = serializers.BooleanField(help_text=_("是否安全切换"), required=False, default=True)
 
 
 class TbinlogdumperSwitchNodesFlowParamBuilder(builders.FlowParamBuilder):

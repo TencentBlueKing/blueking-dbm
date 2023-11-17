@@ -58,7 +58,7 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import { getBizs } from '@services/common';
+  import { getBizs } from '@services/source/cmdb';
 
   interface Props {
     defaultValue?: string[],

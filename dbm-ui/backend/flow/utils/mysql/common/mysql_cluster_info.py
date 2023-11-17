@@ -83,10 +83,12 @@ def get_cluster_ports(cluster_ids: list) -> Dict:
     bk_cloud_id = clustertmp.bk_cloud_id
     time_zone = clustertmp.time_zone
     for one_cluster in clusters:
-        cluster_port = one_cluster.storageinstance_set.get(instance_inner_role=InstanceInnerRole.MASTER.value).port
+        master = one_cluster.storageinstance_set.get(instance_inner_role=InstanceInnerRole.MASTER.value)
+        cluster_port = master.port
         cluster_ports.append(cluster_port)
         cluster_list.append(
             {
+                "master_ip": master.machine.ip,
                 "mysql_port": cluster_port,
                 "name": one_cluster.name,
                 "master": one_cluster.immute_domain,

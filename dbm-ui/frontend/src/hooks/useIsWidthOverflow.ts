@@ -13,10 +13,9 @@
 import { useResizeObserver } from '@vueuse/core';
 export function useIsWidthOverflow<T extends Ref<any> | ComputedRef<any>>(
   domRef: Ref<HTMLDivElement>,
-  watchVariable?: T,
+  watchVariable: T,
 ) {
   const isOverflow = ref(false);
-  const watchValue = computed(() => watchVariable);
 
   const checkOverflow = () => {
     if (domRef.value) {
@@ -26,7 +25,7 @@ export function useIsWidthOverflow<T extends Ref<any> | ComputedRef<any>>(
 
   useResizeObserver(domRef, checkOverflow);
 
-  watch(watchValue, () => {
+  watch(watchVariable, () => {
     setTimeout(() => {
       checkOverflow();
     });

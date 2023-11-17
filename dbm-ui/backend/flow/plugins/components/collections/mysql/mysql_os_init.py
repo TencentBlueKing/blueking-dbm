@@ -218,10 +218,15 @@ class SysInit(BkJobService):
         if kwargs.get("max_open_file"):
             max_open_file = kwargs["max_open_file"]
 
-        max_open_file_old = trans_data.max_open_file
-        if isinstance(max_open_file_old, dict):
-            if "sys_max_open_file" in max_open_file_old:
-                max_open_file = max_open_file_old["sys_max_open_file"]
+        # 如果从从老机器获取max_open_file成功，则使用老实例的值
+        try:
+            if trans_data is not None:
+                max_open_file_old = trans_data.max_open_file
+                if isinstance(max_open_file_old, dict):
+                    if "sys_max_open_file" in max_open_file_old:
+                        max_open_file = max_open_file_old["sys_max_open_file"]
+        except Exception:
+            pass
 
         # 脚本内容
         jinja_env = Environment()

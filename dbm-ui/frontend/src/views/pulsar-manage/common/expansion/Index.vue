@@ -65,8 +65,7 @@
 
   import type PulsarModel from '@services/model/pulsar/pulsar';
   import { getHostDetails } from '@services/source/ipchooser';
-  import { createTicket } from '@services/ticket';
-  import type { HostDetails } from '@services/types/ip';
+  import { createTicket } from '@services/source/ticket';
 
   import { useTicketMessage } from '@hooks';
 
@@ -80,6 +79,8 @@
   import NodeStatusList from '@components/cluster-common/host-expansion/NodeStatusList.vue';
 
   import { messageError } from '@utils';
+
+  type HostDetails = ServiceReturnType<typeof getHostDetails>
 
   interface Props {
     data: PulsarModel,
@@ -191,8 +192,8 @@
         scope_type: 'biz',
       }],
     }).then((data) => {
-      const bookkeeperOriginalHostList: HostDetails[] = [];
-      const brokerOriginalHostList: HostDetails[] = [];
+      const bookkeeperOriginalHostList: HostDetails = [];
+      const brokerOriginalHostList: HostDetails = [];
 
       let bookkeeperDiskTotal = 0;
       let brokerDiskTotal = 0;

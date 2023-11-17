@@ -32,7 +32,7 @@
 
   import type SpiderModel from '@services/model/spider/spider';
   import { getCloudList } from '@services/source/ipchooser';
-  import { getResourceDetails } from '@services/source/resourceSpider';
+  import { getSpiderDetail } from '@services/source/spider';
 
   import RenderText from '@components/tools-table-common/RenderText.vue';
 
@@ -84,7 +84,7 @@
   const {
     loading: isClusterDataLoading,
     run: fetchClusetrData,
-  } = useRequest(getResourceDetails, {
+  } = useRequest(getSpiderDetail, {
     manual: true,
     onSuccess(data) {
       localBkNetId.value = data.bk_cloud_id;

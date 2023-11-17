@@ -41,7 +41,7 @@
   import { useI18n } from 'vue-i18n';
   import { useRoute } from 'vue-router';
 
-  import { getBizs } from '@services/common';
+  import { getBizs } from '@services/source/cmdb';
   import type { BizItem } from '@services/types/common';
 
   import { nameRegx } from '@common/regex';

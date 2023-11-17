@@ -83,7 +83,7 @@
   import { useRouter } from 'vue-router';
 
   import { queryMasterSlaveByIp } from '@services/source/redisToolbox';
-  import { createTicket } from '@services/ticket';
+  import { createTicket } from '@services/source/ticket';
   import type { SubmitTicket } from '@services/types/ticket';
 
   import { useGlobalBizs } from '@stores';

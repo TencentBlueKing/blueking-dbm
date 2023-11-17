@@ -115,7 +115,7 @@
     querySemanticData,
     revokeSemanticCheck,
   } from '@services/source/sqlImport';
-  import { createTicket } from '@services/ticket';
+  import { createTicket } from '@services/source/ticket';
 
   import { useGlobalBizs } from '@stores';
 

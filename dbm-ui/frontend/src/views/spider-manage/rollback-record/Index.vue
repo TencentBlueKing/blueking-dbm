@@ -32,7 +32,7 @@
 
   import FixpointLogModel from '@services/model/fixpoint-rollback/fixpoint-log';
   import { queryFixpointLog } from '@services/source/fixpointRollback';
-  import { createTicket } from '@services/ticket';
+  import { createTicket } from '@services/source/ticket';
 
   import { useTicketMessage } from '@hooks';
 

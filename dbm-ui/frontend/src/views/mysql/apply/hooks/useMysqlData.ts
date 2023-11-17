@@ -14,12 +14,13 @@
 import _ from 'lodash';
 import { useI18n } from 'vue-i18n';
 
-import { getModules } from '@services/common';
+import { getModules } from '@services/source/cmdb';
 import { getLevelConfig } from '@services/source/configs';
-import { createTicket, getInfrasHostSpecs } from '@services/ticket';
+import { checkHost } from '@services/source/ipchooser';
+import { createTicket } from '@services/source/ticket';
+import { getInfrasHostSpecs } from '@services/ticket';
 import type { ModuleItem } from '@services/types/common';
 import type { ParameterConfigItem } from '@services/types/configs';
-import type { HostDetails } from '@services/types/ip';
 import type { HostSpec } from '@services/types/ticket';
 
 import { useInfo } from '@hooks';
@@ -28,6 +29,8 @@ import {
   mysqlType,
   type MysqlTypeString,
 } from '@common/const';
+
+type HostDetails = ServiceReturnType<typeof checkHost>
 
 type FetchState = {
   hostSpecs: HostSpec[],
@@ -54,8 +57,8 @@ const getFormData = (type: string) => ({
     disaster_tolerance_level: 'NONE',
     ip_source: 'resource_pool',
     nodes: {
-      backend: [] as HostDetails[],
-      proxy: [] as HostDetails[],
+      backend: [] as HostDetails,
+      proxy: [] as HostDetails,
     },
     resource_spec: {
       single: {

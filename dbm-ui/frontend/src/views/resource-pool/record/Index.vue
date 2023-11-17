@@ -33,10 +33,8 @@
   } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import {
-    fetchOperationList,
-  } from '@services/dbResource';
   import OperationModel from '@services/model/db-resource/Operation';
+  import { fetchOperationList } from '@services/source/dbresourceResource';
 
   import { ipv4 } from '@common/regex';
 

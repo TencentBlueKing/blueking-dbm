@@ -91,9 +91,8 @@
     findRelatedClustersByClusterIds,
     getClusterInfoByDomains,
   } from '@services/source/mysqlCluster';
-  import { createTicket } from '@services/ticket';
+  import { createTicket } from '@services/source/ticket';
   import type { ResourceItem } from '@services/types/clusters';
-  import type { HostDetails } from '@services/types/ip';
 
   import { useInfo, useTableMaxHeight } from '@hooks';
 
@@ -125,7 +124,7 @@
   const isShowBatchSelector = ref(false);
   const isSubmitting = ref(false);
   const clusterInfoMap: Map<string, ResourceItem> = reactive(new Map());
-  const hostInfoMap: Map<string, HostDetails> = reactive(new Map());
+  const hostInfoMap: Map<string, ServiceReturnType<typeof checkHost>[number]> = reactive(new Map());
   const tableData = ref<Array<TableItem>>([getTableItem()]);
   const backupSource = ref('local');
 

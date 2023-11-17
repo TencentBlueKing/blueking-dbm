@@ -170,7 +170,7 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import { getTicketHostNodes } from '@services/ticket';
+  import { getTicketHostNodes } from '@services/source/ticket';
 
   import HostPreview from '@components/host-preview/HostPreview.vue';
 

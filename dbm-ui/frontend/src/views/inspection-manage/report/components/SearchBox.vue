@@ -2,19 +2,15 @@
   <div class="inspection-search-box">
     <BkForm form-type="vertical">
       <BkFormItem :label="t('日期')">
-        <BkDatePicker v-model="formData.date" />
+        <BkDatePicker v-model="formData.create_at" />
       </BkFormItem>
       <BkFormItem :label="t('业务')">
         <BkSelect
-          v-model="formData.bizId"
-          collapse-tags
+          v-model="formData.bk_biz_id"
           filterable
           :input-search="false"
           :loading="isBizListLoading"
-          multiple
-          multiple-mode="tag"
-          :placeholder="t('请选择业务')"
-          show-selected-icon>
+          :placeholder="t('请选择业务')">
           <BkOption
             v-for="bizItem in bizList"
             :key="bizItem.bk_biz_id"
@@ -23,10 +19,14 @@
         </BkSelect>
       </BkFormItem>
       <BkFormItem :label="t('集群')">
-        <BkSelect v-model="formData.clusterName">
+        <BkSelect
+          v-model="formData.cluster"
+          filterable>
           <BkOption
-            label="asdas"
-            value="adafa" />
+            v-for="clusterItem in clusterList"
+            :key="clusterItem.id"
+            :label="`[${clusterItem.id}] ${clusterItem.immute_domain}`"
+            :value="clusterItem.immute_domain" />
         </BkSelect>
       </BkFormItem>
       <BkFormItem :label="t('状态')">
@@ -63,7 +63,10 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import { getBizs } from '@services/common';
+  import { queryAllTypeCluster } from '@services/dbbase';
+  import { getBizs } from '@services/source/cmdb';
+
+  import { useGlobalBizs } from '@stores';
 
   interface Emits{
     (e: 'change', value: Record<string, any>): void
@@ -72,9 +75,10 @@
   const emits = defineEmits<Emits>();
 
   const genDefaultData = () => ({
-    date: '',
-    bizId: [],
-    clusterName: '',
+    create_at: '',
+    bk_biz_id: '',
+    cluster: '',
+    cluster_type: '',
     status: '',
   });
 
@@ -87,6 +91,7 @@
     return result;
   }, {});
 
+  const { currentBizId } = useGlobalBizs();
   const { t } = useI18n();
 
   const formData = reactive(genDefaultData());
@@ -96,12 +101,22 @@
     loading: isBizListLoading,
   } = useRequest(getBizs);
 
+  const {
+    data: clusterList,
+  } = useRequest(queryAllTypeCluster, {
+    defaultParams: [
+      {
+        bk_biz_id: currentBizId,
+      },
+    ],
+  });
+
 
   const handleSubmit = () => {
     emits('change', filterInvalidValue({
       ...formData,
-      bizId: formData.bizId.join(','),
-      date: formData.date ? dayjs(formData.date).format('YYYY-MM-DD') : '',
+      bk_biz_id: formData.bk_biz_id,
+      create_at: formData.create_at ? dayjs(formData.create_at).format('YYYY-MM-DD') : '',
     }));
   };
 

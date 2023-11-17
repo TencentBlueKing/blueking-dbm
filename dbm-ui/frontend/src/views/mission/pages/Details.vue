@@ -178,57 +178,61 @@
       v-model:is-show="showHostPreview"
       :biz-id="baseInfo.bk_biz_id"
       :host-ids="baseInfo.bk_host_ids || []" />
-    <Teleport to="#dbmPageSubtitle">
-      <div
-        v-if="statusText"
-        class="status-info">
-        <span class="mr-8">{{ $t('状态') }}: </span>
-        <span>
-          <BkTag :theme="getStatusTheme(true)">{{ statusText }}</BkTag>
-        </span>
-      </div>
-      <div class="status-info">
-        <span class="mr-8">{{ $t('总耗时') }}: </span>
-        <CostTimer
-          :is-timing="flowState.details?.flow_info?.status === 'RUNNING'"
-          :value="(flowState.details?.flow_info?.cost_time || 0)" />
-      </div>
-      <BkPopover
-        v-if="isShowRevokePipelineButton"
-        v-model:is-show="isShowRevokePipelineTips"
-        boundary="parent"
-        theme="light"
-        trigger="manual">
-        <BkButton
-          ref="revokeButtonRef"
-          class="status-stop-button"
-          :loading="isRevokePipeline"
-          @click="handleToggleRevokeTips">
-          <DbIcon type="revoke" />
-          {{ $t('终止任务') }}
-        </BkButton>
-        <template #content>
-          <div
-            v-clickoutside:[revokeButtonRef?.$el]="handleHiddenRevokeTips"
-            class="mission-tips-content">
-            <div class="title">
-              {{ $t('确定终止任务吗') }}
+    <Teleport
+      v-if="false"
+      to="#dbmPageSubtitle">
+      <div class="mission-detail-status-box">
+        <div
+          v-if="statusText"
+          class="mission-detail-status-info">
+          <span class="mr-8">{{ $t('状态') }}: </span>
+          <span>
+            <BkTag :theme="getStatusTheme(true)">{{ statusText }}</BkTag>
+          </span>
+        </div>
+        <div class="mission-detail-status-info">
+          <span class="mr-8">{{ $t('总耗时') }}: </span>
+          <CostTimer
+            :is-timing="flowState.details?.flow_info?.status === 'RUNNING'"
+            :value="(flowState.details?.flow_info?.cost_time || 0)" />
+        </div>
+        <BkPopover
+          v-if="isShowRevokePipelineButton"
+          v-model:is-show="isShowRevokePipelineTips"
+          boundary="parent"
+          theme="light"
+          trigger="manual">
+          <BkButton
+            ref="revokeButtonRef"
+            class="mission-detail-status-stop-button"
+            :loading="isRevokePipeline"
+            @click="handleToggleRevokeTips">
+            <DbIcon type="revoke" />
+            {{ $t('终止任务') }}
+          </BkButton>
+          <template #content>
+            <div
+              v-clickoutside:[revokeButtonRef?.$el]="handleHiddenRevokeTips"
+              class="mission-tips-content">
+              <div class="title">
+                {{ $t('确定终止任务吗') }}
+              </div>
+              <div class="btn">
+                <BkButton
+                  class="mr-8"
+                  :loading="isRevokePipeline"
+                  theme="primary"
+                  @click.stop="handleRevokePipeline">
+                  {{ $t('确定') }}
+                </BkButton>
+                <BkButton @click="handleHiddenRevokeTips">
+                  {{ $t('取消') }}
+                </BkButton>
+              </div>
             </div>
-            <div class="btn">
-              <BkButton
-                class="mr-8"
-                :loading="isRevokePipeline"
-                theme="primary"
-                @click.stop="handleRevokePipeline">
-                {{ $t('确定') }}
-              </BkButton>
-              <BkButton @click="handleHiddenRevokeTips">
-                {{ $t('取消') }}
-              </BkButton>
-            </div>
-          </div>
-        </template>
-      </BkPopover>
+          </template>
+        </BkPopover>
+      </div>
     </Teleport>
   </div>
 </template>
@@ -236,7 +240,12 @@
   import type { Instance } from 'tippy.js';
   import { useI18n } from 'vue-i18n';
 
-  import { getTaskflowDetails, retryTaskflowNode, revokePipeline, skipTaskflowNode } from '@services/taskflow';
+  import {
+    getTaskflowDetails,
+    retryTaskflowNode,
+    revokePipeline,
+    skipTaskflowNode,
+  } from '@services/source/taskflow';
   import type { FlowsData } from '@services/types/taskflow';
 
   import { useMainViewStore } from '@stores';
@@ -813,20 +822,6 @@
       height: 100%;
     }
 
-    .status-info {
-      .flex-center();
-
-      margin-right: 24px;
-    }
-
-    .status-stop-button {
-      padding: 5px 8px;
-      border-radius: 50px;
-
-      .db-icon-revoke {
-        margin-right: 4px;
-      }
-    }
 
     .mission-details {
       height: 100%;
@@ -1145,4 +1140,25 @@
   .mission-minimap-popover {
     padding: 8px !important;
   }
+
+  .mission-detail-status-box{
+    display: flex;
+    font-size: 12px;
+
+    .mission-detail-status-info {
+      .flex-center();
+
+      margin-right: 24px;
+    }
+
+    .mission-detail-status-stop-button {
+      padding: 5px 8px;
+      border-radius: 50px;
+
+      .db-icon-revoke {
+        margin-right: 4px;
+      }
+    }
+  }
+
 </style>

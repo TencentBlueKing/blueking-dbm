@@ -82,11 +82,13 @@
   import { useI18n } from 'vue-i18n';
 
   import type SpiderModel from '@services/model/spider/spider';
-  import type { HostDetails } from '@services/types/ip';
+  import { checkHost } from '@services/source/ipchooser';
 
   import IpSelector from '@components/ip-selector/IpSelector.vue';
 
   import useValidtor from './useValidtor';
+
+  type HostDetails = ServiceReturnType<typeof checkHost>
 
   interface Props {
     clusterData?: SpiderModel
@@ -108,7 +110,7 @@
   const showEditIcon = ref(false);
   const isOverflow = ref(false);
 
-  const localHostList = shallowRef<HostDetails[]>([]);
+  const localHostList = shallowRef<HostDetails>([]);
 
   const isShowOverflowTip = computed(() => isOverflow.value && showEditIcon.value);
 
@@ -144,13 +146,13 @@
     isShowIpSelector.value = true;
   };
 
-  const handleHostChange = (hostList: HostDetails[]) => {
+  const handleHostChange = (hostList: HostDetails) => {
     localHostList.value = hostList;
   };
 
   defineExpose<Exposes>({
     getValue() {
-      const formatHost = (hostList: HostDetails[]) => hostList.map(item => ({
+      const formatHost = (hostList: HostDetails) => hostList.map(item => ({
         bk_host_id: item.host_id,
         ip: item.ip,
         bk_cloud_id: item.cloud_area.id,

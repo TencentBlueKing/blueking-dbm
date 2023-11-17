@@ -43,7 +43,7 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import { listClusterList } from '@services/redis/toolbox';
+  import { getRedisList } from '@services/source/redis';
   import type { RedisMasterSlaveSwitchDetails, TicketDetails } from '@services/types/ticket';
 
   import { useGlobalBizs } from '@stores';
@@ -93,7 +93,7 @@
     },
   ];
 
-  const { loading } = useRequest(listClusterList, {
+  const { loading } = useRequest(getRedisList, {
     defaultParams: [{ bk_biz_id: currentBizId }],
     onSuccess: async (result) => {
       if (result.results.length < 1) {

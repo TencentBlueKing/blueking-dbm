@@ -3,6 +3,7 @@ package checker
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"log/slog"
 	"os"
@@ -173,7 +174,7 @@ func (r *Checker) validateHistoryTable() error {
 		r.resultHistoryTable,
 	)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			slog.Info("history table not found")
 			if r.Config.InnerRole == config.RoleSlave {
 				slog.Info("no need create history table", slog.String("inner role", string(r.Config.InnerRole)))
@@ -190,7 +191,7 @@ func (r *Checker) validateHistoryTable() error {
 				)
 
 				if err != nil {
-					if err == sql.ErrNoRows {
+					if errors.Is(err, sql.ErrNoRows) {
 						slog.Info("checksum result table not found")
 						return nil
 					} else {
@@ -199,10 +200,13 @@ func (r *Checker) validateHistoryTable() error {
 					}
 				}
 
+				// 为了兼容 flashback, 这里拼上库前缀
 				_, err = r.db.Exec(
 					fmt.Sprintf(
-						`CREATE TABLE IF NOT EXISTS %s LIKE %s`,
+						`CREATE TABLE IF NOT EXISTS %s.%s LIKE %s.%s`,
+						r.resultDB,
 						r.resultHistoryTable,
+						r.resultDB,
 						r.resultTbl,
 					),
 				)
@@ -210,13 +214,16 @@ func (r *Checker) validateHistoryTable() error {
 					slog.Error("create history table", slog.String("error", err.Error()))
 					return err
 				}
+
+				// 为了兼容 flashback, 这里拼上库前缀
 				_, err = r.db.Exec(
 					fmt.Sprintf(
-						`ALTER TABLE %s ADD reported int default 0, `+
+						`ALTER TABLE %s.%s ADD reported int default 0, `+
 							`ADD INDEX idx_reported(reported), `+
 							`DROP PRIMARY KEY, `+
 							`MODIFY ts timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP, `+
 							`ADD PRIMARY KEY(master_ip, master_port, db, tbl, chunk, ts)`,
+						r.resultDB,
 						r.resultHistoryTable,
 					),
 				)

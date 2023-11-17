@@ -110,7 +110,7 @@
   import type { UploadFile } from 'bkui-vue/lib/upload/upload.type';
   import { useI18n } from 'vue-i18n';
 
-  import { createTicket } from '@services/ticket';
+  import { createTicket } from '@services/source/ticket';
   import type { BaseResponse } from '@services/types/common';
   import type {
     AuthorizePreCheckData,

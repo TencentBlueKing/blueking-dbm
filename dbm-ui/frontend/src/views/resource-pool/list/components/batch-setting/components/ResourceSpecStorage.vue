@@ -44,7 +44,7 @@
   } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import { searchDeviceClass } from '@services/ip';
+  import { searchDeviceClass } from '@services/source/ipchooser';
 
   interface TableColumnData {
     data: IStorageSpecItem,

@@ -1,15 +1,18 @@
 <template>
   <RenderDynamicTable
-    :service="getMetaCheckInsganceBelong"
-    v-bind="attrs" />
+    :search-params="searchParams"
+    :service="getMetaCheckInsganceBelong" />
 </template>
 <script setup lang="tsx">
-  import { useAttrs } from 'vue';
 
   import { getMetaCheckInsganceBelong } from '@services/report';
 
   import RenderDynamicTable from '../RenderDynamicTable.vue';
 
-  const attrs = useAttrs();
+  interface Props {
+    searchParams: Record<string, any>
+  }
+
+  defineProps<Props>();
 </script>
 

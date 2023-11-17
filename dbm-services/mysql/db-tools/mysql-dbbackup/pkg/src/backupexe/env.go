@@ -26,7 +26,8 @@ var (
 	// CmdZstd zstd command path, need call SetEnv to init
 	CmdZstd = ""
 	// CmdQpress qpress command path, need call SetEnv to init
-	CmdQpress = ""
+	CmdQpress  = ""
+	XbcryptBin = ""
 )
 
 // ChooseXtrabackupTool Decide the version of xtrabackup tool
@@ -75,6 +76,13 @@ func (i *InnodbCommand) ChooseXtrabackupTool(mysqlVersion string, isOfficial boo
 		}
 	}
 	return nil
+}
+
+// GetXbcryptBin get xbcrypt path for encryption, maybe for mydumper to encrypt file
+func GetXbcryptBin(mysqlVersion string, isOfficial bool) string {
+	innoCmdBin := InnodbCommand{}
+	_ = innoCmdBin.ChooseXtrabackupTool(mysqlVersion, isOfficial)
+	return innoCmdBin.xbcryptBin
 }
 
 // SetEnv set env variables

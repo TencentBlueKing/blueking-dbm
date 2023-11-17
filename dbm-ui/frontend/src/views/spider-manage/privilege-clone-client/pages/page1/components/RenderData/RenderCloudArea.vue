@@ -30,7 +30,7 @@
   import type { IDataRow } from './Row.vue';
 
   interface Props {
-    source: IDataRow['source']
+    source?: IDataRow['source']
   }
 
   const props = defineProps<Props>();
@@ -50,7 +50,7 @@
     const { source } = props;
     const netData = _.find(bkNetList.value, item => item.bk_cloud_id === source.bk_cloud_id);
 
-    return netData ? netData.bk_cloud_name : '';
+    return netData ? netData.bk_cloud_name : '--';
   });
 
 </script>

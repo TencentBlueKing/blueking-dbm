@@ -11,6 +11,8 @@ import (
 	"dbm-services/common/dbha/ha-module/constvar"
 	"dbm-services/common/dbha/ha-module/log"
 	"dbm-services/common/dbha/ha-module/util"
+	"dbm-services/common/dbha/hadb-api/model"
+	"dbm-services/common/dbha/hadb-api/pkg/handler/hashieldconfig"
 )
 
 // HaDBClient client use to request hadb api
@@ -170,6 +172,15 @@ type SwitchLogRequest struct {
 // SwitchLogResponse switch log response
 type SwitchLogResponse struct {
 	RowsAffected int `json:"rowsAffected"`
+}
+
+// ShieldConfigRequest request for shield config
+type ShieldConfigRequest struct {
+	DBCloudToken string          `json:"db_cloud_token"`
+	BKCloudID    int             `json:"bk_cloud_id"`
+	Name         string          `json:"name"`
+	QueryArgs    *model.HAShield `json:"query_args,omitempty"`
+	SetArgs      *model.HAShield `json:"set_args,omitempty"`
 }
 
 // AgentIp agent ip info
@@ -811,4 +822,38 @@ func (c *HaDBClient) AgentGetHashValue(agentIP string, dbType string, interval i
 		return mod, modValue, err
 	}
 	return mod, modValue, nil
+}
+
+// GetShieldConfig get shield config from HADB
+func (c *HaDBClient) GetShieldConfig(shield *model.HAShield) (map[string]model.HAShield, error) {
+	shieldConfigMap := make(map[string]model.HAShield)
+	req := ShieldConfigRequest{
+		DBCloudToken: c.Conf.BKConf.BkToken,
+		BKCloudID:    c.CloudId,
+		Name:         hashieldconfig.GetShieldInfo,
+		QueryArgs:    shield,
+	}
+
+	log.Logger.Debugf("AgentGetGMInfo param:%#v", req)
+
+	response, err := c.DoNew(http.MethodPost,
+		c.SpliceUrlByPrefix(c.Conf.UrlPre, constvar.ShieldConfigUrl, ""), req, nil)
+	if err != nil {
+		return nil, err
+	}
+	if response.Code != 0 {
+		return nil, fmt.Errorf("%s failed, return code:%d, msg:%s", util.AtWhere(), response.Code, response.Msg)
+	}
+	var result []model.HAShield
+	err = json.Unmarshal(response.Data, &result)
+	if err != nil {
+		return nil, err
+	}
+	if len(result) == 0 {
+		return nil, fmt.Errorf("no gm available")
+	}
+	for _, row := range result {
+		shieldConfigMap[row.Ip] = row
+	}
+	return shieldConfigMap, nil
 }

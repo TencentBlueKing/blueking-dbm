@@ -136,8 +136,6 @@ WORKDIR /
 RUN set -ex && \
     cd /blueking-dbm/dbm-services/mysql/db-tools/dbactuator && \
     make VERSION=$(/lock.sh mysql actuator version) GITHASH=$(/lock.sh mysql actuator commitId) -j4 && \
-    cd /blueking-dbm/dbm-services/mysql/db-tools/mysql-dbbackup && \
-    sh build.sh -t txsql && \
     cd /blueking-dbm/dbm-services/mysql/db-tools/mysql-table-checksum && \
     make release-bin VERSION=$(/lock.sh mysql mysql-checksum version) GITHASH=$(/lock.sh mysql mysql-checksum commitId) -j4 && \
     cd /blueking-dbm/dbm-services/mysql/db-tools/mysql-crond && \
@@ -146,6 +144,13 @@ RUN set -ex && \
     make release-bin VERSION=$(/lock.sh mysql rotate-binlog version) GITHASH=$(/lock.sh mysql rotate-binlog commitId) -j4 && \
     cd /blueking-dbm/dbm-services/mysql/db-tools/mysql-monitor && \
     make release-bin VERSION=$(/lock.sh mysql mysql-monitor version) GITHASH=$(/lock.sh mysql mysql-monitor commitId) -j4
+
+## 编译 dbbackup-go community，下载依赖
+RUN set -ex && \
+    cd /blueking-dbm/dbm-services/mysql/db-tools/mysql-dbbackup && \
+    download_url=https://github.com/TencentBlueKing/blueking-dbm/releases/download && \
+    wget -qO dbbackup-go-deps-community.tar.gz ${download_url}/v1.0.0/dbbackup-go-deps-community.tar.gz && \
+    make package VERSION=$(/lock.sh mysql mysql-dbbackup version) DIST=community GITHASH=$(/lock.sh mysql mysql-dbbackup commitId) -j4
 
 
 FROM medium-builder as redis-medium-builder

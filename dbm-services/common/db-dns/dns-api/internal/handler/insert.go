@@ -1,4 +1,4 @@
-package domain
+package handler
 
 import (
 	"bk-dnsapi/internal/domain/entity"
@@ -14,7 +14,7 @@ import (
 	"github.com/go-mesh/openlogging"
 )
 
-// DnsBasePutReqParam TODO
+// DnsBasePutReqParam 插入结构体
 type DnsBasePutReqParam struct {
 	// Appid 	int64		`json:"appid"`
 	App       string `json:"app,required"`
@@ -28,7 +28,7 @@ type DnsBasePutReqParam struct {
 	} `json:"domains"`
 }
 
-// AddDns TODO
+// AddDns 添加域名
 func (h *Handler) AddDns(c *gin.Context) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -53,13 +53,13 @@ func (h *Handler) AddDns(c *gin.Context) {
 	var errMsg string
 	var dnsBaseList []*entity.TbDnsBase
 	for i := 0; i < len(addParam.Domains); i++ {
-		domain := addParam.Domains[i]
-		if domain.DomainName, err = tools.CheckDomain(domain.DomainName); err != nil {
+		domains := addParam.Domains[i]
+		if domains.DomainName, err = tools.CheckDomain(domains.DomainName); err != nil {
 			errMsg += err.Error() + "\r\n"
 			continue
 		}
-		for j := 0; j < len(domain.Instances); j++ {
-			ins := strings.TrimSpace(domain.Instances[j])
+		for j := 0; j < len(domains.Instances); j++ {
+			ins := strings.TrimSpace(domains.Instances[j])
 			// 支持ip格式，默认端口为0
 			if !strings.Contains(ins, "#") {
 				ins += "#0"
@@ -70,20 +70,20 @@ func (h *Handler) AddDns(c *gin.Context) {
 				continue
 			}
 			// ip, _ = tools.CheckIp(ip)
-			if domain.Manager == "" {
-				domain.Manager = "DBAManager"
+			if domains.Manager == "" {
+				domains.Manager = "DBAManager"
 			}
 
 			t := &entity.TbDnsBase{
 				Uid:            0,
 				App:            addParam.App,
-				DomainName:     domain.DomainName,
+				DomainName:     domains.DomainName,
 				Ip:             ip,
 				Port:           port,
 				StartTime:      time.Now(),
 				LastChangeTime: time.Now(),
-				Manager:        domain.Manager,
-				Remark:         domain.Remark,
+				Manager:        domains.Manager,
+				Remark:         domains.Remark,
 				Status:         "1",
 				BkCloudId:      addParam.BkCloudId,
 			}
@@ -100,5 +100,6 @@ func (h *Handler) AddDns(c *gin.Context) {
 	openlogging.Info(fmt.Sprintf("add insert begin exec, param [%+v]", string(info)))
 
 	rowsAffected, err := domain.DnsDomainResource().Insert(dnsBaseList)
+	_, _ = domain.DnsConfigResource().UpdateLaseUpdateTime()
 	SendResponse(c, err, Data{RowsNum: rowsAffected})
 }

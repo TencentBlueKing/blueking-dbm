@@ -108,7 +108,7 @@
   const emits = defineEmits<Emits>();
 
   const clusterRef = ref<InstanceType<typeof ColumnCluster>>();
-  const variableRefs = ref<InstanceType<typeof ColumnVariable>[]>();
+  const variableRefs = ref<InstanceType<typeof ColumnVariable>[]>([]);
   const hostRef = ref<InstanceType<typeof ColumnHost>>();
 
   const localClusterData = ref<IData['clusterData']>();
@@ -134,7 +134,7 @@
     getValue() {
       return Promise.all([
         (clusterRef.value as InstanceType<typeof ColumnCluster>).getValue(),
-        Promise.all((variableRefs.value as InstanceType<typeof ColumnVariable>[]).map(item => item.getValue())),
+        Promise.all((variableRefs.value).map(item => item.getValue())),
         (hostRef.value as InstanceType<typeof ColumnHost>).getValue(),
       ]).then(([
         clusterData,

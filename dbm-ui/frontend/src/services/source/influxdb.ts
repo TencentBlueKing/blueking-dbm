@@ -25,17 +25,19 @@ const path = `/apis/bigdata/bizs/${currentBizId}/influxdb/influxdb_resources`;
 /**
  * 获取实例列表
  */
-export const getListInstance = (params: Record<string, any> & {bk_biz_id: number}) => http.get<ListBase<InfluxdbInstanceModel[]>>(`${path}/list_instances/`, params)
-  .then(res => ({
+export const getInfluxdbInstanceList = function (params: Record<string, any> & {bk_biz_id: number}) {
+  return http.get<ListBase<InfluxdbInstanceModel[]>>(`${path}/list_instances/`, params).then(res => ({
     ...res,
     results: res.results.map((item: InfluxdbInstanceModel) => new InfluxdbInstanceModel(item)),
   }));
+};
 
 /**
  * 获取实例详情
  */
-export const getInstanceDetails = (params: {
+export const retrieveInfluxdbInstance = function (params: {
   bk_biz_id: number,
   instance_address: string
-}) => http.get<InfluxdbInstanceModel>(`${path}/retrieve_instance/`, params)
-  .then(data => new InfluxdbInstanceModel(data));
+}) {
+  return http.get<InfluxdbInstanceModel>(`${path}/retrieve_instance/`, params).then(data => new InfluxdbInstanceModel(data));
+};

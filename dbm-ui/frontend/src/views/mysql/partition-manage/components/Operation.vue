@@ -116,14 +116,13 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import { getResources } from '@services/clusters';
   import type PartitionModel from '@services/model/partition/partition';
   import {
     create as createParitition,
     edit as editPartition,
     verifyPartitionField,
   } from '@services/partitionManage';
-  import type { ResourceItem } from '@services/types/clusters';
+  import { getTendbhaList } from '@services/source/tendbha';
 
   import { useGlobalBizs } from '@stores';
 
@@ -251,7 +250,7 @@
   const {
     loading: isCluserListLoading,
     data: clusterList,
-  } = useRequest(getResources<ResourceItem>, {
+  } = useRequest(getTendbhaList, {
     defaultParams: [{
       offset: 0,
       limit: -1,

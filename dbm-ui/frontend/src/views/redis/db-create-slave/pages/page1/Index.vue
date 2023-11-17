@@ -72,10 +72,12 @@
   import {
     listClusterHostsCreateSlaveProxy,
     listClustersCreateSlaveProxy,
+  } from '@services/redis/toolbox';
+  import {
     queryInfoByIp,
     queryMasterSlavePairs,
-  } from '@services/redis/toolbox';
-  import { createTicket } from '@services/ticket';
+  } from '@services/source/redisToolbox';
+  import { createTicket } from '@services/source/ticket';
   import type { SubmitTicket } from '@services/types/ticket';
 
   import { useGlobalBizs } from '@stores';

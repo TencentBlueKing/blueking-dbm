@@ -29,9 +29,9 @@ mysql:
     name: dbactuator
     version: 1.0.2
 - dbbackup:
-    buildPath: /blueking-dbm/dbm-services/mysql/db-tools/mysql-dbbackup/build/dbbackup-go-txsql.tar.gz
+    buildPath: /blueking-dbm/dbm-services/mysql/db-tools/mysql-dbbackup/build/dbbackup-go-community.tar.gz
     commitId: d451a96ded6f360315b236dddcec5a8db80e7c9f
-    name: dbbackup-go-txsql.tar.gz
+    name: dbbackup-go-community.tar.gz
     version: 1.0.1
 - mysql-checksum:
     buildPath: /blueking-dbm/dbm-services/mysql/db-tools/mysql-table-checksum/build/mysql-checksum.tar.gz

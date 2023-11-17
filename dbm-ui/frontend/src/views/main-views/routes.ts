@@ -13,12 +13,12 @@
 
 import type { RouteRecordRaw } from 'vue-router';
 
-import { checkAuthAllowed } from '@services/common';
 import type {
   BigdataFunctions,
   MySQLFunctions,
   RedisFunctions,
 } from '@services/model/function-controller/functionController';
+import { checkAuthAllowed } from '@services/source/iam';
 
 import { useFunController } from '@stores';
 

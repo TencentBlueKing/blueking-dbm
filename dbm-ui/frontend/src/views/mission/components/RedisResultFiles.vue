@@ -65,8 +65,11 @@
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
 
-  import { getKeyFiles, getRedisFileUrls } from '@services/taskflow';
-  import { createTicket } from '@services/ticket';
+  import {
+    getKeyFiles,
+    getRedisFileUrls,
+  } from '@services/source/taskflow';
+  import { createTicket } from '@services/source/ticket';
   import type { KeyFileItem } from '@services/types/taskflow';
 
   import { useCopy, useInfoWithIcon, useTicketMessage } from '@hooks';

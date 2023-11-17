@@ -88,7 +88,7 @@
   <EditEntryConfig
     :id="clusterId"
     v-model:is-show="showEditEntryConfig"
-    :get-detail-info="getClusterDetail" />
+    :get-detail-info="getHdfsDetail" />
 </template>
 <script setup lang="tsx">
   import { InfoBox } from 'bkui-vue';
@@ -102,11 +102,11 @@
 
   import type HdfsModel from '@services/model/hdfs/hdfs';
   import {
-    getClusterDetail,
-    getList,
-    getListInstance,
+    getHdfsDetail,
+    getHdfsInstanceList,
+    getHdfsList,
   } from '@services/source/hdfs';
-  import { createTicket  } from '@services/ticket';
+  import { createTicket  } from '@services/source/ticket';
 
   import {
     useCopy,
@@ -156,7 +156,7 @@
   const userProfileStore = useUserProfile();
   const router = useRouter();
 
-  const dataSource = getList;
+  const dataSource = getHdfsList;
 
   const tableRef = ref();
   const tableDataActionLoadingMap = shallowRef<Record<number, boolean>>({});
@@ -305,7 +305,7 @@
           title={`【${data.domain}】NameNode`}
           clusterId={data.id}
           originalList={data.hdfs_namenode}
-          dataSource={getListInstance} />
+          dataSource={getHdfsInstanceList} />
       ),
     },
     {
@@ -319,7 +319,7 @@
           title={`【${data.domain}】Zookeeper`}
           clusterId={data.id}
           originalList={data.hdfs_zookeeper}
-          dataSource={getListInstance} />
+          dataSource={getHdfsInstanceList} />
       ),
     },
     {
@@ -333,7 +333,7 @@
           title={`【${data.domain}】Journalnode`}
           clusterId={data.id}
           originalList={data.hdfs_journalnode}
-          dataSource={getListInstance} />
+          dataSource={getHdfsInstanceList} />
       ),
     },
     {
@@ -347,7 +347,7 @@
           title={`【${data.domain}】DataNode`}
           clusterId={data.id}
           originalList={data.hdfs_datanode}
-          dataSource={getListInstance} />
+          dataSource={getHdfsInstanceList} />
       ),
     },
     {

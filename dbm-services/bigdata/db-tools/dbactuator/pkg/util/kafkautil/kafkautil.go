@@ -319,3 +319,41 @@ func findAndDelete(s []string, item string) []string {
 	}
 	return s[:index]
 }
+
+// ExporterParam exporter参数写入环境变量
+func ExporterParam(noSecurity int, username, password, version string) error {
+	// noSecurity, 1:无鉴权, 0:有鉴权
+	param := ""
+	authParam := fmt.Sprintf(
+		`export SASL_USERNAME="%s"
+	export SASL_PASSWORD="%s"
+	export SASL_MECHANISM=scram-sha512
+	export SASL_ENABLED=true`,
+		username, password)
+	if version == "0.10.2" {
+		param = param + "export KAFKA_VERSION=0.10.2.1"
+		if noSecurity == 0 {
+			param = param + "\n" + authParam
+		}
+	} else {
+		if noSecurity == 0 {
+			param = param + authParam
+		}
+	}
+	logger.Info("Exporter parameter is %s", param)
+
+	// Write to env
+	extraCmd := fmt.Sprintf(`echo '%s'  > /etc/profile.d/kafka.sh`, param)
+	logger.Info("cmd: [%s]", extraCmd)
+	_, err := osutil.ExecShellCommand(false, extraCmd)
+	if err != nil {
+		logger.Error("写入/etc/profile.d/kafka.sh失败 %s", err)
+		return err
+	}
+	// make env worked
+	extraCmd = "source /etc/profile"
+	logger.Info("cmd :[%s]", extraCmd)
+	_, _ = osutil.ExecShellCommand(false, extraCmd)
+
+	return nil
+}

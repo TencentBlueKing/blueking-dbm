@@ -44,8 +44,8 @@
 
   import type HdfsModel from '@services/model/hdfs/hdfs';
   import type HdfsNodeModel from '@services/model/hdfs/hdfs-node';
-  import { getHDFSListNodes } from '@services/source/bigdata';
-  import { createTicket } from '@services/ticket';
+  import { getHdfsNodeList } from '@services/source/hdfs';
+  import { createTicket } from '@services/source/ticket';
 
   import { useTicketMessage } from '@hooks';
 
@@ -115,7 +115,7 @@
     const datanodeOriginalNodeList: TNodeInfo['nodeList'] = [];
 
     isLoading.value = true;
-    getHDFSListNodes({
+    getHdfsNodeList({
       bk_biz_id: globalBizsStore.currentBizId,
       cluster_id: props.data.id,
       no_limit: 1,

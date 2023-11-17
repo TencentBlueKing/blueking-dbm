@@ -71,7 +71,7 @@
   import {
     getResourceSpec,
     getResourceSpecList,
-  } from '@services/resourceSpec';
+  } from '@services/source/dbresourceSpec';
 
   import { ClusterTypes } from '@common/const';
 

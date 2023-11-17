@@ -57,7 +57,7 @@
 
   import RedisRollbackModel from '@services/model/redis/redis-rollback';
   import { getRollbackList } from '@services/source/redisRollback';
-  import { createTicket } from '@services/ticket';
+  import { createTicket } from '@services/source/ticket';
   import type { SubmitTicket } from '@services/types/ticket';
 
   import {
