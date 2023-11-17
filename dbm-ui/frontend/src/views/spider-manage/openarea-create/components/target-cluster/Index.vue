@@ -1,7 +1,6 @@
 <template>
   <div>
     <RenderTable
-      v-slot="slotProps"
       class="mt16"
       :variable-list="variableList"
       @batch-select-cluster="handleShowBatchSelector">
@@ -10,7 +9,6 @@
         :key="item.rowKey"
         ref="rowRefs"
         :data="item"
-        :is-fixed="slotProps.isOverflow"
         :removeable="tableData.length < 2"
         :variable-list="variableList"
         @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"

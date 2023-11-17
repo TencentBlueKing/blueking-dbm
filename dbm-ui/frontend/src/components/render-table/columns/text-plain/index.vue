@@ -43,7 +43,7 @@
 <script setup lang="ts" generic="T extends string | number">
   import { useIsWidthOverflow } from '@hooks';
 
-  import useValidtor, { type Rules } from '@components/render-table/hooks/useValidtor';
+  import useValidtor, { type Rules } from '../../hooks/useValidtor';
 
   interface Props {
     data?: T;

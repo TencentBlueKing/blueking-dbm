@@ -11,7 +11,7 @@
  * the specific language governing permissions and limitations under the License.
 */
 
-// import _ from 'lodash';
+import _ from 'lodash';
 
 export default function (tableRef: Ref<Element>, tableColumnResizeRef: Ref<HTMLElement>, mouseupCallback: () => void) {
   let dragable = false;
@@ -23,10 +23,23 @@ export default function (tableRef: Ref<Element>, tableColumnResizeRef: Ref<HTMLE
     setTimeout(() => {
       const tableEl = tableRef.value;
       tableEl.querySelectorAll('th').forEach((columnEl) => {
+        const isFixed = columnEl.getAttribute('data-fixed');
         const { width } = columnEl.getBoundingClientRect();
         const renderWidth = Math.max(parseInt(columnEl.getAttribute('data-minWidth') || '', 10), width);
-        // eslint-disable-next-line no-param-reassign
-        columnEl.style.width = `${renderWidth}px`;
+        if (isFixed) {
+          const fixedWidth = columnEl.getAttribute('data-width');
+          // eslint-disable-next-line no-param-reassign
+          columnEl.style.width = `${fixedWidth}px`;
+        } else {
+          const maxWidth = Number(columnEl.getAttribute('data-maxWidth'));
+          if (maxWidth && renderWidth > maxWidth) {
+            // eslint-disable-next-line no-param-reassign
+            columnEl.style.width = `${maxWidth}px`;
+          } else {
+            // eslint-disable-next-line no-param-reassign
+            columnEl.style.width = `${renderWidth}px`;
+          }
+        }
       });
     });
   };
@@ -92,7 +105,7 @@ export default function (tableRef: Ref<Element>, tableColumnResizeRef: Ref<HTMLE
       resizeProxy.style.display = 'none';
       dragable = false;
       mouseupCallback();
-
+      initColumnWidth();
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
       document.onselectstart = null;
@@ -118,16 +131,16 @@ export default function (tableRef: Ref<Element>, tableColumnResizeRef: Ref<HTMLE
     }
   };
 
-  // const handleOuterMousemove = _.throttle((event) => {
-  //   let i = event.composedPath().length - 1;
-  //   while (i >= 0) {
-  //     if (event.composedPath()[i].id === 'toolboxRenderTableKey') {
-  //       return;
-  //     }
-  //     i = i - 1;
-  //   }
-  //   document.body.style.cursor = '';
-  // }, 100);
+  const handleOuterMousemove = _.throttle((event) => {
+    let i = event.composedPath().length - 1;
+    while (i >= 0) {
+      if (event.composedPath()[i].id === 'toolboxRenderTableKey') {
+        return;
+      }
+      i = i - 1;
+    }
+    document.body.style.cursor = '';
+  }, 100);
 
 
   provide('toolboxRenderTableKey', {
@@ -137,11 +150,11 @@ export default function (tableRef: Ref<Element>, tableColumnResizeRef: Ref<HTMLE
 
   onMounted(() => {
     initColumnWidth();
-    // document.addEventListener('mousemove', handleOuterMousemove);
+    document.addEventListener('mousemove', handleOuterMousemove);
   });
 
   onBeforeUnmount(() => {
-    // document.removeEventListener('mousemove', handleOuterMousemove);
+    document.removeEventListener('mousemove', handleOuterMousemove);
   });
 
   return {

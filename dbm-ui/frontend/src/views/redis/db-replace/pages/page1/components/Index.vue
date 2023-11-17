@@ -56,9 +56,8 @@
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
           fixed="right"
-          :min-width="90"
           :required="false"
-          :width="120">
+          :width="100">
           {{ $t('操作') }}
         </RenderTableHeadColumn>
       </template>

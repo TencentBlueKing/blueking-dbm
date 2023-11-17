@@ -13,7 +13,6 @@
         class="mb-16"
         :title="t('可以在命名范式与 xxx 中使用')" />
       <RenderTable
-        v-slot="slotProps"
         class="mt16">
         <template
           v-for="(item, index) in variableList"
@@ -21,7 +20,6 @@
           <RenderRow
             v-if="item.name"
             :data="item"
-            :is-fixed="slotProps.isOverflow"
             @add="(data: IVariable) => handleAdd(data, index)"
             @remove="handleRemove" />
           <CreateRow

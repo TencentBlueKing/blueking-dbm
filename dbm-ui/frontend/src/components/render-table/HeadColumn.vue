@@ -20,7 +20,10 @@
       'toolbox-right-fixed-column': isMinimize && isFixedRight,
       'toolbox-left-fixed-column': isMinimize && isFixedLeft,
     }"
+    :data-fixed="fixed"
+    :data-maxWidth="maxWidth"
     :data-minWidth="finalMinWidth"
+    :data-width="width"
     :style="styles"
     @mousedown="handleMouseDown"
     @mousemove="handleMouseMove">
@@ -48,15 +51,13 @@
 
   import { useResizeObserver } from '@vueuse/core';
 
-  import {
-    isOverflowKey,
-    rowWidthKey,
-  } from './Index.vue';
+  import { renderTablekey } from './Index.vue';
 
   interface Props {
     width?: number;
     required?: boolean;
     minWidth?: number;
+    maxWidth?: number;
     fixed?: 'right' | 'left';
   }
 
@@ -64,11 +65,11 @@
     width: undefined,
     required: true,
     minWidth: undefined,
+    maxWidth: undefined,
     fixed: undefined,
   });
 
-  const rowWidth = inject(rowWidthKey);
-  const isMinimize = inject(isOverflowKey);
+  const { rowWidth, isOverflow: isMinimize } = inject(renderTablekey)!;
   const parentTable = inject('toolboxRenderTableKey', {} as any);
 
   const slots = useSlots();
@@ -76,9 +77,10 @@
   const columnRef = ref();
   const currentWidth = ref(0); // 列拖动后的最新宽度
 
-  const columnKey  = random();
+  const columnKey = random();
 
   let initWidthRate = 0;
+  let isDragedSelf = false;
 
   const finalMinWidth = computed(() => (props.minWidth ? props.minWidth : props.width));
   const isFixedRight = computed(() => props.fixed === 'right');
@@ -102,17 +104,21 @@
           width = finalMinWidth.value;
         }
         return {
-          width: `${width}px`,
+          minWidth: `${width}px`,
         };
       }
     }
     return {
-      width: props.width ? `${props.width}px` : '120px',
+      minWidth: props.width ? `${props.width}px` : '120px',
     };
   });
 
   watch(() => [props.width, rowWidth?.value, currentWidth.value], ([width, rowWidth, currentWidth]) => {
+    if (!isDragedSelf) {
+      return;
+    }
     if (width && rowWidth && currentWidth && finalMinWidth.value) {
+      isDragedSelf = false;
       if (currentWidth !== 0 && (currentWidth !== finalMinWidth.value || currentWidth !== width)) {
         initWidthRate = currentWidth / rowWidth;
       } else {
@@ -124,11 +130,15 @@
   });
 
   useResizeObserver(columnRef, () => {
+    if (!isDragedSelf) {
+      return;
+    }
     const width = parseFloat(columnRef.value.style.width);
     currentWidth.value = width;
   });
 
   const handleMouseDown = (event: MouseEvent) => {
+    isDragedSelf = true;
     parentTable?.columnMousedown(event, {
       columnKey,
       minWidth: finalMinWidth.value,
