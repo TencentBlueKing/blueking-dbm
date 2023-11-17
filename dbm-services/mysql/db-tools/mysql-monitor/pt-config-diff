@@ -3349,7 +3349,9 @@ sub _mimic_show_variables {
             }
          }
          else {
-            $vars->{$var} = 'ON';
+            if ( $var ne 'sql_mode') {
+                $vars->{$var} = 'ON';
+            }
          }
       }
    }
