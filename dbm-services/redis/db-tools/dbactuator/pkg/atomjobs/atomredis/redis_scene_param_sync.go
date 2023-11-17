@@ -73,7 +73,7 @@ func (job *RedisPramsSync) Run() (err error) {
 	job.runtime.Logger.Info("redisparamsync start; params:%+v", job.params)
 	for _, pair := range job.params.Instances {
 		addr1 := fmt.Sprintf("%s:%d", pair.MasterInfo.IP, pair.MasterInfo.Port)
-		pwd, err := myredis.GetPasswordFromLocalConfFile(pair.MasterInfo.Port)
+		pwd, err := myredis.GetRedisPasswdFromConfFile(pair.MasterInfo.Port)
 		if err != nil {
 			job.runtime.Logger.Error("get redis pass from local failed,err %s:%v", addr1, err)
 			return err

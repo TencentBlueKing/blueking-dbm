@@ -132,7 +132,7 @@ func (job *TendisKeysPattern) Run() (err error) {
 
 	keyTasks := make([]*RedisInsKeyPatternTask, 0, len(job.params.Ports))
 	for _, port := range job.params.Ports {
-		password, err := myredis.GetPasswordFromLocalConfFile(port)
+		password, err := myredis.GetRedisPasswdFromConfFile(port)
 		if err != nil {
 			return err
 		}

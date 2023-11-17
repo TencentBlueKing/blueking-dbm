@@ -76,7 +76,7 @@ func (job *RedisKillDeadConn) Run() (err error) {
 
 	for _, storage := range job.params.Instances {
 		addr := fmt.Sprintf("%s:%d", storage.IP, storage.Port)
-		pwd, err := myredis.GetPasswordFromLocalConfFile(storage.Port)
+		pwd, err := myredis.GetRedisPasswdFromConfFile(storage.Port)
 		if err != nil {
 			job.runtime.Logger.Error("get redis pass from local failed,err %s:%v", addr, err)
 			return err

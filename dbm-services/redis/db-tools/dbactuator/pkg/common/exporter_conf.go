@@ -56,7 +56,7 @@ func CreateLocalExporterConfigFile(ip string, port int, metaRole, password strin
 		// 从本地配置文件获取密码
 		if metaRole == consts.MetaRoleRedisMaster ||
 			metaRole == consts.MetaRoleRedisSlave {
-			password, err = myredis.GetPasswordFromLocalConfFile(port)
+			password, err = myredis.GetRedisPasswdFromConfFile(port)
 		} else if metaRole == consts.MetaRolePredixy ||
 			metaRole == consts.MetaRoleTwemproxy {
 			password, err = myredis.GetProxyPasswdFromConfFlie(port, metaRole)

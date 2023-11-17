@@ -109,7 +109,7 @@ func (job *RedisSyncCheck) Rollback() error {
 // checkReplication TODO
 func (job *RedisSyncCheck) checkReplication(ins InstanceParam) error {
 	addr := fmt.Sprintf("%s:%d", ins.IP, ins.Port)
-	pwd, err := myredis.GetPasswordFromLocalConfFile(ins.Port)
+	pwd, err := myredis.GetRedisPasswdFromConfFile(ins.Port)
 	if err != nil {
 		job.runtime.Logger.Error("get redis pass from local failed,err %s:%v", addr, err)
 		return err
