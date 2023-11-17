@@ -387,7 +387,13 @@ class RedisActPayload(object):
         """
         交换源集群和目标集群 dbconfig 中的proxy版本信息,有可能 twemproxy集群 切换到 predixy集群
         """
-        proxy_conf_names = ["password", "redis_password", "port"]
+        src_proxy_conf_names = ["password", "redis_password", "port"]
+        dst_proxy_conf_names = ["password", "redis_password", "port"]
+        if is_predixy_proxy_type(clusterMap["src_cluster_type"]):
+            src_proxy_conf_names.append("predixy_admin_passwd")
+        if is_predixy_proxy_type(clusterMap["dst_cluster_type"]):
+            dst_proxy_conf_names.append("predixy_admin_passwd")
+
         logger.info(_("交换源集群和目标集群 dbconfig 中的proxy版本信息"))
         logger.info(_("获取源集群:{} proxy配置").format(clusterMap["src_cluster_domain"]))
         src_resp = DBConfigApi.query_conf_item(
@@ -403,7 +409,7 @@ class RedisActPayload(object):
             }
         )
         src_conf_upsert_items = []
-        for conf_name in proxy_conf_names:
+        for conf_name in src_proxy_conf_names:
             src_conf_upsert_items.append(
                 {"conf_name": conf_name, "conf_value": src_resp["content"][conf_name], "op_type": OpType.UPDATE}
             )
@@ -423,7 +429,7 @@ class RedisActPayload(object):
             }
         )
         dst_conf_upsert_items = []
-        for conf_name in proxy_conf_names:
+        for conf_name in dst_proxy_conf_names:
             dst_conf_upsert_items.append(
                 {"conf_name": conf_name, "conf_value": dst_resp["content"][conf_name], "op_type": OpType.UPDATE}
             )
@@ -445,7 +451,7 @@ class RedisActPayload(object):
         }
 
         remove_items = []
-        for conf_name in proxy_conf_names:
+        for conf_name in src_proxy_conf_names:
             remove_items.append({"conf_name": conf_name, "op_type": OpType.REMOVE})
         # 删除源集群的proxy配置
         src_remove_param = copy.deepcopy(upsert_param)
@@ -458,6 +464,9 @@ class RedisActPayload(object):
         )
         DBConfigApi.upsert_conf_item(src_remove_param)
 
+        remove_items = []
+        for conf_name in dst_proxy_conf_names:
+            remove_items.append({"conf_name": conf_name, "op_type": OpType.REMOVE})
         # 删除目标集群的proxy配置
         dst_remove_param = copy.deepcopy(upsert_param)
         dst_remove_param["conf_file_info"]["conf_file"] = clusterMap["dst_proxy_version"]
@@ -470,6 +479,27 @@ class RedisActPayload(object):
         DBConfigApi.upsert_conf_item(dst_remove_param)
 
         time.sleep(2)
+
+        if is_twemproxy_proxy_type(clusterMap["src_cluster_type"]) and is_predixy_proxy_type(
+            clusterMap["dst_cluster_type"]
+        ):
+            # 源集群是twemproxy类型,目的集群是predixy类型,交换后类型也将交换
+            # 此时源集群配置中增加predixy_admin_passwd,目的集群配置中移除predixy_admin_passwd
+            conf_name = "predixy_admin_passwd"
+            src_conf_upsert_items.append(
+                {"conf_name": conf_name, "conf_value": dst_resp["content"][conf_name], "op_type": OpType.UPDATE}
+            )
+            dst_conf_upsert_items = [item for item in dst_conf_upsert_items if item["conf_name"] != conf_name]
+        elif is_predixy_proxy_type(clusterMap["src_cluster_type"]) and is_twemproxy_proxy_type(
+            clusterMap["dst_cluster_type"]
+        ):
+            # 源集群是predixy类型,目的集群是twemproxy类型,交换后类型也将交换
+            # 此时源集群配置中移除predixy_admin_passwd,目的集群配置中增加predixy_admin_passwd
+            conf_name = "predixy_admin_passwd"
+            src_conf_upsert_items = [item for item in src_conf_upsert_items if item["conf_name"] != conf_name]
+            dst_conf_upsert_items.append(
+                {"conf_name": conf_name, "conf_value": src_resp["content"][conf_name], "op_type": OpType.UPDATE}
+            )
 
         # 更新源集群的proxy版本信息
         src_upsert_param = copy.deepcopy(upsert_param)

@@ -41,7 +41,7 @@ from backend.db_services.redis.redis_dts.enums import (
 )
 from backend.db_services.redis.redis_dts.models import TbTendisDTSJob, TbTendisDtsTask
 from backend.db_services.redis.redis_dts.util import get_safe_regex_pattern
-from backend.db_services.redis.util import is_redis_cluster_protocal
+from backend.db_services.redis.util import is_predixy_proxy_type, is_redis_cluster_protocal
 from backend.flow.consts import GB, MB, StateType
 from backend.flow.engine.bamboo.scene.redis.redis_cluster_apply_flow import RedisClusterApplyFlow
 from backend.flow.engine.bamboo.scene.redis.redis_cluster_data_check_repair import RedisClusterDataCheckRepairFlow
@@ -925,6 +925,12 @@ class NewDstClusterInstallJobAndWatchStatus(BaseService):
             },
             "resource_spec": kwargs["cluster"]["dst_install_param"]["resource_spec"],
         }
+        if is_predixy_proxy_type(ticket_data["cluster_type"]):
+            # 如果是predixy类型,则需要设置proxy_admin_pwd
+            # 优先获取用户输入的proxy_admin_pwd,如果没有输入,则使用proxy_pwd
+            ticket_data["proxy_admin_pwd"] = kwargs["cluster"]["dst_install_param"].get("redis_proxy_admin_password")
+            if not ticket_data.get("proxy_admin_pwd"):
+                ticket_data["proxy_admin_pwd"] = ticket_data["proxy_pwd"]
         self.log_info("NewDstClusterInstallJobAndWatchStatus ticket_data==>:{}".format(ticket_data))
         root_id = f"{datetime.date.today()}{uuid.uuid1().hex[:6]}".replace("-", "")
         if ticket_data["cluster_type"] == ClusterType.TendisPredixyTendisplusCluster.value:

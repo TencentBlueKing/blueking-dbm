@@ -27,8 +27,8 @@ type RedisDataStructureParams struct {
 	IsIncludeSlave    bool                       `json:"is_include_slave" `
 	TendisType        string                     `json:"tendis_type" validate:"required"`
 	DestDir           string                     `json:"dest_dir"`                           // 备份下载/存放目录
-	FullFileList      []datastructure.FileDetail `json:"full_file_list" validate:"required"` //全备文件列表
-	BinlogFileList    []datastructure.FileDetail `json:"binlog_file_list" `                  //binlog文件列表
+	FullFileList      []datastructure.FileDetail `json:"full_file_list" validate:"required"` // 全备文件列表
+	BinlogFileList    []datastructure.FileDetail `json:"binlog_file_list" `                  // binlog文件列表
 }
 
 // RedisDataStructure redis 数据构造
@@ -80,7 +80,7 @@ func (task *RedisDataStructure) Init(m *jobruntime.JobGenericRuntime) error {
 		return err
 	}
 
-	//传入的源端口数应该等于临时节点端口数
+	// 传入的源端口数应该等于临时节点端口数
 	if len(task.params.SourcePorts) != len(task.params.NewTempPorts) {
 		err = fmt.Errorf("RedisDataStructure SourcePorts(%d) != NewTempPorts(%d) , is invalid ",
 			task.params.SourcePorts, task.params.NewTempPorts)
@@ -126,7 +126,7 @@ func (task *RedisDataStructure) Run() (err error) {
 		task.TendisType = task.params.TendisType
 		task.password = ""
 		// 数据构造时从本地获取密码信息
-		task.password, err = myredis.GetPasswordFromLocalConfFile(newTmpPort)
+		task.password, err = myredis.GetRedisPasswdFromConfFile(newTmpPort)
 		if err != nil {
 			return err
 		}

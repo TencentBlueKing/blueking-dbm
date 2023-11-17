@@ -89,7 +89,7 @@ func (task *RedisDataRecover) Init(m *jobruntime.JobGenericRuntime) error {
 		return err
 	}
 
-	//传入的源端口数应该等于临时节点端口数
+	// 传入的源端口数应该等于临时节点端口数
 	if len(task.params.SourcePorts) != len(task.params.NewTempPorts) {
 		err = fmt.Errorf("RedisDataRecover SourcePorts(%d) != NewTempPorts(%d) , is invalid ",
 			task.params.SourcePorts, task.params.NewTempPorts)
@@ -152,7 +152,7 @@ func (task *RedisDataRecover) Run() (err error) {
 
 		} else {
 			// 数据构造时从本地获取密码信息
-			task.password, err = myredis.GetPasswordFromLocalConfFile(newTmpPort)
+			task.password, err = myredis.GetRedisPasswdFromConfFile(newTmpPort)
 			if err != nil {
 				return err
 			}
@@ -266,6 +266,7 @@ func (task *RedisDataRecover) CheckRecoverDir() (err error) {
 	return nil
 }
 
+// stopBkDbmon TODO
 // // StopBkDbmon 停 bk-dbmon
 func (task *RedisDataRecover) stopBkDbmon() (err error) {
 
@@ -301,7 +302,7 @@ func (task *RedisDataRecover) startBkDbmon() (err error) {
 		task.runtime.Logger.Error(err.Error())
 		return err
 	}
-	//用mysql权限
+	// 用mysql权限
 	startCmd := fmt.Sprintf("su %s -c 'nohup %s &'", consts.MysqlAaccount, "sh "+startScript)
 	task.runtime.Logger.Info(startCmd)
 	_, err = util.RunLocalCmd("su", []string{consts.MysqlAaccount, "-c", "nohup sh " + startScript + " &"},

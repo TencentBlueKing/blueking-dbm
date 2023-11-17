@@ -312,6 +312,28 @@ func (job *RedisDtsOnlineSwitch) BackupSrcProxyConfFile() (err error) {
 	return nil
 }
 
+func (job *RedisDtsOnlineSwitch) getDstPredixyLogRootDir() string {
+	lines := strings.Split(job.params.DstProxyConfigContent, "\n")
+	var logLine string
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if line == "" {
+			continue
+		}
+		if strings.HasPrefix(line, "Log ") {
+			logLine = line
+			break
+		}
+	}
+	parts := strings.Fields(logLine)
+	path := parts[1]
+
+	pathParts := strings.Split(path, "/")
+	firstPart := pathParts[1]
+
+	return "/" + firstPart
+}
+
 // NewProxyConfigFileForSameType (类型不变时)生成新的proxy配置文件
 func (job *RedisDtsOnlineSwitch) NewProxyConfigFileForSameType() (err error) {
 	dstConfContent := job.params.DstProxyConfigContent
@@ -326,6 +348,10 @@ func (job *RedisDtsOnlineSwitch) NewProxyConfigFileForSameType() (err error) {
 	} else if consts.IsPredixyClusterType(job.params.SrcClusterType) {
 		re := regexp.MustCompile(`Auth\s*"` + job.params.DstProxyPassword + `"`)
 		dstConfContent = re.ReplaceAllString(dstConfContent, `Auth "`+job.params.SrcProxyPassword+`"`)
+		logRootDir := job.getDstPredixyLogRootDir()
+		if logRootDir != consts.GetRedisDataDir() {
+			dstConfContent = strings.ReplaceAll(dstConfContent, logRootDir+"/", consts.GetRedisDataDir()+"/")
+		}
 	}
 
 	newFile := fmt.Sprintf("dts_new_config.billid_%d.%s_%d.%s", job.params.DtsBillID, job.params.SrcProxyIP,
@@ -379,6 +405,10 @@ func (job *RedisDtsOnlineSwitch) NewProxyConfigFileForDiffType() (err error) {
 	} else if consts.IsPredixyClusterType(job.params.DstClusterType) {
 		re := regexp.MustCompile(`Auth\s*"` + job.params.DstProxyPassword + `"`)
 		dstConfContent = re.ReplaceAllString(dstConfContent, `Auth "`+job.params.SrcProxyPassword+`"`)
+		logRootDir := job.getDstPredixyLogRootDir()
+		if logRootDir != consts.GetRedisDataDir() {
+			dstConfContent = strings.ReplaceAll(dstConfContent, logRootDir+"/", consts.GetRedisDataDir()+"/")
+		}
 	}
 
 	proxyFileForDstPort := job.getProxyFile(job.params.DstClusterType, job.params.DstProxyPort)
@@ -721,7 +751,8 @@ func (job *RedisDtsOnlineSwitch) UntarDstProxyMedia() (err error) {
 	util.LocalDirChownMysql(proxySoftLink + string(filepath.Separator))
 
 	if consts.IsPredixyClusterType(job.params.DstClusterType) {
-		sedCmd := fmt.Sprintf("sed -i 's#/data#%s#g' %s", consts.GetRedisDataDir(),
+		// 替换 start_predixy.sh 中的 /data
+		sedCmd := fmt.Sprintf("sed -i 's#/data\"#%s\"#g' %s", consts.GetRedisDataDir(),
 			filepath.Join(proxySoftLink, "bin", "start_predixy.sh"))
 		job.runtime.Logger.Info(sedCmd)
 		_, err = util.RunBashCmd(sedCmd, "", nil, 30*time.Second)

@@ -28,8 +28,8 @@ type TendisInsRecoverTask struct {
 	RecoverDir        string                 `json:"recoverDir"`      // 备份目录
 	BackupFile        string                 `json:"backup_file"`     // 备份文件名
 	FullBackup        *TendisFullBackPull    `json:"fullBackup"`      // cache、ssd、plus 全备
-	IncrBackup        *TplusIncrBackPull     `json:"incrBackup"`      //tendisplus binlog
-	SSDIncrBackup     *TredisRocksDBIncrBack `json:"ssdIncrBackup"`   //ssd binlog
+	IncrBackup        *TplusIncrBackPull     `json:"incrBackup"`      // tendisplus binlog
+	SSDIncrBackup     *TredisRocksDBIncrBack `json:"ssdIncrBackup"`   // ssd binlog
 
 	TendisType     string `json:"tendis_type"`
 	IsIncludeSlave bool   `json:"is_include_slave"`
@@ -41,19 +41,19 @@ type TendisInsRecoverTask struct {
 	redisCli       *myredis.RedisClient
 	runtime        *jobruntime.JobGenericRuntime
 	Err            error        `json:"-"`
-	FullFileList   []FileDetail `json:"full_file_list"`    //全备文件列表
-	BinlogFileList []FileDetail `json:"binlog_file_list" ` //增备文件列表
+	FullFileList   []FileDetail `json:"full_file_list"`    // 全备文件列表
+	BinlogFileList []FileDetail `json:"binlog_file_list" ` // 增备文件列表
 
 }
 
 // FileDetail 备份文件结果记录详情
 type FileDetail struct {
-	TaskID        string `json:"task_id"`         //任务ID，用于拉取备份文件
-	Uptime        string `json:"uptime"`          //备份任务上报时间
+	TaskID        string `json:"task_id"`         // 任务ID，用于拉取备份文件
+	Uptime        string `json:"uptime"`          // 备份任务上报时间
 	FileLastMtime string `json:"file_last_mtime"` // 文件最后修改时间
-	SourceIP      string `json:"source_ip"`       //备份源IP
+	SourceIP      string `json:"source_ip"`       // 备份源IP
 	Size          int    `json:"size" validate:"required"`
-	FileTag       string `json:"file_tag"` //文件类型 REDIS_FULL、REDIS_BINLOG
+	FileTag       string `json:"file_tag"` // 文件类型 REDIS_FULL、REDIS_BINLOG
 	Status        string `json:"status"`
 	FileName      string `json:"file_name" validate:"required"`
 }
@@ -137,7 +137,7 @@ func (task *TendisInsRecoverTask) PrecheckTendis() error {
 	}
 	task.runtime.Logger.Info("%s: role:%s", redisAddr, role)
 
-	//校验集群是否有业务在使用
+	// 校验集群是否有业务在使用
 	isUsing, cmds, err := task.redisCli.IsRedisUsing("redis-cli ", 10*time.Second)
 	if err != nil {
 		err = fmt.Errorf("Precheck failed: target tendis:%s isUsing:%v", redisAddr, err)
@@ -186,8 +186,8 @@ func (task *TendisInsRecoverTask) ClusterResetMaster() error {
 	if err != nil {
 		return err
 	}
-	time.Sleep(5 * time.Second) //sleep 2 seconds
-	//检查确实与集群断开联系
+	time.Sleep(5 * time.Second) // sleep 2 seconds
+	// 检查确实与集群断开联系
 	runningMasters, err := task.redisCli.GetRunningMasters()
 	if err != nil {
 		return err
@@ -212,7 +212,7 @@ func (task *TendisInsRecoverTask) StopSlave() error {
 	msg := fmt.Sprintf("开始断开slave到master:%s的同步关系...", redisAddr)
 	task.runtime.Logger.Info(msg)
 
-	//找到目标tendisplus 的slave
+	// 找到目标tendisplus 的slave
 	slaveNodeList, err := task.redisCli.GetAllSlaveNodesByMasterAddr(redisAddr)
 	if err != nil && util.IsNotFoundErr(err) == false {
 		return err
@@ -228,7 +228,7 @@ func (task *TendisInsRecoverTask) StopSlave() error {
 		msg = fmt.Sprintf("master:%s开始断开slave:%s同步关系", redisAddr, slaveNode01.Addr)
 		task.runtime.Logger.Info(msg)
 
-		//断开同步关系
+		// 断开同步关系
 		newCli01, err := myredis.NewRedisClient(slaveNode01.Addr, task.NewTmpPassword, 0, consts.TendisTypeTendisplusInsance)
 		if err != nil {
 			return err
@@ -240,7 +240,7 @@ func (task *TendisInsRecoverTask) StopSlave() error {
 		}
 		time.Sleep(5 * time.Second)
 
-		//检查同步关系确实已断开
+		// 检查同步关系确实已断开
 		infoData, err := newCli01.Info("replication")
 		if err != nil {
 			newCli01.Close()
@@ -322,7 +322,7 @@ func (task *TendisInsRecoverTask) CheckDecompressedDirIsOK() (isExists, isCompel
 	redisAddr := fmt.Sprintf("%s:%s", task.NeWTempIP, strconv.Itoa(task.NewTmpPort))
 	msg = fmt.Sprintf("开始检查全备(已解压)目录是否存在,是否完整")
 	task.runtime.Logger.Info(msg)
-	//测试tendisplus连接性
+	// 测试tendisplus连接性
 	redisCli, err := myredis.NewRedisClient(redisAddr, task.NewTmpPassword, 0, consts.TendisTypeTendisplusInsance)
 	if err != nil {
 		return false, false, msg
@@ -342,14 +342,14 @@ func (task *TendisInsRecoverTask) CheckDecompressedDirIsOK() (isExists, isCompel
 		task.runtime.Logger.Info(msg)
 		return
 	}
-	isExists = true //解压目录存在
+	isExists = true // 解压目录存在
 	var metaFile string
 	metaFile, err = task.FindDstFileInDir(decpDir, "clustermeta.txt")
 	if err != nil {
 		return
 	}
 	if _, err := os.Stat(metaFile); os.IsNotExist(err) {
-		//clustermeta.txt 不存在
+		// clustermeta.txt 不存在
 		msg = fmt.Sprintf("全备解压目录:%s 中找不到 clustermeta.txt 文件", decpDir)
 		task.runtime.Logger.Info(msg)
 		isCompelete = false
@@ -383,7 +383,7 @@ func (task *TendisInsRecoverTask) CheckDecompressedDirIsOK() (isExists, isCompel
 	}
 	msg = fmt.Sprintf("解压目录存在且完整:%s", decpDir)
 	task.runtime.Logger.Info(msg)
-	//解压文件存在且是完整的
+	// 解压文件存在且是完整的
 	return true, true, msg
 }
 
@@ -426,7 +426,7 @@ func (task *TendisInsRecoverTask) Decompress(fileName string) error {
 
 	if DecompressCmd != "" {
 
-		//将全备文件解压到指定目录下
+		// 将全备文件解压到指定目录下
 		DecompressCmd = fmt.Sprintf("cd %s  && %s -C %s", task.RecoverDir, DecompressCmd, task.RecoverDir)
 		msg := fmt.Sprintf("解压命令:%s", DecompressCmd)
 		task.runtime.Logger.Info(msg)
@@ -440,7 +440,7 @@ func (task *TendisInsRecoverTask) Decompress(fileName string) error {
 				return err
 			}
 			if isExists == false || isCompelete == false {
-				//如果不存在或不完整
+				// 如果不存在或不完整
 				err = errors.New(msg)
 				task.runtime.Logger.Error(err.Error())
 				return err
@@ -516,7 +516,7 @@ func (task *TendisInsRecoverTask) RecoverSlave() error {
 	msg := fmt.Sprintf("开始恢复slave到master:%s的同步关系...", redisAddr)
 	task.runtime.Logger.Info(msg)
 
-	//获取master的nodeiD
+	// 获取master的nodeiD
 	var rbTenplusNodeData *myredis.ClusterNodeData = nil
 	_, err := task.redisCli.GetClusterNodes()
 	if err != nil {
@@ -547,7 +547,7 @@ func (task *TendisInsRecoverTask) RecoverSlave() error {
 
 	msg = fmt.Sprintf("master:%s 从cluster nodes中共找到%d个slave", redisAddr, len(slaveNodes))
 	task.runtime.Logger.Info(msg)
-	maxRetryTimes := 10 //最多重试10次
+	maxRetryTimes := 10 // 最多重试10次
 	isOK := false
 	for _, slaveNode01 := range slaveNodes {
 		slaveNodeItem := slaveNode01
@@ -560,13 +560,13 @@ func (task *TendisInsRecoverTask) RecoverSlave() error {
 		task.runtime.Logger.Info(msg)
 
 		list01 := strings.Split(slaveAddr, ":")
-		//cluster meet slave
+		// cluster meet slave
 		_, err = task.redisCli.ClusterMeet(list01[0], list01[1])
 		if err != nil {
 			slaveCli02.Close()
 			return err
 		}
-		//确保slave 和 master已connected
+		// 确保slave 和 master已connected
 		idx := 0
 		for ; idx < maxRetryTimes; idx++ {
 			time.Sleep(5 * time.Second)
@@ -598,14 +598,14 @@ func (task *TendisInsRecoverTask) RecoverSlave() error {
 		}
 		msg = fmt.Sprintf("slave:%s 'cluster replicate' master nodeID:%s", slaveAddr, rbTenplusNodeData.NodeID)
 		task.runtime.Logger.Info(msg)
-		//cluster replicate
+		// cluster replicate
 		_, err = slaveCli02.ClusterReplicate(rbTenplusNodeData.NodeID)
 		if err != nil {
 			slaveCli02.Close()
 			return err
 		}
 		time.Sleep(5 * time.Second)
-		//检查同步确实恢复
+		// 检查同步确实恢复
 		infoData, err := slaveCli02.Info("replication")
 		if err != nil {
 			slaveCli02.Close()
@@ -685,7 +685,8 @@ func (task *TendisInsRecoverTask) GetTendisSlaveNodes(masterAddr string) (
 	for _, info01 := range m01 {
 		infoItem := info01
 		// NOCC:tosa/linelength(其他)
-		if infoItem.Role == consts.RedisSlaveRole && infoItem.LinkState == consts.RedisLinkStateConnected && infoItem.MasterID == masterNode.NodeID {
+		if infoItem.Role == consts.RedisSlaveRole && infoItem.LinkState == consts.RedisLinkStateConnected &&
+			infoItem.MasterID == masterNode.NodeID {
 			msg := fmt.Sprintf("master:%s 找到一个slave:%s ", masterAddr, infoItem.Addr)
 			task.runtime.Logger.Info(msg)
 			slaveNodes = append(slaveNodes, infoItem)
@@ -747,7 +748,7 @@ func (task *TendisInsRecoverTask) PullFullbackup() error {
 	}
 
 	task.FullBackup = fullBack
-	//对传入的全备份文件进行校验
+	// 对传入的全备份文件进行校验
 	task.runtime.Logger.Info("Fullbackup task.FullBackup.FileHead :%s", task.FullBackup.FileHead)
 
 	// 校验节点维度的所有文件信息
@@ -768,7 +769,7 @@ func (task *TendisInsRecoverTask) RestoreFullbackup() error {
 	redisAddr := fmt.Sprintf("%s:%s", task.NeWTempIP, strconv.Itoa(task.NewTmpPort))
 	msg := fmt.Sprintf("master:%s开始导入全备", redisAddr)
 	task.runtime.Logger.Info(msg)
-	//再次探测tendisplus连接性
+	// 再次探测tendisplus连接性
 	redisCli, err := myredis.NewRedisClient(redisAddr, task.NewTmpPassword, 0, consts.TendisTypeTendisplusInsance)
 	if err != nil {
 		return err
@@ -801,8 +802,8 @@ func (task *TendisInsRecoverTask) PullIncrbackup() {
 	}
 	layout := "2006-01-02 15:04:05"
 	rbDstTime, _ := time.ParseInLocation(layout, task.RecoveryTimePoint, time.Local)
-	//回档目标时间 比 用户填写的时间多1秒
-	//(因为binlog_tool的--end-datetime参数,--end-datetime这个时间点的binlog是不会被应用的)
+	// 回档目标时间 比 用户填写的时间多1秒
+	// (因为binlog_tool的--end-datetime参数,--end-datetime这个时间点的binlog是不会被应用的)
 	rbDstTime = rbDstTime.Add(1 * time.Second)
 	task.runtime.Logger.Info("回档目标时间 rbDstTime:%v", rbDstTime)
 	// 获取kvstore个数
@@ -820,9 +821,9 @@ func (task *TendisInsRecoverTask) PullIncrbackup() {
 		task.runtime.Logger.Error(errMsg)
 	}
 	for i := 0; i < kvstorecounts; i++ {
-		//每个rocksdb全备的startTimeSec是不一样的(所以其拉取的增备范围也是不一样的)
-		//其对应的startTimeSec可以从全备文件中获取到
-		//其对应的startPos也是不同的,从全备中获取
+		// 每个rocksdb全备的startTimeSec是不一样的(所以其拉取的增备范围也是不一样的)
+		// 其对应的startTimeSec可以从全备文件中获取到
+		// 其对应的startPos也是不同的,从全备中获取
 		backupMeta, err := task.GetRocksdbBackupMeta(i)
 		if err != nil {
 			task.Err = err
@@ -866,7 +867,7 @@ func (task *TendisInsRecoverTask) ImportIncrBackup() error {
 	redisAddr := fmt.Sprintf("%s:%s", task.NeWTempIP, strconv.Itoa(task.NewTmpPort))
 	msg := fmt.Sprintf("master:%s开始导入增备(binlog)", redisAddr)
 	task.runtime.Logger.Info(msg)
-	//再次探测tendisplus连接性
+	// 再次探测tendisplus连接性
 	redisCli, err := myredis.NewRedisClient(redisAddr, task.NewTmpPassword, 0, consts.TendisTypeTendisplusInsance)
 	if err != nil {
 		task.Err = err
@@ -973,12 +974,12 @@ func (task *TendisInsRecoverTask) SSDPullIncrbackup() {
 
 	layout := "2006-01-02 15:04:05"
 	rbDstTime, _ := time.ParseInLocation(layout, task.RecoveryTimePoint, time.Local)
-	//回档目标时间 比 用户填写的时间多1秒
-	//(因为binlog_tool的--end-datetime参数,--end-datetime这个时间点的binlog是不会被应用的)
+	// 回档目标时间 比 用户填写的时间多1秒
+	// (因为binlog_tool的--end-datetime参数,--end-datetime这个时间点的binlog是不会被应用的)
 	rbDstTime = rbDstTime.Add(1 * time.Second)
 	task.runtime.Logger.Info("回档目标时间 rbDstTime:%v", rbDstTime)
 
-	//传入全备份开始时间和回档时间
+	// 传入全备份开始时间和回档时间
 	// startTime 拉取增备的开始时间 -> 全备份的开始时间
 	// endTime 拉取增备份的结束时间 -> 回档时间
 	ssdIncrBackup := NewTredisRocksDBIncrBack(fileName, task.SourceIP, task.FullBackup.ResultFullbackup[0].StartPos,
@@ -1018,7 +1019,7 @@ func (task *TendisInsRecoverTask) SSDRestoreFullbackup() error {
 	redisAddr := fmt.Sprintf("%s:%s", task.NeWTempIP, strconv.Itoa(task.NewTmpPort))
 	msg := fmt.Sprintf("master:%s start recover_tredis_from_rocksdb ...", redisAddr)
 	task.runtime.Logger.Info(msg)
-	//获取tendis ssd连接
+	// 获取tendis ssd连接
 	redisCli, err := myredis.NewRedisClient(redisAddr, task.NewTmpPassword, 0, consts.TendisTypeTendisSSDInsance)
 	if err != nil {
 		return err
@@ -1042,7 +1043,7 @@ func (task *TendisInsRecoverTask) SSDImportIncrBackup() error {
 	redisAddr := fmt.Sprintf("%s:%s", task.NeWTempIP, strconv.Itoa(task.NewTmpPort))
 	msg := fmt.Sprintf("master:%s开始导入增备(binlog)", redisAddr)
 	task.runtime.Logger.Info(msg)
-	//再次探测tendisplus连接性
+	// 再次探测tendisplus连接性
 	redisCli, err := myredis.NewRedisClient(redisAddr, task.NewTmpPassword, 0, consts.TendisTypeTendisSSDInsance)
 	if err != nil {
 		task.Err = err
@@ -1065,7 +1066,7 @@ func (task *TendisInsRecoverTask) CacheRestoreFullbackup() error {
 	redisAddr := fmt.Sprintf("%s:%s", task.NeWTempIP, strconv.Itoa(task.NewTmpPort))
 	msg := fmt.Sprintf("master:%s start recover redis from aof/rdb ...", redisAddr)
 	task.runtime.Logger.Info(msg)
-	//获取tendis 连接
+	// 获取tendis 连接
 	redisCli, err := myredis.NewRedisClient(redisAddr, task.NewTmpPassword, 0, consts.TendisTypeRedisInstance)
 	if err != nil {
 		return err
@@ -1073,7 +1074,8 @@ func (task *TendisInsRecoverTask) CacheRestoreFullbackup() error {
 
 	defer redisCli.Close()
 	// NOCC:tosa/linelength(其他)
-	task.FullBackup.RecoverCacheRedisFromBackupFile(task.SourceIP, task.SourcePort, task.NeWTempIP, task.NewTmpPort, task.NewTmpPassword)
+	task.FullBackup.RecoverCacheRedisFromBackupFile(task.SourceIP, task.SourcePort, task.NeWTempIP, task.NewTmpPort,
+		task.NewTmpPassword)
 	if task.FullBackup.Err != nil {
 		task.Err = task.FullBackup.Err
 		return task.Err
@@ -1089,7 +1091,7 @@ func (task *TendisInsRecoverTask) getNeWTempIPClusterNodes() error {
 	redisAddr := fmt.Sprintf("%s:%s", task.NeWTempIP, strconv.Itoa(task.NewTmpPort))
 	msg := fmt.Sprintf("开始获取master:%s的连接...", redisAddr)
 	task.runtime.Logger.Info(msg)
-	password, err := myredis.GetPasswordFromLocalConfFile(task.NewTmpPort)
+	password, err := myredis.GetRedisPasswdFromConfFile(task.NewTmpPort)
 	if err != nil {
 		return err
 	}
@@ -1107,7 +1109,7 @@ func (task *TendisInsRecoverTask) getNeWTempIPClusterNodes() error {
 	// 获取前先检查是否存在
 	clusterNodeInfoFile := filepath.Join(task.RecoverDir, "cluster_nodes.txt")
 	_, err = os.Stat(clusterNodeInfoFile)
-	//如存在先删除
+	// 如存在先删除
 	if err == nil {
 		mvCmd := fmt.Sprintf("cd %s && mv cluster_nodes.txt cluster_nodes_bak.txt", task.RecoverDir)
 		task.runtime.Logger.Info("mv cluster_nodes.txt文件:%s", mvCmd)
@@ -1173,13 +1175,13 @@ func (task *TendisInsRecoverTask) Run() {
 			task.Err = err
 			return
 		}
-		//清理数据，如果已经有部分数据，则会加载失败
+		// 清理数据，如果已经有部分数据，则会加载失败
 		err = task.ClearAllData()
 		if err != nil {
 			task.Err = err
 			return
 		}
-		//停slave 断开同步,restorebackup的时候，用于恢复的目标实例不能是从属实例，同时用于恢复的目标实例不能有从属实例，否则会报错
+		// 停slave 断开同步,restorebackup的时候，用于恢复的目标实例不能是从属实例，同时用于恢复的目标实例不能有从属实例，否则会报错
 		if task.IsIncludeSlave {
 			err = task.StopSlave()
 			if err != nil {
@@ -1188,7 +1190,7 @@ func (task *TendisInsRecoverTask) Run() {
 			}
 
 		}
-		//重置集群，去掉集群和slots信息
+		// 重置集群，去掉集群和slots信息
 		err = task.ClusterResetMaster()
 		if err != nil {
 			task.Err = err
@@ -1218,7 +1220,7 @@ func (task *TendisInsRecoverTask) Run() {
 			task.Err = err
 			return
 		}
-		//恢复slave关系
+		// 恢复slave关系
 		if task.IsIncludeSlave {
 			err = task.RecoverSlave()
 			if err != nil {
