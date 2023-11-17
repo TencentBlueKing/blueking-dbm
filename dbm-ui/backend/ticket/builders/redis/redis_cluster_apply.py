@@ -22,7 +22,7 @@ from backend.ticket import builders
 from backend.ticket.builders.common.base import CommonValidate
 from backend.ticket.builders.common.constants import MAX_DOMAIN_LEN_LIMIT, REDIS_PROXY_MIN, RedisRole
 from backend.ticket.builders.redis.base import BaseRedisTicketFlowBuilder, RedisBasePauseParamBuilder
-from backend.ticket.constants import TicketType
+from backend.ticket.constants import AffinityEnum, TicketType
 
 
 class RedisClusterApplyDetailSerializer(serializers.Serializer):
@@ -44,6 +44,9 @@ class RedisClusterApplyDetailSerializer(serializers.Serializer):
     ip_source = serializers.ChoiceField(help_text=_("主机来源"), choices=IpSource.get_choices())
     nodes = serializers.JSONField(help_text=_("部署节点"), required=False)
 
+    disaster_tolerance_level = serializers.ChoiceField(
+        help_text=_("容灾级别"), choices=AffinityEnum.get_choices(), required=False, default=AffinityEnum.NONE.value
+    )
     resource_spec = serializers.JSONField(help_text=_("proxy部署方案"), required=False)
     cluster_shard_num = serializers.IntegerField(help_text=_("集群分片数"), required=False)
 
