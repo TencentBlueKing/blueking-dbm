@@ -474,7 +474,7 @@ func (i *InstallNewDbBackupComp) saveTplConfigfile(tmpl string) (err error) {
 				encryptOpt[strings.TrimPrefix(k, encryptOptPrefix+".")] = v
 				continue
 			}
-			_, err := fmt.Fprintf(f, "%s = %s\n", k, v)
+			_, err := fmt.Fprintf(f, "%s\t=\t%s\n", k, v)
 			if err != nil {
 				return errors.WithMessagef(err, "写配置模版 %s, %s 失败", k, v)
 			}
@@ -484,7 +484,7 @@ func (i *InstallNewDbBackupComp) saveTplConfigfile(tmpl string) (err error) {
 	if len(encryptOpt) > 0 {
 		fmt.Fprintf(f, "[%s]\n", encryptOptPrefix)
 		for k, v := range encryptOpt {
-			fmt.Fprintf(f, "%s = %s\n", k, v)
+			fmt.Fprintf(f, "%s\t=\t%s\n", k, v)
 		}
 	}
 	return

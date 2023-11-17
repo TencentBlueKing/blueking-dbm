@@ -7,6 +7,7 @@ import (
 	"os/exec"
 	"path"
 	"path/filepath"
+	"strconv"
 	"time"
 
 	"dbm-services/common/go-pubpkg/logger"
@@ -15,6 +16,7 @@ import (
 	"dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/native"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/tools"
+	"dbm-services/mysql/db-tools/dbactuator/pkg/util"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util/osutil"
 
 	"github.com/pkg/errors"
@@ -319,6 +321,35 @@ func (c *InstallMySQLMonitorComp) GenerateItemsConfig() (err error) {
 		_, err = f.Write(append(content, []byte("\n")...))
 		if err != nil {
 			logger.Error("write items-config file faield: %s", err.Error())
+			return err
+		}
+	}
+	return nil
+}
+
+// CreateExporterCnf 根据mysql部署端口生成对应的exporter配置文件
+func (c *InstallMySQLMonitorComp) CreateExporterCnf() (err error) {
+	for _, inst := range c.Params.InstancesInfo {
+		exporterConfName := fmt.Sprintf("/etc/exporter_%d.cnf", inst.Port)
+		if err = util.CreateExporterConf(
+			exporterConfName,
+			inst.Ip,
+			strconv.Itoa(inst.Port),
+			c.GeneralParam.RuntimeAccountParam.MonitorUser,
+			c.GeneralParam.RuntimeAccountParam.MonitorPwd,
+		); err != nil {
+			logger.Error("create exporter conf err : %s", err.Error())
+			return err
+		}
+		// /etc/exporter_xxx.args is used to set mysqld_exporter collector args
+		exporterArgsName := fmt.Sprintf("/etc/exporter_%d.args", inst.Port)
+		if err = util.CreateMysqlExporterArgs(exporterArgsName, c.Params.GetPkgTypeName(), inst.Port); err != nil {
+			logger.Error("create exporter collector args err : %s", err.Error())
+			return err
+		}
+		if _, err = osutil.ExecShellCommand(false,
+			fmt.Sprintf("chown -R mysql %s %s", exporterConfName, exporterArgsName)); err != nil {
+			logger.Error("chown -R mysql %s %s : %s", exporterConfName, exporterArgsName, err.Error())
 			return err
 		}
 	}
