@@ -19,7 +19,6 @@
         theme="info"
         :title="$t('部署只读接入层：在原集群上增加Spider Slave节点，一个集群最多只能有一个')" />
       <RenderData
-        v-slot="slotProps"
         class="mt16"
         @show-batch-selector="handleShowBatchSelector">
         <RenderDataRow
@@ -27,7 +26,6 @@
           :key="item.rowKey"
           ref="rowRefs"
           :data="item"
-          :is-fixed="slotProps.isOverflow"
           :removeable="tableData.length < 2"
           @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
           @on-cluster-input-finish="(domain: string) => handleChangeCluster(index, domain)"
@@ -256,21 +254,6 @@
 <style lang="less" scoped>
   .proxy-slave-apply-page {
     padding-bottom: 20px;
-
-    .page-action-box {
-      display: flex;
-      align-items: center;
-      margin-top: 16px;
-
-      .safe-action {
-        margin-left: auto;
-
-        .safe-action-text {
-          padding-bottom: 2px;
-          border-bottom: 1px dashed #979ba5;
-        }
-      }
-    }
   }
 
   .bottom-btn {

@@ -14,12 +14,9 @@
 <template>
   <div class="render-data">
     <RenderTable>
-      <template
-        #default="slotProps">
+      <template #default>
         <RenderTableHeadColumn
-          :is-minimize="slotProps.isOverflow"
           :min-width="120"
-          :row-width="slotProps.rowWidth"
           :width="220">
           <span>{{ $t('源集群') }}</span>
           <template #append>
@@ -35,39 +32,31 @@
           </template>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
-          :is-minimize="slotProps.isOverflow"
           :min-width="130"
-          :row-width="slotProps.rowWidth"
           :width="300">
           <span>{{ $t('目标集群') }}</span>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
-          :is-minimize="slotProps.isOverflow"
           :min-width="120"
-          :row-width="slotProps.rowWidth"
           :width="220">
           <span>{{ $t('包含Key') }}</span>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
-          :is-minimize="slotProps.isOverflow"
           :min-width="120"
           :required="false"
-          :row-width="slotProps.rowWidth"
           :width="220">
           <span>{{ $t('排除Key') }}</span>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
-          :is-fixed="slotProps.isOverflow"
-          :is-minimize="slotProps.isOverflow"
+          fixed="right"
           :min-width="90"
           :required="false"
-          :row-width="slotProps.rowWidth"
           :width="120">
           {{ $t('操作') }}
         </RenderTableHeadColumn>
       </template>
 
-      <template #data="slotProps">
+      <template #data>
         <RenderDataRow
           v-for="(item, index) in tableData"
           :key="item.rowKey"
@@ -75,7 +64,6 @@
           :cluster-list="clusterList"
           :data="item"
           :inputed-clusters="inputedClusters"
-          :is-fixed="slotProps.isOverflow"
           :removeable="tableData.length < 2"
           @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
           @cluster-input-finish="(domain: string) => handleChangeCluster(index, domain)"

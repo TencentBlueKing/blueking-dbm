@@ -42,7 +42,7 @@
   </BkLoading>
 </template>
 <script setup lang="ts" generic="T extends string | number">
-  import useValidtor, { type Rules } from './hooks/useValidtor';
+  import useValidtor, { type Rules } from '@components/render-table/hooks/useValidtor';
 
   interface Props {
     data?: T;

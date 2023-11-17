@@ -53,8 +53,8 @@
   } from '@services/monitor';
 
   import MiniTag from '@components/mini-tag/index.vue';
+  import NumberInput from '@components/render-table/columns/input/index.vue';
   import RenderTextEllipsisOneLine from '@components/text-ellipsis-one-line/index.vue';
-  import NumberInput from '@components/tools-table-input/index.vue';
 
   import { messageSuccess } from '@utils';
 

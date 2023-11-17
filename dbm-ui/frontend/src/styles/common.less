@@ -668,7 +668,7 @@
   }
 }
 
-.shadow-column {
+.toolbox-right-fixed-column {
   position:sticky;
   right:0;
   z-index: 1;
@@ -681,6 +681,23 @@
     width: 10px;
     height: 100%;
     background: linear-gradient(to left, rgb(0 0 0 / 12%), transparent);
+    content: '';
+  }
+}
+
+.toolbox-left-fixed-column {
+  position:sticky;
+  left:0;
+  z-index: 1;
+  background-color: #fff;
+
+  &::before {
+    position: absolute;
+    top: 0;
+    right: -10px;
+    width: 10px;
+    height: 100%;
+    background: linear-gradient(to right, rgb(0 0 0 / 12%), transparent);
     content: '';
   }
 }

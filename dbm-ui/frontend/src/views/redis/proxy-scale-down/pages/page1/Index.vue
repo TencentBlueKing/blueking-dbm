@@ -19,7 +19,6 @@
         theme="info"
         :title="t('缩容接入层：减加集群的Proxy数量，但集群Proxy数量不能少于2')" />
       <RenderData
-        v-slot="slotProps"
         class="mt16"
         @show-master-batch-selector="handleShowMasterBatchSelector">
         <RenderDataRow
@@ -28,7 +27,6 @@
           ref="rowRefs"
           :data="item"
           :inputed-clusters="inputedClusters"
-          :is-fixed="slotProps.isOverflow"
           :removeable="tableData.length < 2"
           @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
           @cluster-input-finish="(domain: string) => handleChangeCluster(index, domain)"

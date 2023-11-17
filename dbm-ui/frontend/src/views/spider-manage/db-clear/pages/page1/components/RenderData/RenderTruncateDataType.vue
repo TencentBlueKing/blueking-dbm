@@ -24,7 +24,7 @@
   import { ref } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import TableEditSelect from '@components/tools-table-select/index.vue';
+  import TableEditSelect from '@components/render-table/columns/select/index.vue';
 
   interface Props {
     modelValue: string

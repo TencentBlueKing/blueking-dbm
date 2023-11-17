@@ -19,7 +19,6 @@
         theme="info"
         :title="t('集群容量变更：通过部署新集群来实现原集群的扩容或缩容（集群分片数不变），可以指定新的版本')" />
       <RenderData
-        v-slot="slotProps"
         class="mt16"
         @show-batch-selector="handleShowBatchSelector">
         <RenderDataRow
@@ -28,7 +27,6 @@
           ref="rowRefs"
           :data="item"
           :inputed-clusters="inputedClusters"
-          :is-fixed="slotProps.isOverflow"
           :removeable="tableData.length < 2"
           :versions-map="versionsMap"
           @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
@@ -258,20 +256,5 @@
 <style lang="less" scoped>
   .master-failover-page {
     padding-bottom: 20px;
-
-    .page-action-box {
-      display: flex;
-      align-items: center;
-      margin-top: 16px;
-
-      .safe-action {
-        margin-left: auto;
-
-        .safe-action-text {
-          padding-bottom: 2px;
-          border-bottom: 1px dashed #979ba5;
-        }
-      }
-    }
   }
 </style>

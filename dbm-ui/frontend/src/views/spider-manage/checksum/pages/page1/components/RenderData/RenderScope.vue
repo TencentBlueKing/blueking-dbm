@@ -28,7 +28,7 @@
 
   import { getRemoteParis } from '@services/source/mysqlCluster';
 
-  import TableEditSelect from '@components/tools-table-select/index.vue';
+  import TableEditSelect from '@components/render-table/columns/select/index.vue';
 
   interface Props {
     modelValue: string,

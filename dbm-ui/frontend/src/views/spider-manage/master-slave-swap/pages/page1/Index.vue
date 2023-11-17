@@ -19,7 +19,6 @@
         theme="info"
         :title="t('主从互切：主机级别操作，即同机所有集群均会完成主从关系互切')" />
       <RenderData
-        v-slot="slotProps"
         class="mt16"
         @show-master-batch-selector="handleShowMasterBatchSelector">
         <RenderDataRow
@@ -27,7 +26,6 @@
           :key="item.rowKey"
           ref="rowRefs"
           :data="item"
-          :is-fixed="slotProps.isOverflow"
           :removeable="tableData.length <2"
           @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
           @remove="handleRemove(index)" />
@@ -218,12 +216,6 @@
 <style lang="less">
   .spider-manage-master-slave-swap-page {
     padding-bottom: 20px;
-
-    .page-action-box {
-      display: flex;
-      align-items: center;
-      margin-top: 16px;
-    }
 
     .item-block{
       margin-top: 24px;

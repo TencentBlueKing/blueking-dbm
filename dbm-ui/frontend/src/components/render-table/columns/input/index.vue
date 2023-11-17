@@ -40,9 +40,9 @@
   </div>
 </template>
 <script setup lang="ts">
-  import { encodeMult } from '@utils';
+  import useValidtor, { type Rules } from '@components/render-table/hooks/useValidtor';
 
-  import useValidtor, { type Rules } from './hooks/useValidtor';
+  import { encodeMult } from '@utils';
 
   interface Props {
     placeholder?: string,

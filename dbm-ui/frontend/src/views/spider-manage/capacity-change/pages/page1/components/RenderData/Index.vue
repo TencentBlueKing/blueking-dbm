@@ -14,12 +14,9 @@
 <template>
   <div class="db-table-backup-render-data">
     <RenderTable>
-      <template
-        #default="slotProps">
+      <template #default>
         <RenderTableHeadColumn
-          :is-minimize="slotProps.isOverflow"
           :min-width="120"
-          :row-width="slotProps.rowWidth"
           :width="220">
           {{ t('目标集群') }}
           <template #append>
@@ -31,57 +28,45 @@
           </template>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
-          :is-minimize="slotProps.isOverflow"
           :min-width="130"
           :required="false"
-          :row-width="slotProps.rowWidth"
           :width="240">
           {{ t('当前资源规格') }}
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
-          :is-minimize="slotProps.isOverflow"
           :min-width="100"
           :required="false"
-          :row-width="slotProps.rowWidth"
           :width="110">
           {{ t('集群分片数') }}
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
-          :is-minimize="slotProps.isOverflow"
           :min-width="100"
           :required="false"
-          :row-width="slotProps.rowWidth"
           :width="110">
           {{ t('部署机器组数') }}
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
-          :is-minimize="slotProps.isOverflow"
           :min-width="100"
           :required="false"
-          :row-width="slotProps.rowWidth"
           :width="200">
           {{ t('当前总容量') }}
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
-          :is-minimize="slotProps.isOverflow"
           :min-width="120"
-          :row-width="slotProps.rowWidth"
           :width="320">
           {{ t('目标总容量') }}
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
-          :is-fixed="slotProps.isOverflow"
-          :is-minimize="slotProps.isOverflow"
+          fixed="right"
           :min-width="90"
           :required="false"
-          :row-width="slotProps.rowWidth"
           :width="120">
           {{ t('操作') }}
         </RenderTableHeadColumn>
       </template>
 
-      <template #data="slotProps">
-        <slot :is-overflow="slotProps.isOverflow" />
+      <template #data>
+        <slot />
       </template>
     </RenderTable>
   </div>

@@ -14,12 +14,9 @@
 <template>
   <div class="db-table-backup-render-data">
     <RenderTable>
-      <template
-        #default="slotProps">
+      <template #default>
         <RenderTableHeadColumn
-          :is-minimize="slotProps.isOverflow"
           :min-width="110"
-          :row-width="slotProps.rowWidth"
           :width="190">
           {{ t('目标集群') }}
           <template #append>
@@ -31,55 +28,43 @@
           </template>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
-          :is-minimize="slotProps.isOverflow"
           :min-width="100"
-          :row-width="slotProps.rowWidth"
           :width="170">
           {{ t('备份位置') }}
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
-          :is-minimize="slotProps.isOverflow"
           :min-width="90"
-          :row-width="slotProps.rowWidth"
           :width="210">
           {{ t('备份DB名') }}
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
-          :is-minimize="slotProps.isOverflow"
           :min-width="90"
-          :row-width="slotProps.rowWidth"
           :width="210">
           {{ t('备份表名') }}
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
-          :is-minimize="slotProps.isOverflow"
           :min-width="90"
           :required="false"
-          :row-width="slotProps.rowWidth"
           :width="210">
           {{ t('忽略DB名') }}
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
-          :is-minimize="slotProps.isOverflow"
           :min-width="90"
           :required="false"
-          :row-width="slotProps.rowWidth"
           :width="210">
           {{ t('忽略表名') }}
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
-          :is-fixed="slotProps.isOverflow"
-          :is-minimize="slotProps.isOverflow"
+          fixed="right"
           :min-width="90"
           :required="false"
-          :row-width="slotProps.rowWidth"
           :width="120">
           {{ t('操作') }}
         </RenderTableHeadColumn>
       </template>
 
-      <template #data="slotProps">
-        <slot :is-overflow="slotProps.isOverflow" />
+      <template #data>
+        <slot />
       </template>
     </RenderTable>
   </div>

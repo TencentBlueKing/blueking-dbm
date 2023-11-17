@@ -76,7 +76,7 @@
 </script>
 <style lang="less" scoped>
 .capacity-box {
-  padding: 10px 16px;
+  padding: 11px 16px;
   overflow: hidden;
   line-height: 20px;
   color: #63656e;

@@ -14,12 +14,9 @@
 <template>
   <div class="render-data">
     <RenderTable>
-      <template
-        #default="slotProps">
+      <template #default>
         <RenderTableHeadColumn
-          :is-minimize="slotProps.isOverflow"
           :min-width="130"
-          :row-width="slotProps.rowWidth"
           :width="300">
           <span>{{ $t('目标集群') }}</span>
           <template #append>
@@ -35,73 +32,56 @@
           </template>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
-          :is-minimize="slotProps.isOverflow"
           :min-width="120"
           :required="false"
-          :row-width="slotProps.rowWidth"
           :width="200">
           <span>{{ $t('当前资源规格') }}</span>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
-          :is-minimize="slotProps.isOverflow"
           :min-width="100"
           :required="false"
-          :row-width="slotProps.rowWidth"
           :width="150">
           <span>{{ $t('集群分片数') }}</span>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
-          :is-minimize="slotProps.isOverflow"
           :min-width="110"
           :required="false"
-          :row-width="slotProps.rowWidth"
           :width="150">
           <span>{{ $t('部署机器组数') }}</span>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
-          :is-minimize="slotProps.isOverflow"
           :min-width="100"
           :required="false"
-          :row-width="slotProps.rowWidth"
           :width="250">
           <span>{{ $t('当前容量') }}</span>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
-          :is-minimize="slotProps.isOverflow"
           :min-width="120"
-          :row-width="slotProps.rowWidth"
           :width="350">
           <span>{{ $t('目标容量') }}</span>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
-          :is-minimize="slotProps.isOverflow"
           :min-width="120"
           :required="false"
-          :row-width="slotProps.rowWidth"
           :width="180">
           <span>{{ $t('指定Redis版本') }}</span>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
-          :is-minimize="slotProps.isOverflow"
           :min-width="110"
           :required="false"
-          :row-width="slotProps.rowWidth"
           :width="130">
           <span>{{ $t('切换模式') }}</span>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
-          :is-fixed="slotProps.isOverflow"
-          :is-minimize="slotProps.isOverflow"
-          :min-width="90"
+          fixed="right"
           :required="false"
-          :row-width="slotProps.rowWidth"
           :width="100">
           {{ $t('操作') }}
         </RenderTableHeadColumn>
       </template>
 
-      <template #data="slotProps">
-        <slot :is-overflow="slotProps.isOverflow" />
+      <template #data>
+        <slot />
       </template>
     </RenderTable>
   </div>
@@ -128,5 +108,4 @@
     cursor: pointer;
   }
 }
-
 </style>

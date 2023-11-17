@@ -30,7 +30,7 @@
 
   import { getSpiderList } from '@services/source/spider';
 
-  import TableEditSelect from '@components/tools-table-select/index.vue';
+  import TableEditSelect from '@components/render-table/columns/select/index.vue';
 
   import type { IDataRow } from './Row.vue';
 
