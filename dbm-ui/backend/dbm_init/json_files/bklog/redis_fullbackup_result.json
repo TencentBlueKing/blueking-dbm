@@ -1,0 +1,381 @@
+{
+    "bk_biz_id": {{bk_biz_id}},
+    "etl_config": "bk_log_json",
+    "table_id": "redis_fullbackup_result1",
+    "collector_config_name": "redis_fullbackup_result1",
+    "collector_config_name_en": "redis_fullbackup_result1",
+    "collector_scenario_id": "row",
+    "category_id": "host_process",
+    "storage_cluster_id": 3,
+    "retention": 7,
+    "storage_replies": 1,
+    "es_shards": 3,
+    "allocation_min_days": 0,
+    "etl_params": {
+        "retain_original_text": true
+    },
+    "params": {
+        "paths": [
+            "/home/mysql/dbareport/redis/redis_fullbackup*.log"
+        ],
+        "conditions": {
+            "separator": "",
+            "separator_filters": [],
+            "type": "match",
+            "match_type": "include",
+            "match_content": ""
+        },
+        "encoding": "UTF-8"
+    },
+    "fields": [
+        {
+            "value": "/data/dbbak",
+            "option": {
+                "time_zone": "",
+                "time_format": ""
+            },
+            "is_time": false,
+            "verdict": true,
+            "is_delete": false,
+            "alias_name": "",
+            "field_name": "backup_dir",
+            "field_type": "string",
+            "description": "",
+            "is_analyzed": false,
+            "is_built_in": false,
+            "is_dimension": false,
+            "previous_type": "string"
+        },
+        {
+            "value": "/data/dbbak/3-redis-slave-127.0.0.1-30001-20230907-161421.aof.zst",
+            "option": {
+                "time_zone": "",
+                "time_format": ""
+            },
+            "is_time": false,
+            "verdict": true,
+            "is_delete": false,
+            "alias_name": "",
+            "field_name": "backup_file",
+            "field_type": "string",
+            "description": "",
+            "is_analyzed": false,
+            "is_built_in": false,
+            "is_dimension": false,
+            "previous_type": "string"
+        },
+        {
+            "value": 102872312,
+            "option": {
+                "time_zone": "",
+                "time_format": ""
+            },
+            "is_time": false,
+            "verdict": false,
+            "is_delete": false,
+            "alias_name": "",
+            "field_name": "backup_file_size",
+            "field_type": "long",
+            "description": "",
+            "is_analyzed": false,
+            "is_built_in": false,
+            "is_dimension": false,
+            "previous_type": "long"
+        },
+        {
+            "value": "",
+            "option": {
+                "time_zone": "",
+                "time_format": ""
+            },
+            "is_time": false,
+            "verdict": true,
+            "is_delete": false,
+            "alias_name": "",
+            "field_name": "backup_md5",
+            "field_type": "string",
+            "description": "",
+            "is_analyzed": false,
+            "is_built_in": false,
+            "is_dimension": false,
+            "previous_type": "string"
+        },
+        {
+            "value": "REDIS_FULL",
+            "option": {
+                "time_zone": "",
+                "time_format": ""
+            },
+            "is_time": false,
+            "verdict": true,
+            "is_delete": false,
+            "alias_name": "",
+            "field_name": "backup_tag",
+            "field_type": "string",
+            "description": "",
+            "is_analyzed": false,
+            "is_built_in": false,
+            "is_dimension": false,
+            "previous_type": "string"
+        },
+        {
+            "value": "",
+            "option": {
+                "time_zone": "",
+                "time_format": ""
+            },
+            "is_time": false,
+            "verdict": true,
+            "is_delete": false,
+            "alias_name": "",
+            "field_name": "backup_taskid",
+            "field_type": "string",
+            "description": "",
+            "is_analyzed": false,
+            "is_built_in": false,
+            "is_dimension": false,
+            "previous_type": "string"
+        },
+        {
+            "value": "3",
+            "option": {
+                "time_zone": "",
+                "time_format": ""
+            },
+            "is_time": false,
+            "verdict": false,
+            "is_delete": false,
+            "alias_name": "bk_app_id",
+            "field_name": "bk_biz_id",
+            "field_type": "string",
+            "description": "",
+            "is_analyzed": false,
+            "is_built_in": false,
+            "is_dimension": false,
+            "previous_type": "string"
+        },
+        {
+            "value": 0,
+            "option": {
+                "time_zone": "",
+                "time_format": ""
+            },
+            "is_time": false,
+            "verdict": false,
+            "is_delete": false,
+            "alias_name": "bk_appcloud_id",
+            "field_name": "bk_cloud_id",
+            "field_type": "int",
+            "description": "",
+            "is_analyzed": false,
+            "is_built_in": false,
+            "is_dimension": false,
+            "previous_type": "int"
+        },
+        {
+            "value": "RedisInstance",
+            "option": {
+                "time_zone": "",
+                "time_format": ""
+            },
+            "is_time": false,
+            "verdict": true,
+            "is_delete": false,
+            "alias_name": "",
+            "field_name": "db_type",
+            "field_type": "string",
+            "description": "",
+            "is_analyzed": false,
+            "is_built_in": false,
+            "is_dimension": false,
+            "previous_type": "string"
+        },
+        {
+            "value": "ssd.wuhan.dba.db",
+            "option": {
+                "time_zone": "",
+                "time_format": ""
+            },
+            "is_time": false,
+            "verdict": true,
+            "is_delete": false,
+            "alias_name": "",
+            "field_name": "domain",
+            "field_type": "string",
+            "description": "",
+            "is_analyzed": false,
+            "is_built_in": false,
+            "is_dimension": false,
+            "previous_type": "string"
+        },
+        {
+            "value": "2023-09-07 16:14:26",
+            "option": {
+                "time_zone": "",
+                "time_format": ""
+            },
+            "is_time": false,
+            "verdict": true,
+            "is_delete": false,
+            "alias_name": "",
+            "field_name": "end_time",
+            "field_type": "string",
+            "description": "",
+            "is_analyzed": false,
+            "is_built_in": false,
+            "is_dimension": false,
+            "previous_type": "string"
+        },
+        {
+            "value": "taskId is empty",
+            "option": {
+                "time_zone": "",
+                "time_format": ""
+            },
+            "is_time": false,
+            "verdict": true,
+            "is_delete": false,
+            "alias_name": "",
+            "field_name": "message",
+            "field_type": "string",
+            "description": "",
+            "is_analyzed": false,
+            "is_built_in": false,
+            "is_dimension": false,
+            "previous_type": "string"
+        },
+        {
+            "value": "redis_fullbackup",
+            "option": {
+                "time_zone": "",
+                "time_format": ""
+            },
+            "is_time": false,
+            "verdict": true,
+            "is_delete": false,
+            "alias_name": "",
+            "field_name": "report_type",
+            "field_type": "string",
+            "description": "",
+            "is_analyzed": false,
+            "is_built_in": false,
+            "is_dimension": false,
+            "previous_type": "string"
+        },
+        {
+            "value": "slave",
+            "option": {
+                "time_zone": "",
+                "time_format": ""
+            },
+            "is_time": false,
+            "verdict": true,
+            "is_delete": false,
+            "alias_name": "",
+            "field_name": "role",
+            "field_type": "string",
+            "description": "",
+            "is_analyzed": false,
+            "is_built_in": false,
+            "is_dimension": false,
+            "previous_type": "string"
+        },
+        {
+            "value": "127.0.0.1",
+            "option": {
+                "time_zone": "",
+                "time_format": ""
+            },
+            "is_time": false,
+            "verdict": true,
+            "is_delete": false,
+            "alias_name": "",
+            "field_name": "server_ip",
+            "field_type": "string",
+            "description": "",
+            "is_analyzed": false,
+            "is_built_in": false,
+            "is_dimension": false,
+            "previous_type": "string"
+        },
+        {
+            "value": 30001,
+            "option": {
+                "time_zone": "",
+                "time_format": ""
+            },
+            "is_time": false,
+            "verdict": false,
+            "is_delete": false,
+            "alias_name": "",
+            "field_name": "server_port",
+            "field_type": "int",
+            "description": "",
+            "is_analyzed": false,
+            "is_built_in": false,
+            "is_dimension": false,
+            "previous_type": "int"
+        },
+        {
+            "value": "105000-209999",
+            "option": {
+                "time_zone": "",
+                "time_format": ""
+            },
+            "is_time": false,
+            "verdict": true,
+            "is_delete": false,
+            "alias_name": "",
+            "field_name": "shard_value",
+            "field_type": "string",
+            "description": "",
+            "is_analyzed": false,
+            "is_built_in": false,
+            "is_dimension": false,
+            "previous_type": "string"
+        },
+        {
+            "value": "2023-09-07 16:14:21",
+            "option": {
+                "time_zone": 8,
+                "time_format": "yyyy-MM-dd HH:mm:ss"
+            },
+            "is_time": true,
+            "verdict": true,
+            "is_delete": false,
+            "alias_name": "",
+            "field_name": "start_time",
+            "field_type": "string",
+            "description": "",
+            "is_analyzed": false,
+            "is_built_in": false,
+            "is_dimension": false,
+            "previous_type": "string"
+        },
+        {
+            "value": "to_backup_system_failed",
+            "option": {
+                "time_zone": "",
+                "time_format": ""
+            },
+            "is_time": false,
+            "verdict": true,
+            "is_delete": false,
+            "alias_name": "",
+            "field_name": "status",
+            "field_type": "string",
+            "description": "",
+            "is_analyzed": false,
+            "is_built_in": false,
+            "is_dimension": false,
+            "previous_type": "string"
+        }
+    ],
+    "need_assessment": false,
+    "target_object_type": "HOST",
+    "target_node_type": "TOPO",
+    "target_nodes": [
+        {% for node in target_nodes %}{{ node }}{% if not loop.last %}, {% endif %}
+        {% endfor %}
+    ]
+}

@@ -1,0 +1,219 @@
+{
+    "bk_biz_id": {{bk_biz_id}},
+    "etl_config": "bk_log_json",
+    "table_id": "redis_bigkey1",
+    "collector_config_name": "redis_bigkey1",
+    "collector_config_name_en": "redis_bigkey1",
+    "collector_scenario_id": "row",
+    "category_id": "application_check",
+    "storage_cluster_id": 3,
+    "retention": 7,
+    "storage_replies": 1,
+    "es_shards": 3,
+    "allocation_min_days": 0,
+    "etl_params": {
+        "retain_original_text": true
+    },
+    "params": {
+        "paths": [
+            "/home/mysql/dbareport/keylifecycle/redis_bigkey_*.log"
+        ],
+        "conditions": {
+            "separator": "",
+            "separator_filters": [],
+            "type": "match",
+            "match_type": "include",
+            "match_content": ""
+        },
+        "encoding": "UTF-8"
+    },
+    "fields": [
+        {
+            "value": "2023-11-17T00:00:03.534Z",
+            "option": {
+                "time_zone": "",
+                "time_format": ""
+            },
+            "is_time": false,
+            "verdict": true,
+            "is_delete": false,
+            "alias_name": "stattime",
+            "field_name": "@timestamp",
+            "field_type": "string",
+            "description": "",
+            "is_analyzed": false,
+            "is_built_in": false,
+            "is_dimension": false,
+            "previous_type": "string"
+        },
+        {
+            "value": "127.0.0.1:30003",
+            "option": {
+                "time_zone": "",
+                "time_format": ""
+            },
+            "is_time": false,
+            "verdict": true,
+            "is_delete": false,
+            "alias_name": "",
+            "field_name": "addr",
+            "field_type": "string",
+            "description": "",
+            "is_analyzed": false,
+            "is_built_in": false,
+            "is_dimension": false,
+            "previous_type": "string"
+        },
+        {
+            "value": "3",
+            "option": {
+                "time_zone": "",
+                "time_format": ""
+            },
+            "is_time": false,
+            "verdict": false,
+            "is_delete": false,
+            "alias_name": "",
+            "field_name": "app",
+            "field_type": "string",
+            "description": "",
+            "is_analyzed": false,
+            "is_built_in": false,
+            "is_dimension": false,
+            "previous_type": "string"
+        },
+        {
+            "value": "red.kipper.tree.db",
+            "option": {
+                "time_zone": "",
+                "time_format": ""
+            },
+            "is_time": false,
+            "verdict": true,
+            "is_delete": false,
+            "alias_name": "",
+            "field_name": "domain",
+            "field_type": "string",
+            "description": "",
+            "is_analyzed": false,
+            "is_built_in": false,
+            "is_dimension": false,
+            "previous_type": "string"
+        },
+        {
+            "value": 0,
+            "option": {
+                "time_zone": "",
+                "time_format": ""
+            },
+            "is_time": false,
+            "verdict": false,
+            "is_delete": false,
+            "alias_name": "",
+            "field_name": "fields",
+            "field_type": "int",
+            "description": "",
+            "is_analyzed": false,
+            "is_built_in": false,
+            "is_dimension": false,
+            "previous_type": "int"
+        },
+        {
+            "value": "127.0.0.1_30003:heartbeat",
+            "option": {
+                "time_zone": "",
+                "time_format": ""
+            },
+            "is_time": false,
+            "verdict": true,
+            "is_delete": false,
+            "alias_name": "rediskey",
+            "field_name": "key",
+            "field_type": "string",
+            "description": "",
+            "is_analyzed": false,
+            "is_built_in": false,
+            "is_dimension": false,
+            "previous_type": "string"
+        },
+        {
+            "value": "sortBySize",
+            "option": {
+                "time_zone": "",
+                "time_format": ""
+            },
+            "is_time": false,
+            "verdict": true,
+            "is_delete": false,
+            "alias_name": "",
+            "field_name": "sortby",
+            "field_type": "string",
+            "description": "",
+            "is_analyzed": false,
+            "is_built_in": false,
+            "is_dimension": false,
+            "previous_type": "string"
+        },
+        {
+            "value": 29,
+            "option": {
+                "time_zone": "",
+                "time_format": ""
+            },
+            "is_time": false,
+            "verdict": false,
+            "is_delete": false,
+            "alias_name": "",
+            "field_name": "top_idx",
+            "field_type": "int",
+            "description": "",
+            "is_analyzed": false,
+            "is_built_in": false,
+            "is_dimension": false,
+            "previous_type": "int"
+        },
+        {
+            "value": "string",
+            "option": {
+                "time_zone": "",
+                "time_format": ""
+            },
+            "is_time": false,
+            "verdict": true,
+            "is_delete": false,
+            "alias_name": "",
+            "field_name": "type",
+            "field_type": "string",
+            "description": "",
+            "is_analyzed": false,
+            "is_built_in": false,
+            "is_dimension": false,
+            "previous_type": "string"
+        },
+        {
+            "value": 10,
+            "option": {
+                "time_zone": "",
+                "time_format": ""
+            },
+            "is_time": false,
+            "verdict": false,
+            "is_delete": false,
+            "alias_name": "",
+            "field_name": "valsize",
+            "field_type": "int",
+            "description": "",
+            "is_analyzed": false,
+            "is_built_in": false,
+            "is_dimension": false,
+            "previous_type": "int"
+        }
+    ],
+    "need_assessment": false,
+    "target_object_type": "HOST",
+    "target_node_type": "TOPO",
+    "target_nodes": [
+        {% for node in target_nodes %}{{ node }}{% if not loop.last %}, {% endif %}
+        {% endfor %}
+    ]
+}
