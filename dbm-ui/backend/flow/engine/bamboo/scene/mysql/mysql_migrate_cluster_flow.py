@@ -135,12 +135,10 @@ class MySQLMigrateClusterFlow(object):
                 kwargs=asdict(ExecActuatorKwargs(bk_cloud_id=cluster_class.bk_cloud_id, exec_ip=master.machine.ip)),
             )
             exec_ips = [one_machine["new_slave_ip"], one_machine["new_master_ip"]]
-            account = MysqlActPayload.get_mysql_account()
             sub_pipeline.add_act(
                 act_name=_("初始化机器"),
                 act_component_code=SysInitComponent.code,
                 kwargs={
-                    "mysql_os_password": account["os_mysql_pwd"],
                     "exec_ip": exec_ips,
                     "bk_cloud_id": one_machine["bk_cloud_id"],
                 },

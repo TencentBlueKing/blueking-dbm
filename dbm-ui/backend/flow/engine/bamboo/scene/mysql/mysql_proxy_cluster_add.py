@@ -124,12 +124,10 @@ class MySQLProxyClusterAddFlow(object):
             )
 
             # 初始化机器
-            account = MysqlActPayload.get_mysql_account()
             sub_pipeline.add_act(
                 act_name=_("初始化机器"),
                 act_component_code=SysInitComponent.code,
                 kwargs={
-                    "mysql_os_password": account["os_mysql_pwd"],
                     "exec_ip": info["proxy_ip"]["ip"],
                     "bk_cloud_id": info["proxy_ip"]["bk_cloud_id"],
                 },
