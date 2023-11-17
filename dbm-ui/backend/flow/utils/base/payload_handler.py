@@ -111,7 +111,7 @@ class PayloadHandler(object):
             user_map[value_to_name[user["username"]] + "_user"] = (
                 "MONITOR" if user["username"] == UserName.MONITOR_ACCESS_ALL.value else user["username"]
             )
-            user_map[value_to_name[user["username"]] + "_pwd"] = (base64.b64decode(user["password"]).decode("utf-8"),)
+            user_map[value_to_name[user["username"]] + "_pwd"] = base64.b64decode(user["password"]).decode("utf-8")
 
         if self.ticket_data.get("ticket_type", None) in apply_list:
             # 部署类单据临时给个ADMIN初始化账号密码，部署完成会完成随机化
