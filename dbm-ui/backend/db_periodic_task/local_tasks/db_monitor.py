@@ -260,6 +260,8 @@ def sync_monitor_collect_strategy():
     )
     if cached_unmanaged_biz == unmanaged_biz:
         logger.info("sync_monitor_collect_strategy skipped for: %s", unmanaged_biz)
+        return
 
     logger.info("sync_monitor_collect_strategy update for: %s", unmanaged_biz)
     CollectInstance.sync_collect_strategy()
+    cache.set(key, unmanaged_biz)
