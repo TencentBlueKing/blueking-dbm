@@ -26,7 +26,7 @@ logger = logging.getLogger("root")
 class ChecksumInstanceSerializer(serializers.ModelSerializer):
     class Meta:
         model = ChecksumInstance
-        fields = ("ip", "port", "master_ip", "master_port", "details")
+        fields = ("ip", "port", "master_ip", "master_port", "details", "id")
 
 
 class ChecksumInstanceViewSet(ReportBaseViewSet):
