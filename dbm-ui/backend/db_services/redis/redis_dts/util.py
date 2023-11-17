@@ -147,7 +147,7 @@ def get_cluster_info_by_id(
             "cluster_name": cluster.name,
             "cluster_city_name": one_master.machine.bk_city.bk_idc_city_name,
             "redis_password": passwd_ret.get("redis_password"),
-            "redis_proxy_admin_password": passwd_ret.get("predixy_admin_passwd", ""),
+            "redis_proxy_admin_password": passwd_ret.get("redis_proxy_admin_password"),
             "redis_databases": databases,
             "region": cluster.region,
         }
