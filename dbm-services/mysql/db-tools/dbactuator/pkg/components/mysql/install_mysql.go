@@ -829,36 +829,6 @@ func (i *InstallMySQLComp) CheckTimeZoneSetting() (err error) {
 	return nil
 }
 
-// CreateExporterCnf 根据mysql部署端口生成对应的exporter配置文件
-func (i *InstallMySQLComp) CreateExporterCnf() (err error) {
-	for _, port := range i.InsPorts {
-		exporterConfName := fmt.Sprintf("/etc/exporter_%d.cnf", port)
-		if err = util.CreateExporterConf(
-			exporterConfName,
-			i.Params.Host,
-			strconv.Itoa(port),
-			i.GeneralParam.RuntimeAccountParam.MonitorUser,
-			i.GeneralParam.RuntimeAccountParam.MonitorPwd,
-		); err != nil {
-			logger.Error("create exporter conf err : %s", err.Error())
-			return err
-		}
-		// /etc/exporter_xxx.args is used to set mysqld_exporter collector args
-		exporterArgsName := fmt.Sprintf("/etc/exporter_%d.args", port)
-		if err = util.CreateMysqlExporterArgs(exporterArgsName, i.Params.GetPkgTypeName(), port); err != nil {
-			logger.Error("create exporter collector args err : %s", err.Error())
-			return err
-		}
-		if _, err = osutil.ExecShellCommand(false,
-			fmt.Sprintf("chown -R mysql %s %s", exporterConfName, exporterArgsName)); err != nil {
-			logger.Error("chown -R mysql %s %s : %s", exporterConfName, exporterArgsName, err.Error())
-			return err
-		}
-	}
-	return nil
-
-}
-
 // InstallRplSemiSyncPlugin 安装实例支持半同步复制插件（目前只有spider ctl实例需要）
 func (i *InstallMySQLComp) InstallRplSemiSyncPlugin() (err error) {
 	var execSQLs []string

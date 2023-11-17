@@ -83,6 +83,10 @@ func (c *InstallMonitorAct) Run() (err error) {
 			Func:    c.Service.GenerateItemsConfig,
 		},
 		{
+			FunName: "生成exporter配置文件",
+			Func:    c.Service.CreateExporterCnf,
+		},
+		{
 			FunName: "注册crond任务",
 			Func:    c.Service.AddToCrond,
 		},
