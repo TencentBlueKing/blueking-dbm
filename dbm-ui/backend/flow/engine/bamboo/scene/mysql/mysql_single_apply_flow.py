@@ -33,7 +33,7 @@ from backend.flow.utils.mysql.mysql_act_dataclass import (
     ExecActuatorKwargs,
 )
 from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
-from backend.flow.utils.mysql.mysql_context_dataclass import SingleApplyAutoContext, SingleApplyManualContext
+from backend.flow.utils.mysql.mysql_context_dataclass import SingleApplyManualContext
 from backend.flow.utils.mysql.mysql_db_meta import MySQLDBMeta
 
 logger = logging.getLogger("flow")
@@ -104,12 +104,10 @@ class MySQLSingleApplyFlow(object):
             )
 
             # 初始化机器
-            account = MysqlActPayload.get_mysql_account()
             sub_pipeline.add_act(
                 act_name=_("初始化机器"),
                 act_component_code=SysInitComponent.code,
                 kwargs={
-                    "mysql_os_password": account["os_mysql_pwd"],
                     "exec_ip": info["new_ip"]["ip"],
                     "bk_cloud_id": int(self.data["bk_cloud_id"]),
                 },

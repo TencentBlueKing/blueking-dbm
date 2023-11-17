@@ -417,12 +417,10 @@ def install_mysql_in_cluster_sub_flow(
         act_component_code=GetOsSysParamComponent.code,
         kwargs=asdict(ExecActuatorKwargs(bk_cloud_id=cluster.bk_cloud_id, exec_ip=master.machine.ip)),
     )
-    account = MysqlActPayload.get_mysql_account()
     sub_pipeline.add_act(
         act_name=_("初始化机器"),
         act_component_code=SysInitComponent.code,
         kwargs={
-            "mysql_os_password": account["os_mysql_pwd"],
             "exec_ip": new_mysql_list,
             "bk_cloud_id": cluster.bk_cloud_id,
         },

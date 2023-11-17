@@ -109,12 +109,10 @@ class MySQLHAApplyFlow(object):
 
             # 初始化机器
             exec_ips = [ip_info["ip"] for ip_info in info["mysql_ip_list"] + info["proxy_ip_list"]]
-            account = MysqlActPayload.get_mysql_account()
             sub_pipeline.add_act(
                 act_name=_("初始化机器"),
                 act_component_code=SysInitComponent.code,
                 kwargs={
-                    "mysql_os_password": account["os_mysql_pwd"],
                     "exec_ip": exec_ips,
                     "bk_cloud_id": int(self.data["bk_cloud_id"]),
                 },

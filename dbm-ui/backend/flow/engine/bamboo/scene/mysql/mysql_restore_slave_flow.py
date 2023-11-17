@@ -641,12 +641,10 @@ class MySQLRestoreSlaveFlow(object):
                 )
             ),
         )
-        account = MysqlActPayload.get_mysql_account()
         install_sub_pipeline.add_act(
             act_name=_("初始化机器"),
             act_component_code=SysInitComponent.code,
             kwargs={
-                "mysql_os_password": account["os_mysql_pwd"],
                 "exec_ip": one_machine["new_slave_ip"],
                 "bk_cloud_id": one_machine["bk_cloud_id"],
             },
