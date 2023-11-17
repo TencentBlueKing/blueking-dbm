@@ -19,6 +19,8 @@ from bkcrypto.asymmetric.options import RSAAsymmetricOptions, SM2AsymmetricOptio
 from blueapps.conf.default_settings import *  # pylint: disable=wildcard-import
 from celery.schedules import crontab
 from blueapps.core.celery.celery import app
+
+from backend.core.encrypt.interceptors import SymmetricInterceptor
 from config import RUN_VER
 
 if RUN_VER == "open":
@@ -455,9 +457,17 @@ BKCRYPTO = {
             # 公共参数配置，不同 cipher 初始化时共用这部分参数
             "common": {"key": env.SECRET_KEY},
             "cipher_options": {
-                constants.SymmetricCipherType.AES.value: AESSymmetricOptions(key_size=16),
+                # ⚠️这里的配置项为了兼容以前AES的加密模式，如果是新部署的环境可自行修改
+                constants.SymmetricCipherType.AES.value: AESSymmetricOptions(
+                    key_size=16,
+                    iv=env.SECRET_KEY[:16].encode("utf-8"),
+                    mode=constants.SymmetricMode.CBC,
+                    interceptor=SymmetricInterceptor
+                ),
                 # 蓝鲸推荐配置
-                constants.SymmetricCipherType.SM4.value: SM4SymmetricOptions(mode=constants.SymmetricMode.CTR)
+                constants.SymmetricCipherType.SM4.value: SM4SymmetricOptions(
+                    mode=constants.SymmetricMode.CTR, key=env.SECRET_KEY
+                )
             }
         },
     },
