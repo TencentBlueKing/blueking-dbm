@@ -264,13 +264,12 @@ class CcManage(object):
                 use_admin=True,
                 raw=True,
             )
-            if resp.get("result"):
-                return
-            # 针对主机已经转移过的场景，直接忽略即可
-            if resp.get("code") == CCApi.ErrorCode.HOST_NOT_BELONG_MODULE:
-                logger.warning(f"transfer_host_across_biz, resp:{resp}")
-            else:
-                raise ApiError(f"transfer_host_across_biz error, resp:{resp}")
+            if not resp.get("result"):
+                # 针对主机已经转移过的场景，直接忽略即可
+                if resp.get("code") == CCApi.ErrorCode.HOST_NOT_BELONG_MODULE:
+                    logger.warning(f"transfer_host_across_biz, resp:{resp}")
+                else:
+                    raise ApiError(f"transfer_host_across_biz error, resp:{resp}")
 
         # 主机转移到对应的模块下，机器可能对应多个集群，所有主机转移到多个模块下是合理的
         CCApi.transfer_host_module(
