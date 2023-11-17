@@ -10,7 +10,6 @@
       </BkButton>
     </div>
     <RenderData
-      v-slot="slotProps"
       class="mt16">
       <RenderDataRow
         v-for="(item, index) in tableData"
@@ -18,7 +17,6 @@
         ref="rowRefs"
         :cluster-id="clusterId"
         :data="item"
-        :is-fixed="slotProps.isOverflow"
         :removeable="tableData.length < 2"
         @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
         @remove="handleRemove(index)" />

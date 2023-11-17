@@ -41,7 +41,6 @@
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
           fixed="right"
-          :min-width="90"
           :required="false"
           :width="100">
           {{ t('操作') }}

@@ -31,10 +31,7 @@
 </template>
 <script lang="ts">
   import type { InjectionKey, Ref } from 'vue';
-  export const isOverflowKey: InjectionKey<Ref<boolean>> = Symbol('isOverflow');
-  export const rowWidthKey: InjectionKey<Ref<number>> = Symbol('rowWidth');
-  // export const isScrollToLeftKey: InjectionKey<Ref<boolean>> = Symbol('isScrollToLeft');
-  // export const isScrollTRightKey: InjectionKey<Ref<boolean>> = Symbol('isScrollToRight');
+  export const renderTablekey: InjectionKey<{isOverflow: Ref<boolean>, rowWidth: Ref<number>}> = Symbol('renderTable');
 </script>
 
 <script setup lang="ts">
@@ -46,6 +43,7 @@
     // handleScroll();
     rowWidth.value = tableRef.value.clientWidth;
     isOverflow.value = tableOuterRef.value.clientWidth < tableRef.value.clientWidth;
+    initColumnWidth();
   };
 
   const tableOuterRef = ref();
@@ -56,12 +54,12 @@
   // const isScrollToLeft = ref(true);
   // const isScrollToRight = ref(false);
 
-  useColumnResize(tableOuterRef, tableColumnResizeRef, _.debounce(checkTableScroll, 200));
+  const { initColumnWidth } = useColumnResize(tableOuterRef, tableColumnResizeRef, _.debounce(checkTableScroll));
 
-  provide(isOverflowKey, isOverflow);
-  provide(rowWidthKey, rowWidth);
-  // provide(isScrollToLeftKey, isScrollToLeft);
-  // provide(isScrollTRightKey, isScrollToRight);
+  provide(renderTablekey, {
+    isOverflow,
+    rowWidth,
+  });
 
   // const handleScroll = () => {
   //   isScrollToLeft.value = tableOuterRef.value.scrollLeft === 0;

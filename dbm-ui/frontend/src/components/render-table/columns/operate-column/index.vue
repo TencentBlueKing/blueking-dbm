@@ -12,7 +12,7 @@
 -->
 
 <template>
-  <FixedColumn fixed="right">
+  <FixedColumn>
     <div class="action-box">
       <div
         v-if="showAdd"
@@ -48,7 +48,6 @@
 
 
   const props = withDefaults(defineProps<Props>(), {
-    fixed: 'right',
     showAdd: true,
     showRemove: true,
     removeable: true,

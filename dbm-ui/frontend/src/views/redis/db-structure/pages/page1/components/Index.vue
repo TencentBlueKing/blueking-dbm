@@ -32,6 +32,7 @@
           </template>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
+          :max-width="200"
           :min-width="120"
           :width="200">
           <span>{{ $t('待构造的实例') }}</span>
@@ -58,9 +59,8 @@
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
           fixed="right"
-          :min-width="90"
           :required="false"
-          :width="120">
+          :width="100">
           {{ $t('操作') }}
         </RenderTableHeadColumn>
       </template>

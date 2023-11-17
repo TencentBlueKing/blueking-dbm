@@ -26,6 +26,7 @@
       v-else
       :content="$t('批量添加')"
       placement="top"
+      :popover-delay="0"
       theme="dark">
       <template #content>
         <div

@@ -19,17 +19,17 @@
   </td>
 </template>
 <script setup lang="ts">
-  import { isOverflowKey } from '@components/render-table/Index.vue';
+  import { renderTablekey } from '@components/render-table/Index.vue';
 
   interface Props {
-    fixed: 'right' | 'left',
+    fixed?: 'right' | 'left',
   }
 
   const props = withDefaults(defineProps<Props>(), {
     fixed: 'right',
   });
 
-  const isFixed = inject(isOverflowKey);
+  const { isOverflow: isFixed } = inject(renderTablekey)!;
 
   const isFixedRight = computed(() => isFixed?.value && props.fixed === 'right');
   const isFixedLeft = computed(() => isFixed?.value && props.fixed === 'left');
