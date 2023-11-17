@@ -47,6 +47,7 @@ from backend.db_services.dbbase.constants import IP_PORT_DIVIDER, SPACE_DIVIDER
 from backend.db_services.redis.rollback.models import TbTendisRollbackTasks
 from backend.db_services.redis.slots_migrate.models import TbTendisSlotsMigrateRecord
 from backend.flow.consts import DEFAULT_DB_MODULE_ID, ConfigFileEnum, ConfigTypeEnum, InstanceStatus
+from backend.flow.utils.base.payload_handler import PayloadHandler
 from backend.flow.utils.redis.redis_module_operate import RedisCCTopoOperator
 from backend.ticket.constants import TicketType
 
@@ -546,19 +547,7 @@ class RedisDBMeta(object):
         写入构造记录元数据
         """
 
-        if self.cluster["cluster_type"] == ClusterType.TendisTwemproxyRedisInstance.value:
-            self.cluster["proxy_version"] = ConfigFileEnum.Twemproxy
-        elif self.cluster["cluster_type"] == ClusterType.TwemproxyTendisSSDInstance.value:
-            self.cluster["proxy_version"] = ConfigFileEnum.Twemproxy
-        elif self.cluster["cluster_type"] == ClusterType.TendisPredixyTendisplusCluster.value:
-            self.cluster["proxy_version"] = ConfigFileEnum.Predixy
-        proxy_config = self.__get_cluster_config(
-            self.cluster["domain_name"],
-            self.cluster["proxy_version"],
-            ConfigTypeEnum.ProxyConf,
-            self.cluster["cluster_type"],
-        )
-
+        passwd_ret = PayloadHandler.redis_get_password_by_domain(self.cluster["domain_name"])
         task = TbTendisRollbackTasks(
             creator=self.ticket_data["created_by"],
             related_rollback_bill_id=self.ticket_data["uid"],
@@ -571,13 +560,13 @@ class RedisDBMeta(object):
             prod_instance_range=self.cluster["prod_instance_range"],
             temp_cluster_type=self.cluster["temp_cluster_type"],
             temp_instance_range=self.cluster["temp_instance_range"],
-            temp_proxy_password=base64.b64encode(proxy_config["password"].encode("utf-8")),
+            temp_proxy_password=base64.b64encode(passwd_ret.get("redis_proxy_password").encode("utf-8")),
             temp_cluster_proxy=self.cluster["temp_cluster_proxy"],
             prod_temp_instance_pairs=self.cluster["prod_temp_instance_pairs"],
             host_count=self.cluster["host_count"],
             recovery_time_point=self.cluster["recovery_time_point"],
             status=self.cluster["status"],
-            temp_redis_password=base64.b64encode(proxy_config["redis_password"].encode("utf-8")),
+            temp_redis_password=base64.b64encode(passwd_ret.get("redis_password").encode("utf-8")),
         )
         task.save()
 
