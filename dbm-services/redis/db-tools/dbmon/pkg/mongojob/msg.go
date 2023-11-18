@@ -15,7 +15,7 @@ func SendEvent(conf *config.Configuration, serverConf *config.ConfServerItem,
 	msgH, err := sendwarning.NewBkMonitorEventSender(
 		conf.RedisMonitor.BkMonitorEventDataID,
 		conf.RedisMonitor.BkMonitorEventToken,
-		conf.GsePath,
+		conf.BeatPath,
 		conf.AgentAddress,
 	)
 

@@ -3,11 +3,11 @@ package sendwarning
 import (
 	"encoding/json"
 	"fmt"
-	"path/filepath"
 	"strings"
 	"time"
 
 	"dbm-services/redis/db-tools/dbmon/mylog"
+	"dbm-services/redis/db-tools/dbmon/pkg/consts"
 	"dbm-services/redis/db-tools/dbmon/util"
 )
 
@@ -27,45 +27,30 @@ type eventBodyItem struct {
 type BkMonitorEventSender struct {
 	DataID            int64           `json:"data_id"`
 	AccessToken       string          `json:"access_token"`
-	GsePath           string          `json:"-"`
 	ToolBkMonitorBeat string          `json:"-"`
 	AgentAddress      string          `json:"-"`
 	Data              []eventBodyItem `json:"data"`
 }
 
 // NewBkMonitorEventSender new
-func NewBkMonitorEventSender(dataID int64, token, gsePath, agentAddress string) (ret *BkMonitorEventSender, err error) {
-	if !util.FileExists(gsePath) {
-		err = fmt.Errorf("GSE_PATH:%s not exists", gsePath)
+func NewBkMonitorEventSender(dataID int64, token, beatPath, agentAddress string) (ret *BkMonitorEventSender,
+	err error) {
+	if !util.FileExists(beatPath) {
+		err = fmt.Errorf("BEAT_PATH:%s not exists", beatPath)
+		mylog.Logger.Error(err.Error())
+		return
+	}
+	if !util.FileExists(agentAddress) {
+		err = fmt.Errorf("agent_address:%s not exists", agentAddress)
 		mylog.Logger.Error(err.Error())
 		return
 	}
 	ret = &BkMonitorEventSender{
-		DataID:      dataID,
-		AccessToken: token,
-		GsePath:     gsePath,
+		DataID:            dataID,
+		AccessToken:       token,
+		ToolBkMonitorBeat: beatPath,
 	}
-	ret.ToolBkMonitorBeat = filepath.Join(gsePath, "plugins/bin/bkmonitorbeat")
-	if !util.FileExists(ret.ToolBkMonitorBeat) {
-		err = fmt.Errorf("%s not exists", ret.ToolBkMonitorBeat)
-		mylog.Logger.Error(err.Error())
-		return
-	}
-	if agentAddress != "" {
-		ret.AgentAddress = agentAddress
-	} else {
-		beatConf := filepath.Join(gsePath, "plugins/etc/bkmonitorbeat.conf")
-		if !util.FileExists(beatConf) {
-			err = fmt.Errorf("%s not exists", beatConf)
-			mylog.Logger.Error(err.Error())
-			return
-		}
-		grepCmd := fmt.Sprintf(`grep ipc %s|awk '{print $2}'`, beatConf)
-		ret.AgentAddress, err = util.RunBashCmd(grepCmd, "", nil, 10*time.Second)
-		if err != nil {
-			return
-		}
-	}
+	ret.AgentAddress = agentAddress
 	ret.Data = append(ret.Data, eventBodyItem{})
 	return
 }
@@ -112,8 +97,10 @@ func (bm *BkMonitorEventSender) SendWarning(eventName, warnmsg, warnLevel, targe
 	bm.Data[0].EventName = eventName
 	bm.Data[0].Target = targetIP
 	// bm.Data[0].Event.Content = bm.addDbMetaInfo(warnmsg)
+	warnmsg = strings.ReplaceAll(warnmsg, "'", "")
 	bm.Data[0].Event.Content = warnmsg
 	bm.Data[0].Dimension["warn_level"] = warnLevel
+	bm.SetEventCreateTime()
 
 	tempBytes, _ := json.Marshal(bm)
 	sendCmd := fmt.Sprintf(
@@ -266,6 +253,13 @@ func (bm *BkMonitorEventSender) SetInstanceHost(host string) *BkMonitorEventSend
 func (bm *BkMonitorEventSender) SetInstance(instance string) *BkMonitorEventSender {
 	bm.newDimenSion()
 	bm.Data[0].Dimension["instance"] = instance
+	return bm
+}
+
+// SetEventCreateTime set instance
+func (bm *BkMonitorEventSender) SetEventCreateTime() *BkMonitorEventSender {
+	bm.newDimenSion()
+	bm.Data[0].Dimension["event_create_time"] = time.Now().Local().Format(consts.UnixtimeLayout)
 	return bm
 }
 

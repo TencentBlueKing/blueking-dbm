@@ -11,16 +11,14 @@ import (
 	"dbm-services/redis/db-tools/dbmon/models/myredis"
 	"dbm-services/redis/db-tools/dbmon/mylog"
 	"dbm-services/redis/db-tools/dbmon/pkg/consts"
-	"dbm-services/redis/db-tools/dbmon/pkg/sendwarning"
 	"dbm-services/redis/db-tools/dbmon/util"
 )
 
 // TwemproxyMonitorTask twemproxy monitor task
 type TwemproxyMonitorTask struct {
 	baseTask
-	eventSender *sendwarning.BkMonitorEventSender `json:"-"`
-	proxyCli    *myredis.RedisClient              `json:"-"`
-	Err         error                             `json:"-"`
+	proxyCli *myredis.RedisClient `json:"-"`
+	Err      error                `json:"-"`
 }
 
 // NewTwemproxyMonitorTask new
@@ -75,7 +73,7 @@ func (task *TwemproxyMonitorTask) RestartWhenConnFail() {
 				task.ServerConf.ServerIP)
 			return
 		}
-		startCmd := []string{startScript + " " + strconv.Itoa(proxyPort)}
+		startCmd := []string{startScript, strconv.Itoa(proxyPort)}
 		mylog.Logger.Info(strings.Join(startCmd, " "))
 		_, task.Err = util.RunLocalCmd(startCmd[0], startCmd[1:], "", nil, 10*time.Second)
 		if task.Err != nil {
