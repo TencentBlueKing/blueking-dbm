@@ -2,6 +2,7 @@ PROJ="mysql-table-checksum"
 MODULE="dbm-services/mysql/db-tools/mysql-table-checksum"
 VERSION = $(error please set VERSION flag)
 GITHASH=""
+GITDATE=""
 # 注意这里的最终产物是 mysql-checksum.tar.gz，不要修改了
 TAR_PKG="mysql-checksum.tar"
 PKG="mysql-checksum.tar.gz"
@@ -16,7 +17,7 @@ release-bin:
 	cp -a pt-table-checksum ${OUTPUT_DIR}/
 	cp -a pt-table-sync ${OUTPUT_DIR}/
 	# 为了保证 tar 压缩得到的包的 md5 一致，这里修改文件的时间戳，同时把 tar -zcf 拆为 tar -cf && gzip
-	find ${OUTPUT_DIR} -exec touch -t 202301010000 {} +
+	find ${OUTPUT_DIR} -exec touch -t ${GITDATE} {} +
 	tar -C ${OUTPUT_DIR} --numeric-owner -cvf ${OUTPUT_DIR}/${TAR_PKG} ${PROJ} pt-table-checksum pt-table-sync
 	gzip -n -f ${OUTPUT_DIR}/${TAR_PKG}
 

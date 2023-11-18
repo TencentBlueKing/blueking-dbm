@@ -2,10 +2,11 @@ PROJ="mysql-crond"
 MODULE="dbm-services/mysql/db-tools/mysql-crond"
 VERSION = $(error please set VERSION flag)
 GITHASH = ""
+GITDATE = ""
 TAR_PKG=${PROJ}.tar
 PKG=${PROJ}.tar.gz
 OUTPUT_DIR=build
-RELEASE_BUILD_FLAG = "-X ${MODULE}/cmd.version=${VERSION} -X ${MODULE}/cmd.gitHash=${GITHASH} "
+RELEASE_BUILD_FLAG = "-X ${MODULE}/cmd.version=${VERSION} -X ${MODULE}/cmd.gitHash=${GITHASH}"
 DEV_BUILD_FLAG = "-X ${MODULE}/cmd.version="develop" -X ${MODULE}/cmd.gitHash="" "
 
 .PHONY: release-bin
@@ -14,7 +15,7 @@ release-bin:
 	cp mysql-crond.conf.go.tpl $(OUTPUT_DIR)
 	cp start.sh $(OUTPUT_DIR) && chmod +x $(OUTPUT_DIR)/start.sh
 	# 为了保证 tar 压缩得到的包的 md5 一致，这里修改文件的时间戳，同时把 tar -zcf 拆为 tar -cf && gzip
-	find ${OUTPUT_DIR} -exec touch -t 202301010000 {} +
+	find ${OUTPUT_DIR} -exec touch -t ${GITDATE} {} +
 	tar -C ${OUTPUT_DIR} --numeric-owner -cvf ${OUTPUT_DIR}/${TAR_PKG} mysql-crond mysql-crond.conf.go.tpl start.sh
 	gzip -n -f ${OUTPUT_DIR}/${TAR_PKG}
 
