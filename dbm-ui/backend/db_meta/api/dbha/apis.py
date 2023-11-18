@@ -100,7 +100,6 @@ def entry_detail(domains: List[str]) -> List[Dict]:
     return entries
 
 
-@transaction.atomic
 def instances(
     logical_city_ids: Optional[List[int]] = None,
     addresses: Optional[List[str]] = None,
