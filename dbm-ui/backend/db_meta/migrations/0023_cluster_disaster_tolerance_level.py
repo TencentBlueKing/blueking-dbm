@@ -2,7 +2,7 @@
 
 from django.db import migrations, models
 
-from backend.ticket.constants import AffinityEnum
+from backend.configuration.constants import AffinityEnum
 
 
 class Migration(migrations.Migration):

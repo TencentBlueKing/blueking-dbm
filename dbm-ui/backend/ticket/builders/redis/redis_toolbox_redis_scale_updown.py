@@ -11,11 +11,12 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
+from backend.configuration.constants import AffinityEnum
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.redis import RedisController
 from backend.ticket import builders
 from backend.ticket.builders.redis.base import BaseRedisTicketFlowBuilder, ClusterValidateMixin
-from backend.ticket.constants import AffinityEnum, SwitchConfirmType, TicketType
+from backend.ticket.constants import SwitchConfirmType, TicketType
 
 
 class RedisScaleUpDownDetailSerializer(serializers.Serializer):

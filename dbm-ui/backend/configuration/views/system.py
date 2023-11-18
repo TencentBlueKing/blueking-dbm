@@ -99,6 +99,7 @@ class SystemSettingsViewSet(viewsets.SystemViewSet):
                     IDLE_HOST_MODULE
                 ]["bk_module_id"],
                 "CC_MANAGE_TOPO": SystemSettings.get_setting_value(key=SystemSettingsEnum.MANAGE_TOPO.value),
+                "AFFINITY": SystemSettings.get_setting_value(key=SystemSettingsEnum.AFFINITY.value),
             }
         )
 

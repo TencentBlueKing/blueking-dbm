@@ -21,6 +21,7 @@ from django.utils.translation import gettext as _
 
 from backend import env
 from backend.components.dbresource.client import DBResourceApi
+from backend.configuration.constants import AffinityEnum
 from backend.configuration.models import DBAdministrator
 from backend.constants import DEFAULT_BK_CLOUD_ID
 from backend.db_meta.models import Spec
@@ -29,7 +30,7 @@ from backend.db_services.ipchooser.constants import CommonEnum
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.tests.mock_data import ticket
 from backend.ticket import constants
-from backend.ticket.constants import AffinityEnum, FlowCallbackType, FlowType, ResourceApplyErrCode, TodoType
+from backend.ticket.constants import FlowCallbackType, FlowType, ResourceApplyErrCode, TodoType
 from backend.ticket.flow_manager.base import BaseTicketFlow
 from backend.ticket.flow_manager.delivery import DeliveryFlow
 from backend.ticket.models import Flow, Todo
