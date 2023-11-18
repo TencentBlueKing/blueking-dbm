@@ -1,0 +1,30 @@
+name: Yarn Build
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "dbm-ui/frontend/**"
+  pull_request:
+    paths:
+      - "dbm-ui/frontend/**"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./dbm-ui/frontend
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Install Node.js
+      uses: actions/setup-node@v2
+      with:
+        node-version: 18.x
+
+    - name: Install dependencies
+      run: yarn install --frozen-lockfile
+
+    - name: Build
+      run: yarn build
