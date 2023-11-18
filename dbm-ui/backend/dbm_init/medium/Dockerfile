@@ -137,13 +137,13 @@ RUN set -ex && \
     cd /blueking-dbm/dbm-services/mysql/db-tools/dbactuator && \
     make VERSION=$(/lock.sh mysql actuator version) GITHASH=$(/lock.sh mysql actuator commitId) -j4 && \
     cd /blueking-dbm/dbm-services/mysql/db-tools/mysql-table-checksum && \
-    make release-bin VERSION=$(/lock.sh mysql mysql-checksum version) GITHASH=$(/lock.sh mysql mysql-checksum commitId) -j4 && \
+    make release-bin VERSION=$(/lock.sh mysql mysql-checksum version) GITHASH=$(/lock.sh mysql mysql-checksum commitId) GITDATE=$(/lock.sh mysql mysql-checksum commitDate) -j4 && \
     cd /blueking-dbm/dbm-services/mysql/db-tools/mysql-crond && \
-    make release-bin VERSION=$(/lock.sh mysql mysql-crond version) GITHASH=$(/lock.sh mysql mysql-crond commitId) -j4 && \
+    make release-bin VERSION=$(/lock.sh mysql mysql-crond version) GITHASH=$(/lock.sh mysql mysql-crond commitId) GITDATE=$(/lock.sh mysql mysql-crond commitDate) -j4 && \
     cd /blueking-dbm/dbm-services/mysql/db-tools/mysql-rotatebinlog && \
-    make release-bin VERSION=$(/lock.sh mysql rotate-binlog version) GITHASH=$(/lock.sh mysql rotate-binlog commitId) -j4 && \
+    make release-bin VERSION=$(/lock.sh mysql rotate-binlog version) GITHASH=$(/lock.sh mysql rotate-binlog commitId) GITDATE=$(/lock.sh mysql rotate-binlog commitDate) -j4 && \
     cd /blueking-dbm/dbm-services/mysql/db-tools/mysql-monitor && \
-    make release-bin VERSION=$(/lock.sh mysql mysql-monitor version) GITHASH=$(/lock.sh mysql mysql-monitor commitId) -j4
+    make release-bin VERSION=$(/lock.sh mysql mysql-monitor version) GITHASH=$(/lock.sh mysql mysql-monitor commitId) GITDATE=$(/lock.sh mysql mysql-monitor commitDate) -j4
 
 ## 编译 dbbackup-go community，下载依赖
 RUN set -ex && \
@@ -160,8 +160,7 @@ RUN set -ex && \
     cd /blueking-dbm/dbm-services/redis/db-tools/dbactuator && \
     make VERSION=$(/lock.sh redis actuator version) GITHASH=$(/lock.sh redis actuator commitId) -j4 && \
     cd /blueking-dbm/dbm-services/redis/db-tools/dbmon && \
-    bash package.sh
-
+    bash package.sh --version=$(/lock.sh redis actuator version) --git-hash=$(/lock.sh redis actuator commitId) --git-date=$(/lock.sh redis actuator commitDate)
 
 FROM medium-builder as bigdata-medium-builder
 

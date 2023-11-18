@@ -2,6 +2,7 @@
 
 repoVersion=0.0.1
 respGitHash=$(git rev-parse --short HEAD)
+respGitDate=202301010000
 
 # 解析传入的 --version=xxx 和 --git-hash=xxx 参数
 while [ $# -gt 0 ]; do
@@ -11,6 +12,9 @@ while [ $# -gt 0 ]; do
         ;;
     --git-hash=*)
         respGitHash="${1#*=}"
+        ;;
+    --git-date=*)
+        respGitDate="${1#*=}"
         ;;
     *) ;;
     esac
@@ -42,7 +46,7 @@ if [[ -e $tarName ]]; then
 fi
 
 # 为了保证 tar 压缩得到的包的 md5 一致，这里修改文件的时间戳，同时把 tar -zcf 拆为 tar -cf && gzip
-find ${targetDir} -exec touch -t 202301010000 {} +
+find ${targetDir} -exec touch -t $respGitDate {} +
 tar --numeric-owner -cvf ${tarName} $targetDir
 gzip -n -f ${tarName}
 
