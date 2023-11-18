@@ -69,7 +69,7 @@ INSTALLED_APPS += (
     # bk-audit
     "bk_audit.contrib.bk_audit",
     # apm
-    "blueapps.opentelemetry.instrument_app",
+    # "blueapps.opentelemetry.instrument_app",
     # backend
     "backend.core.storages",
     "backend.core.encrypt",
