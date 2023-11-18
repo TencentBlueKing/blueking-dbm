@@ -34,7 +34,7 @@
 
   import { updateVariable } from '@services/openarea';
 
-  import TableEditInput from '@components/tools-table-input/index.vue';
+  import TableEditInput from '@components/render-table/columns/input/index.vue';
 
   import {
     execCopy,
