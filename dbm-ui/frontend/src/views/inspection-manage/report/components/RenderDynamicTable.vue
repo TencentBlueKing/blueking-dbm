@@ -58,7 +58,6 @@
       tableColumns.value = result.title.map(titleItem => ({
         label: titleItem.display_name,
         render: ({ data: fieldData }: {data:any}) => {
-          console.log(fieldData);
           const fieldValue = fieldData[titleItem.name];
           if (titleItem.format === 'status') {
             const isSuccess = fieldValue === true;

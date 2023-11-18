@@ -14,12 +14,9 @@
 <template>
   <div class="render-data">
     <RenderTable>
-      <template
-        #default="slotProps">
+      <template #default>
         <RenderTableHeadColumn
-          :is-minimize="slotProps.isOverflow"
           :min-width="120"
-          :row-width="slotProps.rowWidth"
           :width="280">
           <span>{{ $t('主库主机') }}</span>
           <template #append>
@@ -35,50 +32,38 @@
           </template>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
-          :is-minimize="slotProps.isOverflow"
           :min-width="100"
           :required="false"
-          :row-width="slotProps.rowWidth"
           :width="280">
           <span>{{ $t('所属集群') }}</span>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
-          :is-minimize="slotProps.isOverflow"
           :min-width="140"
           :required="false"
-          :row-width="slotProps.rowWidth"
           :width="280">
           <span>{{ $t('待切换的Master实例') }}</span>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
-          :is-minimize="slotProps.isOverflow"
           :min-width="130"
           :required="false"
-          :row-width="slotProps.rowWidth"
           :width="280">
           <span>{{ $t('待切换的从库主机') }}</span>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
-          :is-minimize="slotProps.isOverflow"
           :min-width="100"
           :required="false"
-          :row-width="slotProps.rowWidth"
           :width="200">
           <span>{{ $t('切换模式') }}</span>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
-          :is-fixed="slotProps.isOverflow"
-          :is-minimize="slotProps.isOverflow"
-          :min-width="90"
+          fixed="right"
           :required="false"
-          :row-width="slotProps.rowWidth"
-          :width="120">
+          :width="100">
           {{ $t('操作') }}
         </RenderTableHeadColumn>
       </template>
-
-      <template #data="slotProps">
-        <slot :is-overflow="slotProps.isOverflow" />
+      <template #data>
+        <slot />
       </template>
     </RenderTable>
   </div>

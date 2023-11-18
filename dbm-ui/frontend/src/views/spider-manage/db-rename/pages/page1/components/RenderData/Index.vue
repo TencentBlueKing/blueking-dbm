@@ -14,12 +14,9 @@
 <template>
   <div class="db-table-backup-render-data">
     <RenderTable>
-      <template
-        #default="slotProps">
+      <template #default>
         <RenderTableHeadColumn
-          :is-minimize="slotProps.isOverflow"
           :min-width="120"
-          :row-width="slotProps.rowWidth"
           :width="240">
           {{ t('目标集群') }}
           <template #append>
@@ -31,32 +28,25 @@
           </template>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
-          :is-minimize="slotProps.isOverflow"
           :min-width="100"
-          :row-width="slotProps.rowWidth"
           :width="400">
           {{ t('源 DB 名') }}
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
-          :is-minimize="slotProps.isOverflow"
           :min-width="100"
-          :row-width="slotProps.rowWidth"
           :width="400">
           {{ t('新 DB 名') }}
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
-          :is-fixed="slotProps.isOverflow"
-          :is-minimize="slotProps.isOverflow"
-          :min-width="90"
+          fixed="right"
           :required="false"
-          :row-width="slotProps.rowWidth"
-          :width="240">
+          :width="100">
           {{ t('操作') }}
         </RenderTableHeadColumn>
       </template>
 
-      <template #data="slotProps">
-        <slot :is-overflow="slotProps.isOverflow" />
+      <template #data>
+        <slot />
       </template>
     </RenderTable>
   </div>

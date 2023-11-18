@@ -89,7 +89,7 @@
   import ClusterSpecPlanSelector, {
     type IRowData,
   } from '@components/cluster-spec-plan-selector/Index.vue';
-  import DisableSelect from '@components/tools-select-disable/index.vue';
+  import DisableSelect from '@components/render-table/columns/select-disable/index.vue';
 
   interface Props {
     clusterData?: SpiderModel

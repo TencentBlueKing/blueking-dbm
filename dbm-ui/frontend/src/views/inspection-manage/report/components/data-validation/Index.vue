@@ -2,24 +2,15 @@
   <RenderDynamicTable
     :search-params="searchParams"
     :service="getChecksumReport" />
-  <RenderDynamicTable
-    :search-params="searchParams"
-    :service="getChecksumInstance" />
 </template>
 <script setup lang="tsx">
+  import { getChecksumReport } from '@services/report';
 
-  import {
-    getChecksumInstance,
-    getChecksumReport,
-  } from '@services/report';
-
-  import RenderDynamicTable from '../RenderDynamicTable.vue';
+  import RenderDynamicTable from '../render-dynamic-table/Index.vue';
 
   interface Props {
     searchParams: Record<string, any>
   }
 
   defineProps<Props>();
-
 </script>
-

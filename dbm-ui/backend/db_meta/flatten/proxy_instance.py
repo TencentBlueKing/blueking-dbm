@@ -15,9 +15,8 @@ from typing import Dict, List
 from django.db.models import QuerySet
 
 from backend.db_meta.enums import ClusterEntryType, MachineType
+from backend.db_meta.flatten.machine import _machine_prefetch, _single_machine_cc_info, _single_machine_city_info
 from backend.db_meta.models import ProxyInstance
-
-from .machine import _machine_prefetch, _single_machine_cc_info, _single_machine_city_info
 
 logger = logging.getLogger("root")
 
@@ -29,6 +28,11 @@ def proxy_instance(proxies: QuerySet) -> List[Dict]:
             "storageinstance",
             "storageinstance__machine",
             "bind_entry",
+            "bind_entry__clbentrydetail_set",
+            "bind_entry__polarisentrydetail_set",
+            "bind_entry__proxyinstance_set",
+            "bind_entry__proxyinstance_set__machine",
+            "cluster"
         )
     )
     res = []
@@ -59,14 +63,20 @@ def proxy_instance(proxies: QuerySet) -> List[Dict]:
 
         bind_entry = defaultdict(list)
         for be in ins.bind_entry.all():
+            proxy_instance_list = list(be.proxyinstance_set.all())
+            bind_ips = list(be.proxyinstance_set.all())
+            try:
+                bind_port = proxy_instance_list[0].port
+            except (IndexError, AttributeError):
+                bind_port = 0
             if be.cluster_entry_type == ClusterEntryType.DNS:
                 bind_entry[be.cluster_entry_type].append(
                     {
                         "domain": be.entry,
                         "entry_role": be.role,
                         "forward_entry_id": be.forward_to_id,
-                        "bind_ips": list(set([ele.machine.ip for ele in list(be.proxyinstance_set.all())])),
-                        "bind_port": be.proxyinstance_set.first().port,
+                        "bind_ips": bind_ips,
+                        "bind_port": bind_port,
                     }
                 )
             elif be.cluster_entry_type == ClusterEntryType.CLB:
@@ -77,8 +87,8 @@ def proxy_instance(proxies: QuerySet) -> List[Dict]:
                         "clb_id": dt.clb_id,
                         "listener_id": dt.listener_id,
                         "clb_region": dt.clb_region,
-                        "bind_ips": list(set([ele.machine.ip for ele in list(be.proxyinstance_set.all())])),
-                        "bind_port": be.proxyinstance_set.first().port,
+                        "bind_ips": bind_ips,
+                        "bind_port": bind_port,
                     }
                 )
             elif be.cluster_entry_type == ClusterEntryType.POLARIS:
@@ -89,19 +99,19 @@ def proxy_instance(proxies: QuerySet) -> List[Dict]:
                         "polaris_l5": dt.polaris_l5,
                         "polaris_token": dt.polaris_token,
                         "alias_token": dt.alias_token,
-                        "bind_ips": list(set([ele.machine.ip for ele in list(be.proxyinstance_set.all())])),
-                        "bind_port": be.proxyinstance_set.first().port,
+                        "bind_ips": bind_ips,
+                        "bind_port": bind_port,
                     }
                 )
             else:
                 bind_entry[be.cluster_entry_type].append(be.entry)
 
         info["bind_entry"] = dict(bind_entry)
+        for cluster in ins.cluster.all():
+            info["cluster"] = cluster.immute_domain
+            # 只取第一个即可退出
+            break
 
         res.append(info)
-
-        cluster_qs = ins.cluster.all()
-        if cluster_qs.exists():
-            info["cluster"] = cluster_qs.first().immute_domain
 
     return res

@@ -8,15 +8,26 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from blue_krill.data_types.enum import EnumField, StructuredEnum
 from django.utils.translation import ugettext as _
 
-# 平台业务ID
-from backend.db_services.ipchooser.constants import DEFAULT_CLOUD
+from blue_krill.data_types.enum import EnumField, StructuredEnum
 
+# 平台业务ID
 PLAT_BIZ_ID = 0
 DBM_PASSWORD_SECURITY_NAME = "password"
 DBM_MYSQL_ADMIN_USER = "ADMIN"
+
+
+class AffinityEnum(str, StructuredEnum):
+    """
+    亲和性枚举类
+    """
+
+    # 这个swtich 拼写错误不要改, 可能会影响老集群
+    SAME_SUBZONE_CROSS_SWTICH = EnumField("SAME_SUBZONE_CROSS_SWTICH", _("同城同subzone跨交换机跨机架"))
+    SAME_SUBZONE = EnumField("SAME_SUBZONE", _("同城同subzone"))
+    CROS_SUBZONE = EnumField("CROS_SUBZONE", _("CROS_SUBZONE"))
+    NONE = EnumField("NONE", _("NONE"))
 
 
 class DBType(str, StructuredEnum):
@@ -51,6 +62,7 @@ class SystemSettingsEnum(str, StructuredEnum):
     BKM_DUTY_NOTICE = EnumField("BKM_DUTY_NOTICE", _("轮值通知设置"))
     DBM_MIGRATE_USER = EnumField("DBM_MIGRATE_USER", _("具备迁移权限的人员名单"))
     BIZ_CONFIG = EnumField("BIZ_CONFIG", _("全业务通用配置信息"))
+    AFFINITY = EnumField("AFFINITY", _("容灾要求(各个环境可能不同，比如SG为空)"))
 
 
 class BizSettingsEnum(str, StructuredEnum):
@@ -126,6 +138,12 @@ BIZ_CONFIG_INFO = {
     "OPEN_AREA_VARS": [{"desc": "APP", "name": "APP", "builtin": True}]
 }
 
+# 默认的环境容灾要求
+AFFINITY_VALUE = [
+    {"value": AffinityEnum.CROS_SUBZONE, "label": _("跨机房部署")},
+    {"value": AffinityEnum.SAME_SUBZONE_CROSS_SWTICH, "label": _("同机房部署")},
+]
+
 # 默认具备迁移权限的人员
 DBM_DEFAULT_MIGRATE_USER = ["admin"]
 
@@ -139,6 +157,7 @@ DEFAULT_SETTINGS = [
     [SystemSettingsEnum.BKM_DUTY_NOTICE.value, "dict", BKM_DUTY_NOTICE_VALUE, _("默认通知配置")],
     [SystemSettingsEnum.DBM_MIGRATE_USER, "list", DBM_DEFAULT_MIGRATE_USER, _("具备迁移权限的人员名单")],
     [SystemSettingsEnum.BIZ_CONFIG, "dict", BIZ_CONFIG_INFO, _("默认的全业务配置信息")],
+    [SystemSettingsEnum.AFFINITY, "list", AFFINITY_VALUE, _("环境的容灾要求")],
 ]
 
 # 环境配置项 是否支持DNS解析 pulsar flow used

@@ -19,7 +19,6 @@
         theme="info"
         :title="t('客户端权限克隆：访问 DB 来源 IP 替换时做的权限克隆')" />
       <RenderData
-        v-slot="slotProps"
         class="mt16"
         @show-ip-selector="handleShowIpSelector">
         <RenderDataRow
@@ -27,7 +26,6 @@
           :key="item.rowKey"
           ref="rowRefs"
           :data="item"
-          :is-fixed="slotProps.isOverflow"
           :removeable="tableData.length <2"
           @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
           @remove="handleRemove(index)" />

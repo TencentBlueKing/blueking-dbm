@@ -14,12 +14,9 @@
 <template>
   <div class="render-data">
     <RenderTable>
-      <template
-        #default="slotProps">
+      <template #default>
         <RenderTableHeadColumn
-          :is-minimize="slotProps.isOverflow"
           :min-width="120"
-          :row-width="slotProps.rowWidth"
           :width="450">
           {{ t('目标集群') }}
           <template #append>
@@ -31,33 +28,26 @@
           </template>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
-          :is-minimize="slotProps.isOverflow"
           :min-width="130"
           :required="false"
-          :row-width="slotProps.rowWidth"
           :width="160">
           {{ t('所属管控区域') }}
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
-          :is-minimize="slotProps.isOverflow"
           :min-width="130"
-          :row-width="slotProps.rowWidth"
           :width="600">
           {{ t('运维节点 IP') }}
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
-          :is-fixed="slotProps.isOverflow"
-          :is-minimize="slotProps.isOverflow"
-          :min-width="90"
+          fixed="right"
           :required="false"
-          :row-width="slotProps.rowWidth"
-          :width="120">
+          :width="100">
           {{ t('操作') }}
         </RenderTableHeadColumn>
       </template>
 
-      <template #data="slotProps">
-        <slot :is-overflow="slotProps.isOverflow" />
+      <template #data>
+        <slot />
       </template>
     </RenderTable>
   </div>

@@ -14,12 +14,9 @@
 <template>
   <div class="render-data">
     <RenderTable>
-      <template
-        #default="slotProps">
+      <template #default>
         <RenderTableHeadColumn
-          :is-minimize="slotProps.isOverflow"
           :min-width="150"
-          :row-width="slotProps.rowWidth"
           :width="280">
           <span>{{ $t('目标主库主机') }}</span>
           <template #append>
@@ -35,18 +32,14 @@
           </template>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
-          :is-minimize="slotProps.isOverflow"
           :min-width="180"
           :required="false"
-          :row-width="slotProps.rowWidth"
           :width="280">
           <span>{{ $t('所属集群') }}</span>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
-          :is-minimize="slotProps.isOverflow"
           :min-width="150"
           :required="false"
-          :row-width="slotProps.rowWidth"
           :width="300">
           <BkPopover
             :content="$t('默认使用部署方案中选定的规格，将从资源池自动匹配机器')"
@@ -64,34 +57,27 @@
           <span>{{ $t('当前从库主机') }}</span>
         </RenderTableHeadColumn> -->
         <RenderTableHeadColumn
-          :is-minimize="slotProps.isOverflow"
           :min-width="130"
           :required="false"
-          :row-width="slotProps.rowWidth"
           :width="190">
           <span>{{ $t('故障从库主机数量') }}</span>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
-          :is-minimize="slotProps.isOverflow"
           :min-width="130"
           :required="false"
-          :row-width="slotProps.rowWidth"
           :width="190">
           <span>{{ $t('当前从库主机数量') }}</span>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
-          :is-fixed="slotProps.isOverflow"
-          :is-minimize="slotProps.isOverflow"
-          :min-width="90"
+          fixed="right"
           :required="false"
-          :row-width="slotProps.rowWidth"
-          :width="90">
+          :width="100">
           {{ $t('操作') }}
         </RenderTableHeadColumn>
       </template>
 
-      <template #data="slotProps">
-        <slot :is-overflow="slotProps.isOverflow" />
+      <template #data>
+        <slot />
       </template>
     </RenderTable>
   </div>

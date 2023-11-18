@@ -38,7 +38,7 @@
 
   import { ipv4 } from '@common/regex';
 
-  import TableEditInput from '@components/tools-table-input/index.vue';
+  import TableEditInput from '@components/render-table/columns/input/index.vue';
 
   import { random } from '@utils';
 

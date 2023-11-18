@@ -26,7 +26,7 @@
 
   import { useGlobalBizs } from '@stores';
 
-  import RenderText from '@components/tools-table-common/RenderText.vue';
+  import RenderText from '@components/render-table/columns/text-plain/index.vue';
 
   import type { IDataRow } from './Row.vue';
 

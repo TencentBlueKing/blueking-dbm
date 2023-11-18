@@ -14,12 +14,9 @@
 <template>
   <div class="render-data">
     <RenderTable>
-      <template
-        #default="slotProps">
+      <template #default>
         <RenderTableHeadColumn
-          :is-minimize="slotProps.isOverflow"
           :min-width="200"
-          :row-width="slotProps.rowWidth"
           :width="450">
           <span>{{ $t('目标集群') }}</span>
           <template #append>
@@ -35,33 +32,26 @@
           </template>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
-          :is-minimize="slotProps.isOverflow"
           :min-width="150"
           :required="false"
-          :row-width="slotProps.rowWidth"
           :width="300">
           <span>{{ $t('规格') }}</span>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
-          :is-minimize="slotProps.isOverflow"
           :min-width="100"
-          :row-width="slotProps.rowWidth"
           :width="300">
           <span>{{ $t('部署台数') }}</span>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
-          :is-fixed="slotProps.isOverflow"
-          :is-minimize="slotProps.isOverflow"
-          :min-width="90"
+          fixed="right"
           :required="false"
-          :row-width="slotProps.rowWidth"
-          :width="120">
+          :width="100">
           {{ $t('操作') }}
         </RenderTableHeadColumn>
       </template>
 
-      <template #data="slotProps">
-        <slot :is-overflow="slotProps.isOverflow" />
+      <template #data>
+        <slot />
       </template>
     </RenderTable>
   </div>

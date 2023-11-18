@@ -73,6 +73,8 @@ INSTALLED_APPS += (
     "iam.contrib.iam_migration",
     # bk-audit
     "bk_audit.contrib.bk_audit",
+    # apm
+    # "blueapps.opentelemetry.instrument_app",
     # backend
     "backend.core.storages",
     "backend.core.encrypt",
@@ -236,6 +238,11 @@ BK_IAM_RESOURCE_API_HOST = env.BK_IAM_RESOURCE_API_HOST
 BK_AUDIT_SETTINGS = {
     "formatter": "bk_audit.contrib.django.formatters.DjangoFormatter",
 }
+
+# apm 配置
+ENABLE_OTEL_TRACE = env.ENABLE_OTEL_TRACE
+BK_APP_OTEL_INSTRUMENT_DB_API = env.BK_APP_OTEL_INSTRUMENT_DB_API  # 是否开启 DB 访问 trace（开启后 span 数量会明显增多）
+
 
 # BAMBOO PIPELINE 配置
 AUTO_UPDATE_COMPONENT_MODELS = False

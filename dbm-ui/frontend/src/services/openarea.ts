@@ -104,7 +104,6 @@ export const update = function (params: {
   return http.get(`${path}/${currentBizId}/openarea/${params.id}/`, realParams);
 };
 
-
 export const updateVariable = function <T extends 'add'|'update'|'delete'> (params: {
   op_type: T,
   old_var: T extends 'update'|'delete' ? {

@@ -19,7 +19,6 @@
         theme="info"
         :title="t('扩容接入层：增加集群的Proxy数量，新Proxy可以指定规格')" />
       <RenderData
-        v-slot="slotProps"
         class="mt16"
         @show-batch-selector="handleShowBatchSelector">
         <RenderDataRow
@@ -28,7 +27,6 @@
           ref="rowRefs"
           :data="item"
           :inputed-clusters="inputedClusters"
-          :is-fixed="slotProps.isOverflow"
           :removeable="tableData.length < 2"
           @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
           @cluster-input-finish="(domain: string) => handleChangeCluster(index, domain)"

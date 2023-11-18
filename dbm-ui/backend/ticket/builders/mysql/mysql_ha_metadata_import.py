@@ -16,12 +16,13 @@ from rest_framework import serializers
 
 from backend.components import DBConfigApi
 from backend.components.dbconfig import constants as dbconf_const
+from backend.configuration.constants import AffinityEnum
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import AppCache, DBModule, Spec
 from backend.flow.engine.controller.mysql import MySQLController
 from backend.ticket import builders
 from backend.ticket.builders.mysql.base import BaseMySQLTicketFlowBuilder, MySQLBaseOperateDetailSerializer
-from backend.ticket.constants import AffinityEnum, FlowRetryType, TicketType
+from backend.ticket.constants import FlowRetryType, TicketType
 
 logger = logging.getLogger("root")
 

@@ -14,71 +14,54 @@
 <template>
   <div class="render-data">
     <RenderTable>
-      <template
-        #default="slotProps">
+      <template #default>
         <RenderTableHeadColumn
-          :is-minimize="slotProps.isOverflow"
           :min-width="150"
-          :row-width="slotProps.rowWidth"
           :width="180">
           <span>{{ $t('源集群') }}</span>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
-          :is-minimize="slotProps.isOverflow"
           :min-width="120"
           :required="false"
-          :row-width="slotProps.rowWidth"
           :width="180">
           <span>{{ $t('集群类型') }}</span>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
-          :is-minimize="slotProps.isOverflow"
           :min-width="150"
-          :row-width="slotProps.rowWidth"
           :width="180">
           <span>{{ $t('访问密码') }}</span>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
-          :is-minimize="slotProps.isOverflow"
           :min-width="120"
-          :row-width="slotProps.rowWidth"
           :width="300">
           <span>{{ $t('目标集群') }}</span>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
-          :is-minimize="slotProps.isOverflow"
           :min-width="100"
-          :row-width="slotProps.rowWidth"
           :width="180">
           <span>{{ $t('包含Key') }}</span>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
-          :is-minimize="slotProps.isOverflow"
           :min-width="100"
           :required="false"
-          :row-width="slotProps.rowWidth"
           :width="180">
           <span>{{ $t('排除Key') }}</span>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
-          :is-fixed="slotProps.isOverflow"
-          :is-minimize="slotProps.isOverflow"
-          :min-width="90"
+          fixed="right"
           :required="false"
-          :row-width="slotProps.rowWidth"
           :width="100">
           {{ $t('操作') }}
         </RenderTableHeadColumn>
       </template>
 
-      <template #data="slotProps">
+      <template #data>
         <RenderDataRow
           v-for="(item, index) in tableData"
           :key="item.rowKey"
           ref="rowRefs"
           :cluster-list="clusterList"
           :data="item"
-          :is-fixed="slotProps.isOverflow"
           :removeable="tableData.length < 2"
           @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
           @cluster-input-finish="(domain: string) => handleChangeCluster(index, domain)"

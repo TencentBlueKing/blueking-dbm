@@ -19,7 +19,6 @@
         theme="info"
         :title="t('缩容接入层：减加集群的Proxy数量')" />
       <RenderData
-        v-slot="slotProps"
         class="mt16"
         @show-master-batch-selector="handleShowMasterBatchSelector">
         <RenderDataRow
@@ -28,7 +27,6 @@
           ref="rowRefs"
           :choosed-node-type="clusterNodeTypeMap[item.cluster]"
           :data="item"
-          :is-fixed="slotProps.isOverflow"
           :removeable="tableData.length < 2"
           @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
           @cluster-input-finish="(domain: string) => handleChangeCluster(index, domain)"
@@ -317,21 +315,6 @@
       .force-switch {
         font-size: 12px;
         border-bottom: 1px dashed #63656E;
-      }
-    }
-
-    .page-action-box {
-      display: flex;
-      align-items: center;
-      margin-top: 16px;
-
-      .safe-action {
-        margin-left: auto;
-
-        .safe-action-text {
-          padding-bottom: 2px;
-          border-bottom: 1px dashed #979ba5;
-        }
       }
     }
   }

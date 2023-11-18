@@ -19,7 +19,6 @@
         theme="info"
         :title="t('清档：删除目标数据库数据, 数据会暂存在不可见的备份库中，只有在执行删除备份库后, 才会真正的删除数据。')" />
       <RenderData
-        v-slot="slotProps"
         class="mt16"
         @batch-select-cluster="handleShowBatchSelector">
         <RenderDataRow
@@ -27,7 +26,6 @@
           :key="item.rowKey"
           ref="rowRefs"
           :data="item"
-          :is-fixed="slotProps.isOverflow"
           :removeable="tableData.length < 2"
           @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
           @remove="handleRemove(index)" />

@@ -13,12 +13,17 @@
 
 <template>
   <th
+    ref="columnRef"
     :class="{
       'edit-required': required,
       [`column-${columnKey}`]: true,
-      'shadow-column': isFixed
+      'toolbox-right-fixed-column': isMinimize && isFixedRight,
+      'toolbox-left-fixed-column': isMinimize && isFixedLeft,
     }"
-    :data-minWidth="minWidth"
+    :data-fixed="fixed"
+    :data-maxWidth="maxWidth"
+    :data-minWidth="finalMinWidth"
+    :data-width="width"
     :style="styles"
     @mousedown="handleMouseDown"
     @mousemove="handleMouseMove">
@@ -44,74 +49,99 @@
 
   import { random } from '@utils';
 
+  import { useResizeObserver } from '@vueuse/core';
+
+  import { renderTablekey } from './Index.vue';
+
   interface Props {
     width?: number;
     required?: boolean;
     minWidth?: number;
-    isFixed?: boolean;
-    isMinimize?: boolean;
-    rowWidth?: number;
+    maxWidth?: number;
+    fixed?: 'right' | 'left';
   }
 
   const props = withDefaults(defineProps<Props>(), {
     width: undefined,
     required: true,
     minWidth: undefined,
-    isFixed: false,
-    isMinimize: false,
-    rowWidth: 0,
+    maxWidth: undefined,
+    fixed: undefined,
   });
+
+  const { rowWidth, isOverflow: isMinimize } = inject(renderTablekey)!;
+  const parentTable = inject('toolboxRenderTableKey', {} as any);
 
   const slots = useSlots();
 
-  const columnKey  = random();
+  const columnRef = ref();
+  const currentWidth = ref(0); // 列拖动后的最新宽度
 
-  const parentTable = inject('mysqlToolRenderTable', {} as any);
+  const columnKey = random();
 
   let initWidthRate = 0;
+  let isDragedSelf = false;
 
-  watch(() => [props.width, props.rowWidth], ([width, rowWidth]) => {
-    if (props.width && props.rowWidth && props.minWidth) {
-      if (width && rowWidth && initWidthRate === 0) {
-        initWidthRate = props.isMinimize ? props.minWidth / rowWidth : width / rowWidth;
+  const finalMinWidth = computed(() => (props.minWidth ? props.minWidth : props.width));
+  const isFixedRight = computed(() => props.fixed === 'right');
+  const isFixedLeft = computed(() =>  props.fixed === 'left');
+  const styles = computed<StyleValue>(() => {
+    if (props.width && rowWidth?.value && finalMinWidth.value) {
+      const newWidth = rowWidth.value * initWidthRate;
+      if (newWidth !== props.width) {
+        // 宽度变化了
+        let width = 0;
+        if (isMinimize?.value) {
+          // eslint-disable-next-line max-len
+          if (currentWidth.value !== 0 && (currentWidth.value !== finalMinWidth.value || currentWidth.value !== props.width)) {
+            width = currentWidth.value;
+          } else {
+            width = finalMinWidth.value;
+          }
+        } else if (newWidth > finalMinWidth.value) {
+          width = newWidth;
+        } else {
+          width = finalMinWidth.value;
+        }
+        return {
+          minWidth: `${width}px`,
+        };
+      }
+    }
+    return {
+      minWidth: props.width ? `${props.width}px` : '120px',
+    };
+  });
+
+  watch(() => [props.width, rowWidth?.value, currentWidth.value], ([width, rowWidth, currentWidth]) => {
+    if (!isDragedSelf) {
+      return;
+    }
+    if (width && rowWidth && currentWidth && finalMinWidth.value) {
+      isDragedSelf = false;
+      if (currentWidth !== 0 && (currentWidth !== finalMinWidth.value || currentWidth !== width)) {
+        initWidthRate = currentWidth / rowWidth;
+      } else {
+        initWidthRate = isMinimize?.value ? finalMinWidth.value / rowWidth : width / rowWidth;
       }
     }
   }, {
     immediate: true,
   });
 
-
-  const styles = computed<StyleValue>(() => {
-    if (props.width && props.rowWidth && props.minWidth) {
-      const newWidth = props.rowWidth * initWidthRate;
-      if (newWidth !== props.width) {
-        // 宽度变化了
-        let width = 0;
-        if (props.isMinimize) {
-          width = props.minWidth;
-        } else if (newWidth > props.minWidth) {
-          width = newWidth;
-        } else {
-          width = props.minWidth;
-        }
-        return {
-          width: `${width}px`,
-          position: props.isFixed ? 'sticky' : 'relative',
-          right: props.isFixed ? 0 : '',
-        };
-      }
+  useResizeObserver(columnRef, () => {
+    if (!isDragedSelf) {
+      return;
     }
-    return {
-      width: props.width ? `${props.width}px` : '',
-      position: props.isFixed ? 'sticky' : 'relative',
-      right: props.isFixed ? 0 : '',
-    };
+    const width = parseFloat(columnRef.value.style.width);
+    currentWidth.value = width;
   });
 
   const handleMouseDown = (event: MouseEvent) => {
+    isDragedSelf = true;
     parentTable?.columnMousedown(event, {
       columnKey,
-      minWidth: props.minWidth,
+      minWidth: finalMinWidth.value,
     });
   };
 

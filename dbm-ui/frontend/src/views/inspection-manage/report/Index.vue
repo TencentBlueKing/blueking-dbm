@@ -88,6 +88,7 @@
   onBeforeUnmount(() => {
     mainViewStore.hasPadding = true;
   });
+
 </script>
 <style lang="less">
   .inspection-manage-page {

@@ -29,7 +29,7 @@
           ref="newSlaveRef"
           :old-slave="localOldSlave" />
       </td>
-      <td :class="{'shadow-column': isFixed}">
+      <td :class="{'toolbox-right-fixed-column': isFixed}">
         <div class="action-box">
           <div
             class="action-btn"

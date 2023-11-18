@@ -19,7 +19,7 @@
           ref="nameRef"
           :data="localRowData"
           :model-value="localRowData.name"
-          @change="handleNameChange" />
+          @edit-change="handleNameChange" />
       </td>
       <td style="padding: 0;">
         <CellDesc
@@ -51,6 +51,7 @@
 </template>
 <script lang="ts">
   import { random } from '@utils';
+
   // 创建表格数据
   export const createRowData = (data = {} as Partial<IDataRow>) => ({
     rowKey: random(),
@@ -60,10 +61,7 @@
   });
 </script>
 <script setup lang="ts">
-  import {
-    reactive,
-    watch,
-  } from 'vue';
+  import { renderTablekey } from '@components/render-table/Index.vue';
 
   import type { IVariable } from '../Index.vue';
 
@@ -75,10 +73,10 @@
 
   interface Props {
     data: IDataRow,
-    isFixed?: boolean,
   }
 
   interface Emits {
+    (e: 'edit-change'): void,
     (e: 'add', params: IDataRow): void,
     (e: 'remove', data: IDataRow): void,
   }
@@ -86,6 +84,8 @@
   const props = defineProps<Props>();
 
   const emits = defineEmits<Emits>();
+
+  const { isOverflow: isFixed } = inject(renderTablekey)!;
 
   const nameRef = ref<InstanceType<typeof CellName>>();
   const descRef = ref<InstanceType<typeof CellDesc>>();
@@ -98,8 +98,8 @@
     immediate: true,
   });
 
-  const handleNameChange = (name: IVariable['name']) => {
-    console.log('ad = ', name);
+  const handleNameChange = () => {
+    emits('edit-change');
   };
 
   const handleAppend = () => {
@@ -130,7 +130,7 @@
       }
 
       &.disabled {
-        color: #dcdee5;
+        color: #dcdee5 !important;
         cursor: not-allowed;
       }
 

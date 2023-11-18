@@ -68,7 +68,7 @@
   - slave
 - name: mysql-config-diff
   enable: true
-  schedule: '@every 1m'
+  schedule: 0 5 10 * * *
   machine_type:
   - single
   - backend

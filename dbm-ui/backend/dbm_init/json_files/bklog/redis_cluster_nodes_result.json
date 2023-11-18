@@ -1,0 +1,165 @@
+{
+    "bk_biz_id": {{bk_biz_id}},
+    "etl_config": "bk_log_json",
+    "table_id": "redis_cluster_nodes_result1",
+    "collector_config_name": "redis_cluster_nodes_result1",
+    "collector_config_name_en": "redis_cluster_nodes_result1",
+    "collector_scenario_id": "row",
+    "category_id": "host_process",
+    "storage_cluster_id": 3,
+    "retention": 7,
+    "storage_replies": 1,
+    "es_shards": 3,
+    "allocation_min_days": 0,
+    "etl_params": {
+        "retain_original_text": true
+    },
+    "params": {
+        "paths": [
+            "/home/mysql/dbareport/redis/redis_cluster_nodes*.log"
+        ],
+        "conditions": {
+            "separator": "",
+            "separator_filters": [],
+            "type": "match",
+            "match_type": "include",
+            "match_content": ""
+        },
+        "encoding": "UTF-8"
+    },
+    "fields": [
+        {
+            "value": "3",
+            "option": {
+                "time_zone": "",
+                "time_format": ""
+            },
+            "is_time": false,
+            "verdict": false,
+            "is_delete": false,
+            "alias_name": "bk_app_id",
+            "field_name": "bk_biz_id",
+            "field_type": "string",
+            "description": "",
+            "is_analyzed": false,
+            "is_built_in": false,
+            "is_dimension": false,
+            "previous_type": "string"
+        },
+        {
+            "value": "2023-11-08T15:06:17.054078005+08:00",
+            "option": {
+                "time_zone": "",
+                "time_format": ""
+            },
+            "is_time": false,
+            "verdict": true,
+            "is_delete": false,
+            "alias_name": "",
+            "field_name": "create_at",
+            "field_type": "string",
+            "description": "",
+            "is_analyzed": false,
+            "is_built_in": false,
+            "is_dimension": false,
+            "previous_type": "string"
+        },
+        {
+            "value": "tendisplus.lukeversiontest.dba.db",
+            "option": {
+                "time_zone": "",
+                "time_format": ""
+            },
+            "is_time": false,
+            "verdict": true,
+            "is_delete": false,
+            "alias_name": "",
+            "field_name": "immute_domain",
+            "field_type": "string",
+            "description": "",
+            "is_analyzed": false,
+            "is_built_in": false,
+            "is_dimension": false,
+            "previous_type": "string"
+        },
+        {
+            "value": "93f86de53479e1cd48ee049e9064bb3284d6f2da 127.0.0.1:30000@40000 \n",
+            "option": {
+                "time_zone": "",
+                "time_format": ""
+            },
+            "is_time": false,
+            "verdict": true,
+            "is_delete": false,
+            "alias_name": "",
+            "field_name": "nodes_data",
+            "field_type": "string",
+            "description": "",
+            "is_analyzed": false,
+            "is_built_in": false,
+            "is_dimension": false,
+            "previous_type": "string"
+        },
+        {
+            "value": "127.0.0.1",
+            "option": {
+                "time_zone": "",
+                "time_format": ""
+            },
+            "is_time": false,
+            "verdict": true,
+            "is_delete": false,
+            "alias_name": "",
+            "field_name": "server_ip",
+            "field_type": "string",
+            "description": "",
+            "is_analyzed": false,
+            "is_built_in": false,
+            "is_dimension": false,
+            "previous_type": "string"
+        },
+        {
+            "value": 30000,
+            "option": {
+                "time_zone": "",
+                "time_format": ""
+            },
+            "is_time": false,
+            "verdict": false,
+            "is_delete": false,
+            "alias_name": "",
+            "field_name": "server_port",
+            "field_type": "int",
+            "description": "",
+            "is_analyzed": false,
+            "is_built_in": false,
+            "is_dimension": false,
+            "previous_type": "int"
+        },
+        {
+            "value": "2023-11-08T15:06:17.054077876+08:00",
+            "option": {
+                "time_zone": "",
+                "time_format": ""
+            },
+            "is_time": false,
+            "verdict": true,
+            "is_delete": false,
+            "alias_name": "",
+            "field_name": "update_at",
+            "field_type": "string",
+            "description": "",
+            "is_analyzed": false,
+            "is_built_in": false,
+            "is_dimension": false,
+            "previous_type": "string"
+        }
+    ],
+    "need_assessment": false,
+    "target_object_type": "HOST",
+    "target_node_type": "TOPO",
+    "target_nodes": [
+        {% for node in target_nodes %}{{ node }}{% if not loop.last %}, {% endif %}
+        {% endfor %}
+    ]
+}

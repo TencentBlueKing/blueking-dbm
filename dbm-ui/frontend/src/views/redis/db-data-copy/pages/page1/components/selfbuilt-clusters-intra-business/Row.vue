@@ -54,26 +54,15 @@
         :data="data.excludeKey"
         :required="false" />
     </td>
-    <td :class="{'shadow-column': isFixed}">
-      <div class="action-box">
-        <div
-          class="action-btn"
-          @click="handleAppend">
-          <DbIcon type="plus-fill" />
-        </div>
-        <div
-          class="action-btn"
-          :class="{
-            disabled: removeable
-          }"
-          @click="handleRemove">
-          <DbIcon type="minus-fill" />
-        </div>
-      </div>
-    </td>
+    <OperateColumn
+      :removeable="removeable"
+      @add="handleAppend"
+      @remove="handleRemove" />
   </tr>
 </template>
 <script lang="ts">
+  import OperateColumn from '@components/render-table/columns/operate-column/index.vue';
+
   import RenderKeyRelated from '@views/redis/common/edit-field/RegexKeys.vue';
   import RenderTargetCluster, { type SelectItem } from '@views/redis/db-data-copy/pages/page1/components/RenderTargetCluster.vue';
   import type { SelfbuiltClusterToIntraInfoItem } from '@views/redis/db-data-copy/pages/page1/Index.vue';
@@ -113,7 +102,6 @@
     data: IDataRow,
     removeable: boolean,
     clusterList: SelectItem[];
-    isFixed?: boolean;
   }
   interface Emits {
     (e: 'add', params: Array<IDataRow>): void,
@@ -187,30 +175,3 @@
   });
 
 </script>
-<style lang="less" scoped>
-  .action-box {
-    display: flex;
-    align-items: center;
-
-    .action-btn {
-      display: flex;
-      font-size: 14px;
-      color: #c4c6cc;
-      cursor: pointer;
-      transition: all 0.15s;
-
-      &:hover {
-        color: #979ba5;
-      }
-
-      &.disabled {
-        color: #dcdee5;
-        cursor: not-allowed;
-      }
-
-      & ~ .action-btn {
-        margin-left: 18px;
-      }
-    }
-  }
-</style>

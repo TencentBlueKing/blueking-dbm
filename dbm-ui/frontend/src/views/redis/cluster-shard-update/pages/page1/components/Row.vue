@@ -48,27 +48,15 @@
         :is-loading="data.isLoading"
         :placeholder="$t('选择集群后自动生成')" />
     </td>
-    <td :class="{'shadow-column': isFixed}">
-      <div class="action-box">
-        <div
-          class="action-btn"
-          @click="handleAppend">
-          <DbIcon type="plus-fill" />
-        </div>
-        <div
-          class="action-btn"
-          :class="{
-            disabled: removeable
-          }"
-          @click="handleRemove">
-          <DbIcon type="minus-fill" />
-        </div>
-      </div>
-    </td>
+    <OperateColumn
+      :removeable="removeable"
+      @add="handleAppend"
+      @remove="handleRemove" />
   </tr>
 </template>
 <script lang="ts">
-  import RenderText from '@components/tools-table-common/RenderText.vue';
+  import OperateColumn from '@components/render-table/columns/operate-column/index.vue';
+  import RenderText from '@components/render-table/columns/text-plain/index.vue';
 
   import RenderTargetCluster from '@views/redis/common/edit-field/ClusterName.vue';
   import { AffinityType } from '@views/redis/common/types';
@@ -188,7 +176,6 @@
     removeable: boolean,
     clusterTypesMap: Record<string, string[]>,
     inputedClusters?: string[],
-    isFixed?: boolean;
   }
 
   interface Emits {
@@ -203,7 +190,6 @@
 
   const props = withDefaults(defineProps<Props>(), {
     inputedClusters: () => ([]),
-    isFixed: false,
   });
 
   const emits = defineEmits<Emits>();
@@ -273,30 +259,3 @@
   });
 
 </script>
-<style lang="less" scoped>
-  .action-box {
-    display: flex;
-    align-items: center;
-
-    .action-btn {
-      display: flex;
-      font-size: 14px;
-      color: #c4c6cc;
-      cursor: pointer;
-      transition: all 0.15s;
-
-      &:hover {
-        color: #979ba5;
-      }
-
-      &.disabled {
-        color: #dcdee5;
-        cursor: not-allowed;
-      }
-
-      & ~ .action-btn {
-        margin-left: 18px;
-      }
-    }
-  }
-</style>

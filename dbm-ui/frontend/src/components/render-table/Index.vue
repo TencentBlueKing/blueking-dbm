@@ -13,68 +13,74 @@
 
 <template>
   <div
-    id="mysqlToolRenderTable"
+    id="toolboxRenderTableKey"
     ref="tableOuterRef"
-    class="mysql-tool-render-table">
-    <table
-      ref="tableRef">
+    class="toolbox-render-table">
+    <table ref="tableRef">
       <thead>
         <tr style="position:relative;">
-          <slot
-            :is-overflow="isOverflow"
-            :row-width="rowWidth" />
+          <slot />
         </tr>
       </thead>
-      <slot
-        :is-overflow="isOverflow"
-        name="data"
-        :row-width="rowWidth" />
+      <slot name="data" />
     </table>
     <div
       ref="tableColumnResizeRef"
       class="table-column-resize" />
   </div>
 </template>
+<script lang="ts">
+  import type { InjectionKey, Ref } from 'vue';
+  export const renderTablekey: InjectionKey<{isOverflow: Ref<boolean>, rowWidth: Ref<number>}> = Symbol('renderTable');
+</script>
+
 <script setup lang="ts">
+  import _ from 'lodash';
+
   import useColumnResize from './hooks/useColumnResize';
+
+  const checkTableScroll = () =>  {
+    // handleScroll();
+    rowWidth.value = tableRef.value.clientWidth;
+    isOverflow.value = tableOuterRef.value.clientWidth < tableRef.value.clientWidth;
+    initColumnWidth();
+  };
 
   const tableOuterRef = ref();
   const tableRef = ref();
   const tableColumnResizeRef = ref();
   const isOverflow = ref(false);
   const rowWidth = ref(0);
+  // const isScrollToLeft = ref(true);
+  // const isScrollToRight = ref(false);
 
-  const  {
-    initColumnWidth,
-    handleMouseDown,
-    handleMouseMove,
-  } = useColumnResize(tableOuterRef, tableColumnResizeRef);
+  const { initColumnWidth } = useColumnResize(tableOuterRef, tableColumnResizeRef, _.debounce(checkTableScroll));
 
-  const checkTableScroll = () =>  {
-    rowWidth.value = tableRef.value.clientWidth;
-    isOverflow.value = tableOuterRef.value.clientWidth < tableRef.value.clientWidth;
-  };
+  provide(renderTablekey, {
+    isOverflow,
+    rowWidth,
+  });
+
+  // const handleScroll = () => {
+  //   isScrollToLeft.value = tableOuterRef.value.scrollLeft === 0;
+  // eslint-disable-next-line max-len,
+  //   isScrollToRight.value = (tableOuterRef.value.scrollWidth - tableOuterRef.value.scrollLeft) < tableOuterRef.value.clientWidth + 1;
+  // };
 
   onMounted(() => {
     window.addEventListener('resize', checkTableScroll);
-    initColumnWidth();
     checkTableScroll();
     setTimeout(() => checkTableScroll());
   });
 
   onBeforeUnmount(() => window.removeEventListener('resize', checkTableScroll));
 
-  provide('mysqlToolRenderTable', {
-    columnMousedown: handleMouseDown,
-    columnMouseMove: handleMouseMove,
-  });
 </script>
 <style lang="less">
-  .mysql-tool-render-table {
+  .toolbox-render-table {
     position: relative;
     width: 100%;
     overflow-x: auto;
-    table-layout: fixed;
 
     &::-webkit-scrollbar {
       width: 4px;

@@ -50,7 +50,7 @@
   // import { ClusterTypes } from '@common/const';
   import { domainRegex } from '@common/regex';
 
-  import TableEditInput from '@components/tools-table-input/index.vue';
+  import TableEditInput from '@components/render-table/columns/input/index.vue';
 
   // import ClusterSelector from '@components/cluster-selector-new/Index.vue';
 

@@ -19,7 +19,6 @@
         theme="info"
         :title="t('整机替换：将原主机上的所有实例搬迁到同等规格的新主机')" />
       <RenderData
-        v-slot="slotProps"
         class="mt16"
         @show-master-batch-selector="handleShowMasterBatchSelector">
         <RenderDataRow
@@ -28,7 +27,6 @@
           ref="rowRefs"
           :data="item"
           :inputed-ips="inputedIps"
-          :is-fixed="slotProps.isOverflow"
           :removeable="tableData.length <2"
           @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
           @on-ip-input-finish="(ip: string) => handleChangeHostIp(index, ip)"

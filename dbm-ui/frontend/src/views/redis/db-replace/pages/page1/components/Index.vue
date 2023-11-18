@@ -14,12 +14,9 @@
 <template>
   <div class="render-data">
     <RenderTable>
-      <template
-        #default="slotProps">
+      <template #default>
         <RenderTableHeadColumn
-          :is-minimize="slotProps.isOverflow"
           :min-width="135"
-          :row-width="slotProps.rowWidth"
           :width="280">
           <span>{{ $t('待替换的主机') }}</span>
           <template #append>
@@ -35,26 +32,20 @@
           </template>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
-          :is-minimize="slotProps.isOverflow"
           :min-width="145"
           :required="false"
-          :row-width="slotProps.rowWidth"
           :width="300">
           <span>{{ $t('角色类型') }}</span>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
-          :is-minimize="slotProps.isOverflow"
           :min-width="150"
           :required="false"
-          :row-width="slotProps.rowWidth"
           :width="280">
           <span>{{ $t('所属集群') }}</span>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
-          :is-minimize="slotProps.isOverflow"
           :min-width="150"
           :required="false"
-          :row-width="slotProps.rowWidth"
           :width="350">
           <BkPopover
             :content="$t('默认使用部署方案中选定的规格，将从资源池自动匹配机器')"
@@ -64,17 +55,14 @@
           </BkPopover>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
-          :is-fixed="slotProps.isOverflow"
-          :is-minimize="slotProps.isOverflow"
-          :min-width="90"
+          fixed="right"
           :required="false"
-          :row-width="slotProps.rowWidth"
-          :width="120">
+          :width="100">
           {{ $t('操作') }}
         </RenderTableHeadColumn>
       </template>
-      <template #data="slotProps">
-        <slot :is-overflow="slotProps.isOverflow" />
+      <template #data>
+        <slot />
       </template>
     </RenderTable>
   </div>

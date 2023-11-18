@@ -34,7 +34,7 @@
   import { getCloudList } from '@services/source/ipchooser';
   import { getSpiderDetail } from '@services/source/spider';
 
-  import RenderText from '@components/tools-table-common/RenderText.vue';
+  import RenderText from '@components/render-table/columns/text-plain/index.vue';
 
   interface Props {
     clusterId: number

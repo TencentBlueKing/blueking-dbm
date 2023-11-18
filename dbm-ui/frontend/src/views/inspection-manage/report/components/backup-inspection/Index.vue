@@ -12,7 +12,7 @@
     getmysqlCheckFullBackup,
   } from '@services/report';
 
-  import RenderDynamicTable from '../RenderDynamicTable.vue';
+  import RenderDynamicTable from '../render-dynamic-table/Index.vue';
 
   interface Props {
     searchParams: Record<string, any>

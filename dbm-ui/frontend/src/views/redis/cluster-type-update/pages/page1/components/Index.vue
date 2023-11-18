@@ -14,12 +14,9 @@
 <template>
   <div class="render-data">
     <RenderTable>
-      <template
-        #default="slotProps">
+      <template #default>
         <RenderTableHeadColumn
-          :is-minimize="slotProps.isOverflow"
           :min-width="100"
-          :row-width="slotProps.rowWidth"
           :width="270">
           <span>{{ $t('源集群') }}</span>
           <template #append>
@@ -35,33 +32,25 @@
           </template>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
-          :is-minimize="slotProps.isOverflow"
           :min-width="110"
           :required="false"
-          :row-width="slotProps.rowWidth"
           :width="140">
           <span>{{ $t('原集群类型') }}</span>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
-          :is-minimize="slotProps.isOverflow"
           :min-width="110"
           :required="false"
-          :row-width="slotProps.rowWidth"
           :width="140">
           <span>{{ $t('目标集群类型') }}</span>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
-          :is-minimize="slotProps.isOverflow"
           :min-width="120"
           :required="false"
-          :row-width="slotProps.rowWidth"
           :width="350">
           <span>{{ $t('当前集群容量/QPS') }}</span>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
-          :is-minimize="slotProps.isOverflow"
           :min-width="120"
-          :row-width="slotProps.rowWidth"
           :width="350">
           <BkPopover
             :content="$t('将会部署新的集群以进行集群变更')"
@@ -71,17 +60,13 @@
           </BkPopover>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
-          :is-minimize="slotProps.isOverflow"
           :min-width="100"
-          :row-width="slotProps.rowWidth"
           :width="140">
           <span>{{ $t('版本') }}</span>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
-          :is-minimize="slotProps.isOverflow"
           :min-width="120"
           :required="false"
-          :row-width="slotProps.rowWidth"
           :width="240">
           <BkPopover
             :content="$t('后端存储实例与 Proxy 的关系切换')"
@@ -91,16 +76,14 @@
           </BkPopover>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
-          :is-fixed="slotProps.isOverflow"
-          :is-minimize="slotProps.isOverflow"
+          fixed="right"
           :required="false"
-          :row-width="slotProps.rowWidth"
-          :width="120">
+          :width="100">
           {{ $t('操作') }}
         </RenderTableHeadColumn>
       </template>
-      <template #data="slotProps">
-        <slot :is-overflow="slotProps.isOverflow" />
+      <template #data>
+        <slot />
       </template>
     </RenderTable>
   </div>
