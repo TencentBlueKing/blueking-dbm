@@ -153,7 +153,7 @@
 
   import { useMenu, useUserProfile } from '@stores';
 
-  import RedisResultFiles from '@views/mission/components/RedisResultFiles.vue';
+  import RedisResultFiles from '@views/task-history/components/RedisResultFiles.vue';
   import FlowIcon from '@views/tickets/common/components/flow-content/components/FlowIcon.vue';
   import FlowContent from '@views/tickets/common/components/flow-content/Index.vue';
 
