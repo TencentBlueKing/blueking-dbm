@@ -11,16 +11,14 @@ specific language governing permissions and limitations under the License.
 import datetime
 import json
 import logging
-from typing import Dict, List
+from typing import Dict
 
 from django.utils.crypto import get_random_string
-from django.utils.translation import ugettext as _
 
 from backend.components.hadb.client import HADBApi
 from backend.constants import DEFAULT_BK_CLOUD_ID
-from backend.db_meta import api
+from backend.db_meta.api.cluster.apis import query_cluster_by_hosts
 from backend.exceptions import ApiRequestError, ApiResultError
-from backend.utils.redis import RedisConn
 from backend.utils.time import datetime2timestamp
 
 from .const import REDIS_SWITCH_WAITER, SWITCH_MAX_WAIT_SECONDS, SWITCH_SMALL, RedisSwitchHost, RedisSwitchWait
@@ -54,7 +52,7 @@ def watcher_get_by_hosts() -> (int, dict):
         swith_ip = switch_log["ip"]
         switch_id = int(switch_log["sw_id"])  # uid / sw_id
         if not switch_hosts.get(swith_ip):
-            cluster = api.meta.query_cluster_by_hosts([swith_ip])  # return: [{},{}]
+            cluster = query_cluster_by_hosts([swith_ip])  # return: [{},{}]
             if not cluster:
                 logger.info("will ignore got none cluster info by ip {}".format(swith_ip))
                 continue

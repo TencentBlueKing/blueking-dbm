@@ -17,17 +17,6 @@ from rest_framework.request import Request
 from backend.db_meta import api
 
 
-@api_view(["POST"])
-@permission_classes([AllowAny])
-@csrf_exempt
-def query(request: Request):
-    try:
-        api.meta.query(request.data)
-        return JsonResponse({"code": 0, "data": "", "msg": ""})
-    except Exception as e:
-        return JsonResponse({"code": 1, "data": "", "msg": "{}".format(e)})
-
-
 @api_view(["GET"])
 @permission_classes([AllowAny])
 @csrf_exempt

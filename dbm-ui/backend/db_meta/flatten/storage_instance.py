@@ -15,11 +15,10 @@ from typing import Dict, List
 from django.db.models import QuerySet
 
 from backend.db_meta.enums import ClusterEntryType
-
-from ..enums.extra_process_type import ExtraProcessType
-from ..models import StorageInstance
-from ..models.extra_process import ExtraProcessInstance
-from .machine import _machine_prefetch, _single_machine_cc_info, _single_machine_city_info
+from backend.db_meta.enums.extra_process_type import ExtraProcessType
+from backend.db_meta.flatten.machine import _machine_prefetch, _single_machine_cc_info, _single_machine_city_info
+from backend.db_meta.models import StorageInstance
+from backend.db_meta.models.extra_process import ExtraProcessInstance
 
 logger = logging.getLogger("root")
 
@@ -35,8 +34,20 @@ def storage_instance(storages: QuerySet) -> List[Dict]:
             "proxyinstance_set",
             "proxyinstance_set__machine",
             "bind_entry",
+            "bind_entry__clbentrydetail_set",
+            "bind_entry__polarisentrydetail_set",
+            "bind_entry__storageinstance_set",
+            "bind_entry__storageinstance_set__machine",
+            "cluster"
         )
     )
+    # 提前查询出 dumper 的信息
+    cluster_ids = [cluster.id for ins in storages_list for cluster in ins.cluster.all()]
+    dumper_infos: Dict[str, Dict[str, List]] = defaultdict(lambda: defaultdict(list))
+    for dumper in ExtraProcessInstance.objects.filter(
+        cluster_id__in=cluster_ids, proc_type=ExtraProcessType.TBINLOGDUMPER
+    ):
+        dumper_infos[dumper.cluster_id][dumper.extra_config.get("source_data_ip", "")].append(dumper)
     res = []
     for ins in storages_list:
         info = {
@@ -79,13 +90,19 @@ def storage_instance(storages: QuerySet) -> List[Dict]:
 
         bind_entry = defaultdict(list)
         for be in ins.bind_entry.all():
+            storage_instance_list = list(be.storageinstance_set.all())
+            bind_ips = list(set([ele.machine.ip for ele in storage_instance_list]))
+            try:
+                bind_port = storage_instance_list[0].port
+            except (IndexError, AttributeError):
+                bind_port = 0
             if be.cluster_entry_type == ClusterEntryType.DNS:
                 bind_entry[be.cluster_entry_type].append(
                     {
                         "domain": be.entry,
                         "entry_role": be.role,
-                        "bind_ips": list(set([ele.machine.ip for ele in list(be.storageinstance_set.all())])),
-                        "bind_port": be.storageinstance_set.first().port,
+                        "bind_ips": bind_ips,
+                        "bind_port": bind_port,
                     }
                 )
             elif be.cluster_entry_type == ClusterEntryType.CLB:
@@ -96,8 +113,8 @@ def storage_instance(storages: QuerySet) -> List[Dict]:
                         "clb_id": dt.clb_id,
                         "listener_id": dt.listener_id,
                         "clb_region": dt.clb_region,
-                        "bind_ips": list(set([ele.machine.ip for ele in list(be.storageinstance_set.all())])),
-                        "bind_port": be.storageinstance_set.first().port,
+                        "bind_ips": bind_ips,
+                        "bind_port": bind_port,
                     }
                 )
             elif be.cluster_entry_type == ClusterEntryType.POLARIS:
@@ -108,8 +125,8 @@ def storage_instance(storages: QuerySet) -> List[Dict]:
                         "polaris_l5": dt.polaris_l5,
                         "polaris_token": dt.polaris_token,
                         "alias_token": dt.alias_token,
-                        "bind_ips": list(set([ele.machine.ip for ele in list(be.storageinstance_set.all())])),
-                        "bind_port": be.storageinstance_set.first().port,
+                        "bind_ips": bind_ips,
+                        "bind_port": bind_port,
                     }
                 )
             else:
@@ -123,22 +140,14 @@ def storage_instance(storages: QuerySet) -> List[Dict]:
             proxyinstance_set.append(pinfo)
         info["proxyinstance_set"] = proxyinstance_set
 
-        cluster_qs = ins.cluster.all()
-        if cluster_qs.exists():
-            info["cluster"] = cluster_qs.first().immute_domain
-
-            # 增加对tbinlogdumper实例信息输出
-            dumpers = []
-            for dumper in ExtraProcessInstance.objects.filter(
-                cluster_id=cluster_qs.first().id,
-                bk_cloud_id=cluster_qs.first().bk_cloud_id,
-                proc_type=ExtraProcessType.TBINLOGDUMPER,
-                extra_config__source_data_ip=ins.machine.ip,
-                extra_config__source_data_port=ins.port,
-            ).all():
-                dumpers.append({"ip": dumper.ip, "port": dumper.listen_port})
-            info["tbinlogdumpers"] = dumpers
-
+        for cluster in ins.cluster.all():
+            info["cluster"] = cluster.immute_domain
+            info["tbinlogdumpers"] = [
+                {"ip": dumper.ip, "port": dumper.listen_port}
+                for dumper in dumper_infos.get(cluster.id, {}).get(ins.machine.ip, [])
+            ]
+            # 只取第一个即可退出
+            break
         res.append(info)
 
     return res
