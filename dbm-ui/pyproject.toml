@@ -62,6 +62,7 @@ opentelemetry-instrumentation-redis = "0.30b1"
 opentelemetry-instrumentation-requests = "0.30b1"
 opentelemetry-instrumentation-celery = "0.30b1"
 opentelemetry-instrumentation-logging = "0.30b1"
+django-environ = "^0.11.2"
 
 [tool.poetry.dev-dependencies]
 pytest = "6.2.4"
