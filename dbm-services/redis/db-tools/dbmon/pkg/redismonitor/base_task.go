@@ -21,7 +21,7 @@ func newBaseTask(conf *config.Configuration, serverConf config.ConfServerItem, p
 	task.eventSender, err = sendwarning.NewBkMonitorEventSender(
 		conf.RedisMonitor.BkMonitorEventDataID,
 		conf.RedisMonitor.BkMonitorEventToken,
-		conf.GsePath,
+		conf.BeatPath,
 		conf.AgentAddress,
 	)
 	if err != nil {

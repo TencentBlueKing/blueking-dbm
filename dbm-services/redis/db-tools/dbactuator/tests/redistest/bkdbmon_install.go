@@ -51,7 +51,7 @@ func (test *BkDBmonInstallTest) SetBackupConf() *BkDBmonInstallTest {
 	if test.Err != nil {
 		return test
 	}
-	test.GsePath = "/usr/local/gse_bkte"
+	test.BeatPath = "/usr/local/gse_bkte/plugins/bin/bkmonitorbeat"
 	test.RedisFullBackup = map[string]interface{}{
 		"to_backup_system":    "no",
 		"old_file_left_day":   2,
