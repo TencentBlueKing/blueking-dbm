@@ -17,6 +17,8 @@ APP_CODE = get_type_env(key="APP_ID", default="bk-dbm", _type=str)
 SECRET_KEY = get_type_env(key="APP_TOKEN", default="yb2gur=g)hxbmpk3#b%ez5_#6o!tf9vkqsnwo4dxyr0n&w3=9k", _type=str)
 DEFAULT_USERNAME = get_type_env(key="DEFAULT_USERNAME", default="admin", _type=str)
 
+RUN_VER = get_type_env(key="RUN_VER", default="open", _type=str)
+
 # Redis 配置
 REDIS_HOST = get_type_env(key="REDIS_HOST", _type=str, default="localhost")
 REDIS_PORT = get_type_env(key="REDIS_PORT", _type=int, default=6379)

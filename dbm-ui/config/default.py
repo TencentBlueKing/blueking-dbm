@@ -8,17 +8,16 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from datetime import timedelta
 from pathlib import Path
 from typing import Dict
 
 import pymysql
 from blueapps.conf.default_settings import *  # pylint: disable=wildcard-import
-from celery.schedules import crontab
 from blueapps.core.celery.celery import app
-from config import RUN_VER
 
-if RUN_VER == "open":
+from backend import env
+
+if env.RUN_VER == "open":
     from blueapps.patch.settings_open_saas import *  # pylint: disable=wildcard-import
 else:
     from blueapps.patch.settings_paas_services import *  # pylint: disable=wildcard-import
@@ -215,7 +214,7 @@ INIT_SUPERUSER = ["admin"]
 
 DJANGO_REDIS_CONNECTION_FACTORY = "backend.utils.redis.ConnectionFactory"
 
-RUN_VER = os.getenv("RUN_VER", "open")
+RUN_VER = env.RUN_VER
 BK_PAAS_HOST = os.getenv("BK_PAAS_HOST", "")
 
 # IAM Settings

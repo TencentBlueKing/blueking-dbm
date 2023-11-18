@@ -21,6 +21,8 @@ import yaml
 from bkstorages.backends.bkrepo import TIMEOUT_THRESHOLD, BKGenericRepoClient, BKRepoStorage, urljoin
 from django.conf import settings
 
+from backend import env
+
 logger = logging.getLogger("root")
 
 
@@ -126,7 +128,7 @@ class MediumHandler:
             for file in files:
                 if "?" in file:
                     continue
-                if settings.RUN_VER == "ieod" and "dbbackup-go" in file:
+                if env.RUN_VER == "ieod" and "dbbackup-go" in file:
                     # 内部版本不自动上传 dbbackup
                     continue
 

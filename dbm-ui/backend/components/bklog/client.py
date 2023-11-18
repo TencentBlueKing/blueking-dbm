@@ -11,6 +11,7 @@ specific language governing permissions and limitations under the License.
 from django.conf import settings
 from django.utils.translation import ugettext_lazy as _
 
+from ... import env
 from ..base import DataAPI
 from ..domains import BKLOG_APIGW_DOMAIN
 
@@ -29,7 +30,7 @@ class _BKLogApi(object):
         self.fast_create = DataAPI(
             method="POST",
             base=BKLOG_APIGW_DOMAIN,
-            url="databus/collectors/fast_create/" if settings.RUN_VER == "open" else "databus_collectors/fast_create/",
+            url="databus/collectors/fast_create/" if env.RUN_VER == "open" else "databus_collectors/fast_create/",
             module=self.MODULE,
             description=_("简易创建采集配置"),
         )
@@ -37,7 +38,7 @@ class _BKLogApi(object):
             method="POST",
             base=BKLOG_APIGW_DOMAIN,
             url="databus/collectors/{collector_config_id}/fast_update/"
-            if settings.RUN_VER == "open"
+            if env.RUN_VER == "open"
             else "/databus_collectors/{collector_config_id}/fast_update/",
             module=self.MODULE,
             description=_("简易更新采集配置"),
