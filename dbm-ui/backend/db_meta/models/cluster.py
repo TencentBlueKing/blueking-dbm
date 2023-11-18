@@ -20,6 +20,7 @@ from django.utils.translation import ugettext_lazy as _
 
 from backend.bk_web.models import AuditedModel
 from backend.components.db_remote_service.client import DRSApi
+from backend.configuration.constants import AffinityEnum
 from backend.constants import CACHE_CLUSTER_STATS, DEFAULT_BK_CLOUD_ID, DEFAULT_TIME_ZONE, IP_PORT_DIVIDER
 from backend.db_meta.enums import (
     ClusterDBHAStatusFlags,
@@ -34,7 +35,7 @@ from backend.db_meta.enums import (
 from backend.db_meta.enums.cluster_status import ClusterDBSingleStatusFlags
 from backend.db_meta.exceptions import ClusterExclusiveOperateException, DBMetaException
 from backend.db_services.version.constants import LATEST, PredixyVersion, TwemproxyVersion
-from backend.ticket.constants import AffinityEnum, TicketType
+from backend.ticket.constants import TicketType
 from backend.ticket.models import ClusterOperateRecord
 
 logger = logging.getLogger("root")

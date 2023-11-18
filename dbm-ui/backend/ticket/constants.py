@@ -9,12 +9,12 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
-from blue_krill.data_types.enum import EnumField, StructuredEnum
 from django.utils.translation import ugettext_lazy as _
 
 from backend.configuration.constants import DBType
 from backend.db_meta.exceptions import ClusterExclusiveOperateException
 from backend.flow.consts import StateType
+from blue_krill.data_types.enum import EnumField, StructuredEnum
 
 
 class InstanceType(str, StructuredEnum):
@@ -52,18 +52,6 @@ class TodoStatus(str, StructuredEnum):
     RUNNING = EnumField("RUNNING", _("处理中"))
     DONE_SUCCESS = EnumField("DONE_SUCCESS", _("已处理"))
     DONE_FAILED = EnumField("DONE_FAILED", _("已终止"))
-
-
-class AffinityEnum(str, StructuredEnum):
-    """
-    亲和性枚举类
-    """
-
-    # 这个swtich 拼写错误不要改, 可能会影响老集群
-    SAME_SUBZONE_CROSS_SWTICH = EnumField("SAME_SUBZONE_CROSS_SWTICH", _("同城同subzone跨交换机跨机架"))
-    SAME_SUBZONE = EnumField("SAME_SUBZONE", _("同城同subzone"))
-    CROS_SUBZONE = EnumField("CROS_SUBZONE", _("CROS_SUBZONE"))
-    NONE = EnumField("NONE", _("NONE"))
 
 
 class ResourceApplyErrCode(int, StructuredEnum):

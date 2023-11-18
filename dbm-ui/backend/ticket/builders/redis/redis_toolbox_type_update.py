@@ -12,6 +12,7 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
+from backend.configuration.constants import AffinityEnum
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Cluster
 from backend.db_services.dbbase.constants import IpSource
@@ -24,7 +25,7 @@ from backend.ticket.builders.redis.base import (
     DataCheckRepairSettingSerializer,
     RedisUpdateApplyResourceParamBuilder,
 )
-from backend.ticket.constants import AffinityEnum, SwitchConfirmType, TicketType
+from backend.ticket.constants import SwitchConfirmType, TicketType
 
 
 class RedisTypeUpdateDetailSerializer(serializers.Serializer):

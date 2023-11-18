@@ -15,7 +15,7 @@ from rest_framework import serializers
 
 from backend.components import DBConfigApi
 from backend.components.dbconfig import constants as dbconf_const
-from backend.configuration.constants import MASTER_DOMAIN_INITIAL_VALUE, SLAVE_DOMAIN_INITIAL_VALUE
+from backend.configuration.constants import MASTER_DOMAIN_INITIAL_VALUE, SLAVE_DOMAIN_INITIAL_VALUE, AffinityEnum
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import DBModule
 from backend.db_services.cmdb.biz import get_db_app_abbr
@@ -29,7 +29,7 @@ from backend.ticket.builders.mysql.mysql_single_apply import (
     MysqlSingleApplyFlowParamBuilder,
     MysqlSingleApplyResourceParamBuilder,
 )
-from backend.ticket.constants import AffinityEnum, TicketType
+from backend.ticket.constants import TicketType
 from backend.ticket.exceptions import TicketParamsVerifyException
 
 
