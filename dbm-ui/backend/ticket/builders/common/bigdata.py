@@ -15,7 +15,7 @@ from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 from rest_framework.serializers import ValidationError
 
-from backend.configuration.constants import DBType
+from backend.configuration.constants import AffinityEnum, DBType
 from backend.db_meta.enums.cluster_phase import ClusterPhase
 from backend.db_meta.models.cluster import Cluster
 from backend.db_meta.models.instance import StorageInstance
@@ -29,8 +29,7 @@ from backend.ticket.builders.common.base import (
     InfluxdbTicketFlowBuilderPatchMixin,
     remove_useless_spec,
 )
-from backend.ticket.builders.common.constants import MAX_DOMAIN_LEN_LIMIT, BigDataRole
-from backend.ticket.constants import AffinityEnum
+from backend.ticket.builders.common.constants import BigDataRole
 
 
 class BigDataDetailsSerializer(serializers.Serializer):
