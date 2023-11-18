@@ -13,3 +13,4 @@
   }
 
   defineProps<Props>();
+</script>
