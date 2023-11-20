@@ -836,7 +836,7 @@ func (c *HaDBClient) GetShieldConfig(shield *model.HAShield) (map[string]model.H
 		QueryArgs:    shield,
 	}
 
-	log.Logger.Debugf("AgentGetGMInfo param:%#v", req)
+	log.Logger.Debugf("GetShieldConfig param:%#v", req)
 
 	response, err := c.DoNew(http.MethodPost,
 		c.SpliceUrlByPrefix(c.Conf.UrlPre, constvar.ShieldConfigUrl, ""), req, nil)
@@ -852,7 +852,8 @@ func (c *HaDBClient) GetShieldConfig(shield *model.HAShield) (map[string]model.H
 		return nil, err
 	}
 	if len(result) == 0 {
-		return nil, fmt.Errorf("no gm available")
+		log.Logger.Debugf("no shield config found")
+		return shieldConfigMap, nil
 	}
 	for _, row := range result {
 		shieldConfigMap[row.Ip] = row
