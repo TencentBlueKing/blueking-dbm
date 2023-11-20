@@ -7,9 +7,9 @@ RUN mkdir ${BASEDIR}
 
 COPY hadb-api ${BASEDIR}/
 
-RUN groupadd -r dbmysql && useradd -r -g dbmysql dbmysql \
-    && /usr/bin/install -m 0777 -o dbmysql -g root -d ${BASEDIR}\
-    && chown -R dbmysql ${BASEDIR} \
+RUN groupadd -r mysql && useradd -r -g mysql mysql \
+    && /usr/bin/install -m 0777 -o mysql -g root -d ${BASEDIR}\
+    && chown -R mysql ${BASEDIR} \
     && chmod a+x ${BASEDIR}/hadb-api \
     && chmod a+x ${BASEDIR}
 
