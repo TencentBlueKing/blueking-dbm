@@ -34,7 +34,7 @@
 
   import { useGlobalBizs } from '@stores';
 
-  import { netIp } from '@common/regex';
+  import { ipPort } from '@common/regex';
 
   import TableEditInput from '@views/spider-manage/common/edit/Input.vue';
 
@@ -59,7 +59,7 @@
       message: t('目标从库实例不能为空'),
     },
     {
-      validator: (value: string) => netIp.test(value),
+      validator: (value: string) => ipPort.test(value),
       message: t('目标从库实例格式不正确'),
     },
     {
@@ -89,7 +89,7 @@
     if (!modelValue.value) {
       return;
     }
-    localValue.value = `${modelValue.value.bkCloudId}:${modelValue.value.ip}`;
+    localValue.value = `${modelValue.value.ip}:${modelValue.value.port}`;
   }, {
     immediate: true,
   });
