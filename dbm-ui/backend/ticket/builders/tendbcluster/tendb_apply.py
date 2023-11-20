@@ -15,6 +15,7 @@ from rest_framework import serializers
 
 from backend.components import DBConfigApi
 from backend.components.dbconfig import constants as dbconf_const
+from backend.configuration.constants import AffinityEnum
 from backend.db_meta.enums import ClusterType
 from backend.db_services.dbbase.constants import IpSource
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
@@ -22,7 +23,7 @@ from backend.flow.engine.controller.spider import SpiderController
 from backend.ticket import builders
 from backend.ticket.builders.common.base import CommonValidate
 from backend.ticket.builders.tendbcluster.base import BaseTendbTicketFlowBuilder
-from backend.ticket.constants import AffinityEnum, TicketType
+from backend.ticket.constants import TicketType
 
 
 class TenDBClusterApplyDetailSerializer(serializers.Serializer):
