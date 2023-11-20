@@ -407,9 +407,7 @@ class PayloadHandler(object):
         通过密码服务 获取大数据集群单条认证信息(用户名/密码/token等)
         """
         query_params = {
-            "instances": [
-                {"ip": cluster.immute_domain, "port": port, "bk_cloud_id": cluster.bk_cloud_id}
-            ],
+            "instances": [{"ip": cluster.immute_domain, "port": port, "bk_cloud_id": cluster.bk_cloud_id}],
             "users": [
                 {"username": username, "component": cluster.cluster_type},
             ],
@@ -452,7 +450,8 @@ class PayloadHandler(object):
                     "namespace": cluster.cluster_type,
                     "format": FormatType.MAP,
                     "method": ReqType.GENERATE_AND_PUBLISH,
-                })
+                }
+            )
             # 无校验 dbconfig返回内容
             auth["username"] = cluster_config_data["content"]["username"]
             auth["password"] = cluster_config_data["content"]["password"]
