@@ -898,6 +898,7 @@ class UserName(str, StructuredEnum):
     YW = EnumField("yw", _("MYSQL实例只读账号"))
     PROXY = EnumField("proxy", _("PROXY实例账号"))
     REDIS_DEFAULT = EnumField("default", _("REDIS默认账号"))
+    HDFS_DEFAULT = EnumField("root", _("HDFS默认账号"))
 
 
 class MySQLPrivComponent(str, StructuredEnum):

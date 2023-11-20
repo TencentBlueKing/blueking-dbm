@@ -359,6 +359,7 @@ class HdfsActPayload(object):
                     "nn2_ip": self.ticket_data["nn2_ip"],
                     "http_port": self.ticket_data["http_port"],
                     "rpc_port": self.ticket_data["rpc_port"],
+                    # 当前未传参用户名
                     "haproxy_passwd": self.ticket_data["haproxy_passwd"],
                 },
             },
