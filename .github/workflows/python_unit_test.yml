@@ -5,9 +5,11 @@ on:
   push:
     paths:
       - "dbm-ui/backend/**"
+      - "dbm-ui/config/**"
   pull_request:
     paths:
       - "dbm-ui/backend/**"
+      - "dbm-ui/config/**"
 
 jobs:
   run:
