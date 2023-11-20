@@ -11,6 +11,7 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
+from backend.configuration.constants import AffinityEnum
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import DBModule
 from backend.db_services.dbbase.constants import IpSource
@@ -29,6 +30,9 @@ class RiakApplyDetailSerializer(serializers.Serializer):
     cluster_alias = serializers.CharField(help_text=_("集群别名"))
     city_code = serializers.CharField(
         help_text=_("城市代码"), required=False, allow_blank=True, allow_null=True, default=""
+    )
+    disaster_tolerance_level = serializers.ChoiceField(
+        help_text=_("容灾级别"), choices=AffinityEnum.get_choices(), required=False, default=AffinityEnum.NONE.value
     )
     db_module_id = serializers.IntegerField(help_text=_("DB模块ID"))
     ip_source = serializers.ChoiceField(
