@@ -13,6 +13,8 @@ from ..utils.env import get_type_env
 
 CC_APIGW_DOMAIN = get_type_env(key="CC_APIGW_DOMAIN", _type=str)
 GSE_APIGW_DOMAIN = get_type_env(key="GSE_APIGW_DOMAIN", _type=str)
+GCS_APIGW_DOMAIN = get_type_env(key="GCS_APIGW_DOMAIN", _type=str)
+SCR_APIGW_DOMAIN = get_type_env(key="SCR_APIGW_DOMAIN", _type=str)
 JOB_APIGW_DOMAIN = get_type_env(key="JOB_APIGW_DOMAIN", _type=str)
 SOPS_APIGW_DOMAIN = get_type_env(key="SOPS_APIGW_DOMAIN", _type=str)
 ESB_APIGW_DOMAIN = get_type_env(key="ESB_APIGW_DOMAIN", _type=str)

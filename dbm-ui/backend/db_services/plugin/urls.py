@@ -8,5 +8,11 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+from rest_framework.routers import DefaultRouter
 
-# 用于存放第三方的接口或者插件，主要用于内部环境使用
+from .mysql.authorize.views import AuthorizePluginViewSet
+
+routers = DefaultRouter(trailing_slash=True)
+routers.register("mysql/authorize", AuthorizePluginViewSet, basename="authorize")
+
+urlpatterns = routers.urls

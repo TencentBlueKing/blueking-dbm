@@ -402,8 +402,8 @@ class DataAPI(object):
                 {
                     "X-Bkapi-Authorization": json.dumps(
                         {
-                            "bk_app_code": params.pop("bk_app_code"),
-                            "bk_app_secret": params.pop("bk_app_secret"),
+                            "bk_app_code": params.pop("bk_app_code", ""),
+                            "bk_app_secret": params.pop("bk_app_secret", ""),
                             "bk_username": params.pop("bk_username", ""),
                         }
                     ),

@@ -9,6 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import copy
+import re
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Any, Dict, List, Union
 
@@ -18,7 +19,12 @@ from django.http.response import HttpResponse
 from django.utils.translation import ugettext_lazy as _
 
 from backend import env
+from backend.components.gcs.client import GcsApi
 from backend.components.mysql_priv_manager.client import MySQLPrivManagerApi
+from backend.components.scr.client import ScrApi
+from backend.constants import IP_RE_PATTERN
+from backend.db_meta.enums import ClusterType
+from backend.db_meta.models import AppCache, Cluster
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.db_services.mysql.permission.authorize.dataclass import (
     AuthorizeMeta,
@@ -27,7 +33,9 @@ from backend.db_services.mysql.permission.authorize.dataclass import (
 )
 from backend.db_services.mysql.permission.authorize.models import MySQLAuthorizeRecord
 from backend.db_services.mysql.permission.constants import AUTHORIZE_DATA_EXPIRE_TIME, AUTHORIZE_EXCEL_ERROR_TEMPLATE
+from backend.db_services.mysql.permission.exceptions import DBPermissionBaseException
 from backend.exceptions import ApiResultError
+from backend.ticket.constants import TicketStatus, TicketType
 from backend.ticket.models import Ticket
 from backend.utils.cache import data_cache
 from backend.utils.excel import ExcelHandler
@@ -198,3 +206,82 @@ class AuthorizeHandler(object):
 
         hosts = ResourceQueryHelper.search_cc_hosts(self.bk_biz_id, bk_host_ids, keyword=keyword)
         return {"hosts": hosts, "ip_whitelist": ip_whitelist}
+
+    def authorize_apply(
+        self,
+        user: str,
+        access_db: str,
+        source_ips: str,
+        target_instance: str,
+        app: str = "",
+        bk_biz_id: int = 0,
+        set_name: str = "",
+        module_host_info: str = "",
+        module_name_list: str = "",
+        type: str = "",
+    ):
+        """直接授权，兼容gcs老的授权方式"""
+        if app:
+            app_detail = ScrApi.common_query(params={"app": app, "columns": ["appid", "ccId"]})["detail"][0]
+
+        # 域名存在，则走dbm的授权方式，否则走gcs的授权方式
+        cluster = Cluster.objects.filter(immute_domain=target_instance)
+        bk_biz_id = bk_biz_id or app_detail["ccId"]
+        if cluster.exists():
+            cluster = cluster.first()
+            authorize_infos = {
+                "bk_biz_id": bk_biz_id,
+                "user": user,
+                "access_dbs": [access_db],
+                "source_ips": source_ips.split(","),
+                "target_instances": [target_instance],
+                "cluster_type": cluster.cluster_type,
+            }
+            ticket = Ticket.create_ticket(
+                bk_biz_id=bk_biz_id,
+                ticket_type=TicketType.MYSQL_AUTHORIZE_RULES
+                if type == "mysql"
+                else TicketType.TENDBCLUSTER_AUTHORIZE_RULES,
+                creator=self.operator,
+                remark=_("第三方请求授权"),
+                details={"authorize_plugin_infos": [authorize_infos]},
+            )
+            return {"task_id": ticket.id, "platform": "dbm"}
+        else:
+            params = {
+                "app": app,
+                "app_id": app_detail["appid"],
+                "client_ip": source_ips,
+                "call_user": user,
+                "db_name": access_db,
+                "type": type,
+                "target_ip": target_instance,
+                "operator": self.operator,
+            }
+            # 填充Set，模块主机和模块列表信息
+            if set_name:
+                params["set_name"] = set_name
+            if module_host_info:
+                params["module_host_info"] = module_host_info
+            if module_name_list:
+                params["module_name_list"] = module_name_list
+
+            data = GcsApi.cloud_privileges_asyn_bydbname(params)
+            return {"task_id": data["job_id"], "platform": "gcs"}
+
+    def query_authorize_apply_result(self, task_id, platform):
+        """查询第三方授权的执行结果"""
+        if platform == "gcs":
+            resp = GcsApi.cloud_service_status(params={"job_id": task_id})
+            if resp["code"] == 0:
+                status = TicketStatus.SUCCEEDED
+            elif resp["code"] == 1:
+                status = TicketStatus.RUNNING
+            else:
+                status = TicketStatus.FAILED
+            msg = resp["msg"]
+        else:
+            ticket = Ticket.objects.get(id=task_id)
+            status, msg = ticket.status, _("授权状态: {}").format(TicketStatus.get_choice_label(ticket.status))
+
+        return {"status": status, "msg": msg}

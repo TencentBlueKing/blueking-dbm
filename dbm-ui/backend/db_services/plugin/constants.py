@@ -9,4 +9,4 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
-# 用于存放第三方的接口或者插件，主要用于内部环境使用
+SWAGGER_TAG = "plugin"
