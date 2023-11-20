@@ -34,7 +34,12 @@
             v-model="state.formdata.details.bk_cloud_id"
             @change="handleChangeCloud" />
         </DbCard>
-        <RegionItem v-model="state.formdata.details.city_code" />
+        <RegionItem
+          ref="regionItemRef"
+          v-model="state.formdata.details.city_code" />
+        <DbCard :title="$t('数据库部署信息')">
+          <AffinityItem v-model="state.formdata.details.resource_spec.backend_group.affinity" />
+        </DbCard>
         <DbCard :title="t('部署需求')">
           <BkFormItem
             :label="t('部署架构')"
@@ -334,6 +339,7 @@
   import { ClusterTypes, TicketTypes } from '@common/const';
   import { nameRegx } from '@common/regex';
 
+  import AffinityItem from '@components/apply-items/AffinityItem.vue';
   import BackendQPSSpec from '@components/apply-items/BackendSpec.vue';
   import BusinessItems from '@components/apply-items/BusinessItems.vue';
   import CloudItem from '@components/apply-items/CloudItem.vue';
@@ -370,6 +376,7 @@
   const specProxyRef = ref();
   const specBackendRef = ref();
   const capSpecsKey  = ref(generateId('CLUSTER_APPLAY_CAP_'));
+  const regionItemRef = ref();
 
   const getSmartActionOffsetTarget = () => document.querySelector('.bk-form-content');
 
@@ -391,6 +398,7 @@
     isLoadCapSpecs: false,
     capSpecs: [] as CapSepcs[],
   });
+
   const rules = {
     'details.cluster_name': [{
       message: t('以小写英文字母开头_且只能包含英文字母_数字_连字符'),
@@ -470,6 +478,7 @@
         db_version: '',
         cap_key: '',
         ip_source: redisIpSources.resource_pool.id,
+        disaster_tolerance_level: 'NONE',
         nodes: {
           proxy: [] as HostDetails,
           master: [] as HostDetails,
@@ -485,6 +494,11 @@
             spec_id: 0,
             capacity: '' as number | string,
             future_capacity: '' as number | string,
+            affinity: 'NONE',
+            location_spec: {
+              city: '',
+              sub_zone_ids: [],
+            },
           },
         },
       },
@@ -557,6 +571,7 @@
     state.formdata.details.db_version = '';
     state.formdata.details.resource_spec.proxy.spec_id = '';
     state.formdata.details.resource_spec.backend_group = {
+      ...state.formdata.details.resource_spec.backend_group,
       count: 0,
       spec_id: 0,
       capacity: '',
@@ -711,6 +726,7 @@
 
     const getDetails = () => {
       const details: Record<string, any> = _.cloneDeep(state.formdata.details);
+      const { cityName } = regionItemRef.value.getValue();
 
       if (state.formdata.details.ip_source === 'resource_pool') {
         delete details.nodes;
@@ -722,6 +738,7 @@
         return {
           ...details,
           cluster_shard_num: Number(specInfo.cluster_shard_num),
+          disaster_tolerance_level: details.resource_spec.backend_group.affinity,
           resource_spec: {
             proxy: {
               ...details.resource_spec.proxy,
@@ -734,6 +751,10 @@
               ...details.resource_spec.backend_group,
               count: specInfo.machine_pair,
               spec_info: specInfo,
+              location_spec: {
+                city: cityName,
+                sub_zone_ids: [],
+              },
             },
           },
         };
@@ -753,6 +774,7 @@
       ...state.formdata,
       details: getDetails(),
     };
+
     // 若业务没有英文名称则先创建业务英文名称再创建单据，反正直接创建单据
     bizState.hasEnglishName ? handleCreateTicket(params) : handleCreateAppAbbr(params);
   }

@@ -34,7 +34,25 @@
           v-model="formdata.details.bk_cloud_id"
           @change="handleChangeCloud" />
       </DbCard>
-      <!-- <RegionItem v-model="formdata.details.city_code" /> -->
+      <RegionItem
+        ref="regionItemRef"
+        v-model="formdata.details.city_code" />
+      <DbCard :title="$t('数据库部署信息')">
+        <AffinityItem v-model="formdata.details.disaster_tolerance_level" />
+        <!-- <BkFormItem
+          :label="$t('容灾要求')"
+          property="details.resource_spec.backend_group.affinity"
+          required>
+          <BkRadioGroup>
+            <BkRadio
+              v-for="item in affinityList"
+              :key="item.value"
+              :label="item.value">
+              {{ item.label }}
+            </BkRadio>
+          </BkRadioGroup>
+        </BkFormItem> -->
+      </DbCard>
       <DbCard :title="$t('部署需求')">
         <BkFormItem
           :label="$t('InfluxDB版本')"
@@ -176,9 +194,10 @@
 
   import { useApplyBase, useInfo } from '@hooks';
 
+  import AffinityItem from '@components/apply-items/AffinityItem.vue';
   import BusinessItems from '@components/apply-items/BusinessItems.vue';
   import CloudItem from '@components/apply-items/CloudItem.vue';
-  // import RegionItem from '@components/apply-items/RegionItem.vue';
+  import RegionItem from '@components/apply-items/RegionItem.vue';
   import SpecSelector from '@components/apply-items/SpecSelector.vue';
   import IpSelector from '@components/ip-selector/IpSelector.vue';
 
@@ -204,6 +223,8 @@
   const formdata = reactive(getInitFormdata());
   const formRef = ref();
   const specRef = ref();
+  const regionItemRef = ref();
+
   const rules = {
     'details.nodes.influxdb': [
       {
@@ -275,6 +296,7 @@
             ...markRaw(formdata.details),
             group_name: groupName.value,
           };
+          const { cityName } = regionItemRef.value.getValue();
 
           if (formdata.details.ip_source === 'resource_pool') {
             delete details.nodes;
@@ -285,6 +307,11 @@
                   ...details.resource_spec.influxdb,
                   ...specRef.value.getData(),
                   count: Number(details.resource_spec.influxdb.count),
+                  affinity: details.disaster_tolerance_level,
+                  location_spec: {
+                    city: cityName,
+                    sub_zone_ids: [],
+                  },
                 },
               },
             };
@@ -308,7 +335,6 @@
           ...formdata,
           details: getDetails(),
         };
-
         // 若业务没有英文名称则先创建业务英文名称再创建单据，否则直接创建单据
         bizState.hasEnglishName ? handleCreateTicket(params) : handleCreateAppAbbr(params);
       });

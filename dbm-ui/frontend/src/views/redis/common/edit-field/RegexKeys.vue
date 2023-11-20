@@ -31,7 +31,7 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import TableTagInput from '@components/tools-table-tag-input/index.vue';
+  import TableTagInput from '@components/render-table/columns/tag-input/index.vue';
 
   interface Props {
     data: string [],

@@ -35,8 +35,12 @@
           v-model="formData.details.bk_cloud_id"
           @change="handleChangeCloud" />
       </DbCard>
-      <!-- <RegionItem
-        v-model="formData.details.city_code" /> -->
+      <RegionItem
+        ref="regionItemRef"
+        v-model="formData.details.city_code" />
+      <DbCard :title="$t('数据库部署信息')">
+        <AffinityItem v-model="formData.details.disaster_tolerance_level" />
+      </DbCard>
       <DbCard :title="$t('部署需求')">
         <BkFormItem
           :label="$t('ES版本')"
@@ -355,10 +359,12 @@
 
   import { useApplyBase, useInfo  } from '@hooks';
 
+  import AffinityItem from '@components/apply-items/AffinityItem.vue';
   import BusinessItems from '@components/apply-items/BusinessItems.vue';
   import CloudItem from '@components/apply-items/CloudItem.vue';
   import ClusterAlias from '@components/apply-items/ClusterAlias.vue';
   import ClusterName from '@components/apply-items/ClusterName.vue';
+  import RegionItem from '@components/apply-items/RegionItem.vue';
   import SpecSelector from '@components/apply-items/SpecSelector.vue';
   import WithInstanceHostTable, {
     type IHostTableDataWithInstance,
@@ -389,6 +395,7 @@
       city_code: '',
       db_version: '',
       ip_source: 'resource_pool',
+      disaster_tolerance_level: 'NONE', // 同 affinity
       nodes: {
         master: [] as Array<IHostTableData>,
         client: [] as Array<IHostTableData>,
@@ -428,16 +435,21 @@
   const specClientRef = ref();
   const specHotRef = ref();
   const specColdRef = ref();
+  const regionItemRef = ref();
+
   const formData = reactive(genDefaultFormData());
 
   const totalCapacity = ref(0);
   const isDbVersionLoading = ref(true);
+
   const dbVersionList = shallowRef<Array<string>>([]);
+
   const cloudInfo = reactive({
     id: '' as number | string,
     name: '',
   });
   const isClickSubmit = ref(false);
+
   const tipTheme = computed(() => {
     if (isClickSubmit.value === false) return 'info';
 
@@ -666,9 +678,18 @@
 
         const getDetails = () => {
           const details: Record<string, any> = _.cloneDeep(formData.details);
+          const { cityName } = regionItemRef.value.getValue();
 
           if (formData.details.ip_source === 'resource_pool') {
             delete details.nodes;
+
+            const regionAndDisasterParams = {
+              affinity: details.disaster_tolerance_level,
+              location_spec: {
+                city: cityName,
+                sub_zone_ids: [],
+              },
+            };
 
             const result: Record<string, any> = {
               ...details,
@@ -676,6 +697,7 @@
                 master: {
                   ...details.resource_spec.master,
                   ...specMasterRef.value.getData(),
+                  ...regionAndDisasterParams,
                   count: Number(details.resource_spec.master.count),
                 },
               },
@@ -688,6 +710,7 @@
               result.resource_spec.client = {
                 ...details.resource_spec.client,
                 ...specClientRef.value.getData(),
+                ...regionAndDisasterParams,
                 count: clientCount,
               };
             }
@@ -695,6 +718,7 @@
               result.resource_spec.hot = {
                 ...details.resource_spec.hot,
                 ...specHotRef.value.getData(),
+                ...regionAndDisasterParams,
                 count: hotCount,
               };
             }
@@ -702,6 +726,7 @@
               result.resource_spec.cold = {
                 ...details.resource_spec.cold,
                 ...specColdRef.value.getData(),
+                ...regionAndDisasterParams,
                 count: coldCount,
               };
             }
@@ -724,7 +749,6 @@
           ...formData,
           details: getDetails(),
         };
-
         // 若业务没有英文名称则先创建业务英文名称再创建单据，否则直接创建单据
         bizState.hasEnglishName ? handleCreateTicket(params) : handleCreateAppAbbr(params);
       });

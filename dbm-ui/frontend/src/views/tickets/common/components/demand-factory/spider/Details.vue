@@ -34,6 +34,25 @@
     </div>
   </div>
   <div class="ticket-details__info">
+    <strong class="ticket-details__info-title">{{ $t('地域要求') }}</strong>
+    <div class="ticket-details__list">
+      <div class="ticket-details__item">
+        <span class="ticket-details__item-label">{{ $t('数据库部署地域') }}：</span>
+        <span class="ticket-details__item-value">{{ cityName }}</span>
+      </div>
+    </div>
+  </div>
+  <div class="ticket-details__info">
+    <strong class="ticket-details__info-title">{{ $t('数据库部署信息') }}</strong>
+    <div class="ticket-details__list">
+      <div
+        class="ticket-details__item">
+        <span class="ticket-details__item-label">{{ $t('容灾要求') }}：</span>
+        <span class="ticket-details__item-value">{{ affinity }}</span>
+      </div>
+    </div>
+  </div>
+  <div class="ticket-details__info">
     <strong class="ticket-details__info-title">{{ t('部署需求') }}</strong>
     <div class="ticket-details__list">
       <div class="ticket-details__item">
@@ -92,9 +111,13 @@
 
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
+  import { useRequest } from 'vue-request';
 
   import RedisClusterSpecModel from '@services/model/resource-spec/redis-cluster-sepc';
+  import { getInfrasCities } from '@services/ticket';
   import type { TicketDetails } from '@services/types/ticket';
+
+  import { useSystemEnviron } from '@stores';
 
   import SpecInfos, { type SpecInfo } from '../../SpecInfos.vue';
 
@@ -118,6 +141,7 @@
     db_module_name: string,
     city_name: string,
     machine_pair_cnt: number,
+    disaster_tolerance_level: string,
     resource_spec: {
       spider: SpecInfo,
       backend_group: {
@@ -135,11 +159,22 @@
   const props = defineProps<Props>();
 
   const { t } = useI18n();
+  const { AFFINITY: affinityList } = useSystemEnviron().urls;
+
+  const cityName = ref('--');
 
   const spiderSpec = computed(() => props.ticketDetails?.details?.resource_spec?.spider || {});
   const backendData = computed(() => {
     const data = props.ticketDetails?.details?.resource_spec?.backend_group?.spec_info;
     return data ? [data] : [];
+  });
+
+  const affinity = computed(() => {
+    const level = props.ticketDetails?.details?.disaster_tolerance_level;
+    if (level && affinityList) {
+      return affinityList.find(item => item.value === level)?.label;
+    }
+    return '--';
   });
 
   const columns = [
@@ -166,6 +201,14 @@
       render: ({ data }: {data: RedisClusterSpecModel}) => data.qps.min * data.machine_pair,
     },
   ];
+
+  useRequest(getInfrasCities, {
+    onSuccess: (cityList) => {
+      const cityCode = props.ticketDetails.details.city_code;
+      const name = cityList.find(item => item.city_code === cityCode)?.city_name;
+      cityName.value = name ?? '--';
+    },
+  });
 </script>
 
 <style lang="less" scoped>

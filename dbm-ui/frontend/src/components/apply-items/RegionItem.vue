@@ -54,6 +54,10 @@
     (e: 'change', value: string): void
   }
 
+  interface Expose {
+    getValue: () => { cityCode: string, cityName: string }
+  }
+
   const emits = defineEmits<Emits>();
   const modelValue = defineModel<string>({
     default: '',
@@ -71,6 +75,7 @@
     isLoading: false,
     regions: [] as CitiyItem[],
     cityCode: modelValue.value,
+    cityName: '' as string | undefined,
   });
 
   watch(modelValue, () => {
@@ -107,8 +112,19 @@
 
   function handleChange(value: string) {
     modelValue.value = value;
+    state.cityName = (state.regions.find((item => item.city_code === value)))?.city_name;
     emits('change', value);
   }
+
+  defineExpose<Expose>({
+    getValue() {
+      return {
+        cityCode: state.cityCode,
+        cityName: state.cityCode,
+      };
+    },
+  });
+
 </script>
 
 <style lang="less" scoped>

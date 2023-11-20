@@ -101,7 +101,13 @@
             v-model="formdata.details.bk_cloud_id"
             @change="handleChangeCloud" />
         </DbCard>
+        <RegionItem
+          ref="regionItemRef"
+          v-model="formdata.details.city_code" />
         <DbCard :title="$t('数据库部署信息')">
+          <AffinityItem
+            v-if="!isSingleType"
+            v-model="formdata.details.resource_spec.backend.affinity" />
           <BkFormItem
             v-if="!isSingleType"
             :label="$t('Proxy起始端口')"
@@ -371,8 +377,10 @@
   } from '@common/const';
   import { nameRegx } from '@common/regex';
 
+  import AffinityItem from '@components/apply-items/AffinityItem.vue';
   import BusinessItems from '@components/apply-items/BusinessItems.vue';
   import CloudItem from '@components/apply-items/CloudItem.vue';
+  import RegionItem from '@components/apply-items/RegionItem.vue';
   import SpecSelector from '@components/apply-items/SpecSelector.vue';
   import IpSelector from '@components/ip-selector/IpSelector.vue';
 
@@ -408,6 +416,7 @@
   const proxyRef = ref();
   const moduleRef = ref();
   const isBindModule = ref(false);
+  const regionItemRef = ref();
 
   const cloudInfo = reactive({
     id: '' as number | string,
@@ -653,7 +662,7 @@
 
       const getDetails = () => {
         const details: Record<string, any> = _.cloneDeep(formdata.details);
-
+        const { cityName } = regionItemRef.value.getValue();
         if (formdata.details.ip_source === 'resource_pool') {
           delete details.nodes;
           if (isSingleType.value) {
@@ -664,6 +673,10 @@
                   ...details.resource_spec.single,
                   ...specSingleRef.value.getData(),
                   count: hostNums.value,
+                  location_spec: {
+                    city: cityName,
+                    sub_zone_ids: [],
+                  },
                 },
               },
             };
@@ -681,8 +694,13 @@
                 ...details.resource_spec.backend,
                 ...specBackendRef.value.getData(),
                 count: hostNums.value,
+                location_spec: {
+                  city: cityName,
+                  sub_zone_ids: [],
+                },
               },
             },
+            disaster_tolerance_level: details.resource_spec.backend.affinity,
           };
         }
 
