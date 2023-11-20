@@ -15,7 +15,6 @@
   <SmartAction>
     <div class="mysql-slave-rebuild-original-host-box">
       <RenderData
-        v-slot="slotProps"
         class="mt16"
         @show-ip-selector="handleShowIpSelector">
         <RenderDataRow
@@ -23,7 +22,6 @@
           :key="item.rowKey"
           ref="rowRefs"
           :data="item"
-          :is-fixed="slotProps.isOverflow"
           :removeable="tableData.length <2"
           @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
           @remove="handleRemove(index)" />

@@ -14,12 +14,9 @@
 <template>
   <div class="render-data">
     <RenderTable>
-      <template
-        #default="slotProps">
+      <template #default>
         <RenderTableHeadColumn
-          :is-minimize="slotProps.isOverflow"
           :min-width="120"
-          :row-width="slotProps.rowWidth"
           :width="330">
           {{ t('目标从库实例') }}
           <template #append>
@@ -31,22 +28,19 @@
           </template>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
-          :is-minimize="slotProps.isOverflow"
-          :row-width="slotProps.rowWidth">
+          :min-width="120"
+          :width="230">
           {{ t('所属集群') }}
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
-          :is-fixed="slotProps.isOverflow"
-          :is-minimize="slotProps.isOverflow"
-          :min-width="90"
+          fixed="right"
           :required="false"
-          :row-width="slotProps.rowWidth"
-          :width="170">
+          :width="100">
           {{ t('操作') }}
         </RenderTableHeadColumn>
       </template>
-      <template #data="slotProps">
-        <slot :is-overflow="slotProps.isOverflow" />
+      <template #data>
+        <slot />
       </template>
     </RenderTable>
   </div>
