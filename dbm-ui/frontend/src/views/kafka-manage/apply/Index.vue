@@ -35,8 +35,25 @@
           v-model="formData.details.bk_cloud_id"
           @change="handleChangeCloud" />
       </DbCard>
-      <!-- <RegionItem
-        v-model="formData.details.city_code" /> -->
+      <RegionItem
+        ref="regionItemRef"
+        v-model="formData.details.city_code" />
+      <DbCard :title="$t('数据库部署信息')">
+        <AffinityItem v-model="formData.details.disaster_tolerance_level" />
+        <!-- <BkFormItem
+          :label="$t('容灾要求')"
+          property="details.resource_spec.backend_group.affinity"
+          required>
+          <BkRadioGroup>
+            <BkRadio
+              v-for="item in affinityList"
+              :key="item.value"
+              :label="item.value">
+              {{ item.label }}
+            </BkRadio>
+          </BkRadioGroup>
+        </BkFormItem> -->
+      </DbCard>
       <DbCard :title="$t('部署需求')">
         <BkFormItem
           :label="$t('kafka版本')"
@@ -319,10 +336,12 @@
     useInfo,
   } from '@hooks';
 
+  import AffinityItem from '@components/apply-items/AffinityItem.vue';
   import BusinessItems from '@components/apply-items/BusinessItems.vue';
   import CloudItem from '@components/apply-items/CloudItem.vue';
   import ClusterAlias from '@components/apply-items/ClusterAlias.vue';
   import ClusterName from '@components/apply-items/ClusterName.vue';
+  import RegionItem from '@components/apply-items/RegionItem.vue';
   import SpecSelector from '@components/apply-items/SpecSelector.vue';
   import RenderHostTable, {
     type IHostTableData,
@@ -350,6 +369,7 @@
       city_code: '',
       db_version: '',
       ip_source: 'resource_pool',
+      disaster_tolerance_level: 'NONE', // 同 affinity
       nodes: {
         zookeeper: [] as Array<IHostTableData>,
         broker: [] as Array<IHostTableData>,
@@ -424,9 +444,12 @@
   const specZookeeperRef = ref();
   const specBrokerRef = ref();
   const isDbVersionLoading = ref(true);
-  const dbVersionList = shallowRef<Array<string>>([]);
-  const formData = reactive(genDefaultFormData());
   const totalCapacity = ref(0);
+  const regionItemRef = ref();
+
+  const dbVersionList = shallowRef<Array<string>>([]);
+
+  const formData = reactive(genDefaultFormData());
 
   watch(() => formData.details.resource_spec.broker, () => {
     const count = Number(formData.details.resource_spec.broker.count);
@@ -515,20 +538,30 @@
 
         const getDetails = () => {
           const details: Record<string, any> = _.cloneDeep(formData.details);
+          const { cityName } = regionItemRef.value.getValue();
 
           if (formData.details.ip_source === 'resource_pool') {
             delete details.nodes;
+            const regionAndDisasterParams = {
+              affinity: details.disaster_tolerance_level,
+              location_spec: {
+                city: cityName,
+                sub_zone_ids: [],
+              },
+            };
             return {
               ...details,
               resource_spec: {
                 zookeeper: {
                   ...details.resource_spec.zookeeper,
                   ...specZookeeperRef.value.getData(),
+                  ...regionAndDisasterParams,
                   count: Number(details.resource_spec.zookeeper.count),
                 },
                 broker: {
                   ...details.resource_spec.broker,
                   ...specBrokerRef.value.getData(),
+                  ...regionAndDisasterParams,
                   count: Number(details.resource_spec.broker.count),
                 },
               },

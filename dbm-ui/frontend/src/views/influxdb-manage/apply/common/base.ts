@@ -29,6 +29,7 @@ export const getInitFormdata = () => ({
     db_version: '',
     port: 8080,
     group_id: '',
+    disaster_tolerance_level: 'NONE', // 同 affinity
     nodes: {
       influxdb: [] as HostDetails[],
     },

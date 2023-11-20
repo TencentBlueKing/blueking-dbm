@@ -32,6 +32,12 @@
             cluster-type="tendbcluster" />
           <CloudItem v-model="formdata.details.bk_cloud_id" />
         </DbCard>
+        <RegionItem
+          ref="regionItemRef"
+          v-model="formdata.details.city_code" />
+        <DbCard :title="$t('数据库部署信息')">
+          <AffinityItem v-model="formdata.details.resource_spec.backend_group.affinity" />
+        </DbCard>
         <DbCard :title="$t('部署需求')">
           <ModuleItem
             v-model="formdata.details.db_module_id"
@@ -134,11 +140,13 @@
 
   import { nameRegx } from '@common/regex';
 
+  import AffinityItem from '@components/apply-items/AffinityItem.vue';
   import BackendQPSSpec from '@components/apply-items/BackendQPSSpec.vue';
   import BusinessItems from '@components/apply-items/BusinessItems.vue';
   import CloudItem from '@components/apply-items/CloudItem.vue';
   import ClusterAlias from '@components/apply-items/ClusterAlias.vue';
   import ClusterName from '@components/apply-items/ClusterName.vue';
+  import RegionItem from '@components/apply-items/RegionItem.vue';
   import SpecSelector from '@components/apply-items/SpecSelector.vue';
 
   import ModuleItem from './components/ModuleItem.vue';
@@ -156,9 +164,11 @@
       db_app_abbr: '',
       cluster_name: '',
       cluster_alias: '',
+      city_code: '',
       db_module_id: '',
       cluster_shard_num: 0,
       remote_shard_num: 0,
+      disaster_tolerance_level: 'NONE',
       resource_spec: {
         spider: {
           spec_id: 0,
@@ -169,6 +179,11 @@
           count: 0,
           capacity: '',
           future_capacity: '',
+          affinity: 'NONE',
+          location_spec: {
+            city: '',
+            sub_zone_ids: [],
+          },
         },
       },
       spider_port: 25000,
@@ -188,6 +203,8 @@
   const specProxyRef = ref();
   const specBackendRef = ref();
   const formdata = ref(initData());
+  const regionItemRef = ref();
+
   const rules = {
     'details.cluster_name': [{
       message: t('以小写英文字母开头_且只能包含英文字母_数字_连字符'),
@@ -226,7 +243,7 @@
 
     const getDetails = () => {
       const details: Record<string, any> = _.cloneDeep(formdata.value.details);
-
+      const { cityName } = regionItemRef.value.getValue();
       // 集群容量需求不需要提交
       delete details.resource_spec.backend_group.capacity;
       delete details.resource_spec.backend_group.future_capacity;
@@ -236,6 +253,7 @@
         ...details,
         cluster_shard_num: Number(specInfo.cluster_shard_num),
         remote_shard_num: specInfo.cluster_shard_num / specInfo.machine_pair,
+        disaster_tolerance_level: details.resource_spec.backend_group.affinity,
         resource_spec: {
           spider: {
             ...details.resource_spec.spider,
@@ -246,6 +264,10 @@
             ...details.resource_spec.backend_group,
             count: specInfo.machine_pair,
             spec_info: specInfo,
+            location_spec: {
+              city: cityName,
+              sub_zone_ids: [],
+            },
           },
         },
       };

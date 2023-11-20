@@ -33,7 +33,12 @@
           v-model="formdata.details.bk_cloud_id"
           @change="handleChangeCloud" />
       </DbCard>
-      <!-- <RegionItem v-model="formdata.details.city_code" /> -->
+      <RegionItem
+        ref="regionItemRef"
+        v-model="formdata.details.city_code" />
+      <DbCard :title="$t('数据库部署信息')">
+        <AffinityItem v-model="formdata.details.disaster_tolerance_level" />
+      </DbCard>
       <DbCard :title="$t('部署需求')">
         <BkFormItem
           :label="$t('Pulsar版本')"
@@ -363,11 +368,12 @@
 
   import { useApplyBase, useInfo } from '@hooks';
 
+  import AffinityItem from '@components/apply-items/AffinityItem.vue';
   import BusinessItems from '@components/apply-items/BusinessItems.vue';
   import CloudItem from '@components/apply-items/CloudItem.vue';
   import ClusterAlias from '@components/apply-items/ClusterAlias.vue';
   import ClusterName from '@components/apply-items/ClusterName.vue';
-  // import RegionItem from '@components/apply-items/RegionItem.vue';
+  import RegionItem from '@components/apply-items/RegionItem.vue';
   import SpecSelector from '@components/apply-items/SpecSelector.vue';
   import IpSelector from '@components/ip-selector/IpSelector.vue';
 
@@ -394,6 +400,7 @@
   const specZookeeperRef = ref();
   const specBrokerRef = ref();
   const totalCapacity = ref(0);
+  const regionItemRef = ref();
 
   const ackQuorumMax = computed(() => {
     const max = formdata.details.ip_source === 'resource_pool'
@@ -401,6 +408,7 @@
       : formdata.details.replication_num;
     return max || 2;
   });
+
   const rules = {
     'details.nodes.bookkeeper': [
       {
@@ -564,25 +572,36 @@
 
         const getDetails = () => {
           const details: Record<string, any> = _.cloneDeep(formdata.details);
+          const { cityName } = regionItemRef.value.getValue();
 
           if (formdata.details.ip_source === 'resource_pool') {
             delete details.nodes;
+            const regionAndDisasterParams = {
+              affinity: details.disaster_tolerance_level,
+              location_spec: {
+                city: cityName,
+                sub_zone_ids: [],
+              },
+            };
             return {
               ...details,
               resource_spec: {
                 zookeeper: {
                   ...details.resource_spec.zookeeper,
                   ...specZookeeperRef.value.getData(),
+                  ...regionAndDisasterParams,
                   count: Number(details.resource_spec.zookeeper.count),
                 },
                 broker: {
                   ...details.resource_spec.broker,
                   ...specBrokerRef.value.getData(),
+                  ...regionAndDisasterParams,
                   count: Number(details.resource_spec.broker.count),
                 },
                 bookkeeper: {
                   ...details.resource_spec.bookkeeper,
                   ...specBookkeeperRef.value.getData(),
+                  ...regionAndDisasterParams,
                   count: Number(details.resource_spec.bookkeeper.count),
                 },
               },
@@ -604,7 +623,6 @@
           ...formdata,
           details: getDetails(),
         };
-
         // 若业务没有英文名称则先创建业务英文名称再创建单据，否则直接创建单据
         bizState.hasEnglishName ? handleCreateTicket(params) : handleCreateAppAbbr(params);
       });

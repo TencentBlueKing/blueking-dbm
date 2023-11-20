@@ -36,8 +36,12 @@
           v-model="formData.details.bk_cloud_id"
           @change="handleChangeCloud" />
       </DbCard>
-      <!-- <RegionItem
-        v-model="formData.details.city_code" /> -->
+      <RegionItem
+        ref="regionItemRef"
+        v-model="formData.details.city_code" />
+      <DbCard :title="$t('数据库部署信息')">
+        <AffinityItem v-model="formData.details.disaster_tolerance_level" />
+      </DbCard>
       <DbCard :title="$t('部署需求')">
         <BkFormItem
           :label="$t('Hadoop版本')"
@@ -347,10 +351,12 @@
     useInfo,
   } from '@hooks';
 
+  import AffinityItem from '@components/apply-items/AffinityItem.vue';
   import BusinessItems from '@components/apply-items/BusinessItems.vue';
   import CloudItem from '@components/apply-items/CloudItem.vue';
   import ClusterAlias from '@components/apply-items/ClusterAlias.vue';
   import ClusterName from '@components/apply-items/ClusterName.vue';
+  import RegionItem from '@components/apply-items/RegionItem.vue';
   import SpecSelector from '@components/apply-items/SpecSelector.vue';
   import HdfsHostTable, {
     type IHostTableData,
@@ -373,6 +379,7 @@
       city_code: '',
       db_version: '',
       ip_source: 'resource_pool',
+      disaster_tolerance_level: 'NONE', // 同 affinity
       nodes: {
         namenode: [] as Array<IHostTableData>,
         zookeeper: [] as Array<IHostTableData>,
@@ -405,15 +412,17 @@
   const specNamenodeRef = ref();
   const specZookeeperRef = ref();
   const isDbVersionLoading = ref(true);
+  const totalCapacity = ref(0);
+  const regionItemRef = ref();
 
-  const dbVersionList = shallowRef<Array<string>>([]);
-  const formData = reactive(genDefaultFormData());
-  const nodeAndZookerperMergeList = shallowRef<Array<IHostTableData>>([]);
   const cloudInfo = reactive({
     id: '' as number | string,
     name: '',
   });
-  const totalCapacity = ref(0);
+  const formData = reactive(genDefaultFormData());
+
+  const dbVersionList = shallowRef<Array<string>>([]);
+  const nodeAndZookerperMergeList = shallowRef<Array<IHostTableData>>([]);
 
   const rules = {
     'details.nodes.namenode': [
@@ -560,25 +569,36 @@
 
         const getDetails = () => {
           const details: Record<string, any> = _.cloneDeep(formData.details);
+          const { cityName } = regionItemRef.value.getValue();
 
           if (formData.details.ip_source === 'resource_pool') {
             delete details.nodes;
+            const regionAndDisasterParams = {
+              affinity: details.disaster_tolerance_level,
+              location_spec: {
+                city: cityName,
+                sub_zone_ids: [],
+              },
+            };
             return {
               ...details,
               resource_spec: {
                 zookeeper: {
                   ...details.resource_spec.zookeeper,
                   ...specZookeeperRef.value.getData(),
+                  ...regionAndDisasterParams,
                   count: Number(details.resource_spec.zookeeper.count),
                 },
                 namenode: {
                   ...details.resource_spec.namenode,
                   ...specNamenodeRef.value.getData(),
+                  ...regionAndDisasterParams,
                   count: Number(details.resource_spec.namenode.count),
                 },
                 datanode: {
                   ...details.resource_spec.datanode,
                   ...specDatanodeRef.value.getData(),
+                  ...regionAndDisasterParams,
                   count: Number(details.resource_spec.datanode.count),
                 },
               },

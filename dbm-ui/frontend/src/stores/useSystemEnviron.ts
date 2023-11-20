@@ -23,7 +23,7 @@ interface Urls {
  * 获取关联系统 url
  */
 export const useSystemEnviron = defineStore('SystemEnviron', {
-  state: (): { urls: Urls } => ({
+  state: (): { urls: Urls & { AFFINITY?: { label: string, value: string }[] } } => ({
     urls: {},
   }),
   actions: {
