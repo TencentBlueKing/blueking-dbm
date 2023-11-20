@@ -8,27 +8,23 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from datetime import timedelta
 from pathlib import Path
 from typing import Dict
 
 import pymysql
 from bkcrypto import constants
-from bkcrypto.symmetric.options import AESSymmetricOptions, SM4SymmetricOptions
 from bkcrypto.asymmetric.options import RSAAsymmetricOptions, SM2AsymmetricOptions
+from bkcrypto.symmetric.options import AESSymmetricOptions, SM4SymmetricOptions
 from blueapps.conf.default_settings import *  # pylint: disable=wildcard-import
-from celery.schedules import crontab
 from blueapps.core.celery.celery import app
 
-from backend.core.encrypt.interceptors import SymmetricInterceptor
-from config import RUN_VER
+from backend import env
 
-if RUN_VER == "open":
+if env.RUN_VER == "open":
     from blueapps.patch.settings_open_saas import *  # pylint: disable=wildcard-import
 else:
     from blueapps.patch.settings_paas_services import *  # pylint: disable=wildcard-import
 
-from backend import env
 
 # django 3.2 默认的 default_auto_field 是 BigAutoField，django_celery_beat 在 2.2.1 版本已处理此问题
 # 受限于 celery 和 bamboo 的版本，这里暂时这样手动设置 default_auto_field 来处理此问题
@@ -220,7 +216,7 @@ INIT_SUPERUSER = ["admin"]
 
 DJANGO_REDIS_CONNECTION_FACTORY = "backend.utils.redis.ConnectionFactory"
 
-RUN_VER = os.getenv("RUN_VER", "open")
+RUN_VER = env.RUN_VER
 BK_PAAS_HOST = os.getenv("BK_PAAS_HOST", "")
 
 # IAM Settings

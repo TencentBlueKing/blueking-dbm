@@ -19,7 +19,7 @@ from datetime import datetime
 
 import yaml
 from bkstorages.backends.bkrepo import TIMEOUT_THRESHOLD, BKGenericRepoClient, BKRepoStorage, urljoin
-from django.conf import settings
+
 
 logger = logging.getLogger("root")
 
@@ -126,7 +126,7 @@ class MediumHandler:
             for file in files:
                 if "?" in file:
                     continue
-                if settings.RUN_VER == "ieod" and "dbbackup-go" in file:
+                if os.getenv("RUN_VER") == "ieod" and "dbbackup-go" in file:
                     # 内部版本不自动上传 dbbackup
                     continue
 
@@ -214,15 +214,22 @@ class MediumHandler:
             for medium in mediums:
                 for medium_type, medium_info in medium.items():
                     # 判断commit是否相等，不想等则进行版本号增加
-                    dir_commit = subprocess.run(
-                        [f"git -C {medium_info['buildPath'].rsplit('/', 2)[0]} log -n 1 --pretty=format:%H ."],
-                        stdout=subprocess.PIPE,
-                        stderr=subprocess.PIPE,
-                        shell=True,
-                    ).stdout.decode("utf-8")
+                    dir_commit, commit_date = (
+                        subprocess.run(
+                            [f"git -C {medium_info['buildPath'].rsplit('/', 2)[0]} log -n 1 --pretty=format:%H,%ci ."],
+                            stdout=subprocess.PIPE,
+                            stderr=subprocess.PIPE,
+                            shell=True,
+                        )
+                        .stdout.decode("utf-8")
+                        .split(",")
+                    )
                     if dir_commit != medium_info["commitId"]:
                         medium_info["version"] = add_version(medium_info["version"])
                         medium_info["commitId"] = dir_commit
+                        medium_info["commitDate"] = datetime.strptime(commit_date, "%Y-%m-%d %H:%M:%S %z").strftime(
+                            "%Y%m%d%H%M"
+                        )
 
         # 更新lock文件
         with open(medium_lock_path, "w") as lock_file:

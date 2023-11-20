@@ -2,71 +2,84 @@ es:
 - actuator:
     buildPath: /blueking-dbm/dbm-services/bigdata/db-tools/dbactuator/build/dbactuator
     commitId: 183acccc032756be2ada909b423aaaf14ca5f83e
+    commitDate: 200001010101
     name: dbactuator
     version: 1.0.2
 hdfs:
 - actuator:
     buildPath: /blueking-dbm/dbm-services/bigdata/db-tools/dbactuator/build/dbactuator
     commitId: 183acccc032756be2ada909b423aaaf14ca5f83e
+    commitDate: 200001010101
     name: dbactuator
     version: 1.0.2
 influxdb:
 - actuator:
     buildPath: /blueking-dbm/dbm-services/bigdata/db-tools/dbactuator/build/dbactuator
     commitId: 183acccc032756be2ada909b423aaaf14ca5f83e
+    commitDate: 200001010101
     name: dbactuator
     version: 1.0.2
 kafka:
 - actuator:
     buildPath: /blueking-dbm/dbm-services/bigdata/db-tools/dbactuator/build/dbactuator
     commitId: 183acccc032756be2ada909b423aaaf14ca5f83e
+    commitDate: 200001010101
     name: dbactuator
     version: 1.0.2
 mysql:
 - actuator:
     buildPath: /blueking-dbm/dbm-services/mysql/db-tools/dbactuator/build/dbactuator
     commitId: 166a1ed8856a062de2ced5bdd3bc7d8c315457ca
+    commitDate: 200001010101
     name: dbactuator
     version: 1.0.3
 - dbbackup:
     buildPath: /blueking-dbm/dbm-services/mysql/db-tools/mysql-dbbackup/build/dbbackup-go-community.tar.gz
     commitId: 166a1ed8856a062de2ced5bdd3bc7d8c315457ca
+    commitDate: 200001010101
     name: dbbackup-go-community.tar.gz
     version: 1.0.2
 - mysql-checksum:
     buildPath: /blueking-dbm/dbm-services/mysql/db-tools/mysql-table-checksum/build/mysql-checksum.tar.gz
     commitId: 1a7b99bf32dc9d2445e3fe8637cb21faebf1f08c
+    commitDate: 200001010101
     name: mysql-checksum.tar.gz
     version: 1.0.3
 - mysql-crond:
     buildPath: /blueking-dbm/dbm-services/mysql/db-tools/mysql-crond/build/mysql-crond.tar.gz
     commitId: 378047fc5156920d6d174a7e053d3c75a2e63023
+    commitDate: 200001010101
     name: mysql-crond.tar.gz
     version: 1.0.3
 - rotate-binlog:
     buildPath: /blueking-dbm/dbm-services/mysql/db-tools/mysql-rotatebinlog/build/mysql-rotatebinlog.tar.gz
     commitId: 166a1ed8856a062de2ced5bdd3bc7d8c315457ca
+    commitDate: 200001010101
     name: mysql-rotatebinlog.tar.gz
     version: 1.0.3
 - mysql-monitor:
     buildPath: /blueking-dbm/dbm-services/mysql/db-tools/mysql-monitor/build/mysql-monitor.tar.gz
     commitId: 378047fc5156920d6d174a7e053d3c75a2e63023
+    commitDate: 200001010101
     name: mysql-monitor.tar.gz
     version: 1.0.3
 pulsar:
 - actuator:
     buildPath: /blueking-dbm/dbm-services/bigdata/db-tools/dbactuator/build/dbactuator
     commitId: 183acccc032756be2ada909b423aaaf14ca5f83e
+    commitDate: 200001010101
     name: dbactuator
     version: 1.0.2
 redis:
 - actuator:
     buildPath: /blueking-dbm/dbm-services/redis/db-tools/dbactuator/build/dbactuator_redis
     commitId: 255e57334099b76332819d56a093b7553b68998b
+    commitDate: 200001010101
     name: dbactuator_redis
     version: 1.0.3
 - dbmon:
     buildPath: /blueking-dbm/dbm-services/redis/db-tools/dbmon/build/bk-dbmon-*.tar.gz
     commitId: 255e57334099b76332819d56a093b7553b68998b
+    commitDate: 200001010101
     name: dbmon
     version: 1.0.3
