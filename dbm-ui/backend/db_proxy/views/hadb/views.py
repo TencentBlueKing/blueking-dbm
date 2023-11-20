@@ -57,7 +57,7 @@ class HADBProxyPassViewSet(BaseProxyPassViewSet):
         return Response(HADBApi.ha_status(params=validated_data))
 
     @common_swagger_auto_schema(
-        operation_summary=_("[gcsdns]查询和上报切换队列"),
+        operation_summary=_("[hadb]查询和上报切换队列"),
         request_body=HADBProxyPassSerialier(),
         tags=[SWAGGER_TAG],
     )
@@ -67,7 +67,7 @@ class HADBProxyPassViewSet(BaseProxyPassViewSet):
         return Response(HADBApi.switch_queue(params=validated_data))
 
     @common_swagger_auto_schema(
-        operation_summary=_("[gcsdns]查询和上报切换队列"),
+        operation_summary=_("[hadb]查询和上报切换日志"),
         request_body=HADBProxyPassSerialier(),
         tags=[SWAGGER_TAG],
     )
@@ -75,3 +75,13 @@ class HADBProxyPassViewSet(BaseProxyPassViewSet):
     def switch_logs(self, request):
         validated_data = self.params_validate(self.get_serializer_class())
         return Response(HADBApi.switch_logs(params=validated_data))
+
+    @common_swagger_auto_schema(
+        operation_summary=_("[hadb]DBHA切换屏蔽配置"),
+        request_body=HADBProxyPassSerialier(),
+        tags=[SWAGGER_TAG],
+    )
+    @action(methods=["POST"], detail=False, serializer_class=HADBProxyPassSerialier, url_path="hadb/shieldconfig")
+    def shieldconfig(self, request):
+        validated_data = self.params_validate(self.get_serializer_class())
+        return Response(HADBApi.shieldconfig(params=validated_data))

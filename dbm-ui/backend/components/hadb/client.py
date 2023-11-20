@@ -54,6 +54,13 @@ class _HADBApi(object):
             module=self.MODULE,
             description=_("查询切换详情"),
         )
+        self.shieldconfig = DataAPI(
+            method="POST",
+            base=HADB_APIGW_DOMAIN,
+            url="shieldconfig/",
+            module=self.MODULE,
+            description=_("DBHA切换屏蔽配置"),
+        )
 
 
 HADBApi = _HADBApi()
