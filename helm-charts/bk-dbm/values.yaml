@@ -236,6 +236,9 @@ backup-server:
     server_addr: "http://example.com"
     api_sys_id: "test"
     api_key: "test key"
+  backup_client:
+    repository: blueking/dbm
+    mediumDir: bk_dbm
 
 # reloader
 stakater:
