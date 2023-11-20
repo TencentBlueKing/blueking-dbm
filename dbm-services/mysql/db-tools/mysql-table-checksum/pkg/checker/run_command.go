@@ -137,8 +137,14 @@ func (r *Checker) Run() error {
 		_ = conn.Close()
 	}()
 
+	_, err = conn.ExecContext(context.Background(), `SET SESSION TRANSACTION ISOLATION LEVEL REPEATABLE READ;`)
+	if err != nil {
+		slog.Error("set iso level", slog.String("error", err.Error()))
+		return err
+	}
+
 	//防止 row 格式的 replace 阻塞 slave 同步
-	_, err = conn.ExecContext(context.Background(), `set binlog_formant='statement'`)
+	_, err = conn.ExecContext(context.Background(), `set binlog_format='statement'`)
 	if err != nil {
 		slog.Error(
 			"set binlog format to statement before insert fake result", slog.String("error", err.Error()))
