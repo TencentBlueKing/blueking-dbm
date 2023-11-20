@@ -16,12 +16,22 @@ from django.utils.translation import ugettext as _
 
 from backend.configuration.constants import DBType
 from backend.db_meta.enums import ClusterType
-from backend.flow.consts import DEFAULT_FACTOR, DEFAULT_IP, ZK_CONF, KafkaActuatorActionEnum
+from backend.flow.consts import (
+    DEFAULT_FACTOR,
+    DEFAULT_IP,
+    ZK_CONF,
+    KafkaActuatorActionEnum,
+    ManagerDefaultPort,
+    ManagerOpType,
+    ManagerServiceType,
+)
 from backend.flow.engine.bamboo.scene.common.builder import Builder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
+from backend.flow.plugins.components.collections.common.bigdata_manager_service import BigdataManagerComponent
 from backend.flow.plugins.components.collections.kafka.get_kafka_resource import GetKafkaResourceComponent
 from backend.flow.plugins.components.collections.kafka.kafka_config import KafkaConfigComponent
 from backend.flow.plugins.components.collections.kafka.kafka_db_meta import KafkaDBMetaComponent
+from backend.flow.utils.extension_manage import BigdataManagerKwargs
 from backend.flow.utils.kafka.kafka_act_playload import KafkaActPayload
 from backend.flow.utils.kafka.kafka_context_dataclass import ActKwargs, ApplyContext
 
@@ -76,6 +86,20 @@ class KafkaFakeApplyFlow(object):
         # 获取机器资源
         kafka_pipeline.add_act(
             act_name=_("获取机器信息"), act_component_code=GetKafkaResourceComponent.code, kwargs=asdict(act_kwargs)
+        )
+
+        # 插入manager实例信息到dbmeta
+        manager_kwargs = BigdataManagerKwargs(
+            manager_op_type=ManagerOpType.CREATE,
+            db_type=DBType.Kafka,
+            service_type=ManagerServiceType.KAFKA_MANAGER,
+            manager_ip=self.data["nodes"]["broker"][0]["ip"],
+            manager_port=ManagerDefaultPort.KAFKA_MANAGER,
+        )
+        kafka_pipeline.add_act(
+            act_name=_("插入manager实例信息"),
+            act_component_code=BigdataManagerComponent.code,
+            kwargs={**asdict(act_kwargs), **asdict(manager_kwargs)},
         )
 
         kafka_pipeline.add_act(
