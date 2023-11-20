@@ -818,7 +818,9 @@ func (c *HaDBClient) AgentGetHashValue(agentIP string, dbType string, interval i
 	}
 	if !find {
 		err = fmt.Errorf("bug: can't find in agent list. agentIP:%s, dbType:%s", agentIP, dbType)
-		log.Logger.Fatalf(err.Error())
+		log.Logger.Errorf(err.Error())
+		_ = c.ReporterAgentHeartbeat(dbType, interval, "N/A")
+
 		return mod, modValue, err
 	}
 	return mod, modValue, nil
