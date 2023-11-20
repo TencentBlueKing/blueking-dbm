@@ -60,9 +60,12 @@ class RemoteMasterSlaveSwitchFlow(object):
     def remote_switch(self):
         """
         构建remote互切的流程
+        增加单据临时ADMIN账号的添加和删除逻辑
         """
-
-        switch_pipeline = Builder(root_id=self.root_id, data=self.data)
+        cluster_ids = [i["cluster_id"] for i in self.data["infos"]]
+        switch_pipeline = Builder(
+            root_id=self.root_id, data=self.data, need_random_pass_cluster_ids=list(set(cluster_ids))
+        )
         sub_pipelines = []
 
         for info in self.data["infos"]:
@@ -170,4 +173,4 @@ class RemoteMasterSlaveSwitchFlow(object):
             sub_pipelines.append(sub_pipeline.build_sub_process(sub_name=_("[{}]集群后端切换".format(cluster.name))))
 
         switch_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
-        switch_pipeline.run_pipeline()
+        switch_pipeline.run_pipeline(is_drop_random_user=True)

@@ -9,19 +9,23 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
+import logging
 from typing import Any, Dict, List, Optional, Tuple
 
 from django.utils.translation import ugettext as _
 
 from backend.components.mysql_priv_manager.client import MySQLPrivManagerApi
+from backend.configuration.handlers.password import DBPasswordHandler
 from backend.configuration.models.password_policy import PasswordPolicy
-from backend.core.encrypt.constants import RSAConfigType
-from backend.core.encrypt.handlers import RSAHandler
+from backend.core.encrypt.constants import AsymmetricCipherConfigType
+from backend.core.encrypt.handlers import AsymmetricHandler
 from backend.db_services.mysql.open_area.models import TendbOpenAreaConfig
 from backend.db_services.mysql.permission.constants import AccountType
 from backend.db_services.mysql.permission.db_account.dataclass import AccountMeta, AccountRuleMeta
 from backend.db_services.mysql.permission.db_account.policy import DBPasswordPolicy
 from backend.db_services.mysql.permission.exceptions import DBPermissionBaseException
+
+logger = logging.getLogger("root")
 
 
 class AccountHandler(object):
@@ -68,7 +72,7 @@ class AccountHandler(object):
         :param password: 待加密密码
         """
         public_key = MySQLPrivManagerApi.fetch_public_key()
-        return RSAHandler.encrypt_password(public_key=public_key, password=password, salt=None)
+        return AsymmetricHandler.encrypt_with_pubkey(pubkey=public_key, content=password)
 
     @staticmethod
     def _decrypt_password(password: str) -> str:
@@ -76,8 +80,9 @@ class AccountHandler(object):
         - 获取saas侧私钥，将password利用私钥解密
         :param password: 待解密密码
         """
-        rsa_private_key = RSAHandler.get_or_generate_rsa_in_db(name=RSAConfigType.MYSQL.value).rsa_private_key
-        return RSAHandler.decrypt_password(private_key=rsa_private_key.content, password=password, salt=None)
+        return AsymmetricHandler.decrypt(
+            name=AsymmetricCipherConfigType.PASSWORD.value, content=password, salted=False
+        )
 
     def _format_account_rules(self, account_rules_list: Dict) -> Dict:
         """格式化账号权限列表信息"""
@@ -90,20 +95,6 @@ class AccountHandler(object):
                 rule["privilege"] = rule.pop("priv")
 
         return account_rules_list
-
-    def verify_password_strength(self, account: AccountMeta) -> Dict:
-        """
-        - 校验密码强度
-        :param account: 账号元信息
-        """
-        password = self._decrypt_password(account.password)
-        password_policy = PasswordPolicy.safe_get(self.account_type)
-
-        if password_policy:
-            is_strength, password_verify_info = self._check_password_strength(password, password_policy.policy)
-            return {"is_strength": is_strength, "password_verify_info": password_verify_info, "password": password}
-
-        return {"is_strength": True, "password_verify_info": {}, "password": password}
 
     def create_account(self, account: AccountMeta) -> Optional[Any]:
         """

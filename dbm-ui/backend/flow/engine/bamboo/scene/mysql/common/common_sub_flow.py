@@ -308,6 +308,7 @@ def build_repl_by_manual_input_sub_flow(
     master_port: int,
     slave_port: int,
     sub_flow_name: str = None,
+    is_tbinlogdumper: bool = False,
 ):
     """
     定义mysql建立主从同步（异步同步）的子流程，只支持一主一从的建立，如果是多从，则调用多次子流程即可
@@ -320,6 +321,7 @@ def build_repl_by_manual_input_sub_flow(
     @param master_port: master port,
     @param slave_port: slave port,
     @param sub_flow_name: 子流程名称
+    @param is_tbinlogdumper: 是否是tbinlogdumper实例做数据同步
     """
 
     # write_payload_var_name: pos位点信息存储上下文的变量位置
@@ -342,6 +344,11 @@ def build_repl_by_manual_input_sub_flow(
         write_payload_var=write_payload_var_name,
     )
 
+    if is_tbinlogdumper:
+        get_mysql_payload_func = MysqlActPayload.tbinlogdumper_change_master_payload.__name__
+    else:
+        get_mysql_payload_func = MysqlActPayload.get_change_master_payload.__name__
+
     sub_pipeline.add_act(
         act_name=_("建立主从关系"),
         act_component_code=ExecuteDBActuatorScriptComponent.code,
@@ -349,7 +356,7 @@ def build_repl_by_manual_input_sub_flow(
             ExecActuatorKwargs(
                 bk_cloud_id=bk_cloud_id,
                 exec_ip=slave_ip,
-                get_mysql_payload_func=MysqlActPayload.get_change_master_payload.__name__,
+                get_mysql_payload_func=get_mysql_payload_func,
                 cluster={"new_master_ip": master_ip, "master_port": master_port, "slave_port": slave_port},
                 run_as_system_user=DBA_ROOT_USER,
             )
@@ -410,12 +417,10 @@ def install_mysql_in_cluster_sub_flow(
         act_component_code=GetOsSysParamComponent.code,
         kwargs=asdict(ExecActuatorKwargs(bk_cloud_id=cluster.bk_cloud_id, exec_ip=master.machine.ip)),
     )
-    account = MysqlActPayload.get_mysql_account()
     sub_pipeline.add_act(
         act_name=_("初始化机器"),
         act_component_code=SysInitComponent.code,
         kwargs={
-            "mysql_os_password": account["os_mysql_pwd"],
             "exec_ip": new_mysql_list,
             "bk_cloud_id": cluster.bk_cloud_id,
         },

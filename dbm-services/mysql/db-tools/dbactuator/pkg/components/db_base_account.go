@@ -256,3 +256,25 @@ func (m MySQLYwAccount) GetAccountPrivs() MySQLAccountPrivs {
 		AccessObjects: []string{"localhost"},
 	}
 }
+
+// TBinlogDumperAccoutParam TODO
+type TBinlogDumperAccoutParam struct {
+	TBinlogDumperUser string `json:"tbinlogdumper_admin_user,omitempty"`
+	TBinlogDumperPwd  string `json:"tbinlogdumper_admin_pwd,omitempty"`
+}
+
+// GetAccountPrivs TODO
+func (m TBinlogDumperAccoutParam) GetAccountPrivs(localIp string) MySQLAccountPrivs {
+	return MySQLAccountPrivs{
+		User:   m.TBinlogDumperUser,
+		PassWd: m.TBinlogDumperPwd,
+		PrivParis: []PrivPari{
+			{
+				Object: "*.*",
+				Privs:  allPriv,
+			},
+		},
+		WithGrant:     true,
+		AccessObjects: []string{"localhost", localIp},
+	}
+}

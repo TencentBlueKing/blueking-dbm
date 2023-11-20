@@ -63,14 +63,17 @@
 
   import { queryMysqlAdminPassword } from '@services/permission';
 
-  import { useCopy, useTableMaxHeight  } from '@hooks';
+  import {
+    useCopy,
+    useTableMaxHeight,
+  } from '@hooks';
 
   import { OccupiedInnerHeight } from '@common/const';
 
   import { getSearchSelectorParams } from '@utils';
 
   interface TableRow {
-    row: ServiceReturnType<typeof queryMysqlAdminPassword>['results'] & {
+    row: ServiceReturnType<typeof queryMysqlAdminPassword>['results'][number] & {
       passwordShow: boolean
     }
   }
@@ -212,11 +215,11 @@
     };
 
     if (searchParams.time.length) {
-      const [startTime, endTime] = searchParams.time;
+      const [beginTime, endTime] = searchParams.time;
 
-      if (startTime && endTime) {
+      if (beginTime && endTime) {
         Object.assign(params, {
-          start_time: dayjs(startTime).format('YYYY-MM-DD HH:mm:ss'),
+          begin_time: dayjs(beginTime).format('YYYY-MM-DD HH:mm:ss'),
           end_time: dayjs(endTime).format('YYYY-MM-DD HH:mm:ss'),
         });
       }
@@ -231,7 +234,7 @@
 
   const handleInstancesCopy = () => {
     const instances = tableRef.value?.bkTableRef.getSelection().map((row: TableRow['row']) => `${row.ip}:${String(row.port)}`);
-    copy(instances.join(','));
+    copy(instances.join('\n'));
   };
 
   const handleCopy = (val: string) => {

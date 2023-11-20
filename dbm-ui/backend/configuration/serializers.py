@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import re
 
 from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
@@ -16,10 +17,11 @@ from backend.bk_web.constants import LEN_NORMAL, LEN_SHORT
 from backend.bk_web.serializers import AuditedSerializer
 from backend.configuration import mock_data
 from backend.configuration.constants import DEFAULT_SETTINGS, DBType
-from backend.configuration.mock_data import BIZ_SETTINGS_DATA, PASSWORD_POLICY
+from backend.configuration.mock_data import BIZ_SETTINGS_DATA, PASSWORD_POLICY, VERIFY_PASSWORD_DATA
 from backend.configuration.models.function_controller import FunctionController
 from backend.configuration.models.ip_whitelist import IPWhitelist
 from backend.configuration.models.system import BizSettings, SystemSettings
+from backend.db_meta.enums import ClusterType
 from backend.db_services.mysql.permission.constants import AccountType
 
 
@@ -76,21 +78,95 @@ class UpsertDBAdminSerializer(serializers.Serializer):
     db_admins = serializers.ListSerializer(child=DBAdminSerializer())
 
 
+class ModifyMySQLPasswordRandomCycleSerializer(serializers.Serializer):
+    class CrontabSerializer(serializers.Serializer):
+        minute = serializers.CharField(help_text=_("分钟"))
+        hour = serializers.CharField(help_text=_("小时"))
+        day_of_week = serializers.CharField(help_text=_("每周几天(eg: 1,4,5 表示一周的周一，周四，周五)"), required=False)
+        day_of_month = serializers.CharField(help_text=_("每月几天(eg: 1, 11, 13 表示每月的1号，11号，13号)"), required=False)
+
+    crontab = CrontabSerializer(help_text=_("crontab表达式"))
+
+
+class GetMySQLAdminPasswordSerializer(serializers.Serializer):
+    limit = serializers.IntegerField(help_text=_("分页限制"), required=False, default=10)
+    offset = serializers.IntegerField(help_text=_("分页起始"), required=False, default=0)
+
+    begin_time = serializers.CharField(help_text=_("开始时间"), required=False)
+    end_time = serializers.CharField(help_text=_("结束时间"), required=False)
+    instances = serializers.CharField(help_text=_("过滤的实例列表(通过,分割，实例格式为--ip:port)"), required=False)
+
+
+class GetMySQLAdminPasswordResponseSerializer(serializers.Serializer):
+    class Meta:
+        swagger_schema_fields = {"example": mock_data.MYSQL_ADMIN_PASSWORD_DATA}
+
+
+class ModifyMySQLAdminPasswordSerializer(serializers.Serializer):
+    class InstanceInfoSerializer(serializers.Serializer):
+        ip = serializers.CharField(help_text=_("实例ip"))
+        port = serializers.CharField(help_text=_("实例port"))
+        bk_cloud_id = serializers.IntegerField(help_text=_("云区域ID"))
+        cluster_type = serializers.ChoiceField(help_text=_("集群类型"), choices=ClusterType.get_choices())
+        role = serializers.CharField(help_text=_("实例角色"))
+
+    lock_until = serializers.CharField(help_text=_("密码到期时间"))
+    password = serializers.CharField(help_text=_("密码"))
+    instance_list = serializers.ListSerializer(help_text=_("实例信息"), child=InstanceInfoSerializer())
+
+    def validate(self, attrs):
+        invalid_characters = re.compile(r"[`\'\"]")
+        if invalid_characters.findall(attrs["password"]):
+            raise serializers.ValidationError(_("修改密码中不允许包含单引号，双引号和反引号"))
+
+        return attrs
+
+
 class PasswordPolicySerializer(serializers.Serializer):
-    account_type = serializers.ChoiceField(help_text=_("账号类型"), choices=AccountType.get_choices())
-    policy = serializers.JSONField(help_text=_("密码安全策略"))
+    class PolicySerializer(serializers.Serializer):
+        class IncludeRuleSerializer(serializers.Serializer):
+            numbers = serializers.BooleanField(help_text=_("是否包含数字"))
+            symbols = serializers.BooleanField(help_text=_("是否包含特殊符号"))
+            lowercase = serializers.BooleanField(help_text=_("是否包含小写字符"))
+            uppercase = serializers.BooleanField(help_text=_("是否包含大写字符"))
+
+        class ExcludeContinuousRuleSerializer(serializers.Serializer):
+            limit = serializers.IntegerField(help_text=_("最大连续长度"))
+            letters = serializers.BooleanField(help_text=_("是否限制连续字母"))
+            numbers = serializers.BooleanField(help_text=_("是否限制连续数字"))
+            repeats = serializers.BooleanField(help_text=_("是否限制连续重复字符"))
+            symbols = serializers.BooleanField(help_text=_("是否限制连续特殊字符"))
+            keyboards = serializers.BooleanField(help_text=_("是否限制连续键盘序"))
+
+        max_length = serializers.IntegerField(help_text=_("最大长度"))
+        min_length = serializers.IntegerField(help_text=_("最小长度"))
+        include_rule = IncludeRuleSerializer(help_text=_("包含规则"))
+        exclude_continuous_rule = ExcludeContinuousRuleSerializer(help_text=_("排除连续性规则"))
+
+    rule = serializers.JSONField(help_text=_("密码安全策略"))
+    name = serializers.CharField(help_text=_("密码安全规则策略名称"))
+    id = serializers.IntegerField(help_text=_("密码安全规则策略id"))
 
     class Meta:
         swagger_schema_fields = {"example": PASSWORD_POLICY}
 
     def validate(self, attrs):
         try:
-            if int(attrs["policy"]["max_length"]) < int(attrs["policy"]["min_length"]):
+            if int(attrs["rule"]["max_length"]) < int(attrs["rule"]["min_length"]):
                 raise serializers.ValidationError(_("密码最小长度不能大于最大长度"))
         except ValueError:
             raise serializers.ValidationError(_("请确保密码长度范围为整型"))
 
         return attrs
+
+
+class VerifyPasswordSerializer(serializers.Serializer):
+    password = serializers.CharField(help_text=_("待校验密码"))
+
+
+class VerifyPasswordResponseSerializer(serializers.Serializer):
+    class Meta:
+        swagger_schema_fields = {"example": VERIFY_PASSWORD_DATA}
 
 
 class GetPasswordPolicySerializer(serializers.Serializer):

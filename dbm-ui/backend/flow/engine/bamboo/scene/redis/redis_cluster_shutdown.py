@@ -238,51 +238,7 @@ class RedisClusterShutdownFlow(object):
             )
         redis_pipeline.add_parallel_acts(acts_list=acts_list)
 
-        acts_list = []
-        # 清理config
-        # TODO 这里等提供新接口后修改
-        if cluster_info["cluster_type"] == ClusterType.TwemproxyTendisSSDInstance.value:
-            act_kwargs.cluster = {
-                "conf": {
-                    "requirepass": "",
-                },
-                "cluster_id": self.data["cluster_id"],
-            }
-        else:
-            act_kwargs.cluster = {
-                "conf": {
-                    "requirepass": "",
-                    "cluster-enabled": "",
-                },
-                "cluster_id": self.data["cluster_id"],
-            }
-
-        act_kwargs.get_redis_payload_func = RedisActPayload.delete_redis_config.__name__
-        acts_list.append(
-            {
-                "act_name": _("清理Redis配置"),
-                "act_component_code": RedisConfigComponent.code,
-                "kwargs": asdict(act_kwargs),
-            }
-        )
-
-        act_kwargs.cluster = {
-            "conf": {
-                "password": "",
-                "redis_password": "",
-                "port": "",
-            },
-            "cluster_id": self.data["cluster_id"],
-        }
-        act_kwargs.get_redis_payload_func = RedisActPayload.delete_proxy_config.__name__
-        acts_list.append(
-            {
-                "act_name": _("清理Proxy配置"),
-                "act_component_code": RedisConfigComponent.code,
-                "kwargs": asdict(act_kwargs),
-            }
-        )
-        redis_pipeline.add_parallel_acts(acts_list=acts_list)
+        # TODO 这里是否要清理配置文件？ dbconf暂时没接口
 
         # 集群元数据删除
         act_kwargs.cluster = {

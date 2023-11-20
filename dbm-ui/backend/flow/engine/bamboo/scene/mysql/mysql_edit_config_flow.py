@@ -44,8 +44,13 @@ class MysqlEditConfigFlow(object):
     def mysql_edit_config_flow(self):
         """
         mysql 配置下发
+        增加单据临时ADMIN账号的添加和删除逻辑
         """
-        mysql_restore_slave_pipeline = Builder(root_id=self.root_id, data=copy.deepcopy(self.data))
+        cluster_ids = [i["cluster_id"] for i in self.data["infos"]]
+        mysql_restore_slave_pipeline = Builder(
+            root_id=self.root_id, data=copy.deepcopy(self.data), need_random_pass_cluster_ids=list(set(cluster_ids))
+        )
+
         sub_pipeline_list = []
         for info in self.data["infos"]:
             ticket_data = copy.deepcopy(self.data)

@@ -200,10 +200,7 @@
     // 检查 IP:Port 是否存在
     manualInputLoading.value = true;
     try {
-      const checkInstancesResult = await checkInstances({
-        bizId: currentBizId,
-        instance_addresses: lines,
-      });
+      const checkInstancesResult = await checkInstances(currentBizId, { instance_addresses: lines });
       const legalInstances: InstanceInfos[] = [];
       for (let i = lines.length - 1; i >= 0; i--) {
         const item = lines[i];

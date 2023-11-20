@@ -1,7 +1,10 @@
 package assests
 
 import (
+	"dbm-services/common/go-pubpkg/errno"
+	"dbm-services/mysql/priv-service/service"
 	"embed"
+	"encoding/json"
 	"fmt"
 
 	"github.com/golang-migrate/migrate/v4"
@@ -47,4 +50,53 @@ func DoMigrateFromEmbed() error {
 			return err
 		}
 	}
+}
+func DoMigratePlatformPassword() error {
+	// 初始化安全规则
+	passwordSecurityRule := &service.SecurityRulePara{Name: "password",
+		Rule: "{\"max_length\":12,\"min_length\":8,\"include_rule\":{\"numbers\":true,\"symbols\":true,\"lowercase\":true,\"uppercase\":true},\"exclude_continuous_rule\":{\"limit\":4,\"letters\":false,\"numbers\":false,\"symbols\":false,\"keyboards\":false,\"repeats\":false}}", Operator: "admin"}
+	b, _ := json.Marshal(passwordSecurityRule)
+	errOuter := passwordSecurityRule.AddSecurityRule(string(b))
+	if errOuter != nil {
+		no, _ := errno.DecodeErr(errOuter)
+		if no != errno.RuleExisted.Code {
+			return errOuter
+		}
+	}
+
+	// 初始化平台密码，随机密码
+	type ComponentPlatformUser struct {
+		Component string
+		Usernames []string
+	}
+
+	// 平台密码初始化，不存在新增
+	var users []ComponentPlatformUser
+	users = append(users, ComponentPlatformUser{Component: "mysql", Usernames: []string{
+		"dba_bak_all_sel", "MONITOR", "MONITOR_ALL", "mysql", "repl", "yw"}})
+	users = append(users, ComponentPlatformUser{Component: "proxy", Usernames: []string{"proxy"}})
+	users = append(users, ComponentPlatformUser{Component: "tbinlogdumper", Usernames: []string{"ADMIN"}})
+
+	for _, component := range users {
+		for _, user := range component.Usernames {
+			defaultCloudId := int64(0)
+			getPara := &service.GetPasswordPara{Users: []service.UserInComponent{{user,
+				component.Component}},
+				Instances: []service.Address{{"0.0.0.0", 0, &defaultCloudId}}}
+			_, count, err := getPara.GetPassword()
+			if err != nil {
+				return fmt.Errorf("%s error: %s", "init platform password, get password", err.Error())
+			}
+			if count == 0 {
+				insertPara := &service.ModifyPasswordPara{UserName: user, Component: component.Component, Operator: "admin",
+					Instances:    []service.Address{{"0.0.0.0", 0, &defaultCloudId}},
+					InitPlatform: true, SecurityRuleName: "password"}
+				err = insertPara.ModifyPassword()
+				if err != nil {
+					return fmt.Errorf("%s error: %s", "init platform password, modify password", err.Error())
+				}
+			}
+		}
+	}
+	return nil
 }

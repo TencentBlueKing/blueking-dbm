@@ -429,7 +429,7 @@
             </BkMenuItem>
           </BkMenuGroup>
           <div class="main-views-space-line" />
-          <!-- <BkMenuGroup :name="$t('安全')">
+          <BkMenuGroup :name="$t('安全')">
             <BkMenuItem key="DBPasswordTemporaryModify">
               <template #icon>
                 <i class="db-icon-password" />
@@ -441,7 +441,7 @@
               </span>
             </BkMenuItem>
           </BkMenuGroup>
-          <div class="main-views-space-line" /> -->
+          <div class="main-views-space-line" />
           <BkMenuGroup :name="$t('设置')">
             <BkMenuItem key="DatabaseStaff">
               <template #icon>

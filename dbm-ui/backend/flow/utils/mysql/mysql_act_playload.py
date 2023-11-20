@@ -22,8 +22,8 @@ from backend.components.dbconfig.constants import FormatType, LevelName, ReqType
 from backend.configuration.models import SystemSettings
 from backend.core import consts
 from backend.core.consts import BK_PKG_INSTALL_PATH
-from backend.core.encrypt.constants import RSAConfigType
-from backend.core.encrypt.handlers import RSAHandler
+from backend.core.encrypt.constants import AsymmetricCipherConfigType
+from backend.core.encrypt.handlers import AsymmetricHandler
 from backend.db_meta.enums import ClusterType, InstanceInnerRole, MachineType
 from backend.db_meta.exceptions import DBMetaException
 from backend.db_meta.models import Cluster, Machine, ProxyInstance, StorageInstance, StorageInstanceTuple
@@ -46,6 +46,7 @@ from backend.flow.consts import (
 )
 from backend.flow.engine.bamboo.scene.common.get_real_version import get_mysql_real_version, get_spider_real_version
 from backend.flow.utils.base.payload_handler import PayloadHandler
+from backend.flow.utils.mysql.proxy_act_payload import ProxyActPayload
 from backend.flow.utils.tbinlogdumper.tbinlogdumper_act_payload import TBinlogDumperActPayload
 from backend.ticket.constants import TicketType
 
@@ -54,48 +55,12 @@ apply_list = [TicketType.MYSQL_SINGLE_APPLY.value, TicketType.MYSQL_HA_APPLY.val
 logger = logging.getLogger("flow")
 
 
-class MysqlActPayload(PayloadHandler, TBinlogDumperActPayload):
+class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
     """
     定义mysql不同执行类型，拼接不同的payload参数，对应不同的dict结构体。
     todo 后续要优化这块代码，因为类太大，建议按照场景拆分，然后继承，例如TBinlogDumperActPayload继承TBinlogDumper相关的方法
     todo 比如spider场景拆出来、公共部分的拆出来等
     """
-
-    @staticmethod
-    def __get_mysql_account() -> Any:
-        """
-        获取mysql实例内置帐户密码
-        """
-        data = DBConfigApi.query_conf_item(
-            {
-                "bk_biz_id": "0",
-                "level_name": LevelName.PLAT,
-                "level_value": "0",
-                "conf_file": "mysql#user",
-                "conf_type": ConfigTypeEnum.InitUser,
-                "namespace": NameSpaceEnum.TenDB.value,
-                "format": FormatType.MAP,
-            }
-        )
-        return data["content"]
-
-    @staticmethod
-    def __get_proxy_account() -> Any:
-        """
-        获取proxy实例内置帐户密码
-        """
-        data = DBConfigApi.query_conf_item(
-            {
-                "bk_biz_id": "0",
-                "level_name": LevelName.PLAT,
-                "level_value": "0",
-                "conf_file": "proxy#user",
-                "conf_type": ConfigTypeEnum.InitUser,
-                "namespace": NameSpaceEnum.TenDB.value,
-                "format": FormatType.MAP,
-            }
-        )
-        return data["content"]
 
     def __get_mysql_config(self, immutable_domain, db_version) -> Any:
         """
@@ -113,21 +78,6 @@ class MysqlActPayload(PayloadHandler, TBinlogDumperActPayload):
                 "namespace": self.cluster_type,
                 "format": FormatType.MAP_LEVEL,
                 "method": ReqType.GENERATE_AND_PUBLISH,
-            }
-        )
-        return data["content"]
-
-    def __get_proxy_config(self) -> Any:
-        """获取proxy安装配置, 平台层级的配置，没有业务区分"""
-        data = DBConfigApi.query_conf_item(
-            {
-                "bk_biz_id": "0",
-                "level_name": LevelName.PLAT,
-                "level_value": "0",
-                "conf_file": "default",
-                "conf_type": "proxyconf",
-                "namespace": self.cluster_type,
-                "format": FormatType.MAP,
             }
         )
         return data["content"]
@@ -207,6 +157,7 @@ class MysqlActPayload(PayloadHandler, TBinlogDumperActPayload):
         拼接安装MySQL的payload参数, 分别兼容集群申请、集群实例重建、集群实例添加单据的获取方式
         由于集群实例重建或者添加单据是不知道 需要部署的版本号以及字符集，需要通过接口获取
         """
+        init_mysql_config = {}
         if self.ticket_data.get("charset") and self.ticket_data.get("db_version"):
             # 如果单据传入有字符集和版本号，则以单据为主：
             charset, db_version = self.ticket_data.get("charset"), self.ticket_data.get("db_version")
@@ -215,12 +166,12 @@ class MysqlActPayload(PayloadHandler, TBinlogDumperActPayload):
             charset, db_version = self.__get_version_and_charset(db_module_id=self.db_module_id)
 
         for cluster in self.ticket_data["clusters"]:
-            self.init_mysql_config[cluster["mysql_port"]] = self.__get_mysql_config(
+            init_mysql_config[cluster["mysql_port"]] = self.__get_mysql_config(
                 immutable_domain=cluster["master"], db_version=db_version
             )
 
-        self.mysql_pkg = Package.get_latest_package(version=db_version, pkg_type=MediumEnum.MySQL)
-        version_no = get_mysql_real_version(self.mysql_pkg.name)
+        mysql_pkg = Package.get_latest_package(version=db_version, pkg_type=MediumEnum.MySQL)
+        version_no = get_mysql_real_version(mysql_pkg.name)
 
         install_mysql_ports = self.ticket_data.get("mysql_ports")
         mysql_config = {}
@@ -229,7 +180,7 @@ class MysqlActPayload(PayloadHandler, TBinlogDumperActPayload):
             return {}
 
         for port in install_mysql_ports:
-            mysql_config[port] = copy.deepcopy(self.init_mysql_config[port])
+            mysql_config[port] = copy.deepcopy(init_mysql_config[port])
 
         drs_account, dbha_account = self.get_super_account()
 
@@ -240,8 +191,8 @@ class MysqlActPayload(PayloadHandler, TBinlogDumperActPayload):
                 "general": {"runtime_account": self.account},
                 "extend": {
                     "host": kwargs["ip"],
-                    "pkg": self.mysql_pkg.name,
-                    "pkg_md5": self.mysql_pkg.md5,
+                    "pkg": mysql_pkg.name,
+                    "pkg_md5": mysql_pkg.md5,
                     "mysql_version": version_no,
                     "charset": charset,
                     "inst_mem": 0,
@@ -341,50 +292,6 @@ class MysqlActPayload(PayloadHandler, TBinlogDumperActPayload):
                             immutable_domain=self.cluster["immutable_domain"], db_version="Tdbctl"
                         )
                     },
-                },
-            },
-        }
-
-    def get_install_proxy_payload(self, **kwargs) -> dict:
-        """
-        拼接安装proxy的payload参数
-        """
-        self.proxy_pkg = Package.get_latest_package(version="latest", pkg_type=MediumEnum.Proxy)
-        return {
-            "db_type": DBActuatorTypeEnum.Proxy.value,
-            "action": DBActuatorActionEnum.Deploy.value,
-            "payload": {
-                "general": {"runtime_account": self.__get_proxy_account()},
-                "extend": {
-                    "host": kwargs["ip"],
-                    "pkg": self.proxy_pkg.name,
-                    "pkg_md5": self.proxy_pkg.md5,
-                    "ports": self.ticket_data.get("proxy_ports", []),
-                    "proxy_configs": {"mysql-proxy": self.__get_proxy_config()},
-                },
-            },
-        }
-
-    def get_set_proxy_backends(self, **kwargs) -> dict:
-        """
-        拼接proxy配置后端实例的payload参数
-        """
-        set_backend_ip = (
-            self.cluster.get("set_backend_ip")
-            if self.cluster.get("set_backend_ip")
-            else kwargs["trans_data"].get("set_backend_ip")
-        )
-
-        return {
-            "db_type": DBActuatorTypeEnum.Proxy.value,
-            "action": DBActuatorActionEnum.SetBackend.value,
-            "payload": {
-                "general": {"runtime_account": self.__get_proxy_account()},
-                "extend": {
-                    "host": kwargs["ip"],
-                    "port": self.cluster["proxy_port"],
-                    "backend_host": set_backend_ip,
-                    "backend_port": self.cluster["mysql_port"],
                 },
             },
         }
@@ -516,23 +423,6 @@ class MysqlActPayload(PayloadHandler, TBinlogDumperActPayload):
             },
         }
         return payload
-
-    def get_uninstall_proxy_payload(self, **kwargs) -> dict:
-        """
-        卸载proxy进程的payload 参数
-        """
-        return {
-            "db_type": DBActuatorTypeEnum.Proxy.value,
-            "action": DBActuatorActionEnum.UnInstall.value,
-            "payload": {
-                "general": {"runtime_account": self.__get_proxy_account()},
-                "extend": {
-                    "host": kwargs["ip"],
-                    "force": self.ticket_data["force"],
-                    "ports": [self.cluster["proxy_port"]],
-                },
-            },
-        }
 
     def get_uninstall_mysql_payload(self, **kwargs) -> dict:
         """
@@ -716,23 +606,23 @@ class MysqlActPayload(PayloadHandler, TBinlogDumperActPayload):
             },
         }
 
-    def get_clone_proxy_user_payload(self, **kwargs):
-        """
-        克隆proxy上的user白名单
-        """
-        return {
-            "db_type": DBActuatorTypeEnum.Proxy.value,
-            "action": DBActuatorActionEnum.CloneProxyUser.value,
-            "payload": {
-                "general": {"runtime_account": self.__get_proxy_account()},
-                "extend": {
-                    "source_proxy_host": kwargs["ip"],
-                    "source_proxy_port": self.cluster["proxy_port"],
-                    "target_proxy_host": self.cluster["target_proxy_ip"],
-                    "target_proxy_port": self.cluster["proxy_port"],
-                },
-            },
-        }
+    # def get_clone_proxy_user_payload(self, **kwargs):
+    #     """
+    #     克隆proxy上的user白名单
+    #     """
+    #     return {
+    #         "db_type": DBActuatorTypeEnum.Proxy.value,
+    #         "action": DBActuatorActionEnum.CloneProxyUser.value,
+    #         "payload": {
+    #             "general": {"runtime_account": self.__get_proxy_account()},
+    #             "extend": {
+    #                 "source_proxy_host": kwargs["ip"],
+    #                 "source_proxy_port": self.cluster["proxy_port"],
+    #                 "target_proxy_host": self.cluster["target_proxy_ip"],
+    #                 "target_proxy_port": self.cluster["proxy_port"],
+    #             },
+    #         },
+    #     }
 
     def get_semantic_check_payload(self, **kwargs):
         """
@@ -760,8 +650,9 @@ class MysqlActPayload(PayloadHandler, TBinlogDumperActPayload):
         """
         # 获取db_cloud_token
         bk_cloud_id = self.bk_cloud_id
-        rsa = RSAHandler.get_or_generate_rsa_in_db(RSAConfigType.PROXYPASS.value)
-        db_cloud_token = RSAHandler.encrypt_password(rsa.rsa_public_key.content, f"{bk_cloud_id}_dbactuator_token")
+        db_cloud_token = AsymmetricHandler.encrypt(
+            name=AsymmetricCipherConfigType.PROXYPASS.value, content=f"{bk_cloud_id}_dbactuator_token"
+        )
 
         # 获取url
         nginx_ip = DBCloudProxy.objects.filter(bk_cloud_id=bk_cloud_id).last().internal_address
@@ -839,21 +730,21 @@ class MysqlActPayload(PayloadHandler, TBinlogDumperActPayload):
             "payload": {},
         }
 
-    def get_restart_proxy_payload(self, **kwargs):
-        """
-        重启proxy
-        """
-        return {
-            "db_type": DBActuatorTypeEnum.Proxy.value,
-            "action": DBActuatorActionEnum.RestartProxy.value,
-            "payload": {
-                "general": {"runtime_account": self.__get_proxy_account()},
-                "extend": {
-                    "host": kwargs["ip"],
-                    "port": self.cluster["proxy_port"],
-                },
-            },
-        }
+    # def get_restart_proxy_payload(self, **kwargs):
+    #     """
+    #     重启proxy
+    #     """
+    #     return {
+    #         "db_type": DBActuatorTypeEnum.Proxy.value,
+    #         "action": DBActuatorActionEnum.RestartProxy.value,
+    #         "payload": {
+    #             "general": {"runtime_account": self.__get_proxy_account()},
+    #             "extend": {
+    #                 "host": kwargs["ip"],
+    #                 "port": self.cluster["proxy_port"],
+    #             },
+    #         },
+    #     }
 
     def get_clean_mysql_payload(self, **kwargs):
         payload = {
@@ -891,8 +782,8 @@ class MysqlActPayload(PayloadHandler, TBinlogDumperActPayload):
             "user": self.ticket_data.get("switch_account", None),
             "pwd": self.ticket_data.get("switch_pwd", None),
         }
-        mysql_count = self.__get_mysql_account()
-        proxy_count = self.__get_proxy_account()
+        mysql_count = self.account
+        proxy_count = self.proxy_account
 
         data = {
             "db_type": DBActuatorTypeEnum.MySQL.value,
@@ -1220,7 +1111,7 @@ class MysqlActPayload(PayloadHandler, TBinlogDumperActPayload):
         }
 
     def get_install_mysql_checksum_payload(self, **kwargs) -> dict:
-        self.checksum_pkg = Package.get_latest_package(version=MediumEnum.Latest, pkg_type=MediumEnum.MySQLChecksum)
+        checksum_pkg = Package.get_latest_package(version=MediumEnum.Latest, pkg_type=MediumEnum.MySQLChecksum)
 
         instances_info = []
         for instance in StorageInstance.objects.filter(machine__ip=kwargs["ip"]):
@@ -1243,8 +1134,8 @@ class MysqlActPayload(PayloadHandler, TBinlogDumperActPayload):
             "payload": {
                 "general": {"runtime_account": self.account},
                 "extend": {
-                    "pkg": self.checksum_pkg.name,
-                    "pkg_md5": self.checksum_pkg.md5,
+                    "pkg": checksum_pkg.name,
+                    "pkg_md5": checksum_pkg.md5,
                     "system_dbs": SYSTEM_DBS,
                     "instances_info": instances_info,
                     "exec_user": self.ticket_data["created_by"],
@@ -1411,7 +1302,7 @@ class MysqlActPayload(PayloadHandler, TBinlogDumperActPayload):
         }
 
     def get_deploy_mysql_crond_payload(self, **kwargs) -> dict:
-        self.mysql_crond_pkg = Package.get_latest_package(version=MediumEnum.Latest, pkg_type=MediumEnum.MySQLCrond)
+        mysql_crond_pkg = Package.get_latest_package(version=MediumEnum.Latest, pkg_type=MediumEnum.MySQLCrond)
 
         # 监控自定义上报配置通过SystemSettings表获取
         bkm_dbm_report = SystemSettings.get_setting_value(key="BKM_DBM_REPORT")
@@ -1426,8 +1317,8 @@ class MysqlActPayload(PayloadHandler, TBinlogDumperActPayload):
             "payload": {
                 "general": {"runtime_account": self.account},
                 "extend": {
-                    "pkg": self.mysql_crond_pkg.name,
-                    "pkg_md5": self.mysql_crond_pkg.md5,
+                    "pkg": mysql_crond_pkg.name,
+                    "pkg_md5": mysql_crond_pkg.md5,
                     "ip": kwargs["ip"],
                     "bk_cloud_id": int(self.bk_cloud_id),
                     "event_data_id": int(event_data_id),
@@ -1445,9 +1336,7 @@ class MysqlActPayload(PayloadHandler, TBinlogDumperActPayload):
         """
         部署mysql/proxy/spider事件监控程序
         """
-        self.mysql_monitor_pkg = Package.get_latest_package(
-            version=MediumEnum.Latest, pkg_type=MediumEnum.MySQLMonitor
-        )
+        mysql_monitor_pkg = Package.get_latest_package(version=MediumEnum.Latest, pkg_type=MediumEnum.MySQLMonitor)
         instances_info = []
         machine = Machine.objects.get(ip=kwargs["ip"])
         if machine.machine_type == MachineType.PROXY.value:
@@ -1518,10 +1407,10 @@ class MysqlActPayload(PayloadHandler, TBinlogDumperActPayload):
             "db_type": DBActuatorTypeEnum.MySQL.value,
             "action": DBActuatorActionEnum.InstallMonitor.value,
             "payload": {
-                "general": {"runtime_account": {**self.account, **self.__get_proxy_account()}},
+                "general": {"runtime_account": {**self.account, **self.proxy_account}},
                 "extend": {
-                    "pkg": self.mysql_monitor_pkg.name,
-                    "pkg_md5": self.mysql_monitor_pkg.md5,
+                    "pkg": mysql_monitor_pkg.name,
+                    "pkg_md5": mysql_monitor_pkg.md5,
                     "system_dbs": SYSTEM_DBS,
                     "exec_user": self.ticket_data["created_by"],
                     "api_url": "http://127.0.0.1:9999",
@@ -1579,7 +1468,7 @@ class MysqlActPayload(PayloadHandler, TBinlogDumperActPayload):
         """
         拼接初始化spider集群节点关系的payload参数。
         """
-        tdbctl_account = self.__get_mysql_account()
+        tdbctl_account = self.account
         return {
             "db_type": DBActuatorTypeEnum.SpiderCtl.value,
             "action": DBActuatorActionEnum.SpiderInitClusterRouting.value,
@@ -1598,7 +1487,7 @@ class MysqlActPayload(PayloadHandler, TBinlogDumperActPayload):
         }
 
     def get_add_tmp_spider_node_payload(self, **kwargs):
-        tdbctl_account = self.__get_mysql_account()
+        tdbctl_account = self.account
         return {
             "db_type": DBActuatorTypeEnum.SpiderCtl.value,
             "action": DBActuatorActionEnum.SpiderAddTmpNode.value,
@@ -1630,7 +1519,7 @@ class MysqlActPayload(PayloadHandler, TBinlogDumperActPayload):
         拼接添加spider slave集群节点关系的payload参数。
         """
         # 获取中控实例的内置账号
-        tdbctl_account = self.__get_mysql_account()
+        tdbctl_account = self.account
 
         # 定义集群的所有slave实例的列表，添加路由关系需要
         slave_instances = []
@@ -1963,11 +1852,9 @@ class MysqlActPayload(PayloadHandler, TBinlogDumperActPayload):
         @return:
         """
         fileserver = {}
-        rsa = RSAHandler.get_or_generate_rsa_in_db(RSAConfigType.PROXYPASS.value)
-        db_cloud_token = RSAHandler.encrypt_password(
-            rsa.rsa_public_key.content, f"{self.bk_cloud_id}_dbactuator_token"
+        db_cloud_token = AsymmetricHandler.encrypt(
+            name=AsymmetricCipherConfigType.PROXYPASS.value, content=f"{self.bk_cloud_id}_dbactuator_token"
         )
-
         nginx_ip = DBCloudProxy.objects.filter(bk_cloud_id=self.bk_cloud_id).last().internal_address
         bkrepo_url = f"http://{nginx_ip}/apis/proxypass" if self.bk_cloud_id else settings.BKREPO_ENDPOINT_URL
 
@@ -2032,9 +1919,8 @@ class MysqlActPayload(PayloadHandler, TBinlogDumperActPayload):
         @return:
         """
         fileserver = {}
-        rsa = RSAHandler.get_or_generate_rsa_in_db(RSAConfigType.PROXYPASS.value)
-        db_cloud_token = RSAHandler.encrypt_password(
-            rsa.rsa_public_key.content, f"{self.bk_cloud_id}_dbactuator_token"
+        db_cloud_token = AsymmetricHandler.encrypt(
+            name=AsymmetricCipherConfigType.PROXYPASS.value, content=f"{self.bk_cloud_id}_dbactuator_token"
         )
 
         nginx_ip = DBCloudProxy.objects.filter(bk_cloud_id=self.bk_cloud_id).last().internal_address

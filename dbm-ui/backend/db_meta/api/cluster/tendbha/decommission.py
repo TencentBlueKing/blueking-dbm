@@ -13,10 +13,11 @@ import logging
 from django.db import transaction
 from django.utils.translation import ugettext as _
 
-from backend.configuration.constants import DBType
+from backend.components import MySQLPrivManagerApi
 from backend.db_meta.exceptions import DBMetaException
 from backend.db_meta.models import Cluster, ClusterEntry, StorageInstanceTuple
 from backend.db_services.mysql.open_area.models import TendbOpenAreaConfig
+from backend.flow.consts import MySQLPrivComponent, UserName
 from backend.flow.utils.cc_manage import CcManage
 
 logger = logging.getLogger("root")
@@ -36,6 +37,14 @@ def decommission(cluster: Cluster):
             cc_manage.delete_service_instance(bk_instance_ids=[proxy.bk_instance_id])
 
     for storage in cluster.storageinstance_set.all():
+        # 删除存储在密码服务的密码元信息
+        MySQLPrivManagerApi.delete_password(
+            {
+                "instances": [{"ip": storage.machine.ip, "port": storage.port, "bk_cloud_id": cluster.bk_cloud_id}],
+                "users": [{"username": UserName.ADMIN.value, "component": MySQLPrivComponent.MYSQL.value}],
+            }
+        )
+
         StorageInstanceTuple.objects.filter(ejector=storage).delete()
         StorageInstanceTuple.objects.filter(receiver=storage).delete()
         storage.delete(keep_parents=True)

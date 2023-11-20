@@ -191,7 +191,6 @@ class RedisClusterMigrateLoadFlow(object):
                 "conf": {
                     "maxmemory": str(params["config"]["maxmemory"]),
                     "databases": str(params["config"]["databases"]),
-                    "requirepass": params["config"]["requirepass"],
                 },
                 "db_version": params["clusterinfo"]["db_version"],
                 "domain_name": params["clusterinfo"]["immute_domain"],
@@ -210,9 +209,12 @@ class RedisClusterMigrateLoadFlow(object):
 
             act_kwargs.cluster = {
                 "conf": {
-                    "password": params["config"]["proxypass"],
-                    "redis_password": params["config"]["requirepass"],
                     "port": str(cluster["proxy_port"]),
+                },
+                "pwd_conf": {
+                    "proxy_pwd": params["config"]["proxypass"],
+                    "proxy_admin_pwd": params["config"]["proxypass"],
+                    "redis_pwd": params["config"]["requirepass"],
                 },
                 "domain_name": params["clusterinfo"]["immute_domain"],
             }

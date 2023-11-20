@@ -74,13 +74,20 @@ class MySQLRestoreSlaveFlow(object):
     def deploy_restore_slave_flow(self):
         """
         重建slave节点的流程
+        增加单据临时ADMIN账号的添加和删除逻辑
         元数据流程：
         1 mysql_restore_slave_add_instance
         2 mysql_add_slave_info
         3 mysql_restore_slave_change_cluster_info
         4 mysql_restore_remove_old_slave
         """
-        mysql_restore_slave_pipeline = Builder(root_id=self.root_id, data=copy.deepcopy(self.data))
+        cluster_ids = []
+        for i in self.data["infos"]:
+            cluster_ids.extend(i["cluster_ids"])
+
+        mysql_restore_slave_pipeline = Builder(
+            root_id=self.root_id, data=copy.deepcopy(self.data), need_random_pass_cluster_ids=list(set(cluster_ids))
+        )
         sub_pipeline_list = []
         for one_machine in self.data["infos"]:
             ticket_data = copy.deepcopy(self.data)
@@ -341,15 +348,19 @@ class MySQLRestoreSlaveFlow(object):
 
             sub_pipeline_list.append(sub_pipeline.build_sub_process(sub_name=_("Restore Slave 重建从库")))
         mysql_restore_slave_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipeline_list)
-        mysql_restore_slave_pipeline.run_pipeline(init_trans_data_class=ClusterInfoContext())
+        mysql_restore_slave_pipeline.run_pipeline(init_trans_data_class=ClusterInfoContext(), is_drop_random_user=True)
 
     def deploy_restore_local_slave_flow(self):
         """
         原地重建slave
         机器slave数据损坏或者其他原因丢弃实例数据，重新恢复数据。
         无元数据改动
+        增加单据临时ADMIN账号的添加和删除逻辑
         """
-        mysql_restore_local_slave_pipeline = Builder(root_id=self.root_id, data=copy.deepcopy(self.data))
+        cluster_ids = [i["cluster_id"] for i in self.data["infos"]]
+        mysql_restore_local_slave_pipeline = Builder(
+            root_id=self.root_id, data=copy.deepcopy(self.data), need_random_pass_cluster_ids=list(set(cluster_ids))
+        )
         sub_pipeline_list = []
         for slave in self.data["infos"]:
             ticket_data = copy.deepcopy(self.data)
@@ -451,13 +462,22 @@ class MySQLRestoreSlaveFlow(object):
                 restore_local_slave_sub_pipeline.build_sub_process(sub_name=_("Restore local Slave 本地重建"))
             )
         mysql_restore_local_slave_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipeline_list)
-        mysql_restore_local_slave_pipeline.run_pipeline(init_trans_data_class=ClusterInfoContext())
+        mysql_restore_local_slave_pipeline.run_pipeline(
+            init_trans_data_class=ClusterInfoContext(), is_drop_random_user=True
+        )
 
     def deploy_add_slave_flow(self):
         """
         添加从库：仅添加从库、不拷贝权限、不加入域名
+        增加单据临时ADMIN账号的添加和删除逻辑
         """
-        mysql_restore_slave_pipeline = Builder(root_id=self.root_id, data=copy.deepcopy(self.data))
+        cluster_ids = []
+        for i in self.data["infos"]:
+            cluster_ids.extend(i["cluster_ids"])
+
+        mysql_restore_slave_pipeline = Builder(
+            root_id=self.root_id, data=copy.deepcopy(self.data), need_random_pass_cluster_ids=list(set(cluster_ids))
+        )
         sub_pipeline_list = []
 
         for one_machine in self.data["infos"]:
@@ -598,7 +618,7 @@ class MySQLRestoreSlaveFlow(object):
             sub_pipeline_list.append(sub_pipeline.build_sub_process(sub_name=_("添加从库flow")))
 
         mysql_restore_slave_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipeline_list)
-        mysql_restore_slave_pipeline.run_pipeline(init_trans_data_class=ClusterInfoContext())
+        mysql_restore_slave_pipeline.run_pipeline(init_trans_data_class=ClusterInfoContext(), is_drop_random_user=True)
 
     def install_instance_sub_flow(self, ticket_data: dict, one_machine: dict):
         #  通过集群级别去获取id
@@ -621,12 +641,10 @@ class MySQLRestoreSlaveFlow(object):
                 )
             ),
         )
-        account = MysqlActPayload.get_mysql_account()
         install_sub_pipeline.add_act(
             act_name=_("初始化机器"),
             act_component_code=SysInitComponent.code,
             kwargs={
-                "mysql_os_password": account["os_mysql_pwd"],
                 "exec_ip": one_machine["new_slave_ip"],
                 "bk_cloud_id": one_machine["bk_cloud_id"],
             },

@@ -31,7 +31,7 @@ export interface PermissionRulesParams {
 /**
  * 查询账号规则列表返回结果
  */
-export type PermissionRulesResult =  ListBase<PermissionRule[]>
+export type PermissionRulesResult = ListBase<PermissionRule[]>
 
 /**
  * 用户账号规则
@@ -101,19 +101,30 @@ export interface PasswordStrengthVerifyInfo {
 
 // 密码策略
 export interface PasswordPolicy {
-  follow: PasswordPolicyFollow,
-  lowercase: boolean,
-  max_length: number,
-  min_length: number,
+  id: number,
+  name: string,
+  rule: {
+    include_rule: PasswordPolicyIncludeRule
+    exclude_continuous_rule: PasswordPolicyExcludeContinuousRule,
+    max_length: number,
+    min_length: number,
+  },
+  creator?: string,
+  create_time?: string,
+  operator?: string,
+  update_time?: string
+}
+
+// 密码策略 include_rule
+export interface PasswordPolicyIncludeRule {
   numbers: boolean,
   symbols: boolean,
+  lowercase: boolean,
   uppercase: boolean
 }
 
-/**
- * 密码策略 follow
- */
-export interface PasswordPolicyFollow {
+// 密码策略 exclude_continuous_rule
+export interface PasswordPolicyExcludeContinuousRule {
   limit: number,
   letters: boolean,
   numbers: boolean,

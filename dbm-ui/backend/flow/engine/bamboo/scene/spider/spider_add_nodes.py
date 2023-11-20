@@ -51,8 +51,10 @@ class TenDBClusterAddNodesFlow(object):
     def add_spider_nodes(self):
         """
         定义TenDB Cluster扩容接入层的后端流程
+        增加单据临时ADMIN账号的添加和删除逻辑
         """
-        pipeline = Builder(root_id=self.root_id, data=self.data)
+        cluster_ids = [i["cluster_id"] for i in self.data["infos"]]
+        pipeline = Builder(root_id=self.root_id, data=self.data, need_random_pass_cluster_ids=list(set(cluster_ids)))
         sub_pipelines = []
         for info in self.data["infos"]:
             # 拼接子流程需要全局参数
@@ -106,7 +108,7 @@ class TenDBClusterAddNodesFlow(object):
             raise NormalSpiderFlowException(message=_("build spider-add-nodes-pipeline failed"))
 
         pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
-        pipeline.run_pipeline()
+        pipeline.run_pipeline(is_drop_random_user=True)
 
     def add_spider_master_notes(self, sub_flow_context: dict, cluster: Cluster):
         """

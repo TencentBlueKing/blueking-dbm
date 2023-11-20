@@ -47,6 +47,29 @@ func (m *PrivService) Routes() []*gin.RouteInfo {
 
 		// 获取公钥，用于传输过程中加密密码
 		{Method: http.MethodPost, Path: "pub_key", HandlerFunc: m.GetPubKey},
+
+		// 修改mysql实例管理用户的密码
+		{Method: http.MethodPost, Path: "modify_mysql_admin_password", HandlerFunc: m.ModifyMysqlAdminPassword},
+		// 查看mysql实例管理用户的密码
+		{Method: http.MethodPost, Path: "get_mysql_admin_password", HandlerFunc: m.GetMysqlAdminPassword},
+
+		// 查询密码
+		{Method: http.MethodPost, Path: "get_password", HandlerFunc: m.GetPassword},
+		// 修改密码
+		{Method: http.MethodPost, Path: "modify_password", HandlerFunc: m.ModifyPassword},
+		// 删除密码
+		{Method: http.MethodPost, Path: "delete_password", HandlerFunc: m.DeletePassword},
+
+		// 生成随机字符串
+		{Method: http.MethodPost, Path: "get_random_string", HandlerFunc: m.GenerateRandomString},
+		// 检查随机字符串复杂度
+		{Method: http.MethodPost, Path: "check_password", HandlerFunc: m.CheckPassword},
+
+		// 安全规则
+		{Method: http.MethodPost, Path: "get_security_rule", HandlerFunc: m.GetSecurityRule},
+		{Method: http.MethodPost, Path: "add_security_rule", HandlerFunc: m.AddSecurityRule},
+		{Method: http.MethodPost, Path: "modify_security_rule", HandlerFunc: m.ModifySecurityRule},
+		{Method: http.MethodPost, Path: "delete_security_rule", HandlerFunc: m.DeleteSecurityRule},
 	}
 }
 

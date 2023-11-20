@@ -628,6 +628,14 @@ func (i *InstallMySQLComp) generateDefaultMysqlAccount(realVersion string) (init
 	runp := i.GeneralParam.RuntimeAccountParam
 	privParis := []components.MySQLAccountPrivs{}
 	privParis = append(privParis, runp.MySQLAdminAccount.GetAccountPrivs(i.Params.Host))
+	// 这里做一个处理，传入的AdminUser 不一定是真正的ADMIN账号，如果不是则手动添加一个,保证新实例有ADMIN账号
+	if runp.AdminUser != "ADMIN" {
+		privParis = append(privParis, components.MySQLAdminAccount{
+			AdminUser: "ADMIN",
+			AdminPwd:  runp.AdminPwd,
+		}.GetAccountPrivs(i.Params.Host))
+
+	}
 	privParis = append(privParis, runp.MySQLMonitorAccessAllAccount.GetAccountPrivs())
 	privParis = append(privParis, runp.MySQLMonitorAccount.GetAccountPrivs(i.Params.Host))
 	privParis = append(privParis, runp.MySQLYwAccount.GetAccountPrivs())
@@ -762,19 +770,21 @@ func (i *InstallMySQLComp) InitDefaultPrivAndSchemaWithResetMaster() (err error)
 
 		// 初始化权限
 		var initAccountSqls []string
-		if strings.Contains(version, cst.PkgTypeSpider) {
-			// 暂时用执行shell命令代替, 执行SQL文件
+		switch {
+		case strings.Contains(version, "tspider"):
+			// 对spider 初始化授权
 			if err := i.create_spider_table(i.InsSockets[port]); err != nil {
 				return err
 			}
 			initAccountSqls = i.generateDefaultSpiderAccount(version)
-		} else if strings.Contains(version, cst.PkgTypeTdbctl) {
+		case strings.Contains(version, "tdbctl"):
 			// 对tdbctl 初始化权限
 			initAccountSqls = append(initAccountSqls, "set tc_admin = 0;")
 			initAccountSqls = append(initAccountSqls, i.generateDefaultMysqlAccount(version)...)
-		} else {
+		default:
 			// 默认按照mysql的初始化权限的方式
 			initAccountSqls = i.generateDefaultMysqlAccount(version)
+
 		}
 		// 初始化数据库之后，reset master，标记binlog重头开始，避免同步干扰
 		// 新安装db, avoid == false, 表示需要做 reset
@@ -944,6 +954,14 @@ func (i *InstallMySQLComp) generateDefaultSpiderAccount(realVersion string) (ini
 	runp := i.GeneralParam.RuntimeAccountParam
 	privParis := []components.MySQLAccountPrivs{}
 	privParis = append(privParis, runp.MySQLAdminAccount.GetAccountPrivs(i.Params.Host))
+	// 这里做一个处理，传入的AdminUser 不一定是真正的ADMIN账号，如果不是则手动添加一个,保证新实例有ADMIN账号
+	if runp.AdminUser != "ADMIN" {
+		privParis = append(privParis, components.MySQLAdminAccount{
+			AdminUser: "ADMIN",
+			AdminPwd:  runp.AdminPwd,
+		}.GetAccountPrivs(i.Params.Host))
+
+	}
 	privParis = append(privParis, runp.MySQLMonitorAccessAllAccount.GetAccountPrivs())
 	privParis = append(privParis, runp.MySQLMonitorAccount.GetAccountPrivs(i.Params.Host))
 	privParis = append(privParis, runp.MySQLYwAccount.GetAccountPrivs())
