@@ -14,14 +14,15 @@ import re
 
 from backend import env
 from backend.components import DBConfigApi, MySQLPrivManagerApi
-from backend.components.dbconfig.constants import FormatType, LevelName
+from backend.components.dbconfig.constants import FormatType, LevelName, ReqType
 from backend.constants import IP_RE_PATTERN
 from backend.core.encrypt.constants import AsymmetricCipherConfigType
 from backend.core.encrypt.handlers import AsymmetricHandler
+from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Cluster
 from backend.db_proxy.constants import ExtensionType
 from backend.db_proxy.models import DBExtension
-from backend.flow.consts import DBM_JOB, DEFAULT_INSTANCE, ConfigTypeEnum, MySQLPrivComponent, UserName
+from backend.flow.consts import DBM_JOB, DEFAULT_INSTANCE, ConfigTypeEnum, MySQLPrivComponent, UserName, LevelInfoEnum
 from backend.ticket.constants import TicketType
 
 apply_list = [
@@ -376,3 +377,84 @@ class PayloadHandler(object):
             user_map["os_password"] = base64.b64decode(user["password"]).decode("utf-8")
             break
         return user_map
+
+    @staticmethod
+    def get_bigdata_user_key(cluster_type: str) -> MySQLPrivComponent:
+        # 不支持的集群类型 缺少 返回值
+        if cluster_type == ClusterType.Es.value:
+            return MySQLPrivComponent.ES_FAKE_USER
+        elif cluster_type == ClusterType.Hdfs.value:
+            return MySQLPrivComponent.HDFS_FAKE_USER
+        elif cluster_type == ClusterType.Influxdb.value:
+            return MySQLPrivComponent.INFLUXDB_FAKE_USER
+        elif cluster_type == ClusterType.Kafka.value:
+            return MySQLPrivComponent.KAFKA_FAKE_USER
+        elif cluster_type == ClusterType.Pulsar.value:
+            return MySQLPrivComponent.PULSAR_FAKE_USER
+
+    @staticmethod
+    def get_bigdata_username_by_cluster(cluster: Cluster, port: int) -> str:
+        """
+        通过密码服务 获取大数据集群的用户名
+        """
+        fake_user = PayloadHandler.get_bigdata_user_key(cluster.cluster_type)
+        # 用户名存储方式与密码相同，通过约定fake_user获取
+        return PayloadHandler.get_bigdata_password_by_cluster(cluster, port, fake_user)
+
+    @staticmethod
+    def get_bigdata_password_by_cluster(cluster: Cluster, port: int, username: str) -> str:
+        """
+        通过密码服务 获取大数据集群单条认证信息(用户名/密码/token等)
+        """
+        query_params = {
+            "instances": [
+                {"ip": cluster.immute_domain, "port": port, "bk_cloud_id": cluster.bk_cloud_id}
+            ],
+            "users": [
+                {"username": username, "component": cluster.cluster_type},
+            ],
+        }
+        data = MySQLPrivManagerApi.get_password(query_params)
+        # 判断密码服务是否有对应item
+        if not data["items"]:
+            return ""
+        else:
+            # 默认返回第一个item
+            return base64.b64decode(data["items"][0]["password"]).decode("utf-8")
+
+    @staticmethod
+    def get_bigdata_auth_by_cluster(cluster: Cluster, port: int) -> dict:
+        """
+        通过集群实体，集群端口获取用户名密码(仅username+password)
+        - 优先从密码服务中获取
+        - 如果密码服务为空,则从dbconfig中获取
+        """
+        auth = {"username": "", "password": ""}
+        # 从密码服务获取用户名，若返回空串，则密码服务未存
+        username = PayloadHandler.get_bigdata_username_by_cluster(cluster, port)
+
+        # 若获取到用户名, 则获取密码
+        if username:
+            auth["username"] = username
+            auth["password"] = PayloadHandler.get_bigdata_password_by_cluster(cluster, port, username)
+
+        # 判断auth是否有一个为空, 为空则从dbconfig获取
+        if not auth["username"] or not auth["password"]:
+            logger.error("cannot get auth info from password service")
+            cluster_config_data = DBConfigApi.query_conf_item(
+                {
+                    "bk_biz_id": cluster.bk_biz_id,
+                    "level_name": LevelName.CLUSTER,
+                    "level_value": cluster.immute_domain,
+                    "level_info": {"module": LevelInfoEnum.TendataModuleDefault},
+                    "conf_file": cluster.major_version,
+                    "conf_type": ConfigTypeEnum.DBConf,
+                    "namespace": cluster.cluster_type,
+                    "format": FormatType.MAP,
+                    "method": ReqType.GENERATE_AND_PUBLISH,
+                })
+            # 无校验 dbconfig返回内容
+            auth["username"] = cluster_config_data["content"]["username"]
+            auth["password"] = cluster_config_data["content"]["password"]
+
+        return auth

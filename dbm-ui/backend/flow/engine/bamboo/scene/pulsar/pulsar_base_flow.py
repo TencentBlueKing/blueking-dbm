@@ -25,8 +25,9 @@ from backend.flow.engine.bamboo.scene.pulsar.exceptions import BrokerNotFoundExc
 from backend.flow.plugins.components.collections.pulsar.exec_actuator_script import (
     ExecutePulsarActuatorScriptComponent,
 )
+from backend.flow.utils.base.payload_handler import PayloadHandler
 from backend.flow.utils.pulsar.consts import PulsarConfigEnum
-from backend.flow.utils.pulsar.pulsar_act_payload import PulsarActPayload, get_cluster_config
+from backend.flow.utils.pulsar.pulsar_act_payload import PulsarActPayload, get_cluster_config, get_token_by_cluster
 from backend.flow.utils.pulsar.pulsar_context_dataclass import PulsarActKwargs
 from backend.ticket.constants import TicketType
 from backend.utils.string import str2bool
@@ -111,8 +112,13 @@ class PulsarBaseFlow(object):
         )
         # dbconfig 目前返回值均为str
         base_flow_data["port"] = int(dbconfig[PulsarConfigEnum.Port])
-        base_flow_data["username"] = dbconfig[PulsarConfigEnum.ManagerUserName]
-        base_flow_data["password"] = dbconfig[PulsarConfigEnum.ManagerPassword]
+        # pulsar-manager 用户名/密码 优先从密码服务获取
+        auth_info = PayloadHandler.get_bigdata_auth_by_cluster(cluster, base_flow_data["port"])
+        base_flow_data["username"] = auth_info["username"]
+        base_flow_data["password"] = auth_info["password"]
+        # token不再从dbconfig获取，仅从密码服务获取
+        base_flow_data["token"] = get_token_by_cluster(cluster, base_flow_data["port"])
+
         base_flow_data["retention_time"] = int(dbconfig[PulsarRoleEnum.Broker]["defaultRetentionTimeInMinutes"])
 
         # 扩容需要broker ip
