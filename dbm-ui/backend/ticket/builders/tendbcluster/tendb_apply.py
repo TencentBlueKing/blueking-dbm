@@ -15,6 +15,7 @@ from rest_framework import serializers
 
 from backend.components import DBConfigApi
 from backend.components.dbconfig import constants as dbconf_const
+from backend.configuration.constants import AffinityEnum
 from backend.db_meta.enums import ClusterType
 from backend.db_services.dbbase.constants import IpSource
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
@@ -35,6 +36,9 @@ class TenDBClusterApplyDetailSerializer(serializers.Serializer):
     db_module_id = serializers.IntegerField(help_text=_("DB模块ID"))
     ip_source = serializers.ChoiceField(
         help_text=_("主机来源"), choices=IpSource.get_choices(), default=IpSource.RESOURCE_POOL.value
+    )
+    disaster_tolerance_level = serializers.ChoiceField(
+        help_text=_("容灾级别"), choices=AffinityEnum.get_choices(), required=False, default=AffinityEnum.NONE.value
     )
     resource_spec = serializers.JSONField(help_text=_("部署规格"))
     spider_port = serializers.IntegerField(help_text=_("集群访问端口"))

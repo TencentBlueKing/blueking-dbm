@@ -13,6 +13,7 @@ from django.utils.crypto import get_random_string
 from django.utils.translation import ugettext as _
 from rest_framework import serializers
 
+from backend.configuration.constants import AffinityEnum
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Machine
 from backend.db_services.dbbase.constants import IpSource
@@ -31,6 +32,9 @@ class RedisClusterApplyDetailSerializer(serializers.Serializer):
     db_app_abbr = serializers.CharField(help_text=_("业务英文缩写"))
     city_code = serializers.CharField(
         help_text=_("城市代码"), required=False, allow_blank=True, allow_null=True, default=""
+    )
+    disaster_tolerance_level = serializers.ChoiceField(
+        help_text=_("容灾级别"), choices=AffinityEnum.get_choices(), required=False, default=AffinityEnum.NONE.value
     )
     city_name = serializers.SerializerMethodField(help_text=_("城市名"))
     cluster_type = serializers.CharField(help_text=_("集群类型"))

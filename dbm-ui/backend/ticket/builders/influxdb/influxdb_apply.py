@@ -14,6 +14,7 @@ from django.utils.crypto import get_random_string
 from django.utils.translation import ugettext as _
 from rest_framework import serializers
 
+from backend.configuration.constants import AffinityEnum
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Group
 from backend.db_services.dbbase.constants import IpSource
@@ -28,6 +29,9 @@ logger = logging.getLogger("root")
 class InfluxDBApplyDetailSerializer(BigDataDetailsSerializer):
     city_code = serializers.CharField(
         help_text=_("城市代码"), required=False, allow_blank=True, allow_null=True, default=""
+    )
+    disaster_tolerance_level = serializers.ChoiceField(
+        help_text=_("容灾级别"), choices=AffinityEnum.get_choices(), required=False, default=AffinityEnum.NONE.value
     )
     db_version = serializers.CharField(help_text=_("版本号"))
     ip_source = serializers.ChoiceField(help_text=_("主机来源"), choices=IpSource.get_choices())

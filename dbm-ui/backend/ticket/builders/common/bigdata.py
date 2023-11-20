@@ -15,7 +15,7 @@ from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 from rest_framework.serializers import ValidationError
 
-from backend.configuration.constants import DBType
+from backend.configuration.constants import AffinityEnum, DBType
 from backend.db_meta.enums.cluster_phase import ClusterPhase
 from backend.db_meta.models.cluster import Cluster
 from backend.db_meta.models.instance import StorageInstance
@@ -114,6 +114,9 @@ class BigDataApplyDetailsSerializer(BigDataDetailsSerializer):
 
     city_code = serializers.CharField(
         help_text=_("城市代码"), required=False, allow_blank=True, allow_null=True, default=""
+    )
+    disaster_tolerance_level = serializers.ChoiceField(
+        help_text=_("容灾级别"), choices=AffinityEnum.get_choices(), required=False, default=AffinityEnum.NONE.value
     )
     db_app_abbr = serializers.CharField(help_text=_("业务英文缩写"))
     cluster_name = serializers.CharField(help_text=_("集群名称（英文数字及下划线）"))
