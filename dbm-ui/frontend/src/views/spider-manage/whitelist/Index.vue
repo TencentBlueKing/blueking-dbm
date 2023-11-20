@@ -68,11 +68,10 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import type { WhitelistItem } from '@services/types/whitelist';
   import {
     batchDeleteWhitelist,
     getWhitelist,
-  } from '@services/whitelist';
+  } from '@services/source/whitelist';
 
   import {
     useCopy,
@@ -86,6 +85,8 @@
   import WhitelistOperation from './components/WhitelistOperation.vue';
 
   import { useGlobalBizs } from '@/stores';
+
+  type WhitelistItem = ServiceReturnType<typeof getWhitelist>['results'][number]
 
   interface TableRenderData {
     data: WhitelistItem

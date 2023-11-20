@@ -1,4 +1,4 @@
-import type { HostDetails } from '@services/source/ipchooser';
+import type { HostDetails } from '../../types';
 
 export default class ImportHost implements HostDetails {
   alive: number;

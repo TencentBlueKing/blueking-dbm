@@ -3,7 +3,7 @@ import OpenareaTemplateModel from '@services/model/openarea/openareaTemplate';
 import { useGlobalBizs } from '@stores';
 
 import http from './http';
-import type { ListBase } from './types/common';
+import type { ListBase } from './types';
 
 const { currentBizId } = useGlobalBizs();
 

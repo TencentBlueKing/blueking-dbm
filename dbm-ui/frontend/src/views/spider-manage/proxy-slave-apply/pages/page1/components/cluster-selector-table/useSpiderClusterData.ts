@@ -21,7 +21,7 @@ import {
   shallowRef,
 } from 'vue';
 
-import { getModules } from '@services/common';
+import { getModules } from '@services/source/cmdb';
 
 import { useGlobalBizs } from '@stores';
 

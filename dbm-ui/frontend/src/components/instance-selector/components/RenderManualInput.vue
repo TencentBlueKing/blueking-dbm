@@ -92,7 +92,7 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import { checkInstances } from '@services/clusters';
+  import { checkMysqlInstances } from '@services/source/instances';
   import type { InstanceInfos } from '@services/types/clusters';
 
   import { useGlobalBizs } from '@stores';
@@ -195,7 +195,7 @@
     // 检查 IP:Port 是否存在
     inputState.isLoading = true;
     try {
-      const res = await checkInstances({
+      const res = await checkMysqlInstances({
         bizId: currentBizId,
         instance_addresses: lines,
       });

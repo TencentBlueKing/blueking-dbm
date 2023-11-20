@@ -90,7 +90,7 @@
     getAlarmGroupList,
     insertAlarmGroup,
     updateAlarmGroup,
-  } from '@services/monitorAlarm';
+  } from '@services/source/monitorNoticeGroup';
 
   import { useBeforeClose } from '@hooks';
 

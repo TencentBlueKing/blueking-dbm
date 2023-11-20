@@ -16,7 +16,7 @@ import FixpointLogModel from '@services/model/fixpoint-rollback/fixpoint-log';
 import { useGlobalBizs } from '@stores';
 
 import http from '../http';
-import type { ListBase } from '../types/common';
+import type { ListBase } from '../types';
 
 const { currentBizId } = useGlobalBizs();
 

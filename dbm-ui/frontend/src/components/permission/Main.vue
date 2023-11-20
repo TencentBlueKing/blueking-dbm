@@ -28,7 +28,7 @@
 <script lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import type { Permission, PermissionAction } from '@services/types/common';
+  import type { Permission } from '@services/types';
 
   export default {
     name: 'PermissionTable',
@@ -36,6 +36,8 @@
 </script>
 
 <script setup lang="ts">
+
+
   interface Props {
     permission: Permission | null
   }
@@ -49,7 +51,7 @@
 
     if (actions.length === 0) return [];
 
-    return actions.map((action: PermissionAction) => {
+    return actions.map((action: Permission['permission']['actions'][number]) => {
       const resources: string[] = [];
       const relatedResourceTypes = action.related_resource_types || [];
       for (const related of relatedResourceTypes) {

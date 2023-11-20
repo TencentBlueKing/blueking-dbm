@@ -13,6 +13,8 @@
 
 import http from '../http';
 
+const path = '/apis/dbbase';
+
 /**
  * 查询集群名字是否重复
  */
@@ -21,5 +23,5 @@ export const verifyDuplicatedClusterName = function (params: {
   name: string,
   bk_biz_id: number
 }) {
-  return http.get<boolean>('/apis/dbbase/verify_duplicated_cluster_name/', params);
+  return http.get<boolean>(`${path}/verify_duplicated_cluster_name/`, params);
 };

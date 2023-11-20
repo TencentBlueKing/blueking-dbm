@@ -21,8 +21,8 @@ import type { ResourceInstance } from '@services/types/clusters';
 
 import { useGlobalBizs } from '@stores';
 
+import type { ListBase } from '../types';
 import type { InstanceInfos } from '../types/clusters';
-import type { ListBase } from '../types/common';
 
 interface InstanceItem extends Omit<InstanceInfos, 'spec_config'> {
   spec_config: RedisClusterNodeByIpModel['spec_config']

@@ -12,10 +12,8 @@
 */
 import pinyin from 'tiny-pinyin';
 
-import type { BizItem } from '@services/types/common';
-
 import http from '../http';
-import type { ModuleItem } from '../types/common';
+import type { BizItem } from '../types';
 
 const path = '/apis/cmdb';
 
@@ -94,7 +92,11 @@ export const getModules = function (params: {
   bk_biz_id: number,
   cluster_type: string,
 }) {
-  return http.get<ModuleItem[]>(`${path}/${params.bk_biz_id}/list_modules/`, params);
+  return http.get<{
+    bk_biz_id: number,
+    db_module_id: number,
+    name: string,
+  }[]>(`${path}/${params.bk_biz_id}/list_modules/`, params);
 };
 
 /**

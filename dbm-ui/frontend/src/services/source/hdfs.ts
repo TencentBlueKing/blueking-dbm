@@ -20,7 +20,7 @@ import HdfsPasswordModel from '@services/model/hdfs/hdfs-password';
 import { useGlobalBizs } from '@stores';
 
 import http from '../http';
-import type { ListBase } from '../types/common';
+import type { ListBase } from '../types';
 
 const { currentBizId } = useGlobalBizs();
 
@@ -69,30 +69,21 @@ export const getHdfsDetail = function (params: { id: number }) {
 /**
  * 获取集群拓扑
  */
-export const getHdfsTopoGraph = function (params: {
-  bk_biz_id: number,
-  cluster_id: number
-}) {
+export const getHdfsTopoGraph = function (params: { cluster_id: number }) {
   return http.get<ListBase<HdfsModel[]>>(`${path}/${params.cluster_id}/get_topo_graph/`);
 };
 
 /**
  * 获取集群访问xml配置
  */
-export const getHdfsXmls = function (params: {
-  bk_biz_id: number,
-  cluster_id: number
-}) {
+export const getHdfsXmls = function (params: { cluster_id: number }) {
   return http.get<ClusterConfigXmlsModel>(`${path}/${params.cluster_id}/get_xmls/`);
 };
 
 /**
  * 获取 Hdfs 集群访问密码
  */
-export const getHdfsPassword =  function (params: Record<string, any> & {
-  bk_biz_id: number,
-  cluster_id: number
-}) {
+export const getHdfsPassword = function (params: { cluster_id: number }) {
   return http.get<HdfsPasswordModel>(`${path}/${params.cluster_id}/get_password/`).then(data => new HdfsPasswordModel(data));
 };
 

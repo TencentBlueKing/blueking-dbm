@@ -18,8 +18,8 @@ import TendbInstanceModel from '@services/model/spider/tendbInstance';
 import { useGlobalBizs } from '@stores';
 
 import http from './http';
+import type { ListBase } from './types';
 import type { ResourceInstance } from './types/clusters';
-import type { ListBase } from './types/common';
 
 const { currentBizId } = useGlobalBizs();
 

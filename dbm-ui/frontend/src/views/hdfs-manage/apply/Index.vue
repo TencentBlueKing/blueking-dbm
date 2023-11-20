@@ -342,9 +342,11 @@
   import { reactive } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import { checkHost } from '@services/source/ipchooser';
   import { getVersions } from '@services/source/version';
-  import type { BizItem } from '@services/types/common';
+  import type {
+    BizItem,
+    HostDetails,
+  } from '@services/types';
 
   import {
     useApplyBase,
@@ -363,8 +365,6 @@
   } from '@components/cluster-common/big-data-host-table/HdfsHostTable.vue';
   import RenderHostTable from '@components/cluster-common/big-data-host-table/RenderHostTable.vue';
   import IpSelector from '@components/ip-selector/IpSelector.vue';
-
-  type HostDetails = ServiceReturnType<typeof checkHost>
 
   const { t } = useI18n();
 
@@ -525,7 +525,7 @@
     return false;
   };
 
-  const handleNameAndZookeeperMergeHostChange = (data: HostDetails) => {
+  const handleNameAndZookeeperMergeHostChange = (data: HostDetails[]) => {
     nodeAndZookerperMergeList.value = data;
   };
 
@@ -551,7 +551,7 @@
 
     return hostIdMap[data.host_id] ? t('主机已被使用') : false;
   };
-  const handleDatanodeChange = (data: HostDetails) => {
+  const handleDatanodeChange = (data: HostDetails[]) => {
     formData.details.nodes.datanode = data;
   };
 

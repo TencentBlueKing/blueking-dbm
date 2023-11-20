@@ -14,7 +14,7 @@
 import http from './http';
 import RedisClusterSpecModel from './model/resource-spec/redis-cluster-sepc';
 import ResourceSpecModel from './model/resource-spec/resourceSpec';
-import type { ListBase } from './types/common';
+import type { ListBase } from './types';
 
 // 获取资源规格列表
 export const getResourceSpecList = function (params: Record<string, any> & {

@@ -16,6 +16,7 @@ import SpiderModel from '@services/model/spider/spider';
 import { useGlobalBizs } from '@stores';
 
 import http from '../http';
+import type { ListBase } from '../types';
 import type {
   GetResourcesParams,
   InstanceDetails,
@@ -23,10 +24,8 @@ import type {
   ResourceInstance,
   ResourceItem,
   ResourceTopo,
-  ResourceTopoParams,
   TableFieldsItem,
 } from '../types/clusters';
-import type { ListBase } from '../types/common';
 
 const { currentBizId } = useGlobalBizs();
 
@@ -80,6 +79,6 @@ export const getSpiderDetail = function (params: { clusterId: number }) {
 /**
  * 获取集群拓扑
  */
-export const getSpiderTopoGraph = function (params: ResourceTopoParams & { dbType: string }) {
-  return http.get<ResourceTopo>(`${path}/${params.resource_id}/get_topo_graph/`);
+export const getSpiderTopoGraph = function (params: { cluster_id: number }) {
+  return http.get<ResourceTopo>(`${path}/${params.cluster_id}/get_topo_graph/`);
 };

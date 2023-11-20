@@ -120,15 +120,17 @@
   } from 'tippy.js';
   import { useI18n } from 'vue-i18n';
 
-  import type { WhitelistItem } from '@services/types/whitelist';
   import {
     createWhitelist,
+    getWhitelist,
     updateWhitelist,
-  } from '@services/whitelist';
+  } from '@services/source/whitelist';
 
   import { ipv4 } from '@common/regex';
 
   import { messageSuccess } from '@utils';
+
+  type WhitelistItem = ServiceReturnType<typeof getWhitelist>['results'][number]
 
   interface Props {
     title: string,

@@ -126,7 +126,7 @@
   import { Message } from 'bkui-vue';
   import { useI18n } from 'vue-i18n';
 
-  import type { BizItem } from '@services/types/common';
+  import type { BizItem } from '@services/types';
 
   import {
     useGlobalBizs,
