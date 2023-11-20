@@ -13,7 +13,34 @@
 
 import type { AccountTypesValues } from '@common/const';
 
-import type { HostNodeForSubmit, ListBase } from './common';
+import type { ListBase } from './listBase';
+
+/**
+ * 无权限返回
+ */
+export interface Permission {
+  apply_url: string,
+  permission: {
+    actions: {
+      id: string,
+      name: string,
+      related_resource_types: {
+        instances: {
+          id: string,
+          name: string,
+          type: string,
+          type_name: string
+        }[][]
+        system_id: string,
+        system_name: string,
+        type: string,
+        type_name: string
+      }[]
+    }[],
+    system_id: string,
+    system_name: string
+  }
+}
 
 /**
  * 查询账号规则列表参数
@@ -175,7 +202,10 @@ export interface AccountRulePrivilege {
  */
 export interface AuthorizePreCheckData {
   access_dbs: string[],
-  source_ips: HostNodeForSubmit[],
+  source_ips: {
+    bk_host_id?: number,
+    ip: string
+  }[],
   target_instances: string[],
   user: string,
   cluster_type: string,

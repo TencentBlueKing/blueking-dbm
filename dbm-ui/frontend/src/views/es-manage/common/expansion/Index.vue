@@ -66,6 +66,7 @@
   import type ESModel from '@services/model/es/es';
   import { getHostDetails } from '@services/source/ipchooser';
   import { createTicket } from '@services/source/ticket';
+  import type { HostDetails } from '@services/types';
 
   import { useTicketMessage } from '@hooks';
 
@@ -79,8 +80,6 @@
   import NodeStatusList from '@components/cluster-common/host-expansion/NodeStatusList.vue';
 
   import { messageError } from '@utils';
-
-  type HostDetails = ServiceReturnType<typeof getHostDetails>
 
   interface Props {
     data: ESModel,
@@ -194,8 +193,8 @@
         scope_type: 'biz',
       }],
     }).then((data) => {
-      const hotOriginalHostList: HostDetails = [];
-      const coldOriginalHostList: HostDetails = [];
+      const hotOriginalHostList: HostDetails[] = [];
+      const coldOriginalHostList: HostDetails[] = [];
 
       let hotDiskTotal = 0;
       let coldDiskTotal = 0;

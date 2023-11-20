@@ -42,7 +42,7 @@
 
   import type OperationModel from '@services/model/db-resource/Operation';
   import { fetchHostListByHostId } from '@services/source/dbresourceResource';
-  import { checkHost } from '@services/source/ipchooser';
+  import type { HostDetails } from '@services/types';
 
   import DbStatus from '@components/db-status/index.vue';
 
@@ -50,8 +50,6 @@
     execCopy,
     messageWarn,
   } from '@utils';
-
-  type HostDetails = ServiceReturnType<typeof checkHost>[number]
 
   interface Props {
     data: OperationModel

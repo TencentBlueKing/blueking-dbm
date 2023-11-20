@@ -62,7 +62,7 @@
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
 
-  import type { HostNode } from '@services/types/common';
+  import type { HostNode } from '@services/types';
 
   import { useCopy, useDefaultPagination } from '@hooks';
 

@@ -25,14 +25,12 @@
   import type { Column } from 'bkui-vue/lib/table/props';
   import { useI18n } from 'vue-i18n';
 
-  import { checkHost } from '@services/source/ipchooser';
+  import type { HostDetails } from '@services/types';
 
   import { TicketTypes } from '@common/const';
   import { nameRegx } from '@common/regex';
 
   import BatchEdit from './BatchEdit.vue';
-
-  type HostDetails = ServiceReturnType<typeof checkHost>
 
   interface IFormdata {
     bk_biz_id: '' | number,
@@ -52,8 +50,8 @@
       disaster_tolerance_level: string,
       ip_source: string,
       nodes: {
-        backend: HostDetails,
-        proxy: HostDetails,
+        backend: HostDetails[],
+        proxy: HostDetails[],
       }
     },
   }

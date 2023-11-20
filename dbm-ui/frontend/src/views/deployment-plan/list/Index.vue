@@ -78,12 +78,13 @@
   } from 'vue';
   import { useI18n } from 'vue-i18n';
 
+  import type DeployPlanModel from '@services/model/db-resource/DeployPlan';
   import {
     batchRemoveDeployPlan,
     createDeployPlan,
     fetchDeployPlan,
-    removeDeployPlan  } from '@services/dbResource';
-  import type DeployPlanModel from '@services/model/db-resource/DeployPlan';
+    removeDeployPlan,
+  } from '@services/source/dbresourceDeployPlan';
 
   import { ClusterTypes } from '@common/const';
 

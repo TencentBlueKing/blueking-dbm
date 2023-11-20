@@ -112,7 +112,7 @@
   import { format } from 'date-fns';
   import { useI18n } from 'vue-i18n';
 
-  import { getNodeLog } from '@services/taskflow';
+  import { getNodeLog } from '@services/source/taskflow';
   import type { NodeLog, RetryNodeItem } from '@services/types/taskflow';
 
   import CostTimer from '@components/cost-timer/CostTimer.vue';

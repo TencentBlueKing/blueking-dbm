@@ -147,7 +147,7 @@
   import {
     getAlarmGroupList,
     getAlarmGroupNotifyList,
-  } from '@services/monitorAlarm';
+  } from '@services/source/monitorNoticeGroup';
 
   import { messageWarn } from '@utils';
 

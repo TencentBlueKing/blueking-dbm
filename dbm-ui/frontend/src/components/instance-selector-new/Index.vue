@@ -159,14 +159,16 @@
 <script setup lang="ts">
   import _ from 'lodash';
 
-  import { checkInstances as spiderCheckInstances } from '@services/clusters';
-  import { queryClusters } from '@services/mysqlCluster';
   import {
-    checkInstances as redisCheckInstances,
     listClusterHostsMasterFailoverProxy,
     listClustersMasterFailoverProxy,
   } from '@services/redis/toolbox';
-  import { listSpiderResourceInstances } from '@services/spider';
+  import {
+    checkMysqlInstances,
+    checkRedisInstances,
+  } from '@services/source/instances';
+  import { queryClusters } from '@services/source/mysqlCluster';
+  import { getSpiderInstanceList } from '@services/source/spider';
 
   import { ClusterTypes } from '@common/const';
 
@@ -286,7 +288,7 @@
           isRemotePagination: false,
         },
         manualConfig: {
-          checkInstances: redisCheckInstances,
+          checkInstances: checkRedisInstances,
           checkType: 'ip',
           checkKey: 'ip',
           activePanelId: 'redis',
@@ -306,7 +308,7 @@
           getTopoList: queryClusters,
         },
         tableConfig: {
-          getTableList: listSpiderResourceInstances,
+          getTableList: getSpiderInstanceList,
           firsrColumn: {
             label: 'remote_master',
             field: 'instance_address',
@@ -319,7 +321,7 @@
         id: 'manualInput',
         name: t('手动输入'),
         tableConfig: {
-          getTableList: listSpiderResourceInstances,
+          getTableList: getSpiderInstanceList,
           firsrColumn: {
             label: 'remote_master',
             field: 'instance_address',
@@ -327,7 +329,7 @@
           },
         },
         manualConfig: {
-          checkInstances: spiderCheckInstances,
+          checkInstances: checkMysqlInstances,
           checkType: 'instance',
           checkKey: 'instance_address',
           activePanelId: 'tendbcluster',

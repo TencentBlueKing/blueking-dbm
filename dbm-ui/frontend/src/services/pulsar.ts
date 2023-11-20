@@ -17,8 +17,7 @@ import PulsarNodeModel from '@services/model/pulsar/pulsar-node';
 import PulsarPasswordModel from '@services/model/pulsar/pulsar-password';
 
 import http from './http';
-import type { ListBase } from './types/common';
-
+import type { ListBase } from './types';
 // 获取集群列表
 export const getList = function (params: Record<string, any> & {bk_biz_id: number}) {
   return http.get<ListBase<PulsarModel[]>>(`/apis/bigdata/bizs/${params.bk_biz_id}/pulsar/pulsar_resources/`, params)

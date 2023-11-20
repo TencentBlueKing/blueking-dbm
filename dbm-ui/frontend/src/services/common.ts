@@ -16,14 +16,24 @@ import pinyin from 'tiny-pinyin';
 import http from './http';
 import type {
   BizItem,
-  GetModulesParams,
-  GetUsesParams,
-  IAMParams,
-  ModuleItem,
   Permission,
-  ProfileItem,
-  ProfileResult,
-} from './types/common';
+} from './types';
+
+/**
+ * 校验资源权限参数
+ */
+export interface IAMParams {
+  action_ids: Array<string>,
+  resources: Array<{ type: string, id: string | number }>
+}
+
+/**
+ * 个人配置信息
+ */
+export interface ProfileItem {
+  label: string,
+  values: any
+}
 
 /**
  * 获取业务列表
@@ -51,25 +61,43 @@ export const getBizs = () => http.get<BizItem[]>('/apis/cmdb/list_bizs/').then(r
 /**
  * 获取模型列表
  */
-export const getModules = (params: GetModulesParams) => {
+export const getModules = (params: {
+  bk_biz_id: number,
+  cluster_type: string,
+}) => {
   const { cluster_type } = params;
-  return http.get<ModuleItem[]>(`/apis/cmdb/${params.bk_biz_id}/list_modules/`, { cluster_type });
+  return http.get<{
+    bk_biz_id: number,
+    db_module_id: number,
+    name: string,
+  }[]>(`/apis/cmdb/${params.bk_biz_id}/list_modules/`, { cluster_type });
 };
 
 /**
  * 获取人员列表
  */
-export const getUseList = (params: GetUsesParams) => http.get<{ count: number, results: { username: string, display_name: string }[] }>('/apis/users/list_users/', params);
+export const getUseList = (params: {
+  limit?: number,
+  offset?: number,
+  fuzzy_lookups?: string
+}) => http.get<{ count: number, results: { username: string, display_name: string }[] }>('/apis/users/list_users/', params);
 
 /**
  * 个人配置列表
  */
-export const getProfile = () => http.get<ProfileResult>('/apis/conf/profile/get_profile/');
+export const getProfile = () => http.get<{
+  profile: ProfileItem[],
+  username: string,
+  is_manager: boolean
+}>('/apis/conf/profile/get_profile/');
 
 /**
  * 更新个人配置列表
  */
-export const upsertProfile = (params: ProfileItem) => http.post('/apis/conf/profile/upsert_profile/', params);
+export const upsertProfile = (params: {
+  label: string,
+  values: any
+}) => http.post('/apis/conf/profile/upsert_profile/', params);
 
 /**
  * 查询系统环境变量

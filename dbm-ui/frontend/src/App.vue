@@ -93,7 +93,7 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import { getLotout } from '@services/common';
+  import { getLogout } from '@services/source/logout';
 
   import { useInfo, useSQLTaskNotify } from '@hooks';
 
@@ -133,7 +133,7 @@
   const handleSignOut = () => {
     useInfo({
       title: t('确认退出登录'),
-      onConfirm: () => getLotout().then(() => {
+      onConfirm: () => getLogout().then(() => {
         window.location.reload();
         return true;
       }),

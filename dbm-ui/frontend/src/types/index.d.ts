@@ -14,7 +14,7 @@
 import type { TablePropTypes } from 'bkui-vue/lib/table/props';
 import type { Router } from 'vue-router';
 
-import type { Permission } from '@services/types/common';
+import type { Permission } from '@services/types';
 
 declare global {
   interface Window {

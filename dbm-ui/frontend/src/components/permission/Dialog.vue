@@ -45,7 +45,7 @@
   </BkDialog>
 </template>
 <script lang="ts">
-  import type { Permission } from '@services/types/common';
+  import type { Permission } from '@services/types';
 
   import PermissionMain from './Main.vue';
 

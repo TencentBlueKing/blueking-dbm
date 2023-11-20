@@ -94,8 +94,6 @@
   import { getTendbhaTopoGraph } from '@services/source/tendbha';
   import { getTendbsingleTopoGraph } from '@services/source/tendbsingle';
 
-  import { useGlobalBizs } from '@stores';
-
   import { ClusterTypes } from '@common/const';
 
   import { useFullscreen } from '@vueuse/core';
@@ -115,6 +113,7 @@
   }
 
   interface Props {
+    // eslint-disable-next-line vue/no-unused-properties
     dbType: string,
     clusterType: string,
     id: number,
@@ -124,10 +123,9 @@
   const props = defineProps<Props>();
 
   const { t } = useI18n();
-  const globalBizsStore = useGlobalBizs();
   const showMore = computed(() => props.clusterType === ClusterTypes.TENDBHA);
 
-  const apiMap: Record<string, (params: any) => Promise<any>> = {
+  const apiMap: Record<string, (params: { cluster_id: number }) => Promise<any>> = {
     es: getEsTopoGraph,
     hdfs: getHdfsTopoGraph,
     kafka: getKafkaTopoGraph,
@@ -181,20 +179,8 @@
    * @param id 集群资源ID
    */
   function fetchResourceTopo(id: number) {
-    const {
-      clusterType,
-      dbType,
-    } = props;
-
-    const params = {
-      dbType,
-      type: clusterType,
-      bk_biz_id: globalBizsStore.currentBizId,
-      resource_id: id,
-      cluster_id: id,
-    };
     topoState.loading = true;
-    return apiMap[clusterType](params)
+    return apiMap[props.clusterType]({ cluster_id: id })
       .then((res) => {
         try {
           const { locations, lines } = graphDataInst.formatGraphData(res);

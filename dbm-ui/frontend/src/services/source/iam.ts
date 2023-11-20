@@ -12,7 +12,7 @@
 */
 
 import http from '../http';
-import type { Permission } from '../types/common';
+import type { Permission } from '../types';
 
 const path = '/apis/iam';
 

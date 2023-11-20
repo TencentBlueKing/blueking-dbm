@@ -14,7 +14,7 @@
 import DirtyMachinesModel from '@services/model/db-resource/dirtyMachines';
 
 import http from '../http';
-import type { ListBase } from '../types/common';
+import type { ListBase } from '../types';
 
 const path = '/apis/db_dirty';
 

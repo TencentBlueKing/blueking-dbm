@@ -77,7 +77,7 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import { checkHost } from '@services/source/ipchooser';
+  import type { HostDetails } from '@services/types';
 
   import { useGlobalBizs } from '@stores';
 
@@ -85,8 +85,6 @@
 
   import type { IDataRow } from './Row.vue';
   import useValidtor from './useValidtor';
-
-  type HostDetails = ServiceReturnType<typeof checkHost>[number]
 
   interface Props {
     oldSlave?: IDataRow['oldSlave']

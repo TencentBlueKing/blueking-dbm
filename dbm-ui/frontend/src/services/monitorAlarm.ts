@@ -13,7 +13,7 @@
 
 import http from '@services/http';
 
-import type { ListBase } from '@/services/types/common';
+import type { ListBase } from './types';
 
 // 告警组列表项
 interface AlarmGroup {

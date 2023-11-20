@@ -15,7 +15,7 @@ import RedisRollbackModel from '@services/model/redis/redis-rollback';
 import { useGlobalBizs } from '@stores';
 
 import http from '../http';
-import type { ListBase } from '../types/common';
+import type { ListBase } from '../types';
 
 const { currentBizId } = useGlobalBizs();
 

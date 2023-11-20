@@ -17,11 +17,11 @@ import {
   fetchSubzones,
 } from '@services/source/dbresourceResource';
 import { getResourceSpec } from '@services/source/dbresourceSpec';
-import { fetchDbTypeList } from '@services/source/infras';
-import { getCloudList } from '@services/source/ipchooser';
 import {
+  fetchDbTypeList,
   getInfrasCities,
-} from '@services/ticket';
+} from '@services/source/infras';
+import { getCloudList } from '@services/source/ipchooser';
 
 import { ipv4 } from '@common/regex';
 

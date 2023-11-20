@@ -13,8 +13,8 @@
 
 import { defineStore } from 'pinia';
 
-import { getFunController } from '@services/functionController';
 import FunctionControllModel from '@services/model/function-controller/functionController';
+import { getFunController } from '@services/source/functionController';
 
 /**
  * 配置功能开关

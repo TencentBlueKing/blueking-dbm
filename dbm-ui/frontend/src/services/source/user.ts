@@ -12,17 +12,18 @@
 */
 
 import http from '../http';
-import type {
-  GetUsesParams,
-  ListBase,
-} from '../types/common';
+import type { ListBase } from '../types';
 
 const path = '/apis/users';
 
 /**
  * 获取人员列表
  */
-export const getUserList = function (params: GetUsesParams) {
+export const getUserList = function (params: {
+  limit?: number,
+  offset?: number,
+  fuzzy_lookups?: string
+} = {}) {
   return http.get<ListBase<{
     username: string,
     display_name: string
