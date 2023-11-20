@@ -330,6 +330,10 @@ func (c *InstallMySQLMonitorComp) GenerateItemsConfig() (err error) {
 // CreateExporterCnf 根据mysql部署端口生成对应的exporter配置文件
 func (c *InstallMySQLMonitorComp) CreateExporterCnf() (err error) {
 	for _, inst := range c.Params.InstancesInfo {
+		if c.Params.MachineType == "proxy" { // || inst.Role == ""
+			// mysql-proxy 的exporter 还在 proxy-deploy 任务里
+			continue
+		}
 		exporterConfName := fmt.Sprintf("/etc/exporter_%d.cnf", inst.Port)
 		if err = util.CreateExporterConf(
 			exporterConfName,

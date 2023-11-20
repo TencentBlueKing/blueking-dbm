@@ -31,6 +31,9 @@ class RedisClusterApplyDetailSerializer(serializers.Serializer):
     city_code = serializers.CharField(
         help_text=_("城市代码"), required=False, allow_blank=True, allow_null=True, default=""
     )
+    disaster_tolerance_level = serializers.ChoiceField(
+        help_text=_("容灾级别"), choices=AffinityEnum.get_choices(), required=False, default=AffinityEnum.NONE.value
+    )
     city_name = serializers.SerializerMethodField(help_text=_("城市名"))
     cluster_type = serializers.CharField(help_text=_("集群类型"))
     db_version = serializers.CharField(help_text=_("版本号"))

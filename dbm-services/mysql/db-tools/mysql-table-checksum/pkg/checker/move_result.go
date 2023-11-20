@@ -51,6 +51,12 @@ func (r *Checker) moveResult() error {
 		_ = conn.Close()
 	}()
 
+	_, err = conn.ExecContext(context.Background(), `SET SESSION TRANSACTION ISOLATION LEVEL REPEATABLE READ;`)
+	if err != nil {
+		slog.Error("set iso level", slog.String("error", err.Error()))
+		return err
+	}
+
 	_, err = conn.ExecContext(context.Background(), `SET BINLOG_FORMAT = 'STATEMENT'`)
 	if err != nil {
 		slog.Error("set binlog_format = 'statement'", slog.String("error", err.Error()))
