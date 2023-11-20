@@ -298,10 +298,12 @@ class GetOsSysParam(BkJobService):
         resp = JobApi.fast_execute_script({**common_kwargs, **body}, raw=True)
         self.log_info(f"fast execute script response: {resp}")
         self.log_info(f"job url:{env.BK_JOB_URL}/api_execute/{resp['data']['job_instance_id']}")
+        # data.outputs.ext_result = resp
+        # result = json.loads(re.search(cpl, resp["data"]["log_content"]).group("context"))
+        # setattr(trans_data, "max_open_file", copy.deepcopy(result))
+        # data.outputs["trans_data"] = trans_data
+        data.inputs.write_payload_var = "max_open_file"
         data.outputs.ext_result = resp
-        result = json.loads(re.search(cpl, resp["data"]["log_content"]).group("context"))
-        setattr(trans_data, "max_open_file", copy.deepcopy(result))
-        data.outputs["trans_data"] = trans_data
         data.outputs.exec_ips = exec_ips
         return True
 

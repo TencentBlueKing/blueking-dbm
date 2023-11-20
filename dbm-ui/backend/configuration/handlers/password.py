@@ -138,7 +138,7 @@ class DBPasswordHandler(object):
             if role in TenDBClusterSpiderRole.get_values():
                 return MySQLPasswordRole.SPIDER.value
             if role in [InstanceRole.REMOTE_MASTER.value, InstanceRole.REMOTE_SLAVE.value]:
-                return MySQLPasswordRole.SPIDER.value
+                return MySQLPasswordRole.STORAGE.value
 
         # 映射mysql的角色
         if role in [InstanceInnerRole.MASTER.value, InstanceInnerRole.SLAVE.value]:
