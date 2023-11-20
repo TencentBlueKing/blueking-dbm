@@ -89,14 +89,12 @@ func (x *Xtrabackup) PostRun() (err error) {
 		return err
 	}
 
-	/*
-		logger.Info("repair ADMIN user host and password")
-		// 物理备份，ADMIN密码与 backup instance(cluster?) 相同，修复成
-		// 修复ADMIN用户
-		if err := x.RepairUserAdmin(native.DBUserAdmin, x.TgtInstance.Pwd); err != nil {
-			return err
-		}
-	*/
+	logger.Info("repair ADMIN user host and password")
+	// 物理备份，ADMIN密码与 backup instance(cluster?) 相同，修复成
+	// 修复ADMIN用户
+	if err := x.RepairUserAdmin(x.TgtInstance.User, x.TgtInstance.Pwd); err != nil {
+		return err
+	}
 	logger.Info("repair other user privileges")
 	// 修复权限
 	if err := x.RepairPrivileges(); err != nil {

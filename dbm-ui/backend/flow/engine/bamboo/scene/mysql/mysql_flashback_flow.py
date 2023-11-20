@@ -63,7 +63,7 @@ class MysqlFlashbackFlow(object):
             one_cluster["work_dir"] = f"/data/dbbak/{self.root_id}"
 
             ticket_data = {
-                **copy.deepcopy(self.data),
+                **copy.deepcopy(info),
                 "uid": self.data["uid"],
                 "created_by": self.data["created_by"],
                 "bk_biz_id": self.data["bk_biz_id"],
