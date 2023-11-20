@@ -42,7 +42,7 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import { getMonitorUrl } from '@services/common';
+  import { getMonitorUrl } from '@services/source/monitorGrafana';
 
   import { useGlobalBizs } from '@stores';
 

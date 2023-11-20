@@ -65,8 +65,8 @@
   import { useRouter } from 'vue-router';
 
   import { precheckPermissionClone } from '@services/permission';
-  import { checkHost } from '@services/source/ipchooser';
   import { createTicket } from '@services/source/ticket';
+  import type { HostDetails } from '@services/types';
 
   import { useGlobalBizs } from '@stores';
 
@@ -78,8 +78,6 @@
     type IDataRow,
   } from './components/RenderData/Row.vue';
 
-  type HostDetails = ServiceReturnType<typeof checkHost>
-
   const { t } = useI18n();
   const router = useRouter();
   const { currentBizId } = useGlobalBizs();
@@ -89,7 +87,7 @@
   const isSubmitting  = ref(false);
 
   const tableData = shallowRef<Array<IDataRow>>([createRowData({})]);
-  const selectedIps = shallowRef<HostDetails>([]);
+  const selectedIps = shallowRef<HostDetails[]>([]);
 
   let ipMemo = {} as Record<string, boolean>;
 
@@ -107,7 +105,7 @@
     isShowIpSelector.value = true;
   };
 
-  const handleHostChange = (data: HostDetails) => {
+  const handleHostChange = (data: HostDetails[]) => {
     selectedIps.value = data;
     const newList = data.reduce((result, item) => {
       const { ip } = item;

@@ -75,7 +75,7 @@
 <script setup lang="ts">
   import { useRequest } from 'vue-request';
 
-  import { getModules } from '@services/common';
+  import { getModules } from '@services/source/cmdb';
   import { getLevelConfig } from '@services/source/configs';
   import type { ParameterConfigItem } from '@services/types/configs';
 

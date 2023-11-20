@@ -17,7 +17,7 @@ import EsNodeModel from '@services/model/es/es-node';
 import EsPasswordModel from '@services/model/es/es-password';
 
 import http from './http';
-import type { ListBase } from './types/common';
+import type { ListBase } from './types';
 
 // 获取集群列表
 export const getList = function (params: Record<string, any> & {bk_biz_id: number}) {

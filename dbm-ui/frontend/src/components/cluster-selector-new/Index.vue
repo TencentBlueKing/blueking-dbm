@@ -128,8 +128,8 @@
   } from 'vue';
 
   import { getRedisList } from '@services/source/redis';
-  import { getList } from '@services/spider';
-  import type { ListBase } from '@services/types/common';
+  import { getSpiderList } from '@services/source/spider';
+  import type { ListBase } from '@services/types';
 
   import { useCopy, useSelectorDialogWidth } from '@hooks';
 
@@ -173,7 +173,7 @@
 
   type TabConfig = Omit<TabItem, 'name' | 'id' | 'tableContent' | 'resultContent'>
 
-  type SpiderModel = ServiceReturnType<typeof getList>['results'][number];
+  type SpiderModel = ServiceReturnType<typeof getSpiderList>['results'][number];
   type RedisModel = ServiceReturnType<typeof getRedisList>['results'][number];
 
   const props = defineProps<Props>();
@@ -200,7 +200,7 @@
     [ClusterTypes.TENDBCLUSTER]: {
       id: ClusterTypes.TENDBCLUSTER,
       name: t('集群选择'),
-      getResourceList: getList,
+      getResourceList: getSpiderList,
       tableContent: SpiderTable,
       resultContent: ResultPreview,
     },

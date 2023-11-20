@@ -16,7 +16,7 @@ import { useI18n } from 'vue-i18n';
 
 import { createAppAbbr } from '@services/source/cmdb';
 import { createTicket } from '@services/source/ticket';
-import type { BizItem } from '@services/types/common';
+import type { BizItem } from '@services/types';
 
 import { useInfo } from '@hooks';
 

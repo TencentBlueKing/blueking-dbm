@@ -19,7 +19,7 @@ import PulsarPasswordModel from '@services/model/pulsar/pulsar-password';
 import { useGlobalBizs } from '@stores';
 
 import http from '../http';
-import type { ListBase } from '../types/common';
+import type { ListBase } from '../types';
 
 const { currentBizId } = useGlobalBizs();
 
@@ -70,20 +70,14 @@ export const getPulsarDetail = function (params: { id: number }) {
 /**
  * 获取集群拓扑
  */
-export const getPulsarTopoGraph = function (params: {
-  bk_biz_id: number,
-  cluster_id: number
-}) {
+export const getPulsarTopoGraph = function (params: { cluster_id: number }) {
   return http.get<ListBase<PulsarModel[]>>(`${path}/${params.cluster_id}/get_topo_graph/`);
 };
 
 /**
  * 获取 Pulsar 集群访问密码
  */
-export const getPulsarPassword = function (params: Record<string, any> & {
-  bk_biz_id: number,
-  cluster_id: number
-}) {
+export const getPulsarPassword = function (params: { cluster_id: number }) {
   return http.get<PulsarPasswordModel>(`${path}/${params.cluster_id}/get_password/`).then(data => new PulsarPasswordModel(data));
 };
 

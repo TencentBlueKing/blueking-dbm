@@ -48,8 +48,6 @@
   import ClusterConfigXmlsModel from '@services/model/hdfs/hdfs-cluster-config-xmls';
   import { getHdfsXmls } from '@services/source/hdfs';
 
-  import { useGlobalBizs } from '@stores';
-
   import SettingsMonacoEditor from './SettingsMonacoEditor.vue';
 
   import { useCopy } from '@/hooks';
@@ -65,7 +63,6 @@
 
   const props = defineProps<Props>();
 
-  const { currentBizId } = useGlobalBizs();
   const copy = useCopy();
 
   const isLoading = ref(false);
@@ -76,10 +73,7 @@
     if (!props.clusterId) return;
 
     isLoading.value = true;
-    getHdfsXmls({
-      bk_biz_id: currentBizId,
-      cluster_id: props.clusterId,
-    })
+    getHdfsXmls({ cluster_id: props.clusterId })
       .then((res) => {
         xmls.value = xmlKeys.map(key => ({
           name: key,

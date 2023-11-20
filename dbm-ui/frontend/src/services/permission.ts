@@ -17,7 +17,7 @@ import type {
 } from '@common/const';
 
 import http from './http';
-import type { ListBase } from './types/common';
+import type { ListBase } from './types';
 import type {
   AccountRule,
   AuthorizePreCheckData,

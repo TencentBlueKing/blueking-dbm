@@ -36,6 +36,7 @@ module.exports = {
     __RESOURCE_UNIQUE_KEY__: false,
     ValueOf: false,
     ServiceReturnType: false,
+    ServiceParameters: false,
     SelectItem: false,
     KeyExpand: false,
   },

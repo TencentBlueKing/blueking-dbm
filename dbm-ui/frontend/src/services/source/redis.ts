@@ -18,19 +18,17 @@ import { useGlobalBizs } from '@stores';
 
 import http from '../http';
 import type {
-  ClusterPasswordParams,
+  HostNode,
+  ListBase,
+} from '../types';
+import type {
   InstanceDetails,
   InstanceDetailsParams,
   ResourceInstance,
   ResourceRedisItem,
   ResourceTopo,
-  ResourceTopoParams,
   TableFieldsItem,
 } from '../types/clusters';
-import type {
-  HostNode,
-  ListBase,
-} from '../types/common';
 
 const { currentBizId } = useGlobalBizs();
 
@@ -96,7 +94,7 @@ export const getRedisNodes = function (params: {
 /**
  * 获取集群密码
  */
-export const getRedisPassword = function (params: ClusterPasswordParams) {
+export const getRedisPassword = function (params: { cluster_id: number }) {
   return http.get<{
     cluster_name: string,
     domain: string,
@@ -107,8 +105,8 @@ export const getRedisPassword = function (params: ClusterPasswordParams) {
 /**
  * 获取集群拓扑
  */
-export const getRedisTopoGraph = function (params: ResourceTopoParams & { dbType: string }) {
-  return http.get<ResourceTopo>(`${path}/${params.resource_id}/get_topo_graph/`);
+export const getRedisTopoGraph = function (params: { cluster_id: number }) {
+  return http.get<ResourceTopo>(`${path}/${params.cluster_id}/get_topo_graph/`);
 };
 
 /**

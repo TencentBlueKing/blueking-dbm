@@ -19,7 +19,7 @@ import EsPasswordModel from '@services/model/es/es-password';
 import { useGlobalBizs } from '@stores';
 
 import http from '../http';
-import type { ListBase } from '../types/common';
+import type { ListBase } from '../types';
 
 const { currentBizId } = useGlobalBizs();
 
@@ -69,30 +69,21 @@ export const getEsDetail = function (params: { id: number }) {
 /**
  * 获取集群节点
  */
-export const getEsNodes = function (params: {
-  bk_biz_id: number,
-  cluster_id: number
-}) {
+export const getEsNodes = function (params: { cluster_id: number }) {
   return http.get<ListBase<EsModel[]>>(`${path}/${params.cluster_id}/get_nodes/`);
 };
 
 /**
  * 获取集群拓扑
  */
-export const getEsTopoGraph = function (params: {
-  bk_biz_id: number,
-  cluster_id: number
-}) {
+export const getEsTopoGraph = function (params: { cluster_id: number }) {
   return http.get<ListBase<EsModel[]>>(`${path}/${params.cluster_id}/get_topo_graph/`);
 };
 
 /**
  * 获取 ES 集群访问密码
  */
-export const getEsPassword = function (params: {
-  bk_biz_id: number,
-  cluster_id: number
-}) {
+export const getEsPassword = function (params: { cluster_id: number }) {
   return http.get<EsPasswordModel>(`${path}/${params.cluster_id}/get_password/`).then(data => new EsPasswordModel(data));
 };
 

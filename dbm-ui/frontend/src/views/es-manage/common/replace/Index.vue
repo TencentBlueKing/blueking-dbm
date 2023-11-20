@@ -97,8 +97,8 @@
   import { useI18n } from 'vue-i18n';
 
   import type EsModel from '@services/model/es/es';
-  import { checkHost } from '@services/source/ipchooser';
   import { createTicket } from '@services/source/ticket';
+  import type { HostDetails } from '@services/types';
 
   import { useGlobalBizs } from '@stores';
 
@@ -109,8 +109,6 @@
   } from '@components/cluster-common/es-host-replace/Index.vue';
 
   import { messageError  } from '@utils';
-
-  type HostDetails = ServiceReturnType<typeof checkHost>[number]
 
   interface Props {
     data: EsModel,
