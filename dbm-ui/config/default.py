@@ -19,6 +19,7 @@ from blueapps.conf.default_settings import *  # pylint: disable=wildcard-import
 from blueapps.core.celery.celery import app
 
 from backend import env
+from backend.core.encrypt.interceptors import SymmetricInterceptor
 
 if env.RUN_VER == "open":
     from blueapps.patch.settings_open_saas import *  # pylint: disable=wildcard-import
