@@ -23,8 +23,7 @@ class DBAdministrator(models.Model):
     users = models.JSONField(_("人员列表"))
 
     class Meta:
-        verbose_name = _("DBA人员设置")
-        verbose_name_plural = _("DBA人员设置")
+        verbose_name = verbose_name_plural = _("DBA人员设置(DBAdministrator)")
         unique_together = ("bk_biz_id", "db_type")
 
     @classmethod

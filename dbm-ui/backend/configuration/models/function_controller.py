@@ -8,12 +8,12 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from blue_krill.data_types.enum import EnumField, StructuredEnum
 from django.db import models
 from django.utils.translation import ugettext_lazy as _
 
 from backend.configuration.constants import DBType
 from backend.db_meta.enums import ClusterType
+from blue_krill.data_types.enum import EnumField, StructuredEnum
 
 
 class CustomFuncNameEnum(str, StructuredEnum):
@@ -67,7 +67,7 @@ FUNCTION_CONTROLLER_INIT_MAP = {
         "is_enabled": True,
         "children": {
             "monitor_policy": {"is_enabled": True},
-            "duty_rule": {"is_enabled": False},
+            "duty_rule": {"is_enabled": True},
             "notice_group": {"is_enabled": True},
         },
     },
@@ -86,8 +86,7 @@ class FunctionController(models.Model):
     parent_name = models.CharField(_("父功能名称"), max_length=255, null=True, blank=True)
 
     class Meta:
-        verbose_name = _("功能控制器")
-        verbose_name_plural = _("功能控制器")
+        verbose_name = verbose_name_plural = _("功能控制器(FunctionController)")
         unique_together = ("name", "parent_name")
 
     @classmethod

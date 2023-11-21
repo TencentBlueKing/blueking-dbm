@@ -137,10 +137,7 @@ BIZ_CONFIG_INFO = {
 }
 
 # 默认的环境容灾要求
-AFFINITY_VALUE = [
-    {"value": AffinityEnum.CROS_SUBZONE, "label": _("跨机房部署")},
-    {"value": AffinityEnum.SAME_SUBZONE_CROSS_SWTICH, "label": _("同机房部署")},
-]
+AFFINITY_VALUE = []
 
 # 默认具备迁移权限的人员
 DBM_DEFAULT_MIGRATE_USER = ["admin"]
@@ -155,7 +152,7 @@ DEFAULT_SETTINGS = [
     [SystemSettingsEnum.BKM_DUTY_NOTICE.value, "dict", BKM_DUTY_NOTICE_VALUE, _("默认通知配置")],
     [SystemSettingsEnum.DBM_MIGRATE_USER, "list", DBM_DEFAULT_MIGRATE_USER, _("具备迁移权限的人员名单")],
     [SystemSettingsEnum.BIZ_CONFIG, "dict", BIZ_CONFIG_INFO, _("默认的全业务配置信息")],
-    [SystemSettingsEnum.AFFINITY, "list", AFFINITY_VALUE, _("环境的容灾要求")],
+    [SystemSettingsEnum.AFFINITY, "list", [], _("环境的容灾要求")],
 ]
 
 # 环境配置项 是否支持DNS解析 pulsar flow used
