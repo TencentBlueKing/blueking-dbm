@@ -12,117 +12,119 @@
 -->
 
 <template>
-  <DbForm
-    ref="createModuleFormRef"
-    class="create-module db-scroll-y"
-    :label-width="168"
-    :model="formData">
-    <DbCard
-      class="mb-16"
-      :title="$t('模块信息')">
-      <BkFormItem
-        :label="$t('模块名称')"
-        property="module_name"
-        required
-        :rules="rules.module_name">
-        <BkInput
-          v-model="formData.module_name"
-          :placeholder="$t('由英文字母_数字_连字符_组成')"
-          :readonly="isReadonly" />
-        <span class="belong-business">{{ $t('所属业务') }} : {{ bizInfo.name }}</span>
-      </BkFormItem>
-    </DbCard>
-    <DbCard
-      class="mb-16"
-      :title="$t('绑定数据库配置')">
-      <BkFormItem
-        :label="$t('数据库类型')"
-        property="mysql_type"
-        required>
-        <BkTag
-          class="mysql-type-item"
-          theme="info"
-          type="stroke">
-          <template #icon>
-            <i class="db-icon-mysql mr-5" />
-          </template>
-          {{ ticketInfo.name }}
-        </BkTag>
-      </BkFormItem>
-      <BkFormItem
-        :label="$t('数据库版本')"
-        property="version"
-        required>
-        <BkSelect
-          v-model="formData.version"
-          :clearable="false"
-          :disabled="isBindSuccessfully"
-          filterable
-          :input-search="false"
-          :loading="loadingState.versions"
-          :placeholder="$t('请选择数据库版本')">
-          <BkOption
-            v-for="(item, index) in listState.versions"
-            :key="index"
-            :label="item"
-            :value="item" />
-        </BkSelect>
-      </BkFormItem>
-      <BkFormItem
-        :label="$t('字符集')"
-        property="character_set"
-        required>
-        <BkSelect
-          v-model="formData.character_set"
-          :clearable="false"
-          :disabled="isBindSuccessfully"
-          filterable
-          :placeholder="$t('请选择字符集')">
-          <BkOption
-            v-for="(item, index) in listState.characterSets"
-            :key="index"
-            :label="item"
-            :value="item" />
-        </BkSelect>
-      </BkFormItem>
-    </DbCard>
-    <DbCard :title="$t('参数配置')">
-      <BkLoading :loading="configState.loading">
-        <ParameterTable
-          ref="parameterTableRef"
-          :data="configState.data.conf_items"
-          :is-anomalies="configState.isAnomalies"
-          level="module"
-          :origin-data="configState.originConfItems"
-          :parameters="configState.parameters"
-          @add-item="handleAddConfItem"
-          @on-change-enums="handleChangeEnums"
-          @on-change-lock="handleChangeLock"
-          @on-change-multiple-enums="handleChangeMultipleEnums"
-          @on-change-number-input="handleChangeNumberInput"
-          @on-change-parameter-item="handleChangeParameterItem"
-          @on-change-range="handleChangeRange"
-          @refresh="fetchLevelConfig"
-          @remove-item="handleRemoveConfItem" />
-      </BkLoading>
-    </DbCard>
-    <div class="staff-setting__footer">
-      <div class="absolute-footer">
-        <BkButton
-          :disabled="disabledSubmit"
-          :loading="loadingState.submit"
-          theme="primary"
-          @click="handleSubmit">
-          {{ $t('保存') }}
-        </BkButton>
-        <BkButton
-          :disabled="loadingState.submit"
-          @click="resetFormData()">
-          {{ $t('重置') }}
-        </BkButton>
-      </div>
-    </div>
-  </DbForm>
+  <SmartAction :offset-target="getSmartActionOffsetTarget">
+    <DbForm
+      ref="createModuleFormRef"
+      class="create-module db-scroll-y"
+      :label-width="168"
+      :model="formData">
+      <DbCard
+        class="mb-16"
+        :title="$t('模块信息')">
+        <BkFormItem
+          :label="$t('模块名称')"
+          property="module_name"
+          required
+          :rules="rules.module_name">
+          <BkInput
+            v-model="formData.module_name"
+            :placeholder="$t('由英文字母_数字_连字符_组成')"
+            :readonly="isReadonly" />
+          <span class="belong-business">{{ $t('所属业务') }} : {{ bizInfo.name }}</span>
+        </BkFormItem>
+      </DbCard>
+      <DbCard
+        class="mb-16"
+        :title="$t('绑定数据库配置')">
+        <BkFormItem
+          :label="$t('数据库类型')"
+          property="mysql_type"
+          required>
+          <BkTag
+            class="mysql-type-item"
+            theme="info"
+            type="stroke">
+            <template #icon>
+              <i class="db-icon-mysql mr-5" />
+            </template>
+            {{ ticketInfo.name }}
+          </BkTag>
+        </BkFormItem>
+        <BkFormItem
+          :label="$t('数据库版本')"
+          property="version"
+          required>
+          <BkSelect
+            v-model="formData.version"
+            :clearable="false"
+            :disabled="isBindSuccessfully"
+            filterable
+            :input-search="false"
+            :loading="loadingState.versions"
+            :placeholder="$t('请选择数据库版本')">
+            <BkOption
+              v-for="(item, index) in listState.versions"
+              :key="index"
+              :label="item"
+              :value="item" />
+          </BkSelect>
+        </BkFormItem>
+        <BkFormItem
+          :label="$t('字符集')"
+          property="character_set"
+          required>
+          <BkSelect
+            v-model="formData.character_set"
+            :clearable="false"
+            :disabled="isBindSuccessfully"
+            filterable
+            :placeholder="$t('请选择字符集')">
+            <BkOption
+              v-for="(item, index) in listState.characterSets"
+              :key="index"
+              :label="item"
+              :value="item" />
+          </BkSelect>
+        </BkFormItem>
+      </DbCard>
+      <DbCard :title="$t('参数配置')">
+        <BkLoading :loading="configState.loading">
+          <ParameterTable
+            ref="parameterTableRef"
+            :data="configState.data.conf_items"
+            :is-anomalies="configState.isAnomalies"
+            level="module"
+            :origin-data="configState.originConfItems"
+            :parameters="configState.parameters"
+            @add-item="handleAddConfItem"
+            @on-change-enums="handleChangeEnums"
+            @on-change-lock="handleChangeLock"
+            @on-change-multiple-enums="handleChangeMultipleEnums"
+            @on-change-number-input="handleChangeNumberInput"
+            @on-change-parameter-item="handleChangeParameterItem"
+            @on-change-range="handleChangeRange"
+            @refresh="fetchLevelConfig"
+            @remove-item="handleRemoveConfItem" />
+        </BkLoading>
+      </DbCard>
+    </DbForm>
+    <template #action>
+      <BkButton
+        class="w-88"
+        :disabled="disabledSubmit"
+        :loading="loadingState.submit"
+        theme="primary"
+        @click="handleSubmit">
+        {{ $t('保存') }}
+      </BkButton>
+      <BkButton
+        class="w-88 ml-8"
+        :disabled="loadingState.submit"
+        @click="resetFormData()">
+        {{ $t('重置') }}
+      </BkButton>
+    </template>
+  </SmartAction>
 </template>
 
 <script setup lang="ts">
@@ -159,6 +161,8 @@
   const router = useRouter();
   const route = useRoute();
   const globalBizsStore = useGlobalBizs();
+
+  const getSmartActionOffsetTarget = () => document.querySelector('.bk-form-content');
 
   const isBindSuccessfully = ref(false);
   const paramsConfigDataStringify = ref('');
@@ -509,6 +513,7 @@
 
   .create-module {
     height: 100%;
+    padding-bottom: 20px;
 
     :deep(.bk-form-item) {
       max-width: 690px;
@@ -531,14 +536,6 @@
         color: @primary-color;
         background: white;
         border: 1px solid @border-primary;
-      }
-    }
-
-    &__footer {
-      margin-left: 192px;
-
-      .bk-button {
-        width: 88px;
       }
     }
   }

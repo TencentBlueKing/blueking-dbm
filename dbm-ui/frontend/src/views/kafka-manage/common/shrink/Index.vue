@@ -234,7 +234,7 @@
             }));
 
             createTicket({
-              ticket_type: 'PULSAR_SHRINK',
+              ticket_type: 'KAFKA_SHRINK',
               bk_biz_id: bizId,
               details: {
                 cluster_id: props.data.id,
