@@ -173,6 +173,44 @@ class Services:
         return True
 
     @staticmethod
+    def init_cc_dbm_meta(bk_biz_id=env.DBA_APP_BK_BIZ_ID):
+
+        # 初始化主机自定义属性，用于system数据拷贝
+        logger.info("[%s] init cc biz custom field <%s> for monitor's dbm_system copy.", bk_biz_id, CC_HOST_DBM_ATTR)
+        model_attrs = CCApi.search_object_attribute(
+            {
+                "bk_biz_id": bk_biz_id,
+                "bk_obj_id": "host",
+            },
+            use_admin=True,
+        )
+
+        exist_dbm_attr = [attr for attr in model_attrs if attr["bk_property_id"] == CC_HOST_DBM_ATTR]
+        if exist_dbm_attr:
+            logger.info("skip exist dbm attr in host model")
+            return True
+
+        CCApi.create_biz_custom_field(
+            {
+                "bk_biz_id": bk_biz_id,
+                "bk_obj_id": "host",
+                "bk_property_name": CC_HOST_DBM_ATTR,
+                "bk_property_id": CC_HOST_DBM_ATTR,
+                "bk_property_group": "default",
+                "unit": "",
+                "placeholder": "dbm专用字段",
+                "bk_property_type": "longchar",
+                # 必须为True，否则字段只读
+                "editable": True,
+                "isrequired": False,
+                "option": "",
+            },
+            use_admin=True,
+        )
+
+        logger.info("init cc db_app_abbr for english app")
+
+    @staticmethod
     def auto_create_bkcc_service() -> bool:
         """初始化cc配置:
         - 主机模型增加dbm_meta自定义字段
@@ -211,41 +249,10 @@ class Services:
             )
 
         # 初始化主机自定义属性，用于system数据拷贝
-        logger.info("init cc biz custom field <%s> for monitor's dbm_system copy.", CC_HOST_DBM_ATTR)
-        model_attrs = CCApi.search_object_attribute(
-            {
-                "bk_biz_id": env.DBA_APP_BK_BIZ_ID,
-                "bk_obj_id": "host",
-            },
-            use_admin=True,
-        )
-
-        exist_dbm_attr = [attr for attr in model_attrs if attr["bk_property_id"] == CC_HOST_DBM_ATTR]
-        if exist_dbm_attr:
-            logger.info("skip exist dbm attr in host model")
-            return True
-
-        CCApi.create_biz_custom_field(
-            {
-                "bk_biz_id": env.DBA_APP_BK_BIZ_ID,
-                "bk_obj_id": "host",
-                "bk_property_name": CC_HOST_DBM_ATTR,
-                "bk_property_id": CC_HOST_DBM_ATTR,
-                "bk_property_group": "default",
-                "unit": "",
-                "placeholder": "dbm专用字段",
-                "bk_property_type": "longchar",
-                # 必须为True，否则字段只读
-                "editable": True,
-                "isrequired": False,
-                "option": "",
-            },
-            use_admin=True,
-        )
-
-        logger.info("init cc db_app_abbr for english app")
+        Services.init_cc_dbm_meta()
 
         # 为业务模型增加dbm_app_abbr字段
+        logger.info("init cc db_app_abbr for english app")
         model_attrs = CCApi.search_object_attribute(
             {
                 "bk_biz_id": env.DBA_APP_BK_BIZ_ID,

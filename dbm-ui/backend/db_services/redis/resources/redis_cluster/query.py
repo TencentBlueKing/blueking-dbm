@@ -18,7 +18,7 @@ from backend import env
 from backend.db_meta.api.cluster.tendiscache.handler import TendisCacheClusterHandler
 from backend.db_meta.api.cluster.tendispluscluster.handler import TendisPlusClusterHandler
 from backend.db_meta.api.cluster.tendisssd.handler import TendisSSDClusterHandler
-from backend.db_meta.enums import InstanceRole
+from backend.db_meta.enums import ClusterEntryType, InstanceRole
 from backend.db_meta.enums.cluster_type import ClusterType
 from backend.db_meta.models import AppCache, Machine, Spec
 from backend.db_meta.models.cluster import Cluster
@@ -256,6 +256,13 @@ class ListRetrieveResource(query.ListRetrieveResource):
             cluster_spec = model_to_dict(spec)
             cluster_capacity = spec.capacity * machine_pair_cnt
 
+        # dns是否指向clb
+        dns_to_clb = cluster.clusterentry_set.filter(
+            cluster_entry_type=ClusterEntryType.DNS.value,
+            entry=cluster.immute_domain,
+            forward_to__cluster_entry_type=ClusterEntryType.CLB.value,
+        ).exists()
+
         return {
             "id": cluster.id,
             "phase": cluster.phase,
@@ -275,6 +282,7 @@ class ListRetrieveResource(query.ListRetrieveResource):
             "cluster_type_name": ClusterType.get_choice_label(cluster.cluster_type),
             "master_domain": cluster_entry.get("master_domain", ""),
             "cluster_entry": list(cluster.clusterentry_set.values("cluster_entry_type", "entry")),
+            "dns_to_clb": dns_to_clb,
             "proxy": [m.simple_desc for m in cluster.proxies],
             "redis_master": redis_master,
             "redis_slave": redis_slave,

@@ -62,6 +62,7 @@ class CommonHostDBMeta:
     appid: str
     cluster_domain: str
     cluster_type: str
+    db_type: str
     instance_role: str
 
 
