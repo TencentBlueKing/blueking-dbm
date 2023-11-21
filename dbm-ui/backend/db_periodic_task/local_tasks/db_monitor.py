@@ -240,7 +240,8 @@ def sync_monitor_policy_events():
     cache.set(MONITOR_EVENTS, json.dumps(event_counts))
 
 
-@register_periodic_task(run_every=crontab(minute="*/5"))
+# todo: 暂时去掉，cache没生效，频繁刷新
+# @register_periodic_task(run_every=crontab(minute="*/5"))
 def sync_monitor_collect_strategy():
     """
     同步监控采集项
