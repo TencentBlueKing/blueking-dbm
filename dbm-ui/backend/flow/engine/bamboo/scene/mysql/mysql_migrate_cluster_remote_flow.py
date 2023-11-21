@@ -74,7 +74,7 @@ class MySQLMigrateClusterRemoteFlow(object):
         """
         # 构建流程
         cluster_ids = []
-        for i in self.data["infos"]:
+        for i in self.ticket_data["infos"]:
             cluster_ids.extend(i["cluster_ids"])
 
         tendb_migrate_pipeline_all = Builder(
