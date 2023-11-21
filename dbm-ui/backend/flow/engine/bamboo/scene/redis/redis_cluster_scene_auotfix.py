@@ -39,6 +39,7 @@ from backend.flow.engine.bamboo.scene.redis.atom_jobs import (
     ProxyBatchInstallAtomJob,
     RedisBatchInstallAtomJob,
     RedisMakeSyncAtomJob,
+    StorageRepLink,
 )
 from backend.flow.plugins.components.collections.redis.exec_shell_script import ExecuteShellReloadMetaComponent
 from backend.flow.plugins.components.collections.redis.get_redis_payload import GetRedisActPayloadComponent
@@ -324,12 +325,37 @@ class RedisClusterAutoFixSceneFlow(object):
 
     def slave_fix(self, flow_data, sub_kwargs, slave_fix_info):
         sub_pipeline = SubBuilder(root_id=self.root_id, data=flow_data)
+        slave_fix_detail = slave_fix_info["redis_slave"]
+        newslave_to_master, replace_link_info = [], {}, {}
+
+        for fix_link in slave_fix_detail:
+            old_slave, new_slave = fix_link["ip"], fix_link["target"]["ip"]
+            new_ins_port = DEFAULT_REDIS_START_PORT
+            old_ports = sub_kwargs.cluster["slave_ports"][old_slave]
+            old_ports.sort()  # 升序
+            for port in old_ports:
+                one_link = StorageRepLink()
+                one_link.old_slave_ip, one_link.old_slave_port = old_slave, int(port)
+                one_link.new_slave_ip, one_link.new_slave_port = new_slave, new_ins_port
+
+                old_slave_addr = "{}{}{}".format(old_slave, IP_PORT_DIVIDER, port)
+                new_slave_addr = "{}{}{}".format(new_slave, IP_PORT_DIVIDER, new_ins_port)
+                old_master_addr = sub_kwargs.cluster["slave_ins_map"].get(
+                    old_slave_addr, "none.old.ip.{}:0".format(old_slave_addr)
+                )
+
+                one_link.old_master_ip = old_master_addr.split(IP_PORT_DIVIDER)[0]
+                one_link.old_master_port = int(old_master_addr.split(IP_PORT_DIVIDER)[1])
+
+                newslave_to_master[new_slave_addr] = old_master_addr
+                replace_link_info[old_slave_addr] = one_link
+                new_ins_port += 1
+
         twemproxy_server_shards = get_twemproxy_cluster_server_shards(
-            sub_kwargs.cluster["bk_biz_id"], sub_kwargs.cluster["cluster_id"], sub_kwargs.cluster["slave_ins_map"]
+            sub_kwargs.cluster["bk_biz_id"], sub_kwargs.cluster["cluster_id"], newslave_to_master
         )
         # ### 部署实例 ###############################################################################
         sub_pipelines = []
-        slave_fix_detail = slave_fix_info["redis_slave"]
         for fix_link in slave_fix_detail:
             old_slave = fix_link["ip"]
             new_slave = fix_link["target"]["ip"]
@@ -370,8 +396,14 @@ class RedisClusterAutoFixSceneFlow(object):
             }
             for slave_port in sub_kwargs.cluster["slave_ports"][old_slave]:
                 old_ins = "{}{}{}".format(old_slave, IP_PORT_DIVIDER, slave_port)
-                master_port = sub_kwargs.cluster["slave_ins_map"].get(old_ins).split(IP_PORT_DIVIDER)[1]
-                install_params["ins_link"].append({"origin_1": master_port, "sync_dst1": slave_port})
+                rep_link = replace_link_info.get(old_ins, StorageRepLink())
+                install_params["ins_link"].append(
+                    {
+                        "origin_1": rep_link.old_master_port,
+                        "origin_2": rep_link.old_slave_port,
+                        "sync_dst1": rep_link.new_slave_port,
+                    }
+                )
             sub_builder = RedisMakeSyncAtomJob(self.root_id, flow_data, sub_kwargs, install_params)
             sub_pipelines.append(sub_builder)
         sub_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
@@ -389,14 +421,14 @@ class RedisClusterAutoFixSceneFlow(object):
             )
             for slave_port in sub_kwargs.cluster["slave_ports"][old_slave]:
                 old_ins = "{}{}{}".format(old_slave, IP_PORT_DIVIDER, slave_port)
-                master = sub_kwargs.cluster["slave_ins_map"].get(old_ins)
+                rep_link = replace_link_info.get(old_ins, StorageRepLink())
                 sub_kwargs.cluster["tendiss"].append(
                     {
                         "ejector": {
-                            "ip": master.split(IP_PORT_DIVIDER)[0],
-                            "port": int(master.split(IP_PORT_DIVIDER)[1]),
+                            "ip": rep_link.old_master_ip,
+                            "port": rep_link.old_master_port,
                         },
-                        "receiver": {"ip": new_slave, "port": int(slave_port)},
+                        "receiver": {"ip": rep_link.new_slave_ip, "port": int(rep_link.new_slave_port)},
                     }
                 )
         sub_pipeline.add_act(

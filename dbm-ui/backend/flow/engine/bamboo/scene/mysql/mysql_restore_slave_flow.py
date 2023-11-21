@@ -17,6 +17,8 @@ from django.utils.translation import ugettext as _
 
 from backend import env
 from backend.configuration.constants import DBType
+from backend.db_meta.enums import InstanceStatus
+from backend.db_meta.models import Cluster
 from backend.db_services.mysql.permission.constants import CloneType
 from backend.flow.consts import AUTH_ADDRESS_DIVIDER
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
@@ -365,12 +367,12 @@ class MySQLRestoreSlaveFlow(object):
         for slave in self.data["infos"]:
             ticket_data = copy.deepcopy(self.data)
             one_cluster = get_cluster_info(slave["cluster_id"])
-            # if not (
-            #         slave["slave_ip"] in one_cluster["slave_ip"] and slave["slave_port"] == one_cluster["master_port"]
-            # ):
-            #     continue
-            # 检查master local backup> 清理原实例> 恢复
-            # 通过master、slave 获取备份的文件
+            cluster_model = Cluster.objects.get(id=slave["cluster_id"])
+            target_slave = cluster_model.storageinstance_set.get(
+                machine__bk_cloud_id=cluster_model.bk_cloud_id,
+                machine__ip=slave["slave_ip"],
+                port=slave["slave_port"],
+            )
             charset, db_version = get_version_and_charset(
                 self.data["bk_biz_id"],
                 db_module_id=one_cluster["db_module_id"],
@@ -418,6 +420,19 @@ class MySQLRestoreSlaveFlow(object):
                 write_payload_var="master_backup_file",
             )
 
+            cluster = {"storage_status": InstanceStatus.RESTORING.value, "storage_id": target_slave.id}
+            restore_local_slave_sub_pipeline.add_act(
+                act_name=_("写入初始化实例的db_meta元信息"),
+                act_component_code=MySQLDBMetaComponent.code,
+                kwargs=asdict(
+                    DBMetaOPKwargs(
+                        db_meta_class_func=MySQLDBMeta.tendb_modify_storage_status.__name__,
+                        cluster=cluster,
+                        is_update_trans_data=False,
+                    )
+                ),
+            )
+
             exec_act_kwargs.exec_ip = one_cluster["new_slave_ip"]
             exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_clean_mysql_payload.__name__
             restore_local_slave_sub_pipeline.add_act(
@@ -456,6 +471,19 @@ class MySQLRestoreSlaveFlow(object):
                     is_init=True,
                     cluster_type=one_cluster["cluster_type"],
                 )
+            )
+
+            cluster = {"storage_status": InstanceStatus.RUNNING.value, "storage_id": target_slave.id}
+            restore_local_slave_sub_pipeline.add_act(
+                act_name=_("写入初始化实例的db_meta元信息"),
+                act_component_code=MySQLDBMetaComponent.code,
+                kwargs=asdict(
+                    DBMetaOPKwargs(
+                        db_meta_class_func=MySQLDBMeta.tendb_modify_storage_status.__name__,
+                        cluster=cluster,
+                        is_update_trans_data=False,
+                    )
+                ),
             )
 
             sub_pipeline_list.append(
