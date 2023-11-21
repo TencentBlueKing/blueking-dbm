@@ -98,6 +98,7 @@
 
   import { useGlobalBizs } from '@stores';
 
+  import { ClusterTypes } from '@common/const';
   import {
     type ClusterTypeInfos,
     clusterTypeInfos,
@@ -200,7 +201,10 @@
     // 检查 IP:Port 是否存在
     manualInputLoading.value = true;
     try {
-      const checkInstancesResult = await checkInstances(currentBizId, { instance_addresses: lines });
+      const checkInstancesResult = await checkInstances({
+        bizId: currentBizId,
+        instance_addresses: lines,
+      });
       const legalInstances: InstanceInfos[] = [];
       for (let i = lines.length - 1; i >= 0; i--) {
         const item = lines[i];
@@ -212,7 +216,9 @@
         if (!isExisted) {
           newLines.push(...remove);
         } else {
-          legalInstances.push(infos);
+          if (!(infos.cluster_type === ClusterTypes.TENDBHA && infos.role === 'proxy')) {
+            legalInstances.push(infos);
+          }
         }
       }
       tableData.value.splice(0, tableData.value.length, ...legalInstances);
@@ -276,6 +282,8 @@
       margin-bottom: 8px;
 
       textarea {
+        height: 100%;
+
         &::selection {
           background-color: #fdd;
         }
