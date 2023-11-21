@@ -31,7 +31,7 @@ from backend.flow.utils.redis.redis_context_dataclass import ActKwargs, CommonCo
 from backend.flow.utils.redis.redis_db_meta import RedisDBMeta
 from backend.flow.utils.redis.redis_proxy_util import get_cache_backup_mode, get_twemproxy_cluster_server_shards
 
-from .redis_cluster_slave_rep import RedisClusterSlaveReplaceJob
+from .redis_cluster_slave_rep import RedisClusterSlaveReplaceJob, StorageRepLink
 from .redis_install import RedisBatchInstallAtomJob
 from .redis_makesync import RedisMakeSyncAtomJob
 from .redis_shutdown import RedisBatchShutdownAtomJob
@@ -75,13 +75,44 @@ def TwemproxyClusterMasterReplaceJob(
     """
     act_kwargs = deepcopy(sub_kwargs)
     redis_pipeline = SubBuilder(root_id=root_id, data=ticket_data)
+    master_replace_detail = master_replace_info["redis_master"]
+    new_instances_to_master, replace_link_info = {}, {}
+
+    for replace_link in master_replace_detail:
+        old_master_ip = replace_link["ip"]
+        old_slave_ip = act_kwargs.cluster["master_slave_map"][old_master_ip]
+        new_master_ip = replace_link["target"]["master"]["ip"]
+        new_slave_ip = replace_link["target"]["slave"]["ip"]
+
+        new_ins_port = DEFAULT_REDIS_START_PORT
+        old_ports = act_kwargs.cluster["master_ports"][old_master_ip]
+        old_ports.sort()
+        for port in old_ports:  # 升序
+            one_link = StorageRepLink()
+            one_link.old_master_port, one_link.old_master_ip = int(port), old_master_ip
+            one_link.old_slave_ip = old_slave_ip
+            one_link.new_master_port, one_link.new_master_ip = new_ins_port, new_master_ip
+            one_link.new_slave_port, one_link.new_slave_ip = new_ins_port, new_slave_ip
+
+            old_master_addr = "{}{}{}".format(old_master_ip, IP_PORT_DIVIDER, port)
+            old_slave_addr = act_kwargs.cluster["ins_pair_map"].get(
+                old_master_addr, "none.old.ip.{}:0".format(old_master_addr)
+            )
+            one_link.old_slave_port = int(old_slave_addr.split(IP_PORT_DIVIDER)[1])
+
+            new_slave_addr = "{}{}{}".format(new_slave_ip, IP_PORT_DIVIDER, new_ins_port)
+            new_master_addr = "{}{}{}".format(new_master_ip, IP_PORT_DIVIDER, new_ins_port)
+            new_instances_to_master[new_slave_addr] = old_master_addr
+            new_instances_to_master[new_master_addr] = old_master_addr
+            replace_link_info[old_master_addr] = one_link  # old_master:====>
+            new_ins_port += 1
+
     twemproxy_server_shards = get_twemproxy_cluster_server_shards(
         act_kwargs.cluster["bk_biz_id"], act_kwargs.cluster["cluster_id"], act_kwargs.cluster["slave_ins_map"]
     )
 
     # ## 部署实例 #############################################################################
     sub_pipelines = []
-    master_replace_detail = master_replace_info["redis_master"]
     for replace_info in master_replace_detail:
         old_master = replace_info["ip"]
         new_host_master = replace_info["target"]["master"]["ip"]
@@ -103,12 +134,13 @@ def TwemproxyClusterMasterReplaceJob(
         sub_pipelines.append(RedisBatchInstallAtomJob(root_id, ticket_data, act_kwargs, params))
 
         # 安装slave
-        params["ip"] = new_host_slave
-        params["meta_role"] = InstanceRole.REDIS_SLAVE.value
-        params["spec_id"] = master_replace_info["slave_spec"].get("id", 0)
-        params["spec_config"] = master_replace_info["slave_spec"]
-        params["server_shards"] = twemproxy_server_shards.get(new_host_slave, {})
-        sub_pipelines.append(RedisBatchInstallAtomJob(root_id, ticket_data, act_kwargs, params))
+        slave_params = deepcopy(params)
+        slave_params["ip"] = new_host_slave
+        slave_params["meta_role"] = InstanceRole.REDIS_SLAVE.value
+        slave_params["spec_id"] = master_replace_info["slave_spec"].get("id", 0)
+        slave_params["spec_config"] = master_replace_info["slave_spec"]
+        slave_params["server_shards"] = twemproxy_server_shards.get(new_host_slave, {})
+        sub_pipelines.append(RedisBatchInstallAtomJob(root_id, ticket_data, act_kwargs, slave_params))
     redis_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
     # ### 部署实例 ####################################################################### 完毕 ###
 
@@ -127,28 +159,25 @@ def TwemproxyClusterMasterReplaceJob(
             "sync_dst2": new_host_slave,
             "ins_link": [],
         }
-        new_ins_port = DEFAULT_REDIS_START_PORT
-        master_ports = act_kwargs.cluster["master_ports"][old_master]
-        master_ports.sort()
-        for old_master_port in master_ports:
+
+        for old_master_port in act_kwargs.cluster["master_ports"][old_master]:
             old_master_ins = "{}{}{}".format(old_master, IP_PORT_DIVIDER, old_master_port)
-            old_slave_ins = act_kwargs.cluster["ins_pair_map"][old_master_ins]
-            new_slave_ports.append(new_ins_port)
+            rep_link = replace_link_info.get(old_master_ins, StorageRepLink())
+            old_slave_ins = "{}{}{}".format(rep_link.old_slave_ip, IP_PORT_DIVIDER, rep_link.old_slave_port)
             sync_params["ins_link"].append(
                 {
-                    "origin_1": old_master_port,
-                    "origin_2": old_slave_ins.split(IP_PORT_DIVIDER)[1],
-                    "sync_dst1": new_ins_port,
-                    "sync_dst2": new_ins_port,
-                    "server_shards": twemproxy_server_shards.get(new_host_master, {}),
+                    "origin_1": rep_link.old_master_port,
+                    "origin_2": rep_link.old_slave_port,
+                    "sync_dst1": rep_link.new_master_port,
+                    "sync_dst2": rep_link.new_slave_port,
+                    "server_shards": twemproxy_server_shards.get(rep_link.new_master_ip, {}),
                     "cache_backup_mode": get_cache_backup_mode(
                         act_kwargs.cluster["bk_biz_id"], act_kwargs.cluster["cluster_id"]
                     ),
                 }
             )
-            sed_links.append({"old": old_master_ins, "new": "{}:{}".format(new_host_master, new_ins_port)})
-            sed_links.append({"old": old_slave_ins, "new": "{}:{}".format(new_host_slave, new_ins_port)})
-            new_ins_port = new_ins_port + 1
+            sed_links.append({"old": old_master_ins, "new": "{}:{}".format(new_host_master, rep_link.new_master_port)})
+            sed_links.append({"old": old_slave_ins, "new": "{}:{}".format(new_host_slave, rep_link.new_slave_port)})
         sync_relations.append(sync_params)
         sub_builder = RedisMakeSyncAtomJob(root_id, ticket_data, sync_kwargs, sync_params)
         sub_pipelines.append(sub_builder)
