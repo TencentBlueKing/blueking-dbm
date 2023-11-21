@@ -174,7 +174,7 @@ class MySQLMigrateClusterRemoteFlow(object):
                 backup_info = rollback_handler.query_latest_backup_log(rollback_time)
                 if backup_info is None:
                     logger.error("cluster {} backup info not exists".format(cluster_model.id))
-                    raise TendbGetBackupInfoFailedException(message=_("获取集群 {} 的备份信息失败".format(cluster["cluster_id"])))
+                    raise TendbGetBackupInfoFailedException(message=_("获取集群 {} 的备份信息失败".format(cluster_model.id)))
                 cluster["backupinfo"] = backup_info
                 cluster["new_master_ip"] = self.data["new_master_ip"]
                 cluster["new_slave_ip"] = self.data["new_slave_ip"]
@@ -209,21 +209,6 @@ class MySQLMigrateClusterRemoteFlow(object):
                 )
                 sync_data_sub_pipeline_list.append(sync_data_sub_pipeline.build_sub_process(sub_name=_("恢复实例数据")))
 
-            #  安装周边
-            surrounding_sub_pipeline_list = []
-            surrounding_sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
-            surrounding_sub_pipeline.add_sub_pipeline(
-                sub_flow=build_surrounding_apps_sub_flow(
-                    bk_cloud_id=cluster_class.bk_cloud_id,
-                    master_ip_list=None,
-                    slave_ip_list=[self.data["new_slave_ip"], self.data["new_master_ip"]],
-                    root_id=self.root_id,
-                    parent_global_data=copy.deepcopy(self.data),
-                    is_init=True,
-                    cluster_type=ClusterType.TenDBHA.value,
-                )
-            )
-            surrounding_sub_pipeline_list.append(surrounding_sub_pipeline.build_sub_process(sub_name=_("新机器安装周边组件")))
             switch_sub_pipeline_list = []
             for cluster_id in self.data["cluster_ids"]:
                 switch_sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
@@ -303,12 +288,32 @@ class MySQLMigrateClusterRemoteFlow(object):
             # 数据同步
             tendb_migrate_pipeline.add_parallel_sub_pipeline(sub_flow_list=sync_data_sub_pipeline_list)
             #  新机器安装周边组件
-            tendb_migrate_pipeline.add_parallel_sub_pipeline(sub_flow_list=surrounding_sub_pipeline_list)
+            tendb_migrate_pipeline.add_sub_pipeline(
+                sub_flow=build_surrounding_apps_sub_flow(
+                    bk_cloud_id=cluster_class.bk_cloud_id,
+                    master_ip_list=None,
+                    slave_ip_list=[self.data["new_slave_ip"], self.data["new_master_ip"]],
+                    root_id=self.root_id,
+                    parent_global_data=copy.deepcopy(self.data),
+                    is_init=True,
+                    cluster_type=ClusterType.TenDBHA.value,
+                )
+            )
             # 人工确认切换迁移实例
             tendb_migrate_pipeline.add_act(act_name=_("人工确认切换"), act_component_code=PauseComponent.code, kwargs={})
             # 切换迁移实例
             tendb_migrate_pipeline.add_parallel_sub_pipeline(sub_flow_list=switch_sub_pipeline_list)
-            tendb_migrate_pipeline.add_parallel_sub_pipeline(sub_flow_list=surrounding_sub_pipeline_list)
+            tendb_migrate_pipeline.add_sub_pipeline(
+                sub_flow=build_surrounding_apps_sub_flow(
+                    bk_cloud_id=cluster_class.bk_cloud_id,
+                    master_ip_list=[self.data["new_master_ip"]],
+                    slave_ip_list=[self.data["new_slave_ip"]],
+                    root_id=self.root_id,
+                    parent_global_data=copy.deepcopy(self.data),
+                    is_init=True,
+                    cluster_type=ClusterType.TenDBHA.value,
+                )
+            )
             # 卸载流程人工确认
             tendb_migrate_pipeline.add_act(act_name=_("人工确认卸载实例"), act_component_code=PauseComponent.code, kwargs={})
             # 卸载remote节点

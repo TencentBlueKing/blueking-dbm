@@ -272,6 +272,7 @@ class TenDBRemoteRebalanceFlow(object):
 
             # 阶段5: 新机器安装周边组件
             surrounding_sub_pipeline_list = []
+            re_surrounding_sub_pipeline_list = []
             for node in self.data["remote_group"]:
                 surrounding_sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
                 surrounding_sub_pipeline.add_sub_pipeline(
@@ -287,6 +288,22 @@ class TenDBRemoteRebalanceFlow(object):
                 )
                 surrounding_sub_pipeline_list.append(
                     surrounding_sub_pipeline.build_sub_process(sub_name=_("新机器安装周边组件"))
+                )
+
+                re_surrounding_sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
+                re_surrounding_sub_pipeline.add_sub_pipeline(
+                    sub_flow=build_surrounding_apps_sub_flow(
+                        bk_cloud_id=cluster_class.bk_cloud_id,
+                        master_ip_list=[node["master"]["ip"]],
+                        slave_ip_list=[node["slave"]["ip"]],
+                        root_id=self.root_id,
+                        parent_global_data=copy.deepcopy(self.data),
+                        is_init=True,
+                        cluster_type=ClusterType.TenDBCluster.value,
+                    )
+                )
+                re_surrounding_sub_pipeline_list.append(
+                    re_surrounding_sub_pipeline.build_sub_process(sub_name=_("切换后重新安装周边组件"))
                 )
 
             # 阶段6: 主机级别卸载实例,卸载指定ip下的所有实例
@@ -335,7 +352,7 @@ class TenDBRemoteRebalanceFlow(object):
             # 切换迁移实例
             tendb_migrate_pipeline.add_parallel_sub_pipeline(sub_flow_list=switch_sub_pipeline_list)
             #  新机器安装周边组件
-            tendb_migrate_pipeline.add_parallel_sub_pipeline(sub_flow_list=surrounding_sub_pipeline_list)
+            tendb_migrate_pipeline.add_parallel_sub_pipeline(sub_flow_list=re_surrounding_sub_pipeline_list)
             # 卸载流程人工确认
             tendb_migrate_pipeline.add_act(act_name=_("人工确认卸载实例"), act_component_code=PauseComponent.code, kwargs={})
             # # 卸载remote节点
