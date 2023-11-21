@@ -10,10 +10,10 @@ dependencies:
   version: 16.13.2
 - name: etcd
   repository: https://charts.bitnami.com/bitnami
-  version: 9.6.2
+  version: 9.7.1
 - name: reloader
   repository: https://stakater.github.io/stakater-charts
-  version: 1.0.51
+  version: 1.0.52
 - name: grafana
   repository: file://./charts/grafana
   version: 7.9.8
@@ -52,9 +52,9 @@ dependencies:
   version: 0.0.2
 - name: backup-server
   repository: file://charts/backup-server
-  version: 0.0.3
+  version: 0.0.4
 - name: backup-consumer
   repository: file://charts/backup-consumer
   version: 0.0.3
-digest: sha256:fc3aec4f77331f0458f628effc785beaeb2035b7cdd83c5466bf6711a7495781
-generated: "2023-11-15T10:12:34.005059+08:00"
+digest: sha256:1835b235fa509275aa7b6002f9c2cd07b8a60609fb12497f9a25bb6eb35d89be
+generated: "2023-11-21T14:38:07.94895+08:00"

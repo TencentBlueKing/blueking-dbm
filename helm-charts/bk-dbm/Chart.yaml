@@ -71,7 +71,7 @@ dependencies:
   - condition: backup-server.enabled
     name: backup-server
     repository: file://charts/backup-server
-    version: 0.0.3
+    version: 0.0.4
   - condition: backup-consumer.enabled
     name: backup-consumer
     repository: file://charts/backup-consumer
@@ -79,5 +79,5 @@ dependencies:
 description: A Helm chart for bkdbm
 name: bk-dbm
 type: application
-version: 1.2.0-alpha.95
-appVersion: 1.2.0-alpha.95
+version: 1.2.0-alpha.96
+appVersion: 1.2.0-alpha.96
