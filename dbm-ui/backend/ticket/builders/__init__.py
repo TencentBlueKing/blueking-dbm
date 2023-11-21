@@ -276,7 +276,7 @@ class TicketFlowBuilder:
     @property
     def need_manual_confirm(self):
         """是否需要人工确认节点"""
-        return False
+        return True
 
     @property
     def need_resource_pool(self):

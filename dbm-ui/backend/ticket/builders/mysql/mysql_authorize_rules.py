@@ -98,6 +98,10 @@ class MySQLAuthorizeRulesFlowBuilder(BaseMySQLTicketFlowBuilder):
     def need_itsm(self):
         return False
 
+    @property
+    def need_manual_confirm(self):
+        return False
+
 
 @builders.BuilderFactory.register(TicketType.MYSQL_EXCEL_AUTHORIZE_RULES)
 class MySQLExcelAuthorizeRulesFlowBuilder(MySQLAuthorizeRulesFlowBuilder):
