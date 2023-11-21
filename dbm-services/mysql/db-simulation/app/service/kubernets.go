@@ -225,12 +225,15 @@ func (k *DbPodSets) createpod(pod *v1.Pod, probePort int) (err error) {
 		Uid:           uid,
 		CreatePodTime: time.Now(),
 		CreateTime:    time.Now()})
-	var podIp string
+	podIp := podc.Status.PodIP
 	// 连续多次探测pod的状态
-	if err := util.Retry(util.RetryConfig{Times: 120, DelayTime: 2 * time.Second}, func() error {
+	fn := func() error {
 		podI, err := k.K8S.Cli.CoreV1().Pods(k.K8S.Namespace).Get(context.TODO(), k.BaseInfo.PodName, metav1.GetOptions{})
 		if err != nil {
 			return err
+		}
+		if len(podI.Status.ContainerStatuses) <= 0 {
+			return fmt.Errorf("get pod status is empty,wait ...")
 		}
 		for _, cStatus := range podI.Status.ContainerStatuses {
 			logger.Info("%s: %v", cStatus.Name, cStatus.Ready)
@@ -239,11 +242,14 @@ func (k *DbPodSets) createpod(pod *v1.Pod, probePort int) (err error) {
 			}
 		}
 		podIp = podI.Status.PodIP
+		logger.Info("the pod is ready,ip is %s", podIp)
 		return nil
-	}); err != nil {
+	}
+	if err = util.Retry(util.RetryConfig{Times: 120, DelayTime: 2 * time.Second}, fn); err != nil {
 		return err
 	}
-	fn := func() error {
+	logger.Info("the podIp is %s", podIp)
+	fnc := func() error {
 		k.DbWork, err = util.NewDbWorker(fmt.Sprintf("%s:%s@tcp(%s:%d)/?timeout=5s&multiStatements=true",
 			DefaultUser,
 			k.BaseInfo.RootPwd,
@@ -254,7 +260,7 @@ func (k *DbPodSets) createpod(pod *v1.Pod, probePort int) (err error) {
 		}
 		return nil
 	}
-	err = util.Retry(util.RetryConfig{Times: 60, DelayTime: 1 * time.Second}, fn)
+	err = util.Retry(util.RetryConfig{Times: 60, DelayTime: 1 * time.Second}, fnc)
 	if err == nil {
 		model.UpdateTbContainerRecord(k.BaseInfo.PodName)
 	}
