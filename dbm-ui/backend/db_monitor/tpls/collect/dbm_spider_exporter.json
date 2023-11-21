@@ -10,30 +10,36 @@
         "target_nodes": [],
         "params": {
             "plugin": {
-                "--config.my-cnf": "/etc/{{ target.service.labels[\"exporter_conf_path\"] }}",
                 "--web.listen-address": "${host}:${port}",
-                "--collect.datadir_size": "true",
-                "--collect.global_status": "",
-                "服务实例维度注入": {
-                    "app": "app",
-                    "appid": "appid",
-                    "instance": "instance",
-                    "cluster_name": "cluster_name",
-                    "cluster_type": "cluster_type",
-                    "instance_host": "instance_host",
-                    "instance_role": "instance_role",
-                    "cluster_domain": "cluster_domain"
-                },
+                "--config.my-cnf": "/etc/{{ target.service.labels[\"exporter_conf_path\"] }}",
+                "--collect.global_status": "true",
                 "--collect.global_variables": "true",
-                "--collect.slave_status_ext": "false",
-                "--collect.engine_innodb_status": "false",
-                "--collect.info_schema.innodb_trx": "false",
-                "--collect.infodba_schema.heartbeat": "false",
-                "--collect.info_schema.innodb_metrics": "false",
+                "--collect.datadir_size": "true",
                 "--collect.info_schema.query_response_time": "true",
-                "--collect.auto_increment_ext.columns --collect.auto_increment_ext.interval=1h": "false",
-                "--collect.info_schema.processlist_ext --collect.info_schema.processlist_ext.by_user": "true",
-                "--collect.info_schema.tables_ext --collect.info_schema.tables_ext.interval=1h --collect.info_schema.tables_ext.databases=*": "false"
+                "--collect.info_schema.processlist": "true",
+                "--collect.info_schema.tables": "false",
+                "--collect.info_schema.innodb_trx": "false",
+                "--collect.info_schema.innodb_metrics": "false",
+                "--collect.slave_status": "false",
+                "--collect.engine_innodb_status": "false",
+                "--collect.auto_increment.columns": "false",
+                "\u670d\u52a1\u5b9e\u4f8b\u7ef4\u5ea6\u6ce8\u5165": {
+                  "app": "app",
+                  "appid": "appid",
+                  "instance": "instance",
+                  "cluster_name": "cluster_name",
+                  "cluster_type": "cluster_type",
+                  "instance_host": "instance_host",
+                  "instance_role": "instance_role",
+                  "cluster_domain": "cluster_domain"
+                },
+                "--collect.infodba_schema.heartbeat": "false",
+                "--collect.info_schema.processlist.by_user": "true",
+                "--collect.info_schema.tables.max_tables_per_db": "100",
+                "--enable-scrape-interval": "true",
+                "--lr-min-interval": "24h",
+                "--mr-min-interval": "2h",
+                "--hr-min-interval": "5m"
             },
             "collector": {
                 "host": "127.0.0.1",
@@ -46,7 +52,7 @@
         "plugin_id": "dbm_mysqld_exporter"
     },
     "db_type": "mysql",
-    "version": 1,
+    "version": 2,
     "machine_types": [
         "spider"
     ],

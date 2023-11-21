@@ -16,6 +16,7 @@ from django.conf import settings
 from django.http import Http404, HttpResponse, HttpResponseRedirect
 from django.utils.decorators import method_decorator
 from django.utils.encoding import smart_str
+from django.utils.translation import gettext_lazy as _
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import View
 
@@ -24,6 +25,7 @@ from backend.configuration.models import SystemSettings
 from backend.db_monitor.models import Dashboard as MonitorDash
 
 from . import client
+from .constants import DEFAULT_ORG_ID, DEFAULT_ORG_NAME
 from .provisioning import Dashboard, Datasource
 from .settings import grafana_settings
 from .utils import requests_curl_log
@@ -39,9 +41,6 @@ _ORG_CACHE = {}
 _ORG_CACHE_REVERSE = {}
 _ORG_DASHBOARDS_CACHE = {}
 _ORG_USERS = {}
-
-DEFAULT_ORG_ID = 1
-DEFAULT_ORG_NAME = "dbm"
 
 
 class ForbiddenError(Exception):
@@ -194,6 +193,16 @@ class ProxyBaseView(View):
         resp = client.update_dashboard(org_id, 0, db.dashboard)
         if resp.status_code == 200:
             dash = resp.json()
+
+            tags = db.dashboard["tags"]
+            if not tags:
+                logger.error("provision dashboard skipped for empty tags: %s", tags)
+                return
+
+            # 支持多个仪表盘
+            cluster_type = tags[0]
+            view = tags[1] if len(tags) > 1 else _("集群监控视图")
+
             MonitorDash.objects.update_or_create(
                 defaults={
                     "name": db.title,
@@ -203,7 +212,8 @@ class ProxyBaseView(View):
                 },
                 org_id=DEFAULT_ORG_ID,
                 org_name=DEFAULT_ORG_NAME,
-                cluster_type=db.dashboard["tags"][0],
+                cluster_type=cluster_type,
+                view=view,
             )
             _ORG_DASHBOARDS_CACHE[org_name][db.title] = resp.json()
             logger.info("provision dashboard success, %s", resp)

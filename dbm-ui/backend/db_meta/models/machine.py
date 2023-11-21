@@ -81,6 +81,7 @@ class Machine(AuditedModel):
                                 appid=str(cluster.bk_biz_id),
                                 cluster_type=cluster.cluster_type,
                                 cluster_domain=cluster.immute_domain,
+                                db_type=ClusterType.cluster_type_to_db_type(cluster.cluster_type),
                                 # tendbcluster中扩展了proxy的类型，需要特殊处理
                                 instance_role=tendb_cluster_spider_ext.spider_role
                                 if tendb_cluster_spider_ext
@@ -100,6 +101,7 @@ class Machine(AuditedModel):
                                 appid=str(storage.bk_biz_id),
                                 cluster_domain=storage.machine.ip,
                                 cluster_type=storage.cluster_type,
+                                db_type=ClusterType.cluster_type_to_db_type(storage.cluster_type),
                                 instance_role=storage.instance_role,
                             )
                         )
@@ -114,6 +116,7 @@ class Machine(AuditedModel):
                                 appid=str(cluster.bk_biz_id),
                                 cluster_domain=cluster.immute_domain,
                                 cluster_type=cluster.cluster_type,
+                                db_type=ClusterType.cluster_type_to_db_type(cluster.cluster_type),
                                 instance_role=storage.instance_role,
                             )
                         )

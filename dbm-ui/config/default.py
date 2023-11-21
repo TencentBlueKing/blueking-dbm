@@ -457,20 +457,22 @@ GRAFANA = {
     "PERMISSION_CLASSES": ["backend.bk_dataview.grafana.permissions.IsAuthenticated"],
     "PROVISIONING_CLASSES": ["backend.bk_dataview.grafana.provisioning.SimpleProvisioning"],
     "PROVISIONING_PATH": os.path.join(BASE_DIR, "backend/bk_dataview"),
-    # "CODE_INJECTIONS": {
-    #     "<head>": """<head>
-    #         <style>
-    #             .sidemenu {
-    #                 display: none !important;
-    #             }
-    #             .navbar-page-btn .gicon-dashboard {
-    #                 display: none !important;
-    #             }
-    #             .navbar .navbar-buttons--tv {
-    #                 display: none !important;
-    #             }
-    #         </style>
-    #     """
-    # },
+    "CODE_INJECTIONS": {
+        "<head>": """<head>
+            <style>
+                .page-toolbar>div:nth-child(-n+1) { display: none }
+                section > .submenu-controls { display: none }
+                .sidemenu {
+                    display: none !important;
+                }
+                .navbar-page-btn .gicon-dashboard {
+                    display: none !important;
+                }
+                .navbar .navbar-buttons--tv {
+                    display: none !important;
+                }
+            </style>
+        """
+    },
     "BACKEND_CLASS": "backend.bk_dataview.grafana.backends.api.APIHandler",
 }
