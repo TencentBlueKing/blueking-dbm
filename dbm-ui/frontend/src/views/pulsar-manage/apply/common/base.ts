@@ -18,7 +18,7 @@ import type { HostDetails } from '@services/source/ipchooser';
  * @returns formdata
  */
 export const getInitFormdata = () => ({
-  bk_biz_id: '' as number|'',
+  bk_biz_id: '' as number | '',
   remark: '',
   ticket_type: 'PULSAR_APPLY',
   details: {
@@ -36,6 +36,7 @@ export const getInitFormdata = () => ({
     cluster_alias: '',
     city_code: '',
     db_app_abbr: '',
+    disaster_tolerance_level: 'NONE', // 同 affinity
     nodes: {
       zookeeper: [] as HostDetails[],
       broker: [] as HostDetails[],

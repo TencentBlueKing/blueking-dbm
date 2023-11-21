@@ -66,7 +66,7 @@
 
   import useValidtor, {
     type Rules,
-  } from './hooks/useValidtor';
+  } from '../../hooks/useValidtor';
 
   interface Props {
     placeholder?: string,

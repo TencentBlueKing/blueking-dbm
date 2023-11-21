@@ -34,6 +34,25 @@
     </div>
   </div>
   <div class="ticket-details__info">
+    <strong class="ticket-details__info-title">{{ $t('地域要求') }}</strong>
+    <div class="ticket-details__list">
+      <div class="ticket-details__item">
+        <span class="ticket-details__item-label">{{ $t('数据库部署地域') }}：</span>
+        <span class="ticket-details__item-value">{{ cityName }}</span>
+      </div>
+    </div>
+  </div>
+  <div class="ticket-details__info">
+    <strong class="ticket-details__info-title">{{ $t('数据库部署信息') }}</strong>
+    <div class="ticket-details__list">
+      <div
+        class="ticket-details__item">
+        <span class="ticket-details__item-label">{{ $t('容灾要求') }}：</span>
+        <span class="ticket-details__item-value">{{ affinity }}</span>
+      </div>
+    </div>
+  </div>
+  <div class="ticket-details__info">
     <strong class="ticket-details__info-title">{{ $t('部署需求') }}</strong>
     <div class="ticket-details__list">
       <div class="ticket-details__item">
@@ -169,8 +188,12 @@
 
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
+  import { useRequest } from 'vue-request';
 
   import { getTicketHostNodes } from '@services/source/ticket';
+  import { getInfrasCities } from '@services/ticket';
+
+  import { useSystemEnviron } from '@stores';
 
   import HostPreview from '@components/host-preview/HostPreview.vue';
 
@@ -201,6 +224,7 @@
       cluster_alias: string,
       city_code: string,
       db_app_abbr: string,
+      disaster_tolerance_level: string,
       nodes: {
         zookeeper: [],
         broker: [],
@@ -222,10 +246,29 @@
   const props = defineProps<Props>();
 
   const { t } = useI18n();
+  const { AFFINITY: affinityList } = useSystemEnviron().urls;
+
+  const cityName = ref('--');
 
   const zookeeperSpec = computed(() => props.ticketDetails?.details?.resource_spec?.zookeeper || {});
   const bookkeeperSpec = computed(() => props.ticketDetails?.details?.resource_spec?.bookkeeper || {});
   const brokerSpec = computed(() => props.ticketDetails?.details?.resource_spec?.broker || {});
+
+  const affinity = computed(() => {
+    const level = props.ticketDetails?.details?.disaster_tolerance_level;
+    if (level && affinityList) {
+      return affinityList.find(item => item.value === level)?.label;
+    }
+    return '--';
+  });
+
+  useRequest(getInfrasCities, {
+    onSuccess: (cityList) => {
+      const cityCode = props.ticketDetails.details.city_code;
+      const name = cityList.find(item => item.city_code === cityCode)?.city_name;
+      cityName.value = name ?? '--';
+    },
+  });
 
   /**
    * 获取服务器数量

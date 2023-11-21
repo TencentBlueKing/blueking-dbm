@@ -794,6 +794,7 @@ export interface MySQLDetails {
   db_module_name: string,
   db_module_id: number,
   db_version: string,
+  disaster_tolerance_level: string,
   ip_source: string,
   inst_num: number,
   start_mysql_port: number,

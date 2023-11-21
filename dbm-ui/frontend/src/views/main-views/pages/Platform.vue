@@ -41,7 +41,7 @@
                 module-id="monitor">
                 <BkMenuItem key="PlatGlobalStrategy">
                   <template #icon>
-                    <i class="db-icon-yonghuzu" />
+                    <i class="db-icon-gaojingcelve" />
                   </template>
                   <span
                     v-overflow-tips.right

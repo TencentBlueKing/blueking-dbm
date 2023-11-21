@@ -54,7 +54,7 @@ const getFormData = (type: string) => ({
     start_mysql_port: 20000,
     start_proxy_port: 10000,
     domains: [{ key: '' }],
-    disaster_tolerance_level: 'NONE',
+    disaster_tolerance_level: 'NONE', // 同 affinity
     ip_source: 'resource_pool',
     nodes: {
       backend: [] as HostDetails,
@@ -64,10 +64,19 @@ const getFormData = (type: string) => ({
       single: {
         count: 0,
         spec_id: '',
+        location_spec: {
+          city: '',
+          sub_zone_ids: [],
+        },
       },
       backend: {
         count: 0,
         spec_id: '',
+        affinity: 'NONE',
+        location_spec: {
+          city: '',
+          sub_zone_ids: [],
+        },
       },
       proxy: {
         count: 0,

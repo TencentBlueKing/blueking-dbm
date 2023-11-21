@@ -15,7 +15,7 @@ import bkuiVue from 'bkui-vue';
 import { createPinia } from 'pinia';
 import { createApp } from 'vue';
 
-import { useSystemEnviron } from '@stores';
+import { useGlobalBizs, useSystemEnviron } from '@stores';
 
 import { setGlobalComps } from '@common/importComps';
 
@@ -42,6 +42,8 @@ window.changeConfirm = false;
   //   // eslint-disable-next-line no-param-reassign
   //   store.router = markRaw(router);
   // });
+  const globalBizsStore = useGlobalBizs();
+  await globalBizsStore.fetchBizs();
   const router = await getRouter();
 
   // 自定义全局组件

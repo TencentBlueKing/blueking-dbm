@@ -30,7 +30,7 @@
 
   import { checkClusterDatabase } from '@services/source/remoteService';
 
-  import TableTagInput from '@components/tools-table-tag-input/index.vue';
+  import TableTagInput from '@components/render-table/columns/tag-input/index.vue';
 
   interface Props {
     modelValue?: string [],

@@ -15,12 +15,15 @@ from typing import Dict, Optional
 
 from django.utils.translation import ugettext as _
 
+from backend.configuration.constants import DBType
 from backend.db_meta.enums import ClusterType
-from backend.flow.consts import HdfsRoleEnum
+from backend.flow.consts import HdfsRoleEnum, ManagerOpType, ManagerServiceType
 from backend.flow.engine.bamboo.scene.common.builder import Builder
+from backend.flow.plugins.components.collections.common.bigdata_manager_service import BigdataManagerComponent
 from backend.flow.plugins.components.collections.hdfs.get_hdfs_resource import GetHdfsResourceComponent
 from backend.flow.plugins.components.collections.hdfs.hdfs_db_meta import HdfsDBMetaComponent
 from backend.flow.plugins.components.collections.hdfs.rewrite_hdfs_config import WriteBackHdfsConfigComponent
+from backend.flow.utils.extension_manage import BigdataManagerKwargs
 from backend.flow.utils.hdfs.hdfs_act_playload import gen_host_name_by_role
 from backend.flow.utils.hdfs.hdfs_context_dataclass import ActKwargs, HdfsApplyContext
 
@@ -60,6 +63,23 @@ class HdfsFakeApplyFlow(object):
         # 获取机器资源
         hdfs_pipeline.add_act(
             act_name=_("获取机器信息"), act_component_code=GetHdfsResourceComponent.code, kwargs=asdict(act_kwargs)
+        )
+
+        # 从表单中获取proxy_ip，若无则从zk_ips中选取一台非NN实例机器安装
+        proxy_ip = self.data_with_role["proxy_ip"]
+
+        # 插入haproxy实例信息
+        manager_kwargs = BigdataManagerKwargs(
+            manager_op_type=ManagerOpType.CREATE,
+            db_type=DBType.Hdfs,
+            service_type=ManagerServiceType.HA_PROXY,
+            manager_ip=proxy_ip,
+            manager_port=self.data_with_role["http_port"],
+        )
+        hdfs_pipeline.add_act(
+            act_name=_("插入haproxy实例信息"),
+            act_component_code=BigdataManagerComponent.code,
+            kwargs={**asdict(act_kwargs), **asdict(manager_kwargs)},
         )
 
         hdfs_pipeline.add_act(
@@ -102,3 +122,20 @@ class HdfsFakeApplyFlow(object):
         # if alias not set, default as cluster_name
         if not self.data["cluster_alias"]:
             self.data_with_role["cluster_alias"] = self.data_with_role["cluster_name"]
+
+        # 迁移上架流程新增表单参数proxy
+        if "proxy" not in self.data or not self.data["proxy"]:
+            self.data_with_role["proxy_ip"] = self.choose_proxy_ip()
+        else:
+            self.data_with_role["proxy_ip"] = self.data["proxy"]
+
+    def choose_proxy_ip(self) -> str:
+        """
+        从zk_ips中选取一台非NN实例机器作为proxy
+        """
+        zk_ip_set = set(self.data_with_role["zk_ips"])
+        # set 移除 nn ip 元素
+        zk_ip_set.discard(self.data_with_role["nn1_ip"])
+        zk_ip_set.discard(self.data_with_role["nn2_ip"])
+        # 返回zk_ip_set弹出任一元素
+        return zk_ip_set.pop()
