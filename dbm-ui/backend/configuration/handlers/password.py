@@ -66,10 +66,10 @@ class DBPasswordHandler(object):
         instance_list = []
         try:
             for address in instances:
-                ip, port = address.split(":")
-                instance_list.append({"ip": ip, "port": int(port)})
+                bk_cloud_id, ip, port = address.split(":")
+                instance_list.append({"ip": ip, "port": int(port), "bk_cloud_id": int(bk_cloud_id)})
         except (IndexError, ValueError):
-            raise PasswordPolicyBaseException(_("请保证查询的实例输入格式合法"))
+            raise PasswordPolicyBaseException(_("请保证查询的实例输入格式合法，格式为[云区域:IP:PORT]"))
 
         filters = {"limit": limit, "offset": offset, "component": DBType.MySQL.value, "username": DBM_MYSQL_ADMIN_USER}
         if instance_list:
@@ -126,7 +126,8 @@ class DBPasswordHandler(object):
             "security_rule_name": DBM_PASSWORD_SECURITY_NAME,
             "async": False,
         }
-        return MySQLPrivManagerApi.modify_mysql_admin_password(params=modify_password_params)
+        data = MySQLPrivManagerApi.modify_mysql_admin_password(params=modify_password_params, raw=True)["data"]
+        return data
 
     @classmethod
     def _get_mysql_password_role(cls, cluster_type, role):
