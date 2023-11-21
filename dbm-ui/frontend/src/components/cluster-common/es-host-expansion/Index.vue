@@ -104,7 +104,7 @@
     // 服务器来源
     ipSource: 'resource_pool'|'manual_input',
     // 扩容主机
-    hostList: HostDetails[],
+    hostList: Array<HostDetails & {instance_num: number}>,
     // 当前主机的总容量
     totalDisk: number,
     // 扩容目标容量

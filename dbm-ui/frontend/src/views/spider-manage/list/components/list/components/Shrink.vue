@@ -6,12 +6,12 @@
     :model="formdata"
     :rules="rules">
     <BkFormItem
-      :label="$t('Master缩容至')"
+      :label="t('Master缩容至')"
       property="master">
       <BkInput
         v-model="formdata.master"
         v-bk-tooltips="{
-          content: $t('可缩容数量已达上限_至少保留n台', { n: masterShrinkLimit.min }),
+          content: t('可缩容数量已达上限_至少保留n台', { n: masterShrinkLimit.min }),
           disabled: isAllowShrinkMaster
         }"
         :disabled="!isAllowShrinkMaster"
@@ -19,18 +19,18 @@
         :min="masterShrinkLimit.min"
         type="number" />
       <div class="tips">
-        <span>{{ $t('当前规格') }}：</span>
+        <span>{{ t('当前规格') }}：</span>
         <SpecInfo :data="masterSpecInfo" />
         <span class="spec-count">
           （
           <strong>{{ masterSpecInfo.count }}</strong>
-          {{ $t('台') }}
-          ），{{ $t('至少保留n台', { n: masterShrinkLimit.min }) }}
+          {{ t('台') }}
+          ），{{ t('至少保留n台', { n: masterShrinkLimit.min }) }}
         </span>
       </div>
     </BkFormItem>
     <BkFormItem
-      :label="$t('Slave缩容至')"
+      :label="t('Slave缩容至')"
       property="slave">
       <BkInput
         v-model="formdata.slave"
@@ -42,13 +42,13 @@
       <div
         v-if="slaveSpecInfo"
         class="tips">
-        <span>{{ $t('当前规格') }}：</span>
+        <span>{{ t('当前规格') }}：</span>
         <SpecInfo :data="slaveSpecInfo" />
         <span class="spec-count">
           （
           <strong>{{ slaveSpecInfo.count }}</strong>
-          {{ $t('台') }}
-          ），{{ $t('至少保留n台', { n: slaveShrinkLimit.min }) }}
+          {{ t('台') }}
+          ），{{ t('至少保留n台', { n: slaveShrinkLimit.min }) }}
         </span>
       </div>
     </BkFormItem>
@@ -57,6 +57,7 @@
 
 <script setup lang="tsx">
   import { InfoBox } from 'bkui-vue';
+  import { useI18n } from 'vue-i18n';
 
   import type TendbClusterModel from '@services/model/spider/tendbCluster';
   import { createTicket } from '@services/source/ticket';
@@ -65,7 +66,6 @@
 
   import SpecInfo from './SpecInfo.vue';
 
-  import { t } from '@/locales';
   import { useGlobalBizs } from '@/stores';
 
   interface Props {
@@ -75,6 +75,7 @@
   const props = defineProps<Props>();
   const isChange = defineModel<boolean>('isChange', { required: true });
 
+  const { t } = useI18n();
   const { currentBizId } = useGlobalBizs();
   const ticketMessage = useTicketMessage();
 

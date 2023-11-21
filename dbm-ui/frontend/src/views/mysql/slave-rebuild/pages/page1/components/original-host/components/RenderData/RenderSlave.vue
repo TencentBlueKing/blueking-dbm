@@ -104,6 +104,7 @@
           }
           return ({
             slave: {
+              bk_biz_id: currentBizId,
               bk_cloud_id: modelValue.value.bkCloudId,
               ip: modelValue.value.ip,
               bk_host_id: modelValue.value.bkHostId,

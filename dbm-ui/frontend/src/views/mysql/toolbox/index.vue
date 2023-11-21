@@ -50,13 +50,8 @@
 </script>
 
 <style lang="less" scoped>
-.custom-breadcrumbs {
-  font-size: @font-size-large;
-  color: @title-color;
-}
-
 .toolbox {
-  height: calc(100% - 52px);
+  height: 100%;
 
   & > :deep(.bk-resize-layout-aside) {
     z-index: 100;
