@@ -35,6 +35,17 @@ from .redis_shutdown import RedisBatchShutdownAtomJob
 logger = logging.getLogger("flow")
 
 
+class StorageRepLink:
+    old_master_ip: str = ""
+    old_master_port: int = 0
+    old_slave_ip: str = ""
+    old_slave_port: int = 0
+    new_master_ip: str = ""
+    new_master_port: int = 0
+    new_slave_ip: str = ""
+    new_slave_port: int = 0
+
+
 def RedisClusterSlaveReplaceJob(root_id, ticket_data, sub_kwargs: ActKwargs, slave_replace_info: Dict) -> SubBuilder:
     """适用于 集群中Slave 机房裁撤/迁移替换场景
     步骤：   获取变更锁--> 新实例部署-->
@@ -43,12 +54,37 @@ def RedisClusterSlaveReplaceJob(root_id, ticket_data, sub_kwargs: ActKwargs, sla
     """
     act_kwargs = deepcopy(sub_kwargs)
     redis_pipeline = SubBuilder(root_id=root_id, data=ticket_data)
-    # ### 部署实例 ###############################################################################
-    sub_pipelines = []
+    sub_pipelines, newslave_to_master, replace_link_info = [], {}, {}
     slave_replace_detail = slave_replace_info["redis_slave"]
+
+    for replace_link in slave_replace_detail:
+        old_slave, new_slave = replace_link["ip"], replace_link["target"]["ip"]
+        new_ins_port = DEFAULT_REDIS_START_PORT
+        old_ports = act_kwargs.cluster["slave_ports"][old_slave]
+        old_ports.sort()  # 升序
+        for port in old_ports:
+            one_link = StorageRepLink()
+            one_link.old_slave_port, one_link.old_slave_ip = int(port), old_slave
+            one_link.new_slave_port, one_link.new_slave_ip = new_ins_port, new_slave
+
+            old_slave_addr = "{}{}{}".format(old_slave, IP_PORT_DIVIDER, port)
+            new_slave_addr = "{}{}{}".format(new_slave, IP_PORT_DIVIDER, new_ins_port)
+            old_master_addr = act_kwargs.cluster["slave_ins_map"].get(
+                old_slave_addr, "none.old.ip.{}:0".format(old_slave_addr)
+            )
+
+            one_link.old_master_ip = old_master_addr.split(IP_PORT_DIVIDER)[0]
+            one_link.old_master_port = int(old_master_addr.split(IP_PORT_DIVIDER)[1])
+
+            newslave_to_master[new_slave_addr] = old_master_addr
+            replace_link_info[old_slave_addr] = one_link
+            new_ins_port += 1
+
     twemproxy_server_shards = get_twemproxy_cluster_server_shards(
-        act_kwargs.cluster["bk_biz_id"], act_kwargs.cluster["cluster_id"], act_kwargs.cluster["slave_ins_map"]
+        act_kwargs.cluster["bk_biz_id"], act_kwargs.cluster["cluster_id"], newslave_to_master
     )
+
+    # ### 部署实例 ###############################################################################
     for replace_link in slave_replace_detail:
         # {"ip": "1.1.1.a","spec_id": 17,"target": {"bk_cloud_id": 0,"bk_host_id": 216,"status": 1,"ip": "2.2.2.b"}}
         old_slave = replace_link["ip"]
@@ -90,8 +126,15 @@ def RedisClusterSlaveReplaceJob(root_id, ticket_data, sub_kwargs: ActKwargs, sla
         }
         for slave_port in act_kwargs.cluster["slave_ports"][old_slave]:
             old_ins = "{}{}{}".format(old_slave, IP_PORT_DIVIDER, slave_port)
-            master_port = act_kwargs.cluster["slave_ins_map"].get(old_ins).split(IP_PORT_DIVIDER)[1]
-            install_params["ins_link"].append({"origin_1": master_port, "sync_dst1": slave_port})
+            # master_port = act_kwargs.cluster["slave_ins_map"].get(old_ins).split(IP_PORT_DIVIDER)[1]
+            rep_link = replace_link_info.get(old_ins, StorageRepLink())
+            install_params["ins_link"].append(
+                {
+                    "origin_1": rep_link.old_master_port,
+                    "origin_2": rep_link.old_slave_port,
+                    "sync_dst1": rep_link.new_slave_port,
+                }
+            )
         sub_builder = RedisMakeSyncAtomJob(root_id, ticket_data, act_kwargs, install_params)
         sub_pipelines.append(sub_builder)
     redis_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
@@ -105,22 +148,22 @@ def RedisClusterSlaveReplaceJob(root_id, ticket_data, sub_kwargs: ActKwargs, sla
     for replace_link in slave_replace_detail:
         # "Old": {"ip": "2.2.a.4", "bk_cloud_id": 0, "bk_host_id": 123},
         old_slave = replace_link["ip"]
-        new_slave = replace_link["target"]["ip"]
         act_kwargs.cluster["old_slaves"].append(
             {"ip": old_slave, "ports": act_kwargs.cluster["slave_ports"][old_slave]}
         )
         for slave_port in act_kwargs.cluster["slave_ports"][old_slave]:
             old_ins = "{}{}{}".format(old_slave, IP_PORT_DIVIDER, slave_port)
-            master = act_kwargs.cluster["slave_ins_map"].get(old_ins)
+            rep_link = replace_link_info.get(old_ins, StorageRepLink())
             act_kwargs.cluster["tendiss"].append(
                 {
                     "ejector": {
-                        "ip": master.split(IP_PORT_DIVIDER)[0],
-                        "port": int(master.split(IP_PORT_DIVIDER)[1]),
+                        "ip": rep_link.old_master_ip,
+                        "port": rep_link.old_master_port,
                     },
-                    "receiver": {"ip": new_slave, "port": int(slave_port)},
+                    "receiver": {"ip": rep_link.new_slave_ip, "port": int(rep_link.new_slave_port)},
                 }
             )
+
     redis_pipeline.add_act(
         act_name=_("Redis-新节点加入集群"), act_component_code=RedisDBMetaComponent.code, kwargs=asdict(act_kwargs)
     )
@@ -164,7 +207,6 @@ def RedisClusterSlaveReplaceJob(root_id, ticket_data, sub_kwargs: ActKwargs, sla
     for replace_link in slave_replace_detail:
         # "Old": {"ip": "2.2.a.4", "bk_cloud_id": 0, "bk_host_id": 123},
         old_slave = replace_link["ip"]
-        new_slave = replace_link["target"]["ip"]
         params = {
             "ignore_ips": act_kwargs.cluster["slave_master_map"][old_slave],
             "ip": old_slave,
