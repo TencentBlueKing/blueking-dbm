@@ -2,6 +2,8 @@
 
 from django.db import migrations, models
 
+from backend.db_meta.enums.destroyed_status import DataStructureStatus
+
 
 class Migration(migrations.Migration):
 
@@ -73,7 +75,11 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name="tbtendisrollbacktasks",
             name="status",
-            field=models.IntegerField(default=0, verbose_name=("任务状态",)),
+            field=models.IntegerField(
+                choices=DataStructureStatus.get_choices(),
+                default=DataStructureStatus.NOT_STARTED.value,
+                verbose_name="状态",
+            ),
         ),
         migrations.AlterField(
             model_name="tbtendisrollbacktasks",

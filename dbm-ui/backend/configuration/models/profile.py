@@ -21,4 +21,5 @@ class Profile(models.Model):
     values = models.JSONField(_("配置值"))
 
     class Meta:
+        verbose_name = verbose_name_plural = _("个人偏好(Profile)")
         unique_together = ("username", "label")

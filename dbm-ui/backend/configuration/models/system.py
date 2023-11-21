@@ -29,7 +29,7 @@ class AbstractSettings(AuditedModel):
 
     type = models.CharField(_("类型"), max_length=LEN_NORMAL)
     key = models.CharField(_("关键字唯一标识"), max_length=LEN_NORMAL)
-    value = models.JSONField(_("系统设置值"))
+    value = models.JSONField(_("系统设置值"), blank=True, null=True)
     desc = models.CharField(_("描述"), max_length=LEN_LONG)
 
     @classmethod
@@ -67,8 +67,7 @@ class SystemSettings(AbstractSettings):
     """系统配置表"""
 
     class Meta:
-        verbose_name = _("系统设置")
-        verbose_name_plural = _("系统设置")
+        verbose_name = verbose_name_plural = _("系统配置(SystemSettings)")
         ordering = ("id",)
         unique_together = ("key",)
 
@@ -145,8 +144,7 @@ class BizSettings(AbstractSettings):
             "bk_biz_id",
             "key",
         )
-        verbose_name = _("业务配置")
-        verbose_name_plural = _("业务配置")
+        verbose_name = verbose_name_plural = _("业务配置(BizSettings)")
         ordering = ("id",)
 
     @classmethod

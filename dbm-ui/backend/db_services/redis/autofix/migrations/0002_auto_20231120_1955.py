@@ -2,6 +2,9 @@
 
 from django.db import migrations, models
 
+from backend.db_meta.enums import ClusterType
+from backend.db_services.redis.autofix.models import NodeUpdateTaskStatus
+
 
 class Migration(migrations.Migration):
 
@@ -19,34 +22,7 @@ class Migration(migrations.Migration):
                 (
                     "cluster_type",
                     models.CharField(
-                        choices=[
-                            ("tendbsingle", "tendbsingle"),
-                            ("tendbha", "tendbha"),
-                            ("tendbcluster", "tendbcluster"),
-                            ("redis", "Redis集群"),
-                            ("PredixyRedisCluster", "Tendisplus集群"),
-                            ("PredixyTendisplusCluster", "Tendisplus存储版集群"),
-                            ("TwemproxyRedisInstance", "TendisCache集群"),
-                            ("TwemproxyTendisSSDInstance", "TendisSSD集群"),
-                            ("TwemproxyTendisplusInstance", "Tendis存储版集群"),
-                            ("RedisInstance", "RedisCache主从版"),
-                            ("TendisSSDInstance", "TendisSSD主从版"),
-                            ("TendisplusInstance", "Tendisplus主从版"),
-                            ("RedisCluster", "RedisCluster集群"),
-                            ("TendisplusCluster", "TendisplusCluster集群"),
-                            ("TendisplusInstance", "Tendisplus存储版集群 GetTendisType 获取redis类型值"),
-                            ("RedisInstance", "TendisCache集群 GetTendisType 获取redis类型值"),
-                            ("TendisSSDInstance", "TendisSSD集群 GetTendisType 获取redis类型值"),
-                            ("es", "ES集群"),
-                            ("kafka", "Kafka集群"),
-                            ("hdfs", "Hdfs集群"),
-                            ("influxdb", "Influxdb实例"),
-                            ("pulsar", "Pulsar集群"),
-                            ("dbmon", "redis监控"),
-                            ("MongoReplicaSet", "Mongo副本集"),
-                            ("MongoShardedCluster", "Mongo分片集群"),
-                            ("riak", "Riak集群"),
-                        ],
+                        choices=ClusterType.get_choices(),
                         max_length=64,
                         verbose_name="集群类型",
                     ),
@@ -56,13 +32,7 @@ class Migration(migrations.Migration):
                 (
                     "status",
                     models.CharField(
-                        choices=[
-                            ("todo", "待处理"),
-                            ("canceled", "已取消"),
-                            ("failed", "失败"),
-                            ("doing", "执行中"),
-                            ("success", "成功"),
-                        ],
+                        choices=NodeUpdateTaskStatus.get_choices(),
                         max_length=64,
                         verbose_name="任务状态",
                     ),
