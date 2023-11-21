@@ -85,6 +85,7 @@
 
   import { useGlobalBizs } from '@stores';
 
+  import EditHostInstance from '@components/cluster-common/big-data-host-table/es-host-table/components/EditHostInstance.vue';
   import HostAgentStatus from '@components/cluster-common/HostAgentStatus.vue';
   import IpSelector from '@components/ip-selector/IpSelector.vue';
 
@@ -108,7 +109,7 @@
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
 
-  const calcSelectHostDisk = (hostList: TExpansionNode['hostList']) => hostList
+  const calcSelectHostDisk = (hostList: HostDetails[]) => hostList
     .reduce((result, hostItem) => result + ~~Number(hostItem.bk_disk), 0);
 
 
@@ -135,22 +136,31 @@
     {
       label: t('节点 IP'),
       field: 'ip',
-      render: ({ data }: {data: HostDetails}) => data.ip || '--',
+      render: ({ data }: {data: TExpansionNode['hostList'][number]}) => data.ip || '--',
+    },
+    {
+      label: t('每台主机实例数'),
+      width: 150,
+      render: ({ data }: {data: TExpansionNode['hostList'][number]}) => (
+        <EditHostInstance
+          modelValue={data.instance_num}
+          onChange={(value: number) => handleInstanceNumChange(value, data)}  />
+      ),
     },
     {
       label: t('Agent状态'),
       field: 'alive',
-      render: ({ data }: { data: HostDetails }) => <HostAgentStatus data={data.alive} />,
+      render: ({ data }: {data: TExpansionNode['hostList'][number]}) => <HostAgentStatus data={data.alive} />,
     },
     {
       label: t('磁盘_GB'),
       field: 'bk_disk',
-      render: ({ data }: {data: HostDetails}) => data.bk_disk || '--',
+      render: ({ data }: {data: TExpansionNode['hostList'][number]}) => data.bk_disk || '--',
     },
     {
       label: t('操作'),
       width: 100,
-      render: ({ data }: {data: HostDetails}) => (
+      render: ({ data }: {data: TExpansionNode['hostList'][number]}) => (
         <bk-button
           text
           theme="primary"
@@ -162,6 +172,23 @@
   ];
 
   const handleHostChange = (hostList: TExpansionNode['hostList']) => {
+    hostTableData.value = hostList.map(item => ({
+      ...item,
+      instance_num: 0,
+    }));
+    emits('change', hostList, calcSelectHostDisk(hostList));
+  };
+
+  const handleInstanceNumChange = (value: number, data: TExpansionNode['hostList'][number]) => {
+    const hostList = hostTableData.value.map((item) => {
+      if (item.host_id === data.host_id) {
+        return {
+          ...item,
+          instance_num: value,
+        };
+      }
+      return item;
+    });
     hostTableData.value = hostList;
     emits('change', hostList, calcSelectHostDisk(hostList));
   };

@@ -168,8 +168,6 @@ export default async function getRouters() {
 
   const mainRoutes = getMainRoutes(routes);
 
-  console.log('mainRoutes = ', mainRoutes);
-
   const renderRoutes: RouteRecordRaw[] = [];
 
   for (const route of Object.values(mainRoutes)) {

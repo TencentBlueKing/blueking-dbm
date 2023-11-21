@@ -18,32 +18,32 @@
         <BkButton
           theme="primary"
           @click="handleApply">
-          {{ $t('实例申请') }}
+          {{ t('实例申请') }}
         </BkButton>
         <span
           v-bk-tooltips="{
             disabled: hasSelected,
-            content: $t('请选择集群')
+            content: t('请选择集群')
           }"
           class="inline-block">
           <BkButton
             class="ml-8"
             :disabled="!hasSelected"
             @click="handleShowAuthorize(state.selected)">
-            {{ $t('批量授权') }}
+            {{ t('批量授权') }}
           </BkButton>
         </span>
         <span
           v-bk-tooltips="{
             disabled: hasData,
-            content: $t('请先创建实例')
+            content: t('请先创建实例')
           }"
           class="inline-block">
           <BkButton
             class="ml-8"
             :disabled="!hasData"
             @click="handleShowExcelAuthorize">
-            {{ $t('导入授权') }}
+            {{ t('导入授权') }}
           </BkButton>
         </span>
       </div>
@@ -52,29 +52,23 @@
         class="mb-16"
         :data="searchSelectData"
         :get-menu-list="getMenuList"
-        :placeholder="$t('域名_IP_模块')"
+        :placeholder="t('域名_IP_模块')"
         style="width: 320px;"
         unique-select
-        @change="handleChangeValues" />
+        @change="handleSearch" />
     </div>
     <div
-      v-bkloading="{ loading: state.isLoading, zIndex: 2 }"
       class="table-wrapper"
       :class="{'is-shrink-table': isStretchLayoutOpen}">
-      <DbOriginalTable
+      <DbTable
+        ref="tableRef"
         :columns="columns"
-        :data="state.data"
-        :is-anomalies="isAnomalies"
-        :is-searching="state.filters.length > 0"
-        :pagination="renderPagination"
-        remote-pagination
+        :data-source="getTendbhaList"
         :row-class="setRowClass"
+        selectable
         :settings="settings"
         @clear-search="handleClearSearch"
-        @page-limit-change="handeChangeLimit"
-        @page-value-change="handleChangePage"
-        @refresh="fetchResources(true)"
-        @selection-change="handleTableSelected"
+        @selection="handleSelection"
         @setting-change="updateTableSettings" />
     </div>
   </div>
@@ -109,9 +103,7 @@
   import type { SearchFilterItem } from '@services/types/common';
 
   import {
-    type IPagination,
     useCopy,
-    useDefaultPagination,
     useInfoWithIcon,
     useStretchLayout,
     useTableSettings,
@@ -144,10 +136,7 @@
 
   import { useTimeoutPoll } from '@vueuse/core';
 
-  import type {
-    SearchSelectItem,
-    TableSelectionData,
-  } from '@/types/bkui-vue';
+  import type { SearchSelectItem } from '@/types/bkui-vue';
 
   interface ColumnData {
     cell: string,
@@ -155,8 +144,6 @@
   }
 
   interface State {
-    isLoading: boolean,
-    pagination: IPagination,
     data: Array<ResourceItem>,
     selected: Array<ResourceItem>,
     filters: Array<any>,
@@ -189,14 +176,12 @@
   } = useStretchLayout();
 
 
-  const isAnomalies = ref(false);
+  const tableRef = ref();
   const isShowExcelAuthorize = ref(false);
-  const isInit = ref(true);
+  const isInit = ref(false);
   const showEditEntryConfig = ref(false);
 
   const state = reactive<State>({
-    isLoading: false,
-    pagination: useDefaultPagination(),
     data: [],
     selected: [],
     filters: [],
@@ -237,27 +222,7 @@
     }
     return 60;
   });
-  const renderPagination = computed(() => {
-    if (state.pagination.count < 10) {
-      return false;
-    }
-    if (!isStretchLayoutOpen.value) {
-      return { ...state.pagination };
-    }
-    return {
-      ...state.pagination,
-      small: true,
-      align: 'left',
-      layout: ['total', 'limit', 'list'],
-    };
-  });
   const columns = computed(() => [
-    {
-      type: 'selection',
-      width: 54,
-      label: '',
-      fixed: 'left',
-    },
     {
       label: 'ID',
       field: 'id',
@@ -494,11 +459,6 @@
     },
   ]);
 
-  const handleOpenEntryConfig = (row: ResourceItem) => {
-    showEditEntryConfig.value  = true;
-    clusterId.value = row.id;
-  };
-
   // 设置用户个人表头信息
   const defaultSettings = {
     fields: (columns.value || []).filter(item => item.field).map(item => ({
@@ -514,13 +474,7 @@
     updateTableSettings,
   } = useTableSettings(UserPersonalSettings.TENDBHA_TABLE_SETTINGS, defaultSettings);
 
-  // 设置轮询
-  const { pause, resume } = useTimeoutPoll(() => {
-    fetchResources(isInit.value);
-  }, 5000, { immediate: false });
-
-
-  async function getMenuList(item: SearchSelectItem | undefined, keyword: string) {
+  const getMenuList = async (item: SearchSelectItem | undefined, keyword: string) => {
     if (item?.id !== 'creator' && keyword) {
       return getMenuListSearch(item, keyword, searchSelectData.value, state.filters);
     }
@@ -534,91 +488,80 @@
 
     // 远程加载执行人
     if (item.id === 'creator') {
-      return await fetchUseList(keyword);
+      if (!keyword) {
+        return [];
+      }
+      return getUserList({
+        fuzzy_lookups: keyword,
+      }).then(res => res.results.map(item => ({
+        id: item.username,
+        name: item.username,
+      })));
     }
 
     // 不需要远层加载
     return searchSelectData.value.find(set => set.id === item.id)?.children || [];
-  }
+  };
 
-  /**
-   * 获取人员列表
-   */
-  function fetchUseList(fuzzyLookups: string) {
-    if (!fuzzyLookups) return [];
+  const fetchData = (loading?:boolean) => {
+    const params = getSearchSelectorParams(state.filters);
+    tableRef.value.fetchData(params, {
+      dbType: DBTypes.MYSQL,
+      bk_biz_id: globalBizsStore.currentBizId,
+      type: ClusterTypes.TENDBHA,
+    }, loading);
+    isInit.value = false;
+  };
 
-    return getUserList({ fuzzy_lookups: fuzzyLookups }).then(res => res.results.map(item => ({
-      id: item.username,
-      name: item.username,
-    })));
-  }
+  // 设置轮询
+  const {
+    pause,
+    resume,
+  } = useTimeoutPoll(() => fetchData(isInit.value), 5000, {
+    immediate: false,
+  });
 
 
-  function handleShowAuthorize(selected: ResourceItem[] = []) {
+  const handleOpenEntryConfig = (row: ResourceItem) => {
+    showEditEntryConfig.value  = true;
+    clusterId.value = row.id;
+  };
+  const handleSelection = (data: ResourceItem, list: ResourceItem[]) => {
+    state.selected = list;
+  };
+
+  const handleShowAuthorize = (selected: ResourceItem[] = []) => {
     authorizeState.isShow = true;
     authorizeState.selected = selected;
-  }
-  function handleClearSelected() {
+  };
+  const handleClearSelected = () => {
     state.selected = [];
     authorizeState.selected = [];
-  }
+  };
 
   // excel 授权
-
-  function handleShowExcelAuthorize() {
+  const handleShowExcelAuthorize = () => {
     isShowExcelAuthorize.value = true;
-  }
+  };
 
   /**
    * 获取模块列表
    */
-  function fetchModules() {
-    return getModules({
-      bk_biz_id: globalBizsStore.currentBizId,
-      cluster_type: ClusterTypes.TENDBHA,
-    }).then((res) => {
-      state.dbModuleList = res.map(item => ({
-        id: item.db_module_id,
-        name: item.name,
-      }));
-      return state.dbModuleList;
-    });
-  }
+  const fetchModules = () => getModules({
+    bk_biz_id: globalBizsStore.currentBizId,
+    cluster_type: ClusterTypes.TENDBHA,
+  }).then((res) => {
+    state.dbModuleList = res.map(item => ({
+      id: item.db_module_id,
+      name: item.name,
+    }));
+    return state.dbModuleList;
+  });
   fetchModules();
 
-  /**
-   * 获取列表
-   */
-  function fetchResources(isLoading = false) {
-    const params = {
-      dbType: DBTypes.MYSQL,
-      bk_biz_id: globalBizsStore.currentBizId,
-      type: ClusterTypes.TENDBHA,
-      ...state.pagination.getFetchParams(),
-      ...getSearchSelectorParams(state.filters),
-    };
-    isInit.value = false;
-    state.isLoading = isLoading;
-    return getTendbhaList(params)
-      .then((res) => {
-        state.pagination.count = res.count;
-        state.data = res.results;
-        isAnomalies.value = false;
-      })
-      .catch(() => {
-        state.pagination.count = 0;
-        state.data = [];
-        isAnomalies.value = true;
-      })
-      .finally(() => {
-        state.isLoading = false;
-      });
-  }
-
-  function handleClearSearch() {
+  const handleClearSearch = () => {
     state.filters = [];
-    handleChangePage(1);
-  }
+  };
 
   /**
    * 查看详情
@@ -628,52 +571,14 @@
     clusterId.value = row.id;
   }
 
-  /**
-   * 表格选中
-   */
-  function handleTableSelected({ isAll, checked, data, row }: TableSelectionData<ResourceItem>) {
-    // 全选 checkbox 切换
-    if (isAll) {
-      state.selected = checked ? [...data] : [];
-      return;
-    }
-
-    // 单选 checkbox 选中
-    if (checked) {
-      const toggleIndex = state.selected.findIndex(item => item.id === row.id);
-      if (toggleIndex === -1) {
-        state.selected.push(row);
-      }
-      return;
-    }
-
-    // 单选 checkbox 取消选中
-    const toggleIndex = state.selected.findIndex(item => item.id === row.id);
-    if (toggleIndex > -1) {
-      state.selected.splice(toggleIndex, 1);
-    }
-  }
-
-  function handleChangePage(value: number) {
-    state.pagination.current = value;
-    fetchResources(true);
-  }
-
-  function handeChangeLimit(value: number) {
-    state.pagination.limit = value;
-    handleChangePage(1);
-  }
-
-  const handleChangeValues = () => {
-    nextTick(() => {
-      handleChangePage(1);
-    });
+  const handleSearch = () => {
+    fetchData();
   };
 
   /**
    * 集群启停
    */
-  function handleSwitchCluster(type: TicketTypesStrings, data: ResourceItem) {
+  const handleSwitchCluster = (type: TicketTypesStrings, data: ResourceItem) => {
     if (!type) return;
 
     const isOpen = type === TicketTypes.MYSQL_HA_ENABLE;
@@ -709,12 +614,12 @@
         }
       },
     });
-  }
+  };
 
   /**
    * 删除集群
    */
-  function handleDeleteCluster(data: ResourceItem) {
+  const handleDeleteCluster = (data: ResourceItem) => {
     const { cluster_name: name } = data;
     useInfoWithIcon({
       type: 'warnning',
@@ -748,19 +653,19 @@
         }
       },
     });
-  }
+  };
 
   /**
    * 申请实例
    */
-  function handleApply() {
+  const handleApply = () => {
     router.push({
       name: 'SelfServiceApplyHa',
       query: {
         bizId: globalBizsStore.currentBizId,
       },
     });
-  }
+  };
 
   onMounted(() => {
     resume();

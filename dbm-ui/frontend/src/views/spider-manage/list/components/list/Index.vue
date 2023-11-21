@@ -17,39 +17,39 @@
         <BkButton
           theme="primary"
           @click="handleApply">
-          {{ $t('实例申请') }}
+          {{ t('实例申请') }}
         </BkButton>
         <span
           v-bk-tooltips="{
             disabled: hasSelected,
-            content: $t('请选择集群')
+            content: t('请选择集群')
           }"
           class="inline-block">
           <BkButton
             class="ml-8"
             :disabled="!hasSelected"
             @click="handleShowAuthorize">
-            {{ $t('批量授权') }}
+            {{ t('批量授权') }}
           </BkButton>
         </span>
         <span
           v-bk-tooltips="{
             disabled: hasData,
-            content: $t('请先创建实例')
+            content: t('请先创建实例')
           }"
           class="inline-block">
           <BkButton
             class="ml-8"
             :disabled="!hasData"
             @click="handleShowExcelAuthorize">
-            {{ $t('导入授权') }}
+            {{ t('导入授权') }}
           </BkButton>
         </span>
       </div>
       <DbSearchSelect
         v-model="searchValues"
         :data="searchData"
-        :placeholder="$t('集群名称_访问入口_IP')"
+        :placeholder="t('集群名称_访问入口_IP')"
         style="width: 320px; margin-left: auto"
         unique-select
         @change="fetchTableData" />
@@ -73,7 +73,7 @@
   <DbSideslider
     v-model:is-show="isShowScaleUp"
     :disabled-confirm="!isChangeScaleUpForm"
-    :title="$t('TenDBCluster扩容接入层name', { name: operationData.cluster_name })"
+    :title="t('TenDBCluster扩容接入层name', { name: operationData.cluster_name })"
     width="960">
     <ScaleUp
       v-model:is-change="isChangeScaleUpForm"
@@ -82,7 +82,7 @@
   <DbSideslider
     v-model:is-show="isShowShrink"
     :disabled-confirm="!isChangeShrinkForm"
-    :title="$t('TenDBCluster缩容接入层name', { name: operationData.cluster_name })"
+    :title="t('TenDBCluster缩容接入层name', { name: operationData.cluster_name })"
     width="960">
     <Shrink
       v-model:is-change="isChangeShrinkForm"
@@ -91,7 +91,7 @@
   <DbSideslider
     v-model:is-show="isShowCapacityChange"
     :disabled-confirm="!isChangeCapacityForm"
-    :title="$t('TenDBCluster集群容量变更name', { name: operationData.cluster_name })"
+    :title="t('TenDBCluster集群容量变更name', { name: operationData.cluster_name })"
     width="960">
     <CapacityChange
       v-model:is-change="isChangeCapacityForm"
@@ -269,12 +269,13 @@
               data.operations.map(item => <RenderOperationTag class="cluster-tag" data={item} />)
             }
             {
-              !data.isOnline
-               && <db-icon
-               svg
-               type="yijinyong"
-               class="cluster-tag"
-               style="width: 38px; height: 16px;" />
+              !data.isOnline || (
+                <db-icon
+                svg
+                type="yijinyong"
+                class="cluster-tag"
+                style="width: 38px; height: 16px;" />
+               )
             }
             {
               isRecentDays(data.create_at, 24 * 3)

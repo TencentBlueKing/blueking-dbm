@@ -117,6 +117,10 @@
       key: 'hot',
       label: '热节点',
     },
+    {
+      key: 'client',
+      label: 'Client 节点',
+    },
   ];
 
   const nodeInfoMap = reactive<Record<string, TExpansionNode>>({
@@ -150,6 +154,24 @@
       expansionDisk: 0,
       specClusterType: ClusterTypes.ES,
       specMachineType: 'es_datanode',
+      resourceSpec: {
+        spec_id: 0,
+        count: 1,
+        instance_num: 1,
+      },
+    },
+    client: {
+      label: 'Client 节点',
+      clusterId: props.data.id,
+      role: 'es_client',
+      originalHostList: [],
+      ipSource: 'resource_pool',
+      hostList: [],
+      totalDisk: 0,
+      targetDisk: 0,
+      expansionDisk: 0,
+      specClusterType: ClusterTypes.ES,
+      specMachineType: 'es_client',
       resourceSpec: {
         spec_id: 0,
         count: 1,
@@ -315,11 +337,19 @@
                 bk_cloud_id: hostItem.cloud_id,
                 bk_host_id: hostItem.host_id,
                 bk_biz_id: hostItem.meta.bk_biz_id,
+                instance_num: hostItem.instance_num,
               }));
               Object.assign(hostData, {
                 nodes: {
                   hot: fomatHost(nodeInfoMap.hot.hostList),
                   cold: fomatHost(nodeInfoMap.cold.hostList),
+                  // client 节点没有 instance_num
+                  client: nodeInfoMap.client.hostList.map(hostItem => ({
+                    ip: hostItem.ip,
+                    bk_cloud_id: hostItem.cloud_id,
+                    bk_host_id: hostItem.host_id,
+                    bk_biz_id: hostItem.meta.bk_biz_id,
+                  })),
                 },
               });
             } else {
@@ -334,6 +364,15 @@
                 && nodeInfoMap.cold.resourceSpec.count > 0) {
                 Object.assign(resourceSpec, {
                   cold: nodeInfoMap.cold.resourceSpec,
+                });
+              }
+              if (nodeInfoMap.client.resourceSpec.spec_id > 0
+                && nodeInfoMap.client.resourceSpec.count > 0) {
+                // client 节点没有 instance_num
+                const clientResourceSpec = { ...nodeInfoMap.client.resourceSpec } as {instance_num?: number};
+                delete clientResourceSpec.instance_num;
+                Object.assign(resourceSpec, {
+                  client: clientResourceSpec,
                 });
               }
               Object.assign(hostData, {
