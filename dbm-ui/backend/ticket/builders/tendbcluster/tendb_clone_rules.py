@@ -43,6 +43,10 @@ class TendbClusterClientCloneRulesFlowBuilder(MySQLClientCloneRulesFlowBuilder):
     def need_itsm(self):
         return False
 
+    @property
+    def need_manual_confirm(self):
+        return False
+
 
 @builders.BuilderFactory.register(TicketType.TENDBCLUSTER_INSTANCE_CLONE_RULES)
 class TendbClusterInstanceCloneRulesFlowBuilder(TendbClusterClientCloneRulesFlowBuilder):

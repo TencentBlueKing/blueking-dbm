@@ -72,6 +72,10 @@ class MySQLClientCloneRulesFlowBuilder(BaseMySQLTicketFlowBuilder):
     def need_itsm(self):
         return False
 
+    @property
+    def need_manual_confirm(self):
+        return False
+
     def patch_ticket_detail(self):
         if "clone_uid" in self.ticket.details:
             clone_uid = self.ticket.details["clone_uid"]
