@@ -17,6 +17,7 @@
       ref="editRef"
       v-model="localValue"
       :disabled="disabled"
+      :max="Number.MAX_SAFE_INTEGER"
       :placeholder="$t('请输入')"
       :rules="rules"
       type="number" />

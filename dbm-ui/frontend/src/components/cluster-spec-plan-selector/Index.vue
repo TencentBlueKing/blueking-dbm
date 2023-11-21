@@ -6,7 +6,6 @@
         required>
         <BkInput
           v-model="localCapacity"
-          :min="1"
           suffix="G"
           type="number" />
       </DbFormItem>
@@ -15,7 +14,6 @@
         required>
         <BkInput
           v-model="localFutureCapacity"
-          :min="1"
           suffix="G"
           type="number" />
       </DbFormItem>
@@ -101,8 +99,8 @@
   const formatterLabel = (value: string) => `${value}/s`;
 
   const sliderProps = reactive(genSliderData());
-  const localCapacity = ref(1);
-  const localFutureCapacity = ref(1);
+  const localCapacity = ref();
+  const localFutureCapacity = ref();
   const queryTimer = ref();
   const specCountMap = shallowRef<Record<number, number>>({});
 
@@ -247,12 +245,13 @@
   });
 
   watch(() => sliderProps.value, (data) => {
+    if (!localCapacity.value || !localFutureCapacity.value) {
+      return;
+    }
     clearTimeout(queryTimer.value);
     queryTimer.value = setTimeout(() => {
       handleDpsRangChange(data as [number, number]);
     }, 1000);
-  }, {
-    immediate: true,
   });
 
   const handleDpsRangChange = (data: [number, number]) => {

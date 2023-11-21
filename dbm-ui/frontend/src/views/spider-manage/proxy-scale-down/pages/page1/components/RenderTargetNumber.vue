@@ -17,6 +17,7 @@
       ref="editRef"
       v-model="localValue"
       :disabled="disabled"
+      :max="Number.MAX_SAFE_INTEGER"
       :placeholder="placeholder"
       :rules="rules"
       type="number" />
