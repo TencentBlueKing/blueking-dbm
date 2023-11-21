@@ -9,6 +9,7 @@ import (
 	"dbm-services/bigdata/db-tools/dbactuator/pkg/util/esutil"
 	"dbm-services/bigdata/db-tools/dbactuator/pkg/util/osutil"
 	"dbm-services/common/go-pubpkg/logger"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -29,7 +30,7 @@ type InstallInfluxdbParams struct {
 	Port      int    `json:"port" `    // 连接端口
 	Host      string `json:"host" `
 	GroupName string `json:"group_name" ` // 组名
-	GroupId   int    `json:"group_id" `   // 连接端口
+	GroupID   int    `json:"group_id" `   // 连接端口
 	Username  string `json:"username" `
 	Password  string `json:"password" `
 }
@@ -39,7 +40,6 @@ type InitDirs = []string
 
 // Port TODO
 type Port = int
-type socket = string
 
 // KafkaConfig 目录定义等
 type KafkaConfig struct {
@@ -51,11 +51,11 @@ type KafkaConfig struct {
 type RenderConfig struct {
 	ClusterName          string
 	NodeName             string
-	HttpPort             int
+	HTTPPort             int
 	CharacterSetServer   string
 	InnodbBufferPoolSize string
 	Logdir               string
-	ServerId             uint64
+	ServerID             uint64
 }
 
 // InitDefaultParam TODO
@@ -72,7 +72,7 @@ func (i *InstallInfluxdbComp) InitDefaultParam() (err error) {
 /*
 创建实例相关的数据，日志目录以及修改权限
 */
-func (i *InstallInfluxdbComp) InitInfluxdbNode() (err error) {
+func (i *InstallInfluxdbComp) InitInfluxdbNode() error {
 
 	execUser := cst.DefaultInfluxdbExecUser
 	logger.Info("检查用户[%s]是否存在", execUser)
@@ -80,7 +80,6 @@ func (i *InstallInfluxdbComp) InitInfluxdbNode() (err error) {
 		extraCmd := `groupadd influxdb && useradd influxdb -g influxdb -s /bin/bash -d /home/influxdb -m`
 		if _, err := osutil.ExecShellCommand(false, extraCmd); err != nil {
 			logger.Error("创建系统用户[%s]失败,%v", "influxdb", err.Error())
-			return err
 		}
 		logger.Info("用户[%s]创建成功", execUser)
 	} else {
@@ -112,7 +111,7 @@ net.ipv4.ip_local_port_range=25000 50000
 " >> /etc/sysctl.conf`)
 
 	scriptFile := "/data/influxdbenv/init.sh"
-	if err = ioutil.WriteFile(scriptFile, scripts, 0644); err != nil {
+	if err := ioutil.WriteFile(scriptFile, scripts, 0644); err != nil {
 		logger.Error("write %s failed, %v", scriptFile, err)
 	}
 
@@ -284,16 +283,16 @@ func configCrontab() (err error) {
  * @description: 安装broker
  * @return {*}
  */
-func (i *InstallInfluxdbComp) InstallInfluxdb() (err error) {
+func (i *InstallInfluxdbComp) InstallInfluxdb() error {
 	var (
-		version         string = i.Params.Version
-		port            int    = i.Params.Port
-		influxdbBaseDir string = fmt.Sprintf("%s/influxdb-%s-1", cst.DefaultInfluxdbEnv, version)
+		version         = i.Params.Version
+		port            = i.Params.Port
+		influxdbBaseDir = fmt.Sprintf("%s/influxdb-%s-1", cst.DefaultInfluxdbEnv, version)
 	)
 
 	influxdbLink := fmt.Sprintf("%s/influxdb", cst.DefaultInfluxdbEnv)
 	extraCmd := fmt.Sprintf("rm -rf %s", influxdbLink)
-	if _, err = osutil.ExecShellCommand(false, extraCmd); err != nil {
+	if _, err := osutil.ExecShellCommand(false, extraCmd); err != nil {
 		logger.Error("%s execute failed, %v", extraCmd, err)
 		return err
 	}
@@ -327,7 +326,7 @@ func (i *InstallInfluxdbComp) InstallInfluxdb() (err error) {
 	logger.Info("开始渲染influxdb.conf")
 	extraCmd = fmt.Sprintf(influxdbConfig, influxdbDataDir, influxdbDataDir, influxdbDataDir, port, influxdbLink,
 		influxdbLink+"/etc/influxdb/influxdb.conf")
-	if _, err = osutil.ExecShellCommand(false, extraCmd); err != nil {
+	if _, err := osutil.ExecShellCommand(false, extraCmd); err != nil {
 		logger.Error("%s execute failed, %v", extraCmd, err)
 		return err
 	}
@@ -335,28 +334,28 @@ func (i *InstallInfluxdbComp) InstallInfluxdb() (err error) {
 	logger.Info("生成influxdb.ini文件")
 	influxdbini := esutil.GenInfluxdbini()
 	influxdbiniFile := fmt.Sprintf("%s/influxdb.ini", cst.DefaultInfluxdbSupervisorConf)
-	if err = ioutil.WriteFile(influxdbiniFile, influxdbini, 0); err != nil {
+	if err := ioutil.WriteFile(influxdbiniFile, influxdbini, 0); err != nil {
 		logger.Error("write %s failed, %v", influxdbiniFile, err)
 	}
 
 	extraCmd = fmt.Sprintf("chmod 777 %s/influxdb.ini ", cst.DefaultInfluxdbSupervisorConf)
-	if _, err = osutil.ExecShellCommand(false, extraCmd); err != nil {
+	if _, err := osutil.ExecShellCommand(false, extraCmd); err != nil {
 		logger.Error("%s execute failed, %v", extraCmd, err)
 		return err
 	}
 
 	extraCmd = fmt.Sprintf("chown -R influxdb:influxdb %s ", i.InfluxdbEnvDir)
-	if _, err = osutil.ExecShellCommand(false, extraCmd); err != nil {
+	if _, err := osutil.ExecShellCommand(false, extraCmd); err != nil {
 		logger.Error("%s execute failed, %v", extraCmd, err)
 		return err
 	}
 
-	if err = esutil.SupervisorctlUpdate(); err != nil {
+	if err := esutil.SupervisorctlUpdate(); err != nil {
 		logger.Error("supervisort update failed %v", err)
 	}
 
-	extraCmd = fmt.Sprintf("sleep 60")
-	if _, err = osutil.ExecShellCommand(false, extraCmd); err != nil {
+	extraCmd = "sleep 60"
+	if _, err := osutil.ExecShellCommand(false, extraCmd); err != nil {
 		logger.Error("%s execute failed, %v", extraCmd, err)
 		return err
 	}
@@ -401,17 +400,17 @@ const influxdbConfig = `echo 'reporting-disabled = true
 func (i *InstallInfluxdbComp) InitUser() (err error) {
 
 	var (
-		username        string = i.Params.Username
-		password        string = i.Params.Password
-		port            int    = i.Params.Port
-		influxdbBaseDir string = fmt.Sprintf("%s/influxdb", cst.DefaultInfluxdbEnv)
+		username        = i.Params.Username
+		password        = i.Params.Password
+		port            = i.Params.Port
+		influxdbBaseDir = fmt.Sprintf("%s/influxdb", cst.DefaultInfluxdbEnv)
 	)
 	extraCmd := fmt.Sprintf(
 		`%s/%s -host localhost -port %d -execute "create user \"%s\" with password '%s' with all privileges"`,
 		influxdbBaseDir, "usr/bin/influx", port, username, password)
-	if output, err := osutil.ExecShellCommand(false, extraCmd); err != nil {
-		logger.Error("copy basedir failed, %s, %s", output, err.Error())
-		return err
+	if output, err, statusCode := osutil.ExecShellCommandBd(false, extraCmd); statusCode != 0 {
+		logger.Error("Create user failed, %s, %s", output, err)
+		return errors.New(err)
 	}
 
 	return nil
@@ -421,14 +420,14 @@ func (i *InstallInfluxdbComp) InitUser() (err error) {
 func (i *InstallInfluxdbComp) InstallTelegraf() (err error) {
 
 	var (
-		host      string = i.Params.Host
-		port      int    = i.Params.Port
-		groupName string = i.Params.GroupName
-		groupId   int    = i.Params.GroupId
+		host      = i.Params.Host
+		port      = i.Params.Port
+		groupName = i.Params.GroupName
+		groupID   = i.Params.GroupID
 	)
 
 	logger.Info("开始渲染telegraf.conf")
-	extraCmd := fmt.Sprintf(telegrafConfig, groupName, groupName, groupId, host, port, host, port, host, port,
+	extraCmd := fmt.Sprintf(telegrafConfig, groupName, groupName, groupID, host, port, host, port, host, port,
 		cst.DefaultInfluxdbEnv+"/telegraf/etc/telegraf/telegraf.conf")
 	if _, err = osutil.ExecShellCommand(false, extraCmd); err != nil {
 		logger.Error("%s execute failed, %v", extraCmd, err)
