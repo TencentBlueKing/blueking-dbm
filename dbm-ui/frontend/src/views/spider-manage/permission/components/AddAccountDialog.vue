@@ -351,9 +351,10 @@
       ...formData,
       password: getEncyptPassword(),
       account_type: TENDBCLUSTER,
+      bizId: currentBizId,
     };
 
-    createAccountRun(params, currentBizId);
+    createAccountRun(params);
   }
 
   const handleClose = () => {

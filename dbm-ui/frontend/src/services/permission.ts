@@ -149,7 +149,7 @@ export const getPermissionRules = (params: PermissionRulesParams) => http.get<Pe
 /**
  * 创建账户
  */
-export const createAccount = (params: CreateAccountParams, bizId: number) => http.post(`/apis/mysql/bizs/${bizId}/permission/account/create_account/`, params);
+export const createAccount = (params: CreateAccountParams & { bizId: number }) => http.post(`/apis/mysql/bizs/${params.bizId}/permission/account/create_account/`, params);
 
 /**
  * 删除账号

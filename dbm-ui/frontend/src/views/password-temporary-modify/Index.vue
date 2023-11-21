@@ -12,24 +12,23 @@
 -->
 
 <template>
-  <MainBreadcrumbs>
-    <template #append>
-      <div class="password-temporary-modify-head">
-        <span class="head-subtitle">
-          ( {{ t('修改的是管理账号的密码') }} )
-        </span>
-        <BkButton
-          v-if="!submitting && !submitted"
-          text
-          theme="primary"
-          @click="passwordSidesliderShow = true">
-          <DbIcon
-            type="history-2 mr-4" />
-          {{ t('临时密码生效的实例') }}
-        </BkButton>
-      </div>
-    </template>
-  </MainBreadcrumbs>
+  <!-- <div
+    ref="subTitleRef"
+    class="password-temporary-modify-head">
+    <span class="head-subtitle">
+      ( {{ t('修改的是管理账号的密码') }} )
+    </span>
+    <BkButton
+      v-if="!submitting && !submitted"
+      class="head-button"
+      text
+      theme="primary"
+      @click="passwordSidesliderShow = true">
+      <DbIcon
+        type="history-2 mr-4" />
+      {{ t('临时密码生效的实例') }}
+    </BkButton>
+  </div> -->
   <div class="password-temporary-modify">
     <div
       v-if="submitting"
@@ -178,12 +177,8 @@
     verifyPasswordStrength,
   } from '@services/permission';
 
-  import { useMainViewStore } from '@stores';
-
   import type { ClusterTypes } from '@common/const';
   import { dbTippy } from '@common/tippy';
-
-  import MainBreadcrumbs from '@components/layouts/MainBreadcrumbs.vue';
 
   import type {
     InstanceSelectorValue,
@@ -227,9 +222,6 @@
   type PasswordStrength = ServiceReturnType<typeof verifyPasswordStrength>
 
   const { t } = useI18n();
-  const mainViewStore = useMainViewStore();
-  mainViewStore.hasPadding = false;
-  mainViewStore.customBreadcrumbs = true;
 
   const createDefaultData = () => ({
     instanceList: [] as InstanceSelectorValue[],
@@ -347,6 +339,7 @@
   const submitLength = ref(0);
   const passwordSidesliderShow = ref(false);
   const instanceSelectorShow = ref(false);
+  // const subTitleRef = ref();
   const formRef = ref();
   const passwordRef = ref();
   const passwordItemRef = ref();
@@ -549,11 +542,7 @@
     const instanceList = Object.values(instanceValues).reduce((instanceListPrev, instanceValuesItem) => [...instanceListPrev, ...instanceValuesItem], []);
 
     queryMysqlAdminPasswordRun({
-      instances: instanceList.map(instanceItem => formatInstance({
-        cloudId: instanceItem.bk_cloud_id,
-        ip: instanceItem.ip,
-        port: instanceItem.port,
-      })).join(','),
+      instances: instanceList.map(instanceItem => `${instanceItem.ip}:${instanceItem.port}`).join(','),
     });
     formData.instanceList = instanceList;
   };
@@ -611,18 +600,36 @@
     handleReset();
     submitted.value = false;
   };
+
+  // onMounted(() => {
+  //   const subTitleElement = document.querySelector('#dbmPageSubtitle');
+  //   subTitleElement?.appendChild(subTitleRef.value);
+  // });
+
+  // onBeforeRouteLeave(() => {
+  //   const subTitleElement = document.querySelector('#dbmPageSubtitle');
+  //   while (subTitleElement?.firstChild) {
+  //     subTitleElement.removeChild(subTitleElement.firstChild);
+  //   }
+  // });
 </script>
 
 <style lang="less" scoped>
 
 .password-temporary-modify-head {
-  flex: 1;
   display: flex;
+  margin-left: 8px;;
+  flex: 1;
+  line-height: 1.7;
   justify-content: space-between;
 
   .head-subtitle {
     font-size: 12px;
     color: #979BA5;
+  }
+
+  .head-button {
+    font-size: 14px;
   }
 }
 
@@ -726,3 +733,14 @@
   }
 }
 </style>
+
+<!-- <style>
+.main-breadcrumbs-current {
+  width: 100%;
+  margin-right: 0 !important;
+
+  #dbmPageSubtitle {
+    flex: 1;
+  }
+}
+</style> -->

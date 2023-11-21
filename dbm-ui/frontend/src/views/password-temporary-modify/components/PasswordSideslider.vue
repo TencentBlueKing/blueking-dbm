@@ -15,7 +15,7 @@
   <BkSideslider
     :is-show="isShow"
     :title="t('临时密码生效的实例')"
-    :width="1110"
+    :width="1200"
     @closed="isShow = false;">
     <div class="password-sideslider">
       <div class="operate-area">
@@ -38,7 +38,6 @@
           class="ml-8 search-select"
           :data="searchSelectData"
           :placeholder="t('请输入实例搜索')"
-          :unique-select="false"
           @change="getDataSource" />
       </div>
       <DbTable
@@ -91,6 +90,7 @@
     {
       name: t('实例'),
       id: 'instances',
+      placeholder: `${t('请输入实例搜索')}(eg: 127.0.0.1:8000)`,
     },
   ];
 
@@ -98,6 +98,11 @@
     {
       type: 'selection',
       width: 48,
+    },
+    {
+      label: t('云区域'),
+      field: 'bk_cloud_name',
+      width: 100,
     },
     {
       label: t('实例'),
@@ -120,17 +125,17 @@
     },
     {
       label: () => (
-        <div class='password-head'>
+        <>
           <span>{ t('密码') }</span>
           <bk-button
             text
             onClick={ () => handlePasswordShow() }>
-            <db-icon type="visible1 password-head-icon ml-4"/>
+            <db-icon type="visible1 ml-4"/>
           </bk-button>
-        </div>
+        </>
       ),
       field: 'password',
-      width: 180,
+      width: 200,
       showOverflowTooltip: true,
       render: ({ row }: TableRow) => (
         <>
@@ -164,16 +169,19 @@
     {
       label: t('过期时间'),
       field: 'lock_until',
+      minWidth: 240,
       sort: true,
       showOverflowTooltip: true,
       render: ({ row }: TableRow) => {
         const { lock_until: lockUntil } = row;
-        const diffDay = dayjs(lockUntil).diff(dayjs(), 'day');
+        const lockUntilDate = dayjs(lockUntil).format('YYYY-MM-DD');
+        const currentDate = dayjs().format('YYYY-MM-DD');
+        const diffDay = dayjs(lockUntilDate).diff(currentDate, 'day');
 
         return diffDay <= 7
           ? <span
               class='expired-time'>
-              { lockUntil }（{ t('n天后过期', [diffDay]) }）
+              { lockUntil }（{ t('n天后过期', [Math.ceil(diffDay)]) }）
             </span>
           : <span>{ lockUntil }</span>;
       },
@@ -252,19 +260,6 @@
 
     .search-select {
       flex: 1;
-    }
-  }
-
-  :deep(.password-head) {
-    .password-head-icon {
-      display: none;
-      font-size: 16px;
-    }
-
-    &:hover {
-      .password-head-icon {
-        display: inline-block;
-      }
     }
   }
 

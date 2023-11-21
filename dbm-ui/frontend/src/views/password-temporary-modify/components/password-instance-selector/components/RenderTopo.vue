@@ -136,6 +136,8 @@
           formatDataItem.count = item.proxies?.length || 0;
         } else if (props.role === 'master') {
           formatDataItem.count = item.masters?.length || 0;
+        } else if (activePanel?.value === 'tendbha') {
+          formatDataItem.count = formatDataItem.count - (item.proxies?.length || 0);
         }
         return formatDataItem;
       });
