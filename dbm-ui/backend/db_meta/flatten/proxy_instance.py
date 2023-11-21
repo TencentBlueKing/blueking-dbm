@@ -64,7 +64,7 @@ def proxy_instance(proxies: QuerySet) -> List[Dict]:
         bind_entry = defaultdict(list)
         for be in ins.bind_entry.all():
             proxy_instance_list = list(be.proxyinstance_set.all())
-            bind_ips = list(be.proxyinstance_set.all())
+            bind_ips = list(set([ele.machine.ip for ele in proxy_instance_list]))
             try:
                 bind_port = proxy_instance_list[0].port
             except (IndexError, AttributeError):

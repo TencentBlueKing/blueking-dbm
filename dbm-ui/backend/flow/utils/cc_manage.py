@@ -175,7 +175,7 @@ class CcManage(object):
                 bk_module_id=bk_module["bk_module_id"],
             )
             machine_topo[machine_type] = topo.bk_module_id
-
+        logger.info("get_or_create_set_module machine_topo: {}".format(machine_topo))
         return machine_topo
 
     def get_biz_internal_module(self, bk_biz_id: int):
@@ -396,16 +396,28 @@ class CcManage(object):
             bk_set_id = AppMonitorTopo.objects.get(
                 bk_biz_id=self.hosting_biz_id, db_type=db_type, machine_type=machine_type
             ).bk_set_id
+            try:
+                bk_module_obj = ClusterMonitorTopo.objects.get(
+                    machine_type=machine_type,
+                    bk_biz_id=self.hosting_biz_id,
+                    cluster_id=cluster_id,
+                    instance_id=instance_id,
+                    bk_set_id=bk_set_id,
+                )
+            except ClusterMonitorTopo.DoesNotExist:
+                # 集群拓扑已不存在，不处理
+                logger.warning(
+                    "ClusterMonitorTopo dose not exist. bk_biz_id: {bk_biz_id}, machine_type:{machine_type}"
+                    "cluster_id:{cluster_id}, instance_id:{instance_id}".format(
+                        bk_biz_id=self.hosting_biz_id,
+                        machine_type=machine_type,
+                        cluster_id=cluster_id,
+                        instance_id=instance_id,
+                    )
+                )
+                continue
 
-            bk_module_obj = ClusterMonitorTopo.objects.get(
-                machine_type=machine_type,
-                bk_biz_id=self.hosting_biz_id,
-                cluster_id=cluster_id,
-                instance_id=instance_id,
-                bk_set_id=bk_set_id,
-            )
             # 检查模块下是否还有机器
-
             CCApi.delete_module(
                 {
                     "bk_biz_id": bk_module_obj.bk_biz_id,
