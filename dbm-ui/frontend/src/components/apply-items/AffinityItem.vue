@@ -13,6 +13,7 @@
 
 <template>
   <BkFormItem
+    v-if="affinityList && affinityList.length > 0"
     :label="t('容灾要求')"
     required>
     <BkRadioGroup
