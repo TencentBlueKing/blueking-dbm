@@ -154,6 +154,9 @@ class ListRetrieveResource(query.ListRetrieveResource):
         if query_params.get("role"):
             query_conditions &= Q(role=query_params["role"])
 
+        if query_params.get("role_exclude"):
+            query_conditions &= ~Q(role=query_params["role_exclude"])
+
         if query_params.get("domain"):
             master_domain_query = Q(cluster__immute_domain__icontains=query_params["domain"])
             slave_domain_query = Q(bind_entry__entry__icontains=query_params["domain"])
