@@ -10,8 +10,9 @@ specific language governing permissions and limitations under the License.
 """
 from dataclasses import dataclass, field
 
-from blue_krill.data_types.enum import EnumField, StructuredEnum
 from django.utils.translation import ugettext_lazy as _
+
+from blue_krill.data_types.enum import EnumField, StructuredEnum
 
 
 class DBHASwitchResult(str, StructuredEnum):

@@ -26,7 +26,7 @@ from backend.core.encrypt.constants import AsymmetricCipherConfigType
 from backend.core.encrypt.handlers import AsymmetricHandler
 from backend.db_meta.enums import ClusterType, InstanceInnerRole, MachineType
 from backend.db_meta.exceptions import DBMetaException
-from backend.db_meta.models import Cluster, Machine, ProxyInstance, StorageInstance, StorageInstanceTuple
+from backend.db_meta.models import Cluster, DBModule, Machine, ProxyInstance, StorageInstance, StorageInstanceTuple
 from backend.db_package.models import Package
 from backend.db_proxy.models import DBCloudProxy
 from backend.db_services.mysql.sql_import.constants import BKREPO_SQLFILE_PATH
@@ -1997,6 +1997,8 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
 
     def get_adopt_tendbha_storage_payload(self, **kwargs):
         db_version = self.cluster["version"]
+        # 这个包其实没有用, 所以只要传包名, 不需要下发
+        # 是因为复用了 mysql install actor 需要包名做条件分支
         self.mysql_pkg = Package.get_latest_package(version=db_version, pkg_type=MediumEnum.MySQL)
 
         drs_account, dbha_account = self.get_super_account()
@@ -2017,7 +2019,8 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
             },
         }
 
-    def get_adopt_tendbha_proxy_payload(self, **kwargs):
+    @staticmethod
+    def get_adopt_tendbha_proxy_payload(**kwargs):
         return {
             "db_type": DBActuatorTypeEnum.MySQL.value,
             "action": DBActuatorActionEnum.AdoptTendbHAProxy.value,

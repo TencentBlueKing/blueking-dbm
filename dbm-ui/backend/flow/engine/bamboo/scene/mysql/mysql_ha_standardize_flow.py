@@ -18,8 +18,10 @@ from typing import Dict, List, Optional
 from django.utils.translation import ugettext as _
 
 from backend.configuration.constants import DBType
+from backend.db_meta.enums import ClusterType
 from backend.db_meta.exceptions import DBMetaException
-from backend.db_meta.models import Cluster
+from backend.db_meta.models import Cluster, StorageInstance
+from backend.flow.consts import DBA_ROOT_USER
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder, SubProcess
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.plugins.components.collections.mysql.cluster_standardize_trans_module import (
@@ -51,12 +53,13 @@ class MySQLHAStandardizeFlow(object):
         }
         增加单据临时ADMIN账号的添加和删除逻辑
         """
-        cluster_objects = Cluster.objects.filter(pk__in=self.data["infos"]["cluster_ids"])
-        if cluster_objects.count() != len(self.data["infos"]["cluster_ids"]):
+        cluster_ids = self.data["infos"]["cluster_ids"]
+        bk_biz_id = self.data["bk_biz_id"]
+
+        cluster_objects = Cluster.objects.filter(pk__in=cluster_ids, bk_biz_id=bk_biz_id)
+        if cluster_objects.count() != len(cluster_ids):
             raise DBMetaException(
-                message="input {} clusters, but found {}".format(
-                    len(self.data["infos"]["cluster_ids"]), cluster_objects.count()
-                )
+                message="input {} clusters, but found {}".format(len(cluster_ids), cluster_objects.count())
             )
 
         standardize_pipe = Builder(
@@ -66,14 +69,74 @@ class MySQLHAStandardizeFlow(object):
         )
         standardize_pipe.add_sub_pipeline(self._build_trans_module_sub(clusters=cluster_objects))
 
+        # 为了代码方便这里稍微特殊点
+        # 这两个字典的 key 是 ip 地址
+        # value 是 bk cloud id
+        # 省得要搞字典去重
+        proxy_ips = {}
+        storage_ips = {}
+        # 为了方便下发文件, ip 还要按 bk_cloud_id 分组
+        ip_group_by_cloud = defaultdict(list)
+        for cluster_obj in cluster_objects:
+            for ins in cluster_obj.proxyinstance_set.all():
+                ip = ins.machine.ip
+                bk_cloud_id = ins.machine.bk_cloud_id
+                proxy_ips[ip] = bk_cloud_id
+                ip_group_by_cloud[bk_cloud_id].append(ip)
+
+            for ins in cluster_obj.storageinstance_set.all():
+                ip = ins.machine.ip
+                bk_cloud_id = ins.machine.bk_cloud_id
+                storage_ips[ip] = bk_cloud_id
+                ip_group_by_cloud[bk_cloud_id].append(ip)
+
+        # 按 bk_cloud_id 批量下发文件
+        standardize_pipe.add_sub_pipeline(self._trans_file(ips_group=ip_group_by_cloud))
+
         standardize_pipe.add_parallel_sub_pipeline(
             sub_flow_list=[
-                self._build_proxy_sub(clusters=cluster_objects),
-                self._build_storage_sub(clusters=cluster_objects),
+                self._build_proxy_sub(ips=proxy_ips),
+                self._build_storage_sub(ips=storage_ips),
             ]
         )
         logger.info(_("构建TenDBHA集群标准化流程成功"))
         standardize_pipe.run_pipeline(is_drop_random_user=True)
+
+    def _trans_file(self, ips_group: Dict) -> SubProcess:
+        trans_file_pipes = []
+        for bk_cloud_id, ips in ips_group.items():
+            cloud_trans_file_pipe = SubBuilder(root_id=self.root_id, data=self.data)
+
+            cloud_trans_file_pipe.add_act(
+                act_name=_("下发MySQL周边程序介质"),
+                act_component_code=TransFileComponent.code,
+                kwargs=asdict(
+                    DownloadMediaKwargs(
+                        bk_cloud_id=bk_cloud_id,
+                        exec_ip=ips,
+                        file_list=GetFileList(db_type=DBType.MySQL).get_mysql_surrounding_apps_package(),
+                    )
+                ),
+            )
+            cloud_trans_file_pipe.add_act(
+                act_name=_("下发db-actuator介质"),
+                act_component_code=TransFileComponent.code,
+                kwargs=asdict(
+                    DownloadMediaKwargs(
+                        bk_cloud_id=bk_cloud_id,
+                        exec_ip=ips,
+                        file_list=GetFileList(db_type=DBType.MySQL).get_db_actuator_package(),
+                    )
+                ),
+            )
+
+            trans_file_pipes.append(
+                cloud_trans_file_pipe.build_sub_process(sub_name=_("cloud {} 下发文件".format(bk_cloud_id)))
+            )
+
+        p = SubBuilder(root_id=self.root_id, data=self.data)
+        p.add_parallel_sub_pipeline(sub_flow_list=trans_file_pipes)
+        return p.build_sub_process(sub_name=_("下发文件"))
 
     def _build_trans_module_sub(self, clusters: List[Cluster]) -> SubProcess:
         pipes = []
@@ -91,46 +154,24 @@ class MySQLHAStandardizeFlow(object):
         p.add_parallel_sub_pipeline(sub_flow_list=pipes)
         return p.build_sub_process(sub_name=_("CC标准化"))
 
-    def _build_proxy_sub(self, clusters: List[Cluster]) -> SubProcess:
-        ip_cluster_map = defaultdict(list)
-        for cluster in clusters:
-            for ins in cluster.proxyinstance_set.all():
-                # 集群的 N 个接入层实例肯定在不同的 N 台机器上
-                # 一个实例肯定只是一个集群的接入层
-                # 所以这个列表不会有重复值
-                ip_cluster_map[ins.machine.ip].append(cluster)
-
+    def _build_proxy_sub(self, ips: Dict) -> SubProcess:
         pipes = []
-        for ip, relate_clusters in ip_cluster_map.items():
-            bk_cloud_id = relate_clusters[0].bk_cloud_id
-            cluster_type = relate_clusters[0].cluster_type
-            pipe = SubBuilder(root_id=self.root_id, data=self.data)
+        for ip, bk_cloud_id in ips.items():
+            single_pipe = SubBuilder(root_id=self.root_id, data=self.data)
 
-            pipe.add_act(
-                act_name=_("下发MySQL周边程序介质"),
-                act_component_code=TransFileComponent.code,
+            single_pipe.add_act(
+                act_name=_("标准化proxy"),
+                act_component_code=ExecuteDBActuatorScriptComponent.code,
                 kwargs=asdict(
-                    DownloadMediaKwargs(
+                    ExecActuatorKwargs(
+                        run_as_system_user=DBA_ROOT_USER,
+                        get_mysql_payload_func=MysqlActPayload.get_adopt_tendbha_proxy_payload.__name__,
                         bk_cloud_id=bk_cloud_id,
-                        exec_ip=ip,
-                        file_list=GetFileList(db_type=DBType.MySQL).get_mysql_surrounding_apps_package(),
                     )
                 ),
             )
 
-            pipe.add_act(
-                act_name=_("下发actuator介质"),
-                act_component_code=TransFileComponent.code,
-                kwargs=asdict(
-                    DownloadMediaKwargs(
-                        bk_cloud_id=bk_cloud_id,
-                        exec_ip=ip,
-                        file_list=GetFileList(db_type=DBType.MySQL).get_db_actuator_package(),
-                    )
-                ),
-            )
-
-            pipe.add_act(
+            single_pipe.add_act(
                 act_name=_("部署mysql-crond"),
                 act_component_code=ExecuteDBActuatorScriptComponent.code,
                 kwargs=asdict(
@@ -138,12 +179,12 @@ class MySQLHAStandardizeFlow(object):
                         exec_ip=ip,
                         bk_cloud_id=bk_cloud_id,
                         get_mysql_payload_func=MysqlActPayload.get_deploy_mysql_crond_payload.__name__,
-                        cluster_type=cluster_type,
+                        cluster_type=ClusterType.TenDBHA.value,
                     )
                 ),
             )
 
-            pipe.add_act(
+            single_pipe.add_act(
                 act_name=_("部署监控程序"),
                 act_component_code=ExecuteDBActuatorScriptComponent.code,
                 kwargs=asdict(
@@ -151,59 +192,45 @@ class MySQLHAStandardizeFlow(object):
                         exec_ip=ip,
                         bk_cloud_id=bk_cloud_id,
                         get_mysql_payload_func=MysqlActPayload.get_deploy_mysql_monitor_payload.__name__,
-                        cluster_type=cluster_type,
+                        cluster_type=ClusterType.TenDBHA.value,
                     )
                 ),
             )
 
-            pipes.append(
-                pipe.build_sub_process(
-                    sub_name=_("{} 部署dba工具".format("\n".join([ele.immute_domain for ele in relate_clusters])))
-                )
-            )
+            pipes.append(single_pipe.build_sub_process(sub_name=_("{} 部署dba工具".format(ip))))
 
         p = SubBuilder(root_id=self.root_id, data=self.data)
         p.add_parallel_sub_pipeline(sub_flow_list=pipes)
 
         return p.build_sub_process(sub_name=_("接入层标准化"))
 
-    def _build_storage_sub(self, clusters: List[Cluster]) -> SubProcess:
-        ip_cluster_map = defaultdict(list)
-        for cluster in clusters:
-            for ins in cluster.storageinstance_set.all():
-                ip_cluster_map[ins.machine.ip].append(cluster)
-
+    def _build_storage_sub(self, ips: Dict) -> SubProcess:
         pipes = []
-        for ip, relate_clusters in ip_cluster_map.items():
-            bk_cloud_id = relate_clusters[0].bk_cloud_id
-            cluster_type = relate_clusters[0].cluster_type
-            pipe = SubBuilder(root_id=self.root_id, data=self.data)
+        for ip, bk_cloud_id in ips.items():
+            single_pipe = SubBuilder(root_id=self.root_id, data=self.data)
 
-            pipe.add_act(
-                act_name=_("下发MySQL周边程序介质"),
-                act_component_code=TransFileComponent.code,
+            # 同一机器所有集群的 major version 应该是一样的
+            major_version = Cluster.objects.filter(storageinstance__machine__ip=ip).first().major_version
+            ports = StorageInstance.objects.filter(machine__ip=ip, bk_biz_id=self.data["bk_biz_id"]).values_list(
+                "port", flat=True
+            )
+
+            single_pipe.add_act(
+                act_name=_("系统库表权限标准化"),
+                act_component_code=ExecuteDBActuatorScriptComponent.code,
                 kwargs=asdict(
-                    DownloadMediaKwargs(
-                        bk_cloud_id=bk_cloud_id,
+                    ExecActuatorKwargs(
                         exec_ip=ip,
-                        file_list=GetFileList(db_type=DBType.MySQL).get_mysql_surrounding_apps_package(),
+                        run_as_system_user=DBA_ROOT_USER,
+                        cluster_type=ClusterType.TenDBHA.value,
+                        cluster={"ports": ports, "version": major_version},
+                        bk_cloud_id=bk_cloud_id,
+                        get_mysql_payload_func=MysqlActPayload.get_adopt_tendbha_storage_payload.__name__,
                     )
                 ),
             )
 
-            pipe.add_act(
-                act_name=_("下发actuator介质"),
-                act_component_code=TransFileComponent.code,
-                kwargs=asdict(
-                    DownloadMediaKwargs(
-                        bk_cloud_id=bk_cloud_id,
-                        exec_ip=ip,
-                        file_list=GetFileList(db_type=DBType.MySQL).get_db_actuator_package(),
-                    )
-                ),
-            )
-
-            pipe.add_act(
+            single_pipe.add_act(
                 act_name=_("部署mysql-crond"),
                 act_component_code=ExecuteDBActuatorScriptComponent.code,
                 kwargs=asdict(
@@ -211,12 +238,12 @@ class MySQLHAStandardizeFlow(object):
                         exec_ip=ip,
                         bk_cloud_id=bk_cloud_id,
                         get_mysql_payload_func=MysqlActPayload.get_deploy_mysql_crond_payload.__name__,
-                        cluster_type=cluster_type,
+                        cluster_type=ClusterType.TenDBHA.value,
                     )
                 ),
             )
 
-            pipe.add_act(
+            single_pipe.add_act(
                 act_name=_("部署监控程序"),
                 act_component_code=ExecuteDBActuatorScriptComponent.code,
                 kwargs=asdict(
@@ -224,12 +251,12 @@ class MySQLHAStandardizeFlow(object):
                         exec_ip=ip,
                         bk_cloud_id=bk_cloud_id,
                         get_mysql_payload_func=MysqlActPayload.get_deploy_mysql_monitor_payload.__name__,
-                        cluster_type=cluster_type,
+                        cluster_type=ClusterType.TenDBHA.value,
                     )
                 ),
             )
 
-            pipe.add_act(
+            single_pipe.add_act(
                 act_name=_("部署备份程序"),
                 act_component_code=ExecuteDBActuatorScriptComponent.code,
                 kwargs=asdict(
@@ -237,12 +264,12 @@ class MySQLHAStandardizeFlow(object):
                         exec_ip=ip,
                         bk_cloud_id=bk_cloud_id,
                         get_mysql_payload_func=MysqlActPayload.get_install_db_backup_payload.__name__,
-                        cluster_type=cluster_type,
+                        cluster_type=ClusterType.TenDBHA.value,
                     )
                 ),
             )
 
-            pipe.add_act(
+            single_pipe.add_act(
                 act_name=_("部署rotate binlog"),
                 act_component_code=ExecuteDBActuatorScriptComponent.code,
                 kwargs=asdict(
@@ -250,12 +277,12 @@ class MySQLHAStandardizeFlow(object):
                         exec_ip=ip,
                         bk_cloud_id=bk_cloud_id,
                         get_mysql_payload_func=MysqlActPayload.get_install_mysql_rotatebinlog_payload.__name__,
-                        cluster_type=cluster_type,
+                        cluster_type=ClusterType.TenDBHA.value,
                     )
                 ),
             )
 
-            pipe.add_act(
+            single_pipe.add_act(
                 act_name=_("部署数据校验程序"),
                 act_component_code=ExecuteDBActuatorScriptComponent.code,
                 kwargs=asdict(
@@ -263,12 +290,12 @@ class MySQLHAStandardizeFlow(object):
                         exec_ip=ip,
                         bk_cloud_id=bk_cloud_id,
                         get_mysql_payload_func=MysqlActPayload.get_install_mysql_checksum_payload.__name__,
-                        cluster_type=cluster_type,
+                        cluster_type=ClusterType.TenDBHA.value,
                     )
                 ),
             )
 
-            pipe.add_act(
+            single_pipe.add_act(
                 act_name=_("部署DBA工具箱"),
                 act_component_code=ExecuteDBActuatorScriptComponent.code,
                 kwargs=asdict(
@@ -276,16 +303,12 @@ class MySQLHAStandardizeFlow(object):
                         bk_cloud_id=bk_cloud_id,
                         exec_ip=ip,
                         get_mysql_payload_func=MysqlActPayload.get_install_dba_toolkit_payload.__name__,
-                        cluster_type=cluster_type,
+                        cluster_type=ClusterType.TenDBHA.value,
                     )
                 ),
             )
 
-            pipes.append(
-                pipe.build_sub_process(
-                    sub_name=_("{} 部署dba工具".format("\n".join([ele.immute_domain for ele in relate_clusters])))
-                )
-            )
+            pipes.append(single_pipe.build_sub_process(sub_name=_("{} 标准化".format(ip))))
 
         p = SubBuilder(root_id=self.root_id, data=self.data)
         p.add_parallel_sub_pipeline(sub_flow_list=pipes)

@@ -10,9 +10,10 @@ specific language governing permissions and limitations under the License.
 """
 import os
 
-from blue_krill.data_types.enum import EnumField, StructuredEnum
 from django.conf import settings
 from django.utils.translation import ugettext as _
+
+from blue_krill.data_types.enum import EnumField, StructuredEnum
 
 DB_MONITOR_TPLS_DIR = os.path.join(settings.BASE_DIR, "backend/db_monitor/tpls")
 TPLS_COLLECT_DIR = os.path.join(DB_MONITOR_TPLS_DIR, "collect")

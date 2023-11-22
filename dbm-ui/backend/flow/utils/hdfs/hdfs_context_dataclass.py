@@ -11,9 +11,8 @@ specific language governing permissions and limitations under the License.
 from dataclasses import dataclass, field
 from typing import Any, Optional
 
-from blue_krill.data_types.enum import EnumField, StructuredEnum
-
 from backend.flow.consts import HdfsRoleEnum
+from blue_krill.data_types.enum import EnumField, StructuredEnum
 
 
 @dataclass()

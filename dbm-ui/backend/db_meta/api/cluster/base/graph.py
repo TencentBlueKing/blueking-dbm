@@ -14,13 +14,13 @@ from dataclasses import asdict, dataclass, field
 from functools import reduce
 from typing import Dict, List, Optional, Tuple, Union
 
-from blue_krill.data_types.enum import EnumField, StructuredEnum
 from django.db.models import Q
 from django.utils.translation import gettext_lazy as _
 
 from backend import env
 from backend.db_meta.enums import ClusterEntryType, ClusterType, InstanceRole, MachineType, TenDBClusterSpiderRole
 from backend.db_meta.models import Cluster, ClusterEntry, ProxyInstance, StorageInstance
+from blue_krill.data_types.enum import EnumField, StructuredEnum
 
 
 @dataclass
