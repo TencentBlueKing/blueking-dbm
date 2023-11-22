@@ -49,7 +49,7 @@ export const getInfrasCities = () => http.get<CitiyItem[]>('/apis/infras/cities/
 /**
  * 服务器规格列表
  */
-export const getInfrasHostSpecs = (params: { cityCode: string }) => http.get<HostSpec[]>(`/apis/infras/cities/${params.cityCode}/host_specs/`);
+export const getInfrasHostSpecs = () => http.get<HostSpec[]>('/apis/infras/cities/host_specs/');
 
 /**
  * redis 容量列表
@@ -193,7 +193,7 @@ export const getHostInAuthorize = (params: {
   limit?: number,
   offset?: number,
   keyword?: string
-}) => http.get<{ hosts: HostNode[], ip_whitelist: {ip: string}[] }>(`/apis/mysql/bizs/${params.bk_biz_id}/permission/authorize/get_host_in_authorize/`, params)
+}) => http.get<{ hosts: HostNode[], ip_whitelist: { ip: string }[] }>(`/apis/mysql/bizs/${params.bk_biz_id}/permission/authorize/get_host_in_authorize/`, params)
   .then((res) => {
     const list = [...res.hosts];
 

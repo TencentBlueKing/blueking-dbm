@@ -16,7 +16,7 @@
     v-bkloading="{loading: isLoading}"
     class="hdfs-detail-page">
     <BkTab
-      v-model:active="activePanel"
+      v-model:active="activePanelKey"
       class="detail-tab"
       type="card-tab">
       <BkTabPanel
@@ -32,30 +32,31 @@
         :label="$t('变更记录')"
         name="record" />
       <BkTabPanel
-        :label="$t('监控仪表盘')"
-        name="monitor" />
+        v-for="item in monitorPanelList"
+        :key="item.name"
+        :label="item.label"
+        :name="item.name" />
     </BkTab>
     <div class="content-wrapper">
       <ClusterTopo
-        v-if="activePanel === 'topo'"
+        v-if="activePanelKey === 'topo'"
         :id="clusterId"
         cluster-type="hdfs"
         db-type="bigdata"
         :node-cofig="{ startX: 400 }" />
       <BaseInfo
-        v-if="activePanel === 'baseInfo' && clusterData"
+        v-if="activePanelKey === 'baseInfo' && clusterData"
         :data="clusterData" />
       <NodeList
-        v-if="activePanel === 'nodeList'"
+        v-if="activePanelKey === 'nodeList'"
         :key="clusterId"
         :cluster-id="clusterId" />
       <ClusterEventChange
-        v-if="activePanel === 'record'"
+        v-if="activePanelKey === 'record'"
         :id="clusterId" />
       <MonitorDashboard
-        v-if="activePanel === 'monitor'"
-        :id="clusterId"
-        cluster-type="hdfs" />
+        v-if="activePanelKey === activePanel?.name"
+        :url="activePanel?.link" />
     </div>
   </div>
 </template>
@@ -64,6 +65,11 @@
   import { useRequest } from 'vue-request';
 
   import { getHdfsDetail } from '@services/source/hdfs';
+  import { getMonitorUrls } from '@services/source/monitorGrafana';
+
+  import { useGlobalBizs } from '@stores';
+
+  import { ClusterTypes } from '@common/const';
 
   import ClusterTopo from '@components/cluster-details/ClusterTopo.vue';
   import ClusterEventChange from '@components/cluster-event-change/EventChange.vue';
@@ -76,9 +82,22 @@
     clusterId: number;
   }
 
-  const props = defineProps<Props>();
+  interface PanelItem {
+    label: string,
+    name: string,
+    link: string,
+  }
 
-  const activePanel = ref('topo');
+  const props = defineProps<Props>();
+  const { currentBizId } = useGlobalBizs();
+
+  const activePanelKey = ref('topo');
+  const monitorPanelList = ref<PanelItem[]>([]);
+
+  const activePanel = computed(() => {
+    const targetPanel = monitorPanelList.value.find(item => item.name === activePanelKey.value);
+    return targetPanel;
+  });
 
   const {
     loading: isLoading,
@@ -88,11 +107,28 @@
     manual: true,
   });
 
+  const { run: runGetMonitorUrls } = useRequest(getMonitorUrls, {
+    manual: true,
+    onSuccess(res) {
+      if (res.urls.length > 0) {
+        monitorPanelList.value = res.urls.map(item => ({
+          label: item.view,
+          name: item.view,
+          link: item.url,
+        }));
+      }
+    },
+  });
+
   watch(() => props.clusterId, () => {
-    console.log('form watch cluser id = ', props.clusterId);
     if (props.clusterId) {
       fetchResourceDetails({
         id: props.clusterId,
+      });
+      runGetMonitorUrls({
+        bk_biz_id: currentBizId,
+        cluster_type: ClusterTypes.HDFS,
+        cluster_id: props.clusterId,
       });
     }
   }, {

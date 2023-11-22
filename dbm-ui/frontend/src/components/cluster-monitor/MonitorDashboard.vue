@@ -28,13 +28,13 @@
           @click.stop="toggle" />
       </div>
       <BkException
-        v-if="link === '#'"
+        v-if="url === '#'"
         class="exception-wrap-item"
         :description="$t('监控组件初始化中_紧急情况请联系平台管理员')"
         type="building" />
       <iframe
         v-else
-        :src="link" />
+        :src="url" />
     </BkLoading>
   </div>
 </template>
@@ -42,58 +42,57 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import { getMonitorUrl } from '@services/common';
-
-  import { useGlobalBizs } from '@stores';
-
+  // import { getMonitorUrl } from '@services/common';
+  // import { useGlobalBizs } from '@stores';
   import { useFullscreen } from '@vueuse/core';
 
   interface Props {
-    id: number,
-    clusterType: string,
-    isFetchInstance: boolean
+    url?: string,
+
   }
 
-  const props = withDefaults(defineProps<Props>(), {
-    isFetchInstance: false,
+  withDefaults(defineProps<Props>(), {
+    url: '',
   });
 
   const monitorRef = ref<HTMLIFrameElement>();
   const { t } = useI18n();
-  const { currentBizId } = useGlobalBizs();
+  // const { currentBizId } = useGlobalBizs();
   const { isFullscreen, toggle } = useFullscreen(monitorRef);
 
   const isLoading = ref(false);
-  const link = ref('');
+  // const link = ref('');
+
+  // const targetUrl = computed(() => (props.url ? props.url : link.value));
 
   const screenIcon = computed(() => ({
     icon: isFullscreen.value ? 'db-icon-un-full-screen' : 'db-icon-full-screen',
     text: isFullscreen.value ? t('取消全屏') : t('全屏'),
   }));
 
-  const fetchLink = (id: number) => {
-    if (!props.clusterType || !props.id) return;
+  // const fetchLink = (id: number) => {
+  //   if (props.url || !props.clusterType || !props.id) return;
 
-    isLoading.value = true;
-    const fetchKey = props.isFetchInstance ? 'instance_id' : 'cluster_id';
-    getMonitorUrl({
-      bk_biz_id: currentBizId,
-      cluster_type: props.clusterType,
-      [fetchKey]: id,
-    })
-      .then((res) => {
-        link.value = res.url;
-      })
-      .finally(() => {
-        isLoading.value = false;
-      });
-  };
+  //   isLoading.value = true;
+  //   const fetchKey = props.isFetchInstance ? 'instance_id' : 'cluster_id';
+  //   getMonitorUrl({
+  //     bk_biz_id: currentBizId,
+  //     cluster_type: props.clusterType,
+  //     [fetchKey]: id,
+  //   })
+  //     .then((res) => {
+  //       link.value = res.url;
+  //     })
+  //     .finally(() => {
+  //       isLoading.value = false;
+  //     });
+  // };
 
-  watch([() => props.id, () => props.clusterType], () => {
-    if (props.id && props.clusterType) {
-      fetchLink(props.id);
-    }
-  }, { immediate: true });
+  // watch([() => props.id, () => props.clusterType], () => {
+  //   if (props.id && props.clusterType) {
+  //     fetchLink(props.id);
+  //   }
+  // }, { immediate: true });
 </script>
 
 <style lang="less" scoped>
