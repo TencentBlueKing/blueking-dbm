@@ -116,7 +116,7 @@
 
 <script lang="ts">
   import TicketModel from '@services/model/ticket/ticket';
-  import type { SearchFilterItem } from '@services/types/common';
+  import type { SearchFilterItem } from '@services/types';
 
   import type { SearchValue } from '@components/vue2/search-select/index.vue';
   /**

@@ -9,7 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
-from django.utils.translation import gettext as _
+from django.utils.translation import gettext_lazy as _
 
 from blue_krill.data_types.enum import EnumField, StructuredEnum
 
@@ -21,37 +21,51 @@ AES_BLOCK_SIZE = 16
 AES_PADDING = "\0"
 
 
-class CipherPadding(StructuredEnum):
+class CipherPadding(str, StructuredEnum):
     """填充标志"""
 
     PKCS1 = EnumField("PKCS1", _("PKCS1"))
     PKCS1_OAEP = EnumField("PKCS1_OAEP", _("PKCS1_OAEP"))
 
 
-class KeyObjType(StructuredEnum):
+class KeyObjType(str, StructuredEnum):
     """密钥对象类型"""
 
     PRIVATE_KEY_OBJ = EnumField("private_key_obj", _("私钥对象"))
     PUBLIC_KEY_OBJ = EnumField("public_key_obj", _("公钥对象"))
 
 
-class RSAKeyType(StructuredEnum):
+class AsymmetricCipherKeyType(str, StructuredEnum):
     """密钥类型"""
 
     PRIVATE_KEY = EnumField("PRIVATE_KEY", _("私钥"))
     PUBLIC_KEY = EnumField("PUBLIC_KEY", _("公钥"))
 
 
-class RSAConfigType(StructuredEnum):
+class AsymmetricCipherConfigType(str, StructuredEnum):
     """
-    系统配置的rsa类型
+    系统配置的非对称加密类型
     一般在不同场景进行加密传输时，需要对应不同的密钥对
     """
 
-    MYSQL = EnumField("mysql", _("MySQL的RSA秘钥"))
-    PROXYPASS = EnumField("proxypass", _("透传接口的RSA秘钥"))
-    CLOUD = EnumField("cloud", _("云区域服务的RSA秘钥"))
+    PASSWORD = EnumField("password", _("平台密码的非对称秘钥"))
+    PROXYPASS = EnumField("proxypass", _("透传接口的非对称秘钥"))
+    CLOUD = EnumField("cloud", _("云区域服务的非对称秘钥"))
 
     @classmethod
-    def get_rsa_cloud_name(cls, bk_cloud_id: int):
+    def get_cipher_cloud_name(cls, bk_cloud_id: int):
         return f"{cls.CLOUD.value}-{bk_cloud_id}"
+
+
+class AsymmetricCipherType(str, StructuredEnum):
+    """非对称加密算法类型"""
+
+    RSA = EnumField("RSA", _("RSA"))
+    SM2 = EnumField("SM2", _("SM2"))
+
+
+class SymmetricCipherType(str, StructuredEnum):
+    """对称加密算法类型"""
+
+    AES = EnumField("AES", _("AES"))
+    SM4 = EnumField("SM4", _("SM4"))

@@ -83,8 +83,8 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import { createDeployPlan } from '@services/dbResource';
   import type DeployPlanModel from '@services/model/db-resource/DeployPlan';
+  import { createDeployPlan } from '@services/source/dbresourceDeployPlan';
   import { getResourceSpecList } from '@services/source/dbresourceSpec';
 
   interface Props {

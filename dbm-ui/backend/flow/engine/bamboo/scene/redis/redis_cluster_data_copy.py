@@ -709,7 +709,7 @@ class RedisClusterDataCopyFlow(object):
             for proxy_ip in src_cluster_info["proxy_ips"]:
                 sh_cmd = self.__get_proxy_precheck_template(src_cluster_info["cluster_type"])
                 sh_cmd = sh_cmd.replace("{{SRC_PROXY_IP}}", proxy_ip)
-                sh_cmd = sh_cmd.replace("{{SRC_PROXY_PORT}}", src_cluster_info["cluster_port"])
+                sh_cmd = sh_cmd.replace("{{SRC_PROXY_PORT}}", str(src_cluster_info["cluster_port"]))
                 sh_cmd = sh_cmd.replace("{{SRC_PROXY_PASSWORD}}", src_cluster_info["cluster_password"])
 
                 act_kwargs.exec_ip = proxy_ip
@@ -729,7 +729,7 @@ class RedisClusterDataCopyFlow(object):
             for proxy_ip in dst_cluster_info["proxy_ips"]:
                 sh_cmd = self.__get_proxy_precheck_template(dst_cluster_info["cluster_type"])
                 sh_cmd = sh_cmd.replace("{{SRC_PROXY_IP}}", proxy_ip)
-                sh_cmd = sh_cmd.replace("{{SRC_PROXY_PORT}}", dst_cluster_info["cluster_port"])
+                sh_cmd = sh_cmd.replace("{{SRC_PROXY_PORT}}", str(dst_cluster_info["cluster_port"]))
                 sh_cmd = sh_cmd.replace("{{SRC_PROXY_PASSWORD}}", dst_cluster_info["cluster_password"])
 
                 act_kwargs.exec_ip = proxy_ip
@@ -905,7 +905,7 @@ class RedisClusterDataCopyFlow(object):
                 "dst_proxy_version": self.__get_proxy_version_by_cluster_type(dst_cluster_info["cluster_type"]),
                 "dst_cluster_type": dst_cluster_info["cluster_type"],
             }
-            act_kwargs.get_redis_payload_func = RedisActPayload.dts_swap_proxy_config_version.__name__
+            act_kwargs.get_redis_payload_func = RedisActPayload.dts_swap_proxy_config.__name__
             acts_list.append(
                 {
                     "act_name": _("交换源集群、目标集群的 proxy 版本信息"),
@@ -926,7 +926,7 @@ class RedisClusterDataCopyFlow(object):
                     "bk_biz_id": str(job_row.app),
                     "bk_cloud_id": int(job_row.bk_cloud_id),
                     "cluster_name": src_cluster_info["cluster_name"],
-                    "cluster_type": src_cluster_info["cluster_type"],
+                    "cluster_type": dst_cluster_info["cluster_type"],  # 集群类型已变化成目的集群类型
                     "cluster_domain": src_cluster_info["cluster_domain"],
                 }
             ]
@@ -983,7 +983,7 @@ class RedisClusterDataCopyFlow(object):
                     "bk_biz_id": str(job_row.app),
                     "bk_cloud_id": int(job_row.bk_cloud_id),
                     "cluster_name": dst_cluster_info["cluster_name"],
-                    "cluster_type": dst_cluster_info["cluster_type"],
+                    "cluster_type": src_cluster_info["cluster_type"],  # 集群类型已变化成源集群类型
                     "cluster_domain": dst_cluster_info["cluster_domain"],
                 }
             ]

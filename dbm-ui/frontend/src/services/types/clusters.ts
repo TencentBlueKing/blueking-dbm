@@ -13,7 +13,7 @@
 
 import { PipelineStatus } from '@common/const';
 
-import type { HostDetails } from './ip';
+import type { HostDetails } from '../types';
 
 /**
  * 用来获取集群节点的 keys

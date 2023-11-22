@@ -14,6 +14,7 @@ import re
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
+from backend.configuration.handlers.password import DBPasswordHandler
 from backend.db_services.mysql.permission.constants import AccountType, PrivilegeType
 from backend.db_services.mysql.permission.db_account import mock_data
 from backend.db_services.mysql.permission.db_account.dataclass import AccountMeta
@@ -35,10 +36,7 @@ class DBAccountBaseSerializer(serializers.Serializer):
                 raise serializers.ValidationError(_("账号名称不符合要求, 请重新账号名"))
 
         # 将密码进行解密并校验密码强度
-        account = AccountMeta(password=attrs["password"])
-        verify_result = AccountHandler(bk_biz_id=0, account_type=attrs["account_type"]).verify_password_strength(
-            account
-        )
+        verify_result = DBPasswordHandler.verify_password_strength(attrs["password"], echo=True)
         if not verify_result["is_strength"]:
             raise serializers.ValidationError(_("密码强度不符合要求，请重新输入密码。"))
 

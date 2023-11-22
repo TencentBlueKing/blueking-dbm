@@ -276,7 +276,6 @@ class RedisClusterApplyFlow(object):
             "conf": {
                 "maxmemory": str(self.data["maxmemory"]),
                 "databases": str(self.data["databases"]),
-                "requirepass": self.data["redis_pwd"],
             },
             "db_version": self.data["db_version"],
             "domain_name": self.data["domain_name"],
@@ -295,9 +294,12 @@ class RedisClusterApplyFlow(object):
 
         act_kwargs.cluster = {
             "conf": {
-                "password": self.data["proxy_pwd"],
-                "redis_password": self.data["redis_pwd"],
                 "port": str(self.data["proxy_port"]),
+            },
+            "pwd_conf": {
+                "proxy_pwd": self.data["proxy_pwd"],
+                "proxy_admin_pwd": self.data["proxy_pwd"],
+                "redis_pwd": self.data["redis_pwd"],
             },
             "domain_name": self.data["domain_name"],
         }

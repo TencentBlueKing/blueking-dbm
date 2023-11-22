@@ -14,7 +14,7 @@
 import axios, { AxiosError, type AxiosRequestConfig, type AxiosResponse } from 'axios';
 import { Message } from 'bkui-vue';
 
-import type { Permission } from '@services/types/common';
+import type { Permission } from '../types';
 
 interface LoginData {
   width: number,

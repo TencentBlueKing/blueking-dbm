@@ -111,7 +111,7 @@
   import { useI18n } from 'vue-i18n';
 
   import { createTicket } from '@services/source/ticket';
-  import type { BaseResponse } from '@services/types/common';
+  import type { BaseResponse } from '@services/types';
   import type {
     AuthorizePreCheckData,
     AuthorizePreCheckResult,

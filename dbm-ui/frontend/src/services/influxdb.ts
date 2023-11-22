@@ -14,7 +14,7 @@
 import InfluxdbInstanceModel from '@services/model/influxdb/influxdbInstance';
 
 import http from './http';
-import type { ListBase } from './types/common';
+import type { ListBase } from './types';
 
 // 获取实例列表
 export const getListInstance = function (params: Record<string, any> & {bk_biz_id: number}) {

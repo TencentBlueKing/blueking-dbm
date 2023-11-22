@@ -98,6 +98,7 @@
 
   import { useGlobalBizs } from '@stores';
 
+  import { ClusterTypes } from '@common/const';
   import {
     type ClusterTypeInfos,
     clusterTypeInfos,
@@ -215,7 +216,9 @@
         if (!isExisted) {
           newLines.push(...remove);
         } else {
-          legalInstances.push(infos);
+          if (!(infos.cluster_type === ClusterTypes.TENDBHA && infos.role === 'proxy')) {
+            legalInstances.push(infos);
+          }
         }
       }
       tableData.value.splice(0, tableData.value.length, ...legalInstances);
@@ -279,6 +282,8 @@
       margin-bottom: 8px;
 
       textarea {
+        height: 100%;
+
         &::selection {
           background-color: #fdd;
         }

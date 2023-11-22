@@ -72,13 +72,16 @@ class TenDBClusterDBTableBackupFlow(object):
             ...
             ]
         }
+        增加单据临时ADMIN账号的添加和删除逻辑
         """
         cluster_ids = [job["cluster_id"] for job in self.data["infos"]]
         dup_cluster_ids = [item for item, count in Counter(cluster_ids).items() if count > 1]
         if dup_cluster_ids:
             raise DBMetaBaseException(message="duplicate clusters found: {}".format(dup_cluster_ids))
 
-        backup_pipeline = Builder(root_id=self.root_id, data=self.data)
+        backup_pipeline = Builder(
+            root_id=self.root_id, data=self.data, need_random_pass_cluster_ids=list(set(cluster_ids))
+        )
 
         cluster_pipes = []
         for job in self.data["infos"]:
@@ -132,7 +135,7 @@ class TenDBClusterDBTableBackupFlow(object):
 
         backup_pipeline.add_parallel_sub_pipeline(sub_flow_list=cluster_pipes)
         logger.info(_("构造库表备份流程成功"))
-        backup_pipeline.run_pipeline(init_trans_data_class=MySQLBackupDemandContext())
+        backup_pipeline.run_pipeline(init_trans_data_class=MySQLBackupDemandContext(), is_drop_random_user=True)
 
     def backup_on_spider_ctl(self, backup_id: uuid.UUID, job: dict, cluster_obj: Cluster) -> SubProcess:
         # 在 ctl_primary 上备份 spider 表结构和中控表结构

@@ -25,7 +25,7 @@ import http from '../http';
 import type {
   HostNode,
   ListBase,
-} from '../types/common';
+} from '../types';
 import type {
   ClusterOperateRecord,
   FlowItem,

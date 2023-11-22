@@ -30,6 +30,8 @@ from django.utils.translation import ugettext as _
 from pipeline.eri.runtime import BambooDjangoRuntime
 
 from backend.flow.models import FlowNode, FlowTree, StateType
+from backend.flow.plugins.components.collections.common.create_random_job_user import AddTempUserForClusterComponent
+from backend.flow.plugins.components.collections.common.drop_random_job_user import DropTempUserForClusterComponent
 
 logger = logging.getLogger("json")
 
@@ -44,12 +46,16 @@ class Builder(object):
 
     """
 
-    def __init__(self, root_id: str, data: Optional[Dict] = None):
+    def __init__(self, root_id: str, data: Optional[Dict] = None, need_random_pass_cluster_ids: list = None):
         """
         声明builder类的属性
+        @param root_id: 流程id
+        @param data: 流程的全局只读参数，默认不是不会同步到各个子流程当中的
+        @param need_random_pass_cluster_ids: 是否按照集群维度添加临时账号，目前针对mysql/spider组件场景
         """
         self.root_id = root_id
         self.data = data
+        self.need_random_pass_cluster_ids = need_random_pass_cluster_ids
         self.start_act = EmptyStartEvent()
         self.end_act = EmptyEndEvent()
         if not self.data:
@@ -58,6 +64,9 @@ class Builder(object):
         # 添加当前系统语言到到全局参数中
         self.data["blueking_language"] = translation.get_language()
 
+        # 下传job的root_id
+        self.data["job_root_id"] = self.root_id
+
         # 定义流程数据全局参数global_data, dict属性
         self.global_data = Data()
         self.global_data.inputs["${global_data}"] = Var(type=Var.PLAIN, value=self.data)
@@ -65,6 +74,34 @@ class Builder(object):
 
         # 定义流程数据上下文参数trans_data
         self.rewritable_node_source_keys = []
+
+        # 判断是否添加临时账号的流程逻辑
+        if self.need_random_pass_cluster_ids:
+            self.create_random_pass_act()
+
+    def create_random_pass_act(self):
+        """
+        流程串联添加临时账号的活动节点
+        """
+        act = self.add_act(
+            act_name="create job user",
+            act_component_code=AddTempUserForClusterComponent.code,
+            kwargs={"cluster_ids": self.need_random_pass_cluster_ids},
+        )
+        # 提出上下文的映射，这里存在bamboo的 bug
+        self.rewritable_node_source_keys = [i for i in self.rewritable_node_source_keys if i["source_act"] != act.id]
+
+    def reduce_random_pass_act(self):
+        """
+        流程串联回收临时账号的活动节点
+        """
+        act = self.add_act(
+            act_name="reduce job user",
+            act_component_code=DropTempUserForClusterComponent.code,
+            kwargs={"cluster_ids": self.need_random_pass_cluster_ids},
+        )
+        # 提出上下文的映射，这里存在bamboo的 bug
+        self.rewritable_node_source_keys = [i for i in self.rewritable_node_source_keys if i["source_act"] != act.id]
 
     def add_act(
         self,
@@ -86,6 +123,7 @@ class Builder(object):
         todo  后续这里废弃splice_payload_var 这个变量，通过传入上下文trans_data文本到 act的payload， 然后用户按需拼接
         todo  write_payload_var 变量名称变更为 write_context_var 这样表达清晰点
         @param error_ignorable：节点是否忽略错误继续往下执行
+        @param extend: extend
         """
 
         act = ServiceActivity(name=act_name, component_code=act_component_code, error_ignorable=error_ignorable)
@@ -156,11 +194,17 @@ class Builder(object):
         cg = ConvergeGateway()
         self.pipe = self.pipe.extend(pg).connect(*sub_flow_list).to(pg).converge(cg)
 
-    def run_pipeline(self, init_trans_data_class: Optional[Any] = None) -> bool:
+    def run_pipeline(self, init_trans_data_class: Optional[Any] = None, is_drop_random_user: bool = True) -> bool:
         """
         开始运行 pipeline
         @param init_trans_data_class: trans_data变量上下文初始化的值，默认""
+        @param is_drop_random_user: 控制是否最后回收临时账号，需要跟need_random_pass_cluster_ids不为空才能操作，针对集群下架场景
         """
+
+        # 判断是否回收临时账号的流程逻辑
+        if self.need_random_pass_cluster_ids and is_drop_random_user:
+            self.reduce_random_pass_act()
+
         # 拼接流程的RewritableNodeOutput属性
         self.global_data.inputs["${trans_data}"] = RewritableNode(
             source_act=self.rewritable_node_source_keys, type=Var.SPLICE, value=init_trans_data_class

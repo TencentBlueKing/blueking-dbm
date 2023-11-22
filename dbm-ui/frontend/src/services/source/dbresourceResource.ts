@@ -16,9 +16,10 @@ import ImportHostModel from '@services/model/db-resource/import-host';
 import OperationModel from '@services/model/db-resource/Operation';
 
 import http from '../http';
-import type { ListBase } from '../types/common';
-
-import type { HostDetails } from './ipchooser';
+import type {
+  HostDetails,
+  ListBase,
+} from '../types';
 
 const path = '/apis/dbresource/resource';
 

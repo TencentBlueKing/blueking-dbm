@@ -8,8 +8,8 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 from backend import env
-from backend.core.encrypt.constants import RSAConfigType
-from backend.core.encrypt.handlers import RSAHandler
+from backend.core.encrypt.constants import AsymmetricCipherConfigType
+from backend.core.encrypt.handlers import AsymmetricHandler
 from backend.db_proxy.constants import ExtensionType
 from backend.db_proxy.models import DBExtension
 
@@ -27,8 +27,8 @@ def get_mysql_sys_users(bk_cloud_id) -> list:
         if value:
             sys_users.append(value)
         else:
-            rsa = RSAHandler.get_or_generate_rsa_in_db(RSAConfigType.get_rsa_cloud_name(bk_cloud_id))
+            bk_cloud_name = AsymmetricCipherConfigType.get_cipher_cloud_name(bk_cloud_id)
             info = DBExtension.get_latest_extension(bk_cloud_id=bk_cloud_id, extension_type=key)
-            sys_users.append(RSAHandler.decrypt_password(rsa.rsa_private_key.content, info.details["user"]))
+            sys_users.append(AsymmetricHandler.decrypt(name=bk_cloud_name, content=info.details["user"]))
 
     return sys_users

@@ -29,6 +29,7 @@ from backend.tests.flow.components.collections.mysql.utils import MySQLSingleApp
 from backend.tests.mock_data.components import cc
 from backend.tests.mock_data.components.dbconfig import DBConfigApiMock
 from backend.tests.mock_data.components.job import JOB_INSTANCE_ID, STEP_INSTANCE_ID
+from backend.tests.mock_data.components.mysql_priv_manager import MySQLPrivManagerApiMock
 
 logger = logging.getLogger("test")
 pytestmark = pytest.mark.django_db
@@ -47,8 +48,8 @@ class TestExecActuatorScriptComponent(MySQLSingleApplyComponentTest, TestCase):
                     new=DBConfigApiMock,
                 ),
                 Patcher(
-                    target="backend.flow.utils.base.payload_handler.DBConfigApi",
-                    new=DBConfigApiMock,
+                    target="backend.flow.utils.base.payload_handler.MySQLPrivManagerApi",
+                    new=MySQLPrivManagerApiMock,
                 ),
             ]
         )

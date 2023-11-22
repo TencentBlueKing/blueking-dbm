@@ -11,7 +11,7 @@
  * the specific language governing permissions and limitations under the License.
 */
 
-import type { HostDetails } from '@services/source/ipchooser';
+import type { HostDetails } from '@services/types';
 
 /**
  * 初始化表单数据

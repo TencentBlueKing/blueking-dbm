@@ -33,6 +33,7 @@ from backend.flow.engine.bamboo.scene.mysql.mysql_open_area_flow import MysqlOpe
 from backend.flow.engine.bamboo.scene.mysql.mysql_partition import MysqlPartitionFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_proxy_cluster_add import MySQLProxyClusterAddFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_proxy_cluster_switch import MySQLProxyClusterSwitchFlow
+from backend.flow.engine.bamboo.scene.mysql.mysql_random_password import MySQLRandomizePassword
 from backend.flow.engine.bamboo.scene.mysql.mysql_rename_database_flow import MySQLRenameDatabaseFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_restore_slave_flow import MySQLRestoreSlaveFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_restore_slave_remote_flow import MySQLRestoreSlaveRemoteFlow
@@ -534,6 +535,10 @@ class MySQLController(BaseController):
     def mysql_ha_standardize_scene(self):
         flow = MySQLHAStandardizeFlow(root_id=self.root_id, data=self.ticket_data)
         flow.standardize()
+
+    def mysql_randomize_password(self):
+        flow = MySQLRandomizePassword(root_id=self.root_id, data=self.ticket_data)
+        flow.mysql_randomize_password()
 
     def mysql_open_area_scene(self):
         flow = MysqlOpenAreaFlow(root_id=self.root_id, data=self.ticket_data)

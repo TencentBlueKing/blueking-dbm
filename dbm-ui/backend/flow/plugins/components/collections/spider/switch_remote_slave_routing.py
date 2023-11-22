@@ -11,7 +11,7 @@ from pipeline.component_framework.component import Component
 
 from backend.components import DRSApi, MySQLPrivManagerApi
 from backend.constants import IP_PORT_DIVIDER
-from backend.core.encrypt.handlers import RSAHandler
+from backend.core.encrypt.handlers import AsymmetricHandler
 from backend.db_meta.models import Cluster
 from backend.flow.consts import TDBCTL_USER
 from backend.flow.plugins.components.collections.common.base_service import BaseService
@@ -27,8 +27,8 @@ class SwitchRemoteSlaveRoutingService(BaseService):
         再新的实例对中控primary授权
         """
         # 添加临时账号
-        encrypt_switch_pwd = RSAHandler.encrypt_password(
-            MySQLPrivManagerApi.fetch_public_key(), tdbctl_pass, salt=None
+        encrypt_switch_pwd = AsymmetricHandler.encrypt_with_pubkey(
+            pubkey=MySQLPrivManagerApi.fetch_public_key(), content=tdbctl_pass
         )
 
         MySQLPrivManagerApi.add_priv_without_account_rule(

@@ -18,9 +18,7 @@ const path = '/apis/core/storage';
 /**
  * 批量获取文件内容
  */
-export const batchFetchFile = function (params: {
-  file_path_list: string[]
-}) {
+export const batchFetchFile = function (params: { file_path_list: string[] }) {
   return http.post<Array<{
     content: string,
     path: string,

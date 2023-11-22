@@ -3,7 +3,7 @@ from pipeline.component_framework.component import Component
 
 from backend.components import MySQLPrivManagerApi
 from backend.constants import IP_PORT_DIVIDER
-from backend.core.encrypt.handlers import RSAHandler
+from backend.core.encrypt.handlers import AsymmetricHandler
 from backend.flow.consts import PrivRole
 from backend.flow.plugins.components.collections.common.base_service import BaseService
 
@@ -34,7 +34,9 @@ class AddSystemUserInClusterService(BaseService):
         password = kwargs["passwd"]
 
         # 密码加密
-        encrypted = RSAHandler.encrypt_password(MySQLPrivManagerApi.fetch_public_key(), password, salt=None)
+        encrypted = AsymmetricHandler.encrypt_with_pubkey(
+            pubkey=MySQLPrivManagerApi.fetch_public_key(), content=password
+        )
 
         # 远程授权
         params = {

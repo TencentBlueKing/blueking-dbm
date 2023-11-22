@@ -87,11 +87,10 @@ def add_spider_slaves_sub_flow(
 
     # 机器系统初始化
     exec_ips = [ip_info["ip"] for ip_info in add_spider_slaves]
-    account = MysqlActPayload.get_mysql_account()
     sub_pipeline.add_act(
         act_name=_("初始化机器"),
         act_component_code=SysInitComponent.code,
-        kwargs={"mysql_os_password": account["os_mysql_pwd"], "exec_ip": exec_ips, "bk_cloud_id": cluster.bk_cloud_id},
+        kwargs={"exec_ip": exec_ips, "bk_cloud_id": cluster.bk_cloud_id},
     )
 
     # 判断是否需要执行按照MySQL Perl依赖
@@ -221,7 +220,7 @@ def add_spider_masters_sub_flow(
     @param parent_global_data: 本次子流程的对应上层流程的全局只读上下文
     @param is_add_spider_mnt: 表示这次添加spider 运维节点，如果是则True，不是则False
     """
-    tag = "master"
+    tag = "mnt"
     tdbctl_pass = get_random_string(length=10)
 
     # 获取到集群对应的spider端口，作为这次的安装
@@ -236,11 +235,10 @@ def add_spider_masters_sub_flow(
     )
     # 机器系统初始化
     exec_ips = [ip_info["ip"] for ip_info in add_spider_masters]
-    account = MysqlActPayload.get_mysql_account()
     sub_pipeline.add_act(
         act_name=_("初始化机器"),
         act_component_code=SysInitComponent.code,
-        kwargs={"mysql_os_password": account["os_mysql_pwd"], "exec_ip": exec_ips, "bk_cloud_id": cluster.bk_cloud_id},
+        kwargs={"exec_ip": exec_ips, "bk_cloud_id": cluster.bk_cloud_id},
     )
     # 判断是否需要执行按照MySQL Perl依赖
     if env.YUM_INSTALL_PERL:
@@ -379,7 +377,7 @@ def add_spider_masters_sub_flow(
                 )
             ),
         )
-        tag = "mnt"
+        tag = "master"
 
     return sub_pipeline.build_sub_process(sub_name=_("集群[{}]添加spider {}节点".format(cluster.name, tag)))
 

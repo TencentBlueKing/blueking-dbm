@@ -83,8 +83,11 @@ class TenDBClusterDestroyFlow(object):
     def destroy_cluster(self):
         """
         定义spider集群下架流程，支持多集群下架模式
+        增加单据临时ADMIN账号的添加和删除逻辑
         """
-        spider_destroy_pipeline = Builder(root_id=self.root_id, data=self.data)
+        spider_destroy_pipeline = Builder(
+            root_id=self.root_id, data=self.data, need_random_pass_cluster_ids=list(set(self.data["cluster_ids"]))
+        )
         sub_pipelines = []
 
         # 多集群下架时循环加入集群下架子流程
@@ -210,4 +213,4 @@ class TenDBClusterDestroyFlow(object):
             )
 
         spider_destroy_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
-        spider_destroy_pipeline.run_pipeline()
+        spider_destroy_pipeline.run_pipeline(is_drop_random_user=False)

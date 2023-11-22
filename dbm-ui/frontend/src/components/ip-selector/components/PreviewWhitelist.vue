@@ -36,12 +36,14 @@
   import type { TablePropTypes } from 'bkui-vue/lib/table/props';
   import { useI18n } from 'vue-i18n';
 
-  import type { WhitelistItem } from '@services/types/whitelist';
+  import { getWhitelist } from '@services/source/whitelist';
 
   import { useCopy } from '@hooks';
 
   import DBCollapseTable from '@components/db-collapse-table/DBCollapseTable.vue';
   import RenderRow from '@components/render-row/index.vue';
+
+  type WhitelistItem = ServiceReturnType<typeof getWhitelist>['results'][number]
 
   interface Props {
     data: WhitelistItem[],

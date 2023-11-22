@@ -63,8 +63,14 @@ class TenDBRemoteSlaveRecoverFlow(object):
     def tendb_remote_slave_recover(self):
         """
         tendb cluster remote slave recover
+        增加单据临时ADMIN账号的添加和删除逻辑
         """
-        tendb_migrate_pipeline_all = Builder(root_id=self.root_id, data=copy.deepcopy(self.ticket_data))
+        cluster_ids = [i["cluster_id"] for i in self.ticket_data["infos"]]
+        tendb_migrate_pipeline_all = Builder(
+            root_id=self.root_id,
+            data=copy.deepcopy(self.ticket_data),
+            need_random_pass_cluster_ids=list(set(cluster_ids)),
+        )
         tendb_migrate_pipeline_all_list = []
         # 阶段1 获取集群所有信息。计算端口,构建数据。
         for info in self.ticket_data["infos"]:
@@ -301,4 +307,4 @@ class TenDBRemoteSlaveRecoverFlow(object):
             )
         # 运行流程
         tendb_migrate_pipeline_all.add_parallel_sub_pipeline(tendb_migrate_pipeline_all_list)
-        tendb_migrate_pipeline_all.run_pipeline(init_trans_data_class=ClusterInfoContext())
+        tendb_migrate_pipeline_all.run_pipeline(init_trans_data_class=ClusterInfoContext(), is_drop_random_user=True)

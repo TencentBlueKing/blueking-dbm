@@ -50,11 +50,12 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
+  import { getUserGroupList } from '@services/source/cmdb';
   import {
     deleteAlarmGroup,
     getAlarmGroupList,
-    getUserGroupList,
-  } from '@services/monitorAlarm';
+  } from '@services/source/monitorNoticeGroup';
+  import type { ListBase } from '@services/types';
 
   import { useInfoWithIcon } from '@hooks';
 
@@ -67,8 +68,6 @@
 
   import DetailDialog from './components/DetailDialog.vue';
   import RenderRow from './components/RenderRow.vue';
-
-  import type { ListBase } from '@/services/types/common';
 
   const isNewUser = (createTime: string) => {
     if (!createTime) {
@@ -240,7 +239,7 @@
   const userGroupMap = shallowRef<UserGroupMap>({});
 
   useRequest(getUserGroupList, {
-    defaultParams: [bizId],
+    defaultParams: [{ bk_biz_id: bizId }],
     onSuccess(userGroupList) {
       userGroupMap.value = userGroupList.reduce((userGroupPrev, userGroup) => ({ ...userGroupPrev, [userGroup.id]: {
         id: userGroup.id,
@@ -291,7 +290,7 @@
       content: t('删除后将无法恢复'),
       onConfirm: async () => {
         try {
-          await deleteAlarmGroup(id);
+          await deleteAlarmGroup({ id });
           messageSuccess(t('删除成功'));
           fetchTableData();
           return true;

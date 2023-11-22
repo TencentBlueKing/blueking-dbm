@@ -243,16 +243,22 @@
 
   const fetchData = () => {
     isTableDataLoading.value = true;
+    const instanceType = activePanel?.value === 'tendbcluster' ? 'spider' : activePanel?.value;
     const params = {
       db_type: 'mysql',
       bk_biz_id: currentBizId,
       instance_address: searchKey.value,
       limit: pagination.limit,
       offset: (pagination.current - 1) * pagination.limit,
-      type: activePanel?.value === 'tendbcluster' ? 'spider' : activePanel?.value,
+      type: instanceType,
       role: props.role,
       extra: 1,
     };
+    if (instanceType === 'spider') {
+      Object.assign(params, {
+        spider_ctl: true,
+      });
+    }
     if (props.node && props.node.id !== currentBizId) {
       Object.assign(params, {
         cluster_id: props.node.id,
@@ -260,7 +266,12 @@
     }
     getResourceInstances(params)
       .then((data) => {
-        tableData.value = data.results;
+        tableData.value = data.results.filter((resourceInstanceItem) => {
+          if (resourceInstanceItem.cluster_type === ClusterTypes.TENDBHA && resourceInstanceItem.role === 'proxy') {
+            return false;
+          }
+          return true;
+        });
         pagination.count = data.count;
         isAnomalies.value = false;
       })

@@ -30,9 +30,7 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import {
-    getInfrasCities,
-  } from '@services/ticket';
+  import { getInfrasCities } from '@services/source/infras';
 
   interface Props {
     defaultValue?: string

@@ -13,6 +13,10 @@
 
 import http from './http';
 import type {
+  HostNode,
+  ListBase,
+} from './types';
+import type {
   ClusterPassword,
   ClusterPasswordParams,
   GetClusterHostNodesRequestParam,
@@ -29,7 +33,6 @@ import type {
   TableFieldsItem,
   TableFieldsParams,
 } from './types/clusters';
-import type { HostNode, ListBase } from './types/common';
 
 /**
  * 查询表格信息

@@ -209,7 +209,7 @@
                 </BkMenuItem>
               </BkSubmenu>
             </FunController>
-            <!-- <BkMenuItem key="PlatformPasswordRandomization">
+            <BkMenuItem key="PlatformPasswordRandomization">
               <template #icon>
                 <i class="db-icon-pingbi" />
               </template>
@@ -218,7 +218,7 @@
                 class="text-overflow">
                 {{ $t('密码随机化管理') }}
               </span>
-            </BkMenuItem> -->
+            </BkMenuItem>
             <BkMenuItem key="PlatformStaff">
               <template #icon>
                 <i class="db-icon-dba-config" />

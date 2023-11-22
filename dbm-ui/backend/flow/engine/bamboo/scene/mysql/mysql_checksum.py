@@ -83,6 +83,7 @@ class MysqlChecksumFlow(object):
         """
         通过pt-table-checksum工具执行主从mysql实例之间的数据校验
         支持跨云管理
+        增加单据临时ADMIN账号的添加和删除逻辑
         每个主库一个子流程：
         （1）检查主从关系
         （2）定时（以主库所在的集群的时区为准）
@@ -91,7 +92,10 @@ class MysqlChecksumFlow(object):
         （5）删除临时账号
         （6）每个从库生成一份校验报告（如果数据不一致，生成修复单据）
         """
-        checksum_pipeline = Builder(root_id=self.root_id, data=self.data)
+        cluster_ids = [i["cluster_id"] for i in self.data["infos"]]
+        checksum_pipeline = Builder(
+            root_id=self.root_id, data=self.data, need_random_pass_cluster_ids=list(set(cluster_ids))
+        )
         sub_pipelines = []
 
         # 一个单据里多行任务的cluster不能重复
@@ -229,4 +233,4 @@ class MysqlChecksumFlow(object):
             )
         checksum_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
         logger.info(_("构建checksum流程成功"))
-        checksum_pipeline.run_pipeline(init_trans_data_class=MysqlChecksumContext())
+        checksum_pipeline.run_pipeline(init_trans_data_class=MysqlChecksumContext(), is_drop_random_user=True)

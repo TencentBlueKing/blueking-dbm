@@ -14,6 +14,8 @@ from blue_krill.data_types.enum import EnumField, StructuredEnum
 
 # 平台业务ID
 PLAT_BIZ_ID = 0
+DBM_PASSWORD_SECURITY_NAME = "password"
+DBM_MYSQL_ADMIN_USER = "ADMIN"
 
 
 class AffinityEnum(str, StructuredEnum):

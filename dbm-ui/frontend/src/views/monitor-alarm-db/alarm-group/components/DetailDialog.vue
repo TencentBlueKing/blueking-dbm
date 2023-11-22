@@ -90,7 +90,7 @@
     getAlarmGroupList,
     insertAlarmGroup,
     updateAlarmGroup,
-  } from '@services/monitorAlarm';
+  } from '@services/source/monitorNoticeGroup';
 
   import { useBeforeClose } from '@hooks';
 
@@ -208,10 +208,10 @@
     };
 
     if (props.type === 'edit') {
-      Object.assign(params, {
+      updateAlarmGroupRun({
+        ...params,
         id: props.detailData.id,
       });
-      updateAlarmGroupRun(params);
     } else {
       insertAlarmGroupRun(params);
     }

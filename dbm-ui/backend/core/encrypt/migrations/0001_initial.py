@@ -12,7 +12,7 @@ specific language governing permissions and limitations under the License.
 
 from django.db import migrations, models
 
-from backend.core.encrypt.constants import RSAKeyType
+from backend.core.encrypt.constants import AsymmetricCipherKeyType
 
 
 class Migration(migrations.Migration):
@@ -23,23 +23,38 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.CreateModel(
-            name="RSAKey",
+            name="AsymmetricCipherKey",
             fields=[
                 ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
-                ("name", models.CharField(max_length=128, verbose_name="密钥名称")),
+                ("creator", models.CharField(max_length=64, verbose_name="创建人")),
+                ("create_at", models.DateTimeField(auto_now_add=True, verbose_name="创建时间")),
+                ("updater", models.CharField(max_length=64, verbose_name="修改人")),
+                ("update_at", models.DateTimeField(auto_now=True, verbose_name="更新时间")),
+                (
+                    "name",
+                    models.CharField(
+                        choices=[("mysql", "MySQL的非对称秘钥"), ("proxypass", "透传接口的非对称秘钥"), ("cloud", "云区域服务的非对称秘钥")],
+                        max_length=128,
+                        verbose_name="密钥名称",
+                    ),
+                ),
                 (
                     "type",
-                    models.CharField(choices=RSAKeyType.get_choices(), max_length=64, verbose_name="密钥类型"),
+                    models.CharField(
+                        choices=[("PRIVATE_KEY", "私钥"), ("PUBLIC_KEY", "公钥")], max_length=64, verbose_name="密钥类型"
+                    ),
+                ),
+                (
+                    "algorithm",
+                    models.CharField(choices=[("RSA", "RSA"), ("SM2", "SM2")], max_length=64, verbose_name="非对称加密算法"),
                 ),
                 ("description", models.TextField(default="", null=True, verbose_name="密钥描述")),
                 ("content", models.TextField(verbose_name="密钥内容")),
-                ("update_time", models.DateTimeField(auto_now=True, verbose_name="更新时间")),
-                ("create_time", models.DateTimeField(auto_now_add=True, verbose_name="创建时间")),
             ],
             options={
-                "verbose_name": "RSA密钥",
-                "verbose_name_plural": "RSA密钥",
-                "unique_together": {("name", "type")},
+                "verbose_name": "非对称密钥",
+                "verbose_name_plural": "非对称密钥",
+                "unique_together": {("name", "type", "algorithm")},
             },
         ),
     ]

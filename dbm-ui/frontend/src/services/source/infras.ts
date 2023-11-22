@@ -15,6 +15,71 @@ import http from '../http';
 
 const path = '/apis/infras';
 
+/**
+ * 查询服务器资源的城市信息
+ */
+export const getInfrasCities = function () {
+  return http.get<{
+    city_code: string,
+    city_name: string,
+    inventory: number,
+    inventory_tag: string
+  }[]>(`${path}/cities/`);
+};
+
+/**
+ * 主机提交格式
+ */
+export interface HostSubmitParams {
+  ip: string,
+  bk_cloud_id: number,
+  bk_host_id: number,
+  bk_cpu?: number,
+  bk_mem?: number,
+  bk_disk?: number,
+  bk_biz_id: number
+}
+
+/**
+ * redis 容量列表
+ */
+export const getCapSpecs = function (params: {
+  nodes: {
+    master: Array<HostSubmitParams>,
+    slave: Array<HostSubmitParams>
+  },
+  ip_source: string
+  cluster_type: string
+  cityCode: string
+}) {
+  return http.post<{
+    group_num: number,
+    maxmemory: number,
+    shard_num: number,
+    spec: string,
+    total_memory: number
+    cap_key: string,
+    selected: boolean
+    max_disk: number,
+    total_disk: string,
+  }[]>(`${path}/cities/cap_specs/`, params);
+};
+
+/**
+ * 服务器规格列表
+ */
+export const getInfrasHostSpecs = function (params: { cityCode: string }) {
+  return http.get<{
+    cpu: string,
+    mem: string,
+    spec: string,
+    type: string,
+  }[]>(`${path}/cities/${params.cityCode}/host_specs/`);
+};
+
+/**
+ * 查询集群类型
+ */
 export const fetchDbTypeList = function () {
   return http.get<Array<{
     id: string,

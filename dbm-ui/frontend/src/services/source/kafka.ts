@@ -19,7 +19,7 @@ import KafkaPasswordModel from '@services/model/kafka/kafka-password';
 import { useGlobalBizs } from '@stores';
 
 import http from '../http';
-import type { ListBase } from '../types/common';
+import type { ListBase } from '../types';
 
 const { currentBizId } = useGlobalBizs();
 
@@ -67,25 +67,21 @@ export const getKafkaDetail = function (params: { id: number }) {
 };
 
 // 获取集群详情（入口配置）
-export const getClusterDetailEntryConfig = (params: { id: number }) => http.get<KafkaModel>(`${path}/${params.id}/`).then(data => new KafkaModel(data));
+export const getClusterDetailEntryConfig = function (params: { id: number }) {
+  return http.get<KafkaModel>(`${path}/${params.id}/`).then(data => new KafkaModel(data));
+};
 
 /**
  * 获取集群拓扑
  */
-export const getKafkaTopoGraph = function (params: {
-  bk_biz_id: number,
-  cluster_id: number
-}) {
+export const getKafkaTopoGraph = function (params: { cluster_id: number }) {
   return http.get<ListBase<KafkaModel[]>>(`${path}/${params.cluster_id}/get_topo_graph/`);
 };
 
 /**
  * 获取 Kafka 集群访问密码
  */
-export const getKafkaPassword = function (params: Record<string, any> & {
-  bk_biz_id: number,
-  cluster_id: number
-}) {
+export const getKafkaPassword = function (params: Record<string, any> & { cluster_id: number }) {
   return http.get<KafkaPasswordModel>(`${path}/${params.cluster_id}/get_password/`).then(data => new KafkaPasswordModel(data));
 };
 

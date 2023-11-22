@@ -54,7 +54,7 @@
   import { useI18n } from 'vue-i18n';
 
   import { getBizs } from '@services/source/cmdb';
-  import type { BizItem } from '@services/types/common';
+  import type { BizItem } from '@services/types';
 
   import { useUserProfile } from '@stores';
 

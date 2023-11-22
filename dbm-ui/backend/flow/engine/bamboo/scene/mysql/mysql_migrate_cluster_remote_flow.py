@@ -73,7 +73,16 @@ class MySQLMigrateClusterRemoteFlow(object):
         3 mysql_migrate_cluster_switch_storage
         """
         # 构建流程
-        tendb_migrate_pipeline_all = Builder(root_id=self.root_id, data=copy.deepcopy(self.ticket_data))
+        cluster_ids = []
+        for i in self.ticket_data["infos"]:
+            cluster_ids.extend(i["cluster_ids"])
+
+        tendb_migrate_pipeline_all = Builder(
+            root_id=self.root_id,
+            data=copy.deepcopy(self.ticket_data),
+            need_random_pass_cluster_ids=list(set(cluster_ids)),
+        )
+
         # 按照传入的infos信息，循环拼接子流程
         tendb_migrate_pipeline_list = []
         for info in self.ticket_data["infos"]:
@@ -174,7 +183,7 @@ class MySQLMigrateClusterRemoteFlow(object):
                 backup_info = rollback_handler.query_latest_backup_log(rollback_time)
                 if backup_info is None:
                     logger.error("cluster {} backup info not exists".format(cluster_model.id))
-                    raise TendbGetBackupInfoFailedException(message=_("获取集群 {} 的备份信息失败".format(cluster_model.id)))
+                    raise TendbGetBackupInfoFailedException(message=_("获取集群 {} 的备份信息失败".format(cluster_id)))
                 cluster["backupinfo"] = backup_info
                 cluster["new_master_ip"] = self.data["new_master_ip"]
                 cluster["new_slave_ip"] = self.data["new_slave_ip"]
@@ -323,4 +332,7 @@ class MySQLMigrateClusterRemoteFlow(object):
             )
         # 运行流程
         tendb_migrate_pipeline_all.add_parallel_sub_pipeline(tendb_migrate_pipeline_list)
-        tendb_migrate_pipeline_all.run_pipeline(init_trans_data_class=ClusterInfoContext())
+        tendb_migrate_pipeline_all.run_pipeline(
+            init_trans_data_class=ClusterInfoContext(),
+            is_drop_random_user=True,
+        )

@@ -59,6 +59,7 @@ from backend.flow.plugins.components.collections.redis.exec_shell_script import 
 from backend.flow.plugins.components.collections.redis.get_redis_payload import GetRedisActPayloadComponent
 from backend.flow.plugins.components.collections.redis.redis_db_meta import RedisDBMetaComponent
 from backend.flow.plugins.components.collections.redis.trans_flies import TransFileComponent
+from backend.flow.utils.base.payload_handler import PayloadHandler
 from backend.flow.utils.redis.redis_act_playload import RedisActPayload
 from backend.flow.utils.redis.redis_context_dataclass import ActKwargs, CommonContext, DnsKwargs
 from backend.flow.utils.redis.redis_db_meta import RedisDBMeta
@@ -321,13 +322,8 @@ class RedisSlotsMigrateFlow(object):
                 servers = redis_master_set + redis_slave_set
             master_ip = list(set([ip.split(":")[0] for ip in redis_master_set]))
 
-            redis_config = self.__get_cluster_config(
-                cluster.immute_domain,
-                cluster.major_version,
-                ConfigTypeEnum.DBConf,
-                cluster.cluster_type,
-            )
-            password = redis_config["requirepass"]
+            passwd_ret = PayloadHandler.redis_get_password_by_domain(cluster.immute_domain)
+            password = passwd_ret.get("redis_password")
 
         return {
             "immute_domain": cluster.immute_domain,

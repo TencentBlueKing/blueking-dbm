@@ -13,7 +13,7 @@
 
 import { defineStore } from 'pinia';
 
-import { getSystemEnviron } from '@services/common';
+import { getSystemEnviron } from '@services/source/systemSettings';
 
 interface Urls {
   [key: string]: string;

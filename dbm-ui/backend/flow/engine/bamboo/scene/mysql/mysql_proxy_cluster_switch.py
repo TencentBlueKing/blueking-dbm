@@ -109,8 +109,15 @@ class MySQLProxyClusterSwitchFlow(object):
     def switch_mysql_cluster_proxy_flow(self):
         """
         定义mysql集群proxy替换实例流程
+        增加单据临时ADMIN账号的添加和删除逻辑
         """
-        mysql_proxy_cluster_add_pipeline = Builder(root_id=self.root_id, data=self.data)
+        cluster_ids = []
+        for i in self.data["infos"]:
+            cluster_ids.extend(i["cluster_ids"])
+
+        mysql_proxy_cluster_add_pipeline = Builder(
+            root_id=self.root_id, data=self.data, need_random_pass_cluster_ids=list(set(cluster_ids))
+        )
         sub_pipelines = []
 
         # 多集群操作时循环加入集群proxy替换子流程
@@ -130,12 +137,10 @@ class MySQLProxyClusterSwitchFlow(object):
             )
 
             # 初始化机器
-            account = MysqlActPayload.get_mysql_account()
             sub_pipeline.add_act(
                 act_name=_("初始化机器"),
                 act_component_code=SysInitComponent.code,
                 kwargs={
-                    "mysql_os_password": account["os_mysql_pwd"],
                     "exec_ip": info["target_proxy_ip"]["ip"],
                     "bk_cloud_id": info["target_proxy_ip"]["bk_cloud_id"],
                 },
@@ -320,7 +325,7 @@ class MySQLProxyClusterSwitchFlow(object):
             sub_pipelines.append(sub_pipeline.build_sub_process(sub_name=_("替换proxy子流程")))
 
         mysql_proxy_cluster_add_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
-        mysql_proxy_cluster_add_pipeline.run_pipeline()
+        mysql_proxy_cluster_add_pipeline.run_pipeline(is_drop_random_user=True)
 
     def proxy_reduce_sub_flow(self, bk_cloud_id: int, origin_proxy_ip: str, origin_proxy_port: int):
         """

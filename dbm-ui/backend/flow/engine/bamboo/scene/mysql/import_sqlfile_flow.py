@@ -58,8 +58,11 @@ class ImportSQLFlow(object):
     def import_sqlfile_flow(self):
         """
         执行SQL文件的流程编排定义
+        增加单据临时ADMIN账号的添加和删除逻辑
         """
-        p = Builder(root_id=self.root_id, data=self.data)
+        p = Builder(
+            root_id=self.root_id, data=self.data, need_random_pass_cluster_ids=list(set(self.data["cluster_ids"]))
+        )
         sub_pipelines = []
         base_path = self.data["path"]
         sql_files = self.__get_sql_file_name_list()
@@ -119,7 +122,7 @@ class ImportSQLFlow(object):
             sub_pipelines.append(sub_pipeline.build_sub_process(sub_name=_("[{}]执行SQL变更".format(cluster["name"]))))
 
         p.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
-        p.run_pipeline()
+        p.run_pipeline(is_drop_random_user=True)
 
     def sql_semantic_check_flow(self):
         """
@@ -127,7 +130,9 @@ class ImportSQLFlow(object):
         todo 这块涉及到调用bcs来创建临时实例，这块需要怎么考虑兼容跨云管理
         """
 
-        semantic_check_pipeline = Builder(root_id=self.root_id, data=self.data)
+        semantic_check_pipeline = Builder(
+            root_id=self.root_id, data=self.data, need_random_pass_cluster_ids=[self.data["cluster_ids"][0]]
+        )
 
         template_cluster = self.__get_master_instance_info(cluster_id=self.data["cluster_ids"][0])
         cluster_type = template_cluster["cluster_type"]
@@ -187,7 +192,7 @@ class ImportSQLFlow(object):
             act_name=_("创建SQL执行单据"), act_component_code=CreateTicketComponent.code, kwargs={}
         )
 
-        semantic_check_pipeline.run_pipeline()
+        semantic_check_pipeline.run_pipeline(is_drop_random_user=True)
 
     def __get_master_instance_info(self, cluster_id: int) -> dict:
         cluster = Cluster.objects.get(id=cluster_id)

@@ -8,7 +8,6 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-import humanize
 from django.utils.crypto import get_random_string
 from django.utils.translation import ugettext as _
 from rest_framework import serializers
@@ -17,11 +16,10 @@ from backend.configuration.constants import AffinityEnum
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Machine
 from backend.db_services.dbbase.constants import IpSource
-from backend.exceptions import ValidationError
 from backend.flow.engine.controller.redis import RedisController
 from backend.ticket import builders
 from backend.ticket.builders.common.base import CommonValidate
-from backend.ticket.builders.common.constants import MAX_DOMAIN_LEN_LIMIT, REDIS_PROXY_MIN, RedisRole
+from backend.ticket.builders.common.constants import REDIS_PROXY_MIN, RedisRole
 from backend.ticket.builders.redis.base import BaseRedisTicketFlowBuilder, RedisBasePauseParamBuilder
 from backend.ticket.constants import TicketType
 
@@ -48,6 +46,9 @@ class RedisClusterApplyDetailSerializer(serializers.Serializer):
     ip_source = serializers.ChoiceField(help_text=_("主机来源"), choices=IpSource.get_choices())
     nodes = serializers.JSONField(help_text=_("部署节点"), required=False)
 
+    disaster_tolerance_level = serializers.ChoiceField(
+        help_text=_("容灾级别"), choices=AffinityEnum.get_choices(), required=False, default=AffinityEnum.NONE.value
+    )
     resource_spec = serializers.JSONField(help_text=_("proxy部署方案"), required=False)
     cluster_shard_num = serializers.IntegerField(help_text=_("集群分片数"), required=False)
 

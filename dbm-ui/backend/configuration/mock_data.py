@@ -10,27 +10,59 @@ specific language governing permissions and limitations under the License.
 """
 
 PASSWORD_POLICY = {
-    "account_type": "mysql",
-    "policy": {
-        "follow": {
-            "limit": 4,
+    "id": 3,
+    "name": "password",
+    "rule": {
+        "max_length": 25,
+        "min_length": 6,
+        "include_rule": {"numbers": True, "symbols": True, "lowercase": True, "uppercase": True},
+        "exclude_continuous_rule": {
+            "limit": 3,
             "letters": True,
-            "numbers": False,
-            "repeats": False,
+            "numbers": True,
+            "repeats": True,
             "symbols": True,
             "keyboards": True,
         },
-        "numbers": True,
-        "symbols": True,
-        "lowercase": True,
-        "uppercase": False,
-        "max_length": 20,
-        "min_length": 10,
     },
+    "creator": "admin",
+    "create_time": "2023-09-13 10:08:23",
+    "operator": "admin",
+    "update_time": "2023-09-18 19:51:14",
 }
 
 CREATE_IP_WHITELIST_DATA = {"bk_biz_id": 1, "remark": "123", "ips": ["127.0.0.1", "127.0.0.2"]}
 
+VERIFY_PASSWORD_DATA = {
+    "is_strength": False,
+    "password_verify_info": {
+        "lowercase_valid": False,
+        "uppercase_valid": False,
+        "numbers_valid": False,
+        "symbols_valid": False,
+        "repeats_valid": True,
+        "follow_letters_valid": True,
+        "follow_symbols_valid": True,
+        "follow_keyboards_valid": True,
+        "follow_numbers_valid": True,
+        "min_length_valid": True,
+        "max_length_valid": True,
+    },
+}
+
+MYSQL_ADMIN_PASSWORD_DATA = [
+    {
+        "id": 0,
+        "ip": "127.0.0.1",
+        "port": 25000,
+        "username": "ADMIN",
+        "password": "UjY0ZGNbXT8xMk94eGsx",
+        "component": "mysql",
+        "lock_until": "2023-09-19 19:25:33",
+        "operator": "admin",
+        "update_time": "2023-09-19 13:02:38",
+    }
+]
 BIZ_SETTINGS_DATA = {
     "key1": "value1",
     "key2": "value2",

@@ -190,7 +190,7 @@
 
   import { checkHost } from '@services/source/ipchooser';
   import { getVersions } from '@services/source/version';
-  import type { BizItem } from '@services/types/common';
+  import type { BizItem } from '@services/types';
 
   import { useApplyBase, useInfo } from '@hooks';
 

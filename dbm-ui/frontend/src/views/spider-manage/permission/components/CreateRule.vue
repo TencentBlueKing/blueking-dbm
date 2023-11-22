@@ -223,14 +223,12 @@
 
     if (!user || dbs.length === 0) return false;
 
-    return queryAccountRules(
-      currentBizId,
-      {
-        user,
-        access_dbs: dbs,
-        account_type: TENDBCLUSTER,
-      },
-    )
+    return queryAccountRules({
+      bizId: currentBizId,
+      user,
+      access_dbs: dbs,
+      account_type: TENDBCLUSTER,
+    })
       .then((res) => {
         const rules = res.results[0]?.rules || [];
         existDBs.value = rules.map(item => item.access_db);
@@ -338,10 +336,11 @@
 
     const params = {
       ...formdata,
+      bizId: currentBizId,
       access_db: formdata.access_db.replace(replaceReg, ','), // 统一分隔符
       account_type: TENDBCLUSTER,
     };
-    createAccountRuleRun(currentBizId, params);
+    createAccountRuleRun(params);
   }
 
 </script>

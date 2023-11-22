@@ -47,8 +47,9 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import { getInfrasCities } from '@services/ticket';
-  import type { CitiyItem } from '@services/types/ticket';
+  import { getInfrasCities } from '@services/source/infras';
+
+  type CityItem = ServiceReturnType<typeof getInfrasCities>
 
   interface Emits {
     (e: 'change', value: string): void
@@ -73,7 +74,7 @@
 
   const state = reactive({
     isLoading: false,
-    regions: [] as CitiyItem[],
+    regions: [] as CityItem,
     cityCode: modelValue.value,
     cityName: '' as string | undefined,
   });
@@ -106,7 +107,7 @@
   /**
    * 获取区域存货标签
    */
-  function getCitiyTag(info: CitiyItem) {
+  function getCitiyTag(info: CityItem[number]) {
     return t(Inventory[info.inventory_tag.toLocaleUpperCase() as InventoryStrings]);
   }
 
