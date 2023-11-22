@@ -20,13 +20,13 @@
       class="content-tabs"
       type="card-tab">
       <BkTabPanel
-        :label="$t('集群拓扑')"
+        :label="t('集群拓扑')"
         name="topo" />
       <BkTabPanel
-        :label="$t('基本信息')"
+        :label="t('基本信息')"
         name="info" />
       <BkTabPanel
-        :label="$t('变更记录')"
+        :label="t('变更记录')"
         name="record" />
       <BkTabPanel
         v-for="item in monitorPanelList"
@@ -54,6 +54,7 @@
 </template>
 
 <script setup lang="ts">
+  import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
   import { getMonitorUrls } from '@services/source/monitorGrafana';
@@ -85,6 +86,7 @@
 
   const props = defineProps<Props>();
 
+  const { t } = useI18n();
   const { currentBizId } = useGlobalBizs();
 
   const activePanelKey = ref('topo');

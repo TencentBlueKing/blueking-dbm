@@ -20,16 +20,16 @@
       class="detail-tab"
       type="card-tab">
       <BkTabPanel
-        :label="$t('集群拓扑')"
+        :label="t('集群拓扑')"
         name="topo" />
       <BkTabPanel
-        :label="$t('节点列表')"
+        :label="t('节点列表')"
         name="nodeList" />
       <BkTabPanel
-        :label="$t('基本信息')"
+        :label="t('基本信息')"
         name="baseInfo" />
       <BkTabPanel
-        :label="$t('变更记录')"
+        :label="t('变更记录')"
         name="record" />
       <BkTabPanel
         v-for="item in monitorPanelList"
@@ -62,6 +62,7 @@
 </template>
 <script setup lang="ts">
   import { ref } from 'vue';
+  import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
   import { getKafkaDetail } from '@services/source/kafka';
@@ -90,6 +91,7 @@
 
   const props = defineProps<Props>();
 
+  const { t } = useI18n();
   const { currentBizId } = useGlobalBizs();
 
   const activePanelKey = ref('topo');
