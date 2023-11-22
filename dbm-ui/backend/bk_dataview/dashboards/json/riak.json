@@ -1859,7 +1859,7 @@
           "uid": "bkmonitor_timeseries"
         },
         "definition": "- Blueking Monitor - 维度",
-        "hide": 0,
+        "hide": 2,
         "includeAll": false,
         "label": "appid",
         "multi": false,
@@ -1892,7 +1892,7 @@
           "uid": "bkmonitor_timeseries"
         },
         "definition": "- Blueking Monitor - 维度",
-        "hide": 0,
+        "hide": 2,
         "includeAll": false,
         "label": "cluster_domain",
         "multi": false,
@@ -1941,7 +1941,7 @@
           "uid": "bkmonitor_timeseries"
         },
         "definition": "- Blueking Monitor - 维度",
-        "hide": 2,
+        "hide": 0,
         "includeAll": false,
         "multi": false,
         "name": "nodes",

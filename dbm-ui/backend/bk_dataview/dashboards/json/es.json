@@ -15327,7 +15327,7 @@
           "uid": "bkmonitor_timeseries"
         },
         "definition": "- Blueking Monitor - 维度",
-        "hide": 0,
+        "hide": 2,
         "includeAll": false,
         "label": "app",
         "multi": false,
@@ -15367,7 +15367,7 @@
           "uid": "bkmonitor_timeseries"
         },
         "definition": "- Blueking Monitor - 维度",
-        "hide": 0,
+        "hide": 2,
         "includeAll": false,
         "label": "cluster_domain",
         "multi": false,
