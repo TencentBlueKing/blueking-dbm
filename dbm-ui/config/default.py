@@ -511,8 +511,7 @@ GRAFANA = {
         "<head>": """<head>
             <style>
                 .page-toolbar>div:nth-child(-n+1) { display: none }
-                # .submenu-item:nth-child(-n+2) { display: none }
-                # section > .submenu-controls { display: none }
+                nav.page-toolbar > div:last-child { display: none }
                 .sidemenu {
                     display: none !important;
                 }
