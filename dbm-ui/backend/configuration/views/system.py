@@ -146,14 +146,15 @@ class BizSettingsViewSet(viewsets.AuditedModelViewSet):
     def simple(self, request, *args, **kwargs):
         filter_field = self.params_validate(self.get_serializer_class())
         data = {q.key: q.value for q in self.queryset.filter(**filter_field)}
-        # 从systemsettings获取全局的默认业务配置
+        # 从system settings获取全局的默认业务配置
         biz_configs = SystemSettings.get_setting_value(key=SystemSettingsEnum.BIZ_CONFIG)
         # 如果配置是list, dict则合并，其他类型则首先以业务为准
         for key, value in data.items():
             if isinstance(value, dict):
-                data[key].update(biz_configs[key])
+                # dict优先以业务的为准
+                data[key] = {**biz_configs.get(key, {}), **data[key]}
             elif isinstance(value, list):
-                data[key].extend(biz_configs[key])
+                data[key].extend(biz_configs.get(key, {}))
 
         return Response(data)
 
