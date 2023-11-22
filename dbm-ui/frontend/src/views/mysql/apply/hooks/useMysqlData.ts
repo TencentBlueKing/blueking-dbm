@@ -17,10 +17,8 @@ import { useI18n } from 'vue-i18n';
 import { getModules } from '@services/source/cmdb';
 import { getLevelConfig } from '@services/source/configs';
 import { getInfrasHostSpecs } from '@services/source/infras';
-import { checkHost } from '@services/source/ipchooser';
 import type { HostDetails } from '@services/types';
 import { createTicket } from '@services/source/ticket';
-import type { ModuleItem } from '@services/types/common';
 import type { ParameterConfigItem } from '@services/types/configs';
 
 import { useInfo } from '@hooks';

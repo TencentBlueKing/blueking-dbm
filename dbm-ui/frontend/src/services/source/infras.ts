@@ -67,18 +67,6 @@ export const getCapSpecs = function (params: {
 };
 
 /**
- * 服务器规格列表
- */
-export const getInfrasHostSpecs = function (params: { cityCode: string }) {
-  return http.get<{
-    cpu: string,
-    mem: string,
-    spec: string,
-    type: string,
-  }[]>(`${path}/cities/${params.cityCode}/host_specs/`);
-};
-
-/**
  * 查询集群类型
  */
 export const fetchDbTypeList = function () {
