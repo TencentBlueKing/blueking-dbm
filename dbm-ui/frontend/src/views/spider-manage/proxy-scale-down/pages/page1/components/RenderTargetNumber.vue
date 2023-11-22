@@ -69,8 +69,22 @@
       message: t('格式有误，请输入数字'),
     },
     {
-      validator: (value: string) => Number(value) > 1 && Number(value) < props.max,
-      message: t('必须小于当前台数且大于1'),
+      validator: (value: string) => {
+        if (props.role === 'spider_master') {
+          return Number(value) >= 2 && Number(value) < props.max;
+        }
+        return true;
+      },
+      message: t('必须小于当前台数且大于等于n', { n: 2 }),
+    },
+    {
+      validator: (value: string) => {
+        if (props.role === 'spider_slave') {
+          return Number(value) >= 1 && Number(value) < props.max;
+        }
+        return true;
+      },
+      message: t('必须小于当前台数且大于等于n', { n: 1 }),
     },
   ];
 

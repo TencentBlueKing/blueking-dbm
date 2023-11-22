@@ -15,7 +15,7 @@
   <MainBreadcrumbs>
     <template #append>
       <div class="status">
-        <span class="status__label">{{ $t('状态') }}：</span>
+        <span class="status__label">{{ t('状态') }}：</span>
         <span class="status__value">
           <DbStatus :theme="statusInfo.theme">{{ statusInfo.text }}</DbStatus>
         </span>
@@ -37,7 +37,7 @@
         <DbCard
           class="cluster-details__base"
           mode="collapse"
-          :title="$t('基本信息')">
+          :title="t('基本信息')">
           <BkLoading :loading="isLoading">
             <EditInfo
               :columns="baseColumns"
@@ -50,7 +50,7 @@
           class="cluster-details__tab"
           type="unborder-card">
           <BkTabPanel
-            :label="$t('变更记录')"
+            :label="t('变更记录')"
             name="event">
             <EventChange
               :id="instInfo.id"
@@ -115,7 +115,7 @@
   });
 
   const activePanelKey = ref('event');
-  const details = ref<InfluxDBInstanceModel | undefined>();
+  const details = ref<InfluxDBInstanceModel>();
   const monitorPanelList = ref<PanelItem[]>([]);
 
   const statusInfo = computed(() => {
