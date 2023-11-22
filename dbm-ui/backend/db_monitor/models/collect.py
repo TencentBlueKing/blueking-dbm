@@ -94,6 +94,7 @@ class CollectInstance(CollectTemplateBase):
         for collect_tpl in glob.glob(collect_tpls):
             with open(collect_tpl, "r") as f:
                 template_dict = json.loads(f.read())
+                template_dict.pop("export_at", None)
                 template = CollectTemplate(**template_dict)
 
             collect_params = template.details
@@ -145,6 +146,7 @@ class CollectInstance(CollectTemplateBase):
                         )
                     ],
                 )
+                print(json.dumps(collect_params))
                 res = BKMonitorV3Api.save_collect_config(collect_params, use_admin=True)
 
                 # 实例化Rule

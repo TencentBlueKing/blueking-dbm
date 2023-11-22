@@ -117,6 +117,7 @@ class Command(BaseCommand):
         # 批量获取策略
         # scenario_list = res["scenario_list"]
         strategy_config_list = res["strategy_config_list"]
+        print(strategy_config_list)
         logger.info(f"[{db_type}]get {len(strategy_config_list)} alarm strategy")
         for strategy_config in strategy_config_list:
 

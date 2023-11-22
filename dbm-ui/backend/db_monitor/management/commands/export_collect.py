@@ -9,6 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import copy
+import datetime
 import json
 import logging
 import os
@@ -123,6 +124,7 @@ class Command(BaseCommand):
                                 "version": template.get("version", 0) + 1,
                                 "machine_types": machine_types,
                                 "plugin_id": plugin_id,
+                                "export_at": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                             }
                         ),
                         indent=2,

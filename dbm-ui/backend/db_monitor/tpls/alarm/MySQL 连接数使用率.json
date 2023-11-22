@@ -308,7 +308,7 @@
   },
   "is_enabled": true,
   "monitor_indicator": "100 * AVG(mysql_global_status_threads_connected) / AVG(mysql_global_variables_max_connections)",
-  "version": 12,
+  "version": 15,
   "alert_source": "time_series",
   "custom_conditions": []
 }
