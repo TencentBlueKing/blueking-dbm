@@ -133,7 +133,7 @@
     redis: getRedisTopoGraph,
     tendbsingle: getTendbsingleTopoGraph,
     tendbha: getTendbhaTopoGraph,
-    spider: getSpiderTopoGraph,
+    tendbcluster: getSpiderTopoGraph,
   };
 
   /** 拓扑功能 */

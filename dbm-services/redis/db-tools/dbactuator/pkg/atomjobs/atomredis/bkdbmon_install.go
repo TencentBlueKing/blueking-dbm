@@ -42,7 +42,7 @@ type BkDbmonInstallParams struct {
 	BkDbmonPkg         common.MediaPkg        `json:"bkdbmonpkg" validate:"required"`
 	DbToolsPkg         common.DbToolsMediaPkg `json:"dbtoolspkg" validate:"required"`
 	AgentAddress       string                 `json:"agent_address" validate:"required"`
-	GsePath            string                 `json:"gsepath" validate:"required"`
+	BeatPath           string                 `json:"beat_path" validate:"required"`
 	RedisFullBackup    map[string]interface{} `json:"redis_fullbackup" validate:"required"`
 	RedisBinlogBackup  map[string]interface{} `json:"redis_binlogbackup" validate:"required"`
 	RedisHeartbeat     map[string]interface{} `json:"redis_heartbeat" validate:"required"`
@@ -324,7 +324,7 @@ type bkDbmonConf struct {
 	ReportLeftDay      int                    `json:"report_left_day" yaml:"report_left_day"`
 	HTTPAddress        string                 `json:"http_address" yaml:"http_address"`
 	AgentAddress       string                 `json:"agent_address" yaml:"agent_address"`
-	GsePath            string                 `json:"gsepath" yaml:"gsepath"`
+	BeatPath           string                 `json:"beat_path" yaml:"beat_path"`
 	RedisFullBackup    map[string]interface{} `json:"redis_fullbackup" yaml:"redis_fullbackup"`
 	RedisBinlogBackup  map[string]interface{} `json:"redis_binlogbackup" yaml:"redis_binlogbackup"`
 	RedisHeartbeat     map[string]interface{} `json:"redis_heartbeat" yaml:"redis_heartbeat"`
@@ -349,7 +349,7 @@ func (job *BkDbmonInstall) GenerateConfigFile() (err error) {
 		ReportLeftDay:      consts.RedisReportLeftDay,
 		HTTPAddress:        consts.BkDbmonHTTPAddress,
 		AgentAddress:       job.params.AgentAddress,
-		GsePath:            job.params.GsePath,
+		BeatPath:           job.params.BeatPath,
 		RedisFullBackup:    job.params.RedisFullBackup,
 		RedisBinlogBackup:  job.params.RedisBinlogBackup,
 		RedisHeartbeat:     job.params.RedisHeartbeat,

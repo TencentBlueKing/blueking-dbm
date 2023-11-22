@@ -115,6 +115,7 @@
     :get-detail-info="getRedisDetail" />
 </template>
 <script setup lang="tsx">
+  import { InfoBox } from 'bkui-vue';
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
@@ -148,6 +149,7 @@
 
   import EditEntryConfig from '@components/cluster-entry-config/Index.vue';
   import DbStatus from '@components/db-status/index.vue';
+  import MiniTag from '@components/mini-tag/index.vue';
   import RenderInstances from '@components/render-instances/RenderInstances.vue';
 
   import type { RedisState } from '@views/redis/common/types';
@@ -321,19 +323,24 @@
       label: t('访问入口'),
       field: 'master_domain',
       minWidth: 200,
-      render: ({ data }: ColumnRenderData) => (
+      render: ({ data }: ColumnRenderData) => {
+        const entryTypes = (data.cluster_entry || []).map(item => item.cluster_entry_type);
+        const isOnlineCLB = entryTypes.includes('clb');
+        return (
         <div class="domain">
           <span
             class="text-overflow"
             v-overflow-tips>
             {data.master_domain || '--'}
           </span>
+          {isOnlineCLB && <MiniTag content="CLB" extCls='redis-manage-clb-minitag' />}
           {userProfileStore.isManager && <db-icon
             type="edit"
             v-bk-tooltips={t('修改入口配置')}
             onClick={() => handleOpenEntryConfig(data)} />}
         </div>
-      ),
+        );
+      },
     },
     {
       label: 'Proxy',
@@ -552,6 +559,24 @@
                         text
                         onClick={() => handleSwitchCLB(clbSwitchTicketKey, data)}>
                         { isOnlineCLB ? t('禁用CLB') : t('启用CLB') }
+                      </bk-button>
+                    ),
+                  }}
+                </OperationStatusTips>
+              </bk-dropdown-item>
+              <bk-dropdown-item>
+                <OperationStatusTips
+                  clusterStatus={data.status}
+                  data={data.operations[0]}
+                  disabledList={disabledOperations}>
+                  {{
+                    default: ({ disabled }: { disabled: boolean }) => (
+                      <bk-button
+                        style="width: 100%;height: 32px; justify-content: flex-start;"
+                        disabled={disabled || data.phase === 'offline'}
+                        text
+                        onClick={() => handleSwitchDNSBindCLB(data)}>
+                        { data.dns_to_clb ? t('恢复 DNS 域名指向') : t('DNS 域名指向 CLB') }
                       </bk-button>
                     ),
                   }}
@@ -941,10 +966,50 @@
     if (!type) return;
 
     const isCreate = type === TicketTypes.REDIS_PLUGIN_CREATE_CLB;
-    const title = isCreate ? t('确定启用CLB') : t('确定禁用CLB');
-    useInfoWithIcon({
-      type: 'warnning',
+    const title = isCreate ? t('确定启用CLB？') : t('确定禁用CLB？');
+    InfoBox({
       title,
+      subTitle: t('启用 CLB 之后，该集群可以通过 CLB 来访问'),
+      width: 400,
+      height: 220,
+      zIndex: 999999,
+      extCls: 'redis-manage-infobox',
+      onConfirm: async () => {
+        try {
+          const params = {
+            bk_biz_id: globalBizsStore.currentBizId,
+            ticket_type: type,
+            details: {
+              cluster_id: data.id,
+            },
+          };
+          await createTicket(params)
+            .then((res) => {
+              ticketMessage(res.id);
+            });
+          return true;
+        } catch (_) {
+          return false;
+        }
+      },
+    });
+  }
+
+  /**
+   * 域名指向 clb / 域名解绑 clb
+   */
+  function handleSwitchDNSBindCLB(data: ResourceRedisItem) {
+    const isBind = data.dns_to_clb;
+    const title = isBind ? t('确认恢复 DNS 域名指向？') : t('确认将 DNS 域名指向 CLB ?');
+    const subTitle = isBind ? t('DNS 域名恢复指向 Proxy') : t('业务不需要更换原域名也可实现负载均衡');
+    const type = isBind ? TicketTypes.REDIS_PLUGIN_DNS_UNBIND_CLB : TicketTypes.REDIS_PLUGIN_DNS_BIND_CLB;
+    InfoBox({
+      title,
+      subTitle,
+      width: 400,
+      height: 220,
+      zIndex: 999999,
+      extCls: 'redis-manage-infobox',
       onConfirm: async () => {
         try {
           const params = {
@@ -1215,4 +1280,34 @@
       }
     }
   }
+</style>
+
+<style lang="less">
+.redis-manage-clb-minitag {
+  color: #8E3AFF;
+  background-color: #F2EDFF;
+
+  &:hover {
+    color: #8E3AFF;
+    background-color: #F2EDFF;
+  }
+}
+
+.redis-manage-infobox {
+  .bk-modal-body {
+    .bk-modal-header {
+      .bk-dialog-header {
+        .bk-dialog-title {
+          margin-top: 18px;
+          margin-bottom: 16px;
+        }
+      }
+    }
+
+    .bk-modal-footer {
+      height: 80px;
+    }
+
+  }
+}
 </style>

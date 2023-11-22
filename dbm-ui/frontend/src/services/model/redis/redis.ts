@@ -64,6 +64,7 @@ export default class Redis {
   create_at: string;
   count: number;
   db_module_id: number;
+  dns_to_clb: boolean;
   deploy_plan_id: number;
   id: number;
   major_version: string;
@@ -138,6 +139,7 @@ export default class Redis {
     this.time_zone = payload.time_zone;
     this.create_at = payload.create_at;
     this.creator = payload.creator;
+    this.dns_to_clb = payload.dns_to_clb;
     this.id = payload.id;
     this.major_version = payload.major_version;
     this.deploy_plan_id = payload.deploy_plan_id;

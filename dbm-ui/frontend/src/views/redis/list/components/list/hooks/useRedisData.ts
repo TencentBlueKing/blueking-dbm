@@ -17,9 +17,9 @@ import { useGlobalBizs } from '@stores';
 
 import { DBTypes } from '@common/const';
 
-import { getSearchSelectorParams } from '@utils';
+import type { RedisState } from '@views/redis/common/types';
 
-import type { RedisState } from '../../common/types';
+import { getSearchSelectorParams } from '@utils';
 
 /**
  * 处理 redis 列表数据

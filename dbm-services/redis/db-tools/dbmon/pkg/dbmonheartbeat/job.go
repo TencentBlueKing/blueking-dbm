@@ -2,11 +2,12 @@
 package dbmonheartbeat
 
 import (
+	"fmt"
+	"sync"
+
 	"dbm-services/redis/db-tools/dbmon/config"
 	"dbm-services/redis/db-tools/dbmon/mylog"
 	"dbm-services/redis/db-tools/dbmon/pkg/sendwarning"
-	"fmt"
-	"sync"
 )
 
 // GlobDbmonHeartbeatJob global var
@@ -71,7 +72,7 @@ func NewDbmonHeartbeatTask(conf *config.Configuration, serverConf config.ConfSer
 	task.MetricSender, err = sendwarning.NewBkMonitorEventSender(
 		conf.RedisMonitor.BkMonitorMetricDataID,
 		conf.RedisMonitor.BkMonitorMetircToken,
-		conf.GsePath,
+		conf.BeatPath,
 		conf.AgentAddress,
 	)
 	if err != nil {

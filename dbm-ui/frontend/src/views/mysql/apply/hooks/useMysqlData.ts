@@ -17,8 +17,10 @@ import { useI18n } from 'vue-i18n';
 import { getModules } from '@services/source/cmdb';
 import { getLevelConfig } from '@services/source/configs';
 import { getInfrasHostSpecs } from '@services/source/infras';
-import { createTicket } from '@services/source/ticket';
+import { checkHost } from '@services/source/ipchooser';
 import type { HostDetails } from '@services/types';
+import { createTicket } from '@services/source/ticket';
+import type { ModuleItem } from '@services/types/common';
 import type { ParameterConfigItem } from '@services/types/configs';
 
 import { useInfo } from '@hooks';
@@ -157,12 +159,12 @@ export const useMysqlData = (type: string) => {
   watch(() => formdata.details.city_code, (value: string) => {
     if (value) {
       formdata.details.spec = '';
-      fetchInfrasHostSpecs(value);
+      fetchInfrasHostSpecs();
     }
   });
-  const fetchInfrasHostSpecs = (cityCode: string) => {
+  const fetchInfrasHostSpecs = () => {
     loading.hostSpecs = true;
-    getInfrasHostSpecs({ cityCode })
+    getInfrasHostSpecs()
       .then((res) => {
         fetchState.hostSpecs = res || [];
       })

@@ -12,6 +12,7 @@
 */
 
 import http from '../http';
+import type { HostSpec } from '../types/ticket';
 
 const path = '/apis/infras';
 
@@ -86,3 +87,8 @@ export const fetchDbTypeList = function () {
     name: string
   }>>(`${path}/dbtype/list_db_types/`);
 };
+
+/**
+ * 服务器规格列表
+ */
+export const getInfrasHostSpecs = () => http.get<HostSpec[]>(`${path}/cities/host_specs/`);

@@ -73,7 +73,7 @@ func (task *PredixyMonitorTask) RestartWhenConnFail() {
 				consts.WarnLevelError, task.ServerConf.ServerIP)
 			return
 		}
-		startCmd := []string{startScript + " " + strconv.Itoa(proxyPort)}
+		startCmd := []string{startScript, strconv.Itoa(proxyPort)}
 		mylog.Logger.Info(strings.Join(startCmd, " "))
 		_, task.Err = util.RunLocalCmd(startCmd[0], startCmd[1:], "", nil, 10*time.Second)
 		if task.Err != nil {

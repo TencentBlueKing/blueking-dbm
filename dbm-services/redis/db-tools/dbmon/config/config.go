@@ -72,7 +72,7 @@ type Configuration struct {
 	ReportLeftDay     int                   `json:"report_left_day" mapstructure:"report_left_day"`
 	HttpAddress       string                `json:"http_address" mapstructure:"http_address"`
 	AgentAddress      string                `json:"agent_address" mapstructure:"agent_address"`
-	GsePath           string                `json:"gsepath" mapstructure:"gsepath"`
+	BeatPath          string                `json:"beat_path" mapstructure:"beat_path"`
 	RedisFullBackup   ConfRedisFullBackup   `json:"redis_fullbackup" mapstructure:"redis_fullbackup"`
 	RedisBinlogBackup ConfRedisBinlogBackup `json:"redis_binlogbackup" mapstructure:"redis_binlogbackup"`
 	RedisHeartbeat    ConfRedisHeartbeat    `json:"redis_heartbeat" mapstructure:"redis_heartbeat"`
@@ -108,8 +108,8 @@ func loadConfigFile() {
 	if conf.ReportLeftDay == 0 {
 		conf.ReportLeftDay = 15
 	}
-	if conf.GsePath == "" {
-		conf.GsePath = "/usr/local/gse_bkte"
+	if conf.BeatPath == "" {
+		conf.BeatPath = "/usr/local/gse_bkte/plugins/bin/bkmonitorbeat"
 	}
 	fmt.Println(conf.String())
 	GlobalConf = &conf

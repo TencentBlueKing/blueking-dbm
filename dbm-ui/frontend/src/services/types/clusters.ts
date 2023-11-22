@@ -101,6 +101,7 @@ export interface ResourceRedisItem {
   cluster_type: string,
   create_at: string,
   creator: string,
+  dns_to_clb: boolean,
   update_at: string,
   updater: string,
   db_module_name: string

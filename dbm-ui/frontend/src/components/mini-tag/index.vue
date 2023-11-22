@@ -14,6 +14,7 @@
 <template>
   <BkTag
     class="tag-box"
+    :class="extCls"
     :theme="theme"
     :type="type"
     @click="handleTagClick">
@@ -34,6 +35,7 @@
     type?: '' | 'stroke' | 'filled',
     theme?: 'info' | 'success' | 'warning' | 'danger',
     iconType?: string,
+    extCls?: string
   }
 
   interface Emits {
@@ -45,6 +47,7 @@
     type: '',
     theme: undefined,
     iconType: '',
+    extCls: undefined,
   });
 
   const emits = defineEmits<Emits>();

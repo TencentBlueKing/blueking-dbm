@@ -16,47 +16,52 @@
     v-bkloading="{loading: isLoading}"
     class="cluster-details">
     <BkTab
-      v-model:active="activePanel"
+      v-model:active="activePanelKey"
       class="content-tabs"
       type="card-tab">
       <BkTabPanel
-        :label="$t('集群拓扑')"
+        :label="t('集群拓扑')"
         name="topo" />
       <BkTabPanel
-        :label="$t('基本信息')"
+        :label="t('基本信息')"
         name="info" />
       <BkTabPanel
-        :label="$t('变更记录')"
+        :label="t('变更记录')"
         name="record" />
       <BkTabPanel
-        :label="$t('监控仪表盘')"
-        name="monitor" />
+        v-for="item in monitorPanelList"
+        :key="item.name"
+        :label="item.label"
+        :name="item.name" />
     </BkTab>
     <div class="content-wrapper">
       <ClusterTopo
-        v-if="activePanel === 'topo'"
+        v-if="activePanelKey === 'topo'"
         :id="clusterId"
         :cluster-type="DBTypes.REDIS"
         :db-type="DBTypes.REDIS" />
       <BaseInfo
-        v-if="activePanel === 'info' && data"
+        v-if="activePanelKey === 'info' && data"
         :data="data" />
       <ClusterEventChange
-        v-if="activePanel === 'record'"
+        v-if="activePanelKey === 'record'"
         :id="clusterId" />
       <MonitorDashboard
-        v-if="activePanel === 'monitor'"
-        :id="clusterId"
-        :cluster-type="currentClusterType" />
+        v-if="activePanelKey === activePanel?.name"
+        :url="activePanel?.link" />
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
+  import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
+  import { getMonitorUrls } from '@services/source/monitorGrafana';
   import { getRedisDetail } from '@services/source/redis';
   import type { ResourceRedisItem } from '@services/types/clusters';
+
+  import { useGlobalBizs } from '@stores';
 
   import { DBTypes } from '@common/const';
 
@@ -70,11 +75,27 @@
     clusterId: number;
   }
 
+  interface PanelItem {
+    label: string,
+    name: string,
+    link: string,
+  }
+
   const props = defineProps<Props>();
 
-  const activePanel = ref('topo');
+  const { t } = useI18n();
+  const { currentBizId } = useGlobalBizs();
+
+  const activePanelKey = ref('topo');
   const data = ref<ResourceRedisItem>();
-  const currentClusterType = computed(() => data.value?.cluster_type ?? '');
+  const currentClusterType = ref('');
+
+  const monitorPanelList = ref<PanelItem[]>([]);
+
+  const activePanel = computed(() => {
+    const targetPanel = monitorPanelList.value.find(item => item.name === activePanelKey.value);
+    return targetPanel;
+  });
 
   const {
     loading: isLoading,
@@ -83,15 +104,37 @@
     manual: true,
     onSuccess(result: ResourceRedisItem) {
       data.value = result;
+      currentClusterType.value = result.cluster_type;
     },
   });
 
-  watch(() => props.clusterId, () => {
+  const { run: runGetMonitorUrls } = useRequest(getMonitorUrls, {
+    manual: true,
+    onSuccess(res) {
+      if (res.urls.length > 0) {
+        monitorPanelList.value = res.urls.map(item => ({
+          label: item.view,
+          name: item.view,
+          link: item.url,
+        }));
+      }
+    },
+  });
+
+  watch(() => [props.clusterId, currentClusterType.value], () => {
     if (!props.clusterId) {
       return;
     }
     fetchResourceDetails({
       id: props.clusterId,
+    });
+    if (!currentClusterType.value) {
+      return;
+    }
+    runGetMonitorUrls({
+      bk_biz_id: currentBizId,
+      cluster_type: currentClusterType.value,
+      cluster_id: props.clusterId,
     });
   }, {
     immediate: true,
