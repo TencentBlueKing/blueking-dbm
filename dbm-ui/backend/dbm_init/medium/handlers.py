@@ -20,7 +20,6 @@ from datetime import datetime
 import yaml
 from bkstorages.backends.bkrepo import TIMEOUT_THRESHOLD, BKGenericRepoClient, BKRepoStorage, urljoin
 
-
 logger = logging.getLogger("root")
 
 

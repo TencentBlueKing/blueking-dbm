@@ -128,6 +128,15 @@ class MySQLHADestroyFlow(object):
             acts_list = []
             for proxy_ip in cluster["proxy_ip_list"]:
                 exec_act_kwargs.exec_ip = proxy_ip
+                exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_clear_surrounding_config_payload.__name__
+                acts_list.append(
+                    {
+                        "act_name": _("清理实例周边配置"),
+                        "act_component_code": ExecuteDBActuatorScriptComponent.code,
+                        "kwargs": asdict(exec_act_kwargs),
+                    },
+                )
+
                 exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_uninstall_proxy_payload.__name__
                 acts_list.append(
                     {
@@ -141,6 +150,15 @@ class MySQLHADestroyFlow(object):
             acts_list = []
             for mysql_ip in cluster["backend_ip_list"]:
                 exec_act_kwargs.exec_ip = mysql_ip
+                exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_clear_surrounding_config_payload.__name__
+                acts_list.append(
+                    {
+                        "act_name": _("清理实例周边配置"),
+                        "act_component_code": ExecuteDBActuatorScriptComponent.code,
+                        "kwargs": asdict(exec_act_kwargs),
+                    },
+                )
+
                 exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_uninstall_mysql_payload.__name__
                 acts_list.append(
                     {

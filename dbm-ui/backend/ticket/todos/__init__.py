@@ -14,10 +14,10 @@ import os
 from dataclasses import asdict, dataclass
 from typing import Callable
 
-from blue_krill.data_types.enum import EnumField, StructuredEnum
 from django.utils.translation import ugettext_lazy as _
 
 from backend.ticket.models import Todo
+from blue_krill.data_types.enum import EnumField, StructuredEnum
 
 logger = logging.getLogger("root")
 
