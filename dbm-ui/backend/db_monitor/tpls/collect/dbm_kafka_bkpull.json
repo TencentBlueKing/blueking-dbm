@@ -34,7 +34,7 @@
     "plugin_id": "dbm_kafka_bkpull"
   },
   "db_type": "kafka",
-  "version": 2,
+  "version": 15,
   "machine_types": [],
   "plugin_id": "dbm_kafka_bkpull"
 }

@@ -36,7 +36,7 @@
     "plugin_id": "dbm_twemproxy_exporter"
   },
   "db_type": "redis",
-  "version": 1,
+  "version": 15,
   "machine_types": [],
   "plugin_id": "dbm_twemproxy_exporter"
 }

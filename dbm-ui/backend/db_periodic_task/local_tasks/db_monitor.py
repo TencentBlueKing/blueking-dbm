@@ -106,11 +106,11 @@ def sync_plat_monitor_policy():
     # 逐个json导入，本地+远程
     updated_policies = 0
     alarm_tpls = glob.glob(os.path.join(TPLS_ALARM_DIR, "*.json"))
-
     for alarm_tpl in alarm_tpls:
+
         with open(alarm_tpl, "r") as f:
             template_dict = json.loads(f.read())
-
+            deleted = template_dict.pop("deleted", False)
             # just for test
             # template_dict["name"] = template_dict["name"] + "-" + get_random_string(5)
 
@@ -130,7 +130,14 @@ def sync_plat_monitor_policy():
                 bk_biz_id=policy.bk_biz_id, db_type=policy.db_type, name=policy_name
             )
 
+            if deleted:
+                # print("[sync_plat_monitor_policy] delete old alarm: %s " % policy_name)
+                logger.info("[sync_plat_monitor_policy] delete old alarm: %s " % policy_name)
+                synced_policy.delete()
+                continue
+
             if synced_policy.version >= policy.version:
+                # print("[sync_plat_monitor_policy] skip same version alarm: %s " % policy_name)
                 logger.info("[sync_plat_monitor_policy] skip same version alarm: %s " % policy_name)
                 continue
 
@@ -138,6 +145,7 @@ def sync_plat_monitor_policy():
                 setattr(policy, keeped_field, getattr(synced_policy, keeped_field))
 
             policy.details["id"] = synced_policy.monitor_policy_id
+            # print("[sync_plat_monitor_policy] update bkm alarm policy: %s " % policy_name)
             logger.info("[sync_plat_monitor_policy] update bkm alarm policy: %s " % policy_name)
         except MonitorPolicy.DoesNotExist:
             # # 支持从监控反向同步
@@ -147,6 +155,7 @@ def sync_plat_monitor_policy():
             #     logger.info("[sync_plat_monitor_policy] sync and update bkm alarm policy: %s " % policy_name)
             # else:
             #     logger.info("[sync_plat_monitor_policy] create bkm alarm policy: %s " % policy_name)
+            # print("[sync_plat_monitor_policy] create bkm alarm policy: %s " % policy_name)
             logger.info("[sync_plat_monitor_policy] create bkm alarm policy: %s " % policy_name)
 
         try:
@@ -265,4 +274,4 @@ def sync_monitor_collect_strategy():
 
     logger.info("sync_monitor_collect_strategy update for: %s", unmanaged_biz)
     CollectInstance.sync_collect_strategy()
-    cache.set(key, unmanaged_biz)
+    cache.set(key, list(unmanaged_biz))

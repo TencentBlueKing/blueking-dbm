@@ -38,7 +38,8 @@
     "plugin_id": "dbm_kafka_exporter"
   },
   "db_type": "kafka",
-  "version": 1,
+  "version": 15,
   "machine_types": [],
-  "plugin_id": "dbm_kafka_exporter"
+  "plugin_id": "dbm_kafka_exporter",
+  "export_at": "2023-11-22 15:25:54"
 }

@@ -33,7 +33,7 @@
     "plugin_id": "dbm_influxdb_bkpull"
   },
   "db_type": "influxdb",
-  "version": 1,
+  "version": 15,
   "machine_types": [],
   "plugin_id": "dbm_influxdb_bkpull"
 }

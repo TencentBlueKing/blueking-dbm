@@ -239,7 +239,7 @@
   },
   "is_enabled": true,
   "monitor_indicator": "COUNT(riak-ring-status-dbm_report_channel)",
-  "version": 12,
+  "version": 15,
   "alert_source": "event",
   "custom_conditions": []
 }
