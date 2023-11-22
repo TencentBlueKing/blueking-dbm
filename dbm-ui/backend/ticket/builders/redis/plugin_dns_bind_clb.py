@@ -21,7 +21,7 @@ class RedisPluginDnsBindCLBDetailSerializer(RedisSingleOpsBaseDetailSerializer):
 
 
 class RedisPluginDnsBindCLBFlowParamBuilder(builders.FlowParamBuilder):
-    controller = NameServiceController.clb_create
+    controller = NameServiceController.immute_domain_bind_clb_ip
 
     def format_ticket_data(self):
         """

@@ -27,8 +27,7 @@ class IPWhitelist(AuditedModel):
     ips = models.JSONField(_("ip列表"))
 
     class Meta:
-        verbose_name = _("IP白名单")
-        verbose_name_plural = _("IP白名单")
+        verbose_name = verbose_name_plural = _("IP白名单(IPWhitelist)")
 
     @classmethod
     def list_ip_whitelist(

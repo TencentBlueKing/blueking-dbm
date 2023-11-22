@@ -9,36 +9,36 @@
 
 # 提取数据采集模板
 
-> python manage.py extract_collect dbtype collect_list [-m machine_types]
+> python manage.py export_collect dbtype collect_list [-m machine_types]
 > collect_list来源：监控测试环境 -> 集成 -> 数据采集 -> dbm_开头的ID
 
 采集模板数据表：db_monitor_collecttemplate
 
-python manage.py extract_collect mysql 7 91
-python manage.py extract_collect mysql 14 -m spider
-python manage.py extract_collect redis 5 9 10
-python manage.py extract_collect es 1
-python manage.py extract_collect kafka 3 8
-python manage.py extract_collect pulsar 4 12 13
-python manage.py extract_collect hdfs 11
-python manage.py extract_collect influxdb 6
+python manage.py export_collect mysql 7 91
+python manage.py export_collect mysql 14 -m spider
+python manage.py export_collect redis 5 9 10
+python manage.py export_collect es 1
+python manage.py export_collect kafka 3 8
+python manage.py export_collect pulsar 4 12 13
+python manage.py export_collect hdfs 11
+python manage.py export_collect influxdb 6
 
 
 # 提取告警策略模板
 
-> python manage.py extract_alarm dbtype alarm_list [-d]
+> python manage.py export_alarm dbtype alarm_list [-d]
 > alarm_list来源：监控测试环境 -> 配置 -> 告警策略 -> 带DBM_{db_type}标签的策略
 
 告警策略模板数据表：db_monitor_ruletemplate
 
-python manage.py extract_alarm mysql 39901 39900 39763 39759 39783 39760 39785 39779 39723 39738 39739 39787 39767 39751 39733 39762 39729 39782 39734 39788 39730 39768 39731 39769 39737 39721 39773 39786 39771 39742 39755 39745 39789 39918 39913 39917 39916 39915 39914 39912 39911
-python manage.py extract_alarm redis 39764 39743 39722 39744 39727 39776 39748 39774 39758 39718 39754 39750 39728 39925 39923 39922 39921
-python manage.py extract_alarm es 39777 39752 39717 39747 39756 39740 39757 39725
-python manage.py extract_alarm kafka 39772 -d -c consumergroup topic
-python manage.py extract_alarm pulsar 5683 5682 5681 5680
-python manage.py extract_alarm hdfs 5891 5894 5895 5898 5899
-python manage.py extract_alarm influxdb 5946 5947 5948 5949 5950 5951 5952
-python manage.py extract_alarm riak 39876 39877 39878 39879 39882 39881 39882
+python manage.py export_alarm mysql 39901 39900 39763 39759 39783 39760 39785 39779 39723 39738 39739 39787 39767 39751 39733 39762 39729 39782 39734 39788 39730 39768 39731 39769 39737 39721 39773 39786 39771 39742 39755 39745 39789 39918 39913 39917 39916 39915 39914 39912 39911
+python manage.py export_alarm redis 39764 39743 39722 39744 39727 39776 39748 39774 39758 39718 39754 39750 39728 39925 39923 39922 39921
+python manage.py export_alarm es 39777 39752 39717 39747 39756 39740 39757 39725
+python manage.py export_alarm kafka 39772 -d -c consumergroup topic
+python manage.py export_alarm pulsar 5683 5682 5681 5680
+python manage.py export_alarm hdfs 5891 5894 5895 5898 5899
+python manage.py export_alarm influxdb 5946 5947 5948 5949 5950 5951 5952
+python manage.py export_alarm riak 39876 39877 39878 39879 39882 39881 39882
 
 
 备注：目前事件告警创建到了生产环境，需要调整监控接口地址和DB业务ID

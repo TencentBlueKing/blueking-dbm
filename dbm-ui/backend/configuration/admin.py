@@ -29,6 +29,15 @@ class SystemSettingsAdmin(admin.ModelAdmin):
     )
 
 
+@admin.register(models.BizSettings)
+class BizSettingsAdmin(admin.ModelAdmin):
+    list_display = ("bk_biz_id", "type", "key", "value", "desc")
+    search_fields = (
+        "type",
+        "key",
+    )
+
+
 @admin.register(models.Profile)
 class ProfileAdmin(admin.ModelAdmin):
     list_display = ("username", "label", "values")

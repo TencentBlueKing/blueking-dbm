@@ -30,7 +30,7 @@ class PasswordPolicy(models.Model):
     policy = models.JSONField(_("密码安全策略"))
 
     class Meta:
-        verbose_name = _("密码安全策略")
+        verbose_name = verbose_name_plural = _("密码安全策略(PasswordPolicy)")
 
     @classmethod
     def safe_get(cls, account_type: str) -> Optional["PasswordPolicy"]:

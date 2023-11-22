@@ -9,11 +9,25 @@
     "target_node_type": "TOPO",
     "target_nodes": [],
     "params": {
+      "collector": {
+        "period": 60,
+        "timeout": 60,
+        "host": "127.0.0.1",
+        "port": "7000"
+      },
       "plugin": {
-        "--config.my-cnf": "/etc/{{ target.service.labels[\"exporter_conf_path\"] }}",
         "--web.listen-address": "${host}:${port}",
+        "--config.my-cnf": "/etc/{{ target.service.labels[\"exporter_conf_path\"] }}",
+        "--collect.global_variables": "true",
+        "--collect.slave_status": "true",
+        "--collect.info_schema.innodb_metrics": "true",
+        "--collect.info_schema.query_response_time": "true",
+        "--collect.info_schema.tables": "true",
+        "--collect.info_schema.processlist": "true",
+        "--collect.info_schema.innodb_trx": "true",
+        "--collect.engine_innodb_status": "true",
+        "--collect.auto_increment.columns": "true",
         "--collect.datadir_size": "true",
-        "--collect.global_status": "",
         "\u670d\u52a1\u5b9e\u4f8b\u7ef4\u5ea6\u6ce8\u5165": {
           "app": "app",
           "appid": "appid",
@@ -24,21 +38,14 @@
           "instance_role": "instance_role",
           "cluster_domain": "cluster_domain"
         },
-        "--collect.global_variables": "true",
-        "--collect.slave_status_ext": "true",
-        "--collect.engine_innodb_status": "true",
-        "--collect.info_schema.innodb_trx": "true",
         "--collect.infodba_schema.heartbeat": "true",
-        "--collect.info_schema.innodb_metrics": "true",
-        "--collect.info_schema.query_response_time": "true",
-        "--collect.auto_increment_ext.columns --collect.auto_increment_ext.interval=1h": "true",
-        "--collect.info_schema.processlist_ext --collect.info_schema.processlist_ext.by_user": "true",
-        "--collect.info_schema.tables_ext --collect.info_schema.tables_ext.interval=1h --collect.info_schema.tables_ext.databases=*": "true"
-      },
-      "collector": {
-        "host": "127.0.0.1",
-        "port": "7000",
-        "period": 60
+        "--enable-scrape-interval": "true",
+        "--lr-min-interval": "24h",
+        "--mr-min-interval": "2h",
+        "--hr-min-interval": "5m",
+        "--collect.info_schema.processlist.by_user": "true",
+        "--collect.info_schema.tables.max_tables_per_db": "100",
+        "--collect.global_status": "true"
       },
       "target_node_type": "TOPO",
       "target_object_type": "SERVICE"
@@ -46,7 +53,7 @@
     "plugin_id": "dbm_mysqld_exporter"
   },
   "db_type": "mysql",
-  "version": 1,
+  "version": 15,
   "machine_types": [],
   "plugin_id": "dbm_mysqld_exporter"
 }

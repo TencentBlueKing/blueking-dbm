@@ -8,18 +8,14 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-import urllib
-
 from django.utils.translation import ugettext_lazy as _
 from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from backend import env
-from backend.bk_dataview.grafana.views import DEFAULT_ORG_ID, DEFAULT_ORG_NAME
+from backend.bk_dataview.grafana.constants import DEFAULT_ORG_ID, DEFAULT_ORG_NAME
 from backend.bk_web import viewsets
 from backend.bk_web.swagger import common_swagger_auto_schema
-from backend.db_meta.models import AppCache, Cluster, StorageInstance
 from backend.db_monitor.models import Dashboard
 from backend.db_monitor.serializers import DashboardUrlSerializer, GetDashboardSerializer
 from backend.iam_app.handlers.drf_perm import DBManageIAMPermission
@@ -45,31 +41,21 @@ class MonitorGrafanaViewSet(viewsets.SystemViewSet):
     def get_dashboard(self, request):
         validated_data = self.params_validate(self.get_serializer_class())
 
-        cluster_id = validated_data.get("cluster_id")
-        instance_id = validated_data.get("instance_id")
-        cluster_type = validated_data.get("cluster_type")
         bk_biz_id = validated_data.get("bk_biz_id")
+        cluster_id = validated_data.get("cluster_id")
+        # instance_id = validated_data.get("instance_id")
+        cluster_type = validated_data.get("cluster_type")
 
-        cluster = Cluster.objects.filter(id=cluster_id).last()
-        instance = StorageInstance.objects.filter(id=instance_id).last()
+        # instance = StorageInstance.objects.filter(id=instance_id).last()
 
         try:
-            dash = Dashboard.objects.get(org_id=DEFAULT_ORG_ID, org_name=DEFAULT_ORG_NAME, cluster_type=cluster_type)
-            params = {
-                "orgId": DEFAULT_ORG_ID,
-                "orgName": DEFAULT_ORG_NAME,
-                "var-cluster_domain": getattr(cluster, "immute_domain", None),
-                "var-cluster_name": getattr(cluster, "name", None),
-                "var-instance": getattr(instance, "ip_port", None),
-                "var-host": getattr(getattr(instance, "machine", None), "ip", None),
-                "var-app_id": bk_biz_id,
-                "var-appid": bk_biz_id,
-                "var-app": AppCache.get_app_attr(bk_biz_id, default=bk_biz_id),
-                "kiosk": 1,
-            }
-
-            url = env.BK_SAAS_HOST + f"{dash.url}?" + urllib.parse.urlencode(params)
+            dashes = Dashboard.objects.filter(
+                org_id=DEFAULT_ORG_ID, org_name=DEFAULT_ORG_NAME, cluster_type=cluster_type
+            )
+            dash_urls = [{"view": dash.view, "url": dash.get_url(bk_biz_id, cluster_id)} for dash in dashes]
+            url = dash_urls[0]["url"]
         except Dashboard.DoesNotExist:
+            dash_urls = []
             url = "#"
 
-        return Response({"url": url})
+        return Response({"url": url, "urls": dash_urls})

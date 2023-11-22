@@ -16,11 +16,14 @@ from celery.schedules import crontab
 
 from backend import env
 from backend.components import CCApi
+from backend.configuration.constants import SystemSettingsEnum
+from backend.configuration.models import SystemSettings
 from backend.db_meta.models import Cluster, Machine
 from backend.db_meta.models.cluster_monitor import SyncFailedMachine
 from backend.db_periodic_task.local_tasks.register import register_periodic_task
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.dbm_init.constants import CC_HOST_DBM_ATTR
+from backend.dbm_init.services import Services
 
 logger = logging.getLogger("celery")
 
@@ -74,15 +77,20 @@ def reset_host_dbmeta(bk_biz_id=env.DBA_APP_BK_BIZ_ID, bk_host_ids=None):
     )
 
 
-@register_periodic_task(run_every=crontab(minute="*/2"))
+@register_periodic_task(run_every=crontab(minute="*/3"))
 def update_host_dbmeta(bk_biz_id=None, cluster_id=None, cluster_ips=None, dbm_meta=None):
     """
     更新集群主机的dbm_meta属性
     TODO 应该挪到转移主机的时候做，每两分钟对全量主机更新一次 db_meta，太频繁了
     """
 
-    # 释放1周前报错的主机
-    SyncFailedMachine.objects.filter(create_at__lte=datetime.datetime.now() - datetime.timedelta(days=7)).delete()
+    # 初始化主机自定义属性，用于system数据拷贝
+    unmanaged_bizs = SystemSettings.get_setting_value(SystemSettingsEnum.INDEPENDENT_HOSTING_BIZS.value, default=[])
+    for unmanaged_biz in unmanaged_bizs:
+        Services.init_cc_dbm_meta(unmanaged_biz)
+
+    # 释放1天前报错的主机
+    SyncFailedMachine.objects.filter(create_at__lte=datetime.datetime.now() - datetime.timedelta(days=1)).delete()
 
     now = datetime.datetime.now()
     logger.info("[update_host_dbmeta] start update begin: %s", now)

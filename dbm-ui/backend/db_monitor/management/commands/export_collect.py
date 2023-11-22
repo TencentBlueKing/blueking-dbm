@@ -96,9 +96,9 @@ class Command(BaseCommand):
         for collect_id in collect_list:
             instance = BKMonitorV3Api.query_collect_config_detail({"id": str(collect_id)})
             # 策略转模板
-
             plugin_id = instance["plugin_info"]["plugin_id"]
             template = self.to_template(instance)
+            print(template)
 
             # obj, _ = CollectTemplate.objects.update_or_create(
             #     defaults={

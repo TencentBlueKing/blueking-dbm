@@ -2,6 +2,8 @@
 
 from django.db import migrations, models
 
+from backend.db_meta.enums import MigrateStatus
+
 
 class Migration(migrations.Migration):
 
@@ -67,7 +69,14 @@ class Migration(migrations.Migration):
                 ("target_group_num", models.IntegerField(verbose_name="扩缩容后的主机数量")),
                 ("new_ip_group", models.JSONField(default=dict, verbose_name="扩容时新增的主从主机")),
                 ("migrate_specified_slot", models.JSONField(default=dict, verbose_name="特定slots迁移信息")),
-                ("status", models.IntegerField(default=0, verbose_name="任务状态")),
+                (
+                    "status",
+                    models.IntegerField(
+                        choices=MigrateStatus.get_choices(),
+                        default=MigrateStatus.NOT_STARTED.value,
+                        verbose_name="任务状态",
+                    ),
+                ),
                 ("specification", models.JSONField(default=dict, verbose_name="规格需求")),
             ],
             options={

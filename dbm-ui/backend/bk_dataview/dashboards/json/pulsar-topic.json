@@ -1,0 +1,1506 @@
+{
+  "__inputs": [
+    {
+      "name": "DS_蓝鲸监控_- 指标数据",
+      "label": "蓝鲸监控 - 指标数据",
+      "description": "",
+      "type": "datasource",
+      "pluginId": "bkmonitor-timeseries-datasource",
+      "pluginName": "BlueKing Monitor TimeSeries"
+    }
+  ],
+  "__elements": {},
+  "__requires": [
+    {
+      "type": "datasource",
+      "id": "bkmonitor-timeseries-datasource",
+      "name": "BlueKing Monitor TimeSeries",
+      "version": "3.6.0"
+    },
+    {
+      "type": "grafana",
+      "id": "grafana",
+      "name": "Grafana",
+      "version": "9.1.0"
+    },
+    {
+      "type": "panel",
+      "id": "timeseries",
+      "name": "Time series",
+      "version": ""
+    }
+  ],
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "target": {
+          "limit": 100,
+          "matchAny": false,
+          "tags": [],
+          "type": "dashboard"
+        },
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": false,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [],
+  "liveNow": false,
+  "panels": [
+    {
+      "datasource": {
+        "type": "bkmonitor-timeseries-datasource",
+        "uid": "bkmonitor_timeseries"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 0
+      },
+      "id": 2,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "cluster": [],
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "bkmonitor_timeseries"
+          },
+          "expressionList": [],
+          "format": "time_series",
+          "host": [],
+          "mode": "ui",
+          "module": [],
+          "promqlAlias": "$topic",
+          "query_configs": [
+            {
+              "alias": "$topic",
+              "data_label": "pushgateway_dbm_pulsarbroker_bkpull",
+              "data_source_label": "bk_monitor",
+              "data_type_label": "time_series",
+              "display": true,
+              "filter_dict": {},
+              "functions": [],
+              "group_by": [
+                "topic"
+              ],
+              "interval": 60,
+              "interval_unit": "s",
+              "method": "SUM",
+              "metric_field": "pulsar_rate_in",
+              "refId": "a",
+              "result_table_id": "pushgateway_dbm_pulsarbroker_bkpull.__default__",
+              "result_table_label": "component",
+              "time_field": "time",
+              "where": [
+                {
+                  "key": "app",
+                  "method": "eq",
+                  "value": [
+                    "$app"
+                  ]
+                },
+                {
+                  "condition": "and",
+                  "key": "cluster_domain",
+                  "method": "eq",
+                  "value": [
+                    "$cluster_domain"
+                  ]
+                },
+                {
+                  "condition": "and",
+                  "key": "namespace",
+                  "method": "eq",
+                  "value": [
+                    "$namespace"
+                  ]
+                },
+                {
+                  "condition": "and",
+                  "key": "topic",
+                  "method": "neq",
+                  "value": [
+                    ""
+                  ]
+                },
+                {
+                  "condition": "and",
+                  "key": "topic",
+                  "method": "eq",
+                  "value": [
+                    "$topic"
+                  ]
+                }
+              ]
+            }
+          ],
+          "refId": "A",
+          "source": "sum by (topic) (sum_over_time(bkmonitor:pushgateway_dbm_pulsarbroker_bkpull:pulsar_rate_in{app=\"$app\",cluster_domain=\"$cluster_domain\",namespace=\"$namespace\",topic!=\"\",topic=\"$topic\"}[1m]))",
+          "step": "",
+          "type": "range"
+        }
+      ],
+      "title": "Local Publish rate",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "bkmonitor-timeseries-datasource",
+        "uid": "bkmonitor_timeseries"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 0
+      },
+      "id": 4,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "cluster": [],
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "bkmonitor_timeseries"
+          },
+          "expressionList": [],
+          "format": "time_series",
+          "host": [],
+          "mode": "ui",
+          "module": [],
+          "promqlAlias": "",
+          "query_configs": [
+            {
+              "alias": "$tag_subscription",
+              "data_label": "pushgateway_dbm_pulsarbroker_bkpull",
+              "data_source_label": "bk_monitor",
+              "data_type_label": "time_series",
+              "display": true,
+              "filter_dict": {},
+              "functions": [],
+              "group_by": [
+                "subscription"
+              ],
+              "interval": 60,
+              "interval_unit": "s",
+              "method": "SUM",
+              "metric_field": "pulsar_subscription_msg_rate_out",
+              "refId": "a",
+              "result_table_id": "pushgateway_dbm_pulsarbroker_bkpull.__default__",
+              "result_table_label": "component",
+              "time_field": "time",
+              "where": [
+                {
+                  "key": "app",
+                  "method": "eq",
+                  "value": [
+                    "$app"
+                  ]
+                },
+                {
+                  "condition": "and",
+                  "key": "cluster_domain",
+                  "method": "eq",
+                  "value": [
+                    "$cluster_domain"
+                  ]
+                },
+                {
+                  "condition": "and",
+                  "key": "namespace",
+                  "method": "eq",
+                  "value": [
+                    "$namespace"
+                  ]
+                },
+                {
+                  "condition": "and",
+                  "key": "topic",
+                  "method": "eq",
+                  "value": [
+                    "$topic"
+                  ]
+                },
+                {
+                  "condition": "and",
+                  "key": "topic",
+                  "method": "neq",
+                  "value": [
+                    ""
+                  ]
+                }
+              ]
+            }
+          ],
+          "refId": "A",
+          "source": "sum by (subscription) (sum_over_time(bkmonitor:pushgateway_dbm_pulsarbroker_bkpull:pulsar_subscription_msg_rate_out{app=\"$app\",cluster_domain=\"$cluster_domain\",namespace=\"$namespace\",topic=\"$topic\", topic!=\"\"}[1m]))",
+          "step": "",
+          "type": "range"
+        }
+      ],
+      "title": "Local Delivery Rate",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "bkmonitor-timeseries-datasource",
+        "uid": "bkmonitor_timeseries"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "Bps"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 8
+      },
+      "id": 6,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "cluster": [],
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "bkmonitor_timeseries"
+          },
+          "expressionList": [],
+          "format": "time_series",
+          "host": [],
+          "mode": "ui",
+          "module": [],
+          "promqlAlias": "",
+          "query_configs": [
+            {
+              "alias": "$topic",
+              "data_label": "pushgateway_dbm_pulsarbroker_bkpull",
+              "data_source_label": "bk_monitor",
+              "data_type_label": "time_series",
+              "display": true,
+              "filter_dict": {},
+              "functions": [],
+              "group_by": [
+                "topic"
+              ],
+              "interval": 60,
+              "interval_unit": "s",
+              "method": "SUM",
+              "metric_field": "pulsar_throughput_in",
+              "refId": "a",
+              "result_table_id": "pushgateway_dbm_pulsarbroker_bkpull.__default__",
+              "result_table_label": "component",
+              "time_field": "time",
+              "where": [
+                {
+                  "key": "app",
+                  "method": "eq",
+                  "value": [
+                    "$app"
+                  ]
+                },
+                {
+                  "condition": "and",
+                  "key": "cluster_domain",
+                  "method": "eq",
+                  "value": [
+                    "$cluster_domain"
+                  ]
+                },
+                {
+                  "condition": "and",
+                  "key": "namespace",
+                  "method": "eq",
+                  "value": [
+                    "$namespace"
+                  ]
+                },
+                {
+                  "condition": "and",
+                  "key": "topic",
+                  "method": "eq",
+                  "value": [
+                    "$topic"
+                  ]
+                }
+              ]
+            }
+          ],
+          "refId": "A",
+          "source": "sum by (topic) (sum_over_time(bkmonitor:pushgateway_dbm_pulsarbroker_bkpull:pulsar_throughput_in{app=\"$app\",cluster_domain=\"$cluster_domain\",namespace=\"$namespace\",topic=\"$topic\",topic!=\"\"}[1m]))",
+          "step": "",
+          "type": "range"
+        }
+      ],
+      "title": "Local Publish Throughput ( bytes/s )",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "bkmonitor-timeseries-datasource",
+        "uid": "bkmonitor_timeseries"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "Bps"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 8
+      },
+      "id": 8,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "cluster": [],
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "bkmonitor_timeseries"
+          },
+          "expressionList": [],
+          "format": "time_series",
+          "host": [],
+          "mode": "ui",
+          "module": [],
+          "promqlAlias": "",
+          "query_configs": [
+            {
+              "alias": "$tag_subscription",
+              "data_label": "pushgateway_dbm_pulsarbroker_bkpull",
+              "data_source_label": "bk_monitor",
+              "data_type_label": "time_series",
+              "display": true,
+              "filter_dict": {},
+              "functions": [],
+              "group_by": [
+                "subscription"
+              ],
+              "interval": 60,
+              "interval_unit": "s",
+              "method": "SUM",
+              "metric_field": "pulsar_subscription_msg_throughput_out",
+              "refId": "a",
+              "result_table_id": "pushgateway_dbm_pulsarbroker_bkpull.__default__",
+              "result_table_label": "component",
+              "time_field": "time",
+              "where": [
+                {
+                  "key": "app",
+                  "method": "eq",
+                  "value": [
+                    "$app"
+                  ]
+                },
+                {
+                  "condition": "and",
+                  "key": "cluster_domain",
+                  "method": "eq",
+                  "value": [
+                    "$cluster_domain"
+                  ]
+                },
+                {
+                  "condition": "and",
+                  "key": "namespace",
+                  "method": "eq",
+                  "value": [
+                    "$namespace"
+                  ]
+                },
+                {
+                  "condition": "and",
+                  "key": "topic",
+                  "method": "eq",
+                  "value": [
+                    "$topic"
+                  ]
+                }
+              ]
+            }
+          ],
+          "refId": "A",
+          "source": "",
+          "step": "",
+          "type": "range"
+        }
+      ],
+      "title": "Local Delivery Throughtput ( bytes/s )",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "bkmonitor-timeseries-datasource",
+        "uid": "bkmonitor_timeseries"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "decimals": 0,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 16
+      },
+      "id": 10,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "cluster": [],
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "bkmonitor_timeseries"
+          },
+          "expressionList": [],
+          "format": "time_series",
+          "host": [],
+          "mode": "ui",
+          "module": [],
+          "promqlAlias": "",
+          "query_configs": [
+            {
+              "alias": "producers",
+              "data_label": "pushgateway_dbm_pulsarbroker_bkpull",
+              "data_source_label": "bk_monitor",
+              "data_type_label": "time_series",
+              "display": true,
+              "filter_dict": {},
+              "functions": [],
+              "group_by": [],
+              "interval": 60,
+              "interval_unit": "s",
+              "method": "SUM",
+              "metric_field": "pulsar_producers_count",
+              "refId": "a",
+              "result_table_id": "pushgateway_dbm_pulsarbroker_bkpull.__default__",
+              "result_table_label": "component",
+              "time_field": "time",
+              "where": [
+                {
+                  "key": "app",
+                  "method": "eq",
+                  "value": [
+                    "$app"
+                  ]
+                },
+                {
+                  "condition": "and",
+                  "key": "cluster_domain",
+                  "method": "eq",
+                  "value": [
+                    "$cluster_domain"
+                  ]
+                },
+                {
+                  "condition": "and",
+                  "key": "namespace",
+                  "method": "eq",
+                  "value": [
+                    "$namespace"
+                  ]
+                },
+                {
+                  "condition": "and",
+                  "key": "topic",
+                  "method": "eq",
+                  "value": [
+                    "$topic"
+                  ]
+                }
+              ]
+            }
+          ],
+          "refId": "A",
+          "source": "",
+          "step": "",
+          "type": "range"
+        },
+        {
+          "cluster": [],
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "bkmonitor_timeseries"
+          },
+          "expressionList": [],
+          "format": "time_series",
+          "hide": false,
+          "host": [],
+          "mode": "ui",
+          "module": [],
+          "promqlAlias": "",
+          "query_configs": [
+            {
+              "alias": "subscriptions",
+              "data_label": "pushgateway_dbm_pulsarbroker_bkpull",
+              "data_source_label": "bk_monitor",
+              "data_type_label": "time_series",
+              "display": true,
+              "filter_dict": {},
+              "functions": [],
+              "group_by": [],
+              "interval": 60,
+              "interval_unit": "s",
+              "method": "SUM",
+              "metric_field": "pulsar_subscriptions_count",
+              "refId": "a",
+              "result_table_id": "pushgateway_dbm_pulsarbroker_bkpull.__default__",
+              "result_table_label": "component",
+              "time_field": "time",
+              "where": [
+                {
+                  "key": "app",
+                  "method": "eq",
+                  "value": [
+                    "$app"
+                  ]
+                },
+                {
+                  "condition": "and",
+                  "key": "cluster_domain",
+                  "method": "eq",
+                  "value": [
+                    "$cluster_domain"
+                  ]
+                },
+                {
+                  "condition": "and",
+                  "key": "namespace",
+                  "method": "eq",
+                  "value": [
+                    "$namespace"
+                  ]
+                },
+                {
+                  "condition": "and",
+                  "key": "topic",
+                  "method": "eq",
+                  "value": [
+                    "$topic"
+                  ]
+                }
+              ]
+            }
+          ],
+          "refId": "B",
+          "source": "",
+          "step": "",
+          "type": "range"
+        },
+        {
+          "cluster": [],
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "bkmonitor_timeseries"
+          },
+          "expressionList": [],
+          "format": "time_series",
+          "hide": false,
+          "host": [],
+          "mode": "ui",
+          "module": [],
+          "promqlAlias": "",
+          "query_configs": [
+            {
+              "alias": "consumers",
+              "data_label": "pushgateway_dbm_pulsarbroker_bkpull",
+              "data_source_label": "bk_monitor",
+              "data_type_label": "time_series",
+              "display": true,
+              "filter_dict": {},
+              "functions": [],
+              "group_by": [],
+              "interval": 60,
+              "interval_unit": "s",
+              "method": "SUM",
+              "metric_field": "pulsar_consumers_count",
+              "refId": "a",
+              "result_table_id": "pushgateway_dbm_pulsarbroker_bkpull.__default__",
+              "result_table_label": "component",
+              "time_field": "time",
+              "where": [
+                {
+                  "key": "app",
+                  "method": "eq",
+                  "value": [
+                    "$app"
+                  ]
+                },
+                {
+                  "condition": "and",
+                  "key": "cluster_domain",
+                  "method": "eq",
+                  "value": [
+                    "$cluster_domain"
+                  ]
+                },
+                {
+                  "condition": "and",
+                  "key": "namespace",
+                  "method": "eq",
+                  "value": [
+                    "$namespace"
+                  ]
+                },
+                {
+                  "condition": "and",
+                  "key": "topic",
+                  "method": "eq",
+                  "value": [
+                    "$topic"
+                  ]
+                }
+              ]
+            }
+          ],
+          "refId": "C",
+          "source": "",
+          "step": "",
+          "type": "range"
+        }
+      ],
+      "title": "Topics-Producer-Subscription-Consumers",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "bkmonitor-timeseries-datasource",
+        "uid": "bkmonitor_timeseries"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 16
+      },
+      "id": 12,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "cluster": [],
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "bkmonitor_timeseries"
+          },
+          "expressionList": [],
+          "format": "time_series",
+          "host": [],
+          "mode": "ui",
+          "module": [],
+          "promqlAlias": "",
+          "query_configs": [
+            {
+              "alias": "$topic -- $tag_subscription",
+              "data_label": "pushgateway_dbm_pulsarbroker_bkpull",
+              "data_source_label": "bk_monitor",
+              "data_type_label": "time_series",
+              "display": true,
+              "filter_dict": {},
+              "functions": [],
+              "group_by": [
+                "topic",
+                "subscription"
+              ],
+              "interval": 60,
+              "interval_unit": "s",
+              "method": "SUM",
+              "metric_field": "pulsar_subscription_back_log",
+              "refId": "a",
+              "result_table_id": "pushgateway_dbm_pulsarbroker_bkpull.__default__",
+              "result_table_label": "component",
+              "time_field": "time",
+              "where": [
+                {
+                  "key": "app",
+                  "method": "eq",
+                  "value": [
+                    "$app"
+                  ]
+                },
+                {
+                  "condition": "and",
+                  "key": "cluster_domain",
+                  "method": "eq",
+                  "value": [
+                    "$cluster_domain"
+                  ]
+                },
+                {
+                  "condition": "and",
+                  "key": "namespace",
+                  "method": "eq",
+                  "value": [
+                    "$namespace"
+                  ]
+                },
+                {
+                  "condition": "and",
+                  "key": "topic",
+                  "method": "eq",
+                  "value": [
+                    "$topic"
+                  ]
+                }
+              ]
+            }
+          ],
+          "refId": "A",
+          "source": "",
+          "step": "",
+          "type": "range"
+        }
+      ],
+      "title": "Local Backlog",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "bkmonitor-timeseries-datasource",
+        "uid": "bkmonitor_timeseries"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "decbytes"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 24
+      },
+      "id": 14,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "cluster": [],
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "bkmonitor_timeseries"
+          },
+          "expressionList": [],
+          "format": "time_series",
+          "host": [],
+          "mode": "ui",
+          "module": [],
+          "promqlAlias": "",
+          "query_configs": [
+            {
+              "alias": "$topic",
+              "data_label": "pushgateway_dbm_pulsarbroker_bkpull",
+              "data_source_label": "bk_monitor",
+              "data_type_label": "time_series",
+              "display": true,
+              "filter_dict": {},
+              "functions": [],
+              "group_by": [
+                "topic"
+              ],
+              "interval": 60,
+              "interval_unit": "s",
+              "method": "SUM",
+              "metric_field": "pulsar_storage_size",
+              "refId": "a",
+              "result_table_id": "pushgateway_dbm_pulsarbroker_bkpull.__default__",
+              "result_table_label": "component",
+              "time_field": "time",
+              "where": [
+                {
+                  "key": "app",
+                  "method": "eq",
+                  "value": [
+                    "$app"
+                  ]
+                },
+                {
+                  "condition": "and",
+                  "key": "cluster_domain",
+                  "method": "eq",
+                  "value": [
+                    "$cluster_domain"
+                  ]
+                },
+                {
+                  "condition": "and",
+                  "key": "namespace",
+                  "method": "eq",
+                  "value": [
+                    "$namespace"
+                  ]
+                },
+                {
+                  "condition": "and",
+                  "key": "topic",
+                  "method": "eq",
+                  "value": [
+                    "$topic"
+                  ]
+                }
+              ]
+            }
+          ],
+          "refId": "A",
+          "source": "",
+          "step": "",
+          "type": "range"
+        }
+      ],
+      "title": "Storage Size",
+      "type": "timeseries"
+    }
+  ],
+  "refresh": false,
+  "schemaVersion": 37,
+  "style": "dark",
+  "tags": [
+    "pulsar",
+    "Topic监控视图"
+  ],
+  "templating": {
+    "list": [
+      {
+        "current": {},
+        "datasource": {
+          "type": "bkmonitor-timeseries-datasource",
+          "uid": "bkmonitor_timeseries"
+        },
+        "definition": "- Blueking Monitor - 维度",
+        "hide": 0,
+        "includeAll": false,
+        "label": "app",
+        "multi": false,
+        "name": "app",
+        "options": [],
+        "query": {
+          "metricConfig": {
+            "data_label": "",
+            "data_source_label": "bk_monitor",
+            "data_type_label": "time_series",
+            "group_by": "app",
+            "metric_field": "usage",
+            "result_table_id": "dbm_system.cpu_summary",
+            "result_table_label": "os",
+            "where": []
+          },
+          "queryType": "dimension",
+          "variables": ""
+        },
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 0,
+        "type": "query"
+      },
+      {
+        "current": {},
+        "datasource": {
+          "type": "bkmonitor-timeseries-datasource",
+          "uid": "bkmonitor_timeseries"
+        },
+        "definition": "- Blueking Monitor - 维度",
+        "hide": 0,
+        "includeAll": false,
+        "label": "cluster_domain",
+        "multi": false,
+        "name": "cluster_domain",
+        "options": [],
+        "query": {
+          "metricConfig": {
+            "data_label": "",
+            "data_source_label": "bk_monitor",
+            "data_type_label": "time_series",
+            "group_by": "cluster_domain",
+            "metric_field": "usage",
+            "result_table_id": "dbm_system.cpu_summary",
+            "result_table_label": "os",
+            "where": [
+              {
+                "key": "app",
+                "method": "eq",
+                "value": [
+                  "$app"
+                ]
+              },
+              {
+                "condition": "and",
+                "key": "instance_role",
+                "method": "eq",
+                "value": [
+                  "pulsar_zookeeper"
+                ]
+              }
+            ]
+          },
+          "queryType": "dimension",
+          "variables": "$app"
+        },
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 0,
+        "type": "query"
+      },
+      {
+        "current": {},
+        "datasource": {
+          "type": "bkmonitor-timeseries-datasource",
+          "uid": "bkmonitor_timeseries"
+        },
+        "definition": "- Blueking Monitor - 维度",
+        "hide": 0,
+        "includeAll": false,
+        "label": "namespace",
+        "multi": false,
+        "name": "namespace",
+        "options": [],
+        "query": {
+          "metricConfig": {
+            "data_label": "pushgateway_dbm_pulsarbroker_bkpull",
+            "data_source_label": "bk_monitor",
+            "data_type_label": "time_series",
+            "group_by": "namespace",
+            "metric_field": "pulsar_storage_size",
+            "result_table_id": "pushgateway_dbm_pulsarbroker_bkpull.__default__",
+            "result_table_label": "component",
+            "where": [
+              {
+                "key": "app",
+                "method": "eq",
+                "value": [
+                  "$app"
+                ]
+              },
+              {
+                "condition": "and",
+                "key": "cluster_domain",
+                "method": "eq",
+                "value": [
+                  "$cluster_domain"
+                ]
+              }
+            ]
+          },
+          "queryType": "dimension",
+          "variables": "$app $cluster_domain"
+        },
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 0,
+        "type": "query"
+      },
+      {
+        "current": {},
+        "datasource": {
+          "type": "bkmonitor-timeseries-datasource",
+          "uid": "bkmonitor_timeseries"
+        },
+        "definition": "- Blueking Monitor - 维度",
+        "hide": 0,
+        "includeAll": false,
+        "label": "topic",
+        "multi": false,
+        "name": "topic",
+        "options": [],
+        "query": {
+          "metricConfig": {
+            "data_label": "pushgateway_dbm_pulsarbroker_bkpull",
+            "data_source_label": "bk_monitor",
+            "data_type_label": "time_series",
+            "group_by": "topic",
+            "metric_field": "pulsar_storage_size",
+            "result_table_id": "pushgateway_dbm_pulsarbroker_bkpull.__default__",
+            "result_table_label": "component",
+            "where": [
+              {
+                "key": "app",
+                "method": "eq",
+                "value": [
+                  "$app"
+                ]
+              },
+              {
+                "condition": "and",
+                "key": "cluster_domain",
+                "method": "eq",
+                "value": [
+                  "$cluster_domain"
+                ]
+              },
+              {
+                "condition": "and",
+                "key": "namespace",
+                "method": "eq",
+                "value": [
+                  "$namespace"
+                ]
+              }
+            ]
+          },
+          "queryType": "dimension",
+          "variables": "$app $cluster_domain $namespace"
+        },
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 0,
+        "type": "query"
+      }
+    ]
+  },
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "default",
+  "title": "Pulsar Topic",
+  "uid": "9SU4CBVIz",
+  "version": 3,
+  "weekStart": ""
+}
