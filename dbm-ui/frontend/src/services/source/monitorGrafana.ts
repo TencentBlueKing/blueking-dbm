@@ -10,20 +10,7 @@
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
 */
-
 import http from '../http';
-import type { HostSpec } from '../types/ticket';
 
-const path = '/apis/infras';
+export const getMonitorUrls = (params: Record<string, any> & { cluster_type: string, cluster_id?: number, instance_id?: number, }) => http.get<{ urls: { url: string, view: string }[] }>('/apis/monitor/grafana/get_dashboard/', params);
 
-export const fetchDbTypeList = function () {
-  return http.get<Array<{
-    id: string,
-    name: string
-  }>>(`${path}/dbtype/list_db_types/`);
-};
-
-/**
- * 服务器规格列表
- */
-export const getInfrasHostSpecs = () => http.get<HostSpec[]>(`${path}/cities/host_specs/`);

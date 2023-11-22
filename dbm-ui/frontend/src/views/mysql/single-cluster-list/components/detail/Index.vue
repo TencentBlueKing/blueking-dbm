@@ -16,50 +16,56 @@
     v-bkloading="{loading: isLoading}"
     class="cluster-details">
     <BkTab
-      v-model:active="activePanel"
+      v-model:active="activePanelKey"
       class="content-tabs"
       type="card-tab">
       <BkTabPanel
-        :label="t('集群拓扑')"
+        :label="$t('集群拓扑')"
         name="topo" />
       <BkTabPanel
-        :label="t('基本信息')"
+        :label="$t('基本信息')"
         name="info" />
       <BkTabPanel
-        :label="t('变更记录')"
+        :label="$t('变更记录')"
         name="record" />
       <BkTabPanel
-        :label="t('监控仪表盘')"
-        name="monitor" />
+        v-for="item in monitorPanelList"
+        :key="item.name"
+        :label="item.label"
+        :name="item.name" />
     </BkTab>
     <div class="content-wrapper">
       <ClusterTopo
-        v-if="activePanel === 'topo'"
+        v-if="activePanelKey === 'topo'"
         :id="clusterId"
         :cluster-type="ClusterTypes.TENDBSINGLE"
         :db-type="DBTypes.MYSQL" />
       <BaseInfo
-        v-if="activePanel === 'info' && data"
+        v-if="activePanelKey === 'info' && data"
         :data="data" />
       <ClusterEventChange
-        v-if="activePanel === 'record'"
+        v-if="activePanelKey === 'record'"
         :id="clusterId" />
       <MonitorDashboard
-        v-if="activePanel === 'monitor'"
-        :id="clusterId"
-        :cluster-type="ClusterTypes.TENDBSINGLE" />
+        v-if="activePanelKey === activePanel?.name"
+        :url="activePanel?.link" />
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-  import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
+  import { getMonitorUrls } from '@services/source/monitorGrafana';
   import { getTendbsingleDetail } from '@services/source/tendbsingle';
   import type { ResourceItem } from '@services/types/clusters';
 
-  import { ClusterTypes, DBTypes } from '@common/const';
+  import { useGlobalBizs } from '@stores';
+
+  import {
+    ClusterTypes,
+    DBTypes,
+  } from '@common/const';
 
   import ClusterTopo from '@components/cluster-details/ClusterTopo.vue';
   import ClusterEventChange from '@components/cluster-event-change/EventChange.vue';
@@ -71,12 +77,24 @@
     clusterId: number;
   }
 
+  interface PanelItem {
+    label: string,
+    name: string,
+    link: string,
+  }
+
   const props = defineProps<Props>();
 
-  const { t } = useI18n();
+  const { currentBizId } = useGlobalBizs();
 
-  const activePanel = ref('topo');
+  const activePanelKey = ref('topo');
   const data = ref<ResourceItem>();
+  const monitorPanelList = ref<PanelItem[]>([]);
+
+  const activePanel = computed(() => {
+    const targetPanel = monitorPanelList.value.find(item => item.name === activePanelKey.value);
+    return targetPanel;
+  });
 
   const {
     loading: isLoading,
@@ -88,12 +106,30 @@
     },
   });
 
+  const { run: runGetMonitorUrls } = useRequest(getMonitorUrls, {
+    manual: true,
+    onSuccess(res) {
+      if (res.urls.length > 0) {
+        monitorPanelList.value = res.urls.map(item => ({
+          label: item.view,
+          name: item.view,
+          link: item.url,
+        }));
+      }
+    },
+  });
+
   watch(() => props.clusterId, () => {
     if (!props.clusterId) {
       return;
     }
     fetchResourceDetails({
       id: props.clusterId,
+    });
+    runGetMonitorUrls({
+      bk_biz_id: currentBizId,
+      cluster_type: ClusterTypes.TENDBSINGLE,
+      cluster_id: props.clusterId,
     });
   }, {
     immediate: true,

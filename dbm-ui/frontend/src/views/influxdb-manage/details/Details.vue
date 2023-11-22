@@ -46,7 +46,7 @@
           </BkLoading>
         </DbCard>
         <BkTab
-          v-model:active="activeTab"
+          v-model:active="activePanelKey"
           class="cluster-details__tab"
           type="unborder-card">
           <BkTabPanel
@@ -58,13 +58,13 @@
               is-fetch-instance />
           </BkTabPanel>
           <BkTabPanel
-            :label="$t('监控仪表盘')"
-            name="monitor">
+            v-for="item in monitorPanelList"
+            :key="item.name"
+            :label="item.label"
+            :name="item.name">
             <MonitorDashboard
-              :id="instInfo.id"
               class="pd-24"
-              :cluster-type="details?.role ?? ''"
-              is-fetch-instance />
+              :url="activeMonitorPanel?.link" />
           </BkTabPanel>
         </BkTab>
       </div>
@@ -74,11 +74,18 @@
 
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
+  import { useRequest } from 'vue-request';
 
   import type InfluxDBInstanceModel from '@services/model/influxdb/influxdbInstance';
   import { retrieveInfluxdbInstance } from '@services/source/influxdb';
+  import { getMonitorUrls } from '@services/source/monitorGrafana';
 
-  import { useGlobalBizs, useMainViewStore } from '@stores';
+  import {
+    useGlobalBizs,
+    useMainViewStore,
+  } from '@stores';
+
+  import { ClusterTypes } from '@common/const';
 
   import EventChange from '@components/cluster-event-change/EventChange.vue';
   import MonitorDashboard from '@components/cluster-monitor/MonitorDashboard.vue';
@@ -87,21 +94,29 @@
 
   import AsideList from './AsideList.vue';
 
+  interface PanelItem {
+    label: string,
+    name: string,
+    link: string,
+  }
+
   // 设置主视图padding
   const mainViewStore = useMainViewStore();
   mainViewStore.hasPadding = false;
   mainViewStore.customBreadcrumbs = true;
 
-  const { currentBizId } = useGlobalBizs();
   const { t } = useI18n();
+  const { currentBizId } = useGlobalBizs();
 
   const isLoading = ref(false);
   const instInfo = reactive({
     id: 0,
     address: '',
   });
-  const activeTab = ref('event');
+
+  const activePanelKey = ref('event');
   const details = ref<InfluxDBInstanceModel | undefined>();
+  const monitorPanelList = ref<PanelItem[]>([]);
 
   const statusInfo = computed(() => {
     const info = {
@@ -123,6 +138,11 @@
     }
 
     return info;
+  });
+
+  const activeMonitorPanel = computed(() => {
+    const targetPanel = monitorPanelList.value.find(item => item.name === activePanelKey.value);
+    return targetPanel;
   });
 
   const baseColumns = [
@@ -158,6 +178,31 @@
     ],
   ];
 
+  const { run: runGetMonitorUrls } = useRequest(getMonitorUrls, {
+    manual: true,
+    onSuccess(res) {
+      if (res.urls.length > 0) {
+        monitorPanelList.value = res.urls.map(item => ({
+          label: item.view,
+          name: item.view,
+          link: item.url,
+        }));
+      }
+    },
+  });
+
+  watch(() => instInfo.id, (id) => {
+    if (id) {
+      runGetMonitorUrls({
+        bk_biz_id: currentBizId,
+        cluster_type: ClusterTypes.INFLUXDB,
+        instance_id: id,
+      });
+    }
+  }, {
+    immediate: true,
+  });
+
   const fetchInstanceDetails = () => {
     isLoading.value = true;
     retrieveInfluxdbInstance({
@@ -180,6 +225,8 @@
     instInfo.address = instance;
     fetchInstanceDetails();
   };
+
+
 </script>
 
 <style lang="less" scoped>
