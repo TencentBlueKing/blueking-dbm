@@ -90,6 +90,8 @@ class TendbApplyTemporaryFlowParamBuilder(builders.FlowParamBuilder):
         self.ticket_data = self.ticket_data["apply_details"]
         # 填充common参数
         super().add_common_params()
+        # 修改单据类型为部署类型
+        self.ticket_data["ticket_type"] = TicketType.TENDBCLUSTER_APPLY
 
 
 class TenDBClusterApplyCopyResourceParamBuilder(TenDBClusterApplyResourceParamBuilder):

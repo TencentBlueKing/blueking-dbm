@@ -8,7 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-
+import itertools
 from typing import Dict
 
 from django.utils.translation import ugettext_lazy as _
@@ -53,13 +53,8 @@ class BigDataDetailsSerializer(serializers.Serializer):
     @classmethod
     def validate_hosts_not_in_db_meta(cls, nodes: Dict):
         """校验主机是否不存在于dbmeta中"""
-        for role in nodes:
-            role_host_list = [node["bk_host_id"] for node in nodes[role] if node.get("bk_host_id")]
-            exist_host_ids = Machine.objects.filter(bk_host_id__in=role_host_list)
-            if exist_host_ids.exists():
-                raise serializers.ValidationError(
-                    _("主机{}已经被使用，请重新选择主机").format(list(exist_host_ids.values_list("ip", flat=True)))
-                )
+        role_host_list = list(itertools.chain(*[nodes[role] for role in nodes]))
+        CommonValidate.validate_hosts_not_in_db_meta(role_host_list)
 
     @classmethod
     def validate_duplicate_cluster_name(cls, bk_biz_id, ticket_type, cluster_name):
