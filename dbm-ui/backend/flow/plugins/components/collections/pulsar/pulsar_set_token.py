@@ -35,7 +35,7 @@ class PulsarSetTokenContextService(BaseService):
             trans_data = getattr(flow_context, kwargs["set_trans_data_dataclass"])()
 
         # 传入调用结果
-        setattr(trans_data, flow_context.PulsarApplyContext.get_new_token_var_name(), global_data["token"])
+        setattr(trans_data, flow_context.PulsarApplyContext.get_new_token_var_name(), {"token": global_data["token"]})
 
         self.log_info("successfully set pulsar token context")
         data.outputs["trans_data"] = trans_data
