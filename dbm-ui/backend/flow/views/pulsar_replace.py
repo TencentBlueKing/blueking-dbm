@@ -11,19 +11,15 @@ import logging
 import uuid
 
 from django.utils.translation import ugettext as _
-from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
-from rest_framework.views import APIView
 
 from backend.flow.engine.controller.pulsar import PulsarController
+from backend.flow.views.base import FlowTestView
 
 logger = logging.getLogger("root")
 
 
-class ReplacePulsarSceneApiView(APIView):
-
-    permission_classes = [AllowAny]
-
+class ReplacePulsarSceneApiView(FlowTestView):
     def post(self, request):
         logger.info(_("开始PULSAR集群替换场景"))
 

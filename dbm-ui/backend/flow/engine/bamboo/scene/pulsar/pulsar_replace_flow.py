@@ -77,7 +77,7 @@ class PulsarReplaceFlow(PulsarOperationFlow):
         )
 
         # 替换ZK流程
-        if PulsarRoleEnum.ZooKeeper.value in self.data["old_nodes"]:
+        if PulsarRoleEnum.ZooKeeper in self.data["old_nodes"] and self.data["old_nodes"][PulsarRoleEnum.ZooKeeper]:
             self.get_replace_zk_nodes(ticket_data=self.data)
             replace_zk_data = copy.deepcopy(self.base_flow_data)
             replace_zk_sub_pipeline = SubBuilder(root_id=self.root_id, data=replace_zk_data)
