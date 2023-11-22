@@ -484,6 +484,7 @@ class HdfsActPayload(object):
                     "data_node_hosts": ",".join(self.ticket_data["dn_hosts"]),
                     "version": self.ticket_data["db_version"],
                     "http_port": self.ticket_data["http_port"],
+                    "username": self.ticket_data["username"],
                     "haproxy_passwd": self.ticket_data["haproxy_passwd"],
                     "host": kwargs["ip"],
                 },
