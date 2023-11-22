@@ -16,10 +16,8 @@ import http from '../http';
 /**
  * 获取监控警告管理地址
  */
-export const getMonitorUrl = function (params: Record<string, any> & {
+export const getMonitorUrls = (params: Record<string, any> & {
   cluster_type: string,
   cluster_id?: number,
-  instance_id?: number
-}) {
-  return http.get<{ url: string }>('/apis/monitor/grafana/get_dashboard/', params);
-};
+  instance_id?: number,
+}) => http.get<{ urls: { url: string, view: string }[] }>('/apis/monitor/grafana/get_dashboard/', params);
