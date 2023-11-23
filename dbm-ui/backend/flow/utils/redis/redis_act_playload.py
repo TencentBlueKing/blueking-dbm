@@ -48,6 +48,7 @@ from backend.flow.consts import (
     RedisActuatorActionEnum,
 )
 from backend.flow.utils.base.payload_handler import PayloadHandler
+from backend.flow.utils.redis.redis_proxy_util import set_backup_mode
 from backend.flow.utils.redis.redis_util import get_latest_redis_package_by_version
 from backend.ticket.constants import TicketType
 
@@ -171,6 +172,15 @@ class RedisActPayload(object):
                 "level_value": clusterMap["domain_name"],
             }
         )
+        # 备份相关的配置，需要单独写进去
+        if "cache_backup_mode" in clusterMap["backup_config"]:
+            set_backup_mode(
+                clusterMap["domain_name"],
+                self.bk_biz_id,
+                self.namespace,
+                clusterMap["backup_config"]["cache_backup_mode"],
+            )
+
         return data
 
     def delete_redis_config(self, clusterMap: dict):
