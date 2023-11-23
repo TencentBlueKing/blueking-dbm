@@ -288,7 +288,6 @@
       instanceAddress: data.instance_address,
       clusterId: data.cluster_id,
     };
-    console.log('go detail = ', instanceData.value);
   };
 
   // 查看集群详情

@@ -128,7 +128,6 @@
 
   const tableMaxHeight = useTableMaxHeight(OccupiedInnerHeight.NOT_PAGINATION);
   const {
-    bizId,
     getRules,
   } = usePermissionRules(state);
   getRules();
@@ -321,7 +320,7 @@
       onConfirm: async () => {
         try {
           await deleteAccount({
-            bizId: bizId.value,
+            bizId: window.PROJECT_CONFIG.BIZ_ID,
             account_id: row.account.account_id,
           });
           Message({

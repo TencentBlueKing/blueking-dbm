@@ -24,14 +24,8 @@
 <script setup lang="ts">
   import TicketModel from '@services/model/ticket/ticket';
 
-  import { useMainViewStore } from '@stores';
-
   import Details from './components/details/Index.vue';
   import List from './components/list/Index.vue';
-
-  // 设置主视图布局不开启边距
-  const mainViewStore = useMainViewStore();
-  mainViewStore.hasPadding = false;
 
   const activeTicket = ref<TicketModel | null>(null);
 

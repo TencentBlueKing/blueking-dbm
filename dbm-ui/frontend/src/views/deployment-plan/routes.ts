@@ -13,8 +13,6 @@
 
 import type { RouteRecordRaw } from 'vue-router';
 
-import { MainViewRouteNames } from '@views/main-views/common/const';
-
 import { t } from '@locales/index';
 
 const routes: RouteRecordRaw[] = [
@@ -26,17 +24,14 @@ const routes: RouteRecordRaw[] = [
       name: 'deploymentPlanList',
     },
     meta: {
-      routeParentName: MainViewRouteNames.Platform,
+      navName: t('部署方案'),
     },
     children: [
       {
         name: 'deploymentPlanList',
         path: 'list',
         meta: {
-          routeParentName: MainViewRouteNames.Platform,
           navName: t('部署方案'),
-          isMenu: true,
-          activeMenu: 'deploymentPlanManage',
         },
         component: () => import('@views/deployment-plan/list/Index.vue'),
       },

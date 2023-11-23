@@ -20,20 +20,12 @@
   </div>
 </template>
 <script setup lang="ts">
-  import { useMainViewStore } from '@stores';
-
   import TopTab from '../../components/TopTab.vue';
 
   import Content from './components/Content.vue';
 
   const router = useRouter();
   const route = useRoute();
-
-  /**
-   * 设置 main-view padding
-   */
-  const mainViewStore = useMainViewStore();
-  mainViewStore.hasPadding = false;
 
   const activeTab = ref('');
 

@@ -329,7 +329,9 @@
   const handleCancel = () => {
     const { back } = window.history.state;
     if (back) {
-      router.go(-1);
+      router.push({
+        name: 'DbConfigureList',
+      });
     } else {
       const isApp = levelParams.value.level_name === ConfLevels.APP;
       const params = { ...route.params };
@@ -343,14 +345,27 @@
           parentId: route.params.parentId,
         });
       }
-      const routeParams = {
+      router.replace({
         name: isApp ? 'DbConfigureDetail' : 'DbConfigureList',
         params,
         query,
-      };
-      router.replace(routeParams);
+      });
     }
   };
+
+  defineExpose({
+    routerBack() {
+      if (!route.query.form) {
+        router.push({
+          name: 'DbConfigureList',
+        });
+        return;
+      }
+      router.push({
+        name: route.query.form as string,
+      });
+    },
+  });
 </script>
 
 <style lang="less" scoped>

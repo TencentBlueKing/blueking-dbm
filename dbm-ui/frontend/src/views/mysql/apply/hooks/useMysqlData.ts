@@ -85,6 +85,8 @@ export const useMysqlData = (type: string) => {
   const route = useRoute();
   const { t } = useI18n();
 
+  console.log('useMysqlData = ', mysqlType, type);
+
   const ticketType = type as MysqlTypeString;
   const formdata = reactive(getFormData(ticketType));
   // 接口数据

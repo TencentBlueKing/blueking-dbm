@@ -41,7 +41,7 @@ import getPasswordTemporaryModify from '@views/password-temporary-modify/routes'
 import getPlatformDbConfigureRoutes from '@views/platform-db-configure/routes';
 import getPulsarRoutes from '@views/pulsar-manage/routes';
 import getRedisRoutes from '@views/redis/routes';
-import getResourcePool from '@views/resource-pool/routes';
+import getResourcePool from '@views/resource-manage/routes';
 import getResourceSpecRouters from '@views/resource-spec/routes';
 import getServiceApplyRoutes from '@views/service-apply/routes';
 import getSpiderManageRoutes from '@views/spider-manage/routes';
@@ -119,7 +119,7 @@ const getAuthAllowed = checkAuthAllowed({
 }]);
 
 const dbmRouteRedirect = {
-  redis: 'DatabaseRedis',
+  redis: 'RedisManage',
   [ClusterTypes.TENDBSINGLE]: 'DatabaseTendbsingle',
   [ClusterTypes.TENDBHA]: 'DatabaseTendbha',
   [ClusterTypes.ES]: 'EsManage',

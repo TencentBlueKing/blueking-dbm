@@ -192,7 +192,6 @@
     // 处理格式错误
     for (let i = lines.length - 1; i >= 0; i--) {
       const value = lines[i];
-      console.log('props.manualConfig.checkType>>>', props.manualConfig.checkType);
       if (props.manualConfig.checkType === 'instance') {
         if (!ipPort.test(value)) {
           const remove = lines.splice(i, 1);
@@ -201,7 +200,6 @@
       }
 
       if (props.manualConfig.checkType === 'ip') {
-        console.log('check ip');
         if (!ipv4.test(value)) {
           const remove = lines.splice(i, 1);
           newLines.push(...remove);

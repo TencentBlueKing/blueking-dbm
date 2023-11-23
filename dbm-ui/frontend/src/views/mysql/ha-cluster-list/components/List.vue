@@ -90,7 +90,12 @@
 
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
+  import {
+    useRoute,
+    useRouter,
+  } from 'vue-router';
 
+  import TendbhaModel from '@services/model/mysql/tendbha';
   import { getModules } from '@services/source/cmdb';
   import {
     getTendbhaDetail,
@@ -100,7 +105,6 @@
   import { createTicket } from '@services/source/ticket';
   import { getUserList } from '@services/source/user';
   import type {
-    ResourceItem,
     SearchFilterItem,
   } from '@services/types';
 
@@ -116,7 +120,6 @@
 
   import {
     ClusterTypes,
-    DBTypes,
     TicketTypes,
     type TicketTypesStrings,
     UserPersonalSettings,
@@ -142,12 +145,12 @@
 
   interface ColumnData {
     cell: string,
-    data: ResourceItem
+    data: TendbhaModel
   }
 
   interface State {
-    data: Array<ResourceItem>,
-    selected: Array<ResourceItem>,
+    data: Array<TendbhaModel>,
+    selected: Array<TendbhaModel>,
     filters: Array<any>,
     dbModuleList: Array<SearchFilterItem>,
   }
@@ -155,7 +158,7 @@
   const clusterId = defineModel<number>('clusterId');
 
   // 设置行样式
-  const setRowClass = (row: ResourceItem) => {
+  const setRowClass = (row: TendbhaModel) => {
     const classList = [row.phase === 'offline' ? 'is-offline' : ''];
     const newClass = isRecentDays(row.create_at, 24 * 3) ? 'is-new-row' : '';
     classList.push(newClass);
@@ -166,6 +169,7 @@
   };
 
 
+  const route = useRoute();
   const router = useRouter();
   const globalBizsStore = useGlobalBizs();
   const userProfileStore = useUserProfile();
@@ -193,13 +197,17 @@
   /** 集群授权 */
   const authorizeState = reactive({
     isShow: false,
-    selected: [] as ResourceItem[],
+    selected: [] as TendbhaModel[],
   });
 
   const isCN = computed(() => locale.value === 'zh-cn');
   const hasSelected = computed(() => state.selected.length > 0);
   const hasData = computed(() => state.data.length > 0);
   const searchSelectData = computed(() => [
+    {
+      name: 'ID',
+      id: 'id',
+    },
     {
       name: t('主访问入口'),
       id: 'domain',
@@ -253,7 +261,7 @@
             <bk-button
               text
               theme="primary"
-              onClick={() => handleToDetails(data)}>
+              onClick={() => handleToDetails(data.id)}>
               {cell}
             </bk-button>
           </span>
@@ -316,6 +324,7 @@
       field: 'status',
       minWidth: 100,
       render: ({ data }: ColumnData) => {
+        console.log('datadadfd = ', data);
         const info = data.status === 'normal' ? { theme: 'success', text: t('正常') } : { theme: 'danger', text: t('异常') };
         return <DbStatus theme={info.theme}>{info.text}</DbStatus>;
       },
@@ -423,72 +432,45 @@
       field: '',
       width: tableOperationWidth.value,
       fixed: isStretchLayoutOpen.value ? false : 'right',
-      render: ({ data }: ColumnData) => {
-        const getOperations = (theme = 'primary') => {
-          const operations = [
-          <bk-button
-            text
-            theme={theme}
-            class="mr-8"
-            onClick={() => handleShowAuthorize([data])}>
-            { t('授权') }
-          </bk-button>,
-          ];
-          switch (data.phase) {
-          case 'online':
-            operations.push(<bk-button
-            text
-            theme={theme}
-            class="mr-8"
-            onClick={() => handleSwitchCluster(TicketTypes.MYSQL_HA_DISABLE, data)}>
-            { t('禁用') }
-          </bk-button>);
-            break;
-          case 'offline':
-            operations.push(...[
-            <bk-button
-              text
-              theme={theme}
-              class="mr-8"
-              onClick={() => handleSwitchCluster(TicketTypes.MYSQL_HA_ENABLE, data)}>
-              { t('启用') }
-            </bk-button>,
-            <bk-button
-              text
-              theme={theme}
-              class="mr-8"
-              onClick={() => handleDeleteCluster(data)}>
-              { t('删除') }
-            </bk-button>,
-            ]);
-            break;
-          }
-
-          return operations;
-        };
-        if (!isStretchLayoutOpen.value) {
-          return (
+      render: ({ data }: ColumnData) => (
           <>
-            {getOperations()}
+            <bk-button
+              text
+              theme="primary"
+              class="mr-8"
+              onClick={() => handleShowAuthorize([data])}>
+              { t('授权') }
+            </bk-button>
+            {
+              data.isOnline ? (
+                <bk-button
+                  text
+                  theme="primary"
+                  class="mr-8"
+                  onClick={() => handleSwitchCluster(TicketTypes.MYSQL_HA_DISABLE, data)}>
+                  { t('禁用') }
+                </bk-button>
+              ) : (
+                <>
+                  <bk-button
+                    text
+                    theme="primary"
+                    class="mr-8"
+                    onClick={() => handleSwitchCluster(TicketTypes.MYSQL_HA_ENABLE, data)}>
+                    { t('启用') }
+                  </bk-button>
+                  <bk-button
+                    text
+                    theme="primary"
+                    class="mr-8"
+                    onClick={() => handleDeleteCluster(data)}>
+                    { t('删除') }
+                  </bk-button>
+                </>
+              )
+            }
           </>
-          );
-        }
-
-        return (
-        <bk-dropdown class="operations-more">
-          {{
-            default: () => <db-icon type="more" />,
-            content: () => (
-              <bk-dropdown-menu>
-                {
-                  getOperations('').map(opt => <bk-dropdown-item>{opt}</bk-dropdown-item>)
-                }
-              </bk-dropdown-menu>
-            ),
-          }}
-        </bk-dropdown>
-        );
-      },
+        ),
     },
   ]);
 
@@ -539,32 +521,27 @@
 
   const fetchData = (loading?:boolean) => {
     const params = getSearchSelectorParams(state.filters);
-    tableRef.value.fetchData(params, {
-      dbType: DBTypes.MYSQL,
-      bk_biz_id: globalBizsStore.currentBizId,
-      type: ClusterTypes.TENDBHA,
-    }, loading);
+    tableRef.value.fetchData(params, {}, loading);
     isInit.value = false;
   };
 
   // 设置轮询
   const {
-    pause,
     resume,
   } = useTimeoutPoll(() => fetchData(isInit.value), 5000, {
     immediate: false,
   });
 
 
-  const handleOpenEntryConfig = (row: ResourceItem) => {
+  const handleOpenEntryConfig = (row: TendbhaModel) => {
     showEditEntryConfig.value  = true;
     clusterId.value = row.id;
   };
-  const handleSelection = (data: ResourceItem, list: ResourceItem[]) => {
+  const handleSelection = (data: TendbhaModel, list: TendbhaModel[]) => {
     state.selected = list;
   };
 
-  const handleShowAuthorize = (selected: ResourceItem[] = []) => {
+  const handleShowAuthorize = (selected: TendbhaModel[] = []) => {
     authorizeState.isShow = true;
     authorizeState.selected = selected;
   };
@@ -600,10 +577,11 @@
   /**
    * 查看详情
    */
-  function handleToDetails(row: ResourceItem) {
+  const handleToDetails = (id: number) => {
+    console.log('handleToDetails = ', id);
     stretchLayoutSplitScreen();
-    clusterId.value = row.id;
-  }
+    clusterId.value = id;
+  };
 
   const handleSearch = () => {
     fetchData();
@@ -612,7 +590,7 @@
   /**
    * 集群启停
    */
-  const handleSwitchCluster = (type: TicketTypesStrings, data: ResourceItem) => {
+  const handleSwitchCluster = (type: TicketTypesStrings, data: TendbhaModel) => {
     if (!type) return;
 
     const isOpen = type === TicketTypes.MYSQL_HA_ENABLE;
@@ -653,7 +631,7 @@
   /**
    * 删除集群
    */
-  const handleDeleteCluster = (data: ResourceItem) => {
+  const handleDeleteCluster = (data: TendbhaModel) => {
     const { cluster_name: name } = data;
     useInfoWithIcon({
       type: 'warnning',
@@ -697,15 +675,16 @@
       name: 'SelfServiceApplyHa',
       query: {
         bizId: globalBizsStore.currentBizId,
+        from: route.name as string,
       },
     });
   };
 
   onMounted(() => {
     resume();
-  });
-  onBeforeUnmount(() => {
-    pause();
+    if (route.query.id && !clusterId.value) {
+      handleToDetails(Number(route.query.id));
+    }
   });
 </script>
 

@@ -91,10 +91,7 @@
   import CreateRule from './components/CreateRule.vue';
   import { useDeleteAccount } from './hooks/useDeleteAccount';
 
-  import { useGlobalBizs } from '@/stores';
-
   const { t } = useI18n();
-  const { currentBizId } = useGlobalBizs();
 
   const tableMaxHeight = useTableMaxHeight(OccupiedInnerHeight.NOT_PAGINATION);
   const setRowClass = (row: PermissionTableRow) => (isNewUser(row) ? 'is-new' : '');
@@ -128,7 +125,7 @@
     getPermissionRulesRun({
       ...getSearchSelectorParams(tableSearch.value),
       account_type: AccountTypes.TENDBCLUSTER,
-      bk_biz_id: currentBizId,
+      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
     });
   };
 

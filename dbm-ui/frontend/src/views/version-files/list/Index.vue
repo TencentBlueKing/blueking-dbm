@@ -39,7 +39,6 @@
 
   import {
     useFunController,
-    useMainViewStore,
   } from '@stores';
 
   import { DBTypes } from '@common/const';
@@ -62,8 +61,6 @@
 
   const { t } = useI18n();
   const funControllerStore = useFunController();
-  const mainViewStore = useMainViewStore();
-  mainViewStore.hasPadding = false;
 
   const tabs: TabItem[] = [
     {

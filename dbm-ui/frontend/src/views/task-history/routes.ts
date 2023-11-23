@@ -13,8 +13,6 @@
 
 import type { RouteRecordRaw } from 'vue-router';
 
-import { MainViewRouteNames } from '@views/main-views/common/const';
-
 import { t } from '@locales/index';
 
 const routes: RouteRecordRaw[] = [
@@ -23,7 +21,6 @@ const routes: RouteRecordRaw[] = [
     path: 'task-history',
     component: () => import('@views/task-history/Index.vue'),
     meta: {
-      routeParentName: MainViewRouteNames.Database,
       navName: t('历史任务'),
     },
     redirect: {
@@ -34,9 +31,7 @@ const routes: RouteRecordRaw[] = [
         name: 'taskHistoryList',
         path: 'list',
         meta: {
-          routeParentName: MainViewRouteNames.Database,
           navName: t('历史任务'),
-          isMenu: true,
         },
         component: () => import('@views/task-history/pages/index.vue'),
       },
@@ -44,7 +39,6 @@ const routes: RouteRecordRaw[] = [
         name: 'taskHistoryDetail',
         path: 'detail/:root_id',
         meta: {
-          routeParentName: MainViewRouteNames.Database,
           navName: t('任务详情'),
           activeMenu: 'taskHistoryList',
         },

@@ -194,8 +194,6 @@
 
   import { useInfo, useStickyFooter  } from '@hooks';
 
-  import { useGlobalBizs } from '@stores';
-
   import { dbOperations } from '../common/const';
 
   type AuthItemKey = keyof typeof dbOperations;
@@ -218,7 +216,6 @@
   });
 
   const { t } = useI18n();
-  const globalbizsStore = useGlobalBizs();
 
   const ruleRef = ref();
   const checkAllPrivileges = ref(false);
@@ -333,7 +330,7 @@
     if (!user || dbs.length === 0) return false;
 
     return queryAccountRules({
-      bizId: globalbizsStore.currentBizId,
+      bizId: window.PROJECT_CONFIG.BIZ_ID,
       user,
       access_dbs: dbs,
     })
@@ -349,7 +346,9 @@
    */
   function getAccount() {
     state.isLoading = true;
-    getPermissionRules({ bk_biz_id: globalbizsStore.currentBizId })
+    getPermissionRules({
+      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+    })
       .then((res) => {
         state.accounts = res.results.map(item => item.account);
       })
@@ -399,7 +398,7 @@
     }
     const params = {
       ...formData,
-      bizId: globalbizsStore.currentBizId,
+      bizId: window.PROJECT_CONFIG.BIZ_ID,
       access_db: formData.access_db.replace(/\n|;/g, ','), // 统一分隔符
     };
     createAccountRule(params)
