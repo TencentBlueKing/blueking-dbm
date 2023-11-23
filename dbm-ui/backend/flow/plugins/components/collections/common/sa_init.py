@@ -54,7 +54,7 @@ class SaInit(BaseService):
         bk_biz_id = kwargs["bk_biz_id"]
         task_id = data.get_one_of_outputs("task_id")
         param = {"bk_biz_id": bk_biz_id, "task_id": task_id}
-        rpdata = BkSopsApi.query_task_status(param)
+        rpdata = BkSopsApi.get_task_status(param)
         state = rpdata["state"]
         children = rpdata["children"]
         if state == states.FINISHED:
@@ -69,7 +69,7 @@ class SaInit(BaseService):
             # 查询异常日志
             for nodeid in children:
                 param["node_id"] = nodeid
-                rpdata = BkSopsApi.task_node_detail(param)
+                rpdata = BkSopsApi.get_task_node_detail(param)
                 ouput = rpdata["outputs"]
                 ex_data = rpdata["ex_data"]
                 self.log_error(f"ex_data:{ex_data}")

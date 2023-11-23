@@ -8,18 +8,17 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from django.conf import settings
 from django.utils.translation import ugettext_lazy as _
 
-from ... import env
 from ..base import DataAPI
-from ..domains import BKLOG_APIGW_DOMAIN
+from ..domains import BKLOG_APIGW_DOMAIN, ESB_PREFIX
 
 
 class _BKLogApi(object):
     MODULE = _("蓝鲸日志平台")
 
     def __init__(self):
+        is_esb = ESB_PREFIX in BKLOG_APIGW_DOMAIN
         self.esquery_search = DataAPI(
             method="POST",
             base=BKLOG_APIGW_DOMAIN,
@@ -30,7 +29,7 @@ class _BKLogApi(object):
         self.fast_create = DataAPI(
             method="POST",
             base=BKLOG_APIGW_DOMAIN,
-            url="databus/collectors/fast_create/" if env.RUN_VER == "open" else "databus_collectors/fast_create/",
+            url="databus/collectors/fast_create/" if is_esb else "databus_collectors/fast_create/",
             module=self.MODULE,
             description=_("简易创建采集配置"),
         )
@@ -38,7 +37,7 @@ class _BKLogApi(object):
             method="POST",
             base=BKLOG_APIGW_DOMAIN,
             url="databus/collectors/{collector_config_id}/fast_update/"
-            if env.RUN_VER == "open"
+            if is_esb
             else "/databus_collectors/{collector_config_id}/fast_update/",
             module=self.MODULE,
             description=_("简易更新采集配置"),
