@@ -15,6 +15,11 @@ import type { App } from 'vue';
 import { Translation } from 'vue-i18n';
 
 import AuthComponent from '@components/auth/AuthComponent';
+// import AuthButton from '@components/auth-component/button.vue';
+// // import AuthComponent from '@components/auth-component/component';
+// import AuthOption from '@components/auth-component/option.vue';
+// import AuthRouterLink from '@components/auth-component/router-link.vue';
+// import AuthSwitch from '@components/auth-component/switch.vue';
 import DbCard from '@components/db-card/index.vue';
 import DbForm from '@components/db-form/index.vue';
 import DbFormItem from '@components/db-form/item.vue';
@@ -28,7 +33,9 @@ import DbOriginalTable from '@components/db-table/OriginalTable.vue';
 import DbTextarea from '@components/db-textarea/DbTextarea.vue';
 import FunController from '@components/function-controller/FunController.vue';
 import MoreActionExtend from '@components/more-action-extend/Index.vue';
-import SmartAction from '@components/smart-action/index.vue';
+import ScrollFaker from '@components/scroll-faker/Index.vue';
+import SkeletonLoading from '@components/skeleton-loading/Index.vue';
+import SmartAction from '@components/smart-action/Index.vue';
 import { ipSelector } from '@components/vue2/ip-selector';
 
 import UserSelector from '@patch/user-selector/selector.vue';
@@ -52,4 +59,11 @@ export const setGlobalComps = (app: App<Element>) => {
   app.component('FunController', FunController);
   app.component('MoreActionExtend', MoreActionExtend);
   app.component('UserSelector', UserSelector);
+  app.component('ScrollFaker', ScrollFaker);
+  app.component('SkeletonLoading', SkeletonLoading);
+  // app.component('AuthButton', AuthButton);
+  // // app.component('AuthComponent', AuthComponent);
+  // app.component('AuthOption', AuthOption);
+  // app.component('AuthSwitch', AuthSwitch);
+  // app.component('AuthRouterLink', AuthRouterLink);
 };

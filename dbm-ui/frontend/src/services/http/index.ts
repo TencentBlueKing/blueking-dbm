@@ -11,152 +11,65 @@
  * the specific language governing permissions and limitations under the License.
 */
 
-import axios, { AxiosError, type AxiosRequestConfig, type AxiosResponse } from 'axios';
-import { Message } from 'bkui-vue';
+import type {
+  CancelTokenSource,
+} from 'axios';
+import _ from 'lodash';
 
-import type { Permission } from '../types';
+import {
+  buildURLParams,
+  downloadUrl,
+} from '@utils';
 
-interface LoginData {
-  width: number,
-  height: number,
-  login_url: string
+import Request, {
+  type Config,
+  type Method,
+} from './lib/request';
+
+export type IRequestPayload = Config['payload']
+
+// type IRequestConfig = Pick<Config, 'params' | 'payload'>
+
+export type IRequestResponseData<T> = T
+export interface IRequestResponsePaginationData<T>{
+  results: Array<T>,
+  page: number,
+  num_pages: number,
+  total: number
 }
 
-interface ResolveResponseParams<D> {
-  response: AxiosResponse<D, any>,
-  config: Record<string, any>,
-}
-interface Config extends AxiosRequestConfig {
-  globalError?: boolean
-}
-interface ServiceResponseData<T> {
-  code: number,
-  message: string,
-  request_id: string,
-  data: T
-}
-type HttpMethod = <T>(url: string, payload?: any, useConfig?: Config) => Promise<T>;
-interface Http {
-  get: HttpMethod,
-  delete: HttpMethod,
-  head: HttpMethod,
-  options: HttpMethod,
-  post: HttpMethod,
-  put: HttpMethod,
-  patch: HttpMethod,
-}
-enum STATUS_CODE {
-  SUCCESS = 0,
-  PERMISSION = 9900403,
-  UNAUTHORIZED = 401
-}
+const methodList:Array<Method> = ['get', 'delete', 'post', 'put', 'download'];
 
-const baseURL = /http(s)?:\/\//.test(window.PROJECT_ENV.VITE_AJAX_URL_PREFIX)
-  ? window.PROJECT_ENV.VITE_AJAX_URL_PREFIX
-  : location.origin + window.PROJECT_ENV.VITE_AJAX_URL_PREFIX;
+let cancelTokenSource: CancelTokenSource;
 
-const methodsWithoutData = ['get', 'head', 'options'];
-const methodsWithData = ['post', 'put', 'delete', 'patch'];
-const methods = [...methodsWithoutData, ...methodsWithData];
-
-const http = {};
-
-const initConfig = (useConfig: Config) => {
-  const baseConfig = {
-    globalError: true,
-  };
-  return Object.assign(baseConfig, useConfig) as Config;
+export const setCancelTokenSource = (source: CancelTokenSource) => {
+  cancelTokenSource = source;
 };
 
+export const getCancelTokenSource = () => cancelTokenSource;
 
-const handleResponse = <T>({
-  response,
-}: ResolveResponseParams<ServiceResponseData<T>>) => {
-  const { data } = response;
-
-  if (data.code === STATUS_CODE.PERMISSION) {
-    !window.permission.isShow && window.permission.show(data.data as unknown as Permission);
-    return Promise.reject(data);
-  }
-
-  if (data.code !== STATUS_CODE.SUCCESS) {
-    return Promise.reject(data);
-  }
-
-  return Promise.resolve(data.data);
+const handler = {} as {
+  [n in Method]: <T = any>(url: string, params?: Record<string, any>)=>
+  Promise<T>
 };
 
-const handleReject = (error: AxiosError, config: Record<string, any>) => {
-  const {
-    message,
-    response,
-  } = error;
-
-  const data = response?.data;
-  const code = response?.status;
-
-  if (Number(code) === STATUS_CODE.UNAUTHORIZED) {
-    const loginData = data as LoginData;
-    const { VITE_PUBLIC_PATH } = window.PROJECT_ENV;
-    const src = loginData?.login_url
-      ? `${loginData.login_url}?size=big&c_url=${window.location.origin}${VITE_PUBLIC_PATH ? VITE_PUBLIC_PATH : '/'}login_success.html?is_ajax=1`
-      : '';
-
-    src && window.login.showLogin({
-      src,
-      width: loginData.width,
-      height: loginData.height,
-    });
-
-    return;
-  }
-
-  // 全局捕获错误给出提示
-  if (config.globalError) {
-    Message({ theme: 'error', message });
-  }
-
-  return Promise.reject(error);
-};
-
-methods.forEach((method) => {
-  Object.defineProperty(http, method, {
+methodList.forEach((method) => {
+  Object.defineProperty(handler, method, {
     get() {
-      return <T>(url: string, payload: any = {}, useConfig = {}) => {
-        const config = initConfig(useConfig);
-
-        const params = {
-          ...useConfig,
-        };
-        if (methodsWithData.includes(method)) {
-          Object.assign(params, {
-            data: payload,
-          });
-        } else {
-          Object.assign(params, {
-            params: payload,
-          });
+      return function (url: string, params: Record<string, any>) {
+        if (method === 'download') {
+          downloadUrl(`${window.PROJECT_ENV.VITE_AJAX_URL_PREFIX}/${_.trim(url, '/')}?${buildURLParams(params)}`);
+          return Promise.resolve();
         }
-        return axios({
-          baseURL,
+        const handler = new Request({
           url,
           method,
-          withCredentials: true,
-          xsrfCookieName: 'dbm_csrftoken',
-          xsrfHeaderName: 'X-CSRFToken',
-          headers: {
-            'x-requested-with': 'XMLHttpRequest',
-          },
-          ...params,
-        })
-          .then(response => handleResponse<T>({
-            response,
-            config,
-          }))
-          .catch(error => handleReject(error, config));
+          params,
+        });
+        return handler.run();
       };
     },
   });
 });
 
-export default http as Http;
+export default handler;

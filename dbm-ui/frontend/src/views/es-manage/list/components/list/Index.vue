@@ -86,7 +86,10 @@
     shallowRef,
   } from 'vue';
   import { useI18n } from 'vue-i18n';
-  import { useRouter } from 'vue-router';
+  import {
+    useRoute,
+    useRouter,
+  } from 'vue-router';
 
   import type EsModel from '@services/model/es/es';
   import {
@@ -103,7 +106,10 @@
     useTicketMessage,
   } from '@hooks';
 
-  import { useGlobalBizs, useUserProfile } from '@stores';
+  import {
+    useGlobalBizs,
+    useUserProfile,
+  } from '@stores';
 
   import { UserPersonalSettings } from '@common/const';
 
@@ -126,6 +132,7 @@
 
   const clusterId = defineModel<number>('clusterId');
 
+  const route = useRoute();
   const router = useRouter();
   const { t, locale } = useI18n();
   const { currentBizId } = useGlobalBizs();
@@ -139,6 +146,10 @@
   const copy = useCopy();
 
   const serachData = [
+    {
+      name: 'ID',
+      id: 'id',
+    },
     {
       name: t('集群名'),
       id: 'name',
@@ -216,7 +227,7 @@
             <bk-button
               theme="primary"
               text
-              onClick={() => handleToDetails(data)}>
+              onClick={() => handleToDetails(data.id)}>
               {data.domain || '--'}
             </bk-button >
           </span>
@@ -422,27 +433,10 @@
           ];
         };
 
-        if (!isStretchLayoutOpen.value) {
-          return (
-            <>
-              {renderAction()}
-            </>
-          );
-        }
-
         return (
-          <bk-dropdown class="operations__more">
-            {{
-              default: () => <db-icon type="more" />,
-              content: () => (
-                <bk-dropdown-menu>
-                  {
-                    renderAction('').map(opt => <bk-dropdown-item>{opt}</bk-dropdown-item>)
-                  }
-                </bk-dropdown-menu>
-              ),
-            }}
-          </bk-dropdown>
+          <>
+            {renderAction()}
+          </>
         );
       },
     },
@@ -497,6 +491,7 @@
       name: 'EsApply',
       query: {
         bizId: currentBizId,
+        from: route.name as string,
       },
     });
   };
@@ -513,9 +508,9 @@
   /**
    * 查看详情
    */
-  const handleToDetails = (row: EsModel) => {
+  const handleToDetails = (id: number) => {
     stretchLayoutSplitScreen();
-    clusterId.value = row.id;
+    clusterId.value = id;
   };
 
   // 扩容
@@ -644,6 +639,9 @@
 
   onMounted(() => {
     resumeFetchTableData();
+    if (! clusterId.value && route.query.id) {
+      handleToDetails(Number(route.query.id));
+    }
   });
 </script>
 <style lang="less">

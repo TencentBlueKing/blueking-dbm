@@ -7,13 +7,9 @@ import SemanticCheckResultModel from '@services/model/sql-import/semantic-check-
 import SemanticDataModel from '@services/model/sql-import/semantic-data';
 import UserSemanticTaskModel from '@services/model/sql-import/user-semantic-task';
 
-import { useGlobalBizs } from '@stores';
-
 import http from '../http';
 
-const { currentBizId } = useGlobalBizs();
-
-const path = `/apis/mysql/bizs/${currentBizId}/sql_import`;
+// const path = `/apis/mysql/bizs/${window.PROJECT_CONFIG.BIZ_ID}/sql_import`;
 
 /**
  * 删除用户语义检查任务列表
@@ -23,7 +19,7 @@ export function deleteUserSemanticTasks(params: {
   task_ids: string[],
   cluster_type: string,
 }) {
-  return http.delete<number>(`${path}/delete_user_semantic_tasks/`, params);
+  return http.delete<number>(`/apis/mysql/bizs/${window.PROJECT_CONFIG.BIZ_ID}/sql_import/delete_user_semantic_tasks/`, params);
 }
 
 /**
@@ -36,7 +32,7 @@ export function getUserSemanticTasks(params: {
   const realParams = { ...params } as Record<string, any>;
   delete realParams.bk_biz_id;
 
-  return http.get<UserSemanticTaskModel[]>(`${path}/get_user_semantic_tasks/`, realParams)
+  return http.get<UserSemanticTaskModel[]>(`/apis/mysql/bizs/${window.PROJECT_CONFIG.BIZ_ID}/sql_import/get_user_semantic_tasks/`, realParams)
     .then(data => data.map(item => new UserSemanticTaskModel(item)));
 }
 
@@ -49,7 +45,7 @@ export function grammarCheck(params: {
 }) {
   return axios({
     baseURL: window.PROJECT_ENV.VITE_AJAX_URL_PREFIX,
-    url: `${path}/grammar_check/`,
+    url: `/apis/mysql/bizs/${window.PROJECT_CONFIG.BIZ_ID}/sql_import/grammar_check/`,
     method: 'POST',
     data: params.body,
     timeout: 60000,
@@ -77,7 +73,7 @@ export function querySemanticData(params: {
   bk_biz_id: number,
   root_id: string
 }) {
-  return http.post<QuerySemanticExecuteResultModel>(`${path}/query_semantic_data/`, params)
+  return http.post<QuerySemanticExecuteResultModel>(`/apis/mysql/bizs/${window.PROJECT_CONFIG.BIZ_ID}/sql_import/query_semantic_data/`, params)
     .then(data => ({
       ...data,
       semantic_data: new SemanticDataModel(data.semantic_data),
@@ -91,7 +87,7 @@ export function revokeSemanticCheck(params: {
   bk_biz_id: number,
   root_id: string
 }) {
-  return http.post(`${path}/revoke_semantic_check/`, params);
+  return http.post(`/apis/mysql/bizs/${window.PROJECT_CONFIG.BIZ_ID}/sql_import/revoke_semantic_check/`, params);
 }
 
 /**
@@ -101,5 +97,5 @@ export function semanticCheck(params: {
   bk_biz_id: number,
   cluster_type: string
 }) {
-  return http.post<SemanticCheckResultModel>(`${path}/semantic_check/`, params);
+  return http.post<SemanticCheckResultModel>(`/apis/mysql/bizs/${window.PROJECT_CONFIG.BIZ_ID}/sql_import/semantic_check/`, params);
 }

@@ -45,6 +45,10 @@
   import type { Column } from 'bkui-vue/lib/table/props';
   import type { ComputedRef, Ref } from 'vue';
   import { useI18n } from 'vue-i18n';
+  import {
+    useRoute,
+    useRouter,
+  } from 'vue-router';
 
   import { getBusinessConfigList } from '@services/source/configs';
 
@@ -61,6 +65,7 @@
   const props = defineProps<Props>();
 
   const { t } = useI18n();
+  const route = useRoute();
   const router = useRouter();
   const globalBizsStore = useGlobalBizs();
   const activeTab = inject<Ref<string>>('activeTab');
@@ -73,7 +78,12 @@
     label: t('名称'),
     field: 'name',
     render: ({ cell, data }: { cell: string, data: ConfigListItem[number] }) => (
-      <a href="javascript:" onClick={() => handleToDetails(data)}>{cell}</a>
+      <bk-button
+        text
+        theme="primary"
+        onClick={() => handleToDetails(data)}>
+        {cell}
+      </bk-button>
     ),
   }, {
     label: t('数据库版本'),
@@ -93,7 +103,13 @@
     field: 'operation',
     render: ({ data }: { data: ConfigListItem[number] }) => (
       <div class="operation">
-        <bk-button text theme="primary" class="mr-24" onClick={() => handleToEdit(data)}>{ t('编辑') }</bk-button>
+        <bk-button
+          text
+          theme="primary"
+          class="mr-24"
+          onClick={() => handleToEdit(data)}>
+          { t('编辑') }
+        </bk-button>
       </div>
     ),
   }];
@@ -163,6 +179,9 @@
         version: row.version,
         ...changeViewParams.value,
       },
+      query: {
+        from: route.name as string,
+      },
     });
   };
 
@@ -176,8 +195,12 @@
         version: row.version,
         ...changeViewParams.value,
       },
+      query: {
+        from: route.name as string,
+      },
     });
   };
+
 </script>
 
 <style lang="less" scoped>

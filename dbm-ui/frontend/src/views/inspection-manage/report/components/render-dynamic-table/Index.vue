@@ -101,6 +101,7 @@
     run({
       ...props.searchParams,
       ...pagination,
+      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
     });
   };
 

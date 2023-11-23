@@ -105,6 +105,10 @@
 
   const searchSelectData = [
     {
+      name: 'ID',
+      id: 'id',
+    },
+    {
       name: t('实例'),
       id: 'instance_address',
     },

@@ -74,9 +74,7 @@
     {
       label: t('操作'),
       width: 190,
-      render: ({ data }: {data: OpenareaTemplateModel}) => {
-        console.log(data);
-        return (
+      render: ({ data }: {data: OpenareaTemplateModel}) => (
           <>
             <router-link
               to={{
@@ -109,8 +107,7 @@
               </bk-button>
             </db-popconfirm>
           </>
-        );
-      },
+        ),
     },
   ];
 

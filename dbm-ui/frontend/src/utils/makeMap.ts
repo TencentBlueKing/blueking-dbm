@@ -11,7 +11,7 @@
  * the specific language governing permissions and limitations under the License.
 */
 
-export const makeMap = (list: Array<string | number>): Record<string|number, boolean> => {
+export const makeMap = (list: Array<string | number> = []): Record<string|number, boolean> => {
   const map = Object.create(null);
   list.forEach((item) => {
     map[item] = true;

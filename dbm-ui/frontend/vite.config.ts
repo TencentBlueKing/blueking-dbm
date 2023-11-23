@@ -92,12 +92,7 @@ export default defineConfig(({ mode }) => {
           dest: './',
         }],
       }),
-      monacoEditorPlugin({
-        customDistPath: (root: string, buildOutDir: string, base: string) => {
-          console.log('test = ', root, buildOutDir, base);
-          return `${buildOutDir}/${base}`;
-        },
-      }),
+      monacoEditorPlugin({}),
       ViteHTMLEnv({
         prefix: '{{',
         suffix: '}}',

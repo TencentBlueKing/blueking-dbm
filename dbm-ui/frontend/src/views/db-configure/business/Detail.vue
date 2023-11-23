@@ -37,16 +37,20 @@
       </template>
     </div>
   </div>
+  <Teleport to="#dbContentTitleAppend">
+    <span> - {{ state.data.name }}</span>
+  </Teleport>
 </template>
-
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
+  import {
+    useRoute,
+    useRouter,
+  } from 'vue-router';
 
   import { getLevelConfig } from '@services/source/configs';
 
-  import { useMainViewStore } from '@stores';
-
-  import { confLevelInfos, ConfLevels } from '@common/const';
+  import {  ConfLevels } from '@common/const';
 
   import DetailsBase from '../components/DetailsBase.vue';
   import PublishRecord from '../components/PublishRecord.vue';
@@ -60,7 +64,10 @@
 
   const props = defineProps<Props>();
 
+  const route = useRoute();
+  const router = useRouter();
   const { t } = useI18n();
+
   const state = reactive({
     loading: false,
     activeTab: 'base',
@@ -77,27 +84,6 @@
   }));
 
   /**
-   * 设置自定义面包屑
-   */
-  const mainViewStore = useMainViewStore();
-  nextTick(() => {
-    mainViewStore.$patch({
-      customBreadcrumbs: true,
-      hasPadding: false,
-    });
-  });
-  watch(() => state.data, () => {
-    mainViewStore.breadCrumbsTitle = state.data.name;
-    mainViewStore.tags = [{
-      theme: '',
-      text: state.data.version,
-    }, {
-      theme: 'info',
-      text: confLevelInfos[ConfLevels.APP].tagText,
-    }];
-  }, { deep: true });
-
-  /**
    * 顶部 tabs
    */
   const tabs = reactive([{
@@ -111,22 +97,33 @@
   /**
    * 查询配置详情
    */
-  const fetchLevelConfig = () => {
-    state.loading = true;
-    getLevelConfig(fetchParams.value)
-      .then((res) => {
-        state.data = res;
-      })
-      .finally(() => {
-        state.loading = false;
-      });
-  };
-  fetchLevelConfig();
+  state.loading = true;
+  getLevelConfig(fetchParams.value)
+    .then((res) => {
+      state.data = res;
+    })
+    .finally(() => {
+      state.loading = false;
+    });
 
   // 更新基础信息
-  function handleUpdateInfo({ key, value }: { key: string, value: string }) {
+  const handleUpdateInfo = ({ key, value }: { key: string, value: string }) => {
     Object.assign(state.data, { [key]: value });
-  }
+  };
+
+  defineExpose({
+    routerBack() {
+      if (!route.query.form) {
+        router.push({
+          name: 'DbConfigureList',
+        });
+        return;
+      }
+      router.push({
+        name: route.query.form as string,
+      });
+    },
+  });
 </script>
 
 <style lang="less">

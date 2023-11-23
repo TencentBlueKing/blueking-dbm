@@ -4,20 +4,6 @@
       <BkFormItem :label="t('日期')">
         <BkDatePicker v-model="formData.create_at" />
       </BkFormItem>
-      <BkFormItem :label="t('业务')">
-        <BkSelect
-          v-model="formData.bk_biz_id"
-          filterable
-          :input-search="false"
-          :loading="isBizListLoading"
-          :placeholder="t('请选择业务')">
-          <BkOption
-            v-for="bizItem in bizList"
-            :key="bizItem.bk_biz_id"
-            :label="bizItem.display_name"
-            :value="`${bizItem.bk_biz_id}`" />
-        </BkSelect>
-      </BkFormItem>
       <BkFormItem :label="t('集群')">
         <BkSelect
           v-model="formData.cluster"
@@ -43,7 +29,7 @@
         </BkSelect>
       </BkFormItem>
     </BkForm>
-    <div style="padding: 12px;">
+    <div style="padding: 0 12px;">
       <BkButton
         theme="primary"
         @click="handleSubmit">
@@ -64,9 +50,6 @@
   import { useRequest } from 'vue-request';
 
   import { queryAllTypeCluster } from '@services/dbbase';
-  import { getBizs } from '@services/source/cmdb';
-
-  import { useGlobalBizs } from '@stores';
 
   interface Emits{
     (e: 'change', value: Record<string, any>): void
@@ -76,9 +59,7 @@
 
   const genDefaultData = () => ({
     create_at: '',
-    bk_biz_id: '',
     cluster: '',
-    cluster_type: '',
     status: '',
   });
 
@@ -91,22 +72,16 @@
     return result;
   }, {});
 
-  const { currentBizId } = useGlobalBizs();
   const { t } = useI18n();
 
   const formData = reactive(genDefaultData());
-
-  const {
-    data: bizList,
-    loading: isBizListLoading,
-  } = useRequest(getBizs);
 
   const {
     data: clusterList,
   } = useRequest(queryAllTypeCluster, {
     defaultParams: [
       {
-        bk_biz_id: currentBizId,
+        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
       },
     ],
   });
@@ -115,7 +90,6 @@
   const handleSubmit = () => {
     emits('change', filterInvalidValue({
       ...formData,
-      bk_biz_id: formData.bk_biz_id,
       create_at: formData.create_at ? dayjs(formData.create_at).format('YYYY-MM-DD') : '',
     }));
   };

@@ -197,20 +197,24 @@
       v-model:is-show="showHostPreview"
       :biz-id="baseInfo.bk_biz_id"
       :host-ids="baseInfo.bk_host_ids || []" />
-    <Teleport
-      v-if="false"
-      to="#dbmPageSubtitle">
+    <Teleport to="#dbContentTitleAppend">
+      <span v-if="flowState.details.flow_info">
+        <span> - </span>
+        {{ flowState.details.flow_info.ticket_type_display }}【{{ flowState.details.flow_info.root_id }}】
+      </span>
+    </Teleport>
+    <Teleport to="#dbContentHeaderAppend">
       <div class="mission-detail-status-box">
         <div
           v-if="statusText"
           class="mission-detail-status-info">
-          <span class="mr-8">{{ t('状态') }}: </span>
+          <span class="mr-8">{{ $t('状态') }}: </span>
           <span>
             <BkTag :theme="getStatusTheme(true)">{{ statusText }}</BkTag>
           </span>
         </div>
         <div class="mission-detail-status-info">
-          <span class="mr-8">{{ t('总耗时') }}: </span>
+          <span class="mr-8">{{ $t('总耗时') }}: </span>
           <CostTimer
             :is-timing="flowState.details?.flow_info?.status === 'RUNNING'"
             :value="(flowState.details?.flow_info?.cost_time || 0)" />
@@ -227,14 +231,14 @@
             :loading="isRevokePipeline"
             @click="handleToggleRevokeTips">
             <DbIcon type="revoke" />
-            {{ t('终止任务') }}
+            {{ $t('终止任务') }}
           </BkButton>
           <template #content>
             <div
               v-clickoutside:[revokeButtonRef?.$el]="handleHiddenRevokeTips"
               class="mission-tips-content">
               <div class="title">
-                {{ t('确定终止任务吗') }}
+                {{ $t('确定终止任务吗') }}
               </div>
               <div class="btn">
                 <BkButton
@@ -242,10 +246,10 @@
                   :loading="isRevokePipeline"
                   theme="primary"
                   @click.stop="handleRevokePipeline">
-                  {{ t('确定') }}
+                  {{ $t('确定') }}
                 </BkButton>
                 <BkButton @click="handleHiddenRevokeTips">
-                  {{ t('取消') }}
+                  {{ $t('取消') }}
                 </BkButton>
               </div>
             </div>
@@ -258,6 +262,7 @@
 <script setup lang="tsx">
   import type { Instance } from 'tippy.js';
   import { useI18n } from 'vue-i18n';
+  import { useRouter } from 'vue-router';
 
   import {
     forceFailflowNode,
@@ -267,8 +272,6 @@
     skipTaskflowNode,
   } from '@services/source/taskflow';
   import type { FlowsData } from '@services/types/taskflow';
-
-  import { useMainViewStore } from '@stores';
 
   import { dbTippy } from '@common/tippy';
 
@@ -298,17 +301,6 @@
   import RedisResultFiles from '../components/RedisResultFiles.vue';
 
   import { TicketTypes, type TicketTypesStrings } from '@/common/const';
-
-  /**
-   * 设置自定义面包屑
-   */
-  const mainViewStore = useMainViewStore();
-  nextTick(() => {
-    mainViewStore.$patch({
-      customBreadcrumbs: true,
-      hasPadding: false,
-    });
-  });
 
   const { t } = useI18n();
   const route = useRoute();
@@ -610,8 +602,6 @@
       .then((res) => {
         flowState.details = res;
         retryRenderFailedTips();
-        // 设置面包屑内容
-        mainViewStore.breadCrumbsTitle = `${res.flow_info.ticket_type_display}【${res.flow_info.root_id}】`;
       })
       .finally(() => {
         flowState.loading = false;
@@ -928,6 +918,19 @@
     };
   });
 
+  defineExpose({
+    routerBack() {
+      if (!route.query.from) {
+        router.push({
+          name: 'taskHistoryList',
+        });
+        return;
+      }
+      router.push({
+        name: route.query.from as string,
+      });
+    },
+  });
 </script>
 
 <style lang="less">
