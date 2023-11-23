@@ -12,7 +12,9 @@
 -->
 
 <template>
-  <SmartAction class="apply-pulsar">
+  <SmartAction
+    class="apply-pulsar"
+    :offset-target="getSmartActionOffsetTarget">
     <DbForm
       ref="formRef"
       auto-label-width
@@ -389,6 +391,8 @@
     handleCreateTicket,
     handleCancel,
   } = useApplyBase();
+
+  const getSmartActionOffsetTarget = () => document.querySelector('.bk-form-content');
 
   const cloudInfo = reactive({
     id: '' as number | string,

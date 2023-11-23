@@ -11,11 +11,11 @@
  * the specific language governing permissions and limitations under the License.
 */
 
+import { useRouter } from 'vue-router';
+
 import TicketModel from '@services/model/ticket/ticket';
 
 import { useInfo } from '@hooks';
-
-import { getRouter } from '@router/index';
 
 import { messageError } from '@utils';
 
@@ -40,6 +40,8 @@ import type {
   TicketNodesParams,
   TicketType,
 } from './types/ticket';
+
+const router = useRouter();
 
 /**
  * 查询服务器资源的城市信息
@@ -66,7 +68,7 @@ export const createTicket = (formData: Record<string, any>) => http.post<TicketI
     const duplicateCode = 8704005;
     if (code === duplicateCode) {
       const id = data.duplicate_ticket_id;
-      const router = getRouter();
+
       const route = router.resolve({
         name: 'SelfServiceMyTickets',
         query: {

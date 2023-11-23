@@ -15,29 +15,15 @@ import type { RouteRecordRaw } from 'vue-router';
 
 import type { BigdataFunctions } from '@services/model/function-controller/functionController';
 
-import { MainViewRouteNames } from '@views/main-views/common/const';
-
 import { t } from '@locales/index';
 
 const routes: RouteRecordRaw[] = [
-  {
-    name: 'PulsarApply',
-    path: 'pulsar',
-    meta: {
-      routeParentName: MainViewRouteNames.SelfService,
-      navName: t('申请Pulsar集群部署'),
-      activeMenu: 'SelfServiceApply',
-    },
-    component: () => import('@views/pulsar-manage/apply/index.vue'),
-  },
+
   {
     name: 'PulsarManage',
     path: 'pulsar-manage',
     meta: {
-      routeParentName: MainViewRouteNames.Database,
       navName: t('Pulsar集群管理'),
-      isMenu: true,
-      activeMenu: 'PulsarManage',
     },
     redirect: {
       name: 'PulsarList',
@@ -45,12 +31,19 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@views/pulsar-manage/Index.vue'),
     children: [
       {
+        name: 'PulsarApply',
+        path: 'apply',
+        meta: {
+          navName: t('申请Pulsar集群部署'),
+        },
+        component: () => import('@views/pulsar-manage/apply/index.vue'),
+      },
+      {
         name: 'PulsarList',
         path: 'list',
         meta: {
-          routeParentName: MainViewRouteNames.Database,
           navName: t('Pulsar集群管理'),
-          activeMenu: 'PulsarManage',
+          fullscreen: true,
         },
         component: () => import('@views/pulsar-manage/list/Index.vue'),
       },

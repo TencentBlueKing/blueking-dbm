@@ -25,21 +25,13 @@
     </template>
   </StretchLayout>
 </template>
-
 <script setup lang="ts">
   import { ref } from 'vue';
-
-  import { useMainViewStore } from '@stores';
 
   import StretchLayout from '@components/stretch-layout/StretchLayout.vue';
 
   import Detail from './components/detail/Index.vue';
   import List from './components/List.vue';
-
-
-  // 设置主视图padding
-  const mainViewStore = useMainViewStore();
-  mainViewStore.hasPadding = false;
 
   const clusterId = ref(0);
 </script>
