@@ -106,7 +106,9 @@ class TenDBRemoteRebalanceFlow(object):
 
             shards = len(cluster_info["shards"])
             if self.data["remote_shard_num"] * len(self.data["remote_group"]) != shards:
-                return
+                raise TendbGetBackupInfoFailedException(
+                    message=_("{}集群分片计算错误 remote_shard_num:{} x remote_group:{} != {}".format(self.data["cluster_id"], self.data["remote_shard_num"], len(self.data["remote_group"]), shards))
+                )
             cluster_info["ports"] = []
             for port in range(self.data["start_port"], self.data["start_port"] + self.data["remote_shard_num"]):
                 cluster_info["ports"].append(port)

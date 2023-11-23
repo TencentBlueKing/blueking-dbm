@@ -404,7 +404,7 @@ def install_mysql_in_cluster_sub_flow(
     )
 
     # 初始化机器
-    master = cluster.storageinstance_set.get(instance_inner_role=InstanceInnerRole.MASTER.value)
+    master = cluster.storageinstance_set.filter(instance_inner_role=InstanceInnerRole.MASTER.value).first()
     sub_pipeline.add_act(
         act_name=_("获取旧实例系统参数"),
         act_component_code=GetOsSysParamComponent.code,
