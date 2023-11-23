@@ -41,3 +41,4 @@ class ExtraProcessInstance(AuditedModel):
 
     class Meta:
         unique_together = ("ip", "bk_cloud_id", "listen_port")
+        indexes = [models.Index(fields=["cluster_id", "proc_type"])]
