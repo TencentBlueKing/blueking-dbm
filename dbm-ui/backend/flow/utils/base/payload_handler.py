@@ -22,7 +22,7 @@ from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Cluster
 from backend.db_proxy.constants import ExtensionType
 from backend.db_proxy.models import DBExtension
-from backend.flow.consts import DBM_JOB, DEFAULT_INSTANCE, ConfigTypeEnum, MySQLPrivComponent, UserName, LevelInfoEnum
+from backend.flow.consts import DBM_JOB, DEFAULT_INSTANCE, ConfigTypeEnum, LevelInfoEnum, MySQLPrivComponent, UserName
 from backend.ticket.constants import TicketType
 
 apply_list = [

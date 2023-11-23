@@ -11,7 +11,6 @@ specific language governing permissions and limitations under the License.
 from backend.components import DBConfigApi
 from backend.components.dbconfig.constants import FormatType, LevelName, ReqType
 from backend.db_meta.models import Cluster
-
 from backend.flow.consts import (
     ConfigTypeEnum,
     DBActuatorTypeEnum,
