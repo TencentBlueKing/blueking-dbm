@@ -13,3 +13,4 @@ from .checksum_instance_view import ChecksumInstanceViewSet
 from .meta_check_view import MetaCheckReportInstanceBelongViewSet
 from .mysqlbackup_check_view import MysqlBinlogBackupCheckReportViewSet, MysqlFullBackupCheckReportViewSet
 from .redisbackup_check_view import RedisBinlogBackupCheckReportViewSet, RedisFullBackupCheckReportViewSet
+from .dbmon_heartbeat_view import DbmonHeatbeartCheckReportBaseViewSet
