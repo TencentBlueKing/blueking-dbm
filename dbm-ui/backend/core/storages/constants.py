@@ -11,10 +11,10 @@ specific language governing permissions and limitations under the License.
 from enum import Enum
 from typing import Any, Dict, List
 
-from blue_krill.data_types.enum import EnumField, StructuredEnum
 from django.utils.translation import ugettext as _
 
 from backend.utils.cache import class_member_cache
+from blue_krill.data_types.enum import EnumField, StructuredEnum
 
 
 class CosBucketEnum(StructuredEnum):

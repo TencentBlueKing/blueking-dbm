@@ -52,12 +52,12 @@ class TenDBClusterFullBackupFlow(object):
         "bk_biz_id": "152",
         "ticket_type": "TENDBCLUSTER_FULL_BACKUP",
         "infos": {
-            "backup_type": enum of backend.flow.consts.MySQLBackupTypeEnum
-            "file_tag": enum of backend.flow.consts.MySQLBackupFileTagEnum
+            "backup_type": enum of backend.flow.consts.MySQLBackupTypeEnum,
+            "file_tag": enum of backend.flow.consts.MySQLBackupFileTagEnum,
             “clusters": [
               {
                 "cluster_id": int,
-                "backup_local": enum TenDBBackupLocation::[REMOTE, SPIDER_MNT],
+                "backup_local": enum [backend.db_meta.enum.InstanceInnerRole, SPIDER_MNT],
                 "spider_mnt_address": "x.x.x.x:y" # 如果 backup_local 是 spider_mnt
               },
               ...
@@ -72,7 +72,10 @@ class TenDBClusterFullBackupFlow(object):
 
         cluster_pipes = []
         for cluster in clusters:
-            if self.data["infos"]["backup_type"] == "physical" and cluster["backup_local"] == "spider_mnt":
+            if (
+                self.data["infos"]["backup_type"] == "physical"
+                and cluster["backup_local"] == TenDBClusterSpiderRole.SPIDER_MNT.value
+            ):
                 IncompatibleBackupTypeAndLocal(
                     backup_type=self.data["infos"]["backup_type"], backup_local=cluster["backup_local"]
                 )
@@ -106,11 +109,13 @@ class TenDBClusterFullBackupFlow(object):
                 sub_flow=self.backup_on_spider_ctl(backup_id=backup_id, cluster_obj=cluster_obj)
             )
 
-            if cluster["backup_local"] == "remote":
+            if cluster["backup_local"] == InstanceInnerRole.SLAVE.value:  # "remote":
                 cluster_pipe.add_parallel_sub_pipeline(
-                    sub_flow_list=self.backup_on_remote(backup_id=backup_id, cluster_obj=cluster_obj)
+                    sub_flow_list=self.backup_on_remote_slave(backup_id=backup_id, cluster_obj=cluster_obj)
                 )
-            elif cluster["backup_local"] == "spider_mnt":
+            elif cluster["backup_local"] == InstanceInnerRole.MASTER.value:
+                pass
+            elif cluster["backup_local"] == TenDBClusterSpiderRole.SPIDER_MNT.value:
                 cluster_pipe.add_sub_pipeline(
                     sub_flow=self.backup_on_spider_mnt(
                         backup_id=backup_id, cluster_obj=cluster_obj, spider_mnt_address=cluster["spider_mnt_address"]
@@ -179,27 +184,13 @@ class TenDBClusterFullBackupFlow(object):
 
         return on_ctl_sub_pipe.build_sub_process(sub_name=_("spider/ctl备份库表结构"))
 
-    def backup_on_remote(self, backup_id: uuid.UUID, cluster_obj: Cluster) -> List[SubProcess]:
-        on_slave_pipes = []
-        stand_by_slaves = defaultdict(list)
-        for tp in StorageInstanceTuple.objects.filter(
-            ejector__cluster=cluster_obj,
-            receiver__cluster=cluster_obj,
-            ejector__instance_inner_role=InstanceInnerRole.MASTER.value,
-            receiver__instance_inner_role=InstanceInnerRole.SLAVE.value,
-            receiver__is_stand_by=True,
-        ):
-            stand_by_slaves[tp.receiver.machine.ip].append(
-                {
-                    "port": tp.receiver.port,
-                    "shard_id": tp.tendbclusterstorageset.shard_id,
-                    "role": tp.receiver.instance_role,
-                }
-            )
-
-        for ip, dtls in stand_by_slaves.items():
+    def __backup_on_remote(
+        self, backup_id: uuid.UUID, bk_cloud_id: int, machine_instance_dict: Dict
+    ) -> List[SubProcess]:
+        on_remote_pipes = []
+        for ip, dtls in machine_instance_dict.items():
             for dtl in dtls:
-                on_slave_pipe = SubBuilder(
+                on_remote_pipe = SubBuilder(
                     root_id=self.root_id,
                     data={
                         "uid": self.data["uid"],
@@ -216,25 +207,24 @@ class TenDBClusterFullBackupFlow(object):
                         "shard_id": dtl["shard_id"],
                     },
                 )
-
-                on_slave_pipe.add_act(
+                on_remote_pipe.add_act(
                     act_name=_("下发actuator介质"),
                     act_component_code=TransFileComponent.code,
                     kwargs=asdict(
                         DownloadMediaKwargs(
-                            bk_cloud_id=cluster_obj.bk_cloud_id,
+                            bk_cloud_id=bk_cloud_id,
                             exec_ip=ip,
                             file_list=GetFileList(db_type=DBType.MySQL).get_db_actuator_package(),
                         )
                     ),
                 )
 
-                on_slave_pipe.add_act(
+                on_remote_pipe.add_act(
                     act_name=_("remote 执行全库备份"),
                     act_component_code=ExecuteDBActuatorScriptComponent.code,
                     kwargs=asdict(
                         ExecActuatorKwargs(
-                            bk_cloud_id=cluster_obj.bk_cloud_id,
+                            bk_cloud_id=bk_cloud_id,
                             run_as_system_user=DBA_SYSTEM_USER,
                             exec_ip=ip,
                             get_mysql_payload_func=MysqlActPayload.mysql_backup_demand_payload.__name__,
@@ -242,8 +232,46 @@ class TenDBClusterFullBackupFlow(object):
                     ),
                 )
 
-                on_slave_pipes.append(on_slave_pipe.build_sub_process(sub_name=_("remote 全库备份")))
-        return on_slave_pipes
+                on_remote_pipes.append(on_remote_pipe.build_sub_process(sub_name=_("remote 全库备份")))
+        return on_remote_pipes
+
+    def backup_on_remote_master(self, backup_id: uuid.UUID, cluster_obj: Cluster) -> List[SubProcess]:
+        # on_master_pipes = []
+        master_ip_instance_dict = defaultdict(list)
+        for ins in cluster_obj.storageinstance_set.filter(instance_inner_role=InstanceInnerRole.MASTER.value):
+            master_ip_instance_dict[ins.machine.ip].append(
+                {
+                    "port": ins.port,
+                    "shard_id": StorageInstanceTuple.objects.get(ejector=ins).tendbclusterstorageset.shard_id,
+                    "role": ins.instance_role,
+                }
+            )
+
+        return self.__backup_on_remote(
+            backup_id=backup_id, bk_cloud_id=cluster_obj.bk_cloud_id, machine_instance_dict=master_ip_instance_dict
+        )
+
+    def backup_on_remote_slave(self, backup_id: uuid.UUID, cluster_obj: Cluster) -> List[SubProcess]:
+        # on_slave_pipes = []
+        stand_by_slaves = defaultdict(list)
+        for tp in StorageInstanceTuple.objects.filter(
+            ejector__cluster=cluster_obj,
+            receiver__cluster=cluster_obj,
+            ejector__instance_inner_role=InstanceInnerRole.MASTER.value,
+            receiver__instance_inner_role=InstanceInnerRole.SLAVE.value,
+            receiver__is_stand_by=True,
+        ):
+            stand_by_slaves[tp.receiver.machine.ip].append(
+                {
+                    "port": tp.receiver.port,
+                    "shard_id": tp.tendbclusterstorageset.shard_id,
+                    "role": tp.receiver.instance_role,
+                }
+            )
+
+        return self.__backup_on_remote(
+            backup_id=backup_id, bk_cloud_id=cluster_obj.bk_cloud_id, machine_instance_dict=stand_by_slaves
+        )
 
     def backup_on_spider_mnt(self, backup_id: uuid.UUID, cluster_obj: Cluster, spider_mnt_address: str) -> SubProcess:
         spider_mnt_ip, spider_mnt_port = spider_mnt_address.split(IP_PORT_DIVIDER)
