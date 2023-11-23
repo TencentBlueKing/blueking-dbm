@@ -9,7 +9,6 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
-from blue_krill.data_types.enum import EnumField, StructuredEnum
 from django.utils.translation import ugettext_lazy as _
 
 from backend.db_meta.enums import ClusterType
@@ -19,6 +18,7 @@ from backend.db_services.dbresource.handlers import (
     TendisPlusSpecFilter,
     TendisSSDSpecFilter,
 )
+from blue_krill.data_types.enum import EnumField, StructuredEnum
 
 SWAGGER_TAG = _("资源池")
 

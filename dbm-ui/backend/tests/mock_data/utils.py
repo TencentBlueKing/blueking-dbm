@@ -12,6 +12,7 @@ specific language governing permissions and limitations under the License.
 from typing import Any, Callable, Optional, Union
 
 import wrapt
+
 from blue_krill.data_types.enum import StructuredEnum
 
 
