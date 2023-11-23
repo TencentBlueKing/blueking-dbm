@@ -83,7 +83,7 @@ func MonitorSend(content string, info MonitorInfo) error {
 	if info.MonitorInfoType == constvar.MonitorInfoSwitch {
 		// switch monitor information dimension add
 		addDimension["role"] = info.Switch.Role
-		addDimension["bzid"] = info.Switch.Bzid
+		addDimension["appid"] = info.Switch.Bzid
 		addDimension["server_ip"] = info.Switch.ServerIp
 		addDimension["server_port"] = info.Switch.ServerPort
 		addDimension["status"] = info.Switch.Status
@@ -92,7 +92,7 @@ func MonitorSend(content string, info MonitorInfo) error {
 		addDimension["idc"] = info.Switch.IDC
 	} else if info.MonitorInfoType == constvar.MonitorInfoDetect {
 		// detect monitor information dimension add
-		addDimension["bzid"] = info.Detect.Bzid
+		addDimension["appid"] = info.Detect.Bzid
 		addDimension["server_ip"] = info.Detect.ServerIp
 		addDimension["server_port"] = info.Detect.ServerPort
 		addDimension["status"] = info.Detect.Status
