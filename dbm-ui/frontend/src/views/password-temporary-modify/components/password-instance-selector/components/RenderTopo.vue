@@ -61,6 +61,7 @@
           <RenderTopoHost
             :last-values="lastValues"
             :node="selectNode"
+            :panel-tab-active="panelTabActive"
             :role="role"
             :table-settings="tableSettings"
             @change="handleHostChange" />
@@ -77,9 +78,11 @@
   import { useGlobalBizs } from '@stores';
 
   import getSettings from '../common/tableSettings';
-  import type { InstanceSelectorValues } from '../common/types';
+  import type {
+    InstanceSelectorValues,
+    PanelTypes,
+  } from '../common/types';
 
-  import { activePanelInjectionKey } from './PanelTab.vue';
   import RenderTopoHost from './RenderTopoHost.vue';
 
   interface TTopoTreeData {
@@ -97,6 +100,7 @@
   interface Props {
     lastValues: InstanceSelectorValues,
     role?: string
+    panelTabActive: PanelTypes
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -106,8 +110,6 @@
 
   const { t } = useI18n();
   const { currentBizId, currentBizInfo } = useGlobalBizs();
-
-  const activePanel = inject(activePanelInjectionKey);
 
   const isTreeDataLoading = ref(false);
   const treeRef = ref();
@@ -124,7 +126,7 @@
       cluster_filters: [
         {
           bk_biz_id: currentBizId,
-          cluster_type: activePanel?.value,
+          cluster_type: props.panelTabActive,
         },
       ],
     }).then((data) => {
@@ -136,7 +138,7 @@
           formatDataItem.count = item.proxies?.length || 0;
         } else if (props.role === 'master') {
           formatDataItem.count = item.masters?.length || 0;
-        } else if (activePanel?.value === 'tendbha') {
+        } else if (props.panelTabActive === 'tendbha') {
           formatDataItem.count = formatDataItem.count - (item.proxies?.length || 0);
         }
         return formatDataItem;

@@ -46,7 +46,7 @@ export const getTendbhaTableFields = function () {
 /**
  * 获取集群实例列表
  */
-export const getTendbhaInstanceList = function (params: Record<string, any>) {
+export const getTendbhaInstanceList = function (params: Record<string, any> & { role_exclude: string }) {
   return http.get<ListBase<ResourceInstance[]>>(`${path}/list_instances/`, params);
 };
 

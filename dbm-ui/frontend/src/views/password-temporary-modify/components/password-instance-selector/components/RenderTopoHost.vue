@@ -43,7 +43,9 @@
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
 
-  import { getResourceInstances } from '@services/clusters';
+  import { getSpiderInstanceList } from '@services/source/spider';
+  import { getTendbhaInstanceList } from '@services/source/tendbha';
+  import { getTendbsingleInstanceList } from '@services/source/tendbsingle';
   import type {
     InstanceInfos,
     ResourceInstance,
@@ -60,9 +62,10 @@
   import DbStatus from '@components/db-status/index.vue';
 
   import getSettings from '../common/tableSettings';
-  import type { InstanceSelectorValues } from '../common/types';
-
-  import { activePanelInjectionKey } from './PanelTab.vue';
+  import type {
+    InstanceSelectorValues,
+    PanelTypes,
+  } from '../common/types';
 
   type InstanceSelectorValue = InstanceSelectorValues['tendbha'][number]
 
@@ -77,6 +80,7 @@
     },
     role?: string
     lastValues: InstanceSelectorValues
+    panelTabActive: PanelTypes
   }
 
   interface Emits {
@@ -88,6 +92,12 @@
     role: '',
   });
   const emits = defineEmits<Emits>();
+
+  const apiMap: Record<string, (params: any) => Promise<any>> = {
+    tendbsingle: getTendbsingleInstanceList,
+    tendbha: getTendbhaInstanceList,
+    tendbcluster: getSpiderInstanceList,
+  };
 
   const formatValue = (data: ResourceInstance) => ({
     bk_host_id: data.bk_host_id,
@@ -104,8 +114,6 @@
 
   const { t } = useI18n();
   const { currentBizId } = useGlobalBizs();
-
-  const activePanel = inject(activePanelInjectionKey);
 
   const columns = [
     {
@@ -226,9 +234,9 @@
 
   watch(() => props.lastValues, () => {
     // 切换 tab 回显选中状态 \ 预览结果操作选中状态
-    if (activePanel?.value && activePanel.value !== 'manualInput') {
+    if (props.panelTabActive !== 'manualInput') {
       checkedMap.value = {};
-      const checkedList = props.lastValues[activePanel.value];
+      const checkedList = props.lastValues[props.panelTabActive];
       for (const item of checkedList) {
         checkedMap.value[item.instance_address] = item;
       }
@@ -243,7 +251,7 @@
 
   const fetchData = () => {
     isTableDataLoading.value = true;
-    const instanceType = activePanel?.value === 'tendbcluster' ? 'spider' : activePanel?.value;
+    const instanceType = props.panelTabActive === 'tendbcluster' ? 'spider' : props.panelTabActive;
     const params = {
       db_type: 'mysql',
       bk_biz_id: currentBizId,
@@ -254,24 +262,26 @@
       role: props.role,
       extra: 1,
     };
-    if (instanceType === 'spider') {
+
+    if (instanceType === 'tendbha') {
+      Object.assign(params, {
+        role_exclude: 'proxy',
+      });
+    } else if (instanceType === 'spider') {
       Object.assign(params, {
         spider_ctl: true,
       });
     }
+
     if (props.node && props.node.id !== currentBizId) {
       Object.assign(params, {
         cluster_id: props.node.id,
       });
     }
-    getResourceInstances(params)
+
+    apiMap[props.panelTabActive](params)
       .then((data) => {
-        tableData.value = data.results.filter((resourceInstanceItem) => {
-          if (resourceInstanceItem.cluster_type === ClusterTypes.TENDBHA && resourceInstanceItem.role === 'proxy') {
-            return false;
-          }
-          return true;
-        });
+        tableData.value = data.results;
         pagination.count = data.count;
         isAnomalies.value = false;
       })
@@ -293,12 +303,10 @@
       return result;
     }, [] as InstanceSelectorValue[]);
 
-    if (activePanel?.value) {
-      emits('change', {
-        ...props.lastValues,
-        [activePanel.value]: result,
-      });
-    }
+    emits('change', {
+      ...props.lastValues,
+      [props.panelTabActive]: result,
+    });
   };
 
   const tableSettings = getSettings(props.role);

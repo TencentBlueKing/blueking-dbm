@@ -277,17 +277,15 @@
       field: 'instance_address',
       width: 200,
       render: ({ data }: TableRow) => (
-        <span>
-          { data.instance_address }
+        <div class="password-form-instance">
+          <span>{ data.instance_address }</span>
           {
-            data.isExpired
-              ? null
-              : <db-icon
-                  v-bk-tooltips={ t('当前临时密码未过期，继续修改将会覆盖原来的密码') }
-                  class='ml-4 instance-tip'
-                  type="attention-fill" />
+            !data.isExpired && <db-icon
+              v-bk-tooltips={ t('当前临时密码未过期，继续修改将会覆盖原来的密码') }
+              class='ml-4 instance-tip'
+              type="attention-fill" />
           }
-        </span>
+        </div>
       ),
     },
     {
@@ -297,7 +295,7 @@
       render: ({ data }: TableRow) => (
         <>
           <db-icon type={ data.db_type } class='mr-8 type-icon' />
-          <span>{ data.db_type }</span>
+          <span>{ data.cluster_type }</span>
         </>
       ),
     },
@@ -542,7 +540,11 @@
     const instanceList = Object.values(instanceValues).reduce((instanceListPrev, instanceValuesItem) => [...instanceListPrev, ...instanceValuesItem], []);
 
     queryMysqlAdminPasswordRun({
-      instances: instanceList.map(instanceItem => `${instanceItem.ip}:${instanceItem.port}`).join(','),
+      instances: instanceList.map(instanceItem => formatInstance({
+        cloudId: instanceItem.bk_cloud_id,
+        ip: instanceItem.ip,
+        port: instanceItem.port,
+      })).join(','),
     });
     formData.instanceList = instanceList;
   };
@@ -667,6 +669,11 @@
 
   .password-form {
     padding-top: 32px;
+
+    :deep(.password-form-instance) {
+      display: flex;
+      align-items: center;
+    }
 
     .btn-area {
       padding: 24px 0 24px 200px;
