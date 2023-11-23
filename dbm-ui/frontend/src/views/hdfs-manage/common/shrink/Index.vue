@@ -241,8 +241,7 @@
                 cluster_id: props.data.id,
                 ip_source: 'manual_input',
                 nodes: {
-                  broker: fomatHost(nodeInfoMap.broker.nodeList),
-                  bookkeeper: fomatHost(nodeInfoMap.datanode.nodeList),
+                  [nodeType.value]: fomatHost(nodeInfoMap.datanode.nodeList),
                 },
               },
             })
