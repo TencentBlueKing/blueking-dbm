@@ -62,7 +62,7 @@
       <DbTable
         ref="tableRef"
         :columns="columns"
-        :data-source="getSpiderList"
+        :data-source="getTendbClusterList"
         :pagination-extra="paginationExtra"
         :row-class="setRowClass"
         :settings="settings"
@@ -123,7 +123,7 @@
   import {
     getSpiderDetail,
     getSpiderInstanceList,
-    getSpiderList,
+    getTendbClusterList,
   } from '@services/source/spider';
   import { createTicket } from '@services/source/ticket';
   import type { ResourceItem } from '@services/types/clusters';

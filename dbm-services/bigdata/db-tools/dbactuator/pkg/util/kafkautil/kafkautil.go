@@ -221,6 +221,10 @@ func GetTopics(zk string) (topicList []string, err error) {
 	logger.Info("cmd: [%s]", extraCmd)
 	output, _, _ := osutil.ExecShellCommandBd(false, extraCmd)
 	logger.Info("output %s", output)
+	// empty output, return empty list
+	if output == "" {
+		return topicList, nil
+	}
 	/*
 		if err != nil {
 			logger.Error("获取kafka topic列表失败 %v", err)
@@ -232,36 +236,37 @@ func GetTopics(zk string) (topicList []string, err error) {
 }
 
 // WriteTopicJSON TODO
-func WriteTopicJSON(zk string) error {
+func WriteTopicJSON(zk string) (b []byte, err error) {
 	topics, err := GetTopics(zk)
 	if err != nil {
 		logger.Error("Get topics list failed, %s", err)
-		return err
-	}
-	logger.Info("Topics list %v", topics)
-	var tps []TP
-	for _, t := range topics {
-		tps = append(tps, TP{Topic: t})
-	}
-	tpJSON := &TPs{
-		Topics:  tps,
-		Version: 1,
-	}
-	b, err := json.Marshal(tpJSON)
-	if err != nil {
-		logger.Info("Pase topic json failed, %s", err)
-		return err
-	}
-	logger.Info("topic.json: %s", string(b))
-
-	// write to /data/kafkaenv/topic.json
-	topicJSONFile := fmt.Sprintf("%s/topic.json", cst.DefaultKafkaEnv)
-	if err := ioutil.WriteFile(topicJSONFile, b, 0644); err != nil {
-		logger.Error("write %s failed, %s", topicJSONFile, err)
-		return err
+		return b, err
 	}
 
-	return nil
+	logger.Info("topics: [%d]", len(topics))
+	// if no topic, nothing
+	if len(topics) == 0 {
+		logger.Info("No topics found.")
+		b = []byte("")
+	} else {
+		logger.Info("Topics list %v", topics)
+		var tps []TP
+		for _, t := range topics {
+			tps = append(tps, TP{Topic: t})
+		}
+		tpJSON := &TPs{
+			Topics:  tps,
+			Version: 1,
+		}
+		b, err = json.Marshal(tpJSON)
+		if err != nil {
+			logger.Info("Pase topic json failed, %s", err)
+			return b, err
+		}
+		logger.Info("topic.json: %s", string(b))
+	}
+
+	return b, nil
 }
 
 // GenerateReassginFile TODO

@@ -9,6 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import collections
+import itertools
 from typing import Dict, List
 
 from django.utils.translation import ugettext_lazy as _
@@ -99,6 +100,12 @@ class MysqlSingleApplyDetailSerializer(serializers.Serializer):
         db_app_abbr = self.context["ticket_ctx"].app_abbr_map.get(bk_biz_id, f"biz-{bk_biz_id}")
         for key in keys:
             CommonValidate.validate_mysql_domain(self.get_db_module_name(attrs), db_app_abbr, key)
+
+        # 校验主机是否已在dbmeta中
+        if attrs["ip_source"] == IpSource.MANUAL_INPUT:
+            role_host_list = list(itertools.chain(*[attrs["nodes"][role] for role in attrs["nodes"]]))
+            CommonValidate.validate_hosts_not_in_db_meta(role_host_list)
+
         return attrs
 
     def get_db_module_name(self, obj):

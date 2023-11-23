@@ -10,6 +10,7 @@ import (
 	"dbm-services/bigdata/db-tools/dbactuator/pkg/core/cst"
 	"dbm-services/bigdata/db-tools/dbactuator/pkg/rollback"
 	"dbm-services/bigdata/db-tools/dbactuator/pkg/util/kafkautil"
+	"dbm-services/bigdata/db-tools/dbactuator/pkg/util/osutil"
 	"dbm-services/common/go-pubpkg/logger"
 
 	"github.com/go-zookeeper/zk"
@@ -51,11 +52,11 @@ func (d *DecomBrokerComp) DoReplaceBrokers() (err error) {
 	newBrokers := d.Params.NewBrokers
 
 	conn, _, err := zk.Connect([]string{zkHost}, 10*time.Second) // *10)
-	defer conn.Close()
 	if err != nil {
 		logger.Error("Connect zk failed, %s", err)
 		return err
 	}
+	defer conn.Close()
 
 	var newBrokerIds []string
 	for _, broker := range newBrokers {
@@ -149,17 +150,26 @@ func (d *DecomBrokerComp) DoDecomBrokers() error {
 
 		id, err := kafkautil.GetBrokerIDByHost(conn, broker)
 		if err != nil {
-			logger.Error("cant get %s broker id, %v", broker, err)
+			logger.Error("cant get %s broker id, %s", broker, err)
 			return err
 		}
 		excludeIds = append(excludeIds, id)
 	}
 	logger.Info("excludeIds: %v", excludeIds)
+	// Get topics
+	b, err := kafkautil.WriteTopicJSON(zkHost)
+	if err != nil {
+		return err
+	}
+	if len(string(b)) == 0 {
+		logger.Info("No need to do reassignment.")
+		return nil
+	}
 
 	logger.Info("Creating topic.json file")
-	err = kafkautil.WriteTopicJSON(zkHost)
-	if err != nil {
-		logger.Error("Create topic.json failed %s", err)
+	topicJSONFile := fmt.Sprintf("%s/topic.json", cst.DefaultKafkaEnv)
+	if err := ioutil.WriteFile(topicJSONFile, b, 0644); err != nil {
+		logger.Error("write %s failed, %s", topicJSONFile, err)
 		return err
 	}
 
@@ -187,10 +197,16 @@ func (d *DecomBrokerComp) DoPartitionCheck() (err error) {
 	count := 0
 	zkHost := d.Params.ZookeeperIP + ":2181"
 	jsonFile := fmt.Sprintf("%s/plan.json", cst.DefaultKafkaEnv)
+	topicJSONFile := fmt.Sprintf("%s/topic.json", cst.DefaultKafkaEnv)
 
 	for {
 		count++
 		logger.Info("检查搬迁状态，次数[%d]", count)
+
+		if !osutil.FileExist(topicJSONFile) {
+			logger.Info("[%s] no exist, no need to check progress.")
+			break
+		}
 
 		out, err := kafkautil.CheckReassignPartitions(zkHost, jsonFile)
 		if err != nil {
@@ -211,6 +227,10 @@ func (d *DecomBrokerComp) DoPartitionCheck() (err error) {
 	}
 
 	logger.Info("分区已搬空, 若有新增topic, 请检查分区分布")
+	logger.Info("清理计划文件")
+	extraCmd := fmt.Sprintf("rm -f %s %s", jsonFile, topicJSONFile)
+	logger.Info("cmd: [%s]", extraCmd)
+	osutil.ExecShellCommandBd(false, extraCmd)
 
 	return nil
 }

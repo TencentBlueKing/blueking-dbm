@@ -23,6 +23,7 @@ from backend.db_meta.models import Cluster
 from backend.flow.consts import DBA_SYSTEM_USER
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
+from backend.flow.engine.exceptions import MySQLBackupLocalException
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.mysql.mysql_link_backup_id_bill_id import (
     MySQLLinkBackupIdBillIdComponent,
@@ -57,6 +58,7 @@ class MySQLHAFullBackupFlow(object):
             "backup_type": enum of backend.flow.consts.MySQLBackupTypeEnum
             "file_tag": enum of backend.flow.consts.MySQLBackupFileTagEnum
             "cluster_ids": List[int],
+            "backup_local": enum of backend.db_meta.enum.InstanceInnerRole
         }
         }
         增加单据临时ADMIN账号的添加和删除逻辑
@@ -78,12 +80,17 @@ class MySQLHAFullBackupFlow(object):
                     cluster_type=ClusterType.TenDBHA.value, cluster_id=cluster_id, immute_domain=""
                 )
 
-            try:
-                slave_obj = cluster_obj.storageinstance_set.get(
-                    instance_inner_role=InstanceInnerRole.SLAVE.value, is_stand_by=True
-                )
-            except ObjectDoesNotExist:
-                raise DBMetaBaseException(message=_("{} standby slave 不存在".format(cluster_obj.immute_domain)))
+            if self.data["infos"]["backup_local"] == InstanceInnerRole.MASTER.value:
+                backend_obj = cluster_obj.storageinstance_set.get(instance_inner_role=InstanceInnerRole.MASTER.value)
+            elif self.data["infos"]["backup_local"] == InstanceInnerRole.SLAVE.value:
+                try:
+                    backend_obj = cluster_obj.storageinstance_set.get(
+                        instance_inner_role=InstanceInnerRole.SLAVE.value, is_stand_by=True
+                    )
+                except ObjectDoesNotExist:
+                    raise DBMetaBaseException(message=_("{} standby slave 不存在".format(cluster_obj.immute_domain)))
+            else:
+                raise MySQLBackupLocalException(msg=_("不支持的备份位置 {}".format(self.data["infos"]["backup_local"])))
 
             sub_pipe = SubBuilder(
                 root_id=self.root_id,
@@ -92,13 +99,13 @@ class MySQLHAFullBackupFlow(object):
                     "created_by": self.data["created_by"],
                     "bk_biz_id": self.data["bk_biz_id"],
                     "ticket_type": self.data["ticket_type"],
-                    "ip": slave_obj.machine.ip,
-                    "port": slave_obj.port,
+                    "ip": backend_obj.machine.ip,
+                    "port": backend_obj.port,
                     "file_tag": self.data["infos"]["file_tag"],
                     "backup_type": self.data["infos"]["backup_type"],
                     "backup_id": uuid.uuid1(),
                     "backup_gsd": ["schema", "data"],
-                    "role": slave_obj.instance_role,
+                    "role": backend_obj.instance_role,
                 },
             )
 
@@ -108,7 +115,7 @@ class MySQLHAFullBackupFlow(object):
                 kwargs=asdict(
                     DownloadMediaKwargs(
                         bk_cloud_id=cluster_obj.bk_cloud_id,
-                        exec_ip=slave_obj.machine.ip,
+                        exec_ip=backend_obj.machine.ip,
                         file_list=GetFileList(db_type=DBType.MySQL).get_db_actuator_package(),
                     )
                 ),
@@ -121,7 +128,7 @@ class MySQLHAFullBackupFlow(object):
                     ExecActuatorKwargs(
                         bk_cloud_id=cluster_obj.bk_cloud_id,
                         run_as_system_user=DBA_SYSTEM_USER,
-                        exec_ip=slave_obj.machine.ip,
+                        exec_ip=backend_obj.machine.ip,
                         get_mysql_payload_func=MysqlActPayload.mysql_backup_demand_payload.__name__,
                     )
                 ),

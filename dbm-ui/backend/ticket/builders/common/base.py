@@ -19,7 +19,7 @@ from rest_framework import serializers
 
 from backend.configuration.constants import MASTER_DOMAIN_INITIAL_VALUE
 from backend.db_meta.enums import AccessLayer, ClusterType, InstanceInnerRole
-from backend.db_meta.models import Cluster, ProxyInstance, StorageInstance
+from backend.db_meta.models import Cluster, Machine, ProxyInstance, StorageInstance
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.db_services.mysql.cluster.handlers import ClusterServiceHandler
 from backend.db_services.mysql.remote_service.handlers import RemoteServiceHandler
@@ -102,6 +102,15 @@ class CommonValidate(object):
         idle_host_list = [host["bk_host_id"] for host in idle_host_info_list]
 
         return set(host_list) - set(idle_host_list)
+
+    @classmethod
+    def validate_hosts_not_in_db_meta(cls, host_infos: List[Dict]):
+        """校验主机不存在当前db_meta中"""
+        host_ids = [node["bk_host_id"] for node in host_infos if node.get("bk_host_id")]
+        exist_host_ids = Machine.objects.filter(bk_host_id__in=host_ids)
+        if exist_host_ids.exists():
+            host_ips = list(exist_host_ids.values_list("ip", flat=True))
+            raise serializers.ValidationError(_("所选主机存在已经被使用，请重新选择主机。主机信息: {}").format(host_ips))
 
     @classmethod
     def validate_hosts_clusters_in_same_cloud_area(cls, host_infos: List[Dict], cluster_ids: List[int]) -> bool:
