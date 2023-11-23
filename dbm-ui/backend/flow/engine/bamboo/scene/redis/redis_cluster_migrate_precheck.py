@@ -107,8 +107,8 @@ class RedisClusterMigratePrecheckFlow(object):
             raise Exception("db_version config is not definition")
 
         res = DnsApi.get_domain({"domain_name": f"{domain}."})
-        if len(res["detail"]) != 0:
-            raise Exception("domain_name {} is exist".format(domain))
+        if len(res["detail"]) == 0:
+            raise Exception("domain_name {} is not exist".format(domain))
         if len(clb) != 0:
             res = NameServiceApi.clb_get_target_private_ips(
                 {"region": clb["region"], "loadbalancerid": clb["id"], "listenerid": clb["listener_id"]}

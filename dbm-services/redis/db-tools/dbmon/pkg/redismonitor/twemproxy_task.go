@@ -87,7 +87,7 @@ func (task *TwemproxyMonitorTask) RestartWhenConnFail() {
 			// twemproxy 重启失败
 			msg = fmt.Sprintf("twemproxy(%s) restart but still connect fail", proxyAddr)
 			mylog.Logger.Info(msg)
-			task.eventSender.SendWarning(consts.EventTwemproxyRestart, msg, consts.WarnLevelError, task.ServerConf.ServerIP)
+			task.eventSender.SendWarning(consts.EventTwemproxyLogin, msg, consts.WarnLevelError, task.ServerConf.ServerIP)
 			return
 		}
 		msg = fmt.Sprintf("twemproxy(%s) restart and connect success", proxyAddr)

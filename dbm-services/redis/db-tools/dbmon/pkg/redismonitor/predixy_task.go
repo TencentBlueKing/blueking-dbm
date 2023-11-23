@@ -88,7 +88,7 @@ func (task *PredixyMonitorTask) RestartWhenConnFail() {
 			// Predixy 重启失败
 			msg = fmt.Sprintf("predixy(%s) restart but still connect fail", proxyAddr)
 			mylog.Logger.Info(msg)
-			task.eventSender.SendWarning(consts.EventPredixyRestart, msg, consts.WarnLevelError, task.ServerConf.ServerIP)
+			task.eventSender.SendWarning(consts.EventPredixyLogin, msg, consts.WarnLevelError, task.ServerConf.ServerIP)
 			return
 		}
 		msg = fmt.Sprintf("predixy(%s) restart and connect success", proxyAddr)

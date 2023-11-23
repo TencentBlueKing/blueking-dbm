@@ -185,50 +185,6 @@ class RedisClusterMigrateLoadFlow(object):
                 kwargs=asdict(act_kwargs),
             )
 
-            # 写配置文件 begin
-            acts_list = []
-            act_kwargs.cluster = {
-                "conf": {
-                    "maxmemory": str(params["config"]["maxmemory"]),
-                    "databases": str(params["config"]["databases"]),
-                },
-                "db_version": params["clusterinfo"]["db_version"],
-                "domain_name": params["clusterinfo"]["immute_domain"],
-            }
-            if params["clusterinfo"]["cluster_type"] == ClusterType.TendisTwemproxyRedisInstance.value:
-                act_kwargs.cluster["conf"]["cluster-enabled"] = ClusterStatus.REDIS_CLUSTER_NO
-
-            act_kwargs.get_redis_payload_func = RedisActPayload.set_redis_config.__name__
-            acts_list.append(
-                {
-                    "act_name": _("回写集群配置[Redis]"),
-                    "act_component_code": RedisConfigComponent.code,
-                    "kwargs": asdict(act_kwargs),
-                },
-            )
-
-            act_kwargs.cluster = {
-                "conf": {
-                    "port": str(cluster["proxy_port"]),
-                },
-                "pwd_conf": {
-                    "proxy_pwd": params["config"]["proxypass"],
-                    "proxy_admin_pwd": params["config"]["proxypass"],
-                    "redis_pwd": params["config"]["requirepass"],
-                },
-                "domain_name": params["clusterinfo"]["immute_domain"],
-            }
-            act_kwargs.get_redis_payload_func = RedisActPayload.set_proxy_config.__name__
-            acts_list.append(
-                {
-                    "act_name": _("回写集群配置[Twemproxy]"),
-                    "act_component_code": RedisConfigComponent.code,
-                    "kwargs": asdict(act_kwargs),
-                }
-            )
-            sub_pipeline.add_parallel_acts(acts_list)
-            # 写配置文件 end
-
             # proxy 相关操作
             act_kwargs.cluster = copy.deepcopy(cluster_tpl)
             act_kwargs.cluster["machine_type"] = proxy_type
@@ -406,6 +362,61 @@ class RedisClusterMigrateLoadFlow(object):
                 sub_pipeline.add_act(
                     act_name=_("polairs元数据写入"), act_component_code=RedisDBMetaComponent.code, kwargs=asdict(act_kwargs)
                 )
+
+            # 为了把密码写进密码服务里去，写配置需要放在最后来做了
+            # 写配置文件 begin
+            acts_list = []
+            proxy_pwd = ""
+            redis_password = ""
+            # 处理配置
+            if "requirepass" in params["redis_config"]:
+                del params["redis_config"]["requirepass"]
+            if "redis_password" in params["proxy_config"]:
+                redis_password = params["proxy_config"].pop("redis_password")
+            if "password" in params["proxy_config"]:
+                proxy_pwd = params["proxy_config"].pop("password")
+            if "hash_tag" in params["proxy_config"] and params["proxy_config"]["hash_tag"] == "":
+                del params["proxy_config"]["hash_tag"]
+            params["proxy_config"]["port"] = str(cluster["proxy_port"])
+
+            act_kwargs.cluster = {
+                "conf": params["redis_config"],
+                "backup_config": params["backup_config"],
+                "db_version": params["clusterinfo"]["db_version"],
+                "domain_name": params["clusterinfo"]["immute_domain"],
+            }
+            if params["clusterinfo"]["cluster_type"] == ClusterType.TendisTwemproxyRedisInstance.value:
+                act_kwargs.cluster["conf"]["cluster-enabled"] = ClusterStatus.REDIS_CLUSTER_NO
+
+            act_kwargs.get_redis_payload_func = RedisActPayload.set_redis_config.__name__
+            acts_list.append(
+                {
+                    "act_name": _("回写集群配置[Redis]"),
+                    "act_component_code": RedisConfigComponent.code,
+                    "kwargs": asdict(act_kwargs),
+                },
+            )
+
+            act_kwargs.cluster = {
+                "conf": params["proxy_config"],
+                "pwd_conf": {
+                    "proxy_pwd": proxy_pwd,
+                    "proxy_admin_pwd": proxy_pwd,
+                    "redis_pwd": redis_password,
+                },
+                "domain_name": params["clusterinfo"]["immute_domain"],
+            }
+            act_kwargs.get_redis_payload_func = RedisActPayload.set_proxy_config.__name__
+            acts_list.append(
+                {
+                    "act_name": _("回写集群配置[Twemproxy]"),
+                    "act_component_code": RedisConfigComponent.code,
+                    "kwargs": asdict(act_kwargs),
+                }
+            )
+            sub_pipeline.add_parallel_acts(acts_list)
+            # 写配置文件 end
+
             sub_pipelines.append(
                 sub_pipeline.build_sub_process(sub_name=_("{}迁移子任务").format(params["clusterinfo"]["immute_domain"]))
             )
