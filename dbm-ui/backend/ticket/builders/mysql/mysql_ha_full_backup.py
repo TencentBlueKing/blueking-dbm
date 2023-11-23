@@ -12,6 +12,7 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
+from backend.db_meta.enums import InstanceInnerRole
 from backend.flow.consts import MySQLBackupFileTagEnum, MySQLBackupTypeEnum
 from backend.flow.engine.controller.mysql import MySQLController
 from backend.ticket import builders
@@ -26,6 +27,9 @@ class MySQLHaFullBackupDetailSerializer(MySQLBaseOperateDetailSerializer):
         backup_type = serializers.ChoiceField(help_text=_("备份类型"), choices=MySQLBackupTypeEnum.get_choices())
         file_tag = serializers.ChoiceField(help_text=_("备份文件tag"), choices=MySQLBackupFileTagEnum.get_choices())
         cluster_ids = serializers.ListField(help_text=_("集群列表"), child=serializers.IntegerField())
+        backup_local = serializers.ChoiceField(
+            help_text=_("备份位置"), choices=InstanceInnerRole.get_choices(), default=InstanceInnerRole.SLAVE.value
+        )
 
     infos = FullBackupDataInfoSerializer()
 

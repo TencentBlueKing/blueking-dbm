@@ -12,6 +12,7 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
+from backend.db_meta.enums import InstanceInnerRole
 from backend.flow.consts import MySQLBackupFileTagEnum, MySQLBackupTypeEnum, TenDBBackUpLocation
 from backend.flow.engine.controller.spider import SpiderController
 from backend.ticket import builders
@@ -23,7 +24,7 @@ class TendbFullBackUpDetailSerializer(TendbBaseOperateDetailSerializer):
     class FullBackUpItemSerializer(serializers.Serializer):
         class FullBackUpClusterItemSerializer(serializers.Serializer):
             cluster_id = serializers.IntegerField(help_text=_("集群ID"))
-            backup_local = serializers.CharField(help_text=_("备份位置信息"))
+            backup_local = serializers.CharField(help_text=_("备份位置信息"), default=InstanceInnerRole.SLAVE)
 
         backup_type = serializers.ChoiceField(help_text=_("备份选项"), choices=MySQLBackupTypeEnum.get_choices())
         file_tag = serializers.ChoiceField(help_text=_("备份保存时间"), choices=MySQLBackupFileTagEnum.get_choices())
