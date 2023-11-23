@@ -31,8 +31,6 @@
 <script setup lang="ts">
   import { useRoute } from 'vue-router';
 
-  import { useMainViewStore } from '@stores';
-
   import TypeContent from './components/content/Index.vue';
 
   const { dbType } = useRoute().query as { dbType: string };
@@ -79,9 +77,6 @@
       label: 'Riak',
     },
   ];
-
-  const mainViewStore = useMainViewStore();
-  mainViewStore.hasPadding = false;
 
   const activeTab = ref(dbType ? dbType : tabs[0].value);
 

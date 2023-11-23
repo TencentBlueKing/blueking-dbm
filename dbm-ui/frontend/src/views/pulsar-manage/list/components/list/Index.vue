@@ -449,6 +449,7 @@
       name: 'PulsarApply',
       query: {
         bizId: currentBizId,
+        from: route.name as string,
       },
     });
   };

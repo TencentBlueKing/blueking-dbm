@@ -346,7 +346,6 @@
     isShowDryRun.value = true;
     operationData.value = payload;
     operationDryRunData.value = undefined;
-    console.log('operationData = ', operationData.value);
   };
   // 编辑
   const handleEdit  = (payload: PartitionModel) => {

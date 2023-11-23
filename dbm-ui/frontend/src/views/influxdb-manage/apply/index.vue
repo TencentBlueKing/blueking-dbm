@@ -187,6 +187,10 @@
 
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
+  import {
+    useRoute,
+    useRouter,
+  } from 'vue-router';
 
   import { checkHost } from '@services/source/ipchooser';
   import { getVersions } from '@services/source/version';
@@ -206,12 +210,16 @@
 
   const getSmartActionOffsetTarget = () => document.querySelector('.bk-form-content');
 
+  const route = useRoute();
+  const router = useRouter();
+  const { t } = useI18n();
+
   const cloudInfo = reactive({
     id: '' as number | string,
     name: '',
   });
   const groupName = ref('');
-  const { t } = useI18n();
+
   const {
     baseState,
     bizState,
@@ -357,6 +365,18 @@
       },
     });
   };
+
+  defineExpose({
+    routerBack() {
+      if (!route.params.from) {
+        router.back();
+        return;
+      }
+      router.push({
+        name: route.params.from as string,
+      });
+    },
+  });
 </script>
 
 <style lang="less" scoped>

@@ -13,8 +13,6 @@
 
 import type { RouteRecordRaw } from 'vue-router';
 
-import { MainViewRouteNames } from '@views/main-views/common/const';
-
 import { t } from '@locales/index';
 
 const routes: RouteRecordRaw[] = [
@@ -22,9 +20,7 @@ const routes: RouteRecordRaw[] = [
     name: 'PlatformDbConfigure',
     path: 'platform-db-configure',
     meta: {
-      routeParentName: MainViewRouteNames.Platform,
       navName: t('数据库配置'),
-      isMenu: true,
     },
     redirect: {
       name: 'PlatformDbConfigureList',
@@ -35,9 +31,8 @@ const routes: RouteRecordRaw[] = [
         name: 'PlatformDbConfigureList',
         path: 'list/:clusterType?',
         meta: {
-          routeParentName: MainViewRouteNames.Platform,
           navName: t('数据库配置'),
-          activeMenu: 'PlatformDbConfigure',
+          fullscreen: true,
         },
         component: () => import('@views/db-configure/platform/List.vue'),
       },
@@ -45,9 +40,8 @@ const routes: RouteRecordRaw[] = [
         name: 'PlatformDbConfigureEdit',
         path: 'edit/:clusterType/:version/:confType',
         meta: {
-          routeParentName: MainViewRouteNames.Platform,
           navName: t('编辑平台配置'),
-          activeMenu: 'PlatformDbConfigure',
+          fullscreen: true,
         },
         props: true,
         component: () => import('@views/db-configure/platform/Edit.vue'),
@@ -56,9 +50,8 @@ const routes: RouteRecordRaw[] = [
         name: 'PlatformDbConfigureDetail',
         path: 'detail/:clusterType/:version/:confType',
         meta: {
-          routeParentName: MainViewRouteNames.Platform,
           navName: t('配置详情'),
-          activeMenu: 'PlatformDbConfigure',
+          fullscreen: true,
         },
         props: true,
         component: () => import('@views/db-configure/platform/Detail.vue'),

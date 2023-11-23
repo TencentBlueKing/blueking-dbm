@@ -27,16 +27,11 @@
 </template>
 
 <script setup lang="ts">
-  import { useMainViewStore } from '@stores';
-
   import StretchLayout from '@components/stretch-layout/StretchLayout.vue';
 
   import Detail from './components/detail/Index.vue';
   import List from './components/list/Index.vue';
 
-  // 设置主视图padding
-  const mainViewStore = useMainViewStore();
-  mainViewStore.hasPadding = false;
 
   const instanceData = ref<{instanceAddress: string, clusterId: number}>();
 

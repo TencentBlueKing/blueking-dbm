@@ -326,6 +326,10 @@
   import _ from 'lodash';
   import { reactive } from 'vue';
   import { useI18n } from 'vue-i18n';
+  import {
+    useRoute,
+    useRouter,
+  } from 'vue-router';
 
   import { getVersions } from '@services/source/version';
   import type {
@@ -350,6 +354,8 @@
   } from '@components/cluster-common/big-data-host-table/RenderHostTable.vue';
   import IpSelector from '@components/ip-selector/IpSelector.vue';
 
+  const route = useRoute();
+  const router = useRouter();
   const { t } = useI18n();
 
   const formatIpData = (data: HostDetails[]) => data.map(item => ({
@@ -602,6 +608,18 @@
       },
     });
   };
+
+  defineExpose({
+    routerBack() {
+      if (!route.params.from) {
+        router.back();
+        return;
+      }
+      router.push({
+        name: route.params.from as string,
+      });
+    },
+  });
 </script>
 <style lang="less">
   .apply-kafka-page {

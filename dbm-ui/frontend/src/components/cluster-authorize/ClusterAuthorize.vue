@@ -1,16 +1,3 @@
-<!--
- * TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
- *
- * Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
- *
- * Licensed under the MIT License (the "License"); you may not use this file except in compliance with the License.
- * You may obtain a copy of the License athttps://opensource.org/licenses/MIT
- *
- * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
- * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
- * the specific language governing permissions and limitations under the License.
--->
-
 <template>
   <BkSideslider
     :before-close="handleBeforeClose"
@@ -44,7 +31,7 @@
         property="source_ips"
         required>
         <IpSelector
-          :biz-id="globalBizsStore.currentBizId"
+          :biz-id="bizId"
           button-text="添加 IP"
           :is-cloud-area-restrictions="false"
           :panel-list="['staticTopo', 'manualInput', 'dbmWhitelist']"
@@ -164,8 +151,6 @@
 
   import { useCopy, useInfo, useStickyFooter, useTicketMessage } from '@hooks';
 
-  import { useGlobalBizs } from '@stores';
-
   import type { AccountTypesValues } from '@common/const';
   import { AccountTypes, ClusterTypes, TicketTypes } from '@common/const';
 
@@ -210,10 +195,10 @@
   });
 
   const router = useRouter();
-  const globalBizsStore = useGlobalBizs();
   const { t } = useI18n();
   const ticketMessage = useTicketMessage();
 
+  const bizId = window.PROJECT_CONFIG.BIZ_ID;
   const formRef = ref();
   /** 设置底部按钮粘性布局 */
   useStickyFooter(formRef);
@@ -294,7 +279,10 @@
    */
   function getAccount() {
     accountState.isLoading = true;
-    getPermissionRules({ bk_biz_id: globalBizsStore.currentBizId, account_type: props.accountType })
+    getPermissionRules({
+      bk_biz_id: bizId,
+      account_type: props.accountType,
+    })
       .then((res) => {
         accountState.rules = res.results;
         // 只有一个则直接默认选中
@@ -419,7 +407,7 @@
     await formRef.value.validate();
     const params = {
       ...state.formdata,
-      bizId: globalBizsStore.currentBizId,
+      bizId,
       cluster_type: clusterState.clusterType,
     };
     state.isLoading = true;
@@ -456,7 +444,7 @@
    */
   function createAuthorizeTicket(uid: string, data: AuthorizePreCheckData) {
     const params = {
-      bk_biz_id: globalBizsStore.currentBizId,
+      bk_biz_id: bizId,
       details: {
         authorize_uid: uid,
         authorize_data: data,

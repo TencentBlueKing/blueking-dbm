@@ -725,6 +725,7 @@
       query: {
         bizId: currentBizId,
         groupId: groupId.value,
+        from: route.name as string,
       },
     });
   };

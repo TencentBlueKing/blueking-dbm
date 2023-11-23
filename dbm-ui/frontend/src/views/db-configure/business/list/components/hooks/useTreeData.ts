@@ -151,7 +151,6 @@ export const useTreeData = (treeState: TreeState) => {
           };
           treeData.push(rootNode);
         }
-        console.log('???', treeData);
         // eslint-disable-next-line no-param-reassign
         treeState.data = treeData;
         nextTick(setDefaultNode);

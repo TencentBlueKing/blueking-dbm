@@ -173,7 +173,7 @@
               v-model:domains="formdata.details.domains"
               :formdata="formdata"
               :module-name="moduleName"
-              :ticket-type="type" />
+              :ticket-type="dbType" />
           </BkFormItem>
           <BkFormItem
             :label="$t('服务器选择')"
@@ -362,6 +362,7 @@
 <script setup lang="tsx">
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
+  import { useRoute } from 'vue-router';
 
   import type {
     BizItem,
@@ -389,12 +390,6 @@
   import PreviewTable from './components/PreviewTable.vue';
   import { useMysqlData } from './hooks/useMysqlData';
 
-  interface Props {
-    type: string
-  }
-
-  const props = defineProps<Props>();
-
   // 基础设置
   const {
     baseState,
@@ -405,8 +400,12 @@
   } = useApplyBase();
 
   const { t } = useI18n();
+  const route = useRoute();
   const router = useRouter();
   const getSmartActionOffsetTarget = () => document.querySelector('.bk-form-content');
+
+  const isSingleType = route.name === 'SelfServiceApplySingle';
+  const dbType: string = isSingleType ? TicketTypes.MYSQL_SINGLE_APPLY : TicketTypes.MYSQL_HA_APPLY;
 
   const specProxyRef = ref();
   const specBackendRef = ref();
@@ -458,14 +457,13 @@
       },
     }],
   }));
-  const isSingleType = computed(() => props.type === TicketTypes.MYSQL_SINGLE_APPLY);
   const formItemLabels = computed(() => {
     const labels = {
       clusterCount: t('集群数量'),
       backend: 'Master / Slave',
       instNums: t('每组主机部署集群数量'),
     };
-    if (isSingleType.value) {
+    if (isSingleType) {
       labels.clusterCount = t('实例数量');
       labels.backend = t('服务器');
       labels.instNums = t('每台主机部署实例数量');
@@ -475,7 +473,7 @@
   const hostSpecInfo = computed(() => (
     fetchState.hostSpecs.find(info => info.spec === formdata.details.spec)
   ));
-  const typeInfo = computed(() => mysqlType[props.type as MysqlTypeString]);
+  const typeInfo = computed(() => mysqlType[dbType as MysqlTypeString]);
   const moduleName = computed(() => {
     const item = fetchState.moduleList.find(item => item.db_module_id === formdata.details.db_module_id);
     return item?.name ?? '';
@@ -490,7 +488,7 @@
     const { cluster_count: clusterCount, inst_num: instCount } = formdata.details;
     if (clusterCount <= 0 || instCount <= 0) return 0;
     const nums = Math.ceil(clusterCount / instCount);
-    return isSingleType.value ? nums : nums * 2;
+    return isSingleType ? nums : nums * 2;
   });
 
   // 获取基础数据信息
@@ -502,7 +500,7 @@
     handleResetFormdata,
     fetchModules,
     fetchLevelConfig,
-  } = useMysqlData(props.type);
+  } = useMysqlData(dbType);
 
   function handleChangeClusterCount(value: number) {
     if (value && formdata.details.inst_num > value) {
@@ -664,7 +662,7 @@
         const { cityName } = regionItemRef.value.getValue();
         if (formdata.details.ip_source === 'resource_pool') {
           delete details.nodes;
-          if (isSingleType.value) {
+          if (isSingleType) {
             return {
               ...details,
               resource_spec: {
@@ -729,7 +727,7 @@
     const url = router.resolve({
       name: 'SelfServiceCreateDbModule',
       params: {
-        type: props.type,
+        type: dbType,
         bk_biz_id: formdata.bk_biz_id,
       },
     });
@@ -748,7 +746,7 @@
     const url = router.resolve({
       name: 'SelfServiceBindDbModule',
       params: {
-        type: props.type,
+        type: dbType,
         bk_biz_id: formdata.bk_biz_id,
         db_module_id: formdata.details.db_module_id,
       },
@@ -756,6 +754,18 @@
     });
     window.open(url.href, '_blank');
   };
+
+  defineExpose({
+    routerBack() {
+      if (!route.params.from) {
+        router.back();
+        return;
+      }
+      router.push({
+        name: route.params.from as string,
+      });
+    },
+  });
 </script>
 
 <style lang="less" scoped>

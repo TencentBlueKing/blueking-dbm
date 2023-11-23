@@ -17,7 +17,6 @@
       <DbForm
         ref="formRef"
         auto-label-width
-        class="apply-form"
         :model="formdata"
         :rules="rules">
         <DbCard :title="$t('业务信息')">
@@ -109,19 +108,20 @@
     </div>
     <template #action>
       <BkButton
+        class="w-88"
         :loading="baseState.isSubmitting"
         theme="primary"
         @click="handleSubmit">
         {{ $t('提交') }}
       </BkButton>
       <BkButton
-        class="ml-8"
+        class="ml-8 w-88"
         :disabled="baseState.isSubmitting"
         @click="handleResetFormdata">
         {{ $t('重置') }}
       </BkButton>
       <BkButton
-        class="ml-8"
+        class="ml-8 w-88"
         :disabled="baseState.isSubmitting"
         @click="handleCancel">
         {{ $t('取消') }}
@@ -133,6 +133,10 @@
 <script setup lang="ts">
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
+  import {
+    useRoute,
+    useRouter,
+  } from 'vue-router';
 
   import type { BizItem } from '@services/types';
 
@@ -151,6 +155,8 @@
 
   import ModuleItem from './components/ModuleItem.vue';
 
+  const route = useRoute();
+  const router = useRouter();
   const { t } = useI18n();
 
   const getSmartActionOffsetTarget = () => document.querySelector('.bk-form-content');
@@ -279,6 +285,18 @@
     // 若业务没有英文名称则先创建业务英文名称再创建单据，反正直接创建单据
     bizState.hasEnglishName ? handleCreateTicket(params) : handleCreateAppAbbr(params);
   }
+
+  defineExpose({
+    routerBack() {
+      if (!route.params.from) {
+        router.back();
+        return;
+      }
+      router.push({
+        name: route.params.from as string,
+      });
+    },
+  });
 </script>
 
 <style lang="less" scoped>

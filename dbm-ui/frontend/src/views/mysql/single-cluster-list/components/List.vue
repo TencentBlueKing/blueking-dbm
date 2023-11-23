@@ -61,7 +61,6 @@
       class="table-wrapper"
       :class="{'is-shrink-table': isStretchLayoutOpen}">
       <DbOriginalTable
-        :key="tableKey"
         :columns="columns"
         :data="state.data"
         :is-anomalies="isAnomalies"
@@ -96,6 +95,10 @@
 
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
+  import {
+    useRoute,
+    useRouter,
+  } from 'vue-router';
 
   import { getModules } from '@services/source/cmdb';
   import {
@@ -142,7 +145,6 @@
     getMenuListSearch,
     getSearchSelectorParams,
     isRecentDays,
-    random,
   } from '@utils';
 
   import { useTimeoutPoll } from '@vueuse/core';
@@ -170,6 +172,7 @@
   const clusterId = defineModel<number>('clusterId');
 
   const router = useRouter();
+  const route = useRoute();
   const globalBizsStore = useGlobalBizs();
   const userProfileStore = useUserProfile();
   const copy = useCopy();
@@ -180,7 +183,6 @@
     splitScreen: stretchLayoutSplitScreen,
   } = useStretchLayout();
 
-  const tableKey = ref(random());
   const isAnomalies = ref(false);
   const isInit = ref(true);
   const showEditEntryConfig = ref(false);
@@ -250,7 +252,7 @@
             <bk-button
               text
               theme="primary"
-              onClick={() => handleToDetails(data)}>
+              onClick={() => handleToDetails(data.id)}>
               {cell}
             </bk-button>
           </span>
@@ -471,12 +473,14 @@
   });
 
   // 设置轮询
-  const { pause, resume } = useTimeoutPoll(() => {
+  const {
+    pause,
+  } = useTimeoutPoll(() => {
     fetchResources(isInit.value);
-  }, 5000, { immediate: false });
-  onMounted(() => {
-    resume();
+  }, 5000, {
+    immediate: false,
   });
+
   onBeforeUnmount(() => {
     pause();
   });
@@ -569,6 +573,10 @@
         state.pagination.count = res.count;
         state.data = res.results;
         isAnomalies.value = false;
+        // 路由带有集群id, 则展开集群详情页
+        if (route.query.id && !clusterId.value && res.results.length > 0) {
+          handleToDetails(Number(route.query.id));
+        }
       })
       .catch(() => {
         state.pagination.count = 0;
@@ -588,9 +596,9 @@
   /**
    * 查看详情
    */
-  function handleToDetails(row: ResourceItem) {
+  function handleToDetails(id: number) {
     stretchLayoutSplitScreen();
-    clusterId.value = row.id;
+    clusterId.value = id;
   }
 
   /**
@@ -723,6 +731,7 @@
       name: 'SelfServiceApplySingle',
       query: {
         bizId: globalBizsStore.currentBizId,
+        from: route.name as string,
       },
     });
   }

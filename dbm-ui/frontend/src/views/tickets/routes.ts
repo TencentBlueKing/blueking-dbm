@@ -13,8 +13,6 @@
 
 import type { RouteRecordRaw } from 'vue-router';
 
-import { MainViewRouteNames } from '@views/main-views/common/const';
-
 import { t } from '@locales/index';
 
 const routes: RouteRecordRaw[] = [
@@ -22,9 +20,8 @@ const routes: RouteRecordRaw[] = [
     name: 'SelfServiceMyTickets',
     path: 'my-tickets/:typeId?',
     meta: {
-      routeParentName: MainViewRouteNames.SelfService,
       navName: t('我的服务单'),
-      isMenu: true,
+      fullscreen: true,
     },
     component: () => import('@views/tickets/my-tickets/Index.vue'),
   },
@@ -32,9 +29,8 @@ const routes: RouteRecordRaw[] = [
     name: 'MyTodos',
     path: 'my-todos',
     meta: {
-      routeParentName: MainViewRouteNames.SelfService,
       navName: t('我的待办'),
-      isMenu: true,
+      fullscreen: true,
     },
     component: () => import('@views/tickets/my-todos/Index.vue'),
   },

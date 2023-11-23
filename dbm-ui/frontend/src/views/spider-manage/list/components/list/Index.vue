@@ -118,6 +118,10 @@
   import { Checkbox } from 'bkui-vue';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
+  import {
+    useRoute,
+    useRouter,
+  } from 'vue-router';
 
   import type TendbClusterModel from '@services/model/spider/tendbCluster';
   import {
@@ -171,6 +175,7 @@
     data: TendbClusterModel
   }
 
+  const route = useRoute();
   const router = useRouter();
   const { t, locale } = useI18n();
   const {
@@ -268,7 +273,7 @@
             <bk-button
               text
               theme="primary"
-              onClick={() => handleToDetails(data)}>
+              onClick={() => handleToDetails(data.id)}>
               {data.master_domain || '--'}
             </bk-button>
           </span>
@@ -698,9 +703,9 @@
   });
 
   // 查看集群详情
-  const handleToDetails = (row: TendbClusterModel) => {
+  const handleToDetails = (id: number) => {
     stretchLayoutSplitScreen();
-    clusterId.value = row.id;
+    clusterId.value = id;
   };
 
   // 集群扩容
@@ -868,6 +873,7 @@
       name: 'spiderApply',
       query: {
         bizId: currentBizId,
+        from: route.name as string,
       },
     });
   };
@@ -913,6 +919,12 @@
   const handleShowExcelAuthorize = () => {
     excelAuthorizeShow.value = true;
   };
+
+  onMounted(() => {
+    if (!clusterId.value && route.query.id) {
+      handleToDetails(Number(route.query.id));
+    }
+  });
 </script>
 
 <style lang="less" scoped>
