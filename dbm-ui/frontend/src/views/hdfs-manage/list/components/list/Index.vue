@@ -98,7 +98,10 @@
     shallowRef,
   } from 'vue';
   import { useI18n } from 'vue-i18n';
-  import { useRouter } from 'vue-router';
+  import {
+    useRoute,
+    useRouter,
+  } from 'vue-router';
 
   import type HdfsModel from '@services/model/hdfs/hdfs';
   import {
@@ -142,6 +145,7 @@
 
   const clusterId = defineModel<number>('clusterId');
 
+  const route = useRoute();
   const { t, locale } = useI18n();
   const {
     isOpen: isStretchLayoutOpen,
@@ -171,6 +175,10 @@
   const operationData = shallowRef<HdfsModel>();
 
   const serachData = [
+    {
+      name: 'ID',
+      id: 'id',
+    },
     {
       name: t('集群名'),
       id: 'name',
@@ -237,7 +245,7 @@
             <bk-button
               text
               theme="primary"
-              onClick={() => handleToDetails(data)}>
+              onClick={() => handleToDetails(data.id)}>
               {data.domain || '--'}
             </bk-button>
           </span>
@@ -459,27 +467,10 @@
           ];
         };
 
-        if (!isStretchLayoutOpen.value) {
-          return (
-            <>
-              {renderAction()}
-            </>
-          );
-        }
-
         return (
-          <bk-dropdown class="operations__more">
-            {{
-              default: () => <i class="db-icon-more"></i>,
-              content: () => (
-                <bk-dropdown-menu>
-                  {
-                    renderAction('').map(opt => <bk-dropdown-item>{opt}</bk-dropdown-item>)
-                  }
-                </bk-dropdown-menu>
-              ),
-            }}
-          </bk-dropdown>
+          <>
+            {renderAction()}
+          </>
         );
       },
     },
@@ -534,6 +525,7 @@
       name: 'HdfsApply',
       query: {
         bizId: currentBizId,
+        from: route.name as string,
       },
     });
   };
@@ -551,9 +543,9 @@
   /**
    * 查看详情
    */
-  const handleToDetails = (row: HdfsModel) => {
+  const handleToDetails = (id: number) => {
     stretchLayoutSplitScreen();
-    clusterId.value = row.id;
+    clusterId.value = id;
   };
 
   // 扩容
@@ -688,6 +680,9 @@
 
   onMounted(() => {
     resumeFetchTableData();
+    if (!clusterId.value && route.query.id) {
+      handleToDetails(Number(route.query.id));
+    }
   });
 
 </script>

@@ -11,6 +11,8 @@
  * the specific language governing permissions and limitations under the License.
 */
 
+import TendbhaModel from '@services/model/mysql/tendbha';
+
 import { useGlobalBizs } from '@stores';
 
 import http from '../http';
@@ -29,14 +31,15 @@ const path = `/apis/mysql/bizs/${currentBizId}/tendbha_resources`;
  * 查询资源列表
  */
 export function getTendbhaList(params: {
-  bk_biz_id: number,
   limit: number,
   offset: number,
-  type: string,
   cluster_ids?: number[] | number,
-  dbType: string
 }) {
-  return http.get<ListBase<ResourceItem[]>>(`${path}/`, params);
+  return http.get<ListBase<TendbhaModel[]>>(`${path}/`, params)
+    .then(data => ({
+      ...data,
+      results: data.results.map((item: TendbhaModel) => new TendbhaModel(item)),
+    }));
 }
 
 /**

@@ -89,7 +89,10 @@
     shallowRef,
   } from 'vue';
   import { useI18n } from 'vue-i18n';
-  import { useRouter } from 'vue-router';
+  import {
+    useRoute,
+    useRouter,
+  } from 'vue-router';
 
   import type KafkaModel from '@services/model/kafka/kafka';
   import {
@@ -129,6 +132,7 @@
 
   const clusterId = defineModel<number>('clusterId');
 
+  const route = useRoute();
   const router = useRouter();
   const { currentBizId } = useGlobalBizs();
   const userProfileStore = useUserProfile();
@@ -180,6 +184,10 @@
 
   const serachData = [
     {
+      name: 'ID',
+      id: 'id',
+    },
+    {
       name: t('集群名'),
       id: 'name',
     },
@@ -220,7 +228,7 @@
             <bk-button
               theme="primary"
               text
-              onClick={() => handleToDetails(data)}>
+              onClick={() => handleToDetails(data.id)}>
               {data.domain || '--'}
             </bk-button>
           </span>
@@ -379,16 +387,6 @@
                 { t('缩容') }
               </bk-button>
             </OperationStatusTips>,
-            // <OperationStatusTips
-            //   data={data}
-            //   style="display:none"
-            //   class="mr8">
-            //   <bk-button
-            //     text
-            //     theme={theme}>
-            //     { t('Topic管理') }
-            //   </bk-button>
-            // </OperationStatusTips>,
             <OperationStatusTips
               data={data}
               class="mr8">
@@ -412,27 +410,10 @@
           ];
         };
 
-        if (!isStretchLayoutOpen.value) {
-          return (
-            <>
-              {renderAction()}
-            </>
-          );
-        }
-
         return (
-          <bk-dropdown class="operations__more">
-            {{
-              default: () => <i class="db-icon-more"></i>,
-              content: () => (
-                <bk-dropdown-menu>
-                  {
-                    renderAction('').map(opt => <bk-dropdown-item>{opt}</bk-dropdown-item>)
-                  }
-                </bk-dropdown-menu>
-              ),
-            }}
-          </bk-dropdown>
+          <>
+            {renderAction()}
+          </>
         );
       },
     },
@@ -484,6 +465,7 @@
       name: 'KafkaApply',
       query: {
         bizId: currentBizId,
+        from: route.name as string,
       },
     });
   };
@@ -501,9 +483,9 @@
   /**
    * 查看详情
    */
-  const handleToDetails = (row: KafkaModel) => {
+  const handleToDetails = (id: number) => {
     stretchLayoutSplitScreen();
-    clusterId.value = row.id;
+    clusterId.value = id;
   };
 
   // 扩容
@@ -631,6 +613,9 @@
 
   onMounted(() => {
     resumeFetchTableData();
+    if (!clusterId.value && route.query.id) {
+      handleToDetails(Number(route.query.id));
+    }
   });
 
 </script>

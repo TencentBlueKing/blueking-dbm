@@ -48,7 +48,6 @@
 
   defineExpose<Exposes>({
     getValue() {
-      console.log('tareget target_db_pattern');
       return (editRef.value as InstanceType<typeof TableEditInput>)
         .getValue()
         .then(() => ({

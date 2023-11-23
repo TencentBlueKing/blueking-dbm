@@ -1,16 +1,3 @@
-<!--
- * TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
- *
- * Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
- *
- * Licensed under the MIT License (the "License"); you may not use this file except in compliance with the License.
- * You may obtain a copy of the License athttps://opensource.org/licenses/MIT
- *
- * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
- * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
- * the specific language governing permissions and limitations under the License.
--->
-
 <template>
   <BkSideslider
     :before-close="handleBeforeClose"
@@ -44,7 +31,7 @@
         property="source_ips"
         required>
         <IpSelector
-          :biz-id="globalBizsStore.currentBizId"
+          :biz-id="bizId"
           button-text="添加 IP"
           :is-cloud-area-restrictions="false"
           :panel-list="['staticTopo', 'manualInput', 'dbmWhitelist']"
@@ -155,21 +142,35 @@
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
-  import { getPermissionRules, preCheckAuthorizeRules } from '@services/permission';
+  import {
+    getPermissionRules,
+    preCheckAuthorizeRules,
+  } from '@services/permission';
   import { checkHost } from '@services/source/ipchooser';
   import { createTicket } from '@services/source/ticket';
   import { getWhitelist } from '@services/source/whitelist';
-  import type { ResourceItem } from '@services/types';
-  import type { AuthorizePreCheckData, PermissionRule } from '@services/types/permission';
+  import type {
+    AuthorizePreCheckData,
+    PermissionRule,
+  } from '@services/types/permission';
 
-  import { useCopy, useInfo, useStickyFooter, useTicketMessage } from '@hooks';
-
-  import { useGlobalBizs } from '@stores';
+  import {
+    useCopy,
+    useInfo,
+    useStickyFooter,
+    useTicketMessage,
+  } from '@hooks';
 
   import type { AccountTypesValues } from '@common/const';
-  import { AccountTypes, ClusterTypes, TicketTypes } from '@common/const';
+  import {
+    AccountTypes,
+    ClusterTypes,
+    TicketTypes,
+  } from '@common/const';
 
-  import ClusterSelector, { getClusterSelectorSelected } from '@components/cluster-selector/ClusterSelector.vue';
+  import ClusterSelector, {
+    getClusterSelectorSelected,
+  } from '@components/cluster-selector/ClusterSelector.vue';
   import type { ClusterSelectorResult } from '@components/cluster-selector/types';
   import DBCollapseTable, {
     type ClusterTableProps,
@@ -185,7 +186,11 @@
   interface Props {
     user?: string,
     accessDbs?: string[],
-    selected?: ResourceItem[],
+    selected?: {
+      master_domain: string,
+      cluster_name: string,
+      db_module_name: string,
+    }[],
     clusterType?: string,
     accountType?: AccountTypesValues,
     tabList?: string[]
@@ -210,9 +215,25 @@
   });
 
   const router = useRouter();
-  const globalBizsStore = useGlobalBizs();
   const { t } = useI18n();
   const ticketMessage = useTicketMessage();
+
+  const bizId = window.PROJECT_CONFIG.BIZ_ID;
+  /**
+   * 重置表单数据
+   */
+  const initFormdata = (user = '', accessDbs: string[] = []): AuthorizePreCheckData => ({
+    access_dbs: [...accessDbs],
+    source_ips: [],
+    target_instances: [],
+    user,
+    cluster_type: '',
+  });
+
+  const ticketTypeMap = {
+    [AccountTypes.MYSQL]: TicketTypes.MYSQL_AUTHORIZE_RULES,
+    [AccountTypes.TENDBCLUSTER]: TicketTypes.TENDBCLUSTER_AUTHORIZE_RULES,
+  };
 
   const formRef = ref();
   /** 设置底部按钮粘性布局 */
@@ -226,42 +247,72 @@
     },
     formdata: initFormdata(props.user),
   });
-  const rules = {
-    source_ips: [{
-      trigger: 'change',
-      message: t('请添加访问源'),
-      validator: (value: string[]) => value.length > 0,
-    }],
-    target_instances: [{
-      trigger: 'change',
-      message: t('请添加目标集群'),
-      validator: (value: string[]) => value.length > 0,
-    }],
-    user: [{
-      required: true,
-      trigger: 'blur',
-      message: t('请选择账户名'),
-    }],
-    access_dbs: [{
-      trigger: 'blur',
-      message: t('请选择访问DB'),
-      validator: (value: string[]) => value.length > 0,
-    }],
-  };
+  /** 目标集群 */
+  const copy = useCopy();
 
-  /**
-   * 重置表单数据
-   */
-  function initFormdata(user = '', accessDbs: string[] = []): AuthorizePreCheckData {
-    return {
-      access_dbs: [...accessDbs],
-      source_ips: [],
-      target_instances: [],
-      user,
-      cluster_type: '',
-    };
-  }
-
+  const clusterState = reactive({
+    clusterType: props.clusterType,
+    selected: getClusterSelectorSelected(),
+    isShow: false,
+    tableProps: {
+      data: [] as NonNullable<Props['selected']>,
+      columns: [
+        {
+          label: t('域名'),
+          field: 'master_domain',
+        },
+        {
+          label: t('集群'),
+          field: 'cluster_name',
+        },
+        {
+          label: t('所属DB模块'),
+          field: 'db_module_name',
+        },
+        {
+          label: t('操作'),
+          field: 'operation',
+          width: 100,
+          render: ({ index }: { index: number }) => (
+            <bk-button
+              text
+              theme="primary"
+              onClick={() => handleRemoveSelected(index)}>
+              {t('删除')}
+            </bk-button>
+          ),
+        },
+      ],
+      pagination: {
+        small: true,
+      },
+    } as unknown as ClusterTableProps,
+    operations: [
+      {
+        label: t('清除所有'),
+        onClick: () => {
+          clusterState.tableProps.data = [];
+        },
+      },
+      {
+        label: t('复制所有域名'),
+        onClick: () => {
+          const value = clusterState.tableProps.data.map(item => item.master_domain).join('\n');
+          copy(value);
+        },
+      },
+    ],
+  });
+  const clusterSelectorSelected = computed(() => {
+    const {
+      selected,
+      clusterType,
+      tableProps,
+    } = clusterState;
+    selected[clusterType] = tableProps.data;
+    return selected;
+  });
+  const clusterTypeTitle = computed(() => (clusterState.clusterType === ClusterTypes.TENDBHA ? t('主从') : t('单节点')));
   /** 权限规则功能 */
   const accountState = reactive({
     isLoading: false,
@@ -278,23 +329,61 @@
 
     return curRules.value.filter(item => state.formdata.access_dbs.includes(item.access_db));
   });
-  const columns = [{
-    label: 'DB',
-    field: 'access_db',
-    showOverflowTooltip: true,
-  }, {
-    label: t('权限'),
-    field: 'privilege',
-    showOverflowTooltip: true,
-    render: ({ cell }: { cell: string }) => <span>{cell || '--'}</span>,
-  }];
+  const columns = [
+    {
+      label: 'DB',
+      field: 'access_db',
+      showOverflowTooltip: true,
+    },
+    {
+      label: t('权限'),
+      field: 'privilege',
+      showOverflowTooltip: true,
+      render: ({ cell }: { cell: string }) => <span>{cell || '--'}</span>,
+    },
+  ];
+
+  const rules = {
+    source_ips: [
+      {
+        trigger: 'change',
+        message: t('请添加访问源'),
+        validator: (value: string[]) => value.length > 0,
+      },
+    ],
+    target_instances: [
+      {
+        trigger: 'change',
+        message: t('请添加目标集群'),
+        validator: (value: string[]) => value.length > 0,
+      },
+    ],
+    user: [
+      {
+        required: true,
+        trigger: 'blur',
+        message: t('请选择账户名'),
+      },
+    ],
+    access_dbs: [
+      {
+        trigger: 'blur',
+        message: t('请选择访问DB'),
+        validator: (value: string[]) => value.length > 0,
+      },
+    ],
+  };
+
 
   /**
    * 获取账号信息
    */
-  function getAccount() {
+  const getAccount = () => {
     accountState.isLoading = true;
-    getPermissionRules({ bk_biz_id: globalBizsStore.currentBizId, account_type: props.accountType })
+    getPermissionRules({
+      bk_biz_id: bizId,
+      account_type: props.accountType,
+    })
       .then((res) => {
         accountState.rules = res.results;
         // 只有一个则直接默认选中
@@ -305,102 +394,7 @@
       .finally(() => {
         accountState.isLoading = false;
       });
-  }
-
-  /**
-   * 选择账号重置访问 DB
-   */
-  function handleSelectedUser() {
-    state.formdata.access_dbs = [];
-  }
-
-  /**
-   * ip 选择
-   */
-  function handleChangeIP(data: ServiceReturnType<typeof checkHost>) {
-    state.formdata.source_ips = data.map(item => ({
-      ip: item.ip,
-      bk_host_id: item.host_id,
-      bk_biz_id: item.biz.id,
-    }));
-  }
-
-  function handleChangeWhitelist(data: ServiceReturnType<typeof getWhitelist>['results']) {
-    // 避免与 handleChangeIP 同时修改 source_ips 参数
-    nextTick(() => {
-      const formatData = data
-        .reduce((ips: string[], item) => ips.concat(item.ips), [])
-        .map(ip => ({ ip }));
-      state.formdata.source_ips.push(...formatData);
-    });
-  }
-
-  /** 目标集群 */
-  const copy = useCopy();
-
-  const clusterState = reactive({
-    clusterType: props.clusterType,
-    selected: getClusterSelectorSelected(),
-    isShow: false,
-    tableProps: {
-      data: [] as ResourceItem[],
-      columns: [{
-        label: t('域名'),
-        field: 'master_domain',
-      }, {
-        label: t('集群'),
-        field: 'cluster_name',
-      }, {
-        label: t('所属DB模块'),
-        field: 'db_module_name',
-      }, {
-        label: t('操作'),
-        field: 'operation',
-        width: 100,
-        render: ({ index }: { index: number }) => <bk-button text theme="primary" onClick={() => handleRemoveSelected(index)}>{t('删除')}</bk-button>,
-      }],
-      pagination: {
-        small: true,
-      },
-    } as unknown as ClusterTableProps,
-    operations: [{
-      label: t('清除所有'),
-      onClick: () => {
-        clusterState.tableProps.data = [];
-      },
-    }, {
-      label: t('复制所有域名'),
-      onClick: () => {
-        const value = clusterState.tableProps.data.map(item => item.master_domain).join('\n');
-        copy(value);
-      },
-    }],
-  });
-  const clusterSelectorSelected = computed(() => {
-    const { selected, clusterType, tableProps } = clusterState;
-    selected[clusterType] = tableProps.data;
-    return selected;
-  });
-  const clusterTypeTitle = computed(() => (clusterState.clusterType === ClusterTypes.TENDBHA ? t('主从') : t('单节点')));
-  // 获取选中集群
-  watch(() => clusterState.tableProps.data, (data) => {
-    state.formdata.target_instances = data.map(item => item.master_domain);
-  }, { immediate: true, deep: true });
-  function handleShowTargetCluster() {
-    clusterState.isShow = true;
-  }
-  /**
-   * 选择器返回结果
-   */
-  function handleClusterSelected(selected: ClusterSelectorResult) {
-    const clusterType = Object.keys(selected).find(key => selected[key].length > 0) || ClusterTypes.TENDBHA;
-    clusterState.tableProps.data = selected[clusterType];
-    clusterState.clusterType = clusterType;
-  }
-
-  function handleRemoveSelected(index: number) {
-    clusterState.tableProps.data.splice(index, 1);
-  }
+  };
 
   /** 初始化信息 */
   watch(isShow, (show) => {
@@ -409,17 +403,98 @@
       state.formdata = initFormdata(props.user, props.accessDbs);
       clusterState.tableProps.data = _.cloneDeep(props.selected);
       clusterState.clusterType = props.clusterType;
+      state.formdata.target_instances = props.selected.map(item => item.master_domain);
     }
   });
 
   /**
+   * 选择账号重置访问 DB
+   */
+  const handleSelectedUser = () => {
+    state.formdata.access_dbs = [];
+  };
+
+  /**
+   * ip 选择
+   */
+  const handleChangeIP = (data: ServiceReturnType<typeof checkHost>) => {
+    state.formdata.source_ips = data.map(item => ({
+      ip: item.ip,
+      bk_host_id: item.host_id,
+      bk_biz_id: item.biz.id,
+    }));
+  };
+
+  const handleChangeWhitelist = (data: ServiceReturnType<typeof getWhitelist>['results']) => {
+    // 避免与 handleChangeIP 同时修改 source_ips 参数
+    nextTick(() => {
+      const formatData = data
+        .reduce((ips: string[], item) => ips.concat(item.ips), [])
+        .map(ip => ({ ip }));
+      state.formdata.source_ips.push(...formatData);
+    });
+  };
+
+
+  const handleShowTargetCluster = () => {
+    clusterState.isShow = true;
+  };
+  /**
+   * 选择器返回结果
+   */
+  const handleClusterSelected = (selected: ClusterSelectorResult) => {
+    const clusterType = Object.keys(selected).find(key => selected[key].length > 0) || ClusterTypes.TENDBHA;
+    clusterState.tableProps.data = selected[clusterType];
+    clusterState.clusterType = clusterType;
+  };
+
+  const handleRemoveSelected = (index: number) => {
+    clusterState.tableProps.data.splice(index, 1);
+  };
+
+  /**
+   * 跳转新建规则界面
+   */
+  const handleToCreateRules = () => {
+    const url = router.resolve({ name: 'PermissionRules' });
+    window.open(url.href, '_blank');
+  };
+
+  /**
+   * 创建授权单据
+   */
+  const createAuthorizeTicket = (uid: string, data: AuthorizePreCheckData) => {
+    const params = {
+      bk_biz_id: bizId,
+      details: {
+        authorize_uid: uid,
+        authorize_data: data,
+      },
+      remark: '',
+      ticket_type: ticketTypeMap[props.accountType],
+    };
+    createTicket(params)
+      .then((res) => {
+        ticketMessage(res.id);
+        nextTick(() => {
+          emits('success');
+          window.changeConfirm = false;
+          handleClose();
+        });
+      })
+      .finally(() => {
+        state.isLoading = false;
+      });
+  };
+
+  /**
    * 授权规则前置检测
    */
-  async function handleSubmit() {
+  const handleSubmit = async () => {
     await formRef.value.validate();
     const params = {
       ...state.formdata,
-      bizId: globalBizsStore.currentBizId,
+      bizId,
       cluster_type: clusterState.clusterType,
     };
     state.isLoading = true;
@@ -444,41 +519,10 @@
       .catch(() => {
         state.isLoading = false;
       });
-  }
-
-  const ticketTypeMap = {
-    [AccountTypes.MYSQL]: TicketTypes.MYSQL_AUTHORIZE_RULES,
-    [AccountTypes.TENDBCLUSTER]: TicketTypes.TENDBCLUSTER_AUTHORIZE_RULES,
   };
 
-  /**
-   * 创建授权单据
-   */
-  function createAuthorizeTicket(uid: string, data: AuthorizePreCheckData) {
-    const params = {
-      bk_biz_id: globalBizsStore.currentBizId,
-      details: {
-        authorize_uid: uid,
-        authorize_data: data,
-      },
-      remark: '',
-      ticket_type: ticketTypeMap[props.accountType],
-    };
-    createTicket(params)
-      .then((res) => {
-        ticketMessage(res.id);
-        nextTick(() => {
-          emits('success');
-          window.changeConfirm = false;
-          handleClose();
-        });
-      })
-      .finally(() => {
-        state.isLoading = false;
-      });
-  }
 
-  function handleBeforeClose() {
+  const handleBeforeClose = () => {
     if (state.isLoading) return false;
 
     if (window.changeConfirm) {
@@ -496,12 +540,12 @@
       });
     }
     return true;
-  }
+  };
 
   /**
    * 关闭授权侧栏 & 重置数据
    */
-  async function handleClose() {
+  const handleClose = async () => {
     const result = await handleBeforeClose();
     if (!result) return;
 
@@ -514,15 +558,7 @@
     };
     window.changeConfirm = false;
     isShow.value = false;
-  }
-
-  /**
-   * 跳转新建规则界面
-   */
-  function handleToCreateRules() {
-    const url = router.resolve({ name: 'PermissionRules' });
-    window.open(url.href, '_blank');
-  }
+  };
 </script>
 
 <style lang="less" scoped>

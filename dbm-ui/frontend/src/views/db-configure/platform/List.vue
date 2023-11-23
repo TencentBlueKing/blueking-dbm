@@ -44,12 +44,14 @@
 <script setup lang="tsx">
   import type { Column } from 'bkui-vue/lib/table/props';
   import { useI18n } from 'vue-i18n';
+  import {
+    useRoute,
+    useRouter,
+  } from 'vue-router';
 
   import { getPlatformConfigList } from '@services/source/configs';
 
   import { useTableMaxHeight } from '@hooks';
-
-  import { useMainViewStore } from '@stores';
 
   import type { ClusterTypesValues } from '@common/const';
 
@@ -60,9 +62,8 @@
   type ConfigListItem = ServiceReturnType<typeof getPlatformConfigList>
 
   const { t } = useI18n();
+  const route = useRoute();
   const router = useRouter();
-  const mainViewStore = useMainViewStore();
-  mainViewStore.hasPadding = false;
 
   const state = reactive({
     confType: 'dbconf',
@@ -84,8 +85,13 @@
       label: t('名称'),
       field: 'name',
       render: ({ cell, data }: { cell: string, data: ConfigListItem[number] }) => (
-      <bk-button text theme="primary" onClick={handleToDetails.bind(this, data)}>{cell}</bk-button>
-    ),
+        <bk-button
+          text
+          theme="primary"
+          onClick={() => handleToDetails(data)}>
+          {cell}
+        </bk-button>
+      ),
     },
     {
       label: t('数据库版本'),
@@ -104,10 +110,16 @@
       label: t('操作'),
       field: 'operation',
       render: ({ data }: { data: ConfigListItem[number] }) => (
-      <div class="operation">
-        <bk-button text theme="primary" class="mr-24" onClick={handleUpdateDetails.bind(this, data)}>{ t('编辑') }</bk-button>
-      </div>
-    ),
+        <div class="operation">
+          <bk-button
+            text
+            theme="primary"
+            class="mr-24"
+            onClick={() => handleUpdateDetails(data)}>
+            { t('编辑') }
+          </bk-button>
+        </div>
+      ),
     },
   ];
 
@@ -123,7 +135,9 @@
       tabs.push(...item);
     }
     state.tabs = tabs;
-  }, { immediate: true });
+  }, {
+    immediate: true,
+  });
 
   /**
    * 切换 tab
@@ -150,6 +164,9 @@
         confType: state.confType,
         version: row.version,
       },
+      query: {
+        from: route.name as string,
+      },
     });
   };
 
@@ -163,6 +180,9 @@
         clusterType: state.clusterType,
         confType: state.confType,
         version: row.version,
+      },
+      query: {
+        from: route.name as string,
       },
     });
   };

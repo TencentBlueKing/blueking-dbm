@@ -74,7 +74,6 @@
   });
 
   watch(() => props.instanceData, () => {
-    console.log('props.instanceData = ', props.instanceData);
     if (!props.instanceData) {
       return;
     }

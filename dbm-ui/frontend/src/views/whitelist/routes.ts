@@ -13,8 +13,6 @@
 
 import type { RouteRecordRaw } from 'vue-router';
 
-import { MainViewRouteNames } from '@views/main-views/common/const';
-
 import { t } from '@locales/index';
 
 const routes: RouteRecordRaw[] = [
@@ -22,9 +20,7 @@ const routes: RouteRecordRaw[] = [
     name: 'PlatformWhitelist',
     path: 'whitelist_platform',
     meta: {
-      routeParentName: MainViewRouteNames.Platform,
       navName: t('授权白名单'),
-      isMenu: true,
     },
     component: () => import('@views/whitelist/list/Index.vue'),
   },
@@ -32,10 +28,7 @@ const routes: RouteRecordRaw[] = [
     name: 'DatabaseWhitelist',
     path: 'whitelist_database',
     meta: {
-      routeParentName: MainViewRouteNames.Database,
       navName: t('授权白名单'),
-      isMenu: true,
-      submenuId: 'database-permission',
     },
     component: () => import('@views/whitelist/list/Index.vue'),
   },

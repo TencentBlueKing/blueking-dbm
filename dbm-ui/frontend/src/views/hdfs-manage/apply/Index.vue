@@ -341,6 +341,10 @@
   import _ from 'lodash';
   import { reactive } from 'vue';
   import { useI18n } from 'vue-i18n';
+  import {
+    useRoute,
+    useRouter,
+  } from 'vue-router';
 
   import { getVersions } from '@services/source/version';
   import type {
@@ -366,6 +370,8 @@
   import RenderHostTable from '@components/cluster-common/big-data-host-table/RenderHostTable.vue';
   import IpSelector from '@components/ip-selector/IpSelector.vue';
 
+  const route = useRoute();
+  const router = useRouter();
   const { t } = useI18n();
 
   const genDefaultFormData = () => ({
@@ -640,6 +646,18 @@
       },
     });
   };
+
+  defineExpose({
+    routerBack() {
+      if (!route.query.from) {
+        router.back();
+        return;
+      }
+      router.push({
+        name: route.query.from as string,
+      });
+    },
+  });
 </script>
 <style lang="less">
   .apply-hdfs-page {
