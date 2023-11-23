@@ -35,6 +35,7 @@
           :is="renderCom"
           :key="panelTabActive"
           :last-values="lastValues"
+          :panel-tab-active="panelTabActive"
           :role="role"
           @change="handleChange" />
       </template>
@@ -71,12 +72,12 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import type { InstanceSelectorValues } from './common/types';
-  import PanelTab, {
-    activePanelInjectionKey,
+  import {
     defaultPanelList,
+    type InstanceSelectorValues,
     type PanelTypes,
-  } from './components/PanelTab.vue';
+  } from './common/types';
+  import PanelTab from './components/PanelTab.vue';
   import PreviewResult from './components/PreviewResult.vue';
   import RenderManualInput from './components/RenderManualInput.vue';
   import RenderTopo from './components/RenderTopo.vue';
@@ -119,7 +120,6 @@
 
   const isEmpty = computed(() => !Object.values(lastValues).some(values => values.length > 0));
 
-  provide(activePanelInjectionKey, panelTabActive);
 
   const renderCom = computed(() => comMap[panelTabActive.value as keyof typeof comMap]);
 

@@ -35,3 +35,7 @@ export type InstanceSelectorValues = {
   tendbsingle: InstanceSelectorValue[],
   tendbcluster: InstanceSelectorValue[]
 }
+
+export const defaultPanelList = ['tendbsingle', 'tendbha', 'tendbcluster', 'manualInput'] as const;
+
+export type PanelTypes = typeof defaultPanelList[number];

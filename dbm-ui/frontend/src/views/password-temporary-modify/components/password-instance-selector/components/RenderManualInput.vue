@@ -98,11 +98,11 @@
 
   import { useGlobalBizs } from '@stores';
 
-  import { ClusterTypes } from '@common/const';
   import {
     type ClusterTypeInfos,
     clusterTypeInfos,
   } from '@common/const';
+  import { ClusterTypes } from '@common/const';
   import { ipPort } from '@common/regex';
 
   import type {
