@@ -41,7 +41,7 @@
   import { watch } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import TableEditDateTime from '@views/spider-manage/common/edit/DateTime.vue';
+  import TableEditDateTime from '@components/render-table/columns/DateTime.vue';
 
   interface Props {
     startTime?: string,

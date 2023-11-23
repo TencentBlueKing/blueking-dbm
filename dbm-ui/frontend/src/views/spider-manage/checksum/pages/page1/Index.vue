@@ -40,7 +40,6 @@
           required>
           <BkDatePicker
             v-model="formData.timing"
-            :disabled-date="timeingDisableCallback"
             style="width: 360px"
             type="datetime" />
         </BkFormItem>
@@ -179,7 +178,6 @@
     const [firstRow] = list;
     return !firstRow.clusterData;
   };
-  const timeingDisableCallback = (date: Date|number) => dayjs(date).isAfter(dayjs());
 
   // 批量选择
   const handleShowBatchSelector = () => {
