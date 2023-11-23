@@ -179,6 +179,10 @@
 
   const searchSelectData = [
     {
+      name: 'ID',
+      id: 'id',
+    },
+    {
       name: t('实例'),
       id: 'instance_address',
     },
@@ -725,6 +729,7 @@
       query: {
         bizId: currentBizId,
         groupId: groupId.value,
+        from: route.name as string,
       },
     });
   };

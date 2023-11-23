@@ -61,7 +61,6 @@
       class="table-wrapper"
       :class="{'is-shrink-table': isStretchLayoutOpen}">
       <DbOriginalTable
-        :key="tableKey"
         :columns="columns"
         :data="state.data"
         :is-anomalies="isAnomalies"
@@ -96,7 +95,12 @@
 
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
+  import {
+    useRoute,
+    useRouter,
+  } from 'vue-router';
 
+  import TendbsingleModel from '@services/model/mysql/tendbsingle';
   import { getModules } from '@services/source/cmdb';
   import {
     getTendbsingleDetail,
@@ -106,7 +110,6 @@
   import { createTicket } from '@services/source/ticket';
   import { getUserList } from '@services/source/user';
   import type {
-    ResourceItem,
     SearchFilterItem,
   } from '@services/types';
 
@@ -142,7 +145,6 @@
     getMenuListSearch,
     getSearchSelectorParams,
     isRecentDays,
-    random,
   } from '@utils';
 
   // import { useTimeoutPoll } from '@vueuse/core';
@@ -154,14 +156,14 @@
 
   interface ColumnData {
     cell: string,
-    data: ResourceItem
+    data: TendbsingleModel
   }
 
   interface State {
     isLoading: boolean,
     pagination: IPagination,
-    data: Array<ResourceItem>,
-    selected: Array<ResourceItem>,
+    data: Array<TendbsingleModel>,
+    selected: Array<TendbsingleModel>,
     filters: Array<any>,
     dbModuleList: Array<SearchFilterItem>,
   }
@@ -169,6 +171,7 @@
   const clusterId = defineModel<number>('clusterId');
 
   const router = useRouter();
+  const route = useRoute();
   const globalBizsStore = useGlobalBizs();
   const userProfileStore = useUserProfile();
   const copy = useCopy();
@@ -179,7 +182,6 @@
     splitScreen: stretchLayoutSplitScreen,
   } = useStretchLayout();
 
-  const tableKey = ref(random());
   const isAnomalies = ref(false);
   const isInit = ref(true);
   const showEditEntryConfig = ref(false);
@@ -197,6 +199,10 @@
   const hasSelected = computed(() => state.selected.length > 0);
   const hasData = computed(() => state.data.length > 0);
   const searchSelectData = computed(() => [
+    {
+      name: 'ID',
+      id: 'id',
+    },
     {
       name: t('访问入口'),
       id: 'domain',
@@ -249,11 +255,14 @@
             <bk-button
               text
               theme="primary"
-              onClick={() => handleToDetails(data)}>
+              onClick={() => handleToDetails(data.id)}>
               {cell}
             </bk-button>
           </span>
-          <i class="db-icon-copy" v-bk-tooltips={t('复制主访问入口')} onClick={() => copy(cell)} />
+          <db-icon
+            v-bk-tooltips={t('复制主访问入口')}
+            type="copy"
+            onClick={() => copy(cell)} />
           {userProfileStore.isManager && <db-icon
               type="edit"
               v-bk-tooltips={t('修改入口配置')}
@@ -365,82 +374,55 @@
       field: '',
       width: tableOperationWidth.value,
       fixed: isStretchLayoutOpen.value ? false : 'right',
-      render: ({ data }: ColumnData) => {
-        const getOperations = (theme = 'primary') => {
-          const operations = [
+      render: ({ data }: ColumnData) => (
+        <>
           <bk-button
             text
-            theme={theme}
+            theme="primary"
             class="mr-8"
             onClick={handleShowAuthorize.bind(null, [data])}>
             { t('授权') }
-          </bk-button>,
-          ];
-          switch (data.phase) {
-          case 'online':
-            operations.push(<bk-button
-            text
-            theme={theme}
-            class="mr-8"
-            onClick={() => handleSwitchCluster(TicketTypes.MYSQL_SINGLE_DISABLE, data)}>
-            { t('禁用') }
-          </bk-button>);
-            break;
-          case 'offline':
-            operations.push(...[
-            <bk-button
-              text
-              theme={theme}
-              class="mr-8"
-              onClick={() => handleSwitchCluster(TicketTypes.MYSQL_SINGLE_ENABLE, data)}>
-              { t('启用') }
-            </bk-button>,
-            <bk-button
-              text
-              theme={theme}
-              class="mr-8"
-              onClick={() => handleDeleteCluster(data)}>
-              { t('删除') }
-            </bk-button>,
-            ]);
-            break;
+          </bk-button>
+          {
+            data.isOnline ? (
+              <bk-button
+                text
+                theme="primary"
+                class="mr-8"
+                onClick={() => handleSwitchCluster(TicketTypes.MYSQL_SINGLE_DISABLE, data)}>
+                { t('禁用') }
+              </bk-button>
+            ) : (
+              <>
+                <bk-button
+                  text
+                  theme="primary"
+                  class="mr-8"
+                  onClick={() => handleSwitchCluster(TicketTypes.MYSQL_SINGLE_ENABLE, data)}>
+                  { t('启用') }
+                </bk-button>
+                <bk-button
+                  text
+                  theme="primary"
+                  class="mr-8"
+                  onClick={() => handleDeleteCluster(data)}>
+                  { t('删除') }
+                </bk-button>
+              </>
+            )
           }
-
-          return operations;
-        };
-        if (!isStretchLayoutOpen.value) {
-          return (
-          <>
-            {getOperations()}
-          </>
-          );
-        }
-
-        return (
-        <bk-dropdown class="operations-more">
-          {{
-            default: () => <i class="db-icon-more"></i>,
-            content: () => (
-              <bk-dropdown-menu>
-                {
-                  getOperations('').map(opt => <bk-dropdown-item>{opt}</bk-dropdown-item>)
-                }
-              </bk-dropdown-menu>
-            ),
-          }}
-        </bk-dropdown>
-        );
-      },
+        </>
+      ),
     },
   ]);
 
-  const handleOpenEntryConfig = (row: ResourceItem) => {
+  const handleOpenEntryConfig = (row: TendbsingleModel) => {
     showEditEntryConfig.value  = true;
     clusterId.value = row.id;
   };
 
   // 设置行样式
-  const setRowClass = (row: ResourceItem) => {
+  const setRowClass = (row: TendbsingleModel) => {
     const classList = [row.phase === 'offline' ? 'is-offline' : ''];
     const newClass = isRecentDays(row.create_at, 24 * 3) ? 'is-new-row' : '';
     classList.push(newClass);
@@ -529,9 +511,9 @@
   /** 集群授权 */
   const authorizeState = reactive({
     isShow: false,
-    selected: [] as ResourceItem[],
+    selected: [] as TendbsingleModel[],
   });
-  function handleShowAuthorize(selected: ResourceItem[] = []) {
+  function handleShowAuthorize(selected: TendbsingleModel[] = []) {
     authorizeState.isShow = true;
     authorizeState.selected = selected;
   }
@@ -581,6 +563,10 @@
         state.pagination.count = res.count;
         state.data = res.results;
         isAnomalies.value = false;
+        // 路由带有集群id, 则展开集群详情页
+        if (route.query.id && !clusterId.value && res.results.length > 0) {
+          handleToDetails(Number(route.query.id));
+        }
       })
       .catch(() => {
         state.pagination.count = 0;
@@ -600,15 +586,15 @@
   /**
    * 查看详情
    */
-  function handleToDetails(row: ResourceItem) {
+  function handleToDetails(id: number) {
     stretchLayoutSplitScreen();
-    clusterId.value = row.id;
+    clusterId.value = id;
   }
 
   /**
    * 表格选中
    */
-  function handleTableSelected({ isAll, checked, data, row }: TableSelectionData<ResourceItem>) {
+  function handleTableSelected({ isAll, checked, data, row }: TableSelectionData<TendbsingleModel>) {
     // 全选 checkbox 切换
     if (isAll) {
       state.selected = checked ? [...data] : [];
@@ -650,7 +636,7 @@
   /**
    * 集群启停
    */
-  function handleSwitchCluster(type: TicketTypesStrings, data: ResourceItem) {
+  function handleSwitchCluster(type: TicketTypesStrings, data: TendbsingleModel) {
     if (!type) return;
 
     const isOpen = type === TicketTypes.MYSQL_SINGLE_ENABLE;
@@ -691,7 +677,7 @@
   /**
    * 删除集群
    */
-  function handleDeleteCluster(data: ResourceItem) {
+  function handleDeleteCluster(data: TendbsingleModel) {
     const { cluster_name: name } = data;
     useInfoWithIcon({
       type: 'warnning',
@@ -735,6 +721,7 @@
       name: 'SelfServiceApplySingle',
       query: {
         bizId: globalBizsStore.currentBizId,
+        from: route.name as string,
       },
     });
   }

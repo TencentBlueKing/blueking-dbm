@@ -208,8 +208,6 @@
 
   import { useBeforeClose } from '@hooks';
 
-  import { useGlobalBizs } from '@stores';
-
   import { AccountTypes } from '@common/const';
 
   import { dbOperations } from '../common/consts';
@@ -237,8 +235,6 @@
 
   const { t } = useI18n();
   const handleBeforeClose = useBeforeClose();
-  const globalbizsStore = useGlobalBizs();
-  const { currentBizId } = globalbizsStore;
   const { TENDBCLUSTER } = AccountTypes;
 
   const ruleRef = ref();
@@ -277,7 +273,7 @@
     if (!user || dbs.length === 0) return false;
 
     return queryAccountRules({
-      bizId: currentBizId,
+      bizId: window.PROJECT_CONFIG.BIZ_ID,
       user,
       access_dbs: dbs,
       account_type: TENDBCLUSTER,
@@ -339,7 +335,7 @@
   const getAccount = () => {
     isLoading.value = true;
     getPermissionRules({
-      bk_biz_id: currentBizId,
+      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
       account_type: TENDBCLUSTER,
     })
       .then((res) => {
@@ -403,7 +399,7 @@
     }
     const params = {
       ...formDataClone,
-      bizId: currentBizId,
+      bizId: window.PROJECT_CONFIG.BIZ_ID,
       access_db: formdata.value.access_db.replace(replaceReg, ','), // 统一分隔符
       account_type: TENDBCLUSTER,
     };

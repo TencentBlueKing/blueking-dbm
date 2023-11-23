@@ -1,35 +1,98 @@
-/*
- * TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
- *
- * Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
- *
- * Licensed under the MIT License (the "License"); you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at https://opensource.org/licenses/MIT
- *
- * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
- * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
- * the specific language governing permissions and limitations under the License.
-*/
-
 import type { RouteRecordRaw } from 'vue-router';
-
-import { MainViewRouteNames } from '@views/main-views/common/const';
 
 import { t } from '@locales/index';
 
-const routes: RouteRecordRaw[] = [
+export default (): RouteRecordRaw[] => [
   {
-    name: 'SelfServiceApply',
-    path: 'apply',
+    name: 'serviceApply',
+    path: 'service-apply',
     meta: {
-      routeParentName: MainViewRouteNames.SelfService,
       navName: t('服务申请'),
-      isMenu: true,
     },
-    component: () => import('@views/service-apply/index.vue'),
+    redirect: {
+      name: 'serviceApplyIndex',
+    },
+    children: [
+      {
+        name: 'serviceApplyIndex',
+        path: 'index',
+        component: () => import('@views/service-apply/index/Index.vue'),
+        meta: {
+          navName: t('服务申请'),
+        },
+      },
+      {
+        name: 'SelfServiceApplySingle',
+        path: 'single',
+        meta: {
+          navName: t('申请MySQL单节点部署'),
+        },
+        component: () => import('@views/mysql/apply/ApplyMySQL.vue'),
+      },
+      {
+        name: 'SelfServiceApplyHa',
+        path: 'ha',
+        meta: {
+          navName: t('申请MySQL主从部署'),
+        },
+        component: () => import('@views/mysql/apply/ApplyMySQL.vue'),
+      },
+      {
+        name: 'spiderApply',
+        path: 'tendbcluster',
+        meta: {
+          navName: t('申请TendbCluster分布式集群部署'),
+        },
+        component: () => import('@views/spider-manage/apply/Index.vue'),
+      },
+      {
+        name: 'SelfServiceApplyRedis',
+        path: 'redis',
+        meta: {
+          navName: t('申请Redis集群部署'),
+        },
+        component: () => import('@views/redis/apply/ApplyRedis.vue'),
+      },
+      {
+        name: 'EsApply',
+        path: 'es',
+        meta: {
+          navName: t('申请ES集群部署'),
+        },
+        component: () => import('@views/es-manage/apply/Index.vue'),
+      },
+      {
+        name: 'KafkaApply',
+        path: 'kafka',
+        meta: {
+          navName: t('申请Kafka集群部署'),
+        },
+        component: () => import('@views/kafka-manage/apply/Index.vue'),
+      },
+      {
+        name: 'HdfsApply',
+        path: 'hdfs',
+        meta: {
+          navName: t('申请HDFS集群部署'),
+        },
+        component: () => import('@views/hdfs-manage/apply/Index.vue'),
+      },
+      {
+        name: 'PulsarApply',
+        path: 'pulsar',
+        meta: {
+          navName: t('申请Pulsar集群部署'),
+        },
+        component: () => import('@views/pulsar-manage/apply/index.vue'),
+      },
+      {
+        name: 'SelfServiceApplyInfluxDB',
+        path: 'influxdb',
+        meta: {
+          navName: t('申请InfluxDB集群部署'),
+        },
+        component: () => import('@views/influxdb-manage/apply/index.vue'),
+      },
+    ],
   },
 ];
-
-export default function getRoutes() {
-  return routes;
-}

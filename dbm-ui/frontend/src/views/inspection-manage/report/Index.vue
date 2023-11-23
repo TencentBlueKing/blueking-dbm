@@ -27,14 +27,11 @@
 <script setup lang="ts">
   import {
     computed,
-    onBeforeUnmount,
     ref,
   } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import { useUrlSearch } from '@hooks';
-
-  import { useMainViewStore } from '@stores';
 
   import BackupInspection from './components/backup-inspection/Index.vue';
   import DataValidation from './components/data-validation/Index.vue';
@@ -43,9 +40,7 @@
 
   const URL_MEMO_KEY = 'tabType';
 
-  const route = useRoute();
   const { t } = useI18n();
-  const mainViewStore = useMainViewStore();
   const {
     appendSearchParams,
     getSearchParams,
@@ -65,12 +60,6 @@
     return comMap[tabType.value];
   });
 
-  watch(() => route.fullPath, () => {
-    mainViewStore.hasPadding = false;
-  }, {
-    immediate: true,
-  });
-
   watch(tabType, () => {
     appendSearchParams({
       [URL_MEMO_KEY]: tabType.value,
@@ -84,10 +73,6 @@
       ...payload,
     });
   };
-
-  onBeforeUnmount(() => {
-    mainViewStore.hasPadding = true;
-  });
 
 </script>
 <style lang="less">

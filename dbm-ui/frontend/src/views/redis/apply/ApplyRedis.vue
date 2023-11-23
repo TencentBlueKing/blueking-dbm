@@ -325,6 +325,10 @@
 <script setup lang="ts">
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
+  import {
+    useRoute,
+    useRouter,
+  } from 'vue-router';
 
   import type { RedisFunctions } from '@services/model/function-controller/functionController';
   import { getCapSpecs } from '@services/source/infras';
@@ -361,6 +365,9 @@
     value: string,
     label: string,
   }
+
+  const route = useRoute();
+  const router = useRouter();
 
   // 基础设置
   const {
@@ -780,6 +787,18 @@
     // 若业务没有英文名称则先创建业务英文名称再创建单据，反正直接创建单据
     bizState.hasEnglishName ? handleCreateTicket(params) : handleCreateAppAbbr(params);
   }
+
+  defineExpose({
+    routerBack() {
+      if (!route.query.from) {
+        router.back();
+        return;
+      }
+      router.push({
+        name: route.query.from as string,
+      });
+    },
+  });
 </script>
 
 <style lang="less" scoped>

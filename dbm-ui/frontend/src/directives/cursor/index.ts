@@ -1,102 +1,89 @@
 /*
- * TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
- *
- * Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
- *
- * Licensed under the MIT License (the "License"); you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at https://opensource.org/licenses/MIT
- *
- * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
- * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
- * the specific language governing permissions and limitations under the License.
+  TencentBlueKing is pleased to support the open source community by making
+  蓝鲸智云 - 审计中心 (BlueKing - Audit Center) available.
+  Copyright (C) 2023 THL A29 Limited,
+  a Tencent company. All rights reserved.
+  Licensed under the MIT License (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at http://opensource.org/licenses/MIT
+  Unless required by applicable law or agreed to in writing,
+  software distributed under the License is distributed on
+  an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
+  either express or implied. See the License for the
+  specific language governing permissions and limitations under the License.
+  We undertake not to change the open source license (MIT license) applicable
+  to the current version of the project delivered to anyone in the future.
 */
+import type {
+  ObjectDirective,
+} from 'vue';
 
-import type { DirectiveBinding } from 'vue';
+import './index.css';
 
-import './index.less';
-
-interface CursorElement extends HTMLElement {
-  dbCursor: HTMLElement | null,
-  mouseEnterHandler: (event: MouseEvent) => void,
-  mouseMoveHandler: (event: MouseEvent) => void,
-  mouseLeaveHandler: (event: MouseEvent) => void,
+interface Cursor {
+  __bk_dbm_cursor__: {
+    mouseEnterHandler: (event: MouseEvent) => void;
+    mouseMoveHandler: (event: MouseEvent) => void;
+    mouseLeaveHandler: (event: MouseEvent) => void;
+    element: HTMLElement;
+  }
 }
 
-const defaultOptions = {
-  active: true,
-  offset: [
-    12, 0,
-  ],
-  cls: 'db-cursor',
-};
+type TargetEl = HTMLElement & Cursor
 
-const init = function (el: CursorElement, binding: DirectiveBinding) {
-  // eslint-disable-next-line
-  el.mouseEnterHandler = function () {
+
+/* eslint-disable no-param-reassign,no-underscore-dangle */
+
+const init = function (el: HTMLElement & Cursor) {
+  el.__bk_dbm_cursor__.mouseMoveHandler = function (event: MouseEvent): void {
+    const { pageX, pageY } = event;
+    const elLeft = pageX + 12;
+    const elTop = pageY;
+    el.__bk_dbm_cursor__.element.style.left = `${elLeft}px`;
+    el.__bk_dbm_cursor__.element.style.top = `${elTop}px`;
+  };
+  el.__bk_dbm_cursor__.mouseEnterHandler = function () {
     const element = document.createElement('div');
     element.id = 'directive-ele';
     element.style.position = 'absolute';
     element.style.zIndex = '999999';
     element.style.width = '18px';
     element.style.height = '18px';
-    // eslint-disable-next-line
-    el.dbCursor = element;
+    el.__bk_dbm_cursor__.element = element;
     document.body.appendChild(element);
 
-    element.classList.add(binding.value?.cls || defaultOptions.cls);
-    el.addEventListener('mousemove', el.mouseMoveHandler);
+    element.classList.add('cursor-element');
+    el.addEventListener('mousemove', el.__bk_dbm_cursor__.mouseMoveHandler);
   };
 
-  // eslint-disable-next-line
-  el.mouseMoveHandler = function (event) {
-    const { pageX, pageY } = event;
-    const elLeft = pageX + defaultOptions.offset[0];
-    const elTop = pageY + defaultOptions.offset[1];
-    if (el.dbCursor) {
-      // eslint-disable-next-line
-      el.dbCursor.style.left = `${elLeft}px`;
-      // eslint-disable-next-line
-      el.dbCursor.style.top = `${elTop}px`;
-    }
+  el.__bk_dbm_cursor__.mouseLeaveHandler = function () {
+    el.__bk_dbm_cursor__.element && el.__bk_dbm_cursor__.element.remove();
+    el.__bk_dbm_cursor__ = {} as Cursor['__bk_dbm_cursor__'];
+    el.removeEventListener('mousemove', el.__bk_dbm_cursor__.mouseMoveHandler);
   };
-
-  // eslint-disable-next-line
-  el.mouseLeaveHandler = function () {
-    el.dbCursor && el.dbCursor.remove();
-    // eslint-disable-next-line
-    el.dbCursor = null;
-    el.removeEventListener('mousemove', el.mouseMoveHandler);
-  };
-  if (binding.value.active) {
-    el.addEventListener('mouseenter', el.mouseEnterHandler);
-    el.addEventListener('mouseleave', el.mouseLeaveHandler);
-  }
+  el.addEventListener('mouseenter', el.__bk_dbm_cursor__.mouseEnterHandler);
+  el.addEventListener('mouseleave', el.__bk_dbm_cursor__.mouseLeaveHandler);
 };
 
-const destroy = function (el: CursorElement) {
-  el.dbCursor && el.dbCursor.remove();
-  // eslint-disable-next-line
-  el.dbCursor = null;
-  el.removeEventListener('mouseenter', el.mouseEnterHandler);
-  el.removeEventListener('mousemove', el.mouseMoveHandler);
-  el.removeEventListener('mouseleave', el.mouseLeaveHandler);
+const destroy = function (el: HTMLElement & Cursor) {
+  el.__bk_dbm_cursor__.element && el.__bk_dbm_cursor__.element.remove();
+  el.removeEventListener('mouseenter', el.__bk_dbm_cursor__.mouseEnterHandler);
+  el.removeEventListener('mousemove', el.__bk_dbm_cursor__.mouseMoveHandler);
+  el.removeEventListener('mouseleave', el.__bk_dbm_cursor__.mouseLeaveHandler);
+  el.__bk_dbm_cursor__ = {} as Cursor['__bk_dbm_cursor__'];
 };
 
-const cursor = {
-  mounted(el: CursorElement, binding: DirectiveBinding) {
-    // eslint-disable-next-line
-    binding.value = Object.assign({}, defaultOptions, binding.value);
-    init(el, binding);
+export default {
+  mounted(el: HTMLElement) {
+    (el as TargetEl).__bk_dbm_cursor__ = {} as Cursor['__bk_dbm_cursor__'];
+    init(el as TargetEl);
   },
-  updated(el: CursorElement, binding: DirectiveBinding) {
-    // eslint-disable-next-line
-    binding.value = Object.assign({}, defaultOptions, binding.value);
-    destroy(el);
-    init(el, binding);
+  update(el: HTMLElement) {
+    destroy(el as TargetEl);
+    init(el as TargetEl);
   },
-  beforeUnmount(el: CursorElement) {
-    destroy(el);
+  unmounted(el: HTMLElement) {
+    destroy(el as TargetEl);
   },
-};
+} as ObjectDirective;
 
-export default cursor;

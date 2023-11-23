@@ -13,16 +13,11 @@
 
 import { getPermissionRules } from '@services/permission';
 
-import { useGlobalBizs } from '@stores';
-
 import { getSearchSelectorParams } from '@utils';
 
 import type { PermissionRulesState } from '../common/types';
 
 export const usePermissionRules = (state: PermissionRulesState) => {
-  const globalbizsStore = useGlobalBizs();
-  const bizId = computed(() => globalbizsStore.currentBizId);
-
   /**
    * 获取账号规则列表
    */
@@ -30,7 +25,7 @@ export const usePermissionRules = (state: PermissionRulesState) => {
     state.isLoading = true;
     getPermissionRules({
       ...getSearchSelectorParams(state.search),
-      bk_biz_id: bizId.value,
+      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
     })
       .then((res) => {
         state.data = res.results.map(item => Object.assign({ isExpand: true }, item));
@@ -46,7 +41,6 @@ export const usePermissionRules = (state: PermissionRulesState) => {
   }
 
   return {
-    bizId,
     getRules,
   };
 };

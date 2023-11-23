@@ -362,6 +362,10 @@
 <script setup lang="ts">
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
+  import {
+    useRoute,
+    useRouter,
+  } from 'vue-router';
 
   import { getVersions } from '@services/source/version';
   import type {
@@ -384,6 +388,8 @@
 
   const getSmartActionOffsetTarget = () => document.querySelector('.bk-form-content');
 
+  const route = useRoute();
+  const router = useRouter();
   const { t } = useI18n();
   const {
     baseState,
@@ -462,25 +468,25 @@
   /**
    * 切换业务，需要重置 IP 相关的选择
    */
-  function handleChangeBiz(info: BizItem) {
+  const handleChangeBiz = (info: BizItem) => {
     bizState.info = info;
     bizState.hasEnglishName = !!info.english_name;
 
     formdata.details.nodes.bookkeeper = [];
     formdata.details.nodes.broker = [];
     formdata.details.nodes.zookeeper = [];
-  }
+  };
   /**
    * 变更所属管控区域
    */
-  function handleChangeCloud(info: {id: number | string, name: string}) {
+  const handleChangeCloud = (info: {id: number | string, name: string}) => {
     cloudInfo.id = info.id;
     cloudInfo.name = info.name;
 
     formdata.details.nodes.bookkeeper = [];
     formdata.details.nodes.broker = [];
     formdata.details.nodes.zookeeper = [];
-  }
+  };
 
   /**
    * pulsar 版本处理
@@ -648,6 +654,18 @@
       },
     });
   };
+
+  defineExpose({
+    routerBack() {
+      if (!route.query.from) {
+        router.back();
+        return;
+      }
+      router.push({
+        name: route.query.from as string,
+      });
+    },
+  });
 </script>
 
 <style lang="less" scoped>

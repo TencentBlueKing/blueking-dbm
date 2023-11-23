@@ -97,7 +97,6 @@
 
   defineExpose<Exposes>({
     getValue() {
-      console.log('tareget data_tblist');
       return (editRef.value as InstanceType<typeof TableEditSelect>)
         .getValue()
         .then(() => ({

@@ -123,6 +123,10 @@
   import { InfoBox } from 'bkui-vue';
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
+  import {
+    useRoute,
+    useRouter,
+  } from 'vue-router';
 
   import {
     getRedisDetail,
@@ -182,6 +186,7 @@
 
   const { t, locale } = useI18n();
   const copy = useCopy();
+  const route = useRoute();
   const router = useRouter();
   const globalBizsStore = useGlobalBizs();
   const userProfileStore = useUserProfile();
@@ -192,6 +197,10 @@
   } = useStretchLayout();
 
   const filterItems = [
+    {
+      name: 'ID',
+      id: 'id',
+    },
     {
       name: t('集群名'),
       id: 'name',
@@ -317,7 +326,7 @@
             <bk-button
               text
               theme="primary"
-              onClick={() => handleToDetails(data)}>
+              onClick={() => handleToDetails(data.id)}>
               {data.master_domain || '--'}
             </bk-button>
           </span>
@@ -836,17 +845,6 @@
     handleChangePage(1);
   };
 
-  // 设置轮询
-  // const { pause, resume } = useTimeoutPoll(() => {
-  //   fetchResources({}, state.isInit);
-  // }, 5000);
-  onMounted(() => {
-    // resume();
-    tableMaxHeight.value = tableOutWrapperRef.value.clientHeight;
-  });
-  // onBeforeUnmount(() => {
-  //   pause();
-  // });
 
   /**
    * 申请实例
@@ -856,6 +854,7 @@
       name: 'SelfServiceApplyRedis',
       query: {
         bizId: globalBizsStore.currentBizId,
+        from: route.name as string,
       },
     });
   };
@@ -863,9 +862,9 @@
   /**
    * 查看集群详情
    */
-  const handleToDetails = (data: ResourceRedisItem) => {
+  const handleToDetails = (id: number) => {
     stretchLayoutSplitScreen();
-    clusterId.value = data.id;
+    clusterId.value = id;
   };
 
   /**
@@ -1009,9 +1008,7 @@
       title,
       subTitle: t('启用 CLB 之后，该集群可以通过 CLB 来访问'),
       width: 400,
-      height: 220,
-      zIndex: 999999,
-      extCls: 'redis-manage-infobox',
+      'ext-cls': 'redis-manage-infobox',
       onConfirm: async () => {
         try {
           const params = {
@@ -1045,9 +1042,7 @@
       title,
       subTitle,
       width: 400,
-      height: 220,
-      zIndex: 999999,
-      extCls: 'redis-manage-infobox',
+      'ext-cls': 'redis-manage-infobox',
       onConfirm: async () => {
         try {
           const params = {
@@ -1139,6 +1134,13 @@
       },
     });
   };
+
+  onMounted(() => {
+    if (!clusterId.value && route.query.id) {
+      handleToDetails(Number(route.query.id));
+    }
+    tableMaxHeight.value = tableOutWrapperRef.value.clientHeight;
+  });
 </script>
 
 <style lang="less" scoped>

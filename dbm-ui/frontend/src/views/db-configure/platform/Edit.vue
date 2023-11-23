@@ -104,6 +104,10 @@
 <script setup lang="ts">
   import { Message } from 'bkui-vue';
   import { useI18n } from 'vue-i18n';
+  import {
+    useRoute,
+    useRouter,
+  } from 'vue-router';
 
   import {
     getConfigBaseDetails,
@@ -268,17 +272,24 @@
   };
 
   const handleCancel = () => {
-    const { back } = window.history.state;
-    if (back) {
-      router.go(-1);
-    } else {
-      const params = {
-        name: 'PlatformDbConfigureList',
-        params: { ...route.params },
-      };
-      router.replace(params);
-    }
+    router.push({
+      name: 'PlatformDbConfigureList',
+    });
   };
+
+  defineExpose({
+    routerBack() {
+      if (!route.query.form) {
+        router.push({
+          name: 'DbConfigureList',
+        });
+        return;
+      }
+      router.push({
+        name: route.query.form as string,
+      });
+    },
+  });
 </script>
 
 <style lang="less" scoped>

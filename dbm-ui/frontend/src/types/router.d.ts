@@ -28,6 +28,9 @@ declare module 'vue-router' {
     isMenu?: boolean // 判断是否为 bk-menu 导航，若是则不现实返回按钮
     tags?: Tag[] // 用于设置面包屑 tags
     showBack?: boolean // 用于判断是否显示面包屑返回按钮
+    fullScreen?: boolean // 用于判断是否满屏幕
+    group?: string // 用于设置顶部导航分组
+    skeleton?: string
   }
 }
 

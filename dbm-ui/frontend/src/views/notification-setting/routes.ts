@@ -13,8 +13,6 @@
 
 import type { RouteRecordRaw } from 'vue-router';
 
-import { MainViewRouteNames } from '@views/main-views/common/const';
-
 import { t } from '@locales/index';
 
 const routes: RouteRecordRaw[] = [
@@ -22,7 +20,6 @@ const routes: RouteRecordRaw[] = [
     name: 'PlatformNotificationSetting',
     path: 'notification-setting',
     meta: {
-      routeParentName: MainViewRouteNames.Platform,
       navName: t('通知设置'),
       isMenu: true,
     },

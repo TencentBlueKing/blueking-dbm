@@ -15,214 +15,142 @@ import type { RouteRecordRaw } from 'vue-router';
 
 import type { MySQLFunctions } from '@services/model/function-controller/functionController';
 
-import { TicketTypes } from '@common/const';
-
-import { MainViewRouteNames } from '@views/main-views/common/const';
-
 import { t } from '@locales/index';
 
 export const mysqlToolboxChildrenRouters: RouteRecordRaw[] = [
   {
     name: 'MySQLExecute',
-    path: '/database/:bizId(\\d+)/mysql-toolbox/execute/:step?',
+    path: 'sql-execute/:step?',
     meta: {
-      routeParentName: MainViewRouteNames.Database,
-      activeMenu: 'MySQLToolbox',
       navName: t('变更SQL执行'),
-      submenuId: 'sql',
-      isMenu: true,
     },
     component: () => import('@views/mysql/sql-execute/index.vue'),
   },
   {
     name: 'MySQLDBRename',
-    path: '/database/:bizId(\\d+)/mysql-toolbox/db-rename',
+    path: 'db-rename',
     meta: {
-      routeParentName: MainViewRouteNames.Database,
-      activeMenu: 'MySQLToolbox',
       navName: t('DB重命名'),
-      submenuId: 'sql',
-      isMenu: true,
     },
     component: () => import('@views/mysql/db-rename/index.vue'),
   },
   {
     name: 'MySQLPrivilegeCloneClient',
-    path: '/database/:bizId(\\d+)/mysql-toolbox/privilege-clone-client',
+    path: 'privilege-clone-client',
     meta: {
-      routeParentName: MainViewRouteNames.Database,
-      activeMenu: 'MySQLToolbox',
       navName: t('客户端权限克隆'),
-      submenuId: 'privilege',
-      isMenu: true,
     },
     component: () => import('@views/mysql/privilege-clone-client/index.vue'),
   },
   {
     name: 'MySQLPrivilegeCloneInst',
-    path: '/database/:bizId(\\d+)/mysql-toolbox/privilege-clone-inst',
+    path: 'privilege-clone-inst',
     meta: {
-      routeParentName: MainViewRouteNames.Database,
-      activeMenu: 'MySQLToolbox',
       navName: t('DB实例权限克隆'),
-      submenuId: 'privilege',
-      isMenu: true,
     },
     component: () => import('@views/mysql/privilege-clone-inst/index.vue'),
   },
   {
     name: 'MySQLSlaveRebuild',
-    path: '/database/:bizId(\\d+)/mysql-toolbox/slave-rebuild/:page?',
+    path: 'slave-rebuild/:page?',
     meta: {
-      routeParentName: MainViewRouteNames.Database,
-      activeMenu: 'MySQLToolbox',
       navName: t('重建从库'),
-      submenuId: 'migrate',
-      isMenu: true,
     },
     component: () => import('@views/mysql/slave-rebuild/index.vue'),
   },
   {
     name: 'MySQLSlaveAdd',
-    path: '/database/:bizId(\\d+)/mysql-toolbox/slave-add',
+    path: 'slave-add',
     meta: {
-      routeParentName: MainViewRouteNames.Database,
-      activeMenu: 'MySQLToolbox',
       navName: t('添加从库'),
-      submenuId: 'migrate',
-      isMenu: true,
     },
     component: () => import('@views/mysql/slave-add/index.vue'),
   },
   {
     name: 'MySQLMasterSlaveClone',
-    path: '/database/:bizId(\\d+)/mysql-toolbox/master-slave-clone/:page?',
+    path: 'master-slave-clone/:page?',
     meta: {
-      routeParentName: MainViewRouteNames.Database,
-      activeMenu: 'MySQLToolbox',
       navName: t('克隆主从'),
-      submenuId: 'migrate',
-      isMenu: true,
     },
     component: () => import('@views/mysql/master-slave-clone/index.vue'),
   },
   {
     name: 'MySQLMasterSlaveSwap',
-    path: '/database/:bizId(\\d+)/mysql-toolbox/master-slave-swap/:page?',
+    path: 'master-slave-swap/:page?',
     meta: {
-      routeParentName: MainViewRouteNames.Database,
-      activeMenu: 'MySQLToolbox',
       navName: t('主从互切'),
-      submenuId: 'migrate',
-      isMenu: true,
     },
     component: () => import('@views/mysql/master-slave-swap/index.vue'),
   },
   {
     name: 'MySQLProxyReplace',
-    path: '/database/:bizId(\\d+)/mysql-toolbox/proxy-replace/:page?',
+    path: 'proxy-replace/:page?',
     meta: {
-      routeParentName: MainViewRouteNames.Database,
-      activeMenu: 'MySQLToolbox',
       navName: t('替换Proxy'),
-      submenuId: 'migrate',
-      isMenu: true,
     },
     component: () => import('@views/mysql/proxy-replace/index.vue'),
   },
   {
     name: 'MySQLProxyAdd',
-    path: '/database/:bizId(\\d+)/mysql-toolbox/proxy-add/:page?',
+    path: 'proxy-add/:page?',
     meta: {
-      routeParentName: MainViewRouteNames.Database,
-      activeMenu: 'MySQLToolbox',
       navName: t('添加Proxy'),
-      submenuId: 'migrate',
-      isMenu: true,
     },
     component: () => import('@views/mysql/proxy-add/index.vue'),
   },
   {
     name: 'MySQLMasterFailover',
-    path: '/database/:bizId(\\d+)/mysql-toolbox/master-failover/:page?',
+    path: 'master-failover/:page?',
     meta: {
-      routeParentName: MainViewRouteNames.Database,
-      activeMenu: 'MySQLToolbox',
       navName: t('主库故障切换'),
-      submenuId: 'migrate',
-      isMenu: true,
     },
     component: () => import('@views/mysql/master-failover/index.vue'),
   },
   {
     name: 'MySQLDBTableBackup',
-    path: '/database/:bizId(\\d+)/mysql-toolbox/db-table-backup/:page?',
+    path: 'db-table-backup/:page?',
     meta: {
-      routeParentName: MainViewRouteNames.Database,
-      activeMenu: 'MySQLToolbox',
       navName: t('库表备份'),
-      submenuId: 'copy',
-      isMenu: true,
     },
     component: () => import('@views/mysql/db-table-backup/index.vue'),
   },
   {
     name: 'MySQLDBBackup',
-    path: '/database/:bizId(\\d+)/mysql-toolbox/db-backup/:page?',
+    path: 'db-backup/:page?',
     meta: {
-      routeParentName: MainViewRouteNames.Database,
-      activeMenu: 'MySQLToolbox',
       navName: t('全库备份'),
-      submenuId: 'copy',
-      isMenu: true,
     },
     component: () => import('@views/mysql/db-backup/index.vue'),
   },
   {
     name: 'MySQLDBClear',
-    path: '/database/:bizId(\\d+)/mysql-toolbox/db-clear',
+    path: 'db-clear',
     meta: {
-      routeParentName: MainViewRouteNames.Database,
-      activeMenu: 'MySQLToolbox',
       navName: t('清档'),
-      submenuId: 'data',
-      isMenu: true,
     },
     component: () => import('@views/mysql/db-clear/index.vue'),
   },
   {
     name: 'MySQLDBRollback',
-    path: '/database/:bizId(\\d+)/mysql-toolbox/rollback/:page?',
+    path: 'rollback/:page?',
     meta: {
-      routeParentName: MainViewRouteNames.Database,
-      activeMenu: 'MySQLToolbox',
       navName: t('定点回档'),
-      submenuId: 'fileback',
-      isMenu: true,
     },
     component: () => import('@views/mysql/rollback/Index.vue'),
   },
   {
     name: 'MySQLDBFlashback',
-    path: '/database/:bizId(\\d+)/mysql-toolbox/flashback/:page?',
+    path: 'flashback/:page?',
     meta: {
-      routeParentName: MainViewRouteNames.Database,
-      activeMenu: 'MySQLToolbox',
       navName: t('闪回'),
-      submenuId: 'fileback',
-      isMenu: true,
     },
     component: () => import('@views/mysql/flashback/Index.vue'),
   },
   {
     name: 'MySQLChecksum',
-    path: '/database/:bizId(\\d+)/mysql-toolbox/checksum',
+    path: 'checksum',
     meta: {
-      routeParentName: MainViewRouteNames.Database,
-      activeMenu: 'MySQLToolbox',
       navName: t('数据校验修复'),
-      submenuId: 'data',
-      isMenu: true,
     },
     component: () => import('@views/mysql/checksum/Index.vue'),
   },
@@ -233,10 +161,9 @@ const singleRoutes: RouteRecordRaw[] = [
     name: 'DatabaseTendbsingle',
     path: 'single-cluster-list',
     meta: {
-      routeParentName: MainViewRouteNames.Database,
       navName: t('MySQL单节点_集群管理'),
-      isMenu: true,
-      submenuId: 'database-tendbha-cluster',
+      fullscreen: true,
+      skeleton: 'clusterList',
     },
     component: () => import('@views/mysql/single-cluster-list/Index.vue'),
   },
@@ -247,10 +174,9 @@ const haRoutes: RouteRecordRaw[] = [
     name: 'DatabaseTendbha',
     path: 'ha-cluster-list',
     meta: {
-      routeParentName: MainViewRouteNames.Database,
       navName: t('MySQL主从集群_集群管理'),
-      isMenu: true,
-      submenuId: 'database-tendbha-cluster',
+      fullscreen: true,
+      skeleton: 'clusterList',
     },
     component: () => import('@views/mysql/ha-cluster-list/Index.vue'),
   },
@@ -258,10 +184,9 @@ const haRoutes: RouteRecordRaw[] = [
     name: 'DatabaseTendbhaInstance',
     path: 'ha-instance-list',
     meta: {
-      routeParentName: MainViewRouteNames.Database,
       navName: t('MySQL主从集群_实例视图'),
-      isMenu: true,
-      submenuId: 'database-tendbha-cluster',
+      fullscreen: true,
+      skeleton: 'clusterList',
     },
     component: () => import('@views/mysql/ha-instance-list/Index.vue'),
   },
@@ -270,14 +195,14 @@ const haRoutes: RouteRecordRaw[] = [
 const mysqlToolboxRouters: RouteRecordRaw[] = [
   {
     name: 'MySQLToolbox',
-    path: 'mysql-toolbox',
+    path: 'toolbox',
     redirect: {
       name: 'MySQLExecute',
     },
     meta: {
-      routeParentName: MainViewRouteNames.Database,
       navName: t('工具箱'),
-      isMenu: true,
+      fullscreen: true,
+
     },
     component: () => import('@views/mysql/toolbox/index.vue'),
     children: mysqlToolboxChildrenRouters,
@@ -285,57 +210,11 @@ const mysqlToolboxRouters: RouteRecordRaw[] = [
 ];
 
 const commonRouters: RouteRecordRaw[] = [
-  {
-    name: 'SelfServiceApplySingle',
-    path: 'apply/single',
-    meta: {
-      routeParentName: MainViewRouteNames.SelfService,
-      navName: t('申请MySQL单节点部署'),
-      activeMenu: 'SelfServiceApply',
-    },
-    props: {
-      type: TicketTypes.MYSQL_SINGLE_APPLY,
-    },
-    component: () => import('@views/mysql/apply/ApplyMySQL.vue'),
-  },
-  {
-    name: 'SelfServiceApplyHa',
-    path: 'apply/ha',
-    meta: {
-      routeParentName: MainViewRouteNames.SelfService,
-      navName: t('申请MySQL主从部署'),
-      activeMenu: 'SelfServiceApply',
-    },
-    props: {
-      type: TicketTypes.MYSQL_HA_APPLY,
-    },
-    component: () => import('@views/mysql/apply/ApplyMySQL.vue'),
-  },
-  {
-    name: 'SelfServiceCreateDbModule',
-    path: 'create-db-module/:type/:bk_biz_id/',
-    meta: {
-      routeParentName: MainViewRouteNames.SelfService,
-      navName: t('新建模块'),
-      activeMenu: 'SelfServiceApply',
-    },
-    component: () => import('@views/mysql/apply/CreateModule.vue'),
-  },
-  {
-    name: 'SelfServiceBindDbModule',
-    path: 'bind-db-module/:type/:bk_biz_id/:db_module_id',
-    meta: {
-      routeParentName: MainViewRouteNames.SelfService,
-      navName: t('绑定配置'),
-      activeMenu: 'SelfServiceApply',
-    },
-    component: () => import('@views/mysql/apply/CreateModule.vue'),
-  },
+
   {
     name: 'MysqlManage',
     path: 'mysql-manage',
     meta: {
-      routeParentName: MainViewRouteNames.Database,
       navName: t('Mysql 集群管理'),
     },
     redirect: {
@@ -343,14 +222,49 @@ const commonRouters: RouteRecordRaw[] = [
     },
     component: () => import('@views/mysql/Index.vue'),
     children: [
+      // {
+      //   name: 'SelfServiceApplySingle',
+      //   path: 'apply-single',
+      //   meta: {
+      //     navName: t('申请MySQL单节点部署'),
+      //   },
+      //   props: {
+      //     type: TicketTypes.MYSQL_SINGLE_APPLY,
+      //   },
+      //   component: () => import('@views/mysql/apply/ApplyMySQL.vue'),
+      // },
+      // {
+      //   name: 'SelfServiceApplyHa',
+      //   path: 'apply-ha',
+      //   meta: {
+      //     navName: t('申请MySQL主从部署'),
+      //   },
+      //   props: {
+      //     type: TicketTypes.MYSQL_HA_APPLY,
+      //   },
+      //   component: () => import('@views/mysql/apply/ApplyMySQL.vue'),
+      // },
+      {
+        name: 'SelfServiceCreateDbModule',
+        path: 'create-db-module/:type/:bk_biz_id/',
+        meta: {
+          navName: t('新建模块'),
+        },
+        component: () => import('@views/mysql/apply/CreateModule.vue'),
+      },
+      {
+        name: 'SelfServiceBindDbModule',
+        path: 'bind-db-module/:type/:bk_biz_id/:db_module_id',
+        meta: {
+          navName: t('绑定配置'),
+        },
+        component: () => import('@views/mysql/apply/CreateModule.vue'),
+      },
       {
         name: 'PermissionRules',
         path: 'permission-rules',
         meta: {
-          routeParentName: MainViewRouteNames.Database,
           navName: t('MySQL_授权规则'),
-          isMenu: true,
-          submenuId: 'database-permission',
         },
         component: () => import('@views/mysql/permission/index.vue'),
       },
@@ -358,9 +272,7 @@ const commonRouters: RouteRecordRaw[] = [
         path: 'partition-manage',
         name: 'mysqlPartitionManage',
         meta: {
-          routeParentName: MainViewRouteNames.Database,
           navName: t('Mysql 分区管理'),
-          isMenu: true,
         },
         component: () => import('@views/mysql/partition-manage/Index.vue'),
       },

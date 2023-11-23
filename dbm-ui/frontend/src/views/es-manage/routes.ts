@@ -15,41 +15,34 @@ import type { RouteRecordRaw } from 'vue-router';
 
 import type { BigdataFunctions } from '@services/model/function-controller/functionController';
 
-import { MainViewRouteNames } from '@views/main-views/common/const';
-
 import { t } from '@locales/index';
 
 const routes: RouteRecordRaw[] = [
   {
-    name: 'EsApply',
-    path: 'es',
-    meta: {
-      routeParentName: MainViewRouteNames.SelfService,
-      navName: t('申请ES集群部署'),
-      activeMenu: 'SelfServiceApply',
-    },
-    component: () => import('@views/es-manage/apply/Index.vue'),
-  },
-  {
     name: 'EsManage',
     path: 'es-manage',
     meta: {
-      routeParentName: MainViewRouteNames.Database,
       navName: t('ES_集群管理'),
-      isMenu: true,
     },
     redirect: {
       name: 'EsList',
     },
     component: () => import('@views/es-manage/Index.vue'),
     children: [
+      // {
+      //   name: 'EsApply',
+      //   path: 'apply',
+      //   meta: {
+      //     navName: t('申请ES集群部署'),
+      //   },
+      //   component: () => import('@views/es-manage/apply/Index.vue'),
+      // },
       {
         name: 'EsList',
         path: 'list',
         meta: {
-          routeParentName: MainViewRouteNames.Database,
           navName: t('ES_集群管理'),
-          activeMenu: 'EsManage',
+          fullscreen: true,
         },
         component: () => import('@views/es-manage/list/Index.vue'),
       },
