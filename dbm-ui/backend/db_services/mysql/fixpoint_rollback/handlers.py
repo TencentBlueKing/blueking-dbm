@@ -190,6 +190,10 @@ class FixPointRollbackHandler:
         backup_id__backup_logs_map = defaultdict(dict)
         for log in backup_logs:
             file_name, backup_id = log["file_name"], log["backup_id"]
+
+            if not self._check_fixpoint_backup_log(log):
+                continue
+
             if not backup_id__backup_logs_map.get(backup_id):
                 backup_id__backup_logs_map[backup_id].update(copy.deepcopy(log))
                 backup_id__backup_logs_map[backup_id]["backup_time"] = log["consistent_backup_time"]

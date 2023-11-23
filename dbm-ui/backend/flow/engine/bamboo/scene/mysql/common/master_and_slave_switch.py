@@ -59,6 +59,7 @@ def master_and_slave_switch(root_id: str, ticket_data: dict, cluster: Cluster, c
     # 拼接子流程需要全局参数
     switch_sub_flow_context = copy.deepcopy(ticket_data)
     # 把公共参数拼接到子流程的全局只读上下文
+    switch_sub_flow_context["is_check_delay"] = True
     switch_sub_flow_context["is_dead_master"] = False
     switch_sub_flow_context["grant_repl"] = True
     switch_sub_flow_context["locked_switch"] = True
