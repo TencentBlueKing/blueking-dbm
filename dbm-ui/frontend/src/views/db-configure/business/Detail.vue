@@ -37,16 +37,16 @@
       </template>
     </div>
   </div>
+  <Teleport to="#dbContentTitleAppend">
+    <span> - {{ state.data.name }}</span>
+  </Teleport>
 </template>
-
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
   import { getLevelConfig } from '@services/source/configs';
 
-  import { useMainViewStore } from '@stores';
-
-  import { confLevelInfos, ConfLevels } from '@common/const';
+  import {  ConfLevels } from '@common/const';
 
   import DetailsBase from '../components/DetailsBase.vue';
   import PublishRecord from '../components/PublishRecord.vue';
@@ -75,27 +75,6 @@
     version: props.version,
     ...levelParams.value,
   }));
-
-  /**
-   * 设置自定义面包屑
-   */
-  const mainViewStore = useMainViewStore();
-  nextTick(() => {
-    mainViewStore.$patch({
-      customBreadcrumbs: true,
-      hasPadding: false,
-    });
-  });
-  watch(() => state.data, () => {
-    mainViewStore.breadCrumbsTitle = state.data.name;
-    mainViewStore.tags = [{
-      theme: '',
-      text: state.data.version,
-    }, {
-      theme: 'info',
-      text: confLevelInfos[ConfLevels.APP].tagText,
-    }];
-  }, { deep: true });
 
   /**
    * 顶部 tabs

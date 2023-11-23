@@ -65,6 +65,7 @@
   });
 
   const handleChangeTab = (typeId: string) => {
+    console.log('handleChangeTab');
     router.replace({
       params: {
         typeId,

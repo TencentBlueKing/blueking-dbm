@@ -29,8 +29,6 @@
   </div>
 </template>
 <script setup lang="ts">
-  import { useMainViewStore } from '@stores';
-
   import TypeContent from './components/content/Index.vue';
 
   const tabs = [
@@ -75,9 +73,6 @@
       label: 'Riak',
     },
   ];
-
-  const mainViewStore = useMainViewStore();
-  mainViewStore.hasPadding = false;
 
   const activeTab = ref(tabs[0].value);
 

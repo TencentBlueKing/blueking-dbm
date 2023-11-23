@@ -122,7 +122,6 @@
 
   watch(() => props.nodeList, () => {
     nodeInfoMap.influxdb.nodeList = [...props.nodeList];
-    console.log('nodelist = ', props.nodeList);
   }, {
     immediate: true,
   });

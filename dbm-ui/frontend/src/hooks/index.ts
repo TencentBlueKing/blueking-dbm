@@ -17,6 +17,7 @@ export * from './useCopy';
 export * from './useDebouncedRef';
 export * from './useDebouncedRef';
 export * from './useDefaultPagination';
+export * from './useEventBus';
 export * from './useFormItem';
 export * from './useInfo';
 export * from './useInfoWithIcon';

@@ -108,7 +108,7 @@
           </BkMenuGroup>
           <div class="main-views-space-line" />
           <BkMenuGroup :name="$t('事件中心')">
-            <BkMenuItem key="PlatDBMASwitchEvents">
+            <BkMenuItem key="DBHASwitchEvents">
               <template #icon>
                 <i class="db-icon-db-config" />
               </template>

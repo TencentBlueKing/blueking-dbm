@@ -35,7 +35,7 @@
     },
   ];
 </script>
-<style lang="postcss">
+<style lang="less">
 .inspection-instance-detail {
   display: flex;
 

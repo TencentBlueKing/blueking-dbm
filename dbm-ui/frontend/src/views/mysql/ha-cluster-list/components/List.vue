@@ -90,6 +90,10 @@
 
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
+  import {
+    useRoute,
+    useRouter,
+  } from 'vue-router';
 
   import { getModules } from '@services/source/cmdb';
   import {
@@ -166,6 +170,7 @@
   };
 
 
+  const route = useRoute();
   const router = useRouter();
   const globalBizsStore = useGlobalBizs();
   const userProfileStore = useUserProfile();
@@ -253,7 +258,7 @@
             <bk-button
               text
               theme="primary"
-              onClick={() => handleToDetails(data)}>
+              onClick={() => handleToDetails(data.id)}>
               {cell}
             </bk-button>
           </span>
@@ -536,7 +541,6 @@
 
   // 设置轮询
   const {
-    pause,
     resume,
   } = useTimeoutPoll(() => fetchData(isInit.value), 5000, {
     immediate: false,
@@ -587,10 +591,11 @@
   /**
    * 查看详情
    */
-  function handleToDetails(row: ResourceItem) {
+  const handleToDetails = (id: number) => {
+    console.log('handleToDetails = ', id);
     stretchLayoutSplitScreen();
-    clusterId.value = row.id;
-  }
+    clusterId.value = id;
+  };
 
   const handleSearch = () => {
     fetchData();
@@ -690,9 +695,10 @@
 
   onMounted(() => {
     resume();
-  });
-  onBeforeUnmount(() => {
-    pause();
+    console.log('route = ', route.query, clusterId.value);
+    if (route.query.id && !clusterId.value) {
+      handleToDetails(Number(route.query.id));
+    }
   });
 </script>
 

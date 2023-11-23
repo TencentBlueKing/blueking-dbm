@@ -15,28 +15,14 @@ import type { RouteRecordRaw } from 'vue-router';
 
 import type { BigdataFunctions } from '@services/model/function-controller/functionController';
 
-import { MainViewRouteNames } from '@views/main-views/common/const';
-
 import { t } from '@locales/index';
 
 const routes: RouteRecordRaw[] = [
   {
-    name: 'SelfServiceApplyInfluxDB',
-    path: 'apply/influxdb',
-    meta: {
-      routeParentName: MainViewRouteNames.SelfService,
-      navName: t('申请InfluxDB集群部署'),
-      activeMenu: 'SelfServiceApply',
-    },
-    component: () => import('@views/influxdb-manage/apply/index.vue'),
-  },
-  {
     path: 'influxdb-manage',
     name: 'InfluxDBManage',
     meta: {
-      routeParentName: MainViewRouteNames.Database,
       navName: t('InfluxDB实例管理'),
-      isMenu: true,
     },
     redirect: {
       name: 'InfluxDBInstances',
@@ -44,12 +30,19 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@views/influxdb-manage/Index.vue'),
     children: [
       {
+        name: 'SelfServiceApplyInfluxDB',
+        path: 'apply',
+        meta: {
+          navName: t('申请InfluxDB集群部署'),
+        },
+        component: () => import('@views/influxdb-manage/apply/index.vue'),
+      },
+      {
         name: 'InfluxDBInstances',
         path: 'instance-list/:groupId(\\d+)?',
         meta: {
-          routeParentName: MainViewRouteNames.Database,
           navName: t('InfluxDB实例管理'),
-          isMenu: true,
+          fullscreen: true,
         },
         component: () => import('@views/influxdb-manage/instance-list/Index.vue'),
       },
@@ -57,10 +50,8 @@ const routes: RouteRecordRaw[] = [
         name: 'InfluxDBInstDetails',
         path: 'instance-details/:instId(\\d+)',
         meta: {
-          routeParentName: MainViewRouteNames.Database,
           navName: t('InfluxDB实例详情'),
-          isMenu: false,
-          activeMenu: 'InfluxDBManage',
+          fullscreen: true,
         },
         component: () => import('@views/influxdb-manage/details/Details.vue'),
       },

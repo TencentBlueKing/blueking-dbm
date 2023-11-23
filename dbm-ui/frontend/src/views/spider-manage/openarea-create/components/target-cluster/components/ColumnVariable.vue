@@ -51,7 +51,6 @@
 
   defineExpose<Exposes>({
     getValue() {
-      console.log('colmn variable');
       return (editRef.value as InstanceType<typeof TableEditInput>)
         .getValue()
         .then(() => ({

@@ -89,7 +89,10 @@
     shallowRef,
   } from 'vue';
   import { useI18n } from 'vue-i18n';
-  import { useRouter } from 'vue-router';
+  import {
+    useRoute,
+    useRouter,
+  } from 'vue-router';
 
   import type KafkaModel from '@services/model/kafka/kafka';
   import {
@@ -128,6 +131,7 @@
 
   const clusterId = defineModel<number>('clusterId');
 
+  const route = useRoute();
   const router = useRouter();
   const { currentBizId } = useGlobalBizs();
   const userProfileStore = useUserProfile();
@@ -223,7 +227,7 @@
             <bk-button
               theme="primary"
               text
-              onClick={() => handleToDetails(data)}>
+              onClick={() => handleToDetails(data.id)}>
               {data.domain || '--'}
             </bk-button>
           </span>
@@ -474,9 +478,9 @@
   /**
    * 查看详情
    */
-  const handleToDetails = (row: KafkaModel) => {
+  const handleToDetails = (id: number) => {
     stretchLayoutSplitScreen();
-    clusterId.value = row.id;
+    clusterId.value = id;
   };
 
   // 扩容
@@ -604,6 +608,9 @@
 
   onMounted(() => {
     resumeFetchTableData();
+    if (!clusterId.value && route.query.id) {
+      handleToDetails(Number(route.query.id));
+    }
   });
 
 </script>
