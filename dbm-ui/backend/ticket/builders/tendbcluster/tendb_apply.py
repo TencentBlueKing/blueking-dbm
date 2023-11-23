@@ -22,7 +22,7 @@ from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.flow.engine.controller.spider import SpiderController
 from backend.ticket import builders
 from backend.ticket.builders.common.base import CommonValidate
-from backend.ticket.builders.tendbcluster.base import BaseTendbTicketFlowBuilder
+from backend.ticket.builders.tendbcluster.base import BaseTendbTicketFlowBuilder, TendbBaseOperateDetailSerializer
 from backend.ticket.constants import TicketType
 
 
@@ -83,6 +83,8 @@ class TenDBClusterApplyDetailSerializer(serializers.Serializer):
         CommonValidate.validate_duplicate_cluster_name(
             self.context["bk_biz_id"], self.context["ticket_type"], attrs["cluster_name"]
         )
+        # 校验分片数合法
+        TendbBaseOperateDetailSerializer.validate_cluster_shard_num(attrs)
         return attrs
 
 

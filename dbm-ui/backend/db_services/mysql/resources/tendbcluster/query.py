@@ -18,12 +18,14 @@ from django.utils.translation import ugettext_lazy as _
 from backend.db_meta.api.cluster.tendbcluster.detail import scan_cluster
 from backend.db_meta.enums import InstanceInnerRole, InstanceStatus, TenDBClusterSpiderRole
 from backend.db_meta.enums.cluster_type import ClusterType
+from backend.db_meta.enums.comm import SystemTagEnum
 from backend.db_meta.models import AppCache, Machine, Spec
 from backend.db_meta.models.cluster import Cluster
 from backend.db_meta.models.instance import ProxyInstance, StorageInstance
 from backend.db_services.dbbase.resources import query
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.db_services.mysql.resources.tendbha.query import ListRetrieveResource as DBHAListRetrieveResource
+from backend.ticket.constants import TicketType
 from backend.ticket.models import ClusterOperateRecord
 from backend.utils.time import datetime2str
 
@@ -63,10 +65,12 @@ class ListRetrieveResource(DBHAListRetrieveResource):
     ) -> query.ResourceList:
         return super()._list(cluster_qset, proxy_inst_qset, storage_inst_qset, db_module_names, limit, offset)
 
-    @staticmethod
+    @classmethod
     def _to_cluster_representation(
-        cluster: Cluster, db_module_names: Dict[int, str], cluster_entry_map: Dict[int, Dict[str, str]]
+        cls, cluster: Cluster, db_module_names: Dict[int, str], cluster_entry_map: Dict[int, Dict[str, str]]
     ) -> Dict[str, Any]:
+        """将集群对象转为可序列化的 dict 结构"""
+
         def get_remote_infos(insts: List[StorageInstance]):
             """获取remote信息，并补充分片信息"""
             remote_infos = {InstanceInnerRole.MASTER.value: [], InstanceInnerRole.SLAVE.value: []}
@@ -84,7 +88,6 @@ class ListRetrieveResource(DBHAListRetrieveResource):
             remote_infos[InstanceInnerRole.SLAVE.value].sort(key=lambda x: x.get("shard_id", -1))
             return remote_infos[InstanceInnerRole.MASTER.value], remote_infos[InstanceInnerRole.SLAVE.value]
 
-        """将集群对象转为可序列化的 dict 结构"""
         spider = {
             role: [inst.simple_desc for inst in cluster.proxies if inst.tendbclusterspiderext.spider_role == role]
             for role in TenDBClusterSpiderRole.get_values()
@@ -119,7 +122,6 @@ class ListRetrieveResource(DBHAListRetrieveResource):
             "spider_master": spider[TenDBClusterSpiderRole.SPIDER_MASTER],
             "spider_slave": spider[TenDBClusterSpiderRole.SPIDER_SLAVE],
             "spider_mnt": spider[TenDBClusterSpiderRole.SPIDER_MNT],
-            "tags": [tag.tag_desc for tag in cluster.tags],
             # TODO: 待补充当前集群使用容量，需要监控采集的支持
             "cluster_shard_num": len(remote_db),
             "remote_shard_num": len(remote_db) / machine_pair_cnt,
@@ -130,7 +132,27 @@ class ListRetrieveResource(DBHAListRetrieveResource):
             "db_module_name": db_module_names.get(cluster.db_module_id, ""),
             "creator": cluster.creator,
             "create_at": datetime2str(cluster.create_at),
+            "temporary_info": cls._fill_temporary_cluster_info(cluster),
         }
+
+    @staticmethod
+    def _fill_temporary_cluster_info(cluster):
+        # 如果当前集群是临时集群，则补充临时集群相关信息
+        if not cluster.tag_set.filter(name=SystemTagEnum.TEMPORARY.value).exists():
+            return {}
+
+        ticket = (
+            ClusterOperateRecord.objects.filter(
+                cluster_id=cluster.id, ticket__ticket_type=TicketType.TENDBCLUSTER_ROLLBACK_CLUSTER
+            )
+            .first()
+            .ticket
+        )
+        temporary_info = {
+            "source_cluster": Cluster.objects.get(id=ticket.details["cluster_id"]).name,
+            "ticket_id": ticket.id,
+        }
+        return temporary_info
 
     @staticmethod
     def _filter_instance_qs(query_conditions, query_params):
