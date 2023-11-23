@@ -15,12 +15,17 @@ import bkuiVue from 'bkui-vue';
 import { createPinia } from 'pinia';
 import { createApp } from 'vue';
 
-import { useGlobalBizs, useSystemEnviron } from '@stores';
+import {
+  useFunController,
+  useGlobalBizs,
+  useSystemEnviron,
+} from '@stores';
 
 import { setGlobalComps } from '@common/importComps';
 
+import i18n from '@locales/index';
+
 import App from './App.vue';
-import i18n from './locales/index';
 import getRouter from './router';
 
 import '@blueking/ip-selector/dist/styles/vue2.6.x.css';
@@ -33,36 +38,36 @@ import('tippy.js/themes/light.css');
 
 window.changeConfirm = false;
 
-(async function () {
-  const app = createApp(App);
-  const piniaInstance = createPinia();
-  // 提早注册确保 getRouter 中可以使用 store
-  app.use(piniaInstance);
-  // piniaInstance.use(({ store }) => {
-  //   // eslint-disable-next-line no-param-reassign
-  //   store.router = markRaw(router);
-  // });
-  const globalBizsStore = useGlobalBizs();
-  await globalBizsStore.fetchBizs();
-  const router = await getRouter();
+const app = createApp(App);
+// 自定义全局组件
+setGlobalComps(app);
+const piniaInstance = createPinia();
+app.use(piniaInstance);
+// 注册全局指令
+setGlobalDirectives(app);
 
-  // 自定义全局组件
-  setGlobalComps(app);
+app.use(bkuiVue);
+app.use(i18n);
 
-  // 注册全局指令
-  setGlobalDirectives(app);
-  app.use(bkuiVue);
-  app.use(i18n);
-  app.use(router);
+const {
+  fetchFunController,
+} = useFunController();
+const {
+  fetchBizs,
+} = useGlobalBizs();
+const {
+  fetchSystemEnviron,
+} = useSystemEnviron();
+
+Promise.all([
+  fetchFunController(),
+  fetchBizs(),
+  fetchSystemEnviron(),
+]).then(() => {
+  app.use(getRouter());
 
   app.mount('#app');
-
-  /**
-   * 获取环境变量
-   */
-  const systemEnvironStore = useSystemEnviron();
-  systemEnvironStore.fetchSystemEnviron();
-}());
+});
 
 /**
  * 浏览器框口关闭提醒
@@ -82,4 +87,3 @@ window.addEventListener('beforeunload', (event) => {
   }
   return '离开将会导致未保存信息丢失';
 });
-

@@ -17,7 +17,6 @@
       <DbForm
         ref="formRef"
         auto-label-width
-        class="apply-form"
         :model="formdata"
         :rules="rules">
         <DbCard :title="$t('业务信息')">
@@ -109,19 +108,20 @@
     </div>
     <template #action>
       <BkButton
+        class="w-88"
         :loading="baseState.isSubmitting"
         theme="primary"
         @click="handleSubmit">
         {{ $t('提交') }}
       </BkButton>
       <BkButton
-        class="ml-8"
+        class="ml-8 w-88"
         :disabled="baseState.isSubmitting"
         @click="handleResetFormdata">
         {{ $t('重置') }}
       </BkButton>
       <BkButton
-        class="ml-8"
+        class="ml-8 w-88"
         :disabled="baseState.isSubmitting"
         @click="handleCancel">
         {{ $t('取消') }}

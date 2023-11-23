@@ -32,16 +32,11 @@
 <script setup lang="ts">
   import mitt from 'mitt';
 
-  import { useMainViewStore } from '@stores';
-
   import RenderGroup from './components/render-group/Index.vue';
   import RenderList from './components/render-list/Index.vue';
 
   const eventBus = mitt();
   provide('eventBus', eventBus);
-
-  const mainViewStore = useMainViewStore();
-  mainViewStore.hasPadding = false;
 </script>
 
 <style lang="less">
