@@ -23,7 +23,7 @@ class DumperSubscribeConfigSerializer(serializers.ModelSerializer):
         db_name = serializers.CharField(help_text=_("DB名称"))
         table_names = serializers.ListField(help_text=_("表名列表"), child=serializers.CharField())
 
-    subscribe = SubscribeInfoSerializer()
+    subscribe = serializers.ListSerializer(help_text=_("配置表信息"), child=SubscribeInfoSerializer())
 
     class Meta:
         model = DumperSubscribeConfig
