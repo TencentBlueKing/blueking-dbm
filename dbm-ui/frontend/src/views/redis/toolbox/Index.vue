@@ -14,7 +14,7 @@
 <template>
   <BkResizeLayout
     :border="false"
-    class="toolbox"
+    class="redis-manage-toolbox-page"
     collapsible
     disabled
     initial-divide="300px">
@@ -22,37 +22,68 @@
       <ToolboxSide />
     </template>
     <template #main>
-      <ToolboxContent />
+      <div class="toolbox-page-wrapper">
+        <div class="toolbox-page-title">
+          <span style="font-weight: bold;">{{ toolboxTitle }}</span>
+          <BkTag
+            class="ml-8"
+            theme="info">
+            Redis
+          </BkTag>
+        </div>
+        <div class="toolbox-content-wrapper">
+          <ScrollFaker style="padding: 0 24px">
+            <RouterView />
+          </ScrollFaker>
+        </div>
+      </div>
     </template>
   </BkResizeLayout>
 </template>
-
 <script setup lang="ts">
-  import { useMainViewStore } from '@stores';
+  import { watch } from 'vue';
+  import { useRoute } from 'vue-router';
 
-  import ToolboxContent from './components/ToolboxContent.vue';
-  import ToolboxSide from './components/ToolboxSide.vue';
+  import ToolboxSide from './components/toolbox-side/Index.vue';
 
   const route = useRoute();
 
-  watch(() => route.fullPath, () => {
-    if (route.fullPath.includes('redis-toolbox')) {
-      const mainViewStore = useMainViewStore();
-      mainViewStore.hasPadding = false;
-      mainViewStore.customBreadcrumbs = true;
-    }
-  }, { immediate: true });
+  const toolboxTitle = ref('');
+
+  watch(route, () => {
+    toolboxTitle.value = route.meta.navName as string;
+  }, {
+    immediate: true,
+  });
 </script>
+<style lang="less">
+.redis-manage-toolbox-page {
+  height: 100%;
 
-<style lang="less" scoped>
-.toolbox {
-  height: calc(100% - 52px);
-
-  & > :deep(.bk-resize-layout-aside) {
+  & > .bk-resize-layout-aside {
     z-index: 100;
 
     &::after {
       display: none;
+    }
+  }
+
+  .toolbox-page-wrapper {
+    height: 100%;
+    background-color: white;
+
+    .toolbox-page-title {
+      display: flex;
+      width: 100%;
+      height: 54px;
+      padding: 0 24px;
+      align-items: center;
+      font-size: 14px;
+      color: #313238;
+    }
+
+    .toolbox-content-wrapper {
+      height: calc(100% - 52px);
     }
   }
 }

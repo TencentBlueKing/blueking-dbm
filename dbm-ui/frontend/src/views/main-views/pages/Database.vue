@@ -236,7 +236,7 @@
           <div class="main-views-space-line" />
           <FunController module-id="redis">
             <BkMenuGroup name="Redis">
-              <BkMenuItem key="DatabaseRedis">
+              <BkMenuItem key="RedisManage">
                 <template #icon>
                   <i class="db-icon-redis" />
                 </template>

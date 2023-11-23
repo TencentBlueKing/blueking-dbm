@@ -68,19 +68,13 @@
 
   import { useInfo } from '@hooks';
 
-  import { useGlobalBizs, useMainViewStore } from '@stores';
+  import { useGlobalBizs } from '@stores';
 
   import DbMemberSelector from '@components/db-member-selector/index.vue';
 
   const { t } = useI18n();
   const route = useRoute();
   const isPlatform = computed(() => route.matched[0]?.name === 'Platform');
-
-  /**
-   * 设置 main-view padding
-   */
-  const mainViewStore = useMainViewStore();
-  mainViewStore.hasPadding = false;
 
   /**
    * 获取当前业务 ID
@@ -157,7 +151,6 @@
 
   .staff-setting {
     height: 100%;
-    padding: 24px;
 
     :deep(.bk-form-item) {
       max-width: 690px;

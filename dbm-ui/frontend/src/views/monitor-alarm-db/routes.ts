@@ -13,8 +13,6 @@
 
 import type { RouteRecordRaw } from 'vue-router';
 
-import { MainViewRouteNames } from '@views/main-views/common/const';
-
 import { t } from '@locales/index';
 
 const routes: RouteRecordRaw[] = [
@@ -22,13 +20,12 @@ const routes: RouteRecordRaw[] = [
     name: 'DBMonitorStrategy',
     path: 'monitor-strategy',
     meta: {
-      routeParentName: MainViewRouteNames.Database,
       navName: t('监控策略'),
-      isMenu: true,
       tags: [{
         theme: 'info',
         text: t('业务'),
       }],
+      fullscreen: true,
     },
     component: () => import('@views/monitor-alarm-db/monitor-strategy/Index.vue'),
   },
@@ -36,9 +33,7 @@ const routes: RouteRecordRaw[] = [
     name: 'DBMonitorAlarmGroup',
     path: 'alarm-group',
     meta: {
-      routeParentName: MainViewRouteNames.Database,
       navName: t('告警组'),
-      isMenu: true,
     },
     component: () => import('@views/monitor-alarm-db/alarm-group/Index.vue'),
   },

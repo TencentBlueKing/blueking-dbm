@@ -13,8 +13,6 @@
 
 import type { RouteRecordRaw } from 'vue-router';
 
-import { MainViewRouteNames } from '@views/main-views/common/const';
-
 import { t } from '@locales/index';
 
 export const spiderToolboxChildrenRoutes: RouteRecordRaw[] = [
@@ -22,11 +20,8 @@ export const spiderToolboxChildrenRoutes: RouteRecordRaw[] = [
     path: 'sql-execute/:step?',
     name: 'spiderSqlExecute',
     meta: {
-      routeParentName: MainViewRouteNames.Database,
       navName: t('SQL变更执行'),
-      isMenu: true,
       activeMenu: 'spiderToolbox',
-      submenuId: 'spider_sql',
     },
     component: () => import('@views/spider-manage/sql-execute/Index.vue'),
   },
@@ -34,11 +29,8 @@ export const spiderToolboxChildrenRoutes: RouteRecordRaw[] = [
     path: 'db-rename/:page?',
     name: 'spiderDbRename',
     meta: {
-      routeParentName: MainViewRouteNames.Database,
       navName: t('DB 重命名'),
-      isMenu: true,
       activeMenu: 'spiderToolbox',
-      submenuId: 'spider_sql',
     },
     component: () => import('@views/spider-manage/db-rename/Index.vue'),
   },
@@ -46,11 +38,8 @@ export const spiderToolboxChildrenRoutes: RouteRecordRaw[] = [
     path: 'master-slave-swap/:page?',
     name: 'spiderMasterSlaveSwap',
     meta: {
-      routeParentName: MainViewRouteNames.Database,
       navName: t('主从互切'),
-      isMenu: true,
       activeMenu: 'spiderToolbox',
-      submenuId: 'spider_cluster_maintain',
     },
     component: () => import('@views/spider-manage/master-slave-swap/Index.vue'),
   },
@@ -58,11 +47,8 @@ export const spiderToolboxChildrenRoutes: RouteRecordRaw[] = [
     path: 'master-failover/:page?',
     name: 'spiderMasterFailover',
     meta: {
-      routeParentName: MainViewRouteNames.Database,
       navName: t('主库故障切换'),
-      isMenu: true,
       activeMenu: 'spiderToolbox',
-      submenuId: 'spider_cluster_maintain',
     },
     component: () => import('@views/spider-manage/master-failover/Index.vue'),
   },
@@ -70,11 +56,8 @@ export const spiderToolboxChildrenRoutes: RouteRecordRaw[] = [
     path: 'capacity-change/:page?',
     name: 'spiderCapacityChange',
     meta: {
-      routeParentName: MainViewRouteNames.Database,
       navName: t('集群容量变更'),
-      isMenu: true,
       activeMenu: 'spiderToolbox',
-      submenuId: 'spider_cluster_maintain',
     },
     component: () => import('@views/spider-manage/capacity-change/Index.vue'),
   },
@@ -82,11 +65,8 @@ export const spiderToolboxChildrenRoutes: RouteRecordRaw[] = [
     name: 'SpiderProxyScaleUp',
     path: 'proxy-scale-up/:page?',
     meta: {
-      routeParentName: MainViewRouteNames.Database,
       navName: t('扩容接入层'),
-      isMenu: true,
       activeMenu: 'spiderToolbox',
-      submenuId: 'spider_cluster_maintain',
     },
     component: () => import('@views/spider-manage/proxy-scale-up/Index.vue'),
   },
@@ -94,11 +74,8 @@ export const spiderToolboxChildrenRoutes: RouteRecordRaw[] = [
     name: 'SpiderProxyScaleDown',
     path: 'proxy-scale-down/:page?',
     meta: {
-      routeParentName: MainViewRouteNames.Database,
       navName: t('缩容接入层'),
-      isMenu: true,
       activeMenu: 'spiderToolbox',
-      submenuId: 'spider_cluster_maintain',
     },
     component: () => import('@views/spider-manage/proxy-scale-down/Index.vue'),
   },
@@ -106,11 +83,8 @@ export const spiderToolboxChildrenRoutes: RouteRecordRaw[] = [
     name: 'SpiderProxySlaveApply',
     path: 'proxy-slave-apply/:page?',
     meta: {
-      routeParentName: MainViewRouteNames.Database,
       navName: t('部署只读接入层'),
-      isMenu: true,
       activeMenu: 'spiderToolbox',
-      submenuId: 'spider_entry',
     },
     component: () => import('@views/spider-manage/proxy-slave-apply/Index.vue'),
   },
@@ -118,11 +92,8 @@ export const spiderToolboxChildrenRoutes: RouteRecordRaw[] = [
     path: 'add-mnt/:page?',
     name: 'spiderAddMnt',
     meta: {
-      routeParentName: MainViewRouteNames.Database,
       navName: t('添加运维节点'),
-      isMenu: true,
       activeMenu: 'spiderToolbox',
-      submenuId: 'spider_mnt',
     },
     component: () => import('@views/spider-manage/add-mnt/Index.vue'),
   },
@@ -130,11 +101,8 @@ export const spiderToolboxChildrenRoutes: RouteRecordRaw[] = [
     path: 'db-table-backup/:page?',
     name: 'spiderDbTableBackup',
     meta: {
-      routeParentName: MainViewRouteNames.Database,
       navName: t('库表备份'),
-      isMenu: true,
       activeMenu: 'spiderToolbox',
-      submenuId: 'spider_copy',
     },
     component: () => import('@views/spider-manage/db-table-backup/Index.vue'),
   },
@@ -142,11 +110,8 @@ export const spiderToolboxChildrenRoutes: RouteRecordRaw[] = [
     path: 'db-backup/:page?',
     name: 'spiderDbBackup',
     meta: {
-      routeParentName: MainViewRouteNames.Database,
       navName: t('全库备份'),
-      isMenu: true,
       activeMenu: 'spiderToolbox',
-      submenuId: 'spider_copy',
     },
     component: () => import('@views/spider-manage/db-backup/Index.vue'),
   },
@@ -154,11 +119,8 @@ export const spiderToolboxChildrenRoutes: RouteRecordRaw[] = [
     path: 'flashback/:page?',
     name: 'spiderFlashback',
     meta: {
-      routeParentName: MainViewRouteNames.Database,
       navName: t('闪回'),
-      isMenu: true,
       activeMenu: 'spiderToolbox',
-      submenuId: 'spider_fileback',
     },
     component: () => import('@views/spider-manage/flashback/Index.vue'),
   },
@@ -166,11 +128,8 @@ export const spiderToolboxChildrenRoutes: RouteRecordRaw[] = [
     path: 'rollback/:page?',
     name: 'spiderRollback',
     meta: {
-      routeParentName: MainViewRouteNames.Database,
       navName: t('定点构造'),
-      isMenu: true,
       activeMenu: 'spiderToolbox',
-      submenuId: 'spider_fileback',
     },
     component: () => import('@views/spider-manage/rollback/Index.vue'),
   },
@@ -178,11 +137,8 @@ export const spiderToolboxChildrenRoutes: RouteRecordRaw[] = [
     path: 'rollback-record',
     name: 'spiderRollbackRecord',
     meta: {
-      routeParentName: MainViewRouteNames.Database,
       navName: t('构造实例'),
-      isMenu: true,
       activeMenu: 'spiderToolbox',
-      submenuId: 'spider_fileback',
     },
     component: () => import('@views/spider-manage/rollback-record/Index.vue'),
   },
@@ -190,11 +146,8 @@ export const spiderToolboxChildrenRoutes: RouteRecordRaw[] = [
     path: 'db-clear/:page?',
     name: 'spiderDbClear',
     meta: {
-      routeParentName: MainViewRouteNames.Database,
       navName: t('清档'),
-      isMenu: true,
       activeMenu: 'spiderToolbox',
-      submenuId: 'spider_data',
     },
     component: () => import('@views/spider-manage/db-clear/Index.vue'),
   },
@@ -202,11 +155,8 @@ export const spiderToolboxChildrenRoutes: RouteRecordRaw[] = [
     path: 'checksum/:page?',
     name: 'spiderChecksum',
     meta: {
-      routeParentName: MainViewRouteNames.Database,
       navName: t('数据校验修复'),
-      isMenu: true,
       activeMenu: 'spiderToolbox',
-      submenuId: 'spider_data',
     },
     component: () => import('@views/spider-manage/checksum/Index.vue'),
   },
@@ -214,11 +164,8 @@ export const spiderToolboxChildrenRoutes: RouteRecordRaw[] = [
     path: 'privilege-clone-client/:page?',
     name: 'spiderPrivilegeCloneClient',
     meta: {
-      routeParentName: MainViewRouteNames.Database,
       navName: t('客户端权限克隆'),
-      isMenu: true,
       activeMenu: 'spiderToolbox',
-      submenuId: 'spider_privilege',
     },
     component: () => import('@views/spider-manage/privilege-clone-client/Index.vue'),
   },
@@ -226,11 +173,8 @@ export const spiderToolboxChildrenRoutes: RouteRecordRaw[] = [
     path: 'privilege-clone-inst/:page?',
     name: 'spiderPrivilegeCloneInst',
     meta: {
-      routeParentName: MainViewRouteNames.Database,
       navName: t('DB 实例权限克隆'),
-      isMenu: true,
       activeMenu: 'spiderToolbox',
-      submenuId: 'spider_privilege',
     },
     component: () => import('@views/spider-manage/privilege-clone-inst/Index.vue'),
   },
@@ -238,43 +182,20 @@ export const spiderToolboxChildrenRoutes: RouteRecordRaw[] = [
     path: 'openarea-template',
     name: 'spiderOpenareaTemplate',
     meta: {
-      routeParentName: MainViewRouteNames.Database,
       navName: t('开区模版'),
-      isMenu: true,
       activeMenu: 'spiderToolbox',
-      submenuId: 'spider_openarea',
     },
     component: () => import('@views/spider-manage/openarea-template/Index.vue'),
   },
 ];
 
 const renderRoutes: RouteRecordRaw[] = [
-  {
-    name: 'spiderApply',
-    path: 'apply/spider',
-    meta: {
-      routeParentName: MainViewRouteNames.SelfService,
-      navName: t('申请TendbCluster分布式集群部署'),
-    },
-    component: () => import('@views/spider-manage/apply/Index.vue'),
-  },
-  {
-    name: 'createSpiderModule',
-    path: 'apply/create-module/:bizId(\\d+)',
-    meta: {
-      routeParentName: MainViewRouteNames.SelfService,
-      navName: t('新建模块'),
-      isMenu: true,
-    },
-    component: () => import('@views/spider-manage/apply/CreateModule.vue'),
-  },
+
   {
     path: 'spider-manage',
     name: 'SpiderManage',
     meta: {
-      routeParentName: MainViewRouteNames.Database,
       navName: t('Spider_集群管理'),
-      isMenu: true,
     },
     redirect: {
       name: 'tendbClusterList',
@@ -282,13 +203,27 @@ const renderRoutes: RouteRecordRaw[] = [
     component: () => import('@views/spider-manage/Index.vue'),
     children: [
       {
+        name: 'spiderApply',
+        path: 'apply',
+        meta: {
+          navName: t('申请TendbCluster分布式集群部署'),
+        },
+        component: () => import('@views/spider-manage/apply/Index.vue'),
+      },
+      {
+        name: 'createSpiderModule',
+        path: 'create-module/:bizId(\\d+)',
+        meta: {
+          navName: t('新建模块'),
+        },
+        component: () => import('@views/spider-manage/apply/CreateModule.vue'),
+      },
+      {
         name: 'tendbClusterList',
         path: 'list',
         meta: {
-          routeParentName: MainViewRouteNames.Database,
           navName: t('TendbCluster分布式集群_集群管理'),
-          isMenu: true,
-          submenuId: 'tendb-cluster-manage',
+          fullscreen: true,
         },
         component: () => import('@views/spider-manage/list/Index.vue'),
       },
@@ -296,10 +231,8 @@ const renderRoutes: RouteRecordRaw[] = [
         name: 'tendbClusterInstance',
         path: 'list-instance',
         meta: {
-          routeParentName: MainViewRouteNames.Database,
           navName: t('TendbCluster分布式集群_实例视图'),
-          isMenu: true,
-          submenuId: 'tendb-cluster-manage',
+          fullscreen: true,
         },
         component: () => import('@views/spider-manage/list-instance/Index.vue'),
       },
@@ -307,9 +240,7 @@ const renderRoutes: RouteRecordRaw[] = [
         path: 'partition-manage',
         name: 'spiderPartitionManage',
         meta: {
-          routeParentName: MainViewRouteNames.Database,
           navName: t('【TenDB Cluster】分区管理'),
-          isMenu: true,
         },
         component: () => import('@views/spider-manage/partition-manage/Index.vue'),
       },
@@ -317,10 +248,7 @@ const renderRoutes: RouteRecordRaw[] = [
         path: 'permission',
         name: 'spiderPermission',
         meta: {
-          routeParentName: MainViewRouteNames.Database,
           navName: t('授权规则'),
-          isMenu: true,
-          submenuId: 'spider-permission',
         },
         component: () => import('@views/spider-manage/permission/Index.vue'),
       },
@@ -328,10 +256,7 @@ const renderRoutes: RouteRecordRaw[] = [
       //   path: 'permission-list',
       //   name: 'spiderPermissionList',
       //   meta: {
-      //     routeParentName: MainViewRouteNames.Database,
       //     navName: t('授权列表'),
-      //     isMenu: true,
-      //     submenuId: 'spider-permission',
       //   },
       //   component: () => import('@views/spider-manage/permission-list/Index.vue'),
       // },
@@ -339,10 +264,7 @@ const renderRoutes: RouteRecordRaw[] = [
         path: 'whitelist',
         name: 'spiderWhitelist',
         meta: {
-          routeParentName: MainViewRouteNames.Database,
           navName: t('授权白名单'),
-          isMenu: true,
-          submenuId: 'spider-permission',
         },
         component: () => import('@views/spider-manage/whitelist/Index.vue'),
       },
@@ -350,9 +272,8 @@ const renderRoutes: RouteRecordRaw[] = [
         path: 'toolbox',
         name: 'spiderToolbox',
         meta: {
-          routeParentName: MainViewRouteNames.Database,
           navName: t('Spider_工具箱'),
-          isMenu: true,
+          fullscreen: true,
         },
         redirect: {
           name: 'spiderSqlExecute',
@@ -364,7 +285,6 @@ const renderRoutes: RouteRecordRaw[] = [
         path: 'openarea-template-create',
         name: 'spiderOpenareaTemplateCreate',
         meta: {
-          routeParentName: MainViewRouteNames.Database,
           navName: t('新建开区模板'),
         },
         component: () => import('@views/spider-manage/openarea-template-create/Index.vue'),
@@ -373,7 +293,6 @@ const renderRoutes: RouteRecordRaw[] = [
         path: 'openarea-template-edit/:id',
         name: 'spiderOpenareaTemplateEdit',
         meta: {
-          routeParentName: MainViewRouteNames.Database,
           navName: t('编辑开区模板'),
         },
         component: () => import('@views/spider-manage/openarea-template-create/Index.vue'),
@@ -382,7 +301,6 @@ const renderRoutes: RouteRecordRaw[] = [
         path: 'openarea-create/:id',
         name: 'spiderOpenareaCreate',
         meta: {
-          routeParentName: MainViewRouteNames.Database,
           navName: t('新建开区'),
         },
         component: () => import('@views/spider-manage/openarea-create/Index.vue'),

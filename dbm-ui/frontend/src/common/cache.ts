@@ -51,3 +51,19 @@ export const routerCache = {
     return true;
   },
 };
+
+export const systemSearchCache = {
+  key: 'SYSTEM_SEARCH_HISTORY_KEY_WORD',
+  setItem(value: string[]) {
+    localStorage.setItem(systemSearchCache.key, JSON.stringify(value));
+  },
+  appendItem(value: string) {
+    const histroyList = systemSearchCache.getItem();
+    histroyList.unshift(value);
+    systemSearchCache.setItem(histroyList.slice(0, 10));
+  },
+  getItem(): string[] {
+    const value = JSON.parse(localStorage.getItem(systemSearchCache.key) || '[]');
+    return _.isArray(value) ? _.uniq(value) : [];
+  },
+};
