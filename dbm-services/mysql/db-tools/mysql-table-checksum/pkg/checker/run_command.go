@@ -123,56 +123,56 @@ func (r *Checker) Run() error {
 				return err
 			}
 		}
+
+		// 固定写入一行恒为真的站位数据
+		conn, err := r.db.Connx(context.Background())
+		if err != nil {
+			slog.Error("get conn from sqlx.db", slog.String("error", err.Error()))
+			return err
+		}
+		defer func() {
+			_ = conn.Close()
+		}()
+
+		_, err = conn.ExecContext(context.Background(), `SET SESSION TRANSACTION ISOLATION LEVEL REPEATABLE READ;`)
+		if err != nil {
+			slog.Error("set iso level", slog.String("error", err.Error()))
+			return err
+		}
+
+		//防止 row 格式的 replace 阻塞 slave 同步
+		_, err = conn.ExecContext(context.Background(), `set binlog_format='statement'`)
+		if err != nil {
+			slog.Error(
+				"set binlog format to statement before insert fake result", slog.String("error", err.Error()))
+			return err
+		}
+
+		// 为了兼容 flashback, 这里拼上库前缀
+		ts := time.Now()
+		_, err = conn.ExecContext(
+			context.Background(),
+			fmt.Sprintf("REPLACE INTO %s.%s("+
+				"master_ip, master_port, "+
+				"`db`, tbl, chunk, chunk_time, chunk_index, "+
+				"lower_boundary, upper_boundary, "+
+				"this_crc, this_cnt, master_crc, master_cnt, ts) "+
+				"VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+				r.resultDB,
+				r.resultHistoryTable),
+			r.Config.Ip, r.Config.Port,
+			"_dba_fake_db", "_dba_fake_table", 0, 0, "",
+			"1=1", "1=1",
+			0, 0, 0, 0, ts,
+		)
+		if err != nil {
+			slog.Error("write place hold row", slog.String("error", err.Error()))
+			return err
+		}
+		slog.Info("write place hold row success")
 	} else {
 		slog.Info("run in demand mode")
 	}
-
-	// 固定写入一行恒为真的站位数据
-	conn, err := r.db.Connx(context.Background())
-	if err != nil {
-		slog.Error("get conn from sqlx.db", slog.String("error", err.Error()))
-		return err
-	}
-	defer func() {
-		_ = conn.Close()
-	}()
-
-	_, err = conn.ExecContext(context.Background(), `SET SESSION TRANSACTION ISOLATION LEVEL REPEATABLE READ;`)
-	if err != nil {
-		slog.Error("set iso level", slog.String("error", err.Error()))
-		return err
-	}
-
-	//防止 row 格式的 replace 阻塞 slave 同步
-	_, err = conn.ExecContext(context.Background(), `set binlog_format='statement'`)
-	if err != nil {
-		slog.Error(
-			"set binlog format to statement before insert fake result", slog.String("error", err.Error()))
-		return err
-	}
-
-	// 为了兼容 flashback, 这里拼上库前缀
-	ts := time.Now()
-	_, err = conn.ExecContext(
-		context.Background(),
-		fmt.Sprintf("REPLACE INTO %s.%s("+
-			"master_ip, master_port, "+
-			"`db`, tbl, chunk, chunk_time, chunk_index, "+
-			"lower_boundary, upper_boundary, "+
-			"this_crc, this_cnt, master_crc, master_cnt, ts) "+
-			"VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-			r.resultDB,
-			r.resultHistoryTable),
-		r.Config.Ip, r.Config.Port,
-		"_dba_fake_db", "_dba_fake_table", 0, 0, "",
-		"1=1", "1=1",
-		0, 0, 0, 0, ts,
-	)
-	if err != nil {
-		slog.Error("write place hold row", slog.String("error", err.Error()))
-		return err
-	}
-	slog.Info("write place hold row success")
 
 	output := Output{
 		PtStderr:    stderr.String(),
