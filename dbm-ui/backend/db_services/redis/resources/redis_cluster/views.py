@@ -114,10 +114,12 @@ class RedisClusterViewSet(viewsets.ResourceViewSet):
             }
         )
 
+        proxy = cluster.proxyinstance_set.first()
+
         return Response(
             {
                 "cluster_name": cluster.name,
-                "domain": cluster.immute_domain,
+                "domain": f"{cluster.immute_domain}:{proxy.port}",
                 "password": resp["content"].get("password"),
             }
         )
