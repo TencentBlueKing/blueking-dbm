@@ -57,20 +57,23 @@ class MySQLHAFullBackupFlow(object):
         "infos": {
             "backup_type": enum of backend.flow.consts.MySQLBackupTypeEnum
             "file_tag": enum of backend.flow.consts.MySQLBackupFileTagEnum
-            "cluster_ids": List[int],
-            "backup_local": enum of backend.db_meta.enum.InstanceInnerRole
+            "clusters": [{"cluster_id":"", "backup_local": enum []}]
         }
         }
         增加单据临时ADMIN账号的添加和删除逻辑
         """
-        cluster_ids = self.data["infos"]["cluster_ids"]
+        clusters = self.data["infos"]["clusters"]
+        cluster_ids = [cluster["cluster_id"] for cluster in clusters]
 
         backup_pipeline = Builder(
             root_id=self.root_id, data=self.data, need_random_pass_cluster_ids=list(set(cluster_ids))
         )
 
         sub_pipes = []
-        for cluster_id in cluster_ids:
+        for cluster in clusters:
+            cluster_id = cluster["cluster_id"]
+            backup_local = cluster["backup_local"]
+
             try:
                 cluster_obj = Cluster.objects.get(
                     pk=cluster_id, bk_biz_id=self.data["bk_biz_id"], cluster_type=ClusterType.TenDBHA.value
@@ -80,9 +83,9 @@ class MySQLHAFullBackupFlow(object):
                     cluster_type=ClusterType.TenDBHA.value, cluster_id=cluster_id, immute_domain=""
                 )
 
-            if self.data["infos"]["backup_local"] == InstanceInnerRole.MASTER.value:
+            if backup_local == InstanceInnerRole.MASTER.value:
                 backend_obj = cluster_obj.storageinstance_set.get(instance_inner_role=InstanceInnerRole.MASTER.value)
-            elif self.data["infos"]["backup_local"] == InstanceInnerRole.SLAVE.value:
+            elif backup_local == InstanceInnerRole.SLAVE.value:
                 try:
                     backend_obj = cluster_obj.storageinstance_set.get(
                         instance_inner_role=InstanceInnerRole.SLAVE.value, is_stand_by=True
@@ -90,7 +93,7 @@ class MySQLHAFullBackupFlow(object):
                 except ObjectDoesNotExist:
                     raise DBMetaBaseException(message=_("{} standby slave 不存在".format(cluster_obj.immute_domain)))
             else:
-                raise MySQLBackupLocalException(msg=_("不支持的备份位置 {}".format(self.data["infos"]["backup_local"])))
+                raise MySQLBackupLocalException(msg=_("不支持的备份位置 {}".format(backup_local)))
 
             sub_pipe = SubBuilder(
                 root_id=self.root_id,
@@ -145,4 +148,4 @@ class MySQLHAFullBackupFlow(object):
 
         backup_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipes)
         logger.info(_("构建全库备份流程成功"))
-        backup_pipeline.run_pipeline(init_trans_data_class=MySQLBackupDemandContext(), is_drop_random_user=cluster_ids)
+        backup_pipeline.run_pipeline(init_trans_data_class=MySQLBackupDemandContext(), is_drop_random_user=True)

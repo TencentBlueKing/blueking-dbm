@@ -139,6 +139,17 @@ class TendbBaseOperateDetailSerializer(MySQLBaseOperateDetailSerializer):
         }
         super().validate_database_table_selector(attrs=cluster_database_info)
 
+    @classmethod
+    def validate_cluster_shard_num(cls, attrs):
+        """校验集群分片数和单机分片数匹配"""
+        machine_group_count = attrs["resource_spec"]["backend_group"]["count"]
+        if attrs["cluster_shard_num"] != attrs["remote_shard_num"] * machine_group_count:
+            raise serializers.ValidationError(
+                _("集群总分片数{}与单机分片数{}、机器部署组数{}不匹配").format(
+                    attrs["cluster_shard_num"], attrs["remote_shard_num"], machine_group_count
+                )
+            )
+
 
 class TendbClustersTakeDownDetailsSerializer(MySQLClustersTakeDownDetailsSerializer):
     is_only_delete_slave_domain = serializers.BooleanField(help_text=_("是否只禁用只读接入层"), required=False, default=False)

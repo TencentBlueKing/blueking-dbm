@@ -226,6 +226,7 @@ class ListRetrieveResource(query.ListRetrieveResource):
         cluster_qset = cluster_qset.order_by("-create_at")[offset : limit + offset].prefetch_related(
             Prefetch("proxyinstance_set", queryset=proxy_inst_qset, to_attr="proxies"),
             Prefetch("storageinstance_set", queryset=storage_inst_qset, to_attr="storages"),
+            "tag_set",
         )
         cluster_entry_map = ClusterEntry.get_cluster_entry_map_by_cluster_ids([cluster.id for cluster in cluster_qset])
 
@@ -235,9 +236,9 @@ class ListRetrieveResource(query.ListRetrieveResource):
 
         return query.ResourceList(count=count, data=clusters)
 
-    @staticmethod
+    @classmethod
     def _to_cluster_representation(
-        cluster: Cluster, db_module_names: Dict[int, str], cluster_entry_map: Dict[int, Dict[str, str]]
+        cls, cluster: Cluster, db_module_names: Dict[int, str], cluster_entry_map: Dict[int, Dict[str, str]]
     ) -> Dict[str, Any]:
         """
         将集群对象转为可序列化的 dict 结构

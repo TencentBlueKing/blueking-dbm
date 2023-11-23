@@ -20,4 +20,5 @@ urlpatterns = [
     url("^mysql_check/binlog_backup$", views.MysqlBinlogBackupCheckReportViewSet.as_view({"get": "list"})),
     url("^redis_check/full_backup$", views.RedisFullBackupCheckReportViewSet.as_view({"get": "list"})),
     url("^redis_check/binlog_backup$", views.RedisBinlogBackupCheckReportViewSet.as_view({"get": "list"})),
+    url("^dbmon/heartbeat$", views.DbmonHeatbeartCheckReportBaseViewSet.as_view({"get": "list"})),
 ]

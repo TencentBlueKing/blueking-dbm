@@ -10,12 +10,11 @@ specific language governing permissions and limitations under the License.
 """
 
 import logging
-import urllib.parse
 
 from django.utils.translation import ugettext_lazy as _
 
 from ..base import DataAPI
-from ..domains import SOPS_APIGW_DOMAIN
+from ..domains import ESB_PREFIX, SOPS_APIGW_DOMAIN
 
 logger = logging.getLogger("component")
 
@@ -24,41 +23,34 @@ class _BkSopsApi(object):
     MODULE = _("标准运维")
 
     def __init__(self):
-        # logger.info(f"sops domain: {SOPS_APIGW_DOMAIN}")
+        is_esb = ESB_PREFIX in SOPS_APIGW_DOMAIN
         self.create_task = DataAPI(
             method="POST",
             base=SOPS_APIGW_DOMAIN,
-            url="create_task/",
+            url="create_task/" if is_esb else "create_task/{template_id}/{bk_biz_id}/",
             module=self.MODULE,
             description=_("通过业务流程模版创建任务"),
         )
         self.start_task = DataAPI(
             method="POST",
             base=SOPS_APIGW_DOMAIN,
-            url="start_task/",
+            url="start_task/" if is_esb else "start_task/{task_id}/{bk_biz_id}/",
             module=self.MODULE,
             description=_("启动任务"),
         )
-        self.query_task_status = DataAPI(
+        self.get_task_status = DataAPI(
             method="GET",
             base=SOPS_APIGW_DOMAIN,
-            url="get_task_status/",
+            url="get_task_status/" if is_esb else "get_task_status/{task_id}/{bk_biz_id}/",
             module=self.MODULE,
             description=_("查询任务状态"),
         )
-        self.task_detail = DataAPI(
+        self.get_task_node_detail = DataAPI(
             method="GET",
             base=SOPS_APIGW_DOMAIN,
-            url="get_task_detail/",
+            url="get_task_node_detail/" if is_esb else "get_task_node_detail/{task_id}/{bk_biz_id}/",
             module=self.MODULE,
-            description=_("查询任务详情"),
-        )
-        self.task_node_detail = DataAPI(
-            method="GET",
-            base=SOPS_APIGW_DOMAIN,
-            url="get_task_node_detail/",
-            module=self.MODULE,
-            description=_("查询任务Node详情"),
+            description=_("查询任务节点执行详情"),
         )
 
 

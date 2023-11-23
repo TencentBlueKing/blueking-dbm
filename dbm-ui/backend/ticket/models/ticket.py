@@ -63,6 +63,7 @@ class Flow(models.Model):
     class Meta:
         verbose_name = _("单据流程")
         verbose_name_plural = _("单据流程")
+        indexes = [models.Index(fields=["err_code"])]
 
     def update_details(self, **kwargs):
         self.details.update(kwargs)

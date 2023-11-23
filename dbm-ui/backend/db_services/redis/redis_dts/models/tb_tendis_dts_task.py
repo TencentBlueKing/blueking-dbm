@@ -83,6 +83,7 @@ class TbTendisDtsTask(models.Model):
             models.Index(fields=["update_time"], name="idx_update_time"),
             models.Index(fields=["dts_server", "update_time"], name="idx_jobserver_updatetime"),
             models.Index(fields=["bill_id", "src_cluster", "dst_cluster"], name="idx_billid_clusters"),
+            models.Index(fields=["bk_cloud_id", "dts_server", "task_type", "src_dbtype", "status", "create_time"]),
         ]
         constraints = [
             models.UniqueConstraint(

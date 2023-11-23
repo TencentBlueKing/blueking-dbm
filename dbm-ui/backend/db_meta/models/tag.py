@@ -25,6 +25,7 @@ class Tag(AuditedModel):
     class Meta:
         unique_together = ["bk_biz_id", "name"]
 
+    @property
     def tag_desc(self):
         """仅返回tag的信息"""
         return {"bk_biz_id": self.bk_biz_id, "name": self.name, "type": self.type}
