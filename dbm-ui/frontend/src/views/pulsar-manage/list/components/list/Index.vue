@@ -77,7 +77,10 @@
     shallowRef,
   } from 'vue';
   import { useI18n } from 'vue-i18n';
-  import { useRouter } from 'vue-router';
+  import {
+    useRoute,
+    useRouter,
+  } from 'vue-router';
 
   import type PulsarModel from '@services/model/pulsar/pulsar';
   import {
@@ -113,6 +116,7 @@
 
   const clusterId = defineModel<number>('clusterId');
 
+  const route = useRoute();
   const router = useRouter();
   const { currentBizId } = useGlobalBizs();
   const userProfileStore = useUserProfile();
@@ -455,6 +459,7 @@
       name: 'PulsarApply',
       query: {
         bizId: currentBizId,
+        from: route.name as string,
       },
     });
   };

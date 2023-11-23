@@ -11,12 +11,14 @@
  * the specific language governing permissions and limitations under the License.
 */
 
+import TendbsingleInstanceModel from '@services/model/mysql/tendbha-instance';
+import TendbsingleModel from '@services/model/mysql/tendbsingle';
+
 import { useGlobalBizs } from '@stores';
 
 import http from '../http';
 import type {
   ListBase,
-  ResourceInstance,
   ResourceItem,
   ResourceTopo,
 } from '../types';
@@ -29,14 +31,15 @@ const path = `/apis/mysql/bizs/${currentBizId}/tendbsingle_resources`;
  * 查询资源列表
  */
 export function getTendbsingleList(params: {
-  bk_biz_id: number,
   limit: number,
   offset: number,
-  type: string,
   cluster_ids?: number[] | number,
-  dbType: string
 }) {
-  return http.get<ListBase<ResourceItem[]>>(`${path}/`, params);
+  return http.get<ListBase<TendbsingleModel[]>>(`${path}/`, params)
+    .then(data => ({
+      ...data,
+      results: data.results.map((item: TendbsingleModel) => new TendbsingleModel(item)),
+    }));
 }
 
 /**
@@ -53,7 +56,11 @@ export function getTendbsingleTableFields() {
  * 获取集群实例列表
  */
 export function getTendbsingleInstanceList(params: Record<string, any>) {
-  return http.get<ListBase<ResourceInstance[]>>(`${path}/list_instances/`, params);
+  return http.get<ListBase<TendbsingleInstanceModel[]>>(`${path}/list_instances/`, params)
+    .then(data => ({
+      ...data,
+      results: data.results.map((item: TendbsingleInstanceModel) => new TendbsingleInstanceModel(item)),
+    }));
 }
 
 /**

@@ -12,19 +12,9 @@
 -->
 
 <template>
-  <MainBreadcrumbs>
-    <template #append>
-      <div class="status">
-        <span class="status__label">{{ t('状态') }}：</span>
-        <span class="status__value">
-          <DbStatus :theme="statusInfo.theme">{{ statusInfo.text }}</DbStatus>
-        </span>
-      </div>
-    </template>
-  </MainBreadcrumbs>
   <BkResizeLayout
     :border="false"
-    class="cluster-details"
+    class="influxdb-instance-detail"
     collapsible
     initial-divide="280px"
     :max="380"
@@ -33,9 +23,9 @@
       <AsideList @change="handleChangeInstance" />
     </template>
     <template #main>
-      <div class="cluster-details__main">
+      <div class="content-wrapper">
         <DbCard
-          class="cluster-details__base"
+          class="baseinfo-box"
           mode="collapse"
           :title="t('基本信息')">
           <BkLoading :loading="isLoading">
@@ -47,7 +37,7 @@
         </DbCard>
         <BkTab
           v-model:active="activePanelKey"
-          class="cluster-details__tab"
+          class="tab-wrapper"
           type="unborder-card">
           <BkTabPanel
             :label="t('变更记录')"
@@ -70,8 +60,18 @@
       </div>
     </template>
   </BkResizeLayout>
+  <Teleport to="#dbContentTitleAppend">
+    <span v-if="details"> - {{ details.instance_address }}</span>
+  </Teleport>
+  <Teleport to="#dbContentHeaderAppend">
+    <div class="influxdb-instance-detail-status-box">
+      <span>{{ t('状态') }}：</span>
+      <span>
+        <DbStatus :theme="statusInfo.theme">{{ statusInfo.text }}</DbStatus>
+      </span>
+    </div>
+  </Teleport>
 </template>
-
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
@@ -82,7 +82,6 @@
 
   import {
     useGlobalBizs,
-    useMainViewStore,
   } from '@stores';
 
   import { ClusterTypes } from '@common/const';
@@ -90,7 +89,6 @@
   import EventChange from '@components/cluster-event-change/EventChange.vue';
   import MonitorDashboard from '@components/cluster-monitor/MonitorDashboard.vue';
   import EditInfo from '@components/editable-info/index.vue';
-  import MainBreadcrumbs from '@components/layouts/MainBreadcrumbs.vue';
 
   import AsideList from './AsideList.vue';
 
@@ -99,11 +97,6 @@
     name: string,
     link: string,
   }
-
-  // 设置主视图padding
-  const mainViewStore = useMainViewStore();
-  mainViewStore.hasPadding = false;
-  mainViewStore.customBreadcrumbs = true;
 
   const { t } = useI18n();
   const { currentBizId } = useGlobalBizs();
@@ -211,9 +204,6 @@
     })
       .then((res) => {
         details.value = res;
-        mainViewStore.$patch({
-          breadCrumbsTitle: t('InfluxDB实例详情xx', { name: res.instance_address }),
-        });
       })
       .finally(() => {
         isLoading.value = false;
@@ -228,16 +218,15 @@
 
 
 </script>
-
-<style lang="less" scoped>
-.cluster-details {
+<style lang="less">
+.influxdb-instance-detail {
   height: calc(100% - 52px);
 
-  :deep(.bk-resize-layout-aside-content) {
+  .bk-resize-layout-aside-content {
     width: calc(100% + 1px);
   }
 
-  &__main {
+  .content-wrapper {
     display: flex;
     height: 100%;
     overflow: hidden;
@@ -247,27 +236,31 @@
     .db-card {
       width: 100%;
 
-      &.cluster-details__base {
+      &.baseinfo-box {
         max-height: 188px;
         flex-shrink: 0;
       }
     }
   }
 
-  &__tab {
+  .tab-wrapper {
     width: 100%;
     overflow: hidden;
     background-color: white;
     flex: 1;
 
-    :deep(.bk-tab-header) {
+    .bk-tab-header {
       margin: 0 24px;
     }
 
-    :deep(.bk-tab-content) {
+    .bk-tab-content {
       height: calc(100% - 42px);
       padding: 0;
     }
   }
+}
+
+.influxdb-instance-detail-status-box{
+  margin-left: 24px;
 }
 </style>

@@ -19,7 +19,7 @@ import { useRequest } from 'vue-request';
 import type UserSemanticTaskModel from '@services/model/sql-import/user-semantic-task';
 import {
   getUserSemanticTasks,
-} from '@services/sqlImport';
+} from '@services/source/sqlImport';
 
 export const useSQLTaskNotify = () => {
   const { t } = useI18n();

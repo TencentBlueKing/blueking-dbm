@@ -23,10 +23,6 @@
         :style="{ color: highlightIps.includes(inst.ip) ? 'rgb(255 130 4)' : '#63656e' }">
         <slot :data="inst">
           {{ inst.ip }}:{{ inst.port }}
-          <!-- <span
-            v-if="inst.admin_port && inst.admin_port > 0"
-            v-bk-tooltips="'Primary ctl'"
-            class="primary-ctl-box">P</span> -->
         </slot>
       </span>
       <BkTag v-if="inst.status === 'unavailable'">
@@ -41,30 +37,33 @@
           <DbIcon
             type="copy" />
           <template #content>
-            <a
+            <BkButton
               class="copy-trigger"
-              href="javescript:"
+              text
+              theme="primary"
               @click="handleCopyIps">
               {{ $t('复制IP') }}
-            </a>
+            </BkButton>
             <span class="copy-trigger-split" />
-            <a
+            <BkButton
               class="copy-trigger"
-              href="javescript:"
+              text
+              theme="primary"
               @click="handleCopyInstances">
               {{ $t('复制实例') }}
-            </a>
+            </BkButton>
           </template>
         </BkPopover>
       </template>
     </p>
     <template v-if="hasMore">
-      <a
+      <BkButton
         class="cluster-instances__more"
-        href="javascript:"
+        text
+        theme="primary"
         @click="handleShowMore">
         {{ $t('查看更多') }}
-      </a>
+      </BkButton>
     </template>
   </div>
   <BkDialog
@@ -109,14 +108,19 @@
     </template>
   </BkDialog>
 </template>
-
-<script setup lang="tsx" generic="T extends TendbInstanceModel | ResourceInstance">
+<script lang="tsx">
+  interface InstanceListData {
+    instance_address: string,
+    role: string,
+    status: string,
+    create_at: string
+  }
+</script>
+<script setup lang="tsx" generic="T extends InstanceListData">
   import { useI18n } from 'vue-i18n';
 
-  import type TendbInstanceModel from '@services/model/spider/tendbInstance';
   import type {
     ListBase,
-    ResourceInstance,
   } from '@services/types';
 
   import { useCopy } from '@hooks';
@@ -134,7 +138,6 @@
   import { messageWarn } from '@utils';
 
   interface InstanceData {
-    admin_port?: number,
     bk_instance_id: number,
     ip: string,
     name: string,
@@ -142,10 +145,11 @@
     status: string
   }
 
+
   interface DialogState {
     isShow: boolean,
     keyword: string,
-    data: Array<ResourceInstance>,
+    data: Array<InstanceListData>,
   }
 
   interface Props {
@@ -174,23 +178,28 @@
     data: [],
   });
 
-  const columns = [{
-    label: t('实例'),
-    field: 'instance_address',
-  }, {
-    label: t('部署角色'),
-    field: 'role',
-  }, {
-    label: t('状态'),
-    field: 'status',
-    render: ({ cell }: { cell: ClusterInstStatus }) => {
-      const info = clusterInstStatus[cell] || clusterInstStatus.unavailable;
-      return <DbStatus theme={info.theme}>{info.text}</DbStatus>;
+  const columns = [
+    {
+      label: t('实例'),
+      field: 'instance_address',
     },
-  }, {
-    label: t('部署时间'),
-    field: 'create_at',
-  }];
+    {
+      label: t('部署角色'),
+      field: 'role',
+    },
+    {
+      label: t('状态'),
+      field: 'status',
+      render: ({ cell }: { cell: ClusterInstStatus }) => {
+        const info = clusterInstStatus[cell] || clusterInstStatus.unavailable;
+        return <DbStatus theme={info.theme}>{info.text}</DbStatus>;
+      },
+    },
+    {
+      label: t('部署时间'),
+      field: 'create_at',
+    },
+  ];
 
   /**
    * 获取节点列表
@@ -217,7 +226,7 @@
     fetchInstance();
   }
 
-  function handleRequestFinished(data: ResourceInstance[]) {
+  function handleRequestFinished(data: InstanceListData[]) {
     dialogState.data = data;
   }
 
@@ -275,23 +284,6 @@
 
 .cluster-instances {
   padding: 8px 0;
-
-  // .primary-ctl-box {
-  //   width: 16px;
-  //   height: 16px;
-  //   padding: 0 4px;
-  //   font-size: 12px;
-  //   font-weight: 700;
-  //   color: #3A84FF;
-  //   cursor: pointer;
-  //   background: #F0F5FF;
-  //   border-radius: 2px;
-
-  //   &:hover {
-  //     color: #1768EF;
-  //     background: #E1ECFF;
-  //   }
-  // }
 
   .db-icon-copy {
     display: none;

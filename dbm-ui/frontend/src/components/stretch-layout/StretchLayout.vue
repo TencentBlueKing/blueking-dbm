@@ -14,7 +14,8 @@
 <template>
   <div
     ref="rootRef"
-    class="stretch-layout">
+    class="stretch-layout"
+    :data-name="name">
     <div
       class="stretch-layout-left"
       :style="{
@@ -68,9 +69,6 @@
     right(): any,
   }>();
 
-  const storageKey = 'STRECHE_LAYOUT_CACHE';
-  const storageDragState = localStorage.getItem(`${storageKey}_${props.name}`) ?? 0;
-
   const rootRef = ref();
   const isShowTrigger = ref(false);
   const isOpen = ref(false);
@@ -121,17 +119,13 @@
   });
 
   onMounted(() => {
-    if (Number(storageDragState)) {
-      isOpen.value = true;
-      renderLeftWidth.value = Number(storageDragState);
-    } else {
+    if (!isOpen.value) {
       renderLeftWidth.value = getMaxWidth();
     }
     window.addEventListener('resize', handleWindowResize);
   });
 
   onBeforeUnmount(() => {
-    localStorage.setItem(storageKey, `${renderLeftWidth.value}`);
     window.removeEventListener('resize', handleWindowResize);
   });
 </script>

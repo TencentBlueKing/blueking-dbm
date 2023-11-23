@@ -47,11 +47,13 @@
         @remove-item="handleRemoveConfItem" />
     </DbCard>
   </BkLoading>
+  <Teleport to="#dbContentTitleAppend">
+    <span> - {{ state.data.name }}</span>
+  </Teleport>
 </template>
 
 <script setup lang="ts">
   import _ from 'lodash';
-  import { useI18n } from 'vue-i18n';
 
   import {
     getConfigBaseDetails,
@@ -59,10 +61,7 @@
     getLevelConfig,
   } from '@services/source/configs';
 
-  import { useMainViewStore } from '@stores';
-
   import {
-    confLevelInfos,
     ConfLevels,
     type ConfLevelValues,
   } from '@common/const';
@@ -90,9 +89,7 @@
    */
   const emit = defineEmits<Emits>();
 
-  const { t } = useI18n();
   const route = useRoute();
-  const mainViewStore = useMainViewStore();
 
   const state = reactive({
     loading: false,
@@ -130,8 +127,6 @@
 
   // 查询详情 api
   const fetchConfigDetails = computed(() => (isPlat.value ? getConfigBaseDetails : getLevelConfig));
-  // 当前层级 tag
-  const tagText = computed(() => confLevelInfos[props.level].tagText);
 
   /**
    * 查询业务配置详情
@@ -144,13 +139,6 @@
       .then((res) => {
         state.data = res;
         state.cloneDataStringify = JSON.stringify(res);
-
-        // 设置面包屑信息
-        mainViewStore.breadCrumbsTitle = t('编辑【xx】', [res.name]);
-        mainViewStore.tags = [{
-          theme: 'info',
-          text: tagText.value,
-        }];
 
         // 备份 conf_items 用于 diff
         state.originConfItems = _.cloneDeep(res.conf_items);

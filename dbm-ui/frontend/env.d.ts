@@ -48,6 +48,9 @@ declare interface Window {
     VITE_PUBLIC_PATH: string,
     VITE_AJAX_URL_PREFIX: string,
     VITE_ROUTER_PERFIX: string,
+  },
+  PROJECT_CONFIG: {
+    BIZ_ID: number
   }
 }
 

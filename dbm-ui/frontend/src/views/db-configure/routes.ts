@@ -13,8 +13,6 @@
 
 import type { RouteRecordRaw } from 'vue-router';
 
-import { MainViewRouteNames } from '@views/main-views/common/const';
-
 import { t } from '@locales/index';
 
 const routes: RouteRecordRaw[] = [
@@ -22,9 +20,7 @@ const routes: RouteRecordRaw[] = [
     name: 'DbConfigure',
     path: 'db-configure',
     meta: {
-      routeParentName: MainViewRouteNames.Database,
       navName: t('数据库配置'),
-      isMenu: true,
     },
     redirect: {
       name: 'DbConfigureList',
@@ -35,9 +31,8 @@ const routes: RouteRecordRaw[] = [
         name: 'DbConfigureList',
         path: 'list/:clusterType?',
         meta: {
-          routeParentName: MainViewRouteNames.Database,
           navName: t('数据库配置'),
-          activeMenu: 'DbConfigure',
+          fullscreen: true,
         },
         component: () => import('@views/db-configure/business/list/Index.vue'),
       },
@@ -45,9 +40,8 @@ const routes: RouteRecordRaw[] = [
         name: 'DbConfigureDetail',
         path: 'detail/:clusterType/:version/:confType/:treeId/:parentId?',
         meta: {
-          routeParentName: MainViewRouteNames.Database,
           navName: t('配置详情'),
-          activeMenu: 'DbConfigure',
+          fullscreen: true,
         },
         props: true,
         component: () => import('@views/db-configure/business/Detail.vue'),
@@ -56,9 +50,7 @@ const routes: RouteRecordRaw[] = [
         name: 'DbConfigureEdit',
         path: 'edit/:clusterType/:version/:confType/:treeId/:parentId?',
         meta: {
-          routeParentName: MainViewRouteNames.Database,
           navName: t('配置编辑'),
-          activeMenu: 'DbConfigure',
         },
         props: true,
         component: () => import('@views/db-configure/business/Edit.vue'),
@@ -67,9 +59,7 @@ const routes: RouteRecordRaw[] = [
         name: 'DbConfigureBind',
         path: 'bind/:clusterType/:moduleId',
         meta: {
-          routeParentName: MainViewRouteNames.Database,
           navName: t('绑定模块'),
-          activeMenu: 'DbConfigure',
         },
         component: () => import('@views/db-configure/business/Bind.vue'),
       },

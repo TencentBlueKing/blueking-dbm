@@ -98,16 +98,12 @@
 
   import { useUrlSearch } from '@hooks';
 
-  import { useGlobalBizs } from '@stores';
-
   import EmptyStatus from '@components/empty-status/EmptyStatus.vue';
 
   import {
     getOffset,
     random,
   } from '@utils';
-
-  import DbIcon from '../db-icon';
 
   interface Props {
     columns: InstanceType<typeof Table>['$props']['columns'],
@@ -187,7 +183,7 @@
             arrow={ false }
             trigger='hover'
             v-slots={{
-              default: () => <DbIcon class="select-menu-flag" type="down-big" />,
+              default: () => <db-icon class="select-menu-flag" type="down-big" />,
               content: () => (
                 <div class="db-table-select-plan">
                   <div class="item" onClick={handlePageSelect}>{t('本页全选')}</div>
@@ -218,7 +214,6 @@
   });
 
   const { t } = useI18n();
-  const { currentBizId } = useGlobalBizs();
 
   const rootRef = ref();
   const bkTableRef = ref();
@@ -303,11 +298,11 @@
       .then(() => {
         isLoading.value = loading;
         const params = {
-          bk_biz_id: currentBizId,
           offset: (pagination.current - 1) * pagination.limit,
           limit: pagination.limit,
           ...paramsMemo,
           ...sortParams,
+          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
         };
 
         isAnomalies.value = false;
@@ -414,7 +409,7 @@
   // 跨页全选
   const handleWholeSelect = () => {
     props.dataSource({
-      bk_biz_id: currentBizId,
+      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
       offset: (pagination.current - 1) * pagination.limit,
       limit: -1,
       ...paramsMemo,

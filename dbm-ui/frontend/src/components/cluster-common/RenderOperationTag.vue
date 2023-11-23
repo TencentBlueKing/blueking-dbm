@@ -84,7 +84,6 @@
   };
 
   watch(() => props.data.operationTicketId, () => {
-    console.log('opearntion = ', props.data);
     if (!props.data.operationTicketId) {
       return;
     }

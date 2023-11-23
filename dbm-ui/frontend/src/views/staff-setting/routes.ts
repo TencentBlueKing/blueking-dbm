@@ -13,8 +13,6 @@
 
 import type { RouteRecordRaw } from 'vue-router';
 
-import { MainViewRouteNames } from '@views/main-views/common/const';
-
 import { t } from '@locales/index';
 
 const routes: RouteRecordRaw[] = [
@@ -22,26 +20,15 @@ const routes: RouteRecordRaw[] = [
     name: 'DatabaseStaff',
     path: 'staff',
     meta: {
-      routeParentName: MainViewRouteNames.Database,
       navName: t('DBA人员管理'),
-      isMenu: true,
-      tags: [{
-        theme: 'info',
-        text: t('业务'),
-      }],
+      fullScreen: true,
     },
     component: () => import('@views/staff-setting/index.vue'),
   }, {
     name: 'PlatformStaff',
     path: 'staff',
     meta: {
-      routeParentName: MainViewRouteNames.Platform,
       navName: t('DBA人员管理'),
-      isMenu: true,
-      tags: [{
-        theme: 'info',
-        text: t('平台'),
-      }],
     },
     component: () => import('@views/staff-setting/index.vue'),
   },

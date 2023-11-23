@@ -179,6 +179,10 @@
 
   const searchSelectData = [
     {
+      name: 'ID',
+      id: 'id',
+    },
+    {
       name: t('实例'),
       id: 'instance_address',
     },
@@ -303,69 +307,65 @@
         fixed: 'right',
         width: isCN.value ? 140 : 200,
         render: ({ data }: {data: InfluxDBInstanceModel}) => {
-          const renderSupportAction = () => {
-            if (data.isOnline) {
-              return (
-                <>
-                  <OperationStatusTips data={data}>
-                    <bk-button
-                      class="mr-8"
-                      disabled={data.operationDisabled}
-                      loading={tableDataActionLoadingMap.value[data?.id]}
-                      text
-                      theme="primary"
-                      onClick={() => handleShowReplace(data)}>
-                      { t('替换') }
-                    </bk-button>
-                  </OperationStatusTips>
-                  <OperationStatusTips data={data}>
-                    <bk-button
-                      class="mr-8"
-                      disabled={data.operationDisabled}
-                      loading={tableDataActionLoadingMap.value[data?.id]}
-                      text
-                      theme="primary"
-                      onClick={() => handleRestart([data])}>
-                      { t('重启') }
-                    </bk-button>
-                  </OperationStatusTips>
-                  <OperationStatusTips data={data}>
-                    <bk-button
-                      class="mr-8"
-                      disabled={data.operationDisabled}
-                      loading={tableDataActionLoadingMap.value[data?.id]}
-                      text
-                      theme="primary"
-                      onClick={() => handlDisabled(data)}>
-                      { t('禁用') }
-                    </bk-button>
-                  </OperationStatusTips>
-                </>
-              );
-            }
+          if (data.isOnline) {
             return (
               <>
-                <bk-button
-                  class="mr-8"
-                  loading={tableDataActionLoadingMap.value[data?.id]}
-                  text
-                  theme="primary"
-                  onClick={() => handleEnable(data)}>
-                  { t('启用') }
-                </bk-button>
-                <bk-button
-                  class="mr-8"
-                  loading={tableDataActionLoadingMap.value[data?.id]}
-                  text
-                  theme="primary"
-                  onClick={() => handlDelete(data)}>
-                  { t('删除') }
-                </bk-button>
+                <OperationStatusTips data={data}>
+                  <bk-button
+                    class="mr-8"
+                    disabled={data.operationDisabled}
+                    loading={tableDataActionLoadingMap.value[data?.id]}
+                    text
+                    theme="primary"
+                    onClick={() => handleShowReplace(data)}>
+                    { t('替换') }
+                  </bk-button>
+                </OperationStatusTips>
+                <OperationStatusTips data={data}>
+                  <bk-button
+                    class="mr-8"
+                    disabled={data.operationDisabled}
+                    loading={tableDataActionLoadingMap.value[data?.id]}
+                    text
+                    theme="primary"
+                    onClick={() => handleRestart([data])}>
+                    { t('重启') }
+                  </bk-button>
+                </OperationStatusTips>
+                <OperationStatusTips data={data}>
+                  <bk-button
+                    class="mr-8"
+                    disabled={data.operationDisabled}
+                    loading={tableDataActionLoadingMap.value[data?.id]}
+                    text
+                    theme="primary"
+                    onClick={() => handlDisabled(data)}>
+                    { t('禁用') }
+                  </bk-button>
+                </OperationStatusTips>
               </>
             );
-          };
-
-          return renderSupportAction();
+          }
+          return (
+            <>
+              <bk-button
+                class="mr-8"
+                loading={tableDataActionLoadingMap.value[data?.id]}
+                text
+                theme="primary"
+                onClick={() => handleEnable(data)}>
+                { t('启用') }
+              </bk-button>
+              <bk-button
+                class="mr-8"
+                loading={tableDataActionLoadingMap.value[data?.id]}
+                text
+                theme="primary"
+                onClick={() => handlDelete(data)}>
+                { t('删除') }
+              </bk-button>
+            </>
+          );
         },
       },
     ];
@@ -725,6 +725,7 @@
       query: {
         bizId: currentBizId,
         groupId: groupId.value,
+        from: route.name as string,
       },
     });
   };

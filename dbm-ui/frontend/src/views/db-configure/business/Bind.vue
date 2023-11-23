@@ -138,7 +138,9 @@
   fetchVersions();
 
   const handleCancel = () => {
-    router.go(-1);
+    router.push({
+      name: 'DbConfigureList',
+    });
   };
 
   const bindFormRef = ref();
@@ -184,6 +186,20 @@
         isSubmitting.value = false;
       });
   };
+
+  defineExpose({
+    routerBack() {
+      if (!route.query.form) {
+        router.push({
+          name: 'DbConfigureList',
+        });
+        return;
+      }
+      router.push({
+        name: route.query.form as string,
+      });
+    },
+  });
 </script>
 
 <style lang="less" scoped>
