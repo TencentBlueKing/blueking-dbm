@@ -38,6 +38,11 @@ class TendbNodeRebalanceDetailSerializer(TendbBaseOperateDetailSerializer):
 
     def validate(self, attrs):
         super().validate(attrs)
+
+        # 校验集群分片数匹配单机分片数
+        for info in attrs["infos"]:
+            super().validate_cluster_shard_num(info)
+
         return attrs
 
 
