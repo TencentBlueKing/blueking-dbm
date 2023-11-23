@@ -13,8 +13,6 @@
 
 import type { RouteRecordRaw } from 'vue-router';
 
-import { MainViewRouteNames } from '@views/main-views/common/const';
-
 import { t } from '@locales/index';
 
 const routes: RouteRecordRaw[] = [
@@ -22,9 +20,8 @@ const routes: RouteRecordRaw[] = [
     name: 'PlatformVersionFiles',
     path: 'version-files',
     meta: {
-      routeParentName: MainViewRouteNames.Platform,
       navName: t('版本文件'),
-      isMenu: true,
+      fullscreen: true,
     },
     component: () => import('@views/version-files/list/Index.vue'),
   },

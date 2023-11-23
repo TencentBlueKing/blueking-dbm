@@ -15,7 +15,7 @@
   <div class="ticket-side">
     <div class="side-top">
       <div class="side-header">
-        <strong>{{ $t('申请列表') }}</strong>
+        <strong>{{ t('申请列表') }}</strong>
         <BkDropdown
           :is-show="isShowDropdown"
           trigger="click"
@@ -40,11 +40,13 @@
           </template>
         </BkDropdown>
       </div>
-      <ListTabs @change="handleChangeTab" />
+      <ListTabs
+        v-if="isBizTicketManagePage"
+        @change="handleChangeTab" />
       <DbSearchSelect
         v-model="state.filters.search"
         :data="searchSelectData"
-        :placeholder="$t('单号_单据类型_业务')"
+        :placeholder="searchPlaceholder"
         unique-select
         @change="handleChangePage(1)" />
     </div>
@@ -88,13 +90,13 @@
                   style="overflow: hidden;" />
               </div>
               <div class="side-item-info is-single">
-                <span class="info-item-label">{{ $t('业务') }}：</span>
+                <span class="info-item-label">{{ t('业务') }}：</span>
                 <span
                   v-overflow-tips
                   class="info-item-value text-overflow">{{ item.bk_biz_name }}</span>
               </div>
               <div class="side-item-info">
-                <span>{{ $t('申请人') }}： {{ item.creator }}</span>
+                <span>{{ t('申请人') }}： {{ item.creator }}</span>
                 <span>{{ item.getFormatCreateAt() }}</span>
               </div>
             </div>
@@ -144,8 +146,15 @@
 
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
+  import {
+    useRoute,
+    useRouter,
+  } from 'vue-router';
 
-  import { type StatusTypeKeys, StatusTypes } from '@services/model/ticket/ticket';
+  import {
+    type StatusTypeKeys,
+    StatusTypes,
+  } from '@services/model/ticket/ticket';
   import {
     getTickets,
     getTicketTypes,
@@ -174,13 +183,18 @@
   }
 
   const emits = defineEmits<Emits>();
+
   const currentScope = getCurrentScope();
   const { t } = useI18n();
   const router = useRouter();
   const route = useRoute();
   const globalBizsStore = useGlobalBizs();
 
+  const isBizTicketManagePage = route.name === 'bizTicketManage';
+  const searchPlaceholder = isBizTicketManagePage ? t('单号_单据类型') : t('单号_单据类型_业务');
+
   let isInitFetch = true;
+  const sideListRef = ref<HTMLDivElement>();
   const state = reactive<TicketsState>({
     list: [],
     isLoading: false,
@@ -208,135 +222,57 @@
     label: t(StatusTypes[key as StatusTypeKeys]),
     value: key,
   }));
-  const searchSelectData = computed(() => [{
-    name: t('单号'),
-    id: 'id',
-  }, {
-    name: t('业务'),
-    id: 'bk_biz_id',
-    children: state.bkBizIdList,
-  }, {
-    name: t('单据类型'),
-    id: 'ticket_type__in',
-    multiple: true,
-    children: state.ticketTypes,
-  }]);
+  const searchSelectData = computed(() => [
+    {
+      name: t('单号'),
+      id: 'id',
+    },
+    !isBizTicketManagePage && {
+      name: t('业务'),
+      id: 'bk_biz_id',
+      children: state.bkBizIdList,
+    },
+    {
+      name: t('单据类型'),
+      id: 'ticket_type__in',
+      multiple: true,
+      children: state.ticketTypes,
+    },
+  ].filter(_ => _));
 
   // 状态选择设置
   const isShowDropdown = ref(false);
   const activeItemInfo = computed(() => filters.find(item => item.value === state.filters.status));
-  const handleToggle = () => {
-    isShowDropdown.value = !isShowDropdown.value;
-  };
-  const handleClose = () => {
-    isShowDropdown.value = false;
-  };
-  const handleChangeStatus = (item: StatusItem) => {
-    state.filters.status = item.value;
-    isShowDropdown.value = false;
-    handleChangePage(1);
-  };
-
-  /**
-   * 轮询列表
-   */
-  const { isActive, pause, resume } = useTimeoutPoll(() => {
-    fetchTickets(true);
-  }, 10000, { immediate: false });
-
-  const handleClearSearch = () => {
-    state.filters.status = 'ALL';
-    state.filters.search = [];
-    handleChangePage(1);
-  };
-
-  const handleChangeTab = (tab: string) => {
-    activeTab.value = tab;
-    if (isInitFetch === false) {
-      state.filters.status = 'ALL';
-      state.filters.search = [];
-      handleChangePage(1);
-      return;
-    }
-    nextTick(fetchTickets);
-  };
-
-  onMounted(() => {
-    getBizIdList();
-    fetchTicketTypes();
-
-    state.page.current = route.query.current ? Number(route.query.current) : 1;
-    state.page.limit =  route.query.limit ? Number(route.query.limit) : 20;
-
-    // 任务历史跳转过来需要过滤出对应单据。
-    if (filterId.value) {
-      state.filters.search.push({
-        name: t('单号'),
-        id: 'id',
-        values: [{
-          id: filterId.value as string,
-          name: filterId.value as string,
-        }],
-      });
-    }
-  });
 
   watch(() => state.activeTicket, () => {
     emits('change', state.activeTicket);
   });
 
   /**
-   * 视图定位到激活项
-   */
-  const sideListRef = ref<HTMLDivElement>();
-  function activeItemScrollIntoView() {
-    if (sideListRef.value) {
-      const activeItem = sideListRef.value.querySelector('.side-item-active');
-      if (activeItem) {
-        activeItem.scrollIntoView();
-      }
-    }
-  }
-
-  /**
-   * 获取单据类型
-   */
-  function fetchTicketTypes() {
-    return getTicketTypes().then((res) => {
-      state.ticketTypes = res.map(item => ({
-        id: item.key,
-        name: item.value,
-      }));
-      return state.ticketTypes;
-    });
-  }
-
-  /**
-   * 获取业务列表
-   */
-  function getBizIdList() {
-    state.bkBizIdList = globalBizsStore.bizs.map(item => ({
-      id: item.bk_biz_id,
-      name: item.name,
-    }));
-    return state.bkBizIdList;
-  }
-
-  /**
    * 获取单据列表
    */
-  function fetchTickets(isPoll = false) {
+  const fetchTickets = (isPoll = false) => {
     state.isLoading = !isPoll;
     if (sideListRef.value) {
       sideListRef.value.scrollTop = 0;
     }
     const params = {
-      self_manage: activeTab.value === 'all' ? 1 : 0,
       status: state.filters.status === 'ALL' ? '' : state.filters.status,
       limit: state.page.limit,
       offset: (state.page.current - 1) * state.page.limit,
       ...getSearchSelectorParams(state.filters.search),
     };
+    if (isBizTicketManagePage) {
+      Object.assign(params, {
+        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+        self_manage: activeTab.value === 'all' ? 1 : 0,
+      });
+    } else {
+      Object.assign(params, {
+        self_manage: 1,
+      });
+    }
+
     getTickets(params)
       .then((res) => {
         const { results = [], count = 0 } = res;
@@ -362,7 +298,12 @@
             [state.activeTicket] = results;
           }
           nextTick(() => {
-            activeItemScrollIntoView();
+            if (sideListRef.value) {
+              const activeItem = sideListRef.value.querySelector('.side-item-active');
+              if (activeItem) {
+                activeItem.scrollIntoView();
+              }
+            }
           });
         } else {
           state.activeTicket = null;
@@ -382,25 +323,65 @@
           router.replace({ query: { filterId: undefined } });
         }
       });
-  }
+  };
 
+  /**
+   * 获取单据类型
+   */
+  const fetchTicketTypes = () => {
+    getTicketTypes()
+      .then((res) => {
+        state.ticketTypes = res.map(item => ({
+          id: item.key,
+          name: item.value,
+        }));
+      });
+  };
+
+  /**
+   * 获取业务列表
+   */
+  const getBizIdList = () => {
+    state.bkBizIdList = globalBizsStore.bizs.map(item => ({
+      id: item.bk_biz_id,
+      name: item.name,
+    }));
+  };
   /**
    * 翻页
    * @param page
    */
-  function handleChangePage(page = 1) {
-    if (isInitFetch) return;
+  const handleChangePage = (page = 1) => {
+    if (isInitFetch) {
+      return;
+    }
     state.page.current = page;
     pause();
     nextTick(() => {
       fetchTickets();
     });
-  }
+  };
+  const handleToggle = () => {
+    isShowDropdown.value = !isShowDropdown.value;
+  };
+  const handleClose = () => {
+    isShowDropdown.value = false;
+  };
+  const handleChangeStatus = (item: StatusItem) => {
+    state.filters.status = item.value;
+    isShowDropdown.value = false;
+    handleChangePage(1);
+  };
 
+  const handleClearSearch = () => {
+    state.filters.status = 'ALL';
+    state.filters.search = [];
+    handleChangePage(1);
+  };
   /**
    * 选中单据
    */
-  function handleSelected(data: TicketModel) {
+  const handleSelected = (data: TicketModel) => {
     state.activeTicket = data;
     router.replace({
       query: {
@@ -409,7 +390,53 @@
         id: data.id,
       },
     });
-  }
+  };
+
+  const handleChangeTab = (tab: string) => {
+    activeTab.value = tab;
+    if (isInitFetch === false) {
+      state.filters.status = 'ALL';
+      state.filters.search = [];
+      handleChangePage(1);
+      return;
+    }
+    nextTick(fetchTickets);
+  };
+
+  /**
+   * 轮询列表
+   */
+  const {
+    isActive,
+    pause,
+    resume,
+  } = useTimeoutPoll(() => {
+    fetchTickets(true);
+  }, 10000, {
+    immediate: true,
+  });
+
+  onMounted(() => {
+    getBizIdList();
+    fetchTicketTypes();
+
+    state.page.current = route.query.current ? Number(route.query.current) : 1;
+    state.page.limit =  route.query.limit ? Number(route.query.limit) : 20;
+
+    // 任务历史跳转过来需要过滤出对应单据。
+    if (filterId.value) {
+      state.filters.search.push({
+        name: t('单号'),
+        id: 'id',
+        values: [{
+          id: filterId.value as string,
+          name: filterId.value as string,
+        }],
+      });
+    }
+  });
+
+
 </script>
 
 <style lang="less" scoped>

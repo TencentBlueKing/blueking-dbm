@@ -513,7 +513,6 @@
       pagination.limitList = [...pageLimit].sort((a, b) => a - b);
 
       tableMaxHeight.value = tableHeaderHeight + rowNum * tableRowHeight + paginationHeight + 3;
-      console.log('tableMaxHeight>>>', tableMaxHeight.value);
     });
   };
 

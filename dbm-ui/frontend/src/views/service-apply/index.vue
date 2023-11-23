@@ -75,8 +75,6 @@
     FunctionKeys,
   } from '@services/model/function-controller/functionController';
 
-  import { useMainViewStore } from '@stores';
-
   import {
     bigDataType,
     ClusterTypes,
@@ -112,9 +110,6 @@
 
   const router = useRouter();
   const { t } = useI18n();
-
-  const mainViewStore = useMainViewStore();
-  mainViewStore.hasPadding = false;
 
   // 全部服务类型
   const services: Array<IService> = [

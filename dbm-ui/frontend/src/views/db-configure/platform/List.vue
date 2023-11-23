@@ -49,8 +49,6 @@
 
   import { useTableMaxHeight } from '@hooks';
 
-  import { useMainViewStore } from '@stores';
-
   import type { ClusterTypesValues } from '@common/const';
 
   import { extraClusterConfs, getDefaultConf } from '../common/const';
@@ -61,8 +59,6 @@
 
   const { t } = useI18n();
   const router = useRouter();
-  const mainViewStore = useMainViewStore();
-  mainViewStore.hasPadding = false;
 
   const state = reactive({
     confType: 'dbconf',

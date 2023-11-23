@@ -178,9 +178,13 @@
       v-model:is-show="showHostPreview"
       :biz-id="baseInfo.bk_biz_id"
       :host-ids="baseInfo.bk_host_ids || []" />
-    <Teleport
-      v-if="false"
-      to="#dbmPageSubtitle">
+    <Teleport to="#dbContentTitleAppend">
+      <span v-if="flowState.details.flow_info">
+        <span> - </span>
+        {{ flowState.details.flow_info.ticket_type_display }}【{{ flowState.details.flow_info.root_id }}】
+      </span>
+    </Teleport>
+    <Teleport to="#dbContentHeaderAppend">
       <div class="mission-detail-status-box">
         <div
           v-if="statusText"
@@ -248,8 +252,6 @@
   } from '@services/source/taskflow';
   import type { FlowsData } from '@services/types/taskflow';
 
-  import { useMainViewStore } from '@stores';
-
   import { dbTippy } from '@common/tippy';
 
   import CostTimer from '@components/cost-timer/CostTimer.vue';
@@ -274,17 +276,6 @@
   import RedisResultFiles from '../components/RedisResultFiles.vue';
 
   import { TicketTypes, type TicketTypesStrings } from '@/common/const';
-
-  /**
-   * 设置自定义面包屑
-   */
-  const mainViewStore = useMainViewStore();
-  nextTick(() => {
-    mainViewStore.$patch({
-      customBreadcrumbs: true,
-      hasPadding: false,
-    });
-  });
 
   const { t } = useI18n();
   const route = useRoute();
@@ -496,8 +487,6 @@
         });
         // 渲染画布节点
         renderNodes(true);
-        // 设置面包屑内容
-        mainViewStore.breadCrumbsTitle = `${res.flow_info.ticket_type_display}【${res.flow_info.root_id}】`;
       })
       .finally(() => {
         flowState.loading = false;
