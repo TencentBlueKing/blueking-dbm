@@ -223,6 +223,7 @@ class ListRetrieveResource(query.ListRetrieveResource):
         cluster_qset = cluster_qset.order_by("-create_at")[offset : limit + offset].prefetch_related(
             Prefetch("proxyinstance_set", queryset=proxy_inst_qset, to_attr="proxies"),
             Prefetch("storageinstance_set", queryset=storage_inst_qset, to_attr="storages"),
+            Prefetch("tag_set", to_attr="tags"),
         )
         cluster_entry_map = ClusterEntry.get_cluster_entry_map_by_cluster_ids([cluster.id for cluster in cluster_qset])
 

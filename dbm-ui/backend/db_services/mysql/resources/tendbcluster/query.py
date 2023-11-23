@@ -119,6 +119,7 @@ class ListRetrieveResource(DBHAListRetrieveResource):
             "spider_master": spider[TenDBClusterSpiderRole.SPIDER_MASTER],
             "spider_slave": spider[TenDBClusterSpiderRole.SPIDER_SLAVE],
             "spider_mnt": spider[TenDBClusterSpiderRole.SPIDER_MNT],
+            "tags": [tag.tag_desc for tag in cluster.tags],
             # TODO: 待补充当前集群使用容量，需要监控采集的支持
             "cluster_shard_num": len(remote_db),
             "remote_shard_num": len(remote_db) / machine_pair_cnt,

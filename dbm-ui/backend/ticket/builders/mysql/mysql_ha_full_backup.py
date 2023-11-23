@@ -22,14 +22,17 @@ from backend.ticket.constants import FlowRetryType, TicketType
 
 class MySQLHaFullBackupDetailSerializer(MySQLBaseOperateDetailSerializer):
     class FullBackupDataInfoSerializer(serializers.Serializer):
+        class ClusterDetailSerializer(serializers.Serializer):
+            cluster_id = serializers.IntegerField(help_text=_("集群ID"))
+            backup_local = serializers.ChoiceField(
+                help_text=_("备份位置"), choices=InstanceInnerRole.get_choices(), default=InstanceInnerRole.SLAVE.value
+            )
+
         # 废弃online，暂时不需要传递
         # online = serializers.BooleanField(help_text=_("是否在线备份"), required=False)
         backup_type = serializers.ChoiceField(help_text=_("备份类型"), choices=MySQLBackupTypeEnum.get_choices())
         file_tag = serializers.ChoiceField(help_text=_("备份文件tag"), choices=MySQLBackupFileTagEnum.get_choices())
-        cluster_ids = serializers.ListField(help_text=_("集群列表"), child=serializers.IntegerField())
-        backup_local = serializers.ChoiceField(
-            help_text=_("备份位置"), choices=InstanceInnerRole.get_choices(), default=InstanceInnerRole.SLAVE.value
-        )
+        clusters = serializers.ListSerializer(help_text=_("集群信息"), child=ClusterDetailSerializer())
 
     infos = FullBackupDataInfoSerializer()
 

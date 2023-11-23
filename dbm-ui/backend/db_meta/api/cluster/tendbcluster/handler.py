@@ -303,13 +303,13 @@ class TenDBClusterClusterHandler(ClusterHandler):
                 labels_dict={"instance_role": InstanceRole.REMOTE_SLAVE.value},
             )
 
-    def get_remote_address(self, role=TenDBBackUpLocation.REMOTE) -> str:
+    def get_remote_address(self, role=TenDBBackUpLocation.MASTER) -> str:
         """
         查询DRS访问远程数据库的地址，你默认查询remote的db
         """
         role = (
             TenDBClusterSpiderRole.SPIDER_MASTER
-            if role == TenDBBackUpLocation.REMOTE
+            if role in [TenDBBackUpLocation.MASTER, TenDBBackUpLocation.SLAVE]
             else TenDBClusterSpiderRole.SPIDER_MNT
         )
 

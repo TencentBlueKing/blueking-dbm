@@ -840,8 +840,9 @@ class TenDBBackUpLocation(str, StructuredEnum):
     TendbCluster的库表备份位置
     """
 
-    REMOTE = EnumField("remote", _("REMOTE"))
-    SPIDER_MNT = EnumField("spider_mnt", _("SPIDER_MNT"))
+    MASTER = EnumField("master", _("master"))
+    SLAVE = EnumField("slave", _("slave"))
+    SPIDER_MNT = EnumField("spider_mnt", _("spider_mnt"))
 
 
 class AccessType(str, StructuredEnum):
