@@ -20,8 +20,8 @@ import http from '../http';
  * 获取功能开关信息
  * 当接口报错则返回默认配置功能
  */
-export const getFunController = function () {
+export function getFunController() {
   return http.get<FunctionControllerModel>('/apis/conf/function_controller/')
     .then(res => new FunctionControllerModel(res))
     .catch(() => new FunctionControllerModel(defaultData));
-};
+}

@@ -155,11 +155,8 @@
   import { getClusterInfoByDomains } from '@services/source/mysqlCluster';
   import { getClusterDatabaseNameList } from '@services/source/remoteService';
   import { createTicket } from '@services/source/ticket';
-  import type {
-    InstanceInfos,
-    ResourceItem,
-    ResourceItemInstInfo,
-  } from '@services/types/clusters';
+  import type { ResourceItem } from '@services/types';
+  import type { InstanceInfos } from '@services/types/clusters';
 
   import {
     useInfo,
@@ -184,6 +181,7 @@
   import type { TableProps } from '@/types/bkui-vue';
 
   type FormItemInstance = InstanceType<typeof FormItem>;
+  type ResourceItemInstInfo = ResourceItem['masters'][number]
 
   interface TableItem {
     cluster_domain: string,

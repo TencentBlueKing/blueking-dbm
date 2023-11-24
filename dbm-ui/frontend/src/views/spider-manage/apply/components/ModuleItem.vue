@@ -77,7 +77,6 @@
 
   import { getModules } from '@services/source/cmdb';
   import { getLevelConfig } from '@services/source/configs';
-  import type { ParameterConfigItem } from '@services/types/configs';
 
   interface Props {
     bizId: number | string,
@@ -89,7 +88,7 @@
   const router = useRouter();
 
   const isLoadConfig = ref(false);
-  const configItems = shallowRef<ParameterConfigItem[]>([]);
+  const configItems = shallowRef<ServiceReturnType<typeof getLevelConfig>['conf_items']>([]);
   const hasBizId = computed(() => Boolean(props.bizId));
 
   const {

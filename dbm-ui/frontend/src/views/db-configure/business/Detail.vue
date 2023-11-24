@@ -43,10 +43,6 @@
   import { useI18n } from 'vue-i18n';
 
   import { getLevelConfig } from '@services/source/configs';
-  import type {
-    ConfigBaseDetails,
-    GetLevelConfigParams,
-  } from '@services/types/configs';
 
   import { useMainViewStore } from '@stores';
 
@@ -68,7 +64,7 @@
   const state = reactive({
     loading: false,
     activeTab: 'base',
-    data: {} as ConfigBaseDetails,
+    data: {} as ServiceReturnType<typeof getLevelConfig>,
   });
 
   // 获取业务层级相关参数
@@ -117,7 +113,7 @@
    */
   const fetchLevelConfig = () => {
     state.loading = true;
-    getLevelConfig(fetchParams.value as GetLevelConfigParams)
+    getLevelConfig(fetchParams.value)
       .then((res) => {
         state.data = res;
       })

@@ -17,8 +17,10 @@ import { useI18n } from 'vue-i18n';
 import { getResources as getSpiderResources } from '@services/source/spider';
 import { getTendbhaList } from '@services/source/tendbha';
 import { getTendbsingleList } from '@services/source/tendbsingle';
-import type { SearchFilterItem } from '@services/types';
-import type { ResourceItem } from '@services/types/clusters';
+import type {
+  ResourceItem,
+  SearchFilterItem,
+} from '@services/types';
 import type { MysqlAuthorizationDetails, TicketDetails } from '@services/types/ticket';
 
 import { useDefaultPagination } from '@hooks';

@@ -72,9 +72,10 @@
   import { useI18n } from 'vue-i18n';
 
   import { getRetryNodeHistories } from '@services/source/taskflow';
-  import type { RetryNodeItem } from '@services/types/taskflow';
 
   import { getCostTimeDisplay } from '@utils';
+
+  type RetryNodeItem = ServiceReturnType<typeof getRetryNodeHistories>[number]
 
   interface Props {
     nodeId: string

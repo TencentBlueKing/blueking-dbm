@@ -128,7 +128,7 @@
   import { batchFetchFile } from '@services/source/storage';
   import { getTendbhaList } from '@services/source/tendbha';
   import { getTendbsingleList } from '@services/source/tendbsingle';
-  import type { ResourceItem } from '@services/types/clusters';
+  import type { ResourceItem } from '@services/types';
   import type {
     MySQLImportSQLFileDetails,
     TicketDetails,

@@ -66,16 +66,11 @@
   import { useI18n } from 'vue-i18n';
 
   import {
+    getConfigBaseDetails,
+    getLevelConfig,
     updateBusinessConfig,
     updatePlatformConfig,
   } from '@services/source/configs';
-  import type {
-    BizConfDetailsUpdateParams,
-    ConfigBaseDetails,
-    GetLevelConfigParams,
-    PlatConfDetailsParams,
-    PlatConfDetailsUpdateParams,
-  } from '@services/types/configs';
 
   import {
     ConfLevels,
@@ -88,10 +83,13 @@
 
   import ReadonlyTable from './ReadonlyTable.vue';
 
+
+  type PlatConfDetailsParams = ServiceParameters<typeof getConfigBaseDetails>
+
   interface Props {
-    data?: ConfigBaseDetails,
+    data?: ServiceReturnType<typeof getLevelConfig>,
     loading?: boolean,
-    fetchParams?: PlatConfDetailsParams | GetLevelConfigParams,
+    fetchParams?: PlatConfDetailsParams | ServiceParameters<typeof getLevelConfig>,
     stickyTop?: number,
     level?: ConfLevelValues,
     title?: string,
@@ -103,10 +101,11 @@
     (e:'update-info', value: { key: string, value: string }): void
   }
 
-  type updateFuncParam = PlatConfDetailsUpdateParams & BizConfDetailsUpdateParams;
+  // eslint-disable-next-line max-len
+  type updateFuncParam = ServiceParameters<typeof updatePlatformConfig> & ServiceParameters<typeof updateBusinessConfig>;
 
   const props = withDefaults(defineProps<Props>(), {
-    data: () => ({} as ConfigBaseDetails),
+    data: () => ({} as NonNullable<Props['data']>),
     loading: false,
     fetchParams: () => ({} as PlatConfDetailsParams),
     stickyTop: 0,

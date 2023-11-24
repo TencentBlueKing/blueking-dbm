@@ -58,7 +58,6 @@
     getConfigNames,
     getLevelConfig,
   } from '@services/source/configs';
-  import type { ConfigBaseDetails, ParameterConfigItem } from '@services/types/configs';
 
   import { useMainViewStore } from '@stores';
 
@@ -71,6 +70,8 @@
   import { useLevelParams } from '../hooks/useLevelParams';
 
   import ParameterTable from './ParameterTable.vue';
+
+  type ConfigBaseDetails = ServiceReturnType<typeof getLevelConfig>
 
   interface Props {
     level?: ConfLevelValues
@@ -103,8 +104,8 @@
       description: '',
       conf_items: [],
     } as ConfigBaseDetails,
-    parameters: [] as ParameterConfigItem[],
-    originConfItems: [] as ParameterConfigItem[],
+    parameters: [] as ConfigBaseDetails['conf_items'],
+    originConfItems: [] as ConfigBaseDetails['conf_items'],
     cloneDataStringify: '',
   });
   // 是否为平台级别配置
@@ -277,7 +278,7 @@
   };
 
   // 选择参数项
-  const handleChangeParameterItem = (index: number, selected: ParameterConfigItem) => {
+  const handleChangeParameterItem = (index: number, selected: ConfigBaseDetails['conf_items'][number]) => {
     state.data.conf_items[index] = Object.assign(_.cloneDeep(selected), { op_type: 'add' });
   };
 </script>

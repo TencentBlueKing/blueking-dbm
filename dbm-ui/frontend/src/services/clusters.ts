@@ -15,6 +15,8 @@ import http from './http';
 import type {
   HostNode,
   ListBase,
+  ResourceInstance,
+  ResourceItem,
 } from './types';
 import type {
   ClusterPassword,
@@ -25,8 +27,7 @@ import type {
   InstanceDetailsParams,
   InstanceInfos,
   MySQLClusterInfos,
-  ResourceInstance,
-  ResourceItem, ResourceParams,
+  ResourceParams,
   ResourcesResult,
   ResourceTopo,
   ResourceTopoParams,

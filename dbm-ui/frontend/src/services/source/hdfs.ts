@@ -29,74 +29,79 @@ const path = `/apis/bigdata/bizs/${currentBizId}/hdfs/hdfs_resources`;
 /**
  * 获取集群列表
  */
-export const getHdfsList = function (params: Record<string, any> & { bk_biz_id: number }) {
-  return http.get<ListBase<HdfsModel[]>>(`${path}/`, params).then(data => ({
-    ...data,
-    results: data.results.map((item: HdfsModel) => new HdfsModel(item)),
-  }));
-};
+export function getHdfsList(params: Record<string, any> & { bk_biz_id: number }) {
+  return http.get<ListBase<HdfsModel[]>>(`${path}/`, params)
+    .then(data => ({
+      ...data,
+      results: data.results.map((item: HdfsModel) => new HdfsModel(item)),
+    }));
+}
 
 /**
  * 获取查询返回字段
  */
-export const getHdfsTableFields = function () {
+export function getHdfsTableFields() {
   return http.get<ListBase<HdfsModel[]>>(`${path}/get_table_fields/`);
-};
+}
 
 /**
  * 获取实例列表
  */
-export const getHdfsInstanceList = function (params: Record<string, any> & { bk_biz_id: number }) {
-  return http.get<ListBase<HdfsInstanceModel[]>>(`${path}/list_instances/`, params).then(data => ({
-    ...data,
-    results: data.results.map((item: HdfsInstanceModel) => new HdfsInstanceModel(item)),
-  }));
-};
+export function getHdfsInstanceList(params: Record<string, any> & { bk_biz_id: number }) {
+  return http.get<ListBase<HdfsInstanceModel[]>>(`${path}/list_instances/`, params)
+    .then(data => ({
+      ...data,
+      results: data.results.map((item: HdfsInstanceModel) => new HdfsInstanceModel(item)),
+    }));
+}
 
 /**
  * 获取实例详情
  */
-export const retrieveHdfsInstance = function (params: { bk_biz_id: number }) {
+export function retrieveHdfsInstance(params: { bk_biz_id: number }) {
   return http.get<ListBase<HdfsModel[]>>(`${path}/retrieve_instance/`, params);
-};
+}
 /**
  * 获取集群详情
  */
-export const getHdfsDetail = function (params: { id: number }) {
-  return http.get<HdfsModel>(`${path}/${params.id}/`).then(data => new HdfsModel(data));
-};
+export function getHdfsDetail(params: { id: number }) {
+  return http.get<HdfsModel>(`${path}/${params.id}/`)
+    .then(data => new HdfsModel(data));
+}
 
 /**
  * 获取集群拓扑
  */
-export const getHdfsTopoGraph = function (params: { cluster_id: number }) {
+export function getHdfsTopoGraph(params: { cluster_id: number }) {
   return http.get<ListBase<HdfsModel[]>>(`${path}/${params.cluster_id}/get_topo_graph/`);
-};
+}
 
 /**
  * 获取集群访问xml配置
  */
-export const getHdfsXmls = function (params: { cluster_id: number }) {
+export function getHdfsXmls(params: { cluster_id: number }) {
   return http.get<ClusterConfigXmlsModel>(`${path}/${params.cluster_id}/get_xmls/`);
-};
+}
 
 /**
  * 获取 Hdfs 集群访问密码
  */
-export const getHdfsPassword = function (params: { cluster_id: number }) {
-  return http.get<HdfsPasswordModel>(`${path}/${params.cluster_id}/get_password/`).then(data => new HdfsPasswordModel(data));
-};
+export function getHdfsPassword(params: { cluster_id: number }) {
+  return http.get<HdfsPasswordModel>(`${path}/${params.cluster_id}/get_password/`)
+    .then(data => new HdfsPasswordModel(data));
+}
 
 /**
  * 获取 Hdfs 集群节点列表信息
  */
-export const getHdfsNodeList = function (params: Record<string, any> & {
+export function getHdfsNodeList(params: Record<string, any> & {
   bk_biz_id: number,
   cluster_id: number
 }) {
-  return http.get<ListBase<Array<HdfsNodeModel>>>(`${path}/${params.cluster_id}/list_nodes/`, params).then(data => ({
-    ...data,
-    results: data.results.map((item: HdfsNodeModel) => new HdfsNodeModel(item)),
-  }));
-};
+  return http.get<ListBase<Array<HdfsNodeModel>>>(`${path}/${params.cluster_id}/list_nodes/`, params)
+    .then(data => ({
+      ...data,
+      results: data.results.map((item: HdfsNodeModel) => new HdfsNodeModel(item)),
+    }));
+}
 

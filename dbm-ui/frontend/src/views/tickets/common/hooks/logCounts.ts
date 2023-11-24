@@ -15,9 +15,8 @@ import {
   getNodeLog,
   getRetryNodeHistories,
 } from '@services/source/taskflow';
-import type { NodeLog } from '@services/types/taskflow';
 
-export type ILogItem = NodeLog
+export type ILogItem = ServiceReturnType<typeof getNodeLog>[number]
 
 /**
  * 计算执行文件成功、失败个数

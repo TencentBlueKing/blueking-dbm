@@ -28,72 +28,78 @@ const path = `/apis/bigdata/bizs/${currentBizId}/kafka/kafka_resources`;
 /**
  * 获取集群列表
  */
-export const getKafkaList = function (params: Record<string, any> & { bk_biz_id: number }) {
-  return http.get<ListBase<KafkaModel[]>>(`${path}/`, params).then(data => ({
-    ...data,
-    results: data.results.map((item: KafkaModel) => new KafkaModel(item)),
-  }));
-};
+export function getKafkaList(params: Record<string, any> & { bk_biz_id: number }) {
+  return http.get<ListBase<KafkaModel[]>>(`${path}/`, params)
+    .then(data => ({
+      ...data,
+      results: data.results.map((item: KafkaModel) => new KafkaModel(item)),
+    }));
+}
 
 /**
  * 获取查询返回字段
  */
-export const getKafkaTableFields = function () {
+export function getKafkaTableFields() {
   return http.get<ListBase<KafkaModel[]>>(`${path}/get_table_fields/`);
-};
+}
 
 /**
  * 获取实例列表
  */
-export const getKafkaInstanceList = function (params: Record<string, any> & { bk_biz_id: number }) {
-  return http.get<ListBase<KafkaInstanceModel[]>>(`${path}/list_instances/`, params).then(data => ({
-    ...data,
-    results: data.results.map((item: KafkaInstanceModel) => new KafkaInstanceModel(item)),
-  }));
-};
+export function getKafkaInstanceList(params: Record<string, any> & { bk_biz_id: number }) {
+  return http.get<ListBase<KafkaInstanceModel[]>>(`${path}/list_instances/`, params)
+    .then(data => ({
+      ...data,
+      results: data.results.map((item: KafkaInstanceModel) => new KafkaInstanceModel(item)),
+    }));
+}
 
 /**
  * 获取实例详情
  */
-export const retrieveKafkaInstance = function (params: { bk_biz_id: number }) {
+export function retrieveKafkaInstance(params: { bk_biz_id: number }) {
   return http.get<ListBase<KafkaModel[]>>(`${path}/retrieve_instance/`, params);
-};
+}
 
 /**
  * 获取集群详情
  */
-export const getKafkaDetail = function (params: { id: number }) {
-  return http.get<KafkaModel>(`${path}/${params.id}/`).then(data => new KafkaModel(data));
-};
+export function getKafkaDetail(params: { id: number }) {
+  return http.get<KafkaModel>(`${path}/${params.id}/`)
+    .then(data => new KafkaModel(data));
+}
 
 // 获取集群详情（入口配置）
-export const getClusterDetailEntryConfig = function (params: { id: number }) {
-  return http.get<KafkaModel>(`${path}/${params.id}/`).then(data => new KafkaModel(data));
-};
+export function getClusterDetailEntryConfig(params: { id: number }) {
+  return http.get<KafkaModel>(`${path}/${params.id}/`)
+    .then(data => new KafkaModel(data));
+}
 
 /**
  * 获取集群拓扑
  */
-export const getKafkaTopoGraph = function (params: { cluster_id: number }) {
+export function getKafkaTopoGraph(params: { cluster_id: number }) {
   return http.get<ListBase<KafkaModel[]>>(`${path}/${params.cluster_id}/get_topo_graph/`);
-};
+}
 
 /**
  * 获取 Kafka 集群访问密码
  */
-export const getKafkaPassword = function (params: Record<string, any> & { cluster_id: number }) {
-  return http.get<KafkaPasswordModel>(`${path}/${params.cluster_id}/get_password/`).then(data => new KafkaPasswordModel(data));
-};
+export function getKafkaPassword(params: Record<string, any> & { cluster_id: number }) {
+  return http.get<KafkaPasswordModel>(`${path}/${params.cluster_id}/get_password/`)
+    .then(data => new KafkaPasswordModel(data));
+}
 
 /**
  * 获取 Kafka 集群节点列表信息
  */
-export const getKafkaNodeList = function (params: Record<string, any> & {
+export function getKafkaNodeList(params: Record<string, any> & {
   bk_biz_id: number,
   cluster_id: number
 }) {
-  return http.get<ListBase<Array<KafkaNodeModel>>>(`${path}/${params.cluster_id}/list_nodes/`, params).then(data => ({
-    ...data,
-    results: data.results.map((item: KafkaNodeModel) => new KafkaNodeModel(item)),
-  }));
-};
+  return http.get<ListBase<Array<KafkaNodeModel>>>(`${path}/${params.cluster_id}/list_nodes/`, params)
+    .then(data => ({
+      ...data,
+      results: data.results.map((item: KafkaNodeModel) => new KafkaNodeModel(item)),
+    }));
+}

@@ -11,9 +11,10 @@
  * the specific language governing permissions and limitations under the License.
 */
 
-import { PipelineStatus } from '@common/const';
-
-import type { HostDetails } from '../types';
+import type {
+  HostDetails,
+  ResourceItem,
+} from '../types';
 
 /**
  * 用来获取集群节点的 keys
@@ -44,48 +45,6 @@ export interface ResourcesResult<T> {
   next: string,
   previous: string,
   results: T[]
-}
-
-/**
- * 资源列表实例信息
- */
-export interface ResourceItemInstInfo {
-  bk_biz_id: number,
-  bk_cloud_id: number,
-  bk_host_id: number,
-  bk_instance_id: number,
-  ip: string,
-  name: string,
-  instance: string,
-  port: number,
-  status: 'running' | 'unavailable',
-}
-
-/**
- * mysql 资源信息
- */
-export interface ResourceItem {
-  phase: 'online' | 'offline',
-  status: 'normal' | 'abnormal',
-  cluster_name: string,
-  cluster_type: string,
-  master_domain: string,
-  masters: ResourceItemInstInfo[],
-  creator: string,
-  create_at: string,
-  db_module_name: string,
-  id: number,
-  proxies?: ResourceItemInstInfo[],
-  slaves?: ResourceItemInstInfo[]
-  bk_cloud_id: number,
-  operations: Array<{
-    cluster_id: number,
-    flow_id: number,
-    status: PipelineStatus,
-    ticket_id: number,
-    ticket_type: string,
-    title: string,
-  }>
 }
 
 /**
@@ -123,9 +82,9 @@ export interface ResourceRedisItem {
     ticket_type: string,
     title: string,
   }>
-  [ClusterNodeKeys.REDIS_MASTER]: ResourceItemInstInfo[]
-  [ClusterNodeKeys.PROXY]: ResourceItemInstInfo[]
-  [ClusterNodeKeys.REDIS_SLAVE]: ResourceItemInstInfo[]
+  [ClusterNodeKeys.REDIS_MASTER]: ResourceItem['masters']
+  [ClusterNodeKeys.PROXY]: ResourceItem['masters']
+  [ClusterNodeKeys.REDIS_SLAVE]: ResourceItem['masters']
 }
 
 /**
@@ -174,46 +133,46 @@ export interface ResourceInstancesParams {
 /**
  * 资源实例信息
  */
-export interface ResourceInstance {
-  bk_cloud_id: number,
-  bk_cloud_name: string,
-  bk_host_id: number,
-  cluster_id: number,
-  cluster_name: string,
-  cluster_type: string,
-  create_at: string,
-  db_module_id: number,
-  host_info: HostDetails,
-  id: number,
-  instance_address: string,
-  ip: string,
-  master_domain: string,
-  port: number,
-  related_clusters?: {
-    alias: string,
-    bk_biz_id: number,
-    bk_cloud_id: number,
-    cluster_name: string,
-    cluster_type: string,
-    creator: string,
-    db_module_id: number,
-    id: number,
-    major_version: string,
-    master_domain: string,
-    phase: string,
-    region: string,
-    status: string,
-    time_zone: string
-    updater: string,
-  }[],
-  role: string,
-  slave_domain: string,
-  spec_config: {
-    id: number
-  }
-  status: string,
-  version: string,
-}
+// export interface ResourceInstance {
+//   bk_cloud_id: number,
+//   bk_cloud_name: string,
+//   bk_host_id: number,
+//   cluster_id: number,
+//   cluster_name: string,
+//   cluster_type: string,
+//   create_at: string,
+//   db_module_id: number,
+//   host_info: HostDetails,
+//   id: number,
+//   instance_address: string,
+//   ip: string,
+//   master_domain: string,
+//   port: number,
+//   related_clusters?: {
+//     alias: string,
+//     bk_biz_id: number,
+//     bk_cloud_id: number,
+//     cluster_name: string,
+//     cluster_type: string,
+//     creator: string,
+//     db_module_id: number,
+//     id: number,
+//     major_version: string,
+//     master_domain: string,
+//     phase: string,
+//     region: string,
+//     status: string,
+//     time_zone: string
+//     updater: string,
+//   }[],
+//   role: string,
+//   slave_domain: string,
+//   spec_config: {
+//     id: number
+//   }
+//   status: string,
+//   version: string,
+// }
 
 /**
  * 获取集群拓扑参数

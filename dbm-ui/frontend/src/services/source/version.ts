@@ -18,27 +18,27 @@ const path = '/apis/version';
 /**
  * 查询所有数据库的版本列表
  */
-export const getClusterTypeToVersions = function () {
+export function getClusterTypeToVersions() {
   return http.get<Record<string, string[]>>(`${path}/cluster_type_to_versions/`);
-};
+}
 
 /**
  * 查询数据库版本列表
  */
-export const getVersions = function (params: {
+export function getVersions(params: {
   query_key: string,
   db_type?: string
 }) {
   return http.get<string[]>(`${path}/list_versions/`, params);
-};
+}
 
 /**
  * 获取项目版本
  */
-export const getProjectVersion = function () {
+export function getProjectVersion() {
   return http.get<{
     app_version: string,
     chart_version: string,
     version: string,
   }>('/version/');
-};
+}

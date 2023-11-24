@@ -20,14 +20,11 @@ import http from '../http';
 import type {
   HostNode,
   ListBase,
+  ResourceInstance,
+  ResourceTopo,
 } from '../types';
 import type {
-  InstanceDetails,
-  InstanceDetailsParams,
-  ResourceInstance,
   ResourceRedisItem,
-  ResourceTopo,
-  TableFieldsItem,
 } from '../types/clusters';
 
 const { currentBizId } = useGlobalBizs();
@@ -37,7 +34,7 @@ const path = `/apis/redis/bizs/${currentBizId}/redis_resources`;
 /**
  * 获取集群列表
  */
-export const getRedisList = function (params: {
+export  function getRedisList(params: {
   limit?: number,
   offset?: number,
   type?: string,
@@ -46,72 +43,116 @@ export const getRedisList = function (params: {
   domain?: string,
   bk_biz_id?: number,
 } = {}) {
-  return http.get<ListBase<RedisModel[]>>(`${path}/`, params).then(data => ({
-    ...data,
-    results: data.results.map(item => new RedisModel(item)),
-  }));
-};
+  return http.get<ListBase<RedisModel[]>>(`${path}/`, params)
+    .then(data => ({
+      ...data,
+      results: data.results.map(item => new RedisModel(item)),
+    }));
+}
 
 /**
  * 查询表格信息
  */
-export const getRedisTableFields = function () {
-  return http.get<TableFieldsItem[]>(`${path}/get_table_fields/`);
-};
+export function getRedisTableFields() {
+  return http.get<{
+    key: string,
+    name: string,
+  }[]>(`${path}/get_table_fields/`);
+}
 
 /**
  * 获取集群实例列表
  */
-export const getRedisInstances = function (params: Record<string, any>) {
+export function getRedisInstances(params: Record<string, any>) {
   return http.get<ListBase<ResourceInstance[]>>(`${path}/list_instances/`, params);
-};
+}
+
+/**
+ * 集群实例详情
+ */
+interface InstanceDetails {
+  bk_cloud_id: number,
+  bk_cpu: number,
+  bk_disk: number,
+  bk_host_id: number,
+  bk_host_innerip: string,
+  bk_mem: number,
+  bk_os_name: string,
+  cluster_id: number,
+  cluster_type: string,
+  create_at: string,
+  idc_city_id: string,
+  idc_city_name: string,
+  idc_id: number,
+  instance_address: string,
+  master_domain: string,
+  net_device_id: string,
+  rack: string,
+  rack_id: number,
+  role: string,
+  slave_domain: string,
+  status: string,
+  sub_zone: string,
+  db_module_id: number,
+  cluster_type_display: string,
+  bk_idc_name: string,
+  bk_cloud_name: string,
+  db_version: string,
+  version?: string
+}
 
 /**
  * 获取集群实例详情
  */
-export const retrieveRedisInstance = function (params: InstanceDetailsParams & { dbType: string }) {
+export function retrieveRedisInstance(params: {
+  bk_biz_id: number,
+  type: string,
+  instance_address: string,
+  cluster_id?: number
+  dbType: string
+}) {
   return http.get<InstanceDetails>(`${path}/retrieve_instance/`, params);
-};
+}
 
 /**
  * 获取集群详情
  */
-export const getRedisDetail = function (params: { id: number }) {
+export function getRedisDetail(params: { id: number }) {
   return http.get<ResourceRedisItem>(`${path}/${params.id}/`);
-};
+}
 
 /**
  * 查询集群主机列表
  */
-export const getRedisNodes = function (params: {
+export function getRedisNodes(params: {
   db_type: string;
   bk_biz_id: string;
   cluster_id: string;
 }) {
   return http.get<HostNode[]>(`${path}/${params.cluster_id}/get_nodes/`, params);
-};
+}
 
 /**
  * 获取集群密码
  */
-export const getRedisPassword = function (params: { cluster_id: number }) {
+export function getRedisPassword(params: { cluster_id: number }) {
   return http.get<{
     cluster_name: string,
     domain: string,
     password: string
   }>(`${path}/${params.cluster_id}/get_password/`);
-};
+}
 
 /**
  * 获取集群拓扑
  */
-export const getRedisTopoGraph = function (params: { cluster_id: number }) {
+export function getRedisTopoGraph(params: { cluster_id: number }) {
   return http.get<ResourceTopo>(`${path}/${params.cluster_id}/get_topo_graph/`);
-};
+}
 
 /**
  * 获取业务拓扑树
  */
-export const getRedisResourceTree = function (params: { cluster_type: string }) {
+export function getRedisResourceTree(params: { cluster_type: string }) {
   return http.get<BizConfTopoTreeModel[]>(`/apis/redis/bizs/${currentBizId}/resource_tree/`, params);
-};
+}

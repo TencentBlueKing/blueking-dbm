@@ -23,6 +23,6 @@ const { currentBizId } = useGlobalBizs();
 /**
  * 获取业务拓扑树
  */
-export const getMysqlResourceTree = function (params: { cluster_type: string }) {
+export function getMysqlResourceTree(params: { cluster_type: string }) {
   return http.get<BizConfTopoTreeModel[]>(`/apis/mysql/bizs/${currentBizId}/resource_tree/`, params);
-};
+}

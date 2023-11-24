@@ -54,7 +54,7 @@
   import { useI18n } from 'vue-i18n';
 
   import { getTendbhaInstanceList } from '@services/source/tendbha';
-  import type { ResourceInstance } from '@services/types/clusters';
+  import type { ResourceInstance } from '@services/types';
 
   import {
     type IPagination,

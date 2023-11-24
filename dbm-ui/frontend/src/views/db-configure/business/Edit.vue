@@ -143,8 +143,10 @@
   import { Message } from 'bkui-vue';
   import { useI18n } from 'vue-i18n';
 
-  import { updateBusinessConfig } from '@services/source/configs';
-  import type { BizConfDetailsUpdateParams, ConfigBaseDetails, ParameterConfigItem } from '@services/types/configs';
+  import {
+    getLevelConfig,
+    updateBusinessConfig,
+  } from '@services/source/configs';
 
   import { ConfLevels } from '@common/const';
 
@@ -174,8 +176,8 @@
 
   const loading = ref(false);
   const diffData = reactive({
-    origin: [] as ParameterConfigItem[],
-    data: {} as ConfigBaseDetails,
+    origin: [] as ServiceReturnType<typeof getLevelConfig>['conf_items'],
+    data: {} as ServiceReturnType<typeof getLevelConfig>,
   });
 
   // 判断表单内容是否变更
@@ -310,7 +312,7 @@
       ...levelParams.value,
     };
     loading.value = true;
-    updateBusinessConfig(params as BizConfDetailsUpdateParams)
+    updateBusinessConfig(params as ServiceParameters<typeof updateBusinessConfig>)
       .then(() => {
         window.changeConfirm = false;
         Message({

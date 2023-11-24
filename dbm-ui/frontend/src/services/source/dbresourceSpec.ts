@@ -21,34 +21,35 @@ const path = '/apis/dbresource/spec';
 /**
  * 获取资源规格列表
  */
-export const getResourceSpecList = function (params: Record<string, any> & {
+export  function getResourceSpecList(params: Record<string, any> & {
   spec_cluster_type: string,
   spec_machine_type?: string,
 }) {
-  return http.get<ListBase<ResourceSpecModel[]>>(`${path}/`, params).then(res => ({
-    ...res,
-    results: res.results.map((item: ResourceSpecModel) => new ResourceSpecModel(item)),
-  }));
-};
+  return http.get<ListBase<ResourceSpecModel[]>>(`${path}/`, params)
+    .then(res => ({
+      ...res,
+      results: res.results.map((item: ResourceSpecModel) => new ResourceSpecModel(item)),
+    }));
+}
 
 /**
  * 新建规格
  */
-export const createResourceSpec = function (params: Record<any, any>) {
+export function createResourceSpec(params: Record<any, any>) {
   return http.post<ResourceSpecModel>(`${path}/`, params);
-};
+}
 
 /**
  * 批量删除规格
  */
-export const batchDeleteResourceSpec = function (params: Record<string, any> & { spec_ids: number[] }) {
+export function batchDeleteResourceSpec(params: Record<string, any> & { spec_ids: number[] }) {
   return http.delete(`${path}/batch_delete/`, params, {});
-};
+}
 
 /**
  * 筛选集群部署规格方案
  */
-export const getFilterClusterSpec = function (params: {
+export function getFilterClusterSpec(params: {
   spec_cluster_type: string,
   spec_machine_type: string,
   capacity: number,
@@ -60,12 +61,12 @@ export const getFilterClusterSpec = function (params: {
   shard_num?: number,
 }) {
   return http.post<RedisClusterSpecModel[]>(`${path}/filter_cluster_spec/`, params);
-};
+}
 
 /**
  * 获取 qps 的范围
  */
-export const queryQPSRange = function (params: {
+export function queryQPSRange(params: {
   spec_cluster_type: string,
   spec_machine_type: string,
   capacity: number,
@@ -75,50 +76,51 @@ export const queryQPSRange = function (params: {
     max: number,
     min: number
   }>(`${path}/query_qps_range/`, params);
-};
+}
 
 /**
  * 获取推荐规格
  */
-export const fetchRecommendSpec = function (params: {
+export function fetchRecommendSpec(params: {
   cluster_id: number,
   role: string,
 } | {
   instance_id: number,
   role: string,
 }) {
-  return http.get<ResourceSpecModel[]>(`${path}/recommend_spec/`, params).then(data => data.map(item => new ResourceSpecModel(item)));
-};
+  return http.get<ResourceSpecModel[]>(`${path}/recommend_spec/`, params)
+    .then(data => data.map(item => new ResourceSpecModel(item)));
+}
 
 /**
  * 校验规格名称是否重复
  */
-export const verifyDuplicatedSpecName = function (params: {
+export function verifyDuplicatedSpecName(params: {
   spec_cluster_type: string,
   spec_machine_type: string,
   spec_name: string,
   spec_id?: number
 }) {
   return http.post<boolean>(`${path}/verify_duplicated_spec_name/`, params);
-};
+}
 
 /**
  * 规格详情
  */
-export const getResourceSpec = function (params: { spec_id: number }) {
+export function getResourceSpec(params: { spec_id: number }) {
   return http.get<ResourceSpecModel>(`${path}/${params.spec_id}/`);
-};
+}
 
 /**
  * 更新规格
  */
-export const updateResourceSpec = function (params: Record<string, any> & { specId: number }) {
+export function updateResourceSpec(params: Record<string, any> & { specId: number }) {
   return http.put<ResourceSpecModel>(`${path}/${params.specId}/`, params);
-};
+}
 
 /**
  * 删除规格
  */
-export const deleteResourceSpec = function (params: { specId: number }) {
+export function deleteResourceSpec(params: { specId: number }) {
   return http.delete(`${path}/${params.specId}/`);
-};
+}

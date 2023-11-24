@@ -17,4 +17,7 @@ export * from './hostDetails';
 export * from './hostNode';
 export * from './listBase';
 export * from './permission';
+export * from './resourceInstance';
+export * from './resourceItem';
+export * from './resourceTopo';
 export * from './searchFilterItem';

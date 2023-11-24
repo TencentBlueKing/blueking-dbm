@@ -23,7 +23,7 @@
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
 
-  import type { ParameterConfigItem } from '@services/types/configs';
+  import { getLevelConfig } from '@services/source/configs';
 
   import {
     ConfLevels,
@@ -35,8 +35,8 @@
   import { useDiff } from '../hooks/useDiff';
 
   interface Props {
-    data?: ParameterConfigItem[]
-    origin?: ParameterConfigItem[]
+    data?: ServiceReturnType<typeof getLevelConfig>['conf_items']
+    origin?: ServiceReturnType<typeof getLevelConfig>['conf_items']
     level?: ConfLevelValues
   }
 

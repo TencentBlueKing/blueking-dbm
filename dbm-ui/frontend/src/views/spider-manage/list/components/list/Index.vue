@@ -126,7 +126,7 @@
     getTendbClusterList,
   } from '@services/source/spider';
   import { createTicket } from '@services/source/ticket';
-  import type { ResourceItem } from '@services/types/clusters';
+  import type { ResourceItem } from '@services/types';
 
   import {
     useCopy,

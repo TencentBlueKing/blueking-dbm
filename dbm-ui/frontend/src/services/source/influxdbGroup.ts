@@ -16,7 +16,7 @@ import type { ListBase } from '../types';
 
 const path = '/apis/group';
 
-export interface InfluxDBGroupItem {
+interface InfluxDBGroupItem {
   id: number,
   creator: string,
   create_at: string,
@@ -30,54 +30,54 @@ export interface InfluxDBGroupItem {
 /**
  * 分组列表
  */
-export const getGroupList = function (params: { bk_biz_id: number }) {
+export function getGroupList(params: { bk_biz_id: number }) {
   return http.get<ListBase<InfluxDBGroupItem[]>>(`${path}/`, {
     limit: -1,
     ...params,
   });
-};
+}
 
 /**
  * 创建分组
  */
-export const createGroup = function (params: {
+export function createGroup(params: {
   bk_biz_id: number,
   name: string
 }) {
   return http.post<InfluxDBGroupItem>(`${path}/`, params);
-};
+}
 
 /**
  * 获取分组信息
  */
-export const getGroupInfo = function (params: { id: number }) {
+export function getGroupInfo(params: { id: number }) {
   return http.get<InfluxDBGroupItem>(`${path}/${params.id}/`);
-};
+}
 
 /**
  * 更新分组信息
  */
-export const updateGroupInfo = function (params: {
+export function updateGroupInfo(params: {
   id: number,
   bk_biz_id: number,
   name: string
 }) {
   return http.put<InfluxDBGroupItem>(`${path}/${params.id}/`, params);
-};
+}
 
 /**
  * 删除分组
  */
-export const deleteGroup = function (params: { id: number }) {
+export function deleteGroup(params: { id: number }) {
   return http.delete(`${path}/${params.id}/`);
-};
+}
 
 /**
  * 移动实例到新分组
  */
-export const moveInstancesToGroup = function (params: {
+export function moveInstancesToGroup(params: {
   new_group_id: number,
   instance_ids: number[]
 }) {
   return http.post(`${path}/move_instances/`, params);
-};
+}

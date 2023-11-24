@@ -11,20 +11,33 @@
  * the specific language governing permissions and limitations under the License.
 */
 
-import http from '../http';
-
 /**
- * 获取监控警告管理地址
+ * 集群详情拓扑图数据
  */
-export function getMonitorUrls(params: Record<string, any> & {
-  cluster_type: string,
-  cluster_id?: number,
-  instance_id?: number,
-}) {
-  return http.get<{
-    urls: {
-      url: string,
-      view: string
-    }[]
-  }>('/apis/monitor/grafana/get_dashboard/', params);
+export interface ResourceTopo {
+  node_id: string,
+  nodes: {
+    node_id: string,
+    node_type: string
+    url: string
+  }[]
+  groups: {
+    node_id: string,
+    group_name: string,
+    children_id: string[],
+  }[]
+  lines: {
+    source: string,
+    source_type: string,
+    target: string,
+    target_type: string,
+    label: string,
+    label_name: string
+  }[]
+  foreign_relations: {
+    rep_to: [],
+    rep_from: [],
+    access_to: [],
+    access_from: [],
+  }
 }

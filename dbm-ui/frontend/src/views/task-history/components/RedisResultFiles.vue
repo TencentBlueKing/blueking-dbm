@@ -70,7 +70,6 @@
     getRedisFileUrls,
   } from '@services/source/taskflow';
   import { createTicket } from '@services/source/ticket';
-  import type { KeyFileItem } from '@services/types/taskflow';
 
   import { useCopy, useInfoWithIcon, useTicketMessage } from '@hooks';
 
@@ -81,6 +80,8 @@
   import { messageWarn } from '@utils';
 
   import type { TableSelectionData } from '@/types/bkui-vue';
+
+  type KeyFileItem = ServiceReturnType<typeof getKeyFiles>[number]
 
   interface Props {
     id: string,

@@ -12,13 +12,13 @@
 */
 
 
-import type { MySQLClusterInfos } from '@services/types/clusters';
+import { queryClusters } from '@services/source/mysqlCluster';
 
 export interface TableItem {
   cluster_domain: string,
   cluster_id: number,
-  cluster_related: MySQLClusterInfos[],
-  checked_related: MySQLClusterInfos[],
+  cluster_related: ServiceReturnType<typeof queryClusters>
+  checked_related: ServiceReturnType<typeof queryClusters>,
   new_slave_ip: string,
   uniqueId: string
 }

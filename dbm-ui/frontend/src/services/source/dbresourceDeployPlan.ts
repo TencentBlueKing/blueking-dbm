@@ -21,7 +21,7 @@ const path = '/apis/dbresource/deploy_plan';
 /**
  * 查询部署方案列表
  */
-export const fetchDeployPlan = function (params: {
+export function fetchDeployPlan(params: {
   cluster_type: string,
   limit: number,
   offset: number,
@@ -32,32 +32,32 @@ export const fetchDeployPlan = function (params: {
       ...data,
       results: data.results.map(item => new DeployPlanModel(item)),
     }));
-};
+}
 
 /**
  * 新建部署方案
  */
-export const createDeployPlan = function (params: Record<string, any>) {
+export function createDeployPlan(params: Record<string, any>) {
   return http.post(`${path}/`, params);
-};
+}
 
 /**
  * 批量删除部署方案
  */
-export const batchRemoveDeployPlan = function (params: { deploy_plan_ids: number[] }) {
+export function batchRemoveDeployPlan(params: { deploy_plan_ids: number[] }) {
   return http.delete(`${path}/batch_delete/`, params);
-};
+}
 
 /**
  * 更新部署方案
  */
-export const updateDeployPlan = function (params: { id: number }) {
+export function updateDeployPlan(params: { id: number }) {
   return http.delete(`${path}/${params.id}/`);
-};
+}
 
 /**
  * 删除部署方案
  */
-export const removeDeployPlan = function (params: { id: number }) {
+export function removeDeployPlan(params: { id: number }) {
   return http.delete(`${path}/${params.id}/`);
-};
+}

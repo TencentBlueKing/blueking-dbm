@@ -53,14 +53,14 @@ interface AlarmGroup {
 /**
  * 获取告警组列表
  */
-export const getAlarmGroupList = function (params: {
+export function getAlarmGroupList(params: {
   bk_biz_id: number,
   name: string,
   limit: number,
   offset: number
 }) {
   return http.get<ListBase<AlarmGroup[]>>(`${path}/`, params);
-};
+}
 
 /**
  * 告警组新增、编辑参数
@@ -76,28 +76,28 @@ interface AlarmGroupDetailParams {
 /**
  * 新建告警组
  */
-export const insertAlarmGroup = function (params: Omit<AlarmGroupDetailParams, 'id'>) {
+export function insertAlarmGroup(params: Omit<AlarmGroupDetailParams, 'id'>) {
   return http.post(`${path}/`, params);
-};
+}
 
 /**
  * 编辑告警组
  */
-export const updateAlarmGroup = function (params: AlarmGroupDetailParams) {
+export function updateAlarmGroup(params: AlarmGroupDetailParams) {
   return http.put(`${path}/${params.id}/`, params);
-};
+}
 
 /**
  * 删除告警组
  */
-export const deleteAlarmGroup = function (params: { id: number }) {
+export function deleteAlarmGroup(params: { id: number }) {
   return http.delete(`${path}/${params.id}/`);
-};
+}
 
 /**
  * 获取告警组通知方式
  */
-export const getAlarmGroupNotifyList = function (params: {
+export function getAlarmGroupNotifyList(params: {
   bk_biz_id: number,
   name?: string,
   limit?: number,
@@ -109,4 +109,4 @@ export const getAlarmGroupNotifyList = function (params: {
     is_active: boolean,
     icon: string
   }[]>(`${path}/get_msg_type/`, params);
-};
+}

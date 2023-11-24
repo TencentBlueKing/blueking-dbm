@@ -14,10 +14,10 @@
 import { useGlobalBizs } from '@stores';
 
 import http from './http';
-import type { ListBase } from './types';
 import type {
+  ListBase,
   ResourceInstance,
-} from './types/clusters';
+} from './types';
 
 const { currentBizId } = useGlobalBizs();
 

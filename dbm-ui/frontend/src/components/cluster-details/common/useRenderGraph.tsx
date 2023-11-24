@@ -23,7 +23,8 @@ import { retrieveRedisInstance } from '@services/source/redis';
 import { retrieveSpiderInstance } from '@services/source/spider';
 import { retrieveTendbhaInstance } from '@services/source/tendbha';
 import { retrieveTendbsingleInstance } from '@services/source/tendbsingle';
-import type { InstanceDetails, ResourceTopoNode } from '@services/types/clusters';
+import type { ResourceTopo } from '@services/types';
+import type { InstanceDetails } from '@services/types/clusters';
 
 import { useGlobalBizs } from '@stores';
 
@@ -53,6 +54,7 @@ interface ClusterTopoProps {
   id: number
 }
 
+type ResourceTopoNode = ResourceTopo['nodes'][number]
 type DetailColumnsRenderFunc<T> = (value: T) => JSX.Element;
 
 type DetailColumns<T> =  {
