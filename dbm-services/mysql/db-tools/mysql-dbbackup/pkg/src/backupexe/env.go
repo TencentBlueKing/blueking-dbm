@@ -57,7 +57,7 @@ func (i *InnodbCommand) ChooseXtrabackupTool(mysqlVersion string, isOfficial boo
 			i.xtrabackupBin = "/bin/xtrabackup/xtrabackup_80"
 			i.xbcryptBin = "/bin/xtrabackup/xbcrypt_80"
 		} else {
-			return fmt.Errorf("unrecognizable mysql version")
+			return fmt.Errorf("unrecognizable mysql version:%s", mysqlVersion)
 		}
 	} else {
 		if strings.Compare(mysqlVersion, "005007000") >= 0 &&
@@ -72,13 +72,14 @@ func (i *InnodbCommand) ChooseXtrabackupTool(mysqlVersion string, isOfficial boo
 			i.xtrabackupBin = "/bin/xtrabackup_official/xtrabackup_80/xtrabackup"
 			i.xbcryptBin = "/bin/xtrabackup_official/xtrabackup_80/xbcrypt"
 		} else {
-			return fmt.Errorf("unrecognizable mysql version")
+			return fmt.Errorf("unrecognizable mysql version:%s", mysqlVersion)
 		}
 	}
 	return nil
 }
 
 // GetXbcryptBin get xbcrypt path for encryption, maybe for mydumper to encrypt file
+// mysqlVersion format:008000018
 func GetXbcryptBin(mysqlVersion string, isOfficial bool) string {
 	innoCmdBin := InnodbCommand{}
 	_ = innoCmdBin.ChooseXtrabackupTool(mysqlVersion, isOfficial)
