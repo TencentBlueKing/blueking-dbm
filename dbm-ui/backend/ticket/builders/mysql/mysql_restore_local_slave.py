@@ -27,11 +27,9 @@ class MysqlRestoreLocalSlaveDetailSerializer(MySQLBaseOperateDetailSerializer):
     class SlaveInfoSerializer(serializers.Serializer):
         slave = InstanceInfoSerializer(help_text=_("从库实例信息"))
         cluster_id = serializers.IntegerField(help_text=_("集群ID"))
-        backup_source = serializers.ChoiceField(
-            help_text=_("备份源"), choices=MySQLBackupSource.get_choices(), required=False
-        )
 
     infos = serializers.ListField(help_text=_("重建从库列表"), child=SlaveInfoSerializer())
+    backup_source = serializers.ChoiceField(help_text=_("备份源"), choices=MySQLBackupSource.get_choices())
     force = serializers.BooleanField(help_text=_("是否强制执行"), required=False, default=False)
 
     def validate(self, attrs):

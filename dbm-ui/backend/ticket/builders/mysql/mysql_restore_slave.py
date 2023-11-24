@@ -28,8 +28,8 @@ class MysqlRestoreSlaveDetailSerializer(MySQLBaseOperateDetailSerializer):
         old_slave = InstanceInfoSerializer(help_text=_("旧从库 IP"))
         new_slave = HostInfoSerializer(help_text=_("新从库 IP"))
         cluster_ids = serializers.ListField(help_text=_("集群ID列表"), child=serializers.IntegerField())
-        backup_source = serializers.CharField(help_text=_("备份源"), required=False)
 
+    backup_source = serializers.ChoiceField(help_text=_("备份源"), choices=MySQLBackupSource.get_choices())
     infos = serializers.ListField(help_text=_("集群重建信息"), child=RestoreInfoSerializer())
 
     def validate(self, attrs):
