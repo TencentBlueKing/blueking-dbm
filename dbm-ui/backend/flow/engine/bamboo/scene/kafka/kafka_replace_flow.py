@@ -125,9 +125,7 @@ class KafkaReplaceFlow(object):
 
         # get username
         query_params = {
-            "instances": [
-                {"ip": str(self.data["domain"]), "port": self.data["port"], "bk_cloud_id": self.data["bk_cloud_id"]}
-            ],
+            "instances": [{"ip": str(self.data["domain"]), "port": 0, "bk_cloud_id": self.data["bk_cloud_id"]}],
             "users": [{"username": MySQLPrivComponent.KAFKA_FAKE_USER.value, "component": NameSpaceEnum.Kafka}],
         }
         ret = MySQLPrivManagerApi.get_password(query_params)
@@ -135,9 +133,7 @@ class KafkaReplaceFlow(object):
 
         # get password
         query_params = {
-            "instances": [
-                {"ip": str(self.data["domain"]), "port": self.data["port"], "bk_cloud_id": self.data["bk_cloud_id"]}
-            ],
+            "instances": [{"ip": str(self.data["domain"]), "port": 0, "bk_cloud_id": self.data["bk_cloud_id"]}],
             "users": [{"username": username, "component": NameSpaceEnum.Kafka}],
         }
         ret = MySQLPrivManagerApi.get_password(query_params)

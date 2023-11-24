@@ -62,7 +62,7 @@ class WriteBackEsConfigService(BaseService):
             "instances": [
                 {
                     "ip": global_data["domain"],
-                    "port": global_data["http_port"],
+                    "port": 0,
                     "bk_cloud_id": global_data["bk_cloud_id"],
                 }
             ],
@@ -77,7 +77,7 @@ class WriteBackEsConfigService(BaseService):
             "instances": [
                 {
                     "ip": global_data["domain"],
-                    "port": global_data["http_port"],
+                    "port": 0,
                     "bk_cloud_id": global_data["bk_cloud_id"],
                 }
             ],
