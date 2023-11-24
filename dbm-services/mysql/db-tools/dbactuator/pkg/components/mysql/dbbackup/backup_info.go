@@ -130,7 +130,7 @@ func ParseBackupInfoFile(infoFilePath string, infoObj *InfoFileDetail) error {
 	infoObj.infoFilePath = infoFilePath
 	infoObj.backupBasename = strings.TrimSuffix(fileName, ".info")
 	infoObj.backupDir = fileDir
-	// infoObj.targetDir = filepath.Join(fileDir, infoObj.backupBasename)
+	// infoObj.targetDir = filepath.Join(fileDir, infoObj.backupIndexBasename)
 	if err := infoObj.getFullFileListFromInfo(false); err != nil {
 		return err
 	}
@@ -251,4 +251,8 @@ func (i *InfoFileDetail) UntarFiles(untarDir string) error {
 		return errors.Errorf("targetDir %s is not ready", i.targetDir)
 	}
 	return nil
+}
+
+func (i *InfoFileDetail) GetMetafileBasename() string {
+	return i.backupBasename
 }

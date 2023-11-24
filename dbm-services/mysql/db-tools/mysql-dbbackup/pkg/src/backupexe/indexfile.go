@@ -17,14 +17,15 @@ import (
 	"github.com/spf13/cast"
 )
 
-// FileIndex the associated info of the backup file
-type FileIndex struct {
+// IndexFileItem the associated info of the backup file
+type IndexFileItem struct {
 	BackupFileName string `json:"backup_file_name"`
 	BackupFileSize int64  `json:"backup_file_size"`
 	// 备份真实打包后的文件名。扩展：可能是 .priv
 	TarFileName string `json:"tar_file_name"`
-	DBTable     string `json:"db_table"`
-	FileType    string `json:"file_type" enums:"schema,data,metadata"`
+	// TarFileSize    int64  `json:"tar_file_size"`
+	DBTable  string `json:"db_table"`
+	FileType string `json:"file_type" enums:"schema,data,metadata,priv"`
 }
 
 const (
@@ -82,7 +83,7 @@ type IndexContent struct {
 	BinlogInfo            dbareport.BinlogStatusInfo `json:"binlog_info"`
 	EncryptEnable         bool                       `json:"encrypt_enable"`
 
-	FileList []FileIndex `json:"file_list"`
+	FileList []IndexFileItem `json:"file_list"`
 
 	reData       *regexp.Regexp
 	reSchema     *regexp.Regexp
@@ -143,13 +144,13 @@ func (i *IndexContent) Init(cnf *config.Public, resultInfo *dbareport.BackupResu
 	return nil
 }
 
-// AppendFileList append a FileIndex into FileIndex[]
-func (i *IndexContent) AppendFileList(f FileIndex) {
+// AppendFileList append a IndexFileItem into IndexFileItem[]
+func (i *IndexContent) AppendFileList(f IndexFileItem) {
 	i.FileList = append(i.FileList, f)
 }
 
 // parseFileTypeFromName 从 mydumper 文件名里解析出库表和文件类型
-func (i *IndexContent) parseFileTypeFromName(f *FileIndex) {
+func (i *IndexContent) parseFileTypeFromName(f *IndexFileItem) {
 	if matches := i.reData.FindStringSubmatch(f.BackupFileName); len(matches) == 3 {
 		f.FileType = FileData
 		f.DBTable = matches[1]
@@ -202,7 +203,7 @@ func (i *IndexContent) RecordIndexContent(cnf *config.Public) error {
 func (i *IndexContent) addFileContent(targetFile, originFile string, originFilesize int64) {
 	_, nfilename := filepath.Split(originFile)
 	_, ntarname := filepath.Split(targetFile)
-	fileMapping := FileIndex{
+	fileMapping := IndexFileItem{
 		BackupFileName: nfilename,
 		TarFileName:    ntarname,
 		BackupFileSize: originFilesize,
@@ -216,7 +217,7 @@ func (i *IndexContent) addPrivFile(targetFilePath string) {
 	privFile := targetFilePath + ".priv"
 	if exists, fSize, _ := util.FileExistReturnSize(privFile); exists {
 		privFilename := filepath.Base(privFile)
-		fileMapping := FileIndex{BackupFileName: privFilename, TarFileName: privFilename, BackupFileSize: fSize}
+		fileMapping := IndexFileItem{BackupFileName: privFilename, TarFileName: privFilename, BackupFileSize: fSize}
 		i.parseFileTypeFromName(&fileMapping)
 		i.AppendFileList(fileMapping)
 	} else {
