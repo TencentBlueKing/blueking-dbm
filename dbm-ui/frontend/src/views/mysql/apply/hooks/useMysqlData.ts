@@ -17,9 +17,8 @@ import { useI18n } from 'vue-i18n';
 import { getModules } from '@services/source/cmdb';
 import { getLevelConfig } from '@services/source/configs';
 import { getInfrasHostSpecs } from '@services/source/infras';
-import type { HostDetails } from '@services/types';
 import { createTicket } from '@services/source/ticket';
-import type { ParameterConfigItem } from '@services/types/configs';
+import type { HostDetails } from '@services/types';
 
 import { useInfo } from '@hooks';
 
@@ -31,7 +30,7 @@ import {
 type FetchState = {
   hostSpecs: ServiceReturnType<typeof getInfrasHostSpecs>,
   moduleList: ServiceReturnType<typeof getModules>,
-  levelConfigList: ParameterConfigItem[]
+  levelConfigList: ServiceReturnType<typeof getLevelConfig>['conf_items']
 };
 
 const getFormData = (type: string) => ({

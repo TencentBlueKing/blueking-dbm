@@ -11,45 +11,48 @@
  * the specific language governing permissions and limitations under the License.
 */
 
-export interface HdfsDetail {
-  cluster_alias: string,
-  cluster_name: string,
-  cluster_type: string,
-  cluster_type_name: string,
-  create_at: string,
-  creator: string,
-  domain: string,
-  id: number,
-  major_version: string,
-  phase: string,
-  status: string,
-  update_at: string,
-  updater: string,
+import type { HostDetails } from '../types';
+
+/**
+ * 资源实例信息
+ */
+export interface ResourceInstance {
   bk_cloud_id: number,
   bk_cloud_name: string,
-}
-
-export interface HdfsListNode {
   bk_host_id: number,
-  bk_cloud_id: number,
-  cpu_mem: string,
-  ip: string,
-  machine_type: string,
-  node_count: number,
-  role: string,
-  role_set: Array<string>,
-  status: number
-}
-
-export interface HdfsListInstance {
-  bk_host_id: number,
-  bk_cloud_id: number,
   cluster_id: number,
-  created_at: string,
-  domain: string,
+  cluster_name: string,
+  cluster_type: string,
+  create_at: string,
+  db_module_id: number,
+  host_info: HostDetails,
   id: number,
   instance_address: string,
-  instance_name: string,
+  ip: string,
+  master_domain: string,
+  port: number,
+  related_clusters?: {
+    alias: string,
+    bk_biz_id: number,
+    bk_cloud_id: number,
+    cluster_name: string,
+    cluster_type: string,
+    creator: string,
+    db_module_id: number,
+    id: number,
+    major_version: string,
+    master_domain: string,
+    phase: string,
+    region: string,
+    status: string,
+    time_zone: string
+    updater: string,
+  }[],
   role: string,
+  slave_domain: string,
+  spec_config: {
+    id: number
+  }
   status: string,
+  version: string,
 }

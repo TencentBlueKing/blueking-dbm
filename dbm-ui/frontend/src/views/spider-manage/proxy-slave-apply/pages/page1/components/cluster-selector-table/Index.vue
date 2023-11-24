@@ -44,8 +44,10 @@
   import { useI18n } from 'vue-i18n';
 
   import SpiderModel from '@services/model/spider/spider';
-  import type { ListBase } from '@services/types';
-  import type { ResourceItem } from '@services/types/clusters';
+  import type {
+    ListBase,
+    ResourceItem,
+  } from '@services/types';
 
   import DbStatus from '@components/db-status/index.vue';
 

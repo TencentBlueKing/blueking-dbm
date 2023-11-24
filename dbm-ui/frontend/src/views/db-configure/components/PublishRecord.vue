@@ -76,12 +76,6 @@
     getConfigVersionDetails,
     getConfigVersionList,
   } from '@services/source/configs';
-  import type {
-    ConfigVersionDetails,
-    ConfigVersionItem,
-    ConfigVersionListResult,
-    ConfigVersionParams,
-  } from '@services/types/configs';
 
   import { useTableMaxHeight } from '@hooks';
 
@@ -93,8 +87,11 @@
 
   import type { TableColumnRender } from '@/types/bkui-vue';
 
+  type ConfigVersionDetails = ServiceReturnType<typeof getConfigVersionDetails>
+  type ConfigVersionListResult = ServiceReturnType<typeof getConfigVersionList>
+
   interface Props {
-    fetchParams: ConfigVersionParams
+    fetchParams: ServiceParameters<typeof getConfigVersionDetails>
   }
 
   const props = defineProps<Props>();
@@ -104,7 +101,7 @@
 
   const state = reactive({
     data: {
-      versions: [] as ConfigVersionItem[],
+      versions: [] as ConfigVersionListResult['versions'],
     } as ConfigVersionListResult,
     loading: false,
     isAnomalies: false,
@@ -145,7 +142,7 @@
     } as ConfigVersionDetails,
     title: '',
   });
-  const handleToDetails = (row: ConfigVersionItem) => {
+  const handleToDetails = (row: ConfigVersionListResult['versions'][number]) => {
     sideState.isShow = true;
     sideState.title = row.created_at;
   };

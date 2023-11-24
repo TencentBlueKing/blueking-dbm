@@ -22,6 +22,6 @@ const { currentBizId } = useGlobalBizs();
 /**
  * 获取资源拓扑树
  */
-export const getBigdataResourceTree = function (params: { cluster_type: string }) {
+export function getBigdataResourceTree(params: { cluster_type: string }) {
   return http.get<BizConfTopoTreeModel[]>(`/apis/bigdata/bizs/${currentBizId}/resource_tree/`, params);
-};
+}

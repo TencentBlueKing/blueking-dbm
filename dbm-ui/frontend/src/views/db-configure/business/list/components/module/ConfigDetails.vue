@@ -32,27 +32,27 @@
 
 <script setup lang="ts">
 
-  import type {
-    ConfigBaseDetails,
-    GetLevelConfigParams,
-    ParameterConfigItem,
-    PlatConfDetailsParams,
-  } from '@services/types/configs';
+  import {
+    getConfigBaseDetails,
+    getLevelConfig,
+  } from '@services/source/configs';
 
   import { ConfLevels } from '@common/const';
 
   import DetailsBase from '@views/db-configure/components/DetailsBase.vue';
 
+  type PlatConfDetailsParams = ServiceParameters<typeof getConfigBaseDetails>
+
   interface Props {
-    data?: ConfigBaseDetails
+    data?: ServiceReturnType<typeof getLevelConfig>
     loading?: boolean,
-    fetchParams?: PlatConfDetailsParams | GetLevelConfigParams,
+    fetchParams?: PlatConfDetailsParams | ServiceParameters<typeof getLevelConfig>,
   }
 
   const props = withDefaults(defineProps<Props>(), {
     data: () => ({
-      conf_items: [] as ParameterConfigItem[],
-    } as ConfigBaseDetails),
+      conf_items: [] as NonNullable<Props['data']>['conf_items'],
+    } as NonNullable<Props['data']>),
     loading: false,
     fetchParams: () => ({} as PlatConfDetailsParams),
   });

@@ -18,6 +18,6 @@ const path = '/apis/conf/system_settings';
 /**
  * 查询环境变量
  */
-export const getSystemEnviron = function () {
+export function getSystemEnviron() {
   return http.get<Record<string, string>>(`${path}/environ/`);
-};
+}

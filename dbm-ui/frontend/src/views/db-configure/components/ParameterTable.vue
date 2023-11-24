@@ -32,7 +32,7 @@
   // import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
-  import type { ParameterConfigItem } from '@services/types/configs';
+  import { getLevelConfig } from '@services/source/configs';
 
   import {
     confLevelInfos,
@@ -41,6 +41,8 @@
   } from '@common/const';
 
   import RangeInput from './RangeInput.vue';
+
+  type ParameterConfigItem = ServiceReturnType<typeof getLevelConfig>['conf_items'][number]
 
   type TableColumn = {
     cell: string,

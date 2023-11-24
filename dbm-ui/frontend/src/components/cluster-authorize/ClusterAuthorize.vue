@@ -159,7 +159,7 @@
   import { checkHost } from '@services/source/ipchooser';
   import { createTicket } from '@services/source/ticket';
   import { getWhitelist } from '@services/source/whitelist';
-  import type { ResourceItem } from '@services/types/clusters';
+  import type { ResourceItem } from '@services/types';
   import type { AuthorizePreCheckData, PermissionRule } from '@services/types/permission';
 
   import { useCopy, useInfo, useStickyFooter, useTicketMessage } from '@hooks';

@@ -11,51 +11,41 @@
  * the specific language governing permissions and limitations under the License.
 */
 
-type node = {
-  ip: string,
-  port: number,
-}
-export interface EsDetail {
-  cluster_alias: string,
+import { PipelineStatus } from '@common/const';
+
+/**
+ * mysql 资源信息
+ */
+export interface ResourceItem {
+  phase: 'online' | 'offline',
+  status: 'normal' | 'abnormal',
   cluster_name: string,
   cluster_type: string,
-  cluster_type_name: string,
-  create_at: string,
+  master_domain: string,
+  masters: {
+    bk_biz_id: number,
+    bk_cloud_id: number,
+    bk_host_id: number,
+    bk_instance_id: number,
+    ip: string,
+    name: string,
+    instance: string,
+    port: number,
+    status: 'running' | 'unavailable',
+  }[],
   creator: string,
-  domain: string,
-  hot_nodes: Array<node>,
-  id: number,
-  major_version: string,
-  master_nodes: Array<node>,
-  phase: string,
-  status: string,
-  update_at: string,
-  updater: string,
-}
-
-export interface EsListNode {
-  bk_host_id: number,
-  bk_cloud_id: number,
-  bk_host_name: string,
-  cpu_mem: string,
-  ip: string,
-  machine_type: string,
-  node_count: number,
-  role: string,
-  status: number
-}
-
-export interface EsListInstance {
-  bk_host_id: number,
-  bk_cloud_id: number,
-  cluster_id: number,
   create_at: string,
-  domain: string,
+  db_module_name: string,
   id: number,
-  instance_address: string,
-  instance_name: string,
-  role: string,
-  status: string,
+  proxies?: ResourceItem['masters'],
+  slaves?: ResourceItem['masters']
+  bk_cloud_id: number,
+  operations: Array<{
+    cluster_id: number,
+    flow_id: number,
+    status: PipelineStatus,
+    ticket_id: number,
+    ticket_type: string,
+    title: string,
+  }>
 }
-
-

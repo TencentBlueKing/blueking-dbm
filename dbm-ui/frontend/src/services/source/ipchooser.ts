@@ -14,7 +14,7 @@
 import http from '../http';
 import type { HostDetails } from '../types';
 
-export interface IpScope {
+interface IpScope {
   scope_id: number,
   scope_type: string
   bk_cloud_id?: number | string
@@ -25,7 +25,7 @@ const path = '/apis/ipchooser';
 /**
  * 根据用户手动输入的`IP`/`IPv6`/`主机名`/`host_id`等关键字信息获取真实存在的机器信息
  */
-export const checkHost = function (params: {
+export function checkHost(params: {
   mode?: string,
   ip_list: string[],
   ipv6_list?: string[],
@@ -33,37 +33,37 @@ export const checkHost = function (params: {
   scope_list: IpScope[]
 }) {
   return http.post<HostDetails[]>(`${path}/host/check/`, params);
-};
+}
 
 /**
  * 根据主机关键信息获取机器详情信息
  */
-export const getHostDetails = function (params: {
+export function getHostDetails(params: {
   mode?: string,
   host_list: Array<Partial<HostDetails>>,
   scope_list: IpScope[]
 }) {
   return http.post<HostDetails[]>(`${path}/host/details/`, params);
-};
+}
 
 /**
  * 获取自定义配置，比如表格列字段及顺序
  */
-export const getIpSelectorSettings = function () {
+export function getIpSelectorSettings() {
   return http.post(`${path}/settings/batch_get/`);
-};
+}
 
 /**
  * 保存用户自定义配置
  */
-export const updateIpSelectorSettings = function (params: any) {
+export function updateIpSelectorSettings(params: any) {
   return http.post(`${path}/settings/set/`, params);
-};
+}
 
 /**
  * 获取主机信息参数
  */
-export interface FetchHostInfosParams {
+interface FetchHostInfosParams {
   node_list: Array<{
     instance_id: number,
     object_id: string,
@@ -77,31 +77,31 @@ export interface FetchHostInfosParams {
 /**
  * 根据多个拓扑节点与搜索条件批量分页查询所包含的主机 ID 信息
  */
-export const getHostIdInfos = function (params: FetchHostInfosParams) {
+export function getHostIdInfos(params: FetchHostInfosParams) {
   return http.post(`${path}/topo/query_host_id_infos/`, params);
-};
+}
 /**
  * 根据多个拓扑节点与搜索条件批量分页查询所包含的主机信息
  */
-export const getHosts = function (params: FetchHostInfosParams) {
+export function getHosts(params: FetchHostInfosParams) {
   return http.post(`${path}/topo/query_hosts/`, params);
-};
+}
 
 /**
  * 批量获取含各节点主机数量的拓扑树
  */
-export const getHostTopo = function (params: {
+export function getHostTopo(params: {
   mode?: string,
   all_scope: boolean,
   scope_list: IpScope[]
 }) {
   return http.post(`${path}/topo/trees/`, params);
-};
+}
 
 /**
  * 查询主机拓扑信息
  */
-export const getHostTopoInfos = function (params: {
+export function getHostTopoInfos(params: {
   bk_biz_id: number,
   filter_conditions: {
     bk_host_innerip?: string[],
@@ -118,12 +118,12 @@ export const getHostTopoInfos = function (params: {
       topo: string[]
     }>
   }>(`${path}/topo/query_host_topo_infos/`, params);
-};
+}
 
 /**
  * 管控区域基本信息
  */
-export interface CloudAreaInfo {
+interface CloudAreaInfo {
   bk_account_id: number,
   bk_cloud_id: number,
   bk_cloud_name: string,
@@ -143,13 +143,13 @@ export interface CloudAreaInfo {
 /**
  * 获取管控区域列表
  */
-export const getCloudList = function () {
+export function getCloudList() {
   return http.post<CloudAreaInfo[]>(`${path}/settings/search_cloud_area/`);
-};
+}
 
 /**
  * 查询磁盘类型
  */
-export const searchDeviceClass = function () {
+export function searchDeviceClass() {
   return http.get<string[]>(`${path}/settings/search_device_class/`);
-};
+}

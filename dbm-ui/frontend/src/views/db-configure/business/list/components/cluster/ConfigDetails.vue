@@ -37,11 +37,6 @@
   import { useI18n } from 'vue-i18n';
 
   import { getLevelConfig } from '@services/source/configs';
-  import type {
-    ConfigBaseDetails,
-    GetLevelConfigParams,
-    ParameterConfigItem,
-  } from '@services/types/configs';
 
   import {
     type ClusterTypesValues,
@@ -57,16 +52,18 @@
 
   import { useBaseDetails } from '../hooks/useBaseDetails';
 
+  type GetLevelConfigParams = ServiceParameters<typeof getLevelConfig>
+
   interface Props {
-    data?: ConfigBaseDetails,
+    data?: ServiceReturnType<typeof getLevelConfig>,
     loading?: boolean,
     fetchParams?: GetLevelConfigParams
   }
 
   const props = withDefaults(defineProps<Props>(), {
     data: () => ({
-      conf_items: [] as ParameterConfigItem[],
-    } as ConfigBaseDetails),
+      conf_items: [] as NonNullable<Props['data']>['conf_items'],
+    } as NonNullable<Props['data']>),
     loading: false,
     fetchParams: () => ({} as GetLevelConfigParams),
   });
@@ -110,7 +107,7 @@
     const item = state.extraParametersCards[index];
     if (item) {
       item.loading = true;
-      getLevelConfig(getFetchParams('proxy_version', item.conf_type) as GetLevelConfigParams)
+      getLevelConfig(getFetchParams('proxy_version', item.conf_type))
         .then((res) => {
           item.data = res;
         })

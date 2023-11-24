@@ -18,10 +18,10 @@ const path = '/apis/dbbase';
 /**
  * 查询集群名字是否重复
  */
-export const verifyDuplicatedClusterName = function (params: {
+export function verifyDuplicatedClusterName(params: {
   cluster_type: string,
   name: string,
   bk_biz_id: number
 }) {
   return http.get<boolean>(`${path}/verify_duplicated_cluster_name/`, params);
-};
+}

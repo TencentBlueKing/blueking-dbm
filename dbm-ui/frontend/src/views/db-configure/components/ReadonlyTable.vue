@@ -37,7 +37,7 @@
   import type { Column } from 'bkui-vue/lib/table/props';
   import { useI18n } from 'vue-i18n';
 
-  import type { ParameterConfigItem } from '@services/types/configs';
+  import { getLevelConfig } from '@services/source/configs';
 
   import {
     confLevelInfos,
@@ -46,6 +46,9 @@
   } from '@common/const';
 
   import type { TableColumnRender } from '@/types/bkui-vue';
+
+  type ParameterConfigItem = ServiceReturnType<typeof getLevelConfig>['conf_items'][number]
+
   interface Props {
     data?: ParameterConfigItem[]
     level?: string,

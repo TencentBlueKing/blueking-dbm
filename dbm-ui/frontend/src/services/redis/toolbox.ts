@@ -17,7 +17,7 @@ import RedisDSTHistoryJobModel from '@services/model/redis/redis-dst-history-job
 import RedisDSTJobTaskModel from '@services/model/redis/redis-dst-job-task';
 import RedisHostModel from '@services/model/redis/redis-host';
 import RedisRollbackModel from '@services/model/redis/redis-rollback';
-import type { ResourceInstance } from '@services/types/clusters';
+import type { ResourceInstance } from '@services/types';
 
 import { useGlobalBizs } from '@stores';
 

@@ -46,7 +46,6 @@
   import { useI18n } from 'vue-i18n';
 
   import { getPlatformConfigList } from '@services/source/configs';
-  import type { ConfigListItem } from '@services/types/configs';
 
   import { useTableMaxHeight } from '@hooks';
 
@@ -58,6 +57,8 @@
   import type { ConfType } from '../common/types';
   import TopTab from '../components//TopTab.vue';
 
+  type ConfigListItem = ServiceReturnType<typeof getPlatformConfigList>
+
   const { t } = useI18n();
   const router = useRouter();
   const mainViewStore = useMainViewStore();
@@ -67,7 +68,7 @@
     confType: 'dbconf',
     clusterType: '',
     loading: false,
-    data: [] as ConfigListItem[],
+    data: [] as ConfigListItem,
     tabs: [] as ConfType[],
   });
   const isAnomalies = ref(false);
@@ -82,7 +83,7 @@
     {
       label: t('名称'),
       field: 'name',
-      render: ({ cell, data }: { cell: string, data: ConfigListItem }) => (
+      render: ({ cell, data }: { cell: string, data: ConfigListItem[number] }) => (
       <bk-button text theme="primary" onClick={handleToDetails.bind(this, data)}>{cell}</bk-button>
     ),
     },
@@ -102,7 +103,7 @@
     {
       label: t('操作'),
       field: 'operation',
-      render: ({ data }: { data: ConfigListItem }) => (
+      render: ({ data }: { data: ConfigListItem[number] }) => (
       <div class="operation">
         <bk-button text theme="primary" class="mr-24" onClick={handleUpdateDetails.bind(this, data)}>{ t('编辑') }</bk-button>
       </div>
@@ -141,7 +142,7 @@
   /**
    * 查看详情
    */
-  const handleToDetails = (row: ConfigListItem) => {
+  const handleToDetails = (row: ConfigListItem[number]) => {
     router.push({
       name: 'PlatformDbConfigureDetail',
       params: {
@@ -155,7 +156,7 @@
   /**
    * 编辑配置
    */
-  const handleUpdateDetails = (row: ConfigListItem) => {
+  const handleUpdateDetails = (row: ConfigListItem[number]) => {
     router.push({
       name: 'PlatformDbConfigureEdit',
       params: {

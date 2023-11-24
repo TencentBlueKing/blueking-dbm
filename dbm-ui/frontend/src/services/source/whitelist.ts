@@ -34,9 +34,9 @@ interface WhitelistItem {
 /**
  * IP白名单列表
  */
-export const getWhitelist = function (params: Record<string, any> & { bk_biz_id: number }) {
+export function getWhitelist(params: Record<string, any> & { bk_biz_id: number }) {
   return http.post<ListBase<WhitelistItem[]>>(`${path}/iplist/`, params);
-};
+}
 
 /**
  * 编辑、新建参数
@@ -51,20 +51,20 @@ interface WhitelistOperationData {
 /**
  * 新建IP白名单
  */
-export const createWhitelist = function (params: Omit<WhitelistOperationData, 'id'>) {
+export function createWhitelist(params: Omit<WhitelistOperationData, 'id'>) {
   return http.post(`${path}/`, params);
-};
+}
 
 /**
  * 编辑IP白名单
  */
-export const updateWhitelist = function (params: WhitelistOperationData) {
+export function updateWhitelist(params: WhitelistOperationData) {
   return http.put(`${path}/${params.id}/`, params);
-};
+}
 
 /**
  * 删除IP白名单
  */
-export const batchDeleteWhitelist = function (params: { ids: number[] }) {
+export function batchDeleteWhitelist(params: { ids: number[] }) {
   return http.delete(`${path}/batch_delete/`, params);
-};
+}

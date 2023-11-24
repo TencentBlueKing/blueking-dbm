@@ -13,7 +13,7 @@
 
 import type { VNode } from 'vue';
 
-import { FlowTypes } from '@services/types/taskflow';
+import { FlowTypes } from '@services/source/taskflow';
 
 import { getCostTimeDisplay } from '@utils';
 

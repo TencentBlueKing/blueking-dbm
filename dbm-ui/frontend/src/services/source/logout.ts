@@ -16,6 +16,6 @@ import http from '../http';
 /**
  * 退出登录
  */
-export const getLogout = function () {
+export function getLogout() {
   return http.get('/logout/');
-};
+}

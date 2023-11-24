@@ -18,31 +18,32 @@ const path = `/apis/mysql/bizs/${currentBizId}/sql_import`;
 /**
  * 删除用户语义检查任务列表
  */
-export const deleteUserSemanticTasks = function (params: {
+export function deleteUserSemanticTasks(params: {
   bk_biz_id: number,
   task_ids: string[],
   cluster_type: string,
 }) {
   return http.delete<number>(`${path}/delete_user_semantic_tasks/`, params);
-};
+}
 
 /**
  * 获取用户语义检查任务列表
  */
-export const getUserSemanticTasks = function (params: {
+export function getUserSemanticTasks(params: {
   bk_biz_id: number,
   cluster_type?: string
 }) {
   const realParams = { ...params } as Record<string, any>;
   delete realParams.bk_biz_id;
 
-  return http.get<UserSemanticTaskModel[]>(`${path}/get_user_semantic_tasks/`, realParams).then(data => data.map(item => new UserSemanticTaskModel(item)));
-};
+  return http.get<UserSemanticTaskModel[]>(`${path}/get_user_semantic_tasks/`, realParams)
+    .then(data => data.map(item => new UserSemanticTaskModel(item)));
+}
 
 /**
  * sql 语法检测
  */
-export const grammarCheck = function (params: {
+export function grammarCheck(params: {
   bk_biz_id: number,
   body: FormData
 }) {
@@ -67,37 +68,38 @@ export const grammarCheck = function (params: {
       ...result,
       [key]: new GrammarCheckModel(data[key]),
     }), {} as Record<string, GrammarCheckModel>));
-};
+}
 
 /**
  * 查询语义执行的数据
  */
-export const querySemanticData = function (params: {
+export function querySemanticData(params: {
   bk_biz_id: number,
   root_id: string
 }) {
-  return http.post<QuerySemanticExecuteResultModel>(`${path}/query_semantic_data/`, params).then(data => ({
-    ...data,
-    semantic_data: new SemanticDataModel(data.semantic_data),
-  }));
-};
+  return http.post<QuerySemanticExecuteResultModel>(`${path}/query_semantic_data/`, params)
+    .then(data => ({
+      ...data,
+      semantic_data: new SemanticDataModel(data.semantic_data),
+    }));
+}
 
 /**
  * 终止语义检测流程
  */
-export const revokeSemanticCheck = function (params: {
+export function revokeSemanticCheck(params: {
   bk_biz_id: number,
   root_id: string
 }) {
   return http.post(`${path}/revoke_semantic_check/`, params);
-};
+}
 
 /**
  * sql 语义检测
  */
-export const semanticCheck = function (params: {
+export function semanticCheck(params: {
   bk_biz_id: number,
   cluster_type: string
 }) {
   return http.post<SemanticCheckResultModel>(`${path}/semantic_check/`, params);
-};
+}

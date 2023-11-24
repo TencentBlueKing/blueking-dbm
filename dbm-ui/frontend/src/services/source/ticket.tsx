@@ -38,23 +38,24 @@ const path = '/apis/tickets';
 /**
  * 单据列表
  */
-export const getTickets = function (params: {
+export function getTickets(params: {
   bk_biz_id?: number,
   ticket_type?: string,
   status?: string,
   limit?: number,
   offset?: number,
 } = {}) {
-  return http.get<ListBase<TicketModel[]>>(`${path}/`, params).then(data => ({
-    ...data,
-    results: data.results.map(item => new TicketModel(item)),
-  }));
-};
+  return http.get<ListBase<TicketModel[]>>(`${path}/`, params)
+    .then(data => ({
+      ...data,
+      results: data.results.map(item => new TicketModel(item)),
+    }));
+}
 
 /**
  * 单据列表项
  */
-export interface TicketItem {
+interface TicketItem {
   db_app_abbr: string,
   bk_biz_id: number,
   bk_biz_name: string,
@@ -80,7 +81,7 @@ export interface TicketItem {
 /**
  * 创建单据
  */
-export const createTicket = function (formData: Record<string, any>) {
+export function createTicket(formData: Record<string, any>) {
   return http.post<TicketItem>(`${path}/`, formData, { globalError: false })
     .then(res => res)
     .catch((e) => {
@@ -146,99 +147,101 @@ export const createTicket = function (formData: Record<string, any>) {
       messageError(e?.message);
       return Promise.reject(e);
     });
-};
+}
 
 /**
  * 获取单据类型列表
  */
-export const getTicketTypes = function (params?: { is_apply: 0 | 1 }) {
+export function getTicketTypes(params?: { is_apply: 0 | 1 }) {
   return http.get<TicketType[]>(`${path}/flow_types/`, params ?? {});
-};
+}
 
 /**
   * 查询集群变更单据事件
   */
-export const getClusterOperateRecords = function (params: Record<string, unknown> & { cluster_id: number }) {
+export function getClusterOperateRecords(params: Record<string, unknown> & { cluster_id: number }) {
   return http.get<ListBase<ClusterOperateRecord[]>>(`${path}/get_cluster_operate_records/`, params);
-};
+}
 
 /**
   * 查询集群实例变更单据事件
   */
-export const getInstanceOperateRecords = function (params: Record<string, unknown> & { instance_id: number }) {
+export function getInstanceOperateRecords(params: Record<string, unknown> & { instance_id: number }) {
   return http.get<ListBase<ClusterOperateRecord[]>>(`${path}/get_instance_operate_records/`, params);
-};
+}
 
 /**
   * 待办单据数
   */
-export const getTicketsCount = function (params: { count_type: 'MY_TODO' | 'MY_APPROVE' }) {
+export function getTicketsCount(params: { count_type: 'MY_TODO' | 'MY_APPROVE' }) {
   return http.get<number>(`${path}/get_tickets_count/`, params);
-};
+}
 
 /**
  * 待办单据列表
  */
-export const getTodoTickets = function (params: {
+export function getTodoTickets(params: {
   bk_biz_id?: number,
   ticket_type?: string,
   status?: string,
   limit?: number,
   offset?: number,
 } = {}) {
-  return http.get<ListBase<TicketModel[]>>(`${path}/get_todo_tickets/`, params).then(data => ({
-    ...data,
-    results: data.results.map(item => new TicketModel(item)),
-  }));
-};
+  return http.get<ListBase<TicketModel[]>>(`${path}/get_todo_tickets/`, params)
+    .then(data => ({
+      ...data,
+      results: data.results.map(item => new TicketModel(item)),
+    }));
+}
 
 /**
  * 单据详情
  */
-export const getTicketDetails = function (params: {
+export function getTicketDetails(params: {
   id: number,
   is_reviewed?: number
 }) {
-  return http.get<TicketModel>(`${path}/${params.id}/`, params).then(data => new TicketModel(data));
-};
+  return http.get<TicketModel>(`${path}/${params.id}/`, params)
+    .then(data => new TicketModel(data));
+}
 
 /**
  * 获取单据流程
  */
-export const getTicketFlows = function (params: { id: number }) {
+export function getTicketFlows(params: { id: number }) {
   return http.get<FlowItem[]>(`${path}/${params.id}/flows/`);
-};
+}
 
 /**
  * 节点列表
  */
-export const getTicketHostNodes = function (params: {
+export function getTicketHostNodes(params: {
   bk_biz_id: number,
   id: number,
   role: string,
   keyword?: string
 }) {
   return http.get<HostNode[]>(`${path}/${params.id}/get_nodes/`, params);
-};
+}
 
 /**
  * 待办处理
  */
-export const processTicketTodo = function (params: {
+export function processTicketTodo(params: {
   action: string,
   todo_id: number,
   ticket_id: number,
   params: Record<string, any>
 }) {
   return http.post<FlowItemTodo>(`${path}/${params.ticket_id}/process_todo/`, params);
-};
+}
 
 /**
   * 单据流程重试
   */
-export const retryTicketFlow = function (params: {
+export function retryTicketFlow(params: {
   ticketId: number,
   flow_id: number
 }) {
   return http.post(`${path}/${params.ticketId}/retry_flow/`, params);
-};
+}

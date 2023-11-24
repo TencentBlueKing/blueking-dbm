@@ -140,7 +140,6 @@
     updateBusinessConfig,
   } from '@services/source/configs';
   import { getVersions } from '@services/source/version';
-  import type { ConfigBaseDetails, ParameterConfigItem } from '@services/types/configs';
 
   import { useInfo } from '@hooks';
 
@@ -156,6 +155,9 @@
     type DiffItem,
     useDiff,
   } from '@views/db-configure/hooks/useDiff';
+
+  type ParameterConfigItem = ServiceReturnType<typeof getLevelConfig>['conf_items'][number]
+
   const { t } = useI18n();
 
   const router = useRouter();
@@ -348,7 +350,7 @@
       version: '',
       description: '',
       conf_items: [],
-    } as ConfigBaseDetails,
+    } as ServiceReturnType<typeof getLevelConfig>,
     parameters: [] as ParameterConfigItem[],
     originConfItems: [] as ParameterConfigItem[],
   });

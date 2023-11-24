@@ -49,7 +49,8 @@
 
   import { getTendbhaInstanceList } from '@services/source/tendbha';
   import { getTendbsingleInstanceList } from '@services/source/tendbsingle';
-  import type { InstanceInfos, ResourceInstance } from '@services/types/clusters';
+  import type { ResourceInstance } from '@services/types';
+  import type { InstanceInfos } from '@services/types/clusters';
 
   import { useGlobalBizs } from '@stores';
 

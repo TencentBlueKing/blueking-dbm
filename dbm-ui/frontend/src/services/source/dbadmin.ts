@@ -15,27 +15,25 @@ import http from '../http';
 
 const path = '/apis/conf/db_admin';
 
-interface AdminItem {
-  db_type: string,
-  users: string[],
-  db_type_display: string
-}
-
 interface UpdateAdminsParams {
   bk_biz_id: number,
-  db_admins: AdminItem[]
+  db_admins: {
+    db_type: string,
+    users: string[],
+    db_type_display: string
+  }[]
 }
 
 /**
  * 查询 DBA 人员列表
  */
-export const getAdmins = function (params: { bk_biz_id: number }) {
-  return http.get<AdminItem[]>(`${path}/list_admins/`, params);
-};
+export function getAdmins(params: { bk_biz_id: number }) {
+  return http.get<UpdateAdminsParams['db_admins']>(`${path}/list_admins/`, params);
+}
 
 /**
  * 更新 DBA 人员列表
  */
-export const updateAdmins = function (params: UpdateAdminsParams) {
+export function updateAdmins(params: UpdateAdminsParams) {
   return http.post<UpdateAdminsParams>(`${path}/upsert_admins/`, params);
-};
+}

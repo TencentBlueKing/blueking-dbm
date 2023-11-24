@@ -18,7 +18,7 @@ const path = '/apis/conf/profile';
 /**
  * 个人配置信息
  */
-export interface ProfileItem {
+interface ProfileItem {
   label: string,
   values: any
 }
@@ -26,17 +26,17 @@ export interface ProfileItem {
 /**
  * 个人配置列表
  */
-export const getProfile = function () {
+export function getProfile() {
   return http.get<{
     profile: ProfileItem[],
     username: string,
     is_manager: boolean
   }>(`${path}/get_profile/`);
-};
+}
 
 /**
  * 更新个人配置列表
  */
-export const upsertProfile = function (params: ProfileItem) {
+export function upsertProfile(params: ProfileItem) {
   return http.post(`${path}/upsert_profile/`, params);
-};
+}

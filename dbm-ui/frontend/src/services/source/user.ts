@@ -19,7 +19,7 @@ const path = '/apis/users';
 /**
  * 获取人员列表
  */
-export const getUserList = function (params: {
+export function getUserList(params: {
   limit?: number,
   offset?: number,
   fuzzy_lookups?: string
@@ -28,4 +28,4 @@ export const getUserList = function (params: {
     username: string,
     display_name: string
   }[]>>(`${path}/list_users/`, params);
-};
+}

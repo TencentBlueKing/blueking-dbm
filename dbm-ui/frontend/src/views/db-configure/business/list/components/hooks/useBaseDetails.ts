@@ -14,7 +14,6 @@
 import type { ComputedRef } from 'vue';
 
 import { getLevelConfig } from '@services/source/configs';
-import type { ConfigBaseDetails, GetLevelConfigParams } from '@services/types/configs';
 
 import {
   clusterTypeInfos,
@@ -32,15 +31,15 @@ interface State {
     loadingDetails: boolean;
     isEmpty: boolean;
     version: string;
-    data: ConfigBaseDetails,
+    data: ServiceReturnType<typeof getLevelConfig>,
 }
 /**
  * 获取参数管理基本信息
  */
 export const useBaseDetails = (immediateFetch = true) => {
-  const getFetchParams = (versionKey: 'version' | 'proxy_version', confType = 'dbconf'): GetLevelConfigParams => {
+  const getFetchParams = (versionKey: 'version' | 'proxy_version', confType = 'dbconf') => {
     if (treeNode === undefined) {
-      return {} as GetLevelConfigParams;
+      return {} as ServiceParameters<typeof getLevelConfig>;
     }
 
     const { id, levelType, parentId, data } = treeNode.value;
@@ -92,7 +91,7 @@ export const useBaseDetails = (immediateFetch = true) => {
    */
   const fetchLevelConfig = () => {
     state.loadingDetails = true;
-    getLevelConfig(fetchParams.value as GetLevelConfigParams)
+    getLevelConfig(fetchParams.value)
       .then((res) => {
         state.data = res;
       })

@@ -99,8 +99,10 @@
   } from '@services/source/tendbha';
   import { createTicket } from '@services/source/ticket';
   import { getUserList } from '@services/source/user';
-  import type { SearchFilterItem } from '@services/types';
-  import type { ResourceItem } from '@services/types/clusters';
+  import type {
+    ResourceItem,
+    SearchFilterItem,
+  } from '@services/types';
 
   import {
     useCopy,

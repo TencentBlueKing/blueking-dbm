@@ -21,7 +21,7 @@
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
 
-  import type { InstanceDetails } from '@services/types/clusters';
+  import { retrieveTendbhaInstance } from '@services/source/tendbha';
 
   import {
     type ClusterInstStatus,
@@ -34,7 +34,7 @@
   } from '@components/editable-info/index.vue';
 
   interface Props {
-    data: InstanceDetails
+    data: ServiceReturnType<typeof retrieveTendbhaInstance>
   }
 
   const props = defineProps<Props>();

@@ -19,17 +19,17 @@ import type { InstanceInfos } from '../types/clusters';
 /**
  * 判断 Mysql 实例是否存在
  */
-export const checkMysqlInstances = function (params: Record<'instance_addresses', Array<string>> & { bizId: number }) {
+export function checkMysqlInstances(params: Record<'instance_addresses', Array<string>> & { bizId: number }) {
   return http.post<Array<InstanceInfos>>(`/apis/mysql/bizs/${params.bizId}/instance/check_instances/`, params);
-};
+}
 
-export interface InstanceItem extends Omit<InstanceInfos, 'spec_config'> {
+interface InstanceItem extends Omit<InstanceInfos, 'spec_config'> {
   spec_config: RedisClusterNodeByIpModel['spec_config']
 }
 
 /**
  * 判断 Redis 实例是否存在
  */
-export const checkRedisInstances = function (params: Record<'instance_addresses', Array<string>> & { bizId: number }) {
+export function checkRedisInstances(params: Record<'instance_addresses', Array<string>> & { bizId: number }) {
   return http.post<InstanceItem[]>(`/apis/redis/bizs/${params.bizId}/instance/check_instances/`, params);
-};
+}

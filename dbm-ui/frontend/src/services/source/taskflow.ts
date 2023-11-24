@@ -11,22 +11,35 @@
  * the specific language governing permissions and limitations under the License.
 */
 
+import type { TicketTypesStrings } from '@common/const';
+
 import http from '../http';
 import type { ListBase } from '../types';
-import type {
-  FlowsData,
-  KeyFileItem,
-  NodeLog,
-  RetryNodeItem,
-  TaskflowItem,
-} from '../types/taskflow';
 
 const path = '/apis/taskflow';
 
 /**
+ * 任务流程节点类型
+ * ServiceActivity 服务节点（可点击查看）
+ * ConvergeGateway 汇聚网关
+ * ParallelGateway 并行网关
+ * SubProcess 子流程
+ * EmptyStartEvent 开始节点
+ * EmptyEndEvent 结束节点
+ */
+export enum FlowTypes {
+  ServiceActivity = 'ServiceActivity',
+  SubProcess = 'SubProcess',
+  ConvergeGateway = 'ConvergeGateway',
+  ParallelGateway = 'ParallelGateway',
+  EmptyStartEvent = 'EmptyStartEvent',
+  EmptyEndEvent = 'EmptyEndEvent',
+}
+
+/**
  * 查询任务列表参数
  */
-export interface GetTaskflowParams {
+interface GetTaskflowParams {
   bk_biz_id: number,
   limit: number,
   offset: number
@@ -41,80 +54,170 @@ export interface GetTaskflowParams {
 }
 
 /**
+ * 任务列表项
+ */
+interface TaskflowItem {
+  root_id: string,
+  ticket_type_display: string,
+  ticket_type: TicketTypesStrings,
+  status: string,
+  uid: string,
+  created_by: string,
+  created_at: string,
+  cost_time: number,
+  bk_biz_id: number,
+  bk_host_ids?: number[],
+}
+
+/**
  * 查询任务列表
  */
-export const getTaskflow = function (params: GetTaskflowParams) {
+export function getTaskflow(params: GetTaskflowParams) {
   return http.get<ListBase<TaskflowItem[]>>(`${path}/`, params);
-};
+}
 
 /**
  * 指定目录下载（返回下载链接）
  */
-export const getRedisFileUrls = function (params: {
+export function getRedisFileUrls(params: {
   root_id: string,
   paths: string[]
 }) {
   return http.post<Record<string, string>>(`${path}/redis/download_dirs/`, params);
-};
+}
+
+/**
+ * 结果文件列表信息
+ */
+interface KeyFileItem {
+  name: string,
+  size: number,
+  size_display: string,
+  domain: string,
+  created_time: string,
+  cluster_alias: string,
+  path: string,
+  cluster_id: number,
+  files: {
+    size: string,
+    name: string,
+    md5: string,
+    full_path: string,
+    created_time: string,
+  }[]
+}
 
 /**
  * 结果文件列表
  */
-export const getKeyFiles = function (params: { rootId: string }) {
+export function getKeyFiles(params: { rootId: string }) {
   return http.get<KeyFileItem[]>(`${path}/redis/${params.rootId}/key_files/`);
-};
+}
+
+/**
+ * 任务流程节点数据
+ */
+interface FlowItem {
+  id: string,
+  name: string | null,
+  incoming: string | string[],
+  outgoing: string | string[],
+  type: keyof typeof FlowTypes,
+  error_ignorable?: boolean,
+  optional?: boolean,
+  retryable?: boolean,
+  skippable?: boolean,
+  status?: 'FINISHED' | 'RUNNING' | 'FAILED' | 'READY' | 'CREATED' | 'SKIPPED',
+  timeout?: number,
+  started_at?: number,
+  created_at?: number,
+  updated_at?: number,
+  component?: {
+    code: string
+  },
+  pipeline?: FlowsData,
+}
+
+/**
+ * 任务流程数据
+ */
+interface FlowsData {
+  id: string,
+  data: any,
+  end_event: FlowItem,
+  start_event: FlowItem,
+  flows: {
+    [key: string]: {
+      id: string,
+      source: string,
+      target: string,
+      is_default: boolean
+    }
+  },
+  gateways: { [key: string]: FlowItem },
+  activities: { [key: string]: FlowItem },
+  flow_info: TaskflowItem,
+}
 
 /**
  * 任务详情
  */
-export const getTaskflowDetails = function (params: { rootId: string }) {
+export function getTaskflowDetails(params: { rootId: string }) {
   return http.get<FlowsData>(`${path}/${params.rootId}/`);
-};
+}
 
 /**
  * 节点版本列表
  */
-export const getRetryNodeHistories = function (params: {
+export function getRetryNodeHistories(params: {
   root_id: string,
   node_id: string
 }) {
-  return http.get<RetryNodeItem[]>(`${path}/${params.root_id}/node_histories/`, params);
-};
+  return http.get<{
+    started_time: string,
+    version: string,
+    cost_time: number
+  }[]>(`${path}/${params.root_id}/node_histories/`, params);
+}
 
 /**
  * 节点日志
  */
-export const getNodeLog = function (params: {
+export function getNodeLog(params: {
   root_id: string,
   node_id: string,
   version_id: string
 }) {
-  return http.get<NodeLog[]>(`${path}/${params.root_id}/node_log/`, params);
-};
+  return http.get<{
+    timestamp: number,
+    message: string,
+    levelname: string,
+  }[]>(`${path}/${params.root_id}/node_log/`, params);
+}
 
 /**
  * 重试节点
  */
-export const retryTaskflowNode = function (params: {
+export function retryTaskflowNode(params: {
   root_id: string,
   node_id: string
 }) {
   return http.post<{ node_id: string}>(`${path}/${params.root_id}/retry_node/`, params);
-};
+}
 
 /**
  * 撤销流程
  */
-export const revokePipeline = function (params: { rootId: string }) {
+export function revokePipeline(params: { rootId: string }) {
   return http.post(`${path}/${params.rootId}/revoke_pipeline/`);
-};
+}
 
 /**
  * 跳过节点
  */
-export const skipTaskflowNode = function (params: {
+export function skipTaskflowNode(params: {
   root_id: string,
   node_id: string
 }) {
   return http.post<{ node_id: string}>(`${path}/${params.root_id}/skip_node/`, params);
-};
+}

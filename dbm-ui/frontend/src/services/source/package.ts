@@ -19,7 +19,7 @@ const path = '/apis/packages';
 /**
  * 版本信息
  */
-export interface PackageItem {
+interface PackageItem {
   id: number,
   creator: string,
   create_at: string,
@@ -38,7 +38,7 @@ export interface PackageItem {
 /**
  * 查询版本列表文件
  */
-export const getPackages = function (params: {
+export function getPackages(params: {
   pkg_type: string,
   db_type: string,
   keyword: string,
@@ -46,12 +46,12 @@ export const getPackages = function (params: {
   offset: number,
 }) {
   return http.get<ListBase<PackageItem[]>>(`${path}/`, params);
-};
+}
 
 /**
  * 新建版本信息
  */
-export interface NewPackageParams {
+interface NewPackageParams {
   name: string,
   version: string,
   pkg_type: string,
@@ -66,13 +66,13 @@ export interface NewPackageParams {
 /**
  * 新建版本
  */
-export const createPackage = function (params: NewPackageParams) {
+export function createPackage(params: NewPackageParams) {
   return http.post<NewPackageParams>(`${path}/`, params);
-};
+}
 
 /**
  * 删除版本
  */
-export const deletePackage = function (params: { id: number }) {
+export function deletePackage(params: { id: number }) {
   return http.delete(`${path}/${params.id}/`);
-};
+}

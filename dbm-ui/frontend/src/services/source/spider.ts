@@ -17,16 +17,12 @@ import TendbClusterModel from '@services/model/spider/tendbCluster';
 import { useGlobalBizs } from '@stores';
 
 import http from '../http';
-import type { ListBase } from '../types';
 import type {
-  GetResourcesParams,
-  InstanceDetails,
-  InstanceDetailsParams,
+  ListBase,
   ResourceInstance,
   ResourceItem,
   ResourceTopo,
-  TableFieldsItem,
-} from '../types/clusters';
+} from '../types';
 
 const { currentBizId } = useGlobalBizs();
 
@@ -49,51 +45,102 @@ export function getTendbClusterList(params: Record<string, any> = {}) {
 /**
  * 获取 spider 集群列表
  */
-export const getSpiderList = function (params: Record<string, any>) {
-  return http.get<ListBase<SpiderModel[]>>(`${path}/`, params).then(data => ({
-    ...data,
-    results: data.results.map((item: SpiderModel) => new SpiderModel(item)),
-  }));
-};
+export function getSpiderList(params: Record<string, any>) {
+  return http.get<ListBase<SpiderModel[]>>(`${path}/`, params)
+    .then(data => ({
+      ...data,
+      results: data.results.map((item: SpiderModel) => new SpiderModel(item)),
+    }));
+}
 
 /**
  * 查询资源列表
  */
-export const getResources = function (params: GetResourcesParams & { dbType: string }) {
+export function getResources(params: {
+  bk_biz_id: number,
+  limit: number,
+  offset: number,
+  type: string,
+  cluster_ids?: number[] | number,
+  dbType: string
+}) {
   return http.get<ListBase<ResourceItem[]>>(`${path}/`, params);
-};
+}
 
 /**
  * 查询表格信息
  */
-export const getSpiderTableFields = function () {
-  return http.get<TableFieldsItem[]>(`${path}/get_table_fields/`);
-};
+export function getSpiderTableFields() {
+  return http.get<{
+    key: string,
+    name: string,
+  }[]>(`${path}/get_table_fields/`);
+}
 
 /**
  * 获取集群实例列表
  */
-export const getSpiderInstanceList = function (params: Record<string, any>) {
+export function getSpiderInstanceList(params: Record<string, any>) {
   return http.get<ListBase<ResourceInstance[]>>(`${path}/list_instances/`, params);
-};
+}
+
+/**
+ * 集群实例详情
+ */
+interface InstanceDetails {
+  bk_cloud_id: number,
+  bk_cpu: number,
+  bk_disk: number,
+  bk_host_id: number,
+  bk_host_innerip: string,
+  bk_mem: number,
+  bk_os_name: string,
+  cluster_id: number,
+  cluster_type: string,
+  create_at: string,
+  idc_city_id: string,
+  idc_city_name: string,
+  idc_id: number,
+  instance_address: string,
+  master_domain: string,
+  net_device_id: string,
+  rack: string,
+  rack_id: number,
+  role: string,
+  slave_domain: string,
+  status: string,
+  sub_zone: string,
+  db_module_id: number,
+  cluster_type_display: string,
+  bk_idc_name: string,
+  bk_cloud_name: string,
+  db_version: string,
+  version?: string
+}
 
 /**
  * 获取集群实例详情
  */
-export const retrieveSpiderInstance = function (params: InstanceDetailsParams & { dbType: string }) {
+export function retrieveSpiderInstance(params: {
+  bk_biz_id: number,
+  type: string,
+  instance_address: string,
+  cluster_id?: number
+  dbType: string
+}) {
   return http.get<InstanceDetails>(`${path}/retrieve_instance/`, params);
-};
+}
 
 /**
  * 获取集群详情
  */
-export const getSpiderDetail = function (params: { clusterId: number }) {
+export function getSpiderDetail(params: { clusterId: number }) {
   return http.get<SpiderModel>(`${path}/${params.clusterId}/`).then(data => new SpiderModel(data));
-};
+}
 
 /**
  * 获取集群拓扑
  */
-export const getSpiderTopoGraph = function (params: { cluster_id: number }) {
+export function getSpiderTopoGraph(params: { cluster_id: number }) {
   return http.get<ResourceTopo>(`${path}/${params.cluster_id}/get_topo_graph/`);
-};
+}
