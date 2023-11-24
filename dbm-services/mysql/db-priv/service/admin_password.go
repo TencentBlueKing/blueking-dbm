@@ -194,7 +194,8 @@ func (m *GetAdminUserPasswordPara) GetMysqlAdminPassword() ([]*TbPasswords, int,
 		return passwords, 0, errno.ComponentNull
 	}
 	//  mysql实例中ADMIN用户的密码，仅能查看人为修改密码且在有效期的密码，不可以查看随机化生成的密码
-	where := fmt.Sprintf(" username='%s' and component='%s' and lock_until is not null", m.UserName, m.Component)
+	where := fmt.Sprintf(" username='%s' and component='%s' and lock_until is not null and "+
+		"lock_until > now()", m.UserName, m.Component)
 	var filter []string
 	for _, item := range m.Instances {
 		filter = append(filter, fmt.Sprintf("(ip='%s' and port=%d)", item.Ip, item.Port))
@@ -382,11 +383,12 @@ func (m *ModifyAdminUserPasswordPara) ModifyMysqlAdminPassword() (BatchResult, e
 					sql := fmt.Sprintf("replace into tb_passwords(ip,port,bk_cloud_id,username,"+
 						"password,component,operator) values('%s',%d,%d,'%s','%s','%s','%s')",
 						address.Ip, address.Port, *cluster.BkCloudId, m.UserName, encrypt, m.Component, m.Operator)
-					if m.LockUntil != "" {
+					if m.LockHour != 0 {
 						sql = fmt.Sprintf("replace into tb_passwords(ip,port,bk_cloud_id,username,"+
-							"password,component,operator,lock_until) values('%s',%d,%d,'%s','%s','%s','%s','%s')",
+							"password,component,operator,lock_until) values('%s',%d,%d,'%s','%s','%s','%s',date_add("+
+							"now(),INTERVAL %d hour))",
 							address.Ip, address.Port, *cluster.BkCloudId, m.UserName, encrypt, m.Component,
-							m.Operator, m.LockUntil)
+							m.Operator, m.LockHour)
 					}
 					result := DB.Self.Exec(sql)
 					if result.Error != nil {
