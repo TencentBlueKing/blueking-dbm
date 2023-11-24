@@ -255,12 +255,14 @@
                 Object.assign(nodeData, {
                   new_nodes: {
                     broker: brokerValue.new_nodes,
+                    zookeeper: zookeeperValue.new_nodes,
                   },
                 });
               } else {
                 Object.assign(nodeData, {
                   resource_spec: {
                     broker: brokerValue.resource_spec,
+                    zookeeper: zookeeperValue.resource_spec,
                   },
                 });
               }
@@ -272,6 +274,7 @@
                   ip_source: ipSource.value,
                   old_nodes: {
                     broker: brokerValue.old_nodes,
+                    zookeeper: zookeeperValue.old_nodes,
                   },
                   ...nodeData,
                 },
