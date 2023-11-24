@@ -23,7 +23,7 @@ from backend.ticket.builders.mysql.base import (
     MySQLBaseOperateDetailSerializer,
 )
 from backend.ticket.constants import FlowRetryType, TicketType
-from backend.utils.time import str2datetime
+from backend.utils.time import datetime2str, str2datetime
 
 
 class MySQLFlashbackDetailSerializer(MySQLBaseOperateDetailSerializer):
@@ -47,7 +47,7 @@ class MySQLFlashbackDetailSerializer(MySQLBaseOperateDetailSerializer):
         # 校验start time和end time的合法性
         for info in attrs["infos"]:
             now = datetime.datetime.now()
-            info["end_time"] = info["end_time"] or now
+            info["end_time"] = info["end_time"] or datetime2str(now)
             start_time, end_time = str2datetime(info["start_time"]), str2datetime(info["end_time"])
             if start_time > end_time or start_time > now or end_time > now:
                 raise serializers.ValidationError(
