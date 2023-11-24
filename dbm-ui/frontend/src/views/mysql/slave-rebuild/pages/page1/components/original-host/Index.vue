@@ -36,7 +36,7 @@
             <BkRadio label="local">
               {{ t('本地备份') }}
             </BkRadio>
-            <BkRadio label="">
+            <BkRadio label="remote">
               {{ t('远程备份') }}
             </BkRadio>
           </BkRadioGroup>
