@@ -33,6 +33,7 @@ class PrivilegeType:
         DROP = EnumField("drop", _("删除表"))
         INDEX = EnumField("index", _("索引"))
         EXECUTE = EnumField("execute", _("执行"))
+        CREATE_VIEW = EnumField("create view", _("创建视图"))
 
     class GLOBAL(str, StructuredEnum):
         """GLOBAL权限类型"""
@@ -40,6 +41,12 @@ class PrivilegeType:
         REPLICATION_CLIENT = EnumField("replication client", _("replication client"))
         REPLICATION_SLAVE = EnumField("replication slave", _("replication slave"))
         FILE = EnumField("file", _("file"))
+        TRIGGER = EnumField("trigger", _("trigger"))
+        EVENT = EnumField("event", _("event"))
+        CREATE_ROUTING = EnumField("create routine", _("create routine"))
+        ALTER_ROUTING = EnumField("alter routine", _("alter routine"))
+        # TODO: 等后续单据支持动态审批后，放开此权限
+        # ALL_PRIVILEGES = EnumField("all privileges", _("all privileges"))
 
 
 class AccountType(str, StructuredEnum):
