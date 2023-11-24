@@ -69,7 +69,6 @@
     }[]
   }
 
-
   const { t } = useI18n();
   const route = useRoute();
   const funControllerStore = useFunController();
@@ -237,6 +236,17 @@
         {
           label: t('后端存储规格'),
           name: 'remote',
+        },
+      ],
+    },
+    {
+      moduleId: 'bigdata',
+      label: 'Riak',
+      name: ClusterTypes.RIAK,
+      children: [
+        {
+          label: t('后端存储机型'),
+          name: 'riak',
         },
       ],
     },

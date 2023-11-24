@@ -162,6 +162,34 @@ export class GraphData {
   }
 
   /**
+   * 获取 graph 数据
+   * @param data 集群拓扑数据
+   * @param type 集群类型
+   * @returns graph data
+   */
+  formatRiakGraphData(data: ResourceTopo) {
+    const locations: GraphNode[] = data.nodes.map((item, index) => ({
+      id: item.node_id,
+      label: item.node_id,
+      data: item,
+      children: [],
+      width: 192,
+      height: 44,
+      x: 100 + (index % 4) * 208,
+      y: 100 + Math.floor(index / 4) * 56,
+      type: 'node', // 节点类型 group | node
+      belong: '', // 节点所属组 ID
+    }));
+
+    this.graphData = {
+      locations,
+      lines: [],
+    };
+
+    return this.graphData;
+  }
+
+  /**
    * 获取访问入口 groups
    * @param data 集群拓扑数据
    * @returns 访问入口 groups

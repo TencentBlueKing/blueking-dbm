@@ -90,11 +90,15 @@
   import { getKafkaTopoGraph } from '@services/source/kafka';
   import { getPulsarTopoGraph } from '@services/source/pulsar';
   import { getRedisTopoGraph } from '@services/source/redis';
+  import { getRiakTopoGraph } from '@services/source/riak';
   import { getSpiderTopoGraph } from '@services/source/spider';
   import { getTendbhaTopoGraph } from '@services/source/tendbha';
   import { getTendbsingleTopoGraph } from '@services/source/tendbsingle';
 
-  import { ClusterTypes } from '@common/const';
+  import {
+    ClusterTypes,
+    DBTypes,
+  } from '@common/const';
 
   import { useFullscreen } from '@vueuse/core';
 
@@ -134,6 +138,7 @@
     tendbsingle: getTendbsingleTopoGraph,
     tendbha: getTendbhaTopoGraph,
     tendbcluster: getSpiderTopoGraph,
+    riak: getRiakTopoGraph,
   };
 
   /** 拓扑功能 */
@@ -183,7 +188,12 @@
     return apiMap[props.clusterType]({ cluster_id: id })
       .then((res) => {
         try {
-          const { locations, lines } = graphDataInst.formatGraphData(res);
+          const {
+            locations,
+            lines,
+          } = props.dbType === DBTypes.RIAK
+            ? graphDataInst.formatRiakGraphData(res)
+            : graphDataInst.formatGraphData(res);
           topoState.locations = locations;
           topoState.lines = lines;
         } catch (e) {
@@ -323,6 +333,17 @@
 
       &__link {
         display: none;
+      }
+    }
+
+    :deep(.riak-node) {
+      height: 100%;
+      background: #FFF;
+      border-radius: 4px;
+      box-shadow: 0 2px 4px 0 #1919290d;
+
+      .riak-node-content {
+        line-height: 44px;
       }
     }
   }
