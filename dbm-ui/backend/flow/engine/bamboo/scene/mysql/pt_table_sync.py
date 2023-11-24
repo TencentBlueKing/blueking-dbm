@@ -131,9 +131,9 @@ class PtTableSyncFlow(object):
                         sub_name=_("{}:{}做数据修复").format(slave["ip"], slave["port"])
                     )
                 )
-
-            sub_pipeline.add_parallel_sub_pipeline(sub_flow_list=cluster_sync_sub_list)
-            sub_pipelines.append(sub_pipeline.build_sub_process(sub_name=_("{}数据修复").format(cluster.name)))
+            if cluster_sync_sub_list:
+                sub_pipeline.add_parallel_sub_pipeline(sub_flow_list=cluster_sync_sub_list)
+                sub_pipelines.append(sub_pipeline.build_sub_process(sub_name=_("{}数据修复").format(cluster.name)))
 
         if not sub_pipelines:
             raise Exception(_("修复单据找不到可修复的集群"))
