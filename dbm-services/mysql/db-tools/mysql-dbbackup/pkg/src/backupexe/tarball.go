@@ -9,6 +9,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"dbm-services/common/go-pubpkg/cmutil"
@@ -349,4 +350,15 @@ func tarBallWithEncrypt(tarFilename string, srcFilename string) error {
 	cmdStr := fmt.Sprintf("%s| pv | %s ", strings.Join(tarCmd, " "), strings.Join(encryptCmd, " "))
 	fmt.Println(cmdStr)
 	return nil
+}
+
+// ParseTarFilename 从 tar file name 中解析出 targetName
+// 因为 tar name 生成规则在此
+func ParseTarFilename(fileName string) string {
+	filename := filepath.Base(fileName)
+	reg := regexp.MustCompile(`(.*)(_\d+)?\.tar.*`)
+	if m := reg.FindStringSubmatch(filename); len(m) >= 2 {
+		return m[1]
+	}
+	return ""
 }

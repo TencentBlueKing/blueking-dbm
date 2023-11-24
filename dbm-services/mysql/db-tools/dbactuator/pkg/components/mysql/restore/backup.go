@@ -24,13 +24,9 @@ type BackupInfo struct {
 	backupType string
 	backupHost string
 	backupPort int
-	// backupBaseName 是备份文件名解压后的目标目录，不带路径，不带后缀
-	backupBaseName string
 
 	infoFilePath string // InfoFileDetail full path filename
 	infoObj      *dbbackup.InfoFileDetail
-
-	// fullFileList []string
 
 	indexFilePath string
 	indexObj      *dbbackup.BackupIndexFile
@@ -73,7 +69,7 @@ func (b *BackupInfo) GetBackupMetaFile(fileType string) error {
 	}
 	if strings.HasSuffix(metaFilename, ".index") || fileType == dbbackup.BACKUP_INDEX_FILE {
 		b.indexFilePath = metaFilePath
-		b.backupBaseName = strings.TrimSuffix(metaFilename, ".index")
+		//b.backupBaseName = strings.TrimSuffix(metaFilename, ".index")
 		var indexObj = &dbbackup.BackupIndexFile{}
 		if err := dbbackup.ParseBackupIndexFile(b.indexFilePath, indexObj); err != nil {
 			return err
@@ -85,7 +81,7 @@ func (b *BackupInfo) GetBackupMetaFile(fileType string) error {
 		}
 	} else if strings.HasSuffix(metaFilename, ".info") || fileType == dbbackup.MYSQL_INFO_FILE {
 		b.infoFilePath = metaFilePath
-		b.backupBaseName = strings.TrimSuffix(metaFilename, ".info")
+		//b.backupBaseName = strings.TrimSuffix(metaFilename, ".info")
 		var infoObj = &dbbackup.InfoFileDetail{}
 		if err := dbbackup.ParseBackupInfoFile(b.infoFilePath, infoObj); err != nil {
 			return err

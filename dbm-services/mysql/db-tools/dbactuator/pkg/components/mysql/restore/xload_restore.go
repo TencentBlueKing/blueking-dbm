@@ -42,10 +42,13 @@ func (x *XLoad) initDirs() error {
 	if err := osutil.CheckAndMkdir("", x.taskDir); err != nil {
 		return err
 	}
-	if x.backupBaseName == "" {
-		return errors.Errorf("backup file baseName [%s] error", x.backupBaseName)
-	}
-	x.targetDir = fmt.Sprintf("%s/%s", x.taskDir, x.backupBaseName)
+	/*
+		if x.backupBaseName == "" {
+			return errors.Errorf("backup file baseName [%s] error", x.backupBaseName)
+		}
+	*/
+	//x.targetDir = fmt.Sprintf("%s/%s", x.taskDir, x.backupBaseName)
+	x.targetDir = fmt.Sprintf("%s/%s", x.taskDir, x.BackupInfo.infoObj.GetMetafileBasename())
 	return nil
 }
 
