@@ -689,12 +689,20 @@ func (a *AdditionalAccount) GetDBHAAccount(realVersion string) (initAccountsql [
 				"GRANT RELOAD, PROCESS, SHOW DATABASES, SUPER, REPLICATION CLIENT, SHOW VIEW "+
 					"ON *.* TO '%s'@'%s' WITH GRANT OPTION ;",
 				a.User, host))
+			initAccountsql = append(initAccountsql,
+				fmt.Sprintf(
+					" GRANT SELECT, INSERT, DELETE ON `infodba_schema`.* TO '%s'@'%s' ;", a.User, host))
+
 		} else {
 			initAccountsql = append(initAccountsql,
 				fmt.Sprintf(
 					"GRANT RELOAD, PROCESS, SHOW DATABASES, SUPER, REPLICATION CLIENT, SHOW VIEW "+
 						"ON *.* TO '%s'@'%s' IDENTIFIED BY '%s' WITH GRANT OPTION ;",
 					a.User, host, a.Pwd))
+			initAccountsql = append(initAccountsql,
+				fmt.Sprintf(
+					"GRANT SELECT, INSERT, DELETE ON `infodba_schema`.* TO '%s'@'%s' ;",
+					a.User, host))
 		}
 	}
 	return
@@ -982,6 +990,10 @@ func (i *InstallMySQLComp) getSuperUserAccountForSpider() (initAccountsql []stri
 		initAccountsql = append(initAccountsql,
 			fmt.Sprintf(
 				"GRANT SELECT ON mysql.servers TO '%s'@'%s' ;", i.Params.DBHAAccount.User, host))
+		initAccountsql = append(initAccountsql,
+			fmt.Sprintf(
+				" GRANT SELECT, INSERT, DELETE ON `infodba_schema`.* TO '%s'@'%s' ;",
+				i.Params.DBHAAccount.User, host))
 	}
 	return
 }
