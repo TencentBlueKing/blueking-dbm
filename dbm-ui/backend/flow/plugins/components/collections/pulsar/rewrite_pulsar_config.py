@@ -126,9 +126,7 @@ class WriteBackPulsarConfigService(BaseService):
         )
         # 写入到密码服务，把用户名当密码存
         query_params = {
-            "instances": [
-                {"ip": global_data["domain"], "port": global_data["port"], "bk_cloud_id": global_data["bk_cloud_id"]}
-            ],
+            "instances": [{"ip": global_data["domain"], "port": 0, "bk_cloud_id": global_data["bk_cloud_id"]}],
             "password": base64.b64encode(str(global_data["username"]).encode("utf-8")).decode("utf-8"),
             "username": MySQLPrivComponent.PULSAR_FAKE_USER.value,
             "component": NameSpaceEnum.Pulsar,
@@ -137,9 +135,7 @@ class WriteBackPulsarConfigService(BaseService):
         MySQLPrivManagerApi.modify_password(params=query_params)
         # 存储真正的账号密码
         query_params = {
-            "instances": [
-                {"ip": global_data["domain"], "port": global_data["port"], "bk_cloud_id": global_data["bk_cloud_id"]}
-            ],
+            "instances": [{"ip": global_data["domain"], "port": 0, "bk_cloud_id": global_data["bk_cloud_id"]}],
             "password": base64.b64encode(str(global_data["password"]).encode("utf-8")).decode("utf-8"),
             "username": global_data["username"],
             "component": NameSpaceEnum.Pulsar,
@@ -148,9 +144,7 @@ class WriteBackPulsarConfigService(BaseService):
         MySQLPrivManagerApi.modify_password(params=query_params)
         # 存储token
         query_params = {
-            "instances": [
-                {"ip": global_data["domain"], "port": global_data["port"], "bk_cloud_id": global_data["bk_cloud_id"]}
-            ],
+            "instances": [{"ip": global_data["domain"], "port": 0, "bk_cloud_id": global_data["bk_cloud_id"]}],
             "password": base64.b64encode(str(f"token:{token_data}").encode("utf-8")).decode("utf-8"),
             "username": PulsarConfigEnum.ClientAuthenticationParameters,
             "component": NameSpaceEnum.Pulsar,

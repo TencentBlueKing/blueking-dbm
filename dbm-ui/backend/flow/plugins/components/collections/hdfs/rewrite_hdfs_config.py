@@ -87,11 +87,11 @@ class WriteBackHdfsConfigService(BaseService):
             "instances": [
                 {
                     "ip": global_data["domain"],
-                    "port": global_data["rpc_port"],
+                    "port": 0,
                     "bk_cloud_id": global_data["bk_cloud_id"],
                 }
             ],
-            "password": base64.b64encode(str(global_data["haproxy_passwd"]).encode("utf-8")).decode("utf-8"),
+            "password": base64.b64encode(str(global_data["password"]).encode("utf-8")).decode("utf-8"),
             "username": "root",
             "component": NameSpaceEnum.Hdfs,
             "operator": "admin",

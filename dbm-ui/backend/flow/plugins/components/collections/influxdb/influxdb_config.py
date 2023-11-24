@@ -77,9 +77,7 @@ class InfluxdbConfigService(BaseService):
             self.log_info(f"Writing password to service...")
             # 把用户名当密码存
             query_params = {
-                "instances": [
-                    {"ip": str(storage_obj.id), "port": global_data["port"], "bk_cloud_id": global_data["bk_cloud_id"]}
-                ],
+                "instances": [{"ip": str(storage_obj.id), "port": 0, "bk_cloud_id": global_data["bk_cloud_id"]}],
                 "password": base64.b64encode(str(global_data["username"]).encode("utf-8")).decode("utf-8"),
                 "username": MySQLPrivComponent.INFLUXDB_FAKE_USER.value,
                 "component": NameSpaceEnum.Influxdb,
@@ -88,9 +86,7 @@ class InfluxdbConfigService(BaseService):
             MySQLPrivManagerApi.modify_password(params=query_params)
             # 存真实的用户名密码
             query_params = {
-                "instances": [
-                    {"ip": str(storage_obj.id), "port": global_data["port"], "bk_cloud_id": global_data["bk_cloud_id"]}
-                ],
+                "instances": [{"ip": str(storage_obj.id), "port": 0, "bk_cloud_id": global_data["bk_cloud_id"]}],
                 "password": base64.b64encode(str(global_data["password"]).encode("utf-8")).decode("utf-8"),
                 "username": global_data["username"],
                 "component": NameSpaceEnum.Influxdb,
