@@ -57,6 +57,7 @@
           :cloud-id="clusterData.bk_cloud_id"
           cluster-type="tendbcluster"
           machine-type="remote"
+          :shard-num="clusterData.cluster_shard_num"
           @change="handlePlanChange" />
       </BkForm>
     </div>
