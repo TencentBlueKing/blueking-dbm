@@ -1,18 +1,21 @@
 package service
 
-import "dbm-services/mysql/priv-service/util"
+import (
+	"time"
+)
 
 // ModifyAdminUserPasswordPara 函数的入参
 type ModifyAdminUserPasswordPara struct {
-	UserName         string          `json:"username"`
-	Component        string          `json:"component"`
-	Psw              string          `json:"password"`
-	LockUntil        util.TimeFormat `json:"lock_until"`
-	Operator         string          `json:"operator"`
-	Clusters         []OneCluster    `json:"clusters"`
-	SecurityRuleName string          `json:"security_rule_name"`
-	Range            string          `json:"range"`
-	Async            bool            `json:"async"` // 是否异步的方式执行
+	UserName  string `json:"username"`
+	Component string `json:"component"`
+	Psw       string `json:"password"`
+	//LockUntil        util.TimeFormat `json:"lock_until"`
+	LockHour         int          `json:"lock_hour"`
+	Operator         string       `json:"operator"`
+	Clusters         []OneCluster `json:"clusters"`
+	SecurityRuleName string       `json:"security_rule_name"`
+	Range            string       `json:"range"`
+	Async            bool         `json:"async"` // 是否异步的方式执行
 }
 
 // ModifyPasswordPara 函数的入参
@@ -61,10 +64,10 @@ type TbPasswords struct {
 	// Password 加密后的密码
 	Password string `gorm:"column:password;not_null" json:"password"`
 	// Component 组件，比如mysql、proxy
-	Component  string          `gorm:"column:component;not_null" json:"component"`
-	LockUntil  util.TimeFormat `gorm:"column:lock_until" json:"lock_until"`
-	Operator   string          `gorm:"column:operator" json:"operator"`
-	UpdateTime util.TimeFormat `gorm:"column:update_time" json:"update_time"`
+	Component  string    `gorm:"column:component;not_null" json:"component"`
+	LockUntil  time.Time `gorm:"column:lock_until" json:"lock_until"`
+	Operator   string    `gorm:"column:operator" json:"operator"`
+	UpdateTime time.Time `gorm:"column:update_time" json:"update_time"`
 }
 
 type OneCluster struct {

@@ -89,12 +89,9 @@ func DoMigratePlatformPassword() error {
 				return fmt.Errorf("%s error: %s", "init platform password, get password", err.Error())
 			}
 			if count == 0 {
-				insertPara := &service.ModifyPasswordPara{
-					UserName:  user,
-					Component: component.Component, Operator: "admin",
-					Instances:        []service.Address{{"0.0.0.0", 0, &defaultCloudId}},
-					InitPlatform:     true,
-					SecurityRuleName: "password"}
+				insertPara := &service.ModifyPasswordPara{UserName: user, Component: component.Component, Operator: "admin",
+					Instances:    []service.Address{{"0.0.0.0", 0, &defaultCloudId}},
+					InitPlatform: true, SecurityRuleName: "password"}
 				err = insertPara.ModifyPassword()
 				if err != nil {
 					return fmt.Errorf("%s error: %s", "init platform password, modify password", err.Error())
