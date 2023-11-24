@@ -94,6 +94,14 @@ export default (): RouteRecordRaw[] => [
         component: () => import('@views/influxdb-manage/apply/index.vue'),
       },
       {
+        name: 'RiakApply',
+        path: 'riak',
+        meta: {
+          navName: t('申请Riak集群部署'),
+        },
+        component: () => import('@views/riak-manage/apply/Index.vue'),
+      },
+      {
         name: 'SelfServiceCreateDbModule',
         path: 'create-db-module/:type/:bk_biz_id/',
         meta: {

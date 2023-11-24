@@ -116,6 +116,7 @@
       'PulsarManage',
       'RedisManage',
       'SpiderManage',
+      'RiakManage',
       'taskHistory',
       'DatabaseWhitelist',
       'ticketManage',

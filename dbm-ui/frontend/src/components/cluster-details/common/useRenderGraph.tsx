@@ -20,6 +20,7 @@ import { retrieveHdfsInstance } from '@services/source/hdfs';
 import { retrieveKafkaInstance } from '@services/source/kafka';
 import { retrievePulsarInstance } from '@services/source/pulsar';
 import { retrieveRedisInstance } from '@services/source/redis';
+import { retrieveRiakInstance } from '@services/source/riak';
 import { retrieveSpiderInstance } from '@services/source/spider';
 import { retrieveTendbhaInstance } from '@services/source/tendbha';
 import { retrieveTendbsingleInstance } from '@services/source/tendbsingle';
@@ -28,6 +29,7 @@ import type { InstanceDetails } from '@services/types/clusters';
 
 import { useGlobalBizs } from '@stores';
 
+import { DBTypes } from '@common/const';
 import { dbTippy } from '@common/tippy';
 
 import DbStatus from '@components/db-status/index.vue';
@@ -122,6 +124,7 @@ const apiMap: Record<string, (params: any) => Promise<any>> = {
   tendbsingle: retrieveTendbsingleInstance,
   tendbha: retrieveTendbhaInstance,
   tendbcluster: retrieveSpiderInstance,
+  riak: retrieveRiakInstance,
 };
 
 const entryTagMap: Record<string, string> = {
@@ -157,7 +160,7 @@ export const useRenderGraph = (props: ClusterTopoProps, nodeConfig: NodeConfig =
         scaleExtent: [0.5, 1.5],
         controlPanel: false,
       },
-      onNodeRender: getNodeRender,
+      onNodeRender: props.dbType === DBTypes.RIAK ? getRiakNodeRender : getNodeRender,
     })
       .on('nodeMouseEnter', async (node: GraphNode, e: MouseEvent) => {
         if (node.type === GroupTypes.GROUP) return;
@@ -343,6 +346,31 @@ function getNodeRender(node: GraphNode) {
       </div>
     );
   }
+  const html = vNodeToHtml(vNode);
+  return typeof html === 'string' ? html : html.outerHTML;
+}
+
+/**
+ * 获取渲染节点 html
+ * @param node 渲染节点
+ * @returns 节点 html
+ */
+function getRiakNodeRender(node: GraphNode) {
+  const { url } = node.data as ResourceTopoNode;
+  const vNode = (
+    <div class={['cluster-node', 'riak-node', { 'has-link': url }]} id={node.id}>
+      {/* <a
+        style="display: flex; align-items: center; color: #63656E; height: 100%"
+        href={url}
+        target="__blank"> */}
+        <div class="cluster-node__content riak-node-content text-overflow">{node.id}</div>
+        {/* <bk-button theme="primary">
+         <db-icon type="link cluster-node__link" />
+        </bk-button> */}
+      {/* </a> */}
+    </div>
+  );
+
   const html = vNodeToHtml(vNode);
   return typeof html === 'string' ? html : html.outerHTML;
 }

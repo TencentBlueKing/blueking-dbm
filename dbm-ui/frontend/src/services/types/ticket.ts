@@ -776,7 +776,7 @@ export interface SubmitTicket<T extends TicketTypes, U extends Array<unknown>> {
   }
 }
 
-interface SpecInfo {
+export interface SpecInfo {
   spec_id: number,
   spec_name: string,
   count: number,

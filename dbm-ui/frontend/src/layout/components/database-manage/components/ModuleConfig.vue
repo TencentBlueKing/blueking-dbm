@@ -132,6 +132,11 @@
         value: 'redis',
         icon: 'redis',
       },
+      {
+        name: 'Riak',
+        value: 'riak',
+        icon: 'cluster',
+      },
       // {
       //   name: 'MongoDB',
       //   value: 'mongoDB',

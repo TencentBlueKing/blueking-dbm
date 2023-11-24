@@ -25,6 +25,7 @@ export enum DBTypes {
   PULSAR = 'pulsar',
   INFLUXDB = 'influxdb',
   SPIDER = 'spider',
+  RIAK = 'riak'
 }
 export type DBTypesValues = `${DBTypes}`
 
@@ -256,7 +257,14 @@ export enum TicketTypes {
   TENDBCLUSTER_EXCEL_AUTHORIZE_RULES = 'TENDBCLUSTER_EXCEL_AUTHORIZE_RULES',
   TENDBCLUSTER_PARTITION = 'TENDBCLUSTER_PARTITION', // Spider 分区管理
   TENDBCLUSTER_IMPORT_SQLFILE = 'TENDBCLUSTER_IMPORT_SQLFILE', // Spider SQL变更执行
-}
+  RIAK_CLUSTER_APPLY = 'RIAK_CLUSTER_APPLY', // Riak 集群申请
+  RIAK_CLUSTER_DESTROY = 'RIAK_CLUSTER_DESTROY', // Riak 集群删除
+  RIAK_CLUSTER_DISABLE = 'RIAK_CLUSTER_DISABLE', // Riak 集群禁用
+  RIAK_CLUSTER_ENABLE = 'RIAK_CLUSTER_ENABLE', // Riak 集群启用
+  RIAK_CLUSTER_SCALE_OUT = 'RIAK_CLUSTER_SCALE_OUT', // Riak 集群扩容
+  RIAK_CLUSTER_SCALE_IN = 'RIAK_CLUSTER_SCALE_IN', // Riak 集群缩容
+  RIAK_CLUSTER_REBOOT = 'RIAK_CLUSTER_REBOOT' // Riak 节点重启
+ }
 export type TicketTypesStrings = keyof typeof TicketTypes;
 
 /**
@@ -321,6 +329,11 @@ export const bigDataType = {
     id: TicketTypes.INFLUXDB_APPLY,
     name: t('InfluxDB集群部署'),
     type: ClusterTypes.INFLUXDB,
+  },
+  [TicketTypes.RIAK_CLUSTER_APPLY]: {
+    id: TicketTypes.RIAK_CLUSTER_APPLY,
+    name: t('Riak集群部署'),
+    type: ClusterTypes.RIAK,
   },
 };
 
