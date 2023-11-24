@@ -135,6 +135,11 @@ func Reload(localIp string) error {
 		return err
 	}
 
+	if len(domainList) == 0 {
+		logger.Warning.Printf("domainList len is 0. skip this update.")
+		return nil
+	}
+
 	zoneFileMap := make(map[string]string)
 	zoneNamedInfo := ""
 	zoneDir := config.GetConfig("zone_dir_path")
@@ -148,6 +153,11 @@ func Reload(localIp string) error {
 				zoneNamedInfo, zoneName, zoneDir+zoneName)
 		}
 		zoneFileMap[zoneName] = makeZoneFile(data, zoneFileMap[zoneName])
+	}
+
+	if len(zoneFileMap) == 0 {
+		logger.Warning.Printf("zoneFileMap len is 0. skip this update.")
+		return nil
 	}
 
 	// TODO 这个地方暂时不引入tb_dns_zone_info
