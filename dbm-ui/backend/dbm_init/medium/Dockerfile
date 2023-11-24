@@ -1,14 +1,4 @@
-FROM golang:1.21 as go-builder
-
-## 标准化时区,安装依赖
-RUN set -ex && \
-    ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime && \
-    echo "Asia/Shanghai" > /etc/timezone
-
-## 安装go import工具
-RUN go install golang.org/x/tools/cmd/goimports@latest
-
-FROM go-builder as go-mod-builder
+FROM mirrors.tencent.com/build/blueking/dbmedium-builder:1.0.0 as go-mod-builder
 
 WORKDIR /blueking-dbm
 ADD ./dbm-services ./dbm-services
@@ -113,12 +103,6 @@ RUN set -ex && \
 FROM go-mod-builder as medium-builder
 
 WORKDIR /
-## 安装jq依赖
-RUN set -ex && \
-    apt-get update && apt-get install -y --no-install-recommends wget && \
-    wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 && \
-    chmod a+x /usr/local/bin/yq && \
-    rm -rf /var/lib/apt/lists/*
 
 ## 保存jq的脚本用于下一阶段用
 RUN set -ex && \
@@ -148,8 +132,7 @@ RUN set -ex && \
 ## 编译 dbbackup-go community，下载依赖
 RUN set -ex && \
     cd /blueking-dbm/dbm-services/mysql/db-tools/mysql-dbbackup && \
-    download_url=https://github.com/TencentBlueKing/blueking-dbm/releases/download && \
-    wget -qO dbbackup-go-deps-community.tar.gz ${download_url}/v1.0.0/dbbackup-go-deps-community.tar.gz && \
+    mv /toolkit/dbbackup-go-deps-community.tar.gz . && \
     make package VERSION=$(/lock.sh mysql dbbackup version) DIST=community GITHASH=$(/lock.sh mysql dbbackup commitId) -j4
 
 
@@ -170,13 +153,34 @@ RUN set -ex && \
     make VERSION=$(/lock.sh es actuator version) GITHASH=$(/lock.sh es actuator commitId) -j4
 
 
+FROM medium-builder as cloud-medium-builder
+
+## 构建云区域组件介质
+RUN set -ex && \
+    cd /blueking-dbm/dbm-services/common/dbha/ha-module && \
+    go build -o build/ dbha.go && \
+    cd /blueking-dbm/dbm-services/common/db-dns/dns-reload && \
+    make build VER=$(/lock.sh cloud cloud-dns-pullcrond version) && \
+    cd /blueking-dbm/dbm-services/mysql/db-remote-service && \
+    make VERSION=$(/lock.sh cloud cloud-drs version) GITHASH=$(/lock.sh cloud cloud-drs commitId) -j4
+
+
 FROM base-app as medium-app
 
 WORKDIR /app
 
+# 复制静态二进制文件
+COPY --from=medium-builder /toolkit /toolkit
+# 复制mysql的编译介质
 COPY --from=mysql-medium-builder /blueking-dbm/dbm-services/mysql /blueking-dbm/dbm-services/mysql
+# 复制大数据的编译介质
 COPY --from=redis-medium-builder /blueking-dbm/dbm-services/redis /blueking-dbm/dbm-services/redis
+# 复制redis的编译介质
 COPY --from=bigdata-medium-builder /blueking-dbm/dbm-services/bigdata /blueking-dbm/dbm-services/bigdata
+# 复制云区域组件的编译介质
+COPY --from=cloud-medium-builder /blueking-dbm/dbm-services/common /blueking-dbm/dbm-services/common
+COPY --from=cloud-medium-builder /blueking-dbm/dbm-services/mysql/db-remote-service /blueking-dbm/dbm-services/mysql/db-remote-service
 
 RUN set -ex && \
-    python main.py --type build && rm -rf /blueking-dbm
+    python main.py --type build && \
+    rm -rf /blueking-dbm /toolkit

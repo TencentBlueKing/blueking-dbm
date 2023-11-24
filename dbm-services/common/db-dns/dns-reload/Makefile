@@ -1,4 +1,4 @@
-SRV_NAME = bk-dnsreload
+SRV_NAME = pull-crond
 VER = v0.1.0
 CURRENT_VERSION = release-$(VER)
 NAMESPACE = sccmsp
@@ -11,7 +11,7 @@ clean:
 	-rm ./$(SRV_NAME)
 
 build:clean
-	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build  -o $(SRV_NAME) -v ./main/main.go
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build  -o build/$(SRV_NAME) -v ./main/main.go
 
 publish:build
 	docker build --build-arg SRV_NAME=$(SRV_NAME) --rm -t $(SRV_NAME):$(CURRENT_VERSION) .

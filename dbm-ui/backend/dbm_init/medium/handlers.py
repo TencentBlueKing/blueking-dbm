@@ -110,7 +110,7 @@ class MediumHandler:
 
                     db_type = file.split("?")[0]
                     with zipfile.ZipFile(os.path.join(root, file)) as zfile:
-                        logger.info("unzip dir: %s", file)
+                        print("unzip dir: %s", file)
                         zfile.extractall(os.path.join(bkrepo_tmp_dir, db_type))
 
                     os.remove(os.path.join(root, file))
@@ -151,7 +151,7 @@ class MediumHandler:
                     # 分割路径，保留制品路径(db_type/name/version/file)
                     file_path = os.path.join(root, file)
                     file_path_bkrepo = file_path.split(file_path.rsplit("/", 4)[0])[1]
-                    logger.info("upload file: %s -> %s", file_path, file_path_bkrepo)
+                    print("upload file: %s -> %s", file_path, file_path_bkrepo)
                     with open(file_path, "rb") as f:
                         # 如果当前版本不存在，则更新介质
                         if not self.storage.listdir(file_path_bkrepo.rsplit("/", 1)[0])[1]:
@@ -187,7 +187,7 @@ class MediumHandler:
                         "update_at": str(datetime.strptime(media["lastModifiedDate"], "%Y-%m-%dT%H:%M:%S.%f")),
                         "updater": "system",
                     }
-                    logger.info("sync info %s", json.dumps(package_params, indent=4))
+                    print("sync info %s", json.dumps(package_params, indent=4))
                     http.post(url="apis/packages/update_or_create/", data=package_params)
 
     @classmethod
@@ -212,6 +212,9 @@ class MediumHandler:
         for db_type, mediums in lock_info.items():
             for medium in mediums:
                 for medium_type, medium_info in medium.items():
+                    # 静态介质文件无需编译，没有版本和commit信息
+                    if "commitId" not in medium_info:
+                        continue
                     # 判断commit是否相等，不想等则进行版本号增加
                     dir_commit, commit_date = (
                         subprocess.run(
@@ -253,4 +256,4 @@ class MediumHandler:
                         shell=True,
                     )
                     if result.returncode:
-                        logger.error("Error: move medium fail! message: %s", result.stderr)
+                        print("Error: move medium fail! message: %s", result.stderr)

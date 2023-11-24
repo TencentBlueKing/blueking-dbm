@@ -1,9 +1,10 @@
 PROJ="db-remote-service"
 MODULE="dbm-services/mysql/db-remote-service"
 VERSION = $(error please set VERSION flag)
+GITHASH = ""
 PKG = ${PROJ}.tar.gz
 OUTPUT_DIR = build
-RELEASE_BUILD_FLAG = "-X ${MODULE}/cmd.version=${VERSION} -X ${MODULE}/cmd.gitHash=`git rev-parse HEAD` "
+RELEASE_BUILD_FLAG = "-X ${MODULE}/cmd.version=${VERSION} -X ${MODULE}/cmd.gitHash=${GITHASH}"
 DEV_BUILD_FLAG = "-X ${MODULE}/cmd.version="develop" -X ${MODULE}/cmd.gitHash="" "
 
 BK_NAMESPACE = blueking

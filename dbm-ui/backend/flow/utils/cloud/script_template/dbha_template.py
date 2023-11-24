@@ -14,7 +14,7 @@ ha_gm_conf_template = """
 log_conf:
   log_path: "./log"
   log_level: "LOG_DEBUG"
-  log_maxsize: 1024
+  log_maxsize: 512
   log_maxbackups: 5
   log_maxage: 30
   log_compress: true
@@ -126,7 +126,7 @@ ha_agent_conf_template = """
 log_conf:
   log_path: "./log"
   log_level: "LOG_DEBUG"
-  log_maxsize: 1024
+  log_maxsize: 512
   log_maxbackups: 5
   log_maxage: 30
   log_compress: true
