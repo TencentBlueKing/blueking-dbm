@@ -15,7 +15,7 @@ import (
 	"bk-dbconfig/pkg/util/crypt"
 )
 
-const SensitiveMigVer = 3
+const SensitiveMigVer = 8
 
 func MigrateSensitive(db *gorm.DB) error {
 	confNames := []*model.ConfigNameDefModel{

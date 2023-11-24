@@ -34,7 +34,7 @@ func ExecuteBackup(cnf *config.BackupConfig) error {
 	if err != nil {
 		return err
 	}
-	if err := dumper.initConfig(mysqlVersion); err != nil {
+	if err := dumper.initConfig(versionStr); err != nil {
 		return err
 	}
 

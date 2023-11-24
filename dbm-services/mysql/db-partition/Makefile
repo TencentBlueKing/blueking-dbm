@@ -17,7 +17,7 @@ all: build
 api:
 	CGO_ENABLED=0 GOOS=${GOOS} GOARCH=amd64 go build -o $(COMMAND_NAME)  -v ${BUILD_PATH}
 build:clean
-	CGO_ENABLED=0 GOOS=${GOOS} GOARCH=amd64 go build -o $(COMMAND_NAME) -v ${BUILD_PATH}
+	CGO_ENABLED=0 GOOS=${GOOS} GOARCH=amd64 go build -gcflags="all=-trimpath=${PWD}" -asmflags="all=-trimpath=${PWD}" -o $(COMMAND_NAME) -v ${BUILD_PATH}
 
 publish:build
 	docker build --build-arg SRV_NAME=$(COMMAND_NAME) --rm -t $(SRV_NAME):$(CURRENT_VERSION) .
