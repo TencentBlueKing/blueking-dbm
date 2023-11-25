@@ -24,7 +24,7 @@ from backend.configuration.models import DBAdministrator, SystemSettings
 from backend.db_services.dbbase.constants import IpSource
 from backend.dbm_init.services import Services
 from backend.ticket.constants import FlowRetryType, FlowType
-from backend.ticket.models import Flow, Ticket
+from backend.ticket.models import Flow, Ticket, TicketFlowConfig
 
 logger = logging.getLogger("root")
 
@@ -243,11 +243,18 @@ class TicketFlowBuilder:
     inner_flow_name: str = ""
     inner_flow_builder: FlowParamBuilder = None
     pause_node_builder: PauseParamBuilder = PauseParamBuilder
+
     # resource_apply_builder和resource_batch_apply_builder只能存在其一，表示是资源池单次申请还是批量申请
     resource_apply_builder: ResourceApplyParamBuilder = None
     resource_batch_apply_builder: ResourceApplyParamBuilder = None
+
     # inner flow互斥的重试类型，默认为自动重试
     retry_type: FlowRetryType = FlowRetryType.AUTO_RETRY
+    # 默认是否需要审批,人工确认。后续用于初始化单据配置表
+    default_need_itsm: bool = True
+    default_need_manual_confirm: bool = True
+    # 是否用户可修改单据流程(在单据配置表中)
+    editable: bool = True
 
     def __init__(self, ticket: Ticket):
         self.ticket = ticket
@@ -270,13 +277,15 @@ class TicketFlowBuilder:
 
     @property
     def need_itsm(self):
-        """是否需要itsm审批节点"""
-        return True
+        """是否需要itsm审批节点。后续默认从单据配置表获取。子类可覆写，覆写以后editable为False"""
+        assert self.ticket_type is not None, "Please make sure FlowBuilder set the ticket type! "
+        return TicketFlowConfig.objects.get(ticket_type=self.ticket_type).configs["need_itsm"]
 
     @property
     def need_manual_confirm(self):
-        """是否需要人工确认节点"""
-        return True
+        """是否需要人工确认节点。后续默认从单据配置表获取。子类可覆写，覆写以后editable为False"""
+        assert self.ticket_type is not None, "Please make sure FlowBuilder set the ticket type! "
+        return TicketFlowConfig.objects.get(ticket_type=self.ticket_type).configs["need_manual_confirm"]
 
     @property
     def need_resource_pool(self):
@@ -361,6 +370,33 @@ class TicketFlowBuilder:
         """补充单据详情"""
         pass
 
+    @classmethod
+    def _add_itsm_pause_describe(cls, flow_desc, flow_config_map):
+        if flow_config_map[cls.ticket_type]["need_itsm"]:
+            flow_desc.append(FlowType.get_choice_label(FlowType.BK_ITSM))
+        if flow_config_map[cls.ticket_type]["need_manual_confirm"]:
+            flow_desc.append(FlowType.get_choice_label(FlowType.PAUSE))
+        return flow_desc
+
+    @classmethod
+    def describe_ticket_flows(cls, flow_config_map):
+        """
+        @param flow_config_map: 单据类型与配置的映射
+        单据构造类的默认流程描述，固定为：
+        单据审批(可选, 默认有) --> 人工确认(可选, 默认有) --> 资源申请(由单据参数判断) ---> inner节点 --> 资源交付(由单据参数判断)
+        如果子类覆写了custom_ticket_flows/init_ticket_flows，则同时需要覆写该方法
+        """
+        need_resource = (cls.resource_apply_builder or cls.resource_batch_apply_builder) is not None
+        flow_desc = cls._add_itsm_pause_describe(flow_desc=[], flow_config_map=flow_config_map)
+        if need_resource:
+            flow_desc.append(FlowType.get_choice_label(FlowType.RESOURCE_APPLY))
+        if cls.inner_flow_name:
+            flow_desc.append(cls.inner_flow_name)
+        if need_resource:
+            flow_desc.append(FlowType.get_choice_label(FlowType.RESOURCE_DELIVERY))
+
+        return flow_desc
+
 
 class BuilderFactory:
     # 单据的注册器类集合
@@ -384,6 +420,7 @@ class BuilderFactory:
         """
 
         def inner_wrapper(wrapped_class: TicketFlowBuilder) -> TicketFlowBuilder:
+            wrapped_class.ticket_type = ticket_type
             if ticket_type in cls.registry:
                 logger.warning(f"Builder [{ticket_type}] already exists. Will replace it")
             cls.registry[ticket_type] = wrapped_class

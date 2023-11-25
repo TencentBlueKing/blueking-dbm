@@ -90,7 +90,3 @@ class RedisFixPointMakeFlowBuilder(BaseRedisTicketFlowBuilder):
     inner_flow_builder = RedisFixPointMakeParamBuilder
     inner_flow_name = _("Redis 定点构造")
     resource_batch_apply_builder = RedisFixPointMakeResourceParamBuilder
-
-    @property
-    def need_itsm(self):
-        return False

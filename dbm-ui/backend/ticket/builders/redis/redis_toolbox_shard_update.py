@@ -100,7 +100,3 @@ class RedisShardUpdateFlowBuilder(BaseRedisTicketFlowBuilder):
     inner_flow_builder = RedisShardUpdateParamBuilder
     inner_flow_name = _("Redis 集群分片变更")
     resource_batch_apply_builder = RedisShardUpdateResourceParamBuilder
-
-    @property
-    def need_itsm(self):
-        return True

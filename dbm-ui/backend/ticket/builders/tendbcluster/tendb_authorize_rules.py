@@ -29,6 +29,7 @@ class TendbClusterAuthorizeRulesFlowBuilder(BaseTendbTicketFlowBuilder, MySQLAut
     serializer = MySQLAuthorizeRulesSerializer
     inner_flow_builder = MySQLAuthorizeRulesFlowParamBuilder
     inner_flow_name = _("TenDB Cluster 授权执行")
+    editable = False
 
     @property
     def need_itsm(self):

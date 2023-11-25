@@ -38,14 +38,8 @@ class TendbClusterClientCloneRulesFlowBuilder(MySQLClientCloneRulesFlowBuilder):
     serializer = TendbClusterCloneRulesSerializer
     inner_flow_name = _("TenDB Cluster 客户端权限克隆执行")
     inner_flow_builder = TendbClusterCloneRulesFlowParamBuilder
-
-    @property
-    def need_itsm(self):
-        return False
-
-    @property
-    def need_manual_confirm(self):
-        return False
+    default_need_itsm = False
+    default_need_manual_confirm = False
 
 
 @builders.BuilderFactory.register(TicketType.TENDBCLUSTER_INSTANCE_CLONE_RULES)

@@ -60,6 +60,7 @@ class CloudDBHAReplaceFlowBuilder(BaseCloudTicketFlowBuilder):
     serializer = CloudDBHAReplaceDetailSerializer
     inner_flow_builder = CloudDBHAReplaceFlowParamBuilder
     inner_flow_name = _("DBHA 服务替换")
+    editable = False
 
     @property
     def need_itsm(self):

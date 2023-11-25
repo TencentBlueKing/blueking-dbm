@@ -204,3 +204,7 @@ class TendbChecksumFlowBuilder(MySQLChecksumFlowBuilder):
 
     def custom_ticket_flows(self):
         return super().custom_ticket_flows()
+
+    @classmethod
+    def describe_ticket_flows(cls, flow_config_map):
+        return super().describe_ticket_flows(flow_config_map)

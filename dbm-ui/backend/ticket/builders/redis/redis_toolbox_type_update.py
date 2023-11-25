@@ -102,7 +102,3 @@ class RedisTypeUpdateFlowBuilder(BaseRedisTicketFlowBuilder):
     inner_flow_builder = RedisTypeUpdateParamBuilder
     inner_flow_name = _("Redis 集群类型变更")
     resource_batch_apply_builder = RedisTypeUpdateResourceParamBuilder
-
-    @property
-    def need_itsm(self):
-        return True

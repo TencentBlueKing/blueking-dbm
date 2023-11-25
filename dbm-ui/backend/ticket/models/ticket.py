@@ -25,6 +25,7 @@ from backend.ticket.constants import (
     EXCLUSIVE_TICKET_EXCEL_PATH,
     FlowRetryType,
     FlowType,
+    FlowTypeConfig,
     TicketFlowStatus,
     TicketStatus,
     TicketType,
@@ -198,6 +199,20 @@ class Ticket(AuditedModel):
             TicketFlowManager(ticket=ticket).run_next_flow()
 
         return ticket
+
+
+class TicketFlowConfig(AuditedModel):
+    """
+    单据流程配置，暂时只可配置单据审批、人工确认
+    """
+
+    ticket_type = models.CharField(_("单据类型"), choices=TicketType.get_choices(), max_length=128, primary_key=True)
+    group = models.CharField(_("单据分组类型"), choices=DBType.get_choices(), max_length=LEN_NORMAL)
+    editable = models.BooleanField(_("是否支持用户配置"))
+    configs = models.JSONField(_("单据配置 eg: {'need_itsm': false, 'need_manual_confirm': false}"), default=dict)
+
+    class Meta:
+        indexes = [models.Index(fields=["group"])]
 
 
 class ClusterOperateRecordManager(models.Manager):

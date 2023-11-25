@@ -59,11 +59,3 @@ class RedisDataStructureTaskDeleteFlowBuilder(BaseRedisTicketFlowBuilder):
     inner_flow_builder = RedisDataStructureTaskDeleteParamBuilder
     inner_flow_name = _("Redis 销毁构造实例")
     pause_node_builder = RedisBasePauseParamBuilder
-
-    @property
-    def need_manual_confirm(self):
-        return True
-
-    @property
-    def need_itsm(self):
-        return False
