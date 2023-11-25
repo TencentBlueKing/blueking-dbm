@@ -16,11 +16,12 @@ RUN set -ex && \
 
 
 ENV DOWNLOAD_URL=https://github.com/TencentBlueKing/blueking-dbm/releases/download
+ENV VERSION=v1.0.0
 
 ## 获取二进制介质，将静态介质存放到/toolkit目录
 RUN set -ex && \
     mkdir /toolkit && cd /toolkit && \
-    wget -qO dbbackup-go-deps-community.tar.gz ${DOWNLOAD_URL}/v1.0.0/dbbackup-go-deps-community.tar.gz && \
-    wget -qO bind.tar.gz ${DOWNLOAD_URL}/v1.0.0/bind.tar.gz && \
-    wget -qO nginx-portable.tgz ${DOWNLOAD_URL}/v1.0.0/nginx-portable.tgz && \
-    wget -qO tmysqlparse ${DOWNLOAD_URL}/v1.0.0/tmysqlparse
+    wget -qO dbbackup-go-deps-community.tar.gz ${DOWNLOAD_URL}/${VERSION}/dbbackup-go-deps-community.tar.gz && \
+    wget -qO bind.tar.gz ${DOWNLOAD_URL}/${VERSION}/bind.tar.gz && \
+    wget -qO nginx-portable.tgz ${DOWNLOAD_URL}/${VERSION}/nginx-portable.tgz && \
+    wget -qO tmysqlparse ${DOWNLOAD_URL}/${VERSION}/tmysqlparse
