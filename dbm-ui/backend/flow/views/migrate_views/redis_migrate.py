@@ -11,8 +11,10 @@ specific language governing permissions and limitations under the License.
 import logging
 import uuid
 
+from rest_framework import serializers
 from rest_framework.response import Response
 
+from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.flow.engine.controller.redis import RedisController
 from backend.flow.views.base import MigrateFlowView
 
@@ -25,6 +27,7 @@ class RedisClusterMigratePrecheck(MigrateFlowView):
     """
 
     @staticmethod
+    @common_swagger_auto_schema(request_body=serializers.Serializer())
     def post(request):
         root_id = uuid.uuid1().hex
         RedisController(root_id=root_id, ticket_data=request.data).redis_cluster_migrate_precheck()
@@ -37,6 +40,7 @@ class RedisClusterMigrateLoad(MigrateFlowView):
     """
 
     @staticmethod
+    @common_swagger_auto_schema(request_body=serializers.Serializer())
     def post(request):
         root_id = uuid.uuid1().hex
         RedisController(root_id=root_id, ticket_data=request.data).redis_cluster_migrate_load()
@@ -49,6 +53,7 @@ class RedisClusterMigrateCompair(MigrateFlowView):
     """
 
     @staticmethod
+    @common_swagger_auto_schema(request_body=serializers.Serializer())
     def post(request):
         root_id = uuid.uuid1().hex
         RedisController(root_id=root_id, ticket_data=request.data).redis_cluster_migrate_compair()
