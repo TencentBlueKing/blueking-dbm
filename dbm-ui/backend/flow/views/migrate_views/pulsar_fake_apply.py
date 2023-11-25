@@ -11,8 +11,10 @@ specific language governing permissions and limitations under the License.
 import logging
 import uuid
 
+from rest_framework import serializers
 from rest_framework.response import Response
 
+from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.flow.engine.controller.pulsar import PulsarController
 from backend.flow.views.base import FlowTestView, MigrateFlowView
 
@@ -95,6 +97,7 @@ class FakeInstallPulsarSceneApiView(MigrateFlowView):
     }
     """
 
+    @common_swagger_auto_schema(request_body=serializers.Serializer())
     def post(self, request):
         logger.info("Begin fake apply Pulsar scene")
 
