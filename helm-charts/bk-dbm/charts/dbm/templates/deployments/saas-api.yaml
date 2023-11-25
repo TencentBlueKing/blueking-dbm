@@ -41,7 +41,7 @@ spec:
             - /bin/bash
             - -c
           args:
-            - gunicorn wsgi -b :8000 -c etc/gunicorn.py --access-logfile - --error-logfile -
+            - gunicorn wsgi -w {{ .Values.saas.api.gunicornWorker }} -b :8000 --access-logfile - --error-logfile - --access-logformat '[%(h)s] %({request_id}i)s %(u)s %(t)s "%(r)s" %(s)s %(D)s %(b)s "%(f)s" "%(a)s"'
           ports:
             - name: http
               containerPort: 8000
