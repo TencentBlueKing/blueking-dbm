@@ -8,6 +8,8 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import base64
+
 from django.utils.decorators import method_decorator
 from django.utils.translation import ugettext as _
 from rest_framework import status
@@ -15,12 +17,12 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from backend.bk_web.swagger import common_swagger_auto_schema
-from backend.components import DBConfigApi
+from backend.components import DBConfigApi, MySQLPrivManagerApi
 from backend.components.dbconfig.constants import FormatType, LevelName
 from backend.db_meta.models import Cluster
 from backend.db_services.dbbase.resources import serializers, viewsets
 from backend.db_services.redis.resources import constants
-from backend.flow.consts import DEFAULT_DB_MODULE_ID, ConfigTypeEnum
+from backend.flow.consts import DEFAULT_DB_MODULE_ID, ConfigTypeEnum, MySQLPrivComponent, NameSpaceEnum, UserName
 
 from . import yasg_slz
 from .query import ListRetrieveResource
@@ -101,18 +103,32 @@ class RedisClusterViewSet(viewsets.ResourceViewSet):
         """获取集群密码（proxy）"""
         cluster = Cluster.objects.get(id=cluster_id, bk_biz_id=bk_biz_id)
 
-        resp = DBConfigApi.query_conf_item(
-            params={
-                "bk_biz_id": str(bk_biz_id),
-                "level_name": LevelName.CLUSTER,
-                "level_value": cluster.immute_domain,
-                "level_info": {"module": str(DEFAULT_DB_MODULE_ID)},
-                "conf_file": cluster.proxy_version,
-                "conf_type": ConfigTypeEnum.ProxyConf,
-                "namespace": cluster.cluster_type,
-                "format": FormatType.MAP,
-            }
-        )
+        cluster_port = cluster.proxyinstance_set.first().port
+        query_params = {
+            "instances": [{"ip": str(cluster.id), "port": cluster_port, "bk_cloud_id": cluster.bk_cloud_id}],
+            "users": [
+                {"username": UserName.REDIS_DEFAULT.value, "component": MySQLPrivComponent.REDIS_PROXY.value},
+            ],
+        }
+
+        # todo: 兼容未接入密码服务的集群，迁移后移除
+        resp = MySQLPrivManagerApi.get_password(query_params)
+        if resp.get("count") > 0:
+            password = base64.b64decode(resp["items"][0]["password"]).decode("utf-8")
+        else:
+            resp = DBConfigApi.query_conf_item(
+                params={
+                    "bk_biz_id": str(bk_biz_id),
+                    "level_name": LevelName.CLUSTER,
+                    "level_value": cluster.immute_domain,
+                    "level_info": {"module": str(DEFAULT_DB_MODULE_ID)},
+                    "conf_file": cluster.proxy_version,
+                    "conf_type": ConfigTypeEnum.ProxyConf,
+                    "namespace": cluster.cluster_type,
+                    "format": FormatType.MAP,
+                }
+            )
+            password = resp["content"].get("password")
 
         proxy = cluster.proxyinstance_set.first()
 
@@ -120,6 +136,6 @@ class RedisClusterViewSet(viewsets.ResourceViewSet):
             {
                 "cluster_name": cluster.name,
                 "domain": f"{cluster.immute_domain}:{proxy.port}",
-                "password": resp["content"].get("password"),
+                "password": password,
             }
         )

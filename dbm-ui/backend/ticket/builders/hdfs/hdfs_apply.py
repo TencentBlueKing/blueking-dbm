@@ -121,7 +121,7 @@ class HdfsApplyFlowParamBuilder(builders.FlowParamBuilder):
             {
                 "http_port": HDFS_DEFAULT_HTTP_PORT,
                 "rpc_port": HDFS_DEFAULT_RPC_PORT,
-                "haproxy_passwd": haproxy_passwd,
+                "password": haproxy_passwd,
                 "domain": f"hdfs.{self.ticket_data['cluster_name']}.{self.ticket_data['db_app_abbr']}.db",
             }
         )

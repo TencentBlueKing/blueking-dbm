@@ -8,6 +8,8 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import base64
+
 from django.utils.decorators import method_decorator
 from django.utils.translation import ugettext as _
 from django_filters import rest_framework as filters
@@ -17,11 +19,12 @@ from rest_framework.response import Response
 
 from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.bk_web.viewsets import AuditedModelViewSet, SystemViewSet
-from backend.components import DBConfigApi
+from backend.components import DBConfigApi, MySQLPrivManagerApi
 from backend.components.dbconfig.constants import FormatType, LevelName
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models.cluster import Cluster
-from backend.flow.consts import ConfigTypeEnum, LevelInfoEnum
+from backend.flow.consts import ConfigTypeEnum, LevelInfoEnum, UserName
+from backend.flow.utils.pulsar.consts import PulsarConfigEnum
 
 from ...dbbase.resources.constants import ResourceNodeType
 from ...dbbase.resources.serializers import ClusterSLZ, SearchResourceTreeSLZ
@@ -76,6 +79,21 @@ class ListResourceViewSet(AuditedModelViewSet):
 
 
 class ResourceViewSet(BaseResourceViewSet):
+    def _get_password(cls, cluster, username, port=0):
+        """查询密码"""
+        query_params = {
+            "instances": [{"ip": cluster.immute_domain, "port": port, "bk_cloud_id": cluster.bk_cloud_id}],
+            "users": [
+                {"username": username, "component": cluster.cluster_type},
+            ],
+        }
+
+        resp = MySQLPrivManagerApi.get_password(query_params)
+        if resp.get("count") > 0:
+            return base64.b64decode(resp["items"][0]["password"]).decode("utf-8")
+
+        return ""
+
     @common_swagger_auto_schema(
         operation_summary=_("获取集群访问密码"),
         responses={status.HTTP_200_OK: yasg_slz.PasswordResourceSLZ},
@@ -87,32 +105,49 @@ class ResourceViewSet(BaseResourceViewSet):
         获取集群密码相关信息
         """
         cluster = Cluster.objects.get(id=cluster_id)
-        resp = DBConfigApi.query_conf_item(
-            params={
-                "bk_biz_id": str(bk_biz_id),
-                "level_name": LevelName.CLUSTER,
-                "level_value": cluster.immute_domain,
-                "level_info": {"module": LevelInfoEnum.TendataModuleDefault},
-                "conf_file": cluster.major_version,
-                "conf_type": ConfigTypeEnum.DBConf,
-                "namespace": cluster.cluster_type,
-                "format": FormatType.MAP,
-            }
-        )
 
-        resp_content = resp.get("content", {})
+        username, password, token = "", "", ""
+
+        # 查询真实账户
+        if cluster.cluster_type == ClusterType.Hdfs.value:
+            username = UserName.HDFS_DEFAULT
+        else:
+            username = self._get_password(cluster, f"{cluster.cluster_type}_user")
+
+        # 根据真实账户获取密码
+        password = self._get_password(cluster, username)
 
         # only for pulsar cluster
-        token = ""
         if cluster.cluster_type == ClusterType.Pulsar:
-            token = resp_content.get("broker.brokerClientAuthenticationParameters")
+            token = self._get_password(cluster, PulsarConfigEnum.ClientAuthenticationParameters)
+
+        if not (username and password):
+            resp = DBConfigApi.query_conf_item(
+                params={
+                    "bk_biz_id": str(bk_biz_id),
+                    "level_name": LevelName.CLUSTER,
+                    "level_value": cluster.immute_domain,
+                    "level_info": {"module": LevelInfoEnum.TendataModuleDefault},
+                    "conf_file": cluster.major_version,
+                    "conf_type": ConfigTypeEnum.DBConf,
+                    "namespace": cluster.cluster_type,
+                    "format": FormatType.MAP,
+                }
+            )
+
+            resp_content = resp.get("content", {})
+            username, password = resp_content.get("username"), resp_content.get("password")
+
+            # only for pulsar cluster
+            if cluster.cluster_type == ClusterType.Pulsar:
+                token = resp_content.get("broker.brokerClientAuthenticationParameters")
 
         return Response(
             {
                 "cluster_name": cluster.name,
                 "domain": cluster.immute_domain,
-                "password": resp_content.get("password"),
-                "username": resp_content.get("username"),
+                "password": password,
+                "username": username,
                 "token": token,
             }
         )
