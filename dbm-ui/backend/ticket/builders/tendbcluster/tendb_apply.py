@@ -144,7 +144,3 @@ class TenDBClusterApplyFlowBuilder(BaseTendbTicketFlowBuilder):
         )
 
         self.ticket.save(update_fields=["details"])
-
-    @property
-    def need_itsm(self):
-        return True

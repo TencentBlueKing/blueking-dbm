@@ -85,6 +85,7 @@ class MysqlSqlImportFlowParamBuilder(builders.FlowParamBuilder):
 @builders.BuilderFactory.register(TicketType.MYSQL_IMPORT_SQLFILE)
 class MysqlSqlImportFlowBuilder(BaseMySQLTicketFlowBuilder):
     serializer = MysqlSqlImportDetailSerializer
+    editable = False
 
     @classmethod
     def patch_sqlimport_ticket_detail(cls, ticket, cluster_type):
@@ -175,3 +176,8 @@ class MysqlSqlImportFlowBuilder(BaseMySQLTicketFlowBuilder):
 
         Flow.objects.bulk_create(flows)
         return list(Flow.objects.filter(ticket=self.ticket))
+
+    @classmethod
+    def describe_ticket_flows(cls, flow_config_map):
+        flow_desc = [_("SQL模拟执行状态查询"), _("单据审批"), _("库表备份(可选)"), _("变更SQL执行")]
+        return flow_desc

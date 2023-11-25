@@ -55,7 +55,3 @@ class RedisPurgeFlowBuilder(BaseRedisTicketFlowBuilder):
     inner_flow_builder = RedisPurgeFlowParamBuilder
     inner_flow_name = _("集群清档")
     pause_node_builder = RedisBasePauseParamBuilder
-
-    @property
-    def need_manual_confirm(self):
-        return True

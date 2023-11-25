@@ -41,6 +41,7 @@ class CloudDNSReloadFlowBuilder(BaseCloudTicketFlowBuilder):
     serializer = CloudDNSReloadDetailSerializer
     inner_flow_builder = CloudDNSReloadFlowParamBuilder
     inner_flow_name = _("DNS 服务重装")
+    editable = False
 
     @property
     def need_itsm(self):

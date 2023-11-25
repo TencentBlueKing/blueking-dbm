@@ -16,8 +16,6 @@ from typing import Any, Dict, List, Optional, Tuple
 from django.utils.translation import ugettext as _
 
 from backend.components.mysql_priv_manager.client import MySQLPrivManagerApi
-from backend.configuration.handlers.password import DBPasswordHandler
-from backend.configuration.models.password_policy import PasswordPolicy
 from backend.core.encrypt.constants import AsymmetricCipherConfigType
 from backend.core.encrypt.handlers import AsymmetricHandler
 from backend.db_services.mysql.open_area.models import TendbOpenAreaConfig

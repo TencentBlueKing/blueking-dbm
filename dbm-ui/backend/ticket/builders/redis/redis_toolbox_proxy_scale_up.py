@@ -56,7 +56,3 @@ class ProxyScaleUpFlowBuilder(BaseRedisTicketFlowBuilder):
     inner_flow_builder = ProxyScaleUpParamBuilder
     inner_flow_name = _("Proxy扩容")
     resource_batch_apply_builder = ProxyScaleUpResourceParamBuilder
-
-    @property
-    def need_itsm(self):
-        return False

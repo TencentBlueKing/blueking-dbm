@@ -217,3 +217,9 @@ class MySQLChecksumFlowBuilder(BaseMySQLTicketFlowBuilder):
             )
 
         return flows
+
+    @classmethod
+    def describe_ticket_flows(cls, flow_config_map):
+        flow_desc = cls._add_itsm_pause_describe(flow_desc=[], flow_config_map=flow_config_map)
+        flow_desc.extend([_("数据校验执行"), _("人工确认"), _("数据修复执行")])
+        return flow_desc

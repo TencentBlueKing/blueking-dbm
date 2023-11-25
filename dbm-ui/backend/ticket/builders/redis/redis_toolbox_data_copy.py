@@ -132,7 +132,3 @@ class RedisDataCopyFlowBuilder(BaseRedisTicketFlowBuilder):
     inner_flow_builder = RedisDataCopyParamBuilder
     inner_flow_name = _("Redis 数据复制")
     resource_batch_apply_builder = RedisDataCopyResourceParamBuilder
-
-    @property
-    def need_itsm(self):
-        return False

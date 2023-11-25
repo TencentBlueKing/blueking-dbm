@@ -49,7 +49,3 @@ class TendbFlashbackFlowBuilder(BaseTendbTicketFlowBuilder):
     inner_flow_name = _("TenDB Cluster 闪回执行")
     retry_type = FlowRetryType.MANUAL_RETRY
     pause_node_builder = TendbBasePauseParamBuilder
-
-    @property
-    def need_manual_confirm(self):
-        return True

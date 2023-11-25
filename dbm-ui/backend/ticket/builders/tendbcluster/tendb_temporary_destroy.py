@@ -66,3 +66,9 @@ class TendbDestroyFlowBuilder(BaseTendbTicketFlowBuilder):
             ),
         ]
         return flows
+
+    @classmethod
+    def describe_ticket_flows(cls, flow_config_map):
+        flow_desc = cls._add_itsm_pause_describe(flow_desc=[], flow_config_map=flow_config_map)
+        flow_desc.extend([_("TenDBCluster 临时集群下架"), _("TenDBCluster 临时集群销毁")])
+        return flow_desc

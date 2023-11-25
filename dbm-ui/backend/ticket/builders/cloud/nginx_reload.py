@@ -47,6 +47,7 @@ class CloudNginxReloadFlowBuilder(BaseCloudTicketFlowBuilder):
     serializer = CloudNginxReloadDetailSerializer
     inner_flow_builder = CloudNginxReloadFlowParamBuilder
     inner_flow_name = _("Nginx 服务重装")
+    editable = False
 
     @property
     def need_itsm(self):

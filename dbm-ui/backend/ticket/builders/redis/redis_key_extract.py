@@ -85,7 +85,4 @@ class RedisKeyExtractFlowBuilder(BaseRedisTicketFlowBuilder):
     serializer = RedisKeyExtractDetailSerializer
     inner_flow_builder = RedisKeyExtractFlowParamBuilder
     inner_flow_name = _("提取Key")
-
-    @property
-    def need_itsm(self):
-        return False
+    default_need_itsm = False

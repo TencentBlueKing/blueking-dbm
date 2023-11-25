@@ -50,6 +50,7 @@ class CloudDNSReduceFlowBuilder(BaseCloudTicketFlowBuilder):
     serializer = CloudDNSReduceDetailSerializer
     inner_flow_builder = CloudDNSReduceFlowParamBuilder
     inner_flow_name = _("DNS 服务裁撤")
+    editable = False
 
     @property
     def need_itsm(self):

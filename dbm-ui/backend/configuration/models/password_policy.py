@@ -11,16 +11,12 @@ specific language governing permissions and limitations under the License.
 
 from typing import Optional
 
-from bkcrypto.contrib.django.fields import SymmetricTextField
 from django.db import models
 from django.utils.translation import ugettext_lazy as _
 
-from backend.bk_web.constants import LEN_LONG, LEN_NORMAL, LEN_SHORT
-from backend.bk_web.models import AuditedModel
-from backend.configuration.constants import INIT_PASSWORD_POLICY, DBType
-from backend.db_meta.enums import ClusterType
+from backend.bk_web.constants import LEN_SHORT
+from backend.configuration.constants import INIT_PASSWORD_POLICY
 from backend.db_services.mysql.permission.constants import AccountType
-from backend.ticket.models import Ticket
 
 
 class PasswordPolicy(models.Model):

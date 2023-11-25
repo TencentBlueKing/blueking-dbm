@@ -67,14 +67,8 @@ class MySQLClientCloneRulesFlowBuilder(BaseMySQLTicketFlowBuilder):
     serializer = MySQLCloneRulesSerializer
     inner_flow_builder = MySQLCloneRulesFlowParamBuilder
     inner_flow_name = _("客户端权限克隆执行")
-
-    @property
-    def need_itsm(self):
-        return False
-
-    @property
-    def need_manual_confirm(self):
-        return False
+    default_need_itsm = False
+    default_need_manual_confirm = False
 
     def patch_ticket_detail(self):
         if "clone_uid" in self.ticket.details:

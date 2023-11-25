@@ -70,7 +70,3 @@ class RedisMasterSlaveSwitchFlowBuilder(BaseRedisTicketFlowBuilder):
     serializer = RedisMasterSlaveSwitchDetailSerializer
     inner_flow_builder = RedisMasterSlaveSwitchParamBuilder
     inner_flow_name = _("Redis 主从切换")
-
-    @property
-    def need_itsm(self):
-        return False

@@ -98,8 +98,3 @@ class MysqlProxySwitchFlowBuilder(BaseMySQLTicketFlowBuilder):
     resource_batch_apply_builder = MysqlProxySwitchResourceParamBuilder
     retry_type = FlowRetryType.MANUAL_RETRY
     pause_node_builder = MySQLBasePauseParamBuilder
-
-    @property
-    def need_manual_confirm(self):
-        # 需要审批后的人工确认
-        return True

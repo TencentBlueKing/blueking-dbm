@@ -70,7 +70,7 @@ class MySQLFlashbackFlowParamBuilder(builders.FlowParamBuilder):
 
 
 @builders.BuilderFactory.register(TicketType.MYSQL_FLASHBACK)
-class MysqlSingleDestroyFlowBuilder(BaseMySQLTicketFlowBuilder):
+class MySQLFlashbackFlowBuilder(BaseMySQLTicketFlowBuilder):
     serializer = MySQLFlashbackDetailSerializer
     inner_flow_builder = MySQLFlashbackFlowParamBuilder
     inner_flow_name = _("闪回执行")

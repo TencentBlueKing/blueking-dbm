@@ -16,9 +16,10 @@ from rest_framework import serializers
 
 from backend.bk_web.constants import LEN_MIDDLE
 from backend.bk_web.serializers import AuditedSerializer, TranslationSerializerMixin
+from backend.configuration.constants import DBType
 from backend.ticket import mock_data
 from backend.ticket.builders import BuilderFactory
-from backend.ticket.constants import CountType, TicketStatus, TicketType, TodoStatus
+from backend.ticket.constants import CountType, FlowTypeConfig, TicketStatus, TicketType, TodoStatus
 from backend.ticket.flow_manager.manager import TicketFlowManager
 from backend.ticket.models import Flow, Ticket, Todo
 from backend.ticket.yasg_slz import todo_operate_example
@@ -231,6 +232,36 @@ class InstanceModifyOpSerializer(serializers.Serializer):
     end_time = serializers.DateTimeField(help_text=_("查询终止时间"), required=False)
     op_type = serializers.ChoiceField(help_text=_("操作类型"), choices=TicketType.get_choices(), required=False)
     op_status = serializers.ChoiceField(help_text=_("操作状态"), choices=TicketStatus.get_choices(), required=False)
+
+
+class QueryTicketFlowDescribeSerializer(serializers.Serializer):
+    db_type = serializers.ChoiceField(help_text=_("单据分组类型"), choices=DBType.get_choices())
+    ticket_types = serializers.CharField(help_text=_("单据类型"), default=False)
+
+    def validate(self, attrs):
+        if attrs.get("ticket_types"):
+            attrs["ticket_types"] = attrs["ticket_types"].split(",")
+        return attrs
+
+
+class UpdateTicketFlowConfigSerializer(serializers.Serializer):
+    ticket_types = serializers.ListField(
+        help_text=_("单据类型"), child=serializers.ChoiceField(choices=TicketType.get_choices())
+    )
+    configs = serializers.DictField(help_text=_("单据可配置项"))
+
+
+class TicketFlowDescribeDetailSerializer(serializers.Serializer):
+    flow_desc = serializers.ListField(help_text=_("单据流程描述"), child=serializers.CharField())
+    db_type = serializers.ChoiceField(help_text=_("单据分组类型"), choices=DBType.get_choices())
+    ticket_type = serializers.ChoiceField(help_text=_("单据类型"), choices=TicketType.get_choices())
+    need_itsm = serializers.BooleanField(help_text=_("是否需要单据审批"))
+    need_manual_confirm = serializers.BooleanField(help_text=_("是否需要人工确认"))
+
+
+TicketFlowDescribeSerializer = serializers.ListSerializer(
+    help_text=_("单据流程描述"), child=TicketFlowDescribeDetailSerializer()
+)
 
 
 class FastCreateCloudComponentSerializer(serializers.Serializer):

@@ -78,11 +78,4 @@ class RedisBackupFlowBuilder(BaseRedisTicketFlowBuilder):
     inner_flow_builder = RedisBackupFlowParamBuilder
     inner_flow_name = _("集群备份")
     pause_node_builder = RedisBasePauseParamBuilder
-
-    @property
-    def need_manual_confirm(self):
-        return True
-
-    @property
-    def need_itsm(self):
-        return False
+    default_need_itsm = False

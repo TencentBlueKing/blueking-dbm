@@ -103,7 +103,7 @@ class TenDBClusterApplyCopyResourceParamBuilder(TenDBClusterApplyResourceParamBu
 
 
 @builders.BuilderFactory.register(TicketType.TENDBCLUSTER_ROLLBACK_CLUSTER, is_apply=True)
-class MysqlFixPointRollbackFlowBuilder(BaseTendbTicketFlowBuilder):
+class TendbFixPointRollbackFlowBuilder(BaseTendbTicketFlowBuilder):
     serializer = TendbFixPointRollbackDetailSerializer
 
     def get_machine_spec(self, machine_infos):
@@ -213,3 +213,9 @@ class MysqlFixPointRollbackFlowBuilder(BaseTendbTicketFlowBuilder):
             ),
         ]
         return flows
+
+    @classmethod
+    def describe_ticket_flows(cls, flow_config_map):
+        flow_desc = cls._add_itsm_pause_describe(flow_desc=[], flow_config_map=flow_config_map)
+        flow_desc.extend([_("资源申请"), _("回档临时集群部署"), _("TenDBCluster 回档执行"), _("资源确认")])
+        return flow_desc

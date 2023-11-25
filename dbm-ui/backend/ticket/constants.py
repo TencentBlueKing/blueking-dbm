@@ -330,7 +330,7 @@ class FlowType(str, StructuredEnum):
     # 内建结果忽略执行流程
     IGNORE_RESULT_INNER_FLOW = EnumField("IGNORE_RESULT_INNER_FLOW", _("结果忽略执行"))
     # 暂停节点
-    PAUSE = EnumField("PAUSE", _("暂停"))
+    PAUSE = EnumField("PAUSE", _("人工确认"))
     # 交付节点，仅作为流程结束的标志
     DELIVERY = EnumField("DELIVERY", _("交付"))
     # 描述节点，描述触发创建该单据的任务信息
@@ -345,6 +345,15 @@ class FlowType(str, StructuredEnum):
     RESOURCE_BATCH_APPLY = EnumField("RESOURCE_BATCH_APPLY", _("资源批量申请"))
     # 资源批量交付节点
     RESOURCE_BATCH_DELIVERY = EnumField("RESOURCE_BATCH_DELIVERY", _("资源批量交付"))
+
+
+class FlowTypeConfig(str, StructuredEnum):
+    """可配置的流程类型枚举。注：请流程触发顺序，倒序定义配置项"""
+
+    # 是否支持人工确认
+    NEED_MANUAL_CONFIRM = EnumField("need_manual_confirm", _("人工确认"))
+    # 是否支持审批
+    NEED_ITSM = EnumField("need_itsm", _("单据审批"))
 
 
 class FlowCallbackType(str, StructuredEnum):

@@ -68,8 +68,5 @@ class MysqlPartitionFlowBuilder(BaseMySQLTicketFlowBuilder):
     serializer = MySQLPartitionDetailSerializer
     inner_flow_builder = MySQLPartitionParamBuilder
     inner_flow_name = _("分区管理执行")
-
-    @property
-    def need_itsm(self):
-        # TODO：先不考虑执行的分区审批
-        return False
+    default_need_itsm = False
+    default_need_manual_confirm = False

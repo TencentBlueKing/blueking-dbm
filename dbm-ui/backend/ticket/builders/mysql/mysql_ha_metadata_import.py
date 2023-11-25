@@ -230,7 +230,3 @@ class MySQLHaFullBackupFlowBuilder(BaseMySQLTicketFlowBuilder):
     inner_flow_builder = MySQLHaMetadataImportFlowParamBuilder
     inner_flow_name = _("MySQL高可用元数据导入")
     retry_type = FlowRetryType.MANUAL_RETRY
-
-    @property
-    def need_manual_confirm(self):
-        return True

@@ -101,6 +101,7 @@ class RedisDtsServiceApplyFlowParamBuilder(CloudServiceApplyFlowParamBuilder):
 @builders.BuilderFactory.register(TicketType.CLOUD_SERVICE_APPLY)
 class CloudServiceApplyFlowBuilder(BaseCloudTicketFlowBuilder):
     serializer = CloudServiceApplyDetailSerializer
+    editable = False
 
     def init_ticket_flows(self):
         flows = [
@@ -142,3 +143,8 @@ class CloudServiceApplyFlowBuilder(BaseCloudTicketFlowBuilder):
 
         Flow.objects.bulk_create(flows)
         return list(Flow.objects.filter(ticket=self.ticket))
+
+    @classmethod
+    def describe_ticket_flows(cls, flow_config_map):
+        flow_desc = [_("Nginx 服务部署"), _("DNS 服务部署"), _("DRS 服务部署"), _("DBHA 服务部署")]
+        return flow_desc
