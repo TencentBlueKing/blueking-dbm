@@ -54,7 +54,7 @@
       </div>
       <InstanceSelector
         v-model:is-show="isShowMasterInstanceSelector"
-        :panel-list="['tendbha', 'manualInput']"
+        :panel-list="panelList"
         role="master"
         @change="handelMasterProxyChange" />
       <BatchEntry
@@ -135,6 +135,16 @@
     is_verify_checksum: false,
     is_check_delay: false,
   });
+
+  const panelList = [
+    {
+      id: 'tendbha',
+      title: t('故障主库主机'),
+    },
+    {
+      id: 'manualInput',
+      title: t('手动输入'),
+    }];
 
   // 批量录入
   const handleShowBatchEntry = () => {

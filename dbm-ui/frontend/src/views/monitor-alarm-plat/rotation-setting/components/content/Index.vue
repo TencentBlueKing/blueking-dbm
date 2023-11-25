@@ -205,7 +205,7 @@
         const peoples = [...peopleSet].join(' , ');
         return (
           <div class="rotate-table-column">
-            <bk-popover placement="bottom" theme="light" width={780} popoverDelay={40}>
+            <bk-popover placement="bottom" theme="light" width={780} popoverDelay={[500, 50]}>
               {{
                 default: () => (
                   <div class="display-text">{title}: {peoples}</div>

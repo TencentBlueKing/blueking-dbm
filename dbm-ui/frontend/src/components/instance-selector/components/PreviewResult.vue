@@ -70,12 +70,13 @@
   import { messageWarn } from '@utils';
 
   import type { IValue } from '../common/types';
-  import { textMap } from '../common/utils';
   import CollapseMini from '../components/CollapseMini.vue';
   import type { InstanceSelectorValues } from '../Index.vue';
 
+  import type { PanelTypes } from './PanelTab.vue';
   interface Props {
     lastValues: InstanceSelectorValues
+    panelList: Array<PanelTypes>,
   }
 
   type Keys = keyof InstanceSelectorValues;
@@ -92,6 +93,11 @@
 
   const keys = computed(() => Object.keys(props.lastValues) as Keys[]);
   const isEmpty = computed(() => !keys.value.some(key => props.lastValues[key].length > 0));
+  const textMap = computed(() => props.panelList.reduce((results, item) => {
+    // eslint-disable-next-line no-param-reassign
+    results[item.id] = item.title;
+    return results;
+  }, {} as Record<string, string>));
 
   const handleClear = () => {
     emits('change', {

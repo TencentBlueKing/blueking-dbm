@@ -64,7 +64,7 @@
     </template>
     <InstanceSelector
       v-model:is-show="isShowInstanceSelecotr"
-      :panel-list="['tendbha', 'manualInput']"
+      :panel-list="panelList"
       role="slave"
       @change="handleInstancesChange" />
   </SmartAction>
@@ -100,6 +100,17 @@
   const isSubmitting  = ref(false);
 
   const tableData = shallowRef<Array<IDataRow>>([createRowData({})]);
+
+  const panelList = [
+    {
+      id: 'tendbha',
+      title: t('目标从库实例'),
+    },
+    {
+      id: 'manualInput',
+      title: t('手动输入'),
+    },
+  ];
 
   // 检测列表是否为空
   const checkListEmpty = (list: Array<IDataRow>) => {

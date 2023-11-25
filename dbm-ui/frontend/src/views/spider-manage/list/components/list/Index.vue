@@ -264,6 +264,26 @@
               {data.cluster_name}
             </bk-button>
           </div>
+          {data.temporary_info?.source_cluster && <bk-popover theme="light" placement="top" width={280}>
+            {{
+              default: () => <db-icon type="clone" style="color: #1CAB88;margin-left: 5px;cursor: pointer;"/>,
+              content: (
+                <div class="struct-cluster-source-popover">
+                  <div class="title">{t('构造集群')}</div>
+                  <div class="item-row">
+                    <div class="label">{t('构造源集群')}：</div>
+                    <div class="content">
+                      <bk-overflow-title type="tips">{data.temporary_info?.source_cluster}</bk-overflow-title>
+                      </div>
+                  </div>
+                  <div class="item-row">
+                    <div class="label">{t('关联单据')}：</div>
+                    <div class="content" style="color: #3A84FF;" onClick={() => handleClickRelatedTicket(data.temporary_info.ticket_id)}></div>
+                  </div>
+                </div>
+              ),
+            }}
+          </bk-popover>}
           <div class="cluster-tags">
             {
               data.operations.map(item => <RenderOperationTag class="cluster-tag" data={item} />)
@@ -607,6 +627,16 @@
   const handleOpenEntryConfig = (row: TendbClusterModel) => {
     showEditEntryConfig.value  = true;
     clusterId.value = row.id;
+  };
+
+  const handleClickRelatedTicket = (billId: number) => {
+    const route = router.resolve({
+      name: 'SelfServiceMyTickets',
+      query: {
+        filterId: billId,
+      },
+    });
+    window.open(route.href);
   };
 
   // 设置行样式
@@ -960,6 +990,7 @@
     }
   }
 }
+
 </style>
 
 <style lang="less">
@@ -978,5 +1009,38 @@
     margin-left: 0;
     flex: 0 0 50%;
   }
+}
+
+.struct-cluster-source-popover {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  gap: 12px;
+  padding: 2px 0;
+
+  .title {
+    font-size: 12px;
+    font-weight: 700;
+    color: #313238;
+  }
+
+  .item-row {
+    display: flex;
+    width: 100%;
+    align-items: center;
+    overflow: hidden;
+
+    .label {
+      width: 72px;
+      text-align: right;
+    }
+
+    .content {
+      flex: 1;
+      overflow: hidden;
+      cursor: pointer;
+    }
+  }
+
 }
 </style>

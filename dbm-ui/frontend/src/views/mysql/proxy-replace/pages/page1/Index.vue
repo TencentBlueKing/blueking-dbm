@@ -37,11 +37,10 @@
           @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
           @remove="handleRemove(index)" />
       </RenderData>
-      <div
-        v-bk-tooltips="$t('如忽略_在有连接的情况下Proxy也会执行替换')"
-        class="safe-action">
+      <div class="safe-action">
         <BkCheckbox
           v-model="isSafe"
+          v-bk-tooltips="$t('如忽略_在有连接的情况下Proxy也会执行替换')"
           :false-label="false"
           true-label>
           <span class="safe-action-text">{{ $t('忽略业务连接') }}</span>
@@ -49,7 +48,7 @@
       </div>
       <ProxySelector
         v-model:is-show="isShowBatchProxySelector"
-        :panel-list="['tendbha', 'manualInput']"
+        :panel-list="panelList"
         role="proxy"
         @change="handelProxySelectorChange" />
       <BatchEntry
@@ -83,6 +82,7 @@
     ref,
     shallowRef,
   } from 'vue';
+  import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
   import { createTicket } from '@services/source/ticket';
@@ -113,6 +113,7 @@
 
   const router = useRouter();
   const { currentBizId } = useGlobalBizs();
+  const { t } = useI18n();
 
   const rowRefs = ref();
   const isShowBatchProxySelector = ref(false);
@@ -121,6 +122,16 @@
   const isSafe = ref(false);
 
   const tableData = shallowRef<Array<IDataRow>>([createRowData({})]);
+
+  const panelList = [
+    {
+      id: 'tendbha',
+      title: t('目标Proxy'),
+    },
+    {
+      id: 'manualInput',
+      title: t('手动输入'),
+    }];
 
   // 批量录入
   const handleShowBatchEntry = () => {
