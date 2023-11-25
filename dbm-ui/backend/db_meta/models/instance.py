@@ -216,3 +216,9 @@ class ProxyInstance(InstanceMixin, AuditedModel):
     @property
     def instance_type(self):
         return InstanceType.PROXY.value
+
+    @property
+    def simple_desc(self):
+        desc = super().simple_desc
+        desc["admin_port"] = self.admin_port
+        return desc
