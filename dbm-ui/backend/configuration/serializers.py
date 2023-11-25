@@ -110,7 +110,7 @@ class ModifyMySQLAdminPasswordSerializer(serializers.Serializer):
         cluster_type = serializers.ChoiceField(help_text=_("集群类型"), choices=ClusterType.get_choices())
         role = serializers.CharField(help_text=_("实例角色"))
 
-    lock_until = serializers.CharField(help_text=_("密码到期时间"))
+    lock_hour = serializers.IntegerField(help_text=_("密码到期小时"))
     password = serializers.CharField(help_text=_("密码"))
     instance_list = serializers.ListSerializer(help_text=_("实例信息"), child=InstanceInfoSerializer())
 
