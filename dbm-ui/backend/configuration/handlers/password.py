@@ -89,7 +89,7 @@ class DBPasswordHandler(object):
         return mysql_admin_password_data
 
     @classmethod
-    def modify_mysql_admin_password(cls, operator: str, password: str, lock_until: str, instance_list: List[Dict]):
+    def modify_mysql_admin_password(cls, operator: str, password: str, lock_hour: int, instance_list: List[Dict]):
         """
         修改mysql的admin密码
         @param operator: 操作人
@@ -120,7 +120,7 @@ class DBPasswordHandler(object):
             "username": DBM_MYSQL_ADMIN_USER,
             "component": DBType.MySQL.value,
             "password": base64.b64encode(password.encode("utf-8")).decode("utf-8"),
-            "lock_until": lock_until,
+            "lock_hour": lock_hour,
             "operator": operator,
             "clusters": cluster_infos,
             "security_rule_name": DBM_PASSWORD_SECURITY_NAME,
