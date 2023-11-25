@@ -227,7 +227,7 @@
     modelValue.value = undefined;
     specData.value = {
       name: '',
-      futureCapacity: localFutureCapacity.value,
+      futureCapacity: 0,
     };
   });
 
@@ -270,7 +270,7 @@
     modelValue.value = data.spec_id;
     specData.value = {
       name: data.spec_name,
-      futureCapacity: localFutureCapacity.value,
+      futureCapacity: data.cluster_capacity,
     };
     emits('change', data.spec_id, data);
   };
