@@ -90,7 +90,7 @@ class KafkaDnsManageService(BaseService):
                 update_domain_name=kwargs["add_domain_name"],
             )
         else:
-            logger.error(_("无法适配到传入的域名处理类型,请联系系统管理员:{}").format(dns_op_type))
+            self.log_error(_("无法适配到传入的域名处理类型,请联系系统管理员:{}").format(dns_op_type))
             return False
         return result
 

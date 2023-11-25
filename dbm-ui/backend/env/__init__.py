@@ -60,7 +60,7 @@ BK_APIGW_STAGE_NAME = get_type_env(key="BK_APIGW_STAGE_NAME", _type=str, default
 BK_APIGW_GRANT_APPS = get_type_env(key="BK_APIGW_GRANT_APPS", _type=list, default=[])
 BK_APIGW_RESOURCE_DOCS_ARCHIVE_FILE = get_type_env(key="BK_APIGW_RESOURCE_DOCS_ARCHIVE_FILE", _type=str)
 
-ENVIRONMENT = get_type_env(key="BKPAAS_ENVIRONMENT", default="dev", _type=str)
+ENVIRONMENT = get_type_env(key="BKPAAS_ENVIRONMENT", default="prod", _type=str)
 
 # SaaS访问地址，用于用户访问/第三方应用跳转/Iframe/Grafana 等场景
 BK_SAAS_HOST = get_type_env(key="BK_SAAS_HOST", _type=str, default="http://bk-dbm")
@@ -146,9 +146,6 @@ CHART_VERSION = get_type_env(key="CHART_VERSION", _type=str, default="")
 FAKE_RESOURCE_APPLY_ENABLE = get_type_env(key="FAKE_RESOURCE_APPLY_ENABLE", _type=bool, default=False)
 # 资源池是否支持亲和性(暂不支持)
 RESOURCE_SUPPORT_AFFINITY = get_type_env(key="RESOURCE_SUPPORT_AFFINITY", _type=bool, default=False)
-
-# 备份系统是否开启
-BACKUP_SYSTEM_ENABLED = get_type_env(key="BACKUP_SYSTEM_ENABLED", _type=bool, default=False)
 
 # Agent版本: 1.0/2.0
 GSE_AGENT_VERSION = get_type_env(key="GSE_AGENT_VERSION", _type=str, default="1.0")
