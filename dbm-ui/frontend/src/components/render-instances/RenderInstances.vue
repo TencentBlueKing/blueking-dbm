@@ -18,9 +18,15 @@
       :key="inst.bk_instance_id"
       class="pt-2 pb-2"
       :class="{ 'is-unavailable': inst.status === 'unavailable' }">
-      <span class="pr-4">
+      <span
+        class="pr-4"
+        :style="{ color: highlightIps.includes(inst.ip) ? 'rgb(234 177 93)' : '#63656e' }">
         <slot :data="inst">
           {{ inst.ip }}:{{ inst.port }}
+          <!-- TODO: 待UI确认Icon -->
+          <!-- <DbIcon
+            v-if="inst.admin_port && inst.admin_port > 0"
+            type="warn-lightning" /> -->
         </slot>
       </span>
       <BkTag v-if="inst.status === 'unavailable'">
@@ -126,6 +132,7 @@
   import { messageWarn } from '@utils';
 
   interface InstanceData {
+    admin_port?: number,
     bk_instance_id: number,
     ip: string,
     name: string,
@@ -145,8 +152,11 @@
     data: Array<InstanceData>;
     clusterId: number,
     dataSource: (params: Record<string, any>) => Promise<ListBase<T[]>>,
+    highlightIps?: string[],
   }
-  const props = defineProps<Props>();
+  const props = withDefaults(defineProps<Props>(), {
+    highlightIps: () => ([]),
+  });
 
   const copy = useCopy();
   const globalBizsStore = useGlobalBizs();

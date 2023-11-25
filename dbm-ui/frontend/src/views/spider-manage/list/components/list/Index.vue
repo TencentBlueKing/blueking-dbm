@@ -207,7 +207,7 @@
   const isChangeShrinkForm = ref(false);
   const isChangeCapacityForm = ref(false);
   const removeMNTInstanceIds = ref<number[]>([]);
-  const searchValues = ref([]);
+  const searchValues = ref<Array<any>>([]);
   const operationData = shallowRef({} as TendbClusterModel);
   const excelAuthorizeShow = ref(false);
   const showEditEntryConfig = ref(false);
@@ -232,6 +232,13 @@
     }
     return 60;
   });
+  const searchIp = computed<string[]>(() => {
+    const ipObj = searchValues.value.find(item => item.id === 'ip');
+    if (ipObj) {
+      return [ipObj.values[0].id];
+    }
+    return [];
+  });
   const columns = computed(() => [
     {
       type: 'selection',
@@ -245,6 +252,35 @@
       field: 'id',
       fixed: 'left',
       width: 80,
+    },
+    {
+      label: t('主访问入口'),
+      field: 'master_domain',
+      fixed: 'left',
+      width: 200,
+      minWidth: 200,
+      showOverflowTooltip: false,
+      render: ({ data }: IColumn) => (
+        <div class="domain">
+          <span
+            class="text-overflow"
+            v-overflow-tips>
+            {data.master_domain || '--'}
+          </span>
+          {
+            data.master_domain && (
+              <db-icon
+                type="copy"
+                v-bk-tooltips={t('复制主访问入口')}
+                onClick={() => copy(data.master_domain)} />
+            )
+          }
+          {userProfileStore.isManager && <db-icon
+            type="edit"
+            v-bk-tooltips={t('修改入口配置')}
+            onClick={() => handleOpenEntryConfig(data)} />}
+        </div>
+      ),
     },
     {
       label: t('集群名称'),
@@ -311,33 +347,6 @@
       ),
     },
     {
-      label: t('主访问入口'),
-      field: 'master_domain',
-      minWidth: 200,
-      showOverflowTooltip: false,
-      render: ({ data }: IColumn) => (
-        <div class="domain">
-          <span
-            class="text-overflow"
-            v-overflow-tips>
-            {data.master_domain || '--'}
-          </span>
-          {
-            data.master_domain && (
-              <db-icon
-                type="copy"
-                v-bk-tooltips={t('复制主访问入口')}
-                onClick={() => copy(data.master_domain)} />
-            )
-          }
-          {userProfileStore.isManager && <db-icon
-            type="edit"
-            v-bk-tooltips={t('修改入口配置')}
-            onClick={() => handleOpenEntryConfig(data)} />}
-        </div>
-      ),
-    },
-    {
       label: t('从访问入口'),
       field: 'slave_domain',
       minWidth: 200,
@@ -390,6 +399,7 @@
         if (data.spider_master.length === 0) return '--';
         return (
           <RenderInstances
+            highlightIps={searchIp.value}
             data={data.spider_master}
             title={t('【inst】实例预览', {
               inst: data.master_domain, title: 'Spider Master',
@@ -410,6 +420,7 @@
         if (data.spider_slave.length === 0) return '--';
         return (
           <RenderInstances
+            highlightIps={searchIp.value}
             data={data.spider_slave}
             title={t('【inst】实例预览', {
               inst: data.master_domain, title: 'Spider slave',
@@ -430,6 +441,7 @@
         if (data.spider_mnt.length === 0) return '--';
         return (
           <RenderInstances
+            highlightIps={searchIp.value}
             data={data.spider_mnt}
             title={t('【inst】实例预览', {
               inst: data.master_domain, title: t('运维节点'),
@@ -450,6 +462,7 @@
         if (data.remote_db.length === 0) return '--';
         return (
           <RenderInstances
+            highlightIps={searchIp.value}
             data={data.remote_db}
             title={t('【inst】实例预览', { inst: data.master_domain, title: 'RemoteDB' })}
             role="remote_master"
@@ -476,6 +489,7 @@
         if (data.remote_dr.length === 0) return '--';
         return (
           <RenderInstances
+            highlightIps={searchIp.value}
             data={data.remote_dr}
             title={t('【inst】实例预览', { inst: data.master_domain, title: 'RemoteDR' })}
             role="remote_slave"
@@ -657,9 +671,10 @@
       field: item.field as string,
       disabled: ['cluster_name', 'master_domain'].includes(item.field as string),
     })),
-    checked: (columns.value || []).map(item => item.field).filter(key => !!key) as string[],
+    checked: (columns.value || []).map(item => item.field).filter(key => !!key && key !== 'id') as string[],
     showLineHeight: false,
   };
+
   const {
     settings,
     updateTableSettings,

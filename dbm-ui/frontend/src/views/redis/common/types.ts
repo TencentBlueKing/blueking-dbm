@@ -11,7 +11,7 @@
  * the specific language governing permissions and limitations under the License.
 */
 
-import type { ISearchValue } from 'bkui-vue/lib/search-select/utils';
+// import type { ISearchValue } from 'bkui-vue/lib/search-select/utils';
 
 import type { ResourceRedisItem } from '@services/types/clusters';
 
@@ -26,7 +26,14 @@ export interface RedisState {
   isLoading: boolean,
   data: ResourceRedisItem[],
   selected: ResourceRedisItem[],
-  searchValues: ISearchValue[],
+  searchValues: {
+    id: string,
+    name: string,
+    values: {
+      id: string,
+      name: string,
+    }[]
+  }[],
   pagination: IPagination,
 }
 

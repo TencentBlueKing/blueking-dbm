@@ -179,8 +179,29 @@
       width: 100,
     },
     {
-      label: t('集群名称'),
+      label: t('访问入口'),
+      field: 'domain',
+      width: 200,
       minWidth: 200,
+      fixed: 'left',
+      showOverflowTooltip: false,
+      render: ({ data }: {data: PulsarModel}) => (
+        <div class="domain">
+          <span
+            class="text-overflow"
+            v-overflow-tips>
+            {data.domain || '--'}
+          </span>
+          {userProfileStore.isManager && <db-icon
+            type="edit"
+            v-bk-tooltips={t('修改入口配置')}
+            onClick={() => handleOpenEntryConfig(data)} />}
+        </div>
+      ),
+    },
+    {
+      label: t('集群名称'),
+      minWidth: 100,
       fixed: 'left',
       showOverflowTooltip: false,
       render: ({ data }: {data: PulsarModel}) => (
@@ -209,25 +230,6 @@
           <div style='margin-top: 4px; color: #C4C6CC;'>
             {data.cluster_alias || '--'}
           </div>
-        </div>
-      ),
-    },
-    {
-      label: t('访问入口'),
-      field: 'domain',
-      minWidth: 100,
-      showOverflowTooltip: false,
-      render: ({ data }: {data: PulsarModel}) => (
-        <div class="domain">
-          <span
-            class="text-overflow"
-            v-overflow-tips>
-            {data.domain || '--'}
-          </span>
-          {userProfileStore.isManager && <db-icon
-            type="edit"
-            v-bk-tooltips={t('修改入口配置')}
-            onClick={() => handleOpenEntryConfig(data)} />}
         </div>
       ),
     },
