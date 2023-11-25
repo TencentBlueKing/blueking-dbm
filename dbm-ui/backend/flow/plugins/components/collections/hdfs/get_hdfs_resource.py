@@ -8,7 +8,6 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-import logging
 from typing import List
 
 from django.utils.translation import ugettext as _
@@ -16,11 +15,8 @@ from pipeline.component_framework.component import Component
 from pipeline.core.flow.activity import Service
 
 import backend.flow.utils.hdfs.hdfs_context_dataclass as flow_context
-from backend.db_services.dbbase.constants import IpSource
 from backend.flow.plugins.components.collections.common.base_service import BaseService
 from backend.ticket.constants import TicketType
-
-logger = logging.getLogger("flow")
 
 
 class GetHdfsResourceService(BaseService):
@@ -58,7 +54,7 @@ class GetHdfsResourceService(BaseService):
             trans_data.master_ips = global_data["master_ips"]
             trans_data.new_dn_ips = global_data["new_dn_ips"]
 
-        logger.info(_("获取机器资源成功。 {}").format(trans_data))
+        self.log_info(_("获取机器资源成功。 {}").format(trans_data))
         data.outputs["trans_data"] = trans_data
         return True
 

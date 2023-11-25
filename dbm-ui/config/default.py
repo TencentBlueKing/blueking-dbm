@@ -39,6 +39,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 APP_CODE = env.APP_CODE
 SECRET_KEY = env.SECRET_KEY
+ENVIRONMENT = env.ENVIRONMENT
 
 CONF_PATH = os.path.abspath(__file__)
 PROJECT_ROOT = os.path.dirname(os.path.dirname(CONF_PATH))
@@ -71,7 +72,7 @@ INSTALLED_APPS += (
     # bk-audit
     "bk_audit.contrib.bk_audit",
     # apm
-    # "blueapps.opentelemetry.instrument_app",
+    "blueapps.opentelemetry.instrument_app",
     # backend
     "backend.core.storages",
     "backend.core.encrypt",

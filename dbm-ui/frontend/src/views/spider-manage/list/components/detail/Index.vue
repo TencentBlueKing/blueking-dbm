@@ -137,7 +137,7 @@
 
 </script>
 
-<style lang="less">
+<style lang="less" scoped>
 .spider-details-page {
   height: 100%;
   background-color: #fff;

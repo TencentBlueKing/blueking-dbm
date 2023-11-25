@@ -34,6 +34,7 @@
         v-model:is-show="isShowBatchInstanceSelector"
         :cluster-types="[ClusterTypes.TENDBCLUSTER]"
         :selected="selectedIps"
+        :tab-list-config="tabListConfig"
         @change="handelInstanceSelectorChange" />
     </div>
     <template #action>
@@ -71,6 +72,7 @@
 
   import InstanceSelector, {
     type InstanceSelectorValues,
+    type PanelListType,
   } from '@components/instance-selector-new/Index.vue';
 
   import RenderData from './components/RenderData/Index.vue';
@@ -90,6 +92,14 @@
   const tableData = shallowRef<Array<IDataRow>>([createRowData({})]);
   const selectedIps = shallowRef<InstanceSelectorValues>({ tendbcluster: [] });
   let ipMemo = {} as Record<string, boolean>;
+
+  const tabListConfig = {
+    [ClusterTypes.TENDBCLUSTER]: [
+      {
+        name: t('源实例'),
+      },
+    ],
+  } as unknown as Record<ClusterTypes, PanelListType>;
 
   // 检测列表是否为空
   const checkListEmpty = (list: Array<IDataRow>) => {

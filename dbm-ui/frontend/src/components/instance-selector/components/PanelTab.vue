@@ -14,14 +14,14 @@
 <template>
   <div class="instance-selector-panel-tab">
     <div
-      v-for="value in panelList"
-      :key="value"
+      v-for="item in panelList"
+      :key="item.id"
       class="tab-item"
       :class="{
-        active: modelValue === value
+        active: modelValue === item.id
       }"
-      @click="handleClick(value)">
-      {{ textMap[value] }}
+      @click="handleClick(item.id)">
+      {{ item.title }}
     </div>
   </div>
 </template>
@@ -29,10 +29,27 @@
 <script lang="ts">
   import type { InjectionKey, Ref } from 'vue';
 
-  import { textMap } from '../common/utils';
-  export const defaultPanelList = ['tendbha', 'tendbsingle', 'manualInput'] as const;
-  export type PanelTypes = typeof defaultPanelList[number];
-  export const activePanelInjectionKey: InjectionKey<Ref<PanelTypes>> = Symbol('activePanel');
+  import { t } from '@locales/index';
+
+  export const defaultPanelList = [
+    {
+      id: 'tendbha',
+      title: t('主从'),
+    },
+    {
+      id: 'tendbsingle',
+      title: t('单节点'),
+    },
+    {
+      id: 'manualInput',
+      title: t('手动输入'),
+    },
+  ];
+  export type PanelTypes = {
+    id: string,
+    title: string,
+  };
+  export const activePanelInjectionKey: InjectionKey<Ref<PanelTypes['id']>> = Symbol('activePanel');
 </script>
 
 <script setup lang="ts">

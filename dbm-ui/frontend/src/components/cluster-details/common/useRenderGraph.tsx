@@ -44,7 +44,8 @@ import {
   type GraphNode,
   GroupTypes,
   type NodeConfig,
-  nodeTypes } from './graphData';
+  nodeTypes,
+} from './graphData';
 
 import { checkOverflow } from '@/directives/overflowTips';
 
@@ -57,7 +58,7 @@ interface ClusterTopoProps {
 type ResourceTopoNode = ResourceTopo['nodes'][number]
 type DetailColumnsRenderFunc<T> = (value: T) => JSX.Element;
 
-type DetailColumns<T> =  {
+type DetailColumns<T> = {
   label: string
   key: keyof InstanceDetails
   render?: DetailColumnsRenderFunc<T>
@@ -120,7 +121,7 @@ const apiMap: Record<string, (params: any) => Promise<any>> = {
   redis: retrieveRedisInstance,
   tendbsingle: retrieveTendbsingleInstance,
   tendbha: retrieveTendbhaInstance,
-  spider: retrieveSpiderInstance,
+  tendbcluster: retrieveSpiderInstance,
 };
 
 const entryTagMap: Record<string, string> = {

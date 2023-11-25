@@ -1124,11 +1124,7 @@
                     "max": 4,
                     "min": 3
                 },
-                "device_class": [
-                    "SA2.MEDIUM4",
-                    "S5.MEDIUM4",
-                    "S5t.MEDIUM4"
-                ],
+                "device_class": [],
                 "storage_spec": [
                     {
                         "size": 50,
@@ -1150,13 +1146,7 @@
                     "max": 8,
                     "min": 7
                 },
-                "device_class": [
-                    "S5.MEDIUM8",
-                    "S5t.MEDIUM8",
-                    "S5.LARGE8",
-                    "S5t.LARGE8",
-                    "SA2.LARGE8"
-                ],
+                "device_class": [],
                 "storage_spec": [
                     {
                         "size": 100,
@@ -1178,11 +1168,7 @@
                     "max": 16,
                     "min": 15
                 },
-                "device_class": [
-                    "S5.LARGE16",
-                    "S5t.2XLARGE16",
-                    "SA2.2XLARGE16"
-                ],
+                "device_class": [],
                 "storage_spec": [
                     {
                         "size": 200,
@@ -1204,11 +1190,7 @@
                     "max": 32,
                     "min": 30
                 },
-                "device_class": [
-                    "S5.2XLARGE32",
-                    "S5.4XLARGE32",
-                    "S5t.2XLARGE32"
-                ],
+                "device_class": [],
                 "storage_spec": [
                     {
                         "size": 300,
@@ -1230,11 +1212,7 @@
                     "max": 64,
                     "min": 61
                 },
-                "device_class": [
-                    "S5.4XLARGE64",
-                    "S5t.4XLARGE64",
-                    "SA3.4XLARGE64"
-                ],
+                "device_class": [],
                 "storage_spec": [
                     {
                         "size": 400,
@@ -1256,9 +1234,7 @@
                     "max": 128,
                     "min": 125
                 },
-                "device_class": [
-                    "S5.8XLARGE128"
-                ],
+                "device_class": [],
                 "storage_spec": [
                     {
                         "size": 600,
@@ -1282,11 +1258,7 @@
                     "max": 4,
                     "min": 3
                 },
-                "device_class": [
-                    "S5.MEDIUM4",
-                    "SA2.MEDIUM4",
-                    "S5t.MEDIUM4"
-                ],
+                "device_class": [],
                 "storage_spec": [
                     {
                         "size": 50,
@@ -1308,12 +1280,7 @@
                     "max": 16,
                     "min": 15
                 },
-                "device_class": [
-                    "S5.2XLARGE16",
-                    "S5.LARGE16",
-                    "SA3.LARGE16",
-                    "SA2.2XLARGE16"
-                ],
+                "device_class": [],
                 "storage_spec": [
                     {
                         "size": 50,
@@ -1335,11 +1302,7 @@
                     "max": 32,
                     "min": 30
                 },
-                "device_class": [
-                    "S5.2XLARGE32",
-                    "S5t.2XLARGE32",
-                    "SA3.2XLARGE32"
-                ],
+                "device_class": [],
                 "storage_spec": [
                     {
                         "size": 100,
@@ -1365,10 +1328,7 @@
                     "max": 66,
                     "min": 55
                 },
-                "device_class": [
-                    "IT5.4XLARGE64",
-                    "I6t.4XLARGE56"
-                ],
+                "device_class": [],
                 "storage_spec": [
                     {
                         "size": 1500,
@@ -1398,10 +1358,7 @@
                     "max": 130,
                     "min": 110
                 },
-                "device_class": [
-                    "IT5.8XLARGE128",
-                    "I6t.8XLARGE112"
-                ],
+                "device_class": [],
                 "storage_spec": [
                     {
                         "size": 3500,
@@ -1433,11 +1390,7 @@
                     "max": 4,
                     "min": 3
                 },
-                "device_class": [
-                    "S5.MEDIUM4",
-                    "S5t.MEDIUM4",
-                    "SA2.MEDIUM4"
-                ],
+                "device_class": [],
                 "storage_spec": [
                     {
                         "size": 50,
@@ -1459,13 +1412,7 @@
                     "max": 16,
                     "min": 15
                 },
-                "device_class": [
-                    "S5.LARGE16",
-                    "S5.2XLARGE16",
-                    "S5t.2XLARGE16",
-                    "SA2.2XLARGE16",
-                    "SA3.LARGE16"
-                ],
+                "device_class": [],
                 "storage_spec": [
                     {
                         "size": 50,
@@ -1487,13 +1434,7 @@
                     "max": 32,
                     "min": 30
                 },
-                "device_class": [
-                    "M5.LARGE32",
-                    "S5.2XLARGE32",
-                    "S5.4XLARGE32",
-                    "S5t.2XLARGE32",
-                    "SA3.2XLARGE32"
-                ],
+                "device_class": [],
                 "storage_spec": [
                     {
                         "size": 100,
@@ -1519,11 +1460,7 @@
                     "max": 4,
                     "min": 3
                 },
-                "device_class": [
-                    "S5.MEDIUM4",
-                    "S5t.MEDIUM4",
-                    "SA2.MEDIUM4"
-                ],
+                "device_class": [],
                 "storage_spec": [
                     {
                         "size": 50,
@@ -1553,13 +1490,7 @@
                     "max": 8,
                     "min": 6
                 },
-                "device_class": [
-                    "S5.MEDIUM8",
-                    "S5t.MEDIUM8",
-                    "S5.LARGE8",
-                    "SA2.LARGE8",
-                    "S5t.LARGE8"
-                ],
+                "device_class": [],
                 "storage_spec": [
                     {
                         "size": 100,
@@ -1589,12 +1520,7 @@
                     "max": 16,
                     "min": 15
                 },
-                "device_class": [
-                    "S5t.2XLARGE16",
-                    "S5.LARGE16",
-                    "SA2.2XLARGE16",
-                    "SA3.LARGE16"
-                ],
+                "device_class": [],
                 "storage_spec": [
                     {
                         "size": 200,
@@ -1624,13 +1550,7 @@
                     "max": 32,
                     "min": 30
                 },
-                "device_class": [
-                    "S5.2XLARGE32",
-                    "S5.4XLARGE32",
-                    "S5t.2XLARGE32",
-                    "SA3.2XLARGE32",
-                    "SA2.4XLARGE32"
-                ],
+                "device_class": [],
                 "storage_spec": [
                     {
                         "size": 500,
@@ -1660,10 +1580,7 @@
                     "max": 66,
                     "min": 55
                 },
-                "device_class": [
-                    "IT5.4XLARGE64",
-                    "I6t.4XLARGE56"
-                ],
+                "device_class": [],
                 "storage_spec": [
                     {
                         "size": 1500,
@@ -1693,10 +1610,7 @@
                     "max": 130,
                     "min": 110
                 },
-                "device_class": [
-                    "IT5.8XLARGE128",
-                    "I6t.8XLARGE112"
-                ],
+                "device_class": [],
                 "storage_spec": [
                     {
                         "size": 3500,
@@ -1728,11 +1642,7 @@
                     "max": 4,
                     "min": 3
                 },
-                "device_class": [
-                    "S5.MEDIUM4",
-                    "S5t.MEDIUM4",
-                    "SA2.MEDIUM4"
-                ],
+                "device_class": [],
                 "storage_spec": [
                     {
                         "size": 50,
@@ -1754,14 +1664,7 @@
                     "max": 16,
                     "min": 15
                 },
-                "device_class": [
-                    "S5.2XLARGE16",
-                    "S5.LARGE16",
-                    "S5t.2XLARGE16",
-                    "S5t.LARGE16",
-                    "SA2.2XLARGE16",
-                    "SA3.LARGE16"
-                ],
+                "device_class": [],
                 "storage_spec": [
                     {
                         "size": 50,
@@ -1783,13 +1686,7 @@
                     "max": 32,
                     "min": 30
                 },
-                "device_class": [
-                    "S5.2XLARGE32",
-                    "S5.4XLARGE32",
-                    "S5t.2XLARGE32",
-                    "SA2.4XLARGE32",
-                    "SA3.2XLARGE32"
-                ],
+                "device_class": [],
                 "storage_spec": [
                     {
                         "size": 100,

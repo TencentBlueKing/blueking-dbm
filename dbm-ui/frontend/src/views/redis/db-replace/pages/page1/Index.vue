@@ -113,8 +113,6 @@
 
   const tableData = ref([createRowData()]);
   const selected = shallowRef({
-    createSlaveIdleHosts: [],
-    masterFailHosts: [],
     idleHosts: [],
   } as InstanceSelectorValues);
   const totalNum = computed(() => tableData.value.filter(item => Boolean(item.ip)).length);

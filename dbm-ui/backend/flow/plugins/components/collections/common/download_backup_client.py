@@ -12,7 +12,6 @@ import logging
 
 from pipeline.component_framework.component import Component
 
-from backend import env
 from backend.components.mysql_backup.client import MysqlBackupApi
 from backend.flow.consts import BACKUP_TAG
 from backend.flow.plugins.components.collections.common.base_service import BaseService
@@ -31,10 +30,6 @@ class DownloadBackupClientService(BaseService):
     """
 
     def _execute(self, data, parent_data) -> bool:
-        if not env.BACKUP_SYSTEM_ENABLED:
-            logger.warning("backup system disable, skip")
-            return True
-
         kwargs = data.get_one_of_inputs("kwargs")
 
         params = {
@@ -51,7 +46,7 @@ class DownloadBackupClientService(BaseService):
         }
 
         MysqlBackupApi.download_backup_client(params=params)
-        logger.info(f"Download and install backup_client successfully {params['host_list']}")
+        self.log_info(f"Download and install backup_client successfully {params['host_list']}")
         return True
 
 

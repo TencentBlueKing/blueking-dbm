@@ -224,7 +224,7 @@
   const bkTableRef = ref();
   const tableKey = ref(random());
   const isLoading = ref(false);
-  const tableMaxHeight = ref(0);
+  const tableMaxHeight = ref<number | 'auto'>('auto');
   const tableData = ref<ListBase<any>>({
     count: 0,
     next: '',
@@ -314,6 +314,7 @@
 
         props.dataSource(params)
           .then((data) => {
+            // data.results = [...data.results, ...data.results, ...data.results, ...data.results, ...data.results];
             tableData.value = data;
             pagination.count = data.count;
             isSearching.value = getSearchingStatus();
@@ -511,6 +512,7 @@
       pagination.limitList = [...pageLimit].sort((a, b) => a - b);
 
       tableMaxHeight.value = tableHeaderHeight + rowNum * tableRowHeight + paginationHeight + 3;
+      console.log('tableMaxHeight>>>', tableMaxHeight.value);
     });
   };
 

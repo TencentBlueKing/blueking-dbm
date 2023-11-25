@@ -818,6 +818,7 @@
 
   .mission-detail-page{
     position: relative;
+    height: calc(100% - 10px);
 
     .custom-main-breadcrumbs{
       top: -52px;
