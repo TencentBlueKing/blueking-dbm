@@ -85,7 +85,3 @@ class RedisRollbackDataCopyFlowBuilder(BaseRedisTicketFlowBuilder):
     serializer = RedisRollbackDataCopyDetailSerializer
     inner_flow_builder = RedisRollbackDataCopyParamBuilder
     inner_flow_name = _("Redis 构造实例数据回写")
-
-    @property
-    def need_itsm(self):
-        return False

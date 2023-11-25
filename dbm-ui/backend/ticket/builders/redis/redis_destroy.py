@@ -46,7 +46,3 @@ class RedisDestroyFlowBuilder(BaseRedisTicketFlowBuilder):
     inner_flow_builder = RedisDestroyFlowParamBuilder
     inner_flow_name = _("下架集群")
     pause_node_builder = RedisBasePauseParamBuilder
-
-    @property
-    def need_manual_confirm(self):
-        return True

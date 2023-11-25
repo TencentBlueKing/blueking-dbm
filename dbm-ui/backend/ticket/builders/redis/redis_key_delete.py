@@ -102,7 +102,3 @@ class RedisKeyDeleteFlowBuilder(BaseRedisTicketFlowBuilder):
     inner_flow_builder = RedisKeyDeleteFlowParamBuilder
     inner_flow_name = _("删除Key")
     pause_node_builder = RedisBasePauseParamBuilder
-
-    @property
-    def need_manual_confirm(self):
-        return True

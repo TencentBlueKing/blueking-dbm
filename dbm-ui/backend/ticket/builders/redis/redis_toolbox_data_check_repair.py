@@ -73,7 +73,3 @@ class RedisDataCheckRepairFlowBuilder(BaseRedisTicketFlowBuilder):
     inner_flow_builder = RedisDataCheckRepairParamBuilder
     inner_flow_name = _("Redis 数据校验与修复")
     resource_batch_apply_builder = RedisDataCheckRepairResourceParamBuilder
-
-    @property
-    def need_itsm(self):
-        return False

@@ -60,6 +60,7 @@ class TenDBClusterSqlImportFlowParamBuilder(MysqlSqlImportFlowParamBuilder):
 @builders.BuilderFactory.register(TicketType.TENDBCLUSTER_IMPORT_SQLFILE)
 class TenDBClusterSqlImportFlowBuilder(BaseTendbTicketFlowBuilder):
     serializer = TenDBClusterSqlImportDetailSerializer
+    editable = False
 
     def patch_ticket_detail(self):
         MysqlSqlImportFlowBuilder.patch_sqlimport_ticket_detail(ticket=self.ticket, cluster_type=DBType.MySQL)
@@ -116,3 +117,8 @@ class TenDBClusterSqlImportFlowBuilder(BaseTendbTicketFlowBuilder):
 
         Flow.objects.bulk_create(flows)
         return list(Flow.objects.filter(ticket=self.ticket))
+
+    @classmethod
+    def describe_ticket_flows(cls, flow_config_map):
+        flow_desc = [_("SQL模拟执行状态查询"), _("单据审批"), _("库表备份(可选)"), _("变更SQL执行")]
+        return flow_desc

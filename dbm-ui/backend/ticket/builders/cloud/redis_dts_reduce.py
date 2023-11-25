@@ -36,10 +36,11 @@ class CloudRedisDtsReduceFlowParamBuilder(BaseServiceOperateFlowParamBuilder):
 
 
 @builders.BuilderFactory.register(TicketType.CLOUD_REDIS_DTS_SERVER_REDUCE)
-class CloudDRSReduceFlowBuilder(BaseCloudTicketFlowBuilder):
+class CloudRedisDtsReduceFlowBuilder(BaseCloudTicketFlowBuilder):
     serializer = CloudRedisDtsReduceDetailSerializer
     inner_flow_builder = CloudRedisDtsReduceFlowParamBuilder
     inner_flow_name = _("RedisDts 服务裁撤")
+    editable = False
 
     @property
     def need_itsm(self):

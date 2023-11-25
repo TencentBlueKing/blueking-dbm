@@ -51,6 +51,7 @@ class CloudNginxReplaceFlowBuilder(BaseCloudTicketFlowBuilder):
     serializer = CloudNginxReplaceDetailSerializer
     inner_flow_builder = CloudNginxReplaceFlowParamBuilder
     inner_flow_name = _("Nginx 服务替换")
+    editable = False
 
     @property
     def need_itsm(self):

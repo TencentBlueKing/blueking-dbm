@@ -74,7 +74,3 @@ class MysqlMasterSlaveSwitchFlowBuilder(BaseMySQLTicketFlowBuilder):
     inner_flow_name = _("主从互换执行")
     retry_type = FlowRetryType.MANUAL_RETRY
     pause_node_builder = MySQLBasePauseParamBuilder
-
-    @property
-    def need_manual_confirm(self):
-        return True

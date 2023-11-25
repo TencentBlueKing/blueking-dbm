@@ -42,6 +42,7 @@ class CloudDRSReplaceFlowBuilder(BaseCloudTicketFlowBuilder):
     serializer = CloudDRSReplaceDetailSerializer
     inner_flow_builder = CloudDRSReplaceFlowParamBuilder
     inner_flow_name = _("DRS 服务替换")
+    editable = False
 
     @property
     def need_itsm(self):

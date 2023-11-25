@@ -98,7 +98,3 @@ class RiakApplyFlowBuilder(BaseRiakTicketFlowBuilder):
             domain=riak_domain,
         )
         self.ticket.save(update_fields=["details"])
-
-    @property
-    def need_itsm(self):
-        return True

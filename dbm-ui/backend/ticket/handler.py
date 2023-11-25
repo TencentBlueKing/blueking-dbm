@@ -15,8 +15,8 @@ from django.utils.translation import ugettext as _
 from backend import env
 from backend.db_meta.models import Cluster, StorageInstance
 from backend.db_services.ipchooser.handlers.host_handler import HostHandler
-from backend.ticket.constants import TicketType
-from backend.ticket.models import Ticket
+from backend.ticket.constants import FlowTypeConfig, TicketType
+from backend.ticket.models import Ticket, TicketFlowConfig
 from backend.utils.basic import get_target_items_from_details
 
 
@@ -132,3 +132,26 @@ class TicketHandler:
             remark=_("云区域组件快速部署单据"),
             details=details,
         )
+
+    @classmethod
+    def ticket_flow_config_init(cls):
+        """初始化单据配置"""
+        from backend.ticket.builders import BuilderFactory
+
+        exist_ticket_types = list(TicketFlowConfig.objects.all().values_list("ticket_type", flat=True))
+        created_configs = [
+            TicketFlowConfig(
+                creator="admin",
+                updater="admin",
+                ticket_type=ticket_type,
+                group=flow_class.group,
+                editable=flow_class.editable,
+                configs={
+                    FlowTypeConfig.NEED_MANUAL_CONFIRM: flow_class.default_need_manual_confirm,
+                    FlowTypeConfig.NEED_ITSM: flow_class.default_need_itsm,
+                },
+            )
+            for ticket_type, flow_class in BuilderFactory.registry.items()
+            if ticket_type not in exist_ticket_types
+        ]
+        TicketFlowConfig.objects.bulk_create(created_configs)

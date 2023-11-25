@@ -37,10 +37,11 @@ class CloudRedisDtsAddFlowParamBuilder(BaseServiceOperateFlowParamBuilder):
 
 
 @builders.BuilderFactory.register(TicketType.CLOUD_REDIS_DTS_SERVER_ADD)
-class CloudDBHAAddFlowBuilder(BaseCloudTicketFlowBuilder):
+class CloudRedisDtsAddFlowBuilder(BaseCloudTicketFlowBuilder):
     serializer = CloudRedisDtsAddDetailSerializer
     inner_flow_builder = CloudRedisDtsAddFlowParamBuilder
     inner_flow_name = _("RedisDts 服务新增")
+    editable = False
 
     @property
     def need_itsm(self):

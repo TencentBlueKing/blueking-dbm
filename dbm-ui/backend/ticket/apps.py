@@ -10,6 +10,13 @@ specific language governing permissions and limitations under the License.
 """
 
 from django.apps import AppConfig
+from django.db.models.signals import post_migrate
+
+
+def init_ticket_flow_config(sender, **kwargs):
+    from backend.ticket.handler import TicketHandler
+
+    TicketHandler.ticket_flow_config_init()
 
 
 class TicketConfig(AppConfig):
@@ -22,3 +29,4 @@ class TicketConfig(AppConfig):
 
         register_all_builders()
         register_all_todos()
+        post_migrate.connect(init_ticket_flow_config, sender=self)

@@ -46,9 +46,5 @@ class RedisClusterInstShutdownFlowBuilder(BaseRedisTicketFlowBuilder):
     inner_flow_builder = RedisClusterInstShutdownParamBuilder
     inner_flow_name = _("实例下架")
 
-    @property
-    def need_itsm(self):
-        return False
-
     def patch_ticket_detail(self):
         super().patch_ticket_detail()

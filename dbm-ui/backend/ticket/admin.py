@@ -28,3 +28,10 @@ class TicketFlowAdmin(admin.ModelAdmin):
         "flow_obj_id",
     )
     list_filter = ("flow_type",)
+
+
+@admin.register(models.TicketFlowConfig)
+class TicketFlowConfigAdmin(admin.ModelAdmin):
+    list_display = ("ticket_type", "group", "editable")
+    search_fields = ("ticket_type", "group", "editable")
+    list_filter = ("group",)

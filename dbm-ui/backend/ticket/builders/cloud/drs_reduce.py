@@ -50,6 +50,7 @@ class CloudDRSReduceFlowBuilder(BaseCloudTicketFlowBuilder):
     serializer = CloudDRSReduceDetailSerializer
     inner_flow_builder = CloudDRSReduceFlowParamBuilder
     inner_flow_name = _("DRS 服务裁撤")
+    editable = False
 
     @property
     def need_itsm(self):

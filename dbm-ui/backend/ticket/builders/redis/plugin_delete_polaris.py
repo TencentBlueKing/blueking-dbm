@@ -40,7 +40,4 @@ class RedisPluginCreatePolarisFlowBuilder(BaseRedisTicketFlowBuilder):
     serializer = RedisPluginCreatePolarisDetailSerializer
     inner_flow_builder = RedisPluginDeletePolarisFlowParamBuilder
     inner_flow_name = _("删除Polaris")
-
-    @property
-    def need_itsm(self):
-        return False
+    default_need_itsm = False

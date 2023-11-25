@@ -71,7 +71,7 @@ class MysqlRestoreSlaveParamBuilder(builders.FlowParamBuilder):
 
 
 @builders.BuilderFactory.register(TicketType.MYSQL_RESTORE_SLAVE, is_apply=True)
-class MysqlSingleDestroyFlowBuilder(BaseMySQLTicketFlowBuilder):
+class MysqlRestoreSlaveFlowBuilder(BaseMySQLTicketFlowBuilder):
     serializer = MysqlRestoreSlaveDetailSerializer
     inner_flow_builder = MysqlRestoreSlaveParamBuilder
     inner_flow_name = _("Slave重建执行")

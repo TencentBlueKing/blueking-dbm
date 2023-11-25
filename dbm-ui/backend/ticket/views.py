@@ -8,9 +8,11 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+from typing import Dict, List
 
 from django.db import transaction
 from django.db.models import Q
+from django.forms.models import model_to_dict
 from django.utils.translation import ugettext_lazy as _
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import serializers, status
@@ -26,12 +28,20 @@ from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.iam_app.handlers.drf_perm import TicketIAMPermission
 from backend.ticket.builders import BuilderFactory
 from backend.ticket.builders.common.base import InfluxdbTicketFlowBuilderPatchMixin
-from backend.ticket.constants import DONE_STATUS, CountType, TicketStatus, TicketType, TodoStatus
+from backend.ticket.constants import (
+    DONE_STATUS,
+    CountType,
+    FlowType,
+    FlowTypeConfig,
+    TicketStatus,
+    TicketType,
+    TodoStatus,
+)
 from backend.ticket.contexts import TicketContext
 from backend.ticket.exceptions import TicketDuplicationException
 from backend.ticket.flow_manager.manager import TicketFlowManager
 from backend.ticket.handler import TicketHandler
-from backend.ticket.models import ClusterOperateRecord, Flow, InstanceOperateRecord, Ticket, Todo
+from backend.ticket.models import ClusterOperateRecord, Flow, InstanceOperateRecord, Ticket, TicketFlowConfig, Todo
 from backend.ticket.serializers import (
     ClusterModifyOpSerializer,
     CountTicketSLZ,
@@ -39,13 +49,16 @@ from backend.ticket.serializers import (
     GetNodesSLZ,
     GetTodosSLZ,
     InstanceModifyOpSerializer,
+    QueryTicketFlowDescribeSerializer,
     RetryFlowSLZ,
+    TicketFlowDescribeSerializer,
     TicketFlowSerializer,
     TicketSerializer,
     TicketTypeResponseSLZ,
     TicketTypeSLZ,
     TodoOperateSerializer,
     TodoSerializer,
+    UpdateTicketFlowConfigSerializer,
 )
 from backend.ticket.todos import TodoActorFactory
 from backend.utils.basic import get_target_items_from_details
@@ -443,6 +456,46 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
         ]
         op_records_page = self.paginate_queryset(op_records_info)
         return self.get_paginated_response(op_records_page)
+
+    @swagger_auto_schema(
+        operation_summary=_("查询可编辑单据流程描述"),
+        query_serializer=QueryTicketFlowDescribeSerializer(),
+        responses={status.HTTP_200_OK: TicketFlowDescribeSerializer},
+        tags=[TICKET_TAG],
+    )
+    @action(methods=["GET"], detail=False, serializer_class=QueryTicketFlowDescribeSerializer, filter_fields={})
+    def query_ticket_flow_describe(self, request, *args, **kwargs):
+        from backend.ticket.builders import BuilderFactory
+
+        data = self.params_validate(self.get_serializer_class())
+        ticket_flow_configs = TicketFlowConfig.objects.filter(group=data["db_type"], editable=True)
+        if data.get("ticket_types"):
+            ticket_flow_configs = ticket_flow_configs.filter(ticket_type__in=data["ticket_types"])
+
+        # 获得单据类型与单据flow配置映射表
+        flow_config_map = {config.ticket_type: config.configs for config in ticket_flow_configs}
+
+        flow_desc_list: List[Dict] = []
+        for flow_config in ticket_flow_configs:
+            flow_config_info = model_to_dict(flow_config)
+            flow_config_info["ticket_type_display"] = flow_config.get_ticket_type_display()
+            # 获取当前单据的执行流程
+            flow_desc = BuilderFactory.registry[flow_config.ticket_type].describe_ticket_flows(flow_config_map)
+            flow_config_info["flow_desc"] = flow_desc
+            flow_desc_list.append(flow_config_info)
+
+        return Response(flow_desc_list)
+
+    @swagger_auto_schema(
+        operation_summary=_("修改可编辑的单据流程"),
+        request_body=UpdateTicketFlowConfigSerializer(),
+        tags=[TICKET_TAG],
+    )
+    @action(methods=["POST"], detail=False, serializer_class=UpdateTicketFlowConfigSerializer)
+    def update_ticket_flow_config(self, request, *args, **kwargs):
+        data = self.params_validate(self.get_serializer_class())
+        TicketFlowConfig.objects.filter(ticket_type__in=data["ticket_types"]).update(configs=data["configs"])
+        return Response()
 
     @swagger_auto_schema(
         operation_summary=_("快速部署云区域组件"),

@@ -44,7 +44,3 @@ class ProxyScaleDownFlowBuilder(BaseRedisTicketFlowBuilder):
     serializer = ProxyScaleDownDetailSerializer
     inner_flow_builder = ProxyScaleDownParamBuilder
     inner_flow_name = _("Proxy缩容")
-
-    @property
-    def need_itsm(self):
-        return False

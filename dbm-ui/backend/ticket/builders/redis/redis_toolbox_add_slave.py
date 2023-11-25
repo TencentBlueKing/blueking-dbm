@@ -71,14 +71,7 @@ class RedisAddSlaveFlowBuilder(BaseRedisTicketFlowBuilder):
     inner_flow_builder = RedisAddSlaveParamBuilder
     inner_flow_name = _("Redis 新建从库")
     resource_batch_apply_builder = RedisAddSlaveResourceParamBuilder
-
-    @property
-    def need_itsm(self):
-        return False
-
-    @property
-    def need_manual_confirm(self):
-        return False
+    default_need_itsm = False
 
     def patch_ticket_detail(self):
         """redis_master -> backend_group"""

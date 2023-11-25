@@ -79,10 +79,6 @@ class RedisClusterCutOffFlowBuilder(BaseRedisTicketFlowBuilder):
     inner_flow_name = _("整机替换")
     resource_batch_apply_builder = RedisClusterCutOffResourceParamBuilder
 
-    @property
-    def need_itsm(self):
-        return False
-
     def patch_ticket_detail(self):
         """redis_master -> backend_group"""
 

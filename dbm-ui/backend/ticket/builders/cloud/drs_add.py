@@ -41,6 +41,7 @@ class CloudDRSReloadFlowBuilder(BaseCloudTicketFlowBuilder):
     serializer = CloudDRSAddDetailSerializer
     inner_flow_builder = CloudDRSAddFlowParamBuilder
     inner_flow_name = _("DNS 服务新增")
+    editable = False
 
     @property
     def need_itsm(self):

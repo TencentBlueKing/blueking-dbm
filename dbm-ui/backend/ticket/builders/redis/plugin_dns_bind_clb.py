@@ -40,7 +40,4 @@ class RedisPluginDnsBindCLBFlowBuilder(BaseRedisTicketFlowBuilder):
     serializer = RedisPluginDnsBindCLBDetailSerializer
     inner_flow_builder = RedisPluginDnsBindCLBFlowParamBuilder
     inner_flow_name = _("域名绑定CLB")
-
-    @property
-    def need_itsm(self):
-        return False
+    default_need_itsm = False

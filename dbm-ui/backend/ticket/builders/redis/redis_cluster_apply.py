@@ -281,11 +281,3 @@ class RedisClusterApplyFlowBuilder(BaseRedisTicketFlowBuilder):
     inner_flow_name = _("集群部署")
     resource_apply_builder = RedisApplyResourceParamBuilder
     pause_node_builder = RedisBasePauseParamBuilder
-
-    @property
-    def need_manual_confirm(self):
-        return True
-
-    @property
-    def need_itsm(self):
-        return True

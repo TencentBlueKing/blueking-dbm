@@ -34,13 +34,9 @@ class MysqlMasterFailOverParamBuilder(MysqlMasterSlaveSwitchParamBuilder):
 
 
 @builders.BuilderFactory.register(TicketType.MYSQL_MASTER_FAIL_OVER)
-class MysqlSingleDestroyFlowBuilder(BaseMySQLTicketFlowBuilder):
+class MysqlMasterFailOverFlowBuilder(BaseMySQLTicketFlowBuilder):
     serializer = MysqlMasterFailOverDetailSerializer
     inner_flow_builder = MysqlMasterFailOverParamBuilder
     inner_flow_name = _("主库故障切换执行")
     retry_type = FlowRetryType.MANUAL_RETRY
     pause_node_builder = MySQLBasePauseParamBuilder
-
-    @property
-    def need_manual_confirm(self):
-        return True
