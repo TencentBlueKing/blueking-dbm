@@ -26,6 +26,7 @@ saas:
   api:
     resources: {}
     replicaCount: 1
+    gunicornWorker: 8
   celeryBeat:
     resources: {}
     replicaCount: 1

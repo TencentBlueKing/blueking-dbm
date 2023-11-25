@@ -87,7 +87,6 @@
             bk_cloud_id: clusterData.bk_cloud_id,
             cluster_shard_num: clusterData.cluster_shard_num,
             db_module_id: clusterData.db_module_id,
-            remote_shard_num: Math.ceil(clusterData.cluster_shard_num / clusterData.machine_pair_cnt),
           });
         });
     },

@@ -171,10 +171,11 @@
       return inputRef.value
         .getValue()
         .then(() => {
-          if (!localSpec.value) {
+          if (!props.clusterData || !localSpec.value) {
             return Promise.reject();
           }
           return ({
+            remote_shard_num: Math.ceil(props.clusterData.cluster_shard_num / localSpec.value.machine_pair),
             resource_spec: {
               backend_group: {
                 spec_id: localSpec.value.spec_id,
