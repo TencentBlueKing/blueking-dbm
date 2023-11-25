@@ -8,17 +8,9 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
-import json
-import logging
-
-from django.utils.translation import ugettext as _
 from pipeline.component_framework.component import Component
 
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileService
-from backend.flow.utils.mysql.common.compare_time import compare_time
-from backend.ticket.constants import TicketType
-
-logger = logging.getLogger("flow")
 
 
 class TBinlogDumperTransFileService(TransFileService):
