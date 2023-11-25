@@ -206,7 +206,28 @@
       width: 100,
     },
     {
+      label: t('访问入口'),
+      field: 'domain',
+      width: 200,
+      minWidth: 200,
+      fixed: 'left',
+      render: ({ data }: {data: EsModel}) => (
+        <div class="domain">
+          <span
+            class="text-overflow"
+            v-overflow-tips>
+            {data.domain || '--'}
+          </span>
+          {userProfileStore.isManager && <db-icon
+            type="edit"
+            v-bk-tooltips={t('修改入口配置')}
+            onClick={() => handleOpenEntryConfig(data)} />}
+        </div>
+      ),
+    },
+    {
       label: t('集群名称'),
+      width: 200,
       minWidth: 200,
       fixed: 'left',
       showOverflowTooltip: false,
@@ -248,24 +269,6 @@
       field: 'status',
       minWidth: 100,
       render: ({ data }: {data: EsModel}) => <RenderClusterStatus data={data.status} />,
-    },
-    {
-      label: t('访问入口'),
-      field: 'domain',
-      minWidth: 200,
-      render: ({ data }: {data: EsModel}) => (
-        <div class="domain">
-          <span
-            class="text-overflow"
-            v-overflow-tips>
-            {data.domain || '--'}
-          </span>
-          {userProfileStore.isManager && <db-icon
-            type="edit"
-            v-bk-tooltips={t('修改入口配置')}
-            onClick={() => handleOpenEntryConfig(data)} />}
-        </div>
-      ),
     },
     {
       label: t('版本'),
