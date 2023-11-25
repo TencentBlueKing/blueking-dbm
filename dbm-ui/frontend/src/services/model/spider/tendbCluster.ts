@@ -18,27 +18,27 @@ import { t } from '@locales/index';
 const STATUS_ABNORMAL = 'abnormal';
 
 export type InstanceSpecInfo = {
-    count: number,
-    id: number,
-    name: string,
-    cpu: {
-      max: number,
-      min: number
-    },
-    mem: {
-      max: number,
-      min: number
-    },
-    storage_spec: {
-      mount_point: string,
-      size: number | string,
-      type: string,
-    }[],
-    device_class: string[],
-    qps: {
-      min: number,
-      max: number
-    },
+  count: number,
+  id: number,
+  name: string,
+  cpu: {
+    max: number,
+    min: number
+  },
+  mem: {
+    max: number,
+    min: number
+  },
+  storage_spec: {
+    mount_point: string,
+    size: number | string,
+    type: string,
+  }[],
+  device_class: string[],
+  qps: {
+    min: number,
+    max: number
+  },
 }
 
 export type Instance = {
@@ -118,6 +118,10 @@ export default class TendbCluster {
   spider_mnt: Instance[];
   spider_slave: Instance[];
   status: string;
+  temporary_info: {
+    source_cluster?: string,
+    ticket_id: number
+  };
 
   constructor(payload = {} as TendbCluster) {
     this.bk_biz_id = payload.bk_biz_id;
@@ -147,7 +151,7 @@ export default class TendbCluster {
     this.spider_mnt = payload.spider_mnt;
     this.spider_slave = payload.spider_slave;
     this.status = payload.status;
-
+    this.temporary_info = payload.temporary_info;
     this.operations = this.initOperations(payload.operations);
   }
 

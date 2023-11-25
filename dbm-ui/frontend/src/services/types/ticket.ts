@@ -666,7 +666,10 @@ export interface MySQLFullBackupDetails {
   clusters: clustersItems,
   infos: {
     backup_type: string,
-    cluster_ids: number[],
+    clusters: {
+      backup_local: string,
+      cluster_id: number,
+    }[],
     file_tag: string,
     online: boolean,
   }

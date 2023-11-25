@@ -40,6 +40,7 @@
       <template #aside>
         <PreviewResult
           :last-values="lastValues"
+          :panel-list="panelList"
           @change="handleChange" />
       </template>
     </BkResizeLayout>
@@ -114,7 +115,7 @@
   });
   const emits = defineEmits<Emits>();
 
-  const panelTabActive = ref<PanelTypes>('tendbha');
+  const panelTabActive = ref<PanelTypes['id']>('tendbha');
   // const lastValue = shallowRef<IValue []>([]);
   const lastValues = reactive<InstanceSelectorValues>({
     tendbha: [],

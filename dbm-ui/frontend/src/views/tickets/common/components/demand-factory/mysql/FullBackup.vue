@@ -56,20 +56,23 @@
 
   type fullBackupItem = {
     immute_domain: string,
+    backup_local: string,
     name: string,
-    cluster_ids:number[],
+    cluster_id:number,
   }
 
   // MySQL 全库备份
-  const columns: any = [{
-    label: t('集群ID'),
-    field: 'cluster_ids',
-    render: ({ cell }: { cell: number }) => <span>{cell || '--'}</span>,
-  }, {
-    label: t('集群名称'),
-    field: 'immute_domain',
-    showOverflowTooltip: false,
-    render: ({ data }: { data: fullBackupItem }) => (
+  const columns = [
+    {
+      label: t('集群ID'),
+      field: 'cluster_id',
+      render: ({ cell }: { cell: number }) => <span>{cell || '--'}</span>,
+    },
+    {
+      label: t('集群名称'),
+      field: 'immute_domain',
+      showOverflowTooltip: false,
+      render: ({ data }: { data: fullBackupItem }) => (
       <div class="cluster-name text-overflow"
         v-overflow-tips={{
           content: `
@@ -82,21 +85,27 @@
         <span class="cluster-name__alias">{data.name}</span>
       </div>
     ),
-  }];
+    },
+    {
+      label: t('备份位置'),
+      field: 'backup_local',
+      render: ({ cell }: { cell: number }) => <span>{cell || '--'}</span>,
+    },
+  ];
 
   const dataList = computed(() => {
-    const list: fullBackupItem[] = [];
     const infosData = props.ticketDetails?.details?.infos || {};
     const clusters = props.ticketDetails?.details?.clusters || {};
-    infosData?.cluster_ids?.forEach((item) => {
-      const clusterData = clusters[item];
-      list.push(Object.assign({
-        immute_domain: clusterData.immute_domain,
-        name: clusterData.name,
-        cluster_ids: item,
+    return infosData?.clusters?.reduce((results, item) => {
+      const clusterData = clusters[item.cluster_id];
+      results.push(Object.assign({
+        immute_domain: clusterData?.immute_domain,
+        name: clusterData?.name,
+        backup_local: item.backup_local,
+        cluster_id: item.cluster_id,
       }));
-    });
-    return list;
+      return results;
+    }, [] as fullBackupItem[]);
   });
 
   // 备份选项
