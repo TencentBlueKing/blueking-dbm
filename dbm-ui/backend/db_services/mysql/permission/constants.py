@@ -45,8 +45,7 @@ class PrivilegeType:
         EVENT = EnumField("event", _("event"))
         CREATE_ROUTING = EnumField("create routine", _("create routine"))
         ALTER_ROUTING = EnumField("alter routine", _("alter routine"))
-        # TODO: 等后续单据支持动态审批后，放开此权限
-        # ALL_PRIVILEGES = EnumField("all privileges", _("all privileges"))
+        ALL_PRIVILEGES = EnumField("all privileges", _("all privileges"))
 
 
 class AccountType(str, StructuredEnum):

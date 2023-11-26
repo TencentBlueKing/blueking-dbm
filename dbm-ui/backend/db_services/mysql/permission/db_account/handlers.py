@@ -10,6 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 
 import logging
+from collections import defaultdict
 from typing import Any, Dict, List, Optional, Tuple
 
 from django.utils.translation import ugettext as _
@@ -20,7 +21,7 @@ from backend.configuration.models.password_policy import PasswordPolicy
 from backend.core.encrypt.constants import AsymmetricCipherConfigType
 from backend.core.encrypt.handlers import AsymmetricHandler
 from backend.db_services.mysql.open_area.models import TendbOpenAreaConfig
-from backend.db_services.mysql.permission.constants import AccountType
+from backend.db_services.mysql.permission.constants import AccountType, PrivilegeType
 from backend.db_services.mysql.permission.db_account.dataclass import AccountMeta, AccountRuleMeta
 from backend.db_services.mysql.permission.db_account.policy import DBPasswordPolicy
 from backend.db_services.mysql.permission.exceptions import DBPermissionBaseException
@@ -264,3 +265,30 @@ class AccountHandler(object):
             }
         )
         return resp
+
+    def has_high_risk_privileges(self, rule_sets):
+        """
+        - 判断是否有高危权限
+        @param rule_sets: 授权列表，数据结构与MySQLPrivManagerApi.authorize_rules接口相同
+        """
+        risk_priv_set = set(PrivilegeType.GLOBAL.get_values())
+        account_rules = MySQLPrivManagerApi.list_account_rules(
+            {"bk_biz_id": self.bk_biz_id, "cluster_type": self.account_type}
+        )["items"]
+        # 按照user，accessdb进行聚合
+        user_db__rules = defaultdict(dict)
+        for account_rule in account_rules:
+            account, rules = account_rule["account"], account_rule["rules"]
+            user_db__rules[account["user"]] = {rule["dbname"]: rule["priv"] for rule in rules}
+        # 判断是否有高危权限
+        for rule_set in rule_sets:
+            for rule in rule_set["account_rules"]:
+                try:
+                    privileges = user_db__rules[rule_set["user"]][rule["dbname"]].split(",")
+                    if risk_priv_set.intersection(set(privileges)):
+                        return True
+                except KeyError:
+                    raise DBPermissionBaseException(
+                        _("授权规则{}-{}不存在，请检查检查后重新提单").format(rule_set["user"], rule["dbname"])
+                    )
+        return False
