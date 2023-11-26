@@ -61,9 +61,7 @@ class WriteBackHdfsConfigService(BaseService):
             {"conf_name": "rpc_port", "conf_value": str(global_data["rpc_port"]), "op_type": OpType.UPDATE}
         )
         conf_items.append({"conf_name": "username", "conf_value": "root", "op_type": OpType.UPDATE})
-        conf_items.append(
-            {"conf_name": "password", "conf_value": global_data["haproxy_passwd"], "op_type": OpType.UPDATE}
-        )
+        conf_items.append({"conf_name": "password", "conf_value": global_data["password"], "op_type": OpType.UPDATE})
         DBConfigApi.upsert_conf_item(
             {
                 "conf_file_info": {

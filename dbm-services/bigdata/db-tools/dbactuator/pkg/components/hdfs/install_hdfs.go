@@ -34,17 +34,17 @@ type InstallHdfsParams struct {
 	ZooCfg        util2.ConfigMap `json:"zoo.cfg"`
 	InstallConfig `json:"install"`
 
-	HttpPort      int               `json:"http_port" validate:"required"`
-	RpcPort       int               `json:"rpc_port" validate:"required"`
-	Version       string            `json:"version"  validate:"required"`     // 版本号eg: 2.6.0-cdh-5.4.11
-	ClusterName   string            `json:"cluster_name" validate:"required"` // 集群名
-	HaproxyPasswd string            `json:"haproxy_passwd"`                   // haproxy密码
-	HostMap       map[string]string `json:"host_map"`
-	Nn1Ip         string            `json:"nn1_ip" validate:"required"` // nn1 ip, eg: ip1
-	Nn2Ip         string            `json:"nn2_ip" validate:"required"` // nn2 ip, eg: ip1
-	ZkIps         string            `json:"zk_ips" validate:"required"` // master ip, eg: ip1,ip2,ip3
-	JnIps         string            `json:"jn_ips" validate:"required"` // master ip, eg: ip1,ip2,ip3
-	DnIps         string            `json:"dn_ips" validate:"required"` // master ip, eg: ip1,ip2,ip3
+	HttpPort    int               `json:"http_port" validate:"required"`
+	RpcPort     int               `json:"rpc_port" validate:"required"`
+	Version     string            `json:"version"  validate:"required"`     // 版本号eg: 2.6.0-cdh-5.4.11
+	ClusterName string            `json:"cluster_name" validate:"required"` // 集群名
+	Password    string            `json:"password"`                         // haproxy密码
+	HostMap     map[string]string `json:"host_map"`
+	Nn1Ip       string            `json:"nn1_ip" validate:"required"` // nn1 ip, eg: ip1
+	Nn2Ip       string            `json:"nn2_ip" validate:"required"` // nn2 ip, eg: ip1
+	ZkIps       string            `json:"zk_ips" validate:"required"` // master ip, eg: ip1,ip2,ip3
+	JnIps       string            `json:"jn_ips" validate:"required"` // master ip, eg: ip1,ip2,ip3
+	DnIps       string            `json:"dn_ips" validate:"required"` // master ip, eg: ip1,ip2,ip3
 
 }
 
@@ -329,9 +329,9 @@ func (i *InstallHdfsService) RenderHaProxyConfig() (err error) {
 		return err
 	}
 	extraCmd = fmt.Sprintf(
-		`sed -i -e "s/{{nn1_ip}}/%s/g" -e "s/{{nn2_ip}}/%s/g"  -e "s/{{http_port}}/%d/" -e "s/{{haproxy_passwd}}/%s/g" %s`,
+		`sed -i -e "s/{{nn1_ip}}/%s/g" -e "s/{{nn2_ip}}/%s/g"  -e "s/{{http_port}}/%d/" -e "s/{{password}}/%s/g" %s`,
 		i.Params.Nn1Ip,
-		i.Params.Nn2Ip, i.Params.HttpPort, i.Params.HaproxyPasswd, "/etc/haproxy/haproxy.cfg")
+		i.Params.Nn2Ip, i.Params.HttpPort, i.Params.Password, "/etc/haproxy/haproxy.cfg")
 	if _, err = osutil.ExecShellCommand(false, extraCmd); err != nil {
 		logger.Error("%s execute failed, %v", extraCmd, err)
 		return err

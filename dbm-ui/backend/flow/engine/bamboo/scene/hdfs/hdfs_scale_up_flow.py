@@ -225,11 +225,11 @@ class HdfsScaleUpFlow(object):
         if not password:
             logger.error("cannot get auth info from password service")
             data_with_role["username"] = cluster_config["username"]
-            data_with_role["haproxy_passwd"] = cluster_config["password"]
+            data_with_role["password"] = cluster_config["password"]
         else:
             logger.debug("get auth info from password")
             data_with_role["username"] = UserName.HDFS_DEFAULT
-            data_with_role["haproxy_passwd"] = password
+            data_with_role["password"] = password
 
         data_with_role["dfs_include_file"] = cluster_config["hdfs-site.dfs.hosts"]
         data_with_role["dn_hosts"] = [gen_host_name_by_role(dn_ip, "dn") for dn_ip in data_with_role["new_dn_ips"]]

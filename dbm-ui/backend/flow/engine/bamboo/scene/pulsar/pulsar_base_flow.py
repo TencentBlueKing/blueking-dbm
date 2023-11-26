@@ -10,6 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 import copy
 import logging.config
+import re
 from dataclasses import asdict
 from typing import Dict, Optional
 
@@ -33,6 +34,7 @@ from backend.ticket.constants import TicketType
 from backend.utils.string import str2bool
 
 logger = logging.getLogger("flow")
+zk_id_cpl = re.compile("zk-(?P<zk_id>.+?)-.*")
 
 
 class PulsarBaseFlow(object):
@@ -379,8 +381,11 @@ class PulsarBaseFlow(object):
 
 # 获取ZK对应my_id, 与zk域名生成相关
 def get_zk_id_from_host_map(zk_host_map: dict, zk_ip: str) -> int:
+    # 在替换ZK变更中，dbconfig为静态不会改动，仅zk_host_map 记录当前zk_ip，zk_domain对应关系
     zk_domain = zk_host_map[zk_ip]
-    return int(zk_domain[-1])
+    # zk_domain format like zk-{zk_id}-{pulsar.domain}
+    zk_id = re.search(zk_id_cpl, zk_domain).group("zk_id")
+    return int(zk_id)
 
 
 def get_all_node_ips_in_ticket(data: dict) -> list:

@@ -70,7 +70,7 @@ class HdfsActPayload(object):
             "dn_ips": ",".join(self.ticket_data["dn_ips"]),
             "http_port": self.ticket_data["http_port"],
             "rpc_port": self.ticket_data["rpc_port"],
-            "haproxy_passwd": self.ticket_data["haproxy_passwd"],
+            "password": self.ticket_data["password"],
         }
 
     def __gen_only_ip_payload(self, action: HdfsDBActuatorActionEnum, ip: str) -> dict:
@@ -360,7 +360,7 @@ class HdfsActPayload(object):
                     "http_port": self.ticket_data["http_port"],
                     "rpc_port": self.ticket_data["rpc_port"],
                     # 当前未传参用户名
-                    "haproxy_passwd": self.ticket_data["haproxy_passwd"],
+                    "password": self.ticket_data["password"],
                 },
             },
         }
@@ -485,7 +485,7 @@ class HdfsActPayload(object):
                     "version": self.ticket_data["db_version"],
                     "http_port": self.ticket_data["http_port"],
                     "username": self.ticket_data["username"],
-                    "haproxy_passwd": self.ticket_data["haproxy_passwd"],
+                    "password": self.ticket_data["password"],
                     "host": kwargs["ip"],
                 },
             },
