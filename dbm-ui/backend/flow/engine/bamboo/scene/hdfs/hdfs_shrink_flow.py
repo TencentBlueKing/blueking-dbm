@@ -117,11 +117,11 @@ class HdfsShrinkFlow(HdfsOperationFlow):
         if not password:
             logger.error("cannot get auth info from password service")
             data_with_role["username"] = cluster_config["username"]
-            data_with_role["haproxy_passwd"] = cluster_config["password"]
+            data_with_role["password"] = cluster_config["password"]
         else:
             logger.debug("get auth info from password")
             data_with_role["username"] = UserName.HDFS_DEFAULT
-            data_with_role["haproxy_passwd"] = password
+            data_with_role["password"] = password
 
         data_with_role["dfs_exclude_file"] = cluster_config["hdfs-site.dfs.hosts.exclude"]
         data_with_role["dfs_include_file"] = cluster_config["hdfs-site.dfs.hosts"]
