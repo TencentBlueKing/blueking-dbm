@@ -19,6 +19,7 @@ type RedisSwitch struct {
 	RedisSwitchInfo
 	Config *config.Config
 	FLock  *util.FileLock
+	NoNeed bool
 }
 
 // CheckSwitch check redis status before switch
@@ -26,11 +27,13 @@ func (ins *RedisSwitch) CheckSwitch() (bool, error) {
 	ins.ReportLogs(
 		constvar.InfoResult, fmt.Sprintf("handle instance[%s:%d]", ins.Ip, ins.Port),
 	)
-	if len(ins.Slave) != 1 {
-		redisErr := fmt.Errorf("redis have invald slave[%d]", len(ins.Slave))
-		log.Logger.Errorf("%s info:%s", redisErr.Error(), ins.ShowSwitchInstanceInfo())
-		ins.ReportLogs(constvar.FailResult, redisErr.Error())
-		return false, redisErr
+	ins.NoNeed = false
+	// set NoNeed flag by slave number
+	if len(ins.Slave) < 1 {
+		noNeedInfo := fmt.Sprintf("redis have [%d]slave, no need check", len(ins.Slave))
+		ins.ReportLogs(constvar.InfoResult, noNeedInfo)
+		ins.NoNeed = true
+		return true, nil
 	}
 
 	ins.SetInfo(constvar.SlaveIpKey, ins.Slave[0].Ip)
@@ -62,6 +65,12 @@ func (ins *RedisSwitch) CheckSwitch() (bool, error) {
 // DoSwitch do switch action
 func (ins *RedisSwitch) DoSwitch() error {
 	log.Logger.Infof("redis do switch.info:{%s}", ins.ShowSwitchInstanceInfo())
+	// DoSwitch will skip while NoNeed is set
+	if ins.NoNeed {
+		ins.ReportLogs(constvar.InfoResult, "no need switch!")
+		return nil
+	}
+
 	r := &client.RedisClient{}
 	defer r.Close()
 
@@ -138,6 +147,12 @@ func (ins *RedisSwitch) RollBack() error {
 
 // UpdateMetaInfo swap redis role information from cmdb
 func (ins *RedisSwitch) UpdateMetaInfo() error {
+	// updateMetaInfo will skip while NoNeed is set
+	if ins.NoNeed {
+		ins.ReportLogs(constvar.InfoResult, "no need update meta!")
+		return nil
+	}
+
 	defer ins.DoUnLockByFile()
 	ins.ReportLogs(constvar.InfoResult, "handle swap_role for cmdb")
 	if len(ins.Slave) != 1 {
@@ -576,4 +591,13 @@ func (ins *RedisSwitch) CommunicateTwemproxy(
 		return "", err
 	}
 	return string(rsp[:n]), nil
+}
+
+// GetRole judge role by slave number
+func (ins *RedisSwitch) GetRole() string {
+	if len(ins.Slave) > 0 {
+		return "redis master"
+	} else {
+		return "redis slave"
+	}
 }

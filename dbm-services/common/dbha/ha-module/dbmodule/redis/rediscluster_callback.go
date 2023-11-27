@@ -158,6 +158,7 @@ func NewRedisSwitchIns(instance interface{},
 	pw := RedisSwitch{
 		RedisSwitchInfo: *swIns,
 		Config:          conf,
+		NoNeed:          false,
 	}
 
 	// get the password of redis switch instance
