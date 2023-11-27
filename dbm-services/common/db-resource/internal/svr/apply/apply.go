@@ -16,6 +16,7 @@ import (
 	"path"
 	"strconv"
 
+	"dbm-services/common/db-resource/internal/config"
 	"dbm-services/common/db-resource/internal/model"
 	"dbm-services/common/db-resource/internal/svr/bk"
 	"dbm-services/common/db-resource/internal/svr/meta"
@@ -40,14 +41,19 @@ func CycleApply(param ApplyRequestInputParam) (pickers []*PickerObject, err erro
 	for _, v := range param.Details {
 		var picker *PickerObject
 		logger.Debug(fmt.Sprintf("input.Detail %v", v))
-		// 预检查资源是否充足
-		if v.Affinity == "" {
+		// 如果没有配置亲和性，或者请求的数量小于1 重置亲和性为NONE
+		if v.Affinity == "" || v.Count <= 1 {
 			v.Affinity = NONE
 		}
-		idcCitys, errx := meta.GetIdcCityByLogicCity(v.LocationSpec.City)
-		if errx != nil {
-			logger.Error("request real citys by logic city %s from bkdbm api failed:%v", v.LocationSpec.City, errx)
-			return pickers, errx
+		var idcCitys []string
+		if config.AppConfig.RunMode == "dev" {
+			idcCitys = []string{}
+		} else {
+			idcCitys, err = meta.GetIdcCityByLogicCity(v.LocationSpec.City)
+			if err != nil {
+				logger.Error("request real citys by logic city %s from bkdbm api failed:%v", v.LocationSpec.City, err)
+				return pickers, err
+			}
 		}
 		s := &SearchContext{
 			BkCloudId:         param.BkCloudId,
@@ -113,6 +119,15 @@ func (o *SearchContext) pickBase(db *gorm.DB) {
 	} else {
 		db.Where(" bk_cloud_id = ? and status = ?  ", o.BkCloudId, model.Unused)
 	}
+	// os type
+	// Windows
+	// Liunx
+	os_type := o.ApplyObjectDetail.OsType
+	if cmutil.IsEmpty(o.ApplyObjectDetail.OsType) {
+		os_type = "Linux"
+	}
+	db.Where("os_type = ? ", os_type)
+
 	// 如果没有指定资源类型，表示只能选择无资源类型标签的资源
 	// 没有资源类型标签的资源可以被所有其他类型使用
 	if cmutil.IsEmpty(o.RsType) {

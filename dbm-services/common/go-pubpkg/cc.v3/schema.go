@@ -33,7 +33,6 @@ type Host struct {
 	DeviceClass        string      `json:"svr_device_class,omitempty"`
 	Raid               string      `json:"raid_name,omitempty"`
 	OSName             string      `json:"bk_os_name,omitempty"`
-	OSVersion          string      `json:"bk_os_version,omitempty"`
 	HardMemo           string      `json:"hard_memo,omitempty"`
 	InputTime          string      `json:"svr_input_time,omitempty"`
 	Operator           string      `json:"operator,omitempty"`
@@ -75,6 +74,9 @@ type Host struct {
 	BkDisk             int         `json:"bk_disk"`
 	BkCloudId          int         `json:"bk_cloud_id"`
 	BkAgentId          string      `json:"bk_agent_id,omitempty"`
+	BkOsType           string      `json:"bk_os_type"`
+	BkOsVersion        string      `json:"bk_os_version"` // 操作系统版本
+	BkOsBit            string      `json:"bk_os_bit"`     // 操作系统位数
 	SvrTypeName        string      `json:"svr_type_name"`
 	BKBSInfos          []*CMDBInfo `json:"bk_bs_info"`
 }

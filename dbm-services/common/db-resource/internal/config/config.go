@@ -15,6 +15,7 @@ var AppConfig Config
 // Config TODO
 type Config struct {
 	Gormlog       bool   `yaml:"gormlog"`
+	RunMode       string `yaml:"runMode"`
 	ListenAddress string `yaml:"listenAddress"`
 	//	dbmeta: http://bk-dbm
 	DbMeta           string            `json:"dbmeta"`

@@ -157,7 +157,9 @@ type ApplyObjectDetail struct {
 	// CROS_SUBZONE：同城跨subzone
 	// NONE: 无需亲和性处理
 	Affinity string `json:"affinity"`
-	Count    int    `json:"count" binding:"required,min=1"` // 申请数量
+	// Windows,Linux
+	OsType string `json:"os_type"`
+	Count  int    `json:"count" binding:"required,min=1"` // 申请数量
 }
 
 // GetDiskMatchInfo TODO
