@@ -62,21 +62,21 @@ class MySQLController(BaseController):
         """
         tenDB slave 恢复流程编排
         """
-        flow = MySQLRestoreSlaveFlow(root_id=self.root_id, data=self.ticket_data)
+        flow = MySQLRestoreSlaveFlow(root_id=self.root_id, tick_data=self.ticket_data)
         flow.deploy_restore_slave_flow()
 
     def mysql_add_slave_scene(self):
         """
         仅添加 slave 流程编排
         """
-        flow = MySQLRestoreSlaveFlow(root_id=self.root_id, data=self.ticket_data)
+        flow = MySQLRestoreSlaveFlow(root_id=self.root_id, tick_data=self.ticket_data)
         flow.deploy_add_slave_flow()
 
     def mysql_restore_local_slave_scene(self):
         """
         tenDB slave 原地恢复流程编排
         """
-        flow = MySQLRestoreSlaveFlow(root_id=self.root_id, data=self.ticket_data)
+        flow = MySQLRestoreSlaveFlow(root_id=self.root_id, tick_data=self.ticket_data)
         flow.deploy_restore_local_slave_flow()
 
     #  mysql 从节点恢复(接入备份系统)

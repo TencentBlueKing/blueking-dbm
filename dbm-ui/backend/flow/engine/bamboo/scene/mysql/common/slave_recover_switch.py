@@ -13,7 +13,7 @@ from django.utils.translation import ugettext as _
 
 from backend.configuration.constants import DBType
 from backend.constants import IP_PORT_DIVIDER
-from backend.db_meta.enums import MachineType
+from backend.db_meta.enums import InstanceStatus
 from backend.db_meta.models import Cluster, ClusterEntry
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
@@ -89,15 +89,16 @@ def slave_migrate_switch_sub_flow(
             "bk_cloud_id": cluster.bk_cloud_id,
         }
     )
-
-    clone_data.append(
-        {
-            "source": old_slave,
-            "target": new_slave,
-            # "machine_type": MachineType.REMOTE.value,
-            "bk_cloud_id": cluster.bk_cloud_id,
-        }
-    )
+    slaveStorage = cluster.storageinstance_set.filter(status=InstanceStatus.RUNNING.value, machine__ip=old_slave_ip)
+    if slaveStorage:
+        clone_data.append(
+            {
+                "source": old_slave,
+                "target": new_slave,
+                # "machine_type": MachineType.REMOTE.value,
+                "bk_cloud_id": cluster.bk_cloud_id,
+            }
+        )
 
     sub_pipeline.add_act(
         act_name=_("克隆权限"),

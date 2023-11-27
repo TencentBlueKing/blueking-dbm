@@ -18,6 +18,7 @@ from django.utils.translation import ugettext as _
 from backend.configuration.constants import DBType
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
+from backend.flow.engine.bamboo.scene.spider.common.exceptions import TendbGetClusterInfoFailedException
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
 from backend.flow.utils.mysql.common.mysql_cluster_info import get_cluster_info
@@ -52,7 +53,6 @@ class MysqlEditConfigFlow(object):
             sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(ticket_data))
             one_cluster = get_cluster_info(info["cluster_id"])
             one_cluster.update(info)
-
             target_ips = [one_cluster["master_ip"]] + one_cluster["slave_ip"]
             sub_pipeline.add_act(
                 act_name=_("下发db-actor到集群主从节点{}").format(target_ips),

@@ -19,7 +19,7 @@ from backend.configuration.constants import DBType
 from backend.db_meta.enums import ClusterType, InstanceInnerRole
 from backend.db_meta.models import Cluster
 from backend.db_package.models import Package
-from backend.flow.consts import MediumEnum, RollbackType
+from backend.flow.consts import InstanceStatus, MediumEnum, RollbackType
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import (
     build_surrounding_apps_sub_flow,
@@ -33,6 +33,7 @@ from backend.flow.engine.bamboo.scene.mysql.mysql_rollback_data_sub_flow import 
     rollback_remote_and_time,
     uninstall_instance_sub_flow,
 )
+from backend.flow.engine.bamboo.scene.spider.common.exceptions import TendbGetClusterInfoFailedException
 from backend.flow.plugins.components.collections.common.download_backup_client import DownloadBackupClientComponent
 from backend.flow.plugins.components.collections.common.pause import PauseComponent
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
@@ -157,6 +158,18 @@ class MySQLRollbackDataFlow(object):
             )
 
             one_cluster = get_cluster_info(self.data["cluster_id"])
+            stand_by_slaves = cluster_class.storageinstance_set.filter(
+                status=InstanceStatus.RUNNING.value,
+                instance_inner_role=InstanceInnerRole.SLAVE.value,
+                is_stand_by=True,
+            ).exclude(machine__ip=self.data["rollback_ip"])
+            if len(stand_by_slaves) > 0:
+                one_cluster["old_slave_ip"] = stand_by_slaves[0].machine.ip
+            else:
+                logger.error("cluster {} has not stand by running slave".format(self.data["cluster_id"]))
+                raise TendbGetClusterInfoFailedException(
+                    message=_("集群 {} 不存在standby running状态的从库".format(self.data["cluster_id"]))
+                )
             one_cluster["rollback_ip"] = self.data["rollback_ip"]
             one_cluster["databases"] = self.data["databases"]
             one_cluster["tables"] = self.data["tables"]
