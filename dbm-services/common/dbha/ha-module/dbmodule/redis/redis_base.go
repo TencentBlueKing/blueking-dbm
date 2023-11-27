@@ -32,6 +32,7 @@ type RedisSwitchInfo struct {
 	Proxy     []dbutil.ProxyInfo
 	Slave     []dbutil.SlaveInfo
 	Pass      string
+	Role      string
 	Timeout   int
 }
 
@@ -357,6 +358,7 @@ func CreateRedisSwitchInfo(instance interface{}, conf *config.Config) (*RedisSwi
 		Timeout: conf.DBConf.Redis.Timeout,
 		Slave:   ins.Receiver,
 		Proxy:   ins.ProxyInstanceSet,
+		Role:    ins.InstanceRole,
 	}
 	return &swIns, nil
 }

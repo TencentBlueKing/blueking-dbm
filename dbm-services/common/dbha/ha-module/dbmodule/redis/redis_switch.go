@@ -27,13 +27,21 @@ func (ins *RedisSwitch) CheckSwitch() (bool, error) {
 	ins.ReportLogs(
 		constvar.InfoResult, fmt.Sprintf("handle instance[%s:%d]", ins.Ip, ins.Port),
 	)
-	ins.NoNeed = false
-	// set NoNeed flag by slave number
-	if len(ins.Slave) < 1 {
-		noNeedInfo := fmt.Sprintf("redis have [%d]slave, no need check", len(ins.Slave))
+
+	// if instance is slave, set NoNeed flag
+	ins.NoNeed = ins.CheckSlave()
+	if ins.NoNeed {
+		noNeedInfo := fmt.Sprintf("redis ins is slave[%d], no need check", len(ins.Slave))
 		ins.ReportLogs(constvar.InfoResult, noNeedInfo)
-		ins.NoNeed = true
 		return true, nil
+	}
+
+	// check the number of slave
+	if len(ins.Slave) < 1 {
+		redisErr := fmt.Errorf("redis have invald slave[%d]", len(ins.Slave))
+		log.Logger.Errorf("%s info:%s", redisErr.Error(), ins.ShowSwitchInstanceInfo())
+		ins.ReportLogs(constvar.FailResult, redisErr.Error())
+		return false, redisErr
 	}
 
 	ins.SetInfo(constvar.SlaveIpKey, ins.Slave[0].Ip)
@@ -65,7 +73,6 @@ func (ins *RedisSwitch) CheckSwitch() (bool, error) {
 // DoSwitch do switch action
 func (ins *RedisSwitch) DoSwitch() error {
 	log.Logger.Infof("redis do switch.info:{%s}", ins.ShowSwitchInstanceInfo())
-	// DoSwitch will skip while NoNeed is set
 	if ins.NoNeed {
 		ins.ReportLogs(constvar.InfoResult, "no need switch!")
 		return nil
@@ -147,7 +154,6 @@ func (ins *RedisSwitch) RollBack() error {
 
 // UpdateMetaInfo swap redis role information from cmdb
 func (ins *RedisSwitch) UpdateMetaInfo() error {
-	// updateMetaInfo will skip while NoNeed is set
 	if ins.NoNeed {
 		ins.ReportLogs(constvar.InfoResult, "no need update meta!")
 		return nil
@@ -593,11 +599,16 @@ func (ins *RedisSwitch) CommunicateTwemproxy(
 	return string(rsp[:n]), nil
 }
 
-// GetRole judge role by slave number
-func (ins *RedisSwitch) GetRole() string {
-	if len(ins.Slave) > 0 {
-		return "redis master"
+// CheckSlave check instance is slave or not
+func (ins *RedisSwitch) CheckSlave() bool {
+	if strings.Contains(ins.Role, "slave") {
+		return true
 	} else {
-		return "redis slave"
+		return false
 	}
+}
+
+// GetRole get the role of instance
+func (ins *RedisSwitch) GetRole() string {
+	return ins.Role
 }
