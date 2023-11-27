@@ -311,7 +311,7 @@ class MysqlActPayload(PayloadHandler, TBinlogDumperActPayload):
             content["payload"]["extend"]["mycnf_configs"][key]["mysqld"].update(slave_config)
         return content
 
-    def get_append_deploy_spider_ctl_payload(self, **kwargs):
+    def get_append_deploy_ctl_payload(self, **kwargs):
         """
         拼接spider-ctl节点添加单实例的payload
         """
