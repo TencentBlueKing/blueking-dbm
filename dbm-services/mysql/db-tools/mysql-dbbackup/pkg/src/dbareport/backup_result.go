@@ -60,6 +60,17 @@ type StatusInfo struct {
 	MasterPort int    `json:"master_port"`
 }
 
+// String 用于打印
+func (s *StatusInfo) String() string {
+	return fmt.Sprintf("Status{BinlogFile:%s, BinlogPos:%s, MasterHost:%s, MasterPort:%d}",
+		s.BinlogFile, s.BinlogPos, s.MasterHost, s.MasterPort)
+}
+
+// String 用于打印
+func (s *BinlogStatusInfo) String() string {
+	return fmt.Sprintf("BinlogStatusInfo{MasterStatus:%+v, SlaveStatus:%+v}", s.ShowMasterStatus, s.ShowSlaveStatus)
+}
+
 // PrepareLogicalBackupInfo prepare the backup result of Logical Backup
 func (b *BackupResult) PrepareLogicalBackupInfo(cnf *config.BackupConfig) error {
 	metaFileName := filepath.Join(cnf.Public.BackupDir, cnf.Public.TargetName(), "metadata")

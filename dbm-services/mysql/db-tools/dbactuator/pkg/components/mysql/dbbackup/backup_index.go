@@ -13,38 +13,42 @@ import (
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util/osutil"
+	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/backupexe"
 
 	"github.com/pkg/errors"
 )
 
 // BackupIndexFile godoc
 type BackupIndexFile struct {
-	BackupType    string `json:"backup_type"`
-	StorageEngine string `json:"storage_engine"`
-	MysqlVersion  string `json:"mysql_version"`
+	backupexe.IndexContent
+	/*
+		BackupType    string `json:"backup_type"`
+		StorageEngine string `json:"storage_engine"`
+		MysqlVersion  string `json:"mysql_version"`
 
-	BackupCharset string `json:"backup_charset"`
-	BkBizId       int    `json:"bk_biz_id"`
-	// unique uuid
-	BackupId        string `json:"backup_id"`
-	BillId          string `json:"bill_id"`
-	ClusterId       int    `json:"cluster_id"`
-	BackupHost      string `json:"backup_host"`
-	BackupPort      int    `json:"backup_port"`
-	MysqlRole       string `json:"mysql_role"`
-	DataSchemaGrant string `json:"data_schema_grant"`
-	// 备份一致性时间点，物理备份可能为空
-	ConsistentBackupTime string `json:"consistent_backup_time"`
-	BackupBeginTime      string `json:"backup_begin_time"`
-	BackupEndTime        string `json:"backup_end_time"`
-	TotalFilesize        uint64 `json:"total_filesize"`
+		BackupCharset string `json:"backup_charset"`
+		BkBizId       int    `json:"bk_biz_id"`
+		// unique uuid
+		BackupId        string `json:"backup_id"`
+		BillId          string `json:"bill_id"`
+		ClusterId       int    `json:"cluster_id"`
+		BackupHost      string `json:"backup_host"`
+		BackupPort      int    `json:"backup_port"`
+		MysqlRole       string `json:"mysql_role"`
+		DataSchemaGrant string `json:"data_schema_grant"`
+		// 备份一致性时间点，物理备份可能为空
+		ConsistentBackupTime string `json:"consistent_backup_time"`
+		BackupBeginTime      string `json:"backup_begin_time"`
+		BackupEndTime        string `json:"backup_end_time"`
+		TotalFilesize        uint64 `json:"total_filesize"`
 
-	FileList   []IndexFileItem  `json:"file_list"`
-	BinlogInfo BinlogStatusInfo `json:"binlog_info"`
+		FileList   []IndexFileItem  `json:"file_list"`
+		BinlogInfo BinlogStatusInfo `json:"binlog_info"`
+	*/
 
 	indexFilePath string
 	// backupFiles {data: {file1: obj, file2: obj}, priv: {}}
-	backupFiles map[string][]IndexFileItem
+	backupFiles map[string][]backupexe.IndexFileItem
 	// 备份文件解压后的目录名，相对目录
 	backupBasename string
 	// 备份文件的所在根目录，比如 /data/dbbak
@@ -52,42 +56,6 @@ type BackupIndexFile struct {
 	targetDir  string
 	splitParts []string
 	tarParts   []string
-}
-
-// IndexFileItem godoc
-type IndexFileItem struct {
-	BackupFileName string `json:"backup_file_name"`
-	BackupFileSize int64  `json:"backup_file_size"`
-	TarFileName    string `json:"tar_file_name"`
-	// TarFileSize    int64  `json:"tar_file_size"`
-	DBTable  string `json:"db_table"`
-	FileType string `json:"file_type" enums:"schema,data,metadata,priv"`
-}
-
-// BinlogStatusInfo master status and slave status
-type BinlogStatusInfo struct {
-	ShowMasterStatus *StatusInfo `json:"show_master_status"`
-	ShowSlaveStatus  *StatusInfo `json:"show_slave_status"`
-}
-
-// StatusInfo detailed binlog information
-type StatusInfo struct {
-	BinlogFile string `json:"binlog_file"`
-	BinlogPos  string `json:"binlog_pos"`
-	Gtid       string `json:"gtid"`
-	MasterHost string `json:"master_host"`
-	MasterPort int    `json:"master_port"`
-}
-
-// String 用于打印
-func (s *StatusInfo) String() string {
-	return fmt.Sprintf("Status{BinlogFile:%s, BinlogPos:%s, MasterHost:%s, MasterPort:%d}",
-		s.BinlogFile, s.BinlogPos, s.MasterHost, s.MasterPort)
-}
-
-// String 用于打印
-func (s *BinlogStatusInfo) String() string {
-	return fmt.Sprintf("BinlogStatusInfo{MasterStatus:%+v, SlaveStatus:%+v}", s.ShowMasterStatus, s.ShowSlaveStatus)
 }
 
 // ParseBackupIndexFile read index file: fileDir/fileName
@@ -107,7 +75,7 @@ func ParseBackupIndexFile(indexFilePath string, indexObj *BackupIndexFile) error
 	indexObj.backupDir = fileDir
 	// indexObj.targetDir = filepath.Join(fileDir, indexObj.backupBasename)
 
-	indexObj.backupFiles = make(map[string][]IndexFileItem)
+	indexObj.backupFiles = make(map[string][]backupexe.IndexFileItem)
 	for _, fileItem := range indexObj.FileList {
 		indexObj.backupFiles[fileItem.FileType] = append(indexObj.backupFiles[fileItem.FileType], fileItem)
 	}
@@ -196,6 +164,7 @@ func (f *BackupIndexFile) UntarFiles(untarDir string) error {
 	}
 	if len(f.tarParts) > 0 {
 		for _, p := range f.tarParts {
+			//backupexe.ParseTarFilename(p)
 			cmd := fmt.Sprintf(`cd %s && tar -xf %s -C %s/`, f.backupDir, p, untarDir)
 			if _, err := osutil.ExecShellCommand(false, cmd); err != nil {
 				return errors.Wrap(err, cmd)

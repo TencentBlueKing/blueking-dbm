@@ -36,8 +36,9 @@ data:
         order_process: 100
         single_order_thread: 8
         order_number: 200
-        backupclient_repository: "{{ index .Values "backup-server" "backup_client" "repository" }}"
-        backupclient_medium_dir: "{{ index .Values "backup-server" "backup_client" "mediumDir" }}"
+        package_bkrepo_project: "{{ index .Values "backup-server" "package" "bkrepo_project" }}"
+        package_bkrepo_bucket: "{{ index .Values "backup-server" "package" "bkrepo_bucket" }}"
+        backupclient_default_dns: "{{ index .Values "backup-server" "backup_client" "cos_default_dns" }}"
       gse:
         {{- if .Values.bk.bkJobApiUrl }}
         address: "{{ .Values.bk.bkJobApiUrl }}"
@@ -46,7 +47,7 @@ data:
         {{- end }}
         app_code: "{{ .Values.dbm.envs.bkAppCode }}"
         app_secret: "{{ .Values.dbm.envs.bkAppToken }}"
-        app_id: {{ .Values.bk.bluekingBizId | default "9991001"}}
+        app_id: {{ .Values.dbm.envs.dbaAppBkBizId | default "9991001"}}
         operator: "{{ .Values.bk.bkJobV3Operator | default "admin"}}"
       etcdset:
         endpoints: "{{ $etcdInfo.schema }}://{{ $etcdInfo.host }}:{{ $etcdInfo.port }}"

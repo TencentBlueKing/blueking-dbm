@@ -236,9 +236,11 @@ backup-server:
     server_addr: "http://example.com"
     api_sys_id: "test"
     api_key: "test key"
+  package:
+    bkrepo_project: bk-dbm-test
+    bkrepo_bucket: test
   backup_client:
-    repository: blueking/dbm
-    mediumDir: bk_dbm
+    cos_default_dns: ""
 
 # reloader
 stakater:
