@@ -146,7 +146,6 @@ class CollectInstance(CollectTemplateBase):
                         )
                     ],
                 )
-                print(json.dumps(collect_params))
                 res = BKMonitorV3Api.save_collect_config(collect_params, use_admin=True)
 
                 # 实例化Rule
