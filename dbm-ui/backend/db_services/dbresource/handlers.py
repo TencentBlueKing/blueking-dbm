@@ -222,7 +222,7 @@ class ResourceHandler(object):
             for spec in specs
         ]
         spec_count_params = {
-            "bk_biz_id": bk_biz_id,
+            "for_biz_id": bk_biz_id,
             "resource_type": resource_type,
             "bk_cloud_id": bk_cloud_id,
             "details": spec_count_details,
