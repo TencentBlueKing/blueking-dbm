@@ -71,7 +71,7 @@ db_conf:
     user: "{{dbha_user}}"
     pass: "{{dbha_password}}"
     proxy_user: "proxy"
-    proxy_pass: "3csfY56"
+    proxy_pass: "{{proxy_password}}"
     timeout: 10
   redis:
     timeout: 10
@@ -183,7 +183,7 @@ db_conf:
     user: "MONITOR"
     pass: "cmbJx"
     proxy_user: "proxy"
-    proxy_pass: "3csfY56"
+    proxy_pass: "{{proxy_password}}"
     timeout: 10
   redis:
     timeout: 10

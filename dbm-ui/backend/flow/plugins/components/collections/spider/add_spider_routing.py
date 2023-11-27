@@ -65,7 +65,7 @@ class AddSpiderRoutingService(BaseService):
         res = DRSApi.rpc(
             {
                 "addresses": [f"{ctl_master}"],
-                "cmds": [f"select Password as result from mysql.servers where Server_name like 'TDBCTL%' limit 1"],
+                "cmds": ["select Password as result from mysql.servers where Server_name like 'TDBCTL%' limit 1"],
                 "force": False,
                 "bk_cloud_id": bk_cloud_id,
             }
@@ -83,7 +83,7 @@ class AddSpiderRoutingService(BaseService):
         res = DRSApi.rpc(
             {
                 "addresses": [f"{spider_ip}{IP_PORT_DIVIDER}{spider_port}"],
-                "cmds": [f"reset master"],
+                "cmds": ["reset master"],
                 "force": False,
                 "bk_cloud_id": bk_cloud_id,
             }

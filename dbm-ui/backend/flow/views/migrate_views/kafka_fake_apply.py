@@ -17,7 +17,7 @@ from rest_framework.response import Response
 
 from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.flow.engine.controller.kafka import KafkaController
-from backend.flow.views.base import FlowTestView, MigrateFlowView
+from backend.flow.views.base import MigrateFlowView
 
 logger = logging.getLogger("root")
 

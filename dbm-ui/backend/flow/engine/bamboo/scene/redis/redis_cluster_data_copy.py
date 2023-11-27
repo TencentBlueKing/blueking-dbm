@@ -28,7 +28,6 @@ from backend.db_services.redis.redis_dts.constants import (
     DTS_SWITCH_PREDIXY_PRECHECK,
     DTS_SWITCH_TWEMPROXY_PRECHECK,
     SERVERS_ADD_RESOLV_CONF,
-    SERVERS_DEL_RESOLV_CONF,
 )
 from backend.db_services.redis.redis_dts.enums import (
     DtsBillType,
@@ -281,9 +280,9 @@ class RedisClusterDataCopyFlow(object):
                             "bk_cloud_id": dst_cluster.bk_cloud_id,
                         }
                     )
-                except Exception as e:
+                except Exception as err:
                     raise Exception(
-                        _("回档临时环境如何(temp_cluster_proxy:{}) ping 失败").format(rollback_task.temp_cluster_proxy)
+                        _("回档临时环境如何(temp_cluster_proxy:{}) ping 失败, {}").format(rollback_task.temp_cluster_proxy, err)
                     )
                 try:
                     DRSApi.redis_rpc(
@@ -295,9 +294,9 @@ class RedisClusterDataCopyFlow(object):
                             "bk_cloud_id": dst_cluster.bk_cloud_id,
                         }
                     )
-                except Exception as e:
+                except Exception as err:
                     raise Exception(
-                        _("数据构造临时集群存在 redis 访问失败的情况,临时集群 redis:{}").format(rollback_task.temp_instance_range)
+                        _("数据构造临时集群存在 redis 访问失败的情况,临时集群 redis:{}, {}").format(rollback_task.temp_instance_range, err)
                     )
 
     def __get_domain_prefix_by_cluster_type(self, cluster_type: str) -> str:
@@ -474,9 +473,9 @@ class RedisClusterDataCopyFlow(object):
 
             data_copy_info = {
                 "src_cluster": str(info["src_cluster"]),
-                "dst_cluster": dst_install_param["cluster_domain"]
-                + IP_PORT_DIVIDER
-                + str(dst_install_param["cluster_port"]),
+                "dst_cluster": (
+                    dst_install_param["cluster_domain"] + IP_PORT_DIVIDER + str(dst_install_param["cluster_port"])
+                ),
                 "dst_cluster_password": dst_install_param["cluster_password"],
                 "key_white_regex": "*",
                 "key_black_regex": "",

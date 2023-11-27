@@ -260,7 +260,6 @@ class KafkaMeta(object):
         # 替换kafka集群 更新cmdb
         new_machines, new_storage_instances = self.__generate_new()
         old_storage_instances = self.__generate_old_storage_instance()
-        new_broker_ip_list = self.__get_new_broker_ips()
         bk_cloud_id = new_machines[0]["bk_cloud_id"]
         cluster = Cluster.objects.get(id=self.ticket_data["cluster_id"])
         with atomic():

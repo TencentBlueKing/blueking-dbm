@@ -12,10 +12,8 @@ from typing import Union
 
 from backend.configuration.constants import DBType
 from backend.db_meta.enums import AccessLayer, MachineType
-from backend.db_meta.models import ClusterMonitorTopo, ProxyInstance, StorageInstance
-from backend.flow.consts import InstanceFuncAliasEnum
+from backend.db_meta.models import ProxyInstance, StorageInstance
 from backend.flow.utils.base.cc_topo_operate import CCTopoOperator
-from backend.ticket.constants import InstanceType
 
 
 class MysqlCCTopoOperator(CCTopoOperator):

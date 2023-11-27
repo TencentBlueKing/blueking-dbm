@@ -471,7 +471,6 @@ class RedisDtsExecuteService(BaseService):
 
                 cuncurrency_limit = self.get_src_redis_host_concurrency(trans_data, kwargs)
                 for slave in kwargs["cluster"]["src"]["slave_instances"]:
-                    addr = slave["ip"] + ":" + str(slave["port"])
                     for kvstoreid in range(slave["kvstorecount"]):
                         task = TbTendisDtsTask()
                         task.bill_id = job.bill_id
@@ -953,7 +952,6 @@ class NewDstClusterInstallJobAndWatchStatus(BaseService):
 
     def _schedule(self, data, parent_data, callback_data=None) -> bool:
         kwargs = data.get_one_of_inputs("kwargs")
-        global_data = data.get_one_of_inputs("global_data")
         trans_data: RedisDtsContext = data.get_one_of_inputs("trans_data")
 
         if trans_data is None or trans_data == "${trans_data}":
@@ -1046,7 +1044,6 @@ class NewDstClusterFlushJobAndWatchStatus(BaseService):
 
     def _schedule(self, data, parent_data, callback_data=None) -> bool:
         kwargs = data.get_one_of_inputs("kwargs")
-        global_data = data.get_one_of_inputs("global_data")
         trans_data: RedisDtsContext = data.get_one_of_inputs("trans_data")
 
         if trans_data is None or trans_data == "${trans_data}":
@@ -1189,7 +1186,6 @@ class RedisDtsDisconnectSyncService(BaseService):
 
     def _execute(self, data, parent_data):
         kwargs = data.get_one_of_inputs("kwargs")
-        global_data = data.get_one_of_inputs("global_data")
         trans_data: RedisDtsContext = data.get_one_of_inputs("trans_data")
 
         if trans_data is None or trans_data == "${trans_data}":
@@ -1227,7 +1223,6 @@ class RedisDtsDisconnectSyncService(BaseService):
 
     def _schedule(self, data, parent_data, callback_data=None) -> bool:
         kwargs = data.get_one_of_inputs("kwargs")
-        global_data = data.get_one_of_inputs("global_data")
         trans_data: RedisDtsContext = data.get_one_of_inputs("trans_data")
 
         if trans_data is None or trans_data == "${trans_data}":

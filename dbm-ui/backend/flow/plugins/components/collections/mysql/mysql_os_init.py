@@ -10,7 +10,6 @@ specific language governing permissions and limitations under the License.
 """
 import base64
 import copy
-import json
 import re
 
 from jinja2 import Environment
@@ -99,7 +98,7 @@ class MySQLOsInit(BkJobService):
         target_ip_info = [{"bk_cloud_id": kwargs["bk_cloud_id"], "ip": ip} for ip in exec_ips]
         body = {
             "bk_biz_id": env.JOB_BLUEKING_BIZ_ID,
-            "task_name": f"DBM_MySQL_OS_Init",
+            "task_name": "DBM_MySQL_OS_Init",
             "script_content": str(base64.b64encode(script_content.encode("utf-8")), "utf-8"),
             "script_language": 1,
             "target_server": {"ip_list": target_ip_info},
@@ -234,7 +233,7 @@ class SysInit(BkJobService):
         target_ip_info = [{"bk_cloud_id": kwargs["bk_cloud_id"], "ip": ip} for ip in exec_ips]
         body = {
             "bk_biz_id": env.JOB_BLUEKING_BIZ_ID,
-            "task_name": f"DBM-Init-Mysql-Os",
+            "task_name": "DBM-Init-Mysql-Os",
             "script_content": str(base64.b64encode(script_content.encode("utf-8")), "utf-8"),
             "script_language": 1,
             "target_server": {"ip_list": target_ip_info},
@@ -281,14 +280,13 @@ get_os_sys_param = """
 
 class GetOsSysParam(BkJobService):
     def _execute(self, data, parent_data) -> bool:
-        trans_data = data.get_one_of_inputs("trans_data")
         kwargs = data.get_one_of_inputs("kwargs")
         script_content = get_os_sys_param
         exec_ips = self.splice_exec_ips_list(ticket_ips=kwargs["exec_ip"])
         target_ip_info = [{"bk_cloud_id": kwargs["bk_cloud_id"], "ip": ip} for ip in exec_ips]
         body = {
             "bk_biz_id": env.JOB_BLUEKING_BIZ_ID,
-            "task_name": f"DBM-Get-Os-Sys-Param",
+            "task_name": "DBM-Get-Os-Sys-Param",
             "script_content": str(base64.b64encode(script_content.encode("utf-8")), "utf-8"),
             "script_language": 1,
             "target_server": {"ip_list": target_ip_info},

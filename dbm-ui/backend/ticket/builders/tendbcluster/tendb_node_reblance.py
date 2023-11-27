@@ -63,9 +63,8 @@ class TendbNodeRebalanceResourceParamBuilder(builders.ResourceApplyParamBuilder)
         next_flow = self.ticket.next_flow()
         infos = next_flow.details["ticket_data"]["infos"]
         for info in infos:
-            info["resource_spec"]["remote"], __ = info["resource_spec"].pop("master"), info["resource_spec"].pop(
-                "slave"
-            )
+            info["resource_spec"]["remote"] = info["resource_spec"].pop("master")
+            info["resource_spec"].pop("slave")
             info["remote_group"] = info.pop("backend_group")
 
         next_flow.save(update_fields=["details"])

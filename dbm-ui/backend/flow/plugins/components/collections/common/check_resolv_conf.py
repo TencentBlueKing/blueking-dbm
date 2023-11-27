@@ -33,7 +33,6 @@ class ExecuteShellScriptService(BkJobService):
 
     def _execute(self, data, parent_data) -> bool:
         kwargs = data.get_one_of_inputs("kwargs")
-        trans_data = data.get_one_of_inputs("trans_data")
 
         root_id = kwargs["root_id"]
         node_name = kwargs["node_name"]

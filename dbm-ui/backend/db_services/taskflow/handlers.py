@@ -11,6 +11,7 @@ specific language governing permissions and limitations under the License.
 
 import json
 import logging
+import re
 import time
 from datetime import timedelta
 from json import JSONDecodeError
@@ -25,6 +26,7 @@ from backend import env
 from backend.bk_web.constants import LogLevelName
 from backend.components import BKLogApi
 from backend.db_services.taskflow import task
+from backend.db_services.taskflow.constants import LOG_START_STRIP_PATTERN
 from backend.db_services.taskflow.exceptions import (
     CallbackNodeException,
     ForceFailNodeException,
@@ -133,15 +135,15 @@ class TaskFlowHandler:
             flow_node = FlowNode.objects.get(root_id=self.root_id, node_id=node_id)
         except FlowNode.DoesNotExist:
             return [self.generate_log_record(message=_("节点尚未运行，请稍后查看"))]
-        if flow_node.created_at < timezone.now() - timedelta(days=7):
+        if flow_node.updated_at < timezone.now() - timedelta(days=7):
             return [self.generate_log_record(message=_("节点日志仅保留7天"))]
 
         resp = BKLogApi.esquery_search(
             {
                 "indices": f"{env.DBA_APP_BK_BIZ_ID}_bklog.dbm_log,{env.DBA_APP_BK_BIZ_ID}_bklog.dbm_dbactuator",
-                "start_time": datetime2str(flow_node.created_at),
+                "start_time": datetime2str(flow_node.started_at),
                 # 检索节点开始后一天内的日志，一般情况下，节点执行时间不会超过一天
-                "end_time": datetime2str(flow_node.created_at + timedelta(days=1)),
+                "end_time": datetime2str(flow_node.updated_at + timedelta(days=1)),
                 # TODO 可优化检索，需清洗后根据 root_id、node_id、version_id 进行检索
                 "query_string": f"{self.root_id} AND {node_id} AND {version_id}",
                 "start": 0,
@@ -176,7 +178,8 @@ class TaskFlowHandler:
         """格式化日志，为方便前端组件渲染"""
 
         # flow日志默认不展示ip
-        prefix = f"[flow]" if f"{env.DBA_APP_BK_BIZ_ID}_bklog_dbm_log" in index else f"[dbactuator-{ip}]"
+        prefix = "[flow]" if f"{env.DBA_APP_BK_BIZ_ID}_bklog_dbm_log" in index else f"[dbactuator-{ip}]"
+        log = re.sub(LOG_START_STRIP_PATTERN, "", log)
 
         try:
             log = json.loads(log)

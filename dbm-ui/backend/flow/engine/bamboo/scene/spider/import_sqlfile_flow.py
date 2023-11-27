@@ -11,12 +11,12 @@ specific language governing permissions and limitations under the License.
 import logging.config
 import os
 from dataclasses import asdict
-from typing import Any, Dict, Optional
+from typing import Dict, Optional
 
 from django.utils.translation import ugettext as _
 
 from backend.configuration.constants import DBType
-from backend.constants import DEFAULT_BK_CLOUD_ID, IP_PORT_DIVIDER
+from backend.constants import IP_PORT_DIVIDER
 from backend.core import consts
 from backend.db_meta.enums.cluster_type import ClusterType
 from backend.db_meta.enums.instance_role import InstanceRole

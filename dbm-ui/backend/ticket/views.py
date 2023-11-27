@@ -272,7 +272,7 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
         ticket = self.get_object()
 
         validated_data = self.params_validate(self.get_serializer_class())
-        role, keyword, bk_biz_id = validated_data["role"], validated_data.get("keyword"), validated_data["bk_biz_id"]
+        role, keyword = validated_data["role"], validated_data.get("keyword")
         role_nodes = ticket.details["nodes"].get(role, [])
         instances_hash = {role_node["bk_host_id"]: role_node.get("instance_num", 1) for role_node in role_nodes}
         role_host_ids = [role_node["bk_host_id"] for role_node in role_nodes]

@@ -107,7 +107,7 @@ class MysqlSqlImportFlowBuilder(BaseMySQLTicketFlowBuilder):
         else:
             # 移除无用的字段，避免污染ticket的details
             pop_fields = ["uid", "ticket_type"]
-            __ = [details.pop(field, None) for field in pop_fields]
+            [details.pop(field, None) for field in pop_fields]
 
         # 补充集群信息和node_id
         cluster_ids = details["cluster_ids"]

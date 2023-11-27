@@ -23,9 +23,8 @@ from backend.components import JobApi
 from backend.db_meta.api.cluster import nosqlcomm
 from backend.flow.models import FlowNode
 from backend.flow.plugins.components.collections.common.base_service import BaseService, BkJobService
-from backend.flow.utils.redis.redis_context_dataclass import ActKwargs, RedisDataStructureContext
+from backend.flow.utils.redis.redis_context_dataclass import RedisDataStructureContext
 from backend.flow.utils.redis.redis_script_template import redis_fast_execute_script_common_kwargs
-from backend.ticket.constants import TicketType
 
 logger = logging.getLogger("json")
 
@@ -37,7 +36,6 @@ class ExecuteShellScriptService(BkJobService):
 
     def _execute(self, data, parent_data) -> bool:
         kwargs = data.get_one_of_inputs("kwargs")
-        global_data = data.get_one_of_inputs("global_data")
 
         root_id = kwargs["root_id"]
         node_name = kwargs["node_name"]
@@ -150,7 +148,6 @@ class RedisDataStructurePrecheckService(BaseService):
     def _execute(self, data, parent_data):
         kwargs = data.get_one_of_inputs("kwargs")
         trans_data = data.get_one_of_inputs("trans_data")
-        splice_payload_var = data.get_one_of_inputs("splice_payload_var")
 
         if trans_data is None or trans_data == "${trans_data}":
             # 表示没有加载上下文内容，则在此添加
@@ -274,7 +271,6 @@ class ExecuteShellReloadMetaService(BkJobService):
 
     def _execute(self, data, parent_data) -> bool:
         kwargs = data.get_one_of_inputs("kwargs")
-        global_data = data.get_one_of_inputs("global_data")
 
         root_id = kwargs["root_id"]
         node_name = kwargs["node_name"]

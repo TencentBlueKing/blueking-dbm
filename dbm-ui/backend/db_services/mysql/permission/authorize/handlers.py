@@ -9,7 +9,6 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import copy
-import re
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Any, Dict, List, Union
 
@@ -22,9 +21,7 @@ from backend import env
 from backend.components.gcs.client import GcsApi
 from backend.components.mysql_priv_manager.client import MySQLPrivManagerApi
 from backend.components.scr.client import ScrApi
-from backend.constants import IP_RE_PATTERN
-from backend.db_meta.enums import ClusterType
-from backend.db_meta.models import AppCache, Cluster
+from backend.db_meta.models import Cluster
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.db_services.mysql.permission.authorize.dataclass import (
     AuthorizeMeta,
@@ -33,7 +30,6 @@ from backend.db_services.mysql.permission.authorize.dataclass import (
 )
 from backend.db_services.mysql.permission.authorize.models import MySQLAuthorizeRecord
 from backend.db_services.mysql.permission.constants import AUTHORIZE_DATA_EXPIRE_TIME, AUTHORIZE_EXCEL_ERROR_TEMPLATE
-from backend.db_services.mysql.permission.exceptions import DBPermissionBaseException
 from backend.exceptions import ApiResultError
 from backend.ticket.constants import TicketStatus, TicketType
 from backend.ticket.models import Ticket
@@ -128,7 +124,7 @@ class AuthorizeHandler(object):
         for future in as_completed(tasks):
             # 获取线程执行的授权结果
             task_result = future.result()
-            uid, __, index = task_result["authorize_uid"], task_result["message"], task_result["task_index"]
+            uid, index = task_result["authorize_uid"], task_result["task_index"]
 
             # 将缓存数据取出放到excel缓存数据的切片中
             data = cache.get(uid)[0]

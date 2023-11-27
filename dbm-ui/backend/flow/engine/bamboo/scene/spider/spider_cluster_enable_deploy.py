@@ -86,10 +86,6 @@ class SpiderClusterEnableFlow(object):
 
         # 多集群禁用时，循环加入禁用子流程
         for cluster_id in self.data["cluster_ids"]:
-            # 获取集群实例信息
-            cluster = Cluster.objects.get(id=cluster_id)
-            instance_set = cluster.proxyinstance_set.all()
-            # 这里问下，一套集群对应多个域名？
             cluster_info = self.__get_tendb_cluster_info(cluster_id, self.data["is_only_add_slave_domain"])
             sub_flow_context = copy.deepcopy(self.data)
             sub_flow_context.pop("cluster_ids")

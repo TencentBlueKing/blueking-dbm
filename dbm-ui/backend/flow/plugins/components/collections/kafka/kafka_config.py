@@ -83,7 +83,7 @@ class KafkaConfigService(BaseService):
         MySQLPrivManagerApi.modify_password(params=query_params)
         self.log_info("successfully write password to service")
 
-        self.log_info(f"DBConfig re successfully")
+        self.log_info("DBConfig re successfully")
         return True
 
     def inputs_format(self) -> List:

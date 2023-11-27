@@ -9,25 +9,14 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
-import json
 import logging
 
 from django.utils.translation import ugettext as _
-from rest_framework import serializers
 
-from backend import env
 from backend.configuration.constants import DBType
-from backend.db_meta.models import Cluster
 from backend.db_services.mysql.sql_import.constants import SQLExecuteTicketMode
-from backend.db_services.mysql.sql_import.dataclass import SemanticOperateMeta
-from backend.db_services.mysql.sql_import.handlers import SQLHandler
-from backend.flow.engine.bamboo.engine import BambooEngine
-from backend.flow.engine.controller.mysql import MySQLController
 from backend.flow.engine.controller.spider import SpiderController
-from backend.flow.models import FlowNode, FlowTree
-from backend.flow.plugins.components.collections.mysql.semantic_check import SemanticCheckComponent
 from backend.ticket import builders
-from backend.ticket.builders.mysql.base import BaseMySQLTicketFlowBuilder, MySQLBaseOperateDetailSerializer
 from backend.ticket.builders.mysql.mysql_import_sqlfile import (
     MysqlSqlImportBackUpFlowParamBuilder,
     MysqlSqlImportDetailSerializer,
@@ -38,7 +27,6 @@ from backend.ticket.builders.mysql.mysql_import_sqlfile import (
 from backend.ticket.builders.tendbcluster.base import BaseTendbTicketFlowBuilder
 from backend.ticket.builders.tendbcluster.tendb_full_backup import TendbFullBackUpDetailSerializer
 from backend.ticket.constants import FlowRetryType, FlowType, TicketType
-from backend.ticket.exceptions import TicketBaseException
 from backend.ticket.models import Flow
 
 logger = logging.getLogger("root")

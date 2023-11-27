@@ -84,7 +84,7 @@ class InfluxdbReplaceConfigService(BaseService):
                     }
                 )
 
-        self.log_info(f"DBConfig re successfully")
+        self.log_info("DBConfig re successfully")
         return True
 
     def inputs_format(self) -> List:

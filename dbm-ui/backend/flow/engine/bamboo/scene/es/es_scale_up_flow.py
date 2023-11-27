@@ -47,8 +47,8 @@ class EsScaleUpFlow(EsFlow):
         self.master_exec_ip = self.master_ips[0]
 
         # 定义证书文件分发的目标路径
-        self.cer_target_path = f"/data/install/"
-        self.file_list = [f"/tmp/es_cerfiles.tar.gz"]
+        self.cer_target_path = "/data/install/"
+        self.file_list = ["/tmp/es_cerfiles.tar.gz"]
 
     def __get_flow_data(self) -> dict:
         flow_data = self.get_flow_base_data()
