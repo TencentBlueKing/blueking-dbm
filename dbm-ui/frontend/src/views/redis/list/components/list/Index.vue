@@ -239,10 +239,19 @@
     return 60;
   });
 
+  const searchIp = computed<string[]>(() => {
+    const ipObj = state.searchValues.find(item => item.id === 'ip');
+    if (ipObj) {
+      return [ipObj.values[0].id];
+    }
+    return [];
+  });
+
   const columns = computed(() => [
     {
       type: 'selection',
       width: 54,
+      minWidth: 54,
       label: '',
       fixed: 'left',
     },
@@ -251,6 +260,31 @@
       field: 'id',
       fixed: 'left',
       width: 100,
+    },
+    {
+      label: t('访问入口'),
+      field: 'master_domain',
+      width: 200,
+      minWidth: 200,
+      fixed: 'left',
+      render: ({ data }: ColumnRenderData) => {
+        const entryTypes = (data.cluster_entry || []).map(item => item.cluster_entry_type);
+        const isOnlineCLB = entryTypes.includes('clb');
+        return (
+        <div class="domain">
+          <span
+            class="text-overflow"
+            v-overflow-tips>
+            {data.master_domain || '--'}
+          </span>
+          {isOnlineCLB && <MiniTag content="CLB" extCls='redis-manage-clb-minitag' />}
+          {userProfileStore.isManager && <db-icon
+            type="edit"
+            v-bk-tooltips={t('修改入口配置')}
+            onClick={() => handleOpenEntryConfig(data)} />}
+        </div>
+        );
+      },
     },
     {
       label: t('集群名称'),
@@ -319,29 +353,7 @@
         );
       },
     },
-    {
-      label: t('访问入口'),
-      field: 'master_domain',
-      minWidth: 200,
-      render: ({ data }: ColumnRenderData) => {
-        const entryTypes = (data.cluster_entry || []).map(item => item.cluster_entry_type);
-        const isOnlineCLB = entryTypes.includes('clb');
-        return (
-        <div class="domain">
-          <span
-            class="text-overflow"
-            v-overflow-tips>
-            {data.master_domain || '--'}
-          </span>
-          {isOnlineCLB && <MiniTag content="CLB" extCls='redis-manage-clb-minitag' />}
-          {userProfileStore.isManager && <db-icon
-            type="edit"
-            v-bk-tooltips={t('修改入口配置')}
-            onClick={() => handleOpenEntryConfig(data)} />}
-        </div>
-        );
-      },
-    },
+
     {
       label: 'Proxy',
       field: ClusterNodeKeys.PROXY,
@@ -349,6 +361,7 @@
       showOverflowTooltip: false,
       render: ({ data }: ColumnRenderData) => (
       <RenderInstances
+        highlightIps={searchIp.value}
         data={data[ClusterNodeKeys.PROXY]}
         title={t('【inst】实例预览', { title: 'Proxy', inst: data.master_domain })}
         role={ClusterNodeKeys.PROXY}
@@ -364,6 +377,7 @@
       showOverflowTooltip: false,
       render: ({ data }: ColumnRenderData) => (
         <RenderInstances
+          highlightIps={searchIp.value}
           data={data[ClusterNodeKeys.REDIS_MASTER]}
           title={t('【inst】实例预览', { title: 'Master', inst: data.master_domain })}
           role={ClusterNodeKeys.REDIS_MASTER}
@@ -379,6 +393,7 @@
       showOverflowTooltip: false,
       render: ({ data }: ColumnRenderData) => (
         <RenderInstances
+          highlightIps={searchIp.value}
           data={data[ClusterNodeKeys.REDIS_SLAVE]}
           title={t('【inst】实例预览', { title: 'Slave', inst: data.master_domain })}
           role={ClusterNodeKeys.REDIS_SLAVE}
@@ -746,7 +761,6 @@
       disabled: ['name', 'master_domain'].includes(item.field as string),
     })),
     checked: [
-      'id',
       'bk_cloud_name',
       'name',
       'master_domain',

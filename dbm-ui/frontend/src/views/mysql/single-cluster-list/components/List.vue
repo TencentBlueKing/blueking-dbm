@@ -18,32 +18,32 @@
         <BkButton
           theme="primary"
           @click="handleApply">
-          {{ $t('实例申请') }}
+          {{ t('实例申请') }}
         </BkButton>
         <span
           v-bk-tooltips="{
             disabled: hasSelected,
-            content: $t('请选择集群')
+            content: t('请选择集群')
           }"
           class="inline-block">
           <BkButton
             class="ml-8"
             :disabled="!hasSelected"
             @click="handleShowAuthorize(state.selected)">
-            {{ $t('批量授权') }}
+            {{ t('批量授权') }}
           </BkButton>
         </span>
         <span
           v-bk-tooltips="{
             disabled: hasData,
-            content: $t('请先创建实例')
+            content: t('请先创建实例')
           }"
           class="inline-block">
           <BkButton
             class="ml-8"
             :disabled="!hasData"
             @click="handleShowExcelAuthorize">
-            {{ $t('导入授权') }}
+            {{ t('导入授权') }}
           </BkButton>
         </span>
       </div>
@@ -52,7 +52,7 @@
         class="mb-16"
         :data="searchSelectData"
         :get-menu-list="getMenuList"
-        :placeholder="$t('域名_IP_模块')"
+        :placeholder="t('域名_IP_模块')"
         unique-select
         @change="handleChangeValues" />
     </div>
@@ -227,6 +227,7 @@
     {
       type: 'selection',
       width: 54,
+      minWidth: 54,
       label: '',
       fixed: 'left',
     },
@@ -237,47 +238,65 @@
       width: 100,
     },
     {
+      label: t('访问入口'),
+      field: 'master_domain',
+      fixed: 'left',
+      width: 200,
+      minWidth: 200,
+      showOverflowTooltip: false,
+      render: ({ cell, data }: ColumnData) => (
+        <div class="domain">
+          <span class="text-overflow" v-overflow-tips>{cell}</span>
+          <i class="db-icon-copy" v-bk-tooltips={t('复制主访问入口')} onClick={() => copy(cell)} />
+          {userProfileStore.isManager && <db-icon
+              type="edit"
+              v-bk-tooltips={t('修改入口配置')}
+              onClick={() => handleOpenEntryConfig(data)} />}
+        </div>
+      ),
+    },
+    {
       label: t('集群名称'),
       field: 'cluster_name',
       minWidth: 200,
       fixed: 'left',
       showOverflowTooltip: false,
       render: ({ data }: ColumnData) => (
-      <div class="cluster-name-container">
-        <div
-          class="cluster-name text-overflow"
-          v-overflow-tips>
-          <bk-button
-            text
-            theme="primary"
-            onClick={() => handleToDetails(data)}>
-            {data.cluster_name}
-          </bk-button>
-        </div>
-        <div class="cluster-tags">
-          {
-            data.operations.map(item => <RenderOperationTag class="cluster-tag" data={item} />)
-          }
-          {
-            data.phase === 'offline'
-            && <db-icon
-                svg
-                type="yijinyong"
-                class="cluster-tag"
-                style="width: 38px; height: 16px;" />
-          }
-          {
-            isRecentDays(data.create_at, 24 * 3)
-             && <span class="glob-new-tag cluster-tag ml-4" data-text="NEW" />
-          }
-          <db-icon
-            v-bk-tooltips={t('复制集群名称')}
-            type="copy"
-            onClick={() => copy(data.cluster_name)} />
-        </div>
+        <div class="cluster-name-container">
+          <div
+            class="cluster-name text-overflow"
+            v-overflow-tips>
+            <bk-button
+              text
+              theme="primary"
+              onClick={() => handleToDetails(data)}>
+              {data.cluster_name}
+            </bk-button>
+          </div>
+          <div class="cluster-tags">
+            {
+              data.operations.map(item => <RenderOperationTag class="cluster-tag" data={item} />)
+            }
+            {
+              data.phase === 'offline'
+              && <db-icon
+                  svg
+                  type="yijinyong"
+                  class="cluster-tag"
+                  style="width: 38px; height: 16px;" />
+            }
+            {
+              isRecentDays(data.create_at, 24 * 3)
+              && <span class="glob-new-tag cluster-tag ml-4" data-text="NEW" />
+            }
+            <db-icon
+              v-bk-tooltips={t('复制集群名称')}
+              type="copy"
+              onClick={() => copy(data.cluster_name)} />
+          </div>
 
-      </div>
-    ),
+        </div>
+      ),
     },
     {
       label: t('管控区域'),
@@ -291,22 +310,6 @@
         const info = data.status === 'normal' ? { theme: 'success', text: t('正常') } : { theme: 'danger', text: t('异常') };
         return <DbStatus theme={info.theme}>{info.text}</DbStatus>;
       },
-    },
-    {
-      label: t('访问入口'),
-      field: 'master_domain',
-      minWidth: 200,
-      showOverflowTooltip: false,
-      render: ({ cell, data }: ColumnData) => (
-      <div class="domain">
-        <span class="text-overflow" v-overflow-tips>{cell}</span>
-        <i class="db-icon-copy" v-bk-tooltips={t('复制主访问入口')} onClick={() => copy(cell)} />
-        {userProfileStore.isManager && <db-icon
-            type="edit"
-            v-bk-tooltips={t('修改入口配置')}
-            onClick={() => handleOpenEntryConfig(data)} />}
-      </div>
-    ),
     },
     {
       label: t('实例'),
@@ -433,14 +436,14 @@
   };
 
   // 设置用户个人表头信息
-  const disabledFields = ['cluster_name', 'master_domain'];
+  const disabledFields = ['master_domain'];
   const defaultSettings = {
     fields: (columns.value || []).filter(item => item.field).map(item => ({
       label: item.label as string,
       field: item.field as string,
       disabled: disabledFields.includes(item.field as string),
     })),
-    checked: (columns.value || []).map(item => item.field).filter(key => !!key) as string[],
+    checked: (columns.value || []).map(item => item.field).filter(key => !!key && key !== 'id') as string[],
     showLineHeight: false,
   };
   const {

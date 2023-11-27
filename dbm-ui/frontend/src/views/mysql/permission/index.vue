@@ -13,16 +13,26 @@
 
 <template>
   <div class="permission-rules">
+    <BkAlert
+      class="permission-info-alert"
+      closable
+      theme="info">
+      <template #title>
+        <p><span class="label">{{ t('账号') }} ：</span>{{ t('访问 DB 的用户名，包括它的密码') }}</p>
+        <p><span class="label">{{ t('授权规则') }} ：</span>{{ t('权限模板，预定义账号拥有哪些权限') }}</p>
+        <p><span class="label">{{ t('授权') }} ：</span>{{ t('根据 grant 语法授予 DB 实例的访问权限') }}</p>
+      </template>
+    </BkAlert>
     <div class="permission-rules__operations">
       <BkButton
         theme="primary"
         @click="handleShowAccountDialog">
-        {{ $t('新建账号') }}
+        {{ t('新建账号') }}
       </BkButton>
       <DbSearchSelect
         v-model="state.search"
         :data="filters"
-        :placeholder="$t('账号名称_DB名称_权限名称')"
+        :placeholder="t('账号名称_DB名称_权限名称')"
         style="width: 500px;"
         unique-select
         @change="handleSearch" />
@@ -61,7 +71,7 @@
     :draggable="false"
     height="auto"
     quick-close
-    :title="$t('账号信息')"
+    :title="t('账号信息')"
     :width="480">
     <div class="account-details">
       <div
@@ -80,7 +90,7 @@
         <span class="account-details__value">
           <BkButton
             hover-theme="danger"
-            @click="handleDeleteAccount(accountDetailDialog.rowData)">{{ $t('删除账号') }}</BkButton>
+            @click="handleDeleteAccount(accountDetailDialog.rowData)">{{ t('删除账号') }}</BkButton>
         </span>
       </div>
     </div>
@@ -363,6 +373,14 @@
 @import "@styles/mixins.less";
 
 .permission-rules {
+  .permission-info-alert {
+    margin-bottom: 16px;
+
+    :deep(.label) {
+      font-weight: 700;
+    }
+  }
+
   &__operations {
     justify-content: space-between;
     padding-bottom: 16px;

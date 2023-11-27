@@ -12,8 +12,10 @@ import logging
 import uuid
 
 from django.utils.translation import ugettext as _
+from rest_framework import serializers
 from rest_framework.response import Response
 
+from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.flow.engine.controller.kafka import KafkaController
 from backend.flow.views.base import FlowTestView, MigrateFlowView
 
@@ -66,6 +68,7 @@ class FakeInstallKafkaSceneApiView(MigrateFlowView):
     }
     """
 
+    @common_swagger_auto_schema(request_body=serializers.Serializer())
     def post(self, request):
         logger.info(_("开始部署kafka场景"))
         root_id = uuid.uuid1().hex
