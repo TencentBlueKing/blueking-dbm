@@ -258,7 +258,7 @@
   },
   "is_enabled": true,
   "monitor_indicator": "COUNT(redis_persist-dbm_report_channel)",
-  "version": 0,
+  "version": 16,
   "alert_source": "event",
   "custom_conditions": []
 }

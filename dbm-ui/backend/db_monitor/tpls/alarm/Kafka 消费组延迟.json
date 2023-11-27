@@ -264,7 +264,7 @@
   },
   "is_enabled": false,
   "monitor_indicator": "avg_without_time(kafka_consumergroup_lag_sum)",
-  "version": 15,
+  "version": 16,
   "alert_source": "time_series",
   "custom_conditions": []
 }
