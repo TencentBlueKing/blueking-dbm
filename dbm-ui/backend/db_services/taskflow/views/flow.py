@@ -8,6 +8,8 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import logging
+
 from django.http import HttpResponse
 from django.utils.translation import ugettext as _
 from rest_framework.decorators import action
@@ -27,11 +29,12 @@ from backend.db_services.taskflow.serializers import (
 )
 from backend.flow.consts import StateType
 from backend.flow.engine.bamboo.engine import BambooEngine
-from backend.flow.models import FlowNode, FlowTree
+from backend.flow.models import FlowTree
 from backend.iam_app.handlers.drf_perm import TaskFlowIAMPermission
 from backend.ticket.models import Flow
 from backend.utils.basic import get_target_items_from_details
 
+logger = logging.getLogger("root")
 SWAGGER_TAG = "taskflow"
 
 
@@ -91,9 +94,9 @@ class TaskFlowViewSet(viewsets.AuditedModelViewSet):
                 bk_biz_id = env.DBA_APP_BK_BIZ_ID
             # 更新flow_info
             flow_info.data.update(bk_host_ids=bk_host_ids, bk_biz_id=bk_biz_id)
-        except Exception as e:
+        except Exception:
             # 如果没找到flow或者相关bk_host_id参数，则忽略
-            pass
+            logger.info("can not find related host, root_id: {}".format(root_id))
 
         return Response({"flow_info": flow_info.data, **tree_states})
 

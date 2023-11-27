@@ -100,7 +100,7 @@ class SimpleProvisioning(BaseProvisioning):
                 for conf in self.read_conf("dashboards", suffix):
                     for p in conf["providers"]:
                         dashboard_path = os.path.expandvars(p["options"]["path"])
-                        paths = os.path.join(dashboard_path, f"*.json")
+                        paths = os.path.join(dashboard_path, "*.json")
                         for path in glob.glob(paths):
                             with open(path, "rb") as fh:
                                 file_content = fh.read().decode()

@@ -22,19 +22,21 @@ USER_MANAGE_APIGW_DOMAIN = get_type_env(key="USER_MANAGE_APIGW_DOMAIN", _type=st
 CMSI_APIGW_DOMAIN = get_type_env(key="CMSI_APIGW_DOMAIN", _type=str)
 ITSM_APIGW_DOMAIN = get_type_env(key="ITSM_APIGW_DOMAIN", _type=str)
 BKLOG_APIGW_DOMAIN = get_type_env(key="BKLOG_APIGW_DOMAIN", _type=str)
-
-DBCONFIG_APIGW_DOMAIN = get_type_env(key="DBCONFIG_APIGW_DOMAIN", _type=str)
-DNS_APIGW_DOMAIN = get_type_env(key="DNS_APIGW_DOMAIN", _type=str)
-MYSQL_PRIV_MANAGER_APIGW_DOMAIN = get_type_env(key="MYSQL_PRIV_MANAGER_APIGW_DOMAIN", _type=str)
-PARTITION_APIGW_DOMAIN = get_type_env(key="PARTITION_APIGW_DOMAIN", _type=str)
-DRS_APIGW_DOMAIN = get_type_env(key="DRS_APIGW_DOMAIN", _type=str)
-SQL_IMPORT_APIGW_DOMAIN = get_type_env(key="SQL_IMPORT_APIGW_DOMAIN", _type=str)
 BKMONITORV3_APIGW_DOMAIN = get_type_env(key="BKMONITORV3_APIGW_DOMAIN", _type=str)
-MYSQL_SIMULATION_DOMAIN = get_type_env(key="MYSQL_SIMULATION_DOMAIN", _type=str)
+
+DRS_APIGW_DOMAIN = get_type_env(key="DRS_APIGW_DOMAIN", _type=str)
 NAMESERVICE_APIGW_DOMAIN = get_type_env(key="NAMESERVICE_APIGW_DOMAIN", _type=str)
-HADB_APIGW_DOMAIN = get_type_env(key="HADB_APIGW_DOMAIN", _type=str)
-DBRESOURCE_APIGW_DOMAIN = get_type_env(key="DBRESOURCE_APIGW_DOMAIN", _type=str)
-BACKUP_APIGW_DOMAIN = get_type_env(key="BACKUP_APIGW_DOMAIN", _type=str)
+
+DBCONFIG_APIGW_DOMAIN = get_type_env(key="DBCONFIG_APIGW_DOMAIN", _type=str, default="http://bk-dbm-dbconfig")
+DNS_APIGW_DOMAIN = get_type_env(key="DNS_APIGW_DOMAIN", _type=str, default="http://bk-dbm-db-dns-api")
+MYSQL_PRIV_MANAGER_APIGW_DOMAIN = get_type_env(
+    key="MYSQL_PRIV_MANAGER_APIGW_DOMAIN", _type=str, default="http://bk-dbm-dbpriv"
+)
+PARTITION_APIGW_DOMAIN = get_type_env(key="PARTITION_APIGW_DOMAIN", _type=str, default="http://bk-dbm-dbpartition")
+MYSQL_SIMULATION_DOMAIN = get_type_env(key="MYSQL_SIMULATION_DOMAIN", _type=str, default="http://bk-dbm-dbsimulation")
+HADB_APIGW_DOMAIN = get_type_env(key="HADB_APIGW_DOMAIN", _type=str, default="http://bk-dbm-hadb-api")
+DBRESOURCE_APIGW_DOMAIN = get_type_env(key="DBRESOURCE_APIGW_DOMAIN", _type=str, default="http://bk-dbm-db-resource")
+BACKUP_APIGW_DOMAIN = get_type_env(key="BACKUP_APIGW_DOMAIN", _type=str, default="http://bk-dbm-backup-server")
 SLOW_QUERY_PARSER_DOMAIN = get_type_env(
     key="SLOW_QUERY_PARSER_DOMAIN", _type=str, default="http://bk-dbm-slow-query-parser-service"
 )

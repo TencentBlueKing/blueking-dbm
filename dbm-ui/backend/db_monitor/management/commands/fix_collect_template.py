@@ -15,7 +15,7 @@ import os
 
 from django.core.management.base import BaseCommand
 
-from backend.db_monitor.constants import TPLS_ALARM_DIR, TPLS_COLLECT_DIR, TargetPriority
+from backend.db_monitor.constants import TPLS_COLLECT_DIR
 
 logger = logging.getLogger("root")
 
@@ -39,7 +39,6 @@ class Command(BaseCommand):
         f.truncate()
 
     def handle(self, *args, **options):
-        db_type = options["dbtype"]
         json_files = glob.glob(os.path.join(TPLS_COLLECT_DIR, "*.json"))
         for json_file in json_files:
             with open(json_file, "r+") as f:

@@ -218,7 +218,6 @@ class BkJobService(BaseService, metaclass=ABCMeta):
         ext_result = data.get_one_of_outputs("ext_result")
         exec_ips = data.get_one_of_outputs("exec_ips")
         kwargs = data.get_one_of_inputs("kwargs")
-        global_data = data.get_one_of_inputs("global_data")
         write_payload_var = data.get_one_of_inputs("write_payload_var")
         trans_data = data.get_one_of_inputs("trans_data")
 

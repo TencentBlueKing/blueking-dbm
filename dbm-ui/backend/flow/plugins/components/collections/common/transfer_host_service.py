@@ -33,8 +33,8 @@ class TransferHostService(BaseService):
                 bk_host_ids=bk_host_ids, target_module_ids=bk_module_ids
             )
             return True
-        except Exception as e:  # pylint: disable=broad-except
-            self.log_error(_("主机{}转移目标模块{}失败").format(bk_host_ids, bk_module_ids))
+        except Exception as err:  # pylint: disable=broad-except
+            self.log_error(_("主机{}转移目标模块{}失败, {}").format(bk_host_ids, bk_module_ids, err))
             return False
 
 

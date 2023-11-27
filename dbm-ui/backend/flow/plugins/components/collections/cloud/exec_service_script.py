@@ -46,7 +46,6 @@ class ExecCloudScriptService(BkJobService):
         }
         """
 
-        global_data = data.get_one_of_inputs("global_data")
         kwargs = data.get_one_of_inputs("kwargs")
 
         root_id = kwargs["root_id"]

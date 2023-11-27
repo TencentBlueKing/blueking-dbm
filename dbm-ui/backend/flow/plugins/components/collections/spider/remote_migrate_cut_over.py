@@ -30,8 +30,6 @@ class RemoteMigrateCutOverService(ExecuteDBActuatorScriptService):
     """
 
     def _execute(self, data, parent_data, callback=None) -> bool:
-
-        kwargs = data.get_one_of_inputs("kwargs")
         global_data = data.get_one_of_inputs("global_data")
 
         cluster = Cluster.objects.get(id=global_data["cluster_id"])

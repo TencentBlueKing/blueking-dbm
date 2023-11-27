@@ -60,7 +60,7 @@ class EsApplyFlow(EsFlow):
         self.cluster_alias = data.get("cluster_alias")
 
         # 定义证书文件分发的目标路径
-        self.cer_target_path = f"/data/install/"
+        self.cer_target_path = "/data/install/"
         self.file_list = ["/tmp/es_cerfiles.tar.gz"]
 
     def __get_flow_data(self) -> dict:

@@ -20,7 +20,7 @@ from backend.flow.consts import FAILED_STATES, StateType
 from backend.flow.engine.bamboo.engine import BambooEngine
 from backend.flow.models import FlowNode, FlowTree
 from backend.ticket.builders import BuilderFactory
-from backend.ticket.constants import BAMBOO_STATE__TICKET_STATE_MAP, FlowCallbackType, FlowType, TicketFlowStatus
+from backend.ticket.constants import FlowCallbackType, FlowType, TicketFlowStatus
 from backend.ticket.flow_manager.inner import InnerFlow
 from backend.ticket.flow_manager.manager import TicketFlowManager
 from backend.ticket.models import Flow, Ticket

@@ -54,6 +54,7 @@ bk-audit = "1.1.0rc0"
 bk-crypto-python-sdk = "1.1.1"
 django-environ = "^0.11.2"
 opentelemetry-api = "1.12.0"
+flake8 = "5.0.4"
 
 
 [tool.poetry.dev-dependencies]
@@ -61,7 +62,6 @@ pytest = "6.2.4"
 pytest-django = "3.9.0"
 mock = "3.0.5"
 coverage = "4.5.3"
-flake8 = "3.7.8"
 ipython = "7.16.3"
 requests-mock = "1.9.3"
 black = "20.8b1"

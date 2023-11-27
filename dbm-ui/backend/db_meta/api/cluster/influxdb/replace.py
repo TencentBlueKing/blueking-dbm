@@ -44,7 +44,6 @@ def replace(
     for storage in storages:
         GroupInstance.objects.get(instance_id=storage.id).delete()
         # 删除storage instance
-        del_instance_id = storage.id
         storage.delete(keep_parents=True)
         cc_manage = CcManage(storage.bk_biz_id)
         if not storage.machine.storageinstance_set.exists():

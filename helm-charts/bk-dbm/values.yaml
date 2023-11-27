@@ -237,8 +237,8 @@ backup-server:
     api_sys_id: "test"
     api_key: "test key"
   package:
-    bkrepo_project: "bk-dbm-test"
-    bkrepo_public_bucket: "test"
+    bkrepo_project: "blueking"
+    bkrepo_public_bucket: "bkdbm"
   backup_client:
     cos_default_dns: ""
 

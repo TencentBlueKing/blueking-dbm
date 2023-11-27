@@ -47,7 +47,7 @@ class Command(BaseCommand):
             bk_cloud_id=0,
         )
 
-        count, apply_data = resp["count"], list(filter(lambda x: x["status"] == 1, resp["info"]))
+        apply_data = list(filter(lambda x: x["status"] == 1, resp["info"]))
 
         free_hosts = list(filter(lambda x: x["bk_host_id"] not in host_in_use, apply_data))
         free_host_ids = [h["bk_host_id"] for h in free_hosts]

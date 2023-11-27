@@ -350,7 +350,6 @@ class FixPointRollbackHandler:
         :param end_time: 结束时间
         """
 
-        cluster_domain = self.cluster.immute_domain
         backup_logs = self._get_log_from_bklog(
             collector="mysql_backup_result",
             start_time=start_time,

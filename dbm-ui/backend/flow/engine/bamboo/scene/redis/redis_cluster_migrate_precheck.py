@@ -9,18 +9,12 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import logging.config
-from collections import defaultdict
-from dataclasses import asdict
 from typing import Dict, Optional
-
-from django.utils.translation import ugettext as _
 
 from backend.components import DBConfigApi
 from backend.components.db_name_service.client import NameServiceApi
 from backend.components.dbconfig.constants import FormatType, LevelName
 from backend.components.dns.client import DnsApi
-from backend.configuration.constants import DBType
-from backend.db_meta.enums import InstanceRole
 from backend.db_meta.models import Cluster, Machine
 from backend.flow.consts import DEFAULT_TWEMPROXY_SEG_TOTOL_NUM, ConfigTypeEnum
 

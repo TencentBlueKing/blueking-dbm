@@ -24,7 +24,6 @@ class MySQLHAModifyClusterPhaseService(BaseService):
     def _execute(self, data, parent_data):
         kwargs = data.get_one_of_inputs("kwargs")
         trans_data = data.get_one_of_inputs("trans_data")
-        global_data = data.get_one_of_inputs("global_data")
 
         cluster_ids = trans_data.cluster_ids
 

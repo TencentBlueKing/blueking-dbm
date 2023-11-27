@@ -9,10 +9,9 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import logging.config
-from collections import defaultdict
 from copy import deepcopy
 from dataclasses import asdict
-from typing import Dict, List, Optional
+from typing import Dict
 
 from django.utils.translation import ugettext as _
 
@@ -24,10 +23,10 @@ from backend.flow.consts import (
     DEFAULT_REDIS_START_PORT,
     SyncType,
 )
-from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
+from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
 from backend.flow.plugins.components.collections.redis.exec_shell_script import ExecuteShellReloadMetaComponent
 from backend.flow.plugins.components.collections.redis.redis_db_meta import RedisDBMetaComponent
-from backend.flow.utils.redis.redis_context_dataclass import ActKwargs, CommonContext
+from backend.flow.utils.redis.redis_context_dataclass import ActKwargs
 from backend.flow.utils.redis.redis_db_meta import RedisDBMeta
 from backend.flow.utils.redis.redis_proxy_util import get_cache_backup_mode, get_twemproxy_cluster_server_shards
 
@@ -144,7 +143,7 @@ def TwemproxyClusterMasterReplaceJob(
     redis_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
     # ### 部署实例 ####################################################################### 完毕 ###
 
-    sync_relations, new_slave_ports = [], []  # 按照机器对组合
+    sync_relations = []  # 按照机器对组合
     # #### 建同步关系 #############################################################################
     sub_pipelines, sync_kwargs, sed_links = [], deepcopy(act_kwargs), []
     for replace_info in master_replace_detail:

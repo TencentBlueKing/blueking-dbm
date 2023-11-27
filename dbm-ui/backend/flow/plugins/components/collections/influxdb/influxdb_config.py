@@ -74,7 +74,7 @@ class InfluxdbConfigService(BaseService):
             )
 
             # Writing to password service, using instance_id as ip
-            self.log_info(f"Writing password to service...")
+            self.log_info("Writing password to service...")
             # 把用户名当密码存
             query_params = {
                 "instances": [{"ip": str(storage_obj.id), "port": 0, "bk_cloud_id": global_data["bk_cloud_id"]}],
@@ -94,7 +94,7 @@ class InfluxdbConfigService(BaseService):
             }
             MySQLPrivManagerApi.modify_password(params=query_params)
 
-        self.log_info(f"DBConfig re successfully")
+        self.log_info("DBConfig re successfully")
         return True
 
     def inputs_format(self) -> List:

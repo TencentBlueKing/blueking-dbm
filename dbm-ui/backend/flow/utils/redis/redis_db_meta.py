@@ -46,7 +46,7 @@ from backend.db_meta.models import (
 from backend.db_services.dbbase.constants import IP_PORT_DIVIDER, SPACE_DIVIDER
 from backend.db_services.redis.rollback.models import TbTendisRollbackTasks
 from backend.db_services.redis.slots_migrate.models import TbTendisSlotsMigrateRecord
-from backend.flow.consts import DEFAULT_DB_MODULE_ID, ConfigFileEnum, ConfigTypeEnum, InstanceStatus
+from backend.flow.consts import DEFAULT_DB_MODULE_ID, InstanceStatus
 from backend.flow.utils.base.payload_handler import PayloadHandler
 from backend.flow.utils.redis.redis_module_operate import RedisCCTopoOperator
 from backend.ticket.constants import TicketType
@@ -451,7 +451,7 @@ class RedisDBMeta(object):
             cluster = Cluster.objects.get(
                 bk_cloud_id=self.cluster["bk_cloud_id"], immute_domain=self.cluster["immute_domain"]
             )
-            tendiss, replic_tuple = [], []
+            tendiss = []
             for relation in self.cluster["sync_relation"]:
                 receiver = relation["receiver"]
                 slave_obj = StorageInstance.objects.get(machine__ip=receiver["ip"], port=receiver["port"])

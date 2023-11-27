@@ -14,6 +14,7 @@ from typing import List
 
 from bk_audit.constants.log import DEFAULT_EMPTY_VALUE, DEFAULT_SENSITIVITY
 from bk_audit.contrib.bk_audit.client import bk_audit_client
+from bk_audit.log.exporters import BaseExporter
 from bk_audit.log.models import AuditContext, AuditInstance
 from iam import Resource
 from rest_framework import permissions
@@ -41,6 +42,17 @@ class CommonInstance(object):
         return AuditInstance(self)
 
 
+class ConsoleExporter(BaseExporter):
+    is_delay = False
+
+    def export(self, events):
+        for event in events:
+            print(event.to_json_str())
+
+
+bk_audit_client.add_exporter(ConsoleExporter())
+
+
 class IAMPermission(permissions.BasePermission):
     """
     作为drf-iam鉴权的基类
@@ -51,6 +63,22 @@ class IAMPermission(permissions.BasePermission):
         self.resources = resources or []
 
     def has_permission(self, request, view):
+        iam = Permission(request=request)
+        context = AuditContext(request=request)
+        # 查询类请求（简单定义为所有 GET 请求）不审计
+        if request.method != "GET":
+            # 审计操作类请求
+            for action in self.actions:
+                if not self.resources:
+                    bk_audit_client.add_event(action=action, audit_context=context)
+                for resource in self.resources:
+                    bk_audit_client.add_event(
+                        action=action,
+                        resource_type=resource,
+                        audit_context=context,
+                        instance=CommonInstance(resource.attribute),
+                    )
+
         # 如果是超级用户或忽略鉴权，则跳过鉴权
         if request.user.is_superuser or env.BK_IAM_SKIP:
             return True
@@ -59,23 +87,8 @@ class IAMPermission(permissions.BasePermission):
         if not self.actions:
             return True
 
-        iam = Permission(request=request)
-        context = AuditContext(request=request)
         for action in self.actions:
             iam.is_allowed(action=action, resources=self.resources, is_raise_exception=True)
-            # 查询类请求（简单定义为所有 GET 请求）不审计
-            if request.method == "GET":
-                continue
-            # 审计操作类请求
-            if not self.resources:
-                bk_audit_client.add_event(action=action, audit_context=context)
-            for resource in self.resources:
-                bk_audit_client.add_event(
-                    action=action,
-                    resource_type=resource,
-                    audit_context=context,
-                    instance=CommonInstance(resource.attribute),
-                )
 
         return True
 

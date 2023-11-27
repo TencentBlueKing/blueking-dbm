@@ -34,7 +34,6 @@ class PtTableSyncService(ExecuteDBActuatorScriptService):
 
         kwargs = data.get_one_of_inputs("kwargs")
         global_data = data.get_one_of_inputs("global_data")
-        trans_data = data.get_one_of_inputs("trans_data")
 
         # 例行校验而生成的修复单据，在单据信息获取节点信息
         slave_ip = global_data["slave_ip"]

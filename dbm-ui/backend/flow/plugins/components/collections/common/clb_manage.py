@@ -46,7 +46,6 @@ class RedisClbManageService(BaseService):
 
     def _execute(self, data, parent_data) -> bool:
         kwargs = data.get_one_of_inputs("kwargs")
-        global_data = data.get_one_of_inputs("global_data")
         trans_data = data.get_one_of_inputs("trans_data")
 
         # 传入调用结果

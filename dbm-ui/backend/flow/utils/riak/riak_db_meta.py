@@ -15,7 +15,7 @@ from django.db.transaction import atomic
 from backend.db_meta import api
 from backend.db_meta.enums import InstanceRole, MachineType
 from backend.db_meta.models import Spec
-from backend.flow.consts import DEFAULT_DB_MODULE_ID, DEFAULT_RIAK_PORT
+from backend.flow.consts import DEFAULT_RIAK_PORT
 
 logger = logging.getLogger("flow")
 

@@ -10,14 +10,10 @@ specific language governing permissions and limitations under the License.
 """
 import copy
 import logging
-import time
-from typing import List
 
 from django.utils.translation import ugettext as _
 from pipeline.component_framework.component import Component
-from pipeline.core.flow.activity import Service
 
-import backend.flow.utils.redis.redis_context_dataclass as flow_context
 from backend import env
 from backend.components import JobApi
 from backend.core import consts
@@ -35,7 +31,6 @@ class RedisBackupFileTransService(BkJobService):
 
     def _execute(self, data, parent_data) -> bool:
         kwargs = data.get_one_of_inputs("kwargs")
-        global_data = data.get_one_of_inputs("global_data")
         trans_data = data.get_one_of_inputs("trans_data")
 
         root_id = kwargs["root_id"]
