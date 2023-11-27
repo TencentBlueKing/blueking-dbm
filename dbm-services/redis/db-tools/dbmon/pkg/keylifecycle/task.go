@@ -161,9 +161,8 @@ func (t *Task) hotKeyWithMonitor(server Instance) (string, error) {
 	t.rotateFile(hkfile)
 
 	mylog.Logger.Info(fmt.Sprintf("do hot key analyse : %s", server.Addr))
-	hkCmd := fmt.Sprintf("%s hotkeys -A %s -S %s -a %s -L %s -D %s --raw -o %s > %s 2>&1",
-		consts.TendisKeyLifecycleBin, server.App, server.Addr, server.Password,
-		t.lockFile, server.Domain, t.logFile, hkfile)
+	hkCmd := fmt.Sprintf("%s hotkeys -A %s -S %s -a %s -D %s --raw -o %s > %s 2>&1",
+		consts.TendisKeyLifecycleBin, server.App, server.Addr, server.Password, server.Domain, t.logFile, hkfile)
 
 	mylog.Logger.Info(fmt.Sprintf("exec cmd : %s", hkCmd))
 	r1, r2 := util.RunBashCmd(hkCmd, "", nil, time.Second*(time.Duration(t.conf.HotKeyConf.Duration+10)))
