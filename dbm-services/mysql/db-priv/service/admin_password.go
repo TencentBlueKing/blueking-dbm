@@ -1,13 +1,13 @@
 package service
 
 import (
-	"dbm-services/common/go-pubpkg/errno"
 	"encoding/base64"
 	"fmt"
+	"log/slog"
 	"strings"
 	"sync"
 
-	"golang.org/x/exp/slog"
+	"dbm-services/common/go-pubpkg/errno"
 )
 
 // GetPassword 查询密码

@@ -4,13 +4,13 @@ package monitor
 import (
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"time"
 
 	"dbm-services/mysql/db-partition/util"
 
 	"github.com/spf13/viper"
-	"golang.org/x/exp/slog"
 )
 
 // PartitionEvent TODO

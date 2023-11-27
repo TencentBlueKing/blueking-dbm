@@ -13,9 +13,8 @@ package spiderctl
 import (
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"time"
-
-	"golang.org/x/exp/slog"
 
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components"

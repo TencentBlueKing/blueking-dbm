@@ -3,12 +3,12 @@ package handler
 import (
 	"encoding/json"
 	"io/ioutil"
+	"log/slog"
 
 	"dbm-services/common/go-pubpkg/errno"
 	"dbm-services/mysql/priv-service/service"
 
 	"github.com/gin-gonic/gin"
-	"golang.org/x/exp/slog"
 )
 
 // AddPrivDryRun 使用账号规则，新增权限预检查

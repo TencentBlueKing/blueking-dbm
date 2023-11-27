@@ -5,9 +5,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"time"
-
-	"golang.org/x/exp/slog"
 )
 
 // TimeFormat TODO

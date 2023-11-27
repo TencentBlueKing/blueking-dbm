@@ -3,6 +3,7 @@ package service
 import (
 	"errors"
 	"fmt"
+	"log/slog"
 	"strings"
 	"sync"
 
@@ -10,7 +11,6 @@ import (
 	"dbm-services/mysql/priv-service/util"
 
 	"github.com/spf13/viper"
-	"golang.org/x/exp/slog"
 )
 
 // AddPrivDryRun 使用账号规则，新增权限预检查

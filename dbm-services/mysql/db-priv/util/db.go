@@ -2,9 +2,9 @@ package util
 
 import (
 	"fmt"
+	"log/slog"
 
 	"github.com/jmoiron/sqlx"
-	"golang.org/x/exp/slog"
 )
 
 // ConnectionParam TODO

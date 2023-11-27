@@ -12,6 +12,7 @@ package cron
 
 import (
 	"fmt"
+	"log/slog"
 	"strings"
 	"time"
 
@@ -20,8 +21,6 @@ import (
 	"dbm-services/mysql/db-partition/monitor"
 	"dbm-services/mysql/db-partition/service"
 	"dbm-services/mysql/db-partition/util"
-
-	"golang.org/x/exp/slog"
 )
 
 // Scheduler TODO

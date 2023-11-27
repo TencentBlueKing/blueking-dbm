@@ -1,13 +1,14 @@
 package main
 
 import (
-	"dbm-services/mysql/priv-service/service"
 	"io"
+	"log/slog"
 	"net/http"
 	"os"
 	"strings"
 
-	"golang.org/x/exp/slog"
+	"dbm-services/mysql/priv-service/service"
+
 	"gopkg.in/natefinch/lumberjack.v2"
 
 	"dbm-services/mysql/priv-service/assests"

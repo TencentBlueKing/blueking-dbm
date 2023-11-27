@@ -1,14 +1,15 @@
 package service
 
 import (
-	"dbm-services/mysql/priv-service/util"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"strings"
 
+	"dbm-services/mysql/priv-service/util"
+
 	"github.com/spf13/viper"
-	"golang.org/x/exp/slog"
 )
 
 // OneAddressExecuteSqlBasic OneAddressExecuteSql 通过db-remote-service服务连接mysql实例执行sql语句

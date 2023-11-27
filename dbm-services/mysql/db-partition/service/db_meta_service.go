@@ -13,13 +13,13 @@ package service
 import (
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"net/http"
 
 	"dbm-services/common/go-pubpkg/errno"
 	"dbm-services/mysql/db-partition/util"
 
 	"github.com/spf13/viper"
-	"golang.org/x/exp/slog"
 )
 
 // Tendbha TODO

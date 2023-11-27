@@ -1,19 +1,20 @@
 package service
 
 import (
-	"dbm-services/common/go-pubpkg/errno"
-	"dbm-services/mysql/priv-service/util"
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"log/slog"
 	"math/rand"
 	"os"
 	"time"
 
+	"dbm-services/common/go-pubpkg/errno"
+	"dbm-services/mysql/priv-service/util"
+
 	"github.com/spf13/viper"
-	"golang.org/x/exp/slog"
 )
 
 func CheckOrGetPassword(psw string, security SecurityRule) (string, error) {

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	errors2 "errors"
 	"fmt"
+	"log/slog"
 	"regexp"
 	"strconv"
 	"strings"
@@ -15,7 +16,6 @@ import (
 	"github.com/asaskevich/govalidator"
 	"github.com/jinzhu/gorm"
 	"github.com/spf13/viper"
-	"golang.org/x/exp/slog"
 )
 
 // GetAccountRuleInfo 根据账号名获取账号信息，根据账号 id 以及授权数据库获取账号规则

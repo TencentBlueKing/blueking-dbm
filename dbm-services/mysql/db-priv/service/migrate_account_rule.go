@@ -1,14 +1,14 @@
 package service
 
 import (
-	"dbm-services/mysql/priv-service/util"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"strconv"
 	"strings"
 
-	"golang.org/x/exp/slog"
+	"dbm-services/mysql/priv-service/util"
 )
 
 var GcsDb *Database

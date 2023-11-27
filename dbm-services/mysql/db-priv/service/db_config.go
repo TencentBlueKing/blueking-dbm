@@ -1,12 +1,12 @@
 package service
 
 import (
-	"dbm-services/mysql/priv-service/util"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"net/http"
 
-	"golang.org/x/exp/slog"
+	"dbm-services/mysql/priv-service/util"
 )
 
 // DbconfigUrl dbconfig的url

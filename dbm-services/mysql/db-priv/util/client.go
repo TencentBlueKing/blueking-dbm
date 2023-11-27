@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"log/slog"
 	"math/rand"
 	"net/http"
 	"net/http/httputil"
@@ -14,7 +15,6 @@ import (
 
 	"github.com/google/go-querystring/query"
 	"github.com/spf13/viper"
-	"golang.org/x/exp/slog"
 )
 
 const (

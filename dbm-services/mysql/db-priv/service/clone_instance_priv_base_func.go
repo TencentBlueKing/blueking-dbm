@@ -2,6 +2,7 @@ package service
 
 import (
 	"fmt"
+	"log/slog"
 	"regexp"
 	"strconv"
 	"strings"
@@ -14,7 +15,6 @@ import (
 	//_ "github.com/pingcap/tidb/types/parser_driver" // parser_driver TODO
 	"github.com/pingcap/tidb/parser"
 	"github.com/pingcap/tidb/parser/ast"
-	"golang.org/x/exp/slog"
 )
 
 // Enter TODO

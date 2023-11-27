@@ -4,6 +4,7 @@ package handler
 import (
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 	_ "runtime/debug" // debug TODO
 	"strconv"
@@ -18,7 +19,6 @@ import (
 	"dbm-services/mysql/db-partition/service"
 
 	"github.com/gin-gonic/gin"
-	"golang.org/x/exp/slog"
 )
 
 // DryRun TODO
