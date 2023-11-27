@@ -3,4 +3,4 @@ name: dbpriv
 description: A Helm chart for dbpriv
 type: application
 version: 0.1.31
-appVersion: 0.0.1-alpha.155
+appVersion: 0.0.1-alpha.167
