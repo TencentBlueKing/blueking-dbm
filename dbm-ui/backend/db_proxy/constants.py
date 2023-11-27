@@ -17,7 +17,10 @@ SWAGGER_TAG = _("透传服务")
 
 NGINX_PUSH_TARGET_PATH = "/usr/local/bkdb/nginx-portable/conf/cluster_service/"
 
+# 缓存inst_id和nginx id，用于回调job，默认缓存时间5min
 JOB_INSTANCE_EXPIRE_TIME = 5 * 60
+# 定义token过期时间1天，防止废弃的token复用
+DB_CLOUD_TOKEN_EXPIRE_TIME = 1 * 24 * 60 * 60
 
 
 class ExtensionType(str, StructuredEnum):

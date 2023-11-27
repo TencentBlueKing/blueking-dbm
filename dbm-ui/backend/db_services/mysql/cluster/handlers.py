@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import copy
 import itertools
 import operator
 from collections import defaultdict
@@ -28,7 +29,7 @@ from backend.db_meta.enums import (
     TenDBClusterSpiderRole,
 )
 from backend.db_meta.exceptions import InstanceNotExistException
-from backend.db_meta.models import Cluster, DBModule, ProxyInstance, StorageInstance
+from backend.db_meta.models import Cluster, DBModule, ProxyInstance, StorageInstance, TenDBClusterSpiderExt
 from backend.db_meta.models.machine import Machine
 from backend.db_services.mysql.dataclass import ClusterFilter, DBInstance
 
@@ -165,6 +166,11 @@ class ClusterServiceHandler:
                     for role in TenDBClusterSpiderRole.get_values()
                 }
             )
+            # 增加spider_ctl角色信息
+            _cluster_info["spider_ctl"] = copy.deepcopy(_cluster_info["spider_master"])
+            for instance in _cluster_info["spider_ctl"]:
+                instance["port"] = instance["admin_port"]
+                instance["instance_address"] = f"{instance['ip']}:{instance['port']}"
 
         filter_conditions = Q()
         for cluster_filter in cluster_filters:
@@ -189,6 +195,9 @@ class ClusterServiceHandler:
                 cluster.storageinstance_set.all().count() + cluster.proxyinstance_set.all().count()
             )
             if cluster.cluster_type == ClusterType.TenDBCluster:
+                cluster_info["instance_count"] += cluster.proxyinstance_set.filter(
+                    tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_MASTER
+                ).count()
                 _fill_spider_instance_info(cluster, cluster_info)
             else:
                 _fill_mysql_instance_info(cluster, cluster_info)

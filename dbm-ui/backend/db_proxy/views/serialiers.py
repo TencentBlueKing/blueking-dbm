@@ -17,6 +17,8 @@ from rest_framework import serializers
 from backend.core.encrypt.constants import AsymmetricCipherConfigType
 from backend.core.encrypt.exceptions import RSADecryptException
 from backend.core.encrypt.handlers import AsymmetricHandler
+from backend.db_proxy.constants import DB_CLOUD_TOKEN_EXPIRE_TIME
+from backend.utils.redis import RedisConn
 
 logger = logging.getLogger("root")
 
@@ -29,6 +31,21 @@ class BaseProxyPassSerialier(serializers.Serializer):
     db_cloud_token = serializers.CharField(help_text=_("调用的校验token"), required=False)
     bk_cloud_id = serializers.IntegerField(help_text=_("请求服务所属的云区域ID"), required=False)
 
+    @classmethod
+    def verify_token(cls, db_cloud_token, bk_cloud_id):
+        try:
+            token = AsymmetricHandler.decrypt(name=AsymmetricCipherConfigType.PROXYPASS.value, content=db_cloud_token)
+        except RSADecryptException:
+            raise serializers.ValidationError(_("token:{}解密失败，请检查token是否合法").format(db_cloud_token))
+        except KeyError:
+            raise serializers.ValidationError(_("token:{}不存在，请传入校验token").format(db_cloud_token))
+
+        token_cloud_id = int(token.split("_")[0])
+        if token_cloud_id != int(bk_cloud_id):
+            raise serializers.ValidationError(
+                _("解析的云区域ID{}与请求参数的云区域ID{}不相同，请检查token是否合法").format(token_cloud_id, bk_cloud_id)
+            )
+
     def validate(self, attrs):
         request = self.context["request"]
 
@@ -40,20 +57,13 @@ class BaseProxyPassSerialier(serializers.Serializer):
         if getattr(request, "internal_call", None):
             return attrs
 
-        try:
-            token = AsymmetricHandler.decrypt(
-                name=AsymmetricCipherConfigType.PROXYPASS.value, content=attrs["db_cloud_token"]
-            )
-        except RSADecryptException:
-            raise serializers.ValidationError(_("token:{}解密失败，请检查token是否合法").format(attrs["db_cloud_token"]))
-        except KeyError:
-            raise serializers.ValidationError(_("token:{}不存在，请传入校验token").format(attrs["db_cloud_token"]))
-
-        token_cloud_id = int(token.split("_")[0])
-        if token_cloud_id != int(attrs["bk_cloud_id"]):
-            raise serializers.ValidationError(
-                _("解析的云区域ID{}与请求参数的云区域ID{}不相同，请检查token是否合法").format(token_cloud_id, attrs["bk_cloud_id"])
-            )
+        # 解密/或拿到缓存ID
+        db_cloud_token, bk_cloud_id = attrs["db_cloud_token"], attrs["bk_cloud_id"]
+        cache_key = f"cache_db_cloud_token_{bk_cloud_id}"
+        cache_db_cloud_token = RedisConn.get(cache_key)
+        if db_cloud_token != cache_db_cloud_token:
+            self.verify_token(db_cloud_token, bk_cloud_id)
+            RedisConn.set(cache_key, db_cloud_token, DB_CLOUD_TOKEN_EXPIRE_TIME)
 
         attrs.pop("db_cloud_token")
         return attrs
