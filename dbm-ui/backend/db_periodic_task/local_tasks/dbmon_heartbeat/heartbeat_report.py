@@ -102,7 +102,8 @@ def _check_dbmon_heart_beat():
         cluster_nodes.extend(cluster_info["twemproxy_ips_set"])
         logger.info("+===+++++===  cluster all nodes  is: {} +++++===++++ ".format(cluster_nodes))
         try:
-            redis_dba = DBAdministrator.objects.get(bk_biz_id=c.bk_biz_id, db_type=DBType.Redis.value).users
+            # 通过bk_biz_id获取dba列表,业务没设置的话，用平台的配置
+            redis_dba = DBAdministrator().get_biz_db_type_admins(c.bk_biz_id, DBType.Redis)
             app = AppCache.objects.get(bk_biz_id=c.bk_biz_id).db_app_abbr
         except Exception as e:
             logger.error(f"Error occurred while getting redis_dba and app: {e}")
