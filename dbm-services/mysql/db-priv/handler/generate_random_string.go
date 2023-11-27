@@ -1,14 +1,15 @@
 package handler
 
 import (
-	"dbm-services/common/go-pubpkg/errno"
-	"dbm-services/mysql/priv-service/service"
 	"encoding/base64"
 	"encoding/json"
 	"io/ioutil"
+	"log/slog"
+
+	"dbm-services/common/go-pubpkg/errno"
+	"dbm-services/mysql/priv-service/service"
 
 	"github.com/gin-gonic/gin"
-	"golang.org/x/exp/slog"
 )
 
 // GenerateRandomString 生成随机化密码

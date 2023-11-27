@@ -3,12 +3,12 @@ package service
 import (
 	"fmt"
 	"log"
+	"log/slog"
 	"time"
 
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/mysql" // mysql TODO
 	"github.com/spf13/viper"
-	"golang.org/x/exp/slog"
 )
 
 // Database TODO

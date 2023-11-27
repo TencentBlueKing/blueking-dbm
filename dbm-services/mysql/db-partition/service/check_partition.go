@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"strconv"
 	"strings"
 	"sync"
@@ -11,8 +12,6 @@ import (
 
 	"dbm-services/common/go-pubpkg/errno"
 	"dbm-services/mysql/db-partition/model"
-
-	"golang.org/x/exp/slog"
 )
 
 // DryRun TODO

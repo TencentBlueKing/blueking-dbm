@@ -2,11 +2,11 @@ package model
 
 import (
 	"io"
+	"log/slog"
 	"os"
 	"strings"
 
 	"github.com/spf13/viper"
-	"golang.org/x/exp/slog"
 	"gopkg.in/natefinch/lumberjack.v2"
 )
 

@@ -1,14 +1,14 @@
 package service
 
 import (
-	"dbm-services/common/go-pubpkg/errno"
 	"fmt"
+	"log/slog"
 	"math"
 	"math/rand"
 	"strings"
 	"time"
 
-	"golang.org/x/exp/slog"
+	"dbm-services/common/go-pubpkg/errno"
 )
 
 const lowercase = "abcdefghijklmnopqrstuvwxyz"

@@ -1,18 +1,19 @@
 package assests
 
 import (
-	"dbm-services/common/go-pubpkg/errno"
-	"dbm-services/mysql/priv-service/service"
 	"embed"
 	"encoding/json"
 	"fmt"
+	"log/slog"
+
+	"dbm-services/common/go-pubpkg/errno"
+	"dbm-services/mysql/priv-service/service"
 
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/mysql" // mysql TODO
 	"github.com/golang-migrate/migrate/v4/source/iofs"
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
-	"golang.org/x/exp/slog"
 )
 
 //go:embed migrations/*.sql
@@ -88,14 +89,12 @@ func DoMigratePlatformPassword() error {
 				return fmt.Errorf("%s error: %s", "init platform password, get password", err.Error())
 			}
 			if count == 0 {
-				insertPara := &service.ModifyPasswordPara{UserName: user, Component: component.Component, Operator: "admin",
-					Instances:    []service.Address{{"0.0.0.0", 0, &defaultCloudId}},
-					InitPlatform: true, SecurityRuleName: "password"}
-				if component.Component == "proxy" && user == "proxy" {
-					insertPara = &service.ModifyPasswordPara{UserName: user, Component: component.Component, Operator: "admin",
-						Instances:    []service.Address{{"0.0.0.0", 0, &defaultCloudId}},
-						InitPlatform: true, Psw: "3csfY56"}
-				}
+				insertPara := &service.ModifyPasswordPara{
+					UserName:  user,
+					Component: component.Component, Operator: "admin",
+					Instances:        []service.Address{{"0.0.0.0", 0, &defaultCloudId}},
+					InitPlatform:     true,
+					SecurityRuleName: "password"}
 				err = insertPara.ModifyPassword()
 				if err != nil {
 					return fmt.Errorf("%s error: %s", "init platform password, modify password", err.Error())

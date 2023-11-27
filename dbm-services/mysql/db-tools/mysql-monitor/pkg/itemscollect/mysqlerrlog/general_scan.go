@@ -9,10 +9,10 @@
 package mysqlerrlog
 
 import (
+	"log/slog"
 	"strings"
 
 	"github.com/dlclark/regexp2"
-	"golang.org/x/exp/slog"
 )
 
 func scanSnapShot(name string, pattern *regexp2.Regexp) (string, error) {

@@ -3,10 +3,10 @@ package model
 import (
 	"database/sql"
 	"fmt"
+	"log/slog"
 	"strings"
 
 	"github.com/spf13/viper"
-	"golang.org/x/exp/slog"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 )

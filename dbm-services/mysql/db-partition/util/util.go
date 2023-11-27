@@ -4,13 +4,13 @@ package util
 import (
 	"bytes"
 	"fmt"
+	"log/slog"
 	"os/exec"
 	"reflect"
 	"regexp"
 	"strings"
 
 	"github.com/pkg/errors"
-	"golang.org/x/exp/slog"
 )
 
 // HasElem 元素是否在数组中存在

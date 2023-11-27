@@ -3,12 +3,12 @@ package handler
 import (
 	"encoding/json"
 	"io/ioutil"
+	"log/slog"
 
 	"dbm-services/common/go-pubpkg/errno"
 	"dbm-services/mysql/priv-service/service"
 
 	"github.com/gin-gonic/gin"
-	"golang.org/x/exp/slog"
 )
 
 // GetAccountRuleList 获取账号规则
