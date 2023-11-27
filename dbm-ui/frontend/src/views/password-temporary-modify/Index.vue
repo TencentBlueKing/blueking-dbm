@@ -478,7 +478,7 @@
           port: adminPasswordItem.port,
         });
 
-        instanceMap[instance] = dayjs(adminPasswordItem.lock_until).isBefore(dayjs());
+        instanceMap[instance] = false;
       });
 
       formData.instanceList = instanceList.reduce((newInstanceListPrev, instanceItem) => {
@@ -490,7 +490,7 @@
 
         return [...newInstanceListPrev, {
           ...instanceItem,
-          isExpired: instanceMap[instance],
+          isExpired: instanceMap[instance] === undefined ? true : instanceMap[instance],
         }];
       }, [] as TableRow['data'][]);
     },
@@ -583,8 +583,13 @@
       });
     });
 
+    let lockHour = formData.validDuration;
+    if (formData.validDurationType === VALID_DURATION_TYPE.DAY) {
+      lockHour = formData.validDuration * 24;
+    }
+
     const params = {
-      lock_until: anticipatedEffectiveTime.value,
+      lock_hour: lockHour,
       password: formData.password,
       instance_list: instanceListParam,
     };

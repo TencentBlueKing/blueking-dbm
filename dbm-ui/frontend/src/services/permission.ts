@@ -11,6 +11,8 @@
  * the specific language governing permissions and limitations under the License.
 */
 
+import dayjs from 'dayjs';
+
 import type {
   AccountTypesValues,
   ClusterTypes,
@@ -47,11 +49,11 @@ interface MysqlAdminPassword {
   component: string,
   id: number,
   ip: string,
-  lock_until: string,
+  lock_until: string,  // 带有时区
   operator: string,
   password: string,
   port: number,
-  update_time: string,
+  update_time: string, // 带有时区
   username: string
 }
 
@@ -98,7 +100,7 @@ export const getRandomPassword = () => http.get<{
  * 修改mysql实例密码(admin)
  */
 export const modifyMysqlAdminPassword = (params: {
-  lock_until: string
+  lock_hour: number
   password: string
   instance_list: {
     ip: string
@@ -121,7 +123,15 @@ export const queryMysqlAdminPassword = (params: {
   begin_time?: string
   end_time?: string
   instances?: string
-}) => http.get<ListBase<MysqlAdminPassword[]>>('/apis/conf/password_policy/query_mysql_admin_password/', params);
+}) => http.get<ListBase<MysqlAdminPassword[]>>('/apis/conf/password_policy/query_mysql_admin_password/', params)
+  .then(res => ({
+    ...res,
+    results: res.results.map(item => ({
+      ...item,
+      lock_until: dayjs(item.lock_until).format('YYYY-MM-DD HH:mm:ss'),
+      update_time: dayjs(item.update_time).format('YYYY-MM-DD HH:mm:ss'),
+    })),
+  }));
 
 /**
  * 获取公钥列表
