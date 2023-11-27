@@ -115,7 +115,8 @@ class ResourceViewSet(BaseResourceViewSet):
             username = self._get_password(cluster, f"{cluster.cluster_type}_user")
 
         # 根据真实账户获取密码
-        password = self._get_password(cluster, username)
+        if username:
+            password = self._get_password(cluster, username)
 
         # only for pulsar cluster
         if cluster.cluster_type == ClusterType.Pulsar:
