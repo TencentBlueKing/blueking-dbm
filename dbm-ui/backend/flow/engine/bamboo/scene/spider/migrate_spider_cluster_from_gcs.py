@@ -135,7 +135,7 @@ class MigrateClusterFromGcsFlow(object):
                     "ctl_port": ctl_port,
                     "ctl_charset": job["ctl_charset"],
                 }
-                exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_append_deploy_spider_ctl_payload.__name__
+                exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_append_deploy_ctl_payload.__name__
                 acts_list.append(
                     {
                         "act_name": _("安装Tdbctl集群中控实例"),
