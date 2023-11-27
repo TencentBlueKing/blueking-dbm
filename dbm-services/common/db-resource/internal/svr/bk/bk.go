@@ -12,3 +12,10 @@ const (
 	// GSE_AGENT_STATUS_UNKNOWN TODO
 	GSE_AGENT_STATUS_UNKNOWN = -1
 )
+
+const (
+	// OsLinux liunx os
+	OsLinux = "Linux"
+	// OsWindows windows os
+	OsWindows = "Windows"
+)

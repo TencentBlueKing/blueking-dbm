@@ -125,15 +125,6 @@ func initSelfDB() *gorm.DB {
 	)
 }
 
-func initDBMDB() *gorm.DB {
-	return openDB(
-		config.AppConfig.CmdbDb.UserName,
-		config.AppConfig.CmdbDb.PassWord,
-		config.AppConfig.CmdbDb.Addr,
-		config.AppConfig.CmdbDb.Name,
-	)
-}
-
 // migration TODO
 func migration() {
 	DB.Self.AutoMigrate(&TbRpDetail{}, &TbRequestLog{}, &TbRpDetailArchive{}, &TbRpApplyDetailLog{}, &TbRpOperationInfo{})
