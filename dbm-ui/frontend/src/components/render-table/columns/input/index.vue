@@ -27,6 +27,7 @@
       :placeholder="placeholder"
       :type="type"
       @blur="handleBlur"
+      @change="handleInput"
       @input="handleInput"
       @keydown="handleKeydown"
       @paste="handlePaste">
