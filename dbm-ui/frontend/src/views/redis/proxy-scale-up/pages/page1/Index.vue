@@ -119,8 +119,7 @@
 
   // 根据集群选择返回的数据加工成table所需的数据
   const generateRowDateFromRequest = async (item: RedisModel) => {
-    const clusterType = item.cluster_spec.spec_cluster_type;
-    const specList = await querySpecList(clusterType, item.cluster_spec.spec_id, item.proxy.length);
+    const specList = await querySpecList(item);
     return {
       rowKey: item.master_domain,
       isLoading: false,
@@ -163,12 +162,22 @@
   };
 
   // 查询集群对应的规格列表
-  const querySpecList = async (type: string, specId: number, specCount: number) => {
+  const querySpecList = async (item: RedisModel) => {
+    const proxyMachineMap = {
+      TwemproxyRedisInstance: 'twemproxy',
+      TwemproxyTendisSSDInstance: 'twemproxy',
+      PredixyTendisplusCluster: 'predixy',
+    };
+    const type = item.cluster_spec.spec_cluster_type;
+    const machineType = proxyMachineMap[type];
+    const specId = item.cluster_spec.spec_id;
+    const specCount = item.proxy.length;
     if (type in clusterSpecListMap) {
       return clusterSpecListMap[type];
     }
     const ret = await getResourceSpecList({
       spec_cluster_type: type,
+      spec_machine_type: machineType,
       limit: -1,
       offset: 0,
     });
