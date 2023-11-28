@@ -15,16 +15,18 @@ var GAppConfig = AppConfig{}
 
 // AppConfig TODO
 type AppConfig struct {
-	BkRepo         BkRepoConfig `yaml:"bkrepo"`
-	Image          Images
-	ListenAddr     string      `yaml:"listenAddr"`
-	RulePath       string      `yaml:"rulePath"`
-	SpiderRulePath string      `yaml:"spiderRulePath"`
-	Bcs            BcsConfig   `yaml:"bcs"`
-	DbConf         DbConfig    `yaml:"dbconf"`
-	MirrorsAddress []ImgConfig `yaml:"mirrorsAddress"`
-	Debug          bool        `yaml:"debug"`
-	LoadRuleFromdb bool        `yaml:"loadRuleFromdb"`
+	BkRepo            BkRepoConfig `yaml:"bkrepo"`
+	Image             Images
+	ListenAddr        string            `yaml:"listenAddr"`
+	RulePath          string            `yaml:"rulePath"`
+	SpiderRulePath    string            `yaml:"spiderRulePath"`
+	Bcs               BcsConfig         `yaml:"bcs"`
+	DbConf            DbConfig          `yaml:"dbconf"`
+	MirrorsAddress    []ImgConfig       `yaml:"mirrorsAddress"`
+	Debug             bool              `yaml:"debug"`
+	LoadRuleFromdb    bool              `yaml:"loadRuleFromdb"`
+	MySQLPodResource  MySQLPodResource  `yaml:"mysqlPodResource"`
+	TdbctlPodResource TdbctlPodResource `yaml:"tdbctlPodResource"`
 }
 
 // BkRepoConfig TODO
@@ -61,6 +63,24 @@ type DbConfig struct {
 	Name string `yaml:"name"`
 	Host string `yaml:"host"`
 	Port int    `yaml:"port"`
+}
+
+// MySQLPodResource TODO
+type MySQLPodResource struct {
+	Limits   PodResource `yaml:"limits"`
+	Requests PodResource `yaml:"requests"`
+}
+
+// TdbctlPodResource TODO
+type TdbctlPodResource struct {
+	Limits   PodResource `yaml:"limits"`
+	Requests PodResource `yaml:"requests"`
+}
+
+// PodResource TODO
+type PodResource struct {
+	Cpu string `yaml:"cpu"`
+	Mem string `yaml:"mem"`
 }
 
 // ImgConfig TODO
@@ -164,6 +184,17 @@ func init() {
 		}
 	}
 	logger.Info("app config %v", GAppConfig)
+	logger.Info("pod resource limit config %v", GAppConfig.MySQLPodResource)
+}
+
+// IsEmptyMySQLPodResourceConfig TODO
+func IsEmptyMySQLPodResourceConfig() bool {
+	return GAppConfig.MySQLPodResource == MySQLPodResource{}
+}
+
+// IsEmptyTdbctlPodResourceConfig TODO
+func IsEmptyTdbctlPodResourceConfig() bool {
+	return GAppConfig.TdbctlPodResource == TdbctlPodResource{}
 }
 
 // loadConfig 加载配置文件
