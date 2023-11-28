@@ -767,7 +767,10 @@ class SyncType(str, StructuredEnum):
 
 
 class SwitchType(str, StructuredEnum):
-    "切换时是否需要,用户确认"
+    """
+    切换时是否需要,用户确认
+    """
+
     SWITCH_WITH_CONFIRM = "user_confirm"
     SWITCH_WITHOUT_CONFIRM = "no_confirm"
 

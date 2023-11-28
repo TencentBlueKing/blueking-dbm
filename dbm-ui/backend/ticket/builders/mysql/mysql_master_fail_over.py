@@ -15,7 +15,9 @@ from backend.flow.engine.controller.mysql import MySQLController
 from backend.ticket import builders
 from backend.ticket.builders.mysql.base import BaseMySQLTicketFlowBuilder, MySQLBasePauseParamBuilder
 from backend.ticket.builders.mysql.mysql_master_slave_switch import (
+    MysqlDumperMigrateParamBuilder,
     MysqlMasterSlaveSwitchDetailSerializer,
+    MysqlMasterSlaveSwitchFlowBuilder,
     MysqlMasterSlaveSwitchParamBuilder,
 )
 from backend.ticket.constants import FlowRetryType, TicketType
@@ -28,15 +30,12 @@ class MysqlMasterFailOverDetailSerializer(MysqlMasterSlaveSwitchDetailSerializer
 class MysqlMasterFailOverParamBuilder(MysqlMasterSlaveSwitchParamBuilder):
     controller = MySQLController.mysql_ha_master_fail_over_scene
 
-    def format_ticket_data(self):
-        # 整个单据统一注入安全模式参数
-        super().format_ticket_data()
-
 
 @builders.BuilderFactory.register(TicketType.MYSQL_MASTER_FAIL_OVER)
 class MysqlMasterFailOverFlowBuilder(BaseMySQLTicketFlowBuilder):
     serializer = MysqlMasterFailOverDetailSerializer
     inner_flow_builder = MysqlMasterFailOverParamBuilder
     inner_flow_name = _("主库故障切换执行")
+    dumper_flow_builder = MysqlDumperMigrateParamBuilder
     retry_type = FlowRetryType.MANUAL_RETRY
     pause_node_builder = MySQLBasePauseParamBuilder

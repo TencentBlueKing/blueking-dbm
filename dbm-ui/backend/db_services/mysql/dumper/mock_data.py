@@ -9,6 +9,29 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
+DUMPER_CONFIG_DATA = {
+    "id": 1,
+    "repl_tables": [{"db_name": "db1", "table_names": ["a", "b"]}],
+    "instance_count": 4,
+    "dumper_instances": [
+        {
+            "source_cluster_domain": "spider.xxx.dba.db",
+            "protocol_type": "kafka",
+            "dumper_id": 1,
+            "target_address": "kafka.com:8000",
+        }
+    ],
+    "running_tickets": [1, 2, 3],
+    "creator": " ",
+    "create_at": "2000-01-01 19:11:11",
+    "updater": " ",
+    "update_at": "2000-01-01 19:11:11",
+    "bk_biz_id": 3,
+    "name": "fff",
+    "add_type": "kafka",
+    "dumper_process_ids": [1],
+}
+
 DUMPER_INSTANCE_LIST_DATA = [
     {
         "id": 1,
@@ -45,5 +68,10 @@ DUMPER_INSTANCE_LIST_DATA = [
         },
         "dumper_id": 1,
         "area_name": 1,
+        "add_type": "null",
+        "l5_modid": "null",
+        "l5_cmdid": "null",
+        "kafka_user": "null",
+        "kafka_pwd": "null",
     }
 ]

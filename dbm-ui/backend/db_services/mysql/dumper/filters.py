@@ -11,34 +11,75 @@ specific language governing permissions and limitations under the License.
 
 from django.utils.translation import ugettext_lazy as _
 from django_filters import rest_framework as filters
+from django_mysql.models.functions import JSONExtract
 
 from backend.db_meta.models import Cluster
-from backend.db_meta.models.dumper import DumperSubscribeConfig
 from backend.db_meta.models.extra_process import ExtraProcessInstance
+from backend.db_services.mysql.dumper.models import DumperSubscribeConfig
+
+
+class DumperConfigListFilter(filters.FilterSet):
+    db_name = filters.CharFilter(field_name="db_name", method="filter_db_name", label=_("库名"))
+    table_name = filters.CharFilter(field_name="table_name", method="filter_table_name", label=_("表名"))
+
+    def filter_db_name(self, queryset, name, value):
+        return queryset.annotate(db_name=JSONExtract("repl_tables", "$[*].db_name")).filter(db_name__contains=value)
+
+    def filter_table_name(self, queryset, name, value):
+        return queryset.annotate(table_names=JSONExtract("repl_tables", "$[*].table_names[*]")).filter(
+            table_names__contains=value
+        )
+
+    class Meta:
+        model = DumperSubscribeConfig
+        fields = ["db_name", "table_name"]
 
 
 class DumperInstanceListFilter(filters.FilterSet):
+    config_name = filters.CharFilter(field_name="config_name", method="filter_config_name", label=_("dumper订阅规则"))
     ip = filters.CharFilter(field_name="ip", lookup_expr="icontains", label=_("实例IP"))
+    address = filters.CharFilter(field_name="address", method="filter_address", label=_("实例IP:Port"))
     dumper_id = filters.CharFilter(field_name="dumper_id", method="filter_dumper_id", label=_("dumper id"))
     source_cluster = filters.CharFilter(field_name="source_cluster", method="filter_source_cluster", label=_("源集群"))
-    receiver_type = filters.CharFilter(field_name="type", method="filter_receiver_type", label=_("接收端类型"))
+    protocol_type = filters.CharFilter(field_name="type", method="filter_protocol_type", label=_("接收端类型"))
+    target_address = filters.CharFilter(field_name="target_address", method="filter_target_address", label=_("接收端地址"))
     start_time = filters.DateTimeFilter(field_name="create_at", lookup_expr="lte")
     end_time = filters.DateTimeFilter(field_name="create_at", lookup_expr="gte")
 
+    def filter_config_name(self, queryset, name, value):
+        bk_biz_id = self.request.parser_context["kwargs"]["bk_biz_id"]
+        try:
+            dumper_config = DumperSubscribeConfig.objects.get(bk_biz_id=bk_biz_id, name=value)
+            return queryset.filter(id__in=dumper_config.dumper_process_ids)
+        except DumperSubscribeConfig.DoesNotExist:
+            return queryset
+
+    def filter_address(self, queryset, name, value):
+        ip, port = value.split(":")
+        return queryset.filter(ip=ip, listen_port=port)
+
     def filter_dumper_id(self, queryset, name, value):
-        return queryset.filter(extra_config__dumper_id__icontains=value)
+        return queryset.filter(extra_config__dumper_id=int(value))
 
     def filter_source_cluster(self, queryset, name, value):
         cluster_ids = list(Cluster.objects.filter(immute_domain__icontains=value).values_list("id", flat=True))
         return queryset.filter(cluster_id__in=cluster_ids)
 
-    def filter_receiver_type(self, queryset, name, value):
-        bk_biz_id = self.request.parser_context["kwargs"]["bk_biz_id"]
-        config_ids = list(
-            DumperSubscribeConfig.objects.filter(bk_biz_id=bk_biz_id, receiver_type=value).values_list("id", flat=True)
-        )
-        return queryset.filter(extra_config__dumper_config_id__in=config_ids)
+    def filter_protocol_type(self, queryset, name, value):
+        return queryset.filter(extra_config__protocol_type__icontains=value)
+
+    def filter_target_address(self, queryset, name, value):
+        return queryset.filter(extra_config__target_address__icontains=value)
 
     class Meta:
         model = ExtraProcessInstance
-        fields = ["ip", "dumper_id", "source_cluster", "receiver_type", "start_time", "end_time"]
+        fields = [
+            "config_name",
+            "ip",
+            "address",
+            "dumper_id",
+            "source_cluster",
+            "protocol_type",
+            "start_time",
+            "end_time",
+        ]

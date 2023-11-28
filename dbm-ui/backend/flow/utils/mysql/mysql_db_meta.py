@@ -22,6 +22,7 @@ from backend.db_meta.enums import ClusterPhase, InstanceInnerRole, InstanceRole,
 from backend.db_meta.models import Cluster, StorageInstance, StorageInstanceTuple
 from backend.db_meta.models.extra_process import ExtraProcessInstance
 from backend.db_package.models import Package
+from backend.db_services.mysql.dumper.models import DumperSubscribeConfig
 from backend.flow.consts import MediumEnum, MySQLPrivComponent, UserName
 from backend.flow.engine.bamboo.scene.common.get_real_version import get_mysql_real_version
 from backend.flow.utils.cc_manage import CcManage
@@ -613,17 +614,31 @@ class MySQLDBMeta(object):
         """
         添加TBinlogDumper实例
         """
-        TenDBHAClusterHandler(bk_biz_id=self.bk_biz_id, cluster_id=self.ticket_data["cluster_id"]).add_tbinlogdumper(
-            add_confs=self.ticket_data["add_confs"]
-        )
+        new_dumper_instance_ids = TenDBHAClusterHandler(
+            bk_biz_id=self.bk_biz_id, cluster_id=self.ticket_data["cluster_id"]
+        ).add_tbinlogdumper(add_confs=self.ticket_data["add_confs"])
+
+        # 将新增的dumper实例加入到dumper配置规则中
+        with atomic():
+            dumper_config = DumperSubscribeConfig.objects.select_for_update().get(
+                id=self.ticket_data["dumper_config_id"]
+            )
+            dumper_config.dumper_process_ids.extend(new_dumper_instance_ids)
+            dumper_config.save(update_fields=["dumper_process_ids"])
 
     def reduce_tbinlogdumper(self):
         """
         减少TBinlogDumper实例
         """
+        reduce_ids = self.ticket_data["reduce_ids"]
         with atomic():
-            ExtraProcessInstance.objects.filter(id__in=self.ticket_data["reduce_ids"]).delete()
-            # todo 关联tbinlogdumper订阅配置
+            ExtraProcessInstance.objects.filter(id__in=reduce_ids).delete()
+            # 将删除的dumper process id从配置中剔除掉
+            dumper_config = DumperSubscribeConfig.objects.select_for_update().get(
+                dumper_process_ids__contains=reduce_ids
+            )
+            dumper_config.dumper_process_ids = list(set(dumper_config.dumper_process_ids) - set(reduce_ids))
+            dumper_config.save(update_fields=["dumper_process_ids"])
 
     def switch_tbinlogdumper(self):
         """

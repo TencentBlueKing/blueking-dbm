@@ -149,3 +149,16 @@ class SpecAdmin(admin.ModelAdmin):
         "storage_spec",
     )
     search_fields = ("spec_name", "spec_cluster_type", "spec_machine_type")
+
+
+@admin.register(models.extra_process.ExtraProcessInstance)
+class ExtraProcessInstanceAdmin(admin.ModelAdmin):
+    list_display = (
+        "bk_biz_id",
+        "cluster_id",
+        "bk_cloud_id",
+        "ip",
+        "listen_port",
+        "proc_type",
+    )
+    search_fields = ("cluster_id", "ip", "bk_biz_id", "proc_type")

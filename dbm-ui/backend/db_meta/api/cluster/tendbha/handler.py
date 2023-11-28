@@ -168,6 +168,7 @@ class TenDBHAClusterHandler(ClusterHandler):
         添加TBinlogDumper实例的信息
         """
         master = self.cluster.storageinstance_set.get(instance_role=InstanceRole.BACKEND_MASTER)
+        new_dumper_instance_ids = []
         for conf in add_confs:
             tbinlogdumper = ExtraProcessInstance(
                 bk_biz_id=self.cluster.bk_biz_id,
@@ -197,7 +198,9 @@ class TenDBHAClusterHandler(ClusterHandler):
                 },
             )
             tbinlogdumper.save()
-            # todo 关联tbinlogdumper订阅配置
+            new_dumper_instance_ids.append(tbinlogdumper.id)
+
+        return new_dumper_instance_ids
 
     @transaction.atomic()
     def switch_tbinlogdumper_for_cluster(self, switch_ids: list):

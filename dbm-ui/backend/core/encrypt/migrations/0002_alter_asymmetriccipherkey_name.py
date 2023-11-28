@@ -2,6 +2,8 @@
 
 from django.db import migrations, models
 
+from backend.core.encrypt.constants import AsymmetricCipherConfigType
+
 
 class Migration(migrations.Migration):
 
@@ -14,7 +16,7 @@ class Migration(migrations.Migration):
             model_name="asymmetriccipherkey",
             name="name",
             field=models.CharField(
-                choices=[("password", "平台密码的非对称秘钥"), ("proxypass", "透传接口的非对称秘钥"), ("cloud", "云区域服务的非对称秘钥")],
+                choices=AsymmetricCipherConfigType.get_choices(),
                 max_length=128,
                 verbose_name="密钥名称",
             ),
