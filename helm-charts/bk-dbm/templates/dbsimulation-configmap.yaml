@@ -44,3 +44,18 @@ data:
       host: "{{ $dbsimulationDB.host }}"
       port: "{{ $dbsimulationDB.port }}"
     debug: false
+    tdbctlPodResource:
+      limits:
+        cpu: "2"
+        mem: "4Gi"
+      requests:
+        cpu: "4"
+        mem: "8Gi"
+    mysqlPodResource:
+      limits:
+        cpu: "4"
+        mem: "8Gi"
+      requests:
+        cpu: "8"
+        mem: "16Gi"
+

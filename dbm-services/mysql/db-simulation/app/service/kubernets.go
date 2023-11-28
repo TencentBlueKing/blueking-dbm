@@ -30,6 +30,7 @@ import (
 
 	"github.com/pkg/errors"
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
@@ -136,6 +137,7 @@ func (k *DbPodSets) CreateClusterPod() (err error) {
 						Name:  "MYSQL_ROOT_PASSWORD",
 						Value: k.BaseInfo.RootPwd,
 					}},
+					Resources:       k.getResourceLimit(),
 					ImagePullPolicy: v1.PullIfNotPresent,
 					Image:           k.DbImage,
 					Args: []string{"mysqld", "--defaults-file=/etc/my.cnf", "--port=20000", fmt.Sprintf("--character-set-server=%s",
@@ -156,6 +158,7 @@ func (k *DbPodSets) CreateClusterPod() (err error) {
 						Name:  "MYSQL_ROOT_PASSWORD",
 						Value: k.BaseInfo.RootPwd,
 					}},
+					Resources:       k.getResourceLimit(),
 					ImagePullPolicy: v1.PullIfNotPresent,
 					Image:           k.SpiderImage,
 					Args: []string{"mysqld", "--defaults-file=/etc/my.cnf", "--port=25000", fmt.Sprintf("--character-set-server=%s",
@@ -177,6 +180,7 @@ func (k *DbPodSets) CreateClusterPod() (err error) {
 						Name:  "MYSQL_ROOT_PASSWORD",
 						Value: k.BaseInfo.RootPwd,
 					}},
+					Resources:       k.gettdbctlResourceLimit(),
 					ImagePullPolicy: v1.PullIfNotPresent,
 					Image:           k.TdbCtlImage,
 					Args: []string{"mysqld", "--defaults-file=/etc/my.cnf", "--port=26000", "--tc-admin=1",
@@ -267,6 +271,38 @@ func (k *DbPodSets) createpod(pod *v1.Pod, probePort int) (err error) {
 	return err
 }
 
+func (k *DbPodSets) getResourceLimit() v1.ResourceRequirements {
+	if !config.IsEmptyMySQLPodResourceConfig() {
+		return v1.ResourceRequirements{
+			Limits: v1.ResourceList{
+				v1.ResourceCPU:    resource.MustParse(config.GAppConfig.MySQLPodResource.Limits.Cpu),
+				v1.ResourceMemory: resource.MustParse(config.GAppConfig.MySQLPodResource.Limits.Mem),
+			},
+			Requests: v1.ResourceList{
+				v1.ResourceCPU:    resource.MustParse(config.GAppConfig.MySQLPodResource.Requests.Cpu),
+				v1.ResourceMemory: resource.MustParse(config.GAppConfig.MySQLPodResource.Requests.Mem),
+			},
+		}
+	}
+	return v1.ResourceRequirements{}
+}
+
+func (k *DbPodSets) gettdbctlResourceLimit() v1.ResourceRequirements {
+	if !config.IsEmptyTdbctlPodResourceConfig() {
+		return v1.ResourceRequirements{
+			Limits: v1.ResourceList{
+				v1.ResourceCPU:    resource.MustParse(config.GAppConfig.TdbctlPodResource.Limits.Cpu),
+				v1.ResourceMemory: resource.MustParse(config.GAppConfig.TdbctlPodResource.Limits.Mem),
+			},
+			Requests: v1.ResourceList{
+				v1.ResourceCPU:    resource.MustParse(config.GAppConfig.TdbctlPodResource.Requests.Cpu),
+				v1.ResourceMemory: resource.MustParse(config.GAppConfig.TdbctlPodResource.Requests.Mem),
+			},
+		}
+	}
+	return v1.ResourceRequirements{}
+}
+
 // CreateMySQLPod TODO
 func (k *DbPodSets) CreateMySQLPod() (err error) {
 	c := &v1.Pod{
@@ -281,7 +317,8 @@ func (k *DbPodSets) CreateMySQLPod() (err error) {
 		},
 		Spec: v1.PodSpec{
 			Containers: []v1.Container{{
-				Name: app.MySQL,
+				Resources: k.getResourceLimit(),
+				Name:      app.MySQL,
 				Env: []v1.EnvVar{{
 					Name:  "MYSQL_ROOT_PASSWORD",
 					Value: k.BaseInfo.RootPwd,
