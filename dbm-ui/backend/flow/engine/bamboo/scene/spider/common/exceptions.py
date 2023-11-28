@@ -57,3 +57,9 @@ class TendbGetBinlogFailedException(TenDBClusterFlowBaseException):
     ERROR_CODE = "007"
     MESSAGE = _("获取binlog失败")
     MESSAGE_TPL = _("{message}")
+
+
+class TendbGetClusterInfoFailedException(TenDBClusterFlowBaseException):
+    ERROR_CODE = "008"
+    MESSAGE = _("获取集群信息失败")
+    MESSAGE_TPL = _("{message}")

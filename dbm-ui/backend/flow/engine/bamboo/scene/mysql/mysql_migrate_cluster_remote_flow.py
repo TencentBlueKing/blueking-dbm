@@ -95,6 +95,7 @@ class MySQLMigrateClusterRemoteFlow(object):
             ).first()
             self.data["master_ip"] = master.machine.ip
             self.data["cluster_type"] = cluster_class.cluster_type
+            self.data["old_slave_ip"] = slave.machine.ip
             self.data["slave_ip"] = slave.machine.ip
             self.data["mysql_port"] = master.port
             self.data["bk_biz_id"] = cluster_class.bk_biz_id
@@ -205,6 +206,7 @@ class MySQLMigrateClusterRemoteFlow(object):
                         root_id=self.root_id, ticket_data=copy.deepcopy(self.data), cluster_info=cluster
                     )
                 )
+
                 sync_data_sub_pipeline.add_act(
                     act_name=_("数据恢复完毕,写入新主节点和旧主节点的关系链元数据"),
                     act_component_code=MySQLDBMetaComponent.code,
@@ -222,18 +224,26 @@ class MySQLMigrateClusterRemoteFlow(object):
             for cluster_id in self.data["cluster_ids"]:
                 switch_sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
                 cluster_model = Cluster.objects.get(id=cluster_id)
+
+                other_slave_storage = cluster_model.storageinstance_set.filter(
+                    instance_inner_role=InstanceInnerRole.SLAVE.value
+                ).exclude(
+                    machine__ip__in=[self.data["old_slave_ip"], self.data["new_slave_ip"], self.data["new_master_ip"]]
+                )
+                other_slaves = [y.machine.ip for y in other_slave_storage]
                 cluster = {
                     "cluster_id": cluster_model.id,
                     "bk_cloud_id": cluster_model.bk_cloud_id,
                     "old_master_ip": self.data["master_ip"],
                     "old_master_port": self.data["mysql_port"],
-                    "old_slave_ip": self.data["slave_ip"],
+                    "old_slave_ip": self.data["old_slave_ip"],
                     "old_slave_port": self.data["mysql_port"],
                     "new_master_ip": self.data["new_master_ip"],
                     "new_master_port": self.data["mysql_port"],
                     "new_slave_ip": self.data["new_slave_ip"],
                     "new_slave_port": self.data["mysql_port"],
                     "mysql_port": self.data["mysql_port"],
+                    "other_slave_info": other_slaves,
                 }
                 switch_sub_pipeline.add_sub_pipeline(
                     sub_flow=master_and_slave_switch(

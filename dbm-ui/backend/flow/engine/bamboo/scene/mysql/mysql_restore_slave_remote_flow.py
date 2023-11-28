@@ -164,6 +164,7 @@ class MySQLRestoreSlaveRemoteFlow(object):
                 cluster_model = Cluster.objects.get(id=cluster_id)
                 master = cluster_model.storageinstance_set.get(instance_inner_role=InstanceInnerRole.MASTER.value)
                 cluster = {
+                    "mysql_port": master.port,
                     "cluster_id": cluster_model.id,
                     "cluster_type": cluster_class.cluster_type,
                     "master_ip": master.machine.ip,

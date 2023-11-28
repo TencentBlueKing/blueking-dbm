@@ -37,10 +37,17 @@ def get_cluster_info(cluster_id: int) -> Dict:
     cluster["slave_ip"] = copy.deepcopy(slave_ips)
 
     # 理论上应该只有一个is_standby的slave, 这里是否要先兼容老版本情况呢？
-    cluster["old_slave_ip"] = mysql_storage_slave.filter(is_stand_by=True).first().machine.ip
-    cluster["other_slave_info"] = [
-        y.machine.ip for y in mysql_storage_slave.exclude(machine__ip=cluster["old_slave_ip"])
-    ]
+    # if mysql_storage_slave is None:
+    #     cluster["running_slave_exist"] = False
+    #     cluster["old_slave_ip"]=""
+    #     cluster["other_slave_info"]=[]
+    # else:
+    #     cluster["running_slave_exist"] = True
+    #     # cluster["old_slave_ip"] = mysql_storage_slave.filter(is_stand_by=True).first().machine.ip
+    #     cluster["old_slave_ip"] = mysql_storage_slave.first().machine.ip
+    #     cluster["other_slave_info"] = [
+    #         y.machine.ip for y in mysql_storage_slave
+    #     ]
 
     cluster["proxy_ip_list"] = [x.machine.ip for x in mysql_proxy]
     cluster["proxy_port"] = mysql_proxy[0].port

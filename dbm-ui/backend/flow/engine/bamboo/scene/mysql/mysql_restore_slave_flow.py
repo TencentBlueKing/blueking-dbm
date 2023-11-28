@@ -15,40 +15,34 @@ from typing import Dict, Optional
 
 from django.utils.translation import ugettext as _
 
-from backend import env
 from backend.configuration.constants import DBType
-from backend.db_meta.enums import InstanceStatus
-from backend.db_meta.models import Cluster
-from backend.db_services.mysql.permission.constants import CloneType
-from backend.flow.consts import AUTH_ADDRESS_DIVIDER
+from backend.db_meta.enums import ClusterType, InstanceInnerRole, InstanceStatus
+from backend.db_meta.models import Cluster, ClusterEntry
+from backend.db_package.models import Package
+from backend.flow.consts import MediumEnum
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
-from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import build_surrounding_apps_sub_flow
+from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import (
+    build_surrounding_apps_sub_flow,
+    install_mysql_in_cluster_sub_flow,
+)
+from backend.flow.engine.bamboo.scene.mysql.common.slave_recover_switch import slave_migrate_switch_sub_flow
+from backend.flow.engine.bamboo.scene.mysql.common.uninstall_instance import uninstall_instance_sub_flow
+from backend.flow.plugins.components.collections.common.download_backup_client import DownloadBackupClientComponent
 from backend.flow.plugins.components.collections.common.pause import PauseComponent
 from backend.flow.plugins.components.collections.mysql.clear_machine import MySQLClearMachineComponent
-from backend.flow.plugins.components.collections.mysql.clone_user import CloneUserComponent
-from backend.flow.plugins.components.collections.mysql.dns_manage import MySQLDnsManageComponent
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.mysql.mysql_db_meta import MySQLDBMetaComponent
-from backend.flow.plugins.components.collections.mysql.mysql_os_init import (
-    GetOsSysParamComponent,
-    MySQLOsInitComponent,
-    SysInitComponent,
-)
 from backend.flow.plugins.components.collections.mysql.slave_trans_flies import SlaveTransFileComponent
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
-from backend.flow.utils.mysql.common.mysql_cluster_info import (
-    get_cluster_info,
-    get_cluster_ports,
-    get_version_and_charset,
-)
+from backend.flow.utils.common_act_dataclass import DownloadBackupClientKwargs
+from backend.flow.utils.mysql.common.mysql_cluster_info import get_ports, get_version_and_charset
 from backend.flow.utils.mysql.mysql_act_dataclass import (
-    CreateDnsKwargs,
+    ClearMachineKwargs,
     DBMetaOPKwargs,
     DownloadMediaKwargs,
     ExecActuatorKwargs,
     P2PFileKwargs,
-    RecycleDnsRecordKwargs,
 )
 from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
 from backend.flow.utils.mysql.mysql_context_dataclass import ClusterInfoContext
@@ -59,19 +53,19 @@ logger = logging.getLogger("flow")
 
 class MySQLRestoreSlaveFlow(object):
     """
-    mysql 重建slave流程
+    mysql 重建slave流程接入新备份系统
     """
 
-    def __init__(self, root_id: str, data: Optional[Dict]):
+    def __init__(self, root_id: str, tick_data: Optional[Dict]):
         """
         @param root_id : 任务流程定义的root_id
-        @param data : 单据传递过来的参数列表，是dict格式
+        @param tick_data : 单据传递过来的参数列表，是dict格式
         """
         self.root_id = root_id
-        self.data = data
-
-        # 定义备份文件存放到目标机器目录位置
-        self.backup_target_path = f"/data/dbbak/{self.root_id}"
+        self.ticket_data = tick_data
+        self.data = {}
+        #  仅添加从库。不切换。不复制账号
+        self.add_slave_only = self.ticket_data.get("add_slave_only", False)
 
     def deploy_restore_slave_flow(self):
         """
@@ -84,273 +78,338 @@ class MySQLRestoreSlaveFlow(object):
         4 mysql_restore_remove_old_slave
         """
         cluster_ids = []
-        for i in self.data["infos"]:
+        for i in self.ticket_data["infos"]:
             cluster_ids.extend(i["cluster_ids"])
 
-        mysql_restore_slave_pipeline = Builder(
-            root_id=self.root_id, data=copy.deepcopy(self.data), need_random_pass_cluster_ids=list(set(cluster_ids))
+        tendb_migrate_pipeline_all = Builder(
+            root_id=self.root_id,
+            data=copy.deepcopy(self.ticket_data),
+            need_random_pass_cluster_ids=list(set(cluster_ids)),
         )
-        sub_pipeline_list = []
-        for one_machine in self.data["infos"]:
-            ticket_data = copy.deepcopy(self.data)
-            cluster_ports = get_cluster_ports(one_machine["cluster_ids"])
-            one_machine.update(cluster_ports)
-
-            charset, db_version = get_version_and_charset(
+        tendb_migrate_pipeline_list = []
+        for info in self.ticket_data["infos"]:
+            self.data = copy.deepcopy(info)
+            cluster_class = Cluster.objects.get(id=self.data["cluster_ids"][0])
+            self.data["bk_biz_id"] = cluster_class.bk_biz_id
+            self.data["bk_cloud_id"] = cluster_class.bk_cloud_id
+            self.data["db_module_id"] = cluster_class.db_module_id
+            self.data["time_zone"] = cluster_class.time_zone
+            self.data["created_by"] = self.ticket_data["created_by"]
+            self.data["module"] = cluster_class.db_module_id
+            self.data["ticket_type"] = self.ticket_data["ticket_type"]
+            self.data["cluster_type"] = cluster_class.cluster_type
+            self.data["uid"] = self.ticket_data["uid"]
+            self.data["package"] = Package.get_latest_package(
+                version=cluster_class.major_version, pkg_type=MediumEnum.MySQL, db_type=DBType.MySQL
+            ).name
+            # self.data["package"] = "5.7.20"
+            self.data["ports"] = get_ports(info["cluster_ids"])
+            self.data["force"] = self.ticket_data.get("force", False)
+            self.data["charset"], self.data["db_version"] = get_version_and_charset(
                 self.data["bk_biz_id"],
-                db_module_id=one_machine["db_module_id"],
-                cluster_type=one_machine["cluster_type"],
+                db_module_id=self.data["db_module_id"],
+                cluster_type=self.data["cluster_type"],
             )
-            ticket_data["clusters"] = one_machine["clusters"]
-            ticket_data["mysql_ports"] = one_machine["cluster_ports"]
-            ticket_data["charset"] = charset
-            ticket_data["db_version"] = db_version
-            ticket_data["force"] = one_machine.get("force", False)
-
-            sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(ticket_data))
-            sub_pipeline.add_sub_pipeline(
-                sub_flow=self.install_instance_sub_flow(ticket_data=ticket_data, one_machine=one_machine)
-            )
-
-            slave_restore_sub_list = []
-            clusters_info = []
-            sub_pipeline_list = []
-            for one_id in one_machine["cluster_ids"]:
-                one_cluster = get_cluster_info(one_id)
-                if one_cluster is None:
-                    logger.info(_("%s slave 节点不存在"), one_id)
-                    continue
-
-                one_cluster["backend_port"] = one_cluster["master_port"]
-                one_cluster["new_master_ip"] = one_cluster["master_ip"]
-                one_cluster["new_slave_ip"] = one_machine["new_slave_ip"]
-                # 指定传入的slave实例
-                one_cluster["old_slave_ip"] = one_machine["old_slave_ip"]
-                one_cluster["charset"] = charset
-                one_cluster["change_master"] = True
-                one_cluster["file_target_path"] = self.backup_target_path
-                clusters_info.append(one_cluster)
-
-                restore_slave_sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(ticket_data))
-                # 拼接执行原子任务活动节点需要的通用的私有参数结构体, 减少代码重复率，但引用时注意内部参数值传递的问题
-                exec_act_kwargs = ExecActuatorKwargs(
-                    bk_cloud_id=one_cluster["bk_cloud_id"],
-                    cluster_type=one_cluster["cluster_type"],
-                    cluster=one_cluster,
+            tendb_migrate_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
+            #  获取信息
+            # 整机安装数据库
+            install_sub_pipeline_list = []
+            install_sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
+            install_sub_pipeline.add_sub_pipeline(
+                sub_flow=install_mysql_in_cluster_sub_flow(
+                    uid=self.data["uid"],
+                    root_id=self.root_id,
+                    cluster=cluster_class,
+                    new_mysql_list=[self.data["new_slave_ip"]],
+                    install_ports=self.data["ports"],
                 )
+            )
 
-                restore_slave_sub_pipeline.add_act(
-                    act_name=_("下发db-actor到集群主从节点"),
+            cluster = {
+                "install_ip": self.data["new_slave_ip"],
+                "cluster_ids": self.data["cluster_ids"],
+                "package": self.data["package"],
+            }
+            install_sub_pipeline.add_act(
+                act_name=_("写入初始化实例的db_meta元信息"),
+                act_component_code=MySQLDBMetaComponent.code,
+                kwargs=asdict(
+                    DBMetaOPKwargs(
+                        db_meta_class_func=MySQLDBMeta.slave_recover_add_instance.__name__,
+                        cluster=copy.deepcopy(cluster),
+                        is_update_trans_data=False,
+                    )
+                ),
+            )
+
+            install_sub_pipeline.add_act(
+                act_name=_("安装backup-client工具"),
+                act_component_code=DownloadBackupClientComponent.code,
+                kwargs=asdict(
+                    DownloadBackupClientKwargs(
+                        bk_cloud_id=cluster_class.bk_cloud_id,
+                        bk_biz_id=int(cluster_class.bk_biz_id),
+                        download_host_list=[self.data["new_slave_ip"]],
+                    )
+                ),
+            )
+
+            exec_act_kwargs = ExecActuatorKwargs(
+                cluster=cluster,
+                bk_cloud_id=cluster_class.bk_cloud_id,
+                cluster_type=cluster_class.cluster_type,
+                get_mysql_payload_func=MysqlActPayload.get_install_tmp_db_backup_payload.__name__,
+            )
+            exec_act_kwargs.exec_ip = [self.data["new_slave_ip"]]
+            install_sub_pipeline.add_act(
+                act_name=_("安装临时备份程序"),
+                act_component_code=ExecuteDBActuatorScriptComponent.code,
+                kwargs=asdict(exec_act_kwargs),
+            )
+
+            install_sub_pipeline_list.append(install_sub_pipeline.build_sub_process(sub_name=_("安装从节点")))
+
+            sync_data_sub_pipeline_list = []
+            for cluster_id in info["cluster_ids"]:
+                cluster_model = Cluster.objects.get(id=cluster_id)
+                master = cluster_model.storageinstance_set.get(instance_inner_role=InstanceInnerRole.MASTER.value)
+                cluster = {
+                    "mysql_port": master.port,
+                    "cluster_id": cluster_model.id,
+                    "cluster_type": cluster_class.cluster_type,
+                    "master_ip": master.machine.ip,
+                    "master_port": master.port,
+                    "new_slave_ip": self.data["new_slave_ip"],
+                    "new_slave_port": master.port,
+                    "bk_cloud_id": cluster_model.bk_cloud_id,
+                    "file_target_path": f"/data/dbbak/{self.root_id}/{master.port}",
+                    "charset": self.data["charset"],
+                    "change_master_force": True,
+                    "change_master": True,
+                }
+                exec_act_kwargs.cluster = cluster
+                sync_data_sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
+                # ======
+                stand_by_slaves = cluster_model.storageinstance_set.filter(
+                    instance_inner_role=InstanceInnerRole.SLAVE.value, is_stand_by=True
+                ).exclude(machine__ip__in=[self.data["new_slave_ip"]])
+                if len(stand_by_slaves) > 0:
+                    sync_data_sub_pipeline.add_act(
+                        act_name=_("下发db-actor到旧从节点{}").format(stand_by_slaves[0].machine.ip),
+                        act_component_code=TransFileComponent.code,
+                        kwargs=asdict(
+                            DownloadMediaKwargs(
+                                bk_cloud_id=cluster_model.bk_cloud_id,
+                                exec_ip=stand_by_slaves[0].machine.ip,
+                                file_list=GetFileList(db_type=DBType.MySQL).get_db_actuator_package(),
+                            )
+                        ),
+                    )
+
+                    exec_act_kwargs.exec_ip = stand_by_slaves[0].machine.ip
+                    exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_find_local_backup_payload.__name__
+                    sync_data_sub_pipeline.add_act(
+                        act_name=_("slave重建之获取SLAVE节点备份介质{}").format(exec_act_kwargs.exec_ip),
+                        act_component_code=ExecuteDBActuatorScriptComponent.code,
+                        kwargs=asdict(exec_act_kwargs),
+                        write_payload_var="slave_backup_file",
+                    )
+
+                sync_data_sub_pipeline.add_act(
+                    act_name=_("下发db-actor到主节点{}").format(master.machine.ip),
                     act_component_code=TransFileComponent.code,
                     kwargs=asdict(
                         DownloadMediaKwargs(
-                            bk_cloud_id=one_cluster["bk_cloud_id"],
-                            exec_ip=[
-                                one_cluster["master_ip"],
-                                one_cluster["old_slave_ip"],
-                                one_cluster["new_slave_ip"],
-                            ],
+                            bk_cloud_id=cluster_model.bk_cloud_id,
+                            exec_ip=master.machine.ip,
                             file_list=GetFileList(db_type=DBType.MySQL).get_db_actuator_package(),
                         )
                     ),
                 )
-
-                exec_act_kwargs.exec_ip = one_cluster["new_master_ip"]
+                exec_act_kwargs.exec_ip = master.machine.ip
                 exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_grant_mysql_repl_user_payload.__name__
-                restore_slave_sub_pipeline.add_act(
+                sync_data_sub_pipeline.add_act(
                     act_name=_("slave重建之新增repl帐户{}").format(exec_act_kwargs.exec_ip),
                     act_component_code=ExecuteDBActuatorScriptComponent.code,
                     kwargs=asdict(exec_act_kwargs),
                     write_payload_var="master_ip_sync_info",
                 )
 
-                # 通过master、slave 获取备份的文件
-                # acts_list = []  并行获取备份介质暂时存在问题，先改为串行
-                exec_act_kwargs.exec_ip = one_cluster["master_ip"]
+                exec_act_kwargs.exec_ip = master.machine.ip
                 exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_find_local_backup_payload.__name__
-                restore_slave_sub_pipeline.add_act(
+                sync_data_sub_pipeline.add_act(
                     act_name=_("slave重建之获取MASTER节点备份介质{}").format(exec_act_kwargs.exec_ip),
                     act_component_code=ExecuteDBActuatorScriptComponent.code,
                     kwargs=asdict(exec_act_kwargs),
                     write_payload_var="master_backup_file",
                 )
 
-                exec_act_kwargs.exec_ip = one_cluster["old_slave_ip"]
-                exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_find_local_backup_payload.__name__
-                restore_slave_sub_pipeline.add_act(
-                    act_name=_("slave重建之获取SLAVE节点备份介质{}").format(exec_act_kwargs.exec_ip),
-                    act_component_code=ExecuteDBActuatorScriptComponent.code,
-                    kwargs=asdict(exec_act_kwargs),
-                    write_payload_var="slave_backup_file",
-                )
-
-                restore_slave_sub_pipeline.add_act(
-                    act_name=_("判断备份文件来源,并传输备份文件到新slave节点{}").format(one_cluster["new_slave_ip"]),
+                sync_data_sub_pipeline.add_act(
+                    act_name=_("判断备份文件来源,并传输备份文件到新slave节点{}").format(self.data["new_slave_ip"]),
                     act_component_code=SlaveTransFileComponent.code,
                     kwargs=asdict(
                         P2PFileKwargs(
-                            bk_cloud_id=one_cluster["bk_cloud_id"],
+                            bk_cloud_id=cluster_model.bk_cloud_id,
                             file_list=[],
-                            file_target_path=self.backup_target_path,
+                            file_target_path=cluster["file_target_path"],
                             source_ip_list=[],
-                            exec_ip=one_cluster["new_slave_ip"],
+                            exec_ip=self.data["new_slave_ip"],
                         )
                     ),
                 )
 
-                exec_act_kwargs.exec_ip = one_cluster["new_slave_ip"]
+                exec_act_kwargs.exec_ip = self.data["new_slave_ip"]
                 exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_mysql_restore_slave_payload.__name__
-                restore_slave_sub_pipeline.add_act(
-                    act_name=_("恢复新从节点数据{}:{}").format(exec_act_kwargs.exec_ip, one_cluster["backend_port"]),
+                sync_data_sub_pipeline.add_act(
+                    act_name=_("恢复新从节点数据{}:{}").format(exec_act_kwargs.exec_ip, master.port),
                     act_component_code=ExecuteDBActuatorScriptComponent.code,
                     kwargs=asdict(exec_act_kwargs),
                 )
 
-                restore_slave_sub_pipeline.add_act(
+                sync_data_sub_pipeline.add_act(
                     act_name=_("slave恢复完毕，修改元数据"),
                     act_component_code=MySQLDBMetaComponent.code,
                     kwargs=asdict(
                         DBMetaOPKwargs(
                             db_meta_class_func=MySQLDBMeta.mysql_add_slave_info.__name__,
-                            cluster=one_cluster,
+                            cluster=cluster,
                             is_update_trans_data=True,
                         )
                     ),
                 )
-                slave_restore_sub_list.append(restore_slave_sub_pipeline.build_sub_process(sub_name=_("恢复实例数据")))
 
-            switch_slave_sub_list = []
-            for one_cluster in clusters_info:
-                switch_slave_sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(ticket_data))
-                master_port = one_cluster["master_port"]
-                clone_user = {
-                    "clone_type": CloneType.INSTANCE.value,
-                    "clone_data": [
-                        {
-                            "source": f'{one_cluster["master_ip"]}{AUTH_ADDRESS_DIVIDER}{master_port}',
-                            "target": f'{one_cluster["new_slave_ip"]}{AUTH_ADDRESS_DIVIDER}{master_port}',
-                            "bk_cloud_id": one_cluster["bk_cloud_id"],
-                        }
-                    ],
-                }
-                switch_slave_sub_pipeline.add_act(
-                    act_name=_("克隆主节点账号权限到新从节点"),
-                    act_component_code=CloneUserComponent.code,
-                    kwargs=clone_user,
-                )
-
-                switch_slave_sub_pipeline.add_act(
-                    act_name=_("先添加新从库域名{}").format(one_cluster["new_slave_ip"]),
-                    act_component_code=MySQLDnsManageComponent.code,
-                    kwargs=asdict(
-                        CreateDnsKwargs(
-                            bk_cloud_id=one_cluster["bk_cloud_id"],
-                            dns_op_exec_port=master_port,
-                            exec_ip=one_cluster["new_slave_ip"],
-                            add_domain_name=one_cluster["slave_domain"],
-                        )
-                    ),
-                )
-
-                switch_slave_sub_pipeline.add_act(
-                    act_name=_("再删除旧从库域名{}").format(one_cluster["old_slave_ip"]),
-                    act_component_code=MySQLDnsManageComponent.code,
-                    kwargs=asdict(
-                        RecycleDnsRecordKwargs(
-                            dns_op_exec_port=master_port,
-                            exec_ip=one_cluster["old_slave_ip"],
-                            bk_cloud_id=one_cluster["bk_cloud_id"],
-                        )
-                    ),
-                )
-
-                # 恢复单个实例完毕,修改元数据、修改 db_meta_storageinstance_bind_entry  db_meta_clusterentry
-                switch_slave_sub_pipeline.add_act(
-                    act_name=_("slave切换完毕，修改集群 {} 数据".format(one_cluster["cluster_id"])),
+                # =======
+                sync_data_sub_pipeline.add_act(
+                    act_name=_("同步数据完毕,写入数据节点的主从关系相关元数据"),
                     act_component_code=MySQLDBMetaComponent.code,
                     kwargs=asdict(
                         DBMetaOPKwargs(
-                            db_meta_class_func=MySQLDBMeta.mysql_restore_slave_change_cluster_info.__name__,
-                            cluster=one_cluster,
+                            db_meta_class_func=MySQLDBMeta.mysql_add_slave_info.__name__,
+                            cluster=cluster,
                             is_update_trans_data=True,
                         )
                     ),
                 )
-                switch_slave_sub_list.append(switch_slave_sub_pipeline.build_sub_process(_("实例切换")))
+                sync_data_sub_pipeline_list.append(sync_data_sub_pipeline.build_sub_process(sub_name=_("恢复实例数据")))
 
-                # 第三部...
-            uninstall_slave_sub_list = []
-            for one_cluster in clusters_info:
-                uninstall_slave_sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(ticket_data))
-                exec_act_kwargs = ExecActuatorKwargs(
-                    bk_cloud_id=one_cluster["bk_cloud_id"],
-                    cluster_type=one_cluster["cluster_type"],
-                    cluster=one_cluster,
-                )
-                exec_act_kwargs.exec_ip = one_cluster["old_slave_ip"]
-                exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_clear_surrounding_config_payload.__name__
-                uninstall_slave_sub_pipeline.add_act(
-                    act_name=_("清理实例级别周边配置"),
-                    act_component_code=ExecuteDBActuatorScriptComponent.code,
-                    kwargs=asdict(exec_act_kwargs),
-                )
+            switch_sub_pipeline_list = []
+            uninstall_svr_sub_pipeline_list = []
+            if not self.add_slave_only:
+                for cluster_id in self.data["cluster_ids"]:
+                    cluster_model = Cluster.objects.get(id=cluster_id)
+                    domain = ClusterEntry.get_cluster_entry_map_by_cluster_ids([cluster_model.id])
+                    switch_sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
+                    switch_sub_pipeline.add_sub_pipeline(
+                        sub_flow=slave_migrate_switch_sub_flow(
+                            root_id=self.root_id,
+                            ticket_data=copy.deepcopy(self.data),
+                            cluster=cluster_model,
+                            old_slave_ip=self.data["old_slave_ip"],
+                            new_slave_ip=self.data["new_slave_ip"],
+                        )
+                    )
+                    cluster = {
+                        "slave_domain": domain[cluster_model.id]["slave_domain"],
+                        "master_domain": domain[cluster_model.id]["master_domain"],
+                        "new_slave_ip": self.data["new_slave_ip"],
+                        "old_slave_ip": self.data["old_slave_ip"],
+                        "cluster_id": cluster_model.id,
+                    }
+                    switch_sub_pipeline.add_act(
+                        act_name=_("slave切换完毕，修改集群 {} 数据".format(cluster_model.id)),
+                        act_component_code=MySQLDBMetaComponent.code,
+                        kwargs=asdict(
+                            DBMetaOPKwargs(
+                                db_meta_class_func=MySQLDBMeta.mysql_restore_slave_change_cluster_info.__name__,
+                                cluster=cluster,
+                                is_update_trans_data=True,
+                            )
+                        ),
+                    )
+                    switch_sub_pipeline_list.append(switch_sub_pipeline.build_sub_process(sub_name=_("切换到新从节点")))
 
-                exec_act_kwargs.exec_ip = one_cluster["old_slave_ip"]
-                exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_uninstall_mysql_payload.__name__
-                uninstall_slave_sub_pipeline.add_act(
-                    act_name=_("卸载mysql实例{}:{}").format(exec_act_kwargs.exec_ip, one_cluster["backend_port"]),
-                    act_component_code=ExecuteDBActuatorScriptComponent.code,
-                    kwargs=asdict(exec_act_kwargs),
+                uninstall_svr_sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
+                uninstall_svr_sub_pipeline.add_sub_pipeline(
+                    sub_flow=uninstall_instance_sub_flow(
+                        root_id=self.root_id,
+                        ticket_data=copy.deepcopy(self.data),
+                        ip=self.data["old_slave_ip"],
+                        ports=self.data["ports"],
+                    )
                 )
-
-                uninstall_slave_sub_pipeline.add_act(
-                    act_name=_("old slave卸载完毕，修改元数据"),
+                cluster = {"uninstall_ip": self.data["old_slave_ip"], "cluster_ids": self.data["cluster_ids"]}
+                uninstall_svr_sub_pipeline.add_act(
+                    act_name=_("整机卸载成功后删除元数据"),
                     act_component_code=MySQLDBMetaComponent.code,
                     kwargs=asdict(
                         DBMetaOPKwargs(
-                            db_meta_class_func=MySQLDBMeta.mysql_restore_remove_old_slave.__name__,
-                            cluster=one_cluster,
+                            db_meta_class_func=MySQLDBMeta.slave_recover_del_instance.__name__,
                             is_update_trans_data=True,
+                            cluster=cluster,
                         )
                     ),
                 )
-                uninstall_slave_sub_list.append(uninstall_slave_sub_pipeline.build_sub_process(_("卸载实例")))
-            # 流程: 恢复数据>切换>安装周边>卸载
-            sub_pipeline.add_parallel_sub_pipeline(sub_flow_list=slave_restore_sub_list)
-            #  切换前安装周边组件
-            sub_pipeline.add_sub_pipeline(
+                uninstall_svr_sub_pipeline.add_act(
+                    act_name=_("清理机器配置"),
+                    act_component_code=MySQLClearMachineComponent.code,
+                    kwargs=asdict(
+                        ClearMachineKwargs(
+                            exec_ip=self.data["old_slave_ip"],
+                            bk_cloud_id=self.data["bk_cloud_id"],
+                        )
+                    ),
+                )
+                uninstall_svr_sub_pipeline_list.append(
+                    uninstall_svr_sub_pipeline.build_sub_process(
+                        sub_name=_("卸载remote节点{}".format(self.data["old_slave_ip"]))
+                    )
+                )
+
+            # 安装实例
+            tendb_migrate_pipeline.add_parallel_sub_pipeline(sub_flow_list=install_sub_pipeline_list)
+            # 数据同步
+            tendb_migrate_pipeline.add_parallel_sub_pipeline(sub_flow_list=sync_data_sub_pipeline_list)
+            #  新机器安装周边组件
+            tendb_migrate_pipeline.add_sub_pipeline(
                 sub_flow=build_surrounding_apps_sub_flow(
-                    bk_cloud_id=one_machine["bk_cloud_id"],
-                    slave_ip_list=[one_machine["new_slave_ip"]],
+                    bk_cloud_id=cluster_class.bk_cloud_id,
+                    master_ip_list=None,
+                    slave_ip_list=[self.data["new_slave_ip"]],
                     root_id=self.root_id,
-                    parent_global_data=copy.deepcopy(ticket_data),
+                    parent_global_data=copy.deepcopy(self.data),
                     is_init=True,
-                    cluster_type=one_machine["cluster_type"],
+                    cluster_type=ClusterType.TenDBHA.value,
                 )
             )
-            sub_pipeline.add_act(act_name=_("人工确认"), act_component_code=PauseComponent.code, kwargs={})
-            sub_pipeline.add_parallel_sub_pipeline(sub_flow_list=switch_slave_sub_list)
-            # 第三步 安装周边
-            sub_pipeline.add_sub_pipeline(
-                sub_flow=build_surrounding_apps_sub_flow(
-                    bk_cloud_id=one_machine["bk_cloud_id"],
-                    slave_ip_list=[one_machine["new_slave_ip"]],
-                    root_id=self.root_id,
-                    parent_global_data=copy.deepcopy(ticket_data),
-                    is_init=True,
-                    cluster_type=one_machine["cluster_type"],
+            if not self.add_slave_only:
+                # 人工确认切换迁移实例
+                tendb_migrate_pipeline.add_act(act_name=_("人工确认切换"), act_component_code=PauseComponent.code, kwargs={})
+                # 切换迁移实例
+                tendb_migrate_pipeline.add_parallel_sub_pipeline(sub_flow_list=switch_sub_pipeline_list)
+                # 切换后再次刷新周边
+                tendb_migrate_pipeline.add_sub_pipeline(
+                    sub_flow=build_surrounding_apps_sub_flow(
+                        bk_cloud_id=cluster_class.bk_cloud_id,
+                        master_ip_list=None,
+                        slave_ip_list=[self.data["new_slave_ip"]],
+                        root_id=self.root_id,
+                        parent_global_data=copy.deepcopy(self.data),
+                        is_init=True,
+                        cluster_type=ClusterType.TenDBHA.value,
+                    )
                 )
+                # 卸载流程人工确认
+                tendb_migrate_pipeline.add_act(
+                    act_name=_("人工确认卸载实例"), act_component_code=PauseComponent.code, kwargs={}
+                )
+                # # 卸载remote节点
+                tendb_migrate_pipeline.add_parallel_sub_pipeline(sub_flow_list=uninstall_svr_sub_pipeline_list)
+            tendb_migrate_pipeline_list.append(
+                tendb_migrate_pipeline.build_sub_process(_("slave重建迁移{}").format(self.data["new_slave_ip"]))
             )
-            sub_pipeline.add_act(act_name=_("人工确认"), act_component_code=PauseComponent.code, kwargs={})
-            sub_pipeline.add_parallel_sub_pipeline(sub_flow_list=uninstall_slave_sub_list)
-
-            sub_pipeline.add_sub_pipeline(
-                sub_flow=self.uninstall_instance_sub_flow(ticket_data=ticket_data, one_machine=one_machine)
-            )
-
-            sub_pipeline_list.append(sub_pipeline.build_sub_process(sub_name=_("Restore Slave 重建从库")))
-        mysql_restore_slave_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipeline_list)
-        mysql_restore_slave_pipeline.run_pipeline(init_trans_data_class=ClusterInfoContext(), is_drop_random_user=True)
+        # 运行流程
+        tendb_migrate_pipeline_all.add_parallel_sub_pipeline(tendb_migrate_pipeline_list)
+        tendb_migrate_pipeline_all.run_pipeline(init_trans_data_class=ClusterInfoContext(), is_drop_random_user=True)
 
     def deploy_restore_local_slave_flow(self):
         """
@@ -360,400 +419,160 @@ class MySQLRestoreSlaveFlow(object):
         增加单据临时ADMIN账号的添加和删除逻辑
         """
         cluster_ids = [i["cluster_id"] for i in self.data["infos"]]
-        mysql_restore_local_slave_pipeline = Builder(
-            root_id=self.root_id, data=copy.deepcopy(self.data), need_random_pass_cluster_ids=list(set(cluster_ids))
+        tendb_migrate_pipeline_all = Builder(
+            root_id=self.root_id,
+            data=copy.deepcopy(self.ticket_data),
+            need_random_pass_cluster_ids=list(set(cluster_ids)),
         )
-        sub_pipeline_list = []
-        for slave in self.data["infos"]:
-            ticket_data = copy.deepcopy(self.data)
-            one_cluster = get_cluster_info(slave["cluster_id"])
-            cluster_model = Cluster.objects.get(id=slave["cluster_id"])
+        tendb_migrate_pipeline_list = []
+        for info in self.ticket_data["infos"]:
+            self.data = copy.deepcopy(info)
+            cluster_model = Cluster.objects.get(id=self.data["cluster_id"])
             target_slave = cluster_model.storageinstance_set.get(
                 machine__bk_cloud_id=cluster_model.bk_cloud_id,
-                machine__ip=slave["slave_ip"],
-                port=slave["slave_port"],
+                machine__ip=self.data["slave_ip"],
+                port=self.data["slave_port"],
             )
-            charset, db_version = get_version_and_charset(
+            master = cluster_model.storageinstance_set.get(instance_inner_role=InstanceInnerRole.MASTER.value)
+            self.data["new_slave_ip"] = target_slave.machine.ip
+            self.data["bk_biz_id"] = cluster_model.bk_biz_id
+            self.data["bk_cloud_id"] = cluster_model.bk_cloud_id
+            self.data["db_module_id"] = cluster_model.db_module_id
+            self.data["time_zone"] = cluster_model.time_zone
+            self.data["created_by"] = self.ticket_data["created_by"]
+            self.data["module"] = cluster_model.db_module_id
+            self.data["force"] = self.ticket_data.get("force", False)
+            self.data["ticket_type"] = self.ticket_data["ticket_type"]
+            self.data["cluster_type"] = cluster_model.cluster_type
+            self.data["uid"] = self.ticket_data["uid"]
+            self.data["charset"], self.data["db_version"] = get_version_and_charset(
                 self.data["bk_biz_id"],
-                db_module_id=one_cluster["db_module_id"],
-                cluster_type=one_cluster["cluster_type"],
+                db_module_id=self.data["db_module_id"],
+                cluster_type=self.data["cluster_type"],
             )
-            one_cluster["backend_port"] = one_cluster["master_port"]
-            one_cluster["new_slave_ip"] = slave["slave_ip"]
-            one_cluster["new_slave_port"] = slave["slave_port"]
-            one_cluster["charset"] = charset
-            one_cluster["change_master"] = True
-            one_cluster["drop_database"] = True
-            one_cluster["force"] = False
-            one_cluster["restart"] = False
-            one_cluster["stop_slave"] = True
-            one_cluster["reset_slave"] = True
-            one_cluster["file_target_path"] = self.backup_target_path
+            tendb_migrate_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
 
-            restore_local_slave_sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(ticket_data))
-
-            # 拼接执行原子任务活动节点需要的通用的私有参数结构体, 减少代码重复率，但引用时注意内部参数值传递的问题
-            exec_act_kwargs = ExecActuatorKwargs(
-                bk_cloud_id=one_cluster["bk_cloud_id"],
-                cluster_type=one_cluster["cluster_type"],
-                cluster=one_cluster,
-            )
-
-            restore_local_slave_sub_pipeline.add_act(
-                act_name=_("下发db-actor到集群主从节点"),
+            tendb_migrate_pipeline.add_act(
+                act_name=_("下发db-actor到节点{} {}".format(target_slave.machine.ip, master.machine.ip)),
                 act_component_code=TransFileComponent.code,
                 kwargs=asdict(
                     DownloadMediaKwargs(
-                        bk_cloud_id=one_cluster["bk_cloud_id"],
-                        exec_ip=[one_cluster["master_ip"], one_cluster["new_slave_ip"]],
+                        bk_cloud_id=cluster_model.bk_cloud_id,
+                        exec_ip=[target_slave.machine.ip, master.machine.ip],
                         file_list=GetFileList(db_type=DBType.MySQL).get_db_actuator_package(),
                     )
                 ),
             )
+            cluster = {
+                "stop_slave": True,
+                "reset_slave": True,
+                "restart": False,
+                "force": self.data["force"],
+                "drop_database": True,
+                "new_slave_ip": target_slave.machine.ip,
+                "new_slave_port": target_slave.port,
+                "mysql_port": master.port,
+                "cluster_id": cluster_model.id,
+                "cluster_type": cluster_model.cluster_type,
+                "master_ip": master.machine.ip,
+                "master_port": master.port,
+                "bk_cloud_id": cluster_model.bk_cloud_id,
+                "file_target_path": f"/data/dbbak/{self.root_id}/{master.port}",
+                "charset": self.data["charset"],
+                "change_master_force": True,
+                "change_master": True,
+            }
 
-            exec_act_kwargs.exec_ip = one_cluster["master_ip"]
-            exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_find_local_backup_payload.__name__
-            restore_local_slave_sub_pipeline.add_act(
+            exec_act_kwargs = ExecActuatorKwargs(
+                exec_ip=master.machine.ip,
+                get_mysql_payload_func=MysqlActPayload.get_find_local_backup_payload.__name__,
+                bk_cloud_id=cluster_model.bk_cloud_id,
+                cluster_type=cluster_model.cluster_type,
+                cluster=cluster,
+            )
+            tendb_migrate_pipeline.add_act(
                 act_name=_("slave重建之获取MASTER节点备份介质{}").format(exec_act_kwargs.exec_ip),
                 act_component_code=ExecuteDBActuatorScriptComponent.code,
                 kwargs=asdict(exec_act_kwargs),
                 write_payload_var="master_backup_file",
             )
 
-            cluster = {"storage_status": InstanceStatus.RESTORING.value, "storage_id": target_slave.id}
-            restore_local_slave_sub_pipeline.add_act(
+            tendb_migrate_pipeline.add_act(
+                act_name=_("判断备份文件来源,并传输备份文件到新slave节点{}").format(self.data["new_slave_ip"]),
+                act_component_code=SlaveTransFileComponent.code,
+                kwargs=asdict(
+                    P2PFileKwargs(
+                        bk_cloud_id=cluster_model.bk_cloud_id,
+                        file_list=[],
+                        file_target_path=cluster["file_target_path"],
+                        source_ip_list=[],
+                        exec_ip=self.data["new_slave_ip"],
+                    )
+                ),
+            )
+
+            tendb_migrate_pipeline.add_act(
                 act_name=_("写入初始化实例的db_meta元信息"),
                 act_component_code=MySQLDBMetaComponent.code,
                 kwargs=asdict(
                     DBMetaOPKwargs(
                         db_meta_class_func=MySQLDBMeta.tendb_modify_storage_status.__name__,
-                        cluster=cluster,
+                        cluster={"storage_status": InstanceStatus.RESTORING.value, "storage_id": target_slave.id},
                         is_update_trans_data=False,
                     )
                 ),
             )
 
-            exec_act_kwargs.exec_ip = one_cluster["new_slave_ip"]
+            exec_act_kwargs = ExecActuatorKwargs(
+                bk_cloud_id=cluster_model.bk_cloud_id,
+                cluster_type=cluster_model.cluster_type,
+                cluster=cluster,
+                exec_ip=target_slave.machine.ip,
+            )
             exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_clean_mysql_payload.__name__
-            restore_local_slave_sub_pipeline.add_act(
+            tendb_migrate_pipeline.add_act(
                 act_name=_("slave重建之清理从库{}").format(exec_act_kwargs.exec_ip),
                 act_component_code=ExecuteDBActuatorScriptComponent.code,
                 kwargs=asdict(exec_act_kwargs),
             )
 
-            restore_local_slave_sub_pipeline.add_act(
-                act_name=_("判断备份文件来源,并传输备份文件到新slave节点{}").format(one_cluster["new_slave_ip"]),
-                act_component_code=SlaveTransFileComponent.code,
-                kwargs=asdict(
-                    P2PFileKwargs(
-                        bk_cloud_id=one_cluster["bk_cloud_id"],
-                        file_list=[],
-                        file_target_path=self.backup_target_path,
-                        source_ip_list=[],
-                        exec_ip=one_cluster["new_slave_ip"],
-                    )
-                ),
-            )
-
-            exec_act_kwargs.exec_ip = one_cluster["new_slave_ip"]
+            exec_act_kwargs.cluster = cluster
+            exec_act_kwargs.exec_ip = self.data["new_slave_ip"]
             exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_mysql_restore_slave_payload.__name__
-            restore_local_slave_sub_pipeline.add_act(
-                act_name=_("slave 原地恢复数据{}").format(exec_act_kwargs.exec_ip),
+            tendb_migrate_pipeline.add_act(
+                act_name=_("恢复新从节点数据{}:{}").format(exec_act_kwargs.exec_ip, master.port),
                 act_component_code=ExecuteDBActuatorScriptComponent.code,
                 kwargs=asdict(exec_act_kwargs),
             )
-            restore_local_slave_sub_pipeline.add_sub_pipeline(
-                sub_flow=build_surrounding_apps_sub_flow(
-                    bk_cloud_id=one_cluster["bk_cloud_id"],
-                    slave_ip_list=[one_cluster["new_slave_ip"]],
-                    root_id=self.root_id,
-                    parent_global_data=copy.deepcopy(ticket_data),
-                    is_init=True,
-                    cluster_type=one_cluster["cluster_type"],
-                )
-            )
-
-            cluster = {"storage_status": InstanceStatus.RUNNING.value, "storage_id": target_slave.id}
-            restore_local_slave_sub_pipeline.add_act(
+            # ====
+            tendb_migrate_pipeline.add_act(
                 act_name=_("写入初始化实例的db_meta元信息"),
                 act_component_code=MySQLDBMetaComponent.code,
                 kwargs=asdict(
                     DBMetaOPKwargs(
                         db_meta_class_func=MySQLDBMeta.tendb_modify_storage_status.__name__,
-                        cluster=cluster,
+                        cluster={"storage_status": InstanceStatus.RUNNING.value, "storage_id": target_slave.id},
                         is_update_trans_data=False,
                     )
                 ),
             )
-
-            sub_pipeline_list.append(
-                restore_local_slave_sub_pipeline.build_sub_process(sub_name=_("Restore local Slave 本地重建"))
+            tendb_migrate_pipeline.add_sub_pipeline(
+                sub_flow=build_surrounding_apps_sub_flow(
+                    bk_cloud_id=cluster_model.bk_cloud_id,
+                    slave_ip_list=[target_slave.machine.ip],
+                    root_id=self.root_id,
+                    parent_global_data=self.data,
+                    is_init=True,
+                    cluster_type=cluster_model.cluster_type,
+                )
             )
-        mysql_restore_local_slave_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipeline_list)
-        mysql_restore_local_slave_pipeline.run_pipeline(
-            init_trans_data_class=ClusterInfoContext(), is_drop_random_user=True
-        )
+            tendb_migrate_pipeline_list.append(
+                tendb_migrate_pipeline.build_sub_process(_("slave原地重建{}").format(self.data["slave_ip"]))
+            )
+
+        tendb_migrate_pipeline_all.add_parallel_sub_pipeline(sub_flow_list=tendb_migrate_pipeline_list)
+        tendb_migrate_pipeline_all.run_pipeline(init_trans_data_class=ClusterInfoContext(), is_drop_random_user=True)
 
     def deploy_add_slave_flow(self):
-        """
-        添加从库：仅添加从库、不拷贝权限、不加入域名
-        增加单据临时ADMIN账号的添加和删除逻辑
-        """
-        cluster_ids = []
-        for i in self.data["infos"]:
-            cluster_ids.extend(i["cluster_ids"])
-
-        mysql_restore_slave_pipeline = Builder(
-            root_id=self.root_id, data=copy.deepcopy(self.data), need_random_pass_cluster_ids=list(set(cluster_ids))
-        )
-        sub_pipeline_list = []
-
-        for one_machine in self.data["infos"]:
-            ticket_data = copy.deepcopy(self.data)
-            cluster_ports = get_cluster_ports(one_machine["cluster_ids"])
-            one_machine.update(cluster_ports)
-            charset, db_version = get_version_and_charset(
-                self.data["bk_biz_id"],
-                db_module_id=one_machine["db_module_id"],
-                cluster_type=one_machine["cluster_type"],
-            )
-            ticket_data["clusters"] = one_machine["clusters"]
-            ticket_data["mysql_ports"] = one_machine["cluster_ports"]
-            ticket_data["charset"] = charset
-            ticket_data["db_version"] = db_version
-            sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(ticket_data))
-            sub_pipeline.add_sub_pipeline(
-                sub_flow=self.install_instance_sub_flow(ticket_data=ticket_data, one_machine=one_machine)
-            )
-
-            slave_restore_sub_list = []
-            for one_id in one_machine["cluster_ids"]:
-                one_cluster = get_cluster_info(one_id)
-                # if one_cluster is None:
-                #     logger.info(_("%s slave 节点不存在"), one_id)
-                #     continue
-                one_cluster["backend_port"] = one_cluster["master_port"]
-                one_cluster["new_master_ip"] = one_cluster["master_ip"]
-                one_cluster["new_slave_ip"] = one_machine["new_slave_ip"]
-                one_cluster["charset"] = charset
-                one_cluster["change_master"] = True
-                one_cluster["file_target_path"] = self.backup_target_path
-
-                ticket_data["force"] = one_machine.get("force", False)
-                restore_slave_sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(ticket_data))
-
-                # 拼接执行原子任务活动节点需要的通用的私有参数结构体, 减少代码重复率，但引用时注意内部参数值传递的问题
-                exec_act_kwargs = ExecActuatorKwargs(
-                    bk_cloud_id=one_cluster["bk_cloud_id"],
-                    cluster_type=one_cluster["cluster_type"],
-                    cluster=one_cluster,
-                )
-
-                restore_slave_sub_pipeline.add_act(
-                    act_name=_("下发db-actor到集群主从节点"),
-                    act_component_code=TransFileComponent.code,
-                    kwargs=asdict(
-                        DownloadMediaKwargs(
-                            bk_cloud_id=one_cluster["bk_cloud_id"],
-                            exec_ip=[
-                                one_cluster["master_ip"],
-                                one_cluster["old_slave_ip"],
-                                one_cluster["new_slave_ip"],
-                            ],
-                            file_list=GetFileList(db_type=DBType.MySQL).get_db_actuator_package(),
-                        )
-                    ),
-                )
-
-                exec_act_kwargs.exec_ip = one_cluster["new_master_ip"]
-                exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_grant_mysql_repl_user_payload.__name__
-                restore_slave_sub_pipeline.add_act(
-                    act_name=_("添加slave之新增repl帐户{}").format(exec_act_kwargs.exec_ip),
-                    act_component_code=ExecuteDBActuatorScriptComponent.code,
-                    kwargs=asdict(exec_act_kwargs),
-                    write_payload_var=ClusterInfoContext.get_sync_info_var_name(),
-                )
-
-                # 通过master、slave 获取备份的文件
-                # acts_list = []  并行获取备份介质暂时存在问题，先改为串行
-                exec_act_kwargs.exec_ip = one_cluster["master_ip"]
-                exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_find_local_backup_payload.__name__
-                restore_slave_sub_pipeline.add_act(
-                    act_name=_("添加slave之获取MASTER节点备份介质{}").format(exec_act_kwargs.exec_ip),
-                    act_component_code=ExecuteDBActuatorScriptComponent.code,
-                    kwargs=asdict(exec_act_kwargs),
-                    write_payload_var="master_backup_file",
-                )
-
-                exec_act_kwargs.exec_ip = one_cluster["old_slave_ip"]
-                exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_find_local_backup_payload.__name__
-                restore_slave_sub_pipeline.add_act(
-                    act_name=_("添加slave之获取SLAVE节点备份介质{}").format(exec_act_kwargs.exec_ip),
-                    act_component_code=ExecuteDBActuatorScriptComponent.code,
-                    kwargs=asdict(exec_act_kwargs),
-                    write_payload_var="slave_backup_file",
-                )
-
-                restore_slave_sub_pipeline.add_act(
-                    act_name=_("判断备份文件来源,并传输备份文件到新slave节点{}").format(one_cluster["new_slave_ip"]),
-                    act_component_code=SlaveTransFileComponent.code,
-                    kwargs=asdict(
-                        P2PFileKwargs(
-                            bk_cloud_id=one_cluster["bk_cloud_id"],
-                            file_list=[],
-                            file_target_path=self.backup_target_path,
-                            source_ip_list=[],
-                            exec_ip=one_cluster["new_slave_ip"],
-                        )
-                    ),
-                )
-
-                exec_act_kwargs.exec_ip = one_cluster["new_slave_ip"]
-                exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_mysql_restore_slave_payload.__name__
-                restore_slave_sub_pipeline.add_act(
-                    act_name=_("添加slave之恢复数据{}").format(exec_act_kwargs.exec_ip),
-                    act_component_code=ExecuteDBActuatorScriptComponent.code,
-                    kwargs=asdict(exec_act_kwargs),
-                )
-
-                restore_slave_sub_pipeline.add_act(
-                    act_name=_("slave恢复完毕，修改元数据"),
-                    act_component_code=MySQLDBMetaComponent.code,
-                    kwargs=asdict(
-                        DBMetaOPKwargs(
-                            db_meta_class_func=MySQLDBMeta.mysql_add_slave_info.__name__,
-                            cluster=one_cluster,
-                            is_update_trans_data=True,
-                        )
-                    ),
-                )
-
-                restore_slave_sub_pipeline.add_sub_pipeline(
-                    sub_flow=build_surrounding_apps_sub_flow(
-                        bk_cloud_id=one_cluster["bk_cloud_id"],
-                        slave_ip_list=[one_cluster["new_slave_ip"]],
-                        root_id=self.root_id,
-                        parent_global_data=copy.deepcopy(ticket_data),
-                        is_init=True,
-                        cluster_type=one_cluster["cluster_type"],
-                    )
-                )
-
-                slave_restore_sub_list.append(
-                    restore_slave_sub_pipeline.build_sub_process(sub_name=_("添加Slave之恢复slave"))
-                )
-            sub_pipeline.add_parallel_sub_pipeline(sub_flow_list=slave_restore_sub_list)
-            sub_pipeline_list.append(sub_pipeline.build_sub_process(sub_name=_("添加从库flow")))
-
-        mysql_restore_slave_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipeline_list)
-        mysql_restore_slave_pipeline.run_pipeline(init_trans_data_class=ClusterInfoContext(), is_drop_random_user=True)
-
-    def install_instance_sub_flow(self, ticket_data: dict, one_machine: dict):
-        #  通过集群级别去获取id
-        install_sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(ticket_data))
-
-        # 拼接执行原子任务活动节点需要的通用的私有参数结构体, 减少代码重复率，但引用时注意内部参数值传递的问题
-        exec_act_kwargs = ExecActuatorKwargs(
-            exec_ip=one_machine["new_slave_ip"],
-            cluster_type=one_machine["cluster_type"],
-            bk_cloud_id=one_machine["bk_cloud_id"],
-        )
-
-        # 初始化机器
-        install_sub_pipeline.add_act(
-            act_name=_("获取初始化信息"),
-            act_component_code=GetOsSysParamComponent.code,
-            kwargs=asdict(
-                ExecActuatorKwargs(
-                    bk_cloud_id=one_machine["bk_cloud_id"], exec_ip=one_machine["clusters"][0]["master_ip"]
-                )
-            ),
-        )
-        install_sub_pipeline.add_act(
-            act_name=_("初始化机器"),
-            act_component_code=SysInitComponent.code,
-            kwargs={
-                "exec_ip": one_machine["new_slave_ip"],
-                "bk_cloud_id": one_machine["bk_cloud_id"],
-            },
-        )
-        # 判断是否需要执行按照MySQL Perl依赖
-        if env.YUM_INSTALL_PERL:
-            exec_act_kwargs.exec_ip = one_machine["new_slave_ip"]
-            install_sub_pipeline.add_act(
-                act_name=_("安装MySQL Perl相关依赖"),
-                act_component_code=MySQLOsInitComponent.code,
-                kwargs=asdict(exec_act_kwargs),
-            )
-
-        install_sub_pipeline.add_act(
-            act_name=_("下发MySQL介质{}").format(one_machine["new_slave_ip"]),
-            act_component_code=TransFileComponent.code,
-            kwargs=asdict(
-                DownloadMediaKwargs(
-                    bk_cloud_id=one_machine["bk_cloud_id"],
-                    exec_ip=one_machine["new_slave_ip"],
-                    file_list=GetFileList(db_type=DBType.MySQL).mysql_install_package(
-                        db_version=ticket_data["db_version"]
-                    ),
-                )
-            ),
-        )
-
-        exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_deploy_mysql_crond_payload.__name__
-        install_sub_pipeline.add_act(
-            act_name=_("部署mysql-crond"),
-            act_component_code=ExecuteDBActuatorScriptComponent.code,
-            kwargs=asdict(exec_act_kwargs),
-        )
-
-        exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_install_mysql_payload.__name__
-        install_sub_pipeline.add_act(
-            act_name=_("安装MySQL实例{}").format(one_machine["new_slave_ip"]),
-            act_component_code=ExecuteDBActuatorScriptComponent.code,
-            kwargs=asdict(exec_act_kwargs),
-        )
-
-        # 安装完毕实例，写入元数据
-        install_sub_pipeline.add_act(
-            act_name=_("写入初始化实例的db_meta元信息"),
-            act_component_code=MySQLDBMetaComponent.code,
-            kwargs=asdict(
-                DBMetaOPKwargs(
-                    db_meta_class_func=MySQLDBMeta.mysql_restore_slave_add_instance.__name__,
-                    cluster=one_machine,
-                    is_update_trans_data=True,
-                )
-            ),
-        )
-
-        # 新slave安装周边组件
-        install_sub_pipeline.add_sub_pipeline(
-            sub_flow=build_surrounding_apps_sub_flow(
-                bk_cloud_id=one_machine["bk_cloud_id"],
-                slave_ip_list=[one_machine["new_slave_ip"]],
-                cluster_type=one_machine["cluster_type"],
-                is_init=True,
-                root_id=self.root_id,
-                parent_global_data=copy.deepcopy(ticket_data),
-            )
-        )
-
-        return install_sub_pipeline.build_sub_process(sub_name=_("安装实例flow"))
-
-    def uninstall_instance_sub_flow(self, ticket_data: dict, one_machine: dict):
-
-        uninstall_sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(ticket_data))
-
-        uninstall_sub_pipeline.add_act(
-            act_name=_("清理机器配置{}").format(one_machine["old_slave_ip"]),
-            act_component_code=MySQLClearMachineComponent.code,
-            kwargs=asdict(
-                ExecActuatorKwargs(
-                    exec_ip=one_machine["old_slave_ip"],
-                    bk_cloud_id=one_machine["bk_cloud_id"],
-                    get_mysql_payload_func=MysqlActPayload.get_clear_machine_crontab.__name__,
-                )
-            ),
-        )
-        return uninstall_sub_pipeline.build_sub_process(sub_name=_("清理机器flow"))
+        self.add_slave_only = True
+        self.deploy_restore_slave_flow()
