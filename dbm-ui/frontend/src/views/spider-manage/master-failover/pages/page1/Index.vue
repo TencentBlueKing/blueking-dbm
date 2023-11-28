@@ -17,7 +17,7 @@
       <BkAlert
         closable
         theme="info"
-        :title="t('主库故障切换：Slave 提升成主库，断开同步，切换后集成成单点状态，一般用于紧急切换')" />
+        :title="t('主库故障切换：Slave 提升成主库，断开同步，切换后集群成单节点状态，一般用于紧急切换')" />
       <RenderData
         class="mt16"
         @show-master-batch-selector="handleShowMasterBatchSelector">
