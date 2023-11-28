@@ -28,6 +28,7 @@ from backend.db_meta.models import (
     ProxyInstance,
     StorageInstance,
     StorageInstanceTuple,
+    TenDBClusterSpiderExt,
 )
 from backend.db_periodic_task.local_tasks import update_host_dbmeta
 from backend.db_services.ipchooser.constants import DB_MANAGE_SET
@@ -171,6 +172,7 @@ def remove_cluster_ips(cluster_ips, job_clean=True, cc_clean=True):
         update_host_dbmeta(cluster_ips=cluster_ips, dbm_meta=[])
 
     storage_instances.delete()
+    TenDBClusterSpiderExt.objects.filter(instance__machine__ip__in=cluster_ips).delete()
     proxy_instances.delete()
     Machine.objects.filter(ip__in=cluster_ips).delete()
 

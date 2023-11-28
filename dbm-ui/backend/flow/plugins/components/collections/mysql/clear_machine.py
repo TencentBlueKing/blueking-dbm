@@ -14,7 +14,8 @@ import logging
 from django.utils.translation import ugettext as _
 from pipeline.component_framework.component import Component
 
-from backend.db_meta.models import Machine
+from backend.db_meta.enums import ClusterType
+from backend.db_meta.models import Machine, ProxyInstance, StorageInstance
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptService
 
 logger = logging.getLogger("flow")
@@ -59,3 +60,47 @@ class MySQLClearMachineComponent(Component):
     name = __name__
     code = "mysql_clear_machine"
     bound_service = MySQLClearMachineService
+
+
+class SpiderRemoteClearMachineService(ExecuteDBActuatorScriptService):
+    def _execute(self, data, parent_data) -> bool:
+        """
+        清理tendbcluster接入层和存储层的监控备份等
+        tendbcluster机器是集群独占, 所以不需要检查是不是会有空闲实例
+        可以直接清理
+        """
+        kwargs = data.get_one_of_inputs("kwargs")
+
+        if isinstance(kwargs["exec_ip"], str):
+            exec_ips = [kwargs["exec_ip"]]
+        else:
+            exec_ips = kwargs["exec_ip"]
+
+        target_ip_list = copy.deepcopy(exec_ips)
+
+        has_wrong_storage = StorageInstance.objects.filter(machine__ip__in=exec_ips).exclude(
+            cluster_type=ClusterType.TenDBCluster
+        )
+        has_wrong_proxy = ProxyInstance.objects.filter(machine__ip__in=exec_ips).exclude(
+            cluster_type=ClusterType.TenDBCluster
+        )
+
+        if has_wrong_storage.exists() or has_wrong_proxy.exists():
+            self.log_info(
+                _(
+                    "输入了不是 tendbcluster 的 ip: {} {}".format(
+                        list(has_wrong_proxy.values_list("machine__ip", flat=True)),
+                        list(has_wrong_storage.values_list("machine__ip", flat=True)),
+                    )
+                )
+            )
+            return False
+
+        data.get_one_of_inputs("kwargs")["exec_ip"] = target_ip_list
+        return super()._execute(data, parent_data)
+
+
+class SpiderRemoteClearMachineComponent(Component):
+    name = __name__
+    code = "spider_remote_clear_machine"
+    bound_service = SpiderRemoteClearMachineService

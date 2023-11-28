@@ -70,7 +70,7 @@ class ExcelHandler:
         header_list = [header.value for header in excel_rows[header_row]]
         excel_data_dict__list = []
         for content_row in excel_rows[header_row + 1 :]:
-            content_list = [content.value for content in content_row]
+            content_list = [str(content.value) for content in content_row]
             excel_data_dict__list.append(dict(zip(header_list, content_list)))
 
         return excel_data_dict__list

@@ -13,15 +13,12 @@ import copy
 import json
 import re
 
-from django.utils.translation import ugettext as _
 from jinja2 import Environment
 from pipeline.component_framework.component import Component
-from pipeline.core.flow.activity import StaticIntervalGenerator
 
 from backend import env
-from backend.components import JobApi
-from backend.configuration.constants import DBType
-from backend.flow.consts import DBA_ROOT_USER, SUCCESS_LIST, WriteContextOpType
+from backend.components import JobApi, MySQLPrivManagerApi
+from backend.flow.consts import DBA_ROOT_USER, DEFAULT_INSTANCE, MySQLPrivComponent, UserName
 from backend.flow.plugins.components.collections.common.base_service import BkJobService
 from backend.flow.utils.script_template import fast_execute_script_common_kwargs
 
@@ -212,7 +209,6 @@ class SysInit(BkJobService):
         kwargs = data.get_one_of_inputs("kwargs")
         aio_max_nr = 1024000
         max_open_file = 204800
-        mysql_os_password = kwargs["mysql_os_password"]
         if kwargs.get("aio_max_nr"):
             aio_max_nr = kwargs["aio_max_nr"]
         if kwargs.get("max_open_file"):
@@ -232,7 +228,7 @@ class SysInit(BkJobService):
         jinja_env = Environment()
         template = jinja_env.from_string(os_sysctl_init)
         script_content = template.render(
-            max_open_file=max_open_file, aio_max_nr=aio_max_nr, mysql_os_password=mysql_os_password
+            max_open_file=max_open_file, aio_max_nr=aio_max_nr, mysql_os_password=self._get_os_mysql_password()
         )
         exec_ips = self.__get_exec_ips(kwargs=kwargs, trans_data=trans_data)
         target_ip_info = [{"bk_cloud_id": kwargs["bk_cloud_id"], "ip": ip} for ip in exec_ips]
@@ -254,6 +250,19 @@ class SysInit(BkJobService):
         data.outputs.ext_result = resp
         data.outputs.exec_ips = exec_ips
         return True
+
+    def _get_os_mysql_password(self):
+        """
+        获取os_mysql密码
+        """
+        data = MySQLPrivManagerApi.get_password(
+            {
+                "instances": [DEFAULT_INSTANCE],
+                "users": [{"username": UserName.OS_MYSQL.value, "component": MySQLPrivComponent.MYSQL.value}],
+            }
+        )["items"]
+        self.log_info("get os_mysql success")
+        return base64.b64decode(data[0]["password"]).decode("utf-8")
 
 
 class SysInitComponent(Component):

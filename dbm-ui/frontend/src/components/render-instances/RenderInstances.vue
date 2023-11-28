@@ -114,8 +114,10 @@
   import { useI18n } from 'vue-i18n';
 
   import type TendbInstanceModel from '@services/model/spider/tendbInstance';
-  import type { ResourceInstance } from '@services/types/clusters';
-  import type { ListBase } from '@services/types/common';
+  import type {
+    ListBase,
+    ResourceInstance,
+  } from '@services/types';
 
   import { useCopy } from '@hooks';
 

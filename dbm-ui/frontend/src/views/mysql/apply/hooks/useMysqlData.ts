@@ -17,11 +17,8 @@ import { useI18n } from 'vue-i18n';
 import { getModules } from '@services/source/cmdb';
 import { getLevelConfig } from '@services/source/configs';
 import { getInfrasHostSpecs } from '@services/source/infras';
-import { checkHost } from '@services/source/ipchooser';
 import { createTicket } from '@services/source/ticket';
-import type { ModuleItem } from '@services/types/common';
-import type { ParameterConfigItem } from '@services/types/configs';
-import type { HostSpec } from '@services/types/ticket';
+import type { HostDetails } from '@services/types';
 
 import { useInfo } from '@hooks';
 
@@ -30,12 +27,10 @@ import {
   type MysqlTypeString,
 } from '@common/const';
 
-type HostDetails = ServiceReturnType<typeof checkHost>
-
 type FetchState = {
-  hostSpecs: HostSpec[],
-  moduleList: ModuleItem[],
-  levelConfigList: ParameterConfigItem[]
+  hostSpecs: ServiceReturnType<typeof getInfrasHostSpecs>,
+  moduleList: ServiceReturnType<typeof getModules>,
+  levelConfigList: ServiceReturnType<typeof getLevelConfig>['conf_items']
 };
 
 const getFormData = (type: string) => ({
@@ -57,8 +52,8 @@ const getFormData = (type: string) => ({
     disaster_tolerance_level: 'NONE', // 同 affinity
     ip_source: 'resource_pool',
     nodes: {
-      backend: [] as HostDetails,
-      proxy: [] as HostDetails,
+      backend: [] as HostDetails[],
+      proxy: [] as HostDetails[],
     },
     resource_spec: {
       single: {

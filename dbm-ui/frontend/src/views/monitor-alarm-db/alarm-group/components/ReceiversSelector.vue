@@ -34,11 +34,9 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import { getUseList } from '@services/common';
-  import {
-    getAlarmGroupList,
-    getUserGroupList,
-  } from '@services/monitorAlarm';
+  import { getUserGroupList } from '@services/source/cmdb';
+  import { getAlarmGroupList } from '@services/source/monitorNoticeGroup';
+  import { getUserList } from '@services/source/user';
 
   import dbIcon from '@components/db-icon';
 
@@ -75,7 +73,7 @@
 
   // 获取用户组数据
   const { loading } = useRequest(getUserGroupList, {
-    defaultParams: [props.bizId],
+    defaultParams: [{ bk_biz_id: props.bizId }],
     onSuccess(userGroupList) {
       const newUserGroupList: RecipientItem[] = [];
 
@@ -106,7 +104,7 @@
     children: _.cloneDeep(roleList.value),
   }];
 
-  const fuzzySearchMethod = (keyword: string) => getUseList({
+  const fuzzySearchMethod = (keyword: string) => getUserList({
     fuzzy_lookups: keyword,
   }).then(searchList => ({
     next: false,

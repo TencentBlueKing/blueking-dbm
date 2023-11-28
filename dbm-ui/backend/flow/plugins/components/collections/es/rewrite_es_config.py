@@ -8,6 +8,8 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+
+import base64
 import logging
 import traceback
 from typing import List
@@ -17,7 +19,8 @@ from pipeline.core.flow.activity import Service
 
 from backend.components import DBConfigApi
 from backend.components.dbconfig.constants import LevelName, OpType, ReqType
-from backend.flow.consts import ConfigTypeEnum, LevelInfoEnum, NameSpaceEnum
+from backend.components.mysql_priv_manager.client import MySQLPrivManagerApi
+from backend.flow.consts import ConfigTypeEnum, LevelInfoEnum, MySQLPrivComponent, NameSpaceEnum
 from backend.flow.plugins.components.collections.common.base_service import BaseService
 
 logger = logging.getLogger("flow")
@@ -53,6 +56,39 @@ class WriteBackEsConfigService(BaseService):
             }
         )
         self.log_info("successfully write back es config to dbconfig")
+
+        # 存一份到密码服务，需要把用户名也当密码存
+        query_params = {
+            "instances": [
+                {
+                    "ip": global_data["domain"],
+                    "port": 0,
+                    "bk_cloud_id": global_data["bk_cloud_id"],
+                }
+            ],
+            "password": base64.b64encode(str(global_data["username"]).encode("utf-8")).decode("utf-8"),
+            "username": MySQLPrivComponent.ES_FAKE_USER.value,
+            "component": NameSpaceEnum.Es,
+            "operator": "admin",
+        }
+        MySQLPrivManagerApi.modify_password(params=query_params)
+        # 存储真实的账号密码
+        query_params = {
+            "instances": [
+                {
+                    "ip": global_data["domain"],
+                    "port": 0,
+                    "bk_cloud_id": global_data["bk_cloud_id"],
+                }
+            ],
+            "password": base64.b64encode(str(global_data["password"]).encode("utf-8")).decode("utf-8"),
+            "username": global_data["username"],
+            "component": NameSpaceEnum.Es,
+            "operator": "admin",
+        }
+        MySQLPrivManagerApi.modify_password(params=query_params)
+
+        self.log_info("successfully write password to service")
         return True
 
     def inputs_format(self) -> List:

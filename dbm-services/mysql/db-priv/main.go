@@ -2,15 +2,17 @@ package main
 
 import (
 	"io"
+	"log/slog"
+	"net/http"
 	"os"
 	"strings"
 
-	"golang.org/x/exp/slog"
+	"dbm-services/mysql/priv-service/service"
+
 	"gopkg.in/natefinch/lumberjack.v2"
 
 	"dbm-services/mysql/priv-service/assests"
 	"dbm-services/mysql/priv-service/handler"
-	"dbm-services/mysql/priv-service/service"
 	"dbm-services/mysql/priv-service/util"
 
 	"github.com/gin-gonic/gin"
@@ -23,6 +25,11 @@ import (
 func main() {
 	// 把用户传递的命令行参数解析为对应变量的值
 	flag.Parse()
+
+	// 数据库初始化
+	service.DB.Init()
+	defer service.DB.Close()
+
 	// 元数据库 migration
 	if viper.GetBool("migrate") {
 		if err := dbMigrate(); err != nil && err != migrate.ErrNoChange {
@@ -36,14 +43,14 @@ func main() {
 		slog.Error("读取密码文件失败", err)
 	}
 
-	// 数据库初始化
-	service.DB.Init()
-	defer service.DB.Close()
-
 	// 注册服务
 	gin.SetMode(gin.ReleaseMode)
 	engine := gin.New()
 	engine.Use(gin.Recovery())
+	handler.RegisterRoutes(engine, "/", []*gin.RouteInfo{{Method: http.MethodGet,
+		Path: "ping", HandlerFunc: func(context *gin.Context) {
+			context.String(http.StatusOK, "pong")
+		}}})
 	handler.RegisterRoutes(engine, "/priv", (&handler.PrivService{}).Routes())
 	if err := engine.Run(viper.GetString("http.listenAddress")); err != nil {
 		slog.Error("注册服务失败", err)
@@ -77,11 +84,15 @@ func init() {
 //	 2、命令行执行 ./bk_dbpriv --migrate
 func dbMigrate() error {
 	slog.Info("run db migrations...")
-	if err := assests.DoMigrateFromEmbed(); err == nil {
-		return nil
-	} else {
+	err := assests.DoMigrateFromEmbed()
+	if err != nil {
 		return err
 	}
+	err = assests.DoMigratePlatformPassword()
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 // InitLog 程序日志初始化

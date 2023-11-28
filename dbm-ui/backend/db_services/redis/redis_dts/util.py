@@ -35,6 +35,7 @@ from backend.db_services.redis.util import (
     is_twemproxy_proxy_type,
 )
 from backend.flow.consts import DEFAULT_TENDISPLUS_KVSTORECOUNT, ConfigTypeEnum
+from backend.flow.utils.base.payload_handler import PayloadHandler
 from backend.flow.utils.redis.redis_cluster_nodes import get_masters_with_slots
 from backend.flow.utils.redis.redis_context_dataclass import ActKwargs
 from backend.flow.utils.redis.redis_proxy_util import decode_twemproxy_backends
@@ -119,41 +120,14 @@ def get_cluster_info_by_id(
         one_master = cluster.storageinstance_set.filter(
             instance_role=InstanceRole.REDIS_MASTER.value, status=InstanceStatus.RUNNING
         ).first()
-        proxy_conf = DBConfigApi.query_conf_item(
-            params={
-                "bk_biz_id": str(cluster.bk_biz_id),
-                "level_name": LevelName.CLUSTER.value,
-                "level_value": cluster.immute_domain,
-                "level_info": {"module": str(cluster.db_module_id)},
-                "conf_file": cluster.proxy_version,
-                "conf_type": ConfigTypeEnum.ProxyConf,
-                "namespace": cluster.cluster_type,
-                "format": FormatType.MAP,
-            }
-        )
-        proxy_content = proxy_conf.get("content", {})
-
-        redis_conf = DBConfigApi.query_conf_item(
-            params={
-                "bk_biz_id": str(cluster.bk_biz_id),
-                "level_name": LevelName.CLUSTER.value,
-                "level_value": cluster.immute_domain,
-                "level_info": {"module": str(cluster.db_module_id)},
-                "conf_file": cluster.major_version,
-                "conf_type": ConfigTypeEnum.DBConf,
-                "namespace": cluster.cluster_type,
-                "format": FormatType.MAP,
-            }
-        )
-        redis_content = redis_conf.get("content", {})
-
+        passwd_ret = PayloadHandler.redis_get_cluster_password(cluster)
         # 获取redis的databases
         master_addrs = ["{}:{}".format(one_master.machine.ip, one_master.port)]
         resp = DRSApi.redis_rpc(
             {
                 "addresses": master_addrs,
                 "db_num": 0,
-                "password": redis_content.get("requirepass"),
+                "password": passwd_ret.get("redis_password"),
                 "command": "confxx get databases",
                 "bk_cloud_id": cluster.bk_cloud_id,
             }
@@ -167,13 +141,13 @@ def get_cluster_info_by_id(
             "bk_cloud_id": cluster.bk_cloud_id,
             "cluster_domain": cluster.immute_domain,
             "cluster_type": cluster.cluster_type,
-            "cluster_password": proxy_content.get("password"),
-            "cluster_port": proxy_content.get("port"),
+            "cluster_password": passwd_ret.get("redis_proxy_password"),
+            "cluster_port": cluster.proxyinstance_set.first().port,
             "cluster_version": cluster.major_version,
             "cluster_name": cluster.name,
             "cluster_city_name": one_master.machine.bk_city.bk_idc_city_name,
-            "redis_password": redis_content.get("requirepass"),
-            "redis_proxy_admin_password": proxy_content.get("predixy_admin_passwd", ""),
+            "redis_password": passwd_ret.get("redis_password"),
+            "redis_proxy_admin_password": passwd_ret.get("redis_proxy_admin_password"),
             "redis_databases": databases,
             "region": cluster.region,
         }

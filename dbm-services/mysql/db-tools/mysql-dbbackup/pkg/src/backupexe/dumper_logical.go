@@ -21,7 +21,7 @@ type LogicalDumper struct {
 	dbbackupHome string
 }
 
-func (l *LogicalDumper) initConfig(mysqlVersion string) error {
+func (l *LogicalDumper) initConfig(mysqlVerStr string) error {
 	if l.cnf == nil {
 		return errors.New("logical dumper params is nil")
 	}

@@ -60,7 +60,7 @@ type CheckDecommissionParams struct {
 	DataNodePort  int    `json:"data_node_port"`
 	HttpPort      int    `json:"http_port"  validate:"required"`
 	Version       string `json:"version"  validate:"required"`
-	HaproxyPasswd string `json:"haproxy_passwd"`
+	Password      string `json:"password"`
 }
 
 // CheckDecommissionService TODO
@@ -75,7 +75,7 @@ type CheckDecommissionService struct {
 func (c *CheckDecommissionService) CheckDatanodeDecommission() (err error) {
 
 	urlFormat := "http://root:%s@%s:%d/jmx?qry=Hadoop:service=NameNode,name=NameNodeInfo"
-	responseBody, err := util.HttpGet(fmt.Sprintf(urlFormat, c.Params.HaproxyPasswd, c.Params.Host, c.Params.HttpPort))
+	responseBody, err := util.HttpGet(fmt.Sprintf(urlFormat, c.Params.Password, c.Params.Host, c.Params.HttpPort))
 	if err != nil {
 		return err
 	}

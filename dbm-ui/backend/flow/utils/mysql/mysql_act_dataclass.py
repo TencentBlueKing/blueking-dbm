@@ -375,3 +375,14 @@ class VerifyChecksumKwargs:
 
     bk_cloud_id: int
     checksum_instance_tuples: list
+
+
+@dataclass
+class RandomizeAdminPasswordKwargs:
+    """
+    定义ADMIN随机化的私有变量结构体
+    """
+
+    bk_cloud_id: int
+    cluster_type: str
+    instances: list

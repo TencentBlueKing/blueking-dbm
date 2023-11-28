@@ -17,12 +17,12 @@ import RedisDSTHistoryJobModel from '@services/model/redis/redis-dst-history-job
 import RedisDSTJobTaskModel from '@services/model/redis/redis-dst-job-task';
 import RedisHostModel from '@services/model/redis/redis-host';
 import RedisRollbackModel from '@services/model/redis/redis-rollback';
-import type { ResourceInstance } from '@services/types/clusters';
+import type { ResourceInstance } from '@services/types';
 
 import { useGlobalBizs } from '@stores';
 
+import type { ListBase } from '../types';
 import type { InstanceInfos } from '../types/clusters';
-import type { ListBase } from '../types/common';
 
 interface InstanceItem extends Omit<InstanceInfos, 'spec_config'> {
   spec_config: RedisClusterNodeByIpModel['spec_config']

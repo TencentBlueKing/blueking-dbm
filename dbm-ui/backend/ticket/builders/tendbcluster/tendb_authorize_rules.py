@@ -11,8 +11,11 @@ specific language governing permissions and limitations under the License.
 
 from django.utils.translation import ugettext_lazy as _
 
+from backend.db_services.mysql.permission.constants import AccountType
+from backend.db_services.mysql.permission.db_account.handlers import AccountHandler
 from backend.ticket import builders
 from backend.ticket.builders.mysql.mysql_authorize_rules import (
+    MySQLAuthorizeRulesFlowBuilder,
     MySQLAuthorizeRulesFlowParamBuilder,
     MySQLAuthorizeRulesSerializer,
     MySQLExcelAuthorizeRulesSerializer,
@@ -22,14 +25,16 @@ from backend.ticket.constants import TicketType
 
 
 @builders.BuilderFactory.register(TicketType.TENDBCLUSTER_AUTHORIZE_RULES)
-class TendbClusterAuthorizeRulesFlowBuilder(BaseTendbTicketFlowBuilder):
+class TendbClusterAuthorizeRulesFlowBuilder(BaseTendbTicketFlowBuilder, MySQLAuthorizeRulesFlowBuilder):
     serializer = MySQLAuthorizeRulesSerializer
     inner_flow_builder = MySQLAuthorizeRulesFlowParamBuilder
     inner_flow_name = _("TenDB Cluster 授权执行")
 
     @property
     def need_itsm(self):
-        return False
+        handler = AccountHandler(bk_biz_id=self.ticket.bk_biz_id, account_type=AccountType.TENDB)
+        high_risk = handler.has_high_risk_privileges(self.ticket.details["rules_set"])
+        return high_risk
 
     @property
     def need_manual_confirm(self):

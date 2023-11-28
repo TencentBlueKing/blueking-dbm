@@ -180,6 +180,16 @@ func (p ImportMachParam) transParamToBytes() (lableJson, bizJson, rstypes json.R
 	return
 }
 
+func (p ImportMachParam) getJobIpList() (ipList []bk.IPList) {
+	for _, host := range p.Hosts {
+		ipList = append(ipList, bk.IPList{
+			IP:        host.Ip,
+			BkCloudID: host.BkCloudId,
+		})
+	}
+	return
+}
+
 // Doimport TODO
 func Doimport(param ImportMachParam) (resp *ImportHostResp, err error) {
 	var ccHostsInfo []*cc.Host
@@ -188,38 +198,27 @@ func Doimport(param ImportMachParam) (resp *ImportHostResp, err error) {
 	var notFoundHosts, gseAgentIds []string
 	var elems []model.TbRpDetail
 	resp = &ImportHostResp{}
-	wg := sync.WaitGroup{}
 	targetHosts := cmutil.RemoveDuplicate(param.getIps())
-
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		ccHostsInfo, notFoundHosts, derr = bk.BatchQueryHostsInfo(param.BkBizId, targetHosts)
-	}()
-	// get disk information in batch
-	var ipList []bk.IPList
-	for _, host := range param.Hosts {
-		ipList = append(ipList, bk.IPList{
-			IP:        host.Ip,
-			BkCloudID: host.BkCloudId,
-		})
+	ccHostsInfo, notFoundHosts, derr = bk.BatchQueryHostsInfo(param.BkBizId, targetHosts)
+	if derr != nil {
+		logger.Error("query cc info from cmdb failed %s", derr.Error())
+		resp.GetDiskInfoJobErrMsg = derr.Error()
+		return resp, err
 	}
-	diskResp, err = bk.GetDiskInfo(ipList, param.BkBizId)
+	if len(notFoundHosts) >= len(param.Hosts) {
+		return resp, fmt.Errorf("all hosts cannot query any information in cmdb !!!")
+	}
+	hostOsMap := make(map[string]string)
+	for _, h := range ccHostsInfo {
+		hostOsMap[h.InnerIP] = h.BkOsType
+	}
+	diskResp, err = bk.GetDiskInfo(param.getJobIpList(), param.BkBizId, hostOsMap)
 	if err != nil {
 		logger.Error("get disk info failed %s", err.Error())
 		return resp, fmt.Errorf("execute job get disk info failed %w", err)
 	}
-	wg.Wait()
 	resp.SearchDiskErrInfo = diskResp.IpFailedLogMap
 	resp.NotFoundInCCHosts = notFoundHosts
-	if derr != nil {
-		logger.Error("query cc info from cmdb failed %s", derr.Error())
-		resp.GetDiskInfoJobErrMsg = derr.Error()
-		// return
-	}
-	if len(notFoundHosts) >= len(param.Hosts) {
-		return resp, fmt.Errorf("all hosts query empty in cc")
-	}
 
 	lableJson, bizJson, rstypes, err := param.transParamToBytes()
 	if err != nil {
@@ -257,6 +256,10 @@ func Doimport(param ImportMachParam) (resp *ImportHostResp, err error) {
 }
 
 func transHostInfoToDbModule(h *cc.Host, bkCloudId, bkBizId int, rstp, biz, label []byte) model.TbRpDetail {
+	osType := h.BkOsType
+	if cmutil.IsEmpty(osType) {
+		osType = bk.OsLinux
+	}
 	return model.TbRpDetail{
 		RsTypes:         rstp,
 		DedicatedBizs:   biz,
@@ -281,6 +284,9 @@ func transHostInfoToDbModule(h *cc.Host, bkCloudId, bkBizId int, rstp, biz, labe
 		TotalStorageCap: h.BkDisk,
 		BkAgentId:       h.BkAgentId,
 		AgentStatusCode: 2,
+		OsType:          model.ConvertOsTypeToHuman(osType),
+		OsBit:           h.BkOsBit,
+		OsVerion:        h.BkOsVersion,
 		UpdateTime:      time.Now(),
 		CreateTime:      time.Now(),
 	}

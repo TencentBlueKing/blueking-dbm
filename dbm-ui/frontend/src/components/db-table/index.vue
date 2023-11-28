@@ -94,7 +94,7 @@
   } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import type { ListBase } from '@services/types/common';
+  import type { ListBase } from '@services/types';
 
   import { useUrlSearch } from '@hooks';
 

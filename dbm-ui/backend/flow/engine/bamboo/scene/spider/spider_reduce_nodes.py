@@ -94,10 +94,11 @@ class TenDBClusterReduceNodesFlow(object):
     def reduce_spider_nodes(self):
         """
         定义TenDB Cluster缩容接入层的后端流程
-        todo 目前spider-master缩容功能开发中，当前中控版本需要调整，等最新版本做联调工作
+        增加单据临时ADMIN账号的添加和删除逻辑
         """
+        cluster_ids = [i["cluster_id"] for i in self.data["infos"]]
+        pipeline = Builder(root_id=self.root_id, data=self.data, need_random_pass_cluster_ids=list(set(cluster_ids)))
 
-        pipeline = Builder(root_id=self.root_id, data=self.data)
         sub_pipelines = []
         for info in self.data["infos"]:
             # 拼接子流程需要全局参数
@@ -172,4 +173,4 @@ class TenDBClusterReduceNodesFlow(object):
             sub_pipelines.append(sub_pipeline.build_sub_process(sub_name=_("[{}]减少spider节点流程".format(cluster.name))))
 
         pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
-        pipeline.run_pipeline()
+        pipeline.run_pipeline(is_drop_random_user=True)

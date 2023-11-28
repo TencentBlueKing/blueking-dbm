@@ -16,8 +16,8 @@ from django.utils.translation import ugettext as _
 from backend.components import DBConfigApi
 from backend.components.dbconfig.constants import FormatType, LevelName
 from backend.configuration.constants import DBType
-from backend.core.encrypt.constants import RSAConfigType
-from backend.core.encrypt.handlers import RSAHandler
+from backend.core.encrypt.constants import AsymmetricCipherConfigType
+from backend.core.encrypt.handlers import AsymmetricHandler
 from backend.db_proxy.models import DBCloudProxy
 from backend.flow.consts import CloudServiceName, ConfigFileEnum, ConfigTypeEnum, NameSpaceEnum
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
@@ -107,8 +107,7 @@ class RedisAddDtsServerFlow(object):
         """
         service_type = CloudServiceName.RedisDTS.value
         db_cloud_token = f"{bk_cloud_id}_{service_type}_token"
-        rsa = RSAHandler.get_or_generate_rsa_in_db(RSAConfigType.PROXYPASS.value)
-        return RSAHandler.encrypt_password(rsa.rsa_public_key.content, db_cloud_token)
+        return AsymmetricHandler.encrypt(name=AsymmetricCipherConfigType.PROXYPASS.value, content=db_cloud_token)
 
     def __get_system_user_info(self, bk_biz_id):
         """

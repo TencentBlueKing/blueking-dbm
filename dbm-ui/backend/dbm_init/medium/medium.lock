@@ -83,3 +83,34 @@ redis:
     commitDate: 200001010101
     name: dbmon
     version: 1.0.3
+cloud:
+- cloud-dbha:
+    buildPath: /blueking-dbm/dbm-services/common/dbha/ha-module/build/dbha
+    commitId: ""
+    commitDate: 200001010101
+    name: dbha
+    version: 1.0.0
+- cloud-dns-bind:
+    buildPath: /toolkit/bind.tar.gz
+    name: bind.tar.gz
+    version: 1.0.0
+- cloud-dns-pullcrond:
+    buildPath: /blueking-dbm/dbm-services/common/db-dns/dns-reload/build/pull-crond
+    commitId: ""
+    commitDate: 200001010101
+    name: pull-crond
+    version: 1.0.0
+- cloud-drs:
+    buildPath: /blueking-dbm/dbm-services/mysql/db-remote-service/build/db-remote-service
+    commitId: ""
+    commitDate: 200001010101
+    name: db-remote-service
+    version: 1.0.0
+- cloud-drs-tmysqlparse:
+    buildPath: /toolkit/tmysqlparse
+    name: tmysqlparse
+    version: 1.0.0
+- cloud-nginx:
+    buildPath: /toolkit/nginx-portable.tgz
+    name: nginx-portable.tgz
+    version: 1.0.0

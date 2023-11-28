@@ -1,3 +1,13 @@
+/*
+ * TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
+ * Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
+ * Licensed under the MIT License (the "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at https://opensource.org/licenses/MIT
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+ * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
+
 package mysql
 
 import (
@@ -599,8 +609,8 @@ func (i *InstallMySQLComp) Startup() (err error) {
 		s := computil.StartMySQLParam{
 			MediaDir:      i.MysqlInstallDir,
 			MyCnfName:     util.GetMyCnfFileName(port),
-			MySQLUser:     i.WorkUser,     //"root",
-			MySQLPwd:      i.WorkPassword, //"",
+			MySQLUser:     i.WorkUser,     // "root",
+			MySQLPwd:      i.WorkPassword, // "",
 			Socket:        i.InsSockets[port],
 			SkipSlaveFlag: false,
 		}
@@ -628,6 +638,14 @@ func (i *InstallMySQLComp) generateDefaultMysqlAccount(realVersion string) (init
 	runp := i.GeneralParam.RuntimeAccountParam
 	privParis := []components.MySQLAccountPrivs{}
 	privParis = append(privParis, runp.MySQLAdminAccount.GetAccountPrivs(i.Params.Host))
+	// 这里做一个处理，传入的AdminUser 不一定是真正的ADMIN账号，如果不是则手动添加一个,保证新实例有ADMIN账号
+	if runp.AdminUser != "ADMIN" {
+		privParis = append(privParis, components.MySQLAdminAccount{
+			AdminUser: "ADMIN",
+			AdminPwd:  runp.AdminPwd,
+		}.GetAccountPrivs(i.Params.Host))
+
+	}
 	privParis = append(privParis, runp.MySQLMonitorAccessAllAccount.GetAccountPrivs())
 	privParis = append(privParis, runp.MySQLMonitorAccount.GetAccountPrivs(i.Params.Host))
 	privParis = append(privParis, runp.MySQLYwAccount.GetAccountPrivs())
@@ -770,19 +788,21 @@ func (i *InstallMySQLComp) InitDefaultPrivAndSchemaWithResetMaster() (err error)
 
 		// 初始化权限
 		var initAccountSqls []string
-		if strings.Contains(version, cst.PkgTypeSpider) {
-			// 暂时用执行shell命令代替, 执行SQL文件
+		switch {
+		case strings.Contains(version, "tspider"):
+			// 对spider 初始化授权
 			if err := i.create_spider_table(i.InsSockets[port]); err != nil {
 				return err
 			}
 			initAccountSqls = i.generateDefaultSpiderAccount(version)
-		} else if strings.Contains(version, cst.PkgTypeTdbctl) {
+		case strings.Contains(version, "tdbctl"):
 			// 对tdbctl 初始化权限
 			initAccountSqls = append(initAccountSqls, "set tc_admin = 0;")
 			initAccountSqls = append(initAccountSqls, i.generateDefaultMysqlAccount(version)...)
-		} else {
+		default:
 			// 默认按照mysql的初始化权限的方式
 			initAccountSqls = i.generateDefaultMysqlAccount(version)
+
 		}
 		// 初始化数据库之后，reset master，标记binlog重头开始，避免同步干扰
 		// 新安装db, avoid == false, 表示需要做 reset
@@ -926,8 +946,8 @@ func (i *InstallMySQLComp) TdbctlStartup() (err error) {
 		s := computil.StartMySQLParam{
 			MediaDir:      i.TdbctlInstallDir,
 			MyCnfName:     util.GetMyCnfFileName(port),
-			MySQLUser:     i.WorkUser,     //"root",
-			MySQLPwd:      i.WorkPassword, //"",
+			MySQLUser:     i.WorkUser,     // "root",
+			MySQLPwd:      i.WorkPassword, // "",
 			Socket:        i.InsSockets[port],
 			SkipSlaveFlag: false,
 		}
@@ -952,6 +972,14 @@ func (i *InstallMySQLComp) generateDefaultSpiderAccount(realVersion string) (ini
 	runp := i.GeneralParam.RuntimeAccountParam
 	privParis := []components.MySQLAccountPrivs{}
 	privParis = append(privParis, runp.MySQLAdminAccount.GetAccountPrivs(i.Params.Host))
+	// 这里做一个处理，传入的AdminUser 不一定是真正的ADMIN账号，如果不是则手动添加一个,保证新实例有ADMIN账号
+	if runp.AdminUser != "ADMIN" {
+		privParis = append(privParis, components.MySQLAdminAccount{
+			AdminUser: "ADMIN",
+			AdminPwd:  runp.AdminPwd,
+		}.GetAccountPrivs(i.Params.Host))
+
+	}
 	privParis = append(privParis, runp.MySQLMonitorAccessAllAccount.GetAccountPrivs())
 	privParis = append(privParis, runp.MySQLMonitorAccount.GetAccountPrivs(i.Params.Host))
 	privParis = append(privParis, runp.MySQLYwAccount.GetAccountPrivs())
@@ -1000,8 +1028,8 @@ func (i *InstallMySQLComp) getSuperUserAccountForSpider() (initAccountsql []stri
 
 func (i *InstallMySQLComp) create_spider_table(socket string) (err error) {
 	return mysqlutil.ExecuteSqlAtLocal{
-		User:     i.WorkUser,     //"root",
-		Password: i.WorkPassword, //"",
+		User:     i.WorkUser,     // "root",
+		Password: i.WorkPassword, // "",
 		Socket:   socket,
 		Charset:  i.Params.CharSet,
 	}.ExcuteSqlByMySQLClientOne(path.Join(i.MysqlInstallDir, "scripts/install_spider.sql"), "")

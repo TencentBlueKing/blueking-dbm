@@ -21,68 +21,73 @@ import (
 func DoMigrateFromEmbed() error {
 	var mig *migrate.Migrate
 	// from embed
-	if d, err := iofs.New(assets.Migrations, "migrations"); err != nil {
+	d, err := iofs.New(assets.Migrations, "migrations")
+	if err != nil {
 		return err
-	} else {
-		if err = reMigrateConfigPlat(); err != nil {
-			return err
-		}
-		dbURL := fmt.Sprintf(
-			"mysql://%s:%s@tcp(%s)/%s?charset=%s&parseTime=true&loc=Local&multiStatements=true&interpolateParams=true",
-			config.GetString("db.username"),
-			config.GetString("db.password"),
-			config.GetString("db.addr"),
-			config.GetString("db.name"),
-			"utf8",
-		)
-		mig, err = migrate.NewWithSourceInstance("iofs", d, dbURL)
-		if err != nil {
-			return errors.WithMessage(err, "migrate from embed")
-		}
-		defer mig.Close()
-		// 获取当前 migrate version，如果<=2，则要 migrate 敏感信息(step=3)
-		var versionLast uint
-		if versionLast, _, err = mig.Version(); err == migrate.ErrNilVersion {
-			versionLast = 0
-		} else if err != nil {
-			logger.Warn("fail to get current migrate version")
-		}
-		logger.Info("current migrate version: %d", versionLast)
+	}
+	if err = reMigrateConfigPlat(); err != nil {
+		return err
+	}
+	dbURL := fmt.Sprintf(
+		"mysql://%s:%s@tcp(%s)/%s?charset=%s&parseTime=true&loc=Local&multiStatements=true&interpolateParams=true",
+		config.GetString("db.username"),
+		config.GetString("db.password"),
+		config.GetString("db.addr"),
+		config.GetString("db.name"),
+		"utf8",
+	)
+	mig, err = migrate.NewWithSourceInstance("iofs", d, dbURL)
+	if err != nil {
+		return errors.WithMessage(err, "migrate from embed")
+	}
+	defer mig.Close()
+	// 获取当前 migrate version，如果<=7，则要 migrate 敏感信息(step=8)
+	var versionLast uint
+	if versionLast, _, err = mig.Version(); err == migrate.ErrNilVersion {
+		versionLast = 0
+	} else if err != nil {
+		logger.Warn("fail to get current migrate version")
+	}
+	logger.Info("current migrate version: %d", versionLast)
 
-		if versionLast < migratespec.SensitiveMigVer-1 {
-			if err = mig.Migrate(migratespec.SensitiveMigVer - 1); err == nil || err == migrate.ErrNoChange {
-				logger.Info("migrate schema success with %v", err)
-			} else {
-				return errors.WithMessage(err, "migrate schema")
-			}
-		}
-		// migrate 到最新
-		if err = mig.Up(); err == nil || err == migrate.ErrNoChange {
-			logger.Info("migrate data from embed success with %v", err)
+	db := model.InitSelfDB("")
+	defer func() {
+		dbc, _ := db.DB()
+		dbc.Close()
+	}()
 
-			if versionLast < migratespec.SensitiveMigVer {
-				logger.Info("migrate sensitive info for the first time")
-				db := model.InitSelfDB("")
-				defer func() {
-					dbc, _ := db.DB()
-					dbc.Close()
-				}()
-				if err = migratespec.MigrateSensitive(db); err != nil {
-					logger.Errorf("fail to migrate sensitive: %s", err.Error())
-					return mig.Migrate(migratespec.SensitiveMigVer - 1)
-					//return errors.WithMessage(err, "migrate sensitive")
-				}
-				logger.Info("migrate sensitive success with %v", err)
-			}
-
-			return nil
+	if versionLast < migratespec.SensitiveMigVer-1 {
+		if err = mig.Migrate(migratespec.SensitiveMigVer - 1); err == nil || err == migrate.ErrNoChange {
+			logger.Info("migrate schema success with %v", err)
+			err = db.Exec("ALTER TABLE tb_config_node ADD INDEX idx_1(namespace,conf_file,conf_name), " +
+				"ADD INDEX idx_2(level_value,conf_name);").Error
+			logger.Warn("migrate index for tb_config_node with %v", err)
 		} else {
-			logger.Errorf("migrate data from embed failed: %s", err.Error())
-			logger.Warn("sleep 120s to return. " +
-				"you may need ./bkconfigsvr --migrate --migrate-force=VersionNo after you fix it")
-			time.Sleep(120 * time.Second)
-			return err
+			return errors.WithMessage(err, "migrate schema")
 		}
+	}
+	// migrate 到最新
+	if err = mig.Up(); err == nil || err == migrate.ErrNoChange {
+		logger.Info("migrate data from embed success with %v", err)
+
+		if versionLast < migratespec.SensitiveMigVer {
+			logger.Info("migrate sensitive info for the first time")
+
+			if err = migratespec.MigrateSensitive(db); err != nil {
+				logger.Errorf("fail to migrate sensitive: %s", err.Error())
+				return mig.Migrate(migratespec.SensitiveMigVer - 1)
+				//return errors.WithMessage(err, "migrate sensitive")
+			}
+			logger.Info("migrate sensitive success with %v", err)
+		}
+
+		return nil
+	} else {
+		logger.Errorf("migrate data from embed failed: %s", err.Error())
+		logger.Warn("sleep 120s to return. " +
+			"you may need ./bkconfigsvr --migrate --migrate-force=VersionNo after you fix it")
+		time.Sleep(120 * time.Second)
+		return err
 	}
 }
 
@@ -121,9 +126,10 @@ func reMigrateConfigPlat() error {
 		return errors.WithMessage(err, "reMigrate connect failed")
 	}
 	defer db.Close()
+
 	sqlStrs := []string{
 		fmt.Sprintf("update schema_migrations set version=%d,dirty=0 where version >%d",
-			migratespec.SensitiveMigVer, migratespec.SensitiveMigVer), // step 3 is sensitive mig
+			migratespec.SensitiveMigVer, migratespec.SensitiveMigVer), // step 8 is sensitive mig
 		"delete from tb_config_file_def",
 		"delete from tb_config_name_def where flag_encrypt!=1 or value_default like '{{%'",
 	}

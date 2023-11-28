@@ -48,8 +48,10 @@ class TenDBClusterAddSpiderMNTFlow(object):
         """
         上架spider节点，授予中控访问权限
         加入路由
+        增加单据临时ADMIN账号的添加和删除逻辑
         """
-        pipeline = Builder(root_id=self.root_id, data=self.data)
+        cluster_ids = [i["cluster_id"] for i in self.data["infos"]]
+        pipeline = Builder(root_id=self.root_id, data=self.data, need_random_pass_cluster_ids=list(set(cluster_ids)))
         sub_pipelines = []
         for info in self.data["infos"]:
             # 拼接子流程所需全局参数
@@ -106,4 +108,4 @@ class TenDBClusterAddSpiderMNTFlow(object):
             sub_pipelines.append(sub_pipeline.build_sub_process(sub_name=_("{}添加spider_mnt节点流程".format(cluster.name))))
 
         pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
-        pipeline.run_pipeline()
+        pipeline.run_pipeline(is_drop_random_user=True)

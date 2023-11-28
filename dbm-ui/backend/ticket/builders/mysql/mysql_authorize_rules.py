@@ -9,13 +9,18 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
+from collections import defaultdict
+
 from django.core.cache import cache
 from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
 from backend import env
+from backend.components import MySQLPrivManagerApi
 from backend.db_meta.enums import ClusterType
 from backend.db_services.mysql.permission.authorize.serializers import PreCheckAuthorizeRulesSerializer
+from backend.db_services.mysql.permission.constants import AccountType, PrivilegeType
+from backend.db_services.mysql.permission.db_account.handlers import AccountHandler
 from backend.db_services.mysql.permission.exceptions import AuthorizeDataHasExpiredException
 from backend.flow.engine.controller.mysql import MySQLController
 from backend.ticket import builders
@@ -71,13 +76,6 @@ class MySQLExcelAuthorizeRulesSerializer(serializers.Serializer):
 class MySQLAuthorizeRulesFlowParamBuilder(builders.FlowParamBuilder):
     controller = MySQLController.mysql_authorize_rules
 
-    def format_ticket_data(self):
-        data = cache.get(self.ticket_data.get("authorize_uid")) or self.ticket_data.get("authorize_plugin_infos")
-        if not data:
-            raise AuthorizeDataHasExpiredException(_("授权数据不存在/已过期，请重新提交授权表单或excel文件"))
-
-        self.ticket_data.update({"rules_set": data})
-
     def post_callback(self):
         excel_url = (
             f"{env.BK_SAAS_HOST}/apis/mysql/bizs/{self.ticket.bk_biz_id}/"
@@ -96,11 +94,21 @@ class MySQLAuthorizeRulesFlowBuilder(BaseMySQLTicketFlowBuilder):
 
     @property
     def need_itsm(self):
-        return False
+        handler = AccountHandler(bk_biz_id=self.ticket.bk_biz_id, account_type=AccountType.MYSQL)
+        high_risk = handler.has_high_risk_privileges(self.ticket.details["rules_set"])
+        return high_risk
 
     @property
     def need_manual_confirm(self):
         return False
+
+    def patch_ticket_detail(self):
+        details = self.ticket.details
+        data = cache.get(details.get("authorize_uid")) or details.get("authorize_plugin_infos")
+        if not data:
+            raise AuthorizeDataHasExpiredException(_("授权数据不存在/已过期，请重新提交授权表单或excel文件"))
+
+        self.ticket.update_details(rules_set=data)
 
 
 @builders.BuilderFactory.register(TicketType.MYSQL_EXCEL_AUTHORIZE_RULES)

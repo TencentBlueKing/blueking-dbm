@@ -10,6 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 import copy
 import logging.config
+import re
 from dataclasses import asdict
 from typing import Dict, Optional
 
@@ -25,13 +26,15 @@ from backend.flow.engine.bamboo.scene.pulsar.exceptions import BrokerNotFoundExc
 from backend.flow.plugins.components.collections.pulsar.exec_actuator_script import (
     ExecutePulsarActuatorScriptComponent,
 )
+from backend.flow.utils.base.payload_handler import PayloadHandler
 from backend.flow.utils.pulsar.consts import PulsarConfigEnum
-from backend.flow.utils.pulsar.pulsar_act_payload import PulsarActPayload, get_cluster_config
+from backend.flow.utils.pulsar.pulsar_act_payload import PulsarActPayload, get_cluster_config, get_token_by_cluster
 from backend.flow.utils.pulsar.pulsar_context_dataclass import PulsarActKwargs
 from backend.ticket.constants import TicketType
 from backend.utils.string import str2bool
 
 logger = logging.getLogger("flow")
+zk_id_cpl = re.compile("zk-(?P<zk_id>.+?)-.*")
 
 
 class PulsarBaseFlow(object):
@@ -111,8 +114,13 @@ class PulsarBaseFlow(object):
         )
         # dbconfig 目前返回值均为str
         base_flow_data["port"] = int(dbconfig[PulsarConfigEnum.Port])
-        base_flow_data["username"] = dbconfig[PulsarConfigEnum.ManagerUserName]
-        base_flow_data["password"] = dbconfig[PulsarConfigEnum.ManagerPassword]
+        # pulsar-manager 用户名/密码 优先从密码服务获取
+        auth_info = PayloadHandler.get_bigdata_auth_by_cluster(cluster, base_flow_data["port"])
+        base_flow_data["username"] = auth_info["username"]
+        base_flow_data["password"] = auth_info["password"]
+        # token不再从dbconfig获取，仅从密码服务获取
+        base_flow_data["token"] = get_token_by_cluster(cluster, base_flow_data["port"])
+
         base_flow_data["retention_time"] = int(dbconfig[PulsarRoleEnum.Broker]["defaultRetentionTimeInMinutes"])
 
         # 扩容需要broker ip
@@ -373,8 +381,11 @@ class PulsarBaseFlow(object):
 
 # 获取ZK对应my_id, 与zk域名生成相关
 def get_zk_id_from_host_map(zk_host_map: dict, zk_ip: str) -> int:
+    # 在替换ZK变更中，dbconfig为静态不会改动，仅zk_host_map 记录当前zk_ip，zk_domain对应关系
     zk_domain = zk_host_map[zk_ip]
-    return int(zk_domain[-1])
+    # zk_domain format like zk-{zk_id}-{pulsar.domain}
+    zk_id = re.search(zk_id_cpl, zk_domain).group("zk_id")
+    return int(zk_id)
 
 
 def get_all_node_ips_in_ticket(data: dict) -> list:

@@ -59,7 +59,7 @@
 
   import { getMonitorUrls } from '@services/source/monitorGrafana';
   import { getTendbsingleDetail } from '@services/source/tendbsingle';
-  import type { ResourceItem } from '@services/types/clusters';
+  import type { ResourceItem } from '@services/types';
 
   import { useGlobalBizs } from '@stores';
 

@@ -11,7 +11,7 @@
  * the specific language governing permissions and limitations under the License.
 */
 
-import type { ConfigBaseDetails } from '@services/types/configs';
+import { getLevelConfig } from '@services/source/configs';
 
 import type { ClusterTypesValues } from '@common/const';
 
@@ -23,7 +23,7 @@ export type ExtraConfListItem = {
   conf_type: string,
   title: string,
   loading: boolean,
-  data: ConfigBaseDetails | null
+  data: ServiceReturnType<typeof getLevelConfig> | null
 };
 
 /**

@@ -92,7 +92,7 @@
     getClusterInfoByDomains,
   } from '@services/source/mysqlCluster';
   import { createTicket } from '@services/source/ticket';
-  import type { ResourceItem } from '@services/types/clusters';
+  import type { ResourceItem } from '@services/types';
 
   import { useInfo, useTableMaxHeight } from '@hooks';
 

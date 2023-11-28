@@ -9,7 +9,7 @@ const path = `/apis/mysql/bizs/${currentBizId}/remote_service`;
 /**
  * 校验DB是否在集群内
  */
-export const checkClusterDatabase = function (params: {
+export function checkClusterDatabase(params: {
   infos: Array<{
     cluster_id: number,
     db_names: string[],
@@ -20,12 +20,12 @@ export const checkClusterDatabase = function (params: {
     db_names: string[],
     check_info: Record<string, boolean>
   }[]>(`${path}/check_cluster_database/`, params);
-};
+}
 
 /**
  * 校验flashback信息是否合法
  */
-export const checkFlashbackDatabase = function (params: {
+export function checkFlashbackDatabase(params: {
   infos: Array<{
     cluster_id: number,
     databases: string[],
@@ -42,12 +42,12 @@ export const checkFlashbackDatabase = function (params: {
     tables: string[],
     tables_ignore: string[]
   }[]>(`${path}/check_flashback_database/`, params);
-};
+}
 
 /**
  * 查询集群数据库列表
  */
-export const getClusterDatabaseNameList = function (params: {
+export function getClusterDatabaseNameList(params: {
   cluster_ids: Array<number>
 }) {
   return http.post<Array<{
@@ -55,10 +55,10 @@ export const getClusterDatabaseNameList = function (params: {
     databases: Array<string>,
     system_databases: Array<string>
   }>>(`${path}/show_cluster_databases/`, params);
-};
+}
 
 // 查询集群数据表列表
-export const getClusterTablesNameList = function (params: {
+export function getClusterTablesNameList(params: {
   cluster_db_infos: {
     cluster_id: number,
     dbs: string[],
@@ -68,4 +68,4 @@ export const getClusterTablesNameList = function (params: {
     cluster_id: number,
     table_data: Record<string, string[]>
   }[]>(`${path}/show_cluster_tables/`, params);
-};
+}

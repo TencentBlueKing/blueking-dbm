@@ -50,7 +50,8 @@ class TBinlogDumperAddNodesFlow(object):
         self.data = data
 
     def add_nodes(self):
-        pipeline = Builder(root_id=self.root_id, data=self.data)
+        cluster_ids = [i["cluster_id"] for i in self.data["infos"]]
+        pipeline = Builder(root_id=self.root_id, data=self.data, need_random_pass_cluster_ids=list(set(cluster_ids)))
         sub_pipelines = []
         for info in self.data["infos"]:
 
@@ -130,4 +131,4 @@ class TBinlogDumperAddNodesFlow(object):
             raise NormalTBinlogDumperFlowException(message=_("计算不到需要上架的实例，拼装TBinlogDumper上架流程失败"))
 
         pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
-        pipeline.run_pipeline(init_trans_data_class=TBinlogDumperAddContext())
+        pipeline.run_pipeline(init_trans_data_class=TBinlogDumperAddContext(), is_drop_random_user=True)

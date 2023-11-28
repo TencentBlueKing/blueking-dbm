@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import base64
 from typing import List
 
 from pipeline.component_framework.component import Component
@@ -16,7 +17,8 @@ from pipeline.core.flow.activity import Service
 import backend.flow.utils.pulsar.pulsar_context_dataclass as flow_context
 from backend.components import DBConfigApi
 from backend.components.dbconfig.constants import LevelName, OpType, ReqType
-from backend.flow.consts import ConfigTypeEnum, LevelInfoEnum, NameSpaceEnum, PulsarRoleEnum
+from backend.components.mysql_priv_manager.client import MySQLPrivManagerApi
+from backend.flow.consts import ConfigTypeEnum, LevelInfoEnum, MySQLPrivComponent, NameSpaceEnum, PulsarRoleEnum
 from backend.flow.engine.bamboo.scene.pulsar.pulsar_base_flow import get_zk_id_from_host_map
 from backend.flow.plugins.components.collections.common.base_service import BaseService
 from backend.flow.utils.pulsar.consts import PulsarConfigEnum
@@ -33,6 +35,7 @@ class WriteBackPulsarConfigService(BaseService):
         kwargs = data.get_one_of_inputs("kwargs")
         global_data = data.get_one_of_inputs("global_data")
         trans_data = data.get_one_of_inputs("trans_data")
+        token_data = ""
 
         if trans_data is None or trans_data == "${trans_data}":
             # 表示没有加载上下文内容，则在此添加
@@ -78,6 +81,7 @@ class WriteBackPulsarConfigService(BaseService):
                 },
             ]
             token = getattr(trans_data, PulsarApplyContext.get_new_token_var_name())["token"]
+            token_data = token
             conf_items.append(
                 {
                     "conf_name": PulsarConfigEnum.ClientAuthenticationParameters,
@@ -120,6 +124,34 @@ class WriteBackPulsarConfigService(BaseService):
                 "level_value": global_data["domain"],
             }
         )
+        # 写入到密码服务，把用户名当密码存
+        query_params = {
+            "instances": [{"ip": global_data["domain"], "port": 0, "bk_cloud_id": global_data["bk_cloud_id"]}],
+            "password": base64.b64encode(str(global_data["username"]).encode("utf-8")).decode("utf-8"),
+            "username": MySQLPrivComponent.PULSAR_FAKE_USER.value,
+            "component": NameSpaceEnum.Pulsar,
+            "operator": "admin",
+        }
+        MySQLPrivManagerApi.modify_password(params=query_params)
+        # 存储真正的账号密码
+        query_params = {
+            "instances": [{"ip": global_data["domain"], "port": 0, "bk_cloud_id": global_data["bk_cloud_id"]}],
+            "password": base64.b64encode(str(global_data["password"]).encode("utf-8")).decode("utf-8"),
+            "username": global_data["username"],
+            "component": NameSpaceEnum.Pulsar,
+            "operator": "admin",
+        }
+        MySQLPrivManagerApi.modify_password(params=query_params)
+        # 存储token
+        query_params = {
+            "instances": [{"ip": global_data["domain"], "port": 0, "bk_cloud_id": global_data["bk_cloud_id"]}],
+            "password": base64.b64encode(str(f"token:{token_data}").encode("utf-8")).decode("utf-8"),
+            "username": PulsarConfigEnum.ClientAuthenticationParameters,
+            "component": NameSpaceEnum.Pulsar,
+            "operator": "admin",
+        }
+        MySQLPrivManagerApi.modify_password(params=query_params)
+
         self.log_info("successfully write back pulsar config to dbconfig")
         return True
 

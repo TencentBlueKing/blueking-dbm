@@ -19,7 +19,7 @@
       <I18nT
         keypath="密码修改完成，成功n个，失败n个"
         tag="span">
-        <span class="title-success">{{ submitRes?.success?.length || 0 }}</span>
+        <span class="title-success">{{ successListLength }}</span>
         <span class="title-error">{{ errorListLength }}</span>
       </I18nT>
     </template>
@@ -70,16 +70,28 @@
 
   import { useCopy } from '@hooks';
 
-  import RenderSuccess from '@views/mysql/common/ticket-success/Index.vue';
+  import type { ClusterTypes } from '@common/const';
+
+  import RenderSuccess from '@components/ticket-success/Index.vue';
 
   type ModifyMysqlAdminPassword = ServiceReturnType<typeof modifyMysqlAdminPassword>
 
+  interface RetryItem {
+    ip: string;
+    port: number;
+    bk_cloud_id: number;
+    cluster_type: ClusterTypes;
+    role: string;
+  }
+
   interface Props {
     submitRes?: ModifyMysqlAdminPassword
+    submitLength: number
+    submitRoleMap: Record<string, string>
   }
 
   interface Emits {
-    (e: 'retry', value: ModifyMysqlAdminPassword['fail']): void
+    (e: 'retry', value: RetryItem[]): void
     (e: 'refresh'): void
   }
 
@@ -89,16 +101,35 @@
   const { t } = useI18n();
   const copy = useCopy();
 
-  const errorList = computed(() => props?.submitRes?.fail || []);
+  const errorList = computed(() => (props?.submitRes?.fail || []).reduce((errorPrev, errorItem) => {
+    const {
+      bk_cloud_id,
+      cluster_type,
+    } = errorItem;
+    const roleMap = props.submitRoleMap;
+    const retryItems = errorItem.instances.reduce((retryItemsPrev, instanceItem) => {
+      const newInstanceItem = instanceItem.addresses.map(addressItem => ({
+        ...addressItem,
+        bk_cloud_id,
+        cluster_type,
+        role: roleMap[`${addressItem.ip}:${addressItem.port}`],
+      }));
+
+      return [...retryItemsPrev, ...newInstanceItem];
+    }, [] as RetryItem[]);
+
+    return [...errorPrev, ...retryItems];
+  }, [] as RetryItem[]));
   const errorListLength = computed(() => errorList.value.length);
+  const successListLength = computed(() => props.submitLength - errorListLength.value);
 
   const handleCopy = () => {
-    copy(errorList.value.join(','));
+    const copyList = errorList.value.map(errorItem => `${errorItem.ip}:${errorItem.port}`);
+    copy(copyList.join('\n'));
   };
 
   const handleRetry = () => {
-    // TODO
-    // emits('retry', errorList.value);
+    emits('retry', errorList.value);
   };
 
   const handleGoBack = () => {

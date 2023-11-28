@@ -112,8 +112,10 @@
   import { format } from 'date-fns';
   import { useI18n } from 'vue-i18n';
 
-  import { getNodeLog } from '@services/taskflow';
-  import type { NodeLog, RetryNodeItem } from '@services/types/taskflow';
+  import {
+    getNodeLog,
+    getRetryNodeHistories,
+  } from '@services/source/taskflow';
 
   import CostTimer from '@components/cost-timer/CostTimer.vue';
   import BkLog from '@components/vue2/bk-log/index.vue';
@@ -126,6 +128,8 @@
   import RetrySelector from './RetrySelector.vue';
 
   import { useCopy } from '@/hooks';
+
+  type NodeLog = ServiceReturnType<typeof getNodeLog>[number]
 
   interface Props {
     isShow?: boolean,
@@ -281,7 +285,7 @@
   /**
    * 切换日志版本
    */
-  const handleChangeDate = (data: RetryNodeItem) => {
+  const handleChangeDate = (data: ServiceReturnType<typeof getRetryNodeHistories>[number]) => {
     currentData.value = data;
     pause();
     nextTick(() => {

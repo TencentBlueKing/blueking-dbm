@@ -253,7 +253,7 @@ class MySQLHAImportMetadataService(BaseService):
             cluster_type=ClusterType.TenDBHA.value,
             db_module_id=self.db_module_id,
             immute_domain=immute_domain,
-            major_version=version,
+            major_version="MySQL-" + ".".join(version.split(".")[:2]),
             phase=ClusterPhase.TRANS_STAGE.value,
             status=ClusterStatus.NORMAL.value,
             bk_cloud_id=0,

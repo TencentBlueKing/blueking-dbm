@@ -3,18 +3,19 @@
   "name": "ES \u5199\u62d2\u7edd",
   "db_type": "es",
   "details": {
-    "app": "",
+    "bk_biz_id": "",
     "name": "ES \u5199\u62d2\u7edd",
-    "path": "",
+    "source": "dbm",
+    "scenario": "component",
     "type": "monitor",
     "items": [
       {
         "name": "max_without_time(elasticsearch_thread_pool_rejected_count)",
         "no_data_config": {
+          "level": 2,
           "continuous": 10,
           "is_enabled": false,
-          "agg_dimension": [],
-          "level": 2
+          "agg_dimension": []
         },
         "target": [],
         "expression": "a",
@@ -22,11 +23,13 @@
         "origin_sql": "",
         "query_configs": [
           {
-            "data_label": "exporter_dbm_elasticsearch_exporter",
             "data_source_label": "bk_monitor",
             "data_type_label": "time_series",
             "alias": "a",
+            "metric_id": "bk_monitor.exporter_dbm_elasticsearch_exporter.__default__.elasticsearch_thread_pool_rejected_count",
+            "functions": [],
             "result_table_id": "exporter_dbm_elasticsearch_exporter.__default__",
+            "data_label": "exporter_dbm_elasticsearch_exporter",
             "agg_method": "max_without_time",
             "agg_interval": 60,
             "agg_dimension": [
@@ -39,29 +42,22 @@
             "agg_condition": [
               {
                 "key": "type",
-                "method": "eq",
                 "value": [
                   "write"
                 ],
+                "method": "eq",
                 "dimension_name": "type"
               }
             ],
             "metric_field": "elasticsearch_thread_pool_rejected_count",
             "unit": "",
-            "metric_id": "bk_monitor.exporter_dbm_elasticsearch_exporter.__default__.elasticsearch_thread_pool_rejected_count",
-            "index_set_id": "",
-            "query_string": "*",
-            "custom_event_name": "elasticsearch_thread_pool_rejected_count",
-            "functions": [],
-            "time_field": "time",
-            "bkmonitor_strategy_id": "elasticsearch_thread_pool_rejected_count",
-            "alert_name": "elasticsearch_thread_pool_rejected_count"
+            "name": "elasticsearch_thread_pool_rejected_count"
           }
         ],
         "algorithms": [
           {
-            "level": 1,
             "type": "Threshold",
+            "level": 2,
             "config": [
               [
                 {
@@ -72,158 +68,13 @@
             ],
             "unit_prefix": ""
           }
-        ]
+        ],
+        "metric_type": "time_series"
       }
     ],
-    "labels": [
-      "DBM",
-      "DBM_ES",
-      "ES"
-    ],
-    "notice": {
-      "config": {
-        "template": [
-          {
-            "signal": "abnormal",
-            "title_tmpl": "{{business.bk_biz_name}} - {{alarm.name}}{{alarm.display_type}}",
-            "message_tmpl": "{{content.level}}\n{{content.begin_time}}\n{{content.time}}\n{{content.duration}}\n{{content.target_type}}\n{{content.data_source}}\n{{content.content}}\n{{content.current_value}}\n{{content.biz}}\n{{content.target}}\n{{content.dimension}}\n{{content.detail}}\n{{content.related_info}}"
-          },
-          {
-            "signal": "recovered",
-            "title_tmpl": "{{business.bk_biz_name}} - {{alarm.name}}{{alarm.display_type}}",
-            "message_tmpl": "{{content.level}}\n{{content.begin_time}}\n{{content.time}}\n{{content.duration}}\n{{content.target_type}}\n{{content.data_source}}\n{{content.content}}\n{{content.current_value}}\n{{content.biz}}\n{{content.target}}\n{{content.dimension}}\n{{content.detail}}\n{{content.related_info}}"
-          },
-          {
-            "signal": "closed",
-            "title_tmpl": "{{business.bk_biz_name}} - {{alarm.name}}{{alarm.display_type}}",
-            "message_tmpl": "{{content.level}}\n{{content.begin_time}}\n{{content.time}}\n{{content.duration}}\n{{content.target_type}}\n{{content.data_source}}\n{{content.content}}\n{{content.current_value}}\n{{content.biz}}\n{{content.target}}\n{{content.dimension}}\n{{content.detail}}\n{{content.related_info}}"
-          }
-        ],
-        "need_poll": true,
-        "notify_interval": 7200,
-        "interval_notify_mode": "standard"
-      },
-      "signal": [
-        "abnormal",
-        "no_data"
-      ],
-      "options": {
-        "end_time": "23:59:59",
-        "start_time": "00:00:00",
-        "assign_mode": [
-          "by_rule"
-        ],
-        "upgrade_config": {},
-        "converge_config": {
-          "count": 1,
-          "condition": [
-            {
-              "value": [
-                "self"
-              ],
-              "dimension": "strategy_id"
-            },
-            {
-              "value": [
-                "self"
-              ],
-              "dimension": "dimensions"
-            },
-            {
-              "value": [
-                "self"
-              ],
-              "dimension": "alert_level"
-            },
-            {
-              "value": [
-                "self"
-              ],
-              "dimension": "signal"
-            },
-            {
-              "value": [
-                "self"
-              ],
-              "dimension": "bk_biz_id"
-            },
-            {
-              "value": [
-                "self"
-              ],
-              "dimension": "notice_receiver"
-            },
-            {
-              "value": [
-                "self"
-              ],
-              "dimension": "notice_way"
-            }
-          ],
-          "timedelta": 60,
-          "is_enabled": true,
-          "converge_func": "collect",
-          "need_biz_converge": true,
-          "sub_converge_config": {
-            "count": 2,
-            "condition": [
-              {
-                "value": [
-                  "self"
-                ],
-                "dimension": "bk_biz_id"
-              },
-              {
-                "value": [
-                  "self"
-                ],
-                "dimension": "notice_receiver"
-              },
-              {
-                "value": [
-                  "self"
-                ],
-                "dimension": "notice_way"
-              },
-              {
-                "value": [
-                  "self"
-                ],
-                "dimension": "alert_level"
-              },
-              {
-                "value": [
-                  "self"
-                ],
-                "dimension": "signal"
-              }
-            ],
-            "timedelta": 60,
-            "converge_func": "collect_alarm"
-          }
-        },
-        "exclude_notice_ways": {
-          "closed": [],
-          "recovered": []
-        },
-        "noise_reduce_config": {
-          "unit": "percent",
-          "count": 10,
-          "timedelta": 5,
-          "dimensions": [],
-          "is_enabled": false
-        }
-      },
-      "config_id": 8728,
-      "relate_type": "NOTICE",
-      "user_groups": []
-    },
-    "source": "dbm",
-    "actions": [],
     "detects": [
       {
-        "level": 1,
-        "connector": "and",
+        "level": 2,
         "expression": "",
         "trigger_config": {
           "count": 1,
@@ -241,17 +92,171 @@
         "recovery_config": {
           "check_window": 5,
           "status_setter": "recovery"
-        }
+        },
+        "connector": "and"
       }
     ],
-    "scenario": "component",
-    "bk_biz_id": "",
-    "data_source_type": "Prometheus",
-    "priority": 0
+    "actions": [],
+    "notice": {
+      "config_id": 40801,
+      "user_groups": [],
+      "signal": [
+        "no_data",
+        "abnormal"
+      ],
+      "options": {
+        "end_time": "23:59:59",
+        "start_time": "00:00:00",
+        "assign_mode": [
+          "by_rule"
+        ],
+        "upgrade_config": {
+          "is_enabled": false,
+          "user_groups": [],
+          "upgrade_interval": 1440
+        },
+        "converge_config": {
+          "count": 1,
+          "condition": [
+            {
+              "dimension": "strategy_id",
+              "value": [
+                "self"
+              ]
+            },
+            {
+              "dimension": "dimensions",
+              "value": [
+                "self"
+              ]
+            },
+            {
+              "dimension": "alert_level",
+              "value": [
+                "self"
+              ]
+            },
+            {
+              "dimension": "signal",
+              "value": [
+                "self"
+              ]
+            },
+            {
+              "dimension": "bk_biz_id",
+              "value": [
+                "self"
+              ]
+            },
+            {
+              "dimension": "notice_receiver",
+              "value": [
+                "self"
+              ]
+            },
+            {
+              "dimension": "notice_way",
+              "value": [
+                "self"
+              ]
+            }
+          ],
+          "timedelta": 60,
+          "is_enabled": true,
+          "converge_func": "collect",
+          "need_biz_converge": true,
+          "sub_converge_config": {
+            "timedelta": 60,
+            "count": 2,
+            "condition": [
+              {
+                "dimension": "bk_biz_id",
+                "value": [
+                  "self"
+                ]
+              },
+              {
+                "dimension": "notice_receiver",
+                "value": [
+                  "self"
+                ]
+              },
+              {
+                "dimension": "notice_way",
+                "value": [
+                  "self"
+                ]
+              },
+              {
+                "dimension": "alert_level",
+                "value": [
+                  "self"
+                ]
+              },
+              {
+                "dimension": "signal",
+                "value": [
+                  "self"
+                ]
+              }
+            ],
+            "converge_func": "collect_alarm"
+          }
+        },
+        "chart_image_enabled": true,
+        "exclude_notice_ways": {
+          "ack": [],
+          "closed": [],
+          "recovered": []
+        },
+        "noise_reduce_config": {
+          "unit": "percent",
+          "count": 10,
+          "timedelta": 5,
+          "dimensions": [],
+          "is_enabled": false
+        }
+      },
+      "relate_type": "NOTICE",
+      "config": {
+        "need_poll": true,
+        "notify_interval": 7200,
+        "interval_notify_mode": "standard",
+        "template": [
+          {
+            "signal": "abnormal",
+            "message_tmpl": "{{content.level}}\n{{content.begin_time}}\n{{content.time}}\n{{content.duration}}\n{{content.target_type}}\n{{content.data_source}}\n{{content.content}}\n{{content.current_value}}\n{{content.biz}}\n{{content.target}}\n{{content.dimension}}\n{{content.detail}}\n{{content.related_info}}",
+            "title_tmpl": "{{business.bk_biz_name}} - {{alarm.name}}{{alarm.display_type}}"
+          },
+          {
+            "signal": "recovered",
+            "message_tmpl": "{{content.level}}\n{{content.begin_time}}\n{{content.time}}\n{{content.duration}}\n{{content.target_type}}\n{{content.data_source}}\n{{content.content}}\n{{content.current_value}}\n{{content.biz}}\n{{content.target}}\n{{content.dimension}}\n{{content.detail}}\n{{content.related_info}}",
+            "title_tmpl": "{{business.bk_biz_name}} - {{alarm.name}}{{alarm.display_type}}"
+          },
+          {
+            "signal": "closed",
+            "message_tmpl": "{{content.level}}\n{{content.begin_time}}\n{{content.time}}\n{{content.duration}}\n{{content.target_type}}\n{{content.data_source}}\n{{content.content}}\n{{content.current_value}}\n{{content.biz}}\n{{content.target}}\n{{content.dimension}}\n{{content.detail}}\n{{content.related_info}}",
+            "title_tmpl": "{{business.bk_biz_name}} - {{alarm.name}}{{alarm.display_type}}"
+          }
+        ]
+      }
+    },
+    "labels": [
+      "DBM",
+      "DBM_ES",
+      "ES"
+    ],
+    "app": "",
+    "path": "",
+    "priority": 0,
+    "priority_group_key": "",
+    "metric_type": "time_series",
+    "data_source_type": "\u76d1\u63a7\u91c7\u96c6\u6307\u6807",
+    "is_enabled": true
   },
   "is_enabled": true,
-  "monitor_indicator": "MAX(ES\u7ebf\u7a0b\u6c60\u4e2d\u88ab\u62d2\u7edd\u4efb\u52a1\u6570)",
-  "version": 15,
+  "monitor_indicator": "max_without_time(elasticsearch_thread_pool_rejected_count)",
+  "version": 16,
   "alert_source": "time_series",
   "custom_conditions": []
 }

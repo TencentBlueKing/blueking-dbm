@@ -55,8 +55,12 @@ class PtTableSyncFlow(object):
     def exec_pt_table_sync_flow(self):
         """
         定义执行pt-table-sync 流程
+        增加单据临时ADMIN账号的添加和删除逻辑
         """
-        table_sync_pipeline = Builder(root_id=self.root_id, data=self.data)
+        cluster_ids = [i["cluster_id"] for i in self.data["infos"]]
+        table_sync_pipeline = Builder(
+            root_id=self.root_id, data=self.data, need_random_pass_cluster_ids=list(set(cluster_ids))
+        )
 
         sync_account, sync_pwd = self.__get_sync_account()
         sub_pipelines = []
@@ -139,4 +143,4 @@ class PtTableSyncFlow(object):
             raise Exception(_("修复单据找不到可修复的集群"))
 
         table_sync_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
-        table_sync_pipeline.run_pipeline()
+        table_sync_pipeline.run_pipeline(is_drop_random_user=True)

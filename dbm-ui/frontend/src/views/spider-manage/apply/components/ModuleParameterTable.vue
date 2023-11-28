@@ -28,7 +28,6 @@
     getLevelConfig,
     updateBusinessConfig,
   } from '@services/source/configs';
-  import type { ConfigBaseDetails, ParameterConfigItem } from '@services/types/configs';
 
   import ParameterTable from '@views/db-configure/components/ParameterTable.vue';
   import {
@@ -46,8 +45,8 @@
   const tableRef = ref();
   const isLoading = ref(false);
   const isAnomalies = ref(false);
-  const originConfItems = shallowRef<ParameterConfigItem[]>([]);
-  const configData = ref<ConfigBaseDetails>({
+  const originConfItems = shallowRef<ServiceReturnType<typeof getLevelConfig>['conf_items']>([]);
+  const configData = ref<ServiceReturnType<typeof getLevelConfig>>({
     name: '',
     version: '',
     description: '',
@@ -173,7 +172,7 @@
   };
 
   // 选择参数项
-  const handleChangeParameterItem = (index: number, selected: ParameterConfigItem) => {
+  const handleChangeParameterItem = (index: number, selected: ServiceReturnType<typeof getLevelConfig>['conf_items'][number]) => {
     configData.value.conf_items[index] = Object.assign(_.cloneDeep(selected), { op_type: 'add' });
   };
 

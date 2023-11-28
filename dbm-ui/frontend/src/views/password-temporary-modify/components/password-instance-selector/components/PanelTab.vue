@@ -26,16 +26,10 @@
   </div>
 </template>
 
-<script lang="ts">
-  import type { InjectionKey, Ref } from 'vue';
-
-  import { textMap } from '../common/utils';
-  export const defaultPanelList = ['tendbsingle', 'tendbha', 'tendbcluster', 'manualInput'] as const;
-  export type PanelTypes = typeof defaultPanelList[number];
-  export const activePanelInjectionKey: InjectionKey<Ref<PanelTypes>> = Symbol('activePanel');
-</script>
-
 <script setup lang="ts">
+  import type { PanelTypes } from '../common/types';
+  import { textMap } from '../common/utils';
+
   interface Props {
     panelList: Array<PanelTypes>
   }

@@ -15,7 +15,7 @@ import http from '../http';
 
 const path = '/apis/event/dbha';
 
-export interface EventSwtichItem {
+interface EventSwtichItem {
   app: string
   bk_biz_id: number,
   bk_biz_name: string,
@@ -46,17 +46,17 @@ export interface EventSwtichItem {
 /**
  * DBHA切换事件列表
  */
-export const getEventSwitchList = function (params: Record<string, any>) {
+export function getEventSwitchList(params: Record<string, any>) {
   return http.get<EventSwtichItem[]>(`${path}/ls/`, params);
-};
+}
 
 /**
  * DBHA切换事件详情（日志）
  */
-export const getEventSwitchLog = function (params: Record<string, any> & { sw_id: number }) {
+export function getEventSwitchLog(params: Record<string, any> & { sw_id: number }) {
   return http.get<{
     levelname: string,
     message: string,
     timestamp: number
   }[]>(`${path}/cat/`, params);
-};
+}

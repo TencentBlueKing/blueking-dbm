@@ -19,7 +19,7 @@ import EsPasswordModel from '@services/model/es/es-password';
 import { useGlobalBizs } from '@stores';
 
 import http from '../http';
-import type { ListBase } from '../types/common';
+import type { ListBase } from '../types';
 
 const { currentBizId } = useGlobalBizs();
 
@@ -28,83 +28,79 @@ const path = `/apis/bigdata/bizs/${currentBizId}/es/es_resources`;
 /**
  * 获取集群列表
  */
-export const getEsList = function (params: Record<string, any> & { bk_biz_id: number }) {
-  return http.get<ListBase<EsModel[]>>(`${path}/`, params).then(data => ({
-    ...data,
-    results: data.results.map((item: EsModel) => new EsModel(item)),
-  }));
-};
+export function getEsList(params: Record<string, any> & { bk_biz_id: number }) {
+  return http.get<ListBase<EsModel[]>>(`${path}/`, params)
+    .then(data => ({
+      ...data,
+      results: data.results.map((item: EsModel) => new EsModel(item)),
+    }));
+}
 
 /**
  * 获取查询返回字段
  */
-export const getEsTableFields = function ()  {
+export function getEsTableFields()  {
   return http.get<ListBase<EsModel[]>>(`${path}/get_table_fields/`);
-};
+}
 
 /**
  * 获取实例列表
  */
-export const getEsInstanceList = function (params: Record<string, any> & { bk_biz_id: number }) {
-  return http.get<ListBase<EsInstanceModel[]>>(`${path}/list_instances/`, params).then(data => ({
-    ...data,
-    results: data.results.map((item: EsInstanceModel) => new EsInstanceModel(item)),
-  }));
-};
+export function getEsInstanceList(params: Record<string, any> & { bk_biz_id: number }) {
+  return http.get<ListBase<EsInstanceModel[]>>(`${path}/list_instances/`, params)
+    .then(data => ({
+      ...data,
+      results: data.results.map((item: EsInstanceModel) => new EsInstanceModel(item)),
+    }));
+}
 
 /**
  * 获取实例详情
  */
-export const retrieveEsInstance = function (params: { bk_biz_id: number }) {
+export function retrieveEsInstance(params: { bk_biz_id: number }) {
   return http.get<ListBase<EsModel[]>>(`${path}/retrieve_instance/`, params);
-};
+}
 
 /**
  * 获取集群详情
  */
-export const getEsDetail = function (params: { id: number }) {
-  return http.get<EsModel>(`${path}/${params.id}/`).then(data => new EsModel(data));
-};
+export function getEsDetail(params: { id: number }) {
+  return http.get<EsModel>(`${path}/${params.id}/`)
+    .then(data => new EsModel(data));
+}
 
 /**
  * 获取集群节点
  */
-export const getEsNodes = function (params: {
-  bk_biz_id: number,
-  cluster_id: number
-}) {
+export function getEsNodes(params: { cluster_id: number }) {
   return http.get<ListBase<EsModel[]>>(`${path}/${params.cluster_id}/get_nodes/`);
-};
+}
 
 /**
  * 获取集群拓扑
  */
-export const getEsTopoGraph = function (params: {
-  bk_biz_id: number,
-  cluster_id: number
-}) {
+export function getEsTopoGraph(params: { cluster_id: number }) {
   return http.get<ListBase<EsModel[]>>(`${path}/${params.cluster_id}/get_topo_graph/`);
-};
+}
 
 /**
  * 获取 ES 集群访问密码
  */
-export const getEsPassword = function (params: {
-  bk_biz_id: number,
-  cluster_id: number
-}) {
-  return http.get<EsPasswordModel>(`${path}/${params.cluster_id}/get_password/`).then(data => new EsPasswordModel(data));
-};
+export function getEsPassword(params: { cluster_id: number }) {
+  return http.get<EsPasswordModel>(`${path}/${params.cluster_id}/get_password/`)
+    .then(data => new EsPasswordModel(data));
+}
 
 /**
  * 获取 ES 集群节点列表信息
  */
-export const getEsNodeList = function (params: Record<string, any> & {
+export function getEsNodeList(params: Record<string, any> & {
   bk_biz_id: number,
   cluster_id: number
 }) {
-  return http.get<ListBase<Array<EsNodeModel>>>(`${path}/${params.cluster_id}/list_nodes/`, params).then(data => ({
-    ...data,
-    results: data.results.map((item: EsNodeModel) => new EsNodeModel(item)),
-  }));
-};
+  return http.get<ListBase<Array<EsNodeModel>>>(`${path}/${params.cluster_id}/list_nodes/`, params)
+    .then(data => ({
+      ...data,
+      results: data.results.map((item: EsNodeModel) => new EsNodeModel(item)),
+    }));
+}

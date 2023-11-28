@@ -45,8 +45,6 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import type { GetLevelConfigParams } from '@services/types/configs';
-
   import PublishRecord from '@views/db-configure/components/PublishRecord.vue';
 
   import ConfigEmpty from '../ConfigEmpty.vue';
@@ -107,7 +105,7 @@
         bk_biz_id,
         level_name,
         level_value,
-      } as GetLevelConfigParams;
+      };
     }
     return null;
   });

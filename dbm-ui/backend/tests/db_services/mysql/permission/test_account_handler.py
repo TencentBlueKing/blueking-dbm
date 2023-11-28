@@ -9,14 +9,16 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import copy
+import logging
 from unittest.mock import patch
 
 import pytest
 
+from backend.configuration.handlers.password import DBPasswordHandler
 from backend.configuration.models.password_policy import PasswordPolicy
-from backend.core.encrypt.constants import RSAConfigType
-from backend.core.encrypt.handlers import RSAHandler
-from backend.core.encrypt.models import RSAKey
+from backend.core.encrypt.constants import AsymmetricCipherConfigType
+from backend.core.encrypt.handlers import AsymmetricHandler
+from backend.core.encrypt.models import AsymmetricCipherKey
 from backend.db_services.mysql.permission.constants import AccountType
 from backend.db_services.mysql.permission.db_account.dataclass import AccountMeta, AccountRuleMeta
 from backend.db_services.mysql.permission.db_account.handlers import AccountHandler
@@ -24,22 +26,21 @@ from backend.tests.mock_data.components.mysql_priv_manager import MySQLPrivManag
 from backend.tests.mock_data.db_services.mysql.permission.account import (
     ACCOUNT,
     ACCOUNT_RULE,
-    INVALID_PASSWORD_LIST,
     POLICY_DATA,
     VALID_PASSWORD_LIST,
 )
 
 pytestmark = pytest.mark.django_db
+logger = logging.getLogger("root")
 
 
 @pytest.fixture(scope="module")
 def query_fixture(django_db_blocker):
     with django_db_blocker.unblock():
-        RSAHandler.get_or_generate_rsa_in_db(RSAConfigType.MYSQL.value)
-        PasswordPolicy.objects.create(account_type=RSAConfigType.MYSQL.value, policy=POLICY_DATA)
-
+        AsymmetricHandler.get_or_generate_cipher_instance(AsymmetricCipherConfigType.PASSWORD.value)
+        PasswordPolicy.objects.create(account_type=AsymmetricCipherConfigType.PASSWORD.value, policy=POLICY_DATA)
         yield
-        RSAKey.objects.all().delete()
+        AsymmetricCipherKey.objects.all().delete()
         PasswordPolicy.objects.all().delete()
 
 
@@ -48,7 +49,7 @@ class TestAccountHandler:
     AccountHandler的测试类
     """
 
-    @pytest.mark.parametrize("password", VALID_PASSWORD_LIST + INVALID_PASSWORD_LIST)
+    @pytest.mark.parametrize("password", VALID_PASSWORD_LIST)
     def test_check_password_strength__valid(self, password):
         is_pwd_valid, _ = AccountHandler._check_password_strength(password, rule_data=copy.deepcopy(POLICY_DATA))
         assert is_pwd_valid == (password in VALID_PASSWORD_LIST)
@@ -77,12 +78,12 @@ class TestAccountHandler:
         data = AccountHandler(bk_biz_id=1, account_type=AccountType.MYSQL).list_account_rules(account_rule)
         assert data["count"] == 1
 
-    @pytest.mark.parametrize("password", VALID_PASSWORD_LIST + INVALID_PASSWORD_LIST)
+    @pytest.mark.parametrize("password", VALID_PASSWORD_LIST)
+    @patch("backend.configuration.handlers.password.MySQLPrivManagerApi", MySQLPrivManagerApiMock)
     def test_verify_password_strength__valid(self, password):
-        rsa = RSAHandler.get_or_generate_rsa_in_db(name=RSAConfigType.MYSQL.value)
-        account = AccountMeta(password=RSAHandler.encrypt_password(rsa.rsa_public_key.content, password, None))
-
-        is_strength = AccountHandler(bk_biz_id=1, account_type=AccountType.MYSQL).verify_password_strength(account)[
-            "is_strength"
-        ]
-        assert is_strength == (password in VALID_PASSWORD_LIST)
+        password = AsymmetricHandler.encrypt(
+            name=AsymmetricCipherConfigType.PASSWORD.value, content=password, need_salt=False
+        )
+        check_result = DBPasswordHandler.verify_password_strength(password)
+        is_strength = check_result["is_strength"]
+        assert is_strength

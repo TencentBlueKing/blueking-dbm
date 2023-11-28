@@ -13,7 +13,7 @@
 
 import _ from 'lodash';
 
-import type { ResourceTopo, ResourceTopoGroup, ResourceTopoNode } from '@services/types/clusters';
+import type { ResourceTopo } from '@services/types';
 
 const defaultNodeConfig = {
   width: 296,
@@ -47,7 +47,7 @@ type GroupTypesStrings = `${GroupTypes}`;
 export interface GraphNode {
   id: string,
   label: string,
-  data: ResourceTopoNode | ResourceTopoGroup,
+  data: ResourceTopo['nodes'][number] | ResourceTopo['groups'][number],
   children: GraphNode[],
   width: number,
   height: number,

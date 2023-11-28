@@ -18,23 +18,21 @@ const path = '/apis/core/storage';
 /**
  * 批量获取文件内容
  */
-export const batchFetchFile = function (params: {
-  file_path_list: string[]
-}) {
+export function batchFetchFile(params: { file_path_list: string[] }) {
   return http.post<Array<{
     content: string,
     path: string,
     url: string
   }>>(`${path}/batch_fetch_file_content/`, params);
-};
+}
 
 /**
  * 获取文件内容
  */
-export const getFileContent = function (params: { file_path: string }) {
+export function getFileContent(params: { file_path: string }) {
   return http.get<{
     content: string;
     path: string;
     url: string
   }>(`${path}/fetch_file_content/`, params);
-};
+}

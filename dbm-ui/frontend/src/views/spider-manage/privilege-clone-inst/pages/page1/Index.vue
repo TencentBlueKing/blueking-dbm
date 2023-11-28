@@ -159,7 +159,8 @@
   const handleSubmit = () => {
     isSubmitting.value = true;
     Promise.all(rowRefs.value.map((item: { getValue: () => Promise<any> }) => item.getValue()))
-      .then(data => precheckPermissionClone(currentBizId, {
+      .then(data => precheckPermissionClone({
+        bizId: currentBizId,
         clone_type: 'instance',
         clone_list: data,
         clone_cluster_type: 'tendbcluster',

@@ -12,17 +12,20 @@ from pathlib import Path
 from typing import Dict
 
 import pymysql
+from bkcrypto import constants
+from bkcrypto.asymmetric.options import RSAAsymmetricOptions, SM2AsymmetricOptions
+from bkcrypto.symmetric.options import AESSymmetricOptions, SM4SymmetricOptions
 from blueapps.conf.default_settings import *  # pylint: disable=wildcard-import
 from blueapps.core.celery.celery import app
 
 from backend import env
+from backend.core.encrypt.interceptors import SymmetricInterceptor
 
 if env.RUN_VER == "open":
     from blueapps.patch.settings_open_saas import *  # pylint: disable=wildcard-import
 else:
     from blueapps.patch.settings_paas_services import *  # pylint: disable=wildcard-import
 
-from backend import env
 
 # django 3.2 默认的 default_auto_field 是 BigAutoField，django_celery_beat 在 2.2.1 版本已处理此问题
 # 受限于 celery 和 bamboo 的版本，这里暂时这样手动设置 default_auto_field 来处理此问题
@@ -250,7 +253,7 @@ BK_API_URL_TMPL = f"{BK_COMPONENT_API_URL}/api/{{api_name}}/"
 BK_APIGW_NAME = "bkdbm"
 BK_APIGW_GRANT_APPS = env.BK_APIGW_GRANT_APPS
 # TODO: apigw文档待补充
-BK_APIGW_RESOURCE_DOCS_ARCHIVE_FILE = ""
+BK_APIGW_RESOURCE_DOCS_ARCHIVE_FILE = env.BK_APIGW_RESOURCE_DOCS_ARCHIVE_FILE
 # 需将 bkapi.example.com 替换为真实的云 API 域名，在 PaaS 3.0 部署的应用，可从环境变量中获取 BK_API_URL_TMPL
 
 # Password validation
@@ -437,6 +440,53 @@ BKREPO_SSL_PATH = env.BKREPO_SSL_PATH
 STORAGE_TYPE_IMPORT_PATH_MAP = {
     "FILE_SYSTEM": "backend.core.storages.storage.AdminFileSystemStorage",
     "BLUEKING_ARTIFACTORY": "backend.core.storages.storage.CustomBKRepoStorage",
+}
+
+# 对称/非对称加密算法
+BKCRYPTO = {
+    # 声明项目所使用的非对称加密算法
+    "ASYMMETRIC_CIPHER_TYPE": env.ASYMMETRIC_CIPHER_TYPE,
+    # 声明项目所使用的对称加密算法
+    "SYMMETRIC_CIPHER_TYPE": env.SYMMETRIC_CIPHER_TYPE,
+    "SYMMETRIC_CIPHERS": {
+        # default - 所配置的对称加密实例，根据项目需要可以配置多个
+        "default": {
+            # 可选，用于在 settings 没法直接获取 key 的情况
+            # "get_key_config": "apps.utils.encrypt.key.get_key_config",
+            # 可选，用于 ModelField，加密时携带该前缀入库，解密时分析该前缀并选择相应的解密算法
+            # ⚠️ 前缀和 cipher type 必须一一对应，且不能有前缀匹配关系
+            # "db_prefix_map": {
+            #     SymmetricCipherType.AES.value: "aes_str:::",
+            #     SymmetricCipherType.SM4.value: "sm4_str:::"
+            # },
+            # 公共参数配置，不同 cipher 初始化时共用这部分参数
+            "common": {"key": env.SECRET_KEY},
+            "cipher_options": {
+                # ⚠️这里的配置项为了兼容以前AES的加密模式，如果是新部署的环境可自行修改
+                constants.SymmetricCipherType.AES.value: AESSymmetricOptions(
+                    key_size=16,
+                    iv=env.SECRET_KEY[:16].encode("utf-8"),
+                    mode=constants.SymmetricMode.CBC,
+                    interceptor=SymmetricInterceptor
+                ),
+                # 蓝鲸推荐配置
+                constants.SymmetricCipherType.SM4.value: SM4SymmetricOptions(
+                    mode=constants.SymmetricMode.CTR, key=env.SECRET_KEY
+                )
+            }
+        },
+    },
+    "ASYMMETRIC_CIPHERS": {
+        # 配置同 SYMMETRIC_CIPHERS
+        "default": {
+            "cipher_options": {
+                constants.AsymmetricCipherType.RSA.value: RSAAsymmetricOptions(
+                    padding=constants.RSACipherPadding.PKCS1_v1_5
+                ),
+                constants.AsymmetricCipherType.SM2.value: SM2AsymmetricOptions()
+            },
+        },
+    }
 }
 
 # 默认的file storage

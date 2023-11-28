@@ -10,6 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 from backend.components import DBConfigApi
 from backend.components.dbconfig.constants import FormatType, LevelName, ReqType
+from backend.db_meta.models import Cluster
 from backend.flow.consts import (
     ConfigTypeEnum,
     DBActuatorTypeEnum,
@@ -18,6 +19,8 @@ from backend.flow.consts import (
     PulsarActuatorActionEnum,
     PulsarRoleEnum,
 )
+from backend.flow.utils.base.payload_handler import PayloadHandler
+from backend.flow.utils.pulsar.consts import PulsarConfigEnum
 from backend.ticket.constants import TicketType
 
 
@@ -182,7 +185,7 @@ class PulsarActPayload(object):
                 "zk_host": self.ticket_data["zk_hosts_str"],
                 "broker_configs": self.pulsar_config[PulsarRoleEnum.Broker],
                 "cluster_name": self.ticket_data["cluster_name"],
-                "token": self.pulsar_config[PulsarRoleEnum.Broker]["brokerClientAuthenticationParameters"],
+                "token": self.ticket_data["token"],
             }
         return {
             "db_type": DBActuatorTypeEnum.Pulsar.value,
@@ -195,14 +198,10 @@ class PulsarActPayload(object):
 
     def get_init_manager_payload(self, **kwargs) -> dict:
         if self.ticket_data["ticket_type"] == TicketType.PULSAR_APPLY.value:
-            # username = self.ticket_data["username"]
-            # password = self.ticket_data["password"]
             token = "token:" + kwargs["trans_data"]["init_token_info"]["token"]
         else:
-            # ZK替换场景 新建Pulsar Manager，参数从dbconfig 取
-            # username = self.pulsar_config[PulsarConfigEnum.ManagerUserName]
-            # password = self.pulsar_config[PulsarConfigEnum.ManagerPassword]
-            token = self.pulsar_config[PulsarRoleEnum.Broker]["brokerClientAuthenticationParameters"]
+            # ZK替换场景 新建Pulsar Manager，参数从密码服务 取
+            token = self.ticket_data["token"]
 
         return {
             "db_type": DBActuatorTypeEnum.Pulsar.value,
@@ -225,14 +224,10 @@ class PulsarActPayload(object):
 
     def get_install_manager_payload(self, **kwargs) -> dict:
         if self.ticket_data["ticket_type"] == TicketType.PULSAR_APPLY.value:
-            # username = self.ticket_data["username"]
-            # password = self.ticket_data["password"]
             token = "token:" + kwargs["trans_data"]["init_token_info"]["token"]
         else:
-            # ZK替换场景 新建Pulsar Manager，参数从dbconfig 取
-            # username = self.pulsar_config[PulsarConfigEnum.ManagerUserName]
-            # password = self.pulsar_config[PulsarConfigEnum.ManagerPassword]
-            token = self.pulsar_config[PulsarRoleEnum.Broker]["brokerClientAuthenticationParameters"]
+            # ZK替换场景 新建Pulsar Manager，token从密码服务获取
+            token = self.ticket_data["token"]
 
         return {
             "db_type": DBActuatorTypeEnum.Pulsar.value,
@@ -472,3 +467,9 @@ def get_cluster_config(bk_biz_id: str, cluster_domain: str, db_version: str, con
         }
     )
     return data["content"]
+
+
+def get_token_by_cluster(cluster: Cluster, port: int) -> str:
+    return PayloadHandler.get_bigdata_password_by_cluster(
+        cluster, port, PulsarConfigEnum.ClientAuthenticationParameters
+    )

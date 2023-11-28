@@ -19,6 +19,7 @@ type RedisSwitch struct {
 	RedisSwitchInfo
 	Config *config.Config
 	FLock  *util.FileLock
+	NoNeed bool
 }
 
 // CheckSwitch check redis status before switch
@@ -26,7 +27,17 @@ func (ins *RedisSwitch) CheckSwitch() (bool, error) {
 	ins.ReportLogs(
 		constvar.InfoResult, fmt.Sprintf("handle instance[%s:%d]", ins.Ip, ins.Port),
 	)
-	if len(ins.Slave) != 1 {
+
+	// if instance is slave, set NoNeed flag
+	ins.NoNeed = ins.CheckSlave()
+	if ins.NoNeed {
+		noNeedInfo := fmt.Sprintf("redis ins is slave[%d], no need check", len(ins.Slave))
+		ins.ReportLogs(constvar.InfoResult, noNeedInfo)
+		return true, nil
+	}
+
+	// check the number of slave
+	if len(ins.Slave) < 1 {
 		redisErr := fmt.Errorf("redis have invald slave[%d]", len(ins.Slave))
 		log.Logger.Errorf("%s info:%s", redisErr.Error(), ins.ShowSwitchInstanceInfo())
 		ins.ReportLogs(constvar.FailResult, redisErr.Error())
@@ -62,6 +73,11 @@ func (ins *RedisSwitch) CheckSwitch() (bool, error) {
 // DoSwitch do switch action
 func (ins *RedisSwitch) DoSwitch() error {
 	log.Logger.Infof("redis do switch.info:{%s}", ins.ShowSwitchInstanceInfo())
+	if ins.NoNeed {
+		ins.ReportLogs(constvar.InfoResult, "no need switch!")
+		return nil
+	}
+
 	r := &client.RedisClient{}
 	defer r.Close()
 
@@ -138,6 +154,11 @@ func (ins *RedisSwitch) RollBack() error {
 
 // UpdateMetaInfo swap redis role information from cmdb
 func (ins *RedisSwitch) UpdateMetaInfo() error {
+	if ins.NoNeed {
+		ins.ReportLogs(constvar.InfoResult, "no need update meta!")
+		return nil
+	}
+
 	defer ins.DoUnLockByFile()
 	ins.ReportLogs(constvar.InfoResult, "handle swap_role for cmdb")
 	if len(ins.Slave) != 1 {
@@ -576,4 +597,18 @@ func (ins *RedisSwitch) CommunicateTwemproxy(
 		return "", err
 	}
 	return string(rsp[:n]), nil
+}
+
+// CheckSlave check instance is slave or not
+func (ins *RedisSwitch) CheckSlave() bool {
+	if strings.Contains(ins.Role, "slave") {
+		return true
+	} else {
+		return false
+	}
+}
+
+// GetRole get the role of instance
+func (ins *RedisSwitch) GetRole() string {
+	return ins.Role
 }

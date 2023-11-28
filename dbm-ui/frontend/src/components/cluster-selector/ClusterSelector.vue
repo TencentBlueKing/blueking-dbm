@@ -163,7 +163,7 @@
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
-  import type { ResourceItem } from '@services/types/clusters';
+  import type { ResourceItem } from '@services/types';
 
   import { useCopy, useDefaultPagination } from '@hooks';
 

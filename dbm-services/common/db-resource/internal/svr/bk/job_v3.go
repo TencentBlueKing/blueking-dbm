@@ -25,13 +25,21 @@ type Jober interface {
 	Execute()
 }
 
-// DiskInfoScriptName TODO
-var DiskInfoScriptName = "get_block_info.sh"
+// LiunxDiskScriptName   获取Liunx磁盘脚本名称
+var LiunxDiskScriptName = "get_block_info.sh"
 
-// GetDiskInfoScript TODO
+// WinDiskScriptName  获取windows磁盘脚本名称
+var WinDiskScriptName = "get_win_disk.ps1"
+
+// GetDiskInfoScript 获取Liunx磁盘脚本
 //
 //go:embed get_block_info.sh
 var GetDiskInfoScript embed.FS
+
+// GetWinDiskScrip 获取windows磁盘脚本
+//
+//go:embed get_win_disk.ps1
+var GetWinDiskScrip embed.FS
 
 const (
 	// ESB_PREFIX TODO
@@ -41,7 +49,7 @@ const (
 	// 查询作业执行状态
 	get_job_status = "get_job_instance_status/"
 	// 根据作业实例ID查询作业执行日志
-	get_job_instance_ip_log = "get_job_instance_ip_log/"
+	// get_job_instance_ip_log = "get_job_instance_ip_log/"
 	// 根据ip列表批量查询作业执行日志
 	batch_get_job_instance_ip_log = "batch_get_job_instance_ip_log/"
 )

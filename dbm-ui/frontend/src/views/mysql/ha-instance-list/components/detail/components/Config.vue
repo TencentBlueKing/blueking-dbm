@@ -27,7 +27,6 @@
   import { useI18n } from 'vue-i18n';
 
   import { getLevelConfig } from '@services/source/configs';
-  import type { ConfigBaseDetails } from '@services/types/configs';
 
   import { useGlobalBizs } from '@stores';
 
@@ -54,7 +53,7 @@
     version: '',
     description: '',
     conf_items: [],
-  } as ConfigBaseDetails);
+  } as ServiceReturnType<typeof getLevelConfig>);
   const columns = [{
     label: t('参数项'),
     field: 'conf_name',

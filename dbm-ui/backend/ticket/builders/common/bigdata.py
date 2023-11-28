@@ -29,7 +29,7 @@ from backend.ticket.builders.common.base import (
     InfluxdbTicketFlowBuilderPatchMixin,
     remove_useless_spec,
 )
-from backend.ticket.builders.common.constants import MAX_DOMAIN_LEN_LIMIT, BigDataRole
+from backend.ticket.builders.common.constants import BigDataRole
 
 
 class BigDataDetailsSerializer(serializers.Serializer):

@@ -50,8 +50,12 @@ class MysqlFlashbackFlow(object):
     def mysql_flashback_flow(self):
         """
         flashback 回档数据
+        增加单据临时ADMIN账号的添加和删除逻辑
         """
-        mysql_restore_slave_pipeline = Builder(root_id=self.root_id, data=copy.deepcopy(self.data))
+        cluster_ids = [i["cluster_id"] for i in self.data["infos"]]
+        mysql_restore_slave_pipeline = Builder(
+            root_id=self.root_id, data=copy.deepcopy(self.data), need_random_pass_cluster_ids=list(set(cluster_ids))
+        )
         sub_pipeline_list = []
         for info in self.data["infos"]:
             one_cluster = get_cluster_info(info["cluster_id"])
@@ -109,4 +113,6 @@ class MysqlFlashbackFlow(object):
             sub_pipeline_list.append(sub_pipeline.build_sub_process(sub_name=_("flash开始恢复数据")))
 
         mysql_restore_slave_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipeline_list)
-        mysql_restore_slave_pipeline.run_pipeline(init_trans_data_class=MySQLFlashBackContext())
+        mysql_restore_slave_pipeline.run_pipeline(
+            init_trans_data_class=MySQLFlashBackContext(), is_drop_random_user=True
+        )

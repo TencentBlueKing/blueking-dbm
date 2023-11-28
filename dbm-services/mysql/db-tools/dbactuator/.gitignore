@@ -23,8 +23,7 @@ conf/
 .DS_Store
 sync_test.sh
 .vscode/
-scripts/upload_media.sh
-scripts/upload.sh
+scripts/upload*
 localtest/
 .codecc
 .idea

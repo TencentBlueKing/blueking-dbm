@@ -23,7 +23,7 @@ type DBLoader struct {
 	*RestoreParam
 
 	taskDir      string // 依赖 BackupInfo.WorkDir ${work_dir}/doDr_${id}/${port}/
-	targetDir    string // 备份解压后的目录，${taskDir}/backupBaseName/
+	targetDir    string // 备份解压后的目录，${taskDir}/<backupBaseName>/
 	dbLoaderUtil *dbloader.LoaderUtil
 	// dbLoader is interface
 	dbLoader dbloader.DBBackupLoader
@@ -174,10 +174,13 @@ func (m *DBLoader) initDirs() error {
 	if err := osutil.CheckAndMkdir("", m.taskDir); err != nil {
 		return err
 	}
-	if m.BackupInfo.backupBaseName == "" {
-		return errors.Errorf("backup file baseName [%s] error", m.BackupInfo.backupBaseName)
-	}
-	m.targetDir = fmt.Sprintf("%s/%s", m.taskDir, m.backupBaseName)
+	/*
+		if m.BackupInfo.indexObj.GetMetafileBasename() == "" {
+			return errors.New("backup file baseName error")
+		}
+	*/
+	m.targetDir = m.BackupInfo.indexObj.GetTargetDir()
+	//m.targetDir = filepath.Join(m.taskDir, m.backupBaseName)
 	return nil
 }
 

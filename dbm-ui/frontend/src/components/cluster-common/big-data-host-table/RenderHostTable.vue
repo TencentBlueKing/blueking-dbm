@@ -77,9 +77,7 @@
 <script lang="tsx">
   import { useI18n } from 'vue-i18n';
 
-  import { checkHost } from '@services/source/ipchooser';
-
-  type HostDetails = ServiceReturnType<typeof checkHost>[number]
+  import type { HostDetails } from '@services/types';
 
   export type IHostTableData = HostDetails;
 </script>

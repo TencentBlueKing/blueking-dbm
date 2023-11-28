@@ -43,9 +43,10 @@
 
 <script setup lang="tsx">
   import { getUserList } from '@services/source/user';
-  import type { GetUsesParams } from '@services/types/common';
 
   import { useCopy } from '@hooks';
+
+  type GetUsesParams = ServiceParameters<typeof getUserList>
 
   interface Props {
     collapseTags?: boolean

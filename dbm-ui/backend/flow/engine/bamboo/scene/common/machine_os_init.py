@@ -71,9 +71,9 @@ class ImportResourceInitStepFlow(object):
             act_component_code=ExternalServiceComponent.code,
             kwargs={
                 "params": self.data,
-                "import_path": DBResourceApi.__module__,
-                "import_module": "DBResourceApi",
-                "call_func": "resource_import",
+                "api_import_path": DBResourceApi.__module__,
+                "api_import_module": "DBResourceApi",
+                "api_call_func": "resource_import",
             },
         )
 

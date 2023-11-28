@@ -79,11 +79,9 @@ class DBPartitionViewSet(viewsets.AuditedModelViewSet):
     def list(self, request, *args, **kwargs):
         validated_data = self.params_validate(PartitionListSerializer)
         partition_data = DBPartitionApi.query_conf(params=validated_data)
-
         partition_list = self._update_log_status(partition_data["items"])
-        # 去掉时区时间
-        partition_list = self._format_time_field(partition_list)
-
+        # 时区转换前端来做
+        # partition_list = self._format_time_field(partition_list)
         return Response({"count": partition_data["count"], "results": partition_list})
 
     @common_swagger_auto_schema(
@@ -147,7 +145,8 @@ class DBPartitionViewSet(viewsets.AuditedModelViewSet):
         validated_data = self.params_validate(PartitionLogSerializer, representation=True)
         partition_log_data = DBPartitionApi.query_log(params=validated_data)
         partition_log_list = self._update_log_status(partition_log_data["items"])
-        partition_log_list = self._format_time_field(partition_log_list)
+        # 时区转换前端来做
+        # partition_log_list = self._format_time_field(partition_log_list)
         return Response({"count": partition_log_data["count"], "results": partition_log_list})
 
     @common_swagger_auto_schema(

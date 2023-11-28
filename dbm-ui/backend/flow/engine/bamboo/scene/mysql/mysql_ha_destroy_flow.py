@@ -76,8 +76,11 @@ class MySQLHADestroyFlow(object):
     def destroy_mysql_ha_flow(self):
         """
         定义mysql主从版下架流程，支持多集群下架模式
+        该单据会生成临时账号，来处理shutdown mysql实例
         """
-        mysql_ha_destroy_pipeline = Builder(root_id=self.root_id, data=self.data)
+        mysql_ha_destroy_pipeline = Builder(
+            root_id=self.root_id, data=self.data, need_random_pass_cluster_ids=list(set(self.data["cluster_ids"]))
+        )
         sub_pipelines = []
 
         # 多集群下架时循环加入集群下架子流程
@@ -128,6 +131,15 @@ class MySQLHADestroyFlow(object):
             acts_list = []
             for proxy_ip in cluster["proxy_ip_list"]:
                 exec_act_kwargs.exec_ip = proxy_ip
+                exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_clear_surrounding_config_payload.__name__
+                acts_list.append(
+                    {
+                        "act_name": _("清理实例周边配置"),
+                        "act_component_code": ExecuteDBActuatorScriptComponent.code,
+                        "kwargs": asdict(exec_act_kwargs),
+                    },
+                )
+
                 exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_uninstall_proxy_payload.__name__
                 acts_list.append(
                     {
@@ -141,6 +153,15 @@ class MySQLHADestroyFlow(object):
             acts_list = []
             for mysql_ip in cluster["backend_ip_list"]:
                 exec_act_kwargs.exec_ip = mysql_ip
+                exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_clear_surrounding_config_payload.__name__
+                acts_list.append(
+                    {
+                        "act_name": _("清理实例周边配置"),
+                        "act_component_code": ExecuteDBActuatorScriptComponent.code,
+                        "kwargs": asdict(exec_act_kwargs),
+                    },
+                )
+
                 exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_uninstall_mysql_payload.__name__
                 acts_list.append(
                     {
@@ -177,4 +198,4 @@ class MySQLHADestroyFlow(object):
             )
 
         mysql_ha_destroy_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
-        mysql_ha_destroy_pipeline.run_pipeline()
+        mysql_ha_destroy_pipeline.run_pipeline(is_drop_random_user=False)

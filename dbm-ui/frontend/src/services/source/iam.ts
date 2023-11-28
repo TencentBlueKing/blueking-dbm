@@ -12,14 +12,14 @@
 */
 
 import http from '../http';
-import type { Permission } from '../types/common';
+import type { Permission } from '../types';
 
 const path = '/apis/iam';
 
 /**
  * 校验资源权限参数
  */
-export interface IAMParams {
+interface IAMParams {
   action_ids: Array<string>,
   resources: Array<{ type: string, id: string | number }>
 }
@@ -27,16 +27,16 @@ export interface IAMParams {
 /**
  * 检查当前用户对该动作是否有权限
  */
-export const checkAuthAllowed = function (params: IAMParams) {
+export function checkAuthAllowed(params: IAMParams) {
   return http.post<{
     action_id: string,
     is_allowed: boolean
   }[]>(`${path}/check_allowed/`, params);
-};
+}
 
 /**
  * 获取权限申请数据
  */
-export const getApplyDataLink = function (params: IAMParams) {
+export function getApplyDataLink(params: IAMParams) {
   return http.post<Permission>(`${path}/get_apply_data/`, params);
-};
+}

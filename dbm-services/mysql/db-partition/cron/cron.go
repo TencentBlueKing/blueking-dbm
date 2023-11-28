@@ -2,18 +2,19 @@
 package cron
 
 import (
-	"dbm-services/mysql/db-partition/util"
 	"errors"
 	"fmt"
 	"log"
+	"log/slog"
 	"strings"
 	"time"
+
+	"dbm-services/mysql/db-partition/util"
 
 	"dbm-services/mysql/db-partition/model"
 
 	"github.com/robfig/cron/v3"
 	"github.com/spf13/viper"
-	"golang.org/x/exp/slog"
 )
 
 var CronList []*cron.Cron

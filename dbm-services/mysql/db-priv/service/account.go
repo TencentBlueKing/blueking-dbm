@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io/ioutil"
+	"log/slog"
 	"os"
 	"strings"
 
@@ -13,7 +14,6 @@ import (
 	"dbm-services/mysql/priv-service/util"
 
 	"github.com/spf13/viper"
-	"golang.org/x/exp/slog"
 )
 
 // AddAccount 新增账号

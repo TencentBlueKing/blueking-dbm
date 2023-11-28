@@ -105,8 +105,10 @@
   } from '@services/source/tendbsingle';
   import { createTicket } from '@services/source/ticket';
   import { getUserList } from '@services/source/user';
-  import type { ResourceItem } from '@services/types/clusters';
-  import type { SearchFilterItem } from '@services/types/common';
+  import type {
+    ResourceItem,
+    SearchFilterItem,
+  } from '@services/types';
 
   import {
     type IPagination,

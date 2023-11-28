@@ -42,7 +42,6 @@
   import { useI18n } from 'vue-i18n';
 
   import { getConfigBaseDetails } from '@services/source/configs';
-  import type { ConfigBaseDetails } from '@services/types/configs';
 
   import { useMainViewStore } from '@stores';
 
@@ -63,7 +62,7 @@
   const state = reactive({
     loading: false,
     activeTab: '',
-    data: {} as ConfigBaseDetails,
+    data: {} as ServiceReturnType<typeof getConfigBaseDetails>,
     // extraParametersCards: [] as ExtraConfListItem[]
   });
   const baseParams = computed(() => ({

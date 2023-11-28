@@ -13,81 +13,51 @@ import (
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util/osutil"
+	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/backupexe"
 
 	"github.com/pkg/errors"
 )
 
 // BackupIndexFile godoc
 type BackupIndexFile struct {
-	BackupType    string `json:"backup_type"`
-	StorageEngine string `json:"storage_engine"`
-	MysqlVersion  string `json:"mysql_version"`
+	backupexe.IndexContent
+	/*
+		BackupType    string `json:"backup_type"`
+		StorageEngine string `json:"storage_engine"`
+		MysqlVersion  string `json:"mysql_version"`
 
-	BackupCharset string `json:"backup_charset"`
-	BkBizId       int    `json:"bk_biz_id"`
-	// unique uuid
-	BackupId        string `json:"backup_id"`
-	BillId          string `json:"bill_id"`
-	ClusterId       int    `json:"cluster_id"`
-	BackupHost      string `json:"backup_host"`
-	BackupPort      int    `json:"backup_port"`
-	MysqlRole       string `json:"mysql_role"`
-	DataSchemaGrant string `json:"data_schema_grant"`
-	// 备份一致性时间点，物理备份可能为空
-	ConsistentBackupTime string `json:"consistent_backup_time"`
-	BackupBeginTime      string `json:"backup_begin_time"`
-	BackupEndTime        string `json:"backup_end_time"`
-	TotalFilesize        uint64 `json:"total_filesize"`
+		BackupCharset string `json:"backup_charset"`
+		BkBizId       int    `json:"bk_biz_id"`
+		// unique uuid
+		BackupId        string `json:"backup_id"`
+		BillId          string `json:"bill_id"`
+		ClusterId       int    `json:"cluster_id"`
+		BackupHost      string `json:"backup_host"`
+		BackupPort      int    `json:"backup_port"`
+		MysqlRole       string `json:"mysql_role"`
+		DataSchemaGrant string `json:"data_schema_grant"`
+		// 备份一致性时间点，物理备份可能为空
+		ConsistentBackupTime string `json:"consistent_backup_time"`
+		BackupBeginTime      string `json:"backup_begin_time"`
+		BackupEndTime        string `json:"backup_end_time"`
+		TotalFilesize        uint64 `json:"total_filesize"`
 
-	FileList   []IndexFileItem  `json:"file_list"`
-	BinlogInfo BinlogStatusInfo `json:"binlog_info"`
+		FileList   []IndexFileItem  `json:"file_list"`
+		BinlogInfo BinlogStatusInfo `json:"binlog_info"`
+	*/
 
 	indexFilePath string
 	// backupFiles {data: {file1: obj, file2: obj}, priv: {}}
-	backupFiles map[string][]IndexFileItem
+	backupFiles map[string][]backupexe.IndexFileItem
 	// 备份文件解压后的目录名，相对目录
-	backupBasename string
+	backupIndexBasename string
 	// 备份文件的所在根目录，比如 /data/dbbak
-	backupDir  string
-	targetDir  string
-	splitParts []string
-	tarParts   []string
-}
-
-// IndexFileItem godoc
-type IndexFileItem struct {
-	BackupFileName string `json:"backup_file_name"`
-	BackupFileSize int64  `json:"backup_file_size"`
-	TarFileName    string `json:"tar_file_name"`
-	// TarFileSize    int64  `json:"tar_file_size"`
-	DBTable  string `json:"db_table"`
-	FileType string `json:"file_type" enums:"schema,data,metadata,priv"`
-}
-
-// BinlogStatusInfo master status and slave status
-type BinlogStatusInfo struct {
-	ShowMasterStatus *StatusInfo `json:"show_master_status"`
-	ShowSlaveStatus  *StatusInfo `json:"show_slave_status"`
-}
-
-// StatusInfo detailed binlog information
-type StatusInfo struct {
-	BinlogFile string `json:"binlog_file"`
-	BinlogPos  string `json:"binlog_pos"`
-	Gtid       string `json:"gtid"`
-	MasterHost string `json:"master_host"`
-	MasterPort int    `json:"master_port"`
-}
-
-// String 用于打印
-func (s *StatusInfo) String() string {
-	return fmt.Sprintf("Status{BinlogFile:%s, BinlogPos:%s, MasterHost:%s, MasterPort:%d}",
-		s.BinlogFile, s.BinlogPos, s.MasterHost, s.MasterPort)
-}
-
-// String 用于打印
-func (s *BinlogStatusInfo) String() string {
-	return fmt.Sprintf("BinlogStatusInfo{MasterStatus:%+v, SlaveStatus:%+v}", s.ShowMasterStatus, s.ShowSlaveStatus)
+	backupDir string
+	// targetDir 备份解压后的目录，比如 /data/dbbak/xxx/20000/<backupIndexBasename>/
+	targetDir       string
+	tarfileBasename string
+	splitParts      []string
+	tarParts        []string
 }
 
 // ParseBackupIndexFile read index file: fileDir/fileName
@@ -103,16 +73,15 @@ func ParseBackupIndexFile(indexFilePath string, indexObj *BackupIndexFile) error
 	}
 
 	indexObj.indexFilePath = indexFilePath
-	indexObj.backupBasename = strings.TrimSuffix(fileName, ".index")
+	indexObj.backupIndexBasename = strings.TrimSuffix(fileName, ".index")
 	indexObj.backupDir = fileDir
-	// indexObj.targetDir = filepath.Join(fileDir, indexObj.backupBasename)
 
-	indexObj.backupFiles = make(map[string][]IndexFileItem)
+	indexObj.backupFiles = make(map[string][]backupexe.IndexFileItem)
 	for _, fileItem := range indexObj.FileList {
 		indexObj.backupFiles[fileItem.FileType] = append(indexObj.backupFiles[fileItem.FileType], fileItem)
 	}
-	logger.Info("backupBasename=%s, backupType=%s, charset=%s",
-		indexObj.backupBasename, indexObj.BackupType, indexObj.BackupCharset)
+	logger.Info("backupIndexBasename=%s, backupType=%s, charset=%s",
+		indexObj.backupIndexBasename, indexObj.BackupType, indexObj.BackupCharset)
 	return indexObj.ValidateFiles()
 }
 
@@ -141,8 +110,7 @@ func (f *BackupIndexFile) ValidateFiles() error {
 	var errFiles []string
 	reSplitPart := regexp.MustCompile(ReSplitPart)
 	reTarPart := regexp.MustCompile(ReTarPart) // 如果只有一个tar，也会存到这里
-	// allFileList := f.GetTarFileList("")
-	tarPartsWithoutSuffix := []string{} // remove .tar suffix from tar to get no. sequence
+	tarPartsWithoutSuffix := []string{}        // remove .tar suffix from tar to get no. sequence
 	for _, tarFile := range f.FileList {
 		if fSize := cmutil.GetFileSize(filepath.Join(f.backupDir, tarFile.TarFileName)); fSize < 0 {
 			errFiles = append(errFiles, tarFile.TarFileName)
@@ -154,9 +122,17 @@ func (f *BackupIndexFile) ValidateFiles() error {
 			tarPartsWithoutSuffix = append(tarPartsWithoutSuffix, strings.TrimSuffix(tarFile.TarFileName, ".tar"))
 			f.tarParts = append(f.tarParts, tarFile.TarFileName)
 		}
+		if f.tarfileBasename == "" {
+			f.tarfileBasename = backupexe.ParseTarFilename(tarFile.TarFileName)
+		} else if f.tarfileBasename != backupexe.ParseTarFilename(tarFile.TarFileName) {
+			return errors.Errorf("tar file base name error: %s, file:%s", f.tarfileBasename, tarFile.TarFileName)
+		}
 	}
 	if len(errFiles) != 0 {
 		return errors.Errorf("files not found in %s: %v", f.backupDir, errFiles)
+	}
+	if f.tarfileBasename != f.backupIndexBasename {
+		// logger index baseName nad tarfile baseName does not match
 	}
 	sort.Strings(f.splitParts)
 	sort.Strings(f.tarParts)
@@ -182,7 +158,12 @@ func (f *BackupIndexFile) UntarFiles(untarDir string) error {
 	if untarDir == "" {
 		return errors.Errorf("untar target dir should not be emtpy")
 	}
-	f.targetDir = filepath.Join(untarDir, f.backupBasename)
+	if f.tarfileBasename != "" {
+		// logger index baseName nad tarfile baseName does not match
+		f.targetDir = filepath.Join(untarDir, f.tarfileBasename)
+	} else {
+		f.targetDir = filepath.Join(untarDir, f.backupIndexBasename)
+	}
 	if cmutil.FileExists(f.targetDir) {
 		return errors.Errorf("target untar path already exists %s", f.targetDir)
 	}
@@ -194,8 +175,10 @@ func (f *BackupIndexFile) UntarFiles(untarDir string) error {
 			return errors.Wrap(err, cmd)
 		}
 	}
+
 	if len(f.tarParts) > 0 {
 		for _, p := range f.tarParts {
+			backupexe.ParseTarFilename(p)
 			cmd := fmt.Sprintf(`cd %s && tar -xf %s -C %s/`, f.backupDir, p, untarDir)
 			if _, err := osutil.ExecShellCommand(false, cmd); err != nil {
 				return errors.Wrap(err, cmd)
@@ -207,4 +190,14 @@ func (f *BackupIndexFile) UntarFiles(untarDir string) error {
 		return errors.Errorf("targetDir %s is not ready", f.targetDir)
 	}
 	return nil
+}
+
+// GetTargetDir 返回解压后的目录
+// 考虑到某些情况 backupIndexBasename.index 跟 tar file name 可能不同
+func (f *BackupIndexFile) GetTargetDir() string {
+	return f.targetDir
+}
+
+func (f *BackupIndexFile) GetMetafileBasename() string {
+	return f.backupIndexBasename
 }

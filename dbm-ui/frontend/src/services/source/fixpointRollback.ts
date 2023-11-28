@@ -16,7 +16,7 @@ import FixpointLogModel from '@services/model/fixpoint-rollback/fixpoint-log';
 import { useGlobalBizs } from '@stores';
 
 import http from '../http';
-import type { ListBase } from '../types/common';
+import type { ListBase } from '../types';
 
 const { currentBizId } = useGlobalBizs();
 
@@ -25,16 +25,16 @@ const path = `/apis/mysql/bizs/${currentBizId}/fixpoint_rollback`;
 /**
  * 通过下发脚本到机器获取集群备份记录
  */
-export const executeBackupLogScript = function (params: {
+export function executeBackupLogScript(params: {
   cluster_id: number
 }) {
   return http.get<number>(`${path}/execute_backup_log_script/`, params);
-};
+}
 
 /**
  * 通过日志平台获取集群备份记录
  */
-export const queryBackupLogFromBklog = function (params: {
+export function queryBackupLogFromBklog(params: {
   cluster_id: number
 }) {
   return http.get<{
@@ -42,12 +42,12 @@ export const queryBackupLogFromBklog = function (params: {
     backup_time: string,
     mysql_role: string
   }[]>(`${path}/query_backup_log_from_bklog/`, params);
-};
+}
 
 /**
  * 根据job id查询任务执行状态和执行结果
  */
-export const queryBackupLogJob = function (params: {
+export function queryBackupLogJob(params: {
   cluster_id: number,
   job_instance_id: number
 }) {
@@ -56,26 +56,27 @@ export const queryBackupLogJob = function (params: {
     job_status: string,
     message: string
   }>(`${path}/query_backup_log_job/`, params);
-};
+}
 
 /**
  * 获取集群列表
  */
-export const queryFixpointLog = function (params: {
+export function queryFixpointLog(params: {
   cluster_id: number,
   rollback_time: string,
   job_instance_id: number
 }) {
-  return http.get<ListBase<FixpointLogModel[]>>(`${path}/query_fixpoint_log/`, params).then(data => ({
-    ...data,
-    results: data.results.map(item => new FixpointLogModel(item)),
-  }));
-};
+  return http.get<ListBase<FixpointLogModel[]>>(`${path}/query_fixpoint_log/`, params)
+    .then(data => ({
+      ...data,
+      results: data.results.map(item => new FixpointLogModel(item)),
+    }));
+}
 
 /**
  * 获取定点构造记录
  */
-export const queryLatesBackupLog = function (params: {
+export function queryLatesBackupLog(params: {
   bk_biz_id: number,
   cluster_id: number,
   rollback_time: string,
@@ -86,4 +87,4 @@ export const queryLatesBackupLog = function (params: {
     job_status: string,
     message: string
   }>(`${path}/query_latest_backup_log/`, params);
-};
+}

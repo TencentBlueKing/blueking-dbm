@@ -44,7 +44,7 @@ func NewSenmanticDumpSchemaCommand() *cobra.Command {
 		Use:   "semantic-dumpschema",
 		Short: "运行导出表结构",
 		Example: fmt.Sprintf(
-			`dbactuator mysql senmantic-check %s %s`,
+			`dbactuator mysql senmantic-dumpschema %s %s`,
 			subcmd.CmdBaseExampleStr, subcmd.ToPrettyJson(act.Service.Example()),
 		),
 		Run: func(cmd *cobra.Command, args []string) {

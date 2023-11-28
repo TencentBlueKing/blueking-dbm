@@ -119,10 +119,8 @@
     getHosts,
     getHostTopo,
   } from '@services/source/ipchooser';
-  import type { HostDetails } from '@services/types/ip';
-  import {
-    getWhitelist,
-  } from '@services/whitelist';
+  import { getWhitelist } from '@services/source/whitelist';
+  import type { HostDetails } from '@services/types';
 
   import { useCopy, useFormItem } from '@hooks';
 

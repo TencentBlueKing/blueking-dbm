@@ -14,13 +14,19 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"maps"
 	"time"
 
 	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/logger"
 )
 
-// ShellResCollection TODO
+const (
+	// SSD disk type
+	SSD = "SSD"
+)
+
+// ShellResCollection Liunx os info
 type ShellResCollection struct {
 	Cpu      int        `json:"cpu"`
 	Mem      int        `json:"mem"` // MB
@@ -29,16 +35,38 @@ type ShellResCollection struct {
 	Disk     []DiskInfo `json:"disk"`
 }
 
-const (
-	// SSD TODO
-	SSD = "SSD"
-)
+// PowerShellResCollection window os info
+type PowerShellResCollection struct {
+	Cpu      int                `json:"cpu"`
+	Mem      int                `json:"mem"` // MB
+	TxRegion string             `json:"region"`
+	TxZone   string             `json:"zone"`
+	Disk     []WindowDiskDetail `json:"disk"`
+}
 
 // DiskInfo TODO
 type DiskInfo struct {
 	// 挂载点
 	MountPoint string `json:"mount_point"`
 	DiskDetail
+}
+
+// WindowDiskDetail windows 磁盘明细
+type WindowDiskDetail struct {
+	DriveLetter string `json:"DriveLetter"`
+	TotalSize   uint64 `json:"TotalSize"`
+}
+
+func diskFormartTrans(windisks []WindowDiskDetail) (commDisk []DiskInfo) {
+	for _, v := range windisks {
+		commDisk = append(commDisk, DiskInfo{
+			MountPoint: v.DriveLetter,
+			DiskDetail: DiskDetail{
+				Size: int(v.TotalSize / 1024 / 1024 / 1024),
+			},
+		})
+	}
+	return
 }
 
 // DiskDetail TODO
@@ -54,12 +82,19 @@ type DiskDetail struct {
 // GetDiskInfoShellContent TODO
 var GetDiskInfoShellContent []byte
 
+// GetWinDiskInfoShellContent TODO
+var GetWinDiskInfoShellContent []byte
+
 func init() {
-	c, err := GetDiskInfoScript.ReadFile(DiskInfoScriptName)
+	var err error
+	GetDiskInfoShellContent, err = GetDiskInfoScript.ReadFile(LiunxDiskScriptName)
 	if err != nil {
 		logger.Fatal("read get disk info shell content  failed %s", err.Error())
 	}
-	GetDiskInfoShellContent = c
+	GetWinDiskInfoShellContent, err = GetWinDiskScrip.ReadFile(WinDiskScriptName)
+	if err != nil {
+		logger.Fatal("read get disk info shell content  failed %s", err.Error())
+	}
 }
 
 // GetAllDiskIds TODO
@@ -105,19 +140,98 @@ type GetDiskResp struct {
 	IpFailedLogMap  map[string]string
 }
 
-func getIpList(hosts []string, bk_cloud_id int) []IPList {
-	var ipList []IPList
-	for _, ip := range hosts {
-		ipList = append(ipList, IPList{
-			IP:        ip,
-			BkCloudID: bk_cloud_id,
-		})
+// GetDiskInfo TODO
+func GetDiskInfo(hosts []IPList, bk_biz_id int, hostOsMap map[string]string) (resp GetDiskResp, err error) {
+	ipListOsMap := make(map[string][]IPList)
+	for _, host := range hosts {
+		if os_type, ok := hostOsMap[host.IP]; ok {
+			ipListOsMap[os_type] = append(ipListOsMap[os_type], host)
+		} else {
+			logger.Warn("没有获取到%s的操作系统类型", host.IP)
+			// 默认当做Liunx处理
+			ipListOsMap[OsLinux] = append(ipListOsMap[os_type], host)
+		}
 	}
-	return ipList
+	ipLogContentMap := make(map[string]*ShellResCollection)
+	ipFailedLogMap := make(map[string]string)
+	for os_type, ipList := range ipListOsMap {
+		if len(ipList) <= 0 {
+			continue
+		}
+		switch os_type {
+		case OsWindows:
+			ipFailedLogMapWin, ipLogs, err := GetWindowsDiskInfo(ipList, bk_biz_id)
+			if err != nil {
+				return GetDiskResp{}, err
+			}
+			maps.Copy(ipFailedLogMap, ipFailedLogMapWin)
+			for _, d := range ipLogs.ScriptTaskLogs {
+				var dl PowerShellResCollection
+				if err = json.Unmarshal([]byte(d.LogContent), &dl); err != nil {
+					logger.Error("unmarshal log content failed %s", err.Error())
+					continue
+				}
+				ipLogContentMap[d.Ip] = &ShellResCollection{
+					Cpu:  dl.Cpu,
+					Mem:  dl.Mem,
+					Disk: diskFormartTrans(dl.Disk),
+				}
+			}
+		case OsLinux:
+			ipFailedLogMapLiunx, ipLogs, err := GetLiunxDiskInfo(ipList, bk_biz_id)
+			if err != nil {
+				return GetDiskResp{}, err
+			}
+			maps.Copy(ipFailedLogMap, ipFailedLogMapLiunx)
+			for _, d := range ipLogs.ScriptTaskLogs {
+				var dl ShellResCollection
+				if err = json.Unmarshal([]byte(d.LogContent), &dl); err != nil {
+					logger.Error("unmarshal log content failed %s", err.Error())
+					continue
+				}
+				ipLogContentMap[d.Ip] = &dl
+			}
+		}
+	}
+	resp.IpFailedLogMap = ipFailedLogMap
+	resp.IpLogContentMap = ipLogContentMap
+	return resp, nil
 }
 
-// GetDiskInfo TODO
-func GetDiskInfo(hosts []IPList, bk_biz_id int) (resp GetDiskResp, err error) {
+// GetLiunxDiskInfo 获取liunx系统的磁盘信息
+func GetLiunxDiskInfo(hosts []IPList, bk_biz_id int) (ipFailedLogMap map[string]string,
+	ipLogs BatchGetJobInstanceIpLogRpData, err error) {
+	param := &FastExecuteScriptParam{
+		BkBizID:        bk_biz_id,
+		ScriptContent:  base64.StdEncoding.EncodeToString(GetDiskInfoShellContent),
+		ScriptTimeout:  300,
+		ScriptLanguage: 1,
+		AccountAlias:   "root",
+		TargetServer: TargetServer{
+			IPList: hosts,
+		},
+	}
+	return getDiskInfoBase(hosts, bk_biz_id, param)
+}
+
+// GetWindowsDiskInfo 获取window 机器磁盘信息
+func GetWindowsDiskInfo(hosts []IPList, bk_biz_id int) (ipFailedLogMap map[string]string,
+	ipLogs BatchGetJobInstanceIpLogRpData, err error) {
+	param := &FastExecuteScriptParam{
+		BkBizID:        bk_biz_id,
+		ScriptContent:  base64.StdEncoding.EncodeToString(GetWinDiskInfoShellContent),
+		ScriptTimeout:  300,
+		ScriptLanguage: 5,
+		AccountAlias:   "Administrator",
+		TargetServer: TargetServer{
+			IPList: hosts,
+		},
+	}
+	return getDiskInfoBase(hosts, bk_biz_id, param)
+}
+
+func getDiskInfoBase(hosts []IPList, bk_biz_id int, param *FastExecuteScriptParam) (ipFailedLogMap map[string]string,
+	ipLogs BatchGetJobInstanceIpLogRpData, err error) {
 	jober := JobV3{
 		Client: EsbClient,
 	}
@@ -134,7 +248,7 @@ func GetDiskInfo(hosts []IPList, bk_biz_id int) (resp GetDiskResp, err error) {
 	)
 	if err != nil {
 		logger.Error("call execute job failed %s", err.Error())
-		return GetDiskResp{}, err
+		return nil, BatchGetJobInstanceIpLogRpData{}, err
 	}
 	// 查询任务
 	var errCnt int
@@ -152,7 +266,8 @@ func GetDiskInfo(hosts []IPList, bk_biz_id int) (resp GetDiskResp, err error) {
 			break
 		}
 		if errCnt > 10 {
-			return GetDiskResp{}, fmt.Errorf("more than 10 errors when query job %d,some err: %s", job.JobInstanceID,
+			return nil, BatchGetJobInstanceIpLogRpData{}, fmt.Errorf("more than 10 errors when query job %d,some err: %s",
+				job.JobInstanceID,
 				err.Error())
 		}
 		time.Sleep(1 * time.Second)
@@ -164,27 +279,27 @@ func GetDiskInfo(hosts []IPList, bk_biz_id int) (resp GetDiskResp, err error) {
 	})
 	if err != nil {
 		logger.Error("query job %d status failed %s", job.JobInstanceID, err.Error())
-		return GetDiskResp{}, err
+		return nil, BatchGetJobInstanceIpLogRpData{}, err
 	}
-	resp.IpFailedLogMap = analyzeJobIpFailedLog(jobStatus)
+	ipFailedLogMap = analyzeJobIpFailedLog(jobStatus)
 	// 查询执行输出
-	var ipLogs BatchGetJobInstanceIpLogRpData
+	// var ipLogs BatchGetJobInstanceIpLogRpData
 	ipLogs, err = jober.BatchGetJobInstanceIpLog(&BatchGetJobInstanceIpLogParam{
 		BKBizId:        bk_biz_id,
 		JobInstanceID:  job.JobInstanceID,
 		StepInstanceID: job.StepInstanceID,
 		IPList:         hosts,
 	})
-	resp.IpLogContentMap = make(map[string]*ShellResCollection)
-	for _, d := range ipLogs.ScriptTaskLogs {
-		var dl ShellResCollection
-		if err = json.Unmarshal([]byte(d.LogContent), &dl); err != nil {
-			logger.Error("unmarshal log content failed %s", err.Error())
-			continue
-		}
-		resp.IpLogContentMap[d.Ip] = &dl
-	}
-	return resp, err
+	// resp.IpLogContentMap = make(map[string]*ShellResCollection)
+	// for _, d := range ipLogs.ScriptTaskLogs {
+	// 	var dl ShellResCollection
+	// 	if err = json.Unmarshal([]byte(d.LogContent), &dl); err != nil {
+	// 		logger.Error("unmarshal log content failed %s", err.Error())
+	// 		continue
+	// 	}
+	// 	resp.IpLogContentMap[d.Ip] = &dl
+	// }
+	return ipFailedLogMap, ipLogs, err
 }
 
 func analyzeJobIpFailedLog(jobStatus GetJobInstanceStatusRpData) map[string]string {

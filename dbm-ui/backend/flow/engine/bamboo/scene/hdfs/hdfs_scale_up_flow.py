@@ -18,7 +18,7 @@ from django.utils.translation import ugettext as _
 from backend.configuration.constants import DBType
 from backend.db_meta.enums import ClusterType, InstanceRole
 from backend.db_meta.models import Cluster, StorageInstance
-from backend.flow.consts import ConfigTypeEnum, DnsOpType, HdfsRoleEnum
+from backend.flow.consts import ConfigTypeEnum, DnsOpType, HdfsRoleEnum, UserName
 from backend.flow.engine.bamboo.scene.common.builder import Builder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.plugins.components.collections.hdfs.exec_actuator_script import ExecuteHdfsActuatorScriptComponent
@@ -27,6 +27,7 @@ from backend.flow.plugins.components.collections.hdfs.get_hdfs_resource import G
 from backend.flow.plugins.components.collections.hdfs.hdfs_db_meta import HdfsDBMetaComponent
 from backend.flow.plugins.components.collections.hdfs.hdfs_dns_manage import HdfsDnsManageComponent
 from backend.flow.plugins.components.collections.hdfs.trans_flies import TransFileComponent
+from backend.flow.utils.base.payload_handler import PayloadHandler
 from backend.flow.utils.hdfs.hdfs_act_playload import HdfsActPayload, gen_host_name_by_role, get_cluster_config
 from backend.flow.utils.hdfs.hdfs_context_dataclass import ActKwargs, DnsKwargs, HdfsApplyContext
 
@@ -216,7 +217,20 @@ class HdfsScaleUpFlow(object):
         data_with_role["nn2_ip"] = cluster_config["nn2_ip"]
         data_with_role["http_port"] = int(cluster_config["http_port"])
         data_with_role["rpc_port"] = int(cluster_config["rpc_port"])
-        data_with_role["haproxy_passwd"] = cluster_config["password"]
+        # 用户名密码改由密码服务拉取
+        password = PayloadHandler.get_bigdata_password_by_cluster(
+            cluster, data_with_role["rpc_port"], UserName.HDFS_DEFAULT
+        )
+        # 若密码获取不到，从dbconfig获取
+        if not password:
+            logger.error("cannot get auth info from password service")
+            data_with_role["username"] = cluster_config["username"]
+            data_with_role["password"] = cluster_config["password"]
+        else:
+            logger.debug("get auth info from password")
+            data_with_role["username"] = UserName.HDFS_DEFAULT
+            data_with_role["password"] = password
+
         data_with_role["dfs_include_file"] = cluster_config["hdfs-site.dfs.hosts"]
         data_with_role["dn_hosts"] = [gen_host_name_by_role(dn_ip, "dn") for dn_ip in data_with_role["new_dn_ips"]]
 

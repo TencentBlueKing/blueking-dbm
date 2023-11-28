@@ -26,7 +26,6 @@ from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import (
     build_surrounding_apps_sub_flow,
     install_mysql_in_cluster_sub_flow,
 )
-from backend.flow.engine.bamboo.scene.mysql.common.recover_slave_instance import slave_recover_sub_flow
 from backend.flow.engine.bamboo.scene.mysql.common.slave_recover_switch import slave_migrate_switch_sub_flow
 from backend.flow.engine.bamboo.scene.mysql.common.uninstall_instance import uninstall_instance_sub_flow
 from backend.flow.plugins.components.collections.common.download_backup_client import DownloadBackupClientComponent
@@ -70,14 +69,23 @@ class MySQLRestoreSlaveFlow(object):
 
     def deploy_restore_slave_flow(self):
         """
-        机器级别重建slave节点的流程
+        重建slave节点的流程
+        增加单据临时ADMIN账号的添加和删除逻辑
         元数据流程：
         1 mysql_restore_slave_add_instance
         2 mysql_add_slave_info
         3 mysql_restore_slave_change_cluster_info
         4 mysql_restore_remove_old_slave
         """
-        tendb_migrate_pipeline_all = Builder(root_id=self.root_id, data=copy.deepcopy(self.ticket_data))
+        cluster_ids = []
+        for i in self.ticket_data["infos"]:
+            cluster_ids.extend(i["cluster_ids"])
+
+        tendb_migrate_pipeline_all = Builder(
+            root_id=self.root_id,
+            data=copy.deepcopy(self.ticket_data),
+            need_random_pass_cluster_ids=list(set(cluster_ids)),
+        )
         tendb_migrate_pipeline_list = []
         for info in self.ticket_data["infos"]:
             self.data = copy.deepcopy(info)
@@ -401,15 +409,21 @@ class MySQLRestoreSlaveFlow(object):
             )
         # 运行流程
         tendb_migrate_pipeline_all.add_parallel_sub_pipeline(tendb_migrate_pipeline_list)
-        tendb_migrate_pipeline_all.run_pipeline(init_trans_data_class=ClusterInfoContext())
+        tendb_migrate_pipeline_all.run_pipeline(init_trans_data_class=ClusterInfoContext(), is_drop_random_user=True)
 
     def deploy_restore_local_slave_flow(self):
         """
         原地重建slave
         机器slave数据损坏或者其他原因丢弃实例数据，重新恢复数据。
         无元数据改动
+        增加单据临时ADMIN账号的添加和删除逻辑
         """
-        tendb_migrate_pipeline_all = Builder(root_id=self.root_id, data=copy.deepcopy(self.ticket_data))
+        cluster_ids = [i["cluster_id"] for i in self.data["infos"]]
+        tendb_migrate_pipeline_all = Builder(
+            root_id=self.root_id,
+            data=copy.deepcopy(self.ticket_data),
+            need_random_pass_cluster_ids=list(set(cluster_ids)),
+        )
         tendb_migrate_pipeline_list = []
         for info in self.ticket_data["infos"]:
             self.data = copy.deepcopy(info)
@@ -557,7 +571,7 @@ class MySQLRestoreSlaveFlow(object):
             )
 
         tendb_migrate_pipeline_all.add_parallel_sub_pipeline(sub_flow_list=tendb_migrate_pipeline_list)
-        tendb_migrate_pipeline_all.run_pipeline(init_trans_data_class=ClusterInfoContext())
+        tendb_migrate_pipeline_all.run_pipeline(init_trans_data_class=ClusterInfoContext(), is_drop_random_user=True)
 
     def deploy_add_slave_flow(self):
         self.add_slave_only = True

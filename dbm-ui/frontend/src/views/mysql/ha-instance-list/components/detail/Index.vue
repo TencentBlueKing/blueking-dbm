@@ -42,7 +42,6 @@
   import { useRequest } from 'vue-request';
 
   import { retrieveTendbhaInstance } from '@services/source/tendbha';
-  import type { InstanceDetails } from '@services/types/clusters';
 
   import { useGlobalBizs } from '@stores';
 
@@ -64,7 +63,7 @@
   const { t } = useI18n();
 
   const activePanel = ref('info');
-  const data = ref<InstanceDetails>();
+  const data = ref<ServiceReturnType<typeof retrieveTendbhaInstance>>();
   const queryConfigInfos = computed(() => ({
     dbModuleId: data.value?.db_module_id ?? 0,
     clusterId: props.instanceData ? props.instanceData.clusterId : 0,

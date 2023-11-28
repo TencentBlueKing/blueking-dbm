@@ -19,7 +19,7 @@ import PulsarPasswordModel from '@services/model/pulsar/pulsar-password';
 import { useGlobalBizs } from '@stores';
 
 import http from '../http';
-import type { ListBase } from '../types/common';
+import type { ListBase } from '../types';
 
 const { currentBizId } = useGlobalBizs();
 
@@ -28,75 +28,73 @@ const path = `/apis/bigdata/bizs/${currentBizId}/pulsar/pulsar_resources`;
 /**
  * 获取集群列表
  */
-export const getPulsarList = function (params: Record<string, any> & { bk_biz_id: number }) {
+export function getPulsarList(params: Record<string, any> & { bk_biz_id: number }) {
   return http.get<ListBase<PulsarModel[]>>(`${path}/`, params)
     .then(data => ({
       ...data,
       results: data.results.map((item: PulsarModel) => new PulsarModel(item)),
     }));
-};
+}
 
 /**
  * 获取查询返回字段
  */
-export const getPulsarTableFields = function () {
+export function getPulsarTableFields() {
   return http.get<ListBase<PulsarModel[]>>(`${path}/get_table_fields/`);
-};
+}
 
 /**
  * 获取实例列表
  */
-export const getPulsarInstanceList = function (params: Record<string, any> & { bk_biz_id: number }) {
-  return http.get<ListBase<PulsarInstanceModel[]>>(`${path}/list_instances/`, params).then(data => ({
-    ...data,
-    results: data.results.map((item: PulsarInstanceModel) => new PulsarInstanceModel(item)),
-  }));
-};
+export function getPulsarInstanceList(params: Record<string, any> & { bk_biz_id: number }) {
+  return http.get<ListBase<PulsarInstanceModel[]>>(`${path}/list_instances/`, params)
+    .then(data => ({
+      ...data,
+      results: data.results.map((item: PulsarInstanceModel) => new PulsarInstanceModel(item)),
+    }));
+}
 
 /**
  *  获取实例详情
  */
-export const retrievePulsarInstance = function (params: {bk_biz_id: number}) {
+export function retrievePulsarInstance(params: {bk_biz_id: number}) {
   return http.get<ListBase<PulsarModel[]>>(`${path}/retrieve_instance/`, params);
-};
+}
 
 /**
  * 获取集群详情
  */
-export const getPulsarDetail = function (params: { id: number }) {
-  return http.get<PulsarModel>(`${path}/${params.id}/`).then(data => new PulsarModel(data));
-};
+export function getPulsarDetail(params: { id: number }) {
+  return http.get<PulsarModel>(`${path}/${params.id}/`)
+    .then(data => new PulsarModel(data));
+}
 
 /**
  * 获取集群拓扑
  */
-export const getPulsarTopoGraph = function (params: {
-  bk_biz_id: number,
-  cluster_id: number
-}) {
+export function getPulsarTopoGraph(params: { cluster_id: number }) {
   return http.get<ListBase<PulsarModel[]>>(`${path}/${params.cluster_id}/get_topo_graph/`);
-};
+}
 
 /**
  * 获取 Pulsar 集群访问密码
  */
-export const getPulsarPassword = function (params: Record<string, any> & {
-  bk_biz_id: number,
-  cluster_id: number
-}) {
-  return http.get<PulsarPasswordModel>(`${path}/${params.cluster_id}/get_password/`).then(data => new PulsarPasswordModel(data));
-};
+export function getPulsarPassword(params: { cluster_id: number }) {
+  return http.get<PulsarPasswordModel>(`${path}/${params.cluster_id}/get_password/`)
+    .then(data => new PulsarPasswordModel(data));
+}
 
 /**
  * 获取 Pulsar 集群节点列表信息
  */
-export const getPulsarNodeList = function (params: Record<string, any> & {
+export function getPulsarNodeList(params: Record<string, any> & {
   bk_biz_id: number,
   cluster_id: number
 }) {
-  return http.get<ListBase<Array<PulsarNodeModel>>>(`${path}/${params.cluster_id}/list_nodes/`, params).then(data => ({
-    ...data,
-    results: data.results.map((item: PulsarNodeModel) => new PulsarNodeModel(item)),
-  }));
-};
+  return http.get<ListBase<Array<PulsarNodeModel>>>(`${path}/${params.cluster_id}/list_nodes/`, params)
+    .then(data => ({
+      ...data,
+      results: data.results.map((item: PulsarNodeModel) => new PulsarNodeModel(item)),
+    }));
+}
 

@@ -11,16 +11,14 @@ specific language governing permissions and limitations under the License.
 import copy
 import logging.config
 from dataclasses import asdict
-from datetime import datetime
 from typing import Dict, Optional
 
 from django.utils.translation import ugettext as _
 
 from backend.configuration.constants import DBType
-from backend.db_meta.enums import ClusterType, InstanceInnerRole, InstanceStatus
+from backend.db_meta.enums import ClusterType, InstanceInnerRole
 from backend.db_meta.models import Cluster
 from backend.db_package.models import Package
-from backend.db_services.mysql.fixpoint_rollback.handlers import FixPointRollbackHandler
 from backend.flow.consts import MediumEnum
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
@@ -30,8 +28,6 @@ from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import (
 )
 from backend.flow.engine.bamboo.scene.mysql.common.master_and_slave_switch import master_and_slave_switch
 from backend.flow.engine.bamboo.scene.mysql.common.uninstall_instance import uninstall_instance_sub_flow
-from backend.flow.engine.bamboo.scene.spider.common.exceptions import TendbGetBackupInfoFailedException
-from backend.flow.engine.bamboo.scene.spider.spider_remote_node_migrate import remote_instance_migrate_sub_flow
 from backend.flow.plugins.components.collections.common.download_backup_client import DownloadBackupClientComponent
 from backend.flow.plugins.components.collections.common.pause import PauseComponent
 from backend.flow.plugins.components.collections.mysql.clear_machine import MySQLClearMachineComponent
@@ -70,19 +66,25 @@ class MySQLMigrateClusterFlow(object):
         self.ticket_data = data
         self.data = {}
 
-        # 定义备份文件存放到目标机器目录位置
-        self.backup_target_path = f"/data/dbbak/{self.root_id}"
-
     def deploy_migrate_cluster_flow(self):
         """
         成对迁移集群主从节点。
+        增加单据临时ADMIN账号的添加和删除逻辑
         元数据信息修改顺序：
         1 mysql_migrate_cluster_add_instance
         2 mysql_migrate_cluster_add_tuple
         3 mysql_migrate_cluster_switch_storage
         """
         # 构建流程
-        tendb_migrate_pipeline_all = Builder(root_id=self.root_id, data=copy.deepcopy(self.ticket_data))
+        cluster_ids = []
+        for i in self.data["infos"]:
+            cluster_ids.extend(i["cluster_ids"])
+
+        tendb_migrate_pipeline_all = Builder(
+            root_id=self.root_id,
+            data=copy.deepcopy(self.ticket_data),
+            need_random_pass_cluster_ids=list(set(cluster_ids)),
+        )
         # 按照传入的infos信息，循环拼接子流程
         tendb_migrate_pipeline_list = []
         for info in self.ticket_data["infos"]:
@@ -455,4 +457,4 @@ class MySQLMigrateClusterFlow(object):
             )
         # 运行流程
         tendb_migrate_pipeline_all.add_parallel_sub_pipeline(tendb_migrate_pipeline_list)
-        tendb_migrate_pipeline_all.run_pipeline(init_trans_data_class=ClusterInfoContext())
+        tendb_migrate_pipeline_all.run_pipeline(init_trans_data_class=ClusterInfoContext(), is_drop_random_user=True)

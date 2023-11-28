@@ -14,8 +14,9 @@
 import _ from 'lodash';
 import type { ComputedRef } from 'vue';
 
-import type { ParameterConfigItem } from '@services/types/configs';
+import { getLevelConfig } from '@services/source/configs';
 
+type ParameterConfigItem = ServiceReturnType<typeof getLevelConfig>['conf_items'][number]
 type DiffData = ComputedRef<ParameterConfigItem[]> | ParameterConfigItem[];
 
 export type DiffItem = {

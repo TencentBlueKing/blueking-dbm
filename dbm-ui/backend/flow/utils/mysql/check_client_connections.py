@@ -11,7 +11,7 @@ from django.utils.translation import ugettext_lazy as _
 
 from backend.components import DBConfigApi, DRSApi
 from backend.components.dbconfig.constants import FormatType, LevelName
-from backend.flow.consts import MYSQL_SYS_USER, ConfigTypeEnum, NameSpaceEnum
+from backend.flow.consts import MYSQL_SYS_USER, ConfigTypeEnum, NameSpaceEnum, UserName
 from backend.flow.utils.mysql.get_mysql_sys_user import get_mysql_sys_users
 
 
@@ -24,19 +24,7 @@ def check_client_connection(bk_cloud_id: int, instances: list, is_filter_sleep: 
     """
 
     # 获取内置账号名称
-    data = DBConfigApi.query_conf_item(
-        {
-            "bk_biz_id": "0",
-            "level_name": LevelName.PLAT,
-            "level_value": "0",
-            "conf_file": "mysql#user",
-            "conf_type": ConfigTypeEnum.InitUser,
-            "namespace": NameSpaceEnum.TenDB.value,
-            "format": FormatType.MAP,
-        }
-    )["content"]
-    admin_user_name_list = [data["admin_user"], data["backup_user"], data["monitor_user"], data["repl_user"]]
-
+    admin_user_name_list = [UserName.ADMIN.value, UserName.BACKUP.value, UserName.MONITOR.value, UserName.REPL.value]
     # 对于tendb-cluster集群的实例，这里不考虑过滤内置账号的session，因为执行ddl时候，实例会存在内置账号session
     # 过滤会有风险
     users = ",".join(

@@ -105,8 +105,10 @@
   import { Message } from 'bkui-vue';
   import { useI18n } from 'vue-i18n';
 
-  import { updatePlatformConfig } from '@services/source/configs';
-  import type { ConfigBaseDetails, ParameterConfigItem } from '@services/types/configs';
+  import {
+    getConfigBaseDetails,
+    updatePlatformConfig,
+  } from '@services/source/configs';
 
   import DiffCompare from '../components/DiffCompare.vue';
   import BaseInfo from '../components/EditBase.vue';
@@ -129,8 +131,8 @@
 
   const loading = ref(false);
   const diffData = reactive({
-    origin: [] as ParameterConfigItem[],
-    data: {} as ConfigBaseDetails,
+    origin: [] as ServiceReturnType<typeof getConfigBaseDetails>['conf_items'],
+    data: {} as ServiceReturnType<typeof getConfigBaseDetails>,
   });
 
   // 判断表单内容是否变更

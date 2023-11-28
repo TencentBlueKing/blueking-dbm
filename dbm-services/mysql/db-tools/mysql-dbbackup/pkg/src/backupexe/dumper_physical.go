@@ -27,7 +27,7 @@ type PhysicalDumper struct {
 	storageEngine string
 }
 
-func (p *PhysicalDumper) initConfig(mysqlVersion string) error {
+func (p *PhysicalDumper) initConfig(mysqlVerStr string) error {
 	if p.cnf == nil {
 		return errors.New("logical dumper params is nil")
 	}
@@ -43,7 +43,7 @@ func (p *PhysicalDumper) initConfig(mysqlVersion string) error {
 	defer func() {
 		_ = db.Close()
 	}()
-	p.mysqlVersion, p.isOfficial = util.VersionParser(mysqlVersion)
+	p.mysqlVersion, p.isOfficial = util.VersionParser(mysqlVerStr)
 	p.storageEngine, err = mysqlconn.GetStorageEngine(db)
 	if err != nil {
 		return err

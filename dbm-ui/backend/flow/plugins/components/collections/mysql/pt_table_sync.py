@@ -13,7 +13,7 @@ import logging
 from pipeline.component_framework.component import Component
 
 from backend.components import MySQLPrivManagerApi
-from backend.core.encrypt.handlers import RSAHandler
+from backend.core.encrypt.handlers import AsymmetricHandler
 from backend.flow.consts import AUTH_ADDRESS_DIVIDER
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptService
 from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
@@ -54,8 +54,8 @@ class PtTableSyncService(ExecuteDBActuatorScriptService):
         }
 
         # 添加临时账号
-        encrypt_switch_pwd = RSAHandler.encrypt_password(
-            MySQLPrivManagerApi.fetch_public_key(), kwargs["sync_pass"], salt=None
+        encrypt_switch_pwd = AsymmetricHandler.encrypt_with_pubkey(
+            pubkey=MySQLPrivManagerApi.fetch_public_key(), content=kwargs["sync_pass"]
         )
         params = {
             "bk_cloud_id": kwargs["bk_cloud_id"],

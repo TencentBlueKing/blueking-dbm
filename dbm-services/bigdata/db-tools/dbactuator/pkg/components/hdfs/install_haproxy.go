@@ -2,7 +2,7 @@ package hdfs
 
 import (
 	"fmt"
-	"io/ioutil"
+	"os"
 	"strings"
 
 	"dbm-services/bigdata/db-tools/dbactuator/pkg/components"
@@ -27,7 +27,7 @@ type InstallHaproxyParams struct {
 	HttpPort      int               `json:"http_port" validate:"required"`
 	RpcPort       int               `json:"rpc_port" validate:"required"`
 	ClusterName   string            `json:"cluster_name" validate:"required"` // 集群名
-	HaproxyPasswd string            `json:"haproxy_passwd"`                   // haproxy密码
+	Password      string            `json:"password"`                         // haproxy密码
 	HostMap       map[string]string `json:"host_map"`
 	Nn1Ip         string            `json:"nn1_ip" validate:"required"` // nn1 ip, eg: ip1
 	Nn2Ip         string            `json:"nn2_ip" validate:"required"` // nn2 ip, eg: ip1
@@ -62,7 +62,7 @@ func (i *InstallHaproxyService) RenderHaProxyConfig() (err error) {
 		logger.Error("read external check template failed %s", err.Error())
 		return err
 	}
-	if err = ioutil.WriteFile("/usr/bin/"+config_tpl.ExternalCheckFileName, shellContent, 07555); err != nil {
+	if err = os.WriteFile("/usr/bin/"+config_tpl.ExternalCheckFileName, shellContent, 07555); err != nil {
 		logger.Error("write haproxy external check failed %s", err.Error())
 		return err
 	}
@@ -73,7 +73,7 @@ func (i *InstallHaproxyService) RenderHaProxyConfig() (err error) {
 		logger.Error("read config template failed %s", err.Error())
 		return err
 	}
-	if err = ioutil.WriteFile("/etc/haproxy/haproxy.cfg", data, 07555); err != nil {
+	if err = os.WriteFile("/etc/haproxy/haproxy.cfg", data, 07555); err != nil {
 		logger.Error("write haproxy config failed %s", err.Error())
 		return err
 	}
@@ -87,8 +87,8 @@ func (i *InstallHaproxyService) RenderHaProxyConfig() (err error) {
 		logger.Error("%s execute failed, %v", extraCmd, err)
 		return err
 	}
-	extraCmd = fmt.Sprintf(`sed -i -e "s/{{rpc_port}}/%d/g" -e "s/{{http_port}}/%d/" -e "s/{{haproxy_passwd}}/%s/g" %s`,
-		i.Params.RpcPort, i.Params.HttpPort, i.Params.HaproxyPasswd, "/etc/haproxy/haproxy.cfg")
+	extraCmd = fmt.Sprintf(`sed -i -e "s/{{rpc_port}}/%d/g" -e "s/{{http_port}}/%d/" -e "s/{{password}}/%s/g" %s`,
+		i.Params.RpcPort, i.Params.HttpPort, i.Params.Password, "/etc/haproxy/haproxy.cfg")
 	if _, err = osutil.ExecShellCommand(false, extraCmd); err != nil {
 		logger.Error("%s execute failed, %v", extraCmd, err)
 		return err

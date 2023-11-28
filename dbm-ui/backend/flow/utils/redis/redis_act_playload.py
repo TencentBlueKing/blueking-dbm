@@ -47,6 +47,8 @@ from backend.flow.consts import (
     NameSpaceEnum,
     RedisActuatorActionEnum,
 )
+from backend.flow.utils.base.payload_handler import PayloadHandler
+from backend.flow.utils.redis.redis_proxy_util import set_backup_mode
 from backend.flow.utils.redis.redis_util import get_latest_redis_package_by_version
 from backend.ticket.constants import TicketType
 
@@ -170,6 +172,15 @@ class RedisActPayload(object):
                 "level_value": clusterMap["domain_name"],
             }
         )
+        # 备份相关的配置，需要单独写进去
+        if "cache_backup_mode" in clusterMap["backup_config"]:
+            set_backup_mode(
+                clusterMap["domain_name"],
+                self.bk_biz_id,
+                self.namespace,
+                clusterMap["backup_config"]["cache_backup_mode"],
+            )
+
         return data
 
     def delete_redis_config(self, clusterMap: dict):
@@ -196,7 +207,7 @@ class RedisActPayload(object):
 
     @staticmethod
     def redis_conf_names_by_cluster_type(cluster_type: str) -> list:
-        conf_names: list = ["requirepass"]
+        conf_names: list = []
         if is_redis_instance_type(cluster_type) or is_tendisplus_instance_type(cluster_type):
             conf_names.append("cluster-enabled")
         if is_redis_instance_type(cluster_type) or is_tendisssd_instance_type(cluster_type):
@@ -297,6 +308,18 @@ class RedisActPayload(object):
         logger.info(_("更新目标集群redis配置 为 源集群的配置,upsert_param:{}".format(upsert_param)))
         DBConfigApi.upsert_conf_item(upsert_param)
 
+        # 交换源集群和目标集群的redis 密码,proxy密码不会变化
+        src_passwd_ret = PayloadHandler.redis_get_password_by_domain(clusterMap["src_cluster_domain"])
+        dst_passwd_ret = PayloadHandler.redis_get_password_by_domain(clusterMap["dst_cluster_domain"])
+        PayloadHandler.redis_save_password_by_domain(
+            immute_domain=clusterMap["src_cluster_domain"],
+            redis_password=dst_passwd_ret.get("redis_password"),
+        )
+        PayloadHandler.redis_save_password_by_domain(
+            immute_domain=clusterMap["dst_cluster_domain"],
+            redis_password=src_passwd_ret.get("redis_password"),
+        )
+
     def delete_proxy_config(self, clusterMap: dict):
         conf_items = [
             {"conf_name": conf_name, "op_type": OpType.REMOVE} for conf_name, _ in clusterMap["conf"].items()
@@ -323,6 +346,7 @@ class RedisActPayload(object):
         """
         获取已部署的实例配置
         """
+        passwd_ret = PayloadHandler.redis_get_password_by_domain(domain_name)
         data = DBConfigApi.query_conf_item(
             params={
                 "bk_biz_id": self.bk_biz_id,
@@ -335,12 +359,31 @@ class RedisActPayload(object):
                 "format": FormatType.MAP,
             }
         )
+        if conf_type == ConfigTypeEnum.ProxyConf.value:
+            if passwd_ret.get("redis_password"):
+                data["content"]["redis_password"] = passwd_ret.get("redis_password")
+            if passwd_ret.get("redis_proxy_password"):
+                data["content"]["password"] = passwd_ret.get("redis_proxy_password")
+            if passwd_ret.get("redis_proxy_admin_password"):
+                data["content"]["redis_proxy_admin_password"] = passwd_ret.get("redis_proxy_admin_password")
+        elif conf_type == ConfigTypeEnum.DBConf.value:
+            if passwd_ret.get("redis_password"):
+                data["content"]["requirepass"] = passwd_ret.get("redis_password")
+
         return data["content"]
 
     def set_proxy_config(self, clusterMap: dict) -> Any:
         """
         集群初始化的时候twemproxy没做变动，直接写入集群就OK
         """
+        # 密码随机化
+        PayloadHandler.redis_save_password_by_domain(
+            immute_domain=clusterMap["domain_name"],
+            redis_password=clusterMap["pwd_conf"]["redis_pwd"],
+            redis_proxy_password=clusterMap["pwd_conf"]["proxy_pwd"],
+            redis_proxy_admin_password=clusterMap["pwd_conf"]["proxy_admin_pwd"],
+        )
+
         conf_items = []
         for conf_name, conf_value in clusterMap["conf"].items():
             conf_items.append({"conf_name": conf_name, "conf_value": conf_value, "op_type": OpType.UPDATE})
@@ -362,16 +405,16 @@ class RedisActPayload(object):
         )
         return data
 
-    def dts_swap_proxy_config_version(self, clusterMap: dict) -> Any:
+    def dts_swap_proxy_config(self, clusterMap: dict) -> Any:
         """
         交换源集群和目标集群 dbconfig 中的proxy版本信息,有可能 twemproxy集群 切换到 predixy集群
         """
-        src_proxy_conf_names = ["password", "redis_password", "port"]
-        dst_proxy_conf_names = ["password", "redis_password", "port"]
-        if is_predixy_proxy_type(clusterMap["src_cluster_type"]):
-            src_proxy_conf_names.append("predixy_admin_passwd")
-        if is_predixy_proxy_type(clusterMap["dst_cluster_type"]):
-            dst_proxy_conf_names.append("predixy_admin_passwd")
+        src_proxy_conf_names = ["port"]
+        dst_proxy_conf_names = ["port"]
+        # if is_twemproxy_proxy_type(clusterMap["src_cluster_type"]):
+        #     src_proxy_conf_names.append("hash_tag")
+        # if is_twemproxy_proxy_type(clusterMap["dst_cluster_type"]):
+        #     dst_proxy_conf_names.append("hash_tag")
 
         logger.info(_("交换源集群和目标集群 dbconfig 中的proxy版本信息"))
         logger.info(_("获取源集群:{} proxy配置").format(clusterMap["src_cluster_domain"]))
@@ -459,27 +502,6 @@ class RedisActPayload(object):
 
         time.sleep(2)
 
-        if is_twemproxy_proxy_type(clusterMap["src_cluster_type"]) and is_predixy_proxy_type(
-            clusterMap["dst_cluster_type"]
-        ):
-            # 源集群是twemproxy类型,目的集群是predixy类型,交换后类型也将交换
-            # 此时源集群配置中增加predixy_admin_passwd,目的集群配置中移除predixy_admin_passwd
-            conf_name = "predixy_admin_passwd"
-            src_conf_upsert_items.append(
-                {"conf_name": conf_name, "conf_value": dst_resp["content"][conf_name], "op_type": OpType.UPDATE}
-            )
-            dst_conf_upsert_items = [item for item in dst_conf_upsert_items if item["conf_name"] != conf_name]
-        elif is_predixy_proxy_type(clusterMap["src_cluster_type"]) and is_twemproxy_proxy_type(
-            clusterMap["dst_cluster_type"]
-        ):
-            # 源集群是predixy类型,目的集群是twemproxy类型,交换后类型也将交换
-            # 此时源集群配置中移除predixy_admin_passwd,目的集群配置中增加predixy_admin_passwd
-            conf_name = "predixy_admin_passwd"
-            src_conf_upsert_items = [item for item in src_conf_upsert_items if item["conf_name"] != conf_name]
-            dst_conf_upsert_items.append(
-                {"conf_name": conf_name, "conf_value": src_resp["content"][conf_name], "op_type": OpType.UPDATE}
-            )
-
         # 更新源集群的proxy版本信息
         src_upsert_param = copy.deepcopy(upsert_param)
         src_upsert_param["conf_file_info"]["conf_file"] = clusterMap["dst_proxy_version"]  # 替换成目标集群的proxy版本
@@ -510,10 +532,11 @@ class RedisActPayload(object):
         """
         初始化机器
         """
+        redis_os_account = PayloadHandler.redis_get_os_account()
         return {
             "db_type": DBActuatorTypeEnum.Default.value,
             "action": RedisActuatorActionEnum.Sysinit.value,
-            "payload": {"user": self.account["user"], "password": self.account["user_pwd"]},
+            "payload": {"user": redis_os_account["os_user"], "password": redis_os_account["os_password"]},
         }
 
     def get_install_predixy_payload(self, **kwargs) -> dict:
@@ -550,6 +573,7 @@ class RedisActPayload(object):
                 "ip": kwargs["ip"],
                 "port": self.cluster["proxy_port"],
                 "predixypasswd": proxy_config["password"],
+                "predixyadminpasswd": proxy_config["redis_proxy_admin_password"],
                 "redispasswd": proxy_config["redis_password"],
                 "servers": self.cluster["servers"],
                 "dbconfig": proxy_config,

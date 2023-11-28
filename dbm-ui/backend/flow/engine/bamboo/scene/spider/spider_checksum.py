@@ -109,9 +109,8 @@ class SpiderChecksumFlow(object):
         （3）dbactor执行checksum指令
         （4）删除临时账号
         （5）每个从库生成一份校验报告（如果数据不一致，生成修复单据）
+        增加单据临时ADMIN账号的添加和删除逻辑
         """
-        checksum_pipeline = Builder(root_id=self.root_id, data=self.data)
-        sub_pipelines = []
 
         # 一个单据里多行任务的cluster不能重复
         clusters = [job["cluster_id"] for job in self.data["infos"]]
@@ -119,6 +118,11 @@ class SpiderChecksumFlow(object):
 
         if len(dup_clusters) > 0:
             raise Exception("duplicate cluster found: {}".format(dup_clusters))
+
+        checksum_pipeline = Builder(
+            root_id=self.root_id, data=self.data, need_random_pass_cluster_ids=list(set(clusters))
+        )
+        sub_pipelines = []
 
         ran_str = get_random_string(length=8)
         random_account = "{}{}".format(ACCOUNT_PREFIX, ran_str)
@@ -245,4 +249,4 @@ class SpiderChecksumFlow(object):
             )
         checksum_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
         logger.info(_("构建checksum流程成功"))
-        checksum_pipeline.run_pipeline(init_trans_data_class=MysqlChecksumContext())
+        checksum_pipeline.run_pipeline(init_trans_data_class=MysqlChecksumContext(), is_drop_random_user=True)

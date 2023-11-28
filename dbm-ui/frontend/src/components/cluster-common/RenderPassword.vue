@@ -58,8 +58,6 @@
 
   import { useCopy } from '@hooks';
 
-  import { useGlobalBizs } from '@stores';
-
   interface Props {
     clusterId: number;
   }
@@ -67,8 +65,6 @@
   const props = defineProps<Props>();
 
   const copy = useCopy();
-
-  const { currentBizId } = useGlobalBizs();
 
   const isLoading = ref(true);
   const isShowPassword = ref(false);
@@ -80,10 +76,7 @@
     token: '',
   });
 
-  getPulsarPassword({
-    bk_biz_id: currentBizId,
-    cluster_id: props.clusterId,
-  })
+  getPulsarPassword({ cluster_id: props.clusterId })
     .then((data) => {
       result.value = data;
     })

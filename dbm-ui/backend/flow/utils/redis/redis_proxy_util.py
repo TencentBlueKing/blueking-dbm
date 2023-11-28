@@ -11,12 +11,12 @@ specific language governing permissions and limitations under the License.
 import hashlib
 import logging.config
 from collections import defaultdict
-from typing import Dict, List, Tuple
+from typing import Any, Dict, List, Tuple
 
 from django.utils.translation import ugettext as _
 
 from backend.components import DBConfigApi, DRSApi
-from backend.components.dbconfig.constants import FormatType, LevelName
+from backend.components.dbconfig.constants import FormatType, LevelName, OpType, ReqType
 from backend.configuration.constants import DBType
 from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.enums import ClusterType, InstanceRole
@@ -29,7 +29,13 @@ from backend.db_services.redis.util import (
     is_tendisssd_instance_type,
     is_twemproxy_proxy_type,
 )
-from backend.flow.consts import DEFAULT_DB_MODULE_ID, ConfigFileEnum, ConfigTypeEnum, MediumEnum
+from backend.flow.consts import (
+    DEFAULT_CONFIG_CONFIRM,
+    DEFAULT_DB_MODULE_ID,
+    ConfigFileEnum,
+    ConfigTypeEnum,
+    MediumEnum,
+)
 
 logger = logging.getLogger("flow")
 
@@ -270,6 +276,36 @@ def get_twemproxy_cluster_server_shards(bk_biz_id: int, cluster_id: int, other_t
         other_ip = other_list[0]
         twemproxy_server_shards[other_ip][other_ipport] = ipport_to_segment[master_ipport]
     return twemproxy_server_shards
+
+
+def set_backup_mode(immute_domain: str, bk_biz_id: str, namespace: str, value: str) -> Any:
+    """
+    设置备份备份方式
+    """
+    conf_items = [
+        {
+            "conf_name": "cache_backup_mode",
+            "conf_value": value,
+            "op_type": OpType.UPDATE,
+        }
+    ]
+    data = DBConfigApi.upsert_conf_item(
+        {
+            "conf_file_info": {
+                "conf_file": ConfigFileEnum.FullBackup.value,
+                "conf_type": ConfigTypeEnum.Config.value,
+                "namespace": namespace,
+            },
+            "conf_items": conf_items,
+            "level_info": {"module": str(DEFAULT_DB_MODULE_ID)},
+            "confirm": DEFAULT_CONFIG_CONFIRM,
+            "req_type": ReqType.SAVE_AND_PUBLISH,
+            "bk_biz_id": bk_biz_id,
+            "level_name": LevelName.CLUSTER,
+            "level_value": immute_domain,
+        }
+    )
+    return data
 
 
 def get_cache_backup_mode(bk_biz_id: int, cluster_id: int) -> str:

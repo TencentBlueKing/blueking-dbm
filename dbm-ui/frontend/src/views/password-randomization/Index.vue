@@ -12,8 +12,7 @@
 -->
 
 <template>
-  <div />
-  <!-- <BkLoading :loading="loading">
+  <BkLoading :loading="loading">
     <DbForm
       ref="formRef"
       class="password-randomization"
@@ -126,258 +125,257 @@
         </BkButton>
       </DbPopconfirm>
     </div>
-  </BkLoading> -->
+  </BkLoading>
 </template>
 
 <script setup lang="ts">
-  // import { Message } from 'bkui-vue';
-  // import { useI18n } from 'vue-i18n';
-  // import { useRequest } from 'vue-request';
+  import { Message } from 'bkui-vue';
+  import { useI18n } from 'vue-i18n';
+  import { useRequest } from 'vue-request';
 
-  // import {
-  //   getPasswordPolicy,
-  //   modifyRandomCycle,
-  //   queryRandomCycle,
-  // } from '@services/permission';
+  import {
+    getPasswordPolicy,
+    modifyRandomCycle,
+    queryRandomCycle,
+  } from '@services/permission';
 
-  // const initData = () => ({
-  //   typeValue: 'day',
-  //   weekValue: [] as string[],
-  //   monthValue: [] as string[],
-  //   timeValue: '00:00',
-  // });
+  const initData = () => ({
+    typeValue: 'day',
+    weekValue: [] as string[],
+    monthValue: [] as string[],
+    timeValue: '00:00',
+  });
 
-  // type PasswordPolicyRule = ServiceReturnType<typeof getPasswordPolicy>['rule']
+  type PasswordPolicyRule = ServiceReturnType<typeof getPasswordPolicy>['rule']
 
-  // const { t } = useI18n();
+  const { t } = useI18n();
 
-  // let submitType: 'edit' | 'reset' = 'edit';
+  let submitType: 'edit' | 'reset' = 'edit';
 
-  // const timeDataRules = [
-  //   {
-  //     required: true,
-  //     message: t('请选择'),
-  //     validator() {
-  //       const {
-  //         typeValue,
-  //         weekValue,
-  //         monthValue,
-  //         timeValue,
-  //       } = formData.timeData;
+  const timeDataRules = [
+    {
+      required: true,
+      message: t('请选择'),
+      validator() {
+        const {
+          typeValue,
+          weekValue,
+          monthValue,
+          timeValue,
+        } = formData.timeData;
 
-  //       if (typeValue === 'day') {
-  //         return timeValue !== '';
-  //       }
-  //       if (typeValue === 'week') {
-  //         return weekValue.length > 0 && timeValue !== '';
-  //       }
-  //       if (typeValue === 'month') {
-  //         return monthValue.length > 0 && timeValue !== '';
-  //       }
+        if (typeValue === 'day') {
+          return timeValue !== '';
+        }
+        if (typeValue === 'week') {
+          return weekValue.length > 0 && timeValue !== '';
+        }
+        if (typeValue === 'month') {
+          return monthValue.length > 0 && timeValue !== '';
+        }
 
-  //       return true;
-  //     },
-  //   },
-  // ];
+        return true;
+      },
+    },
+  ];
 
-  // const POLICY_MAP: {
-  //   includeRule: Record<string, string>
-  //   excludeContinuousRule: Record<string, string>
-  // } = {
-  //   includeRule: {
-  //     uppercase: t('大写字母'),
-  //     lowercase: t('小写字母'),
-  //     numbers: t('数字'),
-  //     symbols: t('特殊字符_除空格外'),
-  //   },
-  //   excludeContinuousRule: {
-  //     keyboards: t('键盘序'),
-  //     letters: t('字母序'),
-  //     numbers: t('数字序'),
-  //     repeats: t('连续特殊符号序'),
-  //     symbols: t('重复字母_数字_特殊符号'),
-  //   },
-  // };
+  const POLICY_MAP: {
+    includeRule: Record<string, string>
+    excludeContinuousRule: Record<string, string>
+  } = {
+    includeRule: {
+      uppercase: t('大写字母'),
+      lowercase: t('小写字母'),
+      numbers: t('数字'),
+      symbols: t('特殊字符_除空格外'),
+    },
+    excludeContinuousRule: {
+      keyboards: t('键盘序'),
+      letters: t('字母序'),
+      numbers: t('数字序'),
+      repeats: t('连续特殊符号序'),
+      symbols: t('重复字母_数字_特殊符号'),
+    },
+  };
 
-  // const monthOptions = new Array(31).fill('')
-  //   .map((_, index) => ({
-  //     label: `${index + 1}${t('号')}`,
-  //     value: `${index + 1}`,
-  //   }));
+  const monthOptions = new Array(31).fill('')
+    .map((_, index) => ({
+      label: `${index + 1}${t('号')}`,
+      value: `${index + 1}`,
+    }));
 
-  // const formRef = ref();
-  // const passwordVisible = ref(false);
-  // const typeOptions = ref([
-  //   {
-  //     value: 'day',
-  //     label: t('每天'),
-  //   },
-  //   {
-  //     value: 'week',
-  //     label: t('每周'),
-  //   },
-  //   {
-  //     value: 'month',
-  //     label: t('每月'),
-  //   },
-  // ]);
+  const formRef = ref();
+  const passwordVisible = ref(false);
+  const typeOptions = ref([
+    {
+      value: 'day',
+      label: t('每天'),
+    },
+    {
+      value: 'week',
+      label: t('每周'),
+    },
+    {
+      value: 'month',
+      label: t('每月'),
+    },
+  ]);
 
-  // const weekOptions = ref([
-  //   {
-  //     value: '1',
-  //     label: t('周一'),
-  //   },
-  //   {
-  //     value: '2',
-  //     label: t('周二'),
-  //   },
-  //   {
-  //     value: '3',
-  //     label: t('周三'),
-  //   },
-  //   {
-  //     value: '4',
-  //     label: t('周四'),
-  //   },
-  //   {
-  //     value: '5',
-  //     label: t('周五'),
-  //   },
-  //   {
-  //     value: '6',
-  //     label: t('周六'),
-  //   },
-  //   {
-  //     value: '7',
-  //     label: t('周日'),
-  //   },
-  // ]);
+  const weekOptions = ref([
+    {
+      value: '1',
+      label: t('周一'),
+    },
+    {
+      value: '2',
+      label: t('周二'),
+    },
+    {
+      value: '3',
+      label: t('周三'),
+    },
+    {
+      value: '4',
+      label: t('周四'),
+    },
+    {
+      value: '5',
+      label: t('周五'),
+    },
+    {
+      value: '6',
+      label: t('周六'),
+    },
+    {
+      value: '7',
+      label: t('周日'),
+    },
+  ]);
 
-  // const formData = reactive({
-  //   password: 'ADMIN',
-  //   timeData: initData(),
-  // });
+  const formData = reactive({
+    password: 'ADMIN',
+    timeData: initData(),
+  });
 
-  // const complexity = reactive({} as {
-  //   includeRules: string,
-  //   excludeContinuousRules: string
-  // });
+  const complexity = reactive({} as {
+    includeRules: string,
+    excludeContinuousRules: string
+  });
 
-  // const unVisiblePassword = computed(() => '*'.repeat(formData.password.length));
-  // const typeValue = computed(() => formData.timeData.typeValue);
+  const unVisiblePassword = computed(() => '*'.repeat(formData.password.length));
+  const typeValue = computed(() => formData.timeData.typeValue);
 
-  // const { data: passwordPolicyData } = useRequest(getPasswordPolicy, {
-  //   onSuccess(passwordPolicy) {
-  //     const { rule } = passwordPolicy;
-  //     const {
-  //       includeRule,
-  //       excludeContinuousRule,
-  //     } = POLICY_MAP;
+  const { data: passwordPolicyData } = useRequest(getPasswordPolicy, {
+    onSuccess(passwordPolicy) {
+      const { rule } = passwordPolicy;
+      const {
+        includeRule,
+        excludeContinuousRule,
+      } = POLICY_MAP;
 
-  //     const includeRules = Object.keys(includeRule).reduce((includeRulePrev, includeRuleKey) => {
-  //       if (rule.include_rule[includeRuleKey as keyof PasswordPolicyRule['include_rule']]) {
-  //         return [...includeRulePrev, includeRule[includeRuleKey]];
-  //       }
+      const includeRules = Object.keys(includeRule).reduce((includeRulePrev, includeRuleKey) => {
+        if (rule.include_rule[includeRuleKey as keyof PasswordPolicyRule['include_rule']]) {
+          return [...includeRulePrev, includeRule[includeRuleKey]];
+        }
 
-  //       return includeRulePrev;
-  //     }, [] as string[]);
+        return includeRulePrev;
+      }, [] as string[]);
 
-  //     const excludeContinuousRules = Object.keys(excludeContinuousRule)
-  //       .reduce((excludeContinuousRulePrev, excludeContinuousRuleKey) => {
-  // eslint-disable-next-line max-len
-  //         if (rule.exclude_continuous_rule[excludeContinuousRuleKey as keyof PasswordPolicyRule['exclude_continuous_rule']]) {
-  //           return [...excludeContinuousRulePrev, excludeContinuousRule[excludeContinuousRuleKey]];
-  //         }
+      const excludeContinuousRules = Object.keys(excludeContinuousRule)
+        .reduce((excludeContinuousRulePrev, excludeContinuousRuleKey) => {
+          if (rule.exclude_continuous_rule[excludeContinuousRuleKey as keyof PasswordPolicyRule['exclude_continuous_rule']]) {
+            return [...excludeContinuousRulePrev, excludeContinuousRule[excludeContinuousRuleKey]];
+          }
 
-  //         return excludeContinuousRulePrev;
-  //       }, [] as string[]);
+          return excludeContinuousRulePrev;
+        }, [] as string[]);
 
-  //     complexity.includeRules = includeRules.join('、');
-  //     complexity.excludeContinuousRules = excludeContinuousRules.join('、');
-  //   },
-  // });
+      complexity.includeRules = includeRules.join('、');
+      complexity.excludeContinuousRules = excludeContinuousRules.join('、');
+    },
+  });
 
-  // useRequest(queryRandomCycle, {
-  //   onSuccess(randomCycle) {
-  //     const {
-  //       minute,
-  //       hour,
-  //       day_of_week: dayOfWeek,
-  //       day_of_month: dayOfMonth,
-  //     } = randomCycle.crontab;
-  //     const formDataRes = initData();
+  useRequest(queryRandomCycle, {
+    onSuccess(randomCycle) {
+      const {
+        minute,
+        hour,
+        day_of_week: dayOfWeek,
+        day_of_month: dayOfMonth,
+      } = randomCycle.crontab;
+      const formDataRes = initData();
 
-  //     formDataRes.timeValue = `${hour}:${minute}`;
+      formDataRes.timeValue = `${hour}:${minute}`;
 
-  //     if (dayOfWeek !== '*') {
-  //       formDataRes.weekValue = dayOfWeek.split(',');
-  //       formDataRes.typeValue = 'week';
-  //     } else if (dayOfMonth !== '*') {
-  //       formDataRes.monthValue = dayOfMonth.split(',');
-  //       formDataRes.typeValue = 'month';
-  //     }
+      if (dayOfWeek !== '*') {
+        formDataRes.weekValue = dayOfWeek.split(',');
+        formDataRes.typeValue = 'week';
+      } else if (dayOfMonth !== '*') {
+        formDataRes.monthValue = dayOfMonth.split(',');
+        formDataRes.typeValue = 'month';
+      }
 
-  //     Object.assign(formData.timeData, formDataRes);
-  //   },
-  // });
+      Object.assign(formData.timeData, formDataRes);
+    },
+  });
 
-  // const {
-  //   run: modifyRandomCycleRun,
-  //   loading,
-  // } = useRequest(modifyRandomCycle, {
-  //   manual: true,
-  //   onSuccess() {
-  //     if (submitType === 'reset') {
-  //       Object.assign(formData.timeData, initData());
-  //     }
-  //     window.changeConfirm = false;
-  //     Message({
-  //       theme: 'success',
-  //       message: submitType === 'edit' ? t('保存成功') : t('重置成功'),
-  //     });
-  //   },
-  // });
+  const {
+    run: modifyRandomCycleRun,
+    loading,
+  } = useRequest(modifyRandomCycle, {
+    manual: true,
+    onSuccess() {
+      if (submitType === 'reset') {
+        Object.assign(formData.timeData, initData());
+      }
+      window.changeConfirm = false;
+      Message({
+        theme: 'success',
+        message: submitType === 'edit' ? t('保存成功') : t('重置成功'),
+      });
+    },
+  });
 
-  // const handleReset = () => {
-  //   submitType = 'reset';
-  //   modifyRandomCycleRun({
-  //     crontab: {
-  //       hour: '0',
-  //       minute: '0',
-  //       day_of_week: '*',
-  //       day_of_month: '*',
-  //     },
-  //   });
-  // };
+  const handleReset = () => {
+    submitType = 'reset';
+    modifyRandomCycleRun({
+      crontab: {
+        hour: '0',
+        minute: '0',
+        day_of_week: '*',
+        day_of_month: '*',
+      },
+    });
+  };
 
-  // const handleSubmit = async () => {
-  //   await formRef.value.validate();
+  const handleSubmit = async () => {
+    await formRef.value.validate();
 
-  //   const {
-  //     typeValue,
-  //     weekValue,
-  //     monthValue,
-  //     timeValue,
-  //   } = formData.timeData;
-  //   const [hour, minute] = timeValue.split(':');
-  //   const params: ServiceReturnType<typeof queryRandomCycle> = {
-  //     crontab: {
-  //       hour,
-  //       minute,
-  //       day_of_week: '*',
-  //       day_of_month: '*',
-  //     },
-  //   };
+    const {
+      typeValue,
+      weekValue,
+      monthValue,
+      timeValue,
+    } = formData.timeData;
+    const [hour, minute] = timeValue.split(':');
+    const params: ServiceReturnType<typeof queryRandomCycle> = {
+      crontab: {
+        hour,
+        minute,
+        day_of_week: '*',
+        day_of_month: '*',
+      },
+    };
 
-  //   if (typeValue === 'week') {
-  //     params.crontab.day_of_week = weekValue.join(',');
-  //   } else if (typeValue === 'month') {
-  //     params.crontab.day_of_month = monthValue.join(',');
-  //   }
+    if (typeValue === 'week') {
+      params.crontab.day_of_week = weekValue.join(',');
+    } else if (typeValue === 'month') {
+      params.crontab.day_of_month = monthValue.join(',');
+    }
 
-  //   submitType = 'edit';
-  //   modifyRandomCycleRun(params);
-  // };
+    submitType = 'edit';
+    modifyRandomCycleRun(params);
+  };
 </script>
 
 <style lang="less" scoped>

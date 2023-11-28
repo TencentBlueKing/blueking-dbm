@@ -15,20 +15,21 @@ import RedisRollbackModel from '@services/model/redis/redis-rollback';
 import { useGlobalBizs } from '@stores';
 
 import http from '../http';
-import type { ListBase } from '../types/common';
+import type { ListBase } from '../types';
 
 const { currentBizId } = useGlobalBizs();
 
 const path = `/apis/redis/bizs/${currentBizId}/rollback`;
 
-export const getRollbackList = function (params?: {
+export function getRollbackList(params?: {
   bk_biz_id: number,
   limit?: number;
   offset?: number;
   temp_cluster_proxy?: string; // ip:port
 } & Record<string, any>) {
-  return http.get<ListBase<RedisRollbackModel[]>>(`${path}/`, params).then(res => ({
-    ...res,
-    results: res.results.map(item => new RedisRollbackModel(item)),
-  }));
-};
+  return http.get<ListBase<RedisRollbackModel[]>>(`${path}/`, params)
+    .then(res => ({
+      ...res,
+      results: res.results.map(item => new RedisRollbackModel(item)),
+    }));
+}

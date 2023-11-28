@@ -12,13 +12,13 @@ package handler
 
 import (
 	"io/ioutil"
+	"log/slog"
 	"net/http"
 	"os"
 
 	"dbm-services/common/go-pubpkg/errno"
 
 	"github.com/gin-gonic/gin"
-	"golang.org/x/exp/slog"
 )
 
 // GetPubKey 获取公钥。加密账号的明文密码，避免传输过程中暴露密码。

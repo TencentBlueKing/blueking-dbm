@@ -21,7 +21,7 @@ func TestExecuteJob(t *testing.T) {
 		t.Fatal("new cc client failed", err.Error())
 		return
 	}
-	c, err := bk.GetDiskInfoScript.ReadFile(bk.DiskInfoScriptName)
+	c, err := bk.GetDiskInfoScript.ReadFile(bk.LiunxDiskScriptName)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -162,12 +162,16 @@
 
   watch(() => props.ticketDetails.ticket_type, (data) => {
     if (data === TicketTypes.MYSQL_AUTHORIZE_RULES) {
-      const { bk_biz_id, details } = props.ticketDetails;
+      const {
+        bk_biz_id: bizId,
+        details,
+      } = props.ticketDetails;
       const params = {
+        bizId,
         user: details?.authorize_data?.user,
         access_dbs: details?.authorize_data?.access_dbs,
       };
-      queryAccountRules(bk_biz_id, params)
+      queryAccountRules(params)
         .then((res) => {
           state.accessData = res.results[0]?.rules;
         })

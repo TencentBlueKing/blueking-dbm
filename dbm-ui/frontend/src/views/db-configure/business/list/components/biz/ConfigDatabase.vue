@@ -47,11 +47,12 @@
   import { useI18n } from 'vue-i18n';
 
   import { getBusinessConfigList } from '@services/source/configs';
-  import type { ConfigListItem } from '@services/types/configs';
 
   import { useGlobalBizs } from '@stores';
 
   import type { TreeData } from '../types';
+
+  type ConfigListItem = ServiceReturnType<typeof getBusinessConfigList>
 
   interface Props {
     confType: string
@@ -71,7 +72,7 @@
   const columns: Column[] = [{
     label: t('名称'),
     field: 'name',
-    render: ({ cell, data }: { cell: string, data: ConfigListItem }) => (
+    render: ({ cell, data }: { cell: string, data: ConfigListItem[number] }) => (
       <a href="javascript:" onClick={() => handleToDetails(data)}>{cell}</a>
     ),
   }, {
@@ -90,7 +91,7 @@
   }, {
     label: t('操作'),
     field: 'operation',
-    render: ({ data }: { data: ConfigListItem }) => (
+    render: ({ data }: { data: ConfigListItem[number] }) => (
       <div class="operation">
         <bk-button text theme="primary" class="mr-24" onClick={() => handleToEdit(data)}>{ t('编辑') }</bk-button>
       </div>
@@ -99,7 +100,7 @@
 
   const state = reactive({
     loading: false,
-    data: [] as ConfigListItem[],
+    data: [] as ConfigListItem,
     search: '',
     isAnomalies: false,
   });
@@ -155,7 +156,7 @@
   /**
    * 查看详情
    */
-  const handleToDetails = (row: ConfigListItem) => {
+  const handleToDetails = (row: ConfigListItem[number]) => {
     router.push({
       name: 'DbConfigureDetail',
       params: {
@@ -168,7 +169,7 @@
   /**
    * 编辑配置
    */
-  const handleToEdit = (row: ConfigListItem) => {
+  const handleToEdit = (row: ConfigListItem[number]) => {
     router.push({
       name: 'DbConfigureEdit',
       params: {

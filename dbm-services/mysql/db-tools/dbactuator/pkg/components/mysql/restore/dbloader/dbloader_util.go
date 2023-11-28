@@ -15,8 +15,9 @@ type LoaderUtil struct {
 	// EnableBinlog 导入数据时是否写binlog，默认不启用 (set sql_log_bin=0)
 	EnableBinlog  bool   `json:"enable_binlog"`
 	IndexFilePath string `json:"index_file_path" validate:"required"`
-	LoaderDir     string `json:"loader_dir"`
-	TaskDir       string `json:"taskDir"`
+	// LoaderDir 备份解压后的目录
+	LoaderDir string `json:"loader_dir"`
+	TaskDir   string `json:"taskDir"`
 
 	// 上层传递过来的filter，不包括系统过滤库
 	Databases        []string `json:"databases"`

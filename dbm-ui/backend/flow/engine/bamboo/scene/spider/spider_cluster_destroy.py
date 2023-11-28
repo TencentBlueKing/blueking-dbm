@@ -20,7 +20,7 @@ from backend.db_meta.models import Cluster
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.plugins.components.collections.common.delete_cc_service_instance import DelCCServiceInstComponent
-from backend.flow.plugins.components.collections.mysql.clear_machine import MySQLClearMachineComponent
+from backend.flow.plugins.components.collections.mysql.clear_machine import SpiderRemoteClearMachineComponent
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
 from backend.flow.plugins.components.collections.spider.spider_db_meta import SpiderDBMetaComponent
@@ -83,8 +83,11 @@ class TenDBClusterDestroyFlow(object):
     def destroy_cluster(self):
         """
         定义spider集群下架流程，支持多集群下架模式
+        增加单据临时ADMIN账号的添加和删除逻辑
         """
-        spider_destroy_pipeline = Builder(root_id=self.root_id, data=self.data)
+        spider_destroy_pipeline = Builder(
+            root_id=self.root_id, data=self.data, need_random_pass_cluster_ids=list(set(self.data["cluster_ids"]))
+        )
         sub_pipelines = []
 
         # 多集群下架时循环加入集群下架子流程
@@ -129,6 +132,16 @@ class TenDBClusterDestroyFlow(object):
                         file_list=GetFileList(db_type=DBType.MySQL).get_db_actuator_package(),
                     )
                 ),
+            )
+
+            # 阶段2 清理机器级别配置
+            # tendbcluster 的机器是集群独占的, 所以可以不用检查现行清理
+            exec_act_kwargs.exec_ip = cluster["remote_ip_list"] + cluster["spider_ip_list"]
+            exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_clear_machine_crontab.__name__
+            sub_pipeline.add_act(
+                act_name=_("清理机器级别配置"),
+                act_component_code=SpiderRemoteClearMachineComponent.code,
+                kwargs=asdict(exec_act_kwargs),
             )
 
             # 阶段3 卸载相关db组件
@@ -186,18 +199,18 @@ class TenDBClusterDestroyFlow(object):
                 ),
             )
 
-            # 阶段5 判断是否清理机器级别配置
-            exec_act_kwargs.exec_ip = cluster["remote_ip_list"] + cluster["spider_ip_list"]
-            exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_clear_machine_crontab.__name__
-            sub_pipeline.add_act(
-                act_name=_("清理机器级别配置"),
-                act_component_code=MySQLClearMachineComponent.code,
-                kwargs=asdict(exec_act_kwargs),
-            )
+            # # 阶段5 判断是否清理机器级别配置
+            # exec_act_kwargs.exec_ip = cluster["remote_ip_list"] + cluster["spider_ip_list"]
+            # exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_clear_machine_crontab.__name__
+            # sub_pipeline.add_act(
+            #     act_name=_("清理机器级别配置"),
+            #     act_component_code=MySQLClearMachineComponent.code,
+            #     kwargs=asdict(exec_act_kwargs),
+            # )
 
             sub_pipelines.append(
                 sub_pipeline.build_sub_process(sub_name=_("下架TenDB-Cluster集群[{}]").format(cluster["name"]))
             )
 
         spider_destroy_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
-        spider_destroy_pipeline.run_pipeline()
+        spider_destroy_pipeline.run_pipeline(is_drop_random_user=False)

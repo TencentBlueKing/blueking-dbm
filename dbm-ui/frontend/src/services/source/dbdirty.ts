@@ -14,28 +14,29 @@
 import DirtyMachinesModel from '@services/model/db-resource/dirtyMachines';
 
 import http from '../http';
-import type { ListBase } from '../types/common';
+import type { ListBase } from '../types';
 
 const path = '/apis/db_dirty';
 
 /**
  * 污点池列表
  */
-export const getDirtyMachines = function (params: {
+export function getDirtyMachines(params: {
   limit: number,
   offset: number,
 }, config = { globalError: true }) {
-  return http.get<ListBase<DirtyMachinesModel[]>>(`${path}/query_dirty_machines/`, params, config).then(res => ({
-    ...res,
-    results: res.results.map(item => new DirtyMachinesModel(item)),
-  }));
-};
+  return http.get<ListBase<DirtyMachinesModel[]>>(`${path}/query_dirty_machines/`, params, config)
+    .then(res => ({
+      ...res,
+      results: res.results.map(item => new DirtyMachinesModel(item)),
+    }));
+}
 
 /**
  * 将污点池主机转移至待回收模块
  */
-export const transferDirtyMachines = function (params: {
+export function transferDirtyMachines(params: {
   bk_host_ids: number[]
 }) {
   return http.post(`${path}/transfer_dirty_machines/`, params);
-};
+}

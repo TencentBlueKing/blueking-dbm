@@ -158,9 +158,9 @@
   import { getPermissionRules, preCheckAuthorizeRules } from '@services/permission';
   import { checkHost } from '@services/source/ipchooser';
   import { createTicket } from '@services/source/ticket';
-  import type { ResourceItem } from '@services/types/clusters';
+  import { getWhitelist } from '@services/source/whitelist';
+  import type { ResourceItem } from '@services/types';
   import type { AuthorizePreCheckData, PermissionRule } from '@services/types/permission';
-  import type { WhitelistItem } from '@services/types/whitelist';
 
   import { useCopy, useInfo, useStickyFooter, useTicketMessage } from '@hooks';
 
@@ -325,7 +325,7 @@
     }));
   }
 
-  function handleChangeWhitelist(data: WhitelistItem[]) {
+  function handleChangeWhitelist(data: ServiceReturnType<typeof getWhitelist>['results']) {
     // 避免与 handleChangeIP 同时修改 source_ips 参数
     nextTick(() => {
       const formatData = data
@@ -419,10 +419,11 @@
     await formRef.value.validate();
     const params = {
       ...state.formdata,
+      bizId: globalBizsStore.currentBizId,
       cluster_type: clusterState.clusterType,
     };
     state.isLoading = true;
-    preCheckAuthorizeRules(globalBizsStore.currentBizId, params)
+    preCheckAuthorizeRules(params)
       .then((res) => {
         const {
           pre_check: preCheck,

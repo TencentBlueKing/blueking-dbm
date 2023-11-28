@@ -51,6 +51,7 @@ from backend.flow.views.kafka_reboot import RebootKafkaSceneApiView
 from backend.flow.views.kafka_replace import ReplaceKafkaSceneApiView
 from backend.flow.views.kafka_scale_up import ScaleUpKafkaSceneApiView
 from backend.flow.views.kafka_shrink import ShrinkKafkaSceneApiView
+from backend.flow.views.migrate_spider_cluster_from_gcs import MigrateSpiderClusterFromGcsView
 from backend.flow.views.migrate_views.es_fake_apply import FakeInstallEsSceneApiView
 from backend.flow.views.migrate_views.hdfs_fake_apply import FakeInstallHdfsSceneApiView
 from backend.flow.views.migrate_views.influxdb_fake_apply import FakeInstallInfluxdbSceneApiView
@@ -111,6 +112,7 @@ from backend.flow.views.pulsar_destroy import DestroyPulsarSceneApiView
 from backend.flow.views.pulsar_disable import DisablePulsarSceneApiView
 from backend.flow.views.pulsar_enable import EnablePulsarSceneApiView
 from backend.flow.views.pulsar_reboot import RebootPulsarSceneApiView
+from backend.flow.views.pulsar_replace import ReplacePulsarSceneApiView
 from backend.flow.views.pulsar_scale_up import ScaleUpPulsarSceneApiView
 from backend.flow.views.redis_cluster import (
     InstallRedisCacheClusterSceneApiView,
@@ -320,6 +322,7 @@ urlpatterns = [
     url(r"^scene/disable_pulsar$", DisablePulsarSceneApiView.as_view()),
     url(r"^scene/destroy_pulsar$", DestroyPulsarSceneApiView.as_view()),
     url(r"^scene/reboot_pulsar$", RebootPulsarSceneApiView.as_view()),
+    url(r"^scene/replace_pulsar$", ReplacePulsarSceneApiView.as_view()),
     url(r"^scene/fake_install_pulsar$", FakeInstallPulsarSceneApiView.as_view()),
     url(r"^scene/import_resource_init$", ImportResourceInitStepApiView.as_view()),
     # spider
@@ -372,4 +375,6 @@ urlpatterns = [
     url("^scene/switch_tbinlogumper$", SwitchTBinlogDumperSceneApiView.as_view()),
     url("^scene/tendbha_standardize$", TenDBHAStandardizeView.as_view()),
     url("^scene/mysql_open_area$", MysqlOpenAreaSceneApiView.as_view()),
+    # migrate
+    url("^scene/migrate_spider_cluster_from_gcs$", MigrateSpiderClusterFromGcsView.as_view()),
 ]

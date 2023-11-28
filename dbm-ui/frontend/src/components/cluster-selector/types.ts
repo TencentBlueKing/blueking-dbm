@@ -13,8 +13,10 @@
 
 import type { ISearchValue } from 'bkui-vue/lib/search-select/utils';
 
-import type { ResourceItem } from '@services/types/clusters';
-import type { SearchFilterItem } from '@services/types/common';
+import type {
+  ResourceItem,
+  SearchFilterItem,
+} from '@services/types';
 
 import type { IPagination } from '@hooks';
 

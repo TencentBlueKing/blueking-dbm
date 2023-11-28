@@ -14,14 +14,18 @@
 import _ from 'lodash';
 
 import {
-  type FlowItem,
-  type FlowLine,
-  type FlowsData,
-  type FlowType,
   FlowTypes,
+  getTaskflowDetails,
+} from '@services/source/taskflow';
+import {
+  type FlowItem,
+  type FlowsData,
 } from '@services/types/taskflow';
 
 import type { RenderCollectionKey } from './graphRender';
+
+type FlowLine = ServiceReturnType<typeof getTaskflowDetails>['flows'][string]
+type FlowType = ServiceReturnType<typeof getTaskflowDetails>['end_event']['type']
 
 export type RenderKey = 'start_event' | 'end_event' | 'activities' | 'gateways';
 export interface GraphNode {

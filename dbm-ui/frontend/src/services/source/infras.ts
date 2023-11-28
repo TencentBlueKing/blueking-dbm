@@ -16,14 +16,69 @@ import type { HostSpec } from '../types/ticket';
 
 const path = '/apis/infras';
 
-export const fetchDbTypeList = function () {
+/**
+ * 查询服务器资源的城市信息
+ */
+export function getInfrasCities() {
+  return http.get<{
+    city_code: string,
+    city_name: string,
+    inventory: number,
+    inventory_tag: string
+  }[]>(`${path}/cities/`);
+}
+
+/**
+ * 主机提交格式
+ */
+interface HostSubmitParams {
+  ip: string,
+  bk_cloud_id: number,
+  bk_host_id: number,
+  bk_cpu?: number,
+  bk_mem?: number,
+  bk_disk?: number,
+  bk_biz_id: number
+}
+
+/**
+ * redis 容量列表
+ */
+export function getCapSpecs(params: {
+  nodes: {
+    master: Array<HostSubmitParams>,
+    slave: Array<HostSubmitParams>
+  },
+  ip_source: string
+  cluster_type: string
+  cityCode: string
+}) {
+  return http.post<{
+    group_num: number,
+    maxmemory: number,
+    shard_num: number,
+    spec: string,
+    total_memory: number
+    cap_key: string,
+    selected: boolean
+    max_disk: number,
+    total_disk: string,
+  }[]>(`${path}/cities/cap_specs/`, params);
+}
+
+/**
+ * 查询集群类型
+ */
+export function fetchDbTypeList() {
   return http.get<Array<{
     id: string,
     name: string
   }>>(`${path}/dbtype/list_db_types/`);
-};
+}
 
 /**
  * 服务器规格列表
  */
-export const getInfrasHostSpecs = () => http.get<HostSpec[]>(`${path}/cities/host_specs/`);
+export function getInfrasHostSpecs() {
+  return http.get<HostSpec[]>(`${path}/cities/host_specs/`);
+}

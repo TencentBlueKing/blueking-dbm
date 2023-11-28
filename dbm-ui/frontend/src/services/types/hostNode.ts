@@ -11,51 +11,22 @@
  * the specific language governing permissions and limitations under the License.
 */
 
-type node = {
-  ip: string,
-  port: number,
-}
-export interface EsDetail {
-  cluster_alias: string,
-  cluster_name: string,
-  cluster_type: string,
-  cluster_type_name: string,
-  create_at: string,
-  creator: string,
-  domain: string,
-  hot_nodes: Array<node>,
-  id: number,
-  major_version: string,
-  master_nodes: Array<node>,
-  phase: string,
-  status: string,
-  update_at: string,
-  updater: string,
-}
-
-export interface EsListNode {
+/**
+ * 节点详情
+ */
+export interface HostNode {
+  bk_os_name: string,
   bk_host_id: number,
   bk_cloud_id: number,
+  bk_host_innerip_v6: string,
   bk_host_name: string,
-  cpu_mem: string,
-  ip: string,
-  machine_type: string,
-  node_count: number,
-  role: string,
-  status: number
+  bk_os_type: number | string,
+  bk_host_innerip: string,
+  status: number,
+  bk_agent_id: string,
+  bk_cloud_name: string,
+  bk_cloud_vendor: null,
+  bk_cpu: number,
+  bk_mem: number,
+  instance_num: number,
 }
-
-export interface EsListInstance {
-  bk_host_id: number,
-  bk_cloud_id: number,
-  cluster_id: number,
-  create_at: string,
-  domain: string,
-  id: number,
-  instance_address: string,
-  instance_name: string,
-  role: string,
-  status: string,
-}
-
-

@@ -87,12 +87,10 @@
   <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
 
-  import { checkHost } from '@services/source/ipchooser';
+  import type { HostDetails } from '@services/types';
 
   import HostSelector from './components/HostSelector.vue';
   import ResourcePoolSelector from './components/ResourcePoolSelector.vue';
-
-  type HostDetails = ServiceReturnType<typeof checkHost>[number]
 
   export interface TExpansionNode {
     // 集群节点展示名

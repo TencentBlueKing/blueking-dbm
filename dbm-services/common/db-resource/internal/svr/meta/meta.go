@@ -143,10 +143,12 @@ func GetIdcCityByLogicCity(logicCity string) (idcCitys []string, err error) {
 	for i := 0; i <= 5; i++ {
 		resp, err = client.Do(request)
 		if err != nil {
-			if slices.Contains([]int{http.StatusInternalServerError, http.StatusTooManyRequests, http.StatusGatewayTimeout},
-				resp.StatusCode) {
-				time.Sleep(200 * time.Millisecond)
-				continue
+			if resp != nil {
+				if slices.Contains([]int{http.StatusInternalServerError, http.StatusTooManyRequests, http.StatusGatewayTimeout},
+					resp.StatusCode) {
+					time.Sleep(200 * time.Millisecond)
+					continue
+				}
 			}
 			logger.Error("request %s failed %s", request.RequestURI, err.Error())
 			return nil, err

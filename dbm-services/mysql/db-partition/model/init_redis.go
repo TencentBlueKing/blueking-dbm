@@ -2,11 +2,11 @@ package model
 
 import (
 	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/go-redis/redis"
 	"github.com/spf13/viper"
-	"golang.org/x/exp/slog"
 )
 
 var rdb *redis.Client
