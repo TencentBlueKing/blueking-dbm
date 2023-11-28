@@ -223,7 +223,7 @@ class MySQLHAStandardizeFlow(object):
                         exec_ip=ip,
                         run_as_system_user=DBA_ROOT_USER,
                         cluster_type=ClusterType.TenDBHA.value,
-                        cluster={"ports": ports, "version": major_version},
+                        cluster={"ports": list(ports), "version": major_version},
                         bk_cloud_id=bk_cloud_id,
                         get_mysql_payload_func=MysqlActPayload.get_adopt_tendbha_storage_payload.__name__,
                     )
