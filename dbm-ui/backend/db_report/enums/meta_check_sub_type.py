@@ -17,3 +17,5 @@ class MetaCheckSubType(str, StructuredEnum):
     InstanceBelong = EnumField("instance_belong", _("实例集群归属"))
     ReplicateRole = EnumField("replicate_role", _("数据同步实例角色"))
     ClusterTopo = EnumField("cluster_topo", _("集群结构"))
+    AloneInstance = EnumField("alone_instance", _("孤立的实例"))
+    StatusAbnormal = EnumField("status_abnormal", _("不属于RUNNING状态"))

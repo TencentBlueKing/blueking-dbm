@@ -15,6 +15,7 @@ from celery.schedules import crontab
 from backend.db_periodic_task.local_tasks.register import register_periodic_task
 
 from .check_instance_belong import check_instance_belong
+from .check_redis_instance import check_redis_instance
 from .check_replicate_role import check_replicate_role
 
 logger = logging.getLogger("celery")
@@ -26,5 +27,6 @@ def db_meta_check_task():
     """
     巡检校验元数据
     """
+    check_redis_instance()
     check_instance_belong()
     check_replicate_role()
