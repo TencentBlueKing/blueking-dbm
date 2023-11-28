@@ -253,7 +253,7 @@
    * 清空日志
    */
   const handleClearLog = () => {
-    logRef.value.handleLogClear();
+    logRef.value?.handleLogClear();
   };
 
   /**

@@ -681,6 +681,7 @@
   };
 
   const handleNodeMouseEnter = (node: GraphNode, event: MouseEvent) => {
+    logState.node = node;
     if (event.target) {
       const targetEl = event.target as HTMLElement;
       targetEl.className = `${targetEl.className} mouse-hover`;
