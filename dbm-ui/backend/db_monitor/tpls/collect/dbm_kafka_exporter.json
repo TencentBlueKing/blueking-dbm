@@ -13,7 +13,7 @@
         "period": 60,
         "timeout": 60,
         "host": "127.0.0.1",
-        "port": "9527"
+        "port": ""
       },
       "plugin": {
         "--web.listen-address": "${host}:${port}",
@@ -38,7 +38,7 @@
     "plugin_id": "dbm_kafka_exporter"
   },
   "db_type": "kafka",
-  "version": 15,
+  "version": 16,
   "machine_types": [],
   "plugin_id": "dbm_kafka_exporter",
   "export_at": "2023-11-22 15:25:54"

@@ -43,7 +43,7 @@
       },
       "collector": {
         "host": "127.0.0.1",
-        "port": "7000",
+        "port": "",
         "period": 60
       },
       "target_node_type": "TOPO",
@@ -52,7 +52,7 @@
     "plugin_id": "dbm_mysqld_exporter"
   },
   "db_type": "mysql",
-  "version": 15,
+  "version": 16,
   "machine_types": [
     "spider"
   ],
