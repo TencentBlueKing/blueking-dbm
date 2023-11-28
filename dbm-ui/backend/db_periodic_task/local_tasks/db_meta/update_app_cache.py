@@ -30,7 +30,7 @@ def update_app_cache():
 
     bizs = CCApi.search_business().get("info", [])
 
-    updated_hosts, created_hosts = [], []
+    updated_bizs, created_bizs = [], []
     for biz in bizs:
         try:
             logger.warning("[db_meta] sync app : %s", biz["bk_biz_id"])
@@ -46,27 +46,33 @@ def update_app_cache():
                     )
                     db_app_abbr = bk_app_abbr
 
+            # update or create fields
+            defaults = {
+                "bk_biz_name": biz["bk_biz_name"],
+                "language": biz["language"],
+                "time_zone": biz["time_zone"],
+                "bk_biz_maintainer": biz["bk_biz_maintainer"],
+            }
+
+            # 英文为空，则不更新进去，避免覆盖提单时刚写入的英文名
+            if not db_app_abbr:
+                defaults["db_app_abbr"] = db_app_abbr
+
             obj, created = AppCache.objects.update_or_create(
-                defaults={
-                    "db_app_abbr": db_app_abbr,
-                    "bk_biz_name": biz["bk_biz_name"],
-                    "language": biz["language"],
-                    "time_zone": biz["time_zone"],
-                    "bk_biz_maintainer": biz["bk_biz_maintainer"],
-                },
+                defaults=defaults,
                 bk_biz_id=biz["bk_biz_id"],
             )
 
             if created:
-                created_hosts.append(obj.bk_biz_id)
+                created_bizs.append(obj.bk_biz_id)
             else:
-                updated_hosts.append(obj.bk_biz_id)
+                updated_bizs.append(obj.bk_biz_id)
         except Exception as e:  # pylint: disable=wildcard-import
             logger.error("[db_meta] cache app error: %s (%s)", biz, e)
 
     logger.warning(
         "[db_meta] finish update app cache end: %s, create_cnt: %s, update_cnt: %s",
         datetime.datetime.now() - now,
-        len(created_hosts),
-        len(updated_hosts),
+        len(created_bizs),
+        len(updated_bizs),
     )
