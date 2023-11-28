@@ -15,7 +15,7 @@
   <BkSideslider
     :before-close="handleBeforeClose"
     :is-show="isShow"
-    :title="$t('添加授权规则')"
+    :title="t('添加授权规则')"
     :width="640"
     @closed="handleClose">
     <DbForm
@@ -25,7 +25,7 @@
       :model="state.formdata"
       :rules="rules">
       <BkFormItem
-        :label="$t('账号名')"
+        :label="t('账号名')"
         property="account_id"
         required>
         <BkSelect
@@ -42,7 +42,7 @@
         </BkSelect>
       </BkFormItem>
       <BkFormItem
-        :label="$t('访问DB')"
+        :label="t('访问DB')"
         property="access_db"
         required
         :rules="rules.access_db">
@@ -50,70 +50,121 @@
           ref="textareaRef"
           v-model="state.formdata.access_db"
           :max-height="400"
-          :placeholder="$t('请输入DB名称_可以使用通配符_如Data_区分大小写_多个使用英文逗号_分号或换行分隔')"
+          :placeholder="t('请输入DB名称_可以使用通配符_如Data_区分大小写_多个使用英文逗号_分号或换行分隔')"
           :teleport-to-body="false" />
       </BkFormItem>
       <BkFormItem
         class="rule-form__item"
-        :label="$t('权限设置')"
+        :label="t('权限设置')"
         property="auth">
-        <BkFormItem label="DML">
-          <BkCheckbox
-            class="check-all"
-            :indeterminate="getAllCheckedboxIndeterminate('dml')"
-            :model-value="getAllCheckedboxValue('dml')"
-            @change="(value: boolean) => handleSelectedAll('dml', value)">
-            {{ $t('全选') }}
-          </BkCheckbox>
-          <BkCheckboxGroup
-            v-model="state.formdata.privilege.dml"
-            class="rule-form__checkbox-group">
+        <div class="rule-setting-box">
+          <BkFormItem label="DML">
+            <div class="rule-form-row">
+              <BkCheckbox
+                v-bk-tooltips="{
+                  content: t('你已选择所有权限'),
+                  disabled: !checkAllPrivileges
+                }"
+                class="check-all"
+                :disabled="checkAllPrivileges"
+                :indeterminate="getAllCheckedboxIndeterminate('dml')"
+                :model-value="getAllCheckedboxValue('dml')"
+                @change="(value: boolean) => handleSelectedAll('dml', value)">
+                {{ t('全选') }}
+              </BkCheckbox>
+              <BkCheckboxGroup
+                v-model="state.formdata.privilege.dml"
+                class="rule-form-checkbox-group">
+                <BkCheckbox
+                  v-for="dmlItem of dbOperations.dml"
+                  :key="dmlItem"
+                  v-bk-tooltips="{
+                    content: t('你已选择所有权限'),
+                    disabled: !checkAllPrivileges
+                  }"
+                  :disabled="checkAllPrivileges"
+                  :label="dmlItem">
+                  {{ dmlItem }}
+                </BkCheckbox>
+              </BkCheckboxGroup>
+            </div>
+          </BkFormItem>
+          <BkFormItem label="DDL">
+            <div class="rule-form-row">
+              <BkCheckbox
+                v-bk-tooltips="{
+                  content: t('你已选择所有权限'),
+                  disabled: !checkAllPrivileges
+                }"
+                class="check-all"
+                :disabled="checkAllPrivileges"
+                :indeterminate="getAllCheckedboxIndeterminate('ddl')"
+                :model-value="getAllCheckedboxValue('ddl')"
+                @change="(value: boolean) => handleSelectedAll('ddl', value)">
+                {{ t('全选') }}
+              </BkCheckbox>
+              <BkCheckboxGroup
+                v-model="state.formdata.privilege.ddl"
+                class="rule-form-checkbox-group">
+                <BkCheckbox
+                  v-for="ddlItem of dbOperations.ddl"
+                  :key="ddlItem"
+                  v-bk-tooltips="{
+                    content: t('你已选择所有权限'),
+                    disabled: !checkAllPrivileges
+                  }"
+                  :disabled="checkAllPrivileges"
+                  :label="ddlItem">
+                  {{ ddlItem }}
+                </BkCheckbox>
+              </BkCheckboxGroup>
+            </div>
+          </BkFormItem>
+          <BkFormItem
+            class="mb-0"
+            :label="t('非常规权限')">
+            <div class="rule-form-row">
+              <BkCheckbox
+                v-bk-tooltips="{
+                  content: t('你已选择所有权限'),
+                  disabled: !checkAllPrivileges
+                }"
+                class="check-all"
+                :disabled="checkAllPrivileges"
+                :indeterminate="getAllCheckedboxIndeterminate('glob')"
+                :model-value="getAllCheckedboxValue('glob')"
+                @change="(value: boolean) => handleSelectedAll('glob', value)">
+                {{ t('全选') }}
+              </BkCheckbox>
+              <BkCheckboxGroup
+                v-model="state.formdata.privilege.glob"
+                class="rule-form-checkbox-group">
+                <BkCheckbox
+                  v-for="globItem of dbOperations.glob"
+                  :key="globItem"
+                  v-bk-tooltips="{
+                    content: t('你已选择所有权限'),
+                    disabled: !checkAllPrivileges
+                  }"
+                  :disabled="checkAllPrivileges"
+                  :label="globItem" />
+              </BkCheckboxGroup>
+            </div>
+          </BkFormItem>
+        </div>
+        <div
+          class="rule-setting-box"
+          style="margin-top: 16px;">
+          <BkFormItem
+            class="mb-0"
+            :label="t('所有权限')">
             <BkCheckbox
-              v-for="dmlItem of dbOperations.dml"
-              :key="dmlItem"
-              :label="dmlItem">
-              {{ dmlItem }}
+              :model-value="checkAllPrivileges"
+              @change="(value: boolean) => handleSelectAllPrivileges(value)">
+              all privileges（{{ t('包含所有权限，其他权限无需授予') }}）
             </BkCheckbox>
-          </BkCheckboxGroup>
-        </BkFormItem>
-        <BkFormItem label="DDL">
-          <BkCheckbox
-            class="check-all"
-            :indeterminate="getAllCheckedboxIndeterminate('ddl')"
-            :model-value="getAllCheckedboxValue('ddl')"
-            @change="(value: boolean) => handleSelectedAll('ddl', value)">
-            {{ $t('全选') }}
-          </BkCheckbox>
-          <BkCheckboxGroup
-            v-model="state.formdata.privilege.ddl"
-            class="rule-form__checkbox-group">
-            <BkCheckbox
-              v-for="ddlItem of dbOperations.ddl"
-              :key="ddlItem"
-              :label="ddlItem">
-              {{ ddlItem }}
-            </BkCheckbox>
-          </BkCheckboxGroup>
-        </BkFormItem>
-        <BkFormItem
-          class="mb-0"
-          label="GLOBAL">
-          <BkCheckbox
-            class="check-all"
-            :indeterminate="getAllCheckedboxIndeterminate('glob')"
-            :model-value="getAllCheckedboxValue('glob')"
-            @change="(value: boolean) => handleSelectedAll('glob', value)">
-            {{ $t('全选') }}
-          </BkCheckbox>
-          <BkCheckboxGroup
-            v-model="state.formdata.privilege.glob"
-            class="rule-form__checkbox-group">
-            <BkCheckbox
-              v-for="globItem of dbOperations.glob"
-              :key="globItem"
-              :label="globItem" />
-          </BkCheckboxGroup>
-        </BkFormItem>
+          </BkFormItem>
+        </div>
       </BkFormItem>
     </DbForm>
     <template #footer>
@@ -122,12 +173,12 @@
         :loading="state.isSubmitting"
         theme="primary"
         @click="handleSubmit">
-        {{ $t('确定') }}
+        {{ t('确定') }}
       </BkButton>
       <BkButton
         :disabled="state.isSubmitting"
         @click="handleClose">
-        {{ $t('取消') }}
+        {{ t('取消') }}
       </BkButton>
     </template>
   </BkSideslider>
@@ -135,6 +186,7 @@
 
 <script setup lang="ts">
   import { Message } from 'bkui-vue';
+  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
   import { createAccountRule, getPermissionRules, queryAccountRules } from '@services/permission';
@@ -169,6 +221,8 @@
   const globalbizsStore = useGlobalBizs();
 
   const ruleRef = ref();
+  const checkAllPrivileges = ref(false);
+
   /** 设置底部按钮粘性布局 */
   useStickyFooter(ruleRef);
 
@@ -187,7 +241,7 @@
         message: t('请设置权限'),
         validator: () => {
           const { ddl, dml, glob } = state.formdata.privilege;
-          return ddl.length !== 0 || dml.length !== 0 || glob.length !== 0;
+          return ddl.length !== 0 || dml.length !== 0 || glob.length !== 0 || checkAllPrivileges.value;
         },
       },
     ],
@@ -205,6 +259,15 @@
       },
     ],
   }));
+
+  const handleSelectAllPrivileges = (checked: boolean) => {
+    checkAllPrivileges.value = checked;
+    if (checked) {
+      state.formdata.privilege.ddl = [];
+      state.formdata.privilege.dml = [];
+      state.formdata.privilege.glob = [];
+    }
+  };
 
   // 获取权限设置全选框状态
   const getAllCheckedboxValue = (key: AuthItemKey) => state.formdata.privilege[key].length === dbOperations[key].length;
@@ -318,6 +381,7 @@
     if (!result) return;
     isShow.value = false;
     state.formdata = initFormdata();
+    checkAllPrivileges.value = false;
     state.existDBs = [];
     window.changeConfirm = false;
   }
@@ -327,12 +391,16 @@
    */
   async function handleSubmit() {
     await ruleRef.value.validate();
-
+    const formData = _.cloneDeep(state.formdata);
     state.isSubmitting = true;
+    if (checkAllPrivileges.value) {
+      // 包含所有权限
+      formData.privilege.glob = ['all privileges'];
+    }
     const params = {
-      ...state.formdata,
+      ...formData,
       bizId: globalbizsStore.currentBizId,
-      access_db: state.formdata.access_db.replace(/\n|;/g, ','), // 统一分隔符
+      access_db: formData.access_db.replace(/\n|;/g, ','), // 统一分隔符
     };
     createAccountRule(params)
       .then(() => {
@@ -352,43 +420,62 @@
 </script>
 
 <style lang="less" scoped>
-  .rule-form {
-    padding: 24px 40px 40px;
+.rule-form {
+  padding: 24px 40px 40px;
 
-    &__textarea {
-      height: var(--height);
-      max-height: 160px;
-      min-height: 32px;
+  .rule-setting-box {
+    padding: 16px;
+    background: #F5F7FA;
+    border-radius: 2px;
+  }
 
-      :deep(textarea) {
-        line-height: 1.8;
+  &__textarea {
+    height: var(--height);
+    max-height: 160px;
+    min-height: 32px;
+
+    :deep(textarea) {
+      line-height: 1.8;
+    }
+  }
+
+  &__item {
+    :deep(.bk-form-label) {
+      font-weight: bold;
+      color: @title-color;
+
+      &::after {
+        position: absolute;
+        top: 0;
+        width: 14px;
+        line-height: 24px;
+        color: @danger-color;
+        text-align: center;
+        content: "*";
       }
     }
+  }
 
-    &__item {
-      > :deep(.bk-form-label) {
-        font-weight: bold;
-        color: @title-color;
+  .rule-form-row {
+    display: flex;
+    width: 100%;
+    align-items: flex-start;
 
-        &::after {
-          position: absolute;
-          top: 0;
-          width: 14px;
-          line-height: 32px;
-          color: @danger-color;
-          text-align: center;
-          content: "*";
-        }
+    .rule-form-checkbox-group {
+      display: flex;
+      flex: 1;
+      flex-wrap: wrap;
+
+      .bk-checkbox {
+        margin-right: 35px;
+        margin-bottom: 16px;
+        margin-left: 0;
       }
-    }
-
-    &__checkbox-group {
-      padding: 7px 0;
-      line-height: normal;
     }
 
     .check-all {
       position: relative;
+      width: 48px;
       margin-right: 48px;
 
       :deep(.bk-checkbox-label) {
@@ -407,4 +494,5 @@
       }
     }
   }
+}
 </style>
