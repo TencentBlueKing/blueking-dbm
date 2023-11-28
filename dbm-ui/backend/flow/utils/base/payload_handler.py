@@ -441,7 +441,7 @@ class PayloadHandler(object):
             logger.error("cannot get auth info from password service")
             cluster_config_data = DBConfigApi.query_conf_item(
                 {
-                    "bk_biz_id": cluster.bk_biz_id,
+                    "bk_biz_id": str(cluster.bk_biz_id),
                     "level_name": LevelName.CLUSTER,
                     "level_value": cluster.immute_domain,
                     "level_info": {"module": LevelInfoEnum.TendataModuleDefault},

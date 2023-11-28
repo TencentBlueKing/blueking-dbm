@@ -218,9 +218,7 @@ class HdfsScaleUpFlow(object):
         data_with_role["http_port"] = int(cluster_config["http_port"])
         data_with_role["rpc_port"] = int(cluster_config["rpc_port"])
         # 用户名密码改由密码服务拉取
-        password = PayloadHandler.get_bigdata_password_by_cluster(
-            cluster, data_with_role["rpc_port"], UserName.HDFS_DEFAULT
-        )
+        password = PayloadHandler.get_bigdata_password_by_cluster(cluster, 0, UserName.HDFS_DEFAULT)
         # 若密码获取不到，从dbconfig获取
         if not password:
             logger.error("cannot get auth info from password service")

@@ -35,13 +35,16 @@ class WriteBackPulsarConfigService(BaseService):
         kwargs = data.get_one_of_inputs("kwargs")
         global_data = data.get_one_of_inputs("global_data")
         trans_data = data.get_one_of_inputs("trans_data")
-        token_data = ""
 
         if trans_data is None or trans_data == "${trans_data}":
             # 表示没有加载上下文内容，则在此添加
             trans_data = getattr(flow_context, kwargs["set_trans_data_dataclass"])()
         conf_items = []
         if global_data["ticket_type"] == TicketType.PULSAR_APPLY.value:
+            token = getattr(trans_data, PulsarApplyContext.get_new_token_var_name())["token"]
+            # 回写认证信息到密码服务
+            self.write_auth_to_prv_manager(global_data, token)
+            # 封装 回写dbconfig的配置项
             conf_items = [
                 {
                     "conf_name": PulsarConfigEnum.ManagerUserName,
@@ -79,16 +82,12 @@ class WriteBackPulsarConfigService(BaseService):
                     "conf_value": str(global_data["retention_time"]),
                     "op_type": OpType.UPDATE,
                 },
-            ]
-            token = getattr(trans_data, PulsarApplyContext.get_new_token_var_name())["token"]
-            token_data = token
-            conf_items.append(
                 {
                     "conf_name": PulsarConfigEnum.ClientAuthenticationParameters,
                     "conf_value": f"token:{token}",
                     "op_type": OpType.UPDATE,
-                }
-            )
+                },
+            ]
             for i, zk_node in enumerate(global_data["nodes"][PulsarRoleEnum.ZooKeeper]):
                 conf_items.append(
                     {
@@ -108,6 +107,7 @@ class WriteBackPulsarConfigService(BaseService):
                         "op_type": OpType.UPDATE,
                     }
                 )
+        # 根据上述不同单据类型，拼接配置项内容，写入dbconfig
         DBConfigApi.upsert_conf_item(
             {
                 "conf_file_info": {
@@ -124,6 +124,23 @@ class WriteBackPulsarConfigService(BaseService):
                 "level_value": global_data["domain"],
             }
         )
+
+        self.log_info("successfully write back pulsar config to dbconfig")
+        return True
+
+    def inputs_format(self) -> List:
+        return [
+            Service.InputItem(name="kwargs", key="kwargs", type="dict", required=True),
+            Service.InputItem(name="global_data", key="global_data", type="dict", required=True),
+        ]
+
+    def outputs_format(self) -> List:
+        return [Service.OutputItem(name="command result", key="result", type="str")]
+
+    def write_auth_to_prv_manager(self, global_data: dict, token: str):
+        """
+        将认证信息(用户名/密码/token)写入到密码服务，仅集群上架单据调用
+        """
         # 写入到密码服务，把用户名当密码存
         query_params = {
             "instances": [{"ip": global_data["domain"], "port": 0, "bk_cloud_id": global_data["bk_cloud_id"]}],
@@ -145,24 +162,13 @@ class WriteBackPulsarConfigService(BaseService):
         # 存储token
         query_params = {
             "instances": [{"ip": global_data["domain"], "port": 0, "bk_cloud_id": global_data["bk_cloud_id"]}],
-            "password": base64.b64encode(str(f"token:{token_data}").encode("utf-8")).decode("utf-8"),
+            "password": base64.b64encode(str(f"token:{token}").encode("utf-8")).decode("utf-8"),
             "username": PulsarConfigEnum.ClientAuthenticationParameters,
             "component": NameSpaceEnum.Pulsar,
             "operator": "admin",
         }
         MySQLPrivManagerApi.modify_password(params=query_params)
-
-        self.log_info("successfully write back pulsar config to dbconfig")
-        return True
-
-    def inputs_format(self) -> List:
-        return [
-            Service.InputItem(name="kwargs", key="kwargs", type="dict", required=True),
-            Service.InputItem(name="global_data", key="global_data", type="dict", required=True),
-        ]
-
-    def outputs_format(self) -> List:
-        return [Service.OutputItem(name="command result", key="result", type="str")]
+        self.log_info("successfully write back pulsar config to privilege manager")
 
 
 class WriteBackPulsarConfigComponent(Component):
