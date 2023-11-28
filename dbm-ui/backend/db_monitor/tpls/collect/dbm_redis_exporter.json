@@ -28,7 +28,7 @@
       },
       "collector": {
         "host": "127.0.0.1",
-        "port": "9432",
+        "port": "",
         "period": 60
       },
       "target_node_type": "TOPO",
@@ -37,7 +37,7 @@
     "plugin_id": "dbm_redis_exporter"
   },
   "db_type": "redis",
-  "version": 15,
+  "version": 16,
   "machine_types": [],
   "plugin_id": "dbm_redis_exporter"
 }
