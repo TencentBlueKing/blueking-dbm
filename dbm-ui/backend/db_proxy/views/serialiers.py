@@ -57,13 +57,18 @@ class BaseProxyPassSerialier(serializers.Serializer):
         if getattr(request, "internal_call", None):
             return attrs
 
-        # 解密/或拿到缓存ID
         db_cloud_token, bk_cloud_id = attrs["db_cloud_token"], attrs["bk_cloud_id"]
         cache_key = f"cache_db_cloud_token_{bk_cloud_id}"
-        cache_db_cloud_token = RedisConn.get(cache_key)
-        if db_cloud_token != cache_db_cloud_token:
+        # 判断是否在缓存集合中，不在cache中则走解密流程并cache。
+        # 由于Redis的list不能直接判断元素是否存在，所以选择set存取
+        if not RedisConn.sismember(cache_key, db_cloud_token):
             self.verify_token(db_cloud_token, bk_cloud_id)
-            RedisConn.set(cache_key, db_cloud_token, DB_CLOUD_TOKEN_EXPIRE_TIME)
+            # 如果这个cache_key刚创建，则需要设置过期时间
+            if not RedisConn.exists(cache_key):
+                RedisConn.sadd(cache_key, db_cloud_token)
+                RedisConn.expire(cache_key, DB_CLOUD_TOKEN_EXPIRE_TIME)
+            else:
+                RedisConn.sadd(cache_key, db_cloud_token)
 
         attrs.pop("db_cloud_token")
         return attrs

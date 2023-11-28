@@ -16,6 +16,7 @@ from django.utils.translation import ugettext as _
 from backend import env
 from backend.components import DBConfigApi
 from backend.components.dbconfig.constants import FormatType, LevelName
+from backend.configuration.handlers.password import DBPasswordHandler
 from backend.configuration.models import SystemSettings
 from backend.core.encrypt.constants import AsymmetricCipherConfigType
 from backend.core.encrypt.handlers import AsymmetricHandler
@@ -127,6 +128,7 @@ class CloudServiceActPayload(object):
             "mysql_crond_metrics_data_token": bkm_dbm_report["metric"]["token"],
             "mysql_crond_agent_address": env.MYSQL_CROND_AGENT_ADDRESS,
             "mysql_crond_beat_path": env.MYSQL_CROND_BEAT_PATH,
+            "proxy_password": DBPasswordHandler.query_proxy_password(),
         }
 
     def get_dbha_apply_payload(self):
@@ -151,6 +153,7 @@ class CloudServiceActPayload(object):
             "drs_user": self.kwargs["plain_user"],
             "drs_password": self.kwargs["plain_pwd"],
             "dns_nameserver": dns_nameserver_str,
+            "proxy_password": DBPasswordHandler.query_proxy_password(),
         }
 
     def get_drs_apply_paylaod(self):
