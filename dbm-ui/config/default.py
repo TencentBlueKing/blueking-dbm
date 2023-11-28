@@ -100,6 +100,7 @@ INSTALLED_APPS += (
     "backend.db_periodic_task",
     "backend.db_report",
     "backend.db_services.redis.slots_migrate",
+    "backend.db_services.mysql.dumper",
 )
 
 

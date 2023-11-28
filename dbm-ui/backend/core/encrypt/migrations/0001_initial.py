@@ -12,7 +12,7 @@ specific language governing permissions and limitations under the License.
 
 from django.db import migrations, models
 
-from backend.core.encrypt.constants import AsymmetricCipherKeyType
+from backend.core.encrypt.constants import AsymmetricCipherConfigType, AsymmetricCipherKeyType
 
 
 class Migration(migrations.Migration):
@@ -33,7 +33,7 @@ class Migration(migrations.Migration):
                 (
                     "name",
                     models.CharField(
-                        choices=[("mysql", "MySQL的非对称秘钥"), ("proxypass", "透传接口的非对称秘钥"), ("cloud", "云区域服务的非对称秘钥")],
+                        choices=AsymmetricCipherConfigType.get_choices(),
                         max_length=128,
                         verbose_name="密钥名称",
                     ),

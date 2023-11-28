@@ -8,14 +8,13 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+from django.contrib import admin
 
-from django.utils.translation import gettext_lazy as _
-
-from blue_krill.data_types.enum import EnumField, StructuredEnum
+from . import models
 
 
-class DumperReceiverType(str, StructuredEnum):
-    """dumper接收端枚举类型"""
-
-    REDIS = EnumField("redis", _("redis"))
-    KAFKA = EnumField("kafka", _("kafka"))
+@admin.register(models.DumperSubscribeConfig)
+class DumperSubscribeConfigAdmin(admin.ModelAdmin):
+    list_display = ("bk_biz_id", "name", "add_type")
+    list_filter = ("bk_biz_id", "name", "add_type")
+    search_fields = ("bk_biz_id", "name", "add_type")

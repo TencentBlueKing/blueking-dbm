@@ -110,3 +110,9 @@ class FixpointRollbackType(str, StructuredEnum):
     REMOTE_AND_BACKUPID = EnumField("REMOTE_AND_BACKUPID", _("远程备份 + backupid"))
     LOCAL_AND_TIME = EnumField("LOCAL_AND_TIME", _("本地备份 + 时间"))
     LOCAL_AND_BACKUPID = EnumField("LOCAL_AND_BACKUPID", _("本地备份 + backupid"))
+
+
+class DumperProtocolType(str, StructuredEnum):
+    KAFKA = EnumField("KAFKA", _("KAFKA"))
+    L5_AGENT = EnumField("L5_AGENT", _("L5_AGENT"))
+    TCP_IP = EnumField("TCP/IP", _("TCP/IP"))

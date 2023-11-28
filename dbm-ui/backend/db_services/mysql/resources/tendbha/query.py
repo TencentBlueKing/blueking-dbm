@@ -274,6 +274,7 @@ class ListRetrieveResource(query.ListRetrieveResource):
             "masters": masters,
             "slaves": slaves,
             "db_module_name": db_module_names.get(cluster.db_module_id, ""),
+            "db_module_id": cluster.db_module_id,
             "creator": cluster.creator,
             "create_at": datetime2str(cluster.create_at),
         }

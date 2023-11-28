@@ -51,7 +51,6 @@ def retry_node(root_id: str, node_id: str, retry_times: int) -> Union[EngineAPIR
     # 实例化一个Service实例用于捕获日志到日志平台
     service = BaseService()
     service.setup_runtime_attrs(root_pipeline_id=root_id, id=node_id, version=flow_node.version_id)
-    service.log_info(_("存在执行互斥，正在进行重试，当前重试次数为{}").format(retry_times))
 
     # 限制最大重试次数
     if retry_times > MAX_AUTO_RETRY_TIMES:
@@ -67,6 +66,7 @@ def retry_node(root_id: str, node_id: str, retry_times: int) -> Union[EngineAPIR
         Cluster.handle_exclusive_operations(cluster_ids, ticket.ticket_type, exclude_ticket_ids=[ticket.id])
     except ClusterExclusiveOperateException as e:
         # 互斥下: 手动重试直接报错，自动重试则延迟一定时间后重新执行该任务
+        service.log_info(_("存在执行互斥，正在进行重试，当前重试次数为{}").format(retry_times))
         flow = Flow.objects.get(flow_obj_id=flow_node.root_id)
         if flow.retry_type == FlowRetryType.MANUAL_RETRY:
             raise RetryNodeException(_("执行互斥错误信息: {}").format(e))
