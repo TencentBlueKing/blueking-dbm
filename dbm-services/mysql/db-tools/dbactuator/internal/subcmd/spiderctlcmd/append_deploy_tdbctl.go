@@ -129,7 +129,7 @@ func (d *AppendDeployCtlSpiderAct) Run() (err error) {
 		},
 		{
 			FunName: "执行初始化系统基础权限、库表SQL",
-			Func:    d.BaseService.InitDefaultPrivAndSchema,
+			Func:    d.BaseService.InitDefaultPrivAndSchemaWithResetMaster,
 		},
 		{
 			FunName: "安装半同步复制插件",
