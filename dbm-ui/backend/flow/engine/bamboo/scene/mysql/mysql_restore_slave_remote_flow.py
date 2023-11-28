@@ -75,7 +75,14 @@ class MySQLRestoreSlaveRemoteFlow(object):
         3 mysql_restore_slave_change_cluster_info
         4 mysql_restore_remove_old_slave
         """
-        tendb_migrate_pipeline_all = Builder(root_id=self.root_id, data=copy.deepcopy(self.ticket_data))
+        cluster_ids = []
+        for i in self.ticket_data["infos"]:
+            cluster_ids.extend(i["cluster_ids"])
+        tendb_migrate_pipeline_all = Builder(
+            root_id=self.root_id,
+            data=copy.deepcopy(self.ticket_data),
+            need_random_pass_cluster_ids=list(set(cluster_ids)),
+        )
         tendb_migrate_pipeline_list = []
         for info in self.ticket_data["infos"]:
             self.data = copy.deepcopy(info)
@@ -312,7 +319,7 @@ class MySQLRestoreSlaveRemoteFlow(object):
             )
         # 运行流程
         tendb_migrate_pipeline_all.add_parallel_sub_pipeline(tendb_migrate_pipeline_list)
-        tendb_migrate_pipeline_all.run_pipeline(init_trans_data_class=ClusterInfoContext())
+        tendb_migrate_pipeline_all.run_pipeline(init_trans_data_class=ClusterInfoContext(), is_drop_random_user=True)
 
     def restore_local_slave_flow(self):
         """
@@ -320,7 +327,12 @@ class MySQLRestoreSlaveRemoteFlow(object):
         机器slave数据损坏或者其他原因丢弃实例数据，重新恢复数据。
         无元数据改动
         """
-        tendb_migrate_pipeline_all = Builder(root_id=self.root_id, data=copy.deepcopy(self.ticket_data))
+        cluster_ids = [i["cluster_id"] for i in self.data["infos"]]
+        tendb_migrate_pipeline_all = Builder(
+            root_id=self.root_id,
+            data=copy.deepcopy(self.ticket_data),
+            need_random_pass_cluster_ids=list(set(cluster_ids)),
+        )
         tendb_migrate_pipeline_list = []
         for info in self.ticket_data["infos"]:
             self.data = copy.deepcopy(info)
@@ -440,4 +452,4 @@ class MySQLRestoreSlaveRemoteFlow(object):
             )
 
         tendb_migrate_pipeline_all.add_parallel_sub_pipeline(sub_flow_list=tendb_migrate_pipeline_list)
-        tendb_migrate_pipeline_all.run_pipeline(init_trans_data_class=ClusterInfoContext())
+        tendb_migrate_pipeline_all.run_pipeline(init_trans_data_class=ClusterInfoContext(), is_drop_random_user=True)
