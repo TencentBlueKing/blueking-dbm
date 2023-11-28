@@ -101,7 +101,7 @@ def _check_tendis_binlog_backup():
             # 如果节点维度没有数据，就不用在进行下面的了
             # 这里如果提升为集群维度的话，一般会有40*10*24*3=28800个文件，所以按节点维度来查
             if not bklogs:
-                msg = _("无法查找到在时间范围内{}-{}，集群{}：{}的全备份日志").format(start_time, end_time, c.immute_domain, instance)
+                msg = _("无法查找到在时间范围内{}-{}，集群{}：{}的binlog备份日志").format(start_time, end_time, c.immute_domain, instance)
                 logger.error(msg)
                 RedisBackupCheckReport.objects.create(
                     creator=c.creator,

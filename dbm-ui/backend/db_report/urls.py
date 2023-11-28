@@ -21,4 +21,6 @@ urlpatterns = [
     url("^redis_check/full_backup$", views.RedisFullBackupCheckReportViewSet.as_view({"get": "list"})),
     url("^redis_check/binlog_backup$", views.RedisBinlogBackupCheckReportViewSet.as_view({"get": "list"})),
     url("^dbmon/heartbeat$", views.DbmonHeatbeartCheckReportBaseViewSet.as_view({"get": "list"})),
+    url("^redis_meta_check/status_abnormal$", views.RedisStatusAbnormalCheckReportViewSet.as_view({"get": "list"})),
+    url("^redis_meta_check/alone_instance$", views.RedisAloneInstanceCheckReportViewSet.as_view({"get": "list"})),
 ]

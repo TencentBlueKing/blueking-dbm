@@ -126,3 +126,21 @@ DBMON_HEARTBEAT_CHECK_DATA = {
         {"name": "create_at", "display_name": "心跳超时时间", "format": "text"},
     ],
 }
+
+# 元数据检查那里还需要在增加redis特有的检查
+REDIS_META_CHECK_DATA = {
+    "count": 1,
+    "next": None,
+    "previous": None,
+    "results": [
+        {"bk_biz_id": 3, "cluster": "xx.xx.xx.xx", "cluster_type": "TwemproxyRedisInstance", "status": True, "msg": ""}
+    ],
+    "name": "redis 元数据检查",
+    "title": [
+        {"name": "bk_biz_id", "display_name": "业务", "format": "text"},
+        {"name": "cluster", "display_name": "集群名", "format": "text"},
+        {"name": "cluster_type", "display_name": "集群类型", "format": "text"},
+        {"name": "status", "display_name": "元数据状态", "format": "status"},
+        {"name": "msg", "display_name": "详情", "format": "text"},
+    ],
+}
