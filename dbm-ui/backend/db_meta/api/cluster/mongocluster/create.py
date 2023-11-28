@@ -17,7 +17,11 @@ from django.db import transaction
 from backend.constants import DEFAULT_BK_CLOUD_ID
 from backend.db_meta import request_validator
 from backend.db_meta.api.cluster.nosqlcomm.create_cluster import update_cluster_type
-from backend.db_meta.api.cluster.nosqlcomm.create_instances import create_mongo_instances, create_proxies
+from backend.db_meta.api.cluster.nosqlcomm.create_instances import (
+    create_mongo_instances,
+    create_mongo_mutil_instances,
+    create_proxies,
+)
 from backend.db_meta.api.cluster.nosqlcomm.precheck import (
     before_create_domain_precheck,
     before_create_proxy_precheck,
@@ -181,28 +185,14 @@ def pkg_create_mongo_cluster(
 
     # 实例创建，关系创建
     machine_specs = machine_specs or {}
-    spec_id, spec_config = 0, ""
+    spec_id, spec_config = 0, {}
     if machine_specs.get(MachineType.MONGOS.value):
         spec_id = machine_specs[MachineType.MONGOS.value]["spec_id"]
         spec_config = machine_specs[MachineType.MONGOS.value]["spec_config"]
     create_proxies(bk_biz_id, bk_cloud_id, MachineType.MONGOS.value, proxies, spec_id, spec_config)
 
-    for config_pair in configs:
-        spec_id, spec_config = 0, ""
-        if machine_specs.get(MachineType.MONOG_CONFIG.value):
-            spec_id = machine_specs[MachineType.MONOG_CONFIG.value]["spec_id"]
-            spec_config = machine_specs[MachineType.MONOG_CONFIG.value]["spec_config"]
-        create_mongo_instances(
-            bk_biz_id, bk_cloud_id, MachineType.MONOG_CONFIG.value, config_pair["nodes"], spec_id, spec_config
-        )
-    for shard_pair in storages:
-        spec_id, spec_config = 0, ""
-        if machine_specs.get(MachineType.MONGODB.value):
-            spec_id = machine_specs[MachineType.MONGODB.value]["spec_id"]
-            spec_config = machine_specs[MachineType.MONGODB.value]["spec_config"]
-        create_mongo_instances(
-            bk_biz_id, bk_cloud_id, MachineType.MONGODB.value, shard_pair["nodes"], spec_id, spec_config
-        )
+    create_mongo_mutil_instances(bk_biz_id, bk_cloud_id, MachineType.MONOG_CONFIG.value, configs, machine_specs)
+    create_mongo_mutil_instances(bk_biz_id, bk_cloud_id, MachineType.MONGODB.value, storages, machine_specs)
 
     create_mongo_cluster(
         bk_biz_id=bk_biz_id,

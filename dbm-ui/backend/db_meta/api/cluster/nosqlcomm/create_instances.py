@@ -21,6 +21,40 @@ logger = logging.getLogger("flow")
 
 
 @transaction.atomic
+def create_mongo_mutil_instances(bk_biz_id, bk_cloud_id, machine_type, inst_pairs, spec_config):
+    machines, instances, tuples, primary = {}, [], [], {}
+    try:
+        for inst_pair in inst_pairs:  # {"shard":"","node":[]}
+            for storage in inst_pair["nodes"]:
+                machines[storage["ip"]] = {
+                    "ip": storage["ip"],
+                    "bk_biz_id": bk_biz_id,
+                    "bk_cloud_id": bk_cloud_id,
+                    "machine_type": machine_type,
+                    "spec_id": spec_config.get(machine_type, {}).get("spec_id", 0),
+                    "spec_config": spec_config.get(machine_type, {}),
+                }
+                instances.append({"ip": storage["ip"], "port": storage["port"], "instance_role": storage["role"]})
+                # 找到主节点
+                if storage["role"] == InstanceRole.MONGO_M1:
+                    primary = storage
+            for storage in inst_pair["nodes"]:
+                if storage["role"] != InstanceRole.MONGO_M1:
+                    tuples.append(
+                        {
+                            "ejector": {"ip": primary["ip"], "port": primary["port"]},
+                            "receiver": {"ip": storage["ip"], "port": storage["port"]},
+                        }
+                    )
+        machine.create(machines=list(machines.values()), bk_cloud_id=bk_cloud_id)
+        storage_instance.create(instances=instances)
+        storage_instance_tuple.create(tuples)
+    except Exception as e:
+        logger.error(traceback.format_exc())
+        raise e
+
+
+@transaction.atomic
 def create_mongo_instances(
     bk_biz_id, bk_cloud_id, machine_type, storages, spec_id: int = 0, spec_config: str = "", skip_machine: bool = False
 ):
