@@ -155,3 +155,15 @@ class DBPasswordHandler(object):
         celery_task = db_task.task
         setattr(celery_task, model_field, model_schedule)
         celery_task.save(update_fields=[model_field])
+
+    @classmethod
+    def query_proxy_password(cls):
+        """查询proxy password，用于渲染drs和dbha配置中的proxy password"""
+        # 查询参数固定
+        params = {
+            "instances": [{"ip": "0.0.0.0", "port": 0, "bk_cloud_id": 0}],
+            "users": [{"username": "proxy", "component": "proxy"}],
+        }
+        data = MySQLPrivManagerApi.get_password(params)["items"][0]
+        # 注意要用base64解密
+        return base64.b64decode(data["password"]).decode("utf8")

@@ -15,6 +15,7 @@ from backend.db_proxy.views.bkrepo.views import BKRepoProxyPassViewSet
 from backend.db_proxy.views.db_meta.views import DBMetaApiProxyPassViewSet
 from backend.db_proxy.views.db_remote_service.views import DRSApiProxyPassViewSet
 from backend.db_proxy.views.dbconfig.views import DBConfigProxyPassViewSet
+from backend.db_proxy.views.dbpriv.views import DBPrivProxyPassViewSet
 from backend.db_proxy.views.dns.views import DnsProxyPassViewSet
 from backend.db_proxy.views.dumper.views import DumperProxyPassViewSet
 from backend.db_proxy.views.hadb.views import HADBProxyPassViewSet
@@ -35,5 +36,6 @@ routers.register(r"", BKRepoProxyPassViewSet, basename="bkrepo")
 routers.register(r"", DtsApiProxyPassViewSet, basename="redis_dts")
 routers.register(r"", JobApiProxyPassViewSet, basename="jobapi")
 routers.register(r"", DumperProxyPassViewSet, basename="dumper")
+routers.register(r"", DBPrivProxyPassViewSet, basename="dbpriv")
 
 urlpatterns = routers.urls
