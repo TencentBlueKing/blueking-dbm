@@ -115,11 +115,11 @@ class PulsarBaseFlow(object):
         # dbconfig 目前返回值均为str
         base_flow_data["port"] = int(dbconfig[PulsarConfigEnum.Port])
         # pulsar-manager 用户名/密码 优先从密码服务获取
-        auth_info = PayloadHandler.get_bigdata_auth_by_cluster(cluster, base_flow_data["port"])
+        auth_info = PayloadHandler.get_bigdata_auth_by_cluster(cluster, 0)
         base_flow_data["username"] = auth_info["username"]
         base_flow_data["password"] = auth_info["password"]
         # token不再从dbconfig获取，仅从密码服务获取
-        base_flow_data["token"] = get_token_by_cluster(cluster, base_flow_data["port"])
+        base_flow_data["token"] = get_token_by_cluster(cluster, 0)
 
         base_flow_data["retention_time"] = int(dbconfig[PulsarRoleEnum.Broker]["defaultRetentionTimeInMinutes"])
 

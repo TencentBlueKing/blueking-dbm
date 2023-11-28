@@ -77,7 +77,7 @@ class PulsarReplaceFlow(PulsarOperationFlow):
         )
 
         # 替换ZK流程
-        if PulsarRoleEnum.ZooKeeper in self.data["old_nodes"] and self.data["old_nodes"][PulsarRoleEnum.ZooKeeper]:
+        if self.is_role_in_ticket_replace(PulsarRoleEnum.ZooKeeper):
             self.get_replace_zk_nodes(ticket_data=self.data)
             replace_zk_data = copy.deepcopy(self.base_flow_data)
             replace_zk_sub_pipeline = SubBuilder(root_id=self.root_id, data=replace_zk_data)
@@ -132,8 +132,11 @@ class PulsarReplaceFlow(PulsarOperationFlow):
                 sub_flow=replace_zk_sub_pipeline.build_sub_process(sub_name=_("替换ZooKeeper子流程"))
             )
 
-        # 创建 扩/缩容 子流程
-        if PulsarRoleEnum.Broker in self.data["old_nodes"] or PulsarRoleEnum.BookKeeper in self.data["old_nodes"]:
+        # 创建 扩/缩容 子流程 仅包含BookKeeper和Broker角色
+        if self.is_role_in_ticket_replace(PulsarRoleEnum.Broker) or self.is_role_in_ticket_replace(
+            PulsarRoleEnum.BookKeeper
+        ):
+
             #   将替换流程new_nodes上的IP信息写入self.nodes及self.base_flow_data
             scale_up_data = self.update_nodes_replace(self.data, TicketType.PULSAR_SCALE_UP)
             scale_up_sub_pipeline = SubBuilder(root_id=self.root_id, data=scale_up_data)
@@ -146,11 +149,11 @@ class PulsarReplaceFlow(PulsarOperationFlow):
             # 并发执行所有子流程
             scale_up_sub_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
             # 安装bookkeeper
-            if PulsarRoleEnum.BookKeeper in self.nodes and self.nodes[PulsarRoleEnum.BookKeeper]:
+            if self.is_role_in_ticket_replace(PulsarRoleEnum.BookKeeper):
                 bookie_act_list = self.new_bookkeeper_act_list(act_kwargs)
                 scale_up_sub_pipeline.add_parallel_acts(acts_list=bookie_act_list)
             # 扩容broker 子流程封装
-            if PulsarRoleEnum.Broker in self.nodes and self.nodes[PulsarRoleEnum.Broker]:
+            if self.is_role_in_ticket_replace(PulsarRoleEnum.Broker):
                 # 分发密钥文件到新broker节点
                 act_kwargs.file_list = PULSAR_KEY_PATH_LIST_BROKER
                 act_kwargs.exec_ip = [node["ip"] for node in self.nodes[PulsarRoleEnum.Broker]]
@@ -186,7 +189,7 @@ class PulsarReplaceFlow(PulsarOperationFlow):
             shrink_data = self.update_nodes_replace(self.data, TicketType.PULSAR_SHRINK)
             shrink_sub_pipeline = SubBuilder(root_id=self.root_id, data=shrink_data)
             # 缩容bookkeeper编排
-            if PulsarRoleEnum.BookKeeper in self.nodes and self.nodes[PulsarRoleEnum.BookKeeper]:
+            if self.is_role_in_ticket_replace(PulsarRoleEnum.BookKeeper):
                 bookie_num = len(self.bookie_ips) + len(self.nodes[PulsarRoleEnum.BookKeeper])
                 shrink_bookie_sub_flow = self.del_bookkeeper_sub_flow(
                     act_kwargs=act_kwargs, data=shrink_data, cur_bookie_num=bookie_num
@@ -196,8 +199,8 @@ class PulsarReplaceFlow(PulsarOperationFlow):
                 )
 
             # 缩容broker编排
-            if PulsarRoleEnum.Broker in self.nodes and self.nodes[PulsarRoleEnum.Broker]:
-                # 添加到DBMeta
+            if self.is_role_in_ticket_replace(PulsarRoleEnum.Broker):
+                # 回收域名
                 dns_kwargs = DnsKwargs(
                     bk_cloud_id=shrink_data["bk_cloud_id"],
                     dns_op_type=DnsOpType.RECYCLE_RECORD,
@@ -298,3 +301,8 @@ class PulsarReplaceFlow(PulsarOperationFlow):
             return sub_pipeline
         else:
             return None
+
+    # 替换表单中是否包含传参角色
+    def is_role_in_ticket_replace(self, role: PulsarRoleEnum) -> bool:
+        # 判断角色是否在原始传入表单data的旧节点[old_nodes]中
+        return role.value in self.data["old_nodes"] and self.data["old_nodes"][role.value]
