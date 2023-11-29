@@ -37,21 +37,33 @@ func RedisClusterNewIns(instances []interface{},
 		// create detect instance by machine_type
 		if uIns.MetaType == constvar.RedisMetaType {
 			redisIns = append(redisIns, NewRedisDetectInstance(uIns, conf))
-			count, _ := GetInstancePass(constvar.RedisMetaType, redisIns, conf)
-			if count != len(redisIns) {
-				log.Logger.Errorf("RedisCluster redis passwd part failed,succ:%d,total:%d",
-					count, len(redisIns))
-			}
 		} else if uIns.MetaType == constvar.TwemproxyMetaType {
 			twemIns = append(twemIns, NewTwemproxyDetectInstance(uIns, conf))
-			count, _ := GetInstancePass(constvar.TwemproxyMetaType, twemIns, conf)
-			if count != len(twemIns) {
-				log.Logger.Errorf("RedisCluster twemproxy passwd part failed,succ:%d,total:%d",
-					count, len(twemIns))
-			}
 		} else {
 			log.Logger.Errorf("RedisCluster cluster is %s but meta type is invalid",
 				constvar.RedisCluster)
+		}
+	}
+
+	// get redis instance passwd
+	if len(redisIns) > 0 {
+		count, _ := GetInstancePass(constvar.RedisMetaType, redisIns, conf)
+		if count != len(redisIns) {
+			log.Logger.Errorf("RedisCluster redis passwd part failed,succ:%d,total:%d",
+			count, len(redisIns))
+		} else {
+			log.Logger.Infof("RedisCluster redis passwd all get, count:%d", count)
+		}
+	}
+
+	// get twemproxy instance passwd
+	if len(twemIns) > 0 {
+		count, _ := GetInstancePass(constvar.TwemproxyMetaType, twemIns, conf)
+		if count != len(twemIns) {
+			log.Logger.Errorf("RedisCluster twemproxy passwd part failed,succ:%d,total:%d",
+			count, len(twemIns))
+		} else {
+			log.Logger.Infof("RedisCluster twemproxy passwd all get, count:%d", count)
 		}
 	}
 

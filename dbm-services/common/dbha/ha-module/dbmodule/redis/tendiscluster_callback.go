@@ -36,21 +36,29 @@ func TendisClusterNewIns(instances []interface{},
 		// create detect instance by machine_type
 		if uIns.MetaType == constvar.TendisplusMetaType {
 			tendisIns = append(tendisIns, NewTendisplusDetectInstance(uIns, conf))
-			count, _ := GetInstancePass(constvar.TendisplusMetaType, tendisIns, conf)
-			if count != len(tendisIns) {
-				log.Logger.Errorf("TendisCluster tendisplus passwd part failed,succ:%d,total:%d",
-					count, len(tendisIns))
-			}
 		} else if uIns.MetaType == constvar.PredixyMetaType {
 			predixyIns = append(predixyIns, NewPredixyDetectInstance(uIns, conf))
-			count, _ := GetInstancePass(constvar.PredixyMetaType, predixyIns, conf)
-			if count != len(predixyIns) {
-				log.Logger.Errorf("TendisCluster predixy passwd part failed,succ:%d,total:%d",
-					count, len(predixyIns))
-			}
 		} else {
 			log.Logger.Errorf("TendisCluster cluster is %s but meta type is invalid",
 				constvar.TendisplusCluster)
+		}
+	}
+
+	// get tendisplus passwd
+	if len(tendisIns) > 0 {
+		count, _ := GetInstancePass(constvar.TendisplusMetaType, tendisIns, conf)
+		if count != len(tendisIns) {
+			log.Logger.Errorf("TendisCluster tendisplus passwd part failed,succ:%d,total:%d",
+			count, len(tendisIns))
+		}
+	}
+
+	// get predixy passwd
+	if len(predixyIns) > 0 {
+		count, _ := GetInstancePass(constvar.PredixyMetaType, predixyIns, conf)
+		if count != len(predixyIns) {
+			log.Logger.Errorf("TendisCluster predixy passwd part failed,succ:%d,total:%d",
+				count, len(predixyIns))
 		}
 	}
 
