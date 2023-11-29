@@ -49,8 +49,8 @@ func RedisClusterNewIns(instances []interface{},
 	if len(redisIns) > 0 {
 		count, _ := GetInstancePass(constvar.RedisMetaType, redisIns, conf)
 		if count != len(redisIns) {
-			log.Logger.Errorf("redis passwd part failed,succ:%d,total:%d",
-			count, len(redisIns))
+			log.Logger.Errorf("RedisCluster redis passwd part failed,succ:%d,total:%d",
+				count, len(redisIns))
 		}
 	}
 
@@ -58,8 +58,8 @@ func RedisClusterNewIns(instances []interface{},
 	if len(twemIns) > 0 {
 		count, _ := GetInstancePass(constvar.TwemproxyMetaType, twemIns, conf)
 		if count != len(twemIns) {
-			log.Logger.Errorf("twemproxy passwd part failed,succ:%d,total:%d",
-			count, len(twemIns))
+			log.Logger.Errorf("RedisCluster twemproxy passwd part failed,succ:%d,total:%d",
+				count, len(twemIns))
 		}
 	}
 
