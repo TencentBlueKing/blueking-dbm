@@ -55,6 +55,7 @@ def build_surrounding_apps_sub_flow(
     master_ip_list: list = None,
     slave_ip_list: list = None,
     proxy_ip_list: list = None,
+    is_install_backup: bool = True,
 ):
     """
     定义重建备、数据检验程序、rotate_binlog程序等组件的子流程，面向整机操作
@@ -67,6 +68,7 @@ def build_surrounding_apps_sub_flow(
     @param parent_global_data: 子流程的上层全局只读上下文
     @param is_init: 是否代表首次安装，针对部署、添加场景
     @param cluster_type: 操作的集群类型，涉及到获取配置空间
+    @param is_install_backup: 是否安装备份,spider集群切换前忽略安装备份
     """
     if not master_ip_list:
         master_ip_list = []
@@ -101,19 +103,6 @@ def build_surrounding_apps_sub_flow(
             acts_list.extend(
                 [
                     {
-                        "act_name": _("Master[{}]安装备份程序".format(master_ip)),
-                        "act_component_code": ExecuteDBActuatorScriptComponent.code,
-                        "kwargs": asdict(
-                            ExecActuatorKwargs(
-                                bk_cloud_id=bk_cloud_id,
-                                exec_ip=master_ip,
-                                get_mysql_payload_func=MysqlActPayload.get_install_db_backup_payload.__name__,
-                                cluster_type=cluster_type,
-                                run_as_system_user=DBA_ROOT_USER,
-                            )
-                        ),
-                    },
-                    {
                         "act_name": _("Master[{}]安装rotate_binlog程序".format(master_ip)),
                         "act_component_code": ExecuteDBActuatorScriptComponent.code,
                         "kwargs": asdict(
@@ -141,6 +130,22 @@ def build_surrounding_apps_sub_flow(
                     },
                 ]
             )
+            if is_install_backup:
+                acts_list.append(
+                    {
+                        "act_name": _("Master[{}]安装备份程序".format(master_ip)),
+                        "act_component_code": ExecuteDBActuatorScriptComponent.code,
+                        "kwargs": asdict(
+                            ExecActuatorKwargs(
+                                bk_cloud_id=bk_cloud_id,
+                                exec_ip=master_ip,
+                                get_mysql_payload_func=MysqlActPayload.get_install_db_backup_payload.__name__,
+                                cluster_type=cluster_type,
+                                run_as_system_user=DBA_ROOT_USER,
+                            )
+                        ),
+                    }
+                )
 
             if cluster_type in (ClusterType.TenDBHA.value, ClusterType.TenDBCluster.value):
                 # 主从架构部署mysql-checksum程序
@@ -182,19 +187,6 @@ def build_surrounding_apps_sub_flow(
             acts_list.extend(
                 [
                     {
-                        "act_name": _("Slave[{}]安装备份程序".format(slave_ip)),
-                        "act_component_code": ExecuteDBActuatorScriptComponent.code,
-                        "kwargs": asdict(
-                            ExecActuatorKwargs(
-                                bk_cloud_id=bk_cloud_id,
-                                exec_ip=slave_ip,
-                                get_mysql_payload_func=MysqlActPayload.get_install_db_backup_payload.__name__,
-                                cluster_type=cluster_type,
-                                run_as_system_user=DBA_ROOT_USER,
-                            )
-                        ),
-                    },
-                    {
                         "act_name": _("Slave[{}]安装rotate_binlog程序".format(slave_ip)),
                         "act_component_code": ExecuteDBActuatorScriptComponent.code,
                         "kwargs": asdict(
@@ -222,6 +214,22 @@ def build_surrounding_apps_sub_flow(
                     },
                 ]
             )
+            if is_install_backup:
+                acts_list.append(
+                    {
+                        "act_name": _("Slave[{}]安装备份程序".format(slave_ip)),
+                        "act_component_code": ExecuteDBActuatorScriptComponent.code,
+                        "kwargs": asdict(
+                            ExecActuatorKwargs(
+                                bk_cloud_id=bk_cloud_id,
+                                exec_ip=slave_ip,
+                                get_mysql_payload_func=MysqlActPayload.get_install_db_backup_payload.__name__,
+                                cluster_type=cluster_type,
+                                run_as_system_user=DBA_ROOT_USER,
+                            )
+                        ),
+                    },
+                )
 
             if cluster_type in (ClusterType.TenDBHA.value, ClusterType.TenDBCluster.value):
                 # 主从架构部署mysql-checksum程序

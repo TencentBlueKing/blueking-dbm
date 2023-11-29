@@ -299,6 +299,7 @@ class TenDBRemoteRebalanceFlow(object):
                         parent_global_data=copy.deepcopy(self.data),
                         is_init=True,
                         cluster_type=ClusterType.TenDBCluster.value,
+                        is_install_backup=False,
                     )
                 )
                 surrounding_sub_pipeline_list.append(

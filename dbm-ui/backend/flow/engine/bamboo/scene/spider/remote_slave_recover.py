@@ -280,6 +280,7 @@ class TenDBRemoteSlaveRecoverFlow(object):
                     parent_global_data=copy.deepcopy(self.data),
                     is_init=True,
                     cluster_type=ClusterType.TenDBCluster.value,
+                    is_install_backup=False,
                 )
             )
             # 人工确认切换迁移实例
