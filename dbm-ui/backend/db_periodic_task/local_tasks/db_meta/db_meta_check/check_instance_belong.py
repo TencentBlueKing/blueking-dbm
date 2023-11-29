@@ -29,9 +29,9 @@ def check_instance_belong():
 def _instance_belong(qs: QuerySet):
     for ins in qs.annotate(cluster_count=Count("cluster")).filter(~Q(cluster_count=1)):
         if ins.cluster.exists():  # 大于 1 个集群
-            msg = _("{} 属于 {} 个集群".format(ins.ip_port(), ins.cluster.count()))  # ToDo 详情
+            msg = _("{} 属于 {} 个集群".format(ins.ip_port, ins.cluster.count()))  # ToDo 详情
         else:  # 不属于任何集群
-            msg = _("{} 不属于任何集群".format(ins.ip_port()))
+            msg = _("{} 不属于任何集群".format(ins.ip_port))
 
         MetaCheckReport.objects.create(
             bk_biz_id=ins.bk_biz_id,

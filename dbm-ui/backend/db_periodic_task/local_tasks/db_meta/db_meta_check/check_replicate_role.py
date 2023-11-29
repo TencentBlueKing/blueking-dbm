@@ -36,7 +36,7 @@ def check_replicate_role():
                 cluster_type=ejector.cluster_type,
                 machine_type=ejector.machine.machine_type,
                 status=False,
-                msg=_("{} {} 不能作为同步 ejector".format(ejector.ip_port(), ejector.instance_inner_role)),
+                msg=_("{} {} 不能作为同步 ejector".format(ejector.ip_port, ejector.instance_inner_role)),
                 subtype=MetaCheckSubType.ReplicateRole.value,
             )
         except ObjectDoesNotExist:  # 忽略实例没有集群关系的异常, instance-belong 会发现这个错误
@@ -56,7 +56,7 @@ def check_replicate_role():
                 cluster_type=receiver.cluster_type,
                 machine_type=receiver.machine.machine_type,
                 status=False,
-                msg=_("{} {} 不能作为同步 receiver".format(receiver.ip_port(), receiver.instance_inner_role)),
+                msg=_("{} {} 不能作为同步 receiver".format(receiver.ip_port, receiver.instance_inner_role)),
                 subtype=MetaCheckSubType.ReplicateRole.value,
             )
         except ObjectDoesNotExist:  # 忽略实例没有集群关系的异常, instance-belong 会发现这个错误

@@ -4,6 +4,9 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"os/exec"
+	"path"
+	"time"
 
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
@@ -29,6 +32,22 @@ func (u *ClearCrontabParam) CleanCrontab() (err error) {
 	if err = osutil.CleanLocalCrontab(); err != nil {
 		return err
 	}
+
+	cmd := exec.Command(
+		"su", []string{
+			"-", "mysql", "-c",
+			fmt.Sprintf(`/bin/sh %s`,
+				path.Join(cst.MySQLCrondInstallPath, "remove_keep_alive.sh")),
+		}...,
+	)
+	err = cmd.Run()
+	if err != nil {
+		logger.Error("remove mysql-crond keep alive crontab failed: %s", err.Error())
+		return err
+	}
+	logger.Info("remove mysql-crond keep alive crontab success")
+
+	time.Sleep(1 * time.Minute)
 
 	manager := ma.NewManager("http://127.0.0.1:9999")
 	err = manager.Quit()
