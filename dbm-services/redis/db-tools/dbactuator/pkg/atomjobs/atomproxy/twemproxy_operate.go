@@ -103,6 +103,16 @@ func (job *TwemproxyOperate) Run() (err error) {
 	} else {
 		// stop or shutdown
 		if !running {
+			// 如果是shutdown,此时需要清理相关目录
+			if op == consts.ProxyShutdown {
+				if err := common.DeleteExporterConfigFile(port); err != nil {
+					job.runtime.Logger.Warn("twemproxy %d DeleteExporterConfigFile return err:%v", port, err)
+				} else {
+					job.runtime.Logger.Info("twemproxy %d DeleteExporterConfigFile success", port)
+				}
+
+				return job.DirBackup(execUser, port)
+			}
 			return nil
 		}
 		cmd = []string{"su", execUser, "-c", fmt.Sprintf("%s %s", stopScript, strconv.Itoa(port))}
@@ -115,6 +125,7 @@ func (job *TwemproxyOperate) Run() (err error) {
 	}
 	time.Sleep(5 * time.Second)
 
+	// 二次检查进程状态
 	running, err = job.IsTwemproxyRunning(port)
 	job.runtime.Logger.Info("check twemproxy %d after exec cmd. status is %s", port, running)
 	if running && op == consts.ProxyStart {
