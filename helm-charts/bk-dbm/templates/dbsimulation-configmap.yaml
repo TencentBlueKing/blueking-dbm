@@ -44,18 +44,15 @@ data:
       host: "{{ $dbsimulationDB.host }}"
       port: "{{ $dbsimulationDB.port }}"
     debug: false
+    {{- if index .Values "db-simulation" "tdbctlPodResource" }}
     tdbctlPodResource:
-      limits:
-        cpu: "2"
-        mem: "4Gi"
-      requests:
-        cpu: "4"
-        mem: "8Gi"
+      {{- with index .Values "db-simulation" "tdbctlPodResource" }}
+      {{- toYaml . | nindent 6 }}
+      {{- end }}
+    {{- end }}
+    {{- if index .Values "db-simulation" "tdbctlPodResource" }}
     mysqlPodResource:
-      limits:
-        cpu: "4"
-        mem: "8Gi"
-      requests:
-        cpu: "8"
-        mem: "16Gi"
-
+      {{- with index .Values "db-simulation" "mysqlPodResource" }}
+      {{- toYaml . | nindent 6 }}
+      {{- end }}
+    {{- end }}
