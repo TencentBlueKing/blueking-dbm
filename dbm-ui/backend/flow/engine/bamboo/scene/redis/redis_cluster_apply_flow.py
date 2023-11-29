@@ -281,7 +281,9 @@ class RedisClusterApplyFlow(object):
             "domain_name": self.data["domain_name"],
         }
         if self.data["cluster_type"] == ClusterType.TendisTwemproxyRedisInstance.value:
-            act_kwargs.cluster["conf"]["cluster-enabled"] = ClusterStatus.REDIS_CLUSTER_NO
+            # Redis2版本的配置没有cluster-enabled这个配置项
+            if not self.data["db_version"].startswith("Redis-2"):
+                act_kwargs.cluster["conf"]["cluster-enabled"] = ClusterStatus.REDIS_CLUSTER_NO
 
         act_kwargs.get_redis_payload_func = RedisActPayload.set_redis_config.__name__
         acts_list.append(

@@ -99,6 +99,14 @@ func (job *PredixyOperate) Run() (err error) {
 	} else {
 		// stop or shutdown
 		if !running {
+			if op == consts.ProxyShutdown {
+				if err := common.DeleteExporterConfigFile(port); err != nil {
+					job.runtime.Logger.Warn("predixy %d DeleteExporterConfigFile return err:%v", port, err)
+				} else {
+					job.runtime.Logger.Info("predixy %d DeleteExporterConfigFile success", port)
+				}
+				return job.DirBackup(execUser, port)
+			}
 			return nil
 		}
 		cmd = []string{"su", execUser, "-c", fmt.Sprintf("%s %s", stopScript, strconv.Itoa(port))}
