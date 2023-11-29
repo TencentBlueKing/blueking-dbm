@@ -265,7 +265,12 @@
           <span
             class="text-overflow"
             v-overflow-tips>
-            {data.master_domain || '--'}
+            <bk-button
+              text
+              theme="primary"
+              onClick={() => handleToDetails(data)}>
+              {data.master_domain || '--'}
+            </bk-button>
           </span>
           {
             data.master_domain && (
@@ -293,12 +298,9 @@
           <div
             class="cluster-name text-overflow"
             v-overflow-tips>
-            <bk-button
-              text
-              theme="primary"
-              onClick={() => handleToDetails(data)}>
+            <span>
               {data.cluster_name}
-            </bk-button>
+            </span>
           </div>
           {data.temporary_info?.source_cluster && <bk-popover theme="light" placement="top" width={280}>
             {{

@@ -216,7 +216,12 @@
           <span
             class="text-overflow"
             v-overflow-tips>
-            {data.domain || '--'}
+            <bk-button
+              theme="primary"
+              text
+              onClick={() => handleToDetails(data)}>
+              {data.domain || '--'}
+            </bk-button >
           </span>
           {userProfileStore.isManager && <db-icon
             type="edit"
@@ -234,12 +239,9 @@
       render: ({ data }: {data: EsModel}) => (
         <div style="line-height: 14px; display: flex;">
           <div>
-            <bk-button
-              theme="primary"
-              text
-              onClick={() => handleToDetails(data)}>
+            <span>
               {data.cluster_name}
-            </bk-button >
+            </span >
             <div style='color: #C4C6CC;'>{data.cluster_alias || '--'}</div>
           </div>
           <RenderOperationTag data={data} style='margin-left: 3px;' />

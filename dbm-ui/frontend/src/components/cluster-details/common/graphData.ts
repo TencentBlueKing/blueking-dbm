@@ -396,6 +396,9 @@ export class GraphData {
     lines: GraphLine[],
     calculatedNodes = new Map<string, GraphNode>(),
   ) {
+    if (!startNode) {
+      return;
+    }
     const startLines = lines.filter(line => line.source.id === startNode.id);
     calculatedNodes.set(startNode.id, startNode);
 

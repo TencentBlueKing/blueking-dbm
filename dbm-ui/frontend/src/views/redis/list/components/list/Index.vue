@@ -19,12 +19,12 @@
           class="mr-8 mb-16"
           theme="primary"
           @click="handleApply">
-          {{ $t('申请实例') }}
+          {{ t('申请实例') }}
         </BkButton>
         <BkDropdown
           v-bk-tooltips="{
             disabled: hasSelected,
-            content: $t('请选择操作集群')
+            content: t('请选择操作集群')
           }"
           class="cluster-dropdown mb-16"
           :disabled="!hasSelected"
@@ -32,7 +32,7 @@
           @hide="() => isShowDropdown = false"
           @show="() => isShowDropdown = true">
           <BkButton :disabled="!hasSelected">
-            <span class="pr-4">{{ $t('批量操作') }}</span>
+            <span class="pr-4">{{ t('批量操作') }}</span>
             <DbIcon
               class="cluster-dropdown-icon"
               :class="[
@@ -43,16 +43,16 @@
           <template #content>
             <BkDropdownMenu>
               <BkDropdownItem @click="handleShowExtract(state.selected)">
-                {{ $t('提取Key') }}
+                {{ t('提取Key') }}
               </BkDropdownItem>
               <BkDropdownItem @click="handlShowDeleteKeys(state.selected)">
-                {{ $t('删除Key') }}
+                {{ t('删除Key') }}
               </BkDropdownItem>
               <BkDropdownItem @click="handleShowBackup(state.selected)">
-                {{ $t('备份') }}
+                {{ t('备份') }}
               </BkDropdownItem>
               <BkDropdownItem @click="handleShowPurge(state.selected)">
-                {{ $t('清档') }}
+                {{ t('清档') }}
               </BkDropdownItem>
             </BkDropdownMenu>
           </template>
@@ -62,7 +62,7 @@
         v-model="state.searchValues"
         class="operations-right mb-16"
         :data="filterItems"
-        :placeholder="$t('输入集群名_IP_访问入口关键字')"
+        :placeholder="t('输入集群名_IP_访问入口关键字')"
         unique-select
         @change="handleFilter" />
     </div>
@@ -275,7 +275,12 @@
           <span
             class="text-overflow"
             v-overflow-tips>
-            {data.master_domain || '--'}
+            <bk-button
+              text
+              theme="primary"
+              onClick={() => handleToDetails(data)}>
+              {data.master_domain || '--'}
+            </bk-button>
           </span>
           {isOnlineCLB && <MiniTag content="CLB" extCls='redis-manage-clb-minitag' />}
           {userProfileStore.isManager && <db-icon
@@ -300,12 +305,9 @@
               content: `<p>${t('集群名称')}：${data.cluster_name}</p><p>${t('集群别名')}：${data.cluster_alias}</p>`,
               allowHTML: true,
             }}>
-            <bk-button
-              text
-              theme="primary"
-              onClick={() => handleToDetails(data)}>
+            <span>
               {data.cluster_name}
-            </bk-button>
+            </span>
             <p class="cluster-name__alias">
               {data.cluster_alias || '--'}
             </p>
