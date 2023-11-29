@@ -17,7 +17,7 @@
       class="mb16"
       theme="primary"
       @click="handleGoApply">
-      {{ $t('申请实例') }}
+      {{ t('申请实例') }}
     </BkButton>
     <div
       class="table-wrapper"
@@ -34,7 +34,7 @@
     <DbSideslider
       v-model:is-show="isShowExpandsion"
       quick-close
-      :title="$t('xx扩容【name】', { title: 'Pulsar', name: operationData?.cluster_name })"
+      :title="t('xx扩容【name】', { title: 'Pulsar', name: operationData?.cluster_name })"
       :width="960">
       <ClusterExpansion
         v-if="operationData"
@@ -44,7 +44,7 @@
     <DbSideslider
       v-model:is-show="isShowShrink"
       quick-close
-      :title="$t('xx缩容【name】', { title: 'Pulsar', name: operationData?.cluster_name })"
+      :title="t('xx缩容【name】', { title: 'Pulsar', name: operationData?.cluster_name })"
       :width="960">
       <ClusterShrink
         v-if="operationData"
@@ -53,13 +53,13 @@
     </DbSideslider>
     <BkDialog
       v-model:is-show="isShowPassword"
-      :title="$t('获取访问方式')">
+      :title="t('获取访问方式')">
       <ManagerPassword
         v-if="operationData"
         :cluster-id="operationData.id" />
       <template #footer>
         <BkButton @click="handleHidePassword">
-          {{ $t('关闭') }}
+          {{ t('关闭') }}
         </BkButton>
       </template>
     </BkDialog>
@@ -190,7 +190,12 @@
           <span
             class="text-overflow"
             v-overflow-tips>
-            {data.domain || '--'}
+            <bk-button
+              text
+              theme="primary"
+              onClick={() => handleToDetails(data)}>
+              {data.domain || '--'}
+            </bk-button>
           </span>
           {userProfileStore.isManager && <db-icon
             type="edit"
@@ -207,12 +212,9 @@
       render: ({ data }: {data: PulsarModel}) => (
         <div style="line-height: 14px;">
           <div class="cluster-name-box">
-            <bk-button
-              text
-              theme="primary"
-              onClick={() => handleToDetails(data)}>
+            <span>
               {data.cluster_name}
-            </bk-button>
+            </span>
             <RenderOperationTag
               data={data}
               style='margin-left: 3px;' />

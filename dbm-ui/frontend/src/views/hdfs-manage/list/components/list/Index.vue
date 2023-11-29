@@ -18,13 +18,13 @@
         class="mb16"
         theme="primary"
         @click="handleGoApply">
-        {{ $t('申请实例') }}
+        {{ t('申请实例') }}
       </BkButton>
       <DbSearchSelect
         v-model="searchValues"
         class="mb16"
         :data="serachData"
-        :placeholder="$t('输入集群名_IP_访问入口关键字')"
+        :placeholder="t('输入集群名_IP_访问入口关键字')"
         unique-select
         @change="handleSearch" />
     </div>
@@ -44,7 +44,7 @@
     <DbSideslider
       v-model:is-show="isShowExpandsion"
       quick-close
-      :title="$t('xx扩容【name】', { title: 'HDFS', name: operationData?.cluster_name })"
+      :title="t('xx扩容【name】', { title: 'HDFS', name: operationData?.cluster_name })"
       :width="960">
       <ClusterExpansion
         v-if="operationData"
@@ -54,7 +54,7 @@
     <DbSideslider
       v-model:is-show="isShowShrink"
       quick-close
-      :title="$t('xx缩容【name】', { title: 'HDFS', name: operationData?.cluster_name })"
+      :title="t('xx缩容【name】', { title: 'HDFS', name: operationData?.cluster_name })"
       :width="960">
       <ClusterShrink
         v-if="operationData"
@@ -64,13 +64,13 @@
     </DbSideslider>
     <BkDialog
       v-model:is-show="isShowPassword"
-      :title="$t('获取访问方式')">
+      :title="t('获取访问方式')">
       <RenderPassword
         v-if="operationData"
         :cluster-id="operationData.id" />
       <template #footer>
         <BkButton @click="handleHidePassword">
-          {{ $t('关闭') }}
+          {{ t('关闭') }}
         </BkButton>
       </template>
     </BkDialog>
@@ -78,7 +78,7 @@
       v-model:is-show="isShowSettings"
       class="settings-sideslider"
       quick-close
-      :title="$t('查看访问配置')"
+      :title="t('查看访问配置')"
       :width="960">
       <ClusterSettings
         v-if="operationData"
@@ -234,7 +234,12 @@
           <span
             class="text-overflow"
             v-overflow-tips>
-            {data.domain || '--'}
+            <bk-button
+              text
+              theme="primary"
+              onClick={() => handleToDetails(data)}>
+              {data.domain || '--'}
+            </bk-button>
           </span>
           {userProfileStore.isManager && <db-icon
             type="edit"
@@ -253,12 +258,9 @@
       render: ({ data }: {data: HdfsModel}) => (
         <div style="line-height: 14px; display: flex;">
           <div>
-            <bk-button
-              text
-              theme="primary"
-              onClick={() => handleToDetails(data)}>
+            <span>
               {data.cluster_name}
-            </bk-button>
+            </span>
             <div style='color: #C4C6CC;'>
               {data.cluster_alias || '--'}
             </div>

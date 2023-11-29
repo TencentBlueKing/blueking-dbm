@@ -11,6 +11,8 @@
  * the specific language governing permissions and limitations under the License.
 */
 
+import _ from 'lodash';
+
 import { getBizs } from '@services/source/cmdb';
 import {
   fetchMountPoints,
@@ -25,23 +27,25 @@ import { getCloudList } from '@services/source/ipchooser';
 
 import { ipv4 } from '@common/regex';
 
+import { t } from '@locales/index';
+
 type Config = {
   label: string,
   component: string,
-  type?: 'number'|'string'|'array'|'rang',
+  type?: 'number' | 'string' | 'array' | 'rang',
   flex?: number,
   validator?: (value: any) => boolean | string,
-  service?: (params?: any) => Promise<Array<any>>|Promise<any>,
+  service?: (params?: any) => Promise<Array<any>> | Promise<any>,
   getNameByKey?: (value: string | number, item: any) => string | undefined,
 }
 
 export default {
   for_bizs: {
-    label: '专用业务',
+    label: t('专用业务'),
     component: 'for_bizs',
     type: 'array',
     service: getBizs,
-    getNameByKey: (value: number, item: {bk_biz_id: number, display_name: string}) => {
+    getNameByKey: (value: number, item: { bk_biz_id: number, display_name: string }) => {
       if (`${value}` === `${item.bk_biz_id}`) {
         return item.display_name;
       }
@@ -49,7 +53,7 @@ export default {
     },
   },
   resource_types: {
-    label: '专用 DB',
+    label: t('专用 DB'),
     component: 'resource_types',
     type: 'array',
     service: fetchDbTypeList,
@@ -69,23 +73,23 @@ export default {
       if (!value || value.length < 1) {
         return true;
       }
-      const errorValue = value.filter(item => !ipv4.test(item));
+      const errorValue = value.filter(item => !ipv4.test(_.trim(item)));
       if (errorValue.length > 0) {
-        return `IP 格式错误: ${errorValue.join(',')}`;
+        return t('IP 格式错误:n', { n: errorValue.join(',') });
       }
       return true;
     },
   },
   agent_status: {
-    label: 'Agent 状态',
+    label: t('Agent 状态'),
     component: 'agent_status',
     type: 'number',
   },
   city: {
-    label: '城市',
+    label: t('城市'),
     component: 'city',
     service: getInfrasCities,
-    getNameByKey: (value: string, item: {city_code: string, city_name: string}) => {
+    getNameByKey: (value: string, item: { city_code: string, city_name: string }) => {
       if (value === item.city_code) {
         return item.city_name;
       }
@@ -93,21 +97,21 @@ export default {
     },
   },
   subzones: {
-    label: '园区',
+    label: t('园区'),
     component: 'subzones',
     service: fetchSubzones,
   },
   device_class: {
-    label: '机型',
+    label: t('机型'),
     component: 'device_class',
   },
   mount_point: {
-    label: '磁盘挂载点',
+    label: t('磁盘挂载点'),
     component: 'mount_point',
     service: fetchMountPoints,
   },
   cpu: {
-    label: 'CPU(核)',
+    label: t('CPU(核)'),
     component: 'cpu',
     type: 'rang',
     validator: (value: undefined | [number, number]) => {
@@ -116,13 +120,13 @@ export default {
       }
       const [min, max] = value;
       if (min && max && min > max) {
-        return '请输入合理的范围值';
+        return t('请输入合理的范围值');
       }
       return true;
     },
   },
   mem: {
-    label: '内存(G)',
+    label: t('内存(G)'),
     component: 'mem',
     type: 'rang',
     validator: (value: undefined | [number, number]) => {
@@ -131,13 +135,13 @@ export default {
       }
       const [min, max] = value;
       if (min && max && min > max) {
-        return '请输入合理的范围值';
+        return t('请输入合理的范围值');
       }
       return true;
     },
   },
   disk: {
-    label: '磁盘(G)',
+    label: t('磁盘(G)'),
     component: 'disk',
     type: 'rang',
     validator: (value: undefined | [number, number]) => {
@@ -146,17 +150,17 @@ export default {
       }
       const [min, max] = value;
       if (min && max && min > max) {
-        return '请输入合理的范围值';
+        return t('请输入合理的范围值');
       }
       return true;
     },
   },
   disk_type: {
-    label: '磁盘类型',
+    label: t('磁盘类型'),
     component: 'disk_type',
   },
   spec_id: {
-    label: '规格',
+    label: t('规格'),
     component: 'spec',
     flex: 2,
     type: 'number',
@@ -169,7 +173,7 @@ export default {
     },
   },
   bk_cloud_ids: {
-    label: '管控区域',
+    label: t('管控区域'),
     component: 'bk_cloud_ids',
     type: 'array',
     service: getCloudList,

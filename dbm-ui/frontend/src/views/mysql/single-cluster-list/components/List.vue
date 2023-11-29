@@ -246,7 +246,14 @@
       showOverflowTooltip: false,
       render: ({ cell, data }: ColumnData) => (
         <div class="domain">
-          <span class="text-overflow" v-overflow-tips>{cell}</span>
+          <span class="text-overflow" v-overflow-tips>
+            <bk-button
+              text
+              theme="primary"
+              onClick={() => handleToDetails(data)}>
+              {cell}
+            </bk-button>
+          </span>
           <i class="db-icon-copy" v-bk-tooltips={t('复制主访问入口')} onClick={() => copy(cell)} />
           {userProfileStore.isManager && <db-icon
               type="edit"
@@ -266,12 +273,9 @@
           <div
             class="cluster-name text-overflow"
             v-overflow-tips>
-            <bk-button
-              text
-              theme="primary"
-              onClick={() => handleToDetails(data)}>
+            <span>
               {data.cluster_name}
-            </bk-button>
+            </span>
           </div>
           <div class="cluster-tags">
             {
