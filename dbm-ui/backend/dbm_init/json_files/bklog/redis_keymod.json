@@ -25,7 +25,20 @@
     "es_shards": 3,
     "allocation_min_days": 0,
     "etl_params": {
-        "retain_original_text": true
+        "es_unique_field_list": [
+            "cloudId",
+            "serverIp",
+            "path",
+            "gseIndex",
+            "iterationIndex",
+            "bk_host_id"
+        ],
+        "separator_node_source": "data",
+        "separator_node_action": "json",
+        "separator_node_name": "bk_separator_object",
+        "retain_original_text": true,
+        "separator_fields_remove": "",
+        "etl_flat": false
     },
     "fields": [
         {
