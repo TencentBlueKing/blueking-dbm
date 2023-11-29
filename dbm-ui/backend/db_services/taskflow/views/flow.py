@@ -19,7 +19,6 @@ from backend import env
 from backend.bk_web import viewsets
 from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.db_services.dbbase.constants import IpSource
-from backend.db_services.taskflow.exceptions import RetryNodeException
 from backend.db_services.taskflow.handlers import TaskFlowHandler
 from backend.db_services.taskflow.serializers import (
     CallbackNodeSerializer,
@@ -116,8 +115,8 @@ class TaskFlowViewSet(viewsets.AuditedModelViewSet):
     @action(methods=["POST"], detail=True, serializer_class=NodeSerializer)
     def retry_node(self, requests, *args, **kwargs):
         # 非超级用户，暂不允许调用此接口
-        if not requests.user.is_superuser:
-            raise RetryNodeException(_("非超级用户，暂不允许调用此接口"))
+        # if not requests.user.is_superuser:
+        #     raise RetryNodeException(_("非超级用户，暂不允许调用此接口"))
 
         root_id = kwargs["root_id"]
         validated_data = self.params_validate(self.get_serializer_class())

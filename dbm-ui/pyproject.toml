@@ -53,8 +53,10 @@ apigw-manager = {extras = ["cryptography"], version = "^2.0.0"}
 bk-audit = "1.1.0rc0"
 bk-crypto-python-sdk = "1.1.1"
 django-environ = "^0.11.2"
-opentelemetry-api = "1.12.0"
+opentelemetry-api = "1.11.0"
 flake8 = "5.0.4"
+opentelemetry-exporter-otlp = "1.11.0"
+opentelemetry-exporter-jaeger = "1.11.0"
 
 
 [tool.poetry.dev-dependencies]

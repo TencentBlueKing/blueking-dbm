@@ -207,6 +207,21 @@ hadb-api:
 
 db-simulation:
   enabled: true
+  # 配置模拟执行 pod 的资源限额
+#  tdbctlPodResource:
+#    limits:
+#      cpu: "2"
+#      mem: "4Gi"
+#    requests:
+#      cpu: "4"
+#      mem: "8Gi"
+#  mysqlPodResource:
+#    limits:
+#      cpu: "4"
+#      mem: "8Gi"
+#    requests:
+#      cpu: "8"
+#      mem: "16Gi"
 
 db-resource:
   enabled: true
