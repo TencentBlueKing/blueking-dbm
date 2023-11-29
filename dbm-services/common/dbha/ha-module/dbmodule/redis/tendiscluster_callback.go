@@ -48,7 +48,7 @@ func TendisClusterNewIns(instances []interface{},
 	if len(tendisIns) > 0 {
 		count, _ := GetInstancePass(constvar.TendisplusMetaType, tendisIns, conf)
 		if count != len(tendisIns) {
-			log.Logger.Errorf("TendisCluster tendisplus passwd part failed,succ:%d,total:%d",
+			log.Logger.Errorf("tendisplus passwd part failed,succ:%d,total:%d",
 			count, len(tendisIns))
 		}
 	}
@@ -57,7 +57,7 @@ func TendisClusterNewIns(instances []interface{},
 	if len(predixyIns) > 0 {
 		count, _ := GetInstancePass(constvar.PredixyMetaType, predixyIns, conf)
 		if count != len(predixyIns) {
-			log.Logger.Errorf("TendisCluster predixy passwd part failed,succ:%d,total:%d",
+			log.Logger.Errorf("predixy passwd part failed,succ:%d,total:%d",
 				count, len(predixyIns))
 		}
 	}
