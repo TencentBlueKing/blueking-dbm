@@ -164,6 +164,7 @@ class MySQLHAStandardizeFlow(object):
                 act_component_code=ExecuteDBActuatorScriptComponent.code,
                 kwargs=asdict(
                     ExecActuatorKwargs(
+                        exec_ip=ip,
                         run_as_system_user=DBA_ROOT_USER,
                         get_mysql_payload_func=MysqlActPayload.get_adopt_tendbha_proxy_payload.__name__,
                         bk_cloud_id=bk_cloud_id,

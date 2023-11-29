@@ -86,6 +86,10 @@ func (c *DeployMysqlCrondAct) Run() (err error) {
 			FunName: "启动进程",
 			Func:    c.Service.Start,
 		},
+		{
+			FunName: "添加保活监控",
+			Func:    c.Service.AddKeepAlive,
+		},
 	}
 	if err := steps.Run(); err != nil {
 		logger.Error("部署 mysql-crond 失败: %s", err.Error())

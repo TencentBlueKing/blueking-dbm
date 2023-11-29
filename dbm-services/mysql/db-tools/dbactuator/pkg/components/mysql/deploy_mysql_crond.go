@@ -343,6 +343,25 @@ LabelSelectLoop:
 	return nil
 }
 
+func (c *DeployMySQLCrondComp) AddKeepAlive() (err error) {
+	cmd := exec.Command(
+		"su", []string{
+			"-", "mysql", "-c",
+			fmt.Sprintf(
+				`/bin/sh %s`,
+				path.Join(cst.MySQLCrondInstallPath, "add_keep_alive.sh"),
+			),
+		}...,
+	)
+	err = cmd.Run()
+	if err != nil {
+		logger.Error("add mysql-crond keep alive crontab failed: %s", err.Error())
+		return err
+	}
+	logger.Info("add mysql-crond keep alive crontab success")
+	return nil
+}
+
 // Example 例子
 func (c *DeployMySQLCrondComp) Example() interface{} {
 	return DeployMySQLCrondComp{
