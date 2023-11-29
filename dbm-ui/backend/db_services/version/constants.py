@@ -36,7 +36,13 @@ class SpiderVersion(str, StructuredEnum):
 class RedisVersion(str, StructuredEnum):
     """Redis-Cache数据库版本枚举"""
 
+    Redis20 = EnumField("Redis-2", _("Redis-2"))
+    Redis30 = EnumField("Redis-3", _("Redis-3"))
+    Redis40 = EnumField("Redis-4", _("Redis-4"))
+    Redis4t = EnumField("Redis-4t", _("Redis-4t"))
+    Redis50 = EnumField("Redis-5", _("Redis-5"))
     Redis60 = EnumField("Redis-6", _("Redis-6"))
+    Redis70 = EnumField("Redis-7", _("Redis-7"))
 
 
 class TendisPlusVersion(str, StructuredEnum):
