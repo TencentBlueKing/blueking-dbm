@@ -142,6 +142,7 @@ def storage_instance(storages: QuerySet) -> List[Dict]:
 
         for cluster in ins.cluster.all():
             info["cluster"] = cluster.immute_domain
+            info["cluster_id"] = cluster.id
             info["tbinlogdumpers"] = [
                 {"ip": dumper.ip, "port": dumper.listen_port}
                 for dumper in dumper_infos.get(cluster.id, {}).get(ins.machine.ip, [])

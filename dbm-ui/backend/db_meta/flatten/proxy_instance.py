@@ -109,6 +109,7 @@ def proxy_instance(proxies: QuerySet) -> List[Dict]:
         info["bind_entry"] = dict(bind_entry)
         for cluster in ins.cluster.all():
             info["cluster"] = cluster.immute_domain
+            info["cluster_id"] = cluster.id
             # 只取第一个即可退出
             break
 

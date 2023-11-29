@@ -218,7 +218,8 @@ class PayloadHandler(object):
         - 优先从密码服务中获取
         - 如果密码服务为空,则从dbconfig中获取
         """
-        cluster_port = cluster.proxyinstance_set.first().port
+        # cluster_port 先全部统一设置为 0,便于DBHA获取密码
+        cluster_port = 0
         query_params = {
             "instances": [{"ip": str(cluster.id), "port": cluster_port, "bk_cloud_id": cluster.bk_cloud_id}],
             "users": [
@@ -282,6 +283,8 @@ class PayloadHandler(object):
         """
         存储redis集群的密码到密码服务
         """
+        # cluster_port 先全部统一设置为 0,便于DBHA获取密码
+        cluster_port = 0
         query_params = {
             "instances": [{"ip": str(cluster_id), "port": cluster_port, "bk_cloud_id": bk_cloud_id}],
             "username": UserName.REDIS_DEFAULT.value,
@@ -315,10 +318,9 @@ class PayloadHandler(object):
         redis_proxy_password: str = "",
         redis_proxy_admin_password: str = "",
     ):
-        cluster_port = cluster.proxyinstance_set.first().port
         return PayloadHandler.redis_save_cluster_password(
             cluster.id,
-            cluster_port,
+            0,
             cluster.bk_cloud_id,
             redis_password,
             redis_proxy_password,
@@ -330,10 +332,9 @@ class PayloadHandler(object):
         cluster_id: int, redis_password: str = "", redis_proxy_password: str = "", redis_proxy_admin_password: str = ""
     ):
         cluster = Cluster.objects.get(id=cluster_id)
-        cluster_port = cluster.proxyinstance_set.first().port
         return PayloadHandler.redis_save_cluster_password(
             cluster.id,
-            cluster_port,
+            0,
             cluster.bk_cloud_id,
             redis_password,
             redis_proxy_password,
@@ -348,15 +349,44 @@ class PayloadHandler(object):
         redis_proxy_admin_password: str = "",
     ):
         cluster = Cluster.objects.get(immute_domain=immute_domain)
-        cluster_port = cluster.proxyinstance_set.first().port
         return PayloadHandler.redis_save_cluster_password(
             cluster.id,
-            cluster_port,
+            0,
             cluster.bk_cloud_id,
             redis_password,
             redis_proxy_password,
             redis_proxy_admin_password,
         )
+
+    @staticmethod
+    def redis_delete_cluster_password(cluster_id: int, cluster_port: int, bk_cloud_id: int):
+        """
+        删除redis集群的密码
+        """
+        delete_params = {
+            "instances": [{"ip": str(cluster_id), "port": cluster_port, "bk_cloud_id": bk_cloud_id}],
+            "users": [
+                {"username": UserName.REDIS_DEFAULT.value, "component": MySQLPrivComponent.REDIS_PROXY_ADMIN.value},
+                {"username": UserName.REDIS_DEFAULT.value, "component": MySQLPrivComponent.REDIS_PROXY.value},
+                {"username": UserName.REDIS_DEFAULT.value, "component": MySQLPrivComponent.REDIS.value},
+            ],
+        }
+        MySQLPrivManagerApi.delete_password(delete_params)
+
+    @staticmethod
+    def redis_delete_password_by_cluster(cluster: Cluster):
+        """
+        根据cluster对象,删除redis集群的密码
+        """
+        PayloadHandler.redis_delete_cluster_password(cluster.id, 0, cluster.bk_cloud_id)
+
+    @staticmethod
+    def redis_delete_password_by_immute_domain(immute_domain: str):
+        """
+        根据域名删除redis集群的密码
+        """
+        cluster = Cluster.objects.get(immute_domain=immute_domain)
+        PayloadHandler.redis_delete_cluster_password(cluster.id, 0, cluster.bk_cloud_id)
 
     @staticmethod
     def redis_get_os_account() -> dict:
