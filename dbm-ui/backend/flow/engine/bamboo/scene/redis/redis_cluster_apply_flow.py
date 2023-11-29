@@ -20,6 +20,7 @@ from django.utils.translation import ugettext as _
 from backend.db_meta.enums import InstanceRole
 from backend.db_meta.enums.cluster_type import ClusterType
 from backend.db_meta.models import Cluster, Machine
+from backend.db_services.version.constants import RedisVersion
 from backend.flow.consts import DEFAULT_REDIS_START_PORT, DEFAULT_TWEMPROXY_SEG_TOTOL_NUM, ClusterStatus, DnsOpType
 from backend.flow.engine.bamboo.scene.common.builder import Builder
 from backend.flow.engine.bamboo.scene.redis.atom_jobs import ProxyBatchInstallAtomJob, RedisBatchInstallAtomJob
@@ -280,10 +281,11 @@ class RedisClusterApplyFlow(object):
             "db_version": self.data["db_version"],
             "domain_name": self.data["domain_name"],
         }
-        if self.data["cluster_type"] == ClusterType.TendisTwemproxyRedisInstance.value:
-            # Redis2版本的配置没有cluster-enabled这个配置项
-            if not self.data["db_version"].startswith("Redis-2"):
-                act_kwargs.cluster["conf"]["cluster-enabled"] = ClusterStatus.REDIS_CLUSTER_NO
+        if (
+            self.data["cluster_type"] == ClusterType.TendisTwemproxyRedisInstance.value
+            and self.data["db_version"] != RedisVersion.Redis20.value
+        ):
+            act_kwargs.cluster["conf"]["cluster-enabled"] = ClusterStatus.REDIS_CLUSTER_NO
 
         act_kwargs.get_redis_payload_func = RedisActPayload.set_redis_config.__name__
         acts_list.append(

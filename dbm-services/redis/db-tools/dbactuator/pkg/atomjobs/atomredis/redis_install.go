@@ -364,8 +364,18 @@ func (job *RedisInstall) getRedisConfTemplate() error {
 	if job.RedisConfTemplate != "" {
 		return nil
 	}
+	pkgBaseName := job.params.GePkgBaseName()
 	sb := strings.Builder{}
 	for key, value := range job.params.RedisConfConfigs {
+		key = strings.TrimSpace(key)
+		value = strings.TrimSpace(value)
+		if key == "loadmodule" && value == "" {
+			continue
+		}
+		if key == "repl-diskless-sync" &&
+			strings.HasPrefix(pkgBaseName, "redis-2.8.17") {
+			continue
+		}
 		if value == "" {
 			value = "\"\"" // 针对 save ""的情况
 		}
@@ -491,7 +501,7 @@ func (job *RedisInstall) StartAll() error {
 		i := 0
 		for {
 			i++
-			for i >= maxRetryTimes {
+			if i >= maxRetryTimes {
 				break
 			}
 			installed, err = job.IsRedisInstalled(port)
