@@ -171,10 +171,8 @@ class StorageInstance(InstanceMixin, AuditedModel):
     @classmethod
     def find_storage_instance_by_addresses(cls, addresses: List[Union[str, Dict]]):
         """通过实例的ip查询实例"""
-
         if not addresses:
             return None
-
         address_filters = reduce(operator.or_, [Q(machine__ip=address) for address in addresses])
         return cls.objects.select_related("machine").filter(address_filters)
 

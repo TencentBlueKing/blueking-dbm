@@ -19,6 +19,7 @@ from backend.db_meta.api.cluster.tendbcluster.detail import scan_cluster
 from backend.db_meta.enums import InstanceInnerRole, InstanceStatus, TenDBClusterSpiderRole
 from backend.db_meta.enums.cluster_type import ClusterType
 from backend.db_meta.enums.comm import SystemTagEnum
+from backend.db_meta.exceptions import DBMetaException
 from backend.db_meta.models import AppCache, Machine, Spec
 from backend.db_meta.models.cluster import Cluster
 from backend.db_meta.models.instance import ProxyInstance, StorageInstance
@@ -153,6 +154,19 @@ class ListRetrieveResource(DBHAListRetrieveResource):
             "ticket_id": ticket.id,
         }
         return temporary_info
+
+    @classmethod
+    def _to_cluster_representation_with_instances(
+        cls, cluster: Cluster, db_module_names: Dict[int, str], cluster_entry_map: Dict[int, Dict[str, str]]
+    ) -> Dict[str, Any]:
+        """添加实例的相关信息"""
+        cluster_info = super()._to_cluster_representation_with_instances(cluster, db_module_names, cluster_entry_map)
+        # 补充中控节点信息，异常则返回空
+        try:
+            cluster_info["spider_ctl_primary"] = cluster.tendbcluster_ctl_primary_address()
+        except DBMetaException:
+            cluster_info["spider_ctl_primary"] = ""
+        return cluster_info
 
     @staticmethod
     def _filter_instance_qs(query_conditions, query_params):

@@ -14,7 +14,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from backend.bk_web.swagger import common_swagger_auto_schema
-from backend.configuration.handlers.password import DBPasswordHandler
+from backend.components import MySQLPrivManagerApi
 from backend.db_proxy.constants import SWAGGER_TAG
 
 from ..views import BaseProxyPassViewSet
@@ -33,4 +33,5 @@ class DBPrivProxyPassViewSet(BaseProxyPassViewSet):
     )
     @action(methods=["POST"], detail=False, serializer_class=ProxyPasswordSerializer, url_path="dbpriv/proxy_password")
     def query_proxy_password(self, request):
-        return Response(DBPasswordHandler.query_proxy_password())
+        validated_data = self.params_validate(self.get_serializer_class())
+        return Response(MySQLPrivManagerApi.get_password(validated_data))

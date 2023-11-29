@@ -87,7 +87,8 @@ class ListRetrieveResource(query.ListRetrieveResource):
         if query_params.get("creator"):
             cluster_query &= Q(creator__icontains=query_params["creator"])
 
-        cluster_qset = Cluster.objects.filter(cluster_query)
+        # 这里需要加distinct，否则domain的过滤会导致出现重复集群
+        cluster_qset = Cluster.objects.filter(cluster_query).distinct()
 
         if query_params.get("ip"):
             filter_ip = query_params.get("ip").split(",")
