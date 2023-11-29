@@ -8,10 +8,10 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from django.db.models import Q
+from django.db.models import F, Q
 
 from backend.db_meta.enums import ClusterType
-from backend.db_meta.models import Cluster, Machine, StorageInstance
+from backend.db_meta.models import Cluster, Machine, ProxyInstance, StorageInstance
 from backend.db_services.quick_search.constants import FilterType, ResourceType
 from backend.flow.models import FlowTree
 
@@ -40,11 +40,17 @@ class QSearchHandler(object):
 
         return result
 
-    def common_filter(self, objs):
+    def common_filter(self, objs, return_type="list"):
+        """
+        return_type: list | objects
+        """
         if self.bk_biz_ids:
             objs = objs.filter(bk_biz_id__in=self.bk_biz_ids)
         if self.db_types:
             objs = objs.filter(cluster_type__in=self.cluster_types)
+
+        if return_type == "objects":
+            return objs
 
         return list(objs[: self.limit].values())
 
@@ -75,8 +81,36 @@ class QSearchHandler(object):
         else:
             qs = Q(machine__ip__contains=keyword) | Q(name__contains=keyword)
 
-        objs = StorageInstance.objects.filter(qs)
-        return self.common_filter(objs)
+        if self.bk_biz_ids:
+            qs = Q(bk_biz_id__in=self.bk_biz_ids) & qs
+
+        if self.db_types:
+            qs = Q(cluster_type__in=self.cluster_types) & qs
+
+        objs = (
+            StorageInstance.objects.filter(qs)
+            .annotate(role=F("instance_role"), cluster_id=F("cluster__id"), ip=F("machine__ip"))
+            .union(
+                ProxyInstance.objects.filter(qs).annotate(
+                    role=F("access_layer"),
+                    cluster_id=F("cluster__id"),
+                    ip=F("machine__ip"),
+                )
+            )
+        )
+
+        return objs.values(
+            "id",
+            "name",
+            "bk_biz_id",
+            "cluster_id",
+            "role",
+            "ip",
+            "port",
+            "machine_type",
+            "status",
+            "phase",
+        )
 
     def filter_task(self, keyword):
         """过滤任务"""
