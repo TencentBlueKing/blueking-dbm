@@ -15,6 +15,8 @@ import _ from 'lodash';
 
 import type { ResourceTopo } from '@services/types';
 
+import { ClusterTypes } from '@common/const';
+
 const defaultNodeConfig = {
   width: 296,
   itemHeight: 28,
@@ -139,9 +141,9 @@ export class GraphData {
     this.calcNodeLocations(firstRoot, groups, groupLines);
 
     // es hdfs 集群特殊逻辑
-    if (['es', 'hdfs'].includes(this.clusterType)) {
+    if (([ClusterTypes.ES, ClusterTypes.HDFS] as string[]).includes(this.clusterType)) {
       this.calcHorizontalAlignLocations(groups);
-    } else if (this.clusterType === 'spider') {
+    } else if (this.clusterType === ClusterTypes.TENDBCLUSTER) {
       this.calcSpiderNodeLocations(rootGroups, groups);
     }
 
