@@ -102,8 +102,7 @@ type CutoverUnit struct {
 	Password string `json:"password"`
 }
 
-// GetAlterNodeSql TODO
-func (c *CutoverUnit) GetAlterNodeSql(svrName string) string {
+func (c *CutoverUnit) getSwitchRouterSql(svrName string) string {
 	return fmt.Sprintf("TDBCTL ALTER NODE %s options(user '%s', password '%s', host '%s', port %d);",
 		svrName,
 		c.User,
@@ -197,7 +196,7 @@ func (s *SpiderClusterBackendMigrateCutoverComp) Init() (err error) {
 		return err
 	}
 	// connect spider
-	s.spidersConn, err = connSpiders(servers)
+	s.spidersConn, s.spidersLockConn, err = connSpiders(servers)
 	if err != nil {
 		return err
 	}
@@ -420,7 +419,7 @@ func (s *SpiderClusterBackendMigrateCutoverComp) CutOver() (err error) {
 	// lock all spider write
 	defer s.Unlock()
 	logger.Info("start locking the spider")
-	if err = s.LockaAllSpidersWrite(); err != nil {
+	if err = s.lockaAllSpidersWrite(); err != nil {
 		return err
 	}
 
@@ -470,12 +469,12 @@ func (s *SpiderClusterBackendMigrateCutoverComp) switchSpt() (err error) {
 	var alterSqls []string
 	for _, pair := range s.cutOverPairs {
 		masterSvrName := pair.MasterSvr.ServerName
-		alterSql := pair.DestMaster.GetAlterNodeSql(masterSvrName)
+		alterSql := pair.DestMaster.getSwitchRouterSql(masterSvrName)
 		logger.Info("will execute  master spt switch sql:%s", mysqlutil.CleanSvrPassword(alterSql))
 		alterSqls = append(alterSqls, alterSql)
 		if s.existRemoteSlave {
 			slaveSvrName := pair.SlaveSvr.ServerName
-			alterSql := pair.SlaveSvr.GetAlterNodeSql(slaveSvrName)
+			alterSql := pair.DestSlave.getSwitchRouterSql(slaveSvrName)
 			logger.Info("will execute slave spt switch sql:%s", mysqlutil.CleanSvrPassword(alterSql))
 			alterSqls = append(alterSqls, alterSql)
 		}

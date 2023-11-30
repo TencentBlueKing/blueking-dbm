@@ -11,6 +11,7 @@
 package cutover
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"errors"
@@ -63,6 +64,7 @@ type MasterInfo struct {
 	native.Instance
 	SwitchTmpAccount `json:"switch_account"`
 	dbConn           *native.DbWorker `json:"-"`
+	lockConn         *sql.Conn
 	// 只读连接
 	readOnlyConn *native.DbWorker `json:"-"`
 }
@@ -134,6 +136,10 @@ func (m *MySQLClusterDetail) InitMasterConn(user, pwd string) (err error) {
 		User: user,
 		Pwd:  pwd,
 	}.Conn()
+	if err != nil {
+		return err
+	}
+	m.MasterIns.lockConn, err = m.MasterIns.dbConn.Db.Conn(context.Background())
 	return err
 }
 
@@ -251,20 +257,20 @@ func (c *MasterInfo) LockTablesPreCheck(backupUser string) (err error) {
 
 // FlushTablesWithReadLock 执行flush table with read  lock
 func (c *MasterInfo) FlushTablesWithReadLock() (err error) {
-	if _, err := c.dbConn.Exec("set lock_wait_timeout = 10;"); err != nil {
+	if _, err := c.lockConn.ExecContext(context.Background(), "set lock_wait_timeout = 10;"); err != nil {
 		return err
 	}
 	err = util.Retry(
 		util.RetryConfig{Times: 10, DelayTime: 200 * time.Millisecond}, func() error {
-			_, err = c.dbConn.Exec("FLUSH TABLES;")
+			_, err = c.lockConn.ExecContext(context.Background(), "FLUSH TABLES;")
 			return err
 		},
 	)
 	if err != nil {
-		logger.Error("重试3次,每次间隔5秒，依然失败：%s", err.Error())
+		logger.Error("重试10次后,依然失败：%s", err.Error())
 		return err
 	}
-	if _, err := c.dbConn.Exec("FLUSH TABLES WITH READ LOCK;"); err != nil {
+	if _, err := c.lockConn.ExecContext(context.Background(), "FLUSH TABLES WITH READ LOCK;"); err != nil {
 		return err
 	}
 	return
@@ -273,7 +279,7 @@ func (c *MasterInfo) FlushTablesWithReadLock() (err error) {
 // UnlockTables TODO
 // FlushTablesWithReadLock 执行flush table with read  lock
 func (c *MasterInfo) UnlockTables() (err error) {
-	if _, err := c.dbConn.Exec("UNLOCK TABLES"); err != nil {
+	if _, err := c.lockConn.ExecContext(context.Background(), "UNLOCK TABLES"); err != nil {
 		logger.Error("unlock table failed:%s", err.Error())
 		return err
 	}
