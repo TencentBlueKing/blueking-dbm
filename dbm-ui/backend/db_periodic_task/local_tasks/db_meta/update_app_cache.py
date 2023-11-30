@@ -136,7 +136,7 @@ def bulk_update_app_cache():
         for app in AppCache.objects.filter(bk_biz_id__in=exists):
             need_update = False
             for field in update_fields:
-                cc_app = biz_map[app.key]
+                cc_app = biz_map[app.bk_biz_id]
                 new_value = cc_app[field]
                 old_value = getattr(app, field)
                 if new_value != old_value:
