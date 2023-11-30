@@ -10,8 +10,9 @@ specific language governing permissions and limitations under the License.
 """
 import logging.config
 from dataclasses import asdict
-from typing import Dict
+from typing import Dict, Optional
 
+from bamboo_engine.builder import SubProcess
 from django.utils.translation import ugettext as _
 
 from backend.db_meta.models import ClusterEntry
@@ -25,7 +26,7 @@ from backend.flow.utils.redis.redis_context_dataclass import ActKwargs, ClbKwarg
 logger = logging.getLogger("flow")
 
 
-def DNSManagerAtomJob(root_id, ticket_data, act_kwargs: ActKwargs, param: Dict) -> SubBuilder:
+def DNSManagerAtomJob(root_id, ticket_data, act_kwargs: ActKwargs, param: Dict) -> Optional[SubProcess]:
     """
     原生DNS域名管理
     """
@@ -67,7 +68,7 @@ def DNSManagerAtomJob(root_id, ticket_data, act_kwargs: ActKwargs, param: Dict) 
     return dns_sub_pipeline.build_sub_process(sub_name=_("域名变更子流程"))
 
 
-def CLBManagerAtomJob(root_id, ticket_data, act_kwargs: ActKwargs, param: Dict) -> SubBuilder:
+def CLBManagerAtomJob(root_id, ticket_data, act_kwargs: ActKwargs, param: Dict) -> Optional[SubProcess]:
     """
     CLB 指向管理
     """
@@ -114,7 +115,7 @@ def CLBManagerAtomJob(root_id, ticket_data, act_kwargs: ActKwargs, param: Dict) 
     return clb_sub_pipeline.build_sub_process(sub_name=_("CLB变更子流程"))
 
 
-def PolarisManagerAtomJob(root_id, ticket_data, act_kwargs: ActKwargs, param: Dict) -> SubBuilder:
+def PolarisManagerAtomJob(root_id, ticket_data, act_kwargs: ActKwargs, param: Dict) -> Optional[SubProcess]:
     """ "
     北极星 指向管理
     """
@@ -161,7 +162,9 @@ def PolarisManagerAtomJob(root_id, ticket_data, act_kwargs: ActKwargs, param: Di
     return polaris_sub_pipeline.build_sub_process(sub_name=_("北极星变更子流程"))
 
 
-def generic_manager(cluster_entry_type, root_id, ticket_data, act_kwargs: ActKwargs, param: Dict) -> SubBuilder:
+def generic_manager(
+    cluster_entry_type, root_id, ticket_data, act_kwargs: ActKwargs, param: Dict
+) -> Optional[SubProcess]:
     if cluster_entry_type == AccessType.DNS:
         return DNSManagerAtomJob(root_id, ticket_data, act_kwargs, param)
     if cluster_entry_type == AccessType.CLB:
@@ -170,7 +173,7 @@ def generic_manager(cluster_entry_type, root_id, ticket_data, act_kwargs: ActKwa
         return PolarisManagerAtomJob(root_id, ticket_data, act_kwargs, param)
 
 
-def AccessManagerAtomJob(root_id, ticket_data, act_kwargs: ActKwargs, param: Dict) -> SubBuilder:
+def AccessManagerAtomJob(root_id, ticket_data, act_kwargs: ActKwargs, param: Dict) -> Optional[SubProcess]:
     """
         封装接入层管理原子任务。
         主要包含类型：dns、clb、北极星、CLB域名 （clb.xxxx.x.xx.x.db）、 主域名直接指向CLB
