@@ -44,6 +44,7 @@ class ErrorCode(object):
     CONFIGURATION_CODE = "20"
     DB_MONITOR_CODE = "15"
     TENDB_OPEN_AREA_CODE = "16"
+    SQL_IMPORT_CODE = "17"
 
 
 class AppBaseException(Exception):

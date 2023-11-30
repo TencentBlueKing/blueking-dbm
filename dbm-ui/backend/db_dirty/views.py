@@ -82,6 +82,7 @@ class DBDirtyMachineViewSet(viewsets.SystemViewSet):
             }
             for dirty in page_dirty_machines
         ]
+        page_dirty_machine_list.sort(key=lambda x: x["ticket_id"], reverse=True)
         return self.paginator.get_paginated_response(data=page_dirty_machine_list)
 
     @common_swagger_auto_schema(

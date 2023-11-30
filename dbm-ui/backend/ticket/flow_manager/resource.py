@@ -28,7 +28,6 @@ from backend.db_meta.models import Spec
 from backend.db_services.dbresource.exceptions import ResourceApplyException, ResourceApplyInsufficientException
 from backend.db_services.ipchooser.constants import CommonEnum
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
-from backend.tests.mock_data import ticket
 from backend.ticket import constants
 from backend.ticket.constants import FlowCallbackType, FlowType, ResourceApplyErrCode, TodoType
 from backend.ticket.flow_manager.base import BaseTicketFlow
@@ -158,14 +157,12 @@ class ResourceApplyFlow(BaseTicketFlow):
             # 如果是资源不足，则创建补货单，用户手动处理后可以重试资源申请
             self.create_replenish_todo()
             raise ResourceApplyInsufficientException(_("资源不足申请失败，请前往补货后重试"))
-        elif resp["code"] in [
-            ResourceApplyErrCode.RESOURCE_LOCK_FAIL,
-            ResourceApplyErrCode.RESOURCE_MACHINE_FAIL,
-            ResourceApplyErrCode.RESOURCE_PARAMS_INVALID,
-        ]:
+        elif resp["code"] in ResourceApplyErrCode.get_values():
             raise ResourceApplyException(
-                _("资源池相关服务出现系统错误，请联系管理员或稍后重试。错误信息: {}").format(ResourceApplyErrCode.get_choice_label(resp["code"]))
+                _("资源池服务出现系统错误，请联系管理员或稍后重试。错误信息: {}").format(ResourceApplyErrCode.get_choice_label(resp["code"]))
             )
+        elif resp["code"] != 0:
+            raise ResourceApplyException(_("资源池相关服务出现未知异常，请联系管理员处理。错误代码: {}").format(resp["code"]))
 
         # 将资源池申请的主机信息转换为单据参数
         resource_request_id, apply_data = resp["request_id"], resp["data"]
