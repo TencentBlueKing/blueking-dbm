@@ -14,7 +14,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log/slog"
 	"regexp"
 	"strconv"
 	"strings"
@@ -22,6 +21,8 @@ import (
 
 	"dbm-services/common/go-pubpkg/errno"
 	"dbm-services/mysql/db-partition/model"
+
+	"golang.org/x/exp/slog"
 )
 
 // GetPartitionsConfig TODO
@@ -69,7 +70,7 @@ func (m *QueryParititionsInput) GetPartitionsConfig() ([]*PartitionConfigWithLog
 	}
 	cnt := Cnt{}
 	vsql := fmt.Sprintf("select count(*) as cnt from `%s` as config where %s", configTb, where)
-	err := model.DB.Self.Debug().Raw(vsql).Scan(&cnt).Error
+	err := model.DB.Self.Raw(vsql).Scan(&cnt).Error
 	if err != nil {
 		slog.Error(vsql, "execute error", err)
 		return nil, 0, err
@@ -95,7 +96,7 @@ func (m *QueryParititionsInput) GetPartitionsConfig() ([]*PartitionConfigWithLog
 		"inner_log.create_time > DATE_SUB(now(),interval 100 day) GROUP BY inner_config.id) "+
 		"AS latest_log WHERE log.id = latest_log.log_id) AS logs ON config.id = logs.config_id where %s ",
 		configTb, logTb, configTb, logTb, condition)
-	err = model.DB.Self.Debug().Raw(vsql).Scan(&allResults).Error
+	err = model.DB.Self.Raw(vsql).Scan(&allResults).Error
 	if err != nil {
 		slog.Error(vsql, "execute error", err)
 		return nil, 0, err
@@ -126,7 +127,7 @@ func (m *QueryLogInput) GetPartitionLog() ([]*PartitionLog, int64, error) {
 	limitCondition := fmt.Sprintf(" limit %d offset %d ", m.Limit, m.Offset)
 	cnt := Cnt{}
 	vsql := fmt.Sprintf("select count(*) as cnt from `%s` where %s", logTb, where)
-	err := model.DB.Self.Debug().Raw(vsql).Scan(&cnt).Error
+	err := model.DB.Self.Raw(vsql).Scan(&cnt).Error
 	if err != nil {
 		slog.Error(vsql, "execute error", err)
 		return nil, 0, err
@@ -135,7 +136,7 @@ func (m *QueryLogInput) GetPartitionLog() ([]*PartitionLog, int64, error) {
 	vsql = fmt.Sprintf("select id, ticket_id, create_time as execute_time, "+
 		"check_info, status from %s where %s order by execute_time desc %s",
 		logTb, where, limitCondition)
-	err = model.DB.Self.Debug().Raw(vsql).Scan(&allResults).Error
+	err = model.DB.Self.Raw(vsql).Scan(&allResults).Error
 	if err != nil {
 		slog.Error(vsql, "execute error", err)
 		return nil, 0, err
@@ -151,24 +152,82 @@ func (m *DeletePartitionConfigByIds) DeletePartitionsConfig() error {
 	if len(m.Ids) == 0 {
 		return errno.ConfigIdIsEmpty
 	}
-
 	var tbName string
+	var logTbName string
 	switch strings.ToLower(m.ClusterType) {
 	case Tendbha, Tendbsingle:
 		tbName = MysqlPartitionConfig
+		logTbName = MysqlManageLogsTable
 	case Tendbcluster:
 		tbName = SpiderPartitionConfig
+		logTbName = SpiderManageLogsTable
 	default:
 		return errors.New("不支持的db类型")
 	}
+
+	for _, configID := range m.Ids {
+		CreateManageLog(tbName, logTbName, configID, "Delete", m.Operator)
+	}
+
 	var list []string
 	for _, item := range m.Ids {
-		list = append(list, strconv.FormatInt(item, 10))
-
+		list = append(list, strconv.FormatInt(int64(item), 10))
 	}
-	sql := fmt.Sprintf("delete from `%s` where id in (%s) and bk_biz_id = %d", tbName, strings.Join(list, ","),
+	sql := fmt.Sprintf("delete from `%s` where id in  (%s) and bk_biz_id = %d", tbName, strings.Join(list, ","),
 		m.BkBizId)
-	result := model.DB.Self.Debug().Exec(sql)
+	result := model.DB.Self.Exec(sql)
+	if result.Error != nil {
+		return result.Error
+	}
+	if result.RowsAffected == 0 {
+		return errno.PartitionConfigNotExisted
+	}
+	return nil
+}
+
+// DeletePartitionsConfigByCluster TODO
+func (m *DeletePartitionConfigByClusterIds) DeletePartitionsConfigByCluster() error {
+	if m.BkBizId == 0 {
+		return errno.BkBizIdIsEmpty
+	}
+	if len(m.ClusterIds) == 0 {
+		return errno.ConfigIdIsEmpty
+	}
+	var tbName string
+	var logTbName string
+	switch strings.ToLower(m.ClusterType) {
+	case Tendbha, Tendbsingle:
+		tbName = MysqlPartitionConfig
+		logTbName = MysqlManageLogsTable
+	case Tendbcluster:
+		tbName = SpiderPartitionConfig
+		logTbName = SpiderManageLogsTable
+	default:
+		return errors.New("不支持的db类型")
+	}
+
+	for _, clusterId := range m.ClusterIds {
+		var partitionConfig PartitionConfig
+		query := PartitionConfig{
+			BkBizId:   m.BkBizId,
+			ClusterId: clusterId,
+		}
+		result2 := model.DB.Self.Table(tbName).Where(&query).First(&partitionConfig)
+		if result2.Error != nil {
+			slog.Error("create manage log err", result2.Error)
+		} else {
+			CreateManageLog(tbName, logTbName, partitionConfig.ID,
+				"Delete by cluster", "uninstall_cluster")
+		}
+	}
+
+	var list []string
+	for _, item := range m.ClusterIds {
+		list = append(list, strconv.FormatInt(int64(item), 10))
+	}
+	sql := fmt.Sprintf("delete from `%s` where cluster_id in  (%s) and bk_biz_id = %d", tbName, strings.Join(list, ","),
+		m.BkBizId)
+	result := model.DB.Self.Exec(sql)
 	if result.Error != nil {
 		return result.Error
 	}
@@ -181,13 +240,16 @@ func (m *DeletePartitionConfigByIds) DeletePartitionsConfig() error {
 // CreatePartitionsConfig TODO
 func (m *CreatePartitionsInput) CreatePartitionsConfig() (error, []int) {
 	var tbName string
+	var logTbName string
 	switch strings.ToLower(m.ClusterType) {
 	case Tendbha, Tendbsingle:
 		tbName = MysqlPartitionConfig
+		logTbName = MysqlManageLogsTable
 	case Tendbcluster:
 		tbName = SpiderPartitionConfig
+		logTbName = SpiderManageLogsTable
 	default:
-		return errors.New("错误的db类型"), []int{}
+		return errors.New("不支持的db类型"), []int{}
 	}
 
 	if len(m.PartitionColumn) == 0 {
@@ -259,10 +321,13 @@ func (m *CreatePartitionsInput) CreatePartitionsConfig() (error, []int) {
 				CreateTime:            time.Now(),
 				UpdateTime:            time.Now(),
 			}
-			result := model.DB.Self.Debug().Table(tbName).Create(&partitionConfig)
-			configIDs = append(configIDs, partitionConfig.ID)
+			// gorm插入数据后，会返回插入数据的主键、错误、行数
+			result := model.DB.Self.Table(tbName).Create(&partitionConfig)
 			if result.Error != nil {
 				errs = append(errs, result.Error.Error())
+			} else {
+				configIDs = append(configIDs, partitionConfig.ID)
+				CreateManageLog(tbName, logTbName, partitionConfig.ID, "Insert", m.Creator)
 			}
 		}
 	}
@@ -275,11 +340,14 @@ func (m *CreatePartitionsInput) CreatePartitionsConfig() (error, []int) {
 // UpdatePartitionsConfig TODO
 func (m *CreatePartitionsInput) UpdatePartitionsConfig() error {
 	var tbName string
+	var logTbName string
 	switch strings.ToLower(m.ClusterType) {
 	case Tendbha, Tendbsingle:
 		tbName = MysqlPartitionConfig
+		logTbName = MysqlManageLogsTable
 	case Tendbcluster:
 		tbName = SpiderPartitionConfig
+		logTbName = SpiderManageLogsTable
 	default:
 		return errors.New("错误的db类型")
 	}
@@ -319,6 +387,19 @@ func (m *CreatePartitionsInput) UpdatePartitionsConfig() error {
 	var errs []string
 	for _, dblike := range m.DbLikes {
 		for _, tblike := range m.TbLikes {
+			var partitionConfig PartitionConfig
+			query := PartitionConfig{
+				BkBizId:      m.BkBizId,
+				ImmuteDomain: m.ImmuteDomain,
+				DbLike:       dblike,
+				TbLike:       tblike,
+			}
+			result2 := model.DB.Self.Table(tbName).Where(&query).First(&partitionConfig)
+			if result2.Error != nil {
+				slog.Error("create manage log err", result2.Error)
+			} else {
+				CreateManageLog(tbName, logTbName, partitionConfig.ID, "Update", m.Updator)
+			}
 			update_column_map := map[string]interface{}{
 				"partition_column":        m.PartitionColumn,
 				"partition_column_type":   m.PartitionColumnType,
@@ -330,34 +411,13 @@ func (m *CreatePartitionsInput) UpdatePartitionsConfig() error {
 				"updator":                 m.Updator,
 				"update_time":             time.Now(),
 			}
-			result := model.DB.Self.Debug().Table(tbName).
+			result := model.DB.Self.Table(tbName).
 				Where(
 					"bk_biz_id=? and immute_domain=? and dblike=? and tblike=?",
 					m.BkBizId, m.ImmuteDomain, dblike, tblike).
 				Updates(update_column_map)
-			var para PartitionLogsParam
-			jString, jerr := json.Marshal(update_column_map)
-			if jerr != nil {
-				return jerr
-			}
-			para.Para = string(jString)
 			if result.Error != nil {
 				errs = append(errs, result.Error.Error())
-				para.Err = result.Error
-			}
-			var plog PartitionLogs
-			plog.BkBizId = m.BkBizId
-			plog.ExecuteTime = time.Now()
-			plog.Operator = m.Updator
-
-			jString, jerr = json.Marshal(update_column_map)
-			if jerr != nil {
-				return jerr
-			}
-			plog.Para = string(jString)
-			res := model.DB.Self.Debug().Create(&plog)
-			if res.Error != nil {
-				return res.Error
 			}
 		}
 	}
@@ -376,25 +436,31 @@ func (m *DisablePartitionInput) DisablePartitionConfig() error {
 	}
 	var tbName string
 	// 判断是mysql集群还是spider集群
+	var logTbName string
 	switch strings.ToLower(m.ClusterType) {
 	case Tendbha, Tendbsingle:
 		tbName = MysqlPartitionConfig
+		logTbName = MysqlManageLogsTable
 	case Tendbcluster:
 		tbName = SpiderPartitionConfig
+		logTbName = SpiderManageLogsTable
 	default:
 		return errors.New("不支持的db类型")
 	}
 	var list []string
 	for _, item := range m.Ids {
-		list = append(list, strconv.FormatInt(item, 10))
+		list = append(list, strconv.FormatInt(int64(item), 10))
 
 	}
-	db := model.DB.Self.Debug().Table(tbName)
+	db := model.DB.Self.Table(tbName)
 	result := db.
 		Where(fmt.Sprintf("id in (%s)", strings.Join(list, ","))).
 		Update("phase", offline)
 	if result.Error != nil {
 		return result.Error
+	}
+	for _, id := range m.Ids {
+		CreateManageLog(tbName, logTbName, id, "Disable", m.Operator)
 	}
 	return nil
 }
@@ -406,25 +472,31 @@ func (m *EnablePartitionInput) EnablePartitionConfig() error {
 	}
 	var tbName string
 	// 判断是mysql集群还是spider集群
+	var logTbName string
 	switch strings.ToLower(m.ClusterType) {
 	case Tendbha, Tendbsingle:
 		tbName = MysqlPartitionConfig
+		logTbName = MysqlManageLogsTable
 	case Tendbcluster:
 		tbName = SpiderPartitionConfig
+		logTbName = SpiderManageLogsTable
 	default:
 		return errors.New("不支持的db类型")
 	}
 	var list []string
 	for _, item := range m.Ids {
-		list = append(list, strconv.FormatInt(item, 10))
+		list = append(list, strconv.FormatInt(int64(item), 10))
 
 	}
-	db := model.DB.Self.Debug().Table(tbName)
+	db := model.DB.Self.Table(tbName)
 	result := db.
 		Where(fmt.Sprintf("id in (%s)", strings.Join(list, ","))).
 		Update("phase", online)
 	if result.Error != nil {
 		return result.Error
+	}
+	for _, id := range m.Ids {
+		CreateManageLog(tbName, logTbName, id, "Enable", m.Operator)
 	}
 	return nil
 }
@@ -453,6 +525,7 @@ func (m *CreatePartitionsInput) compareWithSameArray() (warnings []string, err e
 	return warnings, nil
 }
 
+// compareWithExistDB 检查重复库表
 func (m *CreatePartitionsInput) compareWithExistDB(tbName string) (warnings []string, err error) {
 	l := len(m.DbLikes)
 	for i := 0; i < l; i++ {
@@ -486,7 +559,7 @@ func (m *CreatePartitionsInput) compareWithExistDB(tbName string) (warnings []st
 func (m *CreatePartitionsInput) checkExistRules(tbName string) (existRules []ExistRule, err error) {
 	condition := fmt.Sprintf("bk_biz_id=%d and immute_domain='%s' and bk_cloud_id=%d", m.BkBizId, m.ImmuteDomain,
 		m.BkCloudId)
-	err = model.DB.Self.Debug().Table(tbName).Select("dblike", "tblike").Where(condition).Find(&existRules).Error
+	err = model.DB.Self.Table(tbName).Select("dblike", "tblike").Where(condition).Find(&existRules).Error
 	if err != nil {
 		return existRules, err
 	}
@@ -494,9 +567,28 @@ func (m *CreatePartitionsInput) checkExistRules(tbName string) (existRules []Exi
 }
 
 // CreateManageLog 记录操作日志，日志不对外
-func CreateManageLog(log ManageLog) {
-	err := model.DB.Self.Create(&log).Error
-	if err != nil {
-		slog.Error("create manage log err", err)
+func CreateManageLog(dbName string, logTbName string, id int, operate string, operator string) {
+	/*
+		1、根据config_id去配置表中查到相关配置信息
+		2、写入日志表
+	*/
+	var partitionConfig PartitionConfig
+	partitionConfig.ID = id
+	model.DB.Self.Table(dbName).First(&partitionConfig)
+	jstring, jerr := json.Marshal(partitionConfig)
+	if jerr != nil {
+		slog.Error("create manage log err", jerr)
+	}
+	manageLogs := ManageLogs{
+		ConfigId:    id,
+		BkBizId:     partitionConfig.BkBizId,
+		Operate:     operate,
+		Operator:    operator,
+		Para:        string(jstring),
+		ExecuteTime: time.Now(),
+	}
+	logResult := model.DB.Self.Table(logTbName).Create(&manageLogs)
+	if logResult.Error != nil {
+		slog.Error("create manage log err", logResult.Error)
 	}
 }
