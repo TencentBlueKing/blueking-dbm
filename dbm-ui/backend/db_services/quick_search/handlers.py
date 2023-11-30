@@ -22,7 +22,7 @@ class QSearchHandler(object):
         self.db_types = db_types
         self.resource_types = resource_types
         self.filter_type = filter_type
-        self.limit = 20
+        self.limit = 5
 
         # db_type -> cluster_type
         self.cluster_types = []
@@ -40,7 +40,7 @@ class QSearchHandler(object):
 
         return result
 
-    def common_filter(self, objs, return_type="list"):
+    def common_filter(self, objs, return_type="list", fields=None):
         """
         return_type: list | objects
         """
@@ -52,7 +52,8 @@ class QSearchHandler(object):
         if return_type == "objects":
             return objs
 
-        return list(objs[: self.limit].values())
+        fields = fields or []
+        return list(objs[: self.limit].values(*fields))
 
     def filter_cluster_name(self, keyword):
         """过滤集群名"""
@@ -89,25 +90,33 @@ class QSearchHandler(object):
 
         objs = (
             StorageInstance.objects.filter(qs)
-            .annotate(role=F("instance_role"), cluster_id=F("cluster__id"), ip=F("machine__ip"))
+            .annotate(
+                role=F("instance_role"),
+                cluster_id=F("cluster__id"),
+                cluster_domain=F("cluster__immute_domain"),
+                ip=F("machine__ip"),
+            )
             .union(
                 ProxyInstance.objects.filter(qs).annotate(
                     role=F("access_layer"),
                     cluster_id=F("cluster__id"),
+                    cluster_domain=F("cluster__immute_domain"),
                     ip=F("machine__ip"),
                 )
             )
         )
 
-        return objs.values(
+        return objs[: self.limit].values(
             "id",
             "name",
             "bk_biz_id",
             "cluster_id",
+            "cluster_domain",
             "role",
             "ip",
             "port",
             "machine_type",
+            "machine_id",
             "status",
             "phase",
         )
@@ -126,15 +135,35 @@ class QSearchHandler(object):
             objs = objs.filter(bk_biz_id__in=self.bk_biz_ids)
 
         # TODO: db类型任务的过滤
-        return list(objs[: self.limit].values())
+        return list(objs[: self.limit].values("uid", "bk_biz_id", "ticket_type", "root_id", "status", "created_by"))
 
     def filter_machine(self, keyword):
         """过滤主机"""
 
         if self.filter_type == FilterType.EXACT.value:
-            qs = Q(ip=keyword) | Q(bk_host_id=keyword)
+            qs = Q(ip=keyword)
+
+            try:
+                # fix bk_host_id expected a number but got string
+                keyword_int = int(keyword)
+                qs = qs | Q(bk_host_id=keyword_int)
+            except ValueError:
+                pass
         else:
             qs = Q(ip__contains=keyword)
 
         objs = Machine.objects.filter(qs)
-        return self.common_filter(objs)
+        return self.common_filter(
+            objs,
+            fields=[
+                "bk_biz_id",
+                "bk_host_id",
+                "ip",
+                "cluster_type",
+                "spec_id",
+                "db_module_id",
+                "bk_cloud_id",
+                "bk_agent_id",
+                "bk_city",
+            ],
+        )
