@@ -58,6 +58,7 @@ type RedisDetectInfoFromCmDB struct {
 	MetaType    string
 	Pass        string
 	Cluster     string
+	ClusterId   int
 }
 
 // RedisProxySwitchInfo redis proxy switch information
@@ -95,7 +96,7 @@ func (ins *RedisDetectBase) GetDetectType() string {
 // GetDetectBaseByInfo get detect instance by cmdb
 func GetDetectBaseByInfo(ins *RedisDetectInfoFromCmDB,
 	dbType string, conf *config.Config) *RedisDetectBase {
-	passwd := GetRedisMachinePasswd(ins.App, conf)
+	passwd := GetRedisMachinePasswd(conf)
 	return &RedisDetectBase{
 		BaseDetectDB: dbutil.BaseDetectDB{
 			Ip:             ins.Ip,
@@ -107,6 +108,7 @@ func GetDetectBaseByInfo(ins *RedisDetectInfoFromCmDB,
 			Status:         constvar.DBCheckSuccess,
 			Cluster:        ins.Cluster,
 			ClusterType:    ins.ClusterType,
+			ClusterId:      ins.ClusterId,
 			SshInfo: dbutil.Ssh{
 				Port:    conf.SSH.Port,
 				User:    conf.SSH.User,
@@ -123,7 +125,7 @@ func GetDetectBaseByInfo(ins *RedisDetectInfoFromCmDB,
 // GetDetectBaseByRsp get detect instance by agent response
 func GetDetectBaseByRsp(ins *RedisDetectResponse,
 	dbType string, conf *config.Config) *RedisDetectBase {
-	passwd := GetRedisMachinePasswd(ins.App, conf)
+	passwd := GetRedisMachinePasswd(conf)
 	return &RedisDetectBase{
 		BaseDetectDB: dbutil.BaseDetectDB{
 			Ip:             ins.DBIp,
@@ -135,6 +137,7 @@ func GetDetectBaseByRsp(ins *RedisDetectResponse,
 			Status:         types.CheckStatus(ins.Status),
 			Cluster:        ins.Cluster,
 			ClusterType:    ins.ClusterType,
+			ClusterId:      ins.ClusterId,
 			SshInfo: dbutil.Ssh{
 				Port:    conf.SSH.Port,
 				User:    conf.SSH.User,
@@ -234,6 +237,7 @@ func UnMarshalRedisInstanceByCmdb(instances []interface{},
 			ClusterType: ins.ClusterType,
 			MetaType:    ins.MachineType,
 			Cluster:     ins.Cluster,
+			ClusterId:   ins.ClusterId,
 		}
 
 		ret = append(ret, detechInfo)
@@ -290,6 +294,7 @@ func CreateRedisProxySwitchInfo(
 			ClusterType: ins.ClusterType,
 			MetaType:    ins.MachineType,
 			Cluster:     ins.Cluster,
+			ClusterId:   ins.ClusterId,
 			CmDBClient:  cmdbClient,
 			HaDBClient:  hadbClient,
 			Config:      conf,
@@ -351,6 +356,7 @@ func CreateRedisSwitchInfo(instance interface{}, conf *config.Config) (*RedisSwi
 			ClusterType: ins.ClusterType,
 			MetaType:    ins.MachineType,
 			Cluster:     ins.Cluster,
+			ClusterId:   ins.ClusterId,
 			CmDBClient:  cmdbClient,
 			HaDBClient:  hadbClient,
 			Config:      conf,

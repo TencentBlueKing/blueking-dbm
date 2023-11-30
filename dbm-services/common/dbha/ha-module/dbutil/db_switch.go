@@ -93,6 +93,7 @@ type BaseSwitch struct {
 	MetaType   string
 	SwitchUid  uint
 	Cluster    string
+	ClusterId  int
 	CmDBClient *client.CmDBClient
 	//if not init, gcm may report log abnormal
 	HaDBClient *client.HaDBClient
@@ -151,6 +152,11 @@ func (ins *BaseSwitch) GetRole() string {
 // GetCluster return the cluster info
 func (ins *BaseSwitch) GetCluster() string {
 	return ins.Cluster
+}
+
+// GetClusterId return the cluster id
+func (ins *BaseSwitch) GetClusterId() int {
+	return ins.ClusterId
 }
 
 // SetInfo set information to switch instance

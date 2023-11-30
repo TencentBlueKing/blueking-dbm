@@ -46,7 +46,7 @@ func TendisClusterNewIns(instances []interface{},
 
 	// get tendisplus passwd
 	if len(tendisIns) > 0 {
-		count, _ := GetInstancePass(constvar.TendisplusMetaType, tendisIns, conf)
+		count, _ := GetInstancePass(tendisIns, conf)
 		if count != len(tendisIns) {
 			log.Logger.Errorf("TendisCluster tendisplus passwd part failed,succ:%d,total:%d",
 				count, len(tendisIns))
@@ -55,7 +55,7 @@ func TendisClusterNewIns(instances []interface{},
 
 	// get predixy passwd
 	if len(predixyIns) > 0 {
-		count, _ := GetInstancePass(constvar.PredixyMetaType, predixyIns, conf)
+		count, _ := GetInstancePass(predixyIns, conf)
 		if count != len(predixyIns) {
 			log.Logger.Errorf("TendisCluster predixy passwd part failed,succ:%d,total:%d",
 				count, len(predixyIns))
@@ -165,8 +165,8 @@ func NewTendisplusSwitchIns(instance interface{},
 	}
 
 	// get the password of switch instance
-	passwd, err := GetInstancePassByCluster(
-		constvar.TendisplusMetaType, pw.Cluster, conf,
+	passwd, err := GetInstancePassByClusterId(
+		constvar.TendisplusMetaType, pw.ClusterId, conf,
 	)
 	if err != nil {
 		log.Logger.Errorf("get tendisplus switch passwd failed,err:%s,info:%s",
@@ -200,8 +200,8 @@ func NewPredixySwitchIns(instance interface{},
 	}
 
 	// get the password of switch instance
-	passwd, err := GetInstancePassByCluster(
-		constvar.PredixyMetaType, pw.Cluster, conf,
+	passwd, err := GetInstancePassByClusterId(
+		constvar.PredixyMetaType, pw.ClusterId, conf,
 	)
 	if err != nil {
 		log.Logger.Errorf("get predixy switch passwd failed,err:%s,info:%s",
