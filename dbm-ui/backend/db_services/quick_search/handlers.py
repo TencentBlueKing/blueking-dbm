@@ -111,6 +111,7 @@ class QSearchHandler(object):
             "name",
             "bk_biz_id",
             "cluster_id",
+            "cluster_domain",
             "role",
             "ip",
             "port",
