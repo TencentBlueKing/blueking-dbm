@@ -98,10 +98,7 @@ func (b *BuildMSRelationComp) Init() (err error) {
 		logger.Error("connect master %s:%d failed,err:%s", b.Params.MasterHost, b.Params.MasterPort, err.Error())
 		return err
 	}
-	b.checkVars = []string{
-		"character_set_system", "character_set_server",
-		"collation_server", "character_set_client",
-	}
+	b.checkVars = []string{"character_set_server", "collation_server", "character_set_client"}
 	return nil
 }
 

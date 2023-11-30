@@ -12,6 +12,8 @@ package spiderctl
 
 import (
 	"bufio"
+	"context"
+	"database/sql"
 	"fmt"
 	"os"
 	"path"
@@ -55,8 +57,10 @@ type SpiderRemotedbSwitchParam struct {
 
 // CutOverCtx TODO
 type CutOverCtx struct {
-	tdbCtlConn               *native.TdbctlDbWork
-	spidersConn              map[string]*native.DbWorker
+	tdbCtlConn  *native.TdbctlDbWork
+	spidersConn map[string]*native.DbWorker
+	// 加锁解锁只能在一个连接内
+	spidersLockConn          map[string]*sql.Conn
 	ipPortServersMap         map[IPPORT]native.Server
 	svrNameServersMap        map[SVRNAME]native.Server
 	newMasterPosInfos        map[string]native.MasterStatusResp
@@ -137,7 +141,7 @@ func (r *SpiderClusterBackendSwitchComp) Init() (err error) {
 	}
 	// connect spider
 	logger.Info("connecting all spider ...")
-	r.spidersConn, err = connSpiders(servers)
+	r.spidersConn, r.spidersLockConn, err = connSpiders(servers)
 	if err != nil {
 		return err
 	}
@@ -219,29 +223,37 @@ func (r *SpiderClusterBackendSwitchComp) consistencySwitchCheck() (err error) {
 }
 
 // connSpiders TODO
-func connSpiders(servers []native.Server) (conns map[string]*native.DbWorker, err error) {
+func connSpiders(servers []native.Server) (conns map[string]*native.DbWorker, lockConns map[string]*sql.Conn,
+	err error) {
 	conns = make(map[string]*native.DbWorker)
+	lockConns = make(map[string]*sql.Conn)
 	spider_regexp := regexp.MustCompile(native.SPIDER_PREFIX)
 	for _, server := range servers {
-		if spider_regexp.MatchString(server.ServerName) {
-			conn, err := native.InsObject{
-				Host: server.Host,
-				Port: server.Port,
-				User: server.Username,
-				Pwd:  server.Password,
-			}.Conn()
-			if err != nil {
-				return nil, err
-			}
-			key := fmt.Sprintf("%s:%d", server.Host, server.Port)
-			conns[key] = conn
+		if !spider_regexp.MatchString(server.ServerName) {
+			continue
 		}
+		conn, err := native.InsObject{
+			Host: server.Host,
+			Port: server.Port,
+			User: server.Username,
+			Pwd:  server.Password,
+		}.Conn()
+		if err != nil {
+			return nil, nil, err
+		}
+		key := fmt.Sprintf("%s:%d", server.Host, server.Port)
+		conns[key] = conn
+		sqlConn, err := conn.Db.Conn(context.Background())
+		if err != nil {
+			logger.Error("failed to get a persistent connection: %w", err.Error())
+			return nil, nil, err
+		}
+		lockConns[key] = sqlConn
 	}
 	return
 }
 
-// checkReplicationRelation TODO
-// checkSlaveStatus 检查remotedb remotedr 同步关系是否正常
+// checkReplicationRelation 检查remotedb remotedr 同步关系是否正常
 func (r *SpiderClusterBackendSwitchComp) checkReplicationRelation() (err error) {
 	for _, switch_pair := range r.Params.SwitchParis {
 		slaveptname, err := r.getSvrName(switch_pair.Slave.IpPort())
@@ -419,7 +431,7 @@ func (r *SpiderClusterBackendSwitchComp) CutOver() (err error) {
 	// lock all spider write
 	defer r.Unlock()
 	logger.Info("start locking the spider node")
-	if err = r.LockaAllSpidersWrite(); err != nil {
+	if err = r.lockaAllSpidersWrite(); err != nil {
 		return err
 	}
 	// check the replication status again
@@ -659,12 +671,21 @@ func (ctx *CutOverCtx) CheckSpiderAppProcesslist() (err error) {
 	return
 }
 
-// LockaAllSpidersWrite TODO
-func (ctx *CutOverCtx) LockaAllSpidersWrite() (err error) {
-	for addr, spider_conn := range ctx.spidersConn {
-		_, err = spider_conn.Exec("flush table with read lock;")
+func (ctx *CutOverCtx) lockaAllSpidersWrite() (err error) {
+	for addr, lockConn := range ctx.spidersLockConn {
+		_, err = lockConn.ExecContext(context.Background(), "set lock_wait_timeout = 10;")
 		if err != nil {
-			return fmt.Errorf("lock tables at %s,err:%w", addr, err)
+			return fmt.Errorf("set lock_wait_timeout at %s failed,err:%w", addr, err)
+		}
+		fn := func() (e error) {
+			_, e = lockConn.ExecContext(context.Background(), "flush table with read lock;")
+			if e != nil {
+				return fmt.Errorf("lock tables at %s,err:%w", addr, e)
+			}
+			return e
+		}
+		if err = cmutil.Retry(cmutil.RetryConfig{Times: 3, DelayTime: 1 * time.Second}, fn); err != nil {
+			return err
 		}
 	}
 	return
@@ -672,15 +693,17 @@ func (ctx *CutOverCtx) LockaAllSpidersWrite() (err error) {
 
 // Unlock TODO
 func (ctx *CutOverCtx) Unlock() (err error) {
-	for addr, spider_conn := range ctx.spidersConn {
+	for addr, lockConn := range ctx.spidersLockConn {
 		err = cmutil.Retry(cmutil.RetryConfig{
 			Times:     3,
 			DelayTime: 1 * time.Second,
 		}, func() error {
-			_, ierr := spider_conn.Exec("unlock tables")
+			_, ierr := lockConn.ExecContext(context.Background(), "unlock tables")
 			if ierr != nil {
 				return ierr
 			}
+			// 归还连接到连接池
+			lockConn.Close()
 			return nil
 		})
 		if err != nil {
