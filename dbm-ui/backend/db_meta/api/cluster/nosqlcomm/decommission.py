@@ -149,6 +149,12 @@ def decommission_cluster(cluster: Cluster):
         ]
         decommission_backends(cluster, storages, True)
 
+        # 解除自关联关系
+        if cluster.clusterentry_set.filter(forward_to_id__isnull=False).exists():
+            for cluster_entry_obj in cluster.clusterentry_set.filter(forward_to_id__isnull=False).all():
+                cluster_entry_obj.forward_to_id = None
+                cluster_entry_obj.save()
+
         for cluster_entry_obj in cluster.clusterentry_set.all():
             logger.info("cluster entry {} for cluster {}".format(cluster_entry_obj, cluster.immute_domain))
             cluster_entry_obj.delete()
