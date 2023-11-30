@@ -141,7 +141,7 @@ class QSearchHandler(object):
         """过滤主机"""
 
         if self.filter_type == FilterType.EXACT.value:
-            qs = Q(ip=keyword) | Q(bk_host_id=keyword)
+            qs = Q(ip=keyword)
         else:
             qs = Q(ip__contains=keyword)
 
