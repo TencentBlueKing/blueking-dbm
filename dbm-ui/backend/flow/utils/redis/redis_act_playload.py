@@ -1096,6 +1096,7 @@ class RedisActPayload(object):
             "db_type": DBActuatorTypeEnum.Redis.value,
             "action": DBActuatorTypeEnum.Redis.value + "_" + RedisActuatorActionEnum.KillConn.value,
             "payload": {
+                "ignore_kill": params["force_shutdown"],
                 "instances": params["instances"],
                 "idel_time": int(params["idle_time"]),
                 "cluster_type": params["cluster_type"],

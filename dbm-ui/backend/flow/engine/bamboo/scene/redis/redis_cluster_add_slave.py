@@ -224,6 +224,7 @@ class RedisClusterAddSlaveFlow(object):
                         self.data,
                         cluster_kwargs,
                         {
+                            "force_shutdown": True,
                             "ignore_ips": [],
                             "ip": old_slave_ip,
                             "ports": old_slave_ports,

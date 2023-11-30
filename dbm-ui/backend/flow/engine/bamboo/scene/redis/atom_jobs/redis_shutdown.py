@@ -20,6 +20,7 @@ from backend.db_meta.enums import ClusterType
 from backend.flow.consts import DEFAULT_MONITOR_TIME, DEFAULT_REDIS_SYSTEM_CMDS
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
+from backend.flow.engine.bamboo.scene.redis.common import TendisShutdownOption
 from backend.flow.plugins.components.collections.redis.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.redis.redis_db_meta import RedisDBMetaComponent
 from backend.flow.plugins.components.collections.redis.trans_flies import TransFileComponent
@@ -41,6 +42,7 @@ def RedisBatchShutdownAtomJob(root_id, ticket_data, sub_kwargs: ActKwargs, shutd
             "ignore_ips":["xxx.1.2.3"],
             "ip":"1.1.1.x",
             "ports":[],
+            "force_shutdown":False,
         }
     """
     sub_pipeline = SubBuilder(root_id=root_id, data=ticket_data)
@@ -61,7 +63,7 @@ def RedisBatchShutdownAtomJob(root_id, ticket_data, sub_kwargs: ActKwargs, shutd
     act_kwargs.cluster["exec_ip"] = exec_ip
     act_kwargs.cluster["ports"] = shutdown_param["ports"]
     act_kwargs.cluster["monitor_time_ms"] = DEFAULT_MONITOR_TIME
-    act_kwargs.cluster["ignore_req"] = False
+    act_kwargs.cluster["ignore_req"] = shutdown_param.get("force_shutdown", False)
     act_kwargs.cluster["ignore_keys"] = DEFAULT_REDIS_SYSTEM_CMDS
     # act_kwargs.cluster["ignore_keys"].extend(shutdown_param["ignore_ips"])
     act_kwargs.get_redis_payload_func = RedisActPayload.redis_capturer_4_scene.__name__
@@ -74,6 +76,7 @@ def RedisBatchShutdownAtomJob(root_id, ticket_data, sub_kwargs: ActKwargs, shutd
     # 干掉非活跃链接
     act_kwargs.exec_ip = exec_ip
     act_kwargs.cluster["exec_ip"] = exec_ip
+    act_kwargs.cluster["force_shutdown"] = shutdown_param.get("force_shutdown", False)
     act_kwargs.cluster["instances"] = [{"ip": exec_ip, "port": p} for p in shutdown_param["ports"]]
     act_kwargs.cluster["idle_time"] = 600
     act_kwargs.get_redis_payload_func = RedisActPayload.redis_killconn_4_scene.__name__

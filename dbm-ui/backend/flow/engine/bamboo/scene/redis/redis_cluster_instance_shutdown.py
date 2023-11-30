@@ -126,6 +126,7 @@ class RedisClusterInstanceShutdownSceneFlow(object):
                 self.data,
                 deepcopy(sub_kwargs),
                 {
+                    "force_shutdown": True,
                     "ip": shutdown_ip,
                     "ports": sub_kwargs.cluster["slave_ports"][shutdown_ip],
                 },
