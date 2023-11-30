@@ -142,6 +142,13 @@ class QSearchHandler(object):
 
         if self.filter_type == FilterType.EXACT.value:
             qs = Q(ip=keyword)
+
+            try:
+                # fix bk_host_id expected a number but got string
+                keyword_int = int(keyword)
+                qs = qs | Q(bk_host_id=keyword_int)
+            except ValueError:
+                pass
         else:
             qs = Q(ip__contains=keyword)
 
