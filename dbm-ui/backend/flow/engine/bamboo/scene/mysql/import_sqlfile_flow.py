@@ -252,8 +252,12 @@ class ImportSQLFlow(object):
 
         resp = DRSApi.rpc(body)
         logger.info(f"query charset {resp}")
+
+        if not resp[0]["cmd_results"]:
+            raise Exception(_("DRS查询字符集失败：{}").format(resp[0]["error_msg"]))
+
         charset = resp[0]["cmd_results"][0]["table_data"][0]["Value"]
-        if len(charset) == 0:
+        if not charset:
             logger.error(_("获取字符集为空..."))
             raise Exception(_("获取字符集为空"))
         return charset

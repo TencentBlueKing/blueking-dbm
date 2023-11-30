@@ -17,6 +17,7 @@ from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.mysql import MySQLController
 from backend.ticket import builders
 from backend.ticket.builders.common.base import BaseOperateResourceParamBuilder, HostInfoSerializer
+from backend.ticket.builders.common.constants import MySQLBackupSource
 from backend.ticket.builders.mysql.base import BaseMySQLTicketFlowBuilder, MySQLBaseOperateDetailSerializer
 from backend.ticket.constants import FlowRetryType, TicketType
 
@@ -32,6 +33,9 @@ class MysqlMigrateClusterDetailSerializer(MySQLBaseOperateDetailSerializer):
         help_text=_("机器来源"), choices=IpSource.get_choices(), required=False, default=IpSource.MANUAL_INPUT
     )
     infos = serializers.ListField(help_text=_("克隆主从信息"), child=MigrateClusterInfoSerializer())
+    backup_source = serializers.ChoiceField(
+        help_text=_("备份源"), choices=MySQLBackupSource.get_choices(), default=MySQLBackupSource.REMOTE
+    )
     is_safe = serializers.BooleanField(help_text=_("安全模式"), default=True)
 
     def validate(self, attrs):
@@ -51,7 +55,13 @@ class MysqlMigrateClusterDetailSerializer(MySQLBaseOperateDetailSerializer):
 
 
 class MysqlMigrateClusterParamBuilder(builders.FlowParamBuilder):
-    controller = MySQLController.mysql_migrate_remote_scene
+    controller_remote = MySQLController.mysql_migrate_remote_scene
+    controller_local = MySQLController.mysql_migrate_cluster_scene
+
+    def build_controller_info(self) -> dict:
+        backup_source = self.ticket_data.get("backup_source", MySQLBackupSource.LOCAL)
+        self.controller = getattr(self, f"controller_{backup_source}")
+        return super().build_controller_info()
 
     def format_ticket_data(self):
         if self.ticket_data["ip_source"] == IpSource.RESOURCE_POOL:
