@@ -109,6 +109,27 @@ func DeletePartitionsConfig(r *gin.Context) {
 	return
 }
 
+// DeletePartitionsConfigByCluster TODO
+func DeletePartitionsConfigByCluster(r *gin.Context) {
+	// 集群下架时，通过cluster_id来删除相关分区配置
+	var input service.DeletePartitionConfigByClusterIds
+	if err := r.ShouldBind(&input); err != nil {
+		err = errno.ErrReadEntity.Add(err.Error())
+		slog.Error(err.Error())
+		SendResponse(r, err, nil)
+		return
+	}
+	slog.Info(fmt.Sprintf("bk_biz_id: %d, cluster_ids: %v", input.BkBizId, input.ClusterIds))
+	err := input.DeletePartitionsConfigByCluster()
+	if err != nil {
+		slog.Error(err.Error())
+		SendResponse(r, err, nil)
+		return
+	}
+	SendResponse(r, err, "分区配置信息删除成功！")
+	return
+}
+
 // CreatePartitionsConfig TODO
 func CreatePartitionsConfig(r *gin.Context) {
 	var input service.CreatePartitionsInput

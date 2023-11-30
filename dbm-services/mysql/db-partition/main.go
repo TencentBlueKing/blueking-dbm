@@ -1,11 +1,6 @@
 package main
 
 import (
-	"dbm-services/mysql/db-partition/assests"
-	"dbm-services/mysql/db-partition/cron"
-	"dbm-services/mysql/db-partition/model"
-	"dbm-services/mysql/db-partition/monitor"
-	"dbm-services/mysql/db-partition/router"
 	"fmt"
 	"net/http"
 	"os"
@@ -16,6 +11,12 @@ import (
 	flag "github.com/spf13/pflag"
 	"github.com/spf13/viper"
 	"golang.org/x/exp/slog"
+
+	"dbm-services/mysql/db-partition/assests"
+	"dbm-services/mysql/db-partition/cron"
+	"dbm-services/mysql/db-partition/model"
+	"dbm-services/mysql/db-partition/monitor"
+	"dbm-services/mysql/db-partition/router"
 )
 
 func main() {
