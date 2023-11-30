@@ -13,9 +13,16 @@ const MysqlPartitionCronLogTable = "mysql_partition_cron_log"
 
 // SpiderPartitionCronLogTable TODO
 const SpiderPartitionCronLogTable = "spider_partition_cron_log"
+
 const online = "online"
 const offline = "offline"
 const extraTime = 15
+
+// MysqlManageLogsTable TODO
+const MysqlManageLogsTable = "mysql_manage_logs"
+
+// SpiderManageLogsTable TODO
+const SpiderManageLogsTable = "spider_manage_logs"
 
 // ExistRule TODO
 type ExistRule struct {
@@ -47,12 +54,12 @@ type QueryLogInput struct {
 
 // CreatePartitionsInput TODO
 type CreatePartitionsInput struct {
-	BkBizId               int      `json:"bk_biz_id"`
-	ClusterType           string   `json:"cluster_type"`
+	BkBizId               int64    `json:"bk_biz_id"`    // 业务代号
+	ClusterType           string   `json:"cluster_type"` // 集群类型
 	ImmuteDomain          string   `json:"immute_domain"`
 	Port                  int      `gorm:"column:port"`
 	BkCloudId             int      `gorm:"column:bk_cloud_id"`
-	ClusterId             int      `json:"cluster_id"`
+	ClusterId             int      `json:"cluster_id"` // 集群id 上架集群后，会有唯一id对应
 	DbLikes               []string `json:"dblikes"`
 	TbLikes               []string `json:"tblikes"`
 	PartitionColumn       string   `json:"partition_column"`
@@ -66,26 +73,36 @@ type CreatePartitionsInput struct {
 
 // DeletePartitionConfigByIds TODO
 type DeletePartitionConfigByIds struct {
-	ClusterType string  `json:"cluster_type"`
-	BkBizId     int64   `json:"bk_biz_id"`
-	Ids         []int64 `json:"ids"`
+	ClusterType string `json:"cluster_type"`
+	BkBizId     int64  `json:"bk_biz_id"`
+	Operator    string `json:"operator"`
+	Ids         []int  `json:"ids"`
+}
+
+// DeletePartitionConfigByClusterIds TODO
+type DeletePartitionConfigByClusterIds struct {
+	ClusterType string `json:"cluster_type"`
+	BkBizId     int64  `json:"bk_biz_id"`
+	Operator    string `json:"operator"`
+	ClusterIds  []int  `json:"cluster_ids"`
 }
 
 // DisablePartitionInput TODO
 type DisablePartitionInput struct {
-	ClusterType string  `json:"cluster_type"`
-	Operator    string  `json:"operator"`
-	Ids         []int64 `json:"ids"`
+	ClusterType string `json:"cluster_type"`
+	Operator    string `json:"operator"`
+	Ids         []int  `json:"ids"`
 }
 
 // EnablePartitionInput TODO
 type EnablePartitionInput struct {
-	ClusterType string  `json:"cluster_type"`
-	Operator    string  `json:"operator"`
-	Ids         []int64 `json:"ids"`
+	ClusterType string `json:"cluster_type"`
+	Operator    string `json:"operator"`
+	Ids         []int  `json:"ids"`
 }
 
 // ManageLog 审计分区管理行为
+// 暂时未用，分区配置信息修改记录在mysql_manage_logs与spider_manage_logs
 type ManageLog struct {
 	Id       int64           `gorm:"column:id;primary_key;auto_increment" json:"id"`
 	ConfigId int64           `gorm:"column:config_id;not_null" json:"config_id"`

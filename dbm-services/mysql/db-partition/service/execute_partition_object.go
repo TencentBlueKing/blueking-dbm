@@ -8,7 +8,7 @@ import (
 // PartitionConfig 分区配置表
 type PartitionConfig struct {
 	ID                  int    `json:"id" gorm:"column:id;primary_key;auto_increment"`
-	BkBizId             int    `json:"bk_biz_id" gorm:"column:bk_biz_id"`
+	BkBizId             int64  `json:"bk_biz_id" gorm:"column:bk_biz_id"`
 	ImmuteDomain        string `json:"immute_domain" gorm:"column:immute_domain"`
 	Port                int    `json:"port" gorm:"column:port"`
 	BkCloudId           int    `json:"bk_cloud_id" gorm:"column:bk_cloud_id"`
@@ -120,10 +120,12 @@ type PartitionObject struct {
 	ExecuteObjects []PartitionSql `json:"execute_objects"`
 }
 
-// PartitionLogs TODO
-type PartitionLogs struct {
-	ID          int       `gorm:"column:id;primary_key;auto_increment`
-	BkBizId     int       `gorm:"column:bk_biz_id"`
+// ManageLogs 用于记录分区配置信息的变更
+type ManageLogs struct {
+	ID          int64     `gorm:"column:id;primary_key;auto_increment"`
+	ConfigId    int       `gorm:"column:config_id"`
+	BkBizId     int64     `gorm:"column:bk_biz_id"`
+	Operate     string    `gorm:"column:operate"`
 	Operator    string    `gorm:"column:operator"`
 	Para        string    `gorm:"column:para"`
 	ExecuteTime time.Time `gorm:"column:execute_time"`

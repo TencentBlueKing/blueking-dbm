@@ -2,21 +2,21 @@ package main
 
 import (
 	"fmt"
-	"log/slog"
 	"net/http"
 	"os"
 	"time"
+
+	"github.com/gin-gonic/gin"
+	"github.com/golang-migrate/migrate/v4"
+	flag "github.com/spf13/pflag"
+	"github.com/spf13/viper"
+	"golang.org/x/exp/slog"
 
 	"dbm-services/mysql/db-partition/assests"
 	"dbm-services/mysql/db-partition/cron"
 	"dbm-services/mysql/db-partition/model"
 	"dbm-services/mysql/db-partition/monitor"
 	"dbm-services/mysql/db-partition/router"
-
-	"github.com/gin-gonic/gin"
-	"github.com/golang-migrate/migrate/v4"
-	flag "github.com/spf13/pflag"
-	"github.com/spf13/viper"
 )
 
 func main() {
