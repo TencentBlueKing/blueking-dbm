@@ -228,6 +228,7 @@ class RedisClusterAddSlaveFlow(object):
                             "ip": old_slave_ip,
                             "ports": old_slave_ports,
                         },
+                        True,
                     )
                     child_pipelines.append(shutdown_builder)
             if child_pipelines:
