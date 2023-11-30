@@ -28,6 +28,8 @@ type Config struct {
 	Monitor MonitorConfig `yaml:"monitor"`
 	// configure for timezone
 	Timezone TimezoneConfig `yaml:"timezone"`
+	// configure for password service
+	PasswdConf APIConfig `yaml:"password_conf"`
 }
 
 // LogConfig configure for log

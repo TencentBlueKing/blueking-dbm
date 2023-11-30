@@ -47,7 +47,7 @@ func RedisClusterNewIns(instances []interface{},
 
 	// get redis instance passwd
 	if len(redisIns) > 0 {
-		count, _ := GetInstancePass(constvar.RedisMetaType, redisIns, conf)
+		count, _ := GetInstancePass(redisIns, conf)
 		if count != len(redisIns) {
 			log.Logger.Errorf("RedisCluster redis passwd part failed,succ:%d,total:%d",
 				count, len(redisIns))
@@ -56,7 +56,7 @@ func RedisClusterNewIns(instances []interface{},
 
 	// get twemproxy instance passwd
 	if len(twemIns) > 0 {
-		count, _ := GetInstancePass(constvar.TwemproxyMetaType, twemIns, conf)
+		count, _ := GetInstancePass(twemIns, conf)
 		if count != len(twemIns) {
 			log.Logger.Errorf("RedisCluster twemproxy passwd part failed,succ:%d,total:%d",
 				count, len(twemIns))
@@ -170,8 +170,8 @@ func NewRedisSwitchIns(instance interface{},
 	}
 
 	// get the password of redis switch instance
-	passwd, err := GetInstancePassByCluster(
-		constvar.RedisMetaType, pw.Cluster, conf,
+	passwd, err := GetInstancePassByClusterId(
+		constvar.RedisMetaType, pw.ClusterId, conf,
 	)
 	if err != nil {
 		log.Logger.Errorf("get redis switch passwd failed,err:%s,info:%s",
@@ -205,8 +205,8 @@ func NewTwemproxySwitchIns(instance interface{},
 	}
 
 	// get the password of twemproxy switch instance
-	passwd, err := GetInstancePassByCluster(
-		constvar.TwemproxyMetaType, pw.Cluster, conf,
+	passwd, err := GetInstancePassByClusterId(
+		constvar.TwemproxyMetaType, pw.ClusterId, conf,
 	)
 	if err != nil {
 		log.Logger.Errorf("get twemproxy switch passwd failed,err:%s,info:%s",
