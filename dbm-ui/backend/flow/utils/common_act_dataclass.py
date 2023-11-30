@@ -29,5 +29,5 @@ class DownloadBackupClientKwargs:
 
 @dataclass()
 class DNSContext:
-    redis_act_payload: Optional[Any] = None  # 代表获取payload参数的类
+    common_act_payload: Optional[Any] = None  # 代表获取payload参数的类
     resolv_content: dict = field(default_factory=dict)
