@@ -77,6 +77,13 @@ def redis_migate_cluster_password(cluster: Cluster):
     conf_passwd = PayloadHandler.redis_get_cluster_pass_from_dbconfig(cluster)
     if not conf_passwd["redis_password"].startswith("{{") and not conf_passwd["redis_proxy_password"].startswith("{{"):
         print(_("cluster:{} 密码从dbconfig中迁移到密码服务中").format(cluster.immute_domain))
-        PayloadHandler.redis_save_password_by_cluster(cluster, conf_passwd, conf_passwd, conf_passwd)
+        if not conf_passwd["redis_proxy_admin_password"]:
+            conf_passwd["redis_proxy_admin_password"] = conf_passwd["redis_proxy_password"]
+        PayloadHandler.redis_save_password_by_cluster(
+            cluster,
+            conf_passwd["redis_password"],
+            conf_passwd["redis_proxy_password"],
+            conf_passwd["redis_proxy_admin_password"],
+        )
         return
     raise Exception(_("cluster:{} 在 dbconfig和密码服务中均不存在").format(cluster.immute_domain))

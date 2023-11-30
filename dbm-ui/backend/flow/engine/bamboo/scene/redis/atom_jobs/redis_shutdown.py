@@ -20,7 +20,6 @@ from backend.db_meta.enums import ClusterType
 from backend.flow.consts import DEFAULT_MONITOR_TIME, DEFAULT_REDIS_SYSTEM_CMDS
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
-from backend.flow.engine.bamboo.scene.redis.common import TendisShutdownOption
 from backend.flow.plugins.components.collections.redis.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.redis.redis_db_meta import RedisDBMetaComponent
 from backend.flow.plugins.components.collections.redis.trans_flies import TransFileComponent
