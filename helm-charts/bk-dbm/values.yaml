@@ -148,7 +148,6 @@ dbm:
       pullPolicy: IfNotPresent
       tag: ""
 
-
 # bk-dbconfig values
 
 dbconfig:
@@ -210,18 +209,18 @@ db-simulation:
   # 配置模拟执行 pod 的资源限额
 #  tdbctlPodResource:
 #    limits:
+#      cpu: "4"
+#      mem: "8Gi"
+#    requests:
 #      cpu: "2"
 #      mem: "4Gi"
-#    requests:
-#      cpu: "4"
-#      mem: "8Gi"
 #  mysqlPodResource:
 #    limits:
-#      cpu: "4"
-#      mem: "8Gi"
-#    requests:
 #      cpu: "8"
 #      mem: "16Gi"
+#    requests:
+#      cpu: "4"
+#      mem: "8Gi"
 
 db-resource:
   enabled: true
@@ -269,7 +268,7 @@ stakater:
 # bitnami mysql 配置项
 mysql:
   enabled: false
-  commonAnnotations: { }
+  commonAnnotations: {}
   max_allowed_packet: 128M
 
   nameOverride: mysql
@@ -319,7 +318,6 @@ mysql:
       port=3306
       socket=/opt/bitnami/mysql/tmp/mysql.sock
       pid-file=/opt/bitnami/mysql/tmp/mysqld.pid
-
 
   image:
     registry: docker.io
