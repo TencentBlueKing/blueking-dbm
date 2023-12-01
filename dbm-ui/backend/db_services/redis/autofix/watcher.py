@@ -41,27 +41,26 @@ def watcher_get_by_hosts() -> (int, dict):
 
     logger.info("watch_dbha_switch_log from id {}".format(switch_id))
     try:
-        switch_logs = HADBApi.switch_logs(params={"sw_id": switch_id})
+        switch_queues = HADBApi.switch_queue(params={"uid": switch_id})
     except (ApiResultError, ApiRequestError, Exception) as error:  # pylint: disable=broad-except
         # 捕获ApiResultError, ApiRequestError和其他未知异常
         logger.warn("meet exception {}  when request switch logs".format(error))
         return 0, {}
 
     switch_hosts, batch_small_id = {}, SWITCH_SMALL
-    for switch_log in switch_logs:
-        swith_ip = switch_log["ip"]
-        switch_id = int(switch_log["sw_id"])  # uid / sw_id
-        if not switch_hosts.get(swith_ip):
-            cluster = query_cluster_by_hosts([swith_ip])  # return: [{},{}]
+    for switch_inst in switch_queues:
+        switch_ip, switch_id = switch_inst["ip"], int(switch_inst["uid"])  # uid / sw_id
+        if not switch_hosts.get(switch_ip):
+            cluster = query_cluster_by_hosts([switch_ip])  # return: [{},{}]
             if not cluster:
-                logger.info("will ignore got none cluster info by ip {}".format(swith_ip))
+                logger.info("will ignore got none cluster info by ip {}".format(switch_ip))
                 continue
             elif len(cluster) > 1:
-                logger.info("will ignore got two+ cluster info by ip {} : {}".format(swith_ip, cluster))
+                logger.info("will ignore got two+ cluster info by ip {} : {}".format(switch_ip, cluster))
                 continue
             one_cluster = cluster[0]
 
-            switch_hosts[swith_ip] = RedisSwitchHost(
+            switch_hosts[switch_ip] = RedisSwitchHost(
                 bk_biz_id=one_cluster["bk_biz_id"],
                 cluster_id=one_cluster["cluster_id"],
                 immute_domain=one_cluster["cluster"],
@@ -69,15 +68,15 @@ def watcher_get_by_hosts() -> (int, dict):
                 instance_type=one_cluster["instance_role"],
                 bk_host_id=one_cluster["bk_host_id"],
                 cluster_ports=one_cluster["cs_ports"],
-                ip=swith_ip,
+                ip=switch_ip,
                 switch_ports=[],
                 sw_max_id=0,
                 sw_min_id=SWITCH_SMALL,
                 sw_result={},
             )
-        current_host = switch_hosts[swith_ip]
-        current_host.switch_ports.append(switch_log["port"])
-        current_host.sw_result[switch_log["result"]] = switch_log["port"]
+        current_host = switch_hosts[switch_ip]
+        current_host.switch_ports.append(switch_inst["port"])
+        current_host.sw_result[switch_inst["result"]] = switch_inst["port"]
 
         # 这台机器的Max值
         if switch_id > current_host.sw_max_id:
