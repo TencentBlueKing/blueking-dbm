@@ -3,6 +3,7 @@ package definer
 import (
 	"fmt"
 	"strings"
+	"sync"
 
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/monitoriteminterface"
 
@@ -15,11 +16,10 @@ var nameView = "view-definer"
 var nameTrigger = "trigger-definer"
 
 var mysqlUsers []string
-var snapped bool
 
-func init() {
-	snapped = false
-}
+// var snapped bool
+var snapErr error
+var once sync.Once
 
 // Checker TODO
 type Checker struct {
@@ -30,9 +30,11 @@ type Checker struct {
 
 // Run TODO
 func (c *Checker) Run() (msg string, err error) {
-	err = snapshot(c.db)
-	if err != nil {
-		return "", err
+	once.Do(func() {
+		snapErr = snapshot(c.db)
+	})
+	if snapErr != nil {
+		return "", snapErr
 	}
 
 	msgSlice, err := c.f(c.db)
