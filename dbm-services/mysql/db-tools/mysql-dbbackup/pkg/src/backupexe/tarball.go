@@ -355,8 +355,11 @@ func tarBallWithEncrypt(tarFilename string, srcFilename string) error {
 // ParseTarFilename 从 tar file name 中解析出 targetName
 // 因为 tar name 生成规则在此
 func ParseTarFilename(fileName string) string {
+	if !strings.Contains(fileName, ".tar") {
+		return ""
+	}
 	filename := filepath.Base(fileName)
-	reg := regexp.MustCompile(`(.*)(_\d+)?\.tar.*`)
+	reg := regexp.MustCompile(`(.*?)(_\d+)?\.tar.*`)
 	if m := reg.FindStringSubmatch(filename); len(m) >= 2 {
 		return m[1]
 	}

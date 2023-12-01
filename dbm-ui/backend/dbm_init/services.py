@@ -121,11 +121,11 @@ class Services:
             with open(os.path.join(bklog_json_files_path, filename), "r") as f:
                 bklog_json_str = f.read()
                 func_name = filename.split(".")[0]
+                # 优先获取指定了 func_name 的 formatter
                 if hasattr(JsonConfigFormat, f"format_{func_name}"):
                     bklog_json_str = JsonConfigFormat.format(bklog_json_str, f"format_{func_name}")
+                # 根据不同 db 类型，指定对应的 formatter，主要是区分采集目标
                 elif "mysql" in filename:
-                    bklog_json_str = JsonConfigFormat.format(bklog_json_str, JsonConfigFormat.format_mysql.__name__)
-                elif "backup" in filename:
                     bklog_json_str = JsonConfigFormat.format(bklog_json_str, JsonConfigFormat.format_mysql.__name__)
                 elif "redis" in filename:
                     bklog_json_str = JsonConfigFormat.format(bklog_json_str, JsonConfigFormat.format_redis.__name__)

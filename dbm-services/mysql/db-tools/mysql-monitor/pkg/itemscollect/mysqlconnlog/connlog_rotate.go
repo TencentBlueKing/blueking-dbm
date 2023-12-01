@@ -11,8 +11,13 @@ package mysqlconnlog
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"log/slog"
+	"os"
+	"path/filepath"
+
+	"github.com/juju/ratelimit"
 
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/config"
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/internal/cst"
@@ -24,20 +29,44 @@ import (
 // mysqlConnLogRotate TODO
 /*
 1. binlog 是 session 变量, 所以只需要禁用就行了
-2. 首先禁用了 init_connect, 后续表 rotate 失败会 return, 不会恢复 init_connect. 所以不会影响连接
 */
 func mysqlConnLogRotate(db *sqlx.DB) (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), config.MonitorConfig.InteractTimeout)
 	defer cancel()
 
-	conn, err := db.Connx(ctx)
+	conn, err := prepareRotate(db, ctx)
 	if err != nil {
-		slog.Error("connlog rotate get conn from db", slog.String("error", err.Error()))
 		return "", err
 	}
 	defer func() {
 		_ = conn.Close()
 	}()
+
+	err = report(conn, ctx)
+	if err != nil {
+		return "", err
+	}
+
+	err = clean(conn, ctx)
+	if err != nil {
+		return "", err
+	}
+
+	//_, err = conn.ExecContext(ctx, `SET GLOBAL INIT_CONNECT = @OLD_INIT_CONNECT`)
+	//if err != nil {
+	//	slog.Error("restore init_connect", slog.String("error", err.Error()))
+	//	return "", err
+	//}
+	//slog.Info("restore init_connect")
+	return "", nil
+}
+
+func prepareRotate(db *sqlx.DB, ctx context.Context) (conn *sqlx.Conn, err error) {
+	conn, err = db.Connx(ctx)
+	if err != nil {
+		slog.Error("connlog rotate get conn from db", slog.String("error", err.Error()))
+		return nil, err
+	}
 
 	var _r interface{}
 	err = conn.GetContext(ctx, &_r,
@@ -48,108 +77,132 @@ func mysqlConnLogRotate(db *sqlx.DB) (string, error) {
 		if errors.Is(err, sql.ErrNoRows) {
 			err = errors.Errorf("conn_log table not found")
 			slog.Error(err.Error())
-			return "", err
+			return nil, err
 		} else {
 			slog.Error("check conn_log exists", slog.String("error", err.Error()))
-			return "", err
+			return nil, err
 		}
 	}
 
 	_, err = conn.ExecContext(ctx, `SET SQL_LOG_BIN=0`)
 	if err != nil {
 		slog.Error("disable binlog", slog.String("error", err.Error()))
-		return "", err
+		return nil, err
 	}
 	slog.Info("rotate conn log disable binlog success")
 
-	var initConn string
-	err = conn.QueryRowxContext(ctx, "SELECT @@INIT_CONNECT").Scan(&initConn)
+	//_, err = conn.ExecContext(ctx, `SET @OLD_INIT_CONNECT=@@INIT_CONNECT`)
+	//if err != nil {
+	//	slog.Error("save init_connect", slog.String("error", err.Error()))
+	//	return nil, err
+	//}
+	//slog.Info("save init connect to OLD_INIT_CONNECT")
+	//
+	//_, err = conn.ExecContext(ctx, `SET GLOBAL INIT_CONNECT = ''`)
+	//if err != nil {
+	//	slog.Error("disable init_connect", slog.String("error", err.Error()))
+	//	return nil, err
+	//}
+	//slog.Info("disable init connect")
+
+	return
+}
+
+func report(conn *sqlx.Conn, ctx context.Context) error {
+	reportFilePath := filepath.Join(cst.DBAReportBase, "mysql", "conn_log", "report.log")
+	err := os.MkdirAll(filepath.Dir(reportFilePath), 0755)
 	if err != nil {
-		slog.Error("query init connect", slog.String("error", err.Error()))
-		return "", err
+		slog.Error("make report dir", slog.String("error", err.Error()))
+		return err
 	}
-	slog.Info("rotate conn log", slog.String("init connect", initConn))
+	slog.Info("make report dir", slog.String("dir", filepath.Dir(reportFilePath)))
 
-	_, err = conn.ExecContext(ctx, `SET @OLD_INIT_CONNECT=@@INIT_CONNECT`)
-	if err != nil {
-		slog.Error("save init_connect", slog.String("error", err.Error()))
-		return "", err
-	}
-
-	var oldInitConn string
-	err = conn.QueryRowxContext(ctx, "SELECT @OLD_INIT_CONNECT").Scan(&oldInitConn)
-	if err != nil {
-		slog.Error("query old init connect", slog.String("error", err.Error()))
-		return "", err
-	}
-	slog.Info("rotate conn log", slog.String("old init connect", oldInitConn))
-
-	if initConn != oldInitConn {
-		err = errors.Errorf("save init_connect failed")
-		slog.Error("check save init connect", slog.String("error", err.Error()))
-		return "", err
-	}
-
-	_, err = conn.ExecContext(ctx, `SET GLOBAL INIT_CONNECT = ''`)
-	if err != nil {
-		slog.Error("disable init_connect", slog.String("error", err.Error()))
-		return "", err
-	}
-
-	_, err = conn.ExecContext(
-		ctx,
-		fmt.Sprintf(
-			`DROP TABLE IF EXISTS %s.conn_log_old`, cst.DBASchema,
-		),
+	f, err := os.OpenFile(
+		reportFilePath,
+		os.O_CREATE|os.O_TRUNC|os.O_RDWR,
+		0755,
 	)
 	if err != nil {
-		slog.Error("drop conn_log_old", slog.String("error", err.Error()))
-		return "", err
+		slog.Error("open conn log report file", slog.String("error", err.Error()))
+		return err
 	}
+	slog.Info("open conn report file", slog.String("file path", f.Name()))
 
-	_, err = conn.ExecContext(
+	lf := ratelimit.Writer(f, ratelimit.NewBucketWithRate(float64(speedLimit), speedLimit))
+
+	rows, err := conn.QueryxContext(
 		ctx,
 		fmt.Sprintf(
-			`RENAME TABLE %[1]s.conn_log to %[1]s.conn_log_old`,
+			`SELECT * FROM %s.conn_log WHERE conn_time >= DATE_SUB(NOW(), INTERVAL 1 DAY)`,
 			cst.DBASchema,
 		),
 	)
 	if err != nil {
-		slog.Error("rename conn_log", slog.String("error", err.Error()))
-		return "", err
+		slog.Error("query conn_log", slog.String("error", err.Error()))
+		return err
 	}
-	slog.Info("rotate conn log", "rename conn_log success")
+	defer func() {
+		_ = rows.Close()
+	}()
 
-	_, err = conn.ExecContext(
-		ctx,
-		fmt.Sprintf(
-			`CREATE TABLE IF NOT EXISTS %[1]s.conn_log like %[1]s.conn_log_old`,
-			cst.DBASchema,
-		),
-	)
-	if err != nil {
-		slog.Error("recreate conn_log", slog.String("error", err.Error()))
-		return "", err
-	}
-	slog.Info("rotate conn log", "recreate conn_log success")
+	for rows.Next() {
+		cr := connRecord{
+			BkBizId:      config.MonitorConfig.BkBizId,
+			BkCloudId:    config.MonitorConfig.BkCloudID,
+			ImmuteDomain: config.MonitorConfig.ImmuteDomain,
+			Port:         config.MonitorConfig.Port,
+			MachineType:  config.MonitorConfig.MachineType,
+			Role:         config.MonitorConfig.Role,
+		}
+		err := rows.StructScan(&cr)
+		if err != nil {
+			slog.Error("scan conn_log record", slog.String("error", err.Error()))
+			return err
+		}
 
-	_, err = conn.ExecContext(ctx, `SET GLOBAL INIT_CONNECT = @OLD_INIT_CONNECT`)
-	if err != nil {
-		slog.Error("restore init_connect", slog.String("error", err.Error()))
-		return "", err
-	}
-	initConn = ""
-	err = conn.QueryRowxContext(ctx, "SELECT @@INIT_CONNECT").Scan(&initConn)
-	if err != nil {
-		slog.Error("query init connect", slog.String("error", err.Error()))
-		return "", err
-	}
-	slog.Info("rotate conn log", slog.String("init connect", initConn))
-	if initConn != oldInitConn {
-		err = errors.Errorf("restore init_connect failed")
-		slog.Error("check restore init_connect", slog.String("error", err.Error()))
-		return "", err
+		content, err := json.Marshal(cr)
+		if err != nil {
+			slog.Error("marshal conn record", slog.String("error", err.Error()))
+			return err
+		}
+
+		_, err = lf.Write(append(content, []byte("\n")...))
+		if err != nil {
+			slog.Error("write conn report", slog.String("error", err.Error()))
+			return err
+		}
 	}
 
-	return "", nil
+	return nil
+}
+
+func clean(conn *sqlx.Conn, ctx context.Context) error {
+	for {
+		r, err := conn.ExecContext(
+			ctx,
+			fmt.Sprintf(
+				`DELETE FROM %s.conn_log WHERE conn_time < DATE_SUB(NOW(), INTERVAL 3 DAY) LIMIT 500`,
+				cst.DBASchema,
+			),
+		)
+		if err != nil {
+			slog.Error("clean 3days ago conn_log", slog.String("error", err.Error()))
+			return err
+		}
+
+		rowsDeleted, err := r.RowsAffected()
+		if err != nil {
+			slog.Error("clean 3days ago conn_log", slog.String("error", err.Error()))
+			return err
+		}
+
+		slog.Info("clean 3days ago conn_log limit 500")
+
+		if rowsDeleted == 0 {
+			break
+		}
+	}
+
+	slog.Info("clean 3days ago conn_log")
+	return nil
 }

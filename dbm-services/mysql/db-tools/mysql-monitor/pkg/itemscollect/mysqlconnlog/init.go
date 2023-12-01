@@ -21,7 +21,8 @@ import (
 
 var nameMySQLConnLogSize = "mysql-connlog-size"
 var nameMySQLConnLogRotate = "mysql-connlog-rotate"
-var nameMySQLConnLogReport = "mysql-connlog-report"
+
+//var nameMySQLConnLogReport = "mysql-connlog-report"
 
 var sizeLimit int64 = 1024 * 1024 * 1024 * 2
 var speedLimit int64 = 1024 * 1024 * 10
@@ -81,14 +82,14 @@ func NewMySQLConnLogRotate(cc *monitoriteminterface.ConnectionCollect) monitorit
 	}
 }
 
-// NewMySQLConnLogReport TODO
-func NewMySQLConnLogReport(cc *monitoriteminterface.ConnectionCollect) monitoriteminterface.MonitorItemInterface {
-	return &Checker{
-		db:   cc.MySqlDB,
-		name: nameMySQLConnLogReport,
-		f:    mysqlConnLogReport,
-	}
-}
+//// NewMySQLConnLogReport TODO
+//func NewMySQLConnLogReport(cc *monitoriteminterface.ConnectionCollect) monitoriteminterface.MonitorItemInterface {
+//	return &Checker{
+//		db:   cc.MySqlDB,
+//		name: nameMySQLConnLogReport,
+//		f:    mysqlConnLogReport,
+//	}
+//}
 
 // RegisterMySQLConnLogSize TODO
 func RegisterMySQLConnLogSize() (string, monitoriteminterface.MonitorItemConstructorFuncType) {
@@ -100,7 +101,7 @@ func RegisterMySQLConnLogRotate() (string, monitoriteminterface.MonitorItemConst
 	return nameMySQLConnLogRotate, NewMySQLConnLogRotate
 }
 
-// RegisterMySQLConnLogReport TODO
-func RegisterMySQLConnLogReport() (string, monitoriteminterface.MonitorItemConstructorFuncType) {
-	return nameMySQLConnLogReport, NewMySQLConnLogReport
-}
+//// RegisterMySQLConnLogReport TODO
+//func RegisterMySQLConnLogReport() (string, monitoriteminterface.MonitorItemConstructorFuncType) {
+//	return nameMySQLConnLogReport, NewMySQLConnLogReport
+//}

@@ -19,11 +19,6 @@
         },
         "encoding": "UTF-8"
     },
-    "storage_cluster_id": 3,
-    "retention": 7,
-    "storage_replies": 1,
-    "es_shards": 3,
-    "allocation_min_days": 0,
     "etl_params": {
         "es_unique_field_list": [
             "cloudId",
@@ -334,6 +329,8 @@
         }
     ],
     "need_assessment": false,
+    "retention": 7,
+    "es_shards": 3,
     "target_object_type": "HOST",
     "target_node_type": "TOPO",
     "target_nodes": [

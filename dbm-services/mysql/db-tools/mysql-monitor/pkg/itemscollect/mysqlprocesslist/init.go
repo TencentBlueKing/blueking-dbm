@@ -10,17 +10,21 @@ package mysqlprocesslist
 
 import (
 	"os"
+	"sync"
 
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/monitoriteminterface"
 
 	"github.com/jmoiron/sqlx"
 )
 
-var stored = false
+// var stored = false
 var executable string
 
 var nameMySQLLock = "mysql-lock"
 var nameMySQLInject = "mysql-inject"
+
+var once sync.Once
+var snapShotErr error
 
 func init() {
 	executable, _ = os.Executable()
@@ -35,9 +39,12 @@ type Checker struct {
 
 // Run TODO
 func (c *Checker) Run() (msg string, err error) {
-	err = snapShot(c.db)
-	if err != nil {
-		return "", err
+	once.Do(func() {
+		snapShotErr = snapShot(c.db)
+	})
+
+	if snapShotErr != nil {
+		return "", snapShotErr
 	}
 	return c.f()
 }

@@ -18,17 +18,17 @@ import (
 )
 
 func snapshot(db *sqlx.DB) error {
-	if !snapped {
-		ctx, cancel := context.WithTimeout(context.Background(), config.MonitorConfig.InteractTimeout)
-		defer cancel()
+	//if !snapped {
+	ctx, cancel := context.WithTimeout(context.Background(), config.MonitorConfig.InteractTimeout)
+	defer cancel()
 
-		err := db.SelectContext(ctx, &mysqlUsers, `SELECT user FROM mysql.user`)
-		if err != nil {
-			slog.Error("query users", slog.String("error", err.Error()))
-			return err
-		}
-		slog.Debug("query users", slog.Any("users", mysqlUsers))
-		snapped = true
+	err := db.SelectContext(ctx, &mysqlUsers, `SELECT user FROM mysql.user`)
+	if err != nil {
+		slog.Error("query users", slog.String("error", err.Error()))
+		return err
 	}
+	slog.Debug("query users", slog.Any("users", mysqlUsers))
+	//snapped = true
+	//}
 	return nil
 }

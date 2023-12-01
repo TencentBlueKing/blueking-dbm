@@ -30,7 +30,6 @@ import (
 // SearchContext TODO
 type SearchContext struct {
 	*ApplyObjectDetail
-	BkCloudId       int
 	RsType          string
 	IntetionBkBizId int
 	IdcCitys        []string
@@ -56,7 +55,6 @@ func CycleApply(param ApplyRequestInputParam) (pickers []*PickerObject, err erro
 			}
 		}
 		s := &SearchContext{
-			BkCloudId:         param.BkCloudId,
 			IntetionBkBizId:   param.ForbizId,
 			RsType:            param.ResourceType,
 			ApplyObjectDetail: &v,
@@ -103,8 +101,8 @@ func (o *SearchContext) Matcher() (fns []func(db *gorm.DB)) {
 		fns = append(fns, o.MatchDeviceClass)
 	// 机型参数存在、资源规格参数存在,先匹配机型,在匹配资源规格
 	case len(o.DeviceClass) > 0 && o.Spec.NotEmpty():
-		fns = append(fns, o.MatchSpec)
 		fns = append(fns, o.MatchDeviceClass)
+		fns = append(fns, o.MatchSpecExcludeDeviceClass)
 	default:
 		fns = append(fns, func(db *gorm.DB) {})
 	}
@@ -156,7 +154,7 @@ func (o *SearchContext) pickBase(db *gorm.DB) {
 func (o *SearchContext) PickCheck() (err error) {
 	var count int64
 	for idx, fn := range o.Matcher() {
-		logger.Info("前置检查： 第%d轮资源匹配", idx)
+		logger.Info("前置检查： 第%d轮资源匹配", idx+1)
 		db := model.DB.Self.Table(model.TbRpDetailName()).Select("count(*)")
 		o.pickBase(db)
 		fn(db)
@@ -340,9 +338,15 @@ func (o *SearchContext) MatchSpec(db *gorm.DB) {
 	o.Spec.Mem.MatchMem(db)
 }
 
+// MatchSpecExcludeDeviceClass 只匹配cpu 排除机型
+func (o *SearchContext) MatchSpecExcludeDeviceClass(db *gorm.DB) {
+	o.MatchSpec(db)
+	db.Where(" device_class not in (?) ", o.DeviceClass)
+}
+
 // MatchDeviceClass TODO
 func (o *SearchContext) MatchDeviceClass(db *gorm.DB) {
-	db.Where(" device_class in ? ", o.DeviceClass)
+	db.Where(" device_class in (?) ", o.DeviceClass)
 }
 
 // UseNetDeviceIsNotEmpty TODO

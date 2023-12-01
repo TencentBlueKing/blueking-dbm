@@ -112,22 +112,23 @@ class ListRetrieveResource(query.ListRetrieveResource):
         """获取过滤的queryset"""
         instances_qs = (
             # 此处的实例视图需要同时得到 storage instance 和 proxy instance
-            StorageInstance.objects.annotate(role=F("instance_inner_role"))
+            StorageInstance.objects.prefetch_related("cluster", "machine")
+            .annotate(role=F("instance_inner_role"))
             .filter(query_conditions)
             .union(ProxyInstance.objects.annotate(role=F("access_layer")).filter(query_conditions))
             .values(
                 "id",
+                "role",
+                "port",
+                "status",
+                "create_at",
                 "cluster__id",
                 "cluster__major_version",
                 "cluster__cluster_type",
                 "cluster__db_module_id",
                 "cluster__name",
-                "role",
                 "machine__ip",
                 "machine__bk_cloud_id",
-                "port",
-                "status",
-                "create_at",
                 "machine__bk_host_id",
                 "machine__spec_config",
             )

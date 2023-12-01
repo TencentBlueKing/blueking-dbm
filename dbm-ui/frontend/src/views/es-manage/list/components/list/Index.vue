@@ -341,8 +341,7 @@
     {
       label: t('操作'),
       width: tableOperationWidth.value,
-      // fixed: isStretchLayoutOpen.value ? 'right' : false,
-      fixed: 'right',
+      fixed: isStretchLayoutOpen.value ? false : 'right',
       render: ({ data }: {data: EsModel}) => {
         const renderAction = (theme = 'primary') => {
           const baseAction = [

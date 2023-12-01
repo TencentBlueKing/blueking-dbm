@@ -71,9 +71,9 @@ func (c *mysqlProcess) JsonString() (string, error) {
 }
 
 func snapShot(db *sqlx.DB) error {
-	if stored {
-		return nil
-	}
+	//if stored {
+	//	return nil
+	//}
 
 	processList, err := queryProcessList(db)
 	if err != nil {
@@ -109,7 +109,7 @@ func snapShot(db *sqlx.DB) error {
 		return err
 	}
 
-	stored = true
+	//stored = true
 	return nil
 }
 

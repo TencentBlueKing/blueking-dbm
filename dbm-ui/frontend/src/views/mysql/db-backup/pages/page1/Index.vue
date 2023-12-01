@@ -25,7 +25,6 @@
           :key="item.rowKey"
           ref="rowRefs"
           :data="item"
-          :inputed-clusters="inputedClusters"
           :removeable="tableData.length < 2"
           @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
           @input-cluster-finish="(item: IDataRow) => handleInputCluster(index, item)"
@@ -128,9 +127,6 @@
 
   const tableData = ref<Array<IDataRow>>([createRowData({})]);
   const selectedClusters = shallowRef<{[key: string]: Array<SpiderModel>}>({ [ClusterTypes.TENDBHA]: [] });
-
-  // eslint-disable-next-line max-len
-  const inputedClusters = computed(() => tableData.value.filter(item => item.clusterData && item.clusterData.domain).map(item => item.clusterData!.domain));
 
   // 集群域名是否已存在表格的映射表
   let domainMemo: Record<string, boolean> = {};

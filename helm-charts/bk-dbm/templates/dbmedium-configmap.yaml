@@ -18,4 +18,4 @@ data:
   BKREPO_PUBLIC_BUCKET: "{{ .Values.bk.bkRepoPublicBucket }}"
   BKREPO_ENDPOINT_URL: "{{ .Values.bk.bkRepoUrl }}"
   DBM_SAAS_URL: "{{ .Values.dbm.internalDomain | default "http://bk-dbm/" }}"
-  RUN_VER: "{{ .Values.dbm.runVer | default "open" }}"
+  RUN_VER: "{{ .Values.dbm.envs.runVer }}"

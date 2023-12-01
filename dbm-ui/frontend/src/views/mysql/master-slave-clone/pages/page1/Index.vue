@@ -17,14 +17,14 @@
       <BkAlert
         closable
         theme="info"
-        :title="$t('集群主从节点成对迁移到新的机器上_旧机器会下架掉')" />
+        :title="t('集群主从节点成对迁移到新的机器上_旧机器会下架掉')" />
       <div
         class="mt16"
         style="display: flex;">
         <BkButton
           @click="handleShowBatchEntry">
           <DbIcon type="add" />
-          {{ $t('批量录入') }}
+          {{ t('批量录入') }}
         </BkButton>
       </div>
       <RenderData
@@ -39,6 +39,22 @@
           @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
           @remove="handleRemove(index)" />
       </RenderData>
+      <BkForm
+        class="mt-24"
+        form-type="vertical">
+        <BkFormItem
+          :label="t('备份源')"
+          required>
+          <BkRadioGroup v-model="backupSource">
+            <BkRadio label="local">
+              {{ t('本地备份') }}
+            </BkRadio>
+            <BkRadio label="remote">
+              {{ t('远程备份') }}
+            </BkRadio>
+          </BkRadioGroup>
+        </BkFormItem>
+      </BkForm>
       <ClusterSelector
         v-model:is-show="isShowBatchSelector"
         :tab-list="clusterSelectorTabList"
@@ -53,16 +69,16 @@
         :loading="isSubmitting"
         theme="primary"
         @click="handleSubmit">
-        {{ $t('提交') }}
+        {{ t('提交') }}
       </BkButton>
       <DbPopconfirm
         :confirm-handler="handleReset"
-        :content="$t('重置将会情况当前填写的所有内容_请谨慎操作')"
-        :title="$t('确认重置页面')">
+        :content="t('重置将会情况当前填写的所有内容_请谨慎操作')"
+        :title="t('确认重置页面')">
         <BkButton
           class="ml8 w-88"
           :disabled="isSubmitting">
-          {{ $t('重置') }}
+          {{ t('重置') }}
         </BkButton>
       </DbPopconfirm>
     </template>
@@ -74,6 +90,7 @@
     ref,
     shallowRef,
   } from 'vue';
+  import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
   import { createTicket } from '@services/source/ticket';
@@ -112,6 +129,7 @@
 
   const clusterSelectorTabList = [ClusterTypes.TENDBHA];
 
+  const { t } = useI18n();
   const router = useRouter();
   const { currentBizId } = useGlobalBizs();
 
@@ -119,6 +137,7 @@
   const isShowBatchSelector = ref(false);
   const isShowBatchEntry = ref(false);
   const isSubmitting  = ref(false);
+  const backupSource = ref('local');
 
   const tableData = shallowRef<Array<IDataRow>>([createRowData({})]);
 
@@ -177,6 +196,7 @@
         remark: '',
         details: {
           infos: data,
+          backup_source: backupSource.value,
         },
         bk_biz_id: currentBizId,
       }).then((data) => {

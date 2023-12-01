@@ -24,11 +24,13 @@ from backend.db_meta.models import Cluster, StorageInstance
 from backend.flow.consts import DBA_ROOT_USER
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder, SubProcess
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
+from backend.flow.plugins.components.collections.common.download_backup_client import DownloadBackupClientComponent
 from backend.flow.plugins.components.collections.mysql.cluster_standardize_trans_module import (
     ClusterStandardizeTransModuleComponent,
 )
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
+from backend.flow.utils.common_act_dataclass import DownloadBackupClientKwargs
 from backend.flow.utils.mysql.mysql_act_dataclass import DownloadMediaKwargs, ExecActuatorKwargs
 from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
 
@@ -126,6 +128,18 @@ class MySQLHAStandardizeFlow(object):
                         bk_cloud_id=bk_cloud_id,
                         exec_ip=ips,
                         file_list=GetFileList(db_type=DBType.MySQL).get_db_actuator_package(),
+                    )
+                ),
+            )
+
+            cloud_trans_file_pipe.add_act(
+                act_name=_("安装backup-client工具"),
+                act_component_code=DownloadBackupClientComponent.code,
+                kwargs=asdict(
+                    DownloadBackupClientKwargs(
+                        bk_cloud_id=bk_cloud_id,
+                        bk_biz_id=self.data["bk_biz_id"],
+                        download_host_list=ips,
                     )
                 ),
             )
