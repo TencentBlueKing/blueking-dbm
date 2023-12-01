@@ -71,6 +71,7 @@
 
   interface Emits {
     (e: 'submit', value: string): void,
+    (e: 'input', value: string): void,
     (e: 'multiInput', value: Array<string>): void,
     (e: 'overflow-change', value: boolean): void,
   }
@@ -168,6 +169,7 @@
     nextTick(() => {
       const target = event.target as HTMLElement;
       localValue.value = _.trim(target.outerText);
+      emits('input', localValue.value);
       if (!props.multiInput) {
         window.changeConfirm = true;
         modelValue.value = localValue.value;
