@@ -327,7 +327,7 @@
               data.operations.map(item => <RenderOperationTag class="cluster-tag" data={item} />)
             }
             {
-              !data.isOnline || (
+              !data.isOnline && (
                 <db-icon
                 svg
                 type="yijinyong"

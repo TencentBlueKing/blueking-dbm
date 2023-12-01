@@ -48,7 +48,6 @@
             :is-edit="isEdit" />
           <SpecStorage
             v-model="formdata.storage_spec"
-            :fixed-disk-mount-point="isFixedDiskMountPoint"
             :is-edit="isEdit"
             :is-required="isRequired"
             :machine-type="machineType" />
@@ -145,36 +144,18 @@
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
 
-  const isFixedDiskMountPoint = false; // ['tendisssd', 'tendisplus'].includes(props.machineType);
-
   const initFormdata = () => {
     if (props.data) {
       return _.cloneDeep(props.data);
     }
 
-    const genStorageSpec = () => {
-      if (isFixedDiskMountPoint) {
-        return [
-          {
-            mount_point: '/data',
-            size: '' as string | number,
-            type: '',
-          },
-          {
-            mount_point: '/data1',
-            size: '' as string | number,
-            type: '',
-          },
-        ];
-      }
-      return [
-        {
-          mount_point: '/data',
-          size: '' as string | number,
-          type: '',
-        },
-      ];
-    };
+    const genStorageSpec = () => [
+      {
+        mount_point: '/data',
+        size: '' as string | number,
+        type: '',
+      },
+    ];
 
     return {
       cpu: {
@@ -212,6 +193,7 @@
   const initFormdataStringify = JSON.stringify(formdata.value);
   const isChange = computed(() => JSON.stringify(formdata.value) !== initFormdataStringify);
   const notRequiredStorageList = [
+    `${ClusterTypes.TENDBHA}_proxy`,
     `${ClusterTypes.TWEMPROXY_REDIS_INSTANCE}_twemproxy`,
     `${ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE}_twemproxy`,
     `${ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER}_predixy`,
