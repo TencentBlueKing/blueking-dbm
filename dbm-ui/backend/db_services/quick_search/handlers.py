@@ -9,6 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 from django.db.models import F, Q
+from django.forms import model_to_dict
 
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Cluster, Machine, ProxyInstance, StorageInstance
@@ -22,7 +23,7 @@ class QSearchHandler(object):
         self.db_types = db_types
         self.resource_types = resource_types
         self.filter_type = filter_type
-        self.limit = 5
+        self.limit = 10
 
         # db_type -> cluster_type
         self.cluster_types = []
@@ -112,6 +113,7 @@ class QSearchHandler(object):
             "bk_biz_id",
             "cluster_id",
             "cluster_domain",
+            "cluster_type",
             "role",
             "ip",
             "port",
@@ -152,18 +154,30 @@ class QSearchHandler(object):
         else:
             qs = Q(ip__contains=keyword)
 
-        objs = Machine.objects.filter(qs)
-        return self.common_filter(
-            objs,
-            fields=[
-                "bk_biz_id",
-                "bk_host_id",
-                "ip",
-                "cluster_type",
-                "spec_id",
-                "db_module_id",
-                "bk_cloud_id",
-                "bk_agent_id",
-                "bk_city",
-            ],
+        if self.bk_biz_ids:
+            qs = qs & Q(bk_biz_id__in=self.bk_biz_ids)
+
+        if self.db_types:
+            qs = qs & Q(cluster_type__in=self.cluster_types)
+
+        objs = Machine.objects.filter(qs).prefetch_related(
+            "storageinstance_set__cluster", "proxyinstance_set__cluster"
         )
+
+        # 解析cluster
+        machines = []
+        for obj in objs[: self.limit]:
+            cluster = (obj.storageinstance_set.first() or obj.proxyinstance_set.first()).cluster
+            machine = model_to_dict(
+                obj, ["bk_biz_id", "bk_host_id", "ip", "cluster_type", "spec_id", "bk_cloud_id", "bk_city"]
+            )
+
+            cluster_info = {"cluster_id": None, "cluster_domain": None}
+            if cluster:
+                cluster_info.update(
+                    {"cluster_id": cluster.first().id, "cluster_domain": cluster.first().immute_domain}
+                )
+            machine.update(cluster_info)
+            machines.append(machine)
+
+        return machines
