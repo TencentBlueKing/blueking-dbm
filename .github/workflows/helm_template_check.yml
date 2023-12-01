@@ -14,7 +14,7 @@ on:
 
 jobs:
   helm-check:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
     - uses: actions/checkout@master
     - name: helm-check

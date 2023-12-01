@@ -69,6 +69,7 @@ class TaskFlowHandler:
         for node_id in running_node_ids:
             # TODO 这里无法强制失败节点以后再设置节点的状态为revoke，这里需要强制失败吗？
             # self.force_fail_node(node_id)
+            # 更新节点状态为revoke
             bamboo_engine.runtime.set_state(node_id=node_id, to_state=StateType.REVOKED)
 
         return result

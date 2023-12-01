@@ -41,7 +41,7 @@ spec:
             - /bin/bash
             - -c
           args:
-            - celery worker -A {{ .Values.envs.djangoSettingsModule }} --autoscale 6,2 -l info
+            - celery worker -A {{ .Values.envs.djangoSettingsModule }} -P threads -c 100 --maxtasksperchild=50 -O fair --time-limit=1800 -l info
           {{- include "dbm.container_env" . | nindent 10 }}
           resources:
             {{- toYaml .Values.saas.celeryWorker.resources | nindent 12 }}

@@ -1,5 +1,5 @@
 apiVersion: v2
-appVersion: 0.0.1-alpha.26
+appVersion: 0.0.1-alpha.31
 description: A Helm chart for backup-server
 name: backup-server
 type: application

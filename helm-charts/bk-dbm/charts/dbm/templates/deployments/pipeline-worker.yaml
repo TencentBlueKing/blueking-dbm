@@ -41,7 +41,7 @@ spec:
             - /bin/bash
             - -c
           args:
-            - celery worker -A {{ .Values.envs.djangoSettingsModule }} -Q er_execute,er_schedule --autoscale 8,2 -l info
+            - celery worker -A {{ .Values.envs.djangoSettingsModule }} -Q er_execute,er_schedule -P threads -c 100 --maxtasksperchild=50 -O fair --time-limit=1800 -l info
           {{- include "dbm.container_env" . | nindent 10 }}
           resources:
             {{- toYaml .Values.saas.pipelineWorker.resources | nindent 12 }}
