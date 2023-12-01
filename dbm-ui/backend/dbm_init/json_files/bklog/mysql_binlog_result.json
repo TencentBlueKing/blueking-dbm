@@ -384,7 +384,7 @@
     },
     "data_encoding": "UTF-8",
     "retention": 7,
-    "es_shards": 1,
+    "es_shards": 3,
     "target_object_type": "HOST",
     "target_node_type": "TOPO",
     "target_nodes": [

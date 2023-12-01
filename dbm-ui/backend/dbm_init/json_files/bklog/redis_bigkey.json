@@ -1,16 +1,11 @@
 {
     "bk_biz_id": {{bk_biz_id}},
     "etl_config": "bk_log_json",
-    "table_id": "redis_bigkey1",
-    "collector_config_name": "redis_bigkey1",
-    "collector_config_name_en": "redis_bigkey1",
+    "table_id": "redis_bigkey",
+    "collector_config_name": "redis_bigkey",
+    "collector_config_name_en": "redis_bigkey",
     "collector_scenario_id": "row",
     "category_id": "application_check",
-    "storage_cluster_id": 3,
-    "retention": 7,
-    "storage_replies": 1,
-    "es_shards": 3,
-    "allocation_min_days": 0,
     "etl_params": {
         "retain_original_text": true
     },
@@ -226,6 +221,8 @@
         }
     ],
     "need_assessment": false,
+    "retention": 7,
+    "es_shards": 3,
     "target_object_type": "HOST",
     "target_node_type": "TOPO",
     "target_nodes": [

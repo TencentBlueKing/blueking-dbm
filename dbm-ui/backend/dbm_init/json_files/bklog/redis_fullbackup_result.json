@@ -6,11 +6,6 @@
     "collector_config_name_en": "redis_fullbackup_result",
     "collector_scenario_id": "row",
     "category_id": "host_process",
-    "storage_cluster_id": 3,
-    "retention": 7,
-    "storage_replies": 1,
-    "es_shards": 3,
-    "allocation_min_days": 0,
     "etl_params": {
         "retain_original_text": true
     },
@@ -388,6 +383,8 @@
         }
     ],
     "need_assessment": false,
+    "retention": 7,
+    "es_shards": 3,
     "target_object_type": "HOST",
     "target_node_type": "TOPO",
     "target_nodes": [
