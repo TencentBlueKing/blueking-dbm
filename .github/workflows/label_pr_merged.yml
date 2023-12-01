@@ -13,7 +13,7 @@ permissions:
 jobs:
   add_label:
     if: github.event.pull_request.merged == true
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     outputs:
       issue_id_list: ${{ steps.pr-commits.outputs.issue_id_list }}
     steps:

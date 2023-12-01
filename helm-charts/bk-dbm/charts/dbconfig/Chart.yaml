@@ -1,5 +1,5 @@
 apiVersion: v2
-appVersion: 0.0.1-alpha.61
+appVersion: 0.0.1-alpha.62
 description: A Helm chart for dbconfig
 name: dbconfig
 type: application

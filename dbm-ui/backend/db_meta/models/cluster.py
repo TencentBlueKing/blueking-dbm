@@ -129,10 +129,14 @@ class Cluster(AuditedModel):
 
             # 存在互斥操作，则抛出错误让用户后续重试该inner flow
             exclusive_infos = [
-                str(TicketType.get_choice_label(info["exclusive_ticket"].ticket_type)) for info in exclusive_infos
+                (
+                    f'{TicketType.get_choice_label(info["exclusive_ticket"].ticket_type)}'
+                    f'(ticket_id:{info["exclusive_ticket"].id})'
+                )
+                for info in exclusive_infos
             ]
             raise ClusterExclusiveOperateException(
-                _("当前操作「{}」与集群{}的操作「{}」存在执行互斥").format(
+                _("当前操作「{}」与集群(id:{})的操作「{}」存在执行互斥").format(
                     TicketType.get_choice_label(ticket_type), cluster_id, ",".join(exclusive_infos)
                 )
             )

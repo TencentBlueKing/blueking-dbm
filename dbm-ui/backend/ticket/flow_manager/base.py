@@ -108,7 +108,7 @@ class BaseTicketFlow(ABC):
     def run_error_status_handler(self, err: Exception):
         """run异常处理，更新失败状态和错误信息"""
         err_code = FlowErrCode.get_err_code(err, self.flow_obj.retry_type)
-        self.flow_obj.err_msg = err
+        self.flow_obj.err_msg = f"{err}, traceback: {traceback.format_exc()}"
         self.flow_obj.err_code = err_code
         # 更新flow和ticket的错误信息
         self.flow_obj.status = TicketFlowStatus.FAILED
