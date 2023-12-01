@@ -56,7 +56,8 @@ def get_cluster_info(cluster_id: int) -> Dict:
     domain = ClusterEntry.get_cluster_entry_map_by_cluster_ids([cluster_id])
     cluster["master_domain"] = domain[cluster_id]["master_domain"]
     cluster["slave_domain"] = domain[cluster_id]["slave_domain"]
-    old_slave = mysql_cluster.storageinstance_set.get(machine__ip=cluster["old_slave_ip"])
+    old_slave = mysql_storage_slave.filter(is_stand_by=True).first()
+    cluster["old_slave_ip"] = old_slave.machine.ip
     slave_dns_list = old_slave.bind_entry.filter(cluster_entry_type=ClusterEntryType.DNS.value).all()
     cluster["slave_dns_list"] = [i.entry for i in slave_dns_list]
     # cluster["new_master_ip"] = new_master_ip
