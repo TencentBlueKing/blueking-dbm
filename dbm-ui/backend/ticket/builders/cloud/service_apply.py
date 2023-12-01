@@ -37,20 +37,15 @@ class CloudServiceApplyDetailSerializer(serializers.Serializer):
         agent = serializers.ListField(help_text=_("部署dbha-agent服务主机信息"), child=serializers.DictField())
         gm = serializers.ListField(help_text=_("部署dbha-gm服务主机信息"), child=serializers.DictField())
 
+    class RedisDtsSerializer(serializers.Serializer):
+        host_infos = serializers.ListField(help_text=_("部署dns服务主机信息"), child=serializers.DictField())
+
     bk_cloud_id = serializers.IntegerField(help_text=_("云区域ID"))
     drs = DRSDetailSerialzier(help_text=_("drs服务部署信息"))
     nginx = NginxDetailSerializer(help_text=_("nginx服务部署信息"))
     dns = DNSDetailSerializer(help_text=_("dns服务部署信息"))
     dbha = DBHADetailSerializer(help_text=_("dbha服务部署信息"))
-
-
-class CloudServiceApplyItsmParamBuilder(builders.ItsmParamBuilder):
-    def format(self):
-        self.details[_("云区域ID")] = self.details.pop("bk_cloud_id")
-        self.details[_("drs服务部署信息")] = self.details.pop("drs")
-        self.details[_("nginx服务部署信息")] = self.details.pop("nginx")
-        self.details[_("dns服务部署信息")] = self.details.pop("dns")
-        self.details[_("dbha服务部署信息")] = self.details.pop("dbha")
+    redis_dts = RedisDtsSerializer(help_text=_("redis_dts服务部署信息"))
 
 
 class CloudServiceApplyFlowParamBuilder(builders.FlowParamBuilder):
@@ -96,38 +91,54 @@ class DBHAServiceApplyFlowParamBuilder(CloudServiceApplyFlowParamBuilder):
         BaseServiceOperateFlowParamBuilder.padding_dbha_type(self.ticket_data)
 
 
+class RedisDtsServiceApplyFlowParamBuilder(CloudServiceApplyFlowParamBuilder):
+    controller = CloudServiceController.redis_dts_server_apply_scene
+
+    def format_ticket_data(self):
+        super().format_ticket_data_by_service(ticket_type=TicketType.CLOUD_DBHA_APPLY, service="redis_dts")
+
+
 @builders.BuilderFactory.register(TicketType.CLOUD_SERVICE_APPLY)
 class CloudServiceApplyFlowBuilder(BaseCloudTicketFlowBuilder):
     serializer = CloudServiceApplyDetailSerializer
 
     def init_ticket_flows(self):
-        Flow.objects.bulk_create(
-            [
+        flows = [
+            Flow(
+                ticket=self.ticket,
+                flow_type=FlowType.INNER_FLOW.value,
+                details=NginxServiceApplyFlowParamBuilder(self.ticket).get_params(),
+                flow_alias=_("Nginx 服务部署"),
+            ),
+            Flow(
+                ticket=self.ticket,
+                flow_type=FlowType.INNER_FLOW.value,
+                details=DNSServiceApplyFlowParamBuilder(self.ticket).get_params(),
+                flow_alias=_("DNS 服务部署"),
+            ),
+            Flow(
+                ticket=self.ticket,
+                flow_type=FlowType.INNER_FLOW.value,
+                details=DRSServiceApplyFlowParamBuilder(self.ticket).get_params(),
+                flow_alias=_("DRS 服务部署"),
+            ),
+            Flow(
+                ticket=self.ticket,
+                flow_type=FlowType.INNER_FLOW.value,
+                details=DBHAServiceApplyFlowParamBuilder(self.ticket).get_params(),
+                flow_alias=_("DBHA 服务部署"),
+            ),
+        ]
+        # redis_dts非必选
+        if self.ticket.details.get("redis_dts"):
+            flows.append(
                 Flow(
                     ticket=self.ticket,
                     flow_type=FlowType.INNER_FLOW.value,
-                    details=NginxServiceApplyFlowParamBuilder(self.ticket).get_params(),
-                    flow_alias=_("Nginx 服务部署"),
-                ),
-                Flow(
-                    ticket=self.ticket,
-                    flow_type=FlowType.INNER_FLOW.value,
-                    details=DNSServiceApplyFlowParamBuilder(self.ticket).get_params(),
-                    flow_alias=_("DNS 服务部署"),
-                ),
-                Flow(
-                    ticket=self.ticket,
-                    flow_type=FlowType.INNER_FLOW.value,
-                    details=DRSServiceApplyFlowParamBuilder(self.ticket).get_params(),
-                    flow_alias=_("DRS 服务部署"),
-                ),
-                Flow(
-                    ticket=self.ticket,
-                    flow_type=FlowType.INNER_FLOW.value,
-                    details=DBHAServiceApplyFlowParamBuilder(self.ticket).get_params(),
-                    flow_alias=_("DBHA 服务部署"),
-                ),
-                Flow(ticket=self.ticket, flow_type=FlowType.DELIVERY.value),
-            ]
-        )
+                    details=RedisDtsServiceApplyFlowParamBuilder(self.ticket).get_params(),
+                    flow_alias=_("RedisDts 服务部署"),
+                )
+            )
+
+        Flow.objects.bulk_create(flows)
         return list(Flow.objects.filter(ticket=self.ticket))

@@ -83,6 +83,10 @@ redis:
     commitDate: 200001010101
     name: dbmon
     version: 1.0.3
+- redis-dts:
+    buildPath: /toolkit/redis_dts.tar.gz
+    name: redis_dts.tar.gz
+    version: 1.0.0
 cloud:
 - cloud-dbha:
     buildPath: /blueking-dbm/dbm-services/common/dbha/ha-module/build/dbha

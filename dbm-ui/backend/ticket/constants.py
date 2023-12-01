@@ -310,6 +310,9 @@ class TicketType(str, StructuredEnum):
     CLOUD_DRS_ADD = EnumField("CLOUD_DRS_ADD", _("云区域drs 服务新增"))
     CLOUD_DRS_REDUCE = EnumField("CLOUD_DRS_REDUCE", _("云区域drs 服务删除"))
     CLOUD_DRS_REPLACE = EnumField("CLOUD_DRS_REPLACE", _("云区域drs 服务替换"))
+    CLOUD_REDIS_DTS_SERVER_APPLY = EnumField("CLOUD_REDIS_DTS_SERVER_APPLY", _("云区域redis_dts 服务部署"))
+    CLOUD_REDIS_DTS_SERVER_ADD = EnumField("CLOUD_REDIS_DTS_SERVER_ADD", _("云区域redis_dts 服务新增"))
+    CLOUD_REDIS_DTS_SERVER_REDUCE = EnumField("CLOUD_REDIS_DTS_SERVER_REDUCE", _("云区域redis_dts 服务删除"))
 
     # 资源池
     RESOURCE_IMPORT = EnumField("RESOURCE_IMPORT", _("资源池导入"))
