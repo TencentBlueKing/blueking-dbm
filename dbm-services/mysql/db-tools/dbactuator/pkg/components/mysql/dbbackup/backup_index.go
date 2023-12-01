@@ -122,9 +122,10 @@ func (f *BackupIndexFile) ValidateFiles() error {
 			tarPartsWithoutSuffix = append(tarPartsWithoutSuffix, strings.TrimSuffix(tarFile.TarFileName, ".tar"))
 			f.tarParts = append(f.tarParts, tarFile.TarFileName)
 		}
-		if f.tarfileBasename == "" {
-			f.tarfileBasename = backupexe.ParseTarFilename(tarFile.TarFileName)
-		} else if f.tarfileBasename != backupexe.ParseTarFilename(tarFile.TarFileName) {
+		tarfileBasename := backupexe.ParseTarFilename(tarFile.TarFileName)
+		if tarfileBasename != "" && f.tarfileBasename == "" {
+			f.tarfileBasename = tarfileBasename
+		} else if tarfileBasename != "" && f.tarfileBasename != tarfileBasename {
 			return errors.Errorf("tar file base name error: %s, file:%s", f.tarfileBasename, tarFile.TarFileName)
 		}
 	}
@@ -158,12 +159,7 @@ func (f *BackupIndexFile) UntarFiles(untarDir string) error {
 	if untarDir == "" {
 		return errors.Errorf("untar target dir should not be emtpy")
 	}
-	if f.tarfileBasename != "" {
-		// logger index baseName nad tarfile baseName does not match
-		f.targetDir = filepath.Join(untarDir, f.tarfileBasename)
-	} else {
-		f.targetDir = filepath.Join(untarDir, f.backupIndexBasename)
-	}
+
 	if cmutil.FileExists(f.targetDir) {
 		return errors.Errorf("target untar path already exists %s", f.targetDir)
 	}
@@ -194,7 +190,14 @@ func (f *BackupIndexFile) UntarFiles(untarDir string) error {
 
 // GetTargetDir 返回解压后的目录
 // 考虑到某些情况 backupIndexBasename.index 跟 tar file name 可能不同
-func (f *BackupIndexFile) GetTargetDir() string {
+// 需在调用 ValidateFiles() 之后才有效
+func (f *BackupIndexFile) GetTargetDir(untarDir string) string {
+	if f.tarfileBasename != "" {
+		// logger index baseName nad tarfile baseName does not match
+		f.targetDir = filepath.Join(untarDir, f.tarfileBasename)
+	} else {
+		f.targetDir = filepath.Join(untarDir, f.backupIndexBasename)
+	}
 	return f.targetDir
 }
 

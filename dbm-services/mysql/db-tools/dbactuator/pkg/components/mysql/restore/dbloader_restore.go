@@ -179,7 +179,7 @@ func (m *DBLoader) initDirs() error {
 			return errors.New("backup file baseName error")
 		}
 	*/
-	m.targetDir = m.BackupInfo.indexObj.GetTargetDir()
+	m.targetDir = m.BackupInfo.indexObj.GetTargetDir(m.taskDir)
 	//m.targetDir = filepath.Join(m.taskDir, m.backupBaseName)
 	return nil
 }
