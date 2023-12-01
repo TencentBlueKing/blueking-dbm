@@ -50,7 +50,6 @@
     modelValue: StorageSpecItem[],
     isEdit: boolean,
     isRequired: boolean,
-    fixedDiskMountPoint: boolean
   }
 
   interface Emits {
@@ -137,7 +136,6 @@
             <bk-input
               class="large-size"
               v-model={data.mount_point}
-              readonly={props.fixedDiskMountPoint}
               placeholder="/data123"
               disabled={props.isEdit} />
           </div>
@@ -199,10 +197,7 @@
         </bk-form-item>
       ),
     },
-  ];
-
-  if (!props.fixedDiskMountPoint) {
-    columns.push({
+    {
       field: '',
       label: t('操作'),
       width: 80,
@@ -222,8 +217,8 @@
           </bk-button>
         </div>
       ),
-    });
-  }
+    },
+  ];
 
   const createData = () => ({
     mount_point: '',
