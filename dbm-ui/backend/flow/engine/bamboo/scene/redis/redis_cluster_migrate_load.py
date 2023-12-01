@@ -24,11 +24,13 @@ from backend.db_meta.models import AppCache, Spec
 from backend.flow.consts import ClusterStatus, InstanceStatus
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
+from backend.flow.plugins.components.collections.common.download_backup_client import DownloadBackupClientComponent
 from backend.flow.plugins.components.collections.redis.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.redis.get_redis_payload import GetRedisActPayloadComponent
 from backend.flow.plugins.components.collections.redis.redis_config import RedisConfigComponent
 from backend.flow.plugins.components.collections.redis.redis_db_meta import RedisDBMetaComponent
 from backend.flow.plugins.components.collections.redis.trans_flies import TransFileComponent
+from backend.flow.utils.common_act_dataclass import DownloadBackupClientKwargs
 from backend.flow.utils.redis.redis_act_playload import RedisActPayload
 from backend.flow.utils.redis.redis_context_dataclass import ActKwargs, CommonContext
 from backend.flow.utils.redis.redis_db_meta import RedisDBMeta
@@ -176,13 +178,26 @@ class RedisClusterMigrateLoadFlow(object):
             )
 
             # 下发介质包
+            all_ips = cluster["proxy_ips"] + cluster["master_ips"] + cluster["slave_ips"]
             trans_files = GetFileList(db_type=DBType.Redis)
             act_kwargs.file_list = trans_files.redis_dbmon()
-            act_kwargs.exec_ip = cluster["proxy_ips"] + cluster["master_ips"] + cluster["slave_ips"]
+            act_kwargs.exec_ip = all_ips
             sub_pipeline.add_act(
                 act_name=_("下发介质包"),
                 act_component_code=TransFileComponent.code,
                 kwargs=asdict(act_kwargs),
+            )
+
+            sub_pipeline.add_act(
+                act_name=_("安装backup-client工具").format(all_ips),
+                act_component_code=DownloadBackupClientComponent.code,
+                kwargs=asdict(
+                    DownloadBackupClientKwargs(
+                        bk_cloud_id=self.data["bk_cloud_id"],
+                        bk_biz_id=int(self.data["bk_biz_id"]),
+                        download_host_list=all_ips,
+                    ),
+                ),
             )
 
             # proxy 相关操作
