@@ -107,6 +107,8 @@ class MySQLHAStandardizeFlow(object):
     def _trans_file(self, ips_group: Dict) -> SubProcess:
         trans_file_pipes = []
         for bk_cloud_id, ips in ips_group.items():
+            unique_ips = list(set(ips))
+
             cloud_trans_file_pipe = SubBuilder(root_id=self.root_id, data=self.data)
 
             cloud_trans_file_pipe.add_act(
@@ -115,7 +117,7 @@ class MySQLHAStandardizeFlow(object):
                 kwargs=asdict(
                     DownloadMediaKwargs(
                         bk_cloud_id=bk_cloud_id,
-                        exec_ip=ips,
+                        exec_ip=unique_ips,
                         file_list=GetFileList(db_type=DBType.MySQL).get_mysql_surrounding_apps_package(),
                     )
                 ),
@@ -126,7 +128,7 @@ class MySQLHAStandardizeFlow(object):
                 kwargs=asdict(
                     DownloadMediaKwargs(
                         bk_cloud_id=bk_cloud_id,
-                        exec_ip=ips,
+                        exec_ip=unique_ips,
                         file_list=GetFileList(db_type=DBType.MySQL).get_db_actuator_package(),
                     )
                 ),
@@ -139,7 +141,7 @@ class MySQLHAStandardizeFlow(object):
                     DownloadBackupClientKwargs(
                         bk_cloud_id=bk_cloud_id,
                         bk_biz_id=self.data["bk_biz_id"],
-                        download_host_list=ips,
+                        download_host_list=unique_ips,
                     )
                 ),
             )
