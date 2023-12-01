@@ -18,6 +18,7 @@ bk:
   # 蓝鲸配置平台
   bkCmdbUrl: "https://cmdb.example.com"
   # 蓝鲸作业平台
+  bluekingBizId: "9991001"
   bkJobUrl: "https://job.example.com"
   bkJobApiUrl: ""
   # 蓝鲸节点管理
@@ -59,7 +60,6 @@ bk:
 dbm:
   extraEnvVarsCM: bk-dbm-db-env
   enabled: true
-
   serviceInit:
     itsmEnabled: true
     apigwEnabled: true
