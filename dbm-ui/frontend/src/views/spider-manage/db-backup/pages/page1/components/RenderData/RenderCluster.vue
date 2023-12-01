@@ -19,19 +19,11 @@
       multi-input
       :placeholder="t('请输入集群_使用换行分割一次可输入多个')"
       :rules="rules"
-      @multi-input="handleMultiInput" />
+      @multi-input="handleMultiInput"
+      @submit="handleInputFinish" />
   </div>
 </template>
-<script lang="ts">
-  const clusterIdMemo: { [key: string]: Record<string, boolean> } = {};
-
-</script>
 <script setup lang="ts">
-  import {
-    onBeforeUnmount,
-    ref,
-    watch,
-  } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import { queryClusters } from '@services/source/mysqlCluster';
@@ -40,17 +32,16 @@
 
   import TableEditInput from '@views/spider-manage/common/edit/Input.vue';
 
-  import { random } from '@utils';
-
   import type { IDataRow } from './Row.vue';
 
   interface Props {
     modelValue?: IDataRow['clusterData'],
+    inputedClusters?: string[]
   }
 
   interface Emits {
+    (e: 'inputClusterFinish', value: string): void,
     (e: 'inputCreate', value: Array<string>): void,
-    (e: 'idChange', value: number): void,
   }
 
   interface Exposes {
@@ -61,9 +52,6 @@
   const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
-
-  const instanceKey = `render_cluster_${random()}`;
-  clusterIdMemo[instanceKey] = {};
 
   const { currentBizId } = useGlobalBizs();
 
@@ -79,7 +67,6 @@
         if (value) {
           return true;
         }
-        emits('idChange', 0);
         return false;
       },
       message: t('目标集群不能为空'),
@@ -102,24 +89,11 @@
       message: t('目标集群不存在'),
     },
     {
-      validator: () => {
-        const currentClusterSelectMap = clusterIdMemo[instanceKey];
-        const otherClusterMemoMap = { ...clusterIdMemo };
-        delete otherClusterMemoMap[instanceKey];
-
-        const otherClusterIdMap = Object.values(otherClusterMemoMap).reduce((result, item) => ({
-          ...result,
-          ...item,
-        }), {} as Record<string, boolean>);
-
-        const currentSelectClusterIdList = Object.keys(currentClusterSelectMap);
-        for (let i = 0; i < currentSelectClusterIdList.length; i++) {
-          if (otherClusterIdMap[currentSelectClusterIdList[i]]) {
-            return false;
-          }
+      validator: (value: string) => {
+        if (!props.inputedClusters || props.inputedClusters.length === 0) {
+          return true;
         }
-        emits('idChange', localClusterId.value);
-        return true;
+        return props.inputedClusters.filter(item => item === value).length < 2;
       },
       message: t('目标集群重复'),
     },
@@ -138,24 +112,13 @@
     immediate: true,
   });
 
-  // 获取关联集群
-  watch(localClusterId, () => {
-    if (!localClusterId.value) {
-      return;
-    }
-    clusterIdMemo[instanceKey][localClusterId.value] = true;
-  }, {
-    immediate: true,
-  });
+  const handleInputFinish = (value: string) => {
+    emits('inputClusterFinish', value);
+  };
 
   const handleMultiInput = (list: Array<string>) => {
     emits('inputCreate', list);
   };
-
-
-  onBeforeUnmount(() => {
-    delete clusterIdMemo[instanceKey];
-  });
 
   defineExpose<Exposes>({
     getValue() {

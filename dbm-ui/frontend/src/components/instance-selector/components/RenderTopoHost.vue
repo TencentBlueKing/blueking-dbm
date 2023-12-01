@@ -25,10 +25,10 @@
       <DbOriginalTable
         :columns="columns"
         :data="tableData"
-        :height="505"
         :is-anomalies="isAnomalies"
         :is-searching="!!search"
-        :pagination="pagination"
+        :max-height="485"
+        :pagination="pagination.count < 10 ? false : pagination"
         remote-pagination
         :settings="tableSettings"
         style="margin-top: 12px;"
@@ -140,6 +140,7 @@
   const columns = [
     {
       width: 60,
+      minWidth: 60,
       fixed: 'left',
       label: () => (
         <bk-checkbox

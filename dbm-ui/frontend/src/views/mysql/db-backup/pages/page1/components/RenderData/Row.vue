@@ -17,8 +17,9 @@
       <td style="padding: 0;">
         <RenderCluster
           ref="clusterRef"
+          :inputed-clusters="inputedClusters"
           :model-value="data.clusterData"
-          @id-change="handleClusterIdChange"
+          @input-cluster-finish="handleInputFinish"
           @input-create="handleCreate" />
       </td>
       <td style="padding: 0;">
@@ -63,10 +64,12 @@
   interface Props {
     data: IDataRow,
     removeable: boolean,
+    inputedClusters?: string[]
   }
   interface Emits {
     (e: 'add', params: Array<IDataRow>): void,
     (e: 'remove'): void,
+    (e: 'inputClusterFinish', value: IDataRow): void,
   }
 
   interface Exposes{
@@ -79,18 +82,14 @@
 
   const clusterRef = ref();
   const backupLocalRef = ref();
-  const localClusterId = ref(0);
 
-  watch(() => props.data, () => {
-    if (props.data.clusterData) {
-      localClusterId.value = props.data.clusterData.id;
-    }
-  }, {
-    immediate: true,
-  });
-
-  const handleClusterIdChange = (clusterId: number) => {
-    localClusterId.value = clusterId;
+  const handleInputFinish = (domain: string) => {
+    emits('inputClusterFinish', createRowData({
+      clusterData: {
+        id: 0,
+        domain,
+      },
+    }));
   };
 
   const handleCreate = (list: Array<string>) => {
