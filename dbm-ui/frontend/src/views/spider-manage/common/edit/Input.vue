@@ -142,6 +142,7 @@
     if (!_.trim(localValue.value)) {
       return localValue.value;
     }
+
     const [currentValue, ...appendList] = localValue.value.split('\n');
     const validateAppendList = _.uniq(_.filter(appendList, item => _.trim(item))) as Array<string>;
     if (validateAppendList.length > 0) {

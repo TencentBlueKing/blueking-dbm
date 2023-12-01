@@ -314,7 +314,8 @@
 
         props.dataSource(params)
           .then((data) => {
-            // data.results = [...data.results, ...data.results, ...data.results, ...data.results, ...data.results];
+            // eslint-disable-next-line max-len
+            // data.results = [...data.results, ...data.results, ...data.results, ...data.results, ...data.results, ...data.results, ...data.results, ...data.results];
             tableData.value = data;
             pagination.count = data.count;
             isSearching.value = getSearchingStatus();

@@ -8,8 +8,11 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import logging
 from collections import defaultdict
 from typing import Any, Dict, List
+
+from django.utils.translation import ugettext as _
 
 from backend import env
 from backend.components import CCApi
@@ -17,11 +20,15 @@ from backend.components.dbresource.client import DBResourceApi
 from backend.configuration.constants import SystemSettingsEnum
 from backend.configuration.models import SystemSettings
 from backend.db_dirty.models import DirtyMachine
-from backend.db_meta.models import Machine
 from backend.db_services.ipchooser.constants import IDLE_HOST_MODULE
 from backend.db_services.ipchooser.handlers.topo_handler import TopoHandler
+from backend.flow.consts import FAILED_STATES
 from backend.flow.utils.cc_manage import CcManage
+from backend.ticket.builders import BuilderFactory
 from backend.ticket.models import Flow, Ticket
+from backend.utils.basic import get_target_items_from_details
+
+logger = logging.getLogger("root")
 
 
 class DBDirtyMachineHandler(object):
@@ -119,3 +126,33 @@ class DBDirtyMachineHandler(object):
         @param bk_host_ids: 主机列表
         """
         DirtyMachine.objects.filter(bk_host_id__in=bk_host_ids).delete()
+
+    @classmethod
+    def handle_dirty_machine(cls, ticket_id, root_id, origin_tree_status, target_tree_status):
+        """处理执行失败/重试成功涉及的污点池机器"""
+        if (origin_tree_status not in FAILED_STATES) and (target_tree_status not in FAILED_STATES):
+            return
+
+        try:
+            ticket = Ticket.objects.get(id=ticket_id)
+            flow = Flow.objects.get(flow_obj_id=root_id)
+            # 如果不是部署类单据，则无需处理
+            if ticket.ticket_type not in BuilderFactory.apply_ticket_type:
+                return
+        except (Ticket.DoesNotExist, Flow.DoesNotExist, ValueError):
+            return
+
+        # 如果初始状态是失败，则证明是重试，将机器从污点池中移除
+        bk_host_ids = get_target_items_from_details(
+            obj=ticket.details, match_keys=["host_id", "bk_host_id", "bk_host_ids"]
+        )
+        if origin_tree_status in FAILED_STATES:
+            logger.info(_("【污点池】主机列表:{} 将从污点池挪出").format(bk_host_ids))
+            DBDirtyMachineHandler.remove_dirty_machines(bk_host_ids)
+
+        # 如果是目标状态失败，则证明是执行失败，将机器加入污点池
+        if target_tree_status in FAILED_STATES:
+            logger.info(_("【污点池】单据-{}：任务-{}执行失败，主机列表:{}挪到污点池").format(ticket_id, root_id, bk_host_ids))
+            DBDirtyMachineHandler.insert_dirty_machines(
+                bk_biz_id=ticket.bk_biz_id, bk_host_ids=bk_host_ids, ticket=ticket, flow=flow
+            )

@@ -23,10 +23,10 @@
         :style="{ color: highlightIps.includes(inst.ip) ? 'rgb(234 177 93)' : '#63656e' }">
         <slot :data="inst">
           {{ inst.ip }}:{{ inst.port }}
-          <span
+          <!-- <span
             v-if="inst.admin_port && inst.admin_port > 0"
             v-bk-tooltips="'Primary ctl'"
-            class="primary-ctl-box">P</span>
+            class="primary-ctl-box">P</span> -->
         </slot>
       </span>
       <BkTag v-if="inst.status === 'unavailable'">
@@ -276,22 +276,22 @@
 .cluster-instances {
   padding: 8px 0;
 
-  .primary-ctl-box {
-    width: 16px;
-    height: 16px;
-    padding: 0 4px;
-    font-size: 12px;
-    font-weight: 700;
-    color: #3A84FF;
-    cursor: pointer;
-    background: #F0F5FF;
-    border-radius: 2px;
+  // .primary-ctl-box {
+  //   width: 16px;
+  //   height: 16px;
+  //   padding: 0 4px;
+  //   font-size: 12px;
+  //   font-weight: 700;
+  //   color: #3A84FF;
+  //   cursor: pointer;
+  //   background: #F0F5FF;
+  //   border-radius: 2px;
 
-    &:hover {
-      color: #1768EF;
-      background: #E1ECFF;
-    }
-  }
+  //   &:hover {
+  //     color: #1768EF;
+  //     background: #E1ECFF;
+  //   }
+  // }
 
   .db-icon-copy {
     display: none;

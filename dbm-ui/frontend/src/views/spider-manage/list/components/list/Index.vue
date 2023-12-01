@@ -525,7 +525,8 @@
       label: t('操作'),
       field: '',
       width: tableOperationWidth.value,
-      fixed: isStretchLayoutOpen.value ? 'right' : false,
+      // fixed: isStretchLayoutOpen.value ? 'right' : false,
+      fixed: 'right',
       render: ({ data }: IColumn) => {
         const getOperations = (theme = 'primary') => {
           const operations = [

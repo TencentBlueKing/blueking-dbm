@@ -72,7 +72,7 @@ def post_set_state_signal_handler(sender, node_id, to_state, version, root_id, *
             # 更新flow tree和inner flow的状态
             tree.updated_at, tree.status = now, target_tree_status
             tree.save()
-            handle_dirty_machine(tree.uid, root_id, origin_tree_status, target_tree_status)
+            DBDirtyMachineHandler.handle_dirty_machine(tree.uid, root_id, origin_tree_status, target_tree_status)
             callback_ticket(tree.uid, root_id)
         except Exception as e:  # pylint: disable=broad-except
             logger.debug(_("【状态信号捕获】污点池处理/回调单据 发生错误，错误信息{}").format(e))
@@ -101,33 +101,3 @@ def callback_ticket(ticket_id, root_id):
     if current_flow and current_flow.flow_obj_id == root_id:
         manager = TicketFlowManager(ticket=ticket)
         manager.run_next_flow()
-
-
-def handle_dirty_machine(ticket_id, root_id, origin_tree_status, target_tree_status):
-    """处理执行失败/重试成功涉及的污点池机器"""
-    if (origin_tree_status not in FAILED_STATES) and (target_tree_status not in FAILED_STATES):
-        return
-
-    try:
-        ticket = Ticket.objects.get(id=ticket_id)
-        flow = Flow.objects.get(flow_obj_id=root_id)
-        # 如果不是部署类单据，则无需处理
-        if ticket.ticket_type not in BuilderFactory.apply_ticket_type:
-            return
-    except (Ticket.DoesNotExist, Flow.DoesNotExist, ValueError):
-        return
-
-    # 如果初始状态是失败，则证明是重试，将机器从污点池中移除
-    bk_host_ids = get_target_items_from_details(
-        obj=ticket.details, match_keys=["host_id", "bk_host_id", "bk_host_ids"]
-    )
-    if origin_tree_status in FAILED_STATES:
-        logger.info(_("【状态信号捕获】主机列表:{} 将从污点池挪出").format(bk_host_ids))
-        DBDirtyMachineHandler.remove_dirty_machines(bk_host_ids)
-
-    # 如果是目标状态失败，则证明是执行失败，将机器加入污点池
-    if target_tree_status in FAILED_STATES:
-        logger.info(_("【状态信号捕获】单据-{}：任务-{}执行失败，主机列表:{}将挪到污点池").format(ticket_id, root_id, bk_host_ids))
-        DBDirtyMachineHandler.insert_dirty_machines(
-            bk_biz_id=ticket.bk_biz_id, bk_host_ids=bk_host_ids, ticket=ticket, flow=flow
-        )
