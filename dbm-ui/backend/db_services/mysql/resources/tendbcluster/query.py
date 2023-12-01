@@ -150,7 +150,7 @@ class ListRetrieveResource(DBHAListRetrieveResource):
             .ticket
         )
         temporary_info = {
-            "source_cluster": Cluster.objects.get(id=ticket.details["cluster_id"]).name,
+            "source_cluster": Cluster.objects.get(id=ticket.details["cluster_id"]).immute_domain,
             "ticket_id": ticket.id,
         }
         return temporary_info
