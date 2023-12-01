@@ -22,9 +22,8 @@ from backend.dbm_init.constants import CC_APP_ABBR_ATTR
 logger = logging.getLogger("celery")
 
 
-@register_periodic_task(run_every=crontab(minute="*/20"))
 def update_app_cache():
-    """缓存空闲机拓扑"""
+    """TODO: deprecated: 缓存空闲机拓扑"""
     now = datetime.datetime.now()
     logger.warning("[db_meta] start update app cache start: %s", now)
 
@@ -82,15 +81,26 @@ def update_app_cache():
 def bulk_update_app_cache():
     """缓存空闲机拓扑"""
 
-    def get_db_app_abbr(biz):
-        """TODO（好绕的逻辑）: 获取db_app_abbr，为空则尝试从bk_app_abbr同步"""
-        bk_app_abbr = biz.get(env.BK_APP_ABBR, "")
-        db_app_abbr = biz.get(CC_APP_ABBR_ATTR, "").lower().replace(" ", "-").replace("_", "-")
+    def format_app_abbr(app_abbr):
+        return app_abbr.lower().replace(" ", "-").replace("_", "-")
 
-        # 目标环境中存在bk_app_abbr，则同步过来
+    def get_db_app_abbr_from_bk_app_abbr(biz):
+        """
+        获取 db_app_abbr，为空则尝试从业务模型的 bk_app_abbr 同步，并会写至自定义业务属性字段: db_app_abbr
+        """
+
+        bk_app_abbr = biz.get(env.BK_APP_ABBR, "")
+        db_app_abbr = biz.get(CC_APP_ABBR_ATTR, "")
+
+        # 简单清理 bk_app_abbr 中的非法字符
+        bk_app_abbr = format_app_abbr(bk_app_abbr)
+        db_app_abbr = format_app_abbr(db_app_abbr)
+
+        # 目标环境中存在 bk_app_abbr，则同步过来
         if env.BK_APP_ABBR and env.BK_APP_ABBR != CC_APP_ABBR_ATTR:
-            # db_app_abbr为空才同步
+            # db_app_abbr 为空才同步，bk_app_abbr 只在create时插入，更新后，不能随便同步回来
             if not db_app_abbr and db_app_abbr != bk_app_abbr:
+                logger.warning("bulk_update_app_cache: set [%s]'s bk_app_abbr to [%s]", biz["bk_biz_id"], bk_app_abbr)
                 CCApi.update_business(
                     {"bk_biz_id": biz["bk_biz_id"], "data": {"db_app_abbr": bk_app_abbr}}, use_admin=True
                 )
@@ -98,12 +108,13 @@ def bulk_update_app_cache():
 
         return db_app_abbr
 
-    LIMIT = 500
-    total = CCApi.search_business({"page": {"start": 0, "limit": 1}}).get("count", 0)
+    # 批量同步准备
+    LIMIT = 1000
     start = 0
+    total = CCApi.search_business({"page": {"start": 0, "limit": 1}}).get("count", 0)
 
     begin_at = datetime.datetime.now()
-    logger.warning("bulk_update_app_cache: start update app cache start: total", total)
+    logger.warning("bulk_update_app_cache: start update app cache total: %s", total)
 
     # 批量创建和更新
     create_cnt, update_cnt = 0, 0
@@ -120,7 +131,7 @@ def bulk_update_app_cache():
         new_apps = []
         for bk_biz_id in not_exists:
             cc_app = biz_map[bk_biz_id]
-            db_app_abbr = get_db_app_abbr(cc_app)
+            db_app_abbr = get_db_app_abbr_from_bk_app_abbr(cc_app)
             new_apps.append(
                 AppCache(
                     bk_biz_id=bk_biz_id,
@@ -137,15 +148,23 @@ def bulk_update_app_cache():
             need_update = False
             for field in update_fields:
                 cc_app = biz_map[app.bk_biz_id]
-                new_value = cc_app[field]
                 old_value = getattr(app, field)
-                if new_value != old_value:
-                    logger.info("bulk_update_app_cache[%s]: %s:%s -> %s:%s", start, field, old_value, field, new_value)
-                    setattr(cc_app, field, new_value)
+                new_value = cc_app.get(field, "")
+
+                # 英文名需要清洗后使用
+                if field == CC_APP_ABBR_ATTR:
+                    new_value = format_app_abbr(new_value)
+
+                # 不为空且不一致才更新
+                if new_value and new_value != old_value:
+                    logger.info(
+                        "bulk_update_app_cache[%s]: field=%s: %s -> %s", app.bk_biz_id, field, old_value, new_value
+                    )
+                    setattr(app, field, new_value)
                     need_update = True
 
                 if need_update:
-                    update_apps.append(AppCache)
+                    update_apps.append(app)
 
         AppCache.objects.bulk_create(new_apps)
         AppCache.objects.bulk_update(update_apps, fields=update_fields)
@@ -156,7 +175,7 @@ def bulk_update_app_cache():
         start += LIMIT
 
     logger.warning(
-        "bulk_update_app_cache [%s] finish update app cache end: %s, create_cnt: %s, update_cnt: %s",
+        "bulk_update_app_cache [%s] finish update app cache end, create_cnt: %s, update_cnt: %s",
         datetime.datetime.now() - begin_at,
         create_cnt,
         update_cnt,
