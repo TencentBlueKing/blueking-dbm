@@ -103,9 +103,8 @@ class RedisClusterViewSet(viewsets.ResourceViewSet):
         """获取集群密码（proxy）"""
         cluster = Cluster.objects.get(id=cluster_id, bk_biz_id=bk_biz_id)
 
-        cluster_port = cluster.proxyinstance_set.first().port
         query_params = {
-            "instances": [{"ip": str(cluster.id), "port": cluster_port, "bk_cloud_id": cluster.bk_cloud_id}],
+            "instances": [{"ip": str(cluster.id), "port": 0, "bk_cloud_id": cluster.bk_cloud_id}],
             "users": [
                 {"username": UserName.REDIS_DEFAULT.value, "component": MySQLPrivComponent.REDIS_PROXY.value},
             ],
