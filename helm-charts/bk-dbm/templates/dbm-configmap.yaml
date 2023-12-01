@@ -44,6 +44,7 @@ data:
   BK_CMDB_URL: "{{ .Values.bk.bkCmdbUrl }}"
   # 蓝鲸作业平台
   BK_JOB_URL: "{{ .Values.bk.bkJobUrl }}"
+  JOB_BLUEKING_BIZ_ID: "{{ .Values.bk.bluekingBizId }}"
   # 蓝鲸节点管理
   BK_NODEMAN_URL: "{{ .Values.bk.bkNodemanUrl}}"
   # scr平台
