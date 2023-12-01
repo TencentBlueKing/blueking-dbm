@@ -12,12 +12,14 @@ import importlib
 import logging
 import uuid
 from datetime import date, datetime
-from typing import Dict, Union
+from typing import Any, Dict, Union
 
 from django.utils.translation import gettext as _
 
+from backend.db_dirty.handlers import DBDirtyMachineHandler
 from backend.db_meta.exceptions import ClusterExclusiveOperateException
 from backend.db_meta.models import Cluster
+from backend.flow.consts import StateType
 from backend.flow.models import FlowTree
 from backend.ticket import constants
 from backend.ticket.constants import BAMBOO_STATE__TICKET_STATE_MAP, FlowCallbackType
@@ -137,6 +139,10 @@ class InnerFlow(BaseTicketFlow):
             self.callback(callback_type=FlowCallbackType.PRE_CALLBACK.value)
             self._run()
         except (Exception, ClusterExclusiveOperateException) as err:  # pylint: disable=broad-except
+            # pipeline构造异常，将新部署的机器挪到污点池
+            DBDirtyMachineHandler.handle_dirty_machine(
+                self.ticket.id, root_id, origin_tree_status=StateType.RUNNING, target_tree_status=StateType.FAILED
+            )
             # 处理互斥异常和非预期的异常
             self.run_error_status_handler(err)
             return
@@ -157,6 +163,16 @@ class InnerFlow(BaseTicketFlow):
         controller_inst = controller_class(root_id=root_id, ticket_data=flow_details["ticket_data"])
 
         return getattr(controller_inst, controller_info["func_name"])()
+
+    def _retry(self) -> Any:
+        # 重试则将机器挪出污点池
+        DBDirtyMachineHandler.handle_dirty_machine(
+            self.ticket.id,
+            self.flow_obj.flow_obj_id,
+            origin_tree_status=StateType.FAILED,
+            target_tree_status=StateType.RUNNING,
+        )
+        super()._retry()
 
 
 class QuickInnerFlow(InnerFlow):

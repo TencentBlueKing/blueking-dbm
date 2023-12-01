@@ -320,7 +320,8 @@
     {
       label: t('操作'),
       width: tableOperationWidth.value,
-      fixed: isStretchLayoutOpen.value ? 'right' : false,
+      // fixed: isStretchLayoutOpen.value ? 'right' : false,
+      fixed: 'right',
       render: ({ data }: {data: KafkaModel}) => {
         const renderAction = (theme = 'primary') => {
           const baseAction = [

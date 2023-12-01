@@ -25,8 +25,10 @@
           :key="item.rowKey"
           ref="rowRefs"
           :data="item"
+          :inputed-clusters="inputedClusters"
           :removeable="tableData.length < 2"
           @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
+          @input-cluster-finish="(item: IDataRow) => handleInputCluster(index, item)"
           @remove="handleRemove(index)" />
       </RenderData>
       <DbForm
@@ -124,8 +126,11 @@
   const isSubmitting = ref(false);
   const formData = reactive(createDefaultData());
 
-  const tableData = shallowRef<Array<IDataRow>>([createRowData({})]);
+  const tableData = ref<Array<IDataRow>>([createRowData({})]);
   const selectedClusters = shallowRef<{[key: string]: Array<SpiderModel>}>({ [ClusterTypes.TENDBHA]: [] });
+
+  // eslint-disable-next-line max-len
+  const inputedClusters = computed(() => tableData.value.filter(item => item.clusterData && item.clusterData.domain).map(item => item.clusterData!.domain));
 
   // 集群域名是否已存在表格的映射表
   let domainMemo: Record<string, boolean> = {};
@@ -142,7 +147,6 @@
   // 批量选择
   const handleShowBatchSelector = () => {
     isShowBatchSelector.value = true;
-    console.log('isShowBatchSelector = ', isShowBatchSelector.value);
   };
 
   // 批量选择
@@ -167,7 +171,12 @@
     window.changeConfirm = true;
   };
 
-  // 追加一个集群
+  // 输入一个集群
+  const handleInputCluster = (index: number, item: IDataRow) => {
+    tableData.value[index] = item;
+  };
+
+  // 追加集群
   const handleAppend = (index: number, appendList: Array<IDataRow>) => {
     const dataList = [...tableData.value];
     dataList.splice(index + 1, 0, ...appendList);

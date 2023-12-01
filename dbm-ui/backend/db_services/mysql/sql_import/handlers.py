@@ -17,6 +17,7 @@ from typing import Any, Dict, List, Optional, Union
 
 from django.core.cache import cache
 from django.core.files.uploadedfile import InMemoryUploadedFile
+from django.utils.translation import ugettext as _
 
 from backend.components.sql_import.client import SQLImportApi
 from backend.configuration.constants import PLAT_BIZ_ID, DBType
@@ -29,6 +30,7 @@ from backend.db_services.mysql.sql_import.constants import (
     SQL_SEMANTIC_CHECK_DATA_EXPIRE_TIME,
     SQLImportMode,
 )
+from backend.db_services.mysql.sql_import.exceptions import SQLImportBaseException
 from backend.db_services.taskflow.handlers import TaskFlowHandler
 from backend.flow.consts import StateType
 from backend.flow.engine.bamboo.engine import BambooEngine
@@ -164,10 +166,13 @@ class SQLHandler(object):
             "import_mode": import_mode,
             "backup": backup,
         }
-        if self.cluster_type == DBType.MySQL:
-            MySQLController(root_id=root_id, ticket_data=ticket_data).mysql_sql_semantic_check_scene()
-        elif self.cluster_type == DBType.TenDBCluster:
-            SpiderController(root_id=root_id, ticket_data=ticket_data).spider_semantic_check_scene()
+        try:
+            if self.cluster_type == DBType.MySQL:
+                MySQLController(root_id=root_id, ticket_data=ticket_data).mysql_sql_semantic_check_scene()
+            elif self.cluster_type == DBType.TenDBCluster:
+                SpiderController(root_id=root_id, ticket_data=ticket_data).spider_semantic_check_scene()
+        except Exception as e:  # pylint: disable=broad-except
+            raise SQLImportBaseException(_("模拟流程构建失败，错误信息: {}").format(e))
 
         # 获取语义执行的node id
         tree = FlowTree.objects.get(root_id=root_id)
