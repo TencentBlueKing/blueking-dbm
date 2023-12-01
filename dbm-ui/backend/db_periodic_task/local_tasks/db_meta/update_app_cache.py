@@ -104,9 +104,9 @@ def bulk_update_app_cache():
             # db_app_abbr 为空才同步，bk_app_abbr 只在create时插入，更新后，不能随便同步回来
             if not db_app_abbr and db_app_abbr != bk_app_abbr and REGEX_APP_ABBR.match(bk_app_abbr):
                 logger.warning("bulk_update_app_cache: set [%s]'s bk_app_abbr to [%s]", biz["bk_biz_id"], bk_app_abbr)
-                # CCApi.update_business(
-                #     {"bk_biz_id": biz["bk_biz_id"], "data": {"db_app_abbr": bk_app_abbr}}, use_admin=True
-                # )
+                CCApi.update_business(
+                    {"bk_biz_id": biz["bk_biz_id"], "data": {"db_app_abbr": bk_app_abbr}}, use_admin=True
+                )
                 db_app_abbr = bk_app_abbr
 
         return db_app_abbr
