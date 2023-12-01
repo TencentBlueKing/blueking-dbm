@@ -132,25 +132,27 @@ func migration() {
 
 // JSONQueryExpression json query expression, implements clause.Expression interface to use as querier
 type JSONQueryExpression struct {
-	column         string
-	keys           []string
-	hasKeys        bool
-	equals         bool
-	equalsValue    interface{}
-	extract        bool
-	path           string
-	numranges      bool
-	numRange       NumRange
-	Gtv            int
-	gte            bool
-	Ltv            int
-	lte            bool
-	contains       bool
-	containVals    []string
-	mapcontains    bool
-	mapcontainVals []string
-	subcontains    bool
-	subcontainVal  string
+	column             string
+	keys               []string
+	hasKeys            bool
+	equals             bool
+	equalsValue        interface{}
+	extract            bool
+	path               string
+	numranges          bool
+	numRange           NumRange
+	Gtv                int
+	gte                bool
+	Ltv                int
+	lte                bool
+	contains           bool
+	containVals        []string
+	mapcontains        bool
+	mapcontainVals     []string
+	subcontains        bool
+	subcontainVal      string
+	jointOrContains    bool
+	jointOrContainVals []string
 }
 
 // NumRange TODO
@@ -184,6 +186,14 @@ func (jsonQuery *JSONQueryExpression) KeysContains(val []string) *JSONQueryExpre
 func (jsonQuery *JSONQueryExpression) Contains(val []string) *JSONQueryExpression {
 	jsonQuery.contains = true
 	jsonQuery.containVals = val
+	return jsonQuery
+}
+
+// JointOrContains TODO
+func (jsonQuery *JSONQueryExpression) JointOrContains(val []string) *JSONQueryExpression {
+	jsonQuery.jointOrContains = true
+	jsonQuery.jointOrContainVals = val
+
 	return jsonQuery
 }
 
@@ -295,6 +305,18 @@ func (jsonQuery *JSONQueryExpression) Build(builder clause.Builder) {
 				builder.WriteString("[")
 				builder.WriteString(jsonArryJoin(jsonQuery.containVals))
 				builder.WriteString("]') ")
+			case jsonQuery.jointOrContains:
+				for idx, v := range jsonQuery.jointOrContainVals {
+					if idx != 0 {
+						builder.WriteString(" OR ")
+					}
+					builder.WriteString("JSON_CONTAINS(")
+					builder.WriteQuoted(jsonQuery.column)
+					builder.WriteString(",'")
+					builder.WriteString("[\"")
+					builder.WriteString(v)
+					builder.WriteString("\"]') ")
+				}
 			case jsonQuery.subcontains:
 				builder.WriteString("JSON_CONTAINS(JSON_EXTRACT(")
 				builder.WriteQuoted(jsonQuery.column)

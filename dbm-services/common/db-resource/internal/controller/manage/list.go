@@ -143,7 +143,7 @@ func (c *MachineResourceGetterInputParam) queryBs(db *gorm.DB) {
 		if c.RsTypes[0] == "all" {
 			db.Where("JSON_LENGTH(rs_types) <= 0")
 		} else {
-			db.Where(model.JSONQuery("rs_types").Contains(c.RsTypes))
+			db.Where("(?)", model.JSONQuery("rs_types").JointOrContains(c.RsTypes))
 		}
 	}
 	c.Cpu.MatchCpu(db)
@@ -163,7 +163,7 @@ func (c *MachineResourceGetterInputParam) queryBs(db *gorm.DB) {
 		if c.ForBizs[0] == 0 {
 			db.Where("JSON_LENGTH(dedicated_bizs) <= 0")
 		} else {
-			db.Where(model.JSONQuery("dedicated_bizs").Contains(cmutil.IntSliceToStrSlice(c.ForBizs)))
+			db.Where("(?)", model.JSONQuery("dedicated_bizs").JointOrContains(cmutil.IntSliceToStrSlice(c.ForBizs)))
 		}
 	}
 
