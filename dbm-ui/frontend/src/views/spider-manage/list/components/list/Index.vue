@@ -316,7 +316,7 @@
                   </div>
                   <div class="item-row">
                     <div class="label">{t('关联单据')}：</div>
-                    <div class="content" style="color: #3A84FF;" onClick={() => handleClickRelatedTicket(data.temporary_info.ticket_id)}></div>
+                    <div class="content" style="color: #3A84FF;" onClick={() => handleClickRelatedTicket(data.temporary_info.ticket_id)}>{data.temporary_info.ticket_id}</div>
                   </div>
                 </div>
               ),
@@ -327,7 +327,7 @@
               data.operations.map(item => <RenderOperationTag class="cluster-tag" data={item} />)
             }
             {
-              !data.isOnline || (
+              !data.isOnline && (
                 <db-icon
                 svg
                 type="yijinyong"
@@ -525,8 +525,7 @@
       label: t('操作'),
       field: '',
       width: tableOperationWidth.value,
-      // fixed: isStretchLayoutOpen.value ? 'right' : false,
-      fixed: 'right',
+      fixed: isStretchLayoutOpen.value ? false : 'right',
       render: ({ data }: IColumn) => {
         const getOperations = (theme = 'primary') => {
           const operations = [

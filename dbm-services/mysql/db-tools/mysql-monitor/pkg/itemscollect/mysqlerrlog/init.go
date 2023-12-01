@@ -14,6 +14,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/config"
@@ -27,7 +28,8 @@ var executable string
 var maxScanSize int64 = 50 * 1024 * 1024
 var offsetRegFile string
 var errLogRegFile string
-var scanned bool
+
+//var scanned bool
 
 var rowStartPattern *regexp2.Regexp
 var baseErrTokenPattern *regexp2.Regexp
@@ -43,6 +45,9 @@ var mysqlCriticalExcludePattern *regexp2.Regexp
 var spiderNoticePattern *regexp2.Regexp
 var spiderWarnPattern *regexp2.Regexp
 var spiderCriticalPattern *regexp2.Regexp
+
+var once sync.Once
+var snapShotErr error
 
 func init() {
 	executable, _ = os.Executable()
@@ -102,7 +107,7 @@ func init() {
 		regexp2.IgnoreCase,
 	)
 
-	scanned = false
+	//scanned = false
 }
 
 // Checker TODO
@@ -122,10 +127,13 @@ func (c *Checker) Run() (msg string, err error) {
 		fmt.Sprintf("errlog.%d.reg", config.MonitorConfig.Port),
 	)
 
-	err = snapShot(c.db)
-	if err != nil {
-		slog.Error(c.name, slog.String("error", err.Error()))
-		return "", err
+	once.Do(func() {
+		snapShotErr = snapShot(c.db)
+	})
+	//err = snapShot(c.db)
+	if snapShotErr != nil {
+		slog.Error(c.name, slog.String("error", snapShotErr.Error()))
+		return "", snapShotErr
 	}
 
 	return c.f()

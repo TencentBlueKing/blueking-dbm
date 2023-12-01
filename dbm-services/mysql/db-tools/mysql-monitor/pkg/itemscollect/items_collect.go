@@ -27,8 +27,10 @@ import (
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/itemscollect/proxybackend"
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/itemscollect/proxyuserlist"
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/itemscollect/rotateslowlog"
+	"dbm-services/mysql/db-tools/mysql-monitor/pkg/itemscollect/scenesnapshot"
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/itemscollect/slavestatus"
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/itemscollect/spiderremote"
+	"dbm-services/mysql/db-tools/mysql-monitor/pkg/itemscollect/timezonechange"
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/itemscollect/tscc"
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/itemscollect/uniquectlmaster"
 	mi "dbm-services/mysql/db-tools/mysql-monitor/pkg/monitoriteminterface"
@@ -76,7 +78,7 @@ func init() {
 	_ = registerItemConstructor(rotateslowlog.RegisterRotateSlowLog())
 	_ = registerItemConstructor(mysqlconnlog.RegisterMySQLConnLogSize())
 	_ = registerItemConstructor(mysqlconnlog.RegisterMySQLConnLogRotate())
-	_ = registerItemConstructor(mysqlconnlog.RegisterMySQLConnLogReport())
+	//_ = registerItemConstructor(mysqlconnlog.RegisterMySQLConnLogReport())
 	_ = registerItemConstructor(mysqlconfigdiff.Register())
 	_ = registerItemConstructor(proxyuserlist.Register())
 	_ = registerItemConstructor(proxybackend.Register())
@@ -86,4 +88,7 @@ func init() {
 	_ = registerItemConstructor(tscc.Register())
 	_ = registerItemConstructor(dbhaheartbeat.Register())
 	_ = registerItemConstructor(uniquectlmaster.Register())
+	_ = registerItemConstructor(scenesnapshot.Register())
+	_ = registerItemConstructor(timezonechange.RegisterSysTimezoneChange())
+	_ = registerItemConstructor(timezonechange.RegisterMySQLTimezoneChange())
 }

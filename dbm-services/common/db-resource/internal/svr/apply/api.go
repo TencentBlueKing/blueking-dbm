@@ -72,7 +72,6 @@ type ActionInfo struct {
 type ApplyRequestInputParam struct {
 	ResourceType string              `json:"resource_type"` // 申请的资源用作的用途 Redis|MySQL|Proxy
 	DryRun       bool                `json:"dry_run"`
-	BkCloudId    int                 `json:"bk_cloud_id"`
 	ForbizId     int                 `json:"for_biz_id"`
 	Details      []ApplyObjectDetail `json:"details" binding:"required,gt=0,dive"`
 	ActionInfo
@@ -124,9 +123,9 @@ func (c ApplyRequestInputParam) GetOperationInfo(requestId, mode string,
 // LockKey TODO
 func (c ApplyRequestInputParam) LockKey() string {
 	if cmutil.IsEmpty(c.ResourceType) {
-		return fmt.Sprintf("dbrms:lock:%d:bizid.%d", c.BkCloudId, c.ForbizId)
+		return fmt.Sprintf("dbrms:lock:bizid.%d", c.ForbizId)
 	}
-	return fmt.Sprintf("dbrms:lock:%d:%s:bizid.%d", c.BkCloudId, c.ResourceType, c.ForbizId)
+	return fmt.Sprintf("dbrms:lock:%s:bizid.%d", c.ResourceType, c.ForbizId)
 }
 
 const (

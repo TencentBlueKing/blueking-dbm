@@ -17,7 +17,6 @@
       <td style="padding: 0;">
         <RenderCluster
           ref="clusterRef"
-          :inputed-clusters="inputedClusters"
           :model-value="data.clusterData"
           @input-cluster-finish="handleInputFinish"
           @input-create="handleCreate" />
@@ -63,8 +62,7 @@
 
   interface Props {
     data: IDataRow,
-    removeable: boolean,
-    inputedClusters?: string[]
+    removeable: boolean
   }
   interface Emits {
     (e: 'add', params: Array<IDataRow>): void,

@@ -75,6 +75,20 @@ class _JobApi(object):
             module=self.MODULE,
             description=_("新建文件源"),
         )
+        self.create_account = DataAPI(
+            method="POST",
+            base=JOB_APIGW_DOMAIN,
+            url="create_account/",
+            module=self.MODULE,
+            description=_("创建账号"),
+        )
+        self.get_account_list = DataAPI(
+            method="POST",
+            base=JOB_APIGW_DOMAIN,
+            url="get_account_list/",
+            module=self.MODULE,
+            description=_("查询账号列表"),
+        )
 
 
 JobApi = _JobApi()

@@ -168,6 +168,10 @@ func (m MySQLMonitorAccessAllAccount) GetAccountPrivs(grantHosts ...string) MySQ
 				Object: fmt.Sprintf("%s.*", native.INFODBA_SCHEMA),
 				Privs:  monitorAccessallPriv,
 			},
+			{
+				Object: "*.*",
+				Privs:  []string{"SUPER"},
+			},
 		},
 		AccessObjects: []string{"%"},
 	}

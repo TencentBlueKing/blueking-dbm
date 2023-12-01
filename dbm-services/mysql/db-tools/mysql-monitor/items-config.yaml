@@ -93,15 +93,6 @@
   - remote
   - spider
   role: []
-- name: mysql-connlog-report
-  enable: true
-  schedule: 0 40 23 * * *
-  machine_type:
-  - single
-  - backend
-  - remote
-  - spider
-  role: []
 - name: mysql-err-notice
   enable: true
   schedule: '@every 1m'
@@ -218,3 +209,32 @@
   - spider
   role:
   - spider_master
+- name: scene-snapshot
+  enable: true
+  schedule: '@every 1m'
+  machine_type:
+  - spider
+  - remote
+  - backend
+  - single
+  role: []
+- name: mysql-timezone-change
+  enable: true
+  schedule: '@every 1m'
+  machine_type:
+  - spider
+  - proxy
+  - remote
+  - backend
+  - single
+  role: []
+- name: sys-timezone-change
+  enable: true
+  schedule: '@every 1m'
+  machine_type:
+  - spider
+  - proxy
+  - remote
+  - backend
+  - single
+  role: []

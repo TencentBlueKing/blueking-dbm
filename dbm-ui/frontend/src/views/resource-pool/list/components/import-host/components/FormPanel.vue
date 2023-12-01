@@ -99,9 +99,12 @@
           <div class="com-input">
             <BkSelect
               v-model="formData.for_bizs"
+              collapse-tags
               :disabled="isSetEmptyBiz"
+              filterable
               :loading="isBizListLoading"
-              multiple>
+              multiple
+              multiple-mode="tag">
               <BkOption
                 v-for="bizItem in bizList"
                 :key="bizItem.bk_biz_id"
@@ -122,9 +125,12 @@
           <div class="com-input">
             <BkSelect
               v-model="formData.resource_types"
+              collapse-tags
               :disabled="isSetEmptyResourceType"
+              filterable
               :loading="isDbTypeListLoading"
-              multiple>
+              multiple
+              multiple-mode="tag">
               <BkOption
                 v-for="item in dbTypeList"
                 :key="item.id"
