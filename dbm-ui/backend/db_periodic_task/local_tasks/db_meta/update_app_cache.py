@@ -10,6 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 import datetime
 import logging
+import re
 
 from celery.schedules import crontab
 
@@ -81,10 +82,12 @@ def update_app_cache():
 def bulk_update_app_cache():
     """缓存空闲机拓扑"""
 
+    REGEX_APP_ABBR = re.compile("^[A-Za-z0-9_-]+$")
+
     def format_app_abbr(app_abbr):
         return app_abbr.lower().replace(" ", "-").replace("_", "-")
 
-    def get_db_app_abbr_from_bk_app_abbr(biz):
+    def get_app_abbr(biz):
         """
         获取 db_app_abbr，为空则尝试从业务模型的 bk_app_abbr 同步，并会写至自定义业务属性字段: db_app_abbr
         """
@@ -99,11 +102,11 @@ def bulk_update_app_cache():
         # 目标环境中存在 bk_app_abbr，则同步过来
         if env.BK_APP_ABBR and env.BK_APP_ABBR != CC_APP_ABBR_ATTR:
             # db_app_abbr 为空才同步，bk_app_abbr 只在create时插入，更新后，不能随便同步回来
-            if not db_app_abbr and db_app_abbr != bk_app_abbr:
+            if not db_app_abbr and db_app_abbr != bk_app_abbr and REGEX_APP_ABBR.match(bk_app_abbr):
                 logger.warning("bulk_update_app_cache: set [%s]'s bk_app_abbr to [%s]", biz["bk_biz_id"], bk_app_abbr)
-                CCApi.update_business(
-                    {"bk_biz_id": biz["bk_biz_id"], "data": {"db_app_abbr": bk_app_abbr}}, use_admin=True
-                )
+                # CCApi.update_business(
+                #     {"bk_biz_id": biz["bk_biz_id"], "data": {"db_app_abbr": bk_app_abbr}}, use_admin=True
+                # )
                 db_app_abbr = bk_app_abbr
 
         return db_app_abbr
@@ -131,7 +134,7 @@ def bulk_update_app_cache():
         new_apps = []
         for bk_biz_id in not_exists:
             cc_app = biz_map[bk_biz_id]
-            db_app_abbr = get_db_app_abbr_from_bk_app_abbr(cc_app)
+            db_app_abbr = get_app_abbr(cc_app)
             new_apps.append(
                 AppCache(
                     bk_biz_id=bk_biz_id,
@@ -154,6 +157,8 @@ def bulk_update_app_cache():
                 # 英文名需要清洗后使用
                 if field == CC_APP_ABBR_ATTR:
                     new_value = format_app_abbr(new_value)
+                    # 清理无效则不同步
+                    new_value = new_value if REGEX_APP_ABBR.match(new_value) else ""
 
                 # 不为空且不一致才更新
                 if new_value and new_value != old_value:
