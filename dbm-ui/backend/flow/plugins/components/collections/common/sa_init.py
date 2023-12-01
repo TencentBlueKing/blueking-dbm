@@ -55,8 +55,7 @@ class SaInit(BaseService):
         task_id = data.get_one_of_outputs("task_id")
         param = {"bk_biz_id": bk_biz_id, "task_id": task_id}
         rpdata = BkSopsApi.get_task_status(param)
-        state = rpdata["state"]
-        children = rpdata["children"]
+        state = rpdata.get("state", states.RUNNING)
         if state == states.FINISHED:
             self.finish_schedule()
             self.log_info("run success~")
@@ -67,14 +66,16 @@ class SaInit(BaseService):
             else:
                 self.log_error(_("任务状态异常{}").format(state))
             # 查询异常日志
-            for nodeid in children:
-                param["node_id"] = nodeid
-                rpdata = BkSopsApi.get_task_node_detail(param)
-                ouput = rpdata["outputs"]
-                ex_data = rpdata["ex_data"]
-                self.log_error(f"ex_data:{ex_data}")
-                for ele in ouput:
-                    self.log_error(f"ouput:{ele}")
+            if rpdata.get("children"):
+                children = rpdata["children"]
+                for nodeid in children:
+                    param["node_id"] = nodeid
+                    rpdata = BkSopsApi.get_task_node_detail(param)
+                    ouput = rpdata.get("outputs", [])
+                    ex_data = rpdata.get("ex_data", "")
+                    self.log_error(f"ex_data:{ex_data}")
+                    for ele in ouput:
+                        self.log_error(f"ouput:{ele}")
             return False
 
 
