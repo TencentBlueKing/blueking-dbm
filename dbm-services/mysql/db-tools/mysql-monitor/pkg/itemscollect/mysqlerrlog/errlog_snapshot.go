@@ -22,10 +22,10 @@ import (
 )
 
 func snapShot(db *sqlx.DB) error {
-	slog.Debug("snap shot err log", slog.Bool("scanned", scanned))
-	if scanned {
-		return nil
-	}
+	//slog.Debug("snap shot err log", slog.Bool("scanned", scanned))
+	//if scanned {
+	//	return nil
+	//}
 
 	errLogPath, err := findErrLogFile(db)
 	if err != nil {
@@ -89,7 +89,7 @@ func snapShot(db *sqlx.DB) error {
 		return err
 	}
 
-	scanned = true
+	//scanned = true
 	return nil
 }
 
