@@ -1,0 +1,61 @@
+{
+    "categories": [
+      {
+        "title": "### 🔥 Refactors",
+        "labels": ["kind/refactor", "refactor", "refactor(front)"]
+      },
+      {
+        "title": "### 🚀 Features",
+        "labels": ["kind/feature", "feature", "feat(front)"]
+      },
+      {
+        "title": "### ✨ Optimizations",
+        "labels": ["kind/optimization", "optimization", "perf(front)", "optimize(front)", "style(front)"]
+      },
+      {
+        "title": "### 🐛 Bugfixes",
+        "labels": ["kind/bugfix", "bugfix", "fix(front)"]
+      },
+      {
+        "title": "### ✏️ Docs",
+        "labels": ["kind/docs", "docs", "docs(front)"]
+      },
+      {
+        "title": "### 🧪 Tests",
+        "labels": ["kind/test", "test", "test(front)"]
+      },
+      {
+        "title": "## 📦 Dependencies",
+        "labels": ["build(front)"]
+      }
+    ],
+    "sort": "ASC",
+    "template": "${{CHANGELOG}}\n**Full Changelog**: __GITHUB_REPO_URL__/compare/${{FROM_TAG}}...__TO_TAG___",
+    "pr_template": "- ${{TITLE}}\n",
+    "empty_template": "- no changes",
+    "label_extractor": [
+      {
+        "pattern": "^(feature|docs|bugfix|optimization|refactor|test):(.*)",
+        "target": "$1"
+      },
+      {
+        "pattern": "^(refactor|feat|perf|optimize|fix|docs|test|build|style)\\(front\\):(.*)",
+        "target": "$1(front)"
+      }
+    ],
+    "duplicate_filter": {
+      "pattern": ".+",
+      "on_property": "title",
+      "method": "match"
+    },
+    "transformers": [
+      {
+        "pattern": "^(feature|docs|bugfix|optimization|refactor|test):\\s*(.*)",
+        "target": "$2"
+      },
+      {
+        "pattern": "^(feature|docs|bugfix|optimization|refactor|test)\\(front\\):\\s*(.*)",
+        "target": "$2"
+      }
+    ]
+}
