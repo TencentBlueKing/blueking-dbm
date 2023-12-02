@@ -11,18 +11,10 @@ specific language governing permissions and limitations under the License.
 import logging
 
 from django.apps import AppConfig
-from django.db.models.signals import post_migrate
 
 logger = logging.getLogger("root")
-
-
-def app_ready_handler(sender, **kwargs):
-    pass
 
 
 class DBMonitor(AppConfig):
     default_auto_field = "django.db.models.BigAutoField"
     name = "backend.db_monitor"
-
-    def ready(self):
-        post_migrate.connect(app_ready_handler, sender=self)

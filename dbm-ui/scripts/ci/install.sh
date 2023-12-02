@@ -52,21 +52,21 @@ fi
 redis-cli -h ${REDIS_IP} -p ${REDIS_PORT} -a ${REDIS_PASSWORD} FLUSHALL
 redis-cli -h ${REDIS_IP} -p ${REDIS_PORT} -a ${REDIS_PASSWORD} DBSIZE
 
-echo "开始执行 python manage.py migrate"
-python manage.py migrate >> /tmp/migrate.log
-if [[ $? -ne 0 ]];
-then
-  echo "Error: python manage.py migrate 执行失败！请检查 migrations 文件"
-  cat /tmp/migrate.log
-  FAILED_COUNT=$[$FAILED_COUNT+1]
-fi
-
 echo "开始执行 python manage.py migrate --database=report_db"
 python manage.py migrate --database=report_db >> /tmp/migrate_report_db.log
 if [[ $? -ne 0 ]];
 then
   echo "Error: python manage.py migrate --database=report_db 执行失败！请检查 migrations 文件"
   cat /tmp/migrate_report_db.log
+  FAILED_COUNT=$[$FAILED_COUNT+1]
+fi
+
+echo "开始执行 python manage.py migrate"
+python manage.py migrate >> /tmp/migrate.log
+if [[ $? -ne 0 ]];
+then
+  echo "Error: python manage.py migrate 执行失败！请检查 migrations 文件"
+  cat /tmp/migrate.log
   FAILED_COUNT=$[$FAILED_COUNT+1]
 fi
 

@@ -16,13 +16,6 @@ from django.db.models.signals import post_migrate
 logger = logging.getLogger("root")
 
 
-def app_ready_handler(sender, **kwargs):
-    pass
-
-
 class DBEvent(AppConfig):
     default_auto_field = "django.db.models.BigAutoField"
     name = "backend.db_event"
-
-    def ready(self):
-        post_migrate.connect(app_ready_handler, sender=self)

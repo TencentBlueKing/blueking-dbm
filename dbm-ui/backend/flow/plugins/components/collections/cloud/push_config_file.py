@@ -17,7 +17,6 @@ from django.utils.translation import ugettext as _
 from jinja2 import Environment
 from pipeline.component_framework.component import Component
 
-from backend import env
 from backend.components import JobApi
 from backend.core import consts
 from backend.flow.plugins.components.collections.cloud.exec_service_script import ExecCloudScriptService

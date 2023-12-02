@@ -8,15 +8,21 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import logging
 
 from django.apps import AppConfig
 from django.db.models.signals import post_migrate
+
+logger = logging.getLogger("root")
 
 
 def init_ticket_flow_config(sender, **kwargs):
     from backend.ticket.handler import TicketHandler
 
-    TicketHandler.ticket_flow_config_init()
+    try:
+        TicketHandler.ticket_flow_config_init()
+    except Exception as err:  # pylint: disable=broad-except:
+        logger.warning(f"ticket_flow_config_init occur error, {err}")
 
 
 class TicketConfig(AppConfig):
