@@ -19,7 +19,7 @@ import backend.flow.utils.hdfs.hdfs_context_dataclass as flow_context
 from backend.components import DBConfigApi
 from backend.components.dbconfig.constants import LevelName, OpType, ReqType
 from backend.components.mysql_priv_manager.client import MySQLPrivManagerApi
-from backend.flow.consts import ConfigTypeEnum, LevelInfoEnum, MySQLPrivComponent, NameSpaceEnum
+from backend.flow.consts import ConfigTypeEnum, LevelInfoEnum, NameSpaceEnum
 from backend.flow.plugins.components.collections.common.base_service import BaseService
 from backend.ticket.constants import TicketType
 

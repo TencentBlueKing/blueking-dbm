@@ -8,7 +8,6 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-import copy
 from dataclasses import asdict
 
 from django.utils.translation import ugettext as _
@@ -25,7 +24,6 @@ from backend.flow.plugins.components.collections.mysql.mysql_download_backupfile
 from backend.flow.utils.mysql.common.compare_time import compare_time
 from backend.flow.utils.mysql.mysql_act_dataclass import DownloadBackupFileKwargs, ExecActuatorKwargs
 from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
-from backend.utils import time
 
 
 def spider_recover_sub_flow(root_id: str, ticket_data: dict, cluster: dict):
