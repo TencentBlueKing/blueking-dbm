@@ -67,6 +67,9 @@ class ListRetrieveResource(query.ListRetrieveResource):
         proxy_inst_qset = ProxyInstance.objects.filter(proxy_query)
         storage_inst_qset = StorageInstance.objects.filter(storage_query)
 
+        if query_params.get("id"):
+            cluster_query &= Q(id=query_params["id"])
+
         if query_params.get("name"):
             cluster_query &= Q(name__icontains=query_params["name"])
 
