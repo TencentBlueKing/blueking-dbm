@@ -50,7 +50,7 @@ bk:
   mysqlCrondMetricsDataToken: "bk-monitor-custom-token"
   mysqlCrondMetricsDataId: "bk-monitor-custom-data-id"
   # 蓝鲸网关
-  bkApigwStaticVersion: "1.0.0"
+  bkApigwStaticVersion: "1.0.1"
   bkApigwManagerMaintainers: "admin"
   bkApigwStageName: "prod"
   bkApigwGrantApps: []

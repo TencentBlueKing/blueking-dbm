@@ -7,13 +7,112 @@ info:
 schemes:
 - http
 paths:
+  /cmdb/list_bizs/:
+    get:
+      operationId: list_bizs
+      description: 查询业务列表
+      tags:
+      - ipchooser
+      responses:
+        default:
+          description: ''
+      x-bk-apigateway-resource:
+        isPublic: true
+        allowApplyPermission: true
+        matchSubpath: false
+        backend:
+          type: HTTP
+          method: get
+          path: /apis/cmdb/list_bizs/
+          matchSubpath: false
+          timeout: 0
+          upstreams: {}
+          transformHeaders: {}
+        authConfig:
+          userVerifiedRequired: false
+        disabledStages: []
+        descriptionEn:
+  /conf/ip_whitelist/iplist/:
+    post:
+      operationId: ip_white_list
+      description: IP白名单列表
+      tags:
+      - ipchooser
+      responses:
+        default:
+          description: ''
+      x-bk-apigateway-resource:
+        isPublic: true
+        allowApplyPermission: true
+        matchSubpath: false
+        backend:
+          type: HTTP
+          method: post
+          path: /apis/conf/ip_whitelist/iplist/
+          matchSubpath: false
+          timeout: 0
+          upstreams: {}
+          transformHeaders: {}
+        authConfig:
+          userVerifiedRequired: false
+        disabledStages: []
+        descriptionEn:
+  /conf/system_settings/environ/:
+    get:
+      operationId: query_environ
+      description: 查询DBM平台相关环境变量
+      tags:
+      - environ
+      responses:
+        default:
+          description: ''
+      x-bk-apigateway-resource:
+        isPublic: true
+        allowApplyPermission: true
+        matchSubpath: false
+        backend:
+          type: HTTP
+          method: get
+          path: /apis/conf/system_settings/environ/
+          matchSubpath: false
+          timeout: 0
+          upstreams: {}
+          transformHeaders: {}
+        authConfig:
+          userVerifiedRequired: false
+        disabledStages: []
+        descriptionEn:
+  /ipchooser/topo/query_host_topo_infos/:
+    post:
+      operationId: query_host_topo_infos
+      description: 查询主机拓普信息
+      tags:
+      - ipchooser
+      responses:
+        default:
+          description: ''
+      x-bk-apigateway-resource:
+        isPublic: true
+        allowApplyPermission: true
+        matchSubpath: false
+        backend:
+          type: HTTP
+          method: post
+          path: /apis/ipchooser/topo/query_host_topo_infos/
+          matchSubpath: false
+          timeout: 0
+          upstreams: {}
+          transformHeaders: {}
+        authConfig:
+          userVerifiedRequired: false
+        disabledStages: []
+        descriptionEn:
   /mysql/bizs/{bk_biz_id}/cluster/query_clusters/:
     post:
       operationId: query_clusters
       description: ''
       tags:
-      - Spider
-      - Cluster
+      - cluster
       responses:
         default:
           description: ''
@@ -33,12 +132,137 @@ paths:
           userVerifiedRequired: false
         disabledStages: []
         descriptionEn:
+  /mysql/bizs/{bk_biz_id}/openarea/:
+    get:
+      operationId: list_openarea_template
+      description: 开区模板列表
+      tags:
+      - openarea
+      responses:
+        default:
+          description: ''
+      x-bk-apigateway-resource:
+        isPublic: true
+        allowApplyPermission: true
+        matchSubpath: false
+        backend:
+          type: HTTP
+          method: get
+          path: /apis/mysql/bizs/{bk_biz_id}/openarea/
+          matchSubpath: false
+          timeout: 0
+          upstreams: {}
+          transformHeaders: {}
+        authConfig:
+          userVerifiedRequired: false
+        disabledStages: []
+        descriptionEn:
+  /mysql/bizs/{bk_biz_id}/openarea/preview/:
+    post:
+      operationId: openarea_preview
+      description: 创建开区预览
+      tags:
+      - openarea
+      responses:
+        default:
+          description: ''
+      x-bk-apigateway-resource:
+        isPublic: true
+        allowApplyPermission: true
+        matchSubpath: false
+        backend:
+          type: HTTP
+          method: post
+          path: /apis/mysql/bizs/{bk_biz_id}/openarea/preview/
+          matchSubpath: false
+          timeout: 0
+          upstreams: {}
+          transformHeaders: {}
+        authConfig:
+          userVerifiedRequired: false
+        disabledStages: []
+        descriptionEn:
+  /mysql/bizs/{bk_biz_id}/permission/account/list_account_rules/:
+    get:
+      operationId: list_account_rules
+      description: 列出账号的规则
+      tags:
+      - permission
+      responses:
+        default:
+          description: ''
+      x-bk-apigateway-resource:
+        isPublic: true
+        allowApplyPermission: true
+        matchSubpath: false
+        backend:
+          type: HTTP
+          method: get
+          path: /apis/mysql/bizs/{bk_biz_id}/permission/account/list_account_rules/
+          matchSubpath: false
+          timeout: 0
+          upstreams: {}
+          transformHeaders: {}
+        authConfig:
+          userVerifiedRequired: false
+        disabledStages: []
+        descriptionEn:
+  /mysql/bizs/{bk_biz_id}/permission/authorize/pre_check_rules/:
+    post:
+      operationId: authorize_pre_check
+      description: 权限前置检查
+      tags:
+      - permission
+      responses:
+        default:
+          description: ''
+      x-bk-apigateway-resource:
+        isPublic: true
+        allowApplyPermission: true
+        matchSubpath: false
+        backend:
+          type: HTTP
+          method: post
+          path: /apis/mysql/bizs/{bk_biz_id}/permission/authorize/pre_check_rules/
+          matchSubpath: false
+          timeout: 0
+          upstreams: {}
+          transformHeaders: {}
+        authConfig:
+          userVerifiedRequired: false
+        disabledStages: []
+        descriptionEn:
+  /mysql/bizs/{bk_biz_id}/remote_service/show_cluster_databases/:
+    post:
+      operationId: show_cluster_database
+      description: 查询集群的数据库
+      tags:
+      - cluster
+      responses:
+        default:
+          description: ''
+      x-bk-apigateway-resource:
+        isPublic: true
+        allowApplyPermission: true
+        matchSubpath: false
+        backend:
+          type: HTTP
+          method: post
+          path: /apis/mysql/bizs/{bk_biz_id}/remote_service/show_cluster_databases/
+          matchSubpath: false
+          timeout: 0
+          upstreams: {}
+          transformHeaders: {}
+        authConfig:
+          userVerifiedRequired: false
+        disabledStages: []
+        descriptionEn:
   /mysql/bizs/{bk_biz_id}/spider_resources/:
     get:
       operationId: list_spider_resource
       description: 查询spider集群列表
       tags:
-      - Spider
+      - cluster
       responses:
         default:
           description: ''
@@ -55,7 +279,207 @@ paths:
           upstreams: {}
           transformHeaders: {}
         authConfig:
-          userVerifiedRequired: true
+          userVerifiedRequired: false
+        disabledStages: []
+        descriptionEn:
+  /mysql/bizs/{bk_biz_id}/spider_resources/{cluster_id}/:
+    get:
+      operationId: retrieve_spider_cluster
+      description: 查询spider集群详情
+      tags:
+      - cluster
+      responses:
+        default:
+          description: ''
+      x-bk-apigateway-resource:
+        isPublic: true
+        allowApplyPermission: true
+        matchSubpath: false
+        backend:
+          type: HTTP
+          method: get
+          path: /apis/mysql/bizs/{bk_biz_id}/spider_resources/{cluster_id}/
+          matchSubpath: false
+          timeout: 0
+          upstreams: {}
+          transformHeaders: {}
+        authConfig:
+          userVerifiedRequired: false
+        disabledStages: []
+        descriptionEn:
+  /mysql/bizs/{bk_biz_id}/sql_import/deploy_user_config/:
+    post:
+      operationId: deploy_user_config
+      description: SQL导入用户配置
+      tags:
+      - sql变更
+      responses:
+        default:
+          description: ''
+      x-bk-apigateway-resource:
+        isPublic: true
+        allowApplyPermission: true
+        matchSubpath: false
+        backend:
+          type: HTTP
+          method: post
+          path: /apis/mysql/bizs/{bk_biz_id}/sql_import/deploy_user_config/
+          matchSubpath: false
+          timeout: 0
+          upstreams: {}
+          transformHeaders: {}
+        authConfig:
+          userVerifiedRequired: false
+        disabledStages: []
+        descriptionEn:
+  /mysql/bizs/{bk_biz_id}/sql_import/grammar_check/:
+    post:
+      operationId: grammar_check
+      description: grammar_check
+      tags:
+      - sql变更
+      responses:
+        default:
+          description: ''
+      x-bk-apigateway-resource:
+        isPublic: true
+        allowApplyPermission: true
+        matchSubpath: false
+        backend:
+          type: HTTP
+          method: post
+          path: /apis/mysql/bizs/{bk_biz_id}/sql_import/grammar_check/
+          matchSubpath: false
+          timeout: 0
+          upstreams: {}
+          transformHeaders: {}
+        authConfig:
+          userVerifiedRequired: false
+        disabledStages: []
+        descriptionEn:
+  /mysql/bizs/{bk_biz_id}/sql_import/semantic_check/:
+    post:
+      operationId: semantic_check
+      description: 模拟执行
+      tags:
+      - sql变更
+      responses:
+        default:
+          description: ''
+      x-bk-apigateway-resource:
+        isPublic: true
+        allowApplyPermission: true
+        matchSubpath: false
+        backend:
+          type: HTTP
+          method: post
+          path: /apis/mysql/bizs/{bk_biz_id}/sql_import/semantic_check/
+          matchSubpath: false
+          timeout: 0
+          upstreams: {}
+          transformHeaders: {}
+        authConfig:
+          userVerifiedRequired: false
+        disabledStages: []
+        descriptionEn:
+  /plugin/mysql/authorize/authorize_apply/:
+    post:
+      operationId: authorize_apply
+      description: 第三方权限申请(兼容GCS)
+      tags:
+      - authorize
+      responses:
+        default:
+          description: ''
+      x-bk-apigateway-resource:
+        isPublic: true
+        allowApplyPermission: true
+        matchSubpath: false
+        backend:
+          type: HTTP
+          method: post
+          path: /apis/plugin/mysql/authorize/authorize_apply/
+          matchSubpath: false
+          timeout: 0
+          upstreams: {}
+          transformHeaders: {}
+        authConfig:
+          userVerifiedRequired: false
+        disabledStages: []
+        descriptionEn:
+  /plugin/mysql/authorize/query_authorize_apply_result/:
+    get:
+      operationId: query_authorize_apply_result
+      description: 轮询权限申请的结果
+      tags:
+      - authorize
+      responses:
+        default:
+          description: ''
+      x-bk-apigateway-resource:
+        isPublic: true
+        allowApplyPermission: true
+        matchSubpath: false
+        backend:
+          type: HTTP
+          method: get
+          path: /apis/plugin/mysql/authorize/query_authorize_apply_result/
+          matchSubpath: false
+          timeout: 0
+          upstreams: {}
+          transformHeaders: {}
+        authConfig:
+          userVerifiedRequired: false
+        disabledStages: []
+        descriptionEn:
+  /redis/bizs/{bk_biz_id}/redis_resources/:
+    get:
+      operationId: redis_resources
+      description: 查询所有redis集群
+      tags:
+      - redis
+      responses:
+        default:
+          description: ''
+      x-bk-apigateway-resource:
+        isPublic: true
+        allowApplyPermission: true
+        matchSubpath: false
+        backend:
+          type: HTTP
+          method: get
+          path: /apis/redis/bizs/{bk_biz_id}/redis_resources/
+          matchSubpath: false
+          timeout: 0
+          upstreams: {}
+          transformHeaders: {}
+        authConfig:
+          userVerifiedRequired: false
+        disabledStages: []
+        descriptionEn:
+  /taskflow/{root_id}/:
+    get:
+      operationId: retrieve_taskflow
+      description: retrieve_taskflow
+      tags:
+      - ticket
+      responses:
+        default:
+          description: ''
+      x-bk-apigateway-resource:
+        isPublic: true
+        allowApplyPermission: true
+        matchSubpath: false
+        backend:
+          type: HTTP
+          method: get
+          path: /apis/taskflow/{root_id}/
+          matchSubpath: false
+          timeout: 0
+          upstreams: {}
+          transformHeaders: {}
+        authConfig:
+          userVerifiedRequired: false
         disabledStages: []
         descriptionEn:
   /tickets/:
@@ -63,7 +487,7 @@ paths:
       operationId: create_ticket
       description: 创建单据
       tags:
-      - Ticket
+      - ticket
       responses:
         default:
           description: ''
@@ -75,6 +499,56 @@ paths:
           type: HTTP
           method: post
           path: /apis/tickets/
+          matchSubpath: false
+          timeout: 0
+          upstreams: {}
+          transformHeaders: {}
+        authConfig:
+          userVerifiedRequired: false
+        disabledStages: []
+        descriptionEn:
+  /tickets/{id}/:
+    get:
+      operationId: retrieve_ticket
+      description: 查询单据详情
+      tags:
+      - ticket
+      responses:
+        default:
+          description: ''
+      x-bk-apigateway-resource:
+        isPublic: true
+        allowApplyPermission: true
+        matchSubpath: false
+        backend:
+          type: HTTP
+          method: get
+          path: /apis/tickets/{id}/
+          matchSubpath: false
+          timeout: 0
+          upstreams: {}
+          transformHeaders: {}
+        authConfig:
+          userVerifiedRequired: false
+        disabledStages: []
+        descriptionEn:
+  /tickets/{id}/flows/:
+    get:
+      operationId: list_ticket_flow
+      description: 查询单据的flow状态
+      tags:
+      - ticket
+      responses:
+        default:
+          description: ''
+      x-bk-apigateway-resource:
+        isPublic: true
+        allowApplyPermission: true
+        matchSubpath: false
+        backend:
+          type: HTTP
+          method: get
+          path: /apis/tickets/{id}/flows/
           matchSubpath: false
           timeout: 0
           upstreams: {}
