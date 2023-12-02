@@ -11,7 +11,6 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import ugettext as _
 from pipeline.component_framework.component import Component
 
-import backend.flow.utils.mysql.mysql_context_dataclass as flow_context
 from backend.flow.consts import ROLLBACK_DB_TAIL, STAGE_DB_HEADER, SYSTEM_DBS
 from backend.flow.plugins.components.collections.common.base_service import BaseService
 from backend.flow.utils.mysql.db_table_filter import DbTableFilter

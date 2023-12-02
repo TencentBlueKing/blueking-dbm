@@ -13,7 +13,6 @@ from typing import Dict, List
 
 from django.utils.translation import ugettext as _
 
-from backend import env
 from backend.components import CCApi
 from backend.db_services.ipchooser.constants import DB_MANAGE_SET
 from backend.flow.consts import CloudServiceModuleName

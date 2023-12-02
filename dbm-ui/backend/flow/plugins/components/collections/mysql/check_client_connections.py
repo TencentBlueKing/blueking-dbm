@@ -7,10 +7,8 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from django.utils.translation import ugettext_lazy as _
 from pipeline.component_framework.component import Component
 
-from backend.flow.engine.bamboo.scene.spider.common.exceptions import NormalSpiderFlowException
 from backend.flow.plugins.components.collections.common.base_service import BaseService
 from backend.flow.utils.mysql.check_client_connections import check_client_connection
 

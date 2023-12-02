@@ -18,7 +18,6 @@ from django.utils.translation import ugettext as _
 from backend.configuration.constants import DBType
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
-from backend.flow.engine.bamboo.scene.spider.common.exceptions import TendbGetClusterInfoFailedException
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
 from backend.flow.utils.mysql.common.mysql_cluster_info import get_cluster_info

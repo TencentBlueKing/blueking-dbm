@@ -27,14 +27,14 @@ def init_db_meta(sender, **kwargs):
     try:
         logical_city = LogicalCity.objects.create(name="default")
         BKCity.objects.create(bk_idc_city_name="default", logical_city=logical_city)
-    except IntegrityError:
-        logger.warning("city already init")
+    except Exception as err:  # pylint: disable=broad-except:
+        logger.warning(f"City init occur error: {err}, maybe already init, ignore...")
 
     # 初始化规格配置
     try:
         Spec.init_spec()
-    except (IntegrityError, Exception):
-        logger.warning("spec init occur error, maybe already init...")
+    except (IntegrityError, Exception) as err:  # pylint: disable=broad-except:
+        logger.warning(f"Spec init occur error: {err}, maybe already init, ignore...")
 
 
 class DBMeta(AppConfig):
