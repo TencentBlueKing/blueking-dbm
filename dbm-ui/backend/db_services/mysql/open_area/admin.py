@@ -15,6 +15,6 @@ from . import models
 
 @admin.register(models.TendbOpenAreaConfig)
 class TendbOpenAreaConfigAdmin(admin.ModelAdmin):
-    list_display = ("bk_biz_id", "config_name", "updater", "update_at")
-    list_filter = ("bk_biz_id", "config_name")
+    list_display = ("bk_biz_id", "config_name", "updater", "cluster_type")
+    list_filter = ("bk_biz_id", "config_name", "cluster_type")
     search_fields = ("bk_biz_id", "config_name")
