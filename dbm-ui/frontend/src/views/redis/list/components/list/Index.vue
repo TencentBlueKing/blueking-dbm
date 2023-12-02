@@ -67,26 +67,31 @@
         @change="handleFilter" />
     </div>
     <div
-      v-bkloading="{ loading: state.isLoading, zIndex: 2 }"
-      class="table-wrapper"
-      :class="{'is-shrink-table': isStretchLayoutOpen}">
-      <DbOriginalTable
-        class="redis-cluster-list-page__table"
-        :columns="columns"
-        :data="state.data"
-        :is-anomalies="state.isAnomalies"
-        :is-row-select-enable="setRowSelectable"
-        :is-searching="state.searchValues.length > 0"
-        :pagination="renderPagination"
-        remote-pagination
-        :row-class="setRowClass"
-        :settings="settings"
-        @clear-search="handleClearSearch"
-        @page-limit-change="handeChangeLimit"
-        @page-value-change="handleChangePage"
-        @refresh="fetchResources"
-        @selection-change="handleTableSelected"
-        @setting-change="updateTableSettings" />
+      ref="tableOutWrapperRef"
+      class="table-wrapper-out">
+      <div
+        v-bkloading="{ loading: state.isLoading, zIndex: 2 }"
+        class="table-wrapper"
+        :class="{'is-shrink-table': isStretchLayoutOpen}">
+        <DbOriginalTable
+          class="redis-cluster-list-page__table"
+          :columns="columns"
+          :data="state.data"
+          :is-anomalies="state.isAnomalies"
+          :is-row-select-enable="setRowSelectable"
+          :is-searching="state.searchValues.length > 0"
+          :max-height="tableMaxHeight"
+          :pagination="renderPagination"
+          remote-pagination
+          :row-class="setRowClass"
+          :settings="settings"
+          @clear-search="handleClearSearch"
+          @page-limit-change="handeChangeLimit"
+          @page-value-change="handleChangePage"
+          @refresh="fetchResources"
+          @selection-change="handleTableSelected"
+          @setting-change="updateTableSettings" />
+      </div>
     </div>
   </div>
   <!-- 查看密码 -->
@@ -206,6 +211,8 @@
 
   const isShowDropdown = ref(false);
   const showEditEntryConfig = ref(false);
+  const tableOutWrapperRef = ref();
+  const tableMaxHeight = ref<'auto' | number>('auto');
 
   const state = reactive<RedisState>({
     isInit: true,
@@ -791,6 +798,7 @@
   }, 5000);
   onMounted(() => {
     resume();
+    tableMaxHeight.value = tableOutWrapperRef.value.clientHeight;
   });
   onBeforeUnmount(() => {
     pause();
@@ -1120,62 +1128,68 @@
 </script>
 
 <style lang="less" scoped>
-  @import "@styles/mixins.less";
+@import "@styles/mixins.less";
 
-  .redis-cluster-list-page {
-    height: 100%;
-    padding: 24px 0;
-    margin: 0 24px;
-    overflow: hidden;
+.redis-cluster-list-page {
+  display: flex;
+  height: 100%;
+  padding: 24px 0;
+  margin: 0 24px;
+  overflow: hidden;
+  flex-direction: column;
 
-    :deep(.cell) {
-      line-height: normal !important;
+  :deep(.cell) {
+    line-height: normal !important;
 
-      .domain {
-        display: flex;
-        align-items: center;
-      }
-
-      .db-icon-copy, .db-icon-edit {
-        display: none;
-        margin-left: 4px;
-        color: @primary-color;
-        cursor: pointer;
-      }
-    }
-
-    :deep(tr:hover) {
-      .db-icon-copy, .db-icon-edit {
-        display: inline-block !important;
-      }
-    }
-
-    .operation-box{
+    .domain {
       display: flex;
-      flex-wrap: wrap;
-
-      .bk-search-select {
-        flex: 1;
-        max-width: 320px;
-        min-width: 320px;
-        margin-left: auto;
-      }
+      align-items: center;
     }
 
-    .cluster-dropdown {
-      margin-right: auto;
-
-      .cluster-dropdown-icon {
-        color: @gray-color;
-        transform: rotate(0);
-        transition: all 0.2s;
-
-      }
-
-      .cluster-dropdown-icon-active {
-        transform: rotate(-90deg);
-      }
+    .db-icon-copy, .db-icon-edit {
+      display: none;
+      margin-left: 4px;
+      color: @primary-color;
+      cursor: pointer;
     }
+  }
+
+  :deep(tr:hover) {
+    .db-icon-copy, .db-icon-edit {
+      display: inline-block !important;
+    }
+  }
+
+  .operation-box{
+    display: flex;
+    flex-wrap: wrap;
+
+    .bk-search-select {
+      flex: 1;
+      max-width: 320px;
+      min-width: 320px;
+      margin-left: auto;
+    }
+  }
+
+  .cluster-dropdown {
+    margin-right: auto;
+
+    .cluster-dropdown-icon {
+      color: @gray-color;
+      transform: rotate(0);
+      transition: all 0.2s;
+
+    }
+
+    .cluster-dropdown-icon-active {
+      transform: rotate(-90deg);
+    }
+  }
+
+  .table-wrapper-out {
+    flex: 1;
+    overflow: hidden;
 
     .table-wrapper {
       background-color: white;
@@ -1188,114 +1202,116 @@
         max-height: calc(100% - 100px);
       }
     }
+  }
 
-    .is-shrink-table {
-      :deep(.bk-table-body) {
-        overflow: hidden auto;
+
+  .is-shrink-table {
+    :deep(.bk-table-body) {
+      overflow: hidden auto;
+    }
+  }
+
+  &__table {
+    :deep(.cell) {
+      line-height: unset !important;
+
+      .db-icon-copy {
+        display: none;
+        margin-left: 4px;
+        color: @primary-color;
+        cursor: pointer;
       }
     }
 
-    &__table {
-      :deep(.cell) {
-        line-height: unset !important;
+    :deep(.cluster-name-container) {
+      display: flex;
+      align-items: flex-start;
+      padding: 8px 0;
+      overflow: hidden;
 
-        .db-icon-copy {
-          display: none;
-          margin-left: 4px;
-          color: @primary-color;
-          cursor: pointer;
+      .cluster-name {
+        line-height: 16px;
+
+        &__alias {
+          color: @light-gray;
         }
       }
 
-      :deep(.cluster-name-container) {
+      .cluster-tags {
         display: flex;
-        align-items: flex-start;
-        padding: 8px 0;
-        overflow: hidden;
+        align-items: center;
+        flex-wrap: wrap;
+        margin-left: 4px;
+      }
 
+      .cluster-tag {
+        flex-shrink: 0;
+        margin: 2px;
+      }
+    }
+
+    :deep(.ip-list) {
+      padding: 8px 0;
+
+      &__more {
+        display: inline-block;
+        margin-top: 2px;
+      }
+
+      .db-icon-copy {
+        display: none;
+        margin-top: 1px;
+        margin-left: 8px;
+        color: @primary-color;
+        vertical-align: text-top;
+        cursor: pointer;
+      }
+    }
+
+    :deep(.operations) {
+      .bk-button {
+        margin-right: 8px;
+      }
+
+      &__more {
+        .db-icon-more {
+          font-size: 16px;
+          color: @default-color;
+          cursor: pointer;
+
+          &:hover {
+            background-color: @bg-disable;
+            border-radius: 2px;
+          }
+        }
+      }
+    }
+
+    :deep(tr:hover) {
+      .db-icon-copy {
+        display: inline-block;
+      }
+    }
+
+    :deep(.is-offline) {
+      .cluster-name-container {
         .cluster-name {
-          line-height: 16px;
+          a {
+            color: @gray-color;
+          }
 
           &__alias {
-            color: @light-gray;
-          }
-        }
-
-        .cluster-tags {
-          display: flex;
-          align-items: center;
-          flex-wrap: wrap;
-          margin-left: 4px;
-        }
-
-        .cluster-tag {
-          flex-shrink: 0;
-          margin: 2px;
-        }
-      }
-
-      :deep(.ip-list) {
-        padding: 8px 0;
-
-        &__more {
-          display: inline-block;
-          margin-top: 2px;
-        }
-
-        .db-icon-copy {
-          display: none;
-          margin-top: 1px;
-          margin-left: 8px;
-          color: @primary-color;
-          vertical-align: text-top;
-          cursor: pointer;
-        }
-      }
-
-      :deep(.operations) {
-        .bk-button {
-          margin-right: 8px;
-        }
-
-        &__more {
-          .db-icon-more {
-            font-size: 16px;
-            color: @default-color;
-            cursor: pointer;
-
-            &:hover {
-              background-color: @bg-disable;
-              border-radius: 2px;
-            }
+            color: @disable-color;
           }
         }
       }
 
-      :deep(tr:hover) {
-        .db-icon-copy {
-          display: inline-block;
-        }
-      }
-
-      :deep(.is-offline) {
-        .cluster-name-container {
-          .cluster-name {
-            a {
-              color: @gray-color;
-            }
-
-            &__alias {
-              color: @disable-color;
-            }
-          }
-        }
-
-        .cell {
-          color: @disable-color;
-        }
+      .cell {
+        color: @disable-color;
       }
     }
   }
+}
 </style>
 
 <style lang="less">
