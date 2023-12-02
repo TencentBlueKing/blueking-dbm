@@ -55,6 +55,7 @@ bk:
   bkApigwStageName: "prod"
   bkApigwGrantApps: []
   bkApigwResourceDocsArchiveFile: ""
+  bkApigatewayDomain: ""
 
 # bk-dbm values
 dbm:

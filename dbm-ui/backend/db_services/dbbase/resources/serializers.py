@@ -17,6 +17,7 @@ from backend.db_services.dbbase.constants import IP_PORT_DIVIDER
 
 
 class ListResourceSLZ(serializers.Serializer):
+    id = serializers.IntegerField(required=False)
     name = serializers.CharField(required=False)
     ip = serializers.CharField(required=False)
     domain = serializers.CharField(required=False)
