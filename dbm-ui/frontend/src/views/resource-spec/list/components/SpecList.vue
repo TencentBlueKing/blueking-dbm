@@ -18,11 +18,11 @@
         class="w-88 mr-8"
         theme="primary"
         @click="handleShowCreate">
-        {{ $t('新建') }}
+        {{ t('新建') }}
       </BkButton>
       <span
         v-bk-tooltips="{
-          content: $t('请选择xx', [$t('规格')]),
+          content: t('请选择xx', [t('规格')]),
           disabled: hasSelected
         }"
         class="delete-button">
@@ -30,13 +30,13 @@
           class="w-88 mr-8"
           :disabled="!hasSelected"
           @click="handleBacthDelete">
-          {{ $t('删除') }}
+          {{ t('删除') }}
         </BkButton>
       </span>
       <BkInput
         v-model="searchKey"
         clearable
-        :placeholder="$t('请输入xx', [$t('规格名称')])"
+        :placeholder="t('请输入xx', [t('规格名称')])"
         style="width: 500px;"
         type="search"
         @enter="fetchData()" />
@@ -60,13 +60,13 @@
     :width="960">
     <template #header>
       <template v-if="specOperationState.type === 'edit'">
-        <span>{{ $t('编辑规格') }} 【{{ specOperationState.data?.spec_name }}】</span>
+        <span>{{ t('编辑规格') }} 【{{ specOperationState.data?.spec_name }}】</span>
       </template>
       <template v-else-if="specOperationState.type === 'clone'">
-        <span>{{ $t('克隆规格') }} 【{{ specOperationState.data?.spec_name }}】</span>
+        <span>{{ t('克隆规格') }} 【{{ specOperationState.data?.spec_name }}】</span>
       </template>
       <template v-else>
-        {{ $t('新增规格') }}
+        {{ t('新增规格') }}
       </template>
       <BkTag theme="info">
         {{ clusterTypeLabel }}
@@ -78,6 +78,7 @@
       :has-instance="hasInstance"
       :is-edit="isSpecOperationEdit && !!specOperationState.data?.is_refer"
       :machine-type="machineType"
+      :machine-type-label="machineTypeLabel"
       :mode="specOperationState.type"
       @cancel="handleCloseSpecOperation"
       @successed="handleSubmitSuccessed" />

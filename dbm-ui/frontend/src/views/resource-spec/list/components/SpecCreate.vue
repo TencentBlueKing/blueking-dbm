@@ -21,20 +21,20 @@
       :model="formdata">
       <BkFormItem
         ref="nameInputRef"
-        :label="$t('规格名称')"
+        :label="t('规格名称')"
         property="spec_name"
         required
         :rules="nameRules">
         <BkInput
           v-model="formdata.spec_name"
           :maxlength="128"
-          :placeholder="$t('请输入')"
+          :placeholder="t('请输入')"
           show-word-limit
           @input="handleInputName" />
       </BkFormItem>
       <div class="machine-item">
         <div class="machine-item-label">
-          {{ $t('后端存储机型') }}
+          {{ machineTypeLabel }}
         </div>
         <div class="machine-item-content">
           <SpecCPU
@@ -55,7 +55,7 @@
       </div>
       <BkFormItem
         v-if="hasInstance"
-        :label="$t('每台主机实例数量')"
+        :label="t('每台主机实例数量')"
         property="instance_num"
         required>
         <BkInput
@@ -67,11 +67,11 @@
         v-if="hasQPS && formdata.qps"
         v-model="formdata.qps"
         :is-edit="isEdit" />
-      <BkFormItem :label="$t('描述')">
+      <BkFormItem :label="t('描述')">
         <BkInput
           v-model="formdata.desc"
           :maxlength="100"
-          :placeholder="$t('请输入xx', [$t('描述')])"
+          :placeholder="t('请输入xx', [t('描述')])"
           show-word-limit
           type="textarea" />
       </BkFormItem>
@@ -82,7 +82,7 @@
     class="spec-create-footer">
     <span
       v-bk-tooltips="{
-        content: $t('请编辑配置'),
+        content: t('请编辑配置'),
         disabled: isChange
       }"
       class="inline-block">
@@ -92,14 +92,14 @@
         :loading="isLoading"
         theme="primary"
         @click="submit">
-        {{ $t('提交') }}
+        {{ t('提交') }}
       </BkButton>
     </span>
     <BkButton
       class="w-88"
       :loading="isLoading"
       @click="cancel">
-      {{ $t('取消') }}
+      {{ t('取消') }}
     </BkButton>
   </div>
 </template>
@@ -135,6 +135,7 @@
   interface Props {
     clusterType: string,
     machineType: string,
+    machineTypeLabel: string,
     mode: string,
     isEdit: boolean,
     hasInstance: boolean,
