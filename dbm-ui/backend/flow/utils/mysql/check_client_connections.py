@@ -7,11 +7,9 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from django.utils.translation import ugettext_lazy as _
 
-from backend.components import DBConfigApi, DRSApi
-from backend.components.dbconfig.constants import FormatType, LevelName
-from backend.flow.consts import MYSQL_SYS_USER, ConfigTypeEnum, NameSpaceEnum, UserName
+from backend.components import DRSApi
+from backend.flow.consts import MYSQL_SYS_USER, UserName
 from backend.flow.utils.mysql.get_mysql_sys_user import get_mysql_sys_users
 
 

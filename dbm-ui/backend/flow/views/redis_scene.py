@@ -13,7 +13,6 @@ import uuid
 
 from rest_framework.response import Response
 
-from backend.db_meta.enums import ClusterType
 from backend.flow.engine.controller.redis import RedisController
 from backend.flow.views.base import FlowTestView
 

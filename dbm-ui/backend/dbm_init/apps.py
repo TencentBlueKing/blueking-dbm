@@ -24,7 +24,7 @@ def init_config(sender, **kwargs):
 
         Services.init_custom_metric_and_event()
     except Exception as e:  # pylint: disable=broad-except
-        logger.error(_("初始化配置异常，错误信息:{}").format(e))
+        logger.warning(_("初始化配置异常，错误信息:{}").format(e))
 
 
 class DbmInitConfig(AppConfig):

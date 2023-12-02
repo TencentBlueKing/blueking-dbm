@@ -13,7 +13,7 @@ import logging.config
 from collections import defaultdict
 from copy import deepcopy
 from dataclasses import asdict
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 from django.utils.translation import ugettext as _
 
@@ -35,10 +35,9 @@ from backend.flow.engine.bamboo.scene.redis.atom_jobs import (
     RedisClusterSlaveReplaceJob,
 )
 from backend.flow.plugins.components.collections.common.pause import PauseComponent
-from backend.flow.plugins.components.collections.redis.dns_manage import RedisDnsManageComponent
 from backend.flow.plugins.components.collections.redis.get_redis_payload import GetRedisActPayloadComponent
 from backend.flow.plugins.components.collections.redis.redis_db_meta import RedisDBMetaComponent
-from backend.flow.utils.redis.redis_context_dataclass import ActKwargs, CommonContext, DnsKwargs
+from backend.flow.utils.redis.redis_context_dataclass import ActKwargs, CommonContext
 from backend.flow.utils.redis.redis_db_meta import RedisDBMeta
 
 logger = logging.getLogger("flow")

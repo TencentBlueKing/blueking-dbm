@@ -11,11 +11,8 @@ import logging
 
 from backend.components import DBConfigApi
 from backend.components.dbconfig.constants import FormatType, LevelName
-from backend.db_meta.enums import ClusterType, InstanceRole
-from backend.db_meta.models import Cluster
 from backend.db_package.models import Package
 from backend.flow.consts import ConfigTypeEnum, DBActuatorActionEnum, DBActuatorTypeEnum, MediumEnum, NameSpaceEnum
-from backend.flow.engine.bamboo.scene.common.get_real_version import get_mysql_real_version
 
 logger = logging.getLogger("flow")
 

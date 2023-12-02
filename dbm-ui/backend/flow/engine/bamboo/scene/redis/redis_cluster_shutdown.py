@@ -17,7 +17,6 @@ from django.utils.translation import ugettext as _
 
 from backend.configuration.constants import DBType
 from backend.db_meta.enums import InstanceRole
-from backend.db_meta.enums.cluster_type import ClusterType
 from backend.db_meta.models import AppCache, Cluster
 from backend.flow.consts import (
     DEFAULT_MONITOR_TIME,
@@ -32,7 +31,6 @@ from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.redis.atom_jobs import AccessManagerAtomJob
 from backend.flow.plugins.components.collections.redis.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.redis.get_redis_payload import GetRedisActPayloadComponent
-from backend.flow.plugins.components.collections.redis.redis_config import RedisConfigComponent
 from backend.flow.plugins.components.collections.redis.redis_db_meta import RedisDBMetaComponent
 from backend.flow.plugins.components.collections.redis.trans_flies import TransFileComponent
 from backend.flow.utils.redis.redis_act_playload import RedisActPayload
