@@ -12,20 +12,18 @@ import logging.config
 from collections import defaultdict
 from copy import deepcopy
 from dataclasses import asdict
-from typing import Any, Dict, List, Optional
+from typing import Dict, Optional
 
 from django.utils.translation import ugettext as _
 
-from backend.components import DBConfigApi
 from backend.configuration.constants import DBType
 from backend.constants import IP_PORT_DIVIDER
-from backend.db_meta import api
-from backend.db_meta.enums import ClusterType, InstanceRole, InstanceStatus
+from backend.db_meta.enums import InstanceRole, InstanceStatus
 from backend.db_meta.models import AppCache, Cluster, StorageInstance
 from backend.flow.consts import DEFAULT_LAST_IO_SECOND_AGO, DEFAULT_MASTER_DIFF_TIME, SyncType
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
-from backend.flow.engine.bamboo.scene.redis.atom_jobs import RedisBatchShutdownAtomJob, RedisClusterSwitchAtomJob
+from backend.flow.engine.bamboo.scene.redis.atom_jobs import RedisClusterSwitchAtomJob
 from backend.flow.plugins.components.collections.redis.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.redis.get_redis_payload import (
     GetRedisActPayloadComponent,

@@ -16,15 +16,13 @@ from django.utils.translation import ugettext as _
 from pipeline.eri.signals import post_set_state
 
 from backend.db_dirty.handlers import DBDirtyMachineHandler
-from backend.flow.consts import FAILED_STATES, StateType
+from backend.flow.consts import StateType
 from backend.flow.engine.bamboo.engine import BambooEngine
 from backend.flow.models import FlowNode, FlowTree
-from backend.ticket.builders import BuilderFactory
 from backend.ticket.constants import FlowCallbackType, FlowType, TicketFlowStatus
 from backend.ticket.flow_manager.inner import InnerFlow
 from backend.ticket.flow_manager.manager import TicketFlowManager
-from backend.ticket.models import Flow, Ticket
-from backend.utils.basic import get_target_items_from_details
+from backend.ticket.models import Ticket
 
 logger = logging.getLogger("flow")
 

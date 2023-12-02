@@ -27,7 +27,6 @@ from backend.flow.plugins.components.collections.mysql.mysql_download_backupfile
     MySQLDownloadBackupfileComponent,
 )
 from backend.flow.plugins.components.collections.mysql.mysql_rollback_data_download_binlog import (
-    MySQLRollbackDownloadBinlog,
     MySQLRollbackDownloadBinlogComponent,
 )
 from backend.flow.plugins.components.collections.mysql.rollback_local_trans_flies import (

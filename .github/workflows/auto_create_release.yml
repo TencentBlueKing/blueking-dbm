@@ -1,0 +1,84 @@
+name: Auto Create Release
+
+on:
+  push:
+    branches:
+      - "v[0-9]+.[0-9]+.[0-9]+"
+    paths:
+      - "helm-charts/bk-dbm/Chart.yaml"
+
+jobs:
+  build:
+    runs-on: ubuntu-20.04
+    steps:
+    - id: checkout
+      name: Checkout
+      uses: actions/checkout@v2
+
+    - name: Run read-yaml action
+      id: yaml-data
+      uses: jbutcher5/read-yaml@main
+      with:
+        file: 'helm-charts/bk-dbm/Chart.yaml'
+        key-path: '["version"]'
+
+    - id: create-temporary-tag
+      name: Create temporary tag
+      uses: actions/github-script@v6
+      with:
+        script: |
+          github.rest.git.createRef({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            ref: 'refs/tags/v${{ steps.yaml-data.outputs.data }}',
+            sha: context.sha
+          })
+
+    - id: build-release-log
+      name: Build release log
+      uses: mikepenz/release-changelog-builder-action@v3.5.0
+      with:
+        # 参考：https://github.com/mikepenz/release-changelog-builder-action
+        configuration: ".github/configuration.json"
+        commitMode: true
+        ignorePreReleases: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - id: delete-temporary-tag
+      name: Delete temporary tag
+      uses: actions/github-script@v6
+      with:
+        # 参考 https://octokit.github.io/rest.js/v18#git-delete-ref
+        # 参考 https://github.com/actions/github-script
+        script: |
+          github.rest.git.deleteRef({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            ref: 'tags/v${{ steps.yaml-data.outputs.data }}'
+          })
+
+    - id: create-tag
+      name: Create tag
+      uses: actions/github-script@v6
+      with:
+        script: |
+          // Create a lightweight tag
+          await github.rest.git.createRef({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            ref: 'refs/tags/${{ steps.yaml-data.outputs.data }}',
+            sha: context.sha
+          });
+
+    - id: create-release
+      name: Create release
+      uses: actions/create-release@latest
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ steps.yaml-data.outputs.data }}
+        release_name: ${{ steps.yaml-data.outputs.data }}
+        body: ${{ steps.build-release-log.outputs.changelog }}
+        draft: false
+        prerelease: true
