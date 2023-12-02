@@ -12,20 +12,26 @@ from django.db import models
 from django.utils.translation import ugettext_lazy as _
 
 from backend.bk_web.models import AuditedModel
-from backend.constants import DEFAULT_BK_CLOUD_ID
+from backend.db_meta.enums import ClusterType
 
 
 class TendbOpenAreaConfig(AuditedModel):
     """开区模板表"""
 
     bk_biz_id = models.IntegerField(help_text=_("业务ID"))
+    cluster_type = models.CharField(
+        max_length=128,
+        help_text=_("开区模板类型[支持tendbha/tendbcluster]"),
+        choices=ClusterType.get_choices(),
+        default=ClusterType.TenDBHA.value,
+    )
     config_name = models.CharField(max_length=256, help_text=_("开区模板名"))
     source_cluster_id = models.BigIntegerField(help_text=_("源集群ID"))
     config_rules = models.JSONField(help_text=_("模板克隆规则列表"))
     related_authorize = models.JSONField(help_text=_("关联的规则列表(目前用于级联规则的修改删除)"))
 
     class Meta:
-        # 不允许同个业务下出现同名模板配置
+        # 不允许同个业务出现同名模板配置
         unique_together = ("bk_biz_id", "config_name")
 
 

@@ -42,6 +42,14 @@ class _PartitionApi(object):
             description=_("删除分区配置"),
         )
 
+        self.cluster_del_conf = DataAPI(
+            method="POST",
+            base=PARTITION_APIGW_DOMAIN,
+            url="partition/cluster_del_conf",
+            module=self.MODULE,
+            description=_("cluster_del_conf"),
+        )
+
         self.update_conf = DataAPI(
             method="POST",
             base=PARTITION_APIGW_DOMAIN,

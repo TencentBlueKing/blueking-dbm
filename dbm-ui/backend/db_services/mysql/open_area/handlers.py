@@ -65,7 +65,6 @@ class OpenAreaHandler:
             )
 
         # 获取开区授权规则
-        cluster_type = clusters.first().cluster_type
         priv_ids = list(itertools.chain(*[rule["priv_data"] for rule in config.config_rules]))
         authorize_rules = MySQLPrivManagerApi.list_account_rules({"bk_biz_id": config.bk_biz_id, "ids": priv_ids})
         # 根据用户名和db将授权规则分批
@@ -83,7 +82,7 @@ class OpenAreaHandler:
                 "account_rules": [
                     {"bk_biz_id": config.bk_biz_id, "dbname": dbname} for dbname in user__dbs_rules[user]
                 ],
-                "cluster_type": cluster_type,
+                "cluster_type": config.cluster_type,
             }
             for data in config_data
             for user in user__dbs_rules.keys()
