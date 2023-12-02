@@ -26,7 +26,7 @@ from backend.core.encrypt.constants import AsymmetricCipherConfigType
 from backend.core.encrypt.handlers import AsymmetricHandler
 from backend.db_meta.enums import ClusterType, InstanceInnerRole, MachineType
 from backend.db_meta.exceptions import DBMetaException
-from backend.db_meta.models import Cluster, DBModule, Machine, ProxyInstance, StorageInstance, StorageInstanceTuple
+from backend.db_meta.models import Cluster, Machine, ProxyInstance, StorageInstance, StorageInstanceTuple
 from backend.db_package.models import Package
 from backend.db_proxy.models import DBCloudProxy
 from backend.db_services.mysql.sql_import.constants import BKREPO_SQLFILE_PATH
@@ -41,7 +41,6 @@ from backend.flow.consts import (
     DBActuatorTypeEnum,
     MediumEnum,
     MysqlChangeMasterType,
-    NameSpaceEnum,
     RollbackType,
 )
 from backend.flow.engine.bamboo.scene.common.get_real_version import get_mysql_real_version, get_spider_real_version

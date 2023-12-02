@@ -15,7 +15,7 @@ from collections import defaultdict
 from functools import reduce
 from typing import Any, Dict, List, Set
 
-from django.db.models import ExpressionWrapper, F, IntegerField, Prefetch, Q, Value
+from django.db.models import Prefetch, Q
 from django.db.models.query import QuerySet
 from django.forms import model_to_dict
 from django.utils.translation import ugettext_lazy as _
@@ -29,7 +29,7 @@ from backend.db_meta.enums import (
     TenDBClusterSpiderRole,
 )
 from backend.db_meta.exceptions import InstanceNotExistException
-from backend.db_meta.models import Cluster, DBModule, ProxyInstance, StorageInstance, TenDBClusterSpiderExt
+from backend.db_meta.models import Cluster, DBModule, ProxyInstance, StorageInstance
 from backend.db_meta.models.machine import Machine
 from backend.db_services.mysql.dataclass import ClusterFilter, DBInstance
 

@@ -10,12 +10,11 @@ specific language governing permissions and limitations under the License.
 """
 import logging.config
 from dataclasses import asdict
-from typing import Dict, List, Optional
+from typing import List
 
 from django.utils.translation import ugettext as _
 
 from backend.configuration.constants import DBType
-from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.api.cluster import nosqlcomm
 from backend.db_meta.enums import ClusterType
 from backend.flow.consts import SwitchType, SyncType

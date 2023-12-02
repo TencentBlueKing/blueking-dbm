@@ -12,11 +12,6 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
-from backend.db_meta.enums.cluster_type import ClusterType
-from backend.db_services.mysql.permission.authorize import mock_data
-from backend.db_services.mysql.permission.constants import AUTHORIZE_EXCEL_HEADER
-from backend.utils.excel import ExcelHandler
-
 
 class AuthorizeApplySerializer(serializers.Serializer):
     bk_biz_id = serializers.IntegerField(help_text=_("业务ID"), required=False)
