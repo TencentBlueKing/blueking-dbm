@@ -217,6 +217,8 @@ class PartitionHandler(object):
         # 2. 如果存在唯一键，则分区字段必须是所有唯一键的交集
         db_index_keys: Dict[str, Dict[str, Dict]] = defaultdict(lambda: defaultdict(lambda: defaultdict(list)))
         for inx in index_data:
+            # DRS有些字段为大写，有些字段为小写，这里统一转为小写
+            inx = {k.lower(): v for k, v in inx.items()}
             index_column_list = inx["column_list"].split(",")
             if inx["index_name"] == "PRIMARY":
                 db_index_keys[inx["table_schema"]][inx["table_name"]]["primary"].extend(index_column_list)
@@ -233,6 +235,7 @@ class PartitionHandler(object):
         # 对字段类型的要求：分区字段对应的原表字段类型相同
         db_fields: Dict[str, Dict[str, Dict]] = defaultdict(lambda: defaultdict(lambda: defaultdict(list)))
         for field in field_type_data:
+            field = {k.lower(): v for k, v in field.items()}
             db_fields[field["table_schema"]][field["table_name"]][field["column_name"]] = field["column_type"]
 
         for db, table_fields in db_fields.items():
