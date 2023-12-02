@@ -61,6 +61,9 @@ class ListRetrieveResource(query.ListRetrieveResource):
         cluster_query = copy.deepcopy(query_filters)
         storage_query = copy.deepcopy(query_filters)
 
+        if query_params.get("id"):
+            cluster_query &= Q(id=query_params["id"])
+
         if query_params.get("domain"):
             cluster_query &= Q(immute_domain__icontains=query_params["domain"])
 
