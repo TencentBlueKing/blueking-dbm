@@ -17,6 +17,7 @@ from django.utils.translation import ugettext as _
 from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.enums import ClusterEntryType, InstanceInnerRole
 from backend.db_meta.models import Cluster, ClusterEntry
+from backend.db_meta.models.extra_process import ExtraProcessInstance
 from backend.flow.consts import ACCOUNT_PREFIX, AUTH_ADDRESS_DIVIDER, InstanceStatus
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
 from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import check_sub_flow
@@ -24,6 +25,9 @@ from backend.flow.plugins.components.collections.mysql.add_user_for_cluster_swit
 from backend.flow.plugins.components.collections.mysql.clone_user import CloneUserComponent
 from backend.flow.plugins.components.collections.mysql.dns_manage import MySQLDnsManageComponent
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
+from backend.flow.plugins.components.collections.tbinlogdumper.link_tbinlogdumper_switch import (
+    LinkTBinlogDumperSwitchComponent,
+)
 from backend.flow.utils.mysql.mysql_act_dataclass import (
     AddSwitchUserKwargs,
     CreateDnsKwargs,
@@ -33,6 +37,7 @@ from backend.flow.utils.mysql.mysql_act_dataclass import (
 )
 from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
 from backend.flow.utils.mysql.mysql_context_dataclass import ClusterInfoContext
+from backend.flow.utils.tbinlogdumper.context_dataclass import LinkTBinlogDumperSwitchKwargs
 
 logger = logging.getLogger("flow")
 
@@ -208,6 +213,20 @@ def master_and_slave_switch(root_id: str, ticket_data: dict, cluster: Cluster, c
                     )
                 ),
             }
+        )
+
+    # 增加tbinlogdumper实例部署切换联动
+    if ExtraProcessInstance.objects.filter(cluster_id=cluster.id).exists():
+        cluster_switch_sub_pipeline.add_act(
+            act_name=_("联动TBinlogDumper切换单据"),
+            act_component_code=LinkTBinlogDumperSwitchComponent.code,
+            kwargs=asdict(
+                LinkTBinlogDumperSwitchKwargs(
+                    cluster_id=cluster.id,
+                    target_ip=cluster_info["new_master_ip"],
+                    get_binlog_info=ClusterInfoContext.get_sync_info_var_name(),
+                )
+            ),
         )
 
     cluster_switch_sub_pipeline.add_parallel_acts(acts_list=acts_list)

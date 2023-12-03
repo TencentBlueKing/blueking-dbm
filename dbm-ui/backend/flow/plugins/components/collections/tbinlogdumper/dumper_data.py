@@ -25,25 +25,15 @@ class TBinlogDumperFullSyncDataService(ExecuteDBActuatorScriptService):
     def _execute(self, data, parent_data):
 
         kwargs = data.get_one_of_inputs("kwargs")
-        global_data = data.get_one_of_inputs("global_data")
 
         backup_ip = kwargs["backup_ip"]
         backup_port = kwargs["backup_port"]
         backup_role = kwargs["backup_role"]
 
-        # 获取需要备份的库表信息，根据TBinlogdumper设置同步信息
-        dumper_conf = TBinlogDumperActPayload.get_tbinlogdumper_config(
-            module_id=kwargs["module_id"], bk_biz_id=global_data["bk_biz_id"]
-        )["mysqld"]
-
         # 拼装备份你库表正则表达式, 目前只考虑replicate_do_table 和 replicate_wild_do_table的 过滤同步场景
-        backup_regex = ""
-        if dumper_conf.get("replicate_do_table"):
-            backup_regex = dumper_conf["replicate_do_table"].replace(",", "|")
-        if dumper_conf.get("replicate_wild_do_table"):
-            tmp = dumper_conf["replicate_wild_do_table"].replace("%", "*")
-            backup_regex += "|"
-            backup_regex += tmp.replace(",", "|")
+        backup_regex = "|"
+        tmp = "|".join(kwargs["repl_tables"])
+        backup_regex += tmp.replace("%", "*")
 
         # 下发库表备份指令
         data.get_one_of_inputs("global_data")["port"] = backup_port

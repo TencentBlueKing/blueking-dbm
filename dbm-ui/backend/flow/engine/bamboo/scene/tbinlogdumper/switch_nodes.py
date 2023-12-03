@@ -15,10 +15,13 @@ from typing import Dict, Optional
 
 from django.utils.translation import ugettext as _
 
+from backend.core.encrypt.constants import AsymmetricCipherConfigType
+from backend.core.encrypt.handlers import AsymmetricHandler
 from backend.db_meta.enums import InstanceRole
 from backend.db_meta.enums.extra_process_type import ExtraProcessType
 from backend.db_meta.models import Cluster
 from backend.db_meta.models.extra_process import ExtraProcessInstance
+from backend.flow.consts import TBINLOGDUMPER_KAFKA_GLOBAL_CONF, TBinlogDumperProtocolType
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.tbinlogdumper.common.common_sub_flow import (
     add_tbinlogdumper_sub_flow,
@@ -84,13 +87,40 @@ class TBinlogDumperSwitchNodesFlow(object):
                 continue
 
             tmp = {
-                "module_id": binlogdumper.extra_config["module_id"],
+                "dumper_id": binlogdumper.extra_config["dumper_id"],
                 "area_name": binlogdumper.extra_config["area_name"],
                 "port": binlogdumper.listen_port,
                 "repl_binlog_file": instance["repl_binlog_file"],
                 "repl_binlog_pos": instance["repl_binlog_pos"],
                 "reduce_id": binlogdumper.id,
+                "repl_tables": binlogdumper.extra_config["repl_tables"],
+                "target_address": binlogdumper.extra_config["target_address"],
+                "target_port": binlogdumper.extra_config["target_port"],
+                "protocol_type": binlogdumper.extra_config["protocol_type"],
             }
+            if binlogdumper.extra_config["protocol_type"] == TBinlogDumperProtocolType.KAFKA.value:
+                tmp.update(
+                    {
+                        "kafka_user": AsymmetricHandler.decrypt(
+                            name=AsymmetricCipherConfigType.PASSWORD.value,
+                            content=binlogdumper.extra_config["kafka_user"],
+                        ),
+                        "kafka_pwd": AsymmetricHandler.decrypt(
+                            name=AsymmetricCipherConfigType.PASSWORD.value,
+                            content=binlogdumper.extra_config["kafka_pwd"],
+                        ),
+                    }
+                )
+            elif binlogdumper.extra_config["protocol_type"] == TBinlogDumperProtocolType.L5_AGENT.value:
+                tmp.update(
+                    {
+                        "l5_modid": binlogdumper.extra_config["l5_modid"],
+                        "l5_cmdid": binlogdumper.extra_config["l5_cmdid"],
+                    }
+                )
+            else:
+                pass
+
             real_switch_instances.append(tmp)
 
         return real_switch_instances
@@ -150,7 +180,8 @@ class TBinlogDumperSwitchNodesFlow(object):
             # 阶段3 卸载旧实例
             sub_pipeline.add_sub_pipeline(
                 sub_flow=reduce_tbinlogdumper_sub_flow(
-                    cluster=cluster,
+                    bk_biz_id=cluster.bk_biz_id,
+                    bk_cloud_id=cluster.bk_cloud_id,
                     root_id=self.root_id,
                     uid=self.data["uid"],
                     reduce_ids=[i["reduce_id"] for i in real_switch_instances],

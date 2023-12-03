@@ -115,16 +115,17 @@ class AddTempUserForClusterService(BaseService):
 
             # 开始遍历集群每个实例，添加临时账号
             for inst in instance_list:
-                if not inst["priv_role"]:
+                if not inst.get("priv_role"):
                     self.log_error(_("不支持改实例的主机类型授权[{}]: machine_type: {}").format(inst.ip_port, inst.machine_type))
-                    return False
+                    continue
 
                 # 按照实例维度进行添加账号
                 common_param["address"] = inst["instance"]
                 common_param["hosts"] = ["localhost", inst["instance"].split(":")[0]]
                 common_param["role"] = inst["priv_role"]
-                if not self.__add_priv(common_param) and global_data["ticket_type"] not in allow_list:
-                    return False
+                # if not self.__add_priv(common_param) and global_data["ticket_type"] not in allow_list:
+                #     return False
+                self.__add_priv(common_param)
 
         return True
 

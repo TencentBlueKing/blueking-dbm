@@ -44,11 +44,9 @@ def slave_migrate_switch_sub_flow(
     # 默认预检测连接情况、同步延时、checksum校验结果
     domain = ClusterEntry.get_cluster_entry_map_by_cluster_ids([cluster.id])
     master = cluster.main_storage_instances()[0]
-    old_slave = ("{}{}{}".format(old_slave_ip, IP_PORT_DIVIDER, master.port),)
-    new_slave = ("{}{}{}".format(new_slave_ip, IP_PORT_DIVIDER, master.port),)
-    old_master = ("{}{}{}".format(master.machine.ip, IP_PORT_DIVIDER, master.port),)
-    # cluster["master_domain"] = domain[cluster.id]["master_domain"]
-    # cluster["slave_domain"] = domain[cluster.id]["slave_domain"]
+    old_slave = "{}{}{}".format(old_slave_ip, IP_PORT_DIVIDER, master.port)
+    new_slave = "{}{}{}".format(new_slave_ip, IP_PORT_DIVIDER, master.port)
+    old_master = "{}{}{}".format(master.machine.ip, IP_PORT_DIVIDER, master.port)
 
     sub_pipeline = SubBuilder(root_id=root_id, data=ticket_data)
     sub_pipeline.add_act(
@@ -64,10 +62,9 @@ def slave_migrate_switch_sub_flow(
     )
 
     # 切换前做预检测
-    verify_checksum_tuples = []
+    verify_checksum_tuples = [{"master": old_master, "slave": new_slave}]
     # for m in migrate_tuples:
     # old_master-> new_master ; new_master -> new_slave 都需要检测checksum结果
-    verify_checksum_tuples.append({"master": old_master, "slave": new_slave})
     sub_pipeline.add_sub_pipeline(
         sub_flow=check_sub_flow(
             uid=ticket_data["uid"],
@@ -80,22 +77,21 @@ def slave_migrate_switch_sub_flow(
         )
     )
 
-    clone_data = []
-    clone_data.append(
+    clone_data = [
         {
             "source": old_master,
             "target": new_slave,
-            # "machine_type": MachineType.REMOTE.value,
             "bk_cloud_id": cluster.bk_cloud_id,
         }
-    )
-    slaveStorage = cluster.storageinstance_set.filter(status=InstanceStatus.RUNNING.value, machine__ip=old_slave_ip)
-    if slaveStorage:
+    ]
+    slave_storage = cluster.storageinstance_set.filter(
+        status=InstanceStatus.RUNNING.value, machine__ip=old_slave_ip
+    ).exists()
+    if slave_storage:
         clone_data.append(
             {
                 "source": old_slave,
                 "target": new_slave,
-                # "machine_type": MachineType.REMOTE.value,
                 "bk_cloud_id": cluster.bk_cloud_id,
             }
         )

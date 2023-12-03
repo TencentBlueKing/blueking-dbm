@@ -8,25 +8,16 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-import base64
 
-from bamboo_engine import states
 from django.utils.translation import ugettext as _
 from pipeline.component_framework.component import Component
-from pipeline.core.flow.activity import StaticIntervalGenerator
 
 from backend import env
 from backend.components.sops.client import BkSopsApi
-from backend.flow.plugins.components.collections.common.base_service import BaseService
+from backend.flow.plugins.components.collections.common.base_service import BkSopsService
 
 
-class CheckMachineIdleCheck(BaseService):
-    __need_schedule__ = True
-    interval = StaticIntervalGenerator(5)
-    """_summary_
-    机器空闲检查
-    """
-
+class CheckMachineIdleCheck(BkSopsService):
     def _execute(self, data, parent_data) -> bool:
         kwargs = data.get_one_of_inputs("kwargs")
         ip = kwargs["ip"]
@@ -51,40 +42,6 @@ class CheckMachineIdleCheck(BaseService):
         BkSopsApi.start_task(param)
         data.outputs.task_id = task_id
         return True
-
-    def _schedule(self, data, parent_data, callback_data=None):
-        kwargs = data.get_one_of_inputs("kwargs")
-        bk_biz_id = kwargs["bk_biz_id"]
-        task_id = data.get_one_of_outputs("task_id")
-        param = {"bk_biz_id": bk_biz_id, "task_id": task_id}
-        rpdata = BkSopsApi.get_task_status(param)
-        state = rpdata.get("state", states.RUNNING)
-        if state == states.FINISHED:
-            self.finish_schedule()
-            self.log_info("run success~")
-            return True
-        if state in [states.FAILED, states.REVOKED, states.SUSPENDED]:
-            # task_detail = BkSopsApi.task_detail(param)
-            if state == states.FAILED:
-                self.log_error(_("空闲检查失败"))
-            else:
-                self.log_error(_("任务状态异常{}").format(state))
-            # 查询异常日志
-            if rpdata.get("children"):
-                children = rpdata["children"]
-                for nodeid in children:
-                    param["node_id"] = nodeid
-                    rpdata = BkSopsApi.get_task_node_detail(param)
-                    ouput = rpdata.get("outputs", [])
-                    ex_data = rpdata.get("ex_data", "")
-                    self.log_error(f"ex_data:{ex_data}")
-                    for ele in ouput:
-                        self.log_error(f"ouput:{ele}")
-                        if ele["key"] == "log_outputs":
-                            b64err = ele["value"]["isnot_clear"]
-                            err = base64.b64decode(b64err)
-                            self.log_error(_("错误详情{}").format(err))
-            return False
 
 
 class CheckMachineIdleComponent(Component):

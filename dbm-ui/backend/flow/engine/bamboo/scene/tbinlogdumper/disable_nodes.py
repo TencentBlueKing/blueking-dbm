@@ -7,7 +7,6 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-
 import copy
 import logging.config
 from dataclasses import asdict
@@ -15,20 +14,21 @@ from typing import Dict, Optional
 
 from django.utils.translation import ugettext as _
 
+from backend.db_meta.models.extra_process import ExtraProcessInstance
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
-from backend.flow.engine.bamboo.scene.tbinlogdumper.common.common_sub_flow import reduce_tbinlogdumper_sub_flow
 from backend.flow.engine.bamboo.scene.tbinlogdumper.common.exceptions import NormalTBinlogDumperFlowException
-from backend.flow.engine.bamboo.scene.tbinlogdumper.common.util import get_cluster
 from backend.flow.plugins.components.collections.mysql.mysql_db_meta import MySQLDBMetaComponent
+from backend.flow.plugins.components.collections.tbinlogdumper.stop_slave import TBinlogDumperStopSlaveComponent
 from backend.flow.utils.mysql.mysql_act_dataclass import DBMetaOPKwargs
 from backend.flow.utils.mysql.mysql_db_meta import MySQLDBMeta
+from backend.flow.utils.tbinlogdumper.context_dataclass import StopSlaveKwargs
 
 logger = logging.getLogger("flow")
 
 
-class TBinlogDumperReduceNodesFlow(object):
+class TBinlogDumperDisableNodesFlow(object):
     """
-    构建  tbinlogdumper节点删除, 按集群维度去聚合卸载
+    构建  tbinlogdumper 节点禁用
     目前仅支持 tendb-ha 架构
     支持不同云区域的合并操作
     """
@@ -41,48 +41,50 @@ class TBinlogDumperReduceNodesFlow(object):
         self.root_id = root_id
         self.data = data
 
-    def reduce_nodes(self):
+        tbinlogdumpers = ExtraProcessInstance.objects.filter(id__in=self.data["disable_ids"])
+        if len(tbinlogdumpers) == 0:
+            # 如果根据下架的id list 获取的元信息为空，则作为异常处理
+            raise NormalTBinlogDumperFlowException(
+                message=_("传入的TBinlogDumper进程信息已不存在[{}]，请联系系统管理员".format(self.data["disable_ids"]))
+            )
+        self.nodes = tbinlogdumpers
 
+    def disable_nodes(self):
         pipeline = Builder(root_id=self.root_id, data=self.data)
         sub_pipelines = []
-        for info in self.data["infos"]:
 
-            # 启动子流程
+        for node in self.nodes:
             sub_flow_context = copy.deepcopy(self.data)
-            sub_flow_context.pop("infos")
-            # 拼接子流程的全局参数
-            sub_flow_context.update(info)
+            sub_flow_context["disable_ids"] = [node.id]
+
+            # 生成子流程
             sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(sub_flow_context))
 
-            # 按集群维度卸载TBinlogDumper实例
-            sub_pipeline.add_sub_pipeline(
-                sub_flow=reduce_tbinlogdumper_sub_flow(
-                    bk_biz_id=int(self.data["bk_biz_id"]),
-                    bk_cloud_id=int(info["bk_cloud_id"]),
-                    root_id=self.root_id,
-                    uid=self.data["uid"],
-                    reduce_ids=info["reduce_ids"],
-                    created_by=self.data["created_by"],
-                )
-            )
-
-            # 删除元数据
             sub_pipeline.add_act(
-                act_name=_("删除实例元信息"),
+                act_name=_("中断同步"),
+                act_component_code=TBinlogDumperStopSlaveComponent.code,
+                kwargs=asdict(
+                    StopSlaveKwargs(
+                        bk_cloud_id=node.bk_cloud_id,
+                        is_safe=True,
+                        tbinlogdumper_ip=node.ip,
+                        tbinlogdumper_port=node.listen_port,
+                    )
+                ),
+            )
+            sub_pipeline.add_act(
+                act_name=_("变更实例状态"),
                 act_component_code=MySQLDBMetaComponent.code,
                 kwargs=asdict(
                     DBMetaOPKwargs(
-                        db_meta_class_func=MySQLDBMeta.reduce_tbinlogdumper.__name__,
+                        db_meta_class_func=MySQLDBMeta.disable_tbinlogdumper.__name__,
                     )
                 ),
             )
 
             sub_pipelines.append(
-                sub_pipeline.build_sub_process(sub_name=_("云区域[{}]下架TBinlogDumper实例".format(info["bk_cloud_id"])))
+                sub_pipeline.build_sub_process(sub_name=_("[{}:{}]实例禁用".format(node.ip, node.listen_port)))
             )
-
-        if not sub_pipelines:
-            raise NormalTBinlogDumperFlowException(message=_("找不到需要下架的实例，拼装TBinlogDumper下架流程失败"))
 
         pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
         pipeline.run_pipeline()

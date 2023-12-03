@@ -20,6 +20,7 @@ from backend.db_meta.api.cluster.tendbha.handler import TenDBHAClusterHandler
 from backend.db_meta.api.cluster.tendbsingle.handler import TenDBSingleClusterHandler
 from backend.db_meta.enums import ClusterPhase, InstanceInnerRole, InstanceRole, InstanceStatus, MachineType
 from backend.db_meta.models import Cluster, StorageInstance, StorageInstanceTuple
+from backend.db_meta.models.extra_process import ExtraProcessInstance
 from backend.db_package.models import Package
 from backend.flow.consts import MediumEnum, MySQLPrivComponent, UserName
 from backend.flow.engine.bamboo.scene.common.get_real_version import get_mysql_real_version
@@ -620,9 +621,9 @@ class MySQLDBMeta(object):
         """
         减少TBinlogDumper实例
         """
-        TenDBHAClusterHandler(
-            bk_biz_id=self.bk_biz_id, cluster_id=self.ticket_data["cluster_id"]
-        ).reduce_tbinlogdumper(id_list=self.ticket_data["reduce_ids"])
+        with atomic():
+            ExtraProcessInstance.objects.filter(id__in=self.ticket_data["reduce_ids"]).delete()
+            # todo 关联tbinlogdumper订阅配置
 
     def switch_tbinlogdumper(self):
         """
@@ -631,6 +632,22 @@ class MySQLDBMeta(object):
         TenDBHAClusterHandler(
             bk_biz_id=self.bk_biz_id, cluster_id=self.ticket_data["cluster_id"]
         ).switch_tbinlogdumper_for_cluster(switch_ids=self.cluster["switch_ids"])
+
+    def disable_tbinlogdumper(self):
+        """
+        禁用TBinlogDumper实例
+        """
+        ExtraProcessInstance.objects.filter(id__in=self.ticket_data["disable_ids"]).update(
+            phase=ClusterPhase.OFFLINE.value
+        )
+
+    def enable_tbinlogdumper(self):
+        """
+        启动TBinlogDumper实例
+        """
+        ExtraProcessInstance.objects.filter(id__in=self.ticket_data["enable_ids"]).update(
+            phase=ClusterPhase.ONLINE.value
+        )
 
     def slave_recover_add_instance(self):
         # tendb ha从节点重建

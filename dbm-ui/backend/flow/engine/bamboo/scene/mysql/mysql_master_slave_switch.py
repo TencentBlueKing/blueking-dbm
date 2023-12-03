@@ -21,6 +21,7 @@ from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.enums import ClusterEntryType, ClusterType, InstanceInnerRole
 from backend.db_meta.exceptions import ClusterNotExistException
 from backend.db_meta.models import Cluster, ProxyInstance, StorageInstance
+from backend.db_meta.models.extra_process import ExtraProcessInstance
 from backend.flow.consts import ACCOUNT_PREFIX, AUTH_ADDRESS_DIVIDER
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
@@ -35,6 +36,9 @@ from backend.flow.plugins.components.collections.mysql.dns_manage import MySQLDn
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.mysql.mysql_db_meta import MySQLDBMetaComponent
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
+from backend.flow.plugins.components.collections.tbinlogdumper.link_tbinlogdumper_switch import (
+    LinkTBinlogDumperSwitchComponent,
+)
 from backend.flow.utils.mysql.mysql_act_dataclass import (
     AddSwitchUserKwargs,
     CreateDnsKwargs,
@@ -47,6 +51,7 @@ from backend.flow.utils.mysql.mysql_act_dataclass import (
 from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
 from backend.flow.utils.mysql.mysql_context_dataclass import ClusterSwitchContext
 from backend.flow.utils.mysql.mysql_db_meta import MySQLDBMeta
+from backend.flow.utils.tbinlogdumper.context_dataclass import LinkTBinlogDumperSwitchKwargs
 
 logger = logging.getLogger("flow")
 
@@ -328,6 +333,20 @@ class MySQLMasterSlaveSwitchFlow(object):
                         bk_cloud_id=cluster["bk_cloud_id"],
                     )
                 )
+
+                # 增加tbinlogdumper实例部署切换联动
+                if ExtraProcessInstance.objects.filter(cluster_id=cluster_id).exists():
+                    cluster_switch_sub_pipeline.add_act(
+                        act_name=_("联动TBinlogDumper切换单据"),
+                        act_component_code=LinkTBinlogDumperSwitchComponent.code,
+                        kwargs=asdict(
+                            LinkTBinlogDumperSwitchKwargs(
+                                cluster_id=cluster_id,
+                                target_ip=info["slave_ip"]["ip"],
+                                get_binlog_info=ClusterSwitchContext.get_new_master_bin_pos_var_name(),
+                            )
+                        ),
+                    )
 
                 cluster_switch_sub_list.append(
                     cluster_switch_sub_pipeline.build_sub_process(sub_name=_("{}集群执行主从切换").format(cluster["name"]))

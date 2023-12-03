@@ -14,6 +14,7 @@ from django.db import models
 from django.utils.translation import ugettext_lazy as _
 
 from backend.bk_web.models import AuditedModel
+from backend.db_meta.enums import ClusterPhase
 from backend.db_meta.enums.extra_process_type import ExtraProcessType
 
 logger = logging.getLogger("root")
@@ -37,6 +38,7 @@ class ExtraProcessInstance(AuditedModel):
     )
     version = models.CharField(max_length=64, default="", help_text=_("版本号"))
     listen_port = models.PositiveIntegerField(default=0, help_text=_("进程监听端口"))
+    phase = models.CharField(max_length=64, choices=ClusterPhase.get_choices(), default=ClusterPhase.ONLINE.value)
     extra_config = models.JSONField(default=dict, help_text=_("进程的定制化属性"))
 
     class Meta:

@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import base64
 import copy
 import json
 import logging
@@ -15,12 +16,14 @@ import re
 from abc import ABCMeta
 from typing import Any, Dict, List, Optional, Union
 
+from bamboo_engine import states
 from django.utils import translation
 from django.utils.translation import ugettext as _
 from pipeline.core.flow.activity import Service, StaticIntervalGenerator
 
 from backend import env
 from backend.components import JobApi
+from backend.components.sops.client import BkSopsApi
 from backend.core.translation.constants import Language
 from backend.flow.consts import SUCCESS_LIST, WriteContextOpType
 
@@ -306,3 +309,46 @@ class BkJobService(BaseService, metaclass=ABCMeta):
 
         self.finish_schedule()
         return True
+
+
+class BkSopsService(BaseService, metaclass=ABCMeta):
+    __need_schedule__ = True
+    interval = StaticIntervalGenerator(5)
+    """
+    定义调用标准运维的基类
+    """
+
+    def _schedule(self, data, parent_data, callback_data=None):
+        kwargs = data.get_one_of_inputs("kwargs")
+        bk_biz_id = kwargs["bk_biz_id"]
+        task_id = data.get_one_of_outputs("task_id")
+        param = {"bk_biz_id": bk_biz_id, "task_id": task_id}
+        rp_data = BkSopsApi.get_task_status(param)
+        state = rp_data.get("state", states.RUNNING)
+        if state == states.FINISHED:
+            self.finish_schedule()
+            self.log_info("run success~")
+            return True
+
+        if state in [states.FAILED, states.REVOKED, states.SUSPENDED]:
+            if state == states.FAILED:
+                self.log_error(_("任务失败"))
+            else:
+                self.log_error(_("任务状态异常{}").format(state))
+            # 查询异常日志
+            if rp_data.get("children"):
+                children = rp_data["children"]
+                for node_id in children:
+                    param["node_id"] = node_id
+                    result = BkSopsApi.get_task_node_detail(param)
+                    output = result.get("outputs", [])
+                    ex_data = result.get("ex_data", "")
+                    self.log_error(f"ex_data:{ex_data}")
+                    for ele in output:
+                        self.log_error(f"output:{ele}")
+                        if ele.get("key") == "log_outputs":
+                            if ele["value"].get("isnot_clear"):
+                                b64err = ele["value"].get("isnot_clear")
+                                err = base64.b64decode(b64err)
+                                self.log_error(_("错误详情{}").format(err))
+            return False

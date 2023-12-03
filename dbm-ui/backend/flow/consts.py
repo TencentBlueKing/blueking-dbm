@@ -606,6 +606,20 @@ CHECKSUM_TABlE_PREFIX = "checksum_"
 # 定义单据生成随机账号的前缀
 ACCOUNT_PREFIX = "_temp_"
 
+# tbinlogdumper连接kafka的global config的定义
+TBINLOGDUMPER_KAFKA_GLOBAL_CONF = {
+    "sasl.mechanisms": "SCRAM-SHA-512",
+    "security.protocol": "SASL_PLAINTEXT",
+    "sasl.username": "",
+    "sasl.password": "",
+    "queue.buffering.max.messages": "5000",
+    "message.max.bytes": "10000000",
+    "broker.version.fallback": "2.0.0",
+}
+
+# tbinlogdumper连接kafka的global config的定义
+TBINLOGDUMPER_KAFKA_TOPIC_CONF = {"message.timeout.ms": "100000"}
+
 
 class DBRoleEnum(str, StructuredEnum):
     Proxy = EnumField("proxy", _("proxy"))
@@ -919,3 +933,13 @@ class MySQLPrivComponent(str, StructuredEnum):
     INFLUXDB_FAKE_USER = EnumField("influxdb_user", _("influxdb_user"))
     HDFS_FAKE_USER = EnumField("hdfs_user", _("hdfs_user"))
     PULSAR_FAKE_USER = EnumField("pulsar_user", _("pulsar_user"))
+
+
+class TBinlogDumperProtocolType(str, StructuredEnum):
+    """
+    定义tbinlogdumper的对端协议
+    """
+
+    KAFKA = EnumField("KAFKA", _("KAFKA"))
+    L5_AGENT = EnumField("L5_AGENT", _("L5_AGENT"))
+    TCP_IP = EnumField("TCP/IP", _("TCP/IP"))
