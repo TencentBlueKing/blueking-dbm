@@ -14,10 +14,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"html/template"
+	"net"
 	"os"
 	"path"
 	"regexp"
 	"strconv"
+	"strings"
 	"time"
 
 	"dbm-services/common/go-pubpkg/cmutil"
@@ -47,9 +49,16 @@ type Configs struct {
 
 // DumperParams TODO
 type DumperParams struct {
-	DumperId string `json:"dumper_id" `
-	AreaName string `json:"area_name" `
-	ServerID uint64 `json:"server_id" `
+	DumperId      string `json:"dumper_id" `
+	AreaName      string `json:"area_name" `
+	ServerID      uint64 `json:"server_id" `
+	TargetAddress string `json:"target_address" `
+	TargetPort    int    `json:"target_port" `
+	ProtocolType  string `json:"protocol_type" `
+	L5Monid       int    `json:"l5_modid" `
+	L5Cmdid       int    `json:"l5_cmdid" `
+	KafkaUser     string `json:"kafka_user" `
+	KafkaPwd      string `json:"kafka_pwd" `
 }
 
 // RenderDumperConfigs TODO
@@ -154,6 +163,7 @@ func (i *InstallTbinlogDumperComp) InitDumperDefaultParam() error {
 	i.Checkfunc = append(i.Checkfunc, i.Params.Medium.Check)
 	i.Checkfunc = append(i.Checkfunc, i.precheckDir)
 	i.Checkfunc = append(i.Checkfunc, i.precheckProcess)
+	i.Checkfunc = append(i.Checkfunc, i.precheckTargetinstances)
 	return nil
 }
 
@@ -202,6 +212,44 @@ func (i *InstallTbinlogDumperComp) precheckProcess() (err error) {
 	}
 	return nil
 
+}
+
+// precheckTargetinstances 判断每个配置的对端的实例连通性
+func (i *InstallTbinlogDumperComp) precheckTargetinstances() (err error) {
+	var isError bool
+	for _, port := range i.InsPorts {
+		dumperConf := i.DumperConfigs[port]
+		switch dumperConf.ProtocolType {
+		case "KAFKA":
+			if err := mysqlutil.KafkaCheck(
+				dumperConf.TargetAddress,
+				dumperConf.TargetPort,
+				dumperConf.KafkaUser,
+				dumperConf.KafkaPwd,
+			); err != nil {
+				logger.Error(err.Error())
+				isError = true
+			}
+		case "L5_AGENT":
+			if err := L5AgantCheck(dumperConf.L5Monid, dumperConf.L5Cmdid); err != nil {
+				logger.Error(err.Error())
+				isError = true
+			}
+		case "TCP/IP":
+			if err := TelentCheck(dumperConf.TargetAddress, dumperConf.TargetPort); err != nil {
+				logger.Error(err.Error())
+				isError = true
+			}
+		default:
+			return fmt.Errorf(
+				"does not support changing this ProtocolType:[%s] ", dumperConf.ProtocolType,
+			)
+		}
+	}
+	if isError {
+		return fmt.Errorf("precheckTargetinstances failed")
+	}
+	return nil
 }
 
 // DumperInstall TODO
@@ -378,4 +426,32 @@ func (i *InstallTbinlogDumperComp) isInstallDumperWithInstallDir() (err error, r
 		return nil, true
 	}
 	return nil, false
+}
+
+// TelentCheck 在tcp网络联通性测试，默认5秒超时
+func TelentCheck(targetHost string, targetPort int) (err error) {
+	timeout := 5 * time.Second
+	conn, err := net.DialTimeout("tcp", net.JoinHostPort(targetHost, strconv.Itoa(targetPort)), timeout)
+	if err != nil {
+		return fmt.Errorf(
+			"failed to connect to %s:%d - %s", targetHost, targetPort, err.Error(),
+		)
+	}
+	defer conn.Close()
+	return nil
+}
+
+// L5AgantCheck 检测l5 agent/modid/cmdid 是否正常
+func L5AgantCheck(modid int, cmdid int) (err error) {
+	var output string
+	checkCMD := fmt.Sprintf("/usr/local/l5_agent/bin/L5GetRoute1 %d %d 1", modid, cmdid)
+
+	if output, err = osutil.ExecShellCommand(false, checkCMD); err != nil {
+		return errors.Wrap(err, fmt.Sprintf("执行失败[%s]", checkCMD))
+	}
+	result := osutil.CleanExecShellOutput(output)
+	if strings.Contains(result, "failed") {
+		return fmt.Errorf("get l5route failed: %s", result)
+	}
+	return nil
 }

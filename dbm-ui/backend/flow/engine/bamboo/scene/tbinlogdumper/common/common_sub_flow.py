@@ -53,7 +53,7 @@ def add_tbinlogdumper_sub_flow(
     @param cluster: 待操作的集群
     @param uid: 单据uid
     @param root_id: flow流程的root_id
-    @param add_conf_list: 本次上架的配置列表，每个的元素的格式为：{"module_id":x,"area_name":x,add_type:x}
+    @param add_conf_list: 本次上架的配置列表，每个的元素的格式为dict
     @param created_by: 单据发起者
     """
     # 查找集群的当前master实例, tendb-ha架构无论什么时候只有一个master角色
@@ -108,7 +108,8 @@ def add_tbinlogdumper_sub_flow(
 
 
 def reduce_tbinlogdumper_sub_flow(
-    cluster: Cluster,
+    bk_biz_id: int,
+    bk_cloud_id: int,
     root_id: str,
     uid: str,
     reduce_ids: list,
@@ -116,7 +117,8 @@ def reduce_tbinlogdumper_sub_flow(
 ):
     """
     定义针对集群维度卸载TBinlogdumper实例的公共子流程
-    @param cluster: 关联的cluster信息
+    @param bk_biz_id: 业务id
+    @param bk_cloud_id: 云区域id
     @param uid: 单据uid
     @param root_id: flow流程的root_id
     @param reduce_ids: 本次卸载的实例id列表
@@ -125,13 +127,13 @@ def reduce_tbinlogdumper_sub_flow(
 
     parent_global_data = {
         "uid": uid,
-        "bk_biz_id": cluster.bk_biz_id,
+        "bk_biz_id": bk_biz_id,
         "created_by": created_by,
     }
     sub_pipeline = SubBuilder(root_id=root_id, data=parent_global_data)
 
     # 阶段1 下发db-actuator介质包
-    tbinlogdumpers = ExtraProcessInstance.objects.filter(id__in=reduce_ids)
+    tbinlogdumpers = ExtraProcessInstance.objects.filter(id__in=reduce_ids, bk_cloud_id=bk_cloud_id)
     if len(tbinlogdumpers) == 0:
         # 如果根据下架的id list 获取的元信息为空，则作为异常处理
         raise NormalTBinlogDumperFlowException(message=_("传入的TBinlogDumper进程信息已不存在[{}]，请联系系统管理员".format(reduce_ids)))
@@ -142,7 +144,7 @@ def reduce_tbinlogdumper_sub_flow(
         act_component_code=TransFileComponent.code,
         kwargs=asdict(
             DownloadMediaKwargs(
-                bk_cloud_id=cluster.bk_cloud_id,
+                bk_cloud_id=bk_cloud_id,
                 exec_ip=list(set([t.ip for t in tbinlogdumpers])),
                 file_list=GetFileList(db_type=DBType.MySQL).get_db_actuator_package(),
             )
@@ -169,7 +171,7 @@ def reduce_tbinlogdumper_sub_flow(
     sub_pipeline.add_parallel_acts(acts_list=acts_list)
 
     # 返回子流程
-    return sub_pipeline.build_sub_process(sub_name=_("集群[{}]卸载TBinlogDumper实例flow".format(cluster.name)))
+    return sub_pipeline.build_sub_process(sub_name=_("云区域[{}]卸载TBinlogDumper实例flow".format(bk_cloud_id)))
 
 
 def switch_sub_flow(
@@ -421,7 +423,7 @@ def full_sync_sub_flow(
                 backup_ip=backup.machine.ip,
                 backup_port=backup.port,
                 backup_role=backup.instance_role,
-                module_id=add_tbinlogdumper_conf["module_id"],
+                repl_tables=add_tbinlogdumper_conf["repl_tables"],
             )
         ),
         write_payload_var="backup_info",

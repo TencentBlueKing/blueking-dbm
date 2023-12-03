@@ -37,6 +37,17 @@ class StopSlaveKwargs:
 
 
 @dataclass
+class StartSlaveKwargs:
+    """
+    定义tbinlogdumper 执行start slave的私有变量
+    """
+
+    bk_cloud_id: int
+    tbinlogdumper_ip: str
+    tbinlogdumper_port: int
+
+
+@dataclass
 class TBinlogDumperFullSyncDataKwargs:
     """
     定义为tbinlogdumper实例同步的私有变量
@@ -46,4 +57,15 @@ class TBinlogDumperFullSyncDataKwargs:
     backup_ip: str
     backup_port: int
     backup_role: str
-    module_id: int
+    repl_tables: list
+
+
+@dataclass
+class LinkTBinlogDumperSwitchKwargs:
+    """
+    定义为联动tbinlogdumper切换部署的私有变量
+    """
+
+    cluster_id: int
+    target_ip: str
+    get_binlog_info: str

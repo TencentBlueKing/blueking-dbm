@@ -118,8 +118,9 @@ class DropTempUserForClusterService(BaseService):
                 raise ClusterNotExistException(
                     cluster_id=cluster_id, bk_biz_id=global_data["bk_biz_id"], message=_("集群不存在")
                 )
-            if not self.drop_jor_user(cluster=cluster, uid=global_data["uid"]):
-                return False
+            # if not self.drop_jor_user(cluster=cluster, uid=global_data["uid"]):
+            #     return False
+            self.drop_jor_user(cluster=cluster, uid=global_data["uid"])
 
         return True
 

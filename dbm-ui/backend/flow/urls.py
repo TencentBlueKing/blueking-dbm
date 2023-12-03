@@ -174,7 +174,11 @@ from backend.flow.views.spider_slave_apply import InstallSpiderSlaveClusterScene
 from backend.flow.views.spider_slave_destroy import DestroySpiderSlaveClusterSceneApiView
 from backend.flow.views.spider_sql_import import SpiderSqlImportSceneApiView
 from backend.flow.views.sql_semantic_check import SqlSemanticCheckSceneApiView
-from backend.flow.views.tbinlogdumper_add import InstallTBinlogDumperSceneApiView
+from backend.flow.views.tbinlogdumper_add import (
+    DisableTBinlogDumperSceneApiView,
+    EnableTBinlogDumperSceneApiView,
+    InstallTBinlogDumperSceneApiView,
+)
 from backend.flow.views.tbinlogdumper_reduce import ReduceTBinlogDumperSceneApiView
 from backend.flow.views.tbinlogdumper_switch import SwitchTBinlogDumperSceneApiView
 from backend.flow.views.tendb_cluster_remote_fail_over import RemoteFailOverSceneApiView
@@ -373,6 +377,8 @@ urlpatterns = [
     url("^scene/install_tbinlogumper$", InstallTBinlogDumperSceneApiView.as_view()),
     url("^scene/reduce_tbinlogumper$", ReduceTBinlogDumperSceneApiView.as_view()),
     url("^scene/switch_tbinlogumper$", SwitchTBinlogDumperSceneApiView.as_view()),
+    url("^scene/enable_tbinlogumper$", EnableTBinlogDumperSceneApiView.as_view()),
+    url("^scene/disable_tbinlogumper$", DisableTBinlogDumperSceneApiView.as_view()),
     url("^scene/tendbha_standardize$", TenDBHAStandardizeView.as_view()),
     url("^scene/mysql_open_area$", MysqlOpenAreaSceneApiView.as_view()),
     # migrate

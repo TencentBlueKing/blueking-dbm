@@ -8,15 +8,26 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import copy
+import json
 import logging
+
+from django.utils.translation import ugettext as _
 
 from backend.components import DBConfigApi
 from backend.components.dbconfig.constants import FormatType, LevelName
 from backend.db_meta.enums import ClusterType, InstanceRole
 from backend.db_meta.models import Cluster
 from backend.db_package.models import Package
-from backend.flow.consts import DBActuatorActionEnum, DBActuatorTypeEnum, MediumEnum
+from backend.flow.consts import (
+    TBINLOGDUMPER_KAFKA_GLOBAL_CONF,
+    TBINLOGDUMPER_KAFKA_TOPIC_CONF,
+    DBActuatorActionEnum,
+    DBActuatorTypeEnum,
+    MediumEnum,
+    TBinlogDumperProtocolType,
+)
 from backend.flow.engine.bamboo.scene.common.get_real_version import get_mysql_real_version
+from backend.flow.engine.bamboo.scene.tbinlogdumper.common.exceptions import NormalTBinlogDumperFlowException
 from backend.flow.utils.base.payload_handler import PayloadHandler
 
 logger = logging.getLogger("flow")
@@ -24,18 +35,22 @@ logger = logging.getLogger("flow")
 
 class TBinlogDumperActPayload(object):
     @staticmethod
-    def get_tbinlogdumper_config(bk_biz_id: int, module_id: int):
+    def get_tbinlogdumper_config():
+        """
+        平台级别获取tbinlogdumper配置
+        """
         data = DBConfigApi.query_conf_item(
             {
-                "bk_biz_id": str(bk_biz_id),
-                "level_name": LevelName.MODULE,
-                "level_value": str(module_id),
+                "bk_biz_id": "0",
+                "level_name": LevelName.PLAT,
+                "level_value": "0",
                 "conf_file": "latest",
                 "conf_type": "tbinlogdumper",
-                "namespace": ClusterType.TenDBHA,
+                "namespace": "tendbha",
                 "format": FormatType.MAP_LEVEL,
             }
         )
+
         return data["content"]
 
     def install_tbinlogdumper_payload(self, **kwargs):
@@ -57,14 +72,44 @@ class TBinlogDumperActPayload(object):
         account["admin_pwd"] = dumper_account["tbinlogdumper_admin_pwd"]
 
         for conf in self.ticket_data["add_conf_list"]:
-            mycnf_configs[conf["port"]] = self.get_tbinlogdumper_config(
-                bk_biz_id=self.ticket_data["bk_biz_id"], module_id=conf["module_id"]
-            )
+            mycnf_configs[conf["port"]] = self.get_tbinlogdumper_config()
             dumper_configs[conf["port"]] = {
-                "dumper_id": conf["area_name"],
-                "area_name": conf["area_name"],
+                "dumper_id": str(conf["area_name"]),
+                "area_name": str(conf["area_name"]),
                 "server_id": conf["server_id"],
+                "protocol_type": conf["protocol_type"],
+                "target_address": conf["target_address"],
+                "target_port": int(conf["target_port"]),
+                "l5_modid": conf.get("l5_modid", 0),
+                "l5_cmdid": conf.get("l5_cmdid", 0),
+                "kafka_user": conf.get("kafka_user", ""),
+                "kafka_pwd": conf.get("kafka_pwd", ""),
             }
+            # 分场景添加对应启动参数
+            mycnf_configs[conf["port"]]["mysqld"]["replicate_wild_do_table"] = ",".join(conf["repl_tables"])
+            mycnf_configs[conf["port"]]["mysqld"]["redis_protocol_type"] = conf["protocol_type"]
+            if conf["protocol_type"] == TBinlogDumperProtocolType.KAFKA.value:
+                mycnf_configs[conf["port"]]["mysqld"]["redis_server_address"] = conf["target_address"]
+                mycnf_configs[conf["port"]]["mysqld"]["redis_server_port"] = str(conf["target_port"])
+                global_config = copy.deepcopy(TBINLOGDUMPER_KAFKA_GLOBAL_CONF)
+                global_config["sasl.username"] = conf["kafka_user"]
+                global_config["sasl.password"] = conf["kafka_pwd"]
+
+                mycnf_configs[conf["port"]]["mysqld"]["redis_kafka_global_config"] = json.dumps(global_config)
+                mycnf_configs[conf["port"]]["mysqld"]["redis_kafka_topic_config"] = json.dumps(
+                    TBINLOGDUMPER_KAFKA_TOPIC_CONF
+                )
+
+            elif conf["protocol_type"] == TBinlogDumperProtocolType.L5_AGENT.value:
+                mycnf_configs[conf["port"]]["mysqld"]["redis_l5_modid"] = str(conf["l5_modid"])
+                mycnf_configs[conf["port"]]["mysqld"]["redis_l5_cmdid"] = str(conf["l5_cmdid"])
+            elif conf["protocol_type"] == TBinlogDumperProtocolType.TCP_IP.value:
+                mycnf_configs[conf["port"]]["mysqld"]["redis_server_address"] = conf["target_address"]
+                mycnf_configs[conf["port"]]["mysqld"]["redis_server_port"] = str(conf["target_port"])
+            else:
+                raise NormalTBinlogDumperFlowException(
+                    message=_("非法协议，请联系系统管理员：protocol_type:{}".format(conf["protocol_type"]))
+                )
 
         drs_account, dbha_account = self.get_super_account()
         return {

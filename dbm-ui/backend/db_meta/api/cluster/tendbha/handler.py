@@ -13,6 +13,8 @@ from typing import Dict, List
 from django.db import transaction
 
 from backend.configuration.constants import DBType
+from backend.core.encrypt.constants import AsymmetricCipherConfigType
+from backend.core.encrypt.handlers import AsymmetricHandler
 from backend.db_meta import api
 from backend.db_meta.api.cluster.base.handler import ClusterHandler
 from backend.db_meta.enums import ClusterType, InstanceInnerRole, InstanceRole, MachineType
@@ -178,19 +180,24 @@ class TenDBHAClusterHandler(ClusterHandler):
                 extra_config={
                     "dumper_id": str(conf["area_name"]),
                     "area_name": str(conf["area_name"]),
-                    "module_id": int(conf["module_id"]),
                     "source_data_ip": master.machine.ip,
                     "source_data_port": master.port,
+                    "repl_tables": conf["repl_tables"],
+                    "target_address": conf["target_address"],
+                    "target_port": conf["target_port"],
+                    "protocol_type": conf["protocol_type"],
+                    "l5_modid": conf.get("l5_modid", 0),
+                    "l5_cmdid": conf.get("l5_cmdid", 0),
+                    "kafka_user": AsymmetricHandler.encrypt(
+                        name=AsymmetricCipherConfigType.PASSWORD.value, content=conf.get("kafka_user", "")
+                    ),
+                    "kafka_pwd": AsymmetricHandler.encrypt(
+                        name=AsymmetricCipherConfigType.PASSWORD.value, content=conf.get("kafka_pwd", "")
+                    ),
                 },
             )
             tbinlogdumper.save()
-
-    @transaction.atomic
-    def reduce_tbinlogdumper(self, id_list: list):
-        """
-        删除TBinlogDumper实例的信息
-        """
-        ExtraProcessInstance.objects.filter(id__in=id_list).delete()
+            # todo 关联tbinlogdumper订阅配置
 
     @transaction.atomic()
     def switch_tbinlogdumper_for_cluster(self, switch_ids: list):
