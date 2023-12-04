@@ -16,6 +16,8 @@ from typing import Dict, Optional
 from django.utils.translation import ugettext as _
 
 from backend.configuration.constants import DBType
+from backend.db_meta.enums import InstanceInnerRole
+from backend.db_meta.models import Cluster
 from backend.flow.consts import TruncateDataTypeEnum
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
@@ -58,17 +60,19 @@ class MysqlFlashbackFlow(object):
         )
         sub_pipeline_list = []
         for info in self.data["infos"]:
-            one_cluster = get_cluster_info(info["cluster_id"])
-            one_cluster.update(info)
-            one_cluster["work_dir"] = f"/data/dbbak/{self.root_id}"
-
+            cluster_class = Cluster.objects.get(id=info["cluster_id"])
+            master = cluster_class.storageinstance_set.get(instance_inner_role=InstanceInnerRole.MASTER.value)
             ticket_data = {
                 **copy.deepcopy(info),
+                "cluster_id": cluster_class.id,
                 "uid": self.data["uid"],
                 "created_by": self.data["created_by"],
-                "bk_biz_id": self.data["bk_biz_id"],
-                "ip": one_cluster["master_ip"],
-                "port": one_cluster["master_port"],
+                "bk_biz_id": cluster_class.bk_biz_id,
+                "module": cluster_class.db_module_id,
+                "db_module_id": cluster_class.db_module_id,
+                "ip": master.machine.ip,
+                "port": master.port,
+                "ticket_type": self.data["ticket_type"],
                 "truncate_data_type": TruncateDataTypeEnum.TRUNCATE_TABLE.value,  # 不是真的要删表, 只是复用打开检查必须
             }
             sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(ticket_data))
@@ -76,36 +80,41 @@ class MysqlFlashbackFlow(object):
             sub_pipeline.add_act(
                 act_name=_("获取回档库表"),
                 act_component_code=FilterDatabaseTableFromFlashbackInputComponent.code,
-                kwargs=asdict(BKCloudIdKwargs(bk_cloud_id=one_cluster["bk_cloud_id"])),
+                kwargs=asdict(BKCloudIdKwargs(bk_cloud_id=cluster_class.bk_cloud_id)),
             )
 
             if not self.data["force"]:
                 sub_pipeline.add_act(
                     act_name=_("检查库表是否在用"),
                     act_component_code=GeneralCheckDBInUsingComponent.code,
-                    kwargs=asdict(BKCloudIdKwargs(bk_cloud_id=one_cluster["bk_cloud_id"])),
+                    kwargs=asdict(BKCloudIdKwargs(bk_cloud_id=cluster_class.bk_cloud_id)),
                 )
 
             sub_pipeline.add_act(
-                act_name=_("下发db-actor到集群主节点{}").format(one_cluster["master_ip"]),
+                act_name=_("下发db-actor到集群主节点{}").format(master.machine.ip),
                 act_component_code=TransFileComponent.code,
                 kwargs=asdict(
                     DownloadMediaKwargs(
-                        bk_cloud_id=one_cluster["bk_cloud_id"],
-                        exec_ip=one_cluster["master_ip"],
+                        bk_cloud_id=cluster_class.bk_cloud_id,
+                        exec_ip=master.machine.ip,
                         file_list=GetFileList(db_type=DBType.MySQL).get_db_actuator_package(),
                     )
                 ),
             )
 
+            cluster = {
+                **copy.deepcopy(info),
+                "master_port": master.port,
+                "work_dir": f"/data/dbbak/{self.root_id}",
+            }
             sub_pipeline.add_act(
-                act_name=_("flashback启动恢复数据中{}").format(one_cluster["master_ip"]),
+                act_name=_("flashback启动恢复数据中{}").format(master.machine.ip),
                 act_component_code=ExecuteDBActuatorScriptComponent.code,
                 kwargs=asdict(
                     ExecActuatorKwargs(
-                        exec_ip=one_cluster["master_ip"],
-                        bk_cloud_id=one_cluster["bk_cloud_id"],
-                        cluster=one_cluster,
+                        exec_ip=master.machine.ip,
+                        bk_cloud_id=cluster_class.bk_cloud_id,
+                        cluster=cluster,
                         get_mysql_payload_func=MysqlActPayload.get_mysql_flashback_payload.__name__,
                     )
                 ),
