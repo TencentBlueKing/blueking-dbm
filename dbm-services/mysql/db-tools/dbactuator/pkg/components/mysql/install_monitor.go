@@ -109,6 +109,22 @@ func (c *InstallMySQLMonitorComp) DeployBinary() (err error) {
 		return err
 	}
 
+	err = os.MkdirAll(
+		filepath.Join(cst.MySQLMonitorInstallPath, "context"),
+		0755)
+	if err != nil {
+		logger.Error("mkdir context failed: %s", err.Error())
+		return err
+	}
+
+	err = os.MkdirAll(
+		filepath.Join(cst.MySQLMonitorInstallPath, "scenes"),
+		0755)
+	if err != nil {
+		logger.Error("mkdir scenes failed: %s", err.Error())
+		return err
+	}
+
 	decompressCmd := fmt.Sprintf(
 		`tar zxf %s -C %s`,
 		c.Params.Medium.GetAbsolutePath(), cst.MySQLMonitorInstallPath,
@@ -123,6 +139,20 @@ func (c *InstallMySQLMonitorComp) DeployBinary() (err error) {
 	_, err = osutil.ExecShellCommand(false, chownCmd)
 	if err != nil {
 		logger.Error("chown %s to mysql failed: %s", cst.MySQLMonitorInstallPath, err.Error())
+		return err
+	}
+
+	chownCmd = fmt.Sprintf(`chown -R mysql %s/context`, cst.MySQLMonitorInstallPath)
+	_, err = osutil.ExecShellCommand(false, chownCmd)
+	if err != nil {
+		logger.Error("chown context to mysql failed: %s", err.Error())
+		return err
+	}
+
+	chownCmd = fmt.Sprintf(`chown -R mysql %s/scenes`, cst.MySQLMonitorInstallPath)
+	_, err = osutil.ExecShellCommand(false, chownCmd)
+	if err != nil {
+		logger.Error("chown scenes to mysql failed: %s", err.Error())
 		return err
 	}
 
