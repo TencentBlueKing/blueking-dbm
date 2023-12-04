@@ -25,15 +25,15 @@ agent_conf:
     "TwemproxyRedisInstance",
     "PredixyTendisplusCluster",
   ]
-  city: "{{city}}"
+  city_id: {{city}}
   campus: "{{campus}}"
-  cloud: "{{cloud}}"
+  cloud_id: {{cloud}}
   fetch_interval: 60
   reporter_interval: 120
 gm_conf:
-  city: "{{city}}"
+  city_id: "{{city}}"
   campus: "{{campus}}"
-  cloud: "{{cloud}}"
+  cloud_id: "{{cloud}}"
   liston_port: 50000
   report_interval: 60
   GDM:
@@ -52,6 +52,13 @@ gm_conf:
     allowed_slave_delay_max: 600
     allowed_time_delay_max: 300
     exec_slow_kbytes: 0
+password_conf:
+  host: "{{nginx_domain}}"
+  port: 80
+  url_pre: "/apis/proxypass"
+  timeout: 10
+  bk_conf:
+    bk_token: "{{db_cloud_token}}"
 db_conf:
   hadb:
     host: "{{nginx_domain}}"
@@ -137,15 +144,15 @@ agent_conf:
     "TwemproxyRedisInstance",
     "PredixyTendisplusCluster",
   ]
-  city: "{{city}}"
+  city_id: {{city}}
   campus: "{{campus}}"
-  cloud: "{{cloud}}"
+  cloud_id: {{cloud}}
   fetch_interval: 60
   reporter_interval: 120
 gm_conf:
-  city: "{{city}}"
+  city_id: {{city}}
   campus: "{{campus}}"
-  cloud: "{{cloud}}"
+  cloud_id: {{cloud}}
   liston_port: 50000
   report_interval: 60
   GDM:
@@ -164,6 +171,13 @@ gm_conf:
     allowed_slave_delay_max: 600
     allowed_time_delay_max: 300
     exec_slow_kbytes: 0
+password_conf:
+  host: "{{nginx_domain}}"
+  port: 80
+  url_pre: "/apis/proxypass"
+  timeout: 10
+  bk_conf:
+    bk_token: "{{db_cloud_token}}"
 db_conf:
   hadb:
     host: "{{nginx_domain}}"
