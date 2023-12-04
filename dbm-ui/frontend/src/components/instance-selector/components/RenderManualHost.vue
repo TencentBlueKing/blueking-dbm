@@ -25,7 +25,7 @@
       :settings="tableSettings"
       style="margin-top: 12px;"
       @clear-search="handleClearSearch"
-      @row-click.stop="handleRowClick" />
+      @row-click.stop.prevent="handleRowClick" />
   </div>
 </template>
 
@@ -108,7 +108,6 @@
         <bk-checkbox
           label={true}
           model-value={isSelectedAll.value}
-          onClick={(e: Event) => e.stopPropagation()}
           onChange={handleSelectPageAll}
         />
       ),
@@ -117,7 +116,6 @@
           style="vertical-align: middle;"
           label={true}
           model-value={Boolean(checkedMap.value[data.instance_address])}
-          onClick={(e: Event) => e.stopPropagation()}
           onChange={(value: boolean) => handleTableSelectOne(value, data)}
         />
       ),

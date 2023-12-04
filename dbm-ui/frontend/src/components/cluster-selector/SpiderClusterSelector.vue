@@ -134,7 +134,7 @@
                 @page-limit-change="handleTableLimitChange"
                 @page-value-change="handleTablePageChange"
                 @refresh="fetchResources"
-                @row-click.stop="handleRowClick" />
+                @row-click.stop.prevent="handleRowClick" />
             </BkLoading>
           </div>
         </div>
@@ -274,7 +274,6 @@
         model-value={isSelectedAll.value}
         indeterminate={isIndeterminate.value}
         label={true}
-        onClick={(e: Event) => e.stopPropagation()}
         onChange={handleSelecteAll}
       />
     ),
@@ -283,7 +282,6 @@
         style="vertical-align: middle;"
         model-value={Boolean(selectedDomainMap.value[data.id])}
         label={true}
-        onClick={(e: Event) => e.stopPropagation()}
         onChange={(value: boolean) => handleSelecteRow(data, value)}
       />
     ),

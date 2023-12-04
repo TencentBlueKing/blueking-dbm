@@ -31,7 +31,7 @@
         @page-limit-change="handeChangeLimit"
         @page-value-change="handleChangePage"
         @refresh="fetchResources"
-        @row-click.stop="handleRowClick" />
+        @row-click.stop.prevent="handleRowClick" />
     </BkLoading>
   </div>
 </template>
@@ -150,7 +150,6 @@
           label={true}
           model-value={isSelectedAll.value}
           disabled={mainSelectDisable.value}
-          onClick={(e: Event) => e.stopPropagation()}
           onChange={handleSelectPageAll}
         />
       ),
@@ -170,7 +169,6 @@
             style="vertical-align: middle;"
             label={true}
             model-value={Boolean(checkedMap.value[data[firstColumnFieldId.value]])}
-            onClick={(e: Event) => e.stopPropagation()}
             onChange={(value: boolean) => handleTableSelectOne(value, data)}
           />
         );
@@ -338,7 +336,7 @@
     triggerChange();
   };
 
-  const handleRowClick = (key: number, data: DataRow) => {
+  const handleRowClick = (e: PointerEvent, data: DataRow) => {
     if (props.disabledRowConfig && props.disabledRowConfig.handler(data)) {
       return;
     }

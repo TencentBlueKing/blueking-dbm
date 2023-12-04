@@ -36,7 +36,7 @@
         @page-limit-change="handlePageLimitChange"
         @page-value-change="handlePageValueChange"
         @refresh="fetchData"
-        @row-click.stop="handleRowClick" />
+        @row-click.stop.prevent="handleRowClick" />
     </BkLoading>
   </div>
 </template>
@@ -121,7 +121,6 @@
         <bk-checkbox
           label={ true }
           model-value={ isSelectedAll.value }
-          onClick={ (event: Event) => event.stopPropagation() }
           onChange={ handleSelectPageAll }
         />
       ),
@@ -130,7 +129,6 @@
           style="vertical-align: middle;"
           label={ true }
           model-value={ Boolean(checkedMap.value[data.instance_address]) }
-          onClick={ (event: Event) => event.stopPropagation() }
           onChange={ (value: boolean) => handleTableSelectOne(value, data) }
         />
       ),
