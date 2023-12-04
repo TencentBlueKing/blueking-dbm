@@ -45,7 +45,7 @@ class CloudServiceApplyDetailSerializer(serializers.Serializer):
     nginx = NginxDetailSerializer(help_text=_("nginx服务部署信息"))
     dns = DNSDetailSerializer(help_text=_("dns服务部署信息"))
     dbha = DBHADetailSerializer(help_text=_("dbha服务部署信息"))
-    redis_dts = RedisDtsSerializer(help_text=_("redis_dts服务部署信息"))
+    redis_dts = RedisDtsSerializer(help_text=_("redis_dts服务部署信息"), required=False)
 
 
 class CloudServiceApplyFlowParamBuilder(builders.FlowParamBuilder):

@@ -100,6 +100,17 @@ echo "--------------------------pull-crond process info---------------------";
 ps -ef | grep pull-crond;
 echo "----------------------------------------------------------------";
 echo "Successfully! Pull-crond process has setup";
+
+# 增加定时拉起命令
+crontab -l > crontab_backup.txt
+command="* * * * * cd $path/bind/admin; /bin/sh check_dns_and_pull_crond.sh 1>/dev/null 2>&1"
+
+if crontab -l | grep -Fxq "$command"; then
+    echo "Scheduled pull task already exists, ignore..."
+else
+    (crontab -l ; echo "$command") | uniq - | crontab -
+    echo "Pull up task has been added to crontab。"
+fi
 """
 
 # forward_ip会在执行脚本的时候填充
@@ -110,6 +121,11 @@ error_log_path="../log/err.log"
 db_cloud_token="{{db_cloud_token}}"
 bk_dns_api_url="http://{{nginx_domain}}"
 bk_cloud_id="{{bk_cloud_id}}"
+
+data_id={{data_id}}
+access_token="{{access_token}}"
+bkmonitorbeat="{{bkmonitor_beat_path}}"
+agent_address="{{agent_address}}"
 
 interval="3"
 flush_switch="true"
