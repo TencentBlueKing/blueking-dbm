@@ -31,9 +31,9 @@ agent_conf:
   fetch_interval: 60
   reporter_interval: 120
 gm_conf:
-  city_id: "{{city}}"
+  city_id: {{city}}
   campus: "{{campus}}"
-  cloud_id: "{{cloud}}"
+  cloud_id: {{cloud}}
   liston_port: 50000
   report_interval: 60
   GDM:
