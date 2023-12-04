@@ -79,7 +79,7 @@ class Spec(AuditedModel):
     def get_apply_params_detail(self, group_mark, count, bk_cloud_id, affinity=AffinityEnum.NONE, location_spec=None):
         # 获取资源申请的detail过程，暂时忽略亲和性和位置参数过滤
         spec_offset = SystemSettings.get_setting_value(SystemSettingsEnum.SPEC_OFFSET)
-        return {
+        apply_params = {
             "group_mark": group_mark,
             "bk_cloud_id": bk_cloud_id,
             "device_class": self.device_class,
@@ -103,8 +103,11 @@ class Spec(AuditedModel):
             ],
             "count": count,
             "affinity": affinity,
-            "location_spec": location_spec,
         }
+        if location_spec:
+            apply_params["location_spec"] = location_spec
+
+        return apply_params
 
     def get_backend_group_apply_params_detail(self, bk_cloud_id, backend_group):
         # 专属于后端：如果一组master/slave有特殊要求，则采用backend_group申请
