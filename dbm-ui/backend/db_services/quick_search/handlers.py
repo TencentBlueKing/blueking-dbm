@@ -173,7 +173,7 @@ class QSearchHandler(object):
             )
 
             cluster_info = {"cluster_id": None, "cluster_domain": None}
-            if cluster:
+            if cluster.exists():
                 cluster_info.update(
                     {"cluster_id": cluster.first().id, "cluster_domain": cluster.first().immute_domain}
                 )
