@@ -367,14 +367,14 @@ class MySQLController(BaseController):
         """
         主从成对迁移flow编排
         """
-        flow = MySQLMigrateClusterFlow(root_id=self.root_id, data=self.ticket_data)
+        flow = MySQLMigrateClusterFlow(root_id=self.root_id, ticket_data=self.ticket_data)
         flow.deploy_migrate_cluster_flow()
 
     def mysql_migrate_remote_scene(self):
         """
         主从成对迁移flow编排
         """
-        flow = MySQLMigrateClusterRemoteFlow(root_id=self.root_id, data=self.ticket_data)
+        flow = MySQLMigrateClusterRemoteFlow(root_id=self.root_id, ticket_data=self.ticket_data)
         flow.migrate_cluster_flow()
 
     def mysql_ha_db_table_backup_scene(self):
