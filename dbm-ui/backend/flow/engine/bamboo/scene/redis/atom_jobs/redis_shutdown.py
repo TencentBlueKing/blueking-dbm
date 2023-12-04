@@ -31,9 +31,7 @@ from backend.ticket.constants import TicketType
 logger = logging.getLogger("flow")
 
 
-def RedisBatchShutdownAtomJob(
-    root_id, ticket_data, sub_kwargs: ActKwargs, shutdown_param: Dict, force: bool = False
-) -> SubBuilder:
+def RedisBatchShutdownAtomJob(root_id, ticket_data, sub_kwargs: ActKwargs, shutdown_param: Dict) -> SubBuilder:
     """
     SubBuilder: Redis卸载原籽任务 「暂时是整机卸载」800
     TODO 需要支持部分实例下架（扩缩容场景）
@@ -43,6 +41,7 @@ def RedisBatchShutdownAtomJob(
             "ignore_ips":["xxx.1.2.3"],
             "ip":"1.1.1.x",
             "ports":[],
+            "force_shutdown":False,
         }
     """
     sub_pipeline = SubBuilder(root_id=root_id, data=ticket_data)
@@ -63,7 +62,7 @@ def RedisBatchShutdownAtomJob(
     act_kwargs.cluster["exec_ip"] = exec_ip
     act_kwargs.cluster["ports"] = shutdown_param["ports"]
     act_kwargs.cluster["monitor_time_ms"] = DEFAULT_MONITOR_TIME
-    act_kwargs.cluster["ignore_req"] = force
+    act_kwargs.cluster["ignore_req"] = shutdown_param.get("force_shutdown", False)
     act_kwargs.cluster["ignore_keys"] = DEFAULT_REDIS_SYSTEM_CMDS
     # act_kwargs.cluster["ignore_keys"].extend(shutdown_param["ignore_ips"])
     act_kwargs.get_redis_payload_func = RedisActPayload.redis_capturer_4_scene.__name__
@@ -105,6 +104,7 @@ def RedisBatchShutdownAtomJob(
     # 下架实例
     act_kwargs.exec_ip = exec_ip
     act_kwargs.cluster["exec_ip"] = exec_ip
+    act_kwargs.cluster["force_shutdown"] = shutdown_param.get("force_shutdown", False)
     act_kwargs.cluster["shutdown_ports"] = shutdown_param["ports"]
     act_kwargs.get_redis_payload_func = RedisActPayload.redis_shutdown_4_scene.__name__
     sub_pipeline.add_act(
