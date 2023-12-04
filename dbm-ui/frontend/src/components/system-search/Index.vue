@@ -1,12 +1,13 @@
 <template>
   <div
     ref="rootRef"
-    class="system-search"
+    class="dbm-system-search"
     data-role="db-system-search"
     :style="styles"
     v-bind="$attrs">
     <BkInput
       v-model="serach"
+      class="search-input"
       clearable
       :placeholder="t('请输入关键字')"
       type="search"
@@ -68,7 +69,7 @@
       const { width } = rootRef.value!.getBoundingClientRect();
       if (tippyIns) {
         popContentStyle.value = {
-          width: `${width}px`,
+          width: `${Math.max(width, 600)}px`,
         };
         tippyIns.show();
       }
@@ -130,11 +131,31 @@
   });
 </script>
 <style lang="less">
-  .system-search {
+  .dbm-system-search {
     display: block;
     width: 380px;
     transition: all .1s;
     flex: 1;
+
+    .search-input{
+      overflow: hidden;
+      border: 1px solid transparent;
+      border-radius: 2px;
+
+      .bk-input--text,
+      .bk-input--suffix-icon{
+        background: #303D55;
+        border-radius: none;
+      }
+
+      .bk-input--text{
+        color: #fff;
+
+        &::placeholder{
+          color: #929BB2;
+        }
+      }
+    }
   }
 
   [data-tippy-root] .tippy-box[data-theme~="system-search-popover-theme"]{

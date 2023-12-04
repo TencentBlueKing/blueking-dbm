@@ -13,9 +13,10 @@
 
 <template>
   <div
+    v-if="name"
     ref="rootRef"
     class="db-skeleton-loading">
-    <component
+    <Component
       :is="renderCom"
       v-if="realLoading && maxWidth"
       class="skeleton-loading-mask"
@@ -30,6 +31,7 @@
       <slot />
     </div>
   </div>
+  <slot v-else />
 </template>
 <script setup lang="ts">
   import {
@@ -41,13 +43,14 @@
   import ClusterList from './components/ClusterList.vue';
 
   interface Props {
-    name: string;
+    name?: string;
     loading: boolean;
     once?: boolean;
     fullscreen?:boolean
   }
 
   const props = withDefaults(defineProps<Props>(), {
+    name: undefined,
     loading: true,
     once: true,
     fullscreen: false,
@@ -61,7 +64,7 @@
   const maxWidth = ref(0);
   const realLoading = ref(true);
 
-  const renderCom = comMap[props.name as keyof typeof comMap];
+  const renderCom = computed(() => (props.name ? comMap[props.name as keyof typeof comMap] : 'div'));
 
   const unwatch = watch(() => props.loading, (loading: boolean) => {
     if (loading) {

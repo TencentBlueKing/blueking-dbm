@@ -5,7 +5,7 @@
       'active': isActive
     }"
     @click="handleClick">
-    <DbIcon type="youjian" />
+    <DbIcon type="pc" />
   </div>
 </template>
 <script setup lang="ts">

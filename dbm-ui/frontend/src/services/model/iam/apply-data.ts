@@ -1,34 +1,17 @@
 /*
-  TencentBlueKing is pleased to support the open source community by making
-  蓝鲸智云 - 审计中心 (BlueKing - Audit Center) available.
-  Copyright (C) 2023 THL A29 Limited,
-  a Tencent company. All rights reserved.
-  Licensed under the MIT License (the "License");
-  you may not use this file except in compliance with the License.
-  You may obtain a copy of the License at http://opensource.org/licenses/MIT
-  Unless required by applicable law or agreed to in writing,
-  software distributed under the License is distributed on
-  an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
-  either express or implied. See the License for the
-  specific language governing permissions and limitations under the License.
-  We undertake not to change the open source license (MIT license) applicable
-  to the current version of the project delivered to anyone in the future.
+ * TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
+ *
+ * Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
+ *
+ * Licensed under the MIT License (the "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at https://opensource.org/licenses/MIT
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
+ * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
+ * the specific language governing permissions and limitations under the License.
 */
-import _ from 'lodash';
 
-interface IInstance {
-  type: string,
-  type_name: string,
-  id: string,
-  name: string,
-}
-interface IRelatedResourceType {
-  system_id: string,
-  system_name: string,
-  type: string,
-  type_name: string,
-  instances: Array<Array<IInstance>>
-}
+import _ from 'lodash';
 
 type IRenderPermissionList = Array<{
   systemName: string,
@@ -47,7 +30,18 @@ export default class ApplyData {
     actions: Array<{
       id: string,
       name: string,
-      related_resource_types: Array<IRelatedResourceType>
+      related_resource_types: {
+        system_id: string,
+        system_name: string,
+        type: string,
+        type_name: string,
+        instances: {
+          type: string,
+          type_name: string,
+          id: string,
+          name: string,
+        }[][]
+      }[]
     }>
   };
 

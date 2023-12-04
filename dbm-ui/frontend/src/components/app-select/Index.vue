@@ -26,6 +26,8 @@
 
   import AppSelect from '@blueking/app-select';
 
+  import '@blueking/app-select/dist/style.css';
+
   type IAppItem = ServiceReturnType<typeof getBizs>[number]
 
   const route = useRoute();

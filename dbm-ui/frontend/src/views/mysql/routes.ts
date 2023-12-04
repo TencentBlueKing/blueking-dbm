@@ -165,6 +165,7 @@ const singleRoutes: RouteRecordRaw[] = [
     meta: {
       navName: t('MySQL单节点_集群管理'),
       fullscreen: true,
+      skeleton: 'clusterList',
     },
     component: () => import('@views/mysql/single-cluster-list/Index.vue'),
   },
@@ -177,6 +178,7 @@ const haRoutes: RouteRecordRaw[] = [
     meta: {
       navName: t('MySQL主从集群_集群管理'),
       fullscreen: true,
+      skeleton: 'clusterList',
     },
     component: () => import('@views/mysql/ha-cluster-list/Index.vue'),
   },
@@ -186,6 +188,7 @@ const haRoutes: RouteRecordRaw[] = [
     meta: {
       navName: t('MySQL主从集群_实例视图'),
       fullscreen: true,
+      skeleton: 'clusterList',
     },
     component: () => import('@views/mysql/ha-instance-list/Index.vue'),
   },
@@ -201,6 +204,7 @@ const mysqlToolboxRouters: RouteRecordRaw[] = [
     meta: {
       navName: t('工具箱'),
       fullscreen: true,
+
     },
     component: () => import('@views/mysql/toolbox/index.vue'),
     children: mysqlToolboxChildrenRouters,

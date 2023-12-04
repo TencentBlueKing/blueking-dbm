@@ -48,6 +48,7 @@
     <template #content-header>
       <RouterBack />
     </template>
+    <!-- <DbRouterView /> -->
     <RouterView />
   </Layout>
   <SystemVersionLog v-model:is-show="isShowSystemVersionLog" />
@@ -65,6 +66,7 @@
 
   import { useUserProfile } from '@stores';
 
+  // import DbRouterView from '@components/db-router-view/Index.vue';
   import LocaleSwitch from '@components/locale-switch/Index.vue';
   import RouterBack from '@components/router-back/Index.vue';
   import SystemSearch from '@components/system-search/Index.vue';
