@@ -329,6 +329,9 @@ func GetPassword(user string, multiPsw MultiPsw, mysqlVersion, ip string, addres
 		if pswResp.Psw == multiPsw.OldPsw {
 			pswResp.PwdType = "mysql_old_password"
 			return pswResp, nil
+		} else if multiPsw.OldPsw == "" {
+			return pswResp, fmt.Errorf("账号(%s@%s)在%s已存在，从旧系统迁移的部分帐号不支持old_password密码。%s",
+				user, ip, address, tipsForProxyIP)
 		}
 	case pswLen == 70:
 		// caching_sha2_password 生成的密码是动态变化的

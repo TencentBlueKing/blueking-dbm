@@ -1,7 +1,6 @@
 package service
 
 import (
-	"encoding/base64"
 	"fmt"
 	"io/ioutil"
 	"log/slog"
@@ -46,28 +45,29 @@ func (m *AccountPara) AddAccount(jsonPara string) error {
 	if count != 0 {
 		return errno.AccountExisted.AddBefore(m.User)
 	}
-	if !m.MigrateFlag {
+	if m.MigrateFlag {
+		psw = m.Psw
+	} else {
+		// 页面创建的帐号解码
 		psw, err = DecryptPsw(m.Psw)
 		if err != nil {
 			slog.Error("msg", "decrypt psw error", err)
 			return fmt.Errorf("decrypt psw error: %s", err.Error())
 		}
-	} else {
-		plain, err := base64.StdEncoding.DecodeString(m.Psw)
-		if err != nil {
-			slog.Error("msg", "base64 decode error", err)
-			return fmt.Errorf("base64 decode error: %s", err.Error())
-		}
-		psw = string(plain)
 	}
 
-	if psw == m.User {
+	// 从旧系统迁移的，不检查是否帐号和密码不同
+	if psw == m.User && !m.MigrateFlag {
 		return errno.PasswordConsistentWithAccountName
 	}
-
-	psw, err = EncryptPswInDb(psw)
-	if err != nil {
-		return err
+	// 从旧系统迁移的，存储的密码为mysql password()允许迁移，old_password()已过滤不迁移
+	if m.PasswordFunc {
+		psw = fmt.Sprintf(`{"old_psw":"","psw":"%s"}`, psw)
+	} else {
+		psw, err = EncryptPswInDb(psw)
+		if err != nil {
+			return err
+		}
 	}
 	insertTime = util.NowTimeFormat()
 	account = &TbAccounts{BkBizId: m.BkBizId, ClusterType: *m.ClusterType, User: m.User, Psw: psw, Creator: m.Operator,

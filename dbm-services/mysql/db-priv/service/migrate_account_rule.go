@@ -1,58 +1,12 @@
 package service
 
 import (
-	"encoding/base64"
-	"encoding/json"
 	"fmt"
 	"log/slog"
-	"strconv"
 	"strings"
 
 	"dbm-services/mysql/priv-service/util"
 )
-
-var GcsDb *Database
-
-type Count struct {
-	AppUser
-	Dbname string `json:"dbname" gorm:"column:dbname"`
-	Cnt    int64  `json:"cnt" gorm:"column:cnt"`
-}
-
-type AppUser struct {
-	App  string `json:"app" gorm:"column:app"`
-	User string `json:"user" gorm:"column:user"`
-}
-
-// PrivModule scr、gcs账号规则的结构
-type PrivModule struct {
-	Uid        int64  `json:"uid" gorm:"column:uid"`
-	App        string `json:"app" gorm:"column:app"`
-	DbModule   string `json:"db_module" gorm:"column:db_module"`
-	Module     string `json:"module" gorm:"column:module"`
-	User       string `json:"user" gorm:"column:user"`
-	Dbname     string `json:"dbname" gorm:"column:dbname"`
-	Psw        string `json:"psw" gorm:"column:psw"`
-	Privileges string `json:"privileges" gorm:"column:privileges"`
-	Comment    string `json:"comment"  gorm:"column:comment"`
-}
-
-// MigratePara 迁移帐号规则的入参
-type MigratePara struct {
-	GcsDb DbConf `json:"gcs_db"`
-	Apps  string `json:"apps" `
-	Key   string `json:"key"`
-	Mode  string `json:"mode"`
-}
-
-// DbConf 帐号规则所在数据库的配置
-type DbConf struct {
-	User string `json:"user"`
-	Psw  string `json:"password"`
-	Name string `json:"name"`
-	Host string `json:"host"`
-	Port string `json:"port"`
-}
 
 // MigrateAccountRule 迁移帐号规则
 func (m *MigratePara) MigrateAccountRule() error {
@@ -69,7 +23,7 @@ func (m *MigratePara) MigrateAccountRule() error {
 	GcsDb = &Database{
 		Self: openDB(m.GcsDb.User, m.GcsDb.Psw, fmt.Sprintf("%s:%s", m.GcsDb.Host, m.GcsDb.Port), m.GcsDb.Name),
 	}
-	defer GcsDb.Close()
+	defer GcsDb.Self.Close()
 	// 检查scr、gcs中的账号规则
 	pass := CheckOldPriv(m.Key, appWhere, &exclude)
 	notPassTips := "some check not pass, please check logs"
@@ -92,7 +46,7 @@ func (m *MigratePara) MigrateAccountRule() error {
 			slog.Info(passTips)
 		}
 	} else if m.Mode == "force-run" {
-		// 检查不通过，剔除不能迁移的帐号规则，迁移剩余的账号规则
+		// 检查不通过，剔除不能迁移的帐号以及其规则，迁移剩余的账号规则
 		if !pass {
 			slog.Warn(fmt.Sprintf("%s, but force run", notPassTips))
 			slog.Warn("user can not be migrated", "users", exclude)
@@ -104,12 +58,11 @@ func (m *MigratePara) MigrateAccountRule() error {
 	// 获取需要迁移的scr、gcs中的账号规则
 	// db_module为spider_master/spider_slave属于spider的权限规则，
 	// 其他不明确的，同时迁移到mysql和spider下
-	mysqlUids, uids, err := FilterMigratePriv(appWhere, &exclude)
+	mysqlUids, uids, exUids, err := FilterMigratePriv(appWhere, &exclude)
 	if err != nil {
 		slog.Error("FilterMigratePriv", "err", err)
 		return fmt.Errorf("FilterMigratePriv error: %s", err.Error())
 	}
-
 	// 获取需要迁移的权限账号
 	mysqlUsers, err := GetUsers(m.Key, mysqlUids)
 	if err != nil {
@@ -124,6 +77,7 @@ func (m *MigratePara) MigrateAccountRule() error {
 	}
 
 	// 迁移账号
+	// 遇到帐号迁移失败就终止
 	err = DoAddAccounts(apps, allUsers, tendbcluster)
 	if err != nil {
 		slog.Error("DoAddAccounts", err)
@@ -150,15 +104,19 @@ func (m *MigratePara) MigrateAccountRule() error {
 	}
 
 	// 迁移账号规则
+	// 遇到迁移失败的规则，提示并且跳过，继续迁移
+	var ruleFail bool
 	for _, rule := range mysqlRules {
 		priv, errInner := FormatPriv(rule.Privileges)
 		if errInner != nil {
-			slog.Error("format privileges", rule.Privileges, errInner)
+			slog.Error("format privileges error", rule.Privileges, errInner, "rule", rule)
+			ruleFail = true
 			continue
 		}
 		errInner = DoAddAccountRule(rule, apps, "mysql", priv)
 		if errInner != nil {
-			slog.Error("AddAccountAndRule error", rule, errInner)
+			slog.Error("add account rule error", rule, errInner, "rule", rule)
+			ruleFail = true
 		}
 	}
 
@@ -167,18 +125,34 @@ func (m *MigratePara) MigrateAccountRule() error {
 		priv, errInner := FormatPriv(rule.Privileges)
 		if errInner != nil {
 			slog.Error("format privileges", rule.Privileges, errInner)
+			ruleFail = true
 			continue
 		}
 		// 添加帐号
 		errInner = DoAddAccountRule(rule, apps, "tendbcluster", priv)
 		if errInner != nil {
-			slog.Error("AddAccountAndRule error", rule, errInner)
+			slog.Error("add account rule error", rule, errInner, "rule", rule)
+			ruleFail = true
 		}
 	}
-	slog.Info("migrate account rule success")
-	if m.Mode == "force-run" {
-		return fmt.Errorf("force-run ")
+	// 经过检查不能迁移
+	tipsCannotMigrate := "some accounts and rules belonging to them can't be migrated"
+	// 可以迁移但是迁移失败
+	tipsMigrateFail := "some rules migrate failed"
+	tipsCheckLog := "check log"
+
+	if m.Mode == "force-run" && len(exclude) > 0 {
+		slog.Error("users can't be migrated", "users", exclude)
+		slog.Error("rules can't be migrated", "uids in gcs", exUids)
+		if ruleFail {
+			return fmt.Errorf("force-run mode, %s, %s, %s", tipsCannotMigrate, tipsMigrateFail, tipsCheckLog)
+		}
+		return fmt.Errorf("force-run mode, %s，%s", tipsCannotMigrate, tipsCheckLog)
 	}
+	if ruleFail {
+		return fmt.Errorf("%s, %s", tipsMigrateFail, tipsCheckLog)
+	}
+	slog.Info("migrate account rule success")
 	return nil
 }
 
@@ -215,308 +189,13 @@ func (m *MigratePara) CheckPara() (map[string]int64, error) {
 func CheckOldPriv(key, appWhere string, exclude *[]AppUser) bool {
 	err1 := CheckDifferentPasswordsForOneUser(key, appWhere, exclude)
 	err2 := CheckEmptyPassword(key, appWhere, exclude)
-	err3 := CheckPasswordConsistentWithUser(key, appWhere, exclude)
-	err4 := CheckDifferentPrivileges(appWhere, exclude)
+	// 如果原本的用户名与密码相同允许创建，dbm兼容
+	// err3 := CheckPasswordConsistentWithUser(key, appWhere, exclude)
+	err3 := CheckPasswordMaybeOldPassword(key, appWhere, exclude)
+	err4 := CheckDifferentPrivileges(appWhere)
 	err5 := CheckPrivilegesFormat(appWhere, exclude)
 	if err1 != nil || err2 != nil || err3 != nil || err4 != nil || err5 != nil {
 		return false
 	}
 	return true
-}
-
-// CheckDifferentPasswordsForOneUser 不同帐号规则中帐号的密码不同
-func CheckDifferentPasswordsForOneUser(key, appWhere string, exclude *[]AppUser) error {
-	slog.Info("check 1: different passwords for one user")
-	count := make([]*Count, 0)
-	vsql := fmt.Sprintf("select app,user,count(distinct(AES_DECRYPT(psw,'%s'))) as cnt "+
-		" from tb_app_priv_module where app in (%s) group by app,user order by 1,2", key, appWhere)
-	err := GcsDb.Self.Debug().Raw(vsql).Scan(&count).Error
-	if err != nil {
-		slog.Error(vsql, "execute error", err)
-		return err
-	}
-
-	check1 := make([]string, 0)
-	for _, distinct := range count {
-		if distinct.Cnt > 1 {
-			check1 = append(check1,
-				fmt.Sprintf("%s    %s     %d",
-					distinct.App, distinct.User, distinct.Cnt))
-			*exclude = append(*exclude, AppUser{distinct.App, distinct.User})
-		}
-	}
-	if len(check1) > 0 {
-		msg := "app:    user:     different_passwords_count:"
-		msg = fmt.Sprintf("\n%s\n%s", msg, strings.Join(check1, "\n"))
-		slog.Error(msg)
-		slog.Error("[ check 1 Fail ]")
-		return fmt.Errorf("different passwords for one user")
-	} else {
-		slog.Info("[ check 1 Success ]")
-	}
-	return nil
-}
-
-// CheckEmptyPassword 密码不能为空
-func CheckEmptyPassword(key, appWhere string, exclude *[]AppUser) error {
-	vsql := fmt.Sprintf("select distinct app,user "+
-		" from tb_app_priv_module where app in (%s) and psw=AES_ENCRYPT('','%s');", appWhere, key)
-	slog.Info("check 2: empty password")
-	err := CheckPasswordValue(vsql, exclude, 2)
-	if err != nil {
-		slog.Error("CheckPassword", "error", err)
-		return err
-	}
-	return nil
-}
-
-// CheckPasswordConsistentWithUser 用户名与密码不能相同
-func CheckPasswordConsistentWithUser(key, appWhere string, exclude *[]AppUser) error {
-	vsql := fmt.Sprintf("select distinct app,user "+
-		" from tb_app_priv_module where app in (%s) and user=AES_DECRYPT(psw,'%s');", appWhere, key)
-	slog.Info("check 3: password consistent with user")
-	err := CheckPasswordValue(vsql, exclude, 3)
-	if err != nil {
-		slog.Error("CheckPassword", "error", err)
-		return err
-	}
-	return nil
-}
-
-// CheckPasswordValue 检查账户的密码
-func CheckPasswordValue(vsql string, exclude *[]AppUser, round int) error {
-	psw := make([]*PrivModule, 0)
-	err := GcsDb.Self.Debug().Raw(vsql).Scan(&psw).Error
-	if err != nil {
-		slog.Error(vsql, "execute error", err)
-		return err
-	}
-	if len(psw) > 0 {
-		msg := fmt.Sprintf("app:    user: ")
-		for _, user := range psw {
-			*exclude = append(*exclude, AppUser{user.App, user.User})
-			msg = fmt.Sprintf("%s\n%s    %s", msg, user.App, user.User)
-		}
-		slog.Error(msg)
-		slog.Error(fmt.Sprintf("[ check %d Fail ]", round))
-		return fmt.Errorf("password check fail")
-	} else {
-		slog.Info(fmt.Sprintf("[ check %d Success ]", round))
-	}
-	return nil
-}
-
-// CheckDifferentPrivileges 同账号有不同的权限范围
-func CheckDifferentPrivileges(appWhere string, exclude *[]AppUser) error {
-	slog.Info("check 4: different privileges for [app user dbname]")
-	vsql := fmt.Sprintf("select app,user,dbname,count(distinct(privileges)) as cnt "+
-		" from tb_app_priv_module where app in (%s) group by app,user,dbname order by 1,2,3", appWhere)
-	count := make([]*Count, 0)
-	err := GcsDb.Self.Debug().Raw(vsql).Scan(&count).Error
-	if err != nil {
-		slog.Error(vsql, "execute error", err)
-		return err
-	}
-	check := make([]string, 0)
-	for _, distinct := range count {
-		if distinct.Cnt > 1 {
-			check = append(check,
-				fmt.Sprintf("%s    %s     %s     %d",
-					distinct.App, distinct.User, distinct.Dbname, distinct.Cnt))
-			*exclude = append(*exclude, AppUser{distinct.App, distinct.User})
-		}
-	}
-	if len(check) > 0 {
-		msg := "app:    user:     dbname:     different_privileges_count:"
-		msg = fmt.Sprintf("\n%s\n%s", msg, strings.Join(check, "\n"))
-		slog.Error(msg)
-		slog.Error("[ check 4 Fail ]")
-		return fmt.Errorf("different privileges")
-	} else {
-		slog.Info("[ check 4 Success ]")
-	}
-	return nil
-}
-
-func CheckPrivilegesFormat(appWhere string, exclude *[]AppUser) error {
-	UniqMap := make(map[string]struct{})
-	privPass := true
-	slog.Info("check 5: check privileges format")
-	vsql := fmt.Sprintf("select uid,app,user,privileges "+
-		" from tb_app_priv_module where app in (%s)", appWhere)
-	rules := make([]*PrivModule, 0)
-	err := GcsDb.Self.Debug().Raw(vsql).Scan(&rules).Error
-	if err != nil {
-		slog.Error(vsql, "execute error", err)
-		return err
-	}
-	// 找出需要过滤的app+user
-	for _, rule := range rules {
-		_, err = FormatPriv(rule.Privileges)
-		if err != nil {
-			privPass = false
-			slog.Error("msg", "uid", rule.Uid, "app", rule.App, "user", rule.User, "privileges", rule.Privileges, "error", err)
-		}
-		s := fmt.Sprintf("%s|%s", rule.App, rule.User)
-		// 去重
-		if _, isExists := UniqMap[s]; isExists == true {
-			continue
-		}
-		UniqMap[s] = struct{}{}
-		*exclude = append(*exclude, AppUser{rule.App, rule.User})
-	}
-	if !privPass {
-		slog.Error("[ check 5 Fail ]")
-		return fmt.Errorf("wrong privileges")
-	} else {
-		slog.Info("[ check 5 Success ]")
-	}
-	return nil
-}
-
-// FilterMigratePriv 过滤不能迁移的帐号规则
-func FilterMigratePriv(appWhere string, exclude *[]AppUser) ([]string, []string, error) {
-	all := make([]*PrivModule, 0)
-	uids := make([]string, 0)
-	mysqlUids := make([]string, 0)
-	// 获取所有的帐号规则
-	vsql := fmt.Sprintf("select uid,app,db_module,user "+
-		" from tb_app_priv_module where app in (%s);", appWhere)
-	err := GcsDb.Self.Debug().Raw(vsql).Scan(&all).Error
-	if err != nil {
-		slog.Error(vsql, "execute error", err)
-		return mysqlUids, uids, err
-	}
-
-	for _, module := range all {
-		var excludeFlag bool
-		// 剔除不能迁移的帐号规则
-		for _, v := range *exclude {
-			if module.App == v.App && module.User == v.User {
-				excludeFlag = true
-				break
-			}
-		}
-		if excludeFlag == false {
-			suid := strconv.FormatInt(module.Uid, 10)
-			uids = append(uids, suid)
-			// gcs spider_master 、spider_slave 的帐号规则不被添加到dbm tendbha的帐号规则中
-			if module.DbModule != "spider_master" && module.DbModule != "spider_slave" {
-				mysqlUids = append(mysqlUids, suid)
-			}
-		}
-	}
-	if len(uids) == 0 {
-		slog.Warn("no rule should be migrated")
-	}
-	return mysqlUids, uids, err
-}
-
-// GetUsers 获取帐号
-func GetUsers(key string, uids []string) ([]*PrivModule, error) {
-	users := make([]*PrivModule, 0)
-	// 从帐号规则中提取帐号信息
-	vsql := fmt.Sprintf("select distinct app,user,AES_DECRYPT(psw,'%s') as psw"+
-		" from tb_app_priv_module where uid in (%s);",
-		key, strings.Join(uids, ","))
-	err := GcsDb.Self.Debug().Raw(vsql).Scan(&users).Error
-	if err != nil {
-		slog.Error(vsql, "execute error", err)
-		return users, err
-	}
-	return users, nil
-}
-
-// GetRules 获取规则
-func GetRules(uids []string) ([]*PrivModule, error) {
-	users := make([]*PrivModule, 0)
-	vsql := fmt.Sprintf("select distinct app,user,privileges,dbname "+
-		" from tb_app_priv_module where uid in (%s);", strings.Join(uids, ","))
-	err := GcsDb.Self.Debug().Raw(vsql).Scan(&users).Error
-	if err != nil {
-		slog.Error(vsql, "execute error", err)
-		return users, err
-	}
-	return users, nil
-}
-
-// FormatPriv 格式化权限
-// SELECT,INSERT,UPDATE,DELETE 转换为 {"dml":"select,update","ddl":"create","global":"REPLICATION SLAVE"}
-func FormatPriv(source string) (map[string]string, error) {
-	target := make(map[string]string, 4)
-	if source == "" {
-		return target, fmt.Errorf("privilege is null")
-	}
-	source = strings.ToLower(source)
-	privs := strings.Split(source, ",")
-	var dml, ddl, global []string
-	var allPrivileges bool
-	for _, p := range privs {
-		p = strings.TrimPrefix(p, " ")
-		p = strings.TrimSuffix(p, " ")
-		// dml权限
-		if p == "select" || p == "insert" || p == "update" || p == "delete" {
-			dml = append(dml, p)
-			// ddl权限
-		} else if p == "create" || p == "alter" || p == "drop" || p == "index" || p == "execute" || p == "create view" {
-			ddl = append(ddl, p)
-			// global 权限
-		} else if p == "file" || p == "trigger" || p == "event" || p == "create routine" || p == "alter routine" ||
-			p == "replication client" || p == "replication slave" {
-			global = append(global, p)
-			// global 权限
-		} else if p == "all privileges" {
-			global = append(global, p)
-			allPrivileges = true
-		} else {
-			return target, fmt.Errorf("privilege: %s not allowed", p)
-		}
-	}
-	// allPrivileges 与其他权限互斥
-	if allPrivileges && (len(global) > 1 || len(dml) > 0 || len(ddl) > 0) {
-		return target, fmt.Errorf("[all privileges] should not be granted with others")
-	}
-	target["dml"] = strings.Join(dml, ",")
-	target["ddl"] = strings.Join(ddl, ",")
-	target["global"] = strings.Join(global, ",")
-	return target, nil
-}
-
-// DoAddAccounts 创建帐号
-func DoAddAccounts(apps map[string]int64, users []*PrivModule, clusterType string) error {
-	for _, user := range users {
-		psw := base64.StdEncoding.EncodeToString([]byte(user.Psw))
-		account := AccountPara{BkBizId: apps[user.App], User: user.User,
-			Psw: psw, Operator: "migrate", ClusterType: &clusterType, MigrateFlag: true}
-		log, _ := json.Marshal(account)
-		// 添加帐号
-		err := account.AddAccount(string(log))
-		if err != nil {
-			slog.Error("add account error", account, err)
-			return err
-		}
-	}
-	return nil
-}
-
-// DoAddAccountRule 创建帐号规则
-func DoAddAccountRule(rule *PrivModule, apps map[string]int64, clusterType string, priv map[string]string) error {
-	account := AccountPara{BkBizId: apps[rule.App], User: rule.User, ClusterType: &clusterType}
-	items, cnt, err := account.GetAccount()
-	if err != nil {
-		return fmt.Errorf("add rule failed when get account: %s", err.Error())
-	}
-	if cnt == 0 {
-		slog.Error("msg", "account query nothing return", account)
-		return fmt.Errorf("account not found")
-	}
-	rulePara := AccountRulePara{BkBizId: apps[rule.App], ClusterType: &clusterType, AccountId: items[0].Id,
-		Dbname: rule.Dbname, Priv: priv, Operator: "migrate"}
-	log, _ := json.Marshal(rulePara)
-	// 添加帐号规则
-	err = rulePara.AddAccountRule(string(log))
-	if err != nil {
-		return fmt.Errorf("add rule failed: %s", err.Error())
-	}
-	return nil
 }
