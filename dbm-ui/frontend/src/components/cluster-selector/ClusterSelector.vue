@@ -135,7 +135,7 @@
                 @page-limit-change="handleTableLimitChange"
                 @page-value-change="handleTablePageChange"
                 @refresh="fetchResources"
-                @row-click.stop="handleRowClick" />
+                @row-click.stop.prevent="handleRowClick" />
             </BkLoading>
           </div>
         </div>
@@ -263,7 +263,6 @@
         key={`${state.pagination.current}_${state.activeTab}`}
         model-value={state.isSelectedAll}
         label={true}
-        onClick={(e: Event) => e.stopPropagation()}
         onChange={handleSelectedAll}
       />
     ),
@@ -272,7 +271,6 @@
         style="vertical-align: middle;"
         model-value={selectedDomains.value.includes(data.master_domain)}
         label={true}
-        onClick={(e: Event) => e.stopPropagation()}
         onChange={handleSelected.bind(null, data)}
       />
     ),
