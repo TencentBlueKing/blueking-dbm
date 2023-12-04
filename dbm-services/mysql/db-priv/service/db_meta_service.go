@@ -74,13 +74,14 @@ GetAllClustersInfo 获取业务下所有集群信息
 */
 func GetAllClustersInfo(c *util.Client, id BkBizIdPara) ([]Cluster, error) {
 	var resp []Cluster
-	result, err := c.Do(http.MethodGet, "/db_meta/priv_manager/biz_clusters", id)
+	url := "/apis/proxypass/dbmeta/priv_manager/biz_clusters/"
+	result, err := c.Do(http.MethodPost, url, id)
 	if err != nil {
-		slog.Error("priv_manager/biz_clusters", err)
+		slog.Error("msg", url, err)
 		return resp, err
 	}
-	if err := json.Unmarshal(result.Data, &resp); err != nil {
-		slog.Error("/db_meta/priv_manager/biz_clusters", err)
+	if err = json.Unmarshal(result.Data, &resp); err != nil {
+		slog.Error("msg", url, err)
 		return resp, err
 	}
 	return resp, nil
@@ -89,13 +90,14 @@ func GetAllClustersInfo(c *util.Client, id BkBizIdPara) ([]Cluster, error) {
 // GetCluster 根据域名获取集群信息
 func GetCluster(c *util.Client, ClusterType string, dns Domain) (Instance, error) {
 	var resp Instance
-	url := fmt.Sprintf("/db_meta/priv_manager/%s/cluster_instances", ClusterType)
-	result, err := c.Do(http.MethodGet, url, dns)
+	url := fmt.Sprintf("/apis/proxypass/dbmeta/priv_manager/%s/cluster_instances/", ClusterType)
+	result, err := c.Do(http.MethodPost, url, dns)
 	if err != nil {
-		slog.Error(url, err)
+		slog.Error("msg", url, err)
 		return resp, errno.DomainNotExists.Add(fmt.Sprintf(" %s: %s", dns.EntryName, err.Error()))
 	}
-	if err := json.Unmarshal(result.Data, &resp); err != nil {
+	if err = json.Unmarshal(result.Data, &resp); err != nil {
+		slog.Error("msg", url, err)
 		return resp, err
 	}
 	return resp, nil

@@ -37,13 +37,14 @@ type MultiPsw struct {
 
 // AccountPara GetAccount、AddAccount、ModifyAccountPassword、DeleteAccount函数的入参
 type AccountPara struct {
-	Id          int64   `json:"id"`
-	BkBizId     int64   `json:"bk_biz_id"`
-	User        string  `json:"user"`
-	Psw         string  `json:"psw"`
-	Operator    string  `json:"operator"`
-	ClusterType *string `json:"cluster_type" `
-	MigrateFlag bool    `json:"migrate_flag"`
+	Id           int64   `json:"id"`
+	BkBizId      int64   `json:"bk_biz_id"`
+	User         string  `json:"user"`
+	Psw          string  `json:"psw"`
+	Operator     string  `json:"operator"`
+	ClusterType  *string `json:"cluster_type" `
+	MigrateFlag  bool    `json:"migrate_flag"`
+	PasswordFunc bool    `json:"password_func"`
 }
 
 // PrivLog 记录权限相关接口的调用日志

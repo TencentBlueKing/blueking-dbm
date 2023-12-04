@@ -138,13 +138,15 @@ type BkBizId struct {
 func GetCluster(dns Domain, ClusterType string) (Instance, error) {
 	c := util.NewClientByHosts(viper.GetString("db_meta_service"))
 	var resp Instance
-	url := fmt.Sprintf("/db_meta/priv_manager/%s/cluster_instances", ClusterType)
-	result, err := c.Do(http.MethodGet, url, dns)
+	url := fmt.Sprintf("/apis/proxypass/dbmeta/priv_manager/%s/cluster_instances/", ClusterType)
+	result, err := c.Do(http.MethodPost, url, dns)
 	if err != nil {
-		slog.Error(url, err)
+		slog.Error("msg", url, err)
 		return resp, errno.DomainNotExists.Add(fmt.Sprintf(" %s: %s", dns.EntryName, err.Error()))
 	}
-	if err := json.Unmarshal(result.Data, &resp); err != nil {
+	if err = json.Unmarshal(result.Data, &resp); err != nil {
+		slog.Error("msg", url, err)
+
 		return resp, err
 	}
 	return resp, nil

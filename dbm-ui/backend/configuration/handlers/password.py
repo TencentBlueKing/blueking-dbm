@@ -138,11 +138,20 @@ class DBPasswordHandler(object):
                 return MySQLPasswordRole.TDBCTL_USER.value
             if role in TenDBClusterSpiderRole.get_values():
                 return MySQLPasswordRole.SPIDER.value
-            if role in [InstanceRole.REMOTE_MASTER.value, InstanceRole.REMOTE_SLAVE.value]:
+            if role in [
+                InstanceRole.REMOTE_MASTER.value,
+                InstanceRole.REMOTE_SLAVE.value,
+                InstanceRole.REMOTE_REPEATER.value,
+            ]:
                 return MySQLPasswordRole.STORAGE.value
 
         # 映射mysql的角色
-        if role in [InstanceInnerRole.MASTER.value, InstanceInnerRole.SLAVE.value]:
+        if role in [
+            InstanceInnerRole.MASTER.value,
+            InstanceInnerRole.SLAVE.value,
+            InstanceInnerRole.REPEATER.value,
+            InstanceInnerRole.ORPHAN.value,
+        ]:
             return MySQLPasswordRole.STORAGE.value
 
         raise PasswordPolicyBaseException(_("{}-{}不存在相应的password角色").format(cluster_type, role))
