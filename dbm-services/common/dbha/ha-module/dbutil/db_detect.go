@@ -39,6 +39,7 @@ type DBInstanceInfoDetail struct {
 	Receiver         []SlaveInfo `json:"receiver"`
 	ProxyInstanceSet []ProxyInfo `json:"proxyinstance_set"`
 	BindEntry        BindEntry   `json:"bind_entry"`
+	ClusterId        int         `json:"cluster_id"`
 }
 
 // DataBaseDetect interface
@@ -55,6 +56,7 @@ type DataBaseDetect interface {
 	GetAddress() (string, int)
 	GetApp() string
 	GetCluster() string
+	GetClusterId() int
 	UpdateReporterTime()
 }
 
@@ -71,7 +73,9 @@ type BaseDetectDB struct {
 	Cluster string
 	//cluster type name
 	ClusterType string
-	SshInfo     Ssh
+	//cluster id
+	ClusterId int
+	SshInfo   Ssh
 }
 
 // BaseDetectDBResponse agent do detect and response
@@ -84,6 +88,7 @@ type BaseDetectDBResponse struct {
 	Status      string `json:"status"`
 	Cluster     string `json:"cluster"`
 	ClusterType string `json:"cluster_type"`
+	ClusterId   int    `json:"cluster_id"`
 }
 
 // Ssh detect configure
@@ -179,6 +184,11 @@ func (b *BaseDetectDB) GetApp() string {
 // GetCluster return cluster info
 func (b *BaseDetectDB) GetCluster() string {
 	return b.Cluster
+}
+
+// GetClusterId return cluster id
+func (b *BaseDetectDB) GetClusterId() int {
+	return b.ClusterId
 }
 
 // UpdateReporterTime update report info

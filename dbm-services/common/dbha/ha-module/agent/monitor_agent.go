@@ -12,11 +12,9 @@ import (
 	"dbm-services/common/dbha/ha-module/config"
 	"dbm-services/common/dbha/ha-module/constvar"
 	"dbm-services/common/dbha/ha-module/dbmodule"
-	"dbm-services/common/dbha/ha-module/dbmodule/redis"
 	"dbm-services/common/dbha/ha-module/dbutil"
 	"dbm-services/common/dbha/ha-module/log"
 	"dbm-services/common/dbha/ha-module/monitor"
-	"dbm-services/common/dbha/ha-module/types"
 	"dbm-services/common/dbha/ha-module/util"
 )
 
@@ -204,12 +202,6 @@ func (a *MonitorAgent) FetchDBInstance() error {
 		return err
 	}
 
-	//err = a.FetchInstancePass(types.DBType(a.DBType), AllDbInstance)
-	//if err != nil {
-	//	log.Logger.Errorf("fetch db instance pass failed,err:%s", err.Error())
-	//	return err
-	//}
-
 	a.DBInstance, err = a.moduloHashSharding(AllDbInstance)
 	if err != nil {
 		log.Logger.Errorf("fetch modulo hash sharding failed. err:%s", err.Error())
@@ -253,23 +245,6 @@ func (a *MonitorAgent) FetchGMInstance() error {
 	log.Logger.Infof("agent get aliveGmInfo:%d, GmInstance:%d",
 		len(gmInfo), len(a.GMInstance))
 	return nil
-}
-
-// FetchInstancePass get instance password from dbcofig center
-func (a *MonitorAgent) FetchInstancePass(dbType types.DBType,
-	insArr []dbutil.DataBaseDetect) error {
-	if len(insArr) == 0 {
-		return nil
-	}
-
-	count, err := redis.GetInstancePass(dbType, insArr, a.Conf)
-	if err != nil {
-		log.Logger.Errorf("AgentConf get passwd have some err[%s],count:%d,all:%d",
-			err.Error(), count, len(insArr))
-		return nil
-	} else {
-		return nil
-	}
 }
 
 // ReporterGM report detect info to gm
@@ -372,8 +347,7 @@ func (a *MonitorAgent) RepairGM(gmIns *GMConnection) error {
 	return nil
 }
 
-// registerAgentInfoToHaDB TODO
-// register current agent info
+// registerAgentInfoToHaDB register current agent info
 func (a *MonitorAgent) registerAgentInfoToHaDB() error {
 	err := a.HaDBClient.RegisterDBHAInfo(
 		a.MonIp,
