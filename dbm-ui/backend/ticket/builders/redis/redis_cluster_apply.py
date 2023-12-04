@@ -46,9 +46,6 @@ class RedisClusterApplyDetailSerializer(serializers.Serializer):
     ip_source = serializers.ChoiceField(help_text=_("主机来源"), choices=IpSource.get_choices())
     nodes = serializers.JSONField(help_text=_("部署节点"), required=False)
 
-    disaster_tolerance_level = serializers.ChoiceField(
-        help_text=_("容灾级别"), choices=AffinityEnum.get_choices(), required=False, default=AffinityEnum.NONE.value
-    )
     resource_spec = serializers.JSONField(help_text=_("proxy部署方案"), required=False)
     cluster_shard_num = serializers.IntegerField(help_text=_("集群分片数"), required=False)
 
