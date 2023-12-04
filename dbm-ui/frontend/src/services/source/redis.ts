@@ -34,7 +34,7 @@ const path = `/apis/redis/bizs/${currentBizId}/redis_resources`;
 /**
  * 获取集群列表
  */
-export  function getRedisList(params: {
+export function getRedisList(params: {
   limit?: number,
   offset?: number,
   type?: string,

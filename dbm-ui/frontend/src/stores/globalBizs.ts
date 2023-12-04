@@ -62,6 +62,11 @@ export const useGlobalBizs = defineStore('GlobalBizs', {
           this.bizs = res;
           this.isError = false;
           const len = this.bizs.length;
+          const pathBizId = Number(location.pathname.split('/')[2]);
+          if (Number.isInteger(pathBizId)) {
+            this.currentBizId = pathBizId;
+            return;
+          }
           // 用户上次选中的业务
           if (len > 0 && activatedBizId && this.hasBizPermission(activatedBizId)) {
             this.currentBizId = activatedBizId;
