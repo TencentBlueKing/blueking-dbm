@@ -44,8 +44,8 @@ type TbMonSwitchQueueApi struct {
 	Remark             string `json:"remark"`
 	App                string `json:"app"`
 	DbType             string `json:"db_type"`
-	Idc                string `json:"idc"`
-	Cloud              string `json:"cloud"`
+	IdcID              int    `json:"idc_id"`
+	CloudID            int    `json:"cloud_id"`
 	Cluster            string `json:"cluster"`
 }
 
@@ -86,8 +86,8 @@ func Handler(ctx *fasthttp.RequestCtx) {
 // GetSwitchQueue TODO
 func GetSwitchQueue(ctx *fasthttp.RequestCtx, param interface{}, page api.QueryPage) {
 	var (
-		result    = []model.TbMonSwitchQueue{}
-		whereCond = &model.TbMonSwitchQueue{}
+		result    = []model.HASwitchQueue{}
+		whereCond = &model.HASwitchQueue{}
 		response  = api.ResponseInfo{
 			Data:    nil,
 			Code:    api.RespOK,
@@ -156,7 +156,7 @@ func GetSingleInsTotal(ctx *fasthttp.RequestCtx, param interface{}) {
 		result = map[string]*int64{
 			"count": &count,
 		}
-		whereCond = &model.TbMonSwitchQueue{}
+		whereCond = &model.HASwitchQueue{}
 		response  = api.ResponseInfo{
 			Data:    &result,
 			Code:    api.RespOK,
@@ -207,7 +207,7 @@ func GetSingleIpTotal(ctx *fasthttp.RequestCtx, param interface{}) {
 		result = map[string]*int64{
 			"count": &count,
 		}
-		whereCond = &model.TbMonSwitchQueue{}
+		whereCond = &model.HASwitchQueue{}
 		response  = api.ResponseInfo{
 			Data:    &result,
 			Code:    api.RespOK,
@@ -257,7 +257,7 @@ func GetSingleIdcTotal(ctx *fasthttp.RequestCtx, param interface{}) {
 		result = map[string]*int64{
 			"count": &count,
 		}
-		whereCond = &model.TbMonSwitchQueue{}
+		whereCond = &model.HASwitchQueue{}
 		response  = api.ResponseInfo{
 			Data:    &result,
 			Code:    api.RespOK,
@@ -291,7 +291,7 @@ func GetSingleIdcTotal(ctx *fasthttp.RequestCtx, param interface{}) {
 
 	if err := model.HADB.Self.Table(whereCond.TableName()).
 		Where("confirm_check_time > ?", whereCond.ConfirmCheckTime).
-		Where("idc = ? and ip <> ?", whereCond.Idc, whereCond.IP).
+		Where("idc_id = ? and ip <> ?", whereCond.IdcID, whereCond.IP).
 		Distinct("ip").Count(&count).Error; err != nil {
 		response.Code = api.RespErr
 		response.Message = err.Error()
@@ -306,8 +306,8 @@ func UpdateSwitchQueue(ctx *fasthttp.RequestCtx, queryParam interface{}, setPara
 	var (
 		result    = map[string]int64{}
 		whereCond = struct {
-			query model.TbMonSwitchQueue
-			set   model.TbMonSwitchQueue
+			query model.HASwitchQueue
+			set   model.HASwitchQueue
 		}{}
 		response = api.ResponseInfo{
 			Data:    &result,
@@ -369,7 +369,7 @@ func UpdateSwitchQueue(ctx *fasthttp.RequestCtx, queryParam interface{}, setPara
 
 // PutSwitchQueue TODO
 func PutSwitchQueue(ctx *fasthttp.RequestCtx, setParam interface{}) {
-	input := &model.TbMonSwitchQueue{}
+	input := &model.HASwitchQueue{}
 	response := api.ResponseInfo{
 		Data:    nil,
 		Code:    api.RespOK,
@@ -412,7 +412,7 @@ func PutSwitchQueue(ctx *fasthttp.RequestCtx, setParam interface{}) {
 }
 
 // TransSwitchQueueToApi TODO
-func TransSwitchQueueToApi(result []model.TbMonSwitchQueue) []TbMonSwitchQueueApi {
+func TransSwitchQueueToApi(result []model.HASwitchQueue) []TbMonSwitchQueueApi {
 	loc, _ := time.LoadLocation("Asia/Shanghai")
 	ApiResults := make([]TbMonSwitchQueueApi, 0)
 	for _, switchQueue := range result {
@@ -432,8 +432,8 @@ func TransSwitchQueueToApi(result []model.TbMonSwitchQueue) []TbMonSwitchQueueAp
 			Remark:             switchQueue.Remark,
 			App:                switchQueue.App,
 			DbType:             switchQueue.DbType,
-			Idc:                switchQueue.Idc,
-			Cloud:              switchQueue.Cloud,
+			IdcID:              switchQueue.IdcID,
+			CloudID:            switchQueue.CloudID,
 			Cluster:            switchQueue.Cluster,
 		}
 

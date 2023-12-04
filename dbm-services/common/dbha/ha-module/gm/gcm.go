@@ -1,8 +1,8 @@
 package gm
 
 import (
+	"dbm-services/common/dbha/hadb-api/model"
 	"fmt"
-	"strconv"
 	"time"
 
 	"dbm-services/common/dbha/ha-module/client"
@@ -65,7 +65,7 @@ func (gcm *GCM) Process(switchInstance dbutil.DataBaseSwitch) {
 // DoSwitchSingle gcm do instance switch
 func (gcm *GCM) DoSwitchSingle(switchInstance dbutil.DataBaseSwitch) {
 	var err error
-	switchQueueInfo := &client.SwitchQueue{}
+	switchQueueInfo := &model.HASwitchQueue{}
 
 	// 这里先将实例获取锁设为unavailable，再插入switch_queue。原因是如果先插switch_queue，如果其他gm同时更新，则会有多条
 	// switch_queue记录，则更新switch_queue会同时更新多条记录，因为我们没有无法区分哪条记录是哪个gm插入的
@@ -185,14 +185,14 @@ func (gcm *GCM) InsertSwitchQueue(instance dbutil.DataBaseSwitch) error {
 		DBCloudToken: gcm.Conf.DBConf.HADB.BKConf.BkToken,
 		BKCloudID:    gcm.Conf.GetCloudId(),
 		Name:         constvar.InsertSwitchQueue,
-		SetArgs: &client.SwitchQueue{
+		SetArgs: &model.HASwitchQueue{
 			IP:               ip,
 			Port:             port,
-			Idc:              instance.GetIDC(),
+			IdcID:            instance.GetIdcID(),
 			App:              instance.GetApp(),
 			ConfirmCheckTime: &confirmTime,
 			DbType:           instance.GetMetaType(),
-			Cloud:            strconv.Itoa(gcm.Conf.GetCloudId()),
+			CloudID:          gcm.Conf.GetCloudId(),
 			Cluster:          instance.GetCluster(),
 			Status:           constvar.SwitchStart,
 			SwitchStartTime:  &currentTime,
@@ -248,12 +248,16 @@ func (gcm *GCM) SetUnavailableAndLockInstance(instance dbutil.DataBaseSwitch) er
 }
 
 // UpdateSwitchQueue update switch result
-func (gcm *GCM) UpdateSwitchQueue(switchInfo *client.SwitchQueue) error {
+func (gcm *GCM) UpdateSwitchQueue(switchInfo *model.HASwitchQueue) error {
+	currentTime := time.Now()
+	if switchInfo.SwitchFinishedTime == nil {
+		switchInfo.SwitchFinishedTime = &currentTime
+	}
 	req := &client.SwitchQueueRequest{
 		DBCloudToken: gcm.Conf.DBConf.HADB.BKConf.BkToken,
 		BKCloudID:    gcm.Conf.GetCloudId(),
 		Name:         constvar.UpdateSwitchQueue,
-		QueryArgs: &client.SwitchQueue{
+		QueryArgs: &model.HASwitchQueue{
 			Uid: switchInfo.Uid,
 		},
 		SetArgs: switchInfo,

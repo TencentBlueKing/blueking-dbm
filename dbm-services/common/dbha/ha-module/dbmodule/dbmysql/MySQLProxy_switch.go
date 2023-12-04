@@ -28,8 +28,8 @@ func (ins *MySQLProxySwitch) DoSwitch() error {
 
 // ShowSwitchInstanceInfo display switch proxy info
 func (ins *MySQLProxySwitch) ShowSwitchInstanceInfo() string {
-	str := fmt.Sprintf("<%s#%d IDC:%s Status:%s Bzid:%s ClusterType:%s MachineType:%s> switch",
-		ins.Ip, ins.Port, ins.IDC, ins.Status, ins.App, ins.ClusterType, ins.MetaType)
+	str := fmt.Sprintf("<%s#%d IDC:%d Status:%s Bzid:%s ClusterType:%s MachineType:%s> switch",
+		ins.Ip, ins.Port, ins.IdcID, ins.Status, ins.App, ins.ClusterType, ins.MetaType)
 	return str
 }
 

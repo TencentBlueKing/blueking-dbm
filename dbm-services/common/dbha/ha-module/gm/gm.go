@@ -77,12 +77,12 @@ func NewGM(conf *config.Config) *GM {
 // Run gm work main entry
 func (gm *GM) Run() error {
 	if err := gm.HaDBClient.RegisterDBHAInfo(util.LocalIp, gm.Conf.GMConf.ListenPort, constvar.GM,
-		gm.Conf.GMConf.City, gm.Conf.GMConf.Campus, "N/A"); err != nil {
+		gm.Conf.GMConf.CityID, gm.Conf.GMConf.Campus, "N/A"); err != nil {
 		return err
 	}
 
 	if err := gm.HaDBClient.RegisterDBHAInfo(util.LocalIp, gm.Conf.GMConf.ListenPort, constvar.GDM,
-		gm.Conf.GMConf.City, gm.Conf.GMConf.Campus, "N/A"); err != nil {
+		gm.Conf.GMConf.CityID, gm.Conf.GMConf.Campus, "N/A"); err != nil {
 		log.Logger.Errorf("GM register gcm module failed,err:%s", err.Error())
 		return err
 	}
@@ -92,7 +92,7 @@ func (gm *GM) Run() error {
 	}()
 
 	if err := gm.HaDBClient.RegisterDBHAInfo(util.LocalIp, gm.Conf.GMConf.ListenPort, constvar.GMM,
-		gm.Conf.GMConf.City, gm.Conf.GMConf.Campus, "N/A"); err != nil {
+		gm.Conf.GMConf.CityID, gm.Conf.GMConf.Campus, "N/A"); err != nil {
 		log.Logger.Errorf("GM register gcm module failed,err:%s", err.Error())
 		return err
 	}
@@ -102,7 +102,7 @@ func (gm *GM) Run() error {
 	}()
 
 	if err := gm.HaDBClient.RegisterDBHAInfo(util.LocalIp, gm.Conf.GMConf.ListenPort, constvar.GQA,
-		gm.Conf.GMConf.City, gm.Conf.GMConf.Campus, "N/A"); err != nil {
+		gm.Conf.GMConf.CityID, gm.Conf.GMConf.Campus, "N/A"); err != nil {
 		log.Logger.Errorf("GM register gcm module failed,err:%s", err.Error())
 		return err
 	}
@@ -112,7 +112,7 @@ func (gm *GM) Run() error {
 	}()
 
 	if err := gm.HaDBClient.RegisterDBHAInfo(util.LocalIp, gm.Conf.GMConf.ListenPort, constvar.GCM,
-		gm.Conf.GMConf.City, gm.Conf.GMConf.Campus, "N/A"); err != nil {
+		gm.Conf.GMConf.CityID, gm.Conf.GMConf.Campus, "N/A"); err != nil {
 		log.Logger.Errorf("GM register gcm module failed,err:%s", err.Error())
 		return err
 	}

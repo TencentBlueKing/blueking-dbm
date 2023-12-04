@@ -377,11 +377,15 @@ const (
 // checksum sql
 const (
 	// CheckSumSql checksum number
-	CheckSumSql = "select count(distinct `db`, tbl) from infodba_schema.checksum where ts > date_sub(now(), " +
-		"interval 7 day)"
+	CheckSumSql = "SELECT COUNT(DISTINCT `db`, tbl) AS total_count FROM (SELECT `db`, tbl FROM " +
+		"infodba_schema.checksum WHERE ts > DATE_SUB(NOW(), INTERVAL 7 DAY) UNION SELECT `db`, tbl FROM " +
+		"infodba_schema.checksum_history WHERE ts > DATE_SUB(NOW(), INTERVAL 7 DAY)) AS combined_results"
+
 	// CheckSumFailSql inconsistent checksum number
-	CheckSumFailSql = "select count(distinct `db`, tbl,chunk) from infodba_schema.checksum where " +
-		"(this_crc <> master_crc or this_cnt <> master_cnt) and ts > date_sub(now(), interval 7 day)"
+	CheckSumFailSql = "SELECT COUNT(DISTINCT `db`, tbl, chunk) AS total_count FROM infodba_schema.checksum " +
+		"WHERE (this_crc <> master_crc OR this_cnt <> master_cnt) AND ts > DATE_SUB(NOW(), INTERVAL 7 DAY) " +
+		"UNION SELECT COUNT(DISTINCT `db`, tbl, chunk) AS total_count FROM infodba_schema.checksum_history " +
+		"WHERE (this_crc <> master_crc OR this_cnt <> master_cnt) AND ts > DATE_SUB(NOW(), INTERVAL 7 DAY)"
 	// CheckDelaySql master and slave's time delay
 	CheckDelaySql = "select unix_timestamp(now())-unix_timestamp(master_time) as time_delay, delay_sec as slave_delay " +
 		"from infodba_schema.master_slave_heartbeat where master_server_id = ? and slave_server_id != master_server_id"

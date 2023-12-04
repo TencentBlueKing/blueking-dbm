@@ -20,8 +20,8 @@ func (ins *RiakSwitch) GetRole() string {
 
 // ShowSwitchInstanceInfo show mysql instance's switch info
 func (ins *RiakSwitch) ShowSwitchInstanceInfo() string {
-	str := fmt.Sprintf("<%s#%d IDC:%s Role:%s Status:%s Bzid:%s ClusterType:%s MachineType:%s>",
-		ins.Ip, ins.Port, ins.IDC, ins.Role, ins.Status, ins.App, ins.ClusterType,
+	str := fmt.Sprintf("<%s#%d IDC:%d Role:%s Status:%s Bzid:%s ClusterType:%s MachineType:%s>",
+		ins.Ip, ins.Port, ins.IdcID, ins.Role, ins.Status, ins.App, ins.ClusterType,
 		ins.MetaType)
 	return str
 }
@@ -38,8 +38,6 @@ func (ins *RiakSwitch) CheckSwitch() (bool, error) {
 		ins.ReportLogs(constvar.FailResult, "instance unknown role")
 		return false, err
 	}
-	ins.ReportLogs(constvar.InfoResult, "riak check switch ok")
-	return false, nil
 }
 
 // DoSwitch do switch

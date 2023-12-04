@@ -129,8 +129,8 @@ func (ins *SpiderStorageSwitch) DoSwitch() error {
 
 // ShowSwitchInstanceInfo show db-mysql instance's switch info
 func (ins *SpiderStorageSwitch) ShowSwitchInstanceInfo() string {
-	str := fmt.Sprintf("<%s#%d IDC:%s Role:%s Status:%s Bzid:%s ClusterType:%s MachineType:%s>",
-		ins.Ip, ins.Port, ins.IDC, ins.Role, ins.Status, ins.App, ins.ClusterType,
+	str := fmt.Sprintf("<%s#%d IDC:%d Role:%s Status:%s Bzid:%s ClusterType:%s MachineType:%s>",
+		ins.Ip, ins.Port, ins.IdcID, ins.Role, ins.Status, ins.App, ins.ClusterType,
 		ins.MetaType)
 	//TODO right way to check empty?
 	if ins.StandBySlave != (dbutil.SlaveInfo{}) {

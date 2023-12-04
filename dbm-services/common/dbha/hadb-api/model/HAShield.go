@@ -23,9 +23,9 @@ const (
 
 // HAShield struct for ha_shield_config table
 type HAShield struct {
-	Uid              uint       `gorm:"column:uid;primary_key;AUTO_INCREMENT" json:"uid,omitempty"`
-	APP              string     `gorm:"column:app;type:varchar(30);NOT NULL" json:"app,omitempty"`
-	Ip               string     `gorm:"column:ip;type:varchar(30);NOT NULL" json:"ip,omitempty"`
+	Uid              uint       `gorm:"column:uid;type:bigint;primary_key;AUTO_INCREMENT" json:"uid,omitempty"`
+	APP              string     `gorm:"column:app;type:varchar(32);index:idx_app_ip;NOT NULL" json:"app,omitempty"`
+	Ip               string     `gorm:"column:ip;type:varchar(32);index:idx_app_ip;NOT NULL" json:"ip,omitempty"`
 	IgnoreCheckSum   bool       `gorm:"column:ignore_checksum;type:tinyint" json:"ignore_checksum,omitempty"`
 	IgnoreSlaveDelay bool       `gorm:"column:ignore_slave_delay;type:tinyint" json:"ignore_slave_delay,omitempty"`
 	StartTime        *time.Time `gorm:"column:start_time;type:datetime;default:CURRENT_TIMESTAMP" json:"start_time,omitempty"`

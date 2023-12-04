@@ -135,9 +135,9 @@ func (ins *RedisSwitch) DoSwitch() error {
 
 // ShowSwitchInstanceInfo show switch instance information
 func (ins *RedisSwitch) ShowSwitchInstanceInfo() string {
-	format := `<%s#%d IDC:%s Status:%s App:%s ClusterType:%s MachineType:%s Cluster:%s>`
+	format := `<%s#%d IDC:%d Status:%s App:%s ClusterType:%s MachineType:%s Cluster:%s>`
 	str := fmt.Sprintf(
-		format, ins.Ip, ins.Port, ins.IDC, ins.Status, ins.App,
+		format, ins.Ip, ins.Port, ins.IdcID, ins.Status, ins.App,
 		ins.ClusterType, ins.MetaType, ins.Cluster,
 	)
 	if len(ins.Slave) > 0 {

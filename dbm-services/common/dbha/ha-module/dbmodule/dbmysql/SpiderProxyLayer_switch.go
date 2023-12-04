@@ -185,7 +185,7 @@ func (ins *SpiderProxyLayerSwitch) RollBack() error {
 
 // ShowSwitchInstanceInfo show db-mysql instance's switch info
 func (ins *SpiderProxyLayerSwitch) ShowSwitchInstanceInfo() string {
-	return fmt.Sprintf("<%s#%d IDC:%s Role:%s Status:%s Bzid:%s ClusterType:%s MachineType:%s>",
-		ins.Ip, ins.Port, ins.IDC, ins.Role, ins.Status, ins.App, ins.ClusterType,
+	return fmt.Sprintf("<%s#%d IDC:%d Role:%s Status:%s Bzid:%s ClusterType:%s MachineType:%s>",
+		ins.Ip, ins.Port, ins.IdcID, ins.Role, ins.Status, ins.App, ins.ClusterType,
 		ins.MetaType)
 }

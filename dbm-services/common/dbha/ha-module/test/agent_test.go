@@ -30,7 +30,7 @@ func TestAgentNetTransfor(t *testing.T) {
 	dbIns := newTestInstance()
 	d = dbIns
 	agentIns := agent.MonitorAgent{
-		City:             "sz",
+		CityID:           "sz",
 		LastFetchInsTime: time.Unix(0, 0),
 	}
 	ip, _ := d.GetAddress()

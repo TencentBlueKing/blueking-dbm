@@ -20,8 +20,8 @@ type MySQLSwitch struct {
 
 // ShowSwitchInstanceInfo show mysql instance's switch info
 func (ins *MySQLSwitch) ShowSwitchInstanceInfo() string {
-	str := fmt.Sprintf("<%s#%d IDC:%s Role:%s Status:%s Bzid:%s ClusterType:%s MachineType:%s>",
-		ins.Ip, ins.Port, ins.IDC, ins.Role, ins.Status, ins.App, ins.ClusterType,
+	str := fmt.Sprintf("<%s#%d IDC:%d Role:%s Status:%s Bzid:%s ClusterType:%s MachineType:%s>",
+		ins.Ip, ins.Port, ins.IdcID, ins.Role, ins.Status, ins.App, ins.ClusterType,
 		ins.MetaType)
 	//TODO right way to check empty?
 	if ins.StandBySlave != (dbutil.SlaveInfo{}) {
@@ -112,7 +112,7 @@ func (ins *MySQLSwitch) DoSwitch() error {
 	}
 	ins.StandBySlave.BinlogFile = binlogFile
 	ins.StandBySlave.BinlogPosition = strconv.Itoa(int(binlogPosition))
-	ins.ReportLogs(constvar.InfoResult, fmt.Sprintf("reset slave success, consistent binlog info:%s,%d",
+	ins.ReportLogs(constvar.InfoResult, fmt.Sprintf("reset slave success, consistent binlog info:%s,%s",
 		ins.StandBySlave.BinlogFile, ins.StandBySlave.BinlogPosition))
 
 	ins.ReportLogs(constvar.InfoResult, "two phase: update all proxy's backend to new master")

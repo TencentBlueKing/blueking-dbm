@@ -208,6 +208,7 @@ func (m *MySQLDetectInstance) CheckMySQL(errChan chan error) {
 		}
 	}()
 
+	_ = m.realDB.Exec("set binlog_format='statement'")
 	err := m.realDB.Exec(replaceSql).Error
 	if err != nil {
 		log.Logger.Warnf("mysql replace heartbeat failed. ip:%s, port:%d, err:%s", m.Ip, m.Port, err.Error())

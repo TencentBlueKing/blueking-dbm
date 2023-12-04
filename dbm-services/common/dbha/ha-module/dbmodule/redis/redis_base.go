@@ -153,8 +153,8 @@ func GetDetectBaseByRsp(ins *RedisDetectResponse,
 
 // ShowSwitchInstanceInfo show instance information
 func (ins *RedisProxySwitchInfo) ShowSwitchInstanceInfo() string {
-	str := fmt.Sprintf("ip:%s, port:%d, IDC:%s, status:%s, app:%s, cluster_type:%s, machine_type:%s",
-		ins.Ip, ins.Port, ins.IDC, ins.Status, ins.App, ins.ClusterType, ins.MetaType)
+	str := fmt.Sprintf("ip:%s, port:%d, IDC:%d, status:%s, app:%s, cluster_type:%s, machine_type:%s",
+		ins.Ip, ins.Port, ins.IdcID, ins.Status, ins.App, ins.ClusterType, ins.MetaType)
 	return str
 }
 
@@ -288,7 +288,7 @@ func CreateRedisProxySwitchInfo(
 		BaseSwitch: dbutil.BaseSwitch{
 			Ip:          ins.IP,
 			Port:        ins.Port,
-			IDC:         strconv.Itoa(ins.BKIdcCityID),
+			IdcID:       ins.BKIdcCityID,
 			Status:      ins.Status,
 			App:         strconv.Itoa(ins.BKBizID),
 			ClusterType: ins.ClusterType,
@@ -350,7 +350,7 @@ func CreateRedisSwitchInfo(instance interface{}, conf *config.Config) (*RedisSwi
 		BaseSwitch: dbutil.BaseSwitch{
 			Ip:          ins.IP,
 			Port:        ins.Port,
-			IDC:         strconv.Itoa(ins.BKIdcCityID),
+			IdcID:       ins.BKIdcCityID,
 			Status:      ins.Status,
 			App:         strconv.Itoa(ins.BKBizID),
 			ClusterType: ins.ClusterType,
