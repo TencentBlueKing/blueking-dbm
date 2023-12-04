@@ -26,6 +26,7 @@ import (
 // KillDeadParam TODO
 // SwitchParam cluster bind entry
 type KillDeadParam struct {
+	IgnoreKill   bool            `json:"ignore_kill"`
 	Instances    []InstanceParam `json:"instances"`
 	ConnIdleTime int             `json:"idle_time"`
 	ClusterType  string          `json:"cluster_type"`
@@ -79,16 +80,27 @@ func (job *RedisKillDeadConn) Run() (err error) {
 		pwd, err := myredis.GetRedisPasswdFromConfFile(storage.Port)
 		if err != nil {
 			job.runtime.Logger.Error("get redis pass from local failed,err %s:%v", addr, err)
+			if job.params.IgnoreKill {
+				return nil
+			}
 			return err
 		}
 		rconn, err := myredis.NewRedisClientWithTimeout(addr, pwd, 0, job.params.ClusterType, time.Second)
 		if err != nil {
+			job.runtime.Logger.Error("conn redis failed,err %s:%v", addr, err)
+			if job.params.IgnoreKill {
+				return nil
+			}
 			return fmt.Errorf("conn redis %s failed:%+v", addr, err)
 		}
 		defer rconn.Close()
 
 		cs, err := rconn.DoCommand([]string{"Client", "List"}, 0)
 		if err != nil {
+			job.runtime.Logger.Error("do cmd failed ,err %s:%v", addr, err)
+			if job.params.IgnoreKill {
+				return nil
+			}
 			return fmt.Errorf("do cmd failed %s:%+v", addr, err)
 		}
 		var totalked int
@@ -98,7 +110,6 @@ func (job *RedisKillDeadConn) Run() (err error) {
 				if cli != 10 { // byte(\n)==10 ASIC
 					sx = append(sx, cli)
 				} else {
-					// id=3 addr=10047:38028 fd=11 name= age=53461290 idle=0 flags=S db=0 sub=0 psub=0 multi=-1 qbuf=0 qbuf-free=0 obl=0 oll=0 omem=0 events=r cmd=replconf
 					ws := strings.Split(string(sx), " ")
 					if len(ws) > 1 && strings.HasPrefix(ws[1], "addr=") && !(strings.Contains(string(sx), "replconf")) {
 						idleTime, _ := strconv.Atoi(strings.Split(ws[5], "=")[1])
