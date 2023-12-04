@@ -373,7 +373,7 @@ func GetMachineInstance() []client.PasswdInstance {
 // GetInstancePass get redis instances cluster password by batch api
 func GetInstancePass(insArr []dbutil.DataBaseDetect,
 	conf *config.Config) (int, error) {
-	clusterPasswd := make(map[string]RedisPasswd)
+	cluster2Passwd := make(map[string]RedisPasswd)
 	pins := make([]client.PasswdInstance, 0)
 	uins := GetRedisUserAndComponent(false)
 	limit := len(insArr)*2 + 1
@@ -389,7 +389,7 @@ func GetInstancePass(insArr []dbutil.DataBaseDetect,
 		passwdVal, ok := passwdCache.Get(key)
 		if ok {
 			passwdRedis := passwdVal.(RedisPasswd)
-			clusterPasswd[key] = passwdRedis
+			cluster2Passwd[key] = passwdRedis
 			log.Logger.Debugf("hit cache, key:%s, passwd:%v",
 				key, passwdRedis)
 		} else {
@@ -401,83 +401,42 @@ func GetInstancePass(insArr []dbutil.DataBaseDetect,
 		}
 	}
 
-	c := client.NewPasswdClient(&conf.PasswdConf, conf.GetCloudId())
-	newPasswds, err := c.GetBatchPasswd(pins, uins, limit)
-	if err != nil {
-		log.Logger.Errorf("GetInstancePassNew fetch remote err[%s]", err.Error())
-		return 0, err
-	}
-
-	if newPasswds == nil || len(newPasswds) == 0 {
-		passErr := fmt.Errorf("GetBatchPasswd return nil")
-		log.Logger.Errorf(passErr.Error())
-		return 0, passErr
-	}
-
-	for _, pw := range newPasswds {
-		key := fmt.Sprintf("%s-0", pw.Ip)
-		var passwd RedisPasswd
-		setCache := false
-
-		pwByte, pwErr := base64.StdEncoding.DecodeString(pw.Passwd)
-		if pwErr != nil {
-			log.Logger.Errorf("decode passwd[%s] failed", pw.Passwd)
-			continue
+	// need call password service api to fetch the password
+	if len(pins) > 0 {
+		c := client.NewPasswdClient(&conf.PasswdConf, conf.GetCloudId())
+		newPasswds, err := c.GetBatchPasswd(pins, uins, limit)
+		if err != nil {
+			log.Logger.Errorf("GetInstancePassNew fetch remote err[%s]", err.Error())
+			return 0, err
 		}
 
-		pwVal := string(pwByte)
-		log.Logger.Debugf("passwd cluster:%s  encode_pw:%s, decode_pw:%s",
-			pw.Ip, pw.Passwd, pwVal)
-		tmp, find := clusterPasswd[key]
-		if !find {
-			if pw.Component == constvar.ComponentRedisProxy {
-				log.Logger.Debugf("passwd set redisProxy, key:%s, pw:%s", key, pwVal)
-				clusterPasswd[key] = RedisPasswd{
-					Proxy: pwVal,
-				}
-			} else if pw.Component == constvar.ComponentRedis {
-				log.Logger.Debugf("passwd set redis, key:%s, pw:%s", key, pwVal)
-				clusterPasswd[key] = RedisPasswd{
-					Redis: pwVal,
-				}
-			} else {
-				continue
-			}
-		} else {
-			if pw.Component == constvar.ComponentRedisProxy {
-				tmp.Proxy = pwVal
-				log.Logger.Debugf("passwd set proxy exist, key:%s, redis_pw:%s, proxy_pw:%s",
-					key, tmp.Redis, tmp.Proxy)
-			} else if pw.Component == constvar.ComponentRedis {
-				tmp.Redis = pwVal
-				log.Logger.Debugf("passwd set redis exist, key:%s, redis_pw:%s, proxy_pw:%s",
-					key, tmp.Redis, tmp.Proxy)
-			} else {
-				continue
-			}
-
-			passwd = tmp
-			if len(passwd.Redis) > 0 && len(passwd.Proxy) > 0 {
-				log.Logger.Debugf("passwd write to cache, key:%s", key)
-				setCache = true
-			}
+		if newPasswds == nil || len(newPasswds) == 0 {
+			passErr := fmt.Errorf("GetBatchPasswd return nil")
+			log.Logger.Errorf(passErr.Error())
+			return 0, passErr
 		}
 
-		if setCache {
-			passwdCache.Add(key, passwd, passwdCacheTime)
+		for _, pw := range newPasswds {
+			key := fmt.Sprintf("%s-0", pw.Ip)
+			passwd, setCache := ProcessSinglePassword(key, pw, cluster2Passwd)
+			if setCache {
+				log.Logger.Debugf("passwd add cache, key:%s,passwd:%v", key, passwd)
+				passwdCache.Add(key, passwd, passwdCacheTime)
+			}
 		}
 	}
 
+	// set password to detect instance
 	succCount := 0
 	for _, ins := range insArr {
 		host, port := ins.GetAddress()
 		key := fmt.Sprintf("%d-0", ins.GetClusterId())
-		passwd, find := clusterPasswd[key]
+		passwd, find := cluster2Passwd[key]
 		if !find {
 			log.Logger.Errorf("PassWDClusters ins[%s:%d] db[%s] not find cluster[%s] in passwds",
 				host, port, ins.GetType(), ins.GetCluster())
 		} else {
-			log.Logger.Debugf("passwd set, val:%v", passwd)
+			log.Logger.Debugf("passwd set,addr[%s:%d] val:%v", host, port, passwd)
 			err := SetPasswordToInstanceEx(ins.GetType(), passwd, ins)
 			if err != nil {
 				log.Logger.Errorf("PassWDClusters ins[%s:%d] db[%s] cluster[%s] set passwd[%v] fail",
@@ -494,7 +453,66 @@ func GetInstancePass(insArr []dbutil.DataBaseDetect,
 		log.Logger.Errorf(passErr.Error())
 		return succCount, passErr
 	}
+
+	log.Logger.Debugf("GetInstancePass succ:%d, input:%d",
+		succCount, len(insArr))
 	return succCount, nil
+}
+
+// ProcessSinglePassword pasre password and process
+func ProcessSinglePassword(key string, pw client.PasswdItem,
+	cluster2passwd map[string]RedisPasswd) (RedisPasswd, bool) {
+	// password result struct
+	var passwd RedisPasswd
+	// flag control set cache or not
+	setCache := false
+
+	pwByte, pwErr := base64.StdEncoding.DecodeString(pw.Passwd)
+	if pwErr != nil {
+		log.Logger.Errorf("decode passwd[%s] failed", pw.Passwd)
+		return passwd, setCache
+	}
+
+	pwVal := string(pwByte)
+	log.Logger.Debugf("passwd cluster:%s  encode_pw:%s, decode_pw:%s",
+		pw.Ip, pw.Passwd, pwVal)
+	tmp, find := cluster2passwd[key]
+	if !find {
+		if pw.Component == constvar.ComponentRedisProxy {
+			log.Logger.Debugf("passwd set redisProxy, key:%s, pw:%s", key, pwVal)
+			cluster2passwd[key] = RedisPasswd{
+				Proxy: pwVal,
+			}
+		} else if pw.Component == constvar.ComponentRedis {
+			log.Logger.Debugf("passwd set redis, key:%s, pw:%s", key, pwVal)
+			cluster2passwd[key] = RedisPasswd{
+				Redis: pwVal,
+			}
+		} else {
+			return passwd, setCache
+		}
+	} else {
+		if pw.Component == constvar.ComponentRedisProxy {
+			tmp.Proxy = pwVal
+			log.Logger.Debugf("passwd set proxy exist, key:%s, redis_pw:%s, proxy_pw:%s",
+				key, tmp.Redis, tmp.Proxy)
+		} else if pw.Component == constvar.ComponentRedis {
+			tmp.Redis = pwVal
+			log.Logger.Debugf("passwd set redis exist, key:%s, redis_pw:%s, proxy_pw:%s",
+				key, tmp.Redis, tmp.Proxy)
+		} else {
+			return passwd, setCache
+		}
+
+		passwd = tmp
+		cluster2passwd[key] = tmp
+		if len(passwd.Redis) > 0 && len(passwd.Proxy) > 0 {
+			log.Logger.Debugf("passwd write to cache, key:%s", key)
+			setCache = true
+		}
+	}
+
+	return passwd, setCache
 }
 
 // GetInstancePassByClusterId get password by cluster id
