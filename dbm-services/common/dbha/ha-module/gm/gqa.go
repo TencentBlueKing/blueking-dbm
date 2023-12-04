@@ -20,7 +20,7 @@ type GQA struct {
 	HaDBClient           *client.HaDBClient
 	gdm                  *GDM
 	Conf                 *config.Config
-	IDCCache             map[string]time.Time
+	IDCCache             map[int]time.Time
 	IDCCacheExpire       int
 	SingleSwitchInterval int
 	SingleSwitchLimit    int
@@ -39,7 +39,7 @@ func NewGQA(gdm *GDM, conf *config.Config,
 		GCMChan:              gcmCh,
 		gdm:                  gdm,
 		Conf:                 conf,
-		IDCCache:             map[string]time.Time{},
+		IDCCache:             map[int]time.Time{},
 		IDCCacheExpire:       conf.GMConf.GQA.IDCCacheExpire,
 		SingleSwitchInterval: conf.GMConf.GQA.SingleSwitchInterval,
 		SingleSwitchLimit:    conf.GMConf.GQA.SingleSwitchLimit,
@@ -101,10 +101,10 @@ func (gqa *GQA) Process(cmdbInfos []dbutil.DataBaseSwitch) {
 		log.Logger.Infof("gqa handle instance. ip:%s, port:%d", ip, port)
 
 		// check single IDC
-		lastCacheTime, ok := gqa.IDCCache[instanceInfo.GetIDC()]
+		lastCacheTime, ok := gqa.IDCCache[instanceInfo.GetIdcID()]
 		if ok {
 			if time.Now().After(lastCacheTime.Add(time.Duration(gqa.IDCCacheExpire) * time.Second)) {
-				delete(gqa.IDCCache, instanceInfo.GetIDC())
+				delete(gqa.IDCCache, instanceInfo.GetIdcID())
 			} else {
 				err := gqa.delaySwitch(instanceInfo)
 				if err != nil {
@@ -163,7 +163,7 @@ func (gqa *GQA) Process(cmdbInfos []dbutil.DataBaseSwitch) {
 		// query job doing(machine)
 
 		// query single idc(machine) in 1 minute
-		idcTotal, err := gqa.HaDBClient.QuerySingleIDC(ip, instanceInfo.GetIDC())
+		idcTotal, err := gqa.HaDBClient.QuerySingleIDC(ip, instanceInfo.GetIdcID())
 		if err != nil {
 			errInfo := fmt.Sprintf("query single idc failed. err:%s", err.Error())
 			log.Logger.Errorf(errInfo)
@@ -171,9 +171,9 @@ func (gqa *GQA) Process(cmdbInfos []dbutil.DataBaseSwitch) {
 			continue
 		}
 		if idcTotal >= gqa.SingleSwitchIDCLimit {
-			_, ok = gqa.IDCCache[instanceInfo.GetIDC()]
+			_, ok = gqa.IDCCache[instanceInfo.GetIdcID()]
 			if !ok {
-				gqa.IDCCache[instanceInfo.GetIDC()] = time.Now()
+				gqa.IDCCache[instanceInfo.GetIdcID()] = time.Now()
 			}
 			err = gqa.delaySwitch(instanceInfo)
 			if err != nil {

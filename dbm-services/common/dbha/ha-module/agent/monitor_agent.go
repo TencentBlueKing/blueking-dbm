@@ -20,7 +20,7 @@ import (
 
 // MonitorAgent agent work struct
 type MonitorAgent struct {
-	City   string
+	CityID int
 	Campus string
 	//detect dbType
 	DetectType string
@@ -43,7 +43,7 @@ type MonitorAgent struct {
 func NewMonitorAgent(conf *config.Config, detectType string) (*MonitorAgent, error) {
 	var err error
 	agent := &MonitorAgent{
-		City:             conf.AgentConf.City,
+		CityID:           conf.AgentConf.CityID,
 		Campus:           conf.AgentConf.Campus,
 		DetectType:       detectType,
 		LastFetchInsTime: time.Now(),
@@ -180,7 +180,7 @@ func (a *MonitorAgent) RefreshGMCache() {
 
 // FetchDBInstance fetch instance list by city info
 func (a *MonitorAgent) FetchDBInstance() error {
-	rawInfo, err := a.CmDBClient.GetDBInstanceInfoByCity(a.City)
+	rawInfo, err := a.CmDBClient.GetDBInstanceInfoByCity(a.CityID)
 
 	if err != nil {
 		log.Logger.Errorf("get instance info from cmdb failed. err:%s", err.Error())
@@ -219,7 +219,7 @@ func (a *MonitorAgent) FetchGMInstance() error {
 	}
 
 	for _, info := range gmInfo {
-		if info.City == a.City || info.Cloud != a.Conf.AgentConf.Cloud {
+		if info.CityID == a.CityID || info.CloudID != a.Conf.AgentConf.CloudID {
 			continue
 		}
 		// needn't lock
@@ -353,7 +353,7 @@ func (a *MonitorAgent) registerAgentInfoToHaDB() error {
 		a.MonIp,
 		0,
 		"agent",
-		a.City,
+		a.CityID,
 		a.Campus,
 		a.DetectType)
 	if err != nil {

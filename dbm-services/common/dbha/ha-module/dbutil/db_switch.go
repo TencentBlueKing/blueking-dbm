@@ -20,7 +20,7 @@ type DataBaseSwitch interface {
 	DeleteNameService(entry BindEntry) error
 
 	GetAddress() (string, int)
-	GetIDC() string
+	GetIdcID() int
 	GetStatus() string
 	GetApp() string
 	GetClusterType() string
@@ -85,7 +85,7 @@ type ProxyInfo struct {
 type BaseSwitch struct {
 	Ip          string
 	Port        int
-	IDC         string
+	IdcID       int
 	Status      string
 	App         string
 	ClusterType string
@@ -108,9 +108,9 @@ func (ins *BaseSwitch) GetAddress() (string, int) {
 	return ins.Ip, ins.Port
 }
 
-// GetIDC TODO
-func (ins *BaseSwitch) GetIDC() string {
-	return ins.IDC
+// GetIdcID TODO
+func (ins *BaseSwitch) GetIdcID() int {
+	return ins.IdcID
 }
 
 // GetStatus TODO

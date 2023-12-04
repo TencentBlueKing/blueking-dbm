@@ -7,14 +7,14 @@ import (
 
 // HaLogs gm logs
 type HaLogs struct {
-	Uid      uint       `gorm:"column:uid;primary_key;AUTO_INCREMENT" json:"uid"`
-	IP       string     `gorm:"column:ip;NOT NULL" json:"ip"`
-	Port     uint       `gorm:"column:port;NOT NULL" json:"port"`
-	MonIP    string     `gorm:"column:mon_ip;NOT NULL" json:"mon_ip"`
-	Module   string     `gorm:"column:module;NOT NULL" json:"module"`
-	Cloud    string     `gorm:"column:cloud;NOT NULL" json:"cloud"`
+	Uid      uint       `gorm:"column:uid;primary_key;type:bigint;AUTO_INCREMENT" json:"uid,omitempty"`
+	IP       string     `gorm:"column:ip;type:varchar(32);index:idx_ins;NOT NULL" json:"ip,omitempty"`
+	Port     int        `gorm:"column:port;type:int(11);index:idx_ins;NOT NULL" json:"port,omitempty"`
+	MonIP    string     `gorm:"column:mon_ip;type:varchar(32);index:idx_mon_ip;NOT NULL" json:"mon_ip,omitempty"`
+	Module   string     `gorm:"column:module;type:varchar(32);NOT NULL" json:"module,omitempty"`
+	CloudID  int        `gorm:"column:cloud_id;type:int(11);NOT NULL;default:0" json:"cloud_id,omitempty"`
 	DateTime *time.Time `gorm:"column:date_time;type:datetime;default:CURRENT_TIMESTAMP;NOT NULL" json:"date_time,omitempty"`
-	Comment  string     `gorm:"column:comment;NOT NULL" json:"comment"`
+	Comment  string     `gorm:"column:comment;type:tinyblob;NOT NULL" json:"comment,omitempty"`
 }
 
 // TableName table name

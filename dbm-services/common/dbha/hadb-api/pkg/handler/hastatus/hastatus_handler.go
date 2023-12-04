@@ -244,7 +244,7 @@ func GetAliveGmInfo(ctx *fasthttp.RequestCtx, param interface{}) {
 	log.Logger.Debugf("alive gm: %+v", whereCond)
 
 	if err := model.HADB.Self.Table(whereCond.TableName()).
-		Where("module = ? and cloud= ? and last_time > ?", whereCond.Module, whereCond.Cloud, whereCond.LastTime).
+		Where("module = ? and cloud_id= ? and last_time > ?", whereCond.Module, whereCond.CloudID, whereCond.LastTime).
 		Find(&result).Error; err != nil {
 		response.Code = api.RespErr
 		response.Message = err.Error()
@@ -291,8 +291,8 @@ func GetAliveHaInfo(ctx *fasthttp.RequestCtx, param interface{}) {
 	log.Logger.Debugf("%+v", whereCond)
 
 	// select ip from ha_status
-	//		where city in (
-	//		select city from ha_status where
+	//		where city_id in (
+	//		select city_id from ha_status where
 	//		   ip = ? and db_type = ?
 	//		)
 	//	 and module = "agent" and status = "RUNNING"
@@ -300,10 +300,11 @@ func GetAliveHaInfo(ctx *fasthttp.RequestCtx, param interface{}) {
 	//	 order by uid;
 	db := model.HADB.Self
 	subQuery := db.Table(haTableName).
-		Where("ip = ? ", whereCond.IP).Select("city")
-	db.Table(haTableName).Where("city in (?)", subQuery).Select("ip").
-		Where("module = ? and status = ? and last_time > ? and db_type= ? and cloud= ?",
-			whereCond.Module, whereCond.Status, whereCond.LastTime, whereCond.DbType, whereCond.Cloud).Order("uid").Find(&result)
+		Where("ip = ? ", whereCond.IP).Select("city_id")
+	db.Table(haTableName).Where("city_id in (?)", subQuery).Select("ip").
+		Where("module = ? and status = ? and last_time > ? and db_type= ? and cloud_id= ?",
+			whereCond.Module, whereCond.Status, whereCond.LastTime, whereCond.DbType,
+			whereCond.CloudID).Order("uid").Find(&result)
 
 	if err := db.Error; err != nil {
 		response.Code = api.RespErr

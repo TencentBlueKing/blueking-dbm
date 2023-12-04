@@ -119,17 +119,18 @@ func (gmm *GMM) Process(instance DoubleCheckInstanceInfo) {
 					}
 				case constvar.AUTHCheckFailed:
 					{
-						log.Logger.Errorf("double check failed: ssh authenticate failed,err:%s", err)
+						content := fmt.Sprintf("database authenticate failed, err:%s", err.Error())
+						log.Logger.Errorf(content)
 						gmm.HaDBClient.ReportHaLog(
 							ip,
 							port,
 							"gmm",
-							fmt.Sprintf("double check failed: ssh authenticate failed, dbcheck err:%s", err),
+							content,
 						)
-						content := fmt.Sprintf("double check failed: ssh authenticate failed. sshcheck err:%s", err)
 						monitor.MonitorSendDetect(
 							doubleCheckInstance.db, constvar.DBHAEventDoubleCheckAuth, content,
 						)
+						log.Logger.Infof("database authenticate failed, skip switch")
 					}
 				default:
 					log.Logger.Fatalf("unknown check status:%s", doubleCheckInstance.db.GetStatus())
