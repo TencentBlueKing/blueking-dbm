@@ -100,10 +100,15 @@ class CloudServiceActPayload(object):
 
     def get_dns_pull_crond_conf_payload(self):
         db_cloud_token = self.__generate_service_token(service_type=CloudServiceName.DNS.value)
+        bkm_dbm_report = SystemSettings.get_setting_value(key="BKM_DBM_REPORT")
         return {
             "nginx_domain": self.__get_nginx_internal_domain(),
             "db_cloud_token": db_cloud_token,
             "bk_cloud_id": self.cloud_id,
+            "data_id": bkm_dbm_report["event"]["data_id"],
+            "access_token": bkm_dbm_report["event"]["token"],
+            "bkmonitor_beat_path": env.MYSQL_CROND_BEAT_PATH,
+            "agent_address": env.MYSQL_CROND_AGENT_ADDRESS,
         }
 
     def get_dns_flush_payload(self):
@@ -124,8 +129,8 @@ class CloudServiceActPayload(object):
             "name_service_domain": self.kwargs["name_service_domain"],
             "dbha_user": self.kwargs["plain_user"],
             "dbha_password": self.kwargs["plain_pwd"],
-            "mysql_crond_metrics_data_id": bkm_dbm_report["metric"]["data_id"],
-            "mysql_crond_metrics_data_token": bkm_dbm_report["metric"]["token"],
+            "mysql_crond_event_data_id": bkm_dbm_report["event"]["data_id"],
+            "mysql_crond_event_data_token": bkm_dbm_report["event"]["token"],
             "mysql_crond_agent_address": env.MYSQL_CROND_AGENT_ADDRESS,
             "mysql_crond_beat_path": env.MYSQL_CROND_BEAT_PATH,
             "proxy_password": DBPasswordHandler.query_proxy_password(),

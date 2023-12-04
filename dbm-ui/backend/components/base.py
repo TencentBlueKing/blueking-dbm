@@ -404,7 +404,7 @@ class DataAPI(object):
                         {
                             "bk_app_code": params.pop("bk_app_code", ""),
                             "bk_app_secret": params.pop("bk_app_secret", ""),
-                            "bk_username": params.pop("bk_username", ""),
+                            "bk_username": params.pop("bk_username", env.DEFAULT_USERNAME),
                         }
                     ),
                 }
