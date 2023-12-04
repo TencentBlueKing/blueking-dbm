@@ -433,7 +433,6 @@ class DataAPI(object):
             client_crt, client_key = self._fetch_client_crt()
             session.cert = (client_crt, client_key)
 
-        print(url, self.method, params)
         if request_method == "GET":
             result = session.request(method=self.method, url=url, params=params, verify=False, timeout=self.timeout)
         elif request_method == "DELETE":
