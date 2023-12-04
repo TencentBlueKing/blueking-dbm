@@ -57,13 +57,13 @@ class MySQLMigrateClusterFlow(object):
     支持多云区域操作
     """
 
-    def __init__(self, root_id: str, data: Optional[Dict]):
+    def __init__(self, root_id: str, ticket_data: Optional[Dict]):
         """
         @param root_id : 任务流程定义的root_id
-        @param data : 单据传递参数
+        @param ticket_data : 单据传递参数
         """
         self.root_id = root_id
-        self.ticket_data = data
+        self.ticket_data = ticket_data
         self.data = {}
 
     def deploy_migrate_cluster_flow(self):
@@ -77,7 +77,7 @@ class MySQLMigrateClusterFlow(object):
         """
         # 构建流程
         cluster_ids = []
-        for i in self.data["infos"]:
+        for i in self.ticket_data["infos"]:
             cluster_ids.extend(i["cluster_ids"])
 
         tendb_migrate_pipeline_all = Builder(

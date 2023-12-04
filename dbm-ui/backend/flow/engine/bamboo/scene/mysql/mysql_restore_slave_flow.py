@@ -405,7 +405,7 @@ class MySQLRestoreSlaveFlow(object):
         无元数据改动
         增加单据临时ADMIN账号的添加和删除逻辑
         """
-        cluster_ids = [i["cluster_id"] for i in self.data["infos"]]
+        cluster_ids = [i["cluster_id"] for i in self.ticket_data["infos"]]
         tendb_migrate_pipeline_all = Builder(
             root_id=self.root_id,
             data=copy.deepcopy(self.ticket_data),

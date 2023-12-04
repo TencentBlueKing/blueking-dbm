@@ -52,13 +52,13 @@ class MySQLMigrateClusterRemoteFlow(object):
     支持多云区域操作
     """
 
-    def __init__(self, root_id: str, data: Optional[Dict]):
+    def __init__(self, root_id: str, ticket_data: Optional[Dict]):
         """
         @param root_id : 任务流程定义的root_id
-        @param data : 单据传递参数
+        @param ticket_data : 单据传递参数
         """
         self.root_id = root_id
-        self.ticket_data = data
+        self.ticket_data = ticket_data
         self.data = {}
 
         # 定义备份文件存放到目标机器目录位置

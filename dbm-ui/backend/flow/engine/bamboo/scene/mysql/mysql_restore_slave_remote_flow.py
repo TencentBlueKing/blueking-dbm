@@ -327,7 +327,7 @@ class MySQLRestoreSlaveRemoteFlow(object):
         机器slave数据损坏或者其他原因丢弃实例数据，重新恢复数据。
         无元数据改动
         """
-        cluster_ids = [i["cluster_id"] for i in self.data["infos"]]
+        cluster_ids = [i["cluster_id"] for i in self.ticket_data["infos"]]
         tendb_migrate_pipeline_all = Builder(
             root_id=self.root_id,
             data=copy.deepcopy(self.ticket_data),
