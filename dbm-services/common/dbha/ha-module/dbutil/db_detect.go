@@ -75,7 +75,7 @@ type BaseDetectDB struct {
 	ClusterType string
 	//cluster id
 	ClusterId int
-	SshInfo     Ssh
+	SshInfo   Ssh
 }
 
 // BaseDetectDBResponse agent do detect and response

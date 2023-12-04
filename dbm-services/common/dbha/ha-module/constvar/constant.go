@@ -250,11 +250,11 @@ const (
 	ConfUserPasswd = "user_pwd"
 
 	// password server component
-	ComponentRedis = "redis"
-	ComponentRedisProxy = "redis_proxy"
+	ComponentRedis           = "redis"
+	ComponentRedisProxy      = "redis_proxy"
 	ComponentRedisProxyAdmin = "redis_proxy_admin"
 	// password server user
-	UserRedisDefault = "default"
+	UserRedisDefault   = "default"
 	UserMachineDefault = "mysql"
 	// machine password instance
 	MachineInstanceDefault = "0.0.0.0"
