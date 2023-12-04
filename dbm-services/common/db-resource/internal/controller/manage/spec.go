@@ -67,7 +67,7 @@ func (m MachineResourceHandler) SpecSum(r *gin.Context) {
 			// 如果没有指定资源类型，表示只能选择无资源类型标签的资源
 			// 没有资源类型标签的资源可以被所有其他类型使用
 			if input.ForbizId > 0 {
-				db.Where("( ? or JSON_LENGTH(dedicated_bizs)<=0 )", model.JSONQuery("").Contains([]string{
+				db.Where("( ? or JSON_LENGTH(dedicated_bizs)<=0 )", model.JSONQuery("dedicated_bizs").Contains([]string{
 					strconv.Itoa(input.ForbizId)}))
 			}
 			if cmutil.IsEmpty(input.ResourceType) {

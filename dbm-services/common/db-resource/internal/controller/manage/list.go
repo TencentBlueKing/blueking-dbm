@@ -21,6 +21,7 @@ import (
 	"dbm-services/common/db-resource/internal/model"
 	"dbm-services/common/db-resource/internal/svr/apply"
 	"dbm-services/common/db-resource/internal/svr/bk"
+	"dbm-services/common/db-resource/internal/svr/meta"
 	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/errno"
 	"dbm-services/common/go-pubpkg/logger"
@@ -123,11 +124,24 @@ func (c *MachineResourceGetterInputParam) matchStorageSpecs(db *gorm.DB) {
 	}
 }
 
-func (c *MachineResourceGetterInputParam) queryBs(db *gorm.DB) {
+func (c *MachineResourceGetterInputParam) getRealCitys() (realCistys []string, err error) {
+	for _, logicCity := range c.City {
+		rcitys, err := meta.GetIdcCityByLogicCity(logicCity)
+		if err != nil {
+			logger.Error("from %s get real citys failed %s", logicCity, err.Error())
+			return nil, err
+		}
+		realCistys = append(realCistys, rcitys...)
+	}
+	logger.Info("get real citys %v", realCistys)
+	return
+}
+
+func (c *MachineResourceGetterInputParam) queryBs(db *gorm.DB) (err error) {
 	db.Where("status = ? ", model.Unused)
 	if len(c.Hosts) > 0 {
 		db.Where("ip in (?)", c.Hosts)
-		return
+		return nil
 	}
 	switch strings.TrimSpace(strings.ToLower(c.GseAgentAlive)) {
 	case "true":
@@ -150,7 +164,11 @@ func (c *MachineResourceGetterInputParam) queryBs(db *gorm.DB) {
 	c.Mem.MatchMem(db)
 	c.matchStorageSpecs(db)
 	if len(c.City) > 0 {
-		db.Where(" city in (?) ", c.City)
+		realCitys, err := c.getRealCitys()
+		if err != nil {
+			return err
+		}
+		db.Where(" city in (?) ", realCitys)
 	}
 	if len(c.SubZones) > 0 {
 		db.Where(" sub_zone in (?) ", c.SubZones)
@@ -168,6 +186,7 @@ func (c *MachineResourceGetterInputParam) queryBs(db *gorm.DB) {
 	}
 
 	db.Order("create_time desc")
+	return nil
 }
 
 // ListAll TODO
