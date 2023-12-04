@@ -21,7 +21,7 @@ const path = '/apis/iam';
  */
 interface IAMParams {
   action_ids: Array<string>,
-  resources: Array<{ type: string, id: string | number }>
+  resources?: Array<{ type: string, id: string | number }>
 }
 
 /**

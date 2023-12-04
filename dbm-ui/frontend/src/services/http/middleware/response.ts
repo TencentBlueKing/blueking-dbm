@@ -89,6 +89,8 @@ export default (interceptors: AxiosInterceptorManager<AxiosResponse>) => {
 
   // 统一错误处理逻辑
   interceptors.use(undefined, (error: RequestError) => {
+    console.log('\n\n\n\nasdasd = ', error.response.data);
+    console.dir(error);
     switch (error.code) {
       // 未登陆
       case 401:
@@ -104,7 +106,7 @@ export default (interceptors: AxiosInterceptorManager<AxiosResponse>) => {
         messageError('请求超时');
         break;
       default:
-        if (error.response.data.code === '9900403') {
+        if (error.response.data.code === 9900403) {
           handlePermission(error);
         } else {
           messageError(`${error.message} (${error.response.data.trace_id})`);

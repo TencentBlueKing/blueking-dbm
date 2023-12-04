@@ -30,6 +30,7 @@ declare module 'vue-router' {
     showBack?: boolean // 用于判断是否显示面包屑返回按钮
     fullScreen?: boolean // 用于判断是否满屏幕
     group?: string // 用于设置顶部导航分组
+    skeleton?: string
   }
 }
 

@@ -38,6 +38,8 @@ import('tippy.js/themes/light.css');
 
 window.changeConfirm = false;
 
+console.log('main = ', window.PROJECT_CONFIG.BIZ_ID);
+
 const app = createApp(App);
 // 自定义全局组件
 setGlobalComps(app);

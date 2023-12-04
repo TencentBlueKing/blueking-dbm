@@ -21,15 +21,19 @@
     :is-show="isShow"
     width="768">
     <BkLoading :loading="loading">
-      <div>no perimission</div>
+      <RenderResult
+        :data="renderPermissionResult" />
     </BkLoading>
     <template #footer>
       <BkButton
+        v-if="!isApplyed"
+        :disabled="renderPermissionResult.hasPermission"
         theme="primary"
         @click="handleGoApply">
         {{ t('去申请') }}
       </BkButton>
       <BkButton
+        v-else
         theme="primary"
         @click="handleApplyed">
         {{ t('已申请') }}
@@ -42,26 +46,88 @@
     </template>
   </BkDialog>
 </template>
+<script lang="ts">
+  export interface CheckParams {
+    action_ids: string[],
+    resources: {
+      type: string,
+      id: string|number
+    }[]
+  }
+</script>
 <script setup lang="ts">
-  import { ref } from 'vue';
+  import {
+    Button as BkButton,
+    Dialog as BkDialog,
+    Loading as BkLoading,
+  } from 'bkui-vue';
+  import {
+    computed,
+    onMounted,
+    ref,
+  } from 'vue';
   import { useI18n } from 'vue-i18n';
+  import { useRequest } from 'vue-request';
 
+  import ApplyDataModel from '@services/model/iam/apply-data';
+  import { getApplyDataLink } from '@services/source/iam';
+
+  const props = defineProps<Props>();
+  const emit = defineEmits<Emits>();
+
+  import RenderResult from './render-result.vue';
+
+  interface Props {
+    applyData?: ApplyDataModel,
+    checkParams?: CheckParams
+  }
+  interface Emits {
+    (e: 'cancel'): void
+  }
   const { t } = useI18n();
-
   const isShow = ref(false);
-  const loading  = ref(false);
+  const isApplyed = ref(false);
+
+  const {
+    data: iamApplyData,
+    loading,
+    run,
+  } = useRequest(getApplyDataLink, {
+    manual: true,
+  });
+
+  const renderPermissionResult = computed(() => {
+    if (props.applyData) {
+      return props.applyData;
+    }
+    return iamApplyData.value as ApplyDataModel;
+  });
 
   const handleGoApply = () => {
-    console.log('handleGoApply');
+    if (!renderPermissionResult.value) {
+      return;
+    }
+    isApplyed.value = true;
+    window.open(renderPermissionResult.value.apply_url, '_blank');
   };
 
   const handleApplyed = () => {
-    console.log('handleApplyed');
+    window.location.reload();
   };
 
   const handleCancel = () => {
-    console.log('handleCancel');
+    isShow.value = false;
+    emit('cancel');
   };
+
+  onMounted(() => {
+    isShow.value = true;
+    if (props.checkParams && props.checkParams.action_ids) {
+      run({
+        ...props.checkParams,
+      });
+    }
+  });
 </script>
 <style lang="less">
   .permission-dialog {

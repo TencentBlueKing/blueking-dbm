@@ -11,7 +11,7 @@
         :active-key="currentActiveKey"
         :opened-keys="[parentKey]"
         @click="handleMenuChange">
-        <DbMenu
+        <ModuleGroup
           v-for="item in renderModuleList"
           :key="item"
           :name="item" />
@@ -55,10 +55,8 @@
   import { useActiveKey } from '../hooks/useActiveKey';
   import { useMenuStyles } from '../hooks/useMenuStyles';
 
-  import DbMenu from './components/db-menu/Index.vue';
+  import ModuleGroup from './components/module-group/Index.vue';
   import ModuleConfig from './components/ModuleConfig.vue';
-
-  import '@blueking/app-select/dist/style.css';
 
   const { t } = useI18n();
 

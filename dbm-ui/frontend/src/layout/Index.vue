@@ -78,6 +78,7 @@
     configManage = 'configManage',
     resourceManage = 'resourceManage',
     platformManage = 'platformManage',
+    personalWorkbench = 'personalWorkbench',
   }
 
   const menuList = [
@@ -161,11 +162,15 @@
 
   // 解析路由分组
   watch(route, () => {
+    if (route.name === 'index') {
+      menuType.value = menuEnum.databaseManage;
+      return;
+    }
     if ([
       'SelfServiceMyTickets',
       'MyTodos',
     ].includes(route.name as string)) {
-      menuType.value = 'personalWorkbench';
+      menuType.value = menuEnum.personalWorkbench;
       return;
     }
 

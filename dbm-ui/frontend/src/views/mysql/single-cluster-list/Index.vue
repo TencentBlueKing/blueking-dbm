@@ -33,5 +33,8 @@
 
   const clusterId = ref(0);
 
+  defineExpose({
+    loading: ref(true),
+  });
 </script>
 

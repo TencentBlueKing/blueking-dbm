@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.0.0",
   "scripts": {
-    "dev": "vite --mode test",
+    "dev": "vite",
     "dev-https": "vite --https",
     "build": "run-p build-only",
     "preview": "vite preview",
@@ -83,8 +83,8 @@
     "vue-tsc": "^1.8.22"
   },
   "lint-staged": {
-    "*.css": "stylelint",
-    "*.less": "stylelint --fix --customSyntax=postcss-less",
+    "*.css": "stylelint --allow-empty-input",
+    "*.less": "stylelint --allow-empty-input --fix --customSyntax=postcss-less",
     "*.{js,ts,tsx,vue}": [
       "eslint --fix"
     ]

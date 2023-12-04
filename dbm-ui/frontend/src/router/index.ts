@@ -59,7 +59,9 @@ import getWhitelistRoutes from '@views/whitelist/routes';
 
 export default () => {
   // 解析 url 业务id
-  const { bizs: bizList } = useGlobalBizs();
+  const {
+    bizs: bizList,
+  } = useGlobalBizs();
   const pathBiz = window.location.pathname.match(/^\/(\d+)\/?/);
   let currentBiz = '';
   if (pathBiz) {
@@ -69,11 +71,13 @@ export default () => {
     if (localCacheBizId) {
       currentBiz = `${localCacheBizId}`;
     }
+
     const headBiz = _.head(bizList);
     if (headBiz) {
       currentBiz = `${headBiz.bk_biz_id}`;
     }
   }
+  useGlobalBizs().changeBizId(Number(currentBiz));
 
   window.PROJECT_CONFIG.BIZ_ID = Number(currentBiz);
 
@@ -87,6 +91,7 @@ export default () => {
     routes: [
       {
         path: '/',
+        name: 'index',
         children: [
           ...getResourcePool(),
           ...getVersionFilesRoutes(),

@@ -31,7 +31,7 @@
         property="source_ips"
         required>
         <IpSelector
-          :biz-id="globalBizsStore.currentBizId"
+          :biz-id="window.p"
           button-text="添加 IP"
           :is-cloud-area-restrictions="false"
           :panel-list="['staticTopo', 'manualInput', 'dbmWhitelist']"
@@ -151,8 +151,6 @@
 
   import { useCopy, useInfo, useStickyFooter, useTicketMessage } from '@hooks';
 
-  import { useGlobalBizs } from '@stores';
-
   import type { AccountTypesValues } from '@common/const';
   import { AccountTypes, ClusterTypes, TicketTypes } from '@common/const';
 
@@ -197,7 +195,6 @@
   });
 
   const router = useRouter();
-  const globalBizsStore = useGlobalBizs();
   const { t } = useI18n();
   const ticketMessage = useTicketMessage();
 
@@ -281,7 +278,10 @@
    */
   function getAccount() {
     accountState.isLoading = true;
-    getPermissionRules({ bk_biz_id: globalBizsStore.currentBizId, account_type: props.accountType })
+    getPermissionRules({
+      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+      account_type: props.accountType,
+    })
       .then((res) => {
         accountState.rules = res.results;
         // 只有一个则直接默认选中
@@ -406,7 +406,7 @@
     await formRef.value.validate();
     const params = {
       ...state.formdata,
-      bizId: globalBizsStore.currentBizId,
+      bizId: window.PROJECT_CONFIG.BIZ_ID,
       cluster_type: clusterState.clusterType,
     };
     state.isLoading = true;
@@ -443,7 +443,7 @@
    */
   function createAuthorizeTicket(uid: string, data: AuthorizePreCheckData) {
     const params = {
-      bk_biz_id: globalBizsStore.currentBizId,
+      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
       details: {
         authorize_uid: uid,
         authorize_data: data,

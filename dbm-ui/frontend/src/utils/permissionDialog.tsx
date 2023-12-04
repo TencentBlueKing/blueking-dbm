@@ -10,10 +10,17 @@ import PermissionDialog, {
 
 import i18n from '@locales/index';
 
+let isShow = false;
+
 export const permissionDialog = (applyData?: ApplyDataModel, checkParams?: CheckParams) => {
+  if (isShow) {
+    return;
+  }
+
   const container = document.createElement('div');
   const handleCancel = () => {
     (container.parentNode as HTMLElement).removeChild(container);
+    isShow = false;
   };
   const app = createApp({
     setup() {
@@ -27,4 +34,5 @@ export const permissionDialog = (applyData?: ApplyDataModel, checkParams?: Check
   });
   app.use(i18n).mount(container);
   document.body.appendChild(container);
+  isShow = true;
 };
