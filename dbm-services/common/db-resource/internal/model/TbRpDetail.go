@@ -150,25 +150,15 @@ func (t *TbRpDetail) SetMore(ip string, diskMap map[string]*bk.ShellResCollectio
 		} else {
 			t.StorageDevice = []byte(r)
 		}
+		if t.TotalStorageCap <= 0 {
+			totalSize := 0
+			for _, dk := range disk.Disk {
+				totalSize += dk.Size
+			}
+			t.TotalStorageCap = totalSize
+		}
 	}
 }
-
-// func (t *TbRpDetail) getSubStorages(disks []bk.DiskInfo) (storages []TbRpStorageItem) {
-// 	for _, d := range disks {
-// 		storages = append(storages, TbRpStorageItem{
-// 			BkCloudID:   t.BkCloudID,
-// 			BkHostID:    t.BkHostID,
-// 			Size:        d.Size,
-// 			CloudDiskId: d.DiskId,
-// 			MountPoint:  d.MountPoint,
-// 			FileType:    d.FileType,
-// 			DiskType:    d.DiskType,
-// 			CreateTime:  time.Now(),
-// 			UpdateTime:  time.Now(),
-// 		})
-// 	}
-// 	return
-// }
 
 // TbRpDetailGetter TODO
 func TbRpDetailGetter() ([]TbRpDetail, error) {
