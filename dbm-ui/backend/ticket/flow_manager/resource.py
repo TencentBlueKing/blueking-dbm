@@ -226,6 +226,7 @@ class ResourceApplyFlow(BaseTicketFlow):
                         count=int(role_spec["count"]),
                         bk_cloud_id=bk_cloud_id,
                         affinity=role_spec.get("affinity", AffinityEnum.NONE.value),
+                        location_spec=role_spec.get("location_spec"),
                     )
                 )
 
