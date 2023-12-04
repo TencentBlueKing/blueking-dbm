@@ -78,7 +78,7 @@ func NewRiakSwitchInstance(instances []interface{}, conf *config.Config) ([]dbut
 			BaseSwitch: dbutil.BaseSwitch{
 				Ip:          ins.IP,
 				Port:        ins.Port,
-				IDC:         strconv.Itoa(ins.BKIdcCityID),
+				IdcID:       ins.BKIdcCityID,
 				Status:      ins.Status,
 				App:         strconv.Itoa(ins.BKBizID),
 				ClusterType: ins.ClusterType,

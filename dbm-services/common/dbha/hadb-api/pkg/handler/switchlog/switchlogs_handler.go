@@ -21,8 +21,8 @@ const (
 
 // SwitchLogsApi TODO
 type SwitchLogsApi struct {
-	UID      int    `json:"uid"`
-	SwitchID int    `json:"sw_id"`
+	UID      uint   `json:"uid"`
+	SwitchID uint   `json:"sw_id"`
 	IP       string `json:"ip"`
 	Result   string `json:"result"`
 	Datetime string `json:"datetime,omitempty"`
@@ -59,8 +59,8 @@ func Handler(ctx *fasthttp.RequestCtx) {
 // GetSwitchLogs TODO
 func GetSwitchLogs(ctx *fasthttp.RequestCtx, param interface{}) {
 	var (
-		result    = []model.SwitchLogs{}
-		whereCond = &model.SwitchLogs{}
+		result    = []model.HASwitchLogs{}
+		whereCond = &model.HASwitchLogs{}
 		response  = api.ResponseInfo{
 			Data:    nil,
 			Code:    api.RespOK,
@@ -108,7 +108,7 @@ func GetSwitchLogs(ctx *fasthttp.RequestCtx, param interface{}) {
 
 // PutSwitchLogs TODO
 func PutSwitchLogs(ctx *fasthttp.RequestCtx, setParam interface{}) {
-	input := &model.SwitchLogs{}
+	input := &model.HASwitchLogs{}
 	response := api.ResponseInfo{
 		Data:    nil,
 		Code:    api.RespOK,
@@ -148,7 +148,7 @@ func PutSwitchLogs(ctx *fasthttp.RequestCtx, setParam interface{}) {
 }
 
 // TransSwitchLogsToApi TODO
-func TransSwitchLogsToApi(result []model.SwitchLogs) []SwitchLogsApi {
+func TransSwitchLogsToApi(result []model.HASwitchLogs) []SwitchLogsApi {
 	apiResult := make([]SwitchLogsApi, 0)
 	loc, _ := time.LoadLocation("Asia/Shanghai")
 	for _, log := range result {

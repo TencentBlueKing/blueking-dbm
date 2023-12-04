@@ -35,7 +35,7 @@ func TestGetInstanceByCity(t *testing.T) {
 	cmdbC := client.CmDBClient{
 		Client: *c,
 	}
-	rawList, err := cmdbC.GetDBInstanceInfoByCity("2")
+	rawList, err := cmdbC.GetDBInstanceInfoByCity(2)
 	if err != nil {
 		fmt.Printf("get instance failed. err:%s", err.Error())
 		t.FailNow()

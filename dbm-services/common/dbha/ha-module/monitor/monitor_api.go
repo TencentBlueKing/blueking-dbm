@@ -154,7 +154,7 @@ var RuntimeConfig *runtimeConfig
 
 // RuntimeConfigInit init monitor
 func RuntimeConfigInit(
-	targetIp string, bkDataId int, accessToken string, bkCloudId string,
+	targetIp string, bkDataId int, accessToken string,
 	reportType string, msgKind string, beatPath string, agentAddress string,
 ) {
 	RuntimeConfig = &runtimeConfig{}

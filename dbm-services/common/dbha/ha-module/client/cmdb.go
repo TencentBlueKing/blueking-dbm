@@ -1,15 +1,13 @@
 package client
 
 import (
-	"encoding/json"
-	"fmt"
-	"net/http"
-	"strconv"
-
 	"dbm-services/common/dbha/ha-module/config"
 	"dbm-services/common/dbha/ha-module/constvar"
 	"dbm-services/common/dbha/ha-module/log"
 	"dbm-services/common/dbha/ha-module/util"
+	"encoding/json"
+	"fmt"
+	"net/http"
 )
 
 // CmDBClient client to request cmdb
@@ -117,17 +115,11 @@ func (c *CmDBClient) GetDBInstanceInfoByIp(ip string) ([]interface{}, error) {
 }
 
 // GetDBInstanceInfoByCity detect running, available status instance
-func (c *CmDBClient) GetDBInstanceInfoByCity(area string) ([]interface{}, error) {
-	areaId, err := strconv.Atoi(area)
-	if err != nil {
-		log.Logger.Errorf("city is invalid, city:%s", area)
-		return nil, err
-	}
-
+func (c *CmDBClient) GetDBInstanceInfoByCity(cityID int) ([]interface{}, error) {
 	req := DBInstanceInfoByCityRequest{
 		DBCloudToken:   c.Conf.BKConf.BkToken,
 		BKCloudID:      c.CloudId,
-		LogicalCityIDs: []int{areaId},
+		LogicalCityIDs: []int{cityID},
 		Statuses:       []string{constvar.RUNNING, constvar.AVAILABLE},
 	}
 

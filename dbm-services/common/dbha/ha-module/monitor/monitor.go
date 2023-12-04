@@ -7,6 +7,7 @@ import (
 	"dbm-services/common/dbha/ha-module/dbutil"
 	"dbm-services/common/dbha/ha-module/log"
 	"dbm-services/common/dbha/ha-module/util"
+	"strconv"
 )
 
 // SwitchMonitor switch monitor information
@@ -48,7 +49,7 @@ func MonitorInit(conf *config.Config) error {
 
 	RuntimeConfigInit(
 		targetIp, conf.Monitor.BkDataId, conf.Monitor.AccessToken,
-		conf.GetCloud(), constvar.MonitorReportType, constvar.MonitorMessageKind,
+		constvar.MonitorReportType, constvar.MonitorMessageKind,
 		conf.Monitor.BeatPath, conf.Monitor.AgentAddress,
 	)
 
@@ -152,7 +153,7 @@ func GetMonitorInfoBySwitch(ins dbutil.DataBaseSwitch, succ bool) MonitorInfo {
 			Role:        ins.GetRole(),
 			Status:      ins.GetStatus(),
 			Cluster:     ins.GetCluster(),
-			IDC:         ins.GetIDC(),
+			IDC:         strconv.Itoa(ins.GetIdcID()),
 		},
 	}
 }

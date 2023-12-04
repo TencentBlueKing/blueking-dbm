@@ -106,7 +106,7 @@ func NewMySQLSwitchInstance(instances []interface{}, conf *config.Config) ([]dbu
 			BaseSwitch: dbutil.BaseSwitch{
 				Ip:          ins.IP,
 				Port:        ins.Port,
-				IDC:         strconv.Itoa(ins.BKIdcCityID),
+				IdcID:       ins.BKIdcCityID,
 				Status:      ins.Status,
 				App:         strconv.Itoa(ins.BKBizID),
 				ClusterType: ins.ClusterType,

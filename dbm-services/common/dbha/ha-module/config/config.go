@@ -4,7 +4,6 @@ package config
 import (
 	"fmt"
 	"io/ioutil"
-	"strconv"
 
 	"github.com/go-playground/validator/v10"
 	"gopkg.in/yaml.v2"
@@ -15,9 +14,9 @@ type Config struct {
 	// configure for Log File
 	LogConf LogConfig `yaml:"log_conf"`
 	// configure for AgentConf component
-	AgentConf AgentConfig `yaml:"agent_conf"`
+	AgentConf *AgentConfig `yaml:"agent_conf"`
 	// configure for GMConf component
-	GMConf GMConfig `yaml:"gm_conf"`
+	GMConf *GMConfig `yaml:"gm_conf"`
 	// configure for DB detect
 	DBConf DBConfig `yaml:"db_conf"`
 	// configure for SSH detect
@@ -52,12 +51,12 @@ type LogConfig struct {
 type AgentConfig struct {
 	// active type list for db detect, valid type in constant.go
 	ActiveDBType []string `yaml:"active_db_type"`
-	// instance city for detect
-	City string `yaml:"city"`
+	// instance city for detect, value 0 allowed, so required tag could not assign
+	CityID int `yaml:"city_id"`
 	// instance campus for detect
 	Campus string `yaml:"campus"`
-	// cloud id for agent
-	Cloud string `yaml:"cloud" validate:"required"`
+	// cloud id for agent, value 0 allowed, so required tag could not assign
+	CloudID int `yaml:"cloud_id"`
 	// fetch cmdb instance's interval(second)
 	FetchInterval  int `yaml:"fetch_interval"`
 	ReportInterval int `yaml:"reporter_interval"`
@@ -65,9 +64,11 @@ type AgentConfig struct {
 
 // GMConfig configure for gm component
 type GMConfig struct {
-	City           string    `yaml:"city" validate:"required"`
-	Campus         string    `yaml:"campus" validate:"required"`
-	Cloud          string    `yaml:"cloud" validate:"required"`
+	//value 0 allowed, so required tag could not assign
+	CityID int    `yaml:"city_id"`
+	Campus string `yaml:"campus" validate:"required"`
+	//value 0 allowed, so required tag could not assign
+	CloudID        int       `yaml:"cloud_id"`
 	ListenPort     int       `yaml:"liston_port" validate:"required"`
 	ReportInterval int       `yaml:"report_interval" validate:"required"`
 	GDM            GDMConfig `yaml:"GDM"`
@@ -216,78 +217,32 @@ func (c *Config) GetBKToken(apiInfo APIConfig) string {
 	return apiInfo.BKConf.BkToken
 }
 
-// CheckConfig check some of config field is invalid or not
+// CheckConfig check whether config field invalid
 func (c *Config) CheckConfig() error {
-	var err error
-	var hasAgent bool
-	var agentCid int
-	if len(c.AgentConf.Cloud) != 0 {
+	var hasAgent, hasGM bool
+	if c.AgentConf != nil {
 		hasAgent = true
-		agentCid, err = strconv.Atoi(c.AgentConf.Cloud)
-		if err != nil {
-			fmt.Printf("cloud field convert to integer failed, %s", c.AgentConf.Cloud)
-			return err
-		}
+	}
+	if c.GMConf != nil {
+		hasGM = true
 	}
 
-	var hasGm bool
-	var gmCid int
-	if len(c.GMConf.Cloud) != 0 {
-		hasGm = true
-		gmCid, err = strconv.Atoi(c.GMConf.Cloud)
-		if err != nil {
-			fmt.Printf("gm field convert to integer failed, %s", c.GMConf.Cloud)
-			return err
-		}
-	}
-
-	if hasAgent && hasGm && agentCid != gmCid {
+	if hasAgent && hasGM && c.AgentConf.CloudID != c.GMConf.CloudID {
 		fmt.Printf("the cloud id of agent and gm is not equal")
 		return fmt.Errorf("the cloud id of agent and gm is not equal")
 	}
 
-	if !hasAgent && !hasGm {
-		return fmt.Errorf("the cloud id of agent and gm is not set")
-	}
 	return nil
 }
 
-// GetCloudId convert the stirng of Cloud to integer
 func (c *Config) GetCloudId() int {
-	if len(c.AgentConf.Cloud) > 0 {
-		cloudId, err := strconv.Atoi(c.AgentConf.Cloud)
-		if err != nil {
-			fmt.Printf("convert cloud to integer failed, err:%s", err.Error())
-			return 0
-		} else {
-			return cloudId
-		}
+	if c.AgentConf != nil {
+		return c.AgentConf.CloudID
+	}
+	if c.GMConf != nil {
+		return c.GMConf.CloudID
 	}
 
-	if len(c.GMConf.Cloud) > 0 {
-		cloudId, err := strconv.Atoi(c.GMConf.Cloud)
-		if err != nil {
-			fmt.Printf("convert cloud to integer failed, err:%s", err.Error())
-			return 0
-		} else {
-			return cloudId
-		}
-	}
-
-	fmt.Printf("gm and agent lack cloud field")
+	fmt.Printf("gm and agent lack cloud_id field")
 	return 0
-}
-
-// GetCloud the string of Cloud
-func (c *Config) GetCloud() string {
-	if len(c.AgentConf.Cloud) > 0 {
-		return c.AgentConf.Cloud
-	}
-
-	if len(c.GMConf.Cloud) > 0 {
-		return c.GMConf.Cloud
-	}
-
-	fmt.Printf("gm and agent lack cloud field")
-	return ""
 }

@@ -22,36 +22,19 @@ type HaDBClient struct {
 
 // GMInfo gm base info, use to report
 type GMInfo struct {
-	Ip    string `json:"ip"`
-	Port  int    `json:"port"`
-	City  string `json:"city"`
-	Cloud string `json:"cloud"`
-}
-
-// HaStatus api for ha_status table
-type HaStatus struct {
-	Uid            uint       `json:"uid,omitempty"`
-	IP             string     `json:"ip,omitempty"`
-	Port           int        `json:"port,omitempty"`
-	Module         string     `json:"module,omitempty"`
-	City           string     `json:"city,omitempty"`
-	Campus         string     `json:"campus,omitempty"`
-	Cloud          string     `json:"cloud,omitempty"`
-	DbType         string     `json:"db_type,omitempty"`
-	StartTime      *time.Time `json:"start_time,omitempty"`
-	LastTime       *time.Time `json:"last_time,omitempty"`
-	Status         string     `json:"status,omitempty"`
-	TakeOverGm     string     `json:"take_over_gm,omitempty"`
-	ReportInterval int        `json:"report_interval,omitempty"`
+	Ip      string `json:"ip"`
+	Port    int    `json:"port"`
+	CityID  int    `json:"city_id"`
+	CloudID int    `json:"cloud_id"`
 }
 
 // HaStatusRequest request ha status table
 type HaStatusRequest struct {
-	DBCloudToken string    `json:"db_cloud_token"`
-	BKCloudID    int       `json:"bk_cloud_id"`
-	Name         string    `json:"name"`
-	QueryArgs    *HaStatus `json:"query_args,omitempty"`
-	SetArgs      *HaStatus `json:"set_args,omitempty"`
+	DBCloudToken string          `json:"db_cloud_token"`
+	BKCloudID    int             `json:"bk_cloud_id"`
+	Name         string          `json:"name"`
+	QueryArgs    *model.HaStatus `json:"query_args,omitempty"`
+	SetArgs      *model.HaStatus `json:"set_args,omitempty"`
 }
 
 // HaStatusResponse ha status response
@@ -59,25 +42,13 @@ type HaStatusResponse struct {
 	RowsAffected int `json:"rowsAffected"`
 }
 
-// DbStatus api for db_status table
-type DbStatus struct {
-	Uid      uint       `json:"uid,omitempty"`
-	AgentIP  string     `json:"agent_ip,omitempty"`
-	IP       string     `json:"ip,omitempty"`
-	Port     int        `json:"port,omitempty"`
-	DbType   string     `json:"db_type,omitempty"`
-	Status   string     `json:"status,omitempty"`
-	Cloud    string     `json:"cloud,omitempty"`
-	LastTime *time.Time `json:"last_time,omitempty"`
-}
-
 // DbStatusRequest request db status
 type DbStatusRequest struct {
-	DBCloudToken string    `json:"db_cloud_token"`
-	BKCloudID    int       `json:"bk_cloud_id"`
-	Name         string    `json:"name"`
-	QueryArgs    *DbStatus `json:"query_args,omitempty"`
-	SetArgs      *DbStatus `json:"set_args,omitempty"`
+	DBCloudToken string            `json:"db_cloud_token"`
+	BKCloudID    int               `json:"bk_cloud_id"`
+	Name         string            `json:"name"`
+	QueryArgs    *model.HADbStatus `json:"query_args,omitempty"`
+	SetArgs      *model.HADbStatus `json:"set_args,omitempty"`
 }
 
 // DbStatusResponse db status response
@@ -86,35 +57,13 @@ type DbStatusResponse struct {
 	Uid          int `json:"uid"`
 }
 
-// SwitchQueue api for tb_mon_switch_queue table
-type SwitchQueue struct {
-	Uid                uint       `json:"uid,omitempty"`
-	IP                 string     `json:"ip,omitempty"`
-	Port               int        `json:"port,omitempty"`
-	ConfirmCheckTime   *time.Time `json:"confirm_check_time,omitempty"`
-	DbRole             string     `json:"db_role,omitempty"`
-	SlaveIP            string     `json:"slave_ip,omitempty"`
-	SlavePort          int        `json:"slave_port,omitempty"`
-	Status             string     `json:"status,omitempty"`
-	ConfirmResult      string     `json:"confirm_result,omitempty"`
-	SwitchStartTime    *time.Time `json:"switch_start_time,omitempty"`
-	SwitchFinishedTime *time.Time `json:"switch_finished_time,omitempty"`
-	SwitchResult       string     `json:"switch_result,omitempty"`
-	Remark             string     `json:"remark,omitempty"`
-	App                string     `json:"app,omitempty"`
-	DbType             string     `json:"db_type,omitempty"`
-	Idc                string     `json:"idc,omitempty"`
-	Cloud              string     `json:"cloud,omitempty"`
-	Cluster            string     `json:"cluster,omitempty"`
-}
-
 // SwitchQueueRequest request switch queue
 type SwitchQueueRequest struct {
-	DBCloudToken string       `json:"db_cloud_token"`
-	BKCloudID    int          `json:"bk_cloud_id"`
-	Name         string       `json:"name"`
-	QueryArgs    *SwitchQueue `json:"query_args,omitempty"`
-	SetArgs      *SwitchQueue `json:"set_args,omitempty"`
+	DBCloudToken string               `json:"db_cloud_token"`
+	BKCloudID    int                  `json:"bk_cloud_id"`
+	Name         string               `json:"name"`
+	QueryArgs    *model.HASwitchQueue `json:"query_args,omitempty"`
+	SetArgs      *model.HASwitchQueue `json:"set_args,omitempty"`
 }
 
 // SwitchQueueResponse switch queue response
@@ -123,25 +72,13 @@ type SwitchQueueResponse struct {
 	Uid          uint `json:"uid"`
 }
 
-// HaLogs api for ha_logs table
-type HaLogs struct {
-	Uid      uint       `json:"uid,omitempty"`
-	IP       string     `json:"ip,omitempty"`
-	Port     int        `json:"port,omitempty"`
-	MonIP    string     `json:"mon_ip,omitempty"`
-	Module   string     `json:"module,omitempty"`
-	Cloud    string     `json:"cloud,omitempty"`
-	DateTime *time.Time `json:"date_time,omitempty"`
-	Comment  string     `json:"comment,omitempty"`
-}
-
 // HaLogsRequest request ha_logs table
 type HaLogsRequest struct {
-	DBCloudToken string  `json:"db_cloud_token"`
-	BKCloudID    int     `json:"bk_cloud_id"`
-	Name         string  `json:"name"`
-	QueryArgs    *HaLogs `json:"query_args,omitempty"`
-	SetArgs      *HaLogs `json:"set_args,omitempty"`
+	DBCloudToken string        `json:"db_cloud_token"`
+	BKCloudID    int           `json:"bk_cloud_id"`
+	Name         string        `json:"name"`
+	QueryArgs    *model.HaLogs `json:"query_args,omitempty"`
+	SetArgs      *model.HaLogs `json:"set_args,omitempty"`
 }
 
 // HaLogsResponse response for ha_logs
@@ -149,24 +86,13 @@ type HaLogsResponse struct {
 	RowsAffected int `json:"rowsAffected"`
 }
 
-// SwitchLogs api for switch_logs table
-type SwitchLogs struct {
-	UID      uint       `json:"uid,omitempty"`
-	SwitchID uint       `json:"sw_id,omitempty"`
-	IP       string     `json:"ip,omitempty"`
-	Result   string     `json:"result,omitempty"`
-	Datetime *time.Time `json:"datetime,omitempty"`
-	Comment  string     `json:"comment,omitempty"`
-	Port     int        `json:"port,omitempty"`
-}
-
 // SwitchLogRequest request switch log
 type SwitchLogRequest struct {
-	DBCloudToken string      `json:"db_cloud_token"`
-	BKCloudID    int         `json:"bk_cloud_id"`
-	Name         string      `json:"name"`
-	QueryArgs    *SwitchLogs `json:"query_args,omitempty"`
-	SetArgs      *SwitchLogs `json:"set_args,omitempty"`
+	DBCloudToken string              `json:"db_cloud_token"`
+	BKCloudID    int                 `json:"bk_cloud_id"`
+	Name         string              `json:"name"`
+	QueryArgs    *model.HASwitchLogs `json:"query_args,omitempty"`
+	SetArgs      *model.HASwitchLogs `json:"set_args,omitempty"`
 }
 
 // SwitchLogResponse switch log response
@@ -200,9 +126,9 @@ func (c *HaDBClient) AgentGetGMInfo() ([]GMInfo, error) {
 		DBCloudToken: c.Conf.BKConf.BkToken,
 		BKCloudID:    c.CloudId,
 		Name:         constvar.AgentGetGMInfo,
-		QueryArgs: &HaStatus{
-			Module: constvar.GM,
-			Cloud:  strconv.Itoa(c.CloudId),
+		QueryArgs: &model.HaStatus{
+			Module:  constvar.GM,
+			CloudID: c.CloudId,
 		},
 	}
 
@@ -238,15 +164,15 @@ func (c *HaDBClient) ReportDBStatus(
 		DBCloudToken: c.Conf.BKConf.BkToken,
 		BKCloudID:    c.CloudId,
 		Name:         constvar.UpdateInstanceStatus,
-		QueryArgs: &DbStatus{
+		QueryArgs: &model.HADbStatus{
 			AgentIP: agentIp,
 			IP:      ip,
 			Port:    port,
 		},
-		SetArgs: &DbStatus{
+		SetArgs: &model.HADbStatus{
 			DbType:   dbType,
 			Status:   status,
-			Cloud:    strconv.Itoa(c.CloudId),
+			CloudID:  c.CloudId,
 			LastTime: &currentTime,
 		},
 	}
@@ -276,13 +202,13 @@ func (c *HaDBClient) ReportDBStatus(
 		DBCloudToken: c.Conf.BKConf.BkToken,
 		BKCloudID:    c.CloudId,
 		Name:         constvar.InsertInstanceStatus,
-		SetArgs: &DbStatus{
+		SetArgs: &model.HADbStatus{
 			AgentIP:  agentIp,
 			IP:       ip,
 			Port:     port,
 			DbType:   dbType,
 			Status:   status,
-			Cloud:    strconv.Itoa(c.CloudId),
+			CloudID:  c.CloudId,
 			LastTime: &currentTime,
 		},
 	}
@@ -315,12 +241,12 @@ func (c *HaDBClient) ReportHaLog(ip string, port int, module string, comment str
 		DBCloudToken: c.Conf.BKConf.BkToken,
 		BKCloudID:    c.CloudId,
 		Name:         constvar.ReporterHALog,
-		SetArgs: &HaLogs{
+		SetArgs: &model.HaLogs{
 			IP:      ip,
 			Port:    port,
 			MonIP:   util.LocalIp,
 			Module:  module,
-			Cloud:   strconv.Itoa(c.CloudId),
+			CloudID: c.CloudId,
 			Comment: comment,
 		},
 	}
@@ -346,7 +272,7 @@ func (c *HaDBClient) ReportHaLog(ip string, port int, module string, comment str
 
 // RegisterDBHAInfo register agent info to ha_status table
 func (c *HaDBClient) RegisterDBHAInfo(
-	ip string, port int, module string, city string, campus string, dbType string,
+	ip string, port int, module string, cityId int, campus string, dbType string,
 ) error {
 	var result HaStatusResponse
 
@@ -354,20 +280,20 @@ func (c *HaDBClient) RegisterDBHAInfo(
 		DBCloudToken: c.Conf.BKConf.BkToken,
 		BKCloudID:    c.CloudId,
 		Name:         constvar.RegisterDBHAInfo,
-		QueryArgs: &HaStatus{
+		QueryArgs: &model.HaStatus{
 			IP:     ip,
 			Module: module,
 			DbType: dbType,
 		},
-		SetArgs: &HaStatus{
-			IP:     ip,
-			Port:   port,
-			Module: module,
-			City:   city,
-			Campus: campus,
-			Cloud:  strconv.Itoa(c.CloudId),
-			DbType: dbType,
-			Status: constvar.RUNNING,
+		SetArgs: &model.HaStatus{
+			IP:      ip,
+			Port:    port,
+			Module:  module,
+			CityID:  cityId,
+			Campus:  campus,
+			CloudID: c.CloudId,
+			DbType:  dbType,
+			Status:  constvar.RUNNING,
 		},
 	}
 
@@ -397,12 +323,12 @@ func (c *HaDBClient) GetAliveAgentInfo(ip string, dbType string, interval int) (
 		DBCloudToken: c.Conf.BKConf.BkToken,
 		BKCloudID:    c.CloudId,
 		Name:         constvar.GetAliveAgentInfo,
-		QueryArgs: &HaStatus{
+		QueryArgs: &model.HaStatus{
 			IP:       ip,
 			DbType:   dbType,
 			Module:   constvar.Agent,
 			Status:   constvar.RUNNING,
-			Cloud:    strconv.Itoa(c.CloudId),
+			CloudID:  c.CloudId,
 			LastTime: &currentTime,
 		},
 	}
@@ -431,9 +357,9 @@ func (c *HaDBClient) GetAliveGMInfo(interval int) ([]GMInfo, error) {
 		DBCloudToken: c.Conf.BKConf.BkToken,
 		BKCloudID:    c.CloudId,
 		Name:         constvar.GetAliveGMInfo,
-		QueryArgs: &HaStatus{
+		QueryArgs: &model.HaStatus{
 			Module:   constvar.GM,
-			Cloud:    strconv.Itoa(c.CloudId),
+			CloudID:  c.CloudId,
 			LastTime: &currentTime,
 		},
 	}
@@ -471,11 +397,11 @@ func (c *HaDBClient) ReporterAgentHeartbeat(detectType string, interval int, gmI
 		DBCloudToken: c.Conf.BKConf.BkToken,
 		BKCloudID:    c.CloudId,
 		Name:         constvar.ReporterAgentHeartbeat,
-		QueryArgs: &HaStatus{
+		QueryArgs: &model.HaStatus{
 			IP:     util.LocalIp,
 			DbType: detectType,
 		},
-		SetArgs: &HaStatus{
+		SetArgs: &model.HaStatus{
 			ReportInterval: interval,
 			LastTime:       &currentTime,
 			TakeOverGm:     gmInfo,
@@ -509,11 +435,11 @@ func (c *HaDBClient) ReporterGMHeartbeat(module string, interval int) error {
 		DBCloudToken: c.Conf.BKConf.BkToken,
 		BKCloudID:    c.CloudId,
 		Name:         constvar.ReporterGMHeartbeat,
-		QueryArgs: &HaStatus{
+		QueryArgs: &model.HaStatus{
 			IP:     util.LocalIp,
 			Module: module,
 		},
-		SetArgs: &HaStatus{
+		SetArgs: &model.HaStatus{
 			ReportInterval: interval,
 			LastTime:       &currentTime,
 		},
@@ -546,7 +472,7 @@ func (c *HaDBClient) QuerySingleTotal(ip string, port int, interval int) (int, e
 		DBCloudToken: c.Conf.BKConf.BkToken,
 		BKCloudID:    c.CloudId,
 		Name:         constvar.QuerySingleTotal,
-		QueryArgs: &SwitchQueue{
+		QueryArgs: &model.HASwitchQueue{
 			IP:               ip,
 			Port:             port,
 			ConfirmCheckTime: &confirmTime,
@@ -581,7 +507,7 @@ func (c *HaDBClient) QueryIntervalTotal(interval int) (int, error) {
 		DBCloudToken: c.Conf.BKConf.BkToken,
 		BKCloudID:    c.CloudId,
 		Name:         constvar.QueryIntervalTotal,
-		QueryArgs: &SwitchQueue{
+		QueryArgs: &model.HASwitchQueue{
 			ConfirmCheckTime: &confirmTime,
 		},
 	}
@@ -604,7 +530,7 @@ func (c *HaDBClient) QueryIntervalTotal(interval int) (int, error) {
 }
 
 // QuerySingleIDC get current idc total switch number in a given time period
-func (c *HaDBClient) QuerySingleIDC(ip string, idc string) (int, error) {
+func (c *HaDBClient) QuerySingleIDC(ip string, idc int) (int, error) {
 	var result struct {
 		Count int `json:"count"`
 	}
@@ -614,9 +540,9 @@ func (c *HaDBClient) QuerySingleIDC(ip string, idc string) (int, error) {
 		DBCloudToken: c.Conf.BKConf.BkToken,
 		BKCloudID:    c.CloudId,
 		Name:         constvar.QuerySingleIDC,
-		QueryArgs: &SwitchQueue{
+		QueryArgs: &model.HASwitchQueue{
 			IP:               ip,
-			Idc:              idc,
+			IdcID:            idc,
 			ConfirmCheckTime: &confirmTime,
 		},
 	}
@@ -648,7 +574,7 @@ func (c *HaDBClient) UpdateTimeDelay(ip string, port int, app string) error {
 		DBCloudToken: c.Conf.BKConf.BkToken,
 		BKCloudID:    c.CloudId,
 		Name:         constvar.QuerySingleIDC,
-		QueryArgs: &SwitchQueue{
+		QueryArgs: &model.HASwitchQueue{
 			IP:   ip,
 			Port: port,
 			App:  app,
@@ -755,7 +681,7 @@ func (c *HaDBClient) InsertSwitchLog(swId uint, ip string, port int, result stri
 		DBCloudToken: c.Conf.BKConf.BkToken,
 		BKCloudID:    c.CloudId,
 		Name:         constvar.InsertSwitchLog,
-		SetArgs: &SwitchLogs{
+		SetArgs: &model.HASwitchLogs{
 			SwitchID: swId,
 			IP:       ip,
 			Port:     port,
