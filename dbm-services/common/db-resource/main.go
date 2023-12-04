@@ -58,6 +58,11 @@ func initCron(localcron *cron.Cron) {
 			logger.Error("inspect check resource %s", err.Error())
 		}
 	})
+	localcron.AddFunc("1 */30 * * *", func() {
+		if err := task.AsyncResourceHardInfo(); err != nil {
+			logger.Error("async machine hardinfo failed:%s", err.Error())
+		}
+	})
 }
 
 // initLogger initialization log

@@ -72,6 +72,7 @@ func (c *BackStageHandler) RegisterRouter(engine *gin.Engine) {
 	r := engine.Group("background")
 	{
 		r.POST("/cc/module/check", c.RunModuleCheck)
+		r.POST("/cc/async", c.RunAsyncCmdb)
 	}
 }
 
@@ -79,4 +80,10 @@ func (c *BackStageHandler) RegisterRouter(engine *gin.Engine) {
 func (c BackStageHandler) RunModuleCheck(r *gin.Context) {
 	task.InspectCheckResource()
 	c.SendResponse(r, nil, "Check Success", "")
+}
+
+// RunAsyncCmdb TODO
+func (c BackStageHandler) RunAsyncCmdb(r *gin.Context) {
+	task.AsyncResourceHardInfo()
+	c.SendResponse(r, nil, "async success", "")
 }
