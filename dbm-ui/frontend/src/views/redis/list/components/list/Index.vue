@@ -224,9 +224,6 @@
     pagination: useDefaultPagination(),
   });
   const renderPagination = computed(() => {
-    if (state.pagination.count < 10) {
-      return false;
-    }
     if (!isStretchLayoutOpen.value) {
       return { ...state.pagination };
     }
