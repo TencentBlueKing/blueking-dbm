@@ -199,6 +199,8 @@ const (
 	BKConfigBatchUrl = "bkconfig/v1/confitem/batchget/"
 	// BKConfigQueryUrl TODO
 	BKConfigQueryUrl = "bkconfig/v1/confitem/query/"
+	// BKPasswdQueryUrl TODO
+	BKPasswdQueryUrl = "dbpriv/proxy_password/"
 )
 
 // name service's type
@@ -246,6 +248,16 @@ const (
 	ConfOSApp = "app"
 	// ConfUserPasswd TODO
 	ConfUserPasswd = "user_pwd"
+
+	// password server component
+	ComponentRedis           = "redis"
+	ComponentRedisProxy      = "redis_proxy"
+	ComponentRedisProxyAdmin = "redis_proxy_admin"
+	// password server user
+	UserRedisDefault   = "default"
+	UserMachineDefault = "mysql"
+	// machine password instance
+	MachineInstanceDefault = "0.0.0.0"
 )
 
 const (
