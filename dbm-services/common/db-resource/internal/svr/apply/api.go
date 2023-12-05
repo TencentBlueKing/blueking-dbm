@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 
 	"dbm-services/common/db-resource/internal/model"
 	"dbm-services/common/go-pubpkg/cmutil"
@@ -276,11 +277,6 @@ func (m MeasureRange) Iegal() bool {
 	return true
 }
 
-// MatchCpu TODO
-func (cpu *MeasureRange) MatchCpu(db *gorm.DB) {
-	cpu.MatchRange(db, "cpu_num")
-}
-
 // MatchTotalStorageSize TODO
 func (disk *MeasureRange) MatchTotalStorageSize(db *gorm.DB) {
 	disk.MatchRange(db, "total_storage_cap")
@@ -289,6 +285,11 @@ func (disk *MeasureRange) MatchTotalStorageSize(db *gorm.DB) {
 // MatchMem TODO
 func (mem *MeasureRange) MatchMem(db *gorm.DB) {
 	mem.MatchRange(db, "dram_cap")
+}
+
+// MatchCpu TODO
+func (cpu *MeasureRange) MatchCpu(db *gorm.DB) {
+	cpu.MatchRange(db, "cpu_num")
 }
 
 // MatchRange TODO
@@ -300,6 +301,39 @@ func (m *MeasureRange) MatchRange(db *gorm.DB, col string) {
 		db.Where(col+" <= ?", m.Max)
 	case m.Max <= 0 && m.Min > 0:
 		db.Where(col+" >= ?", m.Min)
+	}
+}
+
+// MatchCpuBuilder cpu builder
+func (m *MeasureRange) MatchCpuBuilder() *MeasureRangeBuilder {
+	return &MeasureRangeBuilder{Col: "cpu_num", MeasureRange: m}
+}
+
+// MatchMemBuilder mem builder
+func (m *MeasureRange) MatchMemBuilder() *MeasureRangeBuilder {
+	return &MeasureRangeBuilder{Col: "dram_cap", MeasureRange: m}
+}
+
+// MeasureRangeBuilder TODO
+type MeasureRangeBuilder struct {
+	Col string
+	*MeasureRange
+}
+
+// Build TODO
+func (m *MeasureRangeBuilder) Build(builder clause.Builder) {
+	switch {
+	case m.Min > 0 && m.Max > 0:
+		builder.WriteQuoted(m.Col)
+		builder.WriteString(fmt.Sprintf(" >= %d AND ", m.Min))
+		builder.WriteQuoted(m.Col)
+		builder.WriteString(fmt.Sprintf(" <= %d ", m.Max))
+	case m.Max > 0 && m.Min <= 0:
+		builder.WriteQuoted(m.Col)
+		builder.WriteString(fmt.Sprintf(" <= %d ", m.Max))
+	case m.Max <= 0 && m.Min > 0:
+		builder.WriteQuoted(m.Col)
+		builder.WriteString(fmt.Sprintf(" >= %d ", m.Min))
 	}
 }
 

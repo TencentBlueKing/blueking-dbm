@@ -14,6 +14,7 @@ package routers
 import (
 	"net/http"
 
+	"dbm-services/common/db-resource/internal/controller"
 	"dbm-services/common/db-resource/internal/controller/apply"
 	"dbm-services/common/db-resource/internal/controller/manage"
 
@@ -28,6 +29,9 @@ func RegisterRoutes(engine *gin.Engine) {
 	// 机器资源管理
 	manage := manage.MachineResourceHandler{}
 	manage.RegisterRouter(engine)
+	// background router
+	background := controller.BackStageHandler{}
+	background.RegisterRouter(engine)
 	engine.Handle("GET", "/ping", func(context *gin.Context) {
 		context.String(http.StatusOK, "pong")
 	})

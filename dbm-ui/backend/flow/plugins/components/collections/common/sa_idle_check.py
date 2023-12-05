@@ -46,7 +46,7 @@ class CheckMachineIdleCheck(BaseService):
         rpdata = BkSopsApi.create_task(param)
         task_id = rpdata["task_id"]
         # start task
-        self.log_info(f"task_id: {task_id}")
+        self.log_info(f"job url:{env.BK_SOPS_URL}/taskflow/home/list/{task_id}")
         param = {"bk_biz_id": bk_biz_id, "task_id": task_id}
         BkSopsApi.start_task(param)
         data.outputs.task_id = task_id
