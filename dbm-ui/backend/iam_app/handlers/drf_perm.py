@@ -58,6 +58,8 @@ class IAMPermission(permissions.BasePermission):
     作为drf-iam鉴权的基类
     """
 
+    resource_type = None
+
     def __init__(self, actions: List[ActionMeta], resources: List[Resource] = None) -> None:
         self.actions = actions
         self.resources = resources or []
@@ -74,7 +76,7 @@ class IAMPermission(permissions.BasePermission):
                 for resource in self.resources:
                     bk_audit_client.add_event(
                         action=action,
-                        resource_type=resource,
+                        resource_type=self.resource_type() if self.resource_type else resource,
                         audit_context=context,
                         instance=CommonInstance(resource.attribute),
                     )
@@ -104,6 +106,8 @@ class BusinessIAMPermission(IAMPermission):
     """
     业务相关动作的鉴权
     """
+
+    resource_type = BusinessResourceMeta
 
     def __init__(self, actions: List[ActionMeta], resources: List[Resource] = None, bk_biz_id: int = None) -> None:
         self.bk_biz_id = bk_biz_id

@@ -30,7 +30,7 @@ jobs:
           github.rest.git.createRef({
             owner: context.repo.owner,
             repo: context.repo.repo,
-            ref: 'refs/tags/v${{ steps.yaml-data.outputs.data }}',
+            ref: 'refs/tags/temp-${{ steps.yaml-data.outputs.data }}',
             sha: context.sha
           })
 
@@ -44,19 +44,6 @@ jobs:
         ignorePreReleases: false
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-    - id: delete-temporary-tag
-      name: Delete temporary tag
-      uses: actions/github-script@v6
-      with:
-        # 参考 https://octokit.github.io/rest.js/v18#git-delete-ref
-        # 参考 https://github.com/actions/github-script
-        script: |
-          github.rest.git.deleteRef({
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            ref: 'tags/v${{ steps.yaml-data.outputs.data }}'
-          })
 
     - id: create-tag
       name: Create tag
@@ -82,3 +69,16 @@ jobs:
         body: ${{ steps.build-release-log.outputs.changelog }}
         draft: false
         prerelease: true
+
+    - id: delete-temporary-tag
+      name: Delete temporary tag
+      uses: actions/github-script@v6
+      with:
+        # 参考 https://octokit.github.io/rest.js/v18#git-delete-ref
+        # 参考 https://github.com/actions/github-script
+        script: |
+          github.rest.git.deleteRef({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            ref: 'tags/temp-${{ steps.yaml-data.outputs.data }}'
+          })
