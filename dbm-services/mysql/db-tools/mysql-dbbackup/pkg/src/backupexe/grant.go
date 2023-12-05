@@ -13,23 +13,6 @@ import (
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/util"
 )
 
-//// GetTargetName produce the target name of the backup file
-//func GetTargetName(cfg *config.Public) (string, error) {
-//	currentTime := time.Now().Format("20060102_150405")
-//	/*
-//		output, err := exec.Command("hostname").CombinedOutput()
-//		if err != nil {
-//			logger.Log.Warn("failed to get hostname")
-//			return "", err
-//		}
-//		common.HostName = strings.Replace(string(output), "\n", "", -1)
-//	*/
-//	targetName := fmt.Sprintf("%s_%s_%s_%d_%s_%s",
-//		cfg.BkBizId, cfg.ClusterId, cfg.MysqlHost, cfg.MysqlPort, currentTime, cfg.BackupType)
-//	logger.Log.Info("targetName: ", targetName)
-//	return targetName, nil
-//}
-
 // GrantBackup backup grant information
 func GrantBackup(cfg *config.Public) error {
 	db, err := mysqlconn.InitConn(cfg)

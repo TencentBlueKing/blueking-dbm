@@ -102,7 +102,7 @@ func (c *Public) IfBackupGrant() bool {
 
 func (c *Public) TargetName() string {
 	if c.targetName == "" {
-		currentTime := time.Now().Format("20060102_150405")
+		currentTime := time.Now().Format("20060102150405")
 		c.targetName = fmt.Sprintf("%d_%d_%s_%d_%s_%s",
 			c.BkBizId, c.ClusterId, c.MysqlHost, c.MysqlPort, currentTime, c.BackupType)
 
