@@ -25,8 +25,7 @@ import type { MysqlAuthorizationDetails, TicketDetails } from '@services/types/t
 
 import { useDefaultPagination } from '@hooks';
 
-import { useGlobalBizs } from '@stores';
-
+// import { useGlobalBizs } from '@stores';
 import {
   ClusterTypes,
   DBTypes,
@@ -36,7 +35,7 @@ import { getSearchSelectorParams } from '@utils';
 
 export function useTargetClusterData(ticketDetails: TicketDetails<MysqlAuthorizationDetails>) {
   const { t } = useI18n();
-  const globalBizsStore = useGlobalBizs();
+  // const globalBizsStore = useGlobalBizs();
   const apiMap: Record<string, (params: any) => ReturnType<typeof getTendbsingleList>> = {
     [ClusterTypes.TENDBSINGLE]: getTendbsingleList,
     [ClusterTypes.TENDBHA]: getTendbhaList,
@@ -80,7 +79,8 @@ export function useTargetClusterData(ticketDetails: TicketDetails<MysqlAuthoriza
 
     const params = {
       dbType: DBTypes.MYSQL,
-      bk_biz_id: globalBizsStore.currentBizId,
+      // bk_biz_id: globalBizsStore.currentBizId,
+      bk_biz_id: ticketDetails.bk_biz_id,
       type,
       cluster_ids: ticketDetails?.details?.authorize_data?.cluster_ids,
       ...listState.pagination.getFetchParams(),

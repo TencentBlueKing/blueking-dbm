@@ -15,7 +15,8 @@
   <BkDialog
     class="cluster-preview-dialog"
     :is-show="isShow"
-    :title="title || $t('目标集群预览')">
+    :title="title || $t('目标集群预览')"
+    @closed="handleClose">
     <div class="cluster-preview-content">
       <DbSearchSelect
         v-model="listState.filters.search"
