@@ -59,6 +59,9 @@ class TendbNodeRebalanceFlowParamBuilderBuilder(builders.FlowParamBuilder):
 
 
 class TendbNodeRebalanceResourceParamBuilder(builders.ResourceApplyParamBuilder):
+    def format(self):
+        self.patch_backend_affinity_location()
+
     def post_callback(self):
         next_flow = self.ticket.next_flow()
         infos = next_flow.details["ticket_data"]["infos"]

@@ -21,6 +21,7 @@ from rest_framework import serializers
 from backend import env
 from backend.configuration.constants import SystemSettingsEnum
 from backend.configuration.models import DBAdministrator, SystemSettings
+from backend.db_meta.models import Cluster
 from backend.db_services.dbbase.constants import IpSource
 from backend.dbm_init.services import Services
 from backend.ticket.constants import FlowRetryType, FlowType
@@ -227,6 +228,17 @@ class ResourceApplyParamBuilder(CallBackBuilderMixin):
         需要在各自的ResourceApplyParamBuilder重写post_callback
         """
         pass
+
+    def patch_backend_affinity_location(self):
+        """
+        后端节点变更的时候，补充亲和性和位置参数
+        """
+        cluster_ids = [info["cluster_id"] for info in self.ticket_data["infos"]]
+        id__cluster = {cluster.id: cluster for cluster in Cluster.objects.filter(id__in=cluster_ids)}
+        for info in self.ticket_data["infos"]:
+            cluster = id__cluster[info["cluster_id"]]
+            info["resource_spec"]["backend_group"]["affinity"] = cluster.disaster_tolerance_level
+            info["resource_spec"]["backend_group"]["location_spec"] = {"city": cluster.region, "sub_zone_ids": []}
 
 
 class TicketFlowBuilder:

@@ -10,6 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 import base64
 import json
+import logging
 
 from django.utils.translation import ugettext as _
 
@@ -33,6 +34,8 @@ from backend.flow.consts import (
     NameSpaceEnum,
 )
 from backend.flow.engine.exceptions import ServiceDoesNotApply
+
+logger = logging.getLogger("flow")
 
 
 class CloudServiceActPayload(object):
@@ -72,8 +75,9 @@ class CloudServiceActPayload(object):
 
     def __generate_service_token(self, service_type: CloudServiceName):
         # 生成透传接口校验的秘钥
-        db_cloud_token = f"{self.cloud_id}_{service_type}_token"
-        return AsymmetricHandler.encrypt(name=AsymmetricCipherConfigType.PROXYPASS.value, content=db_cloud_token)
+        token_name = f"{self.cloud_id}_{service_type}_token"
+        encrypt_token = AsymmetricHandler.encrypt(name=AsymmetricCipherConfigType.PROXYPASS.value, content=token_name)
+        return encrypt_token
 
     def get_nginx_apply_payload(self):
         # 现在默认不支持批量部署nginx

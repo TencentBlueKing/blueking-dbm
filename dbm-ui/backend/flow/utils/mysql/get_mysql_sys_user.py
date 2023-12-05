@@ -7,11 +7,15 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import logging
+
 from backend import env
 from backend.core.encrypt.constants import AsymmetricCipherConfigType
 from backend.core.encrypt.handlers import AsymmetricHandler
 from backend.db_proxy.constants import ExtensionType
 from backend.db_proxy.models import DBExtension
+
+logger = logging.getLogger("flow")
 
 
 def get_mysql_sys_users(bk_cloud_id) -> list:
@@ -29,6 +33,7 @@ def get_mysql_sys_users(bk_cloud_id) -> list:
         else:
             bk_cloud_name = AsymmetricCipherConfigType.get_cipher_cloud_name(bk_cloud_id)
             info = DBExtension.get_latest_extension(bk_cloud_id=bk_cloud_id, extension_type=key)
+            logger.error(f"[{key}] details: {info.details}")
             sys_users.append(AsymmetricHandler.decrypt(name=bk_cloud_name, content=info.details["user"]))
 
     return sys_users

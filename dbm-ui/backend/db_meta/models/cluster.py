@@ -69,7 +69,7 @@ class Cluster(AuditedModel):
         return {
             **model_to_dict(self),
             "cluster_type_name": str(ClusterType.get_choice_label(self.cluster_type)),
-            "tag": [t.tag_desc() for t in self.tag_set.all()],
+            "tag": [t.tag_desc for t in self.tag_set.all()],
         }
 
     @property

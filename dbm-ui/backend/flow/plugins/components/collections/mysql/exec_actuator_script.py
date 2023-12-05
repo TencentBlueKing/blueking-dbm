@@ -103,6 +103,7 @@ class ExecuteDBActuatorScriptService(BkJobService):
 
         # 拼接mysql系统账号固定参数
         if "general" in db_act_template["payload"]:
+            self.log_error(f"[mysql-account] kwargs: {kwargs}")
             db_act_template["payload"]["general"].update(
                 {"runtime_extend": {"mysql_sys_users": get_mysql_sys_users(kwargs["bk_cloud_id"])}}
             )
