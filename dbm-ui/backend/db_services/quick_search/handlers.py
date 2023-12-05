@@ -42,7 +42,7 @@ class QSearchHandler(object):
 
         return result
 
-    def common_filter(self, objs, return_type="list", fields=None):
+    def common_filter(self, objs, return_type="list", fields=None, limit=None):
         """
         return_type: list | objects
         """
@@ -55,7 +55,8 @@ class QSearchHandler(object):
             return objs
 
         fields = fields or []
-        return list(objs[: self.limit].values(*fields))
+        limit = limit or self.limit
+        return list(objs[:limit].values(*fields))
 
     def filter_cluster_name(self, keyword):
         """过滤集群名"""
@@ -184,11 +185,12 @@ class QSearchHandler(object):
         return machines
 
     def filter_ticket(self, keyword):
-        """TODO: 过滤单据，不支持模糊搜索，单号为递增数字"""
+        """过滤单据，单号为递增数字，采用startswith过滤"""
 
         try:
             ticket_id = int(keyword)
-            objs = Ticket.objects.filter(id=ticket_id)
+            qs = Q(id=ticket_id) if self.filter_type == FilterType.EXACT.value else Q(id__startswith=keyword)
+            objs = Ticket.objects.filter(qs).order_by("id")
             return self.common_filter(
                 objs,
                 fields=[
@@ -201,6 +203,7 @@ class QSearchHandler(object):
                     "status",
                     "is_reviewed",
                 ],
+                limit=5,
             )
         except ValueError:
             return []
