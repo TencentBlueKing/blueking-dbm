@@ -142,7 +142,7 @@ class Command(BaseCommand):
             #     db_type=db_type,
             # )
 
-            template_name = strategy_template["name"]
+            template_name = strategy_template["name"].replace("/", "-")
             strategy_template["labels"] = sorted(set(strategy_template["labels"]))
             strategy_template["source"] = "dbm"
             strategy_template["bk_biz_id"] = ""
