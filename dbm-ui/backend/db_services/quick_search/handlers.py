@@ -15,6 +15,7 @@ from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Cluster, Machine, ProxyInstance, StorageInstance
 from backend.db_services.quick_search.constants import FilterType, ResourceType
 from backend.flow.models import FlowTree
+from backend.ticket.models import Ticket
 
 
 class QSearchHandler(object):
@@ -41,7 +42,7 @@ class QSearchHandler(object):
 
         return result
 
-    def common_filter(self, objs, return_type="list", fields=None):
+    def common_filter(self, objs, return_type="list", fields=None, limit=None):
         """
         return_type: list | objects
         """
@@ -54,7 +55,8 @@ class QSearchHandler(object):
             return objs
 
         fields = fields or []
-        return list(objs[: self.limit].values(*fields))
+        limit = limit or self.limit
+        return list(objs[:limit].values(*fields))
 
     def filter_cluster_name(self, keyword):
         """过滤集群名"""
@@ -173,7 +175,7 @@ class QSearchHandler(object):
             )
 
             cluster_info = {"cluster_id": None, "cluster_domain": None}
-            if cluster:
+            if cluster.exists():
                 cluster_info.update(
                     {"cluster_id": cluster.first().id, "cluster_domain": cluster.first().immute_domain}
                 )
@@ -181,3 +183,27 @@ class QSearchHandler(object):
             machines.append(machine)
 
         return machines
+
+    def filter_ticket(self, keyword):
+        """过滤单据，单号为递增数字，采用startswith过滤"""
+
+        try:
+            ticket_id = int(keyword)
+            qs = Q(id=ticket_id) if self.filter_type == FilterType.EXACT.value else Q(id__startswith=keyword)
+            objs = Ticket.objects.filter(qs).order_by("id")
+            return self.common_filter(
+                objs,
+                fields=[
+                    "id",
+                    "creator",
+                    "create_at",
+                    "bk_biz_id",
+                    "ticket_type",
+                    "group",
+                    "status",
+                    "is_reviewed",
+                ],
+                limit=5,
+            )
+        except ValueError:
+            return []
