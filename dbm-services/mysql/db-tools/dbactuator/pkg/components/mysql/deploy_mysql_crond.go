@@ -1,10 +1,7 @@
 package mysql
 
 import (
-	"bytes"
 	"fmt"
-	"net"
-	"net/http"
 	"os"
 	"os/exec"
 	"path"
@@ -180,6 +177,26 @@ func (c *DeployMySQLCrondComp) TouchJobsConfig() (err error) {
 	return nil
 }
 
+func (c *DeployMySQLCrondComp) Stop() (err error) {
+	cmd := exec.Command(
+		"su", []string{
+			"-", "mysql", "-c",
+			fmt.Sprintf(
+				`/bin/sh %s`,
+				path.Join(cst.MySQLCrondInstallPath, "stop.sh"),
+			),
+		}...,
+	)
+
+	err = cmd.Run()
+	if err != nil {
+		logger.Error("stop mysql-crond failed: %s", err.Error())
+		return err
+	}
+	logger.Info("stop mysql-crond success")
+	return nil
+}
+
 // Start 启动进程
 func (c *DeployMySQLCrondComp) Start() (err error) {
 	chownCmd := fmt.Sprintf(`chown -R mysql %s`, cst.MySQLCrondInstallPath)
@@ -189,115 +206,6 @@ func (c *DeployMySQLCrondComp) Start() (err error) {
 		return err
 	}
 
-	/*
-		前台启动 mysql-crond
-		目的是试试看能不能正常启动, 方便捕捉错误
-	*/
-	errChan := make(chan error)
-	go func() {
-		// 重装的时候无脑尝试关闭一次
-		req, _ := http.NewRequest(http.MethodGet, "http://127.0.0.1:9999/quit", nil)
-		req.Close = true
-
-		resp, err := http.DefaultClient.Do(req)
-		if err != nil {
-			logger.Error("send quit request failed for forehead start", err.Error())
-			//errChan <- errors.Wrap(err, "send quit request failed for forehead start")
-			//return
-		}
-		if resp != nil {
-			_ = resp.Body.Close()
-		}
-
-		time.Sleep(15 * time.Second)
-
-		cmd := exec.Command(
-			"su", "-", "mysql", "-c",
-			fmt.Sprintf(
-				`%s -c %s`,
-				path.Join(cst.MySQLCrondInstallPath, "start.sh"),
-				path.Join(cst.MySQLCrondInstallPath, "runtime.yaml"),
-			),
-		)
-		var stderr bytes.Buffer
-		cmd.Stderr = &stderr
-		err = cmd.Run()
-		if err != nil {
-			errChan <- errors.Wrap(err, stderr.String())
-		}
-		errChan <- nil
-	}()
-
-	started := false
-LabelSelectLoop:
-	for i := 1; i <= 30; i++ {
-		select {
-		case err := <-errChan:
-			if err != nil {
-				logger.Error("start mysql-crond failed: %s", err.Error())
-				return err
-			}
-		case <-time.After(2 * time.Second):
-			logger.Info("try to connect mysql-crond %d times", i)
-			req, _ := http.NewRequest(http.MethodGet, "http://127.0.0.1:9999/entries", nil)
-			req.Close = true
-			resp, err := http.DefaultClient.Do(req)
-			if err != nil {
-				logger.Info("try to connect mysql-crond %d times failed: %s", i, err.Error())
-				break
-			}
-			_ = resp.Body.Close()
-			started = true
-			logger.Info("try to connect mysql-crond %d times success", i)
-			break LabelSelectLoop
-		}
-	}
-
-	if !started {
-		err := errors.Errorf("start mysql-crond failed: try to connect too many times")
-		logger.Error(err.Error())
-		return err
-	}
-
-	// 关闭前台启动的 mysql-crond
-	//err = (*cmd).Process.Kill()
-	req, _ := http.NewRequest(http.MethodGet, "http://127.0.0.1:9999/quit", nil)
-	req.Close = true
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		logger.Error("quit forehead mysql-crond failed: ", err.Error())
-		return err
-	}
-	if resp != nil {
-		_ = resp.Body.Close()
-	}
-
-	logger.Info("send quit request success")
-
-	time.Sleep(15 * time.Second)
-
-	// 确认监听端口已经关闭
-	logger.Info("check mysql-crond bind port")
-	closed := false
-	for i := 1; i <= 5; i++ {
-		logger.Info("check mysql-crond port %d times", i)
-		_, err := net.DialTimeout("tcp", "127.0.0.1:9999", 1*time.Second)
-		if err != nil {
-			logger.Info("port closed")
-			closed = true
-			break
-		}
-		logger.Info("port opened, try later")
-		time.Sleep(2 * time.Second)
-	}
-
-	if !closed {
-		err := errors.Errorf("mysql-crond quit failed, confirm port close too many times")
-		logger.Error(err.Error())
-		return err
-	}
-
-	// 正式后台启动 mysql-crond
 	cmd := exec.Command(
 		"su", []string{
 			"-", "mysql", "-c", // mysql 写死
@@ -314,31 +222,51 @@ LabelSelectLoop:
 		return err
 	}
 
-	// 再次检查能不能连接
-	started = false
-	for i := 1; i <= 10; i++ {
-		logger.Info("try to connect mysql-crond %d times", i)
-		req, _ := http.NewRequest(http.MethodGet, "http://127.0.0.1:9999/entries", nil)
-		req.Close = true
-		resp, err := http.DefaultClient.Do(req)
-		if err != nil {
-			logger.Info("try to connect mysql-crond %d times failed: %s", i, err.Error())
-			time.Sleep(2 * time.Second)
-			continue
+	logger.Info("mysql-crond started")
+	return nil
+}
+
+func (c *DeployMySQLCrondComp) CheckStart() (err error) {
+	/*
+	   EXIT STATUS
+	          0      One or more processes matched the criteria. For pkill the process must also have been successfully signalled.
+	          1      No processes matched or none of them could be signalled.
+	          2      Syntax error in the command line.
+	          3      Fatal error: out of memory etc.
+	*/
+	cmd := exec.Command(
+		"su", "mysql", "-c", "pgrep -x 'mysql-crond'")
+
+	err = cmd.Run()
+	if err != nil {
+		var exitErr *exec.ExitError
+		if errors.As(err, &exitErr) {
+			if exitErr.ExitCode() == 1 {
+				err = errors.New("mysql-crond process not found")
+				logger.Error(err.Error())
+				return err
+			} else {
+				err = fmt.Errorf("run %s failed, exit code: %d",
+					cmd.String(), exitErr.ExitCode())
+				logger.Error(err.Error())
+				return err
+			}
+		} else {
+			logger.Error("find mysql-crond process failed: %s", err.Error())
+			return err
 		}
-		_ = resp.Body.Close()
-		started = true
-		logger.Info("try to connect mysql-crond %d times success", i)
-		break
 	}
 
-	if !started {
-		err := errors.Errorf("start mysql-crond failed: try to connect too many times")
+	content, err := os.ReadFile(path.Join(cst.MySQLCrondInstallPath, "start-crond.err"))
+	if err != nil {
 		logger.Error(err.Error())
 		return err
 	}
 
-	logger.Info("mysql-crond started")
+	if len(content) > 0 {
+		logger.Error(string(content))
+		return fmt.Errorf("start mysql-crond failed: %s", string(content))
+	}
 
 	return nil
 }
@@ -359,6 +287,27 @@ func (c *DeployMySQLCrondComp) AddKeepAlive() (err error) {
 		return err
 	}
 	logger.Info("add mysql-crond keep alive crontab success")
+	return nil
+}
+
+func (c *DeployMySQLCrondComp) RemoveKeepAlive() (err error) {
+	cmd := exec.Command(
+		"su", []string{
+			"-", "mysql", "-c",
+			fmt.Sprintf(
+				`/bin/sh %s`,
+				path.Join(cst.MySQLCrondInstallPath, "remove_keep_alive.sh"),
+			),
+		}...,
+	)
+	err = cmd.Run()
+	if err != nil {
+		logger.Error("remove mysql-crond keep alive crontab failed: %s", err.Error())
+		return err
+	}
+	logger.Info("remove mysql-crond keep alive crond success")
+
+	time.Sleep(1 * time.Minute) //确保现在在跑的周期完成
 	return nil
 }
 
