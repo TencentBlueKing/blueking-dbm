@@ -137,6 +137,23 @@ func (c *MachineResourceGetterInputParam) getRealCitys() (realCistys []string, e
 	return
 }
 
+func (c *MachineResourceGetterInputParam) matchSpec(db *gorm.DB) {
+	if len(c.DeviceClass) > 0 {
+		switch {
+		case c.Cpu.IsEmpty() && c.Mem.IsEmpty():
+			db.Where(" device_class in (?) ", c.DeviceClass)
+		case c.Cpu.IsEmpty() && c.Mem.IsNotEmpty():
+			db.Where("? or device_class in (?)", c.Mem.MatchMemBuilder(), c.DeviceClass)
+		case c.Cpu.IsNotEmpty() && c.Mem.IsEmpty():
+			db.Where("? or device_class in (?)", c.Cpu.MatchCpuBuilder(), c.DeviceClass)
+		case c.Cpu.IsNotEmpty() && c.Mem.IsNotEmpty():
+			db.Where("( ? and  ? ) or device_class in (?)", c.Cpu.MatchCpuBuilder(), c.Mem.MatchMemBuilder(), c.DeviceClass)
+		}
+		return
+	}
+	c.Cpu.MatchCpu(db)
+	c.Mem.MatchMem(db)
+}
 func (c *MachineResourceGetterInputParam) queryBs(db *gorm.DB) (err error) {
 	db.Where("status = ? ", model.Unused)
 	if len(c.Hosts) > 0 {
@@ -160,8 +177,7 @@ func (c *MachineResourceGetterInputParam) queryBs(db *gorm.DB) (err error) {
 			db.Where("(?)", model.JSONQuery("rs_types").JointOrContains(c.RsTypes))
 		}
 	}
-	c.Cpu.MatchCpu(db)
-	c.Mem.MatchMem(db)
+	c.matchSpec(db)
 	c.matchStorageSpecs(db)
 	if len(c.City) > 0 {
 		realCitys, err := c.getRealCitys()
@@ -173,9 +189,7 @@ func (c *MachineResourceGetterInputParam) queryBs(db *gorm.DB) (err error) {
 	if len(c.SubZones) > 0 {
 		db.Where(" sub_zone in (?) ", c.SubZones)
 	}
-	if len(c.DeviceClass) > 0 {
-		db.Where("device_class in (?) ", c.DeviceClass)
-	}
+
 	if len(c.ForBizs) > 0 {
 		// 如果参数[0],表示选择没有任何业务标签的资源
 		if c.ForBizs[0] == 0 {
