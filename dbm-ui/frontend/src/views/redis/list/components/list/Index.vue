@@ -764,7 +764,7 @@
     fields: (columns.value || []).filter(item => item.field).map(item => ({
       label: item.label as string,
       field: item.field as string,
-      disabled: ['name', 'master_domain'].includes(item.field as string),
+      disabled: ['master_domain'].includes(item.field as string),
     })),
     checked: [
       'bk_cloud_name',
@@ -778,6 +778,7 @@
     ],
     showLineHeight: false,
   };
+
   const {
     settings,
     updateTableSettings,

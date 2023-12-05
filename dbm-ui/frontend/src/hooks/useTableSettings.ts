@@ -73,7 +73,7 @@ export const useTableSettings = (key: string, defaultSettings: Settings) => {
           continue;
         }
 
-        // 确保以 udpate settings 为准
+        // 确保以 update settings 为准
         const updateValue = updateSettings[settingKey];
         if (updateValue) {
           Object.assign(values, {
@@ -93,10 +93,14 @@ export const useTableSettings = (key: string, defaultSettings: Settings) => {
    */
   function updateTableSettings(updateSettings: Settings) {
     const newSettings = getSettings(updateSettings);
+    newSettings.fields = newSettings.fields?.map(item => ({
+      field: item.field,
+    }));
     userProfileStore.updateProfile({
       label: key,
       values: newSettings,
     }).then(() => {
+      newSettings.fields = defaultSettings.fields;
       settings.value = newSettings;
     });
   }

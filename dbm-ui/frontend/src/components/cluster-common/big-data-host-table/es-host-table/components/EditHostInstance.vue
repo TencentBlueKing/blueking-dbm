@@ -60,7 +60,7 @@
     if (localValue.value === props.modelValue) {
       return;
     }
-    emits('change', localValue.value);
+    emits('change', Number(localValue.value));
   };
 </script>
 <style lang="less">
