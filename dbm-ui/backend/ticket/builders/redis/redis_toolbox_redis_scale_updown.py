@@ -57,6 +57,9 @@ class RedisScaleUpDownParamBuilder(builders.FlowParamBuilder):
 
 
 class RedisScaleUpDownResourceParamBuilder(builders.ResourceApplyParamBuilder):
+    def format(self):
+        self.patch_backend_affinity_location()
+
     def post_callback(self):
         super().post_callback()
 

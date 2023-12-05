@@ -160,7 +160,9 @@ class AsymmetricHandler:
         salt = get_random_string(len(content))
         cross_salt_content = list(itertools.chain.from_iterable(zip(content, salt)))
         cross_salt_content = "".join(cross_salt_content)
-        return SymmetricHandler.encrypt(content=cross_salt_content)
+        encrypt_content = SymmetricHandler.encrypt(content=cross_salt_content)
+        logger.info(f"[AsymmetricHandler-Salt] content: {content}, salt: {salt}, salted_content: {encrypt_content}")
+        return encrypt_content
 
     @classmethod
     def remove_salt(cls, content: str):
@@ -172,6 +174,10 @@ class AsymmetricHandler:
         """
         cross_salt_content = SymmetricHandler.decrypt(content=content)
         plain_content = cross_salt_content[0:-1:2]
+        logger.info(
+            f"[AsymmetricHandler-RemoveSalt] "
+            f"content: {content}, cross_salt_content: {cross_salt_content}, plain_content: {plain_content}"
+        )
         return plain_content
 
     @classmethod
@@ -184,7 +190,9 @@ class AsymmetricHandler:
         """
         content = cls.add_salt(content) if need_salt else content
         asymmetric_cipher = cls.get_or_generate_cipher_instance(name)
-        return asymmetric_cipher.encrypt(content)
+        encrypt_content = asymmetric_cipher.encrypt(content)
+        logger.info(f"[AsymmetricHandler-Encrypt] key: {name}, content: {content}, encrypt: {encrypt_content}")
+        return encrypt_content
 
     @classmethod
     def decrypt(cls, name: str, content: str, salted: bool = True) -> str:
@@ -197,6 +205,7 @@ class AsymmetricHandler:
         asymmetric_cipher = cls.get_or_generate_cipher_instance(name)
         plain_content = asymmetric_cipher.decrypt(content)
         plain_content = cls.remove_salt(plain_content) if salted else plain_content
+        logger.info(f"[AsymmetricHandler-Decrypt] content: {content}, decrypt: {plain_content}")
         return plain_content
 
     @classmethod
