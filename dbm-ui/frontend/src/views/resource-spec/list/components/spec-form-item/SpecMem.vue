@@ -99,4 +99,14 @@
 
 <style lang="less" scoped>
   @import "./specFormItem.less";
+
+  .spec-mem {
+    &::before{
+      display: none;
+    }
+
+    &::after {
+      content: "OR" !important;
+    }
+  }
 </style>

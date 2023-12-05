@@ -117,6 +117,7 @@ export default class TendbCluster {
   spider_master: Instance[];
   spider_mnt: Instance[];
   spider_slave: Instance[];
+  spider_ctl_primary: string;
   status: string;
   temporary_info: {
     source_cluster?: string,
@@ -150,6 +151,7 @@ export default class TendbCluster {
     this.spider_master = payload.spider_master;
     this.spider_mnt = payload.spider_mnt;
     this.spider_slave = payload.spider_slave;
+    this.spider_ctl_primary = payload.spider_ctl_primary;
     this.status = payload.status;
     this.temporary_info = payload.temporary_info;
     this.operations = this.initOperations(payload.operations);
