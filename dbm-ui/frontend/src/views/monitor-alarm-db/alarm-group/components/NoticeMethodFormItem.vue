@@ -542,13 +542,30 @@
 
   const handleTabDelete = (index: number) => {
     panelList.value.splice(index, 1);
+
+    nextTick(() => {
+      // 默认值
+      if (panelList.value.length === 0) {
+        addPanel();
+      }
+    });
   };
 
   const timeArrayFormatter = (timeArr: string[]): string =>  {
     if (timeArr && timeArr.length === 2) {
       const [start, end] = timeArr;
+      let startArr = start.split(':');
+      let endArr = end.split(':');
 
-      return `${start} ~ ${end}`;
+      // 可能为HH:MM:DD或HH:MM，统一为HH:MM
+      if (startArr.length > 2) {
+        startArr = startArr.slice(0, 2);
+      }
+      if (endArr.length > 2) {
+        endArr = endArr.slice(0, 2);
+      }
+
+      return `${startArr.join(':')} ~ ${endArr.join(':')}`;
     }
 
     return '';
