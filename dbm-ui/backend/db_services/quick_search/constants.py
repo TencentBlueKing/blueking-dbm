@@ -17,7 +17,7 @@ class ResourceType(str, StructuredEnum):
     CLUSTER_NAME = EnumField("cluster_name", _("集群名"))
     CLUSTER_DOMAIN = EnumField("cluster_domain", _("集群域名"))
     INSTANCE = EnumField("instance", _("实例"))
-    # TICKET = EnumField("ticket", _("单号"))
+    TICKET = EnumField("ticket", _("单号"))
     TASK = EnumField("task", _("任务"))
     MACHINE = EnumField("machine", _("主机"))
 
