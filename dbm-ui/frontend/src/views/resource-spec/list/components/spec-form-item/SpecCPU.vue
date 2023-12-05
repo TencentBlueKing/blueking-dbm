@@ -12,7 +12,7 @@
 -->
 
 <template>
-  <div class="spec-cpu spec-form-item">
+  <div class="spec-cpu spec-form-item mb-0">
     <div class="spec-form-item__label">
       CPU
     </div>
@@ -97,4 +97,10 @@
 
 <style lang="less" scoped>
   @import "./specFormItem.less";
+
+  .spec-cpu {
+    &::after {
+      display: none;
+    }
+  }
 </style>

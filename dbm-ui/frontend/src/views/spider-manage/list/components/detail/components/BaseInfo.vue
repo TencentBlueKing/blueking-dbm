@@ -78,6 +78,11 @@
         render: () => props.data.spider_slave.map(item => item.instance).join(',') || '--',
       },
       {
+        label: 'Spider Ctl Primary',
+        key: 'spider_ctl_primary',
+        render: () => props.data.spider_ctl_primary || '--',
+      },
+      {
         label: t('运维节点'),
         key: 'spider_mnt',
         render: () => props.data.spider_mnt.map(item => item.instance).join(',') || '--',
