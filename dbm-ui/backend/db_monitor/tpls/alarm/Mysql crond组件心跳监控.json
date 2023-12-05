@@ -243,9 +243,9 @@
     "data_source_type": "\u81ea\u5b9a\u4e49\u6307\u6807",
     "is_enabled": true
   },
-  "is_enabled": true,
+  "is_enabled": false,
   "monitor_indicator": "COUNT(mysql_crond_heart_beat)",
-  "version": 16,
+  "version": 17,
   "alert_source": "time_series",
   "custom_conditions": []
 }
