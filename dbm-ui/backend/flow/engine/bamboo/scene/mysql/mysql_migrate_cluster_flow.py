@@ -16,11 +16,10 @@ from typing import Dict, Optional
 from django.utils.translation import ugettext as _
 
 from backend.configuration.constants import DBType
-from backend.db_meta.enums import ClusterType, InstanceInnerRole
+from backend.db_meta.enums import ClusterType, InstanceInnerRole, InstanceStatus
 from backend.db_meta.models import Cluster
-from backend.db_meta.models.extra_process import ExtraProcessInstance
 from backend.db_package.models import Package
-from backend.flow.consts import ACCOUNT_PREFIX, AUTH_ADDRESS_DIVIDER, MediumEnum
+from backend.flow.consts import MediumEnum
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import (
@@ -36,16 +35,8 @@ from backend.flow.plugins.components.collections.mysql.exec_actuator_script impo
 from backend.flow.plugins.components.collections.mysql.mysql_db_meta import MySQLDBMetaComponent
 from backend.flow.plugins.components.collections.mysql.slave_trans_flies import SlaveTransFileComponent
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
-from backend.flow.plugins.components.collections.tbinlogdumper.link_tbinlogdumper_switch import (
-    LinkTBinlogDumperSwitchComponent,
-)
 from backend.flow.utils.common_act_dataclass import DownloadBackupClientKwargs
-from backend.flow.utils.mysql.common.mysql_cluster_info import (
-    get_cluster_info,
-    get_cluster_ports,
-    get_ports,
-    get_version_and_charset,
-)
+from backend.flow.utils.mysql.common.mysql_cluster_info import get_ports, get_version_and_charset
 from backend.flow.utils.mysql.mysql_act_dataclass import (
     ClearMachineKwargs,
     DBMetaOPKwargs,
@@ -56,7 +47,6 @@ from backend.flow.utils.mysql.mysql_act_dataclass import (
 from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
 from backend.flow.utils.mysql.mysql_context_dataclass import ClusterInfoContext
 from backend.flow.utils.mysql.mysql_db_meta import MySQLDBMeta
-from backend.flow.utils.tbinlogdumper.context_dataclass import LinkTBinlogDumperSwitchKwargs
 
 logger = logging.getLogger("flow")
 
@@ -210,7 +200,9 @@ class MySQLMigrateClusterFlow(object):
                 }
                 exec_act_kwargs.cluster = cluster
                 stand_by_slaves = cluster_model.storageinstance_set.filter(
-                    instance_inner_role=InstanceInnerRole.SLAVE.value, is_stand_by=True
+                    instance_inner_role=InstanceInnerRole.SLAVE.value,
+                    is_stand_by=True,
+                    status=InstanceStatus.RUNNING.value,
                 ).exclude(machine__ip__in=[self.data["new_slave_ip"], self.data["new_master_ip"]])
                 #     从standby从库找备份
                 if len(stand_by_slaves) > 0:
