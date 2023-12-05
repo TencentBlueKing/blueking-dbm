@@ -39,7 +39,7 @@
         :row-class="getRowClass"
         :settings="tableSetting"
         @clear-search="handleClearSearch"
-        @setting-change="handleSettingChange" />
+        @setting-change="updateTableSettings" />
     </div>
     <DbSideslider
       v-model:is-show="isShowExpandsion"
@@ -111,9 +111,13 @@
   import {
     useCopy,
     useStretchLayout,
-    useTicketMessage  } from '@hooks';
+    useTableSettings,
+    useTicketMessage,
+  } from '@hooks';
 
   import { useGlobalBizs, useUserProfile } from '@stores';
+
+  import { UserPersonalSettings } from '@common/const';
 
   import OperationStatusTips from '@components/cluster-common/OperationStatusTips.vue';
   import RenderNodeInstance from '@components/cluster-common/RenderNodeInstance.vue';
@@ -135,7 +139,6 @@
   } from '@vueuse/core';
 
   import ClusterSettings from './components/ClusterSettings.vue';
-  import useTableSetting from './hooks/useTableSetting';
 
   const clusterId = defineModel<number>('clusterId');
 
@@ -146,10 +149,6 @@
   } = useStretchLayout();
 
   const ticketMessage = useTicketMessage();
-  const {
-    setting: tableSetting,
-    handleChange: handleSettingChange,
-  } = useTableSetting();
 
   const copy = useCopy();
   const { currentBizId } = useGlobalBizs();
@@ -216,6 +215,7 @@
     }
     return 100;
   });
+
   const columns = computed(() => [
     {
       label: 'ID',
@@ -478,6 +478,31 @@
       },
     },
   ]);
+
+  // 设置用户个人表头信息
+  const defaultSettings = {
+    fields: (columns.value || []).filter(item => item.field).map(item => ({
+      label: item.label as string,
+      field: item.field as string,
+      disabled: ['domain'].includes(item.field as string),
+    })),
+    checked: [
+      'domain',
+      'cluster_name',
+      'bk_cloud_name',
+      'major_version',
+      'status',
+      'hdfs_namenode',
+      'hdfs_zookeeper',
+      'hdfs_journalnode',
+      'hdfs_datanode',
+    ],
+  };
+
+  const {
+    settings: tableSetting,
+    updateTableSettings,
+  } = useTableSettings(UserPersonalSettings.HDFS_TABLE_SETTINGS, defaultSettings);
 
   const handleOpenEntryConfig = (row: HdfsModel) => {
     showEditEntryConfig.value  = true;

@@ -29,7 +29,7 @@
         :pagination-extra="paginationExtra"
         :row-class="getRowClass"
         :settings="tableSetting"
-        @setting-change="handleSettingChange" />
+        @setting-change="updateTableSettings" />
     </div>
     <DbSideslider
       v-model:is-show="isShowExpandsion"
@@ -90,10 +90,13 @@
   import {
     useCopy,
     useStretchLayout,
+    useTableSettings,
     useTicketMessage,
   } from '@hooks';
 
   import { useGlobalBizs, useUserProfile } from '@stores';
+
+  import { UserPersonalSettings } from '@common/const';
 
   import OperationStatusTips from '@components/cluster-common/OperationStatusTips.vue';
   import RenderNodeInstance from '@components/cluster-common/RenderNodeInstance.vue';
@@ -107,7 +110,6 @@
   import { useTimeoutPoll } from '@vueuse/core';
 
   import ManagerPassword from './components/ManagerPassword.vue';
-  import useTableSetting from './hooks/useTableSetting';
 
   const clusterId = defineModel<number>('clusterId');
 
@@ -120,10 +122,6 @@
     splitScreen: stretchLayoutSplitScreen,
   } = useStretchLayout();
   const ticketMessage = useTicketMessage();
-  const {
-    setting: tableSetting,
-    handleChange: handleSettingChange,
-  } = useTableSetting();
 
   const copy = useCopy();
 
@@ -171,6 +169,7 @@
     }
     return 100;
   });
+
   const columns = computed(() => [
     {
       label: 'ID',
@@ -405,6 +404,29 @@
       },
     },
   ]);
+
+  // 设置用户个人表头信息
+  const defaultSettings = {
+    fields: (columns.value || []).filter(item => item.field).map(item => ({
+      label: item.label as string,
+      field: item.field as string,
+      disabled: ['domain'].includes(item.field as string),
+    })),
+    checked: [
+      'cluster_name',
+      'domain',
+      'major_version',
+      'status',
+      'pulsar_bookkeeper',
+      'pulsar_zookeeper',
+      'pulsar_broker',
+    ],
+  };
+
+  const {
+    settings: tableSetting,
+    updateTableSettings,
+  } = useTableSettings(UserPersonalSettings.PULSAR_TABLE_SETTINGS, defaultSettings);
 
   const handleOpenEntryConfig = (row: PulsarModel) => {
     showEditEntryConfig.value  = true;

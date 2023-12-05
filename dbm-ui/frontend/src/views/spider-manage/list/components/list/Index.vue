@@ -671,7 +671,7 @@
     fields: (columns.value || []).filter(item => item.field).map(item => ({
       label: item.label as string,
       field: item.field as string,
-      disabled: ['cluster_name', 'master_domain'].includes(item.field as string),
+      disabled: ['master_domain'].includes(item.field as string),
     })),
     checked: (columns.value || []).map(item => item.field).filter(key => !!key && key !== 'id') as string[],
     showLineHeight: false,

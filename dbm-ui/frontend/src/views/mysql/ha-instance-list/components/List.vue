@@ -275,13 +275,14 @@
   // 设置用户个人表头信息
   const defaultSettings = {
     fields: columns.value.filter(item => item.field).map(item => ({
-      label: item.label as string,
-      field: item.field as string,
+      label: item.label,
+      field: item.field,
       disabled: ['instance_address', 'master_domain'].includes(item.field as string),
     })),
     checked: columns.value.map(item => item.field).filter(key => !!key) as string[],
     showLineHeight: false,
   };
+
   const {
     settings,
     updateTableSettings,

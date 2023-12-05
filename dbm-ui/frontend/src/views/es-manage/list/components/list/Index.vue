@@ -39,7 +39,7 @@
         :row-class="getRowClass"
         :settings="tableSetting"
         @clear-search="handleClearSearch"
-        @setting-change="handleSettingChange" />
+        @setting-change="updateTableSettings" />
     </div>
     <DbSideslider
       v-model:is-show="isShowExpandsion"
@@ -99,10 +99,13 @@
   import {
     useCopy,
     useStretchLayout,
+    useTableSettings,
     useTicketMessage,
   } from '@hooks';
 
   import { useGlobalBizs, useUserProfile } from '@stores';
+
+  import { UserPersonalSettings } from '@common/const';
 
   import OperationStatusTips from '@components/cluster-common/OperationStatusTips.vue';
   import RenderNodeInstance from '@components/cluster-common/RenderNodeInstance.vue';
@@ -121,8 +124,6 @@
 
   import { useTimeoutPoll } from '@vueuse/core';
 
-  import useTableSetting from './hooks/useTableSetting';
-
   const clusterId = defineModel<number>('clusterId');
 
   const router = useRouter();
@@ -134,10 +135,6 @@
     isOpen: isStretchLayoutOpen,
     splitScreen: stretchLayoutSplitScreen,
   } = useStretchLayout();
-  const {
-    setting: tableSetting,
-    handleChange: handleSettingChange,
-  } = useTableSetting();
 
   const copy = useCopy();
 
@@ -444,6 +441,31 @@
       },
     },
   ]);
+
+  // 设置用户个人表头信息
+  const defaultSettings = {
+    fields: (columns.value || []).filter(item => item.field).map(item => ({
+      label: item.label as string,
+      field: item.field as string,
+      disabled: ['domain'].includes(item.field as string),
+    })),
+    checked: [
+      'domain',
+      'cluster_name',
+      'bk_cloud_name',
+      'major_version',
+      'status',
+      'es_master',
+      'es_client',
+      'es_datanode_hot',
+      'es_datanode_cold',
+    ],
+  };
+
+  const {
+    settings: tableSetting,
+    updateTableSettings,
+  } = useTableSettings(UserPersonalSettings.ES_TABLE_SETTINGS, defaultSettings);
 
   const handleOpenEntryConfig = (row: EsModel) => {
     showEditEntryConfig.value  = true;
