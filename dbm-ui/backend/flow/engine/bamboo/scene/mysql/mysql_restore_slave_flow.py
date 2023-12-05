@@ -191,7 +191,9 @@ class MySQLRestoreSlaveFlow(object):
                 sync_data_sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
                 # 获取本地备份并恢复
                 stand_by_slaves = cluster_model.storageinstance_set.filter(
-                    instance_inner_role=InstanceInnerRole.SLAVE.value, is_stand_by=True
+                    instance_inner_role=InstanceInnerRole.SLAVE.value,
+                    is_stand_by=True,
+                    status=InstanceStatus.RUNNING.value,
                 ).exclude(machine__ip__in=[self.data["new_slave_ip"]])
                 if len(stand_by_slaves) > 0:
                     sync_data_sub_pipeline.add_act(

@@ -16,11 +16,12 @@ from typing import Dict, Optional
 from django.utils.translation import ugettext as _
 
 from backend.configuration.constants import DBType
+from backend.db_meta.enums import InstanceInnerRole, InstanceStatus
+from backend.db_meta.models import Cluster
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
-from backend.flow.utils.mysql.common.mysql_cluster_info import get_cluster_info
 from backend.flow.utils.mysql.mysql_act_dataclass import DownloadMediaKwargs, ExecActuatorKwargs
 from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
 
@@ -55,21 +56,26 @@ class MysqlEditConfigFlow(object):
         for info in self.data["infos"]:
             ticket_data = copy.deepcopy(self.data)
             sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(ticket_data))
-            one_cluster = get_cluster_info(info["cluster_id"])
-            one_cluster.update(info)
-            target_ips = [one_cluster["master_ip"]] + one_cluster["slave_ip"]
+            cluster_class = Cluster.objects.get(id=info["cluster_id"])
+            master = cluster_class.storageinstance_set.get(instance_inner_role=InstanceInnerRole.MASTER.value)
+            slaves = cluster_class.storageinstance_set.filter(
+                instance_inner_role=InstanceInnerRole.SLAVE.value, status=InstanceStatus.RUNNING.value
+            )
+            target_ips = [s.machine.ip for s in slaves]
+            target_ips.append(master.machine.ip)
             sub_pipeline.add_act(
                 act_name=_("下发db-actor到集群主从节点{}").format(target_ips),
                 act_component_code=TransFileComponent.code,
                 kwargs=asdict(
                     DownloadMediaKwargs(
-                        bk_cloud_id=one_cluster["bk_cloud_id"],
+                        bk_cloud_id=cluster_class.bk_cloud_id,
                         exec_ip=target_ips,
                         file_list=GetFileList(db_type=DBType.MySQL).get_db_actuator_package(),
                     )
                 ),
             )
             act_list = []
+            cluster = {**info, "master_port": master.port}
             for exec_ip in target_ips:
                 act_list.append(
                     {
@@ -78,9 +84,9 @@ class MysqlEditConfigFlow(object):
                         "kwargs": asdict(
                             ExecActuatorKwargs(
                                 exec_ip=exec_ip,
-                                cluster_type=one_cluster["cluster_type"],
-                                bk_cloud_id=one_cluster["bk_cloud_id"],
-                                cluster=one_cluster,
+                                cluster_type=cluster_class.cluster_type,
+                                bk_cloud_id=cluster_class.bk_cloud_id,
+                                cluster=cluster,
                                 get_mysql_payload_func=MysqlActPayload.get_mysql_edit_config_payload.__name__,
                             )
                         ),
