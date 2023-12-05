@@ -83,8 +83,20 @@ func (c *DeployMysqlCrondAct) Run() (err error) {
 			Func:    c.Service.TouchJobsConfig,
 		},
 		{
+			FunName: "移除保活监控",
+			Func:    c.Service.RemoveKeepAlive,
+		},
+		{
+			FunName: "停止进程",
+			Func:    c.Service.Stop,
+		},
+		{
 			FunName: "启动进程",
 			Func:    c.Service.Start,
+		},
+		{
+			FunName: "启动后检查",
+			Func:    c.Service.CheckStart,
 		},
 		{
 			FunName: "添加保活监控",
