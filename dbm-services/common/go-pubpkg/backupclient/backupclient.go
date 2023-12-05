@@ -80,7 +80,7 @@ func New(clientPath string, authFile string, fileTag string, storageType string)
 		}
 		b.registerArgs = append(b.registerArgs, "--storage-type", b.StorageType)
 	}
-	b.queryArgs = []string{b.ClientPath, "query"}
+	b.queryArgs = []string{b.ClientPath, "queryStatus"}
 	return b, nil
 }
 
