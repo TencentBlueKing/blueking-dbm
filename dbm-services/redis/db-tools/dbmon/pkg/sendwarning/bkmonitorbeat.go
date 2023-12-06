@@ -51,6 +51,7 @@ func NewBkMonitorEventSender(dataID int64, token, beatPath, agentAddress string)
 		ToolBkMonitorBeat: beatPath,
 	}
 	ret.AgentAddress = agentAddress
+	ret.Data = make([]eventBodyItem, 0)
 	ret.Data = append(ret.Data, eventBodyItem{})
 	return
 }

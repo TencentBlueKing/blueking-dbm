@@ -33,15 +33,16 @@ type TendisSSDSetLogCount struct {
 
 // RedisBackupParams 备份参数
 type RedisBackupParams struct {
-	BkBizID            string               `json:"bk_biz_id" validate:"required"`
-	Domain             string               `json:"domain"`
-	IP                 string               `json:"ip" validate:"required"`
-	Ports              []int                `json:"ports"`      // 如果端口不连续,可直接指定端口
-	StartPort          int                  `json:"start_port"` // 如果端口连续,则可直接指定起始端口和实例个数
-	InstNum            int                  `json:"inst_num"`
-	BackupType         string               `json:"backup_type" validate:"required"`
-	WithoutToBackupSys bool                 `json:"without_to_backup_sys"` // 结果不传输到备份系统,默认需传到备份系统
-	SSDLogCount        TendisSSDSetLogCount `json:"ssd_log_count"`         // 该参数在tendissd 重做dr时,备份master需设置
+	BkBizID                  string               `json:"bk_biz_id" validate:"required"`
+	Domain                   string               `json:"domain"`
+	IP                       string               `json:"ip" validate:"required"`
+	Ports                    []int                `json:"ports"`      // 如果端口不连续,可直接指定端口
+	StartPort                int                  `json:"start_port"` // 如果端口连续,则可直接指定起始端口和实例个数
+	InstNum                  int                  `json:"inst_num"`
+	BackupType               string               `json:"backup_type" validate:"required"`
+	WithoutToBackupSys       bool                 `json:"without_to_backup_sys"` // 结果不传输到备份系统,默认需传到备份系统
+	SSDLogCount              TendisSSDSetLogCount `json:"ssd_log_count"`         // 该参数在tendissd 重做dr时,备份master需设置
+	BackupClientStrorageType string               `json:"backup_client_storage_type"`
 }
 
 // RedisBackup backup atomjob
@@ -104,6 +105,9 @@ func (job *RedisBackup) Init(m *jobruntime.JobGenericRuntime) error {
 			consts.ForeverBackupType)
 		job.runtime.Logger.Error(err.Error())
 		return err
+	}
+	if job.params.BackupClientStrorageType == "" {
+		job.params.BackupClientStrorageType = consts.BackupClientStrorageTypeCOS
 	}
 	return nil
 }
@@ -227,7 +231,12 @@ func (job *RedisBackup) GetBackupClient() (err error) {
 		bkTag = consts.RedisForeverBackupTAG
 	}
 	// job.backupClient = backupsys.NewIBSBackupClient(consts.IBSBackupClient, bkTag)
-	job.backupClient, err = backupsys.NewCosBackupClient(consts.COSBackupClient, consts.COSInfoFile, bkTag)
+	job.backupClient, err = backupsys.NewCosBackupClient(consts.COSBackupClient, consts.COSInfoFile,
+		bkTag, job.params.BackupClientStrorageType)
+	if err != nil && strings.HasPrefix(err.Error(), "backup_client path not found") {
+		// 如果 backup_client 不存在,先忽略错误
+		return nil
+	}
 	return
 }
 
@@ -390,6 +399,12 @@ func (task *BackupTask) GoFullBakcup() {
 	if strings.ToLower(task.ToBackupSystem) != "yes" {
 		task.Status = consts.BackupStatusLocalSuccess
 		task.Message = "本地备份成功,无需上传备份系统"
+		return
+	}
+	// backup-client 不存在,无法上传备份系统
+	if task.backupClient == nil {
+		task.Status = consts.BackupStatusLocalSuccess
+		task.Message = "本地备份成功,backup-client不存在,无法上传备份系统"
 		return
 	}
 	task.TransferToBackupSystem()

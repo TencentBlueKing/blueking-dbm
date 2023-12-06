@@ -61,6 +61,7 @@ Buildstamp:%s`, version, githash, buildstamp),
 
 		config.InitConfig(cfgFile)
 		mylog.InitRotateLoger()
+		defer mylog.Logger.Sync()
 		var entryID cron.EntryID
 		var err error
 

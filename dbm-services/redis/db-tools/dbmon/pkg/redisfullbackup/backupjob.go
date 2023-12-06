@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
@@ -68,10 +69,11 @@ func (job *Job) Run() {
 
 	// job.backupClient = backupsys.NewIBSBackupClient(consts.IBSBackupClient, consts.RedisFullBackupTAG)
 	job.backupClient, job.Err = backupsys.NewCosBackupClient(consts.COSBackupClient,
-		consts.COSInfoFile, consts.RedisFullBackupTAG)
-	if job.Err != nil {
+		consts.COSInfoFile, consts.RedisFullBackupTAG, job.Conf.BackupClientStrorageType)
+	if job.Err != nil && !strings.HasPrefix(job.Err.Error(), "backup_client path not found") {
 		return
 	}
+	job.Err = nil
 	job.createTasks()
 	if job.Err != nil {
 		return
@@ -141,7 +143,8 @@ func (job *Job) createTasks() {
 				job.Conf.RedisFullBackup.ToBackupSystem,
 				consts.NormalBackupType, svrItem.CacheBackupMode, job.RealBackupDir,
 				job.Conf.RedisFullBackup.TarSplit, job.Conf.RedisFullBackup.TarSplitPartSize,
-				svrItem.ServerShards[instStr], job.Reporter)
+				svrItem.ServerShards[instStr], job.Reporter,
+				job.Conf.BackupClientStrorageType)
 			if job.Err != nil {
 				return
 			}

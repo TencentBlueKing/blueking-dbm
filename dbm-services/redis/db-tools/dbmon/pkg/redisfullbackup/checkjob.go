@@ -3,6 +3,7 @@ package redisfullbackup
 
 import (
 	"fmt"
+	"strings"
 	"sync"
 
 	"dbm-services/redis/db-tools/dbmon/config"
@@ -59,10 +60,11 @@ func (job *CheckJob) Run() {
 
 	// job.backupClient = backupsys.NewIBSBackupClient(consts.IBSBackupClient, consts.RedisFullBackupTAG)
 	job.backupClient, job.Err = backupsys.NewCosBackupClient(consts.COSBackupClient,
-		consts.COSInfoFile, consts.RedisFullBackupTAG)
-	if job.Err != nil {
+		consts.COSInfoFile, consts.RedisFullBackupTAG, job.Conf.BackupClientStrorageType)
+	if job.Err != nil && !strings.HasPrefix(job.Err.Error(), "backup_client path not found") {
 		return
 	}
+	job.Err = nil
 
 	// 检查历史备份任务状态 并 删除过旧的本地文件
 	for _, svrItem := range job.Conf.Servers {

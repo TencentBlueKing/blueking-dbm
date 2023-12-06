@@ -39,16 +39,17 @@ type ConfServerItem struct {
 
 // BkDbmonInstallParams 安装参数
 type BkDbmonInstallParams struct {
-	BkDbmonPkg         common.MediaPkg        `json:"bkdbmonpkg" validate:"required"`
-	DbToolsPkg         common.DbToolsMediaPkg `json:"dbtoolspkg" validate:"required"`
-	AgentAddress       string                 `json:"agent_address" validate:"required"`
-	BeatPath           string                 `json:"beat_path" validate:"required"`
-	RedisFullBackup    map[string]interface{} `json:"redis_fullbackup" validate:"required"`
-	RedisBinlogBackup  map[string]interface{} `json:"redis_binlogbackup" validate:"required"`
-	RedisHeartbeat     map[string]interface{} `json:"redis_heartbeat" validate:"required"`
-	RedisMonitor       map[string]interface{} `json:"redis_monitor" validate:"required"`
-	RedisKeyLifecyckle map[string]interface{} `json:"redis_keylife" mapstructure:"redis_keylife"`
-	Servers            []ConfServerItem       `json:"servers" yaml:"servers" validate:"required"`
+	BkDbmonPkg               common.MediaPkg        `json:"bkdbmonpkg" validate:"required"`
+	DbToolsPkg               common.DbToolsMediaPkg `json:"dbtoolspkg" validate:"required"`
+	AgentAddress             string                 `json:"agent_address" validate:"required"`
+	BeatPath                 string                 `json:"beat_path" validate:"required"`
+	BackupClientStrorageType string                 `json:"backup_client_storage_type"`
+	RedisFullBackup          map[string]interface{} `json:"redis_fullbackup" validate:"required"`
+	RedisBinlogBackup        map[string]interface{} `json:"redis_binlogbackup" validate:"required"`
+	RedisHeartbeat           map[string]interface{} `json:"redis_heartbeat" validate:"required"`
+	RedisMonitor             map[string]interface{} `json:"redis_monitor" validate:"required"`
+	RedisKeyLifecyckle       map[string]interface{} `json:"redis_keylife" mapstructure:"redis_keylife"`
+	Servers                  []ConfServerItem       `json:"servers" yaml:"servers" validate:"required"`
 }
 
 // BkDbmonInstall bk-dbmon安装任务
@@ -320,17 +321,18 @@ func (job *BkDbmonInstall) RemoveBkDbmon() (err error) {
 
 // bkDbmonConf 生成bk-dbmon配置
 type bkDbmonConf struct {
-	ReportSaveDir      string                 `json:"report_save_dir" yaml:"report_save_dir"`
-	ReportLeftDay      int                    `json:"report_left_day" yaml:"report_left_day"`
-	HTTPAddress        string                 `json:"http_address" yaml:"http_address"`
-	AgentAddress       string                 `json:"agent_address" yaml:"agent_address"`
-	BeatPath           string                 `json:"beat_path" yaml:"beat_path"`
-	RedisFullBackup    map[string]interface{} `json:"redis_fullbackup" yaml:"redis_fullbackup"`
-	RedisBinlogBackup  map[string]interface{} `json:"redis_binlogbackup" yaml:"redis_binlogbackup"`
-	RedisHeartbeat     map[string]interface{} `json:"redis_heartbeat" yaml:"redis_heartbeat"`
-	RedisMonitor       map[string]interface{} `json:"redis_monitor" yaml:"redis_monitor"`
-	RedisKeyLifecyckle map[string]interface{} `json:"redis_keylife" yaml:"redis_keylife"`
-	Servers            []ConfServerItem       `json:"servers" yaml:"servers"`
+	ReportSaveDir            string                 `json:"report_save_dir" yaml:"report_save_dir"`
+	ReportLeftDay            int                    `json:"report_left_day" yaml:"report_left_day"`
+	HTTPAddress              string                 `json:"http_address" yaml:"http_address"`
+	AgentAddress             string                 `json:"agent_address" yaml:"agent_address"`
+	BeatPath                 string                 `json:"beat_path" yaml:"beat_path"`
+	BackupClientStrorageType string                 `json:"backup_client_storage_type" yaml:"backup_client_storage_type"`
+	RedisFullBackup          map[string]interface{} `json:"redis_fullbackup" yaml:"redis_fullbackup"`
+	RedisBinlogBackup        map[string]interface{} `json:"redis_binlogbackup" yaml:"redis_binlogbackup"`
+	RedisHeartbeat           map[string]interface{} `json:"redis_heartbeat" yaml:"redis_heartbeat"`
+	RedisMonitor             map[string]interface{} `json:"redis_monitor" yaml:"redis_monitor"`
+	RedisKeyLifecyckle       map[string]interface{} `json:"redis_keylife" yaml:"redis_keylife"`
+	Servers                  []ConfServerItem       `json:"servers" yaml:"servers"`
 }
 
 // ToString string
@@ -344,18 +346,22 @@ func (job *BkDbmonInstall) GenerateConfigFile() (err error) {
 	var yamlData []byte
 	var confMd5, tempMd5 string
 	var notUpdateConf bool = false
+	if job.params.BackupClientStrorageType == "" {
+		job.params.BackupClientStrorageType = consts.BackupClientStrorageTypeCOS
+	}
 	confData := &bkDbmonConf{
-		ReportSaveDir:      consts.DbaReportSaveDir,
-		ReportLeftDay:      consts.RedisReportLeftDay,
-		HTTPAddress:        consts.BkDbmonHTTPAddress,
-		AgentAddress:       job.params.AgentAddress,
-		BeatPath:           job.params.BeatPath,
-		RedisFullBackup:    job.params.RedisFullBackup,
-		RedisBinlogBackup:  job.params.RedisBinlogBackup,
-		RedisHeartbeat:     job.params.RedisHeartbeat,
-		RedisMonitor:       job.params.RedisMonitor,
-		RedisKeyLifecyckle: job.params.RedisKeyLifecyckle,
-		Servers:            job.params.Servers,
+		ReportSaveDir:            consts.DbaReportSaveDir,
+		ReportLeftDay:            consts.RedisReportLeftDay,
+		HTTPAddress:              consts.BkDbmonHTTPAddress,
+		AgentAddress:             job.params.AgentAddress,
+		BeatPath:                 job.params.BeatPath,
+		BackupClientStrorageType: job.params.BackupClientStrorageType,
+		RedisFullBackup:          job.params.RedisFullBackup,
+		RedisBinlogBackup:        job.params.RedisBinlogBackup,
+		RedisHeartbeat:           job.params.RedisHeartbeat,
+		RedisMonitor:             job.params.RedisMonitor,
+		RedisKeyLifecyckle:       job.params.RedisKeyLifecyckle,
+		Servers:                  job.params.Servers,
 	}
 
 	yamlData, err = yaml.Marshal(confData)

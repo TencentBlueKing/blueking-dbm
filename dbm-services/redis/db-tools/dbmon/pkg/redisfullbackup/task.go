@@ -66,7 +66,7 @@ type BackupTask struct {
 // NewFullBackupTask new backup task
 func NewFullBackupTask(bkBizID string, bkCloudID int64, domain, ip string, port int, password,
 	toBackupSys, backupType, cacheBackupMode, backupDir string, tarSplit bool, tarSplitSize, shardValue string,
-	reporter report.Reporter) (ret *BackupTask, err error) {
+	reporter report.Reporter, storageType string) (ret *BackupTask, err error) {
 	ret = &BackupTask{
 		ReportType:       consts.RedisFullBackupReportType,
 		BkBizID:          bkBizID,
@@ -89,7 +89,11 @@ func NewFullBackupTask(bkBizID string, bkCloudID int64, domain, ip string, port 
 	}
 	// ret.backupClient = backupsys.NewIBSBackupClient(consts.IBSBackupClient, consts.RedisFullBackupTAG)
 	ret.backupClient, err = backupsys.NewCosBackupClient(consts.COSBackupClient,
-		consts.COSInfoFile, consts.RedisFullBackupTAG)
+		consts.COSInfoFile, consts.RedisFullBackupTAG, storageType)
+	if err != nil && strings.HasPrefix(err.Error(), "backup_client path not found") {
+		ret.backupClient = nil
+		err = nil
+	}
 	return
 }
 
@@ -197,6 +201,12 @@ func (task *BackupTask) BakcupToLocal() {
 	if strings.ToLower(task.ToBackupSystem) != "yes" {
 		task.Status = consts.BackupStatusLocalSuccess
 		task.Message = "本地备份成功,无需上传备份系统"
+		return
+	}
+	// backup-client 不存在,无法上传备份系统
+	if task.backupClient == nil {
+		task.Status = consts.BackupStatusLocalSuccess
+		task.Message = "本地备份成功,backup-client不存在,无法上传备份系统"
 		return
 	}
 	task.TransferToBackupSystem()

@@ -783,6 +783,7 @@ class RedisActPayload(object):
                 "backup_type": self.cluster["backup_type"],
                 "domain": self.cluster["domain_name"],
                 "without_to_backup_sys": not BACKUP_SYS_STATUS,
+                "backup_client_storage_type": "cos",
             },
         }
 
@@ -912,6 +913,7 @@ class RedisActPayload(object):
                 "dbtoolspkg": {"pkg": self.tools_pkg.name, "pkg_md5": self.tools_pkg.md5},
                 "agent_address": env.MYSQL_CROND_AGENT_ADDRESS,
                 "beat_path": env.MYSQL_CROND_BEAT_PATH,
+                "backup_client_storage_type": "cos",
                 "redis_fullbackup": fullbackup_config,
                 "redis_binlogbackup": binlogbackup_config,
                 "redis_heartbeat": heartbeat_config,
@@ -1055,6 +1057,7 @@ class RedisActPayload(object):
                 # "inst_num":10,
                 "backup_type": "normal_backup",
                 "without_to_backup_sys": True,  # // 是否上传到备份系统,默认false
+                "backup_client_storage_type": "cos",
                 "ssd_log_count": params["ssd_log_count"],
             },
         }

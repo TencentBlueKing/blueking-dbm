@@ -177,6 +177,8 @@ const (
 	BackupStatusToBakSysSuccess   = "to_backup_system_success"
 	BackupStatusFailed            = "failed"
 	BackupStatusLocalSuccess      = "local_success"
+	BackupClientStrorageTypeCOS   = "cos"
+	BackupClientStrorageTypeHDFS  = "hdfs"
 )
 
 // BackupSystem
