@@ -187,6 +187,7 @@ class MySQLMigrateClusterFlow(object):
                 cluster = {
                     "master_ip": self.data["master_ip"],
                     "slave_ip": self.data["slave_ip"],
+                    "mysql_port": master_model.port,
                     "master_port": master_model.port,
                     "slave_port": master_model.port,
                     "new_master_ip": self.data["new_master_ip"],
