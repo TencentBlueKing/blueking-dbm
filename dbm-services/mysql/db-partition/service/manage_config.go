@@ -186,12 +186,12 @@ func (m *DeletePartitionConfigByIds) DeletePartitionsConfig() error {
 }
 
 // DeletePartitionsConfigByCluster TODO
-func (m *DeletePartitionConfigByClusterIds) DeletePartitionsConfigByCluster() error {
+func (m *DeletePartitionConfigByClusterIds) DeletePartitionsConfigByCluster() (err error, info string) {
 	if m.BkBizId == 0 {
-		return errno.BkBizIdIsEmpty
+		return errno.BkBizIdIsEmpty, ""
 	}
 	if len(m.ClusterIds) == 0 {
-		return errno.ConfigIdIsEmpty
+		return errno.ConfigIdIsEmpty, ""
 	}
 	var tbName string
 	var logTbName string
@@ -203,7 +203,7 @@ func (m *DeletePartitionConfigByClusterIds) DeletePartitionsConfigByCluster() er
 		tbName = SpiderPartitionConfig
 		logTbName = SpiderManageLogsTable
 	default:
-		return errors.New("不支持的db类型")
+		return errors.New("不支持的db类型"), ""
 	}
 
 	for _, clusterId := range m.ClusterIds {
@@ -229,12 +229,13 @@ func (m *DeletePartitionConfigByClusterIds) DeletePartitionsConfigByCluster() er
 		m.BkBizId)
 	result := model.DB.Self.Exec(sql)
 	if result.Error != nil {
-		return result.Error
+		return result.Error, ""
 	}
 	if result.RowsAffected == 0 {
-		return errno.PartitionConfigNotExisted
+		info = "该集群无分区配置，无需清理分区策略。"
+		return nil, info
 	}
-	return nil
+	return nil, "分区配置信息删除成功！"
 }
 
 // CreatePartitionsConfig TODO

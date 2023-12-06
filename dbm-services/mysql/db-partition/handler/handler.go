@@ -120,13 +120,14 @@ func DeletePartitionsConfigByCluster(r *gin.Context) {
 		return
 	}
 	slog.Info(fmt.Sprintf("bk_biz_id: %d, cluster_ids: %v", input.BkBizId, input.ClusterIds))
-	err := input.DeletePartitionsConfigByCluster()
+	err, info := input.DeletePartitionsConfigByCluster()
+
 	if err != nil {
 		slog.Error(err.Error())
 		SendResponse(r, err, nil)
 		return
 	}
-	SendResponse(r, err, "分区配置信息删除成功！")
+	SendResponse(r, err, info)
 	return
 }
 
