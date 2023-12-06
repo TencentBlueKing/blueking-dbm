@@ -75,6 +75,10 @@ func (job *Job) getSqDB() {
 		return
 	}
 }
+func (job *Job) closeDB() {
+	dbInstance, _ := job.sqdb.DB()
+	_ = dbInstance.Close()
+}
 
 // getReporter 上报者
 func (job *Job) getReporter() {
@@ -116,10 +120,12 @@ func (job *Job) Run() {
 	if job.Err != nil {
 		return
 	}
+	defer job.closeDB()
 	job.getReporter()
 	if job.Err != nil {
 		return
 	}
+	defer job.Reporter.Close()
 	var task *redisNodeTask
 	for _, svrItem := range job.Conf.Servers {
 		if !consts.IsRedisMetaRole(svrItem.MetaRole) {

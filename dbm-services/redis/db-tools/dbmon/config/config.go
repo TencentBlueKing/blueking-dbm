@@ -68,18 +68,19 @@ type ConfRedisMonitor struct {
 
 // Configuration 配置
 type Configuration struct {
-	ReportSaveDir     string                `json:"report_save_dir" mapstructure:"report_save_dir"`
-	ReportLeftDay     int                   `json:"report_left_day" mapstructure:"report_left_day"`
-	HttpAddress       string                `json:"http_address" mapstructure:"http_address"`
-	AgentAddress      string                `json:"agent_address" mapstructure:"agent_address"`
-	BeatPath          string                `json:"beat_path" mapstructure:"beat_path"`
-	RedisFullBackup   ConfRedisFullBackup   `json:"redis_fullbackup" mapstructure:"redis_fullbackup"`
-	RedisBinlogBackup ConfRedisBinlogBackup `json:"redis_binlogbackup" mapstructure:"redis_binlogbackup"`
-	RedisHeartbeat    ConfRedisHeartbeat    `json:"redis_heartbeat" mapstructure:"redis_heartbeat"`
-	KeyLifeCycle      ConfRedisKeyLifeCycle `json:"redis_keylife" mapstructure:"redis_keylife"`
-	RedisMonitor      ConfRedisMonitor      `json:"redis_monitor" mapstructure:"redis_monitor"`
-	Servers           []ConfServerItem      `json:"servers" mapstructure:"servers"`
-	InstConfig        InstConfigList        `json:"inst_config,omitempty" mapstructure:"inst_config"`
+	ReportSaveDir            string                `json:"report_save_dir" mapstructure:"report_save_dir"`
+	ReportLeftDay            int                   `json:"report_left_day" mapstructure:"report_left_day"`
+	HttpAddress              string                `json:"http_address" mapstructure:"http_address"`
+	AgentAddress             string                `json:"agent_address" mapstructure:"agent_address"`
+	BeatPath                 string                `json:"beat_path" mapstructure:"beat_path"`
+	BackupClientStrorageType string                `json:"backup_client_storage_type" mapstructure:"backup_client_storage_type"`
+	RedisFullBackup          ConfRedisFullBackup   `json:"redis_fullbackup" mapstructure:"redis_fullbackup"`
+	RedisBinlogBackup        ConfRedisBinlogBackup `json:"redis_binlogbackup" mapstructure:"redis_binlogbackup"`
+	RedisHeartbeat           ConfRedisHeartbeat    `json:"redis_heartbeat" mapstructure:"redis_heartbeat"`
+	KeyLifeCycle             ConfRedisKeyLifeCycle `json:"redis_keylife" mapstructure:"redis_keylife"`
+	RedisMonitor             ConfRedisMonitor      `json:"redis_monitor" mapstructure:"redis_monitor"`
+	Servers                  []ConfServerItem      `json:"servers" mapstructure:"servers"`
+	InstConfig               InstConfigList        `json:"inst_config,omitempty" mapstructure:"inst_config"`
 }
 
 // String string
@@ -110,6 +111,9 @@ func loadConfigFile() {
 	}
 	if conf.BeatPath == "" {
 		conf.BeatPath = "/usr/local/gse_bkte/plugins/bin/bkmonitorbeat"
+	}
+	if conf.BackupClientStrorageType == "" {
+		conf.BackupClientStrorageType = "cos"
 	}
 	fmt.Println(conf.String())
 	GlobalConf = &conf

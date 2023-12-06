@@ -93,7 +93,7 @@ func (db *RedisClient) newConn() (err error) {
 		MaxRetries:      db.MaxRetryTime, // 失败自动重试,重试次数
 		MinRetryBackoff: 1 * time.Second, // 重试间隔
 		MaxRetryBackoff: 1 * time.Second,
-		PoolSize:        10,
+		PoolSize:        2,
 		OnConnect:       redisConnHook,
 	}
 	clusterOpt := &redis.ClusterOptions{
@@ -104,7 +104,7 @@ func (db *RedisClient) newConn() (err error) {
 		MaxRetries:      db.MaxRetryTime, // 失败自动重试,重试次数
 		MinRetryBackoff: 1 * time.Second, // 重试间隔
 		MaxRetryBackoff: 1 * time.Second,
-		PoolSize:        10,
+		PoolSize:        2,
 		OnConnect:       redisConnHook,
 	}
 	if db.Password != "" {

@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -66,10 +67,11 @@ func (job *Job) Run() {
 
 	// job.backupClient = backupsys.NewIBSBackupClient(consts.IBSBackupClient, consts.RedisBinlogTAG)
 	job.backupClient, job.Err = backupsys.NewCosBackupClient(consts.COSBackupClient,
-		consts.COSInfoFile, consts.RedisBinlogTAG)
-	if job.Err != nil {
+		consts.COSInfoFile, consts.RedisBinlogTAG, job.Conf.BackupClientStrorageType)
+	if job.Err != nil && !strings.HasPrefix(job.Err.Error(), "backup_client path not found") {
 		return
 	}
+	job.Err = nil
 	job.createTasks()
 	if job.Err != nil {
 		return
@@ -136,7 +138,9 @@ func (job *Job) createTasks() {
 				svrItem.ClusterDomain, svrItem.ServerIP, port, password,
 				job.Conf.RedisBinlogBackup.ToBackupSystem,
 				taskBackupDir, svrItem.ServerShards[instStr],
-				job.Conf.RedisBinlogBackup.OldFileLeftDay, job.Reporter)
+				job.Conf.RedisBinlogBackup.OldFileLeftDay,
+				job.Reporter,
+				job.Conf.BackupClientStrorageType)
 			if job.Err != nil {
 				return
 			}

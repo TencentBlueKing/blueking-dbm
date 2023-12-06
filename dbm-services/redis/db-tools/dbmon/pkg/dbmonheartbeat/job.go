@@ -34,11 +34,11 @@ func GetGlobDbmonHeartbeatJob(conf *config.Configuration) *Job {
 // Run 执行例行心跳metric上报
 func (job *Job) Run() {
 
-	task, _ := NewDbmonHeartbeatTask(job.Conf, job.Conf.Servers[0])
-	if task.Err != nil {
+	task, err := NewDbmonHeartbeatTask(job.Conf, job.Conf.Servers[0])
+	if err != nil || task.Err != nil {
 		return
 	}
-	err := task.SendHeartbeat()
+	err = task.SendHeartbeat()
 	if err != nil {
 		return
 	}

@@ -26,8 +26,8 @@ type BKBackupClient struct {
 }
 
 // NewCosBackupClient new
-func NewCosBackupClient(toolPath string, authFile string, fileTag string) (*BKBackupClient, error) {
-	if backupClient, err := backupclient.New(toolPath, authFile, fileTag, ""); err != nil {
+func NewCosBackupClient(toolPath, authFile, fileTag, storageType string) (*BKBackupClient, error) {
+	if backupClient, err := backupclient.New(toolPath, authFile, fileTag, storageType); err != nil {
 		mylog.Logger.Error(fmt.Sprintf("NewCosBackupClient failed,err:%v", err))
 		return nil, err
 	} else {

@@ -167,6 +167,9 @@ const (
 
 	CacheBackupModeAof = "aof"
 	CacheBackupModeRdb = "rdb"
+
+	BackupClientStrorageTypeCOS  = "cos"
+	BackupClientStrorageTypeHDFS = "hdfs"
 )
 
 const (

@@ -338,6 +338,7 @@ class RedisDtsPrecheckService(BaseService):
         检查目的集群是否可连接
         """
         dst_proxy_addrs = []
+        dst_domain = ""
         if dts_copy_type == DtsCopyType.COPY_TO_OTHER_SYSTEM:
             dst_proxy_addrs.append(dst_data["cluster_addr"])
         else:
