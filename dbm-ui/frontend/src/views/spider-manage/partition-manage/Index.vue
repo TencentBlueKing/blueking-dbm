@@ -42,12 +42,13 @@
       :partition-data="operationData" />
     <DbSideslider
       v-model:is-show="isShowOperation"
-      :confirm-text="operationData && operationData.id ? t('保存并执行') : t('提交')"
+      :confirm-text="operationData && operationData.id ? t('提交') : t('保存并执行')"
       :title="operationData ? operationData.id ? t('编辑分区策略') :t('克隆分区策略') : t('新建分区策略')"
       :width="1000">
       <PartitionOperation
         :data="operationData"
-        @success="handleOperationSuccess" />
+        @create-success="handleOperationCreateSuccess"
+        @edit-success="handleOperationEditSuccess" />
     </DbSideslider>
     <DbSideslider
       v-model:is-show="isShowExecuteLog"
@@ -141,6 +142,7 @@
       label: t('集群域名'),
       field: 'immute_domain',
       width: 240,
+      render: ({ data }: {data: PartitionModel}) => data.immute_domain || '--',
     },
     {
       label: t('DB 名'),
@@ -167,19 +169,23 @@
     {
       label: t('分区字段'),
       field: 'partition_columns',
+      render: ({ data }: {data: PartitionModel}) => data.partition_columns || '--',
     },
     {
       label: t('分区字段类型'),
       field: 'partition_column_type',
+      render: ({ data }: {data: PartitionModel}) => data.partition_column_type || '--',
     },
     {
       label: t('分区间隔（天）'),
       field: 'partition_time_interval',
+      render: ({ data }: {data: PartitionModel}) => data.partition_time_interval || '--',
     },
     {
       label: t('数据过期时间（天）'),
       field: 'expire_time',
       minWidth: 150,
+      render: ({ data }: {data: PartitionModel}) => data.expire_time || '--',
     },
     {
       label: t('最近一次执行状态'),
@@ -200,6 +206,7 @@
       label: t('最近一次执行时间'),
       field: 'execute_time',
       minWidth: 180,
+      render: ({ data }: {data: PartitionModel}) => data.execute_time || '--',
     },
     {
       label: t('操作'),
@@ -361,8 +368,12 @@
     operationDryRunData.value = undefined;
   };
 
-  // 新建、编辑成功
-  const handleOperationSuccess = (payload: ServiceReturnType<typeof dryRun>, clusterId: number) => {
+  // 编辑成功
+  const handleOperationEditSuccess = () => {
+    fetchData();
+  };
+  // 新建成功
+  const handleOperationCreateSuccess = (payload: ServiceReturnType<typeof dryRun>, clusterId: number) => {
     fetchData();
     operationDryRunDataClusterId.value = clusterId;
     operationDryRunData.value = payload;

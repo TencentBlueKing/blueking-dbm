@@ -129,7 +129,8 @@
     data?: PartitionModel
   }
   interface Emits{
-    (e: 'success', params: ServiceReturnType<typeof createParitition>, clusterId: number): void
+    (e: 'editSuccess'): void,
+    (e: 'createSuccess', params: ServiceReturnType<typeof createParitition>, clusterId: number): void
   }
   interface Expose {
     submit: () => Promise<any>
@@ -279,12 +280,12 @@
             return editPartition({
               id: props.data.id,
               ...formData,
-            }).then(data => emits('success', data, formData.cluster_id));
+            }).then(() => emits('editSuccess'));
           }
 
           return createParitition({
             ...formData,
-          }).then(data => emits('success', data, formData.cluster_id));
+          }).then(data => emits('createSuccess', data, formData.cluster_id));
         });
     },
   });

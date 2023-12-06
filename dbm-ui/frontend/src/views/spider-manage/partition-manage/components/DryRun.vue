@@ -46,6 +46,7 @@
   import _ from 'lodash';
   import {
     shallowRef,
+    type UnwrapRef,
     watch,
   } from 'vue';
   import { useI18n } from 'vue-i18n';
@@ -256,52 +257,42 @@
   } = useRequest(dryRun, {
     manual: true,
     onSuccess(data) {
-      if (!props.partitionData || Object.values(data).length < 1) {
+      if (Object.values(data).length < 1) {
+        dryRunData.value = {};
+        tableData.value = [];
         return;
       }
 
-      const detailList = data[props.partitionData.id];
+      dryRunData.value = Object.keys(data).reduce((result, configId) => Object.assign(result, {
+        [configId]: _.filter(data[Number(configId)], item => !item.message),
+      }), {} as UnwrapRef<typeof dryRunData>);
 
-      dryRunData.value = {
-        [props.partitionData.id]: _.filter(detailList, item => !item.message),
-      };
-
-      tableData.value = formatTableData(detailList);
+      tableData.value = Object.values(data)
+        .reduce((result, item) => result.concat(formatTableData(item)), [] as ITableData[]);
     },
   });
 
-  const fetchData = () => {
-    if (!modelValue.value || !props.partitionData) {
+  watch(modelValue, () => {
+    if (!modelValue.value) {
       return;
     }
-    fetchDryRun({
-      config_id: props.partitionData.id,
-      cluster_id: props.partitionData.cluster_id,
-      cluster_type: ClusterTypes.TENDBCLUSTER,
-    });
-  };
-
-  watch(() => [props.partitionData, props.operationDryRunData], () => {
     // 用户主动执行通过分区数据获取最新的 dryData
     if (props.partitionData) {
-      fetchData();
+      fetchDryRun({
+        config_id: props.partitionData.id,
+        cluster_id: props.partitionData.cluster_id,
+        cluster_type: ClusterTypes.TENDBCLUSTER,
+      });
     } else if (props.operationDryRunData) {
       // 用户新建分区时新建成功后端会返回 dryData
-      const [partitionId] = Object.keys(props.operationDryRunData);
-      const detailList = props.operationDryRunData[Number(partitionId)];
-      dryRunData.value = {
-        [partitionId]: _.filter(detailList, item => !item.message),
-      };
-      tableData.value = formatTableData(detailList);
-    }
-  }, {
-    immediate: true,
-  });
+      const createConfigRunData = props.operationDryRunData;
+      dryRunData.value = Object.keys(createConfigRunData).reduce((result, configId) => Object.assign(result, {
+        [configId]: _.filter(createConfigRunData[Number(configId)], item => !item.message),
+      }), {} as UnwrapRef<typeof dryRunData>);
 
-  watch(() => props.partitionData, () => {
-    fetchData();
-  }, {
-    immediate: true,
+      tableData.value = Object.values(createConfigRunData)
+        .reduce((result, item) => result.concat(formatTableData(item)), [] as ITableData[]);
+    }
   });
 
   const handleCopySql = (sqlList: string[]) => {
