@@ -123,9 +123,13 @@ func GetSwitchQueue(ctx *fasthttp.RequestCtx, param interface{}, page api.QueryP
 	if whereCond.App != "" {
 		db = db.Where("app = ?", whereCond.App)
 	}
-	if !whereCond.SwitchStartTime.IsZero() && !whereCond.SwitchFinishedTime.IsZero() {
-		db = db.Where("switch_start_time > ?", whereCond.SwitchStartTime).
-			Where("switch_finished_time < ?", whereCond.SwitchFinishedTime)
+
+	if whereCond.SwitchStartTime != nil && !whereCond.SwitchStartTime.IsZero() {
+		db = db.Where("switch_start_time > ?", whereCond.SwitchStartTime)
+	}
+
+	if whereCond.SwitchFinishedTime != nil && !whereCond.SwitchFinishedTime.IsZero() {
+		db = db.Where("switch_finished_time < ?", whereCond.SwitchFinishedTime)
 	}
 
 	if page.Limit > 0 {
@@ -416,6 +420,22 @@ func TransSwitchQueueToApi(result []model.HASwitchQueue) []TbMonSwitchQueueApi {
 	loc, _ := time.LoadLocation("Asia/Shanghai")
 	ApiResults := make([]TbMonSwitchQueueApi, 0)
 	for _, switchQueue := range result {
+		var switchStartTime string
+		var switchFinishTime string
+		// check SwitchStartTime is nil or not
+		if switchQueue.SwitchStartTime != nil {
+			switchStartTime = switchQueue.SwitchStartTime.In(loc).Format("2006-01-02T15:04:05-07:00")
+		} else {
+			switchStartTime = time.Now().In(loc).Format("2006-01-02T15:04:05-07:00")
+		}
+
+		// check SwitchFinishedTime is nil or not
+		if switchQueue.SwitchFinishedTime != nil {
+			switchFinishTime = switchQueue.SwitchFinishedTime.In(loc).Format("2006-01-02T15:04:05-07:00")
+		} else {
+			switchFinishTime = time.Now().In(loc).Format("2006-01-02T15:04:05-07:00")
+		}
+
 		switchQueueApi := TbMonSwitchQueueApi{
 			Uid:                switchQueue.Uid,
 			IP:                 switchQueue.IP,
@@ -426,8 +446,8 @@ func TransSwitchQueueToApi(result []model.HASwitchQueue) []TbMonSwitchQueueApi {
 			SlavePort:          switchQueue.SlavePort,
 			Status:             switchQueue.Status,
 			ConfirmResult:      switchQueue.ConfirmResult,
-			SwitchStartTime:    switchQueue.SwitchStartTime.In(loc).Format("2006-01-02T15:04:05-07:00"),    //
-			SwitchFinishedTime: switchQueue.SwitchFinishedTime.In(loc).Format("2006-01-02T15:04:05-07:00"), //
+			SwitchStartTime:    switchStartTime,
+			SwitchFinishedTime: switchFinishTime,
 			SwitchResult:       switchQueue.SwitchResult,
 			Remark:             switchQueue.Remark,
 			App:                switchQueue.App,
