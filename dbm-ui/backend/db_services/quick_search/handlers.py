@@ -169,16 +169,17 @@ class QSearchHandler(object):
         # 解析cluster
         machines = []
         for obj in objs[: self.limit]:
-            cluster = (obj.storageinstance_set.first() or obj.proxyinstance_set.first()).cluster
             machine = model_to_dict(
                 obj, ["bk_biz_id", "bk_host_id", "ip", "cluster_type", "spec_id", "bk_cloud_id", "bk_city"]
             )
 
+            # 兼容实例未绑定集群的情况
+            inst = obj.storageinstance_set.first() or obj.proxyinstance_set.first()
+            cluster = inst.cluster.first() if inst and inst.cluster.exists() else None
             cluster_info = {"cluster_id": None, "cluster_domain": None}
-            if cluster.exists():
-                cluster_info.update(
-                    {"cluster_id": cluster.first().id, "cluster_domain": cluster.first().immute_domain}
-                )
+            if cluster:
+                cluster_info.update({"cluster_id": cluster.id, "cluster_domain": cluster.immute_domain})
+
             machine.update(cluster_info)
             machines.append(machine)
 
