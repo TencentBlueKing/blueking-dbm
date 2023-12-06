@@ -3,10 +3,8 @@
     <BkAlert
       class="mb-16"
       theme="info">
-      <div>{{ t('如果已经是分区表，会维护新分区，理论上不影响业务') }}</div>
-      <div>{{ t('如果不是分区表，会转换成分区表，存在表数据迁移到新表，理论上不影响业务') }}</div>
-      <div>{{ t('如果大于 500G 的表，无法执行分区') }}</div>
-      <div>{{ t('建议在低峰期执行') }}</div>
+      <div>{{ t('表中包含数据，建议在低峰期执行分区；') }}</div>
+      <div>{{ t('表中行数大于1千万或者表数据量大于300GB，不允许执行分区；') }}</div>
     </BkAlert>
     <DbForm
       ref="formRef"
@@ -137,7 +135,7 @@
     data?: PartitionModel
   }
   interface Emits{
-    (e: 'success', params: ServiceReturnType<typeof createParitition>): void
+    (e: 'success', params: ServiceReturnType<typeof createParitition>, clusterId: number): void
   }
   interface Expose {
     submit: () => Promise<any>
@@ -294,12 +292,12 @@
             return editPartition({
               id: props.data.id,
               ...formData,
-            }).then(data => emits('success', data));
+            }).then(data => emits('success', data, formData.cluster_id));
           }
 
           return createParitition({
             ...formData,
-          }).then(data => emits('success', data));
+          }).then(data => emits('success', data, formData.cluster_id));
         });
     },
   });

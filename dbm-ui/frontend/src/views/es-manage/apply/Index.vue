@@ -114,60 +114,48 @@
             </DbFormItem>
             <DbFormItem
               :label="$t('Client节点')"
-              property="details.nodes.client"
-              required>
+              property="details.nodes.client">
               <IpSelector
                 :biz-id="formData.bk_biz_id"
                 :cloud-info="cloudInfo"
                 :data="formData.details.nodes.client"
                 :disable-host-method="clientDisableHostMethod"
-                required
                 :show-view="false"
-                @change="handleClientIpListChange">
-                <template #desc>
-                  {{ $t('至少1台_建议规格至少2核4G') }}
-                </template>
-              </IpSelector>
+                @change="handleClientIpListChange" />
               <RenderHostTable
                 v-model:data="formData.details.nodes.client"
                 :biz-id="formData.bk_biz_id" />
             </DbFormItem>
+            <BkFormItem label=" ">
+              <BkAlert
+                style="width: 655px;"
+                :theme="tipTheme"
+                :title="$t('请保证冷热节点至少存在一台')" />
+            </BkFormItem>
             <DbFormItem
               :label="$t('热节点')"
-              property="details.nodes.hot"
-              required>
+              property="details.nodes.hot">
               <IpSelector
                 :biz-id="formData.bk_biz_id"
                 :cloud-info="cloudInfo"
                 :data="formData.details.nodes.hot"
                 :disable-host-method="hotDisableHostMethod"
-                required
                 :show-view="false"
-                @change="handleHotIpListChange">
-                <template #desc>
-                  {{ $t('至少1台_建议规格至少2核4G') }}
-                </template>
-              </IpSelector>
+                @change="handleHotIpListChange" />
               <WithInstanceHostTable
                 v-model:data="formData.details.nodes.hot"
                 :biz-id="formData.bk_biz_id" />
             </DbFormItem>
             <DbFormItem
               :label="$t('冷节点')"
-              property="details.nodes.cold"
-              required>
+              property="details.nodes.cold">
               <IpSelector
                 :biz-id="formData.bk_biz_id"
                 :cloud-info="cloudInfo"
                 :data="formData.details.nodes.cold"
                 :disable-host-method="coldDisableHostMethod"
-                required
                 :show-view="false"
-                @change="handleColdIpListChange">
-                <template #desc>
-                  {{ $t('至少1台_建议规格至少2核4G') }}
-                </template>
-              </IpSelector>
+                @change="handleColdIpListChange" />
               <WithInstanceHostTable
                 v-model:data="formData.details.nodes.cold"
                 :biz-id="formData.bk_biz_id" />
@@ -237,9 +225,7 @@
                 :theme="tipTheme"
                 :title="$t('请保证冷热节点至少存在一台')" />
             </BkFormItem>
-            <BkFormItem
-              :label="$t('热节点')"
-              required>
+            <BkFormItem :label="$t('热节点')">
               <div class="resource-pool-item">
                 <BkFormItem
                   :label="$t('规格')"
@@ -469,24 +455,17 @@
         trigger: 'change',
       },
     ],
-    'details.nodes.client': [
-      {
-        validator: (value: Array<any>) => value.length > 0,
-        message: t('Client节点数不能为空'),
-        trigger: 'change',
-      },
-    ],
     'details.nodes.hot': [
       {
-        validator: (value: Array<any>) => value.length > 0,
-        message: t('热节点不能为空'),
+        validator: () => formData.details.nodes.hot.length > 0 || formData.details.nodes.cold.length > 0,
+        message: t('请保证冷/热节点至少存在一台'),
         trigger: 'change',
       },
     ],
     'details.nodes.cold': [
       {
-        validator: (value: Array<any>) => value.length > 0,
-        message: t('冷节点不能为空'),
+        validator: () => formData.details.nodes.hot.length > 0 || formData.details.nodes.cold.length > 0,
+        message: t('请保证冷/热节点至少存在一台'),
         trigger: 'change',
       },
     ],

@@ -69,6 +69,7 @@
   } from '@utils';
 
   interface Props {
+    clusterId: number,
     partitionData?: PartitionModel,
     operationDryRunData?: ServiceReturnType<typeof dryRun>,
   }
@@ -317,7 +318,7 @@
     }
     isExecSubmiting.value = true;
     execute({
-      cluster_id: props.partitionData.cluster_id,
+      cluster_id: props.clusterId,
       partition_objects: dryRunData.value,
     })
       .then((data) => {

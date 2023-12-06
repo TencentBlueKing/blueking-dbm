@@ -12,11 +12,12 @@
 -->
 
 <template>
-  <SmartAction class="apply-pulsar">
+  <SmartAction
+    class="apply-pulsar"
+    :offset-target="getSmartActionOffsetTarget">
     <DbForm
       ref="formRef"
       auto-label-width
-      class="mb-16"
       :model="formdata"
       :rules="rules">
       <DbCard :title="$t('业务信息')">
@@ -380,6 +381,8 @@
   import IpSelector from '@components/ip-selector/IpSelector.vue';
 
   import { getInitFormdata } from './common/base';
+
+  const getSmartActionOffsetTarget = () => document.querySelector('.bk-form-content');
 
   const { t } = useI18n();
   const {

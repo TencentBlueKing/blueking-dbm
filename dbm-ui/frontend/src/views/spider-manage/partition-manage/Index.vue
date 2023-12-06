@@ -37,6 +37,7 @@
       @setting-change="handleSettingChange" />
     <DryRun
       v-model="isShowDryRun"
+      :cluster-id="operationData?.cluster_id ||operationDryRunDataClusterId"
       :operation-dry-run-data="operationDryRunData"
       :partition-data="operationData" />
     <DbSideslider
@@ -102,6 +103,7 @@
   const executeLoadingMap = ref<Record<number, boolean>>({});
   const selectionList = shallowRef<number[]>([]);
   const operationData = shallowRef<PartitionModel>();
+  const operationDryRunDataClusterId = ref(0);
   const operationDryRunData = shallowRef<ServiceReturnType<typeof dryRun>>();
 
   const serachData = [
@@ -346,7 +348,6 @@
     isShowDryRun.value = true;
     operationData.value = payload;
     operationDryRunData.value = undefined;
-    console.log('operationData = ', operationData.value);
   };
   // 编辑
   const handleEdit  = (payload: PartitionModel) => {
@@ -361,8 +362,9 @@
   };
 
   // 新建、编辑成功
-  const handleOperationSuccess = (payload: ServiceReturnType<typeof dryRun>) => {
+  const handleOperationSuccess = (payload: ServiceReturnType<typeof dryRun>, clusterId: number) => {
     fetchData();
+    operationDryRunDataClusterId.value = clusterId;
     operationDryRunData.value = payload;
     operationData.value = undefined;
     isShowDryRun.value = true;

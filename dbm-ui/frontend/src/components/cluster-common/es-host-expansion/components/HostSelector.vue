@@ -116,6 +116,7 @@
 
   const bizId = globalBizsStore.currentBizId;
 
+  const isClientNode = computed(() => props.data.role === 'es_client');
   const hostTableData = shallowRef<TExpansionNode['hostList']>(props.data.hostList || []);
 
   // 目标容量和实际容量误差
@@ -130,35 +131,27 @@
     return targetDisk - realTargetDisk;
   });
 
-  const tableColumns = [
-    {
-      label: t('节点 IP'),
-      field: 'ip',
-      render: ({ data }: {data: TExpansionNode['hostList'][number]}) => data.ip || '--',
-    },
-    {
-      label: t('每台主机实例数'),
-      width: 150,
-      render: ({ data }: {data: TExpansionNode['hostList'][number]}) => (
-        <EditHostInstance
-          modelValue={data.instance_num}
-          onChange={(value: number) => handleInstanceNumChange(value, data)}  />
-      ),
-    },
-    {
-      label: t('Agent状态'),
-      field: 'alive',
-      render: ({ data }: {data: TExpansionNode['hostList'][number]}) => <HostAgentStatus data={data.alive} />,
-    },
-    {
-      label: t('磁盘_GB'),
-      field: 'bk_disk',
-      render: ({ data }: {data: TExpansionNode['hostList'][number]}) => data.bk_disk || '--',
-    },
-    {
-      label: t('操作'),
-      width: 100,
-      render: ({ data }: {data: TExpansionNode['hostList'][number]}) => (
+  const tableColumns = computed(() => {
+    const baseColumns = [
+      {
+        label: t('节点 IP'),
+        field: 'ip',
+        render: ({ data }: {data: TExpansionNode['hostList'][number]}) => data.ip || '--',
+      },
+      {
+        label: t('Agent状态'),
+        field: 'alive',
+        render: ({ data }: {data: TExpansionNode['hostList'][number]}) => <HostAgentStatus data={data.alive} />,
+      },
+      {
+        label: t('磁盘_GB'),
+        field: 'bk_disk',
+        render: ({ data }: {data: TExpansionNode['hostList'][number]}) => data.bk_disk || '--',
+      },
+      {
+        label: t('操作'),
+        width: 100,
+        render: ({ data }: {data: TExpansionNode['hostList'][number]}) => (
         <bk-button
           text
           theme="primary"
@@ -166,14 +159,31 @@
           {t('删除')}
         </bk-button>
       ),
-    },
-  ];
+      },
+    ];
+    if (!isClientNode.value) {
+      baseColumns.splice(1, 0, {
+        label: t('每台主机实例数'),
+        width: 150,
+        render: ({ data }: {data: TExpansionNode['hostList'][number]}) => (
+          <EditHostInstance
+            modelValue={data.instance_num}
+            onChange={(value: number) => handleInstanceNumChange(value, data)}  />
+        ),
+      });
+    }
+    return baseColumns;
+  });
 
   const handleHostChange = (hostList: TExpansionNode['hostList']) => {
-    hostTableData.value = hostList.map(item => ({
-      ...item,
-      instance_num: 0,
-    }));
+    hostTableData.value = hostList.map((item) => {
+      if (!isClientNode.value) {
+        return Object.assign({}, item, {
+          instance_num: 1,
+        });
+      }
+      return item;
+    });
     emits('change', hostList, calcSelectHostDisk(hostList));
   };
 
