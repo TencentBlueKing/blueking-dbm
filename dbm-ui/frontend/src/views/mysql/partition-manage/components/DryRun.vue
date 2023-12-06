@@ -69,7 +69,10 @@
   } from '@utils';
 
   interface Props {
+    clusterId: number,
+    // 分区策略详情
     partitionData?: PartitionModel,
+    // 新建、编辑时返回的 operationData
     operationDryRunData?: ServiceReturnType<typeof dryRun>,
   }
 
@@ -292,8 +295,6 @@
         [partitionId]: _.filter(detailList, item => !item.message),
       };
       tableData.value = formatTableData(detailList);
-
-      console.log('from watch = ', props.operationDryRunData, tableData.value);
     }
   }, {
     immediate: true,
@@ -319,7 +320,7 @@
     }
     isExecSubmiting.value = true;
     execute({
-      cluster_id: props.partitionData.cluster_id,
+      cluster_id: props.clusterId,
       partition_objects: dryRunData.value,
     })
       .then((data) => {

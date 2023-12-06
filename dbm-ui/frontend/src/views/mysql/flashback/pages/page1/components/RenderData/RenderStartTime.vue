@@ -12,77 +12,45 @@
 -->
 
 <template>
-  <div class="render-start-time-box">
-    <TableEditDateTime
-      ref="editRef"
-      :disabled-date="disableDate"
-      :model-value="localValue"
-      :placeholder="$t('请选择')"
-      :rules="rules"
-      type="datetimerange"
-      @change="handleChange" />
-  </div>
+  <TableEditDateTime
+    ref="editRef"
+    v-model="modelValue"
+    :disabled-date="disableDate"
+    :placeholder="t('请选择')"
+    :rules="rules"
+    type="datetime" />
 </template>
 <script setup lang="ts">
-  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
-  import TableEditDateTime from '@views/mysql/common/edit/DateTime.vue';
-
-  interface Props {
-    modelValue?: [string, string]
-  }
+  import TableEditDateTime from '@views/spider-manage/common/edit/DateTime.vue';
 
   interface Exposes {
-    getValue: (field: string) => Promise<Record<'start_time'|'end_time', string>>
+    getValue: (field: string) => Promise<Record<'start_time', string>>
   }
 
-  const props = defineProps<Props>();
+  const modelValue = defineModel<string>({
+    required: false,
+  });
 
   const { t } = useI18n();
   const editRef = ref();
-  const localValue = ref<Required<Props>['modelValue']>(['', '']);
 
   const disableDate = (date: Date) => date && date.valueOf() > Date.now();
 
   const rules = [
     {
-      validator: (value: Required<Props>['modelValue']) => {
-        if (value.length !== 2) {
-          return false;
-        }
-        return _.filter(value, item => _.trim(item)).length > 0;
-      },
-      message: t('起止时间不能为空'),
+      validator: (value: string) => Boolean(value),
+      message: t('开始时间不能为空'),
     },
   ];
-
-  watch(() => props.modelValue, () => {
-    if (props.modelValue) {
-      localValue.value = props.modelValue;
-    } else {
-      localValue.value = ['', ''];
-    }
-  }, {
-    immediate: true,
-  });
-
-  const handleChange = (value: Required<Props>['modelValue']) => {
-    localValue.value = value;
-  };
 
   defineExpose<Exposes>({
     getValue() {
       return editRef.value.getValue()
         .then(() => ({
-          start_time: localValue.value[0],
-          end_time: localValue.value[1],
+          start_time: modelValue.value,
         }));
     },
   });
 </script>
-<style lang="less">
-  .render-start-time-box {
-    display: block;
-  }
-</style>

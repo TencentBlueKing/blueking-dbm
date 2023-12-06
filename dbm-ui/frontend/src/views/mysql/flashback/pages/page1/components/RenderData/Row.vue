@@ -24,7 +24,13 @@
       <td style="padding: 0;">
         <RenderStartTime
           ref="startTimeRef"
-          :model-value="data.startTime" />
+          v-model="localStartTime" />
+      </td>
+      <td style="padding: 0;">
+        <RenderEndTime
+          ref="endTimeRef"
+          v-model="localEndTime"
+          :start-time="localStartTime" />
       </td>
       <td style="padding: 0;">
         <RenderDbName
@@ -81,7 +87,8 @@
       id: number;
       domain: string;
     },
-    startTime?: [string, string];
+    startTime?: string;
+    endTime?: string,
     databases?: string [];
     tables?: string [];
     databasesIgnore?: string [];
@@ -93,6 +100,7 @@
     rowKey: random(),
     clusterData: data.clusterData,
     startTime: data.startTime,
+    endTime: data.endTime,
     databases: data.databases,
     tables: data.tables,
     databasesIgnore: data.databasesIgnore,
@@ -109,6 +117,7 @@
   import RenderTableName from '@views/mysql/common/edit-field/TableName.vue';
 
   import RenderCluster from './RenderCluster.vue';
+  import RenderEndTime from './RenderEndTime.vue';
   import RenderStartTime from './RenderStartTime.vue';
 
   interface Props {
@@ -136,10 +145,13 @@
   const tablesIgnoreRef = ref();
 
   const localClusterId = ref(0);
+  const localStartTime = ref<string>();
+  const localEndTime = ref<string>();
 
   watch(() => props.data, () => {
     if (props.data.clusterData) {
       localClusterId.value = props.data.clusterData.id;
+      localStartTime.value = props.data.startTime;
     }
   }, {
     immediate: true,

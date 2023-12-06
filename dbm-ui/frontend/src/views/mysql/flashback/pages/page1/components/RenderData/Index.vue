@@ -17,7 +17,7 @@
       <RenderTableHeadColumn
         :min-width="270"
         :width="270">
-        {{ $t('目标集群') }}
+        {{ t('目标集群') }}
         <template #append>
           <span
             class="batch-edit-btn"
@@ -26,25 +26,32 @@
           </span>
         </template>
       </RenderTableHeadColumn>
-      <RenderTableHeadColumn :width="280">
-        {{ $t('起止时间') }}
+      <RenderTableHeadColumn
+        :min-width="170"
+        :width="180">
+        {{ t('回档时间') }}
+      </RenderTableHeadColumn>
+      <RenderTableHeadColumn
+        :min-width="170"
+        :width="180">
+        {{ t('截止时间') }}
       </RenderTableHeadColumn>
       <RenderTableHeadColumn>
-        {{ $t('目标库') }}
+        {{ t('目标库') }}
       </RenderTableHeadColumn>
       <RenderTableHeadColumn>
-        {{ $t('目标表') }}
+        {{ t('目标表') }}
       </RenderTableHeadColumn>
       <RenderTableHeadColumn :required="false">
-        {{ $t('忽略库') }}
+        {{ t('忽略库') }}
       </RenderTableHeadColumn>
       <RenderTableHeadColumn :required="false">
-        {{ $t('忽略表') }}
+        {{ t('忽略表') }}
       </RenderTableHeadColumn>
       <RenderTableHeadColumn
         :required="false"
         :width="90">
-        {{ $t('操作') }}
+        {{ t('操作') }}
       </RenderTableHeadColumn>
       <template #data>
         <slot />
@@ -53,6 +60,8 @@
   </div>
 </template>
 <script setup lang="ts">
+  import { useI18n } from 'vue-i18n';
+
   import RenderTableHeadColumn from '@views/mysql/common/render-table/HeadColumn.vue';
   import RenderTable from '@views/mysql/common/render-table/Index.vue';
 
@@ -61,6 +70,8 @@
   }
 
   const emits = defineEmits<Emits>();
+
+  const { t } = useI18n();
 
   const handleShowBatchSelector = () => {
     emits('batchSelectCluster');
