@@ -89,15 +89,15 @@ class MySQLMigrateClusterRemoteFlow(object):
             self.data = copy.deepcopy(info)
             cluster_class = Cluster.objects.get(id=self.data["cluster_ids"][0])
             # 确定要迁移的主节点，从节点.
-            master = cluster_class.storageinstance_set.get(instance_inner_role=InstanceInnerRole.MASTER.value)
+            master_model = cluster_class.storageinstance_set.get(instance_inner_role=InstanceInnerRole.MASTER.value)
             slave = cluster_class.storageinstance_set.filter(
                 instance_inner_role=InstanceInnerRole.SLAVE.value, is_stand_by=True
             ).first()
-            self.data["master_ip"] = master.machine.ip
+            self.data["master_ip"] = master_model.machine.ip
             self.data["cluster_type"] = cluster_class.cluster_type
             self.data["old_slave_ip"] = slave.machine.ip
             self.data["slave_ip"] = slave.machine.ip
-            self.data["mysql_port"] = master.port
+            self.data["mysql_port"] = master_model.port
             self.data["bk_biz_id"] = cluster_class.bk_biz_id
             self.data["bk_cloud_id"] = cluster_class.bk_cloud_id
             self.data["db_module_id"] = cluster_class.db_module_id
@@ -143,7 +143,7 @@ class MySQLMigrateClusterRemoteFlow(object):
                 kwargs=asdict(
                     DBMetaOPKwargs(
                         db_meta_class_func=MySQLDBMeta.migrate_cluster_add_instance.__name__,
-                        cluster=cluster,
+                        cluster=copy.deepcopy(cluster),
                         is_update_trans_data=True,
                     )
                 ),
@@ -177,7 +177,9 @@ class MySQLMigrateClusterRemoteFlow(object):
             sync_data_sub_pipeline_list = []
             for cluster_id in self.data["cluster_ids"]:
                 cluster_model = Cluster.objects.get(id=cluster_id)
-                master = cluster_model.storageinstance_set.get(instance_inner_role=InstanceInnerRole.MASTER.value)
+                master_model = cluster_model.storageinstance_set.get(
+                    instance_inner_role=InstanceInnerRole.MASTER.value
+                )
                 # 查询备份
                 rollback_time = datetime.now()
                 rollback_handler = FixPointRollbackHandler(cluster_id=cluster_model.id)
@@ -188,13 +190,13 @@ class MySQLMigrateClusterRemoteFlow(object):
                 cluster["backupinfo"] = backup_info
                 cluster["new_master_ip"] = self.data["new_master_ip"]
                 cluster["new_slave_ip"] = self.data["new_slave_ip"]
-                cluster["new_master_port"] = master.port
-                cluster["new_slave_port"] = master.port
+                cluster["new_master_port"] = master_model.port
+                cluster["new_slave_port"] = master_model.port
                 cluster["master_ip"] = self.data["master_ip"]
                 cluster["slave_ip"] = self.data["slave_ip"]
-                cluster["master_port"] = master.port
-                cluster["slave_port"] = master.port
-                cluster["file_target_path"] = f"/data/dbbak/{self.root_id}/{master.port}"
+                cluster["master_port"] = master_model.port
+                cluster["slave_port"] = master_model.port
+                cluster["file_target_path"] = f"/data/dbbak/{self.root_id}/{master_model.port}"
                 cluster["cluster_id"] = cluster_model.id
                 cluster["bk_cloud_id"] = cluster_model.bk_cloud_id
                 cluster["change_master_force"] = False
@@ -213,7 +215,7 @@ class MySQLMigrateClusterRemoteFlow(object):
                     kwargs=asdict(
                         DBMetaOPKwargs(
                             db_meta_class_func=MySQLDBMeta.migrate_cluster_add_tuple.__name__,
-                            cluster=cluster,
+                            cluster=copy.deepcopy(cluster),
                             is_update_trans_data=True,
                         )
                     ),
@@ -224,7 +226,9 @@ class MySQLMigrateClusterRemoteFlow(object):
             for cluster_id in self.data["cluster_ids"]:
                 switch_sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
                 cluster_model = Cluster.objects.get(id=cluster_id)
-
+                master_model = cluster_model.storageinstance_set.get(
+                    instance_inner_role=InstanceInnerRole.MASTER.value
+                )
                 other_slave_storage = cluster_model.storageinstance_set.filter(
                     instance_inner_role=InstanceInnerRole.SLAVE.value
                 ).exclude(
@@ -235,14 +239,14 @@ class MySQLMigrateClusterRemoteFlow(object):
                     "cluster_id": cluster_model.id,
                     "bk_cloud_id": cluster_model.bk_cloud_id,
                     "old_master_ip": self.data["master_ip"],
-                    "old_master_port": self.data["mysql_port"],
+                    "old_master_port": master_model.port,
                     "old_slave_ip": self.data["old_slave_ip"],
-                    "old_slave_port": self.data["mysql_port"],
+                    "old_slave_port": master_model.port,
                     "new_master_ip": self.data["new_master_ip"],
-                    "new_master_port": self.data["mysql_port"],
+                    "new_master_port": master_model.port,
                     "new_slave_ip": self.data["new_slave_ip"],
-                    "new_slave_port": self.data["mysql_port"],
-                    "mysql_port": self.data["mysql_port"],
+                    "new_slave_port": master_model.port,
+                    "mysql_port": master_model.port,
                     "other_slave_info": other_slaves,
                 }
                 switch_sub_pipeline.add_sub_pipeline(
@@ -250,7 +254,7 @@ class MySQLMigrateClusterRemoteFlow(object):
                         root_id=self.root_id,
                         ticket_data=copy.deepcopy(self.data),
                         cluster=cluster_model,
-                        cluster_info=cluster,
+                        cluster_info=copy.deepcopy(cluster),
                     )
                 )
                 switch_sub_pipeline.add_act(
