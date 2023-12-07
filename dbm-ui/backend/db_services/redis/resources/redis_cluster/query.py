@@ -219,9 +219,10 @@ class ListRetrieveResource(query.ListRetrieveResource):
         if not count:
             return query.ResourceList(count=0, data=[])
 
+        # refactor: 将后面所有迭代用到的数据都查回来，避免循环select
         clusters = clusters.order_by("-create_at")[offset : limit + offset].prefetch_related(
-            Prefetch("proxyinstance_set", queryset=qs_proxy, to_attr="proxies"),
-            Prefetch("storageinstance_set", queryset=qs_storage, to_attr="storages"),
+            Prefetch("proxyinstance_set", queryset=qs_proxy.select_related("machine"), to_attr="proxies"),
+            Prefetch("storageinstance_set", queryset=qs_storage.select_related("machine"), to_attr="storages"),
         )
 
         cluster_entry_map = ClusterEntry.get_cluster_entry_map_by_cluster_ids(

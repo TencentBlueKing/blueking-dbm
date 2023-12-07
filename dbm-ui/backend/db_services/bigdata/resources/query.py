@@ -200,7 +200,7 @@ class BigDataBaseListRetrieveResource(query.ListRetrieveResource):
             return query.ResourceList(count=0, data=[])
 
         clusters = clusters.order_by("-create_at")[offset : limit + offset].prefetch_related(
-            Prefetch("storageinstance_set", queryset=qs_storage, to_attr="storages"),
+            Prefetch("storageinstance_set", queryset=qs_storage.select_related("machine"), to_attr="storages"),
         )
 
         cluster_entry_map = ClusterEntry.get_cluster_entry_map_by_cluster_ids(
@@ -218,18 +218,9 @@ class BigDataBaseListRetrieveResource(query.ListRetrieveResource):
         :param cluster: model Cluster 对象
         :param cluster_info: 当前的cluster信息
         """
-        storage_instance_set = cluster.storageinstance_set.all()
         for role in cls.instance_roles:
-            cluster_info.update(
-                {
-                    role: [
-                        inst.simple_desc
-                        for inst in storage_instance_set.select_related("machine")
-                        .annotate(ip=F("machine__ip"))
-                        .filter(instance_role=role)
-                    ]
-                }
-            )
+            cluster_info.update({role: [inst.simple_desc for inst in cluster.storages if inst.instance_role == role]})
+
         return cluster_info
 
     @classmethod
