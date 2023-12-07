@@ -77,6 +77,7 @@ def RedisBatchShutdownAtomJob(root_id, ticket_data, sub_kwargs: ActKwargs, shutd
     act_kwargs.cluster["exec_ip"] = exec_ip
     act_kwargs.cluster["instances"] = [{"ip": exec_ip, "port": p} for p in shutdown_param["ports"]]
     act_kwargs.cluster["idle_time"] = 600
+    act_kwargs.cluster["ignore_kill"] = shutdown_param.get("force_shutdown", False)
     act_kwargs.get_redis_payload_func = RedisActPayload.redis_killconn_4_scene.__name__
     sub_pipeline.add_act(
         act_name=_("干掉非活跃链接-{}").format(exec_ip),
