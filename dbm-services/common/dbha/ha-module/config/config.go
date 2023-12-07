@@ -58,15 +58,17 @@ type AgentConfig struct {
 	// cloud id for agent, value 0 allowed, so required tag could not assign
 	CloudID int `yaml:"cloud_id"`
 	// fetch cmdb instance's interval(second)
-	FetchInterval  int `yaml:"fetch_interval"`
-	ReportInterval int `yaml:"reporter_interval"`
+	FetchInterval  int    `yaml:"fetch_interval"`
+	ReportInterval int    `yaml:"reporter_interval"`
+	LocalIP        string `yaml:"local_ip"`
 }
 
 // GMConfig configure for gm component
 type GMConfig struct {
 	//value 0 allowed, so required tag could not assign
-	CityID int    `yaml:"city_id"`
-	Campus string `yaml:"campus" validate:"required"`
+	CityID  int    `yaml:"city_id"`
+	Campus  string `yaml:"campus" validate:"required"`
+	LocalIP string `yaml:"local_ip"`
 	//value 0 allowed, so required tag could not assign
 	CloudID        int       `yaml:"cloud_id"`
 	ListenPort     int       `yaml:"liston_port" validate:"required"`
@@ -178,6 +180,7 @@ type MonitorConfig struct {
 	AccessToken  string `yaml:"access_token"`
 	BeatPath     string `yaml:"beat_path"`
 	AgentAddress string `yaml:"agent_address"`
+	LocalIP      string `yaml:"local_ip"`
 }
 
 // TimezoneConfig support config timezone

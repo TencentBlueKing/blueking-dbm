@@ -13,7 +13,6 @@ import (
 	"dbm-services/common/dbha/ha-module/dbutil"
 	"dbm-services/common/dbha/ha-module/log"
 	"dbm-services/common/dbha/ha-module/types"
-	"dbm-services/common/dbha/ha-module/util"
 )
 
 // GWInfo the gateway information
@@ -71,7 +70,7 @@ type RedisProxySwitchInfo struct {
 
 // CheckSSH redis do ssh check
 func (ins *RedisDetectBase) CheckSSH() error {
-	touchFile := fmt.Sprintf("%s_%s_%d", ins.SshInfo.Dest, util.LocalIp, ins.Port)
+	touchFile := fmt.Sprintf("%s_%s_%d", ins.SshInfo.Dest, "agent", ins.Port)
 
 	touchStr := fmt.Sprintf("touch %s && if [ -d \"/data1/dbha\" ]; then touch /data1/dbha/%s ; fi "+
 		"&& if [ -d \"/data/dbha\" ]; then touch /data/dbha/%s ; fi", touchFile, touchFile, touchFile)

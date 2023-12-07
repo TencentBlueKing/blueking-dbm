@@ -53,7 +53,7 @@ func NewMonitorAgent(conf *config.Config, detectType string) (*MonitorAgent, err
 		Conf:             conf,
 		CmDBClient:       client.NewCmDBClient(&conf.DBConf.CMDB, conf.GetCloudId()),
 		HaDBClient:       client.NewHaDBClient(&conf.DBConf.HADB, conf.GetCloudId()),
-		MonIp:            util.LocalIp,
+		MonIp:            conf.AgentConf.LocalIP,
 	}
 
 	// register agent into
@@ -403,7 +403,7 @@ func (a *MonitorAgent) moduloHashSharding(allDbInstance []dbutil.DataBaseDetect)
 // reporterHeartbeat send heartbeat to hadb
 func (a *MonitorAgent) reporterHeartbeat() error {
 	interval := time.Now().Sub(a.heartbeat).Seconds()
-	err := a.HaDBClient.ReporterAgentHeartbeat(a.DetectType, int(interval), "N/A")
+	err := a.HaDBClient.ReporterAgentHeartbeat(a.MonIp, a.DetectType, int(interval), "N/A")
 	a.heartbeat = time.Now()
 	return err
 }
@@ -412,7 +412,7 @@ func (a *MonitorAgent) reporterHeartbeat() error {
 // only agent trigger double check(report GM) should call this
 func (a *MonitorAgent) reporterBindGM(gmInfo string) error {
 	interval := time.Now().Sub(a.heartbeat).Seconds()
-	err := a.HaDBClient.ReporterAgentHeartbeat(a.DetectType, int(interval), gmInfo)
+	err := a.HaDBClient.ReporterAgentHeartbeat(a.MonIp, a.DetectType, int(interval), gmInfo)
 	a.heartbeat = time.Now()
 	return err
 }

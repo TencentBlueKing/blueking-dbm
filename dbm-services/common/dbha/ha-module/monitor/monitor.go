@@ -6,7 +6,6 @@ import (
 	"dbm-services/common/dbha/ha-module/constvar"
 	"dbm-services/common/dbha/ha-module/dbutil"
 	"dbm-services/common/dbha/ha-module/log"
-	"dbm-services/common/dbha/ha-module/util"
 	"strconv"
 )
 
@@ -42,13 +41,8 @@ type MonitorInfo struct {
 
 // MonitorInit init monitor moudule by config
 func MonitorInit(conf *config.Config) error {
-	targetIp, err := util.GetMonIp()
-	if err != nil {
-		return err
-	}
-
 	RuntimeConfigInit(
-		targetIp, conf.Monitor.BkDataId, conf.Monitor.AccessToken,
+		conf.Monitor.LocalIP, conf.Monitor.BkDataId, conf.Monitor.AccessToken,
 		constvar.MonitorReportType, constvar.MonitorMessageKind,
 		conf.Monitor.BeatPath, conf.Monitor.AgentAddress,
 	)
