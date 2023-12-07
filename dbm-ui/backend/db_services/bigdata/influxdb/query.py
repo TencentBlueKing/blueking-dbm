@@ -56,6 +56,9 @@ class InfluxDBListRetrieveResource(BigDataBaseListRetrieveResource):
     def list_instances(cls, bk_biz_id: int, query_params: Dict, limit: int, offset: int) -> query.ResourceList:
         instance_filter = Q(bk_biz_id=bk_biz_id, instance_role=InstanceRole.INFLUXDB)
 
+        if query_params.get("id"):
+            instance_filter = instance_filter & Q(id=query_params["id"])
+
         if query_params.get("ip"):
             instance_filter = instance_filter & Q(machine__ip=query_params["ip"])
 

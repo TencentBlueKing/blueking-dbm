@@ -63,6 +63,9 @@ class BigDataBaseListRetrieveResource(query.ListRetrieveResource):
         instance_query = {"bk_biz_id": bk_biz_id, "cluster_type__in": cls.cluster_types}
         cluster_query = instance_query.copy()
 
+        if query_params.get("id"):
+            cluster_query["id"] = query_params["id"]
+
         if query_params.get("domain"):
             cluster_query["immute_domain__icontains"] = query_params["domain"]
 
