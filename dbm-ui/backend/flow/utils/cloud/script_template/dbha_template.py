@@ -30,11 +30,13 @@ agent_conf:
   cloud_id: {{cloud}}
   fetch_interval: 60
   reporter_interval: 120
+  local_ip: "{{local_ip}}"
 gm_conf:
   city_id: {{city}}
   campus: "{{campus}}"
   cloud_id: {{cloud}}
   liston_port: 50000
+  local_ip: "{{local_ip}}"
   report_interval: 60
   GDM:
     dup_expire: 600
@@ -115,12 +117,12 @@ name_services:
     pass: "nopasswd"
     url_pre: "/api/nameservice/clb"
     timeout: 10
-
 monitor:
   bk_data_id: {{mysql_crond_event_data_id}}
   access_token: "{{mysql_crond_event_data_token}}"
   beat_path: "{{mysql_crond_beat_path}}"
   agent_address: "{{mysql_crond_agent_address}}"
+  local_ip: "{{local_ip}}"
 ssh:
   port: 36000
   user: "mysql"
@@ -149,11 +151,13 @@ agent_conf:
   cloud_id: {{cloud}}
   fetch_interval: 60
   reporter_interval: 120
+  local_ip: "{{local_ip}}"
 gm_conf:
   city_id: {{city}}
   campus: "{{campus}}"
   cloud_id: {{cloud}}
   liston_port: 50000
+  local_ip: "{{local_ip}}"
   report_interval: 60
   GDM:
     dup_expire: 600
@@ -235,6 +239,7 @@ monitor:
   access_token: "{{mysql_crond_metrics_data_token}}"
   beat_path: "{{mysql_crond_beat_path}}"
   agent_address: "{{mysql_crond_agent_address}}"
+  local_ip: "{{local_ip}}"
 ssh:
   port: 36000
   user: "mysql"

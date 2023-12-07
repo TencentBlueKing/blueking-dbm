@@ -138,6 +138,7 @@ class CloudServiceActPayload(object):
             "mysql_crond_agent_address": env.MYSQL_CROND_AGENT_ADDRESS,
             "mysql_crond_beat_path": env.MYSQL_CROND_BEAT_PATH,
             "proxy_password": DBPasswordHandler.query_proxy_password(),
+            "local_ip": self.kwargs["exec_ip"]["ip"],
         }
 
     def get_dbha_apply_payload(self):
