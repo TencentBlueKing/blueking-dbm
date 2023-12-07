@@ -9,7 +9,6 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
-import json
 from collections import defaultdict
 from typing import Dict, List
 
@@ -21,14 +20,12 @@ from backend.flow.consts import SYSTEM_DBS
 from backend.flow.engine.controller.mysql import MySQLController
 from backend.flow.utils.mysql.db_table_filter.tools import contain_glob
 from backend.ticket import builders
-from backend.ticket.builders.common.base import CommonValidate
 from backend.ticket.builders.mysql.base import (
     BaseMySQLTicketFlowBuilder,
     DBTableField,
     MySQLBaseOperateDetailSerializer,
 )
-from backend.ticket.constants import FlowRetryType, FlowType, TicketType
-from backend.ticket.models import Flow
+from backend.ticket.constants import FlowRetryType, TicketType
 
 
 class MySQLHaRenameSerializer(MySQLBaseOperateDetailSerializer):

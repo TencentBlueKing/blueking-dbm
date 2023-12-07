@@ -12,7 +12,6 @@ from abc import ABC
 
 from django.db import transaction
 
-from backend.constants import DEFAULT_BK_CLOUD_ID
 from backend.db_meta.exceptions import ClusterNotExistException
 from backend.db_meta.models import Cluster
 

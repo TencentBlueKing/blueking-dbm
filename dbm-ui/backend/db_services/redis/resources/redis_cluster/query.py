@@ -140,25 +140,21 @@ class ListRetrieveResource(query.ListRetrieveResource):
                 )
             )
 
-        instances = (
-            query_objs.prefetch_related("cluster", "machine")
-            .values(
-                "id",
-                "port",
-                "role",
-                "status",
-                "create_at",
-                "cluster__id",
-                "cluster__major_version",
-                "cluster__cluster_type",
-                "cluster__name",
-                "machine__ip",
-                "machine__bk_cloud_id",
-                "machine__bk_host_id",
-                "machine__spec_config",
-            )
-            .order_by("port", "-create_at")
-        )
+        instances = query_objs.values(
+            "id",
+            "port",
+            "role",
+            "status",
+            "create_at",
+            "cluster__id",
+            "cluster__major_version",
+            "cluster__cluster_type",
+            "cluster__name",
+            "machine__ip",
+            "machine__bk_cloud_id",
+            "machine__bk_host_id",
+            "machine__spec_config",
+        ).order_by("port", "-create_at")
 
         paginated_instances = instances[offset : limit + offset]
         paginated_instances = [cls._to_instance_list(instance) for instance in paginated_instances]

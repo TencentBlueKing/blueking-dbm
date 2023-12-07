@@ -6,10 +6,9 @@
     "collector_config_name_en": "redis_bigkey",
     "collector_scenario_id": "row",
     "category_id": "application_check",
-    "etl_params": {
-        "retain_original_text": true
-    },
+    "data_encoding": "UTF-8",
     "retention": 7,
+    "allocation_min_days": 3,
     "es_shards": 3,
     "target_object_type": "HOST",
     "target_node_type": "TOPO",
@@ -18,6 +17,9 @@
         {% endfor %}
     ],
     {% if storage_cluster_id %}"storage_cluster_id": {{ storage_cluster_id }},{% endif %}
+    "etl_params": {
+        "retain_original_text": true
+    },
     "params": {
         "paths": [
             "/home/mysql/dbareport/keylifecycle/redis_bigkey_*.log"

@@ -18,7 +18,7 @@ from backend.db_services.redis.rollback.models import TbTendisRollbackTasks
 from backend.flow.engine.controller.redis import RedisController
 from backend.ticket import builders
 from backend.ticket.builders.redis.base import BaseRedisTicketFlowBuilder, RedisBasePauseParamBuilder
-from backend.ticket.constants import SwitchConfirmType, TicketType
+from backend.ticket.constants import TicketType
 
 
 class RedisDataStructureTaskDeleteDetailSerializer(serializers.Serializer):

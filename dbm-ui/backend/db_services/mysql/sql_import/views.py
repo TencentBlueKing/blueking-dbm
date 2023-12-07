@@ -17,7 +17,6 @@ from rest_framework.response import Response
 
 from backend.bk_web import viewsets
 from backend.bk_web.swagger import common_swagger_auto_schema
-from backend.configuration.constants import DBType
 from backend.db_services.mysql.sql_import.dataclass import SemanticOperateMeta, SQLExecuteMeta, SQLMeta
 from backend.db_services.mysql.sql_import.handlers import SQLHandler
 from backend.db_services.mysql.sql_import.serializers import (

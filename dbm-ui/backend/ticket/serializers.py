@@ -19,7 +19,7 @@ from backend.bk_web.serializers import AuditedSerializer, TranslationSerializerM
 from backend.configuration.constants import DBType
 from backend.ticket import mock_data
 from backend.ticket.builders import BuilderFactory
-from backend.ticket.constants import CountType, FlowTypeConfig, TicketStatus, TicketType, TodoStatus
+from backend.ticket.constants import CountType, TicketStatus, TicketType, TodoStatus
 from backend.ticket.flow_manager.manager import TicketFlowManager
 from backend.ticket.models import Flow, Ticket, Todo
 from backend.ticket.yasg_slz import todo_operate_example

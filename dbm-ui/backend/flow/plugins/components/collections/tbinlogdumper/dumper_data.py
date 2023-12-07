@@ -7,13 +7,11 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-import uuid
 
 from pipeline.component_framework.component import Component
 
 from backend.flow.consts import DBA_SYSTEM_USER
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptService
-from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
 from backend.flow.utils.tbinlogdumper.tbinlogdumper_act_payload import TBinlogDumperActPayload
 
 

@@ -18,8 +18,7 @@ from backend.flow.engine.controller.cloud import CloudServiceController
 from backend.ticket import builders
 from backend.ticket.builders.cloud.base import BaseServiceOperateFlowParamBuilder
 from backend.ticket.builders.common.bigdata import BaseCloudTicketFlowBuilder
-from backend.ticket.constants import FlowType, TicketType
-from backend.ticket.models import Flow
+from backend.ticket.constants import TicketType
 
 logger = logging.getLogger("root")
 

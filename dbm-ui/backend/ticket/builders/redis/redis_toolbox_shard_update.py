@@ -24,7 +24,6 @@ from backend.ticket.builders.redis.base import (
     DataCheckRepairSettingSerializer,
     RedisUpdateApplyResourceParamBuilder,
 )
-from backend.ticket.builders.redis.redis_cluster_apply import RedisApplyResourceParamBuilder
 from backend.ticket.constants import SwitchConfirmType, TicketType
 
 

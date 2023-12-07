@@ -11,7 +11,6 @@ specific language governing permissions and limitations under the License.
 import logging
 
 from django.apps import AppConfig
-from django.db.models.signals import post_migrate
 from django.utils.translation import ugettext as _
 
 logger = logging.getLogger("root")

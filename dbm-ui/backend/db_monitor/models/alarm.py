@@ -15,11 +15,10 @@ import logging
 from collections import defaultdict
 
 from django.db import models
-from django.db.models import Count
 from django.utils.translation import gettext_lazy as _
 
 from backend import env
-from backend.bk_web.constants import LEN_LONG, LEN_MIDDLE, LEN_NORMAL, LEN_SHORT
+from backend.bk_web.constants import LEN_MIDDLE, LEN_NORMAL, LEN_SHORT
 from backend.bk_web.models import AuditedModel
 from backend.components import BKMonitorV3Api
 from backend.configuration.constants import PLAT_BIZ_ID, DBType, SystemSettingsEnum

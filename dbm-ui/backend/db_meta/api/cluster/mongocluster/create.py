@@ -17,11 +17,7 @@ from django.db import transaction
 from backend.constants import DEFAULT_BK_CLOUD_ID
 from backend.db_meta import request_validator
 from backend.db_meta.api.cluster.nosqlcomm.create_cluster import update_cluster_type
-from backend.db_meta.api.cluster.nosqlcomm.create_instances import (
-    create_mongo_instances,
-    create_mongo_mutil_instances,
-    create_proxies,
-)
+from backend.db_meta.api.cluster.nosqlcomm.create_instances import create_mongo_mutil_instances, create_proxies
 from backend.db_meta.api.cluster.nosqlcomm.precheck import (
     before_create_domain_precheck,
     before_create_proxy_precheck,

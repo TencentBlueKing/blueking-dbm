@@ -12,7 +12,6 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
-from backend.db_meta.models import Cluster
 from backend.db_services.redis.redis_dts.enums import DtsCopyType
 from backend.db_services.redis.rollback.models import TbTendisRollbackTasks
 from backend.flow.engine.controller.redis import RedisController

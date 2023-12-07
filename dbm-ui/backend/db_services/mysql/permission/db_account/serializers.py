@@ -17,8 +17,6 @@ from rest_framework import serializers
 from backend.configuration.handlers.password import DBPasswordHandler
 from backend.db_services.mysql.permission.constants import AccountType, PrivilegeType
 from backend.db_services.mysql.permission.db_account import mock_data
-from backend.db_services.mysql.permission.db_account.dataclass import AccountMeta
-from backend.db_services.mysql.permission.db_account.handlers import AccountHandler
 
 
 class DBAccountBaseSerializer(serializers.Serializer):

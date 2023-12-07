@@ -12,7 +12,7 @@ import logging
 
 from django.db import transaction
 
-from backend.db_meta.enums import ClusterEntryType, InstanceInnerRole, InstanceStatus, MachineType
+from backend.db_meta.enums import ClusterEntryType, InstanceInnerRole, InstanceStatus
 from backend.db_meta.models import Cluster, ProxyInstance, StorageInstance
 from backend.flow.utils.mysql.mysql_module_operate import MysqlCCTopoOperator
 

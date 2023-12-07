@@ -25,7 +25,6 @@ from backend.ticket.constants import (
     EXCLUSIVE_TICKET_EXCEL_PATH,
     FlowRetryType,
     FlowType,
-    FlowTypeConfig,
     TicketFlowStatus,
     TicketStatus,
     TicketType,

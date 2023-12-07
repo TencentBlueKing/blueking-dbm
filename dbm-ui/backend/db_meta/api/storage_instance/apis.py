@@ -8,15 +8,12 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from asyncio.log import logger
-from typing import Dict, List
+from typing import List
 
 from django.db import transaction
-from django.db.models import Q
-from django.utils.translation import ugettext as _
 
 from backend.constants import DEFAULT_TIME_ZONE
-from backend.db_meta import flatten, request_validator, validators
+from backend.db_meta import request_validator
 from backend.db_meta.enums import (
     AccessLayer,
     InstanceRoleInstanceInnerRoleMap,

@@ -22,7 +22,7 @@ from backend.components.dbconfig.constants import FormatType, LevelName
 from backend.db_meta.models import Cluster
 from backend.db_services.dbbase.resources import serializers, viewsets
 from backend.db_services.redis.resources import constants
-from backend.flow.consts import DEFAULT_DB_MODULE_ID, ConfigTypeEnum, MySQLPrivComponent, NameSpaceEnum, UserName
+from backend.flow.consts import DEFAULT_DB_MODULE_ID, ConfigTypeEnum, MySQLPrivComponent, UserName
 
 from . import yasg_slz
 from .query import ListRetrieveResource

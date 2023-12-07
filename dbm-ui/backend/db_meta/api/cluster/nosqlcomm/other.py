@@ -11,7 +11,7 @@ specific language governing permissions and limitations under the License.
 
 import logging
 import traceback
-from typing import List, Optional
+from typing import List
 
 from backend.db_meta import flatten
 from backend.db_meta.models import Cluster

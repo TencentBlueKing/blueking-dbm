@@ -16,8 +16,7 @@ from django.db.models import Q
 
 from backend.db_meta import request_validator
 from backend.db_meta.enums import ClusterType, InstanceRole, MachineType
-from backend.db_meta.models import Cluster, ClusterEntry, ClusterMonitorTopo, StorageInstance
-from backend.flow.consts import InstanceFuncAliasEnum
+from backend.db_meta.models import Cluster, ClusterEntry, StorageInstance
 from backend.flow.utils.cc_manage import CcManage
 from backend.flow.utils.es.es_module_operate import EsCCTopoOperator
 

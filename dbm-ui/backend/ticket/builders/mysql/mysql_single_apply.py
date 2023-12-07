@@ -28,7 +28,6 @@ from backend.exceptions import ValidationError
 from backend.flow.engine.controller.mysql import MySQLController
 from backend.ticket import builders
 from backend.ticket.builders.common.base import CommonValidate
-from backend.ticket.builders.common.constants import MAX_DOMAIN_LEN_LIMIT
 from backend.ticket.builders.mysql.base import BaseMySQLTicketFlowBuilder
 from backend.ticket.constants import TicketType
 from backend.ticket.exceptions import TicketParamsVerifyException

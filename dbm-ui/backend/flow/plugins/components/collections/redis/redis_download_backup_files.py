@@ -8,7 +8,6 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-import logging
 
 from django.utils.translation import ugettext as _
 from pipeline.component_framework.component import Component
@@ -17,7 +16,7 @@ from pipeline.core.flow.activity import StaticIntervalGenerator
 import backend.flow.utils.redis.redis_context_dataclass as flow_context
 from backend.components.mysql_backup.client import RedisBackupApi
 from backend.flow.plugins.components.collections.common.base_service import BaseService
-from backend.flow.utils.redis.redis_context_dataclass import ActKwargs, RedisDataStructureContext
+from backend.flow.utils.redis.redis_context_dataclass import RedisDataStructureContext
 
 
 class RedisDownloadBackupfile(BaseService):

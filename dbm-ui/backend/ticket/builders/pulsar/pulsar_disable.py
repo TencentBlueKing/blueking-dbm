@@ -10,7 +10,6 @@ See the License for the specific language governing permissions and limitations 
 """
 
 import logging
-from typing import List
 
 from django.utils.translation import ugettext as _
 

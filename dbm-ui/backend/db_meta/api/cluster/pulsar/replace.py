@@ -13,11 +13,8 @@ from typing import List, Optional
 
 from django.db import transaction
 
-from backend import env
-from backend.components import CCApi
 from backend.db_meta import request_validator
 from backend.db_meta.api import common
-from backend.db_meta.enums import MachineType
 from backend.db_meta.models import Cluster, StorageInstance
 from backend.flow.utils.cc_manage import CcManage
 from backend.flow.utils.pulsar.pulsar_module_operate import PulsarCCTopoOperator

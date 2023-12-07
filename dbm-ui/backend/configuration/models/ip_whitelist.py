@@ -16,9 +16,9 @@ from django.db.models import Q
 from django.forms.models import model_to_dict
 from django.utils.translation import ugettext_lazy as _
 
-from backend.bk_web.constants import LEN_LONG, LEN_SHORT
+from backend.bk_web.constants import LEN_LONG
 from backend.bk_web.models import AuditedModel
-from backend.configuration.constants import PLAT_BIZ_ID, DBType
+from backend.configuration.constants import PLAT_BIZ_ID
 
 
 class IPWhitelist(AuditedModel):

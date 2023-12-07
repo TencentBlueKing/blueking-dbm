@@ -14,7 +14,7 @@ from dataclasses import asdict
 from django.utils.translation import ugettext as _
 
 from backend.db_meta.models import Cluster
-from backend.flow.consts import DBA_SYSTEM_USER, TruncateDataTypeEnum
+from backend.flow.consts import TruncateDataTypeEnum
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
 from backend.flow.plugins.components.collections.mysql.general_check_db_in_using import GeneralCheckDBInUsingComponent
 from backend.flow.utils.mysql.mysql_act_dataclass import BKCloudIdKwargs

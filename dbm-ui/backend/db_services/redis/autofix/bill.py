@@ -11,8 +11,6 @@ specific language governing permissions and limitations under the License.
 import datetime
 import json
 import logging
-from collections import defaultdict
-from typing import Any, Dict, List
 
 from django.db.models import QuerySet
 from django.utils.crypto import get_random_string

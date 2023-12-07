@@ -24,7 +24,6 @@ from django.utils.translation import ugettext_lazy as _
 
 from backend import env
 from backend.components.bklog.client import BKLogApi
-from backend.constants import DEFAULT_BK_CLOUD_ID
 from backend.db_meta.enums import InstanceInnerRole, InstanceRole, InstanceStatus
 from backend.db_meta.models import Cluster, StorageInstance, StorageInstanceTuple
 from backend.db_periodic_task.local_tasks.register import register_periodic_task

@@ -8,7 +8,6 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import logging
-from collections import defaultdict
 from datetime import datetime, timedelta
 from typing import Any, List
 
@@ -19,18 +18,11 @@ from django.utils.translation import ugettext as _
 from backend.components import DBConfigApi
 from backend.components.dbconfig.constants import FormatType, LevelName
 from backend.constants import IP_PORT_DIVIDER
-from backend.db_meta.enums import ClusterType, InstanceInnerRole, InstanceRole, MachineType
+from backend.db_meta.enums import ClusterType, InstanceRole
 from backend.db_meta.models import Cluster
 from backend.db_report.enums import RedisBackupCheckSubType
 from backend.db_report.models import RedisBackupCheckReport
-from backend.flow.consts import (
-    DEFAULT_DB_MODULE_ID,
-    DEFAULT_REDIS_START_PORT,
-    DEFAULT_TWEMPROXY_SEG_TOTOL_NUM,
-    ConfigTypeEnum,
-    OperateTypeEnum,
-    WriteContextOpType,
-)
+from backend.flow.consts import DEFAULT_DB_MODULE_ID, ConfigTypeEnum
 
 from .bklog_query import ClusterBackup
 

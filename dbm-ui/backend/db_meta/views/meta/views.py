@@ -10,15 +10,14 @@ specific language governing permissions and limitations under the License.
 """
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
-from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import AllowAny
+from rest_framework.decorators import api_view
 from rest_framework.request import Request
 
 from backend.db_meta import api
 
 
 @api_view(["GET"])
-@permission_classes([AllowAny])
+# @permission_classes([AllowAny])
 @csrf_exempt
 def tendis_cluster_detail(request: Request, cluster_id):
     try:

@@ -12,7 +12,6 @@ import uuid
 
 from rest_framework.response import Response
 
-from backend.flow.engine.controller.mysql import MySQLController
 from backend.flow.engine.controller.spider import SpiderController
 from backend.flow.views.base import FlowTestView
 

@@ -10,7 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 import base64
 from collections import defaultdict
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List
 
 from django.utils.translation import ugettext as _
 from django_celery_beat.schedulers import ModelEntry

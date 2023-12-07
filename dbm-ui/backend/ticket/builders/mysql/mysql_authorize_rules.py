@@ -9,17 +9,14 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
-from collections import defaultdict
-
 from django.core.cache import cache
 from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
 from backend import env
-from backend.components import MySQLPrivManagerApi
 from backend.db_meta.enums import ClusterType
 from backend.db_services.mysql.permission.authorize.serializers import PreCheckAuthorizeRulesSerializer
-from backend.db_services.mysql.permission.constants import AccountType, PrivilegeType
+from backend.db_services.mysql.permission.constants import AccountType
 from backend.db_services.mysql.permission.db_account.handlers import AccountHandler
 from backend.db_services.mysql.permission.exceptions import AuthorizeDataHasExpiredException
 from backend.flow.engine.controller.mysql import MySQLController

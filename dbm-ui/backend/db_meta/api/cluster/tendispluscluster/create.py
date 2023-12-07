@@ -18,7 +18,7 @@ from django.utils.translation import ugettext as _
 from backend.constants import DEFAULT_BK_CLOUD_ID
 from backend.db_meta import request_validator
 from backend.db_meta.api import common
-from backend.db_meta.enums import ClusterEntryType, ClusterType, MachineType
+from backend.db_meta.enums import ClusterEntryType, ClusterType
 from backend.db_meta.models import Cluster, ClusterEntry, ProxyInstance, StorageInstance
 from backend.flow.utils.redis.redis_module_operate import RedisCCTopoOperator
 

@@ -9,12 +9,10 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 # redis相关单据上下文
-import json
 from dataclasses import dataclass, field
 from typing import Any, Optional
 
 from backend.constants import DEFAULT_BK_CLOUD_ID
-from backend.db_meta.enums.cluster_type import ClusterType
 from backend.env import BACKUP_DOWNLOAD_USER
 from backend.flow.consts import DEFAULT_REDIS_START_PORT, DEFAULT_TWEMPROXY_SEG_TOTOL_NUM
 

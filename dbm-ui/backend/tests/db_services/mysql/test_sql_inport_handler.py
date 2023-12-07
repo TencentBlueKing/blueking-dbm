@@ -12,8 +12,6 @@ specific language governing permissions and limitations under the License.
 import pytest
 from mock import patch
 
-from backend import env
-from backend.db_services.mysql.sql_import.dataclass import SQLMeta
 from backend.db_services.mysql.sql_import.handlers import SQLHandler
 from backend.tests.mock_data import constant
 from backend.tests.mock_data.components.sql_import import SQLImportApiMock

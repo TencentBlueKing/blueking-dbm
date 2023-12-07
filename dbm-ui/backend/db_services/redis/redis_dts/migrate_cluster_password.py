@@ -13,9 +13,9 @@ import base64
 
 from django.utils.translation import ugettext as _
 
-from backend.components import DBConfigApi, MySQLPrivManagerApi
+from backend.components import MySQLPrivManagerApi
 from backend.db_meta.models import Cluster
-from backend.flow.consts import DBM_JOB, DEFAULT_INSTANCE, MySQLPrivComponent, UserName
+from backend.flow.consts import MySQLPrivComponent, UserName
 from backend.flow.utils.base.payload_handler import PayloadHandler
 
 

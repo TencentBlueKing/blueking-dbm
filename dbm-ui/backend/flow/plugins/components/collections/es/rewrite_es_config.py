@@ -11,7 +11,6 @@ specific language governing permissions and limitations under the License.
 
 import base64
 import logging
-import traceback
 from typing import List
 
 from pipeline.component_framework.component import Component

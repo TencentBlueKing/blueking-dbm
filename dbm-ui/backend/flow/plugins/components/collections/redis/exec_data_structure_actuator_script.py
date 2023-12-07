@@ -9,7 +9,6 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import base64
-import copy
 import json
 import logging
 import re
@@ -23,14 +22,11 @@ from pipeline.core.flow.activity import Service
 import backend.flow.utils.redis.redis_context_dataclass as flow_context
 from backend import env
 from backend.components import JobApi
-from backend.core import consts
 from backend.flow.consts import ConfigDefaultEnum
 from backend.flow.models import FlowNode
 from backend.flow.plugins.components.collections.common.base_service import BkJobService
 from backend.flow.utils.redis.redis_script_template import (
-    redis_actuator_template,
     redis_data_structure_actuator_template,
-    redis_data_structure_payload_template,
     redis_fast_execute_script_common_kwargs,
 )
 from backend.ticket.constants import TicketType

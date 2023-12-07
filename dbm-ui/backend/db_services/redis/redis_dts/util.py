@@ -19,8 +19,7 @@ from typing import Dict, List, Tuple
 from django.db.models import Q
 from django.utils.translation import ugettext as _
 
-from backend.components import DBConfigApi, DRSApi
-from backend.components.dbconfig.constants import FormatType, LevelName
+from backend.components import DRSApi
 from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.enums import ClusterType, InstanceRole, InstanceStatus
 from backend.db_meta.models import Cluster
@@ -34,7 +33,7 @@ from backend.db_services.redis.util import (
     is_tendisssd_instance_type,
     is_twemproxy_proxy_type,
 )
-from backend.flow.consts import DEFAULT_TENDISPLUS_KVSTORECOUNT, ConfigTypeEnum
+from backend.flow.consts import DEFAULT_TENDISPLUS_KVSTORECOUNT
 from backend.flow.utils.base.payload_handler import PayloadHandler
 from backend.flow.utils.redis.redis_cluster_nodes import get_masters_with_slots
 from backend.flow.utils.redis.redis_context_dataclass import ActKwargs

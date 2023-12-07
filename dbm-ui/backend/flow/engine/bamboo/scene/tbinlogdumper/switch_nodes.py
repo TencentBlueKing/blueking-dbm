@@ -21,7 +21,7 @@ from backend.db_meta.enums import InstanceRole
 from backend.db_meta.enums.extra_process_type import ExtraProcessType
 from backend.db_meta.models import Cluster
 from backend.db_meta.models.extra_process import ExtraProcessInstance
-from backend.flow.consts import TBINLOGDUMPER_KAFKA_GLOBAL_CONF, TBinlogDumperProtocolType
+from backend.flow.consts import TBinlogDumperProtocolType
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.tbinlogdumper.common.common_sub_flow import (
     add_tbinlogdumper_sub_flow,

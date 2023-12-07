@@ -11,9 +11,7 @@ specific language governing permissions and limitations under the License.
 from collections import defaultdict
 from datetime import datetime, timedelta
 
-from django.utils.translation import ugettext as _
-
-from backend.db_meta.enums import ClusterType, InstanceInnerRole, InstanceRole, MachineType
+from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Cluster
 from backend.db_report.enums import MysqlBackupCheckSubType
 from backend.db_report.models import MysqlBackupCheckReport

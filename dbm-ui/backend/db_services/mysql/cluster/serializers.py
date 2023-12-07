@@ -12,7 +12,6 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
-from backend.db_meta.enums import InstanceRole
 from backend.db_services.mysql.cluster.mock_data import (
     FIND_RELATED_CLUSTERS_BY_ID_REQUEST_DATA,
     FIND_RELATED_CLUSTERS_BY_ID_RESPONSE_DATA,

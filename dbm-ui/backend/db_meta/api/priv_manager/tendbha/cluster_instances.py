@@ -11,7 +11,7 @@ specific language governing permissions and limitations under the License.
 
 from django.core.exceptions import ObjectDoesNotExist
 
-from backend.db_meta.enums import AccessLayer, ClusterEntryRole, ClusterType, InstanceInnerRole
+from backend.db_meta.enums import AccessLayer, ClusterType, InstanceInnerRole
 from backend.db_meta.exceptions import ClusterEntryNotBindException, ClusterEntryNotExistException
 from backend.db_meta.models import ClusterEntry
 

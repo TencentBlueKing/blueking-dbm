@@ -18,7 +18,6 @@ from backend.components.dbconfig.constants import FormatType, LevelName
 from backend.configuration.constants import DBType
 from backend.core.encrypt.constants import AsymmetricCipherConfigType
 from backend.core.encrypt.handlers import AsymmetricHandler
-from backend.db_proxy.models import DBCloudProxy
 from backend.flow.consts import CloudServiceName, ConfigFileEnum, ConfigTypeEnum, NameSpaceEnum
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
