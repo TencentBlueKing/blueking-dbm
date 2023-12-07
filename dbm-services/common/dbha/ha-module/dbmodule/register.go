@@ -55,6 +55,13 @@ func init() {
 		GetSwitchInstanceInformation: redis.RedisClusterNewSwitchIns,
 	}
 
+	//TwemproxyRedisInstance used
+	DBCallbackMap[constvar.DetectTendisSSD] = Callback{
+		FetchDBCallback:              redis.TendisssdClusterNewIns,
+		DeserializeCallback:          redis.TendisssdClusterDeserialize,
+		GetSwitchInstanceInformation: redis.TendisssdClusterNewSwitchIns,
+	}
+
 	//PredixyTendisplusCluster used
 	DBCallbackMap[constvar.DetectTendisplus] = Callback{
 		FetchDBCallback:              redis.TendisClusterNewIns,

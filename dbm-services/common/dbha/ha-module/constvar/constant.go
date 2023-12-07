@@ -25,6 +25,8 @@ const (
 	RedisCluster = "TwemproxyRedisInstance"
 	// TendisplusCluster cluster with predixy component
 	TendisplusCluster = "PredixyTendisplusCluster"
+	// TwemproxyTendisSSDInstance cluster with tendisssd component
+	TendisSSDCluster = "TwemproxyTendisSSDInstance"
 )
 
 // instance type name in cmdb
@@ -43,6 +45,8 @@ const (
 	RedisMetaType = "tendiscache"
 	// TwemproxyMetaType proxy layer type name RedisCluster
 	TwemproxyMetaType = "twemproxy"
+	// TendisSSDMetaType tendisssd lay type name in TwemproxyTendisSSDInstance
+	TendisSSDMetaType = "tendisssd"
 
 	// PredixyMetaType proxy layer type name in  TendisplusCluster
 	PredixyMetaType = "predixy"
@@ -80,6 +84,8 @@ const (
 	DetectRedis = "TwemproxyRedisInstance"
 	// DetectTendisplus detect tendisplus and predixy
 	DetectTendisplus = "PredixyTendisplusCluster"
+	// DetectTendisSSD detect tendisssd and twemproxy
+	DetectTendisSSD = "TwemproxyTendisSSDInstance"
 
 	//Predixy if specified, agent detect would detect TendisplusCluster's proxy layer
 	Predixy = "Predixy"
@@ -188,13 +194,13 @@ const (
 	// CmDBEntryDetailUrl TODO
 	CmDBEntryDetailUrl = "dbmeta/dbha/entry_detail/"
 	// CLBDeRegisterUrl TODO
-	CLBDeRegisterUrl = "deregister_part_target/"
+	CLBDeRegisterUrl = "deregister_part_target"
 	// CLBGetTargetsUrl TODO
-	CLBGetTargetsUrl = "get_target_private_ips/"
+	CLBGetTargetsUrl = "get_target_private_ips"
 	// PolarisTargetsUrl TODO
-	PolarisTargetsUrl = "describe_targets/"
+	PolarisTargetsUrl = "describe_targets"
 	// PolarisUnBindUrl TODO
-	PolarisUnBindUrl = "unbind_part_targets/"
+	PolarisUnBindUrl = "unbind_part_targets"
 	// BKConfigBatchUrl TODO
 	BKConfigBatchUrl = "bkconfig/v1/confitem/batchget/"
 	// BKConfigQueryUrl TODO

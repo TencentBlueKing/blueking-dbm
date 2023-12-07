@@ -26,7 +26,7 @@ func TendisClusterNewIns(instances []interface{},
 		return nil, err
 	}
 
-	var tendisIns, predixyIns []dbutil.DataBaseDetect
+	var predixyIns []dbutil.DataBaseDetect
 	for _, uIns := range unmarshalIns {
 		// check the cluster_type should be PredixyTendisplusCluster
 		if uIns.ClusterType != constvar.TendisplusCluster {
@@ -34,22 +34,8 @@ func TendisClusterNewIns(instances []interface{},
 		}
 
 		// create detect instance by machine_type
-		if uIns.MetaType == constvar.TendisplusMetaType {
-			tendisIns = append(tendisIns, NewTendisplusDetectInstance(uIns, conf))
-		} else if uIns.MetaType == constvar.PredixyMetaType {
+		if uIns.MetaType == constvar.PredixyMetaType {
 			predixyIns = append(predixyIns, NewPredixyDetectInstance(uIns, conf))
-		} else {
-			log.Logger.Errorf("TendisCluster cluster is %s but meta type is invalid",
-				constvar.TendisplusCluster)
-		}
-	}
-
-	// get tendisplus passwd
-	if len(tendisIns) > 0 {
-		count, _ := GetInstancePass(tendisIns, conf)
-		if count != len(tendisIns) {
-			log.Logger.Errorf("TendisCluster tendisplus passwd part failed,succ:%d,total:%d",
-				count, len(tendisIns))
 		}
 	}
 
@@ -62,7 +48,6 @@ func TendisClusterNewIns(instances []interface{},
 		}
 	}
 
-	ret = append(ret, tendisIns...)
 	ret = append(ret, predixyIns...)
 	return ret, err
 }
@@ -87,10 +72,7 @@ func TendisClusterDeserialize(jsonInfo []byte,
 	}
 
 	// create detect instance by machine_type
-	if response.DBType == constvar.TendisplusMetaType {
-		ret := NewTendisplusDetectInstanceFromRsp(&response, conf)
-		return ret, nil
-	} else if response.DBType == constvar.PredixyMetaType {
+	if response.DBType == constvar.PredixyMetaType {
 		ret := NewPredixyDetectInstanceFromRsp(&response, conf)
 		return ret, nil
 	} else {
@@ -121,23 +103,13 @@ func TendisClusterNewSwitchIns(instances []interface{},
 		}
 
 		// create instance by machine_type
-		if metaType == constvar.TendisplusMetaType {
-			pw, err := NewTendisplusSwitchIns(v, conf)
-			if err != nil {
-				log.Logger.Errorf("new tendis switch ins failed:%s", err.Error())
-				continue
-			}
-			ret = append(ret, pw)
-		} else if metaType == constvar.PredixyMetaType {
+		if metaType == constvar.PredixyMetaType {
 			pw, err := NewPredixySwitchIns(v, conf)
 			if err != nil {
 				log.Logger.Errorf("new predixy switch ins failed:%s", err.Error())
 				continue
 			}
 			ret = append(ret, pw)
-		} else {
-			log.Logger.Errorf("tendis cluster[%s] not fit meta[%s]",
-				clusterType, metaType)
 		}
 	}
 	return ret, err

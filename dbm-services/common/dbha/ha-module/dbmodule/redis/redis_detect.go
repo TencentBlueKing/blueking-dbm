@@ -147,6 +147,28 @@ func (ins *RedisDetectInstance) DoSetCheck(r *client.RedisClient) error {
 	checkKey := fmt.Sprintf(keyFormat, ins.Ip)
 	checkTime := time.Now().Format("2006-01-02 15:04:05")
 
+	selectCmd := []string{"select", "1"}
+	selRsp, serr := r.DoCommand(selectCmd)
+	if serr != nil {
+		log.Logger.Errorf("redis detect select 1 db failed")
+		return serr
+	}
+
+	selInfo, ok := selRsp.(string)
+	if !ok {
+		redisErr := fmt.Errorf("redis select rsp type is not string")
+		log.Logger.Errorf(redisErr.Error())
+		ins.Status = constvar.DBCheckFailed
+		return redisErr
+	}
+
+	if !strings.Contains(selInfo, "OK") {
+		redisErr := fmt.Errorf("redis select rsp[%s] type is not ok", selInfo)
+		log.Logger.Errorf(redisErr.Error())
+		ins.Status = constvar.DBCheckFailed
+		return redisErr
+	}
+
 	cmdArgv := []string{"SET", checkKey, checkTime}
 	rsp, err := r.DoCommand(cmdArgv)
 	if err != nil {
@@ -186,9 +208,9 @@ func (ins *RedisDetectInstance) ShowDetectionInfo() string {
 //
 //	used by FetchDBCallback
 func NewRedisDetectInstance(ins *RedisDetectInfoFromCmDB,
-	conf *config.Config) *RedisDetectInstance {
+	metaType string, conf *config.Config) *RedisDetectInstance {
 	return &RedisDetectInstance{
-		RedisDetectBase: *GetDetectBaseByInfo(ins, constvar.RedisMetaType, conf),
+		RedisDetectBase: *GetDetectBaseByInfo(ins, metaType, conf),
 	}
 }
 
@@ -196,8 +218,8 @@ func NewRedisDetectInstance(ins *RedisDetectInfoFromCmDB,
 //
 //	used by gm/DeserializeCallback
 func NewRedisDetectInstanceFromRsp(ins *RedisDetectResponse,
-	conf *config.Config) *RedisDetectInstance {
+	metaType string, conf *config.Config) *RedisDetectInstance {
 	return &RedisDetectInstance{
-		RedisDetectBase: *GetDetectBaseByRsp(ins, constvar.RedisMetaType, conf),
+		RedisDetectBase: *GetDetectBaseByRsp(ins, metaType, conf),
 	}
 }

@@ -58,9 +58,10 @@ func (ins *PredixyDetectInstance) DoPredixyDetection() error {
 	r.Init(addr, ins.Pass, ins.Timeout, 0)
 	defer r.Close()
 
-	rsp, err := r.Ping()
+	rsp, err := r.Type("twemproxy_mon")
 	if err != nil {
-		predixyErr := fmt.Errorf("do predixy cmd err,err:%s", err.Error())
+		predixyErr := fmt.Errorf("do predixy cmd err,err: %s,info;%s",
+			err.Error(), ins.ShowDetectionInfo())
 		if util.CheckRedisErrIsAuthFail(err) {
 			ins.Status = constvar.AUTHCheckFailed
 			log.Logger.Errorf("predixy detect auth failed,err:%s,status:%s",
@@ -75,17 +76,18 @@ func (ins *PredixyDetectInstance) DoPredixyDetection() error {
 
 	rspInfo, ok := rsp.(string)
 	if !ok {
-		predixyErr := fmt.Errorf("predixy ping response type is not string")
+		predixyErr := fmt.Errorf("predixy info response type is not string")
 		log.Logger.Errorf(predixyErr.Error())
 		ins.Status = constvar.DBCheckFailed
 		return predixyErr
 	}
 
-	if strings.Contains(rspInfo, "PONG") || strings.Contains(rspInfo, "pong") {
+	if strings.Contains(rspInfo, "none") {
 		ins.Status = constvar.DBCheckSuccess
 		return nil
 	} else {
-		predixyErr := fmt.Errorf("do predixy cmd err,rsp;%s", rspInfo)
+		predixyErr := fmt.Errorf("predixy exec detection failed,rsp:%s,info:%s",
+			rspInfo, ins.ShowDetectionInfo())
 		log.Logger.Errorf(predixyErr.Error())
 		ins.Status = constvar.DBCheckFailed
 		return predixyErr
