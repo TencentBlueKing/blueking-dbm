@@ -431,12 +431,26 @@ func (a *MonitorAgent) reportMonitor(ins dbutil.DataBaseDetect, err error) {
 		content := "agent detect failed by ssh check, err:" + errInfo
 		monitor.MonitorSendDetect(ins, constvar.DBHAEventDetectSSH, content)
 	case constvar.AUTHCheckFailed:
-		content := "agent detect failed by auth check, err:" + errInfo
-		monitor.MonitorSendDetect(ins, constvar.DBHAEventDetectAuth, content)
+		// only send monitor when the instance is redis
+		if !a.SkipMonitor(ins) {
+			content := "agent detect failed by auth check, err:" + errInfo
+			monitor.MonitorSendDetect(ins, constvar.DBHAEventDetectAuth, content)
+		}
 	case constvar.DBCheckFailed:
 		content := "agent detect failed by db check, err" + errInfo
 		monitor.MonitorSendDetect(ins, constvar.DBHAEventDetectDB, content)
 	default:
 		break
+	}
+}
+
+// SkipMonitor check skip send monitor or not
+func (a *MonitorAgent) SkipMonitor(ins dbutil.DataBaseDetect) bool {
+	clusterType := ins.GetCluster()
+	if clusterType == constvar.DetectTenDBHA ||
+		clusterType == constvar.DetectTenDBCluster {
+		return true
+	} else {
+		return false
 	}
 }
