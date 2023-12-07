@@ -28,9 +28,9 @@
             "data_source_label": "custom",
             "data_type_label": "time_series",
             "alias": "a",
-            "metric_id": "custom.bkmonitor_time_series_1572876.__default__.mysql_monitor_heart_beat",
+            "metric_id": "custom.bkmonitor_time_series_{metric_data_id}.__default__.mysql_monitor_heart_beat",
             "functions": [],
-            "result_table_id": "bkmonitor_time_series_1572876.__default__",
+            "result_table_id": "bkmonitor_time_series_{metric_data_id}",
             "data_label": "dbm_report_channel",
             "agg_method": "COUNT",
             "agg_interval": 60,
@@ -245,7 +245,7 @@
   },
   "is_enabled": true,
   "monitor_indicator": "COUNT(mysql_monitor_heart_beat)",
-  "version": 16,
+  "version": 17,
   "alert_source": "time_series",
   "custom_conditions": []
 }

@@ -79,17 +79,27 @@ class Command(BaseCommand):
             item["target"] = []
 
             # 自定义事件和指标需要调整metric_id和result_table_id
-            # custom.event.100465_bkmonitor_event_542898.redis_sync
-            # custom_event_key = "custom.event"
-            # bkmonitor_event_key = "bkmonitor_event"
             for query_config in item["query_configs"]:
                 metric_id = query_config["metric_id"]
-                # if custom_event_key in metric_id and bkmonitor_event_key in metric_id:
-                if query_config["data_type_label"] == "event":
-                    metric_ids = metric_id.split(".")
-                    metric_ids[2] = "bkmonitor_event_{event_data_id}"
-                    query_config["metric_id"] = ".".join(metric_ids)
-                    query_config["result_table_id"] = "bkmonitor_event_{event_data_id}"
+                if query_config["data_source_label"] == "custom":
+                    data_type_label = query_config["data_type_label"]
+
+                    # custom.event.100465_bkmonitor_event_542898.redis_sync
+                    if data_type_label == "event":
+                        metric_var = "bkmonitor_event_{event_data_id}"
+                        metric_ids = metric_id.split(".")
+                        metric_ids[2] = metric_var
+                        query_config["metric_id"] = ".".join(metric_ids)
+                        query_config["result_table_id"] = metric_var
+
+                    # custom.bkmonitor_time_series_1572876.__default__.mysql_crond_heart_beat
+                    if data_type_label == "time_series":
+                        metric_var = "bkmonitor_time_series_{metric_data_id}"
+                        metric_ids = metric_id.split(".")
+                        metric_ids[1] = metric_var
+                        query_config["metric_id"] = ".".join(metric_ids)
+                        query_config["result_table_id"] = metric_var
+
                     logger.info(query_config.get("metric_id"))
 
         return instance["id"], template
