@@ -82,7 +82,9 @@ type TbRpDetail struct {
 	// SubStorages []TbRpStorageItem `gorm:"foreignKey:BkHostID;references:BkHostID"`
 }
 
-// ConvertOsTypeToHuman TODO
+// ConvertOsTypeToHuman 转换系统类型到可读字符
+//
+//	/*Linux(1) Windows(2) AIX(3) Unix(4) Solaris(5) FreeBSD(7)*/
 func ConvertOsTypeToHuman(osType string) string {
 	switch osType {
 	case "1":
