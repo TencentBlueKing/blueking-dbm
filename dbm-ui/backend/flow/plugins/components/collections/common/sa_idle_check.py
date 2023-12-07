@@ -13,15 +13,39 @@ from django.utils.translation import ugettext as _
 from pipeline.component_framework.component import Component
 
 from backend import env
+from backend.components import CCApi
 from backend.components.sops.client import BkSopsApi
 from backend.flow.plugins.components.collections.common.base_service import BkSopsService
 
 
 class CheckMachineIdleCheck(BkSopsService):
+    def __get_bk_biz_id_for_ip(self, ip: str, bk_cloud_id: int):
+
+        # 先通过ip获取对应的bk_host_id
+        res = CCApi.list_hosts_without_biz(
+            {
+                "fields": ["bk_host_id"],
+                "host_property_filter": {
+                    "condition": "AND",
+                    "rules": [
+                        {"field": "bk_host_innerip", "operator": "in", "value": [ip]},
+                        {"field": "bk_cloud_id", "operator": "equal", "value": bk_cloud_id},
+                    ],
+                },
+            },
+            use_admin=True,
+        )
+        bk_host_id = res["info"][0]["bk_host_id"]
+        self.log_info(f"the bk_host_id of machine [{ip}] is {bk_host_id}")
+
+        # 再通过bk_host_id获取
+        res = CCApi.find_host_biz_relations({"bk_host_id": [bk_host_id]})
+        return res[0]["bk_biz_id"]
+
     def _execute(self, data, parent_data) -> bool:
         kwargs = data.get_one_of_inputs("kwargs")
         ip = kwargs["ip"]
-        bk_biz_id = kwargs["bk_biz_id"]
+        bk_biz_id = self.__get_bk_biz_id_for_ip(ip=ip, bk_cloud_id=int(kwargs["bk_cloud_id"]))
         param = {
             "template_id": env.SA_CHECK_TEMPLATE_ID,
             "bk_biz_id": bk_biz_id,
@@ -41,6 +65,7 @@ class CheckMachineIdleCheck(BkSopsService):
         param = {"bk_biz_id": bk_biz_id, "task_id": task_id}
         BkSopsApi.start_task(param)
         data.outputs.task_id = task_id
+        data.inputs.kwargs["bk_biz_id"] = bk_biz_id
         return True
 
 

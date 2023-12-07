@@ -23,6 +23,7 @@ from backend.flow.consts import DBA_ROOT_USER
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.plugins.components.collections.common.download_backup_client import DownloadBackupClientComponent
+from backend.flow.plugins.components.collections.common.sa_idle_check import CheckMachineIdleComponent
 from backend.flow.plugins.components.collections.mysql.check_client_connections import CheckClientConnComponent
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.mysql.mysql_os_init import (
@@ -37,7 +38,9 @@ from backend.flow.utils.mysql.mysql_act_dataclass import (
     CheckClientConnKwargs,
     DownloadMediaKwargs,
     ExecActuatorKwargs,
+    InitCheckKwargs,
     VerifyChecksumKwargs,
+    YumInstallPerlKwargs,
 )
 from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
 
@@ -424,23 +427,17 @@ def install_mysql_in_cluster_sub_flow(
         act_component_code=GetOsSysParamComponent.code,
         kwargs=asdict(ExecActuatorKwargs(bk_cloud_id=cluster.bk_cloud_id, exec_ip=master.machine.ip)),
     )
-    sub_pipeline.add_act(
-        act_name=_("初始化机器"),
-        act_component_code=SysInitComponent.code,
-        kwargs={
-            "exec_ip": new_mysql_list,
-            "bk_cloud_id": cluster.bk_cloud_id,
-        },
-    )
 
-    # 判断是否需要执行按照MySQL Perl依赖
-    if env.YUM_INSTALL_PERL:
-        exec_act_kwargs.exec_ip = new_mysql_list
-        sub_pipeline.add_act(
-            act_name=_("安装MySQL Perl相关依赖"),
-            act_component_code=MySQLOsInitComponent.code,
-            kwargs=asdict(exec_act_kwargs),
+    sub_pipeline.add_sub_pipeline(
+        sub_flow=init_machine_sub_flow(
+            uid=uid,
+            root_id=root_id,
+            bk_cloud_id=cluster.bk_cloud_id,
+            sys_init_ips=new_mysql_list,
+            init_check_ips=new_mysql_list,
+            yum_install_perl_ips=new_mysql_list,
         )
+    )
 
     # 阶段1 并行分发安装文件
     sub_pipeline.add_parallel_acts(
@@ -552,3 +549,65 @@ def check_sub_flow(
     sub_pipeline.add_parallel_acts(acts_list=act_list)
 
     return sub_pipeline.build_sub_process(sub_name=_("[{}]预检测".format(cluster.name)))
+
+
+def init_machine_sub_flow(
+    uid: str,
+    root_id: str,
+    bk_cloud_id: int,
+    sys_init_ips: list,
+    init_check_ips: list = None,
+    yum_install_perl_ips: list = None,
+):
+    """
+    定义初始化机器的公共子流程，提供给mysql/spider/proxy新机器的初始化适用，不支持跨云区域处理
+    @param uid: 流程单据的uid
+    @param root_id: flow流程的root_id
+    @param bk_cloud_id: 需要操作的机器的对应云区域ID
+    @param sys_init_ips: 需要初始化的机器ip列表
+    @param init_check_ips: 需要做空闲检查的机器ip列表
+    @param yum_install_perl_ips:需要按照perl环境的机器ip列表
+    """
+    if not sys_init_ips and not init_check_ips and not yum_install_perl_ips:
+        raise Exception(
+            _("构建init_machine_sub子流程失败，联系系统管理员, sys_init_ips & init_check_ips & yum_install_perl_ips is null")
+        )
+
+    sub_pipeline = SubBuilder(root_id=root_id, data={"uid": uid})
+    # 并行执行空闲检查
+    if env.SA_CHECK_TEMPLATE_ID and init_check_ips:
+        acts_list = []
+        for ip in init_check_ips:
+            acts_list.append(
+                {
+                    "act_name": _("空闲检查[{}]".format(ip)),
+                    "act_component_code": CheckMachineIdleComponent.code,
+                    "kwargs": asdict(InitCheckKwargs(ip=ip, bk_cloud_id=bk_cloud_id)),
+                }
+            )
+        sub_pipeline.add_parallel_acts(acts_list=acts_list)
+
+    # 初始化机器
+    if sys_init_ips:
+        sub_pipeline.add_act(
+            act_name=_("初始化机器"),
+            act_component_code=SysInitComponent.code,
+            kwargs={
+                "exec_ip": sys_init_ips,
+                "bk_cloud_id": bk_cloud_id,
+            },
+        )
+
+    # 判断是否需要执行按照MySQL Perl依赖
+    if env.YUM_INSTALL_PERL and yum_install_perl_ips:
+        sub_pipeline.add_act(
+            act_name=_("安装MySQL Perl相关依赖"),
+            act_component_code=MySQLOsInitComponent.code,
+            kwargs=asdict(
+                YumInstallPerlKwargs(
+                    exec_ip=yum_install_perl_ips,
+                    bk_cloud_id=bk_cloud_id,
+                )
+            ),
+        )
+    return sub_pipeline.build_sub_process(sub_name=_("机器初始化"))

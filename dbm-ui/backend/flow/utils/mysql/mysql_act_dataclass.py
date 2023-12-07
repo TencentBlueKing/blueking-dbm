@@ -384,3 +384,23 @@ class RandomizeAdminPasswordKwargs:
     bk_cloud_id: int
     cluster_type: str
     instances: list
+
+
+@dataclass
+class YumInstallPerlKwargs:
+    """
+    定义yum安装perl环境的私有变量结构体
+    """
+
+    bk_cloud_id: int
+    exec_ip: list
+
+
+@dataclass
+class InitCheckKwargs:
+    """
+    定义空闲检查的私有变量结构体
+    """
+
+    bk_cloud_id: int
+    ip: str
