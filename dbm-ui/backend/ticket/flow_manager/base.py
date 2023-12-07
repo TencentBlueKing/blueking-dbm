@@ -19,6 +19,7 @@ from django.db.models import Q
 from django.utils.translation import gettext as _
 
 from backend.ticket import constants
+from backend.ticket.builders.common.base import fetch_cluster_ids, fetch_instance_ids
 from backend.ticket.constants import FLOW_FINISHED_STATUS, FLOW_NOT_EXECUTE_STATUS, FlowErrCode, TicketFlowStatus
 from backend.ticket.models import ClusterOperateRecord, Flow, InstanceOperateRecord
 from backend.utils.basic import get_target_items_from_details
@@ -141,22 +142,15 @@ class BaseTicketFlow(ABC):
         self.ticket.status = constants.TicketStatus.RUNNING
         self.ticket.save(update_fields=["status", "update_at"])
 
-    def create_operate_records(self, object_key, record_model):
+    def create_operate_records(self, object_key, record_model, object_ids):
         """
         写入操作记录的通用方法
         每一轮flow在running时，需要更新当前集群的record.flow为当前flow，为新出现的集群增加record(如定点回档包含了新出现的集群)
         """
-        object_ids = set(
-            get_target_items_from_details(self.flow_obj.details, match_keys=[object_key, f"{object_key}s"])
-            + get_target_items_from_details(self.ticket.details, match_keys=[object_key, f"{object_key}s"])
-        )
         if not object_ids:
             return
 
-        record_filter = reduce(
-            operator.or_, [Q(**{object_key: obj_id, "ticket": self.ticket}) for obj_id in object_ids]
-        )
-
+        record_filter = reduce(operator.or_, [Q(**{object_key: id, "ticket": self.ticket}) for id in object_ids])
         # 修改当前的flow引用，并批量更新
         to_update_records = record_model.objects.filter(record_filter)
         for record in to_update_records:
@@ -176,11 +170,13 @@ class BaseTicketFlow(ABC):
 
     def create_cluster_operate_records(self):
         """写入集群操作记录"""
-        self.create_operate_records(object_key="cluster_id", record_model=ClusterOperateRecord)
+        obj_ids = list(set(fetch_cluster_ids(self.flow_obj.details) + fetch_cluster_ids(self.ticket.details)))
+        self.create_operate_records(object_key="cluster_id", record_model=ClusterOperateRecord, object_ids=obj_ids)
 
     def create_instance_operate_records(self):
         """写入示例的操作记录"""
-        self.create_operate_records(object_key="instance_id", record_model=InstanceOperateRecord)
+        obj_ids = list(set(fetch_instance_ids(self.flow_obj.details) + fetch_instance_ids(self.ticket.details)))
+        self.create_operate_records(object_key="instance_id", record_model=InstanceOperateRecord, object_ids=obj_ids)
 
     def run(self):
         """执行流程并记录流程对象ID"""

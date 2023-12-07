@@ -69,6 +69,7 @@ class BigDataDetailsSerializer(serializers.Serializer):
 
 class BigDataSingleClusterOpsDetailsSerializer(BigDataDetailsSerializer):
     cluster_id = serializers.IntegerField(help_text=_("集群ID"))
+    ext_info = serializers.DictField(help_text=_("操作额外信息(用于前端渲染)"), required=False)
 
 
 class BigDataTakeDownDetailSerializer(BigDataSingleClusterOpsDetailsSerializer):

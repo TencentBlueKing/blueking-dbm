@@ -24,9 +24,9 @@ from backend.flow.consts import StateType
 from backend.flow.engine.bamboo.engine import BambooEngine
 from backend.flow.models import FlowNode
 from backend.flow.plugins.components.collections.common.base_service import BaseService
+from backend.ticket.builders.common.base import fetch_cluster_ids
 from backend.ticket.constants import FlowRetryType
 from backend.ticket.models import Flow, Ticket
-from backend.utils.basic import get_target_items_from_details
 
 logger = logging.getLogger("flow")
 
@@ -63,7 +63,7 @@ def retry_node(root_id: str, node_id: str, retry_times: int) -> Union[EngineAPIR
     # 判断重试任务关联单据是否存在执行互斥
     try:
         ticket = Ticket.objects.get(id=flow_node.uid)
-        cluster_ids = get_target_items_from_details(ticket.details, match_keys=["cluster_id", "cluster_ids"])
+        cluster_ids = fetch_cluster_ids(ticket.details)
         Cluster.handle_exclusive_operations(cluster_ids, ticket.ticket_type, exclude_ticket_ids=[ticket.id])
     except ClusterExclusiveOperateException as e:
         # 互斥下: 手动重试直接报错，自动重试则延迟一定时间后重新执行该任务

@@ -33,7 +33,7 @@ def get_mysql_sys_users(bk_cloud_id) -> list:
         else:
             bk_cloud_name = AsymmetricCipherConfigType.get_cipher_cloud_name(bk_cloud_id)
             info = DBExtension.get_latest_extension(bk_cloud_id=bk_cloud_id, extension_type=key)
-            logger.error(f"[{key}] details: {info.details}")
+            logger.error(f"[{key}] details: {info.details}, bk_cloud_name: {bk_cloud_name}")
             sys_users.append(AsymmetricHandler.decrypt(name=bk_cloud_name, content=info.details["user"]))
 
     return sys_users

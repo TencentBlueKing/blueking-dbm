@@ -25,27 +25,19 @@ from backend.db_services.mysql.cluster.handlers import ClusterServiceHandler
 from backend.db_services.mysql.remote_service.handlers import RemoteServiceHandler
 from backend.flow.utils.mysql.db_table_filter import DbTableFilter
 from backend.ticket import builders
-from backend.ticket.builders import BuilderFactory
 from backend.ticket.builders.common.constants import MAX_DOMAIN_LEN_LIMIT
 from backend.ticket.constants import TicketType
+from backend.utils.basic import get_target_items_from_details
 
 
 def fetch_cluster_ids(details: Dict[str, Any]) -> List[int]:
-    def _find_cluster_id(_cluster_ids: List[int], _info: Dict):
-        if "cluster_id" in _info:
-            _cluster_ids.append(_info["cluster_id"])
-        elif "cluster_ids" in _info:
-            _cluster_ids.extend(_info["cluster_ids"])
+    cluster_fields = ["cluster_id", "cluster_ids", "src_cluster"]
+    return get_target_items_from_details(obj=details, match_keys=cluster_fields)
 
-    cluster_ids = []
-    _find_cluster_id(cluster_ids, details)
-    if isinstance(details.get("infos"), dict):
-        _find_cluster_id(cluster_ids, details.get("infos"))
-    elif isinstance(details.get("infos"), list):
-        for info in details.get("infos"):
-            _find_cluster_id(cluster_ids, info)
 
-    return cluster_ids
+def fetch_instance_ids(details: Dict[str, Any]) -> List[int]:
+    instance_fields = ["instance_id", "instance_ids"]
+    return get_target_items_from_details(obj=details, match_keys=instance_fields)
 
 
 def remove_useless_spec(attrs: Dict[str, Any]) -> Dict[str, Any]:
@@ -176,6 +168,8 @@ class CommonValidate(object):
 
     @classmethod
     def validate_duplicate_cluster_name(cls, bk_biz_id, ticket_type, cluster_name):
+        from backend.ticket.builders import BuilderFactory
+
         cluster_type = BuilderFactory.ticket_type__cluster_type.get(ticket_type, ticket_type)
         if Cluster.objects.filter(bk_biz_id=bk_biz_id, cluster_type=cluster_type, name=cluster_name).exists():
             raise serializers.ValidationError(
