@@ -338,6 +338,18 @@
       render: ({ cell }: ColumnData) => <span>{cell || '--'}</span>,
     },
     {
+      label: t('版本'),
+      field: 'major_version',
+      minWidth: 100,
+      render: ({ cell }: ColumnData) => <span>{cell || '--'}</span>,
+    },
+    {
+      label: t('地域'),
+      field: 'region',
+      minWidth: 100,
+      render: ({ cell }: ColumnData) => <span>{cell || '--'}</span>,
+    },
+    {
       label: t('创建人'),
       field: 'creator',
       width: 140,

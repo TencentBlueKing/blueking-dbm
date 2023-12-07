@@ -202,7 +202,7 @@ export function retryTaskflowNode(params: {
   root_id: string,
   node_id: string
 }) {
-  return http.post<{ node_id: string}>(`${path}/${params.root_id}/retry_node/`, params);
+  return http.post<{ node_id: string }>(`${path}/${params.root_id}/retry_node/`, params);
 }
 
 /**
@@ -219,5 +219,15 @@ export function skipTaskflowNode(params: {
   root_id: string,
   node_id: string
 }) {
-  return http.post<{ node_id: string}>(`${path}/${params.root_id}/skip_node/`, params);
+  return http.post<{ node_id: string }>(`${path}/${params.root_id}/skip_node/`, params);
+}
+
+/**
+ * 强制失败节点
+ */
+export function forceFailflowNode(params: {
+  root_id: string,
+  node_id: string
+}) {
+  return http.post<{ node_id: string }>(`${path}/${params.root_id}/force_fail_node/`, params);
 }

@@ -15,7 +15,7 @@
       v-show="isError"
       class="error-box">
       <div
-        v-for="(item, index) in ErrorList"
+        v-for="(item, index) in errorList"
         :key="index"
         class="tip-box">
         <DbIcon
@@ -29,15 +29,18 @@
 </template>
 <script lang="ts">
   import { ipv4 } from '@common/regex';
-  export const checkIp = (value: string) => Boolean(value) && ipv4.test(value);
+  export const checkIp = (value: string) => ipv4.test(value);
 </script>
 <script setup lang="ts">
-
-
-  import { t } from '@locales/index';
+  import { useI18n } from 'vue-i18n';
 
   interface Props {
     disabled?: boolean,
+  }
+
+  interface ErrorItem {
+    isChecked: boolean,
+    tip: string,
   }
 
   defineProps<Props>();
@@ -46,22 +49,27 @@
     default: '',
   });
 
+  const { t } = useI18n();
+
   const isError = ref(false);
-  const ErrorList = ref<{isChecked: boolean, tip: string}[]>([]);
+  const errorList = ref<ErrorItem[]>([]);
 
   const rows = computed(() => modelValue.value.split('\n').length);
 
   const handleBlur = () => {
     const inputArr = modelValue.value.split('\n');
-    const resultArr = inputArr.map((item) => {
+    const resultArr: ErrorItem[] = [];
+    inputArr.forEach((item) => {
       const isChecked = checkIp(item);
-      return {
+      if (!isChecked) {
+        isError.value = true;
+      }
+      resultArr.push({
         isChecked,
         tip: !isChecked && item === '' ? t('IP 不能为空') : t('IP 输入有误'),
-      };
+      });
     });
-    ErrorList.value = resultArr;
-    isError.value = resultArr.some(item => !item.isChecked);
+    errorList.value = resultArr;
   };
 
   const handleInput = () => {
@@ -73,7 +81,12 @@
   position: relative;
 
   .bk-textarea {
+    border-color: transparent;
     border-radius: 0;
+  }
+
+  .is-focused {
+    border-color: #3a84ff;
   }
 
   :deep(textarea) {

@@ -278,6 +278,12 @@
       minWidth: 100,
     },
     {
+      label: t('地域'),
+      field: 'region',
+      minWidth: 100,
+      render: ({ data }: {data: KafkaModel}) => <span>{data?.region || '--'}</span>,
+    },
+    {
       label: 'Zookeeper',
       field: 'zookeeper',
       minWidth: 230,
@@ -444,6 +450,7 @@
       'bk_cloud_name',
       'domain',
       'major_version',
+      'region',
       'status',
       'zookeeper',
       'broker',

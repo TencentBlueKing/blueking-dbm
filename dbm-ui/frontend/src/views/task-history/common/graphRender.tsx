@@ -98,7 +98,16 @@ export default class GraphRender {
 
   renderRactangle(args: any[] = []) {
     const node: GraphNode = args[0];
-    const { component, status, updated_at: updatedAt, type, started_at: startedAt, retryable, skippable } = node.data;
+    const flowInfo = args[1];
+    const {
+      component,
+      status,
+      updated_at: updatedAt,
+      type,
+      started_at: startedAt,
+      retryable,
+      skippable,
+    } = node.data;
     const icon = component && component.code in NODE_ICON ? NODE_ICON[component.code as keyof typeof NODE_ICON] : 'db-icon-default-node';
     const nodeCls = status ? `node-ractangle--${status.toLowerCase()}` : '';
     const createdStatus = status && status.toLowerCase() === 'created';
@@ -116,47 +125,54 @@ export default class GraphRender {
             )
             : ''
         }
-      <div
-        class={['node-ractangle', nodeCls]}
-        style={`max-width: calc(100% - ${node.children ? '14px' : 0})`}
-        data-node-id={node.id}
-        data-evt-type={nodeClickType}>
+        <div
+          class={['node-ractangle', nodeCls]}
+          style={`max-width: calc(100% - ${node.children ? '14px' : 0})`}
+          data-node-id={node.id}
+          data-evt-type={nodeClickType}>
 
-        <div class="node-ractangle__status">
-          <i class={['node-ractangle__icon', icon]} />
-          {status === 'RUNNING' ? <span class="node-ractangle__icon--loading"></span> : ''}
-        </div>
-        <div class="node-ractangle__content">
-          <div class="node-ractangle__content-left text-overflow">
-            <strong class="node-ractangle__name" title={node.data.name as string}>{node.data.name}</strong>
-            <p class="node-ractangle__text">{nodeStatusText ? t(nodeStatusText) : t('待执行')}</p>
+          <div class="node-ractangle__status">
+            <i class={['node-ractangle__icon', icon]} />
+            {status === 'RUNNING' ? <span class="node-ractangle__icon--loading"></span> : ''}
           </div>
-          <span class="node-ractangle__time">{isShowTime ? getCostTimeDisplay(updatedAt - startedAt) : ''}</span>
-        </div>
+          <div class="node-ractangle__content">
+            <div class="node-ractangle__content-left text-overflow">
+              <strong class="node-ractangle__name" title={node.data.name as string}>{node.data.name}</strong>
+              <p class="node-ractangle__text">{nodeStatusText ? t(nodeStatusText) : t('待执行')}</p>
+            </div>
+            <span class="node-ractangle__time">{isShowTime ? getCostTimeDisplay(updatedAt - startedAt) : ''}</span>
+          </div>
 
-        <div class="node-ractangle__operations">
-          {
-            status === 'FAILED' && skippable
-              ? <i class="operation-icon db-icon-stop mr-4" v-bk-tooltips={t('忽略错误')} data-evt-type="skipp" />
-              : ''
-          }
-          {
-            status === 'FAILED' && retryable
-              ? <i class="operation-icon db-icon-refresh-2" v-bk-tooltips={t('失败重试')} data-evt-type="refresh" />
-              : ''
-          }
+          {flowInfo.status !== 'REVOKED' && node.children === undefined && <div class="node-ractangle__operations">
+            {
+              status === 'RUNNING' && <i class="operation-icon db-icon-qiangzhizhongzhi" v-bk-tooltips={t('强制失败')} data-evt-type="force-fail" />
+            }
+            {
+              status === 'FAILED' && skippable
+                ? <i class="operation-icon db-icon-stop mr-4" v-bk-tooltips={t('忽略错误')} data-evt-type="skipp" />
+                : ''
+            }
+            {
+              status === 'FAILED' && retryable
+                ? <i class="operation-icon db-icon-refresh-2" v-bk-tooltips={t('失败重试')} data-evt-type="refresh" />
+                : ''
+            }
+          </div>}
         </div>
-      </div>
       </div>
     );
   }
 
   private vNodeToHtml(vNode: VNode | string): string | HTMLElement {
-    if  (typeof vNode === 'string') {
+    if (typeof vNode === 'string') {
       return vNode;
     }
 
-    const { type, children, props  } = vNode;
+    const {
+      type,
+      children,
+      props,
+    } = vNode;
     if (typeof children === 'string') {
       return children;
     }

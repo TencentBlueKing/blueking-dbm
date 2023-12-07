@@ -375,6 +375,7 @@
       label: 'Slave',
       field: 'slaves',
       minWidth: 180,
+      width: 200,
       showOverflowTooltip: false,
       render: ({ data }: ColumnData) => (
         <RenderInstances
@@ -391,6 +392,18 @@
       label: t('所属DB模块'),
       field: 'db_module_name',
       width: 140,
+      render: ({ cell }: ColumnData) => <span>{cell || '--'}</span>,
+    },
+    {
+      label: t('版本'),
+      field: 'major_version',
+      minWidth: 100,
+      render: ({ cell }: ColumnData) => <span>{cell || '--'}</span>,
+    },
+    {
+      label: t('地域'),
+      field: 'region',
+      minWidth: 100,
       render: ({ cell }: ColumnData) => <span>{cell || '--'}</span>,
     },
     {

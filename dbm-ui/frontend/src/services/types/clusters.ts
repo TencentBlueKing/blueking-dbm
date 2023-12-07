@@ -74,6 +74,26 @@ export interface ResourceRedisItem {
     cluster_entry_type: string,
     role: string,
   }[],
+  cluster_entry_details: {
+    cluster_entry_type: string,
+    entry: string,
+    role: string,
+    target_details: {
+      app: string,
+      bk_cloud_iduid: number,
+      dns_str: string,
+      domain_name: string,
+      domain_typeuid: number,
+      ip: string,
+      last_change_time: string,
+      manager: string,
+      port: number,
+      remark: string,
+      start_time: string,
+      status: string,
+      uid: number,
+    }[]
+  }[];
   operations: Array<{
     cluster_id: number,
     flow_id: number,
@@ -217,22 +237,6 @@ export interface ResourceTopoLine {
   target_type: string,
   label: string,
   label_name: string
-}
-
-/**
- * 集群详情拓扑图数据
- */
-export interface ResourceTopo {
-  node_id: string,
-  nodes: ResourceTopoNode[],
-  groups: ResourceTopoGroup[],
-  lines: ResourceTopoLine[],
-  foreign_relations: {
-    rep_to: [],
-    rep_from: [],
-    access_to: [],
-    access_from: [],
-  }
 }
 
 /**

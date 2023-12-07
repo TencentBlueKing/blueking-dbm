@@ -134,8 +134,8 @@ export function retrieveSpiderInstance(params: {
 /**
  * 获取集群详情
  */
-export function getSpiderDetail(params: { clusterId: number }) {
-  return http.get<SpiderModel>(`${path}/${params.clusterId}/`).then(data => new SpiderModel(data));
+export function getSpiderDetail(params: { id: number }) {
+  return http.get<SpiderModel>(`${path}/${params.id}/`).then(data => new SpiderModel(data));
 }
 
 /**

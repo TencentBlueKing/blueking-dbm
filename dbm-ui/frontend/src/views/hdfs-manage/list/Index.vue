@@ -40,6 +40,6 @@
   const mainViewStore = useMainViewStore();
   mainViewStore.hasPadding = false;
 
-  const clusterId = ref(0);
+  const clusterId = ref();
 </script>
 

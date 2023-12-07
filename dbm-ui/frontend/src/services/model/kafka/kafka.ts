@@ -102,6 +102,7 @@ export default class Kafka {
     title: string,
   }>;
   phase: string;
+  region: string;
   status: string;
   update_at: string;
   updater: string;
@@ -126,6 +127,7 @@ export default class Kafka {
     this.id = payload.id;
     this.major_version = payload.major_version;
     this.phase = payload.phase;
+    this.region = payload.region;
     this.status = payload.status;
     this.update_at = payload.update_at;
     this.updater = payload.updater;

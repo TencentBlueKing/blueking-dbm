@@ -223,6 +223,42 @@
     searchValues: [],
     pagination: useDefaultPagination(),
   });
+
+  /** 查看密码 */
+  const passwordState = reactive({
+    isShow: false,
+    fetchParams: {
+      cluster_id: -1,
+      bk_biz_id: globalBizsStore.currentBizId,
+      db_type: DBTypes.REDIS,
+      type: DBTypes.REDIS,
+    },
+  });
+
+  /** 提取 key 功能 */
+  const extractState = reactive({
+    isShow: false,
+    data: [] as ResourceRedisItem[],
+  });
+
+  /** 删除 key 功能 */
+  const deleteKeyState = reactive({
+    isShow: false,
+    data: [] as ResourceRedisItem[],
+  });
+
+  /** 备份功能 */
+  const backupState = reactive({
+    isShow: false,
+    data: [] as ResourceRedisItem[],
+  });
+
+  /** 清档功能 */
+  const purgeState = reactive({
+    isShow: false,
+    data: [] as ResourceRedisItem[],
+  });
+
   const renderPagination = computed(() => {
     if (!isStretchLayoutOpen.value) {
       return { ...state.pagination };
@@ -359,7 +395,6 @@
         );
       },
     },
-
     {
       label: 'Proxy',
       field: ClusterNodeKeys.PROXY,
@@ -412,6 +447,18 @@
       label: t('架构版本'),
       field: 'cluster_type_name',
       minWidth: 160,
+      render: ({ cell }: TableColumnRender) => <span>{cell || '--'}</span>,
+    },
+    {
+      label: t('版本'),
+      field: 'major_version',
+      minWidth: 100,
+      render: ({ cell }: TableColumnRender) => <span>{cell || '--'}</span>,
+    },
+    {
+      label: t('地域'),
+      field: 'region',
+      minWidth: 100,
       render: ({ cell }: TableColumnRender) => <span>{cell || '--'}</span>,
     },
     {
@@ -724,6 +771,33 @@
     },
   ]);
 
+  // 设置用户个人表头信息
+  const defaultSettings = {
+    fields: (columns.value || []).filter(item => item.field).map(item => ({
+      label: item.label as string,
+      field: item.field as string,
+      disabled: ['master_domain'].includes(item.field as string),
+    })),
+    checked: [
+      'bk_cloud_name',
+      'name',
+      'master_domain',
+      'creator',
+      'create_at',
+      'major_version',
+      'region',
+      ClusterNodeKeys.PROXY,
+      ClusterNodeKeys.REDIS_MASTER,
+      ClusterNodeKeys.REDIS_SLAVE,
+    ],
+    showLineHeight: false,
+  };
+
+  const {
+    settings,
+    updateTableSettings,
+  } = useTableSettings(UserPersonalSettings.REDIS_TABLE_SETTINGS, defaultSettings);
+
   /** 列表基础操作方法 */
   const {
     fetchResources,
@@ -736,7 +810,6 @@
     showEditEntryConfig.value  = true;
     clusterId.value = row.id;
   };
-
 
   // 设置行样式
   const setRowClass = (row: ResourceRedisItem) => {
@@ -759,32 +832,6 @@
     return true;
   };
 
-  // 设置用户个人表头信息
-  const defaultSettings = {
-    fields: (columns.value || []).filter(item => item.field).map(item => ({
-      label: item.label as string,
-      field: item.field as string,
-      disabled: ['master_domain'].includes(item.field as string),
-    })),
-    checked: [
-      'bk_cloud_name',
-      'name',
-      'master_domain',
-      'creator',
-      'create_at',
-      ClusterNodeKeys.PROXY,
-      ClusterNodeKeys.REDIS_MASTER,
-      ClusterNodeKeys.REDIS_SLAVE,
-    ],
-    showLineHeight: false,
-  };
-
-  const {
-    settings,
-    updateTableSettings,
-  } = useTableSettings(UserPersonalSettings.REDIS_TABLE_SETTINGS, defaultSettings);
-
-
   const handleClearSearch = () => {
     state.searchValues = [];
     handleChangePage(1);
@@ -805,27 +852,27 @@
   /**
    * 申请实例
    */
-  function handleApply() {
+  const handleApply = () => {
     router.push({
       name: 'SelfServiceApplyRedis',
       query: {
         bizId: globalBizsStore.currentBizId,
       },
     });
-  }
+  };
 
   /**
    * 查看集群详情
    */
-  function handleToDetails(data: ResourceRedisItem) {
+  const handleToDetails = (data: ResourceRedisItem) => {
     stretchLayoutSplitScreen();
     clusterId.value = data.id;
-  }
+  };
 
   /**
    * 表格选中
    */
-  function handleTableSelected({ isAll, checked, data, row }: TableSelectionData<ResourceRedisItem>) {
+  const handleTableSelected = ({ isAll, checked, data, row }: TableSelectionData<ResourceRedisItem>) => {
     // 全选 checkbox 切换
     if (isAll) {
       const filterData = data.filter(item => item.phase === 'online');
@@ -847,29 +894,14 @@
     if (toggleIndex > -1) {
       state.selected.splice(toggleIndex, 1);
     }
-  }
+  };
 
-  /** 查看密码 */
-  const passwordState = reactive({
-    isShow: false,
-    fetchParams: {
-      cluster_id: -1,
-      bk_biz_id: globalBizsStore.currentBizId,
-      db_type: DBTypes.REDIS,
-      type: DBTypes.REDIS,
-    },
-  });
-  function handleShowPassword(id: number) {
+  const handleShowPassword = (id: number) => {
     passwordState.isShow = true;
     passwordState.fetchParams.cluster_id = id;
-  }
+  };
 
-  /** 提取 key 功能 */
-  const extractState = reactive({
-    isShow: false,
-    data: [] as ResourceRedisItem[],
-  });
-  function handleShowExtract(data: ResourceRedisItem[] = []) {
+  const handleShowExtract = (data: ResourceRedisItem[] = []) => {
     if (
       data.some(item => item.operations.length > 0
         && item.operations.map(op => op.ticket_type).includes(TicketTypes.REDIS_DESTROY))
@@ -883,14 +915,9 @@
     }
     extractState.isShow = true;
     extractState.data = _.cloneDeep(data);
-  }
+  };
 
-  /** 删除 key 功能 */
-  const deleteKeyState = reactive({
-    isShow: false,
-    data: [] as ResourceRedisItem[],
-  });
-  function handlShowDeleteKeys(data: ResourceRedisItem[] = []) {
+  const handlShowDeleteKeys = (data: ResourceRedisItem[] = []) => {
     if (
       data.some(item => item.operations.length > 0
         && item.operations.map(op => op.ticket_type).includes(TicketTypes.REDIS_DESTROY))
@@ -904,14 +931,9 @@
     }
     deleteKeyState.isShow = true;
     deleteKeyState.data = _.cloneDeep(data);
-  }
+  };
 
-  /** 备份功能 */
-  const backupState = reactive({
-    isShow: false,
-    data: [] as ResourceRedisItem[],
-  });
-  function handleShowBackup(data: ResourceRedisItem[] = []) {
+  const handleShowBackup = (data: ResourceRedisItem[] = []) => {
     if (
       data.some(item => item.operations.length > 0
         && item.operations.map(op => op.ticket_type).includes(TicketTypes.REDIS_DESTROY))
@@ -921,14 +943,9 @@
     }
     backupState.isShow = true;
     backupState.data = _.cloneDeep(data);
-  }
+  };
 
-  /** 清档功能 */
-  const purgeState = reactive({
-    isShow: false,
-    data: [] as ResourceRedisItem[],
-  });
-  function handleShowPurge(data: ResourceRedisItem[] = []) {
+  const handleShowPurge = (data: ResourceRedisItem[] = []) => {
     if (
       data.some(item => item.operations.length > 0
         && item.operations.map(op => op.ticket_type).includes(TicketTypes.REDIS_DESTROY))
@@ -938,12 +955,12 @@
     }
     purgeState.isShow = true;
     purgeState.data = _.cloneDeep(data);
-  }
+  };
 
   /**
    * 集群启停
    */
-  function handleSwitchRedis(type: TicketTypesStrings, data: ResourceRedisItem) {
+  const handleSwitchRedis = (type: TicketTypesStrings, data: ResourceRedisItem) => {
     if (!type) return;
 
     const isOpen = type === TicketTypes.REDIS_PROXY_OPEN;
@@ -979,12 +996,12 @@
         }
       },
     });
-  }
+  };
 
   /**
    * 集群 CLB 启用/禁用
    */
-  function handleSwitchCLB(type: TicketTypesStrings, data: ResourceRedisItem) {
+  const handleSwitchCLB = (type: TicketTypesStrings, data: ResourceRedisItem) => {
     if (!type) return;
 
     const isCreate = type === TicketTypes.REDIS_PLUGIN_CREATE_CLB;
@@ -1015,12 +1032,12 @@
         }
       },
     });
-  }
+  };
 
   /**
    * 域名指向 clb / 域名解绑 clb
    */
-  function handleSwitchDNSBindCLB(data: ResourceRedisItem) {
+  const handleSwitchDNSBindCLB = (data: ResourceRedisItem) => {
     const isBind = data.dns_to_clb;
     const title = isBind ? t('确认恢复 DNS 域名指向？') : t('确认将 DNS 域名指向 CLB ?');
     const subTitle = isBind ? t('DNS 域名恢复指向 Proxy') : t('业务不需要更换原域名也可实现负载均衡');
@@ -1051,12 +1068,12 @@
         }
       },
     });
-  }
+  };
 
   /**
    * 集群 北极星启用/禁用
    */
-  function handleSwitchPolaris(type: TicketTypesStrings, data: ResourceRedisItem) {
+  const handleSwitchPolaris = (type: TicketTypesStrings, data: ResourceRedisItem) => {
     if (!type) return;
 
     const isCreate = type === TicketTypes.REDIS_PLUGIN_CREATE_POLARIS;
@@ -1083,12 +1100,12 @@
         }
       },
     });
-  }
+  };
 
   /**
    * 删除集群
    */
-  function handleDeleteCluster(data: ResourceRedisItem) {
+  const handleDeleteCluster = (data: ResourceRedisItem) => {
     const { cluster_name: name } = data;
     useInfoWithIcon({
       type: 'warnning',
@@ -1122,7 +1139,7 @@
         }
       },
     });
-  }
+  };
 </script>
 
 <style lang="less" scoped>
