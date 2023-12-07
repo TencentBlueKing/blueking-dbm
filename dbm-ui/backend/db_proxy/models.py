@@ -21,7 +21,6 @@ from backend.bk_web.models import AuditedModel
 from backend.configuration.constants import DBType
 from backend.db_proxy.constants import CLUSTER__SERVICE_MAP, ClusterServiceType, ExtensionServiceStatus, ExtensionType
 from backend.db_proxy.exceptions import ProxyPassBaseException
-from backend.flow.consts import CloudDBHATypeEnum
 
 
 class DBCloudProxy(AuditedModel):

@@ -9,7 +9,6 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 from django.conf import settings
-from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import include, path, re_path
 from drf_yasg import openapi
@@ -64,7 +63,7 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path("account/", include("blueapps.account.urls")),
     path("apis/", include(api_patterns)),
-    path("db_meta/", include("backend.db_meta.urls")),
+    # path("db_meta/", include("backend.db_meta.urls")),
     # grafana访问地址, 需要和grafana前缀保持一致
     path("grafana/", include("backend.bk_dataview.grafana.urls")),
     # 版本日志

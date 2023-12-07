@@ -18,7 +18,7 @@ from rest_framework.response import Response
 
 from backend.bk_web import viewsets
 from backend.bk_web.swagger import common_swagger_auto_schema
-from backend.db_meta.enums import ClusterStatus, ClusterType
+from backend.db_meta.enums import ClusterType
 from backend.db_meta.enums.comm import SystemTagEnum
 from backend.db_meta.models import Cluster
 from backend.db_services.mysql.fixpoint_rollback.handlers import FixPointRollbackHandler

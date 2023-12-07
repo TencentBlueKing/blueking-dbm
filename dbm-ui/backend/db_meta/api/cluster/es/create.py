@@ -15,9 +15,8 @@ from django.db import transaction
 
 from backend.db_meta import request_validator
 from backend.db_meta.api import common
-from backend.db_meta.enums import ClusterEntryType, ClusterPhase, ClusterStatus, ClusterType, InstanceRole, MachineType
-from backend.db_meta.models import Cluster, ClusterEntry, ClusterMonitorTopo, StorageInstance
-from backend.flow.consts import InstanceFuncAliasEnum
+from backend.db_meta.enums import ClusterEntryType, ClusterPhase, ClusterStatus, ClusterType, InstanceRole
+from backend.db_meta.models import Cluster, ClusterEntry, StorageInstance
 from backend.flow.utils.es.es_module_operate import EsCCTopoOperator
 
 logger = logging.getLogger("root")

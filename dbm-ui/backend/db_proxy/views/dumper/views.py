@@ -11,10 +11,8 @@ specific language governing permissions and limitations under the License.
 
 from django.utils.translation import ugettext_lazy as _
 from rest_framework.decorators import action
-from rest_framework.response import Response
 
 from backend.bk_web.swagger import common_swagger_auto_schema
-from backend.components.hadb.client import HADBApi
 from backend.db_meta.models import Cluster
 from backend.db_proxy.constants import SWAGGER_TAG
 from backend.ticket.constants import TicketType

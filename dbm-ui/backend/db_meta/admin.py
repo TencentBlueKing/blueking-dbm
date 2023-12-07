@@ -22,23 +22,23 @@ class AppAdmin(admin.ModelAdmin):
 
 @admin.register(models.app.AppCache)
 class AppCacheAdmin(admin.ModelAdmin):
-    list_display = ("bk_biz_id", "bk_biz_name")
+    list_display = ("bk_biz_id", "bk_biz_name", "db_app_abbr")
     list_filter = ("bk_biz_name",)
-    search_fields = (
-        "bk_biz_id",
-        "bk_biz_name",
-    )
+    search_fields = ("bk_biz_id", "bk_biz_name", "db_app_abbr")
 
 
 @admin.register(models.city_map.LogicalCity)
 class LogicalCityAdmin(admin.ModelAdmin):
-    list_display = ("name",)
+    list_display = (
+        "id",
+        "name",
+    )
     search_fields = ("name",)
 
 
 @admin.register(models.city_map.BKCity)
 class BKCityAdmin(admin.ModelAdmin):
-    list_display = ("bk_idc_city_id", "bk_idc_city_name", "logical_city")
+    list_display = ("bk_idc_city_id", "bk_idc_city_name", "logical_city_id", "logical_city")
     list_filter = ("logical_city",)
     search_fields = ("bk_idc_city_name",)
 

@@ -9,23 +9,18 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
-import json
-from typing import List
-
 from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
 from backend.flow.consts import TruncateDataTypeEnum
 from backend.flow.engine.controller.mysql import MySQLController
 from backend.ticket import builders
-from backend.ticket.builders.common.base import CommonValidate, SkipToRepresentationMixin
 from backend.ticket.builders.mysql.base import (
     BaseMySQLTicketFlowBuilder,
     DBTableField,
     MySQLBaseOperateDetailSerializer,
 )
-from backend.ticket.constants import FlowRetryType, FlowType, TicketType
-from backend.ticket.models import Flow
+from backend.ticket.constants import TicketType
 
 
 class MySQLHaClearDetailSerializer(MySQLBaseOperateDetailSerializer):

@@ -8,12 +8,10 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from blueapps.account.decorators import login_exempt
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from drf_yasg.utils import swagger_auto_schema
-from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import AllowAny
+from rest_framework.decorators import api_view
 from rest_framework.request import Request
 
 from backend.db_meta import api
@@ -21,9 +19,9 @@ from backend.db_meta import api
 
 @swagger_auto_schema(methods=["get"])
 @csrf_exempt
-@login_exempt
+# @login_exempt
 @api_view(["GET"])
-@permission_classes([AllowAny])
+# @permission_classes([AllowAny])
 def cluster_instances(request: Request):
     try:
         return JsonResponse(
@@ -39,9 +37,9 @@ def cluster_instances(request: Request):
 
 @swagger_auto_schema(methods=["get"])
 @csrf_exempt
-@login_exempt
+# @login_exempt
 @api_view(["GET"])
-@permission_classes([AllowAny])
+# @permission_classes([AllowAny])
 def instance_detail(request: Request):
     try:
         return JsonResponse(
@@ -61,9 +59,9 @@ def instance_detail(request: Request):
 
 @swagger_auto_schema(methods=["get"])
 @csrf_exempt
-@login_exempt
+# @login_exempt
 @api_view(["GET"])
-@permission_classes([AllowAny])
+# @permission_classes([AllowAny])
 def biz_clusters(request: Request):
     try:
         return JsonResponse(
@@ -83,9 +81,9 @@ def biz_clusters(request: Request):
 # tendbcluster
 @swagger_auto_schema(methods=["get"])
 @csrf_exempt
-@login_exempt
+# @login_exempt
 @api_view(["GET"])
-@permission_classes([AllowAny])
+# @permission_classes([AllowAny])
 def tendbcluster_cluster_instances(request: Request):
     try:
         return JsonResponse(
@@ -103,9 +101,9 @@ def tendbcluster_cluster_instances(request: Request):
 
 @swagger_auto_schema(methods=["get"])
 @csrf_exempt
-@login_exempt
+# @login_exempt
 @api_view(["GET"])
-@permission_classes([AllowAny])
+# @permission_classes([AllowAny])
 def tendbcluster_instance_detail(request: Request):
     try:
         return JsonResponse(
@@ -125,9 +123,9 @@ def tendbcluster_instance_detail(request: Request):
 
 @swagger_auto_schema(methods=["get"])
 @csrf_exempt
-@login_exempt
+# @login_exempt
 @api_view(["GET"])
-@permission_classes([AllowAny])
+# @permission_classes([AllowAny])
 def tendbcluster_biz_clusters(request: Request):
     try:
         return JsonResponse(
@@ -147,9 +145,9 @@ def tendbcluster_biz_clusters(request: Request):
 # tendbha
 @swagger_auto_schema(methods=["get"])
 @csrf_exempt
-@login_exempt
+# @login_exempt
 @api_view(["GET"])
-@permission_classes([AllowAny])
+# @permission_classes([AllowAny])
 def tendbha_cluster_instances(request: Request):
     try:
         return JsonResponse(
@@ -165,9 +163,9 @@ def tendbha_cluster_instances(request: Request):
 
 @swagger_auto_schema(methods=["get"])
 @csrf_exempt
-@login_exempt
+# @login_exempt
 @api_view(["GET"])
-@permission_classes([AllowAny])
+# @permission_classes([AllowAny])
 def tendbha_instance_detail(request: Request):
     try:
         return JsonResponse(
@@ -187,9 +185,9 @@ def tendbha_instance_detail(request: Request):
 
 @swagger_auto_schema(methods=["get"])
 @csrf_exempt
-@login_exempt
+# @login_exempt
 @api_view(["GET"])
-@permission_classes([AllowAny])
+# @permission_classes([AllowAny])
 def tendbha_biz_clusters(request: Request):
     try:
         return JsonResponse(
@@ -209,9 +207,9 @@ def tendbha_biz_clusters(request: Request):
 # tendbsingle
 @swagger_auto_schema(methods=["get"])
 @csrf_exempt
-@login_exempt
+# @login_exempt
 @api_view(["GET"])
-@permission_classes([AllowAny])
+# @permission_classes([AllowAny])
 def tendbsingle_cluster_instances(request: Request):
     try:
         return JsonResponse(
@@ -229,9 +227,9 @@ def tendbsingle_cluster_instances(request: Request):
 
 @swagger_auto_schema(methods=["get"])
 @csrf_exempt
-@login_exempt
+# @login_exempt
 @api_view(["GET"])
-@permission_classes([AllowAny])
+# @permission_classes([AllowAny])
 def tendbsingle_instance_detail(request: Request):
     try:
         return JsonResponse(
@@ -251,9 +249,9 @@ def tendbsingle_instance_detail(request: Request):
 
 @swagger_auto_schema(methods=["get"])
 @csrf_exempt
-@login_exempt
+# @login_exempt
 @api_view(["GET"])
-@permission_classes([AllowAny])
+# @permission_classes([AllowAny])
 def tendbsingle_biz_clusters(request: Request):
     try:
         return JsonResponse(

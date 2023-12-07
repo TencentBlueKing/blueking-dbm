@@ -16,7 +16,7 @@ from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
 from backend.db_meta.enums import InstanceInnerRole
-from backend.db_meta.models import Cluster, StorageInstance
+from backend.db_meta.models import StorageInstance
 from backend.db_services.mysql.dataclass import DBInstance
 from backend.flow.engine.controller.mysql import MySQLController
 from backend.ticket import builders

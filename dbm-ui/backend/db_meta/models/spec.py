@@ -17,7 +17,6 @@ from django.db import models
 from django.db.models import Q
 from django.utils.translation import ugettext_lazy as _
 
-from backend import env
 from backend.bk_web.models import AuditedModel
 from backend.configuration.constants import AffinityEnum, SystemSettingsEnum
 from backend.configuration.models import SystemSettings

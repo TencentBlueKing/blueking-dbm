@@ -12,7 +12,6 @@ import logging
 
 from django.utils.translation import ugettext_lazy as _
 
-from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.es import EsController
 from backend.ticket import builders
 from backend.ticket.builders.common.bigdata import (

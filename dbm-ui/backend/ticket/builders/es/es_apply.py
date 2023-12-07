@@ -15,7 +15,7 @@ from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
 from backend.db_meta.enums import ClusterType
-from backend.db_services.dbbase.constants import ES_DEFAULT_PORT, IpSource
+from backend.db_services.dbbase.constants import ES_DEFAULT_PORT
 from backend.flow.consts import ES_DEFAULT_INSTANCE_NUM
 from backend.flow.engine.controller.es import EsController
 from backend.ticket import builders

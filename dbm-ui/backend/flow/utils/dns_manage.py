@@ -11,10 +11,9 @@ specific language governing permissions and limitations under the License.
 import logging
 from typing import List
 
-from backend.components import CCApi, DnsApi
+from backend.components import DnsApi
 from backend.db_meta.enums import ClusterEntryRole, ClusterEntryType
 from backend.db_meta.models import Cluster, ClusterEntry
-from backend.dbm_init.constants import CC_APP_ABBR_ATTR
 
 logger = logging.getLogger("flow")
 

@@ -14,7 +14,6 @@ import logging
 from django.utils.translation import ugettext as _
 from rest_framework import serializers
 
-from backend.db_meta.enums import ClusterPhase
 from backend.db_meta.models import Cluster
 from backend.flow.engine.controller.riak import RiakController
 from backend.ticket import builders

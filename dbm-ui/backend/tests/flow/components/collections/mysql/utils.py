@@ -11,7 +11,6 @@ specific language governing permissions and limitations under the License.
 
 import logging
 import uuid
-from dataclasses import asdict
 from typing import Any, Dict, List, NoReturn, Union
 
 import pytest

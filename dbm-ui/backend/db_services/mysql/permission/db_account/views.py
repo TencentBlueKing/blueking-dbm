@@ -29,8 +29,6 @@ from backend.db_services.mysql.permission.db_account.serializers import (
     ModifyMySQLAccountRuleSerializer,
     QueryMySQLAccountRulesSerializer,
     UpdateMySQLAccountSerializer,
-    VerifyPasswordStrengthInfoSerializer,
-    VerifyPasswordStrengthSerializer,
 )
 from backend.iam_app.handlers.drf_perm import DBManageIAMPermission
 

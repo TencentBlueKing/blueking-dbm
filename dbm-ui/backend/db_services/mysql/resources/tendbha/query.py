@@ -16,7 +16,7 @@ from django.utils.translation import ugettext_lazy as _
 
 from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.api.cluster.tendbha.detail import scan_cluster
-from backend.db_meta.enums import ClusterStatus, InstanceInnerRole
+from backend.db_meta.enums import InstanceInnerRole
 from backend.db_meta.enums.cluster_type import ClusterType
 from backend.db_meta.models import AppCache
 from backend.db_meta.models.cluster import Cluster
@@ -115,8 +115,7 @@ class ListRetrieveResource(query.ListRetrieveResource):
         """获取过滤的queryset"""
         instances_qs = (
             # 此处的实例视图需要同时得到 storage instance 和 proxy instance
-            StorageInstance.objects.prefetch_related("cluster", "machine")
-            .annotate(role=F("instance_inner_role"))
+            StorageInstance.objects.annotate(role=F("instance_inner_role"))
             .filter(query_conditions)
             .union(ProxyInstance.objects.annotate(role=F("access_layer")).filter(query_conditions))
             .values(

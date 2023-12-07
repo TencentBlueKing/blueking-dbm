@@ -11,7 +11,6 @@ specific language governing permissions and limitations under the License.
 from collections import Counter
 
 from django.utils.translation import ugettext as _
-from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 

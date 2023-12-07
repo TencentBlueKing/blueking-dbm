@@ -15,7 +15,7 @@ import os
 
 from django.core.management.base import BaseCommand
 
-from backend.db_monitor.constants import TPLS_ALARM_DIR, TPLS_COLLECT_DIR, TargetPriority
+from backend.db_monitor.constants import TPLS_ALARM_DIR, TPLS_COLLECT_DIR
 
 logger = logging.getLogger("root")
 

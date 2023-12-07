@@ -19,7 +19,6 @@ from backend import env
 from backend.bk_web.constants import LEN_LONG, LEN_NORMAL
 from backend.bk_web.models import AuditedModel
 from backend.configuration import constants
-from backend.configuration.constants import BizSettingsEnum, SystemSettingsEnum
 
 logger = logging.getLogger("root")
 

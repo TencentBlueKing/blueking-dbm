@@ -14,7 +14,6 @@ from typing import Dict
 from django.db import transaction
 from django.utils.translation import ugettext as _
 
-from backend.constants import DEFAULT_BK_CLOUD_ID, DEFAULT_TIME_ZONE
 from backend.db_meta import request_validator
 from backend.db_meta.api import common
 from backend.db_meta.enums import ClusterEntryType, ClusterPhase, ClusterStatus, ClusterType

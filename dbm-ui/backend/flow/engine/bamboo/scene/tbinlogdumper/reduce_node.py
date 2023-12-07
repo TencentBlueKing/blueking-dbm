@@ -18,7 +18,6 @@ from django.utils.translation import ugettext as _
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.tbinlogdumper.common.common_sub_flow import reduce_tbinlogdumper_sub_flow
 from backend.flow.engine.bamboo.scene.tbinlogdumper.common.exceptions import NormalTBinlogDumperFlowException
-from backend.flow.engine.bamboo.scene.tbinlogdumper.common.util import get_cluster
 from backend.flow.plugins.components.collections.mysql.mysql_db_meta import MySQLDBMetaComponent
 from backend.flow.utils.mysql.mysql_act_dataclass import DBMetaOPKwargs
 from backend.flow.utils.mysql.mysql_db_meta import MySQLDBMeta

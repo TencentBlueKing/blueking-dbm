@@ -12,7 +12,6 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
-from backend.configuration.constants import DBType
 from backend.db_meta.request_validator import validate_instance_in_biz
 from backend.db_services.mysql.permission.clone import mock_data
 from backend.db_services.mysql.permission.constants import CLONE_EXCEL_HEADER_MAP, CloneClusterType, CloneType

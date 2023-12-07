@@ -15,8 +15,8 @@ from . import models
 
 @admin.register(models.DBAdministrator)
 class DBAAdmin(admin.ModelAdmin):
-    list_display = ("bk_biz_id", "db_type")
-    list_filter = ("db_type", "users")
+    list_display = ("bk_biz_id", "db_type", "users")
+    list_filter = ("db_type",)
     search_fields = ("users",)
 
 

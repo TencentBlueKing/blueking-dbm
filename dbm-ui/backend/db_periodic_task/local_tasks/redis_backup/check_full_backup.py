@@ -17,7 +17,7 @@ from django.utils import timezone
 from django.utils.translation import ugettext as _
 
 from backend.constants import IP_PORT_DIVIDER
-from backend.db_meta.enums import ClusterType, InstanceInnerRole, InstanceRole, MachineType
+from backend.db_meta.enums import ClusterType, InstanceRole
 from backend.db_meta.models import Cluster
 from backend.db_report.enums import RedisBackupCheckSubType
 from backend.db_report.models import RedisBackupCheckReport

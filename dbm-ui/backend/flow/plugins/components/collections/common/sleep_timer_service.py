@@ -18,7 +18,6 @@ from pipeline.component_framework.component import Component
 from pipeline.core.flow.activity import StaticIntervalGenerator
 from pipeline.core.flow.io import StringItemSchema
 
-import backend.flow.utils.mysql.mysql_context_dataclass as flow_context
 from backend.flow.plugins.components.collections.common.base_service import BaseService
 
 

@@ -16,7 +16,7 @@ from django.forms import model_to_dict
 from django.utils.translation import ugettext_lazy as _
 
 from backend.db_meta.api.cluster.tendbcluster.detail import scan_cluster
-from backend.db_meta.enums import InstanceInnerRole, InstanceStatus, TenDBClusterSpiderRole
+from backend.db_meta.enums import InstanceInnerRole, TenDBClusterSpiderRole
 from backend.db_meta.enums.cluster_type import ClusterType
 from backend.db_meta.enums.comm import SystemTagEnum
 from backend.db_meta.exceptions import DBMetaException

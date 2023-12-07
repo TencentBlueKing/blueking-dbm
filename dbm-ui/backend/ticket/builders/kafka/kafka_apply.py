@@ -14,7 +14,7 @@ from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
 from backend.db_meta.enums import ClusterType
-from backend.db_services.dbbase.constants import KAFKA_DEFAULT_PORT, IpSource
+from backend.db_services.dbbase.constants import KAFKA_DEFAULT_PORT
 from backend.flow.engine.controller.kafka import KafkaController
 from backend.ticket import builders
 from backend.ticket.builders.common import constants

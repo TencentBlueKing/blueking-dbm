@@ -15,7 +15,7 @@ from django.utils.translation import ugettext as _
 
 from backend.components import DBConfigApi
 from backend.components.dbconfig.constants import FormatType, LevelName
-from backend.db_meta.enums import ClusterType, InstanceRole
+from backend.db_meta.enums import InstanceRole
 from backend.db_meta.models import Cluster
 from backend.db_package.models import Package
 from backend.flow.consts import (

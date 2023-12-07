@@ -16,10 +16,9 @@ from django.utils.translation import ugettext as _
 
 from backend.db_meta import request_validator
 from backend.db_meta.api import common
-from backend.db_meta.enums import ClusterEntryType, ClusterPhase, ClusterStatus, ClusterType, MachineType
+from backend.db_meta.enums import ClusterEntryType, ClusterPhase, ClusterStatus, ClusterType
 from backend.db_meta.exceptions import DBMetaException
-from backend.db_meta.models import Cluster, ClusterEntry, ClusterMonitorTopo, StorageInstance
-from backend.flow.consts import InstanceFuncAliasEnum
+from backend.db_meta.models import Cluster, ClusterEntry, StorageInstance
 from backend.flow.utils.riak.riak_module_operate import RiakCCTopoOperator
 
 logger = logging.getLogger("root")

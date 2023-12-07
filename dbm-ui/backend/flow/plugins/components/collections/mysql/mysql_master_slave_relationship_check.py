@@ -14,7 +14,7 @@ from pipeline.component_framework.component import Component
 
 from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.enums import ClusterType, InstanceInnerRole
-from backend.db_meta.models import Cluster, StorageInstance, StorageInstanceTuple
+from backend.db_meta.models import StorageInstance, StorageInstanceTuple
 from backend.flow.plugins.components.collections.common.base_service import BaseService
 
 

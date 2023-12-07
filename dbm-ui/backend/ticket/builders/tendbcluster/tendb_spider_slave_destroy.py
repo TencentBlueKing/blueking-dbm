@@ -12,15 +12,9 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
-from backend.db_meta.models import AppCache, Cluster
-from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.spider import SpiderController
 from backend.ticket import builders
-from backend.ticket.builders.tendbcluster.base import (
-    BaseTendbTicketFlowBuilder,
-    TendbBaseOperateDetailSerializer,
-    TendbBaseOperateResourceParamBuilder,
-)
+from backend.ticket.builders.tendbcluster.base import BaseTendbTicketFlowBuilder, TendbBaseOperateDetailSerializer
 from backend.ticket.constants import TicketType
 
 

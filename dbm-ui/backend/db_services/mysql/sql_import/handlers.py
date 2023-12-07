@@ -37,7 +37,6 @@ from backend.flow.engine.bamboo.engine import BambooEngine
 from backend.flow.engine.controller.mysql import MySQLController
 from backend.flow.engine.controller.spider import SpiderController
 from backend.flow.models import FlowNode, FlowTree
-from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.mysql.semantic_check import SemanticCheckComponent
 from backend.utils.redis import RedisConn
 

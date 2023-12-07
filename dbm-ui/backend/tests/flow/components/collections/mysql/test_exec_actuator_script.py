@@ -12,7 +12,6 @@ specific language governing permissions and limitations under the License.
 import logging
 from typing import List, Type
 
-import mock
 import pytest
 from django.test import TestCase
 from pipeline.component_framework.component import Component
@@ -24,7 +23,6 @@ from backend.flow.plugins.components.collections.mysql.exec_actuator_script impo
 from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
 from backend.flow.utils.mysql.mysql_context_dataclass import SingleApplyAutoContext
 from backend.tests.flow.components.collections.base import BaseComponentPatcher as Patcher
-from backend.tests.flow.components.collections.mysql.test_mysql_db_meta import TestMySQLDBMetaComponent
 from backend.tests.flow.components.collections.mysql.utils import MySQLSingleApplyComponentTest
 from backend.tests.mock_data.components import cc
 from backend.tests.mock_data.components.dbconfig import DBConfigApiMock

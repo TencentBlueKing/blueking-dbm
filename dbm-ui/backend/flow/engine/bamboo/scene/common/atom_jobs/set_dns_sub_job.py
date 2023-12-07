@@ -16,24 +16,25 @@ from bamboo_engine.builder import SubProcess
 from django.utils.translation import ugettext as _
 
 from backend.flow.consts import WriteContextOpType
-from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
+from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
 from backend.flow.plugins.components.collections.common.check_resolv_conf import (
     CheckResolvConfComponent,
     ExecuteShellScriptComponent,
 )
 from backend.flow.plugins.components.collections.common.dns_server import DNSServerSetComponent
 from backend.flow.plugins.components.collections.common.get_common_payload import GetCommonActPayloadComponent
-from backend.flow.utils.common_act_dataclass import DNSContext
 from backend.flow.utils.redis.redis_context_dataclass import ActKwargs
 
 logger = logging.getLogger("flow")
 
 
-def SetDnsAtomJob(root_id, ticket_data, act_kwargs: ActKwargs, param: Dict) -> Optional[SubProcess]:
+def set_dns_atom_job(root_id, ticket_data, act_kwargs: ActKwargs, param: Dict) -> Optional[SubProcess]:
     """
     配置dns子流程
-    Args:
-        param:{
+    :param root_id:
+    :param ticket_data:
+    :param act_kwargs:
+    :param param:{
             "force":False,
             "ip":"",
             "bk_biz_id":"",

@@ -19,7 +19,6 @@ from backend.configuration.constants import AffinityEnum, DBType
 from backend.db_meta.enums.cluster_phase import ClusterPhase
 from backend.db_meta.models.cluster import Cluster
 from backend.db_meta.models.instance import StorageInstance
-from backend.db_meta.models.machine import Machine
 from backend.db_services.dbbase.constants import IpSource
 from backend.ticket import builders
 from backend.ticket.builders import BuilderFactory, TicketFlowBuilder

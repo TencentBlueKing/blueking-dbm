@@ -12,7 +12,6 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import ugettext_lazy as _
 from django_filters import rest_framework as filters
 
-from backend.db_meta.models.spec import Spec
 from backend.db_services.mysql.open_area.models import TendbOpenAreaConfig
 
 

@@ -16,7 +16,6 @@ from unittest.mock import patch
 import pytest
 from openpyxl.writer.excel import save_virtual_workbook
 
-from backend import env
 from backend.db_services.mysql.permission.authorize.dataclass import AuthorizeMeta, ExcelAuthorizeMeta
 from backend.db_services.mysql.permission.authorize.handlers import AuthorizeHandler
 from backend.db_services.mysql.permission.constants import AUTHORIZE_EXCEL_HEADER

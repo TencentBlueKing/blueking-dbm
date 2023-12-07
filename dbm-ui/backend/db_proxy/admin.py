@@ -22,13 +22,13 @@ class DBCloudProxyAdmin(admin.ModelAdmin):
 
 @admin.register(models.DBExtension)
 class DBExtensionAdmin(admin.ModelAdmin):
-    list_display = ("bk_cloud_id", "extension", "status")
+    list_display = ("id", "bk_cloud_id", "extension", "status", "details")
     list_filter = ("bk_cloud_id", "extension", "status")
     search_fields = ("bk_cloud_id", "extension", "status")
 
 
 @admin.register(models.ClusterExtension)
 class ClusterExtensionAdmin(admin.ModelAdmin):
-    list_display = ("bk_biz_id", "bk_cloud_id", "service_type", "cluster_name")
+    list_display = ("id", "bk_biz_id", "bk_cloud_id", "ip", "service_type", "cluster_name")
     list_filter = ("bk_biz_id", "bk_cloud_id", "service_type", "cluster_name")
     search_fields = ("bk_biz_id", "bk_cloud_id", "service_type", "cluster_name")
