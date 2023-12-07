@@ -256,6 +256,7 @@ backup-server:
     bkrepo_public_bucket: "bkdbm"
   backup_client:
     cos_default_dns: ""
+    default_storage: "cos"
 
 # reloader
 stakater:
