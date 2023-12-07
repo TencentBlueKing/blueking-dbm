@@ -191,7 +191,7 @@ func (c *RotateBinlogComp) HandleScheduler(addSchedule, delSchedule bool) (handl
 			// Command:  fmt.Sprintf(`cd %s && %s`, executeDir, executable),
 			Command:  executable,
 			WorkDir:  executeDir,
-			Args:     []string{"-c", "config.yaml", "1>>logs/main.log 2>&1"},
+			Args:     []string{"-c", "config.yaml"},
 			Schedule: viper.GetString("crond.schedule"),
 			Creator:  "sys",
 			Enable:   true,

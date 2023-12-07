@@ -2,7 +2,6 @@ package backupexe
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -10,8 +9,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/pkg/errors"
+
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/config"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/cst"
+	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/dbareport"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/logger"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/mysqlconn"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/util"
@@ -157,4 +159,82 @@ func (p *PhysicalDumper) Execute(enableTimeOut bool) error {
 	}
 
 	return nil
+}
+
+// PrepareBackupMetaInfo prepare the backup result of Physical Backup(innodb)
+// xtrabackup备份完成后，解析 xtrabackup_info 等文件
+func (p *PhysicalDumper) PrepareBackupMetaInfo(cnf *config.BackupConfig) (*dbareport.IndexContent, error) {
+	db, err := mysqlconn.InitConn(&cnf.Public)
+	if err != nil {
+		return nil, errors.WithMessage(err, "IndexContent")
+	}
+	defer func() {
+		_ = db.Close()
+	}()
+	storageEngine, err := mysqlconn.GetStorageEngine(db)
+	if err != nil {
+		return nil, err
+	}
+	if strings.ToLower(storageEngine) != "innodb" {
+		logger.Log.Error(fmt.Sprintf("This is a unknown StorageEngine: %s", storageEngine))
+		err := fmt.Errorf("unknown StorageEngine: %s", storageEngine)
+		return nil, err
+	}
+
+	xtrabackupInfoFileName := filepath.Join(cnf.Public.BackupDir, cnf.Public.TargetName(),
+		"xtrabackup_info")
+	xtrabackupTimestampFileName := filepath.Join(cnf.Public.BackupDir, cnf.Public.TargetName(),
+		"xtrabackup_timestamp_info")
+	xtrabackupBinlogInfoFileName := filepath.Join(cnf.Public.BackupDir, cnf.Public.TargetName(),
+		"xtrabackup_binlog_info")
+	xtrabackupSlaveInfoFileName := filepath.Join(cnf.Public.BackupDir, cnf.Public.TargetName(),
+		"xtrabackup_slave_info")
+
+	tmpFileName := filepath.Join(cnf.Public.BackupDir, cnf.Public.TargetName(), "tmp_dbbackup_go.txt")
+
+	exepath, err := os.Executable()
+	if err != nil {
+		return nil, err
+	}
+	exepath = filepath.Dir(exepath)
+	qpressPath := filepath.Join(exepath, "bin", "qpress")
+
+	var metaInfo = dbareport.IndexContent{
+		BinlogInfo: dbareport.BinlogStatusInfo{},
+	}
+	// parse xtrabackup_info
+	if err = parseXtraInfo(qpressPath, xtrabackupInfoFileName, tmpFileName, &metaInfo); err != nil {
+		return nil, err
+	}
+	// parse xtrabackup_timestamp_info
+	if err := parseXtraTimestamp(qpressPath, xtrabackupTimestampFileName, tmpFileName, &metaInfo); err != nil {
+		return nil, err
+	}
+	// parse xtrabackup_binlog_info
+	if masterStatus, err := parseXtraBinlogInfo(qpressPath, xtrabackupBinlogInfoFileName, tmpFileName); err != nil {
+		return nil, err
+	} else {
+		metaInfo.BinlogInfo.ShowMasterStatus = masterStatus
+		metaInfo.BinlogInfo.ShowMasterStatus.MasterHost = cnf.Public.MysqlHost
+		metaInfo.BinlogInfo.ShowMasterStatus.MasterPort = cnf.Public.MysqlPort
+	}
+
+	// parse xtrabackup_slave_info
+	if mysqlRole := strings.ToLower(cnf.Public.MysqlRole); mysqlRole == cst.RoleSlave || mysqlRole == cst.RoleRepeater {
+		if slaveStatus, err := parseXtraSlaveInfo(qpressPath, xtrabackupSlaveInfoFileName, tmpFileName); err != nil {
+			return nil, err
+		} else {
+			metaInfo.BinlogInfo.ShowSlaveStatus = slaveStatus
+			masterHost, masterPort, err := mysqlconn.ShowMysqlSlaveStatus(db)
+			if err != nil {
+				return nil, err
+			}
+			metaInfo.BinlogInfo.ShowSlaveStatus.MasterHost = masterHost
+			metaInfo.BinlogInfo.ShowSlaveStatus.MasterPort = masterPort
+		}
+	}
+	if err = os.Remove(tmpFileName); err != nil {
+		return &metaInfo, err
+	}
+	return &metaInfo, nil
 }

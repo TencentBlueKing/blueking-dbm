@@ -25,12 +25,13 @@ import (
 
 // PackageFile package backup files
 type PackageFile struct {
-	srcDir     string
+	// srcDir 计划的打包目录 /data/dbbak/x_xxx_xxx
+	srcDir string
+	// dstDir 打包的目标目录
 	dstDir     string
 	dstTarFile string
 	cnf        *config.BackupConfig
-	resultInfo *dbareport.BackupResult
-	indexFile  *IndexContent
+	indexFile  *dbareport.IndexContent
 }
 
 // MappingPackage Package multiple backup files
@@ -42,13 +43,9 @@ type PackageFile struct {
 // create new tar_writer
 // loop ...
 // write last file to tar package
+// will save index meta info to file
 func (p *PackageFile) MappingPackage() error {
 	logger.Log.Infof("Tarball Package: src dir %s, iolimit %d MB/s", p.srcDir, p.cnf.Public.IOLimitMBPerSec)
-	// collect IndexContent info
-	err := p.indexFile.Init(&p.cnf.Public, p.resultInfo)
-	if err != nil {
-		return err
-	}
 
 	var tarSize uint64 = 0
 	tarFileNum := 0
@@ -69,7 +66,11 @@ func (p *PackageFile) MappingPackage() error {
 	}()
 
 	var totalSizeUncompress int64 = 0 // -1 means does not calculate size before compress
+	var backupTotalFileSize uint64
 	tarSizeMaxBytes := p.cnf.Public.TarSizeThreshold * 1024 * 1024
+	// 把 schema 单独打包？
+
+	var tarFiles = make(map[string]*dbareport.TarFileItem, 0)
 	// The files are walked in lexical order
 	walkErr := filepath.Walk(p.srcDir, func(filename string, info fs.FileInfo, err error) error {
 		if err != nil {
@@ -80,13 +81,21 @@ func (p *PackageFile) MappingPackage() error {
 			return err
 		}
 		header.Name = filepath.Join(p.cnf.Public.TargetName(), strings.TrimPrefix(filename, p.srcDir))
+
 		isFile, written, err := tarUtil.WriteTar(header, filename)
 		if err != nil {
 			return err
 		} else if !isFile {
 			return nil
 		}
-		p.indexFile.addFileContent(dstTarName, filename, written)
+		tarFileName := filepath.Base(dstTarName)
+		if _, ok := tarFiles[tarFileName]; !ok {
+			tarFiles[tarFileName] = &dbareport.TarFileItem{FileName: tarFileName, FileType: cst.FileTar}
+		} else {
+			tarFiles[tarFileName].ContainFiles = append(tarFiles[tarFileName].ContainFiles,
+				strings.TrimPrefix(strings.TrimPrefix(filename, p.srcDir), "/"))
+		}
+		tarFiles[tarFileName].FileSize += written
 
 		if totalSizeUncompress > -1 && strings.HasSuffix(filename, cst.ZstdSuffix) {
 			if sizeUncompress, err := readUncompressSizeForZstd(CmdZstd, filename); err != nil {
@@ -103,7 +112,7 @@ func (p *PackageFile) MappingPackage() error {
 		tarSize += uint64(written)
 		if tarSize >= tarSizeMaxBytes {
 			logger.Log.Infof("need to tar file, accumulated tar size: %d bytes, dstFile: %s", tarSize, dstTarName)
-			p.indexFile.TotalFilesize += tarSize
+			backupTotalFileSize += tarSize
 			tarSize = 0
 			tarFileNum++
 			if err = tarUtil.Close(); err != nil {
@@ -120,35 +129,33 @@ func (p *PackageFile) MappingPackage() error {
 		}
 		return nil
 	})
-	logger.Log.Infof("need to tar file, accumulated tar size: %d bytes, dstFile: %s", tarSize, dstTarName)
-	p.indexFile.TotalFilesize += tarSize
-	p.indexFile.TotalSizeKBUncompress = totalSizeUncompress / 1024
 	if walkErr != nil {
 		logger.Log.Error("walk dir, err: ", walkErr)
 		return walkErr
 	}
+	logger.Log.Infof("need to tar file, accumulated tar size: %d bytes, dstFile: %s", tarSize, dstTarName)
+	p.indexFile.TotalSizeKBUncompress = totalSizeUncompress / 1024
+	p.indexFile.TotalFilesize = backupTotalFileSize + tarSize
+
 	logger.Log.Infof("old srcDir removing io is limited to: %d MB/s", p.cnf.Public.IOLimitMBPerSec)
 	if err := cmutil.TruncateDir(p.srcDir, p.cnf.Public.IOLimitMBPerSec); err != nil {
 		// if err := os.RemoveAll(p.srcDir); err != nil {
 		logger.Log.Error("failed to remove useless backup files")
 		return err
 	}
-
-	p.indexFile.addPrivFile(p.dstDir)
-	if err := p.indexFile.RecordIndexContent(&p.cnf.Public); err != nil {
+	for _, tarFile := range tarFiles {
+		p.indexFile.FileList = append(p.indexFile.FileList, tarFile)
+	}
+	p.indexFile.AddPrivFileItem(p.dstDir)
+	if _, err := p.indexFile.SaveIndexContent(&p.cnf.Public); err != nil {
 		return err
 	}
 	return nil
 }
 
 // SplittingPackage Firstly, put all backup files into the tar file. Secondly, split the tar file to multiple parts
+// will save index meta info to file
 func (p *PackageFile) SplittingPackage() error {
-	// collect IndexContent
-	err := p.indexFile.Init(&p.cnf.Public, p.resultInfo)
-	if err != nil {
-		return err
-	}
-
 	// tar srcDir to tar
 	if err := p.tarballDir(); err != nil {
 		return err
@@ -164,8 +171,8 @@ func (p *PackageFile) SplittingPackage() error {
 		return err
 	}
 
-	p.indexFile.addPrivFile(p.dstDir)
-	if err := p.indexFile.RecordIndexContent(&p.cnf.Public); err != nil {
+	p.indexFile.AddPrivFileItem(p.dstDir)
+	if _, err := p.indexFile.SaveIndexContent(&p.cnf.Public); err != nil {
 		return err
 	}
 	return nil
@@ -226,6 +233,7 @@ func (p *PackageFile) tarballDir() error {
 
 // splitTarFile split Tar file into multiple part_file
 // update indexFile
+// destFile has is full path file
 func (p *PackageFile) splitTarFile(destFile string) error {
 	splitSpeed := int64(300) // default: 300MB/s
 	if p.cnf.PhysicalBackup.SplitSpeed != 0 {
@@ -240,8 +248,11 @@ func (p *PackageFile) splitTarFile(destFile string) error {
 	filePartSize := int64(p.cnf.Public.TarSizeThreshold) * 1024 * 1024 // MB to bytes
 	partNum := int(math.Ceil(float64(fileInfo.Size()) / float64(filePartSize)))
 	if partNum == 1 {
-		tarFilename := filepath.Base(destFile)
-		p.indexFile.addFileContent(tarFilename, tarFilename, fileInfo.Size())
+		p.indexFile.FileList = append(p.indexFile.FileList, &dbareport.TarFileItem{
+			FileName: filepath.Base(destFile),
+			FileSize: fileInfo.Size(),
+			FileType: cst.FileTar,
+		})
 		return nil
 	}
 
@@ -266,11 +277,19 @@ func (p *PackageFile) splitTarFile(destFile string) error {
 		// io.Copy will record fi Seek Position
 		if written, err := cmutil.IOLimitRateWithChunk(destFileWriter, fi, splitSpeed, filePartSize); err == nil {
 			_ = destFileWriter.Close()
-			p.indexFile.addFileContent(partTarName, partTarName, filePartSize)
+			p.indexFile.FileList = append(p.indexFile.FileList, &dbareport.TarFileItem{
+				FileName: filepath.Base(partTarName),
+				FileSize: written,
+				FileType: cst.FilePart,
+			})
 		} else {
 			_ = destFileWriter.Close()
 			if err == io.EOF { // read end
-				p.indexFile.addFileContent(partTarName, partTarName, written)
+				p.indexFile.FileList = append(p.indexFile.FileList, &dbareport.TarFileItem{
+					FileName: filepath.Base(partTarName),
+					FileSize: written,
+					FileType: cst.FilePart,
+				})
 				break
 			}
 			return err
@@ -285,30 +304,28 @@ func (p *PackageFile) splitTarFile(destFile string) error {
 }
 
 // PackageBackupFiles package backup files
-// resultInfo 里面还只有 base 信息，没有文件信息
-func PackageBackupFiles(cnf *config.BackupConfig, resultInfo *dbareport.BackupResult) error {
+// backupReport 里面还只有 base 信息，没有文件信息
+func PackageBackupFiles(cnf *config.BackupConfig, metaInfo *dbareport.IndexContent) error {
 	targetDir := path.Join(cnf.Public.BackupDir, cnf.Public.TargetName())
 	var packageFile = &PackageFile{
 		srcDir:     targetDir,
 		dstDir:     targetDir,
 		dstTarFile: targetDir + ".tar",
 		cnf:        cnf,
-		resultInfo: resultInfo,
-		indexFile:  &IndexContent{},
+		indexFile:  metaInfo,
 	}
-	logger.Log.Infof("BackupResult:%+v", resultInfo)
+	logger.Log.Infof("Index BackupMetaInfo:%+v", metaInfo)
 
 	// package files, and produce the index file at the same time
-	if strings.ToLower(cnf.Public.BackupType) == "logical" {
+	if strings.ToLower(cnf.Public.BackupType) == cst.BackupLogical {
 		if err := packageFile.MappingPackage(); err != nil {
 			return err
 		}
-	} else if strings.ToLower(cnf.Public.BackupType) == "physical" {
+	} else if strings.ToLower(cnf.Public.BackupType) == cst.BackupPhysical {
 		if err := packageFile.SplittingPackage(); err != nil {
 			return err
 		}
 	}
-
 	return nil
 }
 

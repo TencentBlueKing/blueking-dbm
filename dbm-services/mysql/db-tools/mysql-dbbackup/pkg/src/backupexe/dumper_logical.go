@@ -2,7 +2,6 @@ package backupexe
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -11,7 +10,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/pkg/errors"
+	"github.com/spf13/cast"
+
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/config"
+	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/cst"
+	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/dbareport"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/logger"
 )
 
@@ -122,4 +126,42 @@ func (l *LogicalDumper) Execute(enableTimeOut bool) error {
 	}
 
 	return nil
+}
+
+// PrepareBackupMetaInfo prepare the backup result of Logical Backup
+// mydumper 备份完成后，解析 metadata 文件
+func (l *LogicalDumper) PrepareBackupMetaInfo(cnf *config.BackupConfig) (*dbareport.IndexContent, error) {
+	var metaInfo = dbareport.IndexContent{BinlogInfo: dbareport.BinlogStatusInfo{}}
+	metaFileName := filepath.Join(cnf.Public.BackupDir, cnf.Public.TargetName(), "metadata")
+	metadata, err := parseMydumperMetadata(metaFileName)
+	if err != nil {
+		return nil, errors.WithMessage(err, "parse mydumper metadata")
+	}
+	logger.Log.Infof("metadata file:%+v", metadata)
+	metaInfo.BackupBeginTime, err = time.ParseInLocation(cst.MydumperTimeLayout, metadata.DumpStarted, time.Local)
+	if err != nil {
+		return nil, errors.Wrapf(err, "parse BackupBeginTime %s", metadata.DumpStarted)
+	}
+	metaInfo.BackupEndTime, err = time.ParseInLocation(cst.MydumperTimeLayout, metadata.DumpFinished, time.Local)
+	if err != nil {
+		return nil, errors.Wrapf(err, "parse BackupEndTime %s", metadata.DumpFinished)
+	}
+	metaInfo.BackupConsistentTime = metaInfo.BackupBeginTime // 逻辑备份开始时间认为是一致性位点时间
+	metaInfo.BinlogInfo.ShowMasterStatus = &dbareport.StatusInfo{
+		BinlogFile: metadata.MasterStatus["File"],
+		BinlogPos:  metadata.MasterStatus["Position"],
+		Gtid:       metadata.MasterStatus["Executed_Gtid_Set"],
+		MasterHost: cnf.Public.MysqlHost, // use backup_host as local binlog file_pos host
+		MasterPort: cast.ToInt(cnf.Public.MysqlPort),
+	}
+	if strings.ToLower(cnf.Public.MysqlRole) == cst.RoleSlave {
+		metaInfo.BinlogInfo.ShowSlaveStatus = &dbareport.StatusInfo{
+			BinlogFile: metadata.SlaveStatus["Relay_Master_Log_File"],
+			BinlogPos:  metadata.SlaveStatus["Exec_Master_Log_Pos"],
+			Gtid:       metadata.SlaveStatus["Executed_Gtid_Set"],
+			MasterHost: metadata.SlaveStatus["Master_Host"],
+			MasterPort: cast.ToInt(metadata.SlaveStatus["Master_Port"]),
+		}
+	}
+	return &metaInfo, nil
 }

@@ -13,6 +13,7 @@ import (
 
 	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/config"
+	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/dbareport"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/logger"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/mysqlconn"
 )
@@ -25,7 +26,7 @@ type LogicalLoader struct {
 	initConnect  string
 }
 
-func (l *LogicalLoader) initConfig(_ *IndexContent) error {
+func (l *LogicalLoader) initConfig(_ *dbareport.IndexContent) error {
 	if l.cnf == nil {
 		return errors.New("logical loader params is nil")
 	}

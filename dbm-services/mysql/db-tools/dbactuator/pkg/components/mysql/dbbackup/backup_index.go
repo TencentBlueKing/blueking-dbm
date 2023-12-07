@@ -14,41 +14,18 @@ import (
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util/osutil"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/backupexe"
+	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/dbareport"
 
 	"github.com/pkg/errors"
 )
 
 // BackupIndexFile godoc
 type BackupIndexFile struct {
-	backupexe.IndexContent
-	/*
-		BackupType    string `json:"backup_type"`
-		StorageEngine string `json:"storage_engine"`
-		MysqlVersion  string `json:"mysql_version"`
-
-		BackupCharset string `json:"backup_charset"`
-		BkBizId       int    `json:"bk_biz_id"`
-		// unique uuid
-		BackupId        string `json:"backup_id"`
-		BillId          string `json:"bill_id"`
-		ClusterId       int    `json:"cluster_id"`
-		BackupHost      string `json:"backup_host"`
-		BackupPort      int    `json:"backup_port"`
-		MysqlRole       string `json:"mysql_role"`
-		DataSchemaGrant string `json:"data_schema_grant"`
-		// 备份一致性时间点，物理备份可能为空
-		ConsistentBackupTime string `json:"consistent_backup_time"`
-		BackupBeginTime      string `json:"backup_begin_time"`
-		BackupEndTime        string `json:"backup_end_time"`
-		TotalFilesize        uint64 `json:"total_filesize"`
-
-		FileList   []IndexFileItem  `json:"file_list"`
-		BinlogInfo BinlogStatusInfo `json:"binlog_info"`
-	*/
+	dbareport.IndexContent
 
 	indexFilePath string
 	// backupFiles {data: {file1: obj, file2: obj}, priv: {}}
-	backupFiles map[string][]backupexe.IndexFileItem
+	backupFiles map[string][]dbareport.TarFileItem
 	// 备份文件解压后的目录名，相对目录
 	backupIndexBasename string
 	// 备份文件的所在根目录，比如 /data/dbbak
@@ -76,9 +53,9 @@ func ParseBackupIndexFile(indexFilePath string, indexObj *BackupIndexFile) error
 	indexObj.backupIndexBasename = strings.TrimSuffix(fileName, ".index")
 	indexObj.backupDir = fileDir
 
-	indexObj.backupFiles = make(map[string][]backupexe.IndexFileItem)
+	indexObj.backupFiles = make(map[string][]dbareport.TarFileItem)
 	for _, fileItem := range indexObj.FileList {
-		indexObj.backupFiles[fileItem.FileType] = append(indexObj.backupFiles[fileItem.FileType], fileItem)
+		indexObj.backupFiles[fileItem.FileType] = append(indexObj.backupFiles[fileItem.FileType], *fileItem)
 	}
 	logger.Info("backupIndexBasename=%s, backupType=%s, charset=%s",
 		indexObj.backupIndexBasename, indexObj.BackupType, indexObj.BackupCharset)
@@ -91,13 +68,13 @@ func (f *BackupIndexFile) GetTarFileList(fileType string) []string {
 	fileNamelist := []string{}
 	if fileType == "" {
 		for _, fileItem := range f.FileList {
-			fileNamelist = append(fileNamelist, fileItem.TarFileName)
+			fileNamelist = append(fileNamelist, fileItem.FileName)
 		}
 		return util.UniqueStrings(fileNamelist)
 	} else {
 		fileList := f.backupFiles[fileType]
 		for _, f := range fileList {
-			fileNamelist = append(fileNamelist, f.TarFileName)
+			fileNamelist = append(fileNamelist, f.FileName)
 		}
 		return util.UniqueStrings(fileNamelist)
 	}
@@ -112,21 +89,21 @@ func (f *BackupIndexFile) ValidateFiles() error {
 	reTarPart := regexp.MustCompile(ReTarPart) // 如果只有一个tar，也会存到这里
 	tarPartsWithoutSuffix := []string{}        // remove .tar suffix from tar to get no. sequence
 	for _, tarFile := range f.FileList {
-		if fSize := cmutil.GetFileSize(filepath.Join(f.backupDir, tarFile.TarFileName)); fSize < 0 {
-			errFiles = append(errFiles, tarFile.TarFileName)
+		if fSize := cmutil.GetFileSize(filepath.Join(f.backupDir, tarFile.FileName)); fSize < 0 {
+			errFiles = append(errFiles, tarFile.FileName)
 			continue
 		} // else if fSize != tarFile.TarFileSize {}
-		if reSplitPart.MatchString(tarFile.TarFileName) {
-			f.splitParts = append(f.splitParts, tarFile.TarFileName)
-		} else if reTarPart.MatchString(tarFile.TarFileName) {
-			tarPartsWithoutSuffix = append(tarPartsWithoutSuffix, strings.TrimSuffix(tarFile.TarFileName, ".tar"))
-			f.tarParts = append(f.tarParts, tarFile.TarFileName)
+		if reSplitPart.MatchString(tarFile.FileName) {
+			f.splitParts = append(f.splitParts, tarFile.FileName)
+		} else if reTarPart.MatchString(tarFile.FileName) {
+			tarPartsWithoutSuffix = append(tarPartsWithoutSuffix, strings.TrimSuffix(tarFile.FileName, ".tar"))
+			f.tarParts = append(f.tarParts, tarFile.FileName)
 		}
-		tarfileBasename := backupexe.ParseTarFilename(tarFile.TarFileName)
+		tarfileBasename := backupexe.ParseTarFilename(tarFile.FileName)
 		if tarfileBasename != "" && f.tarfileBasename == "" {
 			f.tarfileBasename = tarfileBasename
 		} else if tarfileBasename != "" && f.tarfileBasename != tarfileBasename {
-			return errors.Errorf("tar file base name error: %s, file:%s", f.tarfileBasename, tarFile.TarFileName)
+			return errors.Errorf("tar file base name error: %s, file:%s", f.tarfileBasename, tarFile.FileName)
 		}
 	}
 	if len(errFiles) != 0 {

@@ -15,6 +15,7 @@ import (
 	"syscall"
 
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/config"
+	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/cst"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/common"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/logger"
 )
@@ -81,7 +82,7 @@ func CopyFile(desPath string, srcPath string) error {
 
 // CheckIntegrity Check the integrity of backup file
 func CheckIntegrity(publicConfig *config.Public) error {
-	if strings.ToLower(publicConfig.BackupType) == "logical" {
+	if strings.ToLower(publicConfig.BackupType) == cst.BackupLogical {
 		backupPath := publicConfig.BackupDir + "/" + publicConfig.TargetName()
 
 		fileExist0, err := FileExist(backupPath)

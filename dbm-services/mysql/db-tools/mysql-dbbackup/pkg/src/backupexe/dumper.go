@@ -7,6 +7,8 @@ import (
 
 	"dbm-services/common/go-pubpkg/validate"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/config"
+	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/cst"
+	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/dbareport"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/logger"
 )
 
@@ -14,18 +16,19 @@ import (
 type Dumper interface {
 	initConfig(mysqlVersion string) error
 	Execute(enableTimeOut bool) error
+	PrepareBackupMetaInfo(cnf *config.BackupConfig) (*dbareport.IndexContent, error)
 }
 
 // BuildDumper return logical or physical dumper
 func BuildDumper(cnf *config.BackupConfig) (dumper Dumper, err error) {
-	if strings.ToLower(cnf.Public.BackupType) == "logical" {
+	if strings.ToLower(cnf.Public.BackupType) == cst.BackupLogical {
 		if err := validate.GoValidateStruct(cnf.LogicalBackup, false, false); err != nil {
 			return nil, err
 		}
 		dumper = &LogicalDumper{
 			cnf: cnf,
 		}
-	} else if strings.ToLower(cnf.Public.BackupType) == "physical" {
+	} else if strings.ToLower(cnf.Public.BackupType) == cst.BackupPhysical {
 		if err := validate.GoValidateStruct(cnf.PhysicalBackup, false, false); err != nil {
 			return nil, err
 		}

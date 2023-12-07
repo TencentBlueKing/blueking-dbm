@@ -3,8 +3,11 @@ package mysql
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/spf13/cast"
+
+	"github.com/pkg/errors"
 
 	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/logger"
@@ -14,8 +17,6 @@ import (
 	"dbm-services/mysql/db-tools/dbactuator/pkg/native"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util/osutil"
-
-	"github.com/pkg/errors"
 )
 
 // FindLocalBackupComp 有 resp 返回
@@ -50,7 +51,7 @@ type LocalBackupObj struct {
 	ClusterId       int    `json:"cluster_id"`
 
 	// 备份时间，目前是备份开始时间
-	BackupTime string `json:"backup_time"`
+	BackupTime time.Time `json:"backup_time"`
 	// InfoFile   common.InfoFileDetail `json:"info_file"`
 	// 备份文件列表
 	FileList []string `json:"file_list"`
@@ -138,11 +139,11 @@ func (f *FindLocalBackupParam) StartOld() error {
 					FileList:   fileList,
 					BackupType: file.BackupType,
 					// InfoFile:   file,
-					BKBizID:    cast.ToInt(file.App), // file.App
-					BackupTime: file.StartTime,
-					InstHost:   file.BackupHost,
-					InstPort:   file.BackupPort,
+					BKBizID:  cast.ToInt(file.App), // file.App
+					InstHost: file.BackupHost,
+					InstPort: file.BackupPort,
 				}
+				localBackup.BackupTime, _ = time.ParseInLocation("2006-01-02 15:04:05", file.StartTime, time.Local)
 				backups[info] = localBackup
 			}
 		}
@@ -187,7 +188,8 @@ func (f *FindLocalBackupParam) Start() error {
 				logger.Warn("backup index %s does not belong to cluster_id=%s", info, f.ClusterId)
 				continue
 			}
-			if file.ConsistentBackupTime > indexLatest.ConsistentBackupTime {
+			if file.BackupConsistentTime.Compare(indexLatest.BackupConsistentTime) > 0 {
+				//if file.BackupConsistentTime > indexLatest.BackupConsistentTime {
 				indexLatest = file
 			}
 			fileList := file.GetTarFileList("")
@@ -197,7 +199,7 @@ func (f *FindLocalBackupParam) Start() error {
 				BackupType:      file.BackupType,
 				BKBizID:         file.BkBizId,
 				ClusterId:       file.ClusterId,
-				BackupTime:      file.ConsistentBackupTime,
+				BackupTime:      file.BackupConsistentTime,
 				InstHost:        file.BackupHost,
 				InstPort:        file.BackupPort,
 				DBRole:          file.MysqlRole,
