@@ -104,6 +104,9 @@ INSTALLED_APPS += (
 
 
 MIDDLEWARE = (
+    # 接口耗时调试工具
+    # "pyinstrument.middleware.ProfilerMiddleware",
+
     # JWT认证，透传的应用信息，透传的用户信息
     "apigw_manager.apigw.authentication.ApiGatewayJWTGenericMiddleware",
     "apigw_manager.apigw.authentication.ApiGatewayJWTAppMiddleware",
@@ -528,3 +531,7 @@ GRAFANA = {
     },
     "BACKEND_CLASS": "backend.bk_dataview.grafana.backends.api.APIHandler",
 }
+
+
+# 全局启用 pyinstrument，或者在url后面加上?profile=1
+# PYINSTRUMENT_PROFILE_DIR = os.path.join(STATIC_ROOT, 'assets/perf')

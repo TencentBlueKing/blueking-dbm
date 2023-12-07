@@ -158,7 +158,7 @@ class ListRetrieveResource(query.ListRetrieveResource):
             return query.ResourceList(count=0, data=[])
 
         cluster_qset = cluster_qset.order_by("-create_at")[offset : limit + offset].prefetch_related(
-            Prefetch("storageinstance_set", queryset=storage_inst_qset, to_attr="masters")
+            Prefetch("storageinstance_set", queryset=storage_inst_qset.select_related("machine"), to_attr="masters")
         )
 
         clusters = []

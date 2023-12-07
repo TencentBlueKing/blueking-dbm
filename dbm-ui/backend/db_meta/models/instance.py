@@ -49,7 +49,7 @@ class InstanceMixin(object):
             "name": self.name,
             "ip": self.machine.ip,
             "port": self.port,
-            "instance": "{}{}{}".format(self.machine.ip, IP_PORT_DIVIDER, self.port),
+            "instance": self.ip_port,
             "status": self.status,
             "phase": getattr(self, "phase", None),
             "bk_instance_id": self.bk_instance_id,
@@ -61,7 +61,7 @@ class InstanceMixin(object):
 
     @property
     def ip_port(self):
-        return f"{self.machine.ip}{constants.IP_PORT_DIVIDER}{self.port}"
+        return f"{self.machine.ip}{IP_PORT_DIVIDER}{self.port}"
 
     @property
     def instance_type(self):
