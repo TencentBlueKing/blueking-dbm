@@ -164,8 +164,7 @@
     messageWarn,
   } from '@utils';
 
-  import { useTimeoutPoll } from '@vueuse/core';
-
+  // import { useTimeoutPoll } from '@vueuse/core';
   import RedisBackup from './components/Backup.vue';
   import ClusterPassword from './components/ClusterPassword.vue';
   import DeleteKeys from './components/DeleteKeys.vue';
@@ -838,16 +837,16 @@
   };
 
   // 设置轮询
-  const { pause, resume } = useTimeoutPoll(() => {
-    fetchResources({}, state.isInit);
-  }, 5000);
+  // const { pause, resume } = useTimeoutPoll(() => {
+  //   fetchResources({}, state.isInit);
+  // }, 5000);
   onMounted(() => {
-    resume();
+    // resume();
     tableMaxHeight.value = tableOutWrapperRef.value.clientHeight;
   });
-  onBeforeUnmount(() => {
-    pause();
-  });
+  // onBeforeUnmount(() => {
+  //   pause();
+  // });
 
   /**
    * 申请实例

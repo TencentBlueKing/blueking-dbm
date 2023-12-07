@@ -145,8 +145,7 @@
     random,
   } from '@utils';
 
-  import { useTimeoutPoll } from '@vueuse/core';
-
+  // import { useTimeoutPoll } from '@vueuse/core';
   import type {
     SearchSelectData,
     SearchSelectItem,
@@ -483,15 +482,16 @@
   });
 
   // 设置轮询
-  const { pause, resume } = useTimeoutPoll(() => {
-    fetchResources(isInit.value);
-  }, 5000, { immediate: false });
-  onMounted(() => {
-    resume();
-  });
-  onBeforeUnmount(() => {
-    pause();
-  });
+  // const { pause, resume } = useTimeoutPoll(() => {
+  //   fetchResources(isInit.value);
+  // }, 5000, { immediate: false });
+  // onMounted(() => {
+  //   fetchResources();
+  //   resume();
+  // });
+  // onBeforeUnmount(() => {
+  //   pause();
+  // });
 
   async function getMenuList(item: SearchSelectItem | undefined, keyword: string) {
     if (item?.id !== 'creator' && keyword) {

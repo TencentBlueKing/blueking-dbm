@@ -55,10 +55,8 @@
   import RedisModel from '@services/model/redis/redis';
   import ResourceSpecModel from '@services/model/resource-spec/resourceSpec';
   import { getResourceSpecList } from '@services/source/dbresourceSpec';
-  import { getRedisList } from '@services/source/redis';
+  import { getRedisListByBizId } from '@services/source/redis';
   import type { RedisClusterShardUpdateDetails, TicketDetails } from '@services/types/ticket';
-
-  import { useGlobalBizs } from '@stores';
 
   import { repairAndVerifyFrequencyList, repairAndVerifyTypeList } from '@views/redis/common/const';
 
@@ -76,7 +74,6 @@
 
   const props = defineProps<Props>();
 
-  const { currentBizId } = useGlobalBizs();
   const { t } = useI18n();
 
   // eslint-disable-next-line vue/no-setup-props-destructure
@@ -128,8 +125,12 @@
 
   const repairAndVerifyFrequencyMap = generateMap(repairAndVerifyFrequencyList);
 
-  const { loading } = useRequest(getRedisList, {
-    defaultParams: [{ bk_biz_id: currentBizId }],
+  const { loading } = useRequest(getRedisListByBizId, {
+    defaultParams: [{
+      bk_biz_id: props.ticketDetails.bk_biz_id,
+      offset: 0,
+      limit: -1,
+    }],
     onSuccess: async (result) => {
       if (result.results.length < 1) {
         return;

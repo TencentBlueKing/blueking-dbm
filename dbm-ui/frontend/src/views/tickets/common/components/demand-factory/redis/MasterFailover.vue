@@ -43,10 +43,8 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import { getRedisList } from '@services/source/redis';
+  import { getRedisListByBizId } from '@services/source/redis';
   import type { RedisMasterSlaveSwitchDetails, TicketDetails } from '@services/types/ticket';
-
-  import { useGlobalBizs } from '@stores';
 
   interface Props {
     ticketDetails: TicketDetails<RedisMasterSlaveSwitchDetails>
@@ -62,7 +60,6 @@
 
   const props = defineProps<Props>();
 
-  const { currentBizId } = useGlobalBizs();
   const { t } = useI18n();
 
   // eslint-disable-next-line vue/no-setup-props-destructure
@@ -93,8 +90,12 @@
     },
   ];
 
-  const { loading } = useRequest(getRedisList, {
-    defaultParams: [{ bk_biz_id: currentBizId }],
+  const { loading } = useRequest(getRedisListByBizId, {
+    defaultParams: [{
+      bk_biz_id: props.ticketDetails.bk_biz_id,
+      offset: 0,
+      limit: -1,
+    }],
     onSuccess: async (result) => {
       if (result.results.length < 1) {
         return;

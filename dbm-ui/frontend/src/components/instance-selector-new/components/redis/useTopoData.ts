@@ -47,6 +47,8 @@ export function useTopoData<T extends Record<string, any>>(filterClusterId: Comp
     isLoading.value = true;
     const params = {
       bk_biz_id: currentBizId,
+      offset: 0,
+      limit: -1,
     };
     return currentInstance.proxy.getTopoList(params).then((data) => {
       const countFn = currentInstance.proxy?.countFunc;

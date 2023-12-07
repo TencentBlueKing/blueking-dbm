@@ -56,7 +56,7 @@
 
   import ResourceSpecModel from '@services/model/resource-spec/resourceSpec';
   import { getResourceSpecList } from '@services/source/dbresourceSpec';
-  import { getSpiderList } from '@services/source/spider';
+  import { getSpiderListByBizId } from '@services/source/spider';
   import type { SpiderNodeRebalanceDetails, TicketDetails } from '@services/types/ticket';
 
   interface Props {
@@ -105,7 +105,12 @@
     },
   ];
 
-  const { loading } = useRequest(getSpiderList, {
+  const { loading } = useRequest(getSpiderListByBizId, {
+    defaultParams: [{
+      bk_biz_id: props.ticketDetails.bk_biz_id,
+      offset: 0,
+      limit: -1,
+    }],
     onSuccess: async (r) => {
       if (r.results.length < 1) {
         return;

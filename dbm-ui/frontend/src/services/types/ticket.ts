@@ -744,16 +744,11 @@ export interface BigDataCapacityDetails {
   cluster_id: number,
   nodes: NodesType,
   resource_spec: {
-    cold: {
+    [key: string]: {
       count: number,
-      instance_num: number,
+      instance_num?: number,
       spec_id: number
     },
-    hot: {
-      count: number,
-      instance_num: number,
-      spec_id: number
-    }
   }
 }
 

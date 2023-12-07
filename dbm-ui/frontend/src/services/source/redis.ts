@@ -37,8 +37,6 @@ const path = `/apis/redis/bizs/${currentBizId}/redis_resources`;
 export function getRedisList(params: {
   limit?: number,
   offset?: number,
-  type?: string,
-  dbType?: string,
   cluster_ids?: number[] | number,
   domain?: string,
   bk_biz_id?: number,
@@ -56,8 +54,6 @@ export function getRedisList(params: {
 export function getRedisListByBizId(params: {
   limit?: number,
   offset?: number,
-  type?: string,
-  dbType?: string,
   cluster_ids?: number[] | number,
   domain?: string,
   bk_biz_id?: number,

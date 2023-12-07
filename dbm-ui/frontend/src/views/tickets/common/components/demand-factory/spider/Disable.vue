@@ -23,7 +23,7 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import { getSpiderList } from '@services/source/spider';
+  import { getSpiderListByBizId } from '@services/source/spider';
   import type { SpiderDisableDetails, TicketDetails } from '@services/types/ticket';
 
   interface Props {
@@ -49,7 +49,12 @@
     },
   ];
 
-  const { loading } = useRequest(getSpiderList, {
+  const { loading } = useRequest(getSpiderListByBizId, {
+    defaultParams: [{
+      bk_biz_id: props.ticketDetails.bk_biz_id,
+      offset: 0,
+      limit: -1,
+    }],
     onSuccess: (r) => {
       if (r.results.length < 1) {
         return;
