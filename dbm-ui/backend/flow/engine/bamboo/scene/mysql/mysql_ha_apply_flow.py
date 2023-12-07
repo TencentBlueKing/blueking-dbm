@@ -20,7 +20,10 @@ from backend.configuration.constants import DBType
 from backend.db_meta.enums import ClusterType
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
-from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import build_surrounding_apps_sub_flow
+from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import (
+    build_surrounding_apps_sub_flow,
+    init_machine_sub_flow,
+)
 from backend.flow.plugins.components.collections.common.sa_idle_check import CheckMachineIdleComponent
 from backend.flow.plugins.components.collections.mysql.dns_manage import MySQLDnsManageComponent
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
@@ -107,38 +110,17 @@ class MySQLHAApplyFlow(object):
                 cluster_type=ClusterType.TenDBHA,
             )
 
-            # 初始化机器
-            exec_ips = [ip_info["ip"] for ip_info in info["mysql_ip_list"] + info["proxy_ip_list"]]
-            sub_pipeline.add_act(
-                act_name=_("初始化机器"),
-                act_component_code=SysInitComponent.code,
-                kwargs={
-                    "exec_ip": exec_ips,
-                    "bk_cloud_id": int(self.data["bk_cloud_id"]),
-                },
-            )
-
-            # 判断是否需要执行按照MySQL Perl依赖
-            if env.YUM_INSTALL_PERL:
-                exec_act_kwargs.exec_ip = [ip_info["ip"] for ip_info in info["mysql_ip_list"]]
-                sub_pipeline.add_act(
-                    act_name=_("安装MySQL Perl相关依赖"),
-                    act_component_code=MySQLOsInitComponent.code,
-                    kwargs=asdict(exec_act_kwargs),
+            # 初始新机器
+            sub_pipeline.add_sub_pipeline(
+                sub_flow=init_machine_sub_flow(
+                    uid=sub_flow_context["uid"],
+                    root_id=self.root_id,
+                    bk_cloud_id=int(sub_flow_context["bk_cloud_id"]),
+                    sys_init_ips=[ip_info["ip"] for ip_info in info["mysql_ip_list"] + info["proxy_ip_list"]],
+                    init_check_ips=[ip_info["ip"] for ip_info in info["mysql_ip_list"] + info["proxy_ip_list"]],
+                    yum_install_perl_ips=[ip_info["ip"] for ip_info in info["mysql_ip_list"] + info["proxy_ip_list"]],
                 )
-
-            # 并行执行空闲检查
-            if env.SA_CHECK_TEMPLATE_ID:
-                acts_list = []
-                for ip in [ip_info["ip"] for ip_info in info["mysql_ip_list"]]:
-                    acts_list.append(
-                        {
-                            "act_name": _("空闲检查"),
-                            "act_component_code": CheckMachineIdleComponent.code,
-                            "kwargs": {"ip": ip, "bk_biz_id": env.JOB_BLUEKING_BIZ_ID},
-                        }
-                    )
-                sub_pipeline.add_parallel_acts(acts_list=acts_list)
+            )
 
             # 阶段1 并行分发安装文件
             sub_pipeline.add_parallel_acts(

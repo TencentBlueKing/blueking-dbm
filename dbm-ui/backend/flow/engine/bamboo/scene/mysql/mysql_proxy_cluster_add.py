@@ -21,6 +21,8 @@ from backend.db_meta.enums import ClusterEntryType, ClusterType, InstanceInnerRo
 from backend.db_meta.models import Cluster, ProxyInstance, StorageInstance
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
+from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import init_machine_sub_flow
+from backend.flow.plugins.components.collections.common.sa_idle_check import CheckMachineIdleComponent
 from backend.flow.plugins.components.collections.mysql.dns_manage import MySQLDnsManageComponent
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.mysql.mysql_db_meta import MySQLDBMetaComponent
@@ -129,23 +131,17 @@ class MySQLProxyClusterAddFlow(object):
                 bk_cloud_id=info["proxy_ip"]["bk_cloud_id"],
             )
 
-            # 初始化机器
-            sub_pipeline.add_act(
-                act_name=_("初始化机器"),
-                act_component_code=SysInitComponent.code,
-                kwargs={
-                    "exec_ip": info["proxy_ip"]["ip"],
-                    "bk_cloud_id": info["proxy_ip"]["bk_cloud_id"],
-                },
-            )
-            # 判断是否需要执行按照MySQL Perl依赖
-            if env.YUM_INSTALL_PERL:
-                exec_act_kwargs.exec_ip = info["proxy_ip"]["ip"]
-                sub_pipeline.add_act(
-                    act_name=_("安装MySQL Perl相关依赖"),
-                    act_component_code=MySQLOsInitComponent.code,
-                    kwargs=asdict(exec_act_kwargs),
+            # 初始新机器
+            sub_pipeline.add_sub_pipeline(
+                sub_flow=init_machine_sub_flow(
+                    uid=sub_flow_context["uid"],
+                    root_id=self.root_id,
+                    bk_cloud_id=int(info["proxy_ip"]["bk_cloud_id"]),
+                    sys_init_ips=[info["proxy_ip"]["ip"]],
+                    init_check_ips=[info["proxy_ip"]["ip"]],
+                    yum_install_perl_ips=[info["proxy_ip"]["ip"]],
                 )
+            )
 
             # 阶段1 已机器维度，安装先上架的proxy实例
             sub_pipeline.add_act(
