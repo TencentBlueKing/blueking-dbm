@@ -247,6 +247,7 @@ class MySQLMigrateClusterRemoteFlow(object):
                     "new_slave_ip": self.data["new_slave_ip"],
                     "new_slave_port": master_model.port,
                     "mysql_port": master_model.port,
+                    "master_port": master_model.port,
                     "other_slave_info": other_slaves,
                 }
                 switch_sub_pipeline.add_sub_pipeline(
