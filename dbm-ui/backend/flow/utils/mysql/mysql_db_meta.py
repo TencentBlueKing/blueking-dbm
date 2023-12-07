@@ -506,7 +506,7 @@ class MySQLDBMeta(object):
                 master_ip=self.cluster["old_master_ip"],
                 slave_ip=self.cluster["new_master_ip"],
                 bk_cloud_id=self.cluster["bk_cloud_id"],
-                port_list=[self.cluster["master_port"]],
+                port_list=[self.cluster["mysql_port"]],
             )
 
     def mysql_migrate_cluster_add_tuple(self):
