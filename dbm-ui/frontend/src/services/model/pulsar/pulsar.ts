@@ -107,6 +107,7 @@ export default class Pulsar {
   pulsar_bookkeeper: Node[];
   pulsar_broker: Node[];
   pulsar_zookeeper: Node[];
+  region: string;
   status: string;
   update_at: string;
   updater: string;
@@ -132,6 +133,7 @@ export default class Pulsar {
     this.pulsar_bookkeeper = payload.pulsar_bookkeeper || [];
     this.pulsar_broker = payload.pulsar_broker || [];
     this.pulsar_zookeeper = payload.pulsar_zookeeper || [];
+    this.region = payload.region;
     this.status = payload.status;
     this.update_at = payload.update_at;
     this.updater = payload.updater;

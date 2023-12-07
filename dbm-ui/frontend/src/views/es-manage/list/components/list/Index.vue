@@ -275,6 +275,12 @@
       minWidth: 100,
     },
     {
+      label: t('地域'),
+      field: 'region',
+      minWidth: 100,
+      render: ({ data }: {data: EsModel}) => <span>{data?.region || '--'}</span>,
+    },
+    {
       label: t('Master节点'),
       field: 'es_master',
       minWidth: 230,
@@ -454,6 +460,7 @@
       'cluster_name',
       'bk_cloud_name',
       'major_version',
+      'region',
       'status',
       'es_master',
       'es_client',

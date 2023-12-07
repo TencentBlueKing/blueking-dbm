@@ -240,6 +240,12 @@
       minWidth: 100,
     },
     {
+      label: t('地域'),
+      field: 'region',
+      minWidth: 100,
+      render: ({ data }: {data: PulsarModel}) => <span>{data?.region || '--'}</span>,
+    },
+    {
       label: t('状态'),
       field: 'status',
       render: ({ data }: {data: PulsarModel}) => <RenderClusterStatus data={data.status} />,

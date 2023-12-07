@@ -13,6 +13,7 @@
 
 export * from './baseResponse';
 export * from './bizItem';
+export * from './clusters';
 export * from './hostDetails';
 export * from './hostNode';
 export * from './listBase';

@@ -11,6 +11,8 @@
  * the specific language governing permissions and limitations under the License.
 */
 
+import type { TaskflowItem } from '@services/types/taskflow';
+
 import D3Graph from '@blueking/bkflow.js';
 
 import GraphRender from './graphRender';
@@ -27,8 +29,9 @@ export default class GraphCanvas {
   tplRender: GraphRender;
   graphData: GraphData;
   expandNodes: string[]; // 展开节点
+  flowInfo: TaskflowItem;
 
-  constructor(selector: string) {
+  constructor(selector: string, flowInfo: TaskflowItem) {
     this.expandNodes = [];
     this.flowInstance = null;
     this.selector = selector;
@@ -37,11 +40,12 @@ export default class GraphCanvas {
       locations: [],
       lines: [],
     };
-
+    this.flowInfo = flowInfo;
     this.renderCanvas();
   }
 
   renderCanvas() {
+    const { flowInfo } = this;
     this.flowInstance = new D3Graph(this.selector, {
       mode: 'readonly',
       nodeTemplateKey: 'tpl',
@@ -61,7 +65,7 @@ export default class GraphCanvas {
         scaleExtent: [0.5, 1.5],
         controlPanel: false,
       },
-      onNodeRender: (node: any) => this.tplRender.render(node.tpl, [node]),
+      onNodeRender: (node: any) => this.tplRender.render(node.tpl, [node, flowInfo]),
     });
     this.flowInstance.renderGraph(this.graphData, false);
     this.updateLinePosition();
@@ -136,7 +140,7 @@ export default class GraphCanvas {
         if (sourceX !== targetX && sourceY !== targetY) {
           let breakPoint = [tOffsetX, sOffsetY];
           if (this.isLineCrossNode([source.x, source.y], [sOffsetX, sOffsetY], breakPoint)
-                    || this.isLineCrossNode([target.x, target.y], [tOffsetX, tOffsetY], breakPoint)
+            || this.isLineCrossNode([target.x, target.y], [tOffsetX, tOffsetY], breakPoint)
           ) {
             breakPoint = [sOffsetX, tOffsetY];
           }

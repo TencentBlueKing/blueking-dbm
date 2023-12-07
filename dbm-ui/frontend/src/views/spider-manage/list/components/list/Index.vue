@@ -510,6 +510,18 @@
       },
     },
     {
+      label: t('版本'),
+      field: 'major_version',
+      minWidth: 100,
+      render: ({ data }: IColumn) => <span>{data.major_version || '--'}</span>,
+    },
+    {
+      label: t('地域'),
+      field: 'region',
+      minWidth: 100,
+      render: ({ data }: IColumn) => <span>{data.region || '--'}</span>,
+    },
+    {
       label: t('创建人'),
       field: 'creator',
       width: 140,

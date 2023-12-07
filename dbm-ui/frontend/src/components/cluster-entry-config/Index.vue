@@ -46,16 +46,24 @@
   </BkDialog>
 </template>
 
-<script setup lang="tsx" generic="T extends Record<string, any>">
+<script
+  setup
+  lang="tsx"
+  generic="T extends ResourceItem | ResourceRedisItem | SpiderModel | EsModel | HdfsModel | KafkaModel | PulsarModel">
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
   import { updateClusterEntryConfig } from '@services/clusters';
+  import EsModel from '@services/model/es/es';
+  import HdfsModel from '@services/model/hdfs/hdfs';
+  import KafkaModel from '@services/model/kafka/kafka';
+  import PulsarModel from '@services/model/pulsar/pulsar';
+  import SpiderModel from '@services/model/spider/spider';
+  import type { ResourceItem, ResourceRedisItem } from '@services/types';
 
   import { messageError, messageSuccess } from '@utils';
 
   import MultipleInput, { checkIp } from './MultipleInput.vue';
-  import { useDetailData } from './useDetailData';
 
   export interface RowData {
     type: string,
@@ -70,9 +78,10 @@
 
   interface Props {
     id?: number
-    // eslint-disable-next-line vue/no-unused-properties
     getDetailInfo: (params: any) => Promise<T>
   }
+
+  type UpdateClusterEntryConfigParams = ServiceParameters<typeof updateClusterEntryConfig>;
 
   const props = defineProps<Props>();
 
@@ -83,9 +92,10 @@
   });
 
   const { t } = useI18n();
-  const { isLoading, clusterId,  data: tableData, fetchResources } = useDetailData<T>();
 
   const tableRef = ref();
+  const isLoading = ref(false);
+  const tableData = ref<RowData[]>([]);
 
   const columns = [
     {
@@ -103,11 +113,13 @@
   const { run: runUpdateClusterEntryConfig } = useRequest(updateClusterEntryConfig, {
     manual: true,
     onSuccess: (result) => {
-      if (result?.cluster_id === undefined) {
-        messageSuccess(t('修改成功'));
-        emits('success');
-        handleClose();
+      if (result.cluster_id) {
+        messageError(t('修改失败'));
+        return;
       }
+      messageSuccess(t('修改成功'));
+      emits('success');
+      handleClose();
     },
     onError: () => {
       messageError(t('修改失败'));
@@ -115,19 +127,33 @@
   });
 
   watch(() => props.id, (id) => {
-    clusterId.value = id;
+    if (id) {
+      fetchResources();
+    }
   }, {
     immediate: true,
   });
 
-  watch(isShow, (status) => {
-    if (status) {
-      setTimeout(() => {
-        fetchResources();
+  const fetchResources = () => {
+    isLoading.value = true;
+    props.getDetailInfo({
+      id: props.id,
+    })
+      .then((res: T) => {
+        tableData.value = res.cluster_entry_details.map(item => ({
+          type: item.cluster_entry_type,
+          entry: item.entry,
+          ips: item.target_details.map(row => row.ip).join('\n'),
+          port: item.target_details[0].port,
+        }));
+      })
+      .catch(() => {
+        tableData.value = [];
+      })
+      .finally(() => {
+        isLoading.value = false;
       });
-    }
-  });
-
+  };
 
   const generateCellClass = (cell: { field: string}) => (cell.field === 'ips' ? 'entry-config-ips-column' : '');
 
@@ -136,25 +162,26 @@
   };
 
   const handleConfirm = () => {
-    if (props.id !== undefined) {
-      const dnsData = tableData.value.filter(item => item.type === 'dns');
-      const dnsIps = dnsData.map(item => item.ips).map(item => item.split('\n'));
-      if (dnsIps.every(item => item.every(row => checkIp(row)))) {
-        const details = dnsData.reduce((results, item) => {
-          const obj = {
-            cluster_entry_type: item.type,
-            domain_name: item.entry,
-            target_instances: item.ips.split('\n').map(row => `${row}#${item.port}`),
-          };
-          results.push(obj);
-          return results;
-        }, [] as { cluster_entry_type: string, domain_name: string, target_instances: string[] }[]);
-        const params = {
-          cluster_id: props.id,
-          cluster_entry_details: details,
+    if (!props.id) {
+      return;
+    }
+    const dnsData = tableData.value.filter(item => item.type === 'dns');
+    const isChecked = dnsData.every(item => item.ips.split('\n').every(ip => checkIp(ip)));
+    if (isChecked) {
+      const details = dnsData.reduce((results, item) => {
+        const obj = {
+          cluster_entry_type: item.type,
+          domain_name: item.entry,
+          target_instances: item.ips.split('\n').map(row => `${row}#${item.port}`),
         };
-        runUpdateClusterEntryConfig(params);
-      }
+        results.push(obj);
+        return results;
+      }, [] as UpdateClusterEntryConfigParams['cluster_entry_details']);
+      const params = {
+        cluster_id: props.id,
+        cluster_entry_details: details,
+      };
+      runUpdateClusterEntryConfig(params);
     }
   };
 </script>

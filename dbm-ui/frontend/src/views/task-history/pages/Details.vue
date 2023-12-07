@@ -18,15 +18,15 @@
       ref="skippTipsRef"
       class="mission-tips-content">
       <div class="title">
-        {{ $t('确定忽略错误吗') }}
+        {{ t('确定忽略错误吗') }}
       </div>
       <div class="btn">
         <span
           class="bk-button-primary bk-button mr-8"
-          @click.stop="handleSkippClick">{{ $t('确定') }}</span>
+          @click.stop="handleSkippClick">{{ t('确定') }}</span>
         <span
           class="bk-button"
-          @click.stop="handleSkippCancel">{{ $t('取消') }}</span>
+          @click.stop="handleSkippCancel">{{ t('取消') }}</span>
       </div>
     </div>
     <div
@@ -34,15 +34,34 @@
       ref="refreshTemplateRef"
       class="mission-tips-content">
       <div class="title">
-        {{ $t('确定重试吗') }}
+        {{ t('确定重试吗') }}
       </div>
       <div class="btn">
         <span
           class="bk-button-primary bk-button mr-8"
-          @click.stop="handleRefreshClick">{{ $t('确定') }}</span>
+          @click.stop="handleRefreshClick">{{ t('确定') }}</span>
         <span
           class="bk-button"
-          @click.stop="handleRefreshCancel">{{ $t('取消') }}</span>
+          @click.stop="handleRefreshCancel">{{ t('取消') }}</span>
+      </div>
+    </div>
+    <div
+      v-show="forceFailState.isShow"
+      ref="forceFailTipsRef"
+      class="mission-force-fail-tip">
+      <div class="title">
+        {{ t('确定强制失败吗') }}
+      </div>
+      <div class="sub-title">
+        将会终止节点运行，并置为强制失败状态
+      </div>
+      <div class="btn">
+        <span
+          class="bk-button-primary bk-button confirm mr-8"
+          @click.stop="handleForceFailClick">{{ t('强制失败') }}</span>
+        <span
+          class="bk-button"
+          @click.stop="handleForceFailCancel">{{ t('取消') }}</span>
       </div>
     </div>
     <div class="mission-details">
@@ -51,7 +70,7 @@
         style="height: 100%;">
         <DbCard
           mode="collapse"
-          :title="$t('基本信息')">
+          :title="t('基本信息')">
           <EditInfo
             class="mission-details-base"
             :columns="baseColumns"
@@ -63,21 +82,21 @@
           ref="flowTopoRef"
           class="mission-details-flows"
           :mode="cardMode"
-          :title="$t('任务流程')">
+          :title="t('任务流程')">
           <template #header-right>
             <div
               class="flow-tools"
               @click.stop>
               <i
-                v-bk-tooltips="$t('放大')"
+                v-bk-tooltips="t('放大')"
                 class="flow-tools-icon db-icon-plus-circle"
                 @click.stop="handleZoomIn" />
               <i
-                v-bk-tooltips="$t('缩小')"
+                v-bk-tooltips="t('缩小')"
                 class="flow-tools-icon db-icon-minus-circle"
                 @click.stop="handleZoomOut" />
               <i
-                v-bk-tooltips="$t('还原')"
+                v-bk-tooltips="t('还原')"
                 class="flow-tools-icon db-icon-position"
                 @click.stop="handleZoomReset" />
               <BkPopover
@@ -94,7 +113,7 @@
                 @click.stop>
                 <DbIcon
                   ref="minimapTriggerRef"
-                  v-bk-tooltips="$t('缩略图')"
+                  v-bk-tooltips="t('缩略图')"
                   class="flow-tools-icon"
                   :class="{ 'flow-tools-icon-active': flowState.minimap.isShow }"
                   type="minimap"
@@ -122,7 +141,7 @@
                 @click.stop>
                 <DbIcon
                   ref="hotKeyTriggerRef"
-                  v-bk-tooltips="$t('快捷键')"
+                  v-bk-tooltips="t('快捷键')"
                   class="flow-tools-icon"
                   :class="{ 'flow-tools-icon-active': isShowHotKey }"
                   type="keyboard"
@@ -132,21 +151,21 @@
                     v-clickoutside:[hotKeyTriggerRef?.$el]="handleHiddenHotKey"
                     class="hot-key">
                     <div class="hot-key-title">
-                      {{ $t('快捷键') }}
+                      {{ t('快捷键') }}
                     </div>
                     <div class="hot-key-list">
                       <div class="hot-key-item">
-                        <span class="hot-key-text">{{ $t('放大') }}</span>
+                        <span class="hot-key-text">{{ t('放大') }}</span>
                         <span class="hot-key-code">Ctrl</span>
                         <span class="hot-key-code">+</span>
                       </div>
                       <div class="hot-key-item">
-                        <span class="hot-key-text">{{ $t('缩小') }}</span>
+                        <span class="hot-key-text">{{ t('缩小') }}</span>
                         <span class="hot-key-code">Ctrl</span>
                         <span class="hot-key-code">-</span>
                       </div>
                       <div class="hot-key-item">
-                        <span class="hot-key-text">{{ $t('还原') }}</span>
+                        <span class="hot-key-text">{{ t('还原') }}</span>
                         <span class="hot-key-code">Ctrl</span>
                         <span class="hot-key-code">0</span>
                       </div>
@@ -185,13 +204,13 @@
         <div
           v-if="statusText"
           class="mission-detail-status-info">
-          <span class="mr-8">{{ $t('状态') }}: </span>
+          <span class="mr-8">{{ t('状态') }}: </span>
           <span>
             <BkTag :theme="getStatusTheme(true)">{{ statusText }}</BkTag>
           </span>
         </div>
         <div class="mission-detail-status-info">
-          <span class="mr-8">{{ $t('总耗时') }}: </span>
+          <span class="mr-8">{{ t('总耗时') }}: </span>
           <CostTimer
             :is-timing="flowState.details?.flow_info?.status === 'RUNNING'"
             :value="(flowState.details?.flow_info?.cost_time || 0)" />
@@ -208,14 +227,14 @@
             :loading="isRevokePipeline"
             @click="handleToggleRevokeTips">
             <DbIcon type="revoke" />
-            {{ $t('终止任务') }}
+            {{ t('终止任务') }}
           </BkButton>
           <template #content>
             <div
               v-clickoutside:[revokeButtonRef?.$el]="handleHiddenRevokeTips"
               class="mission-tips-content">
               <div class="title">
-                {{ $t('确定终止任务吗') }}
+                {{ t('确定终止任务吗') }}
               </div>
               <div class="btn">
                 <BkButton
@@ -223,10 +242,10 @@
                   :loading="isRevokePipeline"
                   theme="primary"
                   @click.stop="handleRevokePipeline">
-                  {{ $t('确定') }}
+                  {{ t('确定') }}
                 </BkButton>
                 <BkButton @click="handleHiddenRevokeTips">
-                  {{ $t('取消') }}
+                  {{ t('取消') }}
                 </BkButton>
               </div>
             </div>
@@ -241,6 +260,7 @@
   import { useI18n } from 'vue-i18n';
 
   import {
+    forceFailflowNode,
     getTaskflowDetails,
     retryTaskflowNode,
     revokePipeline,
@@ -259,7 +279,11 @@
   } from '@components/editable-info/index.vue';
   import Minimap from '@components/minimap/Minimap.vue';
 
-  import { generateId, getCostTimeDisplay, messageSuccess } from '@utils';
+  import {
+    generateId,
+    getCostTimeDisplay,
+    messageSuccess,
+  } from '@utils';
 
   import { useFullscreen, useTimeoutPoll } from '@vueuse/core';
 
@@ -289,11 +313,14 @@
   const { t } = useI18n();
   const route = useRoute();
   const router = useRouter();
+
   const currentScope = getCurrentScope();
-  const rootId = computed(() => route.params.root_id as string);
+
   const refreshTemplateRef = ref<HTMLDivElement>();
   const skippTipsRef = ref<HTMLDivElement>();
+  const forceFailTipsRef = ref<HTMLDivElement>();
   const flowRef = ref<HTMLDivElement>();
+  const flowTopoRef = ref<HTMLDivElement>();
   const minimapRef = ref();
   const minimapTriggerRef = ref();
   const isShowHotKey = ref(false);
@@ -302,9 +329,11 @@
   const isRevokePipeline = ref(false);
   const isShowRevokePipelineTips = ref(false);
   const showHostPreview = ref(false);
-  const isShowRevokePipelineButton = computed(() => !['REVOKED', 'FAILED', 'FINISHED'].includes(flowState.details?.flow_info?.status));
-
   const isShowResultFile = ref(false);
+  const tippyInstances = ref<Instance[]>([]);
+  const skippInstances = ref<Instance[]>([]);
+  const forceFailInstances = ref<Instance[]>([]);
+
   const flowState = reactive({
     flowSelectorId: generateId('mission_flow_'),
     details: {} as FlowsData,
@@ -324,8 +353,51 @@
       isShow: false,
     },
   });
-  const expandNodes: string[] = [];
+
+  const skippState = reactive<{
+    instance: Instance | null,
+    node: GraphNode | null,
+    isShow: boolean,
+  }>({
+    instance: null,
+    node: null,
+    isShow: false,
+  });
+
+  const refreshState = reactive<{
+    instance: Instance | null,
+    node: GraphNode | null,
+    isShow: boolean,
+  }>({
+    instance: null,
+    node: null,
+    isShow: false,
+  });
+
+  const forceFailState = reactive<{
+    instance: Instance | null,
+    node: GraphNode | null,
+    isShow: boolean,
+  }>({
+    instance: null,
+    node: null,
+    isShow: false,
+  });
+
+  /**
+   * 查看节点日志
+   */
+  const logState = reactive({
+    isShow: false,
+    node: {} as GraphNode,
+  });
+
+  const rootId = computed(() => route.params.root_id as string);
+
+  const isShowRevokePipelineButton = computed(() => !['REVOKED', 'FAILED', 'FINISHED'].includes(flowState.details?.flow_info?.status));
+
   const baseInfo = computed(() => flowState.details.flow_info || {});
+
   const statusText = computed(() => {
     const statusMap = {
       CREATED: '等待执行',
@@ -341,18 +413,13 @@
     return value && statusMap[value] ? t(statusMap[value]) : '';
   });
 
-  const getStatusTheme = (isTag = false) => {
-    const value = baseInfo.value.status;
-    if (isTag && value === 'RUNNING') return 'info';
-    const themes = {
-      RUNNING: 'loading',
-      CREATED: 'default',
-      FINISHED: 'success',
-    };
-    return themes[value as keyof typeof themes] || 'danger' as any;
-  };
+  const screenIcon = computed(() => ({
+    icon: isFullscreen.value ? 'db-icon-un-full-screen' : 'db-icon-full-screen',
+    text: isFullscreen.value ? t('取消全屏') : t('全屏'),
+  }));
 
-  const showResultFileTypes: TicketTypesStrings[] = [TicketTypes.REDIS_KEYS_EXTRACT, TicketTypes.REDIS_KEYS_DELETE];
+  const cardMode = computed(() => (isFullscreen.value ? 'normal' : 'collapse'));
+
   const baseColumns = computed(() => {
     const columns: InfoColumn[][] = [
       [{
@@ -418,8 +485,41 @@
     }
     return columns;
   });
-  const tippyInstances = ref<Instance[]>([]);
-  const skippInstances = ref<Instance[]>([]);
+
+  /**
+   * 拓扑全屏切换
+   */
+  const { isFullscreen, toggle } = useFullscreen(flowTopoRef);
+
+  const expandNodes: string[] = [];
+  const showResultFileTypes: TicketTypesStrings[] = [TicketTypes.REDIS_KEYS_EXTRACT, TicketTypes.REDIS_KEYS_DELETE];
+
+  watch(() => baseInfo.value.status, (status) => {
+    if (status && flowState.instance === null) {
+      setTimeout(() => {
+        flowState.instance = new GraphCanvas(`#${flowState.flowSelectorId}`, baseInfo.value);
+        flowState.instance
+          .on('nodeClick', handleNodeClick)
+          .on('nodeMouseEnter', handleNodeMouseEnter)
+          .on('nodeMouseLeave', handleNodeMouseLeave);
+        retryRenderFailedTips();
+      });
+    }
+  }, {
+    immediate: true,
+  });
+
+  const getStatusTheme = (isTag = false) => {
+    const value = baseInfo.value.status;
+    if (isTag && value === 'RUNNING') return 'info';
+    const themes = {
+      RUNNING: 'loading',
+      CREATED: 'default',
+      FINISHED: 'success',
+    };
+    return themes[value as keyof typeof themes] || 'danger' as any;
+  };
+
   const updateMinimap = () => {
     const el = flowRef.value?.querySelector('.canvas-wrapper');
     if (el) {
@@ -474,6 +574,34 @@
   };
 
   /**
+   * 渲染失败重试tips
+   */
+  const retryRenderFailedTips = () => {
+    // 渲染失败重试tips
+    flowState.instance?.setUpdateCallback(() => {
+      if (baseInfo.value.status === 'REVOKED') {
+        return;
+      }
+      setTimeout(() => {
+        tippyInstances.value?.forEach?.(t => t.destroy());
+        tippyInstances.value = dbTippy(document.querySelectorAll('.operation-icon.db-icon-refresh-2'), {
+          content: t('失败重试'),
+        });
+        skippInstances.value?.forEach?.(t => t.destroy());
+        skippInstances.value = dbTippy(document.querySelectorAll('.operation-icon.db-icon-stop'), {
+          content: t('忽略错误'),
+        });
+        forceFailInstances.value?.forEach?.(t => t.destroy());
+        forceFailInstances.value = dbTippy(document.querySelectorAll('.operation-icon.db-icon-qiangzhizhongzhi'), {
+          content: t('强制失败'),
+        });
+      }, 30);
+    });
+    // 渲染画布节点
+    flowState.instance && renderNodes(true);
+  };
+
+  /**
    * 获取任务详情数据
    */
   const fetchTaskflowDetails = (loading = false) => {
@@ -481,21 +609,7 @@
     getTaskflowDetails({ rootId: rootId.value })
       .then((res) => {
         flowState.details = res;
-        // 渲染失败重试tips
-        flowState.instance.setUpdateCallback(() => {
-          setTimeout(() => {
-            tippyInstances.value?.forEach?.(t => t.destroy());
-            tippyInstances.value = dbTippy(document.querySelectorAll('.operation-icon.db-icon-refresh-2'), {
-              content: t('失败重试'),
-            });
-            skippInstances.value?.forEach?.(t => t.destroy());
-            skippInstances.value = dbTippy(document.querySelectorAll('.operation-icon.db-icon-stop'), {
-              content: t('忽略错误'),
-            });
-          }, 30);
-        });
-        // 渲染画布节点
-        renderNodes(true);
+        retryRenderFailedTips();
         // 设置面包屑内容
         mainViewStore.breadCrumbsTitle = `${res.flow_info.ticket_type_display}【${res.flow_info.root_id}】`;
       })
@@ -509,18 +623,8 @@
         }
       });
   };
-  const { isActive, pause, resume } = useTimeoutPoll(fetchTaskflowDetails, 10000);
 
-  /**
-   * 拓扑全屏切换
-   */
-  const flowTopoRef = ref<HTMLDivElement>();
-  const { isFullscreen, toggle } = useFullscreen(flowTopoRef);
-  const screenIcon = computed(() => ({
-    icon: isFullscreen.value ? 'db-icon-un-full-screen' : 'db-icon-full-screen',
-    text: isFullscreen.value ? t('取消全屏') : t('全屏'),
-  }));
-  const cardMode = computed(() => (isFullscreen.value ? 'normal' : 'collapse'));
+  const { isActive, pause, resume } = useTimeoutPoll(fetchTaskflowDetails, 10000);
 
   /**
    * 重试节点
@@ -550,6 +654,19 @@
     });
   };
 
+  /**
+   * 强制失败节点
+   */
+  const handleForceFail = (node: GraphNode) => {
+    forceFailflowNode({
+      root_id: rootId.value,
+      node_id: node.data.id,
+    }).then(() => {
+      renderNodes();
+      fetchTaskflowDetails();
+    });
+  };
+
   const handleRevokePipeline = () => {
     isRevokePipeline.value = true;
     revokePipeline({ rootId: rootId.value })
@@ -571,13 +688,6 @@
     isShowRevokePipelineTips.value = false;
   };
 
-  /**
-   * 查看节点日志
-   */
-  const logState = reactive({
-    isShow: false,
-    node: {} as GraphNode,
-  });
   const handleShowLog = (node: GraphNode) => {
     logState.isShow = true;
     logState.node = node;
@@ -585,26 +695,6 @@
   onUnmounted(() => {
     pause();
     flowState.instance?.destroy();
-  });
-
-  const skippState = reactive<{
-    instance: Instance | null,
-    node: GraphNode | null,
-    isShow: boolean,
-  }>({
-    instance: null,
-    node: null,
-    isShow: false,
-  });
-
-  const refreshState = reactive<{
-    instance: Instance | null,
-    node: GraphNode | null,
-    isShow: boolean,
-  }>({
-    instance: null,
-    node: null,
-    isShow: false,
   });
 
   /**
@@ -657,6 +747,27 @@
         skippState.instance.show();
         skippState.node = node;
         skippState.isShow = true;
+        return;
+      }
+
+      if (eventType === 'force-fail') {
+        forceFailState.instance && forceFailState.instance.destroy();
+        forceFailState.instance = dbTippy(event.target as HTMLElement, {
+          trigger: 'click',
+          theme: 'light',
+          content: forceFailTipsRef.value,
+          arrow: true,
+          placement: 'top',
+          appendTo: () => document.body,
+          interactive: true,
+          allowHTML: true,
+          hideOnClick: true,
+          maxWidth: 400,
+          zIndex: 9999,
+        });
+        forceFailState.instance.show();
+        forceFailState.node = node;
+        forceFailState.isShow = true;
         return;
       }
 
@@ -723,6 +834,18 @@
     handleRefreshCancel();
   };
 
+  const handleForceFailClick = () => {
+    if (forceFailState.node) {
+      handleForceFail(forceFailState.node);
+    }
+    handleForceFailCancel();
+  };
+
+  const handleForceFailCancel = () => {
+    forceFailState.instance && forceFailState.instance.destroy();
+    forceFailState.isShow = false;
+  };
+
   /**
    * 取消跳过节点
    */
@@ -783,14 +906,7 @@
    * 拓扑初始化
    */
   onMounted(() => {
-    nextTick(() => {
-      flowState.instance = new GraphCanvas(`#${flowState.flowSelectorId}`);
-      flowState.instance
-        .on('nodeClick', handleNodeClick)
-        .on('nodeMouseEnter', handleNodeMouseEnter)
-        .on('nodeMouseLeave', handleNodeMouseLeave);
-      fetchTaskflowDetails(true);
-    });
+    fetchTaskflowDetails(true);
 
     document.onkeydown = (e: KeyboardEvent) => {
       const isCtrl = e.ctrlKey || e.metaKey;
@@ -920,6 +1036,43 @@
       width: 100%;
       margin-top: 14px;
       text-align: right;
+
+      .bk-button {
+        height: 26px;
+        padding: 0 12px;
+        font-size: 12px;
+      }
+    }
+  }
+
+  .mission-force-fail-tip {
+    width: 280px;
+    padding: 12px 0 8px;
+    color: @default-color;
+
+    .title {
+      font-size: 16px;
+      color: #313238;
+    }
+
+    .sub-title {
+      margin-top: 6px;
+      margin-bottom: 16px;
+      font-size: 12px;
+      color: #63656E;
+    }
+
+    .btn {
+      width: 100%;
+      margin-top: 14px;
+      text-align: right;
+
+      .confirm {
+        width: 88px;
+        color: #fff;
+        background: #EA3636;
+        border: none;
+      }
 
       .bk-button {
         height: 26px;
@@ -1083,7 +1236,7 @@
           background-color: #929496;
           border-radius: 2px;
 
-          &.db-icon-refresh-2 {
+          &.db-icon-refresh-2, &.db-icon-qiangzhizhongzhi {
             display: inline-block;
             padding: 1px;
             font-size: 14px;

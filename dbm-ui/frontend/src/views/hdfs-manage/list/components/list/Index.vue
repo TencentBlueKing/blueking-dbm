@@ -300,6 +300,12 @@
       minWidth: 100,
     },
     {
+      label: t('地域'),
+      field: 'region',
+      minWidth: 100,
+      render: ({ data }: {data: HdfsModel}) => <span>{data?.region || '--'}</span>,
+    },
+    {
       label: 'NameNode',
       field: 'hdfs_namenode',
       minWidth: 230,
@@ -491,6 +497,7 @@
       'cluster_name',
       'bk_cloud_name',
       'major_version',
+      'region',
       'status',
       'hdfs_namenode',
       'hdfs_zookeeper',

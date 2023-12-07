@@ -143,6 +143,9 @@ url("fonts/iconcool.eot?#iefix") format("embedded-opentype");
 .db-icon-ticket:before {
 	content: "\e106";
 }
+.db-icon-pc:before {
+	content: "\e1e6";
+}
 .db-icon-edit:before {
 	content: "\e108";
 }
@@ -580,4 +583,7 @@ url("fonts/iconcool.eot?#iefix") format("embedded-opentype");
 }
 .db-icon-mobanshili:before {
 	content: "\e1e3";
+}
+.db-icon-qiangzhizhongzhi:before {
+	content: "\e1e7";
 }

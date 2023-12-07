@@ -95,7 +95,7 @@
   watch(() => props.clusterId, () => {
     if (props.clusterId) {
       fetchClusetrData({
-        clusterId: props.clusterId,
+        id: props.clusterId,
       });
     }
   }, {
