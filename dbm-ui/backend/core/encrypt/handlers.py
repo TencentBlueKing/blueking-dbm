@@ -13,7 +13,6 @@ import logging
 from typing import Any, Dict, List, Optional, Set, Tuple
 
 from bkcrypto.asymmetric.ciphers import BaseAsymmetricCipher
-from bkcrypto.contrib.django.ciphers import asymmetric_cipher_manager, symmetric_cipher_manager
 from bkcrypto.symmetric.ciphers import BaseSymmetricCipher
 from django.db import transaction
 from django.utils.crypto import get_random_string
@@ -21,6 +20,8 @@ from django.utils.crypto import get_random_string
 from backend import env
 from backend.core.encrypt.constants import AsymmetricCipherConfigType, AsymmetricCipherKeyType
 from backend.core.encrypt.models import AsymmetricCipherKey
+
+from .cipper_manager import asymmetric_cipher_manager, symmetric_cipher_manager
 
 logger = logging.getLogger("root")
 
@@ -172,12 +173,9 @@ class AsymmetricHandler:
         2. 去掉随机字符串
         @param content: 待解密内容
         """
+        logger.info(f"[AsymmetricHandler-RemoveSalt] content: {content}")
         cross_salt_content = SymmetricHandler.decrypt(content=content)
         plain_content = cross_salt_content[0:-1:2]
-        logger.info(
-            f"[AsymmetricHandler-RemoveSalt] "
-            f"content: {content}, cross_salt_content: {cross_salt_content}, plain_content: {plain_content}"
-        )
         return plain_content
 
     @classmethod
@@ -188,10 +186,10 @@ class AsymmetricHandler:
         @param content: 待加密内容
         @param need_salt: 是否加盐
         """
+        logger.info(f"[AsymmetricHandler-Encrypt] key: {name}, content: {content}")
         content = cls.add_salt(content) if need_salt else content
         asymmetric_cipher = cls.get_or_generate_cipher_instance(name)
         encrypt_content = asymmetric_cipher.encrypt(content)
-        logger.info(f"[AsymmetricHandler-Encrypt] key: {name}, content: {content}, encrypt: {encrypt_content}")
         return encrypt_content
 
     @classmethod
@@ -202,10 +200,10 @@ class AsymmetricHandler:
         @param content: 待解密内容
         @param salted: 是否存在加盐
         """
+        logger.info(f"[AsymmetricHandler-Decrypt] name: {name}, content: {content}")
         asymmetric_cipher = cls.get_or_generate_cipher_instance(name)
         plain_content = asymmetric_cipher.decrypt(content)
         plain_content = cls.remove_salt(plain_content) if salted else plain_content
-        logger.info(f"[AsymmetricHandler-Decrypt] content: {content}, decrypt: {plain_content}")
         return plain_content
 
     @classmethod

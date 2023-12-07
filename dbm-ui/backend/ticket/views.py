@@ -27,16 +27,8 @@ from backend.configuration.models import DBAdministrator
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.iam_app.handlers.drf_perm import TicketIAMPermission
 from backend.ticket.builders import BuilderFactory
-from backend.ticket.builders.common.base import InfluxdbTicketFlowBuilderPatchMixin
-from backend.ticket.constants import (
-    DONE_STATUS,
-    CountType,
-    FlowType,
-    FlowTypeConfig,
-    TicketStatus,
-    TicketType,
-    TodoStatus,
-)
+from backend.ticket.builders.common.base import InfluxdbTicketFlowBuilderPatchMixin, fetch_cluster_ids
+from backend.ticket.constants import DONE_STATUS, CountType, TicketStatus, TicketType, TodoStatus
 from backend.ticket.contexts import TicketContext
 from backend.ticket.exceptions import TicketDuplicationException
 from backend.ticket.flow_manager.manager import TicketFlowManager
@@ -79,6 +71,7 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
         "ticket_type": ["exact", "in"],
         "status": ["exact", "in"],
         "create_at": ["gte", "lte"],
+        "creator": ["exact"],
     }
 
     def _get_custom_permissions(self):
@@ -151,11 +144,9 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
                     )
             return
 
-        cluster_ids = get_target_items_from_details(obj=details, match_keys=["cluster_id", "cluster_ids"])
+        cluster_ids = fetch_cluster_ids(details=details)
         for ticket in active_tickets:
-            active_cluster_ids = get_target_items_from_details(
-                obj=ticket.details, match_keys=["cluster_id", "cluster_ids"]
-            )
+            active_cluster_ids = fetch_cluster_ids(details=ticket.details)
             duplicate_ids = list(set(active_cluster_ids).intersection(cluster_ids))
             if duplicate_ids:
                 raise TicketDuplicationException(

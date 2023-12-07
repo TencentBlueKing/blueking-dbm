@@ -16,9 +16,9 @@ from backend import env
 from backend.db_meta.models import Cluster, StorageInstance
 from backend.db_services.ipchooser.handlers.host_handler import HostHandler
 from backend.ticket.builders import BuilderFactory
+from backend.ticket.builders.common.base import fetch_cluster_ids, fetch_instance_ids
 from backend.ticket.constants import FlowTypeConfig, TicketType
 from backend.ticket.models import Ticket, TicketFlowConfig
-from backend.utils.basic import get_target_items_from_details
 
 
 class TicketHandler:
@@ -40,8 +40,8 @@ class TicketHandler:
 
         # 查询单据对应的集群列表、实例列表等
         for ticket in Ticket.objects.filter(id__in=ticket_ids):
-            _cluster_ids = get_target_items_from_details(ticket.details, match_keys=["cluster_id", "cluster_ids"])
-            _instance_ids = get_target_items_from_details(ticket.details, match_keys=["instance_id", "instance_ids"])
+            _cluster_ids = fetch_cluster_ids(ticket.details)
+            _instance_ids = fetch_instance_ids(ticket.details)
             cluster_ids.extend(_cluster_ids)
             instance_ids.extend(_instance_ids)
             ticket_id_obj_ids_map[ticket.id] = {"cluster_ids": _cluster_ids, "instance_ids": _instance_ids}

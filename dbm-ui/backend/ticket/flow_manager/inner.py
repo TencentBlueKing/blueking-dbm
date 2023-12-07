@@ -22,6 +22,7 @@ from backend.db_meta.models import Cluster
 from backend.flow.consts import StateType
 from backend.flow.models import FlowTree
 from backend.ticket import constants
+from backend.ticket.builders.common.base import fetch_cluster_ids
 from backend.ticket.constants import BAMBOO_STATE__TICKET_STATE_MAP, FlowCallbackType
 from backend.ticket.flow_manager.base import BaseTicketFlow
 from backend.ticket.models import Flow
@@ -107,7 +108,7 @@ class InnerFlow(BaseTicketFlow):
         #  4. 执行后台任务，后台任务执行完成以后，释放互斥锁(即在数据库删掉对应记录)
         #  考虑：如果单纯是为了防住同时操作，是不是设计一个全局锁就好了？
         ticket_type = self.ticket.ticket_type
-        cluster_ids = get_target_items_from_details(obj=self.ticket.details, match_keys=["cluster_id", "cluster_ids"])
+        cluster_ids = fetch_cluster_ids(details=self.ticket.details)
         Cluster.handle_exclusive_operations(
             cluster_ids=cluster_ids, ticket_type=ticket_type, exclude_ticket_ids=[self.ticket.id]
         )

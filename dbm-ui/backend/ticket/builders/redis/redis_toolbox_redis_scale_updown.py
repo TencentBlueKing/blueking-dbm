@@ -58,7 +58,7 @@ class RedisScaleUpDownParamBuilder(builders.FlowParamBuilder):
 
 class RedisScaleUpDownResourceParamBuilder(builders.ResourceApplyParamBuilder):
     def format(self):
-        self.patch_backend_affinity_location()
+        self.patch_info_affinity_location(roles=["backend_group"])
 
     def post_callback(self):
         super().post_callback()
