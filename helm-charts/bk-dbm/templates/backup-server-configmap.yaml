@@ -39,6 +39,7 @@ data:
         package_bkrepo_project: "{{ index .Values "backup-server" "package" "bkrepo_project" }}"
         package_bkrepo_public_bucket: "{{ index .Values "backup-server" "package" "bkrepo_public_bucket" }}"
         backupclient_default_dns: "{{ index .Values "backup-server" "backup_client" "cos_default_dns" }}"
+        backupclient_default_storage: "{{ index .Values "backup-server" "backup_client" "default_storage" }}"
       gse:
         {{- if .Values.bk.bkJobApiUrl }}
         address: "{{ .Values.bk.bkJobApiUrl }}"
