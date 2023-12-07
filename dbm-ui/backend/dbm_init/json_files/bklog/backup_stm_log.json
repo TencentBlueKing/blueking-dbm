@@ -7,6 +7,16 @@
     "etl_config": "bk_log_json",
     "description": "backup_stm_log",
     "environment": "linux",
+    "data_encoding": "UTF-8",
+    "retention": 7,
+    "es_shards": 3,
+    "target_object_type": "HOST",
+    "target_node_type": "TOPO",
+    "target_nodes": [
+        {% for node in target_nodes %}{{ node }}{% if not loop.last %}, {% endif %}
+        {% endfor %}
+    ],
+    {% if storage_cluster_id %}"storage_cluster_id": {{ storage_cluster_id }},{% endif %}
     "params": {
         "paths": [
             "/data/backup_stm/register/*.log"
@@ -749,14 +759,5 @@
             "is_delete": false,
             "is_dimension": true
         }
-    ],
-    "data_encoding": "UTF-8",
-    "retention": 7,
-    "es_shards": 3,
-    "target_object_type": "HOST",
-    "target_node_type": "TOPO",
-    "target_nodes": [
-        {% for node in target_nodes %}{{ node }}{% if not loop.last %}, {% endif %}
-        {% endfor %}
     ]
 }

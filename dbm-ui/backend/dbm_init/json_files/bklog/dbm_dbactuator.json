@@ -5,6 +5,16 @@
     "collector_scenario_id": "row",
     "category_id": "os",
     "etl_config": "bk_log_text",
+    "data_encoding": "UTF-8",
+    "retention": 7,
+    "es_shards": 3,
+    "target_object_type": "HOST",
+    "target_node_type": "TOPO",
+    "target_nodes": [
+        {% for node in target_nodes %}{{ node }}{% if not loop.last %}, {% endif %}
+        {% endfor %}
+    ],
+    {% if storage_cluster_id %}"storage_cluster_id": {{ storage_cluster_id }},{% endif %}
     "params": {
         "paths": ["/data/install/dbactuator*/logs/*.log"],
         "conditions": {
@@ -17,14 +27,5 @@
         "tail_files": true,
         "ignore_older": 2678400,
         "max_bytes": 204800
-    },
-    "data_encoding": "UTF-8",
-    "retention": 7,
-    "es_shards": 3,
-    "target_object_type": "HOST",
-    "target_node_type": "TOPO",
-    "target_nodes": [
-        {% for node in target_nodes %}{{ node }}{% if not loop.last %}, {% endif %}
-        {% endfor %}
-    ]
+    }
 }

@@ -107,12 +107,6 @@ class Services:
         """
 
         bklog_json_files_path = "backend/dbm_init/json_files/bklog"
-        # 获取当前采集项的列表 TODO: 暂时不做分页查询，默认当前系统采集项不超过500个
-        data = BKLogApi.list_collectors(
-            {"bk_biz_id": env.DBA_APP_BK_BIZ_ID, "pagesize": 500, "page": 1}, use_admin=True
-        )
-        collectors_name__info_map = {collector["collector_config_name_en"]: collector for collector in data["list"]}
-
         for filename in os.listdir(bklog_json_files_path):
             if not filename.endswith(".json"):
                 continue
@@ -136,6 +130,14 @@ class Services:
                 except json.decoder.JSONDecodeError as err:
                     logger.error(f"读取json文件失败: {filename}, {err}, {bklog_json_str}")
                     raise err
+
+            # 获取当前采集项的列表 TODO: 暂时不做分页查询，默认当前系统采集项不超过500个
+            data = BKLogApi.list_collectors(
+                {"bk_biz_id": env.DBA_APP_BK_BIZ_ID, "pagesize": 500, "page": 1}, use_admin=True
+            )
+            collectors_name__info_map = {
+                collector["collector_config_name_en"]: collector for collector in data["list"]
+            }
 
             # 判断采集项是否重复创建
             collector_name = bklog_json["collector_config_name_en"]

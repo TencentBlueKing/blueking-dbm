@@ -9,6 +9,15 @@
     "etl_params": {
         "retain_original_text": true
     },
+    "retention": 7,
+    "es_shards": 3,
+    "target_object_type": "HOST",
+    "target_node_type": "TOPO",
+    "target_nodes": [
+        {% for node in target_nodes %}{{ node }}{% if not loop.last %}, {% endif %}
+        {% endfor %}
+    ],
+    {% if storage_cluster_id %}"storage_cluster_id": {{ storage_cluster_id }},{% endif %}
     "params": {
         "paths": [
             "/home/mysql/dbareport/keylifecycle/redis_bigkey_*.log"
@@ -219,14 +228,5 @@
             "is_dimension": false,
             "previous_type": "int"
         }
-    ],
-    "need_assessment": false,
-    "retention": 7,
-    "es_shards": 3,
-    "target_object_type": "HOST",
-    "target_node_type": "TOPO",
-    "target_nodes": [
-        {% for node in target_nodes %}{{ node }}{% if not loop.last %}, {% endif %}
-        {% endfor %}
     ]
 }

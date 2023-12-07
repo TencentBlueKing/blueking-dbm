@@ -8,9 +8,9 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+from backend.utils.env import get_type_env
 
 # 制品库相关环境变量
-from ..utils.env import get_type_env
 
 STORAGE_TYPE = get_type_env(key="STORAGE_TYPE", _type=str, default="BLUEKING_ARTIFACTORY")
 FILE_OVERWRITE = get_type_env(key="FILE_OVERWRITE", _type=bool, default=True)

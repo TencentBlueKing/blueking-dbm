@@ -8,8 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-
-from ..utils.env import get_type_env
+from backend.utils.env import get_type_env
 
 CC_APIGW_DOMAIN = get_type_env(key="CC_APIGW_DOMAIN", _type=str)
 GSE_APIGW_DOMAIN = get_type_env(key="GSE_APIGW_DOMAIN", _type=str)
