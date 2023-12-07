@@ -36,7 +36,9 @@ func RedisClusterNewIns(instances []interface{},
 
 		// create detect instance by machine_type
 		if uIns.MetaType == constvar.RedisMetaType {
-			redisIns = append(redisIns, NewRedisDetectInstance(uIns, conf))
+			redisIns = append(redisIns, NewRedisDetectInstance(
+				uIns, constvar.RedisMetaType, conf,
+			))
 		} else if uIns.MetaType == constvar.TwemproxyMetaType {
 			twemIns = append(twemIns, NewTwemproxyDetectInstance(uIns, conf))
 		} else {
@@ -89,7 +91,9 @@ func RedisClusterDeserialize(jsonInfo []byte,
 
 	// create detect instance by machine_type
 	if response.DBType == constvar.RedisMetaType {
-		ret := NewRedisDetectInstanceFromRsp(&response, conf)
+		ret := NewRedisDetectInstanceFromRsp(
+			&response, constvar.RedisMetaType, conf,
+		)
 		return ret, nil
 	} else if response.DBType == constvar.TwemproxyMetaType {
 		ret := NewTwemproxyDetectInstanceFromRsp(&response, conf)
@@ -122,7 +126,8 @@ func RedisClusterNewSwitchIns(instances []interface{},
 		}
 
 		// create instance by machine_type
-		if metaType == constvar.RedisMetaType {
+		if metaType == constvar.RedisMetaType ||
+			metaType == constvar.TendisSSDMetaType {
 			pw, err := NewRedisSwitchIns(v, conf)
 			if err != nil {
 				log.Logger.Errorf("new redis switch ins failed:%s", err.Error())
@@ -157,9 +162,10 @@ func NewRedisSwitchIns(instance interface{},
 	}
 
 	// check machine_type is equal to tendiscache
-	if swIns.MetaType != constvar.RedisMetaType {
-		log.Logger.Errorf("Create redis switch while the metaType[%s] != %s",
-			swIns.MetaType, constvar.RedisMetaType)
+	if swIns.MetaType != constvar.RedisMetaType &&
+		swIns.MetaType != constvar.TendisSSDMetaType {
+		log.Logger.Errorf("Create redis switch while the metaType[%s] != %s and %s",
+			swIns.MetaType, constvar.RedisMetaType, constvar.TendisSSDMetaType)
 		return nil, err
 	}
 
@@ -171,7 +177,7 @@ func NewRedisSwitchIns(instance interface{},
 
 	// get the password of redis switch instance
 	passwd, err := GetInstancePassByClusterId(
-		constvar.RedisMetaType, pw.ClusterId, conf,
+		swIns.MetaType, pw.ClusterId, conf,
 	)
 	if err != nil {
 		log.Logger.Errorf("get redis switch passwd failed,err:%s,info:%s",

@@ -517,7 +517,7 @@ func ProcessSinglePassword(key string, pw client.PasswdItem,
 }
 
 // GetInstancePassByClusterId get password by cluster id
-func GetInstancePassByClusterId(dbType types.DBType, clusterId int,
+func GetInstancePassByClusterId(dbType string, clusterId int,
 	conf *config.Config) (string, error) {
 	var passwdCluster RedisPasswd
 	key := fmt.Sprintf("%d-0", clusterId)
@@ -578,7 +578,8 @@ func GetInstancePassByClusterId(dbType types.DBType, clusterId int,
 			string(dbType), passwdCluster.Proxy)
 		return passwdCluster.Proxy, nil
 	} else if dbType == constvar.RedisMetaType ||
-		dbType == constvar.TendisplusMetaType {
+		dbType == constvar.TendisplusMetaType ||
+		dbType == constvar.TendisSSDMetaType {
 		log.Logger.Debugf("GetPasswdByCId redis type[%s], passwd:%s",
 			string(dbType), passwdCluster.Redis)
 		return passwdCluster.Redis, nil
@@ -639,7 +640,8 @@ func GetRedisMachinePasswd(
 // SetPasswordToInstanceEx set password to redis detection instance
 func SetPasswordToInstanceEx(dbType types.DBType,
 	passwd RedisPasswd, ins dbutil.DataBaseDetect) error {
-	if dbType == constvar.RedisMetaType {
+	if dbType == constvar.RedisMetaType ||
+		dbType == constvar.TendisSSDMetaType {
 		cacheP, isCache := ins.(*RedisDetectInstance)
 		if isCache {
 			cacheP.Pass = passwd.Redis
