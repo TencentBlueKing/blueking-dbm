@@ -7,7 +7,6 @@ import (
 	"dbm-services/common/dbha/ha-module/constvar"
 	"dbm-services/common/dbha/ha-module/log"
 	"dbm-services/common/dbha/ha-module/types"
-	"dbm-services/common/dbha/ha-module/util"
 
 	"golang.org/x/crypto/ssh"
 )
@@ -80,7 +79,6 @@ type BaseDetectDB struct {
 
 // BaseDetectDBResponse agent do detect and response
 type BaseDetectDBResponse struct {
-	AgentIp     string `json:"agent_ip"`
 	DBIp        string `json:"db_ip"`
 	DBPort      int    `json:"db_port"`
 	DBType      string `json:"db_type"`
@@ -212,7 +210,6 @@ func (b *BaseDetectDB) ReturnSshInteractive() ssh.KeyboardInteractiveChallenge {
 // NewDBResponse init db response struct, use to unmarshal
 func (b *BaseDetectDB) NewDBResponse() BaseDetectDBResponse {
 	return BaseDetectDBResponse{
-		AgentIp:     util.LocalIp,
 		DBIp:        b.Ip,
 		DBPort:      b.Port,
 		App:         b.App,

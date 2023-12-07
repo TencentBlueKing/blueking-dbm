@@ -56,12 +56,6 @@ func main() {
 		os.Exit(1)
 	}
 
-	if util.LocalIp, err = util.GetMonIp(); err != nil {
-		log.Logger.Fatal("get component machine ip failed.")
-		os.Exit(1)
-	}
-	log.Logger.Debugf("local ip address:%s", util.LocalIp)
-
 	switch dbhaType {
 	case constvar.Agent:
 		// new agent for each db type

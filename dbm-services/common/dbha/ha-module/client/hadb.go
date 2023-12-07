@@ -232,7 +232,7 @@ func (c *HaDBClient) ReportDBStatus(
 }
 
 // ReportHaLog report ha logs
-func (c *HaDBClient) ReportHaLog(ip string, port int, module string, comment string) {
+func (c *HaDBClient) ReportHaLog(monIP, ip string, port int, module string, comment string) {
 	var result HaLogsRequest
 	log.Logger.Infof("reporter log. ip:%s, port:%d, module:%s, comment:%s",
 		ip, port, module, comment)
@@ -244,7 +244,7 @@ func (c *HaDBClient) ReportHaLog(ip string, port int, module string, comment str
 		SetArgs: &model.HaLogs{
 			IP:      ip,
 			Port:    port,
-			MonIP:   util.LocalIp,
+			MonIP:   monIP,
 			Module:  module,
 			CloudID: c.CloudId,
 			Comment: comment,
@@ -389,7 +389,7 @@ func (c *HaDBClient) GetAliveGMInfo(interval int) ([]GMInfo, error) {
 }
 
 // ReporterAgentHeartbeat report agent heartbeat to ha_status table
-func (c *HaDBClient) ReporterAgentHeartbeat(detectType string, interval int, gmInfo string) error {
+func (c *HaDBClient) ReporterAgentHeartbeat(agentIP, detectType string, interval int, gmInfo string) error {
 	var result HaStatusResponse
 
 	currentTime := time.Now()
@@ -398,7 +398,7 @@ func (c *HaDBClient) ReporterAgentHeartbeat(detectType string, interval int, gmI
 		BKCloudID:    c.CloudId,
 		Name:         constvar.ReporterAgentHeartbeat,
 		QueryArgs: &model.HaStatus{
-			IP:     util.LocalIp,
+			IP:     agentIP,
 			DbType: detectType,
 		},
 		SetArgs: &model.HaStatus{
@@ -427,7 +427,7 @@ func (c *HaDBClient) ReporterAgentHeartbeat(detectType string, interval int, gmI
 }
 
 // ReporterGMHeartbeat report gm heartbeat to ha_status
-func (c *HaDBClient) ReporterGMHeartbeat(module string, interval int) error {
+func (c *HaDBClient) ReporterGMHeartbeat(gmIP, module string, interval int) error {
 	var result HaStatusResponse
 
 	currentTime := time.Now()
@@ -436,7 +436,7 @@ func (c *HaDBClient) ReporterGMHeartbeat(module string, interval int) error {
 		BKCloudID:    c.CloudId,
 		Name:         constvar.ReporterGMHeartbeat,
 		QueryArgs: &model.HaStatus{
-			IP:     util.LocalIp,
+			IP:     gmIP,
 			Module: module,
 		},
 		SetArgs: &model.HaStatus{
@@ -745,7 +745,7 @@ func (c *HaDBClient) AgentGetHashValue(agentIP string, dbType string, interval i
 	if !find {
 		err = fmt.Errorf("bug: can't find in agent list. agentIP:%s, dbType:%s", agentIP, dbType)
 		log.Logger.Errorf(err.Error())
-		_ = c.ReporterAgentHeartbeat(dbType, interval, "N/A")
+		_ = c.ReporterAgentHeartbeat(agentIP, dbType, interval, "N/A")
 
 		return mod, modValue, err
 	}

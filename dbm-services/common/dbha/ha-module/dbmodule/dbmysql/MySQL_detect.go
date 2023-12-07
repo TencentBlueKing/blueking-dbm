@@ -221,7 +221,7 @@ func (m *MySQLDetectInstance) CheckMySQL(errChan chan error) {
 
 // CheckSSH use ssh check whether machine alived
 func (m *MySQLDetectInstance) CheckSSH() error {
-	touchFile := fmt.Sprintf("%s_%s_%d", m.SshInfo.Dest, util.LocalIp, m.Port)
+	touchFile := fmt.Sprintf("%s_%s_%d", m.SshInfo.Dest, "agent", m.Port)
 
 	touchStr := fmt.Sprintf("touch %s && if [ -d \"/data1/dbha/\" ]; then touch /data1/dbha/%s ; fi "+
 		"&& if [ -d \"/data/dbha/\" ]; then touch /data/dbha/%s ; fi", touchFile, touchFile, touchFile)

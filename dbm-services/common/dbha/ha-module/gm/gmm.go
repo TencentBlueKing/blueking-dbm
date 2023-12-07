@@ -62,6 +62,7 @@ func (gmm *GMM) PushInstance2Next(instance DoubleCheckInstanceInfo) {
 
 // Process gmm process instance detect
 func (gmm *GMM) Process(instance DoubleCheckInstanceInfo) {
+	gmIP := gmm.Conf.GMConf.LocalIP
 	checkStatus := instance.db.GetStatus()
 	switch checkStatus {
 	case constvar.SSHCheckSuccess:
@@ -69,6 +70,7 @@ func (gmm *GMM) Process(instance DoubleCheckInstanceInfo) {
 			ip, port := instance.db.GetAddress()
 			// no switch in machine level switch
 			gmm.HaDBClient.ReportHaLog(
+				gmIP,
 				ip,
 				port,
 				"gmm",
@@ -84,6 +86,7 @@ func (gmm *GMM) Process(instance DoubleCheckInstanceInfo) {
 				switch doubleCheckInstance.db.GetStatus() {
 				case constvar.DBCheckSuccess:
 					gmm.HaDBClient.ReportHaLog(
+						gmIP,
 						ip,
 						port,
 						"gmm",
@@ -93,6 +96,7 @@ func (gmm *GMM) Process(instance DoubleCheckInstanceInfo) {
 					{
 						// no switch in machine level switch
 						gmm.HaDBClient.ReportHaLog(
+							gmIP,
 							ip,
 							port,
 							"gmm",
@@ -102,6 +106,7 @@ func (gmm *GMM) Process(instance DoubleCheckInstanceInfo) {
 				case constvar.SSHCheckFailed:
 					{
 						gmm.HaDBClient.ReportHaLog(
+							gmIP,
 							ip,
 							port,
 							"gmm",
@@ -122,6 +127,7 @@ func (gmm *GMM) Process(instance DoubleCheckInstanceInfo) {
 						content := fmt.Sprintf("database authenticate failed, err:%s", err.Error())
 						log.Logger.Errorf(content)
 						gmm.HaDBClient.ReportHaLog(
+							gmIP,
 							ip,
 							port,
 							"gmm",

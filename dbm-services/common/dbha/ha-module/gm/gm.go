@@ -9,7 +9,6 @@ import (
 	"dbm-services/common/dbha/ha-module/constvar"
 	"dbm-services/common/dbha/ha-module/dbutil"
 	"dbm-services/common/dbha/ha-module/log"
-	"dbm-services/common/dbha/ha-module/util"
 )
 
 // InstanceKey instance key info
@@ -76,12 +75,12 @@ func NewGM(conf *config.Config) *GM {
 
 // Run gm work main entry
 func (gm *GM) Run() error {
-	if err := gm.HaDBClient.RegisterDBHAInfo(util.LocalIp, gm.Conf.GMConf.ListenPort, constvar.GM,
+	if err := gm.HaDBClient.RegisterDBHAInfo(gm.Conf.GMConf.LocalIP, gm.Conf.GMConf.ListenPort, constvar.GM,
 		gm.Conf.GMConf.CityID, gm.Conf.GMConf.Campus, "N/A"); err != nil {
 		return err
 	}
 
-	if err := gm.HaDBClient.RegisterDBHAInfo(util.LocalIp, gm.Conf.GMConf.ListenPort, constvar.GDM,
+	if err := gm.HaDBClient.RegisterDBHAInfo(gm.Conf.GMConf.LocalIP, gm.Conf.GMConf.ListenPort, constvar.GDM,
 		gm.Conf.GMConf.CityID, gm.Conf.GMConf.Campus, "N/A"); err != nil {
 		log.Logger.Errorf("GM register gcm module failed,err:%s", err.Error())
 		return err
@@ -91,7 +90,7 @@ func (gm *GM) Run() error {
 		gm.gdm.Run()
 	}()
 
-	if err := gm.HaDBClient.RegisterDBHAInfo(util.LocalIp, gm.Conf.GMConf.ListenPort, constvar.GMM,
+	if err := gm.HaDBClient.RegisterDBHAInfo(gm.Conf.GMConf.LocalIP, gm.Conf.GMConf.ListenPort, constvar.GMM,
 		gm.Conf.GMConf.CityID, gm.Conf.GMConf.Campus, "N/A"); err != nil {
 		log.Logger.Errorf("GM register gcm module failed,err:%s", err.Error())
 		return err
@@ -101,7 +100,7 @@ func (gm *GM) Run() error {
 		gm.gmm.Run()
 	}()
 
-	if err := gm.HaDBClient.RegisterDBHAInfo(util.LocalIp, gm.Conf.GMConf.ListenPort, constvar.GQA,
+	if err := gm.HaDBClient.RegisterDBHAInfo(gm.Conf.GMConf.LocalIP, gm.Conf.GMConf.ListenPort, constvar.GQA,
 		gm.Conf.GMConf.CityID, gm.Conf.GMConf.Campus, "N/A"); err != nil {
 		log.Logger.Errorf("GM register gcm module failed,err:%s", err.Error())
 		return err
@@ -111,7 +110,7 @@ func (gm *GM) Run() error {
 		gm.gqa.Run()
 	}()
 
-	if err := gm.HaDBClient.RegisterDBHAInfo(util.LocalIp, gm.Conf.GMConf.ListenPort, constvar.GCM,
+	if err := gm.HaDBClient.RegisterDBHAInfo(gm.Conf.GMConf.LocalIP, gm.Conf.GMConf.ListenPort, constvar.GCM,
 		gm.Conf.GMConf.CityID, gm.Conf.GMConf.Campus, "N/A"); err != nil {
 		log.Logger.Errorf("GM register gcm module failed,err:%s", err.Error())
 		return err
@@ -179,7 +178,7 @@ func (gm *GM) CheckReportMyself() {
 
 // DoDBHAReport do heartbeat report through api
 func (gm *GM) DoDBHAReport(module string) {
-	err := gm.HaDBClient.ReporterGMHeartbeat(module, gm.Conf.GMConf.ReportInterval)
+	err := gm.HaDBClient.ReporterGMHeartbeat(gm.Conf.GMConf.LocalIP, module, gm.Conf.GMConf.ReportInterval)
 	if err != nil {
 		log.Logger.Errorf("report module[%s] heartbeat to dbha failed", module)
 	} else {
