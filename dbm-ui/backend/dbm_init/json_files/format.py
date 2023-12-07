@@ -29,6 +29,7 @@ class JsonConfigFormat:
     def get_db_set_ctx(cls, db_type: str):
         return {
             "bk_biz_id": env.DBA_APP_BK_BIZ_ID,
+            "storage_cluster_id": env.STORAGE_CLUSTER_ID,
             "target_nodes": list(
                 set(
                     [
@@ -61,7 +62,11 @@ class JsonConfigFormat:
                 for topo in AppMonitorTopo.objects.exclude(bk_biz_id=env.DBA_APP_BK_BIZ_ID)
             ]
         )
-        return {"bk_biz_id": env.DBA_APP_BK_BIZ_ID, "target_nodes": list(set(target_nodes))}
+        return {
+            "bk_biz_id": env.DBA_APP_BK_BIZ_ID,
+            "storage_cluster_id": env.STORAGE_CLUSTER_ID,
+            "target_nodes": list(set(target_nodes)),
+        }
 
     @classmethod
     def format_dbm_dbactuator(cls):

@@ -5,6 +5,16 @@
     "collector_scenario_id": "section",
     "category_id": "host_process",
     "etl_config": "bk_log_regexp",
+    "data_encoding": "UTF-8",
+    "retention": 7,
+    "es_shards": 3,
+    "target_object_type": "SERVICE",
+    "target_node_type": "TOPO",
+    "target_nodes": [
+        {% for node in target_nodes %}{{ node }}{% if not loop.last %}, {% endif %}
+        {% endfor %}
+    ],
+    {% if storage_cluster_id %}"storage_cluster_id": {{ storage_cluster_id }},{% endif %}
     "etl_params": {
         "retain_original_text": true,
         "separator_regexp":"#\\s+User@Host:\\s+(?P<user>\\w+)\\[\\w+\\]\\s+@\\s+(?P<host>(\\w|\\[|\\]|\\.|\\s)+)\\s+Id:\\s+(?P<thread_id>\\d+)\\n#\\s+Query_time:\\s+(?P<query_time>\\w+\\.?\\w+)\\s+Lock_time:\\s+(?P<lock_time>\\w+\\.?\\w+)\\s+Rows_sent:\\s+(?P<rows_sent>\\d+)\\s+Rows_examined:\\s+(?P<rows_examined>\\d+)\\n(use\\s+(?P<use>.*);\\n)?SET\\s+timestamp=(?P<sql_timestamp>\\d+);\\n(?P<sql_text>(.|\\n)*)"
@@ -213,14 +223,5 @@
             },
             {"key": "$item", "value": "scope"}
         ]
-    },
-    "data_encoding": "UTF-8",
-    "retention": 7,
-    "es_shards": 3,
-    "target_object_type": "SERVICE",
-    "target_node_type": "TOPO",
-    "target_nodes": [
-        {% for node in target_nodes %}{{ node }}{% if not loop.last %}, {% endif %}
-        {% endfor %}
-    ]
+    }
 }

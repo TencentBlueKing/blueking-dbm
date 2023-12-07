@@ -6,6 +6,16 @@
     "collector_config_name_en": "redis_fullbackup_result",
     "collector_scenario_id": "row",
     "category_id": "host_process",
+    "need_assessment": false,
+    "retention": 7,
+    "es_shards": 3,
+    "target_object_type": "HOST",
+    "target_node_type": "TOPO",
+    "target_nodes": [
+        {% for node in target_nodes %}{{ node }}{% if not loop.last %}, {% endif %}
+        {% endfor %}
+    ],
+    {% if storage_cluster_id %}"storage_cluster_id": {{ storage_cluster_id }},{% endif %}
     "etl_params": {
         "retain_original_text": true
     },
@@ -381,14 +391,5 @@
             "is_dimension": false,
             "previous_type": "string"
         }
-    ],
-    "need_assessment": false,
-    "retention": 7,
-    "es_shards": 3,
-    "target_object_type": "HOST",
-    "target_node_type": "TOPO",
-    "target_nodes": [
-        {% for node in target_nodes %}{{ node }}{% if not loop.last %}, {% endif %}
-        {% endfor %}
     ]
 }

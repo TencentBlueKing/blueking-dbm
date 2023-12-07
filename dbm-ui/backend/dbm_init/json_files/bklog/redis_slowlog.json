@@ -4,6 +4,16 @@
     "collector_config_name_en": "redis_slowlog",
     "collector_scenario_id": "redis_slowlog",
     "category_id": "applications",
+    "data_encoding": "UTF-8",
+    "retention": 7,
+    "es_shards": 3,
+    "target_object_type": "SERVICE",
+    "target_node_type": "TOPO",
+    "target_nodes": [
+        {% for node in target_nodes %}{{ node }}{% if not loop.last %}, {% endif %}
+        {% endfor %}
+    ],
+    {% if storage_cluster_id %}"storage_cluster_id": {{ storage_cluster_id }},{% endif %}
     "params": {
         "redis_hosts": ["{{ '{{' }} cmdb_instance.service.labels[\"instance_host\"] {{ '}}' }}:{{ '{{' }} cmdb_instance.service.labels[\"instance_port\"] {{ '}}' }}"],
         "redis_password_file": "/home/mysql/.exporter/{{ '{{' }} cmdb_instance.service.labels[\"instance_port\"] {{ '}}' }}.conf",
@@ -30,14 +40,5 @@
             },
             {"key": "$item", "value": "scope"}
         ]
-    },
-    "data_encoding": "UTF-8",
-    "retention": 7,
-    "es_shards": 3,
-    "target_object_type": "SERVICE",
-    "target_node_type": "TOPO",
-    "target_nodes": [
-        {% for node in target_nodes %}{{ node }}{% if not loop.last %}, {% endif %}
-        {% endfor %}
-    ]
+    }
 }

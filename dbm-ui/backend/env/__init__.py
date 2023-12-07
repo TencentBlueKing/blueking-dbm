@@ -13,6 +13,7 @@ from bkcrypto.constants import AsymmetricCipherType, SymmetricCipherType
 from .apigw_domains import *  # pylint: disable=wildcard-import
 from .apm import *  # pylint: disable=wildcard-import
 from .bkrepo import *  # pylint: disable=wildcard-import
+from .dev import *  # pylint: disable=wildcard-import
 
 APP_CODE = get_type_env(key="APP_ID", default="bk-dbm", _type=str)
 SECRET_KEY = get_type_env(key="APP_TOKEN", default="yb2gur=g)hxbmpk3#b%ez5_#6o!tf9vkqsnwo4dxyr0n&w3=9k", _type=str)
@@ -90,24 +91,20 @@ SERVICE_ONLY = get_type_env(key="SERVICE_ONLY", _type=str, default=False)
 
 ADMIN_USERS = [u.strip() for u in get_type_env(key="ADMIN_USERS", default="admin", _type=str).split(",") if u]
 
-# 跳过审批开关，默认关闭，方便本地联调
-ITSM_FLOW_SKIP = get_type_env(key="ITSM_FLOW_SKIP", _type=str, default=False)
-
 # 名字服务北极星部门字段
 NAMESERVICE_POLARIS_DEPARTMENT = get_type_env(key="NAMESERVICE_POLARIS_DEPARTMENT", _type=str, default="")
 # 名字服务添加clb域名
 CLB_DOMAIN = get_type_env(key="CLB_DOMAIN", _type=bool, default=False)
 
+# 标准运维模板
 # 标准运维SA 空闲检查任务模版ID
 SA_CHECK_TEMPLATE_ID = get_type_env(key="SA_CHECK_TEMPLATE_ID", _type=int)
-
 # 标准运维SA 初始化任务模版ID
 SA_INIT_TEMPLATE_ID = get_type_env(key="SA_INIT_TEMPLATE_ID", _type=int)
-
 # 标准运维SA 安装L5Agent的模板ID
 SA_L5_AGENT_TEMPLATE_ID = get_type_env(key="SA_L5_AGENT_TEMPLATE_ID", _type=int)
 
-# 标准运维SA 初始化任务模版ID
+# 是否在部署 MySQL 的时候安装 PERL
 YUM_INSTALL_PERL = get_type_env(key="YUM_INSTALL_PERL", _type=bool, default=False)
 
 
@@ -134,21 +131,9 @@ DBM_EXTERNAL_ADDRESS = get_type_env(key="DBM_EXTERNAL_ADDRESS", _type=str, defau
 
 APIGW_PUBLIC_KEY = get_type_env(key="APIGW_PUBLIC_KEY", _type=str, default="")
 
-# 云区域组件旁路配置
-DRS_SKIP_SSL = get_type_env(key="DRS_SKIP_SSL", _type=bool, default=False)
-DOMAIN_SKIP_PROXY = get_type_env(key="DOMAIN_SKIP_PROXY", _type=bool, default=False)
-DRS_USERNAME = get_type_env(key="DRS_USERNAME", _type=str, default="")
-DRS_PASSWORD = get_type_env(key="DRS_PASSWORD", _type=str, default="")
-DBHA_USERNAME = get_type_env(key="DBHA_USERNAME", _type=str, default="")
-DBHA_PASSWORD = get_type_env(key="DBHA_PASSWORD", _type=str, default="")
-TEST_ACCESS_HOSTS = get_type_env(key="TEST_ACCESS_HOSTS", _type=list, default=[])
-
 # 版本号
 APP_VERSION = get_type_env(key="APP_VERSION", _type=str, default="")
 CHART_VERSION = get_type_env(key="CHART_VERSION", _type=str, default="")
-
-# 资源池伪造开关
-FAKE_RESOURCE_APPLY_ENABLE = get_type_env(key="FAKE_RESOURCE_APPLY_ENABLE", _type=bool, default=False)
 
 # Agent版本: 1.0/2.0
 GSE_AGENT_VERSION = get_type_env(key="GSE_AGENT_VERSION", _type=str, default="1.0")
@@ -156,3 +141,6 @@ GSE_AGENT_VERSION = get_type_env(key="GSE_AGENT_VERSION", _type=str, default="1.
 # 后端加密算法
 ASYMMETRIC_CIPHER_TYPE = get_type_env(key="ASYMMETRIC_CIPHER_TYPE", _type=str, default=AsymmetricCipherType.RSA.value)
 SYMMETRIC_CIPHER_TYPE = get_type_env(key="SYMMETRIC_CIPHER_TYPE", _type=str, default=SymmetricCipherType.AES.value)
+
+# 日志平台存储集群
+STORAGE_CLUSTER_ID = get_type_env(key="STORAGE_CLUSTER_ID", _type=int)
