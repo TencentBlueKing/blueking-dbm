@@ -51,6 +51,25 @@ export function getRedisList(params: {
 }
 
 /**
+ * 根据业务id获取集群列表
+ */
+export function getRedisListByBizId(params: {
+  limit?: number,
+  offset?: number,
+  type?: string,
+  dbType?: string,
+  cluster_ids?: number[] | number,
+  domain?: string,
+  bk_biz_id?: number,
+} = {}) {
+  return http.get<ListBase<RedisModel[]>>(`/apis/redis/bizs/${params.bk_biz_id}/redis_resources/`, params)
+    .then(data => ({
+      ...data,
+      results: data.results.map(item => new RedisModel(item)),
+    }));
+}
+
+/**
  * 查询表格信息
  */
 export function getRedisTableFields() {
