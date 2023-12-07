@@ -173,7 +173,6 @@ func migrateBackupSchema(err error, db *sqlx.DB) error {
 	}
 	if cmutil.NewMySQLError(err).Code == 1146 {
 		sqlList = append(sqlList, backupSchema)
-
 	} else if cmutil.NewMySQLError(err).Code == 1054 {
 		dropSchema := fmt.Sprintf(`DROP TABLE IF EXISTS %s.global_backup;`, cst.INFODBA_SCHEMA)
 		sqlList = append(sqlList, dropSchema)

@@ -8,6 +8,8 @@ import (
 	"strings"
 	"time"
 
+	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/cst"
+	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/dbareport"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/util"
 
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/logger"
@@ -95,9 +97,9 @@ func SetEnv(backupType string, mysqlVersionStr string) error {
 	ExecuteHome = filepath.Dir(exePath)
 	var libPath []string
 	var binPath []string
-	if strings.ToLower(backupType) == "logical" {
+	if strings.ToLower(backupType) == cst.BackupLogical {
 		libPath = append(libPath, filepath.Join(ExecuteHome, "lib/libmydumper"))
-	} else if strings.ToLower(backupType) == "physical" {
+	} else if strings.ToLower(backupType) == cst.BackupPhysical {
 		_, isOfficial := util.VersionParser(mysqlVersionStr)
 		if !isOfficial {
 			libPath = append(libPath, filepath.Join(ExecuteHome, "lib/libxtra"))
@@ -163,14 +165,14 @@ func GetMaxRunningTime(backupTimeOut string) (int64, error) {
 }
 
 // ParseJsonFile Parse JsonFile
-func ParseJsonFile(indexPath string) (*IndexContent, error) {
+func ParseJsonFile(indexPath string) (*dbareport.IndexContent, error) {
 	data, err := os.ReadFile(indexPath)
 	if err != nil {
 		logger.Log.Error(fmt.Sprintf("no such index file: %s", indexPath))
 		return nil, err
 	}
 
-	var indexFileContent IndexContent
+	var indexFileContent dbareport.IndexContent
 	err = json.Unmarshal(data, &indexFileContent)
 	if err != nil {
 		return nil, err

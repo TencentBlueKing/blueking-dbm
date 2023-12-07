@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/config"
+	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/cst"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/common"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/logger"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/mysqlconn"
@@ -12,7 +13,7 @@ import (
 
 // CheckCharset Check Mysql server charset
 func CheckCharset(cnf *config.Public) error {
-	if strings.ToLower(cnf.BackupType) != "logical" {
+	if strings.ToLower(cnf.BackupType) != cst.BackupLogical {
 		return nil
 	}
 	confCharset := cnf.MysqlCharset

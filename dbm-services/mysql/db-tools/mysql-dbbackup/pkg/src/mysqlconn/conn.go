@@ -13,7 +13,6 @@ import (
 
 	"dbm-services/common/go-pubpkg/mysqlcomm"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/config"
-	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/cst"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/logger"
 
 	// mysql driver
@@ -22,7 +21,8 @@ import (
 
 // InitConn create mysql connection
 func InitConn(cfg *config.Public) (*sql.DB, error) {
-	dsn := fmt.Sprintf("%s:%s@tcp(%s:%d)/", cfg.MysqlUser, cfg.MysqlPasswd, cfg.MysqlHost, cfg.MysqlPort)
+	dsn := fmt.Sprintf("%s:%s@tcp(%s:%d)/?parseTime=%t&loc=Local",
+		cfg.MysqlUser, cfg.MysqlPasswd, cfg.MysqlHost, cfg.MysqlPort, true)
 	db, err := sql.Open("mysql", dsn)
 	if err != nil {
 		logger.Log.Error("can't create the connection to Mysql server %v\n", err)
@@ -123,15 +123,7 @@ func GetMysqlCharset(dbh *sql.DB) ([]string, error) {
 
 // ShowMysqlSlaveStatus Show the slave status of mysql server
 // if server is master, return local ip:port
-func ShowMysqlSlaveStatus(connCnf *config.Public) (masterHost string, masterPort int, err error) {
-	db, err := InitConn(connCnf)
-	if err != nil {
-		return masterHost, masterPort, err
-	}
-	defer func() {
-		_ = db.Close()
-	}()
-
+func ShowMysqlSlaveStatus(db *sql.DB) (masterHost string, masterPort int, err error) {
 	rows, err := db.Query("show slave status")
 	if err != nil {
 		logger.Log.Error("failed to query show slave status, err: ", err)
@@ -164,13 +156,6 @@ func ShowMysqlSlaveStatus(connCnf *config.Public) (masterHost string, masterPort
 			}
 		}
 	}
-	if masterHost == "" && strings.ToLower(connCnf.MysqlRole) == cst.RoleMaster {
-		masterHost = connCnf.MysqlHost
-	}
-	if masterPort == 0 && strings.ToLower(connCnf.MysqlRole) == cst.RoleMaster {
-		masterPort = cast.ToInt(connCnf.MysqlPort)
-	}
-
 	return masterHost, masterPort, nil
 }
 

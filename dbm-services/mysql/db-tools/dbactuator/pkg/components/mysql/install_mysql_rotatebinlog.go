@@ -143,13 +143,15 @@ func (c *InstallMysqlRotateBinlogComp) GenerateBinaryConfig() (err error) {
 }
 
 // InstallCrontab 注册crontab
+// 如果是以root用户执行的安装，可能会产生root文件
 func (c *InstallMysqlRotateBinlogComp) InstallCrontab() (err error) {
 	err = osutil.RemoveSystemCrontab("rotate_logbin")
 	if err != nil {
 		logger.Error("remove old rotate_logbin crontab failed: %s", err.Error())
 		return err
 	}
-	registerCmd := fmt.Sprintf("%s -c %s --addSchedule 2>/dev/null", c.binPath, c.configFile)
+	registerCmd := fmt.Sprintf("%s -c %s --addSchedule 2>/dev/null && chown -R mysql %s",
+		c.binPath, c.configFile, c.installPath)
 	str, err := osutil.ExecShellCommand(false, registerCmd)
 	if err != nil {
 		logger.Error(

@@ -61,8 +61,8 @@ type context struct {
 }
 
 type Report struct {
-	Result []*dbareport.BackupResult `json:"report_result"`
-	Status *dbareport.BackupStatus   `json:"report_status"`
+	Result []*dbareport.BackupLogReport `json:"report_result"`
+	Status *dbareport.BackupStatus      `json:"report_status"`
 }
 
 func (c *Component) Init() (err error) {
@@ -267,7 +267,7 @@ func (c *Component) generateReport() (report *Report, err error) {
 			continue
 		}
 
-		var result dbareport.BackupResult
+		var result dbareport.BackupLogReport
 		err = json.Unmarshal([]byte(line), &result)
 		if err != nil {
 			logger.Error("unmarshal %s failed: %s", line, err.Error())

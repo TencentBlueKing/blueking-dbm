@@ -10,8 +10,10 @@ const (
 	BackupSchema = "schema"
 	// BackupData TODO
 	BackupData = "data"
-	// BackupAll TODO
+	// BackupAll 相当于 data,schema,grant
 	BackupAll = "all"
+	// BackupNone 不备份任何内容
+	BackupNone = "none"
 )
 
 const (
@@ -21,6 +23,11 @@ const (
 	RoleSlave = "slave"
 	// RoleRepeater TODO
 	RoleRepeater = "repeater"
+)
+
+const (
+	BackupPhysical = "physical"
+	BackupLogical  = "logical"
 )
 
 const (
@@ -55,3 +62,28 @@ const SpiderNodeShardValue = 0
 
 // ZstdSuffix zstd compress file suffix
 const ZstdSuffix = ".zst"
+
+const (
+	MydumperTimeLayout   = "2006-01-02 15:04:05"
+	XtrabackupTimeLayout = "2006-01-02 15:04:05"
+	StandardTimeLayout   = "2006-01-02T15:04:05-0700"
+)
+
+const (
+	// FileSchema TODO
+	FileSchema = "schema"
+	// FileData TODO
+	FileData = "data"
+	// FileMetadata TODO
+	FileMetadata = "metadata"
+	// FileOther TODO
+	FileOther = "other"
+	// FilePriv TODO
+	FilePriv = "priv"
+	// FilePart tar part
+	FilePart  = "part"
+	FileTar   = "tar"
+	FileIndex = "index"
+)
+
+const DBAReportBase = "/home/mysql/dbareport"

@@ -29,7 +29,7 @@ func Execute() {
 }
 
 var rootCmd = &cobra.Command{
-	Use:   "rotate_binlog",
+	Use:   "rotatebinlog",
 	Short: "rotate binlog and backup them to remote",
 	Long: `rotate binlog files and backup them to remote
                 backup system`,

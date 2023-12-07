@@ -1,4 +1,4 @@
-package dbareport
+package backupexe
 
 import (
 	"bufio"
@@ -8,35 +8,13 @@ import (
 	"strings"
 	"time"
 
+	"github.com/pkg/errors"
+
+	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/cst"
+	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/dbareport"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/logger"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/util"
-
-	"github.com/google/uuid"
 )
-
-// GenerateUUid Generate UUid
-func GenerateUUid() (string, error) {
-	uuids, err := uuid.NewUUID()
-	if err != nil {
-		logger.Log.Error("failed to generate Uuid, err: ", err)
-		return "", err
-	}
-	return uuids.String(), nil
-}
-
-// GetFileType get the type of backup file
-func GetFileType(fileName string) (fileType string) {
-	if strings.HasSuffix(fileName, ".tar") {
-		fileType = "tar"
-	} else if strings.HasSuffix(fileName, ".priv") {
-		fileType = "priv"
-	} else if strings.HasSuffix(fileName, ".index") {
-		fileType = "index"
-	} else {
-		fileType = "other"
-	}
-	return fileType
-}
 
 type mydumperMetadata struct {
 	DumpStarted  string
@@ -131,8 +109,9 @@ func openXtrabackupFile(binpath string, fileName string, tmpFileName string) (*o
 }
 
 // parseXtraInfo get xtrabackup start_time / end_time
-func parseXtraInfo(backupResult *BackupResult, binpath string, fileName string, tmpFileName string) error {
-	tmpFile, err := openXtrabackupFile(binpath, fileName, tmpFileName)
+// return startTime,endTime,error
+func parseXtraInfo(qpress string, fileName string, tmpFileName string, metaInfo *dbareport.IndexContent) error {
+	tmpFile, err := openXtrabackupFile(qpress, fileName, tmpFileName)
 	if err != nil {
 		return err
 	}
@@ -141,24 +120,30 @@ func parseXtraInfo(backupResult *BackupResult, binpath string, fileName string, 
 	}()
 
 	buf := bufio.NewScanner(tmpFile)
-	var startTime, endTime string
+	var startTimeStr, endTimeStr string
 	for buf.Scan() {
 		line := buf.Text()
 		if strings.HasPrefix(line, "start_time = ") {
-			startTime = strings.TrimPrefix(line, "start_time = ")
-			backupResult.BackupBeginTime = startTime
+			startTimeStr = strings.TrimPrefix(line, "start_time = ")
+			metaInfo.BackupBeginTime, err = time.ParseInLocation(cst.XtrabackupTimeLayout, startTimeStr, time.Local)
+			if err != nil {
+				return errors.Wrapf(err, "parse BackupBeginTime %s", startTimeStr)
+			}
 		}
 		if strings.HasPrefix(line, "end_time = ") {
-			endTime = strings.TrimPrefix(line, "end_time = ")
-			backupResult.BackupEndTime = endTime
+			endTimeStr = strings.TrimPrefix(line, "end_time = ")
+			metaInfo.BackupEndTime, err = time.ParseInLocation(cst.XtrabackupTimeLayout, endTimeStr, time.Local)
+			if err != nil {
+				return errors.Wrapf(err, "parse BackupEndTime %s", endTimeStr)
+			}
 		}
 	}
 	return nil
 }
 
 // parseXtraTimestamp get consistentTime from xtrabackup_timestamp_info(if exists)
-func parseXtraTimestamp(backupResult *BackupResult, binpath string, fileName string, tmpFileName string) error {
-	tmpFile, err := openXtrabackupFile(binpath, fileName, tmpFileName)
+func parseXtraTimestamp(qpress string, fileName string, tmpFileName string, metaInfo *dbareport.IndexContent) error {
+	tmpFile, err := openXtrabackupFile(qpress, fileName, tmpFileName)
 	xtrabackupTimestampFileExist := true
 	if err != nil {
 		xtrabackupTimestampFileExist = false
@@ -171,33 +156,33 @@ func parseXtraTimestamp(backupResult *BackupResult, binpath string, fileName str
 		buf := bufio.NewScanner(tmpFile)
 		for buf.Scan() {
 			line := buf.Text()
-			consistentTime, err := time.Parse("20060102_150405", line)
+			metaInfo.BackupConsistentTime, err = time.ParseInLocation("20060102_150405", line, time.Local)
 			if err != nil {
-				return err
+				return errors.Wrapf(err, "parse BackupConsistentTime %s", line)
 			}
-			backupResult.ConsistentBackupTime = consistentTime.Format("2006-01-02 15:04:05")
 		}
 	} else {
 		// 此时刚备份完成，还没有开始打包，这里把当前时间认为是 consistent_time，不完善！
 		logger.Log.Warnf("xtrabackup_info file not found: %s, use current time as Consistent Time", fileName)
 		// TODO 时区问题，待处理
-		backupResult.ConsistentBackupTime = time.Now().Format("2006-01-02 15:04:05")
+		timeNowStr := time.Now().Format(cst.StandardTimeLayout) // 去除秒以后的时间，保持格式化
+		metaInfo.BackupConsistentTime, _ = time.Parse(cst.StandardTimeLayout, timeNowStr)
 	}
 	return nil
 }
 
 // parseXtraBinlogInfo parse xtrabackup_binlog_info to get master info
-func parseXtraBinlogInfo(backupResult *BackupResult, binpath string, fileName string, tmpFileName string) error {
-	tmpFile, err := openXtrabackupFile(binpath, fileName, tmpFileName)
+func parseXtraBinlogInfo(qpress string, fileName string, tmpFileName string) (*dbareport.StatusInfo, error) {
+	tmpFile, err := openXtrabackupFile(qpress, fileName, tmpFileName)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer func() {
 		_ = tmpFile.Close()
 	}()
-	showMasterStatus := &StatusInfo{
-		MasterHost: backupResult.MysqlHost, // use backup_host as local binlog file_pos host
-		MasterPort: backupResult.MysqlPort,
+	showMasterStatus := &dbareport.StatusInfo{
+		//MasterHost: backupResult.MysqlHost, // use backup_host as local binlog file_pos host
+		//MasterPort: backupResult.MysqlPort,
 	}
 	buf := bufio.NewScanner(tmpFile)
 	for buf.Scan() {
@@ -210,22 +195,21 @@ func parseXtraBinlogInfo(backupResult *BackupResult, binpath string, fileName st
 			showMasterStatus.Gtid = words[2]
 		}
 	}
-	backupResult.BinlogInfo.ShowMasterStatus = showMasterStatus
-	return nil
+	return showMasterStatus, nil
 }
 
 // parseXtraSlaveInfo parse xtrabackup_slave_info to get slave info
-func parseXtraSlaveInfo(backupResult *BackupResult, binpath string, fileName string, tmpFileName string) error {
-	tmpFile, err := openXtrabackupFile(binpath, fileName, tmpFileName)
+func parseXtraSlaveInfo(qpress string, fileName string, tmpFileName string) (*dbareport.StatusInfo, error) {
+	tmpFile, err := openXtrabackupFile(qpress, fileName, tmpFileName)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer func() {
 		_ = tmpFile.Close()
 	}()
-	showSlaveStatus := &StatusInfo{
-		MasterHost: backupResult.MasterHost,
-		MasterPort: backupResult.MysqlPort,
+	showSlaveStatus := &dbareport.StatusInfo{
+		//MasterHost: backupResult.MasterHost,
+		//MasterPort: backupResult.MysqlPort,
 	}
 	buf := bufio.NewScanner(tmpFile)
 	for buf.Scan() {
@@ -237,6 +221,5 @@ func parseXtraSlaveInfo(backupResult *BackupResult, binpath string, fileName str
 			showSlaveStatus.BinlogPos = matches[2]
 		}
 	}
-	backupResult.BinlogInfo.ShowSlaveStatus = showSlaveStatus
-	return nil
+	return showSlaveStatus, nil
 }

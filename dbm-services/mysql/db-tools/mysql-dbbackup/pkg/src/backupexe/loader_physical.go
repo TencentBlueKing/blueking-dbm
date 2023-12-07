@@ -9,6 +9,7 @@ import (
 
 	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/config"
+	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/dbareport"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/logger"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/util"
 
@@ -26,7 +27,7 @@ type PhysicalLoader struct {
 	isOfficial    bool
 }
 
-func (p *PhysicalLoader) initConfig(indexContent *IndexContent) error {
+func (p *PhysicalLoader) initConfig(indexContent *dbareport.IndexContent) error {
 	if p.cnf == nil {
 		return errors.New("physical loader params is nil")
 	}
