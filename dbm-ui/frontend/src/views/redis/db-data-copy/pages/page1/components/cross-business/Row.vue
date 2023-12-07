@@ -92,7 +92,7 @@
 
 </script>
 <script setup lang="ts">
-  import { getRedisList } from '@services/source/redis';
+  import { getRedisListByBizId } from '@services/source/redis';
 
   interface Props {
     data: IDataRow,
@@ -124,7 +124,11 @@
 
   // 目标业务变动后，集群列表更新
   const handleBusinessChange = async (bizId: number) => {
-    const result = await getRedisList();
+    const result = await getRedisListByBizId({
+      bk_biz_id: bizId,
+      offset: 0,
+      limit: -1,
+    });
     clusterList.value = result.results.reduce((results, item) => {
       if (item.master_domain !== props.data.srcCluster) {
         const obj = {
