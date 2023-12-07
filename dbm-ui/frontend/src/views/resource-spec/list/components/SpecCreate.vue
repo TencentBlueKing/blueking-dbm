@@ -145,6 +145,24 @@
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
 
+  const notRequiredStorageList = [
+    `${ClusterTypes.TENDBHA}_proxy`,
+    `${ClusterTypes.TWEMPROXY_REDIS_INSTANCE}_twemproxy`,
+    `${ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE}_twemproxy`,
+    `${ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER}_predixy`,
+    `${ClusterTypes.ES}_es_client`,
+    `${ClusterTypes.PULSAE}_pulsar_broker`,
+  ];
+  const isRequired = !notRequiredStorageList.includes(`${props.clusterType}_${props.machineType}`);
+
+  const hasQPSSpecs = [
+    // `${ClusterTypes.TWEMPROXY_REDIS_INSTANCE}_tendiscache`,
+    // `${ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE}_tendisssd`,
+    // `${ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER}_tendisplus`,
+    `${ClusterTypes.TENDBCLUSTER}_remote`,
+  ];
+  const hasQPS = hasQPSSpecs.includes(`${props.clusterType}_${props.machineType}`);
+
   const initFormdata = () => {
     if (props.data) {
       return _.cloneDeep(props.data);
@@ -152,7 +170,7 @@
 
     const genStorageSpec = () => [
       {
-        mount_point: '/data',
+        mount_point: isRequired ? '/data' : '',
         size: '' as string | number,
         type: '',
       },
@@ -193,15 +211,7 @@
   const isCustomInput = ref(false);
   const initFormdataStringify = JSON.stringify(formdata.value);
   const isChange = computed(() => JSON.stringify(formdata.value) !== initFormdataStringify);
-  const notRequiredStorageList = [
-    `${ClusterTypes.TENDBHA}_proxy`,
-    `${ClusterTypes.TWEMPROXY_REDIS_INSTANCE}_twemproxy`,
-    `${ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE}_twemproxy`,
-    `${ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER}_predixy`,
-    `${ClusterTypes.ES}_es_client`,
-    `${ClusterTypes.PULSAE}_pulsar_broker`,
-  ];
-  const isRequired = computed(() => !notRequiredStorageList.includes(`${props.clusterType}_${props.machineType}`));
+
   const nameRules = computed(() => [
     {
       required: true,
@@ -220,15 +230,6 @@
       trigger: 'blur',
     },
   ]);
-
-  const hasQPSSpecs = [
-    // `${ClusterTypes.TWEMPROXY_REDIS_INSTANCE}_tendiscache`,
-    // `${ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE}_tendisssd`,
-    // `${ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER}_tendisplus`,
-    `${ClusterTypes.TENDBCLUSTER}_remote`,
-  ];
-
-  const hasQPS = computed(() => hasQPSSpecs.includes(`${props.clusterType}_${props.machineType}`));
 
   useStickyFooter(formWrapperRef, formFooterRef);
 
