@@ -25,10 +25,8 @@
 
   import ResourceSpecModel from '@services/model/resource-spec/resourceSpec';
   import { getResourceSpecList } from '@services/source/dbresourceSpec';
-  import { getRedisList } from '@services/source/redis';
+  import { getRedisListByBizId } from '@services/source/redis';
   import type { RedisScaleUpDownDetails, TicketDetails } from '@services/types/ticket';
-
-  import { useGlobalBizs } from '@stores';
 
   interface Props {
     ticketDetails: TicketDetails<RedisScaleUpDownDetails>
@@ -52,7 +50,6 @@
 
   const props = defineProps<Props>();
 
-  const { currentBizId } = useGlobalBizs();
   const { t } = useI18n();
 
   // eslint-disable-next-line vue/no-setup-props-destructure
@@ -106,8 +103,12 @@
     },
   ];
 
-  const { loading } = useRequest(getRedisList, {
-    defaultParams: [{ bk_biz_id: currentBizId }],
+  const { loading } = useRequest(getRedisListByBizId, {
+    defaultParams: [{
+      bk_biz_id: props.ticketDetails.bk_biz_id,
+      offset: 0,
+      limit: -1,
+    }],
     onSuccess: async (result) => {
       if (result.results.length < 1) {
         return;

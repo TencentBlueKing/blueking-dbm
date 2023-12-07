@@ -136,8 +136,7 @@
     isRecentDays,
   } from '@utils';
 
-  import { useTimeoutPoll } from '@vueuse/core';
-
+  // import { useTimeoutPoll } from '@vueuse/core';
   import type { SearchSelectItem } from '@/types/bkui-vue';
 
   interface ColumnData {
@@ -548,12 +547,12 @@
   };
 
   // 设置轮询
-  const {
-    pause,
-    resume,
-  } = useTimeoutPoll(() => fetchData(isInit.value), 5000, {
-    immediate: false,
-  });
+  // const {
+  //   pause,
+  //   resume,
+  // } = useTimeoutPoll(() => fetchData(isInit.value), 5000, {
+  //   immediate: false,
+  // });
 
 
   const handleOpenEntryConfig = (row: ResourceItem) => {
@@ -701,12 +700,13 @@
     });
   };
 
-  onMounted(() => {
-    resume();
-  });
-  onBeforeUnmount(() => {
-    pause();
-  });
+  // onMounted(() => {
+  //   resume();
+  //   fetchData();
+  // });
+  // onBeforeUnmount(() => {
+  //   pause();
+  // });
 </script>
 
 <style lang="less" scoped>

@@ -45,8 +45,44 @@ export function getTendbClusterList(params: Record<string, any> = {}) {
 /**
  * 获取 spider 集群列表
  */
-export function getSpiderList(params: Record<string, any>) {
+export function getSpiderList(params: {
+  limit?: number,
+  offset?: number,
+  id?: number,
+  name?: string,
+  ip?: string,
+  domain?: string,
+  creator?: string,
+  version?: string,
+  cluster_ids?: number[],
+  db_module_id?: number,
+  region?: string,
+}) {
   return http.get<ListBase<SpiderModel[]>>(`${path}/`, params)
+    .then(data => ({
+      ...data,
+      results: data.results.map((item: SpiderModel) => new SpiderModel(item)),
+    }));
+}
+
+/**
+ * 根据业务 id 获取 spider 集群列表
+ */
+export function getSpiderListByBizId(params: {
+  bk_biz_id: number,
+  limit?: number,
+  offset?: number,
+  id?: number,
+  name?: string,
+  ip?: string,
+  domain?: string,
+  creator?: string,
+  version?: string,
+  cluster_ids?: number[],
+  db_module_id?: number,
+  region?: string,
+}) {
+  return http.get<ListBase<SpiderModel[]>>(`/apis/mysql/bizs/${params.bk_biz_id}/spider_resources/`, params)
     .then(data => ({
       ...data,
       results: data.results.map((item: SpiderModel) => new SpiderModel(item)),

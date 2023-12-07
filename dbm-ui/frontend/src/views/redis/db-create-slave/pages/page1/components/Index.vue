@@ -60,13 +60,13 @@
           :min-width="130"
           :required="false"
           :width="190">
-          <span>{{ $t('故障从库主机数量') }}</span>
+          <span>{{ $t('故障从库实例数量') }}</span>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
           :min-width="130"
           :required="false"
           :width="190">
-          <span>{{ $t('当前从库主机数量') }}</span>
+          <span>{{ $t('当前从库实例数量') }}</span>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
           fixed="right"
