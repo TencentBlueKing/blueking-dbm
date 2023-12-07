@@ -210,7 +210,7 @@ func Doimport(param ImportMachParam) (resp *ImportHostResp, err error) {
 	}
 	hostOsMap := make(map[string]string)
 	for _, h := range ccHostsInfo {
-		hostOsMap[h.InnerIP] = h.BkOsType
+		hostOsMap[h.InnerIP] = model.ConvertOsTypeToHuman(h.BkOsType)
 	}
 	diskResp, err = bk.GetDiskInfo(param.getJobIpList(), param.BkBizId, hostOsMap)
 	if err != nil {
