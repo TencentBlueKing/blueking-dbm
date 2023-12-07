@@ -74,7 +74,7 @@ func New(clientPath string, authFile string, fileTag string, storageType string)
 		}
 		b.registerArgs = append(b.registerArgs, "--auth-file", b.AuthFile)
 	}
-	if b.StorageType != "" {
+	if b.StorageType != "" { // 使用 backup_client 系统默认 storage_type
 		if !slices.Contains(storageTypeAllowed, b.StorageType) {
 			return nil, errors.Errorf("unknown backup_client storage_type %s", b.StorageType)
 		}
