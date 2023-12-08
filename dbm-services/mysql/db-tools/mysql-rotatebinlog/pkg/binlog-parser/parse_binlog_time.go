@@ -28,7 +28,8 @@ func (t *BinlogTimeComp) Example() interface{} {
 		Params: BinlogTimeParam{
 			BinlogDir:   "/data/dbbak",
 			BinlogFiles: []string{"binlog20000.00001", "binlog20000.00002"},
-			Format:      "json",
+			OutFormat:   "json",
+			TimeLayout:  time.RFC3339,
 		},
 	}
 }
@@ -37,13 +38,14 @@ func (t *BinlogTimeComp) Example() interface{} {
 type BinlogTimeParam struct {
 	BinlogDir   string   `json:"binlog_dir" validate:"required"`
 	BinlogFiles []string `json:"binlog_files" validate:"required"`
-	Format      string   `json:"format" enums:",json,dump"`
+	OutFormat   string   `json:"format" enums:",json,dump"`
+	TimeLayout  string   `json:"time_layout"`
 	parser      *BinlogParse
 }
 
 // Init TODO
 func (t *BinlogTimeComp) Init() error {
-	bp, err := NewBinlogParse("mysql", 0)
+	bp, err := NewBinlogParse("mysql", 0, t.Params.TimeLayout)
 	if err != nil {
 		return err
 	}
@@ -104,10 +106,11 @@ type BinlogParse struct {
 
 // NewBinlogParse godoc
 // lastBufSize 默认会根据当前 binlog filename 来算，见 GetRotateEvent
-func NewBinlogParse(flavor string, lastBufSize int) (*BinlogParse, error) {
+func NewBinlogParse(flavor string, lastBufSize int, timeFormat string) (*BinlogParse, error) {
 	bp := BinlogParse{
 		Flavor:      flavor,
 		LastBufSize: lastBufSize,
+		TimeLayout:  timeFormat,
 	}
 	if err := bp.init(); err != nil {
 		return nil, err
@@ -180,6 +183,7 @@ type BinlogEventHeaderWrapper struct {
 	// replication.BinlogEvent
 	evHeader  replication.EventHeader
 	EventType string `json:"event_type"`
+	// EventTime 已经转换成指定 time_layout 格式
 	EventTime string `json:"event_time"`
 	Timestamp uint32 `json:"timestamp"`
 	ServerID  uint32 `json:"server_id"`

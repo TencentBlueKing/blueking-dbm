@@ -7,7 +7,7 @@ GITDATE=""
 TAR_PKG = ${PROJ}.tar
 PROJ_PKG = ${PROJ}.tar.gz
 OUTPUT_DIR = build
-RELEASE_BUILD_FLAG = "-X ${MODULE}/cmd.version=${VERSION} -X ${MODULE}/cmd.gitHash=${GITHASH} "
+RELEASE_BUILD_FLAG = "-w -s -X ${MODULE}/cmd.version=${VERSION} -X ${MODULE}/cmd.gitHash=${GITHASH} "
 BETA_BUILD_FLAG = "-X ${MODULE}/cmd.version="develop" -X ${MODULE}/cmd.gitHash="" "
 BASE_DIR = $(shell pwd)
 

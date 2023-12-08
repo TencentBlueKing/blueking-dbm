@@ -11,6 +11,7 @@ import (
 
 	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/logger"
+	"dbm-services/common/go-pubpkg/reportlog"
 	"dbm-services/common/go-pubpkg/timeutil"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/native"
 	"dbm-services/mysql/db-tools/mysql-rotatebinlog/pkg/backup"
@@ -57,7 +58,7 @@ func (i *ServerObj) String() string {
 
 // Rotate 实例 rotate 主逻辑
 // 如果返回有错误，该实例不参与后续binlog处理。不返回错误 nil 时，ServerObj.rotate 对象有效
-func (i *ServerObj) Rotate() (err error) {
+func (i *ServerObj) Rotate() (lastFileBefore *models.BinlogFileModel, err error) {
 	maxKeepDuration := timeutil.ViperGetDuration("public.max_keep_duration")
 	if maxKeepDuration < cst.MaxKeepDurationMin {
 		logger.Warn("max_keep_duration=%s is too small, set to %s", maxKeepDuration, cst.MaxKeepDurationMin)
@@ -65,13 +66,13 @@ func (i *ServerObj) Rotate() (err error) {
 	}
 
 	if i.dbWorker, err = i.instance.Conn(); err != nil {
-		return err
+		return nil, err
 	}
 	if i.binlogDir, _, err = i.dbWorker.GetBinlogDir(i.Port); err != nil {
-		return err
+		return nil, err
 	}
 	rotate := &BinlogRotate{
-		backupClient: i.backupClient,
+		//backupClient: i.backupClient,
 		binlogInst: models.BinlogFileModel{
 			BkBizId:   i.Tags.BkBizId,
 			ClusterId: i.Tags.ClusterId,
@@ -86,14 +87,21 @@ func (i *ServerObj) Rotate() (err error) {
 	i.rotate = rotate
 	logger.Info("rotate obj: %+v", rotate)
 	if err := os.Chmod(i.binlogDir, 0755); err != nil {
-		return errors.Wrap(err, "chmod 655")
+		return nil, errors.Wrap(err, "chmod 655")
 	}
 
 	if err = i.FlushLogs(); err != nil {
 		logger.Error(err.Error())
 		logger.Error("%+v", err)
 	}
-	return nil
+
+	//var lastFileBefore *models.BinlogFileModel // 之前登记处理过的最后一个文件
+	if lastFileBefore, err = i.rotate.binlogInst.QueryLastFileReport(models.DB.Conn); err != nil {
+		logger.Error(err.Error())
+	}
+	logger.Info("last binlog file processed: %s", lastFileBefore)
+
+	return lastFileBefore, nil
 }
 
 // FreeSpace 实例 rotate 主逻辑
@@ -156,7 +164,7 @@ func (i *ServerObj) getBinlogFilesLocal() (string, []*BinlogFile, error) {
 			i.binlogFiles = append(
 				i.binlogFiles, &BinlogFile{
 					Filename: fi.Name(),
-					Mtime:    fii.ModTime().Format(cst.DBTimeLayout),
+					Mtime:    fii.ModTime().Format(reportlog.ReportTimeLayout1),
 					Size:     fii.Size(),
 				},
 			)
@@ -167,7 +175,7 @@ func (i *ServerObj) getBinlogFilesLocal() (string, []*BinlogFile, error) {
 		i.binlogFiles,
 		func(m, n int) bool { return i.binlogFiles[m].Filename < i.binlogFiles[n].Filename },
 	) // 升序
-	logger.Info("getBinlogFilesLocal: %+v", i.binlogFiles)
+	//logger.Info("getBinlogFilesLocal: %+v", i.binlogFiles)
 	return i.binlogDir, i.binlogFiles, nil
 }
 

@@ -9,9 +9,11 @@ import (
 	"strings"
 	"sync"
 	"text/template"
+	"time"
 
 	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/logger"
+	"dbm-services/common/go-pubpkg/reportlog"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components/mysql/common"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/native"
@@ -116,9 +118,11 @@ type MySQLClientOpt struct {
 
 // MySQLBinlogUtil TODO
 type MySQLBinlogUtil struct {
-	// --start-datetime
+	// --start-datetime  时间格式
+	// 格式 "2006-01-02 15:04:05" 原样传递给 mysqlbinlog
+	// 格式"2006-01-02T15:04:05Z07:00"(示例"2023-12-11T05:03:05+08:00")按照机器本地时间，解析成 "2006-01-02 15:04:05" 再传递给 mysqlbinlog
 	StartTime string `json:"start_time"`
-	// --stop-datetime
+	// --stop-datetime   时间格式同 StartTime，可带时区，会转换成机器本地时间
 	StopTime string `json:"stop_time"`
 	// --start-position
 	StartPos uint `json:"start_pos,omitempty"`
@@ -320,6 +324,24 @@ func (r *RecoverBinlog) Init() error {
 	}
 	if r.RecoverOpt.Flashback && !r.QuickMode {
 		return errors.New("--flashback need quick_mode=true")
+	}
+	if r.RecoverOpt.StartTime != "" {
+		if t, err := time.ParseInLocation(time.RFC3339, r.RecoverOpt.StartTime, time.Local); err == nil {
+			r.RecoverOpt.StartTime = t.Format(time.DateTime)
+		} else if _, err := time.ParseInLocation(time.DateTime, r.RecoverOpt.StartTime, time.Local); err == nil {
+			// keep b.StartTime
+		} else {
+			return errors.Errorf("unknown time format for start_time: %s", r.RecoverOpt.StartTime)
+		}
+	}
+	if r.RecoverOpt.StopTime != "" {
+		if t, err := time.ParseInLocation(time.RFC3339, r.RecoverOpt.StopTime, time.Local); err == nil {
+			r.RecoverOpt.StopTime = t.Format(time.DateTime)
+		} else if _, err := time.ParseInLocation(time.DateTime, r.RecoverOpt.StopTime, time.Local); err == nil {
+			// keep b.StopTime
+		} else {
+			return errors.Errorf("unknown time format for stop_time: %s", r.RecoverOpt.StopTime)
+		}
 	}
 
 	if err = r.initDirs(); err != nil {
@@ -528,8 +550,8 @@ func (r *RecoverBinlog) PreCheck() error {
 
 // FilterBinlogFiles 对 binlog 列表多余是时间，掐头去尾，并返回文件总大小
 func (r *RecoverBinlog) FilterBinlogFiles() (int64, error) {
-	bp, _ := binlogParser.NewBinlogParse("", 0) // 用默认值
-	var binlogFiles = []string{""}              // 第一个元素预留
+	bp, _ := binlogParser.NewBinlogParse("", 0, time.RFC3339) // 接收的时间过滤参数也需要用 RFC3339
+	var binlogFiles = []string{""}                            // 第一个元素预留
 	var totalSize int64 = 0
 	var firstBinlogSize int64 = 0
 	logger.Info("BinlogFiles before filter: %v", r.BinlogFiles)
@@ -544,7 +566,7 @@ func (r *RecoverBinlog) FilterBinlogFiles() (int64, error) {
 			startTime := events[0].EventTime
 			stopTime := events[1].EventTime
 			fileSize := cmutil.GetFileSize(fileName)
-			if startTime > r.RecoverOpt.StartTime {
+			if startTime > r.RecoverOpt.StartTime { // time.RFC3339
 				binlogFiles = append(binlogFiles, f)
 				totalSize += fileSize
 				if r.RecoverOpt.StopTime != "" && stopTime > r.RecoverOpt.StopTime {
@@ -571,7 +593,7 @@ func (r *RecoverBinlog) checkTimeRange() error {
 	if startTime != "" && stopTime != "" && startTime >= stopTime {
 		return errors.Errorf("binlog start_time [%s] should be little then stop_time [%s]", startTime, stopTime)
 	}
-	bp, _ := binlogParser.NewBinlogParse("", 0) // 用默认值
+	bp, _ := binlogParser.NewBinlogParse("", 0, reportlog.ReportTimeLayout1) // 用默认值
 	if startTime != "" {
 		events, err := bp.GetTime(filepath.Join(r.BinlogDir, r.BinlogFiles[0]), true, false)
 		if err != nil {

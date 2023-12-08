@@ -8,7 +8,7 @@ OUTPUT_DIR = build
 PKG_DIR=${OUTPUT_DIR}/${PROJ}
 PROJ_PKG=${PROJ}-${DIST}.tar.gz
 PROJ_PKG_DEPS=dbbackup-go-deps-${DIST}
-RELEASE_BUILD_FLAG = "-X ${MODULE}/cmd.version=${VERSION} -X ${MODULE}/cmd.gitHash=${GITHASH} "
+RELEASE_BUILD_FLAG = "-w -s -X ${MODULE}/cmd.version=${VERSION} -X ${MODULE}/cmd.gitHash=${GITHASH} "
 DEV_BUILD_FLAG = "-X ${MODULE}/cmd.version="develop" -X ${MODULE}/cmd.gitHash="" "
 BASE_DIR = $(shell pwd)
 

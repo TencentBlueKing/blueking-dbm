@@ -38,13 +38,13 @@ func NewRotateReporter() (*RotateReporters, error) {
 	resultReport, err := reportlog.NewReporter(reportDir, "binlog_result.log", &logOpt)
 	if err != nil {
 		logger.Warn("fail to init resultReporter:%s", err.Error())
-		resultReport.Disable = true
+		//resultReport.Disable = true
 		return nil, errors.WithMessage(err, "fail to init resultReporter")
 	}
 	statusReport, err := reportlog.NewReporter(reportDir, "binlog_status.log", &logOpt)
 	if err != nil {
 		logger.Warn("fail to init statusReporter:%s", err.Error())
-		statusReport.Disable = true
+		//statusReport.Disable = true
 		return nil, errors.WithMessage(err, "fail to init statusReporter")
 	}
 	return &RotateReporters{

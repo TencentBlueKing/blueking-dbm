@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/jmoiron/sqlx"
-
 	"github.com/pkg/errors"
 	"github.com/spf13/cast"
 
@@ -211,7 +209,7 @@ func GetTdbctlInst(spiderInst InsObject) InsObject {
 }
 
 // IsSpiderNode TODO
-func IsSpiderNode(db *sqlx.DB) (bool, error) {
+func IsSpiderNode(db *sql.DB) (bool, error) {
 	sqlStr := "select version()"
 	var serverVersion string
 	if err := db.QueryRow(sqlStr).Scan(&serverVersion); err != nil {

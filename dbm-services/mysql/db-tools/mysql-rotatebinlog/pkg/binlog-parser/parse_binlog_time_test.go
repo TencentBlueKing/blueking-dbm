@@ -24,7 +24,7 @@ func TestGetTime(t *testing.T) {
 	assert.Nil(t, err)
 
 	// testFile = "./binlog20000.000002"
-	binParse, _ := NewBinlogParse("mysql", 0)
+	binParse, _ := NewBinlogParse("mysql", 0, "")
 	_, err = binParse.GetTime(testFile, true, true)
 	assert.Nil(t, err)
 	// fmt.Printf("%+v\n%+v\n", v[0], v[1])

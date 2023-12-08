@@ -66,7 +66,6 @@ const ZstdSuffix = ".zst"
 const (
 	MydumperTimeLayout   = "2006-01-02 15:04:05"
 	XtrabackupTimeLayout = "2006-01-02 15:04:05"
-	StandardTimeLayout   = "2006-01-02T15:04:05-0700"
 )
 
 const (

@@ -73,12 +73,13 @@ type BinlogFileModel struct {
 	BkBizId   int `json:"bk_biz_id,omitempty" db:"bk_biz_id"`
 	ClusterId int `json:"cluster_id,omitempty" db:"cluster_id"`
 	// immutable domain, 如果是从库，也使用主域名。cluster_domain 至少作为备注信息，一般不作为查询条件
-	ClusterDomain    string `json:"cluster_domain" db:"cluster_domain"`
-	DBRole           string `json:"db_role" db:"db_role"`
-	Host             string `json:"host,omitempty" db:"host"`
-	Port             int    `json:"port,omitempty" db:"port"`
-	Filename         string `json:"filename,omitempty" db:"filename"`
-	Filesize         int64  `json:"size" db:"filesize"`
+	ClusterDomain string `json:"cluster_domain" db:"cluster_domain"`
+	DBRole        string `json:"db_role" db:"db_role"`
+	Host          string `json:"host,omitempty" db:"host"`
+	Port          int    `json:"port,omitempty" db:"port"`
+	Filename      string `json:"filename,omitempty" db:"filename"`
+	Filesize      int64  `json:"size" db:"filesize"`
+	// FileMtime 文件最后修改时间，带时区
 	FileMtime        string `json:"file_mtime" db:"file_mtime"`
 	StartTime        string `json:"start_time" db:"start_time"`
 	StopTime         string `json:"stop_time" db:"stop_time"`
@@ -342,6 +343,21 @@ func (m *BinlogFileModel) Query(db *sqlx.DB, pred interface{}, params ...interfa
 		return nil, err
 	}
 	logger.Debug("Query sqlStr: %s, args: %v", sqlStr, args)
+	if err = db.Select(&files, sqlStr, args...); err != nil {
+		return nil, err
+	}
+	return files, nil
+}
+
+func (m *BinlogFileModel) QueryWithBuildWhere(db *sqlx.DB, builder *sq.SelectBuilder) ([]*BinlogFileModel, error) {
+	var files []*BinlogFileModel
+	sqlStr, args, err := builder.ToSql()
+
+	if err != nil {
+		return nil, err
+	}
+	logger.Debug("build where Query sqlStr: %s, args: %v", sqlStr, args)
+	// fmt.Println("ssss", sqlStr, args)
 	if err = db.Select(&files, sqlStr, args...); err != nil {
 		return nil, err
 	}

@@ -45,7 +45,7 @@ func (m ModelBackupReport) TableName() string {
 
 // migrateLocalBackupSchema 创建 local_backup_report 表
 // 如果 errs 能够处理，自动修复表结构.
-func migrateLocalBackupSchema(errs error, tdbctl bool, db *sql.DB) error {
+func migrateLocalBackupSchema(errs error, spiderNode bool, db *sql.DB) error {
 	if errs != nil {
 		mysqlErr := cmutil.NewMySQLError(errs)
 		if !(mysqlErr.Code == 1054 || mysqlErr.Code == 1146) {
@@ -75,14 +75,14 @@ CREATE TABLE IF NOT EXISTS %s (
 	file_list text,
 	extra_fields text,
 	backup_config_file text,
-	PRIMARY KEY (backup_id)
+	PRIMARY KEY (backup_id,mysql_role,shard_value)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 `, ModelBackupReport{}.TableName())
-	tdbctlExecute := fmt.Sprintf("set session ddl_execute_by_ctl=OFF;")
-	dropTable := fmt.Sprintf(`DROP TABLE IF EXISTS %s;`, ModelBackupReport{}.TableName())
 
 	var sqlList []string
-	if tdbctl {
+	tdbctlExecute := fmt.Sprintf("set session ddl_execute_by_ctl=OFF;")
+	dropTable := fmt.Sprintf(`DROP TABLE IF EXISTS %s;`, ModelBackupReport{}.TableName())
+	if spiderNode {
 		sqlList = append(sqlList, tdbctlExecute)
 	}
 	sqlList = append(sqlList, dropTable, createTable)
