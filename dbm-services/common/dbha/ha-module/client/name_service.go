@@ -140,6 +140,8 @@ type PolarisClbGWResp struct {
 func (c *NameServiceClient) ClbDeRegister(
 	region string, lbid string, listenid string, addr string) error {
 	req := map[string]interface{}{
+		"db_cloud_token": c.Conf.BKConf.BkToken,
+		"bk_cloud_id":    c.CloudId,
 		"region":         region,
 		"loadbalancerid": lbid,
 		"listenerid":     listenid,
@@ -164,6 +166,8 @@ func (c *NameServiceClient) ClbGetTargets(
 	region string, lbid string, listenid string,
 ) ([]string, error) {
 	req := map[string]interface{}{
+		"db_cloud_token": c.Conf.BKConf.BkToken,
+		"bk_cloud_id":    c.CloudId,
 		"region":         region,
 		"loadbalancerid": lbid,
 		"listenerid":     listenid,
