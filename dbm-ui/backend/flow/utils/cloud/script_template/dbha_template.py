@@ -24,6 +24,7 @@ agent_conf:
     "tendbcluster",
     "TwemproxyRedisInstance",
     "PredixyTendisplusCluster",
+    "TwemproxyTendisSSDInstance"
   ]
   city_id: {{city}}
   campus: "{{campus}}"
@@ -145,6 +146,7 @@ agent_conf:
     "tendbcluster",
     "TwemproxyRedisInstance",
     "PredixyTendisplusCluster",
+    "TwemproxyTendisSSDInstance"
   ]
   city_id: {{city}}
   campus: "{{campus}}"
@@ -235,8 +237,8 @@ name_services:
     url_pre: "/api/nameservice/clb"
     timeout: 10
 monitor:
-  bk_data_id: {{mysql_crond_metrics_data_id}}
-  access_token: "{{mysql_crond_metrics_data_token}}"
+  bk_data_id: {{mysql_crond_event_data_id}}
+  access_token: "{{mysql_crond_event_data_token}}"
   beat_path: "{{mysql_crond_beat_path}}"
   agent_address: "{{mysql_crond_agent_address}}"
   local_ip: "{{local_ip}}"
