@@ -51,10 +51,11 @@ type BackupMetaFileBase struct {
 	DataSchemaGrant string `json:"data_schema_grant" db:"data_schema_grant"`
 	// IsFullBackup 是否包含数据的全备
 	IsFullBackup bool `json:"is_full_backup" db:"is_full_backup"`
-
+	// BackupConsistentTime 备份的一致性时间点，逻辑备份是备份开始时间，物理备份是备份结束时间， format time.RFC3339
 	BackupConsistentTime time.Time `json:"backup_consistent_time" db:"backup_consistent_time"`
-	BackupBeginTime      time.Time `json:"backup_begin_time" db:"backup_begin_time"`
-	BackupEndTime        time.Time `json:"backup_end_time" db:"backup_end_time"`
+	// BackupBeginTime use time.RFC3339
+	BackupBeginTime time.Time `json:"backup_begin_time" db:"backup_begin_time"`
+	BackupEndTime   time.Time `json:"backup_end_time" db:"backup_end_time"`
 
 	// ConsistentBackupTime todo 为了字段兼容性，可以删掉
 	ConsistentBackupTime time.Time `json:"consistent_backup_time" db:"consistent_backup_time"`

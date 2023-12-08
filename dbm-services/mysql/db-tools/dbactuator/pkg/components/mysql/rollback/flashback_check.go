@@ -23,6 +23,7 @@ import (
 type Flashback struct {
 	FlashbackBinlog
 	// 闪回的目标时间点，对应 recover-binlog 的 start_time, 精确到秒。目标实例的时区
+	// 可接受格式 ''
 	TargetTime string `json:"target_time" validate:"required"`
 	StopTime   string `json:"stop_time"`
 	dbWorker   *native.DbWorker

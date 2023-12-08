@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/pkg/errors"
 
@@ -23,7 +24,8 @@ func (t *BinlogTimeComp) Example() interface{} {
 		Params: BinlogTimeParam{
 			BinlogDir:   "/data/dbbak",
 			BinlogFiles: []string{"binlog20000.00001", "binlog20000.00002"},
-			Format:      "json",
+			OutFormat:   "json",
+			TimeLayout:  time.RFC3339,
 		},
 	}
 }
@@ -32,13 +34,14 @@ func (t *BinlogTimeComp) Example() interface{} {
 type BinlogTimeParam struct {
 	BinlogDir   string   `json:"binlog_dir" validate:"required"`
 	BinlogFiles []string `json:"binlog_files" validate:"required"`
-	Format      string   `json:"format" enums:",json,dump"`
+	OutFormat   string   `json:"format" enums:",json,dump"`
+	TimeLayout  string   `json:"time_layout"`
 	parser      *binlogParser.BinlogParse
 }
 
 // Init TODO
 func (t *BinlogTimeComp) Init() error {
-	bp, err := binlogParser.NewBinlogParse("mysql", 0)
+	bp, err := binlogParser.NewBinlogParse("mysql", 0, t.Params.TimeLayout)
 	if err != nil {
 		return err
 	}

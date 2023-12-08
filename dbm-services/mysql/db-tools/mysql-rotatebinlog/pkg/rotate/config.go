@@ -1,12 +1,8 @@
 package rotate
 
 import (
-	"log"
-	"os"
-
-	"dbm-services/common/go-pubpkg/logger"
-
 	"github.com/mitchellh/go-homedir"
+	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 )
 
@@ -70,20 +66,14 @@ func InitConfig(confFile string) (*Config, error) {
 		viper.AddConfigPath(home)
 	}
 	if err := viper.ReadInConfig(); err != nil {
-		log.Fatalf("read config failed: %v", err)
+		//log.Fatalf("read config failed: %v", err)
+		return nil, errors.WithMessage(err, "read config file")
 	}
 	var configObj = &Config{}
-	configBytes, err := os.ReadFile(confFile)
-	if err != nil {
-		logger.Error(err.Error())
-		return nil, err
-	} else {
-		logger.Debug("configs: %s", string(configBytes))
-	}
-	if err = viper.Unmarshal(configObj); err != nil {
+	if err := viper.Unmarshal(configObj); err != nil {
 		// if err = yaml.Unmarshal(configBytes, configObj); err != nil {
 		return nil, err
 	}
-	logger.Debug("configObj: %+v", configObj)
+	//logger.Debug("configObj: %+v", configObj)
 	return configObj, nil
 }

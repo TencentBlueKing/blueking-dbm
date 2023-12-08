@@ -51,7 +51,8 @@ type LocalBackupObj struct {
 	ClusterId       int    `json:"cluster_id"`
 
 	// 备份时间，目前是备份开始时间
-	BackupTime time.Time `json:"backup_time"`
+	BackupTime           string    `json:"backup_time"`
+	BackupConsistentTime time.Time `json:"backup_consistent_time"`
 	// InfoFile   common.InfoFileDetail `json:"info_file"`
 	// 备份文件列表
 	FileList []string `json:"file_list"`
@@ -139,11 +140,13 @@ func (f *FindLocalBackupParam) StartOld() error {
 					FileList:   fileList,
 					BackupType: file.BackupType,
 					// InfoFile:   file,
-					BKBizID:  cast.ToInt(file.App), // file.App
-					InstHost: file.BackupHost,
-					InstPort: file.BackupPort,
+					BKBizID:    cast.ToInt(file.App), // file.App
+					InstHost:   file.BackupHost,
+					InstPort:   file.BackupPort,
+					BackupTime: file.StartTime,
 				}
-				localBackup.BackupTime, _ = time.ParseInLocation("2006-01-02 15:04:05", file.StartTime, time.Local)
+				localBackup.BackupConsistentTime, _ = time.ParseInLocation(time.RFC3339,
+					file.StartTime, time.Local)
 				backups[info] = localBackup
 			}
 		}
@@ -194,20 +197,21 @@ func (f *FindLocalBackupParam) Start() error {
 			}
 			fileList := file.GetTarFileList("")
 			localBackup := &LocalBackupObj{
-				BackupDir:       dir,
-				FileList:        fileList,
-				BackupType:      file.BackupType,
-				BKBizID:         file.BkBizId,
-				ClusterId:       file.ClusterId,
-				BackupTime:      file.BackupConsistentTime,
-				InstHost:        file.BackupHost,
-				InstPort:        file.BackupPort,
-				DBRole:          file.MysqlRole,
-				BackupId:        file.BackupId,
-				BillId:          file.BillId,
-				DataSchemaGrant: file.DataSchemaGrant,
-				IndexFile:       info,
+				BackupDir:            dir,
+				FileList:             fileList,
+				BackupType:           file.BackupType,
+				BKBizID:              file.BkBizId,
+				ClusterId:            file.ClusterId,
+				BackupConsistentTime: file.ConsistentBackupTime,
+				InstHost:             file.BackupHost,
+				InstPort:             file.BackupPort,
+				DBRole:               file.MysqlRole,
+				BackupId:             file.BackupId,
+				BillId:               file.BillId,
+				DataSchemaGrant:      file.DataSchemaGrant,
+				IndexFile:            info,
 			}
+			localBackup.BackupTime = file.BackupConsistentTime.Format("2006-01-02 15:04:05")
 			if file.BackupId == "" {
 				logger.Warn("backup_id should not be empty: %+v", localBackup)
 			}

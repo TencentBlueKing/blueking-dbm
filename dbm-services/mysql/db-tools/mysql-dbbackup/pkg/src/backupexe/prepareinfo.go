@@ -165,8 +165,8 @@ func parseXtraTimestamp(qpress string, fileName string, tmpFileName string, meta
 		// 此时刚备份完成，还没有开始打包，这里把当前时间认为是 consistent_time，不完善！
 		logger.Log.Warnf("xtrabackup_info file not found: %s, use current time as Consistent Time", fileName)
 		// TODO 时区问题，待处理
-		timeNowStr := time.Now().Format(cst.StandardTimeLayout) // 去除秒以后的时间，保持格式化
-		metaInfo.BackupConsistentTime, _ = time.Parse(cst.StandardTimeLayout, timeNowStr)
+		timeNowStr := time.Now().Format(time.RFC3339) // 去除秒以后的时间，保持格式化
+		metaInfo.BackupConsistentTime, _ = time.Parse(time.RFC3339, timeNowStr)
 	}
 	return nil
 }

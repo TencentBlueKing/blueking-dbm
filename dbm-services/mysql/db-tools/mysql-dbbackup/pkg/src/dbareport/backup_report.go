@@ -1,3 +1,11 @@
+// TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
+// Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
+// Licensed under the MIT License (the "License"); you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at https://opensource.org/licenses/MIT
+// Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+// an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+// specific language governing permissions and limitations under the License.
+
 package dbareport
 
 import (
@@ -255,7 +263,11 @@ func (r *BackupLogReport) ReportToLocalBackup(backupReport *IndexContent) error 
 	_, err = sqlBuilder.RunWith(db).Exec()
 	if err != nil {
 		logger.Log.Warn("failed to write local_backup_report, err:", err, ", try to fix it")
-		if err = migrateLocalBackupSchema(err, false, db); err != nil {
+		isSpider, err := mysqlconn.IsSpiderNode(db)
+		if err != nil {
+			return err
+		}
+		if err = migrateLocalBackupSchema(err, isSpider, db); err != nil {
 			return err
 		}
 		_, err = sqlBuilder.RunWith(db).Exec()
@@ -312,77 +324,5 @@ func (r *BackupLogReport) ReportBackupResult(metaInfo *IndexContent) error {
 	if err = r.ReportToLocalBackup(metaInfo); err != nil {
 		return err
 	}
-	/*
-		var backupResultArray []BackupLogReport
-			dir, err := os.ReadDir(r.cfg.Public.BackupDir)
-			if err != nil {
-				logger.Log.Error("failed to read backupdir, err :", err)
-				return err
-			}
-			for _, entry := range dir {
-				if entry.IsDir() {
-					continue
-				}
-
-				fileInfo, err := entry.Info()
-				if err != nil {
-					logger.Log.Error("failed to read file info: ", err)
-					return err
-				}
-				// 这里也会把 .index 上报上去
-				match := strings.HasPrefix(entry.Name(), r.cfg.Public.TargetName())
-				if match {
-					// execute backup_client, and send file to backup system
-					var taskId string
-					fileName := filepath.Join(r.cfg.Public.BackupDir, entry.Name())
-					if taskId, err = r.ExecuteBackupClient(fileName); err != nil {
-						return err
-					}
-					backupTaskResult := BackupLogReport{}
-					backupTaskResult.BackupMetaFileBase = deepcopy.Copy(metaInfo.BackupMetaFileBase).(BackupMetaFileBase)
-					backupTaskResult.ExtraFields = deepcopy.Copy(metaInfo.ExtraFields).(ExtraFields)
-					backupTaskResult.EncryptedKey = r.EncryptedKey
-					backupTaskResult.TaskId = taskId
-					backupTaskResult.FileName = entry.Name()
-					backupTaskResult.FileType = GetFileType(backupTaskResult.FileName)
-					backupTaskResult.FileSize = fileInfo.Size()
-					backupResultArray = append(backupResultArray, backupTaskResult)
-				}
-
-			}
-
-			resultFileName := fmt.Sprintf("dbareport_result_%d.log", r.cfg.Public.MysqlPort)
-			if !cmutil.IsDirectory(r.cfg.Public.ResultReportPath) {
-				if err := os.MkdirAll(r.cfg.Public.ResultReportPath, 0755); err != nil {
-					logger.Log.Errorf("fail to mkdir: %s", r.cfg.Public.ResultReportPath)
-				}
-			}
-			resultFileName = filepath.Join(r.cfg.Public.ResultReportPath, resultFileName)
-			resultFile, err := os.OpenFile(resultFileName, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0666)
-			if err != nil {
-				return err
-			}
-			defer func() {
-				_ = resultFile.Close()
-			}()
-
-			for _, value := range backupResultArray {
-				backupResultJson, err := json.Marshal(value)
-				if err != nil {
-					logger.Log.Error("Failed to marshal json encoding data from result data, err: ", err)
-					return err
-				}
-				_, err = resultFile.Write(backupResultJson)
-				if err != nil {
-					logger.Log.Error("Failed to write json encoding data into result file, err: ", err)
-					return err
-				}
-				_, err = resultFile.WriteString("\n")
-				if err != nil {
-					logger.Log.Error("Failed to write new line, err: ", err)
-					return err
-				}
-			}
-	*/
 	return nil
 }

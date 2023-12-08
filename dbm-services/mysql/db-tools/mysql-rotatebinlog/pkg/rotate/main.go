@@ -3,7 +3,6 @@ package rotate
 import (
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -95,11 +94,24 @@ func (c *RotateBinlogComp) Start() (err error) {
 			errRet = errors.Join(errRet, err)
 			continue
 		}
-		if err = inst.Rotate(); err != nil {
+		var backupClient backup.BackupClient
+		if backupClient, err = backup.InitBackupClient(); err != nil {
+			err = errs.WithMessagef(err, "init backup_client")
+			logger.Error("%+v", err.Error())
+			errRet = errors.Join(errRet, err)
+			continue
+		}
+		inst.backupClient = backupClient // if nil, ignore backup
+		if lastFileBefore, err := inst.Rotate(); err != nil {
 			err = errs.WithMessagef(err, "run rotatebinlog %d", inst.Port)
 			logger.Error("%+v", err)
 			errRet = errors.Join(errRet, err)
 			continue
+		} else {
+			if err = inst.RegisterBinlog(lastFileBefore.Filename); err != nil {
+				logger.Error(err.Error())
+			}
+			//inst.rotate.backupClient = inst.backupClient
 		}
 	}
 	if err = c.decideSizeToFree(servers); err != nil {
@@ -114,15 +126,7 @@ func (c *RotateBinlogComp) Start() (err error) {
 			errRet = errors.Join(errRet, err)
 		}
 
-		var backupClient backup.BackupClient
-		if backupClient, err = backup.InitBackupClient(); err != nil {
-			err = errs.WithMessagef(err, "init backup_client")
-			logger.Error("%+v", err.Error())
-			errRet = errors.Join(errRet, err)
-			continue
-		}
-		inst.backupClient = backupClient // if nil, ignore backup
-		if err = inst.rotate.Backup(); err != nil {
+		if err = inst.rotate.Backup(inst.backupClient); err != nil {
 			logger.Error("Backup %+v", err)
 			errRet = errors.Join(errRet, err)
 		}
@@ -159,7 +163,7 @@ func (c *RotateBinlogComp) RemoveConfig(ports []string) (err error) {
 	if err = cmutil.FileExistsErr(cfgFile); err != nil {
 		return err
 	}
-	if err := ioutil.WriteFile(cfgFile, yamlData, 0644); err != nil {
+	if err := os.WriteFile(cfgFile, yamlData, 0644); err != nil {
 		return err
 	}
 	return nil
@@ -167,9 +171,6 @@ func (c *RotateBinlogComp) RemoveConfig(ports []string) (err error) {
 
 // HandleScheduler 处理调度选项，返回 handled=true 代表 add/del 选项工作中
 func (c *RotateBinlogComp) HandleScheduler(addSchedule, delSchedule bool) (handled bool, err error) {
-	if err = log.InitLogger(); err != nil {
-		return false, err
-	}
 	if c.configObj, err = InitConfig(c.Config); err != nil {
 		return handled, err
 	}
@@ -196,7 +197,7 @@ func (c *RotateBinlogComp) HandleScheduler(addSchedule, delSchedule bool) (handl
 			Creator:  "sys",
 			Enable:   true,
 		}
-		logger.Info("adding job_item to crond: %+v", jobItem)
+		fmt.Println("adding job_item to crond: ", jobItem)
 		_, err = crondManager.CreateOrReplace(jobItem, true)
 		if err != nil {
 			return handled, err

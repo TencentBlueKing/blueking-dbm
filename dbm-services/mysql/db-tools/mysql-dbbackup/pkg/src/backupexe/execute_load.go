@@ -22,6 +22,9 @@ func ExecuteLoad(cnf *config.BackupConfig) error {
 	} else if cnf.PhysicalLoad.IndexFilePath != "" {
 		indexPath = cnf.PhysicalLoad.IndexFilePath
 	}
+	if indexPath == "" { // required
+		return errors.New("loadbackup need IndexFilePath")
+	}
 
 	indexFileContent, err := ParseJsonFile(indexPath)
 	if err != nil {

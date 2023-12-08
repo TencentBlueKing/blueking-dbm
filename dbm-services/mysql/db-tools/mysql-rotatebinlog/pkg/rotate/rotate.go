@@ -9,6 +9,7 @@ import (
 
 	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/logger"
+	"dbm-services/common/go-pubpkg/reportlog"
 	"dbm-services/mysql/db-tools/mysql-rotatebinlog/pkg/backup"
 	binlog_parser "dbm-services/mysql/db-tools/mysql-rotatebinlog/pkg/binlog-parser"
 	"dbm-services/mysql/db-tools/mysql-rotatebinlog/pkg/cst"
@@ -24,7 +25,7 @@ type BinlogRotateConfig struct {
 
 // BinlogRotate TODO
 type BinlogRotate struct {
-	backupClient    backup.BackupClient
+	//backupClient    backup.BackupClient
 	binlogDir       string
 	binlogInst      models.BinlogFileModel
 	sizeToFreeMB    int64 // MB
@@ -115,13 +116,13 @@ func (i *ServerObj) FlushLogs() error {
 	// 最后一个文件是当前正在写入的，获取倒数第二个文件的结束时间，在 5m 内，说明 mysqld 自己已经做了切换
 	if len(binlogFilesObj) >= 1 {
 		fileName := filepath.Join(i.binlogDir, binlogFilesObj[len(binlogFilesObj)-1].Filename)
-		bp, _ := binlog_parser.NewBinlogParse("", 0)
+		bp, _ := binlog_parser.NewBinlogParse("", 0, reportlog.ReportTimeLayout1)
 		events, err := bp.GetTime(fileName, true, false) // 只获取start_time
 		if err != nil {
 			logger.Warn("FlushLogs GetTime %s", fileName, err.Error())
 			_ = i.flushLogs()
 		} else {
-			lastRotateTime, _ := time.ParseInLocation(cst.DBTimeLayout, events[0].EventTime, time.Local)
+			lastRotateTime, _ := time.ParseInLocation(reportlog.ReportTimeLayout1, events[0].EventTime, time.Local)
 			lastRotateSince := time.Now().Sub(lastRotateTime).Seconds() - i.rotate.rotateInterval.Seconds()
 			if lastRotateSince > -5 {
 				// 留 5s 的误差。比如rotateInterval=300s, 那么实际等到 295s 也可以进行rotate，不然等到下一轮还需要 300s
@@ -131,13 +132,7 @@ func (i *ServerObj) FlushLogs() error {
 	} else {
 		_ = i.flushLogs()
 	}
-
-	var lastFileBefore *models.BinlogFileModel // 之前登记处理过的最后一个文件
-	if lastFileBefore, err = i.rotate.binlogInst.QueryLastFileReport(models.DB.Conn); err != nil {
-		return err
-	}
-	logger.Info("last binlog file processed: %s", lastFileBefore)
-	return i.RegisterBinlog(lastFileBefore.Filename)
+	return nil
 }
 
 func (i *ServerObj) flushLogs() error {
@@ -209,7 +204,7 @@ func (i *ServerObj) RegisterBinlog(lastFileBefore string) error {
 		}
 		backupStatus := models.IBStatusNew
 		backupStatusInfo := ""
-		bp, _ := binlog_parser.NewBinlogParse("", 0)
+		bp, _ := binlog_parser.NewBinlogParse("", 0, reportlog.ReportTimeLayout1)
 		fileName := filepath.Join(i.binlogDir, fileObj.Filename)
 		events, err := bp.GetTime(fileName, true, true)
 		if err != nil {
@@ -252,8 +247,8 @@ func (i *ServerObj) RegisterBinlog(lastFileBefore string) error {
 
 // Backup binlog 提交到备份系统
 // 下一轮运行时判断上一次以及之前的提交任务状态
-func (r *BinlogRotate) Backup() error {
-	if r.backupClient == nil {
+func (r *BinlogRotate) Backup(backupClient backup.BackupClient) error {
+	if backupClient == nil {
 		logger.Warn("no backup_client found. ignoring backup")
 		return nil
 	}
@@ -271,7 +266,7 @@ func (r *BinlogRotate) Backup() error {
 				return errors.Wrap(err, "chmod 655")
 			}
 			if f.StartTime == "" || f.StopTime == "" {
-				bp, _ := binlog_parser.NewBinlogParse("", 0)
+				bp, _ := binlog_parser.NewBinlogParse("", 0, reportlog.ReportTimeLayout1)
 				events, err := bp.GetTime(filename, true, true)
 				if err != nil {
 					logger.Warn("Backup GetTime %s", filename, err.Error())
@@ -281,8 +276,9 @@ func (r *BinlogRotate) Backup() error {
 					f.StopTime = events[0].EventTime
 				}
 			}
-			if taskid, err := r.backupClient.Upload(filename); err != nil {
-				logger.Error("fail to upload file %s. err: %v", filename, err.Error())
+			logger.Info("backup_client upload register file %s", filename)
+			if taskid, err := backupClient.Upload(filename); err != nil {
+				logger.Error("fail to upload register file %s. err: %v", filename, err.Error())
 				f.BackupStatus = models.IBStatusClientFail
 				f.BackupStatusInfo = err.Error()
 			} else {
@@ -294,7 +290,7 @@ func (r *BinlogRotate) Backup() error {
 				logger.Error("binlog backup task_id should not empty %s", f.Filename)
 				f.BackupStatus = models.IBStatusFail
 			} else {
-				taskStatus, err := r.backupClient.Query(f.BackupTaskid)
+				taskStatus, err := backupClient.Query(f.BackupTaskid)
 				if err != nil {
 					return err
 				}

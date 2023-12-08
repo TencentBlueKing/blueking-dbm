@@ -22,6 +22,7 @@ func InitBackupClient() (backupClient BackupClient, err error) {
 			} else {
 				backupClient = &bkbsClient
 			}
+
 		} else if name == "ibs" {
 			if !viper.GetBool("backup_client.ibs.enable") {
 				continue

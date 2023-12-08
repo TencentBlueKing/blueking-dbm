@@ -41,7 +41,7 @@ func NewLogReporter(reportDir string) (*ReportLogger, error) {
 		//resultReport.Disable = true
 		return nil, errors.WithMessage(err, "fail to init resultReporter")
 	}
-	filesReport, err := reportlog.NewReporter(reportDir, "backup_files.log", &logOpt)
+	filesReport, err := reportlog.NewReporter(reportDir, "dbareport_result.log", &logOpt)
 	if err != nil {
 		logger.Log.Warn("fail to init statusReporter:%s", err.Error())
 		//filesReport.Disable = true

@@ -11,27 +11,34 @@
 package cmd
 
 import (
-	"fmt"
-
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
+
+	"dbm-services/mysql/db-tools/mysql-rotatebinlog/pkg/rotate"
 )
 
-// versionCmd represents the version command
-var subCmdVersion = &cobra.Command{
-	Use:   "version",
-	Short: "version information",
-	Long:  `version information about buildStamp, gitHash`,
-	Run: func(cmd *cobra.Command, args []string) {
-		printVersion()
+var crondCmd = &cobra.Command{
+	Use:   "crond",
+	Short: "schedule operation",
+	Long:  `add or remove items from mysql-crond`,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		comp := rotate.RotateBinlogComp{Config: viper.GetString("config")}
+
+		addSchedule, _ := cmd.Flags().GetBool("add")
+		delSchedule, _ := cmd.Flags().GetBool("remove")
+		if isSchedule, err := comp.HandleScheduler(addSchedule, delSchedule); err != nil {
+			return err
+		} else if isSchedule {
+			return nil
+		}
+		return nil
 	},
 }
-var version = ""
-var buildStamp = ""
-var gitHash = ""
 
 func init() {
-	rootCmd.AddCommand(subCmdVersion)
-}
-func printVersion() {
-	fmt.Printf("Version: %s, GitHash: %s, BuildAt: %s\n", version, gitHash, buildStamp)
+	//命令行的flag
+	crondCmd.Flags().Bool("add", false, "add schedule to crond")
+	crondCmd.Flags().Bool("remove", false, "del schedule from crond")
+
+	rootCmd.AddCommand(crondCmd)
 }
