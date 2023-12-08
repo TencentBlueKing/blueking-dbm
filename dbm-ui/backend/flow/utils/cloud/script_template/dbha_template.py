@@ -105,7 +105,7 @@ name_services:
     bk_conf:
       bk_token: "{{db_cloud_token}}"
   polaris_conf:
-    host: {{name_service_domain}}
+    host: "{{nginx_domain}}"
     port: 80
     user: "nouser"
     pass: "nopasswd"
@@ -114,7 +114,7 @@ name_services:
     bk_conf:
       bk_token: "{{db_cloud_token}}"
   clb_conf:
-    host: {{name_service_domain}}
+    host: "{{nginx_domain}}"
     port: 80
     user: "nouser"
     pass: "nopasswd"
@@ -227,7 +227,7 @@ name_services:
     bk_conf:
       bk_token: "{{db_cloud_token}}"
   polaris_conf:
-    host: {{name_service_domain}}
+    host: "{{nginx_domain}}"
     port: 80
     user: "nouser"
     pass: "nopasswd"
@@ -236,7 +236,7 @@ name_services:
     bk_conf:
       bk_token: "{{db_cloud_token}}"
   clb_conf:
-    host: {{name_service_domain}}
+    host: "{{nginx_domain}}"
     port: 80
     user: "nouser"
     pass: "nopasswd"

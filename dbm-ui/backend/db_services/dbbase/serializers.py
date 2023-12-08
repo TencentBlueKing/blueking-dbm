@@ -12,7 +12,7 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
-from backend.db_meta.enums import ClusterType
+from backend.db_meta.enums import ClusterPhase, ClusterType
 
 
 class IsClusterDuplicatedSerializer(serializers.Serializer):
@@ -30,6 +30,7 @@ class QueryAllTypeClusterSerializer(serializers.Serializer):
     bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
     cluster_types = serializers.CharField(help_text=_("集群类型(逗号分隔)"), required=False)
     immute_domain = serializers.CharField(help_text=_("集群域名"), required=False)
+    phase = serializers.ChoiceField(help_text=_("集群阶段状态"), required=False, choices=ClusterPhase.get_choices())
 
     def get_conditions(self, attr):
         conditions = {"bk_biz_id": attr["bk_biz_id"]}
@@ -37,6 +38,8 @@ class QueryAllTypeClusterSerializer(serializers.Serializer):
             conditions["cluster_type__in"] = attr["cluster_types"].split(",")
         if attr.get("immute_domain"):
             conditions["immute_domain__icontains"] = attr["immute_domain"]
+        if attr.get("phase"):
+            conditions["phase"] = attr["phase"]
 
         return conditions
 

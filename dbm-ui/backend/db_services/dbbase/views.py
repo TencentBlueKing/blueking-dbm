@@ -59,6 +59,6 @@ class DBBaseViewSet(viewsets.SystemViewSet):
     def query_all_type_cluster(self, request, *args, **kwargs):
         data = self.params_validate(self.get_serializer_class())
         conditions = self.get_serializer().get_conditions(data)
-        cluster_queryset = self.paginate_queryset(Cluster.objects.filter(**conditions))
+        cluster_queryset = Cluster.objects.filter(**conditions)
         cluster_infos = [cluster.simple_desc for cluster in cluster_queryset]
         return Response(cluster_infos)
