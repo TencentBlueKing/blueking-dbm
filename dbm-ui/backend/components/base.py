@@ -33,7 +33,7 @@ from .constants import CLIENT_CRT_PATH, SSL_KEY, SSLEnum
 from .exception import DataAPIException
 from .utils.params import add_esb_info_before_request, remove_auth_args
 
-logger = logging.getLogger("component")
+logger = logging.getLogger("root")
 
 
 class DataResponse(object):
@@ -52,7 +52,11 @@ class DataResponse(object):
         if "result" in self.response:
             return self.response["result"]
 
-        return int(self.code) == 0
+        try:
+            return int(self.code) == 0
+        except Exception as e:
+            logger.error("third-open-api-debug[%s]: code: %s, except=%s", self.code, e)
+            return False
 
     @property
     def message(self):
@@ -273,6 +277,7 @@ class DataAPI(object):
             # 结果层面的处理结果
             try:
                 response_result = raw_response.json()
+                logger.info("third-open-api-debug[%s]: response_result = %s", self.url, response_result)
             except AttributeError:
                 error_message = "data api response not json format url->[{}] content->[{}]".format(
                     self.url,

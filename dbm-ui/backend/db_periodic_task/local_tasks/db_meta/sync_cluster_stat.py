@@ -118,6 +118,9 @@ def sync_cluster_stat_from_monitor():
 
     # 计算使用率
     for cluster, cap in cluster_stats.items():
+        # 兼容查不到数据的情况
+        if not ("used" in cap and "total" in cap):
+            continue
         cap["in_use"] = round(cap["used"] * 100.0 / cap["total"], 2)
 
     # print(cluster_stats)
