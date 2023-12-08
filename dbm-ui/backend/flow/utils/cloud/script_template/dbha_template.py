@@ -109,14 +109,14 @@ name_services:
     port: 80
     user: "nouser"
     pass: "nopasswd"
-    url_pre: "/api/nameservice/polaris"
+    url_pre: "/apis/proxypass/namespace"
     timeout: 10
   clb_conf:
     host: {{name_service_domain}}
     port: 80
     user: "nouser"
     pass: "nopasswd"
-    url_pre: "/api/nameservice/clb"
+    url_pre: "/apis/proxypass/namespace"
     timeout: 10
 monitor:
   bk_data_id: {{mysql_crond_event_data_id}}
@@ -227,14 +227,14 @@ name_services:
     port: 80
     user: "nouser"
     pass: "nopasswd"
-    url_pre: "/api/nameservice/polaris"
+    url_pre: "/apis/proxypass/namespace"
     timeout: 10
   clb_conf:
     host: {{name_service_domain}}
     port: 80
     user: "nouser"
     pass: "nopasswd"
-    url_pre: "/api/nameservice/clb"
+    url_pre: "/apis/proxypass/namespace"
     timeout: 10
 monitor:
   bk_data_id: {{mysql_crond_event_data_id}}
