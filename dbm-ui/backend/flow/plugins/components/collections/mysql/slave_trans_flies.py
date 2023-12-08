@@ -45,10 +45,10 @@ class SlaveTransFileService(TransFileService):
         else:
             self.log_error(_("在主、从库查找备份源"))
             self.log_info(trans_data.master_backup_file["backups"])
-            self.log_info(trans_data.slave_backup_file["backups"])
             if trans_data.slave_backup_file is None:
                 backup_infos = {**trans_data.master_backup_file["backups"]}
             else:
+                self.log_info(trans_data.slave_backup_file["backups"])
                 backup_infos = {**trans_data.master_backup_file["backups"], **trans_data.slave_backup_file["backups"]}
         self.log_info(_("从备份源中筛选符合的备份"))
         self.log_info(json.dumps(backup_infos))
