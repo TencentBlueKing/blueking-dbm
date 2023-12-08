@@ -70,8 +70,8 @@
   });
 
   watch(() => props.oldSlave, () => {
+    localRelateClusterList.value = [];
     if (!props.oldSlave) {
-      localRelateClusterList.value = [];
       return;
     }
     fetchCheckMysqlInstances({

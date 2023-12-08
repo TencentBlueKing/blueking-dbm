@@ -17,7 +17,8 @@
       ref="editRef"
       v-model="localValue"
       :placeholder="t('请输入IP')"
-      :rules="rules" />
+      :rules="rules"
+      @input="handleInput" />
   </BkLoading>
 </template>
 <script setup lang="ts">
@@ -101,6 +102,10 @@
   }, {
     immediate: true,
   });
+
+  const handleInput = () => {
+    modelValue.value = undefined;
+  };
 
   defineExpose<Exposes>({
     getValue() {
