@@ -111,6 +111,8 @@ export default (interceptors: AxiosInterceptorManager<AxiosResponse>) => {
 
   // 统一错误处理逻辑
   interceptors.use(undefined, (error: RequestError) => {
+    console.log('from respone data = ');
+    console.dir(error);
     switch (error.code) {
       // 未登陆
       case 401:

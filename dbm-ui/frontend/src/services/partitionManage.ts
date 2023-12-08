@@ -11,7 +11,9 @@ export const getList = function (params: Record<string, any>) {
   return http.get<ListBase<PartitionModel[]>>('/apis/partition/', params)
     .then(data => ({
       ...data,
-      results: data.results.map((item: PartitionModel) => new PartitionModel(item)),
+      results: data.results.map(item => new PartitionModel(Object.assign(item, {
+        permission: Object.assign(data.permission, item.permission),
+      }))),
     }));
 };
 

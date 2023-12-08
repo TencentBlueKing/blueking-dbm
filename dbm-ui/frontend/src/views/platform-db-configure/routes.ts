@@ -43,7 +43,6 @@ const routes: RouteRecordRaw[] = [
           navName: t('编辑平台配置'),
           fullscreen: true,
         },
-        props: true,
         component: () => import('@views/db-configure/platform/Edit.vue'),
       },
       {
@@ -53,7 +52,6 @@ const routes: RouteRecordRaw[] = [
           navName: t('配置详情'),
           fullscreen: true,
         },
-        props: true,
         component: () => import('@views/db-configure/platform/Detail.vue'),
       },
     ],

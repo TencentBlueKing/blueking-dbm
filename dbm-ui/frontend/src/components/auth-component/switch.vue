@@ -1,27 +1,11 @@
 <template>
   <BkSwitcher
-    v-if="isShowRaw"
     v-bind="attrs" />
-  <span
-    v-else
-    disabled>
-    <BkSwitcher
-      v-cursor
-      class="auth-switch-disable"
-      v-bind="inheritAttrs"
-      :disabled="false"
-      :loading="loading"
-      @click.stop="handleRequestPermission" />
-  </span>
 </template>
 <script setup lang="ts">
   import {
     useAttrs,
   } from 'vue';
-
-  import { attrsWithoutListener } from '@utils';
-
-  import useBase from './use-base';
 
   /* eslint-disable vue/no-unused-properties */
   interface Props {
@@ -30,7 +14,7 @@
     resource?: string | number,
   }
 
-  const props = withDefaults(defineProps<Props>(), {
+  withDefaults(defineProps<Props>(), {
     permission: 'normal',
     resource: '',
   });
@@ -40,14 +24,6 @@
   });
 
   const attrs = useAttrs();
-
-  const inheritAttrs = attrsWithoutListener(attrs);
-
-  const {
-    loading,
-    isShowRaw,
-    handleRequestPermission,
-  } = useBase(props);
 
 </script>
 <style lang="less" scoped>

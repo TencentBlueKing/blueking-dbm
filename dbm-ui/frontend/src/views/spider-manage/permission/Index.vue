@@ -14,11 +14,12 @@
 <template>
   <div class="permission">
     <div class="permission-operations">
-      <BkButton
+      <AuthButton
+        action-id="tendbcluster_partition_create"
         theme="primary"
         @click="handleAddAcount">
         {{ t('新建账号') }}
-      </BkButton>
+      </AuthButton>
       <DbSearchSelect
         v-model="tableSearch"
         :data="filters"
@@ -179,12 +180,14 @@
               ? <span class="glob-new-tag mr-4" data-text="NEW" />
               : null
             }
-            <bk-button
+            <auth-button
               class="add-rule"
               size="small"
+              action-id="tendbcluster_add_account_rule"
+              permission={data.permission.tendbcluster_add_account_rule}
               onClick={ (event: Event) => handleShowCreateRule(data, event) }>
               { t('添加授权规则') }
-            </bk-button>
+            </auth-button>
           </div>
         </div>
       ),
@@ -200,13 +203,15 @@
           return (
             <div class="permission-cell">
               <span>{ t('暂无规则') }，</span>
-              <bk-button
+              <auth-button
                 theme="primary"
                 size="small"
                 text
+                action-id="tendbcluster_add_account_rule"
+                permission={data.permission.tendbcluster_add_account_rule}
                 onClick={ (event: Event) => handleShowCreateRule(data, event) }>
                 { t('立即新建') }
-              </bk-button>
+              </auth-button>
             </div>
           );
         }
@@ -239,20 +244,6 @@
         })
       ),
     },
-    // {
-    //   label: t('授权实例'),
-    //   field: 'instance',
-    //   sort: true,
-    //   render: ({ data }: { data: PermissionTableRow }) => (
-    //     getRenderList(data).map((rule) => {
-    //       const { instance } = rule;
-
-    //       return (
-    //         <div class="permission-cell" v-overflow-tips>{ instance || '--'  }</div>
-    //       );
-    //     })
-    //   ),
-    // },
     {
       label: t('操作'),
       width: 100,
@@ -260,12 +251,14 @@
         if (data.rules.length === 0) {
           return (
             <div class="permission-cell">
-              <bk-button
+              <auth-button
+                action-id="tendbcluster_account_delete"
+                permission={data.permission.tendbcluster_account_delete}
                 theme="primary"
                 text
                 onClick={ () => handleDeleteAccount(data) }>
                 { t('删除账号') }
-              </bk-button>
+              </auth-button>
             </div>
           );
         }

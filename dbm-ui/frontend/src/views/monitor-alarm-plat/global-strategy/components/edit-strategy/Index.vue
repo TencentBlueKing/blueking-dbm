@@ -148,6 +148,7 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
+  import MonitorPolicyModel from '@services/model/monitor/monitor-policy';
   import { updatePolicy  } from '@services/monitor';
 
   import { useBeforeClose } from '@hooks';
@@ -156,10 +157,8 @@
 
   import { messageSuccess } from '@utils';
 
-  import type { RowData } from '../content/Index.vue';
-
   interface Props {
-    data: RowData,
+    data: MonitorPolicyModel,
   }
 
   interface Emits {
@@ -170,7 +169,7 @@
   const emits = defineEmits<Emits>();
   const isShow = defineModel<boolean>();
 
-  function generateRule(data: RowData, level: number) {
+  function generateRule(data: MonitorPolicyModel, level: number) {
     const arr = data.test_rules.filter(item => item.level === level);
     return arr.length > 0 ? arr[0] : undefined;
   }

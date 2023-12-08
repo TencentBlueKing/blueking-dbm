@@ -265,7 +265,10 @@
   const unVisiblePassword = computed(() => '*'.repeat(formData.password.length));
   const typeValue = computed(() => formData.timeData.typeValue);
 
-  const { data: passwordPolicyData } = useRequest(getPasswordPolicy, {
+  const {
+    data: passwordPolicyData,
+  } = useRequest(getPasswordPolicy, {
+    defaultParams: [{}, { permission: 'page' }],
     onSuccess(passwordPolicy) {
       const { rule } = passwordPolicy;
       const {
@@ -296,6 +299,7 @@
   });
 
   useRequest(queryRandomCycle, {
+    defaultParams: [{}, { permission: 'page' }],
     onSuccess(randomCycle) {
       const {
         minute,

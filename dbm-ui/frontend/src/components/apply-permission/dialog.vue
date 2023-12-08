@@ -18,7 +18,9 @@
   <BkDialog
     class="permission-dialog"
     :close-icon="false"
+    :esc-close="false"
     :is-show="isShow"
+    :quick-close="false"
     width="768">
     <BkLoading :loading="loading">
       <RenderResult
@@ -46,15 +48,6 @@
     </template>
   </BkDialog>
 </template>
-<script lang="ts">
-  export interface CheckParams {
-    action_ids: string[],
-    resources: {
-      type: string,
-      id: string|number
-    }[]
-  }
-</script>
 <script setup lang="ts">
   import {
     Button as BkButton,
@@ -70,30 +63,35 @@
   import { useRequest } from 'vue-request';
 
   import ApplyDataModel from '@services/model/iam/apply-data';
-  import { getApplyDataLink } from '@services/source/iam';
-
-  const props = defineProps<Props>();
-  const emit = defineEmits<Emits>();
+  import { simpleGetApplyData } from '@services/source/iam';
 
   import RenderResult from './render-result.vue';
 
+  export type CheckParams = ServiceParameters<typeof simpleGetApplyData>
+
   interface Props {
     applyData?: ApplyDataModel,
-    checkParams?: CheckParams
+    checkParams?: ServiceParameters<typeof simpleGetApplyData>
   }
   interface Emits {
     (e: 'cancel'): void
   }
+  const props = defineProps<Props>();
+  const emit = defineEmits<Emits>();
+
   const { t } = useI18n();
   const isShow = ref(false);
   const isApplyed = ref(false);
 
+  const iamApplyData = ref(new ApplyDataModel());
   const {
-    data: iamApplyData,
     loading,
     run,
-  } = useRequest(getApplyDataLink, {
+  } = useRequest(simpleGetApplyData, {
     manual: true,
+    onSuccess(data) {
+      iamApplyData.value = data;
+    },
   });
 
   const renderPermissionResult = computed(() => {
@@ -122,7 +120,7 @@
 
   onMounted(() => {
     isShow.value = true;
-    if (props.checkParams && props.checkParams.action_ids) {
+    if (props.checkParams && props.checkParams.action_id) {
       run({
         ...props.checkParams,
       });

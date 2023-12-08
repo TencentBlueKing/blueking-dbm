@@ -33,7 +33,9 @@ export function getHdfsList(params: Record<string, any> & { bk_biz_id: number })
   return http.get<ListBase<HdfsModel[]>>(`${path}/`, params)
     .then(data => ({
       ...data,
-      results: data.results.map((item: HdfsModel) => new HdfsModel(item)),
+      results: data.results.map((item: HdfsModel) => new HdfsModel(Object.assign(item, {
+        permission: Object.assign(item.permission, data.permission),
+      }))),
     }));
 }
 

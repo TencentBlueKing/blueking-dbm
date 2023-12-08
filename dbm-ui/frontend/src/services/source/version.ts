@@ -11,7 +11,9 @@
  * the specific language governing permissions and limitations under the License.
 */
 
-import http from '../http';
+import http, {
+  type IRequestPayload,
+} from '../http';
 
 const path = '/apis/version';
 
@@ -28,8 +30,8 @@ export function getClusterTypeToVersions() {
 export function getVersions(params: {
   query_key: string,
   db_type?: string
-}) {
-  return http.get<string[]>(`${path}/list_versions/`, params);
+}, payload = {} as IRequestPayload) {
+  return http.get<string[]>(`${path}/list_versions/`, params, payload);
 }
 
 /**

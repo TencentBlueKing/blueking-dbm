@@ -28,6 +28,7 @@ export default class KafkaNode {
   node_count: number;
   role: string;
   status: number;
+  permission: Record<'kafka_view' | 'kafka_enable_disable' | 'kafka_destroy' | 'kafka_scale_up' | 'kafka_shrink' | 'kafka_replace' | 'kafka_reboot', boolean>;
 
   constructor(payload = {} as KafkaNode) {
     this.bk_cloud_id = payload.bk_cloud_id;
@@ -43,6 +44,7 @@ export default class KafkaNode {
     this.node_count = payload.node_count || 0;
     this.role = payload.role;
     this.status = payload.status || 0;
+    this.permission = payload.permission;
   }
 
   get isBroker() {

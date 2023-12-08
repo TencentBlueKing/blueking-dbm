@@ -32,7 +32,9 @@ export function getEsList(params: Record<string, any> & { bk_biz_id: number }) {
   return http.get<ListBase<EsModel[]>>(`${path}/`, params)
     .then(data => ({
       ...data,
-      results: data.results.map((item: EsModel) => new EsModel(item)),
+      results: data.results.map((item: EsModel) => new EsModel(Object.assign(item, {
+        permission: Object.assign(item.permission, data.permission),
+      }))),
     }));
 }
 
@@ -101,7 +103,9 @@ export function getEsNodeList(params: Record<string, any> & {
   return http.get<ListBase<Array<EsNodeModel>>>(`${path}/${params.cluster_id}/list_nodes/`, params)
     .then(data => ({
       ...data,
-      results: data.results.map((item: EsNodeModel) => new EsNodeModel(item)),
+      results: data.results.map(item => new EsNodeModel(Object.assign(item, {
+        permission: data.permission,
+      }))),
     }));
 }
 

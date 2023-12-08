@@ -1,21 +1,23 @@
 <template>
   <div class="spider-manage-paritition-page">
     <div class="header-action mb-16">
-      <BkButton
+      <AuthButton
+        action-id="mysql_partition_create"
         class="w-88"
         theme="primary"
         @click="handleCreate">
         {{ t('新建') }}
-      </BkButton>
+      </AuthButton>
       <DbPopconfirm
         :confirm-handler="handleBatchRemove"
         :content="t('移除后将不可恢复')"
         :title="t('确认移除选中的策略')">
-        <BkButton
+        <AuthButton
+          action-id="mysql_partition_delete"
           class="ml-8"
           :disabled="selectionList.length < 1">
           {{ t('删除') }}
-        </BkButton>
+        </AuthButton>
       </DbPopconfirm>
       <DbSearchSelect
         v-model="searchValues"
@@ -80,7 +82,6 @@
 
   import {
     getSearchSelectorParams,
-    isRecentDays,
     messageSuccess,
   } from '@utils';
 
@@ -131,9 +132,11 @@
         <span>
           <span>{data.id}</span>
           {
-          isRecentDays(data.create_time, 24 * 3)
-            ? <span class="glob-new-tag cluster-tag ml-4" data-text="NEW" />
-            : null
+          data.isNew && (
+            <span
+              class="glob-new-tag cluster-tag ml-4"
+              data-text="NEW" />
+          )
         }
         </span>
       ),
@@ -231,79 +234,104 @@
           }
           if (!data.isEnabled) {
             return (
-              <bk-button
+              <auth-button
                 theme="primary"
                 text
+                actionId="mysql_partition_enable_disable"
+                resource={data.id}
+                permission={data.permission.mysql_partition_enable_disable}
                 onClick={() => handleEnable(data)}>
                 {t('启用')}
-              </bk-button>
+              </auth-button>
             );
           }
           return (
-            <bk-button
+            <auth-button
               theme="primary"
               text
               loading={executeLoadingMap.value[data.id]}
+              actionId="mysql_partition"
+              resource={data.cluster_id}
+              permission={data.permission.mysql_partition}
               onClick={() => handleExecute(data)}>
               {t('执行')}
-            </bk-button>
+            </auth-button>
           );
         };
         return (
-        <>
-          {renderAction()}
-          <span
-            v-bk-tooltips={{
-              content: t('正在执行中，无法编辑'),
-              disabled: !data.isRunning,
-            }}
-            class="ml-8">
+          <>
+            {renderAction()}
+            <span
+              v-bk-tooltips={{
+                content: t('正在执行中，无法编辑'),
+                disabled: !data.isRunning,
+              }}
+              class="ml-8">
+              <auth-button
+                theme="primary"
+                text
+                disabled={data.isRunning}
+                actionId="mysql_partition_update"
+                permission={data.permission.mysql_partition_update}
+                onClick={() => handleEdit(data)}>
+                {t('编辑')}
+              </auth-button>
+            </span>
             <bk-button
+              class="ml-8"
               theme="primary"
               text
-              disabled={data.isRunning}
-              onClick={() => handleEdit(data)}>
-              {t('编辑')}
+              onClick={() => handleShowExecuteLog(data)}>
+              {t('执行记录')}
             </bk-button>
-          </span>
-          <bk-button
-            class="ml-8"
-            theme="primary"
-            text
-            onClick={() => handleShowExecuteLog(data)}>
-            {t('执行记录')}
-          </bk-button>
-          <more-action-extend class="ml-8">
-            {{
-              default: () => (
-                <>
-                  {
-                    data.isEnabled && (
-                      <div onClick={() => handleDisable(data)}>
-                        { t('禁用') }
-                      </div>
-                    )
-                  }
-                  <div onClick={() => handleClone(data)}>
-                    { t('克隆') }
-                  </div>
-                  <db-popconfirm
-                    confirm-handler={() => handleRemove(data)}
-                    content={t('删除操作无法撤回，请谨慎操作！')}
-                    title={t('确认删除该分区策略？')}>
-                    <span>{ t('删除') }</span>
-                  </db-popconfirm>
-                </>
-              ),
-            }}
-          </more-action-extend>
-        </>
+            <more-action-extend class="ml-8">
+              {{
+                default: () => (
+                  <>
+                    {
+                      data.isEnabled && (
+                        <auth-button
+                          text
+                          theme="primary"
+                          action-id="mysql_partition_enable_disable"
+                          permission={data.permission.mysql_partition_enable_disable}
+                          onClick={() => handleDisable(data)}>
+                          { t('禁用') }
+                        </auth-button>
+                      )
+                    }
+                    <auth-button
+                      text
+                      theme="primary"
+                      action-id="mysql_partition_create"
+                      permission={data.permission.mysql_partition_create}
+                      onClick={() => handleClone(data)}>
+                      { t('克隆') }
+                    </auth-button>
+                    <db-popconfirm
+                      confirm-handler={() => handleRemove(data)}
+                      content={t('删除操作无法撤回，请谨慎操作！')}
+                      title={t('确认删除该分区策略？')}>
+                      <auth-button
+                        text
+                        theme="primary"
+                        action-id="mysql_partition_delete"
+                        permision={data.permission.mysql_partition_delete}
+                        onClick={() => handleRemove(data)}>
+                        { t('删除') }
+                      </auth-button>
+                    </db-popconfirm>
+                  </>
+                ),
+              }}
+            </more-action-extend>
+          </>
         );
       },
     },
   ];
 
-  const getRowClass = (data: PartitionModel) => (isRecentDays(data.create_time, 24 * 3) ? 'is-new-row' : '');
+  const getRowClass = (data: PartitionModel) => (data.isNew ? 'is-new-row' : '');
 
   const fetchData = () => {
     const searchParams = getSearchSelectorParams(searchValues.value);

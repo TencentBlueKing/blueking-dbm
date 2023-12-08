@@ -65,7 +65,8 @@ export type PermissionRulesResult = ListBase<PermissionRule[]>
  */
 export interface PermissionRule {
   account: PermissionRuleAccount,
-  rules: PermissionRuleInfo[]
+  rules: PermissionRuleInfo[],
+  permission: Record<string, boolean>
 }
 
 /**

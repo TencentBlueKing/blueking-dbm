@@ -24,14 +24,6 @@ const routes: RouteRecordRaw[] = [
     },
     component: () => import('@views/whitelist/list/Index.vue'),
   },
-  {
-    name: 'DatabaseWhitelist',
-    path: 'whitelist_database',
-    meta: {
-      navName: t('授权白名单'),
-    },
-    component: () => import('@views/whitelist/list/Index.vue'),
-  },
 ];
 
 export default function getRoutes() {

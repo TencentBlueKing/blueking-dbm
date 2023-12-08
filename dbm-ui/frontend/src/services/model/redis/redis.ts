@@ -12,7 +12,10 @@
 */
 import { PipelineStatus } from '@common/const';
 
-import { utcDisplayTime } from '@utils';
+import {
+  isRecentDays,
+  utcDisplayTime,
+} from '@utils';
 
 import { t } from '@locales/index';
 
@@ -75,19 +78,17 @@ export default class Redis {
   };
 
   bk_biz_id: number;
-  bk_cloud_id: number;
   bk_biz_name: string;
+  bk_cloud_id: number;
   bk_cloud_name: string;
   cluster_alias: string;
+  cluster_capacity: number;
+  cluster_entry: {
+    cluster_entry_type: string;
+    entry: string;
+  }[];
   cluster_name: string;
-  creator: string;
-  create_at: string;
-  count: number;
-  db_module_id: number;
-  dns_to_clb: boolean;
-  deploy_plan_id: number;
-  id: number;
-  major_version: string;
+  cluster_shard_num: number;
   cluster_spec: {
     creator: string;
     updater: string;
@@ -118,17 +119,16 @@ export default class Redis {
       min: number;
     }
   };
-  cluster_capacity: number;
+  cluster_stats: Record<string, any>;
   cluster_type: string;
   cluster_type_name: string;
-  cluster_time_zone: string;
-  cluster_entry: {
-    cluster_entry_type: string;
-    entry: string;
-  }[];
-  cluster_shard_num: number;
-  master_domain: string;
+  create_at: string;
+  creator: string;
+  dns_to_clb: boolean;
+  id: number;
   machine_pair_cnt: number;
+  major_version: string;
+  master_domain: string;
   operations: {
     cluster_id: number;
     flow_id: number;
@@ -138,19 +138,34 @@ export default class Redis {
     ticket_type: string;
     title: string;
   }[];
+  permission: {
+    redis_destroy: boolean;
+    redis_keys_delete: boolean;
+    redis_keys_extract: boolean;
+    redis_open_close: boolean;
+    redis_purge: boolean;
+    redis_backup: boolean;
+    redis_view: boolean;
+    access_entry_edit: boolean;
+  };
   phase: string;
   proxy: Node[];
-  region: string;
   redis_master: Node[];
   redis_slave: Node[];
-  redis_master_faults: number;
+  region: string;
   status: string;
-  time_zone: string;
-  updater: string;
   update_at: string;
+  updater: string;
+
+  count: number;
+  db_module_id: number;
+  deploy_plan_id: number;
+  cluster_time_zone: string;
+  time_zone: string;
 
   constructor(payload = {} as Redis) {
     this.bk_biz_id = payload.bk_biz_id;
+    this.bk_biz_name = payload.bk_biz_name;
     this.cluster_name = payload.cluster_name;
     this.bk_cloud_id = payload.bk_cloud_id;
     this.cluster_alias = payload.cluster_alias;
@@ -177,13 +192,22 @@ export default class Redis {
     this.bk_cloud_name = payload.bk_cloud_name;
     this.master_domain = payload.master_domain;
     this.cluster_entry = payload.cluster_entry || [];
+    this.permission = payload.permission || {};
     this.proxy = payload.proxy;
     this.redis_master = payload.redis_master;
     this.redis_slave = payload.redis_slave;
     this.cluster_shard_num = payload.cluster_shard_num;
     this.machine_pair_cnt = payload.machine_pair_cnt;
+    this.cluster_stats = payload.cluster_stats || {};
     this.count = this.storageCount + this.proxyCount;
-    this.redis_master_faults = this.redisMasterFaultNum;
+  }
+
+  get isOnline() {
+    return this.phase === 'online';
+  }
+
+  get isNew() {
+    return isRecentDays(this.create_at, 24 * 3);
   }
 
   get redisMasterCount() {

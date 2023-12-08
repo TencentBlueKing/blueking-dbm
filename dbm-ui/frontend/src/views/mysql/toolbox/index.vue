@@ -58,7 +58,7 @@
 </script>
 <style lang="less">
 .mysql-toolbox-page {
-  height: 100%;
+  height: calc(100vh - 105px);
 
   & > .bk-resize-layout-aside {
     z-index: 100;

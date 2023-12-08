@@ -238,6 +238,14 @@ const commonRouters: RouteRecordRaw[] = [
         component: () => import('@views/mysql/permission/index.vue'),
       },
       {
+        path: 'whitelist',
+        name: 'mysqlWhitelist',
+        meta: {
+          navName: t('授权白名单'),
+        },
+        component: () => import('@views/whitelist/list/Index.vue'),
+      },
+      {
         path: 'partition-manage',
         name: 'mysqlPartitionManage',
         meta: {

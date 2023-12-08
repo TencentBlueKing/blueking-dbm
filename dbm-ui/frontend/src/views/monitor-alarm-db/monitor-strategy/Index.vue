@@ -24,14 +24,14 @@
         :name="tab.value" />
     </BkTab>
     <div class="monitor-strategy-content">
-      <TypeContent :active-db-type="activeTab" />
+      <RenderContent :active-db-type="activeTab" />
     </div>
   </div>
 </template>
 <script setup lang="ts">
   import { useRoute } from 'vue-router';
 
-  import TypeContent from './components/content/Index.vue';
+  import RenderContent from './components/content/Index.vue';
 
   const { dbType } = useRoute().query as { dbType: string };
 
