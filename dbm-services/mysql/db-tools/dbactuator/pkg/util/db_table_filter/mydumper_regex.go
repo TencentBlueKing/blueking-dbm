@@ -5,6 +5,7 @@ import (
 	"strings"
 )
 
+// BuildMydumperRegex TODO
 func BuildMydumperRegex(
 	includeDbPatterns []string,
 	includeTablePatterns []string,

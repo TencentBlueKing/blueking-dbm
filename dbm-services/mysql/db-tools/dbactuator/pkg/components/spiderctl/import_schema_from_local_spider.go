@@ -11,10 +11,13 @@
 package spiderctl
 
 import (
+	"fmt"
+	"os"
 	"path"
-	"regexp"
+	"runtime"
 	"time"
 
+	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components/computil"
@@ -22,6 +25,7 @@ import (
 	"dbm-services/mysql/db-tools/dbactuator/pkg/native"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util/mysqlutil"
+	"dbm-services/mysql/db-tools/dbactuator/pkg/util/osutil"
 )
 
 // ImportSchemaFromLocalSpiderComp TODO
@@ -36,6 +40,8 @@ type ImportSchemaFromLocalSpiderParam struct {
 	Host       string `json:"host"  validate:"required,ip"`                       // 当前实例的主机地址
 	Port       int    `json:"port"  validate:"required,lt=65536,gte=3306"`        // 当前实例的端口
 	SpiderPort int    `json:"spider_port"  validate:"required,lt=65536,gte=3306"` // spider节点端口
+	Stream     bool   `json:"stream"`                                             // mydumper stream myloader stream
+	DropBefore bool   `json:"drop_before"`                                        // 强制覆盖原来的表结构
 }
 
 type importSchemaFromLocalSpiderRuntime struct {
@@ -47,6 +53,9 @@ type importSchemaFromLocalSpiderRuntime struct {
 	tmpDumpDir   string
 	tmpDumpFile  string
 	tdbctlSocket string
+	adminUser    string
+	adminPwd     string
+	maxThreads   int
 }
 
 // Example subcommand example input
@@ -63,24 +72,26 @@ func (i *ImportSchemaFromLocalSpiderComp) Example() interface{} {
 
 // Init prepare run env
 func (c *ImportSchemaFromLocalSpiderComp) Init() (err error) {
-	conn, err := native.InsObject{
-		Host: c.Params.Host,
-		Port: c.Params.SpiderPort,
-		User: c.GeneralParam.RuntimeAccountParam.AdminUser,
-		Pwd:  c.GeneralParam.RuntimeAccountParam.AdminPwd,
-	}.Conn()
-	if err != nil {
-		logger.Error("Connect spider %d failed:%s", c.Params.Port, err.Error())
-		return err
-	}
+	c.adminUser = c.GeneralParam.RuntimeAccountParam.AdminUser
+	c.adminPwd = c.GeneralParam.RuntimeAccountParam.AdminPwd
 	c.tdbctlConn, err = native.InsObject{
 		Host: c.Params.Host,
-		Port: c.Params.SpiderPort,
-		User: c.GeneralParam.RuntimeAccountParam.AdminUser,
-		Pwd:  c.GeneralParam.RuntimeAccountParam.AdminPwd,
+		Port: c.Params.Port,
+		User: c.adminUser,
+		Pwd:  c.adminPwd,
 	}.Conn()
 	if err != nil {
 		logger.Error("Connect tdbctl %d failed:%s", c.Params.Port, err.Error())
+		return err
+	}
+	c.spiderconn, err = native.InsObject{
+		Host: c.Params.Host,
+		Port: c.Params.SpiderPort,
+		User: c.adminUser,
+		Pwd:  c.adminPwd,
+	}.Conn()
+	if err != nil {
+		logger.Error("Connect spider %d failed:%s", c.Params.Port, err.Error())
 		return err
 	}
 	c.tdbctlSocket, err = c.tdbctlConn.ShowSocket()
@@ -88,33 +99,106 @@ func (c *ImportSchemaFromLocalSpiderComp) Init() (err error) {
 		logger.Warn("get tdbctl socket failed %s", err.Error())
 		err = nil
 	}
-	alldbs, err := conn.ShowDatabases()
+	alldbs, err := c.spiderconn.ShowDatabases()
 	if err != nil {
 		logger.Error("show all databases failed:%s", err.Error())
 		return err
 	}
-	version, err := conn.SelectVersion()
+	version, err := c.spiderconn.SelectVersion()
 	if err != nil {
 		logger.Error("获取version failed %s", err.Error())
 		return err
 	}
 	finaldbs := []string{}
-	reg := regexp.MustCompile(`^bak_cbs`)
 	for _, db := range util.FilterOutStringSlice(alldbs, computil.GetGcsSystemDatabasesIgnoreTest(version)) {
-		if reg.MatchString(db) {
-			continue
-		}
 		finaldbs = append(finaldbs, db)
 	}
-	c.spiderconn = conn
 	c.dumpDbs = finaldbs
-	c.tmpDumpDir = path.Join(cst.BK_PKG_INSTALL_PATH, "schema_migrate")
+	c.charset, err = c.spiderconn.ShowServerCharset()
+	if err != nil {
+		logger.Error("get spider charset failed %s", c.charset)
+		return err
+	}
+	c.tmpDumpDir = path.Join(cst.BK_PKG_INSTALL_PATH, "schema_migrate_"+time.Now().Format(cst.TimeLayoutDir))
+	if !cmutil.FileExists(c.tmpDumpDir) {
+		stderr, err := osutil.StandardShellCommand(false, fmt.Sprintf("mkdir %s && chown -R mysql %s", c.tmpDumpDir,
+			c.tmpDumpDir))
+		if err != nil {
+			logger.Error("init dir %s failed %s,stderr:%s ", c.tmpDumpDir, err.Error(), stderr)
+			return err
+		}
+	}
 	c.tmpDumpFile = time.Now().Format(cst.TimeLayoutDir) + "_schema.sql"
+	c.maxThreads = runtime.NumCPU() / 3
+	if c.maxThreads < 1 {
+		c.maxThreads = 1
+	}
 	return err
 }
 
 // Migrate TODO
 func (c *ImportSchemaFromLocalSpiderComp) Migrate() (err error) {
+	_, err = c.tdbctlConn.Exec("set global tc_ignore_partitioning_for_create_table = 1;")
+	if err != nil {
+		logger.Error("set global tc_ignore_partitioning_for_create_table failed %s", err.Error())
+		return err
+	}
+	defer func() {
+		_, errx := c.tdbctlConn.Exec("set global tc_ignore_partitioning_for_create_table = 0;")
+		if errx != nil {
+			logger.Warn("set close tc_ignore_partitioning_for_create_table failed %s", errx.Error())
+		}
+	}()
+	if !c.Params.Stream {
+		return c.commonMigrate()
+	}
+	return c.streamMigrate()
+}
+
+func (c *ImportSchemaFromLocalSpiderComp) streamMigrate() (err error) {
+	logger.Info("will create mydumper.cnf ...")
+	mydumperCnf := path.Join(c.tmpDumpDir, "mydumper.cnf")
+	if !cmutil.FileExists(mydumperCnf) {
+		if err = os.WriteFile(mydumperCnf, []byte("[myloader_session_variables]\ntc_admin=0\n"), 0666); err != nil {
+			logger.Error("create mydumper.cnf failed %s", err.Error())
+			return err
+		}
+	}
+	logger.Info("create mydumper.cnf success~ ")
+	streamFlow := mysqlutil.MyStreamDumpLoad{
+		Dumper: &mysqlutil.MyDumper{
+			Host:    c.Params.Host,
+			Port:    c.Params.SpiderPort,
+			User:    c.adminUser,
+			Pwd:     c.adminPwd,
+			Charset: c.charset,
+			Options: mysqlutil.MyDumperOptions{
+				Threads:   2,
+				NoData:    true,
+				UseStream: true,
+				Regex:     "^(?!(mysql|infodba_schema|information_schema|performance_schema|sys))",
+			},
+		},
+		Loader: &mysqlutil.MyLoader{
+			Host:    c.Params.Host,
+			Port:    c.Params.Port,
+			User:    c.adminUser,
+			Pwd:     c.adminPwd,
+			Charset: c.charset,
+			Options: mysqlutil.MyLoaderOptions{
+				NoData:         true,
+				Threads:        2,
+				UseStream:      true,
+				DefaultsFile:   mydumperCnf,
+				OverWriteTable: c.Params.DropBefore,
+			},
+		},
+	}
+	return streamFlow.Run()
+}
+
+// commonMigrate 使用mysqldump 原生方式去迁移
+func (c *ImportSchemaFromLocalSpiderComp) commonMigrate() (err error) {
 	if len(c.dumpDbs) == 0 {
 		logger.Info("当前没有需要拷贝的表，请检查，直接返回")
 		return nil
@@ -138,7 +222,7 @@ func (c *ImportSchemaFromLocalSpiderComp) dumpSchema() (err error) {
 	var dumper mysqlutil.Dumper
 	dumpOption := mysqlutil.MySQLDumpOption{
 		NoData:       true,
-		AddDropTable: true,
+		AddDropTable: c.Params.DropBefore,
 		NeedUseDb:    true,
 		DumpRoutine:  true,
 		DumpTrigger:  true,
@@ -176,6 +260,7 @@ func (c *ImportSchemaFromLocalSpiderComp) loadSchema() (err error) {
 		Socket:           c.tdbctlSocket,
 		User:             c.GeneralParam.RuntimeAccountParam.AdminUser,
 		Password:         c.GeneralParam.RuntimeAccountParam.AdminPwd,
+		WorkDir:          c.tmpDumpDir,
 	}.ExcuteSqlByMySQLClientOne(c.tmpDumpFile, "")
 	if err != nil {
 		logger.Error("执行导入schema文件:%s 失败:%s", c.tmpDumpFile, err.Error())
