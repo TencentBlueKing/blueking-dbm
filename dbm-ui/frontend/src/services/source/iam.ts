@@ -35,10 +35,27 @@ export function checkAuthAllowed(params: IAMParams) {
   }[]>(`${path}/check_allowed/`, params);
 }
 
+export function simpleCheckAllowed(params: {
+  action_id: string,
+  resource_ids: Array<string|number>
+}) {
+  return http.post<boolean>(`${path}/simple_check_allowed/`, params);
+}
 /**
  * 获取权限申请数据
  */
 export function getApplyDataLink(params: IAMParams) {
   return http.post<ApplyDataModel>(`${path}/get_apply_data/`, params)
     .then(data => new ApplyDataModel(data));
+}
+
+export function simpleGetApplyData(params: {
+  action_id: string,
+  resource_ids: Array<string|number>
+}) {
+  return http.post<ApplyDataModel>(`${path}/simple_get_apply_data/`, params)
+    .then((data) => {
+      console.log(data, new ApplyDataModel(data));
+      return new ApplyDataModel(data);
+    });
 }

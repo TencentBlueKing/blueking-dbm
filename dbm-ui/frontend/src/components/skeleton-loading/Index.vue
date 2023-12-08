@@ -12,32 +12,28 @@
 -->
 
 <template>
-  <div
-    v-if="name"
-    ref="rootRef"
-    class="db-skeleton-loading">
-    <Component
-      :is="renderCom"
-      v-if="realLoading && maxWidth"
-      class="skeleton-loading-mask"
-      :class="{
-        fullscreen
-      }"
-      :max-width="maxWidth"
-      primary-color="#EBECF3"
-      secondary-color="#F6F7FB"
-      :speed="2" />
-    <div :class="{ 'skeleton-loading-hidden': realLoading }">
-      <slot />
+  <div ref="rootRef">
+    <div
+      v-if="name && loading"
+      class="db-skeleton-loading">
+      <Component
+        :is="renderCom"
+        class="skeleton-loading-mask"
+        :max-width="maxWidth"
+        primary-color="#EBECF3"
+        secondary-color="#F6F7FB"
+        :speed="2" />
+      <div :class="{ 'skeleton-loading-hidden': loading }">
+        <slot />
+      </div>
     </div>
+    <slot v-else />
   </div>
-  <slot v-else />
 </template>
 <script setup lang="ts">
   import {
     onMounted,
     ref,
-    watch,
   } from 'vue';
 
   import ClusterList from './components/ClusterList.vue';
@@ -45,15 +41,11 @@
   interface Props {
     name?: string;
     loading: boolean;
-    once?: boolean;
-    fullscreen?:boolean
   }
 
   const props = withDefaults(defineProps<Props>(), {
     name: undefined,
     loading: true,
-    once: true,
-    fullscreen: false,
   });
 
   const comMap = {
@@ -62,24 +54,8 @@
 
   const rootRef = ref();
   const maxWidth = ref(0);
-  const realLoading = ref(true);
 
   const renderCom = computed(() => (props.name ? comMap[props.name as keyof typeof comMap] : 'div'));
-
-  const unwatch = watch(() => props.loading, (loading: boolean) => {
-    if (loading) {
-      realLoading.value = loading;
-      return;
-    }
-    setTimeout(() => {
-      realLoading.value = loading;
-      if (!loading && props.once) {
-        unwatch();
-      }
-    }, 1000);
-  }, {
-    immediate: true,
-  });
 
   onMounted(() => {
     const { width } = rootRef.value.getBoundingClientRect();
@@ -100,9 +76,6 @@
       opacity: 100%;
       visibility: visible;
 
-      &.fullscreen {
-        min-height: calc(100vh - 92px);
-      }
     }
 
     .skeleton-loading-hidden {

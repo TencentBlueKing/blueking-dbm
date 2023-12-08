@@ -460,13 +460,16 @@
       fixed: isStretchLayoutOpen.value ? false : 'right',
       render: ({ data }: ColumnData) => (
           <>
-            <bk-button
+            <auth-button
               text
               theme="primary"
               class="mr-8"
+              actionId="mysql_authorize"
+              permission={data.permission.mysql_authorize}
+              resource={data.id}
               onClick={() => handleShowAuthorize([data])}>
               { t('授权') }
-            </bk-button>
+            </auth-button>
             <bk-button
             text
               theme="primary"
