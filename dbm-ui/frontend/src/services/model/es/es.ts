@@ -106,6 +106,16 @@ export default class Es {
     ticket_type: string,
     title: string,
   }>;
+  permission: {
+    es_view: boolean,
+    es_enable_disable: boolean,
+    es_destroy: boolean,
+    es_scale_up: boolean,
+    es_shrink: boolean,
+    es_replace: boolean,
+    es_reboot: boolean,
+    access_entry_edit: boolean,
+  };
   phase: 'online' | 'offline';
   region: string;
   status: string;
@@ -134,6 +144,7 @@ export default class Es {
     this.es_client = payload.es_client;
     this.id = payload.id;
     this.major_version = payload.major_version;
+    this.permission = payload.permission || {};
     this.phase = payload.phase;
     this.region = payload.region;
     this.status = payload.status;

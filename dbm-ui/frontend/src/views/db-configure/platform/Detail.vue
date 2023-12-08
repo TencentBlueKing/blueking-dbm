@@ -98,7 +98,9 @@
    */
 
   state.loading = true;
-  getConfigBaseDetails(baseParams.value)
+  getConfigBaseDetails(baseParams.value, {
+    permission: 'page',
+  })
     .then((res) => {
       state.data = res;
     })

@@ -11,7 +11,9 @@
  * the specific language governing permissions and limitations under the License.
 */
 
-import http from '../http';
+import http, {
+  type IRequestPayload,
+} from '../http';
 
 const path = '/apis/event/dbha';
 
@@ -46,8 +48,8 @@ interface EventSwtichItem {
 /**
  * DBHA切换事件列表
  */
-export function getEventSwitchList(params: Record<string, any>) {
-  return http.get<EventSwtichItem[]>(`${path}/ls/`, params);
+export function getEventSwitchList(params: Record<string, any>, payload = {} as IRequestPayload) {
+  return http.get<EventSwtichItem[]>(`${path}/ls/`, params, payload);
 }
 
 /**

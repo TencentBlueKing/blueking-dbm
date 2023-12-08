@@ -83,7 +83,7 @@
   }
 
   const props = defineProps<Props>();
-  const moduleId = defineModel({ required: true });
+  const moduleId = defineModel<number>({ required: true });
 
   const router = useRouter();
 

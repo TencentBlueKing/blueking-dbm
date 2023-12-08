@@ -15,7 +15,9 @@ import DbResourceModel from '@services/model/db-resource/DbResource';
 import ImportHostModel from '@services/model/db-resource/import-host';
 import OperationModel from '@services/model/db-resource/Operation';
 
-import http from '../http';
+import http, {
+  type IRequestPayload,
+} from '../http';
 import type {
   HostDetails,
   ListBase,
@@ -76,8 +78,8 @@ export function importResource(params: {
 /**
  * 资源池列表
  */
-export function fetchList(params: Record<string, any>) {
-  return http.post<ListBase<DbResourceModel[]>>(`${path}/list/`, params)
+export function fetchList(params: Record<string, any>, payload = {} as IRequestPayload) {
+  return http.post<ListBase<DbResourceModel[]>>(`${path}/list/`, params, payload)
     .then(data => ({
       ...data,
       results: data.results.map(item => new DbResourceModel(item)),
@@ -131,8 +133,8 @@ export function fetchOperationList(params: {
   offset: number,
   begin_time: string,
   end_time: string
-}) {
-  return http.get<ListBase<OperationModel[]>>(`${path}/query_operation_list/`, params)
+}, payload = {} as IRequestPayload) {
+  return http.get<ListBase<OperationModel[]>>(`${path}/query_operation_list/`, params, payload)
     .then(data => ({
       ...data,
       results: data.results.map(item => new OperationModel(item)),

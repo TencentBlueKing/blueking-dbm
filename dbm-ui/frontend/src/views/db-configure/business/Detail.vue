@@ -98,7 +98,9 @@
    * 查询配置详情
    */
   state.loading = true;
-  getLevelConfig(fetchParams.value)
+  getLevelConfig(fetchParams.value, {
+    permission: 'page',
+  })
     .then((res) => {
       state.data = res;
     })

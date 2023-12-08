@@ -15,40 +15,34 @@
   <div class="mysql-single-cluster-list-page">
     <div class="operation-box">
       <div class="mb-16">
-        <BkButton
+        <AuthButton
+          action-id="mysql_apply"
           theme="primary"
           @click="handleApply">
           {{ t('实例申请') }}
-        </BkButton>
+        </AuthButton>
         <span
           v-bk-tooltips="{
             disabled: hasSelected,
             content: t('请选择集群')
           }"
           class="inline-block">
-          <BkButton
+          <AuthButton
+            action-id="mysql_authorize"
             class="ml-8"
             :disabled="!hasSelected"
             @click="handleShowAuthorize(state.selected)">
             {{ t('批量授权') }}
-          </BkButton>
+          </AuthButton>
         </span>
-        <span
-          v-bk-tooltips="{
-            disabled: hasData,
-            content: t('请先创建实例')
-          }"
-          class="inline-block">
-          <BkButton
-            class="ml-8"
-            :disabled="!hasData"
-            @click="handleShowExcelAuthorize">
-            {{ t('导入授权') }}
-          </BkButton>
-        </span>
+        <AuthButton
+          action-id="mysql_authorize"
+          class="ml-8"
+          @click="handleShowExcelAuthorize">
+          {{ t('导入授权') }}
+        </AuthButton>
         <DropdownExportExcel
           :has-selected="hasSelected"
-          :ids="selectedIds"
           type="tendbsingle" />
       </div>
       <DbSearchSelect
@@ -58,27 +52,20 @@
         :get-menu-list="getMenuList"
         :placeholder="t('域名_IP_模块')"
         unique-select
-        @change="handleChangeValues" />
+        @change="handleSearchChange" />
     </div>
     <div
-      v-bkloading="{ loading: state.isLoading, zIndex: 2 }"
       class="table-wrapper"
       :class="{'is-shrink-table': isStretchLayoutOpen}">
-      <DbOriginalTable
+      <DbTable
+        ref="tableRef"
         :columns="columns"
-        :data="state.data"
-        :is-anomalies="isAnomalies"
-        :is-searching="state.filters.length > 0"
-        :pagination="renderPagination"
-        remote-pagination
+        :data-source="getTendbsingleList"
+        releate-url-query
         :row-class="setRowClass"
+        selectable
         :settings="settings"
-        @clear-search="handleClearSearch"
-        @page-limit-change="handeChangeLimit"
-        @page-value-change="handleChangePage"
-        @refresh="fetchResources(true)"
-        @select-all="handleTableSelectedAll"
-        @selection-change="handleTableSelected"
+        @selection="handleSelection"
         @setting-change="updateTableSettings" />
     </div>
   </div>
@@ -119,20 +106,19 @@
   } from '@services/types';
 
   import {
-    type IPagination,
     useCopy,
-    useDefaultPagination,
     useInfoWithIcon,
     useStretchLayout,
     useTableSettings,
     useTicketMessage,
   } from '@hooks';
 
-  import { useGlobalBizs, useUserProfile } from '@stores';
+  import {
+    useGlobalBizs,
+  } from '@stores';
 
   import {
     ClusterTypes,
-    DBTypes,
     TicketTypes,
     type TicketTypesStrings,
     UserPersonalSettings,
@@ -146,7 +132,7 @@
   import DbStatus from '@components/db-status/index.vue';
   import DropdownExportExcel from '@components/dropdown-export-excel/index.vue';
   import RenderInstances from '@components/render-instances/RenderInstances.vue';
-  import RenderTextEllipsisOneLine from '@components/text-ellipsis-one-line/index.vue';
+  import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
   import {
     getMenuListSearch,
@@ -154,11 +140,9 @@
     isRecentDays,
   } from '@utils';
 
-  // import { useTimeoutPoll } from '@vueuse/core';
   import type {
     SearchSelectData,
     SearchSelectItem,
-    TableSelectionData,
   } from '@/types/bkui-vue';
 
   interface ColumnData {
@@ -167,9 +151,6 @@
   }
 
   interface State {
-    isLoading: boolean,
-    pagination: IPagination,
-    data: Array<TendbsingleModel>,
     selected: Array<TendbsingleModel>,
     filters: Array<any>,
     dbModuleList: Array<SearchFilterItem>,
@@ -180,7 +161,6 @@
   const router = useRouter();
   const route = useRoute();
   const globalBizsStore = useGlobalBizs();
-  const userProfileStore = useUserProfile();
   const copy = useCopy();
   const { t, locale } = useI18n();
   const ticketMessage = useTicketMessage();
@@ -189,29 +169,23 @@
     splitScreen: stretchLayoutSplitScreen,
   } = useStretchLayout();
 
-  const isAnomalies = ref(false);
-  const isInit = ref(true);
-  const showEditEntryConfig = ref(false);
+  const tableRef = ref();
   const isShowExcelAuthorize = ref(false);
-
-  const state = reactive<State>({
-    isLoading: false,
-    pagination: useDefaultPagination(),
-    data: [],
-    selected: [],
-    filters: [],
-    dbModuleList: [],
-  });
+  const showEditEntryConfig = ref(false);
 
   const authorizeState = reactive({
     isShow: false,
     selected: [] as TendbsingleModel[],
   });
 
+  const state = reactive<State>({
+    selected: [],
+    filters: [],
+    dbModuleList: [],
+  });
+
   const isCN = computed(() => locale.value === 'zh-cn');
   const hasSelected = computed(() => state.selected.length > 0);
-  const selectedIds = computed(() => state.selected.map(item => item.id));
-  const hasData = computed(() => state.data.length > 0);
   const searchSelectData = computed(() => [
     {
       name: 'ID',
@@ -242,14 +216,8 @@
     }
     return 60;
   });
-  const columns = computed(() => [
-    {
-      type: 'selection',
-      width: 54,
-      minWidth: 54,
-      label: '',
-      fixed: 'left',
-    },
+
+  const columns = [
     {
       label: 'ID',
       field: 'id',
@@ -260,32 +228,43 @@
       label: t('访问入口'),
       field: 'master_domain',
       fixed: 'left',
-      width: 200,
-      minWidth: 200,
-      showOverflowTooltip: false,
-      render: ({ data }: ColumnData) => {
-        const content = <>
-          <db-icon
-            v-bk-tooltips={t('复制主访问入口')}
-            type="copy"
-            onClick={() => copy(data.masterDomainDisplayName)} />
-          {userProfileStore.isManager && (
-            <db-icon
-              type="edit"
-              v-bk-tooltips={t('修改入口配置')}
-              onClick={() => handleOpenEntryConfig(data)} />
-          )}
-        </>;
-        return (
-          <div class="domain">
-            <RenderTextEllipsisOneLine
-              text={data.masterDomainDisplayName}
-              onClick={() => handleToDetails(data.id)}>
-              {content}
-            </RenderTextEllipsisOneLine>
-          </div>
-        );
-      },
+      width: 300,
+      minWidth: 300,
+      render: ({ data }: ColumnData) => (
+        <TextOverflowLayout>
+          {{
+            default: () => (
+              <auth-button
+                action-id="mysql_view"
+                resource={data.id}
+                permission={data.permission.mysql_view}
+                text
+                theme="primary"
+                onClick={() => handleToDetails(data.id)}>
+                {data.masterDomainDisplayName}
+              </auth-button>
+            ),
+            append: () => (
+              <>
+                <db-icon
+                  v-bk-tooltips={t('复制主访问入口')}
+                  type="copy"
+                  onClick={() => copy(data.masterDomainDisplayName)} />
+                <auth-button
+                  v-bk-tooltips={t('修改入口配置')}
+                  action-id="access_entry_edit"
+                  resource="mysql"
+                  permission={data.permission.access_entry_edit}
+                  text
+                  theme="primary"
+                  onClick={() => handleOpenEntryConfig(data)}>
+                  <db-icon type="edit" />
+                </auth-button>
+              </>
+            ),
+          }}
+        </TextOverflowLayout>
+      ),
     },
     {
       label: t('集群名称'),
@@ -294,37 +273,38 @@
       fixed: 'left',
       showOverflowTooltip: false,
       render: ({ data }: ColumnData) => (
-        <div class="cluster-name-container">
-          <div
-            class="cluster-name text-overflow"
-            v-overflow-tips>
-            <span>
-              {data.cluster_name}
-            </span>
-          </div>
-          <div class="cluster-tags">
-            {
-              data.operationTagTips.map(item => <RenderOperationTag class="cluster-tag ml-4" data={item}/>)
-            }
-            {
-              data.phase === 'offline'
-              && <db-icon
-                  svg
-                  type="yijinyong"
-                  class="cluster-tag"
-                  style="width: 38px; height: 16px;" />
-            }
-            {
-              isRecentDays(data.create_at, 24 * 3)
-              && <span class="glob-new-tag cluster-tag ml-4" data-text="NEW" />
-            }
-            <db-icon
-              v-bk-tooltips={t('复制集群名称')}
-              type="copy"
-              onClick={() => copy(data.cluster_name)} />
-          </div>
-
-        </div>
+        <TextOverflowLayout>
+          {{
+            default: () => data.cluster_name,
+            append: () => (
+              <>
+                {
+                  data.operationTagTips.map(item => <RenderOperationTag class="cluster-tag ml-4" data={item}/>)
+                }
+                {
+                  data.phase === 'offline' && (
+                    <db-icon
+                      svg
+                      type="yijinyong"
+                      class="cluster-tag"
+                      style="width: 38px; height: 16px;" />
+                  )
+                }
+                {
+                  isRecentDays(data.create_at, 24 * 3) && (
+                    <span
+                      class="glob-new-tag cluster-tag ml-4"
+                      data-text="NEW" />
+                  )
+                }
+                <db-icon
+                  v-bk-tooltips={t('复制集群名称')}
+                  type="copy"
+                  onClick={() => copy(data.cluster_name)} />
+              </>
+            ),
+          }}
+        </TextOverflowLayout>
       ),
     },
     {
@@ -399,46 +379,55 @@
       fixed: isStretchLayoutOpen.value ? false : 'right',
       render: ({ data }: ColumnData) => (
         <>
-          <bk-button
+          <auth-button
             text
             theme="primary"
             class="mr-8"
-            onClick={handleShowAuthorize.bind(null, [data])}>
+            actionId="mysql_authorize"
+            permission={data.permission.mysql_authorize}
+            resource={data.id}
+            onClick={() => handleShowAuthorize([data])}>
             { t('授权') }
-          </bk-button>
+          </auth-button>
           {
             data.isOnline ? (
               <OperationBtnStatusTips data={data}>
-                <bk-button
+                <auth-button
                   text
                   theme="primary"
-                  disabled={Boolean(data.operationTicketId)}
                   class="mr-8"
+                  action-id="mysql_enable_disable"
+                  permission={data.permission.mysql_enable_disable}
+                  resource={data.id}
                   onClick={() => handleSwitchCluster(TicketTypes.MYSQL_SINGLE_DISABLE, data)}>
                   { t('禁用') }
-                </bk-button>
+                </auth-button>
               </OperationBtnStatusTips>
             ) : (
               <>
                 <OperationBtnStatusTips data={data}>
-                  <bk-button
+                  <auth-button
                     text
                     theme="primary"
                     class="mr-8"
-                    disabled={Boolean(data.operationTicketId)}
+                    action-id="mysql_enable_disable"
+                    permission={data.permission.mysql_enable_disable}
+                    resource={data.id}
                     onClick={() => handleSwitchCluster(TicketTypes.MYSQL_SINGLE_ENABLE, data)}>
                     { t('启用') }
-                  </bk-button>
+                  </auth-button>
                 </OperationBtnStatusTips>
                 <OperationBtnStatusTips data={data}>
-                  <bk-button
+                  <auth-button
                     text
                     theme="primary"
                     class="mr-8"
-                    disabled={Boolean(data.operationTicketId)}
+                    action-id="mysql_destroy"
+                    permission={data.permission.mysql_destroy}
+                    resource={data.id}
                     onClick={() => handleDeleteCluster(data)}>
                     { t('删除') }
-                  </bk-button>
+                  </auth-button>
                 </OperationBtnStatusTips>
               </>
             )
@@ -446,66 +435,23 @@
         </>
       ),
     },
-  ]);
-
-  const handleOpenEntryConfig = (row: TendbsingleModel) => {
-    showEditEntryConfig.value  = true;
-    clusterId.value = row.id;
-  };
-
-  // 设置行样式
-  const setRowClass = (row: TendbsingleModel) => {
-    const classList = [row.phase === 'offline' ? 'is-offline' : ''];
-    const newClass = isRecentDays(row.create_at, 24 * 3) ? 'is-new-row' : '';
-    classList.push(newClass);
-    if (row.id === clusterId.value) {
-      classList.push('is-selected-row');
-    }
-    return classList.filter(cls => cls).join(' ');
-  };
+  ];
 
   // 设置用户个人表头信息
   const disabledFields = ['master_domain'];
   const defaultSettings = {
-    fields: (columns.value || []).filter(item => item.field).map(item => ({
+    fields: (columns || []).filter(item => item.field).map(item => ({
       label: item.label as string,
       field: item.field as string,
       disabled: disabledFields.includes(item.field as string),
     })),
-    checked: (columns.value || []).map(item => item.field).filter(key => !!key && key !== 'id') as string[],
+    checked: (columns || []).map(item => item.field).filter(key => !!key && key !== 'id') as string[],
     showLineHeight: false,
   };
   const {
     settings,
     updateTableSettings,
   } = useTableSettings(UserPersonalSettings.TENDBSINGLE_TABLE_SETTINGS, defaultSettings);
-
-  const renderPagination = computed(() => {
-    if (state.pagination.count < 10) {
-      return false;
-    }
-    if (!isStretchLayoutOpen.value) {
-      return { ...state.pagination };
-    }
-    return {
-      ...state.pagination,
-      small: true,
-      align: 'left',
-      layout: ['total', 'limit', 'list'],
-    };
-  });
-
-  // 设置轮询
-  // const { pause, resume } = useTimeoutPoll(() => {
-  //   fetchResources(isInit.value);
-  // }, 5000, { immediate: false });
-  // onMounted(() => {
-  //   fetchResources();
-  //   resume();
-  // });
-  // onBeforeUnmount(() => {
-  //   pause();
-  // });
 
   const getMenuList = async (item: SearchSelectItem | undefined, keyword: string) => {
     if (item?.id !== 'creator' && keyword) {
@@ -521,7 +467,16 @@
 
     // 远程加载执行人
     if (item.id === 'creator') {
-      return await fetchUseList(keyword);
+      if (!keyword) {
+        return [];
+      }
+      return getUserList({
+        fuzzy_lookups: keyword,
+      })
+        .then(res => res.results.map(item => ({
+          id: item.username,
+          name: item.username,
+        })));
     }
 
     // 不需要远层加载
@@ -529,17 +484,50 @@
   };
 
   /**
-   * 获取人员列表
+   * 获取模块列表
    */
-  const fetchUseList = (fuzzyLookups: string) => {
-    if (!fuzzyLookups) return [];
+  getModules({
+    bk_biz_id: globalBizsStore.currentBizId,
+    cluster_type: ClusterTypes.TENDBSINGLE,
+  }).then((res) => {
+    state.dbModuleList = res.map(item => ({
+      id: item.db_module_id,
+      name: item.name,
+    }));
+  });
 
-    return getUserList({ fuzzy_lookups: fuzzyLookups }).then(res => res.results.map(item => ({
-      id: item.username,
-      name: item.username,
-    })));
+  let isInit = true;
+  const fetchData = (loading?:boolean) => {
+    const params = getSearchSelectorParams(state.filters);
+    tableRef.value.fetchData(params, {}, loading);
+    isInit = false;
   };
 
+  // 设置行样式
+  const setRowClass = (row: TendbsingleModel) => {
+    const classList = [row.phase === 'offline' ? 'is-offline' : ''];
+    const newClass = isRecentDays(row.create_at, 24 * 3) ? 'is-new-row' : '';
+    classList.push(newClass);
+    if (row.id === clusterId.value) {
+      classList.push('is-selected-row');
+    }
+    return classList.filter(cls => cls).join(' ');
+  };
+
+  /**
+   * 申请实例
+   */
+  const handleApply = () => {
+    router.push({
+      name: 'SelfServiceApplySingle',
+      query: {
+        bizId: globalBizsStore.currentBizId,
+        from: route.name as string,
+      },
+    });
+  };
+
+  /** 集群授权 */
   const handleShowAuthorize = (selected: TendbsingleModel[] = []) => {
     authorizeState.isShow = true;
     authorizeState.selected = selected;
@@ -548,64 +536,13 @@
     state.selected = [];
     authorizeState.selected = [];
   };
-
   const handleShowExcelAuthorize = () => {
     isShowExcelAuthorize.value = true;
   };
 
-  /**
-   * 获取模块列表
-   */
-  const fetchModules = () => getModules({
-    bk_biz_id: globalBizsStore.currentBizId,
-    cluster_type: ClusterTypes.TENDBSINGLE,
-  }).then((res) => {
-    state.dbModuleList = res.map(item => ({
-      id: item.db_module_id,
-      name: item.name,
-    }));
-    return state.dbModuleList;
-  });
-
-
-  fetchModules();
-
-  /**
-   * 获取列表
-   */
-  const fetchResources = (isLoading = false) => {
-    const params = {
-      dbType: DBTypes.MYSQL,
-      bk_biz_id: globalBizsStore.currentBizId,
-      type: ClusterTypes.TENDBSINGLE,
-      ...state.pagination.getFetchParams(),
-      ...getSearchSelectorParams(state.filters),
-    };
-    isInit.value = false;
-    state.isLoading = isLoading;
-    return getTendbsingleList(params)
-      .then((res) => {
-        state.pagination.count = res.count;
-        state.data = res.results;
-        isAnomalies.value = false;
-        // 路由带有集群id, 则展开集群详情页
-        if (route.query.id && !clusterId.value && res.results.length > 0) {
-          handleToDetails(Number(route.query.id));
-        }
-      })
-      .catch(() => {
-        state.pagination.count = 0;
-        state.data = [];
-        isAnomalies.value = true;
-      })
-      .finally(() => {
-        state.isLoading = false;
-      });
-  };
-
-  const handleClearSearch = () => {
-    state.filters = [];
-    handleChangePage(1);
+  const handleOpenEntryConfig = (row: TendbsingleModel) => {
+    showEditEntryConfig.value  = true;
+    clusterId.value = row.id;
   };
 
   /**
@@ -619,44 +556,13 @@
   /**
    * 表格选中
    */
-  const handleTableSelected = ({ row, checked }: TableSelectionData<TendbsingleModel>) => {
-    // 单选 checkbox 选中
-    if (checked) {
-      const toggleIndex = state.selected.findIndex(item => item.id === row.id);
-      if (toggleIndex === -1) {
-        state.selected.push(row);
-      }
-      return;
-    }
 
-    // 单选 checkbox 取消选中
-    const toggleIndex = state.selected.findIndex(item => item.id === row.id);
-    if (toggleIndex > -1) {
-      state.selected.splice(toggleIndex, 1);
-    }
+  const handleSelection = (data: TendbsingleModel, list: TendbsingleModel[]) => {
+    state.selected = list;
   };
 
-  /**
-   * 表格全选
-   */
-  const handleTableSelectedAll = ({ checked, data }: {checked: boolean, data: TendbsingleModel[]}) => {
-    state.selected = checked ? [...data] : [];
-  };
-
-  const handleChangePage = (value: number) => {
-    state.pagination.current = value;
-    fetchResources(true);
-  };
-
-  const handeChangeLimit = (value: number) => {
-    state.pagination.limit = value;
-    handleChangePage(1);
-  };
-
-  const handleChangeValues = () => {
-    nextTick(() => {
-      handleChangePage(1);
-    });
+  const handleSearchChange = () => {
+    fetchData(isInit);
   };
 
   /**
@@ -739,18 +645,11 @@
     });
   };
 
-  /**
-   * 申请实例
-   */
-  const handleApply = () => {
-    router.push({
-      name: 'SelfServiceApplySingle',
-      query: {
-        bizId: globalBizsStore.currentBizId,
-        from: route.name as string,
-      },
-    });
-  };
+  onMounted(() => {
+    if (!clusterId.value && route.query.id) {
+      handleToDetails(Number(route.query.id));
+    }
+  });
 </script>
 
 <style lang="less" scoped>
@@ -881,7 +780,6 @@
       flex-shrink: 0;
     }
   }
-
 
 }
 </style>

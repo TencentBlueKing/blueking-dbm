@@ -12,38 +12,41 @@
 -->
 
 <template>
-  <div class="rotation-setting-type-content">
-    <div class="create-box">
-      <BkButton
-        class="w-88 mb-14"
-        theme="primary"
-        @click="() => handleOperate('create')">
-        {{ t('新建') }}
-      </BkButton>
+  <ApplyPermissionCatch>
+    <div class="rotation-setting-type-content">
+      <div class="create-box">
+        <BkButton
+          class="w-88 mb-14"
+          theme="primary"
+          @click="() => handleOperate('create')">
+          {{ t('新建') }}
+        </BkButton>
+      </div>
+      <BkLoading :loading="isTableLoading">
+        <DbTable
+          ref="tableRef"
+          class="table-box"
+          :columns="columns"
+          :data-source="queryDutyRuleList"
+          :row-class="updateRowClass"
+          :settings="settings" />
+      </BkLoading>
     </div>
-    <BkLoading :loading="isTableLoading">
-      <DbTable
-        ref="tableRef"
-        class="table-box"
-        :columns="columns"
-        :data-source="queryDutyRuleList"
-        :row-class="updateRowClass"
-        :settings="settings" />
-    </BkLoading>
-  </div>
-  <EditRule
-    v-model="isShowEditRuleSideSilder"
-    :data="currentRowData"
-    :db-type="activeDbType"
-    :existed-names="existedNames"
-    :page-type="pageType"
-    @success="handleSuccess" />
+    <EditRule
+      v-model="isShowEditRuleSideSilder"
+      :data="currentRowData"
+      :db-type="activeDbType"
+      :existed-names="existedNames"
+      :page-type="pageType"
+      @success="handleSuccess" />
+  </ApplyPermissionCatch>
 </template>
 <script setup lang="tsx">
   import { InfoBox } from 'bkui-vue';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
+  import DutyRuleModel from '@services/model/monitor/duty-rule';
   import {
     deleteDutyRule,
     getPriorityDistinct,
@@ -51,17 +54,16 @@
     updatePartialDutyRule,
   } from '@services/monitor';
 
+  import ApplyPermissionCatch from '@components/apply-permission/catch.vue';
   import MiniTag from '@components/mini-tag/index.vue';
   import NumberInput from '@components/render-table/columns/input/index.vue';
-  import RenderTextEllipsisOneLine from '@components/text-ellipsis-one-line/index.vue';
+  import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
   import { messageSuccess } from '@utils';
 
   import EditRule from '../edit-rule/Index.vue';
 
   import RenderRotateTable from './RenderRotateTable.vue';
-
-  export type RowData = ServiceReturnType<typeof queryDutyRuleList>['results'][0];
 
   interface Props {
     activeDbType: string;
@@ -81,7 +83,7 @@
   const tableRef = ref();
   const pageType = ref();
   const isShowEditRuleSideSilder = ref(false);
-  const currentRowData = ref<RowData>();
+  const currentRowData = ref<DutyRuleModel>();
   const isTableLoading = ref(false);
   const sortedPriority = ref<number[]>([]);
   const existedNames = ref<string[]>([]);
@@ -115,25 +117,39 @@
       label: t('规则名称'),
       field: 'name',
       minWidth: 220,
-      render: ({ data }: {data: RowData}) => {
-        const isNotActive = [RuleStatus.TERMINATED, RuleStatus.EXPIRED].includes(data.status as RuleStatus);
-        const color = (isNotActive || !data.is_enabled) ? '#63656E' : '#3A84FF';
-        const content = <>
-          {data.isNewCreated && <MiniTag theme='success' content="NEW" />}
-        </>;
-        return <RenderTextEllipsisOneLine
-          text={data.name}
-          textStyle={{ color }}
-          onClick={() => handleOperate('edit', data)}>
-          {content}
-        </RenderTextEllipsisOneLine>;
+      render: ({ data }: {data: DutyRuleModel}) => {
+        const isNotActive = [
+          RuleStatus.TERMINATED,
+          RuleStatus.EXPIRED,
+        ].includes(data.status as RuleStatus);
+
+        return (
+          <TextOverflowLayout>
+            {{
+              default: () => (
+                <bk-button
+                  text
+                  theme="primary"
+                  disabled={isNotActive || !data.is_enabled}
+                  onClick={() => handleOperate('edit', data)}>
+                  {data.name}
+                </bk-button>
+              ),
+              append: () => data.isNewCreated && (
+                <MiniTag
+                  theme='success'
+                  content="NEW" />
+              ),
+            }}
+          </TextOverflowLayout>
+        );
       },
     },
     {
       label: t('状态'),
       field: 'status',
       minWidth: 150,
-      render: ({ data }: {data: RowData}) => {
+      render: ({ data }: {data: DutyRuleModel}) => {
         const { label, theme } = statusMap[data.status as RuleStatus];
         return <bk-tag theme={theme}>{label}</bk-tag>;
       },
@@ -147,7 +163,7 @@
       field: 'priority',
       sort: true,
       width: 120,
-      render: ({ data }: {data: RowData}) => {
+      render: ({ data }: {data: DutyRuleModel}) => {
         const level = data.priority;
         let theme = '';
         if (sortedPriority.value.length === 3) {
@@ -188,7 +204,7 @@
       field: 'duty_arranges',
       showOverflowTooltip: false,
       width: 250,
-      render: ({ data }: {data: RowData}) => {
+      render: ({ data }: {data: DutyRuleModel}) => {
         let title = '';
         if (data.status in statusMap) {
           title = statusMap[data.status as RuleStatus].title;
@@ -245,7 +261,7 @@
       label: t('启停'),
       field: 'is_enabled',
       width: 120,
-      render: ({ data }: { data: RowData }) => (
+      render: ({ data }: { data: DutyRuleModel }) => (
       <bk-pop-confirm
         title={t('确认停用该策略？')}
         content={t('停用后，所有的业务将会停用该策略，请谨慎操作！')}
@@ -271,7 +287,7 @@
       showOverflowTooltip: false,
       field: '',
       width: 180,
-      render: ({ data }: {data: RowData}) => (
+      render: ({ data }: {data: DutyRuleModel}) => (
       <div class="operate-box">
         <bk-button
           text
@@ -353,7 +369,7 @@
     immediate: true,
   });
 
-  const updateRowClass = (row: RowData) => (row.isNewCreated ? 'is-new' : '');
+  const updateRowClass = (row: DutyRuleModel) => (row.isNewCreated ? 'is-new' : '');
 
   const fetchHostNodes = async () => {
     isTableLoading.value = true;
@@ -366,13 +382,13 @@
     }
   };
 
-  const handleClickEditPriority = (data: RowData) => {
+  const handleClickEditPriority = (data: DutyRuleModel) => {
     Object.assign(data, {
       is_show_edit: true,
     });
   };
 
-  const handlePriorityChange = async (row: RowData, value: string) => {
+  const handlePriorityChange = async (row: DutyRuleModel, value: string) => {
     let priority = Number(value);
     if (priority < 1) {
       priority = 1;
@@ -393,7 +409,7 @@
     });
   };
 
-  const handleChangeSwitch = async (row: RowData) => {
+  const handleChangeSwitch = async (row: DutyRuleModel) => {
     if (!row.is_enabled) {
       showTipMap.value[row.id] = true;
       Object.assign(row, {
@@ -411,7 +427,7 @@
     }
   };
 
-  const handleClickConfirm = async (row: RowData) => {
+  const handleClickConfirm = async (row: DutyRuleModel) => {
     const updateResult = await updatePartialDutyRule(row.id, {
       is_enabled: false,
     });
@@ -423,18 +439,18 @@
     fetchHostNodes();
   };
 
-  const handleCancelConfirm = (row: RowData) => {
+  const handleCancelConfirm = (row: DutyRuleModel) => {
     showTipMap.value[row.id] = false;
   };
 
-  const handleOperate = (type: string, row?: RowData) => {
+  const handleOperate = (type: string, row?: DutyRuleModel) => {
     existedNames.value = tableRef.value.getData().map((item: { name: string; }) => item.name);
     currentRowData.value = row;
     pageType.value = type;
     isShowEditRuleSideSilder.value = true;
   };
 
-  const handleDelete = async (row: RowData) => {
+  const handleDelete = async (row: DutyRuleModel) => {
     InfoBox({
       title: t('确认删除该轮值?'),
       subTitle: t('重置 Secure Key,需自定修改 Template 中的地址字段！'),

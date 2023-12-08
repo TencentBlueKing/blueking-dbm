@@ -119,7 +119,7 @@
         :loading="isSubmitting"
         theme="primary"
         @click="handleSubmit">
-        {{ t('提交') }}
+        {{ $t('提交') }}
       </BkButton>
       <BkButton
         class="w-88"

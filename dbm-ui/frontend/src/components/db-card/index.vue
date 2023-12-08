@@ -66,7 +66,7 @@
     mode: 'normal',
   });
   const emits = defineEmits<Emits>();
-  const collapse = defineModel('collapse', {
+  const collapse = defineModel<boolean>('collapse', {
     default: true,
   });
 

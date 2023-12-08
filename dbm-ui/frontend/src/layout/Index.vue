@@ -62,6 +62,8 @@
 
   import { useFullscreenStyle } from '@hooks';
 
+  import { useUserProfile  } from '@stores';
+
   import ConfigManage from './components/ConfigManage.vue';
   import DatabaseManage from './components/database-manage/Index.vue';
   import ObservableManage from './components/ObservableManage.vue';
@@ -73,6 +75,7 @@
   const SIDE_MENU_TOGGLE_KEY = 'sideMenuFlod';
   const { t } = useI18n();
   const route = useRoute();
+  const userProfile = useUserProfile();
 
   const enum menuEnum {
     databaseManage = 'databaseManage',
@@ -96,11 +99,11 @@
       label: t('配置管理'),
       value: menuEnum.configManage,
     },
-    {
+    userProfile.rerourceManage && {
       label: t('资源管理'),
       value: menuEnum.resourceManage,
     },
-    {
+    userProfile.globalManage && {
       label: t('平台管理'),
       value: menuEnum.platformManage,
     },
@@ -108,7 +111,7 @@
       label: t('个人工作台'),
       value: menuEnum.personalWorkbench,
     },
-  ];
+  ].filter(item => item) as {label: string, value: string}[];
 
   const routeGroup = {
     [menuEnum.databaseManage]: [

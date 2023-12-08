@@ -13,12 +13,12 @@
 
 <template>
   <BkLoading
-    class="staff-loading"
+    class="staff-page"
     :loading="state.loading">
-    <SmartAction>
+    <SmartAction :offset-target="getSmartActionOffsetTarget">
       <DbForm
         ref="staffFormRef"
-        class="staff-setting db-scroll-y"
+        class="staff-setting"
         :label-width="168"
         :model="state.admins">
         <DbCard
@@ -37,15 +37,17 @@
       </DbForm>
       <template #action>
         <div class="setting-footer">
-          <BkButton
-            class="mr-8"
+          <AuthButton
+            action-id="dba_administrator_edit"
+            class="mr-8 w-88"
             :loading="isSubmitting"
             theme="primary"
             @click="handleSubmit">
             {{ $t('保存') }}
-          </BkButton>
+          </AuthButton>
           <BkButton
             v-if="!isPlatform"
+            class="w-88"
             :disabled="isSubmitting"
             @click="resetFormData()">
             {{ $t('重置') }}
@@ -55,7 +57,6 @@
     </SmartAction>
   </BkLoading>
 </template>
-
 <script setup lang="ts">
   import { Message } from 'bkui-vue';
   import { useI18n } from 'vue-i18n';
@@ -74,6 +75,9 @@
 
   const { t } = useI18n();
   const route = useRoute();
+
+  const getSmartActionOffsetTarget = () => document.querySelector('.bk-form-content');
+
   const isPlatform = computed(() => route.matched[0]?.name === 'Platform');
 
   /**
@@ -143,32 +147,16 @@
     });
   });
 </script>
-
-<style lang="less" scoped>
-  .staff-loading {
-    height: 100%;
-  }
-
-  .staff-setting {
-    height: 100%;
-
-    :deep(.bk-form-item) {
+<style lang="less">
+  .staff-page{
+    .bk-form-item {
       max-width: 690px;
     }
 
     .db-card {
-      &:last-child {
-        margin-bottom: 0;
+      & ~ .db-card{
+        margin-top: 16px;
       }
-    }
-
-  }
-
-  .setting-footer {
-    margin-left: 216px;
-
-    .bk-button {
-      width: 88px;
     }
   }
 </style>

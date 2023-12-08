@@ -4,7 +4,7 @@ import {
 } from 'vue';
 import { useRequest } from 'vue-request';
 
-import { checkAuthAllowed } from '@services/source/iam';
+import { simpleCheckAllowed } from '@services/source/iam';
 
 import { permissionDialog } from '@utils';
 
@@ -14,22 +14,65 @@ export interface Props {
   resource?: string | number,
 }
 
+const withBizActionList = [
+  'mysql_apply',
+  'mysql_account_create',
+  'mysql_account_delete',
+  'mysql_account_rule_create',
+  'mysql_excel_authorize',
+  'mysql_partition_create',
+  'mysql_partition_delete',
+  'mysql_partition_update',
+  'mysql_partition_create',
+  'mysql_partition_enable_disable',
+  'tendbcluster_apply',
+  'tendbcluster_account_create',
+  'tendbcluster_account_delete',
+  'tendbcluster_add_account_rule',
+  'tendb_excel_authorize_rules',
+  'tendbcluster_cluster_clone_rules',
+  'tendbcluster_temporary_destroy',
+  'tendbcluster_partition_create',
+  'tendbcluster_partition_delete',
+  'tendbcluster_partition_update',
+  'tendbcluster_partition_create',
+  'tendb_partition_enable_disable',
+  'tendbcluster_partition',
+  'redis_cluster_apply',
+  'redis_data_structure_manage',
+  'es_apply',
+  'kafka_apply',
+  'hdfs_apply',
+  'pulsar_apply',
+  'influxdb_apply',
+  'monitor_policy_view',
+  'notify_group_create',
+  'notify_group_update',
+  'notify_group_list',
+  'notify_group_create',
+  'notify_group_delete',
+  'dbconfig_view',
+  'dbconfig_edit',
+  'dba_administrator_edit',
+  'health_report_view',
+  'dbha_switch_event_view',
+  'ip_whitelist_manage',
+];
+
 export default function (props: Props) {
   const {
-    data: checkResultMap,
+    data: checkResult,
     loading,
     run,
-  } = useRequest(checkAuthAllowed, {
+  } = useRequest(simpleCheckAllowed, {
     manual: true,
   });
 
   const isShowRaw = computed(() => {
-    console.log('checkResultMap = ', checkResultMap);
     if (props.permission === true) {
       return true;
     }
-    return false;
-    // return Boolean(checkResultMap.value[props.actionId]);
+    return checkResult.value;
   });
 
   // 检测权限
@@ -37,25 +80,19 @@ export default function (props: Props) {
     if (!props.actionId) {
       return;
     }
+    const params = {
+      action_id: props.actionId,
+      resource_ids: props.resource ? [props.resource] : [],
+    };
 
-    run({
-      action_ids: [props.actionId],
-      resources: [
-        {
-          type: 'mysql',
-          id: props.resource,
-        },
-      ],
-    });
+    if (withBizActionList.includes(props.actionId)) {
+      Object.assign(params, {
+        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+      });
+    }
+
+    run(params);
   };
-
-  // watch(() => props.resource, (resource) => {
-  //   if (resource) {
-  //     // 资源信息变化需要重新鉴权
-  //     checkPermission();
-  //   }
-  // });
-
 
   const handleRequestPermission = (event: Event) => {
     if (loading.value) {
@@ -64,8 +101,8 @@ export default function (props: Props) {
     event.preventDefault();
     event.stopPropagation();
     permissionDialog(undefined, {
-      action_ids: props.actionId,
-      resources: props.resource,
+      action_id: props.actionId,
+      resource_ids: props.resource ? [props.resource] : [],
     });
   };
 

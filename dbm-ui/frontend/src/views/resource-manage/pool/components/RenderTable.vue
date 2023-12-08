@@ -34,7 +34,7 @@
         @page-value-change="handlePageValueChange"
         @row-click="handleRowClick">
         <template
-          v-if="releateUrlQuery && Object.keys(rowSelectMemo).length > 0"
+          v-if="Object.keys(rowSelectMemo).length > 0"
           #prepend>
           <div class="prepend-row">
             <I18nT keypath="已选n条，">
@@ -93,6 +93,7 @@
   } from 'vue';
   import { useI18n } from 'vue-i18n';
 
+  import type { IRequestPayload } from '@services/http';
   import type { ListBase } from '@services/types';
 
   import { useUrlSearch } from '@hooks';
@@ -108,7 +109,7 @@
 
   interface Props {
     columns: InstanceType<typeof Table>['$props']['columns'],
-    dataSource: (params: any)=> Promise<any>,
+    dataSource: (params: any, payload?: IRequestPayload)=> Promise<any>,
     fixedPagination?: boolean,
     clearSelection?: boolean,
     paginationExtra?: IPaginationExtra,
@@ -116,16 +117,14 @@
     disableSelectMethod?: (data: any) => boolean|string,
     // data 数据的主键
     primaryKey?: string,
-    // 是否解析 URL query 参数
-    releateUrlQuery?: boolean,
   }
 
   interface Emits {
     (e: 'requestSuccess', value: any): void,
     (e: 'requestFinished', value: any[]): void,
     (e: 'clearSearch'): void,
-    (e: 'selection', key: string[], list: Record<any, any>[]): void,
-    (e: 'selection', key: number[], list: Record<any, any>[]): void,
+    (e: 'selection', key: string[], list: any[]): void,
+    (e: 'selection', key: number[], list: any[]): void,
   }
 
   interface Exposes {
@@ -145,7 +144,6 @@
     selectable: false,
     disableSelectMethod: () => false,
     primaryKey: 'id',
-    releateUrlQuery: false,
     containerHeight: undefined,
   });
 
@@ -221,6 +219,7 @@
     next: '',
     previous: '',
     results: [],
+    permission: {},
   });
   const isSearching = ref(false);
   const isAnomalies = ref(false);
@@ -300,7 +299,9 @@
           ...paramsMemo,
           ...sortParams,
         };
-        props.dataSource(params)
+        props.dataSource(params, {
+          permission: 'page',
+        })
           .then((data) => {
             tableData.value = data;
             pagination.count = data.count;
@@ -336,7 +337,7 @@
 
   // 解析 URL 上面的分页信息
   const parseURL = () => {
-    if (!props.releateUrlQuery || props.fixedPagination) {
+    if (props.fixedPagination) {
       return;
     }
     const {

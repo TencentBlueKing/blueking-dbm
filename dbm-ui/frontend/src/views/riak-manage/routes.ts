@@ -23,7 +23,6 @@ const routes: RouteRecordRaw[] = [
     path: 'riak-manage',
     meta: {
       navName: t('Riak_集群管理'),
-      isMenu: true,
     },
     redirect: {
       name: 'RiakList',

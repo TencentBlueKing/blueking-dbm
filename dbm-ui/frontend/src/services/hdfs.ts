@@ -34,12 +34,14 @@ export const getPassword = function (params: Record<string, any> & {bk_biz_id: n
     .then(data => new HdfsPasswordModel(data));
 };
 
-// 获取 ES 集群节点列表信息
+// 获取 Hdfs 集群节点列表信息
 export const getListNodes = function (params: Record<string, any> & {bk_biz_id: number, cluster_id: number}) {
   return http.get<ListBase<Array<HdfsNodeModel>>>(`/apis/bigdata/bizs/${params.bk_biz_id}/hdfs/hdfs_resources/${params.cluster_id}/list_nodes/`, params)
     .then(data => ({
       ...data,
-      results: data.results.map((item: HdfsNodeModel) => new HdfsNodeModel(item)),
+      results: data.results.map(item => new HdfsNodeModel(Object.assign(item, {
+        permission: data.permission,
+      }))),
     }));
 };
 

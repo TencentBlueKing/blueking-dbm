@@ -35,7 +35,7 @@
 </template>
 
 <script setup lang="ts">
-  import { getApplyDataLink } from '@services/source/iam';
+  import { simpleGetApplyData } from '@services/source/iam';
 
   import { useSystemEnviron } from '@stores';
 
@@ -55,9 +55,9 @@
    */
   const fetchResourcePermission = () => {
     isLoading.value = true;
-    getApplyDataLink({
-      action_ids: ['DB_MANAGE'],
-      resources: [],
+    simpleGetApplyData({
+      action_id: 'DB_MANAGE',
+      resource_ids: [window.PROJECT_CONFIG.BIZ_ID],
     })
       .then((res) => {
         window.open(res.apply_url, '__blank');

@@ -15,24 +15,25 @@
   <div class="mysql-ha-cluster-list">
     <div class="operation-box">
       <div class="mb-16">
-        <BkButton
+        <AuthButton
+          action-id="mysql_apply"
           theme="primary"
           @click="handleApply">
           {{ t('实例申请') }}
-        </BkButton>
+        </AuthButton>
         <span
-          v-if="isShowDumperEntry"
           v-bk-tooltips="{
             disabled: hasSelected,
             content: t('请选择集群')
           }"
           class="inline-block">
-          <BkButton
+          <AuthButton
+            action-id="mysql_authorize"
             class="ml-8"
             :disabled="!hasSelected"
             @click="() => handleShowCreateSubscribeRuleSlider()">
             {{ t('批量订阅') }}
-          </BkButton>
+          </AuthButton>
         </span>
         <span
           v-bk-tooltips="{
@@ -47,19 +48,12 @@
             {{ t('批量授权') }}
           </BkButton>
         </span>
-        <span
-          v-bk-tooltips="{
-            disabled: hasData,
-            content: t('请先创建实例')
-          }"
-          class="inline-block">
-          <BkButton
-            class="ml-8"
-            :disabled="!hasData"
-            @click="handleShowExcelAuthorize">
-            {{ t('导入授权') }}
-          </BkButton>
-        </span>
+        <AuthButton
+          action-id="mysql_excel_authorize"
+          class="ml-8"
+          @click="handleShowExcelAuthorize">
+          {{ t('导入授权') }}
+        </AuthButton>
         <DropdownExportExcel
           :has-selected="hasSelected"
           :ids="selectedIds"
@@ -82,6 +76,7 @@
         ref="tableRef"
         :columns="columns"
         :data-source="getTendbhaList"
+        releate-url-query
         :row-class="setRowClass"
         selectable
         :settings="settings"
@@ -142,7 +137,6 @@
   import {
     useFunController,
     useGlobalBizs,
-    useUserProfile,
   } from '@stores';
 
   import {
@@ -160,7 +154,7 @@
   import DbStatus from '@components/db-status/index.vue';
   import DropdownExportExcel from '@components/dropdown-export-excel/index.vue';
   import RenderInstances from '@components/render-instances/RenderInstances.vue';
-  import RenderTextEllipsisOneLine from '@components/text-ellipsis-one-line/index.vue';
+  import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
   import CreateSubscribeRuleSlider from '@views/mysql/dumper/components/create-rule/Index.vue';
 
@@ -170,7 +164,6 @@
     isRecentDays,
   } from '@utils';
 
-  // import { useTimeoutPoll } from '@vueuse/core';
   import type { SearchSelectItem } from '@/types/bkui-vue';
 
   interface ColumnData {
@@ -179,7 +172,6 @@
   }
 
   interface State {
-    data: Array<TendbhaModel>,
     selected: Array<TendbhaModel>,
     filters: Array<any>,
     dbModuleList: Array<SearchFilterItem>,
@@ -200,8 +192,7 @@
 
   const route = useRoute();
   const router = useRouter();
-  const { currentBizId } = useGlobalBizs();
-  const userProfileStore = useUserProfile();
+  const globalBizsStore = useGlobalBizs();
   const funControllerStore = useFunController();
   const copy = useCopy();
   const ticketMessage = useTicketMessage();
@@ -220,7 +211,6 @@
   const selectedClusterList = ref<ColumnData['data'][]>([]);
 
   const state = reactive<State>({
-    data: [],
     selected: [],
     filters: [],
     dbModuleList: [],
@@ -235,7 +225,29 @@
   const isCN = computed(() => locale.value === 'zh-cn');
   const hasSelected = computed(() => state.selected.length > 0);
   const selectedIds = computed(() => state.selected.map(item => item.id));
-  const hasData = computed(() => state.data.length > 0);
+  const searchSelectData = computed(() => [
+    {
+      name: 'ID',
+      id: 'id',
+    },
+    {
+      name: t('主访问入口'),
+      id: 'domain',
+    },
+    {
+      name: 'IP',
+      id: 'ip',
+    },
+    {
+      name: t('创建人'),
+      id: 'creator',
+    },
+    {
+      name: t('模块'),
+      id: 'db_module_id',
+      children: [],
+    },
+  ]);
   const tableOperationWidth = computed(() => {
     if (!isStretchLayoutOpen.value) {
       return isCN.value ? 200 : 280;
@@ -250,9 +262,8 @@
     }
     return [];
   });
-
   const isShowDumperEntry = computed(() => {
-    const currentKey = `dumper_biz_${currentBizId}` as MySQLFunctions;
+    const currentKey = `dumper_biz_${globalBizsStore.currentBizId}` as MySQLFunctions;
     return funControllerStore.funControllerData.mysql.children[currentKey];
   });
 
@@ -270,29 +281,41 @@
       width: 200,
       minWidth: 200,
       showOverflowTooltip: false,
-      render: ({ data }: ColumnData) => {
-        const content = <>
-          <db-icon
-            type="copy"
-            v-bk-tooltips={t('复制主访问入口')}
-            onClick={() => copy(data.masterDomainDisplayName)} />
-          {userProfileStore.isManager && (
-            <db-icon
-              type="edit"
-              v-bk-tooltips={t('修改入口配置')}
-              onClick={() => handleOpenEntryConfig(data)} />
-          )}
-        </>;
-        return (
-          <div class="domain">
-            <RenderTextEllipsisOneLine
-              text={data.masterDomainDisplayName}
-              onClick={() => handleToDetails(data.id)}>
-              {content}
-            </RenderTextEllipsisOneLine>
-          </div>
-        );
-      },
+      render: ({ data }: ColumnData) => (
+        <TextOverflowLayout>
+          {{
+            default: () => (
+              <auth-button
+                action-id="mysql_view"
+                resource={data.id}
+                permission={data.permission.mysql_view}
+                text
+                theme="primary"
+                onClick={() => handleToDetails(data.id)}>
+                {data.masterDomainDisplayName}
+              </auth-button>
+            ),
+            append: () => (
+              <>
+                <db-icon
+                  type="copy"
+                  v-bk-tooltips={t('复制主访问入口')}
+                  onClick={() => copy(data.masterDomainDisplayName)} />
+                <auth-button
+                  v-bk-tooltips={t('修改入口配置')}
+                  action-id="access_entry_edit"
+                  resource="mysql"
+                  permission={data.permission.access_entry_edit}
+                  text
+                  theme="primary"
+                  onClick={() => handleOpenEntryConfig(data)}>
+                  <db-icon type="edit" />
+                </auth-button>
+              </>
+            ),
+          }}
+        </TextOverflowLayout>
+      ),
     },
     {
       label: t('集群名称'),
@@ -301,36 +324,38 @@
       fixed: 'left',
       showOverflowTooltip: false,
       render: ({ data }: ColumnData) => (
-        <div class="cluster-name-container">
-          <div
-            class="cluster-name text-overflow"
-            v-overflow-tips>
-            <span>
-              {data.cluster_name}
-            </span>
-          </div>
-          <div class="cluster-tags">
-            {
-              data.operationTagTips.map(item => <RenderOperationTag class="cluster-tag ml-4" data={item}/>)
-            }
-            {
-              data.phase === 'offline'
-              && <db-icon
-                  svg
-                  type="yijinyong"
-                  class="cluster-tag"
-                  style="width: 38px; height: 16px;" />
-            }
-            {
-              isRecentDays(data.create_at, 24 * 3)
-              && <span class="glob-new-tag cluster-tag ml-4" data-text="NEW" />
-            }
-          </div>
-          <db-icon
-            v-bk-tooltips={t('复制集群名称')}
-            type="copy"
-            onClick={() => copy(data.cluster_name)} />
-        </div>
+        <TextOverflowLayout>
+          {{
+            default: () => data.cluster_name,
+            append: () => (
+              <>
+                {
+                  data.operationTagTips.map(item => <RenderOperationTag class="cluster-tag ml-4" data={item}/>)
+                }
+                {
+                  data.phase === 'offline' && (
+                    <db-icon
+                      svg
+                      type="yijinyong"
+                      class="cluster-tag"
+                      style="width: 38px; height: 16px;" />
+                  )
+                }
+                {
+                  isRecentDays(data.create_at, 24 * 3) && (
+                    <span
+                      class="glob-new-tag cluster-tag ml-4"
+                      data-text="NEW" />
+                  )
+                }
+                <db-icon
+                  v-bk-tooltips={t('复制集群名称')}
+                  type="copy"
+                  onClick={() => copy(data.cluster_name)} />
+              </>
+            ),
+          }}
+        </TextOverflowLayout>
       ),
     },
     {
@@ -364,10 +389,16 @@
             v-bk-tooltips={t('复制从访问入口')}
             type="copy"
             onClick={() => copy(data.slaveDomainDisplayName)} />
-          {userProfileStore.isManager && <db-icon
-            type="edit"
+          <auth-button
             v-bk-tooltips={t('修改入口配置')}
-            onClick={() => handleOpenEntryConfig(data)} />}
+            action-id="access_entry_edit"
+            resource="mysql"
+            permission={data.permission.access_entry_edit}
+            text
+            theme="primary"
+            onClick={() => handleOpenEntryConfig(data)}>
+            <db-icon type="edit" />
+          </auth-button>
         </div>
       ),
     },
@@ -462,88 +493,76 @@
       width: tableOperationWidth.value,
       fixed: isStretchLayoutOpen.value ? false : 'right',
       render: ({ data }: ColumnData) => (
-        <>
-          <bk-button
-            text
-            theme="primary"
-            class="mr-8"
-            onClick={() => handleShowAuthorize([data])}>
-            { t('授权') }
-          </bk-button>
-          {isShowDumperEntry.value && (
-            <bk-button
+          <>
+            <auth-button
               text
               theme="primary"
               class="mr-8"
-              onClick={() => handleShowCreateSubscribeRuleSlider(data)}>
-              { t('数据订阅') }
-            </bk-button>
-          )}
-          {
-            data.isOnline ? (
-              <OperationBtnStatusTips data={data}>
-                <bk-button
-                  text
-                  theme="primary"
-                  disabled={Boolean(data.operationTicketId)}
-                  class="mr-8"
-                  onClick={() => handleSwitchCluster(TicketTypes.MYSQL_HA_DISABLE, data)}>
-                  { t('禁用') }
-                </bk-button>
-              </OperationBtnStatusTips>
-            ) : (
-              <>
+              actionId="mysql_authorize"
+              permission={data.permission.mysql_authorize}
+              resource={data.id}
+              onClick={() => handleShowAuthorize([data])}>
+              { t('授权') }
+            </auth-button>
+            {isShowDumperEntry.value && (
+              <bk-button
+                text
+                theme="primary"
+                class="mr-8"
+                onClick={() => handleShowCreateSubscribeRuleSlider(data)}>
+                { t('数据订阅') }
+              </bk-button>
+            )}
+            {
+              data.isOnline ? (
                 <OperationBtnStatusTips data={data}>
-                  <bk-button
+                  <auth-button
                     text
                     theme="primary"
                     disabled={Boolean(data.operationTicketId)}
                     class="mr-8"
-                    onClick={() => handleSwitchCluster(TicketTypes.MYSQL_HA_ENABLE, data)}>
-                    { t('启用') }
-                  </bk-button>
+                    action-id="mysql_enable_disable"
+                    permission={data.permission.mysql_enable_disable}
+                    resource={data.id}
+                    onClick={() => handleSwitchCluster(TicketTypes.MYSQL_HA_DISABLE, data)}>
+                    { t('禁用') }
+                  </auth-button>
                 </OperationBtnStatusTips>
-                <OperationBtnStatusTips data={data}>
-                  <bk-button
-                    text
-                    theme="primary"
-                    disabled={Boolean(data.operationTicketId)}
-                    class="mr-8"
-                    onClick={() => handleDeleteCluster(data)}>
-                    { t('删除') }
-                  </bk-button>
-                </OperationBtnStatusTips>
-              </>
+              ) : (
+                <>
+                  <OperationBtnStatusTips data={data}>
+                    <auth-button
+                      text
+                      theme="primary"
+                      disabled={Boolean(data.operationTicketId)}
+                      class="mr-8"
+                      action-id="mysql_enable_disable"
+                      permission={data.permission.mysql_enable_disable}
+                      resource={data.id}
+                      onClick={() => handleSwitchCluster(TicketTypes.MYSQL_HA_ENABLE, data)}>
+                      { t('启用') }
+                    </auth-button>
+                  </OperationBtnStatusTips>
+                  <OperationBtnStatusTips data={data}>
+                    <auth-button
+                      text
+                      theme="primary"
+                      disabled={Boolean(data.operationTicketId)}
+                      class="mr-8"
+                      action-id="mysql_destroy"
+                      permission={data.permission.mysql_destroy}
+                      resource={data.id}
+                      onClick={() => handleDeleteCluster(data)}>
+                      { t('删除') }
+                    </auth-button>
+                  </OperationBtnStatusTips>
+                </>
               )
             }
           </>
         ),
     },
   ]);
-
-  const searchSelectData = [
-    {
-      name: 'ID',
-      id: 'id',
-    },
-    {
-      name: t('主访问入口'),
-      id: 'domain',
-    },
-    {
-      name: 'IP',
-      id: 'ip',
-    },
-    {
-      name: t('创建人'),
-      id: 'creator',
-    },
-    {
-      name: t('模块'),
-      id: 'db_module_id',
-      children: [],
-    },
-  ];
 
   // 设置用户个人表头信息
   const defaultSettings = {
@@ -563,14 +582,14 @@
 
   const getMenuList = async (item: SearchSelectItem | undefined, keyword: string) => {
     if (item?.id !== 'creator' && keyword) {
-      return getMenuListSearch(item, keyword, searchSelectData, state.filters);
+      return getMenuListSearch(item, keyword, searchSelectData.value, state.filters);
     }
 
     // 没有选中过滤标签
     if (!item) {
       // 过滤掉已经选过的标签
       const selected = (state.filters || []).map(value => value.id);
-      return searchSelectData.filter(item => !selected.includes(item.id));
+      return searchSelectData.value.filter(item => !selected.includes(item.id));
     }
 
     // 远程加载执行人
@@ -587,7 +606,7 @@
     }
 
     // 不需要远层加载
-    return searchSelectData.find(set => set.id === item.id)?.children || [];
+    return searchSelectData.value.find(set => set.id === item.id)?.children || [];
   };
 
   const fetchData = (loading?:boolean) => {
@@ -595,15 +614,6 @@
     tableRef.value.fetchData(params, {}, loading);
     isInit.value = false;
   };
-
-  // 设置轮询
-  // const {
-  //   pause,
-  //   resume,
-  // } = useTimeoutPoll(() => fetchData(isInit.value), 5000, {
-  //   immediate: false,
-  // });
-
 
   const handleOpenEntryConfig = (row: TendbhaModel) => {
     showEditEntryConfig.value  = true;
@@ -642,7 +652,7 @@
    * 获取模块列表
    */
   const fetchModules = () => getModules({
-    bk_biz_id: currentBizId,
+    bk_biz_id: globalBizsStore.currentBizId,
     cluster_type: ClusterTypes.TENDBHA,
   }).then((res) => {
     state.dbModuleList = res.map(item => ({
@@ -692,7 +702,7 @@
       onConfirm: async () => {
         try {
           const params = {
-            bk_biz_id: currentBizId,
+            bk_biz_id: globalBizsStore.currentBizId,
             ticket_type: type,
             details: {
               cluster_ids: [data.id],
@@ -731,7 +741,7 @@
       onConfirm: async () => {
         try {
           const params = {
-            bk_biz_id: currentBizId,
+            bk_biz_id: globalBizsStore.currentBizId,
             ticket_type: TicketTypes.MYSQL_HA_DESTROY,
             details: {
               cluster_ids: [data.id],
@@ -756,7 +766,7 @@
     router.push({
       name: 'SelfServiceApplyHa',
       query: {
-        bizId: currentBizId,
+        bizId: globalBizsStore.currentBizId,
         from: route.name as string,
       },
     });

@@ -92,7 +92,7 @@ export default defineConfig(({ mode }) => {
           dest: './',
         }],
       }),
-      monacoEditorPlugin({}),
+      monacoEditorPlugin.default({}),
       ViteHTMLEnv({
         prefix: '{{',
         suffix: '}}',
@@ -113,7 +113,8 @@ export default defineConfig(({ mode }) => {
     },
     server: {
       https: isHttps,
-      port: 9999,
+      host: '127.0.0.1',
+      port: 8088,
     },
   };
 });

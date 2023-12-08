@@ -138,13 +138,12 @@
   import { useI18n } from 'vue-i18n';
 
   import type { DutyCycleItem } from '@services/model/monitor/duty-rule';
+  import DutyRuleModel from '@services/model/monitor/duty-rule';
 
   import {
     getDiffDays,
     random,
   } from '@utils';
-
-  import type { RowData as TableRowData } from '../content/Index.vue';
 
   import SortTagInput from './SortTagInput.vue';
 
@@ -155,7 +154,7 @@
   }
 
   interface Props {
-    data?: TableRowData
+    data?: DutyRuleModel
   }
 
   interface Exposes {

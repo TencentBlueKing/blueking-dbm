@@ -43,7 +43,7 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import { getChecksumInstance } from '@services/report';
+  import { getChecksumInstance } from '@services/source/report';
 
   import { useDebouncedRef } from '@hooks';
 

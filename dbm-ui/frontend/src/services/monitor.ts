@@ -10,7 +10,9 @@
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
 */
-import http from '@services/http';
+import http, {
+  type IRequestPayload,
+} from '@services/http';
 import DutyRuleModel from '@services/model/monitor/duty-rule';
 import MonitorPolicyModel from '@services/model/monitor/monitor-policy';
 
@@ -130,10 +132,11 @@ export const queryMonitorPolicyList = (params: {
   notify_groups?: string,
   limit?: number,
   offset?: number,
-}) => http.get<ListBase<MonitorPolicyModel[]>>('/apis/monitor/policy/', params).then(data => ({
-  ...data,
-  results: data.results.map(item => new MonitorPolicyModel(item)),
-}));
+}, payload = {} as IRequestPayload) => http.get<ListBase<MonitorPolicyModel[]>>('/apis/monitor/policy/', params, payload)
+  .then(data => ({
+    ...data,
+    results: data.results.map(item => new MonitorPolicyModel(item)),
+  }));
 
 // 更新策略
 export const updatePolicy = (id: number, params: UpdatePolicyParams) => http.post<{

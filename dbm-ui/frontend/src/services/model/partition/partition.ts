@@ -10,7 +10,11 @@
  * on an "AS IS" BASIS; WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND; either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
 */
-import { utcDisplayTime } from '@utils';
+
+import {
+  isRecentDays,
+  utcDisplayTime,
+} from '@utils';
 
 const STATUS_PENDING = 'PENDING';
 const STATUS_READY = 'READY';
@@ -43,6 +47,17 @@ export default class Partition {
   partition_columns: string;
   partition_time_interval: number;
   partition_type: number;
+  permission: {
+    mysql_partition: boolean;
+    mysql_partition_create: boolean;
+    mysql_partition_delete: boolean;
+    mysql_partition_enable_disable: boolean;
+    mysql_partition_update: boolean;
+    tendb_partition_enable_disable: boolean;
+    tendbcluster_partition_create: boolean;
+    tendbcluster_partition_delete: boolean;
+    tendbcluster_partition_update: boolean;
+  };
   phase: string;
   port: number;
   reserved_partition: number;
@@ -70,6 +85,7 @@ export default class Partition {
     this.partition_columns = payload.partition_columns;
     this.partition_time_interval = payload.partition_time_interval;
     this.partition_type = payload.partition_type;
+    this.permission = payload.permission || {};
     this.phase = payload.phase;
     this.port = payload.port;
     this.reserved_partition = payload.reserved_partition;
@@ -104,6 +120,10 @@ export default class Partition {
     };
 
     return iconMap[this.status] || 'sync-default';
+  }
+
+  get isNew() {
+    return isRecentDays(this.create_time, 24 * 3);
   }
 
   get isFinished() {

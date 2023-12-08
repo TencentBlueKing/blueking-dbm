@@ -12,28 +12,31 @@
 -->
 
 <template>
-  <div class="whitelist">
+  <div class="whitelist-page">
     <BkAlert
       closable
       theme="warning"
       :title="t('如果希望使用通配符授权一批IP_或者授权平台公共类IP_未注册到配置平台的IP_需要先录入到白名单中_才能对其授权')" />
     <div class="whitelist-operations">
-      <BkButton
+      <AuthButton
+        :action-id="managePermissionActionId"
         theme="primary"
         @click="handleCreate">
         {{ t('新建') }}
-      </BkButton>
+      </AuthButton>
       <span
         v-bk-tooltips="{
-          disabled: hasSelected,
+          disabled: selectedIdList.length > 0,
           content: t('请选择白名单组')
         }"
         class="delete-button">
-        <BkButton
-          :disabled="!hasSelected"
+        <AuthButton
+          :action-id="managePermissionActionId"
+          class="ml-8"
+          :disabled="selectedIdList.length < 1"
           @click="handleBatchDelete">
           {{ t('批量删除') }}
-        </BkButton>
+        </AuthButton>
       </span>
       <BkInput
         v-model="keyword"
@@ -48,10 +51,10 @@
       ref="tableRef"
       :columns="columns"
       :data-source="getWhitelist"
-      :is-row-select-enable="setRowSelectable"
+      :disable-select-method="disableSelectMethod"
+      selectable
       @clear-search="handleClearSearch"
-      @select="handleTableSelect"
-      @select-all="handleTableSelectAll" />
+      @selection="handleTableSelection" />
   </div>
   <WhitelistOperation
     v-model:is-show="operationState.isShow"
@@ -65,6 +68,7 @@
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
 
+  import IpWhiteModel from '@services/model/ip-white/ip-white';
   import {
     batchDeleteWhitelist,
     getWhitelist,
@@ -74,55 +78,59 @@
 
   import RenderRow from '@components/render-row/index.vue';
 
-  import { utcDisplayTime } from '@utils';
+  import {
+    messageSuccess,
+  } from '@utils';
 
   import WhitelistOperation from './components/WhitelistOperation.vue';
 
-  import { useGlobalBizs } from '@/stores';
-  import { messageSuccess } from '@/utils';
-
-  type WhitelistItem = ServiceReturnType<typeof getWhitelist>['results'][number]
-
   interface TableRenderData {
-    data: WhitelistItem
+    data: IpWhiteModel
   }
 
-  const { currentBizId } = useGlobalBizs();
   const route = useRoute();
   const copy = useCopy();
   const { t } = useI18n();
+
+  const isPlatformManage = route.name === 'PlatformWhitelist';
+  const bizId = isPlatformManage ? 0 : window.PROJECT_CONFIG.BIZ_ID;
+  const managePermissionActionId = isPlatformManage ? 'global_ip_whitelist_manage' : 'ip_whitelist_manage';
+
   const tableRef = ref();
-
   const keyword = ref('');
-  const selectedMap = shallowRef<Record<number, WhitelistItem>>({});
+  const selectedIdList = shallowRef<number[]>([]);
 
-  const isPlatform = route.name === 'PlatformWhitelist';
-  const bizId = isPlatform ? 0 : currentBizId;
+  const operationState = reactive({
+    isShow: false,
+    title: t('新建白名单'),
+    isEdit: false,
+    data: {} as IpWhiteModel,
+  });
 
-  const hasSelected = computed(() => Object.keys(selectedMap.value).length > 0);
-  const disabledFunc = (_: any, row: WhitelistItem) => !(row.is_global && !isPlatform);
+  const disableSelectMethod = (row: IpWhiteModel) => ((row.is_global && !isPlatformManage)
+    ? t('全局白名单如需编辑请联系平台管理员')
+    : false);
+
   const columns = [
-    {
-      type: 'selection',
-      width: 48,
-      label: '',
-      showOverflowTooltip: {
-        mode: 'static',
-        content: t('全局白名单如需编辑请联系平台管理员'),
-        disabled: disabledFunc as unknown as boolean | undefined,
-      },
-    },
     {
       label: t('IP或IP%'),
       field: 'ips',
       showOverflowTooltip: false,
       render: ({ data }: TableRenderData) => {
-        const isRenderTag = data.is_global && !isPlatform;
+        const isRenderTag = data.is_global && !isPlatformManage;
         return (
           <>
             <RenderRow style={`max-width: calc(100% - ${isRenderTag ? '80px' : '20px'});`} data={data.ips} />
-            { isRenderTag ? <bk-tag class="ml-4">{t('全局')}</bk-tag> : null }
-            <db-icon v-bk-tooltips={t('复制')} type="copy copy-btn" onClick={copy.bind(null, data.ips.join('\n'))} />
+            { isRenderTag && (
+              <bk-tag class="ml-4">
+                {t('全局')}
+              </bk-tag>
+            )}
+            <db-icon
+              v-bk-tooltips={t('复制')}
+              type="copy"
+              class="copy-btn"
+              onClick={() => copy(data.ips.join('\n'))} />
           </>
         );
       },
@@ -140,14 +148,14 @@
       label: t('更新时间'),
       field: 'update_at',
       width: 180,
-      render: ({ data }: TableRenderData) => <span>{utcDisplayTime(data.update_at)}</span>,
+      render: ({ data }: TableRenderData) => data.updateAtDisplay || '--',
     },
     {
       label: t('操作'),
       field: 'operations',
       width: 140,
       render: ({ data }: TableRenderData) => {
-        const isDisabled = data.is_global && !isPlatform;
+        const isDisabled = data.is_global && !isPlatformManage;
         const tips = {
           disabled: !isDisabled,
           content: t('全局白名单如需编辑请联系平台管理员'),
@@ -155,24 +163,28 @@
 
         return (
           <>
-            <span class="inlink-block" v-bk-tooltips={tips}>
-              <bk-button
+            <span v-bk-tooltips={tips}>
+              <auth-button
+                action-id={managePermissionActionId}
+                permission={data.permission[managePermissionActionId]}
                 class="mr-8"
                 text
                 theme="primary"
                 disabled={isDisabled}
-                onClick={handleEdit.bind(null, data)}>
+                onClick={() => handleEdit(data)}>
                 {t('编辑')}
-              </bk-button>
+              </auth-button>
             </span>
-            <span class="inlink-block" v-bk-tooltips={tips}>
-              <bk-button
+            <span v-bk-tooltips={tips}>
+              <auth-button
+                action-id={managePermissionActionId}
+                permission={data.permission[managePermissionActionId]}
                 text
                 theme="primary"
                 disabled={isDisabled}
-                onClick={handleDelete.bind(null, [data.id])}>
+                onClick={() => handleDelete([data.id])}>
                 {t('删除')}
-              </bk-button>
+              </auth-button>
             </span>
           </>
         );
@@ -180,77 +192,36 @@
     },
   ];
 
-  onMounted(() => {
-    fetchTableData();
-  });
-
-  const setRowSelectable = ({ row }: { row: WhitelistItem }) => !(row.is_global && !isPlatform);
-
-  function fetchTableData() {
-    selectedMap.value = {};
+  const fetchTableData = () => {
     tableRef.value.fetchData({
       ip: keyword.value,
     }, {
       bk_biz_id: bizId,
     });
-  }
+  };
 
-  function handleClearSearch() {
-    keyword.value = '';
-    fetchTableData();
-  }
-
-  function handleTableSelect({ checked, row }: { row: WhitelistItem, checked: boolean }) {
-    const cloneSelectMap = { ...selectedMap.value };
-    if (checked) {
-      cloneSelectMap[row.id] = row;
-    } else {
-      delete cloneSelectMap[row.id];
-    }
-    selectedMap.value = cloneSelectMap;
-  }
-
-  function handleTableSelectAll({ checked }: { checked: boolean }) {
-    let cloneSelectMap = { ...selectedMap.value };
-    if (checked) {
-      cloneSelectMap = (tableRef.value.getData() as WhitelistItem[])
-        .filter(item => (isPlatform ? true : !item.is_global))
-        .reduce((result, item) => ({
-          ...result,
-          [item.id]: item,
-        }), {});
-    } else {
-      cloneSelectMap = {};
-    }
-    selectedMap.value = cloneSelectMap;
-  }
-
-  const operationState = reactive({
-    isShow: false,
-    title: t('新建白名单'),
-    isEdit: false,
-    data: {} as WhitelistItem,
-  });
-
-  function handleCreate() {
+  const handleCreate = () => {
     operationState.isShow = true;
     operationState.title = t('新建白名单');
     operationState.isEdit = false;
-  }
+  };
 
-  function handleEdit(data: WhitelistItem) {
+  const handleBatchDelete = () => {
+    handleDelete(selectedIdList.value);
+  };
+
+  const handleTableSelection = (idList: number[]) => {
+    selectedIdList.value = idList;
+  };
+
+  const handleEdit = (data: IpWhiteModel) => {
     operationState.isShow = true;
     operationState.title = t('编辑白名单');
     operationState.isEdit = true;
     operationState.data = data;
-  }
+  };
 
-  function handleBatchDelete() {
-    const ids = Object.values(selectedMap.value).map(item => item.id);
-    handleDelete(ids);
-  }
-
-  function handleDelete(ids: number[]) {
+  const handleDelete = (ids: number[]) => {
     const isSingle = ids.length === 1;
     useInfoWithIcon({
       type: 'warnning',
@@ -267,11 +238,34 @@
         }
       },
     });
-  }
+  };
+
+  const handleClearSearch = () => {
+    keyword.value = '';
+    fetchTableData();
+  };
+
+  onMounted(() => {
+    fetchTableData();
+  });
 </script>
 
-<style lang="less" scoped>
-.whitelist {
+<style lang="less">
+.whitelist-page {
+  .bk-table {
+    tr:hover {
+      .copy-btn {
+        display: inline-block;
+      }
+    }
+
+    .copy-btn {
+      display: none;
+      color: @primary-color;
+      cursor: pointer;
+    }
+  }
+
   .whitelist-operations {
     display: flex;
     align-items: center;
@@ -285,20 +279,6 @@
     .bk-button {
       min-width: 88px;
       margin-right: 8px;
-    }
-  }
-
-  :deep(.bk-table) {
-    tr:hover {
-      .copy-btn {
-        display: inline-block;
-      }
-    }
-
-    .copy-btn {
-      display: none;
-      color: @primary-color;
-      cursor: pointer;
     }
   }
 }

@@ -28,9 +28,11 @@ interface ProfileItem {
  */
 export function getProfile() {
   return http.get<{
+    global_manage: boolean,
+    is_manager: boolean,
     profile: ProfileItem[],
+    resource_manage: boolean,
     username: string,
-    is_manager: boolean
   }>(`${path}/get_profile/`);
 }
 

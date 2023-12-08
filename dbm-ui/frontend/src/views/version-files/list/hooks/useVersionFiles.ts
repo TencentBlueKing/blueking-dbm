@@ -36,13 +36,14 @@ export const useVersionFiles = (state: IState, typeParams: Ref<TypeParams>) => {
    * 获取版本文件列表
    */
   function fetchPackages() {
-    const params = {
+    state.isLoading = true;
+    getPackages({
       keyword: state.search,
       ...typeParams.value,
       ...state.pagination.getFetchParams(),
-    };
-    state.isLoading = true;
-    getPackages(params)
+    }, {
+      permission: 'catch',
+    })
       .then((res) => {
         state.pagination.count = res.count;
         state.data = res.results;

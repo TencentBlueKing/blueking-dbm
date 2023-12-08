@@ -40,7 +40,7 @@
   defineProps<Props>();
   const emits = defineEmits<Emits>();
 
-  const modelValue = defineModel({
+  const modelValue = defineModel<string>({
     required: true,
   });
 

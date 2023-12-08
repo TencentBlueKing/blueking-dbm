@@ -110,6 +110,16 @@ export default class Pulsar {
   pulsar_bookkeeper: Node[];
   pulsar_broker: Node[];
   pulsar_zookeeper: Node[];
+  permission: {
+    pulsar_view: boolean;
+    pulsar_enable_disable: boolean;
+    pulsar_destroy: boolean;
+    pulsar_scale_up: boolean;
+    pulsar_shrink: boolean;
+    pulsar_replace: boolean;
+    pulsar_reboot: boolean;
+    access_entry_edit: boolean;
+  };
   region: string;
   status: string;
   update_at: string;
@@ -137,6 +147,7 @@ export default class Pulsar {
     this.pulsar_bookkeeper = payload.pulsar_bookkeeper || [];
     this.pulsar_broker = payload.pulsar_broker || [];
     this.pulsar_zookeeper = payload.pulsar_zookeeper || [];
+    this.permission = payload.permission;
     this.region = payload.region;
     this.status = payload.status;
     this.update_at = payload.update_at;

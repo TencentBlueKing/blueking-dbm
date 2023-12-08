@@ -14,12 +14,13 @@
 <template>
   <div class="spider-list-instance-page">
     <div class="operation-box">
-      <BkButton
+      <AuthButton
+        action-id="tendbcluster_apply"
         class="mb-16"
         theme="primary"
         @click="handleApply">
         {{ $t('实例申请') }}
-      </BkButton>
+      </AuthButton>
       <DropdownExportExcel
         export-type="instance"
         :has-selected="hasSelected"
@@ -218,12 +219,13 @@
         fixed: 'right',
         width: 140,
         render: ({ data }: { data: TendbInstanceModel }) => (
-          <bk-button
+          <auth-button
+            action-id="tendbcluster_view"
             theme="primary"
             text
-            onClick={(e: Event) => handleToDetails(e, data)}>
-              { t('查看详情') }
-            </bk-button>
+            onClick={(event: Event) => handleToDetails(event, data)}>
+            { t('查看详情') }
+          </auth-button>
         ),
       },
     ];
