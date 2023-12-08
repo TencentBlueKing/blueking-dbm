@@ -194,13 +194,13 @@ const (
 	// CmDBEntryDetailUrl TODO
 	CmDBEntryDetailUrl = "dbmeta/dbha/entry_detail/"
 	// CLBDeRegisterUrl TODO
-	CLBDeRegisterUrl = "deregister_part_target/"
+	CLBDeRegisterUrl = "clb_deregister_part_target/"
 	// CLBGetTargetsUrl TODO
-	CLBGetTargetsUrl = "get_target_private_ips/"
+	CLBGetTargetsUrl = "clb_get_target_private_ips/"
 	// PolarisTargetsUrl TODO
-	PolarisTargetsUrl = "describe_targets/"
+	PolarisTargetsUrl = "polaris_describe_targets/"
 	// PolarisUnBindUrl TODO
-	PolarisUnBindUrl = "unbind_part_targets/"
+	PolarisUnBindUrl = "polaris_unbind_part_targets/"
 	// BKConfigBatchUrl TODO
 	BKConfigBatchUrl = "bkconfig/v1/confitem/batchget/"
 	// BKConfigQueryUrl TODO
