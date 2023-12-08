@@ -118,3 +118,17 @@ class FakeResetTendbHACluster(BaseProxyPassSerialier):
 class BizClusterSerializer(BaseProxyPassSerialier):
     bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
     immute_domains = serializers.ListField(help_text=_("域名列表"), child=serializers.CharField())
+
+
+class ClusterInstanceSerializer(BaseProxyPassSerialier):
+    immute_domain = serializers.CharField(help_text=_("域名列表"))
+
+
+class InstanceDetailSLZ(BaseProxyPassSerialier):
+    ip = serializers.CharField(help_text=_("ip"))
+    port = serializers.IntegerField(help_text=_("port"))
+    bk_cloud_id = serializers.IntegerField(help_text=_("bk_cloud_id"))
+
+
+class TendbInstancesSerializer(BaseProxyPassSerialier):
+    entry_name = serializers.CharField(help_text=_("访问入口"))

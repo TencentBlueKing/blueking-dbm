@@ -111,6 +111,8 @@ name_services:
     pass: "nopasswd"
     url_pre: "/apis/proxypass/namespace"
     timeout: 10
+    bk_conf:
+      bk_token: "{{db_cloud_token}}"
   clb_conf:
     host: {{name_service_domain}}
     port: 80
@@ -118,6 +120,8 @@ name_services:
     pass: "nopasswd"
     url_pre: "/apis/proxypass/namespace"
     timeout: 10
+    bk_conf:
+      bk_token: "{{db_cloud_token}}"
 monitor:
   bk_data_id: {{mysql_crond_event_data_id}}
   access_token: "{{mysql_crond_event_data_token}}"
@@ -229,6 +233,8 @@ name_services:
     pass: "nopasswd"
     url_pre: "/apis/proxypass/namespace"
     timeout: 10
+    bk_conf:
+      bk_token: "{{db_cloud_token}}"
   clb_conf:
     host: {{name_service_domain}}
     port: 80
@@ -236,6 +242,8 @@ name_services:
     pass: "nopasswd"
     url_pre: "/apis/proxypass/namespace"
     timeout: 10
+    bk_conf:
+      bk_token: "{{db_cloud_token}}"
 monitor:
   bk_data_id: {{mysql_crond_event_data_id}}
   access_token: "{{mysql_crond_event_data_token}}"
