@@ -15,12 +15,15 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"path/filepath"
 	"regexp"
 	"runtime"
 	"strings"
 	"sync"
 
+	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/logger"
+	"dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util/osutil"
 )
@@ -295,4 +298,132 @@ func (m *MySQLDumper) getTDBCTLDumpOption() (dumpOption string) {
 	// 默认false 即不带有SET tc_admin=0
 	// 如果不需要下发spider，可添加此参数
 	return " --print-tc-admin-info "
+}
+
+// MyDumper Options mydumper options
+type MyDumper struct {
+	Options MyDumperOptions
+	Host    string
+	Port    int
+	User    string
+	Pwd     string
+	Charset string
+	DumpDir string // 备份到哪个目录
+	BinPath string // mydumper 的绝对路径
+}
+
+// MyDumperOptions TODO
+type MyDumperOptions struct {
+	NoData    bool
+	Threads   int
+	UseStream bool
+	Regex     string
+}
+
+// buildCommand TODO
+func (m *MyDumper) buildCommand() (command string) {
+	command = fmt.Sprintf(`%s -h %s -P %d -u %s -p '%s' --set-names=%s`, m.BinPath, m.Host,
+		m.Port, m.User, m.Pwd, m.Charset)
+	if m.Options.UseStream {
+		command += " --stream "
+	} else {
+		command += fmt.Sprintf(" -o %s ", m.DumpDir)
+	}
+	command += " --events --routines --triggers "
+	command += " --trx-consistency-only --long-query-retry-interval=10 --compress "
+	if m.Options.NoData {
+		command += " --no-data "
+	}
+	if m.Options.Threads > 0 {
+		command += fmt.Sprintf(" --threads=%d ", m.Options.Threads)
+	}
+	if cmutil.IsNotEmpty(m.Options.Regex) {
+		command += fmt.Sprintf(` -x '%s'`, m.Options.Regex)
+	}
+	return
+}
+
+// MyLoader Options myloader options
+type MyLoader struct {
+	Options     MyLoaderOptions
+	Host        string
+	Port        int
+	User        string
+	Pwd         string
+	Charset     string
+	BinPath     string
+	LoadDataDir string
+}
+
+// MyLoaderOptions TODO
+type MyLoaderOptions struct {
+	NoData         bool
+	UseStream      bool
+	Threads        int
+	DefaultsFile   string
+	OverWriteTable bool // Drop tables if they already exist
+}
+
+func (m *MyLoader) buildCommand() (command string) {
+	command = fmt.Sprintf(`%s -h %s -P %d -u %s -p '%s' --set-names=%s `, m.BinPath, m.Host,
+		m.Port, m.User, m.Pwd, m.Charset)
+	if m.Options.UseStream {
+		command += " --stream "
+	} else {
+		command += fmt.Sprintf(" -d %s ", m.LoadDataDir)
+	}
+	if m.Options.Threads > 0 {
+		command += fmt.Sprintf(" --threads=%d ", m.Options.Threads)
+	}
+	if cmutil.IsNotEmpty(m.Options.DefaultsFile) {
+		command += fmt.Sprintf(" --defaults-file=%s ", m.Options.DefaultsFile)
+	}
+	if m.Options.NoData {
+		command += " --no-data "
+	}
+	if m.Options.OverWriteTable {
+		command += " -o "
+	}
+	return
+}
+
+// MyStreamDumpLoad  stream dumper loader
+type MyStreamDumpLoad struct {
+	Dumper *MyDumper
+	Loader *MyLoader
+}
+
+func (s *MyStreamDumpLoad) buildCommand() (command string) {
+	s.Dumper.Options.UseStream = true
+	dumpCmd := s.Dumper.buildCommand()
+	loadCmd := s.Loader.buildCommand()
+	return fmt.Sprintf("%s|%s", dumpCmd, loadCmd)
+}
+
+// setEnv TODO
+func (m *MyStreamDumpLoad) setEnv() (err error) {
+	var libPath []string
+	libPath = append(libPath, filepath.Join(cst.DbbackupGoInstallPath, "lib/libmydumper"))
+	oldLibs := strings.Split(os.Getenv("LD_LIBRARY_PATH"), ":")
+	oldLibs = append(oldLibs, libPath...)
+	return os.Setenv("LD_LIBRARY_PATH", strings.Join(oldLibs, ":"))
+}
+
+// Run Command Run
+func (s *MyStreamDumpLoad) Run() (err error) {
+	if err = s.setEnv(); err != nil {
+		logger.Error("set env failed %s", err.Error())
+		return
+	}
+	s.Dumper.BinPath = filepath.Join(cst.DbbackupGoInstallPath, "bin/mydumper")
+	s.Loader.BinPath = filepath.Join(cst.DbbackupGoInstallPath, "bin/myloader")
+	var stderr string
+	command := s.buildCommand()
+	logger.Info("the stream dump load command is %s", command)
+	stderr, err = osutil.StandardShellCommand(false, command)
+	if err != nil {
+		logger.Error("stderr %s", stderr)
+		return fmt.Errorf("stderr:%s,err:%w", stderr, err)
+	}
+	return nil
 }
