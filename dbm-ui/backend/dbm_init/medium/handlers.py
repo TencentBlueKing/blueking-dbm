@@ -167,6 +167,7 @@ class MediumHandler:
         from network import HttpHandler
 
         http = HttpHandler()
+        package_sync_params = []
         for pkg_type in self.storage.listdir(f"/{db_type}")[0]:
             # 排除非介质文件
             if pkg_type["name"] in ["keyfiles", "db-remote-service", "sqlfile"]:
@@ -187,8 +188,11 @@ class MediumHandler:
                         "update_at": str(datetime.strptime(media["lastModifiedDate"], "%Y-%m-%dT%H:%M:%S.%f")),
                         "updater": "system",
                     }
+                    package_sync_params.append(package_params)
                     print("sync info %s", json.dumps(package_params, indent=4))
-                    http.post(url="apis/packages/update_or_create/", data=package_params)
+
+        data = {"db_type": db_type, "sync_medium_infos": package_sync_params}
+        http.post(url="apis/packages/sync_medium/", data=data)
 
     @classmethod
     def update_lock(cls, bkrepo_tmp_dir):

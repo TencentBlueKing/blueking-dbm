@@ -10,8 +10,11 @@ specific language governing permissions and limitations under the License.
 """
 import os
 import re
+from collections import defaultdict
+from typing import Dict, List
 
 from django.core.files.uploadedfile import InMemoryUploadedFile
+from django.db.transaction import atomic
 from django.utils.translation import ugettext as _
 from rest_framework.decorators import action
 from rest_framework.parsers import MultiPartParser
@@ -22,7 +25,7 @@ from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.core.storages.storage import get_storage
 from backend.db_package.filters import PackageListFilter
 from backend.db_package.models import Package
-from backend.db_package.serializers import PackageSerializer, UpdateOrCreateSerializer, UploadPackageSerializer
+from backend.db_package.serializers import PackageSerializer, SyncMediumSerializer, UploadPackageSerializer
 from backend.flow.consts import MediumEnum
 from backend.iam_app.handlers.drf_perm import GlobalManageIAMPermission
 from backend.utils.files import md5sum
@@ -47,13 +50,18 @@ class DBPackageViewSet(viewsets.AuditedModelViewSet):
         return super().create(request, *args, **kwargs)
 
     @common_swagger_auto_schema(
-        operation_summary=_("新建或者更新版本文件(适用于medium初始化)"),
+        operation_summary=_("同步制品库的文件信息(适用于medium初始化)"),
         tags=[DB_PACKAGE_TAG],
     )
-    @action(methods=["POST"], detail=False, serializer_class=UpdateOrCreateSerializer)
-    def update_or_create(self, request, *args, **kwargs):
+    @action(methods=["POST"], detail=False, serializer_class=SyncMediumSerializer)
+    def sync_medium(self, request, *args, **kwargs):
         data = self.params_validate(self.get_serializer_class())
-        Package.objects.update_or_create(md5=data["md5"], db_type=data["db_type"], defaults=data)
+        db_type, sync_medium_infos = data["db_type"], data["sync_medium_infos"]
+        # 按照DBType进行原子更新：先删除存量介质信息，然后在更新介质信息
+        with atomic():
+            Package.objects.filter(db_type=db_type).delete()
+            Package.objects.bulk_create([Package(**info) for info in sync_medium_infos])
+
         return Response()
 
     @common_swagger_auto_schema(

@@ -32,10 +32,14 @@ class UploadPackageSerializer(serializers.Serializer):
     db_type = serializers.ChoiceField(help_text=_("存储类型"), choices=DBType.get_choices())
 
 
-class UpdateOrCreateSerializer(serializers.ModelSerializer):
-    create_at = serializers.DateTimeField(required=False, default=datetime.now())
-    update_at = serializers.DateTimeField(required=False, default=datetime.now())
+class SyncMediumSerializer(serializers.Serializer):
+    class MediumDetailSerializer(serializers.ModelSerializer):
+        create_at = serializers.DateTimeField(required=False, default=datetime.now())
+        update_at = serializers.DateTimeField(required=False, default=datetime.now())
 
-    class Meta:
-        model = Package
-        fields = "__all__"
+        class Meta:
+            model = Package
+            fields = "__all__"
+
+    sync_medium_infos = serializers.ListSerializer(help_text=_("介质同步信息"), child=MediumDetailSerializer())
+    db_type = serializers.ChoiceField(help_text=_("集群类型"), choices=DBType.get_choices())
