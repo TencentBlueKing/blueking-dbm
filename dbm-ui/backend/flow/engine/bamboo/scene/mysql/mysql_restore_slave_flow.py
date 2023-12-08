@@ -545,16 +545,7 @@ class MySQLRestoreSlaveFlow(object):
                     )
                 ),
             )
-            tendb_migrate_pipeline.add_sub_pipeline(
-                sub_flow=build_surrounding_apps_sub_flow(
-                    bk_cloud_id=cluster_model.bk_cloud_id,
-                    slave_ip_list=[target_slave.machine.ip],
-                    root_id=self.root_id,
-                    parent_global_data=self.data,
-                    is_init=True,
-                    cluster_type=cluster_model.cluster_type,
-                )
-            )
+
             tendb_migrate_pipeline_list.append(
                 tendb_migrate_pipeline.build_sub_process(_("slave原地重建{}").format(self.data["slave_ip"]))
             )
