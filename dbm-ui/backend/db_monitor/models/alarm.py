@@ -43,6 +43,7 @@ from backend.db_monitor.exceptions import (
     BuiltInNotAllowDeleteException,
 )
 from backend.db_monitor.tasks import update_app_policy
+from backend.db_monitor.utils import render_promql_sql
 from backend.exceptions import ApiError, ApiResultError
 
 __all__ = ["NoticeGroup", "AlertRule", "RuleTemplate", "DispatchGroup", "MonitorPolicy", "DutyRule"]
@@ -674,30 +675,6 @@ class MonitorPolicy(AuditedModel):
 
         return details
 
-    def render_promql_tpl(self, promql):
-        """渲染promql中的过滤表达式
-        TODO: 从实例克隆时，这里的渲染将会失效
-        """
-
-        filter_expr = ""
-        for target in self.targets:
-            if target["level"] == TargetLevel.PLATFORM.value:
-                continue
-
-            target_rule = target["rule"]
-            key, values = target_rule["key"], target_rule["value"]
-
-            if len(values) == 1:
-                filter_expr += f'{key}="{values}[0]"'
-                filter_expr += ","
-
-            # 多个值：a~="(1|2|3)"
-            join_values = "|".join(map(lambda x: str(x), values))
-            filter_expr += f'{key}~="({join_values})"'
-            filter_expr += ","
-
-        return promql.replace(PROMQL_FILTER_TPL, filter_expr)
-
     def patch_priority_and_agg_conditions(self, details):
         """将监控目标映射为所有查询的where条件"""
 
@@ -737,9 +714,17 @@ class MonitorPolicy(AuditedModel):
                     # overwrite agg_condition
                     query_config["agg_condition"] = query_config_agg_condition
                 else:
-                    query_config["promql"] = self.render_promql_tpl(query_config["promql"])
+                    key_values = {}
+                    for target in self.targets:
+                        if target["level"] == TargetLevel.PLATFORM.value:
+                            continue
+
+                        target_rule = target["rule"]
+                        key, values = target_rule["key"], target_rule["value"]
+                        key_values[key] = values
+
+                    query_config["promql"] = render_promql_sql(query_config["promql"], key_values)
                     logger.info("query_config.promql: %s", query_config["promql"])
-                    # logger.error(_("{name}: 无法配置目标，暂不支持promql策略填充目标").format(**details))
 
         return details
 
