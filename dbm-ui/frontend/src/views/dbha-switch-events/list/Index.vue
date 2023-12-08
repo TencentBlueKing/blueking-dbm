@@ -234,6 +234,8 @@
       app: window.PROJECT_CONFIG.BIZ_ID,
       switch_start_time: dayjs(filterDateRang.value[0]).format('YYYY-MM-DD HH:mm:ss'),
       switch_finished_time: dayjs(filterDateRang.value[1]).format('YYYY-MM-DD HH:mm:ss'),
+    }, {
+      permission: 'page',
     })
       .then((res) => {
         isAnomalies.value = false;

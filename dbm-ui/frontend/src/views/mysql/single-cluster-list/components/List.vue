@@ -15,11 +15,12 @@
   <div class="mysql-single-cluster-list-page">
     <div class="operation-box">
       <div class="mb-16">
-        <BkButton
+        <AuthButton
+          action-id="mysql_apply"
           theme="primary"
           @click="handleApply">
           {{ t('实例申请') }}
-        </BkButton>
+        </AuthButton>
         <span
           v-bk-tooltips="{
             disabled: hasSelected,
