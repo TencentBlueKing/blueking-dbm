@@ -742,6 +742,7 @@ export interface BigDataReplaceDetails {
 export interface BigDataCapacityDetails {
   clusters: clustersItems
   cluster_id: number,
+  ip_source: 'manual_input' | 'resource_pool',
   nodes: NodesType,
   resource_spec: {
     [key: string]: {
@@ -749,6 +750,19 @@ export interface BigDataCapacityDetails {
       instance_num?: number,
       spec_id: number
     },
+  },
+  ext_info: {
+    [key: string]: {
+      host_list: {
+        alive: number,
+        disk: number,
+      }[],
+      total_hosts: number,
+      total_disk: number,
+      target_disk: number,
+      expansion_disk: number,
+      shrink_disk: number,
+    }
   }
 }
 

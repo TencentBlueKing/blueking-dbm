@@ -295,6 +295,24 @@
               bk_biz_id: bizId,
             }));
 
+            const generateExtInfo = () => Object.entries(nodeInfoMap).reduce((results, [key, item]) => {
+              const obj = {
+                host_list: item.nodeList.map(item => ({
+                  ip: item.ip,
+                  bk_disk: item.disk,
+                  alive: item.status,
+                })),
+                total_hosts: item.originalNodeList.length,
+                total_disk: item.totalDisk,
+                target_disk: item.targetDisk,
+                shrink_disk: item.shrinkDisk,
+              };
+              Object.assign(results, {
+                [key]: obj,
+              });
+              return results;
+            }, {} as Record<string, any>);
+
             createTicket({
               ticket_type: 'ES_SHRINK',
               bk_biz_id: bizId,
@@ -306,6 +324,7 @@
                   cold: fomatHost(nodeInfoMap.cold.nodeList),
                   client: fomatHost(nodeInfoMap.client.nodeList),
                 },
+                ext_info: generateExtInfo(),
               },
             }).then((data) => {
               ticketMessage(data.id);

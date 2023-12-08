@@ -184,7 +184,7 @@
       }
       return item;
     });
-    emits('change', hostList, calcSelectHostDisk(hostList));
+    emits('change', hostTableData.value, calcSelectHostDisk(hostList));
   };
 
   const handleInstanceNumChange = (value: number, data: TExpansionNode['hostList'][number]) => {
