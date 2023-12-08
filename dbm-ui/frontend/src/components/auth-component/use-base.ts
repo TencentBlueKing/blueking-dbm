@@ -4,7 +4,7 @@ import {
 } from 'vue';
 import { useRequest } from 'vue-request';
 
-import { checkAuthAllowed } from '@services/source/iam';
+import { simpleCheckAllowed } from '@services/source/iam';
 
 import { permissionDialog } from '@utils';
 
@@ -16,20 +16,18 @@ export interface Props {
 
 export default function (props: Props) {
   const {
-    data: checkResultMap,
+    data: checkResult,
     loading,
     run,
-  } = useRequest(checkAuthAllowed, {
+  } = useRequest(simpleCheckAllowed, {
     manual: true,
   });
 
   const isShowRaw = computed(() => {
-    console.log('checkResultMap = ', checkResultMap);
     if (props.permission === true) {
       return true;
     }
-    return false;
-    // return Boolean(checkResultMap.value[props.actionId]);
+    return checkResult.value;
   });
 
   // 检测权限
@@ -39,23 +37,10 @@ export default function (props: Props) {
     }
 
     run({
-      action_ids: [props.actionId],
-      resources: [
-        {
-          type: 'mysql',
-          id: props.resource,
-        },
-      ],
+      action_id: props.actionId,
+      resource_ids: props.resource ? [props.resource] : [],
     });
   };
-
-  // watch(() => props.resource, (resource) => {
-  //   if (resource) {
-  //     // 资源信息变化需要重新鉴权
-  //     checkPermission();
-  //   }
-  // });
-
 
   const handleRequestPermission = (event: Event) => {
     if (loading.value) {
@@ -64,8 +49,8 @@ export default function (props: Props) {
     event.preventDefault();
     event.stopPropagation();
     permissionDialog(undefined, {
-      action_ids: props.actionId,
-      resources: props.resource,
+      action_id: props.actionId,
+      resource_ids: props.resource ? [props.resource] : [],
     });
   };
 

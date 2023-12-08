@@ -116,6 +116,8 @@ export default (interceptors: AxiosInterceptorManager<AxiosResponse>) => {
 
 const handlePermission = (error:RequestError) => {
   const {  emit } = useEventBus();
+  console.log('\n\n\n\nhandlePermission');
+  console.dir(error);
   // eslint-disable-next-line no-case-declarations
   const requestPayload = error.response.config.payload;
   // eslint-disable-next-line no-case-declarations
