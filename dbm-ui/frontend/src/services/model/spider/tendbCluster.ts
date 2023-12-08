@@ -109,6 +109,12 @@ export default class TendbCluster {
     operationTicketId: number,
     operationDisabled: boolean
   }>;
+  permission: {
+    tendbcluster_enable_disable: boolean;
+    tendbcluster_destroy: boolean;
+    tendbcluster_view: boolean;
+    access_entry_edit: boolean;
+  };
   phase: 'online' | 'offline';
   region: string;
   remote_db: Instance[];
@@ -144,6 +150,7 @@ export default class TendbCluster {
     this.machine_pair_cnt = payload.machine_pair_cnt;
     this.major_version = payload.major_version;
     this.master_domain = payload.master_domain;
+    this.permission = payload.permission;
     this.phase = payload.phase;
     this.region = payload.region;
     this.remote_db = payload.remote_db;

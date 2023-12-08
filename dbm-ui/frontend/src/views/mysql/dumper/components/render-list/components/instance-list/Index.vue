@@ -148,7 +148,7 @@
 
   import RenderOperationTag from '@components/cluster-common/RenderOperationTag.vue';
   import MiniTag from '@components/mini-tag/index.vue';
-  import RenderTextEllipsisOneLine from '@components/text-ellipsis-one-line/index.vue';
+  import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
   import { getSearchSelectorParams } from '@utils';
 
@@ -239,34 +239,35 @@
       fixed: 'left',
       field: 'instance',
       showOverflowTooltip: false,
-      render: ({ data }: {data: DumperInstanceModel}) => {
-        const content = <>
-          {data.need_transfer && (
-            <bk-popover
-              placement="top"
-              theme="light"
-              popover-delay={[100, 200]}
-            >
-            {{
-              default: () => <db-icon class="migrate-fail-tip" type='exclamation-fill' />,
-              content: () => <div>{t('Dumper实例迁移失败')}</div>,
-            }}
-            </bk-popover>
-          )}
-            <RenderOperationTag data={data} />
-            {!data.isRunning && <MiniTag content={t('已停用')} extCls='stoped-icon'/>}
-            {data.isNew && <MiniTag theme='success' content="NEW" extCls='success-icon' />}
-        </>;
-        return (
-          <div class="instance-box">
-            <RenderTextEllipsisOneLine
-              text={`${data.ip}#${data.listen_port}`}
-              textStyle={{ color: '#63656E' }}>
-              {content}
-            </RenderTextEllipsisOneLine>
-          </div>
-        );
-      },
+      render: ({ data }: {data: DumperInstanceModel}) => (
+        <TextOverflowLayout>
+          {{
+            default: () => (
+              <span>
+                {`${data.ip}#${data.listen_port}`}
+              </span>
+            ),
+            append: () => (
+              <>
+                {data.need_transfer && (
+                  <bk-popover
+                    placement="top"
+                    theme="light"
+                    popover-delay={[100, 200]}>
+                    {{
+                      default: () => <db-icon class="migrate-fail-tip" type='exclamation-fill' />,
+                      content: () => <div>{t('Dumper实例迁移失败')}</div>,
+                    }}
+                  </bk-popover>
+                )}
+                <RenderOperationTag data={data} />
+                {!data.isRunning && <MiniTag content={t('已停用')} extCls='stoped-icon'/>}
+                {data.isNew && <MiniTag theme='success' content="NEW" extCls='success-icon' />}
+              </>
+            ),
+          }}
+        </TextOverflowLayout>
+      ),
     },
     {
       label: t('实例 ID'),

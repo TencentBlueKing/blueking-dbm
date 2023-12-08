@@ -15,23 +15,25 @@
   <div class="mysql-ha-cluster-list">
     <div class="operation-box">
       <div class="mb-16">
-        <BkButton
+        <AuthButton
+          action-id="mysql_apply"
           theme="primary"
           @click="handleApply">
           {{ t('实例申请') }}
-        </BkButton>
+        </AuthButton>
         <span
           v-bk-tooltips="{
             disabled: hasSelected,
             content: t('请选择集群')
           }"
           class="inline-block">
-          <BkButton
+          <AuthButton
+            action-id="mysql_authorize"
             class="ml-8"
             :disabled="!hasSelected"
             @click="() => handleShowCreateSubscribeRuleSlider()">
             {{ t('批量订阅') }}
-          </BkButton>
+          </AuthButton>
         </span>
         <span
           v-bk-tooltips="{
@@ -46,19 +48,12 @@
             {{ t('批量授权') }}
           </BkButton>
         </span>
-        <span
-          v-bk-tooltips="{
-            disabled: hasData,
-            content: t('请先创建实例')
-          }"
-          class="inline-block">
-          <BkButton
-            class="ml-8"
-            :disabled="!hasData"
-            @click="handleShowExcelAuthorize">
-            {{ t('导入授权') }}
-          </BkButton>
-        </span>
+        <AuthButton
+          action-id="mysql_excel_authorize"
+          class="ml-8"
+          @click="handleShowExcelAuthorize">
+          {{ t('导入授权') }}
+        </AuthButton>
         <DropdownExportExcel
           :has-selected="hasSelected"
           type="tendbha" />
@@ -80,6 +75,7 @@
         ref="tableRef"
         :columns="columns"
         :data-source="getTendbhaList"
+        releate-url-query
         :row-class="setRowClass"
         selectable
         :settings="settings"
@@ -136,7 +132,9 @@
     useTicketMessage,
   } from '@hooks';
 
-  import { useGlobalBizs, useUserProfile } from '@stores';
+  import {
+    useGlobalBizs,
+  } from '@stores';
 
   import {
     ClusterTypes,
@@ -151,7 +149,7 @@
   import DbStatus from '@components/db-status/index.vue';
   import DropdownExportExcel from '@components/dropdown-export-excel/index.vue';
   import RenderInstances from '@components/render-instances/RenderInstances.vue';
-  import RenderTextEllipsisOneLine from '@components/text-ellipsis-one-line/index.vue';
+  import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
   import RenderOperationTag from '@views/mysql/common/RenderOperationTag.vue';
   import CreateSubscribeRuleSlider from '@views/mysql/dumper/components/create-rule/Index.vue';
@@ -162,7 +160,6 @@
     isRecentDays,
   } from '@utils';
 
-  // import { useTimeoutPoll } from '@vueuse/core';
   import type { SearchSelectItem } from '@/types/bkui-vue';
 
   interface ColumnData {
@@ -171,7 +168,6 @@
   }
 
   interface State {
-    data: Array<TendbhaModel>,
     selected: Array<TendbhaModel>,
     filters: Array<any>,
     dbModuleList: Array<SearchFilterItem>,
@@ -190,11 +186,9 @@
     return classList.filter(cls => cls).join(' ');
   };
 
-
   const route = useRoute();
   const router = useRouter();
   const globalBizsStore = useGlobalBizs();
-  const userProfileStore = useUserProfile();
   const copy = useCopy();
   const ticketMessage = useTicketMessage();
   const { t, locale } = useI18n();
@@ -212,7 +206,6 @@
   const selectedClusterList = ref<ColumnData['data'][]>([]);
 
   const state = reactive<State>({
-    data: [],
     selected: [],
     filters: [],
     dbModuleList: [],
@@ -226,7 +219,6 @@
 
   const isCN = computed(() => locale.value === 'zh-cn');
   const hasSelected = computed(() => state.selected.length > 0);
-  const hasData = computed(() => state.data.length > 0);
   const searchSelectData = computed(() => [
     {
       name: 'ID',
@@ -279,29 +271,41 @@
       width: 200,
       minWidth: 200,
       showOverflowTooltip: false,
-      render: ({ data }: ColumnData) => {
-        const content = <>
-          <db-icon
-            type="copy"
-            v-bk-tooltips={t('复制主访问入口')}
-            onClick={() => copy(data.masterDomainDisplayName)} />
-          {userProfileStore.isManager && (
-            <db-icon
-              type="edit"
-              v-bk-tooltips={t('修改入口配置')}
-              onClick={() => handleOpenEntryConfig(data)} />
-          )}
-        </>;
-        return (
-          <div class="domain">
-            <RenderTextEllipsisOneLine
-              text={data.masterDomainDisplayName}
-              onClick={() => handleToDetails(data.id)}>
-              {content}
-            </RenderTextEllipsisOneLine>
-          </div>
-        );
-      },
+      render: ({ data }: ColumnData) => (
+        <TextOverflowLayout>
+          {{
+            default: () => (
+              <auth-button
+                action-id="mysql_view"
+                resource={data.id}
+                permission={data.permission.mysql_view}
+                text
+                theme="primary"
+                onClick={() => handleToDetails(data.id)}>
+                {data.masterDomainDisplayName}
+              </auth-button>
+            ),
+            append: () => (
+              <>
+                <db-icon
+                  type="copy"
+                  v-bk-tooltips={t('复制主访问入口')}
+                  onClick={() => copy(data.masterDomainDisplayName)} />
+                <auth-button
+                  v-bk-tooltips={t('修改入口配置')}
+                  action-id="access_entry_edit"
+                  resource="mysql"
+                  permission={data.permission.access_entry_edit}
+                  text
+                  theme="primary"
+                  onClick={() => handleOpenEntryConfig(data)}>
+                  <db-icon type="edit" />
+                </auth-button>
+              </>
+            ),
+          }}
+        </TextOverflowLayout>
+      ),
     },
     {
       label: t('集群名称'),
@@ -310,36 +314,38 @@
       fixed: 'left',
       showOverflowTooltip: false,
       render: ({ data }: ColumnData) => (
-        <div class="cluster-name-container">
-          <div
-            class="cluster-name text-overflow"
-            v-overflow-tips>
-            <span>
-              {data.cluster_name}
-            </span>
-          </div>
-          <div class="cluster-tags">
-            {
-              data.operations.map(item => <RenderOperationTag class="cluster-tag" data={item} />)
-            }
-            {
-              data.phase === 'offline'
-              && <db-icon
-                  svg
-                  type="yijinyong"
-                  class="cluster-tag"
-                  style="width: 38px; height: 16px;" />
-            }
-            {
-              isRecentDays(data.create_at, 24 * 3)
-              && <span class="glob-new-tag cluster-tag ml-4" data-text="NEW" />
-            }
-          </div>
-          <db-icon
-            v-bk-tooltips={t('复制集群名称')}
-            type="copy"
-            onClick={() => copy(data.cluster_name)} />
-        </div>
+        <TextOverflowLayout>
+          {{
+            default: () => data.cluster_name,
+            append: () => (
+              <>
+                {
+                  data.operations.map(item => <RenderOperationTag class="cluster-tag" data={item} />)
+                }
+                {
+                  data.phase === 'offline' && (
+                    <db-icon
+                      svg
+                      type="yijinyong"
+                      class="cluster-tag"
+                      style="width: 38px; height: 16px;" />
+                  )
+                }
+                {
+                  isRecentDays(data.create_at, 24 * 3) && (
+                    <span
+                      class="glob-new-tag cluster-tag ml-4"
+                      data-text="NEW" />
+                  )
+                }
+                <db-icon
+                  v-bk-tooltips={t('复制集群名称')}
+                  type="copy"
+                  onClick={() => copy(data.cluster_name)} />
+              </>
+            ),
+          }}
+        </TextOverflowLayout>
       ),
     },
     {
@@ -371,10 +377,16 @@
             v-bk-tooltips={t('复制从访问入口')}
             type="copy"
             onClick={() => copy(data.slaveDomainDisplayName)} />
-          {userProfileStore.isManager && <db-icon
-            type="edit"
+          <auth-button
             v-bk-tooltips={t('修改入口配置')}
-            onClick={() => handleOpenEntryConfig(data)} />}
+            action-id="access_entry_edit"
+            resource="mysql"
+            permission={data.permission.access_entry_edit}
+            text
+            theme="primary"
+            onClick={() => handleOpenEntryConfig(data)}>
+            <db-icon type="edit" />
+          </auth-button>
         </div>
       ),
     },
@@ -470,13 +482,16 @@
       fixed: isStretchLayoutOpen.value ? false : 'right',
       render: ({ data }: ColumnData) => (
           <>
-            <bk-button
+            <auth-button
               text
               theme="primary"
               class="mr-8"
+              actionId="mysql_authorize"
+              permission={data.permission.mysql_authorize}
+              resource={data.id}
               onClick={() => handleShowAuthorize([data])}>
               { t('授权') }
-            </bk-button>
+            </auth-button>
             <bk-button
               text
               theme="primary"
@@ -486,29 +501,38 @@
             </bk-button>
             {
               data.isOnline ? (
-                <bk-button
+                <auth-button
                   text
                   theme="primary"
                   class="mr-8"
+                  action-id="mysql_enable_disable"
+                  permission={data.permission.mysql_enable_disable}
+                  resource={data.id}
                   onClick={() => handleSwitchCluster(TicketTypes.MYSQL_HA_DISABLE, data)}>
                   { t('禁用') }
-                </bk-button>
+                </auth-button>
               ) : (
                 <>
-                  <bk-button
+                  <auth-button
                     text
                     theme="primary"
                     class="mr-8"
+                    action-id="mysql_enable_disable"
+                    permission={data.permission.mysql_enable_disable}
+                    resource={data.id}
                     onClick={() => handleSwitchCluster(TicketTypes.MYSQL_HA_ENABLE, data)}>
                     { t('启用') }
-                  </bk-button>
-                  <bk-button
+                  </auth-button>
+                  <auth-button
                     text
                     theme="primary"
                     class="mr-8"
+                    action-id="mysql_destroy"
+                    permission={data.permission.mysql_destroy}
+                    resource={data.id}
                     onClick={() => handleDeleteCluster(data)}>
                     { t('删除') }
-                  </bk-button>
+                  </auth-button>
                 </>
               )
             }
@@ -567,15 +591,6 @@
     tableRef.value.fetchData(params, {}, loading);
     isInit.value = false;
   };
-
-  // 设置轮询
-  // const {
-  //   pause,
-  //   resume,
-  // } = useTimeoutPoll(() => fetchData(isInit.value), 5000, {
-  //   immediate: false,
-  // });
-
 
   const handleOpenEntryConfig = (row: TendbhaModel) => {
     showEditEntryConfig.value  = true;

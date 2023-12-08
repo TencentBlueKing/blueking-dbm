@@ -32,13 +32,12 @@ const path = `/apis/mysql/bizs/${currentBizId}/spider_resources`;
  * 获取 TendbCluster 集群列表
  */
 export function getTendbClusterList(params: Record<string, any> = {}) {
-  return http.get<{
-    count: number,
-    results: TendbClusterModel[]
-  }>(`/apis/mysql/bizs/${currentBizId}/spider_resources/`, params)
-    .then(res => ({
-      ...res,
-      results: res.results.map(data => new TendbClusterModel(data)),
+  return http.get<ListBase<TendbClusterModel[]>>(`/apis/mysql/bizs/${currentBizId}/spider_resources/`, params)
+    .then(data => ({
+      ...data,
+      results: data.results.map(item => new TendbClusterModel(Object.assign(item, {
+        permission: Object.assign(item.permission, data.permission),
+      }))),
     }));
 }
 

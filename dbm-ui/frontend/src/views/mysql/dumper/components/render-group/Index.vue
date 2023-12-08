@@ -31,55 +31,57 @@
         <span class="group-item-nums">{{ totalInstances }}</span>
       </div>
       <span class="split-line" />
-      <div class="group-list db-scroll-y">
-        <div
-          v-for="item in groupList"
-          :key="item.id"
-          class="group-item"
-          :class="{ 'active': activeGroup?.name === item.name}"
-          @click.stop="handleChangeGroup(item)">
-          <template v-if="curEditGroupId === item.id">
-            <GroupCreate
-              :origin-name="item.name"
-              @change="(name) => handleUpdateName(item, name)"
-              @close="handleCloseEdit" />
-          </template>
-          <template v-else>
-            <DbIcon
-              class="mr-12"
-              type="folder-open" />
-            <span
-              v-overflow-tips
-              class="group-item-name text-overflow">
-              {{ item.name }}
-            </span>
-            <span class="group-item-nums">{{ item.instance_count }}</span>
-            <div class="group-item-operations">
+      <div class="group-list">
+        <ScrollFaker>
+          <div
+            v-for="item in groupList"
+            :key="item.id"
+            class="group-item"
+            :class="{ 'active': activeGroup?.name === item.name}"
+            @click.stop="handleChangeGroup(item)">
+            <template v-if="curEditGroupId === item.id">
+              <GroupCreate
+                :origin-name="item.name"
+                @change="(name) => handleUpdateName(item, name)"
+                @close="handleCloseEdit" />
+            </template>
+            <template v-else>
               <DbIcon
-                v-bk-tooltips="t('修改名称')"
-                class="group-item-btn mr-8"
-                type="edit"
-                @click.stop="handleEdit(item.id)" />
-              <DbIcon
-                v-if="item.instance_count > 0"
-                v-bk-tooltips="t('分组下存在实例_不可删除')"
-                class="group-item-btn is-disabled"
-                type="delete"
-                @click.stop />
-              <DbPopconfirm
-                v-else
-                :confirm-handler="() => handleDelete(item)"
-                :content="t('删除后将不可恢复_请确认操作')"
-                :title="t('确认删除该分组')">
+                class="mr-12"
+                type="folder-open" />
+              <span
+                v-overflow-tips
+                class="group-item-name text-overflow">
+                {{ item.name }}
+              </span>
+              <span class="group-item-nums">{{ item.instance_count }}</span>
+              <div class="group-item-operations">
                 <DbIcon
-                  v-bk-tooltips="t('删除')"
-                  class="group-item-btn"
+                  v-bk-tooltips="t('修改名称')"
+                  class="group-item-btn mr-8"
+                  type="edit"
+                  @click.stop="handleEdit(item.id)" />
+                <DbIcon
+                  v-if="item.instance_count > 0"
+                  v-bk-tooltips="t('分组下存在实例_不可删除')"
+                  class="group-item-btn is-disabled"
                   type="delete"
                   @click.stop />
-              </DbPopconfirm>
-            </div>
-          </template>
-        </div>
+                <DbPopconfirm
+                  v-else
+                  :confirm-handler="() => handleDelete(item)"
+                  :content="t('删除后将不可恢复_请确认操作')"
+                  :title="t('确认删除该分组')">
+                  <DbIcon
+                    v-bk-tooltips="t('删除')"
+                    class="group-item-btn"
+                    type="delete"
+                    @click.stop />
+                </DbPopconfirm>
+              </div>
+            </template>
+          </div>
+        </ScrollFaker>
       </div>
       <div class="rule-footer">
         <BkButton
@@ -224,7 +226,7 @@
   }
 
   .group-list {
-    max-height: calc(100% - 86px);
+    height: calc(100vh - 210px);
   }
 
   .group-item {

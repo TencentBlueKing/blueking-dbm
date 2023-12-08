@@ -18,22 +18,25 @@
       theme="warning"
       :title="t('如果希望使用通配符授权一批IP_或者授权平台公共类IP_未注册到配置平台的IP_需要先录入到白名单中_才能对其授权')" />
     <div class="whitelist-operations">
-      <BkButton
+      <AuthButton
+        action-id="ip_whitelist_manage"
         theme="primary"
         @click="handleCreate">
         {{ t('新建') }}
-      </BkButton>
+      </AuthButton>
       <span
         v-bk-tooltips="{
           disabled: hasSelected,
           content: t('请选择白名单组')
         }"
         class="delete-button">
-        <BkButton
+        <AuthButton
+          action-id="ip_whitelist_manage"
+          class="ml-8"
           :disabled="!hasSelected"
           @click="handleBatchDelete">
           {{ t('批量删除') }}
-        </BkButton>
+        </AuthButton>
       </span>
       <BkInput
         v-model="keyword"
@@ -72,12 +75,13 @@
 
   import { useCopy, useInfoWithIcon } from '@hooks';
 
+  import { useGlobalBizs } from '@stores';
+
   import RenderRow from '@components/render-row/index.vue';
 
-  import WhitelistOperation from './components/WhitelistOperation.vue';
+  import { messageSuccess } from '@utils';
 
-  import { useGlobalBizs } from '@/stores';
-  import { messageSuccess } from '@/utils';
+  import WhitelistOperation from './components/WhitelistOperation.vue';
 
   type WhitelistItem = ServiceReturnType<typeof getWhitelist>['results'][number]
 
@@ -153,23 +157,25 @@
         return (
           <>
             <span class="inlink-block" v-bk-tooltips={tips}>
-              <bk-button
+              <auth-button
+                action-id="ip_whitelist_manage"
                 class="mr-8"
                 text
                 theme="primary"
                 disabled={isDisabled}
                 onClick={handleEdit.bind(null, data)}>
                 {t('编辑')}
-              </bk-button>
+              </auth-button>
             </span>
             <span class="inlink-block" v-bk-tooltips={tips}>
-              <bk-button
+              <auth-button
+                action-id="ip_whitelist_manage"
                 text
                 theme="primary"
                 disabled={isDisabled}
                 onClick={handleDelete.bind(null, [data.id])}>
                 {t('删除')}
-              </bk-button>
+              </auth-button>
             </span>
           </>
         );

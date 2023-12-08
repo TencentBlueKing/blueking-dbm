@@ -125,17 +125,15 @@
     ...baseParams.value,
   }));
 
-  // 查询详情 api
-  const fetchConfigDetails = computed(() => (isPlat.value ? getConfigBaseDetails : getLevelConfig));
-
   /**
    * 查询业务配置详情
    */
-  fetchLevelConfig();
-
-  function fetchLevelConfig() {
+  const fetchLevelConfig = () => {
     state.loading = true;
-    fetchConfigDetails.value(fetchConfigParams.value)
+    const handleRequest = isPlat.value ? getConfigBaseDetails : getLevelConfig;
+    handleRequest(fetchConfigParams.value, {
+      permission: 'page',
+    })
       .then((res) => {
         state.data = res;
         state.cloneDataStringify = JSON.stringify(res);
@@ -157,7 +155,9 @@
       .finally(() => {
         state.loading = false;
       });
-  }
+  };
+
+  fetchLevelConfig();
 
   /**
    * 查询配置项名称列表

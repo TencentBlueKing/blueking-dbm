@@ -34,7 +34,13 @@ export default class Tendbsingle {
     ticket_type: string,
     title: string,
   }>;
-  permission: Record<'mysql_authorize' | 'mysql_destroy' | 'mysql_enable_disable' | 'mysql_view', boolean>;
+  permission: {
+    mysql_authorize: boolean;
+    mysql_destroy: boolean;
+    mysql_enable_disable: boolean;
+    mysql_view: boolean;
+    access_entry_edit: boolean;
+  };
   phase: string;
   phase_name: string;
   proxies: Tendbsingle['masters'];

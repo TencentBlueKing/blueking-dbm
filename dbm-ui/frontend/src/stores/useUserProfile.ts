@@ -18,16 +18,16 @@ import {
   upsertProfile,
 } from '@services/source/profile';
 
+// import { UserPersonalSettings } from '@common/const';
+
 type ProfileItem = ServiceReturnType<typeof getProfile>['profile'][number]
 
-interface ProfileMap {
-  [key: string]: any
-}
-
 interface State {
+  globalManage: boolean,
+  profile: Record<string, any>,
+  isManager: boolean,
+  rerourceManage: boolean,
   username: string,
-  profile: ProfileMap,
-  isManager: boolean
 }
 
 /**
@@ -35,33 +35,38 @@ interface State {
  */
 export const useUserProfile = defineStore('UserProfile', {
   state: (): State => ({
-    username: '',
+    globalManage: false,
+    profile: {} as State['profile'],
     isManager: false,
-    profile: {},
+    rerourceManage: false,
+    username: '',
   }),
   actions: {
     /**
      * 获取个人配置列表
      */
     fetchProfile() {
-      return getProfile().then((res) => {
-        const { username = '', profile = [] } = res;
-        this.username = username;
-        this.isManager = res.is_manager;
-        if (profile.length > 0) {
-          profile.forEach((item) => {
-            this.profile[item.label] = item.values;
-          });
-        }
-        return res;
-      });
+      return getProfile()
+        .then((result) => {
+          this.globalManage = Boolean(result.global_manage);
+          this.rerourceManage = Boolean(result.resource_manage);
+          this.username = result.username;
+          this.isManager = result.is_manager;
+
+          this.profile = result.profile.reduce((result, item) => Object.assign(result, {
+            [item.label]: item.values,
+          }), {} as State['profile']);
+
+          return result;
+        });
     },
 
     /**
      * 更新个人配置信息
      */
     updateProfile(params: ProfileItem) {
-      return upsertProfile(params).then(() => this.fetchProfile());
+      return upsertProfile(params)
+        .then(() => this.fetchProfile());
     },
   },
 });

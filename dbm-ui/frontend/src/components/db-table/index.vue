@@ -36,7 +36,7 @@
         <template
           v-if="releateUrlQuery && Object.keys(rowSelectMemo).length > 0"
           #prepend>
-          <div class="prepend-row">
+          <div class="head-prepend-row">
             <I18nT keypath="已选n条，">
               <span class="number">{{ Object.keys(rowSelectMemo).length }}</span>
             </I18nT>
@@ -94,6 +94,7 @@
   } from 'vue';
   import { useI18n } from 'vue-i18n';
 
+  import type { IRequestPayload } from '@services/http';
   import type { ListBase } from '@services/types';
 
   import { useUrlSearch } from '@hooks';
@@ -107,7 +108,7 @@
 
   interface Props {
     columns: InstanceType<typeof Table>['$props']['columns'],
-    dataSource: (params: any)=> Promise<any>,
+    dataSource: (params: any, payload?: IRequestPayload)=> Promise<any>,
     fixedPagination?: boolean,
     clearSelection?: boolean,
     paginationExtra?: IPaginationExtra,
@@ -225,6 +226,7 @@
     next: '',
     previous: '',
     results: [],
+    permission: {},
   });
   const isSearching = ref(false);
   const isAnomalies = ref(false);
@@ -305,9 +307,18 @@
           ...sortParams,
         };
 
+        const payload = {};
+        // API 参数需要和 URL 联动基本可以确认是页面级别的列表
+        // 这个时候权限提示交互为页面嵌入的方式
+        if (props.releateUrlQuery) {
+          Object.assign(payload, {
+            permission: 'page',
+          });
+        }
+
         isAnomalies.value = false;
 
-        props.dataSource(params)
+        props.dataSource(params, payload)
           .then((data) => {
             tableData.value = data;
             pagination.count = data.count;
@@ -549,7 +560,7 @@
 </script>
 <style lang="less">
 .db-table{
-  .prepend-row{
+  .head-prepend-row{
     display: flex;
     height: 30px;
     background: #ebecf0;

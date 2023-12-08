@@ -92,7 +92,7 @@ export default defineConfig(({ mode }) => {
           dest: './',
         }],
       }),
-      monacoEditorPlugin({}),
+      monacoEditorPlugin.default({}),
       ViteHTMLEnv({
         prefix: '{{',
         suffix: '}}',

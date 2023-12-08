@@ -38,7 +38,9 @@ export function getTendbsingleList(params: {
   return http.get<ListBase<TendbsingleModel[]>>(`${path}/`, params)
     .then(data => ({
       ...data,
-      results: data.results.map((item: TendbsingleModel) => new TendbsingleModel(item)),
+      results: data.results.map(item => new TendbsingleModel(Object.assign(item, {
+        permission: Object.assign(item.permission, data.permission),
+      }))),
     }));
 }
 

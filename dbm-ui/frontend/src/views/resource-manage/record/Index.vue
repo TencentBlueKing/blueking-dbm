@@ -22,6 +22,7 @@
       ref="tableRef"
       :columns="tableColumn"
       :data-source="dataSource"
+      releate-url-query
       @clear-search="handleClearSearch" />
   </div>
 </template>

@@ -37,10 +37,15 @@ export default class ResourceSpec {
   updater: string;
   spec_id: number;
   is_refer: boolean;
-  instance_num?: number;
-  qps?: {
+  instance_num: number;
+  qps: {
     min: number,
     max: number
+  };
+  permission: {
+    spec_create: boolean;
+    spec_delete: boolean;
+    spec_update: boolean;
   };
 
   constructor(payload = {} as ResourceSpec) {
@@ -60,9 +65,8 @@ export default class ResourceSpec {
     this.spec_id = payload.spec_id;
     this.is_refer = payload.is_refer;
     this.instance_num = payload.instance_num ?? 0;
-    if (payload.qps) {
-      this.qps = payload.qps;
-    }
+    this.qps = payload.qps || {};
+    this.permission = payload.permission || {};
   }
 
   get name() {

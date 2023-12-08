@@ -15,22 +15,28 @@
   <div class="es-detail-node-list">
     <div class="action-box">
       <OperationStatusTips :data="operationData">
-        <BkButton
+        <AuthButton
+          action-id="es_scale_up"
           :disabled="operationData?.operationDisabled"
+          :permission="operationData?.permission.es_scale_up"
+          :resource="operationData?.id"
           theme="primary"
           @click="handleShowExpansion">
           {{ $t('扩容') }}
-        </BkButton>
+        </AuthButton>
       </OperationStatusTips>
       <OperationStatusTips :data="operationData">
         <span
           v-bk-tooltips="batchShrinkDisabledInfo.tooltips">
-          <BkButton
+          <AuthButton
+            action-id="es_shrink"
             class="ml8"
             :disabled="(batchShrinkDisabledInfo.disabled || operationData?.operationDisabled)"
+            :permission="operationData?.permission.es_shrink"
+            :resource="operationData?.id"
             @click="handleShowShrink">
             {{ $t('缩容') }}
-          </BkButton>
+          </AuthButton>
         </span>
       </OperationStatusTips>
       <OperationStatusTips :data="operationData">
@@ -39,12 +45,15 @@
             content: $t('请先选中节点'),
             disabled: !isBatchReplaceDisabeld
           }">
-          <BkButton
+          <AuthButton
+            action-id="es_replace"
             class="ml8"
             :disabled="(isBatchReplaceDisabeld || operationData?.operationDisabled)"
+            :permission="operationData?.permission.es_replace"
+            :resource="operationData?.id"
             @click="handleShowReplace">
             {{ $t('替换') }}
-          </BkButton>
+          </AuthButton>
         </span>
       </OperationStatusTips>
       <BkDropdown
@@ -404,34 +413,42 @@
           <>
             <OperationStatusTips data={operationData.value}>
               <span v-bk-tooltips={shrinkDisableTooltips.tooltips}>
-                <bk-button
-                  theme="primary"
+                <auth-button
                   text
+                  theme="primary"
+                  action-id="es_shrink"
+                  permission={data.permission.es_shrink}
+                  resource={data.bk_host_id}
                   disabled={shrinkDisableTooltips.disabled || operationData.value?.operationDisabled}
                   onClick={() => handleShrinkOne(data)}>
                   { t('缩容') }
-                </bk-button>
+                </auth-button>
               </span>
             </OperationStatusTips>
             <OperationStatusTips data={operationData.value}>
-              <bk-button
-                class="ml8"
-                theme="primary"
+              <auth-button
                 text
+                theme="primary"
+                action-id="es_replace"
+                permission={data.permission.es_replace}
+                resource={data.bk_host_id}
                 disabled={operationData.value?.operationDisabled}
                 onClick={() => handleReplaceOne(data)}>
                 { t('替换') }
-              </bk-button>
+              </auth-button>
             </OperationStatusTips>
             <OperationStatusTips data={operationData.value}>
-              <bk-button
-                theme="primary"
+              <auth-button
                 text
+                theme="primary"
+                action-id="es_reboot"
+                permission={data.permission.es_reboot}
+                resource={data.bk_host_id}
                 class="ml8"
                 disabled={operationData.value?.operationDisabled}
                 onClick={() => handleShowDetail(data)}>
                 { t('重启实例') }
-              </bk-button>
+              </auth-button>
             </OperationStatusTips>
           </>
         );

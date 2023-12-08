@@ -12,6 +12,7 @@
 */
 
 export * from './bytePretty';
+export * from './calcTextWidth';
 export * from './charRelate';
 export * from './classes';
 export * from './deepMerge';

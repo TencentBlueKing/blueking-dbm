@@ -12,124 +12,128 @@
 -->
 
 <template>
-  <div class="version-files">
-    <BkTab
-      v-model:active="state.active"
-      type="card">
-      <BkTabPanel
-        v-for="tab of tabs"
-        :key="tab.name"
-        :label="tab.label"
-        :name="tab.name" />
-    </BkTab>
-    <div class="version-files-content">
-      <div class="version-files-operations">
-        <BkButton
-          theme="primary"
-          @click="handleCreate">
-          {{ t('新增') }}
-        </BkButton>
-        <BkInput
-          v-model="state.search"
-          clearable
-          :placeholder="t('请输入名称关键字')"
-          style="width: 500px;"
-          type="search"
-          @clear="handleChangePage(1)"
-          @enter="handleChangePage(1)" />
-      </div>
-      <BkLoading :loading="state.isLoading">
-        <DbOriginalTable
-          class="version-files-table"
-          :columns="columns"
-          :data="state.data"
-          :is-anomalies="state.isAnomalies"
-          :is-searching="!!state.search"
-          :max-height="tableMaxHeight"
-          :pagination="state.pagination"
-          remote-pagination
-          @clear-search="handleClearSearch"
-          @page-limit-change="handeChangeLimit"
-          @page-value-change="handleChangePage"
-          @refresh="fetchPackages" />
-      </BkLoading>
-    </div>
-  </div>
-  <!-- 新增版本 -->
-  <BkDialog
-    v-model:is-show="createFileState.isShow"
-    height="auto"
-    :mask-close="false"
-    theme="primary"
-    :title="t('新增版本')"
-    :width="480">
-    <BkForm
-      ref="versionFormRef"
-      class="create-dialog-operations"
-      form-type="vertical"
-      :model="createFileState.formdata"
-      :rules="rules">
-      <BkFormItem
-        :label="t('版本名称')"
-        property="version"
-        required>
-        <template v-if="isInputType">
+  <ApplyPermissionCatch>
+    <div class="version-files">
+      <BkTab
+        v-model:active="state.active"
+        type="card">
+        <BkTabPanel
+          v-for="tab of tabs"
+          :key="tab.name"
+          :label="tab.label"
+          :name="tab.name" />
+      </BkTab>
+      <div class="version-files-content">
+        <div class="version-files-operations">
+          <AuthButton
+            action-id="package_manage"
+            :resource="props.info.name"
+            theme="primary"
+            @click="handleCreate">
+            {{ t('新增') }}
+          </AuthButton>
           <BkInput
-            v-model="createFileState.formdata.version"
-            :placeholder="t('请输入')" />
-        </template>
-        <template v-else>
-          <BkSelect
-            v-model="createFileState.formdata.version"
-            :clearable="false"
-            filterable
-            :input-search="false"
-            :loading="createFileState.isLoadVersions">
-            <BkOption
-              v-for="version of createFileState.versions"
-              :key="version"
-              :label="version"
-              :value="version" />
-          </BkSelect>
-        </template>
-      </BkFormItem>
-      <BkFormItem
-        class="pb-16"
-        :label="t('文件')"
-        property="name"
-        required>
-        <BkUpload
-          ref="uplodRef"
-          v-bk-tooltips="fileTips"
-          :accept="acceptInfo.accept"
-          :disabled="!createFileState.formdata.version"
-          :form-data-attributes="uploadAttributes"
-          :header="{ name: 'X-CSRFToken', value: Cookies.get('dbm_csrftoken') }"
-          :multiple="false"
-          name="file"
-          :size="1024"
-          :tip="acceptInfo.tips"
-          :url="createFileState.uploadUrl"
-          with-credentials
-          @delete="handleDeleteFile"
-          @success="handleUpdateSuccess" />
-      </BkFormItem>
-    </BkForm>
-    <template #footer>
-      <BkButton
-        class="mr-8"
-        :loading="createFileState.isLoading"
-        theme="primary"
-        @click="handleConfirmCreate">
-        {{ t('确定') }}
-      </BkButton>
-      <BkButton
-        :disabled="createFileState.isLoading"
-        @click="handleClose">
-        {{ t('取消') }}
-      </BkButton>
-    </template>
-  </BkDialog>
+            v-model="state.search"
+            clearable
+            :placeholder="t('请输入名称关键字')"
+            style="width: 500px;"
+            type="search"
+            @clear="handleChangePage(1)"
+            @enter="handleChangePage(1)" />
+        </div>
+        <BkLoading :loading="state.isLoading">
+          <DbOriginalTable
+            class="version-files-table"
+            :columns="columns"
+            :data="state.data"
+            :is-anomalies="state.isAnomalies"
+            :is-searching="!!state.search"
+            :max-height="tableMaxHeight"
+            :pagination="state.pagination"
+            remote-pagination
+            @clear-search="handleClearSearch"
+            @page-limit-change="handeChangeLimit"
+            @page-value-change="handleChangePage"
+            @refresh="fetchPackages" />
+        </BkLoading>
+      </div>
+    </div>
+    <!-- 新增版本 -->
+    <BkDialog
+      v-model:is-show="createFileState.isShow"
+      height="auto"
+      :mask-close="false"
+      theme="primary"
+      :title="t('新增版本')"
+      :width="480">
+      <BkForm
+        ref="versionFormRef"
+        class="create-dialog-operations"
+        form-type="vertical"
+        :model="createFileState.formdata"
+        :rules="rules">
+        <BkFormItem
+          :label="t('版本名称')"
+          property="version"
+          required>
+          <template v-if="isInputType">
+            <BkInput
+              v-model="createFileState.formdata.version"
+              :placeholder="t('请输入')" />
+          </template>
+          <template v-else>
+            <BkSelect
+              v-model="createFileState.formdata.version"
+              :clearable="false"
+              filterable
+              :input-search="false"
+              :loading="createFileState.isLoadVersions">
+              <BkOption
+                v-for="version of createFileState.versions"
+                :key="version"
+                :label="version"
+                :value="version" />
+            </BkSelect>
+          </template>
+        </BkFormItem>
+        <BkFormItem
+          class="pb-16"
+          :label="t('文件')"
+          property="name"
+          required>
+          <BkUpload
+            ref="uplodRef"
+            v-bk-tooltips="fileTips"
+            :accept="acceptInfo.accept"
+            :disabled="!createFileState.formdata.version"
+            :form-data-attributes="uploadAttributes"
+            :header="{ name: 'X-CSRFToken', value: Cookies.get('dbm_csrftoken') }"
+            :multiple="false"
+            name="file"
+            :size="1024"
+            :tip="acceptInfo.tips"
+            :url="createFileState.uploadUrl"
+            with-credentials
+            @delete="handleDeleteFile"
+            @success="handleUpdateSuccess" />
+        </BkFormItem>
+      </BkForm>
+      <template #footer>
+        <BkButton
+          class="mr-8"
+          :loading="createFileState.isLoading"
+          theme="primary"
+          @click="handleConfirmCreate">
+          {{ t('确定') }}
+        </BkButton>
+        <BkButton
+          :disabled="createFileState.isLoading"
+          @click="handleClose">
+          {{ t('取消') }}
+        </BkButton>
+      </template>
+    </BkDialog>
+  </ApplyPermissionCatch>
 </template>
 <script setup lang="tsx">
   import { Form, Message } from 'bkui-vue';
@@ -137,12 +141,12 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
+  import VersionFileModel from '@services/model/version-file/version-file';
   import {
     createPackage,
     updatePackage,
   } from '@services/source/package';
   import { getVersions } from '@services/source/version';
-  import type { PackageItem } from '@services/types/versionFiles';
 
   import {
     useCopy,
@@ -152,13 +156,15 @@
 
   import { DBTypes } from '@common/const';
 
+  import ApplyPermissionCatch from '@components/apply-permission/catch.vue';
+  import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
+
   import { messageSuccess } from '@utils';
 
   import { useVersionFiles } from '../hooks/useVersionFiles';
 
   import type { IState, VersionFileType } from './types';
 
-  import type { TableColumnRender } from '@/types/bkui-vue';
 
   interface Props {
     info: VersionFileType,
@@ -167,15 +173,24 @@
 
   const props = defineProps<Props>();
 
+  const initCreateFormdata = () => ({
+    version: '',
+    name: '',
+    path: '',
+    size: 0,
+    md5: '',
+  });
+
   const { t } = useI18n();
   const copy = useCopy();
   const tableMaxHeight = useTableMaxHeight(340);
+
   const state = reactive<IState>({
     active: '',
     isLoading: false,
     isAnomalies: false,
     pagination: useDefaultPagination(),
-    data: [] as PackageItem[],
+    data: [] as VersionFileModel[],
     search: '',
   });
   // 类型参数
@@ -184,9 +199,11 @@
     pkg_type: state.active,
   }));
   const tabs = computed(() => props.info.children || []);
-  const bigData: string[] = [DBTypes.KAFKA, DBTypes.ES, DBTypes.HDFS, DBTypes.PULSAR, DBTypes.INFLUXDB];
   // 版本是否为输入框
-  const isInputType = computed(() => bigData.includes(props.info.name) && state.active !== 'actuator');
+  const isInputType = computed(() => {
+    const bigData: string[] = [DBTypes.KAFKA, DBTypes.ES, DBTypes.HDFS, DBTypes.PULSAR, DBTypes.INFLUXDB];
+    return bigData.includes(props.info.name) && state.active !== 'actuator';
+  });
   const fileTips = computed(() => ({
     content: isInputType.value ? t('请输入版本名称') : t('请选择版本名称'),
     disabled: !!createFileState.formdata.version,
@@ -199,8 +216,6 @@
     handeChangeLimit,
     handleConfirmDelete,
   } = useVersionFiles(state, typeParams);
-
-  const limitTypes = ['mysql', 'mysql-proxy'];
 
   /** 新增文件功能 */
   const createFileState = reactive({
@@ -221,6 +236,7 @@
   ]));
 
   const acceptInfo = computed(() => {
+    const limitTypes = ['mysql', 'mysql-proxy'];
     if (limitTypes.includes(state.active)) {
       return {
         accept: 'tar.gz',
@@ -240,7 +256,7 @@
       {
         label: t('版本名称'),
         field: 'version',
-        render: ({ data }: { data: PackageItem }) => (
+        render: ({ data }: { data: VersionFileModel }) => (
           <div class="version-name text-overflow" v-overflow-tips>
             {data.version}
             {data.priority && <bk-tag theme="info" class="ml-5">{t('默认')}</bk-tag>}
@@ -263,39 +279,56 @@
       {
         label: t('文件名称'),
         field: 'name',
-        render: ({ cell }: TableColumnRender) => <div class="text-overflow" v-overflow-tips>{cell}</div>,
+        render: ({ data }: { data: VersionFileModel }) => data.name || '--',
       },
       {
         label: 'MD5',
         field: 'md5',
-        showOverflowTooltip: false,
-        render: ({ cell }: TableColumnRender) => (
-          <span class="md-five">
-            <span class="md-five-value" v-overflow-tips>{cell}</span>
-            <i class="db-icon-copy" onClick={() => copy(cell)} />
-          </span>
+        render: ({ data }: { data: VersionFileModel }) => (
+          <TextOverflowLayout>
+            {{
+              default: () => data.md5,
+              append: () => (
+                <db-icon
+                  type="copy"
+                  onClick={() => copy(data.md5)} />
+              ),
+            }}
+          </TextOverflowLayout>
         ),
       },
       {
         label: t('更新人'),
         field: 'updater',
+        render: ({ data }: { data: VersionFileModel }) => data.updater || '--',
       },
       {
         label: t('更新时间'),
         field: 'update_at',
+        render: ({ data }: { data: VersionFileModel }) => data.update_at || '--',
       },
       {
         label: t('操作'),
         field: 'id',
         width: 100,
-        render: ({ data }: TableColumnRender) => <bk-button text theme="primary" onClick={handleConfirmDelete.bind(this, data)}>{ t('删除') }</bk-button>,
+        render: ({ data }: { data: VersionFileModel }) => (
+          <auth-button
+            action-id="package_manage"
+            resource={props.info.name}
+            permission={data.permission.package_manage}
+            text
+            theme="primary"
+            onClick={() => handleConfirmDelete(data)}>
+            { t('删除') }
+          </auth-button>
+        ),
       },
     ];
     if (isShowSwitch.value) {
       const switchColumn = {
         label: t('是否启用'),
         field: 'enable',
-        render: ({ data }: { data: PackageItem }) => (
+        render: ({ data }: { data: VersionFileModel }) => (
           <bk-pop-confirm
             title={data.enable ? t('确认停用该版本？') : t('确认启用该版本？')}
             content={data.enable ? t('停用后，在选择版本时，将不可见，且不可使用') : t('启用后，在选择版本时，将开放选择')}
@@ -305,7 +338,10 @@
             confirm-text={data.enable ? t('停用') : t('启用')}
             onConfirm={() => handleConfirmSwitch(data)}
           >
-            <bk-switcher
+            <auth-switcher
+              action-id="package_manage"
+              resource={props.info.name}
+              permission={data.permission.package_manage}
               size="small"
               model-value={data.enable}
               theme="primary"
@@ -340,7 +376,7 @@
     },
   });
 
-  const handleSetDefaultVersion = (row: PackageItem) => {
+  const handleSetDefaultVersion = (row: VersionFileModel) => {
     if (!row.enable) {
       return;
     }
@@ -350,7 +386,7 @@
     });
   };
 
-  const handleConfirmSwitch = async (row: PackageItem) => {
+  const handleConfirmSwitch = async (row: VersionFileModel) => {
     runUpdatePackage({
       id: row.id,
       enable: !row.enable,
@@ -362,36 +398,25 @@
     handleChangePage(1);
   }
 
-  /**
-   * 初始化添加文件表单数据
-   */
-  function initCreateFormdata() {
-    return {
-      version: '',
-      name: '',
-      path: '',
-      size: 0,
-      md5: '',
-    };
-  }
 
   /**
    * 获取版本号列表
    */
-  function fetchVersions() {
+  const fetchVersions = () => {
     createFileState.isLoadVersions = true;
-    const params = {
+    getVersions({
       query_key: state.active,
       db_type: props.info.name,
-    };
-    getVersions(params)
+    }, {
+      permission: 'catch',
+    })
       .then((res) => {
         createFileState.versions = res;
       })
       .finally(() => {
         createFileState.isLoadVersions = false;
       });
-  }
+  };
 
   watch(() => state.active, (value, old) => {
     if (value && value !== old) {
@@ -407,26 +432,29 @@
   /**
    * 新增版本
    */
-  function handleCreate() {
+  const handleCreate = () => {
     createFileState.isShow = true;
-  }
+  };
 
   /**
    * 取消新增
    */
-  function handleClose() {
+  const handleClose = () => {
     createFileState.isShow = false;
     Object.assign(createFileState.formdata, initCreateFormdata());
-  }
+  };
 
   /**
    * 提交新增版本
    */
-  async function handleConfirmCreate() {
+  const handleConfirmCreate = async () => {
     await versionFormRef.value?.validate();
 
     createFileState.isLoading = true;
-    createPackage({ ...createFileState.formdata, ...typeParams.value })
+    createPackage({
+      ...createFileState.formdata,
+      ...typeParams.value,
+    })
       .then(() => {
         Message({
           message: t('新增成功'),
@@ -438,22 +466,22 @@
       .finally(() => {
         createFileState.isLoading = false;
       });
-  }
+  };
 
   /**
    * 文件上传成功
    */
-  function handleUpdateSuccess(file: any) {
+  const handleUpdateSuccess = (file: any) => {
     Object.assign(createFileState.formdata, file?.data || {});
     versionFormRef.value?.clearValidate();
-  }
+  };
 
   /**
    * 文件删除
    */
-  function handleDeleteFile() {
+  const handleDeleteFile = () => {
     Object.assign(createFileState.formdata, initCreateFormdata());
-  }
+  };
 </script>
 <style lang="less" scoped>
 @import "@styles/mixins.less";

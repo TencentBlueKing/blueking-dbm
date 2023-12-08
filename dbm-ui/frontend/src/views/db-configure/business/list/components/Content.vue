@@ -12,88 +12,89 @@
 -->
 
 <template>
-  <BkResizeLayout
-    :border="false"
-    class="database-content"
-    collapsible
-    initial-divide="312px"
-    :max="500"
-    :min="312">
-    <template #aside>
-      <BkLoading
-        :loading="treeState.loading"
-        style="height: 100%;"
-        :z-index="12">
-        <div class="content-tree">
-          <div class="content-tree-search">
-            <BkInput
-              v-model="treeState.search"
-              :placeholder="$t('请输入节点名称')"
-              type="search" />
+  <ApplyPermissionCatch>
+    <BkResizeLayout
+      :border="false"
+      class="database-content"
+      collapsible
+      initial-divide="312px"
+      :max="500"
+      :min="312">
+      <template #aside>
+        <BkLoading
+          :loading="treeState.loading"
+          style="height: 100%;"
+          :z-index="12">
+          <div class="content-tree">
+            <div class="content-tree-search">
+              <BkInput
+                v-model="treeState.search"
+                :placeholder="$t('请输入节点名称')"
+                type="search" />
+            </div>
+            <BkTree
+              ref="treeRef"
+              class="db-scroll-y"
+              :data="treeState.data"
+              :indent="16"
+              label="name"
+              :node-content-action="['click']"
+              node-key="treeId"
+              :offset-left="24"
+              :prefix-icon="treePrefixIcon"
+              :search="treeSearchConfig"
+              :selected="treeState.selected"
+              @node-click="handleSelectedTreeNode">
+              <template #node="item">
+                <div class="content-tree-node">
+                  <span class="content-tree-tag">
+                    {{ getIconText(item) }}
+                  </span>
+                  <span
+                    v-overflow-tips="{ content:item.name, placement: 'right' }"
+                    class="content-tree-name text-overflow">
+                    {{ item.name }}
+                  </span>
+                  <i
+                    v-if="hasModules && item.levelType === ConfLevels.APP"
+                    v-bk-tooltips="$t('新建DB模块')"
+                    class="content-tree-add db-icon-add"
+                    @click.stop="createModule" />
+                </div>
+              </template>
+              <template #empty>
+                <EmptyStatus
+                  :is-anomalies="treeState.isAnomalies"
+                  :is-searching="!!treeState.search"
+                  @clear-search="handleClearSearch"
+                  @refresh="handleRefresh" />
+              </template>
+            </BkTree>
           </div>
-          <BkTree
-            ref="treeRef"
-            class="db-scroll-y"
-            :data="treeState.data"
-            :indent="16"
-            label="name"
-            :node-content-action="['click']"
-            node-key="treeId"
-            :offset-left="24"
-            :prefix-icon="treePrefixIcon"
-            :search="treeSearchConfig"
-            :selected="treeState.selected"
-            @node-click="handleSelectedTreeNode">
-            <template #node="item">
-              <div class="content-tree-node">
-                <span class="content-tree-tag">
-                  {{ getIconText(item) }}
-                </span>
-                <span
-                  v-overflow-tips="{ content:item.name, placement: 'right' }"
-                  class="content-tree-name text-overflow">
-                  {{ item.name }}
-                </span>
-                <i
-                  v-if="hasModules && item.levelType === ConfLevels.APP"
-                  v-bk-tooltips="$t('新建DB模块')"
-                  class="content-tree-add db-icon-add"
-                  @click.stop="createModule" />
-              </div>
-            </template>
-            <template #empty>
-              <EmptyStatus
-                :is-anomalies="treeState.isAnomalies"
-                :is-searching="!!treeState.search"
-                @clear-search="handleClearSearch"
-                @refresh="handleRefresh" />
-            </template>
-          </BkTree>
+        </BkLoading>
+      </template>
+      <template #main>
+        <div
+          v-if="treeState.activeNode"
+          :key="treeState.activeNode.id"
+          class="content-details">
+          <div class="content-details-title">
+            <strong class="content-details-title-name">
+              {{ treeState.activeNode.name }}
+            </strong>
+            <BkTag theme="info">
+              {{ treeState.activeNode.tag }}
+            </BkTag>
+            <BkTag v-if="treeState.activeNode.version">
+              {{ treeState.activeNode.version }}
+            </BkTag>
+          </div>
+          <Component :is="activeComponent" />
         </div>
-      </BkLoading>
-    </template>
-    <template #main>
-      <div
-        v-if="treeState.activeNode"
-        :key="treeState.activeNode.id"
-        class="content-details">
-        <div class="content-details-title">
-          <strong class="content-details-title-name">
-            {{ treeState.activeNode.name }}
-          </strong>
-          <BkTag theme="info">
-            {{ treeState.activeNode.tag }}
-          </BkTag>
-          <BkTag v-if="treeState.activeNode.version">
-            {{ treeState.activeNode.version }}
-          </BkTag>
-        </div>
-        <Component :is="activeComponent" />
-      </div>
-    </template>
-  </BkResizeLayout>
+      </template>
+    </BkResizeLayout>
+  </ApplyPermissionCatch>
 </template>
-
 <script setup lang="ts">
   import {
     clusterTypeInfos,
@@ -102,6 +103,7 @@
     ConfLevels,
   } from '@common/const';
 
+  import ApplyPermissionCatch from '@components/apply-permission/catch.vue';
   import EmptyStatus from '@components/empty-status/EmptyStatus.vue';
 
   import ConfigBusiness from './biz/Index.vue';

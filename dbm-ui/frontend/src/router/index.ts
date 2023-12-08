@@ -16,6 +16,7 @@ import {
   createRouter,
   createWebHistory,
   type Router,
+  type RouteRecordRaw,
 } from 'vue-router';
 
 import type {
@@ -29,6 +30,7 @@ import {
   useGlobalBizs,
 } from '@stores';
 
+import BizPermission from '@views/BizPermission.vue';
 import getDbConfRoutes from '@views/db-configure/routes';
 import getDbhaSwitchEventsRouters from '@views/dbha-switch-events/routes';
 import getESRoutes from '@views/es-manage/routes';
@@ -56,8 +58,24 @@ import getVersionFilesRoutes from '@views/version-files/routes';
 import getWhitelistRoutes from '@views/whitelist/routes';
 
 let appRouter: Router;
+
+const renderPageWithComponent = (route: RouteRecordRaw, component: typeof BizPermission) => {
+  if (route.component) {
+    // eslint-disable-next-line no-param-reassign
+    route.component = component;
+  }
+  if (route.children) {
+    route.children.forEach((item) => {
+      renderPageWithComponent(item, component);
+    });
+  }
+};
+
 export default () => {
-  // 解析 url 业务id
+  // 解析业务id
+  // 1,url中包含业务id
+  // 2,本地缓存中包含业务id
+  // 3,业务列表中的第一个业务
   const {
     bizs: bizList,
   } = useGlobalBizs();
@@ -80,59 +98,71 @@ export default () => {
   window.PROJECT_CONFIG.BIZ_ID = Number(currentBiz);
   localStorage.setItem('lastBizId', currentBiz);
 
+  let bizPermission = false;
+  const bizInfo = _.find(bizList, item => item.bk_biz_id === Number(currentBiz));
+  if (bizInfo && bizInfo.permission.db_manage) {
+    bizPermission = true;
+  }
+
   const { funControllerData } = useFunController();
   const mysqlController = funControllerData.getFlatData<MySQLFunctions, 'mysql'>('mysql');
   const redisController = funControllerData.getFlatData<RedisFunctions, 'redis'>('redis');
   const bigdataController = funControllerData.getFlatData<BigdataFunctions, 'bigdata'>('bigdata');
 
+  const routes = [
+    {
+      path: '/',
+      name: 'index',
+      redirect: {
+        name: 'serviceApply',
+      },
+      children: [
+        ...getResourceManageRoutes(),
+        ...getVersionFilesRoutes(),
+        ...getPlatformDbConfigureRoutes(),
+        ...getPasswordManageRoutes(),
+        ...getServiceApplyRoutes(),
+      ],
+    },
+    {
+      path: `/${currentBiz}`,
+      children: [
+        ...getDbConfRoutes(),
+        ...getESRoutes(bigdataController),
+        ...getDbhaSwitchEventsRouters(),
+        ...getHDFSRoutes(bigdataController),
+        ...getInfluxDBRoutes(bigdataController),
+        ...getInspectionRoutes(),
+        ...getKafkaRoutes(bigdataController),
+        ...getDBMonitorAlarmRoutes(),
+        ...getPlatMonitorAlarmRoutes(),
+        ...getMysqlRoutes(mysqlController),
+        ...getNotificationSettingRoutes(),
+        ...getPulsarRoutes(bigdataController),
+        ...getRedisRoutes(redisController),
+        ...getSpiderManageRoutes(),
+        ...getStaffSettingRoutes(),
+        ...getTaskHistoryRoutes(),
+        ...getTicketsRoutes(),
+        ...getWhitelistRoutes(),
+        ...getTicketManageRoutes(),
+        ...getTemporaryPasswordModify(),
+      ],
+    },
+    {
+      path: '/:pathMatch(.*)*',
+      name: '404',
+      component: () => import('@views/404.vue'),
+    },
+  ];
+
+  if (!bizPermission) {
+    renderPageWithComponent(routes[1], BizPermission);
+  }
+
   appRouter = createRouter({
     history: createWebHistory(),
-    routes: [
-      {
-        path: '/',
-        name: 'index',
-        redirect: {
-          name: 'serviceApply',
-        },
-        children: [
-          ...getResourceManageRoutes(),
-          ...getVersionFilesRoutes(),
-          ...getPlatformDbConfigureRoutes(),
-          ...getPasswordManageRoutes(),
-          ...getServiceApplyRoutes(),
-        ],
-      },
-      {
-        path: `/${currentBiz}`,
-        children: [
-          ...getDbConfRoutes(),
-          ...getESRoutes(bigdataController),
-          ...getDbhaSwitchEventsRouters(),
-          ...getHDFSRoutes(bigdataController),
-          ...getInfluxDBRoutes(bigdataController),
-          ...getInspectionRoutes(),
-          ...getKafkaRoutes(bigdataController),
-          ...getDBMonitorAlarmRoutes(),
-          ...getPlatMonitorAlarmRoutes(),
-          ...getMysqlRoutes(mysqlController),
-          ...getNotificationSettingRoutes(),
-          ...getPulsarRoutes(bigdataController),
-          ...getRedisRoutes(redisController),
-          ...getSpiderManageRoutes(),
-          ...getStaffSettingRoutes(),
-          ...getTaskHistoryRoutes(),
-          ...getTicketsRoutes(),
-          ...getWhitelistRoutes(),
-          ...getTicketManageRoutes(),
-          ...getTemporaryPasswordModify(),
-        ],
-      },
-      {
-        path: '/:pathMatch(.*)*',
-        name: '404',
-        component: () => import('@views/exception/404.vue'),
-      },
-    ],
+    routes,
   });
 
   let lastRouterHrefCache = '/';
@@ -148,11 +178,13 @@ export default () => {
     return routerReplace(params);
   };
 
-  appRouter.onError((error: any) => {
-    if (/Failed to fetch dynamically imported module/.test(error.message)) {
-      window.location.href = lastRouterHrefCache;
-    }
-  });
+  if (import.meta.env.MODE === 'production') {
+    appRouter.onError((error: any) => {
+      if (/Failed to fetch dynamically imported module/.test(error.message)) {
+        window.location.href = lastRouterHrefCache;
+      }
+    });
+  }
 
   return appRouter;
 };

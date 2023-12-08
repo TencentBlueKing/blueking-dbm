@@ -25,28 +25,31 @@
       <strong>{{ curGroupInfo?.name || $t('全部实例') }}</strong>
     </div>
     <div class="instances-view-operations">
-      <BkButton
+      <AuthButton
+        action-id="influxdb_apply"
         theme="primary"
         @click="handleApply">
         {{ $t('实例申请') }}
-      </BkButton>
+      </AuthButton>
       <span
         v-bk-tooltips="{content: $t('请选择实例'), disabled: hasSelectedInstances }"
         class="inline-block">
-        <BkButton
+        <AuthButton
+          action-id="influxdb_reboot"
           :disabled="!hasSelectedInstances"
           @click="handleBatchRestart">
           {{ $t('重启') }}
-        </BkButton>
+        </AuthButton>
       </span>
       <span
         v-bk-tooltips="{content: $t('请选择实例'), disabled: hasSelectedInstances }"
         class="inline-block">
-        <BkButton
+        <AuthButton
+          action-id="influxdb_replace"
           :disabled="!hasSelectedInstances"
           @click="handleShowReplace()">
           {{ $t('替换') }}
-        </BkButton>
+        </AuthButton>
       </span>
       <BkDropdown
         :disabled="!hasSelectedInstances"
@@ -315,59 +318,74 @@
             return (
               <>
                 <OperationStatusTips data={data}>
-                  <bk-button
+                  <auth-button
                     class="mr-8"
                     disabled={data.operationDisabled}
                     loading={tableDataActionLoadingMap.value[data?.id]}
                     text
                     theme="primary"
+                    action-id="influxdb_replace"
+                    permission={data.permission.influxdb_replace}
+                    resource={data.id}
                     onClick={() => handleShowReplace(data)}>
                     { t('替换') }
-                  </bk-button>
+                  </auth-button>
                 </OperationStatusTips>
                 <OperationStatusTips data={data}>
-                  <bk-button
+                  <auth-button
                     class="mr-8"
                     disabled={data.operationDisabled}
                     loading={tableDataActionLoadingMap.value[data?.id]}
                     text
                     theme="primary"
+                    action-id="influxdb_reboot"
+                    permission={data.permission.influxdb_reboot}
+                    resource={data.id}
                     onClick={() => handleRestart([data])}>
                     { t('重启') }
-                  </bk-button>
+                  </auth-button>
                 </OperationStatusTips>
                 <OperationStatusTips data={data}>
-                  <bk-button
+                  <auth-button
                     class="mr-8"
                     disabled={data.operationDisabled}
                     loading={tableDataActionLoadingMap.value[data?.id]}
                     text
                     theme="primary"
+                    action-id="influxdb_enable_disable"
+                    permission={data.permission.influxdb_enable_disable}
+                    resource={data.id}
                     onClick={() => handlDisabled(data)}>
                     { t('禁用') }
-                  </bk-button>
+                  </auth-button>
                 </OperationStatusTips>
               </>
             );
           }
           return (
             <>
-              <bk-button
+              <auth-button
                 class="mr-8"
                 loading={tableDataActionLoadingMap.value[data?.id]}
                 text
                 theme="primary"
+                action-id="influxdb_enable_disable"
+                permission={data.permission.influxdb_enable_disable}
+                resource={data.id}
                 onClick={() => handleEnable(data)}>
                 { t('启用') }
-              </bk-button>
-              <bk-button
+              </auth-button>
+              <auth-button
                 class="mr-8"
                 loading={tableDataActionLoadingMap.value[data?.id]}
                 text
                 theme="primary"
+                action-id="influxdb_destroy"
+                permission={data.permission.influxdb_destroy}
+                resource={data.id}
                 onClick={() => handlDelete(data)}>
                 { t('删除') }
-              </bk-button>
+              </auth-button>
             </>
           );
         },

@@ -32,7 +32,9 @@ export function getKafkaList(params: Record<string, any> & { bk_biz_id: number }
   return http.get<ListBase<KafkaModel[]>>(`${path}/`, params)
     .then(data => ({
       ...data,
-      results: data.results.map((item: KafkaModel) => new KafkaModel(item)),
+      results: data.results.map((item: KafkaModel) => new KafkaModel(Object.assign(item, {
+        permission: Object.assign(item.permission, data.permission),
+      }))),
     }));
 }
 

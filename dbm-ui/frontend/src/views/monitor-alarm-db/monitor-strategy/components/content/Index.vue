@@ -26,6 +26,7 @@
       class="table-box"
       :columns="columns"
       :data-source="queryMonitorPolicyList"
+      releate-url-query
       :row-class="updateRowClass"
       @clear-search="handleClearSearch" />
   </div>
@@ -49,6 +50,7 @@
   import { useRequest } from 'vue-request';
   import { useRoute } from 'vue-router';
 
+  import MonitorPolicyModel from '@services/model/monitor/monitor-policy';
   import {
     deletePolicy,
     disablePolicy,
@@ -62,7 +64,7 @@
   import { useGlobalBizs } from '@stores';
 
   import MiniTag from '@components/mini-tag/index.vue';
-  import RenderTextEllipsisOneLine from '@components/text-ellipsis-one-line/index.vue';
+  import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
   import { messageSuccess } from '@utils';
 
@@ -90,7 +92,7 @@
 
   const tableRef = ref();
   const isShowEditStrrategySideSilder = ref(false);
-  const currentChoosedRow = ref({} as RowData);
+  const currentChoosedRow = ref({} as MonitorPolicyModel);
   const searchValue = ref<Array<SearchSelectItem & {values: SearchSelectItem[]}>>([]);
   const alarmGroupList = ref<SelectItem<number>[]>([]);
   const sliderPageType = ref('edit');
@@ -164,38 +166,50 @@
       minWidth: 150,
       width: 280,
       showOverflowTooltip: false,
-      render: ({ data }: {data: RowData}) => {
+      render: ({ data }: {data: MonitorPolicyModel}) => {
         const isInner = data.bk_biz_id === 0;
         const isDanger = data.event_count > 0;
         const pageType = isInner ? 'read' : 'edit';
-        const content = <>
-          {isInner && <MiniTag content={t('内置')} />}
-          {!data.is_enabled && <MiniTag content={t('已停用')} />}
-          {isDanger && (
-            <div class="monitor-alarm-danger-box" v-bk-tooltips={{
-              content: t('当前有n个未恢复事件', { n: data.event_count }),
-            }}>
-            <MiniTag theme='danger'
-              iconType='alert'
-              content={data.event_count}
-              onTag-click={() => handleGoMonitorPage(data.event_url)}/>
-            </div>
-          )}
-          {data.isNewCreated && <MiniTag theme='success' content="NEW" />}
-        </>;
-        return <RenderTextEllipsisOneLine
-          text={data.name}
-          textStyle={{ color: !data.is_enabled ? '#979BA5' : '#3A84FF' }}
-          onClick={() => handleOpenSlider(data, pageType)}>
-          {content}
-        </RenderTextEllipsisOneLine>;
+        return (
+          <TextOverflowLayout>
+            {{
+              default: () => (
+                <bk-button
+                  text
+                  theme="primary"
+                  disabled={!data.is_enabled}
+                  onClick={() => handleOpenSlider(data, pageType)}>
+                  {data.name}
+                </bk-button>
+              ),
+              append: () => (
+                <>
+                  {isInner && <MiniTag content={t('内置')} />}
+                  {!data.is_enabled && <MiniTag content={t('已停用')} />}
+                  {isDanger && (
+                    <div class="monitor-alarm-danger-box" v-bk-tooltips={{
+                      content: t('当前有n个未恢复事件', { n: data.event_count }),
+                    }}>
+                    <MiniTag
+                      theme='danger'
+                      iconType='alert'
+                      content={data.event_count}
+                      onTag-click={() => handleGoMonitorPage(data.event_url)}/>
+                    </div>
+                  )}
+                  {data.isNewCreated && <MiniTag theme='success' content="NEW" />}
+                </>
+              ),
+            }}
+          </TextOverflowLayout>
+        );
       },
     },
     {
       label: t('监控目标'),
       field: 'targets',
       minWidth: 180,
-      render: ({ data }: {data: RowData}) => (
+      render: ({ data }: {data: MonitorPolicyModel}) => (
         <div class="targets-box">
           {
             data.targets.map((item) => {
@@ -219,7 +233,7 @@
       label: t('告警组'),
       field: 'notify_groups',
       minWidth: 180,
-      render: ({ data }: {data: RowData}) => {
+      render: ({ data }: {data: MonitorPolicyModel}) => {
         const dataList = data.notify_groups.map(item => ({
           id: `${item}`,
           displayName: alarmGroupNameMap[item],
@@ -232,7 +246,7 @@
       field: 'is_enabled',
       showOverflowTooltip: true,
       minWidth: 60,
-      render: ({ data }: {data: RowData}) => {
+      render: ({ data }: {data: MonitorPolicyModel}) => {
         const isInner = data.bk_biz_id === 0;
         return (
           <bk-pop-confirm
@@ -275,16 +289,20 @@
       fixed: 'right',
       field: '',
       width: 180,
-      render: ({ data }: {data: RowData}) => {
+      render: ({ data }: {data: MonitorPolicyModel}) => {
         const isInner = data.bk_biz_id === 0;
         return (
           <div class="operate-box">
-          {!isInner && <bk-button
-            text
-            theme="primary"
-            onClick={() => handleOpenSlider(data, 'edit')}>
-            {t('编辑')}
-          </bk-button>}
+          {!isInner && (
+            <auth-button
+              text
+              action-id="monitor_policy_edit"
+              permission={data.permission.monitor_policy_edit}
+              theme="primary"
+              onClick={() => handleOpenSlider(data, 'edit')}>
+              {t('编辑')}
+            </auth-button>
+          )}
           <bk-button
             text
             theme="primary"
@@ -305,12 +323,14 @@
               content: () => (
                 <bk-dropdown-menu class="operations-menu">
                   <bk-dropdown-item>
-                    <bk-button
+                    <auth-button
                       disabled={isInner}
                       text
+                      action-id="monitor_policy_delete"
+                      permission={data.permission.monitor_policy_delete}
                       onClick={() => handleClickDelete(data)}>
                         {t('删除')}
-                      </bk-button>
+                      </auth-button>
                     </bk-dropdown-item>
                 </bk-dropdown-menu>
               ),
@@ -440,9 +460,9 @@
     window.open(url);
   };
 
-  const updateRowClass = (row: RowData) => (row.isNewCreated ? 'is-new' : '');
+  const updateRowClass = (row: MonitorPolicyModel) => (row.isNewCreated ? 'is-new' : '');
 
-  const handleClickDelete = (data: RowData) => {
+  const handleClickDelete = (data: MonitorPolicyModel) => {
     InfoBox({
       infoType: 'warning',
       title: t('确认删除该策略？'),
@@ -454,7 +474,7 @@
       } });
   };
 
-  const handleChangeSwitch = (row: RowData) => {
+  const handleChangeSwitch = (row: MonitorPolicyModel) => {
     if (!row.is_enabled) {
       showTipMap.value[row.id] = true;
       Object.assign(row, {
@@ -466,16 +486,16 @@
     }
   };
 
-  const handleClickConfirm = (row: RowData) => {
+  const handleClickConfirm = (row: MonitorPolicyModel) => {
     runDisablePolicy({ id: row.id });
     showTipMap.value[row.id] = false;
   };
 
-  const handleCancelConfirm = (row: RowData) => {
+  const handleCancelConfirm = (row: MonitorPolicyModel) => {
     showTipMap.value[row.id] = false;
   };
 
-  const handleOpenSlider = (row: RowData, type: string) => {
+  const handleOpenSlider = (row: MonitorPolicyModel, type: string) => {
     existedNames.value = tableRef.value.getData().map((item: { name: string; }) => item.name);
     sliderPageType.value = type;
     currentChoosedRow.value = row;
@@ -492,7 +512,7 @@
   };
 
   const handleUpdatePolicyCancel = () => {
-    currentChoosedRow.value = {} as RowData;
+    currentChoosedRow.value = {} as MonitorPolicyModel;
     window.changeConfirm = false;
   };
 

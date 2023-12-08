@@ -163,7 +163,6 @@
           {{ t('恢复默认') }}
         </BkButton>
       </BkPopConfirm>
-
       <BkButton
         @click="handleClose">
         {{ t('取消') }}
@@ -178,6 +177,7 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
+  import MonitorPolicyModel from '@services/model/monitor/monitor-policy';
   import {
     clonePolicy,
     updatePolicy,
@@ -191,12 +191,10 @@
 
   import { messageSuccess } from '@utils';
 
-  import type { RowData } from '../content/Index.vue';
-
   import MonitorTarget from './monitor-target/Index.vue';
 
   interface Props {
-    data: RowData,
+    data: MonitorPolicyModel,
     bizsMap: Record<string, string>,
     dbType: string,
     alarmGroupList: SelectItem<number>[],
@@ -221,7 +219,7 @@
 
   let rawFormData = '';
 
-  function generateRule(data: RowData, level: number) {
+  function generateRule(data: MonitorPolicyModel, level: number) {
     const arr = data.test_rules.filter(item => item.level === level);
     return arr.length > 0 ? arr[0] : undefined;
   }

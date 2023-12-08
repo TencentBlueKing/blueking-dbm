@@ -29,7 +29,7 @@ export function getResourceSpecList(params: Record<string, any> & {
   return http.get<ListBase<ResourceSpecModel[]>>(`${path}/`, params)
     .then(res => ({
       ...res,
-      results: res.results.map((item: ResourceSpecModel) => new ResourceSpecModel(item)),
+      results: res.results.map(item => new ResourceSpecModel(Object.assign(item, res.permission))),
     }));
 }
 

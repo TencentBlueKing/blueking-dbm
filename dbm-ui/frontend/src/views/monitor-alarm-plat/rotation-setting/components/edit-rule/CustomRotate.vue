@@ -39,13 +39,12 @@
 
   import { getUseList } from '@services/common';
   import type { DutyCustomItem } from '@services/model/monitor/duty-rule';
+  import DutyRuleModel from '@services/model/monitor/duty-rule';
 
   import { getDiffDays, random } from '@utils';
 
-  import type { RowData as TableRowData } from '../content/Index.vue';
-
   interface Props {
-    data?: TableRowData;
+    data?: DutyRuleModel;
     isSetEmpty?: boolean;
   }
 

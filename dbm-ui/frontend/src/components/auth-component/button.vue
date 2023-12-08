@@ -53,14 +53,15 @@
   } = useBase(props);
 
 </script>
-<style lang="less" scoped>
+<style lang="less">
   .auth-button-disable {
     color: #fff !important;
     background-color: #dcdee5 !important;
     border-color: #dcdee5 !important;
     user-select: none !important;
 
-    &.is-text {
+    &.is-text,
+    * {
       color: #c4c6cc !important;
       background-color: transparent !important;
       border-color: transparent !important;

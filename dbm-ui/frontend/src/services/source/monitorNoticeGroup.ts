@@ -11,44 +11,14 @@
  * the specific language governing permissions and limitations under the License.
 */
 
-import http from '../http';
+import NoticGroupModel from '@services/model/notice-group/notice-group';
+
+import http, {
+  type IRequestPayload,
+} from '../http';
 import type { ListBase } from '../types';
 
 const path = '/apis/monitor/notice_group';
-
-/**
- * 告警组列表项
- */
-interface AlarmGroup {
-  id: number,
-  name: string,
-  create_at: string,
-  creator: string,
-  updater: string,
-  update_at: string,
-  bk_biz_id: number,
-  monitor_group_id: number,
-  used_count: number,
-  group_type: string,
-  db_type: string,
-  receivers: {
-    type: string,
-    id: string
-  }[],
-  details: {
-    alert_notice: {
-      time_range: string,
-      notify_config: {
-        notice_ways: {
-          name: string,
-          receivers?: string[]
-        } [],
-        level: 3 | 2 | 1
-      }[]
-    }[]
-  }
-  is_built_in: boolean
-}
 
 /**
  * 获取告警组列表
@@ -58,32 +28,38 @@ export function getAlarmGroupList(params: {
   name: string,
   limit: number,
   offset: number
-}) {
-  return http.get<ListBase<AlarmGroup[]>>(`${path}/`, params);
+}, payload = {} as IRequestPayload) {
+  return http.get<ListBase<NoticGroupModel[]>>(`${path}/`, params, payload)
+    .then(data => ({
+      ...data,
+      results: data.results.map(item => new NoticGroupModel(Object.assign(item,  {
+        permission: data.permission,
+      }))),
+    }));
 }
 
 /**
  * 告警组新增、编辑参数
  */
-interface AlarmGroupDetailParams {
+interface IOperaionNoticeGroupParams {
   bk_biz_id: number
   name: string,
-  receivers: AlarmGroup['receivers'][],
-  details: AlarmGroup['details']
+  receivers: NoticGroupModel['receivers'][],
+  details: NoticGroupModel['details']
   id: number
 }
 
 /**
  * 新建告警组
  */
-export function insertAlarmGroup(params: Omit<AlarmGroupDetailParams, 'id'>) {
+export function insertAlarmGroup(params: Omit<IOperaionNoticeGroupParams, 'id'>) {
   return http.post(`${path}/`, params);
 }
 
 /**
  * 编辑告警组
  */
-export function updateAlarmGroup(params: AlarmGroupDetailParams) {
+export function updateAlarmGroup(params: IOperaionNoticeGroupParams) {
   return http.put(`${path}/${params.id}/`, params);
 }
 

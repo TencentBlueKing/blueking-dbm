@@ -55,4 +55,5 @@ export interface ResourceInstance {
   }
   status: string,
   version: string,
+  permission: Record<string, boolean>
 }

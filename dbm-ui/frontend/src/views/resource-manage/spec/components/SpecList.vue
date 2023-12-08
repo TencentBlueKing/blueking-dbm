@@ -14,12 +14,14 @@
 <template>
   <div class="resource-spce-list">
     <div class="resource-spce-operations">
-      <BkButton
+      <AuthButton
+        action-id="spec_create"
         class="w-88 mr-8"
+        :resource="databaseType"
         theme="primary"
         @click="handleShowCreate">
         {{ t('新建') }}
-      </BkButton>
+      </AuthButton>
       <span
         v-bk-tooltips="{
           content: t('请选择xx', [t('规格')]),
@@ -113,6 +115,8 @@
 
   import { ClusterTypes, UserPersonalSettings } from '@common/const';
 
+  import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
+
   import { messageSuccess } from '@utils';
 
   import SpecCreate from './SpecCreate.vue';
@@ -132,6 +136,21 @@
   const handleBeforeClose = useBeforeClose();
   const searchKey = useDebouncedRef('');
 
+  const databaseTypeMap: Record<string, string> = {
+    tendbsingle: 'mysql',
+    tendbha: 'mysql',
+    TwemproxyRedisInstance: 'redis',
+    TwemproxyTendisSSDInstance: 'redis',
+    PredixyTendisplusCluster: 'redis',
+    es: 'es',
+    hdfs: 'hdfs',
+    kafka: 'kafka',
+    influxdb: 'influxdb',
+    pulsar: 'pulsar',
+    tendbcluster: 'tendbcluster',
+  };
+
+  const databaseType = databaseTypeMap[props.clusterType];
   const tableRef = ref();
 
   const specOperationState = reactive({
@@ -164,16 +183,23 @@
         field: 'spec_name',
         width: 180,
         render: ({ data }: { data: ResourceSpecModel }) => (
-          <div style="display: flex; align-items: center;">
-            <div class="text-overflow" v-overflow-tips>
-              <a href="javascript:" onClick={handleShowUpdate.bind(null, data)}>{data.spec_name}</a>
-            </div>
-            {
-              data.isRecentSeconds
-                ? <span class="glob-new-tag ml-4" data-text="NEW" />
-                : null
-            }
-          </div>
+          <TextOverflowLayout>
+            {{
+              default: () => (
+                <auth-button
+                  action-id="spec_update"
+                  resource={databaseType}
+                  permission={data.permission.spec_update}
+                  text
+                  theme="primary"
+                  onClick={() => handleShowUpdate(data)}>
+                  {data.spec_name}
+                </auth-button>
+              ),
+              append: () => data.isRecentSeconds
+                && <span class="glob-new-tag ml-4" data-text="NEW" />,
+            }}
+          </TextOverflowLayout>
         ),
       },
       {
@@ -254,8 +280,11 @@
             confirm-text={data.enable ? t('停用') : t('启用')}
             onConfirm={() => handleConfirmSwitch(data)}
           >
-            <bk-switcher
+            <auth-switcher
               size="small"
+              action-id="spec_update"
+              permission={data.permission.spec_update}
+              resource={databaseType}
               model-value={data.enable}
               theme="primary"
             />
@@ -280,36 +309,48 @@
         fixed: 'right',
         render: ({ data }: { data: ResourceSpecModel }) => (
           <>
-            <bk-button
+            <auth-button
+              action-id="spec_update"
+              resource={databaseType}
+              permission={data.permission.spec_update}
               class="mr-8"
               theme="primary"
               text
               onClick={handleShowUpdate.bind(null, data)}>
               {t('编辑')}
-            </bk-button>
-            <bk-button
+            </auth-button>
+            <auth-button
+              action-id="spec_create"
+              resource={databaseType}
+              permission={data.permission.spec_create}
               class="mr-8"
               theme="primary"
               text
               onClick={handleShowClone.bind(null, data)}>
               {t('克隆')}
-            </bk-button>
+            </auth-button>
             {data.is_refer ? (
               <span class="inline-block;" v-bk-tooltips={t('该规格已被使用_无法删除')}>
-                <bk-button
+                <auth-button
+                  action-id="spec_delete"
+                  resource={databaseType}
+                  permission={data.permission.spec_delete}
                   theme="primary"
                   text
                   disabled>
                   {t('删除')}
-                </bk-button>
+                </auth-button>
               </span>
             ) : (
-              <bk-button
+              <auth-button
+                action-id="spec_delete"
+                resource={databaseType}
+                permission={data.permission.spec_delete}
                 theme="primary"
                 text
                 onClick={handleDelete.bind(null, [data])}>
                 {t('删除')}
-              </bk-button>
+              </auth-button>
             )}
           </>
         ),

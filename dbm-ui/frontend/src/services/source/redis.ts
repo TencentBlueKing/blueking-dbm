@@ -44,7 +44,9 @@ export function getRedisList(params: {
   return http.get<ListBase<RedisModel[]>>(`${path}/`, params)
     .then(data => ({
       ...data,
-      results: data.results.map(item => new RedisModel(item)),
+      results: data.results.map(item => new RedisModel(Object.assign(item, {
+        permission: Object.assign(item.permission, data.permission),
+      }))),
     }));
 }
 

@@ -12,19 +12,25 @@
 -->
 
 <template>
-  <div
-    class="main-menu__toggle"
-    @click="menuStore.toggle">
-    <i
-      class="db-icon-expand-line main-menu__icon"
-      :class="[{
-        'main-menu__icon--active': menuStore.toggleCollapsed
-      }]" />
+  <div class="app-exception">
+    <div class="app-exception-content">
+      <img src="@images/404.png">
+      <p class="app-exception-text">
+        {{ t('没找到页面') }}
+      </p>
+    </div>
   </div>
 </template>
-
 <script setup lang="ts">
-  import { useMenu } from '@stores';
+  import { useI18n } from 'vue-i18n';
 
-  const menuStore = useMenu();
+  const { t } = useI18n();
 </script>
+<style lang="less" scoped>
+  .app-exception {
+    .app-exception-content {
+      margin-top: 150px;
+      vertical-align: top;
+    }
+  }
+</style>

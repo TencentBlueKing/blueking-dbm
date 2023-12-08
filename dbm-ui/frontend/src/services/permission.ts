@@ -18,7 +18,9 @@ import type {
   ClusterTypes,
 } from '@common/const';
 
-import http from './http';
+import http, {
+  type IRequestPayload,
+}  from './http';
 import type { ListBase } from './types';
 import type {
   AccountRule,
@@ -72,7 +74,8 @@ interface MysqlAdminPasswordResultItem {
 /**
  * 查询密码安全策略
  */
-export const getPasswordPolicy = () => http.get<PasswordPolicy>('/apis/conf/password_policy/get_password_policy/');
+export const getPasswordPolicy = (params = {}, payload = {} as IRequestPayload) => http
+  .get<PasswordPolicy>('/apis/conf/password_policy/get_password_policy/', params, payload);
 
 /**
  * 更新密码安全策略
@@ -82,7 +85,8 @@ export const updatePasswordPolicy = (params: PasswordPolicy) => http.post('/apis
 /**
  * 查询随机化周期
  */
-export const queryRandomCycle = () => http.get<RamdomCycle>('/apis/conf/password_policy/query_random_cycle/');
+export const queryRandomCycle = (params = {}, payload = {} as IRequestPayload) => http.
+  get<RamdomCycle>('/apis/conf/password_policy/query_random_cycle/', params, payload);
 
 /**
  * 更新随机化周期
@@ -154,7 +158,16 @@ export const verifyPasswordStrength = (params: {
 /**
  * 查询账号规则列表
  */
-export const getPermissionRules = (params: PermissionRulesParams) => http.get<PermissionRulesResult>(`/apis/mysql/bizs/${params.bk_biz_id}/permission/account/list_account_rules/`, params);
+export const getPermissionRules = (params: PermissionRulesParams) => http
+  .get<PermissionRulesResult>(`/apis/mysql/bizs/${params.bk_biz_id}/permission/account/list_account_rules/`, params)
+  .then(data => ({
+    ...data,
+    results: data.results.map(item => ({
+      ...item,
+      permission: data.permission,
+    })),
+  }))
+;
 
 /**
  * 创建账户

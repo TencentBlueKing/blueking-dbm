@@ -13,12 +13,13 @@
 
 <template>
   <div class="pulsar-list-page">
-    <BkButton
+    <AuthButton
+      action-id="pulsar_apply"
       class="mb16"
       theme="primary"
       @click="handleGoApply">
       {{ t('申请实例') }}
-    </BkButton>
+    </AuthButton>
     <DropdownExportExcel type="pulsar" />
     <div
       class="table-wrapper"
@@ -28,6 +29,7 @@
         :columns="columns"
         :data-source="dataSource"
         :pagination-extra="paginationExtra"
+        releate-url-query
         :row-class="getRowClass"
         :settings="tableSetting"
         @setting-change="updateTableSettings" />
@@ -98,7 +100,7 @@
     useTicketMessage,
   } from '@hooks';
 
-  import { useGlobalBizs, useUserProfile } from '@stores';
+  import { useGlobalBizs } from '@stores';
 
   import { UserPersonalSettings } from '@common/const';
 
@@ -108,7 +110,7 @@
   import RenderClusterStatus from '@components/cluster-common/RenderStatus.vue';
   import EditEntryConfig from '@components/cluster-entry-config/Index.vue';
   import DropdownExportExcel from '@components/dropdown-export-excel/index.vue';
-  import RenderTextEllipsisOneLine from '@components/text-ellipsis-one-line/index.vue';
+  import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
   import ClusterExpansion from '@views/pulsar-manage/common/expansion/Index.vue';
   import ClusterShrink from '@views/pulsar-manage/common/shrink/Index.vue';
@@ -122,7 +124,6 @@
   const route = useRoute();
   const router = useRouter();
   const { currentBizId } = useGlobalBizs();
-  const userProfileStore = useUserProfile();
   const { t, locale } = useI18n();
   const {
     isOpen: isStretchLayoutOpen,
@@ -191,31 +192,43 @@
       minWidth: 200,
       fixed: 'left',
       showOverflowTooltip: false,
-      render: ({ data }: {data: PulsarModel}) => {
-        const content = <>
-          {data.domain && (
-            <db-icon
-              type="copy"
-              v-bk-tooltips={t('复制访问入口')}
-              onClick={() => copy(data.domainDisplayName)} />
-          )}
-          {userProfileStore.isManager && (
-            <db-icon
-              type="edit"
-              v-bk-tooltips={t('修改入口配置')}
-              onClick={() => handleOpenEntryConfig(data)} />
-          )}
-        </>;
-        return (
-          <div class="domain">
-            <RenderTextEllipsisOneLine
-              text={data.domainDisplayName}
-              onClick={() => handleToDetails(data)}>
-              {content}
-            </RenderTextEllipsisOneLine>
-          </div>
-        );
-      },
+      render: ({ data }: {data: PulsarModel}) => (
+        <TextOverflowLayout>
+          {{
+            default: () => (
+              <auth-button
+                action-id="pulsar_view"
+                resource={data.id}
+                permission={data.permission.pulsar_view}
+                text
+                theme="primary"
+                onClick={() => handleToDetails(data.id)}>
+                {data.domainDisplayName}
+              </auth-button>
+            ),
+            append: () => (
+              <>
+                {data.domain && (
+                  <db-icon
+                    type="copy"
+                    v-bk-tooltips={t('复制访问入口')}
+                    onClick={() => copy(data.domainDisplayName)} />
+                )}
+                <auth-button
+                  v-bk-tooltips={t('修改入口配置')}
+                  action-id="access_entry_edit"
+                  resource="pulsar"
+                  permission={data.permission.access_entry_edit}
+                  text
+                  theme="primary"
+                  onClick={() => handleOpenEntryConfig(data)}>
+                  <db-icon type="edit" />
+                </auth-button>
+              </>
+            ),
+          }}
+        </TextOverflowLayout>
+      ),
     },
     {
       label: t('集群名称'),
@@ -329,32 +342,41 @@
       render: ({ data }: {data: PulsarModel}) => {
         const renderAction = (theme = 'primary') => {
           const baseAction = [
-            <bk-button
+          <auth-button
               text
-              theme={theme}
+              theme="primary"
+              action-id="pulsar_view"
+              permission={data.permission.pulsar_view}
+              resource={data.id}
               class="mr8"
               onClick={() => handleShowPassword(data)}>
               { t('获取访问方式') }
-            </bk-button>,
+            </auth-button>,
           ];
           if (!checkClusterOnline(data)) {
             return [
-              <bk-button
+              <auth-button
                 text
-                theme={theme}
+                theme="primary"
+                action-id="pulsar_enable_disable"
+                permission={data.permission.pulsar_enable_disable}
+                resource={data.id}
                 class="mr8"
                 loading={tableDataActionLoadingMap.value[data.id]}
                 onClick={() => handleEnable(data)}>
                 { t('启用') }
-              </bk-button>,
-              <bk-button
+              </auth-button>,
+              <auth-button
                 text
-                theme={theme}
+                theme="primary"
+                action-id="pulsar_destroy"
+                permission={data.permission.pulsar_destroy}
+                resource={data.id}
                 class="mr8"
                 loading={tableDataActionLoadingMap.value[data.id]}
                 onClick={() => handleRemove(data)}>
                 { t('删除') }
-              </bk-button>,
+              </auth-button>,
               ...baseAction,
             ];
           }
@@ -362,36 +384,45 @@
             <OperationStatusTips
               data={data}
               class="mr8">
-              <bk-button
+              <auth-button
                 text
-                theme={theme}
+                theme="primary"
+                action-id="pulsar_scale_up"
+                permission={data.permission.pulsar_scale_up}
+                resource={data.id}
                 disabled={data.operationDisabled}
                 onClick={() => handleShowExpansion(data)}>
                 { t('扩容') }
-              </bk-button>
+              </auth-button>
             </OperationStatusTips>,
             <OperationStatusTips
               data={data}
               class="mr8">
-              <bk-button
+              <auth-button
                 text
-                theme={theme}
+                theme="primary"
+                action-id="pulsar_shrink"
+                permission={data.permission.pulsar_shrink}
+                resource={data.id}
                 disabled={data.operationDisabled}
                 onClick={() => handleShowShrink(data)}>
                 { t('缩容') }
-              </bk-button>
+              </auth-button>
             </OperationStatusTips>,
             <OperationStatusTips
               data={data}
               class="mr8">
-              <bk-button
+              <auth-button
                 text
-                theme={theme}
+                theme="primary"
+                action-id="pulsar_enable_disable"
+                permission={data.permission.pulsar_enable_disable}
+                resource={data.id}
                 disabled={data.operationDisabled}
                 loading={tableDataActionLoadingMap.value[data.id]}
                 onClick={() => handlDisabled(data)}>
                 { t('禁用') }
-              </bk-button>
+              </auth-button>
             </OperationStatusTips>,
             <a
               class="mr8"
@@ -483,9 +514,9 @@
   /**
    * 查看详情
    */
-  const handleToDetails = (row: PulsarModel) => {
+  const handleToDetails = (id: number) => {
     stretchLayoutSplitScreen();
-    clusterId.value = row.id;
+    clusterId.value = id;
   };
 
   // 扩容
@@ -625,8 +656,10 @@
 
   onMounted(() => {
     resumeFetchTableData();
+    if (!clusterId.value && route.query.id) {
+      handleToDetails(Number(route.query.id));
+    }
   });
-
 </script>
 <style lang="less">
   .pulsar-list-page {

@@ -10,7 +10,7 @@
   import {
     getmysqlCheckBinlogBackup,
     getmysqlCheckFullBackup,
-  } from '@services/report';
+  } from '@services/source/report';
 
   import RenderDynamicTable from '../render-dynamic-table/Index.vue';
 

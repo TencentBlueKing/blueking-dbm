@@ -37,6 +37,15 @@ export default class MonitorPolicy {
   notify_groups: number[]; // 告警组ID列表
   policy_status: string; // 策略状态：valid(正常)|invalid（异常）
   parent_id: number;
+  permission: {
+    global_monitor_policy_edit: boolean,
+    global_monitor_policy_start_stop: boolean,
+    monitor_policy_alarm_view: boolean,
+    monitor_policy_clone: boolean,
+    monitor_policy_delete: boolean,
+    monitor_policy_edit: boolean,
+    monitor_policy_start_stop: boolean,
+  };
   sync_at: string;
   targets: {
     rule: {
@@ -82,6 +91,7 @@ export default class MonitorPolicy {
     this.notify_groups = payload.notify_groups;
     this.policy_status = payload.policy_status;
     this.parent_id = payload.parent_id;
+    this.permission = payload.permission || {};
     this.sync_at = payload.sync_at;
     this.targets = payload.targets;
     this.target_level = payload.target_level;

@@ -259,7 +259,7 @@
     },
   ];
 
-  const renderTabs = computed(() => tabs.filter((item) => {
+  const renderTabs = tabs.filter((item) => {
     const { moduleId, id } = item.controller;
     const data = funControllerStore.funControllerData[moduleId];
     // 整个模块没有开启
@@ -282,24 +282,28 @@
     });
 
     return true;
-  }));
-  const tabActive = ref(renderTabs.value[0].name);
+  });
 
+  const tabActive = ref(renderTabs[0].name);
+  const packageTypeMap = ref<Record<string, string[]>>({});
   const activeTabInfo = computed(() => {
-    const tabList = renderTabs.value.find(item => item.name === tabActive.value);
+    const tabList = renderTabs.find(item => item.name === tabActive.value);
     return tabList ? tabList : {
       label: '',
       name: '',
     };
   });
 
-  const pkgList = computed(() => pkgTypesMap.value![tabActive.value] ?? []);
+  const pkgList = computed(() => packageTypeMap.value![tabActive.value] ?? []);
 
-  const { data: pkgTypesMap } = useRequest(listPackageTypes, {
+  useRequest(listPackageTypes, {
     defaultParams: [{
       offset: 0,
       limit: -1,
     }],
+    onSuccess(data) {
+      packageTypeMap.value = data;
+    },
   });
 </script>
 <style lang="less">

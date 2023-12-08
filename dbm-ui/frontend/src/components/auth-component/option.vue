@@ -27,7 +27,6 @@
   </BkOption>
 </template>
 <script setup lang="ts">
-  // import type { Option } from 'bkui-vue';
   import {
     useAttrs,
     useSlots,
@@ -35,7 +34,6 @@
 
   import useBase from './use-base';
 
-  // type OptionProps = InstanceType<typeof Option>['$props']
   /* eslint-disable vue/no-unused-properties */
   interface Props {
     permission?: boolean | string,

@@ -11,7 +11,9 @@
  * the specific language governing permissions and limitations under the License.
 */
 
-import http from '../http';
+import http, {
+  type IRequestPayload,
+} from '../http';
 
 const path = '/apis/configs';
 
@@ -122,8 +124,8 @@ interface ConfigBaseDetails {
 /**
  * 获取查询层级（业务、模块、集群）配置详情
  */
-export function getLevelConfig(params: GetLevelConfigParams) {
-  return http.post<ConfigBaseDetails>(`${path}/get_level_config/`, params);
+export function getLevelConfig(params: GetLevelConfigParams, payload = {} as IRequestPayload) {
+  return http.post<ConfigBaseDetails>(`${path}/get_level_config/`, params, payload);
 }
 /**
  * 查询平台配置详情
@@ -132,8 +134,8 @@ export function getConfigBaseDetails(params: {
   meta_cluster_type: string,
   conf_type: string,
   version: string
-}) {
-  return http.get<ConfigBaseDetails>(`${path}/get_platform_config/`, params);
+}, payload = {} as IRequestPayload) {
+  return http.get<ConfigBaseDetails>(`${path}/get_platform_config/`, params, payload);
 }
 
 /**
@@ -143,13 +145,14 @@ export function getBusinessConfigList(params: {
   meta_cluster_type: string,
   conf_type: string,
   bk_biz_id: number
-}) {
+}, payload = {} as IRequestPayload) {
   return http.get<{
     name: string,
     updated_at: string,
     updated_by: string,
-    version: string
-  }[]>(`${path}/list_biz_configs/`, params);
+    version: string,
+    permission: Record<'dbconfig_view'|'dbconfig_edit', boolean>
+  }[]>(`${path}/list_biz_configs/`, params, payload);
 }
 
 /**
@@ -197,13 +200,13 @@ export function getConfigVersionList(params: ConfigVersionParams) {
 export function getPlatformConfigList(params: {
   meta_cluster_type: string,
   conf_type: string,
-}) {
+}, payload = {} as IRequestPayload) {
   return http.get<{
     name: string,
     updated_at: string,
     updated_by: string,
     version: string
-  }[]>(`${path}/list_platform_configs/`, params);
+  }[]>(`${path}/list_platform_configs/`, params, payload);
 }
 
 /**

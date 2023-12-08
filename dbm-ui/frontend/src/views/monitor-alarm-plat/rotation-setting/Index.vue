@@ -24,12 +24,12 @@
         :name="tab.value" />
     </BkTab>
     <div class="content">
-      <TypeContent :active-db-type="activeTab" />
+      <RenderContent :active-db-type="activeTab" />
     </div>
   </div>
 </template>
 <script setup lang="ts">
-  import TypeContent from './components/content/Index.vue';
+  import RenderContent from './components/content/Index.vue';
 
   const tabs = [
     {

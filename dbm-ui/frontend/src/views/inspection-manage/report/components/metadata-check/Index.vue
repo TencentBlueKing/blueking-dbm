@@ -5,7 +5,7 @@
 </template>
 <script setup lang="tsx">
 
-  import { getMetaCheckInsganceBelong } from '@services/report';
+  import { getMetaCheckInsganceBelong } from '@services/source/report';
 
   import RenderDynamicTable from '../render-dynamic-table/Index.vue';
 

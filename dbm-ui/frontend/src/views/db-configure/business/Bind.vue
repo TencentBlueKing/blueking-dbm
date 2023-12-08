@@ -121,21 +121,20 @@
   /**
    * 获取版本列表
    */
-  const fetchVersions = () => {
-    const params = {
-      query_key: type.value,
-      db_type: 'mysql',
-    };
-    versionState.loading = true;
-    getVersions(params)
-      .then((res) => {
-        versionState.list = res;
-      })
-      .finally(() => {
-        versionState.loading = false;
-      });
-  };
-  fetchVersions();
+  versionState.loading = true;
+  getVersions({
+    query_key: type.value,
+    db_type: 'mysql',
+  }, {
+    permission: 'page',
+  })
+    .then((res) => {
+      versionState.list = res;
+    })
+    .finally(() => {
+      versionState.loading = false;
+    });
+
 
   const handleCancel = () => {
     router.push({

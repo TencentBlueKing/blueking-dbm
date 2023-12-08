@@ -12,48 +12,50 @@
 -->
 
 <template>
-  <div class="global-strategy-type-content">
-    <BkSearchSelect
-      v-model="searchValue"
-      class="input-box"
-      :data="searchSelectList"
-      :placeholder="t('请选择条件搜索')"
-      unique-select
-      value-split-code="+"
-      @search="fetchHostNodes" />
-    <BkLoading :loading="isTableLoading">
-      <DbTable
-        ref="tableRef"
-        class="table-box"
-        :columns="columns"
-        :data-source="queryMonitorPolicyList"
-        :row-class="updateRowClass"
-        :settings="settings"
-        @clear-search="handleClearSearch" />
-    </BkLoading>
-  </div>
-  <EditStrategy
-    v-model="isShowEditStrrategySideSilder"
-    :data="currentChoosedRow"
-    @success="handleEditRuleSuccess" />
+  <ApplyPermissionCatch>
+    <div class="global-strategy-type-content">
+      <BkSearchSelect
+        v-model="searchValue"
+        class="input-box"
+        :data="searchSelectList"
+        :placeholder="t('请选择条件搜索')"
+        unique-select
+        value-split-code="+"
+        @search="fetchHostNodes" />
+      <BkLoading :loading="isTableLoading">
+        <DbTable
+          ref="tableRef"
+          class="table-box"
+          :columns="columns"
+          :data-source="queryMonitorPolicyList"
+          :row-class="updateRowClass"
+          :settings="settings"
+          @clear-search="handleClearSearch" />
+      </BkLoading>
+    </div>
+    <EditStrategy
+      v-model="isShowEditStrrategySideSilder"
+      :data="currentChoosedRow"
+      @success="handleEditRuleSuccess" />
+  </ApplyPermissionCatch>
 </template>
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
+  import MonitorPolicyModel from '@services/model/monitor/monitor-policy';
   import {
     disablePolicy,
     enablePolicy,
     queryMonitorPolicyList,
   } from '@services/monitor';
 
+  import ApplyPermissionCatch from '@components/apply-permission/catch.vue';
   import MiniTag from '@components/mini-tag/index.vue';
 
   import { messageSuccess } from '@utils';
 
   import EditStrategy from '../edit-strategy/Index.vue';
-
-  export type RowData = ServiceReturnType<typeof queryMonitorPolicyList>['results'][0];
 
   interface Props {
     activeDbType: string;
@@ -71,7 +73,7 @@
   const tableRef = ref();
   const searchValue = ref<Array<SearchSelectItem & {values: SearchSelectItem[]}>>([]);
   const isShowEditStrrategySideSilder = ref(false);
-  const currentChoosedRow = ref({} as RowData);
+  const currentChoosedRow = ref({} as MonitorPolicyModel);
   const isTableLoading = ref(false);
   const showTipMap = ref<Record<string, boolean>>({});
 
@@ -116,7 +118,7 @@
       field: 'name',
       fixed: 'left',
       minWidth: 150,
-      render: ({ data }: { data: RowData }) => (
+      render: ({ data }: { data: MonitorPolicyModel }) => (
         <span>
           <bk-button
             text
@@ -162,7 +164,7 @@
       label: t('启停'),
       field: 'is_enabled',
       width: 120,
-      render: ({ data }: { data: RowData }) => (
+      render: ({ data }: { data: MonitorPolicyModel }) => (
       <bk-pop-confirm
         title={t('确认停用该策略？')}
         content={t('停用后，所有的业务将会停用该策略，请谨慎操作！')}
@@ -187,7 +189,7 @@
       showOverflowTooltip: false,
       field: '',
       width: 120,
-      render: ({ data }: { data: RowData }) => (
+      render: ({ data }: { data: MonitorPolicyModel }) => (
       <div class="operate-box">
         <bk-button
           text
@@ -269,9 +271,9 @@
     immediate: true,
   });
 
-  const updateRowClass = (row: RowData) => (row.isNewCreated ? 'is-new' : '');
+  const updateRowClass = (row: MonitorPolicyModel) => (row.isNewCreated ? 'is-new' : '');
 
-  const handleChangeSwitch = (row: RowData) => {
+  const handleChangeSwitch = (row: MonitorPolicyModel) => {
     if (!row.is_enabled) {
       showTipMap.value[row.id] = true;
       Object.assign(row, {
@@ -283,16 +285,16 @@
     }
   };
 
-  const handleClickConfirm = (row: RowData) => {
+  const handleClickConfirm = (row: MonitorPolicyModel) => {
     runDisablePolicy({ id: row.id });
     showTipMap.value[row.id] = false;
   };
 
-  const handleCancelConfirm = (row: RowData) => {
+  const handleCancelConfirm = (row: MonitorPolicyModel) => {
     showTipMap.value[row.id] = false;
   };
 
-  const handleEdit = (row: RowData) => {
+  const handleEdit = (row: MonitorPolicyModel) => {
     currentChoosedRow.value = row;
     isShowEditStrrategySideSilder.value = true;
   };

@@ -14,11 +14,12 @@
 <template>
   <div class="alert-group">
     <div class="alert-group-operations mb-16">
-      <BkButton
+      <AuthButton
+        action-id="notify_group_create"
         theme="primary"
         @click="handleOpenDetail('add')">
         {{ t('新建') }}
-      </BkButton>
+      </AuthButton>
       <BkInput
         v-model="keyword"
         class="search-input"
@@ -33,6 +34,7 @@
       class="alert-group-table"
       :columns="columns"
       :data-source="getAlarmGroupList"
+      releate-url-query
       :row-class="setRowClass"
       @request-success="handleRequestSuccess" />
     <DetailDialog
@@ -50,6 +52,7 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
+  import NoticGroupModel from '@services/model/notice-group/notice-group';
   import { getUserGroupList } from '@services/source/cmdb';
   import {
     deleteAlarmGroup,
@@ -62,7 +65,7 @@
   import { useGlobalBizs } from '@stores';
 
   import MiniTag from '@components/mini-tag/index.vue';
-  import RenderTextEllipsisOneLine from '@components/text-ellipsis-one-line/index.vue';
+  import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
   import { messageSuccess } from '@utils';
 
@@ -79,10 +82,9 @@
     return today.diff(createDay, 'hour') <= 24;
   };
 
-  type AlarmGroupItem = ServiceReturnType<typeof getAlarmGroupList>['results'][number]
 
   interface TableRenderData {
-    row: AlarmGroupItem
+    data: NoticGroupModel
   }
 
   interface UserGroupMap {
@@ -98,51 +100,61 @@
   const route = useRoute();
   const router = useRouter();
 
-  const isPlatform = route.matched[0]?.name === 'Platform';
+  const isPlatform = route.name === 'PlatMonitorAlarmGroup';
+
   const bizId = isPlatform ? 0 : currentBizId;
+
   const columns = [
     {
       label: t('告警组名称'),
       field: 'name',
       width: 240,
-      render: ({ row }: TableRenderData) => {
-        const isRenderTag = !isPlatform && row.is_built_in;
-        const content = <>
-            {
-              isRenderTag
-                ? <MiniTag
-                    content={ t('内置') }
-                    class="ml-4" />
-                : null
-            }
-            {
-              isNewUser(row.create_at)
-                ? <MiniTag
-                    content='NEW'
-                    theme='success'
-                    class="ml-4">
-                  </MiniTag>
-                : null
-            }
-        </>;
+      render: ({ data }: TableRenderData) => {
+        const isRenderTag = !isPlatform && data.is_built_in;
 
         return (
-          <RenderTextEllipsisOneLine
-            text={row.name}
-            onClick={ () => handleOpenDetail('edit', row) }>
-            { content }
-          </RenderTextEllipsisOneLine>
+          <TextOverflowLayout>
+            {{
+              default: () => (
+                <bk-button
+                  text
+                  theme="primary"
+                  onClick={ () => handleOpenDetail('edit', data) }>
+                  {data.name}
+                </bk-button>
+              ),
+              append: () => (
+                <>
+                  {
+                    isRenderTag && (
+                      <MiniTag
+                        content={ t('内置') }
+                        class="ml-4" />
+                    )
+                  }
+                  {
+                    isNewUser(data.create_at) && (
+                      <MiniTag
+                        content='NEW'
+                        theme='success'
+                        class="ml-4" />
+                    )
+                  }
+                </>
+              ),
+            }}
+          </TextOverflowLayout>
         );
       },
     },
     {
       label: t('通知对象'),
       field: 'recipient',
-      render: ({ row }: TableRenderData) => {
+      render: ({ data }: TableRenderData) => {
         const userGroup = userGroupMap.value;
 
         if (Object.keys(userGroup).length) {
-          const receivers = row.receivers.map((item) => {
+          const receivers = data.receivers.map((item) => {
             if (item.type === 'group') {
               return userGroup[item.id];
             }
@@ -160,15 +172,15 @@
       label: t('应用策略'),
       field: 'relatedPolicyCount',
       width: 100,
-      render: ({ row }: TableRenderData) => {
-        const { used_count: usedCount } = row;
+      render: ({ data }: TableRenderData) => {
+        const { used_count: usedCount } = data;
 
         return (
           usedCount
             ? <bk-button
               text
               theme="primary"
-              onClick={ () => toRelatedPolicy(row.id, row.db_type) }>
+              onClick={ () => toRelatedPolicy(data.id, data.db_type) }>
               { usedCount }
             </bk-button>
             : <span>0</span>
@@ -180,20 +192,20 @@
       field: 'update_at',
       width: 160,
       sort: true,
-      render: ({ row }: TableRenderData) => (<span>{ row.update_at || '--' }</span>),
+      render: ({ data }: TableRenderData) => (<span>{ data.update_at || '--' }</span>),
     },
     {
       label: t('更新人'),
       field: 'updater',
       width: 100,
-      render: ({ row }: TableRenderData) => (<span>{ row.updater || '--' }</span>),
+      render: ({ data }: TableRenderData) => (<span>{ data.updater || '--' }</span>),
     },
     {
       label: t('操作'),
       width: 180,
-      render: ({ row }: TableRenderData) => {
-        const tipDisabled = isPlatform || !row.is_built_in;
-        const btnDisabled = (!isPlatform && row.is_built_in) || row.used_count > 0;
+      render: ({ data }: TableRenderData) => {
+        const tipDisabled = isPlatform || !data.is_built_in;
+        const btnDisabled = (!isPlatform && data.is_built_in) || data.used_count > 0;
         const tips = {
           disabled: tipDisabled,
           content: t('内置告警不支持删除'),
@@ -201,28 +213,34 @@
 
         return (
           <>
-            <bk-button
+            <auth-button
+              action-id="notify_group_delete"
+              permission={data.permission.notify_group_update}
               class="mr-24"
               text
               theme="primary"
-              onClick={ () => handleOpenDetail('edit', row) }>
+              onClick={ () => handleOpenDetail('edit', data) }>
               { t('编辑') }
-            </bk-button>
-            <bk-button
+            </auth-button>
+            <auth-button
+              action-id="notify_group_create"
+              permission={data.permission.notify_group_create}
               class="mr-24"
               text
               theme="primary"
-              onClick={ () => handleOpenDetail('copy', row) }>
+              onClick={ () => handleOpenDetail('copy', data) }>
               { t('克隆') }
-            </bk-button>
+            </auth-button>
             <span v-bk-tooltips={ tips }>
-              <bk-button
+              <auth-button
+                action-id="notify_group_delete"
+                permission={data.permission.notify_group_delete}
                 text
                 disabled={ btnDisabled }
                 theme="primary"
-                onClick={ () => handleDelete(row.id) }>
+                onClick={ () => handleDelete(data.id) }>
                 { t('删除') }
-              </bk-button>
+              </auth-button>
             </span>
           </>
         );
@@ -234,7 +252,7 @@
   const keyword = ref('');
   const detailDialogShow = ref(false);
   const detailType = ref<'add' | 'edit' | 'copy'>('add');
-  const detailData = ref({} as AlarmGroupItem);
+  const detailData = ref({} as NoticGroupModel);
   const nameList = ref<string[]>([]);
   const userGroupMap = shallowRef<UserGroupMap>({});
 
@@ -258,7 +276,7 @@
     });
   };
 
-  const setRowClass = (row: AlarmGroupItem) => (isNewUser(row.create_at) ? 'is-new' : '');
+  const setRowClass = (data: NoticGroupModel) => (isNewUser(data.create_at) ? 'is-new' : '');
 
   const toRelatedPolicy = (notifyGroupId: number, dbType: string) => {
     const routerData = router.resolve({
@@ -275,7 +293,7 @@
     window.open(routerData.href, '_blank');
   };
 
-  const handleOpenDetail = (type: 'add' | 'edit' | 'copy', row?: AlarmGroupItem) => {
+  const handleOpenDetail = (type: 'add' | 'edit' | 'copy', row?: NoticGroupModel) => {
     detailDialogShow.value = true;
     detailType.value = type;
     if (row) {
@@ -301,7 +319,7 @@
     });
   };
 
-  const handleRequestSuccess = (tableData: ListBase<AlarmGroupItem[]>) => {
+  const handleRequestSuccess = (tableData: ListBase<NoticGroupModel[]>) => {
     nameList.value = tableData.results.map(tableItem => tableItem.name);
   };
 
