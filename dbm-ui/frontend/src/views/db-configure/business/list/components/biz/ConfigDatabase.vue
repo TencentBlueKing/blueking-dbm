@@ -78,12 +78,15 @@
     label: t('名称'),
     field: 'name',
     render: ({ cell, data }: { cell: string, data: ConfigListItem[number] }) => (
-      <bk-button
+      <auth-button
         text
         theme="primary"
+        action-id="dbconfig_view"
+        resource={activeTab?.value}
+        permission={data.permission.dbconfig_view}
         onClick={() => handleToDetails(data)}>
         {cell}
-      </bk-button>
+      </auth-button>
     ),
   }, {
     label: t('数据库版本'),
@@ -101,15 +104,18 @@
   }, {
     label: t('操作'),
     field: 'operation',
+    width: '80px',
     render: ({ data }: { data: ConfigListItem[number] }) => (
       <div class="operation">
-        <bk-button
+        <auth-button
           text
+          action-id="dbconfig_edit"
+          resource={activeTab?.value}
           theme="primary"
           class="mr-24"
           onClick={() => handleToEdit(data)}>
           { t('编辑') }
-        </bk-button>
+        </auth-button>
       </div>
     ),
   }];
@@ -143,7 +149,9 @@
       conf_type: props.confType,
       bk_biz_id: globalBizsStore.currentBizId,
     };
-    getBusinessConfigList(params)
+    getBusinessConfigList(params, {
+      permission: 'catch',
+    })
       .then((res) => {
         state.data = res;
         state.isAnomalies = false;

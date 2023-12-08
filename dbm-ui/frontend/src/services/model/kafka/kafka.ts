@@ -103,6 +103,16 @@ export default class Kafka {
     ticket_type: string,
     title: string,
   }>;
+  permission: {
+    kafka_view: boolean;
+    kafka_enable_disable: boolean;
+    kafka_destroy: boolean;
+    kafka_scale_up: boolean;
+    kafka_shrink: boolean;
+    kafka_replace: boolean;
+    kafka_reboot: boolean;
+    access_entry_edit: boolean;
+  };
   phase: string;
   region: string;
   status: string;
@@ -129,6 +139,7 @@ export default class Kafka {
     this.domain = payload.domain;
     this.id = payload.id;
     this.major_version = payload.major_version;
+    this.permission = payload.permission;
     this.phase = payload.phase;
     this.region = payload.region;
     this.status = payload.status;

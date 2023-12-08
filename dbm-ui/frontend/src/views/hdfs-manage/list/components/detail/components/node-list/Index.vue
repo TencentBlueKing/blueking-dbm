@@ -15,31 +15,40 @@
   <div class="hdfs-detail-node-list">
     <div class="action-box">
       <OperationBtnStatusTips :data="operationData">
-        <BkButton
+        <AuthButton
+          action-id="es_scale_up"
           :disabled="operationData?.operationDisabled"
+          :permission="operationData?.permission.hdfs_scale_up"
+          :resource="operationData?.id"
           theme="primary"
           @click="handleShowExpansion">
           {{ $t('扩容') }}
-        </BkButton>
+        </AuthButton>
       </OperationBtnStatusTips>
       <OperationBtnStatusTips :data="operationData">
         <span v-bk-tooltips="batchShrinkDisabledInfo.tooltips">
-          <BkButton
+          <AuthButton
+            action-id="hdfs_shrink"
             class="ml8"
             :disabled="(batchShrinkDisabledInfo.disabled || operationData?.operationDisabled)"
+            :permission="operationData?.permission.hdfs_shrink"
+            :resource="operationData?.id"
             @click="handleShowShrink">
             {{ $t('缩容') }}
-          </BkButton>
+          </AuthButton>
         </span>
       </OperationBtnStatusTips>
       <OperationBtnStatusTips :data="operationData">
         <span v-bk-tooltips="batchReplaceDisableInfo.tooltips">
-          <BkButton
+          <AuthButton
+            action-id="hdfs_replace"
             class="ml8"
             :disabled="(batchReplaceDisableInfo.disabled || operationData?.operationDisabled)"
+            :permission="operationData?.permission.hdfs_replace"
+            :resource="operationData?.id"
             @click="handleShowReplace">
             {{ $t('替换') }}
-          </BkButton>
+          </AuthButton>
         </span>
       </OperationBtnStatusTips>
       <BkDropdown
@@ -394,13 +403,16 @@
           <>
             <OperationBtnStatusTips data={operationData.value}>
               <span v-bk-tooltips={shrinkDisableTooltips.tooltips}>
-                <bk-button
-                  theme="primary"
+                <auth-button
                   text
+                  theme="primary"
+                  action-id="hdfs_shrink"
+                  permission={data.permission.hdfs_shrink}
+                  resource={data.bk_host_id}
                   disabled={shrinkDisableTooltips.disabled || operationData.value?.operationDisabled}
                   onClick={() => handleShrinkOne(data)}>
                   { t('缩容') }
-                </bk-button>
+                </auth-button>
               </span>
             </OperationBtnStatusTips>
             <OperationBtnStatusTips data={operationData.value}>
@@ -408,25 +420,30 @@
                   content: t('节点类型不支持替换'),
                   disabled: data.isDataNode,
                 }}>
-                <bk-button
-                  class="ml8"
-                  theme="primary"
-                  text
-                  disabled={!data.isDataNode || operationData.value?.operationDisabled}
-                  onClick={() => handleReplaceOne(data)}>
-                  { t('替换') }
-                </bk-button>
+                <auth-button
+                text
+                theme="primary"
+                action-id="hdfs_replace"
+                permission={data.permission.hdfs_replace}
+                resource={data.bk_host_id}
+                disabled={operationData.value?.operationDisabled}
+                onClick={() => handleReplaceOne(data)}>
+                { t('替换') }
+              </auth-button>
               </span>
             </OperationBtnStatusTips>
             <OperationBtnStatusTips data={operationData.value}>
-              <bk-button
-                theme="primary"
+              <auth-button
                 text
+                theme="primary"
+                action-id="hdfs_reboot"
+                permission={data.permission.hdfs_reboot}
+                resource={data.bk_host_id}
                 class="ml8"
                 disabled={operationData.value?.operationDisabled}
                 onClick={() => handleShowDetail(data)}>
                 { t('重启实例') }
-              </bk-button>
+              </auth-button>
             </OperationBtnStatusTips>
           </>
         );

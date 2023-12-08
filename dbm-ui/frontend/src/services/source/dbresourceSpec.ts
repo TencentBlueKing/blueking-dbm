@@ -27,9 +27,11 @@ export function getResourceSpecList(params: Record<string, any> & {
   enable?: boolean,
 }) {
   return http.get<ListBase<ResourceSpecModel[]>>(`${path}/`, params)
-    .then(res => ({
-      ...res,
-      results: res.results.map((item: ResourceSpecModel) => new ResourceSpecModel(item)),
+    .then(data => ({
+      ...data,
+      results: data.results.map(item => new ResourceSpecModel(Object.assign(item, {
+        permission: Object.assign({}, item.permission, data.permission),
+      }))),
     }));
 }
 

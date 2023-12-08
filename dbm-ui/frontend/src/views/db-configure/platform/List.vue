@@ -14,30 +14,32 @@
 <template>
   <div class="platform-db-configure-page">
     <TopTab @change="handleChangeTab" />
-    <div class="configure-content">
-      <BkTab
-        v-show="showTabs"
-        v-model:active="state.confType"
-        class="conf-tabs"
-        type="border-card"
-        @change="fetchPlatformConfigList">
-        <BkTabPanel
-          v-for="tab of state.tabs"
-          :key="tab.confType"
-          :label="tab.name"
-          :name="tab.confType" />
-      </BkTab>
-      <BkLoading :loading="state.loading">
-        <DbOriginalTable
-          :key="state.clusterType"
-          class="configure-content-table"
-          :columns="columns"
-          :data="state.data"
-          :is-anomalies="isAnomalies"
-          :max-height="tableMaxHeight"
-          @refresh="fetchPlatformConfigList(state.confType)" />
-      </BkLoading>
-    </div>
+    <ApplyPermissionCatch>
+      <div class="configure-content">
+        <BkTab
+          v-show="showTabs"
+          v-model:active="state.confType"
+          class="conf-tabs"
+          type="border-card"
+          @change="fetchPlatformConfigList">
+          <BkTabPanel
+            v-for="tab of state.tabs"
+            :key="tab.confType"
+            :label="tab.name"
+            :name="tab.confType" />
+        </BkTab>
+        <BkLoading :loading="state.loading">
+          <DbOriginalTable
+            :key="state.clusterType"
+            class="configure-content-table"
+            :columns="columns"
+            :data="state.data"
+            :is-anomalies="isAnomalies"
+            :max-height="tableMaxHeight"
+            @refresh="fetchPlatformConfigList(state.confType)" />
+        </BkLoading>
+      </div>
+    </ApplyPermissionCatch>
   </div>
 </template>
 
@@ -54,6 +56,8 @@
   import { useTableMaxHeight } from '@hooks';
 
   import type { ClusterTypesValues } from '@common/const';
+
+  import ApplyPermissionCatch from '@components/apply-permission/catch.vue';
 
   import { extraClusterConfs, getDefaultConf } from '../common/const';
   import type { ConfType } from '../common/types';
@@ -194,11 +198,13 @@
     if (state.clusterType === '') return;
 
     state.loading = true;
-    const params = {
+
+    getPlatformConfigList({
       meta_cluster_type: state.clusterType,
       conf_type: confType,
-    };
-    getPlatformConfigList(params)
+    }, {
+      permission: 'catch',
+    })
       .then((res) => {
         state.data = res || [];
         isAnomalies.value = false;

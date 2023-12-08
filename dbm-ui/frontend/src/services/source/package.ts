@@ -11,29 +11,14 @@
  * the specific language governing permissions and limitations under the License.
 */
 
-import http from '../http';
+import VersionFileModel from '@services/model/version-file/version-file';
+
+import http, {
+  type IRequestPayload,
+} from '../http';
 import type { ListBase } from '../types';
 
 const path = '/apis/packages';
-
-/**
- * 版本信息
- */
-interface PackageItem {
-  id: number,
-  creator: string,
-  create_at: string,
-  updater: string,
-  update_at: string,
-  name: string,
-  version: string,
-  pkg_type: string,
-  path: string,
-  size: number,
-  md5: string,
-  allow_biz_ids: number[],
-  mode: string
-}
 
 /**
  * 查询版本列表文件
@@ -44,8 +29,14 @@ export function getPackages(params: {
   keyword: string,
   limit: number,
   offset: number,
-}) {
-  return http.get<ListBase<PackageItem[]>>(`${path}/`, params);
+}, payload = {} as IRequestPayload) {
+  return http.get<ListBase<VersionFileModel[]>>(`${path}/`, params, payload)
+    .then(data => ({
+      ...data,
+      results: data.results.map(item => new VersionFileModel(Object.assign(item, {
+        permission: data.permission,
+      }))),
+    }));
 }
 
 /**

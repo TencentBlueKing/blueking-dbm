@@ -3,12 +3,7 @@
     <ApplyPermissionPage
       v-if="needApplyPermission"
       :data="permissionResult" />
-    <SkeletonLoading
-      :loading="skeletonLoading"
-      :name="skeletonName"
-      :once="false">
-      <RouterView />
-    </SkeletonLoading>
+    <RouterView v-else />
   </div>
 </template>
 <script setup lang="ts">
@@ -25,7 +20,7 @@
   import { useEventBus } from '@hooks';
 
   import ApplyPermissionPage from '@components/apply-permission/page.vue';
-  import SkeletonLoading from '@components/skeleton-loading/Index.vue';
+  // import SkeletonLoading from '@components/skeleton-loading/Index.vue';
 
   const eventBus = useEventBus();
 
@@ -44,6 +39,12 @@
       skeletonLoading.value = true;
       return;
     }
+  });
+
+  watch(route, () => {
+    needApplyPermission.value = false;
+  }, {
+    immediate: true,
   });
 
   const handlePermissionPage = (data: any) => {

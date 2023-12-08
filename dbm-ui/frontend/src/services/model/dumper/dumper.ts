@@ -108,6 +108,7 @@ export default class Dumper {
     this.update_at = payload.update_at;
     this.updater = payload.updater;
     this.version = payload.version;
+    console.log('prig model = ', this);
   }
 
   // 操作中的状态

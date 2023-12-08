@@ -15,22 +15,28 @@
   <div class="pulsar-detail-node-list">
     <div class="action-box">
       <OperationBtnStatusTips :data="operationData">
-        <BkButton
+        <AuthButton
+          action-id="pulsar_scale_up"
           :disabled="operationData?.operationDisabled"
+          :permission="operationData?.permission.pulsar_scale_up"
+          :resource="operationData?.id"
           theme="primary"
           @click="handleShowExpansion">
           {{ $t('扩容') }}
-        </BkButton>
+        </AuthButton>
       </OperationBtnStatusTips>
       <OperationBtnStatusTips :data="operationData">
         <span
           v-bk-tooltips="batchShrinkDisabledInfo.tooltips">
-          <BkButton
+          <AuthButton
+            action-id="pulsar_shrink"
             class="ml8"
             :disabled="(batchShrinkDisabledInfo.disabled || operationData?.operationDisabled)"
+            :permission="operationData?.permission.pulsar_shrink"
+            :resource="operationData?.id"
             @click="handleShowShrink">
             {{ $t('缩容') }}
-          </BkButton>
+          </AuthButton>
         </span>
       </OperationBtnStatusTips>
       <OperationBtnStatusTips :data="operationData">
@@ -39,12 +45,15 @@
             content: $t('请先选中节点'),
             disabled: !isBatchReplaceDisabeld
           }">
-          <BkButton
+          <AuthButton
+            action-id="pulsar_replace"
             class="ml8"
             :disabled="(isBatchReplaceDisabeld || operationData?.operationDisabled)"
+            :permission="operationData?.permission.pulsar_replace"
+            :resource="operationData?.id"
             @click="handleShowReplace">
             {{ $t('替换') }}
-          </BkButton>
+          </AuthButton>
         </span>
       </OperationBtnStatusTips>
       <BkDropdown
@@ -380,34 +389,42 @@
           <>
             <OperationBtnStatusTips data={operationData.value}>
               <span v-bk-tooltips={shrinkDisableTooltips.tooltips}>
-                <bk-button
-                  theme="primary"
+                <auth-button
                   text
+                  theme="primary"
+                  action-id="pulsar_shrink"
+                  permission={data.permission.pulsar_shrink}
+                  resource={data.bk_host_id}
                   disabled={shrinkDisableTooltips.disabled || operationData.value?.operationDisabled}
                   onClick={() => handleShrinkOne(data)}>
                   { t('缩容') }
-                </bk-button>
+                </auth-button>
               </span>
             </OperationBtnStatusTips>
             <OperationBtnStatusTips data={operationData.value}>
-              <bk-button
-                class="ml8"
-                theme="primary"
+              <auth-button
                 text
+                theme="primary"
+                action-id="pulsar_replace"
+                permission={data.permission.pulsar_replace}
+                resource={data.bk_host_id}
                 disabled={operationData.value?.operationDisabled}
                 onClick={() => handleReplaceOne(data)}>
                 { t('替换') }
-              </bk-button>
+              </auth-button>
             </OperationBtnStatusTips>
             <OperationBtnStatusTips data={operationData.value}>
-              <bk-button
-                theme="primary"
+              <auth-button
                 text
+                theme="primary"
+                action-id="pulsar_reboot"
+                permission={data.permission.pulsar_reboot}
+                resource={data.bk_host_id}
                 class="ml8"
                 disabled={operationData.value?.operationDisabled}
                 onClick={() => handleShowDetail(data)}>
                 { t('重启实例') }
-              </bk-button>
+              </auth-button>
             </OperationBtnStatusTips>
           </>
         );

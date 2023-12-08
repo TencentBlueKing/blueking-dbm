@@ -105,6 +105,16 @@ export default class Hdfs {
     ticket_type: string,
     title: string,
   }>;
+  permission: {
+    hdfs_view: boolean,
+    hdfs_enable_disable: boolean,
+    hdfs_destroy: boolean,
+    hdfs_scale_up: boolean,
+    hdfs_shrink: boolean,
+    hdfs_replace: boolean,
+    hdfs_reboot: boolean,
+    access_entry_edit: boolean,
+  };
   phase: string;
   region: string;
   status: string;
@@ -132,6 +142,7 @@ export default class Hdfs {
     this.hdfs_zookeeper = payload.hdfs_zookeeper;
     this.id = payload.id;
     this.major_version = payload.major_version;
+    this.permission = payload.permission;
     this.phase = payload.phase;
     this.region = payload.region;
     this.status = payload.status;

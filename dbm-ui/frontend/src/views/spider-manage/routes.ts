@@ -202,14 +202,6 @@ const renderRoutes: RouteRecordRaw[] = [
     },
     component: () => import('@views/spider-manage/Index.vue'),
     children: [
-      // {
-      //   name: 'spiderApply',
-      //   path: 'apply',
-      //   meta: {
-      //     navName: t('申请TendbCluster分布式集群部署'),
-      //   },
-      //   component: () => import('@views/spider-manage/apply/Index.vue'),
-      // },
       {
         name: 'createSpiderModule',
         path: 'create-module/:bizId(\\d+)',
@@ -266,7 +258,7 @@ const renderRoutes: RouteRecordRaw[] = [
         meta: {
           navName: t('授权白名单'),
         },
-        component: () => import('@views/spider-manage/whitelist/Index.vue'),
+        component: () => import('@views/whitelist/list/Index.vue'),
       },
       {
         path: 'toolbox',

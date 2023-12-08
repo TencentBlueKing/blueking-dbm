@@ -63,7 +63,7 @@
             {{ t('授权规则') }}
           </span>
         </BkMenuItem>
-        <BkMenuItem key="DatabaseWhitelist">
+        <BkMenuItem key="mysqlWhitelist">
           <span
             v-overflow-tips.right
             class="text-overflow">

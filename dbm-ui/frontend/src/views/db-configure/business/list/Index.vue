@@ -14,9 +14,9 @@
 <template>
   <div class="business-db-configure-list-page">
     <TopTab @change="handleChangeTab" />
-    <template v-if="activeTab">
-      <Content :key="activeTab" />
-    </template>
+    <Content
+      v-if="activeTab"
+      :key="activeTab" />
   </div>
 </template>
 <script setup lang="ts">

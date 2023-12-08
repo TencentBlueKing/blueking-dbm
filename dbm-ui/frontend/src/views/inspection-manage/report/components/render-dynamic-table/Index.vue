@@ -26,7 +26,7 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import { getChecksumReport } from '@services/report';
+  import { getChecksumReport } from '@services/source/report';
 
   import DbStatus from '@components/db-status/index.vue';
 
@@ -35,7 +35,7 @@
 
   interface Props {
     searchParams?: Record<string, any>,
-    service: (params: Record<string, any>) => Promise<ServiceReturnType<typeof getChecksumReport>>
+    service: typeof getChecksumReport
   }
 
   const props = defineProps<Props>();
@@ -102,6 +102,8 @@
       ...props.searchParams,
       ...pagination,
       bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+    }, {
+      permission: 'page',
     });
   };
 

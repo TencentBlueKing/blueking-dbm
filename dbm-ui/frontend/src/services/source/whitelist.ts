@@ -11,54 +11,46 @@
  * the specific language governing permissions and limitations under the License.
 */
 
+import IpWhiteModel from '@services/model/ip-white/ip-white';
+
 import http from '../http';
 import type { ListBase } from '../types';
 
 const path = '/apis/conf/ip_whitelist';
 
 /**
- * IP白名单列表项
- */
-interface WhitelistItem {
-  ips: string[],
-  is_global: boolean,
-  remark: string
-  bk_biz_id: number
-  create_at: string,
-  creator: string,
-  id: number,
-  update_at: string,
-  updater: string
-}
-
-/**
  * IP白名单列表
  */
 export function getWhitelist(params: Record<string, any> & { bk_biz_id: number }) {
-  return http.post<ListBase<WhitelistItem[]>>(`${path}/iplist/`, params);
-}
-
-/**
- * 编辑、新建参数
- */
-interface WhitelistOperationData {
-  id: number
-  bk_biz_id: number,
-  ips: string[],
-  remark: string,
+  return http.post<ListBase<IpWhiteModel[]>>(`${path}/iplist/`, params)
+    .then(data => ({
+      ...data,
+      results: data.results.map(item => new IpWhiteModel(Object.assign(item, {
+        permission: Object.assign(data.permission, item.permission),
+      }))),
+    }));
 }
 
 /**
  * 新建IP白名单
  */
-export function createWhitelist(params: Omit<WhitelistOperationData, 'id'>) {
+export function createWhitelist(params: {
+  bk_biz_id: number,
+  ips: string[],
+  remark: string,
+}) {
   return http.post(`${path}/`, params);
 }
 
 /**
  * 编辑IP白名单
  */
-export function updateWhitelist(params: WhitelistOperationData) {
+export function updateWhitelist(params: {
+  id: number
+  bk_biz_id: number,
+  ips: string[],
+  remark: string,
+}) {
   return http.put(`${path}/${params.id}/`, params);
 }
 

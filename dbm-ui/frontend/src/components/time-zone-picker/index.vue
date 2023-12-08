@@ -83,7 +83,7 @@
 <script setup lang="ts">
   import { Select } from 'bkui-vue';
   import dayjs from 'dayjs';
-  import { defineEmits, shallowRef } from 'vue';
+  import { shallowRef } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import { useTimeZone } from '@stores';

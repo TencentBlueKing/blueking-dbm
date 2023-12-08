@@ -56,6 +56,7 @@ export default class InfluxDBInstance {
   disk: number;
   cpu: number;
   mem: number;
+  permission: Record<'influxdb_view' | 'influxdb_enable_disable' | 'influxdb_destroy' | 'influxdb_replace' | 'influxdb_reboot', boolean>;
 
   constructor(payload = {} as InfluxDBInstance) {
     this.bk_cloud_id = payload.bk_cloud_id;
@@ -77,6 +78,7 @@ export default class InfluxDBInstance {
     this.disk = payload.disk;
     this.mem = payload.mem;
     this.cpu = payload.cpu;
+    this.permission = payload.permission || {};
 
     this.operations = this.initOperations(payload.operations);
   }

@@ -153,8 +153,6 @@
       },
     ],
   ]);
-  // 更新基础信息 api
-  const updateConfig = computed(() => (isPlat.value ? updatePlatformConfig : updateBusinessConfig));
 
   /**
    * 基础信息编辑
@@ -169,7 +167,9 @@
       confirm: 0,
       [key]: value,
     } as updateFuncParam;
-    updateConfig.value(params)
+
+    const handleRequest = isPlat.value ? updatePlatformConfig : updateBusinessConfig;
+    handleRequest(params)
       .then(() => {
         editResolve(true);
         emits('update-info', { key, value });

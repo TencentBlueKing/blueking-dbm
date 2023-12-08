@@ -12,13 +12,13 @@
 */
 
 import TendbhaModel from '@services/model/mysql/tendbha';
+import TendbhaInstanceModel from '@services/model/mysql/tendbha-instance';
 
 import { useGlobalBizs } from '@stores';
 
 import http from '../http';
 import type {
   ListBase,
-  ResourceInstance,
   ResourceItem,
   ResourceTopo,
 } from '../types';
@@ -42,7 +42,9 @@ export function getTendbhaList(params: {
   return http.get<ListBase<TendbhaModel[]>>(`${path}/`, params)
     .then(data => ({
       ...data,
-      results: data.results.map((item: TendbhaModel) => new TendbhaModel(item)),
+      results: data.results.map(item => new TendbhaModel(Object.assign(item, {
+        permission: Object.assign(item.permission, data.permission),
+      }))),
     }));
 }
 
@@ -55,7 +57,11 @@ export function getTendbhaListByBizId(params: {
   offset?: number,
   cluster_ids?: number[] | number,
 }) {
-  return http.get<ListBase<ResourceItem[]>>(`/apis/mysql/bizs/${params.bk_biz_id}/tendbha_resources/`, params);
+  return http.get<ListBase<TendbhaModel[]>>(`/apis/mysql/bizs/${params.bk_biz_id}/tendbha_resources/`, params)
+    .then(data => ({
+      ...data,
+      results: data.results.map((item: TendbhaModel) => new TendbhaModel(item)),
+    }));
 }
 
 /**
@@ -72,7 +78,11 @@ export function getTendbhaTableFields() {
  * 获取集群实例列表
  */
 export const getTendbhaInstanceList = function (params: Record<string, any> & { role_exclude?: string }) {
-  return http.get<ListBase<ResourceInstance[]>>(`${path}/list_instances/`, params);
+  return http.get<ListBase<TendbhaInstanceModel[]>>(`${path}/list_instances/`, params)
+    .then(data => ({
+      ...data,
+      results: data.results.map(item => new TendbhaInstanceModel(item)),
+    }));
 };
 
 /**

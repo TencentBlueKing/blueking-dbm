@@ -152,6 +152,7 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
+  import DutyRuleModel from '@services/model/monitor/duty-rule';
   import {
     createDutyRule,
     updateDutyRule,
@@ -161,14 +162,12 @@
 
   import { messageSuccess } from '@utils';
 
-  import type { RowData } from '../content/Index.vue';
-
   import CustomRotate from './CustomRotate.vue';
   import CycleRotate from './CycleRotate.vue';
 
   interface Props {
     dbType: string;
-    data?: RowData;
+    data?: DutyRuleModel;
     pageType?: string;
     existedNames?: string[];
   }
