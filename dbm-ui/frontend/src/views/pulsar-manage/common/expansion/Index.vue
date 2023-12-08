@@ -307,6 +307,20 @@
           onConfirm: () => {
             const hostData = {};
 
+            const generateExtInfo = () => Object.entries(nodeInfoMap).reduce((results, [key, item]) => {
+              const obj = {
+                host_list: item.hostList,
+                total_hosts: item.originalHostList.length,
+                total_disk: item.totalDisk,
+                target_disk: item.targetDisk,
+                expansion_disk: item.expansionDisk,
+              };
+              Object.assign(results, {
+                [key]: obj,
+              });
+              return results;
+            }, {} as Record<string, any>);
+
             if (ipSource.value === 'manual_input') {
               const fomatHost = (hostList: TExpansionNode['hostList'] = []) => hostList.map(hostItem => ({
                 ip: hostItem.ip,
@@ -346,6 +360,7 @@
                 ip_source: ipSource.value,
                 cluster_id: props.data.id,
                 ...hostData,
+                ext_info: generateExtInfo(),
               },
             }).then((data) => {
               ticketMessage(data.id);

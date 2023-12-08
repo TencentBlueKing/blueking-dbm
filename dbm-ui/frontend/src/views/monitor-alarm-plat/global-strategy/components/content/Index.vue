@@ -119,7 +119,12 @@
       render: ({ row }: { row: RowData }) => {
         const isNew = dayjs().isBefore(dayjs(row.create_at).add(24, 'hour'));
         return (<span>
-          {row.name}
+          <bk-button
+            text
+            theme="primary"
+            onClick={() => handleEdit(row)}>
+            {row.name}
+          </bk-button>
           {isNew && <MiniTag theme='success' content="NEW" />}
         </span>);
       },

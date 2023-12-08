@@ -29,7 +29,7 @@
   import DetailsInfluxDB from './bigdata/DetailsInfluxDB.vue';
   import DetailsKafka from './bigdata/DetailsKafka.vue';
   import DetailsPulsar from './bigdata/DetailsPulsar.vue';
-  import BigDataExpansionCapacity from './bigdata/ExpansionCapacity.vue';
+  import BigDataExpansionCapacity from './bigdata/expansion-capacity/Index.vue';
   import BigDataReboot from './bigdata/Reboot.vue';
   import BigDataReplace from './bigdata/Replace.vue';
   import InfluxdbOperations from './influxdb/Operations.vue';
