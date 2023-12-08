@@ -306,9 +306,6 @@
   };
 
   const handleExec = () => {
-    if (!props.partitionData) {
-      return;
-    }
     isExecSubmiting.value = true;
     execute({
       cluster_id: props.clusterId,
