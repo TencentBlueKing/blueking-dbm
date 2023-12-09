@@ -80,17 +80,21 @@ def update_local_notice_group():
 @register_periodic_task(run_every=crontab(minute="*/5"))
 def sync_plat_monitor_policy():
     """同步平台告警策略"""
-
+    skip_dir = "v1"
     now = datetime.datetime.now()
     logger.warning("[sync_plat_monitor_policy] sync bkm alarm policy start: %s", now)
 
     # 逐个json导入，本地+远程
     updated_policies = 0
     for root, dirs, files in os.walk(TPLS_ALARM_DIR):
+        if skip_dir in dirs:
+            dirs.remove(skip_dir)
+
         for alarm_tpl in files:
             with open(os.path.join(root, alarm_tpl), "r") as f:
                 try:
                     template_dict = json.loads(f.read())
+                    print(template_dict["name"], alarm_tpl)
                 except json.decoder.JSONDecodeError:
                     logger.error("[sync_plat_monitor_policy] load template failed: %s", alarm_tpl)
                     continue
