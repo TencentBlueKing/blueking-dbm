@@ -26,6 +26,9 @@ from backend.db_monitor.tasks import update_app_policy
 
 from .register import register_periodic_task
 
+# from django.utils.crypto import get_random_string
+
+
 logger = logging.getLogger("celery")
 
 
@@ -94,7 +97,8 @@ def sync_plat_monitor_policy():
             with open(os.path.join(root, alarm_tpl), "r") as f:
                 try:
                     template_dict = json.loads(f.read())
-                    print(template_dict["name"], alarm_tpl)
+                    policy_name = template_dict["name"]
+                    # db_type = template_dict["db_type"]
                 except json.decoder.JSONDecodeError:
                     logger.error("[sync_plat_monitor_policy] load template failed: %s", alarm_tpl)
                     continue
@@ -102,54 +106,54 @@ def sync_plat_monitor_policy():
                 deleted = template_dict.pop("deleted", False)
 
                 # just for test
-                # template_dict["name"] = template_dict["name"] + "-" + get_random_string(5)
+                # policy_name = policy_name + "-" + get_random_string(5)
 
                 # patch template
                 template_dict["details"]["labels"] = list(set(template_dict["details"]["labels"]))
-                template_dict["details"]["name"] = template_dict["name"]
+                template_dict["details"]["name"] = policy_name
                 template_dict["details"]["priority"] = TargetPriority.PLATFORM.value
                 # 平台策略仅开启基于分派通知
                 template_dict["details"]["notice"]["options"]["assign_mode"] = ["by_rule"]
 
                 policy = MonitorPolicy(**template_dict)
 
-        policy_name = policy.name
-        logger.info("[sync_plat_monitor_policy] start sync bkm alarm policy: %s " % policy_name)
-        try:
-            synced_policy = MonitorPolicy.objects.get(
-                bk_biz_id=policy.bk_biz_id, db_type=policy.db_type, name=policy_name
-            )
+            policy_name = policy.name
+            logger.info("[sync_plat_monitor_policy] start sync bkm alarm policy: %s " % policy_name)
+            try:
+                synced_policy = MonitorPolicy.objects.get(
+                    bk_biz_id=policy.bk_biz_id, db_type=policy.db_type, name=policy_name
+                )
 
-            if deleted:
-                print("[sync_plat_monitor_policy] delete old alarm: %s " % policy_name)
-                logger.info("[sync_plat_monitor_policy] delete old alarm: %s " % policy_name)
-                synced_policy.delete()
-                continue
+                if deleted:
+                    # print("[sync_plat_monitor_policy] delete old alarm: %s " % policy_name)
+                    logger.info("[sync_plat_monitor_policy] delete old alarm: %s " % policy_name)
+                    synced_policy.delete()
+                    continue
 
-            if synced_policy.version >= policy.version:
-                # print("[sync_plat_monitor_policy] skip same version alarm: %s " % policy_name)
-                logger.info("[sync_plat_monitor_policy] skip same version alarm: %s " % policy_name)
-                continue
+                if synced_policy.version >= policy.version:
+                    # print("[sync_plat_monitor_policy] skip same version alarm: %s " % policy_name)
+                    logger.info("[sync_plat_monitor_policy] skip same version alarm: %s " % policy_name)
+                    continue
 
-            for keeped_field in MonitorPolicy.KEEPED_FIELDS:
-                setattr(policy, keeped_field, getattr(synced_policy, keeped_field))
+                for keeped_field in MonitorPolicy.KEEPED_FIELDS:
+                    setattr(policy, keeped_field, getattr(synced_policy, keeped_field))
 
-            policy.details["id"] = synced_policy.monitor_policy_id
-            # print("[sync_plat_monitor_policy] update bkm alarm policy: %s " % policy_name)
-            logger.info("[sync_plat_monitor_policy] update bkm alarm policy: %s " % policy_name)
-        except MonitorPolicy.DoesNotExist:
-            logger.info("[sync_plat_monitor_policy] create bkm alarm policy: %s " % policy_name)
+                policy.details["id"] = synced_policy.monitor_policy_id
+                # print("[sync_plat_monitor_policy] update bkm alarm policy: %s " % policy_name)
+                logger.info("[sync_plat_monitor_policy] update bkm alarm policy: %s " % policy_name)
+            except MonitorPolicy.DoesNotExist:
+                logger.info("[sync_plat_monitor_policy] create bkm alarm policy: %s " % policy_name)
 
-        try:
-            # fetch targets/test_rules/notify_rules/notify_groups from parent details
-            for attr, value in policy.parse_details().items():
-                setattr(policy, attr, value)
+            try:
+                # fetch targets/test_rules/notify_rules/notify_groups from parent details
+                for attr, value in policy.parse_details().items():
+                    setattr(policy, attr, value)
 
-            # policy.save()
-            updated_policies += 1
-            logger.error("[sync_plat_monitor_policy] save bkm alarm policy success: %s", policy_name)
-        except BkMonitorSaveAlarmException as e:
-            logger.error("[sync_plat_monitor_policy] save bkm alarm policy failed: %s, %s ", policy_name, e)
+                policy.save()
+                updated_policies += 1
+                logger.error("[sync_plat_monitor_policy] save bkm alarm policy success: %s", policy_name)
+            except BkMonitorSaveAlarmException as e:
+                logger.error("[sync_plat_monitor_policy] save bkm alarm policy failed: %s, %s ", policy_name, e)
 
     logger.warning(
         "[sync_plat_monitor_policy] finish sync bkm alarm policy end: %s, update_cnt: %s",
