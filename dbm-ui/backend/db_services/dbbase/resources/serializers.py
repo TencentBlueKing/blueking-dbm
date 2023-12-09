@@ -11,7 +11,7 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
-from backend.db_meta.enums import ClusterType
+from backend.db_meta.enums import ClusterEntryType, ClusterType
 from backend.db_meta.models.cluster import Cluster
 from backend.db_services.dbbase.constants import IP_PORT_DIVIDER
 
@@ -84,3 +84,7 @@ class RetrieveInstancesSerializer(InstanceAddressSerializer):
 class ListNodesSLZ(serializers.Serializer):
     role = serializers.CharField(help_text=_("角色"))
     keyword = serializers.CharField(help_text=_("关键字过滤"), required=False, allow_blank=True)
+
+
+class RetrieveClusterEntrySLZ(serializers.Serializer):
+    entry_type = serializers.ChoiceField(choices=ClusterEntryType.get_choices(), help_text=_("入口类型"))
