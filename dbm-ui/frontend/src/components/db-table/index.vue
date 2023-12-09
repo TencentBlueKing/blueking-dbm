@@ -24,7 +24,6 @@
         :columns="localColumns"
         :data="tableData.results"
         :max-height="tableMaxHeight"
-        :pagination="pagination.count < 10 ? false : pagination"
         :pagination-heihgt="60"
         remote-pagination
         show-overflow-tooltip
