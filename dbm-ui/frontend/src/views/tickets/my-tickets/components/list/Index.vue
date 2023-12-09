@@ -74,7 +74,7 @@
                 <BkTag
                   class="side-item-tag"
                   :theme="item.getTagTheme()">
-                  {{ $t(item.getStatusText()) }}
+                  {{ t(item.getStatusText()) }}
                 </BkTag>
               </div>
               <div
@@ -153,6 +153,7 @@
     StatusTypes,
   } from '@services/model/ticket/ticket';
   import {
+    getTicketDetails,
     getTickets,
     getTicketTypes,
   } from '@services/source/ticket';
@@ -174,7 +175,7 @@
 
   const emits = defineEmits<Emits>();
 
-  const currentScope = getCurrentScope();
+  // const currentScope = getCurrentScope();
   const { t } = useI18n();
   const router = useRouter();
   const route = useRoute();
@@ -186,7 +187,22 @@
   const { filterId } = route.query;
 
   let isInitFetch = true;
+  const needPollIds: {
+    index: number,
+    id: number,
+  }[] = [];
+  // 状态过滤列表
+  const filters = Object.keys(StatusTypes).map((key: string) => ({
+    label: t(StatusTypes[key as StatusTypeKeys]),
+    value: key,
+  }));
+
+  // const activeTab = ref('');
+  // 状态选择设置
+  const isShowDropdown = ref(false);
+  // 视图定位到激活项
   const sideListRef = ref<HTMLDivElement>();
+
   const state = reactive<TicketsState>({
     list: [],
     isLoading: false,
@@ -206,12 +222,6 @@
     bkBizIdList: [],
   });
 
-  const isSearching = computed(() => state.filters.status !== 'ALL' || state.filters.search.length > 0);
-  // 状态过滤列表
-  const filters = Object.keys(StatusTypes).map((key: string) => ({
-    label: t(StatusTypes[key as StatusTypeKeys]),
-    value: key,
-  }));
   const searchSelectData = computed(() => [
     {
       name: t('单号'),
@@ -234,13 +244,40 @@
     },
   ].filter(_ => _));
 
-  // 状态选择设置
-  const isShowDropdown = ref(false);
+  const isSearching = computed(() => state.filters.status !== 'ALL' || state.filters.search.length > 0);
+
   const activeItemInfo = computed(() => filters.find(item => item.value === state.filters.status));
 
   watch(() => state.activeTicket, () => {
     emits('change', state.activeTicket);
   });
+
+  /**
+   * 轮询列表
+   */
+  // const { isActive, pause, resume } = useTimeoutPoll(() => {
+  //   fetchTickets(true);
+  // }, 10000, { immediate: false });
+
+  // const handleChangeTab = (tab: string) => {
+  //   activeTab.value = tab;
+  //   if (isInitFetch === false) {
+  //     state.filters.status = 'ALL';
+  //     state.filters.search = [];
+  //     handleChangePage(1);
+  //     return;
+  //   }
+  //   nextTick(fetchTickets);
+  // };
+
+  // const activeItemScrollIntoView = () => {
+  //   if (sideListRef.value) {
+  //     const activeItem = sideListRef.value.querySelector('.side-item-active');
+  //     if (activeItem) {
+  //       activeItem.scrollIntoView();
+  //     }
+  //   }
+  // };
 
   /**
    * 获取单据列表
@@ -273,11 +310,21 @@
         state.list = results;
         state.page.total = count;
 
-        if (currentScope?.active) {
-          isActive.value === false && resume();
-        } else {
-          pause();
-        }
+        needPollIds.length = 0;
+        results.forEach((item, index) => {
+          if (item.status === 'RUNNING') {
+            const obj = {
+              index,
+              id: item.id,
+            };
+            needPollIds.push(obj);
+          }
+        });
+        // if (currentScope?.active) {
+        //   isActive.value === false && resume();
+        // } else {
+        //   pause();
+        // }
 
         if (isPoll) return;
 
@@ -319,6 +366,35 @@
       });
   };
 
+  /**
+   * 查询所有执行中的单据
+   */
+  const fetchRunningTickets = async () => {
+    if (needPollIds.length > 0) {
+      const runningList = await Promise.all(needPollIds.map(item => getTicketDetails({ id: item.id })));
+      const runningStatusMap = runningList.reduce((results, item) => {
+        Object.assign(results, {
+          [item.id]: item.status,
+        });
+        return results;
+      }, {} as Record<string, string>);
+
+      const needRemoveIndexs: number[] = [];
+      needPollIds.forEach((item, index) => {
+        const newStatus = runningStatusMap[item.id] as StatusTypeKeys;
+        if (newStatus && newStatus !== 'RUNNING' && state.list[item.index].status === 'RUNNING') {
+          needRemoveIndexs.push(index);
+          state.list[item.index].status = newStatus;
+        }
+      });
+      if (needRemoveIndexs.length > 0) {
+        needRemoveIndexs.forEach((index) => {
+          needPollIds.splice(index, 1);
+        });
+      }
+    }
+  };
+
   fetchTickets();
   /**
    * 获取单据类型
@@ -351,7 +427,7 @@
       return;
     }
     state.page.current = page;
-    pause();
+    // pause();
     nextTick(() => {
       fetchTickets();
     });
@@ -391,17 +467,13 @@
   };
 
   /**
-   * 轮询列表
+   * 轮询执行中的列表
    */
-  const {
-    isActive,
-    pause,
-    resume,
-  } = useTimeoutPoll(() => {
-    fetchTickets(true);
-  }, 10000, {
-    immediate: true,
-  });
+  const { resume } = useTimeoutPoll(() => {
+    fetchRunningTickets();
+  }, 10000);
+
+  resume();
 
   onMounted(() => {
     getBizIdList();
@@ -423,6 +495,7 @@
     }
   });
 </script>
+
 <style lang="less" scoped>
 @import "@/styles/mixins.less";
 
