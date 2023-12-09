@@ -55,18 +55,18 @@ class ListRetrieveResource(abc.ABC):
         return cluster_details
 
     @classmethod
-    def query_cluster_entry_details(cls, cluster_details):
+    def query_cluster_entry_details(cls, cluster_details, **kwargs):
         """查询集群访问入口详情"""
-        entries = ClusterEntry.objects.filter(cluster_id=cluster_details["id"])
+        entries = ClusterEntry.objects.filter(cluster_id=cluster_details["id"], **kwargs)
         entry_details = []
         for entry in entries:
             if entry.cluster_entry_type == ClusterEntryType.DNS:
                 target_details = DnsManage(
                     bk_biz_id=cluster_details["bk_biz_id"], bk_cloud_id=cluster_details["bk_cloud_id"]
                 ).get_domain(entry.entry)
-                # TODO clb, polaris
             else:
-                target_details = []
+                target_details = entry.detail
+
             entry_details.append(
                 {
                     "cluster_entry_type": entry.cluster_entry_type,
