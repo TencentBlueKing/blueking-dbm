@@ -13,6 +13,7 @@ from collections import defaultdict
 from typing import Dict, List
 
 from django.db import models
+from django.forms import model_to_dict
 
 from backend.bk_web.models import AuditedModel
 from backend.components import DnsApi
@@ -78,6 +79,21 @@ class ClusterEntry(AuditedModel):
             else:
                 cluster_entry_map[entry.cluster_id]["slave_domain"] = access_entry
         return cluster_entry_map
+
+    @property
+    def detail(self):
+        """入口详情"""
+
+        if self.cluster_entry_type == ClusterEntryType.CLB:
+            detail_obj = self.clbentrydetail_set.first()
+        elif self.cluster_entry_type == ClusterEntryType.POLARIS:
+            detail_obj = self.polarisentrydetail_set.first()
+        elif self.cluster_entry_type == ClusterEntryType.CLBDNS:
+            detail_obj = self.forward_to
+        else:
+            detail_obj = None
+
+        return model_to_dict(detail_obj) if detail_obj else {}
 
     def __str__(self):
         return "{}:{}".format(self.cluster_entry_type, self.entry)
