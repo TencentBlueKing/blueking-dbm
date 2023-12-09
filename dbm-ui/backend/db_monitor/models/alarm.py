@@ -30,19 +30,15 @@ from backend.db_monitor.constants import (
     BK_MONITOR_SAVE_USER_GROUP_TEMPLATE,
     DEFAULT_ALERT_NOTICE,
     PLAT_PRIORITY,
-    PROMQL_FILTER_TPL,
     TARGET_LEVEL_TO_PRIORITY,
     AlertSourceEnum,
     DutyRuleCategory,
     PolicyStatus,
     TargetLevel,
 )
-from backend.db_monitor.exceptions import (
-    BkMonitorDeleteAlarmException,
-    BkMonitorSaveAlarmException,
-    BuiltInNotAllowDeleteException,
-)
+from backend.db_monitor.exceptions import BkMonitorDeleteAlarmException, BuiltInNotAllowDeleteException
 from backend.db_monitor.tasks import update_app_policy
+from backend.db_monitor.utils import bkm_delete_alarm_strategy, bkm_save_alarm_strategy, render_promql_sql
 from backend.exceptions import ApiError, ApiResultError
 
 __all__ = ["NoticeGroup", "AlertRule", "RuleTemplate", "DispatchGroup", "MonitorPolicy", "DutyRule"]
@@ -674,30 +670,6 @@ class MonitorPolicy(AuditedModel):
 
         return details
 
-    def render_promql_tpl(self, promql):
-        """渲染promql中的过滤表达式
-        TODO: 从实例克隆时，这里的渲染将会失效
-        """
-
-        filter_expr = ""
-        for target in self.targets:
-            if target["level"] == TargetLevel.PLATFORM.value:
-                continue
-
-            target_rule = target["rule"]
-            key, values = target_rule["key"], target_rule["value"]
-
-            if len(values) == 1:
-                filter_expr += f'{key}="{values}[0]"'
-                filter_expr += ","
-
-            # 多个值：a~="(1|2|3)"
-            join_values = "|".join(map(lambda x: str(x), values))
-            filter_expr += f'{key}~="({join_values})"'
-            filter_expr += ","
-
-        return promql.replace(PROMQL_FILTER_TPL, filter_expr)
-
     def patch_priority_and_agg_conditions(self, details):
         """将监控目标映射为所有查询的where条件"""
 
@@ -737,9 +709,17 @@ class MonitorPolicy(AuditedModel):
                     # overwrite agg_condition
                     query_config["agg_condition"] = query_config_agg_condition
                 else:
-                    query_config["promql"] = self.render_promql_tpl(query_config["promql"])
+                    key_values = {}
+                    for target in self.targets:
+                        if target["level"] == TargetLevel.PLATFORM.value:
+                            continue
+
+                        target_rule = target["rule"]
+                        key, values = target_rule["key"], target_rule["value"]
+                        key_values[key] = values
+
+                    query_config["promql"] = render_promql_sql(query_config["promql"], key_values)
                     logger.info("query_config.promql: %s", query_config["promql"])
-                    # logger.error(_("{name}: 无法配置目标，暂不支持promql策略填充目标").format(**details))
 
         return details
 
@@ -769,24 +749,6 @@ class MonitorPolicy(AuditedModel):
 
         return details
 
-    @classmethod
-    def bkm_save_alarm_strategy(cls, params):
-        response = BKMonitorV3Api.save_alarm_strategy_v3(params, use_admin=True, raw=True)
-        if not response.get("result"):
-            logger.error("bkm_save_alarm_strategy failed: params: %s\n response: %s", params, response)
-            raise BkMonitorSaveAlarmException(message=response.get("message"))
-        # logger.info("bkm_save_alarm_strategy success: %s", params["name"])
-        return response["data"]
-
-    def bkm_delete_alarm_strategy(self):
-        params = {"bk_biz_id": self.bk_biz_id or env.DBA_APP_BK_BIZ_ID, "ids": [self.monitor_policy_id]}
-        response = BKMonitorV3Api.delete_alarm_strategy_v3(params, use_admin=True, raw=True)
-        if not response.get("result"):
-            logger.error("bkm_delete_alarm_strategy failed: params: %s\n response: %s", params, response)
-            raise BkMonitorDeleteAlarmException(message=response.get("message"))
-        logger.info("bkm_delete_alarm_strategy success: %s", self.name)
-        return response["data"]
-
     def local_save(self, *args, **kwargs):
         """仅保存到本地，不同步到监控"""
         super().save(*args, **kwargs)
@@ -815,7 +777,7 @@ class MonitorPolicy(AuditedModel):
         details = self.details if update_fields == ["is_enabled"] else self.patch_all()
 
         # step2. sync to bkm
-        res = self.bkm_save_alarm_strategy(details)
+        res = bkm_save_alarm_strategy(details)
 
         # overwrite by bkm strategy details
         self.details = res
@@ -834,7 +796,7 @@ class MonitorPolicy(AuditedModel):
         #     raise BuiltInNotAllowDeleteException
 
         if self.monitor_policy_id:
-            self.bkm_delete_alarm_strategy()
+            bkm_delete_alarm_strategy(self.bk_biz_id, self.monitor_policy_id)
 
         super().delete(using, keep_parents)
 

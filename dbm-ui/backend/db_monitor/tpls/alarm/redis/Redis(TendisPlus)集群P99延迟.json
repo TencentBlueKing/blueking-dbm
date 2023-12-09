@@ -1,0 +1,277 @@
+{
+  "bk_biz_id": 0,
+  "name": "Redis(TendisPlus)\u96c6\u7fa4P99\u5ef6\u8fdf",
+  "db_type": "redis",
+  "details": {
+    "bk_biz_id": "",
+    "name": "Redis(TendisPlus)\u96c6\u7fa4P99\u5ef6\u8fdf",
+    "source": "dbm",
+    "scenario": "component",
+    "type": "monitor",
+    "items": [
+      {
+        "name": "[TendisPlus]\u96c6\u7fa4P99\u5ef6\u8fdf",
+        "no_data_config": {
+          "level": 2,
+          "continuous": 10,
+          "is_enabled": false,
+          "agg_dimension": []
+        },
+        "target": [],
+        "expression": "a",
+        "functions": [],
+        "origin_sql": "",
+        "query_configs": [
+          {
+            "data_source_label": "prometheus",
+            "data_type_label": "time_series",
+            "alias": "a",
+            "metric_id": "max by (app,cluster_domain,bk_target_ip,instance,instance_role,cluster_type,bk_target_cloud_id,appid) (histogram_quantile(\n0.99,",
+            "functions": [],
+            "promql": "max by (app,cluster_domain,bk_target_ip,instance,instance_role,cluster_type,bk_target_cloud_id,appid) (histogram_quantile(\n0.99,\nsum(increase(\nbkmonitor:exporter_dbm_predixy_exporter:predixy_latency_bucket{ \ncluster_type=\"PredixyTendisplusCluster\"}[2m])) by (app,cluster_domain,instance_role,cluster_type,bk_target_cloud_id,appid,le)\n) /1000)",
+            "agg_interval": 60,
+            "name": ""
+          }
+        ],
+        "algorithms": [
+          {
+            "type": "Threshold",
+            "level": 1,
+            "config": [
+              [
+                {
+                  "method": "gte",
+                  "threshold": 256
+                }
+              ]
+            ],
+            "unit_prefix": ""
+          },
+          {
+            "type": "Threshold",
+            "level": 2,
+            "config": [
+              [
+                {
+                  "method": "gte",
+                  "threshold": 128
+                }
+              ]
+            ],
+            "unit_prefix": ""
+          }
+        ],
+        "metric_type": "time_series"
+      }
+    ],
+    "detects": [
+      {
+        "level": 1,
+        "expression": "",
+        "trigger_config": {
+          "count": 2,
+          "uptime": {
+            "calendars": [],
+            "time_ranges": [
+              {
+                "end": "23:59",
+                "start": "00:00"
+              }
+            ]
+          },
+          "check_window": 5
+        },
+        "recovery_config": {
+          "check_window": 5,
+          "status_setter": "recovery"
+        },
+        "connector": "and"
+      },
+      {
+        "level": 2,
+        "expression": "",
+        "trigger_config": {
+          "count": 2,
+          "uptime": {
+            "calendars": [],
+            "time_ranges": [
+              {
+                "end": "23:59",
+                "start": "00:00"
+              }
+            ]
+          },
+          "check_window": 5
+        },
+        "recovery_config": {
+          "check_window": 5,
+          "status_setter": "recovery"
+        },
+        "connector": "and"
+      }
+    ],
+    "actions": [],
+    "notice": {
+      "config_id": 47089,
+      "user_groups": [],
+      "signal": [
+        "abnormal",
+        "no_data"
+      ],
+      "options": {
+        "end_time": "23:59:59",
+        "start_time": "00:00:00",
+        "assign_mode": [
+          "by_rule"
+        ],
+        "upgrade_config": {
+          "is_enabled": false,
+          "user_groups": [],
+          "upgrade_interval": 1440
+        },
+        "converge_config": {
+          "count": 1,
+          "condition": [
+            {
+              "dimension": "strategy_id",
+              "value": [
+                "self"
+              ]
+            },
+            {
+              "dimension": "dimensions",
+              "value": [
+                "self"
+              ]
+            },
+            {
+              "dimension": "alert_level",
+              "value": [
+                "self"
+              ]
+            },
+            {
+              "dimension": "signal",
+              "value": [
+                "self"
+              ]
+            },
+            {
+              "dimension": "bk_biz_id",
+              "value": [
+                "self"
+              ]
+            },
+            {
+              "dimension": "notice_receiver",
+              "value": [
+                "self"
+              ]
+            },
+            {
+              "dimension": "notice_way",
+              "value": [
+                "self"
+              ]
+            }
+          ],
+          "timedelta": 60,
+          "is_enabled": true,
+          "converge_func": "collect",
+          "need_biz_converge": true,
+          "sub_converge_config": {
+            "timedelta": 60,
+            "count": 2,
+            "condition": [
+              {
+                "dimension": "bk_biz_id",
+                "value": [
+                  "self"
+                ]
+              },
+              {
+                "dimension": "notice_receiver",
+                "value": [
+                  "self"
+                ]
+              },
+              {
+                "dimension": "notice_way",
+                "value": [
+                  "self"
+                ]
+              },
+              {
+                "dimension": "alert_level",
+                "value": [
+                  "self"
+                ]
+              },
+              {
+                "dimension": "signal",
+                "value": [
+                  "self"
+                ]
+              }
+            ],
+            "converge_func": "collect_alarm"
+          }
+        },
+        "chart_image_enabled": true,
+        "exclude_notice_ways": {
+          "ack": [],
+          "closed": [],
+          "recovered": []
+        },
+        "noise_reduce_config": {
+          "unit": "percent",
+          "count": 10,
+          "timedelta": 5,
+          "dimensions": [
+            "bk_target_ip"
+          ],
+          "is_enabled": false
+        }
+      },
+      "relate_type": "NOTICE",
+      "config": {
+        "need_poll": true,
+        "notify_interval": 1800,
+        "interval_notify_mode": "standard",
+        "template": [
+          {
+            "signal": "abnormal",
+            "message_tmpl": "{{content.level}}\n{{content.begin_time}}\n{{content.time}}\n{{content.duration}}\n{{content.target_type}}\n{{content.data_source}}\n{{content.content}}\n{{content.current_value}}\n{{content.biz}}\n{{content.target}}\n{{content.dimension}}\n{{content.detail}}\n{{content.related_info}}",
+            "title_tmpl": "{{business.bk_biz_name}} - {{alarm.name}}{{alarm.display_type}}"
+          },
+          {
+            "signal": "recovered",
+            "message_tmpl": "{{content.level}}\n{{content.begin_time}}\n{{content.time}}\n{{content.duration}}\n{{content.target_type}}\n{{content.data_source}}\n{{content.content}}\n{{content.current_value}}\n{{content.biz}}\n{{content.target}}\n{{content.dimension}}\n{{content.detail}}\n{{content.related_info}}",
+            "title_tmpl": "{{business.bk_biz_name}} - {{alarm.name}}{{alarm.display_type}}"
+          },
+          {
+            "signal": "closed",
+            "message_tmpl": "{{content.level}}\n{{content.begin_time}}\n{{content.time}}\n{{content.duration}}\n{{content.target_type}}\n{{content.data_source}}\n{{content.content}}\n{{content.current_value}}\n{{content.biz}}\n{{content.target}}\n{{content.dimension}}\n{{content.detail}}\n{{content.related_info}}",
+            "title_tmpl": "{{business.bk_biz_name}} - {{alarm.name}}{{alarm.display_type}}"
+          }
+        ]
+      }
+    },
+    "labels": [
+      "DBM",
+      "DBM_REDIS"
+    ],
+    "app": "",
+    "path": "",
+    "priority": 0,
+    "priority_group_key": "",
+    "metric_type": "time_series",
+    "data_source_type": "Prometheus",
+    "is_enabled": true
+  },
+  "is_enabled": true,
+  "monitor_indicator": "[TendisPlus]\u96c6\u7fa4P99\u5ef6\u8fdf",
+  "version": 0,
+  "alert_source": "time_series",
+  "custom_conditions": []
+}
