@@ -203,7 +203,7 @@ class Command(BaseCommand):
 
             self.clear_id(strategy_template["items"])
 
-            with open(os.path.join(TPLS_ALARM_DIR, f"{template_name}.json"), "w") as template_file:
+            with open(os.path.join(TPLS_ALARM_DIR, db_type, f"{template_name}.json"), "w") as template_file:
                 is_enabled = not is_disabled
                 strategy_template["is_enabled"] = is_enabled
                 template_dict = OrderedDict(
