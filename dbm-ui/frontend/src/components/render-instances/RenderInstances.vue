@@ -20,7 +20,7 @@
       :class="{ 'is-unavailable': inst.status === 'unavailable' }">
       <span
         class="pr-4"
-        :style="{ color: highlightIps.includes(inst.ip) ? 'rgb(234 177 93)' : '#63656e' }">
+        :style="{ color: highlightIps.includes(inst.ip) ? 'rgb(255 130 4)' : '#63656e' }">
         <slot :data="inst">
           {{ inst.ip }}:{{ inst.port }}
           <!-- <span
