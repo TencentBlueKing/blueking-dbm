@@ -1,5 +1,5 @@
 {
-    "bk_biz_id": {{bk_biz_id}},
+    "bk_biz_id": null,
     "collector_config_name": "mysql_backup_result",
     "collector_config_name_en": "mysql_backup_result",
     "collector_scenario_id": "row",
@@ -11,11 +11,7 @@
     "es_shards": 3,
     "target_object_type": "HOST",
     "target_node_type": "TOPO",
-    "target_nodes": [
-        {% for node in target_nodes %}{{ node }}{% if not loop.last %}, {% endif %}
-        {% endfor %}
-    ],
-    {% if storage_cluster_id %}"storage_cluster_id": {{ storage_cluster_id }},{% endif %}
+    "target_nodes": [],
     "params": {
         "paths": ["/home/mysql/dbareport/mysql/dbbackup/result/*.log"],
         "conditions": {
@@ -394,7 +390,6 @@
             "unit": "",
             "alias_name": "bk_app_id",
             "field_name": "bk_biz_id",
-            "value": {{bk_biz_id}},
             "option": {
                 "field_index": 7,
                 "es_type": "integer",
