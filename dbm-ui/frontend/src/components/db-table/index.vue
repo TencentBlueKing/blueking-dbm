@@ -314,8 +314,6 @@
 
         props.dataSource(params)
           .then((data) => {
-            // eslint-disable-next-line max-len
-            // data.results = [...data.results, ...data.results, ...data.results, ...data.results, ...data.results, ...data.results, ...data.results, ...data.results];
             tableData.value = data;
             pagination.count = data.count;
             isSearching.value = getSearchingStatus();
@@ -512,8 +510,7 @@
       pagination.limit = rowNum;
       pagination.limitList = [...pageLimit].sort((a, b) => a - b);
 
-      tableMaxHeight.value = tableHeaderHeight + rowNum * tableRowHeight + paginationHeight + 3;
-      // console.log('tableMaxHeight>>>', tableMaxHeight.value);
+      tableMaxHeight.value = rowNum * tableRowHeight + paginationHeight + 3;
     });
   };
 
