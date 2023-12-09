@@ -27,10 +27,6 @@ class DnsProxyPassViewSet(BaseProxyPassViewSet):
     Dns接口的透传视图
     """
 
-    def get_permissions(self):
-        # TODO: 内部服务接口，是否需要鉴权？
-        return [AllowAny()]
-
     @common_swagger_auto_schema(
         operation_summary=_("[dns]获取所有ip、域名关系"),
         request_body=serializers.GetAllDomainListSerializer(),

@@ -102,22 +102,4 @@ if env.SERVICE_ONLY:
             views.priv_manager.tendbsingle_biz_clusters,
             name="priv_manager-tendbsingle-biz_clusters",
         ),
-        path(
-            "fake/tendbha/create_cluster", views.fake.fake_create_tendbha_cluster, name="fake-tendbha-create_cluster"
-        ),
-        path(
-            "fake/tendbsingle/create_cluster",
-            views.fake.fake_create_tendbsingle,
-            name="fake-tendbsingle-create_cluster",
-        ),
-        path(
-            "fake/tendbha/reset_cluster",
-            views.fake.fake_reset_tendbha_cluster,
-            name="fake-tendbha-reset_cluster",
-        ),
-        path(
-            "fake/tendbcluster/reset_cluster",
-            views.fake.fake_reset_tendbcluster_cluster,
-            name="fake-tendbcluster-reset_cluster",
-        ),
     ]

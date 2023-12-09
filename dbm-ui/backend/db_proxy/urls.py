@@ -19,10 +19,10 @@ from backend.db_proxy.views.dbpriv.views import DBPrivProxyPassViewSet
 from backend.db_proxy.views.dns.views import DnsProxyPassViewSet
 from backend.db_proxy.views.dumper.views import DumperProxyPassViewSet
 from backend.db_proxy.views.hadb.views import HADBProxyPassViewSet
+from backend.db_proxy.views.job_callback.views import JobCallBackViewSet
 from backend.db_proxy.views.jobapi.views import JobApiProxyPassViewSet
 from backend.db_proxy.views.nameservice.views import NameServiceProxyPassViewSet
 from backend.db_proxy.views.redis_dts.views import DtsApiProxyPassViewSet
-from backend.db_proxy.views.views import JobCallBackViewSet
 
 routers = DefaultRouter(trailing_slash=True)
 routers.register(r"", DnsProxyPassViewSet, basename="dns")

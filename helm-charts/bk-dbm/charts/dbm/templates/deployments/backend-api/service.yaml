@@ -1,9 +1,9 @@
 {{- if .Values.enabled -}}
-{{- $fullName := ( include "dbm.saas-api.fullname" .) -}}
+{{- $fullName := ( include "dbm.backend-api.fullname" .) -}}
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ include "dbm.fullname" . }}
+  name: {{ $fullName }}
   labels:
     {{- include "dbm.labels" . | nindent 4 }}
 spec:

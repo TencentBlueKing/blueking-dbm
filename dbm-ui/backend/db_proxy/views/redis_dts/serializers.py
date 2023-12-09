@@ -11,32 +11,32 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
-from backend.db_proxy.views.serialiers import BaseProxyPassSerialier
+from backend.db_proxy.views.serialiers import BaseProxyPassSerializer
 
 
-class IsDtsserverInBlacklistSerializer(BaseProxyPassSerialier):
+class IsDtsserverInBlacklistSerializer(BaseProxyPassSerializer):
     ip = serializers.IPAddressField(help_text=_("DTS_server IP"), required=True)
 
 
-class DtsJobSerializer(BaseProxyPassSerialier):
+class DtsJobSerializer(BaseProxyPassSerializer):
     bill_id = serializers.IntegerField(help_text=_("任务ID"), required=True)
     src_cluster = serializers.CharField(help_text=_("源集群"), required=True)
     dst_cluster = serializers.CharField(help_text=_("目标集群"), required=True)
 
 
-class DtsJobTasksSerializer(BaseProxyPassSerialier):
+class DtsJobTasksSerializer(BaseProxyPassSerializer):
     bill_id = serializers.IntegerField(help_text=_("任务ID"), required=True)
     src_cluster = serializers.CharField(help_text=_("源集群"), required=True)
     dst_cluster = serializers.CharField(help_text=_("目标集群"), required=True)
 
 
-class DtsDistributeLockSerializer(BaseProxyPassSerialier):
+class DtsDistributeLockSerializer(BaseProxyPassSerializer):
     lockkey = serializers.CharField(help_text=_("锁key名"), required=True)
     holder = serializers.CharField(help_text=_("锁持有者"), required=True)
     ttl_sec = serializers.IntegerField(help_text=_("锁ttl时间(seconds)"), required=False)
 
 
-class DtsServerMigatingTasksSerializer(BaseProxyPassSerialier):
+class DtsServerMigatingTasksSerializer(BaseProxyPassSerializer):
     bk_cloud_id = serializers.IntegerField(help_text=_("云区域ID"), required=True)
     dts_server = serializers.IPAddressField(help_text=_("DTS_server IP"), required=True)
     db_type = serializers.CharField(help_text=_("db类型"), required=True)
@@ -45,7 +45,7 @@ class DtsServerMigatingTasksSerializer(BaseProxyPassSerialier):
     )
 
 
-class DtsServerMaxSyncPortSerializer(BaseProxyPassSerialier):
+class DtsServerMaxSyncPortSerializer(BaseProxyPassSerializer):
     bk_cloud_id = serializers.IntegerField(help_text=_("云区域ID"), required=True)
     dts_server = serializers.IPAddressField(help_text=_("DTS_server IP"), required=True)
     db_type = serializers.CharField(help_text=_("db类型"), required=True)
@@ -54,7 +54,7 @@ class DtsServerMaxSyncPortSerializer(BaseProxyPassSerialier):
     )
 
 
-class DtsLast30DaysToExecTasksSerializer(BaseProxyPassSerialier):
+class DtsLast30DaysToExecTasksSerializer(BaseProxyPassSerializer):
     bk_cloud_id = serializers.IntegerField(help_text=_("云区域ID"), required=True)
     dts_server = serializers.IPAddressField(help_text=_("DTS_server IP"), required=True)
     db_type = serializers.CharField(help_text=_("db类型"), required=True)
@@ -63,20 +63,20 @@ class DtsLast30DaysToExecTasksSerializer(BaseProxyPassSerialier):
     status = serializers.IntegerField(help_text=_("任务状态"), required=False)
 
 
-class DtsLast30DaysToScheduleJobsSerializer(BaseProxyPassSerialier):
+class DtsLast30DaysToScheduleJobsSerializer(BaseProxyPassSerializer):
     bk_cloud_id = serializers.IntegerField(help_text=_("云区域ID"), required=True)
     max_data_size = serializers.IntegerField(help_text=_("最大数据量"), required=True)
     zone_name = serializers.CharField(help_text=_("城市名"), required=True)
     db_type = serializers.CharField(help_text=_("db类型"), required=True)
 
 
-class DtsJobToScheduleTasksSerializer(BaseProxyPassSerialier):
+class DtsJobToScheduleTasksSerializer(BaseProxyPassSerializer):
     bill_id = serializers.IntegerField(help_text=_("任务ID"), required=True)
     src_cluster = serializers.CharField(help_text=_("源集群"), required=True)
     dst_cluster = serializers.CharField(help_text=_("目标集群"), required=True)
 
 
-class DtsJobSrcIPRunningTasksSerializer(BaseProxyPassSerialier):
+class DtsJobSrcIPRunningTasksSerializer(BaseProxyPassSerializer):
     bill_id = serializers.IntegerField(help_text=_("任务ID"), required=True)
     src_cluster = serializers.CharField(help_text=_("源集群"), required=True)
     dst_cluster = serializers.CharField(help_text=_("目标集群"), required=True)
@@ -86,11 +86,11 @@ class DtsJobSrcIPRunningTasksSerializer(BaseProxyPassSerialier):
     )
 
 
-class DtsTaskByTaskIDSerializer(BaseProxyPassSerialier):
+class DtsTaskByTaskIDSerializer(BaseProxyPassSerializer):
     task_id = serializers.IntegerField(help_text=_("子任务ID"), required=True)
 
 
-class DtsTasksUpdateSerializer(BaseProxyPassSerialier):
+class DtsTasksUpdateSerializer(BaseProxyPassSerializer):
     task_ids = serializers.ListField(
         help_text=_("子任务ID列表"), child=serializers.IntegerField(), allow_empty=False, required=True
     )
@@ -104,7 +104,7 @@ class DtsDataCopyBaseItemSerializer(serializers.Serializer):
     dst_cluster_password = serializers.CharField(help_text=_("目标集群密码"), allow_blank=True)
 
 
-class DtsTestRedisConnectionSerializer(BaseProxyPassSerialier):
+class DtsTestRedisConnectionSerializer(BaseProxyPassSerializer):
     data_copy_type = serializers.CharField(help_text=_("数据复制类型"), required=True)
     infos = serializers.ListField(
         help_text=_("复制列表"), child=DtsDataCopyBaseItemSerializer(), allow_empty=False, required=True

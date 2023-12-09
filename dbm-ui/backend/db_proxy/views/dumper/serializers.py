@@ -12,10 +12,10 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
-from backend.db_proxy.views.serialiers import BaseProxyPassSerialier
+from backend.db_proxy.views.serialiers import BaseProxyPassSerializer
 
 
-class DumperMigrateProxyPassSerializer(BaseProxyPassSerialier):
+class DumperMigrateProxyPassSerializer(BaseProxyPassSerializer):
     class DumperSwitchInfoSerializer(serializers.Serializer):
         class SwitchInstanceSerializer(serializers.Serializer):
             host = serializers.CharField(help_text=_("主机IP"))

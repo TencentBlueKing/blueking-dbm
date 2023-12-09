@@ -27,10 +27,6 @@ class DRSApiProxyPassViewSet(BaseProxyPassViewSet):
     DBMeta接口的透传视图
     """
 
-    def get_permissions(self):
-        # TODO: 内部服务接口，是否需要鉴权？
-        return [AllowAny()]
-
     @common_swagger_auto_schema(
         operation_summary=_("[db-remote-service]SQL远程执行"),
         request_body=RPCSerializer(),

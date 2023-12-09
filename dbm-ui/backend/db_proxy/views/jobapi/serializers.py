@@ -12,7 +12,7 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from backend.db_proxy.views import mock_data
-from backend.db_proxy.views.serialiers import BaseProxyPassSerialier
+from backend.db_proxy.views.serialiers import BaseProxyPassSerializer
 
 
 class ServerItemSerializer(serializers.Serializer):
@@ -20,7 +20,7 @@ class ServerItemSerializer(serializers.Serializer):
     ip = serializers.IPAddressField(help_text=_("主机ip"), required=True)
 
 
-class FastExecuteScriptSerializer(BaseProxyPassSerialier):
+class FastExecuteScriptSerializer(BaseProxyPassSerializer):
     bk_cloud_id = serializers.IntegerField()
     ip_list = serializers.ListField(help_text=_("执行脚本的主机ip列表"), child=ServerItemSerializer(), required=True)
     script_content = serializers.CharField(help_text=_("脚本内容"), required=True)
@@ -34,7 +34,7 @@ class FastExecuteScriptResponseSerializer(serializers.Serializer):
         swagger_schema_fields = {"example": mock_data.JOB_API_FAST_EXECUTE_SCRIPT_DATA_RESPONSE}
 
 
-class JobInstanceStatusSerializer(BaseProxyPassSerialier):
+class JobInstanceStatusSerializer(BaseProxyPassSerializer):
     job_instance_id = serializers.IntegerField(help_text=_("任务实例ID"), required=True)
 
 
@@ -43,7 +43,7 @@ class GetJobInstanceStatusResponseSerializer(serializers.Serializer):
         swagger_schema_fields = {"example": mock_data.JOB_API_GET_JOB_INSTANCE_STATUS_DATA_RESPONSE}
 
 
-class GetJobInstanceIpLogSerializer(BaseProxyPassSerialier):
+class GetJobInstanceIpLogSerializer(BaseProxyPassSerializer):
     bk_cloud_id = serializers.IntegerField()
     job_instance_id = serializers.IntegerField(help_text=_("任务实例ID"), required=True)
     step_instance_id = serializers.IntegerField(help_text=_("步骤实例ID"), required=True)
@@ -55,7 +55,7 @@ class GetJobInstanceIpLogResponseSerializer(serializers.Serializer):
         swagger_schema_fields = {"example": mock_data.JOB_API_GET_JOB_INSTANCE_IP_LOG_DATA_RESPONSE}
 
 
-class TransferFileSerializer(BaseProxyPassSerialier):
+class TransferFileSerializer(BaseProxyPassSerializer):
     class SourceFileItemSerializer(serializers.Serializer):
         bk_cloud_id = serializers.IntegerField(help_text=_("云区域ID"), required=True)
         ip = serializers.IPAddressField(help_text=_("源主机ip"), required=True)
