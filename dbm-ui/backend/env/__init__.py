@@ -12,6 +12,7 @@ from bkcrypto.constants import AsymmetricCipherType, SymmetricCipherType
 
 from .apigw_domains import *  # pylint: disable=wildcard-import
 from .apm import *  # pylint: disable=wildcard-import
+from .bklog import *  # pylint: disable=wildcard-import
 from .bkrepo import *  # pylint: disable=wildcard-import
 from .dev import *  # pylint: disable=wildcard-import
 
@@ -107,7 +108,6 @@ SA_L5_AGENT_TEMPLATE_ID = get_type_env(key="SA_L5_AGENT_TEMPLATE_ID", _type=int)
 # 是否在部署 MySQL 的时候安装 PERL
 YUM_INSTALL_PERL = get_type_env(key="YUM_INSTALL_PERL", _type=bool, default=False)
 
-
 # 内嵌grafana地址
 GRAFANA_URL = get_type_env(key="GRAFANA_URL", _type=str, default="")
 
@@ -141,6 +141,3 @@ GSE_AGENT_VERSION = get_type_env(key="GSE_AGENT_VERSION", _type=str, default="1.
 # 后端加密算法
 ASYMMETRIC_CIPHER_TYPE = get_type_env(key="ASYMMETRIC_CIPHER_TYPE", _type=str, default=AsymmetricCipherType.RSA.value)
 SYMMETRIC_CIPHER_TYPE = get_type_env(key="SYMMETRIC_CIPHER_TYPE", _type=str, default=SymmetricCipherType.AES.value)
-
-# 日志平台存储集群
-STORAGE_CLUSTER_ID = get_type_env(key="STORAGE_CLUSTER_ID", _type=int)

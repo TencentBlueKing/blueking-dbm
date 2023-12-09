@@ -1,5 +1,5 @@
 {
-    "bk_biz_id": {{bk_biz_id}},
+    "bk_biz_id": null,
     "collector_config_name": "redis_slowlog",
     "collector_config_name_en": "redis_slowlog",
     "collector_scenario_id": "redis_slowlog",
@@ -10,14 +10,10 @@
     "es_shards": 3,
     "target_object_type": "SERVICE",
     "target_node_type": "TOPO",
-    "target_nodes": [
-        {% for node in target_nodes %}{{ node }}{% if not loop.last %}, {% endif %}
-        {% endfor %}
-    ],
-    {% if storage_cluster_id %}"storage_cluster_id": {{ storage_cluster_id }},{% endif %}
+    "target_nodes": [],
     "params": {
-        "redis_hosts": ["{{ '{{' }} cmdb_instance.service.labels[\"instance_host\"] {{ '}}' }}:{{ '{{' }} cmdb_instance.service.labels[\"instance_port\"] {{ '}}' }}"],
-        "redis_password_file": "/home/mysql/.exporter/{{ '{{' }} cmdb_instance.service.labels[\"instance_port\"] {{ '}}' }}.conf",
+        "redis_hosts": ["{{ cmdb_instance.service.labels[\"instance_host\"] }}:{{ cmdb_instance.service.labels[\"instance_port\"] }}"],
+        "redis_password_file": "/home/mysql/.exporter/{{ cmdb_instance.service.labels[\"instance_port\"] }}.conf",
         "conditions": {
             "separator": "",
             "separator_filters": [],
@@ -28,15 +24,15 @@
         "extra_template_labels": [
             {"key": "$for", "value": "cmdb_instance.scope"},
             {"key": "$body", "value": {
-                "app": "{{ '{{' }} cmdb_instance.service.labels[\"app\"] {{ '}}' }}",
-                "app_id": "{{ '{{' }} cmdb_instance.service.labels[\"app_id\"] {{ '}}' }}",
-                "bk_cloud_id": "{{ '{{' }} cmdb_instance.service.labels[\"bk_cloud_id\"] {{ '}}' }}",
-                "cluster_name": "{{ '{{' }} cmdb_instance.service.labels[\"cluster_name\"] {{ '}}' }}",
-                "cluster_type": "{{ '{{' }} cmdb_instance.service.labels[\"cluster_type\"] {{ '}}' }}",
-                "instance_host": "{{ '{{' }} cmdb_instance.service.labels[\"instance_host\"] {{ '}}' }}",
-                "instance_port": "{{ '{{' }} cmdb_instance.service.labels[\"instance_port\"] {{ '}}' }}",
-                "instance_role": "{{ '{{' }} cmdb_instance.service.labels[\"instance_role\"] {{ '}}' }}",
-                "cluster_domain": "{{ '{{' }} cmdb_instance.service.labels[\"cluster_domain\"] {{ '}}' }}"
+                "app": "{{ cmdb_instance.service.labels[\"app\"] }}",
+                "app_id": "{{ cmdb_instance.service.labels[\"app_id\"] }}",
+                "bk_cloud_id": "{{ cmdb_instance.service.labels[\"bk_cloud_id\"] }}",
+                "cluster_name": "{{ cmdb_instance.service.labels[\"cluster_name\"] }}",
+                "cluster_type": "{{ cmdb_instance.service.labels[\"cluster_type\"] }}",
+                "instance_host": "{{ cmdb_instance.service.labels[\"instance_host\"] }}",
+                "instance_port": "{{ cmdb_instance.service.labels[\"instance_port\"] }}",
+                "instance_role": "{{ cmdb_instance.service.labels[\"instance_role\"] }}",
+                "cluster_domain": "{{ cmdb_instance.service.labels[\"cluster_domain\"] }}"
                 }
             },
             {"key": "$item", "value": "scope"}

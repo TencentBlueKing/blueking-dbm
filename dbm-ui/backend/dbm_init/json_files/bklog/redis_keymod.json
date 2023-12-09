@@ -1,5 +1,5 @@
 {
-    "bk_biz_id": {{bk_biz_id}},
+    "bk_biz_id": null,
     "etl_config": "bk_log_json",
     "table_id": "redis_keymod",
     "collector_config_name": "redis_keymod",
@@ -12,11 +12,7 @@
     "es_shards": 3,
     "target_object_type": "HOST",
     "target_node_type": "TOPO",
-    "target_nodes": [
-        {% for node in target_nodes %}{{ node }}{% if not loop.last %}, {% endif %}
-        {% endfor %}
-    ],
-    {% if storage_cluster_id %}"storage_cluster_id": {{ storage_cluster_id }},{% endif %}
+    "target_nodes": [],
     "params": {
         "paths": [
             "/home/mysql/dbareport/keylifecycle/redis_keymod_*.log"
