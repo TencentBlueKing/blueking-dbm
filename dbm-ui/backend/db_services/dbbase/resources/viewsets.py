@@ -71,11 +71,5 @@ class ResourceViewSet(SystemViewSet):
         """获取拓扑图"""
         return Response(self.query_class.get_topo_graph(bk_biz_id, cluster_id))
 
-    @action(methods=["POST"], detail=True, url_path="update_cluster_entry")
-    def update_cluster_entry(self, request, bk_biz_id: int, cluster_id: int):
-        """修改集群入口"""
-        # TODO
-        return Response()
-
     def _paginate_resource_list(self, request, bk_biz_id: int):
         return self.paginator.paginate_resource_list(request, bk_biz_id, self)

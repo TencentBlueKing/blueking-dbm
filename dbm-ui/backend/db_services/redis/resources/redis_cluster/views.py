@@ -83,39 +83,9 @@ from .query import ListRetrieveResource
         tags=[constants.RESOURCE_TAG],
     ),
 )
-@method_decorator(
-    name="get_cluster_entries",
-    decorator=common_swagger_auto_schema(
-        operation_summary=_("获取集群入口列表"),
-        query_serializer=serializers.RetrieveClusterEntrySLZ(),
-        tags=[constants.RESOURCE_TAG],
-    ),
-)
 class RedisClusterViewSet(viewsets.ResourceViewSet):
     query_class = ListRetrieveResource
     query_serializer_class = serializers.ListResourceSLZ
-
-    @action(
-        methods=["GET"],
-        detail=True,
-        url_path="get_cluster_entries",
-        serializer_class=serializers.RetrieveClusterEntrySLZ,
-        pagination_class=None,
-    )
-    def get_cluster_entries(self, request, bk_biz_id: int, cluster_id: int):
-        """获取集群入口列表"""
-        cluster = Cluster.objects.get(id=cluster_id, bk_biz_id=bk_biz_id)
-        return Response(
-            [
-                {
-                    "cluster_entry_type": entry.cluster_entry_type,
-                    "entry": entry.entry,
-                    "role": entry.role,
-                    "detail": entry.detail,
-                }
-                for entry in cluster.clusterentry_set.filter(cluster_entry_type=self.validated_data["entry_type"])
-            ]
-        )
 
     @action(methods=["GET"], detail=True, url_path="get_nodes", serializer_class=serializers.ListNodesSLZ)
     def get_nodes(self, request, bk_biz_id: int, cluster_id: int):

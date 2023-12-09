@@ -84,7 +84,3 @@ class RetrieveInstancesSerializer(InstanceAddressSerializer):
 class ListNodesSLZ(serializers.Serializer):
     role = serializers.CharField(help_text=_("角色"))
     keyword = serializers.CharField(help_text=_("关键字过滤"), required=False, allow_blank=True)
-
-
-class RetrieveClusterEntrySLZ(serializers.Serializer):
-    entry_type = serializers.ChoiceField(choices=ClusterEntryType.get_choices(), help_text=_("入口类型"))

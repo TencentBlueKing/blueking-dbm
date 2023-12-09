@@ -18,7 +18,8 @@ from backend.bk_web import viewsets
 from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.db_meta.enums import ClusterEntryType
 from backend.db_meta.models import Cluster
-from backend.db_services.cluster_entry.serializers import ModifyClusterEntrySerializer
+from backend.db_services.cluster_entry.serializers import ModifyClusterEntrySerializer, RetrieveClusterEntrySLZ
+from backend.db_services.dbbase.resources.query import ListRetrieveResource
 from backend.flow.utils.dns_manage import DnsManage
 from backend.iam_app.handlers.drf_perm import GlobalManageIAMPermission
 
@@ -40,3 +41,30 @@ class ClusterEntryViewSet(viewsets.SystemViewSet):
                     detail["domain_name"], detail["target_instances"]
                 )
         return Response({})
+
+    @common_swagger_auto_schema(
+        operation_summary=_("获取集群入口列表"),
+        query_serializer=RetrieveClusterEntrySLZ(),
+        tags=[SWAGGER_TAG],
+    )
+    @action(
+        methods=["GET"],
+        detail=False,
+        url_path="get_cluster_entries",
+        serializer_class=RetrieveClusterEntrySLZ,
+        pagination_class=None,
+    )
+    def get_cluster_entries(self, request, *args, **kwargs):
+        """获取集群入口列表"""
+
+        cluster = Cluster.objects.get(id=self.validated_data["cluster_id"])
+        cluster_entries = ListRetrieveResource.query_cluster_entry_details(
+            {
+                "id": cluster.id,
+                "bk_cloud_id": cluster.bk_cloud_id,
+                "bk_biz_id": cluster.bk_biz_id,
+            },
+            cluster_entry_type=self.validated_data["entry_type"],
+        )
+
+        return Response(cluster_entries)

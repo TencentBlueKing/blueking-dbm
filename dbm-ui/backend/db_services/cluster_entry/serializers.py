@@ -37,3 +37,8 @@ class ModifyClusterEntrySerializer(serializers.Serializer):
                 if not detail["target_instances"]:
                     raise serializers.ValidationError(_("修改 DNS，目标实例列表不能为空"))
         return attrs
+
+
+class RetrieveClusterEntrySLZ(serializers.Serializer):
+    cluster_id = serializers.IntegerField(help_text=_("集群 ID"))
+    entry_type = serializers.ChoiceField(choices=ClusterEntryType.get_choices(), help_text=_("入口类型"))
