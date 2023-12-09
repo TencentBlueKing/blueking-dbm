@@ -12,10 +12,10 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
-from backend.db_proxy.views.serialiers import BaseProxyPassSerialier
+from backend.db_proxy.views.serialiers import BaseProxyPassSerializer
 
 
-class HADBProxyPassSerialier(BaseProxyPassSerialier):
+class HADBProxyPassSerializer(BaseProxyPassSerializer):
     name = serializers.CharField(help_text=_("名字"), required=False)
     query_args = serializers.JSONField(help_text=_("查询参数"), required=False)
     set_args = serializers.JSONField(help_text=_("设置参数"), required=False)

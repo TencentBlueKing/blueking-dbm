@@ -11,27 +11,27 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
-from backend.db_proxy.views.serialiers import BaseProxyPassSerialier
+from backend.db_proxy.views.serialiers import BaseProxyPassSerializer
 
 
-class CLBDeregisterPartTargetSerializer(BaseProxyPassSerialier):
+class CLBDeregisterPartTargetSerializer(BaseProxyPassSerializer):
     region = serializers.CharField(help_text=_("中文区域名称"))
     loadbalancerid = serializers.CharField(help_text=_("clb的id"))
     listenerid = serializers.CharField(help_text=_("clb监听器的id"))
     ips = serializers.ListField(help_text=_("需要解绑的后端主机端口数组"), child=serializers.CharField())
 
 
-class CLBGetTargetPrivateIps(BaseProxyPassSerialier):
+class CLBGetTargetPrivateIps(BaseProxyPassSerializer):
     region = serializers.CharField(help_text=_("中文区域名称"))
     loadbalancerid = serializers.CharField(help_text=_("clb的id"))
     listenerid = serializers.CharField(help_text=_("clb监听器的id"))
 
 
-class PolarisDescribeTargetsSerializer(BaseProxyPassSerialier):
+class PolarisDescribeTargetsSerializer(BaseProxyPassSerializer):
     servicename = serializers.CharField(help_text=_("北极星服务名称"))
 
 
-class PolarisUnbindPartTargetsSerializer(BaseProxyPassSerialier):
+class PolarisUnbindPartTargetsSerializer(BaseProxyPassSerializer):
     servicename = serializers.CharField(help_text=_("北极星服务名称"))
     servicetoken = serializers.CharField(help_text=_("北极星服务token"))
     ips = serializers.ListField(help_text=_("需要解绑的后端主机端口数组, 格式为“ip:port"), child=serializers.CharField())

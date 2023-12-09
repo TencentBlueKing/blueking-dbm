@@ -12,10 +12,10 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from backend.db_proxy.views import mock_data
-from backend.db_proxy.views.serialiers import BaseProxyPassSerialier
+from backend.db_proxy.views.serialiers import BaseProxyPassSerializer
 
 
-class InstancesSerializer(BaseProxyPassSerialier):
+class InstancesSerializer(BaseProxyPassSerializer):
     logical_city_ids = serializers.ListField(
         help_text=_("逻辑城市ID列表"), child=serializers.IntegerField(), allow_null=True, allow_empty=True, required=False
     )
@@ -33,7 +33,7 @@ class InstancesResponseSerializer(serializers.Serializer):
         swagger_schema_fields = {"example": mock_data.INSTANCE_DATA_RESPONSE}
 
 
-class SwapRoleSerializer(BaseProxyPassSerialier):
+class SwapRoleSerializer(BaseProxyPassSerializer):
     class SwapEleSerializer(serializers.Serializer):
         class SwapInstanceSerializer(serializers.Serializer):
             ip = serializers.IPAddressField()
@@ -46,7 +46,7 @@ class SwapRoleSerializer(BaseProxyPassSerialier):
     bk_cloud_id = serializers.IntegerField()
 
 
-class TendisClusterSwapSerializer(BaseProxyPassSerialier):
+class TendisClusterSwapSerializer(BaseProxyPassSerializer):
     class PayloadSerializer(serializers.Serializer):
         class IpPortSerializer(serializers.Serializer):
             ip = serializers.CharField(help_text=_("实例IP"))
@@ -60,7 +60,7 @@ class TendisClusterSwapSerializer(BaseProxyPassSerialier):
     bk_cloud_id = serializers.IntegerField()
 
 
-class UpdateStatusSerializer(BaseProxyPassSerialier):
+class UpdateStatusSerializer(BaseProxyPassSerializer):
     class UpdateStatusEleSerializer(serializers.Serializer):
         ip = serializers.IPAddressField()
         port = serializers.IntegerField(min_value=1025, max_value=65535)
@@ -72,23 +72,23 @@ class UpdateStatusSerializer(BaseProxyPassSerialier):
     bk_cloud_id = serializers.IntegerField()
 
 
-class EntryDetailSerializer(BaseProxyPassSerialier):
+class EntryDetailSerializer(BaseProxyPassSerializer):
     domains = serializers.ListField(help_text=_("查询的domain列表"), child=serializers.CharField())
 
 
-class MachinesClusterSerializer(BaseProxyPassSerialier):
+class MachinesClusterSerializer(BaseProxyPassSerializer):
     hosts = serializers.ListField(help_text=_("查询的Hosts列表"), child=serializers.CharField())
 
 
-class ClusterDetailSerializer(BaseProxyPassSerialier):
+class ClusterDetailSerializer(BaseProxyPassSerializer):
     cluster_ids = serializers.ListField(help_text=_("查询的集群IDs"), child=serializers.CharField())
 
 
-class BKCityNameSerializer(BaseProxyPassSerialier):
+class BKCityNameSerializer(BaseProxyPassSerializer):
     logic_city_name = serializers.CharField(help_text=_("逻辑城市名称"))
 
 
-class FakeTendbSingleCreateCluster(BaseProxyPassSerialier):
+class FakeTendbSingleCreateCluster(BaseProxyPassSerializer):
     storage_instance = serializers.CharField(help_text=_("实例"))
     immute_domain = serializers.CharField(help_text=_("集群域名"))
     name = serializers.CharField(help_text=_("集群名"), required=False)
@@ -96,7 +96,7 @@ class FakeTendbSingleCreateCluster(BaseProxyPassSerialier):
     db_module_id = serializers.IntegerField(help_text=_("模块ID"), required=False)
 
 
-class FakeTendbHACreateCluster(BaseProxyPassSerialier):
+class FakeTendbHACreateCluster(BaseProxyPassSerializer):
     proxies = serializers.ListField(help_text=_("代理列表"))
     master_instance = serializers.CharField(help_text=_("master实例"))
     slave_instance = serializers.CharField(help_text=_("slave实例"))
@@ -107,7 +107,7 @@ class FakeTendbHACreateCluster(BaseProxyPassSerialier):
     slave_domain = serializers.CharField(help_text=_("从库域名"), required=False)
 
 
-class FakeResetTendbHACluster(BaseProxyPassSerialier):
+class FakeResetTendbHACluster(BaseProxyPassSerializer):
     proxies = serializers.ListField(help_text=_("proxy列表"), child=serializers.CharField())
     master_instance = serializers.CharField(help_text=_("master实例"))
     slave_instance = serializers.CharField(help_text=_("slave实例"))
@@ -115,20 +115,20 @@ class FakeResetTendbHACluster(BaseProxyPassSerialier):
     slave_domain = serializers.CharField(help_text=_("slave域名"), required=False)
 
 
-class BizClusterSerializer(BaseProxyPassSerialier):
+class BizClusterSerializer(BaseProxyPassSerializer):
     bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
     immute_domains = serializers.ListField(help_text=_("域名列表"), child=serializers.CharField())
 
 
-class ClusterInstanceSerializer(BaseProxyPassSerialier):
+class ClusterInstanceSerializer(BaseProxyPassSerializer):
     immute_domain = serializers.CharField(help_text=_("域名列表"))
 
 
-class InstanceDetailSLZ(BaseProxyPassSerialier):
+class InstanceDetailSLZ(BaseProxyPassSerializer):
     ip = serializers.CharField(help_text=_("ip"))
     port = serializers.IntegerField(help_text=_("port"))
     bk_cloud_id = serializers.IntegerField(help_text=_("bk_cloud_id"))
 
 
-class TendbInstancesSerializer(BaseProxyPassSerialier):
+class TendbInstancesSerializer(BaseProxyPassSerializer):
     entry_name = serializers.CharField(help_text=_("访问入口"))

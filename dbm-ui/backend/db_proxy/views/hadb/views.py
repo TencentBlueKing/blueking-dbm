@@ -18,7 +18,7 @@ from backend.components.hadb.client import HADBApi
 from backend.db_proxy.constants import SWAGGER_TAG
 
 from ..views import BaseProxyPassViewSet
-from .serializers import HADBProxyPassSerialier
+from .serializers import HADBProxyPassSerializer
 
 
 class HADBProxyPassViewSet(BaseProxyPassViewSet):
@@ -28,60 +28,60 @@ class HADBProxyPassViewSet(BaseProxyPassViewSet):
 
     @common_swagger_auto_schema(
         operation_summary=_("[hadb]上报和查询ha的探测切换日志"),
-        request_body=HADBProxyPassSerialier(),
+        request_body=HADBProxyPassSerializer(),
         tags=[SWAGGER_TAG],
     )
-    @action(methods=["POST"], detail=False, serializer_class=HADBProxyPassSerialier, url_path="hadb/halogs")
+    @action(methods=["POST"], detail=False, serializer_class=HADBProxyPassSerializer, url_path="hadb/halogs")
     def ha_logs(self, request):
         validated_data = self.params_validate(self.get_serializer_class())
         return Response(HADBApi.ha_logs(params=validated_data))
 
     @common_swagger_auto_schema(
         operation_summary=_("[hadb]上报和查询数据库实例的状态"),
-        request_body=HADBProxyPassSerialier(),
+        request_body=HADBProxyPassSerializer(),
         tags=[SWAGGER_TAG],
     )
-    @action(methods=["POST"], detail=False, serializer_class=HADBProxyPassSerialier, url_path="hadb/dbstatus")
+    @action(methods=["POST"], detail=False, serializer_class=HADBProxyPassSerializer, url_path="hadb/dbstatus")
     def db_status(self, request):
         validated_data = self.params_validate(self.get_serializer_class())
         return Response(HADBApi.db_status(params=validated_data))
 
     @common_swagger_auto_schema(
         operation_summary=_("[hadb]上报和查询ha服务的状态"),
-        request_body=HADBProxyPassSerialier(),
+        request_body=HADBProxyPassSerializer(),
         tags=[SWAGGER_TAG],
     )
-    @action(methods=["POST"], detail=False, serializer_class=HADBProxyPassSerialier, url_path="hadb/hastatus")
+    @action(methods=["POST"], detail=False, serializer_class=HADBProxyPassSerializer, url_path="hadb/hastatus")
     def ha_status(self, request):
         validated_data = self.params_validate(self.get_serializer_class())
         return Response(HADBApi.ha_status(params=validated_data))
 
     @common_swagger_auto_schema(
         operation_summary=_("[hadb]查询和上报切换队列"),
-        request_body=HADBProxyPassSerialier(),
+        request_body=HADBProxyPassSerializer(),
         tags=[SWAGGER_TAG],
     )
-    @action(methods=["POST"], detail=False, serializer_class=HADBProxyPassSerialier, url_path="hadb/switchqueue")
+    @action(methods=["POST"], detail=False, serializer_class=HADBProxyPassSerializer, url_path="hadb/switchqueue")
     def switch_queue(self, request):
         validated_data = self.params_validate(self.get_serializer_class())
         return Response(HADBApi.switch_queue(params=validated_data))
 
     @common_swagger_auto_schema(
         operation_summary=_("[hadb]查询和上报切换日志"),
-        request_body=HADBProxyPassSerialier(),
+        request_body=HADBProxyPassSerializer(),
         tags=[SWAGGER_TAG],
     )
-    @action(methods=["POST"], detail=False, serializer_class=HADBProxyPassSerialier, url_path="hadb/switchlogs")
+    @action(methods=["POST"], detail=False, serializer_class=HADBProxyPassSerializer, url_path="hadb/switchlogs")
     def switch_logs(self, request):
         validated_data = self.params_validate(self.get_serializer_class())
         return Response(HADBApi.switch_logs(params=validated_data))
 
     @common_swagger_auto_schema(
         operation_summary=_("[hadb]DBHA切换屏蔽配置"),
-        request_body=HADBProxyPassSerialier(),
+        request_body=HADBProxyPassSerializer(),
         tags=[SWAGGER_TAG],
     )
-    @action(methods=["POST"], detail=False, serializer_class=HADBProxyPassSerialier, url_path="hadb/shieldconfig")
+    @action(methods=["POST"], detail=False, serializer_class=HADBProxyPassSerializer, url_path="hadb/shieldconfig")
     def shieldconfig(self, request):
         validated_data = self.params_validate(self.get_serializer_class())
         return Response(HADBApi.shieldconfig(params=validated_data))

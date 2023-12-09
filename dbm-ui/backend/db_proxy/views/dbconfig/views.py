@@ -32,10 +32,6 @@ class DBConfigProxyPassViewSet(BaseProxyPassViewSet):
     DBConfig接口的透传视图
     """
 
-    def get_permissions(self):
-        # TODO: 内部服务接口，是否需要鉴权？
-        return [AllowAny()]
-
     @common_swagger_auto_schema(
         operation_summary=_("[dbconfig]查询配置项列表"),
         request_body=QueryConfItemSerializer(),

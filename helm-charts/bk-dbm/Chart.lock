@@ -10,7 +10,7 @@ dependencies:
   version: 16.13.2
 - name: etcd
   repository: https://charts.bitnami.com/bitnami
-  version: 9.7.3
+  version: 9.7.5
 - name: reloader
   repository: https://stakater.github.io/stakater-charts
   version: 1.0.52
@@ -19,7 +19,7 @@ dependencies:
   version: 7.9.8
 - name: dbm
   repository: file://charts/dbm
-  version: 0.1.30
+  version: 0.1.31
 - name: dbconfig
   repository: file://charts/dbconfig
   version: 0.1.10
@@ -56,5 +56,5 @@ dependencies:
 - name: backup-consumer
   repository: file://charts/backup-consumer
   version: 0.0.3
-digest: sha256:916a9e0df182e58dfc4fc4e9951ec9629d016e9f45389207d373ac4e214440d2
-generated: "2023-12-01T21:34:25.22532+08:00"
+digest: sha256:840f130e8876f8f38017173d8fb851dd802fccf61b263fe74ab4fbd4618994c9
+generated: "2023-12-09T16:28:41.795535+08:00"

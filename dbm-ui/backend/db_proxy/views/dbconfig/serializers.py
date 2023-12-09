@@ -13,11 +13,11 @@ from rest_framework import serializers
 
 from backend.components.dbconfig.constants import FormatType, LevelName
 from backend.db_proxy.views import mock_data
-from backend.db_proxy.views.serialiers import BaseProxyPassSerialier
+from backend.db_proxy.views.serialiers import BaseProxyPassSerializer
 from backend.flow.consts import ConfigTypeEnum
 
 
-class QueryConfItemSerializer(BaseProxyPassSerialier):
+class QueryConfItemSerializer(BaseProxyPassSerializer):
     bk_biz_id = serializers.CharField(help_text=_("业务ID"))
     conf_file = serializers.CharField(help_text=_("conf_file 可以是,号分隔的多个文件名，返回结果是一个按照配置文件名组合的一个 list"))
     conf_name = serializers.CharField(
@@ -39,7 +39,7 @@ class QueryConfItemResponseSerializer(serializers.Serializer):
         swagger_schema_fields = {"example": mock_data.QUERY_CONF_ITEM_DATA_RESPONSE}
 
 
-class BatchGetConfItemSerializer(BaseProxyPassSerialier):
+class BatchGetConfItemSerializer(BaseProxyPassSerializer):
     conf_file = serializers.CharField(
         help_text=_("配置文件名，一般配置类型与配置文件一一对应，但如 mysql 5.6, 5.7 两个版本同" "属 dbconf 配置，所以有 MySQL-5.5, MySQL-5.6 两个配置文件")
     )

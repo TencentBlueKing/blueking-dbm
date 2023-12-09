@@ -13,7 +13,7 @@ from django.utils.translation import ugettext_lazy as _
 from backend.configuration.constants import DBType
 from blue_krill.data_types.enum import EnumField, StructuredEnum
 
-SWAGGER_TAG = _("透传服务")
+SWAGGER_TAG = _("透传服务(proxypass)")
 
 NGINX_PUSH_TARGET_PATH = "/usr/local/bkdb/nginx-portable/conf/cluster_service/"
 

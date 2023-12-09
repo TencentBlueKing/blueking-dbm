@@ -11,8 +11,8 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
-from backend.db_proxy.views.serialiers import BaseProxyPassSerialier
+from backend.db_proxy.views.serialiers import BaseProxyPassSerializer
 
 
-class UploadSerializer(BaseProxyPassSerialier):
+class UploadSerializer(BaseProxyPassSerializer):
     file = serializers.FileField(help_text=_("上传文件"))

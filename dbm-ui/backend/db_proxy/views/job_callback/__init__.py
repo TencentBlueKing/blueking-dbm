@@ -8,19 +8,3 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-
-from django.utils.translation import gettext_lazy as _
-from rest_framework import serializers
-
-from backend.db_proxy.views.serialiers import BaseProxyPassSerializer
-
-
-class RPCSerializer(BaseProxyPassSerializer):
-    addresses = serializers.ListField(help_text=_("实例列表"), child=serializers.CharField())
-    cmds = serializers.ListField(help_text=_("SQL命令列表"), child=serializers.CharField())
-    force = serializers.BooleanField(help_text=_("是否强制执行"), required=False, default=False)
-
-
-class RPCResponseSerializer(serializers.Serializer):
-    class Meta:
-        swagger_schema_fields = {"example": {}}

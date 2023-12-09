@@ -12,10 +12,10 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import ugettext as _
 from rest_framework import serializers
 
-from backend.db_proxy.views.serialiers import BaseProxyPassSerialier
+from backend.db_proxy.views.serialiers import BaseProxyPassSerializer
 
 
-class ProxyPasswordSerializer(BaseProxyPassSerialier):
+class ProxyPasswordSerializer(BaseProxyPassSerializer):
     class InstanceDetailSerializer(serializers.Serializer):
         ip = serializers.CharField(help_text=_("实例ip"))
         port = serializers.IntegerField(help_text=_("实例port"))

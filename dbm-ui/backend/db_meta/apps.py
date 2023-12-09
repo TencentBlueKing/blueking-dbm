@@ -25,10 +25,11 @@ def init_db_meta(sender, **kwargs):
     from .models.spec import Spec
 
     try:
-        logical_city = LogicalCity.objects.create(name="default")
-        BKCity.objects.create(bk_idc_city_name="default", logical_city=logical_city)
+        if not LogicalCity.objects.count():
+            logical_city = LogicalCity.objects.create(name="default")
+            BKCity.objects.create(bk_idc_city_name="default", logical_city=logical_city)
     except Exception as err:  # pylint: disable=broad-except:
-        logger.warning(f"City init occur error: {err}, maybe already init, ignore...")
+        logger.warning(f"City init occur error: {err}, ignore...")
 
     # 初始化规格配置
     try:
