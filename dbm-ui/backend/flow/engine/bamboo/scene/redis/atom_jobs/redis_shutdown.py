@@ -64,7 +64,8 @@ def RedisBatchShutdownAtomJob(root_id, ticket_data, sub_kwargs: ActKwargs, shutd
     act_kwargs.cluster["monitor_time_ms"] = DEFAULT_MONITOR_TIME
     act_kwargs.cluster["ignore_req"] = shutdown_param.get("force_shutdown", False)
     act_kwargs.cluster["ignore_keys"] = DEFAULT_REDIS_SYSTEM_CMDS
-    # act_kwargs.cluster["ignore_keys"].extend(shutdown_param["ignore_ips"])
+    if "ignore_ips" in shutdown_param:
+        act_kwargs.cluster["ignore_keys"].extend(shutdown_param["ignore_ips"])
     act_kwargs.get_redis_payload_func = RedisActPayload.redis_capturer_4_scene.__name__
     sub_pipeline.add_act(
         act_name=_("请求检查-{}").format(exec_ip),

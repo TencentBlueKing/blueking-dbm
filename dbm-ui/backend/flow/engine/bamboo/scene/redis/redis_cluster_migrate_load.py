@@ -200,6 +200,14 @@ class RedisClusterMigrateLoadFlow(object):
                 ),
             )
 
+            # ./dbactuator_redis --atom-job-list="sys_init"
+            act_kwargs.get_redis_payload_func = RedisActPayload.get_sys_init_payload.__name__
+            sub_pipeline.add_act(
+                act_name=_("初始化机器"),
+                act_component_code=ExecuteDBActuatorScriptComponent.code,
+                kwargs=asdict(act_kwargs),
+            )
+
             # proxy 相关操作
             act_kwargs.cluster = copy.deepcopy(cluster_tpl)
             act_kwargs.cluster["machine_type"] = proxy_type

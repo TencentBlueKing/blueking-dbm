@@ -106,7 +106,7 @@ class RedisClusterShutdownFlow(object):
             "monitor_time_ms": DEFAULT_MONITOR_TIME,
             # 集群下架时，默认先关闭，所以这个实例应该没有请求了才对，所以这里应该是强制下架
             "ignore_req": True,
-            "ignore_keys": DEFAULT_REDIS_SYSTEM_CMDS,
+            "ignore_keys": DEFAULT_REDIS_SYSTEM_CMDS + redis_ips,
         }
         act_kwargs.bk_cloud_id = cluster_info["bk_cloud_id"]
 

@@ -287,7 +287,7 @@ func (job *RedisFlushData) RandomKey(port, db int) error {
 		return err
 	}
 
-	if key != "" {
+	if key != "" && !strings.HasPrefix(key, "dbha:agent:") {
 		return fmt.Errorf("flush port[%d] db[%d] failed pleach check key[%s]", port, db, key)
 	}
 	job.runtime.Logger.Info("exec randomkey port[%d] db[%d] done.......", port, db)
