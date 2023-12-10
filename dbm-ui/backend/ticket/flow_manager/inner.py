@@ -96,7 +96,7 @@ class InnerFlow(BaseTicketFlow):
 
     @property
     def _url(self) -> str:
-        return f"/database/{self.ticket.bk_biz_id}/task-history/detail/{self.root_id}/"
+        return f"/{self.ticket.bk_biz_id}/task-history/detail/{self.root_id}"
 
     def check_exclusive_operations(self):
         """判断执行互斥"""

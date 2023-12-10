@@ -46,7 +46,7 @@ requestMiddleware(axios.interceptors.request);
 responseMiddleware(axios.interceptors.response);
 
 const { CancelToken } = axios;
-const CRRF_TOKEN_KEY = 'dbm_csrftoken';
+const CSRF_TOKEN_KEY = 'dbm_csrftoken';
 
 const csrfHashCode = (key:string) => {
   let hashCode = 5381;
@@ -55,7 +55,7 @@ const csrfHashCode = (key:string) => {
   }
   return hashCode & 0x7fffffff;
 };
-const CSRFToken = Cookie.get(CRRF_TOKEN_KEY);
+const CSRFToken = Cookie.get(CSRF_TOKEN_KEY);
 
 axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
 if (CSRFToken !== undefined) {
@@ -68,7 +68,7 @@ const defaultConfig = {
   headers: {},
   withCredentials: true,
   paramsSerializer,
-  xsrfCookieName: 'bk-audit_csrftoken',
+  xsrfCookieName: 'dbm_csrftoken',
   xsrfHeaderName: 'X-CSRFToken',
 };
 
