@@ -948,7 +948,7 @@ class RedisActPayload(object):
         """
         params = kwargs["params"]
         self.namespace = params["cluster_type"]
-        redis_config = self.__get_cluster_config(params["immute_domain"], params["db_version"], ConfigTypeEnum.DBConf)
+        passwd_ret = PayloadHandler.redis_get_password_by_domain(params["immute_domain"])
 
         replica_pairs = []
         for pair in params["ms_link"]:
@@ -958,8 +958,8 @@ class RedisActPayload(object):
                     "master_port": int(pair["master_port"]),
                     "slave_ip": pair["slave_ip"],
                     "slave_port": int(pair["slave_port"]),
-                    "master_auth": redis_config["requirepass"],  # ??!
-                    "slave_password": redis_config["requirepass"],
+                    "master_auth": passwd_ret.get("redis_password"),
+                    "slave_password": passwd_ret.get("redis_password"),
                 }
             )
         return {
@@ -972,11 +972,19 @@ class RedisActPayload(object):
     def get_redis_install_4_scene(self, **kwargs) -> dict:
         """安装redis
         {"exec_ip":"xxx", "start_port":30000,"inst_num":12,"cluster_type":"","db_version":"","immute_domain":""}
+        如果是扩缩容，则可能会有一个origin_db_version表示老集群版本。安装需要拿新版本的二进制，但是配置还是要用老的
         """
         params = kwargs["params"]
         self.namespace = params["cluster_type"]
         self.__get_redis_pkg(params["cluster_type"], params["db_version"])
-        redis_config = self.__get_cluster_config(params["immute_domain"], params["db_version"], ConfigTypeEnum.DBConf)
+        if "origin_db_version" in params:
+            redis_config = self.__get_cluster_config(
+                params["immute_domain"], params["origin_db_version"], ConfigTypeEnum.DBConf
+            )
+        else:
+            redis_config = self.__get_cluster_config(
+                params["immute_domain"], params["db_version"], ConfigTypeEnum.DBConf
+            )
 
         redis_conf = copy.deepcopy(redis_config)
         install_payload = {

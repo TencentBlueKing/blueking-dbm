@@ -511,6 +511,11 @@ class RedisDBMeta(object):
             switch_type=self.cluster["switch_condition"]["sync_type"],
         )
 
+        if "origin_db_version" in self.cluster:
+            if self.cluster["origin_db_version"] != self.cluster["db_version"]:
+                cluster.major_version = self.cluster["db_version"]
+                cluster.save()
+
     def update_rollback_task_status(self) -> bool:
         """
         更新构造记录为已销毁
@@ -631,6 +636,7 @@ class RedisDBMeta(object):
         cluster = Cluster.objects.get(
             bk_cloud_id=self.cluster["bk_cloud_id"], immute_domain=self.cluster["immute_domain"]
         )
+        proxy_objs = cluster.proxyinstance_set.all()
         clb_cluster_entry = ClusterEntry.objects.create(
             cluster=cluster,
             cluster_entry_type=entry_type,
@@ -638,16 +644,21 @@ class RedisDBMeta(object):
             creator=self.cluster["created_by"],
         )
         clb_cluster_entry.save()
-        if self.cluster["clb_domain"] != "":
+        clb_cluster_entry.proxyinstance_set.add(*proxy_objs)
+        clb_domain = ""
+        if "clb_domain" in self.cluster:
+            clb_domain = self.cluster["clb_domain"]
+        if clb_domain != "":
             entry_type = ClusterEntryType.CLBDNS
             clbdns_cluster_entry = ClusterEntry.objects.create(
                 cluster=cluster,
                 cluster_entry_type=entry_type,
                 forward_to_id=clb_cluster_entry.id,
-                entry=self.cluster["clb_domain"],
+                entry=clb_domain,
                 creator=self.cluster["created_by"],
             )
             clbdns_cluster_entry.save()
+            clbdns_cluster_entry.proxyinstance_set.add(*proxy_objs)
         clb_entry = CLBEntryDetail.objects.create(
             clb_ip=self.cluster["ip"],
             clb_id=self.cluster["id"],
@@ -665,6 +676,7 @@ class RedisDBMeta(object):
         cluster = Cluster.objects.get(
             bk_cloud_id=self.cluster["bk_cloud_id"], immute_domain=self.cluster["immute_domain"]
         )
+        proxy_objs = cluster.proxyinstance_set.all()
         cluster_entry = ClusterEntry.objects.create(
             cluster=cluster,
             cluster_entry_type=ClusterEntryType.POLARIS,
@@ -672,6 +684,7 @@ class RedisDBMeta(object):
             creator=self.cluster["created_by"],
         )
         cluster_entry.save()
+        cluster_entry.proxyinstance_set.add(*proxy_objs)
         alias_token = ""
         if self.cluster.get("alias_token"):
             alias_token = self.cluster["alias_token"]

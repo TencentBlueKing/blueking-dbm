@@ -95,7 +95,6 @@ class RedisBackendScaleFlow(object):
                 )
 
             master_slave_map[master_obj.machine.ip] = slave_obj.machine.ip
-        version = version or cluster.major_version
         return {
             "cluster_id": cluster.id,
             "immute_domain": cluster.immute_domain,
@@ -107,7 +106,8 @@ class RedisBackendScaleFlow(object):
             "ins_pair_map": dict(ins_pair_map),
             "proxy_ips": [proxy_obj.machine.ip for proxy_obj in cluster.proxyinstance_set.all()],
             "master_slave_map": dict(master_slave_map),
-            "db_version": version,
+            "db_version": version or cluster.major_version,
+            "origin_db_version": cluster.major_version,
         }
 
     def __init_builder(self, operate_name: str, info: dict):
@@ -226,6 +226,23 @@ class RedisBackendScaleFlow(object):
                 shutdown_ip_ports_map[old_slave].append(int(old_slave_port))
         return dict(shutdown_ip_ports_map)
 
+    def generate_shutdown_ignore_ips(self, act_kwargs) -> dict:
+        """
+        老master和slave的复制关系，忽略来源为slave的请求
+        """
+        shutdown_ignore_ips_map = defaultdict(list)
+        for old_master, old_master_ports in act_kwargs.cluster["master_ip_ports_map"].items():
+            for old_master_port in old_master_ports:
+                old_master_ins = "{}:{}".format(old_master, old_master_port)
+                old_slave_ins = act_kwargs.cluster["ins_pair_map"][old_master_ins]
+                old_slave = old_slave_ins.split(IP_PORT_DIVIDER)[0]
+
+                shutdown_ignore_ips_map[old_master].append(old_slave)
+                shutdown_ignore_ips_map[old_slave].append(old_master)
+        for k, v in shutdown_ignore_ips_map.items():
+            shutdown_ignore_ips_map[k] = list(set(v))
+        return dict(shutdown_ignore_ips_map)
+
     def redis_backend_scale_flow(self):
         """
         redis 扩缩容流程：
@@ -299,7 +316,6 @@ class RedisBackendScaleFlow(object):
                 redis_sync_sub_pipelines.append(sub_builder)
             sub_pipeline.add_parallel_sub_pipeline(sub_flow_list=redis_sync_sub_pipelines)
 
-            # TODO 增加一个等待节点
             # 进行切换
             act_kwargs.cluster["cluster_id"] = info["cluster_id"]
             act_kwargs.cluster["switch_condition"] = {
@@ -316,11 +332,9 @@ class RedisBackendScaleFlow(object):
             redis_shutdown_sub_pipelines = []
             act_kwargs.cluster["created_by"] = self.data["created_by"]
             shutdown_ip_ports = self.generate_shutdown_ins(act_kwargs)
+            shutdown_ignore_ips = self.generate_shutdown_ignore_ips(act_kwargs)
             for ip, ports in shutdown_ip_ports.items():
-                params = {
-                    "ip": ip,
-                    "ports": ports,
-                }
+                params = {"ip": ip, "ports": ports, "ignore_ips": shutdown_ignore_ips[ip], "force_shutdown": False}
                 redis_shutdown_sub_pipelines.append(
                     RedisBatchShutdownAtomJob(self.root_id, self.data, act_kwargs, params)
                 )
