@@ -46,7 +46,7 @@ requestMiddleware(axios.interceptors.request);
 responseMiddleware(axios.interceptors.response);
 
 const { CancelToken } = axios;
-const CRRF_TOKEN_KEY = 'bk-audit_csrftoken';
+const CRRF_TOKEN_KEY = 'dbm_csrftoken';
 
 const csrfHashCode = (key:string) => {
   let hashCode = 5381;
