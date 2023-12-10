@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import itertools
 import math
 from typing import Any, Dict, List
 
@@ -218,13 +219,17 @@ class ResourceHandler(object):
         resource_type = ClusterType.cluster_type_to_db_type(spec_cluster_type[0])
         # 构造申请参数
         spec_count_details = [
-            spec.get_apply_params_detail(group_mark=str(spec.spec_id), count=0, bk_cloud_id=bk_cloud_id)
+            spec.get_group_apply_params(group_mark=str(spec.spec_id), count=1, group_count=1, bk_cloud_id=bk_cloud_id)
             for spec in specs
         ]
+        spec_count_details = list(itertools.chain(*spec_count_details))
         spec_count_params = {
             "for_biz_id": bk_biz_id,
             "resource_type": resource_type,
             "bk_cloud_id": bk_cloud_id,
             "details": spec_count_details,
         }
-        return DBResourceApi.apply_count(params=spec_count_params)
+        # 获取规格的预估数量，注意剔除分组后缀
+        spec_apply_count = DBResourceApi.apply_count(params=spec_count_params)
+        spec_apply_count = {k.split("_")[0]: v for k, v in spec_apply_count.items()}
+        return spec_apply_count

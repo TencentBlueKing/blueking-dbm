@@ -13,6 +13,7 @@ import datetime
 from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
+from backend.configuration.constants import AffinityEnum
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Cluster
 from backend.db_services.dbbase.constants import IpSource
@@ -80,6 +81,16 @@ class RedisFixPointMakeParamBuilder(builders.FlowParamBuilder):
 
 
 class RedisFixPointMakeResourceParamBuilder(builders.ResourceApplyParamBuilder):
+    def format(self):
+        # 申请的机器 和 现网集群同城即可， 无所谓是否 跨机房、同机房
+        cluster_ids = [info["cluster_id"] for info in self.ticket_data["infos"]]
+        id__cluster = {cluster.id: cluster for cluster in Cluster.objects.filter(id__in=cluster_ids)}
+        for info in self.ticket_data["infos"]:
+            cluster = id__cluster[info["cluster_id"]]
+            info["resource_spec"]["redis"].update(
+                affinity=AffinityEnum.NONE.value, location_spec={"city": cluster.region, "sub_zone_ids": []}
+            )
+
     def post_callback(self):
         super().post_callback()
 

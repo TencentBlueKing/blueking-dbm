@@ -91,8 +91,10 @@ class RedisShardUpdateParamBuilder(builders.FlowParamBuilder):
 
 class RedisShardUpdateResourceParamBuilder(RedisUpdateApplyResourceParamBuilder):
     def format(self):
-        # TODO: 亲和性待进一步细化：申请的 接入层  至少 1/3 不同机房， 存储层 master 和他的 slave 不能一个机房;
-        self.patch_info_affinity_location(roles=["backend_group"])
+        # 亲和性进一步细化：申请的 接入层  至少 1/2 不同机房，存储层 master 和他的 slave 不能一个机房;
+        self.patch_info_affinity_location(roles=["backend_group", "proxy"])
+        for info in self.ticket_data["infos"]:
+            info["resource_spec"]["proxy"]["group_count"] = 2
 
 
 @builders.BuilderFactory.register(TicketType.REDIS_CLUSTER_SHARD_NUM_UPDATE, is_apply=True)

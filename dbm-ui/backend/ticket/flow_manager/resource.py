@@ -176,11 +176,11 @@ class ResourceApplyFlow(BaseTicketFlow):
             host_infos = self._format_resource_hosts(info["data"])
             # 如果是部署方案的分组，则用backend_group包裹。里面每一小组是一对master/slave;
             # 否则就按角色分组填入
+            group_name = role.rsplit("_", 1)[0]
             if "backend_group" in role:
-                backend_group_name = role.rsplit("_", 1)[0]
-                node_infos[backend_group_name].append({"master": host_infos[0], "slave": host_infos[1]})
+                node_infos[group_name].append({"master": host_infos[0], "slave": host_infos[1]})
             else:
-                node_infos[role] = host_infos
+                node_infos[group_name].extend(host_infos)
 
         return resource_request_id, node_infos
 
@@ -218,21 +218,19 @@ class ResourceApplyFlow(BaseTicketFlow):
                 continue
             # 填充规格申请参数
             if role == "backend_group":
-                details.extend(
-                    Spec.objects.get(spec_id=role_spec["spec_id"]).get_backend_group_apply_params_detail(
-                        bk_cloud_id=bk_cloud_id, backend_group=role_spec
-                    )
-                )
+                count, group_count = int(role_spec["count"]) * 2, 2
             else:
-                details.append(
-                    Spec.objects.get(spec_id=role_spec["spec_id"]).get_apply_params_detail(
-                        group_mark=role,
-                        count=int(role_spec["count"]),
-                        bk_cloud_id=bk_cloud_id,
-                        affinity=role_spec.get("affinity", AffinityEnum.NONE.value),
-                        location_spec=role_spec.get("location_spec"),
-                    )
+                count, group_count = int(role_spec["count"]), int(role_spec.get("group_count", role_spec["count"]))
+            details.extend(
+                Spec.objects.get(spec_id=role_spec["spec_id"]).get_group_apply_params(
+                    group_mark=role,
+                    count=count,
+                    bk_cloud_id=bk_cloud_id,
+                    group_count=group_count,
+                    affinity=role_spec.get("affinity", AffinityEnum.NONE.value),
+                    location_spec=role_spec.get("location_spec"),
                 )
+            )
 
         if not details:
             raise ResourceApplyException(_("申请的资源总数为0，资源申请不合法"))
