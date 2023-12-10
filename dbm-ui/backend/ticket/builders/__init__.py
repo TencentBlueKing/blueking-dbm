@@ -230,9 +230,9 @@ class ResourceApplyParamBuilder(CallBackBuilderMixin):
         """
         pass
 
-    def patch_info_affinity_location(self, roles):
+    def patch_info_affinity_location(self, roles=None):
         """
-        节点变更的时候，补充亲和性和位置参数
+        批量节点变更的时候，补充亲和性和位置参数
         """
         from backend.ticket.builders.common.base import fetch_cluster_ids
 
@@ -240,9 +240,17 @@ class ResourceApplyParamBuilder(CallBackBuilderMixin):
         id__cluster = {cluster.id: cluster for cluster in Cluster.objects.filter(id__in=cluster_ids)}
         for info in self.ticket_data["infos"]:
             cluster = id__cluster[info.get("cluster_id") or info.get("src_cluster")]
-            for role in roles:
-                info["resource_spec"][role]["affinity"] = cluster.disaster_tolerance_level
-                info["resource_spec"][role]["location_spec"] = {"city": cluster.region, "sub_zone_ids": []}
+            self.patch_affinity_location(cluster, info["resource_spec"], roles)
+
+    @classmethod
+    def patch_affinity_location(cls, cluster, resource_spec, roles=None):
+        """
+        节点变更的时候，补充亲和性和位置参数
+        """
+        resource_role = roles or resource_spec.keys()
+        for role in resource_role:
+            resource_spec[role]["affinity"] = cluster.disaster_tolerance_level
+            resource_spec[role]["location_spec"] = {"city": cluster.region, "sub_zone_ids": []}
 
 
 class TicketFlowBuilder:
