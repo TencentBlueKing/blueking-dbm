@@ -83,8 +83,6 @@
   import { grammarCheck } from '@services/source/sqlImport';
   import { getFileContent } from '@services/source/storage';
 
-  import { useGlobalBizs } from '@stores';
-
   import { getSQLFilename } from '@utils';
 
   import { updateFilePath } from '../../../Index.vue';
@@ -109,7 +107,6 @@
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
 
-  const { currentBizId } = useGlobalBizs();
   const { t } = useI18n();
 
   let isKeepAliveActive = false;
@@ -281,26 +278,24 @@
     }
 
 
-    grammarCheck({
-      bk_biz_id: currentBizId,
-      body: params,
-    }).then((data) => {
-      const lastUploadFileDataMap = { ...uploadFileDataMap.value };
-      Object.keys(data).forEach((realFilePath) => {
-        const grammarCheckResult = data[realFilePath];
-        lastUploadFileDataMap[grammarCheckResult.raw_file_name] = {
-          ...lastUploadFileDataMap[grammarCheckResult.raw_file_name],
-          realFilePath,
-          isSuccess: true,
-          content: grammarCheckResult.content,
-          messageList: grammarCheckResult.messageList,
-          isCheckFailded: grammarCheckResult.isError,
-          grammarCheck: grammarCheckResult,
-        };
-      });
-      uploadFileDataMap.value = lastUploadFileDataMap;
-      triggerChange();
-    })
+    grammarCheck(params)
+      .then((data) => {
+        const lastUploadFileDataMap = { ...uploadFileDataMap.value };
+        Object.keys(data).forEach((realFilePath) => {
+          const grammarCheckResult = data[realFilePath];
+          lastUploadFileDataMap[grammarCheckResult.raw_file_name] = {
+            ...lastUploadFileDataMap[grammarCheckResult.raw_file_name],
+            realFilePath,
+            isSuccess: true,
+            content: grammarCheckResult.content,
+            messageList: grammarCheckResult.messageList,
+            isCheckFailded: grammarCheckResult.isError,
+            grammarCheck: grammarCheckResult,
+          };
+        });
+        uploadFileDataMap.value = lastUploadFileDataMap;
+        triggerChange();
+      })
       .catch(() => {
         const lastUploadFileDataMap = { ...uploadFileDataMap.value };
         fileNameList.forEach((fileName) => {

@@ -70,8 +70,6 @@
   import { grammarCheck } from '@services/source/sqlImport';
   import { getFileContent } from '@services/source/storage';
 
-  import { useGlobalBizs } from '@stores';
-
   import { updateFilePath } from '../../../Index.vue';
   import Editor from '../editor/Index.vue';
 
@@ -90,7 +88,6 @@
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
 
-  const { currentBizId } = useGlobalBizs();
   const { t } = useI18n();
 
   let isKeepAliveActive = false;
@@ -173,13 +170,11 @@
     isCheckError.value = false;
     const params = new FormData();
     params.append('sql_content', content.value);
-    grammarCheck({
-      bk_biz_id: currentBizId,
-      body: params,
-    }).then((data) => {
-      grammarCheckData = data;
-      triggerChange();
-    })
+    grammarCheck(params)
+      .then((data) => {
+        grammarCheckData = data;
+        triggerChange();
+      })
       .catch(() => {
         isCheckError.value = true;
         emits('grammar-check', true, false);

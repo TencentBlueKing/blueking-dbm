@@ -1,6 +1,3 @@
-import axios from 'axios';
-import Cookies from 'js-cookie';
-
 import GrammarCheckModel from '@services/model/sql-import/grammar-check';
 import QuerySemanticExecuteResultModel from '@services/model/sql-import/query-semantic-execute-result';
 import SemanticCheckResultModel from '@services/model/sql-import/semantic-check-result';
@@ -39,27 +36,8 @@ export function getUserSemanticTasks(params: {
 /**
  * sql 语法检测
  */
-export function grammarCheck(params: {
-  bk_biz_id: number,
-  body: FormData
-}) {
-  return axios({
-    baseURL: window.PROJECT_ENV.VITE_AJAX_URL_PREFIX,
-    url: `/apis/mysql/bizs/${window.PROJECT_CONFIG.BIZ_ID}/sql_import/grammar_check/`,
-    method: 'POST',
-    data: params.body,
-    timeout: 60000,
-    headers: {
-      'X-CSRFToken': Cookies.get('dbm_csrftoken'),
-    },
-    withCredentials: true,
-  })
-    .then((data) => {
-      if (data.data.code !== 0) {
-        throw new Error(data.data.message);
-      }
-      return data.data.data;
-    })
+export function grammarCheck(params: FormData) {
+  return http.post(`/apis/mysql/bizs/${window.PROJECT_CONFIG.BIZ_ID}/sql_import/grammar_check/`, params)
     .then(data => Object.keys(data).reduce((result, key) => ({
       ...result,
       [key]: new GrammarCheckModel(data[key]),

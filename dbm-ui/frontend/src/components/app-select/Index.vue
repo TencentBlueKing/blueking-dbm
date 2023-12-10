@@ -1,17 +1,37 @@
 <template>
   <AppSelect
-    :data="bizList"
+    :data="withFavorBizList"
     :generate-key="(item: IAppItem) => item.bk_biz_id"
     :generate-name="(item: IAppItem) => item.display_name"
     style="margin: 0 12px"
     theme="dark"
     :value="currentBiz"
-    @change="handleAppChange" />
+    @change="handleAppChange">
+    <template #default="{ data }">
+      <div class="db-app-select-item">
+        <div>{{ data.name }} (#{{ data.bk_biz_id }})</div>
+        <div style="margin-left: auto;">
+          <DbIcon
+            v-if="favorBizIdMap[data.bk_biz_id]"
+            class="unfavor-btn"
+            style="color: #ffb848;"
+            type="star-fill"
+            @click.stop="handleUnfavor(data.bk_biz_id)" />
+          <DbIcon
+            v-else
+            class="favor-btn"
+            type="star"
+            @click.stop="handleFavor(data.bk_biz_id)" />
+        </div>
+      </div>
+    </template>
+  </AppSelect>
 </template>
 <script setup lang="ts">
   import _ from 'lodash';
   import {
     computed,
+    shallowRef,
   } from 'vue';
   import {
     useRoute,
@@ -22,7 +42,12 @@
 
   import {
     useGlobalBizs,
+    useUserProfile,
   } from '@stores';
+
+  import { UserPersonalSettings } from '@common/const';
+
+  import { makeMap } from '@utils';
 
   import AppSelect from '@blueking/app-select';
 
@@ -32,12 +57,16 @@
 
   const route = useRoute();
   const router = useRouter();
+  const userProfile = useUserProfile();
 
   const {
     bizs: bizList,
   } = useGlobalBizs();
 
+  const favorBizIdMap = shallowRef(makeMap(userProfile.profile[UserPersonalSettings.APP_FAVOR] || []));
+
   const currentBiz = computed(() => _.find(bizList, item => item.bk_biz_id === window.PROJECT_CONFIG.BIZ_ID));
+  const withFavorBizList = computed(() => _.sortBy(bizList, item => favorBizIdMap.value[item.bk_biz_id]));
 
   const handleAppChange = (appInfo: IAppItem) => {
     const {
@@ -88,17 +117,59 @@
       return;
     }
     // 重定向到指定的路由name
-    if (redirect && _.isPlainObject(redirect) && redirect.name) {
-      const route = router.resolve({
-        name: redirect.name,
-      });
-      reload(route.href);
-      return;
+    if (redirect && _.isPlainObject(redirect)) {
+      const redirectName = (redirect as {name: string}).name;
+      if (redirectName) {
+        const route = router.resolve({
+          name: redirectName,
+        });
+        reload(route.href);
+        return;
+      }
     }
     reload(path);
   };
+
+  const handleUnfavor = (bizId: number) => {
+    const lastFavorBizIdMap = { ...favorBizIdMap.value };
+    delete lastFavorBizIdMap[bizId];
+    favorBizIdMap.value = lastFavorBizIdMap;
+
+    userProfile.updateProfile({
+      label: UserPersonalSettings.APP_FAVOR,
+      values: Object.keys(lastFavorBizIdMap),
+    });
+  };
+
+  const handleFavor = (bizId: number) => {
+    favorBizIdMap.value = {
+      ...favorBizIdMap.value,
+      [bizId]: true,
+    };
+    userProfile.updateProfile({
+      label: UserPersonalSettings.APP_FAVOR,
+      values: Object.keys(favorBizIdMap.value),
+    });
+  };
 </script>
 <style lang="less">
+.db-app-select-item{
+  display: flex;
+  align-items: center;
+  width: 100%;
+
+  &:hover{
+    .favor-btn{
+      opacity: 100%;
+    }
+  }
+
+  .favor-btn{
+    opacity: 0%;
+    transition: all .1s;
+  }
+}
+
 .tippy-box[data-theme="bk-app-select-menu"]{
   border: none !important;
   box-shadow: 0 2px 3px 0 rgb(0 0 0 / 10%) !important;
