@@ -236,13 +236,21 @@ class BigDataRebootDetailSerializer(BigDataSingleClusterOpsDetailsSerializer):
 class BigDataScaleUpResourceParamBuilder(builders.ResourceApplyParamBuilder):
     def format(self):
         super(BigDataScaleUpResourceParamBuilder, self).format()
-        self.ticket_data["bk_cloud_id"] = Cluster.objects.get(id=self.ticket_data["cluster_id"]).bk_cloud_id
+        # 补充亲和性和位置参数
+        cluster = Cluster.objects.get(id=self.ticket_data["cluster_id"])
+        self.patch_affinity_location(cluster, self.ticket_data["resource_spec"])
+        # 补充云区域信息
+        self.ticket_data["bk_cloud_id"] = cluster.bk_cloud_id
 
 
 class BigDataReplaceResourceParamBuilder(builders.ResourceApplyParamBuilder):
     def format(self):
         super(BigDataReplaceResourceParamBuilder, self).format()
-        self.ticket_data["bk_cloud_id"] = Cluster.objects.get(id=self.ticket_data["cluster_id"]).bk_cloud_id
+        # 补充亲和性和位置参数
+        cluster = Cluster.objects.get(id=self.ticket_data["cluster_id"])
+        self.patch_affinity_location(cluster, self.ticket_data["resource_spec"])
+        # 补充云区域信息
+        self.ticket_data["bk_cloud_id"] = cluster.bk_cloud_id
 
     def post_callback(self):
         next_flow = self.ticket.next_flow()

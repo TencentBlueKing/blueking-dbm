@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+from django.db.transaction import atomic
 from django.utils.translation import ugettext as _
 from pipeline.component_framework.component import Component
 
@@ -88,13 +89,16 @@ class MySQLChecksumReportService(BaseService):
             return False
 
         self.log_info(_("uid:{}".format(global_data["uid"])))
-        ticket = Ticket.objects.get(id=global_data["uid"])
-        flags = ticket.details.get("is_consistent_list", {})
-        flags.update({address: trans_data.is_consistent})
-        ticket.update_details(
-            is_consistent_list=flags, checksum_table="{}{}".format(CHECKSUM_TABlE_PREFIX, global_data["ran_str"])
-        )
-        ticket.save()
+
+        # 原子更新：将校验结果插入ticket信息中，用后后续ticket flow上下文获取
+        with atomic():
+            ticket = Ticket.objects.select_for_update().get(id=global_data["uid"])
+            flags = ticket.details.get("is_consistent_list", {})
+            flags.update({address: trans_data.is_consistent})
+            ticket.update_details(
+                is_consistent_list=flags, checksum_table="{}{}".format(CHECKSUM_TABlE_PREFIX, global_data["ran_str"])
+            )
+
         return True
 
     @staticmethod

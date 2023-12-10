@@ -75,7 +75,14 @@ class Spec(AuditedModel):
 
         return sum(map(lambda x: int(x), mount_point__size.values()))
 
-    def get_apply_params_detail(self, group_mark, count, bk_cloud_id, affinity=AffinityEnum.NONE, location_spec=None):
+    def _get_apply_params_detail(self, group_mark, count, bk_cloud_id, affinity=AffinityEnum.NONE, location_spec=None):
+        # 如果没有城市信息，则自动忽略亲和性(default表示无城市信息)
+        if location_spec and location_spec["city"] == "default":
+            location_spec = None
+
+        if not location_spec:
+            affinity = AffinityEnum.NONE
+
         # 获取资源申请的detail过程，暂时忽略亲和性和位置参数过滤
         spec_offset = SystemSettings.get_setting_value(SystemSettingsEnum.SPEC_OFFSET)
         apply_params = {
@@ -101,26 +108,44 @@ class Spec(AuditedModel):
                 for storage_spec in self.storage_spec
             ],
             "count": count,
-            "affinity": affinity,
+            "affinity": affinity.value,
         }
         if location_spec:
             apply_params["location_spec"] = location_spec
 
         return apply_params
 
-    def get_backend_group_apply_params_detail(self, bk_cloud_id, backend_group):
-        # 专属于后端：如果一组master/slave有特殊要求，则采用backend_group申请
-        backend_group_params = [
-            self.get_apply_params_detail(
-                group_mark=f"backend_group_{group}",
-                count=2,
+    def get_group_apply_params(
+        self, bk_cloud_id, group_mark, count, group_count, affinity=AffinityEnum.NONE.value, location_spec=None
+    ):
+        """
+        根据规格和分组要求，获取资源申请参数
+        @param group_mark: 组名
+        @param group_count: 每组资源数量
+        @param count: 总数量. count // group_count表示申请组数，每一组都会有亲和性和位置参数的限制
+        比如你想申请一批proxy机器，要求这一批proxy机器:
+        1. 至少分布在2个以上的机房，那么亲和性你就需要选择"跨机房"，group_count=2
+        2. 至少分布在3个以上的机房，那么亲和性你就需要选择"跨机房"，group_count=3
+        ....
+        @param bk_cloud_id: 云区域ID
+        @param affinity: 亲和性
+        @param location_spec: 位置参数
+        """
+        group_count_list = [group_count] * (count // group_count)
+        if count % group_count:
+            group_count_list.append(count % group_count)
+
+        group_params = [
+            self._get_apply_params_detail(
+                group_mark=f"{group_mark}_{index}",
+                count=num,
                 bk_cloud_id=bk_cloud_id,
-                affinity=backend_group.get("affinity", AffinityEnum.NONE),
-                location_spec=backend_group.get("location_spec", None),
+                affinity=affinity,
+                location_spec=location_spec,
             )
-            for group in range(backend_group["count"])
+            for index, num in enumerate(group_count_list)
         ]
-        return backend_group_params
+        return group_params
 
     def get_spec_info(self):
         # 获取规格的基本信息

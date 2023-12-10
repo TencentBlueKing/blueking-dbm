@@ -248,6 +248,10 @@ class RedisClusterApplyFlowParamBuilder(builders.FlowParamBuilder):
 
 
 class RedisApplyResourceParamBuilder(builders.ResourceApplyParamBuilder):
+    def format(self):
+        # 在跨机房亲和性要求下，接入层proxy的亲和性要求至少分布在2个机房
+        self.ticket_data["resource_spec"]["proxy"]["group_count"] = 2
+
     def post_callback(self):
         next_flow = self.ticket.next_flow()
         group_num = self.ticket_data["resource_spec"]["backend_group"]["count"]

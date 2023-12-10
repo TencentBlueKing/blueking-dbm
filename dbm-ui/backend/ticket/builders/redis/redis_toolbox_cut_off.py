@@ -13,6 +13,8 @@ from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
 from backend.configuration.constants import AffinityEnum
+from backend.db_meta.enums import InstanceRole
+from backend.db_meta.models import Cluster, StorageInstance
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.redis import RedisController
 from backend.ticket import builders
@@ -33,6 +35,7 @@ class RedisClusterCutOffDetailSerializer(ClusterValidateMixin, serializers.Seria
         proxy = serializers.ListField(help_text=_("proxy列表"), child=HostInfoSerializer(), required=False)
         redis_master = serializers.ListField(help_text=_("master列表"), child=HostInfoSerializer(), required=False)
         redis_slave = serializers.ListField(help_text=_("slave列表"), child=HostInfoSerializer(), required=False)
+        resource_spec = serializers.JSONField(required=False, help_text=_("资源申请信息(前端不用传递，后台渲染)"))
 
     ip_source = serializers.ChoiceField(help_text=_("主机来源"), choices=IpSource.get_choices())
     infos = serializers.ListField(help_text=_("批量操作参数列表"), child=InfoSerializer())
@@ -55,17 +58,24 @@ class RedisClusterCutOffResourceParamBuilder(builders.ResourceApplyParamBuilder)
         for info_index, info in enumerate(self.ticket_data["infos"]):
             for role in ["redis_master", "proxy", "redis_slave"]:
                 role_hosts = info.get(role)
+
                 if not role_hosts:
                     continue
 
                 role_group = "backend_group" if role == "redis_master" else role
                 for role_host_index, role_host in enumerate(role_hosts):
-                    role_host["target"] = nodes.get(f"{info_index}_{role_group}")[role_host_index]
+                    if role == "redis_master":
+                        role_group, index = "backend_group", role_host_index
+                    elif role == "redis_slave":
+                        role_group, index = f"{role}_{role_host['ip']}", 0
+                    elif role == "proxy":
+                        role_group, index = role, role_host_index
 
-                # 保留下个节点更完整的resource_spec
-                info["resource_spec"] = ticket_data["infos"][info_index]["resource_spec"]
-                info["resource_spec"].pop("backend_group", None)
+                    role_host["target"] = nodes.get(f"{info_index}_{role_group}")[index]
 
+            # 保留下个节点更完整的resource_spec
+            info["resource_spec"] = ticket_data["infos"][info_index]["resource_spec"]
+            info["resource_spec"].pop("backend_group", None)
             ticket_data["infos"][info_index] = info
 
         next_flow.save(update_fields=["details"])
@@ -85,18 +95,45 @@ class RedisClusterCutOffFlowBuilder(BaseRedisTicketFlowBuilder):
         super().patch_ticket_detail()
 
         resource_spec = {}
+        cluster_ids = [infos["cluster_id"] for infos in self.ticket.details["infos"]]
+        id__cluster = {cluster.id: cluster for cluster in Cluster.objects.filter(id__in=cluster_ids)}
         for info in self.ticket.details["infos"]:
+            cluster = id__cluster[info["cluster_id"]]
             for role in ["redis_master", "proxy", "redis_slave"]:
                 role_hosts = info.get(role)
+
                 if not role_hosts:
                     continue
-                role_group = "backend_group" if role == "redis_master" else role
-                role_group_affinity = AffinityEnum.CROS_SUBZONE if role_group == "backend_group" else AffinityEnum.NONE
-                resource_spec[role_group] = {
-                    "spec_id": info[role][0]["spec_id"],
-                    "count": len(role_hosts),
-                    "affinity": role_group_affinity.value,
-                }
+
+                if role == "redis_master":
+                    # 如果替换角色是master，则是master/slave成对替换
+                    resource_spec["backend_group"] = {
+                        "spec_id": info[role][0]["spec_id"],
+                        "count": len(role_hosts),
+                        "location_spec": {"city": cluster.region, "sub_zone_ids": []},
+                        "affinity": cluster.disaster_tolerance_level,
+                    }
+                elif role == "redis_slave":
+                    # 如果是替换slave， 需要和当前集群中的配对的 master 不同机房
+                    redis_slaves = StorageInstance.objects.prefetch_related("as_receiver", "machine").filter(
+                        cluster=cluster, machine__ip__in=[host["ip"] for host in role_hosts]
+                    )
+                    ip__redis_slave = {slave.machine.ip: slave for slave in redis_slaves}
+                    for role_host in role_hosts:
+                        redis_master = ip__redis_slave[role_host["ip"]].as_receiver.get().ejector
+                        resource_spec[f"{role}_{role_host['ip']}"] = {
+                            "spec_id": role_host["spec_id"],
+                            "count": 1,
+                            "location_spec": {
+                                "city": cluster.region,
+                                "sub_zone_ids": [redis_master.machine.bk_sub_zone_id],
+                                "include_or_exclue": False,
+                            },
+                        }
+                elif role == "proxy":
+                    # TODO: proxy替换的亲和性需要衡量存量proxy的分布，暂时忽略
+                    resource_spec[role] = {"spec_id": info[role][0]["spec_id"], "count": len(role_hosts)}
+
             info["resource_spec"] = resource_spec
 
         self.ticket.save(update_fields=["details"])

@@ -12,12 +12,13 @@ from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
 from backend.db_meta.enums import InstanceRole, InstanceStatus
-from backend.db_meta.models import Cluster, StorageInstanceTuple
+from backend.db_meta.models import Cluster, Machine, StorageInstanceTuple
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.redis import RedisController
 from backend.ticket import builders
 from backend.ticket.builders.redis.base import BaseRedisTicketFlowBuilder, ClusterValidateMixin
 from backend.ticket.constants import TicketType
+from backend.utils.basic import get_target_items_from_details
 
 
 class RedisAddSlaveDetailSerializer(serializers.Serializer):
@@ -77,10 +78,23 @@ class RedisAddSlaveFlowBuilder(BaseRedisTicketFlowBuilder):
         """redis_master -> backend_group"""
 
         super().patch_ticket_detail()
-
+        master_hosts = get_target_items_from_details(self.ticket.details, match_keys=["bk_host_id"])
+        id__machine = {
+            machine.bk_host_id: machine
+            for machine in Machine.objects.prefetch_related("bk_city__logical_city").filter(
+                bk_host_id__in=master_hosts
+            )
+        }
         for info in self.ticket.details["infos"]:
             info["resource_spec"] = {}
             for pair in info["pairs"]:
+                # 申请的 new slave, 需要和当前集群中的 master 不同机房;
+                master_machine = id__machine[pair["redis_master"]["bk_host_id"]]
+                pair["redis_slave"]["location_spec"] = {
+                    "city": master_machine.bk_city.logical_city.name,
+                    "sub_zone_ids": [master_machine.bk_sub_zone_id],
+                    "include_or_exclue": False,
+                }
                 info["resource_spec"][pair["redis_master"]["ip"]] = pair["redis_slave"]
 
         self.ticket.save(update_fields=["details"])
