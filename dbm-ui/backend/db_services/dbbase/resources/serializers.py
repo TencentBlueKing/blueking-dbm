@@ -24,11 +24,16 @@ class ListResourceSLZ(serializers.Serializer):
     creator = serializers.CharField(required=False)
     version = serializers.CharField(required=False)
     region = serializers.CharField(required=False)
+    cluster_ids = serializers.CharField(help_text=_("集群ID(多个用逗号分割)"), required=False)
+
+    def validate(self, attrs):
+        if attrs.get("cluster_ids"):
+            attrs["cluster_ids"] = attrs["cluster_ids"].split(",")
+        return attrs
 
 
 class ListMySQLResourceSLZ(ListResourceSLZ):
     db_module_id = serializers.IntegerField(required=False)
-    cluster_ids = serializers.ListField(child=serializers.IntegerField(), required=False, allow_empty=True)
 
 
 class ClusterSLZ(serializers.ModelSerializer):
