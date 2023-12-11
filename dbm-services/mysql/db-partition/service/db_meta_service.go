@@ -121,8 +121,9 @@ type Storage struct {
 
 // Cluster GetAllClustersInfo 函数返回 Cluster 数组
 type Cluster struct {
+	Id           int64     `json:"id"`
 	DbModuleId   int64     `json:"db_module_id"`
-	BkBizId      string    `json:"bk_biz_id"`
+	BkBizId      int64     `json:"bk_biz_id"`
 	Proxies      []Proxy   `json:"proxies"`
 	Storages     []Storage `json:"storages"`
 	ClusterType  string    `json:"cluster_type"`
@@ -147,6 +148,23 @@ func GetCluster(dns Domain, ClusterType string) (Instance, error) {
 	if err = json.Unmarshal(result.Data, &resp); err != nil {
 		slog.Error("msg", url, err)
 
+		return resp, err
+	}
+	return resp, nil
+}
+
+// GetAllClustersInfo 获取业务下所有集群信息
+func GetAllClustersInfo(id BkBizId) ([]Cluster, error) {
+	c := util.NewClientByHosts(viper.GetString("db_meta_service"))
+	var resp []Cluster
+	url := "/apis/proxypass/dbmeta/priv_manager/biz_clusters/"
+	result, err := c.Do(http.MethodPost, url, id)
+	if err != nil {
+		slog.Error("msg", url, err)
+		return resp, err
+	}
+	if err = json.Unmarshal(result.Data, &resp); err != nil {
+		slog.Error("msg", url, err)
 		return resp, err
 	}
 	return resp, nil

@@ -19,9 +19,11 @@ type Database struct {
 // DB TODO
 var DB *Database
 
-func openDB(user, password, addr, name string) *gorm.DB {
-	dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s?charset=utf8&parseTime=%t&loc=%s",
-		user, password, addr, name, true, "Local")
+func OpenDB(user, password, addr, name string) *gorm.DB {
+	tz := "loc=UTC&time_zone=%27%2B00%3A00%27"
+	// tz := "loc=Local&time_zone=%27%2B08%3A00%27"
+	dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s?charset=utf8&parseTime=%t&%s",
+		user, password, addr, name, true, tz)
 	sqlDB, err := sql.Open("mysql", dsn)
 	if err != nil {
 		slog.Error("connect to mysql failed", err)
@@ -44,6 +46,11 @@ func (db *Database) Init() {
 	name := viper.GetString("db.name")
 	addr := fmt.Sprintf("%s:%d", host, port)
 	DB = &Database{
-		Self: openDB(user, password, addr, name),
+		Self: OpenDB(user, password, addr, name),
 	}
+}
+
+func (db *Database) Close() {
+	sqlDB, _ := DB.Self.DB()
+	sqlDB.Close()
 }

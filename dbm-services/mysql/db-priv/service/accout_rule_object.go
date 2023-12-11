@@ -1,23 +1,21 @@
 package service
 
-import (
-	"dbm-services/mysql/priv-service/util"
-)
+import "time"
 
 // TbAccountRules 账号规则表
 type TbAccountRules struct {
-	Id          int64           `gorm:"column:id;primary_key;auto_increment" json:"id"`
-	BkBizId     int64           `gorm:"column:bk_biz_id;not_null" json:"bk_biz_id"`
-	ClusterType string          `gorm:"column:cluster_type;not_null" json:"cluster_type"`
-	AccountId   int64           `gorm:"column:account_id;not_null" json:"account_id"`
-	Dbname      string          `gorm:"column:dbname;not_null" json:"dbname"`
-	Priv        string          `gorm:"column:priv;not_null" json:"priv"`
-	DmlDdlPriv  string          `gorm:"column:dml_ddl_priv;not_null" json:"dml_ddl_priv"`
-	GlobalPriv  string          `gorm:"column:global_priv;not_null" json:"global_priv"`
-	Creator     string          `gorm:"column:creator;not_null;" json:"creator"`
-	CreateTime  util.TimeFormat `gorm:"column:create_time" json:"create_time"`
-	Operator    string          `gorm:"column:operator" json:"operator"`
-	UpdateTime  util.TimeFormat `gorm:"column:update_time" json:"update_time"`
+	Id          int64     `gorm:"column:id;primary_key;auto_increment" json:"id"`
+	BkBizId     int64     `gorm:"column:bk_biz_id;not_null" json:"bk_biz_id"`
+	ClusterType string    `gorm:"column:cluster_type;not_null" json:"cluster_type"`
+	AccountId   int64     `gorm:"column:account_id;not_null" json:"account_id"`
+	Dbname      string    `gorm:"column:dbname;not_null" json:"dbname"`
+	Priv        string    `gorm:"column:priv;not_null" json:"priv"`
+	DmlDdlPriv  string    `gorm:"column:dml_ddl_priv;not_null" json:"dml_ddl_priv"`
+	GlobalPriv  string    `gorm:"column:global_priv;not_null" json:"global_priv"`
+	Creator     string    `gorm:"column:creator;not_null;" json:"creator"`
+	CreateTime  time.Time `gorm:"column:create_time" json:"create_time"`
+	Operator    string    `gorm:"column:operator" json:"operator"`
+	UpdateTime  time.Time `gorm:"column:update_time" json:"update_time"`
 }
 
 type AccountId struct {
@@ -26,13 +24,13 @@ type AccountId struct {
 
 // Rule 账号规则表中需要在前端展示的字段
 type Rule struct {
-	Id         int64           `gorm:"column:id;primary_key;auto_increment" json:"id"`
-	AccountId  int64           `gorm:"column:account_id;not_null" json:"account_id"`
-	BkBizId    int64           `gorm:"column:bk_biz_id;not_null" json:"bk_biz_id"`
-	Dbname     string          `gorm:"column:dbname;not_null" json:"dbname"`
-	Priv       string          `gorm:"column:priv;not_null" json:"priv"`
-	Creator    string          `gorm:"column:creator;not_null;" json:"creator"`
-	CreateTime util.TimeFormat `gorm:"column:create_time" json:"create_time"`
+	Id         int64     `gorm:"column:id;primary_key;auto_increment" json:"id"`
+	AccountId  int64     `gorm:"column:account_id;not_null" json:"account_id"`
+	BkBizId    int64     `gorm:"column:bk_biz_id;not_null" json:"bk_biz_id"`
+	Dbname     string    `gorm:"column:dbname;not_null" json:"dbname"`
+	Priv       string    `gorm:"column:priv;not_null" json:"priv"`
+	Creator    string    `gorm:"column:creator;not_null;" json:"creator"`
+	CreateTime time.Time `gorm:"column:create_time" json:"create_time"`
 }
 
 // AccountRuleSplitUser 账号与账号规则表中需要在前端展示的内容

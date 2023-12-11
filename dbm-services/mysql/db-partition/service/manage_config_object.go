@@ -1,6 +1,6 @@
 package service
 
-import "dbm-services/mysql/db-partition/util"
+import "time"
 
 // MysqlPartitionConfig TODO
 const MysqlPartitionConfig = "mysql_partition_config"
@@ -23,6 +23,12 @@ const MysqlManageLogsTable = "mysql_manage_logs"
 
 // SpiderManageLogsTable TODO
 const SpiderManageLogsTable = "spider_manage_logs"
+
+// MysqlPartitionConfigScr TODO
+const MysqlPartitionConfigScr = "mysql_partition_conf"
+
+// SpiderPartitionConfigScr TODO
+const SpiderPartitionConfigScr = "spider_partition_conf"
 
 // ExistRule TODO
 type ExistRule struct {
@@ -104,10 +110,10 @@ type EnablePartitionInput struct {
 // ManageLog 审计分区管理行为
 // 暂时未用，分区配置信息修改记录在mysql_manage_logs与spider_manage_logs
 type ManageLog struct {
-	Id       int64           `gorm:"column:id;primary_key;auto_increment" json:"id"`
-	ConfigId int64           `gorm:"column:config_id;not_null" json:"config_id"`
-	BkBizId  int64           `gorm:"column:bk_biz_id;not_null" json:"bk_biz_id"`
-	Operator string          `gorm:"column:operator" json:"operator"`
-	Para     string          `gorm:"column:para" json:"para"`
-	Time     util.TimeFormat `gorm:"column:execute_time" json:"execute_time"`
+	Id       int64     `gorm:"column:id;primary_key;auto_increment" json:"id"`
+	ConfigId int64     `gorm:"column:config_id;not_null" json:"config_id"`
+	BkBizId  int64     `gorm:"column:bk_biz_id;not_null" json:"bk_biz_id"`
+	Operator string    `gorm:"column:operator" json:"operator"`
+	Para     string    `gorm:"column:para" json:"para"`
+	Time     time.Time `gorm:"column:execute_time" json:"execute_time"`
 }

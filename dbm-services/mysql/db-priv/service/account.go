@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/jinzhu/gorm"
 
@@ -18,11 +19,10 @@ import (
 // AddAccount 新增账号
 func (m *AccountPara) AddAccount(jsonPara string) error {
 	var (
-		account    *TbAccounts
-		insertTime util.TimeFormat
-		psw        string
-		count      uint64
-		err        error
+		account *TbAccounts
+		psw     string
+		count   uint64
+		err     error
 	)
 
 	if m.BkBizId == 0 {
@@ -69,15 +69,14 @@ func (m *AccountPara) AddAccount(jsonPara string) error {
 			return err
 		}
 	}
-	insertTime = util.NowTimeFormat()
 	account = &TbAccounts{BkBizId: m.BkBizId, ClusterType: *m.ClusterType, User: m.User, Psw: psw, Creator: m.Operator,
-		CreateTime: insertTime}
+		CreateTime: time.Now()}
 	err = DB.Self.Model(&TbAccounts{}).Create(&account).Error
 	if err != nil {
 		return err
 	}
 
-	log := PrivLog{BkBizId: m.BkBizId, Operator: m.Operator, Para: jsonPara, Time: insertTime}
+	log := PrivLog{BkBizId: m.BkBizId, Operator: m.Operator, Para: jsonPara, Time: time.Now()}
 	AddPrivLog(log)
 	return nil
 }
@@ -85,11 +84,10 @@ func (m *AccountPara) AddAccount(jsonPara string) error {
 // ModifyAccountPassword 修改账号的密码
 func (m *AccountPara) ModifyAccountPassword(jsonPara string) error {
 	var (
-		account    TbAccounts
-		id         TbAccounts
-		updateTime util.TimeFormat
-		psw        string
-		err        error
+		account TbAccounts
+		id      TbAccounts
+		psw     string
+		err     error
 	)
 
 	if m.BkBizId == 0 {
@@ -120,9 +118,7 @@ func (m *AccountPara) ModifyAccountPassword(jsonPara string) error {
 	if err != nil {
 		return err
 	}
-	updateTime = util.NowTimeFormat()
-
-	account = TbAccounts{Psw: psw, Operator: m.Operator, UpdateTime: updateTime}
+	account = TbAccounts{Psw: psw, Operator: m.Operator, UpdateTime: time.Now()}
 	id = TbAccounts{Id: m.Id}
 	result := DB.Self.Model(&id).Update(&account)
 
@@ -133,7 +129,7 @@ func (m *AccountPara) ModifyAccountPassword(jsonPara string) error {
 		return errno.AccountNotExisted
 	}
 
-	log := PrivLog{BkBizId: m.BkBizId, Operator: m.Operator, Para: jsonPara, Time: updateTime}
+	log := PrivLog{BkBizId: m.BkBizId, Operator: m.Operator, Para: jsonPara, Time: time.Now()}
 	AddPrivLog(log)
 
 	return nil
@@ -163,7 +159,7 @@ func (m *AccountPara) DeleteAccount(jsonPara string) error {
 		return errno.AccountNotExisted
 	}
 
-	log := PrivLog{BkBizId: m.BkBizId, Operator: m.Operator, Para: jsonPara, Time: util.NowTimeFormat()}
+	log := PrivLog{BkBizId: m.BkBizId, Operator: m.Operator, Para: jsonPara, Time: time.Now()}
 	AddPrivLog(log)
 	return nil
 }

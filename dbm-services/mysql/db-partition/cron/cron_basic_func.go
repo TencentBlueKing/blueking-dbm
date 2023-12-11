@@ -87,6 +87,7 @@ func (m PartitionJob) ExecutePartitionCron(clusterType string) {
 				continue
 			}
 		}
+		slog.Info("do create partition ticket")
 		service.CreatePartitionTicket(*item, objects, m.ZoneOffset, m.CronDate, Scheduler)
 	}
 }

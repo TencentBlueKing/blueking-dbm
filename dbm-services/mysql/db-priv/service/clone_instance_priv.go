@@ -3,9 +3,9 @@ package service
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"dbm-services/common/go-pubpkg/errno"
-	"dbm-services/mysql/priv-service/util"
 )
 
 // CloneInstancePrivDryRun 克隆实例权限预检查
@@ -42,7 +42,7 @@ func (m *CloneInstancePrivParaList) CloneInstancePrivDryRun() error {
 // CloneInstancePriv 克隆实例权限
 func (m *CloneInstancePrivPara) CloneInstancePriv(jsonPara string) error {
 
-	AddPrivLog(PrivLog{BkBizId: m.BkBizId, Operator: m.Operator, Para: jsonPara, Time: util.NowTimeFormat()})
+	AddPrivLog(PrivLog{BkBizId: m.BkBizId, Operator: m.Operator, Para: jsonPara, Time: time.Now()})
 
 	if m.BkBizId == 0 {
 		return errno.BkBizIdIsEmpty

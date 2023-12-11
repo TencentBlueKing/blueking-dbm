@@ -889,7 +889,7 @@ class MySQLPasswordRole(str, StructuredEnum):
     定义每个MySQL/TendbCluster集群中每个node的内置账号名称
     """
 
-    TDBCTL_USER = EnumField("tdbctl", _("tdbctl"))
+    TDBCTL = EnumField("tdbctl", _("tdbctl"))
     SPIDER = EnumField("spider", _("spider"))
     STORAGE = EnumField("storage", _("storage"))
 

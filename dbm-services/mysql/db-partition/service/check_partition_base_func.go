@@ -94,7 +94,9 @@ func (config *PartitionConfig) GetDbTableInfo() (ptlist []ConfigDetail, err erro
 
 	var output oneAddressResult
 	sql := fmt.Sprintf(
-		`select TABLE_SCHEMA,TABLE_NAME,CREATE_OPTIONS from information_schema.tables where TABLE_SCHEMA like '%s' and TABLE_NAME like '%s';`, config.DbLike, config.TbLike)
+		`select TABLE_SCHEMA as TABLE_SCHEMA,TABLE_NAME as TABLE_NAME,CREATE_OPTIONS as CREATE_OPTIONS `+
+			` from information_schema.tables where TABLE_SCHEMA like '%s' and TABLE_NAME like '%s';`,
+		config.DbLike, config.TbLike)
 	var queryRequest = QueryRequest{[]string{address}, []string{sql}, true, 30, config.BkCloudId}
 	output, err = OneAddressExecuteSql(queryRequest)
 	if err != nil {
@@ -113,7 +115,9 @@ func (config *PartitionConfig) GetDbTableInfo() (ptlist []ConfigDetail, err erro
 		if strings.Contains(row["CREATE_OPTIONS"].(string), "partitioned") {
 			partitioned = true
 			//check分区字段、分区间隔
-			sql = fmt.Sprintf("select PARTITION_EXPRESSION,PARTITION_METHOD,PARTITION_NAME from "+
+			sql = fmt.Sprintf("select PARTITION_EXPRESSION"+
+				" as PARTITION_EXPRESSION,PARTITION_METHOD as PARTITION_METHOD,PARTITION_NAME"+
+				" as PARTITION_NAME from "+
 				" information_schema.PARTITIONS where TABLE_SCHEMA like '%s' and TABLE_NAME like '%s' "+
 				" order by PARTITION_DESCRIPTION asc limit 2;",
 				db, tb)
@@ -234,7 +238,7 @@ func (m *ConfigDetail) GetDropPartitionSql() (string, error) {
 	var sql, dropSql, fx string
 	reserve := m.ReservedPartition * m.PartitionTimeInterval
 	address := fmt.Sprintf("%s:%d", m.ImmuteDomain, m.Port)
-	base0 := fmt.Sprintf(`select partition_name from INFORMATION_SCHEMA.PARTITIONS `+
+	base0 := fmt.Sprintf(`select PARTITION_NAME as PARTITION_NAME from INFORMATION_SCHEMA.PARTITIONS `+
 		`where TABLE_SCHEMA='%s' and TABLE_NAME='%s' and PARTITION_DESCRIPTION<`, m.DbName, m.TbName)
 	base1 := "order by PARTITION_DESCRIPTION asc;"
 	switch m.PartitionType {
@@ -265,7 +269,7 @@ func (m *ConfigDetail) GetDropPartitionSql() (string, error) {
 
 	var expired []string
 	for _, row := range output.CmdResults[0].TableData {
-		name := row["partition_name"].(string)
+		name := row["PARTITION_NAME"].(string)
 		if reg.MatchString(name) {
 			expired = append(expired, name)
 		} else {
@@ -622,6 +626,7 @@ func CreatePartitionTicket(check Checker, objects []PartitionObject, zoneOffset 
 	}
 	ticket := Ticket{BkBizId: check.BkBizId, TicketType: ticketType, Remark: "auto partition", IgnoreDuplication: true,
 		Details: Detail{Infos: []Info{{check.ConfigId, check.ClusterId, check.ImmuteDomain, *check.BkCloudId, objects}}}}
+	slog.Info("msg", "ticket info", fmt.Sprintf("%v", ticket))
 	id, err := CreateDbmTicket(ticket)
 	if err != nil {
 		dimension := monitor.NewPartitionEventDimension(check.BkBizId, *check.BkCloudId, check.ImmuteDomain)

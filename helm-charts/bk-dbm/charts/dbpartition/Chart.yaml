@@ -3,4 +3,4 @@ name: dbpartition
 description: A Helm chart for db partition service
 type: application
 version: 0.1.8
-appVersion: 0.0.1-alpha.121
+appVersion: 0.0.1-alpha.137

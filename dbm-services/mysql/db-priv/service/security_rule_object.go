@@ -1,6 +1,6 @@
 package service
 
-import "dbm-services/mysql/priv-service/util"
+import "time"
 
 // SecurityRulePara 安全规则相关函数的入参
 type SecurityRulePara struct {
@@ -12,13 +12,13 @@ type SecurityRulePara struct {
 
 // TbSecurityRules 安全规则表
 type TbSecurityRules struct {
-	Id         int64           `gorm:"column:id;primary_key;auto_increment" json:"id"`
-	Name       string          `gorm:"column:name;not_null" json:"name"`
-	Rule       string          `gorm:"column:rule;not_null" json:"rule"`
-	Creator    string          `gorm:"column:creator;not_null;" json:"creator"`
-	CreateTime util.TimeFormat `gorm:"column:create_time" json:"create_time"`
-	Operator   string          `gorm:"column:operator" json:"operator"`
-	UpdateTime util.TimeFormat `gorm:"column:update_time" json:"update_time"`
+	Id         int64     `gorm:"column:id;primary_key;auto_increment" json:"id"`
+	Name       string    `gorm:"column:name;not_null" json:"name"`
+	Rule       string    `gorm:"column:rule;not_null" json:"rule"`
+	Creator    string    `gorm:"column:creator;not_null;" json:"creator"`
+	CreateTime time.Time `gorm:"column:create_time" json:"create_time"`
+	Operator   string    `gorm:"column:operator" json:"operator"`
+	UpdateTime time.Time `gorm:"column:update_time" json:"update_time"`
 }
 
 // SecurityRule 安全规则

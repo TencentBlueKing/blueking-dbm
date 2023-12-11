@@ -53,7 +53,7 @@ type Instance struct {
 // Cluster GetAllClustersInfo 函数返回 Cluster 数组
 type Cluster struct {
 	DbModuleId   int64     `json:"db_module_id"`
-	BkBizId      string    `json:"bk_biz_id"`
+	BkBizId      int64     `json:"bk_biz_id"`
 	Proxies      []Proxy   `json:"proxies"`
 	Storages     []Storage `json:"storages"`
 	ClusterType  string    `json:"cluster_type"`

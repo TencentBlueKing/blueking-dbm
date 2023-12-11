@@ -135,7 +135,7 @@ class DBPasswordHandler(object):
         # 映射tendbcluster的角色
         if cluster_type == ClusterType.TenDBCluster:
             if role == "spider_ctl":
-                return MySQLPasswordRole.TDBCTL_USER.value
+                return MySQLPasswordRole.TDBCTL.value
             if role in TenDBClusterSpiderRole.get_values():
                 return MySQLPasswordRole.SPIDER.value
             if role in [

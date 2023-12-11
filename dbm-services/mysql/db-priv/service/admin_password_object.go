@@ -9,7 +9,7 @@ type ModifyAdminUserPasswordPara struct {
 	UserName  string `json:"username"`
 	Component string `json:"component"`
 	Psw       string `json:"password"`
-	//LockUntil        util.TimeFormat `json:"lock_until"`
+	//LockUntil        time.Time `json:"lock_until"`
 	LockHour         int          `json:"lock_hour"`
 	Operator         string       `json:"operator"`
 	Clusters         []OneCluster `json:"clusters"`
