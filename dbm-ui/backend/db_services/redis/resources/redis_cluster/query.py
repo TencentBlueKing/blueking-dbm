@@ -82,9 +82,6 @@ class ListRetrieveResource(query.ListRetrieveResource):
         if query_params.get("id"):
             cluster_query["id"] = query_params["id"]
 
-        if query_params.get("cluster_ids"):
-            cluster_query["id__in"] = query_params["cluster_ids"]
-
         if query_params.get("domain"):
             cluster_query["immute_domain__icontains"] = query_params["domain"]
 

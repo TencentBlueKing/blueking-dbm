@@ -61,21 +61,18 @@ class BigDataBaseListRetrieveResource(query.ListRetrieveResource):
         """
 
         instance_query = {"bk_biz_id": bk_biz_id, "cluster_type__in": cls.cluster_types}
-        cluster_query = Q(**instance_query)
+        cluster_query = instance_query.copy()
 
         if query_params.get("id"):
-            cluster_query &= Q(id=query_params["id"])
-
-        if query_params.get("cluster_ids"):
-            cluster_query &= Q(id__in=query_params["cluster_ids"])
+            cluster_query["id"] = query_params["id"]
 
         if query_params.get("domain"):
-            cluster_query &= Q(immute_domain__icontains=query_params["domain"])
+            cluster_query["immute_domain__icontains"] = query_params["domain"]
 
         if query_params.get("creator"):
             cluster_query &= Q(creator__icontains=query_params["creator"])
 
-        clusters = Cluster.objects.filter(cluster_query)
+        clusters = Cluster.objects.filter(**cluster_query)
 
         if query_params.get("ip"):
             ip_keyword = query_params.get("ip").split(",")
