@@ -203,7 +203,7 @@ class DBMetaApiProxyPassViewSet(BaseProxyPassViewSet):
             return Response({"msg": "{}".format(e), "code": 1, "data": ""})
 
     @common_swagger_auto_schema(
-        operation_summary=_("[dbmeta]根据域名查询集群信息"),
+        operation_summary=_("[dbmeta]priv_manager根据域名查询集群信息"),
         query_serializer=BizClusterSerializer(),
         tags=[SWAGGER_TAG],
     )
@@ -211,7 +211,7 @@ class DBMetaApiProxyPassViewSet(BaseProxyPassViewSet):
         methods=["POST"],
         detail=False,
         serializer_class=BizClusterSerializer,
-        url_path="dbmeta/meta/biz_clusters",
+        url_path="dbmeta/priv_manager/biz_clusters",
     )
     def biz_clusters(self, request):
         validated_data = self.params_validate(self.get_serializer_class())

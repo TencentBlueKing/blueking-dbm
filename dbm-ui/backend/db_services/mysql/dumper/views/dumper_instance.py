@@ -82,6 +82,8 @@ class DumperInstanceViewSet(viewsets.AuditedModelViewSet):
                 "details__dumper_instance_ids", "id"
             )
             for info in ticket_infos:
+                # 如果变更类dumper单据没有dumper_instance_ids，则认为空列表
+                info[0] = info[0] or []
                 dumper_inst_id__ticket.update({d: (ticket_type, info[1]) for d in info[0]})
 
         # 对每个dumper实例填充正在运行的状态，一个dumper只会处于一种变更状态
