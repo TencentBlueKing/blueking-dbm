@@ -70,7 +70,7 @@ class BigDataBaseListRetrieveResource(query.ListRetrieveResource):
             cluster_query["immute_domain__icontains"] = query_params["domain"]
 
         if query_params.get("creator"):
-            cluster_query &= Q(creator__icontains=query_params["creator"])
+            cluster_query["creator__icontains"] = query_params["creator"]
 
         clusters = Cluster.objects.filter(**cluster_query)
 
