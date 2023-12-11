@@ -18,7 +18,7 @@
     <div
       class="collapse-header"
       @click="handleToggle">
-      <div class="collapse-left">
+      <div class="collapse-title">
         <slot name="title" />
       </div>
       <DbIcon
@@ -34,7 +34,6 @@
     </Transition>
   </div>
 </template>
-
 <script setup lang="ts">
   import { ref } from 'vue';
   interface Props {
@@ -51,7 +50,6 @@
     localCollapse.value = !localCollapse.value;
   };
 </script>
-
 <style lang="less" scoped>
   @import "@styles/mixins.less";
 
@@ -69,8 +67,11 @@
       justify-content: space-between;
     }
 
-    .collapse-left {
+    .collapse-title {
       .flex-center();
+
+      font-weight: bold;
+      color: @title-color;
     }
 
     .collapse-icon {

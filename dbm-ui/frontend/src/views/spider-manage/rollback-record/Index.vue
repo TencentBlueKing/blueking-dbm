@@ -129,7 +129,7 @@
           to={{
             name: 'SelfServiceMyTickets',
             query: {
-              filterId: data.ticket_id,
+              id: data.ticket_id,
             },
           }}
           target="_blank">

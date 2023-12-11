@@ -540,7 +540,7 @@
   const handleToTicket = (id: string) => {
     const url = router.resolve({
       name: 'SelfServiceMyTickets',
-      query: { filterId: id },
+      query: { id },
     });
     window.open(url.href, '_blank');
   };

@@ -23,20 +23,33 @@ export default () => [
     },
     children: [
       {
-        name: 'resourcePoolList',
+        name: 'resourcePool',
         path: 'pool',
         meta: {
           navName: t('DB 资源池'),
         },
-        component: () => import('@views/resource-manage/list/Index.vue'),
-      },
-      {
-        name: 'resourcePoolOperationRecord',
-        path: 'record',
-        meta: {
-          navName: t('操作记录'),
+        component: () => import('@views/resource-manage/pool/Index.vue'),
+        redirect: {
+          name: 'resourcePoolList',
         },
-        component: () => import('@views/resource-manage/record/Index.vue'),
+        children: [
+          {
+            name: 'resourcePoolList',
+            path: 'index',
+            meta: {
+              navName: t('DB 资源池'),
+            },
+            component: () => import('@views/resource-manage/pool/index/Index.vue'),
+          },
+          {
+            name: 'resourcePoolOperationRecord',
+            path: 'record',
+            meta: {
+              navName: t('操作记录'),
+            },
+            component: () => import('@views/resource-manage/pool/record/Index.vue'),
+          },
+        ],
       },
       {
         name: 'resourcePoolDirtyMachines',

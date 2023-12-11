@@ -326,7 +326,7 @@
     const url = router.resolve({
       name: 'SelfServiceMyTickets',
       query: {
-        filterId: id,
+        id,
       },
     });
     window.open(url.href, '_blank');

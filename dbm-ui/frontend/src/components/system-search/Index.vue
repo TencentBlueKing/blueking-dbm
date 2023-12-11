@@ -9,7 +9,7 @@
       v-model="serach"
       class="search-input"
       clearable
-      :placeholder="t('请输入关键字')"
+      :placeholder="t('全站搜索 Ctrl + K')"
       type="search"
       @click="handleClick" />
   </div>
@@ -53,7 +53,7 @@
   const isPopMenuShow = ref(false);
 
   const styles = computed(() => ({
-    flex: isFocused.value ? '1' : '0 0 380px',
+    flex: isFocused.value ? '1' : '0 0 auto',
   }));
 
   let tippyIns:Instance | undefined;
@@ -76,16 +76,6 @@
     }, 200);
   };
 
-
-  const destroyTippy = () => {
-    if (tippyIns) {
-      tippyIns.hide();
-      tippyIns.unmount();
-      tippyIns.destroy();
-      tippyIns = undefined;
-    }
-  };
-
   // 关闭弹层
   const handleOutClick = (event: MouseEvent) => {
     const eventPath = event.composedPath();
@@ -99,6 +89,13 @@
       }
     }
     tippyIns && tippyIns.hide();
+  };
+
+  const handleQuickKeyShow = (event: KeyboardEvent) => {
+    if (!event.ctrlKey || event.key !== 'k') {
+      return;
+    }
+    handleClick();
   };
 
   onMounted(() => {
@@ -123,11 +120,18 @@
       },
     });
     document.body.addEventListener('click', handleOutClick);
+    window.addEventListener('keyup', handleQuickKeyShow);
   });
 
   onBeforeUnmount(() => {
-    destroyTippy();
+    if (tippyIns) {
+      tippyIns.hide();
+      tippyIns.unmount();
+      tippyIns.destroy();
+      tippyIns = undefined;
+    }
     document.body.removeEventListener('click', handleOutClick);
+    window.removeEventListener('keyup', handleQuickKeyShow);
   });
 </script>
 <style lang="less">
@@ -136,7 +140,11 @@
     width: 380px;
     max-width: 700px;
     transition: all .1s;
-    flex: 1;
+
+    @media screen and (max-width: 1450px) {
+      flex: 1 !important;
+      width: auto !important;
+    }
 
     .search-input{
       overflow: hidden;

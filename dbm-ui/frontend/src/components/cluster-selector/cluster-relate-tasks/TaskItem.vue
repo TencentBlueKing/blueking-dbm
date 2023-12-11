@@ -57,7 +57,7 @@
     const route = router.resolve({
       name: 'SelfServiceMyTickets',
       query: {
-        filterId: billId,
+        id: billId,
       },
     });
     window.open(route.href);

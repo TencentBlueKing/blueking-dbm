@@ -56,7 +56,7 @@
           to={{
             name: 'SelfServiceMyTickets',
             query: {
-              filterId: data.ticket_id,
+              id: data.ticket_id,
             },
           }}>
           {data.ticket_id}

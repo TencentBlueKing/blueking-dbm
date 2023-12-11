@@ -5,7 +5,6 @@
         class="mr-8"
         style="margin-left: auto" />
       <LocaleSwitch />
-      <Workbench class="mr-8" />
       <BkPopover
         placement="bottom"
         theme="light top-action-menu-theme"
@@ -71,7 +70,6 @@
   import RouterBack from '@components/router-back/Index.vue';
   import SystemSearch from '@components/system-search/Index.vue';
   import SystemVersionLog from '@components/system-version-log/Index.vue';
-  import Workbench from '@components/workbench/Index.vue';
 
   import Layout from './layout/Index.vue';
 

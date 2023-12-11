@@ -277,7 +277,7 @@
     const { href } = router.resolve({
       name: 'SelfServiceMyTickets',
       query: {
-        filterId: data.ticket_id,
+        id: data.ticket_id,
       },
     });
     window.open(href.replace(/(\d)+/, `${data.bk_biz_id}`));

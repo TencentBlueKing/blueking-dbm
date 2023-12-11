@@ -100,6 +100,10 @@
       label: t('平台管理'),
       value: menuEnum.platformManage,
     },
+    {
+      label: t('个人工作台'),
+      value: menuEnum.personalWorkbench,
+    },
   ];
 
   const routeGroup = {

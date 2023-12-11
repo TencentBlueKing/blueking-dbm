@@ -72,7 +72,7 @@ export const createTicket = (formData: Record<string, any>) => http.post<TicketI
       const route = router.resolve({
         name: 'SelfServiceMyTickets',
         query: {
-          filterId: id,
+          id,
         },
       });
       return new Promise((resolve: (value: TicketItem) => void, reject) => {

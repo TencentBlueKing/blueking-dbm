@@ -14,6 +14,7 @@ export  function queryAllTypeCluster(params: {
   bk_biz_id: number
   cluster_types?: string,
   immute_domain?: string,
+  phase?: string,
 }) {
   return http.get<{
     bk_cloud_id: number,

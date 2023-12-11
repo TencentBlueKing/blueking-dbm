@@ -92,7 +92,7 @@
           :to="{
             name: 'SelfServiceMyTickets',
             query: {
-              filterId: operationData?.operationTicketId,
+              id: operationData?.operationTicketId,
             },
           }">
           {{ $t('我的服务单') }}

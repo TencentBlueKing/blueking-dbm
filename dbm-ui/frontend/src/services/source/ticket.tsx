@@ -96,7 +96,7 @@ export function createTicket(formData: Record<string, any>) {
         const route = router.resolve({
           name: 'SelfServiceMyTickets',
           query: {
-            filterId: id,
+            id,
           },
         });
         return new Promise((resolve: (value: TicketItem) => void, reject) => {

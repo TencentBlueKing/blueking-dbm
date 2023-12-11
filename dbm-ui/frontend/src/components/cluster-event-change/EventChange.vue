@@ -148,7 +148,7 @@
     const localtion = router.resolve({
       name: 'SelfServiceMyTickets',
       query: {
-        filterId: id,
+        id,
       },
     });
     window.open(localtion.href, '_blank');
