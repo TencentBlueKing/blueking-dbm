@@ -9,6 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
+from dataclasses import asdict
 from typing import Dict, Optional
 
 from django.utils.translation import ugettext as _
@@ -22,6 +23,7 @@ from backend.flow.plugins.components.collections.common.external_service import 
 from backend.flow.plugins.components.collections.common.sa_idle_check import CheckMachineIdleComponent
 from backend.flow.plugins.components.collections.common.sa_init import SaInitComponent
 from backend.flow.plugins.components.collections.common.transfer_host_service import TransferHostServiceComponent
+from backend.flow.utils.mysql.mysql_act_dataclass import InitCheckKwargs
 
 
 class ImportResourceInitStepFlow(object):
@@ -45,7 +47,7 @@ class ImportResourceInitStepFlow(object):
                     {
                         "act_name": _("执行sa空闲检查"),
                         "act_component_code": CheckMachineIdleComponent.code,
-                        "kwargs": {"ip": hostinfo["ip"], "bk_biz_id": bk_biz_id},
+                        "kwargs": asdict(InitCheckKwargs(ip=hostinfo["ip"], bk_cloud_id=hostinfo["bk_cloud_id"])),
                     }
                 )
             p.add_parallel_acts(acts_list=acts_list)
