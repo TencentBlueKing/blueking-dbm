@@ -24,6 +24,7 @@
         :columns="localColumns"
         :data="tableData.results"
         :max-height="tableMaxHeight"
+        :pagination="pagination"
         :pagination-heihgt="60"
         remote-pagination
         show-overflow-tooltip
@@ -504,7 +505,7 @@
       pagination.limit = rowNum;
       pagination.limitList = [...pageLimit].sort((a, b) => a - b);
 
-      tableMaxHeight.value = rowNum * tableRowHeight + paginationHeight + 3;
+      tableMaxHeight.value = tableHeaderHeight + rowNum * tableRowHeight + paginationHeight + 3;
     });
   };
 
