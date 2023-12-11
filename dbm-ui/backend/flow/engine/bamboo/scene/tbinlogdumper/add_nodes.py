@@ -81,6 +81,7 @@ class TBinlogDumperAddNodesFlow(object):
                     uid=self.data["uid"],
                     add_conf_list=info["add_confs"],
                     created_by=self.data["created_by"],
+                    is_install_l5_agent=info["is_install_l5_agent"],
                 )
             )
 

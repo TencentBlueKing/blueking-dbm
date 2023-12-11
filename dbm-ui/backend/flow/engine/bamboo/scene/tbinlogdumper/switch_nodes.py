@@ -11,7 +11,7 @@ specific language governing permissions and limitations under the License.
 import copy
 import logging.config
 from dataclasses import asdict
-from typing import Dict, Optional
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 from django.utils.translation import ugettext as _
 
@@ -53,13 +53,16 @@ class TBinlogDumperSwitchNodesFlow(object):
         self.data = data
 
     @staticmethod
-    def _get_real_switch_inst_for_cluster(cluster: Cluster, switch_instances: list) -> list:
+    def _get_real_switch_inst_for_cluster(
+        cluster: Cluster, switch_instances: list
+    ) -> Tuple[List[Dict[str, Union[str, Any]]], bool]:
         """
         根据传入的cluster对象以及待切换的TBinlogDumper实例列表
         @param cluster: 集群model
         @param switch_instances: 待切换TBinlogDumper实例列表
         """
         real_switch_instances = []
+        is_install_l5_agent = False
         master = cluster.storageinstance_set.get(instance_role=InstanceRole.BACKEND_MASTER)
 
         for instance in switch_instances:
@@ -118,12 +121,14 @@ class TBinlogDumperSwitchNodesFlow(object):
                         "l5_cmdid": binlogdumper.extra_config["l5_cmdid"],
                     }
                 )
+                # 标记初始化机器时安装l5_agent
+                is_install_l5_agent = True
             else:
                 pass
 
             real_switch_instances.append(tmp)
 
-        return real_switch_instances
+        return real_switch_instances, is_install_l5_agent
 
     def switch_nodes(self):
         """
@@ -137,7 +142,9 @@ class TBinlogDumperSwitchNodesFlow(object):
             cluster = get_cluster(cluster_id=int(info["cluster_id"]), bk_biz_id=int(self.data["bk_biz_id"]))
 
             # 获取真正需要迁移的实例对象
-            real_switch_instances = self._get_real_switch_inst_for_cluster(cluster, info["switch_instances"])
+            real_switch_instances, is_install_l5_agent = self._get_real_switch_inst_for_cluster(
+                cluster, info["switch_instances"]
+            )
 
             if len(real_switch_instances) == 0:
                 logger.warning(
@@ -162,6 +169,7 @@ class TBinlogDumperSwitchNodesFlow(object):
                     uid=self.data["uid"],
                     add_conf_list=real_switch_instances,
                     created_by=self.data["created_by"],
+                    is_install_l5_agent=is_install_l5_agent,
                 )
             )
 

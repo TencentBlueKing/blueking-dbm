@@ -18,6 +18,7 @@ class TBinlogDumperAddContext:
 
     master_ip_sync_info: dict = field(default_factory=dict)  # 代表获取到master的主从复制位点信息
     backup_info: dict = field(default_factory=dict)  # 代表做全量同步时备份信息
+    resolv_content: dict = field(default_factory=dict)  # 存储机器的dns解析信息
 
     @staticmethod
     def get_sync_info_var_name() -> str:
