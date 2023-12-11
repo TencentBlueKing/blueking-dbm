@@ -13,9 +13,15 @@ DBHA是腾讯互娱DB的一套高可用解决方案。原高可用组件DBHA使�
 
 ## 编译
 要求go1.14+
+### 二进制编译
 ```
-$ go build dbha.go
+make build
 ```
+### 编辑镜像
+```
+make image VERSION=x.x.x
+```
+
 
 ## 部署
 
@@ -37,113 +43,146 @@ $ ./dbha -type=gm -config_file=/conf/gm.yaml -log_file=/log/dbha.log
 ```
 
 ## 配置文件
-配置文件采用yaml语法，同时分为Agent和GM两套配置。
+配置文件采用yaml语法，主要由Agent，GM和其他公共group组成。
+实际部署时，公共group必须配置指定，
+
+### 公共配置
+```yaml
+#用于指定日志记录、归档方式
+log_conf:
+  log_path: "./log"
+  log_level: "LOG_DEBUG"
+  log_maxsize: 1024
+  log_maxbackups: 5
+  log_maxage: 30
+  log_compress: true
+
+#DB配置相关
+db_conf:
+  #用于指定hadb api的访问方式
+  hadb:
+    host: "hadb访问地址"
+    port: 访问端口
+    timeout: 10
+    url_pre: "url前缀，非必须指定"
+    bk_conf:
+      bk_token: "蓝鲸API访问token"
+
+  #用于指定cmdb api的访问方式
+  cmdb:
+    host: "cmdb访问地址"
+    port: 80
+    url_pre: "url前缀，非必须指定"
+    timeout: 10
+    bk_conf:
+      bk_token: "蓝鲸API访问token"
+  #用于指定mysql实例的探测配置
+  mysql:
+    user: "xxxxxx"
+    pass: "xxxxxx"
+    proxy_user: "xxxxxx"
+    proxy_pass: "xxxxxx"
+    timeout: 10
+  #用于指定redis实例的探测配置
+  redis:
+    timeout: 10
+
+#名字服务相关
+name_services:
+  #dns配置
+  dns_conf:
+    host: "dns访问地址"
+    port: 80
+    url_pre: "url前缀，非必须指定"
+    timeout: 10
+    bk_conf:
+      bk_token: "蓝鲸API访问token"
+  #远程配置服务
+  remote_conf:
+    host: "远程服务访问地址"
+    port: 80
+    url_pre: "url前缀，非必须指定"
+    timeout: 10
+    bk_conf:
+      bk_token: "蓝鲸API访问token"
+  #北极星服务配置
+  polaris_conf:
+    host: "北极星访问地址"
+    port: 80
+    user: "nouser"
+    pass: "nopasswd"
+    url_pre: "url前缀，非必须指定"
+    timeout: 10
+  clb_conf:
+    host: http://bk-dbm-addons-db-name-service/
+    port: 80
+    user: "nouser"
+    pass: "nopasswd"
+    url_pre: "/api/nameservice/clb"
+    timeout: 10
+#统一告警配置
+monitor:
+  bk_data_id: 告警ID
+  access_token: "访问token"
+  beat_path: "告警程序路径"
+  agent_address: "告警配置地址"
+  local_ip: "本地IP"
+#ssh探测配置
+ssh:
+  port: 36000
+  user: "xxxxxx"
+  pass: "xxxxx"
+  dest: "agent"
+  timeout: 10
+```
 
 ### Agent
 ```
-type: "agent"
-active_cluster_type: [
-  "tendbha:backend"
-]
-id: "12345"
-city: "123"
-campus: "坪山"
-instance_timeout: 900
-db:
-  reporter_interval: 60
-mysql:
-  user: "root"
-  pass: "123"
-  timeout: 10
-ssh:
-  port: 36000
-  user: "root"
-  pass: "xxx"
-  dest: "agent"
-  timeout: 10
-HADB:
-  host: "xxx"
-  port: 40000
-  timeout: 10
-CMDB:
-  host: "127.0.0.1"
-  port: 3306
-  timeout: 10
+agent_conf:
+  active_db_type: [
+    "tendbha",
+    "tendbcluster",
+  ]
+  city_id: 1
+  cloud_id: 0
+  campus: "深圳"
+  fetch_interval: 120
+  reporter_interval: 120
+  local_ip: "agent本机IP"
 ```
-- type：DBHA类型，agent或gm
-- active_cluster_type：所探测的DB类型，为数组类型，可同时探测多种DB类型，采用`(cluster_type, machine_type)`作为二元组表明一种DB类型，写法为`cluster_type:machine_type`
-- id：唯一标识
-- city：cc中的城市id
-- campus：cc中的园区id
-- instance_timeout：agent获取gm和db信息的时间间隔
-- db.reporter_interval：db实例探测信息给hadb的时间间隔
-- mysql.user：探测所需mysql用户
-- mysql.pass：探测所需mysql用户的密码
-- mysql.timeout：探测mysql的超时时间
-- ssh.port：ssh探测所需端口号
-- ssh.user：ssh探测所需用户
-- ssh.pass：ssh探测用户所需密码
-- ssh.dest：执行ssh探测的角色
-- ssh.timeout：ssh探测的超时时间
-- HADB.host：访问HADB的域名
-- HADB.port：访问HADB的端口号
-- HADB.timeout：访问HADB的超时时间
-- CMDB.host：访问CMDB的域名
-- CMDB.port：访问CMDB的端口号
-- CMDB.timeout：访问CMDB的超时时间
+- active_cluster_type：所探测的DB类型，为数组类型，可同时探测多种DB类型
+  目前合法的为：tendbha,tendbcluster,TwemproxyRedisInstance,PredixyTendisplusCluster
+- city_id：cc中的城市id
+- campus：cc中的城市名
 
 ### GM
 ```
-type: "gm"
-id: "12345"
-city: "123"
-campus: "浦东"
-db:
-  reporter_interval: 60
-mysql:
-  user: "dbha"
-  pass: "xxx"
-  proxy_user: "proxy"
-  proxy_pass: "xxx"
-  timeout: 10
-ssh:
-  port: 36000
-  user: "dba"
-  pass: "xxx"
-  dest: "agent"
-  timeout: 10
-HADB:
-  host: "127.0.0.1"
-  port: 3306
-  timeout: 10
-CMDB:
-  host: "127.0.0.1"
-  port: 3306
-  timeout: 10
-GDM:
-  liston_port: 50000
-  dup_expire: 600
-  scan_interval: 1
-GMM:
-GQA:
-  idc_cache_expire: 300
-  single_switch_idc: 50
-  single_switch_interval: 86400
-  single_switch_limit:  48
-  all_host_switch_limit:  150
-  all_switch_interval:  7200
-GCM:
-  allowed_checksum_max_offset: 2
-  allowed_slave_delay_max: 600
-  allowed_time_delay_max: 300
-  exec_slow_kbytes: 0
+gm_conf:
+  city_id: 1
+  cloud_id: 0
+  campus: "深圳"
+  liston_port: GM运行端口
+  report_interval: 60
+  local_ip: "GM本机IP"
+  GDM:
+    dup_expire: 600
+  GMM:
+  GQA:
+    idc_cache_expire: 300
+    single_switch_idc: 50
+    single_switch_interval: 86400
+    single_switch_limit:  48
+    all_host_switch_limit:  150
+    all_switch_interval:  7200
+  GCM:
+    allowed_checksum_max_offset: 2
+    allowed_slave_delay_max: 600
+    allowed_time_delay_max: 300
+    exec_slow_kbytes: 0
 ```
 部分参数与Agent同名参数含义相同
-- mysql.proxy_user：切换mysql时其proxy管理端口用户
-- mysql.proxy_pass：切换mysql时其proxy管理用户密码
 - GDM.liston_port：GM监听端口
 - GDM.dup_expire：GDM缓存实例的时间
-- GDM.scan_interval：GDM扫描实例的时间间隔
 - GQA.idc_cache_expire：GQA查询IDC信息的缓存时间
 - GQA.single_switch_idc：一分钟内单个IDC切换阈值
 - GQA.single_switch_interval：GQA获取该实例多少时间内的切换次数
@@ -159,13 +198,13 @@ GCM:
 ### 镜像制作
 
 ```bash
-docker build . -t mirrors.tencent.com/sccmsp/bkm-dbha:${version}
+make image
 ```
 
 ### 测试
 
 ```bash
-docker run -it --name dbha -d mirrors.tencent.com/sccmsp/bkm-dbha:${version}  bash -c "sleep 3600"
+docker run -it --name dbha -d mirrors.tencent.com/build/blueking/dbha:${version}  bash -c "sleep 3600"
 ```
 
 ## helm部署
