@@ -116,7 +116,7 @@ def slave_migrate_switch_sub_flow(
     )
 
     sub_pipeline.add_act(
-        act_name=_("再删除旧从库域名{}").format(new_slave_ip),
+        act_name=_("再删除旧从库域名{}").format(old_slave_ip),
         act_component_code=MySQLDnsManageComponent.code,
         kwargs=asdict(
             RecycleDnsRecordKwargs(

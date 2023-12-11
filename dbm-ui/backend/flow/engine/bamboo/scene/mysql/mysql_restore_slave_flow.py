@@ -13,11 +13,12 @@ import logging.config
 from dataclasses import asdict
 from typing import Dict, Optional
 
+from django.db.models import F
 from django.utils.translation import ugettext as _
 
 from backend.configuration.constants import DBType
 from backend.db_meta.enums import ClusterType, InstanceInnerRole, InstanceStatus
-from backend.db_meta.models import Cluster, ClusterEntry
+from backend.db_meta.models import Cluster, ClusterEntry, StorageInstance
 from backend.db_package.models import Package
 from backend.flow.consts import MediumEnum
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
@@ -28,6 +29,7 @@ from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import (
 )
 from backend.flow.engine.bamboo.scene.mysql.common.slave_recover_switch import slave_migrate_switch_sub_flow
 from backend.flow.engine.bamboo.scene.mysql.common.uninstall_instance import uninstall_instance_sub_flow
+from backend.flow.plugins.components.collections.common.delete_cc_service_instance import DelCCServiceInstComponent
 from backend.flow.plugins.components.collections.common.download_backup_client import DownloadBackupClientComponent
 from backend.flow.plugins.components.collections.common.pause import PauseComponent
 from backend.flow.plugins.components.collections.mysql.clear_machine import MySQLClearMachineComponent
@@ -40,6 +42,7 @@ from backend.flow.utils.mysql.common.mysql_cluster_info import get_ports, get_ve
 from backend.flow.utils.mysql.mysql_act_dataclass import (
     ClearMachineKwargs,
     DBMetaOPKwargs,
+    DelServiceInstKwargs,
     DownloadMediaKwargs,
     ExecActuatorKwargs,
     P2PFileKwargs,
@@ -318,14 +321,8 @@ class MySQLRestoreSlaveFlow(object):
                     switch_sub_pipeline_list.append(switch_sub_pipeline.build_sub_process(sub_name=_("切换到新从节点")))
 
                 uninstall_svr_sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
-                uninstall_svr_sub_pipeline.add_sub_pipeline(
-                    sub_flow=uninstall_instance_sub_flow(
-                        root_id=self.root_id,
-                        ticket_data=copy.deepcopy(self.data),
-                        ip=self.data["old_slave_ip"],
-                        ports=self.data["ports"],
-                    )
-                )
+
+                # 需要下架的机器可能是坏的根本连接不上, 所以应该先清理元数据
                 cluster = {"uninstall_ip": self.data["old_slave_ip"], "cluster_ids": self.data["cluster_ids"]}
                 uninstall_svr_sub_pipeline.add_act(
                     act_name=_("整机卸载成功后删除元数据"),
@@ -338,6 +335,7 @@ class MySQLRestoreSlaveFlow(object):
                         )
                     ),
                 )
+
                 uninstall_svr_sub_pipeline.add_act(
                     act_name=_("清理机器配置"),
                     act_component_code=MySQLClearMachineComponent.code,
@@ -348,6 +346,16 @@ class MySQLRestoreSlaveFlow(object):
                         )
                     ),
                 )
+
+                uninstall_svr_sub_pipeline.add_sub_pipeline(
+                    sub_flow=uninstall_instance_sub_flow(
+                        root_id=self.root_id,
+                        ticket_data=copy.deepcopy(self.data),
+                        ip=self.data["old_slave_ip"],
+                        ports=self.data["ports"],
+                    )
+                )
+
                 uninstall_svr_sub_pipeline_list.append(
                     uninstall_svr_sub_pipeline.build_sub_process(
                         sub_name=_("卸载remote节点{}".format(self.data["old_slave_ip"]))
@@ -391,6 +399,26 @@ class MySQLRestoreSlaveFlow(object):
                 tendb_migrate_pipeline.add_act(
                     act_name=_("人工确认卸载实例"), act_component_code=PauseComponent.code, kwargs={}
                 )
+
+                # 删除待下架机器的服务实例
+                del_cc_service_instance_acts = []
+                for cid in self.data["cluster_ids"]:
+                    delete_instance_list = list(
+                        StorageInstance.objects.annotate(ip=F("machine_ip"))
+                        .filter(cluster=cid, machine__ip=self.data["old_slave_ip"])
+                        .values("ip", "port")
+                    )
+                    del_cc_service_instance_acts.append(
+                        {
+                            "act_name": _("删除注册CC系统的服务实例"),
+                            "act_component_code": DelCCServiceInstComponent.code,
+                            "kwargs": asdict(
+                                DelServiceInstKwargs(cluster_id=cid, del_instance_list=delete_instance_list)
+                            ),
+                        }
+                    )
+                tendb_migrate_pipeline.add_parallel_acts(acts_list=del_cc_service_instance_acts)
+
                 # # 卸载remote节点
                 tendb_migrate_pipeline.add_parallel_sub_pipeline(sub_flow_list=uninstall_svr_sub_pipeline_list)
             tendb_migrate_pipeline_list.append(

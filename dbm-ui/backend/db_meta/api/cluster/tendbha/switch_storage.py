@@ -40,8 +40,9 @@ def switch_storage(cluster_id: int, target_storage_ip: str, origin_storage_ip: s
     # target实例需要继承source实例的is_standby特性
     target_storage.is_stand_by = origin_storage.is_stand_by
     target_storage.save()
-    origin_storage.is_stand_by = False
-    origin_storage.save()
+    # 这两行目前看来有点多余, 而且似乎不做更好
+    # origin_storage.is_stand_by = False
+    # origin_storage.save()
 
 
 def change_proxy_storage_entry(cluster_id: int, master_ip: str, new_master_ip: str):
