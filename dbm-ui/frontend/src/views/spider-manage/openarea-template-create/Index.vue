@@ -113,6 +113,8 @@
     defaultParams: [
       {
         bk_biz_id: currentBizId,
+        cluster_types: 'tendbha,tendbcluster',
+        phase: 'online',
       },
     ],
   });

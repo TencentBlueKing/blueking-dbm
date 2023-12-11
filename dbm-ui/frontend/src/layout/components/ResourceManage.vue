@@ -15,7 +15,7 @@
           {{ t('资源规格管理') }}
         </span>
       </BkMenuItem>
-      <BkMenuItem key="resourcePoolList">
+      <BkMenuItem key="resourcePool">
         <template #icon>
           <DbIcon type="list" />
         </template>

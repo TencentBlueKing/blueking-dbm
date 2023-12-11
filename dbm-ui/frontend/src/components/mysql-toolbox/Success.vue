@@ -83,7 +83,7 @@
     const location = router.resolve({
       name: 'SelfServiceMyTickets',
       query: {
-        filterId: props.ticketId,
+        id: props.ticketId,
       },
     });
     window.open(location.href, '_blank');

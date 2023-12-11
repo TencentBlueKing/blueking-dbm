@@ -22,7 +22,7 @@ export const useTicketMessage = () => {
     const route = router.resolve({
       name: 'SelfServiceMyTickets',
       query: {
-        filterId: id,
+        id,
       },
     });
 

@@ -13,65 +13,89 @@
 
 <template>
   <div class="service-apply-page">
-    <DbCard :title="t('全部服务')">
-      <ScrollFaker style="height: calc(100vh - 300px)">
-        <FunController
-          v-for="item of services"
-          :key="item.name"
-          :module-id="item.id">
-          <ApplyCollapse class="apply-collapse">
-            <template #title>
-              <strong class="apply-collapse-name">{{ item.name }}</strong>
-              <BkTag class="apply-collapse-count">
-                {{ item.children.length }}
-              </BkTag>
-            </template>
-            <div class="apply-collapse-content">
-              <img
-                v-if="item.iconName"
-                key="icon"
-                :src="getImgUrl(item.iconName)"
-                style="width: 28px; height: 28px; margin-top: 8px; margin-right: 8px;"
-                width="28">
-              <FunController
-                v-for="child of item.children"
-                :key="child.id"
-                :controller-id="child.controllerId"
-                :module-id="item.id">
-                <div
-                  class="apply-item"
-                  @click="handleApply(child)">
-                  <BkPopover
-                    :disabled="!child.tipImgProps"
-                    placement="bottom"
-                    theme="light">
-                    <div class="apply-item-trigger">
-                      <i
-                        class="apply-item-icon"
-                        :class="[child.icon]" />
-                      <span
-                        v-overflow-tips
-                        class="apply-item-name text-overflow">
-                        {{ child.name }}
-                      </span>
-                    </div>
-                    <template #content>
-                      <div class="apply-collapse-content__popover">
-                        <img v-bind="child.tipImgProps">
-                      </div>
-                    </template>
-                  </BkPopover>
-                </div>
-              </FunController>
+    <ScrollFaker style="height: calc(100vh - 200px)">
+      <ApplyCollapse class="apply-collapse">
+        <template #title>
+          {{ t('最近使用') }}
+        </template>
+        <div class="history-list">
+          <div
+            v-for="id in historyCacheIdList"
+            :key="id"
+            class="history-item">
+            <DbIcon
+              class="item-icon"
+              :type="serviceIdMap[id].icon" />
+            <div class="item-text">
+              {{ serviceIdMap[id].name }}
             </div>
-          </ApplyCollapse>
-        </FunController>
-      </ScrollFaker>
-    </DbCard>
+            <div style="padding-left: 8px; margin-left: auto">
+              <DbIcon
+                v-if="favorIdMap[id]"
+                style="color: #ffb848;"
+                type="star-fill"
+                @click="handleUnfavor(id)" />
+              <DbIcon
+                v-else
+                class="favor-btn"
+                type="star"
+                @click="handleFavor(id)" />
+            </div>
+          </div>
+        </div>
+      </ApplyCollapse>
+      <FunController
+        v-for="item of services"
+        :key="item.name"
+        :module-id="item.id">
+        <ApplyCollapse class="apply-collapse">
+          <template #title>
+            {{ item.name }}
+            <BkTag class="apply-collapse-count">
+              {{ item.children.length }}
+            </BkTag>
+          </template>
+          <div class="apply-collapse-content">
+            <div
+              v-if="item.groupName"
+              class="group-name">
+              {{ item.groupName }}
+            </div>
+            <FunController
+              v-for="child of item.children"
+              :key="child.id"
+              :controller-id="child.controllerId"
+              :module-id="item.id">
+              <div
+                class="apply-item"
+                @click="handleApply(child)">
+                <BkPopover
+                  :disabled="!child.tipImgProps"
+                  placement="bottom"
+                  theme="light">
+                  <div>
+                    <DbIcon
+                      class="apply-item-icon"
+                      :type="child.icon" />
+                    <span>
+                      {{ child.name }}
+                    </span>
+                  </div>
+                  <template #content>
+                    <img v-bind="child.tipImgProps">
+                  </template>
+                </BkPopover>
+              </div>
+            </FunController>
+          </div>
+        </ApplyCollapse>
+      </FunController>
+    </ScrollFaker>
     <Copyright />
   </div>
 </template>
 <script setup lang="ts">
+  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
   import {
     useRoute,
@@ -83,15 +107,19 @@
     FunctionKeys,
   } from '@services/model/function-controller/functionController';
 
+  import { useUserProfile  } from '@stores';
+
   import {
     bigDataType,
-    ClusterTypes,
     mysqlType,
     redisType,
     TicketTypes,
+    UserPersonalSettings,
   } from '@common/const';
 
   import Copyright from '@components/layouts/Copyright.vue';
+
+  import { makeMap } from '@utils';
 
   import ApplyCollapse from './components/ApplyCollapse.vue';
 
@@ -100,14 +128,13 @@
 
   interface IService {
     id: ExtractedControllerDataKeys,
-    iconName?: string,
+    groupName?: string,
     name: string,
     children: Array<{
       id: TicketTypes,
       routeName: string,
       name: string,
       icon: string,
-      type: ClusterTypes,
       controllerId?: FunctionKeys,
       tipImgProps?: {
         width: number,
@@ -119,14 +146,15 @@
   const route = useRoute();
   const router = useRouter();
   const { t } = useI18n();
+  const userProfile = useUserProfile();
 
-  const getImgUrl = (name: string) => `${window.PROJECT_ENV.VITE_PUBLIC_PATH}images/db-group/${name}.png`;
+  const localHistroyKey = 'SERVICE_APPLY_HISTORY';
 
   // 全部服务类型
   const services: Array<IService> = [
     {
       id: 'mysql',
-      iconName: 'mysql',
+      groupName: 'Mysql',
       name: '关系型数据库',
       children: [
         {
@@ -134,8 +162,7 @@
           routeName: 'SelfServiceApplySingle',
           id: mysqlType[TicketTypes.MYSQL_SINGLE_APPLY].id,
           name: mysqlType[TicketTypes.MYSQL_SINGLE_APPLY].name,
-          type: mysqlType[TicketTypes.MYSQL_SINGLE_APPLY].type,
-          icon: 'db-icon-mysql',
+          icon: 'mysql',
           tipImgProps: {
             width: 150,
             src: singleTipImg,
@@ -146,8 +173,7 @@
           routeName: 'SelfServiceApplyHa',
           id: mysqlType[TicketTypes.MYSQL_HA_APPLY].id,
           name: mysqlType[TicketTypes.MYSQL_HA_APPLY].name,
-          type: mysqlType[TicketTypes.MYSQL_HA_APPLY].type,
-          icon: 'db-icon-mysql',
+          icon: 'mysql',
           tipImgProps: {
             width: 362,
             src: haTipImg,
@@ -158,8 +184,7 @@
           routeName: 'spiderApply',
           id: mysqlType[TicketTypes.TENDBCLUSTER_APPLY].id,
           name: mysqlType[TicketTypes.TENDBCLUSTER_APPLY].name,
-          type: mysqlType[TicketTypes.TENDBCLUSTER_APPLY].type,
-          icon: 'db-icon-mysql',
+          icon: 'mysql',
         },
       ],
     },
@@ -171,8 +196,7 @@
           routeName: 'SelfServiceApplyRedis',
           id: redisType[TicketTypes.REDIS_CLUSTER_APPLY].id,
           name: redisType[TicketTypes.REDIS_CLUSTER_APPLY].name,
-          type: redisType[TicketTypes.REDIS_CLUSTER_APPLY].type,
-          icon: 'db-icon-redis',
+          icon: 'redis',
         },
       ],
     },
@@ -185,8 +209,7 @@
           routeName: 'SelfServiceApplyInfluxDB',
           id: bigDataType[TicketTypes.INFLUXDB_APPLY].id,
           name: bigDataType[TicketTypes.INFLUXDB_APPLY].name,
-          icon: 'db-icon-influxdb',
-          type: bigDataType[TicketTypes.INFLUXDB_APPLY].type,
+          icon: 'influxdb',
         },
       ],
     },
@@ -199,16 +222,14 @@
           routeName: 'EsApply',
           id: bigDataType[TicketTypes.ES_APPLY].id,
           name: bigDataType[TicketTypes.ES_APPLY].name,
-          icon: 'db-icon-es',
-          type: bigDataType[TicketTypes.ES_APPLY].type,
+          icon: 'es',
         },
         {
           controllerId: 'hdfs',
           routeName: 'HdfsApply',
           id: bigDataType[TicketTypes.HDFS_APPLY].id,
           name: bigDataType[TicketTypes.HDFS_APPLY].name,
-          icon: 'db-icon-hdfs',
-          type: bigDataType[TicketTypes.HDFS_APPLY].type,
+          icon: 'hdfs',
         },
       ],
     },
@@ -221,27 +242,64 @@
           routeName: 'PulsarApply',
           id: bigDataType[TicketTypes.PULSAR_APPLY].id,
           name: bigDataType[TicketTypes.PULSAR_APPLY].name,
-          icon: 'db-icon-pulsar',
-          type: bigDataType[TicketTypes.PULSAR_APPLY].type,
+          icon: 'pulsar',
         },
         {
           controllerId: 'kafka',
           routeName: 'KafkaApply',
           id: bigDataType[TicketTypes.KAFKA_APPLY].id,
           name: bigDataType[TicketTypes.KAFKA_APPLY].name,
-          icon: 'db-icon-kafka',
-          type: bigDataType[TicketTypes.KAFKA_APPLY].type,
+          icon: 'kafka',
         },
       ],
     },
   ];
 
+  const serviceIdMap = Object.values(services).reduce((result, groupItem) => {
+    groupItem.children.forEach((item) => {
+      Object.assign(result, {
+        [item.id]: item,
+      });
+    });
+    return result;
+  }, {} as Record<string, IService['children'][number]>);
+
+  const lastFavorIdMap = makeMap(userProfile.profile[UserPersonalSettings.SERVICE_APPLY_FAVOR] || []);
+  const historyCacheIdList = ref<string[]>(_.sortBy(
+    JSON.parse(localStorage.getItem(localHistroyKey) || '[]'),
+    item => lastFavorIdMap[item],
+  ));
+  const favorIdMap = shallowRef({ ...lastFavorIdMap });
+
   const handleApply = (item: IService['children'][0]) => {
+    localStorage.setItem(localHistroyKey, JSON.stringify(_.uniq([item.id, ...historyCacheIdList.value]).slice(0, 6)));
+
     router.push({
       name: item.routeName,
       query: {
         from: route.name as string,
       },
+    });
+  };
+
+  const handleUnfavor = (id: string) => {
+    const lastFavorIdMap = { ...favorIdMap.value };
+    delete lastFavorIdMap[id];
+    favorIdMap.value = lastFavorIdMap;
+    userProfile.updateProfile({
+      label: UserPersonalSettings.SERVICE_APPLY_FAVOR,
+      values: Object.keys(lastFavorIdMap),
+    });
+  };
+  const handleFavor = (id: string) => {
+    const lastFavorIdMap = {
+      ...favorIdMap.value,
+      [id]: true,
+    };
+    favorIdMap.value = lastFavorIdMap;
+    userProfile.updateProfile({
+      label: UserPersonalSettings.SERVICE_APPLY_FAVOR,
+      values: Object.keys(lastFavorIdMap),
     });
   };
 </script>
@@ -253,48 +311,100 @@
     height: calc(100vh - 200px);
   }
 
+  .history-list{
+    display: flex;
+
+    .history-item{
+      display: flex;
+      width: 250px;
+      height: 56px;
+      padding: 0 16px;
+      margin-right: 16px;
+      overflow: hidden;
+      font-size: 12px;
+      color: #63656E;
+      cursor: pointer;
+      background: #F5F7FA;
+      border-radius: 2px;
+      transition: all .1s;
+      align-items: center;
+
+      &:hover{
+        background: #F0F1F5;
+
+        .favor-btn{
+          opacity: 100%;
+        }
+      }
+
+      .item-icon{
+        display: flex;
+        flex: 0 0 32px;
+        width: 32px;
+        height: 32px;
+        margin-right: 8px;
+        background: #EAEBF0;
+        border-radius: 50%;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .item-text{
+        height: 16px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .favor-btn{
+        opacity: 0%;
+        transform: all .1s;
+      }
+    }
+  }
+
   .apply-collapse {
     margin-bottom: 16px;
-    line-height: 28px;
 
     &:last-child {
       margin-bottom: 0;
     }
 
-    .apply-collapse-name {
-      color: @title-color;
-    }
-
     .apply-collapse-count {
       height: 16px;
+      margin-left: 4px;
       line-height: 16px;
       color: @gray-color;
     }
 
-    .apply-collapse-content {
-      display: flex;
-    }
+  }
 
+  .apply-collapse-content {
+    display: flex;
+
+    .group-name{
+      display: flex;
+      width: 100px;
+      height: 40px;
+      margin-right: 16px;
+      font-weight: bold;
+      color: #313238;
+      background: #EAEBF0;
+      border-radius: 2px;
+      align-items: center;
+      justify-content: center;
+    }
   }
 
   .apply-item {
     width: 290px;
-    padding: 0 8px 0 16px;
-    margin: 4px 16px 4px 0;
+    padding: 0 16px;
     margin-right: 16px;
     font-size: @font-size-mini;
     line-height: 40px;
     cursor: pointer;
-    background-color: @bg-gray;
+    background-color: #F5F7FA;
     border-radius: 2px;
-
-    .apply-item-trigger {
-      .flex-center();
-    }
-
-    .apply-item-name {
-      flex: 1;
-    }
 
     .apply-item-icon {
       width: 24px;
@@ -316,6 +426,4 @@
     }
   }
 }
-
-
 </style>

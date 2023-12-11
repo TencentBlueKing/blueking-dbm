@@ -24,7 +24,7 @@
         :to="{
           name: 'SelfServiceMyTickets',
           query: {
-            filterId: ticketId,
+            id: ticketId,
           },
         }">
         {{ $t('我的服务单') }}
@@ -87,7 +87,7 @@
     const route = router.resolve({
       name: 'SelfServiceMyTickets',
       query: {
-        filterId: ticketId,
+        id: ticketId,
       },
     });
     window.open(route.href);
