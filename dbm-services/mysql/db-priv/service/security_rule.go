@@ -2,8 +2,8 @@ package service
 
 import (
 	"dbm-services/common/go-pubpkg/errno"
-	"dbm-services/mysql/priv-service/util"
 	"fmt"
+	"time"
 )
 
 // ModifySecurityRule 修改安全规则
@@ -11,7 +11,7 @@ func (m *SecurityRulePara) ModifySecurityRule(jsonPara string) error {
 	if m.Id == 0 {
 		return errno.RuleIdNull
 	}
-	updateTime := util.NowTimeFormat()
+	updateTime := time.Now()
 	rule := TbSecurityRules{Name: m.Name, Rule: m.Rule, Operator: m.Operator, UpdateTime: updateTime}
 	id := TbSecurityRules{Id: m.Id}
 	result := DB.Self.Model(&id).Update(&rule)
@@ -39,7 +39,7 @@ func (m *SecurityRulePara) AddSecurityRule(jsonPara string) error {
 	if count != 0 {
 		return errno.RuleExisted.AddBefore(m.Name)
 	}
-	insertTime := util.NowTimeFormat()
+	insertTime := time.Now()
 	// 添加规则
 	rule := &TbSecurityRules{Name: m.Name, Rule: m.Rule, Creator: m.Operator, CreateTime: insertTime}
 	err = DB.Self.Model(&TbSecurityRules{}).Create(&rule).Error
@@ -87,7 +87,7 @@ func (m *SecurityRulePara) DeleteSecurityRule(jsonPara string) error {
 	if err != nil {
 		return err
 	}
-	log := PrivLog{BkBizId: 0, Operator: m.Operator, Para: jsonPara, Time: util.NowTimeFormat()}
+	log := PrivLog{BkBizId: 0, Operator: m.Operator, Para: jsonPara, Time: time.Now()}
 	AddPrivLog(log)
 	return nil
 }

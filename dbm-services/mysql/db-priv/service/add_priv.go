@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"strings"
 	"sync"
+	"time"
 
 	"dbm-services/common/go-pubpkg/errno"
 	"dbm-services/mysql/priv-service/util"
@@ -58,7 +59,7 @@ func (m *PrivTaskPara) AddPriv(jsonPara string) error {
 	if _, outerErr := m.AddPrivDryRun(); outerErr != nil {
 		return outerErr
 	}
-	AddPrivLog(PrivLog{BkBizId: m.BkBizId, Operator: m.Operator, Para: jsonPara, Time: util.NowTimeFormat()})
+	AddPrivLog(PrivLog{BkBizId: m.BkBizId, Operator: m.Operator, Para: jsonPara, Time: time.Now()})
 	tokenBucket := make(chan int, 10)
 	client := util.NewClientByHosts(viper.GetString("dbmeta"))
 	for _, rule := range m.AccoutRules { // 添加权限,for acccountRuleList;for instanceList; do create a routine
@@ -189,7 +190,7 @@ func (m *AddPrivWithoutAccountRule) AddPrivWithoutAccountRule(jsonPara string) e
 	if err != nil {
 		return err
 	}
-	ts := util.NowTimeFormat()
+	ts := time.Now()
 	tmpAccount := TbAccounts{0, 0, "", m.User, psw, "", ts, "", ts}
 	tmpAccountRule := TbAccountRules{0, 0, "", 0, m.Dbname, m.Priv, m.DmlDdlPriv, m.GlobalPriv, "", ts, "", ts}
 	if m.BkCloudId == nil {
@@ -208,6 +209,6 @@ func (m *AddPrivWithoutAccountRule) AddPrivWithoutAccountRule(jsonPara string) e
 	if err != nil {
 		return errno.GrantPrivilegesFail.Add(err.Error())
 	}
-	AddPrivLog(PrivLog{BkBizId: m.BkBizId, Operator: m.Operator, Para: jsonPara, Time: util.NowTimeFormat()})
+	AddPrivLog(PrivLog{BkBizId: m.BkBizId, Operator: m.Operator, Para: jsonPara, Time: time.Now()})
 	return nil
 }

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"strings"
+	"time"
 
 	"dbm-services/common/go-pubpkg/errno"
 	"dbm-services/mysql/priv-service/util"
@@ -93,7 +94,6 @@ func (m *BkBizId) QueryAccountRule() ([]*AccountRuleSplitUser, int64, error) {
 func (m *AccountRulePara) AddAccountRule(jsonPara string) error {
 	var (
 		accountRule TbAccountRules
-		insertTime  util.TimeFormat
 		dbs         []string
 		allTypePriv string
 		dmlDdlPriv  string
@@ -138,11 +138,10 @@ func (m *AccountRulePara) AddAccountRule(jsonPara string) error {
 	allTypePriv = strings.Trim(allTypePriv, ",")
 
 	tx := DB.Self.Begin()
-	insertTime = util.NowTimeFormat()
 	for _, db := range dbs {
 		accountRule = TbAccountRules{BkBizId: m.BkBizId, ClusterType: *m.ClusterType, AccountId: m.AccountId, Dbname: db,
 			Priv:       allTypePriv,
-			DmlDdlPriv: dmlDdlPriv, GlobalPriv: globalPriv, Creator: m.Operator, CreateTime: insertTime}
+			DmlDdlPriv: dmlDdlPriv, GlobalPriv: globalPriv, Creator: m.Operator, CreateTime: time.Now()}
 		err = tx.Debug().Model(&TbAccountRules{}).Create(&accountRule).Error
 		if err != nil {
 			tx.Rollback()
@@ -153,7 +152,7 @@ func (m *AccountRulePara) AddAccountRule(jsonPara string) error {
 	if err != nil {
 		return err
 	}
-	log := PrivLog{BkBizId: m.BkBizId, Operator: m.Operator, Para: jsonPara, Time: insertTime}
+	log := PrivLog{BkBizId: m.BkBizId, Operator: m.Operator, Para: jsonPara, Time: time.Now()}
 	AddPrivLog(log)
 
 	return nil
@@ -163,7 +162,6 @@ func (m *AccountRulePara) AddAccountRule(jsonPara string) error {
 func (m *AccountRulePara) ModifyAccountRule(jsonPara string) error {
 	var (
 		accountRule TbAccountRules
-		updateTime  util.TimeFormat
 		dbname      string
 		allTypePriv string
 		dmlDdlPriv  string
@@ -183,7 +181,6 @@ func (m *AccountRulePara) ModifyAccountRule(jsonPara string) error {
 
 	// 可以修改账号规则的db名、权限
 	// 不能与已有账号规则冲突
-	updateTime = util.NowTimeFormat()
 	dbname = strings.TrimSpace(m.Dbname)
 	if strings.Contains(dbname, " ") {
 		return errno.OnlyOneDatabaseAllowed
@@ -230,7 +227,7 @@ func (m *AccountRulePara) ModifyAccountRule(jsonPara string) error {
 		err = DB.Self.Model(&TbAccountRules{Id: m.Id}).Update(&accountRule).Error
 	*/
 	accountRuleMap := map[string]interface{}{"dbname": dbname, "priv": allTypePriv, "dml_ddl_priv": dmlDdlPriv,
-		"global_priv": globalPriv, "operator": m.Operator, "update_time": updateTime}
+		"global_priv": globalPriv, "operator": m.Operator, "update_time": time.Now()}
 	result := DB.Self.Model(&TbAccountRules{Id: m.Id}).Update(accountRuleMap)
 	if result.Error != nil {
 		return result.Error
@@ -239,7 +236,7 @@ func (m *AccountRulePara) ModifyAccountRule(jsonPara string) error {
 		return errno.AccountRuleNotExisted
 	}
 
-	log := PrivLog{BkBizId: m.BkBizId, Operator: m.Operator, Para: jsonPara, Time: updateTime}
+	log := PrivLog{BkBizId: m.BkBizId, Operator: m.Operator, Para: jsonPara, Time: time.Now()}
 	AddPrivLog(log)
 
 	return nil
@@ -281,7 +278,7 @@ func (m *DeleteAccountRuleById) DeleteAccountRule(jsonPara string) error {
 	if result.RowsAffected == 0 {
 		return errno.AccountRuleNotExisted
 	}
-	log := PrivLog{BkBizId: m.BkBizId, Operator: m.Operator, Para: jsonPara, Time: util.NowTimeFormat()}
+	log := PrivLog{BkBizId: m.BkBizId, Operator: m.Operator, Para: jsonPara, Time: time.Now()}
 	AddPrivLog(log)
 	return nil
 }

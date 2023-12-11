@@ -55,7 +55,7 @@ def randomize_admin_password(if_async: bool, range_type: str):
 
 def get_mysql_instance(cluster_id: int):
     def _get_instances(_role, _instances):
-        if _role == MySQLPasswordRole.TDBCTL_USER.value:
+        if _role == MySQLPasswordRole.TDBCTL.value:
             instance_info = {
                 "role": _role,
                 "addresses": [{"ip": instance.machine.ip, "port": instance.admin_port} for instance in _instances],
@@ -76,7 +76,7 @@ def get_mysql_instance(cluster_id: int):
             tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_MASTER
         )
         instances.append(_get_instances(MySQLPasswordRole.SPIDER.value, spiders))
-        instances.append(_get_instances(MySQLPasswordRole.TDBCTL_USER.value, dbctls))
+        instances.append(_get_instances(MySQLPasswordRole.TDBCTL.value, dbctls))
 
     return {"bk_cloud_id": cluster.bk_cloud_id, "cluster_type": cluster.cluster_type, "instances": instances}
 

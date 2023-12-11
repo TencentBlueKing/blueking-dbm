@@ -28,6 +28,7 @@ def biz_clusters(bk_biz_id: int, immute_domains: Optional[List[str]]):
 
     for cluster in qs:
         cluster_info = {
+            "id": cluster.id,
             "immute_domain": cluster.immute_domain,
             "storages": list(
                 cluster.storageinstance_set.annotate(ip=F("machine__ip")).values("ip", "port", "instance_role")

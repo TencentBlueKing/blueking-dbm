@@ -27,19 +27,20 @@ func setupDatabase(db *gorm.DB) {
 }
 
 func openDB(username, password, addr, name string) *gorm.DB {
-	config := fmt.Sprintf("%s:%s@tcp(%s)/%s?charset=utf8&parseTime=%t&loc=%s",
+	tz := "loc=UTC&time_zone=%27%2B00%3A00%27"
+	// tz := "loc=Local&time_zone=%27%2B08%3A00%27"
+	config := fmt.Sprintf("%s:%s@tcp(%s)/%s?charset=utf8&parseTime=%t&%s",
 		username,
 		password,
 		addr,
 		name,
 		true,
-		// "Asia/Shanghai"),
-		"Local")
+		tz)
 	db, err := gorm.Open("mysql", config)
 	if err != nil {
+		log.Fatalf(config)
 		log.Fatalf("Database connection failed. Database name: %s, error: %v", name, err)
 	}
-
 	// set for db connection
 	setupDB(db)
 	return db

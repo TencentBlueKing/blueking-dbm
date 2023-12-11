@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 	"sync"
+	"time"
 
 	"dbm-services/common/go-pubpkg/errno"
 	"dbm-services/mysql/priv-service/util"
@@ -60,7 +61,7 @@ func (m *CloneClientPrivPara) CloneClientPriv(jsonPara string) error {
 		m.ClusterType = &ct
 	}
 
-	AddPrivLog(PrivLog{BkBizId: m.BkBizId, Operator: m.Operator, Para: jsonPara, Time: util.NowTimeFormat()})
+	AddPrivLog(PrivLog{BkBizId: m.BkBizId, Operator: m.Operator, Para: jsonPara, Time: time.Now()})
 
 	client := util.NewClientByHosts(viper.GetString("dbmeta"))
 	resp, errOuter := GetAllClustersInfo(client, BkBizIdPara{m.BkBizId})
