@@ -21,7 +21,7 @@ from backend.db_meta.models import Cluster
 from backend.db_services.cluster_entry.serializers import ModifyClusterEntrySerializer, RetrieveClusterEntrySLZ
 from backend.db_services.dbbase.resources.query import ListRetrieveResource
 from backend.flow.utils.dns_manage import DnsManage
-from backend.iam_app.handlers.drf_perm import GlobalManageIAMPermission
+from backend.iam_app.handlers.drf_perm import DBManageIAMPermission, GlobalManageIAMPermission
 
 logger = logging.getLogger("root")
 SWAGGER_TAG = [_("集群访问入口")]
@@ -29,6 +29,12 @@ SWAGGER_TAG = [_("集群访问入口")]
 
 class ClusterEntryViewSet(viewsets.SystemViewSet):
     permission_classes = [GlobalManageIAMPermission]
+
+    def _get_custom_permissions(self):
+        if self.action == "get_cluster_entries":
+            return [DBManageIAMPermission()]
+
+        return [GlobalManageIAMPermission()]
 
     @common_swagger_auto_schema(operation_summary=_("修改集群访问入口"), tags=[SWAGGER_TAG])
     @action(methods=["POST"], detail=False, serializer_class=ModifyClusterEntrySerializer)

@@ -41,4 +41,5 @@ class ModifyClusterEntrySerializer(serializers.Serializer):
 
 class RetrieveClusterEntrySLZ(serializers.Serializer):
     cluster_id = serializers.IntegerField(help_text=_("集群 ID"))
+    bk_biz_id = serializers.IntegerField(help_text=_("业务 ID"))
     entry_type = serializers.ChoiceField(choices=ClusterEntryType.get_choices(), help_text=_("入口类型"))
