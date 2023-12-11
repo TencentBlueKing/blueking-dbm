@@ -51,7 +51,8 @@ declare interface Window {
   },
   PROJECT_CONFIG: {
     BIZ_ID: number
-  }
+  },
+  BKApp: App<Element>
 }
 
 declare module 'js-cookie'

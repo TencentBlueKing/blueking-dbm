@@ -24,8 +24,10 @@ const path = '/apis/db_dirty';
 export function getDirtyMachines(params: {
   limit: number,
   offset: number,
-}, config = { globalError: true }) {
-  return http.get<ListBase<DirtyMachinesModel[]>>(`${path}/query_dirty_machines/`, params, config)
+}) {
+  return http.get<ListBase<DirtyMachinesModel[]>>(`${path}/query_dirty_machines/`, params, {
+    catchError: true,
+  })
     .then(res => ({
       ...res,
       results: res.results.map(item => new DirtyMachinesModel(item)),

@@ -49,14 +49,14 @@ export const setCancelTokenSource = (source: CancelTokenSource) => {
 export const getCancelTokenSource = () => cancelTokenSource;
 
 const handler = {} as {
-  [n in Method]: <T = any>(url: string, params?: Record<string, any>) =>
+  [n in Method]: <T = any>(url: string, params?: Record<string, any>, payload?: IRequestPayload) =>
     Promise<T>
 };
 
 methodList.forEach((method) => {
   Object.defineProperty(handler, method, {
     get() {
-      return function (url: string, params: Record<string, any>) {
+      return function (url: string, params: Record<string, any>, payload: IRequestPayload) {
         if (method === 'download') {
           downloadUrl(`${window.PROJECT_ENV.VITE_AJAX_URL_PREFIX}/${_.trim(url, '/')}?${buildURLParams(params)}`);
           return Promise.resolve();
@@ -65,6 +65,7 @@ methodList.forEach((method) => {
           url,
           method,
           params,
+          payload,
         });
         return handler.run();
       };

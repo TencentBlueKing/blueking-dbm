@@ -39,7 +39,8 @@ export interface Config {
     timeout?: number,
     cache?: string | number | boolean,
     onUploadProgress?: (params: CancelTokenSource) => void,
-    permission?: 'page' | 'dialog' | 'catch'
+    permission?: 'page' | 'dialog' | 'catch',
+    catchError?: boolean
   }
 }
 

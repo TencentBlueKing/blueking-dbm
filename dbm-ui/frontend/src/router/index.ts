@@ -15,6 +15,7 @@ import _ from 'lodash';
 import {
   createRouter,
   createWebHistory,
+  type Router,
 } from 'vue-router';
 
 import type {
@@ -54,7 +55,7 @@ import getTicketsRoutes from '@views/tickets/routes';
 import getVersionFilesRoutes from '@views/version-files/routes';
 import getWhitelistRoutes from '@views/whitelist/routes';
 
-
+let appRouter: Router;
 export default () => {
   // 解析 url 业务id
   const {
@@ -85,7 +86,7 @@ export default () => {
   const redisController = funControllerData.getFlatData<RedisFunctions, 'redis'>('redis');
   const bigdataController = funControllerData.getFlatData<BigdataFunctions, 'bigdata'>('bigdata');
 
-  const router = createRouter({
+  appRouter = createRouter({
     history: createWebHistory(),
     routes: [
       {
@@ -135,5 +136,7 @@ export default () => {
     ],
   });
 
-  return router;
+  return appRouter;
 };
+
+export const getRouter = () => appRouter;

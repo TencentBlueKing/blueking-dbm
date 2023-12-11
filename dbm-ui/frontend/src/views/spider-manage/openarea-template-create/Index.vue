@@ -29,6 +29,8 @@
             required>
             <BkSelect
               v-model="formData.source_cluster_id"
+              filterable
+              :input-search="false"
               style="width: 560px">
               <BkOption
                 v-for="item in clusterList"
