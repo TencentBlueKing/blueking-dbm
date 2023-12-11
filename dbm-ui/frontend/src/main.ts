@@ -49,6 +49,8 @@ setGlobalDirectives(app);
 app.use(bkuiVue);
 app.use(i18n);
 
+window.BKApp = app;
+
 const {
   fetchFunController,
 } = useFunController();

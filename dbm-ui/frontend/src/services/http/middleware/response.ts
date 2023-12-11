@@ -47,6 +47,24 @@ const redirectLogin = (loginUrl:string) => {
   }
 };
 
+const handlePermission = (error:RequestError) => {
+  const {  emit } = useEventBus();
+  // eslint-disable-next-line no-case-declarations
+  const requestPayload = error.response.config.payload;
+  // eslint-disable-next-line no-case-declarations
+  const iamResult = new IamApplyDataModel(error.response.data.data || {});
+  if (requestPayload.permission === 'page') {
+    // 配合 jb-router-view（@components/audit-router-view）全局展示没权限提示
+    emit('permission-page', iamResult);
+  } else if (requestPayload.permission === 'catch') {
+    // 配合 apply-section （@components/apply-permission/catch）使用，局部展示没权限提示
+    emit('permission-catch', iamResult);
+  } else {
+    // 弹框展示没权限提示
+    permissionDialog(iamResult);
+  }
+};
+
 export default (interceptors: AxiosInterceptorManager<AxiosResponse>) => {
   interceptors.use((response: AxiosResponse) => {
     // 处理http响应成功，后端返回逻辑
@@ -106,28 +124,12 @@ export default (interceptors: AxiosInterceptorManager<AxiosResponse>) => {
       default:
         if (error.response.data.code === 9900403) {
           handlePermission(error);
-        } else {
-          messageError(`${error.message} (${error.response.data.trace_id})`);
+        } else if (!error.response.config.payload.catchError) {
+          messageError(error.message);
         }
     }
-    return Promise.reject(error);
+    return Promise.reject(error.response.data);
   });
 };
 
-const handlePermission = (error:RequestError) => {
-  const {  emit } = useEventBus();
-  // eslint-disable-next-line no-case-declarations
-  const requestPayload = error.response.config.payload;
-  // eslint-disable-next-line no-case-declarations
-  const iamResult = new IamApplyDataModel(error.response.data.data || {});
-  if (requestPayload.permission === 'page') {
-    // 配合 jb-router-view（@components/audit-router-view）全局展示没权限提示
-    emit('permission-page', iamResult);
-  } else if (requestPayload.permission === 'catch') {
-    // 配合 apply-section （@components/apply-permission/catch）使用，局部展示没权限提示
-    emit('permission-catch', iamResult);
-  } else {
-    // 弹框展示没权限提示
-    permissionDialog(iamResult);
-  }
-};
+

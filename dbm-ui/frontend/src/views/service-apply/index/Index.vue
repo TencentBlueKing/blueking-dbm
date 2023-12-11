@@ -14,7 +14,9 @@
 <template>
   <div class="service-apply-page">
     <ScrollFaker style="height: calc(100vh - 200px)">
-      <ApplyCollapse class="apply-collapse">
+      <ApplyCollapse
+        v-if="historyCacheIdList.length > 0"
+        class="apply-collapse">
         <template #title>
           {{ t('最近使用') }}
         </template>
