@@ -31,14 +31,14 @@ export type IRequestPayload = Config['payload']
 // type IRequestConfig = Pick<Config, 'params' | 'payload'>
 
 export type IRequestResponseData<T> = T
-export interface IRequestResponsePaginationData<T>{
+export interface IRequestResponsePaginationData<T> {
   results: Array<T>,
   page: number,
   num_pages: number,
   total: number
 }
 
-const methodList:Array<Method> = ['get', 'delete', 'post', 'put', 'download'];
+const methodList: Array<Method> = ['get', 'delete', 'post', 'put', 'download'];
 
 let cancelTokenSource: CancelTokenSource;
 
@@ -49,8 +49,8 @@ export const setCancelTokenSource = (source: CancelTokenSource) => {
 export const getCancelTokenSource = () => cancelTokenSource;
 
 const handler = {} as {
-  [n in Method]: <T = any>(url: string, params?: Record<string, any>)=>
-  Promise<T>
+  [n in Method]: <T = any>(url: string, params?: Record<string, any>) =>
+    Promise<T>
 };
 
 methodList.forEach((method) => {

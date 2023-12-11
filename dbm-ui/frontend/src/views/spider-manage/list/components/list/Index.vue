@@ -378,6 +378,10 @@
                 onClick={() => copy(data.slave_domain)} />
             )
           }
+          {userProfileStore.isManager && <db-icon
+            type="edit"
+            v-bk-tooltips={t('修改入口配置')}
+            onClick={() => handleOpenEntryConfig(data)} />}
         </div>
       ),
     },

@@ -2,7 +2,7 @@
   <BkSideslider
     :before-close="handleBeforeClose"
     :is-show="isShow"
-    :title="$t('添加授权')"
+    :title="t('添加授权')"
     :width="960"
     @closed="handleClose">
     <DbForm
@@ -16,7 +16,7 @@
         class="cluster-authorize__error mb-24">
         <div class="error__title">
           <i class="db-icon-attention-fill" />
-          <strong>{{ $t('提交失败_信息校验不通过_失败具体原因如下') }}</strong>
+          <strong>{{ t('提交失败_信息校验不通过_失败具体原因如下') }}</strong>
         </div>
         <p
           v-for="(text, index) of state.errors.message"
@@ -27,7 +27,7 @@
       </div>
       <DbFormItem
         class="cluster-authorize__bold"
-        :label="$t('访问源')"
+        :label="t('访问源')"
         property="source_ips"
         required>
         <IpSelector
@@ -41,14 +41,14 @@
       </DbFormItem>
       <BkFormItem
         class="cluster-authorize__bold"
-        :label="$t('目标集群')"
+        :label="t('目标集群')"
         property="target_instances"
         required>
         <BkButton
           class="cluster-authorize__button"
           @click="handleShowTargetCluster">
           <i class="db-icon-add button-icon" />
-          {{ $t('添加目标集群') }}
+          {{ t('添加目标集群') }}
         </BkButton>
         <DBCollapseTable
           v-if="clusterState.tableProps.data.length > 0"
@@ -58,10 +58,10 @@
           :title="clusterTypeTitle" />
       </BkFormItem>
       <h5 class="cluster-authorize__bold cluster-authorize__label pb-16">
-        {{ $t('权限规则') }}
+        {{ t('权限规则') }}
       </h5>
       <BkFormItem
-        :label="$t('账号名')"
+        :label="t('账号名')"
         property="user"
         required>
         <BkSelect
@@ -79,7 +79,7 @@
         </BkSelect>
       </BkFormItem>
       <BkFormItem
-        :label="$t('访问DB')"
+        :label="t('访问DB')"
         property="access_dbs"
         required>
         <BkSelect
@@ -103,16 +103,16 @@
               text
               @click="handleToCreateRules">
               <i class="db-icon-plus-circle mr-4" />
-              {{ $t('跳转新建规则') }}
+              {{ t('跳转新建规则') }}
             </BkButton>
           </template>
         </BkSelect>
       </BkFormItem>
-      <BkFormItem :label="$t('权限明细')">
+      <BkFormItem :label="t('权限明细')">
         <DbOriginalTable
           :columns="columns"
           :data="selectedRules"
-          :empty-text="$t('请选择访问DB')" />
+          :empty-text="t('请选择访问DB')" />
       </BkFormItem>
     </DbForm>
     <template #footer>
@@ -121,12 +121,12 @@
         :loading="state.isLoading"
         theme="primary"
         @click="handleSubmit">
-        {{ $t('提交') }}
+        {{ t('提交') }}
       </BkButton>
       <BkButton
         :disabled="state.isLoading"
         @click="handleClose">
-        {{ $t('取消') }}
+        {{ t('取消') }}
       </BkButton>
     </template>
   </BkSideslider>
@@ -168,14 +168,13 @@
     TicketTypes,
   } from '@common/const';
 
-  import ClusterSelector, {
-    getClusterSelectorSelected,
-  } from '@components/cluster-selector/ClusterSelector.vue';
   import type { ClusterSelectorResult } from '@components/cluster-selector/types';
   import DBCollapseTable, {
     type ClusterTableProps,
   } from '@components/db-collapse-table/DBCollapseTable.vue';
   import IpSelector from '@components/ip-selector/IpSelector.vue';
+
+  import ClusterSelector, { getClusterSelectorSelected } from './cluster-selector/ClusterSelector.vue';
 
   export default {
     name: 'ClusterAuthorize',
@@ -214,11 +213,13 @@
     default: false,
   });
 
+  type ResourceItem = NonNullable<Props['selected']>[number] & { isMaster: boolean };
+
   const router = useRouter();
   const { t } = useI18n();
   const ticketMessage = useTicketMessage();
+  const copy = useCopy();
 
-  const bizId = window.PROJECT_CONFIG.BIZ_ID;
   /**
    * 重置表单数据
    */
@@ -229,11 +230,6 @@
     user,
     cluster_type: '',
   });
-
-  const ticketTypeMap = {
-    [AccountTypes.MYSQL]: TicketTypes.MYSQL_AUTHORIZE_RULES,
-    [AccountTypes.TENDBCLUSTER]: TicketTypes.TENDBCLUSTER_AUTHORIZE_RULES,
-  };
 
   const formRef = ref();
   /** 设置底部按钮粘性布局 */
@@ -247,19 +243,33 @@
     },
     formdata: initFormdata(props.user),
   });
-  /** 目标集群 */
-  const copy = useCopy();
+
+  /** 权限规则功能 */
+  const accountState = reactive({
+    isLoading: false,
+    rules: [] as PermissionRule[],
+  });
 
   const clusterState = reactive({
     clusterType: props.clusterType,
     selected: getClusterSelectorSelected(),
     isShow: false,
     tableProps: {
-      data: [] as NonNullable<Props['selected']>,
+      data: [] as ResourceItem[],
       columns: [
         {
           label: t('域名'),
           field: 'master_domain',
+          render: ({ data }: { data: ResourceItem }) => (
+            data.isMaster !== undefined
+              ? <div class="domain-column">
+                {data.isMaster
+                  ? <span class="master-icon">{t('主')}</span>
+                  : <span class="slave-icon">{t('从')}</span>}
+                <span class="ml-6">{data.master_domain}</span>
+              </div>
+              : <span>{data.master_domain}</span>
+          ),
         },
         {
           label: t('集群'),
@@ -287,22 +297,33 @@
         small: true,
       },
     } as unknown as ClusterTableProps,
-    operations: [
-      {
-        label: t('清除所有'),
-        onClick: () => {
-          clusterState.tableProps.data = [];
-        },
+    operations: [{
+      label: t('清除所有'),
+      onClick: () => {
+        clusterState.tableProps.data = [];
       },
-      {
-        label: t('复制所有域名'),
-        onClick: () => {
-          const value = clusterState.tableProps.data.map(item => item.master_domain).join('\n');
-          copy(value);
-        },
+    }, {
+      label: t('复制所有域名'),
+      onClick: () => {
+        const value = clusterState.tableProps.data.map(item => item.master_domain).join('\n');
+        copy(value);
       },
-    ],
+    }],
   });
+
+  const curRules = computed(() => {
+    if (state.formdata.user === '') return [];
+
+    const item = accountState.rules.find(item => item.account.user === state.formdata.user);
+    return item?.rules || [];
+  });
+
+  const selectedRules = computed(() => {
+    if (state.formdata.access_dbs.length === 0) return [];
+
+    return curRules.value.filter(item => state.formdata.access_dbs.includes(item.access_db));
+  });
+
   const clusterSelectorSelected = computed(() => {
     const {
       selected,
@@ -312,23 +333,14 @@
     selected[clusterType] = tableProps.data;
     return selected;
   });
-  const clusterTypeTitle = computed(() => (clusterState.clusterType === ClusterTypes.TENDBHA ? t('主从') : t('单节点')));
-  /** 权限规则功能 */
-  const accountState = reactive({
-    isLoading: false,
-    rules: [] as PermissionRule[],
-  });
-  const curRules = computed(() => {
-    if (state.formdata.user === '') return [];
 
-    const item = accountState.rules.find(item => item.account.user === state.formdata.user);
-    return item?.rules || [];
-  });
-  const selectedRules = computed(() => {
-    if (state.formdata.access_dbs.length === 0) return [];
+  const ticketTypeMap = {
+    [AccountTypes.MYSQL]: TicketTypes.MYSQL_AUTHORIZE_RULES,
+    [AccountTypes.TENDBCLUSTER]: TicketTypes.TENDBCLUSTER_AUTHORIZE_RULES,
+  };
 
-    return curRules.value.filter(item => state.formdata.access_dbs.includes(item.access_db));
-  });
+  const bizId = window.PROJECT_CONFIG.BIZ_ID;
+
   const columns = [
     {
       label: 'DB',
@@ -374,7 +386,6 @@
     ],
   };
 
-
   /**
    * 获取账号信息
    */
@@ -395,6 +406,12 @@
         accountState.isLoading = false;
       });
   };
+
+  const clusterTypeTitle = computed(() => (clusterState.clusterType === ClusterTypes.TENDBHA ? t('主从') : t('单节点')));
+  // 获取选中集群
+  watch(() => clusterState.tableProps.data, (data) => {
+    state.formdata.target_instances = data.map(item => item.master_domain);
+  }, { immediate: true, deep: true });
 
   /** 初始化信息 */
   watch(isShow, (show) => {

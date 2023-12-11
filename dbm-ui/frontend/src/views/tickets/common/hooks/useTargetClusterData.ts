@@ -14,9 +14,9 @@
 import type { ISearchValue } from 'bkui-vue/lib/search-select/utils';
 import { useI18n } from 'vue-i18n';
 
-import { getResources as getSpiderResources } from '@services/source/spider';
-import { getTendbhaList } from '@services/source/tendbha';
-import { getTendbsingleList } from '@services/source/tendbsingle';
+import { getResourcesByBizId as getSpiderResources } from '@services/source/spider';
+import { getTendbhaListByBizId } from '@services/source/tendbha';
+import { getTendbsingleListByBizId } from '@services/source/tendbsingle';
 import type {
   ResourceItem,
   SearchFilterItem,
@@ -25,7 +25,6 @@ import type { MysqlAuthorizationDetails, TicketDetails } from '@services/types/t
 
 import { useDefaultPagination } from '@hooks';
 
-// import { useGlobalBizs } from '@stores';
 import {
   ClusterTypes,
   DBTypes,
@@ -36,9 +35,9 @@ import { getSearchSelectorParams } from '@utils';
 export function useTargetClusterData(ticketDetails: TicketDetails<MysqlAuthorizationDetails>) {
   const { t } = useI18n();
   // const globalBizsStore = useGlobalBizs();
-  const apiMap: Record<string, (params: any) => ReturnType<typeof getTendbsingleList>> = {
-    [ClusterTypes.TENDBSINGLE]: getTendbsingleList,
-    [ClusterTypes.TENDBHA]: getTendbhaList,
+  const apiMap: Record<string, (params: any) => ReturnType<typeof getTendbsingleListByBizId>> = {
+    [ClusterTypes.TENDBSINGLE]: getTendbsingleListByBizId,
+    [ClusterTypes.TENDBHA]: getTendbhaListByBizId,
     spider: getSpiderResources,
   };
   const listState = reactive({
@@ -79,10 +78,9 @@ export function useTargetClusterData(ticketDetails: TicketDetails<MysqlAuthoriza
 
     const params = {
       dbType: DBTypes.MYSQL,
-      // bk_biz_id: globalBizsStore.currentBizId,
       bk_biz_id: ticketDetails.bk_biz_id,
       type,
-      cluster_ids: ticketDetails?.details?.authorize_data?.cluster_ids,
+      cluster_ids: ticketDetails.details.authorize_data?.cluster_ids,
       ...listState.pagination.getFetchParams(),
       ...getSearchSelectorParams(listState.filters.search),
     };
