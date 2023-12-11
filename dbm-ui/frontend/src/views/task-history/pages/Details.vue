@@ -386,7 +386,7 @@
 
   const rootId = computed(() => route.params.root_id as string);
 
-  const isShowRevokePipelineButton = computed(() => !['REVOKED', 'FAILED', 'FINISHED'].includes(flowState.details?.flow_info?.status));
+  const isShowRevokePipelineButton = computed(() => !['REVOKED', 'FINISHED'].includes(flowState.details?.flow_info?.status));
 
   const baseInfo = computed(() => flowState.details.flow_info || {});
 
@@ -664,6 +664,7 @@
         fetchTaskflowDetails();
         messageSuccess(t('终止任务成功'));
         isShowRevokePipelineTips.value = false;
+        location.reload();
       })
       .finally(() => {
         isRevokePipeline.value = false;
