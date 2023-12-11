@@ -19,6 +19,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/pkg/errors"
+
 	"dbm-services/common/go-pubpkg/mysqlcomm"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
@@ -61,8 +63,8 @@ type context struct {
 }
 
 type Report struct {
-	Result []*dbareport.BackupLogReport `json:"report_result"`
-	Status *dbareport.BackupStatus      `json:"report_status"`
+	Result *dbareport.IndexContent `json:"report_result"`
+	Status *dbareport.BackupStatus `json:"report_status"`
 }
 
 func (c *Component) Init() (err error) {
@@ -143,7 +145,7 @@ func (c *Component) GenerateBackupConfig() error {
 				backupConfig.Public.BackupDir,
 				fmt.Sprintf("%s_%s_%d_%s",
 					c.Params.CustomBackupDir,
-					c.now.Format("20060102_150405"),
+					c.now.Format("20060102150405"),
 					port,
 					c.randString))
 
@@ -207,6 +209,32 @@ func (c *Component) DoBackup() error {
 func (c *Component) generateReport() (report *Report, err error) {
 	report = &Report{}
 
+	indexFileSearch := filepath.Join(c.backupDir, "*.index")
+	if files, err := filepath.Glob(indexFileSearch); err != nil {
+		return nil, err
+	} else {
+		if len(files) != 1 {
+			return nil, errors.Errorf("expect index one index file found, but got %s", files)
+		}
+		indexContent, err := os.ReadFile(files[0])
+		if err != nil {
+			return nil, err
+		}
+		var result dbareport.IndexContent
+		err = json.Unmarshal(indexContent, &result)
+		if err != nil {
+			logger.Error("unmarshal file %s failed: %s", files[0], err.Error())
+			return nil, err
+		}
+		if result.BillId != c.Params.BillId {
+			return nil, errors.Errorf("index file bill_id %s not match %s", result.BillId, c.Params.BillId)
+		}
+		report.Result = &result
+	}
+	if report.Result != nil {
+		// 有 index 文件表示已经备份成功
+	}
+
 	statusLogFile, err := os.Open(c.statusReportPath)
 	if err != nil {
 		logger.Error(err.Error())
@@ -217,7 +245,6 @@ func (c *Component) generateReport() (report *Report, err error) {
 	}()
 
 	thisBillFlag := fmt.Sprintf(`"bill_id":"%s"`, c.Params.BillId)
-
 	var thisBillLatestStatus dbareport.BackupStatus
 	var thisBillLatestStatusLine string
 	scanner := bufio.NewScanner(statusLogFile)
@@ -245,38 +272,6 @@ func (c *Component) generateReport() (report *Report, err error) {
 		return nil, err
 	}
 	report.Status = &thisBillLatestStatus
-
-	resultLogFile, err := os.Open(c.resultReportPath)
-	if err != nil {
-		logger.Error(err.Error())
-		return nil, err
-	}
-	defer func() {
-		_ = resultLogFile.Close()
-	}()
-
-	scanner = bufio.NewScanner(resultLogFile)
-	for scanner.Scan() {
-		if err := scanner.Err(); err != nil {
-			logger.Error("scan result report failed: %s", err.Error())
-			return nil, err
-		}
-		line := scanner.Text()
-
-		if !strings.Contains(line, thisBillFlag) {
-			continue
-		}
-
-		var result dbareport.BackupLogReport
-		err = json.Unmarshal([]byte(line), &result)
-		if err != nil {
-			logger.Error("unmarshal %s failed: %s", line, err.Error())
-			return nil, err
-		}
-
-		report.Result = append(report.Result, &result)
-	}
-
 	return
 }
 
