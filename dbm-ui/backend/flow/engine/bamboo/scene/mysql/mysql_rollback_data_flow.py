@@ -249,6 +249,7 @@ class MySQLRollbackDataFlow(object):
                 "rollback_ip": self.data["rollback_ip"],
                 "master_port": master.port,
                 "bk_cloud_id": cluster_class.bk_cloud_id,
+                "backend_port": master.port,
             }
             sub_pipeline.add_act(
                 act_name=_("整机卸载前先删除元数据"),
@@ -270,14 +271,13 @@ class MySQLRollbackDataFlow(object):
                 kwargs=asdict(exec_act_kwargs),
             )
 
-            sub_pipeline.add_sub_pipeline(
-                sub_flow=uninstall_instance_sub_flow(
-                    root_id=self.root_id,
-                    ticket_data=copy.deepcopy(self.data),
-                    ip=self.data["rollback_ip"],
-                    ports=[master.port],
-                )
+            exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_uninstall_mysql_payload.__name__
+            sub_pipeline.add_act(
+                act_name=_("卸载rollback实例{}").format(exec_act_kwargs.exec_ip),
+                act_component_code=ExecuteDBActuatorScriptComponent.code,
+                kwargs=asdict(exec_act_kwargs),
             )
+
             sub_pipeline_list.append(sub_pipeline.build_sub_process(sub_name=_("定点恢复")))
 
         mysql_restore_slave_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipeline_list)
