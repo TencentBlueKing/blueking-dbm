@@ -5,7 +5,7 @@ ARG BASEDIR=/home/hadb
 
 RUN mkdir ${BASEDIR}
 
-COPY hadb-api ${BASEDIR}/
+COPY build/hadb-api ${BASEDIR}/
 
 RUN groupadd -r mysql && useradd -r -g mysql mysql \
     && /usr/bin/install -m 0777 -o mysql -g root -d ${BASEDIR}\

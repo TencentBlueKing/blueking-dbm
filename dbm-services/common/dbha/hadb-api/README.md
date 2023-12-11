@@ -5,9 +5,18 @@ bk-dbha-api提供一系列api方便bk-dbha组件访问高可用相关数据库�
 go1.14+
 
 ## 编译
+### 二进制编译
 ```bash
-go build -o hadb main.go
+make build
+```
+### 编辑镜像
+```
+make image VERSION=x.x.x
 ```
 
+
+## 配置
+配置文件参考conf/config.yaml
+
 ## 运行
-./hadb run port:8090
+./build/hadb run port:8090

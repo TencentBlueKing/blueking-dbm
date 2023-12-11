@@ -2,8 +2,8 @@ hadbInfo:
   host: "127.0.0.1"
   port: 3306
   db: "hadb"
-  user: "test"
-  password: "test"
+  user: "nouser"
+  password: "nouser"
   charset: "utf8"
 serverInfo:
   name: "model-api"
