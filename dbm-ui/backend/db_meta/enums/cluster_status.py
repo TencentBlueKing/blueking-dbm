@@ -18,7 +18,7 @@ from blue_krill.data_types.enum import EnumField, StructuredEnum
 
 class ClusterStatus(str, StructuredEnum):
     NORMAL = EnumField("normal", _("normal"))
-    ABNORMAL = EnumField("ABNORMAL", _("ABNORMAL"))
+    ABNORMAL = EnumField("abnormal", _("abnormal"))
     # spider 定点构造的集群状态标记为临时集群
     TEMPORARY = EnumField("temporary", _("temporary"))
 

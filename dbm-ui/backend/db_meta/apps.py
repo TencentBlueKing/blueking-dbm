@@ -12,7 +12,7 @@ import logging
 
 from django.apps import AppConfig
 from django.db import IntegrityError
-from django.db.models.signals import post_migrate
+from django.db.models.signals import post_delete, post_migrate, post_save
 
 logger = logging.getLogger("root")
 
@@ -43,4 +43,12 @@ class DBMeta(AppConfig):
     name = "backend.db_meta"
 
     def ready(self):
+        from backend.db_meta.models import ProxyInstance, StorageInstance
+        from backend.db_meta.signals import update_cluster_status
+
         post_migrate.connect(init_db_meta, sender=self)
+        # 当实例进行修改或者删除时，更新集群状态
+        post_save.connect(update_cluster_status, sender=StorageInstance)
+        post_save.connect(update_cluster_status, sender=ProxyInstance)
+        post_delete.connect(update_cluster_status, sender=StorageInstance)
+        post_delete.connect(update_cluster_status, sender=ProxyInstance)
