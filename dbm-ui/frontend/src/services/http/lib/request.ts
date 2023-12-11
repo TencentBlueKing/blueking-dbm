@@ -16,6 +16,7 @@ import axios, {
 } from 'axios';
 import Cookie from 'js-cookie';
 import _ from 'lodash';
+import qs from 'qs';
 
 import { setCancelTokenSource } from '../index';
 import requestMiddleware from '../middleware/request';
@@ -29,7 +30,7 @@ import { paramsSerializer } from './utils';
 
 const cacheHandler = new Cache();
 
-export type Method = 'get' | 'delete'| 'post' | 'put' | 'download'
+export type Method = 'get' | 'delete' | 'post' | 'put' | 'download'
 export interface Config {
   url: string,
   method: Method,
@@ -48,7 +49,7 @@ responseMiddleware(axios.interceptors.response);
 const { CancelToken } = axios;
 const CRRF_TOKEN_KEY = 'dbm_csrftoken';
 
-const csrfHashCode = (key:string) => {
+const csrfHashCode = (key: string) => {
   let hashCode = 5381;
   for (let i = 0; i < key.length; i++) {
     hashCode += (hashCode << 5) + key.charCodeAt(i);
@@ -156,6 +157,9 @@ export default class Request {
     const requestHandler = axios({
       ...this.axiosConfig,
       cancelToken: source.token,
+      paramsSerializer(params) {
+        return qs.stringify(params, { arrayFormat: 'repeat' });
+      },
     }).then((data) => {
       this.setCache(requestHandler);
       return data.data;

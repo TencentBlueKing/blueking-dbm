@@ -332,7 +332,7 @@
       field: 'slave_domain',
       minWidth: 200,
       showOverflowTooltip: false,
-      render: ({ cell }: ColumnData) => (
+      render: ({ cell, data }: ColumnData) => (
       <div class="domain">
         <span
           class="text-overflow"
@@ -343,6 +343,10 @@
           v-bk-tooltips={t('复制从访问入口')}
           type="copy"
           onClick={() => copy(cell)} />
+        {userProfileStore.isManager && <db-icon
+          type="edit"
+          v-bk-tooltips={t('修改入口配置')}
+          onClick={() => handleOpenEntryConfig(data)} />}
       </div>
     ),
     },

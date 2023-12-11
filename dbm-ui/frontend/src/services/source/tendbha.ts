@@ -43,6 +43,18 @@ export function getTendbhaList(params: {
 }
 
 /**
+ * 根据业务 ID 查询资源列表
+ */
+export function getTendbhaListByBizId(params: {
+  bk_biz_id: number,
+  limit?: number,
+  offset?: number,
+  cluster_ids?: number[] | number,
+}) {
+  return http.get<ListBase<ResourceItem[]>>(`/apis/mysql/bizs/${params.bk_biz_id}/tendbha_resources/`, params);
+}
+
+/**
  * 查询表格信息
  */
 export function getTendbhaTableFields() {

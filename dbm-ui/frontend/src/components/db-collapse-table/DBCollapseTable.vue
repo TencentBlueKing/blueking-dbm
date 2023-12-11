@@ -115,76 +115,96 @@
 </script>
 
 <style lang="less" scoped>
-  @import "@styles/mixins.less";
+@import "@styles/mixins.less";
 
-  .db-collapse-table {
-    font-weight: normal;
-    color: @default-color;
+.db-collapse-table {
+  font-weight: normal;
+  color: @default-color;
 
-    &__header {
-      height: 42px;
-      padding: 0 16px;
-      font-size: @font-size-mini;
-      cursor: pointer;
-      background-color: @bg-dark-gray;
-      justify-content: space-between;
-      .flex-center();
+  &__header {
+    height: 42px;
+    padding: 0 16px;
+    font-size: @font-size-mini;
+    cursor: pointer;
+    background-color: @bg-dark-gray;
+    justify-content: space-between;
+    .flex-center();
+  }
+
+  &__left {
+    .flex-center();
+  }
+
+  &__icon {
+    transform: rotate(-90deg);
+    transition: all 0.2s;
+  }
+
+  &__title {
+    .flex-center();
+
+    padding-left: 4px;
+  }
+
+  &__dropdown {
+    font-size: 0;
+    line-height: 20px;
+  }
+
+  &__trigger {
+    display: block;
+    font-size: 20px;
+    cursor: pointer;
+
+    &:hover {
+      background-color: @bg-disable;
+      border-radius: 2px;
+    }
+  }
+
+  &__content {
+    :deep(thead th),
+    :deep(.table-head-settings) {
+      background-color: #f5f7fa !important;
     }
 
-    &__left {
-      .flex-center();
+    :deep(.bk-pagination-small-list) {
+      order: 3;
+      flex: 1;
+      justify-content: flex-end;
     }
 
-    &__icon {
-      transform: rotate(-90deg);
-      transition: all 0.2s;
+    :deep(.bk-pagination-limit-select) {
+      .bk-input {
+        border-color: #f0f1f5;
+      }
     }
 
-    &__title {
-      .flex-center();
-
-      padding-left: 4px;
-    }
-
-    &__dropdown {
-      font-size: 0;
-      line-height: 20px;
-    }
-
-    &__trigger {
-      display: block;
-      font-size: 20px;
-      cursor: pointer;
-
-      &:hover {
-        background-color: @bg-disable;
+    :deep(.domain-column) {
+      .master-icon {
+        display: inline-block;
+        width: 20px;
+        height: 20px;
+        line-height: 20px;
+        color: #3A84FF;
+        text-align: center;
+        background: #F0F5FF;
         border-radius: 2px;
       }
-    }
 
-    &__content {
-      :deep(thead th),
-      :deep(.table-head-settings) {
-        background-color: #f5f7fa !important;
-      }
+      .slave-icon {
+        .master-icon();
 
-      :deep(.bk-pagination-small-list) {
-        order: 3;
-        flex: 1;
-        justify-content: flex-end;
-      }
-
-      :deep(.bk-pagination-limit-select) {
-        .bk-input {
-          border-color: #f0f1f5;
-        }
-      }
-    }
-
-    &--collapse {
-      .db-collapse-table__icon {
-        transform: rotate(0);
+        color: #1CAB88;
+        background: #F2FFF4;
       }
     }
   }
+
+  &--collapse {
+    .db-collapse-table__icon {
+      transform: rotate(0);
+    }
+  }
+}
 </style>
