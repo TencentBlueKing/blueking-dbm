@@ -111,7 +111,6 @@ class RedisClusterDataCopyFlow(object):
         write_mode = self.data["write_mode"]
         dts_copy_type = self.__get_dts_copy_type()
         sub_pipelines = []
-        redis_pipeline.add_act(act_name=_("Redis-人工确认"), act_component_code=PauseComponent.code, kwargs={})
         if self.data["ticket_type"] == DtsBillType.REDIS_CLUSTER_ROLLBACK_DATA_COPY.value:
             self.data["sync_disconnect_setting"] = {}
             self.data["sync_disconnect_setting"]["type"] = ""
@@ -243,11 +242,11 @@ class RedisClusterDataCopyFlow(object):
 
             if dts_copy_type != DtsCopyType.COPY_TO_OTHER_SYSTEM.value:
                 try:
-                    dst_cluster = Cluster.objects.get(bk_biz_id=bk_biz_id, id=int(info["dst_cluster"]))
+                    dst_cluster = Cluster.objects.get(id=int(info["dst_cluster"]))
                 except Cluster.DoesNotExist:
                     raise Exception(_("目标集群 {} 不存在").format(info["dst_cluster"]))
 
-                common_cluster_precheck(bk_biz_id, dst_cluster.id)
+                common_cluster_precheck(dst_cluster.bk_biz_id, dst_cluster.id)
                 # 检查目标集群 bk_cloud_id 是否有dns nameserver
                 self.__get_dns_nameserver(dst_cluster.bk_cloud_id)
 

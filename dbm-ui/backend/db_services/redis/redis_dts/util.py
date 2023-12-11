@@ -158,7 +158,7 @@ def get_cluster_info_by_id(
 
 def common_cluster_precheck(bk_biz_id: int, cluster_id: int):
     try:
-        cluster = Cluster.objects.get(bk_biz_id=bk_biz_id, id=cluster_id)
+        cluster = Cluster.objects.get(id=cluster_id)
     except Cluster.DoesNotExist:
         raise Exception(_("redis集群 {} 不存在").format(cluster_id))
 
@@ -674,7 +674,7 @@ def get_etc_hosts_lines_and_ips(
     etc_hosts_lines = ""  # 代表需要添加到 /etc/hosts 中的内容
     ip_list = set()  # 代表需要添加 /etc/hosts 的ip列表
     if dts_copy_type == DtsCopyType.USER_BUILT_TO_DBM.value:
-        dst_cluster = Cluster.objects.get(bk_biz_id=bk_biz_id, id=int(info["dst_cluster"]))
+        dst_cluster = Cluster.objects.get(id=int(info["dst_cluster"]))
         idx = 0
         for proxy_inst in dst_cluster.proxyinstance_set.filter(status=InstanceStatus.RUNNING):
             if idx == 0:
@@ -682,7 +682,7 @@ def get_etc_hosts_lines_and_ips(
                 idx = 1
             ip_list.add(proxy_inst.machine.ip)
     elif dts_copy_type == DtsCopyType.COPY_TO_OTHER_SYSTEM.value:
-        src_cluster = Cluster.objects.get(bk_biz_id=bk_biz_id, id=int(info["src_cluster"]))
+        src_cluster = Cluster.objects.get(id=int(info["src_cluster"]))
         for proxy_inst in src_cluster.proxyinstance_set.filter(status=InstanceStatus.RUNNING):
             etc_hosts_lines += "{} {}\n".format(proxy_inst.machine.ip, src_cluster.immute_domain)
             break
@@ -694,7 +694,7 @@ def get_etc_hosts_lines_and_ips(
         DtsBillType.REDIS_CLUSTER_SHARD_NUM_UPDATE.value,
         DtsBillType.REDIS_CLUSTER_TYPE_UPDATE.value,
     ]:
-        src_cluster = Cluster.objects.get(bk_biz_id=bk_biz_id, id=int(info["src_cluster"]))
+        src_cluster = Cluster.objects.get(id=int(info["src_cluster"]))
         for proxy_inst in src_cluster.proxyinstance_set.filter(status=InstanceStatus.RUNNING):
             etc_hosts_lines += "{} {}\n".format(proxy_inst.machine.ip, src_cluster.immute_domain)
             break
@@ -712,16 +712,16 @@ def get_etc_hosts_lines_and_ips(
         for master in rollback_task.temp_instance_range:
             ip_port = master.split(IP_PORT_DIVIDER)
             ip_list.add(ip_port[0])
-        dst_cluster = Cluster.objects.get(bk_biz_id=bk_biz_id, id=int(info["dst_cluster"]))
+        dst_cluster = Cluster.objects.get(id=int(info["dst_cluster"]))
         for proxy_inst in dst_cluster.proxyinstance_set.filter(status=InstanceStatus.RUNNING):
             etc_hosts_lines += "{} {}\n".format(proxy_inst.machine.ip, dst_cluster.immute_domain)
             break
     else:
-        src_cluster = Cluster.objects.get(bk_biz_id=bk_biz_id, id=int(info["src_cluster"]))
+        src_cluster = Cluster.objects.get(id=int(info["src_cluster"]))
         for proxy_inst in src_cluster.proxyinstance_set.filter(status=InstanceStatus.RUNNING):
             etc_hosts_lines += "{} {}\n".format(proxy_inst.machine.ip, src_cluster.immute_domain)
             break
-        dst_cluster = Cluster.objects.get(bk_biz_id=bk_biz_id, id=int(info["dst_cluster"]))
+        dst_cluster = Cluster.objects.get(id=int(info["dst_cluster"]))
         for proxy_inst in dst_cluster.proxyinstance_set.filter(status=InstanceStatus.RUNNING):
             etc_hosts_lines += "{} {}\n".format(proxy_inst.machine.ip, dst_cluster.immute_domain)
             break

@@ -420,6 +420,12 @@ func (job *RedisDtsOnlineSwitch) NewProxyConfigFileForDiffType() (err error) {
 		return
 	}
 	util.LocalDirChownMysql(saveDirForDstPort)
+	// 将 /data/twemproxy-0.2.4/ 或 /data/predixy/ 目录的属主修改为 mysql
+	if strings.HasSuffix(saveDirForDstPort, "/") {
+		util.LocalDirChownMysql(filepath.Dir(filepath.Dir(saveDirForDstPort)) + "/")
+	} else {
+		util.LocalDirChownMysql(filepath.Dir(saveDirForDstPort) + "/")
+	}
 
 	// 重启 proxy(此时端口还是 dstProxyPort)
 	err = job.StopProxy(job.params.SrcProxyIP, job.params.DstProxyPort,
