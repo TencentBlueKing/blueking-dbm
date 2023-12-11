@@ -32,7 +32,7 @@ from backend.db_meta.enums import (
     InstanceStatus,
     TenDBClusterSpiderRole,
 )
-from backend.db_meta.enums.cluster_status import ClusterDBSingleStatusFlags
+from backend.db_meta.enums.cluster_status import ClusterDBSingleStatusFlags, ClusterStatusFlags
 from backend.db_meta.exceptions import ClusterExclusiveOperateException, DBMetaException
 from backend.db_services.version.constants import LATEST, PredixyVersion, TwemproxyVersion
 from backend.ticket.constants import TicketType
@@ -197,7 +197,8 @@ class Cluster(AuditedModel):
             if self.storageinstance_set.filter(status=InstanceStatus.UNAVAILABLE.value).exists():
                 flag_obj |= ClusterDBSingleStatusFlags.SingleUnavailable
         else:
-            raise DBMetaException(message=_("{} 未实现 status flag".format(self.cluster_type)))
+            logger.debug(_("{} 未实现 status flag,".format(self.cluster_type)))
+            flag_obj = ClusterStatusFlags(0)
 
         return flag_obj
 
