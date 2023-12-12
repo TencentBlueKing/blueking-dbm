@@ -48,6 +48,7 @@ var rootCmd = &cobra.Command{
 		r.Handle("GET", "/ping", func(context *gin.Context) {
 			req := context.Request
 			context.String(http.StatusOK, "pong")
+			// custom metric example
 			metric.Id(apm.ErrCnt).Inc([]string{req.URL.String(), req.Method, strconv.Itoa(http.StatusOK)}...)
 			metric.Id(apm.ExecuteCnt).Inc([]string{req.URL.String(), req.Method, strconv.Itoa(http.StatusOK)}...)
 		})

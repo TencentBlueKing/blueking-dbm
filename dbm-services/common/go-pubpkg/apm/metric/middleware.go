@@ -259,10 +259,9 @@ func (p *Prometheus) UseWithAuth(e *gin.Engine, accounts gin.Accounts) {
 // HandlerFunc defines handler function for middleware
 func (p *Prometheus) HandlerFunc() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		logger.Warn("dbm-apm gin middleware start: %s", c.Request.URL.Path)
+		logger.Debug("dbm-apm gin middleware start: %s", c.Request.URL.Path)
 
 		if c.Request.URL.Path == p.MetricsPath || c.Request.URL.Path == p.PingPath {
-			logger.Info("dbm-apm gin middleware skip url: %s", c.Request.URL.Path)
 			c.Next()
 			return
 		}
@@ -274,17 +273,14 @@ func (p *Prometheus) HandlerFunc() gin.HandlerFunc {
 			startMem, _ = mem.VirtualMemory()
 		)
 
-		// trace test
-		ctx, span = trace.IntoContext(ctx, trace.TracerName, "http-api")
+		// custom trace example
+		ctx, span = trace.IntoContext(ctx, trace.TracerName, "gin-http-api")
 		trace.InsertStringIntoSpan("http-api-url", c.Request.URL.Path, span)
-		trace.InsertIntIntoSpan("start-mem-total", int(startMem.Total), span)
-		logger.Errorf(ctx, "gin metric middleware url: %s\n", c.Request.URL.Path)
+		// logger.Infof(ctx, "gin metric middleware url: %s\n", c.Request.URL.Path)
 
 		if span != nil {
 			defer func() {
 				endMem, _ := mem.VirtualMemory()
-				trace.InsertIntIntoSpan("start-mem-free", int(startMem.Free), span)
-				trace.InsertIntIntoSpan("end-mem-free", int(endMem.Free), span)
 				trace.InsertIntIntoSpan("mem-use", int(startMem.Free-endMem.Free), span)
 				span.End()
 			}()
@@ -313,6 +309,6 @@ func (p *Prometheus) HandlerFunc() gin.HandlerFunc {
 		p.reqSz.Observe(float64(reqSz))
 		p.resSz.Observe(resSz)
 
-		logger.Warn("dbm-apm gin middleware finished: %s", c.Request.URL.Path)
+		logger.Debug("dbm-apm gin middleware finished: %s", c.Request.URL.Path)
 	}
 }
