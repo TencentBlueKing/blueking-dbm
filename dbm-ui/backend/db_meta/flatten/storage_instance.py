@@ -14,7 +14,7 @@ from typing import Dict, List
 
 from django.db.models import QuerySet
 
-from backend.db_meta.enums import ClusterEntryType
+from backend.db_meta.enums import ClusterEntryType, ClusterPhase
 from backend.db_meta.enums.extra_process_type import ExtraProcessType
 from backend.db_meta.flatten.machine import _machine_prefetch, _single_machine_cc_info, _single_machine_city_info
 from backend.db_meta.models import StorageInstance
@@ -41,11 +41,11 @@ def storage_instance(storages: QuerySet) -> List[Dict]:
             "cluster"
         )
     )
-    # 提前查询出 dumper 的信息
+    # 提前查询出 dumper 的信息,目前只过滤出online状态的dumper实例信息
     cluster_ids = [cluster.id for ins in storages_list for cluster in ins.cluster.all()]
     dumper_infos: Dict[str, Dict[str, List]] = defaultdict(lambda: defaultdict(list))
     for dumper in ExtraProcessInstance.objects.filter(
-        cluster_id__in=cluster_ids, proc_type=ExtraProcessType.TBINLOGDUMPER
+        cluster_id__in=cluster_ids, proc_type=ExtraProcessType.TBINLOGDUMPER, phase=ClusterPhase.ONLINE.value
     ):
         dumper_infos[dumper.cluster_id][dumper.extra_config.get("source_data_ip", "")].append(dumper)
     res = []
