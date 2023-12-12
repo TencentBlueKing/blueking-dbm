@@ -93,6 +93,22 @@ export default (): RouteRecordRaw[] => [
         },
         component: () => import('@views/influxdb-manage/apply/index.vue'),
       },
+      {
+        name: 'SelfServiceCreateDbModule',
+        path: 'create-db-module/:type/:bk_biz_id/',
+        meta: {
+          navName: t('新建模块'),
+        },
+        component: () => import('@views/service-apply/create-db-module/Index.vue'),
+      },
+      {
+        name: 'SelfServiceBindDbModule',
+        path: 'bind-db-module/:type/:bk_biz_id/:db_module_id',
+        meta: {
+          navName: t('绑定配置'),
+        },
+        component: () => import('@views/service-apply/create-db-module/Index.vue'),
+      },
     ],
   },
 ];

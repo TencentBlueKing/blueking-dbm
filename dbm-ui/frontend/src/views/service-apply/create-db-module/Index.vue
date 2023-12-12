@@ -165,6 +165,15 @@
   const globalBizsStore = useGlobalBizs();
 
   const getSmartActionOffsetTarget = () => document.querySelector('.bk-form-content');
+  /**
+   * 获取表单基础信息
+   */
+  const getFormData = () => ({
+    module_name: (route.query.module_name ?? '') as string,
+    mysql_type: ticketType.value,
+    version: '',
+    character_set: '',
+  });
 
   const isBindSuccessfully = ref(false);
   const paramsConfigDataStringify = ref('');
@@ -207,17 +216,6 @@
     ],
   };
 
-  /**
-   * 获取表单基础信息
-   */
-  function getFormData() {
-    return {
-      module_name: (route.query.module_name ?? '') as string,
-      mysql_type: ticketType.value,
-      version: '',
-      character_set: '',
-    };
-  }
 
   /**
    * 获取版本列表
@@ -250,7 +248,12 @@
 
       // 新建模块或已经新建成功则不执行创建
       if (!isReadonly.value) {
-        await newModule();
+        const createResult = await createModules({
+          id: bizId.value,
+          db_module_name: formData.module_name,
+          cluster_type: ticketInfo.value.type,
+        });
+        moduleId.value = createResult.db_module_id;
       }
 
       // 绑定模块数据库配置
@@ -269,22 +272,6 @@
       console.log(e);
     }
     loadingState.submit = false;
-  }
-
-  /**
-   * 创建模块
-   */
-  function newModule() {
-    const params = {
-      id: bizId.value,
-      db_module_name: formData.module_name,
-      cluster_type: ticketInfo.value.type,
-    };
-
-    return createModules(params)
-      .then((res) => {
-        moduleId.value = res.db_module_id;
-      });
   }
 
   /**
@@ -397,7 +384,7 @@
   /**
    * 查询配置项名称列表
    */
-  function fetchConfigNames() {
+  const fetchConfigNames = () => {
     getConfigNames({
       meta_cluster_type: ticketInfo.value.type,
       conf_type: 'dbconf',
@@ -406,7 +393,7 @@
       .then((res) => {
         configState.parameters = res;
       });
-  }
+  };
 
   watch(() => formData.version, (version) => {
     if (version) {
@@ -418,7 +405,7 @@
   /**
    * 绑定参数配置
    */
-  function bindConfigParameters() {
+  const bindConfigParameters = () => {
     // 获取 conf_items
     const { data } = useDiff(configState.data.conf_items, configState.originConfItems);
     const confItems = data.map((item: DiffItem) => {
@@ -436,7 +423,7 @@
       ...fetchParams.value,
     };
     return updateBusinessConfig(params);
-  }
+  };
 
   // 添加配置项
   const handleAddConfItem = (index: number) => {
@@ -504,6 +491,20 @@
   const handleChangeParameterItem = (index: number, selected: ParameterConfigItem) => {
     configState.data.conf_items[index] = Object.assign(_.cloneDeep(selected), { op_type: 'add' });
   };
+
+  defineExpose({
+    routerBack() {
+      if (!route.query.from) {
+        router.push({
+          name: 'serviceApply',
+        });
+        return;
+      }
+      router.push({
+        name: route.query.from as string,
+      });
+    },
+  });
 </script>
 
 <style lang="less" scoped>
