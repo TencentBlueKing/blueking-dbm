@@ -80,6 +80,8 @@ func setDefaultConfig() {
 
 // InitConfig TODO
 func InitConfig() {
+	logger.Info("trace init.")
+
 	OtlpEnable = viper.GetBool(EnablePath)
 	if !OtlpEnable {
 		logger.Info("trace disabled.")
@@ -102,7 +104,6 @@ func InitConfig() {
 
 // init
 func init() {
-	logger.Info("trace init.")
 	setDefaultConfig()
 	InitConfig()
 }
