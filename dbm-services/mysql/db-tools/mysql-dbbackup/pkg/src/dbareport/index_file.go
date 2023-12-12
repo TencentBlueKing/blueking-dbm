@@ -254,3 +254,18 @@ func (i *IndexContent) AddPrivFileItem(targetFilePath string) {
 		logger.Log.Warnf("collect info failed to find priv file: %s", privFile)
 	}
 }
+
+// AddIndexFileItem index file 记录自身信息
+func (i *IndexContent) AddIndexFileItem(targetFilePath string) {
+	var indexFile = targetFilePath
+	if !strings.HasSuffix(targetFilePath, ".index") {
+		indexFile = targetFilePath + ".index"
+	}
+	if exists, fSize, _ := util.FileExistReturnSize(indexFile); exists {
+		indexFilename := filepath.Base(indexFile)
+		tarFileItem := TarFileItem{FileName: indexFilename, FileSize: fSize, FileType: cst.FileIndex}
+		i.AppendFileList(tarFileItem)
+	} else {
+		logger.Log.Warnf("collect info failed to find index file: %s", indexFile)
+	}
+}

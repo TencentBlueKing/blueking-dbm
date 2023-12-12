@@ -56,10 +56,11 @@ type context struct {
 	backupConfigPaths map[int]string
 	now               time.Time
 	randString        string
-	resultReportPath  string
-	statusReportPath  string
-	backupPort        []int  // 当在 spider master备份时, 会有 [25000, 26000] 两个端口
-	backupDir         string //只是兼容tbinlogdumper的备份日志输出，存储备份目录信息，没有任何处理逻辑
+	//resultReportPath  string
+	statusReportPath string
+	reportPath       string
+	backupPort       []int  // 当在 spider master备份时, 会有 [25000, 26000] 两个端口
+	backupDir        string //只是兼容tbinlogdumper的备份日志输出，存储备份目录信息，没有任何处理逻辑
 }
 
 type Report struct {
@@ -154,9 +155,10 @@ func (c *Component) GenerateBackupConfig() error {
 				logger.Error("mkdir %s failed: %s", backupConfig.Public.BackupDir, err.Error())
 				return err
 			}
-			// 增加为tbinlogdumper做库表备份的日志输出，保存流程上下文
-			c.backupDir = backupConfig.Public.BackupDir
+
 		}
+		// 增加为tbinlogdumper做库表备份的日志输出，保存流程上下文
+		c.backupDir = backupConfig.Public.BackupDir
 
 		backupConfigFile := ini.Empty()
 		err = backupConfigFile.ReflectFrom(&backupConfig)
@@ -173,10 +175,6 @@ func (c *Component) GenerateBackupConfig() error {
 			return err
 		}
 
-		c.resultReportPath = filepath.Join(
-			backupConfig.Public.ResultReportPath,
-			fmt.Sprintf("dbareport_result_%d.log", c.Params.Port),
-		)
 		c.statusReportPath = filepath.Join(
 			backupConfig.Public.StatusReportPath,
 			fmt.Sprintf("dbareport_status_%d.log", c.Params.Port),
@@ -213,26 +211,26 @@ func (c *Component) generateReport() (report *Report, err error) {
 	if files, err := filepath.Glob(indexFileSearch); err != nil {
 		return nil, err
 	} else {
-		if len(files) != 1 {
-			return nil, errors.Errorf("expect index one index file found, but got %s", files)
+		for _, f := range files {
+			indexContent, err := os.ReadFile(f)
+			if err != nil {
+				return nil, err
+			}
+			var result dbareport.IndexContent
+			err = json.Unmarshal(indexContent, &result)
+			if err != nil {
+				logger.Error("unmarshal file %s failed: %s", f, err.Error())
+				continue
+				//return nil, err
+			}
+			if result.BillId == c.Params.BillId {
+				report.Result = &result
+				break
+			}
 		}
-		indexContent, err := os.ReadFile(files[0])
-		if err != nil {
-			return nil, err
-		}
-		var result dbareport.IndexContent
-		err = json.Unmarshal(indexContent, &result)
-		if err != nil {
-			logger.Error("unmarshal file %s failed: %s", files[0], err.Error())
-			return nil, err
-		}
-		if result.BillId != c.Params.BillId {
-			return nil, errors.Errorf("index file bill_id %s not match %s", result.BillId, c.Params.BillId)
-		}
-		report.Result = &result
 	}
-	if report.Result != nil {
-		// 有 index 文件表示已经备份成功
+	if report.Result == nil {
+		return nil, errors.Errorf("backup index file not found for %d", c.backupPort)
 	}
 
 	statusLogFile, err := os.Open(c.statusReportPath)

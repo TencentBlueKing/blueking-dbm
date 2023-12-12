@@ -1,6 +1,7 @@
 package dbareport
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"time"
@@ -45,7 +46,7 @@ func (m ModelBackupReport) TableName() string {
 
 // migrateLocalBackupSchema 创建 local_backup_report 表
 // 如果 errs 能够处理，自动修复表结构.
-func migrateLocalBackupSchema(errs error, spiderNode bool, db *sql.DB) error {
+func migrateLocalBackupSchema(errs error, db *sql.Conn) error {
 	if errs != nil {
 		mysqlErr := cmutil.NewMySQLError(errs)
 		if !(mysqlErr.Code == 1054 || mysqlErr.Code == 1146) {
@@ -55,13 +56,14 @@ func migrateLocalBackupSchema(errs error, spiderNode bool, db *sql.DB) error {
 	createTable := fmt.Sprintf(`
 CREATE TABLE IF NOT EXISTS %s (
 	backup_id varchar(64) NOT NULL,
+	mysql_role varchar(30) NOT NULL DEFAULT '',
+	shard_value int(11) NOT NULL DEFAULT 0,
 	backup_type varchar(30) NOT NULL,
 	cluster_id int(11) NOT NULL,
 	cluster_address varchar(255) DEFAULT NULL,
 	backup_host varchar(30) NOT NULL,
 	backup_port int(11) NOT NULL,
-	mysql_role varchar(30) DEFAULT NULL,
-	shard_value int(11) DEFAULT NULL,
+	server_id varchar(10) DEFAULT NULL,
 	bill_id varchar(30) DEFAULT NULL,
 	bk_biz_id int(11) DEFAULT NULL,
 	mysql_version varchar(60) DEFAULT NULL,
@@ -80,15 +82,11 @@ CREATE TABLE IF NOT EXISTS %s (
 `, ModelBackupReport{}.TableName())
 
 	var sqlList []string
-	tdbctlExecute := fmt.Sprintf("set session ddl_execute_by_ctl=OFF;")
 	dropTable := fmt.Sprintf(`DROP TABLE IF EXISTS %s;`, ModelBackupReport{}.TableName())
-	if spiderNode {
-		sqlList = append(sqlList, tdbctlExecute)
-	}
 	sqlList = append(sqlList, dropTable, createTable)
 	logger.Log.Infof("init local_backup_report: %v", sqlList)
 	for _, sqlStr := range sqlList {
-		if _, err := db.Exec(sqlStr); err != nil {
+		if _, err := db.ExecContext(context.Background(), sqlStr); err != nil {
 			return errors.WithMessage(err, "create local_backup_report failed")
 		}
 	}

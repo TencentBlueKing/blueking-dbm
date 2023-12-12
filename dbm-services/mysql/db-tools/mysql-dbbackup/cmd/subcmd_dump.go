@@ -9,6 +9,7 @@
 package cmd
 
 import (
+	"fmt"
 	"path/filepath"
 
 	"github.com/pkg/errors"
@@ -116,7 +117,7 @@ func backupData(cnf *config.BackupConfig) (err error) {
 		return err
 	}
 	// 初始化 reportLogger，后续可通过 dbareport.Report 来调用
-	if err = dbareport.InitReporter(cnf.Public.ResultReportPath); err != nil {
+	if err = dbareport.InitReporter(cnf.Public.ReportPath); err != nil {
 		return err
 	}
 	err = logReport.ReportBackupStatus("Begin")
@@ -182,7 +183,7 @@ func backupData(cnf *config.BackupConfig) (err error) {
 	}
 
 	// PackageBackupFiles 会把打包后的文件信息，更新到 metaInfo
-	tarErr := backupexe.PackageBackupFiles(cnf, metaInfo)
+	indexFilePath, tarErr := backupexe.PackageBackupFiles(cnf, metaInfo)
 	if tarErr != nil {
 		logger.Log.Error("Failed to tar the backup file, error: ", tarErr)
 		return tarErr
@@ -194,7 +195,8 @@ func backupData(cnf *config.BackupConfig) (err error) {
 		return err
 	}
 	// run backup_client
-	if err = logReport.ReportBackupResult(metaInfo); err != nil {
+	fmt.Printf("backup_index_file:%s\n", indexFilePath)
+	if err = logReport.ReportBackupResult(indexFilePath); err != nil {
 		logger.Log.Error("failed to report backup result, err: ", err)
 		return err
 	}

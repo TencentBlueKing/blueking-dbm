@@ -1,6 +1,8 @@
 package dbareport
 
 import (
+	"path/filepath"
+
 	"github.com/pkg/errors"
 
 	"dbm-services/common/go-pubpkg/reportlog"
@@ -41,13 +43,13 @@ func NewLogReporter(reportDir string) (*ReportLogger, error) {
 		//resultReport.Disable = true
 		return nil, errors.WithMessage(err, "fail to init resultReporter")
 	}
-	filesReport, err := reportlog.NewReporter(reportDir, "dbareport_result.log", &logOpt)
+	filesReport, err := reportlog.NewReporter(filepath.Join(reportDir, "result"), "dbareport_result.log", &logOpt)
 	if err != nil {
 		logger.Log.Warn("fail to init statusReporter:%s", err.Error())
 		//filesReport.Disable = true
 		return nil, errors.WithMessage(err, "fail to init statusReporter")
 	}
-	statusReport, err := reportlog.NewReporter(reportDir, "backup_status.log", &logOpt)
+	statusReport, err := reportlog.NewReporter(filepath.Join(reportDir, "status"), "backup_status.log", &logOpt)
 	if err != nil {
 		logger.Log.Warn("fail to init statusReporter:%s", err.Error())
 		//statusReport.Disable = true

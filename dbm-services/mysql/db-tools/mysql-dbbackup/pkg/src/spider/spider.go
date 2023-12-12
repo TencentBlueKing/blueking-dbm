@@ -82,6 +82,7 @@ func ScheduleBackup(cnf *config.Public) error {
 			}
 		}
 	} else {
+		fmt.Println("current host spider and tdbctl is not primary")
 		logger.Log.Infof("current host spider and tdbctl is not primary")
 		return nil
 	}

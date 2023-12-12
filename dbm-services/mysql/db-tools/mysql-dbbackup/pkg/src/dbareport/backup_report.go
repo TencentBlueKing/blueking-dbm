@@ -9,6 +9,7 @@
 package dbareport
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -234,12 +235,41 @@ func (r *BackupLogReport) ReportToLocalBackup(backupReport *IndexContent) error 
 	defer func() {
 		_ = db.Close()
 	}()
+	isTspider, isTdbctl, err := mysqlconn.IsSpiderNode(db)
+	if err != nil {
+		return err
+	}
+	// 因为可能会改变 session 变量，所以那单独的连接处理
+	conn, err := db.Conn(context.Background())
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
+	ctx := context.Background()
+	if isTspider {
+		if _, err = conn.ExecContext(ctx, "set session ddl_execute_by_ctl=OFF;"); err != nil {
+			return err
+		}
+	} else if isTdbctl {
+		if _, err = conn.ExecContext(ctx, "set session tc_admin=0"); err != nil {
+			return err
+		}
+	}
+	row := conn.QueryRowContext(ctx, "select @@server_id")
+	if err != nil {
+		return err
+	}
+	var serverId string
+	if err = row.Scan(&serverId); err != nil {
+		return err
+	}
+
 	binlogInfo, _ := json.Marshal(backupReport.BinlogInfo)
 	filelist, _ := json.Marshal(backupReport.FileList)
 	extraFileds, _ := json.Marshal(backupReport.ExtraFields)
-	sqlBuilder := sq.Insert(ModelBackupReport{}.TableName()).Columns("backup_id", "backup_type", "cluster_id",
-		"cluster_address", "backup_host", "backup_port", "mysql_role", "shard_value", "bill_id", "bk_biz_id",
-		"mysql_version", "data_schema_grant", "is_full_backup",
+	sqlBuilder := sq.Replace(ModelBackupReport{}.TableName()).Columns("backup_id", "backup_type", "cluster_id",
+		"cluster_address", "backup_host", "backup_port", "server_id", "mysql_role", "shard_value",
+		"bill_id", "bk_biz_id", "mysql_version", "data_schema_grant", "is_full_backup",
 		"backup_begin_time", "backup_end_time", "backup_consistent_time",
 		"binlog_info", "file_list", "extra_fields",
 		"backup_config_file", "backup_status").Values(
@@ -249,6 +279,7 @@ func (r *BackupLogReport) ReportToLocalBackup(backupReport *IndexContent) error 
 		backupReport.ClusterAddress,
 		backupReport.BackupHost,
 		backupReport.BackupPort,
+		serverId,
 		backupReport.MysqlRole,
 		backupReport.ShardValue,
 		backupReport.BillId,
@@ -260,17 +291,18 @@ func (r *BackupLogReport) ReportToLocalBackup(backupReport *IndexContent) error 
 		binlogInfo, filelist, extraFileds,
 		"", "")
 
-	_, err = sqlBuilder.RunWith(db).Exec()
+	//_, err = sqlBuilder.RunWith(conn).Exec()
+	sqlStr, sqlArgs, err := sqlBuilder.ToSql()
 	if err != nil {
-		logger.Log.Warn("failed to write local_backup_report, err:", err, ", try to fix it")
-		isSpider, err := mysqlconn.IsSpiderNode(db)
-		if err != nil {
+		return err
+	}
+	_, err = conn.ExecContext(ctx, sqlStr, sqlArgs...)
+	if err != nil {
+		logger.Log.Warnf("failed to write %d local_backup_report, err: %s, fix it", backupReport.BackupPort, err)
+		if err = migrateLocalBackupSchema(err, conn); err != nil {
 			return err
 		}
-		if err = migrateLocalBackupSchema(err, isSpider, db); err != nil {
-			return err
-		}
-		_, err = sqlBuilder.RunWith(db).Exec()
+		_, err = conn.ExecContext(ctx, sqlStr, sqlArgs...)
 		if err != nil {
 			return errors.Wrap(err, "write local_backup_report again")
 		}
@@ -282,8 +314,19 @@ func (r *BackupLogReport) ReportToLocalBackup(backupReport *IndexContent) error 
 // run ExecuteBackupClient to upload to remote
 // report backup to db
 // report backup to log file
-func (r *BackupLogReport) ReportBackupResult(metaInfo *IndexContent) error {
+func (r *BackupLogReport) ReportBackupResult(indexFilePath string) error {
 	var err error
+	var metaInfo = &IndexContent{}
+	if buf, err := os.ReadFile(indexFilePath); err != nil {
+		return err
+	} else {
+		if err = json.Unmarshal(buf, metaInfo); err != nil {
+			return err
+		}
+	}
+	// index file 里面不会包含自身信息，这里上报时添加
+	metaInfo.AddIndexFileItem(indexFilePath)
+
 	// 上传、上报备份文件
 	for _, f := range metaInfo.FileList {
 		filePath := filepath.Join(r.cfg.Public.BackupDir, f.FileName)
@@ -300,22 +343,6 @@ func (r *BackupLogReport) ReportBackupResult(metaInfo *IndexContent) error {
 		backupTaskResult.FileName = f.FileName
 		backupTaskResult.FileType = f.FileType
 		backupTaskResult.FileSize = f.FileSize
-		Report().Files.Println(backupTaskResult)
-	}
-	// 上传并上报 meta index file
-	// index file 里面不会包含自身信息
-	indexFilePath := filepath.Join(r.cfg.Public.BackupDir, r.cfg.Public.TargetName()+".index")
-	if taskId, err := r.ExecuteBackupClient(indexFilePath); err != nil {
-		return err
-	} else {
-		backupTaskResult := BackupLogReport{}
-		backupTaskResult.BackupMetaFileBase = deepcopy.Copy(metaInfo.BackupMetaFileBase).(BackupMetaFileBase)
-		backupTaskResult.ExtraFields = deepcopy.Copy(metaInfo.ExtraFields).(ExtraFields)
-		backupTaskResult.ConsistentBackupTime = metaInfo.BackupConsistentTime
-		backupTaskResult.TaskId = taskId
-		backupTaskResult.FileName = filepath.Base(indexFilePath)
-		backupTaskResult.FileType = cst.FileIndex
-		backupTaskResult.FileSize = cmutil.GetFileSize(indexFilePath)
 		Report().Files.Println(backupTaskResult)
 	}
 	// report backup record
