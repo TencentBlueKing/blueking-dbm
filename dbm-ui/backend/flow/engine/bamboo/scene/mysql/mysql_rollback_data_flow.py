@@ -26,16 +26,17 @@ from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import (
     install_mysql_in_cluster_sub_flow,
 )
 from backend.flow.engine.bamboo.scene.mysql.common.exceptions import NormalTenDBFlowException
+from backend.flow.engine.bamboo.scene.mysql.common.uninstall_instance import uninstall_instance_sub_flow
 from backend.flow.engine.bamboo.scene.mysql.mysql_rollback_data_sub_flow import (
     rollback_local_and_backupid,
     rollback_local_and_time,
     rollback_remote_and_backupid,
     rollback_remote_and_time,
-    uninstall_instance_sub_flow,
 )
 from backend.flow.engine.bamboo.scene.spider.common.exceptions import TendbGetClusterInfoFailedException
 from backend.flow.plugins.components.collections.common.download_backup_client import DownloadBackupClientComponent
 from backend.flow.plugins.components.collections.common.pause import PauseComponent
+from backend.flow.plugins.components.collections.mysql.clear_machine import MySQLClearMachineComponent
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.mysql.mysql_db_meta import MySQLDBMetaComponent
 from backend.flow.utils.common_act_dataclass import DownloadBackupClientKwargs
@@ -242,11 +243,41 @@ class MySQLRollbackDataFlow(object):
 
             # 设置暂停。接下来卸载数据库的流程
             sub_pipeline.add_act(act_name=_("人工确认"), act_component_code=PauseComponent.code, kwargs={})
-            sub_pipeline.add_sub_pipeline(
-                sub_flow=uninstall_instance_sub_flow(
-                    root_id=self.root_id, ticket_data=self.data, cluster_info=one_cluster
-                )
+
+            cluster = {
+                "cluster_id": cluster_class.id,
+                "rollback_ip": self.data["rollback_ip"],
+                "master_port": master.port,
+                "bk_cloud_id": cluster_class.bk_cloud_id,
+                "backend_port": master.port,
+            }
+            sub_pipeline.add_act(
+                act_name=_("整机卸载前先删除元数据"),
+                act_component_code=MySQLDBMetaComponent.code,
+                kwargs=asdict(
+                    DBMetaOPKwargs(
+                        db_meta_class_func=MySQLDBMeta.mysql_rollback_remove_instance.__name__,
+                        cluster=cluster,
+                        is_update_trans_data=True,
+                    )
+                ),
             )
+
+            exec_act_kwargs.exec_ip = self.data["rollback_ip"]
+            exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_clear_machine_crontab.__name__
+            sub_pipeline.add_act(
+                act_name=_("清理机器配置{}").format(exec_act_kwargs.exec_ip),
+                act_component_code=MySQLClearMachineComponent.code,
+                kwargs=asdict(exec_act_kwargs),
+            )
+
+            exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_uninstall_mysql_payload.__name__
+            sub_pipeline.add_act(
+                act_name=_("卸载rollback实例{}").format(exec_act_kwargs.exec_ip),
+                act_component_code=ExecuteDBActuatorScriptComponent.code,
+                kwargs=asdict(exec_act_kwargs),
+            )
+
             sub_pipeline_list.append(sub_pipeline.build_sub_process(sub_name=_("定点恢复")))
 
         mysql_restore_slave_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipeline_list)

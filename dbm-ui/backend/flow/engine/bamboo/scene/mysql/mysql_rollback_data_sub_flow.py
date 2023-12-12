@@ -49,53 +49,6 @@ from backend.utils.time import str2datetime
 logger = logging.getLogger("flow")
 
 
-def uninstall_instance_sub_flow(root_id: str, ticket_data: dict, cluster_info: dict):
-    """
-    mysql 定点回档卸载实例
-    @param root_id: flow 流程root_id
-    @param ticket_data: 关联单据 ticket对象
-    @param cluster_info: 关联的cluster对象
-    """
-    sub_ticket_data = copy.deepcopy(ticket_data)
-    sub_ticket_data["force"] = True
-    uninstall_sub_pipeline = SubBuilder(root_id=root_id, data=sub_ticket_data)
-
-    # 拼接执行原子任务活动节点需要的通用的私有参数结构体, 减少代码重复率，但引用时注意内部参数值传递的问题
-    exec_act_kwargs = ExecActuatorKwargs(
-        exec_ip=cluster_info["rollback_ip"],
-        bk_cloud_id=int(cluster_info["bk_cloud_id"]),
-        cluster=cluster_info,
-    )
-
-    exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_uninstall_mysql_payload.__name__
-    uninstall_sub_pipeline.add_act(
-        act_name=_("卸载rollback实例{}").format(exec_act_kwargs.exec_ip),
-        act_component_code=ExecuteDBActuatorScriptComponent.code,
-        kwargs=asdict(exec_act_kwargs),
-    )
-    # 删除rollback_ip对应的集群实例
-    uninstall_sub_pipeline.add_act(
-        act_name=_("卸载rollback实例完毕，修改元数据"),
-        act_component_code=MySQLDBMetaComponent.code,
-        kwargs=asdict(
-            DBMetaOPKwargs(
-                db_meta_class_func=MySQLDBMeta.mysql_rollback_remove_instance.__name__,
-                cluster=cluster_info,
-                is_update_trans_data=True,
-            )
-        ),
-    )
-
-    exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_clear_machine_crontab.__name__
-    uninstall_sub_pipeline.add_act(
-        act_name=_("清理机器配置{}").format(exec_act_kwargs.exec_ip),
-        act_component_code=MySQLClearMachineComponent.code,
-        kwargs=asdict(exec_act_kwargs),
-    )
-
-    return uninstall_sub_pipeline.build_sub_process(sub_name=_("清理机器flow"))
-
-
 def rollback_local_and_time(root_id: str, ticket_data: dict, cluster_info: dict):
     """
     mysql 定点回档类型 本地备份+指定时间

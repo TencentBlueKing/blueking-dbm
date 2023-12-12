@@ -276,11 +276,6 @@ class MySQLMigrateClusterRemoteFlow(object):
             uninstall_svr_sub_pipeline_list = []
             for ip in [self.data["slave_ip"], self.data["master_ip"]]:
                 uninstall_svr_sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
-                uninstall_svr_sub_pipeline.add_sub_pipeline(
-                    sub_flow=uninstall_instance_sub_flow(
-                        root_id=self.root_id, ticket_data=copy.deepcopy(self.data), ip=ip, ports=self.data["ports"]
-                    )
-                )
                 cluster = {"uninstall_ip": ip, "ports": self.data["ports"], "bk_cloud_id": self.data["bk_cloud_id"]}
                 uninstall_svr_sub_pipeline.add_act(
                     act_name=_("整机卸载成功后删除元数据"),
@@ -302,6 +297,11 @@ class MySQLMigrateClusterRemoteFlow(object):
                             bk_cloud_id=self.data["bk_cloud_id"],
                         )
                     ),
+                )
+                uninstall_svr_sub_pipeline.add_sub_pipeline(
+                    sub_flow=uninstall_instance_sub_flow(
+                        root_id=self.root_id, ticket_data=copy.deepcopy(self.data), ip=ip, ports=self.data["ports"]
+                    )
                 )
                 uninstall_svr_sub_pipeline_list.append(
                     uninstall_svr_sub_pipeline.build_sub_process(sub_name=_("卸载remote节点{}".format(ip)))

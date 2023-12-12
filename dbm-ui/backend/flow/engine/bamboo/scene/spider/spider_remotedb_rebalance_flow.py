@@ -328,11 +328,6 @@ class TenDBRemoteRebalanceFlow(object):
             for ip in machines:
                 uninstall_svr_sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
                 ins_cluster = {"uninstall_ip": ip, "cluster_id": cluster_info["cluster_id"]}
-                uninstall_svr_sub_pipeline.add_sub_pipeline(
-                    sub_flow=remote_node_uninstall_sub_flow(
-                        root_id=self.root_id, ticket_data=copy.deepcopy(self.data), ip=ip
-                    )
-                )
                 uninstall_svr_sub_pipeline.add_act(
                     act_name=_("整机卸载成功后删除元数据"),
                     act_component_code=SpiderDBMetaComponent.code,
@@ -353,6 +348,11 @@ class TenDBRemoteRebalanceFlow(object):
                             bk_cloud_id=self.data["bk_cloud_id"],
                         )
                     ),
+                )
+                uninstall_svr_sub_pipeline.add_sub_pipeline(
+                    sub_flow=remote_node_uninstall_sub_flow(
+                        root_id=self.root_id, ticket_data=copy.deepcopy(self.data), ip=ip
+                    )
                 )
                 uninstall_svr_sub_pipeline_list.append(
                     uninstall_svr_sub_pipeline.build_sub_process(sub_name=_("卸载remote节点{}".format(ip)))
