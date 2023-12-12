@@ -13,6 +13,7 @@ import logging
 import re
 
 from celery.schedules import crontab
+from django.utils import timezone
 
 from backend import env
 from backend.components import CCApi
@@ -25,7 +26,7 @@ logger = logging.getLogger("celery")
 
 def update_app_cache():
     """TODO: deprecated: 缓存空闲机拓扑"""
-    now = datetime.datetime.now()
+    now = datetime.datetime.now(timezone.utc)
     logger.warning("[db_meta] start update app cache start: %s", now)
 
     bizs = CCApi.search_business().get("info", [])
@@ -72,7 +73,7 @@ def update_app_cache():
 
     logger.warning(
         "[db_meta] finish update app cache end: %s, create_cnt: %s, update_cnt: %s",
-        datetime.datetime.now() - now,
+        datetime.datetime.now(timezone.utc) - now,
         len(created_bizs),
         len(updated_bizs),
     )
@@ -116,7 +117,7 @@ def bulk_update_app_cache():
     start = 0
     total = CCApi.search_business({"page": {"start": 0, "limit": 1}}).get("count", 0)
 
-    begin_at = datetime.datetime.now()
+    begin_at = datetime.datetime.now(timezone.utc)
     logger.warning("bulk_update_app_cache: start update app cache total: %s", total)
 
     # 批量创建和更新
@@ -181,7 +182,7 @@ def bulk_update_app_cache():
 
     logger.warning(
         "bulk_update_app_cache [%s] finish update app cache end, create_cnt: %s, update_cnt: %s",
-        datetime.datetime.now() - begin_at,
+        (datetime.datetime.now(timezone.utc) - begin_at),
         create_cnt,
         update_cnt,
     )

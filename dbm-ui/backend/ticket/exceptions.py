@@ -46,3 +46,9 @@ class TicketDuplicationException(TicketBaseException):
     ERROR_CODE = "005"
     MESSAGE = _("单据提交重复")
     MESSAGE_TPL = _("单据{ticket_type}提交重复")
+
+
+class TicketTaskTriggerException(TicketBaseException):
+    ERROR_CODE = "006"
+    MESSAGE = _("单据任务定时触发异常")
+    MESSAGE_TPL = _("单据任务{ticket_type}定时触发异常")

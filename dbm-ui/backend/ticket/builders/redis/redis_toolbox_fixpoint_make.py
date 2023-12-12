@@ -10,6 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 import datetime
 
+from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
@@ -19,6 +20,7 @@ from backend.db_meta.models import Cluster
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.redis import RedisController
 from backend.ticket import builders
+from backend.ticket.builders.common.field import DBTimezoneField
 from backend.ticket.builders.redis.base import BaseRedisTicketFlowBuilder, ClusterValidateMixin
 from backend.ticket.constants import TicketType
 from backend.utils.time import str2datetime
@@ -32,7 +34,7 @@ class RedisFixPointMakeDetailSerializer(serializers.Serializer):
         bk_cloud_id = serializers.IntegerField(help_text=_("云区域ID"))
         master_instances = serializers.ListField(help_text=_("master实例列表"))
         resource_spec = serializers.JSONField(help_text=_("资源规格"), required=True)
-        recovery_time_point = serializers.CharField(help_text=_("待构造时间点"))
+        recovery_time_point = DBTimezoneField(help_text=_("待构造时间点"))
 
         def validate(self, attr):
             """业务逻辑校验"""
@@ -62,7 +64,7 @@ class RedisFixPointMakeDetailSerializer(serializers.Serializer):
             ):
                 raise serializers.ValidationError(_("集群{}: 不支持部分实例构造.").format(cluster.immute_domain))
 
-            now = datetime.datetime.now()
+            now = datetime.datetime.now(timezone.utc)
             recovery_time_point = str2datetime(recovery_time_point)
             if recovery_time_point >= now or now - recovery_time_point > datetime.timedelta(days=15):
                 raise serializers.ValidationError(_("集群{}: 构造时间最多向前追溯15天.").format(cluster.immute_domain))

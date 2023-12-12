@@ -12,6 +12,8 @@ import datetime
 import json
 import logging
 
+from django.utils import timezone
+
 from backend import env
 from backend.components import CCApi
 from backend.configuration.constants import SystemSettingsEnum
@@ -31,7 +33,7 @@ def reset_host_dbmeta(bk_biz_id=env.DBA_APP_BK_BIZ_ID, bk_host_ids=None):
     """
     重置业务下空闲集群主机的dbm_meta属性
     """
-    now = datetime.datetime.now()
+    now = datetime.datetime.now(timezone.utc)
     logger.info("[reset_host_dbmeta] start reset begin: %s", now)
 
     if not bk_host_ids:
@@ -70,7 +72,7 @@ def reset_host_dbmeta(bk_biz_id=env.DBA_APP_BK_BIZ_ID, bk_host_ids=None):
 
     logger.info(
         "[reset_host_dbmeta] finish reset end: %s, update_cnt: %s",
-        datetime.datetime.now() - now,
+        datetime.datetime.now(timezone.utc) - now,
         len(reset_hosts),
     )
 
@@ -88,9 +90,11 @@ def update_host_dbmeta(bk_biz_id=None, cluster_id=None, bk_host_ids=None, dbm_me
         Services.init_cc_dbm_meta(unmanaged_biz)
 
     # 释放1天前报错的主机
-    SyncFailedMachine.objects.filter(create_at__lte=datetime.datetime.now() - datetime.timedelta(days=1)).delete()
+    SyncFailedMachine.objects.filter(
+        create_at__lte=datetime.datetime.now(timezone.utc) - datetime.timedelta(days=1)
+    ).delete()
 
-    now = datetime.datetime.now()
+    now = datetime.datetime.now(timezone.utc)
     logger.info("[update_host_dbmeta] start update begin: %s", now)
 
     # 0为默认的无效machine
@@ -150,6 +154,6 @@ def update_host_dbmeta(bk_biz_id=None, cluster_id=None, bk_host_ids=None, dbm_me
 
     logger.info(
         "[update_host_dbmeta] finish update end: %s, update_cnt: %s",
-        datetime.datetime.now() - now,
+        datetime.datetime.now(timezone.utc) - now,
         len(updated_hosts),
     )

@@ -15,6 +15,7 @@ import os
 import subprocess
 
 from django.conf import settings
+from django.utils import timezone
 
 from backend import env
 from backend.components import BKLogApi, BKMonitorV3Api, CCApi, ItsmApi
@@ -30,6 +31,7 @@ from backend.dbm_init.constants import CC_APP_ABBR_ATTR, CC_HOST_DBM_ATTR
 from backend.dbm_init.json_files.format import JsonConfigFormat
 from backend.exceptions import ApiError, ApiRequestError, ApiResultError
 from backend.flow.utils.cc_manage import CcManage
+from backend.utils.time import datetime2str
 
 logger = logging.getLogger("root")
 
@@ -378,13 +380,11 @@ class Services:
             bk_event_group_id,
         )
         # TODO: 监控提供的是页面接口，需要提供时间范围查询详情
-        end = datetime.datetime.now()
+        end = datetime.datetime.now(timezone.utc)
         start = end - datetime.timedelta(hours=1)
         res = BKMonitorV3Api.get_custom_event_group(
             {
-                "time_range": "{} -- {}".format(
-                    start.strftime("%Y-%m-%d %H:%M:%S"), end.strftime("%Y-%m-%d %H:%M:%S")
-                ),
+                "time_range": "{} -- {}".format(datetime2str(start), datetime2str(end)),
                 "bk_event_group_id": bk_event_group_id,
                 "bk_biz_id": env.DBA_APP_BK_BIZ_ID,
             }

@@ -39,7 +39,6 @@ from backend.flow.utils.mysql.mysql_act_dataclass import (
     RollBackTransFileKwargs,
 )
 from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
-from backend.utils import time
 from backend.utils.time import str2datetime
 
 logger = logging.getLogger("flow")
@@ -146,10 +145,10 @@ def rollback_remote_and_time(root_id: str, ticket_data: dict, cluster_info: dict
     """
     cluster_info["recover_binlog"] = True
     sub_pipeline = SubBuilder(root_id=root_id, data=copy.deepcopy(ticket_data))
-    rollback_time = time.strptime(cluster_info["rollback_time"], "%Y-%m-%d %H:%M:%S")
+    rollback_time = cluster_info["rollback_time"]
     rollback_handler = FixPointRollbackHandler(cluster_info["cluster_id"])
     # 查询接口
-    backupinfo = rollback_handler.query_latest_backup_log(rollback_time)
+    backupinfo = rollback_handler.query_latest_backup_log(str2datetime(rollback_time))
     if backupinfo is None:
         logger.error("cluster {} backup info not exists".format(cluster_info["cluster_id"]))
         raise TendbGetBackupInfoFailedException(message=_("获取集群 {} 的备份信息失败".format(cluster_info["cluster_id"])))
@@ -189,8 +188,8 @@ def rollback_remote_and_time(root_id: str, ticket_data: dict, cluster_info: dict
         kwargs=asdict(exec_act_kwargs),
         write_payload_var="change_master_info",
     )
-    backup_time = str2datetime(backupinfo["backup_time"], "%Y-%m-%d %H:%M:%S")
-    rollback_time = str2datetime(cluster_info["rollback_time"], "%Y-%m-%d %H:%M:%S")
+    backup_time = str2datetime(backupinfo["backup_time"])
+    rollback_time = str2datetime(cluster_info["rollback_time"])
     rollback_handler = FixPointRollbackHandler(cluster_info["cluster_id"])
     backup_binlog = rollback_handler.query_binlog_from_bklog(
         start_time=backup_time,

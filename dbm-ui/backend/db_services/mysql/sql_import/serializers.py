@@ -8,13 +8,10 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from datetime import datetime
-
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from backend.configuration.constants import DBType
-from backend.constants import DATETIME_PATTERN
 from backend.db_services.mysql.sql_import import mock_data
 from backend.db_services.mysql.sql_import.constants import (
     BKREPO_SQLFILE_PATH,
@@ -24,6 +21,7 @@ from backend.db_services.mysql.sql_import.constants import (
 )
 from backend.exceptions import ValidationError
 from backend.flow.models import StateType
+from backend.ticket.builders.common.field import DBTimezoneField
 from backend.ticket.constants import TicketType
 
 
@@ -69,7 +67,7 @@ class SQLSemanticCheckSerializer(serializers.Serializer):
 
     class SQLImportModeSerializer(serializers.Serializer):
         mode = serializers.ChoiceField(help_text=_("单据执行模式"), choices=SQLExecuteTicketMode.get_choices())
-        trigger_time = serializers.CharField(help_text=_("定时任务触发时间"), required=False, allow_blank=True)
+        trigger_time = DBTimezoneField(help_text=_("定时任务触发时间"), required=False, allow_blank=True)
 
     class SQLImportBackUpSerializer(serializers.Serializer):
         backup_on = serializers.CharField(help_text=_("备份源"), required=False)
@@ -102,16 +100,6 @@ class SQLSemanticCheckSerializer(serializers.Serializer):
         swagger_schema_fields = {"example": mock_data.SQL_SEMANTIC_CHECK_REQUEST_DATA}
 
     def validate(self, attrs):
-        # 验证trigger_time的格式合法性，不要等到创建单据的时候再验证
-        if attrs["ticket_mode"] == SQLExecuteTicketMode.TIMER.value:
-            trigger_time = attrs["ticket_mode"]["trigger_time"]
-            try:
-                datetime.strptime(trigger_time, DATETIME_PATTERN)
-            except Exception as e:  # pylint: disable=broad-except
-                raise serializers.ValidationError(
-                    _("时间{}格式解析失败: {}，请按照{}格式输入时间").format(trigger_time, e, DATETIME_PATTERN)
-                )
-
         return attrs
 
 

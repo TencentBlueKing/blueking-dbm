@@ -26,7 +26,7 @@ from backend.flow.plugins.components.collections.mysql.trans_flies import TransF
 from backend.flow.utils.mysql.common.mysql_cluster_info import get_version_and_charset
 from backend.flow.utils.mysql.mysql_act_dataclass import DownloadMediaKwargs
 from backend.flow.utils.spider.tendb_cluster_info import get_rollback_clusters_info
-from backend.utils import time
+from backend.utils.time import str2datetime
 
 logger = logging.getLogger("flow")
 
@@ -66,8 +66,8 @@ class TenDBRollBackDataFlow(object):
             backup_info = self.data["backupinfo"]
         else:
             rollback_handler = FixPointRollbackHandler(self.data["source_cluster_id"])
-            rollback_time = time.strptime(self.data["rollback_time"], "%Y-%m-%d %H:%M:%S")
-            backup_info = rollback_handler.query_latest_backup_log(rollback_time)
+            rollback_time = self.data["rollback_time"]
+            backup_info = rollback_handler.query_latest_backup_log(str2datetime(rollback_time))
             if backup_info is None:
                 logger.error("cluster {} backup info not exists".format(self.data["source_cluster_id"]))
                 raise TendbGetBackupInfoFailedException(

@@ -12,6 +12,7 @@ specific language governing permissions and limitations under the License.
 from datetime import datetime
 
 from django.db.models import Q
+from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
@@ -22,6 +23,7 @@ from backend.flow.engine.controller.mysql import MySQLController
 from backend.ticket import builders
 from backend.ticket.builders.common.base import InstanceInfoSerializer
 from backend.ticket.builders.common.constants import MySQLChecksumTicketMode, MySQLDataRepairTriggerMode
+from backend.ticket.builders.common.field import DBTimezoneField
 from backend.ticket.builders.mysql.base import (
     BaseMySQLTicketFlowBuilder,
     DBTableField,
@@ -42,7 +44,7 @@ class MySQLChecksumDetailSerializer(MySQLBaseOperateDetailSerializer):
         cluster_id = serializers.IntegerField(help_text=_("集群ID"))
 
     runtime_hour = serializers.IntegerField(help_text=_("超时时间"))
-    timing = serializers.CharField(help_text=_("定时触发时间"))
+    timing = DBTimezoneField(help_text=_("定时触发时间"))
     infos = serializers.ListField(help_text=_("数据校验信息列表"), child=ChecksumDataInfoSerializer())
     data_repair = serializers.DictField(help_text=_("数据修复信息"))
     is_sync_non_innodb = serializers.BooleanField(help_text=_("非innodb表是否修复"), required=False, default=False)
@@ -63,7 +65,7 @@ class MySQLChecksumDetailSerializer(MySQLBaseOperateDetailSerializer):
         )
 
         # 校验定时时间不能早于当前时间
-        if str2datetime(attrs["timing"]) < datetime.now():
+        if str2datetime(attrs["timing"]) < datetime.now(timezone.utc):
             raise serializers.ValidationError(_("定时时间必须晚于当前时间"))
 
         return attrs
