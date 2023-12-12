@@ -17,7 +17,6 @@ from django.utils.translation import ugettext as _
 
 from backend import env
 from backend.components.bklog.client import BKLogApi
-from backend.constants import DATETIME_PATTERN
 from backend.db_meta.enums import ClusterType, InstanceInnerRole
 from backend.db_meta.models.cluster import Cluster
 from backend.db_services.redis.rollback.constants import BACKUP_LOG_ROLLBACK_TIME_RANGE_DAYS
@@ -41,7 +40,7 @@ class DataStructureHandler:
         end_time = rollback_time
         start_time = end_time - timedelta(days=BACKUP_LOG_ROLLBACK_TIME_RANGE_DAYS)
         backup_logs = self.redis_query_backup_log_from_bklog(
-            start_time=datetime2str(start_time), end_time=datetime2str(end_time), host_ip=host_ip, port=port
+            start_time=start_time, end_time=end_time, host_ip=host_ip, port=port
         )
 
         if not backup_logs:
@@ -50,13 +49,15 @@ class DataStructureHandler:
         backup_logs.sort(key=lambda x: x["start_time"])
         time_keys = [log["start_time"] for log in backup_logs]
         try:
-            latest_log = backup_logs[find_nearby_time(time_keys, rollback_time.strftime(DATETIME_PATTERN), 1)]
+            latest_log = backup_logs[find_nearby_time(time_keys, datetime2str(rollback_time), 1)]
         except IndexError:
             raise AppBaseException(_("没有找到小于时间点{}附近的备份日志记录，请检查时间点的合法性或稍后重试").format(rollback_time))
         # 转化为直接查询备份系统返回的格式
         return self.convert_to_backup_system_format(latest_log)
 
-    def redis_query_backup_log_from_bklog(self, start_time: str, end_time: str, host_ip: str, port: int) -> List[Dict]:
+    def redis_query_backup_log_from_bklog(
+        self, start_time: datetime, end_time: datetime, host_ip: str, port: int
+    ) -> List[Dict]:
         """
         通过日志平台查询集群的时间范围内的备份记录
         :param start_time: 开始时间
@@ -89,8 +90,8 @@ class DataStructureHandler:
         resp = BKLogApi.esquery_search(
             {
                 "indices": f"{env.DBA_APP_BK_BIZ_ID}_bklog.{collector}",
-                "start_time": start_time1,
-                "end_time": end_time1,
+                "start_time": datetime2str(start_time1),
+                "end_time": datetime2str(end_time1),
                 # 这里需要精确查询集群域名，所以可以通过log: "key: \"value\""的格式查询
                 "query_string": query_string,
                 "start": 0,
@@ -108,8 +109,8 @@ class DataStructureHandler:
 
     def query_binlog_from_bklog(
         self,
-        start_time: Union[datetime, str],
-        end_time: Union[datetime, str],
+        start_time: datetime,
+        end_time: datetime,
         host_ip: str = None,
         port: int = None,
         kvstorecount: str = None,
@@ -127,9 +128,6 @@ class DataStructureHandler:
         :param minute_range: 放大的前后时间范围
         """
 
-        start_time, end_time = str2datetime(start_time).replace(tzinfo=None), str2datetime(end_time).replace(
-            tzinfo=None
-        )
         if not host_ip:
             master = self.cluster.storageinstance_set.get(instance_inner_role=InstanceInnerRole.MASTER)
             host_ip, port = master.machine.ip, master.port
@@ -138,8 +136,8 @@ class DataStructureHandler:
             collector="redis_binlog_backup_result",
             # 时间范围前后放大避免日志平台上传延迟
             # binlog每隔20分钟做备份上传，上传可能超时，上传超时时间 2小时; 这里的时间是大范围内的
-            start_time1=datetime2str(start_time - timedelta(minutes=minute_range)),
-            end_time1=datetime2str(end_time + timedelta(minutes=minute_range)),
+            start_time1=start_time - timedelta(minutes=minute_range),
+            end_time1=end_time + timedelta(minutes=minute_range),
             query_string=f"server_ip: {host_ip} AND server_port: {port} AND status:{status}",
         )
 
@@ -291,9 +289,7 @@ class DataStructureHandler:
         time_keys = [log["start_time"] for log in filtered_binlogs]
         try:
             # 获取小于且最接近start_time 的一个binlog文件 ；flag为1，则搜索小于或等于start_time的最近时间点
-            latest_start_time_binlog = filtered_binlogs[
-                find_nearby_time(time_keys, start_time.strftime(DATETIME_PATTERN), 1)
-            ]
+            latest_start_time_binlog = filtered_binlogs[find_nearby_time(time_keys, datetime2str(start_time), 1)]
         except IndexError:
             raise AppBaseException(_("无法找到小于时间点{}附近的日志记录，请检查时间点的合法性或稍后重试").format(start_time))
         # 转化为直接查询备份系统返回的格式
@@ -302,9 +298,7 @@ class DataStructureHandler:
 
         try:
             # 获取大于且最接近end_time 的一个binlog文件 ；flag为0，则搜索大于或等于end_time的最近时间点
-            latest_end_time_binlog = filtered_binlogs[
-                find_nearby_time(time_keys, end_time.strftime(DATETIME_PATTERN), 0)
-            ]
+            latest_end_time_binlog = filtered_binlogs[find_nearby_time(time_keys, datetime2str(end_time), 0)]
         except IndexError:
             raise AppBaseException(_("无法找到大于时间点{}附近的日志记录，请检查时间点的合法性或稍后重试").format(end_time))
 

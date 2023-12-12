@@ -342,7 +342,7 @@ REST_FRAMEWORK = {
     ],
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.LimitOffsetPagination",
     "PAGE_SIZE": 10,
-    "DATETIME_FORMAT": "%Y-%m-%d %H:%M:%S",
+    "DATETIME_FORMAT": None,
     "TEST_REQUEST_DEFAULT_FORMAT": "json",
     "EXCEPTION_HANDLER": "backend.bk_web.handlers.drf_exception_handler",
 }

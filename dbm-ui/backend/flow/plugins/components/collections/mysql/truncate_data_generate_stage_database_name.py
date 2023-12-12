@@ -35,6 +35,7 @@ class TruncateDataGenerateStageDatabaseNameService(BaseService):
 
     @staticmethod
     def generate_truncate_dbname(db: str) -> str:
+        # TODO: 改为带时区的时间字符串是否影响？
         return "{}_{}_{}".format(STAGE_DB_HEADER, datetime.now().strftime("%Y%m%d%H%M%S"), db)
 
 

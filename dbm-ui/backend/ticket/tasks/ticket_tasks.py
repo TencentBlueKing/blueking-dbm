@@ -14,11 +14,12 @@ import operator
 from collections import defaultdict
 from datetime import datetime, timedelta
 from functools import reduce
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Union
 
 from celery import shared_task
 from celery.result import AsyncResult
 from django.db.models import Q
+from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
 from backend import env
@@ -27,6 +28,7 @@ from backend.db_meta.enums import ClusterType, InstanceInnerRole
 from backend.db_meta.models import Cluster, StorageInstance
 from backend.ticket.builders.common.constants import MYSQL_CHECKSUM_TABLE, MySQLDataRepairTriggerMode
 from backend.ticket.constants import FlowErrCode, TicketType
+from backend.ticket.exceptions import TicketTaskTriggerException
 from backend.ticket.flow_manager.inner import InnerFlow
 from backend.ticket.models.ticket import Flow, Ticket
 from backend.utils.time import datetime2str
@@ -75,13 +77,13 @@ class TicketTask(object):
         """根据例行校验的结果自动创建修复单据"""
 
         # 例行时间校验默认间隔一天
-        now = datetime.now()
-        start_time, end_time = datetime2str(now - timedelta(days=1)), datetime2str(now)
+        now = datetime.now(timezone.utc)
+        start_time, end_time = now - timedelta(days=1), now
         resp = BKLogApi.esquery_search(
             {
                 "indices": f"{env.DBA_APP_BK_BIZ_ID}_bklog.mysql_checksum_result",
-                "start_time": start_time,
-                "end_time": end_time,
+                "start_time": datetime2str(start_time),
+                "end_time": datetime2str(end_time),
                 "query_string": "*",
                 "start": 0,
                 "size": 1000,
@@ -216,15 +218,22 @@ def _apply_ticket_task(ticket_id: int, func_name: str, params: dict):
     getattr(TicketTask(ticket_id=ticket_id), func_name)(**params)
 
 
-def apply_ticket_task(ticket_id: int, func_name: str, params: dict = None, eta: datetime = None) -> AsyncResult:
+def apply_ticket_task(
+    ticket_id: int, func_name: str, params: dict = None, eta: Union[int, datetime] = None
+) -> AsyncResult:
     """执行异步任务"""
     if not eta:
         logger.info(_("任务{}立即执行").format(func_name))
         res = _apply_ticket_task.apply_async((ticket_id, func_name, params))
     else:
         logger.info(_("任务{}定时执行，定时触发时间:{}").format(func_name, eta))
-        # 注意⚠️：需要手动将美国时间转化成对应当前服务器时区时间，在settings设置的时区只对周期任务生效
-        eta = eta + (datetime.utcnow() - datetime.now())
-        res = _apply_ticket_task.apply_async((ticket_id, func_name, params), eta=eta)
+        if isinstance(eta, datetime):
+            # 注意⚠️：如果传入的是无时区datetime，需要手动将美国时间转化成对应当前服务器时区时间，在settings设置的时区只对周期任务生效
+            # eta = eta + (datetime.utcnow() - datetime.now())
+            res = _apply_ticket_task.apply_async((ticket_id, func_name, params), eta=eta)
+        elif isinstance(eta, int):
+            res = _apply_ticket_task.apply_async((ticket_id, func_name, params), countdown=eta)
+        else:
+            raise TicketTaskTriggerException(_("不支持的定时类型: {}").format(eta))
 
     return res

@@ -12,6 +12,7 @@ specific language governing permissions and limitations under the License.
 from datetime import datetime
 from typing import Any, Dict, List
 
+from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
@@ -25,6 +26,7 @@ from backend.ticket.builders.common.constants import (
     MySQLDataRepairTriggerMode,
     TendbChecksumScope,
 )
+from backend.ticket.builders.common.field import DBTimezoneField
 from backend.ticket.builders.mysql.base import DBTableField
 from backend.ticket.builders.mysql.mysql_checksum import (
     MySQLChecksumFlowBuilder,
@@ -57,7 +59,7 @@ class TendbChecksumDetailSerializer(TendbBaseOperateDetailSerializer):
 
     data_repair = DataRepairSerializer(help_text=_("数据修复信息"))
     runtime_hour = serializers.IntegerField(help_text=_("超时时间"))
-    timing = serializers.CharField(help_text=_("定时触发时间"))
+    timing = DBTimezoneField(help_text=_("定时触发时间"))
     infos = serializers.ListField(help_text=_("全备信息列表"), child=ChecksumDataInfoSerializer())
     is_sync_non_innodb = serializers.BooleanField(help_text=_("非innodb表是否修复"), required=False, default=False)
 
@@ -66,7 +68,7 @@ class TendbChecksumDetailSerializer(TendbBaseOperateDetailSerializer):
         super().validate_checksum_database_selector(attrs)
 
         # 校验定时时间不能早于当前时间
-        if str2datetime(attrs["timing"]) < datetime.now():
+        if str2datetime(attrs["timing"]) < datetime.now(timezone.utc):
             raise serializers.ValidationError(_("定时时间必须晚于当前时间"))
 
         return attrs

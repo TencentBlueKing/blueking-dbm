@@ -11,6 +11,8 @@ specific language governing permissions and limitations under the License.
 from collections import defaultdict
 from datetime import datetime, timedelta
 
+from django.utils import timezone
+
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Cluster
 from backend.db_report.enums import MysqlBackupCheckSubType
@@ -47,7 +49,7 @@ def _check_binlog_backup(cluster_type):
     """
     for c in Cluster.objects.filter(cluster_type=cluster_type):
         backup = ClusterBackup(c.id, c.immute_domain)
-        now = datetime.now()
+        now = datetime.now(timezone.utc)
         yesterday = now - timedelta(days=1)
         start_time = datetime(yesterday.year, yesterday.month, yesterday.day)
         end_time = datetime(yesterday.year, yesterday.month, yesterday.day, 23, 59, 59)

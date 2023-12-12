@@ -8,11 +8,11 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-import datetime
 import json
 import logging
 import traceback
 from collections import defaultdict
+from datetime import datetime, timedelta
 from typing import Dict, List
 
 from celery.schedules import crontab
@@ -39,7 +39,7 @@ from backend.flow.utils.redis.redis_module_operate import RedisCCTopoOperator
 from backend.ticket.constants import TicketType
 from backend.ticket.models.ticket import ClusterOperateRecord
 from backend.utils.string import pascal_to_snake
-from backend.utils.time import strptime
+from backend.utils.time import datetime2str, strptime
 
 logger = logging.getLogger("celery")
 
@@ -47,10 +47,8 @@ logger = logging.getLogger("celery")
 # 获取最近N分钟的redis cluster nodes上报日志
 def last_Nmin_clusternodes_report(minute: int = 2):
     # 时间格式 2021-03-18 10:00:00
-    start_time = (
-        datetime.datetime.now() - datetime.timedelta(minutes=minute) + datetime.timedelta(seconds=1)
-    ).strftime("%Y-%m-%d %H:%M:%S")
-    end_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    start_time = datetime.now(timezone.utc) - timedelta(minutes=minute) + timedelta(seconds=1)
+    end_time = datetime.now(timezone.utc)
     logger.info(
         "last_Nmin_redis_clusternodes_update_report ==>start_time: {}, end_time: {}".format(start_time, end_time)
     )
@@ -58,8 +56,8 @@ def last_Nmin_clusternodes_report(minute: int = 2):
     resp = BKLogApi.esquery_search(
         {
             "indices": f"{env.DBA_APP_BK_BIZ_ID}_bklog.{collector}",
-            "start_time": start_time,
-            "end_time": end_time,
+            "start_time": datetime2str(start_time),
+            "end_time": datetime2str(end_time),
             # 这里需要精确查询集群域名，所以可以通过log: "key: \"value\""的格式查询
             "query_string": "*",
             "start": 0,
@@ -155,7 +153,7 @@ def redis_clusternodes_update_deal():
     # 获取待处理的记录
     rows = TbRedisClusterNodesUpdateTask.objects.filter(
         status=NodeUpdateTaskStatus.TODO.value,
-        create_time__gte=datetime.datetime.now(timezone.utc) - datetime.timedelta(hours=2),
+        create_time__gte=datetime.now(timezone.utc) - timedelta(hours=2),
     )
     for row in rows:
         # 根据上报的immute_domain找到对应的集群
@@ -347,7 +345,7 @@ class RedisClusterNodesUpdateJob:
             if all([slave_obj.status == InstanceStatus.UNAVAILABLE.value for slave_obj in slave_objs]):
                 # 该机器所有实例都unrunning了
                 # 继续检测该机器 10 分钟内没被加入到自愈流程中
-                mins10_ago = datetime.datetime.now() - datetime.timedelta(minutes=10)
+                mins10_ago = datetime.now(timezone.utc) - timedelta(minutes=10)
                 rows = RedisAutofixCore.objects.filter(cluster_id=cluster.id, create_at__gt=mins10_ago)
                 exists = False
                 for row in rows:

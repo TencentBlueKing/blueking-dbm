@@ -51,7 +51,7 @@ from backend.flow.utils.common_act_dataclass import DownloadBackupClientKwargs
 from backend.flow.utils.redis.redis_act_playload import RedisActPayload
 from backend.flow.utils.redis.redis_context_dataclass import ActKwargs, RedisDataStructureContext
 from backend.flow.utils.redis.redis_db_meta import RedisDBMeta
-from backend.utils import time
+from backend.utils.time import str2datetime
 
 logger = logging.getLogger("flow")
 
@@ -606,7 +606,7 @@ class RedisDataStructureFlow(object):
                     13001,
                     13002
                 ],
-                "recovery_time_point":"2023-05-09 22:44:53",
+                "recovery_time_point":"2023-12-15 04:15:55.860498+00:00" # 时间戳格式,
                 "tendis_type":"RedisInstance",
                 "dest_dir":"$REDIS_BACKUP_DIR/dbbak/recover_redis",
                 "full_file_list":[
@@ -641,7 +641,7 @@ class RedisDataStructureFlow(object):
         acts_list = []
         acts_list_push_json = []
 
-        rollback_time = time.strptime(info["recovery_time_point"], "%Y-%m-%d %H:%M:%S")
+        rollback_time = info["recovery_time_point"]
 
         kvstorecount = None
         if tendis_type == ClusterType.TendisplusInstance.value:
@@ -723,17 +723,20 @@ class RedisDataStructureFlow(object):
     def get_backupfile(cluster_id, rollback_time, source_ip, source_port, tendis_type, kvstorecount) -> (dict, dict):
         rollback_handler = DataStructureHandler(cluster_id)
         instance_binlog_backup = []
-        instance_full_backup = rollback_handler.query_latest_backup_log(rollback_time, source_ip, source_port)
+        instance_full_backup = rollback_handler.query_latest_backup_log(
+            str2datetime(rollback_time), source_ip, source_port
+        )
         if instance_full_backup is None:
             raise TendisGetBinlogFailedException(message=_("获取实例 {}:{} 的binlog备份信息失败".format(source_ip, source_port)))
         # 全备份的开始时间
-        backup_time = time.strptime(instance_full_backup["file_last_mtime"], "%Y-%m-%d %H:%M:%S")
+        # TODO: Timestamp改造，这一块后续采集项会改成时区时间，待验证
+        backup_time = instance_full_backup["file_last_mtime"]
         # ssd 和tendisplus才有binlog
         if tendis_type in [ClusterType.TendisplusInstance.value, ClusterType.TendisSSDInstance.value]:
             # 查询binlog
             instance_binlog_backup = rollback_handler.query_binlog_from_bklog(
-                start_time=backup_time,
-                end_time=rollback_time,
+                start_time=str2datetime(backup_time),
+                end_time=str2datetime(rollback_time),
                 minute_range=120,
                 host_ip=source_ip,
                 port=source_port,

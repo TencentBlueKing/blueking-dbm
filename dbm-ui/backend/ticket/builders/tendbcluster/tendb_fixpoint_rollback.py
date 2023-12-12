@@ -10,6 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 import datetime
 
+from django.utils import timezone
 from django.utils.crypto import get_random_string
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
@@ -23,6 +24,7 @@ from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.spider import SpiderController
 from backend.ticket import builders
 from backend.ticket.builders.common.constants import FixpointRollbackType
+from backend.ticket.builders.common.field import DBTimezoneField
 from backend.ticket.builders.mysql.base import DBTableField
 from backend.ticket.builders.mysql.mysql_fixpoint_rollback import MySQLFixPointRollbackDetailSerializer
 from backend.ticket.builders.tendbcluster.base import BaseTendbTicketFlowBuilder, TendbBaseOperateDetailSerializer
@@ -35,9 +37,7 @@ from backend.utils.time import date2str
 class TendbFixPointRollbackDetailSerializer(TendbBaseOperateDetailSerializer):
     cluster_id = serializers.IntegerField(help_text=_("集群ID"))
     rollback_type = serializers.ChoiceField(help_text=_("回档类型"), choices=FixpointRollbackType.get_choices())
-    rollback_time = serializers.CharField(
-        help_text=_("回档时间"), required=False, allow_blank=True, allow_null=True, default=""
-    )
+    rollback_time = DBTimezoneField(help_text=_("回档时间"), required=False, allow_blank=True, allow_null=True, default="")
     backupinfo = serializers.DictField(
         help_text=_("备份文件信息"), required=False, allow_null=True, allow_empty=True, default={}
     )
@@ -51,7 +51,7 @@ class TendbFixPointRollbackDetailSerializer(TendbBaseOperateDetailSerializer):
         super().validate_cluster_can_access(attrs)
 
         # 校验回档信息
-        MySQLFixPointRollbackDetailSerializer.validate_rollback_info(attrs, datetime.datetime.now())
+        MySQLFixPointRollbackDetailSerializer.validate_rollback_info(attrs, datetime.datetime.now(timezone.utc))
 
         return attrs
 

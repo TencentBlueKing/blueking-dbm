@@ -10,6 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 from datetime import datetime
 
+from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
@@ -34,8 +35,8 @@ class UploadPackageSerializer(serializers.Serializer):
 
 class SyncMediumSerializer(serializers.Serializer):
     class MediumDetailSerializer(serializers.ModelSerializer):
-        create_at = serializers.DateTimeField(required=False, default=datetime.now())
-        update_at = serializers.DateTimeField(required=False, default=datetime.now())
+        create_at = serializers.DateTimeField(required=False, default=datetime.now(timezone.utc))
+        update_at = serializers.DateTimeField(required=False, default=datetime.now(timezone.utc))
 
         class Meta:
             model = Package

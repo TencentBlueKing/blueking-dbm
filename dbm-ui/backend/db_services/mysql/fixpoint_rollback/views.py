@@ -11,6 +11,7 @@ specific language governing permissions and limitations under the License.
 from datetime import datetime, timedelta
 from typing import Any, Dict, List
 
+from django.utils import timezone
 from django.utils.translation import ugettext as _
 from rest_framework import status
 from rest_framework.decorators import action
@@ -36,7 +37,7 @@ from backend.db_services.mysql.fixpoint_rollback.serializers import (
 from backend.iam_app.handlers.drf_perm import DBManageIAMPermission
 from backend.ticket.constants import TicketType
 from backend.ticket.models import ClusterOperateRecord
-from backend.utils.time import datetime2str
+from backend.utils.time import str2datetime
 
 SWAGGER_TAG = "db_services/fixpoint_rollback"
 
@@ -57,11 +58,9 @@ class FixPointRollbackViewSet(viewsets.SystemViewSet):
     @action(methods=["GET"], detail=False, serializer_class=BackupLogSerializer)
     def query_backup_log_from_bklog(self, requests, *args, **kwargs):
         validated_data = self.params_validate(self.get_serializer_class())
-        end_time = datetime.now()
+        end_time = datetime.now(timezone.utc)
         start_time = end_time - timedelta(days=validated_data["days"])
-        logs = FixPointRollbackHandler(validated_data["cluster_id"]).query_backup_log_from_bklog(
-            start_time=datetime2str(start_time), end_time=datetime2str(end_time)
-        )
+        logs = FixPointRollbackHandler(validated_data["cluster_id"]).query_backup_log_from_bklog(start_time, end_time)
         return Response(logs)
 
     @common_swagger_auto_schema(
@@ -102,7 +101,7 @@ class FixPointRollbackViewSet(viewsets.SystemViewSet):
         validated_data = self.params_validate(self.get_serializer_class())
         return Response(
             FixPointRollbackHandler(validated_data["cluster_id"]).query_latest_backup_log(
-                rollback_time=validated_data["rollback_time"],
+                rollback_time=str2datetime(validated_data["rollback_time"]),
                 job_instance_id=validated_data.get("job_instance_id", None),
             )
         )

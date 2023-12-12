@@ -17,9 +17,11 @@ from collections import OrderedDict
 from typing import List
 
 from django.core.management.base import BaseCommand
+from django.utils import timezone
 
 from backend.components import BKMonitorV3Api
 from backend.db_monitor.constants import TPLS_COLLECT_DIR
+from backend.utils.time import datetime2str
 
 logger = logging.getLogger("root")
 
@@ -120,7 +122,7 @@ class Command(BaseCommand):
                                 "version": template.get("version", 0) + 1,
                                 "machine_types": machine_types,
                                 "plugin_id": plugin_id,
-                                "export_at": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                                "export_at": datetime2str(datetime.datetime.now(timezone.utc)),
                             }
                         ),
                         indent=2,

@@ -18,7 +18,7 @@ from backend.components.itsm.constants import ItsmTicketStatus
 from backend.ticket.constants import TicketFlowStatus, TicketStatus
 from backend.ticket.flow_manager.base import BaseTicketFlow
 from backend.ticket.models import Flow
-from backend.utils.time import datetime2str
+from backend.utils.time import datetime2str, standardized_time_str
 
 
 class ItsmFlow(BaseTicketFlow):
@@ -49,7 +49,7 @@ class ItsmFlow(BaseTicketFlow):
     @property
     def _end_time(self) -> Union[datetime, Any]:
         if self.ticket_approval_result:
-            return self.ticket_approval_result["update_at"]
+            return standardized_time_str(self.ticket_approval_result["update_at"])
 
         return self.flow_obj.update_at
 

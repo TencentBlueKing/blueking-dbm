@@ -8,13 +8,11 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-import time
+from backend.utils.time import str2datetime
 
 
-def compare_time(time1, time2):
+def compare_time(time1: str, time2: str):
     if time1 and time2:
-        time_stamp1 = time.mktime(time.strptime(time1, "%Y-%m-%d %H:%M:%S"))
-        time_stamp2 = time.mktime(time.strptime(time2, "%Y-%m-%d %H:%M:%S"))
-        if int(time_stamp1) > time_stamp2:
+        if str2datetime(time1) > str2datetime(time2):
             return True
     return False

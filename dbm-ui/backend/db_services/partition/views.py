@@ -38,7 +38,6 @@ from backend.iam_app.handlers.drf_perm import DBManageIAMPermission
 from ...db_meta.models import Cluster
 from ...ticket.constants import TicketStatus
 from ...ticket.models import Ticket
-from ...utils.time import remove_timezone
 from .constants import SWAGGER_TAG
 from .handlers import PartitionHandler
 
@@ -61,15 +60,6 @@ class DBPartitionViewSet(viewsets.AuditedModelViewSet):
 
         return log_list
 
-    @staticmethod
-    def _format_time_field(infos):
-        for info in infos:
-            for time_field in ["create_time", "update_time", "execute_time"]:
-                if time_field in info:
-                    info[time_field] = remove_timezone(info[time_field])
-
-        return infos
-
     @common_swagger_auto_schema(
         operation_summary=_("获取分区策略列表"),
         query_serializer=PartitionListSerializer(),
@@ -80,8 +70,6 @@ class DBPartitionViewSet(viewsets.AuditedModelViewSet):
         validated_data = self.params_validate(PartitionListSerializer)
         partition_data = DBPartitionApi.query_conf(params=validated_data)
         partition_list = self._update_log_status(partition_data["items"])
-        # 时区转换前端来做
-        # partition_list = self._format_time_field(partition_list)
         return Response({"count": partition_data["count"], "results": partition_list})
 
     @common_swagger_auto_schema(
@@ -145,8 +133,6 @@ class DBPartitionViewSet(viewsets.AuditedModelViewSet):
         validated_data = self.params_validate(PartitionLogSerializer, representation=True)
         partition_log_data = DBPartitionApi.query_log(params=validated_data)
         partition_log_list = self._update_log_status(partition_log_data["items"])
-        # 时区转换前端来做
-        # partition_log_list = self._format_time_field(partition_log_list)
         return Response({"count": partition_log_data["count"], "results": partition_log_list})
 
     @common_swagger_auto_schema(

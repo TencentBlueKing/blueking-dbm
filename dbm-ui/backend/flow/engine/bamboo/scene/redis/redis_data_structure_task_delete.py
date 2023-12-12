@@ -82,6 +82,7 @@ class RedisDataStructureTaskDeleteFlow(object):
             formatted_task = {}
             for key, value in task.items():
                 if isinstance(value, datetime):
+                    # TODO: 改为带时区的时间字符串是否影响？
                     formatted_task[key] = value.strftime("%Y-%m-%d %H:%M:%S")
                 else:
                     formatted_task[key] = value
