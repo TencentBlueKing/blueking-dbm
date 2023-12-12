@@ -18,13 +18,14 @@ from backend.db_meta.models import Cluster
 from backend.flow.engine.controller.riak import RiakController
 from backend.ticket import builders
 from backend.ticket.builders.common.base import HostInfoSerializer
+from backend.ticket.builders.common.bigdata import BigDataSingleClusterOpsDetailsSerializer
 from backend.ticket.builders.riak.base import BaseRiakTicketFlowBuilder
 from backend.ticket.constants import TicketType
 
 logger = logging.getLogger("root")
 
 
-class RiakShrinkDetailSerializer(serializers.Serializer):
+class RiakShrinkDetailSerializer(BigDataSingleClusterOpsDetailsSerializer):
     cluster_id = serializers.IntegerField(help_text=_("集群ID"))
     nodes = serializers.ListSerializer(help_text=_("缩容节点"), child=HostInfoSerializer())
 

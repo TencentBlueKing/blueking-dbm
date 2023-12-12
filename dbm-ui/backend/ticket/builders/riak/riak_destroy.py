@@ -18,14 +18,15 @@ from backend.db_meta.enums import ClusterPhase
 from backend.db_meta.models import Cluster
 from backend.flow.engine.controller.riak import RiakController
 from backend.ticket import builders
+from backend.ticket.builders.common.bigdata import BigDataTakeDownDetailSerializer
 from backend.ticket.builders.riak.base import BaseRiakTicketFlowBuilder
 from backend.ticket.constants import TicketType
 
 logger = logging.getLogger("root")
 
 
-class RiakDestroyDetailSerializer(serializers.Serializer):
-    cluster_id = serializers.IntegerField(help_text=_("集群ID"))
+class RiakDestroyDetailSerializer(BigDataTakeDownDetailSerializer):
+    pass
 
 
 class RiakDestroyFlowParamBuilder(builders.FlowParamBuilder):

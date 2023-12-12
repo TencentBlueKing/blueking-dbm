@@ -117,7 +117,9 @@ class FakeResetTendbHACluster(BaseProxyPassSerializer):
 
 class BizClusterSerializer(BaseProxyPassSerializer):
     bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
-    immute_domains = serializers.ListField(help_text=_("域名列表"), child=serializers.CharField())
+    immute_domains = serializers.ListField(
+        help_text=_("域名列表"), child=serializers.CharField(), min_length=0, required=False, default=[]
+    )
 
 
 class ClusterInstanceSerializer(BaseProxyPassSerializer):

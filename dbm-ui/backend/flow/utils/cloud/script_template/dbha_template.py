@@ -109,7 +109,7 @@ name_services:
     port: 80
     user: "nouser"
     pass: "nopasswd"
-    url_pre: "/apis/proxypass/namespace"
+    url_pre: "/apis/proxypass/nameservice"
     timeout: 10
     bk_conf:
       bk_token: "{{db_cloud_token}}"
@@ -118,7 +118,7 @@ name_services:
     port: 80
     user: "nouser"
     pass: "nopasswd"
-    url_pre: "/apis/proxypass/namespace"
+    url_pre: "/apis/proxypass/nameservice"
     timeout: 10
     bk_conf:
       bk_token: "{{db_cloud_token}}"

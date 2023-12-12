@@ -87,7 +87,7 @@ def add_tbinlogdumper_sub_flow(
         sub_flow=init_machine_sub_flow(
             root_id=root_id,
             uid=uid,
-            init_machine=master.machine.ip,
+            init_machine=master.machine,
             is_install_l5_agent=is_install_l5_agent,
         )
     )
@@ -522,7 +522,7 @@ def init_machine_sub_flow(
                     "ip": init_machine.ip,
                     "bk_biz_id": init_machine.bk_biz_id,
                     "bk_cloud_id": init_machine.bk_cloud_id,
-                    "bk_city": init_machine.bk_city,
+                    "bk_city": init_machine.bk_city.logical_city.name,
                 },
             )
         )

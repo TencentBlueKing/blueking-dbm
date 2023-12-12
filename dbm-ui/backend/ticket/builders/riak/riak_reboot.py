@@ -34,6 +34,10 @@ class RiakRebootDetailSerializer(serializers.Serializer):
             raise serializers.ValidationError(_("等待重启的riak节点{}不存在，请重新选择").format(attrs["bk_host_id"]))
 
         attrs["ip"], attrs["bk_cloud_id"] = machine.ip, machine.bk_cloud_id
+        return attrs
+
+    def to_representation(self, instance):
+        return instance
 
 
 class RiakRebootFlowParamBuilder(builders.FlowParamBuilder):

@@ -19,27 +19,14 @@ from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.flow.engine.controller.riak import RiakController
 from backend.ticket import builders
 from backend.ticket.builders.common.base import CommonValidate
+from backend.ticket.builders.common.bigdata import BigDataApplyDetailsSerializer
 from backend.ticket.builders.riak.base import RIAK_VERSION, BaseRiakTicketFlowBuilder
 from backend.ticket.constants import TicketType
 
 
-class RiakApplyDetailSerializer(serializers.Serializer):
+class RiakApplyDetailSerializer(BigDataApplyDetailsSerializer):
     bk_cloud_id = serializers.IntegerField(help_text=_("云区域ID"))
-    db_app_abbr = serializers.CharField(help_text=_("业务英文缩写"))
-    cluster_name = serializers.CharField(help_text=_("集群名"))
-    cluster_alias = serializers.CharField(help_text=_("集群别名"))
-    city_code = serializers.CharField(
-        help_text=_("城市代码"), required=False, allow_blank=True, allow_null=True, default=""
-    )
-    disaster_tolerance_level = serializers.ChoiceField(
-        help_text=_("容灾级别"), choices=AffinityEnum.get_choices(), required=False, default=AffinityEnum.NONE.value
-    )
     db_module_id = serializers.IntegerField(help_text=_("DB模块ID"))
-    ip_source = serializers.ChoiceField(
-        help_text=_("主机来源"), choices=IpSource.get_choices(), default=IpSource.RESOURCE_POOL.value
-    )
-    db_version = serializers.CharField(help_text=_("riak数据库版本"), required=False, default=RIAK_VERSION)
-    resource_spec = serializers.JSONField(help_text=_("部署规格"))
 
     # display fields
     bk_cloud_name = serializers.SerializerMethodField(help_text=_("云区域"))
