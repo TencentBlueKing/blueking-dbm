@@ -18,11 +18,14 @@ from django.utils.translation import ugettext as _
 from backend import env
 from backend.components.bklog.client import BKLogApi
 from backend.utils.string import pascal_to_snake
+from backend.utils.time import datetime2str
 
 logger = logging.getLogger("root")
 
 
-def _get_log_from_bklog(collector, start_time, end_time, query_string="*") -> List[Dict]:
+def _get_log_from_bklog(
+    collector: str, start_time: datetime.datetime, end_time: datetime.datetime, query_string: str = "*"
+) -> List[Dict]:
     """
     从日志平台获取对应采集项的日志
     @param collector: 采集项名称
@@ -33,8 +36,8 @@ def _get_log_from_bklog(collector, start_time, end_time, query_string="*") -> Li
     resp = BKLogApi.esquery_search(
         {
             "indices": f"{env.DBA_APP_BK_BIZ_ID}_bklog.{collector}",
-            "start_time": start_time,
-            "end_time": end_time,
+            "start_time": datetime2str(start_time),
+            "end_time": datetime2str(end_time),
             # 这里需要精确查询集群域名，所以可以通过log: "key: \"value\""的格式查询
             "query_string": query_string,
             "start": 0,
@@ -72,8 +75,8 @@ class ClusterBackup:
         # status = "to_backup_system_success"
         backup_logs = _get_log_from_bklog(
             collector="redis_fullbackup_result",
-            start_time=start_time.strftime("%Y-%m-%d %H:%M:%S"),
-            end_time=end_time.strftime("%Y-%m-%d %H:%M:%S"),
+            start_time=start_time,
+            end_time=end_time,
             query_string=f"domain: {self.cluster_domain}",
             # query_string=f"domain: {self.cluster_domain} AND status: {status}",
         )
@@ -102,8 +105,8 @@ class ClusterBackup:
         binlogs = []
         backup_logs = _get_log_from_bklog(
             collector="redis_binlog_backup_result",
-            start_time=start_time.strftime("%Y-%m-%d %H:%M:%S"),
-            end_time=end_time.strftime("%Y-%m-%d %H:%M:%S"),
+            start_time=start_time,
+            end_time=end_time,
             # query_string=f'log: "cluster_id: {self.cluster_id}"',
             # 这里redis备份没有上传cluster_id ,通过域名查询
             query_string=f"domain: {self.cluster_domain} AND server_ip: {host_ip} AND server_port: {port} ",

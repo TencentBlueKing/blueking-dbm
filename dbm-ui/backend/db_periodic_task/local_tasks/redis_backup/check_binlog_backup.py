@@ -78,7 +78,7 @@ def _check_tendis_binlog_backup():
         # 集群纬度的，假设一开始是备份完整的，后面会去校验对这个值进行赋值，如果有存在异常会赋值为False
         # 不管是全备份还是binlog,只要有异常，这个就是False
 
-        now = datetime.now()
+        now = datetime.now(timezone.utc)
         yesterday = now - timedelta(days=1)
         start_time = datetime(yesterday.year, yesterday.month, yesterday.day)
         end_time = datetime(yesterday.year, yesterday.month, yesterday.day, 23, 59, 59)

@@ -43,7 +43,7 @@ def query_by_cluster_dimension(cluster_domain, cap_key="heartbeat", cluster_type
         logger.error("No query template for cluster type: %s,cluster name: %s", cluster_type, cluster_domain)
         return {}
     # now-5/15m ~ now
-    end_time = datetime.datetime.now()
+    end_time = datetime.datetime.now(timezone.utc)
     start_time = end_time - datetime.timedelta(minutes=query_template["range"])
     params = copy.deepcopy(UNIFY_QUERY_PARAMS)
     params["bk_biz_id"] = env.DBA_APP_BK_BIZ_ID

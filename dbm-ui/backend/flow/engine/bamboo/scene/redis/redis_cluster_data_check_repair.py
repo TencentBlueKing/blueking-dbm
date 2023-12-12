@@ -24,7 +24,7 @@ from backend.db_services.redis.redis_dts.models import TbTendisDTSJob, TbTendisD
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.plugins.components.collections.common.pause import PauseComponent
-from backend.flow.plugins.components.collections.common.sleep_timer_service import SleepTimerComponent
+from backend.flow.plugins.components.collections.common.sleep_time_service import SleepTimerComponent
 from backend.flow.plugins.components.collections.redis.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.redis.get_redis_payload import GetRedisActPayloadComponent
 from backend.flow.plugins.components.collections.redis.trans_flies import TransFileComponent

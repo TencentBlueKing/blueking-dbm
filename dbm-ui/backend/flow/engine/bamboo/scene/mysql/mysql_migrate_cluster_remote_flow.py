@@ -14,6 +14,7 @@ from dataclasses import asdict
 from datetime import datetime
 from typing import Dict, Optional
 
+from django.utils import timezone
 from django.utils.translation import ugettext as _
 
 from backend.configuration.constants import DBType
@@ -181,7 +182,7 @@ class MySQLMigrateClusterRemoteFlow(object):
                     instance_inner_role=InstanceInnerRole.MASTER.value
                 )
                 # 查询备份
-                rollback_time = datetime.now()
+                rollback_time = datetime.now(timezone.utc)
                 rollback_handler = FixPointRollbackHandler(cluster_id=cluster_model.id)
                 backup_info = rollback_handler.query_latest_backup_log(rollback_time)
                 if backup_info is None:
