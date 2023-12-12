@@ -196,6 +196,12 @@ export default class Pulsar {
     return isRecentDays(this.create_at, 24 * 3);
   }
 
+  get domainDisplayName() {
+    const port = this.pulsar_broker[0]?.port;
+    const displayName = port ? `${this.domain}:${port}` : this.domain;
+    return displayName;
+  }
+
   initOperations(payload = [] as Pulsar['operations']) {
     if (!Array.isArray(payload)) {
       return [];

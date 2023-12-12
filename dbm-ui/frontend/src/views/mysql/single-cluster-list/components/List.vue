@@ -256,7 +256,7 @@
               text
               theme="primary"
               onClick={() => handleToDetails(data.id)}>
-              {cell}
+              {data.masterDomainDisplayName || '--'}
             </bk-button>
           </span>
           <db-icon

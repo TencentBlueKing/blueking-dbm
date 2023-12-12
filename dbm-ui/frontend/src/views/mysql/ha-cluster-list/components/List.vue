@@ -261,7 +261,7 @@
               text
               theme="primary"
               onClick={() => handleToDetails(data.id)}>
-              {cell}
+              {data.masterDomainDisplayName || '--'}
             </bk-button>
           </span>
           <db-icon
@@ -333,22 +333,22 @@
       minWidth: 200,
       showOverflowTooltip: false,
       render: ({ cell, data }: ColumnData) => (
-      <div class="domain">
-        <span
-          class="text-overflow"
-          v-overflow-tips>
-          {cell}
-        </span>
-        <db-icon
-          v-bk-tooltips={t('复制从访问入口')}
-          type="copy"
-          onClick={() => copy(cell)} />
-        {userProfileStore.isManager && <db-icon
-          type="edit"
-          v-bk-tooltips={t('修改入口配置')}
-          onClick={() => handleOpenEntryConfig(data)} />}
-      </div>
-    ),
+        <div class="domain">
+          <span
+            class="text-overflow"
+            v-overflow-tips>
+            {data.slaveDomainDisplayName || '--'}
+          </span>
+          <db-icon
+            v-bk-tooltips={t('复制从访问入口')}
+            type="copy"
+            onClick={() => copy(cell)} />
+          {userProfileStore.isManager && <db-icon
+            type="edit"
+            v-bk-tooltips={t('修改入口配置')}
+            onClick={() => handleOpenEntryConfig(data)} />}
+        </div>
+      ),
     },
     {
       label: 'Proxy',
