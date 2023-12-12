@@ -15,6 +15,7 @@ import os
 
 from celery.schedules import crontab
 from django.core.cache import cache
+from django.utils import timezone
 
 from backend import env
 from backend.configuration.constants import DEFAULT_DB_ADMINISTRATORS, PLAT_BIZ_ID, SystemSettingsEnum
@@ -36,7 +37,7 @@ logger = logging.getLogger("celery")
 def update_local_notice_group():
     """同步告警组"""
 
-    now = datetime.datetime.now()
+    now = datetime.datetime.now(timezone.utc)
     logger.info("[local_notice_group] start update local group at: %s", now)
 
     dbas = DBAdministrator.objects.all()
@@ -74,7 +75,7 @@ def update_local_notice_group():
 
     logger.info(
         "[local_notice_group] finish update local group end: %s, create_cnt: %s, update_cnt: %s",
-        datetime.datetime.now() - now,
+        datetime.datetime.now(timezone.utc) - now,
         created_groups,
         updated_groups,
     )
@@ -84,7 +85,7 @@ def update_local_notice_group():
 def sync_plat_monitor_policy():
     """同步平台告警策略"""
     skip_dir = "v1"
-    now = datetime.datetime.now()
+    now = datetime.datetime.now(timezone.utc)
     logger.warning("[sync_plat_monitor_policy] sync bkm alarm policy start: %s", now)
 
     # 逐个json导入，本地+远程
@@ -157,7 +158,7 @@ def sync_plat_monitor_policy():
 
     logger.warning(
         "[sync_plat_monitor_policy] finish sync bkm alarm policy end: %s, update_cnt: %s",
-        datetime.datetime.now() - now,
+        datetime.datetime.now(timezone.utc) - now,
         updated_policies,
     )
 

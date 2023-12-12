@@ -16,6 +16,7 @@ from backend.db_services.redis.redis_dts.enums import DtsCopyType
 from backend.db_services.redis.rollback.models import TbTendisRollbackTasks
 from backend.flow.engine.controller.redis import RedisController
 from backend.ticket import builders
+from backend.ticket.builders.common.field import DBTimezoneField
 from backend.ticket.builders.redis.base import BaseRedisTicketFlowBuilder, ClusterValidateMixin
 from backend.ticket.constants import TicketType, WriteModeType
 
@@ -26,7 +27,7 @@ class RedisRollbackDataCopyDetailSerializer(serializers.Serializer):
         dst_cluster = serializers.IntegerField(help_text=_("目标集群ID"))
         key_white_regex = serializers.CharField(help_text=_("包含key"), allow_null=True)
         key_black_regex = serializers.CharField(help_text=_("排除key"), allow_blank=True)
-        recovery_time_point = serializers.CharField(help_text=_("待构造时间点"))
+        recovery_time_point = DBTimezoneField(help_text=_("待构造时间点"))
 
     dts_copy_type = serializers.ChoiceField(
         choices=(

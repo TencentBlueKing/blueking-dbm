@@ -13,6 +13,7 @@ import logging
 from dataclasses import asdict
 from datetime import datetime
 
+from django.utils import timezone
 from django.utils.translation import ugettext as _
 
 from backend.db_meta.enums import ClusterType
@@ -53,7 +54,7 @@ def slave_recover_sub_flow(root_id: str, ticket_data: dict, cluster_info: dict):
         "cluster_type": cluster_info["cluster_type"],
     }
     # 查询备份
-    rollback_time = datetime.now()
+    rollback_time = datetime.now(timezone.utc)
     rollback_handler = FixPointRollbackHandler(cluster_id=cluster["cluster_id"])
     backup_info = rollback_handler.query_latest_backup_log(rollback_time)
     if backup_info is None:

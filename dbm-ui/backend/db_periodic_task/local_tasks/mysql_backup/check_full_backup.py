@@ -11,6 +11,8 @@ specific language governing permissions and limitations under the License.
 from collections import defaultdict
 from datetime import datetime, timedelta
 
+from django.utils import timezone
+
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Cluster
 from backend.db_report.enums import MysqlBackupCheckSubType
@@ -52,10 +54,10 @@ def _check_tendbha_full_backup():
     """
     for c in Cluster.objects.filter(cluster_type=ClusterType.TenDBHA):
         backup = ClusterBackup(c.id, c.immute_domain)
-        now = datetime.now()
+        now = datetime.now(timezone.utc)
         yesterday = now - timedelta(days=1)
-        start_time = datetime(yesterday.year, yesterday.month, yesterday.day)
-        end_time = datetime(yesterday.year, yesterday.month, yesterday.day, 23, 59, 59)
+        start_time = datetime(yesterday.year, yesterday.month, yesterday.day).astimezone(timezone.utc)
+        end_time = datetime(yesterday.year, yesterday.month, yesterday.day, 23, 59, 59).astimezone(timezone.utc)
 
         items = backup.query_backup_log_from_bklog(start_time, end_time)
         # print("cluster={} backup_items:{}".format(c.immute_domain, items))
@@ -98,10 +100,10 @@ def _check_tendbcluster_full_backup():
     """
     for c in Cluster.objects.filter(cluster_type=ClusterType.TenDBCluster):
         backup = ClusterBackup(c.id, c.immute_domain)
-        now = datetime.now()
+        now = datetime.now(timezone.utc)
         yesterday = now - timedelta(days=1)
-        start_time = datetime(yesterday.year, yesterday.month, yesterday.day)
-        end_time = datetime(yesterday.year, yesterday.month, yesterday.day, 23, 59, 59)
+        start_time = datetime(yesterday.year, yesterday.month, yesterday.day).astimezone(timezone.utc)
+        end_time = datetime(yesterday.year, yesterday.month, yesterday.day, 23, 59, 59).astimezone(timezone.utc)
 
         items = backup.query_backup_log_from_bklog(start_time, end_time)
         # print("cluster={} backup_items:{}".format(c.immute_domain, items))

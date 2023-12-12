@@ -15,6 +15,7 @@ import logging
 import os
 
 from django.db import models
+from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from backend import env
@@ -76,14 +77,14 @@ class CollectInstance(CollectTemplateBase):
         #
         # self.details = res
         # self.collect_id = self.details["id"]
-        # self.sync_at = datetime.datetime.now()
+        # self.sync_at = datetime.datetime.now(timezone.utc)
 
         super().save(force_insert, force_update, using)
 
     @staticmethod
     def sync_collect_strategy(bk_biz_id=env.DBA_APP_BK_BIZ_ID):
         """同步监控采集项"""
-        now = datetime.datetime.now()
+        now = datetime.datetime.now(timezone.utc)
         updated_collectors = 0
 
         logger.info("[init_collect_strategy] start sync bkmonitor collector start: %s", now)
@@ -163,7 +164,7 @@ class CollectInstance(CollectTemplateBase):
 
         logger.info(
             "[init_collect_strategy] finish sync bkmonitor collector end: %s, update_cnt: %s",
-            datetime.datetime.now() - now,
+            datetime.datetime.now(timezone.utc) - now,
             updated_collectors,
         )
 

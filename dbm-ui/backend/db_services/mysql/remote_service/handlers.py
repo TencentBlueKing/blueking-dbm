@@ -16,6 +16,7 @@ from django.utils.translation import ugettext as _
 from backend.components import DRSApi
 from backend.db_meta.api.cluster.base.handler import ClusterHandler
 from backend.db_services.mysql.constants import QUERY_SCHEMA_DBS_SQL, QUERY_SCHEMA_TABLES_SQL, QUERY_TABLES_FROM_DB_SQL
+from backend.db_services.mysql.remote_service.exceptions import RemoteServiceBaseException
 from backend.flow.consts import SYSTEM_DBS
 
 
@@ -61,6 +62,10 @@ class RemoteServiceHandler:
             rpc_results = DRSApi.rpc(
                 {"bk_cloud_id": bk_cloud_id, "addresses": cloud_addresses[bk_cloud_id], "cmds": ["show databases"]}
             )
+
+            if rpc_results[0]["error_msg"]:
+                raise RemoteServiceBaseException(_("DRS调用失败，错误信息: {}").format(rpc_results[0]["error_msg"]))
+
             for rpc_result in rpc_results:
                 cmd_results = rpc_result["cmd_results"] or [{}]
                 cluster_databases.append(
@@ -97,6 +102,10 @@ class RemoteServiceHandler:
             # 执行DRS，并聚合库所包含的表数据
             bk_cloud_id = cluster_handler.cluster.bk_cloud_id
             rpc_results = DRSApi.rpc({"bk_cloud_id": bk_cloud_id, "addresses": [address], "cmds": [query_table_sql]})
+
+            if rpc_results[0]["error_msg"]:
+                raise RemoteServiceBaseException(_("DRS调用失败，错误信息: {}").format(rpc_results[0]["error_msg"]))
+
             table_data = rpc_results[0]["cmd_results"][0]["table_data"]
             aggregate_table_data: Dict[str, List[str]] = {db: [] for db in info["dbs"]}
             for data in table_data:
@@ -155,6 +164,10 @@ class RemoteServiceHandler:
 
         def _get_db_table_list(_bk_cloud_id, _address, _cmds, key):
             _rpc_results = DRSApi.rpc({"bk_cloud_id": _bk_cloud_id, "addresses": [_address], "cmds": _cmds})
+
+            if _rpc_results[0]["error_msg"]:
+                raise RemoteServiceBaseException(_("DRS调用失败，错误信息: {}").format(_rpc_results[0]["error_msg"]))
+
             _cmd__datalist = {
                 _result["cmd"]: [data[key] for data in _result["table_data"]]
                 for _result in _rpc_results[0]["cmd_results"]

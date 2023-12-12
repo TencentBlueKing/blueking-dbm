@@ -46,7 +46,7 @@ def watch_dbha_switch():
     current_id, switch_hosts = watcher_get_by_hosts()
     if len(switch_hosts) == 0:
         RedisAutofixCtl.objects.filter(ctl_name=AutofixItem.DBHA_ID.value).update(
-            ctl_value=current_id, update_at=datetime2str(datetime.datetime.now())
+            ctl_value=current_id, update_at=datetime2str(datetime.datetime.now(datetime.utc))
         )
         logger.info("no hosts switched , heartbeat update ! next sw_id: {}".format(current_id))
         return
@@ -54,7 +54,7 @@ def watch_dbha_switch():
     logger.info("query switch logs :: {}:{}".format(current_id, switch_hosts))
     next_id = get_4_next_watch_ID(current_id, switch_hosts)
     RedisAutofixCtl.objects.filter(ctl_name=AutofixItem.DBHA_ID.value).update(
-        ctl_value=next_id, update_at=datetime2str(datetime.datetime.now())
+        ctl_value=next_id, update_at=datetime2str(datetime.datetime.now(datetime.utc))
     )
     # 以集群维度聚合 # AutofixStatus.AF_REQRES.value
     save_swithed_host_by_cluster(next_id, switch_hosts)

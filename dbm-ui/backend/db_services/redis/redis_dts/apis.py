@@ -210,7 +210,7 @@ def dts_job_tasks_failed_retry(payload: dict):
         task.message = "{} waiting for retry...".format(task.task_type)
         task.sync_operate = ""
         task.retry_times = task.retry_times + 1
-        task.update_time = datetime.now()
+        task.update_time = datetime.now(timezone.utc)
         task.save(update_fields=["task_type", "status", "message", "sync_operate", "retry_times", "update_time"])
 
     return list(tasks.values_list("id", flat=True))

@@ -10,6 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 import datetime
 
+from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
@@ -17,6 +18,7 @@ from backend.db_services.mysql.remote_service.handlers import RemoteServiceHandl
 from backend.flow.engine.controller.mysql import MySQLController
 from backend.ticket import builders
 from backend.ticket.builders.common.constants import MYSQL_BINLOG_ROLLBACK
+from backend.ticket.builders.common.field import DBTimezoneField
 from backend.ticket.builders.mysql.base import (
     BaseMySQLTicketFlowBuilder,
     DBTableField,
@@ -29,8 +31,8 @@ from backend.utils.time import datetime2str, str2datetime
 class MySQLFlashbackDetailSerializer(MySQLBaseOperateDetailSerializer):
     class FlashbackSerializer(serializers.Serializer):
         cluster_id = serializers.IntegerField(help_text=_("集群ID"))
-        start_time = serializers.CharField(help_text=_("开始时间"))
-        end_time = serializers.CharField(help_text=_("结束时间"), allow_blank=True)
+        start_time = DBTimezoneField(help_text=_("开始时间"))
+        end_time = DBTimezoneField(help_text=_("结束时间"), allow_blank=True)
         databases = serializers.ListField(help_text=_("目标库列表"), child=DBTableField(db_field=True))
         databases_ignore = serializers.ListField(help_text=_("忽略库列表"), child=DBTableField(db_field=True))
         tables = serializers.ListField(help_text=_("目标table列表"), child=DBTableField())
@@ -46,7 +48,7 @@ class MySQLFlashbackDetailSerializer(MySQLBaseOperateDetailSerializer):
     def validate_flash_time(self, attrs):
         # 校验start time和end time的合法性
         for info in attrs["infos"]:
-            now = datetime.datetime.now()
+            now = datetime.datetime.now(timezone.utc)
             info["end_time"] = info["end_time"] or datetime2str(now)
             start_time, end_time = str2datetime(info["start_time"]), str2datetime(info["end_time"])
             if start_time > end_time or start_time > now or end_time > now:

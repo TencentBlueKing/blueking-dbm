@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 
 from blueapps.core.celery.celery import app
 from celery.schedules import crontab
+from django.utils import timezone
 from django.utils.translation import ugettext as _
 
 from backend import env
@@ -44,8 +45,9 @@ def auto_check_checksum():
     """检查每天的校验结果，存入db_report数据库"""
     # 主库执行校验任务，备库第二天上报校验结果
     # 日志平台获取日志
-    now = datetime.now()
-    start_time, end_time = datetime2str(now - timedelta(days=1)), datetime2str(now)
+    now = datetime.now(timezone.utc)
+    start_time, end_time = now - timedelta(days=1), now
+
     cluster_type_filter = [ClusterType.TenDBHA.value, ClusterType.TenDBCluster.value]
     cluster_ids = list(Cluster.objects.filter(cluster_type__in=cluster_type_filter).values_list("id", flat=True))
     count = len(cluster_ids)
@@ -59,7 +61,7 @@ def auto_check_checksum():
 
 
 @app.task
-def check_cluster_checksum(cluster_id: int, start_time: str, end_time: str):
+def check_cluster_checksum(cluster_id: int, start_time: datetime, end_time: datetime):
     try:
         cluster = Cluster.objects.get(id=cluster_id)
     except Cluster.DoesNotExist:
@@ -81,8 +83,8 @@ def check_cluster_checksum(cluster_id: int, start_time: str, end_time: str):
     resp = BKLogApi.esquery_search(
         {
             "indices": "{}_bklog.mysql_checksum_result".format(env.DBA_APP_BK_BIZ_ID),
-            "start_time": start_time,
-            "end_time": end_time,
+            "start_time": datetime2str(start_time),
+            "end_time": datetime2str(end_time),
             "filter": machine_filter,
         }
     )

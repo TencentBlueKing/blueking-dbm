@@ -15,6 +15,7 @@ from typing import Dict, List
 from backend import env
 from backend.components.bklog.client import BKLogApi
 from backend.utils.string import pascal_to_snake
+from backend.utils.time import datetime2str
 
 
 def _get_log_from_bklog(collector, start_time, end_time, query_string="*") -> List[Dict]:
@@ -28,8 +29,8 @@ def _get_log_from_bklog(collector, start_time, end_time, query_string="*") -> Li
     resp = BKLogApi.esquery_search(
         {
             "indices": f"{env.DBA_APP_BK_BIZ_ID}_bklog.{collector}",
-            "start_time": start_time,
-            "end_time": end_time,
+            "start_time": datetime2str(start_time),
+            "end_time": datetime2str(end_time),
             # 这里需要精确查询集群域名，所以可以通过log: "key: \"value\""的格式查询
             "query_string": query_string,
             "start": 0,
@@ -66,8 +67,8 @@ class ClusterBackup:
         backup_files = []
         backup_logs = _get_log_from_bklog(
             collector="mysql_backup_result",
-            start_time=start_time.strftime("%Y-%m-%d %H:%M:%S"),
-            end_time=end_time.strftime("%Y-%m-%d %H:%M:%S"),
+            start_time=start_time,
+            end_time=end_time,
             query_string=f'log: "cluster_id: {self.cluster_id}"',
             # query_string=f'log: "cluster_address: \\"{self.cluster_domain}\\""',
         )
@@ -103,8 +104,8 @@ class ClusterBackup:
         binlogs = []
         backup_logs = _get_log_from_bklog(
             collector="mysql_binlog_result",
-            start_time=start_time.strftime("%Y-%m-%d %H:%M:%S"),
-            end_time=end_time.strftime("%Y-%m-%d %H:%M:%S"),
+            start_time=start_time,
+            end_time=end_time,
             query_string=f'log: "cluster_id: {self.cluster_id}"',
             # query_string=f'log: "cluster_address: \\"{self.cluster_domain}\\""',
         )

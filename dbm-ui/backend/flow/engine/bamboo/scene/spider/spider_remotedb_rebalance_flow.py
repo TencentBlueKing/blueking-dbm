@@ -14,6 +14,7 @@ from dataclasses import asdict
 from datetime import datetime
 from typing import Dict, Optional
 
+from django.utils import timezone
 from django.utils.translation import ugettext as _
 
 from backend.constants import IP_PORT_DIVIDER
@@ -94,7 +95,7 @@ class TenDBRemoteRebalanceFlow(object):
             # 先查询备份，如果备份不存在则退出，不安装实例
             # restore_time = datetime.strptime("2023-07-31 17:40:00", "%Y-%m-%d %H:%M:%S")
             backup_handler = FixPointRollbackHandler(self.data["cluster_id"])
-            restore_time = datetime.now()
+            restore_time = datetime.now(timezone.utc)
             backup_info = backup_handler.query_latest_backup_log(restore_time)
             if backup_info is None:
                 logger.error("cluster {} backup info not exists".format(self.data["cluster_id"]))
