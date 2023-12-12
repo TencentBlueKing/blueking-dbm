@@ -731,6 +731,9 @@
         type: dbType,
         bk_biz_id: formdata.bk_biz_id,
       },
+      query: {
+        from: route.name as string,
+      },
     });
     window.open(url.href, '_blank');
   };

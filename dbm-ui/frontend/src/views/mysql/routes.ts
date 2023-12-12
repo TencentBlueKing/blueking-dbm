@@ -222,44 +222,6 @@ const commonRouters: RouteRecordRaw[] = [
     },
     component: () => import('@views/mysql/Index.vue'),
     children: [
-      // {
-      //   name: 'SelfServiceApplySingle',
-      //   path: 'apply-single',
-      //   meta: {
-      //     navName: t('申请MySQL单节点部署'),
-      //   },
-      //   props: {
-      //     type: TicketTypes.MYSQL_SINGLE_APPLY,
-      //   },
-      //   component: () => import('@views/mysql/apply/ApplyMySQL.vue'),
-      // },
-      // {
-      //   name: 'SelfServiceApplyHa',
-      //   path: 'apply-ha',
-      //   meta: {
-      //     navName: t('申请MySQL主从部署'),
-      //   },
-      //   props: {
-      //     type: TicketTypes.MYSQL_HA_APPLY,
-      //   },
-      //   component: () => import('@views/mysql/apply/ApplyMySQL.vue'),
-      // },
-      {
-        name: 'SelfServiceCreateDbModule',
-        path: 'create-db-module/:type/:bk_biz_id/',
-        meta: {
-          navName: t('新建模块'),
-        },
-        component: () => import('@views/mysql/apply/CreateModule.vue'),
-      },
-      {
-        name: 'SelfServiceBindDbModule',
-        path: 'bind-db-module/:type/:bk_biz_id/:db_module_id',
-        meta: {
-          navName: t('绑定配置'),
-        },
-        component: () => import('@views/mysql/apply/CreateModule.vue'),
-      },
       {
         name: 'PermissionRules',
         path: 'permission-rules',
