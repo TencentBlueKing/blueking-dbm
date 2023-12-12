@@ -11,8 +11,9 @@
  * the specific language governing permissions and limitations under the License.
 */
 
+import ApplyDataModel from '@services/model/iam/apply-data';
+
 import http from '../http';
-import type { Permission } from '../types';
 
 const path = '/apis/iam';
 
@@ -38,5 +39,6 @@ export function checkAuthAllowed(params: IAMParams) {
  * 获取权限申请数据
  */
 export function getApplyDataLink(params: IAMParams) {
-  return http.post<Permission>(`${path}/get_apply_data/`, params);
+  return http.post<ApplyDataModel>(`${path}/get_apply_data/`, params)
+    .then(data => new ApplyDataModel(data));
 }

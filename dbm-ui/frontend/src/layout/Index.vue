@@ -230,6 +230,7 @@
   display: flex;
 
   .nav-item{
+    position: relative;
     padding: 0 16px;
     color: #96A2B9;
     cursor: pointer;
@@ -238,6 +239,21 @@
     &.active,
     &:hover{
       color: #FFF;
+    }
+
+    &:last-child{
+      position: relative;
+
+      &::before{
+        position: absolute;
+        top: 50%;
+        left: 0;
+        width: 1px;
+        height: 12px;
+        background: #434853;
+        content: '';
+        transform: translateY(-50%);
+      }
     }
   }
 }
