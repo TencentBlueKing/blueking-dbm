@@ -4,6 +4,11 @@ import (
 	"net/http"
 	"os"
 
+	"dbm-services/common/go-pubpkg/apm/metric"
+	"dbm-services/common/go-pubpkg/apm/trace"
+
+	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
+
 	"dbm-services/common/db-resource/internal/config"
 	"dbm-services/common/db-resource/internal/middleware"
 	"dbm-services/common/db-resource/internal/routers"
@@ -22,8 +27,20 @@ var version = ""
 
 func main() {
 	logger.Info("buildstamp:%s,githash:%s,version:%s", buildstamp, githash, version)
+
 	engine := gin.New()
 	pprof.Register(engine)
+
+	// setup trace
+	trace.Setup()
+	// apm: add otlgin middleware
+	engine.Use(
+		gin.Recovery(),
+		otelgin.Middleware("db_resource"),
+	)
+	// apm: add prom metrics middleware
+	metric.NewPrometheus("").Use(engine)
+
 	engine.Use(requestid.New())
 	engine.Use(middleware.ApiLogger)
 	engine.Use(middleware.BodyLogMiddleware)

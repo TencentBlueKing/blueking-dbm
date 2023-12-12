@@ -1,10 +1,11 @@
 go 1.21
 
 use (
-	riak/db-tools/dbactuator
-	riak/db-tools/riak-monitor
 	bigdata/db-tools/dbactuator
+	common/celery-service
 	common/db-config
+	common/db-dns/dns-api
+	common/db-dns/dns-reload
 	common/db-resource
 	common/dbha/ha-module
 	common/dbha/hadb-api
@@ -23,8 +24,7 @@ use (
 	redis/db-tools/dbactuator
 	redis/db-tools/dbmon
 	redis/redis-dts
-	common/celery-service
-    sqlserver/db-tools/dbactuator
-	common/db-dns/dns-api
-	common/db-dns/dns-reload
+	riak/db-tools/dbactuator
+	riak/db-tools/riak-monitor
+	sqlserver/db-tools/dbactuator
 )

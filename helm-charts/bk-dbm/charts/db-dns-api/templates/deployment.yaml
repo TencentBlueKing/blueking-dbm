@@ -50,7 +50,6 @@ spec:
               protocol: TCP
           env:
             {{- include "envs" . | trim | nindent 12 }}
-
           envFrom:
             {{- if .Values.extraEnvVarsCM }}
             - configMapRef:

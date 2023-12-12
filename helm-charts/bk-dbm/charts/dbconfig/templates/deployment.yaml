@@ -50,6 +50,8 @@ spec:
             - name: http
               containerPort: 80
               protocol: TCP
+          env:
+            {{- include "envs" . | trim | nindent 12 }}
           livenessProbe:
             httpGet:
               path: {{ .Values.livenessProbe.path | default "/ping"}}

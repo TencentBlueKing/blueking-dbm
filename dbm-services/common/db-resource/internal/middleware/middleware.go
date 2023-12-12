@@ -61,6 +61,11 @@ func (w bodyLogWriter) Write(b []byte) (int, error) {
 
 // BodyLogMiddleware TODO
 func BodyLogMiddleware(c *gin.Context) {
+	if c.Request.URL.Path == "/metrics" || c.Request.URL.Path == "/ping" {
+		c.Next()
+		return
+	}
+
 	blw := &bodyLogWriter{body: bytes.NewBufferString(""), ResponseWriter: c.Writer}
 	c.Writer = blw
 	c.Next()
@@ -85,6 +90,11 @@ func BodyLogMiddleware(c *gin.Context) {
 
 // ApiLogger TODO
 func ApiLogger(c *gin.Context) {
+	if c.Request.URL.Path == "/metrics" || c.Request.URL.Path == "/ping" {
+		c.Next()
+		return
+	}
+
 	rid := requestid.Get(c)
 	c.Set("request_id", rid)
 	if c.Request.Method == http.MethodPost {

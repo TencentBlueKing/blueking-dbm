@@ -7,7 +7,11 @@ import (
 	"os"
 	"strings"
 
+	"dbm-services/common/go-pubpkg/apm/metric"
+	"dbm-services/common/go-pubpkg/apm/trace"
 	"dbm-services/mysql/priv-service/service"
+
+	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
 
 	"gopkg.in/natefinch/lumberjack.v2"
 
@@ -47,6 +51,14 @@ func main() {
 	gin.SetMode(gin.ReleaseMode)
 	engine := gin.New()
 	engine.Use(gin.Recovery())
+
+	// setup trace
+	trace.Setup()
+	// apm: add otlgin middleware
+	engine.Use(otelgin.Middleware("db_priv"))
+	// apm: add prom metrics middleware
+	metric.NewPrometheus("").Use(engine)
+
 	handler.RegisterRoutes(engine, "/", []*gin.RouteInfo{{Method: http.MethodGet,
 		Path: "ping", HandlerFunc: func(context *gin.Context) {
 			context.String(http.StatusOK, "pong")

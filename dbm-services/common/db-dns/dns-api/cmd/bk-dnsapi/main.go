@@ -1,10 +1,15 @@
 package main
 
 import (
-	"bk-dnsapi/internal/dao"
-	"bk-dnsapi/internal/handler"
 	"log"
 	"strings"
+
+	"bk-dnsapi/internal/dao"
+	"bk-dnsapi/internal/handler"
+	"dbm-services/common/go-pubpkg/apm/metric"
+	"dbm-services/common/go-pubpkg/apm/trace"
+
+	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
 
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/viper"
@@ -12,6 +17,14 @@ import (
 
 func main() {
 	engine := gin.Default()
+
+	// setup trace
+	trace.Setup()
+	// apm: add otlgin middleware
+	engine.Use(otelgin.Middleware("db_resource"))
+	// apm: add prom metrics middleware
+	metric.NewPrometheus("").Use(engine)
+
 	RouterGroup(engine)
 	InitConfig("config")
 

@@ -157,9 +157,26 @@ dbconfig:
   envs:
     # your rand key to encrypt sensitive value
     ENCRYPT_KEY_PREFIX: ""
+    # apm
+    TRACE_SERVICE_NAME: dbconfig
+    TRACE_ENABLE: false
+    TRACE_HOST: 127.0.0.1
+    TRACE_PORT: 4317
+    TRACE_TYPE: grpc
+    TRACE_TOKEN: ""
+    TRACE_DATA_ID: ""
 
 dbpriv:
   enabled: true
+  envs:
+    # apm
+    TRACE_SERVICE_NAME: dbpriv
+    TRACE_ENABLE: false
+    TRACE_HOST: 127.0.0.1
+    TRACE_PORT: 4317
+    TRACE_TYPE: grpc
+    TRACE_TOKEN: ""
+    TRACE_DATA_ID: ""
 
 dbpartition:
   envs:
@@ -176,6 +193,15 @@ dbpartition:
     LISTEN_ADDRESS: "0.0.0.0:80"
     DB_META_SERVICE: "http://bk-dbm"
     LOG_LEVEL: "info"
+    # apm
+    TRACE_SERVICE_NAME: dbpartition
+    TRACE_ENABLE: false
+    TRACE_HOST: 127.0.0.1
+    TRACE_PORT: 4317
+    TRACE_TYPE: grpc
+    TRACE_TOKEN: ""
+    TRACE_DATA_ID: ""
+
   enabled: true
   extraEnvVarsCM: bk-dbpartition-db-env
 
@@ -201,12 +227,30 @@ grafana:
 
 db-dns-api:
   enabled: true
+  envs:
+    # apm
+    TRACE_SERVICE_NAME: db-dns-api
+    TRACE_ENABLE: false
+    TRACE_HOST: 127.0.0.1
+    TRACE_PORT: 4317
+    TRACE_TYPE: grpc
+    TRACE_TOKEN: ""
+    TRACE_DATA_ID: ""
 
 hadb-api:
   enabled: true
 
 db-simulation:
   enabled: true
+  envs:
+    # apm
+    TRACE_SERVICE_NAME: db-simulation
+    TRACE_ENABLE: false
+    TRACE_HOST: 127.0.0.1
+    TRACE_PORT: 4317
+    TRACE_TYPE: grpc
+    TRACE_TOKEN: ""
+    TRACE_DATA_ID: ""
   # 配置模拟执行 pod 的资源限额
 #  tdbctlPodResource:
 #    limits:
@@ -229,15 +273,50 @@ db-resource:
     cloudVendor: ""
     secretId: ""
     secretKey: ""
+    # apm
+    TRACE_SERVICE_NAME: db-resource
+    TRACE_ENABLE: false
+    TRACE_HOST: 127.0.0.1
+    TRACE_PORT: 4317
+    TRACE_TYPE: grpc
+    TRACE_TOKEN: ""
+    TRACE_DATA_ID: ""
 
 db-remote-service:
   enabled: false
+  envs:
+    # apm
+    TRACE_SERVICE_NAME: db-remote-service
+    TRACE_ENABLE: false
+    TRACE_HOST: 127.0.0.1
+    TRACE_PORT: 4317
+    TRACE_TYPE: grpc
+    TRACE_TOKEN: ""
+    TRACE_DATA_ID: ""
 
 db-celery-service:
   enabled: true
+  envs:
+    # apm
+    TRACE_SERVICE_NAME: db-celery-service
+    TRACE_ENABLE: false
+    TRACE_HOST: 127.0.0.1
+    TRACE_PORT: 4317
+    TRACE_TYPE: grpc
+    TRACE_TOKEN: ""
+    TRACE_DATA_ID: ""
 
 slow-query-parser-service:
   enabled: true
+  envs:
+    # apm
+    TRACE_SERVICE_NAME: slow-query-parser-service
+    TRACE_ENABLE: false
+    TRACE_HOST: 127.0.0.1
+    TRACE_PORT: 4317
+    TRACE_TYPE: grpc
+    TRACE_TOKEN: ""
+    TRACE_DATA_ID: ""
 
 backup-consumer:
   enabled: true

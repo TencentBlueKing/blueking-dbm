@@ -1,15 +1,20 @@
 package main
 
 import (
+	"log"
+	_ "net/http/pprof"
+	"os"
+
 	"bk-dbconfig/internal/repository"
 	"bk-dbconfig/internal/repository/model"
 	"bk-dbconfig/internal/router"
 	"bk-dbconfig/pkg/core/config"
 	"bk-dbconfig/pkg/core/logger"
 	"bk-dbconfig/pkg/middleware"
-	"log"
-	_ "net/http/pprof"
-	"os"
+	"dbm-services/common/go-pubpkg/apm/metric"
+	"dbm-services/common/go-pubpkg/apm/trace"
+
+	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-migrate/migrate/v4"
@@ -61,6 +66,14 @@ func main() {
 	engine.Use(middleware.CorsMiddleware())
 	engine.Use(middleware.RequestMiddleware())
 	engine.Use(middleware.RequestLoggerMiddleware())
+
+	// setup trace
+	trace.Setup()
+	// apm: add otlgin middleware
+	engine.Use(otelgin.Middleware("db_resource"))
+	// apm: add prom metrics middleware
+	metric.NewPrometheus("").Use(engine)
+
 	router.RegisterPing(engine)
 	router.RegisterRestRoutes(engine)
 	if config.GetBool("swagger.enableUI") {

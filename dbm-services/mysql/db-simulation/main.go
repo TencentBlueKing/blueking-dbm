@@ -17,10 +17,14 @@ import (
 	"os"
 	"time"
 
+	"dbm-services/common/go-pubpkg/apm/metric"
+	"dbm-services/common/go-pubpkg/apm/trace"
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-simulation/app/config"
 	"dbm-services/mysql/db-simulation/model"
 	"dbm-services/mysql/db-simulation/router"
+
+	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
 
 	"github.com/gin-contrib/pprof"
 	"github.com/gin-contrib/requestid"
@@ -34,6 +38,14 @@ var version = ""
 func main() {
 	app := gin.New()
 	pprof.Register(app)
+
+	// setup trace
+	trace.Setup()
+	// apm: add otlgin middleware
+	app.Use(otelgin.Middleware("db_simulation"))
+	// apm: add prom metrics middleware
+	metric.NewPrometheus("").Use(app)
+
 	app.Use(requestid.New())
 	app.Use(apiLogger)
 	router.RegisterRouter(app)
