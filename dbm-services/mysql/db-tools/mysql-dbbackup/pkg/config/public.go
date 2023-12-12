@@ -59,9 +59,10 @@ type Public struct {
 	// TarSizeThreshold tar file size. MB
 	TarSizeThreshold uint64 `ini:"TarSizeThreshold" validate:"required,gte=128"`
 	// IOLimitMBPerSec tar speed, mb/s. 0 means no limit
-	IOLimitMBPerSec  int    `ini:"IOLimitMBPerSec"`
-	ResultReportPath string `ini:"ResultReportPath" validate:"required"`
+	IOLimitMBPerSec int `ini:"IOLimitMBPerSec"`
+	//ResultReportPath string `ini:"ResultReportPath" validate:"required"`
 	StatusReportPath string `ini:"StatusReportPath" validate:"required"`
+	ReportPath       string `ini:"ReportPath" validate:"required"`
 
 	// EncryptOpt backup files encrypt options
 	EncryptOpt *cmutil.EncryptOpt `ini:"EncryptOpt"`

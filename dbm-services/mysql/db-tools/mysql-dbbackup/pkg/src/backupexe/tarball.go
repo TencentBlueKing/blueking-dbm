@@ -28,10 +28,11 @@ type PackageFile struct {
 	// srcDir 计划的打包目录 /data/dbbak/x_xxx_xxx
 	srcDir string
 	// dstDir 打包的目标目录
-	dstDir     string
-	dstTarFile string
-	cnf        *config.BackupConfig
-	indexFile  *dbareport.IndexContent
+	dstDir        string
+	dstTarFile    string
+	cnf           *config.BackupConfig
+	indexFile     *dbareport.IndexContent
+	indexFilePath string
 }
 
 // MappingPackage Package multiple backup files
@@ -44,7 +45,7 @@ type PackageFile struct {
 // loop ...
 // write last file to tar package
 // will save index meta info to file
-func (p *PackageFile) MappingPackage() error {
+func (p *PackageFile) MappingPackage() (string, error) {
 	logger.Log.Infof("Tarball Package: src dir %s, iolimit %d MB/s", p.srcDir, p.cnf.Public.IOLimitMBPerSec)
 
 	var tarSize uint64 = 0
@@ -59,7 +60,7 @@ func (p *PackageFile) MappingPackage() error {
 	}
 
 	if err := tarUtil.New(dstTarName); err != nil {
-		return err
+		return "", err
 	}
 	defer func() {
 		_ = tarUtil.Close() // the last tar file to close
@@ -131,7 +132,7 @@ func (p *PackageFile) MappingPackage() error {
 	})
 	if walkErr != nil {
 		logger.Log.Error("walk dir, err: ", walkErr)
-		return walkErr
+		return "", walkErr
 	}
 	logger.Log.Infof("need to tar file, accumulated tar size: %d bytes, dstFile: %s", tarSize, dstTarName)
 	p.indexFile.TotalSizeKBUncompress = totalSizeUncompress / 1024
@@ -141,41 +142,45 @@ func (p *PackageFile) MappingPackage() error {
 	if err := cmutil.TruncateDir(p.srcDir, p.cnf.Public.IOLimitMBPerSec); err != nil {
 		// if err := os.RemoveAll(p.srcDir); err != nil {
 		logger.Log.Error("failed to remove useless backup files")
-		return err
+		return "", err
 	}
 	for _, tarFile := range tarFiles {
 		p.indexFile.FileList = append(p.indexFile.FileList, tarFile)
 	}
 	p.indexFile.AddPrivFileItem(p.dstDir)
-	if _, err := p.indexFile.SaveIndexContent(&p.cnf.Public); err != nil {
-		return err
+	if indexFilePath, err := p.indexFile.SaveIndexContent(&p.cnf.Public); err != nil {
+		return "", err
+	} else {
+		p.indexFilePath = indexFilePath
+		return p.indexFilePath, nil
 	}
-	return nil
 }
 
 // SplittingPackage Firstly, put all backup files into the tar file. Secondly, split the tar file to multiple parts
 // will save index meta info to file
-func (p *PackageFile) SplittingPackage() error {
+func (p *PackageFile) SplittingPackage() (string, error) {
 	// tar srcDir to tar
 	if err := p.tarballDir(); err != nil {
-		return err
+		return "", err
 	}
 	if fileSize := cmutil.GetFileSize(p.dstTarFile); fileSize >= 0 {
 		p.indexFile.TotalFilesize = uint64(fileSize)
 	} else {
-		return errors.Errorf("fail to get file size for %s, got %d", p.dstTarFile, fileSize)
+		return "", errors.Errorf("fail to get file size for %s, got %d", p.dstTarFile, fileSize)
 	}
 
 	// split tar file to parts
 	if err := p.splitTarFile(p.dstTarFile); err != nil {
-		return err
+		return "", err
 	}
 
 	p.indexFile.AddPrivFileItem(p.dstDir)
-	if _, err := p.indexFile.SaveIndexContent(&p.cnf.Public); err != nil {
-		return err
+	if indexFilePath, err := p.indexFile.SaveIndexContent(&p.cnf.Public); err != nil {
+		return "", err
+	} else {
+		p.indexFilePath = indexFilePath
+		return p.indexFilePath, nil
 	}
-	return nil
 }
 
 // tarballDir tar srcDir to dstTarFile
@@ -305,7 +310,7 @@ func (p *PackageFile) splitTarFile(destFile string) error {
 
 // PackageBackupFiles package backup files
 // backupReport 里面还只有 base 信息，没有文件信息
-func PackageBackupFiles(cnf *config.BackupConfig, metaInfo *dbareport.IndexContent) error {
+func PackageBackupFiles(cnf *config.BackupConfig, metaInfo *dbareport.IndexContent) (indexFilePath string, err error) {
 	targetDir := path.Join(cnf.Public.BackupDir, cnf.Public.TargetName())
 	var packageFile = &PackageFile{
 		srcDir:     targetDir,
@@ -318,15 +323,18 @@ func PackageBackupFiles(cnf *config.BackupConfig, metaInfo *dbareport.IndexConte
 
 	// package files, and produce the index file at the same time
 	if strings.ToLower(cnf.Public.BackupType) == cst.BackupLogical {
-		if err := packageFile.MappingPackage(); err != nil {
-			return err
+		if indexFilePath, err = packageFile.MappingPackage(); err != nil {
+			return "", err
 		}
 	} else if strings.ToLower(cnf.Public.BackupType) == cst.BackupPhysical {
-		if err := packageFile.SplittingPackage(); err != nil {
-			return err
+		if indexFilePath, err = packageFile.SplittingPackage(); err != nil {
+			return "", err
 		}
 	}
-	return nil
+	// 把 index file 本身的信息，也记录到 file_list，用于文件上报
+	packageFile.indexFilePath = indexFilePath
+	//packageFile.indexFile.AddIndexFileItem(packageFile.dstDir)
+	return packageFile.indexFilePath, nil
 }
 
 // readUncompressSizeForZstd godoc

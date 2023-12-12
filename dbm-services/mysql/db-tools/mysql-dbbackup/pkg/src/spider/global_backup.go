@@ -105,7 +105,7 @@ func (e GlobalBackupList) Swap(i, j int) {
 }
 
 func buildSchema(db *sqlx.DB) string {
-	isSpider, err := mysqlconn.IsSpiderNode(db.DB)
+	isSpider, _, err := mysqlconn.IsSpiderNode(db.DB)
 	if err != nil {
 		logger.Log.Error("buildSchema IsSpiderNode", err)
 		return ""

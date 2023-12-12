@@ -209,17 +209,20 @@ func GetTdbctlInst(spiderInst InsObject) InsObject {
 }
 
 // IsSpiderNode TODO
-func IsSpiderNode(db *sql.DB) (bool, error) {
+func IsSpiderNode(db *sql.DB) (tspider bool, tdbctl bool, err error) {
 	sqlStr := "select version()"
 	var serverVersion string
 	if err := db.QueryRow(sqlStr).Scan(&serverVersion); err != nil {
-		return false, err
+		return false, false, err
 	} else {
 		if strings.Contains(serverVersion, "tspider") {
-			return true, nil
+			return true, false, nil
+		}
+		if strings.Contains(serverVersion, "tdbctl") {
+			return false, true, nil
 		}
 	}
-	return false, nil
+	return false, false, nil
 }
 
 //// HasSpiderEngine TODO
