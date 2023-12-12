@@ -25,9 +25,10 @@ from .const import REDIS_SWITCH_WAITER, SWITCH_MAX_WAIT_SECONDS, SWITCH_SMALL, R
 from .enums import AutofixItem, AutofixStatus, DBHASwitchResult
 from .models import RedisAutofixCore, RedisAutofixCtl, RedisIgnoreAutofix
 
-logger = logging.getLogger("root")
+logger = logging.getLogger("celery")
 
 
+# 从切换队列拿到切换实例列表， 然后聚会成故障机器维度
 def watcher_get_by_hosts() -> (int, dict):
     switch_id = 0
     try:
@@ -41,16 +42,23 @@ def watcher_get_by_hosts() -> (int, dict):
 
     logger.info("watch_dbha_switch_log from id {}".format(switch_id))
     try:
-        switch_queues = HADBApi.switch_queue(params={"uid": switch_id})
+        switch_queues = HADBApi.switch_queue(params={"name": "query_switch_queue", "query_args": {"uid": switch_id}})
     except (ApiResultError, ApiRequestError, Exception) as error:  # pylint: disable=broad-except
         # 捕获ApiResultError, ApiRequestError和其他未知异常
         logger.warn("meet exception {}  when request switch logs".format(error))
         return 0, {}
 
+    # 遍历切换队列，聚合故障机
     switch_hosts, batch_small_id = {}, SWITCH_SMALL
     for switch_inst in switch_queues:
         switch_ip, switch_id = switch_inst["ip"], int(switch_inst["uid"])  # uid / sw_id
         if not switch_hosts.get(switch_ip):
+            logger.info(
+                "get new switched fault ip {}, uid {}, db_type: {}".format(
+                    switch_ip, switch_id, switch_inst["db_type"]
+                )
+            )
+            # 忽略没有集群信息、或者多集群共用的情况
             cluster = query_cluster_by_hosts([switch_ip])  # return: [{},{}]
             if not cluster:
                 logger.info("will ignore got none cluster info by ip {}".format(switch_ip))
@@ -93,6 +101,7 @@ def watcher_get_by_hosts() -> (int, dict):
     return batch_small_id, switch_hosts
 
 
+# 根据切换信息，获取下一次探测切换队列ID
 def get_4_next_watch_ID(batch_small: int, switch_hosts: Dict) -> int:
     succ_max_uid, wait_small_uid, ignore_max_uid = batch_small, 0, SWITCH_SMALL
     now_timestamp = datetime2timestamp(datetime.datetime.now())
@@ -182,8 +191,10 @@ def get_4_next_watch_ID(batch_small: int, switch_hosts: Dict) -> int:
     return next_watch_id
 
 
+# 把故障切换成功后的机器/集群信息保存起来
 def save_swithed_host_by_cluster(batch_small: int, switch_hosts: Dict):
     switched_cluster = {}
+    # 以集群维度聚合故障信息
     for swiched_host in switch_hosts.values():
         if swiched_host.sw_max_id < batch_small:
             cluster = swiched_host.immute_domain
@@ -200,7 +211,7 @@ def save_swithed_host_by_cluster(batch_small: int, switch_hosts: Dict):
             switched_cluster[cluster]["fault_machines"].append(
                 {"instance_type": swiched_host.instance_type, "ip": swiched_host.ip}
             )
-
+    # 按照集群维度保存信息
     for cluster in switched_cluster.values():
         logger.info(
             "autofix cluster {} with hosts {} begin".format(cluster["immute_domain"], cluster["fault_machines"])
@@ -217,6 +228,7 @@ def save_swithed_host_by_cluster(batch_small: int, switch_hosts: Dict):
         ).save()
 
 
+# 把需要忽略自愈的保存起来
 def save_ignore_host(switched_host: RedisSwitchHost, msg):
     RedisIgnoreAutofix.objects.create(
         bk_cloud_id=DEFAULT_BK_CLOUD_ID,
