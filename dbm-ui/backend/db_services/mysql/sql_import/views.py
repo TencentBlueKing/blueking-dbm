@@ -42,6 +42,8 @@ SWAGGER_TAG = "db_services/sql_import"
 
 class SQLImportViewSet(viewsets.SystemViewSet):
     def _get_custom_permissions(self):
+        if self.action == "get_user_semantic_tasks":
+            return []
         return [DBManageIAMPermission()]
 
     def _view_common_handler(

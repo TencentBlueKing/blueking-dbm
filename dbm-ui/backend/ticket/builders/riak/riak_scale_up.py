@@ -25,7 +25,7 @@ logger = logging.getLogger("root")
 
 
 class RiakScaleUpDetailSerializer(serializers.Serializer):
-    cluster_id = serializers.Serializer(help_text=_("集群ID"))
+    cluster_id = serializers.IntegerField(help_text=_("集群ID"))
     ip_source = serializers.ChoiceField(help_text=_("主机来源"), choices=IpSource.get_choices())
     resource_spec = serializers.JSONField(help_text=_("资源池规格"), required=False)
 
@@ -34,9 +34,9 @@ class RiakScaleUpFlowParamBuilder(builders.FlowParamBuilder):
     controller = RiakController.riak_cluster_scale_out_scene
 
     def format_ticket_data(self):
-        # TODO: 补充db version
         cluster = Cluster.objects.get(id=self.ticket_data["cluster_id"])
         self.ticket_data["bk_cloud_id"] = cluster.bk_cloud_id
+        self.ticket_data["db_version"] = cluster.major_version
 
 
 class RiakScaleUpResourceParamBuilder(builders.ResourceApplyParamBuilder):
