@@ -15,15 +15,22 @@ jobs:
       name: Checkout
       uses: actions/checkout@v2
 
-    - name: Get latest tag
-      id: latest-tag
+    - id: get-current-branch
+      name: Get current branch
       run: |
         git fetch --all --tags
-        LATEST_TAG=$(git describe --tags `git rev-list --tags --max-count=1`)
-        echo "latest_tag=$LATEST_TAG" >> $GITHUB_OUTPUT
+        current_branch=$(git branch --show-current)
+        echo "current_branch=$current_branch" >> $GITHUB_OUTPUT
 
-    - name: Run read-yaml action
-      id: yaml-data
+    - id: get-latest-tag
+      name: Get latest tag
+      run: |
+        git fetch --all --tags
+        latest_tag=$(git describe --tags `git rev-list --tags --max-count=1`)
+        echo "latest_tag=$latest_tag" >> $GITHUB_OUTPUT
+
+    - id: yaml-data
+      name: Run read-yaml action
       uses: jbutcher5/read-yaml@main
       with:
         file: 'helm-charts/bk-dbm/Chart.yaml'
@@ -50,7 +57,7 @@ jobs:
         configuration: ".github/configuration.json"
         commitMode: true
         ignorePreReleases: false
-        fromTag: ${{ steps.latest-tag.outputs.latest_tag }}
+        fromTag: ${{ steps.get-latest-tag.outputs.latest_tag }}
         toTag: ${{ steps.yaml-data.outputs.data }}
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -66,3 +73,16 @@ jobs:
         body: ${{ steps.build-release-log.outputs.changelog }}
         draft: false
         prerelease: true
+
+    - name: Auto Add Release File
+      id: add-release-file
+      run: |
+        filename="dbm-ui/release/${{ steps.yaml-data.outputs.data }}_$(date +%Y%m%d).md"
+        echo -e "## ${{ steps.yaml-data.outputs.data }}\n\n" > ${filename}
+        echo -e "${{ steps.build-release-log.outputs.changelog }}" >> ${filename}
+        sed -i -E 's/#([0-9]+)/[#\1](https:\/\/github.com\/TencentBlueKing\/blueking-dbm\/issues\/\1)/g' ${filename}
+        git config --global user.email github-actions@users.noreply.github.com
+        git config --global user.name github-actions
+        git add .
+        git commit -m "minor: release version ${{ steps.yaml-data.outputs.data }}"
+        git push origin ${{ steps.get-current-branch.outputs.current_branch }}

@@ -277,7 +277,7 @@ class DataAPI(object):
             # 结果层面的处理结果
             try:
                 response_result = raw_response.json()
-                logger.info("third-open-api-debug[%s]: response_result = %s", self.url, response_result)
+                logger.debug("third-open-api-debug[%s]: response_result = %s", self.url, response_result)
             except AttributeError:
                 error_message = "data api response not json format url->[{}] content->[{}]".format(
                     self.url,
