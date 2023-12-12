@@ -24,6 +24,7 @@ from backend.db_services.taskflow.serializers import BatchDownloadSerializer, Di
 from backend.flow.models import FlowTree
 from backend.ticket.builders.redis.redis_key_extract import KEY_FILE_PREFIX
 from backend.ticket.models import Ticket
+from backend.utils.time import datetime2str
 
 SWAGGER_TAG = "taskflow"
 
@@ -75,7 +76,7 @@ class KeyOpsViewSet(viewsets.ReadOnlyAuditedModelViewSet):
                     "size": total_size,
                     "domain": rule["domain"],
                     "path": path,
-                    "created_time": ticket.create_at.strftime("%Y-%m-%d %H:%M:%S"),
+                    "created_time": datetime2str(ticket.create_at),
                     "files": [
                         {
                             "size": f["size"],

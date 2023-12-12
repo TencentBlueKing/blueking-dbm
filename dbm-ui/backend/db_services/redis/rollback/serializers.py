@@ -13,6 +13,7 @@ from rest_framework import serializers
 
 from backend.bk_web.serializers import AuditedSerializer
 from backend.db_services.redis.rollback.models import TbTendisRollbackTasks
+from backend.ticket.builders.common.field import DBTimezoneField
 
 
 class RollbackSerializer(AuditedSerializer, serializers.ModelSerializer):
@@ -34,13 +35,13 @@ class RollbackSerializer(AuditedSerializer, serializers.ModelSerializer):
 class CheckTimeSerializer(serializers.Serializer):
     cluster_id = serializers.IntegerField(help_text=_("集群id"))
     master_instances = serializers.ListField(help_text=_("master实例列表"))
-    rollback_time = serializers.DateTimeField(help_text=_("构造时间"))
+    rollback_time = DBTimezoneField(help_text=_("构造时间"))
 
     class Meta:
         swagger_schema_fields = {
             "example": {
                 "cluster_id": 1,
                 "master_instances": ["127.0.0.1:30004", "127.0.0.1:30005"],
-                "rollback_time": "2022-11-22 11:22:33",
+                "rollback_time": "2023-12-15 04:15:55.860498+00:00",
             }
         }

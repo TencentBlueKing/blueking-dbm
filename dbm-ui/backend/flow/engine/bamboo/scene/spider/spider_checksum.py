@@ -22,7 +22,7 @@ from backend.constants import IP_PORT_DIVIDER
 from backend.flow.consts import ACCOUNT_PREFIX, DBA_SYSTEM_USER
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
-from backend.flow.plugins.components.collections.common.sleep_timer_service import SleepTimerComponent
+from backend.flow.plugins.components.collections.common.sleep_time_service import SleepTimerComponent
 from backend.flow.plugins.components.collections.mysql.create_user import CreateUserComponent
 from backend.flow.plugins.components.collections.mysql.drop_user import DropUserComponent
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent

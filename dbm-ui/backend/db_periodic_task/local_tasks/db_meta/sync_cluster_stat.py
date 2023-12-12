@@ -16,6 +16,7 @@ from collections import defaultdict
 
 from celery.schedules import crontab
 from django.core.cache import cache
+from django.utils import timezone
 
 from backend import env
 from backend.components import BKMonitorV3Api
@@ -38,7 +39,7 @@ def query_cap(cluster_type, cap_key="used"):
         return {}
 
     # now-5/15m ~ now
-    end_time = datetime.datetime.now()
+    end_time = datetime.datetime.now(timezone.utc)
     start_time = end_time - datetime.timedelta(minutes=query_template["range"])
 
     params = copy.deepcopy(UNIFY_QUERY_PARAMS)

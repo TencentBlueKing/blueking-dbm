@@ -8,7 +8,6 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-import time
 
 from django.utils.decorators import method_decorator
 from django.utils.translation import ugettext as _
@@ -24,6 +23,7 @@ from backend.db_meta.enums import ClusterType, DestroyedStatus
 from backend.db_meta.models import Cluster, StorageInstanceTuple
 from backend.exceptions import AppBaseException
 from backend.flow.consts import DEFAULT_DB_MODULE_ID, ConfigTypeEnum
+from backend.utils.time import str2datetime
 
 from . import constants
 from .handlers import DataStructureHandler
@@ -88,12 +88,15 @@ class RollbackViewSet(ReadOnlyAuditedModelViewSet):
             rollback_handler = DataStructureHandler(cluster.id)
 
             try:
-                backup_info = rollback_handler.query_latest_backup_log(rollback_time, slave_ip, slave_port)
+                backup_info = rollback_handler.query_latest_backup_log(
+                    str2datetime(rollback_time), slave_ip, slave_port
+                )
             except AppBaseException:
                 return Response({"exist": False, "msg": f"[{master_instance}] query backup info exception failed"})
 
             # 全备份的开始时间
-            backup_time = time.strptime(backup_info["file_last_mtime"], "%Y-%m-%d %H:%M:%S")
+            # TODO: Timestamp改造，这一块后续采集项会改成时区时间，待验证
+            backup_time = backup_info["file_last_mtime"]
             if cluster.cluster_type in [ClusterType.TendisplusInstance.value, ClusterType.TendisSSDInstance.value]:
                 try:
                     kvstore_count = None
@@ -112,8 +115,8 @@ class RollbackViewSet(ReadOnlyAuditedModelViewSet):
                         )["content"]["kvstorecount"]
 
                     backup_binlog = rollback_handler.query_binlog_from_bklog(
-                        start_time=backup_time,
-                        end_time=rollback_time,
+                        start_time=str2datetime(backup_time),
+                        end_time=str2datetime(rollback_time),
                         minute_range=120,
                         host_ip=slave_ip,
                         port=slave_port,

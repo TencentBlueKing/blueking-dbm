@@ -24,6 +24,7 @@ from backend.flow.plugins.components.collections.mysql.mysql_download_backupfile
 from backend.flow.utils.mysql.common.compare_time import compare_time
 from backend.flow.utils.mysql.mysql_act_dataclass import DownloadBackupFileKwargs, ExecActuatorKwargs
 from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
+from backend.utils.time import str2datetime
 
 
 def spider_recover_sub_flow(root_id: str, ticket_data: dict, cluster: dict):
@@ -72,14 +73,12 @@ def spider_recover_sub_flow(root_id: str, ticket_data: dict, cluster: dict):
         kwargs=asdict(exec_act_kwargs),
     )
     if cluster["rollback_type"] == RollbackType.REMOTE_AND_TIME.value:
-        # rollback_time = time.strptime(cluster["rollback_time"], "%Y-%m-%d %H:%M:%S")
-        # backup_time = time.strptime(backup_info["backup_time"], "%Y-%m-%d %H:%M:%S")
         if compare_time(backup_info["backup_time"], cluster["rollback_time"]):
             raise TendbGetBinlogFailedException(message=_("{} 备份时间点大于回滚时间点".format(cluster["master_ip"])))
         rollback_handler = FixPointRollbackHandler(cluster["cluster_id"])
         backup_binlog = rollback_handler.query_binlog_from_bklog(
-            backup_info["backup_time"],
-            cluster["rollback_time"],
+            str2datetime(backup_info["backup_time"]),
+            str2datetime(cluster["rollback_time"]),
             minute_range=30,
             host_ip=cluster["rollback_ip"],
             port=cluster["rollback_port"],
@@ -166,14 +165,13 @@ def remote_node_rollback(root_id: str, ticket_data: dict, cluster: dict):
         )
         #  指定时间点的定点回档则需要执行binlog前滚。滚动到指定的时间点。
         if cluster["rollback_type"] == RollbackType.REMOTE_AND_TIME.value:
-            # rollback_time = time.strptime(cluster["rollback_time"], "%Y-%m-%d %H:%M:%S")
-            # backup_time = time.strptime(backup_info["backup_time"], "%Y-%m-%d %H:%M:%S")
             if compare_time(backup_info["backup_time"], cluster["rollback_time"]):
                 raise TendbGetBinlogFailedException(message=_("{} 备份时间点大于回滚时间点".format(cluster["master_ip"])))
+
             rollback_handler = FixPointRollbackHandler(cluster["cluster_id"])
             backup_binlog = rollback_handler.query_binlog_from_bklog(
-                start_time=backup_info["backup_time"],
-                end_time=cluster["rollback_time"],
+                start_time=str2datetime(backup_info["backup_time"]),
+                end_time=str2datetime(cluster["rollback_time"]),
                 minute_range=30,
                 host_ip=cluster["master_ip"],
                 port=cluster["master_port"],

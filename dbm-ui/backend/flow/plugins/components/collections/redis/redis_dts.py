@@ -18,6 +18,7 @@ from typing import List, Tuple
 
 from django.db import transaction
 from django.db.models import Q
+from django.utils import timezone
 from django.utils.translation import ugettext as _
 from pipeline.component_framework.component import Component
 from pipeline.core.flow.activity import Service, StaticIntervalGenerator
@@ -457,7 +458,7 @@ class RedisDtsExecuteService(BaseService):
                 job.dst_cluster_type = kwargs["cluster"]["dst"]["cluster_type"]
                 job.key_white_regex = kwargs["cluster"]["info"]["key_white_regex"]
                 job.key_black_regex = kwargs["cluster"]["info"]["key_black_regex"]
-                job.create_time = datetime.datetime.now()
+                job.create_time = datetime.datetime.now(timezone.utc)
                 job.save()
                 job_id = job.id
 
@@ -497,7 +498,7 @@ class RedisDtsExecuteService(BaseService):
                         task.key_black_regex = task_black_regex
                         task.dst_cluster = kwargs["cluster"]["dst"]["cluster_addr"]
                         task.dst_password = dst_passsword_base64
-                        task.create_time = datetime.datetime.now()
+                        task.create_time = datetime.datetime.now(timezone.utc)
                         task.save()
                         task_ids.append(task.id)
         except Exception as e:
@@ -728,7 +729,7 @@ class RedisDtsExecuteService(BaseService):
         """
         判断是否满足校验时间间隔
         """
-        current_time = datetime.datetime.now()
+        current_time = datetime.datetime.now(timezone.utc)
         if execution_frequency == DtsDataCheckFreq.ONCE_EVERY_THREE_DAYS:
             if (current_time - last_execute_time).days < 3:
                 return False
@@ -1212,7 +1213,7 @@ class RedisDtsDisconnectSyncService(BaseService):
                 ]:
                     task.sync_operate = DtsOperateType.SYNC_STOP_TODO.value
                     task.message = task.sync_operate + "..."
-                    task.update_time = datetime.datetime.now()
+                    task.update_time = datetime.datetime.now(timezone.utc)
                     task.save(update_fields=["sync_operate", "message", "update_time"])
                     self.log_info(
                         "bill_id:{} src_ip:{} src_port:{} operate:{}".format(

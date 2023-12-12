@@ -13,6 +13,7 @@ import json
 import logging
 
 from django.db.models import QuerySet
+from django.utils import timezone
 from django.utils.crypto import get_random_string
 from django.utils.translation import ugettext_lazy as _
 
@@ -90,7 +91,7 @@ def create_ticket(cluster: RedisAutofixCore, redis_proxies: list, redis_slaves: 
 
     cluster.ticket_id = ticket.id
     cluster.status_version = get_random_string(12)
-    cluster.update_at = datetime2str(datetime.datetime.now())
+    cluster.update_at = datetime2str(datetime.datetime.now(timezone.utc))
     cluster.deal_status = AutofixStatus.AF_WFLOW.value
     cluster.save(update_fields=["ticket_id", "status_version", "deal_status", "update_at"])
 

@@ -29,9 +29,10 @@ BACKUP_SYS_STATUS = True
 
 # 定义默认的时区: 东八区
 DEFAULT_TIME_ZONE = "+08:00"
+DEFAULT_TIME_ZONE_AREA = "Asia/Shanghai"
 
 # 定义默认时间解析格式
-DATETIME_PATTERN = "%Y-%m-%d %H:%M:%S"
+DATETIME_PATTERN = "%Y-%m-%dT%H:%M:%S %Z"
 DATE_PATTERN = "%Y-%m-%d"
 
 QUERY_CMDB_LIMIT = 500

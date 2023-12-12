@@ -65,7 +65,6 @@ from backend.iam_app.handlers.drf_perm import GlobalManageIAMPermission
 from backend.ticket.constants import BAMBOO_STATE__TICKET_STATE_MAP, TicketStatus, TicketType
 from backend.ticket.models import Ticket
 from backend.utils.redis import RedisConn
-from backend.utils.time import remove_timezone
 
 
 class DBResourceViewSet(viewsets.SystemViewSet):
@@ -370,9 +369,6 @@ class DBResourceViewSet(viewsets.SystemViewSet):
         }
         for op in operation_list["results"]:
             # 格式化操作记录参数
-            op["create_time"] = remove_timezone(op["update_time"])
-            op["update_time"] = remove_timezone(op["update_time"])
-
             op["ticket_id"] = int(op.pop("bill_id") or 0)
             op["ticket_type"] = op.pop("bill_type", "")
             op["ticket_type_display"] = TicketType.get_choice_label(op["ticket_type"])

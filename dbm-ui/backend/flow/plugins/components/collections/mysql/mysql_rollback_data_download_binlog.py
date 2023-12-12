@@ -17,6 +17,7 @@ from pipeline.core.flow.activity import StaticIntervalGenerator
 from backend.db_services.mysql.fixpoint_rollback.handlers import FixPointRollbackHandler
 from backend.flow.engine.bamboo.scene.mysql.common.exceptions import TenDBGetBackupInfoFailedException
 from backend.flow.plugins.components.collections.mysql.mysql_download_backupfile import MySQLDownloadBackupfile
+from backend.utils.time import str2datetime
 
 logger = logging.getLogger("flow")
 
@@ -42,8 +43,8 @@ class MySQLRollbackDownloadBinlog(MySQLDownloadBackupfile):
         # 查询binlog
         rollback_handler = FixPointRollbackHandler(cluster["cluster_id"])
         backup_binlog = rollback_handler.query_binlog_from_bklog(
-            start_time=backup_time,
-            end_time=rollback_time,
+            start_time=str2datetime(backup_time),
+            end_time=str2datetime(rollback_time),
             minute_range=30,
             host_ip=cluster["master_ip"],
             port=cluster["master_port"],

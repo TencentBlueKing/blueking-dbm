@@ -15,6 +15,7 @@ import logging
 from collections import defaultdict
 
 from django.db import models
+from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from backend import env
@@ -42,6 +43,8 @@ from backend.db_monitor.utils import bkm_delete_alarm_strategy, bkm_save_alarm_s
 from backend.exceptions import ApiError, ApiResultError
 
 __all__ = ["NoticeGroup", "AlertRule", "RuleTemplate", "DispatchGroup", "MonitorPolicy", "DutyRule"]
+
+from backend.utils.time import datetime2str
 
 logger = logging.getLogger("root")
 
@@ -104,7 +107,7 @@ class NoticeGroup(AuditedModel):
             save_duty_rule_params = {
                 "name": f"{self.name}_{self.bk_biz_id}",
                 "bk_biz_id": env.DBA_APP_BK_BIZ_ID,
-                "effective_time": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "effective_time": datetime2str(datetime.datetime.now(timezone.utc)),
                 "end_time": "",
                 "labels": [self.db_type],
                 "enabled": True,
@@ -150,7 +153,7 @@ class NoticeGroup(AuditedModel):
                     save_monitor_group_params["id"] = group["id"]
                     break
             resp = BKMonitorV3Api.save_user_group(save_monitor_group_params)
-        self.sync_at = datetime.datetime.now()
+        self.sync_at = datetime.datetime.now(timezone.utc)
         return resp["id"]
 
     def save(self, *args, **kwargs):
@@ -223,8 +226,8 @@ class DutyRule(AuditedModel):
         params = {
             "name": f"{self.db_type}_{self.name}",
             "bk_biz_id": env.DBA_APP_BK_BIZ_ID,
-            "effective_time": self.effective_time.strftime("%Y-%m-%d %H:%M:%S"),
-            "end_time": self.end_time.strftime("%Y-%m-%d %H:%M:%S") if self.end_time else "",
+            "effective_time": datetime2str(self.effective_time),
+            "end_time": datetime2str(self.end_time) if self.end_time else "",
             "labels": [self.db_type],
             "enabled": self.is_enabled,
             "category": self.category,
@@ -456,7 +459,7 @@ class DispatchGroup(AuditedModel):
         self.monitor_dispatch_id = resp.get("assign_group_id", 0)
 
         self.details = resp
-        self.sync_at = datetime.datetime.now()
+        self.sync_at = datetime.datetime.now(timezone.utc)
 
         super().save(*args, **kwargs)
 
@@ -782,7 +785,7 @@ class MonitorPolicy(AuditedModel):
         # overwrite by bkm strategy details
         self.details = res
         self.monitor_policy_id = self.details["id"]
-        self.sync_at = datetime.datetime.now()
+        self.sync_at = datetime.datetime.now(timezone.utc)
 
         # 平台内置策略支持保存初始版本，用于恢复默认设置
         if self.pk is None and self.bk_biz_id == env.DBA_APP_BK_BIZ_ID:

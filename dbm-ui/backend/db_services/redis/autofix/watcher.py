@@ -13,6 +13,7 @@ import json
 import logging
 from typing import Dict
 
+from django.utils import timezone
 from django.utils.crypto import get_random_string
 
 from backend.components.hadb.client import HADBApi
@@ -104,7 +105,7 @@ def watcher_get_by_hosts() -> (int, dict):
 # 根据切换信息，获取下一次探测切换队列ID
 def get_4_next_watch_ID(batch_small: int, switch_hosts: Dict) -> int:
     succ_max_uid, wait_small_uid, ignore_max_uid = batch_small, 0, SWITCH_SMALL
-    now_timestamp = datetime2timestamp(datetime.datetime.now())
+    now_timestamp = datetime2timestamp(datetime.datetime.now(timezone.utc))
     for swiched_host in switch_hosts.values():
         # 已经全部切换
         if (
@@ -129,7 +130,7 @@ def get_4_next_watch_ID(batch_small: int, switch_hosts: Dict) -> int:
             REDIS_SWITCH_WAITER[swiched_host.ip] = RedisSwitchWait(
                 ip=swiched_host,
                 err=swiched_host.sw_result,
-                entry=datetime2timestamp(datetime.datetime.now()),
+                entry=datetime2timestamp(datetime.datetime.now(timezone.utc)),
                 counter=1,
             )
             logger.info(
