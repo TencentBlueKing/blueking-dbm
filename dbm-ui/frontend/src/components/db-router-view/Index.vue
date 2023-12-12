@@ -3,15 +3,22 @@
     <ApplyPermissionPage
       v-if="needApplyPermission"
       :data="permissionResult" />
-    <RouterView v-else />
+    <SkeletonLoading
+      v-else
+      :loading="skeletonLoading"
+      :name="skeletonName">
+      <RouterView />
+    </SkeletonLoading>
   </div>
 </template>
 <script setup lang="ts">
+  import _ from 'lodash';
   import {
     onBeforeUnmount,
     ref,
   } from 'vue';
   import {
+    type RouteLocationMatched,
     useRoute,
   } from 'vue-router';
 
@@ -20,7 +27,7 @@
   import { useEventBus } from '@hooks';
 
   import ApplyPermissionPage from '@components/apply-permission/page.vue';
-  // import SkeletonLoading from '@components/skeleton-loading/Index.vue';
+  import SkeletonLoading from '@components/skeleton-loading/Index.vue';
 
   const eventBus = useEventBus();
 
@@ -32,17 +39,28 @@
   const skeletonName = ref<string>();
   const skeletonLoading = ref(false);
 
-  watchEffect(() => {
-    skeletonName.value = route.meta.skeleton;
-
-    if (skeletonName.value) {
-      skeletonLoading.value = true;
+  const currentInstanceTimer = 0;
+  const getCurrentPageSkeletonLoading = (currentRoute: RouteLocationMatched) => {
+    if (!currentRoute.instances.default) {
+      setTimeout(() => {
+        getCurrentPageSkeletonLoading(currentRoute);
+      }, 100);
       return;
     }
-  });
+    clearTimeout(currentInstanceTimer);
+  };
+
 
   watch(route, () => {
     needApplyPermission.value = false;
+
+    clearTimeout(currentInstanceTimer);
+    const currentRoute = _.last(route.matched);
+    if (currentRoute && currentRoute.meta.skeleton) {
+      skeletonName.value = currentRoute.meta.skeleton;
+      skeletonLoading.value = true;
+      getCurrentPageSkeletonLoading(currentRoute);
+    }
   }, {
     immediate: true,
   });
