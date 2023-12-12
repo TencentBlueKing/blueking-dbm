@@ -16,6 +16,10 @@ import {
   getApplyDataLink,
 } from '@services/source/iam';
 
+import {
+  permissionDialog,
+} from '@utils';
+
 import './style.less';
 
 export default defineComponent({
@@ -75,12 +79,14 @@ export default defineComponent({
         });
     };
 
-    const handleShowPermissionApply = () => {
+    const handleShowPermissionApply = (event: MouseEvent) => {
+      event.stopPropagation();
+      event.preventDefault();
       if (props.permission || hasAuth.value) return;
 
       getApplyDataLink(fetchPermissionParams.value)
         .then((res) => {
-          window.permission.show(res);
+          permissionDialog(res);
         });
     };
 

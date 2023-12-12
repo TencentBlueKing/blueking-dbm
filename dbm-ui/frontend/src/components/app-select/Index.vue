@@ -8,22 +8,46 @@
     :value="currentBiz"
     @change="handleAppChange">
     <template #default="{ data }">
-      <div class="db-app-select-item">
-        <div>{{ data.name }} (#{{ data.bk_biz_id }})</div>
-        <div style="margin-left: auto;">
-          <DbIcon
-            v-if="favorBizIdMap[data.bk_biz_id]"
-            class="unfavor-btn"
-            style="color: #ffb848;"
-            type="star-fill"
-            @click.stop="handleUnfavor(data.bk_biz_id)" />
-          <DbIcon
-            v-else
-            class="favor-btn"
-            type="star"
-            @click.stop="handleFavor(data.bk_biz_id)" />
+      <AuthComponent
+        action-id="DB_MANAGE"
+        :permission="data.permission.db_manage"
+        :resource-id="data.bk_biz_id"
+        resource-type="BUSINESS">
+        <div class="db-app-select-item">
+          <div>{{ data.name }} (#{{ data.bk_biz_id }})</div>
+          <div style="margin-left: auto;">
+            <DbIcon
+              v-if="favorBizIdMap[data.bk_biz_id]"
+              class="unfavor-btn"
+              style="color: #ffb848;"
+              type="star-fill"
+              @click.stop="handleUnfavor(data.bk_biz_id)" />
+            <DbIcon
+              v-else
+              class="favor-btn"
+              type="star"
+              @click.stop="handleFavor(data.bk_biz_id)" />
+          </div>
         </div>
-      </div>
+        <template #forbid>
+          <div class="db-app-select-item no-permission">
+            <div>{{ data.name }} (#{{ data.bk_biz_id }})</div>
+            <div style="margin-left: auto;">
+              <DbIcon
+                v-if="favorBizIdMap[data.bk_biz_id]"
+                class="unfavor-btn"
+                style="color: #ffb848;"
+                type="star-fill"
+                @click.stop="handleUnfavor(data.bk_biz_id)" />
+              <DbIcon
+                v-else
+                class="favor-btn"
+                type="star"
+                @click.stop="handleFavor(data.bk_biz_id)" />
+            </div>
+          </div>
+        </template>
+      </AuthComponent>
     </template>
   </AppSelect>
 </template>

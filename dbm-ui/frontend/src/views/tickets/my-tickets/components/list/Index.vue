@@ -206,7 +206,7 @@
   const isShowDropdown = ref(false);
   // 视图定位到激活项
   const sideListRef = ref<HTMLDivElement>();
-  const selfManage = ref<'0'|'1'>('0');
+  const selfManage = ref<'0'|'1'>('1');
   const state = reactive<TicketsState>({
     list: [],
     isLoading: false,

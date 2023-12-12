@@ -201,7 +201,7 @@
       },
     ],
     onSuccess(data) {
-      modelValue.value = data[DATABASE_MANAGE_MENU] || ['mysql'];
+      modelValue.value = data[DATABASE_MANAGE_MENU] && data[DATABASE_MANAGE_MENU].length > 0 ? data[DATABASE_MANAGE_MENU] : ['mysql'];
     },
   });
 
