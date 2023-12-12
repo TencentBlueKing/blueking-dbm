@@ -192,6 +192,12 @@ export default class Es {
     return this.phase === 'online';
   }
 
+  get domainDisplayName() {
+    const port = this.es_datanode_hot[0]?.port;
+    const displayName = port ? `${this.domain}:${port}` : this.domain;
+    return displayName;
+  }
+
   initOperations(payload = [] as Es['operations']) {
     if (!Array.isArray(payload)) {
       return [];

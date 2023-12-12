@@ -128,6 +128,7 @@
     useRouter,
   } from 'vue-router';
 
+  import RedisModel from '@services/model/redis/redis';
   import {
     getRedisDetail,
     getRedisInstances,
@@ -135,7 +136,6 @@
   import { createTicket } from '@services/source/ticket';
   import {
     ClusterNodeKeys,
-    type ResourceRedisItem,
   } from '@services/types/clusters';
 
   import {
@@ -168,7 +168,6 @@
     messageWarn,
   } from '@utils';
 
-  // import { useTimeoutPoll } from '@vueuse/core';
   import RedisBackup from './components/Backup.vue';
   import ClusterPassword from './components/ClusterPassword.vue';
   import DeleteKeys from './components/DeleteKeys.vue';
@@ -180,7 +179,7 @@
 
   import type { TableColumnRender, TableSelectionData } from '@/types/bkui-vue';
 
-  type ColumnRenderData = { data: ResourceRedisItem }
+  type ColumnRenderData = { data: RedisModel }
 
   const clusterId = defineModel<number>('clusterId');
 
@@ -246,25 +245,25 @@
   /** 提取 key 功能 */
   const extractState = reactive({
     isShow: false,
-    data: [] as ResourceRedisItem[],
+    data: [] as RedisModel[],
   });
 
   /** 删除 key 功能 */
   const deleteKeyState = reactive({
     isShow: false,
-    data: [] as ResourceRedisItem[],
+    data: [] as RedisModel[],
   });
 
   /** 备份功能 */
   const backupState = reactive({
     isShow: false,
-    data: [] as ResourceRedisItem[],
+    data: [] as RedisModel[],
   });
 
   /** 清档功能 */
   const purgeState = reactive({
     isShow: false,
-    data: [] as ResourceRedisItem[],
+    data: [] as RedisModel[],
   });
 
   const renderPagination = computed(() => {
@@ -319,23 +318,23 @@
         const entryTypes = (data.cluster_entry || []).map(item => item.cluster_entry_type);
         const isOnlineCLB = entryTypes.includes('clb');
         return (
-        <div class="domain">
-          <span
-            class="text-overflow"
-            v-overflow-tips>
-            <bk-button
-              text
-              theme="primary"
-              onClick={() => handleToDetails(data.id)}>
-              {data.master_domain || '--'}
-            </bk-button>
-          </span>
-          {isOnlineCLB && <MiniTag content="CLB" extCls='redis-manage-clb-minitag' />}
-          {userProfileStore.isManager && <db-icon
-            type="edit"
-            v-bk-tooltips={t('修改入口配置')}
-            onClick={() => handleOpenEntryConfig(data)} />}
-        </div>
+          <div class="domain">
+            <span
+              class="text-overflow"
+              v-overflow-tips>
+              <bk-button
+                text
+                theme="primary"
+                onClick={() => handleToDetails(data.id)}>
+                {data.masterDomainDisplayName || '--'}
+              </bk-button>
+            </span>
+            {isOnlineCLB && <MiniTag content="CLB" extCls='redis-manage-clb-minitag' />}
+            {userProfileStore.isManager && <db-icon
+              type="edit"
+              v-bk-tooltips={t('修改入口配置')}
+              onClick={() => handleOpenEntryConfig(data)} />}
+          </div>
         );
       },
     },
@@ -797,13 +796,13 @@
     handleFilter,
   } = useRedisData(state);
 
-  const handleOpenEntryConfig = (row: ResourceRedisItem) => {
+  const handleOpenEntryConfig = (row: RedisModel) => {
     showEditEntryConfig.value  = true;
     clusterId.value = row.id;
   };
 
   // 设置行样式
-  const setRowClass = (row: ResourceRedisItem) => {
+  const setRowClass = (row: RedisModel) => {
     const classList = [row.phase === 'offline' ? 'is-offline' : ''];
     const newClass = isRecentDays(row.create_at, 24 * 3) ? 'is-new-row' : '';
     classList.push(newClass);
@@ -812,7 +811,7 @@
     }
     return classList.filter(cls => cls).join(' ');
   };
-  const setRowSelectable = ({ row }: { row: ResourceRedisItem }) => {
+  const setRowSelectable = ({ row }: { row: RedisModel }) => {
     if (row.phase === 'offline') return false;
 
     if (row.operations?.length > 0) {
@@ -853,7 +852,7 @@
   /**
    * 表格选中
    */
-  const handleTableSelected = ({ isAll, checked, data, row }: TableSelectionData<ResourceRedisItem>) => {
+  const handleTableSelected = ({ isAll, checked, data, row }: TableSelectionData<RedisModel>) => {
     // 全选 checkbox 切换
     if (isAll) {
       const filterData = data.filter(item => item.phase === 'online');
@@ -882,7 +881,7 @@
     passwordState.fetchParams.cluster_id = id;
   };
 
-  const handleShowExtract = (data: ResourceRedisItem[] = []) => {
+  const handleShowExtract = (data: RedisModel[] = []) => {
     if (
       data.some(item => item.operations.length > 0
         && item.operations.map(op => op.ticket_type).includes(TicketTypes.REDIS_DESTROY))
@@ -898,7 +897,7 @@
     extractState.data = _.cloneDeep(data);
   };
 
-  const handlShowDeleteKeys = (data: ResourceRedisItem[] = []) => {
+  const handlShowDeleteKeys = (data: RedisModel[] = []) => {
     if (
       data.some(item => item.operations.length > 0
         && item.operations.map(op => op.ticket_type).includes(TicketTypes.REDIS_DESTROY))
@@ -914,7 +913,7 @@
     deleteKeyState.data = _.cloneDeep(data);
   };
 
-  const handleShowBackup = (data: ResourceRedisItem[] = []) => {
+  const handleShowBackup = (data: RedisModel[] = []) => {
     if (
       data.some(item => item.operations.length > 0
         && item.operations.map(op => op.ticket_type).includes(TicketTypes.REDIS_DESTROY))
@@ -926,7 +925,7 @@
     backupState.data = _.cloneDeep(data);
   };
 
-  const handleShowPurge = (data: ResourceRedisItem[] = []) => {
+  const handleShowPurge = (data: RedisModel[] = []) => {
     if (
       data.some(item => item.operations.length > 0
         && item.operations.map(op => op.ticket_type).includes(TicketTypes.REDIS_DESTROY))
@@ -941,7 +940,7 @@
   /**
    * 集群启停
    */
-  const handleSwitchRedis = (type: TicketTypesStrings, data: ResourceRedisItem) => {
+  const handleSwitchRedis = (type: TicketTypesStrings, data: RedisModel) => {
     if (!type) return;
 
     const isOpen = type === TicketTypes.REDIS_PROXY_OPEN;
@@ -982,7 +981,7 @@
   /**
    * 集群 CLB 启用/禁用
    */
-  const handleSwitchCLB = (type: TicketTypesStrings, data: ResourceRedisItem) => {
+  const handleSwitchCLB = (type: TicketTypesStrings, data: RedisModel) => {
     if (!type) return;
 
     const isCreate = type === TicketTypes.REDIS_PLUGIN_CREATE_CLB;
@@ -1016,7 +1015,7 @@
   /**
    * 域名指向 clb / 域名解绑 clb
    */
-  const handleSwitchDNSBindCLB = (data: ResourceRedisItem) => {
+  const handleSwitchDNSBindCLB = (data: RedisModel) => {
     const isBind = data.dns_to_clb;
     const title = isBind ? t('确认恢复 DNS 域名指向？') : t('确认将 DNS 域名指向 CLB ?');
     const subTitle = isBind ? t('DNS 域名恢复指向 Proxy') : t('业务不需要更换原域名也可实现负载均衡');
@@ -1050,7 +1049,7 @@
   /**
    * 集群 北极星启用/禁用
    */
-  const handleSwitchPolaris = (type: TicketTypesStrings, data: ResourceRedisItem) => {
+  const handleSwitchPolaris = (type: TicketTypesStrings, data: RedisModel) => {
     if (!type) return;
 
     const isCreate = type === TicketTypes.REDIS_PLUGIN_CREATE_POLARIS;
@@ -1082,7 +1081,7 @@
   /**
    * 删除集群
    */
-  const handleDeleteCluster = (data: ResourceRedisItem) => {
+  const handleDeleteCluster = (data: RedisModel) => {
     const { cluster_name: name } = data;
     useInfoWithIcon({
       type: 'warnning',

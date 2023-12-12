@@ -20,7 +20,7 @@
     <template #header>
       <div class="purge-header">
         <template v-if="isBatch">
-          <span class="purge-header__title">{{ $t('批量清档集群') }}</span>
+          <span class="purge-header__title">{{ t('批量清档集群') }}</span>
           （
           <I18nT
             class="purge-header__desc"
@@ -31,7 +31,7 @@
           ）
         </template>
         <template v-else>
-          <span class="purge-header__title">{{ $t('清档集群') }}</span>
+          <span class="purge-header__title">{{ t('清档集群') }}</span>
           <template v-if="firstData">
             <span class="purge-header__title"> - {{ firstData.master_domain }}</span>
             <span
@@ -61,12 +61,12 @@
         :loading="state.isLoading"
         theme="primary"
         @click="handleSubmit">
-        {{ $t('提交') }}
+        {{ t('提交') }}
       </BkButton>
       <BkButton
         :disabled="state.isLoading"
         @click="handleClose">
-        {{ $t('取消') }}
+        {{ t('取消') }}
       </BkButton>
     </template>
   </BkSideslider>
@@ -75,8 +75,8 @@
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
 
+  import RedisModel from '@services/model/redis/redis';
   import { createTicket } from '@services/source/ticket';
-  import type { ResourceRedisItem } from '@services/types/clusters';
 
   import { useBeforeClose, useStickyFooter, useTicketMessage } from '@hooks';
 
@@ -86,13 +86,13 @@
 
   import { generateId } from '@utils';
 
-  interface DataItem extends ResourceRedisItem {
+  interface DataItem extends RedisModel {
     force: boolean,
     backup: boolean
   }
 
   interface Props {
-    data?: ResourceRedisItem[]
+    data?: RedisModel[]
   }
 
   interface Emits {

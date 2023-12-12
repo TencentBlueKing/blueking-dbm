@@ -188,6 +188,12 @@ export default class Kafka {
     return this.phase === 'online';
   }
 
+  get domainDisplayName() {
+    const port = this.broker[0]?.port;
+    const displayName = port ? `${this.domain}:${port}` : this.domain;
+    return displayName;
+  }
+
   initOperations(payload = [] as Kafka['operations']) {
     if (!Array.isArray(payload)) {
       return [];

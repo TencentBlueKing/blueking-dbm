@@ -228,7 +228,7 @@
               theme="primary"
               text
               onClick={() => handleToDetails(data.id)}>
-              {data.domain || '--'}
+              {data.domainDisplayName || '--'}
             </bk-button >
           </span>
           {userProfileStore.isManager && <db-icon

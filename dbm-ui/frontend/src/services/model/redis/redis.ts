@@ -217,4 +217,10 @@ export default class Redis {
   get isSlaveNormal() {
     return this.redis_slave.every(item => item.status === 'running');
   }
+
+  get masterDomainDisplayName() {
+    const port = this.proxy[0]?.port;
+    const displayName = port ? `${this.master_domain}:${port}` : this.master_domain;
+    return displayName;
+  }
 }

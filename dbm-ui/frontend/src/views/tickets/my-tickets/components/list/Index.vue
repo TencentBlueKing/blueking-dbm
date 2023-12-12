@@ -163,7 +163,6 @@
     StatusTypes,
   } from '@services/model/ticket/ticket';
   import {
-    getTicketDetails,
     getTickets,
     getTicketTypes,
   } from '@services/source/ticket';
@@ -343,31 +342,47 @@
   });
 
   /**
-   * 查询所有执行中的单据
+   * 检查所有执行中的单据
    */
-  const fetchRunningTickets = async () => {
+  const checkRunningTickets = async () => {
     if (needPollIds.length > 0) {
-      const runningList = await Promise.all(needPollIds.map(item => getTicketDetails({ id: item.id })));
-      const runningStatusMap = runningList.reduce((results, item) => {
-        Object.assign(results, {
-          [item.id]: item.status,
-        });
-        return results;
-      }, {} as Record<string, string>);
-
-      const needRemoveIndexs: number[] = [];
-      needPollIds.forEach((item, index) => {
-        const newStatus = runningStatusMap[item.id] as StatusTypeKeys;
-        if (newStatus && newStatus !== 'RUNNING' && state.list[item.index].status === 'RUNNING') {
-          needRemoveIndexs.push(index);
-          state.list[item.index].status = newStatus;
-        }
-      });
-      if (needRemoveIndexs.length > 0) {
-        needRemoveIndexs.forEach((index) => {
-          needPollIds.splice(index, 1);
+      const params = {
+        self_manage: selfManage.value,
+        status: state.filters.status === 'ALL' ? '' : state.filters.status,
+        limit: state.page.limit,
+        offset: (state.page.current - 1) * state.page.limit,
+        ...getSearchSelectorParams(state.filters.search),
+      };
+      if (isBizTicketManagePage) {
+        Object.assign(params, {
+          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
         });
       }
+
+      getTickets(params)
+        .then((res) => {
+          const { results = [] } = res;
+          const statusMap = results.reduce((results, item) => {
+            Object.assign(results, {
+              [item.id]: item.status,
+            });
+            return results;
+          }, {} as Record<string, string>);
+
+          const needRemoveIndexs: number[] = [];
+          needPollIds.forEach((item, index) => {
+            const newStatus = statusMap[item.id] as StatusTypeKeys;
+            if (newStatus && newStatus !== 'RUNNING' && state.list[item.index].status === 'RUNNING') {
+              needRemoveIndexs.push(index);
+              state.list[item.index].status = newStatus;
+            }
+          });
+          if (needRemoveIndexs.length > 0) {
+            needRemoveIndexs.forEach((index) => {
+              needPollIds.splice(index, 1);
+            });
+          }
+        });
     }
   };
 
@@ -421,7 +436,7 @@
    * 轮询执行中的列表
    */
   const { resume } = useTimeoutPoll(() => {
-    fetchRunningTickets();
+    checkRunningTickets();
   }, 10000);
 
   resume();

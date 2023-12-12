@@ -278,7 +278,7 @@
               text
               theme="primary"
               onClick={() => handleToDetails(data.id)}>
-              {data.master_domain || '--'}
+              {data.masterDomainDisplayName || '--'}
             </bk-button>
           </span>
           {
@@ -367,7 +367,7 @@
           <span
             class="text-overflow"
             v-overflow-tips>
-            {data.slave_domain || '--'}
+            {data.slaveDomainDisplayName || '--'}
           </span>
           {
             data.slave_domain

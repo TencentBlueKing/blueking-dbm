@@ -197,7 +197,7 @@
               text
               theme="primary"
               onClick={() => handleToDetails(data)}>
-              {data.domain || '--'}
+              {data.domainDisplayName || '--'}
             </bk-button>
           </span>
           {userProfileStore.isManager && <db-icon

@@ -209,6 +209,18 @@ export default class TendbCluster {
     return this.phase === 'online';
   }
 
+  get masterDomainDisplayName() {
+    const port = this.spider_master[0]?.port;
+    const displayName = port ? `${this.master_domain}:${port}` : this.master_domain;
+    return displayName;
+  }
+
+  get slaveDomainDisplayName() {
+    const port = this.spider_slave[0]?.port;
+    const displayName = port ? `${this.slave_domain}:${port}` : this.slave_domain;
+    return displayName;
+  }
+
   initOperations(payload = [] as TendbCluster['operations']) {
     if (!Array.isArray(payload)) {
       return [];

@@ -33,7 +33,7 @@ export default class Tendbha {
     ticket_type: string,
     title: string,
   }>;
-  permission: Record<'mysql_authorize'|'mysql_destroy'|'mysql_enable_disable'|'mysql_view', boolean>;
+  permission: Record<'mysql_authorize' | 'mysql_destroy' | 'mysql_enable_disable' | 'mysql_view', boolean>;
   phase: string;
   phase_name: string;
   proxies: Tendbha['masters'];
@@ -66,5 +66,17 @@ export default class Tendbha {
 
   get isOnline() {
     return this.phase === 'online';
+  }
+
+  get masterDomainDisplayName() {
+    const port = this.proxies[0]?.port;
+    const displayName = port ? `${this.master_domain}:${port}` : this.master_domain;
+    return displayName;
+  }
+
+  get slaveDomainDisplayName() {
+    const port = this.proxies[0]?.port;
+    const displayName = port ? `${this.slave_domain}:${port}` : this.slave_domain;
+    return displayName;
   }
 }

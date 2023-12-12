@@ -308,7 +308,7 @@
               disabled={!data.isFailedStatus}
               onChange={() => handleSelectOne(index)}
           />
-          <span class="ml-8">{data.src_cluster}</span>
+          <span class="ml-8">{data.src_ip}:{data.src_port}</span>
           </div>
         ),
     },

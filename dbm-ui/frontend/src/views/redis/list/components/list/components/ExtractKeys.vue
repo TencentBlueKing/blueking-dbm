@@ -20,7 +20,7 @@
     <template #header>
       <div class="extract-keys-header">
         <template v-if="isBatch">
-          <span class="extract-keys-header__title">{{ $t('批量提取Key') }}</span>
+          <span class="extract-keys-header__title">{{ t('批量提取Key') }}</span>
           （
           <I18nT
             class="purge-header__desc"
@@ -31,7 +31,7 @@
           ）
         </template>
         <template v-else>
-          <span class="extract-keys-header__title">{{ $t('提取Key') }}</span>
+          <span class="extract-keys-header__title">{{ t('提取Key') }}</span>
           <template v-if="firstData">
             <span class="extract-keys-header__title"> - {{ firstData.master_domain }}</span>
             <span
@@ -47,20 +47,20 @@
       <BkAlert closable>
         <div class="extract-keys__tips">
           <div class="extract-keys__tips-item">
-            <span class="extract-keys__tips-label">{{ $t('可使用通配符进行提取_如_Key或Key') }}</span>
-            <span class="extract-keys__tips-value">{{ $t('提取以Key开头的key_包括Key') }}</span>
+            <span class="extract-keys__tips-label">{{ t('可使用通配符进行提取_如_Key或Key') }}</span>
+            <span class="extract-keys__tips-value">{{ t('提取以Key开头的key_包括Key') }}</span>
           </div>
           <div class="extract-keys__tips-item">
             <span class="extract-keys__tips-label">*Key$ :</span>
-            <span class="extract-keys__tips-value">{{ $t('提取以Key结尾的key_包括Key') }}</span>
+            <span class="extract-keys__tips-value">{{ t('提取以Key结尾的key_包括Key') }}</span>
           </div>
           <div class="extract-keys__tips-item">
             <span class="extract-keys__tips-label">^Key$ :</span>
-            <span class="extract-keys__tips-value">{{ $t('提取精确匹配的Key') }}</span>
+            <span class="extract-keys__tips-value">{{ t('提取精确匹配的Key') }}</span>
           </div>
           <div class="extract-keys__tips-item">
             <span class="extract-keys__tips-label">* :</span>
-            <span class="extract-keys__tips-value">{{ $t('提取所有key') }}</span>
+            <span class="extract-keys__tips-value">{{ t('提取所有key') }}</span>
           </div>
         </div>
       </BkAlert>
@@ -81,12 +81,12 @@
         :loading="state.isLoading"
         theme="primary"
         @click="handleSubmit">
-        {{ $t('提交') }}
+        {{ t('提交') }}
       </BkButton>
       <BkButton
         :disabled="state.isLoading"
         @click="handleClose">
-        {{ $t('取消') }}
+        {{ t('取消') }}
       </BkButton>
     </template>
   </BkSideslider>
@@ -95,8 +95,8 @@
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
 
+  import RedisModel from '@services/model/redis/redis';
   import { createTicket } from '@services/source/ticket';
-  import type { ResourceRedisItem } from '@services/types/clusters';
 
   import { useBeforeClose, useStickyFooter, useTicketMessage } from '@hooks';
 
@@ -108,13 +108,13 @@
 
   import BatchEditKeys from './BatchEditKeys.vue';
 
-  interface ExtractItem extends ResourceRedisItem {
+  interface ExtractItem extends RedisModel {
     white_regex: string,
     black_regex: string
   }
 
   interface Props {
-    data?: ResourceRedisItem[]
+    data?: RedisModel[]
   }
 
   interface Emits {

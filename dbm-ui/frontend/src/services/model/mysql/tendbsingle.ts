@@ -33,7 +33,7 @@ export default class Tendbsingle {
     ticket_type: string,
     title: string,
   }>;
-  permission: Record<'mysql_authorize'|'mysql_destroy'|'mysql_enable_disable'|'mysql_view', boolean>;
+  permission: Record<'mysql_authorize' | 'mysql_destroy' | 'mysql_enable_disable' | 'mysql_view', boolean>;
   phase: string;
   phase_name: string;
   proxies: Tendbsingle['masters'];
@@ -66,5 +66,11 @@ export default class Tendbsingle {
 
   get isOnline() {
     return this.phase === 'online';
+  }
+
+  get masterDomainDisplayName() {
+    const port = this.masters[0]?.port;
+    const displayName = port ? `${this.master_domain}:${port}` : this.master_domain;
+    return displayName;
   }
 }

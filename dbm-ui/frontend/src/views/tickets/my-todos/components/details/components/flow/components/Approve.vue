@@ -21,6 +21,9 @@
           class="flow-todo">
           <div class="flow-todo__title">
             {{ item.name }}
+            <div v-if="content.err_msg">
+              {{ content.err_msg }}
+            </div>
             <template v-if="isShowResourceApply(item)">
               ，<a
                 href="javascript:"
