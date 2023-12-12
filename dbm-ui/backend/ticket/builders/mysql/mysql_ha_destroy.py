@@ -76,7 +76,7 @@ class MysqlHaDestroyFlowBuilder(BaseMySQLTicketFlowBuilder):
             )
         ]
         # 如果存在dumper，则串dumper下架流程
-        if self.ticket.details["dumper_destroy_infos"]:
+        if self.ticket.details.get("dumper_destroy_infos"):
             flows.append(
                 Flow(
                     ticket=self.ticket,

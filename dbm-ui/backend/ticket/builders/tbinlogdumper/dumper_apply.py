@@ -110,10 +110,16 @@ class TbinlogdumperApplyFlowParamBuilder(builders.FlowParamBuilder):
             info["add_type"] = self.ticket_data["add_type"]
             cluster_id__dumper_config[info["cluster_id"]].append(info)
 
-        self.ticket_data["infos"] = [
-            {"cluster_id": cluster_id, "add_confs": add_confs}
-            for cluster_id, add_confs in cluster_id__dumper_config.items()
-        ]
+        self.ticket_data["infos"] = []
+        for cluster_id, add_confs in cluster_id__dumper_config.items():
+            protocol_types = [add_conf["protocol_type"] for add_conf in add_confs]
+            self.ticket_data["infos"].append(
+                {
+                    "cluster_id": cluster_id,
+                    "add_confs": add_confs,
+                    "is_install_l5_agent": DumperProtocolType.L5_AGENT in protocol_types,
+                }
+            )
 
 
 @builders.BuilderFactory.register(TicketType.TBINLOGDUMPER_INSTALL)

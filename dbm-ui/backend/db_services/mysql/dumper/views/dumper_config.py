@@ -47,6 +47,27 @@ class DumperConfigViewSet(viewsets.AuditedModelViewSet):
         return super().retrieve(request, *args, **kwargs)
 
     @common_swagger_auto_schema(
+        operation_summary=_("数据订阅配置删除"),
+        tags=[SWAGGER_TAG],
+    )
+    def destroy(self, request, *args, **kwargs):
+        return super().destroy(request, *args, **kwargs)
+
+    @common_swagger_auto_schema(
+        operation_summary=_("数据订阅配置更新"),
+        tags=[SWAGGER_TAG],
+    )
+    def update(self, request, *args, **kwargs):
+        return super().update(request, *args, **kwargs)
+
+    @common_swagger_auto_schema(
+        operation_summary=_("数据订阅配置部分更新"),
+        tags=[SWAGGER_TAG],
+    )
+    def partial_update(self, request, *args, **kwargs):
+        return super().partial_update(request, *args, **kwargs)
+
+    @common_swagger_auto_schema(
         operation_summary=_("校验订阅配置是否重名"),
         query_serializer=VerifyDuplicateNamsSerializer(),
         tags=[SWAGGER_TAG],

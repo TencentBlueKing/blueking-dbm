@@ -18,16 +18,15 @@ from backend.db_meta.models import Cluster
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.riak import RiakController
 from backend.ticket import builders
+from backend.ticket.builders.common.bigdata import BigDataScaleDetailSerializer
 from backend.ticket.builders.riak.base import BaseRiakTicketFlowBuilder
 from backend.ticket.constants import TicketType
 
 logger = logging.getLogger("root")
 
 
-class RiakScaleUpDetailSerializer(serializers.Serializer):
-    cluster_id = serializers.IntegerField(help_text=_("集群ID"))
-    ip_source = serializers.ChoiceField(help_text=_("主机来源"), choices=IpSource.get_choices())
-    resource_spec = serializers.JSONField(help_text=_("资源池规格"), required=False)
+class RiakScaleUpDetailSerializer(BigDataScaleDetailSerializer):
+    pass
 
 
 class RiakScaleUpFlowParamBuilder(builders.FlowParamBuilder):
