@@ -185,9 +185,11 @@ class BaseTicketFlow(ABC):
         except Exception as err:  # pylint: disable=broad-except
             self.run_error_status_handler(err)
             return
-        else:
+        try:
             self.create_cluster_operate_records()
             self.create_instance_operate_records()
+        except Exception as err:  # pylint: disable=broad-except
+            logger.warning("create operate record error, {}".format(err))
 
         self.run_status_handler(flow_obj_id)
 
