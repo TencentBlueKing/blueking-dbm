@@ -107,7 +107,7 @@ class MySQLHAFullBackupFlow(object):
                     "file_tag": self.data["infos"]["file_tag"],
                     "backup_type": self.data["infos"]["backup_type"],
                     "backup_id": uuid.uuid1(),
-                    "backup_gsd": ["schema", "data"],
+                    "backup_gsd": ["all"],
                     "role": backend_obj.instance_role,
                 },
             )
