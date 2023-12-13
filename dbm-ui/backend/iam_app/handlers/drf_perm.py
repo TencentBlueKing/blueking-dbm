@@ -213,6 +213,13 @@ class TicketIAMPermission(DBManageIAMPermission):
         return bk_biz_id
 
 
+class DBEventIAMPermission(DBManageIAMPermission):
+    # TODO: 切换事件的临时鉴权类，后续再新版权限会删除
+    def _fetch_biz_id(self, request, view):
+        bk_biz_id = self._fetch_key_id(request, view, key="app")
+        return bk_biz_id
+
+
 class IsAuthenticatedPermission(permissions.BasePermission):
     """
     用户认证

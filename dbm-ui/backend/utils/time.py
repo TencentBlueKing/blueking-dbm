@@ -130,6 +130,14 @@ def find_nearby_time(
     if match_time in time_keys:
         return time_keys.index(match_time)
 
+    # 统一转换成timestamp进行比较
+    if isinstance(match_time, str):
+        match_time = time_parse(match_time).timestamp()
+        time_keys = [time_parse(t).timestamp() for t in time_keys]
+    elif isinstance(match_time, datetime.datetime):
+        match_time = match_time.timestamp()
+        time_keys = [t.timestamp() for t in time_keys]
+
     # 越界的情况抛出错误，交给业务逻辑处理
     index = bisect_right(time_keys, match_time) - flag
     if index < 0 or index >= len(time_keys):
