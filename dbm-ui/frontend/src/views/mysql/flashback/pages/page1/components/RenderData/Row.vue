@@ -134,7 +134,6 @@
   }
 
   const props = defineProps<Props>();
-
   const emits = defineEmits<Emits>();
 
   const clusterRef = ref();
