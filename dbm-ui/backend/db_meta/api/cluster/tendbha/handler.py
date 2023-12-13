@@ -179,6 +179,7 @@ class TenDBHAClusterHandler(ClusterHandler):
                 version="",
                 listen_port=conf["port"],
                 extra_config={
+                    "add_type": conf.get("add_type"),
                     "dumper_id": str(conf["area_name"]),
                     "area_name": str(conf["area_name"]),
                     "source_data_ip": master.machine.ip,

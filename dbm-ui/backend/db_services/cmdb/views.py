@@ -27,7 +27,7 @@ class CMDBViewSet(viewsets.SystemViewSet):
     lookup_field = "bk_biz_id"
 
     def _get_custom_permissions(self):
-        if self.action in ["list_bizs", None]:
+        if self.action in ["list_bizs", "list_modules", "list_cc_obj_user"]:
             return []
 
         return [DBManageIAMPermission()]
