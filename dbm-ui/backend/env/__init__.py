@@ -15,6 +15,7 @@ from .apm import *  # pylint: disable=wildcard-import
 from .bklog import *  # pylint: disable=wildcard-import
 from .bkrepo import *  # pylint: disable=wildcard-import
 from .dev import *  # pylint: disable=wildcard-import
+from .nameservice import *  # pylint: disable=wildcard-import
 
 APP_CODE = get_type_env(key="APP_ID", default="bk-dbm", _type=str)
 SECRET_KEY = get_type_env(key="APP_TOKEN", default="yb2gur=g)hxbmpk3#b%ez5_#6o!tf9vkqsnwo4dxyr0n&w3=9k", _type=str)
@@ -91,11 +92,6 @@ POLARIS_URL = get_type_env(key="POLARIS_URL", _type=str, default="http://polaris
 SERVICE_ONLY = get_type_env(key="SERVICE_ONLY", _type=str, default=False)
 
 ADMIN_USERS = [u.strip() for u in get_type_env(key="ADMIN_USERS", default="admin", _type=str).split(",") if u]
-
-# 名字服务北极星部门字段
-NAMESERVICE_POLARIS_DEPARTMENT = get_type_env(key="NAMESERVICE_POLARIS_DEPARTMENT", _type=str, default="")
-# 名字服务添加clb域名
-CLB_DOMAIN = get_type_env(key="CLB_DOMAIN", _type=bool, default=False)
 
 # 标准运维模板
 # 标准运维SA 空闲检查任务模版ID

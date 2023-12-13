@@ -64,13 +64,16 @@ class ClusterEntryViewSet(viewsets.SystemViewSet):
         """获取集群入口列表"""
 
         cluster = Cluster.objects.get(id=self.validated_data["cluster_id"])
+
+        cluster_entry_type = self.validated_data.get("entry_type")
+        extra = {"cluster_entry_type": cluster_entry_type} if cluster_entry_type else {}
         cluster_entries = ListRetrieveResource.query_cluster_entry_details(
             {
                 "id": cluster.id,
                 "bk_cloud_id": cluster.bk_cloud_id,
                 "bk_biz_id": cluster.bk_biz_id,
             },
-            cluster_entry_type=self.validated_data["entry_type"],
+            **extra
         )
 
         return Response(cluster_entries)
