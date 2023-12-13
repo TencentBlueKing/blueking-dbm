@@ -165,7 +165,7 @@ class ResourceApplyFlow(BaseTicketFlow):
             )
         elif resp["code"] != 0:
             raise ResourceApplyException(
-                _("资源池相关服务出现未知异常，请联系管理员处理。错误信息: [{}]{}").format(resp["code"]), resp.get("message")
+                _("资源池相关服务出现未知异常，请联系管理员处理。错误信息: [{}]{}").format(resp["code"], resp.get("message"))
             )
 
         # 将资源池申请的主机信息转换为单据参数

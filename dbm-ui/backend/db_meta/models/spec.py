@@ -113,6 +113,8 @@ class Spec(AuditedModel):
             "affinity": affinity,
         }
         if location_spec:
+            # 将bk_sub_zone_id转成str，本身为空也不影响
+            location_spec["sub_zone_ids"] = list(map(str, location_spec.get("sub_zone_ids", [])))
             apply_params["location_spec"] = location_spec
 
         return apply_params

@@ -23,6 +23,8 @@ SWAGGER_TAG = _("秘钥管理")
 
 class EncryptViewSet(viewsets.SystemViewSet):
     def _get_custom_permissions(self):
+        if self.action == "fetch_public_keys":
+            return []
         return [GlobalManageIAMPermission()]
 
     @common_swagger_auto_schema(
