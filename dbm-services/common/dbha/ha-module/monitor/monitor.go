@@ -102,7 +102,8 @@ func MonitorSend(content string, info MonitorInfo) error {
 func GetMonitorInfoBySwitch(ins dbutil.DataBaseSwitch, succ bool) MonitorInfo {
 	var eventName string
 	switch ins.GetMetaType() {
-	case constvar.RedisMetaType, constvar.TwemproxyMetaType:
+	case constvar.RedisMetaType, constvar.TwemproxyMetaType,
+		constvar.TendisSSDMetaType:
 		if succ {
 			eventName = constvar.DBHAEventRedisSwitchSucc
 		} else {
