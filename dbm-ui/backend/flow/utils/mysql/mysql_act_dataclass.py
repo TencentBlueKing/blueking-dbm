@@ -12,6 +12,7 @@ specific language governing permissions and limitations under the License.
 from dataclasses import dataclass, field
 from typing import Any, Optional
 
+from backend import env
 from backend.env import BACKUP_DOWNLOAD_USER
 from backend.flow.consts import DBA_ROOT_USER, DnsOpType, MediumFileTypeEnum
 from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
@@ -403,4 +404,14 @@ class InitCheckKwargs:
     """
 
     bk_cloud_id: int
-    ip: str
+    ips: list
+
+
+@dataclass
+class InitCheckForResourceKwargs:
+    """
+    定义导入资源池的场景下空闲检查的私有变量结构体
+    """
+
+    ips: list
+    bk_biz_id: int = env.DBA_APP_BK_BIZ_ID

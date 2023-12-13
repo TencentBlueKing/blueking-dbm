@@ -322,7 +322,7 @@ class BkSopsService(BaseService, metaclass=ABCMeta):
         kwargs = data.get_one_of_inputs("kwargs")
         bk_biz_id = kwargs["bk_biz_id"]
         task_id = data.get_one_of_outputs("task_id")
-        param = {"bk_biz_id": bk_biz_id, "task_id": task_id}
+        param = {"bk_biz_id": bk_biz_id, "task_id": task_id, "with_ex_data": True}
         rp_data = BkSopsApi.get_task_status(param)
         state = rp_data.get("state", states.RUNNING)
         if state == states.FINISHED:
@@ -336,19 +336,5 @@ class BkSopsService(BaseService, metaclass=ABCMeta):
             else:
                 self.log_error(_("任务状态异常{}").format(state))
             # 查询异常日志
-            if rp_data.get("children"):
-                children = rp_data["children"]
-                for node_id in children:
-                    param["node_id"] = node_id
-                    result = BkSopsApi.get_task_node_detail(param)
-                    output = result.get("outputs", [])
-                    ex_data = result.get("ex_data", "")
-                    self.log_error(f"ex_data:{ex_data}")
-                    for ele in output:
-                        self.log_error(f"output:{ele}")
-                        if ele.get("key") == "log_outputs":
-                            if ele["value"].get("isnot_clear"):
-                                b64err = ele["value"].get("isnot_clear")
-                                err = base64.b64decode(b64err)
-                                self.log_error(_("错误详情{}").format(err))
+            self.log_error(rp_data.get("ex_data", _("查询日志失败")))
             return False

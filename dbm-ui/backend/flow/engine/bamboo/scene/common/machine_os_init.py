@@ -23,7 +23,7 @@ from backend.flow.plugins.components.collections.common.external_service import 
 from backend.flow.plugins.components.collections.common.sa_idle_check import CheckMachineIdleComponent
 from backend.flow.plugins.components.collections.common.sa_init import SaInitComponent
 from backend.flow.plugins.components.collections.common.transfer_host_service import TransferHostServiceComponent
-from backend.flow.utils.mysql.mysql_act_dataclass import InitCheckKwargs
+from backend.flow.utils.mysql.mysql_act_dataclass import InitCheckForResourceKwargs, InitCheckKwargs
 
 
 class ImportResourceInitStepFlow(object):
@@ -41,16 +41,11 @@ class ImportResourceInitStepFlow(object):
         bk_biz_id = self.data["bk_biz_id"]
         # 先执行空闲检查
         if env.SA_CHECK_TEMPLATE_ID:
-            acts_list = []
-            for hostinfo in ip_list:
-                acts_list.append(
-                    {
-                        "act_name": _("执行sa空闲检查"),
-                        "act_component_code": CheckMachineIdleComponent.code,
-                        "kwargs": asdict(InitCheckKwargs(ip=hostinfo["ip"], bk_cloud_id=hostinfo["bk_cloud_id"])),
-                    }
-                )
-            p.add_parallel_acts(acts_list=acts_list)
+            p.add_act(
+                act_name=_("执行sa空闲检查"),
+                act_component_code=CheckMachineIdleComponent.code,
+                kwargs=asdict(InitCheckForResourceKwargs(ips=[host["ip"] for host in ip_list], bk_biz_id=bk_biz_id)),
+            )
 
         # 在执行sa初始化
         if env.SA_INIT_TEMPLATE_ID:
