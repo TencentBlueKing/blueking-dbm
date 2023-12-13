@@ -125,7 +125,11 @@ func (m *DBLoader) chooseDBBackupLoader() error {
 	return nil
 }
 
-// Start TODO
+// Start 执行导入
+// 选择logical / physical tool
+// 恢复前操作：比如build filter
+// 解压
+// 恢复数据
 func (m *DBLoader) Start() error {
 	if err := m.chooseDBBackupLoader(); err != nil {
 		return err
