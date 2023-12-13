@@ -57,7 +57,7 @@ class Command(BaseCommand):
         res = DBResourceApi.resource_delete(params={"bk_host_ids": free_host_ids}, raise_exception=False)
         logger.info("clean: res=%s", res)
 
-        remove_cluster_ips(free_host_ips, False, True)
+        remove_cluster_ips(free_host_ids, False, True)
 
         CCApi.transfer_host_to_recyclemodule(
             {"bk_biz_id": env.DBA_APP_BK_BIZ_ID, "bk_host_id": free_host_ids}, use_admin=True, raw=True

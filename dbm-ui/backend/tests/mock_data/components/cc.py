@@ -203,6 +203,12 @@ class CCApiMock(object):
         return self.list_hosts_without_biz_return
 
     @staticmethod
+    def batch_update_host(*args, **kwargs):
+        if kwargs.get("raw"):
+            return {"result": True}
+        return
+
+    @staticmethod
     def create_set(*args, **kwargs):
         # 根据集群名生成集群ID
         param = kwargs.get("params") or args[0]

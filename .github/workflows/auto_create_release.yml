@@ -77,12 +77,14 @@ jobs:
     - name: Auto Add Release File
       id: add-release-file
       run: |
-        filename="dbm-ui/release/${{ steps.yaml-data.outputs.data }}_$(date +%Y%m%d).md"
-        echo -e "## ${{ steps.yaml-data.outputs.data }}\n\n" > ${filename}
+        filename="dbm-ui/release/V${{ steps.yaml-data.outputs.data }}_$(date +%Y%m%d).md"
+        echo -e "## ${{ steps.yaml-data.outputs.data }} - $(date +%Y-%m-%d)\n\n" > ${filename}
         echo -e "${{ steps.build-release-log.outputs.changelog }}" >> ${filename}
         sed -i -E 's/#([0-9]+)/[#\1](https:\/\/github.com\/TencentBlueKing\/blueking-dbm\/issues\/\1)/g' ${filename}
+        cat ${filename}
         git config --global user.email github-actions@users.noreply.github.com
         git config --global user.name github-actions
+        git remote set-url origin https://x-access-token:${{ secrets.WORKFLOW_ACTION_TOKEN }}@github.com/$GITHUB_REPOSITORY
         git add .
-        git commit -m "minor: release version ${{ steps.yaml-data.outputs.data }}"
+        git commit -m "docs: release version ${{ steps.yaml-data.outputs.data }} #1"
         git push origin ${{ steps.get-current-branch.outputs.current_branch }}

@@ -157,7 +157,7 @@
   const services: Array<IService> = [
     {
       id: 'mysql',
-      groupName: 'MYSQL',
+      groupName: 'MySQL',
       name: '关系型数据库',
       children: [
         {

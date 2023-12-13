@@ -34,6 +34,11 @@ SESSION_COOKIE_DOMAIN = get_type_env(key="SESSION_COOKIE_DOMAIN", default="", _t
 
 # CC业务模型中的英文业务简称
 BK_APP_ABBR = get_type_env(key="BK_APP_ABBR", _type=str, default="")
+# CMDB 监控相关字段
+CMDB_HOST_STATE_ATTR = get_type_env(key="CMDB_HOST_STATE_ATTR", _type=str, default="bk_state")
+CMDB_NO_MONITOR_STATUS = get_type_env(key="CMDB_NO_MONITOR_STATUS", _type=str, default="运营中[无告警]")
+CMDB_NEED_MONITOR_STATUS = get_type_env(key="CMDB_NEED_MONITOR_STATUS", _type=str, default="运营中[需告警]")
+
 
 # 蓝鲸全业务业务ID
 JOB_BLUEKING_BIZ_ID = get_type_env(key="JOB_BLUEKING_BIZ_ID", _type=int, default=9991001)
@@ -93,13 +98,15 @@ SERVICE_ONLY = get_type_env(key="SERVICE_ONLY", _type=str, default=False)
 
 ADMIN_USERS = [u.strip() for u in get_type_env(key="ADMIN_USERS", default="admin", _type=str).split(",") if u]
 
-# 标准运维模板
+# 标准运维
 # 标准运维SA 空闲检查任务模版ID
 SA_CHECK_TEMPLATE_ID = get_type_env(key="SA_CHECK_TEMPLATE_ID", _type=int)
 # 标准运维SA 初始化任务模版ID
 SA_INIT_TEMPLATE_ID = get_type_env(key="SA_INIT_TEMPLATE_ID", _type=int)
 # 标准运维SA 安装L5Agent的模板ID
 SA_L5_AGENT_TEMPLATE_ID = get_type_env(key="SA_L5_AGENT_TEMPLATE_ID", _type=int)
+# 标准运维项目 ID
+BK_SOPS_PROJECT_ID = get_type_env(key="BK_SOPS_PROJECT_ID", _type=int, default=1)
 
 # 是否在部署 MySQL 的时候安装 PERL
 YUM_INSTALL_PERL = get_type_env(key="YUM_INSTALL_PERL", _type=bool, default=False)

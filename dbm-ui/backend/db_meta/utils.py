@@ -123,18 +123,13 @@ def remove_all_cluster(job_clean=True, cc_clean=True):
     Cluster.objects.all().delete()
 
 
-def remove_cluster_ips(cluster_ips, job_clean=True, cc_clean=True):
+def remove_cluster_ips(bk_host_ids, job_clean=True, cc_clean=True):
     """移除主机+job清理+cc清理"""
 
-    logger.info("Removing cluster_ips: %s, job_clean=%s, cc_clean=%s", cluster_ips, job_clean, cc_clean)
+    logger.info("Removing bk_host_ids: %s, job_clean=%s, cc_clean=%s", bk_host_ids, job_clean, cc_clean)
 
-    storage_instances = StorageInstance.objects.filter(machine__ip__in=cluster_ips)
-    proxy_instances = ProxyInstance.objects.filter(machine__ip__in=cluster_ips)
-
-    cluster_bk_host_ids = set(
-        list(storage_instances.values_list("machine__bk_host_id", flat=True))
-        + list(proxy_instances.values_list("machine__bk_host_id", flat=True))
-    )
+    storage_instances = StorageInstance.objects.filter(machine__ip__in=bk_host_ids)
+    proxy_instances = ProxyInstance.objects.filter(machine__ip__in=bk_host_ids)
 
     # 相关系统清理
     if job_clean:
@@ -150,31 +145,28 @@ def remove_cluster_ips(cluster_ips, job_clean=True, cc_clean=True):
                         "task_name": _("清理集群"),
                         "account_alias": "root",
                         "script_language": 1,
-                        "target_server": {
-                            # TODO: 目前仅支持直连区域
-                            "ip_list": [{"bk_cloud_id": 0, "ip": ip} for ip in cluster_ips]
-                        },
+                        "host_id_list": bk_host_ids,
                     },
                     raw=True,
                 )
 
             except Exception as e:  # pylint: disable=broad-except
-                logger.error("remove_cluster_ips job_clean exception: cluster_ips=%s, %s", cluster_ips, e)
+                logger.error("remove_bk_host_ids job_clean exception: bk_host_ids=%s, %s", bk_host_ids, e)
 
-    if cc_clean and cluster_bk_host_ids:
+    if cc_clean and bk_host_ids:
         try:
             CCApi.transfer_host_to_recyclemodule(
-                {"bk_biz_id": env.DBA_APP_BK_BIZ_ID, "bk_host_id": list(cluster_bk_host_ids)}, use_admin=True, raw=True
+                {"bk_biz_id": env.DBA_APP_BK_BIZ_ID, "bk_host_id": bk_host_ids}, use_admin=True, raw=True
             )
         except Exception as e:  # pylint: disable=broad-except
-            logger.error("remove_cluster_ips cc_clean exception: cluster_ips=%s, %s", cluster_ips, e)
+            logger.error("remove_bk_host_ids cc_clean exception: bk_host_ids=%s, %s", bk_host_ids, e)
 
-        update_host_dbmeta(cluster_ips=cluster_ips, dbm_meta=[])
+        update_host_dbmeta(bk_host_ids=bk_host_ids, dbm_meta=[])
 
     storage_instances.delete()
-    TenDBClusterSpiderExt.objects.filter(instance__machine__ip__in=cluster_ips).delete()
+    TenDBClusterSpiderExt.objects.filter(instance__machine__bk_host_id__in=bk_host_ids).delete()
     proxy_instances.delete()
-    Machine.objects.filter(ip__in=cluster_ips).delete()
+    Machine.objects.filter(bk_host_id__in=bk_host_ids).delete()
 
 
 def clean_cc_topo(bk_biz_id=env.DBA_APP_BK_BIZ_ID):
