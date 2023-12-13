@@ -44,17 +44,23 @@ class CheckMachineIdleCheck(BkSopsService):
 
     def _execute(self, data, parent_data) -> bool:
         kwargs = data.get_one_of_inputs("kwargs")
-        ip = kwargs["ip"]
-        bk_biz_id = self.__get_bk_biz_id_for_ip(ip=ip, bk_cloud_id=int(kwargs["bk_cloud_id"]))
+        ips = kwargs["ips"]
+        # 获取业务id
+        if kwargs.get("bk_biz_id"):
+            bk_biz_id = kwargs["bk_biz_id"]
+        else:
+            # 否则认为你这一批的机器都是来自于同一个业务上，则已其中一个ip获取的业务id为准
+            bk_biz_id = self.__get_bk_biz_id_for_ip(ip=ips[0], bk_cloud_id=int(kwargs["bk_cloud_id"]))
+
         param = {
             "template_id": env.SA_CHECK_TEMPLATE_ID,
             "bk_biz_id": bk_biz_id,
             "template_source": "common",
-            "name": _("{}-空闲检查").format(ip),
+            "name": _("空闲检查FOR_DBM"),
             "flow_type": "common",
             "constants": {
                 "${biz_cc_id}": bk_biz_id,
-                "${job_ip_list}": ip,
+                "${job_ip_list}": "\n".join(ips),
                 "${job_account}": "root",
             },
         }

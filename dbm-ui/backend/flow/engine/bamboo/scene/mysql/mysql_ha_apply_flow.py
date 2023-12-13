@@ -15,7 +15,6 @@ from typing import Dict, Optional, Tuple
 
 from django.utils.translation import ugettext as _
 
-from backend import env
 from backend.configuration.constants import DBType
 from backend.db_meta.enums import ClusterType
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
@@ -24,11 +23,9 @@ from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import (
     build_surrounding_apps_sub_flow,
     init_machine_sub_flow,
 )
-from backend.flow.plugins.components.collections.common.sa_idle_check import CheckMachineIdleComponent
 from backend.flow.plugins.components.collections.mysql.dns_manage import MySQLDnsManageComponent
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.mysql.mysql_db_meta import MySQLDBMetaComponent
-from backend.flow.plugins.components.collections.mysql.mysql_os_init import MySQLOsInitComponent, SysInitComponent
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
 from backend.flow.utils.mysql.mysql_act_dataclass import (
     CreateDnsKwargs,

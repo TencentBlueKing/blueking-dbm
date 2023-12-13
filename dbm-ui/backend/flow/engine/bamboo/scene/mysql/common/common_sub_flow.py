@@ -582,7 +582,7 @@ def init_machine_sub_flow(
                 {
                     "act_name": _("空闲检查[{}]".format(ip)),
                     "act_component_code": CheckMachineIdleComponent.code,
-                    "kwargs": asdict(InitCheckKwargs(ip=ip, bk_cloud_id=bk_cloud_id)),
+                    "kwargs": asdict(InitCheckKwargs(ips=[ip], bk_cloud_id=bk_cloud_id)),
                 }
             )
         sub_pipeline.add_parallel_acts(acts_list=acts_list)
