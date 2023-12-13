@@ -139,6 +139,7 @@
 
   const clusterRef = ref();
   const startTimeRef = ref();
+  const endTimeRef = ref();
   const databasesRef = ref();
   const tablesRef = ref();
   const databasesIgnoreRef = ref();
@@ -185,6 +186,7 @@
       return Promise.all([
         clusterRef.value.getValue(),
         startTimeRef.value.getValue(),
+        endTimeRef.value.getValue(),
         databasesRef.value.getValue('databases'),
         tablesRef.value.getValue('tables'),
         databasesIgnoreRef.value.getValue('databases_ignore'),
@@ -192,6 +194,7 @@
       ]).then(([
         clusterData,
         startTimeData,
+        endTimeData,
         databasesData,
         tablesData,
         databasesIgnoreData,
@@ -199,6 +202,7 @@
       ]) => ({
         ...clusterData,
         ...startTimeData,
+        ...endTimeData,
         ...databasesData,
         ...tablesData,
         ...databasesIgnoreData,
