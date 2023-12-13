@@ -13,10 +13,11 @@ from rest_framework.permissions import AllowAny
 from rest_framework.viewsets import GenericViewSet
 
 from backend.bk_web.pagination import AuditedLimitOffsetPagination
+from backend.iam_app.handlers.drf_perm import DBManageIAMPermission
 
 
 class ReportBaseViewSet(GenericViewSet, mixins.ListModelMixin):
-    permission_classes = [AllowAny]
+    permission_classes = [DBManageIAMPermission]
     pagination_class = AuditedLimitOffsetPagination
 
     filter_fields = {

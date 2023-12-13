@@ -19,14 +19,14 @@ from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.components.hadb.client import HADBApi
 from backend.db_event.serializers import QueryDetailSerializer, QueryListSerializer
 from backend.db_meta.models import AppCache, Cluster
-from backend.iam_app.handlers.drf_perm import GlobalManageIAMPermission
+from backend.iam_app.handlers.drf_perm import DBEventIAMPermission
 
 SWAGGER_TAG = _("DBHA事件")
 
 
 class DBHAEventViewSet(viewsets.SystemViewSet):
     def _get_custom_permissions(self):
-        return [GlobalManageIAMPermission()]
+        return [DBEventIAMPermission()]
 
     @common_swagger_auto_schema(
         operation_summary=_("DBHA切换事件列表"),
