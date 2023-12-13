@@ -29,27 +29,14 @@ export default () => [
           navName: t('DB 资源池'),
         },
         component: () => import('@views/resource-manage/pool/Index.vue'),
-        redirect: {
-          name: 'resourcePoolList',
+      },
+      {
+        name: 'resourcePoolOperationRecord',
+        path: 'record',
+        meta: {
+          navName: t('资源操作记录'),
         },
-        children: [
-          {
-            name: 'resourcePoolList',
-            path: 'index',
-            meta: {
-              navName: t('DB 资源池'),
-            },
-            component: () => import('@views/resource-manage/pool/index/Index.vue'),
-          },
-          {
-            name: 'resourcePoolOperationRecord',
-            path: 'record',
-            meta: {
-              navName: t('操作记录'),
-            },
-            component: () => import('@views/resource-manage/pool/record/Index.vue'),
-          },
-        ],
+        component: () => import('@views/resource-manage/record/Index.vue'),
       },
       {
         name: 'resourcePoolDirtyMachines',

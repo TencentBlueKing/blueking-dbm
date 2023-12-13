@@ -32,6 +32,7 @@
     ref,
   } from 'vue';
   import { useI18n } from 'vue-i18n';
+  import { useRoute } from 'vue-router';
 
   import OperationModel from '@services/model/db-resource/Operation';
   import { fetchOperationList } from '@services/source/dbresourceResource';
@@ -42,6 +43,7 @@
 
   import HostDetail from './components/HostDetail.vue';
 
+  const route = useRoute();
   const { t } = useI18n();
 
   const dataSource = fetchOperationList;
@@ -169,8 +171,10 @@
             to={{
               name: 'taskHistoryDetail',
               params: {
-                bizId: data.bk_biz_id,
                 root_id: data.task_id,
+              },
+              query: {
+                from: route.name as string,
               },
             }}
             target="_blank">

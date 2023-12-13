@@ -24,24 +24,25 @@
           <div
             v-for="id in historyCacheIdList"
             :key="id"
-            class="history-item">
+            class="history-item"
+            @click="handleApply(serviceIdMap[id])">
             <DbIcon
               class="item-icon"
               :type="serviceIdMap[id].icon" />
             <div class="item-text">
               {{ serviceIdMap[id].name }}
             </div>
-            <div style="padding-left: 8px; margin-left: auto">
+            <div style="padding: 20px 0 20px 8px; margin-left: auto">
               <DbIcon
                 v-if="favorIdMap[id]"
                 style="color: #ffb848;"
                 type="star-fill"
-                @click="handleUnfavor(id)" />
+                @click.stop="handleUnfavor(id)" />
               <DbIcon
                 v-else
                 class="favor-btn"
                 type="star"
-                @click="handleFavor(id)" />
+                @click.stop="handleFavor(id)" />
             </div>
           </div>
         </div>
