@@ -8,7 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-
+import json
 import logging
 from typing import Dict, List
 
@@ -16,12 +16,13 @@ from django.db import transaction
 
 from backend import env
 from backend.components import CCApi
-from backend.configuration.models import SystemSettings
-from backend.db_meta.enums import ClusterTypeMachineTypeDefine
-from backend.db_meta.models import AppMonitorTopo, Cluster, ClusterMonitorTopo, StorageInstance
-from backend.db_meta.models.cluster_monitor import INSTANCE_MONITOR_PLUGINS, SET_NAME_TEMPLATE
+from backend.configuration.models import DBAdministrator, SystemSettings
+from backend.db_meta.enums import ClusterType, ClusterTypeMachineTypeDefine
+from backend.db_meta.models import AppMonitorTopo, Cluster, ClusterMonitorTopo, Machine, StorageInstance
+from backend.db_meta.models.cluster_monitor import INSTANCE_MONITOR_PLUGINS, SET_NAME_TEMPLATE, SyncFailedMachine
 from backend.db_services.ipchooser.constants import IDLE_HOST_MODULE
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
+from backend.dbm_init.constants import CC_HOST_DBM_ATTR
 from backend.exceptions import ApiError
 
 logger = logging.getLogger("flow")
@@ -34,7 +35,9 @@ class CcManage(object):
     """
 
     def __init__(self, bk_biz_id: int):
-        # 主机在 cmdb 上实际托管的业务
+        # 业务
+        self.bk_biz_id = bk_biz_id
+        # 主机在 cmdb 上实际托管的业务（通常可能为 DBM 统一业务）
         self.hosting_biz_id = SystemSettings.get_exact_hosting_biz(bk_biz_id)
 
     @classmethod
@@ -184,6 +187,60 @@ class CcManage(object):
         module_type__module = {module["default"]: module for module in biz_internal_module["module"]}
         return module_type__module
 
+    def update_host_properties(self, bk_host_ids: List[int], need_monitor: bool, dbm_meta=None):
+        """更新主机属性"""
+        machines = Machine.objects.filter(bk_host_id__in=bk_host_ids)
+        if not machines:
+            return
+        # 这里可以认为一批操作的机器的数据库类型是相同的
+        db_type = ClusterType.cluster_type_to_db_type(machines.first().cluster_type)
+        biz_dba = DBAdministrator.get_biz_db_type_admins(bk_biz_id=self.bk_biz_id, db_type=db_type)
+
+        # 批量更新接口限制最多500条，这里取456条
+        step_size = 456
+        updated_hosts, failed_updates = [], []
+        machine_count = machines.count()
+        for step in range(machine_count // step_size + 1):
+            updates = []
+            for machine in machines[step * step_size : (step + 1) * step_size]:
+                cc_dbm_meta = machine.dbm_meta if dbm_meta is None else dbm_meta
+                updates.append(
+                    {
+                        "properties": {
+                            CC_HOST_DBM_ATTR: json.dumps(cc_dbm_meta),
+                            # 主要维护人
+                            "operator": biz_dba,
+                            # 备份维护人
+                            "bk_bak_operator": biz_dba,
+                            # 主机状态
+                            env.CMDB_HOST_STATE_ATTR: env.CMDB_NEED_MONITOR_STATUS
+                            if need_monitor
+                            else env.CMDB_NO_MONITOR_STATUS,
+                        },
+                        "bk_host_id": machine.bk_host_id,
+                    }
+                )
+
+            updated_hosts.extend(updates)
+            res = CCApi.batch_update_host({"update": updates}, use_admin=True, raw=True)
+            # proxy request failed - 1199036
+            # failed to request http://bkauth - 1306000
+            # 权限校验失败 - 1199048
+            if res.get("code") not in [0, 1199036, 1199048, 1306000]:
+                logger.error("[update_host_dbmeta] batch update failed: %s (%s)", updates, res.get("code"))
+                failed_updates.extend(updates)
+
+        # 容错处理：逐个更新，避免批量更新误伤有效ip
+        for fail_update in failed_updates:
+            try:
+                CCApi.update_host(
+                    {"bk_host_id": fail_update["bk_host_id"], "data": fail_update["properties"]}, use_admin=True
+                )
+            except Exception as e:  # pylint: disable=wildcard-import
+                # 记录异常ip，下次任务直接排除掉，尽量走批量更新
+                SyncFailedMachine.objects.get_or_create(bk_host_id=fail_update["bk_host_id"], error=str(e))
+                logger.error("[update_host_dbmeta] single update error: %s (%s)", fail_update, e)
+
     def transfer_host_to_idlemodule(
         self, bk_biz_id: int, bk_host_ids: List[int], biz_idle_module: int = None, host_topo: List[Dict] = None
     ):
@@ -281,6 +338,7 @@ class CcManage(object):
             },
             use_admin=True,
         )
+        self.update_host_properties(bk_host_ids, need_monitor=True)
 
     def recycle_host(self, bk_host_ids: list):
         """
@@ -288,6 +346,7 @@ class CcManage(object):
         转移主机后会自动删除服务实例，无需额外操作
         """
         CCApi.transfer_host_to_recyclemodule({"bk_biz_id": self.hosting_biz_id, "bk_host_id": bk_host_ids})
+        self.update_host_properties(bk_host_ids, need_monitor=False, dbm_meta=[])
 
     def add_service_instance(
         self,

@@ -12,15 +12,12 @@ import datetime
 import json
 import logging
 
-from celery.schedules import crontab
-
 from backend import env
 from backend.components import CCApi
 from backend.configuration.constants import SystemSettingsEnum
 from backend.configuration.models import SystemSettings
 from backend.db_meta.models import Cluster, Machine
 from backend.db_meta.models.cluster_monitor import SyncFailedMachine
-from backend.db_periodic_task.local_tasks.register import register_periodic_task
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.dbm_init.constants import CC_HOST_DBM_ATTR
 from backend.dbm_init.services import Services
@@ -28,7 +25,8 @@ from backend.dbm_init.services import Services
 logger = logging.getLogger("celery")
 
 
-@register_periodic_task(run_every=crontab(minute="*/5"))
+# TODO  CcManage.update_host_properties 已处理 host_dbmeta，此文件后续可删除
+# @register_periodic_task(run_every=crontab(minute="*/5"))
 def reset_host_dbmeta(bk_biz_id=env.DBA_APP_BK_BIZ_ID, bk_host_ids=None):
     """
     重置业务下空闲集群主机的dbm_meta属性
@@ -77,8 +75,8 @@ def reset_host_dbmeta(bk_biz_id=env.DBA_APP_BK_BIZ_ID, bk_host_ids=None):
     )
 
 
-@register_periodic_task(run_every=crontab(minute="*/3"))
-def update_host_dbmeta(bk_biz_id=None, cluster_id=None, cluster_ips=None, dbm_meta=None):
+# @register_periodic_task(run_every=crontab(hour="*/6"))
+def update_host_dbmeta(bk_biz_id=None, cluster_id=None, bk_host_ids=None, dbm_meta=None):
     """
     更新集群主机的dbm_meta属性
     TODO 应该挪到转移主机的时候做，每两分钟对全量主机更新一次 db_meta，太频繁了
@@ -115,8 +113,8 @@ def update_host_dbmeta(bk_biz_id=None, cluster_id=None, cluster_ips=None, dbm_me
         )
         machines = Machine.objects.filter(bk_host_id__in=cluster_bk_host_ids)
 
-    if cluster_ips:
-        machines = machines.filter(ip__in=cluster_ips)
+    if bk_host_ids:
+        machines = machines.filter(bk_host_id__in=bk_host_ids)
 
     # 批量更新接口限制最多500条，这里取456条
     step_size = 456

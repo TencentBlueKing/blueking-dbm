@@ -31,13 +31,19 @@ from backend.utils.basic import get_target_items_from_details
 
 
 def fetch_cluster_ids(details: Dict[str, Any]) -> List[int]:
-    cluster_fields = ["cluster_id", "cluster_ids", "src_cluster"]
-    return get_target_items_from_details(obj=details, match_keys=cluster_fields)
+    return [
+        item
+        for item in get_target_items_from_details(obj=details, match_keys=["cluster_id", "cluster_ids", "src_cluster"])
+        if isinstance(item, int)
+    ]
 
 
 def fetch_instance_ids(details: Dict[str, Any]) -> List[int]:
-    instance_fields = ["instance_id", "instance_ids"]
-    return get_target_items_from_details(obj=details, match_keys=instance_fields)
+    return [
+        item
+        for item in get_target_items_from_details(obj=details, match_keys=["instance_id", "instance_ids"])
+        if isinstance(item, int)
+    ]
 
 
 def remove_useless_spec(attrs: Dict[str, Any]) -> Dict[str, Any]:

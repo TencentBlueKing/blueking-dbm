@@ -52,7 +52,9 @@ class L5AgentInstall(BkSopsService):
             task_id = rp_data["task_id"]
             # start task
             self.log_info(f"task_id: {task_id}")
-            self.log_info(f"job url:{env.BK_SOPS_URL}/askflow/home/list/{task_id}")
+            self.log_info(
+                f"job url:{env.BK_SOPS_URL}/taskflow/execute/{env.BK_SOPS_PROJECT_ID}/?instance_id={task_id}"
+            )
             param = {"bk_biz_id": bk_biz_id, "task_id": task_id}
             BkSopsApi.start_task(param)
             data.outputs.task_id = task_id
