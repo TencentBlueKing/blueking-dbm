@@ -25,6 +25,16 @@
           {{ t('DB 资源池管理') }}
         </span>
       </BkMenuItem>
+      <BkMenuItem key="resourcePoolOperationRecord">
+        <template #icon>
+          <DbIcon type="list" />
+        </template>
+        <span
+          v-overflow-tips.right
+          class="text-overflow">
+          {{ t('资源操作记录') }}
+        </span>
+      </BkMenuItem>
       <BkMenuItem key="resourcePoolDirtyMachines">
         <template #icon>
           <DbIcon type="dirty-host" />
