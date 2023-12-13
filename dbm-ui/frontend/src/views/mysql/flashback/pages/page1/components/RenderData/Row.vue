@@ -134,9 +134,8 @@
   }
 
   const props = defineProps<Props>();
-
   const emits = defineEmits<Emits>();
-
+  console.log('asdasd');
   const clusterRef = ref();
   const startTimeRef = ref();
   const endTimeRef = ref();
