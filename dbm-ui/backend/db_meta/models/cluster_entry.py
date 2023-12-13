@@ -87,14 +87,19 @@ class ClusterEntry(AuditedModel):
 
         if self.cluster_entry_type == ClusterEntryType.CLB:
             detail_obj = self.clbentrydetail_set.first()
-        elif self.cluster_entry_type == ClusterEntryType.POLARIS:
-            detail_obj = self.polarisentrydetail_set.first()
-        elif self.cluster_entry_type == ClusterEntryType.CLBDNS:
-            detail_obj = self.forward_to
-        else:
-            detail_obj = None
+            # 补充clb域名
+            clb_dns = ClusterEntry.objects.filter(forward_to=self, cluster_entry_type=ClusterEntryType.CLBDNS).first()
+            return {**model_to_dict(detail_obj), **{"clb_domain": getattr(clb_dns, "entry", "")}} if detail_obj else {}
 
-        return {**model_to_dict(detail_obj), **{"url": getattr(detail_obj, "url", "")}} if detail_obj else {}
+        if self.cluster_entry_type == ClusterEntryType.POLARIS:
+            detail_obj = self.polarisentrydetail_set.first()
+            return {**model_to_dict(detail_obj), **{"url": getattr(detail_obj, "url", "")}} if detail_obj else {}
+
+        if self.cluster_entry_type == ClusterEntryType.CLBDNS:
+            detail_obj = self.forward_to
+            return model_to_dict(detail_obj) if detail_obj else {}
+
+        return {}
 
     def __str__(self):
         return "{}:{}".format(self.cluster_entry_type, self.entry)
