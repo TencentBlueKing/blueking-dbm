@@ -3,3 +3,4 @@
 
 cd dbm-ui/frontend
 yarn commitlint --edit "$1"
+bash /data/code/blueking-dbm/dbm-ui/frontend/.husky/commit-msg-bkcodeai $1

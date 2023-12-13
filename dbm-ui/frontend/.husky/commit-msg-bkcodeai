@@ -1,0 +1,61 @@
+#!/bin/sh
+export PYTHONIOENCODING=utf-8
+
+cd /data/code/blueking-dbm
+
+# 获取传入的参数
+COMMIT_MSG=$1
+
+# 定义执行结果的变量
+RESULT=0
+
+# 获取会话标识符，这个是通过 pre-commit 钩子创建的
+SESSION_ID_FILE=".git/SESSION_ID"
+if [ -f $SESSION_ID_FILE ]; then
+    SESSION_ID=$(cat $SESSION_ID_FILE)
+    # 读取完，删除会话标识符文件
+    rm $SESSION_ID_FILE
+
+    # 如果 SESSION_ID 不为空，则执行调用 aidev_executable 二进制文件
+    if [ -n $SESSION_ID ]; then
+
+        echo "AI CodeReview is running, Please wait a moment."
+
+        exec < /dev/tty
+
+        # 检查文件描述符 0 (标准输入) 是否连接到一个终端，用于区分终端提交还是vscode git 插件提交
+        if [ -e /dev/tty ] && [ -t 0 ]; then
+            NTY=""
+        else
+            NTY="-nty"
+        fi
+
+        # 调用外部二进制
+        /root/bkaidev/aidev_executable review-code "$COMMIT_MSG" diff \
+        -tk Az0wfa1n8JihHRZebkyURhQOhbsCpU-K2D5Y1r-2iYY \
+        -sh bkaidev.apigw.o.woa.com/prod \
+        -crf codereviewer_openai \
+        --session_id 9cec3d84-ce35-4b8d-ac24-b4c6952f24c1 \
+        -nsc -wssh prod-dot-intelligence-ws-dot-bkaidev.bkapps-sz.woa.com \
+        -fsh bkaidev.woa.com \
+        -rt 300 \
+        -ct 600 \
+        -bac bkcodeai-vscode:0.1.9 \
+        $NTY
+
+        # 检查外部二进制的执行结果并进行相应处理
+        if [ $? -ne 0 ]; then
+            RESULT=1
+        fi
+
+    fi
+
+fi
+
+# 如果执行结果不为 0，则退出提交
+if [ $RESULT -ne 0 ]; then
+    exit 1
+fi
+
+# 如果一切正常，则不做任何处理，继续进行提交
+exit 0

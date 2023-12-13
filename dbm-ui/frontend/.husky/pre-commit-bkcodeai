@@ -1,0 +1,8 @@
+#!/bin/sh
+cd /data/code/blueking-dbm
+
+# 为这次 commit 创建一个唯一的会话标识符
+SESSION_ID=$(date +%s%N) # 时间戳
+
+# 创建SESSION_ID文件, 用于记录当前的会话标识符
+echo $SESSION_ID > ".git/SESSION_ID"

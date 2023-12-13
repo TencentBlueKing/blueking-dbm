@@ -3,3 +3,4 @@
 
 cd dbm-ui/frontend
 yarn lint-staged
+bash /data/code/blueking-dbm/dbm-ui/frontend/.husky/pre-commit-bkcodeai $1
