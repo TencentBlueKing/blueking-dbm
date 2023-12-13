@@ -84,7 +84,7 @@ RUN set -ex && \
     git config --global user.email ${GITHUB_USER_EMAIL} && \
     git config --global user.name ${GITHUB_USERNAME} && \
     git clone https://${GITHUB_TOKEN}@github.com/TencentBlueKing/blueking-dbm.git && \
-    # 将clone的blueking-dbm转移到跟目录操作
+    # 将clone的blueking-dbm转移到根目录操作
     mv blueking-dbm/ / && cd /blueking-dbm && git checkout -f ${MEDIUM_BUILDER_BRANCH} && \
     # 更新lock文件
     cd /app && python main.py --type update_lock && \
@@ -158,7 +158,7 @@ FROM medium-builder as cloud-medium-builder
 ## 构建云区域组件介质
 RUN set -ex && \
     cd /blueking-dbm/dbm-services/common/dbha/ha-module && \
-    go build -o build/ dbha.go && \
+    make build VERSION=$(/lock.sh cloud cloud-dbha version) GITHASH=$(/lock.sh cloud cloud-dbha commitId) -j4  && \
     cd /blueking-dbm/dbm-services/common/db-dns/dns-reload && \
     make build VER=$(/lock.sh cloud cloud-dns-pullcrond version) && \
     cd /blueking-dbm/dbm-services/mysql/db-remote-service && \
