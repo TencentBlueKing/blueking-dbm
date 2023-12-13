@@ -15,6 +15,7 @@ from typing import Dict, List
 from django.db import models
 from django.forms import model_to_dict
 
+from backend import env
 from backend.bk_web.models import AuditedModel
 from backend.components import DnsApi
 from backend.db_meta.enums import ClusterEntryRole, ClusterEntryType
@@ -93,7 +94,7 @@ class ClusterEntry(AuditedModel):
         else:
             detail_obj = None
 
-        return model_to_dict(detail_obj) if detail_obj else {}
+        return {**model_to_dict(detail_obj), **{"url": getattr(detail_obj, "url", "")}} if detail_obj else {}
 
     def __str__(self):
         return "{}:{}".format(self.cluster_entry_type, self.entry)
@@ -113,6 +114,10 @@ class CLBEntryDetail(AuditedModel):
     listener_id = models.CharField(default="", max_length=30)
     clb_region = models.CharField(default="", max_length=50)
 
+    @property
+    def url(self):
+        return ""
+
     def __str__(self):
         return "{}".format(self.clb_ip)
 
@@ -130,6 +135,10 @@ class PolarisEntryDetail(AuditedModel):
     polaris_l5 = models.CharField(default="", max_length=30)
     polaris_token = models.CharField(default="", max_length=50)
     alias_token = models.CharField(default="", max_length=50)
+
+    @property
+    def url(self):
+        return f"{env.NAMESERVICE_POLARIS_DOMAIN}/#/services/alias?alias={self.polaris_l5}"
 
     def __str__(self):
         return "{}".format(self.polaris_name)
