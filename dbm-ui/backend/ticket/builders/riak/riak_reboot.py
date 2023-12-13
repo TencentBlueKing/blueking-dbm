@@ -25,7 +25,8 @@ logger = logging.getLogger("root")
 
 
 class RiakRebootDetailSerializer(serializers.Serializer):
-    bk_host_id = serializers.IntegerField(help_text=_("主机ID"))
+    bk_host_id = serializers.IntegerField(help_text=_("重启主机ID"))
+    cluster_id = serializers.IntegerField(help_text=_("集群ID"))
 
     def validate(self, attrs):
         try:
