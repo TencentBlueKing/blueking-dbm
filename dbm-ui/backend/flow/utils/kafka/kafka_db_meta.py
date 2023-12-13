@@ -197,18 +197,36 @@ class KafkaMeta(object):
             "bk_cloud_id": bk_cloud_id,
         }
         with atomic():
+            # 兼容旧集群broker及zk混部的情况
+            uniq_machines = []
+            for machine in machines:
+                if check_machines_duplicate(uniq_machines, machine["ip"]):
+                    # 跳过IP重复的machine 实体
+                    continue
+                else:
+                    uniq_machines.append(machine)
+
             # 绑定事务更新cmdb
             api.machine.create(
                 bk_cloud_id=bk_cloud_id,
-                machines=machines,
+                machines=uniq_machines,
                 creator=self.ticket_data["created_by"],
             )
-            storage_objs = api.storage_instance.create(
-                instances=storage_instances, creator=self.ticket_data["created_by"]
-            )
+            api.storage_instance.create(instances=storage_instances, creator=self.ticket_data["created_by"])
             new_cluster = api.cluster.kafka.create(**cluster)
+            # 兼容 broker及zk 混部的场景
+            broker_storage_objs = list(new_cluster.storageinstance_set.filter(instance_role=InstanceRole.BROKER))
+            # 修改zk 实例对象的machineType，写入数据库
+            if len(uniq_machines) != len(machines):
+                new_cluster.storageinstance_set.filter(instance_role=InstanceRole.ZOOKEEPER).update(
+                    machine_type=MachineType.ZOOKEEPER.value
+                )
+            zk_storage_objs = list(new_cluster.storageinstance_set.filter(instance_role=InstanceRole.ZOOKEEPER))
+
             # 生成模块、转移主机、添加服务实例
-            KafkaCCTopoOperator(new_cluster, self.ticket_data).transfer_instances_to_cluster_module(storage_objs)
+            KafkaCCTopoOperator(new_cluster, self.ticket_data).transfer_instances_to_cluster_module(
+                instances=broker_storage_objs + zk_storage_objs, is_increment=True
+            )
 
         return True
 
@@ -279,3 +297,11 @@ class KafkaMeta(object):
             )
             KafkaCCTopoOperator(cluster, self.ticket_data).transfer_instances_to_cluster_module(storage_objs)
         return True
+
+
+def check_machines_duplicate(machines: list, ip: str) -> bool:
+    """
+    判断ip是否存在于machines列表中，machines为machine_info_dict列表
+    """
+    machine_ips = [machine["ip"] for machine in machines]
+    return ip in machine_ips

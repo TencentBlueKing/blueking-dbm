@@ -149,8 +149,9 @@ MachineTypeInstanceRoleMap = {
     MachineType.ES_CLIENT: [InstanceRole.ES_CLIENT],
     MachineType.BROKER: [
         InstanceRole.BROKER,
+        InstanceRole.ZOOKEEPER,
     ],
-    MachineType.ZOOKEEPER: [InstanceRole.ZOOKEEPER],
+    MachineType.ZOOKEEPER: [InstanceRole.ZOOKEEPER, InstanceRole.BROKER],
     MachineType.HDFS_MASTER: [
         InstanceRole.HDFS_ZOOKEEPER,
         InstanceRole.HDFS_JOURNAL_NODE,
