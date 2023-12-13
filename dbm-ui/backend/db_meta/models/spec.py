@@ -75,13 +75,15 @@ class Spec(AuditedModel):
 
         return sum(map(lambda x: int(x), mount_point__size.values()))
 
-    def _get_apply_params_detail(self, group_mark, count, bk_cloud_id, affinity=AffinityEnum.NONE, location_spec=None):
+    def _get_apply_params_detail(
+        self, group_mark, count, bk_cloud_id, affinity=AffinityEnum.NONE.value, location_spec=None
+    ):
         # 如果没有城市信息，则自动忽略亲和性(default表示无城市信息)
         if location_spec and location_spec["city"] == "default":
             location_spec = None
 
         if not location_spec:
-            affinity = AffinityEnum.NONE
+            affinity = AffinityEnum.NONE.value
 
         # 获取资源申请的detail过程，暂时忽略亲和性和位置参数过滤
         spec_offset = SystemSettings.get_setting_value(SystemSettingsEnum.SPEC_OFFSET)
@@ -108,7 +110,7 @@ class Spec(AuditedModel):
                 for storage_spec in self.storage_spec
             ],
             "count": count,
-            "affinity": affinity.value,
+            "affinity": affinity,
         }
         if location_spec:
             apply_params["location_spec"] = location_spec
