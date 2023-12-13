@@ -286,7 +286,7 @@
               <db-icon
                 type="copy"
                 v-bk-tooltips={t('复制主访问入口')}
-                onClick={() => copy(data.master_domain)} />
+                onClick={() => copy(data.masterDomainDisplayName)} />
             )
           }
           {userProfileStore.isManager && <db-icon
@@ -375,7 +375,7 @@
               <db-icon
                 type="copy"
                 v-bk-tooltips={t('复制从访问入口')}
-                onClick={() => copy(data.slave_domain)} />
+                onClick={() => copy(data.slaveDomainDisplayName)} />
             )
           }
           {userProfileStore.isManager && <db-icon
@@ -636,7 +636,7 @@
             {
               renderDropdownOperations.length > 0
                 ? (
-                  <bk-dropdown class="operations-more">
+                  <bk-dropdown class="operations-more" trigger="click">
                     {{
                       default: () => <db-icon type="more" />,
                       content: () => (

@@ -119,7 +119,10 @@
 
   const fetchClusterTopo = () => {
     isTreeDataLoading.value = true;
-    getRedisList().then((data) => {
+    getRedisList({
+      offset: 0,
+      limit: -1,
+    }).then((data) => {
       const arr = data.results;
       treeData.value = arr;
       setTimeout(() => {
