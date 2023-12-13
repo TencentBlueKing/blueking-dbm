@@ -82,7 +82,7 @@
     const end = new Date();
     const start = new Date();
     start.setTime(start.getTime() - 3600 * 1000 * 24 * 7);
-    return [start.toString(), end.toString()] as [string, string];
+    return [start.toISOString(), end.toISOString()] as [string, string];
   };
   const statusMap = {
     CREATED: '等待执行',

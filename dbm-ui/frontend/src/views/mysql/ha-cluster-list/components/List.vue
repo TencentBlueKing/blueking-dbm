@@ -254,7 +254,7 @@
       width: 200,
       minWidth: 200,
       showOverflowTooltip: false,
-      render: ({ cell, data }: ColumnData) => (
+      render: ({ data }: ColumnData) => (
         <div class="domain">
           <span class="text-overflow" v-overflow-tips>
             <bk-button
@@ -267,7 +267,7 @@
           <db-icon
             type="copy"
             v-bk-tooltips={t('复制主访问入口')}
-            onClick={() => copy(cell)} />
+            onClick={() => copy(data.masterDomainDisplayName)} />
             {userProfileStore.isManager && <db-icon
               type="edit"
               v-bk-tooltips={t('修改入口配置')}
@@ -332,7 +332,7 @@
       field: 'slave_domain',
       minWidth: 200,
       showOverflowTooltip: false,
-      render: ({ cell, data }: ColumnData) => (
+      render: ({ data }: ColumnData) => (
         <div class="domain">
           <span
             class="text-overflow"
@@ -342,7 +342,7 @@
           <db-icon
             v-bk-tooltips={t('复制从访问入口')}
             type="copy"
-            onClick={() => copy(cell)} />
+            onClick={() => copy(data.slaveDomainDisplayName)} />
           {userProfileStore.isManager && <db-icon
             type="edit"
             v-bk-tooltips={t('修改入口配置')}

@@ -154,7 +154,7 @@ export default class Redis {
     this.bk_biz_name = payload.bk_biz_name;
     this.bk_cloud_name = payload.bk_cloud_name;
     this.master_domain = payload.master_domain;
-    this.cluster_entry = payload.cluster_entry;
+    this.cluster_entry = payload.cluster_entry || [];
     this.proxy = payload.proxy;
     this.redis_master = payload.redis_master;
     this.redis_slave = payload.redis_slave;
@@ -222,5 +222,13 @@ export default class Redis {
     const port = this.proxy[0]?.port;
     const displayName = port ? `${this.master_domain}:${port}` : this.master_domain;
     return displayName;
+  }
+
+  get isOnlineCLB() {
+    return this.cluster_entry.some(item => item.cluster_entry_type === 'clb');
+  }
+
+  get isOnlinePolaris() {
+    return this.cluster_entry.some(item => item.cluster_entry_type === 'polaris');
   }
 }

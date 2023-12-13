@@ -160,6 +160,7 @@
   import DbStatus from '@components/db-status/index.vue';
   import MiniTag from '@components/mini-tag/index.vue';
   import RenderInstances from '@components/render-instances/RenderInstances.vue';
+  import RenderTextEllipsisOneLine from '@components/text-ellipsis-one-line/index.vue';
 
   import type { RedisState } from '@views/redis/common/types';
 
@@ -171,6 +172,7 @@
   import RedisBackup from './components/Backup.vue';
   import ClusterPassword from './components/ClusterPassword.vue';
   import DeleteKeys from './components/DeleteKeys.vue';
+  import EntryPanel from './components/EntryPanel.vue';
   import ExtractKeys from './components/ExtractKeys.vue';
   import OperationStatusTips from './components/OperationStatusTips.vue';
   import RedisPurge from './components/Purge.vue';
@@ -315,25 +317,40 @@
       minWidth: 200,
       fixed: 'left',
       render: ({ data }: ColumnRenderData) => {
-        const entryTypes = (data.cluster_entry || []).map(item => item.cluster_entry_type);
-        const isOnlineCLB = entryTypes.includes('clb');
+        const content = <>
+          {data.isOnlineCLB && <EntryPanel
+            entryType='clb'
+            clusterId={data.id}>
+              <MiniTag
+                content="CLB"
+                extCls='redis-manage-clb-minitag' />
+            </EntryPanel>}
+          {data.isOnlinePolaris && <EntryPanel
+            entryType='polaris'
+            clusterId={data.id}
+            panelWidth={418}>
+            <MiniTag
+              content="北极星"
+              extCls='redis-manage-polary-minitag' />
+          </EntryPanel>}
+          {data.master_domain && (
+            <db-icon
+              type="copy"
+              v-bk-tooltips={t('复制访问入口')}
+              onClick={() => copy(data.masterDomainDisplayName)} />
+          )}
+          {userProfileStore.isManager && <db-icon
+            type="edit"
+            v-bk-tooltips={t('修改入口配置')}
+            onClick={() => handleOpenEntryConfig(data)} />}
+        </>;
         return (
           <div class="domain">
-            <span
-              class="text-overflow"
-              v-overflow-tips>
-              <bk-button
-                text
-                theme="primary"
-                onClick={() => handleToDetails(data.id)}>
-                {data.masterDomainDisplayName || '--'}
-              </bk-button>
-            </span>
-            {isOnlineCLB && <MiniTag content="CLB" extCls='redis-manage-clb-minitag' />}
-            {userProfileStore.isManager && <db-icon
-              type="edit"
-              v-bk-tooltips={t('修改入口配置')}
-              onClick={() => handleOpenEntryConfig(data)} />}
+            <RenderTextEllipsisOneLine
+              text={data.masterDomainDisplayName}
+              onText-click={() => handleToDetails(data.id)}>
+              {content}
+            </RenderTextEllipsisOneLine>
           </div>
         );
       },
@@ -498,13 +515,10 @@
       width: tableOperationWidth.value,
       fixed: isStretchLayoutOpen.value ? false : 'right',
       render: ({ data }: ColumnRenderData) => {
-        const entryTypes = (data.cluster_entry || []).map(item => item.cluster_entry_type);
-        const isOnlineCLB = entryTypes.includes('clb');
-        const clbSwitchTicketKey = isOnlineCLB
+        const clbSwitchTicketKey = data.isOnlineCLB
           ? TicketTypes.REDIS_PLUGIN_DELETE_CLB
           : TicketTypes.REDIS_PLUGIN_CREATE_CLB;
-        const isOnlinePolaris = entryTypes.includes('polaris');
-        const polarisSwitchTicketKey = isOnlinePolaris
+        const polarisSwitchTicketKey = data.isOnlinePolaris
           ? TicketTypes.REDIS_PLUGIN_DELETE_POLARIS
           : TicketTypes.REDIS_PLUGIN_CREATE_POLARIS;
 
@@ -633,7 +647,7 @@
                         disabled={disabled || data.phase === 'offline'}
                         text
                         onClick={() => handleSwitchCLB(clbSwitchTicketKey, data)}>
-                        { isOnlineCLB ? t('禁用CLB') : t('启用CLB') }
+                        { data.isOnlineCLB ? t('禁用CLB') : t('启用CLB') }
                       </bk-button>
                     ),
                   }}
@@ -651,7 +665,7 @@
                         disabled={disabled || data.phase === 'offline'}
                         text
                         onClick={() => handleSwitchDNSBindCLB(data)}>
-                        { data.dns_to_clb ? t('恢复 DNS 域名指向') : t('DNS 域名指向 CLB') }
+                        { data.dns_to_clb ? t('恢复DNS域名指向') : t('DNS域名指向CLB') }
                       </bk-button>
                     ),
                   }}
@@ -669,7 +683,7 @@
                         disabled={disabled || data.phase === 'offline'}
                         text
                         onClick={() => handleSwitchPolaris(polarisSwitchTicketKey, data)}>
-                        { isOnlinePolaris ? t('禁用北极星') : t('启用北极星') }
+                        { data.isOnlinePolaris ? t('禁用北极星') : t('启用北极星') }
                       </bk-button>
                     ),
                   }}
@@ -745,7 +759,10 @@
         return (
             <div class="operations">
               {getOperations()}
-              <bk-dropdown class="operations__more">
+              <bk-dropdown
+                class="operations__more"
+                trigger="click"
+                popover-options={{ zIndex: 10 }}>
                 {{
                   default: () => <db-icon type="more" />,
                   content: () => (
@@ -1315,11 +1332,23 @@
 <style lang="less">
 .redis-manage-clb-minitag {
   color: #8E3AFF;
+  cursor: pointer;
   background-color: #F2EDFF;
 
   &:hover {
     color: #8E3AFF;
-    background-color: #F2EDFF;
+    background-color: #E3D9FE;
+  }
+}
+
+.redis-manage-polary-minitag {
+  color: #3A84FF;
+  cursor: pointer;
+  background-color: #EDF4FF;
+
+  &:hover {
+    color: #3A84FF;
+    background-color: #E1ECFF;
   }
 }
 

@@ -231,6 +231,12 @@
               {data.domainDisplayName || '--'}
             </bk-button >
           </span>
+          {data.domain && (
+            <db-icon
+              type="copy"
+              v-bk-tooltips={t('复制访问入口')}
+              onClick={() => copy(data.domainDisplayName)} />
+          )}
           {userProfileStore.isManager && <db-icon
             type="edit"
             v-bk-tooltips={t('修改入口配置')}
