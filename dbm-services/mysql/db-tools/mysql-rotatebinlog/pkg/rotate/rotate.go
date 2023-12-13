@@ -209,8 +209,13 @@ func (i *ServerObj) RegisterBinlog(lastFileBefore string) error {
 		events, err := bp.GetTime(fileName, true, true)
 		if err != nil {
 			logger.Warn("binlog %s GetTime failed: %s", fileName, err.Error())
-			backupStatus = models.IBStatusClientFail
-			backupStatusInfo = err.Error()
+			events, err = bp.GetTime(fileName, true, false)
+			if err == nil {
+				logger.Warn("binlog stop_time use start_time, file% %s: %s", fileName, err.Error())
+				events = append(events, events[0])
+			}
+			//backupStatus = models.IBStatusClientFail
+			//backupStatusInfo = err.Error()
 		}
 		if i.Tags.DBRole == models.RoleSlave { // slave 无需备份 binlog
 			backupStatus = models.FileStatusNoNeedUpload
@@ -269,12 +274,13 @@ func (r *BinlogRotate) Backup(backupClient backup.BackupClient) error {
 				bp, _ := binlog_parser.NewBinlogParse("", 0, reportlog.ReportTimeLayout1)
 				events, err := bp.GetTime(filename, true, true)
 				if err != nil {
+					events, _ = bp.GetTime(filename, true, false)
+					events = append(events, events[0])
 					logger.Warn("Backup GetTime %s", filename, err.Error())
 					// f.BackupStatus = FileStatusAbnormal
-				} else {
-					f.StartTime = events[0].EventTime
-					f.StopTime = events[0].EventTime
 				}
+				f.StartTime = events[0].EventTime
+				f.StopTime = events[1].EventTime
 			}
 			logger.Info("backup_client upload register file %s", filename)
 			if taskid, err := backupClient.Upload(filename); err != nil {

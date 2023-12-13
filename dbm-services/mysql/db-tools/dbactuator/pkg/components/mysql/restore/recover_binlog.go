@@ -121,6 +121,7 @@ type MySQLBinlogUtil struct {
 	// --start-datetime  时间格式
 	// 格式 "2006-01-02 15:04:05" 原样传递给 mysqlbinlog
 	// 格式"2006-01-02T15:04:05Z07:00"(示例"2023-12-11T05:03:05+08:00")按照机器本地时间，解析成 "2006-01-02 15:04:05" 再传递给 mysqlbinlog
+	// 在 Init 时会统一把时间字符串转换成 time.RFC3399
 	StartTime string `json:"start_time"`
 	// --stop-datetime   时间格式同 StartTime，可带时区，会转换成机器本地时间
 	StopTime string `json:"stop_time"`
@@ -326,21 +327,28 @@ func (r *RecoverBinlog) Init() error {
 		return errors.New("--flashback need quick_mode=true")
 	}
 	if r.RecoverOpt.StartTime != "" {
-		if t, err := time.ParseInLocation(time.RFC3339, r.RecoverOpt.StartTime, time.Local); err == nil {
-			r.RecoverOpt.StartTime = t.Format(time.DateTime)
-		} else if _, err := time.ParseInLocation(time.DateTime, r.RecoverOpt.StartTime, time.Local); err == nil {
-			// keep b.StartTime
+		if t, err := time.ParseInLocation(time.DateTime, r.RecoverOpt.StartTime, time.Local); err == nil {
+			r.RecoverOpt.StartTime = t.Format(time.RFC3339)
+		} else if _, err := time.ParseInLocation(time.RFC3339, r.RecoverOpt.StartTime, time.Local); err == nil {
+			// keep
 		} else {
 			return errors.Errorf("unknown time format for start_time: %s", r.RecoverOpt.StartTime)
 		}
 	}
+
 	if r.RecoverOpt.StopTime != "" {
-		if t, err := time.ParseInLocation(time.RFC3339, r.RecoverOpt.StopTime, time.Local); err == nil {
-			r.RecoverOpt.StopTime = t.Format(time.DateTime)
-		} else if _, err := time.ParseInLocation(time.DateTime, r.RecoverOpt.StopTime, time.Local); err == nil {
-			// keep b.StopTime
+		var stopTime time.Time
+		if t, err := time.ParseInLocation(time.DateTime, r.RecoverOpt.StopTime, time.Local); err == nil {
+			r.RecoverOpt.StopTime = t.Format(time.RFC3339)
+		} else if _, err := time.ParseInLocation(time.RFC3339, r.RecoverOpt.StopTime, time.Local); err == nil {
+			// keep
 		} else {
 			return errors.Errorf("unknown time format for stop_time: %s", r.RecoverOpt.StopTime)
+		}
+		stopTime, _ = time.ParseInLocation(time.RFC3339, r.RecoverOpt.StopTime, time.Local)
+		if nowTime := time.Now(); nowTime.Compare(stopTime) < 0 {
+			return errors.Errorf("StopTime [%s] cannot be greater than db current time [%s]",
+				r.RecoverOpt.StopTime, nowTime)
 		}
 	}
 
@@ -405,10 +413,18 @@ func (r *RecoverBinlog) buildBinlogOptions() error {
 		}
 	}
 	if b.StartTime != "" {
-		b.options += fmt.Sprintf(" --start-datetime='%s'", b.StartTime)
+		startTime, err := time.ParseInLocation(time.RFC3339, b.StartTime, time.Local)
+		if err != nil {
+			return errors.Errorf("start_time expect format %s but got %s", time.RFC3339, b.StartTime)
+		}
+		b.options += fmt.Sprintf(" --start-datetime='%s'", startTime.Local().Format(time.DateTime))
 	}
 	if b.StopTime != "" {
-		b.options += fmt.Sprintf(" --stop-datetime='%s'", b.StopTime)
+		stopTime, err := time.ParseInLocation(time.RFC3339, b.StopTime, time.Local)
+		if err != nil {
+			return errors.Errorf("stop_time expect format %s but got %s", time.RFC3339, b.StopTime)
+		}
+		b.options += fmt.Sprintf(" --stop-datetime='%s'", stopTime.Local().Format(time.DateTime))
 	}
 	b.options += " --base64-output=auto"
 	// 严谨的情况，只有在确定源实例是 row full 模式下，才能启用 binlog 过滤条件，否则只能全量应用。
@@ -495,12 +511,12 @@ func (r *RecoverBinlog) initDirs() error {
 // PreCheck TODO
 func (r *RecoverBinlog) PreCheck() error {
 	var err error
-	if err := r.buildMysqlOptions(); err != nil {
+	if err = r.buildMysqlOptions(); err != nil {
 		return err
 	}
 	// init mysqlbinlog options
-	if err := r.buildBinlogOptions(); err != nil {
-		return nil
+	if err = r.buildBinlogOptions(); err != nil {
+		return err
 	}
 	// 检查 binlog 是否存在
 	var binlogFilesErrs []error
@@ -555,21 +571,39 @@ func (r *RecoverBinlog) FilterBinlogFiles() (int64, error) {
 	var totalSize int64 = 0
 	var firstBinlogSize int64 = 0
 	logger.Info("BinlogFiles before filter: %v", r.BinlogFiles)
+
+	startTimeMore, _ := time.ParseInLocation(time.RFC3339, r.RecoverOpt.StartTime, time.Local)
+	stopTimeMore, _ := time.ParseInLocation(time.RFC3339, r.RecoverOpt.StopTime, time.Local)
+	startTimeFilter := startTimeMore.Add(-20 * time.Minute).Format(time.RFC3339)
+	stopTimeFilter := stopTimeMore.Add(20 * time.Minute).Format(time.RFC3339)
+
 	if r.RecoverOpt.StartTime != "" && r.BinlogStartFile == "" {
 		binlogFiles[0] = ""
 		for _, f := range r.BinlogFiles {
 			fileName := filepath.Join(r.BinlogDir, f)
+			// **** get binlog time
+			// todo 如果是闪回模式，只从本地binlog获取，也可以读取 file mtime，确保不会出错
 			events, err := bp.GetTime(fileName, true, true)
 			if err != nil {
-				return 0, err
+				logger.Warn("binlog get time failed %s : %s", fileName, err.Error())
+				// 有一种情况，获取 binlog rotate event 失败
+				events, err = bp.GetTime(fileName, true, false)
+				if err == nil {
+					logger.Warn("use start_time as binlog end_time %s : %s", fileName, events[0])
+					events = append(events, events[0])
+				} else {
+					return 0, err
+				}
 			}
 			startTime := events[0].EventTime
 			stopTime := events[1].EventTime
+			// **** get binlog time
+
 			fileSize := cmutil.GetFileSize(fileName)
-			if startTime > r.RecoverOpt.StartTime { // time.RFC3339
+			if startTime > startTimeFilter { // time.RFC3339
 				binlogFiles = append(binlogFiles, f)
 				totalSize += fileSize
-				if r.RecoverOpt.StopTime != "" && stopTime > r.RecoverOpt.StopTime {
+				if r.RecoverOpt.StopTime != "" && stopTime > stopTimeFilter {
 					break
 				}
 			} else {

@@ -2,6 +2,7 @@ package rollback
 
 import (
 	"path/filepath"
+	"time"
 
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components"
@@ -76,30 +77,23 @@ func (f *Flashback) Init() error {
 			NotWriteBinlog:    false,
 			IdempotentMode:    true,
 			StartTime:         f.TargetTime,
-			Databases:         f.RecoverOpt.Databases,
-			Tables:            f.RecoverOpt.Tables,
-			DatabasesIgnore:   f.RecoverOpt.DatabasesIgnore,
-			TablesIgnore:      f.RecoverOpt.TablesIgnore,
+			//StopTime:          f.StopTime,
+			Databases:       f.RecoverOpt.Databases,
+			Tables:          f.RecoverOpt.Tables,
+			DatabasesIgnore: f.RecoverOpt.DatabasesIgnore,
+			TablesIgnore:    f.RecoverOpt.TablesIgnore,
 		},
 	}
+	if f.StopTime == "" {
+		f.StopTime = time.Now().Format(time.RFC3339)
+	}
+	f.recover.RecoverOpt.StopTime = f.StopTime
+
 	// 拼接 recover-binlog 参数
 	if err := f.recover.Init(); err != nil {
 		return err
 	}
-
 	f.dbWorker = f.recover.GetDBWorker()
-	// 检查起止时间
-	dbNowTime, err := f.dbWorker.SelectNow()
-	if err != nil {
-		return err
-	}
-	if f.StopTime == "" {
-		f.StopTime = dbNowTime
-	} else if f.StopTime > dbNowTime {
-		return errors.Errorf("StopTime [%s] cannot be greater than db current time [%s]", f.StopTime, dbNowTime)
-	}
-	f.recover.RecoverOpt.StopTime = f.StopTime
-
 	return nil
 }
 

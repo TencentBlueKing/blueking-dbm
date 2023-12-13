@@ -141,6 +141,7 @@ func (b *BinlogParse) init() error {
 }
 
 // GetTime 获取binlog 开始或结束时间
+// 即使获取 rotate event 失败，也把已经成功的返回
 func (b *BinlogParse) GetTime(fileName string, start, stop bool) ([]BinlogEventHeaderWrapper, error) {
 	b.FileName = fileName
 	if err := cmutil.FileExistsErr(b.FileName); err != nil {
@@ -153,11 +154,13 @@ func (b *BinlogParse) GetTime(fileName string, start, stop bool) ([]BinlogEventH
 	defer f.Close()
 
 	var events []*replication.EventHeader
+	var evhWrappers []BinlogEventHeaderWrapper
 	if start {
 		if evh, err := b.GetFormatDescriptionEvent(f); err != nil {
 			return nil, err
 		} else {
 			events = append(events, evh)
+			evhWrappers = append(evhWrappers, b.NewBinlogEventHeaderWrapper(evh))
 		}
 	}
 	if stop {
@@ -165,15 +168,11 @@ func (b *BinlogParse) GetTime(fileName string, start, stop bool) ([]BinlogEventH
 		if err != nil {
 			b.LastBufSize = MaxLastBufSize
 			if evh, err = b.GetRotateEvent(f); err != nil {
-				return nil, err
+				return evhWrappers, err
 			}
 		}
 		events = append(events, evh)
-	}
-	var evhWrappers []BinlogEventHeaderWrapper
-	for _, header := range events {
-		w := b.NewBinlogEventHeaderWrapper(header)
-		evhWrappers = append(evhWrappers, w)
+		evhWrappers = append(evhWrappers, b.NewBinlogEventHeaderWrapper(evh))
 	}
 	return evhWrappers, nil
 }

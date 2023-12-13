@@ -79,7 +79,7 @@ get_config_files() {
       fi
     done
   fi
-  if [ -z $configFiles ];then
+  if [ -z "$configFiles" ];then
     echo -e "Error: no config files found\n" >&2
     usage
   fi
