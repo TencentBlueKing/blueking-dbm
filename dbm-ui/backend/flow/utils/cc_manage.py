@@ -209,9 +209,9 @@ class CcManage(object):
                         "properties": {
                             CC_HOST_DBM_ATTR: json.dumps(cc_dbm_meta),
                             # 主要维护人
-                            "operator": biz_dba,
+                            "operator": ",".join(biz_dba),
                             # 备份维护人
-                            "bk_bak_operator": biz_dba,
+                            "bk_bak_operator": ",".join(biz_dba),
                             # 主机状态
                             env.CMDB_HOST_STATE_ATTR: env.CMDB_NEED_MONITOR_STATUS
                             if need_monitor
