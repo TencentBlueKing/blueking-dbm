@@ -62,9 +62,7 @@ var (
 
 // CertificateFile
 var (
-	CerFile710 = []string{"root-ca.pem", "root-ca-key.pem", "admin.pem",
-		"admin-key.pem", "node1.pem", "node1_http.pem",
-		"node1.key", "node1_http.key", "elasticsearch.yml.append"}
+	CerFile710 = []string{"*.pem", "*.key", "elasticsearch.yml.append"}
 
 	CerFile = []string{"elastic-stack-ca.p12", "elastic-certificates.p12",
 		"elasticsearch.yml.append", "es_passfile", "elasticsearch.keystore"}
