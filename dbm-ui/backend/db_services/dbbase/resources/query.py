@@ -19,8 +19,6 @@ from backend.db_meta.enums import ClusterEntryType
 from backend.db_meta.models import Cluster, ClusterEntry, Machine
 from backend.flow.utils.dns_manage import DnsManage
 
-logger = logging.getLogger("root")
-
 
 @attr.s
 class ResourceList:

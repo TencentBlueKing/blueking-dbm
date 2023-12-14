@@ -19,7 +19,7 @@ class ResourceLimitOffsetPagination(AuditedLimitOffsetPagination):
     """专为 ResourceViewSet 定制的 LimitOffsetPagination, 用于处理 ResourceList 类型数据的分页问题"""
 
     no_limit_query_param = "no_limit"
-    limit = 1
+    limit = 10
     offset = 0
     count = 0
 
