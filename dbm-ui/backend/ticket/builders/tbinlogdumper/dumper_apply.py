@@ -23,7 +23,7 @@ from backend.flow.consts import TBinlogDumperAddType
 from backend.flow.engine.controller.tbinlogdumper import TBinlogDumperController
 from backend.ticket import builders
 from backend.ticket.builders.common.constants import DumperProtocolType
-from backend.ticket.builders.tendbcluster.base import BaseTendbTicketFlowBuilder
+from backend.ticket.builders.tendbcluster.base import BaseDumperTicketFlowBuilder, BaseTendbTicketFlowBuilder
 from backend.ticket.constants import TicketType
 
 
@@ -123,7 +123,7 @@ class TbinlogdumperApplyFlowParamBuilder(builders.FlowParamBuilder):
 
 
 @builders.BuilderFactory.register(TicketType.TBINLOGDUMPER_INSTALL)
-class TbinlogdumperApplyFlowBuilder(BaseTendbTicketFlowBuilder):
+class TbinlogdumperApplyFlowBuilder(BaseDumperTicketFlowBuilder):
     serializer = TbinlogdumperApplyDetailSerializer
     inner_flow_builder = TbinlogdumperApplyFlowParamBuilder
     inner_flow_name = _("Tbinlogdumper 上架")

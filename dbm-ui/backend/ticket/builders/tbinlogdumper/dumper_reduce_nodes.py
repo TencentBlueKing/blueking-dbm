@@ -21,11 +21,12 @@ from backend.db_meta.models import ExtraProcessInstance
 from backend.db_services.mysql.dumper.models import DumperSubscribeConfig
 from backend.flow.engine.controller.tbinlogdumper import TBinlogDumperController
 from backend.ticket import builders
-from backend.ticket.builders.tendbcluster.base import BaseTendbTicketFlowBuilder
+from backend.ticket.builders.common.base import SkipToRepresentationMixin
+from backend.ticket.builders.tendbcluster.base import BaseDumperTicketFlowBuilder, BaseTendbTicketFlowBuilder
 from backend.ticket.constants import TicketFlowStatus, TicketType
 
 
-class TbinlogdumperReduceNodesDetailSerializer(serializers.Serializer):
+class TbinlogdumperReduceNodesDetailSerializer(SkipToRepresentationMixin, serializers.Serializer):
     dumper_instance_ids = serializers.ListField(help_text=_("dumper实例ID"), child=serializers.IntegerField())
 
 
@@ -65,7 +66,7 @@ class TbinlogdumperReduceNodesFlowParamBuilder(builders.FlowParamBuilder):
 
 
 @builders.BuilderFactory.register(TicketType.TBINLOGDUMPER_REDUCE_NODES)
-class TbinlogdumperReduceNodesFlowBuilder(BaseTendbTicketFlowBuilder):
+class TbinlogdumperReduceNodesFlowBuilder(BaseDumperTicketFlowBuilder):
     serializer = TbinlogdumperReduceNodesDetailSerializer
     inner_flow_builder = TbinlogdumperReduceNodesFlowParamBuilder
     inner_flow_name = _("Tbinlogdumper 下架")
