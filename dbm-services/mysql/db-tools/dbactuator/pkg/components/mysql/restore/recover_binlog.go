@@ -80,6 +80,7 @@ type RecoverBinlog struct {
 	// 解析的并发度，默认 1
 	ParseConcurrency int `json:"parse_concurrency"`
 	// 指定要开始应用的第 1 个 binlog。如果指定，一般要设置 start_pos，如果不指定则使用 start_time
+	// BinlogStartFile 只能由外部传入，不要内部修改
 	BinlogStartFile string `json:"binlog_start_file"`
 
 	// 如果启用 quick_mode，解析 binlog 时根据 filter databases 等选项过滤 row event，对 query event 会全部保留 。需要 mysqlbinlog 工具支持 --tables 选项，可以指定参数的 tools
@@ -404,20 +405,23 @@ func (r *RecoverBinlog) buildBinlogOptions() error {
 	if b.StartPos == 0 && b.StartTime == "" {
 		return errors.Errorf("start_time and start_pos cannot be empty both")
 	}
+	// 优先使用 start_pos
 	if b.StartPos > 0 {
 		if r.BinlogStartFile == "" {
 			return errors.Errorf("start_pos must has binlog_start_file")
 		} else {
 			b.options += fmt.Sprintf(" --start-position=%d", b.StartPos)
+			// 输入的 binlog 列表的第一个文件，就是 start_file
 			// 同时要把 BinlogFiles 列表里面，binlog_start_file 之前的文件去掉
 		}
-	}
-	if b.StartTime != "" {
-		startTime, err := time.ParseInLocation(time.RFC3339, b.StartTime, time.Local)
-		if err != nil {
-			return errors.Errorf("start_time expect format %s but got %s", time.RFC3339, b.StartTime)
+	} else {
+		if b.StartTime != "" {
+			startTime, err := time.ParseInLocation(time.RFC3339, b.StartTime, time.Local)
+			if err != nil {
+				return errors.Errorf("start_time expect format %s but got %s", time.RFC3339, b.StartTime)
+			}
+			b.options += fmt.Sprintf(" --start-datetime='%s'", startTime.Local().Format(time.DateTime))
 		}
-		b.options += fmt.Sprintf(" --start-datetime='%s'", startTime.Local().Format(time.DateTime))
 	}
 	if b.StopTime != "" {
 		stopTime, err := time.ParseInLocation(time.RFC3339, b.StopTime, time.Local)
@@ -425,6 +429,8 @@ func (r *RecoverBinlog) buildBinlogOptions() error {
 			return errors.Errorf("stop_time expect format %s but got %s", time.RFC3339, b.StopTime)
 		}
 		b.options += fmt.Sprintf(" --stop-datetime='%s'", stopTime.Local().Format(time.DateTime))
+	} else {
+		return errors.Errorf("stop_time cannot be empty")
 	}
 	b.options += " --base64-output=auto"
 	// 严谨的情况，只有在确定源实例是 row full 模式下，才能启用 binlog 过滤条件，否则只能全量应用。
@@ -509,6 +515,7 @@ func (r *RecoverBinlog) initDirs() error {
 }
 
 // PreCheck TODO
+// r.BinlogFiles 是已经过滤后的 binlog 文件列表
 func (r *RecoverBinlog) PreCheck() error {
 	var err error
 	if err = r.buildMysqlOptions(); err != nil {
@@ -539,22 +546,22 @@ func (r *RecoverBinlog) PreCheck() error {
 		return err
 	}
 
+	// 指定了开始 binlog file 时，忽略 start_time
 	// 检查第一个 binlog 是否存在
 	if r.BinlogStartFile != "" {
 		if !util.StringsHas(r.BinlogFiles, r.BinlogStartFile) {
 			return errors.Errorf("first binlog %s not found", r.BinlogStartFile)
 		}
 		// 如果 start_datetime 为空，依赖 start_file, start_pos 选择起始 binlog pos
-		if r.RecoverOpt.StartTime == "" {
-			for i, f := range r.BinlogFiles {
-				if f != r.BinlogStartFile {
-					logger.Info("remove binlog file %s from list", f)
-					r.BinlogFiles[i] = "" // 移除第一个 binlog 之前的 file
-				} else {
-					break
-				}
+		for i, f := range r.BinlogFiles {
+			if f != r.BinlogStartFile {
+				logger.Info("remove binlog file %s from list", f)
+				r.BinlogFiles[i] = "" // 移除第一个 binlog 之前的 file
+			} else {
+				break
 			}
 		}
+		r.BinlogFiles = cmutil.StringsRemoveEmpty(r.BinlogFiles)
 	}
 
 	if err := r.checkTimeRange(); err != nil {
@@ -565,62 +572,107 @@ func (r *RecoverBinlog) PreCheck() error {
 }
 
 // FilterBinlogFiles 对 binlog 列表多余是时间，掐头去尾，并返回文件总大小
-func (r *RecoverBinlog) FilterBinlogFiles() (int64, error) {
-	bp, _ := binlogParser.NewBinlogParse("", 0, time.RFC3339) // 接收的时间过滤参数也需要用 RFC3339
-	var binlogFiles = []string{""}                            // 第一个元素预留
-	var totalSize int64 = 0
-	var firstBinlogSize int64 = 0
+// binlog开始点：如果 start_file 不为空，以 start_file 为优先
+// binlog结束点：最后一个binlog end_time > 过滤条件 stop_time
+func (r *RecoverBinlog) FilterBinlogFiles() (totalSize int64, err error) {
 	logger.Info("BinlogFiles before filter: %v", r.BinlogFiles)
+	sort.Strings(r.BinlogFiles)
 
-	startTimeMore, _ := time.ParseInLocation(time.RFC3339, r.RecoverOpt.StartTime, time.Local)
-	stopTimeMore, _ := time.ParseInLocation(time.RFC3339, r.RecoverOpt.StopTime, time.Local)
-	startTimeFilter := startTimeMore.Add(-20 * time.Minute).Format(time.RFC3339)
-	stopTimeFilter := stopTimeMore.Add(20 * time.Minute).Format(time.RFC3339)
-
-	if r.RecoverOpt.StartTime != "" && r.BinlogStartFile == "" {
-		binlogFiles[0] = ""
-		for _, f := range r.BinlogFiles {
-			fileName := filepath.Join(r.BinlogDir, f)
-			// **** get binlog time
-			// todo 如果是闪回模式，只从本地binlog获取，也可以读取 file mtime，确保不会出错
-			events, err := bp.GetTime(fileName, true, true)
-			if err != nil {
-				logger.Warn("binlog get time failed %s : %s", fileName, err.Error())
-				// 有一种情况，获取 binlog rotate event 失败
-				events, err = bp.GetTime(fileName, true, false)
-				if err == nil {
-					logger.Warn("use start_time as binlog end_time %s : %s", fileName, events[0])
-					events = append(events, events[0])
-				} else {
-					return 0, err
-				}
-			}
-			startTime := events[0].EventTime
-			stopTime := events[1].EventTime
-			// **** get binlog time
-
-			fileSize := cmutil.GetFileSize(fileName)
-			if startTime > startTimeFilter { // time.RFC3339
-				binlogFiles = append(binlogFiles, f)
-				totalSize += fileSize
-				if r.RecoverOpt.StopTime != "" && stopTime > stopTimeFilter {
-					break
-				}
+	// 如果传入了 start_file，第一个binlog很好找
+	if r.BinlogStartFile != "" {
+		if !util.StringsHas(r.BinlogFiles, r.BinlogStartFile) {
+			return 0, errors.Errorf("first binlog %s not found", r.BinlogStartFile)
+		}
+		// 如果 start_datetime 为空，依赖 start_file, start_pos 选择起始 binlog pos
+		for i, f := range r.BinlogFiles {
+			if f != r.BinlogStartFile {
+				logger.Info("remove binlog file %s from list", f)
+				r.BinlogFiles[i] = "" // 移除第一个 binlog 之前的 file
 			} else {
-				binlogFiles[0] = f
-				firstBinlogSize = fileSize
+				break
 			}
 		}
+		r.BinlogFiles = cmutil.StringsRemoveEmpty(r.BinlogFiles)
 	}
-	if binlogFiles[0] == "" {
-		return 0, errors.New("没有找到满足条件的第一个 binlog")
+
+	// 如果传入的是 start_time，需要根据时间过滤。但如果也传入了 start_file，以 start_file 优先
+	bp, _ := binlogParser.NewBinlogParse("", 0, time.RFC3339) // 接收的时间过滤参数也需要用 RFC3339
+	var binlogFiles = []string{}                              // 第一个元素预留
+	var firstBinlogFound bool
+	var lastBinlogFile string
+	var lastBinlogSize int64
+	var firstBinlogFile string
+	var firstBinlogSize int64 = 0
+	// 过滤 binlog time < stop_time
+	// 如果有需要 也会过滤 binlog time > start_time
+	var startTimeMore, stopTimeMore time.Time
+	var startTimeFilter, stopTimeFilter string
+	if r.RecoverOpt.StartTime != "" {
+		startTimeMore, _ = time.ParseInLocation(time.RFC3339, r.RecoverOpt.StartTime, time.Local)
+		// binlog时间 start_time 比 预期start_time 提早 20 分钟
+		startTimeFilter = startTimeMore.Add(-20 * time.Minute).Format(time.RFC3339)
 	}
-	totalSize += firstBinlogSize
+	if stopTimeMore, err = time.ParseInLocation(time.RFC3339, r.RecoverOpt.StopTime, time.Local); err != nil {
+		return 0, errors.Errorf("stop_time parse failed: %s", r.RecoverOpt.StopTime)
+	} else {
+		// binlog时间 stop_time 比 预期stop_time 延后 20 分钟
+		stopTimeFilter = stopTimeMore.Add(20 * time.Minute).Format(time.RFC3339)
+	}
+
+	for _, f := range r.BinlogFiles {
+		fileName := filepath.Join(r.BinlogDir, f)
+		// **** get binlog time
+		// todo 如果是闪回模式，只从本地binlog获取，也可以读取 file mtime，确保不会出错
+		events, err := bp.GetTime(fileName, true, true)
+		if err != nil {
+			logger.Warn("binlog get time failed %s : %s", fileName, err.Error())
+			// 有一种情况，获取 binlog rotate event 失败
+			events, err = bp.GetTime(fileName, true, false)
+			if err == nil {
+				logger.Warn("use start_time as binlog end_time %s : %s", fileName, events[0])
+				events = append(events, events[0])
+			} else {
+				return 0, err
+			}
+		}
+		startTime := events[0].EventTime
+		stopTime := events[1].EventTime
+		fileSize := cmutil.GetFileSize(fileName)
+		// **** get binlog time
+
+		if r.RecoverOpt.StopTime != "" && stopTime > stopTimeFilter {
+			break
+		}
+		if r.BinlogStartFile != "" {
+			binlogFiles = append(binlogFiles, f)
+			totalSize += fileSize
+		} else if r.RecoverOpt.StartTime != "" {
+			if startTime > startTimeFilter { // time.RFC3339
+				firstBinlogFound = true
+				binlogFiles = append(binlogFiles, f)
+				totalSize += fileSize
+			} else if !firstBinlogFound { // 拿到binlog时间符合条件的 前一个binlog
+				firstBinlogFile = lastBinlogFile
+				firstBinlogSize = lastBinlogSize
+			}
+		}
+		lastBinlogFile = f // 记录上一个binlog的信息
+		lastBinlogSize = fileSize
+	}
+	if r.BinlogStartFile == "" {
+		if firstBinlogFile != "" {
+			binlogFiles = cmutil.StringsInsertIndex(binlogFiles, 0, firstBinlogFile)
+			totalSize += firstBinlogSize
+		} else {
+			logger.Warn("first binlog expect earlier than %s not found", startTimeFilter)
+		}
+	}
 	r.BinlogFiles = binlogFiles
 	logger.Info("BinlogFiles after filter: %v", r.BinlogFiles)
 	return totalSize, nil
 }
 
+// checkTimeRange 再次检查 binlog 时间
 func (r *RecoverBinlog) checkTimeRange() error {
 	startTime := r.RecoverOpt.StartTime
 	stopTime := r.RecoverOpt.StopTime
@@ -628,7 +680,7 @@ func (r *RecoverBinlog) checkTimeRange() error {
 		return errors.Errorf("binlog start_time [%s] should be little then stop_time [%s]", startTime, stopTime)
 	}
 	bp, _ := binlogParser.NewBinlogParse("", 0, reportlog.ReportTimeLayout1) // 用默认值
-	if startTime != "" {
+	if r.BinlogStartFile == "" && startTime != "" {
 		events, err := bp.GetTime(filepath.Join(r.BinlogDir, r.BinlogFiles[0]), true, false)
 		if err != nil {
 			return err
@@ -650,7 +702,7 @@ func (r *RecoverBinlog) checkTimeRange() error {
 	// 检查最后一个 binlog 时间，需要在目标时间之后
 	if stopTime != "" {
 		lastBinlog := util.LastElement(r.BinlogFiles)
-		events, err := bp.GetTime(filepath.Join(r.BinlogDir, lastBinlog), false, true)
+		events, err := bp.GetTimeIgnoreStopErr(filepath.Join(r.BinlogDir, lastBinlog), false, true)
 		if err != nil {
 			return err
 		}

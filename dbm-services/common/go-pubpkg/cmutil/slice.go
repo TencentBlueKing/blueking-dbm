@@ -96,9 +96,9 @@ func SplitGroup[T int | string](laxiconid []T, subGroupLength int64) [][]T {
 	return segmens
 }
 
-// CleanStrElems TODO
+// StringsRemoveEmpty TODO
 // RemoveEmpty 过滤掉空字符串
-func CleanStrElems(elems []string) []string {
+func StringsRemoveEmpty(elems []string) []string {
 	var result []string
 	for _, item := range elems {
 		if strings.TrimSpace(item) != "" {
@@ -171,4 +171,46 @@ func HasElem[T int | string](elem T, elems []T) bool {
 		}
 	}
 	return false
+}
+
+// StringsInsertAfter 在 slice 里插入某个元素之后，仅匹配一次
+// 如果没有找到元素，忽略
+func StringsInsertAfter(ss []string, old string, new string) []string {
+	var ssNew = make([]string, len(ss)+1)
+	var found bool
+	for i, v := range ss {
+		if found {
+			ssNew[i+1] = v
+		} else if v == old {
+			ssNew[i] = v
+			ssNew[i+1] = new
+			found = true
+		} else {
+			ssNew[i] = v
+		}
+	}
+	if !found {
+		return ssNew[:len(ss)]
+	}
+	return ssNew
+}
+
+// StringsInsertIndex 在 slice index 当前位置，插入一个元素
+// 如果 index 非法，则忽略
+func StringsInsertIndex(ss []string, index int, new string) []string {
+	if index < 0 || index > len(ss)-1 {
+		return ss
+	}
+	var ssNew = make([]string, len(ss)+1)
+	for i, v := range ss {
+		if i > index {
+			ssNew[i+1] = v
+		} else if i < index {
+			ssNew[i] = v
+		} else {
+			ssNew[i] = new
+			ssNew[i+1] = v
+		}
+	}
+	return ssNew
 }
