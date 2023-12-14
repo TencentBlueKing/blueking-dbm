@@ -89,6 +89,8 @@ type TarFileItem struct {
 	FileType      string   `json:"file_type" enums:"schema,data,metadata,priv"`
 	ContainFiles  []string `json:"contain_files"`
 	ContainTables []string `json:"contain_tables"`
+	// TaskId backup task_id
+	TaskId string `json:"task_id"`
 }
 
 func (f *TarFileItem) GetDBTables() {

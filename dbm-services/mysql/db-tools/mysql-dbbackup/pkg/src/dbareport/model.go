@@ -73,6 +73,7 @@ CREATE TABLE IF NOT EXISTS %s (
 	backup_end_time timestamp NOT NULL DEFAULT '0000-00-00 00:00:00',
 	backup_consistent_time timestamp NOT NULL DEFAULT '0000-00-00 00:00:00',
 	backup_status varchar(60) DEFAULT NULL,
+	backup_meta_file varchar(255),
 	binlog_info text,
 	file_list text,
 	extra_fields text,

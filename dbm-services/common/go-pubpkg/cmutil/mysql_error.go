@@ -31,7 +31,12 @@ var mysqlErrors = map[int]MySQLError{
 	2002: {
 		Code:     2002,
 		Message:  "Connection refused",
-		regexStr: regexp.MustCompile(`.*connection refused.*`),
+		regexStr: regexp.MustCompile(`(.*connection refused.*)|(.*Can't connect to local MySQL server.*)`),
+	},
+	2003: {
+		Code:     2003,
+		Message:  "Can't connect to MySQL server",
+		regexStr: regexp.MustCompile(`ERROR 2003 .*: Can't connect to MySQL server.*`),
 	},
 }
 var codeParser = regexp.MustCompile(`Error (\d+) .*`)

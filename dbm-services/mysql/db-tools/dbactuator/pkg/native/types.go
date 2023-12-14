@@ -35,7 +35,7 @@ var dbSysUsers = []string{"event_scheduler", "system user"}
 var DBSys = []string{"mysql", "sys", INFO_SCHEMA, PERF_SCHEMA, INFODBA_SCHEMA, TEST_DB}
 
 // DBUserAdmin TODO
-var DBUserAdmin = "ADMIN"
+const DBUserAdmin = "ADMIN"
 
 // ShowTableStatusResp TODO
 type ShowTableStatusResp struct {

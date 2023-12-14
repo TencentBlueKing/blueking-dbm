@@ -83,6 +83,7 @@ func (l *PhysicalLoader) Load() error {
 	if err := l.loadBackup(); err != nil {
 		return err
 	}
+	// TODO 考虑把这个地方封装成独立的节点，可以单独重试
 	if err := l.Xtrabackup.PostRun(); err != nil {
 		return err
 	}

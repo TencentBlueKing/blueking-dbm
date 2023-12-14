@@ -226,7 +226,7 @@ func (r *BackupLogReport) ExecuteBackupClient(fileName string) (taskid string, e
 	return taskid, nil
 }
 
-func (r *BackupLogReport) ReportToLocalBackup(backupReport *IndexContent) error {
+func (r *BackupLogReport) ReportToLocalBackup(indexFilePath string, metaInfo *IndexContent) error {
 	logger.Log.Infof("write backup result to local_backup_report")
 	db, err := mysqlconn.InitConn(&r.cfg.Public)
 	if err != nil {
@@ -264,32 +264,34 @@ func (r *BackupLogReport) ReportToLocalBackup(backupReport *IndexContent) error 
 		return err
 	}
 
-	binlogInfo, _ := json.Marshal(backupReport.BinlogInfo)
-	filelist, _ := json.Marshal(backupReport.FileList)
-	extraFileds, _ := json.Marshal(backupReport.ExtraFields)
+	binlogInfo, _ := json.Marshal(metaInfo.BinlogInfo)
+	//filelist, _ := json.Marshal(metaInfo.FileList)
+	extraFields, _ := json.Marshal(metaInfo.ExtraFields)
 	sqlBuilder := sq.Replace(ModelBackupReport{}.TableName()).Columns("backup_id", "backup_type", "cluster_id",
 		"cluster_address", "backup_host", "backup_port", "server_id", "mysql_role", "shard_value",
 		"bill_id", "bk_biz_id", "mysql_version", "data_schema_grant", "is_full_backup",
 		"backup_begin_time", "backup_end_time", "backup_consistent_time",
-		"binlog_info", "file_list", "extra_fields",
-		"backup_config_file", "backup_status").Values(
-		backupReport.BackupId,
-		backupReport.BackupType,
-		backupReport.ClusterId,
-		backupReport.ClusterAddress,
-		backupReport.BackupHost,
-		backupReport.BackupPort,
+		"backup_meta_file",
+		"binlog_info", "extra_fields",
+		"file_list", "backup_config_file", "backup_status").Values(
+		metaInfo.BackupId,
+		metaInfo.BackupType,
+		metaInfo.ClusterId,
+		metaInfo.ClusterAddress,
+		metaInfo.BackupHost,
+		metaInfo.BackupPort,
 		serverId,
-		backupReport.MysqlRole,
-		backupReport.ShardValue,
-		backupReport.BillId,
-		backupReport.BkBizId,
-		backupReport.MysqlVersion,
-		backupReport.DataSchemaGrant,
-		backupReport.IsFullBackup,
-		backupReport.BackupBeginTime, backupReport.BackupEndTime, backupReport.BackupConsistentTime,
-		binlogInfo, filelist, extraFileds,
-		"", "")
+		metaInfo.MysqlRole,
+		metaInfo.ShardValue,
+		metaInfo.BillId,
+		metaInfo.BkBizId,
+		metaInfo.MysqlVersion,
+		metaInfo.DataSchemaGrant,
+		metaInfo.IsFullBackup,
+		metaInfo.BackupBeginTime, metaInfo.BackupEndTime, metaInfo.BackupConsistentTime,
+		indexFilePath,
+		binlogInfo, extraFields,
+		"", "", "")
 
 	//_, err = sqlBuilder.RunWith(conn).Exec()
 	sqlStr, sqlArgs, err := sqlBuilder.ToSql()
@@ -298,7 +300,7 @@ func (r *BackupLogReport) ReportToLocalBackup(backupReport *IndexContent) error 
 	}
 	_, err = conn.ExecContext(ctx, sqlStr, sqlArgs...)
 	if err != nil {
-		logger.Log.Warnf("failed to write %d local_backup_report, err: %s, fix it", backupReport.BackupPort, err)
+		logger.Log.Warnf("failed to write %d local_backup_report, err: %s, fix it", metaInfo.BackupPort, err)
 		if err = migrateLocalBackupSchema(err, conn); err != nil {
 			return err
 		}
@@ -334,6 +336,7 @@ func (r *BackupLogReport) ReportBackupResult(indexFilePath string) error {
 		if taskId, err = r.ExecuteBackupClient(filePath); err != nil {
 			return err
 		}
+		f.TaskId = taskId
 		backupTaskResult := BackupLogReport{}
 		backupTaskResult.BackupMetaFileBase = deepcopy.Copy(metaInfo.BackupMetaFileBase).(BackupMetaFileBase)
 		backupTaskResult.ExtraFields = deepcopy.Copy(metaInfo.ExtraFields).(ExtraFields)
@@ -348,7 +351,7 @@ func (r *BackupLogReport) ReportBackupResult(indexFilePath string) error {
 	// report backup record
 	Report().Result.Println(metaInfo)
 
-	if err = r.ReportToLocalBackup(metaInfo); err != nil {
+	if err = r.ReportToLocalBackup(indexFilePath, metaInfo); err != nil {
 		return err
 	}
 	return nil
