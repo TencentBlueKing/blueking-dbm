@@ -24,5 +24,6 @@ RUN set -ex && \
     wget -qO dbbackup-go-deps-community.tar.gz ${DOWNLOAD_URL}/${VERSION}/dbbackup-go-deps-community.tar.gz && \
     wget -qO bind.tar.gz ${DOWNLOAD_URL}/${VERSION}/bind.tar.gz && \
     wget -qO nginx-portable.tgz ${DOWNLOAD_URL}/${VERSION}/nginx-portable.tgz && \
+    wget -qO dba-toolkit.tar.gz ${DOWNLOAD_URL}/${VERSION}/dba-toolkit.tar.gz && \
     wget -qO tmysqlparse ${DOWNLOAD_URL}/${VERSION}/tmysqlparse && \
     wget -qO redis_dts.tar.gz ${DOWNLOAD_URL}/${VERSION}/redis_dts.tar.gz

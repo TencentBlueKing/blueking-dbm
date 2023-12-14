@@ -16,6 +16,7 @@ from typing import Any, Dict, Union
 
 from django.utils.translation import gettext as _
 
+from backend import env
 from backend.db_dirty.handlers import DBDirtyMachineHandler
 from backend.db_meta.exceptions import ClusterExclusiveOperateException
 from backend.db_meta.models import Cluster
@@ -96,7 +97,7 @@ class InnerFlow(BaseTicketFlow):
 
     @property
     def _url(self) -> str:
-        return f"/{self.ticket.bk_biz_id}/task-history/detail/{self.root_id}"
+        return f"{env.BK_SAAS_HOST}/{self.ticket.bk_biz_id}/task-history/detail/{self.root_id}"
 
     def check_exclusive_operations(self):
         """判断执行互斥"""
