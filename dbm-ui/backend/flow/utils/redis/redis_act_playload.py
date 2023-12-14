@@ -1142,11 +1142,12 @@ class RedisActPayload(object):
     # 检测 proxy 后端一致性
     def redis_twemproxy_backends_4_scene(self, **kwargs) -> dict:
         params = kwargs["params"]
-
+        # 需要实时拿
+        instances = nosqlcomm.other.get_cluster_proxies(cluster_id=params["cluster_id"])
         return {
             "db_type": DBActuatorTypeEnum.Proxy.value,
             "action": DBActuatorTypeEnum.Twemproxy.value + "_" + RedisActuatorActionEnum.CheckProxysMd5.value,
-            "payload": {"instances": params["instances"], "cluster_type": params["cluster_type"]},
+            "payload": {"instances": instances, "cluster_type": params["cluster_type"]},
         }
 
     # twemproxy 架构-实例切换
