@@ -103,24 +103,30 @@ const (
 	SLAVE_SHARDPREFIX   = "SPT_SLAVE"
 	SPIDER_PREFIX       = "SPIDER"
 	SPIDER_SLAVE_PREFIX = "SPIDER_SLAVE"
+	TDBCTL_PREFIX       = "TDBCTL"
 )
 
-// SvrNameIsMasterShard TODO
+// SvrNameIsTdbctl 判断servername 是都是tdbctl
+func SvrNameIsTdbctl(svrName string) bool {
+	return matchPrefixPattern(TDBCTL_PREFIX, svrName)
+}
+
+// SvrNameIsMasterShard 判断svrname是否是主分片
 func SvrNameIsMasterShard(svrName string) bool {
 	return matchPrefixPattern(SHARDPREFIX, svrName)
 }
 
-// SvrNameIsSlaveShard TODO
+// SvrNameIsSlaveShard 判断svrname 是否是从分片
 func SvrNameIsSlaveShard(svrName string) bool {
 	return matchPrefixPattern(SLAVE_SHARDPREFIX, svrName)
 }
 
-// SvrNameIsSlaveSpiderShard TODO
+// SvrNameIsSlaveSpiderShard 判断svrname 是否是 slave spider
 func SvrNameIsSlaveSpiderShard(svrName string) bool {
 	return matchPrefixPattern(SPIDER_SLAVE_PREFIX, svrName)
 }
 
-// SvrNameIsMasterSpiderShard TODO
+// SvrNameIsMasterSpiderShard 判断svrname 是否是 master spider
 func SvrNameIsMasterSpiderShard(svrName string) bool {
 	return matchPrefixPattern(SPIDER_PREFIX, svrName)
 }

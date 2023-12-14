@@ -295,6 +295,22 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
             },
         }
 
+    def get_import_schema_to_tdbctl_payload(self, **kwargs):
+        return {
+            "db_type": DBActuatorTypeEnum.SpiderCtl.value,
+            "action": DBActuatorActionEnum.ImportSchemaToTdbctl.value,
+            "payload": {
+                "general": {"runtime_account": self.account},
+                "extend": {
+                    "host": kwargs["ip"],
+                    "port": self.cluster["ctl_port"],
+                    "spider_port": self.cluster["spider_port"],
+                    "stream": self.cluster["stream"],
+                    "drop_before": self.cluster["drop_before"],
+                },
+            },
+        }
+
     def get_install_spider_ctl_payload(self, **kwargs):
         """
         拼接spider-ctl节点安装的payload, ctl是单机单实例, 所以代码兼容多实例传入
@@ -1515,6 +1531,31 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
                     "ctl_instances": self.cluster["ctl_instances"],
                     "tdbctl_user": self.cluster["tdbctl_user"],
                     "tdbctl_pass": self.cluster["tdbctl_pass"],
+                },
+            },
+        }
+
+    def get_init_tdbctl_routing_payload(self, **kwargs):
+        """
+        拼接初始化spider集群节点关系的payload参数。
+        """
+        tdbctl_account = self.account
+        return {
+            "db_type": DBActuatorTypeEnum.SpiderCtl.value,
+            "action": DBActuatorActionEnum.SpiderInitClusterRouting.value,
+            "payload": {
+                "general": {"runtime_account": tdbctl_account},
+                "extend": {
+                    "host": kwargs["ip"],
+                    "port": self.ticket_data["ctl_port"],
+                    "mysql_instance_tuples": self.cluster["mysql_instance_tuples"],
+                    "spider_instances": self.cluster["spider_instances"],
+                    "spider_slave_instances": self.cluster["spider_slave_instances"],
+                    "ctl_instances": self.cluster["ctl_instances"],
+                    "tdbctl_user": self.cluster["tdbctl_user"],
+                    "tdbctl_pass": self.cluster["tdbctl_pass"],
+                    "not_flush_all": True,
+                    "only_init_ctl": self.cluster["only_init_ctl"],
                 },
             },
         }

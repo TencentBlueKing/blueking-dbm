@@ -51,7 +51,7 @@ MAX_SPIDER_MASTER_COUNT = 37
 MIN_SPIDER_MASTER_COUNT = 2
 MIN_SPIDER_SLAVE_COUNT = 1
 
-TDBCTL_USER = "tdbctl"
+TDBCTL_USER = "spider"
 
 # 定义每个flow发起时的实例临时账号名称前缀
 DBM_JOB = "DBM_JOB_"
@@ -307,6 +307,7 @@ class DBActuatorActionEnum(str, StructuredEnum):
     Sysinit = EnumField("sysinit", _("sysinit"))
     Deploy = EnumField("deploy", _("deploy"))
     AppendDeploy = EnumField("append-deploy", _("append-deploy"))
+    ImportSchemaToTdbctl = EnumField("import-schema-to-tdbctl", _("import-schema-to-tdbctl"))
     GetBackupFile = EnumField("find-local-backup", _("find-local-backup"))
     RestoreSlave = EnumField("restore-dr", _("restore-dr"))
     RecoverBinlog = EnumField("recover-binlog", _("recover-binlog"))
