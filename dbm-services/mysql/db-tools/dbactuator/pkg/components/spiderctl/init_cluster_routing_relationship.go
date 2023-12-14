@@ -19,13 +19,16 @@ type InitClusterRoutingComp struct {
 
 // InitClusterRoutingParam TODO
 type InitClusterRoutingParam struct {
-	Host                string          `json:"host" validate:"required,ip"`
-	Port                int             `json:"port" validate:"required,lt=65536,gte=3306"`
-	MysqlInstanceTuples []InstanceTuple `json:"mysql_instance_tuples" validate:"required"`
-	SpiderInstances     []Instance      `json:"spider_instances" validate:"required"`
-	CltInstances        []Instance      `json:"ctl_instances" validate:"required"`
-	TdbctlUser          string          `json:"tdbctl_user" validate:"required"`
-	TdbctlPass          string          `json:"tdbctl_pass" validate:"required"`
+	Host                 string          `json:"host" validate:"required,ip"`
+	Port                 int             `json:"port" validate:"required,lt=65536,gte=3306"`
+	MysqlInstanceTuples  []InstanceTuple `json:"mysql_instance_tuples" validate:"required"`
+	SpiderInstances      []Instance      `json:"spider_instances" validate:"required"`
+	CltInstances         []Instance      `json:"ctl_instances" validate:"required"`
+	TdbctlUser           string          `json:"tdbctl_user" validate:"required"`
+	TdbctlPass           string          `json:"tdbctl_pass" validate:"required"`
+	NotFlushAll          bool            `json:"not_flush_all"`
+	OnltInitCtl          bool            `json:"only_init_ctl"`
+	SpiderSlaveInstances []Instance      `json:"spider_slave_instances"`
 }
 
 // Instance TODO
@@ -45,7 +48,8 @@ type InstanceTuple struct {
 
 // InitCtx 定义任务执行时需要的上下文
 type InitCtx struct {
-	dbConn *native.DbWorker
+	dbConn     *native.DbWorker
+	tdbCtlConn *native.TdbctlDbWork
 }
 
 // Example TODO
@@ -107,6 +111,7 @@ func (i *InitClusterRoutingComp) Init() (err error) {
 		logger.Error("Connect %d failed:%s", i.Params.Port, err.Error())
 		return err
 	}
+	i.tdbCtlConn = &native.TdbctlDbWork{DbWorker: *i.dbConn}
 	return nil
 }
 
@@ -121,13 +126,50 @@ func (i *InitClusterRoutingComp) InitMySQLServers() (err error) {
 		logger.Error("truncate mysql.servers failed:[%s]", err.Error())
 		return err
 	}
+	execSQLs = i.getFlushRouterSqls()
+	execSQLs = append(execSQLs, "tdbctl enable primary;")
+	execSQLs = append(execSQLs, "tdbctl flush routing;")
+	if _, err := i.dbConn.ExecMore(execSQLs); err != nil {
+		logger.Error("tdbctl create node failed:[%s]", err.Error())
+		return err
+	}
+	return nil
+}
 
+func (i *InitClusterRoutingComp) getFlushRouterSqls() (execSQLs []string) {
 	// 显性标记实例为主节点
 	execSQLs = append(execSQLs, "set tc_admin=1;")
 
 	// 拼接create node 语句
-	for _, inst := range i.Params.MysqlInstanceTuples {
+	execSQLs = append(execSQLs, i.getRemoteRouterSqls()...)
+	execSQLs = append(execSQLs, i.getSpiderRouterSqls()...)
+	execSQLs = append(execSQLs, i.getTdbctlRouterSqls()...)
+	return execSQLs
+}
+func (i *InitClusterRoutingComp) getSpiderRouterSqls() (execSQLs []string) {
+	for _, inst := range i.Params.SpiderInstances {
+		execSQLs = append(
+			execSQLs,
+			fmt.Sprintf(
+				"tdbctl create node wrapper 'SPIDER' options(user '%s', password '%s', host '%s', port %d);",
+				i.Params.TdbctlUser, i.Params.TdbctlPass, inst.Host, inst.Port,
+			),
+		)
+	}
+	for _, inst := range i.Params.SpiderSlaveInstances {
+		execSQLs = append(
+			execSQLs,
+			fmt.Sprintf(
+				"tdbctl create node wrapper 'SPIDER_SLAVE' options(user '%s', password '%s', host '%s', port %d);",
+				i.Params.TdbctlUser, i.Params.TdbctlPass, inst.Host, inst.Port,
+			),
+		)
+	}
+	return execSQLs
+}
 
+func (i *InitClusterRoutingComp) getRemoteRouterSqls() (execSQLs []string) {
+	for _, inst := range i.Params.MysqlInstanceTuples {
 		execSQLs = append(
 			execSQLs,
 			fmt.Sprintf(
@@ -142,20 +184,12 @@ func (i *InitClusterRoutingComp) InitMySQLServers() (err error) {
 				i.Params.TdbctlUser, i.Params.TdbctlPass, inst.SlaveHost, inst.Port, inst.ShardID,
 			),
 		)
-
 	}
-	for _, inst := range i.Params.SpiderInstances {
+	return execSQLs
+}
 
-		execSQLs = append(
-			execSQLs,
-			fmt.Sprintf(
-				"tdbctl create node wrapper 'SPIDER' options(user '%s', password '%s', host '%s', port %d);",
-				i.Params.TdbctlUser, i.Params.TdbctlPass, inst.Host, inst.Port,
-			),
-		)
-	}
+func (i *InitClusterRoutingComp) getTdbctlRouterSqls() (execSQLs []string) {
 	for _, inst := range i.Params.CltInstances {
-
 		execSQLs = append(
 			execSQLs,
 			fmt.Sprintf(
@@ -164,11 +198,79 @@ func (i *InitClusterRoutingComp) InitMySQLServers() (err error) {
 			),
 		)
 	}
+	return execSQLs
+}
+
+// OnlyInitTdbctl 只刷新中控路由
+func (i *InitClusterRoutingComp) OnlyInitTdbctl() (err error) {
+	var execSQLs []string
+	execSQLs = append(execSQLs, "set tc_admin=1;")
+	execSQLs = append(execSQLs, i.getTdbctlRouterSqls()...)
 	execSQLs = append(execSQLs, "tdbctl enable primary;")
-	execSQLs = append(execSQLs, "tdbctl flush routing;")
-	if _, err := i.dbConn.ExecMore(execSQLs); err != nil {
+	if _, err := i.tdbCtlConn.ExecMore(execSQLs); err != nil {
 		logger.Error("tdbctl create node failed:[%s]", err.Error())
 		return err
+	}
+	servers, err := i.tdbCtlConn.SelectServers()
+	if err != nil {
+		logger.Error("get local mysql servers failed %s", err.Error())
+		return err
+	}
+	var tdbctlSvrCount int
+	for _, server := range servers {
+		if !native.SvrNameIsTdbctl(server.ServerName) {
+			continue
+		}
+		tdbctlSvrCount++
+		logger.Info("start flush %s router", server.ServerName)
+		flushSql := fmt.Sprintf(" TDBCTL FLUSH SERVER %s ROUTING;", server.ServerName)
+		logger.Info("make debug flush sql %s", flushSql)
+		_, err = i.tdbCtlConn.Exec(flushSql)
+		if err != nil {
+			logger.Error("flush router to %s failed %s", server.ServerName, err.Error())
+			return err
+		}
+
+	}
+	if tdbctlSvrCount < 1 {
+		return fmt.Errorf("not found  tdbctl in mysql.servers")
+	}
+	return nil
+}
+
+// AddAppendDeployInitRouter 无中控迁移到有中控后，中控需要初始化的路由信息
+func (i *InitClusterRoutingComp) AddAppendDeployInitRouter() (err error) {
+	var execSQLs []string
+	execSQLs = append(execSQLs, "set tc_admin=1;")
+	execSQLs = append(execSQLs, i.getRemoteRouterSqls()...)
+	execSQLs = append(execSQLs, i.getSpiderRouterSqls()...)
+	execSQLs = append(execSQLs, "tdbctl enable primary;")
+	if _, err := i.tdbCtlConn.ExecMore(execSQLs); err != nil {
+		logger.Error("tdbctl create node failed:[%s]", err.Error())
+		return err
+	}
+	servers, err := i.tdbCtlConn.SelectServers()
+	if err != nil {
+		logger.Error("get local mysql servers failed %s", err.Error())
+		return err
+	}
+	var tdbctlSvrCount int
+	for _, server := range servers {
+		if !native.SvrNameIsTdbctl(server.ServerName) {
+			continue
+		}
+		tdbctlSvrCount++
+		logger.Info("start flush %s router", server.ServerName)
+		flushSql := fmt.Sprintf(" TDBCTL FLUSH SERVER %s ROUTING;", server.ServerName)
+		_, err = i.tdbCtlConn.Exec(flushSql)
+		if err != nil {
+			logger.Error("flush router to %s failed %s", server.ServerName, err.Error())
+			return err
+		}
+
+	}
+	if tdbctlSvrCount < 1 {
+		return fmt.Errorf("not found  tdbctl in mysql.servers")
 	}
 	return nil
 }
