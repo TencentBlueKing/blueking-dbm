@@ -73,48 +73,6 @@ def RedisBatchShutdownAtomJob(root_id, ticket_data, sub_kwargs: ActKwargs, shutd
         kwargs=asdict(act_kwargs),
     )
 
-    # 干掉非活跃链接
-    act_kwargs.exec_ip = exec_ip
-    act_kwargs.cluster["exec_ip"] = exec_ip
-    act_kwargs.cluster["instances"] = [{"ip": exec_ip, "port": p} for p in shutdown_param["ports"]]
-    act_kwargs.cluster["idle_time"] = 600
-    act_kwargs.cluster["ignore_kill"] = shutdown_param.get("force_shutdown", False)
-    act_kwargs.get_redis_payload_func = RedisActPayload.redis_killconn_4_scene.__name__
-    sub_pipeline.add_act(
-        act_name=_("干掉非活跃链接-{}").format(exec_ip),
-        act_component_code=ExecuteDBActuatorScriptComponent.code,
-        kwargs=asdict(act_kwargs),
-    )
-
-    # 从集群踢掉
-    if act_kwargs.cluster["cluster_type"] == ClusterType.TendisPredixyTendisplusCluster:
-        # 定点构造的节点没有加入集群，所以这里不能执行这个逻辑 ,slots 迁移缩容已经在actuator逻辑中forget了
-        if (
-            act_kwargs.cluster.get("operate", "") != TicketType.REDIS_DATA_STRUCTURE_TASK_DELETE.value
-            and act_kwargs.cluster.get("operate", "") != TicketType.REDIS_SLOTS_MIGRATE.value
-        ):
-            act_kwargs.cluster["forget_instances"] = [
-                {"ip": exec_ip, "port": port} for port in shutdown_param["ports"]
-            ]
-            act_kwargs.get_redis_payload_func = RedisActPayload.redis_cluster_forget_4_scene.__name__
-            sub_pipeline.add_act(
-                act_name=_("踢掉旧节点-{}").format(exec_ip),
-                act_component_code=ExecuteDBActuatorScriptComponent.code,
-                kwargs=asdict(act_kwargs),
-            )
-
-    # 下架实例
-    act_kwargs.exec_ip = exec_ip
-    act_kwargs.cluster["exec_ip"] = exec_ip
-    act_kwargs.cluster["force_shutdown"] = shutdown_param.get("force_shutdown", False)
-    act_kwargs.cluster["shutdown_ports"] = shutdown_param["ports"]
-    act_kwargs.get_redis_payload_func = RedisActPayload.redis_shutdown_4_scene.__name__
-    sub_pipeline.add_act(
-        act_name=_("下架实例-{}").format(exec_ip),
-        act_component_code=ExecuteDBActuatorScriptComponent.code,
-        kwargs=asdict(act_kwargs),
-    )
-
     # 停监控
     act_kwargs.cluster["servers"] = [
         {
@@ -139,6 +97,48 @@ def RedisBatchShutdownAtomJob(root_id, ticket_data, sub_kwargs: ActKwargs, shutd
     sub_pipeline.add_act(
         act_name=_("清理元数据-{}").format(exec_ip),
         act_component_code=RedisDBMetaComponent.code,
+        kwargs=asdict(act_kwargs),
+    )
+
+    # 从集群踢掉
+    if act_kwargs.cluster["cluster_type"] == ClusterType.TendisPredixyTendisplusCluster:
+        # 定点构造的节点没有加入集群，所以这里不能执行这个逻辑 ,slots 迁移缩容已经在actuator逻辑中forget了
+        if (
+            act_kwargs.cluster.get("operate", "") != TicketType.REDIS_DATA_STRUCTURE_TASK_DELETE.value
+            and act_kwargs.cluster.get("operate", "") != TicketType.REDIS_SLOTS_MIGRATE.value
+        ):
+            act_kwargs.cluster["forget_instances"] = [
+                {"ip": exec_ip, "port": port} for port in shutdown_param["ports"]
+            ]
+            act_kwargs.get_redis_payload_func = RedisActPayload.redis_cluster_forget_4_scene.__name__
+            sub_pipeline.add_act(
+                act_name=_("踢掉旧节点-{}").format(exec_ip),
+                act_component_code=ExecuteDBActuatorScriptComponent.code,
+                kwargs=asdict(act_kwargs),
+            )
+
+    # 干掉非活跃链接
+    act_kwargs.exec_ip = exec_ip
+    act_kwargs.cluster["exec_ip"] = exec_ip
+    act_kwargs.cluster["instances"] = [{"ip": exec_ip, "port": p} for p in shutdown_param["ports"]]
+    act_kwargs.cluster["idle_time"] = 600
+    act_kwargs.cluster["ignore_kill"] = shutdown_param.get("force_shutdown", False)
+    act_kwargs.get_redis_payload_func = RedisActPayload.redis_killconn_4_scene.__name__
+    sub_pipeline.add_act(
+        act_name=_("干掉非活跃链接-{}").format(exec_ip),
+        act_component_code=ExecuteDBActuatorScriptComponent.code,
+        kwargs=asdict(act_kwargs),
+    )
+
+    # 下架实例
+    act_kwargs.exec_ip = exec_ip
+    act_kwargs.cluster["exec_ip"] = exec_ip
+    act_kwargs.cluster["force_shutdown"] = shutdown_param.get("force_shutdown", False)
+    act_kwargs.cluster["shutdown_ports"] = shutdown_param["ports"]
+    act_kwargs.get_redis_payload_func = RedisActPayload.redis_shutdown_4_scene.__name__
+    sub_pipeline.add_act(
+        act_name=_("下架实例-{}").format(exec_ip),
+        act_component_code=ExecuteDBActuatorScriptComponent.code,
         kwargs=asdict(act_kwargs),
     )
 
