@@ -9,7 +9,6 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import abc
-import logging
 from typing import Dict, List
 
 import attr
@@ -18,8 +17,6 @@ from django.utils.translation import ugettext_lazy as _
 from backend.db_meta.enums import ClusterEntryType
 from backend.db_meta.models import Cluster, ClusterEntry, Machine
 from backend.flow.utils.dns_manage import DnsManage
-
-logger = logging.getLogger("root")
 
 
 @attr.s
