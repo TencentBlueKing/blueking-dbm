@@ -70,6 +70,21 @@ from backend.utils.time import remove_timezone
 
 class DBResourceViewSet(viewsets.SystemViewSet):
     def _get_custom_permissions(self):
+        # 查询类的接口暂不鉴权
+        if self.action in [
+            "list_dba_hosts",
+            "query_dba_hosts",
+            "get_mountpoints",
+            "query_resource_import_tasks",
+            "get_disktypes",
+            "get_subzones",
+            "get_device_class",
+            "resource_import_urls",
+            "query_operation_list",
+            "spec_resource_count",
+        ]:
+            return []
+
         return [GlobalManageIAMPermission()]
 
     @common_swagger_auto_schema(

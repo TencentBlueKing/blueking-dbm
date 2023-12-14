@@ -65,6 +65,11 @@ class SpiderSlaveApplyFlowParamBuilder(builders.FlowParamBuilder):
 
 
 class SpiderSlaveApplyResourceParamBuilder(TendbBaseOperateResourceParamBuilder):
+    def format(self):
+        self.patch_info_affinity_location(roles=["spider_slave_ip_list"])
+        for info in self.ticket_data["infos"]:
+            info["resource_spec"]["spider_slave_ip_list"]["group_count"] = 2
+
     def post_callback(self):
         next_flow = self.ticket.next_flow()
         for info in next_flow.details["ticket_data"]["infos"]:

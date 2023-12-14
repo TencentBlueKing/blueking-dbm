@@ -49,6 +49,12 @@ class TendbSpiderAddNodesFlowParamBuilder(builders.FlowParamBuilder):
 
 
 class TendbSpiderAddNodesResourceParamBuilder(TendbBaseOperateResourceParamBuilder):
+    def format(self):
+        # 在跨机房亲和性要求下，接入层proxy的亲和性要求至少分布在2个机房
+        self.patch_info_affinity_location(roles=["spider_ip_list"])
+        for info in self.ticket_data["infos"]:
+            info["resource_spec"]["spider_ip_list"]["group_count"] = 2
+
     def post_callback(self):
         next_flow = self.ticket.next_flow()
         for info in next_flow.details["ticket_data"]["infos"]:
