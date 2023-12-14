@@ -6,6 +6,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/spf13/cast"
+
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/native"
@@ -184,6 +186,9 @@ func ShutdownMySQLBySocket2(user, password, socket string) (err error) {
 //	@receiver param
 //	@return err
 func (param ShutdownMySQLParam) ForceShutDownMySQL() (err error) {
+	if param.Socket == "" {
+		return errors.Errorf("no socket file givien")
+	}
 	shellCMD := fmt.Sprintf("mysqladmin -u%s -p%s -S%s shutdown", param.MySQLUser, param.MySQLPwd, param.Socket)
 	output, err := mysqlutil.ExecCommandMySQLShell(shellCMD)
 	if err != nil {
@@ -266,17 +271,20 @@ func KillMySQLD(regexpStr string) error {
 		return errors.New("grep 参数为空，不允许！！！")
 	}
 	shellCMD := fmt.Sprintf("ps -efwww|grep %s|egrep -v grep |wc -l", regexpStr)
-	out, err := osutil.ExecShellCommand(false, shellCMD)
+	processCnts, err := osutil.ExecShellCommand(false, shellCMD)
+	processCnt := cast.ToInt(strings.TrimSpace(processCnts))
 	if err != nil {
 		logger.Error("execute %s get an error:%s", shellCMD, err.Error())
 		return err
 	}
 	// 此处不应该返回错误
-	if strings.TrimSpace(out) == "0" {
+	if processCnt == 0 {
 		logger.Info("process has been exit,You Can Consider Mysqld been shutdown")
 		return nil
+	} else if processCnt > 1 {
+		return errors.Errorf("expect found mysql process %s count 1, bug got %d", regexpStr, processCnt)
 	}
-	logger.Info("will kill this %s", out)
+	logger.Info("will kill this %d  %s", regexpStr, processCnt)
 	killCmd := fmt.Sprintf("ps -efwww|grep %s|egrep -v grep |awk '{print $2}'|xargs  kill -15", regexpStr)
 	logger.Info(" kill command is %s", killCmd)
 	kOutput, err := osutil.ExecShellCommand(false, killCmd)

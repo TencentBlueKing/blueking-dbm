@@ -43,6 +43,14 @@ func UniqueInts(slice []int) []int {
 	return RemoveDuplicate(slice)
 }
 
+// StringsRemove an value form an string slice
+func StringsRemove(ss []string, s string) (ns []string) {
+	ns = slices.DeleteFunc(ss, func(item string) bool {
+		return item == s
+	})
+	return
+}
+
 // RemoveDuplicate 通过map主键唯一的特性过滤重复元素
 func RemoveDuplicate[T int | string](arr []T) []T {
 	resArr := make([]T, 0)

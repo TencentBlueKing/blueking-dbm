@@ -5,8 +5,11 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/mohae/deepcopy"
+
 	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/logger"
+	"dbm-services/mysql/db-tools/dbactuator/pkg/components"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components/computil"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/native"
@@ -29,6 +32,8 @@ type Xtrabackup struct {
 }
 
 // PreRun 以下所有步骤必须可重试
+// shutdown mysqld
+// replace my.cnf
 func (x *Xtrabackup) PreRun() error {
 	logger.Info("run xtrabackup preRun")
 
@@ -36,7 +41,8 @@ func (x *Xtrabackup) PreRun() error {
 	inst := x.TgtInstance
 
 	logger.Info("stop local mysqld")
-	if err := computil.ShutdownMySQLBySocket2(inst.User, inst.Pwd, inst.Socket); err != nil {
+	param := &computil.ShutdownMySQLParam{MySQLUser: inst.User, MySQLPwd: inst.Pwd, Socket: inst.Socket}
+	if err := param.ForceShutDownMySQL(); err != nil {
 		logger.Error("shutdown mysqld failed %s", inst.Socket)
 		return err
 	}
@@ -77,7 +83,7 @@ func (x *Xtrabackup) PostRun() (err error) {
 	startParam := computil.StartMySQLParam{
 		MediaDir:        cst.MysqldInstallPath,
 		MyCnfName:       x.myCnf.FileName,
-		MySQLUser:       x.TgtInstance.User, // 用ADMIN
+		MySQLUser:       x.TgtInstance.User, // 用ADMIN | DMB_JOB_xx
 		MySQLPwd:        x.TgtInstance.Pwd,
 		Socket:          x.TgtInstance.Socket,
 		SkipGrantTables: true, // 以 skip-grant-tables 启动来修复 ADMIN
@@ -89,32 +95,51 @@ func (x *Xtrabackup) PostRun() (err error) {
 		return err
 	}
 
+	serverVersion, err := x.dbWorker.SelectVersion()
+	if err != nil {
+		//return errors.Wrapf(err, "get mysql version")
+		logger.Warn("get version failed: %s. set it to 5.7.20", err.Error())
+		serverVersion = "5.7.20" // fake
+	}
 	logger.Info("repair ADMIN user host and password")
 	// 物理备份，ADMIN密码与 backup instance(cluster?) 相同，修复成
-	// 修复ADMIN用户
-	if err := x.RepairUserAdmin(x.TgtInstance.User, x.TgtInstance.Pwd); err != nil {
+	// 修复ADMIN用户，而不是 x.TgtInstance.User，主要是修复 host，密码修复成临时用户 DBM_JOB_xxx 的密码
+	// ADMIN 密码后续会被随机化掉
+	if err := x.RepairUserAdmin(native.DBUserAdmin, x.TgtInstance.Pwd, serverVersion); err != nil {
 		return err
 	}
 	logger.Info("repair other user privileges")
 	// 修复权限
 	if err := x.RepairPrivileges(); err != nil {
-		return err
+		return errors.WithMessage(err, "RepairPrivileges")
 	}
 	x.dbWorker.Stop()
 
 	logger.Info("restart local mysqld")
 	// 重启mysql（去掉 skip-grant-tables）
 	startParam.SkipGrantTables = false
+	startParam.MySQLUser = native.DBUserAdmin
 	if _, err := startParam.RestartMysqlInstance(); err != nil {
-		return err
+		return errors.WithMessage(err, "RestartMysqlInstance")
 	}
-	// reconnect
-	if x.dbWorker, err = x.TgtInstance.Conn(); err != nil {
+	// reconnect use ADMIN and temp_job_user pwd(already repaired)
+	tmpAdminPassInst := deepcopy.Copy(x.TgtInstance).(native.InsObject)
+	tmpAdminPassInst.User = native.DBUserAdmin
+	//tmpAdminPassInst.ConnBySocket()
+	if x.dbWorker, err = tmpAdminPassInst.Conn(); err != nil {
 		return err
 	} else {
 		defer x.dbWorker.Stop()
 	}
-
+	// try to re-create DBM_JOB_xxx
+	if x.TgtInstance.User != native.DBUserAdmin {
+		adminPriv := components.MySQLAdminAccount{AdminUser: x.TgtInstance.User, AdminPwd: x.TgtInstance.Pwd}.
+			GetAccountPrivs(x.TgtInstance.Host)
+		adminInitSqls := adminPriv.GenerateInitSql(serverVersion)
+		if _, err = x.dbWorker.ExecMore(adminInitSqls); err != nil {
+			logger.Warn("fail to reset user %s", x.TgtInstance.User)
+		}
+	}
 	logger.Info("repair myisam tables")
 	// 修复MyIsam表
 	if err := x.RepairAndTruncateMyIsamTables(); err != nil {

@@ -28,38 +28,59 @@ import (
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util/osutil"
 )
 
-// RepairUserAdmin TODO
-func (x *Xtrabackup) RepairUserAdmin(user, password string) error {
-	/*
-		sql := fmt.Sprintf(
-			"UPDATE `mysql`.`user` SET `authentication_string`=password('%s') WHERE `user`='%s'",
-			password, user,
-		)
-		sql = fmt.Sprintf("ALTER USER %s@'localhost' IDENTIFIED WITH mysql_native_password BY '%s'", user, password)
-	*/
-	localHosts := []string{"localhost", "127.0.0.1", x.SrcBackupHost} // 这些是合法的 admin host
-	localHostsUnsafe := mysqlutil.UnsafeIn(localHosts, "'")           // 不在这些列表里的 admin host 将会被 DELETE
-	adminHostsSQL := fmt.Sprintf("SELECT `host` FROM `mysql`.`user` where `user`='%s'", user)
-	var adminUserHosts []string
-	if adminHosts, err := x.dbWorker.QueryOneColumn("host", adminHostsSQL); err != nil {
+// RepairUserAdmin 修复 ADMIN 用户的权限，主要是host和密码
+// 以 skip-grant 模式运行
+func (x *Xtrabackup) RepairUserAdmin(userAdmin, password string, version string) error {
+	if x.TgtInstance.Host == x.SrcBackupHost {
+		return nil
+	}
+	// 这些是合法的 admin host，保留下来
+	localHosts := []string{"localhost", "127.0.0.1", x.SrcBackupHost}
+	adminHostsQuery := fmt.Sprintf("SELECT `host` FROM `mysql`.`user` where `user`='%s'", userAdmin)
+	var dropUserHosts []string
+	var keepUserHosts []string // 不在这些列表里的 admin host 将会被 DELETE
+	if adminHosts, err := x.dbWorker.QueryOneColumn("host", adminHostsQuery); err != nil {
 		return err
 	} else {
 		for _, h := range adminHosts {
 			if cmutil.StringsHas(localHosts, h) {
-				adminUserHosts = append(adminUserHosts, h)
+				keepUserHosts = append(keepUserHosts, h)
+			} else {
+				dropUserHosts = append(dropUserHosts, h)
+			}
+		}
+		// 以下逻辑只是为为了减少出错的可能
+		if !cmutil.StringsHas(keepUserHosts, x.SrcBackupHost) {
+			logger.Warn("src backup host does not has ADMIN@%s, cannot fix it for new host", x.SrcBackupHost)
+			if cmutil.StringsHas(dropUserHosts, x.TgtInstance.Host) {
+				dropUserHosts = cmutil.StringsRemove(dropUserHosts, x.TgtInstance.Host)
 			}
 		}
 	}
 
 	sqlList := []string{"FLUSH PRIVILEGES;"}
-	sqlList = append(sqlList, fmt.Sprintf("DELETE FROM `mysql`.`user` WHERE `user`='%s' AND `host` NOT IN (%s);",
-		user, localHostsUnsafe))
-	for _, adminHost := range adminUserHosts {
-		sqlList = append(sqlList, fmt.Sprintf("ALTER USER %s@'%s' IDENTIFIED WITH mysql_native_password BY '%s';",
-			user, adminHost, password))
+	if len(dropUserHosts) > 0 {
+		sqlList = append(sqlList, fmt.Sprintf("DELETE FROM `mysql`.`user` WHERE `user`='%s' AND `host` IN (%s);",
+			userAdmin, mysqlutil.UnsafeIn(dropUserHosts, "'")))
+		/*
+			for _, h := range dropUserHosts {
+				sqlList = append(sqlList, fmt.Sprintf("DROP USER IF EXISTS %s@'%s';", userAdmin, h))
+			}
+		*/
+	}
+
+	for _, adminHost := range keepUserHosts {
+		if mysqlutil.MySQLVersionParse(version) < mysqlutil.MySQLVersionParse("5.7.6") {
+			sqlList = append(sqlList, fmt.Sprintf("SET PASSWORD FOR %s@'%s' = PASSWORD('%s');",
+				userAdmin, adminHost, password))
+		} else {
+			sqlList = append(sqlList, fmt.Sprintf("ALTER USER %s@'%s' IDENTIFIED WITH mysql_native_password BY '%s';",
+				userAdmin, adminHost, password))
+		}
 		if adminHost == x.SrcBackupHost {
-			sqlList = append(sqlList, fmt.Sprintf("UPDATE `mysql`.`user` SET `host`='%s' WHERE `user`='%s' and `host`='%s';",
-				x.TgtInstance.Host, user, x.SrcBackupHost))
+			sqlList = append(sqlList, fmt.Sprintf(
+				"UPDATE `mysql`.`user` SET `host`='%s' WHERE `user`='%s' and `host`='%s';",
+				x.TgtInstance.Host, userAdmin, x.SrcBackupHost))
 		}
 	}
 	sqlList = append(sqlList, "FLUSH PRIVILEGES;")
@@ -80,7 +101,7 @@ func (x *Xtrabackup) RepairAndTruncateMyIsamTables() error {
 	systemDbs := util.StringsRemove(native.DBSys, native.TEST_DB)
 	sql := fmt.Sprintf(
 		`SELECT table_schema, table_name FROM information_schema.tables `+
-			`WHERE table_schema not in (%s) AND engine = 'MyISAM'`,
+			`WHERE table_schema not in (%s) AND engine = 'MyISAM' AND TABLE_TYPE ='BASE TABLE'`,
 		mysqlutil.UnsafeIn(systemDbs, "'"),
 	)
 
@@ -112,7 +133,7 @@ func (x *Xtrabackup) RepairAndTruncateMyIsamTables() error {
 
 			sql := ""
 			if db == native.TEST_DB || db == native.INFODBA_SCHEMA {
-				sql = fmt.Sprintf("truncate table %s.%s", db, table)
+				//sql = fmt.Sprintf("truncate table %s.%s", db, table)
 			} else {
 				sql = fmt.Sprintf("repair table %s.%s", db, table)
 			}
@@ -139,43 +160,44 @@ func (x *Xtrabackup) RepairAndTruncateMyIsamTables() error {
 
 // RepairPrivileges TODO
 func (x *Xtrabackup) RepairPrivileges() error {
-	tgtHost := x.TgtInstance.Host
+	if x.TgtInstance.Host == x.SrcBackupHost {
+		return nil
+	}
 	myUsers := []string{"ADMIN", "sync", "repl"}
 
 	srcHostUnsafe := mysqlutil.UnsafeEqual(x.SrcBackupHost, "'")
-	tgtHostUnsafe := mysqlutil.UnsafeEqual(tgtHost, "'")
+	tgtHostUnsafe := mysqlutil.UnsafeEqual(x.TgtInstance.Host, "'")
 	myUsersUnsafe := mysqlutil.UnsafeIn(myUsers, "'")
 
 	var batchSQLs []string
 	// delete src host's ADMIN/sync user
-	sql1 := fmt.Sprintf(
-		"DELETE FROM mysql.user WHERE `user` IN (%s) AND `host` = %s;",
-		myUsersUnsafe, srcHostUnsafe,
-	)
+	sql1 := fmt.Sprintf("DELETE FROM mysql.user WHERE `user` IN (%s) AND `host` = %s;", myUsersUnsafe, srcHostUnsafe)
 	batchSQLs = append(batchSQLs, sql1)
 
 	// update src host to new, but not ADMIN/sync/repl
 	sql2s := []string{
 		fmt.Sprintf(
-			"UPDATE mysql.user SET `host`=%s WHERE `host`=%s AND User not in (%s);",
+			"UPDATE mysql.user SET `host`=%s WHERE `host`=%s AND User NOT IN (%s);",
 			tgtHostUnsafe, srcHostUnsafe, myUsersUnsafe,
 		),
 		fmt.Sprintf(
-			"UPDATE mysql.db SET `host`=%s WHERE `host`=%s AND User not in (%s);",
+			"UPDATE mysql.db SET `host`=%s WHERE `host`=%s AND User NOT IN (%s);",
 			tgtHostUnsafe, srcHostUnsafe, myUsersUnsafe,
 		),
 		fmt.Sprintf(
-			"UPDATE mysql.tables_priv SET `host`=%s WHERE `host`=%s AND User not in (%s);",
+			"UPDATE mysql.tables_priv SET `host`=%s WHERE `host`=%s AND User NOT IN (%s);",
 			tgtHostUnsafe, srcHostUnsafe, myUsersUnsafe,
 		),
 	}
 	batchSQLs = append(batchSQLs, sql2s...)
 
-	// delete src host users, but not localhost
-	sql3 := fmt.Sprintf(
-		"DELETE FROM mysql.user WHERE `host` IN(%s);", srcHostUnsafe,
-	)
-	batchSQLs = append(batchSQLs, sql3)
+	/*
+		// delete src host users, but not localhost
+		sql3 := fmt.Sprintf(
+			"DELETE FROM mysql.user WHERE `host` IN(%s);", srcHostUnsafe,
+		)
+		batchSQLs = append(batchSQLs, sql3)
+	*/
 
 	// flush
 	sql4 := fmt.Sprintf("flush privileges;")

@@ -157,8 +157,13 @@ func (r *RestoreDRComp) BuildChangeMaster() *mysql.BuildMSRelationComp {
 			BinPosition: cm.MasterLogPos,
 		},
 	}
-	comp.GeneralParam.RuntimeAccountParam.AdminUser = r.Params.TgtInstance.User
 	comp.GeneralParam.RuntimeAccountParam.AdminPwd = r.Params.TgtInstance.Pwd
+	if r.Params.BackupInfo.backupType == cst.BackupTypePhysical {
+		// 物理恢复修复 ADMIN 时
+		comp.GeneralParam.RuntimeAccountParam.AdminUser = native.DBUserAdmin
+	} else {
+		comp.GeneralParam.RuntimeAccountParam.AdminUser = r.Params.TgtInstance.User
+	}
 	return &comp
 }
 
