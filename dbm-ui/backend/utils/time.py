@@ -49,6 +49,7 @@ def remove_timezone(date_string: str, time_fmt: str = DATETIME_PATTERN) -> str:
 
 
 def datetime2str(o_datetime: datetime.datetime, fmt: str = DATETIME_PATTERN) -> str:
+    # TODO: 后续需要强校验是否带了时区信息
     if isinstance(o_datetime, str):
         return o_datetime
 
@@ -59,10 +60,11 @@ def datetime2str(o_datetime: datetime.datetime, fmt: str = DATETIME_PATTERN) -> 
 
 
 def str2datetime(datetime_str: str, fmt: str = DATETIME_PATTERN) -> datetime.datetime:
+    # TODO: 后续需要强校验是否带了时区信息
     if isinstance(datetime_str, datetime.datetime):
         return datetime_str
 
-    return datetime.datetime.strptime(datetime_str, fmt)
+    return time_parse(datetime_str)
 
 
 def date2str(o_date: datetime.date, fmt: str = DATE_PATTERN) -> str:
