@@ -169,7 +169,7 @@ func (c *DumpSchemaComp) DumpSchema() (err error) {
 func (c *DumpSchemaComp) ModifyEngine() (err error) {
 	EngineName := "REDIS"
 	ModifyCmd := fmt.Sprintf(
-		"sed -i 's/ENGINE=[^ ]*/ENGINE=%s/g' %s", EngineName, path.Join(c.BackupDir, c.BackupFileName),
+		"sed -i 's/ENGINE *= *[^ ,;)]*/ENGINE = %s/g' %s", EngineName, path.Join(c.BackupDir, c.BackupFileName),
 	)
 	logger.Info("ModifyCmd cmd:%s", ModifyCmd)
 	output, err := osutil.ExecShellCommand(false, ModifyCmd)
