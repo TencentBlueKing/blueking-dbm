@@ -272,15 +272,14 @@ func (r *BinlogRotate) Backup(backupClient backup.BackupClient) error {
 			}
 			if f.StartTime == "" || f.StopTime == "" {
 				bp, _ := binlog_parser.NewBinlogParse("", 0, reportlog.ReportTimeLayout1)
-				events, err := bp.GetTime(filename, true, true)
+				events, err := bp.GetTimeIgnoreStopErr(filename, true, true)
 				if err != nil {
-					events, _ = bp.GetTime(filename, true, false)
-					events = append(events, events[0])
 					logger.Warn("Backup GetTime %s", filename, err.Error())
-					// f.BackupStatus = FileStatusAbnormal
+					f.BackupStatus = models.FileStatusAbnormal
+				} else {
+					f.StartTime = events[0].EventTime
+					f.StopTime = events[1].EventTime
 				}
-				f.StartTime = events[0].EventTime
-				f.StopTime = events[1].EventTime
 			}
 			logger.Info("backup_client upload register file %s", filename)
 			if taskid, err := backupClient.Upload(filename); err != nil {

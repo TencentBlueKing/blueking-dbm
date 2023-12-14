@@ -171,7 +171,7 @@ func (p ImportMachParam) transParamToBytes() (lableJson, bizJson, rstypes json.R
 	}
 	rstypes = []byte("[]")
 	if len(p.RsTypes) > 0 {
-		rstypes, err = json.Marshal(cmutil.CleanStrElems(p.RsTypes))
+		rstypes, err = json.Marshal(cmutil.StringsRemoveEmpty(p.RsTypes))
 		if err != nil {
 			logger.Error(fmt.Sprintf("conver resource types Failed,Error:%s", err.Error()))
 			return

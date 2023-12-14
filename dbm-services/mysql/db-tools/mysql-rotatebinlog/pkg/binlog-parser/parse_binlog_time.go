@@ -140,6 +140,24 @@ func (b *BinlogParse) init() error {
 	return nil
 }
 
+// GetTimeIgnoreStopErr 保证返回 start_time, stop_time
+// 如果获取 rotate_event 失败，则把 file_description_event 的时间当做 stop_time
+func (b *BinlogParse) GetTimeIgnoreStopErr(fileName string, start, stop bool) ([]BinlogEventHeaderWrapper, error) {
+	events, err := b.GetTime(fileName, start, stop)
+	if err != nil {
+		if stop {
+			events, err = b.GetTime(fileName, true, false)
+			if err != nil {
+				return nil, errors.WithMessage(err, "fail to only get start time")
+			}
+			events = append(events, events[0])
+		} else {
+			return nil, err
+		}
+	}
+	return events, nil
+}
+
 // GetTime 获取binlog 开始或结束时间
 // 即使获取 rotate event 失败，也把已经成功的返回
 func (b *BinlogParse) GetTime(fileName string, start, stop bool) ([]BinlogEventHeaderWrapper, error) {
