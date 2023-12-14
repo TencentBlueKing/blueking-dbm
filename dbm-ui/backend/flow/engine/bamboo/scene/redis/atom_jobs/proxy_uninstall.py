@@ -57,7 +57,10 @@ def ProxyUnInstallAtomJob(root_id, ticket_data, act_kwargs: ActKwargs, param: Di
 
     sub_pipeline = SubBuilder(root_id=root_id, data=ticket_data)
     exec_ip = param["ip"]
-    if act_kwargs.cluster["cluster_type"] == ClusterType.TendisPredixyTendisplusCluster.value:
+    if act_kwargs.cluster["cluster_type"] in [
+        ClusterType.TendisPredixyTendisplusCluster.value,
+        ClusterType.TendisPredixyRedisCluster.value,
+    ]:
         act_kwargs.cluster["machine_type"] = MachineType.PREDIXY.value
     else:
         act_kwargs.cluster["machine_type"] = MachineType.TWEMPROXY.value

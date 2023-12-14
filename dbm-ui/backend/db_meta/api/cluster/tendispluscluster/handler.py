@@ -47,6 +47,7 @@ class TendisPlusClusterHandler(ClusterHandler):
         creator: str = "",
         bk_cloud_id: int = DEFAULT_BK_CLOUD_ID,
         region: str = "",
+        disaster_tolerance_level: str = "",
     ):
         """「必须」创建集群"""
         create(
@@ -61,6 +62,7 @@ class TendisPlusClusterHandler(ClusterHandler):
             creator=creator,
             bk_cloud_id=bk_cloud_id,
             region=region,
+            disaster_tolerance_level=disaster_tolerance_level,
         )
 
     @transaction.atomic

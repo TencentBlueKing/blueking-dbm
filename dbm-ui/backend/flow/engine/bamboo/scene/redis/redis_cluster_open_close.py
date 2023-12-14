@@ -136,6 +136,13 @@ class RedisClusterOpenCloseFlow(object):
             redis_pipeline.add_act(
                 act_name=_("更新实例状态"), act_component_code=RedisDBMetaComponent.code, kwargs=asdict(act_kwargs)
             )
+            meta_role = MachineType.TWEMPROXY.value
+            if cluster_info["cluster_type"] in [
+                ClusterType.TendisPredixyRedisCluster.value,
+                ClusterType.TendisPredixyTendisplusCluster.value,
+            ]:
+                meta_role = MachineType.PREDIXY.value
+
             # 启停的时候也得操作dbmon
             act_kwargs.cluster = {
                 "servers": [
@@ -146,9 +153,7 @@ class RedisClusterOpenCloseFlow(object):
                         "server_ports": []
                         if self.data["ticket_type"] == TicketType.REDIS_CLOSE
                         else [cluster_info["proxy_map"][ip]],
-                        "meta_role": MachineType.TWEMPROXY.value
-                        if cluster_info["cluster_type"] == ClusterType.TendisTwemproxyRedisInstance.value
-                        else MachineType.PREDIXY.value,
+                        "meta_role": meta_role,
                         "cluster_domain": cluster_info["domain_name"],
                         "app": app,
                         "app_name": app_name,

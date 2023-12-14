@@ -16,6 +16,7 @@ from typing import Dict, Optional
 
 from django.utils.translation import ugettext as _
 
+from backend.configuration.constants import AffinityEnum
 from backend.db_meta.enums import InstanceRole
 from backend.db_meta.enums.cluster_type import ClusterType
 from backend.db_meta.models import Cluster, Machine
@@ -266,6 +267,7 @@ class RedisClusterApplyFlow(object):
             "created_by": self.data["created_by"],
             "region": self.data.get("city_code", ""),
             "meta_func_name": RedisDBMeta.redis_make_cluster.__name__,
+            "disaster_tolerance_level": self.data.get("disaster_tolerance_level", AffinityEnum.CROS_SUBZONE),
         }
         redis_pipeline.add_act(
             act_name=_("建立集群 元数据"), act_component_code=RedisDBMetaComponent.code, kwargs=asdict(act_kwargs)

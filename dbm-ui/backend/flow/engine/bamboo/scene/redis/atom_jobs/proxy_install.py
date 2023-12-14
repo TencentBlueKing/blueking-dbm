@@ -100,7 +100,10 @@ def ProxyBatchInstallAtomJob(root_id, ticket_data, act_kwargs: ActKwargs, param:
         act_kwargs.cluster["dbconfig"] = param["conf_configs"]
 
     # 安装proxy实例
-    if act_kwargs.cluster["cluster_type"] == ClusterType.TendisPredixyTendisplusCluster.value:
+    if act_kwargs.cluster["cluster_type"] in [
+        ClusterType.TendisPredixyTendisplusCluster.value,
+        ClusterType.TendisPredixyRedisCluster.value,
+    ]:
         act_kwargs.cluster["ip"] = exec_ip
         act_kwargs.cluster["db_type"] = act_kwargs.cluster["cluster_type"]
         act_kwargs.cluster["machine_type"] = MachineType.PREDIXY.value

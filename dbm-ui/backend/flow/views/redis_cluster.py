@@ -40,6 +40,7 @@ class InstallRedisCacheClusterSceneApiView(FlowTestView):
          "spec": "S5.4XLARGE32",  # 机器规格
          "group_num": 2,  # 机器组数 -> 手输机器数为组数的倍数
          "maxmemory": 2147483648,  # 实例最大内存
+         "disaster_tolerance_level": "CROS_SUBZONE",
          # ---- 集群容量
          "db_version": "Redis-6",
          "databases": 2,  # 库数量，集群申请给默认值2就好

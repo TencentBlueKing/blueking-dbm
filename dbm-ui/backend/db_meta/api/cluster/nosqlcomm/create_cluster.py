@@ -50,6 +50,7 @@ def create_twemproxy_cluster(
     bk_cloud_id: int = DEFAULT_BK_CLOUD_ID,
     region: str = "",
     cluster_type: str = ClusterType.TendisTwemproxyRedisInstance.value,
+    disaster_tolerance_level: str = "",
 ):
     """
     兼容 TendisCache/TendisSSD 集群
@@ -85,6 +86,7 @@ def create_twemproxy_cluster(
             updater=creator,
             bk_cloud_id=bk_cloud_id,
             region=region,
+            disaster_tolerance_level=disaster_tolerance_level,
         )
         cluster.proxyinstance_set.add(*proxy_objs)
         cluster.storageinstance_set.add(*storage_objs)
