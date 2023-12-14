@@ -20,9 +20,7 @@ from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.mysql.common.exceptions import TenDBGetBackupInfoFailedException
 from backend.flow.engine.bamboo.scene.spider.common.exceptions import TendbGetBackupInfoFailedException
-from backend.flow.plugins.components.collections.mysql.clear_machine import MySQLClearMachineComponent
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
-from backend.flow.plugins.components.collections.mysql.mysql_db_meta import MySQLDBMetaComponent
 from backend.flow.plugins.components.collections.mysql.mysql_download_backupfile import (
     MySQLDownloadBackupfileComponent,
 )
@@ -35,14 +33,12 @@ from backend.flow.plugins.components.collections.mysql.rollback_local_trans_flie
 from backend.flow.plugins.components.collections.mysql.rollback_trans_flies import RollBackTransFileComponent
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
 from backend.flow.utils.mysql.mysql_act_dataclass import (
-    DBMetaOPKwargs,
     DownloadBackupFileKwargs,
     DownloadMediaKwargs,
     ExecActuatorKwargs,
     RollBackTransFileKwargs,
 )
 from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
-from backend.flow.utils.mysql.mysql_db_meta import MySQLDBMeta
 from backend.utils import time
 from backend.utils.time import str2datetime
 
@@ -56,6 +52,7 @@ def rollback_local_and_time(root_id: str, ticket_data: dict, cluster_info: dict)
     @param ticket_data: 关联单据 ticket对象
     @param cluster_info: 关联的cluster对象
     """
+    cluster_info["recover_binlog"] = True
     sub_pipeline = SubBuilder(root_id=root_id, data=copy.deepcopy(ticket_data))
     sub_pipeline.add_act(
         act_name=_("下发db_actuator介质"),
@@ -147,6 +144,7 @@ def rollback_remote_and_time(root_id: str, ticket_data: dict, cluster_info: dict
     @param ticket_data: 关联单据 ticket对象
     @param cluster_info: 关联的cluster对象
     """
+    cluster_info["recover_binlog"] = True
     sub_pipeline = SubBuilder(root_id=root_id, data=copy.deepcopy(ticket_data))
     rollback_time = time.strptime(cluster_info["rollback_time"], "%Y-%m-%d %H:%M:%S")
     rollback_handler = FixPointRollbackHandler(cluster_info["cluster_id"])
@@ -160,7 +158,7 @@ def rollback_remote_and_time(root_id: str, ticket_data: dict, cluster_info: dict
 
     task_files = [{"file_name": i} for i in backupinfo["file_list"]]
     cluster_info["task_files"] = task_files
-    cluster_info["backup_time"] = backupinfo["backup_begin_time"]
+    cluster_info["backup_time"] = backupinfo["backup_time"]
 
     exec_act_kwargs = ExecActuatorKwargs(
         bk_cloud_id=cluster_info["bk_cloud_id"],
@@ -236,11 +234,12 @@ def rollback_remote_and_backupid(root_id: str, ticket_data: dict, cluster_info: 
     @param ticket_data: 关联单据 ticket对象
     @param cluster_info: 关联的cluster对象
     """
+    cluster_info["recover_binlog"] = False
     sub_pipeline = SubBuilder(root_id=root_id, data=copy.deepcopy(ticket_data))
     backupinfo = cluster_info["backupinfo"]
     task_files = [{"file_name": i} for i in backupinfo["file_list"]]
     cluster_info["task_files"] = task_files
-    cluster_info["backup_time"] = backupinfo["backup_begin_time"]
+    cluster_info["backup_time"] = backupinfo["backup_time"]
 
     exec_act_kwargs = ExecActuatorKwargs(
         bk_cloud_id=cluster_info["bk_cloud_id"],
@@ -281,6 +280,7 @@ def rollback_local_and_backupid(root_id: str, ticket_data: dict, cluster_info: d
     @param ticket_data: 关联单据 ticket对象
     @param cluster_info: 关联的cluster对象
     """
+    cluster_info["recover_binlog"] = False
     sub_pipeline = SubBuilder(root_id=root_id, data=copy.deepcopy(ticket_data))
     exec_act_kwargs = ExecActuatorKwargs(
         bk_cloud_id=cluster_info["bk_cloud_id"],
@@ -288,8 +288,8 @@ def rollback_local_and_backupid(root_id: str, ticket_data: dict, cluster_info: d
         cluster=cluster_info,
     )
 
-    backupinfo = cluster_info["backupinfo"]
-    backupinfo["backup_begin_time"] = backupinfo["backup_time"]
+    # backupinfo = cluster_info["backupinfo"]
+    # backupinfo["backup_begin_time"] = backupinfo["backup_time"]
 
     exec_act_kwargs.exec_ip = cluster_info["rollback_ip"]
     exec_act_kwargs.cluster = cluster_info

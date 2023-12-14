@@ -856,80 +856,6 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
 
         return data
 
-    def get_rollback_data_download_backupfile_payload(self, **kwargs) -> dict:
-        """
-        下载定点恢复的全库备份介质 作废
-        """
-        payload = {
-            "db_type": DBActuatorTypeEnum.Download.value,
-            "action": DBActuatorActionEnum.IbsRecver.value,
-            "payload": {
-                "general": {"runtime_account": self.account},
-                "extend": {
-                    "taskid_list": "",
-                    "dest_ip": kwargs["ip"],
-                    "diretory": self.cluster["diretory"],
-                    "reason": "For rollback data",
-                    "login_user": self.account["os_mysql_user"],
-                    "login_passwd": self.account["os_mysql_pwd"],
-                    "task_files": self.cluster["task_files"],
-                    "ibs_query": {
-                        "source_ip": self.cluster["total_backupinfo"]["mysql_host"],
-                        "begin_date": self.cluster["begin_time"],
-                        "end_date": self.cluster["end_time"],
-                    },
-                    # "task_files_wild": {
-                    #     "file_tag": "INCREMENT_BACKUP",
-                    #     "name_search": str(self.cluster["master_port"]),
-                    #     "name_regex": self.cluster["name_regex"]
-                    # },
-                    "ibs_info": {
-                        "url": env.IBS_INFO_URL,
-                        "sys_id": env.IBS_INFO_SYSID,
-                        "key": env.IBS_INFO_KEY,
-                    },
-                },
-            },
-        }
-        return payload
-
-    def get_rollback_data_download_binlog_payload(self, **kwargs) -> dict:
-        """
-        下载定点恢复的binlog文件增量备份介质
-        """
-        payload = {
-            "db_type": DBActuatorTypeEnum.Download.value,
-            "action": DBActuatorActionEnum.IbsRecver.value,
-            "payload": {
-                "general": {"runtime_account": self.account},
-                "extend": {
-                    "taskid_list": "",
-                    "dest_ip": kwargs["ip"],
-                    "diretory": self.cluster["diretory"],
-                    "reason": "For rollback data",
-                    "login_user": self.account["os_mysql_user"],
-                    "login_passwd": self.account["os_mysql_pwd"],
-                    # "task_files": self.cluster["backupinfo"]["file_list"],
-                    "ibs_query": {
-                        "source_ip": self.cluster["master_ip"],
-                        "begin_date": self.cluster["binlog_begin_time"],
-                        "end_date": self.cluster["binlog_end_time"],
-                    },
-                    "task_files_wild": {
-                        "file_tag": "INCREMENT_BACKUP",
-                        "name_search": str(self.cluster["master_port"]),
-                        "name_regex": self.cluster["name_regex"],
-                    },
-                    "ibs_info": {
-                        "url": env.IBS_INFO_URL,
-                        "sys_id": env.IBS_INFO_SYSID,
-                        "key": env.IBS_INFO_KEY,
-                    },
-                },
-            },
-        }
-        return payload
-
     def get_rollback_data_restore_payload(self, **kwargs):
         """
         MYSQL 定点回档恢复备份介质
@@ -965,7 +891,7 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
                         "tables": self.cluster["tables"],
                         "ignore_databases": self.cluster["databases_ignore"],
                         "ignore_tables": self.cluster["tables_ignore"],
-                        "recover_binlog": True,
+                        "recover_binlog": self.cluster["recover_binlog"],
                     },
                     "src_instance": {"host": self.cluster["master_ip"], "port": self.cluster["master_port"]},
                     "change_master": self.cluster["change_master"],
