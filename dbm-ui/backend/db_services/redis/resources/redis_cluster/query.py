@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import logging
 from typing import Any, Dict
 
 from django.db.models import F, Prefetch, Q, QuerySet
@@ -30,6 +31,8 @@ from backend.db_services.dbbase.resources import query
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.ticket.models import ClusterOperateRecord
 from backend.utils.time import datetime2str
+
+logger = logging.getLogger("root")
 
 
 class ListRetrieveResource(query.ListRetrieveResource):
@@ -216,6 +219,7 @@ class ListRetrieveResource(query.ListRetrieveResource):
 
         count = clusters.count()
         limit = count if limit == -1 else limit
+        logger.info("redis cluster list: count = %s", count)
         if not count:
             return query.ResourceList(count=0, data=[])
 
@@ -229,6 +233,7 @@ class ListRetrieveResource(query.ListRetrieveResource):
             list(clusters.values_list("id", flat=True))
         )
 
+        logger.info("redis cluster list: clusters.count = %s", clusters.count())
         cluster_stats_map = Cluster.get_cluster_stats()
 
         return query.ResourceList(
