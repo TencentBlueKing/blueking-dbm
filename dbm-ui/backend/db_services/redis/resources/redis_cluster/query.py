@@ -8,7 +8,6 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-import logging
 from typing import Any, Dict
 
 from django.db.models import F, Prefetch, Q, QuerySet
@@ -31,8 +30,6 @@ from backend.db_services.dbbase.resources import query
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.ticket.models import ClusterOperateRecord
 from backend.utils.time import datetime2str
-
-logger = logging.getLogger("root")
 
 
 class ListRetrieveResource(query.ListRetrieveResource):
