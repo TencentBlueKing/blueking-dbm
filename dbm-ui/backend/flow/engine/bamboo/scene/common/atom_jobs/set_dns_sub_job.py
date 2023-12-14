@@ -54,7 +54,7 @@ def set_dns_atom_job(root_id, ticket_data, act_kwargs: ActKwargs, param: Dict) -
     act_kwargs.cluster[
         "shell_command"
     ] = """
-               d=`cat /etc/resolv.conf | sed "/^$/d" | sed "/^#/d" |awk 1 ORS=' '`
+               d=`cat /etc/resolv.conf | grep nameserver | sed "/^$/d" | sed "/^#/d" |awk 1 ORS=' '`
                echo "<ctx>{\\\"data\\\":\\\"${d}\\\"}</ctx>"
             """
     set_dns_sub_pipeline.add_act(
@@ -74,7 +74,7 @@ def set_dns_atom_job(root_id, ticket_data, act_kwargs: ActKwargs, param: Dict) -
         )
 
     # 执行job写入配置
-    act_kwargs.cluster = {"bk_cloud_id": param["bk_cloud_id"], "bk_city": param["bk_city"]}
+    act_kwargs.cluster = param
     set_dns_sub_pipeline.add_act(
         act_name=_("{}修改DNS配置").format(ip),
         act_component_code=DNSServerSetComponent.code,

@@ -40,6 +40,7 @@ def create(
     creator: str = "",
     bk_cloud_id: int = DEFAULT_BK_CLOUD_ID,
     region: str = "",
+    disaster_tolerance_level: str = "",
 ):
     """
     注册 TendisplusCluster 集群
@@ -73,6 +74,7 @@ def create(
             creator=creator,
             bk_cloud_id=bk_cloud_id,
             region=region,
+            disaster_tolerance_level=disaster_tolerance_level,
         )
         cluster.proxyinstance_set.add(*proxy_objs)
         cluster.storageinstance_set.add(*storage_objs)

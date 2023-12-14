@@ -331,6 +331,7 @@ class RedisDBMeta(object):
                     "storages": storages,
                     "creator": self.cluster["created_by"],
                     "region": self.cluster.get("region", ""),
+                    "disaster_tolerance_level": self.cluster.get("disaster_tolerance_level", ""),
                 }
             )
         elif self.cluster["cluster_type"] == ClusterType.TwemproxyTendisSSDInstance.value:
@@ -347,6 +348,7 @@ class RedisDBMeta(object):
                     "storages": storages,
                     "creator": self.cluster["created_by"],
                     "region": self.cluster.get("region", ""),
+                    "disaster_tolerance_level": self.cluster.get("disaster_tolerance_level", ""),
                 }
             )
 
@@ -381,6 +383,7 @@ class RedisDBMeta(object):
                 "storages": storages,
                 "creator": self.cluster["created_by"],
                 "region": self.cluster.get("region", ""),
+                "disaster_tolerance_level": self.cluster.get("disaster_tolerance_level", ""),
             }
         )
         return True

@@ -94,8 +94,16 @@ class DNSServerSetService(BkJobService):
 
         dns_server_config = self.__get_dns_server_list(cluster["bk_cloud_id"], cluster["bk_city"])
 
-        # 脚本内容
-        shell_command = "echo '{}' > /etc/resolv.conf".format(dns_server_config)
+        # 强制模式
+        if cluster["force"]:
+            shell_command = "echo '{}' > /etc/resolv.conf".format(dns_server_config)
+        # 非强制模式
+        else:
+            shell_command = "{} && echo '{}' > /etc/resolv.conf || {} ".format(
+                "[ `cat /etc/resolv.conf | grep nameserver | sed '/^$/d' | sed '/^#/d' | wc -l` == '0' ]",
+                dns_server_config,
+                "cat /etc/resolv.conf",
+            )
 
         body = {
             "bk_biz_id": env.JOB_BLUEKING_BIZ_ID,

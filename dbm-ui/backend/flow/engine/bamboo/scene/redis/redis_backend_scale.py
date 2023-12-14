@@ -35,6 +35,8 @@ from backend.flow.engine.bamboo.scene.redis.atom_jobs import (
     RedisMakeSyncAtomJob,
 )
 from backend.flow.plugins.components.collections.redis.get_redis_payload import GetRedisActPayloadComponent
+from backend.flow.plugins.components.collections.redis.redis_config import RedisConfigComponent
+from backend.flow.utils.redis.redis_act_playload import RedisActPayload
 from backend.flow.utils.redis.redis_context_dataclass import ActKwargs, CommonContext
 
 logger = logging.getLogger("flow")
@@ -340,8 +342,24 @@ class RedisBackendScaleFlow(object):
                 )
 
             sub_pipeline.add_parallel_sub_pipeline(sub_flow_list=redis_shutdown_sub_pipelines)
+
+            # 更新 dbconfig 中版本信息
+            act_kwargs.cluster = {
+                "bk_biz_id": self.data["bk_biz_id"],
+                "cluster_domain": act_kwargs.cluster["immute_domain"],
+                "current_version": act_kwargs.cluster["origin_db_version"],
+                "target_version": act_kwargs.cluster["db_version"],
+                "cluster_type": act_kwargs.cluster["cluster_type"],
+            }
+            act_kwargs.get_redis_payload_func = RedisActPayload.redis_cluster_version_update_dbconfig.__name__
+            sub_pipeline.add_act(
+                act_name=_("Redis-更新dbconfig中集群版本"),
+                act_component_code=RedisConfigComponent.code,
+                kwargs=asdict(act_kwargs),
+            )
+
             sub_pipelines.append(
-                sub_pipeline.build_sub_process(sub_name=_("{}backend扩缩容").format(act_kwargs.cluster["cluster_name"]))
+                sub_pipeline.build_sub_process(sub_name=_("{}backend扩缩容").format(act_kwargs.cluster["cluster_domain"]))
             )
 
         redis_pipeline.add_parallel_sub_pipeline(sub_pipelines)

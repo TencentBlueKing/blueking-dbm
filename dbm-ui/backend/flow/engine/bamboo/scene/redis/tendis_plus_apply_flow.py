@@ -15,6 +15,7 @@ from typing import Dict, Optional
 
 from django.utils.translation import ugettext as _
 
+from backend.configuration.constants import AffinityEnum
 from backend.db_meta.enums import InstanceRole
 from backend.db_meta.models import Cluster, Machine
 from backend.flow.consts import DEFAULT_REDIS_START_PORT, ClusterStatus, DnsOpType
@@ -233,6 +234,7 @@ class TendisPlusApplyFlow(object):
             "start_port": DEFAULT_REDIS_START_PORT,
             "new_master_ips": master_ips,
             "meta_func_name": RedisDBMeta.tendisplus_make_cluster.__name__,
+            "disaster_tolerance_level": self.data.get("disaster_tolerance_level", AffinityEnum.CROS_SUBZONE),
         }
         redis_pipeline.add_act(
             act_name=_("建立集群 元数据"), act_component_code=RedisDBMetaComponent.code, kwargs=asdict(act_kwargs)

@@ -33,7 +33,7 @@ from backend.db_services.redis.util import (
     is_tendisssd_instance_type,
     is_twemproxy_proxy_type,
 )
-from backend.db_services.version.constants import PredixyVersion, TwemproxyVersion
+from backend.db_services.version.constants import PredixyVersion, RedisVersion, TwemproxyVersion
 from backend.flow.consts import (
     DEFAULT_CONFIG_CONFIRM,
     DEFAULT_DB_MODULE_ID,
@@ -1622,7 +1622,11 @@ class RedisActPayload(object):
                 conf_items.append(
                     {"conf_name": conf_name, "conf_value": src_resp["content"][conf_name], "op_type": OpType.UPDATE}
                 )
-        remove_items = [{"conf_name": conf_name, "op_type": OpType.REMOVE} for conf_name in conf_names]
+        remove_items = []
+        for conf_name in conf_names:
+            if conf_name == "cluster-enabled" and cluster_map["current_version"] == RedisVersion.Redis20.value:
+                continue
+            remove_items.append({"conf_name": conf_name, "op_type": OpType.REMOVE})
         upsert_param = {
             "conf_file_info": {
                 "conf_file": "",  # 需要替换成真实值
