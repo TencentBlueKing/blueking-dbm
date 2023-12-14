@@ -51,6 +51,7 @@ func (c *MachineResourceHandler) RegisterRouter(engine *rf.Engine) {
 		r.POST("/subzones", c.GetSubZones)
 		r.POST("/deviceclass", c.GetDeviceClass)
 		r.POST("/operation/list", c.OperationInfoList)
+		r.POST("/operation/create", c.RecordImportResource)
 		r.POST("/spec/sum", c.SpecSum)
 	}
 }

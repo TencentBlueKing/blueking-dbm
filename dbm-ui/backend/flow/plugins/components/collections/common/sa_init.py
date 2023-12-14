@@ -30,6 +30,7 @@ class SaInit(BkSopsService):
             "constants": {
                 "${biz_cc_id}": bk_biz_id,
                 "${job_ip_list}": "\n".join(iplist),
+                "${bk_biz_id}": bk_biz_id,
             },
         }
         rpdata = BkSopsApi.create_task(param)
