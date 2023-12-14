@@ -123,9 +123,6 @@ def RedisClusterSwitchAtomJob(root_id, data, act_kwargs: ActKwargs, sync_params:
         ClusterType.TwemproxyTendisSSDInstance,
         ClusterType.TendisTwemproxyRedisInstance,
     ]:
-        act_kwargs.cluster["instances"] = nosqlcomm.other.get_cluster_proxies(
-            cluster_id=act_kwargs.cluster["cluster_id"]
-        )
         act_kwargs.get_redis_payload_func = RedisActPayload.redis_twemproxy_backends_4_scene.__name__
         sub_pipeline.add_act(
             act_name=_("Redis-{}-检查切换状态").format(exec_ip),

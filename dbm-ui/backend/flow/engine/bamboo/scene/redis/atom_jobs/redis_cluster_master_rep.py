@@ -80,8 +80,7 @@ def TwemproxyClusterMasterReplaceJob(
     for replace_link in master_replace_detail:
         old_master_ip = replace_link["ip"]
         old_slave_ip = act_kwargs.cluster["master_slave_map"][old_master_ip]
-        new_master_ip = replace_link["target"]["master"]["ip"]
-        new_slave_ip = replace_link["target"]["slave"]["ip"]
+        new_master_ip, new_slave_ip = replace_link["target"]["master"]["ip"], replace_link["target"]["slave"]["ip"]
 
         new_ins_port = DEFAULT_REDIS_START_PORT
         old_ports = act_kwargs.cluster["master_ports"][old_master_ip]
@@ -107,7 +106,7 @@ def TwemproxyClusterMasterReplaceJob(
             new_ins_port += 1
 
     twemproxy_server_shards = get_twemproxy_cluster_server_shards(
-        act_kwargs.cluster["bk_biz_id"], act_kwargs.cluster["cluster_id"], act_kwargs.cluster["slave_ins_map"]
+        act_kwargs.cluster["bk_biz_id"], act_kwargs.cluster["cluster_id"], new_instances_to_master
     )
 
     # ## 部署实例 #############################################################################
