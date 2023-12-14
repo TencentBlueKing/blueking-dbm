@@ -26,7 +26,6 @@ from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import (
     install_mysql_in_cluster_sub_flow,
 )
 from backend.flow.engine.bamboo.scene.mysql.common.exceptions import NormalTenDBFlowException
-from backend.flow.engine.bamboo.scene.mysql.common.uninstall_instance import uninstall_instance_sub_flow
 from backend.flow.engine.bamboo.scene.mysql.mysql_rollback_data_sub_flow import (
     rollback_local_and_backupid,
     rollback_local_and_time,
@@ -34,12 +33,10 @@ from backend.flow.engine.bamboo.scene.mysql.mysql_rollback_data_sub_flow import 
     rollback_remote_and_time,
 )
 from backend.flow.engine.bamboo.scene.spider.common.exceptions import TendbGetClusterInfoFailedException
-from backend.flow.plugins.components.collections.common.download_backup_client import DownloadBackupClientComponent
 from backend.flow.plugins.components.collections.common.pause import PauseComponent
 from backend.flow.plugins.components.collections.mysql.clear_machine import MySQLClearMachineComponent
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.mysql.mysql_db_meta import MySQLDBMetaComponent
-from backend.flow.utils.common_act_dataclass import DownloadBackupClientKwargs
 from backend.flow.utils.mysql.common.mysql_cluster_info import get_cluster_info, get_version_and_charset
 from backend.flow.utils.mysql.mysql_act_dataclass import DBMetaOPKwargs, ExecActuatorKwargs
 from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
@@ -126,19 +123,6 @@ class MySQLRollbackDataFlow(object):
                     )
                 ),
             )
-
-            sub_pipeline.add_act(
-                act_name=_("安装backup-client工具"),
-                act_component_code=DownloadBackupClientComponent.code,
-                kwargs=asdict(
-                    DownloadBackupClientKwargs(
-                        bk_cloud_id=cluster_class.bk_cloud_id,
-                        bk_biz_id=int(cluster_class.bk_biz_id),
-                        download_host_list=[self.data["rollback_ip"]],
-                    )
-                ),
-            )
-
             sub_pipeline.add_sub_pipeline(
                 sub_flow=build_surrounding_apps_sub_flow(
                     bk_cloud_id=cluster_class.bk_cloud_id,
@@ -148,6 +132,8 @@ class MySQLRollbackDataFlow(object):
                     parent_global_data=copy.deepcopy(self.data),
                     is_init=True,
                     cluster_type=ClusterType.TenDBHA.value,
+                    is_install_backup=False,
+                    is_install_monitor=False,
                 )
             )
 

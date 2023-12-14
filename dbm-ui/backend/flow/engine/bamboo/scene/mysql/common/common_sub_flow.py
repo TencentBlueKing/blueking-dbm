@@ -59,6 +59,7 @@ def build_surrounding_apps_sub_flow(
     slave_ip_list: list = None,
     proxy_ip_list: list = None,
     is_install_backup: bool = True,
+    is_install_monitor: bool = True,
 ):
     """
     定义重建备、数据检验程序、rotate_binlog程序等组件的子流程，面向整机操作
@@ -72,6 +73,7 @@ def build_surrounding_apps_sub_flow(
     @param is_init: 是否代表首次安装，针对部署、添加场景
     @param cluster_type: 操作的集群类型，涉及到获取配置空间
     @param is_install_backup: 是否安装备份,spider集群切换前忽略安装备份
+    @param is_install_monitor: 是否安装监控,定点回档需要
     """
     if not master_ip_list:
         master_ip_list = []
@@ -103,21 +105,23 @@ def build_surrounding_apps_sub_flow(
     acts_list = []
     if isinstance(master_ip_list, list) and len(master_ip_list) != 0:
         for master_ip in list(set(master_ip_list)):
-            acts_list.extend(
-                [
-                    {
-                        "act_name": _("Master[{}]安装rotate_binlog程序".format(master_ip)),
-                        "act_component_code": ExecuteDBActuatorScriptComponent.code,
-                        "kwargs": asdict(
-                            ExecActuatorKwargs(
-                                bk_cloud_id=bk_cloud_id,
-                                exec_ip=master_ip,
-                                get_mysql_payload_func=MysqlActPayload.get_install_mysql_rotatebinlog_payload.__name__,
-                                cluster_type=cluster_type,
-                                run_as_system_user=DBA_ROOT_USER,
-                            )
-                        ),
-                    },
+            acts_list.append(
+                {
+                    "act_name": _("Master[{}]安装rotate_binlog程序".format(master_ip)),
+                    "act_component_code": ExecuteDBActuatorScriptComponent.code,
+                    "kwargs": asdict(
+                        ExecActuatorKwargs(
+                            bk_cloud_id=bk_cloud_id,
+                            exec_ip=master_ip,
+                            get_mysql_payload_func=MysqlActPayload.get_install_mysql_rotatebinlog_payload.__name__,
+                            cluster_type=cluster_type,
+                            run_as_system_user=DBA_ROOT_USER,
+                        )
+                    ),
+                },
+            )
+            if is_install_monitor:
+                acts_list.append(
                     {
                         "act_name": _("Master[{}]安装mysql-monitor".format(master_ip)),
                         "act_component_code": ExecuteDBActuatorScriptComponent.code,
@@ -130,9 +134,9 @@ def build_surrounding_apps_sub_flow(
                                 run_as_system_user=DBA_ROOT_USER,
                             )
                         ),
-                    },
-                ]
-            )
+                    }
+                )
+
             if is_install_backup:
                 acts_list.append(
                     {
@@ -187,21 +191,23 @@ def build_surrounding_apps_sub_flow(
 
     if isinstance(slave_ip_list, list) and len(slave_ip_list) != 0:
         for slave_ip in list(set(slave_ip_list)):
-            acts_list.extend(
-                [
-                    {
-                        "act_name": _("Slave[{}]安装rotate_binlog程序".format(slave_ip)),
-                        "act_component_code": ExecuteDBActuatorScriptComponent.code,
-                        "kwargs": asdict(
-                            ExecActuatorKwargs(
-                                bk_cloud_id=bk_cloud_id,
-                                exec_ip=slave_ip,
-                                get_mysql_payload_func=MysqlActPayload.get_install_mysql_rotatebinlog_payload.__name__,
-                                cluster_type=cluster_type,
-                                run_as_system_user=DBA_ROOT_USER,
-                            )
-                        ),
-                    },
+            acts_list.append(
+                {
+                    "act_name": _("Slave[{}]安装rotate_binlog程序".format(slave_ip)),
+                    "act_component_code": ExecuteDBActuatorScriptComponent.code,
+                    "kwargs": asdict(
+                        ExecActuatorKwargs(
+                            bk_cloud_id=bk_cloud_id,
+                            exec_ip=slave_ip,
+                            get_mysql_payload_func=MysqlActPayload.get_install_mysql_rotatebinlog_payload.__name__,
+                            cluster_type=cluster_type,
+                            run_as_system_user=DBA_ROOT_USER,
+                        )
+                    ),
+                },
+            )
+            if is_install_monitor:
+                acts_list.append(
                     {
                         "act_name": _("Slave[{}]安装mysql-monitor".format(slave_ip)),
                         "act_component_code": ExecuteDBActuatorScriptComponent.code,
@@ -214,9 +220,9 @@ def build_surrounding_apps_sub_flow(
                                 run_as_system_user=DBA_ROOT_USER,
                             )
                         ),
-                    },
-                ]
-            )
+                    }
+                )
+
             if is_install_backup:
                 acts_list.append(
                     {
