@@ -219,7 +219,6 @@ class ListRetrieveResource(query.ListRetrieveResource):
 
         count = clusters.count()
         limit = count if limit == -1 else limit
-        logger.info("redis cluster list: count = %s", count)
         if not count:
             return query.ResourceList(count=0, data=[])
 
@@ -233,7 +232,6 @@ class ListRetrieveResource(query.ListRetrieveResource):
             list(clusters.values_list("id", flat=True))
         )
 
-        logger.info("redis cluster list: clusters.count = %s", clusters.count())
         cluster_stats_map = Cluster.get_cluster_stats()
 
         return query.ResourceList(
