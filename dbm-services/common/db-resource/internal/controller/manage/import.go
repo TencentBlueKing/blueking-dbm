@@ -133,17 +133,17 @@ func (c *MachineResourceHandler) Import(r *rf.Context) {
 		c.SendResponse(r, fmt.Errorf("all machines failed to query cmdb information"), resp, requestId)
 		return
 	}
-	hostIds, err := json.Marshal(input.getHostIds())
-	if err != nil {
-		c.SendResponse(r, errno.ErrJSONMarshal.Add("input bkhostIds"), resp, requestId)
-		return
-	}
-	iplist, err := json.Marshal(input.getIps())
-	if err != nil {
-		c.SendResponse(r, errno.ErrJSONMarshal.Add("input ips"), resp, requestId)
-		return
-	}
-	task.RecordRsOperatorInfoChan <- input.getOperationInfo(requestId, hostIds, iplist)
+	// hostIds, err := json.Marshal(input.getHostIds())
+	// if err != nil {
+	// 	c.SendResponse(r, errno.ErrJSONMarshal.Add("input bkhostIds"), resp, requestId)
+	// 	return
+	// }
+	// iplist, err := json.Marshal(input.getIps())
+	// if err != nil {
+	// 	c.SendResponse(r, errno.ErrJSONMarshal.Add("input ips"), resp, requestId)
+	// 	return
+	// }
+	// task.RecordRsOperatorInfoChan <- input.getOperationInfo(requestId, hostIds, iplist)
 	c.SendResponse(r, err, resp, requestId)
 }
 

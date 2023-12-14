@@ -49,16 +49,11 @@ class ImportResourceInitStepFlow(object):
 
         # 在执行sa初始化
         if env.SA_INIT_TEMPLATE_ID:
-            ips = []
-            for host_info in ip_list:
-                resource_id = f'{host_info["bk_cloud_id"]}:{host_info["ip"]}'
-                ips.append(resource_id)
-
             # 执行sa初始化
             p.add_act(
                 act_name=_("执行sa初始化"),
                 act_component_code=SaInitComponent.code,
-                kwargs={"ips": ips, "bk_biz_id": bk_biz_id},
+                kwargs={"ips": [host["ip"] for host in ip_list], "bk_biz_id": bk_biz_id},
             )
 
         # 调用资源导入接口
