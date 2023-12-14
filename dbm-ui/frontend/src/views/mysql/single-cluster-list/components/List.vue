@@ -138,6 +138,7 @@
   import EditEntryConfig from '@components/cluster-entry-config/Index.vue';
   import DbStatus from '@components/db-status/index.vue';
   import RenderInstances from '@components/render-instances/RenderInstances.vue';
+  import RenderTextEllipsisOneLine from '@components/text-ellipsis-one-line/index.vue';
 
   import RenderOperationTag from '@views/mysql/common/RenderOperationTag.vue';
 
@@ -249,26 +250,29 @@
       width: 200,
       minWidth: 200,
       showOverflowTooltip: false,
-      render: ({ data }: ColumnData) => (
-        <div class="domain">
-          <span class="text-overflow" v-overflow-tips>
-            <bk-button
-              text
-              theme="primary"
-              onClick={() => handleToDetails(data.id)}>
-              {data.masterDomainDisplayName || '--'}
-            </bk-button>
-          </span>
+      render: ({ data }: ColumnData) => {
+        const content = <>
           <db-icon
             v-bk-tooltips={t('复制主访问入口')}
             type="copy"
             onClick={() => copy(data.masterDomainDisplayName)} />
-          {userProfileStore.isManager && <db-icon
+          {userProfileStore.isManager && (
+            <db-icon
               type="edit"
               v-bk-tooltips={t('修改入口配置')}
-              onClick={() => handleOpenEntryConfig(data)} />}
-        </div>
-      ),
+              onClick={() => handleOpenEntryConfig(data)} />
+          )}
+        </>;
+        return (
+          <div class="domain">
+            <RenderTextEllipsisOneLine
+              text={data.masterDomainDisplayName}
+              onClick={() => handleToDetails(data.id)}>
+              {content}
+            </RenderTextEllipsisOneLine>
+          </div>
+        );
+      },
     },
     {
       label: t('集群名称'),

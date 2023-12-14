@@ -348,7 +348,7 @@
           <div class="domain">
             <RenderTextEllipsisOneLine
               text={data.masterDomainDisplayName}
-              onText-click={() => handleToDetails(data.id)}>
+              onClick={() => handleToDetails(data.id)}>
               {content}
             </RenderTextEllipsisOneLine>
           </div>

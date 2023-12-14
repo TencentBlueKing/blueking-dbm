@@ -129,7 +129,7 @@
         return (
           <RenderTextEllipsisOneLine
             text={row.name}
-            onText-click={ () => handleOpenDetail('edit', row) }>
+            onClick={ () => handleOpenDetail('edit', row) }>
             { content }
           </RenderTextEllipsisOneLine>
         );

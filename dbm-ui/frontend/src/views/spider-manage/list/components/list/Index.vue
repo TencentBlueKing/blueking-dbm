@@ -158,6 +158,7 @@
   import EditEntryConfig from '@components/cluster-entry-config/Index.vue';
   import DbStatus from '@components/db-status/index.vue';
   import RenderInstances from '@components/render-instances/RenderInstances.vue';
+  import RenderTextEllipsisOneLine from '@components/text-ellipsis-one-line/index.vue';
 
   import {
     getSearchSelectorParams,
@@ -269,32 +270,31 @@
       width: 200,
       minWidth: 200,
       showOverflowTooltip: false,
-      render: ({ data }: IColumn) => (
-        <div class="domain">
-          <span
-            class="text-overflow"
-            v-overflow-tips>
-            <bk-button
-              text
-              theme="primary"
+      render: ({ data }: IColumn) => {
+        const content = <>
+          {data.master_domain && (
+            <db-icon
+              type="copy"
+              v-bk-tooltips={t('复制主访问入口')}
+              onClick={() => copy(data.masterDomainDisplayName)} />
+          )}
+          {userProfileStore.isManager && (
+            <db-icon
+              type="edit"
+              v-bk-tooltips={t('修改入口配置')}
+              onClick={() => handleOpenEntryConfig(data)} />
+          )}
+        </>;
+        return (
+          <div class="domain">
+            <RenderTextEllipsisOneLine
+              text={data.masterDomainDisplayName}
               onClick={() => handleToDetails(data.id)}>
-              {data.masterDomainDisplayName || '--'}
-            </bk-button>
-          </span>
-          {
-            data.master_domain && (
-              <db-icon
-                type="copy"
-                v-bk-tooltips={t('复制主访问入口')}
-                onClick={() => copy(data.masterDomainDisplayName)} />
-            )
-          }
-          {userProfileStore.isManager && <db-icon
-            type="edit"
-            v-bk-tooltips={t('修改入口配置')}
-            onClick={() => handleOpenEntryConfig(data)} />}
-        </div>
-      ),
+              {content}
+            </RenderTextEllipsisOneLine>
+          </div>
+        );
+      },
     },
     {
       label: t('集群名称'),
