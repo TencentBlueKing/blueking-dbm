@@ -55,7 +55,7 @@ class MysqlSqlImportItsmParamBuilder(builders.ItsmParamBuilder):
 
         # 添加语义执行结果的链接
         root_id = self.ticket.details["root_id"]
-        semantic_url = f"{env.BK_SAAS_HOST}/database/{self.ticket.bk_biz_id}/mission-details/{root_id}/"
+        semantic_url = f"{env.BK_SAAS_HOST}/{self.ticket.bk_biz_id}/task-history/detail/{root_id}"
         params["dynamic_fields"].append({"name": _("模拟执行链接"), "type": "LINK", "value": semantic_url})
 
         return params

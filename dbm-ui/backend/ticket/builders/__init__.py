@@ -152,13 +152,12 @@ class ItsmParamBuilder(CallBackBuilderMixin):
                 {
                     "name": _("单据链接"),
                     "type": "LINK",
-                    "value": f"{env.BK_SAAS_HOST}/{self.ticket.bk_biz_id}/my-tickets?id={self.ticket.id}",
+                    "value": self.ticket.url,
                 },
                 {
                     "name": _("需求信息"),
                     "type": "LINK",
-                    "value": f"{env.BK_SAAS_HOST}/{self.ticket.bk_biz_id}/"
-                    f"my-tickets?id={self.ticket.id}&isFullscreen=true",
+                    "value": f"{self.ticket.url}&isFullscreen=true",
                 },
             ],
             "meta": {

@@ -15,16 +15,16 @@ from . import models
 
 @admin.register(models.Ticket)
 class TicketAdmin(admin.ModelAdmin):
-    list_display = ("bk_biz_id", "ticket_type", "status", "creator", "update_at")
+    list_display = ("id", "bk_biz_id", "ticket_type", "status", "creator", "update_at")
     list_filter = ("bk_biz_id", "ticket_type", "status")
-    search_fields = ("id",)
+    search_fields = ("id", "creator")
 
 
 @admin.register(models.Flow)
 class TicketFlowAdmin(admin.ModelAdmin):
-    list_display = ("ticket_id", "flow_type", "flow_alias", "flow_obj_id", "status", "update_at")
-    search_fields = ("ticket_id", "flow_obj_id")
-    list_filter = ("flow_type", "status")
+    list_display = ("id", "ticket_id", "flow_type", "flow_alias", "flow_obj_id", "status", "update_at")
+    search_fields = ("flow_obj_id",)
+    list_filter = ("flow_type", "flow_alias", "status")
 
 
 @admin.register(models.TicketFlowConfig)
@@ -32,3 +32,13 @@ class TicketFlowConfigAdmin(admin.ModelAdmin):
     list_display = ("ticket_type", "group", "editable")
     search_fields = ("ticket_type", "group", "editable")
     list_filter = ("group",)
+
+
+@admin.register(models.Todo)
+class TodoAdmin(admin.ModelAdmin):
+    list_display = ("id", "name", "flow_id", "ticket_id", "operators", "type", "done_by", "done_at")
+    list_filter = (
+        "type",
+        "status",
+    )
+    search_fields = ("id", "name", "done_by")

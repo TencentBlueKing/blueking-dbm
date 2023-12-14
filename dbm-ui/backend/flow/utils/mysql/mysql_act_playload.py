@@ -48,6 +48,7 @@ from backend.flow.utils.base.payload_handler import PayloadHandler
 from backend.flow.utils.mysql.proxy_act_payload import ProxyActPayload
 from backend.flow.utils.tbinlogdumper.tbinlogdumper_act_payload import TBinlogDumperActPayload
 from backend.ticket.constants import TicketType
+from backend.ticket.models import Ticket
 
 apply_list = [TicketType.MYSQL_SINGLE_APPLY.value, TicketType.MYSQL_HA_APPLY.value]
 
@@ -951,6 +952,7 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
         """
         表分区
         """
+        ticket = Ticket.objects.get(id=self.ticket_data["uid"])
         if self.ticket_data["ticket_type"] == TicketType.MYSQL_PARTITION:
             shard_name = ""
         else:
@@ -967,7 +969,7 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
                     "master_ip": self.cluster["ip"],
                     "master_port": self.cluster["port"],
                     "shard_name": shard_name,
-                    "ticket": "{}/self-service/my-tickets?id={}".format(env.BK_SAAS_HOST, self.ticket_data["uid"]),
+                    "ticket": ticket.url,
                     "file_path": self.cluster["file_path"],
                 },
             },

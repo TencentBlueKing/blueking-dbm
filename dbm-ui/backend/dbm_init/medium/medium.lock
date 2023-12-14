@@ -63,6 +63,10 @@ mysql:
     commitDate: 200001010101
     name: mysql-monitor.tar.gz
     version: 1.0.3
+- mysql-dba-toolkit:
+    buildPath: /toolkit/dba-toolkit.tar.gz
+    name: dba-toolkit.tar.gz
+    version: 1.0.0
 pulsar:
 - actuator:
     buildPath: /blueking-dbm/dbm-services/bigdata/db-tools/dbactuator/build/dbactuator

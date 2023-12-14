@@ -8,18 +8,54 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import logging
+
 from django.db import models
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
+from backend import env
 from backend.bk_web.constants import LEN_MIDDLE, LEN_SHORT
 from backend.bk_web.models import AuditedModel
+from backend.components import CmsiApi
+from backend.configuration.constants import SystemSettingsEnum
+from backend.configuration.models import SystemSettings
+from backend.exceptions import ApiError
 from backend.ticket.constants import TicketFlowStatus, TodoStatus, TodoType
+
+logger = logging.getLogger("root")
 
 
 class TodoManager(models.Manager):
     def exist_unfinished(self):
         return self.filter(status__in=[TodoStatus.TODO, TodoStatus.RUNNING]).exists()
+
+    def create(self, **kwargs):
+        todo = super().create(**kwargs)
+        msg_types = CmsiApi.get_msg_type()
+        ticket = todo.ticket
+        ticket_type = ticket.get_ticket_type_display()
+        for msg_type in msg_types:
+            if msg_type["type"] not in SystemSettings.get_setting_value(
+                key=SystemSettingsEnum.SYSTEM_MSG_TYPE.value, default=["weixin", "mail"]
+            ):
+                continue
+            try:
+                CmsiApi.send_msg(
+                    {
+                        "msg_type": msg_type["type"],
+                        "receiver__username": ",".join(todo.operators),
+                        "title": _("DBM数据库管理 待办通知").format(ticket_type=ticket_type),
+                        "content": _("有一条[{ticket_type}]待办需要您处理\n" "待办详情：{todo_url}\n").format(
+                            ticket_type=ticket_type,
+                            todo_url=todo.url,
+                        ),
+                    }
+                )
+            except ApiError as err:
+                logger.error(f"send message error, ticket_id:{ticket.id}, todo_id:{todo.id}, err:{err}")
+
+        return todo
 
 
 class Todo(AuditedModel):
@@ -48,6 +84,10 @@ class Todo(AuditedModel):
     done_at = models.DateTimeField(_("待办完成时间"), null=True)
 
     objects = TodoManager()
+
+    @property
+    def url(self):
+        return f"{env.BK_SAAS_HOST}/{self.ticket.bk_biz_id}/my-todos?id={self.id}"
 
     def set_status(self, username, status):
         self.status = status

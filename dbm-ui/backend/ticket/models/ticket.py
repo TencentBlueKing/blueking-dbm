@@ -113,6 +113,10 @@ class Ticket(AuditedModel):
             models.Index(fields=["status"]),
         ]
 
+    @property
+    def url(self):
+        return f"{env.BK_SAAS_HOST}/{self.bk_biz_id}/my-tickets?id={self.id}"
+
     def set_failed(self):
         self.status = TicketStatus.FAILED
         self.save()

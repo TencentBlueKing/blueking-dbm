@@ -8,21 +8,27 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-import logging.config
+import logging
 
+from celery.task import task
 from django.dispatch import receiver
 from django.utils import timezone
 from django.utils.translation import ugettext as _
 from pipeline.eri.signals import post_set_state
 
+from backend import env
+from backend.components import CmsiApi
+from backend.configuration.constants import SystemSettingsEnum
+from backend.configuration.models import SystemSettings
 from backend.db_dirty.handlers import DBDirtyMachineHandler
+from backend.exceptions import ApiError
 from backend.flow.consts import StateType
 from backend.flow.engine.bamboo.engine import BambooEngine
 from backend.flow.models import FlowNode, FlowTree
 from backend.ticket.constants import FlowCallbackType, FlowType, TicketFlowStatus
 from backend.ticket.flow_manager.inner import InnerFlow
 from backend.ticket.flow_manager.manager import TicketFlowManager
-from backend.ticket.models import Ticket
+from backend.ticket.models import Flow, Ticket
 
 logger = logging.getLogger("flow")
 
@@ -90,6 +96,7 @@ def callback_ticket(ticket_id, root_id):
     # 在认为inner flow执行结束情况下，执行inner flow的后继动作
     inner_flow_obj = InnerFlow(flow_obj=current_flow)
     if inner_flow_obj.status not in [TicketFlowStatus.PENDING, TicketFlowStatus.RUNNING]:
+        send_msg_for_flow.apply_async(args=[current_flow.id])
         inner_flow_obj.callback(callback_type=FlowCallbackType.POST_CALLBACK.value)
 
     # 如果flow type的类型为快速任务，则跳过callback
@@ -99,3 +106,39 @@ def callback_ticket(ticket_id, root_id):
     if current_flow and current_flow.flow_obj_id == root_id:
         manager = TicketFlowManager(ticket=ticket)
         manager.run_next_flow()
+
+
+@task(ignore_result=True)
+def send_msg_for_flow(flow_id: int):
+    """
+    发送消息
+    """
+    flow = Flow.objects.get(id=flow_id)
+    inner_flow_obj = InnerFlow(flow_obj=flow)
+    msg_types = CmsiApi.get_msg_type()
+    ticket = flow.ticket
+    ticket_type = ticket.get_ticket_type_display()
+    for msg_type in msg_types:
+        if msg_type["type"] not in SystemSettings.get_setting_value(
+            key=SystemSettingsEnum.SYSTEM_MSG_TYPE.value, default=["weixin", "mail"]
+        ):
+            continue
+        try:
+            CmsiApi.send_msg(
+                {
+                    "msg_type": msg_type["type"],
+                    "receiver__username": ticket.creator,
+                    "title": _("DBM数据库管理  {ticket_type} 执行结果").format(ticket_type=ticket_type),
+                    "content": _(
+                        "{ticket_type} {flow_alias} 执行{flow_status}。\n" "单据详情：{ticket_url}\n" "任务详情：{flow_url}\n"
+                    ).format(
+                        ticket_type=ticket_type,
+                        flow_alias=flow.flow_alias,
+                        flow_status=flow.get_status_display(),
+                        ticket_url=ticket.url,
+                        flow_url=inner_flow_obj.url,
+                    ),
+                }
+            )
+        except ApiError as err:
+            logger.error(f"send message error, ticket_id:{ticket.id}, root_id:{flow.flow_obj_id}, err:{err}")
