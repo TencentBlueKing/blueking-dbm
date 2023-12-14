@@ -254,6 +254,14 @@
       delete details.resource_spec.backend_group.capacity;
       delete details.resource_spec.backend_group.future_capacity;
 
+      const regionAndDisasterParams = {
+        affinity: details.resource_spec.backend_group.affinity,
+        location_spec: {
+          city: cityName,
+          sub_zone_ids: [],
+        },
+      };
+
       const specInfo = specBackendRef.value.getData();
       return {
         ...details,
@@ -264,6 +272,7 @@
           spider: {
             ...details.resource_spec.spider,
             ...specProxyRef.value.getData(),
+            ...regionAndDisasterParams,
             count: Number(details.resource_spec.spider.count),
           },
           backend_group: {
@@ -282,6 +291,7 @@
       ...formdata.value,
       details: getDetails(),
     };
+
     // 若业务没有英文名称则先创建业务英文名称再创建单据，反正直接创建单据
     bizState.hasEnglishName ? handleCreateTicket(params) : handleCreateAppAbbr(params);
   }

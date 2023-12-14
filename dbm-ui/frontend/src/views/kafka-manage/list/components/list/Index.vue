@@ -119,6 +119,7 @@
   import RenderPassword from '@components/cluster-common/RenderPassword.vue';
   import RenderClusterStatus from '@components/cluster-common/RenderStatus.vue';
   import EditEntryConfig from '@components/cluster-entry-config/Index.vue';
+  import RenderTextEllipsisOneLine from '@components/text-ellipsis-one-line/index.vue';
 
   import ClusterExpansion from '@views/kafka-manage/common/expansion/Index.vue';
   import ClusterShrink from '@views/kafka-manage/common/shrink/Index.vue';
@@ -220,30 +221,31 @@
       width: 200,
       minWidth: 200,
       fixed: 'left',
-      render: ({ data }: {data: KafkaModel}) => (
-        <div class="domain">
-          <span
-            class="text-overflow"
-            v-overflow-tips>
-            <bk-button
-              theme="primary"
-              text
-              onClick={() => handleToDetails(data.id)}>
-              {data.domainDisplayName || '--'}
-            </bk-button>
-          </span>
+      render: ({ data }: {data: KafkaModel}) => {
+        const content = <>
           {data.domain && (
             <db-icon
               type="copy"
               v-bk-tooltips={t('复制访问入口')}
               onClick={() => copy(data.domainDisplayName)} />
           )}
-          {userProfileStore.isManager && <db-icon
-            type="edit"
-            v-bk-tooltips={t('修改入口配置')}
-            onClick={() => handleOpenEntryConfig(data)} />}
-        </div>
-      ),
+          {userProfileStore.isManager && (
+            <db-icon
+              type="edit"
+              v-bk-tooltips={t('修改入口配置')}
+              onClick={() => handleOpenEntryConfig(data)} />
+          )}
+        </>;
+        return (
+          <div class="domain">
+            <RenderTextEllipsisOneLine
+              text={data.domainDisplayName}
+              onClick={() => handleToDetails(data.id)}>
+              {content}
+            </RenderTextEllipsisOneLine>
+          </div>
+        );
+      },
     },
     {
       label: t('集群名称'),

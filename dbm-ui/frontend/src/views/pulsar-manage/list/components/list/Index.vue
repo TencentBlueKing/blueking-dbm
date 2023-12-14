@@ -106,6 +106,7 @@
   import RenderOperationTag from '@components/cluster-common/RenderOperationTag.vue';
   import RenderClusterStatus from '@components/cluster-common/RenderStatus.vue';
   import EditEntryConfig from '@components/cluster-entry-config/Index.vue';
+  import RenderTextEllipsisOneLine from '@components/text-ellipsis-one-line/index.vue';
 
   import ClusterExpansion from '@views/pulsar-manage/common/expansion/Index.vue';
   import ClusterShrink from '@views/pulsar-manage/common/shrink/Index.vue';
@@ -184,34 +185,35 @@
     {
       label: t('访问入口'),
       field: 'domain',
-      width: 200,
+      width: 220,
       minWidth: 200,
       fixed: 'left',
       showOverflowTooltip: false,
-      render: ({ data }: {data: PulsarModel}) => (
-        <div class="domain">
-          <span
-            class="text-overflow"
-            v-overflow-tips>
-            <bk-button
-              text
-              theme="primary"
-              onClick={() => handleToDetails(data)}>
-              {data.domainDisplayName || '--'}
-            </bk-button>
-          </span>
+      render: ({ data }: {data: PulsarModel}) => {
+        const content = <>
           {data.domain && (
             <db-icon
               type="copy"
               v-bk-tooltips={t('复制访问入口')}
               onClick={() => copy(data.domainDisplayName)} />
           )}
-          {userProfileStore.isManager && <db-icon
-            type="edit"
-            v-bk-tooltips={t('修改入口配置')}
-            onClick={() => handleOpenEntryConfig(data)} />}
-        </div>
-      ),
+          {userProfileStore.isManager && (
+            <db-icon
+              type="edit"
+              v-bk-tooltips={t('修改入口配置')}
+              onClick={() => handleOpenEntryConfig(data)} />
+          )}
+        </>;
+        return (
+          <div class="domain">
+            <RenderTextEllipsisOneLine
+              text={data.domainDisplayName}
+              onClick={() => handleToDetails(data)}>
+              {content}
+            </RenderTextEllipsisOneLine>
+          </div>
+        );
+      },
     },
     {
       label: t('集群名称'),

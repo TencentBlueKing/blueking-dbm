@@ -30,7 +30,7 @@
   }
 
   interface Emits {
-    (e: 'text-click'): void,
+    (e: 'click'): void,
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -64,7 +64,7 @@
   useResizeObserver(mainRef, checkOveflow);
 
   const handleClickText = () => {
-    emits('text-click');
+    emits('click');
   };
 </script>
 <style lang="less">

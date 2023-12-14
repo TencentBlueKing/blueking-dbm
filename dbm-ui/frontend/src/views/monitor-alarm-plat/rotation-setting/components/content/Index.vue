@@ -125,7 +125,7 @@
         return <RenderTextEllipsisOneLine
           text={row.name}
           textStyle={{ color }}
-          onText-click={() => handleOperate('edit', row)}>
+          onClick={() => handleOperate('edit', row)}>
           {content}
         </RenderTextEllipsisOneLine>;
       },

@@ -187,7 +187,7 @@
         return <RenderTextEllipsisOneLine
           text={row.name}
           textStyle={{ color: !row.is_enabled ? '#979BA5' : '#3A84FF' }}
-          onText-click={() => handleOpenSlider(row, pageType)}>
+          onClick={() => handleOpenSlider(row, pageType)}>
           {content}
         </RenderTextEllipsisOneLine>;
       },

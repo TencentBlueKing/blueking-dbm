@@ -661,6 +661,15 @@
       const getDetails = () => {
         const details: Record<string, any> = _.cloneDeep(formdata.details);
         const { cityName } = regionItemRef.value.getValue();
+
+        const regionAndDisasterParams = {
+          affinity: details.resource_spec.backend.affinity,
+          location_spec: {
+            city: cityName,
+            sub_zone_ids: [],
+          },
+        };
+
         if (formdata.details.ip_source === 'resource_pool') {
           delete details.nodes;
           if (isSingleType) {
@@ -686,6 +695,7 @@
               proxy: {
                 ...details.resource_spec.proxy,
                 ...specProxyRef.value.getData(),
+                ...regionAndDisasterParams,
                 count: hostNums.value,
               },
               backend: {
@@ -716,6 +726,7 @@
         ...formdata,
         details: getDetails(),
       };
+
       // 如果英文名为空新增业务英文名称接口，创建单据
       bizState.hasEnglishName ? handleCreateTicket(params) : handleCreateAppAbbr(params);
     }

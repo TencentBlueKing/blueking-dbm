@@ -31,7 +31,7 @@
                 ref="treeRef"
                 children="children"
                 :data="treeData"
-                label="cluster_name"
+                label="master_domain"
                 :node-content-action="['click']"
                 :search="treeSearch"
                 selectable

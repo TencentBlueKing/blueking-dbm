@@ -737,6 +737,14 @@
       const details: Record<string, any> = _.cloneDeep(state.formdata.details);
       const { cityName } = regionItemRef.value.getValue();
 
+      const regionAndDisasterParams = {
+        affinity: details.resource_spec.backend_group.affinity,
+        location_spec: {
+          city: cityName,
+          sub_zone_ids: [],
+        },
+      };
+
       if (state.formdata.details.ip_source === 'resource_pool') {
         delete details.nodes;
         // 集群容量需求不需要提交
@@ -752,6 +760,7 @@
             proxy: {
               ...details.resource_spec.proxy,
               ...specProxyRef.value.getData(),
+              ...regionAndDisasterParams,
               count: Number(details.resource_spec.proxy.count),
               spec_cluster_type: typeInfos.value.cluster_type,
               spec_machine_type: typeInfos.value.machine_type,
