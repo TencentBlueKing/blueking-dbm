@@ -199,6 +199,7 @@ class BigDataBaseListRetrieveResource(query.ListRetrieveResource):
     ) -> query.ResourceList:
 
         count = clusters.count()
+        limit = count if limit == -1 else limit
         if not count:
             return query.ResourceList(count=0, data=[])
 

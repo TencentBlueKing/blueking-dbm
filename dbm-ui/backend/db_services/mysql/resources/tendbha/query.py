@@ -224,6 +224,7 @@ class ListRetrieveResource(query.ListRetrieveResource):
         """
 
         count = cluster_qset.count()
+        limit = count if limit == -1 else limit
         if count == 0:
             return query.ResourceList(count=0, data=[])
 
