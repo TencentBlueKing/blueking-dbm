@@ -140,7 +140,7 @@ func (b *BackupClient) Query2(backupTaskId string) (status int, statusMsg string
 	}
 	resp := []NewResp{}
 	if err := json.Unmarshal(stdout, &resp); err != nil {
-		return 0, "", errors.Wrapf(err, "BackupClient parse query response %s fail", string(stdout))
+		return 0, "", errors.Wrapf(err, "BackupClient parse query response %s fail,queryArgs:%v", string(stdout), queryArgs)
 	}
 	return resp[0].Status, resp[0].Message, err
 }

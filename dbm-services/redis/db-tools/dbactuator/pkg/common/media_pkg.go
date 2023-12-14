@@ -44,7 +44,7 @@ func (m *MediaPkg) Check() (err error) {
 	}
 	// 校验md5
 	if fileMd5 != m.PkgMd5 {
-		return fmt.Errorf("安装包的md5不匹配,[%s]文件的md5[%s]不正确", fileMd5, m.PkgMd5)
+		return fmt.Errorf("安装包的md5不匹配,%s文件的md5[%s],不满足预期%s", pkgAbPath, fileMd5, m.PkgMd5)
 	}
 	return
 }

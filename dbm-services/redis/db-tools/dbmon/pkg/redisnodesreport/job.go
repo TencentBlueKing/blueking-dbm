@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"os"
 	"path/filepath"
 	"sort"
 	"strconv"
@@ -12,12 +11,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/glebarez/sqlite"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 
 	"dbm-services/redis/db-tools/dbmon/config"
 	"dbm-services/redis/db-tools/dbmon/models/myredis"
+	"dbm-services/redis/db-tools/dbmon/models/mysqlite"
 	"dbm-services/redis/db-tools/dbmon/mylog"
 	"dbm-services/redis/db-tools/dbmon/pkg/consts"
 	"dbm-services/redis/db-tools/dbmon/pkg/report"
@@ -47,37 +46,19 @@ func GetGlobRedisNodesReportJob(conf *config.Configuration) *Job {
 }
 
 func (job *Job) getSqDB() {
-	var homeDir string
-	homeDir, job.Err = os.Executable()
+	job.sqdb, job.Err = mysqlite.GetLocalSqDB()
 	if job.Err != nil {
-		job.Err = fmt.Errorf("os.Executable failed,err:%v", job.Err)
-		mylog.Logger.Info(job.Err.Error())
-		return
-	}
-	homeDir = filepath.Dir(homeDir)
-	dbname := filepath.Join(homeDir, "db", "redis_nodes.db")
-	job.Err = util.MkDirsIfNotExists([]string{filepath.Join(homeDir, "db")})
-	if job.Err != nil {
-		mylog.Logger.Error(job.Err.Error())
-		return
-	}
-	util.LocalDirChownMysql(filepath.Join(homeDir, "db"))
-	job.sqdb, job.Err = gorm.Open(sqlite.Open(dbname), &gorm.Config{})
-	if job.Err != nil {
-		job.Err = fmt.Errorf("gorm.Open failed,err:%v,dbname:%s", job.Err, dbname)
-		mylog.Logger.Info(job.Err.Error())
 		return
 	}
 	job.Err = job.sqdb.AutoMigrate(&ClusterNodesSchema{})
 	if job.Err != nil {
-		job.Err = fmt.Errorf("AutoMigrate failed,err:%v", job.Err)
+		job.Err = fmt.Errorf("ClusterNodesSchema AutoMigrate failed,err:%v", job.Err)
 		mylog.Logger.Info(job.Err.Error())
 		return
 	}
 }
 func (job *Job) closeDB() {
-	dbInstance, _ := job.sqdb.DB()
-	_ = dbInstance.Close()
+	mysqlite.CloseDB(job.sqdb)
 }
 
 // getReporter 上报者

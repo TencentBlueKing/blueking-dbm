@@ -147,12 +147,6 @@ const (
 	RedisFullBackupReportType   = "redis_fullbackup"
 	RedisBinlogBackupReportType = "redis_binlogbackup"
 
-	DoingRedisFullBackFileList = "redis_backup_file_list_%d_doing"
-	DoneRedisFullBackFileList  = "redis_backup_file_list_%d_done"
-
-	DoingRedisBinlogFileList = "redis_binlog_file_list_%d_doing"
-	DoneRedisBinlogFileList  = "redis_binlog_file_list_%d_done"
-
 	RedisFullbackupRepoter   = "redis_fullbackup_%s.log"
 	RedisBinlogRepoter       = "redis_binlog_%s.log"
 	RedisClusterNodesRepoter = "redis_cluster_nodes_%s.log"

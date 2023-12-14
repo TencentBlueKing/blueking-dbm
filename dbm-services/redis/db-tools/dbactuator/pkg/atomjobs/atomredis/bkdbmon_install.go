@@ -204,8 +204,8 @@ func (job *BkDbmonInstall) UntarMedia() (err error) {
 	var remoteVersion, localVersion string
 	err = job.params.BkDbmonPkg.Check()
 	if err != nil {
-		job.runtime.Logger.Error("UntarMedia failed,err:%v", err)
-		return
+		job.runtime.Logger.Error("UntarMedia check failed,err:%v,skip...", err)
+		// return
 	}
 	defer util.LocalDirChownMysql(consts.BkDbmonPath + "/")
 	verReg := regexp.MustCompile(`bk-dbmon-(v\d+.\d+).tar.gz`)
@@ -346,9 +346,6 @@ func (job *BkDbmonInstall) GenerateConfigFile() (err error) {
 	var yamlData []byte
 	var confMd5, tempMd5 string
 	var notUpdateConf bool = false
-	if job.params.BackupClientStrorageType == "" {
-		job.params.BackupClientStrorageType = consts.BackupClientStrorageTypeCOS
-	}
 	confData := &bkDbmonConf{
 		ReportSaveDir:            consts.DbaReportSaveDir,
 		ReportLeftDay:            consts.RedisReportLeftDay,

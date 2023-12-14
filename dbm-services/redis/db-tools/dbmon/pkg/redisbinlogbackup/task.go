@@ -15,11 +15,12 @@ import (
 	"dbm-services/redis/db-tools/dbmon/mylog"
 	"dbm-services/redis/db-tools/dbmon/pkg/backupsys"
 	"dbm-services/redis/db-tools/dbmon/pkg/consts"
-	"dbm-services/redis/db-tools/dbmon/pkg/customtime"
 	"dbm-services/redis/db-tools/dbmon/pkg/report"
 	"dbm-services/redis/db-tools/dbmon/util"
 
 	"github.com/gofrs/flock"
+	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 // tendisssd binlog文件正则
@@ -28,36 +29,86 @@ import (
 // 例如: binlog-0-0000887-20221107123830.log
 var tendisBinlogReg = regexp.MustCompile(`binlog-(\d+)-(\d+)-(\d+).log`)
 
+// RedisBinlogHistorySchema TODO
+type RedisBinlogHistorySchema struct {
+	ID         int64  `json:"-" gorm:"primaryKey;column:id;not null`
+	ReportType string `json:"report_type" gorm:"column:report_type;not null;default:''"`
+	BkBizID    string `json:"bk_biz_id" gorm:"column:bk_biz_id;not null;default:''"`
+	BkCloudID  int64  `json:"bk_cloud_id" gorm:"column:bk_cloud_id;not null;default:0"`
+	ServerIP   string `json:"server_ip" gorm:"column:server_ip;not null;default:''"`
+	ServerPort int    `json:"server_port" gorm:"column:server_port;not null;default:0"`
+	Domain     string `json:"domain" gorm:"column:domain;not null;default:'';index"`
+	// TendisplusInstance or TendisSSDInstance
+	DbType   string `json:"db_type" gorm:"column:db_type;not null;default:''"`
+	RealRole string `json:"role" gorm:"column:role;not null;default:''"`
+	// 备份路径,如 /data/dbbak/binlog/30000
+	BackupDir string `json:"backup_dir" gorm:"column:backup_dir;not null;default:''"`
+	// 备份的目标文件(已压缩)
+	BackupFile string `json:"backup_file" gorm:"column:backup_file;not null;default:''"`
+	// binlog对应的 kvstoreidx
+	KvstoreIdx int `json:"kvstoreidx" gorm:"column:kvstoreidx;not null;default:0"`
+	// 备份文件大小(已压缩)
+	BackupFileSize int64 `json:"backup_file_size" gorm:"column:backup_file_size;not null;default:0"`
+	// binlog文件生成时间(非压缩)
+	StartTime time.Time `json:"start_time" gorm:"column:start_time;not null;default:'';index"`
+	// binlog文件最后修改时间(非压缩)
+	EndTime      time.Time `json:"end_time" gorm:"column:end_time;not null;default:'';index"`
+	TimeZone     string    `json:"time_zone" gorm:"column:time_zone;not null;default:''"`
+	BackupTaskID string    `json:"backup_taskid" gorm:"column:backup_taskid;not null;default:''"`
+	// 目前为空
+	BackupMD5 string `json:"backup_md5" gorm:"column:backup_md5;not null;default:''"`
+	// REDIS_BINLOG
+	BackupTag string `json:"backup_tag" gorm:"column:backup_tag;not null;default:''"`
+	// shard值
+	ShardValue string `json:"shard_value" gorm:"column:shard_value;not null;default:''"`
+	Status     string `json:"status" gorm:"column:status;not null;default:''"`
+	Message    string `json:"message" gorm:"column:message;not null;default:''"`
+	// 本地文件是否已删除,未被删除为0,已被删除为1
+	LocalFileRemoved int `json:"-" gorm:"column:local_file_removed;not null;default:0"`
+}
+
+// TableName TODO
+func (r *RedisBinlogHistorySchema) TableName() string {
+	return "redis_binlog_history"
+}
+
+// Addr string
+func (r *RedisBinlogHistorySchema) Addr() string {
+	return r.ServerIP + ":" + strconv.Itoa(r.ServerPort)
+}
+
+type redisBinlogReport struct {
+	RedisBinlogHistorySchema
+	StartTime string `json:"start_time"`
+	EndTime   string `json:"end_time"`
+}
+
+// BackupRecordReport 备份记录上报
+func (r *RedisBinlogHistorySchema) BackupRecordReport(reporter report.Reporter) {
+	if reporter == nil {
+		return
+	}
+	reportRow := redisBinlogReport{
+		RedisBinlogHistorySchema: *r,
+		StartTime:                r.StartTime.Local().Format(time.RFC3339),
+		EndTime:                  r.EndTime.Local().Format(time.RFC3339),
+	}
+	tmpBytes, _ := json.Marshal(reportRow)
+	reporter.AddRecord(string(tmpBytes)+"\n", true)
+}
+
 // Task redis binlog备份task
 type Task struct {
-	ReportType     string                `json:"report_type"`
-	BkBizID        string                `json:"bk_biz_id"`
-	BkCloudID      int64                 `json:"bk_cloud_id"`
-	ServerIP       string                `json:"server_ip"`
-	ServerPort     int                   `json:"server_port"`
-	Domain         string                `json:"domain"`
-	Password       string                `json:"-"`
-	ToBackupSystem string                `json:"-"`
-	OldFileLeftDay int                   `json:"-"`
-	DbType         string                `json:"db_type"` // TendisplusInstance or TendisSSDInstance
-	RealRole       string                `json:"role"`
-	DumpDir        string                `json:"-"`
-	KvStoreCount   int                   `json:"-"`
-	BackupDir      string                `json:"backup_dir"`       // 备份路径,如 /data/dbbak/binlog/30000
-	BackupFile     string                `json:"backup_file"`      // 备份的目标文件(已压缩)
-	KvstoreIdx     int                   `json:"kvstoreidx"`       // binlog对应的 kvstoreidx
-	BackupFileSize int64                 `json:"backup_file_size"` // 备份文件大小(已压缩)
-	StartTime      customtime.CustomTime `json:"start_time"`       // binlog文件生成时间(非压缩)
-	EndTime        customtime.CustomTime `json:"end_time"`         // binlog文件最后修改时间(非压缩)
-	BackupTaskID   string                `json:"backup_taskid"`
-	BackupMD5      string                `json:"backup_md5"`  // 目前为空
-	BackupTag      string                `json:"backup_tag"`  // REDIS_BINLOG
-	ShardValue     string                `json:"shard_value"` // shard值
-	Status         string                `json:"status"`
-	Message        string                `json:"message"`
-	Cli            *myredis.RedisClient  `json:"-"`
+	RedisBinlogHistorySchema
+	Password       string               `json:"-"`
+	ToBackupSystem string               `json:"-"`
+	OldFileLeftDay int                  `json:"-"`
+	DumpDir        string               `json:"-"`
+	KvStoreCount   int                  `json:"-"`
+	Cli            *myredis.RedisClient `json:"-"`
 	reporter       report.Reporter
 	backupClient   backupsys.BackupClient
+	sqdb           *gorm.DB
 	lockFile       string `json:"-"`
 	Err            error  `json:"-"`
 }
@@ -65,22 +116,28 @@ type Task struct {
 // NewBinlogBackupTask new binlog backup task
 func NewBinlogBackupTask(bkBizID string, bkCloudID int64, domain, ip string, port int,
 	password, toBackupSys, backupDir, shardValue string, oldFileLeftDay int,
-	reporter report.Reporter, storageType string) (ret *Task, err error) {
+	reporter report.Reporter, storageType string,
+	sqdb *gorm.DB) (ret *Task, err error) {
 
+	timeZone, _ := time.Now().Local().Zone()
 	ret = &Task{
-		ReportType:     consts.RedisBinlogBackupReportType,
-		BkBizID:        bkBizID,
-		BkCloudID:      bkCloudID,
-		Domain:         domain,
-		ServerIP:       ip,
-		ServerPort:     port,
 		Password:       password,
 		ToBackupSystem: toBackupSys,
 		OldFileLeftDay: oldFileLeftDay,
-		BackupDir:      backupDir,
-		BackupTag:      consts.RedisBinlogTAG,
 		reporter:       reporter,
-		ShardValue:     shardValue,
+		sqdb:           sqdb,
+	}
+	ret.RedisBinlogHistorySchema = RedisBinlogHistorySchema{
+		ReportType: consts.RedisBinlogBackupReportType,
+		BkBizID:    bkBizID,
+		BkCloudID:  bkCloudID,
+		Domain:     domain,
+		ServerIP:   ip,
+		ServerPort: port,
+		BackupDir:  backupDir,
+		BackupTag:  consts.RedisBinlogTAG,
+		ShardValue: shardValue,
+		TimeZone:   timeZone,
 	}
 	// ret.backupClient = backupsys.NewIBSBackupClient(consts.IBSBackupClient, consts.RedisBinlogTAG)
 	ret.backupClient, err = backupsys.NewCosBackupClient(consts.COSBackupClient,
@@ -90,11 +147,6 @@ func NewBinlogBackupTask(bkBizID string, bkCloudID int64, domain, ip string, por
 		err = nil
 	}
 	return ret, err
-}
-
-// Addr string
-func (task *Task) Addr() string {
-	return task.ServerIP + ":" + strconv.Itoa(task.ServerPort)
 }
 
 // ToString ..
@@ -168,8 +220,8 @@ func (task *Task) BackupLocalBinlogs() {
 		}
 		task.BackupFile = item.File
 		task.KvstoreIdx = item.KvStoreIdx
-		task.StartTime.Time = item.StartTime
-		task.EndTime.Time = item.FileMtime
+		task.StartTime = item.StartTime
+		task.EndTime = item.FileMtime
 		task.compressAndUpload() // 无论成功还是失败,都继续下一个binlog file
 	}
 }
@@ -182,13 +234,15 @@ func (task *Task) newConnect() {
 	if task.Err != nil {
 		return
 	}
-	task.DumpDir, task.Err = task.Cli.GetDumpDir()
-	if task.Err != nil {
-		return
-	}
 	task.DbType, task.Err = task.Cli.GetTendisType()
 	if task.Err != nil {
 		return
+	}
+	if task.DbType != consts.TendisTypeRedisInstance {
+		task.DumpDir, task.Err = task.Cli.GetDumpDir()
+		if task.Err != nil {
+			return
+		}
 	}
 	// 除tendisplus外,其余db类型, kvstorecount=1
 	if task.DbType != consts.TendisTypeTendisplusInsance {
@@ -356,8 +410,8 @@ func (task *Task) mvBinlogToBackupDir() {
 }
 func (task *Task) compressAndUpload() {
 	defer func() {
-		task.BackupRecordReport()
-		task.BackupRecordSaveToDoingFile()
+		task.BackupRecordReport(task.reporter)
+		task.BackupRecordSaveToLocalDB()
 	}()
 	if strings.HasSuffix(task.BackupFile, ".log") {
 		task.mvBinlogToBackupDir()
@@ -422,32 +476,17 @@ func (task *Task) TransferToBackupSystem() {
 	return
 }
 
-// BackupRecordReport 备份记录上报
-func (task *Task) BackupRecordReport() {
-	if task.reporter == nil {
+// BackupRecordSaveToLocalDB 备份记录保存到本地sqlite中
+func (task *Task) BackupRecordSaveToLocalDB() {
+	if task.sqdb == nil {
 		return
 	}
-	tmpBytes, _ := json.Marshal(task)
-	// task.Err=task.reporter.AddRecord(string(tmpBytes),true)
-	task.reporter.AddRecord(string(tmpBytes)+"\n", true)
-}
-
-// BackupRecordSaveToDoingFile 备份记录保存到本地 redis_binlog_file_list_${port}_doing 文件中
-func (task *Task) BackupRecordSaveToDoingFile() {
-	backupDir := filepath.Dir(task.BackupFile)
-	// 例如: /data/dbbak/binlog/30000/redis_binlog_file_list_30000_doing
-	doingFile := filepath.Join(backupDir, fmt.Sprintf(consts.DoingRedisBinlogFileList, task.ServerPort))
-	f, err := os.OpenFile(doingFile, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0744)
-	if err != nil {
-		task.Err = fmt.Errorf("os.OpenFile %s failed,err:%v", doingFile, err)
-		mylog.Logger.Error(task.Err.Error())
-		return
-	}
-	defer f.Close()
-	tmpBytes, _ := json.Marshal(task)
-
-	if _, err = f.WriteString(string(tmpBytes) + "\n"); err != nil {
-		task.Err = fmt.Errorf("f.WriteString failed,err:%v,file:%s,line:%s", err, doingFile, string(tmpBytes))
+	task.RedisBinlogHistorySchema.ID = 0 // 重置为0,以便gorm自增
+	task.Err = task.sqdb.Clauses(clause.OnConflict{
+		UpdateAll: true,
+	}).Create(&task.RedisBinlogHistorySchema).Error
+	if task.Err != nil {
+		task.Err = fmt.Errorf("BackupRecordSaveToLocalDB sqdb.Create fail,err:%v", task.Err)
 		mylog.Logger.Error(task.Err.Error())
 		return
 	}
