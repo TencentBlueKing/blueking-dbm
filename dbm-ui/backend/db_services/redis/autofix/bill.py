@@ -78,7 +78,7 @@ def create_ticket(cluster: RedisAutofixCore, redis_proxies: list, redis_slaves: 
         ticket_type=TicketType.REDIS_CLUSTER_AUTOFIX.value,
         group=DBType.Redis.value,
         status=TicketStatus.PENDING.value,
-        remark=_("自动发起-自愈任务-{cluster.immute_domain}"),
+        remark=_("自动发起-自愈任务-{}".format(cluster.immute_domain)),
         details=details,
         is_reviewed=True,
     )
