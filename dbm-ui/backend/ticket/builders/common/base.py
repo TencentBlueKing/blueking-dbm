@@ -14,14 +14,16 @@ from functools import reduce
 from typing import Any, Dict, List, Set, Tuple, Union
 
 from django.db.models import F, Q
+from django.forms.models import model_to_dict
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from backend.configuration.constants import MASTER_DOMAIN_INITIAL_VALUE
 from backend.db_meta.enums import AccessLayer, ClusterType, InstanceInnerRole
-from backend.db_meta.models import Cluster, Machine, ProxyInstance, StorageInstance
+from backend.db_meta.models import Cluster, ExtraProcessInstance, Machine, ProxyInstance, StorageInstance
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.db_services.mysql.cluster.handlers import ClusterServiceHandler
+from backend.db_services.mysql.dumper.handlers import DumperHandler
 from backend.db_services.mysql.remote_service.handlers import RemoteServiceHandler
 from backend.flow.utils.mysql.db_table_filter import DbTableFilter
 from backend.ticket import builders
@@ -303,6 +305,18 @@ class MySQLTicketFlowBuilderPatchMixin(object):
         )
 
         # TODO: 补充实例信息
+
+
+class DumperTicketFlowBuilderPatchMixin(MySQLTicketFlowBuilderPatchMixin):
+    def patch_ticket_detail(self):
+        """补充Dumper的实例信息"""
+        # 补充集群信息
+        super().patch_ticket_detail()
+        # 补充dumper信息
+        dumper_ids = get_target_items_from_details(self.ticket.details, match_keys=["dumper_instance_ids"])
+        dumper_infos = [model_to_dict(dumper) for dumper in ExtraProcessInstance.objects.filter(id__in=dumper_ids)]
+        DumperHandler.patch_dumper_list_info(dumper_infos)
+        self.ticket.update_details(dumpers={dumper["id"]: dumper for dumper in dumper_infos})
 
 
 class InfluxdbTicketFlowBuilderPatchMixin(object):

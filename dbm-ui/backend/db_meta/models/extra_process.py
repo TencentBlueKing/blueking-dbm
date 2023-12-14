@@ -11,6 +11,7 @@ specific language governing permissions and limitations under the License.
 import logging
 
 from django.db import models
+from django.forms.models import model_to_dict
 from django.utils.translation import ugettext_lazy as _
 
 from backend.bk_web.models import AuditedModel

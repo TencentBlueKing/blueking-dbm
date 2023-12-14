@@ -117,6 +117,13 @@ class _DBResourceApi(object):
             module=self.MODULE,
             description=_("获取操作记录"),
         )
+        self.import_operation_create = DataAPI(
+            method="POST",
+            base=DBRESOURCE_APIGW_DOMAIN,
+            url="/resource/operation/create",
+            module=self.MODULE,
+            description=_("创建导入操作记录"),
+        )
         self.apply_count = DataAPI(
             method="POST",
             base=DBRESOURCE_APIGW_DOMAIN,

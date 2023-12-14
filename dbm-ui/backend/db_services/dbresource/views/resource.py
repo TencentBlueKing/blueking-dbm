@@ -193,6 +193,10 @@ class DBResourceViewSet(viewsets.SystemViewSet):
             operator=request.user.username,
         )
 
+        # 资源导入记录
+        import_record = {"task_id": root_id, "operator": request.user.username, "hosts": validated_data["hosts"]}
+        DBResourceApi.import_operation_create(params=import_record)
+
         # 执行资源导入的后台flow
         BaseController(root_id=root_id, ticket_data=validated_data).import_resource_init_step()
 

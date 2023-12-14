@@ -14,13 +14,15 @@ from rest_framework import serializers
 
 from backend.flow.engine.controller.tbinlogdumper import TBinlogDumperController
 from backend.ticket import builders
-from backend.ticket.builders.tendbcluster.base import BaseTendbTicketFlowBuilder
+from backend.ticket.builders.common.base import SkipToRepresentationMixin
+from backend.ticket.builders.tendbcluster.base import BaseDumperTicketFlowBuilder, BaseTendbTicketFlowBuilder
 from backend.ticket.constants import TicketType
 
 
-class TbinlogdumperSwitchNodesDetailSerializer(serializers.Serializer):
+class TbinlogdumperSwitchNodesDetailSerializer(SkipToRepresentationMixin, serializers.Serializer):
     class DumperSwitchInfoSerializer(serializers.Serializer):
         class SwitchInstanceSerializer(serializers.Serializer):
+            dumper_instance_id = serializers.IntegerField(help_text=_("dumper进程ID"))
             host = serializers.CharField(help_text=_("主机IP"))
             port = serializers.IntegerField(help_text=_("主机端口"))
             repl_binlog_file = serializers.CharField(help_text=_("待切换后需要同步的binlog文件"))
@@ -38,7 +40,15 @@ class TbinlogdumperSwitchNodesFlowParamBuilder(builders.FlowParamBuilder):
 
 
 @builders.BuilderFactory.register(TicketType.TBINLOGDUMPER_SWITCH_NODES)
-class TbinlogdumperSwitchNodesFlowBuilder(BaseTendbTicketFlowBuilder):
+class TbinlogdumperSwitchNodesFlowBuilder(BaseDumperTicketFlowBuilder):
     serializer = TbinlogdumperSwitchNodesDetailSerializer
     inner_flow_builder = TbinlogdumperSwitchNodesFlowParamBuilder
     inner_flow_name = _("Tbinlogdumper 切换")
+
+    def patch_ticket_detail(self):
+        dumper_instance_ids = []
+        for info in self.ticket.details["infos"]:
+            dumper_instance_ids.extend([instance["dumper_instance_id"] for instance in info["switch_instances"]])
+
+        self.ticket.details["dumper_instance_ids"] = dumper_instance_ids
+        super().patch_ticket_detail()

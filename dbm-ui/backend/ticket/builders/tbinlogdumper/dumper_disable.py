@@ -18,11 +18,12 @@ from rest_framework import serializers
 from backend.db_services.mysql.dumper.models import DumperSubscribeConfig
 from backend.flow.engine.controller.tbinlogdumper import TBinlogDumperController
 from backend.ticket import builders
-from backend.ticket.builders.tendbcluster.base import BaseTendbTicketFlowBuilder
+from backend.ticket.builders.common.base import SkipToRepresentationMixin
+from backend.ticket.builders.tendbcluster.base import BaseDumperTicketFlowBuilder, BaseTendbTicketFlowBuilder
 from backend.ticket.constants import TicketType
 
 
-class TbinlogdumperDisableDetailSerializer(serializers.Serializer):
+class TbinlogdumperDisableDetailSerializer(SkipToRepresentationMixin, serializers.Serializer):
     dumper_instance_ids = serializers.ListField(help_text=_("dumper实例ID"), child=serializers.IntegerField())
 
 
@@ -34,7 +35,7 @@ class TbinlogdumperDisableFlowParamBuilder(builders.FlowParamBuilder):
 
 
 @builders.BuilderFactory.register(TicketType.TBINLOGDUMPER_DISABLE_NODES)
-class TbinlogdumperDisableFlowBuilder(BaseTendbTicketFlowBuilder):
+class TbinlogdumperDisableFlowBuilder(BaseDumperTicketFlowBuilder):
     serializer = TbinlogdumperDisableDetailSerializer
     inner_flow_builder = TbinlogdumperDisableFlowParamBuilder
     inner_flow_name = _("Tbinlogdumper 禁用")
