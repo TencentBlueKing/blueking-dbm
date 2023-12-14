@@ -58,6 +58,12 @@ func (job *CheckJob) Run() {
 	}
 	defer job.Reporter.Close()
 
+	job.getSqlDB()
+	if job.Err != nil {
+		return
+	}
+	defer job.closeDB()
+
 	// job.backupClient = backupsys.NewIBSBackupClient(consts.IBSBackupClient, consts.RedisFullBackupTAG)
 	job.backupClient, job.Err = backupsys.NewCosBackupClient(consts.COSBackupClient,
 		consts.COSInfoFile, consts.RedisFullBackupTAG, job.Conf.BackupClientStrorageType)
@@ -72,8 +78,8 @@ func (job *CheckJob) Run() {
 			continue
 		}
 		for _, port := range svrItem.ServerPorts {
+			job.DeleteTooOldFullBackup(port)
 			job.CheckOldFullbackupStatus(port)
-			job.DeleteTooOldFullbackup(port)
 		}
 	}
 }

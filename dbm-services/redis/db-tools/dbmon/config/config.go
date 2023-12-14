@@ -112,9 +112,8 @@ func loadConfigFile() {
 	if conf.BeatPath == "" {
 		conf.BeatPath = "/usr/local/gse_bkte/plugins/bin/bkmonitorbeat"
 	}
-	if conf.BackupClientStrorageType == "" {
-		conf.BackupClientStrorageType = "cos"
-	}
+	// backup_client_storage_type 设置为空,用系统默认的
+	conf.BackupClientStrorageType = ""
 	fmt.Println(conf.String())
 	GlobalConf = &conf
 }

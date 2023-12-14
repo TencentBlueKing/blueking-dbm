@@ -53,6 +53,10 @@ func (task *RedisMonitorTask) RunMonitor() {
 	if task.Err != nil {
 		return
 	}
+	task.TendisplusMasterSetHeartbeat()
+	if task.Err != nil {
+		return
+	}
 	task.CheckSyncOnSlave()
 	if task.Err != nil {
 		return
@@ -134,11 +138,44 @@ func (task *RedisMonitorTask) SetDbmonKeyOnMaster() {
 	}
 }
 
+// TendisplusMasterSetHeartbeat tendisplus写入心跳失败则告警
+func (task *RedisMonitorTask) TendisplusMasterSetHeartbeat() {
+	var dbtype, role, beatKey string
+	var nowVal int64
+	for idx, cli01 := range task.redisClis {
+		cliItem := cli01
+		task.eventSender.SetInstance(cliItem.Addr)
+		dbtype, task.Err = cliItem.GetTendisType()
+		if task.Err != nil {
+			continue
+		}
+		role, task.Err = cliItem.GetRole()
+		if task.Err != nil {
+			continue
+		}
+		if dbtype != consts.TendisTypeTendisplusInsance || role != consts.RedisMasterRole {
+			continue
+		}
+		beatKey = fmt.Sprintf("%s_%d:heartbeat",
+			task.ServerConf.ServerIP,
+			task.ServerConf.ServerPorts[idx])
+		nowVal = time.Now().Local().Unix()
+		_, task.Err = cliItem.AdminSet(beatKey, strconv.FormatInt(nowVal, 10))
+		if task.Err != nil {
+			task.eventSender.SendWarning(consts.EventRedisLogin, task.Err.Error(),
+				consts.WarnLevelError, task.ServerConf.ServerIP,
+			)
+			return
+		}
+	}
+}
+
 // setSlaveDbmonKey 从slave上连接master,并执行set dbmon:$slaveIP:$slaveport $time
 func (task *RedisMonitorTask) setSlaveDbmonKey(selfAddr, masterIP, masterPort string) {
 	var masterCli *myredis.RedisClient = nil
 	var msg, dbmonKey string
 	var clusterEnabled bool
+	var masterRole string
 	masterAddr := masterIP + ":" + masterPort
 	masterCli, task.Err = myredis.NewRedisClientWithTimeout(masterAddr, task.Password, 0,
 		consts.TendisTypeRedisInstance, 5*time.Second)
@@ -156,6 +193,20 @@ func (task *RedisMonitorTask) setSlaveDbmonKey(selfAddr, masterIP, masterPort st
 	}
 	// cluster 集群不写入dbmon:* keys
 	if clusterEnabled {
+		return
+	}
+
+	// 如果'我'的master,他的role依然是slave,说明是链式关系(m->s->s),则不写入dbmon:* keys
+	masterRole, task.Err = masterCli.GetRole()
+	if task.Err != nil {
+		msg = fmt.Sprintf("redis(%s) master(%s) get role fail", selfAddr, masterAddr)
+		mylog.Logger.Error(msg)
+		task.eventSender.SendWarning(consts.EventRedisSync, msg, consts.WarnLevelError, task.ServerConf.ServerIP)
+		return
+	}
+	if masterRole == consts.RedisSlaveRole {
+		msg = fmt.Sprintf("redis(%s) master(%s) role is slave", selfAddr, masterAddr)
+		mylog.Logger.Debug(msg)
 		return
 	}
 
@@ -297,6 +348,11 @@ func (task *RedisMonitorTask) CheckPersist() {
 		if dbtype != consts.TendisTypeRedisInstance || role != consts.RedisSlaveRole {
 			continue
 		}
+		if role == consts.RedisSlaveRole && connectedSlaves > 0 {
+			// 如果'我'是slave,我还有自己的slave
+			// 说明是链式关系(m->s->s),估计在扩容等,跳过检查
+			continue
+		}
 		// 检查 cache redis slave, aof 是否开启
 		// TODO 无法知道远程配置的情况下,如果是人为关闭的aof,如何不告警
 		confmap, task.Err = cliItem.ConfigGet("appendonly")
@@ -306,8 +362,8 @@ func (task *RedisMonitorTask) CheckPersist() {
 		appendonly, _ = confmap["appendonly"]
 		if task.ServerConf.CacheBackupMode == consts.CacheBackupModeRdb {
 			if strings.ToLower(appendonly) == "yes" {
-				// 如果集群是rdb备份,但是aof开启,则关闭aof
-				_, task.Err = cliItem.ConfigSet("appendonly", "yes")
+				// 如果集群配置是rdb备份,但是aof开启,则关闭aof
+				_, task.Err = cliItem.ConfigSet("appendonly", "no")
 				if task.Err != nil {
 					continue
 				}
