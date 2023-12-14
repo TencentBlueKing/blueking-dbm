@@ -16,7 +16,7 @@
     "target_nodes": [],
     "params": {
         "paths": [
-            "/data/backup_stm/register/*.log"
+            "/data/backup_stm/register/tasklist_*.log"
         ],
         "conditions": {
             "type": "match",
