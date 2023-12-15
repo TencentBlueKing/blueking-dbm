@@ -26,4 +26,5 @@ find . -type f -name "*.json" -exec sed -i '' -e 's#"result_table_id":"system.#"
 
 # 导入监控的方法，还原模板后导入
 find . -type f -name "*.json" -exec sed -i '' -e 's#bkmonitor_timeseries#${DS_蓝鲸监控_-_指标数据}#g' {} \;
+find . -type f -name "*.json" -exec sed -i '' -e 's#bkmonitor_timeseries#${DS_蓝鲸监控_- 指标数据}#g' {} \;
 find . -type f -name "*.json" -exec sed -i '' -e 's#"editable": false#"editable": true#g' {} \;
