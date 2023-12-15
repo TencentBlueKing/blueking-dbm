@@ -53,6 +53,7 @@ class SlaveTransFileService(TransFileService):
         self.log_info(_("从备份源中筛选符合的备份"))
         self.log_info(json.dumps(backup_infos))
         for key, value in backup_infos.items():
+            value["backup_time"] = value["backup_consistent_time"]
             if str(value["data_schema_grant"]).lower() == "all" or (
                 "schema" in str(value["data_schema_grant"]).lower()
                 and "data" in str(value["data_schema_grant"]).lower()
@@ -61,6 +62,7 @@ class SlaveTransFileService(TransFileService):
                     if compare_time(value["backup_time"], backup_time):
                         backup_time = value["backup_time"]
                         backup_file = backup_infos[key]
+                        backup_file["backup_time"] = backup_file["backup_consistent_time"]
                         self.log_info(f"backup_time: {backup_time}")
         if not backup_file:
             self.log_error(_("没有符合的备份文件提供定点恢复"))

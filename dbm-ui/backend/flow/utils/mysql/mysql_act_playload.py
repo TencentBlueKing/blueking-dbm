@@ -41,9 +41,9 @@ from backend.flow.consts import (
     DBActuatorTypeEnum,
     MediumEnum,
     MysqlChangeMasterType,
-    RollbackType,
 )
 from backend.flow.engine.bamboo.scene.common.get_real_version import get_mysql_real_version, get_spider_real_version
+from backend.flow.engine.bamboo.scene.spider.common.exceptions import TendbGetBackupInfoFailedException
 from backend.flow.utils.base.payload_handler import PayloadHandler
 from backend.flow.utils.mysql.proxy_act_payload import ProxyActPayload
 from backend.flow.utils.tbinlogdumper.tbinlogdumper_act_payload import TBinlogDumperActPayload
@@ -879,12 +879,12 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
         """
         MYSQL 定点回档恢复备份介质
         """
-        if self.cluster.get("rollback_type", "") == RollbackType.LOCAL_AND_TIME:
-            index_file = os.path.basename(kwargs["trans_data"]["backupinfo"]["index_file"])
-        elif self.cluster.get("rollback_type", "") == RollbackType.LOCAL_AND_BACKUPID:
-            index_file = os.path.basename(self.cluster["backupinfo"]["index_file"])
-        else:
-            index_file = os.path.basename(self.cluster["backupinfo"]["index"]["file_name"])
+        # if self.cluster.get("rollback_type", "") == RollbackType.LOCAL_AND_TIME:
+        #     index_file = os.path.basename(kwargs["trans_data"]["backupinfo"]["index_file"])
+        # elif self.cluster.get("rollback_type", "") == RollbackType.LOCAL_AND_BACKUPID:
+        #     index_file = os.path.basename(self.cluster["backupinfo"]["index_file"])
+        # else:
+        index_file = os.path.basename(self.cluster["backupinfo"]["index"]["file_name"])
         payload = {
             "db_type": DBActuatorTypeEnum.MySQL.value,
             "action": DBActuatorActionEnum.RestoreSlave.value,
@@ -1755,13 +1755,17 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
         """
         MYSQL 实例 前滚binglog
         """
-        if self.cluster.get("rollback_type", "") == RollbackType.LOCAL_AND_TIME:
-            binlog_files = kwargs["trans_data"]["binlog_files"]
-            backup_time = kwargs["trans_data"]["backup_time"]
-        else:
-            binlog_files = self.cluster["binlog_files"]
-            backup_time = self.cluster["backup_time"]
+        # if self.cluster.get("rollback_type", "") == RollbackType.LOCAL_AND_TIME:
+        #     binlog_files = kwargs["trans_data"]["binlog_files"]
+        #     backup_time = kwargs["trans_data"]["backup_time"]
+        # else:
+        binlog_files = self.cluster["binlog_files"]
+        backup_time = self.cluster["backup_time"]
         binlog_files_list = binlog_files.split(",")
+        binlog_start_file = kwargs["trans_data"]["change_master_info"]["master_log_file"]
+        if binlog_start_file not in binlog_files_list:
+            logger.error("start binlog {} not exist".format(binlog_start_file))
+            raise TendbGetBackupInfoFailedException(message=_("start binlog  {} not exist".format(binlog_start_file)))
         payload = {
             "db_type": DBActuatorTypeEnum.MySQL.value,
             "action": DBActuatorActionEnum.RecoverBinlog.value,

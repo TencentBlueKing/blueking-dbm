@@ -46,6 +46,7 @@ class MySQLDownloadBackupfile(BkJobService):
             data.outputs.backup_bill_id = backup_bill_id
             return True
         else:
+            self.log_error(_("调起下载失败:{}".format(response)))
             return False
 
     def _schedule(self, data, parent_data, callback_data=None):

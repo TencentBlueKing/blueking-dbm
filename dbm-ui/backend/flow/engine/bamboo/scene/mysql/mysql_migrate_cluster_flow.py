@@ -16,34 +16,29 @@ from typing import Dict, Optional
 from django.utils.translation import ugettext as _
 
 from backend.configuration.constants import DBType
+from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.enums import ClusterType, InstanceInnerRole, InstanceStatus
 from backend.db_meta.models import Cluster
 from backend.db_package.models import Package
 from backend.flow.consts import MediumEnum
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
-from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import (
     build_surrounding_apps_sub_flow,
     install_mysql_in_cluster_sub_flow,
 )
 from backend.flow.engine.bamboo.scene.mysql.common.master_and_slave_switch import master_and_slave_switch
+from backend.flow.engine.bamboo.scene.mysql.common.mysql_resotre_data_sub_flow import (
+    mysql_restore_master_slave_sub_flow,
+)
 from backend.flow.engine.bamboo.scene.mysql.common.uninstall_instance import uninstall_instance_sub_flow
 from backend.flow.plugins.components.collections.common.download_backup_client import DownloadBackupClientComponent
 from backend.flow.plugins.components.collections.common.pause import PauseComponent
 from backend.flow.plugins.components.collections.mysql.clear_machine import MySQLClearMachineComponent
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.mysql.mysql_db_meta import MySQLDBMetaComponent
-from backend.flow.plugins.components.collections.mysql.slave_trans_flies import SlaveTransFileComponent
-from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
 from backend.flow.utils.common_act_dataclass import DownloadBackupClientKwargs
 from backend.flow.utils.mysql.common.mysql_cluster_info import get_ports, get_version_and_charset
-from backend.flow.utils.mysql.mysql_act_dataclass import (
-    ClearMachineKwargs,
-    DBMetaOPKwargs,
-    DownloadMediaKwargs,
-    ExecActuatorKwargs,
-    P2PFileKwargs,
-)
+from backend.flow.utils.mysql.mysql_act_dataclass import ClearMachineKwargs, DBMetaOPKwargs, ExecActuatorKwargs
 from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
 from backend.flow.utils.mysql.mysql_context_dataclass import ClusterInfoContext
 from backend.flow.utils.mysql.mysql_db_meta import MySQLDBMeta
@@ -202,129 +197,27 @@ class MySQLMigrateClusterFlow(object):
                     "charset": self.data["charset"],
                 }
                 exec_act_kwargs.cluster = copy.deepcopy(cluster)
+
+                #  todo 该流程
                 stand_by_slaves = cluster_model.storageinstance_set.filter(
                     instance_inner_role=InstanceInnerRole.SLAVE.value,
                     is_stand_by=True,
                     status=InstanceStatus.RUNNING.value,
                 ).exclude(machine__ip__in=[self.data["new_slave_ip"], self.data["new_master_ip"]])
                 #     从standby从库找备份
+                inst_list = ["{}{}{}".format(master_model.machine.ip, IP_PORT_DIVIDER, master_model.port)]
                 if len(stand_by_slaves) > 0:
-                    sync_data_sub_pipeline.add_act(
-                        act_name=_("下发db-actor到旧从节点{}").format(stand_by_slaves[0].machine.ip),
-                        act_component_code=TransFileComponent.code,
-                        kwargs=asdict(
-                            DownloadMediaKwargs(
-                                bk_cloud_id=cluster_model.bk_cloud_id,
-                                exec_ip=stand_by_slaves[0].machine.ip,
-                                file_list=GetFileList(db_type=DBType.MySQL).get_db_actuator_package(),
-                            )
-                        ),
+                    inst_list.append(
+                        "{}{}{}".format(stand_by_slaves[0].machine.ip, IP_PORT_DIVIDER, stand_by_slaves[0].port)
                     )
-                    exec_act_kwargs.exec_ip = stand_by_slaves[0].machine.ip
-                    exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_find_local_backup_payload.__name__
-                    sync_data_sub_pipeline.add_act(
-                        act_name=_("获取SLAVE节点备份介质{}").format(exec_act_kwargs.exec_ip),
-                        act_component_code=ExecuteDBActuatorScriptComponent.code,
-                        kwargs=asdict(exec_act_kwargs),
-                        write_payload_var="slave_backup_file",
+                sync_data_sub_pipeline.add_sub_pipeline(
+                    sub_flow=mysql_restore_master_slave_sub_flow(
+                        root_id=self.root_id,
+                        ticket_data=copy.deepcopy(self.data),
+                        cluster=cluster,
+                        cluster_model=cluster_model,
+                        ins_list=inst_list,
                     )
-                # 从主库获取备份
-                sync_data_sub_pipeline.add_act(
-                    act_name=_("下发db-actor到旧主节点{}").format(master_model.machine.ip),
-                    act_component_code=TransFileComponent.code,
-                    kwargs=asdict(
-                        DownloadMediaKwargs(
-                            bk_cloud_id=cluster_model.bk_cloud_id,
-                            exec_ip=master_model.machine.ip,
-                            file_list=GetFileList(db_type=DBType.MySQL).get_db_actuator_package(),
-                        )
-                    ),
-                )
-
-                exec_act_kwargs.exec_ip = master_model.machine.ip
-                exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_find_local_backup_payload.__name__
-                sync_data_sub_pipeline.add_act(
-                    act_name=_("获取MASTER节点备份介质{}").format(exec_act_kwargs.exec_ip),
-                    act_component_code=ExecuteDBActuatorScriptComponent.code,
-                    kwargs=asdict(exec_act_kwargs),
-                    write_payload_var="master_backup_file",
-                )
-
-                sync_data_sub_pipeline.add_act(
-                    act_name=_("判断备份文件来源,并传输备份文件新机器"),
-                    act_component_code=SlaveTransFileComponent.code,
-                    kwargs=asdict(
-                        P2PFileKwargs(
-                            bk_cloud_id=cluster_model.bk_cloud_id,
-                            file_list=[],
-                            file_target_path=cluster["file_target_path"],
-                            source_ip_list=[],
-                            exec_ip=[self.data["new_slave_ip"], self.data["new_master_ip"]],
-                        )
-                    ),
-                )
-                # 恢复数据
-                restore_list = []
-                exec_act_kwargs = ExecActuatorKwargs(
-                    exec_ip=self.data["new_master_ip"],
-                    cluster=cluster,
-                    bk_cloud_id=cluster_model.bk_cloud_id,
-                    cluster_type=cluster_model.cluster_type,
-                    get_mysql_payload_func=MysqlActPayload.get_mysql_restore_slave_payload.__name__,
-                )
-                restore_list.append(
-                    {
-                        "act_name": _("恢复新主节点数据{}:{}").format(exec_act_kwargs.exec_ip, master_model.port),
-                        "act_component_code": ExecuteDBActuatorScriptComponent.code,
-                        "kwargs": asdict(exec_act_kwargs),
-                        "write_payload_var": "change_master_info",
-                    }
-                )
-
-                exec_act_kwargs.exec_ip = self.data["new_slave_ip"]
-                restore_list.append(
-                    {
-                        "act_name": _("恢复新从节点数据{}:{}").format(exec_act_kwargs.exec_ip, master_model.port),
-                        "act_component_code": ExecuteDBActuatorScriptComponent.code,
-                        "kwargs": asdict(exec_act_kwargs),
-                    }
-                )
-                sync_data_sub_pipeline.add_parallel_acts(acts_list=restore_list)
-
-                # 恢复完毕后。change master。先change 新从库的，再change新主库的
-                exec_act_kwargs.exec_ip = self.data["new_master_ip"]
-                exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_grant_mysql_repl_user_payload.__name__
-                sync_data_sub_pipeline.add_act(
-                    act_name=_("新增repl帐户{}").format(exec_act_kwargs.exec_ip),
-                    act_component_code=ExecuteDBActuatorScriptComponent.code,
-                    kwargs=asdict(exec_act_kwargs),
-                    write_payload_var="master_ip_sync_info",
-                )
-
-                exec_act_kwargs.exec_ip = self.data["new_slave_ip"]
-                exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_change_master_payload.__name__
-                sync_data_sub_pipeline.add_act(
-                    act_name=_("建立主从关系{}").format(exec_act_kwargs.exec_ip),
-                    act_component_code=ExecuteDBActuatorScriptComponent.code,
-                    kwargs=asdict(exec_act_kwargs),
-                )
-
-                # 主节点执行change master
-                exec_act_kwargs.exec_ip = self.data["master_ip"]
-                exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_grant_repl_for_migrate_cluster.__name__
-                sync_data_sub_pipeline.add_act(
-                    act_name=_("新增repl帐户{}").format(exec_act_kwargs.exec_ip),
-                    act_component_code=ExecuteDBActuatorScriptComponent.code,
-                    kwargs=asdict(exec_act_kwargs),
-                )
-                exec_act_kwargs.exec_ip = self.data["new_master_ip"]
-                exec_act_kwargs.get_mysql_payload_func = (
-                    MysqlActPayload.get_change_master_payload_for_migrate_cluster.__name__
-                )
-                sync_data_sub_pipeline.add_act(
-                    act_name=_("建立主从关系 {}").format(exec_act_kwargs.exec_ip),
-                    act_component_code=ExecuteDBActuatorScriptComponent.code,
-                    kwargs=asdict(exec_act_kwargs),
                 )
 
                 sync_data_sub_pipeline.add_act(

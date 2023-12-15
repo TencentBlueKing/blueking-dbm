@@ -16,6 +16,7 @@ from typing import Dict, Optional
 from django.utils.translation import ugettext as _
 
 from backend.configuration.constants import DBType
+from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.enums import ClusterType, InstanceInnerRole
 from backend.db_meta.models import Cluster
 from backend.db_package.models import Package
@@ -26,18 +27,17 @@ from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import (
     install_mysql_in_cluster_sub_flow,
 )
 from backend.flow.engine.bamboo.scene.mysql.common.exceptions import NormalTenDBFlowException
+from backend.flow.engine.bamboo.scene.mysql.common.mysql_resotre_data_sub_flow import mysql_rollback_data_sub_flow
 from backend.flow.engine.bamboo.scene.mysql.mysql_rollback_data_sub_flow import (
     rollback_local_and_backupid,
-    rollback_local_and_time,
     rollback_remote_and_backupid,
     rollback_remote_and_time,
 )
-from backend.flow.engine.bamboo.scene.spider.common.exceptions import TendbGetClusterInfoFailedException
 from backend.flow.plugins.components.collections.common.pause import PauseComponent
 from backend.flow.plugins.components.collections.mysql.clear_machine import MySQLClearMachineComponent
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.mysql.mysql_db_meta import MySQLDBMetaComponent
-from backend.flow.utils.mysql.common.mysql_cluster_info import get_cluster_info, get_version_and_charset
+from backend.flow.utils.mysql.common.mysql_cluster_info import get_version_and_charset
 from backend.flow.utils.mysql.mysql_act_dataclass import DBMetaOPKwargs, ExecActuatorKwargs
 from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
 from backend.flow.utils.mysql.mysql_context_dataclass import ClusterInfoContext
@@ -88,7 +88,6 @@ class MySQLRollbackDataFlow(object):
             self.data["package"] = Package.get_latest_package(
                 version=cluster_class.major_version, pkg_type=MediumEnum.MySQL, db_type=DBType.MySQL
             ).name
-            # self.data["package"] = cluster_class.major_version
             self.data["db_version"] = cluster_class.major_version
             self.data["force"] = info.get("force", False)
             self.data["charset"], self.data["db_version"] = get_version_and_charset(
@@ -149,56 +148,65 @@ class MySQLRollbackDataFlow(object):
                 act_component_code=ExecuteDBActuatorScriptComponent.code,
                 kwargs=asdict(exec_act_kwargs),
             )
-
-            one_cluster = get_cluster_info(self.data["cluster_id"])
-            stand_by_slaves = cluster_class.storageinstance_set.filter(
-                status=InstanceStatus.RUNNING.value,
-                instance_inner_role=InstanceInnerRole.SLAVE.value,
-                is_stand_by=True,
-            ).exclude(machine__ip=self.data["rollback_ip"])
-            if len(stand_by_slaves) > 0:
-                one_cluster["old_slave_ip"] = stand_by_slaves[0].machine.ip
-            else:
-                logger.error("cluster {} has not stand by running slave".format(self.data["cluster_id"]))
-                raise TendbGetClusterInfoFailedException(
-                    message=_("集群 {} 不存在standby running状态的从库".format(self.data["cluster_id"]))
-                )
-            one_cluster["rollback_ip"] = self.data["rollback_ip"]
-            one_cluster["databases"] = self.data["databases"]
-            one_cluster["tables"] = self.data["tables"]
-            one_cluster["databases_ignore"] = self.data["databases_ignore"]
-            one_cluster["tables_ignore"] = self.data["tables_ignore"]
-            one_cluster["backend_port"] = one_cluster["master_port"]
-            one_cluster["charset"] = self.data["charset"]
-            one_cluster["change_master"] = False
-            one_cluster["file_target_path"] = "/data/dbbak/{}/{}".format(self.root_id, master.port)
-            one_cluster["skip_local_exists"] = True
-            one_cluster["name_regex"] = "^.+{}\\.\\d+(\\..*)*$".format(one_cluster["master_port"])
-            one_cluster["rollback_time"] = self.data["rollback_time"]
-            one_cluster["rollback_ip"] = self.data["rollback_ip"]
-            one_cluster["rollback_port"] = master.port
-            one_cluster["rollback_time"] = self.data["rollback_time"]
-            one_cluster["backupinfo"] = self.data["backupinfo"]
-            one_cluster["rollback_type"] = self.data["rollback_type"]
+            mycluster = {
+                "name": cluster_class.name,
+                "cluster_id": cluster_class.id,
+                "cluster_type": cluster_class.cluster_type,
+                "bk_biz_id": cluster_class.bk_biz_id,
+                "bk_cloud_id": cluster_class.bk_cloud_id,
+                "db_module_id": cluster_class.db_module_id,
+                "databases": self.data["databases"],
+                "tables": self.data["tables"],
+                "databases_ignore": self.data["databases_ignore"],
+                "tables_ignore": self.data["tables_ignore"],
+                "charset": self.data["charset"],
+                "change_master": False,
+                "file_target_path": "/data/dbbak/{}/{}".format(self.root_id, master.port),
+                "skip_local_exists": True,
+                "name_regex": "^.+{}\\.\\d+(\\..*)*$".format(master.port),
+                "rollback_time": self.data["rollback_time"],
+                "backupinfo": self.data["backupinfo"],
+                "rollback_type": self.data["rollback_type"],
+                "rollback_ip": self.data["rollback_ip"],
+                "rollback_port": master.port,
+                "backend_port": master.port,
+                "master_port": master.port,
+                "master_ip": master.machine.ip,
+            }
 
             exec_act_kwargs = ExecActuatorKwargs(
                 bk_cloud_id=cluster_class.bk_cloud_id,
                 cluster_type=ClusterType.TenDBHA,
-                cluster=one_cluster,
+                cluster=mycluster,
             )
             exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.mysql_mkdir_dir.__name__
             exec_act_kwargs.exec_ip = self.data["rollback_ip"]
             sub_pipeline.add_act(
-                act_name=_("创建目录 {}".format(one_cluster["file_target_path"])),
+                act_name=_("创建目录 {}".format(mycluster["file_target_path"])),
                 act_component_code=ExecuteDBActuatorScriptComponent.code,
                 kwargs=asdict(exec_act_kwargs),
             )
 
             # 本地备份+时间
             if self.data["rollback_type"] == RollbackType.LOCAL_AND_TIME:
+                inst_list = ["{}{}{}".format(master.machine.ip, IP_PORT_DIVIDER, master.port)]
+                stand_by_slaves = cluster_class.storageinstance_set.filter(
+                    instance_inner_role=InstanceInnerRole.SLAVE.value,
+                    is_stand_by=True,
+                    status=InstanceStatus.RUNNING.value,
+                ).exclude(machine__ip__in=[self.data["rollback_ip"]])
+                if len(stand_by_slaves) > 0:
+                    inst_list.append(
+                        "{}{}{}".format(stand_by_slaves[0].machine.ip, IP_PORT_DIVIDER, stand_by_slaves[0].port)
+                    )
                 sub_pipeline.add_sub_pipeline(
-                    sub_flow=rollback_local_and_time(
-                        root_id=self.root_id, ticket_data=copy.deepcopy(self.data), cluster_info=one_cluster
+                    sub_flow=mysql_rollback_data_sub_flow(
+                        root_id=self.root_id,
+                        ticket_data=copy.deepcopy(self.data),
+                        cluster=mycluster,
+                        cluster_model=cluster_class,
+                        ins_list=inst_list,
+                        is_rollback_binlog=True,
                     )
                 )
 
@@ -206,14 +214,14 @@ class MySQLRollbackDataFlow(object):
             elif self.data["rollback_type"] == RollbackType.REMOTE_AND_TIME.value:
                 sub_pipeline.add_sub_pipeline(
                     sub_flow=rollback_remote_and_time(
-                        root_id=self.root_id, ticket_data=copy.deepcopy(self.data), cluster_info=one_cluster
+                        root_id=self.root_id, ticket_data=copy.deepcopy(self.data), cluster_info=mycluster
                     )
                 )
             # 远程备份+备份ID
             elif self.data["rollback_type"] == RollbackType.REMOTE_AND_BACKUPID.value:
                 sub_pipeline.add_sub_pipeline(
                     sub_flow=rollback_remote_and_backupid(
-                        root_id=self.root_id, ticket_data=copy.deepcopy(self.data), cluster_info=one_cluster
+                        root_id=self.root_id, ticket_data=copy.deepcopy(self.data), cluster_info=mycluster
                     )
                 )
 
@@ -221,7 +229,7 @@ class MySQLRollbackDataFlow(object):
             elif self.data["rollback_type"] == RollbackType.LOCAL_AND_BACKUPID:
                 sub_pipeline.add_sub_pipeline(
                     sub_flow=rollback_local_and_backupid(
-                        root_id=self.root_id, ticket_data=copy.deepcopy(self.data), cluster_info=one_cluster
+                        root_id=self.root_id, ticket_data=copy.deepcopy(self.data), cluster_info=mycluster
                     )
                 )
             else:

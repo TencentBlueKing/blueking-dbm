@@ -38,15 +38,16 @@ class RollBackTransFileService(TransFileService):
         backup_time = "1999-01-01T11:11:11+08:00"
         rollback_time = one_cluster["rollback_time"]
         for key, value in backup_infos.items():
+            value["backup_time"] = value["backup_consistent_time"]
             if str(value["data_schema_grant"]).lower() == "all" or (
                 "schema" in str(value["data_schema_grant"]).lower()
                 and "data" in str(value["data_schema_grant"]).lower()
             ):
-
                 if compare_time(rollback_time, value["backup_time"]):
                     if compare_time(value["backup_time"], backup_time):
                         backup_time = value["backup_time"]
                         backup_info = backup_infos[key]
+                        backup_info["backup_time"] = backup_info["backup_consistent_time"]
                         self.log_info(f"backup_time: {backup_time}")
         if not backup_info:
             self.log_error(_("没有符合的备份文件提供定点恢复"))
