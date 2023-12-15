@@ -79,10 +79,9 @@ class Machine(AuditedModel):
             return {
                 "version": "v1",
                 "common": first_one,
-                "custom": list(map(lambda x: {
-                    "instance_role": x["instance_role"],
-                    "instance_port": x["instance_port"]
-                }, dbm_meta))
+                "custom": list(
+                    map(lambda x: {"instance_role": x["instance_role"], "instance_port": x["instance_port"]}, dbm_meta)
+                ),
             }
 
         def remove_duplicates(seq):
