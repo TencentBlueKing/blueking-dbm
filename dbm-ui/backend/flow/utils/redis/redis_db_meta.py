@@ -48,6 +48,7 @@ from backend.db_services.redis.rollback.models import TbTendisRollbackTasks
 from backend.db_services.redis.slots_migrate.models import TbTendisSlotsMigrateRecord
 from backend.flow.consts import DEFAULT_DB_MODULE_ID, InstanceStatus
 from backend.flow.utils.base.payload_handler import PayloadHandler
+from backend.flow.utils.cc_manage import CcManage
 from backend.flow.utils.redis.redis_module_operate import RedisCCTopoOperator
 from backend.ticket.constants import TicketType
 
@@ -493,6 +494,7 @@ class RedisDBMeta(object):
         """1.修改状态、2.切换角色"""
         self.instances_status_update()
         with atomic():
+            cc_manage = CcManage(self.cluster["bk_biz_id"])
             for port in self.cluster["meta_update_ports"]:
                 old_master = StorageInstance.objects.get(machine__ip=self.cluster["meta_update_ip"], port=port)
                 old_slave = old_master.as_ejector.get().receiver
@@ -501,6 +503,18 @@ class RedisDBMeta(object):
                 old_master.instance_role = InstanceRole.REDIS_SLAVE.value
                 old_master.instance_inner_role = InstanceInnerRole.SLAVE.value
                 old_master.save(update_fields=["instance_role", "instance_inner_role"])
+
+                # 切换新master服务实例角色标签
+                cc_manage.add_label_for_service_instance(
+                    bk_instance_ids=[old_master.bk_instance_id],
+                    labels_dict={"instance_role": InstanceRole.REDIS_SLAVE.value},
+                )
+
+                # 切换新slave服务实例角色标签
+                cc_manage.add_label_for_service_instance(
+                    bk_instance_ids=[old_slave.bk_instance_id],
+                    labels_dict={"instance_role": InstanceRole.REDIS_MASTER.value},
+                )
         return True
 
     def tendis_switch_4_scene(self):
@@ -601,6 +615,8 @@ class RedisDBMeta(object):
         主从互切
                 act_kwargs.cluster["role_swap_host"].append({"new_ejector":new_host_master,"new_receiver":old_master})
         """
+
+        cc_manage = CcManage(self.cluster["bk_biz_id"])
         with atomic():
             for ins in self.cluster["role_swap_ins"]:
                 ins1 = StorageInstance.objects.get(machine__ip=ins["new_receiver_ip"], port=ins["new_receiver_port"])
@@ -628,6 +644,18 @@ class RedisDBMeta(object):
 
                 ins1.save(update_fields=["instance_role", "instance_inner_role"])
                 ins2.save(update_fields=["instance_role", "instance_inner_role"])
+
+                # 切换新master服务实例角色标签
+                cc_manage.add_label_for_service_instance(
+                    bk_instance_ids=[ins1.bk_instance_id],
+                    labels_dict={"instance_role": InstanceRole.REDIS_SLAVE.value},
+                )
+
+                # 切换新slave服务实例角色标签
+                cc_manage.add_label_for_service_instance(
+                    bk_instance_ids=[ins2.bk_instance_id],
+                    labels_dict={"instance_role": InstanceRole.REDIS_MASTER.value},
+                )
 
         return True
 
