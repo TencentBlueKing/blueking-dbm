@@ -37,6 +37,7 @@ from backend.flow.engine.bamboo.scene.redis.atom_jobs import (
 from backend.flow.plugins.components.collections.common.pause import PauseComponent
 from backend.flow.plugins.components.collections.redis.get_redis_payload import GetRedisActPayloadComponent
 from backend.flow.plugins.components.collections.redis.redis_db_meta import RedisDBMetaComponent
+from backend.flow.utils.base.payload_handler import PayloadHandler
 from backend.flow.utils.redis.redis_context_dataclass import ActKwargs, CommonContext
 from backend.flow.utils.redis.redis_db_meta import RedisDBMeta
 
@@ -161,6 +162,10 @@ class RedisClusterCMRSceneFlow(object):
 
     @staticmethod
     def __get_cluster_config(bk_biz_id: int, namespace: str, domain_name: str, db_version: str) -> Any:
+        """
+        获取已部署的实例配置
+        """
+        passwd_ret = PayloadHandler.redis_get_password_by_domain(domain_name)
         data = DBConfigApi.query_conf_item(
             params={
                 "bk_biz_id": str(bk_biz_id),
@@ -173,6 +178,14 @@ class RedisClusterCMRSceneFlow(object):
                 "format": FormatType.MAP.value,
             }
         )
+
+        if passwd_ret.get("redis_password"):
+            data["content"]["redis_password"] = passwd_ret.get("redis_password")
+        if passwd_ret.get("redis_proxy_password"):
+            data["content"]["password"] = passwd_ret.get("redis_proxy_password")
+        if passwd_ret.get("redis_proxy_admin_password"):
+            data["content"]["redis_proxy_admin_password"] = passwd_ret.get("redis_proxy_admin_password")
+
         return data["content"]
 
     def __init_builder(self, operate_name: str):
@@ -301,6 +314,7 @@ class RedisClusterCMRSceneFlow(object):
                 "ip": proxy_ip,
                 "redis_pwd": config_info["redis_password"],
                 "proxy_pwd": config_info["password"],
+                "proxy_admin_pwd": config_info["redis_proxy_admin_password"],
                 "proxy_port": int(config_info["port"]),
                 "servers": replace_kwargs.cluster["backend_servers"],
                 "spec_id": proxy_replace_info["proxy_spec"].get("id", 0),
