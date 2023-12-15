@@ -30,6 +30,7 @@ from backend.flow.plugins.components.collections.redis.get_redis_payload import 
     RedisActPayload,
 )
 from backend.flow.plugins.components.collections.redis.redis_db_meta import RedisDBMetaComponent
+from backend.flow.plugins.components.collections.redis.trans_flies import TransFileComponent
 from backend.flow.utils.redis.redis_context_dataclass import ActKwargs, CommonContext
 from backend.flow.utils.redis.redis_db_meta import RedisDBMeta
 from backend.flow.utils.redis.redis_proxy_util import get_cache_backup_mode, get_twemproxy_cluster_server_shards
@@ -166,14 +167,11 @@ class RedisClusterMSSSceneFlow(object):
         4. 刷新 new master 监控
         5. 元数据修改 old-master 2 unavliable.
         """
-        #  "pairs": [
-        #       {"redis_master": "1.1.2.3", "redis_slave": "1.1.2.4"}
-        #   ]
         redis_pipeline = SubBuilder(root_id=self.root_id, data=flow_data)
         twemproxy_server_shards = get_twemproxy_cluster_server_shards(
             act_kwargs.cluster["bk_biz_id"], act_kwargs.cluster["cluster_id"], act_kwargs.cluster["slave_ins_map"]
         )
-        # 执行切换 #####################################################################################
+
         sync_relations, master_ips, slave_ips = [], [], []
         for ms_pair in ms_switch["pairs"]:
             master_ip = ms_pair.get("redis_master", "why.no.ip.input")
@@ -200,6 +198,19 @@ class RedisClusterMSSSceneFlow(object):
                     }
                 )
             sync_relations.append(sync_params)
+
+        # 重新下发介质 ###################################################################################
+        trans_files = GetFileList(db_type=DBType.Redis)
+        act_kwargs.file_list = trans_files.redis_cluster_apply_proxy(act_kwargs.cluster["cluster_type"])
+        act_kwargs.exec_ip = master_ips + slave_ips
+        redis_pipeline.add_act(
+            act_name=_("{}-下发介质包").format(master_ips + slave_ips),
+            act_component_code=TransFileComponent.code,
+            kwargs=asdict(act_kwargs),
+        )
+        # 重新下发介质 ###################################################################################
+
+        # 执行切换 #####################################################################################
         act_kwargs.cluster["switch_condition"] = {
             "sync_type": SyncType.SYNC_MS.value,
             "is_check_sync": force,  # 强制切换
