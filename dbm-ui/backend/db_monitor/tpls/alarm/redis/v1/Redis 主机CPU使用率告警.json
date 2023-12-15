@@ -48,6 +48,15 @@
                 ],
                 "method": "eq",
                 "dimension_name": "dbm_meta instance role"
+              },
+              {
+                "key": "db_type",
+                "value": [
+                  "redis"
+                ],
+                "method": "eq",
+                "condition": "and",
+                "dimension_name": "db_type"
               }
             ],
             "metric_field": "usage",
@@ -292,7 +301,7 @@
   },
   "is_enabled": true,
   "monitor_indicator": "MIN(CPU\u4f7f\u7528\u7387)",
-  "version": 16,
+  "version": 17,
   "alert_source": "time_series",
   "custom_conditions": []
 }

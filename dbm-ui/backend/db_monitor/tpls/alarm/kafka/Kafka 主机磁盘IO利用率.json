@@ -40,7 +40,17 @@
               "device_name",
               "appid"
             ],
-            "agg_condition": [],
+            "agg_condition": [
+              {
+                "key": "db_type",
+                "value": [
+                  "kafka"
+                ],
+                "method": "eq",
+                "condition": "and",
+                "dimension_name": "db_type"
+              }
+            ],
             "metric_field": "util",
             "unit": "percentunit",
             "name": "I/O\u4f7f\u7528\u7387"
@@ -248,7 +258,7 @@
   },
   "is_enabled": true,
   "monitor_indicator": "AVG(I/O\u4f7f\u7528\u7387)",
-  "version": 16,
+  "version": 17,
   "alert_source": "time_series",
   "custom_conditions": []
 }
