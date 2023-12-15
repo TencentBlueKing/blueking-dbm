@@ -226,6 +226,8 @@ func (r *BackupLogReport) ExecuteBackupClient(fileName string) (taskid string, e
 	return taskid, nil
 }
 
+// ReportToLocalBackup 写入本地 infodba_schema.local_backup_report 表
+// indexFilePath 是全路径
 func (r *BackupLogReport) ReportToLocalBackup(indexFilePath string, metaInfo *IndexContent) error {
 	logger.Log.Infof("write backup result to local_backup_report")
 	db, err := mysqlconn.InitConn(&r.cfg.Public)
@@ -264,8 +266,15 @@ func (r *BackupLogReport) ReportToLocalBackup(indexFilePath string, metaInfo *In
 		return err
 	}
 
+	// 写入本地db的file_list字段，精简一下
+	fileList := make([]*TarFileItem, 0)
+	for _, tf := range metaInfo.FileList {
+		fileList = append(fileList, &TarFileItem{
+			FileName: tf.FileName, FileSize: tf.FileSize, FileType: tf.FileType, TaskId: tf.TaskId})
+	}
+	fileListRaw, _ := json.Marshal(fileList)
+
 	binlogInfo, _ := json.Marshal(metaInfo.BinlogInfo)
-	//filelist, _ := json.Marshal(metaInfo.FileList)
 	extraFields, _ := json.Marshal(metaInfo.ExtraFields)
 	sqlBuilder := sq.Replace(ModelBackupReport{}.TableName()).Columns("backup_id", "backup_type", "cluster_id",
 		"cluster_address", "backup_host", "backup_port", "server_id", "mysql_role", "shard_value",
@@ -291,7 +300,7 @@ func (r *BackupLogReport) ReportToLocalBackup(indexFilePath string, metaInfo *In
 		metaInfo.BackupBeginTime, metaInfo.BackupEndTime, metaInfo.BackupConsistentTime,
 		indexFilePath,
 		binlogInfo, extraFields,
-		"", "", "")
+		fileListRaw, "", "")
 
 	//_, err = sqlBuilder.RunWith(conn).Exec()
 	sqlStr, sqlArgs, err := sqlBuilder.ToSql()
