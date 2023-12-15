@@ -1976,8 +1976,7 @@
               "format": "time_series",
               "hide": false,
               "host": [],
-              "mode": "ui",
-              "module": [],
+              "mode": "ui", "module": [],
               "promqlAlias": "$tag_ip",
               "query_configs": [
                 {
