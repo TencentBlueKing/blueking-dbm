@@ -127,18 +127,18 @@ class RedisClusterCMRSceneFlow(object):
             else:
                 slave_master_map[slave_obj.machine.ip] = master_obj.machine.ip
 
-            cluster_info = api.cluster.nosqlcomm.other.get_cluster_detail(cluster_id)[0]
-            cluster_name = cluster_info["name"]
-            cluster_type = cluster_info["cluster_type"]
-            redis_master_set = cluster_info["redis_master_set"]
-            redis_slave_set = cluster_info["redis_slave_set"]
-            servers = []
-            if cluster_type in [ClusterType.TendisTwemproxyRedisInstance, ClusterType.TwemproxyTendisSSDInstance]:
-                for set in redis_master_set:
-                    ip_port, seg_range = str.split(set)
-                    servers.append("{} {} {} {}".format(ip_port, cluster_name, seg_range, 1))
-            else:
-                servers = redis_master_set + redis_slave_set
+        cluster_info = api.cluster.nosqlcomm.other.get_cluster_detail(cluster_id)[0]
+        redis_master_set, redis_slave_set, servers = (
+            cluster_info["redis_master_set"],
+            cluster_info["redis_slave_set"],
+            [],
+        )
+        if cluster.cluster_type in [ClusterType.TendisTwemproxyRedisInstance, ClusterType.TwemproxyTendisSSDInstance]:
+            for set in redis_master_set:
+                ip_port, seg_range = str.split(set)
+                servers.append("{} {} {} {}".format(ip_port, cluster.name, seg_range, 1))
+        else:
+            servers = redis_master_set + redis_slave_set
 
         return {
             "immute_domain": cluster.immute_domain,
