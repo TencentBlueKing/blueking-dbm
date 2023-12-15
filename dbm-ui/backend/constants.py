@@ -64,6 +64,7 @@ class CommonHostDBMeta:
     cluster_type: str
     db_type: str
     instance_role: str
+    instance_port: str
 
 
 # 集群状态数据缓存key

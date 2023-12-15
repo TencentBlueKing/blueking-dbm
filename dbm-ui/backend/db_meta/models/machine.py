@@ -8,6 +8,8 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import copy
+
 from dataclasses import asdict
 
 from django.db import models
@@ -63,12 +65,32 @@ class Machine(AuditedModel):
 
         host_labels = []
 
+        def shrink_dbm_meta(dbm_meta):
+            """数据裁剪"""
+
+            if not dbm_meta:
+                return []
+
+            # 剔除实例属性，仅保留集群属性
+            first_one = copy.deepcopy(dbm_meta[0])
+            for custom_attr in ["instance_role", "instance_port"]:
+                first_one.pop(custom_attr)
+
+            return {
+                "version": "v1",
+                "common": first_one,
+                "custom": list(
+                    map(lambda x: {"instance_role": x["instance_role"], "instance_port": x["instance_port"]}, dbm_meta)
+                ),
+            }
+
         def remove_duplicates(seq):
             unique = set()
             for d in seq:
                 t = tuple(d.items())
                 unique.add(t)
-            return [dict(x) for x in unique]
+
+            return shrink_dbm_meta([dict(x) for x in unique])
 
         if proxies:
             for proxy in proxies:
@@ -86,6 +108,7 @@ class Machine(AuditedModel):
                                 instance_role=tendb_cluster_spider_ext.spider_role
                                 if tendb_cluster_spider_ext
                                 else "proxy",
+                                instance_port=str(proxy.port),
                             )
                         )
                     )
@@ -103,6 +126,7 @@ class Machine(AuditedModel):
                                 cluster_type=storage.cluster_type,
                                 db_type=ClusterType.cluster_type_to_db_type(storage.cluster_type),
                                 instance_role=storage.instance_role,
+                                instance_port=str(storage.port),
                             )
                         )
                     )
@@ -118,6 +142,7 @@ class Machine(AuditedModel):
                                 cluster_type=cluster.cluster_type,
                                 db_type=ClusterType.cluster_type_to_db_type(cluster.cluster_type),
                                 instance_role=storage.instance_role,
+                                instance_port=str(storage.port),
                             )
                         )
                     )
