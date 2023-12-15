@@ -170,7 +170,7 @@ dbconfig:
   # apm
   serviceMonitor:
     enabled: false
-  # 也可以共享dbm的dataId，建议拆分
+  # 容器内日志采集，APM本身不需要，配置保留为方便后期开启服务本身的日志采集
   bkLogConfig:
     enabled: false
     dataId: 1
@@ -189,7 +189,7 @@ dbpriv:
   # apm
   serviceMonitor:
     enabled: false
-  # 也可以共享dbm的dataId，建议拆分
+  # 容器内日志采集，APM本身不需要，配置保留为方便后期开启服务本身的日志采集
   bkLogConfig:
     enabled: false
     dataId: 1
@@ -224,7 +224,7 @@ dbpartition:
   # apm
   serviceMonitor:
     enabled: false
-  # 也可以共享dbm的dataId，建议拆分
+  # 容器内日志采集，APM本身不需要，配置保留为方便后期开启服务本身的日志采集
   bkLogConfig:
     enabled: false
     dataId: 1
@@ -308,7 +308,7 @@ db-resource:
   # apm
   serviceMonitor:
     enabled: false
-  # 也可以共享dbm的dataId，建议拆分
+  # 容器内日志采集，APM本身不需要，配置保留为方便后期开启服务本身的日志采集
   bkLogConfig:
     enabled: false
     dataId: 1
@@ -327,7 +327,7 @@ db-remote-service:
   # apm
   serviceMonitor:
     enabled: false
-  # 也可以共享dbm的dataId，建议拆分
+  # 容器内日志采集，APM本身不需要，配置保留为方便后期开启服务本身的日志采集
   bkLogConfig:
     enabled: false
     dataId: 1
@@ -346,7 +346,7 @@ db-celery-service:
   # apm
   serviceMonitor:
     enabled: false
-  # 也可以共享dbm的dataId，建议拆分
+  # 容器内日志采集，APM本身不需要，配置保留为方便后期开启服务本身的日志采集
   bkLogConfig:
     enabled: false
     dataId: 1
@@ -365,7 +365,7 @@ slow-query-parser-service:
   # apm
   serviceMonitor:
     enabled: false
-  # 也可以共享dbm的dataId，建议拆分
+  # 容器内日志采集，APM本身不需要，配置保留为方便后期开启服务本身的日志采集
   bkLogConfig:
     enabled: false
     dataId: 1

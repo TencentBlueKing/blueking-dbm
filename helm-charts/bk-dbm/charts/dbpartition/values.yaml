@@ -93,7 +93,7 @@ readinessProbe: {}
 # 容器内指标采集
 serviceMonitor:
   enabled: false
-# 容器内日志采集
+# 容器内日志采集，APM本身不需要，配置保留为方便后期开启服务本身的日志采集
 bkLogConfig:
   enabled: false
   dataId: 1
