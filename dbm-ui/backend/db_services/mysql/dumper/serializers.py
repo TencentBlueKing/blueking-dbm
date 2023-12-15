@@ -50,13 +50,14 @@ class DumperSubscribeConfigSerializer(serializers.ModelSerializer):
         cluster_id__domain = {
             cluster.id: cluster.immute_domain for cluster in Cluster.objects.filter(id__in=cluster_ids)
         }
-        # 获取源集群，接收端协议，接收端地址和dumper id
+        # 获取dumper实例的同步方式、源集群、接收端协议、接收端地址和dumper id
         dumper_data_list = [
             {
                 "source_cluster_domain": cluster_id__domain[dumper.cluster_id],
                 "protocol_type": dumper.extra_config["protocol_type"],
                 "dumper_id": dumper.extra_config["dumper_id"],
                 "target_address": f"{dumper.extra_config['target_address']}:{dumper.extra_config['target_port']}",
+                "add_type": dumper.extra_config["add_type"],
             }
             for dumper in dumpers
         ]

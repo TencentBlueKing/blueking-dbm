@@ -26,6 +26,9 @@ SWAGGER_TAG = _("DBHA事件")
 
 class DBHAEventViewSet(viewsets.SystemViewSet):
     def _get_custom_permissions(self):
+        if self.action == "cat":
+            # TODO: 暂时豁免，后续cat接口带上业务属性后再放开
+            return []
         return [DBEventIAMPermission()]
 
     @common_swagger_auto_schema(
