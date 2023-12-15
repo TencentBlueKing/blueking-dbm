@@ -70,7 +70,7 @@ func main() {
 	// setup trace
 	trace.Setup()
 	// apm: add otlgin middleware
-	engine.Use(otelgin.Middleware("db_resource"))
+	engine.Use(otelgin.Middleware("db_config"))
 	// apm: add prom metrics middleware
 	metric.NewPrometheus("").Use(engine)
 

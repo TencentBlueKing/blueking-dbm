@@ -85,3 +85,11 @@ affinity: {}
 livenessProbe: {}
 
 readinessProbe: {}
+
+# 容器内指标采集
+serviceMonitor:
+  enabled: false
+# 容器内日志采集
+bkLogConfig:
+  enabled: false
+  dataId: 1

@@ -45,6 +45,15 @@ app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{- end -}}
 
 {{/*
+Selector labels
+*/}}
+{{- define "db-dns-api.selectorLabels" -}}
+app.kubernetes.io/name: {{ include "db-dns-api.name" . }}
+app.kubernetes.io/instance: {{ .Release.Name }}
+{{- end }}
+
+
+{{/*
 Create the name of the service account to use
 */}}
 {{- define "db-dns-api.serviceAccountName" -}}

@@ -8,6 +8,8 @@ global:
   bkDomain: "example.com"
   ## 蓝鲸主域名访问协议http/https
   bkDomainScheme: http
+  serviceMonitor:
+    enabled: false
 
 # bk public
 bk:
@@ -165,6 +167,13 @@ dbconfig:
     TRACE_TYPE: grpc
     TRACE_TOKEN: ""
     TRACE_DATA_ID: ""
+  # apm
+  serviceMonitor:
+    enabled: false
+  # 也可以共享dbm的dataId，建议拆分
+  bkLogConfig:
+    enabled: false
+    dataId: 1
 
 dbpriv:
   enabled: true
@@ -177,6 +186,13 @@ dbpriv:
     TRACE_TYPE: grpc
     TRACE_TOKEN: ""
     TRACE_DATA_ID: ""
+  # apm
+  serviceMonitor:
+    enabled: false
+  # 也可以共享dbm的dataId，建议拆分
+  bkLogConfig:
+    enabled: false
+    dataId: 1
 
 dbpartition:
   envs:
@@ -204,6 +220,14 @@ dbpartition:
 
   enabled: true
   extraEnvVarsCM: bk-dbpartition-db-env
+
+  # apm
+  serviceMonitor:
+    enabled: false
+  # 也可以共享dbm的dataId，建议拆分
+  bkLogConfig:
+    enabled: false
+    dataId: 1
 
 # grafana配置
 # 配置可以参考 https://github.com/bitnami/charts/tree/master/bitnami/grafana
@@ -281,6 +305,13 @@ db-resource:
     TRACE_TYPE: grpc
     TRACE_TOKEN: ""
     TRACE_DATA_ID: ""
+  # apm
+  serviceMonitor:
+    enabled: false
+  # 也可以共享dbm的dataId，建议拆分
+  bkLogConfig:
+    enabled: false
+    dataId: 1
 
 db-remote-service:
   enabled: false
@@ -293,6 +324,13 @@ db-remote-service:
     TRACE_TYPE: grpc
     TRACE_TOKEN: ""
     TRACE_DATA_ID: ""
+  # apm
+  serviceMonitor:
+    enabled: false
+  # 也可以共享dbm的dataId，建议拆分
+  bkLogConfig:
+    enabled: false
+    dataId: 1
 
 db-celery-service:
   enabled: true
@@ -305,6 +343,13 @@ db-celery-service:
     TRACE_TYPE: grpc
     TRACE_TOKEN: ""
     TRACE_DATA_ID: ""
+  # apm
+  serviceMonitor:
+    enabled: false
+  # 也可以共享dbm的dataId，建议拆分
+  bkLogConfig:
+    enabled: false
+    dataId: 1
 
 slow-query-parser-service:
   enabled: true
@@ -317,6 +362,13 @@ slow-query-parser-service:
     TRACE_TYPE: grpc
     TRACE_TOKEN: ""
     TRACE_DATA_ID: ""
+  # apm
+  serviceMonitor:
+    enabled: false
+  # 也可以共享dbm的dataId，建议拆分
+  bkLogConfig:
+    enabled: false
+    dataId: 1
 
 backup-consumer:
   enabled: true

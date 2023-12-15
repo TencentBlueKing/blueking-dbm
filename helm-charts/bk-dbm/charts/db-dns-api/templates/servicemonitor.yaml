@@ -1,0 +1,21 @@
+{{- if and .Values.global.serviceMonitor.enabled .Values.serviceMonitor.enabled -}}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "db-dns-api.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "db-dns-api.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "db-dns-api.selectorLabels" . | nindent 6 }}
+  namespaceSelector:
+    matchNames:
+      - {{ .Release.Namespace }}
+  endpoints:
+    - interval: 30s
+      params: {}
+      path: /metrics
+      port: http
+{{- end -}}
