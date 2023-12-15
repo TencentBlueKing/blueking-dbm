@@ -71,7 +71,10 @@ class MysqlMasterSlaveSwitchParamBuilder(builders.FlowParamBuilder):
         # 如果没有有效的切换信息，就跳过dumper切换流程
         switch_infos = [info for info in self.ticket_data.get("switch_infos", []) if info["switch_instances"]]
         if not switch_infos:
-            flow_filter = Q(ticket=self.ticket, details__controller_info__func_name=self.controller.__name__)
+            flow_filter = Q(
+                ticket=self.ticket,
+                details__controller_info__func_name=MysqlDumperMigrateParamBuilder.controller.__name__,
+            )
             Flow.objects.filter(flow_filter).update(status=TicketFlowStatus.SKIPPED)
             return
 

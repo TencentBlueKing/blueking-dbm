@@ -52,7 +52,13 @@ def list_cities() -> List[LCityModel]:
     # TODO db_meta 中的 LogicalCity 现在只有一个 name 字段, 对应这里的 city_name, 用于前端展示
     # 但这里考虑用 city_code 来做传参 (取值是城市拼音或 id)
     # TODO 库存数量和标签待完善
-    return [LCityModel(city.name, city.name, "0", InventoryTag.SUFFICIENT.value) for city in LogicalCity.objects.all()]
+    cities = []
+    for city in LogicalCity.objects.all():
+        city_code = city.name
+        # 如果是default，则前端展示为无地域
+        city_name = _("无地域") if city.name == "default" else city.name
+        cities.append(LCityModel(city_code, city_name, "0", InventoryTag.SUFFICIENT.value))
+    return cities
 
 
 def list_host_specs() -> List[HostSpecModel]:
