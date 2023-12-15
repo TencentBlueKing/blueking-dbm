@@ -11,7 +11,7 @@ specific language governing permissions and limitations under the License.
 import logging
 
 from django.apps import AppConfig
-from django.db.models.signals import post_migrate
+from django.db.models.signals import post_migrate, post_save
 
 logger = logging.getLogger("root")
 
@@ -31,8 +31,11 @@ class TicketConfig(AppConfig):
 
     def ready(self):
         from backend.ticket.builders import register_all_builders
+        from backend.ticket.models import Flow
+        from backend.ticket.signals import update_ticket_status
         from backend.ticket.todos import register_all_todos
 
         register_all_builders()
         register_all_todos()
         post_migrate.connect(init_ticket_flow_config, sender=self)
+        post_save.connect(update_ticket_status, sender=Flow)
