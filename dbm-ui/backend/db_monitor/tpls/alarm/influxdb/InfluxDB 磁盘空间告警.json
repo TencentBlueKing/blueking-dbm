@@ -52,7 +52,17 @@
             "agg_method": "MAX",
             "agg_interval": 60,
             "metric_field": "in_use",
-            "agg_condition": [],
+            "agg_condition": [
+              {
+                "key": "db_type",
+                "value": [
+                  "influxdb"
+                ],
+                "method": "eq",
+                "condition": "and",
+                "dimension_name": "db_type"
+              }
+            ],
             "agg_dimension": [
               "bk_target_ip",
               "bk_target_cloud_id",
@@ -278,7 +288,7 @@
   },
   "is_enabled": true,
   "monitor_indicator": "MAX(\u78c1\u76d8\u7a7a\u95f4\u4f7f\u7528\u7387)",
-  "version": 16,
+  "version": 17,
   "alert_source": "time_series",
   "custom_conditions": []
 }

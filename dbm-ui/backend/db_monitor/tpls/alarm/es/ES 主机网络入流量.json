@@ -40,7 +40,17 @@
               "device_name",
               "appid"
             ],
-            "agg_condition": [],
+            "agg_condition": [
+              {
+                "key": "db_type",
+                "value": [
+                  "es"
+                ],
+                "method": "eq",
+                "condition": "and",
+                "dimension_name": "db_type"
+              }
+            ],
             "metric_field": "speed_recv",
             "unit": "Bps",
             "name": "\u7f51\u5361\u5165\u6d41\u91cf"
@@ -248,7 +258,7 @@
   },
   "is_enabled": true,
   "monitor_indicator": "AVG(\u7f51\u5361\u5165\u6d41\u91cf)",
-  "version": 16,
+  "version": 17,
   "alert_source": "time_series",
   "custom_conditions": []
 }

@@ -54,12 +54,15 @@ class Command(BaseCommand):
         # db_type = options["dbtype"]
         alarm_jsons = glob.glob(os.path.join(TPLS_ALARM_DIR, "*.json"))
         for alarm_json in alarm_jsons:
+            need_update = False
+
             with open(alarm_json, "r+") as f:
                 template_dict = json.loads(f.read())
                 template_dict["custom_conditions"] = []
 
-                old_template_name = template_dict["name"]
+                # old_template_name = template_dict["name"]
                 template_name = template_dict["name"]
+                db_type = template_dict["db_type"]
 
                 # 清理实例参数
                 details = template_dict["details"]
@@ -68,8 +71,8 @@ class Command(BaseCommand):
                 if not template_dict.get("monitor_indicator"):
                     template_dict["monitor_indicator"] = details["items"][0]["name"]
 
-                if not template_dict.get("version"):
-                    template_dict["version"] = 0
+                # if not template_dict.get("version"):
+                #     template_dict["version"] = 0
 
                 template_dict.pop("monitor_strategy_id", None)
                 # details.pop("monitor_indicator", None)
@@ -92,10 +95,10 @@ class Command(BaseCommand):
                         metric_id = query_config["metric_id"]
 
                         # 标记告警数据来源
-                        template_dict["alert_source"] = query_config["data_type_label"]
+                        # template_dict["alert_source"] = query_config["data_type_label"]
 
                         # 增加版本
-                        template_dict["version"] = 2
+                        template_dict["version"] = 17
 
                         if "promql" in query_config:
                             promql = query_config["promql"]
@@ -115,10 +118,27 @@ class Command(BaseCommand):
 
                         query_config["metric_id"] = query_config["metric_id"][:128]
 
-                        if "agg_dimension" in query_config and "appid" not in query_config["agg_dimension"]:
-                            query_config["agg_dimension"].append("appid")
-                            query_config["agg_dimension"].pop("app_id", None)
+                        # if "agg_dimension" in query_config and "appid" not in query_config["agg_dimension"]:
+                        #     query_config["agg_dimension"].append("appid")
+                        #     query_config["agg_dimension"].pop("app_id", None)
+
+                        if "agg_condition" in query_config and "dbm_system" in query_config["result_table_id"]:
+                            agg_condition = query_config["agg_condition"]
+                            has_db_type = len(list(filter(lambda x: x["key"] == "db_type", agg_condition))) > 0
+                            if not has_db_type:
+                                agg_condition.append(
+                                    {
+                                        "key": "db_type",
+                                        "value": [db_type],
+                                        "method": "eq",
+                                        "condition": "and",
+                                        "dimension_name": "db_type",
+                                    }
+                                )
+
+                            need_update = True
 
                 self.clear_id(details["items"])
-                self.update_json_file_name(alarm_json, old_template_name, template_name)
-                self.update_json_file(f, template_dict)
+                # self.update_json_file_name(alarm_json, old_template_name, template_name)
+                if need_update:
+                    self.update_json_file(f, template_dict)
