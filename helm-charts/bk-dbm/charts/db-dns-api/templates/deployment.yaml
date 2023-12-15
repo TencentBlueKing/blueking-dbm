@@ -3,18 +3,18 @@ kind: Deployment
 metadata:
   name: {{ include "db-dns-api.fullname" . }}
   labels:
-    {{ include "db-dns-api.labels" . | indent 4 }}
+    {{ include "db-dns-api.labels" . | nindent 4 }}
 spec:
   replicas: {{ .Values.replicaCount }}
   selector:
     matchLabels:
-      {{ include "db-dns-api.selectorLabels" }}
+      {{- include "db-dns-api.selectorLabels" . | nindent 6 }}
   template:
     metadata:
       annotations:
         reloader.stakater.com/auto: "true"
       labels:
-        {{ include "db-dns-api.selectorLabels" }}
+        {{- include "db-dns-api.selectorLabels" . | nindent 8 }}
     spec:
       volumes:
         - name: gcsdnsdir
