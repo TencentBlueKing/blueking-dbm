@@ -115,9 +115,6 @@ class BaseTicketFlow(ABC):
         self.flow_obj.status = TicketFlowStatus.FAILED
         self.flow_obj.save(update_fields=["err_code", "err_msg", "status", "update_at"])
 
-        self.ticket.status = constants.TicketStatus.FAILED
-        self.ticket.save(update_fields=["status", "update_at"])
-
         # 如果是自动重试，则认为flow和ticket都在执行，否则打印异常的堆栈
         if err_code == FlowErrCode.AUTO_EXCLUSIVE_ERROR.value:
             self.run_status_handler(flow_obj_id=self.flow_obj.flow_obj_id)
@@ -130,17 +127,11 @@ class BaseTicketFlow(ABC):
         self.flow_obj.status = TicketFlowStatus.RUNNING
         self.flow_obj.save(update_fields=["flow_obj_id", "status", "update_at"])
 
-        self.ticket.status = constants.TicketStatus.RUNNING
-        self.ticket.save(update_fields=["status", "update_at"])
-
     def flush_error_status_handler(self):
         """重试刷新错误节点，更新相关状态，剔除错误信息"""
         self.flow_obj.err_msg = self.flow_obj.err_code = None
         self.flow_obj.status = TicketFlowStatus.RUNNING
         self.flow_obj.save(update_fields=["err_msg", "status", "err_code", "update_at"])
-
-        self.ticket.status = constants.TicketStatus.RUNNING
-        self.ticket.save(update_fields=["status", "update_at"])
 
     def create_operate_records(self, object_key, record_model, object_ids):
         """
