@@ -60,6 +60,12 @@ def query_versions_by_key(query_key):
         ClusterType.TendisRedisCluster,
     ]:
         versions = constants.RedisVersion.get_values()
+
+    elif query_key in [
+        ClusterType.MongoReplicaSet,
+        ClusterType.MongoShardedCluster,
+    ]:
+        versions = constants.MongodbVersion.get_values()
     elif query_key in [
         PackageType.TendisSsd,
         ClusterType.TwemproxyTendisSSDInstance,

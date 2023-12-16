@@ -299,6 +299,26 @@ class TicketType(str, StructuredEnum):
     RIAK_CLUSTER_DISABLE = EnumField("RIAK_CLUSTER_DISABLE", _("RIAK集群禁用"))
     RIAK_CLUSTER_REBOOT = EnumField("RIAK_CLUSTER_REBOOT", _("RIAK集群节点重启"))
 
+    # MONGODB
+    MONGODB_REPLICASET_APPLY = EnumField("MONGODB_REPLICASET_APPLY", _("MongoDB副本集集群部署"))
+    MONGODB_SHARD_APPLY = EnumField("MONGODB_SHARD_APPLY", _("MongoDB分片集群部署"))
+    MONGODB_EXEC_SCRIPT_APPLY = EnumField("MONGODB_EXEC_SCRIPT_APPLY", _("MongoDB 变更脚本执行"))
+    MONGODB_REMOVE_NS = EnumField("MONGODB_REMOVE_NS", _("MongoDB 清档"))
+    MONGODB_FULL_BACKUP = EnumField("MONGODB_FULL_BACKUP", _("MongoDB 全库备份"))
+    MONGODB_BACKUP = EnumField("MONGODB_BACKUP", _("MongoDB 库表备份"))
+    MONGODB_ADD_MONGOS = EnumField("MONGODB_ADD_MONGOS", _("MongoDB 扩容接入层"))
+    MONGODB_REDUCE_MONGOS = EnumField("MONGODB_REDUCE_MONGOS", _("MongoDB 缩容接入层"))
+    MONGODB_ADD_SHARD_NODES = EnumField("MONGODB_ADD_SHARD_NODES", _("MongoDB 扩容shard节点数"))
+    MONGODB_REDUCE_SHARD_NODES = EnumField("MONGODB_REDUCE_SHARD_NODES", _("MongoDB 缩容shard节点数"))
+    MONGODB_SCALE_UPDOWN = EnumField("MONGODB_SCALE_UPDOWN", _("MongoDB 集群容量变更"))
+    MONGODB_ENABLE = EnumField("MONGODB_ENABLE", _("MongoDB 集群启用"))
+    MONGODB_INSTANCE_RELOAD = EnumField("MONGODB_INSTANCE_RELOAD", _("MongoDB 实例重启"))
+    MONGODB_DISABLE = EnumField("MONGODB_DISABLE", _("MongoDB 集群禁用"))
+    MONGODB_DESTROY = EnumField("MONGODB_DESTROY", _("MongoDB 集群删除"))
+    MONGODB_CUTOFF = EnumField("MONGODB_CUTOFF", _("MongoDB 整机替换"))
+    MONGODB_AUTHORIZE = EnumField("MONGODB_AUTHORIZE", _("MongoDB 授权"))
+    MONGODB_EXCEL_AUTHORIZE = EnumField("MONGODB_EXCEL_AUTHORIZE", _("MongoDB Excel授权"))
+
     # 云区域组件
     CLOUD_SERVICE_APPLY = EnumField("CLOUD_SERVICE_APPLY", _("云区域服务部署"))
     CLOUD_NGINX_APPLY = EnumField("CLOUD_NGINX_APPLY", _("云区域Nginx 服务部署"))

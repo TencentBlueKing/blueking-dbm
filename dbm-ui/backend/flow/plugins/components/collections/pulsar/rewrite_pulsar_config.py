@@ -17,7 +17,7 @@ from pipeline.core.flow.activity import Service
 import backend.flow.utils.pulsar.pulsar_context_dataclass as flow_context
 from backend.components import DBConfigApi
 from backend.components.dbconfig.constants import LevelName, OpType, ReqType
-from backend.components.mysql_priv_manager.client import MySQLPrivManagerApi
+from backend.components.mysql_priv_manager.client import DBPrivManagerApi
 from backend.flow.consts import ConfigTypeEnum, LevelInfoEnum, MySQLPrivComponent, NameSpaceEnum, PulsarRoleEnum
 from backend.flow.engine.bamboo.scene.pulsar.pulsar_base_flow import get_zk_id_from_host_map
 from backend.flow.plugins.components.collections.common.base_service import BaseService
@@ -139,7 +139,7 @@ class WriteBackPulsarConfigService(BaseService):
             "component": NameSpaceEnum.Pulsar,
             "operator": "admin",
         }
-        MySQLPrivManagerApi.modify_password(params=query_params)
+        DBPrivManagerApi.modify_password(params=query_params)
         # 存储真正的账号密码
         query_params = {
             "instances": [{"ip": global_data["domain"], "port": 0, "bk_cloud_id": global_data["bk_cloud_id"]}],
@@ -148,7 +148,7 @@ class WriteBackPulsarConfigService(BaseService):
             "component": NameSpaceEnum.Pulsar,
             "operator": "admin",
         }
-        MySQLPrivManagerApi.modify_password(params=query_params)
+        DBPrivManagerApi.modify_password(params=query_params)
         # 存储token
         query_params = {
             "instances": [{"ip": global_data["domain"], "port": 0, "bk_cloud_id": global_data["bk_cloud_id"]}],
@@ -157,7 +157,7 @@ class WriteBackPulsarConfigService(BaseService):
             "component": NameSpaceEnum.Pulsar,
             "operator": "admin",
         }
-        MySQLPrivManagerApi.modify_password(params=query_params)
+        DBPrivManagerApi.modify_password(params=query_params)
         self.log_info("successfully write back pulsar config to privilege manager")
 
 

@@ -9,7 +9,7 @@ specific language governing permissions and limitations under the License.
 """
 from pipeline.component_framework.component import Component
 
-from backend.components import DRSApi, MySQLPrivManagerApi
+from backend.components import DBPrivManagerApi, DRSApi
 from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.models import Cluster
 from backend.flow.consts import TDBCTL_USER
@@ -26,7 +26,7 @@ class SwitchRemoteSlaveRoutingService(BaseService):
         再新的实例对中控primary授权
         """
         # 添加临时账号
-        MySQLPrivManagerApi.add_priv_without_account_rule(
+        DBPrivManagerApi.add_priv_without_account_rule(
             params={
                 "bk_cloud_id": cluster.bk_cloud_id,
                 "bk_biz_id": cluster.bk_biz_id,

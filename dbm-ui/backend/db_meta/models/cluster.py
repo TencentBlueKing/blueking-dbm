@@ -31,6 +31,7 @@ from backend.db_meta.enums import (
     InstanceInnerRole,
     InstanceRole,
     InstanceStatus,
+    MachineType,
     TenDBClusterSpiderRole,
 )
 from backend.db_meta.enums.cluster_status import ClusterDBSingleStatusFlags, ClusterStatusFlags
@@ -254,6 +255,10 @@ class Cluster(AuditedModel):
             return self.storageinstance_set.filter(instance_role=InstanceRole.PULSAR_BROKER).first().port
         elif self.cluster_type == ClusterType.Riak:
             return DEFAULT_RIAK_PORT
+        elif self.cluster_type == ClusterType.MongoShardedCluster:
+            return self.proxyinstance_set.filter(machine_type=MachineType.MONGOS).first().port
+        elif self.cluster_type == ClusterType.MongoReplicaSet:
+            return self.storageinstance_set.filter(machine_type=MachineType.MONGODB).first().port
 
     def get_partition_port(self):
         """

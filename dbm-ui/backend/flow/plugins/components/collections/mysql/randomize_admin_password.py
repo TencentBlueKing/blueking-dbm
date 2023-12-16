@@ -13,7 +13,7 @@ import logging
 from django.utils.translation import ugettext as _
 from pipeline.component_framework.component import Component
 
-from backend.components import MySQLPrivManagerApi
+from backend.components import DBPrivManagerApi
 from backend.exceptions import ApiResultError
 from backend.flow.plugins.components.collections.common.base_service import BaseService
 
@@ -36,7 +36,7 @@ class RandomizeAdminPasswordService(BaseService):
             }
         ]
         try:
-            MySQLPrivManagerApi.modify_mysql_admin_password(
+            DBPrivManagerApi.modify_mysql_admin_password(
                 params={
                     "username": "ADMIN",  # 管理用户
                     "operator": "init",
