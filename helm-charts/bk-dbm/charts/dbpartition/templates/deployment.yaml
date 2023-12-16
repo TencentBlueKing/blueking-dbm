@@ -55,7 +55,9 @@ spec:
             failureThreshold: {{ .Values.readinessProbe.failureThreshold | default 1}}
           env:
             {{- include "dbm.envs" . | trim | nindent 12 }}
-            {{- include "envs" . | trim | nindent 12 }}
+            {{- if .Values.envs -}}
+              {{- include "envs" . | trim | nindent 12 }}
+            {{- end }}
           envFrom:
             {{- if .Values.extraEnvVarsCM }}
             - configMapRef:

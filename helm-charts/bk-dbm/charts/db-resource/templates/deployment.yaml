@@ -45,7 +45,10 @@ spec:
               containerPort: 80
               protocol: TCP
           env:
-            {{- include "envs" . | trim | nindent 12 }}
+            {{- if .Values.envs -}}
+              {{- include "envs" . | trim | nindent 12 }}
+            {{- end }}
+
           livenessProbe:
             httpGet:
               path: {{ .Values.livenessProbe.path | default "/ping"}}

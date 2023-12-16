@@ -18,6 +18,7 @@ data:
   BK_APP_CODE: "{{ .Values.dbm.envs.bkAppCode }}"
   BK_APP_SECRET: "{{ .Values.dbm.envs.bkAppToken }}"
   DBA_APP_BK_BIZ_ID: "{{ .Values.dbm.envs.dbaAppBkBizId }}"
+  {{- if .Values.dbpartition.envs }}
   DB_REMOTE_SERVICE: "{{ .Values.dbpartition.envs.DB_REMOTE_SERVICE }}"
   CRON_RETRY_HOUR: "{{ .Values.dbpartition.envs.CRON_RETRY_HOUR }}"
   CRON_TIMING_HOUR: "{{ .Values.dbpartition.envs.CRON_TIMING_HOUR }}"
@@ -35,3 +36,4 @@ data:
   REDIS_HOST: "{{ .Values.externalRedis.host }}"
   REDIS_PORT: "{{ .Values.externalRedis.port }}"
   REDIS_PASSWORD: "{{ .Values.externalRedis.password }}"
+  {{- end }}

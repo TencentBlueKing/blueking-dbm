@@ -3,4 +3,4 @@ appVersion: 0.0.1-alpha.12
 description: A Helm chart for Kubernetes
 name: db-celery-service
 type: application
-version: 0.0.9
+version: 0.0.10
