@@ -43,7 +43,11 @@ def machine_order_by_tolerance(disaster_tolerance_level: str, machine_set: list)
         mongo_machine_set.remove(machines[1])
         machines.extend(mongo_machine_set)
     # 主从节点分布在相同的机房
-    elif disaster_tolerance_level == AffinityEnum.SAME_SUBZONE:
+    elif disaster_tolerance_level in [
+        AffinityEnum.SAME_SUBZONE,
+        AffinityEnum.NONE,
+        AffinityEnum.SAME_SUBZONE_CROSS_SWTICH,
+    ]:
         machines = machine_set
     return machines
 

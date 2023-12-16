@@ -116,3 +116,12 @@ class DumperProtocolType(str, StructuredEnum):
     KAFKA = EnumField("KAFKA", _("KAFKA"))
     L5_AGENT = EnumField("L5_AGENT", _("L5_AGENT"))
     TCP_IP = EnumField("TCP/IP", _("TCP/IP"))
+
+
+class MongoDBScriptImportMode(str, StructuredEnum):
+    """
+    MongoDB导入的模式
+    """
+
+    FILE = EnumField("file", _("文件上传"))
+    MANUAL = EnumField("manual", _("手动输入"))

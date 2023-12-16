@@ -42,7 +42,7 @@ class MongodbExcelAuthorizeRulesSerializer(serializers.Serializer):
 
 
 class MongoDBAuthorizeRulesFlowParamBuilder(builders.FlowParamBuilder):
-    controller = MongoDBController.fake_scene
+    controller = MongoDBController.create_user
 
 
 @builders.BuilderFactory.register(TicketType.MONGODB_AUTHORIZE)

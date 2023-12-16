@@ -44,6 +44,7 @@ class InstanceMixin(object):
 
     @property
     def simple_desc(self):
+        """获取实例的通用信息"""
         return {
             "name": self.name,
             "ip": self.machine.ip,
@@ -189,7 +190,7 @@ class StorageInstance(InstanceMixin, AuditedModel):
         return InstanceType.STORAGE.value
 
     @classmethod
-    def find_storage_instance_by_addresses(cls, addresses: List[Union[str, Dict]]):
+    def find_storage_instance_by_ip(cls, addresses: List[Union[str, Dict]]):
         """通过实例的ip查询实例"""
         if not addresses:
             return None

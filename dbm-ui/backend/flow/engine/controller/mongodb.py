@@ -18,6 +18,7 @@ from backend.flow.engine.bamboo.scene.mongodb.mongodb_replace import MongoReplac
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_restore import MongoRestoreFlow
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_user import MongoUserFlow
 from backend.flow.engine.controller.base import BaseController
+from backend.ticket.constants import TicketType
 
 
 class MongoDBController(BaseController):
@@ -47,9 +48,9 @@ class MongoDBController(BaseController):
         """
         # Get Ticket Name. 以后再拆到url那边. 临时用法.
         ticket_name = self.ticket_data["ticket_type"]
-        if ticket_name == "MONGODB_RESTORE":
+        if ticket_name == TicketType.MONGODB_RESTORE:
             flow = MongoRestoreFlow(root_id=self.root_id, data=self.ticket_data)
-        elif ticket_name == "MONGODB_FULL_BACKUP" or ticket_name == "MONGODB_PARTIAL_BACKUP":
+        elif ticket_name == TicketType.MONGODB_FULL_BACKUP or ticket_name == TicketType.MONGODB_BACKUP:
             flow = MongoBackupFlow(root_id=self.root_id, data=self.ticket_data)
         else:
             raise Exception("Unknown ticket name: %s" % ticket_name)

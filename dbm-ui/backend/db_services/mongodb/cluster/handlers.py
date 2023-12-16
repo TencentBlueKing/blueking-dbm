@@ -9,8 +9,8 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
+from backend.db_services.dbbase.cluster.handlers import ClusterServiceHandler as BaseClusterServiceHandler
 
-class ClusterServiceHandler(object):
-    """mongodb集群查询&操作封装类"""
 
+class ClusterServiceHandler(BaseClusterServiceHandler):
     pass

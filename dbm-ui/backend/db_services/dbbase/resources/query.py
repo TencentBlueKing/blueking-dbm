@@ -9,7 +9,6 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import abc
-from collections import defaultdict
 from typing import Any, Callable, Dict, List, Tuple, Union
 
 import attr
@@ -20,11 +19,11 @@ from django.utils.translation import ugettext_lazy as _
 
 from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.enums import ClusterEntryType, ClusterType
+from backend.db_meta.enums.comm import SystemTagEnum
 from backend.db_meta.models import AppCache, Cluster, ClusterEntry, DBModule, Machine, ProxyInstance, StorageInstance
 from backend.db_services.dbbase.instances.handlers import InstanceHandler
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.flow.utils.dns_manage import DnsManage
-from backend.ticket.constants import TicketFlowStatus
 from backend.ticket.models import ClusterOperateRecord
 from backend.utils.excel import ExcelHandler
 from backend.utils.time import datetime2str
@@ -206,6 +205,26 @@ class CommonQueryResourceMixin(abc.ABC):
         return ExcelHandler.response(
             wb, urlquote(_("{export_prefix}实例列表.xlsx").format(export_prefix=f"{biz_name}[{bk_biz_id}]{db_type}"))
         )
+
+    @classmethod
+    def get_temporary_cluster_info(cls, cluster, ticket_type):
+        """如果当前集群是临时集群，则补充临时集群相关信息。注: 会存在N+1问题，不过临时集群较少先忽略"""
+        if not cluster.tag_set.filter(name=SystemTagEnum.TEMPORARY.value).exists():
+            return {}
+        record = ClusterOperateRecord.objects.filter(cluster_id=cluster.id, ticket__ticket_type=ticket_type).first()
+        # 临时集群名称的构造规则是: {cluster_name}_{20201212}_{ticket_id}
+        source_cluster_name = cluster.name.rsplit("-", 2)[0]
+        # 获取回档源集群信息，如果源集群已被卸载，则忽略
+        try:
+            source_cluster = Cluster.objects.get(
+                bk_biz_id=cluster.bk_biz_id, cluster_type=cluster.cluster_type, name=source_cluster_name
+            )
+            domain = source_cluster.immute_domain
+        except Cluster.DoesNotExist:
+            domain = ""
+
+        temporary_info = {"source_cluster": domain, "ticket_id": record.ticket.id}
+        return temporary_info
 
 
 class BaseListRetrieveResource(CommonQueryResourceMixin):
@@ -405,12 +424,7 @@ class ListRetrieveResource(BaseListRetrieveResource):
         }
 
         # 获取集群操作记录的映射关系
-        records = ClusterOperateRecord.objects.prefetch_related("ticket").filter(
-            cluster_id__in=cluster_ids, ticket__status=TicketFlowStatus.RUNNING
-        )
-        cluster_operate_records_map: Dict[int, List] = defaultdict(list)
-        for record in records:
-            cluster_operate_records_map[record.cluster_id].append(record.summary)
+        cluster_operate_records_map = ClusterOperateRecord.get_cluster_records_map(cluster_ids)
 
         # 将集群的查询结果序列化为集群字典信息
         clusters: List[Dict[str, Any]] = []
@@ -566,6 +580,7 @@ class ListRetrieveResource(BaseListRetrieveResource):
             "machine__bk_cloud_id",
             "machine__bk_host_id",
             "machine__spec_config",
+            "machine__machine_type",
         ]
         # 获取storage实例的查询集
         storage_queryset = (
@@ -610,6 +625,7 @@ class ListRetrieveResource(BaseListRetrieveResource):
             "port": instance["port"],
             "instance_address": f"{instance['machine__ip']}{IP_PORT_DIVIDER}{instance['port']}",
             "bk_host_id": instance["machine__bk_host_id"],
+            "machine_type": instance["machine__machine_type"],
             "role": instance["role"],
             "master_domain": cluster_entry_map.get(instance["cluster__id"], {}).get("master_domain", ""),
             "slave_domain": cluster_entry_map.get(instance["cluster__id"], {}).get("slave_domain", ""),

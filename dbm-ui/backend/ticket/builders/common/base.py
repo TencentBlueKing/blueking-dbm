@@ -19,7 +19,8 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from backend.configuration.constants import MASTER_DOMAIN_INITIAL_VALUE, AffinityEnum
-from backend.db_meta.enums import AccessLayer, ClusterType, InstanceInnerRole
+from backend.db_meta.enums import AccessLayer, ClusterPhase, ClusterType, InstanceInnerRole
+from backend.db_meta.enums.comm import SystemTagEnum
 from backend.db_meta.models import Cluster, ExtraProcessInstance, Machine, ProxyInstance, StorageInstance
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.db_services.mysql.cluster.handlers import ClusterServiceHandler
@@ -111,6 +112,16 @@ class CommonValidate(object):
     domain_pattern = re.compile(r"^[a-zA-Z0-9][-a-zA-Z0-9]{0,62}(\.[a-zA-Z0-9][-a-zA-Z0-9]{0,62}){2,8}\.*(#(\d+))?$")
 
     @classmethod
+    def validate_destroy_temporary_cluster_ids(cls, cluster_ids):
+        clusters = Cluster.objects.filter(id__in=cluster_ids, tag__name=SystemTagEnum.TEMPORARY.value)
+        if clusters.count() != len(cluster_ids):
+            raise serializers.ValidationError(_("此单据只用于临时集群的销毁，请不要用于其他正常集群"))
+
+        running_clusters = [cluster.id for cluster in clusters if cluster.phase == ClusterPhase.ONLINE]
+        if len(running_clusters) != len(cluster_ids):
+            raise serializers.ValidationError(_("存在临时集群已禁用，请在集群页面进行销毁"))
+
+    @classmethod
     def validate_hosts_from_idle_pool(cls, bk_biz_id: int, host_list: List[int]) -> Set[int]:
         """获取所有不在空闲机池的主机"""
 
@@ -194,6 +205,8 @@ class CommonValidate(object):
 
     @classmethod
     def validate_duplicate_cluster_name(cls, bk_biz_id, ticket_type, cluster_name):
+        """校验是否存在重复集群名"""
+
         from backend.ticket.builders import BuilderFactory
 
         cluster_type = BuilderFactory.ticket_type__cluster_type.get(ticket_type, ticket_type)

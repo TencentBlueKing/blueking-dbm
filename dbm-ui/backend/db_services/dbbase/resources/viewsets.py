@@ -36,10 +36,14 @@ def decorator_cluster_instance_permission_field(
         @wraps(view_func)
         def wrapped_view(*args, **kwargs):
             db_type = args[0].db_type.upper()
+
+            response = view_func(*args, **kwargs)
+            if not getattr(ActionEnum, f"{db_type}_VIEW", None):
+                return response
+
             # 默认实例鉴权只有集群详情动作
             actions = [getattr(ActionEnum, f"{db_type}_VIEW")]
             resource_meta = getattr(ResourceEnum, db_type)
-            response = view_func(*args, **kwargs)
             return Permission.insert_permission_field(
                 response, actions, resource_meta, id_field, data_field, always_allowed, many
             )
