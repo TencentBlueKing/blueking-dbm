@@ -14,7 +14,7 @@ from typing import Any, Dict, List, Union
 
 from django.utils.translation import ugettext as _
 
-from backend.components import MySQLPrivManagerApi
+from backend.components import DBPrivManagerApi
 from backend.db_meta.models import Cluster
 from backend.db_services.mysql.open_area.exceptions import TendbOpenAreaBaseException
 from backend.db_services.mysql.open_area.models import TendbOpenAreaConfig
@@ -66,7 +66,7 @@ class OpenAreaHandler:
 
         # 获取开区授权规则
         priv_ids = list(itertools.chain(*[rule["priv_data"] for rule in config.config_rules]))
-        authorize_rules = MySQLPrivManagerApi.list_account_rules({"bk_biz_id": config.bk_biz_id, "ids": priv_ids})
+        authorize_rules = DBPrivManagerApi.list_account_rules({"bk_biz_id": config.bk_biz_id, "ids": priv_ids})
         # 根据用户名和db将授权规则分批
         user__dbs_rules: Dict[str, List[str]] = defaultdict(list)
         for rule_data in authorize_rules["items"]:

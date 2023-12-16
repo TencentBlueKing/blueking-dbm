@@ -15,7 +15,7 @@ from typing import List
 from pipeline.component_framework.component import Component
 from pipeline.core.flow.activity import Service
 
-from backend.components.mysql_priv_manager.client import MySQLPrivManagerApi
+from backend.components.mysql_priv_manager.client import DBPrivManagerApi
 from backend.db_meta.api import common
 from backend.db_meta.enums import InstanceRole
 from backend.db_meta.models import StorageInstance
@@ -55,7 +55,7 @@ class InfluxdbConfigService(BaseService):
                 "component": NameSpaceEnum.Influxdb,
                 "operator": "admin",
             }
-            MySQLPrivManagerApi.modify_password(params=query_params)
+            DBPrivManagerApi.modify_password(params=query_params)
             # 存真实的用户名密码
             query_params = {
                 "instances": [{"ip": str(storage_obj.id), "port": 0, "bk_cloud_id": global_data["bk_cloud_id"]}],
@@ -64,7 +64,7 @@ class InfluxdbConfigService(BaseService):
                 "component": NameSpaceEnum.Influxdb,
                 "operator": "admin",
             }
-            MySQLPrivManagerApi.modify_password(params=query_params)
+            DBPrivManagerApi.modify_password(params=query_params)
 
         self.log_info("InfluxDB config rewrite successfully")
         return True

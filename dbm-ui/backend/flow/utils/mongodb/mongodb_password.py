@@ -10,7 +10,7 @@ specific language governing permissions and limitations under the License.
 
 import base64
 
-from backend.components import MySQLPrivManagerApi
+from backend.components import DBPrivManagerApi
 from backend.flow.consts import MediumEnum, MongoDBPasswordRule, RequestResultCode
 
 
@@ -38,7 +38,7 @@ class MongoDBPassword(object):
     def create_user_password(self) -> dict:
         """创建密码"""
 
-        result = MySQLPrivManagerApi.get_random_string(
+        result = DBPrivManagerApi.get_random_string(
             {"security_rule_name": self.security_rule_name},
             raw=True,
         )
@@ -51,7 +51,7 @@ class MongoDBPassword(object):
     def save_password_to_db(self, instances: list, username: str, password: str, operator: str) -> str:
         """把密码保存到db中"""
 
-        result = MySQLPrivManagerApi.modify_password(
+        result = DBPrivManagerApi.modify_password(
             {
                 "instances": instances,
                 "username": username,
@@ -75,7 +75,7 @@ class MongoDBPassword(object):
         users = []
         for user in usernames:
             users.append({"username": user, "component": self.component})
-        result = MySQLPrivManagerApi.delete_password(
+        result = DBPrivManagerApi.delete_password(
             {
                 "instances": instances,
                 "users": users,
@@ -88,7 +88,7 @@ class MongoDBPassword(object):
     def get_password_from_db(self, ip: str, port: int, bk_cloud_id: int, username: str) -> dict:
         """从db获取密码"""
 
-        result = MySQLPrivManagerApi.get_password(
+        result = DBPrivManagerApi.get_password(
             {
                 "instances": [{"ip": ip, "port": port, "bk_cloud_id": bk_cloud_id}],
                 "users": [{"username": username, "component": self.component}],

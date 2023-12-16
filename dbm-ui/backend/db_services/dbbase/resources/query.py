@@ -451,6 +451,7 @@ class ListRetrieveResource(BaseListRetrieveResource):
             "cluster_time_zone": cluster.time_zone,
             "cluster_name": cluster.name,
             "cluster_alias": cluster.alias,
+            "cluster_access_port": cluster.access_port,
             "cluster_type": cluster.cluster_type,
             "cluster_type_name": ClusterType.get_choice_label(cluster.cluster_type),
             "master_domain": cluster_entry.get("master_domain", ""),

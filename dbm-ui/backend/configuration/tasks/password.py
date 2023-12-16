@@ -13,7 +13,7 @@ import logging
 
 from django.utils.translation import ugettext as _
 
-from backend.components import MySQLPrivManagerApi
+from backend.components import DBPrivManagerApi
 from backend.configuration.constants import DBM_MYSQL_ADMIN_USER
 from backend.db_meta.enums import ClusterType, TenDBClusterSpiderRole
 from backend.db_meta.models import Cluster
@@ -32,7 +32,7 @@ def randomize_admin_password(if_async: bool, range_type: str):
     for cluster_id in cluster_ids:
         clusters.append(get_mysql_instance(cluster_id))
     try:
-        MySQLPrivManagerApi.modify_mysql_admin_password(
+        DBPrivManagerApi.modify_mysql_admin_password(
             params={  # 管理用户
                 "component": "mysql",
                 "username": DBM_MYSQL_ADMIN_USER,  # 管理用户

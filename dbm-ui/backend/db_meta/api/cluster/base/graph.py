@@ -45,7 +45,7 @@ class Node:
             if hasattr(ins, "tendbclusterspiderext"):
                 return ins.tendbclusterspiderext.spider_role
             return ins.machine_type
-        else:
+        elif isinstance(ins, ClusterEntry):
             return "entry_{}".format(ins.cluster_entry_type)
 
     @staticmethod
@@ -258,23 +258,34 @@ class Graphic:
 
         return spider_nodes, group
 
-    def add_instance_nodes_with_machinetype(
+    def add_instance_nodes_with_machine_type(
         self,
         cluster: Cluster,
-        roles: Union[InstanceRole, List[InstanceRole]],
+        roles: Union[str, List[str]],
         machine_type: MachineType,
         group_name: str,
+        inst_type: str = "storage",
     ) -> (StorageInstance, Group):
         """
         批量添加StorageInstance实例节点，实例节点满足在同一group中
         适用于 Mongo 架构
         """
-        if isinstance(roles, InstanceRole):
+        if not isinstance(roles, list):
             roles = [roles]
 
-        instances = StorageInstance.objects.filter(
-            reduce(operator.or_, [Q(instance_role=role) for role in roles]), cluster=cluster, machine_type=machine_type
-        )
+        if type == "storage":
+            instances = StorageInstance.objects.filter(
+                reduce(operator.or_, [Q(instance_role=role) for role in roles]),
+                cluster=cluster,
+                machine_type=machine_type,
+            )
+        else:
+            instances = ProxyInstance.objects.filter(
+                reduce(operator.or_, [Q(instance_role=role) for role in roles]),
+                cluster=cluster,
+                machine_type=machine_type,
+            )
+
         group = self.get_or_create_group(group_id=Node.generate_node_type(instances.first()), group_name=group_name)
         for inst in instances:
             self.add_node(inst, group)

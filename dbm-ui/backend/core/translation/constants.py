@@ -38,6 +38,7 @@ EXCLUDE_DIRS = [
 # 寻找未翻译语言时，忽略的文件路径
 EXCLUDE_FILE_PATHS = [
     # 因为permission/constants.py下存在常量恒为中文的excel头，暂时不处理
+    "backend/db_services/dbpermission/constants.py",
     "backend/db_services/mysql/permission/constants.py",
     "backend/flow/utils/cloud/cloud_script_template.py",
     # 忽略权限模型json初始化的中文

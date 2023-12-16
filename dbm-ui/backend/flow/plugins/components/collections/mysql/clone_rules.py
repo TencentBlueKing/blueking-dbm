@@ -16,7 +16,7 @@ from pipeline.component_framework.component import Component
 from pipeline.core.flow.activity import Service
 
 from backend import env
-from backend.components.mysql_priv_manager.client import MySQLPrivManagerApi
+from backend.components.mysql_priv_manager.client import DBPrivManagerApi
 from backend.db_services.mysql.permission.clone.handlers import CloneHandler
 from backend.db_services.mysql.permission.clone.models import MySQLPermissionCloneRecord
 from backend.db_services.mysql.permission.constants import CloneType
@@ -69,7 +69,7 @@ class CloneRules(BaseService):
                     params.update({"source_ip": clone_data["source"], "target_ip": clone_data["target"]})
                     if "user" in clone_data and "target_instances" in clone_data:
                         params.update({"user": clone_data["user"], "target_instances": clone_data["target_instances"]})
-                    resp = MySQLPrivManagerApi.clone_client(params=params, raw=True)
+                    resp = DBPrivManagerApi.clone_client(params=params, raw=True)
                 else:
                     params.update(
                         {
@@ -83,7 +83,7 @@ class CloneRules(BaseService):
                             },
                         }
                     )
-                    resp = MySQLPrivManagerApi.clone_instance(params=params, raw=True)
+                    resp = DBPrivManagerApi.clone_instance(params=params, raw=True)
 
                 # 填充克隆的结果和信息
                 record.status = int(resp["code"]) == 0

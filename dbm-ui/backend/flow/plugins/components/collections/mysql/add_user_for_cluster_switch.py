@@ -12,7 +12,7 @@ import logging
 
 from pipeline.component_framework.component import Component
 
-from backend.components.mysql_priv_manager.client import MySQLPrivManagerApi
+from backend.components.mysql_priv_manager.client import DBPrivManagerApi
 from backend.flow.plugins.components.collections.common.base_service import BaseService
 
 logger = logging.getLogger("flow")
@@ -27,7 +27,7 @@ class AddSwitchUserService(BaseService):
         kwargs = data.get_one_of_inputs("kwargs")
         global_data = data.get_one_of_inputs("global_data")
 
-        MySQLPrivManagerApi.add_priv_without_account_rule(
+        DBPrivManagerApi.add_priv_without_account_rule(
             params={
                 "bk_cloud_id": kwargs["bk_cloud_id"],
                 "bk_biz_id": global_data["bk_biz_id"],
