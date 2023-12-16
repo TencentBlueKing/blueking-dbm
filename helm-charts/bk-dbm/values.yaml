@@ -9,7 +9,7 @@ global:
   ## 蓝鲸主域名访问协议http/https
   bkDomainScheme: http
   serviceMonitor:
-    enabled: false
+    enabled: true
 
 # bk public
 bk:
@@ -161,7 +161,7 @@ dbconfig:
     ENCRYPT_KEY_PREFIX: ""
     # apm
     TRACE_SERVICE_NAME: dbconfig
-    TRACE_ENABLE: false
+    TRACE_ENABLE: true
     TRACE_HOST: 127.0.0.1
     TRACE_PORT: 4317
     TRACE_TYPE: grpc
