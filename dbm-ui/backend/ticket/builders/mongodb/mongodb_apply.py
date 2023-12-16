@@ -31,7 +31,6 @@ class MongoDBApplyDetailSerializer(BigDataApplyDetailsSerializer):
         clouds = ResourceQueryHelper.search_cc_cloud(get_cache=True)
         return clouds[str(obj["bk_cloud_id"])]["bk_cloud_name"]
 
-
     def get_city_name(self, obj):
         city_code = obj["city_code"]
         return self.context["ticket_ctx"].city_map.get(city_code, city_code)
