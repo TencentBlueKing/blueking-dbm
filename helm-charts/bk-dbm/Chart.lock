@@ -22,39 +22,39 @@ dependencies:
   version: 0.1.31
 - name: dbconfig
   repository: file://charts/dbconfig
-  version: 0.1.10
+  version: 0.1.11
 - name: dbpriv
   repository: file://charts/dbpriv
-  version: 0.1.31
+  version: 0.1.32
 - name: dbpartition
   repository: file://charts/dbpartition
-  version: 0.1.8
+  version: 0.1.9
 - name: db-simulation
   repository: file://charts/db-simulation
-  version: 0.1.9
+  version: 0.1.10
 - name: db-remote-service
   repository: file://charts/db-remote-service
   version: 0.9.5
 - name: db-dns-api
   repository: file://charts/db-dns-api
-  version: 0.1.4
+  version: 0.1.5
 - name: hadb-api
   repository: file://charts/hadb-api
   version: 0.0.11
 - name: db-resource
   repository: file://charts/db-resource
-  version: 0.0.9
+  version: 0.0.10
 - name: db-celery-service
   repository: file://charts/db-celery-service
-  version: 0.0.8
+  version: 0.0.9
 - name: slow-query-parser-service
   repository: file://charts/slow-query-parser-service
-  version: 0.0.2
+  version: 0.0.3
 - name: backup-server
   repository: file://charts/backup-server
   version: 0.0.4
 - name: backup-consumer
   repository: file://charts/backup-consumer
   version: 0.0.3
-digest: sha256:5750f42a381fd097fb99792ceaaa0236a80fa38df13f5d0f9b83abfe50b52641
-generated: "2023-12-15T11:35:24.251444+08:00"
+digest: sha256:f009e48bf4590b8974ad30224708fa8baf86932c9ceaf7727c2cbf5908bb56e8
+generated: "2023-12-16T15:00:31.405219+08:00"
