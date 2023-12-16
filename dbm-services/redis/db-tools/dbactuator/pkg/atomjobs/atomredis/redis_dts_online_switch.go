@@ -678,6 +678,11 @@ func (job *RedisDtsOnlineSwitch) RestartDbMon() (err error) {
 	if err != nil {
 		return err
 	}
+	// 更新export配置文件
+	err = common.CreateLocalExporterConfigFile(job.params.SrcProxyIP, job.params.SrcProxyPort, dstProxyRole, "")
+	if err != nil {
+		return err
+	}
 	return nil
 }
 

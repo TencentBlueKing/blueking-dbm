@@ -338,6 +338,8 @@ class RedisClusterDataCopyFlow(object):
         install_param["proxy"] = info["proxy"]
         install_param["backend_group"] = info["backend_group"]
         install_param["resource_spec"] = info["resource_spec"]
+        cluster = Cluster.objects.get(id=int(info["src_cluster"]))
+        install_param["disaster_tolerance_level"] = cluster.disaster_tolerance_level
         return install_param
 
     def shard_num_or_cluster_type_update_precheck(self):

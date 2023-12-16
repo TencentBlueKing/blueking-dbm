@@ -909,6 +909,9 @@ class RedisDBMeta(object):
                 ).format(dst_cluster.immute_domain, self.get_inst_list(src_storageinstances))
             )
             RedisCCTopoOperator(dst_cluster).transfer_instances_to_cluster_module(src_storageinstances)
+            # 两个集群的 proxy ip均是不变的,但类型变化后,模块信息需变化
+            RedisCCTopoOperator(src_cluster).transfer_instances_to_cluster_module(src_proxyinstances)
+            RedisCCTopoOperator(dst_cluster).transfer_instances_to_cluster_module(dst_proxyinstances)
 
         return True
 
