@@ -66,7 +66,9 @@ spec:
             successThreshold: {{ .Values.readinessProbe.successThreshold | default 1}}
             failureThreshold: {{ .Values.readinessProbe.failureThreshold | default 1}}
           env:
-            {{- include "envs" . | trim | nindent 12 }}
+            {{- if .Values.envs -}}
+              {{- include "envs" . | trim | nindent 12 }}
+            {{- end }}
           envFrom:
             {{- if .Values.extraEnvVarsCM }}
             - configMapRef:

@@ -31,19 +31,19 @@ dependencies:
   - condition: dbconfig.enabled
     name: dbconfig
     repository: file://charts/dbconfig
-    version: 0.1.11
+    version: 0.1.12
   - condition: dbpriv.enabled
     name: dbpriv
     repository: file://charts/dbpriv
-    version: 0.1.32
+    version: 0.1.33
   - condition: dbpartition.enabled
     name: dbpartition
     repository: file://charts/dbpartition
-    version: 0.1.9
+    version: 0.1.10
   - condition: db-simulation.enabled
     name: db-simulation
     repository: file://charts/db-simulation
-    version: 0.1.10
+    version: 0.1.11
   - condition: db-remote-service.enabled
     name: db-remote-service
     repository: file://charts/db-remote-service
@@ -51,7 +51,7 @@ dependencies:
   - condition: db-dns-api.enabled
     name: db-dns-api
     repository: file://charts/db-dns-api
-    version: 0.1.5
+    version: 0.1.6
   - condition: hadb-api.enabled
     name: hadb-api
     repository: file://charts/hadb-api
@@ -59,15 +59,15 @@ dependencies:
   - condition: db-resource.enabled
     name: db-resource
     repository: file://charts/db-resource
-    version: 0.0.10
+    version: 0.0.11
   - condition: db-celery-service.enabled
     name: db-celery-service
     repository: file://charts/db-celery-service
-    version: 0.0.9
+    version: 0.0.10
   - condition: slow-query-parser-service.enabled
     name: slow-query-parser-service
     repository: file://charts/slow-query-parser-service
-    version: 0.0.3
+    version: 0.0.4
   - condition: backup-server.enabled
     name: backup-server
     repository: file://charts/backup-server
