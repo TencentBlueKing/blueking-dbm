@@ -331,7 +331,7 @@ class QueryQPSRangeSerializer(serializers.Serializer):
     spec_cluster_type = serializers.ChoiceField(help_text=_("集群类型"), choices=ClusterType.get_choices())
     spec_machine_type = serializers.ChoiceField(help_text=_("角色类型"), choices=MachineType.get_choices())
     capacity = serializers.IntegerField(help_text=_("当前容量需求"))
-    future_capacity = serializers.IntegerField(help_text=_("未来容量需求"))
+    future_capacity = serializers.IntegerField(help_text=_("未来容量需求"), required=False)
     shard_num = serializers.IntegerField(help_text=_("所需分片数"), required=False, default=0)
 
 

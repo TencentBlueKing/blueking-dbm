@@ -16,7 +16,7 @@ from django.http.response import HttpResponse
 from django.utils.translation import ugettext_lazy as _
 
 from backend import env
-from backend.components.mysql_priv_manager.client import MySQLPrivManagerApi
+from backend.components.mysql_priv_manager.client import DBPrivManagerApi
 from backend.db_meta.models import Machine
 from backend.db_services.dbbase.instances.handlers import InstanceHandler
 from backend.db_services.mysql.permission.clone.dataclass import CloneMeta
@@ -112,7 +112,7 @@ class CloneHandler(object):
             f"clone_{self.clone_type}_priv_records": clone_priv_records,
         }
         try:
-            raw_resp = getattr(MySQLPrivManagerApi, f"pre_check_clone_{self.clone_type}")(params=params, raw=True)
+            raw_resp = getattr(DBPrivManagerApi, f"pre_check_clone_{self.clone_type}")(params=params, raw=True)
             if raw_resp["message"]:
                 # 捕获接口返回结果异常，更新克隆权限错误信息
                 pre_check, message = False, raw_resp["message"]

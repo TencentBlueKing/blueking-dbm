@@ -15,8 +15,8 @@ from ..base import BaseApi
 from ..domains import MYSQL_PRIV_MANAGER_APIGW_DOMAIN
 
 
-class _MySQLPrivManagerApi(BaseApi):
-    MODULE = _("MySQL权限管理")
+class _DBPrivManagerApi(BaseApi):
+    MODULE = _("DB权限管理")
     BASE = MYSQL_PRIV_MANAGER_APIGW_DOMAIN
 
     def __init__(self):
@@ -176,6 +176,12 @@ class _MySQLPrivManagerApi(BaseApi):
             url="/priv/delete_password",
             description=_("删除实例密码记录"),
         )
+        self.get_account_include_password = self.generate_data_api(
+            method="POST",
+            url="/priv/get_account_include_psw",
+            description=_("查询账号和密码信息"),
+        )
 
 
-MySQLPrivManagerApi = _MySQLPrivManagerApi()
+# 历史原因，最先只对mysql进行权限操作，所以命名为MySQLPrivManagerApi。但是现在统一作为所有组件的权限操作
+DBPrivManagerApi = _DBPrivManagerApi()

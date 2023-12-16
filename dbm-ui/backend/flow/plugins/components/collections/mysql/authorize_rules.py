@@ -17,8 +17,8 @@ from pipeline.component_framework.component import Component
 from pipeline.core.flow.activity import Service
 
 from backend import env
-from backend.components.mysql_priv_manager.client import MySQLPrivManagerApi
-from backend.db_services.mysql.permission.authorize.models import MySQLAuthorizeRecord
+from backend.components.mysql_priv_manager.client import DBPrivManagerApi
+from backend.db_services.dbpermission.db_authorize.models import AuthorizeRecord
 from backend.exceptions import ApiResultError
 from backend.flow.plugins.components.collections.common.base_service import BaseService
 from backend.ticket.constants import TicketType
@@ -61,7 +61,7 @@ class AuthorizeRules(BaseService):
         for authorize_data in authorize_data_list:
             # 将授权信息存入record
             access_dbs = [account_rule["dbname"] for account_rule in authorize_data["account_rules"]]
-            record = MySQLAuthorizeRecord(
+            record = AuthorizeRecord(
                 ticket_id=ticket_id,
                 user=authorize_data["user"],
                 source_ips="\n".join(authorize_data["source_ips"]),
@@ -75,7 +75,7 @@ class AuthorizeRules(BaseService):
 
             # 进行授权，无论授权是否成功，都需要将message存入record中
             try:
-                resp = MySQLPrivManagerApi.authorize_rules(params=authorize_data, raw=True)
+                resp = DBPrivManagerApi.authorize_rules(params=authorize_data, raw=True)
                 record.status = int(resp["code"]) == 0
                 authorize_success_count += record.status
                 record.error = resp["message"]

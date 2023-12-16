@@ -11,7 +11,7 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import ugettext_lazy as _
 from pipeline.component_framework.component import Component
 
-from backend.components import DRSApi, MySQLPrivManagerApi
+from backend.components import DBPrivManagerApi, DRSApi
 from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.enums import TenDBClusterSpiderRole
 from backend.db_meta.models import Cluster
@@ -200,7 +200,7 @@ class AddSpiderRoutingService(BaseService):
             }
 
             try:
-                MySQLPrivManagerApi.add_priv_without_account_rule(content)
+                DBPrivManagerApi.add_priv_without_account_rule(content)
                 self.log_info(_("在[{}]创建添加内置账号成功").format(content["address"]))
 
                 if add_spider_role == TenDBClusterSpiderRole.SPIDER_MASTER.value:
@@ -208,7 +208,7 @@ class AddSpiderRoutingService(BaseService):
                     content["address"] = f'{spider_ip["ip"]}{IP_PORT_DIVIDER}{admin_port}'
                     content["role"] = PrivRole.TDBCTL.value
                     content["psw"] = ctl_pass
-                    MySQLPrivManagerApi.add_priv_without_account_rule(content)
+                    DBPrivManagerApi.add_priv_without_account_rule(content)
                     self.log_info(_("在[{}]创建添加内置账号成功").format(content["address"]))
 
             except Exception as e:  # pylint: disable=broad-except

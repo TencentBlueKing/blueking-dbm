@@ -44,7 +44,7 @@ def fetch_instance_ids(details: Dict[str, Any]) -> List[int]:
     return [
         item
         for item in get_target_items_from_details(obj=details, match_keys=["instance_id", "instance_ids"])
-        if isinstance(item, int)
+        if isinstance(item, (int, str))
     ]
 
 
@@ -149,14 +149,14 @@ class CommonValidate(object):
         return True
 
     @classmethod
-    def validate_cluster_type(cls, cluster_ids: List[int], cluster_type: ClusterType) -> bool:
+    def validate_cluster_type(cls, cluster_ids: List[int], cluster_type: ClusterType):
         """校验集群的类型"""
 
         check_cluster_type = list(Cluster.objects.filter(id__in=cluster_ids).values_list("cluster_type", flat=True))
         if set(check_cluster_type) != {cluster_type.value}:
-            return False
-
-        return True
+            raise serializers.ValidationError(
+                _("请保证所选集群{}都是{}集群").format(cluster_ids, ClusterType.get_choice_label(cluster_type))
+            )
 
     @classmethod
     def validate_instance_role(cls, inst_list: List[Dict], role: Union[AccessLayer, InstanceInnerRole]):
@@ -364,12 +364,25 @@ class InfluxdbTicketFlowBuilderPatchMixin(object):
         self.ticket.update_details(instances=self.get_instances(self.ticket.ticket_type, self.ticket.details))
 
 
+class MongoDBTicketFlowBuilderPatchMixin(object):
+    def patch_ticket_detail(self):
+        """补充MongoDB的集群信息和实例信息"""
+        details = self.ticket.details
+        cluster_ids = fetch_cluster_ids(details)
+
+        self.ticket.update_details(
+            clusters={cluster.id: cluster.to_dict() for cluster in Cluster.objects.filter(id__in=cluster_ids)}
+        )
+
+        # TODO: 补充实例信息
+
+
 class BaseOperateResourceParamBuilder(builders.ResourceApplyParamBuilder):
     def format(self):
         # 对每个info补充云区域ID和业务ID
         cluster_ids = fetch_cluster_ids(self.ticket_data)
         id__clusters = {cluster.id: cluster for cluster in Cluster.objects.filter(id__in=cluster_ids)}
-        for info in self.ticket_data["infos"]:
+        for info in self.ticket_data.get("infos", []):
             # 如果已经存在则跳过
             if info.get("bk_cloud_id") and info.get("bk_biz_id"):
                 continue

@@ -1,7 +1,7 @@
 from django.utils.translation import ugettext as _
 from pipeline.component_framework.component import Component
 
-from backend.components import MySQLPrivManagerApi
+from backend.components import DBPrivManagerApi
 from backend.constants import IP_PORT_DIVIDER
 from backend.flow.consts import PrivRole
 from backend.flow.plugins.components.collections.common.base_service import BaseService
@@ -18,7 +18,7 @@ class AddSystemUserInClusterService(BaseService):
         """
 
         try:
-            MySQLPrivManagerApi.add_priv_without_account_rule(params)
+            DBPrivManagerApi.add_priv_without_account_rule(params)
             self.log_info(_("在[{}]创建添加内置账号成功").format(params["address"]))
         except Exception as e:  # pylint: disable=broad-except
             self.log_error(_("[{}]添加用户接口异常，相关信息: {}").format(params["address"], e))

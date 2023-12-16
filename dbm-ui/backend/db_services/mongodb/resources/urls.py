@@ -8,9 +8,21 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from django.apps import AppConfig
+from django.urls import path
+from rest_framework.routers import DefaultRouter
 
+from backend.db_services.redis.resources.views import ListResourceViewSet
 
-class AuthorizeConfig(AppConfig):
-    default_auto_field = "django.db.models.BigAutoField"
-    name = "backend.db_services.mysql.permission.authorize"
+from .views import MongoDBViewSet, ResourceTreeViewSet
+
+router = DefaultRouter(trailing_slash=True)
+
+router.register(r"mongodb_resources", MongoDBViewSet, basename="mongodb_replicaset_resources")
+
+urlpatterns = [
+    # 提供资源(集群)通用属性的查询, 如集群名, 集群创建者等(通用方法，用redis的即可)
+    path("resources/", ListResourceViewSet.as_view({"get": "list"})),
+    path("resource_tree/", ResourceTreeViewSet.as_view({"get": "get_resource_tree"})),
+]
+
+urlpatterns += router.urls

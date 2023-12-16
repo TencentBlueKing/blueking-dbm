@@ -12,7 +12,7 @@ from time import sleep
 from django.utils.translation import ugettext_lazy as _
 from pipeline.component_framework.component import Component
 
-from backend.components import DBConfigApi, DRSApi, MySQLPrivManagerApi
+from backend.components import DBConfigApi, DBPrivManagerApi, DRSApi
 from backend.components.dbconfig.constants import FormatType, LevelName
 from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.enums import TenDBClusterSpiderRole
@@ -184,7 +184,7 @@ class CtlSwitchToSlaveService(BaseService):
         )["content"]
 
         # 远程授权
-        MySQLPrivManagerApi.add_priv_without_account_rule(
+        DBPrivManagerApi.add_priv_without_account_rule(
             {
                 "bk_cloud_id": cluster.bk_cloud_id,
                 "bk_biz_id": cluster.bk_biz_id,

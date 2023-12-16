@@ -16,7 +16,7 @@ import pytest
 from django.test import TestCase
 from pipeline.component_framework.component import Component
 
-from backend.db_services.mysql.permission.authorize.models import MySQLAuthorizeRecord
+from backend.db_services.dbpermission.db_authorize.models import AuthorizeRecord
 from backend.flow.plugins.components.collections.mysql.authorize_rules import AuthorizeRulesComponent
 from backend.tests.flow.components.collections.mysql.utils import MySQLComponentBaseTest
 from backend.tests.mock_data.ticket.ticket_params_data import MYSQL_AUTHORIZE_FLOW_PARAMS
@@ -38,4 +38,4 @@ class TestAuthorizeRulesComponent(MySQLComponentBaseTest, TestCase):
         return AuthorizeRulesComponent
 
     def tearDown(self) -> Union[Any, NoReturn]:
-        assert MySQLAuthorizeRecord.objects.filter(status=True).count() == 1
+        assert AuthorizeRecord.objects.filter(status=True).count() == 1

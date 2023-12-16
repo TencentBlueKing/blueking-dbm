@@ -14,7 +14,7 @@ from typing import Dict, Optional
 
 from backend.components import DBConfigApi
 from backend.components.dbconfig.constants import ConfType, FormatType, LevelName, ReqType
-from backend.components.mysql_priv_manager.client import MySQLPrivManagerApi
+from backend.components.mysql_priv_manager.client import DBPrivManagerApi
 from backend.db_meta.enums import ClusterType, InstanceRole, MachineType
 from backend.db_meta.models import Cluster, StorageInstance
 from backend.flow.consts import ESRoleEnum, LevelInfoEnum, MySQLPrivComponent, NameSpaceEnum
@@ -100,7 +100,7 @@ class EsFlow(object):
                 "instances": [{"ip": str(self.domain), "port": 0, "bk_cloud_id": self.bk_cloud_id}],
                 "users": [{"username": MySQLPrivComponent.ES_FAKE_USER.value, "component": NameSpaceEnum.Es}],
             }
-            ret = MySQLPrivManagerApi.get_password(query_params)
+            ret = DBPrivManagerApi.get_password(query_params)
             username = base64.b64decode(ret["items"][0]["password"]).decode("utf-8")
 
             # get password
@@ -108,7 +108,7 @@ class EsFlow(object):
                 "instances": [{"ip": str(self.domain), "port": 0, "bk_cloud_id": self.bk_cloud_id}],
                 "users": [{"username": username, "component": NameSpaceEnum.Es}],
             }
-            ret = MySQLPrivManagerApi.get_password(query_params)
+            ret = DBPrivManagerApi.get_password(query_params)
             password = base64.b64decode(ret["items"][0]["password"]).decode("utf-8")
 
             self.username = username

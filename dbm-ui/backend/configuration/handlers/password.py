@@ -15,7 +15,7 @@ from typing import Any, Dict, List
 from django.utils.translation import ugettext as _
 from django_celery_beat.schedulers import ModelEntry
 
-from backend.components import MySQLPrivManagerApi
+from backend.components import DBPrivManagerApi
 from backend.configuration.constants import DBM_MYSQL_ADMIN_USER, DBM_PASSWORD_SECURITY_NAME, DBType
 from backend.configuration.exceptions import PasswordPolicyBaseException
 from backend.core.encrypt.constants import AsymmetricCipherConfigType
@@ -41,7 +41,7 @@ class DBPasswordHandler(object):
         )
         # 密码需要用base64加密后传输
         b64_plain_password = base64.b64encode(plain_password.encode("utf-8")).decode("utf-8")
-        check_result = MySQLPrivManagerApi.check_password(
+        check_result = DBPrivManagerApi.check_password(
             {"password": b64_plain_password, "security_rule_name": DBM_PASSWORD_SECURITY_NAME}
         )
         if echo:
@@ -80,7 +80,7 @@ class DBPasswordHandler(object):
             filters.update(end_time=end_time)
 
         # 获取密码生效实例结果
-        mysql_admin_password_data = MySQLPrivManagerApi.get_mysql_admin_password(params=filters)
+        mysql_admin_password_data = DBPrivManagerApi.get_mysql_admin_password(params=filters)
         mysql_admin_password_data["results"] = mysql_admin_password_data.pop("items")
         cloud_info = ResourceQueryHelper.search_cc_cloud(get_cache=True)
         for data in mysql_admin_password_data["results"]:
@@ -127,7 +127,7 @@ class DBPasswordHandler(object):
             "security_rule_name": DBM_PASSWORD_SECURITY_NAME,
             "async": False,
         }
-        data = MySQLPrivManagerApi.modify_mysql_admin_password(params=modify_password_params, raw=True)["data"]
+        data = DBPrivManagerApi.modify_mysql_admin_password(params=modify_password_params, raw=True)["data"]
         return data
 
     @classmethod
@@ -174,6 +174,6 @@ class DBPasswordHandler(object):
             "instances": [{"ip": "0.0.0.0", "port": 0, "bk_cloud_id": 0}],
             "users": [{"username": "proxy", "component": "proxy"}],
         }
-        data = MySQLPrivManagerApi.get_password(params)["items"][0]
+        data = DBPrivManagerApi.get_password(params)["items"][0]
         # 注意要用base64解密
         return base64.b64decode(data["password"]).decode("utf8")

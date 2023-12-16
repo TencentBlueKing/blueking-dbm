@@ -13,7 +13,7 @@ import logging
 from django.db import transaction
 from django.utils.translation import ugettext as _
 
-from backend.components import MySQLPrivManagerApi
+from backend.components import DBPrivManagerApi
 from backend.components.mysql_partition.client import DBPartitionApi
 from backend.db_meta.exceptions import DBMetaException
 from backend.db_meta.models import Cluster, ClusterEntry, StorageInstanceTuple
@@ -39,7 +39,7 @@ def decommission(cluster: Cluster):
 
     for storage in cluster.storageinstance_set.all():
         # 删除存储在密码服务的密码元信息
-        MySQLPrivManagerApi.delete_password(
+        DBPrivManagerApi.delete_password(
             {
                 "instances": [{"ip": storage.machine.ip, "port": storage.port, "bk_cloud_id": cluster.bk_cloud_id}],
                 "users": [{"username": UserName.ADMIN.value, "component": MySQLPrivComponent.MYSQL.value}],

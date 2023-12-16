@@ -18,7 +18,7 @@ from rest_framework.response import Response
 
 from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.bk_web.viewsets import SystemViewSet
-from backend.components import DBConfigApi, MySQLPrivManagerApi
+from backend.components import DBConfigApi, DBPrivManagerApi
 from backend.components.dbconfig.constants import FormatType, LevelName
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models.cluster import Cluster
@@ -50,7 +50,7 @@ class BigdataResourceViewSet(ResourceViewSet):
             ],
         }
 
-        resp = MySQLPrivManagerApi.get_password(query_params)
+        resp = DBPrivManagerApi.get_password(query_params)
         if resp.get("count") > 0:
             return base64.b64decode(resp["items"][0]["password"]).decode("utf-8")
 

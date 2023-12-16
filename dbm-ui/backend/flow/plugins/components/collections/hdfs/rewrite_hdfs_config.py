@@ -18,7 +18,7 @@ from pipeline.core.flow.activity import Service
 import backend.flow.utils.hdfs.hdfs_context_dataclass as flow_context
 from backend.components import DBConfigApi
 from backend.components.dbconfig.constants import LevelName, OpType, ReqType
-from backend.components.mysql_priv_manager.client import MySQLPrivManagerApi
+from backend.components.mysql_priv_manager.client import DBPrivManagerApi
 from backend.flow.consts import ConfigTypeEnum, LevelInfoEnum, NameSpaceEnum
 from backend.flow.plugins.components.collections.common.base_service import BaseService
 from backend.ticket.constants import TicketType
@@ -61,7 +61,7 @@ class WriteBackHdfsConfigService(BaseService):
                 "component": NameSpaceEnum.Hdfs,
                 "operator": "admin",
             }
-            MySQLPrivManagerApi.modify_password(params=query_params)
+            DBPrivManagerApi.modify_password(params=query_params)
 
             nn1_ip = global_data["nn1_ip"]
             nn2_ip = global_data["nn2_ip"]
