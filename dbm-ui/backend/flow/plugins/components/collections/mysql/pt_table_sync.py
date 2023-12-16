@@ -12,7 +12,7 @@ import logging
 
 from pipeline.component_framework.component import Component
 
-from backend.components import MySQLPrivManagerApi
+from backend.components import DBPrivManagerApi
 from backend.flow.consts import AUTH_ADDRESS_DIVIDER
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptService
 from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
@@ -64,11 +64,11 @@ class PtTableSyncService(ExecuteDBActuatorScriptService):
             "address": f"{master_ip}{AUTH_ADDRESS_DIVIDER}{master_port}",
             "hosts": [slave_ip],
         }
-        MySQLPrivManagerApi.add_priv_without_account_rule(params=params)
+        DBPrivManagerApi.add_priv_without_account_rule(params=params)
         self.log_info(f"add sync user in master instance [{master_ip}:{master_port}]")
 
         params["address"] = f"{slave_ip}{AUTH_ADDRESS_DIVIDER}{slave_port}"
-        MySQLPrivManagerApi.add_priv_without_account_rule(params=params)
+        DBPrivManagerApi.add_priv_without_account_rule(params=params)
         self.log_info(f"add sync user in slave instance [{slave_ip}:{slave_port}]")
 
         # 执行pt-table-sync 的 db-act命令

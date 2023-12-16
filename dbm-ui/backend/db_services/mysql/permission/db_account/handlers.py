@@ -10,28 +10,22 @@ specific language governing permissions and limitations under the License.
 """
 
 import logging
-from collections import defaultdict
-from typing import Any, Dict, List, Optional, Tuple
 
 from django.utils.translation import ugettext as _
 
-from backend.components.mysql_priv_manager.client import MySQLPrivManagerApi
-from backend.core.encrypt.constants import AsymmetricCipherConfigType
-from backend.core.encrypt.handlers import AsymmetricHandler
-from backend.db_services.mysql.open_area.models import TendbOpenAreaConfig
-from backend.db_services.mysql.permission.constants import AccountType, PrivilegeType
-from backend.db_services.mysql.permission.db_account.dataclass import AccountMeta, AccountRuleMeta
-from backend.db_services.mysql.permission.db_account.policy import DBPasswordPolicy
+from backend.db_services.dbpermission.constants import PrivilegeType
+from backend.db_services.dbpermission.db_account.handlers import AccountHandler
 from backend.db_services.mysql.permission.exceptions import DBPermissionBaseException
 
 logger = logging.getLogger("root")
 
 
-class AccountHandler(object):
+class MySQLAccountHandler(AccountHandler):
     """
     封装账号相关的处理操作
     """
 
+<<<<<<< HEAD
     def __init__(self, bk_biz_id: int, account_type: AccountType, operator: str = None, context: Dict = None):
         """
         @param bk_biz_id: 业务ID
@@ -255,20 +249,15 @@ class AccountHandler(object):
         )
         return resp
 
+=======
+>>>>>>> d6b3cdaa8 (feat(backend): mongodb 视图和工具箱单据相关接口开发 #2964)
     def has_high_risk_privileges(self, rule_sets):
         """
         - 判断是否有高危权限
         @param rule_sets: 授权列表，数据结构与MySQLPrivManagerApi.authorize_rules接口相同
         """
-        risk_priv_set = set(PrivilegeType.GLOBAL.get_values())
-        account_rules = MySQLPrivManagerApi.list_account_rules(
-            {"bk_biz_id": self.bk_biz_id, "cluster_type": self.account_type}
-        )["items"]
-        # 按照user，accessdb进行聚合
-        user_db__rules = defaultdict(dict)
-        for account_rule in account_rules:
-            account, rules = account_rule["account"], account_rule["rules"]
-            user_db__rules[account["user"]] = {rule["dbname"]: rule["priv"] for rule in rules}
+        risk_priv_set = set(PrivilegeType.MySQL.GLOBAL.get_values())
+        user_db__rules = self.aggregate_user_db_privileges(self.bk_biz_id, self.account_type)
         # 判断是否有高危权限
         for rule_set in rule_sets:
             for rule in rule_set["account_rules"]:

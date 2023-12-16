@@ -13,7 +13,8 @@ from typing import Dict, List
 from django.utils.translation import ugettext as _
 
 from backend import env
-from backend.db_meta.models import Cluster, StorageInstance
+from backend.db_meta.models import Cluster
+from backend.db_meta.models.instance import InstanceMixin
 from backend.db_services.ipchooser.handlers.host_handler import HostHandler
 from backend.ticket.builders import BuilderFactory
 from backend.ticket.builders.common.base import fetch_cluster_ids, fetch_instance_ids
@@ -46,7 +47,7 @@ class TicketHandler:
             instance_ids.extend(_instance_ids)
             ticket_id_obj_ids_map[ticket.id] = {"cluster_ids": _cluster_ids, "instance_ids": _instance_ids}
         cluster_id_immute_domain_map = Cluster.get_cluster_id_immute_domain_map(cluster_ids)
-        instance_id_ip_port_map = StorageInstance.get_instance_id_ip_port_map(instance_ids)
+        instance_id_ip_port_map = InstanceMixin.get_instance_id_ip_port_map(instance_ids)
 
         # 补充关联对象信息
         for item in ticket_data:

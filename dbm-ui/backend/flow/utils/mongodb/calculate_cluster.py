@@ -228,8 +228,8 @@ def calculate_cluster(payload: dict) -> dict:
     payload_clusters["ticket_type"] = payload["ticket_type"]
     payload_clusters["cluster_type"] = payload["cluster_type"]
     payload_clusters["city"] = payload["city_code"]
-    payload_clusters["app"] = payload["bk_app_abbr"]
-    app = payload["bk_app_abbr"]
+    payload_clusters["app"] = payload["db_app_abbr"]
+    app = payload["db_app_abbr"]
     payload_clusters["db_version"] = payload["db_version"]
     cluster_type = payload["cluster_type"]
 

@@ -47,6 +47,7 @@ api_patterns = [
     path("mysql/", include("backend.db_services.mysql.urls")),
     path("redis/", include("backend.db_services.redis.urls")),
     path("bigdata/", include("backend.db_services.bigdata.urls")),
+    path("mongodb/", include("backend.db_services.mongodb.urls")),
     path("conf/", include("backend.configuration.urls")),
     path("v1/flow/", include("backend.flow.urls")),
     path("core/", include("backend.core.urls")),

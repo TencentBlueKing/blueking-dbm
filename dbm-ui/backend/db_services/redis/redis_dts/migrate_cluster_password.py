@@ -13,7 +13,7 @@ import base64
 
 from django.utils.translation import ugettext as _
 
-from backend.components import MySQLPrivManagerApi
+from backend.components import DBPrivManagerApi
 from backend.db_meta.models import Cluster
 from backend.flow.consts import MySQLPrivComponent, UserName
 from backend.flow.utils.base.payload_handler import PayloadHandler
@@ -48,7 +48,7 @@ def redis_migate_cluster_password(cluster: Cluster):
             {"username": UserName.REDIS_DEFAULT.value, "component": MySQLPrivComponent.REDIS.value},
         ],
     }
-    data = MySQLPrivManagerApi.get_password(query_params)
+    data = DBPrivManagerApi.get_password(query_params)
     ret = decode_password_ret(data)
     if ret["redis_password"] and ret["redis_proxy_password"] and ret["redis_proxy_admin_password"]:
         print(_("cluster:{} 密码已经正确存储").format(cluster.immute_domain))
@@ -62,7 +62,7 @@ def redis_migate_cluster_password(cluster: Cluster):
             {"username": UserName.REDIS_DEFAULT.value, "component": MySQLPrivComponent.REDIS.value},
         ],
     }
-    data = MySQLPrivManagerApi.get_password(query_params)
+    data = DBPrivManagerApi.get_password(query_params)
     ret = decode_password_ret(data)
     if ret["redis_password"] and ret["redis_proxy_password"] and ret["redis_proxy_admin_password"]:
         print(_("cluster:{} 密码已存储port不正确,重新存储").format(cluster.immute_domain))

@@ -68,6 +68,7 @@ class Spec(AuditedModel):
         if self.spec_cluster_type in [
             ClusterType.TwemproxyTendisSSDInstance,
             ClusterType.TendisPredixyTendisplusCluster,
+            ClusterType.MongoShardedCluster,
         ]:
             return mount_point__size.get("/data1") or mount_point__size["/data"] / 2
 

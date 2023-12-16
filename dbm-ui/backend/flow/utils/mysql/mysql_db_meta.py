@@ -13,8 +13,8 @@ import logging
 
 from django.db.transaction import atomic
 
-from backend.components import MySQLPrivManagerApi
 from backend.components.mysql_partition.client import DBPartitionApi
+from backend.components import DBPrivManagerApi
 from backend.configuration.constants import DBType
 from backend.db_meta import api
 from backend.db_meta.api.cluster.tendbha.handler import TenDBHAClusterHandler
@@ -289,7 +289,7 @@ class MySQLDBMeta(object):
                 machine__ip=self.cluster["old_slave_ip"], port=self.cluster["master_port"]
             )
             # 删除存储在密码服务的密码元信息
-            MySQLPrivManagerApi.delete_password(
+            DBPrivManagerApi.delete_password(
                 {
                     "instances": [
                         {"ip": storage.machine.ip, "port": storage.port, "bk_cloud_id": storage.machine.bk_cloud_id}
@@ -583,7 +583,7 @@ class MySQLDBMeta(object):
                 machine__ip=self.cluster["old_slave_ip"], port=self.cluster["backend_port"]
             )
             # 删除存储在密码服务的密码元信息
-            MySQLPrivManagerApi.delete_password(
+            DBPrivManagerApi.delete_password(
                 {
                     "instances": [
                         {"ip": storage.machine.ip, "port": storage.port, "bk_cloud_id": storage.machine.bk_cloud_id}
@@ -597,7 +597,7 @@ class MySQLDBMeta(object):
                 machine__ip=self.cluster["master_ip"], port=self.cluster["backend_port"]
             )
             # 删除存储在密码服务的密码元信息
-            MySQLPrivManagerApi.delete_password(
+            DBPrivManagerApi.delete_password(
                 {
                     "instances": [
                         {"ip": storage.machine.ip, "port": storage.port, "bk_cloud_id": storage.machine.bk_cloud_id}

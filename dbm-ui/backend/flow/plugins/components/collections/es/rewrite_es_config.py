@@ -15,7 +15,7 @@ from typing import List
 from pipeline.component_framework.component import Component
 from pipeline.core.flow.activity import Service
 
-from backend.components.mysql_priv_manager.client import MySQLPrivManagerApi
+from backend.components.mysql_priv_manager.client import DBPrivManagerApi
 from backend.flow.consts import MySQLPrivComponent, NameSpaceEnum
 from backend.flow.plugins.components.collections.common.base_service import BaseService
 from backend.utils.string import base64_encode
@@ -45,7 +45,7 @@ class WriteBackEsConfigService(BaseService):
             "component": NameSpaceEnum.Es,
             "operator": "admin",
         }
-        MySQLPrivManagerApi.modify_password(params=query_params)
+        DBPrivManagerApi.modify_password(params=query_params)
         # 存储真实的账号密码
         query_params = {
             "instances": [
@@ -60,7 +60,7 @@ class WriteBackEsConfigService(BaseService):
             "component": NameSpaceEnum.Es,
             "operator": "admin",
         }
-        MySQLPrivManagerApi.modify_password(params=query_params)
+        DBPrivManagerApi.modify_password(params=query_params)
 
         self.log_info("successfully write password to service")
         return True

@@ -15,7 +15,7 @@ from django.utils.translation import ugettext as _
 from pipeline.component_framework.component import Component
 from pipeline.core.flow.activity import Service
 
-from backend.components.mysql_priv_manager.client import MySQLPrivManagerApi
+from backend.components.mysql_priv_manager.client import DBPrivManagerApi
 from backend.db_services.mysql.permission.clone.handlers import CloneHandler
 from backend.db_services.mysql.permission.constants import CloneClusterType, CloneType
 from backend.exceptions import ApiResultError
@@ -64,7 +64,7 @@ class CloneUserService(BaseService):
                         "bk_cloud_id": clone_data["bk_cloud_id"],
                     }
                 )
-                MySQLPrivManagerApi.clone_instance(params=params)
+                DBPrivManagerApi.clone_instance(params=params)
             return True
         except Exception as e:  # pylint: disable=broad-except
             if isinstance(e, ApiResultError):

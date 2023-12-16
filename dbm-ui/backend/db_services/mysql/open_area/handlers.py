@@ -15,8 +15,12 @@ from typing import Any, Dict, List, Union
 
 from django.utils.translation import ugettext as _
 
+<<<<<<< HEAD
 from backend.components import MySQLPrivManagerApi
 from backend.db_meta.enums import ClusterType
+=======
+from backend.components import DBPrivManagerApi
+>>>>>>> d6b3cdaa8 (feat(backend): mongodb 视图和工具箱单据相关接口开发 #2964)
 from backend.db_meta.models import Cluster
 from backend.db_services.mysql.open_area.models import TendbOpenAreaConfig
 from backend.db_services.mysql.permission.constants import AccountType
@@ -118,6 +122,7 @@ class OpenAreaHandler:
     def __get_openarea_rules_set(cls, config, config_data, operator, cluster_id__cluster):
         """获取开区授权数据"""
         priv_ids = list(itertools.chain(*[rule["priv_data"] for rule in config.config_rules]))
+<<<<<<< HEAD
         # 如果没有授权ID，则直接返回为空
         if not priv_ids:
             return []
@@ -126,6 +131,9 @@ class OpenAreaHandler:
         authorize_rules = MySQLPrivManagerApi.list_account_rules(
             {"bk_biz_id": config.bk_biz_id, "ids": priv_ids, "cluster_type": account_type}
         )
+=======
+        authorize_rules = DBPrivManagerApi.list_account_rules({"bk_biz_id": config.bk_biz_id, "ids": priv_ids})
+>>>>>>> d6b3cdaa8 (feat(backend): mongodb 视图和工具箱单据相关接口开发 #2964)
         # 根据用户名和db将授权规则分批
         user__dbs_rules: Dict[str, List[str]] = defaultdict(list)
         for rule_data in authorize_rules["items"]:

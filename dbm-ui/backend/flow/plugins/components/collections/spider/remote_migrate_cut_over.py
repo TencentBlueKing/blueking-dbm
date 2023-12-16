@@ -11,7 +11,7 @@ import logging
 
 from pipeline.component_framework.component import Component
 
-from backend.components import MySQLPrivManagerApi
+from backend.components import DBPrivManagerApi
 from backend.db_meta.models import Cluster
 from backend.flow.consts import TDBCTL_USER
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptService
@@ -50,11 +50,11 @@ class RemoteMigrateCutOverService(ExecuteDBActuatorScriptService):
 
         for info in global_data["migrate_tuples"]:
             params["address"] = info["new_master"]
-            MySQLPrivManagerApi.add_priv_without_account_rule(params=params)
+            DBPrivManagerApi.add_priv_without_account_rule(params=params)
             self.log_info(f"add tdbctl user in master instance [{info['new_master']}]")
 
             params["address"] = info["new_slave"]
-            MySQLPrivManagerApi.add_priv_without_account_rule(params=params)
+            DBPrivManagerApi.add_priv_without_account_rule(params=params)
             self.log_info(f"add tdbctl user in slave instance [{info['new_slave']}]")
 
         # 执行pt-table-sync 的 db-act命令

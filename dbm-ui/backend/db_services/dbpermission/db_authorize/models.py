@@ -12,11 +12,10 @@ specific language governing permissions and limitations under the License.
 from django.db import models
 from django.utils.translation import ugettext_lazy as _
 
-from backend.db_services.mysql.permission.constants import AuthorizeExcelHeader
 from backend.ticket.models import Ticket
 
 
-class MySQLAuthorizeRecord(models.Model):
+class AuthorizeRecord(models.Model):
     """
     授权记录
     """
@@ -24,7 +23,7 @@ class MySQLAuthorizeRecord(models.Model):
     ticket = models.ForeignKey(Ticket, help_text=_("关联工单"), related_name="authorize_records", on_delete=models.CASCADE)
 
     user = models.CharField(_("账号名称"), max_length=255)
-    source_ips = models.TextField(_("源ip列表"))
+    source_ips = models.TextField(_("源ip列表"), default="")
     target_instances = models.TextField(_("目标集群"))
     access_dbs = models.TextField(_("访问DB名列表"))
 
@@ -40,12 +39,3 @@ class MySQLAuthorizeRecord(models.Model):
     @classmethod
     def get_authorize_records_by_ticket(cls, ticket_id: int):
         return cls.objects.filter(ticket__pk=ticket_id)
-
-    def serialize_excel_data(self):
-        return {
-            AuthorizeExcelHeader.USER: self.user,
-            AuthorizeExcelHeader.SOURCE_IPS: self.source_ips,
-            AuthorizeExcelHeader.TARGET_INSTANCES: self.target_instances,
-            AuthorizeExcelHeader.ACCESS_DBS: self.access_dbs,
-            AuthorizeExcelHeader.ERROR: self.error,
-        }

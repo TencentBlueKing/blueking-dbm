@@ -330,7 +330,9 @@ class InstanceOperateRecord(AuditedModel):
     TODO: 是否考虑定期清理记录
     """
 
-    instance_id = models.IntegerField(_("实例ID"))
+    # 如果是大数据，可以将storage_instance的id作为instance_id存入，如果是其他集群，则将bk_host_id:port存入。
+    # 原则上将bk_host_id:port存入是最好的，目前只是兼容大数据的设计
+    instance_id = models.CharField(_("实例ID"), max_length=128)
 
     flow = models.ForeignKey("Flow", help_text=_("关联流程任务"), on_delete=models.CASCADE)
     ticket = models.ForeignKey("Ticket", help_text=_("关联工单"), on_delete=models.CASCADE)
