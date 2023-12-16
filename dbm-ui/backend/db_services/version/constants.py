@@ -45,6 +45,12 @@ class RedisVersion(str, StructuredEnum):
     Redis70 = EnumField("Redis-7", _("Redis-7"))
 
 
+class MongodbVersion(str, StructuredEnum):
+    """Mongodb 大版本枚举"""
+
+    Mongodb40 = EnumField("Mongodb-4", _("Mongodb-4"))
+
+
 class TendisPlusVersion(str, StructuredEnum):
     """Redis-Plus数据库版本枚举"""
 

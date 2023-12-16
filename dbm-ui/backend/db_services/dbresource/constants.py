@@ -13,6 +13,7 @@ from django.utils.translation import ugettext_lazy as _
 
 from backend.db_meta.enums import ClusterType
 from backend.db_services.dbresource.handlers import (
+    MongoDBShardSpecFilter,
     TenDBClusterSpecFilter,
     TendisCacheSpecFilter,
     TendisPlusSpecFilter,
@@ -34,6 +35,7 @@ CLUSTER_TYPE__SPEC_FILTER = {
     ClusterType.TendisPredixyTendisplusCluster: TendisPlusSpecFilter,
     ClusterType.TendisTwemproxyRedisInstance: TendisCacheSpecFilter,
     ClusterType.TwemproxyTendisSSDInstance: TendisSSDSpecFilter,
+    ClusterType.MongoShardedCluster: MongoDBShardSpecFilter,
 }
 
 

@@ -17,7 +17,7 @@ from pipeline.core.flow.activity import Service
 
 from backend.components import DBConfigApi
 from backend.components.dbconfig.constants import LevelName, OpType, ReqType
-from backend.components.mysql_priv_manager.client import MySQLPrivManagerApi
+from backend.components.mysql_priv_manager.client import DBPrivManagerApi
 from backend.flow.consts import ConfigTypeEnum, LevelInfoEnum, MySQLPrivComponent, NameSpaceEnum
 from backend.flow.plugins.components.collections.common.base_service import BaseService
 
@@ -69,7 +69,7 @@ class KafkaConfigService(BaseService):
             "component": NameSpaceEnum.Kafka,
             "operator": "admin",
         }
-        MySQLPrivManagerApi.modify_password(params=query_params)
+        DBPrivManagerApi.modify_password(params=query_params)
         # 存真实的账号密码
         query_params = {
             "instances": [{"ip": global_data["domain"], "port": 0, "bk_cloud_id": global_data["bk_cloud_id"]}],
@@ -78,7 +78,7 @@ class KafkaConfigService(BaseService):
             "component": NameSpaceEnum.Kafka,
             "operator": "admin",
         }
-        MySQLPrivManagerApi.modify_password(params=query_params)
+        DBPrivManagerApi.modify_password(params=query_params)
         self.log_info("successfully write password to service")
 
         self.log_info("DBConfig re successfully")

@@ -18,7 +18,7 @@ from django.utils.translation import ugettext as _
 
 from backend.components import DBConfigApi
 from backend.components.dbconfig.constants import ConfType, FormatType, LevelName
-from backend.components.mysql_priv_manager.client import MySQLPrivManagerApi
+from backend.components.mysql_priv_manager.client import DBPrivManagerApi
 from backend.configuration.constants import DBType
 from backend.db_meta.enums import ClusterType, InstanceRole
 from backend.db_meta.models import Cluster
@@ -129,7 +129,7 @@ class KafkaReplaceFlow(object):
             "instances": [{"ip": str(self.data["domain"]), "port": 0, "bk_cloud_id": self.data["bk_cloud_id"]}],
             "users": [{"username": MySQLPrivComponent.KAFKA_FAKE_USER.value, "component": NameSpaceEnum.Kafka}],
         }
-        ret = MySQLPrivManagerApi.get_password(query_params)
+        ret = DBPrivManagerApi.get_password(query_params)
         username = base64.b64decode(ret["items"][0]["password"]).decode("utf-8")
 
         # get password
@@ -137,7 +137,7 @@ class KafkaReplaceFlow(object):
             "instances": [{"ip": str(self.data["domain"]), "port": 0, "bk_cloud_id": self.data["bk_cloud_id"]}],
             "users": [{"username": username, "component": NameSpaceEnum.Kafka}],
         }
-        ret = MySQLPrivManagerApi.get_password(query_params)
+        ret = DBPrivManagerApi.get_password(query_params)
         password = base64.b64decode(ret["items"][0]["password"]).decode("utf-8")
         self.data["username"] = username
         self.data["password"] = password

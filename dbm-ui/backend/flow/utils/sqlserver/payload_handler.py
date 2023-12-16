@@ -12,8 +12,9 @@ import logging
 
 from django.utils.crypto import get_random_string
 
-from backend.components import MySQLPrivManagerApi
-from backend.flow.consts import DEFAULT_INSTANCE, MSSQL_ADMIN, MSSQL_EXPORTER, SqlserverComponent, SqlserverUserName
+from backend.flow.consts import MSSQL_ADMIN, MSSQL_EXPORTER
+from backend.components import DBPrivManagerApi
+from backend.flow.consts import DEFAULT_INSTANCE, SqlserverComponent, SqlserverUserName
 
 logger = logging.getLogger("flow")
 
@@ -32,7 +33,7 @@ class PayloadHandler(object):
         """
         user_map = {}
         value_to_name = {member.value: member.name.lower() for member in SqlserverUserName}
-        data = MySQLPrivManagerApi.get_password(
+        data = DBPrivManagerApi.get_password(
             {
                 "instances": [DEFAULT_INSTANCE],
                 "users": [
@@ -53,7 +54,7 @@ class PayloadHandler(object):
         """
         user_map = {}
         value_to_name = {member.value: member.name.lower() for member in SqlserverUserName}
-        data = MySQLPrivManagerApi.get_password(
+        data = DBPrivManagerApi.get_password(
             {
                 "instances": [DEFAULT_INSTANCE],
                 "users": [
@@ -76,7 +77,7 @@ class PayloadHandler(object):
         """
         user_map = {}
         value_to_name = {member.value: member.name.lower() for member in SqlserverUserName}
-        data = MySQLPrivManagerApi.get_password(
+        data = DBPrivManagerApi.get_password(
             {
                 "instances": [DEFAULT_INSTANCE],
                 "users": [
@@ -105,7 +106,7 @@ class PayloadHandler(object):
         """
         获取版本的key
         """
-        data = MySQLPrivManagerApi.get_password(
+        data = DBPrivManagerApi.get_password(
             {
                 "instances": [DEFAULT_INSTANCE],
                 "users": [
