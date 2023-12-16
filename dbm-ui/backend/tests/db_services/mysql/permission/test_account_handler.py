@@ -8,7 +8,6 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-import copy
 import logging
 from unittest.mock import patch
 
@@ -19,10 +18,10 @@ from backend.configuration.models.password_policy import PasswordPolicy
 from backend.core.encrypt.constants import AsymmetricCipherConfigType
 from backend.core.encrypt.handlers import AsymmetricHandler
 from backend.core.encrypt.models import AsymmetricCipherKey
-from backend.db_services.mysql.permission.constants import AccountType
-from backend.db_services.mysql.permission.db_account.dataclass import AccountMeta, AccountRuleMeta
-from backend.db_services.mysql.permission.db_account.handlers import AccountHandler
-from backend.tests.mock_data.components.mysql_priv_manager import MySQLPrivManagerApiMock
+from backend.db_services.dbpermission.constants import AccountType
+from backend.db_services.dbpermission.db_account.dataclass import AccountMeta, AccountRuleMeta
+from backend.db_services.mysql.permission.db_account.handlers import MySQLAccountHandler
+from backend.tests.mock_data.components.mysql_priv_manager import DBPrivManagerApiMock
 from backend.tests.mock_data.db_services.mysql.permission.account import (
     ACCOUNT,
     ACCOUNT_RULE,
@@ -49,37 +48,32 @@ class TestAccountHandler:
     AccountHandler的测试类
     """
 
-    @pytest.mark.parametrize("password", VALID_PASSWORD_LIST)
-    def test_check_password_strength__valid(self, password):
-        is_pwd_valid, _ = AccountHandler._check_password_strength(password, rule_data=copy.deepcopy(POLICY_DATA))
-        assert is_pwd_valid == (password in VALID_PASSWORD_LIST)
-
-    @patch("backend.db_services.mysql.permission.db_account.handlers.MySQLPrivManagerApi", MySQLPrivManagerApiMock)
+    @patch("backend.db_services.dbpermission.db_account.handlers.DBPrivManagerApi", DBPrivManagerApiMock)
     def test_create_account(self, query_fixture):
         account = AccountMeta(**ACCOUNT)
-        data = AccountHandler(bk_biz_id=1, account_type=AccountType.MYSQL).create_account(account)
+        data = MySQLAccountHandler(bk_biz_id=1, account_type=AccountType.MYSQL).create_account(account)
         assert data["password"] == ACCOUNT["password"]
 
-    @patch("backend.db_services.mysql.permission.db_account.handlers.MySQLPrivManagerApi", MySQLPrivManagerApiMock)
+    @patch("backend.db_services.dbpermission.db_account.handlers.DBPrivManagerApi", DBPrivManagerApiMock)
     def test_update_account(self, query_fixture):
         account = AccountMeta(**ACCOUNT)
-        data = AccountHandler(bk_biz_id=1, account_type=AccountType.MYSQL).update_password(account)
+        data = MySQLAccountHandler(bk_biz_id=1, account_type=AccountType.MYSQL).update_password(account)
         assert data["password"] == ACCOUNT["password"]
 
-    @patch("backend.db_services.mysql.permission.db_account.handlers.MySQLPrivManagerApi", MySQLPrivManagerApiMock)
+    @patch("backend.db_services.dbpermission.db_account.handlers.DBPrivManagerApi", DBPrivManagerApiMock)
     def test_delete_account(self, query_fixture):
         account = AccountMeta(**ACCOUNT)
-        data = AccountHandler(bk_biz_id=1, account_type=AccountType.MYSQL).delete_account(account)
+        data = MySQLAccountHandler(bk_biz_id=1, account_type=AccountType.MYSQL).delete_account(account)
         assert not data
 
-    @patch("backend.db_services.mysql.permission.db_account.handlers.MySQLPrivManagerApi", MySQLPrivManagerApiMock)
+    @patch("backend.db_services.dbpermission.db_account.handlers.DBPrivManagerApi", DBPrivManagerApiMock)
     def test_list_account_rules(self, query_fixture):
         account_rule = AccountRuleMeta(**ACCOUNT_RULE)
-        data = AccountHandler(bk_biz_id=1, account_type=AccountType.MYSQL).list_account_rules(account_rule)
+        data = MySQLAccountHandler(bk_biz_id=1, account_type=AccountType.MYSQL).list_account_rules(account_rule)
         assert data["count"] == 1
 
     @pytest.mark.parametrize("password", VALID_PASSWORD_LIST)
-    @patch("backend.configuration.handlers.password.MySQLPrivManagerApi", MySQLPrivManagerApiMock)
+    @patch("backend.configuration.handlers.password.DBPrivManagerApi", DBPrivManagerApiMock)
     def test_verify_password_strength__valid(self, password):
         password = AsymmetricHandler.encrypt(
             name=AsymmetricCipherConfigType.PASSWORD.value, content=password, need_salt=False

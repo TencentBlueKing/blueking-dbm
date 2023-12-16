@@ -16,7 +16,7 @@ from django.forms import model_to_dict
 from django.utils.translation import ugettext as _
 
 from backend.components.dbresource.client import DBResourceApi
-from backend.db_meta.enums import ClusterType
+from backend.db_meta.enums import ClusterType, MachineType
 from backend.db_meta.models import Spec
 from backend.db_services.dbresource.exceptions import SpecOperateException
 
@@ -222,6 +222,61 @@ class TendisCacheSpecFilter(RedisSpecFilter):
 
     def custom_filter(self):
         super().custom_filter()
+
+
+class MongoDBShardSpecFilter(object):
+    """mongodb分片集群的部署方案"""
+
+    def __init__(self, capacity, spec_cluster_type, spec_machine_type, **kwargs):
+        if spec_cluster_type != ClusterType.MongoShardedCluster or spec_machine_type != MachineType.MONGODB:
+            raise SpecOperateException(_("请保证输入的集群类型是MongoShardedCluster，且机器规格为mongodb"))
+
+        self.specs: List[Dict[str, Any]] = []
+        mongodb_specs = Spec.objects.filter(
+            spec_machine_type=spec_machine_type, spec_cluster_type=spec_cluster_type, enable=True
+        )
+        for spec in mongodb_specs:
+            spec_info = {**model_to_dict(spec), "capacity": spec.capacity}
+            spec_info["machine_pair"] = math.ceil(capacity / spec_info["capacity"])
+            if self.get_spec_shard_info(spec_info, **kwargs):
+                self.specs.append(spec_info)
+
+    @classmethod
+    def get_shard_spec(cls, spec: dict, shard_num: int):
+        shard_cpu_spec = int(spec["cpu"]["min"] * spec["machine_pair"] / shard_num)
+        shard_mem_spec = int(spec["mem"]["min"] * spec["machine_pair"] / shard_num)
+        shard_capacity_spec = int(spec["capacity"] * spec["machine_pair"] / shard_num)
+        shard_spec = _("{}核{}G内存{}G容量").format(shard_cpu_spec, shard_mem_spec, shard_capacity_spec)
+        return shard_spec
+
+    def get_spec_shard_info(self, spec, **kwargs):
+        # 获取规格的推荐分片数和合法分片数
+        # 最小值：每组机器一个分片；最大值：2个cpu一个分片；推荐值：4个cpu一个分片(mongodb的规格cpu上下限一致，没有浮动)
+        min_shard_num = spec["machine_pair"]
+        max_shard_num = int(spec["machine_pair"] * spec["cpu"]["min"] / 2)
+
+        if min_shard_num > max_shard_num:
+            return False
+
+        # 可选分片数: shard_num % machine_pair == 0
+        shard_num_choices = list(range(min_shard_num, max_shard_num + 1, min_shard_num))
+
+        # 如果加了分片过滤，则shard_num_choices只能可选过滤的分片数
+        if kwargs.get("shard_num"):
+            if kwargs["shard_num"] not in shard_num_choices:
+                return False
+            shard_num_choices = [kwargs["shard_num"]]
+
+        spec["shard_choices"] = []
+        for shard_num in shard_num_choices:
+            shard_info = {"shard_num": shard_num, "shard_spec": self.get_shard_spec(spec, shard_num)}
+            spec["shard_choices"].append(shard_info)
+
+        spec["shard_recommend"] = min(spec["shard_choices"], key=lambda x: abs(x["shard_num"] - max_shard_num / 2))
+        return True
+
+    def get_target_specs(self):
+        return self.specs
 
 
 class ResourceHandler(object):

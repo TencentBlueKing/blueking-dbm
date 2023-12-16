@@ -14,7 +14,7 @@ from typing import Dict, Optional
 
 from django.utils.translation import ugettext as _
 
-from backend.components import MySQLPrivManagerApi
+from backend.components import DBPrivManagerApi
 from backend.flow.engine.bamboo.scene.common.builder import Builder
 from backend.flow.plugins.components.collections.common.external_service import ExternalServiceComponent
 from backend.ticket.models import Ticket
@@ -51,8 +51,8 @@ class MySQLRandomizePassword(object):
             act_component_code=ExternalServiceComponent.code,
             kwargs={
                 "params": self.data,
-                "api_import_path": MySQLPrivManagerApi.__module__,
-                "api_import_module": "MySQLPrivManagerApi",
+                "api_import_path": DBPrivManagerApi.__module__,
+                "api_import_module": "DBPrivManagerApi",
                 "api_call_func": "modify_mysql_admin_password",
                 "success_callback_path": f"{random_password_callback.__module__}.{random_password_callback.__name__}",
             },

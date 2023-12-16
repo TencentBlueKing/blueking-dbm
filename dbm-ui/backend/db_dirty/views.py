@@ -64,7 +64,7 @@ class DBDirtyMachineViewSet(viewsets.SystemViewSet):
         queryset=DirtyMachine.objects.all(),
     )
     def query_operation_list(self, request):
-        dirty_machines = self.filter_queryset(self.get_queryset())
+        dirty_machines = self.filter_queryset(self.get_queryset()).order_by("-ticket_id")
         page_dirty_machines = self.paginate_queryset(dirty_machines)
 
         # 提前缓存云区域和业务信息
@@ -89,7 +89,6 @@ class DBDirtyMachineViewSet(viewsets.SystemViewSet):
             }
             for dirty in page_dirty_machines
         ]
-        page_dirty_machine_list.sort(key=lambda x: x["ticket_id"], reverse=True)
         return self.paginator.get_paginated_response(data=page_dirty_machine_list)
 
     @common_swagger_auto_schema(

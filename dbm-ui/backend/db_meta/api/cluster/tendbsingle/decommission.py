@@ -12,8 +12,8 @@ import logging
 
 from django.db import transaction
 
-from backend.components import MySQLPrivManagerApi
 from backend.configuration.constants import DBType
+from backend.components import DBPrivManagerApi
 from backend.db_meta.models import Cluster, ClusterEntry
 from backend.flow.consts import MySQLPrivComponent, UserName
 from backend.flow.utils.cc_manage import CcManage
@@ -26,7 +26,7 @@ def decommission(cluster: Cluster):
     cc_manage = CcManage(cluster.bk_biz_id, DBType.MySQL.value)
     for storage in cluster.storageinstance_set.all():
         # 删除存储在密码服务的密码元信息
-        MySQLPrivManagerApi.delete_password(
+        DBPrivManagerApi.delete_password(
             {
                 "instances": [{"ip": storage.machine.ip, "port": storage.port, "bk_cloud_id": cluster.bk_cloud_id}],
                 "users": [{"username": UserName.ADMIN.value, "component": MySQLPrivComponent.MYSQL.value}],

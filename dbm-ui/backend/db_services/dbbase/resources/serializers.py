@@ -24,11 +24,17 @@ class ListResourceSLZ(serializers.Serializer):
     creator = serializers.CharField(required=False)
     version = serializers.CharField(required=False)
     region = serializers.CharField(required=False)
+    cluster_ids = serializers.ListField(child=serializers.IntegerField(), required=False, allow_empty=True)
 
 
 class ListMySQLResourceSLZ(ListResourceSLZ):
     db_module_id = serializers.IntegerField(required=False)
-    cluster_ids = serializers.ListField(child=serializers.IntegerField(), required=False, allow_empty=True)
+
+
+class ListMongoDBResourceSLZ(ListResourceSLZ):
+    cluster_type = serializers.ChoiceField(required=False, choices=ClusterType.get_choices())
+    exact_domain = serializers.CharField(help_text=_("精确域名查询"), required=False)
+    domains = serializers.CharField(help_text=_("批量域名查询(逗号分割)"), required=False)
 
 
 class ClusterSLZ(serializers.ModelSerializer):
@@ -75,6 +81,11 @@ class ListInstancesSerializer(InstanceAddressSerializer):
     role = serializers.CharField(help_text=_("角色"), required=False)
     cluster_id = serializers.CharField(help_text=_("集群ID"), required=False)
     ip = serializers.CharField(required=False)
+
+
+class MongoDBListInstancesSerializer(ListInstancesSerializer):
+    cluster_type = serializers.ChoiceField(help_text=_("集群类型"), required=False, choices=ClusterType.get_choices())
+    exact_ip = serializers.CharField(help_text=_("精确IP查询"), required=False)
 
 
 class RetrieveInstancesSerializer(InstanceAddressSerializer):

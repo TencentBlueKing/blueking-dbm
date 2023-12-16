@@ -3,7 +3,7 @@
 from django.db import migrations, models
 
 from backend.configuration.constants import DBType
-from backend.db_services.mysql.permission.constants import AccountType
+from backend.db_services.dbpermission.constants import AccountType
 
 
 class Migration(migrations.Migration):

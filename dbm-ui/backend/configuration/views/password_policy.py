@@ -19,7 +19,7 @@ from rest_framework.response import Response
 
 from backend.bk_web import viewsets
 from backend.bk_web.swagger import common_swagger_auto_schema
-from backend.components import MySQLPrivManagerApi
+from backend.components import DBPrivManagerApi
 from backend.configuration.constants import DBM_PASSWORD_SECURITY_NAME
 from backend.configuration.handlers.password import DBPasswordHandler
 from backend.configuration.serializers import (
@@ -53,7 +53,7 @@ class PasswordPolicyViewSet(viewsets.SystemViewSet):
     )
     @action(methods=["GET"], detail=False)
     def get_password_policy(self, request):
-        policy = MySQLPrivManagerApi.get_security_rule({"name": DBM_PASSWORD_SECURITY_NAME})
+        policy = DBPrivManagerApi.get_security_rule({"name": DBM_PASSWORD_SECURITY_NAME})
         policy["rule"] = json.loads(policy["rule"])
         return Response(policy)
 
@@ -63,7 +63,7 @@ class PasswordPolicyViewSet(viewsets.SystemViewSet):
     @action(methods=["POST"], detail=False, serializer_class=PasswordPolicySerializer)
     def update_password_policy(self, request):
         validated_data = self.params_validate(self.get_serializer_class())
-        policy = MySQLPrivManagerApi.modify_security_rule(
+        policy = DBPrivManagerApi.modify_security_rule(
             {"rule": json.dumps(validated_data["rule"]), "id": validated_data["id"], "operator": request.user.username}
         )
         return Response(policy)
@@ -86,7 +86,7 @@ class PasswordPolicyViewSet(viewsets.SystemViewSet):
     )
     @action(methods=["GET"], detail=False)
     def get_random_password(self, request, *args, **kwargs):
-        random_password = MySQLPrivManagerApi.get_random_string({"security_rule_name": DBM_PASSWORD_SECURITY_NAME})
+        random_password = DBPrivManagerApi.get_random_string({"security_rule_name": DBM_PASSWORD_SECURITY_NAME})
         random_password = base64.b64decode(random_password).decode("utf-8")
         return Response({"password": random_password})
 

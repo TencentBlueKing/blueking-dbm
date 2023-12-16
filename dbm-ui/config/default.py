@@ -86,7 +86,7 @@ INSTALLED_APPS += (
     "backend.flow",
     "backend.flow.plugins",
     "backend.db_meta.apps.DBMeta",
-    "backend.db_services.mysql.permission.authorize",
+    "backend.db_services.dbpermission.db_authorize",
     "backend.db_services.mysql.permission.clone",
     "backend.db_services.mysql.open_area",
     "backend.db_services.ipchooser",

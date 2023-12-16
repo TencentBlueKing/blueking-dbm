@@ -15,8 +15,9 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from backend.configuration.handlers.password import DBPasswordHandler
-from backend.db_services.mysql.permission.constants import AccountType, PrivilegeType
-from backend.db_services.mysql.permission.db_account import mock_data
+from backend.db_services.dbpermission import constants
+from backend.db_services.dbpermission.constants import AccountType, PrivilegeType
+from backend.db_services.dbpermission.db_account import mock_data
 
 
 class DBAccountBaseSerializer(serializers.Serializer):
@@ -26,46 +27,46 @@ class DBAccountBaseSerializer(serializers.Serializer):
         help_text=_("账号类型"), choices=AccountType.get_choices(), default=AccountType.MYSQL
     )
 
+    @classmethod
+    def check_username_valid(cls, account_type, user):
+        if account_type in [AccountType.MYSQL, AccountType.TENDBCLUSTER]:
+            user_pattern = re.compile(r"^[0-9a-zA-Z][0-9a-zA-Z\-._]{0,31}$")
+        else:
+            user_pattern = re.compile(r"^[0-9a-zA-Z]{1,31}\.[0-9a-zA-Z\-._]{1,31}$")
+
+        if not re.match(user_pattern, user):
+            raise serializers.ValidationError(_("账号名称不符合要求, 请重新更改账号名"))
+
+        if len(user) > constants.MAX_ACCOUNT_LENGTH:
+            raise serializers.ValidationError(_("账号名称不符合过长，请不要超过31位"))
+
+    @classmethod
+    def check_password_valid(cls, password):
+        verify_result = DBPasswordHandler.verify_password_strength(password, echo=True)
+        if not verify_result["is_strength"]:
+            raise serializers.ValidationError(_("密码强度不符合要求，请重新输入密码。"))
+        return verify_result["password"]
+
     def validate(self, attrs):
         # 校验账号是否符合规则
         if attrs.get("user"):
-            user_pattern = re.compile(r"^[0-9a-zA-Z][0-9a-zA-Z\-._]{0,31}$")
-            if not re.match(user_pattern, attrs["user"]):
-                raise serializers.ValidationError(_("账号名称不符合要求, 请重新账号名"))
-
+            self.check_username_valid(attrs["account_type"], attrs.get("user"))
         # 将密码进行解密并校验密码强度
-        verify_result = DBPasswordHandler.verify_password_strength(attrs["password"], echo=True)
-        if not verify_result["is_strength"]:
-            raise serializers.ValidationError(_("密码强度不符合要求，请重新输入密码。"))
-
-        attrs["password"] = verify_result["password"]
+        attrs["password"] = self.check_password_valid(attrs["password"])
         return attrs
 
-
-class CreateMySQLAccountSerializer(DBAccountBaseSerializer):
     class Meta:
         swagger_schema_fields = {"example": mock_data.CREATE_ACCOUNT_REQUEST}
 
 
-class VerifyPasswordStrengthSerializer(serializers.Serializer):
-    account_type = serializers.ChoiceField(
-        help_text=_("账号类型(默认为mysql)"), choices=AccountType.get_choices(), required=False, default=AccountType.MYSQL
-    )
-    password = serializers.CharField(help_text=_("待校验密码"))
+class CreateAccountSerializer(DBAccountBaseSerializer):
+    user = serializers.CharField(help_text=_("账号名称"))
 
     class Meta:
-        swagger_schema_fields = {"example": mock_data.CHECK_PASSWORD_STRENGTH_REQUEST}
+        swagger_schema_fields = {"example": mock_data.CREATE_ACCOUNT_REQUEST}
 
 
-class VerifyPasswordStrengthInfoSerializer(serializers.Serializer):
-    is_strength = serializers.BooleanField(help_text=_("密码是否满足强度"))
-    password_verify_info = serializers.DictField(help_text=_("密码校验信息字典"), child=serializers.BooleanField())
-
-    class Meta:
-        swagger_schema_fields = {"example": mock_data.VERIFY_PASSWORD_STRENGTH_INFO_RESPONSE}
-
-
-class DeleteMySQLAccountSerializer(serializers.Serializer):
+class DeleteAccountSerializer(serializers.Serializer):
     account_id = serializers.IntegerField(help_text=_("账号ID"))
     account_type = serializers.ChoiceField(
         help_text=_("账号类型"), choices=AccountType.get_choices(), default=AccountType.MYSQL
@@ -75,7 +76,7 @@ class DeleteMySQLAccountSerializer(serializers.Serializer):
         swagger_schema_fields = {"example": mock_data.DELETE_ACCOUNT_REQUEST}
 
 
-class UpdateMySQLAccountSerializer(DBAccountBaseSerializer):
+class UpdateAccountSerializer(DBAccountBaseSerializer):
     account_id = serializers.IntegerField(help_text=_("账号ID"))
     user = serializers.CharField(help_text=_("账号名称"), required=False)
 
@@ -83,15 +84,15 @@ class UpdateMySQLAccountSerializer(DBAccountBaseSerializer):
         swagger_schema_fields = {"example": mock_data.UPDATE_ACCOUNT_REQUEST}
 
 
-class MySQLAccountRulesDetailSerializer(serializers.Serializer):
-    class MySQLAccountInfoSerializer(DBAccountBaseSerializer):
+class AccountRulesDetailSerializer(serializers.Serializer):
+    class AccountInfoSerializer(DBAccountBaseSerializer):
         bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
         user = serializers.CharField(help_text=_("账号名称"))
         account_id = serializers.IntegerField(help_text=_("账号ID"))
         creator = serializers.CharField(help_text=_("创建者"))
         create_time = serializers.DateTimeField(help_text=_("创建时间"))
 
-    class MySQLAccountRulesInfoSerializer(serializers.Serializer):
+    class AccountRulesInfoSerializer(serializers.Serializer):
         rule_id = serializers.IntegerField(help_text=_("规则ID"))
         account_id = serializers.IntegerField(help_text=_("账号ID"))
         bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
@@ -100,13 +101,11 @@ class MySQLAccountRulesDetailSerializer(serializers.Serializer):
         creator = serializers.CharField(help_text=_("创建者"))
         create_time = serializers.DateTimeField(help_text=_("创建时间"))
 
-    account = MySQLAccountInfoSerializer(help_text=_("账号信息"))
-    rules = serializers.ListSerializer(
-        help_text=_("权限列表信息"), allow_empty=True, child=MySQLAccountRulesInfoSerializer()
-    )
+    account = AccountInfoSerializer(help_text=_("账号信息"))
+    rules = serializers.ListSerializer(help_text=_("权限列表信息"), allow_empty=True, child=AccountRulesInfoSerializer())
 
 
-class FilterMySQLAccountRulesSerializer(serializers.Serializer):
+class FilterAccountRulesSerializer(serializers.Serializer):
     rule_ids = serializers.CharField(help_text=_("规则ID列表(通过,分割)"), required=False)
     user = serializers.CharField(help_text=_("账号名称"), required=False)
     access_db = serializers.CharField(help_text=_("访问DB"), required=False)
@@ -116,7 +115,7 @@ class FilterMySQLAccountRulesSerializer(serializers.Serializer):
     )
 
 
-class QueryMySQLAccountRulesSerializer(serializers.Serializer):
+class QueryAccountRulesSerializer(serializers.Serializer):
     user = serializers.CharField(help_text=_("账号名称"))
     access_dbs = serializers.ListField(help_text=_("访问DB列表"), child=serializers.CharField(), required=False)
     account_type = serializers.ChoiceField(
@@ -124,33 +123,45 @@ class QueryMySQLAccountRulesSerializer(serializers.Serializer):
     )
 
 
-class ListMySQLAccountRulesSerializer(serializers.Serializer):
+class ListAccountRulesSerializer(serializers.Serializer):
     count = serializers.IntegerField(help_text=_("规则数量"))
-    results = serializers.ListSerializer(
-        help_text=_("规则信息"), allow_empty=True, child=MySQLAccountRulesDetailSerializer()
-    )
+    results = serializers.ListSerializer(help_text=_("规则信息"), allow_empty=True, child=AccountRulesDetailSerializer())
 
     class Meta:
         swagger_schema_fields = {"example": mock_data.LIST_MYSQL_ACCOUNT_RULE_RESPONSE}
 
 
-class AddMySQLAccountRuleSerializer(serializers.Serializer):
-    class MySQLRuleTypeSerializer(serializers.Serializer):
+class AddAccountRuleSerializer(serializers.Serializer):
+    class RuleTypeSerializer(serializers.Serializer):
         dml = serializers.ListField(
-            help_text=_("dml"), child=serializers.ChoiceField(choices=PrivilegeType.DML.get_choices()), required=False
+            help_text=_("dml"),
+            child=serializers.ChoiceField(choices=PrivilegeType.MySQL.DML.get_choices()),
+            required=False,
         )
         ddl = serializers.ListField(
-            help_text=_("dml"), child=serializers.ChoiceField(choices=PrivilegeType.DDL.get_choices()), required=False
+            help_text=_("dml"),
+            child=serializers.ChoiceField(choices=PrivilegeType.MySQL.DDL.get_choices()),
+            required=False,
         )
         glob = serializers.ListField(
             help_text=_("glob"),
-            child=serializers.ChoiceField(choices=PrivilegeType.GLOBAL.get_choices()),
+            child=serializers.ChoiceField(choices=PrivilegeType.MySQL.GLOBAL.get_choices()),
+            required=False,
+        )
+        mongo_user = serializers.ListField(
+            help_text=_("mongo用户权限"),
+            child=serializers.ChoiceField(choices=PrivilegeType.MongoDB.USER.get_choices()),
+            required=False,
+        )
+        mongo_manager = serializers.ListField(
+            help_text=_("mongo管理权限"),
+            child=serializers.ChoiceField(choices=PrivilegeType.MongoDB.MANAGER.get_choices()),
             required=False,
         )
 
     account_id = serializers.IntegerField(help_text=_("账号ID"))
     access_db = serializers.CharField(help_text=_("访问DB"))
-    privilege = MySQLRuleTypeSerializer()
+    privilege = RuleTypeSerializer(help_text=_("授权规则"))
     account_type = serializers.ChoiceField(
         help_text=_("账号类型"), choices=AccountType.get_choices(), default=AccountType.MYSQL
     )
@@ -159,14 +170,14 @@ class AddMySQLAccountRuleSerializer(serializers.Serializer):
         swagger_schema_fields = {"example": mock_data.ADD_MYSQL_ACCOUNT_RULE_REQUEST}
 
 
-class ModifyMySQLAccountRuleSerializer(AddMySQLAccountRuleSerializer):
+class ModifyMySQLAccountRuleSerializer(AddAccountRuleSerializer):
     rule_id = serializers.IntegerField(help_text=_("规则ID"))
 
     class Meta:
         swagger_schema_fields = {"example": mock_data.MODIFY_MYSQL_ACCOUNT_RULE_REQUEST}
 
 
-class DeleteMySQLAccountRuleSerializer(serializers.Serializer):
+class DeleteAccountRuleSerializer(serializers.Serializer):
     rule_id = serializers.IntegerField(help_text=_("规则ID"))
     account_type = serializers.ChoiceField(
         help_text=_("账号类型"), choices=AccountType.get_choices(), default=AccountType.MYSQL

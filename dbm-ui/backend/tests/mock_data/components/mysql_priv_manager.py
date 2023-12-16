@@ -11,13 +11,13 @@ specific language governing permissions and limitations under the License.
 
 from backend.core.encrypt.constants import AsymmetricCipherConfigType
 from backend.core.encrypt.handlers import AsymmetricHandler
-from backend.db_services.mysql.permission.db_account.mock_data import LIST_MYSQL_ACCOUNT_RULE_RESPONSE
+from backend.db_services.dbpermission.db_account.mock_data import LIST_MYSQL_ACCOUNT_RULE_RESPONSE
 from backend.tests.mock_data.constant import Response
 from backend.tests.mock_data.db_services.mysql.permission.account import POLICY_DATA
 from backend.tests.mock_data.utils import raw_response
 
 
-class MySQLPrivManagerApiMock(object):
+class DBPrivManagerApiMock(object):
     """dbpriv相关接口的mock"""
 
     base_data = {"code": 0, "message": "ok", "data": None}

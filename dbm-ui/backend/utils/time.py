@@ -117,6 +117,11 @@ def timestamp2str(timestamp: int) -> str:
     return datetime2str(datetime.datetime.fromtimestamp(timestamp).astimezone())
 
 
+def timestamp2datetime(timestamp: int) -> datetime:
+    timestamp = int(timestamp)
+    return datetime.datetime.fromtimestamp(timestamp)
+
+
 def countdown2str(countdown: Union[int, datetime.timedelta]) -> str:
     """
     自定义倒计时时间的格式化，格式为类似: 1day, 5h32m45s
@@ -138,7 +143,7 @@ def countdown2str(countdown: Union[int, datetime.timedelta]) -> str:
 
 
 def find_nearby_time(
-    time_keys: List[Union[datetime.datetime, str]], match_time: Union[datetime.datetime, str], flag: int
+    time_keys: List[Union[int, datetime.datetime, str]], match_time: Union[int, datetime.datetime, str], flag: int
 ) -> int:
     """
     寻找最近的时间点index
@@ -147,21 +152,14 @@ def find_nearby_time(
     :param flag: 搜索类型, 1 --> 小于等于；0 ---> 大于等于
     """
     if not time_keys:
-        return 0
+        raise AppBaseException(_("搜索的时间序列为空"))
 
-    if type(time_keys[0]) != type(match_time):
-        raise AppBaseException(_("类型{}与类型{}之间不允许进行比较").format(type(time_keys[0]), type(match_time)))
+    # 统一转换成timestamp进行比较
+    match_time = timezone2timestamp(match_time)
+    time_keys = [timezone2timestamp(t) for t in time_keys]
 
     if match_time in time_keys:
         return time_keys.index(match_time)
-
-    # 统一转换成timestamp进行比较
-    if isinstance(match_time, str):
-        match_time = time_parse(match_time).timestamp()
-        time_keys = [time_parse(t).timestamp() for t in time_keys]
-    elif isinstance(match_time, datetime.datetime):
-        match_time = match_time.timestamp()
-        time_keys = [t.timestamp() for t in time_keys]
 
     # 越界的情况抛出错误，交给业务逻辑处理
     index = bisect_right(time_keys, match_time) - flag

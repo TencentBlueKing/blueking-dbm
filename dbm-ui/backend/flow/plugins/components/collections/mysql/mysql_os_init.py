@@ -16,7 +16,7 @@ from jinja2 import Environment
 from pipeline.component_framework.component import Component
 
 from backend import env
-from backend.components import JobApi, MySQLPrivManagerApi
+from backend.components import DBPrivManagerApi, JobApi
 from backend.flow.consts import DBA_ROOT_USER, DEFAULT_INSTANCE, MySQLPrivComponent, UserName
 from backend.flow.plugins.components.collections.common.base_service import BkJobService
 from backend.flow.utils.script_template import fast_execute_script_common_kwargs
@@ -254,7 +254,7 @@ class SysInit(BkJobService):
         """
         获取os_mysql密码
         """
-        data = MySQLPrivManagerApi.get_password(
+        data = DBPrivManagerApi.get_password(
             {
                 "instances": [DEFAULT_INSTANCE],
                 "users": [{"username": UserName.OS_MYSQL.value, "component": MySQLPrivComponent.MYSQL.value}],

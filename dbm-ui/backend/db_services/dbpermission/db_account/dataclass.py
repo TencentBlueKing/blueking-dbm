@@ -11,7 +11,7 @@ specific language governing permissions and limitations under the License.
 from dataclasses import asdict, dataclass
 from typing import Dict, List, Union
 
-from backend.db_services.mysql.permission.constants import AccountType
+from backend.db_services.dbpermission.constants import AccountType
 
 
 @dataclass
@@ -55,4 +55,5 @@ class AccountRuleMeta(AccountMeta):
             if isinstance(self.privilege[rule_type], list):
                 self.privilege[rule_type] = ",".join(self.privilege[rule_type])
 
-        self.privilege["global"] = self.privilege.pop("glob")
+        if "glob" in self.privilege:
+            self.privilege["global"] = self.privilege.pop("glob")
