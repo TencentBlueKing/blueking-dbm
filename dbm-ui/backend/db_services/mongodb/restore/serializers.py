@@ -12,6 +12,30 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
+from backend.db_meta.enums import ClusterType
+from backend.db_services.mongodb.restore import mock_data
 
-class BackupLogRollbackTimeSerializer(serializers.Serializer):
-    cluster_id = serializers.IntegerField(help_text=_("集群ID"))
+
+class QueryBackupLogSerializer(serializers.Serializer):
+    cluster_ids = serializers.ListField(help_text=_("集群ID列表"), child=serializers.IntegerField())
+    cluster_type = serializers.ChoiceField(help_text=_("集群类型"), choices=ClusterType.get_choices())
+
+    def validate(self, attrs):
+        if attrs["cluster_type"] == ClusterType.MongoShardedCluster and len(attrs["cluster_ids"]) > 1:
+            raise serializers.ValidationError(_("分片集群只支持查询单个"))
+        return attrs
+
+
+class QueryBackupLogResponseSerializer(serializers.Serializer):
+    class Meta:
+        swagger_schema_fields = {"example": mock_data.CLUSTER_BACKUP_LOGS_DATA}
+
+
+class QueryRestoreRecordSerializer(serializers.Serializer):
+    limit = serializers.IntegerField(help_text=_("分页限制"), required=False, default=10)
+    offset = serializers.IntegerField(help_text=_("分页起始"), required=False, default=0)
+
+
+class QueryRestoreRecordResponseSerializer(serializers.Serializer):
+    class Meta:
+        swagger_schema_fields = {"example": mock_data.RESTORE_RECORD_DATA}

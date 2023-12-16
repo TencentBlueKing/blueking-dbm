@@ -31,6 +31,7 @@ class MongoDBClearDetailSerializer(BaseMongoDBOperateDetailSerializer):
         ns_filter = DBTableSerializer(help_text=_("库表选择器"))
 
     infos = serializers.ListSerializer(help_text=_("清档信息"), child=ClearDetailSerializer())
+    is_safe = serializers.BooleanField(help_text=_("是否做安全检测"), default=True, required=False)
 
     def validate(self, attrs):
         return attrs

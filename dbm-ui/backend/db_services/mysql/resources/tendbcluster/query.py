@@ -18,14 +18,12 @@ from django.utils.translation import ugettext_lazy as _
 from backend.db_meta.api.cluster.tendbcluster.detail import scan_cluster
 from backend.db_meta.enums import InstanceInnerRole, TenDBClusterSpiderRole
 from backend.db_meta.enums.cluster_type import ClusterType
-from backend.db_meta.enums.comm import SystemTagEnum
 from backend.db_meta.exceptions import DBMetaException
 from backend.db_meta.models import Machine, Spec
 from backend.db_meta.models.cluster import Cluster
 from backend.db_meta.models.instance import ProxyInstance, StorageInstance
 from backend.db_services.dbbase.resources import query
 from backend.ticket.constants import TicketType
-from backend.ticket.models import ClusterOperateRecord
 
 
 class ListRetrieveResource(query.ListRetrieveResource):
@@ -100,38 +98,13 @@ class ListRetrieveResource(query.ListRetrieveResource):
             "machine_pair_cnt": machine_pair_cnt,
             "remote_db": remote_db,
             "remote_dr": remote_dr,
-            "temporary_info": cls._fill_temporary_cluster_info(cluster),
+            "temporary_info": cls.get_temporary_cluster_info(cluster, TicketType.TENDBCLUSTER_ROLLBACK_CLUSTER),
         }
         cluster_info = super()._to_cluster_representation(
             cluster, db_module_names_map, cluster_entry_map, cluster_operate_records_map, **kwargs
         )
         cluster_info.update(cluster_extra_info)
         return cluster_info
-
-    @staticmethod
-    def _fill_temporary_cluster_info(cluster):
-        # 如果当前集群是临时集群，则补充临时集群相关信息
-        if not cluster.tag_set.filter(name=SystemTagEnum.TEMPORARY.value).exists():
-            return {}
-
-        # 获取回档单据
-        ticket = (
-            ClusterOperateRecord.objects.filter(
-                cluster_id=cluster.id, ticket__ticket_type=TicketType.TENDBCLUSTER_ROLLBACK_CLUSTER
-            )
-            .first()
-            .ticket
-        )
-
-        # 获取回档源集群信息，如果源集群已被卸载，则忽略
-        try:
-            source_cluster = Cluster.objects.get(id=ticket.details["cluster_id"])
-            domain = source_cluster.immute_domain
-        except Cluster.DoesNotExist:
-            domain = ""
-
-        temporary_info = {"source_cluster": domain, "ticket_id": ticket.id}
-        return temporary_info
 
     @classmethod
     def _retrieve_cluster(cls, cluster_details: dict, cluster_id: int) -> dict:

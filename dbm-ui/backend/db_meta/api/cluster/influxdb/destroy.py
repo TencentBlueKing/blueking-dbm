@@ -28,7 +28,7 @@ def destroy(addresses: Optional[List]):
     清理DBMeta
     """
 
-    storages = StorageInstance.find_storage_instance_by_addresses(addresses)
+    storages = StorageInstance.find_storage_instance_by_ip(addresses)
     for storage in storages:
         GroupInstance.objects.get(instance_id=storage.id).delete()
         # 删除storage instance

@@ -9,10 +9,12 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
-from backend.db_services.dbbase.cluster.views import ClusterViewSet as BaseClusterViewSet
-from backend.iam_app.handlers.drf_perm.base import DBManagePermission
+from rest_framework.routers import DefaultRouter
 
+from backend.db_services.mongodb.cluster.views import ClusterViewSet
 
-class ClusterViewSet(BaseClusterViewSet):
-    def _get_custom_permissions(self):
-        return [DBManagePermission()]
+router = DefaultRouter(trailing_slash=True)
+router.register(r"cluster", ClusterViewSet, basename="cluster")
+
+urlpatterns = []
+urlpatterns += router.urls

@@ -14,9 +14,6 @@ from rest_framework import serializers
 
 from backend.db_services.mysql.cluster.mock_data import (
     FIND_RELATED_CLUSTERS_BY_ID_REQUEST_DATA,
-    FIND_RELATED_CLUSTERS_BY_ID_RESPONSE_DATA,
-    FIND_RELATED_CLUSTERS_BY_INSTANCE_REQUEST_DATA,
-    FIND_RELATED_CLUSTERS_BY_INSTANCE_RESPONSE_DATA,
     GET_INTERSECTED_SLAVE_MACHINES_RESPONSE_DATA,
     GET_TENDB_MACHINE_INSTANCE_PAIR_REQUEST_DATA,
     GET_TENDB_MACHINE_INSTANCE_PAIR_RESPONSE_DATA,
@@ -25,36 +22,6 @@ from backend.db_services.mysql.cluster.mock_data import (
     QUERY_CLUSTERS_REQUEST_DATA,
     QUERY_CLUSTERS_RESPONSE_DATA,
 )
-
-
-class FindRelatedClustersByClusterIdRequestSerializer(serializers.Serializer):
-    cluster_ids = serializers.ListField(help_text=_("集群ID列表"), child=serializers.IntegerField())
-
-    class Meta:
-        swagger_schema_fields = {"example": FIND_RELATED_CLUSTERS_BY_ID_REQUEST_DATA}
-
-
-class FindRelatedClustersByClusterIdResponseSerializer(serializers.Serializer):
-    class Meta:
-        swagger_schema_fields = {"example": FIND_RELATED_CLUSTERS_BY_ID_RESPONSE_DATA}
-
-
-class FindRelatedClustersByInstancesRequestSerializer(serializers.Serializer):
-    class InstanceSerializer(serializers.Serializer):
-        bk_cloud_id = serializers.IntegerField(help_text=_("云区域ID"))
-        ip = serializers.CharField(help_text=_("IP地址"))
-        bk_host_id = serializers.IntegerField(help_text=_("主机ID"))
-        port = serializers.IntegerField(help_text=_("端口号"))
-
-    instances = serializers.ListField(help_text=_("实例列表"), child=InstanceSerializer())
-
-    class Meta:
-        swagger_schema_fields = {"example": FIND_RELATED_CLUSTERS_BY_INSTANCE_REQUEST_DATA}
-
-
-class FindRelatedClustersByInstancesResponseSerializer(serializers.Serializer):
-    class Meta:
-        swagger_schema_fields = {"example": FIND_RELATED_CLUSTERS_BY_INSTANCE_RESPONSE_DATA}
 
 
 class QueryClustersRequestSerializer(serializers.Serializer):
@@ -77,21 +44,6 @@ class QueryClustersRequestSerializer(serializers.Serializer):
 class QueryClustersResponseSerializer(serializers.Serializer):
     class Meta:
         swagger_schema_fields = {"example": QUERY_CLUSTERS_RESPONSE_DATA}
-
-
-class GetIntersectedSlavaMachinesSerializer(serializers.Serializer):
-    cluster_ids = serializers.ListField(help_text=_("集群ID列表"), child=serializers.IntegerField())
-    is_stand_by = serializers.BooleanField(
-        help_text=_("is_stand_by标志(默认获取带有is_stand_by标志的slave)"), required=False, default=True
-    )
-
-    class Meta:
-        swagger_schema_fields = {"example": FIND_RELATED_CLUSTERS_BY_ID_REQUEST_DATA}
-
-
-class GetIntersectedSlavaMachinesResponseSerializer(serializers.Serializer):
-    class Meta:
-        swagger_schema_fields = {"example": GET_INTERSECTED_SLAVE_MACHINES_RESPONSE_DATA}
 
 
 class GetTendbRemoteMachinesSerializer(serializers.Serializer):
@@ -123,3 +75,18 @@ class GetTendbMachineInstancePairSerializer(serializers.Serializer):
 class GetTendbMachineInstancePairResponseSerializer(serializers.Serializer):
     class Meta:
         swagger_schema_fields = {"example": GET_TENDB_MACHINE_INSTANCE_PAIR_RESPONSE_DATA}
+
+
+class GetIntersectedSlavaMachinesSerializer(serializers.Serializer):
+    cluster_ids = serializers.ListField(help_text=_("集群ID列表"), child=serializers.IntegerField())
+    is_stand_by = serializers.BooleanField(
+        help_text=_("is_stand_by标志(默认获取带有is_stand_by标志的slave)"), required=False, default=True
+    )
+
+    class Meta:
+        swagger_schema_fields = {"example": FIND_RELATED_CLUSTERS_BY_ID_REQUEST_DATA}
+
+
+class GetIntersectedSlavaMachinesResponseSerializer(serializers.Serializer):
+    class Meta:
+        swagger_schema_fields = {"example": GET_INTERSECTED_SLAVE_MACHINES_RESPONSE_DATA}

@@ -8,11 +8,13 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import itertools
+
 from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
 from backend.db_meta.enums import ClusterType, ClusterTypeMachineTypeDefine
-from backend.db_meta.models import Machine
+from backend.db_meta.models import Cluster, Machine
 from backend.flow.consts import MongoDBBackupFileTagEnum, MongoShardedClusterBackupType
 from backend.flow.engine.controller.mongodb import MongoDBController
 from backend.ticket import builders
@@ -28,7 +30,8 @@ from backend.ticket.constants import TicketType
 class MongoDBBackupDetailSerializer(BaseMongoDBOperateDetailSerializer):
     class FullBackupDetailSerializer(serializers.Serializer):
         ns_filter = DBTableSerializer(help_text=_("库表选择器"))
-        backup_host = serializers.CharField(help_text=_("备份节点"), required=False)
+        backup_host = serializers.CharField(help_text=_("备份节点"), required=False, default="")
+        cluster_type = serializers.ChoiceField(help_text=_("集群类型"), choices=ClusterType.get_choices(), required=False)
         cluster_ids = serializers.ListField(help_text=_("集群ID列表"), child=serializers.IntegerField(help_text=_("集群ID")))
 
     backup_type = serializers.ChoiceField(
@@ -38,7 +41,13 @@ class MongoDBBackupDetailSerializer(BaseMongoDBOperateDetailSerializer):
     infos = serializers.ListSerializer(help_text=_("备份信息"), child=FullBackupDetailSerializer())
 
     def validate(self, attrs):
-        if attrs["backup_type"] != MongoShardedClusterBackupType.MONGOS:
+        cluster_ids = list(itertools.chain(*[info["cluster_ids"] for info in attrs["infos"]]))
+        clusters = Cluster.objects.filter(id__in=cluster_ids)
+
+        # 校验集群类型一致
+        self.validate_cluster_same_attr(clusters, attrs=["cluster_type"])
+
+        if attrs.get("backup_type") != MongoShardedClusterBackupType.MONGOS:
             return attrs
 
         # 分片集的machine type包含了副本集的
@@ -59,11 +68,14 @@ class MongoDBBackupDetailSerializer(BaseMongoDBOperateDetailSerializer):
 
 
 class MongoDBBackupFlowParamBuilder(BaseMongoOperateFlowParamBuilder):
-    controller = MongoDBController.fake_scene
+    controller = MongoDBController.mongo_backup
 
     def format_ticket_data(self):
+        self.ticket_data["oplog"] = False
         self.ticket_data["infos"] = self.scatter_cluster_id_info(self.ticket_data["infos"])
         self.ticket_data["infos"] = self.add_cluster_type_info(self.ticket_data["infos"])
+        for info in self.ticket_data["infos"]:
+            info["backup_type"] = self.ticket_data.get("backup_type", "")
 
 
 @builders.BuilderFactory.register(TicketType.MONGODB_BACKUP)

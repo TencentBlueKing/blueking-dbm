@@ -11,11 +11,13 @@ specific language governing permissions and limitations under the License.
 from contextlib import contextmanager
 from typing import Dict, List
 
+from django.db.models import Q
 from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
 from backend.configuration.constants import AffinityEnum, DBType
-from backend.db_meta.models import Cluster, Machine, StorageInstance
+from backend.db_meta.models import Cluster, Machine
+from backend.db_services.mongodb.resources.query import MongoDBListRetrieveResource
 from backend.flow.utils.mongodb.db_table_filter import MongoDbTableFilter
 from backend.ticket import builders
 from backend.ticket.builders import TicketFlowBuilder
@@ -26,7 +28,7 @@ from backend.ticket.builders.common.base import (
 )
 
 MONGODB_SHARD_GROUP_COUNT = 3
-MONGODB_JS_FILE_PREFIX = "/mongodb/script_result"
+MONGODB_JS_FILE_PREFIX = "mongodb/script_result"
 
 
 class DBTableSerializer(serializers.Serializer):
@@ -46,7 +48,9 @@ class BaseMongoDBTicketFlowBuilder(MongoDBTicketFlowBuilderPatchMixin, TicketFlo
 
 class BaseMongoDBOperateDetailSerializer(SkipToRepresentationMixin, serializers.Serializer):
     @classmethod
-    def validate_shrink_machine_affinity(cls, cluster: Cluster, machines: List[Machine], spec_id: int, count: int):
+    def validate_shrink_spec_machine_affinity(
+        cls, cluster: Cluster, machines: List[Machine], spec_id: int, count: int
+    ):
         """在缩容指定规格的机器后，剩余的机器仍能满足亲和性要求"""
         if cluster.disaster_tolerance_level != AffinityEnum.CROS_SUBZONE:
             return
@@ -65,21 +69,34 @@ class BaseMongoDBOperateDetailSerializer(SkipToRepresentationMixin, serializers.
         raise serializers.ValidationError(_("缩容规格: {} 的台数: {} 后不满足容灾要求!").format(spec_id, count))
 
     @classmethod
+    def validate_shrink_ip_machine_affinity(cls, cluster: Cluster, machines: List[Machine], ips: List[str]):
+        """在缩容指定ip的机器后，剩余的机器仍能满足亲和性要求"""
+        if cluster.disaster_tolerance_level != AffinityEnum.CROS_SUBZONE:
+            return
+
+        remain_machine_subzone_ids = [machine.bk_sub_zone_id for machine in machines if machine.ip not in ips]
+        if len(set(remain_machine_subzone_ids)) < 2:
+            raise serializers.ValidationError(_("缩容机器: {} 后不满足容灾要求!").format(ips))
+
+    @classmethod
     def validate_machine_in_different_shard(cls, machines: List[Machine]):
         """校验这一批机器对应的shard节点在不同的分片"""
-        storages = StorageInstance.objects.prefetch_related(
-            "nosqlstoragesetdtl_set", "as_ejector", "as_receiver", "cluster", "machine"
-        ).filter(machine__in=machines)
+        storages, storage_id__shard = MongoDBListRetrieveResource.query_storage_shard(Q(machine__in=machines))
         shard_set = set()
         for storage in storages:
-            primary = (storage.as_ejector.all() or storage.as_receiver.all()).first().ejector
-            shard = primary.nosqlstoragesetdtl_set.first().shard
-            unique_shard_name = f"{primary.cluster.id}_{primary.machine.machine_type}_{shard}"
+            shard = storage_id__shard[storage.id]
+            unique_shard_name = f"{storage.cluster.first().id}_{storage.machine.machine_type}_{shard}"
             if unique_shard_name in shard_set:
-                raise serializers.ValidationError(
-                    _("集群:{}, 请保证机器{}不能再同一个分片{}中").format(primary.cluster.name, primary.machine.machine_type, shard)
-                )
+                raise serializers.ValidationError(_("请保证机器{}不能再同一个分片{}中").format(storage.machine.ip, shard))
             shard_set.add(unique_shard_name)
+
+    @classmethod
+    def validate_cluster_same_attr(cls, clusters: List[Cluster], attrs: List[str]):
+        """校验一批集群的属性一致"""
+        for attr in attrs:
+            attr_set = set([getattr(cluster, attr, None) for cluster in clusters])
+            if len(attr_set) > 1:
+                raise serializers.ValidationError(_("请保证这一批集群的属性: {}是一致的").format(attr))
 
     def validate(self, attrs):
         return attrs

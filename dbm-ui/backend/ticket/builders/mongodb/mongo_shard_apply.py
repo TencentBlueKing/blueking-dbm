@@ -65,8 +65,7 @@ class MongoShardedClusterApplyFlowParamBuilder(builders.FlowParamBuilder):
     controller = MongoDBController.cluster_create
 
     def format_ticket_data(self):
-        # TODO: 待后台flow就绪调试
-        pass
+        self.ticket_data["bk_app_abbr"] = self.ticket_data["db_app_abbr"]
 
 
 class MongoShardedClusterResourceParamBuilder(BaseMongoDBOperateResourceParamBuilder):

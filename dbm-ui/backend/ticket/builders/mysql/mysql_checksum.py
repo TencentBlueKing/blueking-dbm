@@ -18,7 +18,7 @@ from rest_framework import serializers
 
 from backend.db_meta.enums import InstanceInnerRole
 from backend.db_meta.models import StorageInstance
-from backend.db_services.mysql.dataclass import DBInstance
+from backend.db_services.dbbase.dataclass import DBInstance
 from backend.flow.engine.controller.mysql import MySQLController
 from backend.ticket import builders
 from backend.ticket.builders.common.base import InstanceInfoSerializer

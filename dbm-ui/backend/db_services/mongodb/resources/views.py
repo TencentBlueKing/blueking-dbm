@@ -17,6 +17,7 @@ from rest_framework.response import Response
 
 from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.bk_web.viewsets import SystemViewSet
+from backend.configuration.constants import DBType
 from backend.db_meta.enums import AccessLayer, MachineType, MachineTypeInstanceRoleMap
 from backend.db_meta.models.cluster import Cluster
 from backend.db_services.dbbase.resources import serializers
@@ -73,6 +74,7 @@ from backend.db_services.mongodb.resources.query import MongoDBListRetrieveResou
     ),
 )
 class MongoDBViewSet(ResourceViewSet):
+    db_type = DBType.MongoDB
     query_class = MongoDBListRetrieveResource
     query_serializer_class = serializers.ListMongoDBResourceSLZ
     list_instances_slz = serializers.MongoDBListInstancesSerializer

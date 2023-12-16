@@ -280,10 +280,10 @@ class MongoRepository:
 
 class MongoDBNsFilter(object):
     class Serializer(serializers.Serializer):
-        db_patterns = serializers.ListField(child=serializers.CharField())
-        table_patterns = serializers.ListField(child=serializers.CharField())
-        ignore_dbs = serializers.ListField(child=serializers.CharField())
-        ignore_tables = serializers.ListField(child=serializers.CharField())
+        db_patterns = serializers.ListField(child=serializers.CharField(), allow_null=True)
+        table_patterns = serializers.ListField(child=serializers.CharField(), allow_null=True)
+        ignore_dbs = serializers.ListField(child=serializers.CharField(), allow_null=True)
+        ignore_tables = serializers.ListField(child=serializers.CharField(), allow_null=True)
 
     """
     MongoDBNsFilter
@@ -372,7 +372,7 @@ class MongoNodeWithLabel(object):
             "app": self.app,
             "app_name": self.app_name,
             "cluster_domain": self.cluster_domain,
-            "cluster_id": str(self.cluster_id),
+            "cluster_id": int(self.cluster_id),
             "cluster_name": self.cluster_name,
             "cluster_type": self.cluster_type,
             "role_type": self.role_type,

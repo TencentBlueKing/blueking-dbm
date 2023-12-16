@@ -8,15 +8,12 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from collections import defaultdict
 from typing import Any, Callable, Dict, List
 
 from django.db.models import CharField, ExpressionWrapper, F, Q, QuerySet, Value
 from django.db.models.functions import Concat
 from django.utils.translation import ugettext_lazy as _
 
-from backend.db_meta.api.cluster.mongocluster import scan_cluster as mongo_shard_scan_cluster
-from backend.db_meta.api.cluster.mongorepset import scan_cluster as mongo_replicaset_scan_cluster
 from backend.db_meta.enums import ClusterType, InstanceRole, MachineType
 from backend.db_meta.models.cluster import Cluster
 from backend.db_meta.models.cluster_entry import ClusterEntry
@@ -24,7 +21,7 @@ from backend.db_meta.models.instance import ProxyInstance, StorageInstance
 from backend.db_services.dbbase.resources import query
 from backend.db_services.dbbase.resources.query import ResourceList
 from backend.db_services.dbresource.handlers import MongoDBShardSpecFilter
-from backend.ticket.constants import TicketStatus
+from backend.ticket.constants import TicketType
 from backend.ticket.models import InstanceOperateRecord
 
 
@@ -52,7 +49,7 @@ class MongoDBListRetrieveResource(query.ListRetrieveResource):
         """查询集群信息"""
         filter_params_map = {
             "cluster_type": Q(cluster_type=query_params.get("cluster_type")),
-            "domains": Q(cluster__immute_domain=query_params.get("domains")),
+            "domains": Q(immute_domain__in=query_params.get("domains", "").split(",")),
         }
 
         def filter_exact_domain(_query_params, _cluster_queryset, _proxy_queryset, _storage_queryset):
@@ -78,10 +75,18 @@ class MongoDBListRetrieveResource(query.ListRetrieveResource):
         """将集群对象转为可序列化的 dict 结构"""
         mongodb_insts = [m for m in cluster.storages if m.machine.machine_type == MachineType.MONGODB]
 
-        # 获取mongodb的角色信息
-        mongos = [m.simple_desc for m in cluster.proxies]
+        # 获取mongos/mongodb/mongo_config的角色信息
         mongodb = [m.simple_desc for m in mongodb_insts]
         mongo_config = [m.simple_desc for m in cluster.storages if m.machine.machine_type == MachineType.MONOG_CONFIG]
+        mongos = [
+            {
+                **m.simple_desc,
+                "bk_sub_zone_id": m.machine.bk_sub_zone_id,
+                "bk_sub_zone": m.machine.bk_sub_zone,
+                "bk_city": cluster.region,
+            }
+            for m in cluster.proxies
+        ]
 
         # 获取mongodb的分片数和单分片实例数
         if cluster.cluster_type == ClusterType.MongoReplicaSet:
@@ -119,26 +124,14 @@ class MongoDBListRetrieveResource(query.ListRetrieveResource):
             "mongo_config": mongo_config,
             "shard_num": shard_num,
             "shard_node_count": shard_node_count,
+            "temporary_info": cls.get_temporary_cluster_info(cluster, TicketType.MONGODB_RESTORE),
+            "disaster_tolerance_level": cluster.disaster_tolerance_level,
         }
         cluster_info = super()._to_cluster_representation(
             cluster, db_module_names_map, cluster_entry_map, cluster_operate_records_map, **kwargs
         )
         cluster_info.update(cluster_extra_info)
         return cluster_info
-
-    @staticmethod
-    def _query_storage_shard(query_conditions):
-        storage_id__shard = {}
-        storage_instance = StorageInstance.objects.prefetch_related(
-            "nosqlstoragesetdtl_set", "as_ejector", "as_receiver"
-        ).filter(query_conditions)
-        for storage in storage_instance:
-            # 找到primary节点
-            ejector: StorageInstance = (storage.as_ejector.all() or storage.as_receiver.all()).first().ejector
-            # 通过primary节点找到关联的NosqlStorageSetDtl表，从而获取该实例的分片
-            shard = ejector.nosqlstoragesetdtl_set.first().shard
-            storage_id__shard[storage.id] = shard
-        return storage_id__shard
 
     @classmethod
     def _list_instances(
@@ -191,7 +184,9 @@ class MongoDBListRetrieveResource(query.ListRetrieveResource):
                 ),
             )
             .select_related("machine")
-            .prefetch_related("cluster", "nosqlstoragesetdtl_set")
+            .prefetch_related(
+                "cluster", "as_receiver__ejector__nosqlstoragesetdtl", "as_ejector__ejector__nosqlstoragesetdtl"
+            )
             .filter(query_filters)
             .values(*fields)
         )
@@ -207,12 +202,7 @@ class MongoDBListRetrieveResource(query.ListRetrieveResource):
     @classmethod
     def _filter_instance_hook(cls, bk_biz_id, query_params, instances, **kwargs):
         instance_ids = [f"{instance['machine__bk_host_id']}:{instance['port']}" for instance in instances]
-        records = InstanceOperateRecord.objects.select_related("ticket").filter(
-            instance_id__in=instance_ids, ticket__status=TicketStatus.RUNNING
-        )
-        instance_operator_record_map: Dict[int, List] = defaultdict(list)
-        for record in records:
-            instance_operator_record_map[record.instance_id].append(record.summary)
+        instance_operator_record_map = InstanceOperateRecord.get_instance_records_map(instance_ids)
         return super()._filter_instance_hook(
             bk_biz_id, query_params, instances, instance_operator_record_map=instance_operator_record_map, **kwargs
         )
@@ -232,9 +222,38 @@ class MongoDBListRetrieveResource(query.ListRetrieveResource):
 
     @classmethod
     def get_topo_graph(cls, bk_biz_id: int, cluster_id: int) -> dict:
+        from backend.db_meta.api.cluster.mongocluster import scan_cluster as mongo_shard_scan_cluster
+        from backend.db_meta.api.cluster.mongorepset import scan_cluster as mongo_replicaset_scan_cluster
+
         cluster = Cluster.objects.get(bk_biz_id=bk_biz_id, id=cluster_id)
         if cluster.cluster_type == ClusterType.MongoReplicaSet:
             graph = mongo_replicaset_scan_cluster(cluster).to_dict()
         else:
             graph = mongo_shard_scan_cluster(cluster).to_dict()
         return graph
+
+    @staticmethod
+    def query_storage_shard(query_conditions):
+        """查询mongodb的分片信息"""
+        storage_id__shard: Dict[int, str] = {}
+        storage_instance = (
+            StorageInstance.objects.select_related("machine")
+            .prefetch_related(
+                # TODO: 为啥不能这样预取：as_receiver__ejector__nosqlstoragesetdtl?
+                "cluster",
+                "as_receiver__ejector",
+                "as_ejector__ejector",
+            )
+            .filter(query_conditions)
+        )
+        for storage in storage_instance:
+            if storage.cluster.first().cluster_type == ClusterType.MongoReplicaSet:
+                # 副本集没有分片信息，返回空
+                storage_id__shard[storage.id] = ""
+            else:
+                # 找到primary节点
+                ejector: StorageInstance = (storage.as_ejector.all() or storage.as_receiver.all()).first().ejector
+                # 通过primary节点找到关联的NosqlStorageSetDtl表，从而获取该实例的分片
+                shard = ejector.nosqlstoragesetdtl_set.first().seg_range
+                storage_id__shard[storage.id] = shard
+        return storage_instance, storage_id__shard

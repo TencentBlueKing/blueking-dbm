@@ -323,6 +323,7 @@ class TicketType(str, StructuredEnum):
     MONGODB_AUTHORIZE = EnumField("MONGODB_AUTHORIZE", _("MongoDB 授权"))
     MONGODB_EXCEL_AUTHORIZE = EnumField("MONGODB_EXCEL_AUTHORIZE", _("MongoDB Excel授权"))
     MONGODB_RESTORE = EnumField("MONGODB_RESTORE", _("MongoDB 定点回档"))
+    MONGODB_TEMPORARY_DESTROY = EnumField("MONGODB_TEMPORARY_DESTROY", _("MongoDB 临时集群销毁"))
 
     # 云区域组件
     CLOUD_SERVICE_APPLY = EnumField("CLOUD_SERVICE_APPLY", _("云区域服务部署"))

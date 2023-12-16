@@ -9,44 +9,9 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 from dataclasses import asdict, dataclass
-from typing import Dict, List, Union
+from typing import Dict, List
 
 from backend.db_meta.enums.cluster_type import ClusterType
-from backend.db_meta.models import ProxyInstance, StorageInstance
-
-
-@dataclass
-class DBInstance:
-    bk_host_id: int
-    ip: str
-    bk_cloud_id: int
-    port: int
-    spec_config: dict
-
-    @classmethod
-    def from_inst_obj(cls, inst_obj: Union[Dict, StorageInstance, ProxyInstance]) -> "DBInstance":
-        if isinstance(inst_obj, Dict):
-            return cls(
-                inst_obj["bk_host_id"],
-                inst_obj["ip"],
-                inst_obj["bk_cloud_id"],
-                inst_obj["port"],
-                inst_obj["spec_config"],
-            )
-
-        return cls(
-            inst_obj.machine.bk_host_id,
-            inst_obj.machine.ip,
-            inst_obj.machine.bk_cloud_id,
-            inst_obj.port,
-            inst_obj.machine.spec_config,
-        )
-
-    def __str__(self):
-        return f"{self.bk_host_id}-{self.bk_cloud_id}-{self.ip}-{self.port}"
-
-    def as_dict(self):
-        return asdict(self)
 
 
 @dataclass

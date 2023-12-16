@@ -26,7 +26,7 @@ def enable(addresses: Optional[List]):
     启用Influxdb实例
     """
 
-    storages = StorageInstance.find_storage_instance_by_addresses(addresses)
+    storages = StorageInstance.find_storage_instance_by_ip(addresses)
     for storage in storages:
         storage.status = InstanceStatus.RUNNING.value
         storage.phase = InstancePhase.ONLINE.value

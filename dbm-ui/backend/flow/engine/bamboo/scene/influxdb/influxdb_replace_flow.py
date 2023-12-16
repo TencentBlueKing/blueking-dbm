@@ -59,7 +59,7 @@ class InfluxdbReplaceFlow(object):
         for i, influxdb in enumerate(self.data["new_nodes"]["influxdb"]):
 
             old_node = self.data["old_nodes"]["influxdb"][i]
-            storage = StorageInstance.find_storage_instance_by_addresses([old_node["ip"]])[0]
+            storage = StorageInstance.find_storage_instance_by_ip([old_node["ip"]])[0]
             group_instance = GroupInstance.objects.get(instance_id=storage.id)
             group = Group.objects.get(id=group_instance.group_id)
             self.data["group_name"] = group.name

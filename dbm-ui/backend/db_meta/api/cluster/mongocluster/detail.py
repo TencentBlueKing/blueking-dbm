@@ -9,11 +9,17 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
+import operator
+from functools import reduce
+from typing import List
+
+from django.db.models import Q
 from django.utils.translation import gettext as _
 
 from backend.db_meta.api.cluster.base.graph import Graphic, LineLabel
-from backend.db_meta.enums import AccessLayer, InstanceRole, MachineType
+from backend.db_meta.enums import AccessLayer, MachineType, MachineTypeInstanceRoleMap
 from backend.db_meta.models import Cluster
+from backend.db_services.mongodb.resources.query import MongoDBListRetrieveResource
 
 
 def scan_cluster(cluster: Cluster) -> Graphic:
@@ -31,6 +37,7 @@ def scan_cluster(cluster: Cluster) -> Graphic:
     """
     graph = Graphic(node_id=Graphic.generate_graphic_id(cluster))
 
+    # 获取mongos节点组
     mongos_insts, mongos_group = graph.add_instance_nodes_with_machine_type(
         cluster=cluster,
         roles=AccessLayer.PROXY,
@@ -38,57 +45,40 @@ def scan_cluster(cluster: Cluster) -> Graphic:
         group_name=_("Mongos 节点"),
         inst_type="proxy",
     )
+
+    # 获取config_svr节点组
     _dummy, configs_group = graph.add_instance_nodes_with_machine_type(
         cluster=cluster,
-        roles=[
-            InstanceRole.MONGO_M1,
-            InstanceRole.MONGO_M2,
-            InstanceRole.MONGO_M3,
-            InstanceRole.MONGO_M4,
-            InstanceRole.MONGO_M5,
-            InstanceRole.MONGO_M6,
-            InstanceRole.MONGO_M7,
-            InstanceRole.MONGO_M8,
-            InstanceRole.MONGO_M9,
-            InstanceRole.MONGO_M10,
-        ],
+        roles=MachineTypeInstanceRoleMap[MachineType.MONOG_CONFIG],
         machine_type=MachineType.MONOG_CONFIG,
         group_name=_("ConfigServer 节点"),
     )
-    _dummy, shard_group = graph.add_instance_nodes_with_machine_type(
+
+    # 获取各个分片的节点组
+    inst_filter = Q(
+        reduce(operator.or_, [Q(instance_role=role) for role in MachineTypeInstanceRoleMap[MachineType.MONOG_CONFIG]]),
         cluster=cluster,
-        roles=[
-            InstanceRole.MONGO_M1,
-            InstanceRole.MONGO_M2,
-            InstanceRole.MONGO_M3,
-            InstanceRole.MONGO_M4,
-            InstanceRole.MONGO_M5,
-            InstanceRole.MONGO_M6,
-            InstanceRole.MONGO_M7,
-            InstanceRole.MONGO_M8,
-            InstanceRole.MONGO_M9,
-            InstanceRole.MONGO_M10,
-        ],
         machine_type=MachineType.MONGODB,
-        group_name=_("Shard 节点"),
     )
-    _dummy, backup_group = graph.add_instance_nodes_with_machine_type(
-        cluster=cluster, roles=InstanceRole.MONGO_BACKUP, machine_type=MachineType.MONGODB, group_name=_("Backup 节点")
-    )
+    insts, inst_id__shard = MongoDBListRetrieveResource.query_storage_shard(inst_filter)
+
+    shard_groups: List[str] = []
+    for inst in insts:
+        shard_group_name = _("分片{} 节点").format(inst_id__shard[inst.id])
+        shard_group = graph.get_or_create_group(group_id=shard_group_name, group_name=shard_group_name)
+        graph.add_node(ins=inst, to_group=shard_group)
+        # mongos -----> 各个shard，关系为：访问
+        if shard_group_name not in shard_groups:
+            graph.add_line(source=mongos_group, target=shard_group, label=LineLabel.Access)
+            shard_groups.append(shard_group_name)
 
     # 获得访问入口节点组
     entry = mongos_insts.first().bind_entry.first()
     _dummy, entry_group = graph.add_node(entry)
 
-    # 访问入口 ----> Mongos节点，关系为：访问
-    graph.add_line(source=entry_group, target=mongos_group, label=LineLabel.Access)
-
+    # 访问入口 ----> Mongos节点，关系为：域名绑定
+    graph.add_line(source=entry_group, target=mongos_group, label=LineLabel.Bind)
+    # mongos -----> config_svr，关系为：访问
     graph.add_line(source=mongos_group, target=configs_group, label=LineLabel.Access)
-    graph.add_line(source=mongos_group, target=shard_group, label=LineLabel.ReadWrite)
-
-    graph.add_line(source=configs_group, target=shard_group, label=LineLabel.Access)
-    graph.add_line(source=configs_group, target=backup_group, label=LineLabel.Access)
-
-    graph.add_line(source=shard_group, target=backup_group, label=LineLabel.Access)
 
     return graph

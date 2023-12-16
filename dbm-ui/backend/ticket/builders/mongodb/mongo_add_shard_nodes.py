@@ -32,7 +32,7 @@ class MongoDBAddShardNodesDetailSerializer(BaseMongoDBOperateDetailSerializer):
     ip_source = serializers.ChoiceField(
         help_text=_("主机来源"), choices=IpSource.get_choices(), default=IpSource.RESOURCE_POOL
     )
-    is_safe = serializers.BooleanField(help_text=_("是否做安全检测"))
+    is_safe = serializers.BooleanField(help_text=_("是否做安全检测"), default=True, required=False)
     infos = serializers.ListSerializer(help_text=_("扩容shard节点数申请信息"), child=AddShardNodesDetailSerializer())
 
     def validate(self, attrs):

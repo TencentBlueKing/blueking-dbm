@@ -32,14 +32,22 @@ class MongoDBFullBackupDetailSerializer(BaseMongoDBOperateDetailSerializer):
 
 
 class MongoDBFullBackupFlowParamBuilder(builders.FlowParamBuilder):
-    controller = MongoDBController.fake_scene
+    controller = MongoDBController.mongo_backup
 
     def format_ticket_data(self):
-        MongoDBBackupFlowParamBuilder.add_cluster_type_info(self.ticket_data)
+        self.ticket_data["infos"] = MongoDBBackupFlowParamBuilder.add_cluster_type_info(self.ticket_data["infos"])
+        for info in self.ticket_data["infos"]:
+            info["backup_type"] = info["backup_host"] = ""
+            info["ns_filter"] = {
+                "db_patterns": None,
+                "table_patterns": None,
+                "ignore_dbs": None,
+                "ignore_tables": None,
+            }
 
 
 @builders.BuilderFactory.register(TicketType.MONGODB_FULL_BACKUP)
-class MongoDBClearApplyFlowBuilder(BaseMongoDBTicketFlowBuilder):
+class MongoDBFullBackupApplyFlowBuilder(BaseMongoDBTicketFlowBuilder):
     serializer = MongoDBFullBackupDetailSerializer
     inner_flow_builder = MongoDBFullBackupFlowParamBuilder
     inner_flow_name = _("MongoDB 全库备份执行")
