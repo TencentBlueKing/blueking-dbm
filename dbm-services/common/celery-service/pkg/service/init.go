@@ -6,21 +6,33 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/gin-gonic/gin"
-
 	"celery-service/pkg/handler"
 	"celery-service/pkg/log"
+	"dbm-services/common/go-pubpkg/apm/metric"
+	"dbm-services/common/go-pubpkg/apm/trace"
+
+	"github.com/gin-gonic/gin"
+	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
 )
 
 var r *gin.Engine
 var logger *slog.Logger
 
+// Init TODO
 func Init() error {
 	logger = log.GetLogger("root")
 
 	r = gin.New()
 
 	r.Use(gin.Recovery())
+
+	// setup trace
+	trace.Setup()
+	// apm: add otlgin middleware
+	r.Use(otelgin.Middleware("celery_service"))
+	// apm: add prom metrics middleware
+	metric.NewPrometheus("").Use(r)
+
 	r.Use(func(ctx *gin.Context) {
 		start := time.Now()
 

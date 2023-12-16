@@ -5,10 +5,14 @@ import (
 	"net/http"
 	"os"
 
+	"dbm-services/common/go-pubpkg/apm/metric"
+	"dbm-services/common/go-pubpkg/apm/trace"
+
 	"github.com/gin-gonic/gin"
 	"github.com/golang-migrate/migrate/v4"
 	flag "github.com/spf13/pflag"
 	"github.com/spf13/viper"
+	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
 	"golang.org/x/exp/slog"
 
 	"dbm-services/mysql/db-partition/assests"
@@ -50,6 +54,14 @@ func main() {
 	gin.SetMode(gin.ReleaseMode)
 	r := gin.New()
 	r.Use(gin.Recovery())
+
+	// setup trace
+	trace.Setup()
+	// apm: add otlgin middleware
+	r.Use(otelgin.Middleware("db_partition"))
+	// apm: add prom metrics middleware
+	metric.NewPrometheus("").Use(r)
+
 	r.Handle(http.MethodGet, "/ping", func(context *gin.Context) {
 		context.String(http.StatusOK, "pong")
 	})

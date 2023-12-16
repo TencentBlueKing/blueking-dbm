@@ -46,6 +46,8 @@ spec:
             - name: http
               containerPort: 80
               protocol: TCP
+          env:
+            {{- include "envs" . | trim | nindent 12 }}
           {{- if .Values.livenessProbe.enabled }}
           livenessProbe:
             httpGet:

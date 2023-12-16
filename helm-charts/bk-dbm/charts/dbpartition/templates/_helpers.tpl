@@ -71,3 +71,14 @@ k8sWaitFor Image
   {{- include "dbm.migration.image" (dict "image" .Values.image.k8sWaitFor "imageRoot" .Values.image) -}}
 {{- end -}}
 {{- end -}}
+
+{{/*
+environment variables
+*/}}
+{{- define "envs" -}}
+{{- range $key, $val := .Values.envs }}
+- name: {{ $key }}
+  value: {{ $val | quote }}
+{{- end }}
+{{- end }}
+

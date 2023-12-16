@@ -3,20 +3,18 @@ kind: Deployment
 metadata:
   name: {{ include "db-dns-api.fullname" . }}
   labels:
-{{ include "db-dns-api.labels" . | indent 4 }}
+    {{ include "db-dns-api.labels" . | nindent 4 }}
 spec:
   replicas: {{ .Values.replicaCount }}
   selector:
     matchLabels:
-      app.kubernetes.io/name: {{ include "db-dns-api.name" . }}
-      app.kubernetes.io/instance: {{ .Release.Name }}
+      {{- include "db-dns-api.selectorLabels" . | nindent 6 }}
   template:
     metadata:
       annotations:
         reloader.stakater.com/auto: "true"
       labels:
-        app.kubernetes.io/name: {{ include "db-dns-api.name" . }}
-        app.kubernetes.io/instance: {{ .Release.Name }}
+        {{- include "db-dns-api.selectorLabels" . | nindent 8 }}
     spec:
       volumes:
         - name: gcsdnsdir
@@ -50,7 +48,6 @@ spec:
               protocol: TCP
           env:
             {{- include "envs" . | trim | nindent 12 }}
-
           envFrom:
             {{- if .Values.extraEnvVarsCM }}
             - configMapRef:

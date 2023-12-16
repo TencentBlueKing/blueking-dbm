@@ -10,12 +10,17 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"strconv"
 
+	"dbm-services/common/go-pubpkg/apm/metric"
+	"dbm-services/common/go-pubpkg/apm/trace"
+	"dbm-services/mysql/db-remote-service/pkg/apm"
 	"dbm-services/mysql/db-remote-service/pkg/config"
 	"dbm-services/mysql/db-remote-service/pkg/service"
 
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/cobra"
+	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
 	"gopkg.in/natefinch/lumberjack.v2"
 )
 
@@ -33,8 +38,19 @@ var rootCmd = &cobra.Command{
 
 		r := gin.Default()
 
+		// setup trace
+		trace.Setup()
+		// apm: add otlgin middleware
+		r.Use(otelgin.Middleware("drs"))
+		// add prom metrics middleware
+		metric.NewPrometheus("", apm.CustomMetrics).Use(r)
+
 		r.Handle("GET", "/ping", func(context *gin.Context) {
+			req := context.Request
 			context.String(http.StatusOK, "pong")
+			// custom metric example
+			metric.Id(apm.ErrCnt).Inc([]string{req.URL.String(), req.Method, strconv.Itoa(http.StatusOK)}...)
+			metric.Id(apm.ExecuteCnt).Inc([]string{req.URL.String(), req.Method, strconv.Itoa(http.StatusOK)}...)
 		})
 
 		service.RegisterRouter(r)
