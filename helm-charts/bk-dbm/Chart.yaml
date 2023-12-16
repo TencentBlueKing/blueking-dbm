@@ -39,7 +39,7 @@ dependencies:
   - condition: dbpartition.enabled
     name: dbpartition
     repository: file://charts/dbpartition
-    version: 0.1.10
+    version: 0.1.11
   - condition: db-simulation.enabled
     name: db-simulation
     repository: file://charts/db-simulation
