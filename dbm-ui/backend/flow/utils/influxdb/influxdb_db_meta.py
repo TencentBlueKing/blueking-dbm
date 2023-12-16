@@ -142,7 +142,7 @@ class InfluxdbMeta(object):
             api.cluster.influxdb.create(group_id=self.ticket_data["group_id"], storages=storage_instances)
             # 生成模块
             ips = [influxdb["ip"] for influxdb in self.ticket_data["nodes"]["influxdb"]]
-            storages = StorageInstance.find_storage_instance_by_addresses(ips)
+            storages = StorageInstance.find_storage_instance_by_ip(ips)
             InfluxdbCCTopoOperator(storages).transfer_host_in_cluster_module(
                 machine_type=MachineType.INFLUXDB.value, group_name=self.ticket_data["group_name"]
             )

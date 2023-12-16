@@ -11,7 +11,7 @@ specific language governing permissions and limitations under the License.
 
 import logging
 from collections import defaultdict
-from typing import Any, Dict
+from typing import Any, Dict, List, Union
 
 from django.db import models, transaction
 from django.utils import timezone
@@ -298,6 +298,17 @@ class ClusterOperateRecord(AuditedModel):
             "status": self.ticket.status,
         }
 
+    @classmethod
+    def get_cluster_records_map(cls, cluster_ids: List[int]):
+        """获取集群与操作记录之间的映射关系"""
+        records = cls.objects.prefetch_related("ticket").filter(
+            cluster_id__in=cluster_ids, ticket__status=TicketFlowStatus.RUNNING
+        )
+        cluster_operate_records_map: Dict[int, List] = defaultdict(list)
+        for record in records:
+            cluster_operate_records_map[record.cluster_id].append(record.summary)
+        return cluster_operate_records_map
+
 
 class InstanceOperateRecordManager(models.Manager):
     LOCKED_TICKET_TYPES = {
@@ -350,3 +361,14 @@ class InstanceOperateRecord(AuditedModel):
             "title": self.ticket.get_ticket_type_display(),
             "status": self.ticket.status,
         }
+
+    @classmethod
+    def get_instance_records_map(cls, instance_ids: List[Union[int, str]]):
+        """获取实例与操作记录之间的映射关系"""
+        records = InstanceOperateRecord.objects.select_related("ticket").filter(
+            instance_id__in=instance_ids, ticket__status=TicketStatus.RUNNING
+        )
+        instance_operator_record_map: Dict[int, List] = defaultdict(list)
+        for record in records:
+            instance_operator_record_map[record.instance_id].append(record.summary)
+        return instance_operator_record_map

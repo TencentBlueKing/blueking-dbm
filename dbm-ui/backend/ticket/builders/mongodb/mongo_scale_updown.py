@@ -54,7 +54,7 @@ class MongoDBScaleUpDownFlowParamBuilder(builders.FlowParamBuilder):
     controller = MongoDBController.fake_scene
 
     def format_ticket_data(self):
-        MongoDBBackupFlowParamBuilder.add_cluster_type_info(self.ticket_data)
+        MongoDBBackupFlowParamBuilder.add_cluster_type_info(self.ticket_data["infos"])
 
 
 class MongoDBScaleUpDownResourceParamBuilder(BaseMongoDBOperateResourceParamBuilder):

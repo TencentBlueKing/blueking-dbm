@@ -108,7 +108,6 @@ class MongoDBAuthorizeHandler(AuthorizeHandler):
 
             authorize_data["password"] = user_password_map[mongo_user["user"]]
             authorize_data_list.append(authorize_data)
-
         # 缓存授权数据并返回前置校验结果
         authorize_uid = data_cache(key=None, data=authorize_data_list, cache_time=AUTHORIZE_DATA_EXPIRE_TIME)
         return {

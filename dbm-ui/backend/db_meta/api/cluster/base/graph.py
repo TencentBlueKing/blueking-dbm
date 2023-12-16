@@ -273,7 +273,7 @@ class Graphic:
         if not isinstance(roles, list):
             roles = [roles]
 
-        if type == "storage":
+        if inst_type == "storage":
             instances = StorageInstance.objects.filter(
                 reduce(operator.or_, [Q(instance_role=role) for role in roles]),
                 cluster=cluster,
@@ -281,10 +281,13 @@ class Graphic:
             )
         else:
             instances = ProxyInstance.objects.filter(
-                reduce(operator.or_, [Q(instance_role=role) for role in roles]),
+                reduce(operator.or_, [Q(access_layer=role) for role in roles]),
                 cluster=cluster,
                 machine_type=machine_type,
             )
+
+        if not instances:
+            return None, None
 
         group = self.get_or_create_group(group_id=Node.generate_node_type(instances.first()), group_name=group_name)
         for inst in instances:

@@ -14,4 +14,6 @@ urlpatterns = [
     path("bizs/<int:bk_biz_id>/", include("backend.db_services.mongodb.resources.urls")),
     path("bizs/<int:bk_biz_id>/", include("backend.db_services.mongodb.permission.urls")),
     path("bizs/<int:bk_biz_id>/", include("backend.db_services.mongodb.restore.urls")),
+    path("bizs/<int:bk_biz_id>/", include("backend.db_services.mongodb.cluster.urls")),
+    path("bizs/<int:bk_biz_id>/", include("backend.db_services.mongodb.instance.urls")),
 ]

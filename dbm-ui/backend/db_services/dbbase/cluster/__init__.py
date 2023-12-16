@@ -8,11 +8,3 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-
-from backend.db_services.dbbase.cluster.views import ClusterViewSet as BaseClusterViewSet
-from backend.iam_app.handlers.drf_perm.base import DBManagePermission
-
-
-class ClusterViewSet(BaseClusterViewSet):
-    def _get_custom_permissions(self):
-        return [DBManagePermission()]

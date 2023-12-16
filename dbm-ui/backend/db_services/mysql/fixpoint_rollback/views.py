@@ -40,7 +40,7 @@ from backend.ticket.constants import TicketType
 from backend.ticket.models import ClusterOperateRecord
 from backend.utils.time import str2datetime
 
-SWAGGER_TAG = "db_services/fixpoint_rollback"
+SWAGGER_TAG = "db_services/mysql/fixpoint_rollback"
 
 
 class FixPointRollbackViewSet(viewsets.SystemViewSet):

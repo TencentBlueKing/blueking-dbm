@@ -10,49 +10,49 @@ specific language governing permissions and limitations under the License.
 """
 
 from django.utils.translation import ugettext as _
+from rest_framework import serializers
 
-from backend.flow.engine.controller.spider import SpiderController
+from backend.flow.engine.controller.mongodb import MongoDBController
 from backend.ticket import builders
 from backend.ticket.builders.common.base import CommonValidate
-from backend.ticket.builders.tendbcluster.base import (
-    BaseTendbTicketFlowBuilder,
-    TendbClustersTakeDownDetailsSerializer,
-)
+from backend.ticket.builders.mongodb.base import BaseMongoDBOperateDetailSerializer, BaseMongoDBTicketFlowBuilder
 from backend.ticket.constants import FlowType, TicketType
 from backend.ticket.models import Flow
 
 
-class TendbTemporaryDestroyDetailSerializer(TendbClustersTakeDownDetailsSerializer):
+class MongoDBTemporaryDestroyDetailSerializer(BaseMongoDBOperateDetailSerializer):
+    cluster_ids = serializers.ListField(help_text=_("集群ID列表"), child=serializers.IntegerField())
+
     def validate_cluster_ids(self, value):
         CommonValidate.validate_destroy_temporary_cluster_ids(value)
         return value
 
 
-class TendbTemporaryDisableFlowParamBuilder(builders.FlowParamBuilder):
-    controller = SpiderController.spider_cluster_disable_scene
+class MongoDBTemporaryDisableFlowParamBuilder(builders.FlowParamBuilder):
+    controller = MongoDBController.fake_scene
 
 
-class TendbTemporaryDestroyFlowParamBuilder(builders.FlowParamBuilder):
-    controller = SpiderController.spider_cluster_destroy_scene
+class MongoDBTemporaryDestroyFlowParamBuilder(builders.FlowParamBuilder):
+    controller = MongoDBController.fake_scene
 
 
-@builders.BuilderFactory.register(TicketType.TENDBCLUSTER_TEMPORARY_DESTROY)
-class TendbDestroyFlowBuilder(BaseTendbTicketFlowBuilder):
-    serializer = TendbTemporaryDestroyDetailSerializer
+@builders.BuilderFactory.register(TicketType.MONGODB_TEMPORARY_DESTROY)
+class MongoDBDestroyFlowBuilder(BaseMongoDBTicketFlowBuilder):
+    serializer = MongoDBTemporaryDestroyDetailSerializer
 
     def custom_ticket_flows(self):
         flows = [
             Flow(
                 ticket=self.ticket,
                 flow_type=FlowType.INNER_FLOW.value,
-                details=TendbTemporaryDisableFlowParamBuilder(self.ticket).get_params(),
-                flow_alias=_("TenDBCluster 临时集群下架"),
+                details=MongoDBTemporaryDisableFlowParamBuilder(self.ticket).get_params(),
+                flow_alias=_("MongoDB 临时集群下架"),
             ),
             Flow(
                 ticket=self.ticket,
                 flow_type=FlowType.INNER_FLOW.value,
-                details=TendbTemporaryDestroyFlowParamBuilder(self.ticket).get_params(),
-                flow_alias=_("TenDBCluster 临时集群销毁"),
+                details=MongoDBTemporaryDestroyFlowParamBuilder(self.ticket).get_params(),
+                flow_alias=_("MongoDB 临时集群销毁"),
             ),
         ]
         return flows
@@ -60,5 +60,5 @@ class TendbDestroyFlowBuilder(BaseTendbTicketFlowBuilder):
     @classmethod
     def describe_ticket_flows(cls, flow_config_map):
         flow_desc = cls._add_itsm_pause_describe(flow_desc=[], flow_config_map=flow_config_map)
-        flow_desc.extend([_("TenDBCluster 临时集群下架"), _("TenDBCluster 临时集群销毁")])
+        flow_desc.extend([_("MongoDB 临时集群下架"), _("MongoDB 临时集群销毁")])
         return flow_desc

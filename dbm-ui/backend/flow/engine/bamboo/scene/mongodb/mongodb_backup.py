@@ -32,7 +32,7 @@ class MongoBackupFlow(MongoBaseFlow):
             cluster_id = serializers.IntegerField()
             cluster_type = serializers.CharField()
             backup_type = serializers.CharField(allow_blank=True)
-            backup_host = serializers.CharField(allow_blank=True, min_length=1, max_length=100)
+            backup_host = serializers.CharField(allow_blank=True)
             ns_filter = MongoDBNsFilter.Serializer(allow_null=True)
 
         uid = serializers.CharField()

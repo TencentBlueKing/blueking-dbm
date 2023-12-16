@@ -74,8 +74,7 @@ class MongoReplicaSetApplyFlowParamBuilder(builders.FlowParamBuilder):
     controller = MongoDBController.multi_replicaset_create
 
     def format_ticket_data(self):
-        # TODO: 待后台flow就绪调试
-        print(self.ticket_data)
+        self.ticket_data["bk_app_abbr"] = self.ticket_data["db_app_abbr"]
 
 
 class MongoReplicaSetResourceParamBuilder(BaseMongoDBOperateResourceParamBuilder):
@@ -101,8 +100,8 @@ class MongoReplicaSetApplyFlowBuilder(BaseMongoDBTicketFlowBuilder):
     @classmethod
     def get_replicaset_resource_spec(cls, ticket_data):
         """获取副本集部署的资源池规格信息"""
-        # TODO: 为什么这样计算group_count？
-        group_count = int(ticket_data["replica_count"] / ticket_data["node_replica_count"])
+        # infos的组数 = 副本集数量 / 单机部署副本集数
+        groups = int(ticket_data["replica_count"] / ticket_data["node_replica_count"])
         infos = [
             {
                 "bk_cloud_id": ticket_data["bk_cloud_id"],
@@ -110,14 +109,14 @@ class MongoReplicaSetApplyFlowBuilder(BaseMongoDBTicketFlowBuilder):
                     "mongo_machine_set": {
                         "affinity": ticket_data["disaster_tolerance_level"],
                         "location_spec": {"city": ticket_data["city_code"], "sub_zone_ids": []},
-                        "group_count": group_count,
+                        # 副本集的亲和性要求至少跨两个机房
+                        "group_count": 2,
                         "count": ticket_data["node_count"],
                         "spec_id": ticket_data["spec_id"],
-                        "set_id": replica_set["set_id"],
                     }
                 },
             }
-            for replica_set in ticket_data["replica_sets"]
+            for _ in range(groups)
         ]
         return infos
 

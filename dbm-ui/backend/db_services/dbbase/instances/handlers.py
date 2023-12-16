@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import importlib
 from dataclasses import asdict
 from typing import Any, Dict, List, Union
 
@@ -15,21 +16,23 @@ from django.db.models import F, Q
 
 from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.models import Machine, ProxyInstance, StorageInstance
+from backend.db_services.dbbase.dataclass import DBInstance
 from backend.db_services.ipchooser.handlers.host_handler import HostHandler
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
-from backend.db_services.mysql.cluster.handlers import ClusterServiceHandler
-from backend.db_services.mysql.dataclass import DBInstance
 
 
 class InstanceHandler:
     def __init__(self, bk_biz_id: int):
         self.bk_biz_id = bk_biz_id
 
-    def check_instances(self, query_instances: List[Union[str, Dict]], cluster_ids: List[int] = None) -> List[dict]:
+    def check_instances(
+        self, query_instances: List[Union[str, Dict]], cluster_ids: List[int] = None, db_type: str = None
+    ) -> List[dict]:
         """
         查询实例的详细信息(包括实例本身信息+主机信息+关联集群信息)
-        :param query_instances: ["0:127.0.0.1:10000", "127.0.0.1", "127.0.0.1:20000"]或者[{....}, [....}]
-        :param cluster_ids: 实例所属的集群ID
+        @param query_instances: ["0:127.0.0.1:10000", "127.0.0.1", "127.0.0.1:20000"]或者[{....}, [....}]
+        @param cluster_ids: 实例所属的集群ID
+        @param db_type: 组件类型
         :return
         """
 
@@ -82,16 +85,28 @@ class InstanceHandler:
         bk_host_ids: List[int] = []
         db_instances: List[DBInstance] = []
         host_id_instance_map: Dict[str, Dict] = {}
-        instance_related_clusters: List[Dict[str, Any]] = ClusterServiceHandler(
-            self.bk_biz_id
-        ).find_related_clusters_by_instances(
+
+        # 应该根据db_type来选择handler更合理，如果没传默认为dbbase
+        db_type = db_type or "dbbase"
+        handler_import_path = f"backend.db_services.{db_type}.cluster.handlers"
+        try:
+            handler_class = getattr(importlib.import_module(handler_import_path), "ClusterServiceHandler")
+            handler = handler_class(self.bk_biz_id)
+        except (ModuleNotFoundError, AttributeError):
+            from backend.db_services.dbbase.cluster.handlers import ClusterServiceHandler
+
+            handler = ClusterServiceHandler(self.bk_biz_id)
+
+        # 查询实例关联的集群信息
+        instance_related_clusters: List[Dict[str, Any]] = handler.find_related_clusters_by_instances(
             instances=[DBInstance.from_inst_obj(inst) for inst in storages_proxies_instances]
         )
         inst_address__related_clusters_map: Dict[str, Dict[str, Any]] = {
             info["instance_address"]: info for info in instance_related_clusters
         }
-        cloud_info = ResourceQueryHelper.search_cc_cloud(get_cache=True)
 
+        cloud_info = ResourceQueryHelper.search_cc_cloud(get_cache=True)
+        # 补充实例的基本信息，关联集群信息和主机信息
         for inst in storages_proxies_instances:
             db_inst = DBInstance.from_inst_obj(inst)
             db_inst_address = f"{db_inst.ip}:{db_inst.port}"
