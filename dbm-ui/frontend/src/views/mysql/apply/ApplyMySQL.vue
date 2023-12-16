@@ -106,7 +106,7 @@
           v-model="formdata.details.city_code" />
         <DbCard :title="$t('数据库部署信息')">
           <AffinityItem
-            v-if="!isSingleType"
+            v-if="!isSingleType && !isDefaultCity"
             v-model="formdata.details.resource_spec.backend.affinity" />
           <BkFormItem
             v-if="!isSingleType"
@@ -491,6 +491,8 @@
     const nums = Math.ceil(clusterCount / instCount);
     return isSingleType ? nums : nums * 2;
   });
+
+  const isDefaultCity = computed(() => formdata.details.city_code === 'default');
 
   // 获取基础数据信息
   const {

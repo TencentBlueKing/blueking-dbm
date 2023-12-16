@@ -34,7 +34,9 @@
         <RegionItem
           ref="regionItemRef"
           v-model="formdata.details.city_code" />
-        <DbCard :title="$t('数据库部署信息')">
+        <DbCard
+          v-if="!isDefaultCity"
+          :title="$t('数据库部署信息')">
           <AffinityItem v-model="formdata.details.resource_spec.backend_group.affinity" />
         </DbCard>
         <DbCard :title="$t('部署需求')">
@@ -210,6 +212,8 @@
   const specBackendRef = ref();
   const formdata = ref(initData());
   const regionItemRef = ref();
+
+  const isDefaultCity = computed(() => formdata.value.details.city_code === 'default');
 
   const rules = {
     'details.cluster_name': [{

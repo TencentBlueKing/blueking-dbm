@@ -38,7 +38,9 @@
       <RegionItem
         ref="regionItemRef"
         v-model="formData.details.city_code" />
-      <DbCard :title="$t('数据库部署信息')">
+      <DbCard
+        v-if="!isDefaultCity"
+        :title="$t('数据库部署信息')">
         <AffinityItem v-model="formData.details.disaster_tolerance_level" />
       </DbCard>
       <DbCard :title="$t('部署需求')">
@@ -452,6 +454,8 @@
     const isPass = Boolean(hot.spec_id && hot.count) || Boolean(cold.spec_id && cold.count);
     return (isPass ? 'info' : 'danger');
   });
+
+  const isDefaultCity = computed(() => formData.details.city_code === 'default');
 
   const rules = {
     'details.nodes.master': [

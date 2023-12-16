@@ -300,9 +300,9 @@
         const params = {
           offset: (pagination.current - 1) * pagination.limit,
           limit: pagination.limit,
+          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
           ...paramsMemo,
           ...sortParams,
-          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
         };
 
         isAnomalies.value = false;

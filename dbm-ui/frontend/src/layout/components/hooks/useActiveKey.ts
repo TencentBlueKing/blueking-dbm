@@ -12,7 +12,7 @@ import {
 } from 'vue-router';
 
 export const useActiveKey = (
-  menuRef:Ref<InstanceType<typeof Menu>>,
+  menuRef: Ref<InstanceType<typeof Menu>>,
   defaultKey: string,
   peending = ref(false),
 ) => {
@@ -22,7 +22,7 @@ export const useActiveKey = (
   const parentKey = ref();
   const currentRouteName = ref('');
 
-  const handleMenuKeyChange = (params: {key: string}) => {
+  const handleMenuKeyChange = (params: { key: string }) => {
     router.push({
       name: params.key,
     });
@@ -43,7 +43,7 @@ export const useActiveKey = (
       const allMunuRouteNameMap = Object.values(allMenuItems)
         .reduce((result, item) => Object.assign(result, {
           [item.key]: item.parentKey,
-        }), {} as Record<string, string|undefined>);
+        }), {} as Record<string, string | undefined>);
 
       currentRouteName.value = '';
       _.forEachRight(route.matched, (routeItem) => {

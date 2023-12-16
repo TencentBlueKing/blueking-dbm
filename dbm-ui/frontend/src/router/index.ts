@@ -77,7 +77,6 @@ export default () => {
     }
   }
   useGlobalBizs().changeBizId(Number(currentBiz));
-
   window.PROJECT_CONFIG.BIZ_ID = Number(currentBiz);
   localStorage.setItem('lastBizId', currentBiz);
 

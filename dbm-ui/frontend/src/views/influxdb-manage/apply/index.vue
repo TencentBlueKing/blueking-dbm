@@ -37,21 +37,10 @@
       <RegionItem
         ref="regionItemRef"
         v-model="formdata.details.city_code" />
-      <DbCard :title="$t('数据库部署信息')">
+      <DbCard
+        v-if="!isDefaultCity"
+        :title="$t('数据库部署信息')">
         <AffinityItem v-model="formdata.details.disaster_tolerance_level" />
-        <!-- <BkFormItem
-          :label="$t('容灾要求')"
-          property="details.resource_spec.backend_group.affinity"
-          required>
-          <BkRadioGroup>
-            <BkRadio
-              v-for="item in affinityList"
-              :key="item.value"
-              :label="item.value">
-              {{ item.label }}
-            </BkRadio>
-          </BkRadioGroup>
-        </BkFormItem> -->
       </DbCard>
       <DbCard :title="$t('部署需求')">
         <BkFormItem
@@ -233,6 +222,8 @@
   const specRef = ref();
   const regionItemRef = ref();
 
+  const isDefaultCity = computed(() => formdata.details.city_code === 'default');
+
   const rules = {
     'details.nodes.influxdb': [
       {
@@ -343,6 +334,7 @@
           ...formdata,
           details: getDetails(),
         };
+
         // 若业务没有英文名称则先创建业务英文名称再创建单据，否则直接创建单据
         bizState.hasEnglishName ? handleCreateTicket(params) : handleCreateAppAbbr(params);
       });

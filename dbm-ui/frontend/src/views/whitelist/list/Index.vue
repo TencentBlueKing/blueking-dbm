@@ -93,10 +93,12 @@
 
   const keyword = ref('');
   const selectedMap = shallowRef<Record<number, WhitelistItem>>({});
-  const isPlatform = computed(() => route.matched[0]?.name === 'Platform');
-  const bizId = computed(() => (isPlatform.value ? 0 : currentBizId));
+
+  const isPlatform = route.name === 'PlatformWhitelist';
+  const bizId = isPlatform ? 0 : currentBizId;
+
   const hasSelected = computed(() => Object.keys(selectedMap.value).length > 0);
-  const disabledFunc = (_: any, row: WhitelistItem) => !(row.is_global && !isPlatform.value);
+  const disabledFunc = (_: any, row: WhitelistItem) => !(row.is_global && !isPlatform);
   const columns = [
     {
       type: 'selection',
@@ -113,7 +115,7 @@
       field: 'ips',
       showOverflowTooltip: false,
       render: ({ data }: TableRenderData) => {
-        const isRenderTag = data.is_global && !isPlatform.value;
+        const isRenderTag = data.is_global && !isPlatform;
         return (
           <>
             <RenderRow style={`max-width: calc(100% - ${isRenderTag ? '80px' : '20px'});`} data={data.ips} />
@@ -142,7 +144,7 @@
       field: 'operations',
       width: 140,
       render: ({ data }: TableRenderData) => {
-        const isDisabled = data.is_global && !isPlatform.value;
+        const isDisabled = data.is_global && !isPlatform;
         const tips = {
           disabled: !isDisabled,
           content: t('全局白名单如需编辑请联系平台管理员'),
@@ -179,14 +181,14 @@
     fetchTableData();
   });
 
-  const setRowSelectable = ({ row }: { row: WhitelistItem }) => !(row.is_global && !isPlatform.value);
+  const setRowSelectable = ({ row }: { row: WhitelistItem }) => !(row.is_global && !isPlatform);
 
   function fetchTableData() {
     selectedMap.value = {};
     tableRef.value.fetchData({
       ip: keyword.value,
     }, {
-      bk_biz_id: bizId.value,
+      bk_biz_id: bizId,
     });
   }
 
@@ -209,7 +211,7 @@
     let cloneSelectMap = { ...selectedMap.value };
     if (checked) {
       cloneSelectMap = (tableRef.value.getData() as WhitelistItem[])
-        .filter(item => (isPlatform.value ? true : !item.is_global))
+        .filter(item => (isPlatform ? true : !item.is_global))
         .reduce((result, item) => ({
           ...result,
           [item.id]: item,
