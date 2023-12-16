@@ -37,7 +37,9 @@
       <RegionItem
         ref="regionItemRef"
         v-model="formdata.details.city_code" />
-      <DbCard :title="$t('数据库部署信息')">
+      <DbCard
+        v-if="!isDefaultCity"
+        :title="$t('数据库部署信息')">
         <AffinityItem v-model="formdata.details.disaster_tolerance_level" />
       </DbCard>
       <DbCard :title="$t('部署需求')">
@@ -417,6 +419,8 @@
       : formdata.details.replication_num;
     return max || 2;
   });
+
+  const isDefaultCity = computed(() => formdata.details.city_code === 'default');
 
   const rules = {
     'details.nodes.bookkeeper': [

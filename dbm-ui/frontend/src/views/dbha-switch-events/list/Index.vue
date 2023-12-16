@@ -230,10 +230,11 @@
 
   const fetchTableData = () => {
     isLoading.value = true;
+    const timeArr = filterDateRang.value;
     getEventSwitchList({
       app: window.PROJECT_CONFIG.BIZ_ID,
-      switch_start_time: dayjs(filterDateRang.value[0]).format('YYYY-MM-DD HH:mm:ss'),
-      switch_finished_time: dayjs(filterDateRang.value[1]).format('YYYY-MM-DD HH:mm:ss'),
+      switch_start_time: timeArr[0] ? dayjs(timeArr[0]).format('YYYY-MM-DD HH:mm:ss') : '',
+      switch_finished_time: timeArr[1] ? dayjs(timeArr[1]).format('YYYY-MM-DD HH:mm:ss') : '',
     })
       .then((res) => {
         isAnomalies.value = false;

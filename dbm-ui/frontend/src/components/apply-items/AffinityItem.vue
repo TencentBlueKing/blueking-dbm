@@ -57,5 +57,9 @@
   const handleRadioChange = (value: string) => {
     modelValue.value = value;
   };
+
+  onBeforeUnmount(() => {
+    modelValue.value = 'NONE';
+  });
 </script>
 

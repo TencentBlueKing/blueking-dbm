@@ -139,6 +139,7 @@
     [menuEnum.platformManage]: [
       'PlatformVersionFiles',
       'PlatformDbConfigure',
+      'PlatformWhitelist',
       'PlatGlobalStrategy',
       'PlatRotateSet',
       'PlatMonitorAlarmGroup',

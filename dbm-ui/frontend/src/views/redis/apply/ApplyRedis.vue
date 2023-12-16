@@ -37,7 +37,9 @@
         <RegionItem
           ref="regionItemRef"
           v-model="state.formdata.details.city_code" />
-        <DbCard :title="$t('数据库部署信息')">
+        <DbCard
+          v-if="!isDefaultCity"
+          :title="$t('数据库部署信息')">
           <AffinityItem v-model="state.formdata.details.resource_spec.backend_group.affinity" />
         </DbCard>
         <DbCard :title="t('部署需求')">
@@ -469,6 +471,7 @@
     };
     return types[state.formdata.details.cluster_type as keyof typeof types];
   });
+  const isDefaultCity = computed(() => state.formdata.details.city_code === 'default');
 
   /** 初始化数据 */
   function initData() {
