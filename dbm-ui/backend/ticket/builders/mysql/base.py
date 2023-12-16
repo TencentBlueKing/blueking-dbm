@@ -191,7 +191,7 @@ class DBTableField(serializers.CharField):
     """
 
     # 库表匹配正则
-    db_tb_pattern = re.compile("^[-_a-zA-Z0-9\*\?%]{0,35}$")
+    db_tb_pattern = re.compile("^[-_a-zA-Z0-9\*\?%]{0,35}$")  # noqa: W605
     # 是否为库
     db_field = False
 

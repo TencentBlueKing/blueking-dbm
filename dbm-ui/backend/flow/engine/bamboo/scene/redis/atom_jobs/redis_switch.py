@@ -15,7 +15,6 @@ from typing import List
 from django.utils.translation import ugettext as _
 
 from backend.configuration.constants import DBType
-from backend.db_meta.api.cluster import nosqlcomm
 from backend.db_meta.enums import ClusterType
 from backend.flow.consts import SwitchType, SyncType
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder

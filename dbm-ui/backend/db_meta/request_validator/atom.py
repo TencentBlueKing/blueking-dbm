@@ -11,9 +11,8 @@ specific language governing permissions and limitations under the License.
 import logging
 from typing import List
 
+import validators
 from rest_framework import serializers
-
-from backend.db_meta import validators
 
 logger = logging.getLogger("root")
 
@@ -29,33 +28,6 @@ class _AtomSerializer(serializers.BaseSerializer):
 
     def to_internal_value(self, data):
         return self.field.to_internal_value(data)
-
-
-# def validated_integer(data, min_value=None, max_value=None, allow_null=False) -> int:
-#     field = serializers.IntegerField(min_value=min_value, max_value=max_value, allow_null=allow_null)
-#     slz = _AtomSerializer(data=data, field=field, allow_null=allow_null)
-#     slz.is_valid(raise_exception=True)
-#     return slz.validated_data
-
-
-# def validated_str(data, min_length=None, max_length=None, allow_blank=False, trim_whitespace=True) -> str:
-#     field = serializers.CharField(
-#         min_length=min_length, max_length=max_length, allow_blank=allow_blank, trim_whitespace=trim_whitespace
-#     )
-#     slz = _AtomSerializer(data=data, field=field)
-#     slz.is_valid(raise_exception=True)
-#     return slz.validated_data
-
-
-# def validated_integer_list(data, min_value=None, max_value=None, allow_empty=True, allow_null=True) -> List[int]:
-#     slz = serializers.ListSerializer(
-#         child=serializers.IntegerField(min_value=min_value, max_value=max_value),
-#         data=data,
-#         allow_empty=allow_empty,
-#         allow_null=allow_null,
-#     )
-#     slz.is_valid(raise_exception=True)
-#     return slz.validated_data
 
 
 def validated_str_list(
@@ -110,10 +82,3 @@ def validated_domain_list(
     )
     slz.is_valid(raise_exception=True)
     return slz.validated_data
-
-
-# def validated_ip(data) -> str:
-#     field = serializers.IPAddressField()
-#     slz = _AtomSerializer(data=data, field=field)
-#     slz.is_valid(raise_exception=True)
-#     return slz.validated_data

@@ -10,15 +10,16 @@ specific language governing permissions and limitations under the License.
 """
 import logging
 from collections import defaultdict
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
+import validators
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import transaction
 from django.db.models import Q
 from django.utils.translation import ugettext_lazy as _
 
 from backend.constants import DEFAULT_BK_CLOUD_ID, IP_PORT_DIVIDER
-from backend.db_meta import flatten, request_validator, validators
+from backend.db_meta import flatten, meta_validator, request_validator
 from backend.db_meta.enums import (
     ClusterEntryType,
     ClusterStatus,
@@ -43,7 +44,7 @@ def cities():
     return flatten.cities(BKCity.objects.all())
 
 
-def entry_detail(domains: List[str]) -> List[Dict]:
+def entry_detail(domains: List[str]) -> Dict[str, Dict[Any, list]]:
     entries = {}
     for domain in domains:
         clusterentry_set = defaultdict(list)
@@ -116,7 +117,7 @@ def instances(
         for ad in [ad for ad in addresses if len(ad.strip()) > 0]:
             if validators.ipv4(ad):
                 queries |= Q(**{"machine__ip": ad})
-            elif validators.instance(ad):
+            elif meta_validator.instance(ad):
                 queries |= Q(**{"machine__ip": ad.split(IP_PORT_DIVIDER)[0], "port": ad.split(IP_PORT_DIVIDER)[1]})
             elif validators.domain(ad):
                 queries |= Q(**{"cluster__clusterentry__entry": ad})

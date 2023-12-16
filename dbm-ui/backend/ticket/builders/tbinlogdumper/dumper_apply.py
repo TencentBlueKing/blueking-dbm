@@ -23,7 +23,7 @@ from backend.flow.consts import TBinlogDumperAddType
 from backend.flow.engine.controller.tbinlogdumper import TBinlogDumperController
 from backend.ticket import builders
 from backend.ticket.builders.common.constants import DumperProtocolType
-from backend.ticket.builders.tendbcluster.base import BaseDumperTicketFlowBuilder, BaseTendbTicketFlowBuilder
+from backend.ticket.builders.tendbcluster.base import BaseDumperTicketFlowBuilder
 from backend.ticket.constants import TicketType
 
 

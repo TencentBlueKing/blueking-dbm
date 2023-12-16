@@ -37,7 +37,6 @@ def check_dbmon_heart_beat():
 
 
 def query_by_cluster_dimension(cluster_domain, cap_key="heartbeat", cluster_type="dbmon"):
-
     logger.info("+===+++++=== cluster is: {} +++++===++++ ".format(cluster_domain))
     query_template = QUERY_TEMPLATE.get(cluster_type)
     if not query_template:
@@ -74,8 +73,29 @@ def query_by_cluster_dimension(cluster_domain, cap_key="heartbeat", cluster_type
     return dbmon_heartbeat_data
 
 
-def _check_dbmon_heart_beat():
+def get_report_subtype_for_storage(cluster_type):
+    if cluster_type == ClusterType.TwemproxyTendisSSDInstance.value:
+        heart_beat_subtype = DbmonHeartbeatReportSubType.REDIS_SSD.value
+    elif cluster_type == ClusterType.TendisPredixyTendisplusCluster.value:
+        heart_beat_subtype = DbmonHeartbeatReportSubType.TENDISPLUS.value
+    elif cluster_type == ClusterType.TendisTwemproxyRedisInstance.value:
+        heart_beat_subtype = DbmonHeartbeatReportSubType.REDIS_CACHE.value
+    else:
+        raise NotImplementedError("Dbmon Not supported tendis type:{}".format(cluster_type))
+    return heart_beat_subtype
 
+
+def get_report_subtype_for_proxy(cluster_type):
+    if cluster_type in [ClusterType.TwemproxyTendisSSDInstance.value, ClusterType.TendisTwemproxyRedisInstance.value]:
+        heart_beat_subtype = DbmonHeartbeatReportSubType.TWEMPROXY.value
+    elif cluster_type == ClusterType.TendisPredixyTendisplusCluster.value:
+        heart_beat_subtype = DbmonHeartbeatReportSubType.PREDIXY.value
+    else:
+        raise NotImplementedError("Dbmon Not supported tendis type:{}".format(cluster_type))
+    return heart_beat_subtype
+
+
+def _check_dbmon_heart_beat():
     """
     获取dbmon心跳信息
     """
@@ -122,14 +142,7 @@ def _check_dbmon_heart_beat():
         for ip in missing_heartbeat_ips:
             # 如果是后端存储节点，再区分cache ,ssd ,tendisplus
             if ip in cluster_info["redis_master_ips_set"] or ip in cluster_info["redis_slave_ips_set"]:
-                if c.cluster_type == ClusterType.TwemproxyTendisSSDInstance.value:
-                    cluster_type = DbmonHeartbeatReportSubType.REDIS_SSD.value
-                elif c.cluster_type == ClusterType.TendisPredixyTendisplusCluster.value:
-                    cluster_type = DbmonHeartbeatReportSubType.TENDISPLUS.value
-                elif c.cluster_type == ClusterType.TendisTwemproxyRedisInstance.value:
-                    cluster_type = DbmonHeartbeatReportSubType.REDIS_CACHE.value
-                else:
-                    raise NotImplementedError("Dbmon Not supported tendis type:{}".format(c.cluster_type))
+                heart_beat_subtype = get_report_subtype_for_storage(c.cluster_type)
                 # 获取端口范围：30000-30010
                 port_ranges = []
                 if ip in cluster_info["redis_master_ips_set"]:
@@ -163,28 +176,19 @@ def _check_dbmon_heart_beat():
             elif ip in cluster_info["twemproxy_ips_set"]:
                 twemproxy_ports = cluster_info.get("twemproxy_ports", [])
                 instance = "{} {}".format(ip, twemproxy_ports[0])
-                if (
-                    c.cluster_type == ClusterType.TwemproxyTendisSSDInstance.value
-                    or c.cluster_type == ClusterType.TendisTwemproxyRedisInstance.value
-                ):
-                    cluster_type = DbmonHeartbeatReportSubType.TWEMPROXY.value
-                elif c.cluster_type == ClusterType.TendisPredixyTendisplusCluster.value:
-                    cluster_type = DbmonHeartbeatReportSubType.PREDIXY.value
-                else:
-                    raise NotImplementedError("Dbmon Not supported tendis type: %s" % c.cluster_type)
+                heart_beat_subtype = get_report_subtype_for_proxy(c.cluster_type)
             else:
                 raise NotImplementedError(" %s is not identified in Dbmon" % ip)
             msg = _("实例 {} dbmon 心跳超时").format(instance)
             try:
-                # create_at = models.DateTimeField(_("创建时间"), auto_now_add=True)
-                # 心跳超时的时间点就用这条记录的创建时间代替了，这里对时间要去不严格
+                # 心跳超时的时间点就用这条记录的创建时间代替了，这里对时间要求不严格
                 DbmonHeartbeatReport.objects.create(
                     creator=c.creator,
                     bk_biz_id=c.bk_biz_id,
                     bk_cloud_id=c.bk_cloud_id,
                     status=False,
                     msg=msg,
-                    cluster_type=cluster_type,
+                    cluster_type=heart_beat_subtype,
                     cluster=c.immute_domain,
                     instance=instance,
                     app=app,

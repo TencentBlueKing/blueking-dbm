@@ -12,10 +12,8 @@ specific language governing permissions and limitations under the License.
 import logging
 
 from django.utils.translation import ugettext as _
-from rest_framework import serializers
 
 from backend.db_meta.models import Cluster
-from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.riak import RiakController
 from backend.ticket import builders
 from backend.ticket.builders.common.bigdata import BigDataScaleDetailSerializer

@@ -11,12 +11,9 @@ specific language governing permissions and limitations under the License.
 import logging
 
 from celery.task import task
-from django.dispatch import receiver
 from django.utils import timezone
 from django.utils.translation import ugettext as _
-from pipeline.eri.signals import post_set_state
 
-from backend import env
 from backend.components import CmsiApi
 from backend.configuration.constants import SystemSettingsEnum
 from backend.configuration.models import SystemSettings
@@ -33,7 +30,6 @@ from backend.ticket.models import Flow, Ticket
 logger = logging.getLogger("flow")
 
 
-@receiver(post_set_state, dispatch_uid="_post_set_state_handler")
 def post_set_state_signal_handler(sender, node_id, to_state, version, root_id, *args, **kwargs):
     engine = BambooEngine(root_id=root_id)
     pipeline_states = engine.get_pipeline_states().data

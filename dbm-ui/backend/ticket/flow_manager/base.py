@@ -22,7 +22,6 @@ from backend.ticket import constants
 from backend.ticket.builders.common.base import fetch_cluster_ids, fetch_instance_ids
 from backend.ticket.constants import FLOW_FINISHED_STATUS, FLOW_NOT_EXECUTE_STATUS, FlowErrCode, TicketFlowStatus
 from backend.ticket.models import ClusterOperateRecord, Flow, InstanceOperateRecord
-from backend.utils.basic import get_target_items_from_details
 
 logger = logging.getLogger("root")
 

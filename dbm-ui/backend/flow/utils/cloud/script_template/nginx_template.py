@@ -140,7 +140,11 @@ is_port_listen_by_pid () {
 }
 echo "nginx-pid: $(cat $path/nginx-portable/logs/nginx.pid)";
 is_port_listen_by_pid 80;
-exit $?
+exit_status=$?
+if [ $exit_status -ne 0 ]; then
+    echo "Failed to start nginx service!"
+    exit $exit_status
+fi
 
 # 增加对nginx日志文件的定时清理
 clear_script_path="$path/nginx-portable/cron-clear-logs.sh";
@@ -152,12 +156,12 @@ max_log_size=$((500 * 1024 * 1024))
 # 目前主要清理access_log和err_log
 access_log_size=\$(stat -c%s "$path/nginx-portable/logs/access.log")
 if [ "\$access_log_size" -gt "\$max_log_size" ]; then
-    echo > $nginx_log_path/access.log;
+    echo > \$nginx_log_path/access.log;
 fi
 
 err_log_size=\$(stat -c%s "$path/nginx-portable/logs/error.log")
 if [ "\$err_log_size" -gt "\$max_log_size" ]; then
-    echo > $nginx_log_path/err_log_size.log;
+    echo > \$nginx_log_path/err_log_size.log;
 fi
 " > $clear_script_path;
 

@@ -8,18 +8,3 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from validators import *  # pylint: disable=wildcard-import
-
-
-@validator
-def instance(value):
-    groups = value.split(":")
-    if len(groups) != 2:
-        return False
-
-    return (ipv4(groups[0]) or ipv6(groups[0])) and groups[1].isdigit()
-
-
-@validator
-def port(value):
-    return isinstance(value, int) and 0 < value < 65535

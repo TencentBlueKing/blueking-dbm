@@ -24,7 +24,6 @@ from backend.flow.consts import (
     SyncType,
 )
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
-from backend.flow.plugins.components.collections.redis.exec_shell_script import ExecuteShellReloadMetaComponent
 from backend.flow.plugins.components.collections.redis.redis_db_meta import RedisDBMetaComponent
 from backend.flow.utils.redis.redis_context_dataclass import ActKwargs
 from backend.flow.utils.redis.redis_db_meta import RedisDBMeta

@@ -32,10 +32,14 @@ class FilterDatabaseTableFromFlashbackInputService(BaseService):
         tables = global_data["tables"]
         tables_ignore = global_data["tables_ignore"]
 
-        databases = [ele.replace("_", "\_").replace("*", "%").replace("?", "_") for ele in databases]
-        databases_ignore = [ele.replace("_", "\_").replace("*", "%").replace("?", "_") for ele in databases_ignore]
-        tables = [ele.replace("_", "\_").replace("*", "%").replace("?", "_") for ele in tables]
-        tables_ignore = [ele.replace("_", "\_").replace("*", "%").replace("?", "_") for ele in tables_ignore]
+        databases = [ele.replace("_", "\_").replace("*", "%").replace("?", "_") for ele in databases]  # noqa: W605
+        databases_ignore = [
+            ele.replace("_", "\_").replace("*", "%").replace("?", "_") for ele in databases_ignore  # noqa: W605
+        ]  # noqa: W605
+        tables = [ele.replace("_", "\_").replace("*", "%").replace("?", "_") for ele in tables]  # noqa: W605
+        tables_ignore = [
+            ele.replace("_", "\_").replace("*", "%").replace("?", "_") for ele in tables_ignore  # noqa: W605
+        ]
 
         db_filter_sql = "SELECT SCHEMA_NAME FROM information_schema.SCHEMATA WHERE ({}) AND ({})".format(
             " OR ".join(["SCHEMA_NAME LIKE '{}'".format(ele) for ele in databases]),

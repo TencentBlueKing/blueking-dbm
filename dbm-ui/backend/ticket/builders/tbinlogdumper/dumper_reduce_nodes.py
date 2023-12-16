@@ -22,7 +22,7 @@ from backend.db_services.mysql.dumper.models import DumperSubscribeConfig
 from backend.flow.engine.controller.tbinlogdumper import TBinlogDumperController
 from backend.ticket import builders
 from backend.ticket.builders.common.base import SkipToRepresentationMixin
-from backend.ticket.builders.tendbcluster.base import BaseDumperTicketFlowBuilder, BaseTendbTicketFlowBuilder
+from backend.ticket.builders.tendbcluster.base import BaseDumperTicketFlowBuilder
 from backend.ticket.constants import TicketFlowStatus, TicketType
 
 

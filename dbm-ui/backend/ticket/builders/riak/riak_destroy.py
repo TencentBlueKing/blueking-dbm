@@ -12,7 +12,6 @@ specific language governing permissions and limitations under the License.
 import logging
 
 from django.utils.translation import ugettext as _
-from rest_framework import serializers
 
 from backend.db_meta.enums import ClusterPhase
 from backend.db_meta.models import Cluster

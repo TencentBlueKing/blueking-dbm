@@ -10,9 +10,8 @@ specific language governing permissions and limitations under the License.
 """
 import logging
 
+import validators
 from rest_framework import serializers
-
-from backend.db_meta import validators
 
 from .serializers import CommonSerializer
 

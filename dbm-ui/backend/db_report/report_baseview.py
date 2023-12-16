@@ -9,7 +9,6 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 from rest_framework import mixins
-from rest_framework.permissions import AllowAny
 from rest_framework.viewsets import GenericViewSet
 
 from backend.bk_web.pagination import AuditedLimitOffsetPagination

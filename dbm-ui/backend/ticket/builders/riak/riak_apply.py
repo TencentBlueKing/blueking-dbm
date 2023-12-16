@@ -11,16 +11,14 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
-from backend.configuration.constants import AffinityEnum
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import DBModule
-from backend.db_services.dbbase.constants import IpSource
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.flow.engine.controller.riak import RiakController
 from backend.ticket import builders
 from backend.ticket.builders.common.base import CommonValidate
 from backend.ticket.builders.common.bigdata import BigDataApplyDetailsSerializer
-from backend.ticket.builders.riak.base import RIAK_VERSION, BaseRiakTicketFlowBuilder
+from backend.ticket.builders.riak.base import BaseRiakTicketFlowBuilder
 from backend.ticket.constants import TicketType
 
 

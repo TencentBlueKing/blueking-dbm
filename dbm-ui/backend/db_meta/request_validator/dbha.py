@@ -8,15 +8,16 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import validators
 from rest_framework import serializers
 
-from backend.db_meta import validators
+from backend.db_meta import meta_validator
 
 
 class DBHAInstanceRequestSerializer(serializers.Serializer):
     class AddressField(serializers.CharField):
         def to_internal_value(self, data):
-            if not validators.ipv4(data) and not validators.instance(data):  # and not validators.domain(data):
+            if not validators.ipv4(data) and not meta_validator.instance(data):
                 raise serializers.ValidationError('"{}" is not a valid address'.format(data))
 
     logical_city_ids = serializers.ListField(
