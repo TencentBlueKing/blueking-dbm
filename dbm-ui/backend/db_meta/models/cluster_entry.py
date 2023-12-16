@@ -17,7 +17,6 @@ from django.forms import model_to_dict
 
 from backend import env
 from backend.bk_web.models import AuditedModel
-from backend.components import DnsApi
 from backend.db_meta.enums import ClusterEntryRole, ClusterEntryType
 from backend.db_meta.models import Cluster
 

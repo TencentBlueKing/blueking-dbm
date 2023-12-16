@@ -23,7 +23,7 @@ from backend.flow.plugins.components.collections.common.external_service import 
 from backend.flow.plugins.components.collections.common.sa_idle_check import CheckMachineIdleComponent
 from backend.flow.plugins.components.collections.common.sa_init import SaInitComponent
 from backend.flow.plugins.components.collections.common.transfer_host_service import TransferHostServiceComponent
-from backend.flow.utils.mysql.mysql_act_dataclass import InitCheckForResourceKwargs, InitCheckKwargs
+from backend.flow.utils.mysql.mysql_act_dataclass import InitCheckForResourceKwargs
 
 
 class ImportResourceInitStepFlow(object):

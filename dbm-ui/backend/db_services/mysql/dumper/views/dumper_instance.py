@@ -8,24 +8,17 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-import itertools
-from collections import defaultdict
-from typing import Dict, List
 
 from django.utils.translation import ugettext as _
 
 from backend.bk_web import viewsets
 from backend.bk_web.pagination import AuditedLimitOffsetPagination
 from backend.bk_web.swagger import common_swagger_auto_schema
-from backend.db_meta.enums import InstanceInnerRole
 from backend.db_meta.enums.extra_process_type import ExtraProcessType
-from backend.db_meta.models import Cluster
 from backend.db_meta.models.extra_process import ExtraProcessInstance
 from backend.db_services.mysql.dumper.filters import DumperInstanceListFilter
 from backend.db_services.mysql.dumper.handlers import DumperHandler
 from backend.db_services.mysql.dumper.serializers import DumperInstanceConfigSerializer
-from backend.ticket.constants import TicketStatus, TicketType
-from backend.ticket.models import Ticket
 
 SWAGGER_TAG = "dumper"
 

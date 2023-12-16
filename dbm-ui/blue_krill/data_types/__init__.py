@@ -8,4 +8,4 @@
  * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
  * specific language governing permissions and limitations under the License.
 """
-# 因为 peotry 包兼容问题，临时把此包放到项目中，并且 blue_krill 只使用了 data_types， 后续考虑移除
+# 因为 poetry 包兼容问题，临时把此包放到项目中，并且 blue_krill 只使用了 data_types， 后续考虑移除

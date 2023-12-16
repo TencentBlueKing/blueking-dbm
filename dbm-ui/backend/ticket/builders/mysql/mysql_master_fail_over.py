@@ -17,7 +17,6 @@ from backend.ticket.builders.mysql.base import BaseMySQLTicketFlowBuilder, MySQL
 from backend.ticket.builders.mysql.mysql_master_slave_switch import (
     MysqlDumperMigrateParamBuilder,
     MysqlMasterSlaveSwitchDetailSerializer,
-    MysqlMasterSlaveSwitchFlowBuilder,
     MysqlMasterSlaveSwitchParamBuilder,
 )
 from backend.ticket.constants import FlowRetryType, TicketType

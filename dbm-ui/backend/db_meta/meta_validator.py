@@ -8,20 +8,13 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-import logging
-
-from django.apps import AppConfig
-
-logger = logging.getLogger("root")
+import validators
 
 
-class FlowConfig(AppConfig):
-    default_auto_field = "django.db.models.BigAutoField"
-    name = "backend.flow"
+@validators.validator
+def instance(value):
+    groups = value.split(":")
+    if len(groups) != 2:
+        return False
 
-    def ready(self):
-        from pipeline.eri.signals import post_set_state
-
-        from backend.flow.signal.handlers import post_set_state_signal_handler
-
-        post_set_state.connect(post_set_state_signal_handler, dispatch_uid="_post_set_state_handler")
+    return (validators.ipv4(groups[0]) or validators.ipv6(groups[0])) and groups[1].isdigit()

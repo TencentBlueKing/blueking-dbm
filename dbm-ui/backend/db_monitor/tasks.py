@@ -13,8 +13,7 @@ import logging
 
 from celery import shared_task
 
-from .. import env
-from ..configuration.constants import PLAT_BIZ_ID
+from backend.configuration.constants import PLAT_BIZ_ID
 
 logger = logging.getLogger("celery")
 

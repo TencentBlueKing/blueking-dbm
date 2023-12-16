@@ -13,8 +13,6 @@ from typing import List, Optional
 
 from django.db import transaction
 
-from backend import env
-from backend.components import CCApi
 from backend.db_meta import request_validator
 from backend.db_meta.api import common
 from backend.db_meta.models import Cluster, ClusterEntry, StorageInstance

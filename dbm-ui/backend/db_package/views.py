@@ -10,8 +10,6 @@ specific language governing permissions and limitations under the License.
 """
 import os
 import re
-from collections import defaultdict
-from typing import Dict, List
 
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.db.transaction import atomic

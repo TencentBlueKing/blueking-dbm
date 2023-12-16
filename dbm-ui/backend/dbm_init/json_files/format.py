@@ -8,11 +8,8 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-import json
-from typing import Any, Dict, Optional, Union
+from typing import Dict
 from urllib.parse import urljoin
-
-from jinja2 import Environment
 
 from backend import env
 from backend.configuration.constants import DBType

@@ -27,7 +27,6 @@ from backend.ticket.builders.common.base import fetch_cluster_ids
 from backend.ticket.constants import BAMBOO_STATE__TICKET_STATE_MAP, FlowCallbackType
 from backend.ticket.flow_manager.base import BaseTicketFlow
 from backend.ticket.models import Flow
-from backend.utils.basic import get_target_items_from_details
 from backend.utils.time import datetime2str
 
 logger = logging.getLogger("root")

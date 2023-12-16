@@ -13,7 +13,7 @@ import logging.config
 from collections import defaultdict
 from copy import deepcopy
 from dataclasses import asdict
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 from django.utils.translation import ugettext as _
 
@@ -246,16 +246,7 @@ class RedisDataStructureFlow(object):
             # ### 获取机器磁盘备份目录信息结束############################################################
 
             # ### 数据构造下发actuator 检查备份文件是否存在，新机器磁盘空间是否够##############################################
-            #  GetTendisType 获取redis类型
-            if cluster_type == ClusterType.TendisTwemproxyRedisInstance.value:
-                tendis_type = ClusterType.RedisInstance.value
-            elif cluster_type == ClusterType.TendisPredixyTendisplusCluster.value:
-                tendis_type = ClusterType.TendisplusInstance.value
-            elif cluster_type == ClusterType.TwemproxyTendisSSDInstance.value:
-                tendis_type = ClusterType.TendisSSDInstance.value
-            else:
-                raise NotImplementedError("Not supported tendis type: %s" % cluster_type)
-
+            tendis_type = self.get_tendis_type_by_cluster_type(cluster_type)
             # 目录设置为空，根据获取到的机器备份目录来设置
             dest_dir = ""
             # 整理数据构造下发actuator 源节点和临时集群节点之间的对应关系，# 获取备份信息，用于磁盘空间是否足够的前置检查
@@ -264,37 +255,9 @@ class RedisDataStructureFlow(object):
             )
 
             # ### 检查新机器磁盘空间和内存是否够##############################################
-            acts_list_disk_check = []
-            for index, new_master in enumerate([host["ip"] for host in info["redis"]]):
-
-                # 计算待下载的备份文件大小和获取对应机器磁盘大小,这里是单个任务的时候，还有多个任务的时候
-                multi_total_size = 0
-                for act in acts_list:
-                    data_params = act["kwargs"]["cluster"]
-                    full_size = 0
-                    all_binlog_size = 0
-                    for full in data_params["full_file_list"]:
-                        full_size += full["size"]
-                    # ssd和tendisplus才有binlog文件
-                    if cluster_type in [
-                        ClusterType.TendisTwemproxyRedisInstance.value,
-                        ClusterType.TwemproxyTendisSSDInstance.value,
-                    ]:
-                        for binlog in data_params["binlog_file_list"]:
-                            all_binlog_size += binlog["size"]
-                    total_size = full_size + all_binlog_size
-                    if data_params["new_temp_ip"] == new_master:
-                        multi_total_size += total_size
-                first_act_kwargs.cluster["multi_total_size"] = multi_total_size
-                first_act_kwargs.exec_ip = new_master
-                acts_list_disk_check.append(
-                    {
-                        "act_name": _("redis 数据构造前置磁盘检查").format(first_act_kwargs.exec_ip),
-                        "act_component_code": RedisDataStructurePrecheckComponent.code,
-                        "kwargs": asdict(first_act_kwargs),
-                        "splice_payload_var": "disk_used",
-                    }
-                )
+            acts_list_disk_check = self.generate_acts_list_disk_check(
+                info["redis"], acts_list, cluster_type, first_act_kwargs
+            )
             redis_pipeline.add_parallel_acts(acts_list=acts_list_disk_check)
 
             # 并发下载 节点维度的备份文件
@@ -447,6 +410,54 @@ class RedisDataStructureFlow(object):
 
         redis_pipeline_all.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines_multi_cluster)
         redis_pipeline_all.run_pipeline()
+
+    @staticmethod
+    def generate_acts_list_disk_check(
+        redis_hosts: List[Dict], acts_list: List[Dict], cluster_type: str, first_act_kwargs: ActKwargs
+    ) -> List:
+        acts_list_disk_check = []
+        for index, new_master in enumerate([host["ip"] for host in redis_hosts]):
+            # 计算待下载的备份文件大小和获取对应机器磁盘大小,这里是单个任务的时候，还有多个任务的时候
+            multi_total_size = 0
+            for act in acts_list:
+                data_params = act["kwargs"]["cluster"]
+                full_size = 0
+                all_binlog_size = 0
+                for full in data_params["full_file_list"]:
+                    full_size += full["size"]
+                # ssd和tendisplus才有binlog文件
+                if cluster_type in [
+                    ClusterType.TendisTwemproxyRedisInstance.value,
+                    ClusterType.TwemproxyTendisSSDInstance.value,
+                ]:
+                    for binlog in data_params["binlog_file_list"]:
+                        all_binlog_size += binlog["size"]
+                total_size = full_size + all_binlog_size
+                if data_params["new_temp_ip"] == new_master:
+                    multi_total_size += total_size
+            first_act_kwargs.cluster["multi_total_size"] = multi_total_size
+            first_act_kwargs.exec_ip = new_master
+            acts_list_disk_check.append(
+                {
+                    "act_name": _("redis 数据构造前置磁盘检查").format(first_act_kwargs.exec_ip),
+                    "act_component_code": RedisDataStructurePrecheckComponent.code,
+                    "kwargs": asdict(first_act_kwargs),
+                    "splice_payload_var": "disk_used",
+                }
+            )
+        return acts_list_disk_check
+
+    @staticmethod
+    def get_tendis_type_by_cluster_type(cluster_type: str) -> str:
+        if cluster_type == ClusterType.TendisTwemproxyRedisInstance.value:
+            tendis_type = ClusterType.RedisInstance.value
+        elif cluster_type == ClusterType.TendisPredixyTendisplusCluster.value:
+            tendis_type = ClusterType.TendisplusInstance.value
+        elif cluster_type == ClusterType.TwemproxyTendisSSDInstance.value:
+            tendis_type = ClusterType.TendisSSDInstance.value
+        else:
+            raise NotImplementedError("Not supported tendis type: %s" % cluster_type)
+        return tendis_type
 
     @staticmethod
     def __get_cluster_info(bk_biz_id: int, cluster_id: int) -> dict:

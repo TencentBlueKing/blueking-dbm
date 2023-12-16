@@ -1,5 +1,9 @@
 [flake8]
-ignore = W503,E203,W605,C901,F403,F405,F401
+# W504 and W503 conflict with each other in flake8
+# E203 is conflict with black
+# see https://github.com/psf/black/blob/main/docs/guides/using_black_with_other_tools.md#flake8
+ignore = W503,E203
+# 排除检查的文件
 exclude =
     *migrations*,
     *.pyc,
@@ -10,9 +14,13 @@ exclude =
     */bin/*,
     */settings/*,
     scripts/*,
-    backend/packages/*,
+
+# 指定文件忽略规则
+per-file-ignores =
+    */__init__.py: F401,F403,F405
+    nginx_template.py: W605
 max-line-length=129
-max-complexity=12
+max-complexity=21
 format=pylint
 show_source = True
 statistics = True

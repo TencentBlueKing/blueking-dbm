@@ -23,7 +23,7 @@ from backend.bk_web.models import AuditedModel
 from backend.components import BKMonitorV3Api
 from backend.configuration.constants import PLAT_BIZ_ID, DBType, SystemSettingsEnum
 from backend.configuration.models import SystemSettings
-from backend.db_meta.models import AppMonitorTopo, DBModule
+from backend.db_meta.models import DBModule
 from backend.db_monitor.constants import (
     APP_PRIORITY,
     BK_MONITOR_SAVE_DISPATCH_GROUP_TEMPLATE,
