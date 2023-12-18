@@ -8,14 +8,16 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import base64
 import logging.config
 from typing import Dict, Optional
 
 from backend.components import DBConfigApi
 from backend.components.dbconfig.constants import ConfType, FormatType, LevelName, ReqType
+from backend.components.mysql_priv_manager.client import MySQLPrivManagerApi
 from backend.db_meta.enums import ClusterType, InstanceRole, MachineType
 from backend.db_meta.models import Cluster, StorageInstance
-from backend.flow.consts import ESRoleEnum, LevelInfoEnum, NameSpaceEnum
+from backend.flow.consts import ESRoleEnum, LevelInfoEnum, MySQLPrivComponent, NameSpaceEnum
 from backend.flow.utils.es.es_context_dataclass import EsApplyContext
 from backend.ticket.constants import TicketType
 
@@ -93,9 +95,24 @@ class EsFlow(object):
                 }
             )
             self.es_config = dbconfig["content"]
-            # 从dbconfig获取用户名和密码
-            self.username = self.es_config["username"]
-            self.password = self.es_config["password"]
+            # 从密码服务获取用户名和密码
+            query_params = {
+                "instances": [{"ip": str(self.domain), "port": 0, "bk_cloud_id": self.bk_cloud_id}],
+                "users": [{"username": MySQLPrivComponent.ES_FAKE_USER.value, "component": NameSpaceEnum.Es}],
+            }
+            ret = MySQLPrivManagerApi.get_password(query_params)
+            username = base64.b64decode(ret["items"][0]["password"]).decode("utf-8")
+
+            # get password
+            query_params = {
+                "instances": [{"ip": str(self.domain), "port": 0, "bk_cloud_id": self.bk_cloud_id}],
+                "users": [{"username": username, "component": NameSpaceEnum.Es}],
+            }
+            ret = MySQLPrivManagerApi.get_password(query_params)
+            password = base64.b64decode(ret["items"][0]["password"]).decode("utf-8")
+
+            self.username = username
+            self.password = password
             self.master_ips = [master.machine.ip for master in masters]
 
     def get_flow_base_data(self) -> dict:

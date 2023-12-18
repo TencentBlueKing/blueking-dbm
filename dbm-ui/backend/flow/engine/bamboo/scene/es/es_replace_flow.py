@@ -35,9 +35,11 @@ from backend.flow.plugins.components.collections.es.exec_es_actuator_script impo
 from backend.flow.plugins.components.collections.es.get_es_payload import GetEsActPayloadComponent
 from backend.flow.plugins.components.collections.es.get_es_resource import GetEsResourceComponent
 from backend.flow.plugins.components.collections.es.trans_files import TransFileComponent
+from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent as MySQLTransFileComponent
 from backend.flow.utils.es.es_act_payload import EsActPayload
 from backend.flow.utils.es.es_context_dataclass import DnsKwargs, EsActKwargs, EsApplyContext
 from backend.flow.utils.extension_manage import BigdataManagerKwargs
+from backend.flow.utils.mysql.mysql_act_dataclass import P2PFileKwargs
 from backend.ticket.constants import TicketType
 
 logger = logging.getLogger("flow")
@@ -57,6 +59,9 @@ class EsReplaceFlow(EsFlow):
         self.master_exec_ip = self.master_ips[0]
         self.new_nodes = data["new_nodes"]
         self.old_nodes = data["old_nodes"]
+        # 定义证书文件分发的目标路径
+        self.cer_target_path = "/data/install/"
+        self.file_list = ["/tmp/es_cerfiles.tar.gz"]
 
     def __get_scale_up_flow_data(self) -> dict:
         flow_data = self.get_flow_base_data()
@@ -101,6 +106,38 @@ class EsReplaceFlow(EsFlow):
         scale_up_act_kwargs.exec_ip = get_all_node_ips_in_ticket(data=scale_up_data)
         scale_up_sub_pipeline.add_act(
             act_name=_("下发ES介质"), act_component_code=TransFileComponent.code, kwargs=asdict(scale_up_act_kwargs)
+        )
+
+        # 原有机器下发dbactuator
+        scale_up_act_kwargs.file_list = trans_files.es_disable()
+        scale_up_act_kwargs.exec_ip = self.get_all_node_ips_in_dbmeta()
+        scale_up_sub_pipeline.add_act(
+            act_name=_("下发dbactuator"), act_component_code=TransFileComponent.code, kwargs=asdict(scale_up_act_kwargs)
+        )
+
+        # 打包证书
+        cer_ip = self.master_exec_ip
+        scale_up_act_kwargs.exec_ip = cer_ip
+        scale_up_act_kwargs.get_es_payload_func = EsActPayload.get_pack_certificate_payload.__name__
+        scale_up_sub_pipeline.add_act(
+            act_name=_("打包证书"),
+            act_component_code=ExecuteEsActuatorScriptComponent.code,
+            kwargs=asdict(scale_up_act_kwargs),
+        )
+
+        # 分发证书
+        scale_up_sub_pipeline.add_act(
+            act_name=_("分发证书"),
+            act_component_code=MySQLTransFileComponent.code,
+            kwargs=asdict(
+                P2PFileKwargs(
+                    bk_cloud_id=self.bk_cloud_id,
+                    file_list=self.file_list,
+                    file_target_path=self.cer_target_path,
+                    source_ip_list=[cer_ip],
+                    exec_ip=get_all_node_ips_in_ticket(data=scale_up_data),
+                )
+            ),
         )
 
         sub_pipelines = []
@@ -194,12 +231,10 @@ class EsReplaceFlow(EsFlow):
         )
 
         shrink_act_kwargs.file_list = trans_files.es_shrink()
-
         shrink_ips = get_all_node_ips_in_ticket(data=shrink_data)
         shrink_act_kwargs.exec_ip = shrink_ips
-        shrink_act_kwargs.exec_ip.append(self.master_exec_ip)
         shrink_sub_pipeline.add_act(
-            act_name=_("下发ES介质"), act_component_code=TransFileComponent.code, kwargs=asdict(shrink_act_kwargs)
+            act_name=_("下发dbactuator"), act_component_code=TransFileComponent.code, kwargs=asdict(shrink_act_kwargs)
         )
 
         shrink_act_kwargs.get_es_payload_func = EsActPayload.get_exclude_node_payload.__name__
@@ -230,12 +265,13 @@ class EsReplaceFlow(EsFlow):
             cluster_name=self.cluster_name,
             service_type=ManagerServiceType.KIBANA,
         )
+
         if manager_ip in shrink_ips:
             # 安装kibana
             kibana_ip = self.get_node_in_dbmeta_preferred_hot(exclude_ips=shrink_ips)
             shrink_act_kwargs.get_es_payload_func = EsActPayload.get_install_kibana_payload.__name__
             shrink_act_kwargs.exec_ip = kibana_ip
-            es_pipeline.add_act(
+            shrink_sub_pipeline.add_act(
                 act_name=_("安装kibana"),
                 act_component_code=ExecuteEsActuatorScriptComponent.code,
                 kwargs=asdict(shrink_act_kwargs),
@@ -249,7 +285,7 @@ class EsReplaceFlow(EsFlow):
                 manager_ip=kibana_ip,
                 manager_port=ManagerDefaultPort.KIBANA,
             )
-            es_pipeline.add_act(
+            shrink_sub_pipeline.add_act(
                 act_name=_("更新kibana实例信息"),
                 act_component_code=BigdataManagerComponent.code,
                 kwargs={**asdict(shrink_act_kwargs), **asdict(manager_kwargs)},
@@ -264,6 +300,7 @@ class EsReplaceFlow(EsFlow):
         )
 
         sub_pipeline = SubBuilder(root_id=self.root_id, data=shrink_data)
+
         for ip in shrink_ips:
             # 检查是否还有http连接
             shrink_act_kwargs.get_es_payload_func = EsActPayload.get_check_connections_payload.__name__
