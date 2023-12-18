@@ -52,12 +52,12 @@ def watcher_get_by_hosts() -> (int, dict):
     switch_hosts, batch_small_id = {}, SWITCH_SMALL
     for switch_inst in switch_queues:
         switch_ip, switch_id = switch_inst["ip"], int(switch_inst["uid"])  # uid / sw_id
-        if not switch_hosts.get(switch_ip):
-            logger.info(
-                "get new switched fault ip {}, uid {}, db_type: {}".format(
-                    switch_ip, switch_id, switch_inst["db_type"]
-                )
+        logger.info(
+            "get new switched_fault_instance {}:{}, uid {}, db_type: {}:{}".format(
+                switch_ip, switch_inst["port"], switch_id, switch_inst["db_type"], switch_inst["db_role"]
             )
+        )
+        if not switch_hosts.get(switch_ip):
             # 忽略没有集群信息、或者多集群共用的情况
             cluster = query_cluster_by_hosts([switch_ip])  # return: [{},{}]
             if not cluster:
@@ -84,7 +84,7 @@ def watcher_get_by_hosts() -> (int, dict):
             )
         current_host = switch_hosts[switch_ip]
         current_host.switch_ports.append(switch_inst["port"])
-        current_host.sw_result[switch_inst["result"]] = switch_inst["port"]
+        current_host.sw_result[switch_inst["status"]] = switch_inst["port"]
 
         # 这台机器的Max值
         if switch_id > current_host.sw_max_id:
