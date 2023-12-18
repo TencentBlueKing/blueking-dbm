@@ -26,7 +26,6 @@ CommandRule:
     ban: true
     item:
       [
-        "truncate",
         "revoke",
         "kill",
         "reset",
@@ -44,6 +43,12 @@ CommandRule:
         "install_plugin",
         "uninstall_plugin",
         "alter_user",
+        "slave_start",
+        "slave_stop",
+        "start_group_replication",
+        "stop_group_replication",
+        "change_master",
+        "change_replication_filter",
       ]
 
 SpiderCreateTableRule:

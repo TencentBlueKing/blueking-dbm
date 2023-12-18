@@ -248,8 +248,6 @@ func (t *SimulationTask) SimulationRun(containerName string, xlogger *logger.Log
 	}()
 	// 关闭协程
 	defer func() { doneChan <- struct{}{} }()
-	// xlogger := t.getXlogger()
-	// execute load schema
 	model.UpdatePhase(t.TaskId, model.Phase_LoadSchema)
 	stdout, stderr, err := t.DbPodSets.executeInPod(t.getLoadSchemaSQLCmd(t.Path, t.SchemaSQLFile),
 		containerName,
