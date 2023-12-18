@@ -1,4 +1,41 @@
 {
+  "__inputs": [
+    {
+      "name": "DS_蓝鲸监控_- 指标数据",
+      "label": "蓝鲸监控 - 指标数据",
+      "description": "",
+      "type": "datasource",
+      "pluginId": "bkmonitor-timeseries-datasource",
+      "pluginName": "蓝鲸监控-时序数据"
+    }
+  ],
+  "__elements": {},
+  "__requires": [
+    {
+      "type": "datasource",
+      "id": "bkmonitor-timeseries-datasource",
+      "name": "蓝鲸监控-时序数据",
+      "version": "3.6.0"
+    },
+    {
+      "type": "grafana",
+      "id": "grafana",
+      "name": "Grafana",
+      "version": "9.1.0"
+    },
+    {
+      "type": "panel",
+      "id": "stat",
+      "name": "Stat",
+      "version": ""
+    },
+    {
+      "type": "panel",
+      "id": "timeseries",
+      "name": "Time series",
+      "version": ""
+    }
+  ],
   "annotations": {
     "list": [
       {
@@ -22,10 +59,10 @@
     ]
   },
   "description": "tendisCache集群",
-  "editable": true,
+  "editable": false,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 1,
+  "id": null,
   "links": [],
   "liveNow": false,
   "panels": [
@@ -4152,7 +4189,7 @@
           "type": "instant"
         }
       ],
-      "title": "Qps",
+      "title": "Proxy Qps",
       "type": "stat"
     },
     {
@@ -4727,7 +4764,7 @@
           "type": "instant"
         }
       ],
-      "title": "Max Redis Cpu",
+      "title": "Redis Cpu",
       "type": "stat"
     },
     {
@@ -5658,7 +5695,7 @@
           "type": "range"
         }
       ],
-      "title": "twemproxy cmd Qps",
+      "title": "proxy cmd Qps",
       "type": "timeseries"
     },
     {
@@ -5864,7 +5901,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               }
             ]
           },
@@ -6003,7 +6041,7 @@
           "type": "range"
         }
       ],
-      "title": "twemproxy  cmd 平均访问延迟",
+      "title": "proxy cmd 平均访问延迟",
       "type": "timeseries"
     },
     {
@@ -6053,7 +6091,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               }
             ]
           },
@@ -6201,7 +6240,7 @@
         "type": "bkmonitor-timeseries-datasource",
         "uid": "bkmonitor_timeseries"
       },
-      "description": "twemproxy  访问延迟分布",
+      "description": "proxy 访问延迟分布",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -6645,7 +6684,7 @@
           "type": "range"
         }
       ],
-      "title": "twemproxy  访问延迟分布. increase[2m]",
+      "title": "proxy 访问延迟分布. increase[2m]",
       "type": "timeseries"
     },
     {
@@ -7035,7 +7074,7 @@
           "type": "range"
         }
       ],
-      "title": "twemproxy  host 平均访问延迟",
+      "title": "proxy  host 平均访问延迟",
       "type": "timeseries"
     },
     {
@@ -7371,7 +7410,7 @@
           "type": "range"
         }
       ],
-      "title": "twemproxy  新建连接[2m]",
+      "title": "proxy新建连接[2m]",
       "type": "timeseries"
     },
     {
@@ -7532,7 +7571,7 @@
         "type": "bkmonitor-timeseries-datasource",
         "uid": "bkmonitor_timeseries"
       },
-      "description": "twemproxy  当前连接",
+      "description": "twemproxy当前连接",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -7665,7 +7704,7 @@
           "type": "range"
         }
       ],
-      "title": "twemproxy  当前连接",
+      "title": "proxy当前连接",
       "type": "timeseries"
     },
     {
@@ -9522,11 +9561,7 @@
   "templating": {
     "list": [
       {
-        "current": {
-          "selected": false,
-          "text": "cache.mytianjin.dba.db",
-          "value": "cache.mytianjin.dba.db"
-        },
+        "current": {},
         "datasource": {
           "type": "bkmonitor-timeseries-datasource",
           "uid": "bkmonitor_timeseries"
@@ -9588,6 +9623,6 @@
   "timezone": "",
   "title": "tendis-cache",
   "uid": "6nXM8aF42",
-  "version": 78,
+  "version": 89,
   "weekStart": ""
 }
