@@ -80,7 +80,7 @@ class EsShrinkFlow(EsFlow):
         act_kwargs.exec_ip = shrink_ips
         act_kwargs.exec_ip.append(self.master_exec_ip)
         es_pipeline.add_act(
-            act_name=_("下发ES介质"), act_component_code=TransFileComponent.code, kwargs=asdict(act_kwargs)
+            act_name=_("下发dbactuator"), act_component_code=TransFileComponent.code, kwargs=asdict(act_kwargs)
         )
 
         act_kwargs.get_es_payload_func = EsActPayload.get_exclude_node_payload.__name__

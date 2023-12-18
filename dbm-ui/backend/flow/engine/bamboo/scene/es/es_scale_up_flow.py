@@ -82,12 +82,19 @@ class EsScaleUpFlow(EsFlow):
             act_name=_("下发ES介质"), act_component_code=TransFileComponent.code, kwargs=asdict(act_kwargs)
         )
 
+        # 原有机器下发dbactuator
+        act_kwargs.file_list = trans_files.es_disable()
+        act_kwargs.exec_ip = self.get_all_node_ips_in_dbmeta()
+        es_pipeline.add_act(
+            act_name=_("下发dbactuator"), act_component_code=TransFileComponent.code, kwargs=asdict(act_kwargs)
+        )
+
         # 打包证书
         cer_ip = self.master_exec_ip
         act_kwargs.exec_ip = cer_ip
         act_kwargs.get_es_payload_func = EsActPayload.get_pack_certificate_payload.__name__
         es_pipeline.add_act(
-            act_name=_("生成证书"), act_component_code=ExecuteEsActuatorScriptComponent.code, kwargs=asdict(act_kwargs)
+            act_name=_("打包证书"), act_component_code=ExecuteEsActuatorScriptComponent.code, kwargs=asdict(act_kwargs)
         )
 
         # 分发证书
