@@ -37,8 +37,6 @@ class KafkaConfigService(BaseService):
             "partition_num": str(global_data["partition_num"]),
             "replication_num": str(global_data["replication_num"]),
             "factor": str(global_data["factor"]),
-            "username": global_data["username"],
-            "password": global_data["password"],
             "zookeeper_conf": global_data["zookeeper_conf"],
             "no_security": str(global_data["no_security"]),
         }
