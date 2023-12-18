@@ -36,6 +36,7 @@ from backend.flow.consts import (
     ConfigTypeEnum,
     MediumEnum,
 )
+from backend.flow.utils.base.payload_handler import PayloadHandler
 
 logger = logging.getLogger("flow")
 
@@ -150,29 +151,14 @@ def decode_predixy_info_servers(info_str):
     return rets
 
 
-def check_cluster_proxy_backends_consistent(cluster_id: int, cluster_password: str):
+def check_cluster_proxy_backends_consistent(cluster_id: int):
     cluster: Cluster = None
     try:
         cluster = Cluster.objects.get(id=cluster_id)
     except Cluster.DoesNotExist:
         raise Exception("src_cluster {} does not exist".format(cluster_id))
 
-    if cluster_password == "":
-        proxy_conf = DBConfigApi.query_conf_item(
-            params={
-                "bk_biz_id": str(cluster.bk_biz_id),
-                "level_name": LevelName.CLUSTER.value,
-                "level_value": cluster.immute_domain,
-                "level_info": {"module": str(cluster.db_module_id)},
-                "conf_file": cluster.proxy_version,
-                "conf_type": ConfigTypeEnum.ProxyConf,
-                "namespace": cluster.cluster_type,
-                "format": FormatType.MAP,
-            }
-        )
-        proxy_content = proxy_conf.get("content", {})
-        cluster_password = proxy_content.get("password", "")
-
+    passwd_ret = PayloadHandler.redis_get_password_by_cluster_id(cluster_id)
     proxy_addrs = []
     proxys_backend_md5 = []
     if is_twemproxy_proxy_type(cluster.cluster_type):
@@ -210,7 +196,7 @@ def check_cluster_proxy_backends_consistent(cluster_id: int, cluster_password: s
             {
                 "addresses": proxy_addrs,
                 "db_num": 0,
-                "password": cluster_password,
+                "password": passwd_ret.get("redis_proxy_password"),
                 "command": "info servers",
                 "bk_cloud_id": cluster.bk_cloud_id,
             }

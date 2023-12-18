@@ -403,7 +403,7 @@ class RedisClusterDataCopyFlow(object):
                         )
                     )
             # 检查所有 src proxys backends 一致
-            check_cluster_proxy_backends_consistent(cluster_id=int(info["src_cluster"]), cluster_password="")
+            check_cluster_proxy_backends_consistent(cluster_id=int(info["src_cluster"]))
 
     def is_dst_cluster_installed(self, info: dict, taregt_param: dict) -> bool:
         """
