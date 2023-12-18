@@ -63,7 +63,7 @@ mysql:
     commitDate: 200001010101
     name: mysql-monitor.tar.gz
     version: 1.0.3
-- mysql-dba-toolkit:
+- dba-toolkit:
     buildPath: /toolkit/dba-toolkit.tar.gz
     name: dba-toolkit.tar.gz
     version: 1.0.0
