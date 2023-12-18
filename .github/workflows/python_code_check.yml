@@ -35,7 +35,7 @@ jobs:
         if [ "$FLAKE8_RESULT" = "0" ]; then
           echo "flake8 test passed"
         else
-          echo ${FLAKE8_RESULT}
+          echo -e "${FLAKE8_RESULT}"
           echo "flake8 test failed, please check if you have install pre-commit"
           exit 1
         fi
@@ -43,7 +43,7 @@ jobs:
       run: |
         BLACK_RESULT=$(black dbm-ui/backend 2>&1)
         if [[ $BLACK_RESULT =~ "reformatted" ]]; then
-          echo ${BLACK_RESULT}
+          echo -e "${BLACK_RESULT}"
           echo "black test failed, please check if you have install pre-commit"
           exit 1
         else

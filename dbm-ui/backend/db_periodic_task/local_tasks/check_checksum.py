@@ -11,12 +11,10 @@ from backend import env
 from backend.components import BKLogApi
 from backend.db_meta.enums import ClusterType, InstanceInnerRole
 from backend.db_meta.models import Cluster
-from backend.db_report.models import ChecksumCheckReport
+from backend.db_periodic_task.local_tasks.register import register_periodic_task
+from backend.db_periodic_task.utils import TimeUnit, calculate_countdown
+from backend.db_report.models import ChecksumCheckReport, ChecksumInstance
 from backend.utils.time import datetime2str
-
-from ...db_report.models.checksum_check_report import ChecksumInstance
-from ..util import TimeUnit, calculate_countdown
-from .register import register_periodic_task
 
 logger = logging.getLogger("celery")
 
