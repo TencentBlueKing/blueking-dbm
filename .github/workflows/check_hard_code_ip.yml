@@ -15,6 +15,6 @@ jobs:
           echo "good job!"
         else
           echo "Hard code ip founded! Please remove it."
-          echo ${RESULT}
+          echo -e "${RESULT}"
           exit 1
         fi
