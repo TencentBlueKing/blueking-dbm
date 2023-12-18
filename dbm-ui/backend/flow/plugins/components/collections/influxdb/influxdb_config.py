@@ -15,13 +15,11 @@ from typing import List
 from pipeline.component_framework.component import Component
 from pipeline.core.flow.activity import Service
 
-from backend.components import DBConfigApi
-from backend.components.dbconfig.constants import LevelName, OpType, ReqType
 from backend.components.mysql_priv_manager.client import MySQLPrivManagerApi
 from backend.db_meta.api import common
 from backend.db_meta.enums import InstanceRole
 from backend.db_meta.models import StorageInstance
-from backend.flow.consts import ConfigTypeEnum, LevelInfoEnum, MySQLPrivComponent, NameSpaceEnum
+from backend.flow.consts import MySQLPrivComponent, NameSpaceEnum
 from backend.flow.plugins.components.collections.common.base_service import BaseService
 
 logger = logging.getLogger("flow")
@@ -35,15 +33,6 @@ class InfluxdbConfigService(BaseService):
     def _execute(self, data, parent_data) -> bool:
         global_data = data.get_one_of_inputs("global_data")
 
-        config_map = {
-            "username": global_data["username"],
-            "password": global_data["password"],
-        }
-
-        conf_items = []
-        for conf_name, conf_value in config_map.items():
-            conf_items.append({"conf_name": conf_name, "conf_value": conf_value, "op_type": OpType.UPDATE})
-
         storage_instances = []
         for influxdb in global_data["nodes"]["influxdb"]:
             storage_instances.append(
@@ -56,23 +45,6 @@ class InfluxdbConfigService(BaseService):
 
         storage_objs = common.filter_out_instance_obj(storage_instances, StorageInstance.objects.all())
         for storage_obj in storage_objs:
-            DBConfigApi.upsert_conf_item(
-                {
-                    "conf_file_info": {
-                        "conf_file": global_data["db_version"],
-                        "conf_type": ConfigTypeEnum.DBConf,
-                        "namespace": NameSpaceEnum.Influxdb,
-                    },
-                    "level_info": {"module": LevelInfoEnum.TendataModuleDefault, "cluster": "0"},
-                    "conf_items": conf_items,
-                    "bk_biz_id": str(global_data["bk_biz_id"]),
-                    "level_name": LevelName.INSTANCE,
-                    "level_value": str(storage_obj.id),
-                    "confirm": 0,
-                    "req_type": ReqType.SAVE_AND_PUBLISH,
-                }
-            )
-
             # Writing to password service, using instance_id as ip
             self.log_info("Writing password to service...")
             # 把用户名当密码存
@@ -94,7 +66,7 @@ class InfluxdbConfigService(BaseService):
             }
             MySQLPrivManagerApi.modify_password(params=query_params)
 
-        self.log_info("DBConfig re successfully")
+        self.log_info("InfluxDB config rewrite successfully")
         return True
 
     def inputs_format(self) -> List:

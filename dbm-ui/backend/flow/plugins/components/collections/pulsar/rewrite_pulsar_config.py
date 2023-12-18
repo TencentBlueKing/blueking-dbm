@@ -46,16 +46,6 @@ class WriteBackPulsarConfigService(BaseService):
             self.write_auth_to_prv_manager(global_data, token)
             # 封装 回写dbconfig的配置项
             conf_items = [
-                {
-                    "conf_name": PulsarConfigEnum.ManagerUserName,
-                    "conf_value": global_data["username"],
-                    "op_type": OpType.UPDATE,
-                },
-                {
-                    "conf_name": PulsarConfigEnum.ManagerPassword,
-                    "conf_value": global_data["password"],
-                    "op_type": OpType.UPDATE,
-                },
                 {"conf_name": PulsarConfigEnum.Port, "conf_value": str(global_data["port"]), "op_type": OpType.UPDATE},
                 {
                     "conf_name": PulsarConfigEnum.NumPartitions,

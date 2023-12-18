@@ -46,6 +46,23 @@ class WriteBackHdfsConfigService(BaseService):
             nn2_ip = trans_data.cur_nn2_ip
             all_ip_hosts = trans_data.cur_all_ip_hosts
         else:
+            # Writing to password service
+            self.log_info("Writing password to service")
+            query_params = {
+                "instances": [
+                    {
+                        "ip": global_data["domain"],
+                        "port": 0,
+                        "bk_cloud_id": global_data["bk_cloud_id"],
+                    }
+                ],
+                "password": base64.b64encode(str(global_data["password"]).encode("utf-8")).decode("utf-8"),
+                "username": "root",
+                "component": NameSpaceEnum.Hdfs,
+                "operator": "admin",
+            }
+            MySQLPrivManagerApi.modify_password(params=query_params)
+
             nn1_ip = global_data["nn1_ip"]
             nn2_ip = global_data["nn2_ip"]
             all_ip_hosts = global_data["all_ip_hosts"]
@@ -60,8 +77,6 @@ class WriteBackHdfsConfigService(BaseService):
         conf_items.append(
             {"conf_name": "rpc_port", "conf_value": str(global_data["rpc_port"]), "op_type": OpType.UPDATE}
         )
-        conf_items.append({"conf_name": "username", "conf_value": "root", "op_type": OpType.UPDATE})
-        conf_items.append({"conf_name": "password", "conf_value": global_data["password"], "op_type": OpType.UPDATE})
         DBConfigApi.upsert_conf_item(
             {
                 "conf_file_info": {
@@ -78,23 +93,6 @@ class WriteBackHdfsConfigService(BaseService):
                 "level_value": global_data["domain"],
             }
         )
-
-        # Writing to password service
-        self.log_info("Writing password to service")
-        query_params = {
-            "instances": [
-                {
-                    "ip": global_data["domain"],
-                    "port": 0,
-                    "bk_cloud_id": global_data["bk_cloud_id"],
-                }
-            ],
-            "password": base64.b64encode(str(global_data["password"]).encode("utf-8")).decode("utf-8"),
-            "username": "root",
-            "component": NameSpaceEnum.Hdfs,
-            "operator": "admin",
-        }
-        MySQLPrivManagerApi.modify_password(params=query_params)
 
         self.log_info("successfully write back hdfs config to dbconfig")
         return True

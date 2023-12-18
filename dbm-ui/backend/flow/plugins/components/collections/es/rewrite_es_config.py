@@ -16,10 +16,8 @@ from typing import List
 from pipeline.component_framework.component import Component
 from pipeline.core.flow.activity import Service
 
-from backend.components import DBConfigApi
-from backend.components.dbconfig.constants import LevelName, OpType, ReqType
 from backend.components.mysql_priv_manager.client import MySQLPrivManagerApi
-from backend.flow.consts import ConfigTypeEnum, LevelInfoEnum, MySQLPrivComponent, NameSpaceEnum
+from backend.flow.consts import MySQLPrivComponent, NameSpaceEnum
 from backend.flow.plugins.components.collections.common.base_service import BaseService
 
 logger = logging.getLogger("flow")
@@ -32,29 +30,6 @@ class WriteBackEsConfigService(BaseService):
 
     def _execute(self, data, parent_data) -> bool:
         global_data = data.get_one_of_inputs("global_data")
-
-        conf_items = [
-            {"conf_name": "username", "conf_value": global_data["username"], "op_type": OpType.UPDATE},
-            {"conf_name": "password", "conf_value": global_data["password"], "op_type": OpType.UPDATE},
-        ]
-
-        DBConfigApi.upsert_conf_item(
-            {
-                "conf_file_info": {
-                    "conf_file": global_data["db_version"],
-                    "conf_type": ConfigTypeEnum.DBConf,
-                    "namespace": NameSpaceEnum.Es,
-                },
-                "conf_items": conf_items,
-                "level_info": {"module": LevelInfoEnum.TendataModuleDefault},
-                "confirm": 0,
-                "req_type": ReqType.SAVE_AND_PUBLISH,
-                "bk_biz_id": str(global_data["bk_biz_id"]),
-                "level_name": LevelName.CLUSTER,
-                "level_value": global_data["domain"],
-            }
-        )
-        self.log_info("successfully write back es config to dbconfig")
 
         # 存一份到密码服务，需要把用户名也当密码存
         query_params = {
