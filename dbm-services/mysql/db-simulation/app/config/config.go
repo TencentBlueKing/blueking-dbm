@@ -184,7 +184,6 @@ func init() {
 		}
 	}
 	logger.Info("app config %v", GAppConfig)
-	logger.Info("pod resource limit config %v", GAppConfig.MySQLPodResource)
 }
 
 // IsEmptyMySQLPodResourceConfig TODO

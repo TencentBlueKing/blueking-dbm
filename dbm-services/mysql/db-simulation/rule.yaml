@@ -40,7 +40,6 @@ CommandRule:
     ban: true
     item:
       [
-        "truncate",
         "revoke",
         "kill",
         "reset",
@@ -58,6 +57,12 @@ CommandRule:
         "install_plugin",
         "uninstall_plugin",
         "alter_user",
+        "slave_start",
+        "slave_stop",
+        "start_group_replication",
+        "stop_group_replication",
+        "change_master",
+        "change_replication_filter",
       ]
 
 CreateTableRule:
@@ -75,7 +80,7 @@ CreateTableRule:
     desc: "建议包含主键"
   DefinerRule:
     expr: " Val not in Item "
-    desc: "definer必须指定用户"
+    desc: "definer必须指定成专用账户ADMIN@localhost"
     ban: true
     item: ["ADMIN@localhost"]
 

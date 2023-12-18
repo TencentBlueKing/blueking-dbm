@@ -22,6 +22,7 @@ import (
 	"strings"
 	"time"
 
+	"dbm-services/common/go-pubpkg/cmutil"
 	util "dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-simulation/app"
@@ -264,8 +265,7 @@ func (k *DbPodSets) createpod(pod *v1.Pod, probePort int) (err error) {
 		}
 		return nil
 	}
-	err = util.Retry(util.RetryConfig{Times: 60, DelayTime: 1 * time.Second}, fnc)
-	if err == nil {
+	if err = util.Retry(util.RetryConfig{Times: 60, DelayTime: 1 * time.Second}, fnc); err == nil {
 		model.UpdateTbContainerRecord(k.BaseInfo.PodName)
 	}
 	return err
@@ -355,7 +355,7 @@ func (k *DbPodSets) DeletePod() (err error) {
 // getLoadSchemaSQLCmd create load schema sql cmd
 func (k *DbPodSets) getLoadSchemaSQLCmd(bkpath, file string) (cmd string) {
 	commands := []string{}
-	commands = append(commands, fmt.Sprintf("curl -s -S -o %s %s", file, getdownloadUrl(bkpath, file)))
+	commands = append(commands, k.getDownloadSqlCmd(bkpath, file))
 	// sed -i '/50720 SET tc_admin=0/d'
 	// 从中控dump的schema文件,默认是添加了tc_admin=0,需要删除
 	// 因为模拟执行是需要将中控进行sql转发
@@ -371,12 +371,21 @@ func (k *DbPodSets) getLoadSchemaSQLCmd(bkpath, file string) (cmd string) {
 
 // getLoadSQLCmd get load sql cmd
 func (k *DbPodSets) getLoadSQLCmd(bkpath, file string, dbs []string) (cmd []string) {
-	cmd = append(cmd, fmt.Sprintf("curl -s -S -o %s %s", file, getdownloadUrl(bkpath, file)))
+	cmd = append(cmd, k.getDownloadSqlCmd(bkpath, file))
 	for _, db := range dbs {
 		cmd = append(cmd, fmt.Sprintf("mysql --defaults-file=/etc/my.cnf -uroot -p%s --default-character-set=%s -vvv %s < %s",
 			k.BaseInfo.RootPwd, k.BaseInfo.Charset, db, file))
 	}
 	return cmd
+}
+
+func (k *DbPodSets) getDownloadSqlCmd(bkpath, file string) string {
+	downloadcmd := fmt.Sprintf("curl -s -S -o %s %s", file, getdownloadUrl(bkpath, file))
+	if cmutil.IsNotEmpty(config.GAppConfig.BkRepo.User) && cmutil.IsNotEmpty(config.GAppConfig.BkRepo.Pwd) {
+		downloadcmd = fmt.Sprintf("curl -u %s:%s  -s -S -o %s %s", config.GAppConfig.BkRepo.User,
+			config.GAppConfig.BkRepo.Pwd, file, getdownloadUrl(bkpath, file))
+	}
+	return downloadcmd
 }
 
 func getdownloadUrl(bkpath, file string) string {
