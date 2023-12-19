@@ -21,6 +21,4 @@ class MongoDBController(BaseController):
         """
         MongoDB集群部署场景
         """
-        flow = None
-        # flow = MongoDBClusterApplyFlow(root_id=self.root_id, data=self.ticket_data)
-        flow.deploy_MongoDB_cluster_flow()
+        raise NotImplementedError
