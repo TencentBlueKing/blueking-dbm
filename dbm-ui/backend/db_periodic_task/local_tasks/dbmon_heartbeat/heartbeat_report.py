@@ -154,19 +154,27 @@ def _check_dbmon_heart_beat():
                 # ssd 和cache 有segment，tendisplus没有
                 for item in redis_set:
                     if item.startswith(ip):
-                        if " " in item:
+                        if c.cluster_type in [
+                            ClusterType.TwemproxyTendisSSDInstance.value,
+                            ClusterType.TendisTwemproxyRedisInstance.value,
+                        ]:
                             # 格式为 "ip:port range"
                             ip_port, range = item.split(" ")
                             ip, port = ip_port.split(IP_PORT_DIVIDER)
                             port_ranges.append(port)
-                        else:
+                        elif c.cluster_type == ClusterType.TendisPredixyTendisplusCluster.value:
                             # 格式为 "ip:port"
                             ip, port = item.split(IP_PORT_DIVIDER)
                             port_ranges.append(port)
+                        else:
+                            raise NotImplementedError("Dbmon Not supported tendis type:{}".format(c.cluster_type))
                 if len(port_ranges) > 1:
                     start_port = min(port_ranges)
                     end_port = max(port_ranges)
                     port_range = f"{start_port}-{end_port}"
+                # tendisplus 后面线上是部署1个实例
+                elif len(port_ranges) == 1:
+                    port_range = port_ranges
                 else:
                     raise NotImplementedError(
                         "Dbmon ip:{} not get port_ranges for cluster:{}".format(ip, c.immute_domain)
