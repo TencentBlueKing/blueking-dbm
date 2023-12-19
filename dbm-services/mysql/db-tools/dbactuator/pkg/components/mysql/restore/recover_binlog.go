@@ -648,12 +648,15 @@ func (r *RecoverBinlog) FilterBinlogFiles() (totalSize int64, err error) {
 			totalSize += fileSize
 		} else if r.RecoverOpt.StartTime != "" {
 			if startTime > startTimeFilter { // time.RFC3339
-				firstBinlogFound = true
+				if !firstBinlogFound { // 拿到binlog时间符合条件的 前一个binlog
+					firstBinlogFound = true
+					firstBinlogFile = lastBinlogFile
+					firstBinlogSize = lastBinlogSize
+					//binlogFiles = append(binlogFiles, lastBinlogFile)
+					//totalSize += lastBinlogSize
+				}
 				binlogFiles = append(binlogFiles, f)
 				totalSize += fileSize
-			} else if !firstBinlogFound { // 拿到binlog时间符合条件的 前一个binlog
-				firstBinlogFile = lastBinlogFile
-				firstBinlogSize = lastBinlogSize
 			}
 		}
 		lastBinlogFile = f // 记录上一个binlog的信息
