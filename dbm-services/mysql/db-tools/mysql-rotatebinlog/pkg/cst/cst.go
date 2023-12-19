@@ -19,3 +19,5 @@ const (
 	// MaxKeepDurationMin 最少保留时间
 	MaxKeepDurationMin = 10 * time.Minute
 )
+
+const OldRotateDir = "/home/mysql/rotate_logbin"

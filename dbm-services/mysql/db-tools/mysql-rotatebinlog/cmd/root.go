@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"runtime/debug"
 
@@ -10,6 +9,8 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+
+	"dbm-services/mysql/db-tools/mysql-rotatebinlog/pkg/log"
 )
 
 // Execute TODO
@@ -17,7 +18,7 @@ func Execute() {
 	defer func() {
 		if err := recover(); err != nil {
 			fmt.Println(err)
-			log.Println("panic goroutine inner error", err, string(debug.Stack()))
+			fmt.Println("panic goroutine inner error", err, string(debug.Stack()))
 			os.Exit(1)
 			return
 		}
@@ -29,13 +30,21 @@ func Execute() {
 }
 
 var rootCmd = &cobra.Command{
-	Use:   "rotatebinlog",
-	Short: "rotate binlog and backup them to remote",
-	Long: `rotate binlog files and backup them to remote
-                backup system`,
+	Use:          "rotatebinlog",
+	Short:        "rotate binlog and backup them to remote",
+	Long:         `rotate binlog files and backup them to remote backup system`,
 	SilenceUsage: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		comp := rotate.RotateBinlogComp{Config: viper.GetString("config")}
+		var err error
+		configFile := viper.GetString("config")
+		comp := rotate.RotateBinlogComp{Config: configFile, ConfigObj: &rotate.Config{}}
+		if err = log.InitLogger(); err != nil {
+			return err
+		}
+		if comp.ConfigObj, err = rotate.InitConfig(configFile); err != nil {
+			return err
+		}
+
 		if removeConfigs, err := cmd.PersistentFlags().GetStringSlice("removeConfig"); err != nil {
 			return err
 		} else if len(removeConfigs) > 0 {

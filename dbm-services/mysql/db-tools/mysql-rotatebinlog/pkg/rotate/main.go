@@ -27,8 +27,8 @@ import (
 
 // RotateBinlogComp TODO
 type RotateBinlogComp struct {
-	Config    string `json:"config"`
-	configObj *Config
+	Config    string  `json:"config"`
+	ConfigObj *Config `json:"-"`
 }
 
 // Example TODO
@@ -55,12 +55,6 @@ func (c *RotateBinlogComp) Init() (err error) {
 // 多个实例进行rotate，除了空间释放的计算有关联，其它互补影响
 // 即一个实例rotate失败，不影响其它rotate执行。但会抛出失败的那个实例相应错误
 func (c *RotateBinlogComp) Start() (err error) {
-	if err = log.InitLogger(); err != nil {
-		return err
-	}
-	if c.configObj, err = InitConfig(c.Config); err != nil {
-		return err
-	}
 	if err = log.InitReporter(); err != nil {
 		return err
 	}
@@ -108,7 +102,7 @@ func (c *RotateBinlogComp) Start() (err error) {
 			errRet = errors.Join(errRet, err)
 			continue
 		} else {
-			if err = inst.RegisterBinlog(lastFileBefore.Filename); err != nil {
+			if err = inst.RegisterBinlog(filepath.Base(lastFileBefore.Filename)); err != nil {
 				logger.Error(err.Error())
 			}
 			//inst.rotate.backupClient = inst.backupClient
@@ -136,14 +130,14 @@ func (c *RotateBinlogComp) Start() (err error) {
 
 // RemoveConfig 删除某个 binlog 实例的 rotate 配置
 func (c *RotateBinlogComp) RemoveConfig(ports []string) (err error) {
-	if c.configObj, err = InitConfig(c.Config); err != nil {
+	if c.ConfigObj, err = InitConfig(c.Config); err != nil {
 		return err
 	}
 	for _, binlogPort := range ports {
 		port := cast.ToInt(binlogPort)
 		newServers := make([]*ServerObj, 0)
 		var portFound bool
-		for _, binlogInst := range c.configObj.Servers {
+		for _, binlogInst := range c.ConfigObj.Servers {
 			if binlogInst.Port == port {
 				portFound = true
 			} else {
@@ -153,9 +147,9 @@ func (c *RotateBinlogComp) RemoveConfig(ports []string) (err error) {
 		if !portFound {
 			logger.Warn("port instance %d not found when running removeConfig", port)
 		}
-		c.configObj.Servers = newServers
+		c.ConfigObj.Servers = newServers
 	}
-	yamlData, err := yaml.Marshal(c.configObj) // use json tag
+	yamlData, err := yaml.Marshal(c.ConfigObj) // use json tag
 	if err != nil {
 		return err
 	}
@@ -171,7 +165,7 @@ func (c *RotateBinlogComp) RemoveConfig(ports []string) (err error) {
 
 // HandleScheduler 处理调度选项，返回 handled=true 代表 add/del 选项工作中
 func (c *RotateBinlogComp) HandleScheduler(addSchedule, delSchedule bool) (handled bool, err error) {
-	if c.configObj, err = InitConfig(c.Config); err != nil {
+	if c.ConfigObj, err = InitConfig(c.Config); err != nil {
 		return handled, err
 	}
 	crondManager := ma.NewManager(viper.GetString("crond.api_url"))

@@ -71,9 +71,9 @@ func InitConfig(confFile string) (*Config, error) {
 	}
 	var configObj = &Config{}
 	if err := viper.Unmarshal(configObj); err != nil {
-		// if err = yaml.Unmarshal(configBytes, configObj); err != nil {
+		// if err = yaml.Unmarshal(configBytes, ConfigObj); err != nil {
 		return nil, err
 	}
-	//logger.Debug("configObj: %+v", configObj)
+	//logger.Debug("ConfigObj: %+v", ConfigObj)
 	return configObj, nil
 }
