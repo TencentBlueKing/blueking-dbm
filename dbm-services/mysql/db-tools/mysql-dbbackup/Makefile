@@ -16,7 +16,7 @@ BASE_DIR = $(shell pwd)
 build:
 	echo "Building ${OUTPUT_DIR}/${PROJ_BIN}"
 	mkdir -p ${OUTPUT_DIR}
-	GOOS=linux GOARCH=amd64 go build -ldflags ${RELEASE_BUILD_FLAG} -gcflags="all=-trimpath=${PWD}" -asmflags="all=-trimpath=${PWD}" -o ${OUTPUT_DIR}/${PROJ_BIN}
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags ${RELEASE_BUILD_FLAG} -gcflags="all=-trimpath=${PWD}" -asmflags="all=-trimpath=${PWD}" -o ${OUTPUT_DIR}/${PROJ_BIN}
 
 .PHONY: package
 package:

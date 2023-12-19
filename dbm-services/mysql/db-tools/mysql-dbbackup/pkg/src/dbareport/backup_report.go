@@ -358,6 +358,14 @@ func (r *BackupLogReport) ReportBackupResult(indexFilePath string) error {
 		Report().Files.Println(backupTaskResult)
 	}
 	// report backup record
+
+	//  index file 里面是完整的信息，上报日志以及写 local_backup_report，无需包含文件包含内容
+	fileListSimple := make([]*TarFileItem, 0)
+	for _, tf := range metaInfo.FileList {
+		fileListSimple = append(fileListSimple, &TarFileItem{
+			FileName: tf.FileName, FileSize: tf.FileSize, FileType: tf.FileType, TaskId: tf.TaskId})
+	}
+	metaInfo.FileList = fileListSimple
 	Report().Result.Println(metaInfo)
 
 	if err = r.ReportToLocalBackup(indexFilePath, metaInfo); err != nil {
