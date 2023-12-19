@@ -182,7 +182,7 @@ class RiakClusterScaleOutFlow(object):
                 get_riak_payload_func=RiakActPayload.get_install_monitor_payload.__name__,
             )
             act_info = dict()
-            act_info["act_name"] = (_("actuator_{}部署定时任务和riak监控".format(ip)),)
+            act_info["act_name"] = _("actuator_{}部署定时任务和riak监控".format(ip))
             act_info["act_component_code"] = ExecuteRiakActuatorScriptComponent.code
             act_info["kwargs"] = asdict(monitor_kwargs)
             acts_list.append(act_info)

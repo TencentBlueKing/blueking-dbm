@@ -257,7 +257,7 @@ func MigrateConfig(r *gin.Context) {
 		SendResponse(r, err, nil)
 		return
 	}
-	mysqlIds, spiderIds, mysqlFail, spiderFail, err := input.MigrateConfig()
+	mysqlIds, mysqlFail, spiderIds, spiderFail, err := input.MigrateConfig()
 	info := "迁移成功"
 	if err != nil {
 		slog.Error("msg", "迁移失败", err.Error())
@@ -265,11 +265,11 @@ func MigrateConfig(r *gin.Context) {
 	}
 	data := struct {
 		MigratedMysqlIds  []int  `json:"migrated_mysql_ids"`
-		MigratedSpiderIds []int  `json:"migrated_spider_ids"`
 		MysqlMigrateFail  []int  `json:"mysql_migrate_fail"`
+		MigratedSpiderIds []int  `json:"migrated_spider_ids"`
 		SpiderMigrateFail []int  `json:"spider_migrate_fail"`
 		Info              string `json:"info"`
-	}{mysqlIds, spiderIds, mysqlFail,
+	}{mysqlIds, mysqlFail, spiderIds,
 		spiderFail, info}
 	SendResponse(r, err, data)
 	return
