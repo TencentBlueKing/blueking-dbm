@@ -57,6 +57,7 @@ class MigrateClusterFromGcsFlow(object):
             "bk_biz_id": <bk_biz_id>,
             "drop_before": False,
             "use_stream": True,
+            "use_mydumper": true,
             "cluster_ids": [1, 2, 3]
         }
         """
@@ -66,16 +67,17 @@ class MigrateClusterFromGcsFlow(object):
         self.tdbctl_pass = ""
         self.tdbctl_user = ""
         self.chartset = ""
+        self.threads = 0
+        self.bk_cloud_id = 0
         # stream mydumper & myloader 流式备份导入，否则退化成mysqldump方式
-        self.stream = True
+        self.use_mydumper = True
+        self.stream = False
         if self.data.get("use_stream"):
             self.stream = self.data["use_stream"]
         # drop_before 导入到中控是否带上drop语句
         self.drop_before = False
         if self.data.get("drop_before"):
             self.drop_before = self.data["drop_before"]
-
-        self.bk_cloud_id = 0
         if self.data.get("bk_cloud_id"):
             self.bk_cloud_id = self.data["bk_cloud_id"]
 
@@ -174,6 +176,7 @@ class MigrateClusterFromGcsFlow(object):
         exec_act_kwargs = ExecActuatorKwargs(
             bk_cloud_id=int(self.data["bk_cloud_id"]),
             cluster_type=ClusterType.TenDBCluster,
+            job_timeout=86400,
         )
 
         for cluser_id in cluster_ids:
@@ -218,7 +221,7 @@ class MigrateClusterFromGcsFlow(object):
             # self.tdbctl_user="xxx"
             # self.tdbctl_pass="xxx"
             # self.chartset = "utf8"
-            # 给spider节点下发tdbctl 介质 0
+            # 给spider节点下发tdbctl介质
             migrate_pipeline = SubBuilder(root_id=self.root_id, data=self.data)
             migrate_pipeline.add_act(
                 act_name=_("下发tdbCtl介质包"),
@@ -288,7 +291,9 @@ class MigrateClusterFromGcsFlow(object):
                 "ctl_port": ctl_port,
                 "spider_port": leader_spider.port,
                 "stream": self.stream,
+                "use_mydumper": self.use_mydumper,
                 "drop_before": self.drop_before,
+                "threads": self.threads,
             }
             exec_act_kwargs.exec_ip = primary_ctl_ip
             exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_import_schema_to_tdbctl_payload.__name__

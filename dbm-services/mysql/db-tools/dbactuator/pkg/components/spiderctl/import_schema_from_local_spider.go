@@ -37,11 +37,13 @@ type ImportSchemaFromLocalSpiderComp struct {
 
 // ImportSchemaFromLocalSpiderParam TODO
 type ImportSchemaFromLocalSpiderParam struct {
-	Host       string `json:"host"  validate:"required,ip"`                       // 当前实例的主机地址
-	Port       int    `json:"port"  validate:"required,lt=65536,gte=3306"`        // 当前实例的端口
-	SpiderPort int    `json:"spider_port"  validate:"required,lt=65536,gte=3306"` // spider节点端口
-	Stream     bool   `json:"stream"`                                             // mydumper stream myloader stream
-	DropBefore bool   `json:"drop_before"`                                        // 强制覆盖原来的表结构
+	Host        string `json:"host"  validate:"required,ip"`                       // 当前实例的主机地址
+	Port        int    `json:"port"  validate:"required,lt=65536,gte=3306"`        // 当前实例的端口
+	SpiderPort  int    `json:"spider_port"  validate:"required,lt=65536,gte=3306"` // spider节点端口
+	UseMydumper bool   `json:"use_mydumper"`                                       // use mydumper
+	Stream      bool   `json:"stream"`                                             // mydumper stream myloader stream
+	DropBefore  bool   `json:"drop_before"`                                        // 强制覆盖原来的表结构
+	Threads     int    `json:"threads"`                                            // 可配置最大并发 for mydumper myloader
 }
 
 type importSchemaFromLocalSpiderRuntime struct {
@@ -129,9 +131,13 @@ func (c *ImportSchemaFromLocalSpiderComp) Init() (err error) {
 		}
 	}
 	c.tmpDumpFile = time.Now().Format(cst.TimeLayoutDir) + "_schema.sql"
-	c.maxThreads = runtime.NumCPU() / 3
-	if c.maxThreads < 1 {
-		c.maxThreads = 1
+	if c.Params.Threads > 0 {
+		c.maxThreads = c.Params.Threads
+	} else {
+		c.maxThreads = runtime.NumCPU() / 3
+		if c.maxThreads < 1 {
+			c.maxThreads = 2
+		}
 	}
 	return err
 }
@@ -149,17 +155,21 @@ func (c *ImportSchemaFromLocalSpiderComp) Migrate() (err error) {
 			logger.Warn("set close tc_ignore_partitioning_for_create_table failed %s", errx.Error())
 		}
 	}()
-	if !c.Params.Stream {
-		return c.commonMigrate()
+	if c.Params.UseMydumper {
+		if c.Params.Stream {
+			return c.streamMigrate()
+		}
+		return c.mydumperCommonMigrate()
 	}
-	return c.streamMigrate()
+	return c.commonMigrate()
+
 }
 
 func (c *ImportSchemaFromLocalSpiderComp) streamMigrate() (err error) {
 	logger.Info("will create mydumper.cnf ...")
 	mydumperCnf := path.Join(c.tmpDumpDir, "mydumper.cnf")
 	if !cmutil.FileExists(mydumperCnf) {
-		if err = os.WriteFile(mydumperCnf, []byte("[myloader_session_variables]\ntc_admin=0\n"), 0666); err != nil {
+		if err = os.WriteFile(mydumperCnf, []byte("[myloader_session_variables]\n	tc_admin=0\n"), 0666); err != nil {
 			logger.Error("create mydumper.cnf failed %s", err.Error())
 			return err
 		}
@@ -173,7 +183,7 @@ func (c *ImportSchemaFromLocalSpiderComp) streamMigrate() (err error) {
 			Pwd:     c.adminPwd,
 			Charset: c.charset,
 			Options: mysqlutil.MyDumperOptions{
-				Threads:   2,
+				Threads:   c.maxThreads,
 				NoData:    true,
 				UseStream: true,
 				Regex:     "^(?!(mysql|infodba_schema|information_schema|performance_schema|sys))",
@@ -187,7 +197,7 @@ func (c *ImportSchemaFromLocalSpiderComp) streamMigrate() (err error) {
 			Charset: c.charset,
 			Options: mysqlutil.MyLoaderOptions{
 				NoData:         true,
-				Threads:        2,
+				Threads:        c.maxThreads,
 				UseStream:      true,
 				DefaultsFile:   mydumperCnf,
 				OverWriteTable: c.Params.DropBefore,
@@ -195,6 +205,57 @@ func (c *ImportSchemaFromLocalSpiderComp) streamMigrate() (err error) {
 		},
 	}
 	return streamFlow.Run()
+}
+
+// mydumperCommonMigrate TODO
+func (c *ImportSchemaFromLocalSpiderComp) mydumperCommonMigrate() (err error) {
+	logger.Info("will create mydumper.cnf ...")
+	mydumperCnf := path.Join(c.tmpDumpDir, "mydumper.cnf")
+	if !cmutil.FileExists(mydumperCnf) {
+		if err = os.WriteFile(mydumperCnf, []byte("[myloader_session_variables]\n	tc_admin=0\n"), 0666); err != nil {
+			logger.Error("create mydumper.cnf failed %s", err.Error())
+			return err
+		}
+	}
+	dumper := &mysqlutil.MyDumper{
+		Host:    c.Params.Host,
+		Port:    c.Params.SpiderPort,
+		User:    c.adminUser,
+		Pwd:     c.adminPwd,
+		Charset: c.charset,
+		DumpDir: c.tmpDumpDir,
+		Options: mysqlutil.MyDumperOptions{
+			Threads:   c.maxThreads,
+			NoData:    true,
+			UseStream: false,
+			Regex:     "^(?!(mysql|infodba_schema|information_schema|performance_schema|sys))",
+		},
+	}
+	loader := &mysqlutil.MyLoader{
+		Host:        c.Params.Host,
+		Port:        c.Params.Port,
+		User:        c.adminUser,
+		Pwd:         c.adminPwd,
+		Charset:     c.charset,
+		LoadDataDir: c.tmpDumpDir,
+		Options: mysqlutil.MyLoaderOptions{
+			NoData:         true,
+			Threads:        c.maxThreads,
+			UseStream:      false,
+			DefaultsFile:   mydumperCnf,
+			OverWriteTable: c.Params.DropBefore,
+		},
+	}
+	if err = dumper.Dumper(); err != nil {
+		logger.Error("use mydumper dump data failed %s", err.Error())
+		return err
+	}
+	logger.Info("dump data success ~")
+	if err = loader.Loader(); err != nil {
+		logger.Error("use myloader loader data failed %s", err.Error())
+		return err
+	}
+	return nil
 }
 
 // commonMigrate 使用mysqldump 原生方式去迁移
