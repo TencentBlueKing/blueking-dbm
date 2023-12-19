@@ -64,6 +64,7 @@ class RedisIgnoreAutofix(AuditedModel):
 
     class Meta:
         db_table = "tb_tendis_autofix_ignore"
+        index_together = [("bk_biz_id", "ip")]
 
 
 class NodeUpdateTaskStatus(str, StructuredEnum):

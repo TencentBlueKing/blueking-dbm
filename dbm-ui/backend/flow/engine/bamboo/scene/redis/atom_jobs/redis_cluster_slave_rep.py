@@ -205,7 +205,7 @@ def RedisClusterSlaveReplaceJob(root_id, ticket_data, sub_kwargs: ActKwargs, sla
         # "Old": {"ip": "2.2.a.4", "bk_cloud_id": 0, "bk_host_id": 123},
         old_slave = replace_link["ip"]
         params = {
-            "ignore_ips": act_kwargs.cluster["slave_master_map"][old_slave],
+            "ignore_ips": [act_kwargs.cluster["slave_master_map"][old_slave]],
             "ip": old_slave,
             "ports": act_kwargs.cluster["slave_ports"][old_slave],
         }

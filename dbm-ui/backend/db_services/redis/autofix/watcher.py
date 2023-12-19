@@ -25,7 +25,7 @@ from .const import REDIS_SWITCH_WAITER, SWITCH_MAX_WAIT_SECONDS, SWITCH_SMALL, R
 from .enums import AutofixItem, AutofixStatus, DBHASwitchResult
 from .models import RedisAutofixCore, RedisAutofixCtl, RedisIgnoreAutofix
 
-logger = logging.getLogger("celery")
+logger = logging.getLogger("root")
 
 
 # 从切换队列拿到切换实例列表， 然后聚会成故障机器维度
@@ -50,14 +50,17 @@ def watcher_get_by_hosts() -> (int, dict):
 
     # 遍历切换队列，聚合故障机
     switch_hosts, batch_small_id = {}, SWITCH_SMALL
+    if len(switch_queues) == 0:
+        return switch_id, switch_hosts
+
     for switch_inst in switch_queues:
         switch_ip, switch_id = switch_inst["ip"], int(switch_inst["uid"])  # uid / sw_id
-        logger.info(
-            "get new switched_fault_instance {}:{}, uid {}, db_type: {}:{}".format(
-                switch_ip, switch_inst["port"], switch_id, switch_inst["db_type"], switch_inst["db_role"]
-            )
-        )
         if not switch_hosts.get(switch_ip):
+            logger.info(
+                "get new switched_fault_ip {}:{}, uid {}, db_type: {}:{}".format(
+                    switch_ip, switch_inst["port"], switch_id, switch_inst["db_type"], switch_inst["db_role"]
+                )
+            )
             # 忽略没有集群信息、或者多集群共用的情况
             cluster = query_cluster_by_hosts([switch_ip])  # return: [{},{}]
             if not cluster:
@@ -84,7 +87,9 @@ def watcher_get_by_hosts() -> (int, dict):
             )
         current_host = switch_hosts[switch_ip]
         current_host.switch_ports.append(switch_inst["port"])
-        current_host.sw_result[switch_inst["status"]] = switch_inst["port"]
+        if not current_host.sw_result.get(switch_inst["status"]):
+            current_host.sw_result[switch_inst["status"]] = []
+        current_host.sw_result[switch_inst["status"]].append(switch_inst["port"])
 
         # 这台机器的Max值
         if switch_id > current_host.sw_max_id:
@@ -230,7 +235,7 @@ def save_swithed_host_by_cluster(batch_small: int, switch_hosts: Dict):
 
 # 把需要忽略自愈的保存起来
 def save_ignore_host(switched_host: RedisSwitchHost, msg):
-    RedisIgnoreAutofix.objects.create(
+    RedisIgnoreAutofix.objects.update_or_create(
         bk_cloud_id=DEFAULT_BK_CLOUD_ID,
         bk_biz_id=switched_host.bk_biz_id,
         cluster_id=switched_host.cluster_id,
@@ -245,4 +250,4 @@ def save_ignore_host(switched_host: RedisSwitchHost, msg):
         sw_max_id=switched_host.sw_max_id,
         sw_result=json.dumps(switched_host.sw_result),
         ignore_msg=msg,
-    ).save()
+    )

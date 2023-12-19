@@ -105,7 +105,7 @@ def query_cluster_by_hosts(hosts: List):
                         "machine_type": storage.machine.machine_type,
                         "cs_ports": [
                             cstorage.port
-                            for cstorage in cluster.storageinstance_set.filter(machine__ip=storage.machine.ip)
+                            for cstorage in cluster.proxyinstance_set.filter(machine__ip=storage.machine.ip)
                         ],
                         "cluster": cluster.immute_domain,
                         "cluster_name": cluster.name,
