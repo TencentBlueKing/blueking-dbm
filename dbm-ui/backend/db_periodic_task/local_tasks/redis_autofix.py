@@ -24,7 +24,7 @@ from backend.db_services.redis.autofix.watcher import (
 )
 from backend.utils.time import datetime2str
 
-logger = logging.getLogger("celery")
+logger = logging.getLogger("root")
 
 
 @register_periodic_task(run_every=crontab(minute="*/1"))
