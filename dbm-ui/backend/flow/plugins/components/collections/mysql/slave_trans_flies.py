@@ -15,8 +15,8 @@ from django.utils.translation import ugettext as _
 from pipeline.component_framework.component import Component
 
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileService
-from backend.flow.utils.mysql.common.compare_time import compare_time
 from backend.ticket.constants import TicketType
+from backend.utils.time import compare_time
 
 logger = logging.getLogger("flow")
 
@@ -36,7 +36,7 @@ class SlaveTransFileService(TransFileService):
         trans_data = data.get_one_of_inputs("trans_data")
 
         # 获取备份文件,并找出最
-        backup_time = "2000-01-01 00:00:00"
+        backup_time = "1999-01-01T11:11:11+08:00"
         backup_file = {}
         if global_data["ticket_type"] in (TicketType.MYSQL_RESTORE_LOCAL_SLAVE.value,):
             self.log_error(_("仅在主库查找备份源"))

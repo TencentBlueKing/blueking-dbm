@@ -2,7 +2,7 @@ import logging.config
 
 from backend.components import DRSApi
 from backend.db_meta.models import Cluster
-from backend.flow.utils.mysql.common.compare_time import compare_time
+from backend.utils.time import compare_time
 
 logger = logging.getLogger("root")
 
@@ -39,7 +39,7 @@ def get_local_backup(instances: list, cluster: Cluster):
             backups.append(backup_tmp)
 
     # 多份备份比较 backup map 列表....
-    backup_time = "2000-01-01 00:00:00"
+    backup_time = "1999-01-01T11:11:11+08:00"
     if len(backups) > 0:
         max_backup = backups[0]
         for backup in backups:
