@@ -133,9 +133,16 @@ func (m *BinlogFileModel) TableName() string {
 }
 
 // Save TODO
-func (m *BinlogFileModel) Save(db *sqlx.DB) error {
+func (m *BinlogFileModel) Save(db *sqlx.DB, replace bool) error {
 	m.autoTime()
-	sqlBuilder := sq.Insert("").Into(m.TableName()).
+	var sqlBuilder sq.InsertBuilder
+	if replace {
+		sqlBuilder = sq.Replace("")
+	} else {
+		sqlBuilder = sq.Insert("")
+	}
+	sq.Replace("").Into(m.TableName())
+	sqlBuilder = sqlBuilder.Into(m.TableName()).
 		Columns(
 			"bk_biz_id", "cluster_id", "cluster_domain", "db_role", "host", "port", "filename",
 			"filesize", "start_time", "stop_time", "file_mtime", "backup_status", "task_id",
