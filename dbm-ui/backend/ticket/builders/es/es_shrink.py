@@ -46,7 +46,8 @@ class EsShrinkDetailSerializer(BigDataSingleClusterOpsDetailsSerializer):
 
         all_shrink_hosts = []
         all_exist_hosts = []
-        for role in [InstanceRole.ES_DATANODE_HOT, InstanceRole.ES_DATANODE_COLD, InstanceRole.ES_CLIENT]:
+        # 暂时只需要校验hot节点至少保留一台，cold和client不校验
+        for role in [InstanceRole.ES_DATANODE_HOT]:
             shrink_hosts = {host["bk_host_id"] for host in role_hash[role]}
             exist_hosts = set(
                 cluster.storageinstance_set.filter(instance_role=role).values_list("machine__bk_host_id", flat=True)
