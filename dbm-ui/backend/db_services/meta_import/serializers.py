@@ -79,8 +79,10 @@ class TendbClusterStandardSerializer(serializers.Serializer):
     bk_cloud_id = serializers.IntegerField(help_text=_("云区域ID"), default=0)
     bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
     cluster_ids = serializers.ListField(child=serializers.IntegerField(), help_text=_("待标准的集群列表"))
-    use_stream = serializers.BooleanField(help_text=_("使用mydumper流式备份导出导入"), required=False, default=True)
+    use_stream = serializers.BooleanField(help_text=_("是否使用mydumper流式备份迁移"), required=False, default=False)
     drop_before = serializers.BooleanField(help_text=_("导入到tdbctl前,是否先删除"), required=False, default=False)
+    threads = serializers.IntegerField(help_text=_("业务ID"), required=False, default=0)
+    use_mydumper = serializers.BooleanField(help_text=_("是否使用mydumper,myloader迁移"), required=False, default=True)
 
     def validate(self, attrs):
         return attrs

@@ -306,8 +306,10 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
                     "host": kwargs["ip"],
                     "port": self.cluster["ctl_port"],
                     "spider_port": self.cluster["spider_port"],
+                    "use_mydumper": self.cluster["use_mydumper"],
                     "stream": self.cluster["stream"],
                     "drop_before": self.cluster["drop_before"],
+                    "threads": self.cluster["threads"],
                 },
             },
         }

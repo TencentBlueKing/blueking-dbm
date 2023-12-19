@@ -329,8 +329,8 @@ func (m *MyDumper) buildCommand() (command string) {
 	} else {
 		command += fmt.Sprintf(" -o %s ", m.DumpDir)
 	}
-	command += " --events --routines --triggers "
-	command += " --trx-consistency-only --long-query-retry-interval=10 --compress "
+	command += " --events --routines --triggers --verbose "
+	command += " --trx-consistency-only --long-query-retry-interval=10 "
 	if m.Options.NoData {
 		command += " --no-data "
 	}
@@ -367,6 +367,7 @@ type MyLoaderOptions struct {
 func (m *MyLoader) buildCommand() (command string) {
 	command = fmt.Sprintf(`%s -h %s -P %d -u %s -p '%s' --set-names=%s `, m.BinPath, m.Host,
 		m.Port, m.User, m.Pwd, m.Charset)
+	command += " --enable-binlog --verbose "
 	if m.Options.UseStream {
 		command += " --stream "
 	} else {
@@ -387,6 +388,38 @@ func (m *MyLoader) buildCommand() (command string) {
 	return
 }
 
+// Loader do myloader load data
+func (m *MyLoader) Loader() (err error) {
+	m.BinPath = filepath.Join(cst.DbbackupGoInstallPath, "bin/myloader")
+	if err = setEnv(); err != nil {
+		logger.Error("set env failed %s", err.Error())
+		return
+	}
+	var stderr string
+	stderr, err = osutil.StandardShellCommand(false, m.buildCommand())
+	if err != nil {
+		logger.Error("stderr %s", stderr)
+		return fmt.Errorf("stderr:%s,err:%w", stderr, err)
+	}
+	return nil
+}
+
+// Dumper do mydumper dump data
+func (m *MyDumper) Dumper() (err error) {
+	m.BinPath = filepath.Join(cst.DbbackupGoInstallPath, "bin/mydumper")
+	if err = setEnv(); err != nil {
+		logger.Error("set env failed %s", err.Error())
+		return
+	}
+	var stderr string
+	stderr, err = osutil.StandardShellCommand(false, m.buildCommand())
+	if err != nil {
+		logger.Error("stderr %s", stderr)
+		return fmt.Errorf("stderr:%s,err:%w", stderr, err)
+	}
+	return nil
+}
+
 // MyStreamDumpLoad  stream dumper loader
 type MyStreamDumpLoad struct {
 	Dumper *MyDumper
@@ -400,8 +433,8 @@ func (s *MyStreamDumpLoad) buildCommand() (command string) {
 	return fmt.Sprintf("%s|%s", dumpCmd, loadCmd)
 }
 
-// setEnv TODO
-func (m *MyStreamDumpLoad) setEnv() (err error) {
+// setEnv mydumper or myloader lib path
+func setEnv() (err error) {
 	var libPath []string
 	libPath = append(libPath, filepath.Join(cst.DbbackupGoInstallPath, "lib/libmydumper"))
 	oldLibs := strings.Split(os.Getenv("LD_LIBRARY_PATH"), ":")
@@ -411,7 +444,7 @@ func (m *MyStreamDumpLoad) setEnv() (err error) {
 
 // Run Command Run
 func (s *MyStreamDumpLoad) Run() (err error) {
-	if err = s.setEnv(); err != nil {
+	if err = setEnv(); err != nil {
 		logger.Error("set env failed %s", err.Error())
 		return
 	}

@@ -133,6 +133,8 @@ class ExecuteDBActuatorScriptService(BkJobService):
         else:
             # 现在默认使用root账号来执行
             common_kwargs["account_alias"] = DBA_ROOT_USER
+        if kwargs.get("job_timeout"):
+            common_kwargs["timeout"] = kwargs["job_timeout"]
 
         resp = JobApi.fast_execute_script({**common_kwargs, **body}, raw=True)
         self.log_info(f"{node_name} fast execute script response: {resp}")
