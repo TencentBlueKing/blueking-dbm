@@ -73,7 +73,7 @@ class MongoDBApplyFlowParamBuilder(builders.FlowParamBuilder):
     controller = MongoDBController.mongodb_cluster_apply_scene
 
     def format_ticket_data(self):
-        pass
+        print(self.ticket_data)
 
 
 class MongoDBApplyResourceParamBuilder(builders.ResourceApplyParamBuilder):
