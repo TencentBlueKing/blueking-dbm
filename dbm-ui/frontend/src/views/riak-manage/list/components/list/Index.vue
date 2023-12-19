@@ -204,7 +204,7 @@
       label: t('操作'),
       width: 300,
       render: ({ row }: { row: RiakModel }) => (
-        row.isClusterNormal
+        row.isOnline
           ? <>
               <OperationStatusTips data={row}>
                 <bk-button
@@ -242,7 +242,7 @@
                 <bk-button
                   text
                   theme="primary"
-                  disabled={ row.operationDisabled }
+                  disabled={row.operationDisabled}
                   onclick={() => handleEnabled(row)}
                 >
                   { t('启用') }
@@ -252,7 +252,7 @@
                 <bk-button
                   text
                   theme="primary"
-                  disabled={ row.operationDisabled }
+                  disabled={row.operationDisabled}
                   onclick={() => handleDelete(row)}
                 >
                   { t('删除') }

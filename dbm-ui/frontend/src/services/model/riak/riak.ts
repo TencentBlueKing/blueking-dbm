@@ -169,9 +169,9 @@ export default class Riak {
       return true;
     }
 
-    if (!this.isOnline) {
-      return true;
-    }
+    // if (!this.isOnline) {
+    //   return true;
+    // }
 
     if (this.operationRunningStatus) {
       return true;
