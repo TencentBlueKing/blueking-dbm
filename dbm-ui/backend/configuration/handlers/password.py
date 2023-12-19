@@ -79,6 +79,7 @@ class DBPasswordHandler(object):
         if end_time:
             filters.update(end_time=end_time)
 
+        # 获取密码生效实例结果
         mysql_admin_password_data = MySQLPrivManagerApi.get_mysql_admin_password(params=filters)
         mysql_admin_password_data["results"] = mysql_admin_password_data.pop("items")
         cloud_info = ResourceQueryHelper.search_cc_cloud(get_cache=True)
