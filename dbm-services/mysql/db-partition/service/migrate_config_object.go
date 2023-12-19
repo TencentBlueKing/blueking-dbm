@@ -9,8 +9,10 @@ type MigratePara struct {
 	GcsDb DbConf `json:"gcs_db"`
 	Apps  string `json:"apps"`
 	// 是否是国内的，国内的Apps不要求包含time_zone、bk_cloud_id，国内直连区域默认填充
-	// 国外的集群信息需要包含time_zone、bk_cloud_id todo
+	// 国外的集群信息需要包含time_zone、bk_cloud_id
 	Foreign *bool `json:"foreign"`
+	// 迁移范围，可选all、mysql、spider
+	Range string `json:"range"`
 }
 
 // DbConf 分区规则所在数据库的配置

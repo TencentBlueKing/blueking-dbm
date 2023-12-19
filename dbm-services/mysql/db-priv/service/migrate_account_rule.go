@@ -9,10 +9,10 @@ import (
 )
 
 // MigrateAccountRule 迁移帐号规则
-func (m *MigratePara) MigrateAccountRule() error {
-	apps, err := m.CheckPara()
-	if err != nil {
-		return err
+func (m *MigratePara) MigrateAccountRule() ([]PrivRule, []PrivRule, []PrivRule, []PrivRule, []int, error) {
+	apps, errOuter := m.CheckPara()
+	if errOuter != nil {
+		return nil, nil, nil, nil, nil, errOuter
 	}
 	exclude := make([]AppUser, 0)
 	var appWhere string
@@ -24,7 +24,7 @@ func (m *MigratePara) MigrateAccountRule() error {
 		Self: openDB(m.GcsDb.User, m.GcsDb.Psw, fmt.Sprintf("%s:%s", m.GcsDb.Host, m.GcsDb.Port), m.GcsDb.Name),
 	}
 	defer GcsDb.Self.Close()
-	// 检查scr、gcs中的账号规则
+	// 检查scr、gcs中的账号规则，mysql和spider的一起检查
 	pass := CheckOldPriv(m.Key, appWhere, &exclude)
 	notPassTips := "some check not pass, please check logs"
 	passTips := "all check pass"
@@ -32,16 +32,16 @@ func (m *MigratePara) MigrateAccountRule() error {
 	if m.Mode == "check" {
 		if !pass {
 			slog.Error(notPassTips)
-			return fmt.Errorf(notPassTips)
+			return nil, nil, nil, nil, nil, fmt.Errorf(notPassTips)
 		} else {
 			slog.Info(passTips)
-			return nil
+			return nil, nil, nil, nil, nil, nil
 		}
 	} else if m.Mode == "run" {
 		// 检查通过迁移，检查不通过不迁移
 		if !pass {
 			slog.Error(fmt.Sprintf("%s, do not migrate", notPassTips))
-			return fmt.Errorf("%s, do not migrate", notPassTips)
+			return nil, nil, nil, nil, nil, fmt.Errorf("%s, do not migrate", notPassTips)
 		} else {
 			slog.Info(passTips)
 		}
@@ -58,102 +58,107 @@ func (m *MigratePara) MigrateAccountRule() error {
 	// 获取需要迁移的scr、gcs中的账号规则
 	// db_module为spider_master/spider_slave属于spider的权限规则，
 	// 其他不明确的，同时迁移到mysql和spider下
-	mysqlUids, uids, exUids, err := FilterMigratePriv(appWhere, &exclude)
-	if err != nil {
-		slog.Error("FilterMigratePriv", "err", err)
-		return fmt.Errorf("FilterMigratePriv error: %s", err.Error())
+	mysqlUids, uids, exUids, errOuter := FilterMigratePriv(appWhere, &exclude)
+	if errOuter != nil {
+		slog.Error("get privilege uid to migrate", "err", errOuter)
+		return nil, nil, nil, nil, nil, fmt.Errorf("get privilege uid to migrate error: %s", errOuter.Error())
 	}
+
+	// 经过检查不能迁移
+	tipsCannotMigrate := "some accounts and rules belonging to them can't be migrated"
+
+	var failFlag bool
+	if m.Mode == "force-run" && len(exUids) > 0 {
+		failFlag = true
+	}
+	if m.Range == "mysql" {
+		success, fail, errs := MigrateForMysqlOrSpider(apps, m.Key, mysqlUids, m.Range)
+		if failFlag {
+			errs = append(errs, tipsCannotMigrate)
+		}
+		if len(errs) > 0 {
+			slog.Info("migrate account rule fail")
+			return success, fail, nil, nil, exUids, fmt.Errorf("errors: %s", strings.Join(errs, "\n"))
+		}
+		slog.Info("migrate account rule success")
+		return success, fail, nil, nil, exUids, nil
+	} else if m.Range == "spider" {
+		success, fail, errs := MigrateForMysqlOrSpider(apps, m.Key, uids, m.Range)
+		if failFlag {
+			errs = append(errs, tipsCannotMigrate)
+		}
+		if len(errs) > 0 {
+			slog.Info("migrate account rule fail")
+			return nil, nil, success, fail, exUids, fmt.Errorf("errors: %s", strings.Join(errs, "\n"))
+		}
+		slog.Info("migrate account rule success")
+		return nil, nil, success, fail, exUids, nil
+	} else if m.Range == "all" {
+		success, fail, errs := MigrateForMysqlOrSpider(apps, m.Key, mysqlUids, "mysql")
+		successSpider, failSpider, errs1 := MigrateForMysqlOrSpider(apps, m.Key, mysqlUids, "spider")
+		errs = append(errs, errs1...)
+		if failFlag {
+			errs = append(errs, tipsCannotMigrate)
+		}
+		if len(errs) > 0 {
+			slog.Info("migrate account rule fail")
+			return success, fail, successSpider, failSpider, exUids, fmt.Errorf(
+				"errors: %s", strings.Join(errs, "\n"))
+		}
+		slog.Info("migrate account rule success")
+		return success, fail, successSpider, failSpider, exUids, nil
+	} else {
+		return nil, nil, nil, nil, nil, fmt.Errorf("不支持range值[%s]，支持all、mysql、spider", m.Range)
+	}
+}
+
+func MigrateForMysqlOrSpider(apps map[string]int64, vkey string, uids []string, vtype string) ([]PrivRule, []PrivRule, []string) {
 	// 获取需要迁移的权限账号
-	mysqlUsers, err := GetUsers(m.Key, mysqlUids)
+	var dbType string
+	var errs []string
+	if vtype == "mysql" {
+		dbType = mysql
+	} else if vtype == "spider" {
+		dbType = tendbcluster
+	}
+	var uidsSuccess, uidsFail []PrivRule
+	mysqlUsers, err := GetUsers(vkey, uids)
 	if err != nil {
-		slog.Error("GetUsers", "err", err)
-		return fmt.Errorf("GetUsers error: %s", err.Error())
+		slog.Error("GetUsers", "dbType", vtype, "err", err)
+		return uidsSuccess, uidsFail, []string{fmt.Sprintf("%s GetUsers error: %s", vtype, err.Error())}
 	}
 
-	allUsers, err := GetUsers(m.Key, uids)
+	err = DoAddAccounts(apps, mysqlUsers, dbType)
 	if err != nil {
-		slog.Error("GetUsers", "err", err)
-		return fmt.Errorf("GetUsers error: %s", err.Error())
+		slog.Error("DoAddAccounts", "dbType", vtype, "err", err)
+		return uidsSuccess, uidsFail, []string{fmt.Sprintf("%s DoAddAccounts error: %s", vtype, err.Error())}
 	}
-
-	// 迁移账号
-	// 遇到帐号迁移失败就终止
-	err = DoAddAccounts(apps, allUsers, tendbcluster)
-	if err != nil {
-		slog.Error("DoAddAccounts", err)
-		return fmt.Errorf("DoAddAccounts error: %s", err.Error())
-	}
-	err = DoAddAccounts(apps, mysqlUsers, mysql)
-	if err != nil {
-		slog.Error("DoAddAccounts", err)
-		return fmt.Errorf("DoAddAccounts error: %s", err.Error())
-	}
-	slog.Info("migrate account success")
-
 	// 获取需要迁移的规则
-	mysqlRules, err := GetRules(mysqlUids)
+	mysqlRules, err := GetRules(uids)
 	if err != nil {
-		slog.Error("GetRules", "err", err)
-		return fmt.Errorf("GetRules error: %s", err.Error())
+		slog.Error("GetRules", "dbType", vtype, "err", err)
+		return uidsSuccess, uidsFail, []string{fmt.Sprintf("%s GetRules error: %s", vtype, err.Error())}
 	}
-
-	allRules, err := GetRules(uids)
-	if err != nil {
-		slog.Error("GetRules", "err", err)
-		return fmt.Errorf("GetRules error: %s", err.Error())
-	}
-
 	// 迁移账号规则
 	// 遇到迁移失败的规则，提示并且跳过，继续迁移
-	var ruleFail bool
 	for _, rule := range mysqlRules {
 		priv, errInner := FormatPriv(rule.Privileges)
 		if errInner != nil {
 			slog.Error("format privileges error", rule.Privileges, errInner, "rule", rule)
-			ruleFail = true
+			errs = append(errs, errInner.Error())
+			uidsFail = append(uidsFail, PrivRule{rule.App, rule.User, rule.Dbname})
 			continue
 		}
-		errInner = DoAddAccountRule(rule, apps, "mysql", priv)
+		errInner = DoAddAccountRule(rule, apps, dbType, priv)
 		if errInner != nil {
 			slog.Error("add account rule error", rule, errInner, "rule", rule)
-			ruleFail = true
-		}
-	}
-
-	for _, rule := range allRules {
-		// 格式化权限
-		priv, errInner := FormatPriv(rule.Privileges)
-		if errInner != nil {
-			slog.Error("format privileges", rule.Privileges, errInner)
-			ruleFail = true
+			errs = append(errs, errInner.Error())
+			uidsFail = append(uidsFail, PrivRule{rule.App, rule.User, rule.Dbname})
 			continue
 		}
-		// 添加帐号
-		errInner = DoAddAccountRule(rule, apps, "tendbcluster", priv)
-		if errInner != nil {
-			slog.Error("add account rule error", rule, errInner, "rule", rule)
-			ruleFail = true
-		}
+		uidsSuccess = append(uidsSuccess, PrivRule{rule.App, rule.User, rule.Dbname})
 	}
-	// 经过检查不能迁移
-	tipsCannotMigrate := "some accounts and rules belonging to them can't be migrated"
-	// 可以迁移但是迁移失败
-	tipsMigrateFail := "some rules migrate failed"
-	tipsCheckLog := "check log"
-
-	if m.Mode == "force-run" && len(exclude) > 0 {
-		slog.Error("users can't be migrated", "users", exclude)
-		slog.Error("rules can't be migrated", "uids in gcs", exUids)
-		if ruleFail {
-			return fmt.Errorf("force-run mode, %s, %s, %s", tipsCannotMigrate, tipsMigrateFail, tipsCheckLog)
-		}
-		return fmt.Errorf("force-run mode, %s，%s", tipsCannotMigrate, tipsCheckLog)
-	}
-	if ruleFail {
-		return fmt.Errorf("%s, %s", tipsMigrateFail, tipsCheckLog)
-	}
-	slog.Info("migrate account rule success")
-	return nil
+	return uidsSuccess, uidsFail, errs
 }
 
 // CheckPara 检查迁移帐号规则的参数
@@ -181,6 +186,9 @@ func (m *MigratePara) CheckPara() (map[string]int64, error) {
 			"mode值为:%s，请设置，可选模式\ncheck --- 仅检查不实施\nrun --- 检查并且迁移\nforce-run --- 强制执行", m.Mode))
 		return nil, fmt.Errorf(
 			"mode值为:%s,可选模式\ncheck --- 仅检查不实施\nrun --- 检查并且迁移\nforce-run --- 强制执行", m.Mode)
+	}
+	if !(m.Range == "all" || m.Range == "mysql" || m.Range == "spider") {
+		return nil, fmt.Errorf("不支持range值[%s]，支持all、mysql、spider", m.Range)
 	}
 	return apps, nil
 }
