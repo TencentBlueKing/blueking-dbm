@@ -21,10 +21,9 @@ from backend.flow.plugins.components.collections.mysql.exec_actuator_script impo
 from backend.flow.plugins.components.collections.mysql.mysql_download_backupfile import (
     MySQLDownloadBackupfileComponent,
 )
-from backend.flow.utils.mysql.common.compare_time import compare_time
 from backend.flow.utils.mysql.mysql_act_dataclass import DownloadBackupFileKwargs, ExecActuatorKwargs
 from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
-from backend.utils.time import str2datetime
+from backend.utils.time import compare_time, str2datetime
 
 
 def spider_recover_sub_flow(root_id: str, ticket_data: dict, cluster: dict):
