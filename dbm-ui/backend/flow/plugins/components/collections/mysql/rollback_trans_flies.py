@@ -14,7 +14,7 @@ from django.utils.translation import ugettext as _
 from pipeline.component_framework.component import Component
 
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileService
-from backend.flow.utils.mysql.common.compare_time import compare_time
+from backend.utils.time import compare_time
 
 logger = logging.getLogger("flow")
 
@@ -35,7 +35,7 @@ class RollBackTransFileService(TransFileService):
 
         backup_infos = {**trans_data.master_backup_file["backups"], **trans_data.slave_backup_file["backups"]}
         backup_info = {}
-        backup_time = "2000-01-01 00:00:00"
+        backup_time = "1999-01-01T11:11:11+08:00"
         rollback_time = one_cluster["rollback_time"]
         for key, value in backup_infos.items():
             if str(value["data_schema_grant"]).lower() == "all" or (
