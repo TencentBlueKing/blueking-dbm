@@ -387,6 +387,11 @@
       field: 'create_at',
     },
     {
+      label: t('时区'),
+      field: 'cluster_time_zone',
+      width: 100,
+    },
+    {
       label: t('操作'),
       width: tableOperationWidth.value,
       fixed: isStretchLayoutOpen.value ? false : 'right',
@@ -502,6 +507,7 @@
       'hdfs_zookeeper',
       'hdfs_journalnode',
       'hdfs_datanode',
+      'cluster_time_zone',
     ],
   };
 

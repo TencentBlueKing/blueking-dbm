@@ -12,6 +12,9 @@
 */
 
 import bkuiVue from 'bkui-vue';
+import dayjs from 'dayjs';
+import tz from 'dayjs/plugin/timezone';
+import utc from 'dayjs/plugin/utc';
 import { createPinia } from 'pinia';
 import { createApp } from 'vue';
 
@@ -35,6 +38,9 @@ import '@lib/bk-icon/iconcool';
 import { setGlobalDirectives } from '@/directives/index';
 import('tippy.js/dist/tippy.css');
 import('tippy.js/themes/light.css');
+
+dayjs.extend(utc);
+dayjs.extend(tz);
 
 window.changeConfirm = false;
 

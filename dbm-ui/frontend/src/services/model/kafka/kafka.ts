@@ -68,6 +68,7 @@ export default class Kafka {
   cluster_name: string;
   cluster_type: string;
   cluster_type_name: string;
+  cluster_time_zone: string;
   cluster_entry_details: {
     cluster_entry_type: string,
     entry: string,
@@ -118,6 +119,7 @@ export default class Kafka {
     this.cap_usage = payload.cap_usage;
     this.cluster_alias = payload.cluster_alias;
     this.cluster_name = payload.cluster_name;
+    this.cluster_time_zone = payload.cluster_time_zone;
     this.cluster_entry_details = payload.cluster_entry_details;
     this.cluster_type = payload.cluster_type;
     this.cluster_type_name = payload.cluster_type_name;

@@ -38,10 +38,13 @@
           :label="t('指定执行时间')"
           property="timing"
           required>
-          <BkDatePicker
-            v-model="formData.timing"
-            style="width: 360px"
-            type="datetime" />
+          <div class="time-box">
+            <TimeZonePicker style="width: 350px;" />
+            <BkDatePicker
+              v-model="formData.timing"
+              style="width: 360px"
+              type="datetime" />
+          </div>
         </BkFormItem>
         <BkFormItem
           :label="t('全局超时时间')"
@@ -77,9 +80,9 @@
                     class="item-flag"
                     type="manual" />
                   <div class="item-label">
-                    {{ $t('人工确认') }}
+                    {{ t('人工确认') }}
                   </div>
-                  <div>{{ $t('校验检查完成后，需人工确认后，方可执行修复动作') }}</div>
+                  <div>{{ t('校验检查完成后，需人工确认后，方可执行修复动作') }}</div>
                 </div>
               </BkRadio>
             </div>
@@ -90,9 +93,9 @@
                     class="item-flag"
                     type="timed-task" />
                   <div class="item-label">
-                    {{ $t('自动修复') }}
+                    {{ t('自动修复') }}
                   </div>
-                  <div>{{ $t('校验检查完成后，将自动修复数据') }}</div>
+                  <div>{{ t('校验检查完成后，将自动修复数据') }}</div>
                 </div>
               </BkRadio>
             </div>
@@ -134,11 +137,14 @@
   import SpiderModel from '@services/model/spider/spider';
   import { createTicket } from '@services/source/ticket';
 
+  import { useTimeZoneFormat } from '@hooks';
+
   import { useGlobalBizs } from '@stores';
 
   import { ClusterTypes } from '@common/const';
 
   import ClusterSelector from '@components/cluster-selector-new/Index.vue';
+  import TimeZonePicker from '@components/time-zone-picker/index.vue';
 
   import RenderData from './components/RenderData/Index.vue';
   import RenderDataRow, {
@@ -149,6 +155,7 @@
   const { t } = useI18n();
   const router = useRouter();
   const { currentBizId } = useGlobalBizs();
+  const formatDateToUTC = useTimeZoneFormat();
 
   const rowRefs = ref();
   const isShowBatchSelector = ref(false);
@@ -237,7 +244,7 @@
         remark: '',
         details: {
           ...formData,
-          timing: dayjs(formData.timing).format('YYYY-MM-DD HH:mm:ss'),
+          timing: formatDateToUTC(dayjs(formData.timing).format('YYYY-MM-DD HH:mm:ss')),
           infos: data,
         },
         bk_biz_id: currentBizId,
@@ -269,6 +276,12 @@
 <style lang="less">
   .spider-manage-checksum-page {
     padding-bottom: 20px;
+
+    .time-box {
+      display: flex;
+      align-items: center;
+      gap: 8px
+    }
 
     .form-block{
       .bk-form-label{

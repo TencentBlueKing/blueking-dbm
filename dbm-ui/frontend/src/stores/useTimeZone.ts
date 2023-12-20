@@ -11,11 +11,40 @@
  * the specific language governing permissions and limitations under the License.
 */
 
-export * from './globalBizs';
-export * from './mainView';
-export * from './useFunController';
-export * from './useMenu';
-export * from './useSQLTaskCount';
-export * from './useSystemEnviron';
-export * from './useTimeZone';
-export * from './useUserProfile';
+import { defineStore } from 'pinia';
+
+interface State {
+  abbreviation: string,
+  country: string,
+  countryCode: string,
+  label: string,
+  utc: string,
+}
+
+export const useTimeZone = defineStore('useTimeZone', {
+  state: (): State => ({
+    abbreviation: '',
+    country: '',
+    countryCode: '',
+    label: '',
+    utc: '',
+  }),
+  actions: {
+    update(newState: State) {
+      const {
+        abbreviation,
+        country,
+        countryCode,
+        label,
+        utc,
+      } = newState;
+      this.$patch({
+        abbreviation,
+        country,
+        countryCode,
+        label,
+        utc: utc.substring(3),
+      });
+    },
+  },
+});

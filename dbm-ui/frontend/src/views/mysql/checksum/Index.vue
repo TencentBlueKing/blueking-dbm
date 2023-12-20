@@ -16,19 +16,19 @@
     v-if="ticketId"
     :steps="successTipSteps"
     :ticket-id="ticketId"
-    :title="$t('数据校验修复任务提交成功')"
+    :title="t('数据校验修复任务提交成功')"
     @close="handleCloseSuccess" />
   <SmartAction
     v-else
     class="checksum">
     <BkAlert
       closable
-      :title="$t('数据校验修复_对集群的主库和从库进行数据一致性校验和修复_其中MyISAM引擎库表不会被校验和修复')" />
+      :title="t('数据校验修复_对集群的主库和从库进行数据一致性校验和修复_其中MyISAM引擎库表不会被校验和修复')" />
     <BkButton
       class="checksum-batch"
       @click="() => isShowBatchInput = true">
       <i class="db-icon-add" />
-      {{ $t('批量录入') }}
+      {{ t('批量录入') }}
     </BkButton>
     <div class="checksum-main">
       <ToolboxTable
@@ -44,29 +44,33 @@
         form-type="vertical"
         :model="formdata">
         <BkFormItem
-          :label="$t('定时执行时间')"
+          :label="t('定时执行时间')"
           property="timing"
           required>
-          <BkDatePicker
-            v-model="formdata.timing"
-            class="not-seconds-date-picker"
-            :disabled-date="disabledDate"
-            :placeholder="$t('请选择xx', [$t('定时执行时间')])"
-            style="width: 100%;"
-            type="datetime" />
+          <div class="time-box">
+            <TimeZonePicker style="width: 350px;" />
+            <BkDatePicker
+              v-model="formdata.timing"
+              class="not-seconds-date-picker ml-8"
+              :disabled-date="disabledDate"
+              :placeholder="t('请选择xx', [t('定时执行时间')])"
+              style="width: 360px;"
+              type="datetime" />
+          </div>
         </BkFormItem>
         <BkFormItem
-          :label="$t('全局超时时间')"
+          :label="t('全局超时时间')"
           property="runtime_hour"
           required>
           <BkInput
             v-model="formdata.runtime_hour"
             :max="168"
             :min="24"
+            style="width: 200px;"
             type="number" />
         </BkFormItem>
         <BkFormItem
-          :label="$t('数据修复')"
+          :label="t('数据修复')"
           required>
           <BkSwitcher
             v-model="formdata.data_repair.is_repair"
@@ -74,7 +78,7 @@
         </BkFormItem>
         <BkFormItem
           v-if="formdata.data_repair.is_repair"
-          :label="$t('修复模式')"
+          :label="t('修复模式')"
           required>
           <BkRadioGroup
             v-model="formdata.data_repair.mode"
@@ -86,9 +90,9 @@
                     class="item-flag"
                     type="account" />
                   <div class="item-label">
-                    {{ $t('人工确认') }}
+                    {{ t('人工确认') }}
                   </div>
-                  <div>{{ $t('校验检查完成需人工确认后_方可执行修复动作') }}</div>
+                  <div>{{ t('校验检查完成需人工确认后_方可执行修复动作') }}</div>
                 </div>
               </BkRadio>
             </div>
@@ -99,9 +103,9 @@
                     class="item-flag"
                     type="timed-task" />
                   <div class="item-label">
-                    {{ $t('自动修复') }}
+                    {{ t('自动修复') }}
                   </div>
-                  <div>{{ $t('校验检查完成后_将自动修复数据') }}</div>
+                  <div>{{ t('校验检查完成后_将自动修复数据') }}</div>
                 </div>
               </BkRadio>
             </div>
@@ -115,13 +119,13 @@
         :loading="isSubmitting"
         theme="primary"
         @click="handleSubmit">
-        {{ $t('提交') }}
+        {{ t('提交') }}
       </BkButton>
       <BkButton
         class="w-88"
         :disabled="isSubmitting"
         @click="handleReset">
-        {{ $t('重置') }}
+        {{ t('重置') }}
       </BkButton>
     </template>
   </SmartAction>
@@ -136,11 +140,11 @@
     v-show="isShowInputTips"
     ref="popRef"
     style=" font-size: 12px; line-height: 24px;color: #63656e;">
-    <p>{{ $t('匹配任意长度字符串_如a_不允许独立使用') }}</p>
-    <p>{{ $t('匹配任意单一字符_如a_d') }}</p>
-    <p>{{ $t('专门指代ALL语义_只能独立使用') }}</p>
-    <p>{{ $t('注_含通配符的单元格仅支持输入单个对象') }}</p>
-    <p>{{ $t('Enter完成内容输入') }}</p>
+    <p>{{ t('匹配任意长度字符串_如a_不允许独立使用') }}</p>
+    <p>{{ t('匹配任意单一字符_如a_d') }}</p>
+    <p>{{ t('专门指代ALL语义_只能独立使用') }}</p>
+    <p>{{ t('注_含通配符的单元格仅支持输入单个对象') }}</p>
+    <p>{{ t('Enter完成内容输入') }}</p>
   </div>
 </template>
 
@@ -161,6 +165,7 @@
   import {
     useInfo,
     useTableMaxHeight,
+    useTimeZoneFormat,
   } from '@hooks';
 
   import { TicketTypes } from '@common/const';
@@ -171,6 +176,7 @@
   import type { ClusterSelectorResult } from '@components/cluster-selector/types';
   import SuccessView from '@components/mysql-toolbox/Success.vue';
   import ToolboxTable from '@components/mysql-toolbox/ToolboxTable.vue';
+  import TimeZonePicker from '@components/time-zone-picker/index.vue';
 
   import { generateId } from '@utils';
 
@@ -204,6 +210,8 @@
   const { t } = useI18n();
   const globalBizsStore = useGlobalBizs();
   const tableMaxHeight = useTableMaxHeight(334);
+  const formatDateToUTC = useTimeZoneFormat();
+
   let tippyInst:Instance | undefined;
   const disabledDate = (date: Date | number) => {
     const day = new Date();
@@ -956,7 +964,7 @@
           bk_biz_id: globalBizsStore.currentBizId,
           details: {
             ...formdata,
-            timing: format(new Date(formdata.timing), 'yyyy-MM-dd HH:mm:ss'),
+            timing: formatDateToUTC(format(new Date(formdata.timing), 'yyyy-MM-dd HH:mm:ss')),
             infos: tableData.value.map(item => ({
               cluster_id: item.cluster_id,
               master: formatInstance(item.masterInstance),
@@ -1007,7 +1015,7 @@
     }
 
     .checksum-form {
-      width: 360px;
+      width: 100%;
       margin-top: 24px;
       margin-bottom: 32px;
 
@@ -1018,6 +1026,11 @@
         &::after {
           line-height: unset;
         }
+      }
+
+      .time-box {
+        display: flex;
+        align-items: center;
       }
     }
 

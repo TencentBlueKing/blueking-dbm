@@ -547,6 +547,12 @@
       render: ({ data }: IColumn) => <span>{data.create_at || '--'}</span>,
     },
     {
+      label: t('时区'),
+      field: 'cluster_time_zone',
+      width: 100,
+      render: ({ data }: IColumn) => <span>{data.cluster_time_zone || '--'}</span>,
+    },
+    {
       label: t('操作'),
       field: '',
       width: tableOperationWidth.value,

@@ -454,6 +454,12 @@
       render: ({ cell }: ColumnData) => <span>{cell || '--'}</span>,
     },
     {
+      label: t('时区'),
+      field: 'cluster_time_zone',
+      width: 100,
+      render: ({ cell }: ColumnData) => <span>{cell || '--'}</span>,
+    },
+    {
       label: t('操作'),
       field: '',
       width: tableOperationWidth.value,

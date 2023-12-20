@@ -88,6 +88,7 @@ export default class TendbCluster {
   cluster_shard_num: number;
   cluster_spec: ResourceSpecModel;
   cluster_type: string;
+  cluster_time_zone: string;
   create_at: string;
   creator: string;
   db_module_id: number;
@@ -134,6 +135,7 @@ export default class TendbCluster {
     this.cluster_shard_num = payload.cluster_shard_num;
     this.cluster_spec = payload.cluster_spec;
     this.cluster_type = payload.cluster_type;
+    this.cluster_time_zone = payload.cluster_time_zone;
     this.create_at = payload.create_at;
     this.creator = payload.creator;
     this.db_module_id = payload.db_module_id;

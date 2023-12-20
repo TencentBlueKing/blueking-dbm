@@ -58,13 +58,16 @@
         {{ t('在审批通过后_将会按照设置的时间定时执行_无需人工确认_如审批超时_需_人工确认_后才能执行') }}
       </span>
     </template>
-    <div ref="timeRef">
-      <BkDatePicker
-        v-model="localTriggerTime"
-        class="not-seconds-date-picker"
-        :disabled-date="disableDate"
-        type="datetime"
-        @change="handleTriggerTimeChange" />
+    <div class="sql-execute-time-box">
+      <TimeZonePicker style="width: 350px;" />
+      <div ref="timeRef">
+        <BkDatePicker
+          v-model="localTriggerTime"
+          class="not-seconds-date-picker"
+          :disabled-date="disableDate"
+          type="datetime"
+          @change="handleTriggerTimeChange" />
+      </div>
     </div>
   </BkFormItem>
 </template>
@@ -75,6 +78,10 @@
     watch,
   } from 'vue';
   import { useI18n } from 'vue-i18n';
+
+  import { useTimeZoneFormat } from '@hooks';
+
+  import TimeZonePicker from '@components/time-zone-picker/index.vue';
 
   interface Props {
     modelValue: {
@@ -91,6 +98,8 @@
   const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
+  const formatDateToUTC = useTimeZoneFormat();
+
   const disableDate = (date: number | Date) => Boolean(date && date.valueOf() < Date.now() - 86400000);
 
   const rules = [
@@ -111,9 +120,11 @@
   });
 
   const triggerChange = () => {
-    emits('update:modelValue', {
-      mode: localMode.value,
-      trigger_time: localTriggerTime.value,
+    nextTick(() => {
+      emits('update:modelValue', {
+        mode: localMode.value,
+        trigger_time: formatDateToUTC(localTriggerTime.value),
+      });
     });
   };
 
@@ -173,5 +184,11 @@
         }
       }
     }
+  }
+
+  .sql-execute-time-box {
+    display: flex;
+    align-items: center;
+    gap: 8px;
   }
 </style>
