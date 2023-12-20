@@ -28,10 +28,10 @@ import type { TreeData } from '../types';
 
 interface State {
   loading: boolean;
-    loadingDetails: boolean;
-    isEmpty: boolean;
-    version: string;
-    data: ServiceReturnType<typeof getLevelConfig>,
+  loadingDetails: boolean;
+  isEmpty: boolean;
+  version: string;
+  data: ServiceReturnType<typeof getLevelConfig>,
 }
 /**
  * 获取参数管理基本信息
@@ -48,7 +48,7 @@ export const useBaseDetails = (immediateFetch = true) => {
       meta_cluster_type: clusterType.value,
       conf_type: confType,
       version: state.version || data?.extra?.[versionKey],
-      bk_biz_id: bizId.value,
+      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
       level_name: levelType,
       level_value: id,
       level_info: undefined as any,
@@ -68,7 +68,6 @@ export const useBaseDetails = (immediateFetch = true) => {
 
   const treeNode = inject<ComputedRef<TreeData>>('treeNode');
   const route = useRoute();
-  const bizId = computed(() => Number(route.params.bizId));
   const clusterType = computed(() => route.params.clusterType as ClusterTypesValues);
   const dbType = computed(() => clusterTypeInfos[clusterType.value].dbType);
   const state = reactive<State>({
@@ -108,10 +107,11 @@ export const useBaseDetails = (immediateFetch = true) => {
       conf_type: 'deploy',
       level_name: 'module',
       version: 'deploy_info',
-      bk_biz_id: bizId.value,
+      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
       level_value: moduleId,
       meta_cluster_type: clusterType.value,
     };
+
     state.loading = true;
     getLevelConfig(params)
       .then((res) => {
