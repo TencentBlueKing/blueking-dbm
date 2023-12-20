@@ -25,6 +25,8 @@ const (
 	PutQueue = "insert_switch_queue"
 	// GetQueue TODO
 	GetQueue = "query_switch_queue"
+	// GetQueueUid TODO
+	GetQueueUid = "query_switch_queue_by_uid"
 )
 
 // TbMonSwitchQueueApi TODO
@@ -74,6 +76,8 @@ func Handler(ctx *fasthttp.RequestCtx) {
 		PutSwitchQueue(ctx, param.SetArgs)
 	case GetQueue:
 		GetSwitchQueue(ctx, param.QueryArgs, param.PageArgs)
+	case GetQueueUid:
+		GetSwitchQueueUid(ctx, param.QueryArgs, param.PageArgs)
 	default:
 		api.SendResponse(ctx, api.ResponseInfo{
 			Data:    nil,
@@ -132,6 +136,64 @@ func GetSwitchQueue(ctx *fasthttp.RequestCtx, param interface{}, page api.QueryP
 		db = db.Where("switch_finished_time < ?", whereCond.SwitchFinishedTime)
 	}
 
+	if page.Limit > 0 {
+		if err := db.Limit(page.Limit).Offset(page.Offset).Order("uid DESC").Find(&result).Error; err != nil {
+			response.Code = api.RespErr
+			response.Message = err.Error()
+			response.Data = nil
+			log.Logger.Errorf("query table failed:%s", err.Error())
+		}
+	} else {
+		log.Logger.Debugf("no page_args")
+		if err := db.Order("uid DESC").Find(&result).Error; err != nil {
+			response.Code = api.RespErr
+			response.Message = err.Error()
+			response.Data = nil
+			log.Logger.Errorf("query table failed:%s", err.Error())
+		}
+	}
+
+	response.Data = TransSwitchQueueToApi(result)
+	log.Logger.Debugf("%+v", result)
+}
+
+// GetSwitchQueueUid get switch queue info by uid
+func GetSwitchQueueUid(ctx *fasthttp.RequestCtx, param interface{}, page api.QueryPage) {
+	var (
+		result    = []model.HASwitchQueue{}
+		whereCond = &model.HASwitchQueue{}
+		response  = api.ResponseInfo{
+			Data:    nil,
+			Code:    api.RespOK,
+			Message: "",
+		}
+	)
+
+	// NB:couldn't user api.SendResponse(ctx, response) directly, otherwise
+	// deepCopy response first
+	defer func() { api.SendResponse(ctx, response) }()
+
+	if !ctx.IsPost() {
+		response.Message = "must be Post request"
+		response.Code = api.RespErr
+		log.Logger.Errorf("must by post request, param:%+v", param)
+		return
+	}
+
+	if bytes, err := json.Marshal(param); err != nil {
+		log.Logger.Errorf("convert param failed:%s", err.Error())
+		response.Code = api.RespErr
+		response.Message = err.Error()
+		return
+	} else {
+		if err = json.Unmarshal(bytes, whereCond); err != nil {
+			response.Code = api.RespErr
+			response.Message = err.Error()
+			return
+		}
+	}
+	log.Logger.Debugf("%+v", whereCond)
+	db := model.HADB.Self.Table(whereCond.TableName()).Where("uid >= ?", whereCond.Uid)
 	if page.Limit > 0 {
 		if err := db.Limit(page.Limit).Offset(page.Offset).Order("uid DESC").Find(&result).Error; err != nil {
 			response.Code = api.RespErr
