@@ -236,7 +236,7 @@ func (m *BinlogFileModel) Update(db *sqlx.DB) error {
 }
 
 const (
-	// IBStatusNew TODO
+	// IBStatusNew 一般不存在
 	IBStatusNew = -2 // 文件尚未提交
 	// IBStatusClientFail TODO
 	IBStatusClientFail = -1 // 文件上传 提交失败

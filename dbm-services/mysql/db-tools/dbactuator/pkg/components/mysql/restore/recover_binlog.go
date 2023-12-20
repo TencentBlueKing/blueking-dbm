@@ -550,7 +550,7 @@ func (r *RecoverBinlog) PreCheck() error {
 	// 检查第一个 binlog 是否存在
 	if r.BinlogStartFile != "" {
 		if !util.StringsHas(r.BinlogFiles, r.BinlogStartFile) {
-			return errors.Errorf("first binlog %s not found", r.BinlogStartFile)
+			return errors.Errorf("binlog_start_file %s not found", r.BinlogStartFile)
 		}
 		// 如果 start_datetime 为空，依赖 start_file, start_pos 选择起始 binlog pos
 		for i, f := range r.BinlogFiles {

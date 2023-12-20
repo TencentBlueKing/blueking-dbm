@@ -8,9 +8,10 @@ import (
 
 // BKBackupClient TODO
 type BKBackupClient struct {
-	ToolPath     string `mapstructure:"tool_path" json:"tool_path" validate:"required"`
-	FileTag      string `mapstructure:"file_tag" json:"file_tag" validate:"required"`
-	AuthFile     string `mapstructure:"auth_file" json:"auth_file"`
+	ToolPath string `mapstructure:"tool_path" json:"tool_path" validate:"required"`
+	FileTag  string `mapstructure:"file_tag" json:"file_tag" validate:"required"`
+	AuthFile string `mapstructure:"auth_file" json:"auth_file"`
+	// StorageType 指定上传类型，留空表示使用 backup_client 默认配置（conf/config.toml）
 	StorageType  string `mapstructure:"storage_type" json:"storage_type"`
 	backupClient *backupclient.BackupClient
 }
@@ -25,7 +26,7 @@ func (o *BKBackupClient) Init() error {
 	return nil
 }
 
-// Upload TODO
+// Upload register file to upload
 func (o *BKBackupClient) Upload(fileName string) (string, error) {
 	if o.backupClient == nil {
 		return "-1", errors.New("BKBackupClient need init first")
@@ -33,7 +34,8 @@ func (o *BKBackupClient) Upload(fileName string) (string, error) {
 	return o.backupClient.Upload(fileName)
 }
 
-// Query TODO
+// Query query status
 func (o *BKBackupClient) Query(taskId string) (int, error) {
-	return o.backupClient.Query(taskId)
+	status, _, err := o.backupClient.QueryStatus(taskId)
+	return status, err
 }

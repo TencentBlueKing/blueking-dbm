@@ -5,10 +5,8 @@ import (
 	"encoding/json"
 	"path/filepath"
 	"slices"
-	"strings"
 
 	"github.com/pkg/errors"
-	"github.com/spf13/cast"
 
 	"dbm-services/common/go-pubpkg/cmutil"
 )
@@ -93,10 +91,10 @@ func (b *BackupClient) register(filePath string) (backupTaskId string, err error
 	if err != nil {
 		return "", errors.Wrapf(err, "register cmd failed %v with %s", registerArgs, stderrStr)
 	}
-	if _, err := cast.ToInt64E(stdoutStr); err == nil {
+	if IsHdfsTaskId(stdoutStr) {
 		// hdfs backup_taskid format
 		return stdoutStr, nil
-	} else if strings.Count(stdoutStr, "-") == 3 && len(stdoutStr) < 80 {
+	} else if IsCosTaskId(stdoutStr) {
 		// 这里粗略判断是否是合法的 cos backup_taskid
 		return stdoutStr, nil
 	} else {
@@ -109,14 +107,14 @@ func (b *BackupClient) Upload(filePath string) (backupTaskId string, err error) 
 	return b.register(filePath)
 }
 
-// Query TODO
-func (b *BackupClient) Query(backupTaskId string) (uploadStatus int, err error) {
+// QueryOld queryStatus
+func (b *BackupClient) QueryOld(backupTaskId string) (uploadStatus int, err error) {
 	queryArgs := append(b.queryArgs, "--task-id", backupTaskId)
 	stdout, stderr, err := cmutil.ExecCommandReturnBytes(false, "", queryArgs[0], queryArgs[1:]...)
 	if err != nil {
 		return 0, errors.Wrapf(err, "query cmd failed %v with %s", queryArgs, string(stderr))
 	}
-	return 4, nil
+	//return 4, nil
 
 	var resp QueryResp
 	if err := json.Unmarshal(stdout, &resp); err != nil {
@@ -125,8 +123,8 @@ func (b *BackupClient) Query(backupTaskId string) (uploadStatus int, err error) 
 	return resp.Status, err
 }
 
-// Query2 TODO
-func (b *BackupClient) Query2(backupTaskId string) (status int, statusMsg string, err error) {
+// QueryStatus TODO
+func (b *BackupClient) QueryStatus(backupTaskId string) (status int, statusMsg string, err error) {
 	queryArgs := append(b.queryArgs, "--task-id", backupTaskId)
 	stdout, stderr, err := cmutil.ExecCommandReturnBytes(false, "", queryArgs[0], queryArgs[1:]...)
 	if err != nil {
@@ -140,7 +138,12 @@ func (b *BackupClient) Query2(backupTaskId string) (status int, statusMsg string
 	}
 	resp := []NewResp{}
 	if err := json.Unmarshal(stdout, &resp); err != nil {
-		return 0, "", errors.Wrapf(err, "BackupClient parse query response %s fail,queryArgs:%v", string(stdout), queryArgs)
+		return 0, "", errors.Wrapf(err, "BackupClient parse query response %s fail,queryArgs:%v",
+			string(stdout), queryArgs)
 	}
-	return resp[0].Status, resp[0].Message, err
+	if resp[0].Status < 0 && resp[0].Message != "ok" {
+		// 表示执行 backup_client 客户端失败，不代表文件状态
+		return resp[0].Status, resp[0].Message, errors.New(resp[0].Message)
+	}
+	return resp[0].Status, resp[0].Message, nil
 }

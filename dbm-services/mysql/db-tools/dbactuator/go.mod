@@ -12,6 +12,7 @@ require (
 	github.com/golang/glog v1.1.2
 	github.com/jmoiron/sqlx v1.3.5
 	github.com/mitchellh/go-ps v1.0.0
+	github.com/mohae/deepcopy v0.0.0-20170929034955-c48cc78d4826
 	github.com/pkg/errors v0.9.1
 	github.com/shirou/gopsutil/v3 v3.23.8
 	github.com/spf13/cobra v1.7.0

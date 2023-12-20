@@ -63,23 +63,22 @@ var queryCmd = &cobra.Command{
 		table := tablewriter.NewWriter(os.Stdout)
 		table.SetAutoWrapText(false)
 		table.SetAutoFormatHeaders(false)
-		table.SetAutoMergeCellsByColumnIndex([]int{0, 1, 2})
+		table.SetAutoMergeCellsByColumnIndex([]int{0, 1})
 		table.SetRowLine(true)
-		table.SetHeader([]string{"ClusterDomain", "DBRole", "Port", "Filename", "Filesize", "FimeMtime", "StopTime",
-			"BackupStatus", "ClusterId", "BkBizId", "Host"})
+		table.SetHeader([]string{"Port", "DBRole", "Filename", "Filesize", "FimeMtime", "StopTime",
+			"BackupTaskId", "BackupStatus", "ClusterId", "Host"})
 		for _, fi := range files {
 			if fi != nil {
 				table.Append([]string{
-					fi.ClusterDomain,
-					fi.DBRole,
 					cast.ToString(fi.Port),
+					fi.DBRole,
 					fi.Filename,
 					cast.ToString(fi.Filesize),
 					fi.FileMtime,
 					fi.StopTime,
+					fi.BackupTaskid,
 					cast.ToString(fi.BackupStatus),
 					cast.ToString(fi.ClusterId),
-					cast.ToString(fi.BkBizId),
 					fi.Host,
 				})
 
