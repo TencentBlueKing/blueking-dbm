@@ -22,7 +22,7 @@ from backend.ticket.builders.mongodb.base import BaseMongoDBTicketFlowBuilder
 from backend.ticket.constants import TicketType
 
 
-class MongoDBApplyDetailSerializer(serializers.Serializer):
+class MongoReplicaSetApplyDetailSerializer(serializers.Serializer):
     class ReplicaSet(serializers.Serializer):
         set_id = serializers.CharField(help_text=_("集群ID（英文数字及下划线）"))
         name = serializers.CharField(help_text=_("集群别名"))
@@ -69,14 +69,14 @@ class MongoDBApplyDetailSerializer(serializers.Serializer):
         return attrs
 
 
-class MongoDBApplyFlowParamBuilder(builders.FlowParamBuilder):
+class MongoReplicaSetApplyFlowParamBuilder(builders.FlowParamBuilder):
     controller = MongoDBController.mongodb_cluster_apply_scene
 
     def format_ticket_data(self):
         print(self.ticket_data)
 
 
-class MongoDBApplyResourceParamBuilder(builders.ResourceApplyParamBuilder):
+class MongoReplicaSetApplyResourceParamBuilder(builders.ResourceApplyParamBuilder):
     def format(self):
         node_count = self.ticket_data["node_count"]
         node_replica_count = self.ticket_data["node_replica_count"]
@@ -107,11 +107,11 @@ class MongoDBApplyResourceParamBuilder(builders.ResourceApplyParamBuilder):
 
 @builders.BuilderFactory.register(TicketType.MONGODB_REPLICASET_APPLY, is_apply=True,
                                   cluster_type=ClusterType.MongoReplicaSet)
-class MongoDBApplyFlowBuilder(BaseMongoDBTicketFlowBuilder):
-    serializer = MongoDBApplyDetailSerializer
-    inner_flow_builder = MongoDBApplyFlowParamBuilder
+class MongoReplicaSetApplyFlowBuilder(BaseMongoDBTicketFlowBuilder):
+    serializer = MongoReplicaSetApplyDetailSerializer
+    inner_flow_builder = MongoReplicaSetApplyFlowParamBuilder
     inner_flow_name = _("MongoDB 副本集集群部署执行")
-    resource_batch_apply_builder = MongoDBApplyResourceParamBuilder
+    resource_batch_apply_builder = MongoReplicaSetApplyResourceParamBuilder
 
     def patch_ticket_detail(self):
         print(self.ticket.details)

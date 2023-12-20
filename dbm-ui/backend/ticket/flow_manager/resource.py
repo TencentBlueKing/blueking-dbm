@@ -134,6 +134,14 @@ class ResourceApplyFlow(BaseTicketFlow):
                 "bk_cpu": host["cpu_num"],
                 "bk_disk": host["total_storage_cap"],
                 "bk_mem": host["dram_cap"],
+                # bk_disk为系统盘，storage_device为数据盘/data|/data1
+                "storage_device": host["storage_device"],
+                # 补充城市和园区
+                "city": host.get("city"),
+                "sub_zone": host.get("sub_zone"),
+                "sub_zone_id": host.get("sub_zone_id"),
+                "rack_id": host.get("rack_id"),
+                "device_class": host.get("device_class"),
             }
             for host in hosts
         ]
