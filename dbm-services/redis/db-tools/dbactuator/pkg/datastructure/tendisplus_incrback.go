@@ -103,7 +103,7 @@ func NewTplusRocksDBIncrBack(filename, sourceIP string, rocksdbIdx int, startPos
 	}
 	ret.EndTime, err = time.ParseInLocation(layout, endTime, time.Local)
 	if err != nil {
-		ret.Err = fmt.Errorf("endTime:%s time.parse fail,err:%s,layout:%s", endTime, err, layout)
+		ret.Err = fmt.Errorf("endTime:%s time.parse  fail,err:%s,layout:%s", endTime, err, layout)
 		mylog.Logger.Error(ret.Err.Error())
 		return ret
 	}
