@@ -52,7 +52,7 @@ def datetime2str(o_datetime: datetime.datetime, fmt: str = DATETIME_PATTERN, awa
         return o_datetime
 
     if aware_check and not timezone.is_aware(o_datetime):
-        raise ValidationError("Time zone check failed...")
+        raise ValidationError(f"[{timezone}] Time zone check failed...")
 
     o_datetime = timezone.localtime(o_datetime)
     # 可读性优化，暂时去掉毫秒单位。TODO：时间是否需要完全精准？
@@ -71,7 +71,7 @@ def str2datetime(datetime_str: str, fmt: str = DATETIME_PATTERN, aware_check: bo
     o_datetime = time_parse(datetime_str)
 
     if aware_check and not timezone.is_aware(o_datetime):
-        raise ValidationError("Time zone check failed...")
+        raise ValidationError(f"[{timezone}] Time zone check failed...")
 
     return o_datetime
 
