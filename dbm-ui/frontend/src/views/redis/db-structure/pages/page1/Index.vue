@@ -18,6 +18,10 @@
         closable
         theme="info"
         :title="t('定点构造：按照指定历史时间点，把原集群或指定实例上的数据构造到新主机，产生新的构造实例')" />
+      <div class="title-spot mt-12 mb-10">
+        {{ t('时区') }}<span class="required" />
+      </div>
+      <TimeZonePicker style="width: 450px;" />
       <RenderData
         class="mt16"
         @show-batch-selector="handleShowBatchSelector">
@@ -76,6 +80,7 @@
   import { ClusterTypes, TicketTypes  } from '@common/const';
 
   import ClusterSelector from '@components/cluster-selector-new/Index.vue';
+  import TimeZonePicker from '@components/time-zone-picker/index.vue';
 
   import RenderData from './components/Index.vue';
   import RenderDataRow, {

@@ -238,17 +238,15 @@
             }}>
             { t('查看详情') }
           </router-link>
-          {
-            includesResultFiles.includes(data.ticket_type) && data.status === 'FINISHED'
-              ? (
-                <bk-button
-                  text
-                  theme="primary"
-                  onClick={() => handleShowResultFiles(data.root_id)}>
-                  { t('查看结果文件') }
-                  </bk-button>
-              )
-              : null
+          {includesResultFiles.includes(data.ticket_type) && data.status === 'FINISHED'
+            ? <bk-button
+                class="ml-6"
+                text
+                theme="primary"
+                onClick={() => handleShowResultFiles(data.root_id)}>
+                { t('查看结果文件') }
+              </bk-button>
+            : null
           }
         </div>
       ),

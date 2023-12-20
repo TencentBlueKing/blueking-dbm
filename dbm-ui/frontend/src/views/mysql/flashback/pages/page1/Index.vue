@@ -27,6 +27,10 @@
           {{ $t('批量录入') }}
         </BkButton>
       </div>
+      <div class="title-spot mt-12 mb-10">
+        {{ $t('时区') }}<span class="required" />
+      </div>
+      <TimeZonePicker style="width: 450px;" />
       <RenderData
         class="mt16"
         @batch-select-cluster="handleShowBatchSelector">
@@ -83,6 +87,7 @@
   import { ClusterTypes } from '@common/const';
 
   import ClusterSelector from '@components/cluster-selector/ClusterSelector.vue';
+  import TimeZonePicker from '@components/time-zone-picker/index.vue';
 
   import BatchEntry, {
     type IValue as IBatchEntryValue,

@@ -101,6 +101,7 @@ export default class Redis {
   cluster_capacity: number;
   cluster_type: string;
   cluster_type_name: string;
+  cluster_time_zone: string;
   cluster_entry: {
     cluster_entry_type: string;
     entry: string;
@@ -136,6 +137,7 @@ export default class Redis {
     this.db_module_id = payload.db_module_id;
     this.cluster_type = payload.cluster_type;
     this.cluster_type_name = payload.cluster_type_name;
+    this.cluster_time_zone = payload.cluster_time_zone;
     this.time_zone = payload.time_zone;
     this.create_at = payload.create_at;
     this.creator = payload.creator;

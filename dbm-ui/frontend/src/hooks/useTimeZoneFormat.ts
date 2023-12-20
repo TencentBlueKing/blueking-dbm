@@ -10,12 +10,16 @@
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
 */
+import { useTimeZone } from '@stores';
 
-export * from './globalBizs';
-export * from './mainView';
-export * from './useFunController';
-export * from './useMenu';
-export * from './useSQLTaskCount';
-export * from './useSystemEnviron';
-export * from './useTimeZone';
-export * from './useUserProfile';
+export const useTimeZoneFormat = () => {
+  const timeZoneStore = useTimeZone();
+  return (date: string) => {
+    if (!date) {
+      return '';
+    }
+    const prefixStr = date.split(' ').join('T');
+    const suffixStr = timeZoneStore.utc === '' ? '+00:00' : timeZoneStore.utc;
+    return `${prefixStr}${suffixStr}`;
+  };
+};
