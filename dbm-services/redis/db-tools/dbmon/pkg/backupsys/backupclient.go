@@ -47,7 +47,7 @@ func (o *COSBackupClient) Upload(fileName string) (taskId string, err error) {
 
 // TaskStatus 备份任务状态
 func (o *COSBackupClient) TaskStatus(taskId string) (status int, statusMsg string, err error) {
-	status, statusMsg, err = o.backupClient.Query2(taskId)
+	status, statusMsg, err = o.backupClient.QueryStatus(taskId)
 	if err != nil {
 		mylog.Logger.Error(fmt.Sprintf("CosBackupClient Query2 failed,err:%v,taskId:%s", err, taskId))
 		return

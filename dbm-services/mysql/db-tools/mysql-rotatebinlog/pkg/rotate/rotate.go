@@ -287,6 +287,8 @@ func (r *BinlogRotate) Backup(backupClient backup.BackupClient) error {
 				f.BackupStatus = models.IBStatusClientFail
 				f.BackupStatusInfo = err.Error()
 			} else {
+				fmt.Println("aaaaaaab", taskid, err)
+				// 异步查询状态
 				f.BackupTaskid = taskid
 				f.BackupStatus = models.IBStatusWaiting
 			}
