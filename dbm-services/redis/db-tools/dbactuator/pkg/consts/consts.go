@@ -97,6 +97,7 @@ const (
 	UnixtimeLayout     = "2006-01-02 15:04:05"
 	FilenameTimeLayout = "20060102-150405"
 	FilenameDayLayout  = "20060102"
+	UnixtimeLayoutZone = "2006-01-02T15:04:05-07:00"
 )
 
 // account

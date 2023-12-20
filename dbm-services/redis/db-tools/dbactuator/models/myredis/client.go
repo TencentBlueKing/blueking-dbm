@@ -1608,62 +1608,74 @@ func (db *RedisClient) AdminSet(key, val string) (ret string, err error) {
 }
 
 // GetTendisplusHeartbeat 获取tendisplus 心跳数据
-/* for example:
-> adminget 1.1.1.1:heartbeat
- 1) 1) "0"
-    2) "2021-06-01 16:47:00"
- 2) 1) "1"
-    2) "2021-06-01 16:47:00"
- 3) 1) "2"
-    2) "2021-06-01 16:47:00"
- 4) 1) "3"
-    2) "2021-06-01 16:47:00"
- 5) 1) "4"
-    2) "2021-06-01 16:47:00"
- 6) 1) "5"
-    2) "2021-06-01 16:47:00"
- 7) 1) "6"
-    2) "2021-06-01 16:47:00"
- 8) 1) "7"
-    2) "2021-06-01 16:47:00"
- 9) 1) "8"
-    2) "2021-06-01 16:47:00"
+/*
+adminget xxx_30002:heartbeat
+1) 1) "0"
+   2) "1702415993"
+2) 1) "1"
+   2) "1702415993"
+3) 1) "2"
+   2) "1702415993"
+4) 1) "3"
+   2) "1702415993"
+5) 1) "4"
+   2) "1702415993"
+6) 1) "5"
+   2) "1702415993"
+7) 1) "6"
+   2) "1702415993"
+8) 1) "7"
+   2) "1702415993"
+9) 1) "8"
+   2) "1702415993"
 10) 1) "9"
-    2) "2021-06-01 16:47:00"
+   2) "1702415993"
 */
 func (db *RedisClient) GetTendisplusHeartbeat(key string) (heartbeat map[int]time.Time, err error) {
 	// 命令'adminget ',只能用 普通redis client
 	if db.InstanceClient == nil {
 		err = fmt.Errorf("'adminget' redis:%s must create a standalone client", db.Addr)
 		mylog.Logger.Error(err.Error())
-		return
+		return nil, err
 	}
+
 	heartbeat = make(map[int]time.Time)
 	cmd := []interface{}{"adminget", key}
 	adminGetRet, err := db.InstanceClient.Do(context.TODO(), cmd...).Result()
 	if err != nil {
-		err = fmt.Errorf("redis:%s 'adminget %s' fail,err:%v\n", db.Addr, key, err)
+		err = fmt.Errorf("redis:%s 'adminget %s' fail, err: %v", db.Addr, key, err)
 		mylog.Logger.Error(err.Error())
-		return heartbeat, err
+		return nil, err
 	}
+
 	adminGetRets, ok := adminGetRet.([]interface{})
-	if ok == false {
-		err = fmt.Errorf("GetTendisplusHeartbeat 'adminget %s' result not []interface{},nodeAddr:%s", key, db.Addr)
+	if !ok {
+		err = fmt.Errorf("GetTendisplusHeartbeat 'adminget %s' result not []interface{}, nodeAddr: %s", key, db.Addr)
 		mylog.Logger.Error(err.Error())
-		return heartbeat, err
+		return nil, err
 	}
+
 	var storeID int
-	var value, storeIDStr string
+	var storeIDStr string
+	msg := fmt.Sprintf("检查目的集群是否有源集群的心跳数据 adminGetRets: %v", adminGetRets)
+	mylog.Logger.Info(msg)
+
 	for _, confItem := range adminGetRets {
 		conf01 := confItem.([]interface{})
-		if conf01[1] == nil {
+		if len(conf01) != 2 {
 			continue
 		}
 		storeIDStr = conf01[0].(string)
-		value = conf01[1].(string)
+		valueInt, err := strconv.ParseInt(conf01[1].(string), 10, 64)
+		if err != nil {
+			mylog.Logger.Error("时间解析失败：%v", err)
+			continue
+		}
 		storeID, _ = strconv.Atoi(storeIDStr)
-		heartbeat[storeID], _ = time.ParseInLocation(consts.UnixtimeLayout, value, time.Local)
+		t := time.Unix(valueInt, 0)
+		heartbeat[storeID] = t
 	}
+
 	return heartbeat, nil
 }
 
