@@ -48,8 +48,6 @@ class JsonConfigFormat:
         """
         context = getattr(cls, get_context_method_name)()
         params.update(context)
-        if env.BKLOG_STORAGE_CLUSTER_ID:
-            params["storage_cluster_id"] = env.BKLOG_STORAGE_CLUSTER_ID
         return params
 
     @classmethod

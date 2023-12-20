@@ -8,7 +8,6 @@
     "category_id": "host_process",
     "data_encoding": "UTF-8",
     "retention": 7,
-    "allocation_min_days": 3,
     "es_shards": 3,
     "target_object_type": "HOST",
     "target_node_type": "TOPO",
@@ -44,7 +43,6 @@
     },
     "fields": [
         {
-            "value": "/data/dbbak/binlog/30000",
             "option": {
                 "time_zone": "",
                 "time_format": ""
@@ -62,7 +60,6 @@
             "previous_type": "string"
         },
         {
-            "value": "/data/dbbak/binlog/30000/binlog-127.0.0.1-30000-0006446-20231108140016.log.zst",
             "option": {
                 "time_zone": "",
                 "time_format": ""
@@ -80,7 +77,6 @@
             "previous_type": "string"
         },
         {
-            "value": 5586,
             "option": {
                 "time_zone": "",
                 "time_format": ""
@@ -98,7 +94,6 @@
             "previous_type": "long"
         },
         {
-            "value": "",
             "option": {
                 "time_zone": "",
                 "time_format": ""
@@ -116,7 +111,6 @@
             "previous_type": "string"
         },
         {
-            "value": "REDIS_BINLOG",
             "option": {
                 "time_zone": "",
                 "time_format": ""
@@ -134,13 +128,12 @@
             "previous_type": "string"
         },
         {
-            "value": "1699425099084113594-0160215607-9232-0",
             "option": {
                 "time_zone": "",
                 "time_format": ""
             },
             "is_time": false,
-            "verdict": false,
+            "verdict": true,
             "is_delete": false,
             "alias_name": "",
             "field_name": "backup_taskid",
@@ -152,7 +145,6 @@
             "previous_type": "string"
         },
         {
-            "value": "3",
             "option": {
                 "time_zone": "",
                 "time_format": ""
@@ -170,7 +162,6 @@
             "previous_type": "string"
         },
         {
-            "value": 0,
             "option": {
                 "time_zone": "",
                 "time_format": ""
@@ -188,7 +179,6 @@
             "previous_type": "int"
         },
         {
-            "value": "TendisSSDInstance",
             "option": {
                 "time_zone": "",
                 "time_format": ""
@@ -206,7 +196,6 @@
             "previous_type": "string"
         },
         {
-            "value": "ssd.abc.dba.db",
             "option": {
                 "time_zone": "",
                 "time_format": ""
@@ -224,7 +213,6 @@
             "previous_type": "string"
         },
         {
-            "value": "2023-11-08 14:21:16",
             "option": {
                 "time_zone": "",
                 "time_format": ""
@@ -242,7 +230,23 @@
             "previous_type": "string"
         },
         {
-            "value": "上传备份系统成功",
+            "option": {
+                "time_zone": "",
+                "time_format": ""
+            },
+            "is_time": false,
+            "verdict": false,
+            "is_delete": false,
+            "alias_name": "",
+            "field_name": "kvstoreidx",
+            "field_type": "int",
+            "description": "",
+            "is_analyzed": false,
+            "is_built_in": false,
+            "is_dimension": false,
+            "previous_type": "int"
+        },
+        {
             "option": {
                 "time_zone": "",
                 "time_format": ""
@@ -260,7 +264,6 @@
             "previous_type": "string"
         },
         {
-            "value": "redis_binlogbackup",
             "option": {
                 "time_zone": "",
                 "time_format": ""
@@ -278,7 +281,6 @@
             "previous_type": "string"
         },
         {
-            "value": "slave",
             "option": {
                 "time_zone": "",
                 "time_format": ""
@@ -296,7 +298,6 @@
             "previous_type": "string"
         },
         {
-            "value": "127.0.0.1",
             "option": {
                 "time_zone": "",
                 "time_format": ""
@@ -314,7 +315,6 @@
             "previous_type": "string"
         },
         {
-            "value": 30000,
             "option": {
                 "time_zone": "",
                 "time_format": ""
@@ -332,10 +332,26 @@
             "previous_type": "int"
         },
         {
-            "value": "2023-11-08 14:00:16",
+            "option": {
+                "time_zone": "",
+                "time_format": ""
+            },
+            "is_time": false,
+            "verdict": true,
+            "is_delete": false,
+            "alias_name": "",
+            "field_name": "shard_value",
+            "field_type": "string",
+            "description": "",
+            "is_analyzed": false,
+            "is_built_in": false,
+            "is_dimension": false,
+            "previous_type": "string"
+        },
+        {
             "option": {
                 "time_zone": 8,
-                "time_format": "yyyy-MM-dd HH:mm:ss"
+                "time_format": "strict_date_time_no_millis"
             },
             "is_time": true,
             "verdict": true,
@@ -350,7 +366,6 @@
             "previous_type": "string"
         },
         {
-            "value": "to_backup_system_success",
             "option": {
                 "time_zone": "",
                 "time_format": ""
@@ -360,6 +375,23 @@
             "is_delete": false,
             "alias_name": "",
             "field_name": "status",
+            "field_type": "string",
+            "description": "",
+            "is_analyzed": false,
+            "is_built_in": false,
+            "is_dimension": false,
+            "previous_type": "string"
+        },
+        {
+            "option": {
+                "time_zone": "",
+                "time_format": ""
+            },
+            "is_time": false,
+            "verdict": true,
+            "is_delete": false,
+            "alias_name": "",
+            "field_name": "time_zone",
             "field_type": "string",
             "description": "",
             "is_analyzed": false,
