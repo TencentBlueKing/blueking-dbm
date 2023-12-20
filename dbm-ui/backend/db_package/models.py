@@ -36,6 +36,8 @@ class Package(AuditedModel):
     # allow_biz_ids 主要用于灰度场景，部分业务先用，不配置/为空 代表全业务可用
     allow_biz_ids = models.JSONField(_("允许的业务列表"), null=True)
     mode = models.CharField(_("安装包模式"), choices=PackageMode.get_choices(), max_length=LEN_SHORT, default="system")
+    priority = models.IntegerField(_("文件优先级(目前只用作区分是否为默认版本)"), default=0)
+    enable = models.BooleanField(help_text=_("是否启用"), default=True)
     # package独立出时间字段
     create_at = models.DateTimeField(_("创建时间"), default=timezone.now)
     update_at = models.DateTimeField(_("更新时间"), default=timezone.now)

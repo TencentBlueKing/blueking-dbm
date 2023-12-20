@@ -21,6 +21,7 @@ from rest_framework.response import Response
 from backend.bk_web import viewsets
 from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.core.storages.storage import get_storage
+from backend.db_package.constants import INSTALL_PACKAGE_LIST
 from backend.db_package.filters import PackageListFilter
 from backend.db_package.models import Package
 from backend.db_package.serializers import PackageSerializer, SyncMediumSerializer, UploadPackageSerializer
@@ -68,6 +69,29 @@ class DBPackageViewSet(viewsets.AuditedModelViewSet):
     )
     def list(self, request, *args, **kwargs):
         return super().list(request, *args, **kwargs)
+
+    @common_swagger_auto_schema(
+        operation_summary=_("查询组件安装包类型"),
+        tags=[DB_PACKAGE_TAG],
+    )
+    @action(methods=["GET"], detail=False)
+    def list_install_pkg_types(self, request, *args, **kwargs):
+        return Response(INSTALL_PACKAGE_LIST)
+
+    @common_swagger_auto_schema(
+        operation_summary=_("更新版本文件属性"),
+        tags=[DB_PACKAGE_TAG],
+    )
+    def partial_update(self, request, *args, **kwargs):
+        # 如果有进行默认版本的变更，则需要把当前类型下的默认版本清零
+        if "priority" in self.request.data:
+            instance = self.get_object()
+            Package.objects.filter(db_type=instance.db_type, pkg_type=instance.pkg_type, priority__gt=0).update(
+                priority=0
+            )
+
+        super().partial_update(request, *args, **kwargs)
+        return Response()
 
     @common_swagger_auto_schema(
         operation_summary=_("删除版本文件"),

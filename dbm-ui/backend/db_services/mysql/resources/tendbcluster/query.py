@@ -108,6 +108,7 @@ class ListRetrieveResource(DBHAListRetrieveResource):
             "phase": cluster.phase,
             "status": cluster.status,
             "operations": ClusterOperateRecord.objects.get_cluster_operations(cluster.id),
+            "cluster_time_zone": cluster.time_zone,
             "cluster_name": cluster.name,
             "cluster_type": cluster.cluster_type,
             "cluster_spec": model_to_dict(cluster_spec),

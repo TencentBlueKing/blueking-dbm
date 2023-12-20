@@ -76,7 +76,7 @@ class MySQLComponentBaseTest(BaseComponentTest):
         # 创建Package数据
         package_common_data = {"creator": "admin", "updater": "admin", "size": 0, "md5": ""}
         for db_type in PackageType.get_values():
-            if db_type in [PackageType.MySQL.value, PackageType.Proxy.value]:
+            if db_type in [PackageType.MySQL.value, PackageType.MySQLProxy.value]:
                 version = "MySQL-5.7"
             else:
                 version = "latest"

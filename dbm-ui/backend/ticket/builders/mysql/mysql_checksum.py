@@ -94,7 +94,10 @@ class MySQLChecksumFlowParamBuilder(builders.FlowParamBuilder):
             if self.ticket_data["data_repair"]["mode"] == MySQLChecksumTicketMode.MANUAL:
                 skip_filters |= Q(ticket=self.ticket, details__pause_type=pause_name)
 
-            Flow.objects.filter(skip_filters).update(status=TicketFlowStatus.SKIPPED)
+            # 用save方法来触发ticket单据更新的信号
+            for flow in Flow.objects.filter(skip_filters):
+                flow.status = TicketFlowStatus.SKIPPED
+                flow.save(update_fields=["status"])
             return True
 
         return False

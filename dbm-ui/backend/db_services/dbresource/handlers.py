@@ -33,7 +33,9 @@ class ClusterSpecFilter(object):
         # 当前集群的筛选规格
         self.specs: List[Dict[str, Any]] = [
             {**model_to_dict(spec), "capacity": spec.capacity}
-            for spec in Spec.objects.filter(spec_machine_type=spec_machine_type, spec_cluster_type=spec_cluster_type)
+            for spec in Spec.objects.filter(
+                spec_machine_type=spec_machine_type, spec_cluster_type=spec_cluster_type, enable=True
+            )
         ]
 
     def calc_machine_pair(self):
