@@ -72,42 +72,45 @@ def spider_recover_sub_flow(root_id: str, ticket_data: dict, cluster: dict):
         kwargs=asdict(exec_act_kwargs),
     )
     if cluster["rollback_type"] == RollbackType.REMOTE_AND_TIME.value:
-        if compare_time(backup_info["backup_time"], cluster["rollback_time"]):
-            raise TendbGetBinlogFailedException(message=_("{} 备份时间点大于回滚时间点".format(cluster["master_ip"])))
-        rollback_handler = FixPointRollbackHandler(cluster["cluster_id"])
-        backup_binlog = rollback_handler.query_binlog_from_bklog(
-            str2datetime(backup_info["backup_time"]),
-            str2datetime(cluster["rollback_time"]),
-            minute_range=30,
-            host_ip=cluster["rollback_ip"],
-            port=cluster["rollback_port"],
-        )
-        if backup_binlog is None:
-            raise TendbGetBinlogFailedException(message=_("获取实例 {} binlog失败".format(cluster["rollback_ip"])))
+        spider_has_binlog = cluster.get("spider_has_binlog", False)
+        if spider_has_binlog:
+            if compare_time(backup_info["backup_time"], cluster["rollback_time"]):
+                raise TendbGetBinlogFailedException(message=_("{} 备份时间点大于回滚时间点".format(cluster["master_ip"])))
+            rollback_handler = FixPointRollbackHandler(cluster["cluster_id"])
+            backup_binlog = rollback_handler.query_binlog_from_bklog(
+                str2datetime(backup_info["backup_time"]),
+                str2datetime(cluster["rollback_time"]),
+                minute_range=30,
+                host_ip=cluster["rollback_ip"],
+                port=cluster["rollback_port"],
+            )
+            if backup_binlog is None:
+                raise TendbGetBinlogFailedException(message=_("获取实例 {} binlog失败".format(cluster["rollback_ip"])))
 
-        task_ids = [i["task_id"] for i in backup_binlog["file_list_details"]]
-        binlog_files = [i["file_name"] for i in backup_binlog["file_list_details"]]
-        cluster["binlog_files"] = ",".join(binlog_files)
-        download_kwargs = DownloadBackupFileKwargs(
-            bk_cloud_id=cluster["bk_cloud_id"],
-            task_ids=task_ids,
-            dest_ip=cluster["rollback_ip"],
-            desc_dir=cluster["file_target_path"],
-            reason="spider node rollback binlog",
-        )
-        sub_pipeline.add_act(
-            act_name=_("下载定点恢复的binlog到{}:{}").format(cluster["rollback_ip"], cluster["rollback_port"]),
-            act_component_code=MySQLDownloadBackupfileComponent.code,
-            kwargs=asdict(download_kwargs),
-        )
+            task_ids = [i["task_id"] for i in backup_binlog["file_list_details"]]
+            binlog_files = [i["file_name"] for i in backup_binlog["file_list_details"]]
+            cluster["binlog_files"] = ",".join(binlog_files)
+            download_kwargs = DownloadBackupFileKwargs(
+                bk_cloud_id=cluster["bk_cloud_id"],
+                task_ids=task_ids,
+                dest_ip=cluster["rollback_ip"],
+                desc_dir=cluster["file_target_path"],
+                reason="spider node rollback binlog",
+            )
+            sub_pipeline.add_act(
+                act_name=_("下载定点恢复的binlog到{}:{}").format(cluster["rollback_ip"], cluster["rollback_port"]),
+                act_component_code=MySQLDownloadBackupfileComponent.code,
+                kwargs=asdict(download_kwargs),
+            )
 
-        exec_act_kwargs.exec_ip = cluster["rollback_ip"]
-        exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.tendb_recover_binlog_payload.__name__
-        sub_pipeline.add_act(
-            act_name=_("定点恢复之前滚binlog{}:{}").format(exec_act_kwargs.exec_ip, cluster["rollback_port"]),
-            act_component_code=ExecuteDBActuatorScriptComponent.code,
-            kwargs=asdict(exec_act_kwargs),
-        )
+            exec_act_kwargs.exec_ip = cluster["rollback_ip"]
+            exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.tendb_recover_binlog_payload.__name__
+            sub_pipeline.add_act(
+                act_name=_("定点恢复之前滚binlog{}:{}").format(exec_act_kwargs.exec_ip, cluster["rollback_port"]),
+                act_component_code=ExecuteDBActuatorScriptComponent.code,
+                kwargs=asdict(exec_act_kwargs),
+            )
+
     return sub_pipeline.build_sub_process(sub_name=_("spider恢复:{}".format(cluster["instance"])))
 
 

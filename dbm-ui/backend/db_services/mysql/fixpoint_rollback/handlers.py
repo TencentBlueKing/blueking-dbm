@@ -565,9 +565,15 @@ class FixPointRollbackHandler:
             "file_list_details": [],
         }
         collector_fields = ["file_mtime", "start_time", "stop_time", "size", "task_id", "filename"]
+        # 记录file task id，用于去重
+        file_task_id_list = []
         for log in binlogs:
+            if log["task_id"] in file_task_id_list:
+                continue
+
             detail = {field: log[field] for field in collector_fields}
             detail["file_name"] = detail.pop("filename")
+            file_task_id_list.append(detail["task_id"])
             binlog_record["file_list_details"].append(detail)
 
         return binlog_record
