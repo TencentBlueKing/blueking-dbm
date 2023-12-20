@@ -26,6 +26,7 @@ from backend.db_meta.enums import (
     ClusterType,
     InstanceInnerRole,
     InstancePhase,
+    InstanceRole,
     InstanceStatus,
 )
 from backend.db_meta.exceptions import (
@@ -36,6 +37,7 @@ from backend.db_meta.exceptions import (
 )
 from backend.db_meta.models import BKCity, Cluster, ProxyInstance, StorageInstance, StorageInstanceTuple
 from backend.db_meta.request_validator import DBHASwapRequestSerializer, DBHAUpdateStatusRequestSerializer
+from backend.flow.utils.cc_manage import CcManage
 
 logger = logging.getLogger("root")
 
@@ -244,6 +246,7 @@ def tendis_cluster_swap(payload: Dict, bk_cloud_id: int):
     集群模式下,提升slave 为 master
     1. 互换ins1,ins2 tuple_ 表
     2. 修改 setDtl 表为 ins2
+    3. 切换CC 服务实例 角色
     """
     try:
         cluster_obj = Cluster.objects.get(immute_domain=payload["domain"])
@@ -296,6 +299,8 @@ def tendis_cluster_swap(payload: Dict, bk_cloud_id: int):
 
     ins1_obj.save(update_fields=["instance_role", "instance_inner_role"])
     ins2_obj.save(update_fields=["instance_role", "instance_inner_role"])
+    # 切换CC 服务实例 角色，性能数据展示使用
+    swap_cc_svr_instance_role(ins1_obj, ins2_obj)
 
 
 @transaction.atomic
@@ -327,3 +332,19 @@ def swap_ctl_role(payloads: List):
 
         ins1_obj.save()
         ins2_obj.save()
+
+
+@transaction.atomic
+def swap_cc_svr_instance_role(ins1_obj: StorageInstance, ins2_obj: StorageInstance):
+    cc_manage = CcManage(ins1_obj.bk_biz_id)
+    # 切换新master服务实例角色标签
+    cc_manage.add_label_for_service_instance(
+        bk_instance_ids=[ins1_obj.bk_instance_id],
+        labels_dict={"instance_role": InstanceRole.BACKEND_MASTER.value},
+    )
+
+    # 切换新slave服务实例角色标签
+    cc_manage.add_label_for_service_instance(
+        bk_instance_ids=[ins2_obj.bk_instance_id],
+        labels_dict={"instance_role": InstanceRole.BACKEND_SLAVE.value},
+    )
