@@ -21,7 +21,6 @@ jobs:
         git fetch --all --tags
         current_branch=$(git branch --show-current)
         echo "current_branch=$current_branch" >> $GITHUB_OUTPUT
-
     - id: get-latest-tag
       name: Get latest tag
       run: |
@@ -86,7 +85,16 @@ jobs:
         cat ${filename}
         git config --global user.email github-actions@users.noreply.github.com
         git config --global user.name github-actions
-        git remote set-url upstream https://$WORKFLOW_ACTION_TOKEN@github.com/TencentBlueKing/blueking-dbm
+        git remote add upstream https://$WORKFLOW_ACTION_TOKEN@github.com/TencentBlueKing/blueking-dbm
         git add .
         git commit -m "docs: release version ${{ steps.yaml-data.outputs.data }} #1"
         git push upstream ${{ steps.get-current-branch.outputs.current_branch }}
+    - id: cpr
+      name: Create Pull Request
+      uses: peter-evans/create-pull-request@v3
+      with:
+        token: "${{ secrets.GITHUB_TOKEN }}"
+        title: 'update medium.lock'
+        body: ''
+        branch: '${{ steps.get-current-branch.outputs.current_branch }}'
+        base: 'medium_lock'
