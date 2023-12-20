@@ -12,18 +12,16 @@
 -->
 
 <template>
-  <div
+  <BkPopover
     v-if="data.operationTicketId"
-    class="render-cluster-opration-tag">
-    <span
-      ref="rootRef"
-      class="tag-placeholder"
-      @mouseenter="handleMouseenter">
-      <DbIcon
-        svg
-        :type="data.operationStatusIcon" />
-    </span>
-    <div ref="popRef">
+    placement="top"
+    :popover-delay="[100, 200]"
+    theme="light">
+    <DbIcon
+      style="width: 38px;height: 16px;"
+      svg
+      :type="data.operationStatusIcon" />
+    <template #content>
       <I18nT
         keypath="xx_跳转_我的服务单_查看进度"
         style="font-size: 12px; line-height: 16px; color: #63656e;"
@@ -40,21 +38,9 @@
           {{ $t('我的服务单') }}
         </RouterLink>
       </I18nT>
-    </div>
-  </div>
+    </template>
+  </BkPopover>
 </template>
-<script lang="ts">
-  import tippy, {
-    type Instance,
-    type SingleTarget,
-  } from 'tippy.js';
-  import {
-    ref,
-  } from 'vue';
-
-  let activeTippyIns:Instance;
-
-</script>
 <script setup lang="ts">
   interface Props {
     data: {
@@ -65,60 +51,7 @@
     }
   }
 
-  const props = defineProps<Props>();
-
-  const rootRef = ref();
-  const popRef = ref();
-
-  let tippyIns: Instance | undefined;
-
-  const handleMouseenter = () => {
-    if (!tippyIns) {
-      return;
-    }
-    if (activeTippyIns && activeTippyIns !== tippyIns) {
-      activeTippyIns.hide();
-    }
-    tippyIns.show();
-    activeTippyIns = tippyIns;
-  };
-
-  watch(() => props.data.operationTicketId, () => {
-    if (!props.data.operationTicketId) {
-      return;
-    }
-    if (tippyIns) {
-      tippyIns.hide();
-      tippyIns.unmount();
-      tippyIns.destroy();
-      tippyIns = undefined;
-    }
-
-    nextTick(() => {
-      tippyIns = tippy(rootRef.value as SingleTarget, {
-        content: popRef.value,
-        placement: 'top',
-        appendTo: () => document.body,
-        theme: 'light',
-        maxWidth: 'none',
-        trigger: 'manual',
-        interactive: true,
-        arrow: true,
-        offset: [0, 8],
-        zIndex: 999999,
-        hideOnClick: true,
-      });
-    });
-  }, { immediate: true });
-
-  onBeforeUnmount(() => {
-    if (tippyIns) {
-      tippyIns.hide();
-      tippyIns.unmount();
-      tippyIns.destroy();
-      tippyIns = undefined;
-    }
-  });
+  defineProps<Props>();
 </script>
 <style lang="less">
   .render-cluster-opration-tag {
@@ -126,7 +59,7 @@
     display: inline-block;
     width: 38px;
     height: 16px;
-    margin-top: 2px;
+    // margin-top: 2px;
 
     .tag-placeholder {
       position: absolute;

@@ -10,7 +10,6 @@
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
 */
-
 import TicketModel from '@services/model/ticket/ticket';
 
 import { useInfo } from '@hooks';
@@ -106,20 +105,20 @@ export function createTicket(formData: Record<string, any>) {
             content: () => {
               if (locale.value === 'en') {
                 return (
-                <span>
-                  You have already submitted a
-                  <a href={route.href} target="_blank"> ticket[{id}] </a>
-                  with the same target cluster, continue?
-                </span>
+                  <span>
+                    You have already submitted a
+                    <a href={route.href} target="_blank"> ticket[{id}] </a>
+                    with the same target cluster, continue?
+                  </span>
                 );
               }
 
               return (
-              <span>
-                你已提交过包含相同目标集群的
-                <a href={route.href} target="_blank">单据[{id}]</a>
-                ，是否继续？
-              </span>
+                <span>
+                  你已提交过包含相同目标集群的
+                  <a href={route.href} target="_blank">单据[{id}]</a>
+                  ，是否继续？
+                </span>
               );
             },
             confirmTxt: t('继续提单'),

@@ -238,9 +238,17 @@ const commonRouters: RouteRecordRaw[] = [
         },
         component: () => import('@views/mysql/partition-manage/Index.vue'),
       },
+      {
+        name: 'DumperDataSubscription',
+        path: 'dumper-data-subscribe/:dumperId(\\d+)?',
+        meta: {
+          navName: t('数据订阅'),
+          fullscreen: true,
+        },
+        component: () => import('@views/mysql/dumper/Index.vue'),
+      },
     ],
   },
-
 ];
 
 export default function getRoutes(controller: Record<MySQLFunctions | 'mysql', boolean>) {

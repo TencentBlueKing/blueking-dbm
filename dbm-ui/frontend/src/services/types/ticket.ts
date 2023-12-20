@@ -1401,3 +1401,92 @@ export interface RedisCLBDetails {
     }
   }
 }
+
+export interface DumperInstallDetails {
+  name: string;
+  infos: {
+    l5_cmdid: number;
+    l5_modid: number;
+    dumper_id: number;
+    cluster_id: number;
+    db_module_id: number;
+    protocol_type: string;
+    target_port: number;
+    target_address: string;
+  }[];
+  add_type: string;
+  clusters: {
+    [key: string]: {
+      id: number;
+      tag: string[];
+      name: string;
+      alias: string;
+      phase: string;
+      region: string;
+      status: string;
+      creator: string;
+      updater: string;
+      bk_biz_id: number;
+      time_zone: string;
+      bk_cloud_id: number;
+      cluster_type: string;
+      db_module_id: number;
+      immute_domain: string;
+      major_version: string;
+      cluster_type_name: string;
+      disaster_tolerance_level: string;
+    };
+  };
+  repl_tables: string[];
+}
+
+export interface DumperSwitchNodeDetails {
+  clusters: DumperInstallDetails['clusters'];
+  infos: Array<{
+    cluster_id: number;
+    switch_instances: Array<{
+      host: string;
+      port: number;
+      repl_binlog_file: string;
+      repl_binlog_pos: number;
+    }>;
+  }>;
+  is_safe: boolean;
+}
+
+export interface DumperNodeStatusUpdateDetails {
+  dumpers: {
+    [key: string]: {
+      id: number;
+      ip: string;
+      phase: string;
+      creator: string;
+      updater: string;
+      version: string;
+      add_type: string;
+      bk_biz_id: number;
+      dumper_id: string;
+      proc_type: string;
+      cluster_id: number;
+      bk_cloud_id: number;
+      listen_port: number;
+      target_port: number;
+      need_transfer: boolean;
+      protocol_type: string;
+      source_cluster: {
+        id: number;
+        name: string;
+        region: string;
+        master_ip: string;
+        bk_cloud_id: number;
+        master_port: number;
+        cluster_type: string;
+        immute_domain: string;
+        major_version: string;
+      };
+      target_address: string;
+    };
+  };
+  dumper_instance_ids: number[];
+}
+

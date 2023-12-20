@@ -49,7 +49,7 @@
   </BkException>
   <BkException
     v-else
-    :description="$t('没有数据')"
+    :description="$t('暂无数据')"
     scene="part"
     style="font-size: 12px;"
     type="empty" />

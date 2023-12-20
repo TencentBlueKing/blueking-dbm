@@ -97,6 +97,16 @@
                   </span>
                 </BkMenuItem>
               </BkSubmenu>
+              <BkMenuItem key="DumperDataSubscription">
+                <template #icon>
+                  <i class="db-icon-mobanshili" />
+                </template>
+                <span
+                  v-overflow-tips.right
+                  class="text-overflow">
+                  {{ $t('数据订阅') }}
+                </span>
+              </BkMenuItem>
               <FunController
                 controller-id="toolbox"
                 module-id="mysql">

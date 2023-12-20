@@ -53,51 +53,63 @@
 
   const funControllerStore = useFunController();
 
-  const tabs: TabItem[] = [{
-    moduleId: 'mysql',
-    id: ClusterTypes.TENDBSINGLE,
-    name: t('MySQL单节点'),
-  }, {
-    moduleId: 'mysql',
-    id: ClusterTypes.TENDBHA,
-    name: t('MySQL主从'),
-  }, {
-    moduleId: 'redis',
-    id: ClusterTypes.TWEMPROXY_REDIS_INSTANCE,
-    name: t('TendisCache'),
-  }, {
-    moduleId: 'redis',
-    id: ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE,
-    name: t('TendisSSD'),
-  }, {
-    moduleId: 'redis',
-    id: ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER,
-    name: t('Tendisplus'),
-  }, {
-    moduleId: 'bigdata',
-    id: ClusterTypes.ES,
-    name: 'ES',
-  }, {
-    moduleId: 'bigdata',
-    id: ClusterTypes.KAFKA,
-    name: 'Kafka',
-  }, {
-    moduleId: 'bigdata',
-    id: ClusterTypes.HDFS,
-    name: 'HDFS',
-  }, {
-    moduleId: 'bigdata',
-    id: ClusterTypes.INFLUXDB,
-    name: 'InfluxDB',
-  }, {
-    moduleId: 'bigdata',
-    id: ClusterTypes.PULSAE,
-    name: 'Pulsar',
-  }, {
-    moduleId: 'mysql',
-    id: ClusterTypes.TENDBCLUSTER,
-    name: 'TenDBCluster',
-  }];
+  const tabs: TabItem[] = [
+    {
+      moduleId: 'mysql',
+      id: ClusterTypes.TENDBSINGLE,
+      name: t('MySQL单节点'),
+    },
+    {
+      moduleId: 'mysql',
+      id: ClusterTypes.TENDBHA,
+      name: t('MySQL主从'),
+    },
+    {
+      moduleId: 'redis',
+      id: ClusterTypes.TWEMPROXY_REDIS_INSTANCE,
+      name: t('TendisCache'),
+    },
+    {
+      moduleId: 'redis',
+      id: ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE,
+      name: t('TendisSSD'),
+    },
+    {
+      moduleId: 'redis',
+      id: ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER,
+      name: t('Tendisplus'),
+    },
+    {
+      moduleId: 'bigdata',
+      id: ClusterTypes.ES,
+      name: 'ES',
+    },
+    {
+      moduleId: 'bigdata',
+      id: ClusterTypes.KAFKA,
+      name: 'Kafka',
+    },
+    {
+      moduleId: 'bigdata',
+      id: ClusterTypes.HDFS,
+      name: 'HDFS',
+    },
+    {
+      moduleId: 'bigdata',
+      id: ClusterTypes.INFLUXDB,
+      name: 'InfluxDB',
+    },
+    {
+      moduleId: 'bigdata',
+      id: ClusterTypes.PULSAE,
+      name: 'Pulsar',
+    },
+    {
+      moduleId: 'mysql',
+      id: ClusterTypes.TENDBCLUSTER,
+      name: 'TenDBCluster',
+    },
+  ];
 
   const route = useRoute();
   const clusterType = computed(() => route.params.clusterType as string);
