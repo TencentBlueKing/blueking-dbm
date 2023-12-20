@@ -30,7 +30,7 @@ def query_versions_by_key(query_key):
     ]:
         versions = constants.TendisPlusVersion.get_values()
     elif query_key in [
-        PackageType.Proxy,
+        PackageType.MySQLProxy,
         PackageType.DBActuator,
         PackageType.RedisTools,
         PackageType.DbMon,

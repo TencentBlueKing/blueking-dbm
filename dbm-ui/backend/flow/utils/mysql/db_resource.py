@@ -65,12 +65,12 @@ class DBResource(object):
 
         elif ticket_type in ha_ticket_type:
             # 拼接部署一套主从版mysql集群的资源需求
-            for db_type in [MediumEnum.MySQL, MediumEnum.Proxy]:
+            for db_type in [MediumEnum.MySQL, MediumEnum.MySQLProxy]:
                 temp = copy.deepcopy(self.common_param)
                 temp["count"] = 2
                 temp["item"] = db_type
                 temp["spec"] = self.mysql_spec if db_type == MediumEnum.MySQL else self.proxy_spec
-                # temp['device_class'] = 'S5t.SMALL2' if db_type == MediumEnum.Proxy else spec
+                # temp['device_class'] = 'S5t.SMALL2' if db_type == MediumEnum.MySQLProxy else spec
                 # TODO 本地测试需要的，临时让所以机器规格都一致，方便测试，后续接入资源池再做调整
                 temp["device_class"] = spec
                 rms_detail.append(temp)

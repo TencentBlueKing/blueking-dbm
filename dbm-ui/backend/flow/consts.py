@@ -201,7 +201,7 @@ class DbBackupRoleEnum(str, StructuredEnum):
 
 class MediumEnum(str, StructuredEnum):
     MySQL = EnumField("mysql", _("mysql"))
-    Proxy = EnumField("mysql-proxy", _("mysql-proxy"))
+    MySQLProxy = EnumField("mysql-proxy", _("mysql-proxy"))
     Redis = EnumField("redis", _("redis"))
     TendisPlus = EnumField("tendisplus", _("tendisplus"))
     TendisSsd = EnumField("tendisssd", _("tendisssd"))

@@ -75,7 +75,10 @@ class MysqlMasterSlaveSwitchParamBuilder(builders.FlowParamBuilder):
                 ticket=self.ticket,
                 details__controller_info__func_name=MysqlDumperMigrateParamBuilder.controller.__name__,
             )
-            Flow.objects.filter(flow_filter).update(status=TicketFlowStatus.SKIPPED)
+            # 用save方法来触发ticket单据更新的信号
+            for flow in Flow.objects.filter(flow_filter):
+                flow.status = TicketFlowStatus.SKIPPED
+                flow.save(update_fields=["status"])
             return
 
         dumper_migrate_flow.details["ticket_data"]["infos"] = switch_infos
