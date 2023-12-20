@@ -7,172 +7,173 @@
     "etl_config": "bk_log_regexp",
     "data_encoding": "UTF-8",
     "retention": 7,
-    "allocation_min_days": 3,
     "es_shards": 3,
     "target_object_type": "SERVICE",
     "target_node_type": "TOPO",
     "target_nodes": [],
     "etl_params": {
         "retain_original_text": true,
-        "separator_regexp":"#\\s+User@Host:\\s+(?P<user>\\w+)\\[\\w+\\]\\s+@\\s+(?P<host>(\\w|\\[|\\]|\\.|\\s)+)\\s+Id:\\s+(?P<thread_id>\\d+)\\n#\\s+Query_time:\\s+(?P<query_time>\\w+\\.?\\w+)\\s+Lock_time:\\s+(?P<lock_time>\\w+\\.?\\w+)\\s+Rows_sent:\\s+(?P<rows_sent>\\d+)\\s+Rows_examined:\\s+(?P<rows_examined>\\d+)\\n(use\\s+(?P<use>.*);\\n)?SET\\s+timestamp=(?P<sql_timestamp>\\d+);\\n(?P<sql_text>(.|\\n)*)"
+        "separator_regexp": "#\\s+User@Host:\\s+(?P<user>\\w+)\\[\\w+\\]\\s+@\\s+(?P<host>(\\w|\\[|\\]|\\.|\\s)+)\\s+Id:\\s+(?P<thread_id>\\d+)\\n#\\s+Query_time:\\s+(?P<query_time>\\w+\\.?\\w+)\\s+Lock_time:\\s+(?P<lock_time>\\w+\\.?\\w+)\\s+Rows_sent:\\s+(?P<rows_sent>\\d+)\\s+Rows_examined:\\s+(?P<rows_examined>\\d+)\\n(use\\s+(?P<use>.*);\\n)?SET\\s+timestamp=(?P<sql_timestamp>\\d+);\\n(?P<sql_text>(.|\\n)*)"
     },
     "fields": [
         {
-            "value":"",
-            "option":{
+            "value": "",
+            "option": {
             },
-            "is_time":false,
-            "verdict":true,
-            "is_delete":false,
-            "alias_name":"",
-            "field_name":"user",
-            "field_type":"string",
-            "description":"",
-            "field_index":1,
-            "is_analyzed":false,
-            "is_built_in":false,
-            "is_dimension":false,
-            "previous_type":"string"
+            "is_time": false,
+            "verdict": true,
+            "is_delete": false,
+            "alias_name": "",
+            "field_name": "user",
+            "field_type": "string",
+            "description": "",
+            "field_index": 1,
+            "is_analyzed": false,
+            "is_built_in": false,
+            "is_dimension": false,
+            "previous_type": "string"
         },
         {
-            "value":"",
-            "option":{
+            "value": "",
+            "option": {
             },
-            "is_time":false,
-            "verdict":true,
-            "is_delete":false,
-            "alias_name":"",
-            "field_name":"host",
-            "field_type":"string",
-            "description":"",
-            "field_index":2,
-            "is_analyzed":false,
-            "is_built_in":false,
-            "is_dimension":false,
-            "previous_type":"string"
+            "is_time": false,
+            "verdict": true,
+            "is_delete": false,
+            "alias_name": "",
+            "field_name": "host",
+            "field_type": "string",
+            "description": "",
+            "field_index": 2,
+            "is_analyzed": false,
+            "is_built_in": false,
+            "is_dimension": false,
+            "previous_type": "string"
         },
         {
-            "value":"",
-            "option":{
+            "value": "",
+            "option": {
             },
-            "is_time":false,
-            "verdict":false,
-            "is_delete":false,
-            "alias_name":"",
-            "field_name":"thread_id",
-            "field_type":"int",
-            "description":"",
-            "field_index":3,
-            "is_analyzed":false,
-            "is_built_in":false,
-            "is_dimension":false,
-            "previous_type":""
+            "is_time": false,
+            "verdict": false,
+            "is_delete": false,
+            "alias_name": "",
+            "field_name": "thread_id",
+            "field_type": "int",
+            "description": "",
+            "field_index": 3,
+            "is_analyzed": false,
+            "is_built_in": false,
+            "is_dimension": false,
+            "previous_type": ""
         },
         {
-            "value":"",
-            "option":{
+            "value": "",
+            "option": {
             },
-            "is_time":false,
-            "verdict":false,
-            "is_delete":false,
-            "alias_name":"",
-            "field_name":"query_time",
-            "field_type":"double",
-            "description":"",
-            "field_index":4,
-            "is_analyzed":false,
-            "is_built_in":false,
-            "is_dimension":false,
-            "previous_type":""
+            "is_time": false,
+            "verdict": false,
+            "is_delete": false,
+            "alias_name": "",
+            "field_name": "query_time",
+            "field_type": "double",
+            "description": "",
+            "field_index": 4,
+            "is_analyzed": false,
+            "is_built_in": false,
+            "is_dimension": false,
+            "previous_type": ""
         },
         {
-            "value":"",
-            "option":{
+            "value": "",
+            "option": {
             },
-            "is_time":false,
-            "verdict":false,
-            "is_delete":false,
-            "alias_name":"",
-            "field_name":"lock_time",
-            "field_type":"double",
-            "description":"",
-            "field_index":5,
-            "is_analyzed":false,
-            "is_built_in":false,
-            "is_dimension":false,
-            "previous_type":""
+            "is_time": false,
+            "verdict": false,
+            "is_delete": false,
+            "alias_name": "",
+            "field_name": "lock_time",
+            "field_type": "double",
+            "description": "",
+            "field_index": 5,
+            "is_analyzed": false,
+            "is_built_in": false,
+            "is_dimension": false,
+            "previous_type": ""
         },
         {
-            "value":"",
-            "option":{
+            "value": "",
+            "option": {
             },
-            "is_time":false,
-            "verdict":false,
-            "is_delete":false,
-            "alias_name":"",
-            "field_name":"rows_sent",
-            "field_type":"int",
-            "description":"",
-            "field_index":6,
-            "is_analyzed":false,
-            "is_built_in":false,
-            "is_dimension":false,
-            "previous_type":""
+            "is_time": false,
+            "verdict": false,
+            "is_delete": false,
+            "alias_name": "",
+            "field_name": "rows_sent",
+            "field_type": "int",
+            "description": "",
+            "field_index": 6,
+            "is_analyzed": false,
+            "is_built_in": false,
+            "is_dimension": false,
+            "previous_type": ""
         },
         {
-            "value":"",
-            "option":{
+            "value": "",
+            "option": {
             },
-            "is_time":false,
-            "verdict":false,
-            "is_delete":false,
-            "alias_name":"",
-            "field_name":"rows_examined",
-            "field_type":"int",
-            "description":"",
-            "field_index":7,
-            "is_analyzed":false,
-            "is_built_in":false,
-            "is_dimension":false,
-            "previous_type":""
+            "is_time": false,
+            "verdict": false,
+            "is_delete": false,
+            "alias_name": "",
+            "field_name": "rows_examined",
+            "field_type": "int",
+            "description": "",
+            "field_index": 7,
+            "is_analyzed": false,
+            "is_built_in": false,
+            "is_dimension": false,
+            "previous_type": ""
         },
         {
-            "value":"",
-            "option":{
+            "value": "",
+            "option": {
             },
-            "is_time":false,
-            "verdict":true,
-            "is_delete":false,
-            "alias_name":"",
-            "field_name":"use",
-            "field_type":"string",
-            "description":"",
-            "field_index":8,
-            "is_analyzed":false,
-            "is_built_in":false,
-            "is_dimension":false,
-            "previous_type":""
+            "is_time": false,
+            "verdict": true,
+            "is_delete": false,
+            "alias_name": "",
+            "field_name": "use",
+            "field_type": "string",
+            "description": "",
+            "field_index": 8,
+            "is_analyzed": false,
+            "is_built_in": false,
+            "is_dimension": false,
+            "previous_type": ""
         },
         {
-            "value":"",
-            "option":{
+            "value": "",
+            "option": {
             },
-            "is_time":false,
-            "verdict":false,
-            "is_delete":false,
-            "alias_name":"",
-            "field_name":"sql_timestamp",
-            "field_type":"int",
-            "description":"",
-            "field_index":9,
-            "is_analyzed":false,
-            "is_built_in":false,
-            "is_dimension":false,
-            "previous_type":""
+            "is_time": false,
+            "verdict": false,
+            "is_delete": false,
+            "alias_name": "",
+            "field_name": "sql_timestamp",
+            "field_type": "int",
+            "description": "",
+            "field_index": 9,
+            "is_analyzed": false,
+            "is_built_in": false,
+            "is_dimension": false,
+            "previous_type": ""
         }
     ],
     "params": {
-        "paths": ["/data/mysqllog/{{ cmdb_instance.service.labels[\"instance_port\"] }}/slow-query.log"],
+        "paths": [
+            "/data/mysqllog/{{ cmdb_instance.service.labels[\"instance_port\"] }}/slow-query.log"
+        ],
         "conditions": {
             "separator": "",
             "separator_filters": [],
@@ -180,25 +181,33 @@
             "match_type": "include",
             "match_content": ""
         },
-        "multiline_pattern":"^# User@Host",
-        "multiline_max_lines":50,
-        "multiline_timeout":2,
-        "encoding":"UTF-8",
+        "multiline_pattern": "^# User@Host",
+        "multiline_max_lines": 50,
+        "multiline_timeout": 2,
+        "encoding": "UTF-8",
         "extra_template_labels": [
-            {"key": "$for", "value": "cmdb_instance.scope"},
-            {"key": "$body", "value": {
-                "app": "{{ cmdb_instance.service.labels[\"app\"] }}",
-                "app_id": "{{ cmdb_instance.service.labels[\"app_id\"] }}",
-                "bk_cloud_id": "{{ cmdb_instance.service.labels[\"bk_cloud_id\"] }}",
-                "cluster_name": "{{ cmdb_instance.service.labels[\"cluster_name\"] }}",
-                "cluster_type": "{{ cmdb_instance.service.labels[\"cluster_type\"] }}",
-                "instance_host": "{{ cmdb_instance.service.labels[\"instance_host\"] }}",
-                "instance_port": "{{ cmdb_instance.service.labels[\"instance_port\"] }}",
-                "instance_role": "{{ cmdb_instance.service.labels[\"instance_role\"] }}",
-                "cluster_domain": "{{ cmdb_instance.service.labels[\"cluster_domain\"] }}"
+            {
+                "key": "$for",
+                "value": "cmdb_instance.scope"
+            },
+            {
+                "key": "$body",
+                "value": {
+                    "app": "{{ cmdb_instance.service.labels[\"app\"] }}",
+                    "app_id": "{{ cmdb_instance.service.labels[\"app_id\"] }}",
+                    "bk_cloud_id": "{{ cmdb_instance.service.labels[\"bk_cloud_id\"] }}",
+                    "cluster_name": "{{ cmdb_instance.service.labels[\"cluster_name\"] }}",
+                    "cluster_type": "{{ cmdb_instance.service.labels[\"cluster_type\"] }}",
+                    "instance_host": "{{ cmdb_instance.service.labels[\"instance_host\"] }}",
+                    "instance_port": "{{ cmdb_instance.service.labels[\"instance_port\"] }}",
+                    "instance_role": "{{ cmdb_instance.service.labels[\"instance_role\"] }}",
+                    "cluster_domain": "{{ cmdb_instance.service.labels[\"cluster_domain\"] }}"
                 }
             },
-            {"key": "$item", "value": "scope"}
+            {
+                "key": "$item",
+                "value": "scope"
+            }
         ]
     }
 }

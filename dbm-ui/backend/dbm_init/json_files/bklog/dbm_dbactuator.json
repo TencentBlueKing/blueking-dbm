@@ -7,13 +7,14 @@
     "etl_config": "bk_log_text",
     "data_encoding": "UTF-8",
     "retention": 7,
-    "allocation_min_days": 3,
     "es_shards": 3,
     "target_object_type": "HOST",
     "target_node_type": "TOPO",
     "target_nodes": [],
     "params": {
-        "paths": ["/data/install/dbactuator*/logs/*.log"],
+        "paths": [
+            "/data/install/dbactuator*/logs/*.log"
+        ],
         "conditions": {
             "separator": "",
             "separator_filters": [],
