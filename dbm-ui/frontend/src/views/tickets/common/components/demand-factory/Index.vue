@@ -38,6 +38,9 @@
   import MySQLClone from './mysql/Clone.vue';
   import MySQLClusterOperation from './mysql/ClusterOperation.vue';
   import DetailsMySQL from './mysql/Details.vue';
+  import DumperInstall from './mysql/DumperInstall.vue';
+  import DumperNodeStatusUpdate from './mysql/DumperNodeStatusUpdate.vue';
+  import DumperSwitchNode from './mysql/DumperSwitchNode.vue';
   import MySQLFlashback from './mysql/Flashback.vue';
   import MySQLFullBackup from './mysql/FullBackup.vue';
   import MySQLHATruncate from './mysql/HATruncate.vue';
@@ -136,6 +139,11 @@
     TicketTypes.MYSQL_SINGLE_DESTROY,
   ];
 
+  const dumperNodeStatusUpdateType = [
+    TicketTypes.TBINLOGDUMPER_DISABLE_NODES,
+    TicketTypes.TBINLOGDUMPER_ENABLE_NODES,
+  ];
+
   const bigDataReplaceType = [
     TicketTypes.ES_REPLACE,
     TicketTypes.HDFS_REPLACE,
@@ -222,6 +230,8 @@
     [TicketTypes.MYSQL_RESTORE_SLAVE]: MySQLRestoreSlave,
     [TicketTypes.MYSQL_HA_FULL_BACKUP]: MySQLFullBackup,
     [TicketTypes.MYSQL_CHECKSUM]: MySQLChecksum,
+    [TicketTypes.TBINLOGDUMPER_INSTALL]: DumperInstall,
+    [TicketTypes.TBINLOGDUMPER_SWITCH_NODES]: DumperSwitchNode,
     [TicketTypes.PULSAR_APPLY]: DetailsPulsar,
     [TicketTypes.REDIS_CLUSTER_APPLY]: DetailsRedis,
     [TicketTypes.REDIS_CLUSTER_CUTOFF]: RedisDBReplace,
@@ -314,6 +324,10 @@
     // redis CLB 相关
     if (redisCLBTypes.includes(ticketType)) {
       return CLBDetail;
+    }
+    // dumper 节点状态变更
+    if (dumperNodeStatusUpdateType.includes(ticketType)) {
+      return DumperNodeStatusUpdate;
     }
     if (ticketType in SingleDemandMap) {
       return SingleDemandMap[ticketType as keyof typeof SingleDemandMap];

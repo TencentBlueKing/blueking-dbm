@@ -36,7 +36,7 @@ import RequestError from '../lib/request-error';
 // 第一次登录跳转登录页面，之后弹框登录
 let hasLogined = false;
 
-const redirectLogin = (loginUrl:string) => {
+const redirectLogin = (loginUrl: string) => {
   const { protocol, host } = parseURL(loginUrl);
   const domain = `${protocol}://${host}`;
 
@@ -47,8 +47,8 @@ const redirectLogin = (loginUrl:string) => {
   }
 };
 
-const handlePermission = (error:RequestError) => {
-  const {  emit } = useEventBus();
+const handlePermission = (error: RequestError) => {
+  const { emit } = useEventBus();
   // eslint-disable-next-line no-case-declarations
   const requestPayload = error.response.config.payload;
   // eslint-disable-next-line no-case-declarations
@@ -79,7 +79,7 @@ export default (interceptors: AxiosInterceptorManager<AxiosResponse>) => {
         throw new RequestError(code, message, response);
       }
     }
-  }, (error: AxiosError<{message: string}> & {__CANCEL__: any}) => {
+  }, (error: AxiosError<{ message: string }> & { __CANCEL__: any }) => {
     // 超时取消
     if (error.__CANCEL__) { // eslint-disable-line no-underscore-dangle
       return Promise.reject(new RequestError('CANCEL', '请求已取消'));
@@ -117,7 +117,7 @@ export default (interceptors: AxiosInterceptorManager<AxiosResponse>) => {
         break;
       case 'CANCEL':
         break;
-        // 网络超时
+      // 网络超时
       case 'ECONNABORTED':
         messageError('请求超时');
         break;
@@ -131,5 +131,3 @@ export default (interceptors: AxiosInterceptorManager<AxiosResponse>) => {
     return Promise.reject(error.response.data);
   });
 };
-
-

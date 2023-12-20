@@ -587,3 +587,9 @@ url("fonts/iconcool.eot?#iefix") format("embedded-opentype");
 .db-icon-qiangzhizhongzhi:before {
 	content: "\e1e7";
 }
+.db-icon-sqlserver:before {
+	content: "\e1e8";
+}
+.db-icon-qianyizhong:before {
+	content: "\e1ea";
+}

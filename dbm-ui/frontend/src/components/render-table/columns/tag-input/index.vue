@@ -246,11 +246,11 @@
 
       &:hover {
         background-color: #fafbfd;
-        border-color: #a3c5fd;
+        border-color: #a3c5fd !important;
       }
 
       &.active {
-        border-color: #3a84ff;
+        border-color: #3a84ff !important;
       }
 
       .tag-input {
