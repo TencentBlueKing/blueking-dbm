@@ -800,8 +800,7 @@ func (task *TendisInsRecoverTask) PullIncrbackup() {
 		task.Err = incrBack.Err
 		return
 	}
-	layout := "2006-01-02 15:04:05"
-	rbDstTime, _ := time.ParseInLocation(layout, task.RecoveryTimePoint, time.Local)
+	rbDstTime, _ := time.ParseInLocation(consts.UnixtimeLayoutZone, task.RecoveryTimePoint, time.Local)
 	// 回档目标时间 比 用户填写的时间多1秒
 	// (因为binlog_tool的--end-datetime参数,--end-datetime这个时间点的binlog是不会被应用的)
 	rbDstTime = rbDstTime.Add(1 * time.Second)
@@ -831,8 +830,8 @@ func (task *TendisInsRecoverTask) PullIncrbackup() {
 		}
 		// task.runtime.Logger.Info("kvstore:%d ,backupMeta:%v", i, backupMeta)
 		// kvstore 维度的 的拉取备份文件任务，每个kvstore都是一个任务，因为kvstore的开始时间不一样
-		incrBack.NewRocksDBIncrBack(i, backupMeta.BinlogPos+1, backupMeta.StartTime.Local().Format(layout),
-			rbDstTime.Local().Format(layout), task.NeWTempIP, task.RecoverDir, task.RecoverDir)
+		incrBack.NewRocksDBIncrBack(i, backupMeta.BinlogPos+1, backupMeta.StartTime.Local().Format(consts.UnixtimeLayoutZone),
+			rbDstTime.Local().Format(consts.UnixtimeLayoutZone), task.NeWTempIP, task.RecoverDir, task.RecoverDir)
 		if incrBack.Err != nil {
 			task.Err = incrBack.Err
 			return
@@ -906,7 +905,10 @@ func (task *TendisInsRecoverTask) CheckRollbackResult() error {
 	defer redisCli.Close()
 	// 检查目的集群是否有源集群的心跳数据
 	srcHearbeatKey := task.GetTendisplusHearbeatKey(task.SourceIP, task.SourcePort)
+	mylog.Logger.Info("srcHearbeatKey:%s", srcHearbeatKey)
 	srcNodeHearbeat, err := redisCli.GetTendisplusHeartbeat(srcHearbeatKey)
+	msg = fmt.Sprintf("检查目的集群是否有源集群的心跳数据:%v", srcNodeHearbeat)
+	mylog.Logger.Info(msg)
 	if err != nil {
 		task.Err = err
 		return task.Err
@@ -924,7 +926,7 @@ func (task *TendisInsRecoverTask) CheckRollbackResult() error {
 		return task.Err
 	}
 
-	rollbackDstTime, _ := time.ParseInLocation(consts.UnixtimeLayout, task.RecoveryTimePoint, time.Local)
+	rollbackDstTime, _ := time.ParseInLocation(consts.UnixtimeLayoutZone, task.RecoveryTimePoint, time.Local)
 	var hearbeatVal time.Time
 	var ok bool
 	var errList []string
@@ -944,16 +946,16 @@ func (task *TendisInsRecoverTask) CheckRollbackResult() error {
 		if symbol != "" {
 			msg = fmt.Sprintf("目的tendisplus:%s 源tendisplus:%s rocksdbid:%d 回档到时间:%s %s 目的时间:%s",
 				redisAddr, srcRedisAddr, i, symbol,
-				hearbeatVal.Local().Format(consts.UnixtimeLayout),
-				rollbackDstTime.Local().Format(consts.UnixtimeLayout))
+				hearbeatVal.Local().Format(consts.UnixtimeLayoutZone),
+				rollbackDstTime.Local().Format(consts.UnixtimeLayoutZone))
 			errList = append(errList)
 			mylog.Logger.Error(msg)
 			continue
 		}
 		msg = fmt.Sprintf("目的tendisplus:%s 源tendisplus:%s rocksdbid:%d 回档到时间:%s =~ 目的时间:%s",
 			redisAddr, srcRedisAddr, i,
-			hearbeatVal.Local().Format(consts.UnixtimeLayout),
-			rollbackDstTime.Local().Format(consts.UnixtimeLayout))
+			hearbeatVal.Local().Format(consts.UnixtimeLayoutZone),
+			rollbackDstTime.Local().Format(consts.UnixtimeLayoutZone))
 		mylog.Logger.Info(msg)
 	}
 	if len(errList) > 0 {
@@ -972,8 +974,7 @@ func (task *TendisInsRecoverTask) SSDPullIncrbackup() {
 	task.runtime.Logger.Info("Source fileName:%s,DstAddr:%s", fileName, redisAddr)
 	// 节点维度增备信息：fileName 过滤，task.SourceIP 备份的源IP
 
-	layout := "2006-01-02 15:04:05"
-	rbDstTime, _ := time.ParseInLocation(layout, task.RecoveryTimePoint, time.Local)
+	rbDstTime, _ := time.ParseInLocation(consts.UnixtimeLayoutZone, task.RecoveryTimePoint, time.Local)
 	// 回档目标时间 比 用户填写的时间多1秒
 	// (因为binlog_tool的--end-datetime参数,--end-datetime这个时间点的binlog是不会被应用的)
 	rbDstTime = rbDstTime.Add(1 * time.Second)
@@ -983,8 +984,9 @@ func (task *TendisInsRecoverTask) SSDPullIncrbackup() {
 	// startTime 拉取增备的开始时间 -> 全备份的开始时间
 	// endTime 拉取增备份的结束时间 -> 回档时间
 	ssdIncrBackup := NewTredisRocksDBIncrBack(fileName, task.SourceIP, task.FullBackup.ResultFullbackup[0].StartPos,
-		task.FullBackup.ResultFullbackup[0].BackupStart.Local().Format(layout),
-		rbDstTime.Local().Format(layout), task.NeWTempIP, task.RecoverDir, task.RecoverDir, task.RecoveryTimePoint)
+		task.FullBackup.ResultFullbackup[0].BackupStart.Local().Format(consts.UnixtimeLayoutZone),
+		rbDstTime.Local().Format(consts.UnixtimeLayoutZone), task.NeWTempIP,
+		task.RecoverDir, task.RecoverDir, task.RecoveryTimePoint)
 	if ssdIncrBackup.Err != nil {
 		task.Err = ssdIncrBackup.Err
 		return

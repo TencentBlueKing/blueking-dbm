@@ -76,10 +76,10 @@ func NewFullbackPull(sourceIP, filehead, rollbackTime,
 		KvstoreNums: kvstoreNums,
 		TendisType:  tendisType,
 	}
-	layout := "2006-01-02 15:04:05"
-	ret.RollbackDstTime, ret.Err = time.ParseInLocation(layout, rollbackTime, time.Local)
+	ret.RollbackDstTime, ret.Err = time.ParseInLocation(consts.UnixtimeLayoutZone, rollbackTime, time.Local)
 	if ret.Err != nil {
-		ret.Err = fmt.Errorf("rollbackTime:%s time.parese fail,err:%s,layout:%s", rollbackTime, ret.Err, layout)
+		ret.Err = fmt.Errorf("rollbackTime:%s time.parese fail,err:%s,consts.UnixtimeLayoutZone:%s",
+			rollbackTime, ret.Err, consts.UnixtimeLayoutZone)
 		mylog.Logger.Error(ret.Err.Error())
 		return ret
 	}
@@ -136,7 +136,6 @@ func (full *TendisFullBackPull) GetFullFilesSpecTimeRange(fullFileList []FileDet
 		lastDateReg1 = regexp.MustCompile(`^.*?(\d+-\d+).rdb`)
 	}
 
-	layout1 := "20060102-150405"
 	for _, str01 := range fullFileList {
 		back01 := &TendisFullBackItem{}
 		taskID, _ := strconv.Atoi(str01.TaskID)
@@ -173,7 +172,7 @@ func (full *TendisFullBackPull) GetFullFilesSpecTimeRange(fullFileList []FileDet
 			full.Err = err
 			return
 		}
-		bkCreateTime, err01 := time.ParseInLocation(layout1, match01[1], time.Local)
+		bkCreateTime, err01 := time.ParseInLocation(consts.FilenameTimeLayout, match01[1], time.Local)
 
 		// 3-TENDISPLUS-FULL-slave-127.0.0.x-30002-20230810-050140.tar
 		// 3-TENDISSSD-FULL-slave-127.0.0.x-30000-20230809-105510-52447.tar
@@ -183,7 +182,8 @@ func (full *TendisFullBackPull) GetFullFilesSpecTimeRange(fullFileList []FileDet
 		}
 
 		if err01 != nil {
-			full.Err = fmt.Errorf("backup file createTime:%s time.parese fail,err:%s,layout1:%s", match01[1], err01, layout1)
+			full.Err = fmt.Errorf("backup file createTime:%s time.parese fail,err:%s,consts.FilenameTimeLayout:%s",
+				match01[1], err01, consts.FilenameTimeLayout)
 			mylog.Logger.Error(full.Err.Error())
 			return
 		}
@@ -248,10 +248,9 @@ func (full *TendisFullBackPull) GetTendisFullbackNearestRkTime(fullFileList []Fi
 
 			}
 		}
-		layout := "2006-01-02 15:04:05"
 		if nearestFullbk == nil {
 			full.Err = fmt.Errorf("filename 正则:%s 最近%d天内没找到小于回档目标时间[%s]的全备",
-				full.FileHead, LastNDaysFullBack(), full.RollbackDstTime.Local().Format(layout))
+				full.FileHead, LastNDaysFullBack(), full.RollbackDstTime.Local().Format(consts.UnixtimeLayoutZone))
 			mylog.Logger.Error(full.Err.Error())
 			return
 		}
@@ -271,9 +270,8 @@ func (full *TendisFullBackPull) GetTendisFullbackNearestRkTime(fullFileList []Fi
 		}
 		return
 	}
-	layout := "2006-01-02 15:04:05"
 	full.Err = fmt.Errorf("GetTendisFullbackNearestRkTime: filename 正则:%s 最近%d天内没找到小于回档目标时间[%s]的全备",
-		full.FileHead, LastNDaysFullBack(), full.RollbackDstTime.Local().Format(layout))
+		full.FileHead, LastNDaysFullBack(), full.RollbackDstTime.Local().Format(consts.UnixtimeLayoutZone))
 	mylog.Logger.Error(full.Err.Error())
 
 	return
@@ -912,6 +910,11 @@ func (full *TendisFullBackPull) PullFullbackDecompressed() {
 		return
 	}
 	mylog.Logger.Info("localBkIsExists:%v,localBkIsCompelete:%v ", localBkIsExists, localBkIsCompelete)
+	// 这里解压 ，不然会走到 else if localBkIsExists == true && decpDirIsExists == true 那里才是第一次解压
+	full.Decompressed()
+	if full.Err != nil {
+		return
+	}
 	// 已解压的备份文件
 	decpDirIsExists, decpIsCompelete, _ := full.CheckDecompressedDirIsOK()
 	if full.Err != nil {
@@ -921,6 +924,9 @@ func (full *TendisFullBackPull) PullFullbackDecompressed() {
 
 	//1: 本地全备.tar, 全备(已解压)文件夹 均不存在 =>报错，需要flow重新下载;
 	if localBkIsExists == false && decpDirIsExists == false {
+		mylog.Logger.Info("localBkIsExists:%v,localBkIsCompelete:%v,decpDirIsExists:%v,decpIsCompelete:%v ",
+			localBkIsExists, localBkIsCompelete, decpDirIsExists, decpIsCompelete)
+		mylog.Logger.Info("1: 本地全备.tar, 全备(已解压)文件夹 均不存在 =>报错，需要flow重新下载")
 		full.RetryDownloadFiles()
 		if full.Err != nil {
 			return
@@ -930,9 +936,14 @@ func (full *TendisFullBackPull) PullFullbackDecompressed() {
 		//2. 本地全备.tar不存在、全备(已解压)文件夹 存在:
 		//- 全备(已解压)文件夹 完整 => 直接返回;
 		//- 全备(已解压)文件夹 不完整 => 删除全备(已解压)文件夹,报错，需要flow重新下载;
+		mylog.Logger.Info("localBkIsExists:%v,localBkIsCompelete:%v,decpDirIsExists:%v,decpIsCompelete:%v ",
+			localBkIsExists, localBkIsCompelete, decpDirIsExists, decpIsCompelete)
+		mylog.Logger.Info("2. 本地全备.tar不存在、全备(已解压)文件夹 存在")
 		if decpIsCompelete == true {
+			mylog.Logger.Info("2. 全备(已解压)文件夹 完整 => 直接返回;")
 			return
 		}
+		mylog.Logger.Info("2.全备(已解压)文件夹 不完整 => 删除全备(已解压)文件夹,报错，需要flow重新下载")
 		full.RmDecompressedDir()
 		if full.Err != nil {
 			return
@@ -946,10 +957,16 @@ func (full *TendisFullBackPull) PullFullbackDecompressed() {
 		//3. 本地全备.tar存在、全备(已解压)文件夹 不存在:
 		//- 本地全备.tar 完整, => 解压;
 		//- 本地全备.tar 不完整 => 删除 本地全备.tar,报错，需要flow重新下载;;
+		mylog.Logger.Info("localBkIsExists:%v,localBkIsCompelete:%v,decpDirIsExists:%v,decpIsCompelete:%v ",
+			localBkIsExists, localBkIsCompelete, decpDirIsExists, decpIsCompelete)
+
 		if localBkIsCompelete == true {
+			mylog.Logger.Info("3. 本地全备.tar 完整, => 解压")
 			full.Decompressed()
 			return
 		}
+		mylog.Logger.Info("3.本地全备.tar 不完整 => 删除 本地全备.tar,报错，需要flow重新下载")
+
 		full.RmLocalBakcupFile()
 		if full.Err != nil {
 			return
@@ -961,9 +978,19 @@ func (full *TendisFullBackPull) PullFullbackDecompressed() {
 
 	} else if localBkIsExists == true && decpDirIsExists == true {
 		//4. 本地全备.tar存在、全备(已解压)文件夹 存在
+		// 本地解压目录完整则返回
 		//- 本地全备.tar 完整 => 删除 全备(已解压)文件夹,重新解压(有理由怀疑上一次解压失败了,本地全备.tar 来不及删除)
-		//- 本地全备.tar 不完整 => 删除本地全备.tar + 删除 全备(已解压)文件夹, 报错，需要flow重新下载;;
+		//- 本地全备.tar 不完整 => 删除本地全备.tar + 删除 全备(已解压)文件夹, 报错，需要flow重新下载;
+		mylog.Logger.Info("localBkIsExists:%v,localBkIsCompelete:%v,decpDirIsExists:%v,decpIsCompelete:%v ",
+			localBkIsExists, localBkIsCompelete, decpDirIsExists, decpIsCompelete)
+
+		if decpIsCompelete == true {
+			mylog.Logger.Info("4. 本地解压目录完整则返回")
+			return
+
+		}
 		if localBkIsCompelete == true {
+			mylog.Logger.Info("4. 本地全备.tar 完整 => 删除 全备(已解压)文件夹,重新解压(有理由怀疑上一次解压失败了,本地全备.tar 来不及删除)")
 			full.RmDecompressedDir()
 			if full.Err != nil {
 				return
@@ -971,6 +998,7 @@ func (full *TendisFullBackPull) PullFullbackDecompressed() {
 			full.Decompressed()
 			return
 		}
+		mylog.Logger.Info("4. 本地全备.tar 不完整 => 删除本地全备.tar + 删除 全备(已解压)文件夹, 报错，需要flow重新下载")
 		full.RmDecompressedDir()
 		if full.Err != nil {
 			return

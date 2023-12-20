@@ -148,8 +148,8 @@ class DataStructureHandler:
         for log in binlogs:
             # 获取end_time到start_time时间范围内的binlog文件
             if (
-                str2datetime(log["start_time"]).replace(tzinfo=None) > end_time
-                or str2datetime(log["start_time"]).replace(tzinfo=None) < start_time
+                str2datetime(log["start_time"]).replace(tzinfo=end_time.tzinfo) > end_time
+                or str2datetime(log["start_time"]).replace(tzinfo=start_time.tzinfo) < start_time
             ):
                 continue
             # 转化为直接查询备份系统返回的格式
