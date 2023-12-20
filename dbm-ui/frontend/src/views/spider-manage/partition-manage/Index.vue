@@ -1,21 +1,23 @@
 <template>
   <div class="spider-manage-paritition-page">
     <div class="header-action mb-16">
-      <BkButton
+      <AuthButton
+        action-id="tendbcluster_partition_create"
         class="w-88"
         theme="primary"
         @click="handleCreate">
         {{ t('新建') }}
-      </BkButton>
+      </AuthButton>
       <DbPopconfirm
         :confirm-handler="handleBatchRemove"
         :content="t('移除后将不可恢复')"
         :title="t('确认移除选中的策略')">
-        <BkButton
+        <AuthButton
+          action-id="tendbcluster_partition_delete"
           class="ml-8"
           :disabled="selectionList.length < 1">
           {{ t('删除') }}
-        </BkButton>
+        </AuthButton>
       </DbPopconfirm>
       <DbSearchSelect
         v-model="searchValues"
@@ -231,22 +233,25 @@
           }
           if (!data.isEnabled) {
             return (
-              <bk-button
+              <auth-button
                 theme="primary"
                 text
+                action-id="tendb_partition_enable_disable"
                 onClick={() => handleEnable(data)}>
                 {t('启用')}
-              </bk-button>
+              </auth-button>
             );
           }
           return (
-            <bk-button
+            <auth-button
               theme="primary"
               text
+              action-id="tendbcluster_partition"
+              resource={data.cluster_id}
               loading={executeLoadingMap.value[data.id]}
               onClick={() => handleExecute(data)}>
               {t('执行')}
-            </bk-button>
+            </auth-button>
           );
         };
         return (
@@ -258,13 +263,14 @@
               disabled: !data.isRunning,
             }}
             class="ml-8">
-            <bk-button
+            <auth-button
               theme="primary"
               text
+              action-id="tendbcluster_partition_update"
               disabled={data.isRunning}
               onClick={() => handleEdit(data)}>
               {t('编辑')}
-            </bk-button>
+            </auth-button>
           </span>
           <bk-button
             class="ml-8"
@@ -279,19 +285,33 @@
                 <>
                   {
                     data.isEnabled && (
-                      <div onClick={() => handleDisable(data)}>
+                      <auth-button
+                        theme="primary"
+                        text
+                        action-id="tendb_partition_enable_disable"
+                        onClick={() => handleDisable(data)}>
                         { t('禁用') }
-                      </div>
+                      </auth-button>
                     )
                   }
-                  <div onClick={() => handleClone(data)}>
+                  <auth-button
+                    theme="primary"
+                    text
+                    action-id="tendbcluster_partition_create"
+                    onClick={() => handleClone(data)}>
                     { t('克隆') }
-                  </div>
+                  </auth-button>
                   <db-popconfirm
                     confirm-handler={() => handleRemove(data)}
                     content={t('删除操作无法撤回，请谨慎操作！')}
                     title={t('确认删除该分区策略？')}>
-                    <span>{ t('删除') }</span>
+                    <auth-button
+                    theme="primary"
+                    text
+                    action-id="tendbcluster_partition_delete"
+                    onClick={() => handleRemove(data)}>
+                    { t('删除') }
+                  </auth-button>
                   </db-popconfirm>
                 </>
               ),

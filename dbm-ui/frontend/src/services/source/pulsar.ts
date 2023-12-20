@@ -94,7 +94,10 @@ export function getPulsarNodeList(params: Record<string, any> & {
   return http.get<ListBase<Array<PulsarNodeModel>>>(`${path}/${params.cluster_id}/list_nodes/`, params)
     .then(data => ({
       ...data,
-      results: data.results.map((item: PulsarNodeModel) => new PulsarNodeModel(item)),
+      results: data.results.map((item: PulsarNodeModel) => new PulsarNodeModel({
+        ...item,
+        permission: data.permission,
+      })),
     }));
 }
 

@@ -18,5 +18,6 @@ export interface ListBase<T> {
   count: number,
   next: string,
   previous: string,
-  results: T
+  results: T,
+  permission?: Record<string, boolean>
 }

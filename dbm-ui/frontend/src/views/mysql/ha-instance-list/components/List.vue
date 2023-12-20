@@ -14,12 +14,13 @@
 <template>
   <div class="mysql-ha-instance-list-page">
     <div class="operation-box">
-      <BkButton
+      <AuthButton
+        action-id="resource_manage"
         class="mb-16"
         theme="primary"
         @click="handleApply">
         {{ t('实例申请') }}
-      </BkButton>
+      </AuthButton>
       <DbSearchSelect
         v-model="state.filters"
         class="mb-16"
@@ -149,12 +150,15 @@
         render: ({ cell, data }: ColumnData) => (
         <div style="display: flex; align-items: center;">
           <div class="text-overflow" v-overflow-tips>
-            <bk-button
+            <auth-button
+              action-id="mysql_view"
+              resource={data.cluster_id}
+              permission={data.permission.mysql_view}
               text
               theme="primary"
               onClick={() => handleToDetails(data)}>
               {cell}
-            </bk-button>
+            </auth-button>
           </div>
           {
             isRecentDays(data.create_at, 24 * 3)
@@ -245,12 +249,15 @@
         fixed: 'right',
         width: 140,
         render: ({ data }: { data: ResourceInstance }) => (
-          <bk-button
+          <auth-button
+            action-id="mysql_view"
+            permission={data.permission.mysql_view}
+            resource={data.cluster_id}
             theme="primary"
             text
             onClick={() => handleToDetails(data)}>
             { t('查看详情') }
-          </bk-button>
+          </auth-button>
         ),
       },
     ];

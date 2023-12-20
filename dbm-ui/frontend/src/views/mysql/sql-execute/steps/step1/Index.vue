@@ -65,14 +65,15 @@
         v-bk-tooltips="{
           ...submitButtonTips
         }">
-        <BkButton
+        <AuthButton
+          action-id="mysql_import_sqlfile"
           class="w-88"
           :disabled="!submitButtonTips.disabled"
           :loading="isSubmitting"
           theme="primary"
           @click="handleSubmit">
           {{ $t('模拟执行') }}
-        </BkButton>
+        </AuthButton>
       </span>
       <DbPopconfirm
         :confirm-handler="handleReset"

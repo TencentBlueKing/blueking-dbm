@@ -30,6 +30,7 @@ export default class EsNode {
   node_count: number;
   role: string;
   status: number;
+  permission: Record<'es_view' | 'es_enable_disable' | 'es_destroy' | 'es_scale_up' | 'es_shrink' | 'es_replace' | 'es_reboot', boolean>;
 
   constructor(payload = {} as EsNode) {
     this.bk_cloud_id = payload.bk_cloud_id;
@@ -45,6 +46,7 @@ export default class EsNode {
     this.node_count = payload.node_count || 0;
     this.role = payload.role;
     this.status = payload.status || 0;
+    this.permission = payload.permission;
   }
 
   get isMaster() {

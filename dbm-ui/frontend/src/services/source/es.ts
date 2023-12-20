@@ -101,6 +101,9 @@ export function getEsNodeList(params: Record<string, any> & {
   return http.get<ListBase<Array<EsNodeModel>>>(`${path}/${params.cluster_id}/list_nodes/`, params)
     .then(data => ({
       ...data,
-      results: data.results.map((item: EsNodeModel) => new EsNodeModel(item)),
+      results: data.results.map((item: EsNodeModel) => new EsNodeModel({
+        ...item,
+        permission: data.permission,
+      })),
     }));
 }

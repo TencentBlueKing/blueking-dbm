@@ -104,6 +104,7 @@ export default class Es {
     ticket_type: string,
     title: string,
   }>;
+  permission: Record<'es_view' | 'es_enable_disable' | 'es_destroy' | 'es_scale_up' | 'es_shrink' | 'es_replace' | 'es_reboot', boolean>;
   phase: 'online' | 'offline';
   region: string;
   status: string;
@@ -131,6 +132,7 @@ export default class Es {
     this.es_client = payload.es_client;
     this.id = payload.id;
     this.major_version = payload.major_version;
+    this.permission = payload.permission;
     this.phase = payload.phase;
     this.region = payload.region;
     this.status = payload.status;

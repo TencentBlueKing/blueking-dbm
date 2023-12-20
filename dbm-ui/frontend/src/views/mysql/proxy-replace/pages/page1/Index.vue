@@ -56,13 +56,14 @@
         @change="handleBatchEntry" />
     </div>
     <template #action>
-      <BkButton
+      <AuthButton
+        action-id="mysql_proxy_switch"
         class="w-88"
         :loading="isSubmitting"
         theme="primary"
         @click="handleSubmit">
         {{ $t('提交') }}
-      </BkButton>
+      </AuthButton>
       <DbPopconfirm
         :confirm-handler="handleReset"
         :content="$t('重置将会情况当前填写的所有内容_请谨慎操作')"

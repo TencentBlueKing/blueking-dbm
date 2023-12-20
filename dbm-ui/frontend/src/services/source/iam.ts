@@ -53,7 +53,10 @@ export function simpleGetApplyData(params: {
   action_id: string,
   resource_ids: Array<string|number>
 }) {
-  return http.post<ApplyDataModel>(`${path}/simple_get_apply_data/`, params)
+  return http.post<ApplyDataModel>(`${path}/simple_get_apply_data/`, {
+    ...params,
+    bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+  })
     .then((data) => {
       console.log(data, new ApplyDataModel(data));
       return new ApplyDataModel(data);

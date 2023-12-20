@@ -24,11 +24,12 @@
       </template>
     </BkAlert>
     <div class="permission-rules__operations">
-      <BkButton
+      <AuthButton
+        action-id="mysql_account_create"
         theme="primary"
         @click="handleShowAccountDialog">
         {{ t('新建账号') }}
-      </BkButton>
+      </AuthButton>
       <DbSearchSelect
         v-model="state.search"
         :data="filters"
@@ -88,9 +89,12 @@
         class="account-details__item">
         <span class="account-details__label" />
         <span class="account-details__value">
-          <BkButton
+          <AuthButton
+            action-id="mysql_account_delete"
             hover-theme="danger"
-            @click="handleDeleteAccount(accountDetailDialog.rowData)">{{ t('删除账号') }}</BkButton>
+            @click="handleDeleteAccount(accountDetailDialog.rowData)">
+            {{ t('删除账号') }}
+          </AuthButton>
         </span>
       </div>
     </div>
@@ -188,7 +192,13 @@
         <div class="user-name">
           <a v-overflow-tips class="user-name__text text-overflow" href="javascript:" onClick={handleViewAccount.bind(null, data)}>{data.account.user}</a>
           {isNewUser(data) ? <span class="glob-new-tag mr-4" data-text="NEW" /> : null}
-          <bk-button class="add-rule" size="small" onClick={handleShowCreateRule.bind(null, data)}>{t('添加授权规则')}</bk-button>
+          <auth-button
+            class="add-rule"
+            size="small"
+            action-id="mysql_account_rule_create"
+            onClick={handleShowCreateRule.bind(null, data)}>
+            {t('添加授权规则')}
+          </auth-button>
         </div>
       </div>
     ),
@@ -200,9 +210,9 @@
         return (
           <div class="permission-rules__cell">
             <span>{t('暂无规则')}，</span>
-            <bk-button theme="primary" size="small" text onClick={handleShowCreateRule.bind(null, data)}>
+            <auth-button theme="primary" size="small" text action-id="mysql_account_rule_create" onClick={handleShowCreateRule.bind(null, data)}>
               {t('立即新建')}
-            </bk-button>
+            </auth-button>
           </div>
         );
       }
@@ -238,7 +248,7 @@
       if (data.rules.length === 0) {
         return (
           <div class="permission-rules__cell">
-            <bk-button theme="primary" text onClick={handleDeleteAccount.bind(this, data)}>{t('删除账号')}</bk-button>
+            <auth-button theme="primary" text action-id="mysql_account_delete" onClick={handleDeleteAccount.bind(this, data)}>{t('删除账号')}</auth-button>
           </div>
         );
       }
@@ -246,7 +256,7 @@
       return (
         getRenderList(data).map(item => (
           <div class="permission-rules__cell">
-            <bk-button theme="primary" text onClick={handleShowAuthorize.bind(this, data, item)}>{t('授权')}</bk-button>
+            <auth-button theme="primary" text action-id="mysql_authorize" onClick={handleShowAuthorize.bind(this, data, item)}>{t('授权')}</auth-button>
           </div>
         ))
       );

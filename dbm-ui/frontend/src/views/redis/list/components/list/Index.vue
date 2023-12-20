@@ -15,12 +15,13 @@
   <div class="redis-cluster-list-page">
     <div class="operation-box">
       <div>
-        <BkButton
+        <AuthButton
+          action-id="redis_cluster_apply"
           class="mr-8 mb-16"
           theme="primary"
           @click="handleApply">
           {{ t('申请实例') }}
-        </BkButton>
+        </AuthButton>
         <BkDropdown
           v-bk-tooltips="{
             disabled: hasSelected,
@@ -42,17 +43,38 @@
           </BkButton>
           <template #content>
             <BkDropdownMenu>
-              <BkDropdownItem @click="handleShowExtract(state.selected)">
-                {{ t('提取Key') }}
+              <BkDropdownItem>
+                <AuthButton
+                  action-id="redis_keys_extract"
+                  :resource="state.selected.map(item => item.id).join('')"
+                  text
+                  @click="handleShowExtract(state.selected)">
+                  {{ t('提取Key') }}
+                </AuthButton>
               </BkDropdownItem>
-              <BkDropdownItem @click="handlShowDeleteKeys(state.selected)">
-                {{ t('删除Key') }}
+              <BkDropdownItem>
+                <AuthButton
+                  action-id="redis_keys_delete"
+                  text
+                  @click="handlShowDeleteKeys(state.selected)">
+                  {{ t('删除Key') }}
+                </AuthButton>
               </BkDropdownItem>
-              <BkDropdownItem @click="handleShowBackup(state.selected)">
-                {{ t('备份') }}
+              <BkDropdownItem>
+                <AuthButton
+                  action-id="redis_backup"
+                  text
+                  @click="handleShowBackup(state.selected)">
+                  {{ t('备份') }}
+                </AuthButton>
               </BkDropdownItem>
-              <BkDropdownItem @click="handleShowPurge(state.selected)">
-                {{ t('清档') }}
+              <BkDropdownItem>
+                <AuthButton
+                  action-id="redis_purge"
+                  text
+                  @click="handleShowPurge(state.selected)">
+                  {{ t('清档') }}
+                </AuthButton>
               </BkDropdownItem>
             </BkDropdownMenu>
           </template>
@@ -322,12 +344,15 @@
             <span
               class="text-overflow"
               v-overflow-tips>
-              <bk-button
+              <auth-button
+                action-id="redis_view"
                 text
                 theme="primary"
+                permission={data.permission.redis_view}
+                resource={data.id}
                 onClick={() => handleToDetails(data.id)}>
                 {data.masterDomainDisplayName || '--'}
-              </bk-button>
+              </auth-button>
             </span>
             {isOnlineCLB && <MiniTag content="CLB" extCls='redis-manage-clb-minitag' />}
             {userProfileStore.isManager && <db-icon
@@ -516,13 +541,16 @@
               disabledList={disabledOperations}>
               {{
                 default: ({ disabled }: { disabled: boolean }) => (
-                  <bk-button
+                  <auth-button
+                    action-id="redis_backup"
                     disabled={disabled || data.phase === 'offline'}
                     text
                     theme={theme}
+                    permission={data.permission.redis_backup}
+                    resource={data.id}
                     onClick={() => handleShowBackup([data])}>
                     { t('备份') }
-                  </bk-button>
+                  </auth-button>
                 ),
               }}
             </OperationStatusTips>,
@@ -532,13 +560,16 @@
               disabledList={disabledOperations}>
               {{
                 default: ({ disabled }: { disabled: boolean }) => (
-                  <bk-button
+                  <auth-button
+                    action-id="redis_purge"
                     disabled={disabled || data.phase === 'offline'}
                     text
                     theme={theme}
+                    permission={data.permission.redis_purge}
+                    resource={data.id}
                     onClick={() => handleShowPurge([data])}>
                     { t('清档') }
-                  </bk-button>
+                  </auth-button>
                 ),
               }}
             </OperationStatusTips>,
@@ -546,20 +577,26 @@
           if (data.bk_cloud_id > 0) {
             return [
               <span v-bk-tooltips={t('暂不支持跨管控区域提取Key')}>
-                <bk-button
+                <auth-button
+                  action-id="redis_keys_extract"
                   text
                   theme={theme}
-                  disabled>
+                  disabled
+                  permission={data.permission.redis_keys_extract}
+                  resource={data.id}>
                   {t('提取Key')}
-                </bk-button>
+                </auth-button>
               </span>,
               <span v-bk-tooltips={t('暂不支持跨管控区域删除Key')}>
-                <bk-button
+                <auth-button
+                  action-id="redis_keys_delete"
                   text
                   theme={theme}
-                  disabled>
+                  disabled
+                  permission={data.permission.redis_keys_delete}
+                  resource={data.id}>
                   { t('删除Key') }
-                </bk-button>
+                </auth-button>
               </span>,
               ...baseOperations,
             ];
@@ -571,13 +608,16 @@
               disabledList={disabledOperations}>
               {{
                 default: ({ disabled }: { disabled: boolean }) => (
-                  <bk-button
+                  <auth-button
+                    action-id="redis_keys_extract"
                     disabled={disabled || data.phase === 'offline'}
                     text
                     theme={theme}
+                    permission={data.permission.redis_keys_extract}
+                    resource={data.id}
                     onClick={() => handleShowExtract([data])}>
                     {t('提取Key')}
-                  </bk-button>
+                  </auth-button>
                 ),
               }}
             </OperationStatusTips>,
@@ -587,13 +627,16 @@
               disabledList={disabledOperations}>
               {{
                 default: ({ disabled }: { disabled: boolean }) => (
-                  <bk-button
+                  <auth-button
+                    action-id="redis_keys_delete"
                     disabled={disabled || data.phase === 'offline'}
                     text
                     theme={theme}
+                    permission={data.permission.redis_keys_delete}
+                    resource={data.id}
                     onClick={() => handlShowDeleteKeys([data])}>
                     { t('删除Key') }
-                  </bk-button>
+                  </auth-button>
                 ),
               }}
             </OperationStatusTips>,
@@ -609,13 +652,16 @@
                 disabledList={[TicketTypes.REDIS_DESTROY]}>
                 {{
                   default: ({ disabled }: { disabled: boolean }) => (
-                    <bk-button
+                    <auth-button
+                      action-id="redis_view"
+                      permission={data.permission.redis_view}
+                      resource={data.id}
                       style="width: 100%;height: 32px; justify-content: flex-start;"
                       disabled={disabled}
                       text
                       onClick={() => handleShowPassword(data.id)}>
                       { t('获取访问方式') }
-                    </bk-button>
+                    </auth-button>
                   ),
                 }}
               </OperationStatusTips>
@@ -628,13 +674,15 @@
                   disabledList={disabledOperations}>
                   {{
                     default: ({ disabled }: { disabled: boolean }) => (
-                      <bk-button
+                      <auth-button
+                        action-id="redis_plugin_delete_clb"
+                        resource={data.id}
                         style="width: 100%;height: 32px; justify-content: flex-start;"
                         disabled={disabled || data.phase === 'offline'}
                         text
                         onClick={() => handleSwitchCLB(clbSwitchTicketKey, data)}>
                         { isOnlineCLB ? t('禁用CLB') : t('启用CLB') }
-                      </bk-button>
+                      </auth-button>
                     ),
                   }}
                 </OperationStatusTips>
@@ -646,13 +694,15 @@
                   disabledList={disabledOperations}>
                   {{
                     default: ({ disabled }: { disabled: boolean }) => (
-                      <bk-button
+                      <auth-button
+                        action-id="redis_plugin_dns_unbind_clb"
+                        resource={data.id}
                         style="width: 100%;height: 32px; justify-content: flex-start;"
                         disabled={disabled || data.phase === 'offline'}
                         text
                         onClick={() => handleSwitchDNSBindCLB(data)}>
                         { data.dns_to_clb ? t('恢复 DNS 域名指向') : t('DNS 域名指向 CLB') }
-                      </bk-button>
+                      </auth-button>
                     ),
                   }}
                 </OperationStatusTips>
@@ -664,13 +714,15 @@
                   disabledList={disabledOperations}>
                   {{
                     default: ({ disabled }: { disabled: boolean }) => (
-                      <bk-button
+                      <auth-button
+                        action-id="redis_plugin_create_polaris"
+                        resource={data.id}
                         style="width: 100%;height: 32px; justify-content: flex-start;"
                         disabled={disabled || data.phase === 'offline'}
                         text
                         onClick={() => handleSwitchPolaris(polarisSwitchTicketKey, data)}>
                         { isOnlinePolaris ? t('禁用北极星') : t('启用北极星') }
-                      </bk-button>
+                      </auth-button>
                     ),
                   }}
                 </OperationStatusTips>
@@ -686,13 +738,16 @@
                       disabledList={[TicketTypes.REDIS_PROXY_CLOSE]}>
                       {{
                         default: ({ disabled }: { disabled: boolean }) => (
-                          <bk-button
+                          <auth-button
+                            action-id="redis_open_close"
+                            permission={data.permission.redis_open_close}
+                            resource={data.id}
                             style="width: 100%;height: 32px; justify-content: flex-start;"
                             disabled={disabled}
                             text
                             onClick={() => handleSwitchRedis(TicketTypes.REDIS_PROXY_CLOSE, data)}>
                             { t('禁用') }
-                          </bk-button>
+                          </auth-button>
                         ),
                       }}
                     </OperationStatusTips>
@@ -709,13 +764,16 @@
                       disabledList={[TicketTypes.REDIS_DESTROY, TicketTypes.REDIS_PROXY_OPEN]}>
                       {{
                         default: ({ disabled }: { disabled: boolean }) => (
-                          <bk-button
+                          <auth-button
+                            action-id="redis_open_close"
+                            permission={data.permission.redis_open_close}
+                            resource={data.id}
                             style="width: 100%;height: 32px; justify-content: flex-start;"
                             disabled={disabled}
                             text
                             onClick={() => handleSwitchRedis(TicketTypes.REDIS_PROXY_OPEN, data)}>
                             { t('启用') }
-                          </bk-button>
+                          </auth-button>
                         ),
                       }}
                     </OperationStatusTips>
@@ -727,13 +785,16 @@
                       disabledList={[TicketTypes.REDIS_DESTROY, TicketTypes.REDIS_PROXY_OPEN]}>
                       {{
                         default: ({ disabled }: { disabled: boolean }) => (
-                          <bk-button
+                          <auth-button
+                            action-id="redis_destroy"
+                            permission={data.permission.redis_destroy}
+                            resource={data.id}
                             style="width: 100%;height: 32px; justify-content: flex-start;"
                             disabled={disabled}
                             text
                             onClick={() => handleDeleteCluster(data)}>
                             { t('删除') }
-                          </bk-button>
+                          </auth-button>
                         ),
                       }}
                     </OperationStatusTips>

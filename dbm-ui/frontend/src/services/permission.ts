@@ -154,7 +154,16 @@ export const verifyPasswordStrength = (params: {
 /**
  * 查询账号规则列表
  */
-export const getPermissionRules = (params: PermissionRulesParams) => http.get<PermissionRulesResult>(`/apis/mysql/bizs/${params.bk_biz_id}/permission/account/list_account_rules/`, params);
+export const getPermissionRules = (params: PermissionRulesParams) => http
+  .get<PermissionRulesResult>(`/apis/mysql/bizs/${params.bk_biz_id}/permission/account/list_account_rules/`, params)
+  .then(data => ({
+    ...data,
+    results: data.results.map(item => ({
+      ...item,
+      permission: data.permission,
+    })),
+  }))
+;
 
 /**
  * 创建账户

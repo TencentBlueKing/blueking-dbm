@@ -36,7 +36,7 @@ export const getPassword = function (params: Record<string, any> & {
     .then(data => new KafkaPasswordModel(data));
 };
 
-// 获取 ES 集群节点列表信息
+// 获取 Kafka 集群节点列表信息
 export const getListNodes = function (params: Record<string, any> & {
   bk_biz_id: number,
   cluster_id: number
@@ -44,7 +44,10 @@ export const getListNodes = function (params: Record<string, any> & {
   return http.get<ListBase<Array<KafkaNodeModel>>>(`/apis/bigdata/bizs/${params.bk_biz_id}/kafka/kafka_resources/${params.cluster_id}/list_nodes/`, params)
     .then(data => ({
       ...data,
-      results: data.results.map((item: KafkaNodeModel) => new KafkaNodeModel(item)),
+      results: data.results.map((item: KafkaNodeModel) => new KafkaNodeModel({
+        ...item,
+        permission: data.permission,
+      })),
     }));
 };
 

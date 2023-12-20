@@ -117,6 +117,7 @@ export default class Redis {
     ticket_type: string;
     title: string;
   }[];
+  permission: Record<'redis_destroy' | 'redis_keys_delete' | 'redis_keys_extract' | 'redis_open_close' | 'redis_purge' | 'redis_backup' | 'redis_view', boolean>;
   phase: string;
   proxy: Node[];
   region: string;
@@ -155,6 +156,7 @@ export default class Redis {
     this.bk_cloud_name = payload.bk_cloud_name;
     this.master_domain = payload.master_domain;
     this.cluster_entry = payload.cluster_entry;
+    this.permission = payload.permission || {};
     this.proxy = payload.proxy;
     this.redis_master = payload.redis_master;
     this.redis_slave = payload.redis_slave;

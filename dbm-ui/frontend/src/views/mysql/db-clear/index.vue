@@ -57,13 +57,14 @@
       </span>
     </BkCheckbox>
     <template #action>
-      <BkButton
+      <AuthButton
+        action-id="mysql_ha_truncate_date"
         class="mr-8 w-88"
         :loading="isSubmitting"
         theme="primary"
         @click="handleSubmit">
         {{ $t('提交') }}
-      </BkButton>
+      </AuthButton>
       <BkButton
         class="w-88"
         :disabled="isSubmitting"

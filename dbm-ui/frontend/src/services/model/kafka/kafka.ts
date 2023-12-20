@@ -101,6 +101,7 @@ export default class Kafka {
     ticket_type: string,
     title: string,
   }>;
+  permission: Record<'kafka_view' | 'kafka_enable_disable' | 'kafka_destroy' | 'kafka_scale_up' | 'kafka_shrink' | 'kafka_replace' | 'kafka_reboot', boolean>;
   phase: string;
   region: string;
   status: string;
@@ -126,6 +127,7 @@ export default class Kafka {
     this.domain = payload.domain;
     this.id = payload.id;
     this.major_version = payload.major_version;
+    this.permission = payload.permission;
     this.phase = payload.phase;
     this.region = payload.region;
     this.status = payload.status;

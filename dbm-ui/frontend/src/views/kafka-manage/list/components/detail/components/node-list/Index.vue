@@ -15,22 +15,28 @@
   <div class="kafka-detail-node-list">
     <div class="action-box">
       <OperationStatusTips :data="operationData">
-        <BkButton
+        <AuthButton
+          action-id="kafka_scale_up"
           :disabled="operationData?.operationDisabled"
+          :permission="operationData?.permission.kafka_scale_up"
+          :resource="operationData?.id"
           theme="primary"
           @click="handleShowExpansion">
           {{ $t('扩容') }}
-        </BkButton>
+        </AuthButton>
       </OperationStatusTips>
       <OperationStatusTips :data="operationData">
         <span
           v-bk-tooltips="batchShrinkDisabledInfo.tooltips">
-          <BkButton
+          <AuthButton
+            action-id="kafka_shrink"
             class="ml8"
             :disabled="(batchShrinkDisabledInfo.disabled || operationData?.operationDisabled)"
+            :permission="operationData?.permission.kafka_shrink"
+            :resource="operationData?.id"
             @click="handleShowShrink">
             {{ $t('缩容') }}
-          </BkButton>
+          </AuthButton>
         </span>
       </OperationStatusTips>
       <OperationStatusTips :data="operationData">
@@ -39,12 +45,15 @@
             content: $t('请先选中节点'),
             disabled: !isBatchReplaceDisabeld
           }">
-          <BkButton
+          <AuthButton
+            action-id="kafka_replace"
             class="ml8"
             :disabled="(isBatchReplaceDisabeld || operationData?.operationDisabled)"
+            :permission="operationData?.permission.kafka_replace"
+            :resource="operationData?.id"
             @click="handleShowReplace">
             {{ $t('替换') }}
-          </BkButton>
+          </AuthButton>
         </span>
       </OperationStatusTips>
       <BkDropdown
@@ -378,34 +387,43 @@
             <span
               v-bk-tooltips={shrinkDisableTooltips.tooltips}
               class="ml8">
-              <bk-button
+              <auth-button
                 theme="primary"
                 text
+                action-id="kafka_shrink"
+                permission={data.permission.kafka_shrink}
+                resource={data.bk_host_id}
                 disabled={shrinkDisableTooltips.disabled  || operationData.value?.operationDisabled}
                 onClick={() => handleShrinkOne(data)}>
                 { t('缩容') }
-              </bk-button>
+              </auth-button>
             </span>
           </OperationStatusTips>
           <OperationStatusTips data={operationData.value}>
-            <bk-button
+            <auth-button
               class="ml8"
               theme="primary"
               text
+              action-id="kafka_replace"
+              permission={data.permission.kafka_replace}
+              resource={data.bk_host_id}
               disabled={operationData.value?.operationDisabled}
               onClick={() => handleReplaceOne(data)}>
               { t('替换') }
-            </bk-button>
+            </auth-button>
           </OperationStatusTips>
           <OperationStatusTips data={operationData.value}>
-            <bk-button
+            <auth-button
               class="ml8"
               theme="primary"
               text
+              action-id="kafka_reboot"
+              permission={data.permission.kafka_reboot}
+              resource={data.bk_host_id}
               disabled={operationData.value?.operationDisabled}
               onClick={() => handleShowDetail(data)}>
               { t('重启实例') }
-            </bk-button>
+            </auth-button>
           </OperationStatusTips>
         </>
         );

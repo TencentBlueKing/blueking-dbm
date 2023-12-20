@@ -27,12 +27,13 @@
             content: t('请选择集群')
           }"
           class="inline-block">
-          <BkButton
+          <AuthButton
+            action-id="mysql_authorize"
             class="ml-8"
             :disabled="!hasSelected"
             @click="handleShowAuthorize(state.selected)">
             {{ t('批量授权') }}
-          </BkButton>
+          </AuthButton>
         </span>
         <span
           v-bk-tooltips="{
@@ -40,12 +41,13 @@
             content: t('请先创建实例')
           }"
           class="inline-block">
-          <BkButton
+          <AuthButton
+            action-id="mysql_authorize"
             class="ml-8"
             :disabled="!hasData"
             @click="handleShowExcelAuthorize">
             {{ t('导入授权') }}
-          </BkButton>
+          </AuthButton>
         </span>
       </div>
       <DbSearchSelect
@@ -253,12 +255,15 @@
       render: ({ cell, data }: ColumnData) => (
         <div class="domain">
           <span class="text-overflow" v-overflow-tips>
-            <bk-button
+            <auth-button
               text
               theme="primary"
+              action-id="mysql_view"
+              permission={data.permission.mysql_view}
+              resource={data.id}
               onClick={() => handleToDetails(data.id)}>
               {data.masterDomainDisplayName || '--'}
-            </bk-button>
+            </auth-button>
           </span>
           <db-icon
             v-bk-tooltips={t('复制主访问入口')}
@@ -377,38 +382,50 @@
       fixed: isStretchLayoutOpen.value ? false : 'right',
       render: ({ data }: ColumnData) => (
         <>
-          <bk-button
+          <auth-button
             text
             theme="primary"
             class="mr-8"
-            onClick={handleShowAuthorize.bind(null, [data])}>
+            actionId="mysql_authorize"
+            permission={data.permission.mysql_authorize}
+            resource={data.id}
+            onClick={() => handleShowAuthorize([data])}>
             { t('授权') }
-          </bk-button>
+          </auth-button>
           {
             data.isOnline ? (
-              <bk-button
+              <auth-button
                 text
                 theme="primary"
                 class="mr-8"
+                action-id="mysql_enable_disable"
+                permission={data.permission.mysql_enable_disable}
+                resource={data.id}
                 onClick={() => handleSwitchCluster(TicketTypes.MYSQL_SINGLE_DISABLE, data)}>
                 { t('禁用') }
-              </bk-button>
+              </auth-button>
             ) : (
               <>
-                <bk-button
+                <auth-button
                   text
                   theme="primary"
                   class="mr-8"
+                  action-id="mysql_enable_disable"
+                  permission={data.permission.mysql_enable_disable}
+                  resource={data.id}
                   onClick={() => handleSwitchCluster(TicketTypes.MYSQL_SINGLE_ENABLE, data)}>
                   { t('启用') }
-                </bk-button>
-                <bk-button
+                </auth-button>
+                <auth-button
                   text
                   theme="primary"
                   class="mr-8"
+                  action-id="mysql_destroy"
+                  permission={data.permission.mysql_destroy}
+                  resource={data.id}
                   onClick={() => handleDeleteCluster(data)}>
                   { t('删除') }
-                </bk-button>
+                </auth-button>
               </>
             )
           }

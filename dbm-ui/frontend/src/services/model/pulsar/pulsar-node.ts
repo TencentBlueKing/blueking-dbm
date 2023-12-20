@@ -31,6 +31,7 @@ export default class PulsarNode {
   node_count: number;
   role: string;
   status: number;
+  permission: Record<'pulsar_view' | 'pulsar_enable_disable' | 'pulsar_destroy' | 'pulsar_scale_up' | 'pulsar_shrink' | 'pulsar_replace' | 'pulsar_reboot', boolean>;
 
   constructor(payload = {} as PulsarNode) {
     this.bk_cloud_id = payload.bk_cloud_id;
@@ -46,6 +47,7 @@ export default class PulsarNode {
     this.node_count = payload.node_count || 0;
     this.role = payload.role;
     this.status = payload.status || 0;
+    this.permission = payload.permission;
   }
 
   get isBroker() {

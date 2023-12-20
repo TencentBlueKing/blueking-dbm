@@ -14,12 +14,13 @@
 <template>
   <div class="kafka-list-page">
     <div class="header-action">
-      <BkButton
+      <AuthButton
+        action-id="kafka_apply"
         class="mb16"
         theme="primary"
         @click="handleGoApply">
         {{ t('申请实例') }}
-      </BkButton>
+      </AuthButton>
       <DbSearchSelect
         v-model="searchValues"
         class="mb16"
@@ -225,12 +226,15 @@
           <span
             class="text-overflow"
             v-overflow-tips>
-            <bk-button
-              theme="primary"
+            <auth-button
               text
+              theme="primary"
+              action-id="kafka_view"
+              permission={data.permission.kafka_view}
+              resource={data.id}
               onClick={() => handleToDetails(data.id)}>
               {data.domainDisplayName || '--'}
-            </bk-button>
+            </auth-button>
           </span>
           {userProfileStore.isManager && <db-icon
             type="edit"
@@ -335,32 +339,41 @@
       render: ({ data }: {data: KafkaModel}) => {
         const renderAction = (theme = 'primary') => {
           const baseAction = [
-            <bk-button
+          <auth-button
               text
-              theme={theme}
+              theme="primary"
+              action-id="kafka_view"
+              permission={data.permission.kafka_view}
+              resource={data.id}
               class="mr8"
               onClick={() => handleShowPassword(data)}>
               { t('获取访问方式') }
-            </bk-button>,
+            </auth-button>,
           ];
           if (!checkClusterOnline(data)) {
             return [
-              <bk-button
+            <auth-button
                 text
-                theme={theme}
+                theme="primary"
+                action-id="kafka_enable_disable"
+                permission={data.permission.kafka_enable_disable}
+                resource={data.id}
                 class="mr8"
                 loading={tableDataActionLoadingMap.value[data.id]}
                 onClick={() => handleEnable(data)}>
                 { t('启用') }
-              </bk-button>,
-              <bk-button
+              </auth-button>,
+              <auth-button
                 text
-                theme={theme}
+                theme="primary"
+                action-id="kafka_destroy"
+                permission={data.permission.kafka_destroy}
+                resource={data.id}
                 class="mr8"
                 loading={tableDataActionLoadingMap.value[data.id]}
                 onClick={() => handleRemove(data)}>
                 { t('删除') }
-              </bk-button>,
+              </auth-button>,
               ...baseAction,
             ];
           }
@@ -368,36 +381,45 @@
             <OperationStatusTips
               data={data}
               class="mr8">
-              <bk-button
+              <auth-button
                 text
-                theme={theme}
+                theme="primary"
+                action-id="kafka_scale_up"
+                permission={data.permission.kafka_scale_up}
+                resource={data.id}
                 disabled={data.operationDisabled}
                 onClick={() => handleShowExpansion(data)}>
                 { t('扩容') }
-              </bk-button>
+              </auth-button>
             </OperationStatusTips>,
             <OperationStatusTips
               data={data}
               class="mr8">
-              <bk-button
+              <auth-button
                 text
-                theme={theme}
+                theme="primary"
+                action-id="kafka_shrink"
+                permission={data.permission.kafka_shrink}
+                resource={data.id}
                 disabled={data.operationDisabled}
                 onClick={() => handleShowShrink(data)}>
                 { t('缩容') }
-              </bk-button>
+              </auth-button>
             </OperationStatusTips>,
             <OperationStatusTips
               data={data}
               class="mr8">
-              <bk-button
+              <auth-button
                 text
-                theme={theme}
+                theme="primary"
+                action-id="kafka_enable_disable"
+                permission={data.permission.kafka_enable_disable}
+                resource={data.id}
                 disabled={data.operationDisabled}
                 loading={tableDataActionLoadingMap.value[data.id]}
                 onClick={() => handlDisabled(data)}>
                 { t('禁用') }
-              </bk-button>
+              </auth-button>
             </OperationStatusTips>,
             <a
               class="mr8"

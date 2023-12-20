@@ -136,24 +136,24 @@ export default () => {
     ],
   });
 
-  let lastRouterHrefCache = '/';
-  const routerPush = appRouter.push;
-  const routerReplace = appRouter.replace;
+  // let lastRouterHrefCache = '/';
+  // const routerPush = appRouter.push;
+  // const routerReplace = appRouter.replace;
 
-  appRouter.push = (params) => {
-    lastRouterHrefCache = appRouter.resolve(params).href;
-    return routerPush(params);
-  };
-  appRouter.replace = (params) => {
-    lastRouterHrefCache = appRouter.resolve(params).href;
-    return routerReplace(params);
-  };
+  // appRouter.push = (params) => {
+  //   lastRouterHrefCache = appRouter.resolve(params).href;
+  //   return routerPush(params);
+  // };
+  // appRouter.replace = (params) => {
+  //   lastRouterHrefCache = appRouter.resolve(params).href;
+  //   return routerReplace(params);
+  // };
 
-  appRouter.onError((error: any) => {
-    if (/Failed to fetch dynamically imported module/.test(error.message)) {
-      window.location.href = lastRouterHrefCache;
-    }
-  });
+  // appRouter.onError((error: any) => {
+  //   if (/Failed to fetch dynamically imported module/.test(error.message)) {
+  //     window.location.href = lastRouterHrefCache;
+  //   }
+  // });
 
   return appRouter;
 };

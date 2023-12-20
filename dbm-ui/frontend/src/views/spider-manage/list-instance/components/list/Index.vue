@@ -14,12 +14,13 @@
 <template>
   <div class="spider-list-instance-page">
     <div class="operation-box">
-      <BkButton
+      <AuthButton
+        action-id="tendbcluster_apply"
         class="mb-16"
         theme="primary"
         @click="handleApply">
         {{ $t('实例申请') }}
-      </BkButton>
+      </AuthButton>
       <DbSearchSelect
         v-model="filterData"
         class="mb-16"
@@ -223,12 +224,13 @@
         fixed: 'right',
         width: 140,
         render: ({ data }: { data: TendbInstanceModel }) => (
-          <bk-button
+          <AuthButton
+            action-id="tendbcluster_view"
             theme="primary"
             text
             onClick={() => handleToDetails(data)}>
               { t('查看详情') }
-            </bk-button>
+            </AuthButton>
         ),
       },
     ];

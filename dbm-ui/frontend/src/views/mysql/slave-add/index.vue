@@ -58,13 +58,14 @@
       </BkFormItem>
     </BkForm>
     <template #action>
-      <BkButton
+      <AuthButton
+        action-id="mysql_add_slave"
         class="mr-8 w-88"
         :loading="isSubmitting"
         theme="primary"
         @click="handleSubmit">
         {{ $t('提交') }}
-      </BkButton>
+      </AuthButton>
       <BkButton
         class="w-88"
         :disabled="isSubmitting"

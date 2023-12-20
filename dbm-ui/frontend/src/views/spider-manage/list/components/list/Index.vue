@@ -14,23 +14,25 @@
   <div class="spider-manage-list-page">
     <div class="operations">
       <div class="mb-16">
-        <BkButton
+        <AuthButton
+          action-id="tendbcluster_apply"
           theme="primary"
           @click="handleApply">
           {{ t('实例申请') }}
-        </BkButton>
+        </AuthButton>
         <span
           v-bk-tooltips="{
             disabled: hasSelected,
             content: t('请选择集群')
           }"
           class="inline-block">
-          <BkButton
+          <AuthButton
+            action-id="tendbcluster_authorize_rules"
             class="ml-8"
             :disabled="!hasSelected"
             @click="handleShowAuthorize">
             {{ t('批量授权') }}
-          </BkButton>
+          </AuthButton>
         </span>
         <span
           v-bk-tooltips="{
@@ -38,12 +40,13 @@
             content: t('请先创建实例')
           }"
           class="inline-block">
-          <BkButton
+          <AuthButton
+            action-id="tendb_excel_authorize_rules"
             class="ml-8"
             :disabled="!hasData"
             @click="handleShowExcelAuthorize">
             {{ t('导入授权') }}
-          </BkButton>
+          </AuthButton>
         </span>
       </div>
       <DbSearchSelect
@@ -274,12 +277,15 @@
           <span
             class="text-overflow"
             v-overflow-tips>
-            <bk-button
+            <auth-button
               text
               theme="primary"
+              action-id="tendbcluster_view"
+              permission={data.permission.tendbcluster_view}
+              resource={data.id}
               onClick={() => handleToDetails(data.id)}>
               {data.masterDomainDisplayName || '--'}
-            </bk-button>
+            </auth-button>
           </span>
           {
             data.master_domain && (
@@ -557,73 +563,87 @@
             <OperationStatusTips
               data={data}
               class="mr8">
-              <bk-button
+              <auth-button
                 text
                 theme={theme}
+                action-id="tendbcluster_node_rebalance"
                 disabled={data.operationDisabled}
                 class="mr-8"
                 onClick={() => handleShowCapacityChange(data)}>
                 { t('集群容量变更') }
-              </bk-button>
+              </auth-button>
             </OperationStatusTips>,
           ];
           if (!data.isOnline) {
             operations.push(...[
-              <bk-button
+              <auth-button
                 text
                 theme={theme}
+                action-id="tendbcluster_enable_disable"
+                permission={data.permission.tendbcluster_enable_disable}
+                resource={data.id}
                 class="mr-8"
                 onClick={() => handleChangeClusterOnline(TicketTypes.TENDBCLUSTER_ENABLE, data)}>
                 { t('启用') }
-              </bk-button>,
-              <bk-button
+              </auth-button>,
+              <auth-button
                 text
                 theme={theme}
+                action-id="tendbcluster_destroy"
+                permission={data.permission.tendbcluster_destroy}
+                resource={data.id}
                 class="mr-8"
                 onClick={() => handleDeleteCluster(data)}>
                 { t('删除') }
-              </bk-button>,
+              </auth-button>,
             ]);
           }
           return operations;
         };
         const getDropdownOperations = () => {
           const operations = [
-            <bk-button
+            <auth-button
               text
               class="mr-8"
+              action-id="tendbcluster_spider_add_nodes"
               onClick={() => handleShowScaleUp(data)}>
               { t('扩容接入层') }
-            </bk-button>,
-            <bk-button
+            </auth-button>,
+            <auth-button
               text
               class="mr-8"
+              action-id="tendbcluster_spider_reduce_nodes"
               onClick={() => handleShowShrink(data)}>
               { t('缩容接入层') }
-            </bk-button>,
+            </auth-button>,
           ];
           if (data.spider_mnt.length > 0) {
-            operations.push(<bk-button
+            operations.push(<auth-button
             text
             class="mr-8"
+            action-id="tendbcluster_spider_mnt_destroy"
             onClick={() => handleRemoveMNT(data)}>
               { t('下架运维节点') }
-            </bk-button>);
+            </auth-button>);
           }
           if (data.spider_slave.length > 0) {
-            operations.push(<bk-button
+            operations.push(<auth-button
               text
               class="mr-8"
+              action-id="tendb_spider_slave_destroy"
               onClick={() => handleDestroySlave(data)}>
               { t('下架只读集群') }
-            </bk-button>);
+            </auth-button>);
           }
-          operations.push(<bk-button
+          operations.push(<auth-button
             text
             class="mr-8"
+            action-id="tendbcluster_enable_disable"
+            permission={data.permission.tendbcluster_enable_disable}
+            resource={data.id}
             onClick={() => handleChangeClusterOnline(TicketTypes.TENDBCLUSTER_DISABLE, data)}>
             { t('禁用') }
-          </bk-button>);
+          </auth-button>);
 
           return data.isOnline ? operations : [];
         };
