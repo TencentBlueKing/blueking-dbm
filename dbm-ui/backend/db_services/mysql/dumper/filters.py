@@ -43,8 +43,8 @@ class DumperInstanceListFilter(filters.FilterSet):
     source_cluster = filters.CharFilter(field_name="source_cluster", method="filter_source_cluster", label=_("源集群"))
     protocol_type = filters.CharFilter(field_name="type", method="filter_protocol_type", label=_("接收端类型"))
     target_address = filters.CharFilter(field_name="target_address", method="filter_target_address", label=_("接收端地址"))
-    start_time = filters.DateTimeFilter(field_name="create_at", lookup_expr="lte")
-    end_time = filters.DateTimeFilter(field_name="create_at", lookup_expr="gte")
+    start_time = filters.DateTimeFilter(field_name="create_at", lookup_expr="gte")
+    end_time = filters.DateTimeFilter(field_name="create_at", lookup_expr="lte")
 
     def filter_config_name(self, queryset, name, value):
         bk_biz_id = self.request.parser_context["kwargs"]["bk_biz_id"]
