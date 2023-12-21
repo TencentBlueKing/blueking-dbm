@@ -15,6 +15,7 @@ from rest_framework import serializers
 from backend.flow.engine.controller.mysql import MySQLController
 from backend.ticket import builders
 from backend.ticket.builders.common.constants import MySQLDataRepairTriggerMode
+from backend.ticket.builders.common.field import DBTimezoneField
 from backend.ticket.builders.mysql.base import BaseMySQLTicketFlowBuilder, MySQLBaseOperateDetailSerializer
 from backend.ticket.constants import TicketType
 
@@ -29,8 +30,8 @@ class MySQLDataRepairDetailSerializer(MySQLBaseOperateDetailSerializer):
     checksum_table = serializers.CharField(help_text=_("校验单据结果表名"))
     is_sync_non_innodb = serializers.BooleanField(help_text=_("非innodb表是否修复"), required=False, default=False)
     is_ticket_consistent = serializers.BooleanField(help_text=_("校验结果是否一致"), required=False, default=False)
-    start_time = serializers.CharField(help_text=_("开始时间"), required=False, default="")
-    end_time = serializers.CharField(help_text=_("结束时间"), required=False, default="")
+    start_time = DBTimezoneField(help_text=_("开始时间"), required=False, default="")
+    end_time = DBTimezoneField(help_text=_("结束时间"), required=False, default="")
     trigger_type = serializers.ChoiceField(help_text=_("数据修复触发类型"), choices=MySQLDataRepairTriggerMode.get_choices())
 
 

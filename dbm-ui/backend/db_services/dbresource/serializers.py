@@ -26,6 +26,7 @@ from backend.db_services.dbresource.mock import (
     SPEC_DATA,
 )
 from backend.db_services.ipchooser.serializers.base import QueryHostsBaseSer
+from backend.ticket.builders.common.field import DBTimezoneField
 from backend.ticket.constants import TicketStatus
 
 
@@ -200,8 +201,8 @@ class QueryOperationListSerializer(serializers.Serializer):
     update_time = serializers.BooleanField(help_text=_("时间排序模式"), required=False, default=False)
 
     operator = serializers.CharField(help_text=_("操作者"), required=False)
-    begin_time = serializers.CharField(help_text=_("操作开始时间"), required=False)
-    end_time = serializers.CharField(help_text=_("操作结束时间"), required=False)
+    begin_time = DBTimezoneField(help_text=_("操作开始时间"), required=False)
+    end_time = DBTimezoneField(help_text=_("操作结束时间"), required=False)
     status = serializers.ChoiceField(help_text=_("单据状态"), choices=TicketStatus.get_choices(), required=False)
 
     limit = serializers.IntegerField(help_text=_("分页大小"), required=False, default=10)

@@ -16,6 +16,7 @@ from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Cluster
 from backend.ticket.builders.mysql.mysql_partition import PartitionObjectSerializer
 
+from ...ticket.builders.common.field import DBTimezoneField
 from ...ticket.builders.mysql.base import DBTableField
 from . import mock
 
@@ -105,8 +106,8 @@ class PartitionEnableSerializer(PartitionDisableSerializer):
 class PartitionLogSerializer(serializers.Serializer):
     cluster_type = serializers.ChoiceField(help_text=_("集群类型"), choices=ClusterType.get_choices())
     config_id = serializers.IntegerField(help_text=_("分区策略ID"))
-    start_time = serializers.CharField(help_text=_("开始时间"), required=False)
-    end_time = serializers.CharField(help_text=_("结束时间"), required=False)
+    start_time = DBTimezoneField(help_text=_("开始时间"), required=False)
+    end_time = DBTimezoneField(help_text=_("结束时间"), required=False)
 
     limit = serializers.IntegerField(required=False, default=10)
     offset = serializers.IntegerField(required=False, default=0)

@@ -23,6 +23,7 @@ from backend.configuration.models.ip_whitelist import IPWhitelist
 from backend.configuration.models.system import BizSettings, SystemSettings
 from backend.db_meta.enums import ClusterType
 from backend.db_services.mysql.permission.constants import AccountType
+from backend.ticket.builders.common.field import DBTimezoneField
 
 
 class SystemSettingsSerializer(serializers.ModelSerializer):
@@ -92,8 +93,8 @@ class GetMySQLAdminPasswordSerializer(serializers.Serializer):
     limit = serializers.IntegerField(help_text=_("分页限制"), required=False, default=10)
     offset = serializers.IntegerField(help_text=_("分页起始"), required=False, default=0)
 
-    begin_time = serializers.CharField(help_text=_("开始时间"), required=False)
-    end_time = serializers.CharField(help_text=_("结束时间"), required=False)
+    begin_time = DBTimezoneField(help_text=_("开始时间"), required=False)
+    end_time = DBTimezoneField(help_text=_("结束时间"), required=False)
     instances = serializers.CharField(help_text=_("过滤的实例列表(通过,分割，实例格式为--ip:port)"), required=False)
 
 
