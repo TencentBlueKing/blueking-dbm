@@ -33,8 +33,8 @@ type GetOperationInfoParam struct {
 	TaskIds       []string `json:"task_ids"`
 	IpList        []string `json:"ip_list"`
 	Operator      string   `json:"operator"`
-	BeginTime     string   `json:"begin_time"  binding:"omitempty,datetime=2006-01-02 15:04:05" `
-	EndTime       string   `json:"end_time"  binding:"omitempty,datetime=2006-01-02 15:04:05"`
+	BeginTime     string   `json:"begin_time"  binding:"omitempty,datetime=2006-01-02T15:04:05Z07:00"`
+	EndTime       string   `json:"end_time"  binding:"omitempty,datetime=2006-01-02T15:04:05Z07:00"`
 	Orderby       string   `json:"orderby"`
 	Limit         int      `json:"limit"`
 	Offset        int      `json:"offset"`
