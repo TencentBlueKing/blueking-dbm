@@ -11,9 +11,9 @@ specific language governing permissions and limitations under the License.
 
 from rest_framework.routers import DefaultRouter
 
-from backend.db_services.bigdata.hdfs.views import HDFSClusterViewSet
+from backend.db_services.bigdata.hdfs.views import HDFSClusterViewSetBigdata
 
 router = DefaultRouter(trailing_slash=True)
-router.register(r"hdfs_resources", HDFSClusterViewSet, basename="hdfs_resources")
+router.register(r"hdfs_resources", HDFSClusterViewSetBigdata, basename="hdfs_resources")
 
 urlpatterns = router.urls

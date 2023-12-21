@@ -23,14 +23,13 @@ from backend.components import DBConfigApi, MySQLPrivManagerApi
 from backend.components.dbconfig.constants import FormatType, LevelName
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models.cluster import Cluster
+from backend.db_services.bigdata.resources import constants, yasg_slz
+from backend.db_services.dbbase.resources.constants import ResourceNodeType
+from backend.db_services.dbbase.resources.serializers import ClusterSLZ, SearchResourceTreeSLZ
+from backend.db_services.dbbase.resources.viewsets import ResourceViewSet
+from backend.db_services.dbbase.resources.yasg_slz import ResourceTreeSLZ
 from backend.flow.consts import ConfigTypeEnum, LevelInfoEnum, UserName
 from backend.flow.utils.pulsar.consts import PulsarConfigEnum
-
-from ...dbbase.resources.constants import ResourceNodeType
-from ...dbbase.resources.serializers import ClusterSLZ, SearchResourceTreeSLZ
-from ...dbbase.resources.viewsets import ResourceViewSet as BaseResourceViewSet
-from ...dbbase.resources.yasg_slz import ResourceTreeSLZ
-from . import constants, yasg_slz
 
 
 class ResourceFilterBackend(filters.DjangoFilterBackend):
@@ -78,7 +77,7 @@ class ListResourceViewSet(AuditedModelViewSet):
         return {"bk_biz_id": self.kwargs["bk_biz_id"]}
 
 
-class ResourceViewSet(BaseResourceViewSet):
+class BigdataResourceViewSet(ResourceViewSet):
     def _get_password(cls, cluster, username, port=0):
         """查询密码"""
         query_params = {

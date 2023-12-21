@@ -18,7 +18,7 @@ from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.db_services.bigdata.es import constants
 from backend.db_services.bigdata.es.query import ESListRetrieveResource
 from backend.db_services.bigdata.resources import yasg_slz
-from backend.db_services.bigdata.resources.views import ResourceViewSet
+from backend.db_services.bigdata.resources.views import BigdataResourceViewSet
 from backend.db_services.dbbase.resources import serializers
 
 
@@ -80,7 +80,7 @@ from backend.db_services.dbbase.resources import serializers
         tags=[constants.RESOURCE_TAG],
     ),
 )
-class EsClusterViewSet(ResourceViewSet):
+class EsClusterViewSetBigdata(BigdataResourceViewSet):
     query_class = ESListRetrieveResource
     query_serializer_class = serializers.ListResourceSLZ
 

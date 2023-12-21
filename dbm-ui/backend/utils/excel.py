@@ -94,7 +94,12 @@ class ExcelHandler:
 
     @classmethod
     def serialize(
-        cls, data_dict__list: List[Dict], template: str = None, header: List = None, header_style: List = None
+        cls,
+        data_dict__list: List[Dict],
+        template: str = None,
+        header: List = None,
+        header_style: List = None,
+        match_header: bool = False,
     ) -> Workbook:
         """
         - 将数据字典序列化为excel对象
@@ -102,6 +107,7 @@ class ExcelHandler:
         :param template: excel模板路径(优先以模板的头部样式作为excel的头部)
         :param header: excel数据头
         :param header_style: excel的头部样式(颜色)
+        :param match_header: 数据是否匹配表头，如果为True，则根据 header 严格匹配列名，若不存在，则在该 cell 填充空
         """
 
         wb: Workbook = Workbook()
@@ -123,8 +129,16 @@ class ExcelHandler:
 
         # 数据写入单元格
         for row, data_dict in enumerate(data_dict__list):
-            for col, value in enumerate(list(data_dict.values())):
-                sheet.cell(row + first_data_row, col + 1, value)
+            if match_header:
+                # 如果match_header为True，则根据 header 严格匹配列名，若不存在，则在该 cell 填充空
+                for col, header_name in enumerate(header):
+                    if header_name not in data_dict:
+                        sheet.cell(row + first_data_row, col + 1).value = ""
+                    else:
+                        sheet.cell(row + first_data_row, col + 1, data_dict[header_name])
+            else:
+                for col, value in enumerate(list(data_dict.values())):
+                    sheet.cell(row + first_data_row, col + 1, value)
 
         # 自适应设置行高和列宽
         cls._adapt_sheet_weight_height(sheet=sheet, first_header_row=first_data_row - 1)

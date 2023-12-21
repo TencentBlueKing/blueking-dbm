@@ -25,7 +25,7 @@ from backend.db_services.bigdata.hdfs import constants
 from backend.db_services.bigdata.hdfs.constants import XML_HEADER, XML_LINE_SEPARATOR, XML_TAB_SEPARATOR
 from backend.db_services.bigdata.hdfs.query import HDFSListRetrieveResource
 from backend.db_services.bigdata.resources import yasg_slz
-from backend.db_services.bigdata.resources.views import ResourceViewSet
+from backend.db_services.bigdata.resources.views import BigdataResourceViewSet
 from backend.db_services.dbbase.resources import serializers
 from backend.flow.consts import ConfigTypeEnum, LevelInfoEnum
 
@@ -80,7 +80,7 @@ from backend.flow.consts import ConfigTypeEnum, LevelInfoEnum
         tags=[constants.RESOURCE_TAG],
     ),
 )
-class HDFSClusterViewSet(ResourceViewSet):
+class HDFSClusterViewSetBigdata(BigdataResourceViewSet):
     query_class = HDFSListRetrieveResource
     query_serializer_class = serializers.ListResourceSLZ
 

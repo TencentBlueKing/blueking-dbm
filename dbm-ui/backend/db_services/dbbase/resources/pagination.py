@@ -24,9 +24,9 @@ class ResourceLimitOffsetPagination(AuditedLimitOffsetPagination):
     count = 0
 
     def paginate_list(self, request, bk_biz_id: int, query_method: Callable, query_params: Dict):
-
+        limit_query_param = request.query_params.get(self.limit_query_param)
         # 支持返回全部数据：/list/?limit=-1
-        if request.query_params.get(self.limit_query_param) == "-1":
+        if str(limit_query_param) == "-1":
             self.limit = -1
         else:
             self.limit = self.get_limit(request)

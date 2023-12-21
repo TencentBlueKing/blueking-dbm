@@ -17,7 +17,7 @@ from backend.db_services.bigdata.influxdb import constants
 from backend.db_services.bigdata.influxdb.query import InfluxDBListRetrieveResource
 from backend.db_services.bigdata.influxdb.serializers import ListInfluxDBInstancesSerializer
 from backend.db_services.bigdata.resources import yasg_slz
-from backend.db_services.bigdata.resources.views import ResourceViewSet
+from backend.db_services.bigdata.resources.views import BigdataResourceViewSet
 from backend.db_services.dbbase.resources import serializers
 
 
@@ -54,6 +54,6 @@ from backend.db_services.dbbase.resources import serializers
         tags=[constants.RESOURCE_TAG],
     ),
 )
-class InfluxDBClusterViewSet(ResourceViewSet):
+class InfluxDBClusterViewSetBigdata(BigdataResourceViewSet):
     query_class = InfluxDBListRetrieveResource
     query_serializer_class = serializers.ListResourceSLZ

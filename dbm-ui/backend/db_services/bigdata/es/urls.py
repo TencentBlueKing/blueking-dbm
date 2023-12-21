@@ -11,9 +11,9 @@ specific language governing permissions and limitations under the License.
 
 from rest_framework.routers import DefaultRouter
 
-from backend.db_services.bigdata.es.views import EsClusterViewSet
+from backend.db_services.bigdata.es.views import EsClusterViewSetBigdata
 
 router = DefaultRouter(trailing_slash=True)
-router.register(r"es_resources", EsClusterViewSet, basename="es_resources")
+router.register(r"es_resources", EsClusterViewSetBigdata, basename="es_resources")
 
 urlpatterns = router.urls
