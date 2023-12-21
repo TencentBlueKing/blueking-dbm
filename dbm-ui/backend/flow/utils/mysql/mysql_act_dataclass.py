@@ -341,11 +341,11 @@ class DownloadBackupFileKwargs:
     bk_cloud_id: int
     task_ids: list
     dest_ip: str
-    desc_dir: str
+    dest_dir: str
     reason: str
     login_user: str = BACKUP_DOWNLOAD_USER
     cluster: dict = None
-    login_pass: str = BACKUP_DOWNLOAD_USER_PWD
+    login_passwd: str = BACKUP_DOWNLOAD_USER_PWD
 
 
 #
