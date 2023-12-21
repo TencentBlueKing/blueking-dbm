@@ -213,6 +213,12 @@ func (rn *redisNodeTask) getNodesJoinStr(nodes []*myredis.ClusterNodeData) strin
 
 func (rn *redisNodeTask) getOldNodesJoinStr() string {
 	var dbRows []*ClusterNodesSchema
+	sql := rn.sqdb.ToSQL(func(tx *gorm.DB) *gorm.DB {
+		return tx.Model(&ClusterNodesSchema{}).
+			Where("immute_domain=? and server_ip=? and server_port=?", rn.ImmuteDomain, rn.IP, rn.Port).
+			Find(&[]ClusterNodesSchema{})
+	})
+	mylog.Logger.Debug(fmt.Sprintf("getOldNodesJoinStr sql:%s", sql))
 	rn.Err = rn.sqdb.Where("immute_domain=? and server_ip=? and server_port=?", rn.ImmuteDomain,
 		rn.IP, rn.Port).Find(&dbRows).Error
 	if rn.Err != nil && gorm.ErrRecordNotFound == rn.Err {
@@ -224,8 +230,11 @@ func (rn *redisNodeTask) getOldNodesJoinStr() string {
 		return ""
 	}
 	if len(dbRows) == 0 {
+		mylog.Logger.Debug(fmt.Sprintf("getOldNodesJoinStr not found,immute_domain:%s,ip:%s,port:%d",
+			rn.ImmuteDomain, rn.IP, rn.Port))
 		return ""
 	}
+	mylog.Logger.Debug(fmt.Sprintf("getOldNodesJoinStr found,dbRows[0].NodesData:%s", dbRows[0].NodesData))
 	oldNodes, err := myredis.DecodeClusterNodes(dbRows[0].NodesData)
 	if err != nil {
 		rn.Err = err
@@ -324,8 +333,8 @@ func (rn *redisNodeTask) reportClusterNodes() {
 	reportRow := &clusterNodesReport{
 		ClusterNodesSchema: *rn.lastRow,
 	}
-	reportRow.UpdateAt = rn.lastRow.UpdatedAt.Local().Format(consts.UnixtimeLayout)
-	reportRow.CreateAt = rn.lastRow.CreatedAt.Local().Format(consts.UnixtimeLayout)
+	reportRow.UpdateAt = rn.lastRow.UpdatedAt.Local().Format(time.RFC3339)
+	reportRow.CreateAt = rn.lastRow.CreatedAt.Local().Format(time.RFC3339)
 	tmpBytes, _ := json.Marshal(reportRow)
 	mylog.Logger.Debug(fmt.Sprintf("start reportClusterNodes:%s", string(tmpBytes)))
 	rn.Reporter.AddRecord(string(tmpBytes)+"\n", true)
