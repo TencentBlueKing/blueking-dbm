@@ -211,7 +211,7 @@ func (f *FindLocalBackupParam) Start() error {
 				DataSchemaGrant:      file.DataSchemaGrant,
 				IndexFile:            info,
 			}
-			localBackup.BackupTime = file.BackupConsistentTime.Format("2006-01-02 15:04:05")
+			localBackup.BackupTime = file.BackupConsistentTime.Format(time.RFC3339)
 			if file.BackupId == "" {
 				logger.Warn("backup_id should not be empty: %+v", localBackup)
 			}

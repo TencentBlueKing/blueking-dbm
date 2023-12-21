@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"reflect"
 
+	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components/mysql/common"
@@ -163,14 +164,31 @@ func (c *InstallMysqlRotateBinlogComp) InstallCrontab() (err error) {
 	return err
 }
 
+// RunMigrateOld 迁移老的 rotate_logbin 数据
+func (c *InstallMysqlRotateBinlogComp) RunMigrateOld() (err error) {
+	cmdArgs := []string{"migrate-old", "-c", c.configFile}
+	_, stdErr, err := cmutil.ExecCommand(false, c.installPath, c.binPath, cmdArgs...)
+
+	chownCmd := fmt.Sprintf(`chown -R mysql %s`, c.installPath)
+	_, err = osutil.ExecShellCommand(false, chownCmd)
+
+	if err != nil {
+		logger.Error("migrate-old failed", err.Error())
+		return errors.WithMessagef(err, "run migrate-old failed:%s", stdErr)
+	} else {
+		logger.Info("migrate-old success")
+	}
+	return nil
+}
+
 // Example 样例
 func (c *InstallMysqlRotateBinlogComp) Example() interface{} {
 	ibsExample := `{
-  "enable": true,
-  "ibs_mode": "hdfs",
-  "with_md5": true,
-  "file_tag": "INCREMENT_BACKUP",
-  "tool_path": "backup_client"
+	"enable": true,
+	"ibs_mode": "hdfs",
+	"with_md5": true,
+	"file_tag": "INCREMENT_BACKUP",
+	"tool_path": "backup_client"
 }`
 	return InstallMysqlRotateBinlogComp{
 		GeneralParam: &components.GeneralParam{
