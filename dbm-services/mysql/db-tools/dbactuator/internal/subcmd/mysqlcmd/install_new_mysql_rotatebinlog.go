@@ -79,6 +79,10 @@ func (d *InstallMysqlRotateBinlogAct) Run() (err error) {
 			FunName: "添加系统crontab",
 			Func:    d.Service.InstallCrontab,
 		},
+		{
+			FunName: "迁移旧rotate_logbin",
+			Func:    d.Service.RunMigrateOld,
+		},
 	}
 
 	if err := steps.Run(); err != nil {

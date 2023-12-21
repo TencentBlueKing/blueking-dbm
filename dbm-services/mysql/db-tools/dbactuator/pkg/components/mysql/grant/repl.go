@@ -84,6 +84,7 @@ func (g *GrantReplComp) GrantRepl() (err error) {
 	for _, replHost := range g.Params.ReplHosts {
 		execSQLs = append(
 			execSQLs,
+			fmt.Sprintf("DROP USER IF EXISTS `%s`@`%s`;", repl_user, replHost),
 			fmt.Sprintf(
 				"CREATE USER /*!50706 IF NOT EXISTS */ `%s`@`%s` IDENTIFIED BY '%s';",
 				repl_user, replHost, repl_pwd,

@@ -25,10 +25,12 @@ func (c *MySQLRPCEmbed) MakeConnection(address string, user string, password str
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*time.Duration(timeout))
 	defer cancel()
 
+	tz := "loc=UTC&time_zone=%27%2B00%3A00%27" // +00:00
+	//tz := "loc=Local&time_zone=%27%2B08%3A00%27" // +08:00
 	db, err := sqlx.ConnectContext(
 		ctx,
 		"mysql",
-		fmt.Sprintf(`%s:%s@tcp(%s)/`, user, password, address),
+		fmt.Sprintf(`%s:%s@tcp(%s)/?%s`, user, password, address, tz),
 	)
 
 	if err != nil {
