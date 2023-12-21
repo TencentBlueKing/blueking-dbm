@@ -13,7 +13,7 @@ from dataclasses import dataclass, field
 from typing import Any, Optional
 
 from backend import env
-from backend.env import BACKUP_DOWNLOAD_USER
+from backend.env import BACKUP_DOWNLOAD_USER, BACKUP_DOWNLOAD_USER_PWD
 from backend.flow.consts import DBA_ROOT_USER, DnsOpType, MediumFileTypeEnum
 from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
 
@@ -345,6 +345,7 @@ class DownloadBackupFileKwargs:
     reason: str
     login_user: str = BACKUP_DOWNLOAD_USER
     cluster: dict = None
+    login_pass: str = BACKUP_DOWNLOAD_USER_PWD
 
 
 #
