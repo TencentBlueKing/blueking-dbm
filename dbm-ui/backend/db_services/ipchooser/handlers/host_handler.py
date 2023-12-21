@@ -70,7 +70,7 @@ class HostHandler:
             )
 
         # 获取主机信息
-        resp = CCApi.list_biz_hosts(params)
+        resp = CCApi.list_biz_hosts(params, use_admin=True)
         hosts = resp["info"]
 
         ResourceQueryHelper.fill_agent_status(hosts)
