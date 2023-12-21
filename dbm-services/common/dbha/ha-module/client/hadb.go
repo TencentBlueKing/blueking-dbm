@@ -44,11 +44,11 @@ type HaStatusResponse struct {
 
 // DbStatusRequest request db status
 type DbStatusRequest struct {
-	DBCloudToken string            `json:"db_cloud_token"`
-	BKCloudID    int               `json:"bk_cloud_id"`
-	Name         string            `json:"name"`
-	QueryArgs    *model.HADbStatus `json:"query_args,omitempty"`
-	SetArgs      *model.HADbStatus `json:"set_args,omitempty"`
+	DBCloudToken string             `json:"db_cloud_token"`
+	BKCloudID    int                `json:"bk_cloud_id"`
+	Name         string             `json:"name"`
+	QueryArgs    *model.HAAgentLogs `json:"query_args,omitempty"`
+	SetArgs      *model.HAAgentLogs `json:"set_args,omitempty"`
 }
 
 // DbStatusResponse db status response
@@ -74,11 +74,11 @@ type SwitchQueueResponse struct {
 
 // HaLogsRequest request ha_logs table
 type HaLogsRequest struct {
-	DBCloudToken string        `json:"db_cloud_token"`
-	BKCloudID    int           `json:"bk_cloud_id"`
-	Name         string        `json:"name"`
-	QueryArgs    *model.HaLogs `json:"query_args,omitempty"`
-	SetArgs      *model.HaLogs `json:"set_args,omitempty"`
+	DBCloudToken string          `json:"db_cloud_token"`
+	BKCloudID    int             `json:"bk_cloud_id"`
+	Name         string          `json:"name"`
+	QueryArgs    *model.HaGMLogs `json:"query_args,omitempty"`
+	SetArgs      *model.HaGMLogs `json:"set_args,omitempty"`
 }
 
 // HaLogsResponse response for ha_logs
@@ -154,9 +154,7 @@ func (c *HaDBClient) AgentGetGMInfo() ([]GMInfo, error) {
 }
 
 // ReportDBStatus report detected instance's status
-func (c *HaDBClient) ReportDBStatus(
-	agentIp string, ip string, port int, dbType string, status string,
-) error {
+func (c *HaDBClient) ReportDBStatus(app, agentIp, ip string, port int, dbType, status string) error {
 	var result DbStatusResponse
 	currentTime := time.Now()
 
@@ -164,12 +162,13 @@ func (c *HaDBClient) ReportDBStatus(
 		DBCloudToken: c.Conf.BKConf.BkToken,
 		BKCloudID:    c.CloudId,
 		Name:         constvar.UpdateInstanceStatus,
-		QueryArgs: &model.HADbStatus{
+		QueryArgs: &model.HAAgentLogs{
 			AgentIP: agentIp,
 			IP:      ip,
 			Port:    port,
 		},
-		SetArgs: &model.HADbStatus{
+		SetArgs: &model.HAAgentLogs{
+			App:      app,
 			DbType:   dbType,
 			Status:   status,
 			CloudID:  c.CloudId,
@@ -202,7 +201,7 @@ func (c *HaDBClient) ReportDBStatus(
 		DBCloudToken: c.Conf.BKConf.BkToken,
 		BKCloudID:    c.CloudId,
 		Name:         constvar.InsertInstanceStatus,
-		SetArgs: &model.HADbStatus{
+		SetArgs: &model.HAAgentLogs{
 			AgentIP:  agentIp,
 			IP:       ip,
 			Port:     port,
@@ -232,7 +231,7 @@ func (c *HaDBClient) ReportDBStatus(
 }
 
 // ReportHaLog report ha logs
-func (c *HaDBClient) ReportHaLog(monIP, ip string, port int, module string, comment string) {
+func (c *HaDBClient) ReportHaLog(monIP, app, ip string, port int, module, comment string) {
 	var result HaLogsRequest
 	log.Logger.Infof("reporter log. ip:%s, port:%d, module:%s, comment:%s",
 		ip, port, module, comment)
@@ -241,7 +240,8 @@ func (c *HaDBClient) ReportHaLog(monIP, ip string, port int, module string, comm
 		DBCloudToken: c.Conf.BKConf.BkToken,
 		BKCloudID:    c.CloudId,
 		Name:         constvar.ReporterHALog,
-		SetArgs: &model.HaLogs{
+		SetArgs: &model.HaGMLogs{
+			App:     app,
 			IP:      ip,
 			Port:    port,
 			MonIP:   monIP,
@@ -275,6 +275,7 @@ func (c *HaDBClient) RegisterDBHAInfo(
 	ip string, port int, module string, cityId int, campus string, dbType string,
 ) error {
 	var result HaStatusResponse
+	currentTime := time.Now()
 
 	req := HaStatusRequest{
 		DBCloudToken: c.Conf.BKConf.BkToken,
@@ -286,14 +287,15 @@ func (c *HaDBClient) RegisterDBHAInfo(
 			DbType: dbType,
 		},
 		SetArgs: &model.HaStatus{
-			IP:      ip,
-			Port:    port,
-			Module:  module,
-			CityID:  cityId,
-			Campus:  campus,
-			CloudID: c.CloudId,
-			DbType:  dbType,
-			Status:  constvar.RUNNING,
+			IP:        ip,
+			Port:      port,
+			Module:    module,
+			CityID:    cityId,
+			Campus:    campus,
+			CloudID:   c.CloudId,
+			DbType:    dbType,
+			Status:    constvar.RUNNING,
+			StartTime: &currentTime,
 		},
 	}
 
@@ -315,7 +317,7 @@ func (c *HaDBClient) RegisterDBHAInfo(
 }
 
 // GetAliveAgentInfo fetch alive agent info from ha_status table
-func (c *HaDBClient) GetAliveAgentInfo(ip string, dbType string, interval int) ([]string, error) {
+func (c *HaDBClient) GetAliveAgentInfo(cityID int, dbType string, interval int) ([]string, error) {
 	var result []string
 
 	currentTime := time.Now().Add(-time.Second * time.Duration(interval))
@@ -324,7 +326,7 @@ func (c *HaDBClient) GetAliveAgentInfo(ip string, dbType string, interval int) (
 		BKCloudID:    c.CloudId,
 		Name:         constvar.GetAliveAgentInfo,
 		QueryArgs: &model.HaStatus{
-			IP:       ip,
+			CityID:   cityID,
 			DbType:   dbType,
 			Module:   constvar.Agent,
 			Status:   constvar.RUNNING,
@@ -674,7 +676,7 @@ func (c *HaDBClient) UpdateSwitchQueue(reqInfo *SwitchQueueRequest) error {
 }
 
 // InsertSwitchLog insert switch log to hadb
-func (c *HaDBClient) InsertSwitchLog(swId uint, ip string, port int, result string,
+func (c *HaDBClient) InsertSwitchLog(swId uint, ip string, port int, app, result,
 	comment string, switchFinishTime time.Time) error {
 	var res SwitchLogResponse
 	req := SwitchLogRequest{
@@ -682,6 +684,7 @@ func (c *HaDBClient) InsertSwitchLog(swId uint, ip string, port int, result stri
 		BKCloudID:    c.CloudId,
 		Name:         constvar.InsertSwitchLog,
 		SetArgs: &model.HASwitchLogs{
+			App:      app,
 			SwitchID: swId,
 			IP:       ip,
 			Port:     port,
@@ -714,16 +717,12 @@ func (c *HaDBClient) InsertSwitchLog(swId uint, ip string, port int, result stri
 //
 //	mod value  : agent number
 //	hash value : agent's index
-func (c *HaDBClient) AgentGetHashValue(agentIP string, dbType string, interval int) (uint32, uint32, error) {
-	//	select * from ha_status
-	//		where city in (
-	//		select city from ha_status where
-	//			agentIP = ? and db_type = ?
-	//		)
+func (c *HaDBClient) AgentGetHashValue(agentIP string, cityID int, dbType string, interval int) (uint32, uint32, error) {
+	//	select ip from ha_status where city_id = ? and db_type = ?
 	//	and module = "agent" and status = "RUNNING"
 	//	and last_time > DATE_SUB(now(), interval 5 minute)
 	//	order by uid;
-	agents, err := c.GetAliveAgentInfo(agentIP, dbType, interval)
+	agents, err := c.GetAliveAgentInfo(cityID, dbType, interval)
 	if err != nil {
 		log.Logger.Errorf("get agent list failed. err:%s", err.Error())
 		return 0, 0, err

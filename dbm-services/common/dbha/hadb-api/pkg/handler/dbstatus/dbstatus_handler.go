@@ -52,8 +52,8 @@ func Handler(ctx *fasthttp.RequestCtx) {
 // GetDBStatus TODO
 func GetDBStatus(ctx *fasthttp.RequestCtx, param interface{}) {
 	var (
-		result    = []model.HADbStatus{}
-		whereCond = &model.HADbStatus{}
+		result    = []model.HAAgentLogs{}
+		whereCond = &model.HAAgentLogs{}
 		response  = api.ResponseInfo{
 			Data:    &result,
 			Code:    api.RespOK,
@@ -99,8 +99,8 @@ func UpdateDBStatus(ctx *fasthttp.RequestCtx, queryParam interface{}, setParam i
 	var (
 		result    = map[string]int64{}
 		whereCond = struct {
-			query model.HADbStatus
-			set   model.HADbStatus
+			query model.HAAgentLogs
+			set   model.HAAgentLogs
 		}{}
 		response = api.ResponseInfo{
 			Data:    &result,
@@ -164,7 +164,7 @@ func UpdateDBStatus(ctx *fasthttp.RequestCtx, queryParam interface{}, setParam i
 
 // PutDBStatus TODO
 func PutDBStatus(ctx *fasthttp.RequestCtx, setParam interface{}) {
-	input := &model.HADbStatus{}
+	input := &model.HAAgentLogs{}
 	response := api.ResponseInfo{
 		Data:    nil,
 		Code:    api.RespOK,

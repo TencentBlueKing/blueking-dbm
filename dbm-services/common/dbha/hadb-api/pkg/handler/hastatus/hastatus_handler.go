@@ -291,19 +291,14 @@ func GetAliveHaInfo(ctx *fasthttp.RequestCtx, param interface{}) {
 	log.Logger.Debugf("%+v", whereCond)
 
 	// select ip from ha_status
-	//		where city_id in (
-	//		select city_id from ha_status where
-	//		   ip = ? and db_type = ?
-	//		)
+	//	 where city_id = ? and db_type = ?
 	//	 and module = "agent" and status = "RUNNING"
 	//	 and last_time > DATE_SUB(now(), interval 5 minute)
 	//	 order by uid;
 	db := model.HADB.Self
-	subQuery := db.Table(haTableName).
-		Where("ip = ? ", whereCond.IP).Select("city_id")
-	db.Table(haTableName).Where("city_id in (?)", subQuery).Select("ip").
-		Where("module = ? and status = ? and last_time > ? and db_type= ? and cloud_id= ?",
-			whereCond.Module, whereCond.Status, whereCond.LastTime, whereCond.DbType,
+	db.Table(haTableName).Select("ip").
+		Where("city_id = ? and module = ? and status = ? and last_time > ? and db_type= ? and cloud_id= ?",
+			whereCond.CityID, whereCond.Module, whereCond.Status, whereCond.LastTime, whereCond.DbType,
 			whereCond.CloudID).Order("uid").Find(&result)
 
 	if err := db.Error; err != nil {

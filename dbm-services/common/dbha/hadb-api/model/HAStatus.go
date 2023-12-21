@@ -5,6 +5,7 @@ import (
 )
 
 // HaStatus struct generate by https://sql2gorm.mccode.info/
+// record ha component(agent, gm) heartbeat
 type HaStatus struct {
 	Uid            uint       `gorm:"column:uid;type:bigint;primary_key;AUTO_INCREMENT" json:"uid,omitempty"`
 	IP             string     `gorm:"column:ip;type:varchar(32);index:idx_ip_module_type;NOT NULL" json:"ip,omitempty"`

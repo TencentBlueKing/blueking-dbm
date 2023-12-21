@@ -71,6 +71,7 @@ func (gmm *GMM) Process(instance DoubleCheckInstanceInfo) {
 			// no switch in machine level switch
 			gmm.HaDBClient.ReportHaLog(
 				gmIP,
+				instance.db.GetApp(),
 				ip,
 				port,
 				"gmm",
@@ -87,6 +88,7 @@ func (gmm *GMM) Process(instance DoubleCheckInstanceInfo) {
 				case constvar.DBCheckSuccess:
 					gmm.HaDBClient.ReportHaLog(
 						gmIP,
+						doubleCheckInstance.db.GetApp(),
 						ip,
 						port,
 						"gmm",
@@ -97,6 +99,7 @@ func (gmm *GMM) Process(instance DoubleCheckInstanceInfo) {
 						// no switch in machine level switch
 						gmm.HaDBClient.ReportHaLog(
 							gmIP,
+							doubleCheckInstance.db.GetApp(),
 							ip,
 							port,
 							"gmm",
@@ -107,6 +110,7 @@ func (gmm *GMM) Process(instance DoubleCheckInstanceInfo) {
 					{
 						gmm.HaDBClient.ReportHaLog(
 							gmIP,
+							doubleCheckInstance.db.GetApp(),
 							ip,
 							port,
 							"gmm",
@@ -128,6 +132,7 @@ func (gmm *GMM) Process(instance DoubleCheckInstanceInfo) {
 						log.Logger.Errorf(content)
 						gmm.HaDBClient.ReportHaLog(
 							gmIP,
+							doubleCheckInstance.db.GetApp(),
 							ip,
 							port,
 							"gmm",
