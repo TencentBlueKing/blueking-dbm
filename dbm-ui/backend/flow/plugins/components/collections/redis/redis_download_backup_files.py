@@ -39,6 +39,7 @@ class RedisDownloadBackupfile(BaseService):
             "taskid_list": kwargs["task_ids"],
             "dest_ip": kwargs["dest_ip"],
             "login_user": kwargs["login_user"],
+            "login_passwd": kwargs["login_passwd"],
             "dest_dir": dest_dir,
             "reason": kwargs["reason"],
         }

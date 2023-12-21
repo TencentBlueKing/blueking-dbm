@@ -13,7 +13,6 @@ from dataclasses import dataclass, field
 from typing import Any, Optional
 
 from backend.constants import DEFAULT_BK_CLOUD_ID
-from backend.env import BACKUP_DOWNLOAD_USER
 from backend.flow.consts import DEFAULT_REDIS_START_PORT, DEFAULT_TWEMPROXY_SEG_TOTOL_NUM
 
 
@@ -197,6 +196,7 @@ class DownloadBackupFileKwargs:
     dest_ip: str
     dest_dir: str
     reason: str
-    login_user: str = BACKUP_DOWNLOAD_USER
+    login_user: str
+    login_passwd: str
     cluster: dict = None
     tendis_backup_info: list = None  # 占位：执行备份后的信息
