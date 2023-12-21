@@ -233,6 +233,7 @@ class RedisDataStructureFlow(object):
                 REDIS_BACKUP_DIR_DATA=`df -k $REDIS_BACKUP_DIR | grep -iv Filesystem`
                 BACKUP_DIR=`echo $REDIS_BACKUP_DIR`
                 mkdir -p $BACKUP_DIR/dbbak/recover_redis/
+                chown -R  mysql:mysql $BACKUP_DIR/dbbak/recover_redis/
                 echo "<ctx>{\\\"redis_data_dir_data\\\":\\\"${REDIS_DATA_DIR_DATA}\\\", \\
                 \\\"backup_dir\\\":\\\"${BACKUP_DIR}\\\",\\\"redis_backup_dir_data\\\":\\\"${REDIS_BACKUP_DIR_DATA}\\\"}</ctx>"
                 """

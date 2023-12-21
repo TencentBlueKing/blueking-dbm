@@ -37,6 +37,7 @@ def redis_backupfile_download(root_id: str, ticket_data: dict, cluster_info: dic
 
     sub_pipeline = SubBuilder(root_id=root_id, data=copy.deepcopy(ticket_data))
     redis_os_account = PayloadHandler.redis_get_os_account()
+    logger.info("+==redis_backupfile_download download_kwargs redis_os_account:{} +++ ".format(redis_os_account))
 
     # 全备份文件下载
     task_ids = [file_info["task_id"] for file_info in param["full_file_list"]]
@@ -49,6 +50,7 @@ def redis_backupfile_download(root_id: str, ticket_data: dict, cluster_info: dic
         login_user=redis_os_account["os_user"],
         login_passwd=redis_os_account["os_password"],
     )
+    logger.info("+==redis_backupfile_download download_kwargs download_kwargs:{} +++ ".format(download_kwargs))
     sub_pipeline.add_act(
         act_name=_("下载{}全备文件到{}").format(param["source_ip"], param["new_temp_ip"]),
         act_component_code=RedisDownloadBackupfileComponent.code,
@@ -73,6 +75,7 @@ def redis_backupfile_download(root_id: str, ticket_data: dict, cluster_info: dic
             login_user=redis_os_account["os_user"],
             login_passwd=redis_os_account["os_password"],
         )
+        logger.info("+==redis_backupfile_download download_kwargs download_kwargs:{} +++ ".format(download_kwargs))
         sub_pipeline.add_act(
             act_name=_("下载{}binlog文件到{}").format(param["source_ip"], param["new_temp_ip"]),
             act_component_code=RedisDownloadBackupfileComponent.code,
