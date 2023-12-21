@@ -56,7 +56,7 @@ def spider_recover_sub_flow(root_id: str, ticket_data: dict, cluster: dict):
         bk_cloud_id=cluster["bk_cloud_id"],
         task_ids=task_ids,
         dest_ip=cluster["rollback_ip"],
-        desc_dir=cluster["file_target_path"],
+        dest_dir=cluster["file_target_path"],
         reason="spider node rollback data",
     )
     sub_pipeline.add_act(
@@ -94,7 +94,7 @@ def spider_recover_sub_flow(root_id: str, ticket_data: dict, cluster: dict):
                 bk_cloud_id=cluster["bk_cloud_id"],
                 task_ids=task_ids,
                 dest_ip=cluster["rollback_ip"],
-                desc_dir=cluster["file_target_path"],
+                dest_dir=cluster["file_target_path"],
                 reason="spider node rollback binlog",
             )
             sub_pipeline.add_act(
@@ -149,7 +149,7 @@ def remote_node_rollback(root_id: str, ticket_data: dict, cluster: dict):
             bk_cloud_id=cluster["bk_cloud_id"],
             task_ids=task_ids,
             dest_ip=cluster["rollback_ip"],
-            desc_dir=cluster["file_target_path"],
+            dest_dir=cluster["file_target_path"],
             reason="spider remote node rollback data",
         )
         sub_pipeline.add_act(
@@ -188,7 +188,7 @@ def remote_node_rollback(root_id: str, ticket_data: dict, cluster: dict):
                 bk_cloud_id=cluster["bk_cloud_id"],
                 task_ids=task_ids,
                 dest_ip=cluster["rollback_ip"],
-                desc_dir=cluster["file_target_path"],
+                dest_dir=cluster["file_target_path"],
                 reason="tenDB rollback binlog",
             )
             sub_pipeline.add_act(

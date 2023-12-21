@@ -86,7 +86,7 @@ def slave_recover_sub_flow(root_id: str, ticket_data: dict, cluster_info: dict):
         bk_cloud_id=cluster["bk_cloud_id"],
         task_ids=task_ids,
         dest_ip=cluster["new_slave_ip"],
-        desc_dir=cluster["file_target_path"],
+        dest_dir=cluster["file_target_path"],
         reason="slave recover",
     )
     sub_pipeline.add_act(

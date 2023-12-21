@@ -116,7 +116,7 @@ def rollback_local_and_time(root_id: str, ticket_data: dict, cluster_info: dict)
         bk_cloud_id=cluster_info["bk_cloud_id"],
         task_ids=[],
         dest_ip=cluster_info["rollback_ip"],
-        desc_dir=cluster_info["file_target_path"],
+        dest_dir=cluster_info["file_target_path"],
         reason="spider node rollback binlog",
         cluster=cluster_info,
     )
@@ -171,7 +171,7 @@ def rollback_remote_and_time(root_id: str, ticket_data: dict, cluster_info: dict
         bk_cloud_id=cluster_info["bk_cloud_id"],
         task_ids=task_ids,
         dest_ip=cluster_info["rollback_ip"],
-        desc_dir=cluster_info["file_target_path"],
+        dest_dir=cluster_info["file_target_path"],
         reason="mysql rollback data",
     )
     sub_pipeline.add_act(
@@ -208,7 +208,7 @@ def rollback_remote_and_time(root_id: str, ticket_data: dict, cluster_info: dict
         bk_cloud_id=cluster_info["bk_cloud_id"],
         task_ids=task_ids,
         dest_ip=cluster_info["rollback_ip"],
-        desc_dir=cluster_info["file_target_path"],
+        dest_dir=cluster_info["file_target_path"],
         reason="spider node rollback binlog",
     )
     sub_pipeline.add_act(
@@ -250,7 +250,7 @@ def rollback_remote_and_backupid(root_id: str, ticket_data: dict, cluster_info: 
         bk_cloud_id=cluster_info["bk_cloud_id"],
         task_ids=task_ids,
         dest_ip=cluster_info["rollback_ip"],
-        desc_dir=cluster_info["file_target_path"],
+        dest_dir=cluster_info["file_target_path"],
         reason="mysql rollback data",
     )
     sub_pipeline.add_act(
