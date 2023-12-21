@@ -14,10 +14,11 @@ import (
 	"time"
 )
 
-// HADbStatus TODO
-type HADbStatus struct {
+// HAAgentLogs TODO
+type HAAgentLogs struct {
 	Uid      uint       `gorm:"column:uid;type:bigint;primary_key;AUTO_INCREMENT" json:"uid,omitempty"`
 	AgentIP  string     `gorm:"column:agent_ip;index:idx_ins;type:varchar(32);NOT NULL" json:"agent_ip,omitempty"`
+	App      string     `gorm:"column:app;type:varchar(32);index:idx_ins;NOT NULL" json:"app,omitempty"`
 	IP       string     `gorm:"column:ip;index:idx_ins;type:varchar(32);NOT NULL" json:"ip,omitempty"`
 	Port     int        `gorm:"column:port;index:idx_ins;type:int(11);NOT NULL" json:"port,omitempty"`
 	DbType   string     `gorm:"column:db_type;type:varchar(32);NOT NULL" json:"db_type,omitempty"`
@@ -27,6 +28,6 @@ type HADbStatus struct {
 }
 
 // TableName TODO
-func (m *HADbStatus) TableName() string {
-	return "ha_db_status"
+func (m *HAAgentLogs) TableName() string {
+	return "ha_agent_logs"
 }
