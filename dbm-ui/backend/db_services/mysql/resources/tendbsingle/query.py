@@ -32,6 +32,7 @@ class ListRetrieveResource(query.ListRetrieveResource):
     """查看 mysql 单点部署的资源"""
 
     cluster_type = ClusterType.TenDBSingle
+    cluster_types = [ClusterType.TenDBSingle]
 
     fields = [
         {"name": _("集群名"), "key": "cluster_name"},

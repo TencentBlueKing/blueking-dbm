@@ -15,7 +15,7 @@ from rest_framework import status
 from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.db_services.bigdata.kafka import constants
 from backend.db_services.bigdata.resources import yasg_slz
-from backend.db_services.bigdata.resources.views import ResourceViewSet
+from backend.db_services.bigdata.resources.views import BigdataResourceViewSet
 from backend.db_services.bigdata.riak.query import RiakListRetrieveResource
 from backend.db_services.dbbase.resources import serializers
 
@@ -70,6 +70,6 @@ from backend.db_services.dbbase.resources import serializers
         tags=[constants.RESOURCE_TAG],
     ),
 )
-class RiakClusterViewSet(ResourceViewSet):
+class RiakClusterViewSetBigdata(BigdataResourceViewSet):
     query_class = RiakListRetrieveResource
     query_serializer_class = serializers.ListResourceSLZ

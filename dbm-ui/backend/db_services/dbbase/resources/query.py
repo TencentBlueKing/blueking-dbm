@@ -17,6 +17,7 @@ from django.utils.translation import ugettext_lazy as _
 from backend.db_meta.enums import ClusterEntryType
 from backend.db_meta.models import Cluster, ClusterEntry, Machine
 from backend.flow.utils.dns_manage import DnsManage
+from backend.utils.excel import ExcelHandler
 
 
 @attr.s
@@ -27,6 +28,7 @@ class ResourceList:
 
 class ListRetrieveResource(abc.ABC):
     fields = [{"name": _("业务"), "key": "bk_biz_name"}]
+    cluster_types = []
 
     @classmethod
     @abc.abstractmethod
@@ -108,3 +110,79 @@ class ListRetrieveResource(abc.ABC):
     @classmethod
     def get_fields(cls) -> List[Dict[str, str]]:
         return cls.fields
+
+    @classmethod
+    def export_cluster(cls, bk_biz_id: int):
+        # 获取所有符合条件的集群对象
+        clusters = Cluster.objects.prefetch_related(
+            "storageinstance_set", "proxyinstance_set", "storageinstance_set__machine", "proxyinstance_set__machine"
+        ).filter(bk_biz_id=bk_biz_id, cluster_type__in=cls.cluster_types)
+
+        # 初始化用于存储Excel数据的字典列表
+        excel_data_dict__list = []
+        headers = [
+            "cluster_id",
+            "cluster_name",
+            "cluster_alias",
+            "cluster_type",
+            "master_domain",
+            "major_version",
+            "region",
+            "disaster_tolerance_level",
+        ]
+        # 遍历所有的集群对象
+        for cluster in clusters:
+
+            # 创建一个空字典来保存当前集群的信息
+            cluster_info = {
+                "cluster_id": cluster.id,
+                "cluster_name": cluster.name,
+                "cluster_alias": cluster.alias,
+                "cluster_type": cluster.cluster_type,
+                "master_domain": cluster.immute_domain,
+                "major_version": cluster.major_version,
+                "region": cluster.region,
+                "disaster_tolerance_level": cluster.get_disaster_tolerance_level_display(),
+            }
+
+            # 遍历当前集群中的存储实例
+            for storage in cluster.storageinstance_set.all():
+
+                # 获取存储实例所属角色
+                role = storage.instance_role
+
+                # 如果该角色已经存在于集群信息字典中，则添加新的IP和端口；否则，更新字典的值
+                if role in cluster_info:
+                    cluster_info[role] += f"\n{storage.machine.ip}#{storage.port}"
+                else:
+                    if role not in headers:
+                        headers.append(role)
+                    cluster_info[role] = f"{storage.machine.ip}#{storage.port}"
+
+            # 遍历当前集群中的代理实例
+            for proxy in cluster.proxyinstance_set.all():
+
+                # 获取代理实例所属角色
+                role = proxy.instance_role
+
+                # 如果该角色已经存在于集群信息字典中，则添加新的IP和端口；否则，更新字典的值
+                if role in cluster_info:
+                    cluster_info[role] += f"\n{proxy.machine.ip}#{proxy.port}"
+                else:
+                    if role not in headers:
+                        headers.append(role)
+                    headers.append(role)
+                    cluster_info[role] = f"{proxy.machine.ip}#{proxy.port}"
+
+            # 将当前集群的信息追加到excel_data_dict__list列表中
+            excel_data_dict__list.append(cluster_info)
+
+        wb = ExcelHandler.serialize(excel_data_dict__list, header=headers, match_header=True)
+        return ExcelHandler.response(wb, f"biz_{bk_biz_id}_clusters.xlsx")
+
+    @classmethod
+    def export_instance(cls, bk_biz_id: int):
+        headers = []
+        excel_data_dict__list = []
+        wb = ExcelHandler.serialize(excel_data_dict__list, header=headers, match_header=True)
+        return ExcelHandler.response(wb, f"biz_{bk_biz_id}_instances.xlsx")
