@@ -11,14 +11,16 @@
 package spiderctl
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
-	"log/slog"
 	"time"
 
+	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/native"
+	"dbm-services/mysql/db-tools/dbactuator/pkg/util"
 )
 
 // TableSchemaCheckComp TODO
@@ -32,16 +34,19 @@ type TableSchemaCheckComp struct {
 type TableSchemaCheckParam struct {
 	Host         string        `json:"host" validate:"required,ip"`
 	Port         int           `json:"port" validate:"required,lt=65536,gte=3306"`
-	CheckObjects []CheckObject `json:"check_objects" validate:"required,dive"`
+	CheckObjects []CheckObject `json:"check_objects"`
+	// 检查所有非系统库表
+	CheckAll bool `json:"check_all"`
 }
 
 // CheckObject TODO
 type CheckObject struct {
-	DbName string   `json:"dbname" validate:"required"`
-	Tables []string `json:"tables" validate:"required,dive"`
+	DbName string   `json:"dbname"`
+	Tables []string `json:"tables"`
 }
 type tableSchemaCheckCtx struct {
 	tdbCtlConn *native.TdbctlDbWork
+	version    string
 }
 
 // TsccSchemaChecksum TODO
@@ -58,8 +63,9 @@ var TsccSchemaChecksum = `CREATE TABLE if not exists infodba_schema.tscc_schema_
 func (r *TableSchemaCheckComp) Example() interface{} {
 	return &TableSchemaCheckComp{
 		Params: TableSchemaCheckParam{
-			Host: "127.0.0.1",
-			Port: 26000,
+			Host:     "127.0.0.1",
+			Port:     26000,
+			CheckAll: true,
 			CheckObjects: []CheckObject{
 				{
 					DbName: "test",
@@ -91,24 +97,85 @@ func (r *TableSchemaCheckComp) Init() (err error) {
 		logger.Error("init tscc_schema_checksum error: %v", err)
 		return
 	}
+	r.version, err = r.tdbCtlConn.SelectVersion()
+	if err != nil {
+		logger.Error("get version error: %v", err)
+		return
+	}
 	return err
 }
 
-// Run TODO
+// Run Command Run
 func (r *TableSchemaCheckComp) Run() (err error) {
+	switch {
+	case r.Params.CheckAll:
+		err = r.checkAll()
+	default:
+		err = r.checkSpecial()
+	}
+	return
+}
+
+// checkSpecial 校验指定对象
+func (r *TableSchemaCheckComp) checkSpecial() (err error) {
 	for _, checkObject := range r.Params.CheckObjects {
-		for _, table := range checkObject.Tables {
-			// check table schema
-			var result native.SchemaCheckResults
-			err = r.tdbCtlConn.Queryx(&result, fmt.Sprintf("set tc_admin=1;tdbctl checksum `%s`.`%s`;", checkObject.DbName,
-				table))
-			if err != nil {
-				logger.Error("check table schema error: %s", err.Error())
-				return err
-			}
-			if err = r.atomUpdateCheckResult(checkObject.DbName, table, result.CheckResult()); err == nil {
-				slog.Info("update checkresult ok")
-			}
+		if len(checkObject.Tables) <= 0 {
+			return r.checkdb(checkObject.DbName)
+		}
+		if err = r.atomUpdateTables(checkObject.DbName, checkObject.Tables); err != nil {
+			logger.Error("check %s tables failed: %v", checkObject.DbName, err)
+			return err
+		}
+	}
+	return nil
+}
+
+func (r *TableSchemaCheckComp) checkAll() (err error) {
+	dbs, err := r.tdbCtlConn.ShowDatabases()
+	if err != nil {
+		logger.Error("exec show database failed: %s", err.Error())
+		return err
+	}
+	for _, db := range util.FilterOutStringSlice(dbs, cmutil.GetMysqlSystemDatabases(r.version)) {
+		if err = r.checkdb(db); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (r *TableSchemaCheckComp) checkdb(dbName string) (err error) {
+	if cmutil.IsEmpty(dbName) {
+		return nil
+	}
+	tables, err := r.tdbCtlConn.ShowTables(dbName)
+	if err != nil {
+		logger.Error("show tables error: %s", err.Error())
+		return err
+	}
+	return r.atomUpdateTables(dbName, tables)
+}
+
+func (r *TableSchemaCheckComp) atomUpdateTables(dbName string, tables []string) (err error) {
+	if len(tables) <= 0 {
+		return nil
+	}
+	xconn, err := r.tdbCtlConn.GetSqlxDb().Connx(context.Background())
+	if err != nil {
+		return err
+	}
+	defer xconn.Close()
+	xconn.ExecContext(context.Background(), "set tc_admin = 1;")
+	for _, table := range tables {
+		// check table schema
+		var result native.SchemaCheckResults
+		if err = xconn.SelectContext(context.Background(), &result, fmt.Sprintf("tdbctl check `%s`.`%s`;", dbName,
+			table)); err != nil {
+			logger.Error("check table schema error: %s", err.Error())
+			return err
+		}
+		if err = r.atomUpdateCheckResult(dbName, table, result.CheckResult()); err == nil {
+			logger.Info("update %s.%s checkresult ok", dbName, table)
 		}
 	}
 	return nil
