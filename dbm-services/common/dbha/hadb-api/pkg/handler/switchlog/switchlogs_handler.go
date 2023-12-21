@@ -23,6 +23,7 @@ const (
 type SwitchLogsApi struct {
 	UID      uint   `json:"uid"`
 	SwitchID uint   `json:"sw_id"`
+	App      string `json:"app"`
 	IP       string `json:"ip"`
 	Result   string `json:"result"`
 	Datetime string `json:"datetime,omitempty"`
@@ -155,6 +156,7 @@ func TransSwitchLogsToApi(result []model.HASwitchLogs) []SwitchLogsApi {
 		logApi := SwitchLogsApi{
 			UID:      log.UID,
 			SwitchID: log.SwitchID,
+			App:      log.App,
 			IP:       log.IP,
 			Result:   log.Result,
 			Datetime: log.Datetime.In(loc).Format("2006-01-02T15:04:05-07:00"),
