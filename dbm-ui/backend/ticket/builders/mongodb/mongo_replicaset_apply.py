@@ -24,9 +24,9 @@ from backend.ticket.constants import TicketType
 
 class MongoReplicaSetApplyDetailSerializer(serializers.Serializer):
     class ReplicaSet(serializers.Serializer):
-        set_id = serializers.CharField(help_text=_("集群ID（英文数字及下划线）"))
+        set_id = serializers.CharField(help_text=_("复制集群ID（英文数字及下划线）"))
         name = serializers.CharField(help_text=_("集群别名"))
-        domain = serializers.IntegerField(help_text=_("集群域名"))
+        domain = serializers.CharField(help_text=_("集群域名"))
 
     bk_cloud_id = serializers.IntegerField(help_text=_("云区域ID"))
     db_app_abbr = serializers.CharField(help_text=_("业务英文缩写"))
@@ -62,10 +62,7 @@ class MongoReplicaSetApplyDetailSerializer(serializers.Serializer):
         return self.context["ticket_ctx"].city_map.get(city_code, city_code)
 
     def validate(self, attrs):
-        # 校验集群名是否重复
-        CommonValidate.validate_duplicate_cluster_name(
-            self.context["bk_biz_id"], self.context["ticket_type"], attrs["cluster_name"]
-        )
+        """TODO: validate"""
         return attrs
 
 
@@ -73,6 +70,7 @@ class MongoReplicaSetApplyFlowParamBuilder(builders.FlowParamBuilder):
     controller = MongoDBController.mongodb_cluster_apply_scene
 
     def format_ticket_data(self):
+        # TODO: 待后台flow就绪调试
         print(self.ticket_data)
 
 
@@ -102,6 +100,7 @@ class MongoReplicaSetApplyResourceParamBuilder(builders.ResourceApplyParamBuilde
     def post_callback(self):
         """组装infos"""
         next_flow = self.ticket.next_flow()
+        # TODO: 待后台flow就绪调试
         print(next_flow.details["ticket_data"])
 
 
@@ -115,4 +114,5 @@ class MongoReplicaSetApplyFlowBuilder(BaseMongoDBTicketFlowBuilder):
     resource_batch_apply_builder = MongoReplicaSetApplyResourceParamBuilder
 
     def patch_ticket_detail(self):
+        # TODO: 待后台flow就绪调试
         print(self.ticket.details)
