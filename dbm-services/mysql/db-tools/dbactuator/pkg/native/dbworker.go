@@ -499,6 +499,45 @@ func (h *DbWorker) SetSingleGlobalVar(varName, varValue string) error {
 	return nil
 }
 
+// DropUserIfExists Drop User
+func DropUserIfExists(user, host string, conn *sql.Conn) error {
+	ctx := context.Background()
+	sqlstr := fmt.Sprintf("SELECT `Host`,`User` from `mysql`.`user` where `User`='%s' and `Host`='%s';", user, host)
+	row := conn.QueryRowContext(ctx, sqlstr)
+	if err := row.Scan(&host, &user); err == sql.ErrNoRows {
+		// 用户不存在
+		return nil
+	} else {
+		// 用户存在，也用幂等形式
+		if _, err = conn.ExecContext(ctx, fmt.Sprintf("DROP USER /*!50706 IF EXISTS */ `%s`@`%s`;",
+			user, host)); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// CreateUserIfNotExists Create User
+// 如果用户不存在，则创建; 如果用户存在会保留之前的用户，不会修改它的密码
+// 密码插件是否是 native_password 取决于 db 默认配置
+func CreateUserIfNotExists(user, host, pass string, conn *sql.Conn) error {
+	ctx := context.Background()
+	sqlstr := fmt.Sprintf("SELECT `Host`,`User` from `mysql`.`user` where `User`='%s' and `Host`='%s';", user, host)
+	row := conn.QueryRowContext(ctx, sqlstr)
+	if err := row.Scan(&host, &user); err == sql.ErrNoRows {
+		// 用户不存在
+		createUser := fmt.Sprintf("CREATE USER /*!50706 IF NOT EXISTS */ `%s`@`%s` IDENTIFIED BY '%s'",
+			user, host, pass)
+		if _, err = conn.ExecContext(ctx, createUser); err != nil {
+			return err
+		}
+	} else {
+		// 用户存在，保留之前的用户
+		return nil
+	}
+	return nil
+}
+
 // ShowDatabases 执行show database 获取所有的dbName
 //
 //	@receiver h
