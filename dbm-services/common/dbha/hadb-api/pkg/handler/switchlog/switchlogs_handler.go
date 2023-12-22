@@ -93,9 +93,16 @@ func GetSwitchLogs(ctx *fasthttp.RequestCtx, param interface{}) {
 	}
 	log.Logger.Debugf("%+v", whereCond)
 
-	if err := model.HADB.Self.Table(whereCond.TableName()).
-		Where("sw_id = ?", whereCond.SwitchID).
-		Order("uid DESC").Find(&result).Error; err != nil {
+	db := model.HADB.Self.Table(whereCond.TableName())
+	if whereCond.App != "" {
+		db = db.Where("app = ?", whereCond.App)
+	}
+
+	if whereCond.SwitchID > 0 {
+		db = db.Where("sw_id = ?", whereCond.SwitchID)
+	}
+
+	if err := db.Order("uid DESC").Find(&result).Error; err != nil {
 		response.Code = api.RespErr
 		response.Message = err.Error()
 		response.Data = nil
