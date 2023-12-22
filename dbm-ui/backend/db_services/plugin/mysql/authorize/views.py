@@ -37,7 +37,7 @@ class AuthorizePluginViewSet(viewsets.SystemViewSet):
     def authorize_apply(self, request, *args, **kwargs):
         data = self.params_validate(self.get_serializer_class())
         handler = AuthorizeHandler(bk_biz_id=0, operator=request.user.username)
-        return Response(handler.authorize_apply(**data))
+        return Response(handler.authorize_apply(request, **data))
 
     @common_swagger_auto_schema(
         operation_summary=_("查询第三方权限申请结果(兼容GCS)"),

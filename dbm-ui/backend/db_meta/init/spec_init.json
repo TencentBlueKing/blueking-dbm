@@ -1699,5 +1699,187 @@
                 "qps": {}
             }
         ]
+    },
+    "tendbcluster": {
+        "spider": [
+            {
+                "spec_name": "通用proxy配置",
+                "cpu": {
+                    "max": 4,
+                    "min": 2
+                },
+                "mem": {
+                    "max": 8,
+                    "min": 4
+                },
+                "device_class": [],
+                "storage_spec": [
+                    {
+                        "size": 50,
+                        "type": "ALL",
+                        "mount_point": "/data"
+                    }
+                ],
+                "desc": "",
+                "instance_num": 0,
+                "qps": {}
+            }
+        ],
+        "remote": [
+            {
+                "spec_name": "2核_1G_50G",
+                "cpu": {
+                    "max": 4,
+                    "min": 2
+                },
+                "mem": {
+                    "max": 4,
+                    "min": 1
+                },
+                "device_class": [],
+                "storage_spec": [
+                    {
+                        "size": 50,
+                        "type": "ALL",
+                        "mount_point": "/data"
+                    }
+                ],
+                "desc": "",
+                "instance_num": 0,
+                "qps": {}
+            },
+            {
+                "spec_name": "4核_8G_100G",
+                "cpu": {
+                    "max": 4,
+                    "min": 4
+                },
+                "mem": {
+                    "max": 8,
+                    "min": 8
+                },
+                "device_class": [],
+                "storage_spec": [
+                    {
+                        "size": 100,
+                        "type": "ALL",
+                        "mount_point": "/data"
+                    }
+                ],
+                "desc": "",
+                "instance_num": 0,
+                "qps": {}
+            },
+            {
+                "spec_name": "8核_16G_500G",
+                "cpu": {
+                    "max": 8,
+                    "min": 8
+                },
+                "mem": {
+                    "max": 16,
+                    "min": 16
+                },
+                "device_class": [],
+                "storage_spec": [
+                    {
+                        "size": 500,
+                        "type": "ALL",
+                        "mount_point": "/data"
+                    }
+                ],
+                "desc": "",
+                "instance_num": 0,
+                "qps": {}
+            },
+            {
+                "spec_name": "16核_32G_500G",
+                "cpu": {
+                    "max": 16,
+                    "min": 16
+                },
+                "mem": {
+                    "max": 32,
+                    "min": 32
+                },
+                "device_class": [],
+                "storage_spec": [
+                    {
+                        "size": 500,
+                        "type": "ALL",
+                        "mount_point": "/data"
+                    }
+                ],
+                "desc": "",
+                "instance_num": 0,
+                "qps": {}
+            },
+            {
+                "spec_name": "16核_32G_1000G",
+                "cpu": {
+                    "max": 16,
+                    "min": 16
+                },
+                "mem": {
+                    "max": 64,
+                    "min": 32
+                },
+                "device_class": [],
+                "storage_spec": [
+                    {
+                        "size": 1000,
+                        "type": "ALL",
+                        "mount_point": "/data"
+                    }
+                ],
+                "desc": "",
+                "instance_num": 0,
+                "qps": {}
+            },
+            {
+                "spec_name": "32核_64G_1000G",
+                "cpu": {
+                    "max": 32,
+                    "min": 32
+                },
+                "mem": {
+                    "max": 64,
+                    "min": 64
+                },
+                "device_class": [],
+                "storage_spec": [
+                    {
+                        "size": 1000,
+                        "type": "ALL",
+                        "mount_point": "/data"
+                    }
+                ],
+                "desc": "",
+                "instance_num": 0,
+                "qps": {}
+            },
+            {
+                "spec_name": "64核_128G_1000G",
+                "cpu": {
+                    "max": 64,
+                    "min": 64
+                },
+                "mem": {
+                    "max": 128,
+                    "min": 128
+                },
+                "device_class": [],
+                "storage_spec": [
+                    {
+                        "size": 1000,
+                        "type": "SSD",
+                        "mount_point": "/data"
+                    }
+                ],
+                "desc": "",
+                "instance_num": 0,
+                "qps": {}
+            }
+        ]
     }
 }
