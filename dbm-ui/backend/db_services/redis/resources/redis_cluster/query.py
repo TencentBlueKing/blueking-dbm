@@ -36,15 +36,15 @@ class ListRetrieveResource(query.ListRetrieveResource):
     """查看twemproxy-redis架构的资源"""
 
     cluster_types = [
-        ClusterType.TendisPredixyRedisCluster,
-        ClusterType.TendisPredixyTendisplusCluster,
-        ClusterType.TendisTwemproxyRedisInstance,
-        ClusterType.TwemproxyTendisSSDInstance,
-        ClusterType.TendisTwemproxyTendisplusIns,
-        ClusterType.TendisRedisInstance,
-        ClusterType.TendisTendisplusInsance,
-        ClusterType.TendisRedisCluster,
-        ClusterType.TendisTendisplusCluster,
+        ClusterType.TendisPredixyRedisCluster.value,
+        ClusterType.TendisPredixyTendisplusCluster.value,
+        ClusterType.TendisTwemproxyRedisInstance.value,
+        ClusterType.TwemproxyTendisSSDInstance.value,
+        ClusterType.TendisTwemproxyTendisplusIns.value,
+        ClusterType.TendisRedisInstance.value,
+        ClusterType.TendisTendisplusInsance.value,
+        ClusterType.TendisRedisCluster.value,
+        ClusterType.TendisTendisplusCluster.value,
     ]
     handler_map = {
         ClusterType.TwemproxyTendisSSDInstance: TendisSSDClusterHandler,
@@ -177,7 +177,7 @@ class ListRetrieveResource(query.ListRetrieveResource):
         cluster.storages = cluster.storageinstance_set.filter(cluster_type=cluster.cluster_type, bk_biz_id=bk_biz_id)
         cluster.proxies = cluster.proxyinstance_set.filter(cluster_type=cluster.cluster_type, bk_biz_id=bk_biz_id)
         cluster_entry_map = ClusterEntry.get_cluster_entry_map_by_cluster_ids([cluster.id])
-        cluster_stats_map = Cluster.get_cluster_stats()
+        cluster_stats_map = Cluster.get_cluster_stats([cluster.cluster_type])
 
         return cls._to_cluster_list(cluster, cluster_entry_map, cluster_stats_map)
 
@@ -229,7 +229,7 @@ class ListRetrieveResource(query.ListRetrieveResource):
             list(clusters.values_list("id", flat=True))
         )
 
-        cluster_stats_map = Cluster.get_cluster_stats()
+        cluster_stats_map = Cluster.get_cluster_stats(cls.cluster_types)
 
         return query.ResourceList(
             count=count,

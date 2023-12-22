@@ -29,6 +29,8 @@ UNIFY_QUERY_PARAMS = params = {
     "end_time": 1697101305,
     "slimit": 500,
     "down_sample_range": "1s",
+    # 取最新的几个周期，可以加速查询
+    "type": "instant",
 }
 
 QUERY_TEMPLATE = {
