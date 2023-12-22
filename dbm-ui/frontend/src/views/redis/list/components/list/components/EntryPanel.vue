@@ -4,7 +4,8 @@
     placement="top"
     theme="light"
     :width="panelWidth"
-    :z-index="10">
+    :z-index="10"
+    @after-show="handlePanelAfterShow">
     <slot />
     <template #content>
       <BkLoading :loading="loading">
@@ -118,17 +119,13 @@
     },
   });
 
-  watch(() => props.clusterId, (id) => {
-    if (id) {
-      runGetClusterEntries({
-        cluster_id: props.clusterId,
-        bk_biz_id: currentBizId,
-        entry_type: props.entryType,
-      });
-    }
-  }, {
-    immediate: true,
-  });
+  const handlePanelAfterShow = () => {
+    runGetClusterEntries({
+      cluster_id: props.clusterId,
+      bk_biz_id: currentBizId,
+      entry_type: props.entryType,
+    });
+  };
 
   const handleNavigateTo = (url: string) => {
     window.open(url);
