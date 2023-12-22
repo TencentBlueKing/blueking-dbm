@@ -425,14 +425,14 @@ class RedisDataStructureFlow(object):
                 full_size = 0
                 all_binlog_size = 0
                 for full in data_params["full_file_list"]:
-                    full_size += full["size"]
+                    full_size += int(full["size"])
                 # ssd和tendisplus才有binlog文件
                 if cluster_type in [
                     ClusterType.TendisTwemproxyRedisInstance.value,
                     ClusterType.TwemproxyTendisSSDInstance.value,
                 ]:
                     for binlog in data_params["binlog_file_list"]:
-                        all_binlog_size += binlog["size"]
+                        all_binlog_size += int(binlog["size"])
                 total_size = full_size + all_binlog_size
                 if data_params["new_temp_ip"] == new_master:
                     multi_total_size += total_size
