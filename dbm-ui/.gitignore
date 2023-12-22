@@ -135,3 +135,6 @@ scripts/ssls/
 .codecc
 .vscode
 .build.yml
+
+# 版本文件
+version_logs_html/

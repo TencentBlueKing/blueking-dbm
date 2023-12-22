@@ -21,6 +21,8 @@ from backend import env
 from backend.components.gcs.client import GcsApi
 from backend.components.mysql_priv_manager.client import MySQLPrivManagerApi
 from backend.components.scr.client import ScrApi
+from backend.configuration.constants import DBType
+from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Cluster
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.db_services.mysql.permission.authorize.dataclass import (
@@ -227,6 +229,7 @@ class AuthorizeHandler(object):
         bk_biz_id = bk_biz_id or app_detail["ccId"]
         if cluster.exists():
             cluster = cluster.first()
+            db_type = ClusterType.cluster_type_to_db_type(cluster.cluster_type)
             authorize_infos = {
                 "bk_biz_id": bk_biz_id,
                 "user": user,
@@ -242,7 +245,7 @@ class AuthorizeHandler(object):
             ticket = Ticket.create_ticket(
                 bk_biz_id=bk_biz_id,
                 ticket_type=TicketType.MYSQL_AUTHORIZE_RULES
-                if type == "mysql"
+                if db_type == DBType.MySQL
                 else TicketType.TENDBCLUSTER_AUTHORIZE_RULES,
                 creator=self.operator,
                 remark=_("第三方请求授权"),

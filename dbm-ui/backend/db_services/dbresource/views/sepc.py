@@ -34,6 +34,7 @@ from backend.db_services.dbresource.serializers import (
     QueryQPSRangeSerializer,
     RecommendResponseSpecSerializer,
     RecommendSpecSerializer,
+    SpecEnableDisableSerializer,
     SpecSerializer,
     VerifyDuplicatedSpecNameSerializer,
 )
@@ -117,6 +118,16 @@ class DBSpecViewSet(viewsets.AuditedModelViewSet):
                 raise SpecOperateException(_("规格: {}已经被引用，无法修改配置！(只允许拓展机型和修改描述)").format(spec.spec_name))
 
         return super().update(request, *args, **kwargs)
+
+    @common_swagger_auto_schema(
+        operation_summary=_("更新规格的启用禁用态"),
+        tags=[SWAGGER_TAG],
+    )
+    @action(methods=["POST"], detail=False, serializer_class=SpecEnableDisableSerializer)
+    def modify_spec_enable_status(self, request, *args, **kwargs):
+        data = self.params_validate(self.get_serializer_class())
+        Spec.objects.filter(spec_id__in=data["spec_ids"]).update(enable=data["enable"])
+        return Response()
 
     @common_swagger_auto_schema(
         operation_summary=_("查询规格列表"),
