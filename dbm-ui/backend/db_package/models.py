@@ -60,12 +60,13 @@ class Package(AuditedModel):
         """
         if version == MediumEnum.Latest:
             # 引进制品版本管理后，默认最新版就是最近上传的介质
-            packages = cls.objects.filter(pkg_type=pkg_type, db_type=db_type)
+            packages = cls.objects.filter(pkg_type=pkg_type, db_type=db_type, enable=True)
         else:
-            packages = cls.objects.filter(version=version, pkg_type=pkg_type, db_type=db_type)
+            packages = cls.objects.filter(version=version, pkg_type=pkg_type, db_type=db_type, enable=True)
         if bk_biz_id:
             # 过滤出灰度的业务以及无指定业务的包
-            packages = packages.filter(Q(allow_biz_ids__contains=bk_biz_id) | Q(allow_biz_ids__isnull=True))
+            allow_biz_filter = Q(allow_biz_ids__contains=bk_biz_id) | Q(allow_biz_ids__isnull=True)
+            packages = packages.filter(allow_biz_filter, enable=True)
 
         if not packages:
             raise PackageNotExistException(version=version, pkg_type=pkg_type, db_type=db_type)

@@ -299,6 +299,11 @@ class DeleteSpecSerializer(serializers.Serializer):
         swagger_schema_fields = {"example": {"spec_ids": [1, 2, 3]}}
 
 
+class SpecEnableDisableSerializer(serializers.Serializer):
+    spec_ids = serializers.ListField(help_text=_("规格id列表"), child=serializers.IntegerField())
+    enable = serializers.BooleanField(help_text=_("是否启用"))
+
+
 class VerifyDuplicatedSpecNameSerializer(serializers.Serializer):
     spec_cluster_type = serializers.ChoiceField(help_text=_("集群类型"), choices=ClusterType.get_choices())
     spec_machine_type = serializers.ChoiceField(help_text=_("机器类型"), choices=MachineType.get_choices())
