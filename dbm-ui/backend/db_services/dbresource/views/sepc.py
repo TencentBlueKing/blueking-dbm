@@ -95,23 +95,26 @@ class DBSpecViewSet(viewsets.AuditedModelViewSet):
         # 如果被引用，则只允许更新机器规格
         spec_id = int(kwargs.pop("pk"))
         update_data = dict(request.data)
-        if Machine.is_refer_spec([spec_id]):
-            spec = Spec.objects.get(spec_id=spec_id)
-            for key in update_data:
-                # 如果是可更新字段或不存在字段，则忽略
-                if key in ["desc", "spec_name", "enable", *AuditedModel.AUDITED_FIELDS] or key not in spec.__dict__:
+
+        if not Machine.is_refer_spec([spec_id]):
+            return super().update(request, *args, **kwargs)
+
+        spec = self.get_object()
+        for key in update_data:
+            # 如果是可更新字段或不存在字段，则忽略
+            if key in ["desc", "spec_name", "enable", *AuditedModel.AUDITED_FIELDS] or key not in spec.__dict__:
+                continue
+            # 如果更新机型字段，则只允许拓展机型。device_class为[]表示无限制
+            elif key == "device_class":
+                if update_data[key] == []:
                     continue
-                # 如果更新机型字段，则只允许拓展机型
-                elif key == "device_class":
-                    if update_data[key] == []:
-                        continue
-                    if set(update_data[key]).issuperset(set(spec.device_class)) and spec.device_class != []:
-                        continue
-                    else:
-                        raise SpecOperateException(_("规格: {}已经被引用，只允许拓展机型").format(spec_id))
-                # 对正在被引用的规格的配置字段更改，抛出异常
-                elif update_data[key] != spec.__dict__[key]:
-                    raise SpecOperateException(_("规格: {}已经被引用，无法修改配置！(只允许拓展机型和修改描述)").format(spec.spec_name))
+                if set(update_data[key]).issuperset(set(spec.device_class)) and spec.device_class != []:
+                    continue
+                else:
+                    raise SpecOperateException(_("规格: {}已经被引用，只允许拓展机型").format(spec_id))
+            # 对正在被引用的规格的配置字段更改，抛出异常
+            elif update_data[key] != spec.__dict__[key]:
+                raise SpecOperateException(_("规格: {}已经被引用，无法修改配置！(只允许拓展机型和修改描述)").format(spec.spec_name))
 
         return super().update(request, *args, **kwargs)
 

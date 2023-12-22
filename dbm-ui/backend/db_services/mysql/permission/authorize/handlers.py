@@ -31,6 +31,7 @@ from backend.db_services.mysql.permission.authorize.dataclass import (
 from backend.db_services.mysql.permission.authorize.models import MySQLAuthorizeRecord
 from backend.db_services.mysql.permission.constants import AUTHORIZE_DATA_EXPIRE_TIME, AUTHORIZE_EXCEL_ERROR_TEMPLATE
 from backend.exceptions import ApiResultError
+from backend.ticket.builders.mysql.mysql_authorize_rules import MySQLAuthorizeRulesSerializer
 from backend.ticket.constants import TicketStatus, TicketType
 from backend.ticket.models import Ticket
 from backend.utils.cache import data_cache
@@ -205,6 +206,7 @@ class AuthorizeHandler(object):
 
     def authorize_apply(
         self,
+        request,
         user: str,
         access_db: str,
         source_ips: str,
@@ -233,6 +235,10 @@ class AuthorizeHandler(object):
                 "target_instances": [target_instance],
                 "cluster_type": cluster.cluster_type,
             }
+            authorize_info_slz = MySQLAuthorizeRulesSerializer(data={"authorize_plugin_infos": [authorize_infos]})
+            authorize_info_slz.context["request"] = request
+            authorize_info_slz.is_valid(raise_exception=True)
+
             ticket = Ticket.create_ticket(
                 bk_biz_id=bk_biz_id,
                 ticket_type=TicketType.MYSQL_AUTHORIZE_RULES
@@ -240,7 +246,7 @@ class AuthorizeHandler(object):
                 else TicketType.TENDBCLUSTER_AUTHORIZE_RULES,
                 creator=self.operator,
                 remark=_("第三方请求授权"),
-                details={"authorize_plugin_infos": [authorize_infos]},
+                details=authorize_info_slz.validated_data,
             )
             return {"task_id": ticket.id, "platform": "dbm"}
         else:
