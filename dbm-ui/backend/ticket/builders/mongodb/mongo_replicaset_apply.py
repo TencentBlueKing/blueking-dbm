@@ -92,7 +92,7 @@ class MongoReplicaSetApplyResourceParamBuilder(builders.ResourceApplyParamBuilde
                         "group_count": group_count,
                         "count": node_count,
                         "spec_id": self.ticket_data["spec_id"],
-                        "set_id": replica_set["set_id"]
+                        "set_id": replica_set["set_id"],
                     }
                 }
             }
@@ -105,8 +105,9 @@ class MongoReplicaSetApplyResourceParamBuilder(builders.ResourceApplyParamBuilde
         print(next_flow.details["ticket_data"])
 
 
-@builders.BuilderFactory.register(TicketType.MONGODB_REPLICASET_APPLY, is_apply=True,
-                                  cluster_type=ClusterType.MongoReplicaSet)
+@builders.BuilderFactory.register(
+    TicketType.MONGODB_REPLICASET_APPLY, is_apply=True, cluster_type=ClusterType.MongoReplicaSet
+)
 class MongoReplicaSetApplyFlowBuilder(BaseMongoDBTicketFlowBuilder):
     serializer = MongoReplicaSetApplyDetailSerializer
     inner_flow_builder = MongoReplicaSetApplyFlowParamBuilder
@@ -115,4 +116,3 @@ class MongoReplicaSetApplyFlowBuilder(BaseMongoDBTicketFlowBuilder):
 
     def patch_ticket_detail(self):
         print(self.ticket.details)
-
