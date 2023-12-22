@@ -4,7 +4,7 @@ package cst
 import "time"
 
 // DBTimeLayout TODO
-const DBTimeLayout = "2006-01-02 15:04:05"
+const DBTimeLayout = time.RFC3339
 
 // ReBinlogFilename binlog 文件名
 const ReBinlogFilename = `binlog\d*\.\d+$`
@@ -18,6 +18,13 @@ const (
 	ReduceStepSizeMB = 5 * 1
 	// MaxKeepDurationMin 最少保留时间
 	MaxKeepDurationMin = 10 * time.Minute
+)
+
+const (
+	RoleMaster       = "master"
+	RoleSlave        = "slave"
+	RoleRepeater     = "repeater"
+	RoleSpiderMaster = "spider_master"
 )
 
 const OldRotateDir = "/home/mysql/rotate_logbin"

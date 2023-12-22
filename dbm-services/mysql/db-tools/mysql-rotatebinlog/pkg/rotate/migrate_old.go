@@ -131,7 +131,7 @@ func DumpOldFileList(dir string, portMap map[int]models.BinlogFileModel) error {
 	return nil
 }
 
-var ReBinlogName = regexp.MustCompile(`binlog(\d+)\.\d+`)
+var ReBinlogName = regexp.MustCompile(`binlog(\d*)\.\d+`)
 
 func getPortFromBinlogName(name string) int {
 	matches := ReBinlogName.FindStringSubmatch(name)

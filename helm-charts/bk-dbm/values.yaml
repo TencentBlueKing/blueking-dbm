@@ -377,6 +377,9 @@ backup-consumer:
 
 backup-server:
   enabled: true
+  envs:
+    # default mysql user pass for hdfs download, only used in tencent internal
+    HDFS_DOWNLOAD_USER_PASS: ""
   hdfs:
     enable: false
     server_addr: "http://example.com"

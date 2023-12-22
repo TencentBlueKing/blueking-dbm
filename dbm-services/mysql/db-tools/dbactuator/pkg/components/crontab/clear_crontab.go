@@ -78,6 +78,9 @@ func (u *ClearCrontabParam) CleanDBToolsFolder() (err error) {
 		cst.MysqlRotateBinlogInstallPath,
 		cst.MySQLMonitorInstallPath,
 		cst.DBAReportBase,
+		cst.BackupClientInstallPath,
+		cst.BackupClientReportDir,
+		cst.BackupClientAuthPath,
 	}
 	for _, f := range rmList {
 		errList = append(errList, os.RemoveAll(f))
