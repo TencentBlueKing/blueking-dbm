@@ -74,11 +74,10 @@ def query_cluster_capacity(cluster_type):
 
     cluster_cap_bytes = defaultdict(dict)
 
-    domains = list(
-        Cluster.objects.filter(cluster_type=cluster_type).values_list("immute_domain", flat=True).distinct()
-    ) if cluster_type != ClusterType.Influxdb else StorageInstance.objects.filter(
-        instance_role=InstanceRole.INFLUXDB).values_list(
-        "machine__ip", flat=True
+    domains = (
+        list(Cluster.objects.filter(cluster_type=cluster_type).values_list("immute_domain", flat=True).distinct())
+        if cluster_type != ClusterType.Influxdb
+        else StorageInstance.objects.filter(instance_role=InstanceRole.INFLUXDB).values_list("machine__ip", flat=True)
     )
 
     used_data = query_cap(cluster_type, "used")
