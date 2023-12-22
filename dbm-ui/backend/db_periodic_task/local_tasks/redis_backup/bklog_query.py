@@ -130,7 +130,7 @@ class ClusterBackup:
             "redis_ip": bk_log["server_ip"],
             "redis_port": bk_log["server_port"],
             "redis_role": bk_log["role"],
-            "file_size": bk_log["backup_file_size"],
+            "file_size": int(bk_log["backup_file_size"]),
             "file_name": bk_log["backup_file"].split("/")[-1],
             # bk_log["start_time"] 是全备份快照开始的时间-》文件最后写入时间作为binlog查询开始的时间
             "file_last_mtime": bk_log["start_time"],
