@@ -29,7 +29,7 @@
       :row-class="updateRowClass"
       @clear-search="handleClearSearch" />
   </div>
-  <EditRule
+  <EditStrategy
     v-model="isShowEditStrrategySideSilder"
     :alarm-group-list="alarmGroupList"
     :alarm-group-name-map="alarmGroupNameMap"
@@ -45,7 +45,6 @@
 </template>
 <script setup lang="tsx">
   import { InfoBox } from 'bkui-vue';
-  import dayjs from 'dayjs';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
   import { useRoute } from 'vue-router';
@@ -67,9 +66,9 @@
 
   import { messageSuccess } from '@utils';
 
-  import EditRule from '../edit-strategy/Index.vue';
+  import EditStrategy from '../edit-strategy/Index.vue';
 
-  import RenderAlarmGroup from './RenderAlarmGroup.vue';
+  import RenderNotifyGroup from './RenderNotifyGroup.vue';
   import RenderTargetItem from './RenderTargetItem.vue';
 
   export type RowData = ServiceReturnType<typeof queryMonitorPolicyList>['results'][0];
@@ -99,6 +98,7 @@
   const clusterList = ref<SelectItem<string>[]>([]);
   const isTableLoading = ref(false);
   const existedNames = ref<string[]>([]);
+  const showTipMap = ref<Record<string, boolean>>({});
 
   async function fetchHostNodes() {
     isTableLoading.value = true;
@@ -164,30 +164,29 @@
       minWidth: 150,
       width: 280,
       showOverflowTooltip: false,
-      render: ({ row }: {row: RowData}) => {
-        const isInner = row.bk_biz_id === 0;
-        const isDanger = row.event_count > 0;
+      render: ({ data }: {data: RowData}) => {
+        const isInner = data.bk_biz_id === 0;
+        const isDanger = data.event_count > 0;
         const pageType = isInner ? 'read' : 'edit';
-        const isNew = dayjs().isBefore(dayjs(row.create_at).add(24, 'hour'));
         const content = <>
           {isInner && <MiniTag content={t('内置')} />}
-          {!row.is_enabled && <MiniTag content={t('已停用')} />}
+          {!data.is_enabled && <MiniTag content={t('已停用')} />}
           {isDanger && (
             <div class="monitor-alarm-danger-box" v-bk-tooltips={{
-              content: t('当前有n个未恢复事件', { n: row.event_count }),
+              content: t('当前有n个未恢复事件', { n: data.event_count }),
             }}>
             <MiniTag theme='danger'
               iconType='alert'
-              content={row.event_count}
-              onTag-click={() => handleGoMonitorPage(row.event_url)}/>
+              content={data.event_count}
+              onTag-click={() => handleGoMonitorPage(data.event_url)}/>
             </div>
           )}
-          {isNew && <MiniTag theme='success' content="NEW" />}
+          {data.isNewCreated && <MiniTag theme='success' content="NEW" />}
         </>;
         return <RenderTextEllipsisOneLine
-          text={row.name}
-          textStyle={{ color: !row.is_enabled ? '#979BA5' : '#3A84FF' }}
-          onClick={() => handleOpenSlider(row, pageType)}>
+          text={data.name}
+          textStyle={{ color: !data.is_enabled ? '#979BA5' : '#3A84FF' }}
+          onClick={() => handleOpenSlider(data, pageType)}>
           {content}
         </RenderTextEllipsisOneLine>;
       },
@@ -196,10 +195,10 @@
       label: t('监控目标'),
       field: 'targets',
       minWidth: 180,
-      render: ({ row }: {row: RowData}) => (
+      render: ({ data }: {data: RowData}) => (
         <div class="targets-box">
           {
-            row.targets.map((item) => {
+            data.targets.map((item) => {
               const title = item.rule.key;
               let list = item.rule.value;
               if (title === 'appid') {
@@ -220,12 +219,12 @@
       label: t('告警组'),
       field: 'notify_groups',
       minWidth: 180,
-      render: ({ row }: {row: RowData}) => {
-        const dataList = row.notify_groups.map(item => ({
+      render: ({ data }: {data: RowData}) => {
+        const dataList = data.notify_groups.map(item => ({
           id: `${item}`,
           displayName: alarmGroupNameMap[item],
         }));
-        return <RenderAlarmGroup data={dataList} />;
+        return <RenderNotifyGroup data={dataList} />;
       },
     },
     {
@@ -233,21 +232,27 @@
       field: 'is_enabled',
       showOverflowTooltip: true,
       minWidth: 60,
-      render: ({ row }: {row: RowData}) => {
-        const isInner = row.bk_biz_id === 0;
+      render: ({ data }: {data: RowData}) => {
+        const isInner = data.bk_biz_id === 0;
         return (
           <bk-pop-confirm
             title={t('确认停用该策略？')}
             content={t('停用后所有监控动作将会停止，请谨慎操作！')}
             disabled={isInner}
             width="320"
-            is-show={row.is_show_tip}
+            is-show={showTipMap.value[data.id]}
             trigger="manual"
             placement="bottom"
-            onConfirm={() => handleClickConfirm(row)}
-            onCancel={() => handleCancelConfirm(row)}
+            onConfirm={() => handleClickConfirm(data)}
+            onCancel={() => handleCancelConfirm(data)}
           >
-            <bk-switcher size="small" disabled={isInner} v-model={row.is_enabled} theme="primary" onChange={() => handleChangeSwitch(row)}/>
+            <bk-switcher
+              size="small"
+              disabled={isInner}
+              v-model={data.is_enabled}
+              theme="primary"
+              onChange={() => handleChangeSwitch(data)}
+            />
           </bk-pop-confirm>
         );
       },
@@ -270,26 +275,26 @@
       fixed: 'right',
       field: '',
       width: 180,
-      render: ({ row }: {row: RowData}) => {
-        const isInner = row.bk_biz_id === 0;
+      render: ({ data }: {data: RowData}) => {
+        const isInner = data.bk_biz_id === 0;
         return (
           <div class="operate-box">
           {!isInner && <bk-button
             text
             theme="primary"
-            onClick={() => handleOpenSlider(row, 'edit')}>
+            onClick={() => handleOpenSlider(data, 'edit')}>
             {t('编辑')}
           </bk-button>}
           <bk-button
             text
             theme="primary"
-            onClick={() => handleOpenSlider(row, 'clone')}>
+            onClick={() => handleOpenSlider(data, 'clone')}>
             {t('克隆')}
           </bk-button>
           <bk-button
             text
             theme="primary"
-            onClick={() => handleOpenMonitorAlarmPage(row.event_url)}>
+            onClick={() => handleOpenMonitorAlarmPage(data.event_url)}>
             {t('监控告警')}
           </bk-button>
           <bk-dropdown
@@ -303,7 +308,7 @@
                     <bk-button
                       disabled={isInner}
                       text
-                      onClick={() => handleClickDelete(row)}>
+                      onClick={() => handleClickDelete(data)}>
                         {t('删除')}
                       </bk-button>
                     </bk-dropdown-item>
@@ -435,7 +440,7 @@
     window.open(url);
   };
 
-  const updateRowClass = (row: RowData) => (dayjs().isBefore(dayjs(row.create_at).add(24, 'hour')) ? 'is-new' : '');
+  const updateRowClass = (row: RowData) => (row.isNewCreated ? 'is-new' : '');
 
   const handleClickDelete = (data: RowData) => {
     InfoBox({
@@ -451,11 +456,9 @@
 
   const handleChangeSwitch = (row: RowData) => {
     if (!row.is_enabled) {
-      nextTick(() => {
-        Object.assign(row, {
-          is_show_tip: true,
-          is_enabled: !row.is_enabled,
-        });
+      showTipMap.value[row.id] = true;
+      Object.assign(row, {
+        is_enabled: !row.is_enabled,
       });
     } else {
       // 启用
@@ -465,12 +468,11 @@
 
   const handleClickConfirm = (row: RowData) => {
     runDisablePolicy({ id: row.id });
+    showTipMap.value[row.id] = false;
   };
 
   const handleCancelConfirm = (row: RowData) => {
-    Object.assign(row, {
-      is_show_tip: false,
-    });
+    showTipMap.value[row.id] = false;
   };
 
   const handleOpenSlider = (row: RowData, type: string) => {

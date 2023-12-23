@@ -47,18 +47,10 @@
           :label="$t('Pulsar版本')"
           property="details.db_version"
           required>
-          <BkSelect
+          <DeployVersion
             v-model="formdata.details.db_version"
-            class="item-input"
-            filterable
-            :input-search="false"
-            :loading="isDbVersionLoading">
-            <BkOption
-              v-for="item in dbVersionList"
-              :key="item"
-              :label="item"
-              :value="item" />
-          </BkSelect>
+            db-type="pulsar"
+            query-key="pulsar" />
         </BkFormItem>
         <BkFormItem
           :label="$t('服务器选择')"
@@ -369,7 +361,6 @@
     useRouter,
   } from 'vue-router';
 
-  import { getVersions } from '@services/source/version';
   import type {
     BizItem,
     HostDetails,
@@ -382,6 +373,7 @@
   import CloudItem from '@components/apply-items/CloudItem.vue';
   import ClusterAlias from '@components/apply-items/ClusterAlias.vue';
   import ClusterName from '@components/apply-items/ClusterName.vue';
+  import DeployVersion from '@components/apply-items/DeployVersion.vue';
   import RegionItem from '@components/apply-items/RegionItem.vue';
   import SpecSelector from '@components/apply-items/SpecSelector.vue';
   import IpSelector from '@components/ip-selector/IpSelector.vue';
@@ -491,20 +483,6 @@
     formdata.details.nodes.broker = [];
     formdata.details.nodes.zookeeper = [];
   };
-
-  /**
-   * pulsar 版本处理
-   */
-  const isDbVersionLoading = ref(true);
-  const dbVersionList = shallowRef<Array<string>>([]);
-  getVersions({
-    query_key: 'pulsar',
-  }).then((data) => {
-    dbVersionList.value = data;
-  })
-    .finally(() => {
-      isDbVersionLoading.value = false;
-    });
 
   const makeMapByHostId = (hostList: HostDetails[]) =>  hostList.reduce((result, item) => ({
     ...result,

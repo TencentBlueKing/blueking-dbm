@@ -77,14 +77,10 @@
             :label="t('版本')"
             property="details.db_version"
             required>
-            <BkSelect
+            <DeployVersion
               v-model="state.formdata.details.db_version"
-              class="item-input"
-              :clearable="false"
-              filterable
-              :input-search="false"
-              :list="state.versions"
-              :loading="state.isLoadVersion" />
+              db-type="redis"
+              :query-key="typeInfos.pkg_type" />
           </BkFormItem>
           <BkFormItem
             :label="t('服务器选择')"
@@ -334,7 +330,6 @@
 
   import type { RedisFunctions } from '@services/model/function-controller/functionController';
   import { getCapSpecs } from '@services/source/infras';
-  import { getVersions } from '@services/source/version';
   import type {
     BizItem,
     HostDetails,
@@ -353,6 +348,7 @@
   import CloudItem from '@components/apply-items/CloudItem.vue';
   import ClusterAlias from '@components/apply-items/ClusterAlias.vue';
   import ClusterName from '@components/apply-items/ClusterName.vue';
+  import DeployVersion from '@components/apply-items/DeployVersion.vue';
   import RegionItem from '@components/apply-items/RegionItem.vue';
   import SpecSelector from '@components/apply-items/SpecSelector.vue';
   import IpSelector from '@components/ip-selector/IpSelector.vue';
@@ -457,16 +453,19 @@
         cluster_type: ClusterTypes.TWEMPROXY_REDIS_INSTANCE,
         machine_type: 'twemproxy',
         backend_machine_type: 'tendiscache',
+        pkg_type: 'redis',
       },
       [ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE]: {
         cluster_type: ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE,
         machine_type: 'twemproxy',
         backend_machine_type: 'tendisssd',
+        pkg_type: 'tendisssd',
       },
       [ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER]: {
         cluster_type: ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER,
         machine_type: 'predixy',
         backend_machine_type: 'tendisplus',
+        pkg_type: 'tendisplus',
       },
     };
     return types[state.formdata.details.cluster_type as keyof typeof types];
@@ -532,21 +531,6 @@
   }
 
   /**
-   * 获取 redis 版本信息
-   */
-  function fetchVersions(queryKey: string) {
-    state.isLoadVersion = true;
-    getVersions({ query_key: queryKey })
-      .then((res) => {
-        state.versions = res.map(value => ({ value, label: value }));
-      })
-      .finally(() => {
-        state.isLoadVersion = false;
-      });
-  }
-  fetchVersions(state.formdata.details.cluster_type);
-
-  /**
    * 获取 redis 容量信息
    */
   function fetchCapSpecs(cityCode: string) {
@@ -579,7 +563,7 @@
       });
   }
 
-  function handleChangeClusterType(value: string) {
+  function handleChangeClusterType() {
     state.formdata.details.db_version = '';
     state.formdata.details.resource_spec.proxy.spec_id = '';
     state.formdata.details.resource_spec.backend_group = {
@@ -589,7 +573,6 @@
       capacity: '',
       future_capacity: '',
     };
-    fetchVersions(value);
     isManualInput.value && fetchCapSpecs('');
   }
 

@@ -60,7 +60,7 @@ interface NewPackageParams {
   size: number,
   md5: string,
   allow_biz_ids?: number[],
-  mode?: string
+  mode?: string,
 }
 
 /**
@@ -75,4 +75,41 @@ export function createPackage(params: NewPackageParams) {
  */
 export function deletePackage(params: { id: number }) {
   return http.delete(`${path}/${params.id}/`);
+}
+
+/**
+ * 更新版本文件属性
+ */
+export function updatePackage(params: Partial<NewPackageParams> & {
+  id: number,
+  priority?: number,
+  enable?: boolean,
+}) {
+  return http.patch<NewPackageParams>(`${path}/${params.id}/`, params);
+}
+
+/**
+ * 查询组件安装包列表
+ */
+export function listPackages(params: {
+  db_type: string,
+  query_key: string,
+  limit?: number,
+  offset?: number,
+}) {
+  return http.get<string[]>(`${path}/list_install_packages/`, params);
+}
+
+/**
+ * 查询组件安装包类型
+ */
+export function listPackageTypes(params: {
+  keyword?: string,
+  db_type?: string,
+  pkg_type?: string,
+  version?: string,
+  limit?: number,
+  offset?: number,
+}) {
+  return http.get<Record<string, string[]>>(`${path}/list_install_pkg_types/`, params);
 }

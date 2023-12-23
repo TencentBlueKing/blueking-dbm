@@ -37,7 +37,6 @@ export default class DutyRule {
   id: number;
   is_enabled: boolean;
   is_show_edit: boolean;
-  is_show_tip: boolean;
   name: string;
   priority: number;
   status: string;
@@ -54,13 +53,16 @@ export default class DutyRule {
     this.effective_time = payload.effective_time;
     this.is_enabled = payload.is_enabled;
     this.is_show_edit = false;
-    this.is_show_tip = false;
     this.end_time = payload.end_time;
     this.name = payload.name;
     this.priority = payload.priority;
     this.updater = payload.updater;
     this.update_at = payload.update_at;
     this.status = this.generateStatus();
+  }
+
+  get isNewCreated() {
+    return dayjs().isBefore(dayjs(this.create_at).add(24, 'hour'));
   }
 
   generateStatus() {

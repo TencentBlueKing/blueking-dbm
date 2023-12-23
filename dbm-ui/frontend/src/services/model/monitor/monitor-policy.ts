@@ -10,7 +10,7 @@
  * on an "AS IS" BASIS; WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND; either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
 */
-
+import dayjs from 'dayjs';
 export default class MonitorPolicy {
   bk_biz_id: number;  // 所属业务，等于0则属于平台策略
   creator: string;
@@ -30,7 +30,6 @@ export default class MonitorPolicy {
   is_enabled: boolean; // 是否启用
   is_synced: boolean;
   is_checked: boolean;
-  is_show_tip: boolean;
   monitor_policy_id: number;
   monitor_indicator: string;
   name: string; // 策略名
@@ -76,7 +75,6 @@ export default class MonitorPolicy {
     this.is_enabled = payload.is_enabled;
     this.is_synced = payload.is_synced;
     this.is_checked = false;
-    this.is_show_tip = false;
     this.monitor_policy_id = payload.monitor_policy_id;
     this.monitor_indicator = payload.monitor_indicator;
     this.name = payload.name;
@@ -92,5 +90,9 @@ export default class MonitorPolicy {
     this.test_rules = payload.test_rules;
     this.updater = payload.updater;
     this.update_at = payload.update_at;
+  }
+
+  get isNewCreated() {
+    return dayjs().isBefore(dayjs(this.create_at).add(24, 'hour'));
   }
 }

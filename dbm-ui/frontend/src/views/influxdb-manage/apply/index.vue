@@ -47,18 +47,10 @@
           :label="$t('InfluxDB版本')"
           property="details.db_version"
           required>
-          <BkSelect
+          <DeployVersion
             v-model="formdata.details.db_version"
-            class="item-input"
-            filterable
-            :input-search="false"
-            :loading="isDbVersionLoading">
-            <BkOption
-              v-for="item in dbVersionList"
-              :key="item"
-              :label="item"
-              :value="item" />
-          </BkSelect>
+            db-type="influxdb"
+            query-key="influxdb" />
         </BkFormItem>
         <BkFormItem
           :label="$t('服务器选择')"
@@ -182,7 +174,6 @@
   } from 'vue-router';
 
   import { checkHost } from '@services/source/ipchooser';
-  import { getVersions } from '@services/source/version';
   import type { BizItem } from '@services/types';
 
   import { useApplyBase, useInfo } from '@hooks';
@@ -190,6 +181,7 @@
   import AffinityItem from '@components/apply-items/AffinityItem.vue';
   import BusinessItems from '@components/apply-items/BusinessItems.vue';
   import CloudItem from '@components/apply-items/CloudItem.vue';
+  import DeployVersion from '@components/apply-items/DeployVersion.vue';
   import RegionItem from '@components/apply-items/RegionItem.vue';
   import SpecSelector from '@components/apply-items/SpecSelector.vue';
   import IpSelector from '@components/ip-selector/IpSelector.vue';
@@ -265,20 +257,6 @@
   function handleChangeGroup({ name }: {name: string}) {
     groupName.value = name;
   }
-
-  /**
-   * influxdb 版本处理
-   */
-  const isDbVersionLoading = ref(true);
-  const dbVersionList = shallowRef<Array<string>>([]);
-  getVersions({
-    query_key: 'influxdb',
-  }).then((data) => {
-    dbVersionList.value = data;
-  })
-    .finally(() => {
-      isDbVersionLoading.value = false;
-    });
 
   // 更新 bookkeeper 节点
   const handleIpChange = (data: ServiceReturnType<typeof checkHost>) => {

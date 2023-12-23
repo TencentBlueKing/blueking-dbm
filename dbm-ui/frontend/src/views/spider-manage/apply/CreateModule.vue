@@ -19,24 +19,24 @@
     :model="formdata">
     <DbCard
       class="mb-16"
-      :title="$t('模块信息')">
+      :title="t('模块信息')">
       <BkFormItem
-        :label="$t('模块名称')"
+        :label="t('模块名称')"
         property="module_name"
         required
         :rules="rules.module_name">
         <BkInput
           v-model="formdata.module_name"
-          :placeholder="$t('由英文字母_数字_连字符_组成')"
+          :placeholder="t('由英文字母_数字_连字符_组成')"
           :readonly="isReadonly" />
-        <span class="belong-business">{{ $t('所属业务') }} : {{ bizInfo.name }}</span>
+        <span class="belong-business">{{ t('所属业务') }} : {{ bizInfo.name }}</span>
       </BkFormItem>
     </DbCard>
     <DbCard
       class="mb-16"
-      :title="$t('绑定数据库配置')">
+      :title="t('绑定数据库配置')">
       <BkFormItem
-        :label="$t('数据库类型')"
+        :label="t('数据库类型')"
         required>
         <BkTag
           class="mysql-type-item"
@@ -49,45 +49,27 @@
         </BkTag>
       </BkFormItem>
       <BkFormItem
-        :label="$t('数据库版本')"
+        :label="t('数据库版本')"
         property="version"
         required>
-        <BkSelect
+        <DeployVersion
           v-model="formdata.version"
-          :clearable="false"
-          :disabled="isBindSuccessfully"
-          filterable
-          :input-search="false"
-          :loading="isLoadVersions"
-          :placeholder="$t('请选择数据库版本')">
-          <BkOption
-            v-for="(item, index) in versions"
-            :key="index"
-            :label="item"
-            :value="item" />
-        </BkSelect>
+          db-type="mysql"
+          :placeholder="t('请选择数据库版本')"
+          query-key="mysql" />
       </BkFormItem>
       <BkFormItem
-        :label="$t('Spider版本')"
+        :label="t('Spider版本')"
         property="spider_version"
         required>
-        <BkSelect
+        <DeployVersion
           v-model="formdata.spider_version"
-          :clearable="false"
-          :disabled="isBindSuccessfully"
-          filterable
-          :input-search="false"
-          :loading="isLoadSpiderVersions"
-          :placeholder="$t('请选择xx', [$t('Spider版本')])">
-          <BkOption
-            v-for="(item, index) in spiderVersions"
-            :key="index"
-            :label="item"
-            :value="item" />
-        </BkSelect>
+          db-type="mysql"
+          :placeholder="t('请选择xx', [t('Spider版本')])"
+          query-key="spider" />
       </BkFormItem>
       <BkFormItem
-        :label="$t('字符集')"
+        :label="t('字符集')"
         property="character_set"
         required>
         <BkSelect
@@ -96,10 +78,10 @@
           :disabled="isBindSuccessfully"
           filterable
           :list="characterSets"
-          :placeholder="$t('请选择字符集')" />
+          :placeholder="t('请选择字符集')" />
       </BkFormItem>
     </DbCard>
-    <DbCard :title="$t('参数配置')">
+    <DbCard :title="t('参数配置')">
       <BkRadioGroup
         v-model="clusterType"
         class="mb-12"
@@ -107,12 +89,12 @@
         <BkRadioButton
           label="tendbcluster"
           style="width: 200px;">
-          {{ $t('MySQL参数配置') }}
+          {{ t('MySQL参数配置') }}
         </BkRadioButton>
         <BkRadioButton
           label="spider"
           style="width: 200px;">
-          {{ $t('Spider参数配置') }}
+          {{ t('Spider参数配置') }}
         </BkRadioButton>
       </BkRadioGroup>
       <ModuleParameterTable
@@ -132,12 +114,12 @@
         :loading="isSubmintting"
         theme="primary"
         @click="handleSubmit">
-        {{ $t('保存') }}
+        {{ t('保存') }}
       </BkButton>
       <BkButton
         :disabled="isSubmintting"
         @click="handleReset()">
-        {{ $t('重置') }}
+        {{ t('重置') }}
       </BkButton>
     </div>
   </DbForm>
@@ -147,15 +129,15 @@
   import { Message } from 'bkui-vue';
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
-  import { useRequest } from 'vue-request';
 
   import { createModules } from '@services/source/cmdb';
   import { saveModulesDeployInfo } from '@services/source/configs';
-  import { getVersions } from '@services/source/version';
 
   import { useInfo } from '@hooks';
 
   import { useGlobalBizs } from '@stores';
+
+  import DeployVersion from '@components/apply-items/DeployVersion.vue';
 
   import ModuleParameterTable from './components/ModuleParameterTable.vue';
 
@@ -224,32 +206,6 @@
       },
     ],
   };
-
-  // mysql versions
-  const {
-    data: versions,
-    loading: isLoadVersions,
-  } = useRequest(getVersions, {
-    defaultParams: [
-      {
-        query_key: 'tendbcluster',
-        db_type: 'mysql',
-      },
-    ],
-  });
-
-  // spider versions
-  const {
-    data: spiderVersions,
-    loading: isLoadSpiderVersions,
-  } = useRequest(getVersions, {
-    defaultParams: [
-      {
-        query_key: 'spider',
-        db_type: 'mysql',
-      },
-    ],
-  });
 
   // 创建模块
   const newModule = () => {

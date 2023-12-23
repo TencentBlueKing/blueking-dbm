@@ -25,17 +25,20 @@
     </BkTab>
     <FileContent
       :key="tabActive"
-      :info="activeTabInfo" />
+      :info="activeTabInfo"
+      :pkg-type-list="pkgList" />
   </div>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
+  import { useRequest } from 'vue-request';
 
   import type {
     ControllerBaseInfo,
     ExtractedControllerDataKeys,
     FunctionKeys,
   } from '@services/model/function-controller/functionController';
+  import { listPackageTypes } from '@services/source/package';
 
   import {
     useFunController,
@@ -288,6 +291,15 @@
       label: '',
       name: '',
     };
+  });
+
+  const pkgList = computed(() => pkgTypesMap.value![tabActive.value] ?? []);
+
+  const { data: pkgTypesMap } = useRequest(listPackageTypes, {
+    defaultParams: [{
+      offset: 0,
+      limit: -1,
+    }],
   });
 </script>
 <style lang="less">

@@ -41,7 +41,6 @@
 </template>
 <script setup lang="tsx">
   import { InfoBox } from 'bkui-vue';
-  import dayjs from 'dayjs';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
@@ -86,6 +85,7 @@
   const isTableLoading = ref(false);
   const sortedPriority = ref<number[]>([]);
   const existedNames = ref<string[]>([]);
+  const showTipMap = ref<Record<string, boolean>>({});
 
   const statusMap = {
     [RuleStatus.ACTIVE]: {
@@ -115,17 +115,16 @@
       label: t('规则名称'),
       field: 'name',
       minWidth: 220,
-      render: ({ row }: {row: RowData}) => {
-        const isNew = dayjs().isBefore(dayjs(row.create_at).add(24, 'hour'));
-        const isNotActive = [RuleStatus.TERMINATED, RuleStatus.EXPIRED].includes(row.status as RuleStatus);
-        const color = (isNotActive || !row.is_enabled) ? '#63656E' : '#3A84FF';
+      render: ({ data }: {data: RowData}) => {
+        const isNotActive = [RuleStatus.TERMINATED, RuleStatus.EXPIRED].includes(data.status as RuleStatus);
+        const color = (isNotActive || !data.is_enabled) ? '#63656E' : '#3A84FF';
         const content = <>
-          {isNew && <MiniTag theme='success' content="NEW" />}
+          {data.isNewCreated && <MiniTag theme='success' content="NEW" />}
         </>;
         return <RenderTextEllipsisOneLine
-          text={row.name}
+          text={data.name}
           textStyle={{ color }}
-          onClick={() => handleOperate('edit', row)}>
+          onClick={() => handleOperate('edit', data)}>
           {content}
         </RenderTextEllipsisOneLine>;
       },
@@ -134,8 +133,8 @@
       label: t('状态'),
       field: 'status',
       minWidth: 150,
-      render: ({ row }: {row: RowData}) => {
-        const { label, theme } = statusMap[row.status as RuleStatus];
+      render: ({ data }: {data: RowData}) => {
+        const { label, theme } = statusMap[data.status as RuleStatus];
         return <bk-tag theme={theme}>{label}</bk-tag>;
       },
     },
@@ -148,8 +147,8 @@
       field: 'priority',
       sort: true,
       width: 120,
-      render: ({ row }: {row: RowData}) => {
-        const level = row.priority;
+      render: ({ data }: {data: RowData}) => {
+        const level = data.priority;
         let theme = '';
         if (sortedPriority.value.length === 3) {
           const [largest, medium, least] = sortedPriority.value;
@@ -165,20 +164,20 @@
         return (
           <div class="priority-box">
             {
-              !row.is_show_edit ? <>
+              !data.is_show_edit ? <>
                 {!theme ? <bk-tag>{level}</bk-tag> : <bk-tag theme={theme} type="filled">{level}</bk-tag>}
                 <db-icon
                   class="edit-icon"
                   type="edit"
                   style="font-size: 18px"
-                  onClick={() => handleClickEditPriority(row)} />
+                  onClick={() => handleClickEditPriority(data)} />
               </> : <NumberInput
                   type='number'
                   model-value={level}
                   min={1}
                   max={100}
                   placeholder={t('请输入 1～100 的数值')}
-                  onSubmit={(value: string) => handlePriorityChange(row, value)}/>
+                  onSubmit={(value: string) => handlePriorityChange(data, value)}/>
             }
           </div>
         );
@@ -189,14 +188,14 @@
       field: 'duty_arranges',
       showOverflowTooltip: false,
       width: 250,
-      render: ({ row }: {row: RowData}) => {
+      render: ({ data }: {data: RowData}) => {
         let title = '';
-        if (row.status in statusMap) {
-          title = statusMap[row.status as RuleStatus].title;
+        if (data.status in statusMap) {
+          title = statusMap[data.status as RuleStatus].title;
         } else {
           return <div class="display-text" style="width: 27px;">--</div>;
         }
-        const peopleSet = row.duty_arranges.reduce((result, item) => {
+        const peopleSet = data.duty_arranges.reduce((result, item) => {
           item.members.forEach((member) => {
             result.add(member);
           });
@@ -205,12 +204,16 @@
         const peoples = [...peopleSet].join(' , ');
         return (
           <div class="rotate-table-column">
-            <bk-popover placement="bottom" theme="light" width={780} popoverDelay={[500, 50]}>
+            <bk-popover
+              placement="bottom"
+              theme="light"
+              width={780}
+              popoverDelay={[500, 50]}>
               {{
                 default: () => (
                   <div class="display-text">{title}: {peoples}</div>
                 ),
-                content: () => <RenderRotateTable data={row} />,
+                content: () => <RenderRotateTable data={data} />,
               }}
             </bk-popover>
           </div>
@@ -240,18 +243,23 @@
       label: t('启停'),
       field: 'is_enabled',
       width: 120,
-      render: ({ row }: { row: RowData }) => (
+      render: ({ data }: { data: RowData }) => (
       <bk-pop-confirm
         title={t('确认停用该策略？')}
         content={t('停用后，所有的业务将会停用该策略，请谨慎操作！')}
         width="320"
-        is-show={row.is_show_tip}
+        is-show={showTipMap.value[data.id]}
         trigger="manual"
         placement="bottom"
-        onConfirm={() => handleClickConfirm(row)}
-        onCancel={() => handleCancelConfirm(row)}
+        onConfirm={() => handleClickConfirm(data)}
+        onCancel={() => handleCancelConfirm(data)}
       >
-        <bk-switcher size="small" v-model={row.is_enabled} theme="primary" onChange={() => handleChangeSwitch(row)} />
+        <bk-switcher
+          size="small"
+          v-model={data.is_enabled}
+          theme="primary"
+          onChange={() => handleChangeSwitch(data)}
+        />
       </bk-pop-confirm>
     ),
     },
@@ -261,24 +269,24 @@
       showOverflowTooltip: false,
       field: '',
       width: 180,
-      render: ({ row }: {row: RowData}) => (
+      render: ({ data }: {data: RowData}) => (
       <div class="operate-box">
         <bk-button
           text
           theme="primary"
-          onClick={() => handleOperate('edit', row)}>
+          onClick={() => handleOperate('edit', data)}>
           {t('编辑')}
         </bk-button>
         <bk-button
           text
           theme="primary"
-          onClick={() => handleOperate('clone', row)}>
+          onClick={() => handleOperate('clone', data)}>
           {t('克隆')}
         </bk-button>
-        {!row.is_enabled && <bk-button
+        {!data.is_enabled && <bk-button
           text
           theme="primary"
-          onClick={() => handleDelete(row)}>
+          onClick={() => handleDelete(data)}>
           {t('删除')}
         </bk-button>}
       </div>),
@@ -343,7 +351,7 @@
     immediate: true,
   });
 
-  const updateRowClass = (row: RowData) => (dayjs().isBefore(dayjs(row.create_at).add(24, 'hour')) ? 'is-new' : '');
+  const updateRowClass = (row: RowData) => (row.isNewCreated ? 'is-new' : '');
 
   const fetchHostNodes = async () => {
     isTableLoading.value = true;
@@ -385,11 +393,9 @@
 
   const handleChangeSwitch = async (row: RowData) => {
     if (!row.is_enabled) {
-      nextTick(() => {
-        Object.assign(row, {
-          is_show_tip: true,
-          is_enabled: !row.is_enabled,
-        });
+      showTipMap.value[row.id] = true;
+      Object.assign(row, {
+        is_enabled: !row.is_enabled,
       });
     } else {
       // 启用
@@ -411,13 +417,12 @@
       // 停用成功
       messageSuccess(t('停用成功'));
     }
+    showTipMap.value[row.id] = false;
     fetchHostNodes();
   };
 
   const handleCancelConfirm = (row: RowData) => {
-    Object.assign(row, {
-      is_show_tip: false,
-    });
+    showTipMap.value[row.id] = false;
   };
 
   const handleOperate = (type: string, row?: RowData) => {
