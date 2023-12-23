@@ -71,12 +71,12 @@ class ResourceViewSet(SystemViewSet):
         """获取拓扑图"""
         return Response(self.query_class.get_topo_graph(bk_biz_id, cluster_id))
 
-    @action(methods=["GET"], detail=False, url_path="export_cluster")
+    @action(methods=["POST"], detail=False, url_path="export_cluster")
     def export_cluster(self, request, bk_biz_id: int):
         """导出集群数据为 excel 文件"""
         return self.query_class.export_cluster(bk_biz_id)
 
-    @action(methods=["GET"], detail=False, url_path="export_instance")
+    @action(methods=["POST"], detail=False, url_path="export_instance")
     def export_instance(self, request, bk_biz_id: int):
         """导出实例数据为 excel 文件"""
         return self.query_class.export_instance(bk_biz_id)
