@@ -79,10 +79,9 @@ jobs:
       uses: peter-evans/create-pull-request@v3
       with:
         token: "${{ secrets.WORKFLOW_ACTION_TOKEN }}"
-        title: 'update medium.lock'
+        title: 'chore: update medium.lock #1'
         body: ''
         branch: '${{ steps.get-current-branch.outputs.current_branch }}'
-        base: 'medium_lock'
 
     - name: Auto Add Release File
       id: add-release-file
