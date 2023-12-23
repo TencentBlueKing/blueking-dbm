@@ -44,3 +44,8 @@ class SyncMediumSerializer(serializers.Serializer):
 
     sync_medium_infos = serializers.ListSerializer(help_text=_("介质同步信息"), child=MediumDetailSerializer())
     db_type = serializers.ChoiceField(help_text=_("集群类型"), choices=DBType.get_choices())
+
+
+class ListPackageVersionSerializer(serializers.Serializer):
+    db_type = serializers.ChoiceField(help_text=_("数据库类型"), choices=DBType.get_choices())
+    query_key = serializers.ChoiceField(help_text=_("查询关键字"), choices=PackageType.get_choices())

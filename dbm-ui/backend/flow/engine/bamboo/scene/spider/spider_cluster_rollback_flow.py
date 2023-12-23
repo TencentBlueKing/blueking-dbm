@@ -132,7 +132,7 @@ class TenDBRollBackDataFlow(object):
                 "file_target_path": f"/data/dbbak/{self.root_id}/{remote_node['new_master']['port']}",
                 "cluster_id": self.data["source_cluster_id"],
                 "bk_cloud_id": clusters_info["bk_cloud_id"],
-                "backupinfo": backup_info["remote_node"][str(shard_id)],
+                "backupinfo": backup_info["remote_node"][int(shard_id)],
                 "rollback_time": self.data["rollback_time"],
                 "rollback_type": self.data["rollback_type"],
                 "databases": self.data["databases"],
