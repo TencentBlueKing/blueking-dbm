@@ -22,9 +22,15 @@ from backend.bk_web import viewsets
 from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.core.storages.storage import get_storage
 from backend.db_package.constants import INSTALL_PACKAGE_LIST
+from backend.db_package.exceptions import PackageNotExistException
 from backend.db_package.filters import PackageListFilter
 from backend.db_package.models import Package
-from backend.db_package.serializers import PackageSerializer, SyncMediumSerializer, UploadPackageSerializer
+from backend.db_package.serializers import (
+    ListPackageVersionSerializer,
+    PackageSerializer,
+    SyncMediumSerializer,
+    UploadPackageSerializer,
+)
 from backend.flow.consts import MediumEnum
 from backend.iam_app.handlers.drf_perm import GlobalManageIAMPermission
 from backend.utils.files import md5sum
@@ -77,6 +83,27 @@ class DBPackageViewSet(viewsets.AuditedModelViewSet):
     @action(methods=["GET"], detail=False)
     def list_install_pkg_types(self, request, *args, **kwargs):
         return Response(INSTALL_PACKAGE_LIST)
+
+    @common_swagger_auto_schema(
+        operation_summary=_("查询组件安装包类型"),
+        query_serializer=ListPackageVersionSerializer(),
+        tags=[DB_PACKAGE_TAG],
+    )
+    @action(methods=["GET"], detail=False, serializer_class=ListPackageVersionSerializer, filter_class=None)
+    def list_install_packages(self, request, *args, **kwargs):
+        db_type, pkg_type = self.validated_data["db_type"], self.validated_data["query_key"]
+
+        if pkg_type not in INSTALL_PACKAGE_LIST[db_type]:
+            raise PackageNotExistException(_("请保证过滤类型是[{}]安装包类型").format(db_type))
+
+        package_versions = (
+            Package.objects.filter(db_type=db_type, pkg_type=pkg_type, enable=True)
+            .order_by("-priority", "-update_at")
+            .values_list("version", flat=True)
+        )
+        # 对有序列表package_versions进行去重
+        package_versions = list(dict.fromkeys(list(package_versions)))
+        return Response(package_versions)
 
     @common_swagger_auto_schema(
         operation_summary=_("更新版本文件属性"),
