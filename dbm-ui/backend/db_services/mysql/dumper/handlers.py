@@ -27,6 +27,9 @@ class DumperHandler:
         @param need_status: 是否需要dumper正在迁移的信息
         """
 
+        if not dumper_results:
+            return
+
         # 查询集群相关信息
         cluster_ids = [data["cluster_id"] for data in dumper_results]
         id__cluster = {
@@ -37,14 +40,16 @@ class DumperHandler:
         # 补充订阅实例的信息
         for data in dumper_results:
             extra_config = data.pop("extra_config")
-            # dumper是否已经不在集群master主机上 ---> 需要迁移
-            source_cluster = id__cluster[data["cluster_id"]]
-            master = source_cluster.storageinstance_set.get(instance_inner_role=InstanceInnerRole.MASTER.value)
-            data["need_transfer"] = data["ip"] != master.machine.ip
-            # 补充集群信息和集群的master信息
-            data["source_cluster"] = source_cluster.simple_desc
-            data["source_cluster"]["master_ip"] = master.machine.ip
-            data["source_cluster"]["master_port"] = master.port
+            # 补充订阅集群相关信息
+            if data["cluster_id"] in id__cluster:
+                # dumper是否已经不在集群master主机上 ---> 需要迁移
+                source_cluster = id__cluster[data["cluster_id"]]
+                master = source_cluster.storageinstance_set.get(instance_inner_role=InstanceInnerRole.MASTER.value)
+                data["need_transfer"] = data["ip"] != master.machine.ip
+                # 补充集群信息和集群的master信息
+                data["source_cluster"] = source_cluster.simple_desc
+                data["source_cluster"]["master_ip"] = master.machine.ip
+                data["source_cluster"]["master_port"] = master.port
             # 补充订阅配置信息
             dumper_config_fields = ["dumper_id", "protocol_type", "target_address", "target_port", "add_type"]
             for field in dumper_config_fields:
@@ -55,13 +60,12 @@ class DumperHandler:
             return
 
         # 查询dumper实例的状态(效率考虑，仅支持查单个业务下的), 因为dumper实例没有record表，因此直接查询正在运行的相关单据
-        # TODO: 缺少切换的联动查询
         dumper_ticket_types = TicketType.get_ticket_type_by_db("tbinlogdumper")
         dumper_ticket_types.remove(TicketType.TBINLOGDUMPER_INSTALL)
+        dumper_ticket_types.extend([TicketType.MYSQL_MASTER_SLAVE_SWITCH, TicketType.MYSQL_MASTER_FAIL_OVER])
         active_tickets = Ticket.objects.filter(
             bk_biz_id=bk_biz_id, status=TicketStatus.RUNNING, ticket_type__in=dumper_ticket_types
         )
-
         # 获取每个dumper单据状态与id的映射
         dumper_inst_id__ticket: Dict[int, str] = {}
         for ticket_type in dumper_ticket_types:

@@ -78,6 +78,7 @@ class ImportResourceInitStepFlow(object):
                     SystemSettings.get_setting_value(key=SystemSettingsEnum.MANAGE_TOPO.value)["resource_module_id"]
                 ],
                 "bk_host_ids": [host["host_id"] for host in ip_list],
+                "update_host_properties": {"dbm_meta": [], "need_monitor": False, "update_operator": False},
             },
         )
 

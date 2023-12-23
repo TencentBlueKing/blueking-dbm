@@ -13,10 +13,11 @@ from django.utils.translation import ugettext_lazy as _
 
 from backend.flow.engine.controller.mysql import MySQLController
 from backend.ticket import builders
-from backend.ticket.builders.mysql.base import BaseMySQLTicketFlowBuilder, MySQLBasePauseParamBuilder
+from backend.ticket.builders.mysql.base import MySQLBasePauseParamBuilder
 from backend.ticket.builders.mysql.mysql_master_slave_switch import (
     MysqlDumperMigrateParamBuilder,
     MysqlMasterSlaveSwitchDetailSerializer,
+    MysqlMasterSlaveSwitchFlowBuilder,
     MysqlMasterSlaveSwitchParamBuilder,
 )
 from backend.ticket.constants import FlowRetryType, TicketType
@@ -31,7 +32,7 @@ class MysqlMasterFailOverParamBuilder(MysqlMasterSlaveSwitchParamBuilder):
 
 
 @builders.BuilderFactory.register(TicketType.MYSQL_MASTER_FAIL_OVER)
-class MysqlMasterFailOverFlowBuilder(BaseMySQLTicketFlowBuilder):
+class MysqlMasterFailOverFlowBuilder(MysqlMasterSlaveSwitchFlowBuilder):
     serializer = MysqlMasterFailOverDetailSerializer
     inner_flow_builder = MysqlMasterFailOverParamBuilder
     inner_flow_name = _("主库故障切换执行")
