@@ -166,7 +166,7 @@ func (incr *TplusRocksDBIncrBack) GetTplusIncrbacks(binlogFileList []FileDetail)
 		// size, _ := strconv.Atoi(str01.Size)
 		if taskID < 0 || str01.Size < 0 {
 			//backup_taskid 小于0 或backup_size 小于0的备份,是无效备份
-			msg := fmt.Sprintf("filename:%s  incrBackup:%s backupTaskid:%s<0  backupSize:%s<0 is invalid,skip...",
+			msg := fmt.Sprintf("filename:%s  incrBackup:%s backupTaskid:%s<0  backupSize:%d<0 is invalid,skip...",
 				incr.FileName, str01.FileName, str01.TaskID, str01.Size)
 			mylog.Logger.Info(msg)
 			continue
@@ -1099,11 +1099,11 @@ func (incr *TplusRocksDBIncrBack) ImportOneBinlogToTplus(tplusIP string, tplusPo
 	mylog.Logger.Info("ImportOneBinlogToTplus start ... ")
 	incrBackFile := filepath.Join(incr.SaveMyDir, bkItem.DecompressedFile)
 	importCmd := fmt.Sprintf(
-		"binlog_tool --logfile=%s --mode=base64 --start-position=%d --end-datetime=%d|redis-cli -h %s -p %d -a %s",
-		incrBackFile, incr.StartPos, incr.EndTime.Unix()*1000, tplusIP, tplusPort, tplusPasswd)
+		"binlog_tool --logfile=%s --mode=base64 --start-position=%d --end-datetime=%d|%s -h %s -p %d -a %s",
+		incrBackFile, incr.StartPos, incr.EndTime.Unix()*1000, consts.TendisplusRediscli, tplusIP, tplusPort, tplusPasswd)
 	logCmd := fmt.Sprintf(
-		"binlog_tool --logfile=%s --mode=base64 --start-position=%d --end-datetime=%d|redis-cli -h %s -p %d -a xxxx",
-		incrBackFile, incr.StartPos, incr.EndTime.Unix()*1000, tplusIP, tplusPort)
+		"binlog_tool --logfile=%s --mode=base64 --start-position=%d --end-datetime=%d|%s -h %s -p %d -a xxxx",
+		incrBackFile, incr.StartPos, incr.EndTime.Unix()*1000, consts.TendisplusRediscli, tplusIP, tplusPort)
 
 	mylog.Logger.Info("导入binlog,命令:%v", logCmd)
 	ret01, err := util.RunLocalCmd("bash", []string{"-c", importCmd}, "", nil, 1*time.Hour)

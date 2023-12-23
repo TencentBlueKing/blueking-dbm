@@ -141,6 +141,7 @@ const (
 	RedisCliBin              = "/home/mysql/dbtools/redis-cli"
 	TendisDataCheckBin       = "/home/mysql/dbtools/tendisDataCheck"
 	RedisDiffKeysRepairerBin = "/home/mysql/dbtools/redisDiffKeysRepairer"
+	TendisplusRediscli       = "/home/mysql/dbtools/redis-cli"
 )
 
 // bk-dbmon path

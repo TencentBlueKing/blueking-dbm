@@ -76,7 +76,11 @@ func NewFullbackPull(sourceIP, filehead, rollbackTime,
 		KvstoreNums: kvstoreNums,
 		TendisType:  tendisType,
 	}
+	mylog.Logger.Info("NewFullbackPull rollbackTime:%v", rollbackTime)
 	ret.RollbackDstTime, ret.Err = time.ParseInLocation(consts.UnixtimeLayoutZone, rollbackTime, time.Local)
+	mylog.Logger.Info("NewFullbackPull UnixtimeLayoutZone ret.RollbackDstTime:%v",
+		ret.RollbackDstTime.Format(consts.UnixtimeLayoutZone))
+	mylog.Logger.Info("NewFullbackPull ret.RollbackDstTime:%v", ret.RollbackDstTime)
 	if ret.Err != nil {
 		ret.Err = fmt.Errorf("rollbackTime:%s time.parese fail,err:%s,consts.UnixtimeLayoutZone:%s",
 			rollbackTime, ret.Err, consts.UnixtimeLayoutZone)
@@ -196,7 +200,10 @@ func (full *TendisFullBackPull) GetFullFilesSpecTimeRange(fullFileList []FileDet
 		}
 
 	}
-	mylog.Logger.Info("GetFullFilesSpecTimeRange backs[0]:%v", backs[0])
+	for _, bk02 := range backs {
+		mylog.Logger.Info("GetFullFilesSpecTimeRange bk:%v", bk02)
+	}
+
 	return
 }
 
@@ -205,7 +212,7 @@ func (full *TendisFullBackPull) GetTendisFullbackNearestRkTime(fullFileList []Fi
 	mylog.Logger.Info("Check TendisFullbackNearestRkTime start ... ")
 	//从备份列表中选择最靠近 回档目标时间 的备份
 	var nearestFullbk *TendisFullBackItem = nil
-
+	mylog.Logger.Info("GetTendisFullbackNearestRkTime fullFileList:%v", fullFileList)
 	backs := full.GetFullFilesSpecTimeRange(fullFileList)
 	if full.Err != nil {
 		err := fmt.Errorf("Check GetFullFilesSpecTimeRange failed :%v", full.Err)
@@ -213,10 +220,13 @@ func (full *TendisFullBackPull) GetTendisFullbackNearestRkTime(fullFileList []Fi
 		full.Err = err
 		return
 	}
+	mylog.Logger.Info("GetTendisFullbackNearestRkTime len(backs):%d", len(backs))
+	mylog.Logger.Info("GetTendisFullbackNearestRkTime backs[0]:%v", backs[0])
 	mylog.Logger.Info("Check GetFullFilesSpecTimeRange finish ")
 	// 1、先找到一个最靠近 回档目标时间 的备份文件
 	for _, bk01 := range backs {
 		bkItem := bk01
+		mylog.Logger.Info("GetTendisFullbackNearestRkTime bkItem:%v", bkItem)
 		//只需要那些BackupStart 小于等于 回档目标时间 的备份
 		if bkItem.BackupStart.Before(full.RollbackDstTime) == true ||
 			bkItem.BackupStart.Time == full.RollbackDstTime {
@@ -250,7 +260,7 @@ func (full *TendisFullBackPull) GetTendisFullbackNearestRkTime(fullFileList []Fi
 		}
 		if nearestFullbk == nil {
 			full.Err = fmt.Errorf("filename 正则:%s 最近%d天内没找到小于回档目标时间[%s]的全备",
-				full.FileHead, LastNDaysFullBack(), full.RollbackDstTime.Local().Format(consts.UnixtimeLayoutZone))
+				full.FileHead, LastNDaysFullBack(), full.RollbackDstTime)
 			mylog.Logger.Error(full.Err.Error())
 			return
 		}
@@ -271,7 +281,7 @@ func (full *TendisFullBackPull) GetTendisFullbackNearestRkTime(fullFileList []Fi
 		return
 	}
 	full.Err = fmt.Errorf("GetTendisFullbackNearestRkTime: filename 正则:%s 最近%d天内没找到小于回档目标时间[%s]的全备",
-		full.FileHead, LastNDaysFullBack(), full.RollbackDstTime.Local().Format(consts.UnixtimeLayoutZone))
+		full.FileHead, LastNDaysFullBack(), full.RollbackDstTime)
 	mylog.Logger.Error(full.Err.Error())
 
 	return
@@ -1039,10 +1049,10 @@ func (full *TendisFullBackPull) RestoreBackup(dstTendisIP string, dstTendisPort 
 	}
 	mylog.Logger.Info("full.ResultFullbackup[0].ClusterMeataDir:%s", full.ResultFullbackup[0].ClusterMeataDir)
 	//这里会强制(force)恢复全备,检查tendisplus是否为空需要自己完成
-	restoreCmd := fmt.Sprintf("redis-cli  -h %s -p %d -a %s restorebackup all %s force",
-		dstTendisIP, dstTendisPort, dstTendisPasswd, full.ResultFullbackup[0].ClusterMeataDir)
-	logCmd := fmt.Sprintf("redis-cli -h %s -p %d -a xxxx restorebackup all %s force",
-		dstTendisIP, dstTendisPort, full.ResultFullbackup[0].ClusterMeataDir)
+	restoreCmd := fmt.Sprintf("%s  -h %s -p %d -a %s restorebackup all %s force",
+		consts.TendisplusRediscli, dstTendisIP, dstTendisPort, dstTendisPasswd, full.ResultFullbackup[0].ClusterMeataDir)
+	logCmd := fmt.Sprintf("%s -h %s -p %d -a xxxx restorebackup all %s force",
+		consts.TendisplusRediscli, dstTendisIP, dstTendisPort, full.ResultFullbackup[0].ClusterMeataDir)
 	mylog.Logger.Info("开始恢复全备,恢复命令:%s", logCmd)
 
 	ret01, err := util.RunLocalCmd("bash", []string{"-c", restoreCmd}, "", nil, 600*time.Second)

@@ -725,6 +725,7 @@ func (task *TendisInsRecoverTask) PullFullbackup() error {
 		}
 		//
 		task.runtime.Logger.Info("Fullbackup fullBack.FileHead :%s", fullBack.FileHead)
+		task.runtime.Logger.Info("PullFullbackup task.RecoveryTimePoint :%s", task.RecoveryTimePoint)
 
 	} else if task.TendisType == consts.TendisTypeTendisSSDInsance {
 		filename := fmt.Sprintf("TENDISSSD-FULL-slave-%s-%d", task.SourceIP, task.SourcePort)
@@ -944,15 +945,16 @@ func (task *TendisInsRecoverTask) CheckRollbackResult() error {
 			symbol = ">"
 		}
 		if symbol != "" {
-			msg = fmt.Sprintf("目的tendisplus:%s 源tendisplus:%s rocksdbid:%d 回档到时间:%s %s 目的时间:%s",
-				redisAddr, srcRedisAddr, i, symbol,
+			msg = fmt.Sprintf("目的tendisplus:%s 源tendisplus:%s rocksdbid:%d 回档心跳时间:%s %s 回档目的时间:%s",
+				redisAddr, srcRedisAddr, i,
 				hearbeatVal.Local().Format(consts.UnixtimeLayoutZone),
+				symbol,
 				rollbackDstTime.Local().Format(consts.UnixtimeLayoutZone))
 			errList = append(errList)
 			mylog.Logger.Error(msg)
 			continue
 		}
-		msg = fmt.Sprintf("目的tendisplus:%s 源tendisplus:%s rocksdbid:%d 回档到时间:%s =~ 目的时间:%s",
+		msg = fmt.Sprintf("目的tendisplus:%s 源tendisplus:%s rocksdbid:%d 回档心跳时间:%s =~ 回档目的时间:%s",
 			redisAddr, srcRedisAddr, i,
 			hearbeatVal.Local().Format(consts.UnixtimeLayoutZone),
 			rollbackDstTime.Local().Format(consts.UnixtimeLayoutZone))
@@ -1122,10 +1124,10 @@ func (task *TendisInsRecoverTask) getNeWTempIPClusterNodes() error {
 		}
 	}
 
-	cmd := fmt.Sprintf("cd %s && redis-cli -h %s -p %d -a %s cluster nodes > cluster_nodes.txt",
-		task.RecoverDir, task.NeWTempIP, task.NewTmpPort, password)
-	logCmd := fmt.Sprintf("cd %s && redis-cli -h %s -p %d -a xxxx cluster nodes > cluster_nodes.txt",
-		task.RecoverDir, task.NeWTempIP, task.NewTmpPort)
+	cmd := fmt.Sprintf("cd %s && %s -h %s -p %d -a %s cluster nodes > cluster_nodes.txt",
+		task.RecoverDir, consts.TendisplusRediscli, task.NeWTempIP, task.NewTmpPort, password)
+	logCmd := fmt.Sprintf("cd %s && %s -h %s -p %d -a xxxx cluster nodes > cluster_nodes.txt",
+		task.RecoverDir, consts.TendisplusRediscli, task.NeWTempIP, task.NewTmpPort)
 	task.runtime.Logger.Info("获取cluster nodes信息:%s", logCmd)
 	ret01, err := util.RunLocalCmd("bash", []string{"-c", cmd}, "", nil, 600*time.Second)
 	if err != nil {
