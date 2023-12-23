@@ -75,6 +75,24 @@
           show-word-limit
           type="textarea" />
       </BkFormItem>
+      <BkFormItem :label="t('是否启用')">
+        <BkPopConfirm
+          :confirm-text="formdata.enable ? t('停用') : t('启用')"
+          :content="formdata.enable ? t('停用后，在资源规格选择时，将不可见，且不可使用') : t('启用后，在资源规格选择时，将开放选择')"
+          :is-show="isShowSwitchTip"
+          placement="bottom"
+          :title="formdata.enable ? t('确认停用该规格？') : t('确认启用该规格？')"
+          trigger="manual"
+          width="308"
+          @cancel="handleCancelSwitch"
+          @confirm="handleConfirmSwitch">
+          <BkSwitcher
+            v-model="formdata.enable"
+            size="small"
+            theme="primary"
+            @change="handleChangeSwitch" />
+        </BkPopConfirm>
+      </BkFormItem>
     </DbForm>
   </div>
   <div
@@ -188,6 +206,7 @@
       storage_spec: genStorageSpec(),
       device_class: [] as string[],
       desc: '',
+      enable: true,
       spec_cluster_type: props.clusterType,
       spec_machine_type: props.machineType,
       spec_name: '',
@@ -209,7 +228,10 @@
   const formdata = ref(initFormdata());
   const isLoading = ref(false);
   const isCustomInput = ref(false);
+  const isShowSwitchTip = ref(false);
+
   const initFormdataStringify = JSON.stringify(formdata.value);
+
   const isChange = computed(() => JSON.stringify(formdata.value) !== initFormdataStringify);
 
   const nameRules = computed(() => [
@@ -245,6 +267,21 @@
     }
   }, { deep: true });
 
+  const handleCancelSwitch = () => {
+    isShowSwitchTip.value = false;
+  };
+
+  const handleChangeSwitch = () => {
+    isShowSwitchTip.value = true;
+    formdata.value.enable = !formdata.value.enable;
+  };
+
+  const handleConfirmSwitch = () => {
+    formdata.value.enable = !formdata.value.enable;
+    handleCancelSwitch();
+  };
+
+
   const getName = () => {
     const { cpu, mem, storage_spec: StorageSpec, qps } = formdata.value;
     const displayList = [
@@ -279,7 +316,7 @@
     formRef.value.validate()
       .then(() => {
         const params = Object.assign(_.cloneDeep(formdata.value), {
-          specId: (formdata.value as ResourceSpecModel).spec_id,
+          spec_id: (formdata.value as ResourceSpecModel).spec_id,
           device_class: formdata.value.device_class.filter(item => item),
           storage_spec: formdata.value.storage_spec.filter(item => item.mount_point && item.size && item.type),
         });
@@ -301,7 +338,7 @@
           delete params.instance_num;
         }
 
-        if (hasQPS.value) {
+        if (hasQPS) {
           params.qps = {
             max: Number(params.qps?.max),
             min: Number(params.qps?.min),
