@@ -1709,6 +1709,7 @@ var CmdWhiteList = []string{
 	"INCRSYNC",
 	"readonly",
 	"adminset",
+	"select",
 }
 
 // IsRedisUsing 通过执行monitor命令确认redis是否在使用(过滤掉dba执行的命令)

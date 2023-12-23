@@ -111,26 +111,28 @@ class RedisDataStructureFlow(object):
             )
 
             if act_kwargs.cluster["cluster_type"] == ClusterType.TendisPredixyTendisplusCluster.value:
+                logger.info("redis_data_structure_flow kvstorecount:{}".format(redis_config["kvstorecount"]))
                 act_kwargs.cluster["kvstorecount"] = redis_config["kvstorecount"]
             act_kwargs.cluster["ticket_type"] = self.data["ticket_type"]
 
             cluster_kwargs = deepcopy(act_kwargs)
             # 源节点列表
-            cluster_src_instance = []
+            logger.info("redis_data_structure_flow  info['master_instances']: {}".format(info["master_instances"]))
             # sass 层传入节点信息（集群维度传入所有节点）
-            if info["master_instances"]:
-                # 根据传入的master_instance 获取其slave_instance
-                for slave_instance, master_instance in act_kwargs.cluster["slave_ins_map"].items():
-                    for backup_master_instance in info["master_instances"]:
-                        if backup_master_instance == master_instance:
-                            cluster_src_instance.append(slave_instance)
+            # 根据传入的master_instance 获取其slave_instance
+            cluster_src_instance = self.get_slave_instance_by_master(info["master_instances"], cluster_kwargs)
 
-            # 计算每台主机部署的节点数
-            avg = int(len(cluster_src_instance) // len(info["redis"]))
-            # 计算整除后多于的节点数
-            remainder = int(len(cluster_src_instance) % len(info["redis"]))
             logger.info("redis_data_structure_flow cluster_src_instance: {}".format(cluster_src_instance))
+            logger.info("redis_data_structure_flow  len(info['redis']): {}".format(len(info["redis"])))
 
+            if len(info["redis"]) > 0:
+                # 计算每台主机部署的节点数
+                avg = int(len(cluster_src_instance) // len(info["redis"]))
+                # 计算整除后多于的节点数
+                remainder = int(len(cluster_src_instance) % len(info["redis"]))
+                logger.info("redis_data_structure_flow info['redis']: {}".format(info["redis"]))
+            else:
+                raise ValueError("info['redis'] len < 0, please check!")
             # ### 部署redis ############################################################
             sub_pipelines_install = []
             cluster_dst_instance = []
@@ -159,14 +161,14 @@ class RedisDataStructureFlow(object):
                 for inst_no in range(0, instance_numb):
                     port = DEFAULT_REDIS_START_PORT + inst_no
                     cluster_dst_instance.append("{}{}{}".format(new_master, IP_PORT_DIVIDER, port))
-
+            logger.info("redis_data_structure_flow cluster_dst_instance: {}".format(cluster_dst_instance))
             # 检查节点总数是否相等
             if len(info["master_instances"]) != len(cluster_dst_instance):
                 raise ValueError("The total number of nodes in both clusters must be equal.")
 
             # 使用zip函数将源集群和临时集群的节点一一对应
             node_pairs = list(zip(cluster_src_instance, cluster_dst_instance))
-
+            logger.info(_("redis_data_structure_flow 源集群和临时集群的节点一一对应关系node_pairs: {}".format(node_pairs)))
             # ### 下发actuator包############################################################
             acts_lists = []
             first_act_kwargs = deepcopy(act_kwargs)
@@ -254,6 +256,7 @@ class RedisDataStructureFlow(object):
             acts_list, acts_list_push_json = self.get_prod_temp_instance_pairs(
                 act_kwargs, node_pairs, info, tendis_type, dest_dir
             )
+            logger.info(_("redis_data_structure_flow acts_list_push_json: {}".format(acts_list_push_json)))
 
             # ### 检查新机器磁盘空间和内存是否够##############################################
             acts_list_disk_check = self.generate_acts_list_disk_check(
@@ -422,9 +425,11 @@ class RedisDataStructureFlow(object):
             multi_total_size = 0
             for act in acts_list:
                 data_params = act["kwargs"]["cluster"]
+                logger.info(_("generate_acts_list_disk_check_data_params: {}".format(data_params)))
                 full_size = 0
                 all_binlog_size = 0
                 for full in data_params["full_file_list"]:
+                    logger.info(_("generate_acts_list_disk_check full: {}".format(full)))
                     full_size += int(full["size"])
                 # ssd和tendisplus才有binlog文件
                 if cluster_type in [
@@ -432,6 +437,7 @@ class RedisDataStructureFlow(object):
                     ClusterType.TwemproxyTendisSSDInstance.value,
                 ]:
                     for binlog in data_params["binlog_file_list"]:
+                        logger.info(_("generate_acts_list_disk_check binlog: {}".format(binlog)))
                         all_binlog_size += int(binlog["size"])
                 total_size = full_size + all_binlog_size
                 if data_params["new_temp_ip"] == new_master:
@@ -458,7 +464,21 @@ class RedisDataStructureFlow(object):
             tendis_type = ClusterType.TendisSSDInstance.value
         else:
             raise NotImplementedError("Not supported tendis type: %s" % cluster_type)
+        logger.info(_("redis_data_structure_flow cluster_type: {}".format(cluster_type)))
         return tendis_type
+
+    @staticmethod
+    def get_slave_instance_by_master(master_instances: list, act_kwargs: ActKwargs) -> list:
+        # 根据传入的master_instance 获取其slave_instance
+        cluster_src_instance = []
+        if not master_instances:
+            return []
+        for master_instance in master_instances:
+            if master_instance in act_kwargs.cluster["master_ins_slave_ins_map"]:
+                slave_instance = act_kwargs.cluster["master_ins_slave_ins_map"][master_instance]
+                cluster_src_instance.append(slave_instance)
+
+        return cluster_src_instance
 
     @staticmethod
     def __get_cluster_info(bk_biz_id: int, cluster_id: int) -> dict:
@@ -472,6 +492,7 @@ class RedisDataStructureFlow(object):
         slave_master_map = defaultdict()
         slave_ports = defaultdict(list)
         slave_ins_map = defaultdict()
+        master_ins_slave_ins_map = defaultdict()
         master_nums = len(cluster.storageinstance_set.filter(instance_role=InstanceRole.REDIS_MASTER.value))
         for master_obj in cluster.storageinstance_set.filter(instance_role=InstanceRole.REDIS_MASTER.value):
             slave_obj = master_obj.as_ejector.get().receiver
@@ -479,6 +500,9 @@ class RedisDataStructureFlow(object):
             slave_ins_map["{}{}{}".format(slave_obj.machine.ip, IP_PORT_DIVIDER, slave_obj.port)] = "{}{}{}".format(
                 master_obj.machine.ip, IP_PORT_DIVIDER, master_obj.port
             )
+            master_ins_slave_ins_map[
+                "{}{}{}".format(master_obj.machine.ip, IP_PORT_DIVIDER, master_obj.port)
+            ] = "{}{}{}".format(slave_obj.machine.ip, IP_PORT_DIVIDER, slave_obj.port)
 
             ifmaster = slave_master_map.get(slave_obj.machine.ip)
             if ifmaster and ifmaster != master_obj.machine.ip:
@@ -506,6 +530,7 @@ class RedisDataStructureFlow(object):
             "slave_ports": dict(slave_ports),
             "slave_ins_map": dict(slave_ins_map),
             "slave_master_map": dict(slave_master_map),
+            "master_ins_slave_ins_map": dict(master_ins_slave_ins_map),
             "db_version": cluster.major_version,
             "domain_name": cluster_info["clusterentry_set"]["dns"][0]["domain"],
             "redis_slave_set": redis_slave_set,
@@ -513,6 +538,7 @@ class RedisDataStructureFlow(object):
 
     def __init_builder(self, operate_name: str, info: dict):
         cluster_info = self.__get_cluster_info(self.data["bk_biz_id"], info["cluster_id"])
+        logger.info(_("__init_builder_cluster_info: {}".format(cluster_info)))
         flow_data = self.data
         flow_data.update(cluster_info)
 
@@ -643,7 +669,7 @@ class RedisDataStructureFlow(object):
         acts_list_push_json = []
 
         rollback_time = info["recovery_time_point"]
-
+        logger.info(_("get_prod_temp_instance_pairs rollback_time: {}".format(rollback_time)))
         kvstorecount = None
         if tendis_type == ClusterType.TendisplusInstance.value:
             kvstorecount = act_kwargs.cluster["kvstorecount"]
@@ -662,9 +688,10 @@ class RedisDataStructureFlow(object):
                     source_ip_map.add(pair[0].split(IP_PORT_DIVIDER)[0])
                     source_ports.append(int(pair[0].split(IP_PORT_DIVIDER)[1]))
                     new_temp_ports.append(int(pair[1].split(IP_PORT_DIVIDER)[1]))
-
+            logger.info(_("new_temp_node_pairs: {}".format(new_temp_node_pairs)))
             # 将多个source_ip的情况继续拆分,每个source_ip是一个actuator
             if len(source_ip_map) > 1:
+                logger.info(_("len(source_ip_map) > 1, source_ip_map: {}".format(source_ip_map)))
                 for source_temp_ip in source_ip_map:
                     source_ports = []
                     new_temp_ports = []
@@ -677,10 +704,11 @@ class RedisDataStructureFlow(object):
                         source_ip = source_temp_ip
 
                     for source_port in source_ports:
+                        logger.info(_("source_ip_map_source_ports: {}".format(source_ports)))
                         instance_full_backup, instance_binlog_backup = self.get_backupfile(
                             info["cluster_id"], rollback_time, source_ip, source_port, tendis_type, kvstorecount
                         )
-                        full_backupinfo.extend(instance_full_backup)
+                        full_backupinfo.append(instance_full_backup)
                         binlog_backupinfo.extend(instance_binlog_backup)
                     acts_list_new_ip, acts_list_push_json_new_ip = self.get_acts_list(
                         source_ip,
@@ -694,7 +722,10 @@ class RedisDataStructureFlow(object):
                         binlog_backupinfo,
                         act_kwargs,
                     )
+                    acts_list.append(acts_list_new_ip)
+                    acts_list_push_json.append(acts_list_push_json_new_ip)
             elif len(source_ip_map) == 1:
+                logger.info(_("get_prod_temp_instance_pairs len(source_ip_map) = 1"))
                 source_ip = next(iter(source_ip_map))
                 for source_port in source_ports:
                     full_backup, binlog_backup = self.get_backupfile(
@@ -715,9 +746,10 @@ class RedisDataStructureFlow(object):
                     binlog_backupinfo,
                     act_kwargs,
                 )
-            acts_list.append(acts_list_new_ip)
-            acts_list_push_json.append(acts_list_push_json_new_ip)
-
+                acts_list.append(acts_list_new_ip)
+                acts_list_push_json.append(acts_list_push_json_new_ip)
+        logger.info(_("redis_data_structure_flow_full_backupinfo: {}".format(full_backupinfo)))
+        logger.info(_("redis_data_structure_flow_binlog_backupinfo: {}".format(binlog_backupinfo)))
         return acts_list, acts_list_push_json
 
     @staticmethod
