@@ -12,10 +12,12 @@ import abc
 from typing import Dict, List
 
 import attr
+from django.db.models import Q
+from django.http import HttpResponse
 from django.utils.translation import ugettext_lazy as _
 
 from backend.db_meta.enums import ClusterEntryType
-from backend.db_meta.models import Cluster, ClusterEntry, Machine
+from backend.db_meta.models import Cluster, ClusterEntry, Machine, ProxyInstance, StorageInstance
 from backend.flow.utils.dns_manage import DnsManage
 from backend.utils.excel import ExcelHandler
 
@@ -112,11 +114,13 @@ class ListRetrieveResource(abc.ABC):
         return cls.fields
 
     @classmethod
-    def export_cluster(cls, bk_biz_id: int):
+    def export_cluster(cls, bk_biz_id: int, cluster_ids: list) -> HttpResponse:
         # 获取所有符合条件的集群对象
         clusters = Cluster.objects.prefetch_related(
             "storageinstance_set", "proxyinstance_set", "storageinstance_set__machine", "proxyinstance_set__machine"
         ).filter(bk_biz_id=bk_biz_id, cluster_type__in=cls.cluster_types)
+        if cluster_ids:
+            clusters = clusters.filter(id__in=cluster_ids)
 
         # 初始化用于存储Excel数据的字典列表
         excel_data_dict__list = []
@@ -130,9 +134,25 @@ class ListRetrieveResource(abc.ABC):
             "region",
             "disaster_tolerance_level",
         ]
+
+        def fill_instances_to_cluster_info(_cluster_info: Dict, instances: List):
+            """
+            把实例信息填充到集群信息中
+            """
+            for ins in instances:
+                # 获取存储实例所属角色
+                role = ins.instance_role
+
+                # 如果该角色已经存在于集群信息字典中，则添加新的IP和端口；否则，更新字典的值
+                if role in cluster_info:
+                    cluster_info[role] += f"\n{ins.machine.ip}#{ins.port}"
+                else:
+                    if role not in headers:
+                        headers.append(role)
+                    cluster_info[role] = f"{ins.machine.ip}#{ins.port}"
+
         # 遍历所有的集群对象
         for cluster in clusters:
-
             # 创建一个空字典来保存当前集群的信息
             cluster_info = {
                 "cluster_id": cluster.id,
@@ -144,45 +164,62 @@ class ListRetrieveResource(abc.ABC):
                 "region": cluster.region,
                 "disaster_tolerance_level": cluster.get_disaster_tolerance_level_display(),
             }
-
-            # 遍历当前集群中的存储实例
-            for storage in cluster.storageinstance_set.all():
-
-                # 获取存储实例所属角色
-                role = storage.instance_role
-
-                # 如果该角色已经存在于集群信息字典中，则添加新的IP和端口；否则，更新字典的值
-                if role in cluster_info:
-                    cluster_info[role] += f"\n{storage.machine.ip}#{storage.port}"
-                else:
-                    if role not in headers:
-                        headers.append(role)
-                    cluster_info[role] = f"{storage.machine.ip}#{storage.port}"
-
-            # 遍历当前集群中的代理实例
-            for proxy in cluster.proxyinstance_set.all():
-
-                # 获取代理实例所属角色
-                role = proxy.instance_role
-
-                # 如果该角色已经存在于集群信息字典中，则添加新的IP和端口；否则，更新字典的值
-                if role in cluster_info:
-                    cluster_info[role] += f"\n{proxy.machine.ip}#{proxy.port}"
-                else:
-                    if role not in headers:
-                        headers.append(role)
-                    headers.append(role)
-                    cluster_info[role] = f"{proxy.machine.ip}#{proxy.port}"
+            fill_instances_to_cluster_info(cluster_info, cluster.storageinstance_set.all())
+            fill_instances_to_cluster_info(cluster_info, cluster.proxyinstance_set.all())
 
             # 将当前集群的信息追加到excel_data_dict__list列表中
             excel_data_dict__list.append(cluster_info)
-
         wb = ExcelHandler.serialize(excel_data_dict__list, header=headers, match_header=True)
         return ExcelHandler.response(wb, f"biz_{bk_biz_id}_clusters.xlsx")
 
     @classmethod
-    def export_instance(cls, bk_biz_id: int):
-        headers = []
+    def export_instance(cls, bk_biz_id: int, bk_host_ids: list) -> HttpResponse:
+        # 查询实例
+        query_condition = Q(bk_biz_id=bk_biz_id)
+        if bk_host_ids:
+            query_condition = query_condition & Q(machine__bk_host_id__in=bk_host_ids)
+        storages = StorageInstance.objects.prefetch_related("machine", "machine__bk_city", "cluster").filter(
+            query_condition
+        )
+        proxies = ProxyInstance.objects.prefetch_related("machine", "machine__bk_city", "cluster").filter(
+            query_condition
+        )
+        headers = [
+            "bk_host_id",
+            "bk_cloud_id",
+            "ip",
+            "ip_port",
+            "instance_role",
+            "bk_idc_city_name",
+            "bk_idc_name",
+            "cluster_id",
+            "cluster_name",
+            "cluster_alias",
+            "cluster_type",
+            "master_domain",
+            "major_version",
+        ]
+        # 插入数据
         excel_data_dict__list = []
+        for instances in [storages, proxies]:
+            for ins in instances:
+                for cluster in ins.cluster.all():
+                    excel_data_dict__list.append(
+                        {
+                            "bk_host_id": ins.machine.bk_host_id,
+                            "bk_cloud_id": ins.machine.bk_cloud_id,
+                            "ip": ins.machine.ip,
+                            "ip_port": ins.ip_port,
+                            "instance_role": ins.instance_role,
+                            "bk_idc_city_name": ins.machine.bk_city.bk_idc_city_name,
+                            "bk_idc_name": ins.machine.bk_idc_name,
+                            "cluster_id": cluster.id,
+                            "cluster_name": cluster.name,
+                            "cluster_alias": cluster.alias,
+                            "cluster_type": cluster.cluster_type,
+                            "master_domain": cluster.immute_domain,
+                            "major_version": cluster.major_version,
+                        }
+                    )
         wb = ExcelHandler.serialize(excel_data_dict__list, header=headers, match_header=True)
         return ExcelHandler.response(wb, f"biz_{bk_biz_id}_instances.xlsx")
