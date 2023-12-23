@@ -108,6 +108,10 @@ class MysqlMasterSlaveSwitchFlowBuilder(BaseMySQLTicketFlowBuilder):
         dumper_instances = ExtraProcessInstance.objects.filter(
             cluster_id__in=cluster_ids, proc_type=ExtraProcessType.TBINLOGDUMPER
         )
+        # 补充单据详情的dumper_instance_ids，用于dumper迁移状态查询
+        if dumper_instances.exists():
+            dumper_instance_ids = [dumper.id for dumper in dumper_instances]
+            self.ticket.update_details(dumper_instance_ids=dumper_instance_ids)
         return dumper_instances.exists()
 
     def custom_ticket_flows(self):

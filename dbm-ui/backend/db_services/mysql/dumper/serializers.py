@@ -53,7 +53,7 @@ class DumperSubscribeConfigSerializer(serializers.ModelSerializer):
         # 获取dumper实例的同步方式、源集群、接收端协议、接收端地址和dumper id
         dumper_data_list = [
             {
-                "source_cluster_domain": cluster_id__domain[dumper.cluster_id],
+                "source_cluster_domain": cluster_id__domain.get(dumper.cluster_id, ""),
                 "protocol_type": dumper.extra_config["protocol_type"],
                 "dumper_id": dumper.extra_config["dumper_id"],
                 "target_address": f"{dumper.extra_config['target_address']}:{dumper.extra_config['target_port']}",

@@ -85,7 +85,7 @@ class DBPackageViewSet(viewsets.AuditedModelViewSet):
         return Response(INSTALL_PACKAGE_LIST)
 
     @common_swagger_auto_schema(
-        operation_summary=_("查询组件安装包类型"),
+        operation_summary=_("查询组件安装包列表"),
         query_serializer=ListPackageVersionSerializer(),
         tags=[DB_PACKAGE_TAG],
     )

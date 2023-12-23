@@ -92,8 +92,9 @@ class DBDirtyMachineHandler(object):
             if not set(info["bk_module_ids"]) - {resource_module, idle_module}
         ]
         if transfer_host_ids:
+            update_host_properties = {"dbm_meta": [], "need_monitor": False, "update_operator": False}
             CcManage(bk_biz_id=env.DBA_APP_BK_BIZ_ID).transfer_host_module(
-                bk_host_ids=transfer_host_ids, target_module_ids=[dirty_module]
+                transfer_host_ids, target_module_ids=[dirty_module], update_host_properties=update_host_properties
             )
 
         # 录入污点池表中
