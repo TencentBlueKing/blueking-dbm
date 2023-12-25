@@ -234,41 +234,49 @@ func (c *DeployMySQLCrondComp) CheckStart() (err error) {
 	          2      Syntax error in the command line.
 	          3      Fatal error: out of memory etc.
 	*/
-	cmd := exec.Command(
-		"su", "mysql", "-c", "pgrep -x 'mysql-crond'")
+	for i := 0; i < 10; i++ {
+		time.Sleep(5 * time.Second)
 
-	err = cmd.Run()
-	if err != nil {
-		var exitErr *exec.ExitError
-		if errors.As(err, &exitErr) {
-			if exitErr.ExitCode() == 1 {
-				err = errors.New("mysql-crond process not found")
-				logger.Error(err.Error())
-				return err
+		cmd := exec.Command(
+			"su", "mysql", "-c", "pgrep -x 'mysql-crond'")
+
+		err = cmd.Run()
+		if err != nil {
+			var exitErr *exec.ExitError
+			if errors.As(err, &exitErr) {
+				if exitErr.ExitCode() == 1 {
+					err = errors.Errorf("%d time check: mysql-crond process not found", i+1)
+					logger.Warn(err.Error())
+					continue // 没找到就重试
+				} else {
+					err = fmt.Errorf("run %s failed, exit code: %d",
+						cmd.String(), exitErr.ExitCode())
+					logger.Error(err.Error())
+					return err
+				}
 			} else {
-				err = fmt.Errorf("run %s failed, exit code: %d",
-					cmd.String(), exitErr.ExitCode())
-				logger.Error(err.Error())
+				logger.Error("find mysql-crond process failed: %s", err.Error())
 				return err
 			}
-		} else {
-			logger.Error("find mysql-crond process failed: %s", err.Error())
+		}
+
+		content, err := os.ReadFile(path.Join(cst.MySQLCrondInstallPath, "start-crond.err"))
+		if err != nil {
+			logger.Error(err.Error())
 			return err
 		}
+
+		if len(content) > 0 {
+			logger.Error(string(content))
+			return fmt.Errorf("start mysql-crond failed: %s", string(content))
+		}
+
+		return nil // 如果能走到这里, 说明正常启动了
 	}
 
-	content, err := os.ReadFile(path.Join(cst.MySQLCrondInstallPath, "start-crond.err"))
-	if err != nil {
-		logger.Error(err.Error())
-		return err
-	}
-
-	if len(content) > 0 {
-		logger.Error(string(content))
-		return fmt.Errorf("start mysql-crond failed: %s", string(content))
-	}
-
-	return nil
+	err = errors.Errorf("mysql-crond check start failed")
+	logger.Error(err.Error())
+	return err
 }
 
 func (c *DeployMySQLCrondComp) AddKeepAlive() (err error) {
