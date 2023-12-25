@@ -135,9 +135,9 @@ def remote_node_rollback(root_id: str, ticket_data: dict, cluster: dict):
         backup_info = cluster["backupinfo"]
         cluster["backup_time"] = backup_info["backup_time"]
         if cluster["rollback_type"] == RollbackType.REMOTE_AND_TIME.value:
-            cluster["recover_binlog"]: True
+            cluster["recover_binlog"] = True
         else:
-            cluster["recover_binlog"]: False
+            cluster["recover_binlog"] = False
 
         sub_pipeline = SubBuilder(root_id=root_id, data=ticket_data)
         exec_act_kwargs = ExecActuatorKwargs(
