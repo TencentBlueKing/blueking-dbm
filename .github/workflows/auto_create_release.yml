@@ -82,6 +82,7 @@ jobs:
         title: 'chore: update medium.lock #1'
         body: ''
         branch: '${{ steps.get-current-branch.outputs.current_branch }}'
+        base: "v1.3.0"
 
     - name: Auto Add Release File
       id: add-release-file
