@@ -33,7 +33,7 @@ def spider_recover_sub_flow(root_id: str, ticket_data: dict, cluster: dict):
     1 获取介质>判断介质来源>恢复数据
     @param root_id: flow流程root_id
     @param ticket_data: 单据 data
-    @param cluster_info: 关联的cluster对象
+    @param cluster: 关联的cluster对象
     """
     sub_pipeline = SubBuilder(root_id=root_id, data=ticket_data)
     exec_act_kwargs = ExecActuatorKwargs(
@@ -51,6 +51,9 @@ def spider_recover_sub_flow(root_id: str, ticket_data: dict, cluster: dict):
     cluster["master_port"] = 0
     cluster["change_master"] = False
     backup_info = cluster["backupinfo"]
+    cluster["backup_time"] = backup_info["backup_time"]
+    # 是否有前滚binlog。spider没有binlog。所以不需要前滚binlog
+    cluster["recover_binlog"] = False
     task_ids = [i["task_id"] for i in backup_info["file_list_details"]]
     download_kwargs = DownloadBackupFileKwargs(
         bk_cloud_id=cluster["bk_cloud_id"],
@@ -71,7 +74,8 @@ def spider_recover_sub_flow(root_id: str, ticket_data: dict, cluster: dict):
         act_component_code=ExecuteDBActuatorScriptComponent.code,
         kwargs=asdict(exec_act_kwargs),
     )
-    if cluster["rollback_type"] == RollbackType.REMOTE_AND_TIME.value:
+    #  todo 因为目前 spider 没有binlog的说法，and False 先屏蔽掉日志前滚流程
+    if cluster["rollback_type"] == RollbackType.REMOTE_AND_TIME.value and False:
         spider_has_binlog = cluster.get("spider_has_binlog", False)
         if spider_has_binlog:
             if compare_time(backup_info["backup_time"], cluster["rollback_time"]):
@@ -121,15 +125,19 @@ def remote_node_rollback(root_id: str, ticket_data: dict, cluster: dict):
     REMOTE_AND_BACKUPID:指定备份id恢复。只需恢复备份文件
     @param root_id: flow 流程 root_id
     @param ticket_data: 关联单据 ticket对象
-    @param cluster_info: 关联的cluster对象
+    @param cluster: 关联的cluster对象
     """
-    # cluster = copy.deepcopy(cluster_info)
     sub_pipeline_all = SubBuilder(root_id=root_id, data=ticket_data)
     sub_pipeline_all_list = []
     for node in [cluster["new_master"], cluster["new_slave"]]:
         cluster["rollback_ip"] = node["ip"]
         cluster["rollback_port"] = node["port"]
         backup_info = cluster["backupinfo"]
+        cluster["backup_time"] = backup_info["backup_time"]
+        if cluster["rollback_type"] == RollbackType.REMOTE_AND_TIME.value:
+            cluster["recover_binlog"]: True
+        else:
+            cluster["recover_binlog"]: False
 
         sub_pipeline = SubBuilder(root_id=root_id, data=ticket_data)
         exec_act_kwargs = ExecActuatorKwargs(

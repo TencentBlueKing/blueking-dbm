@@ -862,11 +862,16 @@ class MySQLDBMeta(object):
         """
         with atomic():
             for port in self.cluster["ports"]:
-                StorageInstance.objects.get(
+                storage = StorageInstance.objects.get(
                     machine__ip=self.cluster["uninstall_ip"],
                     machine__bk_cloud_id=self.cluster["bk_cloud_id"],
                     port=port,
-                ).delete()
+                )
+                # 删除port之前先注销实例级别监控
+                cc_manage = CcManage(storage.bk_biz_id)
+                cc_manage.delete_service_instance(bk_instance_ids=[storage.bk_instance_id])
+                storage.delete()
+
             if not StorageInstance.objects.filter(
                 machine__ip=self.cluster["uninstall_ip"], machine__bk_cloud_id=int(self.ticket_data["bk_cloud_id"])
             ).exists():

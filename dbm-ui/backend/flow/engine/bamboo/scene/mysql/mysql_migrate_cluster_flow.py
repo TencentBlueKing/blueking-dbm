@@ -406,6 +406,27 @@ class MySQLMigrateClusterFlow(object):
                         )
                     ),
                 )
+                # 考虑到部分实例成对迁移的情况(即拆分)
+                cluster = {
+                    "uninstall_ip": ip,
+                    "remote_port": self.data["ports"],
+                    "backend_port": self.data["ports"],
+                    "bk_cloud_id": self.data["bk_cloud_id"],
+                }
+                uninstall_svr_sub_pipeline.add_act(
+                    act_name=_("清理实例级别周边配置"),
+                    act_component_code=ExecuteDBActuatorScriptComponent.code,
+                    kwargs=asdict(
+                        ExecActuatorKwargs(
+                            exec_ip=ip,
+                            cluster_type=ClusterType.TenDBHA,
+                            bk_cloud_id=cluster["bk_cloud_id"],
+                            cluster=cluster,
+                            get_mysql_payload_func=MysqlActPayload.get_clear_surrounding_config_payload.__name__,
+                        )
+                    ),
+                )
+
                 uninstall_svr_sub_pipeline.add_act(
                     act_name=_("清理机器配置"),
                     act_component_code=MySQLClearMachineComponent.code,
