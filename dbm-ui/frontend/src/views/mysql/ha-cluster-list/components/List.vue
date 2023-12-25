@@ -474,7 +474,7 @@
               { t('授权') }
             </bk-button>
             <bk-button
-            text
+              text
               theme="primary"
               class="mr-8"
               onClick={() => handleShowCreateSubscribeRuleSlider(data)}>

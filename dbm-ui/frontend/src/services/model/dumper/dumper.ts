@@ -29,6 +29,8 @@ export default class Dumper {
   static operationTextMap = {
     [Dumper.TBINLOGDUMPER_REDUCE_NODES]: t('删除任务进行中'),
     [Dumper.TBINLOGDUMPER_SWITCH_NODES]: t('迁移任务进行中'),
+    MYSQL_MASTER_SLAVE_SWITCH: t('迁移任务进行中'),
+    MYSQL_MASTER_FAIL_OVER: t('迁移任务进行中'),
     [Dumper.TBINLOGDUMPER_ENABLE_NODES]: t('启用任务进行中'),
     [Dumper.TBINLOGDUMPER_DISABLE_NODES]: t('禁用任务进行中'),
   };
