@@ -9,17 +9,15 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import abc
-from typing import Dict, List
+from typing import Dict, List, Union
 
 import attr
 from django.db.models import Q
-from django.http import HttpResponse
 from django.utils.translation import ugettext_lazy as _
 
 from backend.db_meta.enums import ClusterEntryType
 from backend.db_meta.models import Cluster, ClusterEntry, Machine, ProxyInstance, StorageInstance
 from backend.flow.utils.dns_manage import DnsManage
-from backend.utils.excel import ExcelHandler
 
 
 @attr.s
@@ -114,7 +112,7 @@ class ListRetrieveResource(abc.ABC):
         return cls.fields
 
     @classmethod
-    def export_cluster(cls, bk_biz_id: int, cluster_ids: list) -> HttpResponse:
+    def export_cluster(cls, bk_biz_id: int, cluster_ids: list) -> Dict[str, List]:
         # 获取所有符合条件的集群对象
         clusters = Cluster.objects.prefetch_related(
             "storageinstance_set", "proxyinstance_set", "storageinstance_set__machine", "proxyinstance_set__machine"
@@ -123,19 +121,20 @@ class ListRetrieveResource(abc.ABC):
             clusters = clusters.filter(id__in=cluster_ids)
 
         # 初始化用于存储Excel数据的字典列表
-        excel_data_dict__list = []
         headers = [
-            "cluster_id",
-            "cluster_name",
-            "cluster_alias",
-            "cluster_type",
-            "master_domain",
-            "major_version",
-            "region",
-            "disaster_tolerance_level",
+            {"id": "cluster_id", "name": _("集群 ID")},
+            {"id": "cluster_name", "name": _("集群名称")},
+            {"id": "cluster_alias", "name": _("集群别名")},
+            {"id": "cluster_type", "name": _("集群类型")},
+            {"id": "master_domain", "name": _("主域名")},
+            {"id": "major_version", "name": _("主版本")},
+            {"id": "region", "name": _("地域")},
+            {"id": "disaster_tolerance_level", "name": _("容灾级别")},
         ]
 
-        def fill_instances_to_cluster_info(_cluster_info: Dict, instances: List):
+        def fill_instances_to_cluster_info(
+            _cluster_info: Dict, instances: List[Union[StorageInstance, ProxyInstance]]
+        ):
             """
             把实例信息填充到集群信息中
             """
@@ -148,10 +147,11 @@ class ListRetrieveResource(abc.ABC):
                     cluster_info[role] += f"\n{ins.machine.ip}#{ins.port}"
                 else:
                     if role not in headers:
-                        headers.append(role)
+                        headers.append({"id": role, "name": role})
                     cluster_info[role] = f"{ins.machine.ip}#{ins.port}"
 
         # 遍历所有的集群对象
+        data_list = []
         for cluster in clusters:
             # 创建一个空字典来保存当前集群的信息
             cluster_info = {
@@ -167,13 +167,12 @@ class ListRetrieveResource(abc.ABC):
             fill_instances_to_cluster_info(cluster_info, cluster.storageinstance_set.all())
             fill_instances_to_cluster_info(cluster_info, cluster.proxyinstance_set.all())
 
-            # 将当前集群的信息追加到excel_data_dict__list列表中
-            excel_data_dict__list.append(cluster_info)
-        wb = ExcelHandler.serialize(excel_data_dict__list, header=headers, match_header=True)
-        return ExcelHandler.response(wb, f"biz_{bk_biz_id}_clusters.xlsx")
+            # 将当前集群的信息追加到data_list列表中
+            data_list.append(cluster_info)
+        return {"headers": headers, "data_list": data_list}
 
     @classmethod
-    def export_instance(cls, bk_biz_id: int, bk_host_ids: list) -> HttpResponse:
+    def export_instance(cls, bk_biz_id: int, bk_host_ids: list) -> Dict[str, List]:
         # 查询实例
         query_condition = Q(bk_biz_id=bk_biz_id)
         if bk_host_ids:
@@ -185,26 +184,26 @@ class ListRetrieveResource(abc.ABC):
             query_condition
         )
         headers = [
-            "bk_host_id",
-            "bk_cloud_id",
-            "ip",
-            "ip_port",
-            "instance_role",
-            "bk_idc_city_name",
-            "bk_idc_name",
-            "cluster_id",
-            "cluster_name",
-            "cluster_alias",
-            "cluster_type",
-            "master_domain",
-            "major_version",
+            {"id": "bk_host_id", "name": _("主机 ID")},
+            {"id": "bk_cloud_id", "name": _("云区域 ID")},
+            {"id": "ip", "name": _("IP")},
+            {"id": "ip_port", "name": _("IP 端口")},
+            {"id": "instance_role", "name": _("实例角色")},
+            {"id": "bk_idc_city_name", "name": _("城市")},
+            {"id": "bk_idc_name", "name": _("机房")},
+            {"id": "cluster_id", "name": _("集群 ID")},
+            {"id": "cluster_name", "name": _("集群名称")},
+            {"id": "cluster_alias", "name": _("集群别名")},
+            {"id": "cluster_type", "name": _("集群类型")},
+            {"id": "master_domain", "name": _("主域名")},
+            {"id": "major_version", "name": _("主版本")},
         ]
         # 插入数据
-        excel_data_dict__list = []
+        data_list = []
         for instances in [storages, proxies]:
             for ins in instances:
                 for cluster in ins.cluster.all():
-                    excel_data_dict__list.append(
+                    data_list.append(
                         {
                             "bk_host_id": ins.machine.bk_host_id,
                             "bk_cloud_id": ins.machine.bk_cloud_id,
@@ -221,5 +220,4 @@ class ListRetrieveResource(abc.ABC):
                             "major_version": cluster.major_version,
                         }
                     )
-        wb = ExcelHandler.serialize(excel_data_dict__list, header=headers, match_header=True)
-        return ExcelHandler.response(wb, f"biz_{bk_biz_id}_instances.xlsx")
+        return {"headers": headers, "data_list": data_list}
