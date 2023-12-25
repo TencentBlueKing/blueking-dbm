@@ -79,8 +79,8 @@ def _check_tendis_binlog_backup():
 
         now = datetime.now(timezone.utc)
         yesterday = now - timedelta(days=1)
-        start_time = datetime(yesterday.year, yesterday.month, yesterday.day)
-        end_time = datetime(yesterday.year, yesterday.month, yesterday.day, 23, 59, 59)
+        start_time = datetime(yesterday.year, yesterday.month, yesterday.day).astimezone(timezone.utc)
+        end_time = datetime(yesterday.year, yesterday.month, yesterday.day, 23, 59, 59).astimezone(timezone.utc)
         #  	 +===+++++=== start_time is: 2023-10-25 00:00:00 ,end_time is :2023-10-25 23:59:59 +++++===++++
         logger.info("+===+++++=== start_time is: {} ,end_time is :{} +++++===++++ ".format(start_time, end_time))
         # 对slave 进行统计
