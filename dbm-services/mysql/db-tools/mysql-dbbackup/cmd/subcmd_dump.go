@@ -17,6 +17,7 @@ import (
 
 	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/validate"
+	ma "dbm-services/mysql/db-tools/mysql-crond/api"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/config"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/cst"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/backupexe"
@@ -52,43 +53,75 @@ var dumpCmd = &cobra.Command{
 	Short: "Run backup",
 	Long:  `Run backup using config, include logical and physical`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		var err error
-		if err = logger.InitLog("dbbackup_dump.log"); err != nil {
+		if err := dumpExecute(cmd, args); err != nil {
+			manager := ma.NewManager(cst.MysqlCrondUrl)
+			body := struct {
+				Name      string
+				Content   string
+				Dimension map[string]interface{}
+			}{}
+			body.Name = "dbbackup-by-host"
+			body.Content = fmt.Sprintf("run dbbackup failed %s", err.Error())
+			if sendErr := manager.SendEvent(body.Name, body.Content, body.Dimension); sendErr != nil {
+				logger.Log.Error("SendEvent failed", sendErr.Error())
+			}
 			return err
-		}
-		cnfFiles, _ := cmd.Flags().GetStringSlice("config")
-		if len(cnfFiles) == 0 {
-			if cnfFiles, err = filepath.Glob("dbbackup.*.ini"); err != nil {
-				return err
-			} else if len(cnfFiles) == 0 {
-				return errors.New("no dbbackup.*.ini found")
-			}
-		}
-		logger.Log.Infof("using config files: %v", cnfFiles)
-
-		var errList []error
-		for _, f := range cnfFiles {
-			var cnf = config.BackupConfig{}
-			if err := initConfig(f, &cnf); err != nil {
-				errList = append(errList, errors.WithMessage(err, f))
-				logger.Log.Error("Create Dbbackup: fail to parse ", f)
-				continue
-			}
-			//cnf.BackupClient.DoChecksum = true
-			//cnf.BackupClient.Enable = true
-
-			err := backupData(&cnf)
-			if err != nil {
-				logger.Log.Error("Create Dbbackup: Failure for ", f)
-				errList = append(errList, errors.WithMessage(err, f))
-				continue
-			}
-		}
-		if len(errList) > 0 {
-			return errors.Errorf("%v", errList)
 		}
 		return nil
 	},
+}
+
+func dumpExecute(cmd *cobra.Command, args []string) (err error) {
+	manager := ma.NewManager(cst.MysqlCrondUrl)
+	body := struct {
+		Name      string
+		Content   string
+		Dimension map[string]interface{}
+	}{}
+	body.Name = "dbbackup"
+	//body.Content = fmt.Sprintf("%s。单据号：%s", "分区任务执行失败", e.Params.Ticket)
+	body.Dimension = make(map[string]interface{})
+
+	if err = logger.InitLog("dbbackup_dump.log"); err != nil {
+		return err
+	}
+	cnfFiles, _ := cmd.Flags().GetStringSlice("config")
+	if len(cnfFiles) == 0 {
+		if cnfFiles, err = filepath.Glob("dbbackup.*.ini"); err != nil {
+			return err
+		} else if len(cnfFiles) == 0 {
+			return errors.New("no dbbackup.*.ini found")
+		}
+	}
+	logger.Log.Infof("using config files: %v", cnfFiles)
+
+	var errList []error
+	for _, f := range cnfFiles {
+		var cnf = config.BackupConfig{}
+		if err := initConfig(f, &cnf); err != nil {
+			errList = append(errList, errors.WithMessage(err, f))
+			logger.Log.Error("Create Dbbackup: fail to parse ", f)
+			continue
+		}
+
+		err := backupData(&cnf)
+		if err != nil {
+			logger.Log.Error("Create Dbbackup: Failure for ", f)
+			errList = append(errList, errors.WithMessage(err, f))
+			body.Dimension["bk_biz_id"] = cnf.Public.BkBizId
+			body.Dimension["cluster_domain"] = cnf.Public.ClusterAddress
+			body.Dimension["instance"] = fmt.Sprintf("%s:%d", cnf.Public.MysqlHost, cnf.Public.MysqlPort)
+			body.Content = fmt.Sprintf("run dbbackup failed for %s", f)
+			if sendErr := manager.SendEvent(body.Name, body.Content, body.Dimension); sendErr != nil {
+				logger.Log.Error("SendEvent failed for ", f, sendErr.Error())
+			}
+			continue
+		}
+	}
+	if len(errList) > 0 {
+		return errors.Errorf("%v", errList)
+	}
+	return nil
 }
 
 func backupData(cnf *config.BackupConfig) (err error) {
