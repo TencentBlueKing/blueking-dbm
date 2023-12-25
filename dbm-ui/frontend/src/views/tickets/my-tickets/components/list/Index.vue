@@ -558,6 +558,19 @@
     cursor: pointer;
     border-bottom: 1px solid @border-disable;
 
+    .bk-tag {
+      height: 16px;
+      padding: 0 4px;
+      margin: 0;
+
+      .bk-tag-text {
+        height: 16px;
+        line-height: 16px;
+        transform: scale(0.83, 0.83);
+      }
+
+    }
+
     .side-item-title {
       display: flex;
       align-items: center;
@@ -602,7 +615,18 @@
 
   .side-item:hover,
   .side-item-active {
-    background-color: @bg-gray;
+    background-color: #EBF2FF;
+
+    .side-item-title {
+      .side-item-name  {
+        font-weight: 700;
+        color: #313238;
+      }
+
+      .bk-tag {
+        font-weight: 700;
+      }
+    }
   }
 
   .side-pagination {

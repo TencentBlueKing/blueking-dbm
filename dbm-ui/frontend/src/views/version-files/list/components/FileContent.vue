@@ -244,7 +244,7 @@
           <div class="version-name text-overflow" v-overflow-tips>
             {data.version}
             {data.priority && <bk-tag theme="info" class="ml-5">{t('默认')}</bk-tag>}
-            {data.priority === 0 && (
+            {isShowSwitch.value && data.priority === 0 && (
               <bk-button
                 v-bk-tooltips={{
                   disabled: data.enable,
