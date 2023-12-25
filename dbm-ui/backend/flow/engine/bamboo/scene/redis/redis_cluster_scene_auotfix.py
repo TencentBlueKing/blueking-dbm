@@ -256,6 +256,7 @@ class RedisClusterAutoFixSceneFlow(object):
                 "ip": proxy_ip,
                 "redis_pwd": config_info["redis_password"],
                 "proxy_pwd": config_info["password"],
+                "conf_configs": config_info,
                 "proxy_port": int(config_info["port"]),
                 "servers": replace_kwargs.cluster["backend_servers"],
                 "spec_id": proxy_fix_info["proxy_spec"].get("id", 0),

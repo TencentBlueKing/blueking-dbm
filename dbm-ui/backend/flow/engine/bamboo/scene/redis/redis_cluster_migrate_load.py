@@ -366,6 +366,15 @@ class RedisClusterMigrateLoadFlow(object):
                 act_name=_("建立集群 元数据"), act_component_code=RedisDBMetaComponent.code, kwargs=asdict(act_kwargs)
             )
 
+            db_admin = {"db_type": DBType.Redis.value, "users": str.split(self.data["nosqldbas"], ",")}
+            act_kwargs.cluster = {
+                "db_admins": [db_admin],
+                "meta_func_name": RedisDBMeta.update_nosql_dba.__name__,
+            }
+            sub_pipeline.add_act(
+                act_name=_("更新业务NOSQL DBA"), act_component_code=RedisDBMetaComponent.code, kwargs=asdict(act_kwargs)
+            )
+
             # clb、北极星需要写元数据
             if len(params["entry"]["clb"]) != 0:
                 act_kwargs.cluster = params["entry"]["clb"]
@@ -399,8 +408,6 @@ class RedisClusterMigrateLoadFlow(object):
                 redis_password = params["proxy_config"].pop("redis_password")
             if "password" in params["proxy_config"]:
                 proxy_pwd = params["proxy_config"].pop("password")
-            if "hash_tag" in params["proxy_config"] and params["proxy_config"]["hash_tag"] == "":
-                del params["proxy_config"]["hash_tag"]
             params["proxy_config"]["port"] = str(cluster["proxy_port"])
 
             act_kwargs.cluster = {
