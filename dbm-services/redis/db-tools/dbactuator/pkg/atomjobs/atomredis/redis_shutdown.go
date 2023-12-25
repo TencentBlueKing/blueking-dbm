@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"dbm-services/redis/db-tools/dbactuator/models/myredis"
+	"dbm-services/redis/db-tools/dbactuator/pkg/common"
 	"dbm-services/redis/db-tools/dbactuator/pkg/consts"
 	"dbm-services/redis/db-tools/dbactuator/pkg/jobruntime"
 	"dbm-services/redis/db-tools/dbactuator/pkg/util"
@@ -18,9 +19,10 @@ import (
 
 // RedisShutdownParams redis shutdown参数
 type RedisShutdownParams struct {
-	IP    string `json:"ip" validate:"required"`
-	Ports []int  `json:"ports" validate:"required"`
-	Debug bool   `json:"debug"`
+	IP                     string `json:"ip" validate:"required"`
+	Ports                  []int  `json:"ports" validate:"required"`
+	IsAllInstancesShutdown bool   `json:"is_all_instances_shutdown"`
+	Debug                  bool   `json:"debug"`
 }
 
 // RedisShutdown redis shutdown 结构体
@@ -99,6 +101,11 @@ func (job *RedisShutdown) Run() (err error) {
 	}
 	if errMsg != "" {
 		return fmt.Errorf(errMsg)
+	}
+
+	err = job.ClearWhenAllInstancesShutdown()
+	if err != nil {
+		return err
 	}
 
 	return nil
@@ -248,6 +255,61 @@ func (job *RedisShutdown) IsRedisRunning(port int) (installed bool, err error) {
 	time.Sleep(10 * time.Second)
 	portIsUse, err := util.CheckPortIsInUse(job.params.IP, strconv.Itoa(port))
 	return portIsUse, err
+}
+
+// ClearWhenAllInstancesShutdown TODO
+func (job *RedisShutdown) ClearWhenAllInstancesShutdown() (err error) {
+	if !job.params.IsAllInstancesShutdown {
+		job.runtime.Logger.Info("%s not all instances shutdown,nothing to do", job.params.IP)
+		return nil
+	}
+	var psRet string
+	// 再次判断是否还有不必要的进程存在
+	psCmd := `ps aux|grep -iwE "tendisplus|redis-server"|grep -v grep || { true; }`
+	job.runtime.Logger.Info(psCmd)
+	psRet, err = util.RunBashCmd(psCmd, "", nil, 10*time.Second)
+	if err != nil {
+		job.runtime.Logger.Error("exec ps cmd error[%s]", err.Error())
+		return err
+	}
+	if psRet != "" {
+		job.runtime.Logger.Info("IsAllInstancesShutdown=%v, psCmd:%s result:%s",
+			job.params.IsAllInstancesShutdown, psCmd, psRet)
+		return fmt.Errorf("ps result:%s", psRet)
+	}
+	job.runtime.Logger.Error("%s all instances have been shutdown,start clear some dirs", job.params.IP)
+	// 清理 backup-client 相关数据
+	job.runtime.Logger.Info("start clear backup-client dir")
+	err = util.ClearBackupClientDir()
+	if err != nil {
+		return
+	}
+	// 清理 exporter 相关数据
+	job.runtime.Logger.Info("start clear .exporter config file")
+	for _, port := range job.params.Ports {
+		common.DeleteExporterConfigFile(port)
+	}
+	// 清理 /usr/local/redis
+	job.runtime.Logger.Info("start clear /usr/local/redis dir")
+	err = util.ClearUsrLocalRedis(true)
+	if err != nil {
+		return
+	}
+	// 清理环境变量 REDIS_DATA_DIR
+	job.runtime.Logger.Info("start clear env REDIS_DATA_DIR")
+	err = consts.RemoveRedisDataDirFromEnv()
+	if err != nil {
+		job.runtime.Logger.Error(err.Error())
+		return
+	}
+	// 清理环境变量 REDIS_BACKUP_DIR
+	job.runtime.Logger.Info("start clear env REDIS_BACKUP_DIR")
+	err = consts.RemoveRedisBackupDirFromEnv()
+	if err != nil {
+		job.runtime.Logger.Error(err.Error())
+		return
+	}
+	return nil
 }
 
 // Name 原子任务名

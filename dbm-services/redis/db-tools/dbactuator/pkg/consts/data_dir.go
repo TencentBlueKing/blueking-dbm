@@ -108,6 +108,18 @@ func GetRedisDataDir() string {
 	return dataDir
 }
 
+// RemoveRedisDataDirFromEnv 从环境变量中移除 REDIS_DATA_DIR
+func RemoveRedisDataDirFromEnv() (err error) {
+	// 从 /etc/profile 中移除 REDIS_DATA_DIR
+	rmCmd := `sed -i -e '/^export REDIS_DATA_DIR=/d' /etc/profile`
+	ret, err := exec.Command("bash", "-c", rmCmd).Output()
+	if err != nil {
+		err = fmt.Errorf("RemoveRedisDataDirFromEnv failed,err:%v,ret:%s,rmCmd:%s", err, string(ret), rmCmd)
+		return
+	}
+	return nil
+}
+
 // SetRedisBakcupDir 设置环境变量 REDIS_BACKUP_DIR ,并持久化到/etc/profile中
 // 如果函数参数 backupDir 不为空,则 REDIS_BACKUP_DIR = {backupDir}
 // 否则,如果环境变量 REDIS_BACKUP_DIR 不为空,则直接读取;
@@ -178,6 +190,18 @@ func GetRedisBackupDir() string {
 		}
 	}
 	return dataDir
+}
+
+// RemoveRedisBackupDirFromEnv 从环境变量中移除 REDIS_BACKUP_DIR
+func RemoveRedisBackupDirFromEnv() (err error) {
+	// 从 /etc/profile 中移除 REDIS_BACKUP_DIR
+	rmCmd := `sed -i -e '/^export REDIS_BACKUP_DIR=/d' /etc/profile`
+	ret, err := exec.Command("bash", "-c", rmCmd).Output()
+	if err != nil {
+		err = fmt.Errorf("RemoveRedisBackupDirFromEnv failed,err:%v,ret:%s,rmCmd:%s", err, string(ret), rmCmd)
+		return
+	}
+	return nil
 }
 
 // SetMongoDataDir 设置环境变量 MONGO_DATA_DIR,并持久化到/etc/profile中

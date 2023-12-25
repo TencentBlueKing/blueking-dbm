@@ -24,7 +24,7 @@ from backend.constants import BACKUP_SYS_STATUS, IP_PORT_DIVIDER
 from backend.db_meta import api as metaApi
 from backend.db_meta.api.cluster import nosqlcomm
 from backend.db_meta.enums.cluster_type import ClusterType
-from backend.db_meta.models import Cluster
+from backend.db_meta.models import Cluster, StorageInstance
 from backend.db_package.models import Package
 from backend.db_services.redis.util import (
     is_predixy_proxy_type,
@@ -802,6 +802,16 @@ class RedisActPayload(object):
             "payload": {},
         }
 
+    def __is_all_instances_shutdown(self, ip: str, port: list) -> bool:
+        """
+        判断所有实例是否都已经下架
+        """
+        insts = StorageInstance.objects.filter(machine__ip=ip)
+        for inst in insts:
+            if inst.port not in port:
+                return False
+        return True
+
     def redis_shutdown_payload(self, **kwargs) -> dict:
         """
         redis下架
@@ -812,7 +822,11 @@ class RedisActPayload(object):
         return {
             "db_type": DBActuatorTypeEnum.Redis.value,
             "action": DBActuatorTypeEnum.Redis.value + "_" + RedisActuatorActionEnum.Shutdown.value,
-            "payload": {"ip": ip, "ports": ports},
+            "payload": {
+                "ip": ip,
+                "ports": ports,
+                "is_all_instances_shutdown": self.__is_all_instances_shutdown(ip, ports),
+            },
         }
 
     def redis_flush_data_payload(self, **kwargs) -> dict:
