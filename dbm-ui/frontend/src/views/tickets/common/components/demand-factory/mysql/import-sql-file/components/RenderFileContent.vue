@@ -73,9 +73,13 @@
   let editor: monaco.editor.IStandaloneCodeEditor;
 
   watch(() => props.modelValue, () => {
-    if (props.modelValue !== editor.getValue()) {
-      editor.setValue(props.modelValue);
-    }
+    setTimeout(() => {
+      if (props.modelValue !== editor.getValue()) {
+        editor.setValue(props.modelValue);
+      }
+    });
+  }, {
+    immediate: true,
   });
 
   const handleToggleScreenfull = () => {

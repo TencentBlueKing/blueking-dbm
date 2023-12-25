@@ -30,7 +30,6 @@
         v-model="dateTimeRange"
         behavior="normal"
         :disabled="false"
-        :format="datePickerFormat"
         :version="2"
         @update:model-value="handleValueChange" />
     </div>
@@ -125,7 +124,8 @@
 
   const datePickerFormat = 'YYYY-MM-DDTHH:mm:ssZ';
 
-  const initUTCDateTime = () => new DateRange(dateTimeRange.value, datePickerFormat)
+  // eslint-disable-next-line max-len
+  const generateUTCDateTime = (value?: [string, string]) => new DateRange(value ? value : dateTimeRange.value, datePickerFormat)
     .toEmitValue()[1]
     .map(item => item.formatText) as [string, string];
 
@@ -135,7 +135,7 @@
   const currentActiveRow = ref<RedisDSTHistoryJobModel>();
   const searchValue = ref('');
   const dateTimeRange = ref<[string, string]>(['now-30d/d', 'now']);
-  const dateTimeRangeUTC = ref(initUTCDateTime());
+  const dateTimeRangeUTC = ref(generateUTCDateTime());
   const timer = ref();
   const tableHeight = ref(500);
   const pagination = ref(useDefaultPagination());
@@ -406,7 +406,7 @@
 
   const handleValueChange = (value: number[],  info: { formatText: string }[]) => {
     const [{ formatText: startDate }, { formatText: endDate }] = info;
-    dateTimeRangeUTC.value = [startDate, endDate];
+    dateTimeRangeUTC.value = generateUTCDateTime([startDate, endDate]);
     nextTick(() => {
       fetchHostNodes();
     });

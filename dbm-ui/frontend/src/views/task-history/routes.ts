@@ -41,6 +41,7 @@ const routes: RouteRecordRaw[] = [
         meta: {
           navName: t('任务详情'),
           activeMenu: 'taskHistoryList',
+          fullscreen: true,
         },
         component: () => import('@views/task-history/pages/Details.vue'),
       },
