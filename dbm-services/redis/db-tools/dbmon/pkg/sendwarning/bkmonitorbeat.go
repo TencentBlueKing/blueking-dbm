@@ -97,6 +97,7 @@ func (bm *BkMonitorEventSender) SendWarning(eventName, warnmsg, warnLevel, targe
 	bm.newDimenSion()
 	bm.Data[0].EventName = eventName
 	bm.Data[0].Target = targetIP
+	bm.SetBkTargetIP(targetIP)
 	// bm.Data[0].Event.Content = bm.addDbMetaInfo(warnmsg)
 	warnmsg = strings.ReplaceAll(warnmsg, "'", "")
 	bm.Data[0].Event.Content = warnmsg
@@ -197,6 +198,7 @@ func (bm *BkMonitorEventSender) SetBkBizID(bkBizID string) *BkMonitorEventSender
 func (bm *BkMonitorEventSender) SetBkCloudID(bkCloudID int64) *BkMonitorEventSender {
 	bm.newDimenSion()
 	bm.Data[0].Dimension["bk_cloud_id"] = bkCloudID
+	bm.Data[0].Dimension["bk_target_cloud_id"] = bkCloudID
 	return bm
 }
 
@@ -243,10 +245,10 @@ func (bm *BkMonitorEventSender) SetInstanceRole(role string) *BkMonitorEventSend
 	return bm
 }
 
-// SetInstanceHost set server host
-func (bm *BkMonitorEventSender) SetInstanceHost(host string) *BkMonitorEventSender {
+// SetBkTargetIP set bk_target_ip
+func (bm *BkMonitorEventSender) SetBkTargetIP(host string) *BkMonitorEventSender {
 	bm.newDimenSion()
-	bm.Data[0].Dimension["instance_host"] = host
+	bm.Data[0].Dimension["bk_target_ip"] = host
 	return bm
 }
 
