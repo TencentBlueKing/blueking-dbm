@@ -45,6 +45,7 @@
             {{ t('导入授权') }}
           </BkButton>
         </span>
+        <DropdownExportExcel :has-selected="hasSelected" />
       </div>
       <DbSearchSelect
         v-model="searchValues"
@@ -157,6 +158,7 @@
   import RenderOperationTag from '@components/cluster-common/RenderOperationTag.vue';
   import EditEntryConfig from '@components/cluster-entry-config/Index.vue';
   import DbStatus from '@components/db-status/index.vue';
+  import DropdownExportExcel from '@components/dropdown-export-excel/index.vue';
   import RenderInstances from '@components/render-instances/RenderInstances.vue';
   import RenderTextEllipsisOneLine from '@components/text-ellipsis-one-line/index.vue';
 

@@ -19,6 +19,7 @@
       @click="handleGoApply">
       {{ t('申请实例') }}
     </BkButton>
+    <DropdownExportExcel type="pulsar" />
     <div
       class="table-wrapper"
       :class="{'is-shrink-table': isStretchLayoutOpen}">
@@ -106,6 +107,7 @@
   import RenderOperationTag from '@components/cluster-common/RenderOperationTag.vue';
   import RenderClusterStatus from '@components/cluster-common/RenderStatus.vue';
   import EditEntryConfig from '@components/cluster-entry-config/Index.vue';
+  import DropdownExportExcel from '@components/dropdown-export-excel/index.vue';
   import RenderTextEllipsisOneLine from '@components/text-ellipsis-one-line/index.vue';
 
   import ClusterExpansion from '@views/pulsar-manage/common/expansion/Index.vue';

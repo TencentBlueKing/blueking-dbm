@@ -57,6 +57,9 @@
             </BkDropdownMenu>
           </template>
         </BkDropdown>
+        <DropdownExportExcel
+          :has-selected="hasSelected"
+          type="redis" />
       </div>
       <DbSearchSelect
         v-model="state.searchValues"
@@ -158,6 +161,7 @@
 
   import EditEntryConfig from '@components/cluster-entry-config/Index.vue';
   import DbStatus from '@components/db-status/index.vue';
+  import DropdownExportExcel from '@components/dropdown-export-excel/index.vue';
   import MiniTag from '@components/mini-tag/index.vue';
   import RenderInstances from '@components/render-instances/RenderInstances.vue';
   import RenderTextEllipsisOneLine from '@components/text-ellipsis-one-line/index.vue';

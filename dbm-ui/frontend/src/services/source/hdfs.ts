@@ -105,3 +105,17 @@ export function getHdfsNodeList(params: Record<string, any> & {
     }));
 }
 
+/**
+ * 导出集群数据为 excel 文件
+ */
+export function exportHdfsClusterToExcel(params: { cluster_ids?: number[] }) {
+  return http.post<string>(`${path}/export_cluster/`, params);
+}
+
+/**
+ * 导出实例数据为 excel 文件
+ */
+export function exportHdfsInstanceToExcel(params: { bk_host_ids?: number[] }) {
+  return http.post<string>(`${path}/export_instance/`, params);
+}
+

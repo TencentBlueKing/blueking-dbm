@@ -104,6 +104,9 @@
           </BkDropdownMenu>
         </template>
       </BkDropdown>
+      <DropdownExportExcel
+        export-type="instance"
+        type="influxdb" />
       <div class="instances-view-operations-right">
         <DbSearchSelect
           v-model="search"
@@ -157,6 +160,7 @@
   import OperationStatusTips from '@components/cluster-common/OperationStatusTips.vue';
   import RenderInstanceStatus from '@components/cluster-common/RenderInstanceStatus.vue';
   import RenderOperationTag from '@components/cluster-common/RenderOperationTag.vue';
+  import DropdownExportExcel from '@components/dropdown-export-excel/index.vue';
 
   import {
     getSearchSelectorParams,

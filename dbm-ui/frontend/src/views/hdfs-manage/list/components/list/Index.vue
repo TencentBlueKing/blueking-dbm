@@ -20,6 +20,7 @@
         @click="handleGoApply">
         {{ t('申请实例') }}
       </BkButton>
+      <DropdownExportExcel type="hdfs" />
       <DbSearchSelect
         v-model="searchValues"
         class="mb16"
@@ -128,6 +129,7 @@
   import RenderPassword from '@components/cluster-common/RenderPassword.vue';
   import RenderClusterStatus from '@components/cluster-common/RenderStatus.vue';
   import EditEntryConfig from '@components/cluster-entry-config/Index.vue';
+  import DropdownExportExcel from '@components/dropdown-export-excel/index.vue';
   import RenderTextEllipsisOneLine from '@components/text-ellipsis-one-line/index.vue';
 
   import ClusterExpansion from '@views/hdfs-manage/common/expansion/Index.vue';

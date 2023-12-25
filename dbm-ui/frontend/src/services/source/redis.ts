@@ -171,3 +171,17 @@ export function getRedisTopoGraph(params: { cluster_id: number }) {
 export function getRedisResourceTree(params: { cluster_type: string }) {
   return http.get<BizConfTopoTreeModel[]>(`/apis/redis/bizs/${currentBizId}/resource_tree/`, params);
 }
+
+/**
+ * 导出集群数据为 excel 文件
+ */
+export function exportRedisClusterToExcel(params: { cluster_ids?: number[] }) {
+  return http.post<string>(`${path}/export_cluster/`, params);
+}
+
+/**
+ * 导出实例数据为 excel 文件
+ */
+export function exportRedisInstanceToExcel(params: { bk_host_ids?: number[] }) {
+  return http.post<string>(`${path}/export_instance/`, params);
+}

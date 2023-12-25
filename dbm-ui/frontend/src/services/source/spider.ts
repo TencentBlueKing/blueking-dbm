@@ -194,3 +194,18 @@ export function getSpiderDetail(params: { id: number }) {
 export function getSpiderTopoGraph(params: { cluster_id: number }) {
   return http.get<ResourceTopo>(`${path}/${params.cluster_id}/get_topo_graph/`);
 }
+
+/**
+ * 导出集群数据为 excel 文件
+ */
+export function exportSpiderClusterToExcel(params: { cluster_ids?: number[] }) {
+  return http.post<string>(`${path}/export_cluster/`, params);
+}
+
+/**
+ * 导出实例数据为 excel 文件
+ */
+export function exportSpiderInstanceToExcel(params: { bk_host_ids?: number[] }) {
+  return http.post<string>(`${path}/export_instance/`, params);
+}
+

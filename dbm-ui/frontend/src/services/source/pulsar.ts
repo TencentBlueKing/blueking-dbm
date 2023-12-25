@@ -57,7 +57,7 @@ export function getPulsarInstanceList(params: Record<string, any> & { bk_biz_id:
 /**
  *  获取实例详情
  */
-export function retrievePulsarInstance(params: {bk_biz_id: number}) {
+export function retrievePulsarInstance(params: { bk_biz_id: number }) {
   return http.get<ListBase<PulsarModel[]>>(`${path}/retrieve_instance/`, params);
 }
 
@@ -96,5 +96,19 @@ export function getPulsarNodeList(params: Record<string, any> & {
       ...data,
       results: data.results.map((item: PulsarNodeModel) => new PulsarNodeModel(item)),
     }));
+}
+
+/**
+ * 导出集群数据为 excel 文件
+ */
+export function exportPulsarClusterToExcel(params: { cluster_ids?: number[] }) {
+  return http.post<string>(`${path}/export_cluster/`, params);
+}
+
+/**
+ * 导出实例数据为 excel 文件
+ */
+export function exportPulsarInstanceToExcel(params: { bk_host_ids?: number[] }) {
+  return http.post<string>(`${path}/export_instance/`, params);
 }
 
