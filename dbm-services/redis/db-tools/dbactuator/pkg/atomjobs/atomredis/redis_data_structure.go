@@ -12,6 +12,7 @@ import (
 	"dbm-services/redis/db-tools/dbactuator/pkg/consts"
 	"dbm-services/redis/db-tools/dbactuator/pkg/datastructure"
 	"dbm-services/redis/db-tools/dbactuator/pkg/jobruntime"
+	"dbm-services/redis/db-tools/dbactuator/pkg/util"
 
 	"github.com/go-playground/validator/v10"
 )
@@ -163,6 +164,12 @@ func (task *RedisDataStructure) Run() (err error) {
 
 		recoverTasks = append(recoverTasks, recoverTask)
 
+	}
+
+	// 确认停BkDbmon成功，这里会影响binlog的导入
+	err = util.StopBkDbmon()
+	if err != nil {
+		return err
 	}
 
 	wg := sync.WaitGroup{}
