@@ -80,6 +80,13 @@ predixy_cluster_type_list = [
     ClusterType.TendisPredixyTendisplusCluster.value,
     ClusterType.TendisPredixyRedisCluster.value,
 ]
+cache_cluster_type_list = [
+    ClusterType.RedisCluster.value,
+    ClusterType.TendisPredixyRedisCluster.value,
+    ClusterType.TendisTwemproxyRedisInstance.value,
+    ClusterType.TendisRedisInstance.value,
+    ClusterType.TendisRedisCluster.value,
+]
 
 
 class RedisActPayload(object):
@@ -172,15 +179,16 @@ class RedisActPayload(object):
                 "level_value": cluster_map["domain_name"],
             }
         )
-        # 备份相关的配置，需要单独写进去
-        if "backup_config" in cluster_map:
-            if "cache_backup_mode" in cluster_map["backup_config"]:
-                set_backup_mode(
-                    cluster_map["domain_name"],
-                    self.bk_biz_id,
-                    self.namespace,
-                    cluster_map["backup_config"]["cache_backup_mode"],
-                )
+        # 备份相关的配置，需要单独写进去。只有cache类型的的集群，才会去修改fullbackup的参数
+        if self.namespace in cache_cluster_type_list:
+            if "backup_config" in cluster_map:
+                if "cache_backup_mode" in cluster_map["backup_config"]:
+                    set_backup_mode(
+                        cluster_map["domain_name"],
+                        self.bk_biz_id,
+                        self.namespace,
+                        cluster_map["backup_config"]["cache_backup_mode"],
+                    )
 
         return data
 

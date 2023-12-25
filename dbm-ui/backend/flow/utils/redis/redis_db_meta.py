@@ -19,6 +19,7 @@ from django.utils.translation import ugettext as _
 
 from backend.components import DBConfigApi
 from backend.components.dbconfig.constants import FormatType, LevelName
+from backend.configuration.models import DBAdministrator
 from backend.db_meta import api
 from backend.db_meta.api.cluster.nosqlcomm.create_cluster import update_cluster_type
 from backend.db_meta.api.cluster.tendiscache.handler import TendisCacheClusterHandler
@@ -987,3 +988,9 @@ class RedisDBMeta(object):
             shutdown_master_slave_pair=self.cluster["shutdown_master_slave_pair"],
         )
         record.save()
+
+    def update_nosql_dba(self):
+        """
+        更新dba
+        """
+        DBAdministrator.upsert_biz_admins(self.ticket_data["bk_biz_id"], self.cluster["db_admins"])
