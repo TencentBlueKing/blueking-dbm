@@ -19,7 +19,7 @@ from backend.components import CCApi
 from backend.configuration.models import DBAdministrator, SystemSettings
 from backend.db_meta.enums import ClusterType, ClusterTypeMachineTypeDefine
 from backend.db_meta.models import AppMonitorTopo, Cluster, ClusterMonitorTopo, Machine, StorageInstance
-from backend.db_meta.models.cluster_monitor import INSTANCE_MONITOR_PLUGINS, SET_NAME_TEMPLATE, SyncFailedMachine
+from backend.db_meta.models.cluster_monitor import INSTANCE_MONITOR_PLUGINS, SET_NAME_TEMPLATE
 from backend.db_services.ipchooser.constants import IDLE_HOST_MODULE
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.dbm_init.constants import CC_HOST_DBM_ATTR
@@ -215,12 +215,10 @@ class CcManage(object):
                 updates.append(update_info)
 
             updated_hosts.extend(updates)
-            res = CCApi.batch_update_host({"update": updates}, use_admin=True, raw=True)
-            # proxy request failed - 1199036
-            # failed to request http://bkauth - 1306000
-            # 权限校验失败 - 1199048
-            if res.get("code") not in [0, 1199036, 1199048, 1306000]:
-                logger.error("[update_host_dbmeta] batch update failed: %s (%s)", updates, res.get("code"))
+            try:
+                CCApi.batch_update_host({"update": updates}, use_admin=True)
+            except ApiError as err:
+                logger.exception(f"failed to batch_update_host {err}")
                 failed_updates.extend(updates)
 
         return updated_hosts, failed_updates
@@ -253,16 +251,13 @@ class CcManage(object):
 
         __, failed_updates = self.batch_update_host(host_info_list, need_monitor)
 
-        # 容错处理：逐个更新，避免批量更新误伤有效ip
+        # 容错处理：逐台机器、逐个属性更新，避免批量更新误伤有效ip
         for fail_update in failed_updates:
-            try:
-                CCApi.update_host(
-                    {"bk_host_id": fail_update["bk_host_id"], "data": fail_update["properties"]}, use_admin=True
-                )
-            except Exception as e:  # pylint: disable=wildcard-import
-                # 记录异常ip，下次任务直接排除掉，尽量走批量更新
-                SyncFailedMachine.objects.get_or_create(bk_host_id=fail_update["bk_host_id"], error=str(e))
-                logger.error("[update_host_dbmeta] single update error: %s (%s)", fail_update, e)
+            for key, value in fail_update["properties"].items():
+                try:
+                    CCApi.update_host({"bk_host_id": fail_update["bk_host_id"], "data": {key: value}}, use_admin=True)
+                except Exception as e:  # pylint: disable=wildcard-import
+                    logger.error("[update_host_dbmeta] single update error: %s:%s (%s)", key, value, e)
 
     def transfer_host_to_idlemodule(
         self, bk_biz_id: int, bk_host_ids: List[int], biz_idle_module: int = None, host_topo: List[Dict] = None
