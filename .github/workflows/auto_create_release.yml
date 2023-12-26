@@ -81,8 +81,8 @@ jobs:
         token: "${{ secrets.WORKFLOW_ACTION_TOKEN }}"
         title: 'chore: update medium.lock #1'
         body: ''
-        branch: '${{ steps.get-current-branch.outputs.current_branch }}'
-        base: "v1.3.0"
+        branch: 'medium_lock'
+        base: '${{ steps.get-current-branch.outputs.current_branch }}'
 
     - name: Auto Add Release File
       id: add-release-file

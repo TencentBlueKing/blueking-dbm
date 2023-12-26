@@ -103,6 +103,8 @@ def watcher_get_by_hosts() -> (int, dict):
         # 这台机器的small值
         if switch_id < current_host.sw_min_id:
             current_host.sw_min_id = switch_id
+    if len(switch_hosts) == 0:
+        batch_small_id = switch_id
     logger.info(
         "get smallest switchID {} from {} , with hosts : {}".format(batch_small_id, switch_id, switch_hosts.keys())
     )
@@ -184,8 +186,8 @@ def get_4_next_watch_ID(batch_small: int, switch_hosts: Dict) -> int:
     # end for
     next_watch_id = succ_max_uid
     logger.warn(
-        "get watch uids, ignore_max_uid:{},wait_small_uid:{},next_watch_id:{},switch_hosts:{},waiter:{}".format(
-            ignore_max_uid, wait_small_uid, next_watch_id, switch_hosts.keys(), waiter
+        "get watch uids, ignore_max_uid:{},wait_small_uid:{},next_watch_id:{},switch_hosts:{}".format(
+            ignore_max_uid, wait_small_uid, next_watch_id, switch_hosts.keys()
         )
     )
     if ignore_max_uid > succ_max_uid and ignore_max_uid != SWITCH_SMALL:

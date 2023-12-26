@@ -279,6 +279,9 @@ func (o *ApplyObjectDetail) PickInstanceBase(picker *PickerObject, items []model
 	case CROS_SUBZONE:
 		picker.PickeElements = AnalysisResource(items, false)
 		picker.Picker(true)
+	case MAX_EACH_ZONE_EQUAL:
+		picker.PickeElements = AnalysisResource(items, false)
+		picker.Picker(false)
 	case SAME_SUBZONE:
 		picker.PickeElements = AnalysisResource(items, false)
 		picker.PickerSameSubZone(false)
