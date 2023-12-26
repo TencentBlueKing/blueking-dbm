@@ -48,7 +48,7 @@ class TestAuthorizeHandler:
     @patch("backend.db_services.mysql.permission.authorize.handlers.MySQLPrivManagerApi", MySQLPrivManagerApiMock)
     def test_pre_check_excel_rules(self, query_fixture):
         data_dict__list = EXCEL_DATA_DICT__LIST
-        excel_bytes = save_virtual_workbook(ExcelHandler.serialize(data_dict__list, header=AUTHORIZE_EXCEL_HEADER))
+        excel_bytes = save_virtual_workbook(ExcelHandler.serialize(data_dict__list, headers=AUTHORIZE_EXCEL_HEADER))
         excel = io.BytesIO(excel_bytes)
 
         excel_obj = namedtuple("ExcelObj", ["file"])(file=excel)

@@ -45,6 +45,8 @@ class DBPackageViewSet(viewsets.AuditedModelViewSet):
     serializer_class = PackageSerializer
 
     def _get_custom_permissions(self):
+        if self.action in ["list_install_pkg_types", "list_install_packages"]:
+            return []
         return [GlobalManageIAMPermission()]
 
     @common_swagger_auto_schema(
