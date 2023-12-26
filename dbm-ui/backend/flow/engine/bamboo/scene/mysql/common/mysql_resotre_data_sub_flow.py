@@ -91,6 +91,7 @@ def mysql_restore_data_sub_flow(
     cluster["change_master"] = False
     exec_act_kwargs.cluster = copy.deepcopy(cluster)
     exec_act_kwargs.exec_ip = cluster["new_slave_ip"]
+    exec_act_kwargs.job_timeout = 172800
     exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.tendb_restore_remotedb_payload.__name__
     sub_pipeline.add_act(
         act_name=_("恢复新从节点数据 {}:{}".format(exec_act_kwargs.exec_ip, cluster["restore_port"])),
@@ -105,6 +106,7 @@ def mysql_restore_data_sub_flow(
     cluster["repl_ip"] = cluster["new_slave_ip"]
     exec_act_kwargs.cluster = copy.deepcopy(cluster)
     exec_act_kwargs.exec_ip = cluster["master_ip"]
+    exec_act_kwargs.job_timeout = 7200
     exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.tendb_grant_remotedb_repl_user.__name__
     sub_pipeline.add_act(
         act_name=_("新增repl帐户{}".format(exec_act_kwargs.exec_ip)),
@@ -185,6 +187,7 @@ def mysql_rollback_data_sub_flow(
     cluster["change_master"] = False
     exec_act_kwargs.cluster = copy.deepcopy(cluster)
     exec_act_kwargs.exec_ip = cluster["rollback_ip"]
+    exec_act_kwargs.job_timeout = 172800
     exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_rollback_data_restore_payload.__name__
     sub_pipeline.add_act(
         act_name=_("恢复新从节点数据 {}:{}".format(exec_act_kwargs.exec_ip, cluster["rollback_port"])),
@@ -293,6 +296,7 @@ def mysql_restore_master_slave_sub_flow(
     cluster["source_port"] = cluster["master_port"]
     cluster["change_master"] = False
     exec_act_kwargs.exec_ip = cluster["new_master_ip"]
+    exec_act_kwargs.job_timeout = 172800
     exec_act_kwargs.cluster = copy.deepcopy(cluster)
     exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.tendb_restore_remotedb_payload.__name__
     restore_list.append(
@@ -327,6 +331,7 @@ def mysql_restore_master_slave_sub_flow(
     cluster["repl_ip"] = cluster["new_slave_ip"]
     exec_act_kwargs.cluster = copy.deepcopy(cluster)
     exec_act_kwargs.exec_ip = cluster["new_master_ip"]
+    exec_act_kwargs.job_timeout = 7200
     exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.tendb_grant_remotedb_repl_user.__name__
     sub_pipeline.add_act(
         act_name=_("新增repl帐户{}".format(exec_act_kwargs.exec_ip)),

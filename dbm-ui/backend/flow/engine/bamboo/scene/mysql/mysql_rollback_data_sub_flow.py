@@ -66,6 +66,7 @@ def rollback_local_and_time(root_id: str, ticket_data: dict, cluster_info: dict)
         bk_cloud_id=cluster_info["bk_cloud_id"],
         cluster_type=cluster_info["cluster_type"],
         cluster=cluster_info,
+        job_timeout=172800,
     )
     exec_act_kwargs.exec_ip = cluster_info["master_ip"]
     exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_find_local_backup_payload.__name__
@@ -159,6 +160,7 @@ def rollback_remote_and_time(root_id: str, ticket_data: dict, cluster_info: dict
         bk_cloud_id=cluster_info["bk_cloud_id"],
         cluster_type=cluster_info["cluster_type"],
         cluster=cluster_info,
+        job_timeout=172800,
     )
 
     exec_act_kwargs.cluster = cluster_info
@@ -240,6 +242,7 @@ def rollback_remote_and_backupid(root_id: str, ticket_data: dict, cluster_info: 
         bk_cloud_id=cluster_info["bk_cloud_id"],
         cluster_type=cluster_info["cluster_type"],
         cluster=cluster_info,
+        job_timeout=172800,
     )
     task_ids = [i["task_id"] for i in backupinfo["file_list_details"]]
     download_kwargs = DownloadBackupFileKwargs(
@@ -281,6 +284,7 @@ def rollback_local_and_backupid(root_id: str, ticket_data: dict, cluster_info: d
         bk_cloud_id=cluster_info["bk_cloud_id"],
         cluster_type=cluster_info["cluster_type"],
         cluster=cluster_info,
+        job_timeout=172800,
     )
     #  改为从本地表 local_backup_report 获取备份
     backup_info = cluster_info["backupinfo"]

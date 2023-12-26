@@ -68,6 +68,7 @@ def spider_recover_sub_flow(root_id: str, ticket_data: dict, cluster: dict):
         kwargs=asdict(download_kwargs),
     )
     exec_act_kwargs.exec_ip = cluster["rollback_ip"]
+    exec_act_kwargs.job_timeout = 172800
     exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_rollback_data_restore_payload.__name__
     sub_pipeline.add_act(
         act_name=_("定点恢复之恢复数据{}:{}").format(exec_act_kwargs.exec_ip, cluster["rollback_port"]),
@@ -166,7 +167,7 @@ def remote_node_rollback(root_id: str, ticket_data: dict, cluster: dict):
             kwargs=asdict(download_kwargs),
         )
         exec_act_kwargs.exec_ip = cluster["rollback_ip"]
-
+        exec_act_kwargs.job_timeout = 172800
         exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_rollback_data_restore_payload.__name__
         sub_pipeline.add_act(
             act_name=_("定点恢复之恢复数据{}:{}".format(exec_act_kwargs.exec_ip, cluster["rollback_port"])),
