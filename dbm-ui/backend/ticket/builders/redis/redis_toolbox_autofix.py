@@ -54,22 +54,23 @@ class RedisClusterAutofixResourceParamBuilder(builders.ResourceApplyParamBuilder
 
         for info_index, info in enumerate(self.ticket_data["infos"]):
             for role in [
-                InstanceRole.REDIS_MASTER.value,
                 InstanceRole.REDIS_PROXY.value,
                 InstanceRole.REDIS_SLAVE.value,
             ]:
-                role_hosts = info.get(role)
+                role_hosts, role_group = info.get(role), role
                 if not role_hosts:
                     continue
 
-                role_group = "backend_group" if role == InstanceRole.REDIS_MASTER.value else role
                 for role_host_index, role_host in enumerate(role_hosts):
-                    role_host["target"] = nodes.get(f"{info_index}_{role_group}")[role_host_index]
+                    if role == InstanceRole.REDIS_SLAVE.value:
+                        role_group, index = f"{role}_{role_host['ip']}", 0
+                    elif role == InstanceRole.REDIS_PROXY.value:
+                        role_group, index = role, role_host_index
+                    role_host["target"] = nodes.get(f"{info_index}_{role_group}")[index]
 
-                # 保留下个节点更完整的resource_spec
-                info["resource_spec"] = ticket_data["infos"][info_index]["resource_spec"]
-                info["resource_spec"].pop("backend_group", None)
-
+            # 保留下个节点更完整的resource_spec
+            info["resource_spec"] = ticket_data["infos"][info_index]["resource_spec"]
+            info["resource_spec"].pop("backend_group", None)
             ticket_data["infos"][info_index] = info
 
         next_flow.save(update_fields=["details"])
