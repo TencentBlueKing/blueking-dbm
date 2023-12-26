@@ -157,9 +157,10 @@ class ExcelHandler:
         # 设置response格式并写入bytes
         response = HttpResponse(
             content=save_virtual_workbook(wb),
-            content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            content_type="application/octet-stream",
         )
         response["Content-Disposition"] = f"attachment;filename={excel_name}"
+        response["Access-Control-Expose-Headers"] = "content-disposition"
         return response
 
     @classmethod
