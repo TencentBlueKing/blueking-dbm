@@ -67,28 +67,18 @@ func (u *RestartMySQLProxyComp) PreCheck() (err error) {
 //	@receiver u
 //	@return err
 func (u *RestartMySQLProxyComp) RestartProxy() (err error) {
-
-	// 先正常关闭proxy进程
-	if err = proxyutil.KillDownProxy(u.Params.Port); err != nil {
-		logger.Error("停止%d进程失败:%s", u.Params.Port, err.Error())
-		return err
-	}
-	logger.Info("关闭 proxy(%d) 成功", u.Params.Port)
-
-	// 然后启动proxy进程
 	p := proxyutil.StartProxyParam{
-		InstallPath: cst.ProxyInstallPath,
-		ProxyCnf:    util.GetProxyCnfName(u.Params.Port),
-		Host:        u.Params.Host,
-		Port:        getAdminPort(u.Params.Port), // Is Admin Port
-		ProxyUser:   u.GeneralParam.RuntimeAccountParam.ProxyAdminUser,
-		ProxyPwd:    u.GeneralParam.RuntimeAccountParam.ProxyAdminPwd,
+		InstallPath:    cst.ProxyInstallPath,
+		ProxyCnf:       util.GetProxyCnfName(u.Params.Port),
+		Host:           u.Params.Host,
+		Port:           u.Params.Port,
+		ProxyAdminUser: u.GeneralParam.RuntimeAccountParam.ProxyAdminUser,
+		ProxyAdminPwd:  u.GeneralParam.RuntimeAccountParam.ProxyAdminPwd,
 	}
-	if err := p.Start(); err != nil {
-		logger.Error("启动 proxy(%d) 失败,err:%s", u.Params.Port, err.Error())
+	if err := p.Restart(); err != nil {
+		logger.Error("重启 proxy(%d) 失败,err:%s", u.Params.Port, err.Error())
 		return err
 	}
-	logger.Info("启动 proxy(%d) 成功", u.Params.Port)
-
+	logger.Info("重启 proxy(%d) 成功", u.Params.Port)
 	return nil
 }

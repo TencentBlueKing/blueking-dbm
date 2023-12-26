@@ -35,7 +35,7 @@ func NewDeployMySQLProxyCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "deploy",
 		Short:   "部署mysql-proxy实例",
-		Example: fmt.Sprintf("dbactuator mysql proxy %s", subcmd.CmdBaseExampleStr),
+		Example: fmt.Sprintf("dbactuator proxy deploy %s", subcmd.CmdBaseExampleStr),
 		Run: func(cmd *cobra.Command, args []string) {
 			util.CheckErr(act.Validator())
 			util.CheckErr(act.Init())

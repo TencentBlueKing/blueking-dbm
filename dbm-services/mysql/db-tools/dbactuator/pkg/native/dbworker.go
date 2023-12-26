@@ -381,7 +381,7 @@ func (h *DbWorker) GetBinlogDir(port int) (string, string, error) {
 
 // ShowApplicationProcesslist 查询是否存在非系统用户的processlist
 // 已经忽略了dbsysUsers
-func (h *DbWorker) ShowApplicationProcesslist(sysUsers []string) (processLists []ShowProcesslistResp, err error) {
+func (h *DbWorker) ShowApplicationProcesslist(sysUsers []string) (processLists []SelectProcessListResp, err error) {
 	users := append(sysUsers, dbSysUsers...)
 	query, args, err := sqlx.In("select * from information_schema.processlist  where  User not in (?)", users)
 	if err != nil {
