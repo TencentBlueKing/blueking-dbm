@@ -13,11 +13,13 @@ from typing import Dict, List, Union
 
 import attr
 from django.db.models import Q
+from django.http import HttpResponse
 from django.utils.translation import ugettext_lazy as _
 
 from backend.db_meta.enums import ClusterEntryType
 from backend.db_meta.models import Cluster, ClusterEntry, Machine, ProxyInstance, StorageInstance
 from backend.flow.utils.dns_manage import DnsManage
+from backend.utils.excel import ExcelHandler
 
 
 @attr.s
@@ -112,7 +114,7 @@ class ListRetrieveResource(abc.ABC):
         return cls.fields
 
     @classmethod
-    def export_cluster(cls, bk_biz_id: int, cluster_ids: list) -> Dict[str, List]:
+    def export_cluster(cls, bk_biz_id: int, cluster_ids: list) -> HttpResponse:
         # 获取所有符合条件的集群对象
         clusters = Cluster.objects.prefetch_related(
             "storageinstance_set", "proxyinstance_set", "storageinstance_set__machine", "proxyinstance_set__machine"
@@ -169,10 +171,12 @@ class ListRetrieveResource(abc.ABC):
 
             # 将当前集群的信息追加到data_list列表中
             data_list.append(cluster_info)
-        return {"headers": headers, "data_list": data_list}
+
+        wb = ExcelHandler.serialize(data_list, headers=headers, match_header=True)
+        return ExcelHandler.response(wb, f"biz_{bk_biz_id}_instances.xlsx")
 
     @classmethod
-    def export_instance(cls, bk_biz_id: int, bk_host_ids: list) -> Dict[str, List]:
+    def export_instance(cls, bk_biz_id: int, bk_host_ids: list) -> HttpResponse:
         # 查询实例
         query_condition = Q(bk_biz_id=bk_biz_id)
         if bk_host_ids:
@@ -220,4 +224,6 @@ class ListRetrieveResource(abc.ABC):
                             "major_version": cluster.major_version,
                         }
                     )
-        return {"headers": headers, "data_list": data_list}
+
+        wb = ExcelHandler.serialize(data_list, headers=headers, match_header=True)
+        return ExcelHandler.response(wb, f"biz_{bk_biz_id}_instances.xlsx")
