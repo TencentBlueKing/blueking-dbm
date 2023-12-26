@@ -122,3 +122,27 @@ func (h *ProxyAdminDbWork) CheckBackend(host string, port int) (err error) {
 	}
 	return err
 }
+
+// ShowAppProcesslists get mysql proxy processlist
+func (h *ProxyAdminDbWork) ShowAppProcesslists(skipUsers []string) (activeprocesslist []ProxyProcess, err error) {
+	var processlists []ProxyProcess
+	err = h.Queryx(&processlists, "show processlist;")
+	if err != nil {
+		return nil, err
+	}
+	if len(skipUsers) <= 0 {
+		return processlists, nil
+	}
+	skipUserMap := make(map[string]struct{})
+	for _, skipUser := range skipUsers {
+		skipUserMap[skipUser] = struct{}{}
+	}
+	activeprocesslist = []ProxyProcess{}
+	for _, pls := range processlists {
+		if _, ok := skipUserMap[pls.User]; ok {
+			continue
+		}
+		activeprocesslist = append(activeprocesslist, pls)
+	}
+	return activeprocesslist, nil
+}

@@ -1,3 +1,13 @@
+/*
+ * TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
+ * Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
+ * Licensed under the MIT License (the "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at https://opensource.org/licenses/MIT
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+ * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
+
 // Package mysql_proxy TODO
 /*
  * @Description: 安装 MySQL Proxy
@@ -170,16 +180,6 @@ func (i *InstallMySQLProxyComp) checkDirs() error {
 	return nil
 }
 
-// getAdminPort TODO
-/**
- * @description: 获取proxy admin port
- * @receiver {int} port
- * @return {*}
- */
-func getAdminPort(port int) int {
-	return port + cst.ProxyAdminPortInc
-}
-
 // GenerateProxycnf TODO
 /**
  * @description: 生成proxy.cnf
@@ -326,12 +326,12 @@ func (i *InstallMySQLProxyComp) DecompressPkg() (err error) {
 func (i *InstallMySQLProxyComp) Start() error {
 	for _, port := range i.InsPorts {
 		p := proxyutil.StartProxyParam{
-			InstallPath: i.ProxyInstallDir,
-			ProxyCnf:    util.GetProxyCnfName(port),
-			Host:        i.Params.Host,
-			Port:        getAdminPort(port), // Is Admin Port
-			ProxyUser:   i.ProxyAdminUser,
-			ProxyPwd:    i.ProxyAdminPwd,
+			InstallPath:    i.ProxyInstallDir,
+			ProxyCnf:       util.GetProxyCnfName(port),
+			Host:           i.Params.Host,
+			Port:           native.GetProxyAdminPort(port), // Is Admin Port
+			ProxyAdminUser: i.ProxyAdminUser,
+			ProxyAdminPwd:  i.ProxyAdminPwd,
 		}
 		if err := p.Start(); err != nil {
 			logger.Error("start proxy(%d) failed,err:%s", port, err.Error())
@@ -351,7 +351,7 @@ func (i *InstallMySQLProxyComp) InitProxyAdminAccount() (err error) {
 	for _, port := range i.InsPorts {
 		// Test Conn ...
 		pc, err := native.NewDbWorkerNoPing(
-			fmt.Sprintf("%s:%d", i.Params.Host, getAdminPort(port)), i.ProxyAdminUser,
+			fmt.Sprintf("%s:%d", i.Params.Host, native.GetProxyAdminPort(port)), i.ProxyAdminUser,
 			i.ProxyAdminPwd,
 		)
 		if err != nil {
@@ -377,7 +377,7 @@ func (i *InstallMySQLProxyComp) CreateExporterCnf() (err error) {
 			i.Params.Host,
 			port,
 			i.Params.Host,
-			getAdminPort(port),
+			native.GetProxyAdminPort(port),
 			i.ProxyAdminUser,
 			i.ProxyAdminPwd,
 		)

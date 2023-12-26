@@ -16,12 +16,22 @@ import (
 
 // StartProxyParam TODO
 type StartProxyParam struct {
-	InstallPath string // /usr/local/mysql-proxy/bin/mysql-proxy
-	ProxyCnf    string // "/etc/proxy.cnf." + fmt.Sprint(startPort)
-	Host        string
-	Port        int
-	ProxyUser   string // check connect
-	ProxyPwd    string // check connect
+	InstallPath    string // /usr/local/mysql-proxy/bin/mysql-proxy
+	ProxyCnf       string // "/etc/proxy.cnf." + fmt.Sprint(startPort)
+	Host           string
+	Port           int
+	ProxyAdminUser string // check connect
+	ProxyAdminPwd  string // check connect
+}
+
+// Restart TODO
+func (s StartProxyParam) Restart() (err error) {
+	logger.Info("restart mysql-proxy")
+	if err = KillDownProxy(s.Port); err != nil {
+		logger.Error("kill mysql-proxy error: %v", err)
+		return err
+	}
+	return s.Start()
 }
 
 // Start TODO
@@ -49,7 +59,8 @@ func (s StartProxyParam) checkStart() (err error) {
 		return fmt.Errorf("proxyStartCmd:%s not contain proxyCnf:[%s]", out, s.ProxyCnf)
 	}
 	// Test Conn ...
-	pc, err := native.NewDbWorkerNoPing(fmt.Sprintf("%s:%d", s.Host, s.Port), s.ProxyUser, s.ProxyPwd)
+	pc, err := native.NewDbWorkerNoPing(fmt.Sprintf("%s:%d", s.Host, native.GetProxyAdminPort(s.Port)), s.ProxyAdminUser,
+		s.ProxyAdminPwd)
 	if err != nil {
 		return err
 	}

@@ -98,18 +98,6 @@ type SlaveHostResp struct {
 	SlaveUUID string `json:"slave_uuid" db:"Slave_UUID"`
 }
 
-// ShowProcesslistResp TODO
-type ShowProcesslistResp struct {
-	ID   uint64         `json:"id" db:"Id"`
-	User string         `json:"user" db:"User"`
-	Host sql.NullString `json:"host" db:"Host"`
-	DB   sql.NullString `json:"db" db:"db"`
-	// Command sql.NullString `json:"command" db:"Command"`
-	Time  int            `json:"time" db:"Time"`
-	State sql.NullString `json:"state" db:"State"`
-	Info  sql.NullString `json:"info" db:"Info"`
-}
-
 // SelectProcessListResp TODO
 type SelectProcessListResp struct {
 	ID           uint64         `json:"ID" db:"ID"`
@@ -169,4 +157,15 @@ type Warning struct {
 	Level   string `db:"Level"`
 	Code    int    `db:"Code"`
 	Message string `db:"Message"`
+}
+
+// ProxyProcess TODO
+type ProxyProcess struct {
+	ID     uint64         `json:"id" db:"Id"`
+	User   string         `json:"user" db:"User"`
+	Host   sql.NullString `json:"host" db:"Host"`
+	Server string         `json:"server" db:"Server"`
+	DB     sql.NullString `json:"db" db:"db"`
+	Time   int            `json:"time" db:"Time"`
+	State  sql.NullString `json:"state" db:"State"`
 }
