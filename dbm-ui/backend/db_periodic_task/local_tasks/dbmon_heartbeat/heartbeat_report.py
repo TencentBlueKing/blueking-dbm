@@ -99,6 +99,11 @@ def _check_dbmon_heart_beat():
     """
     获取dbmon心跳信息
     """
+    """
+    删除时间大于60天的记录
+    """
+    DbmonHeartbeatReport.objects.filter(create_at__lte=timezone.now() - timedelta(days=60)).delete()
+
     # 构建查询条件:tendisplus,ssd,cache,集群创建时间大于2小时，刚开始可能上报有延时，超时时间好像是2小时
     query = (
         Q(cluster_type=ClusterType.TendisPredixyTendisplusCluster)
