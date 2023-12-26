@@ -94,94 +94,72 @@ def _check_tendis_binlog_backup():
             if not bklogs:
                 msg = _("无法查找到在时间范围内{}-{}，集群{}：{}的binlog备份日志").format(start_time, end_time, c.immute_domain, instance)
                 logger.error(msg)
-                RedisBackupCheckReport.objects.create(
-                    creator=c.creator,
-                    bk_biz_id=c.bk_biz_id,
-                    bk_cloud_id=c.bk_cloud_id,
-                    cluster=c.immute_domain,
-                    cluster_type=c.cluster_type,
-                    instance=instance,
-                    status=False,
-                    msg=msg,
-                    subtype=RedisBackupCheckSubType.BinlogBackup.value,
-                )
+                binlog_backup_failed_record(c, instance, msg)
+                continue
+            logger.info(_("+===+++++===  {} 集群{} 实例维度日志不为空 +++++===++++ ".format(c.immute_domain, instance)))
+            for bklog in bklogs:
+                # 失败的记录，直接记录:同一条记录，不可能又存在失败的，又存在成功的，所以有失败的直接入库了
+                if bklog.get("backup_status", "") == "to_backup_system_failed":
+                    logger.error("+===+++++=== to_backup_system_failed bklog: {} +++++===++++ ".format(bklog))
+                    msg = bklog["backup_status_info"]
+                    binlog_backup_failed_record(c, instance, msg)
 
-            else:
-                for bklog in bklogs:
-                    # 失败的记录，直接记录:同一条记录，不可能又存在失败的，又存在成功的，所以有失败的直接入库了
-                    if bklog.get("backup_status", "") == "to_backup_system_failed":
-                        logger.error("+===+++++=== to_backup_system_failed bklog: {} +++++===++++ ".format(bklog))
-                        RedisBackupCheckReport.objects.create(
-                            creator=c.creator,
-                            bk_biz_id=c.bk_biz_id,
-                            bk_cloud_id=c.bk_cloud_id,
-                            cluster=c.immute_domain,
-                            cluster_type=c.cluster_type,
-                            instance=instance,
-                            status=False,
-                            msg=bklog["backup_status_info"],
-                            subtype=RedisBackupCheckSubType.BinlogBackup.value,
-                        )
+                # 对成功的进行处理，判断文件序号的完备性
+                if bklog.get("backup_status", "") == "to_backup_system_success":
+                    suceess_binlog_file_list.append(bklog)
 
-                    # 对成功的进行处理，判断文件序号的完备性
-                    if bklog.get("backup_status", "") == "to_backup_system_success":
-                        suceess_binlog_file_list.append(bklog)
-
-                #  tendisplus 的情况
-                if c.cluster_type == ClusterType.TendisPredixyTendisplusCluster.value:
-                    # 每个节点又分不同kvstore,校验binlog完整性
-                    for i in range(0, int(kvstorecount)):
-                        # 过滤不同kvstore
-                        kvstore_filter = "-".join([str(ip), str(port), str(i)])
-                        # 过滤后的包含指定kvstore的binlog列表
-                        kvstore_binlogs_list = [
-                            binlog for binlog in suceess_binlog_file_list if kvstore_filter in binlog["file_name"]
-                        ]
-                        # 检查是否获取到所有binlog
-                        bin_index_list = is_get_all_binlog(kvstore_binlogs_list, c.cluster_type)
-                        if len(bin_index_list) != 0:
-                            msg = _("重复/缺失的binlog共{}个,重复/缺失的binlog index是:{},详细信息请查看error日志").format(
-                                len(bin_index_list), bin_index_list
-                            )
-                            logger.error("+===+++++=== {}+++++===++++ ".format(msg))
-                            RedisBackupCheckReport.objects.create(
-                                creator=c.creator,
-                                bk_biz_id=c.bk_biz_id,
-                                bk_cloud_id=c.bk_cloud_id,
-                                cluster=c.immute_domain,
-                                cluster_type=c.cluster_type,
-                                instance=instance,
-                                status=False,
-                                msg=msg,
-                                subtype=RedisBackupCheckSubType.BinlogBackup.value,
-                            )
-
-                        # else:
-                        # 这里打日志的话，有助于排查问题，但是日志有点多
-                        # logger.info("+===+++++=== {} binlog 序号连续 +++++===++++ ".format(kvstore_filter))
-                #  tendis ssd 的情况
-                elif c.cluster_type == ClusterType.TwemproxyTendisSSDInstance.value:
-                    # 校验binlog完整性
+            #  tendisplus 的情况
+            if c.cluster_type == ClusterType.TendisPredixyTendisplusCluster.value:
+                # 每个节点又分不同kvstore,校验binlog完整性
+                for i in range(0, int(kvstorecount)):
+                    # 过滤不同kvstore
+                    kvstore_filter = "-".join([str(ip), str(port), str(i)])
+                    # 过滤后的包含指定kvstore的binlog列表
+                    kvstore_binlogs_list = [
+                        binlog for binlog in suceess_binlog_file_list if kvstore_filter in binlog["file_name"]
+                    ]
                     # 检查是否获取到所有binlog
-                    bin_index_list = is_get_all_binlog(suceess_binlog_file_list, c.cluster_type)
+                    bin_index_list = is_get_all_binlog(kvstore_binlogs_list, c.cluster_type)
                     if len(bin_index_list) != 0:
                         msg = _("重复/缺失的binlog共{}个,重复/缺失的binlog index是:{},详细信息请查看error日志").format(
                             len(bin_index_list), bin_index_list
                         )
                         logger.error("+===+++++=== {}+++++===++++ ".format(msg))
-                        RedisBackupCheckReport.objects.create(
-                            creator=c.creator,
-                            bk_biz_id=c.bk_biz_id,
-                            bk_cloud_id=c.bk_cloud_id,
-                            cluster=c.immute_domain,
-                            cluster_type=c.cluster_type,
-                            instance=instance,
-                            status=False,
-                            msg=msg,
-                            subtype=RedisBackupCheckSubType.BinlogBackup.value,
-                        )
-                    else:
-                        logger.info(_("+===+++++=== {} binlog 序号连续 +++++===++++ ".format(instance)))
+                        binlog_backup_failed_record(c, instance, msg)
+                    # else:
+                    # 这里打日志的话，有助于排查问题，但是日志有点多
+                    # logger.info("+===+++++=== {} binlog 序号连续 +++++===++++ ".format(kvstore_filter))
+            #  tendis ssd 的情况
+            elif c.cluster_type == ClusterType.TwemproxyTendisSSDInstance.value:
+                # 校验binlog完整性
+                # 检查是否获取到所有binlog
+                bin_index_list = is_get_all_binlog(suceess_binlog_file_list, c.cluster_type)
+                if len(bin_index_list) != 0:
+                    msg = _("重复/缺失的binlog共{}个,重复/缺失的binlog index是:{},详细信息请查看error日志").format(
+                        len(bin_index_list), bin_index_list
+                    )
+                    logger.error("+===+++++=== {}+++++===++++ ".format(msg))
+                    binlog_backup_failed_record(c, instance, msg)
+                else:
+                    logger.info(_("+===+++++=== {} binlog 序号连续 +++++===++++ ".format(instance)))
+
+
+def binlog_backup_failed_record(c: Cluster, instance: str, msg: str):
+    """
+    记录binlog备份失败的集群和实例
+    """
+    logger.info(_("+===++=== 实例{}binlog备份失败，集群类型{}写入表 ++++++++ ".format(instance, c.cluster_type)))
+    RedisBackupCheckReport.objects.create(
+        creator=c.creator,
+        bk_biz_id=c.bk_biz_id,
+        bk_cloud_id=c.bk_cloud_id,
+        cluster=c.immute_domain,
+        cluster_type=c.cluster_type,
+        instance=instance,
+        status=False,
+        msg=msg,
+        subtype=RedisBackupCheckSubType.BinlogBackup.value,
+    )
 
 
 def is_get_all_binlog(binlogs_list: List, tendis_type: str):
@@ -212,6 +190,8 @@ def is_get_all_binlog(binlogs_list: List, tendis_type: str):
             current_number = int(file_name.split("-")[4])
         elif tendis_type == ClusterType.TwemproxyTendisSSDInstance.value:
             current_number = int(file_name.split("-")[3])
+        else:
+            raise NotImplementedError("Not supported tendis_type: %s" % tendis_type)
         # 检查是否重复
         if current_number in duplicate_files:
             logger.error(_("文件序号重复: {}".format(current_number)))
