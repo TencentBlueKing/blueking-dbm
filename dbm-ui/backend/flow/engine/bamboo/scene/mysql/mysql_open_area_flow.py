@@ -186,13 +186,27 @@ class MysqlOpenAreaFlow(object):
 
         return False
 
+    def __get_all_cluster_id(self):
+        """
+        获取所有集群id，包括原集群与目标集群，用于密码随机化
+        @return:
+        """
+        cluster_ids = []
+        cluster_ids.append(self.data["source_cluster"])
+        for target_cluster in self.data["target_clusters"]:
+            cluster_ids.append(target_cluster["target_cluster"])
+
+        return cluster_ids
+
     def mysql_open_area_flow(self):
         source_cluster_schema = self.__get_source_cluster(data_flag=False)
         target_clusters_schema = self.__get_target_cluster(data_flag=False)
+        # 获取源集群与目标集群id
+        cluster_ids = self.__get_all_cluster_id()
         # 提取要下发act的机器ip（过滤重复）
         exec_ip_list = self.__get_exec_ip_list(source_cluster_schema, target_clusters_schema)
 
-        pipeline = Builder(root_id=self.root_id, data=self.data)
+        pipeline = Builder(root_id=self.root_id, data=self.data, need_random_pass_cluster_ids=list(set(cluster_ids)))
 
         pipeline.add_act(
             act_name=_("下发db-actuator介质"),
@@ -267,7 +281,7 @@ class MysqlOpenAreaFlow(object):
         # 对开区的新集群进行授权
         pipeline.add_act(act_name=_("添加mysql规则授权"), act_component_code=AuthorizeRulesComponent.code, kwargs=self.data)
 
-        pipeline.run_pipeline()
+        pipeline.run_pipeline(is_drop_random_user=True)
 
     def open_area_data_flow(self):
         """
