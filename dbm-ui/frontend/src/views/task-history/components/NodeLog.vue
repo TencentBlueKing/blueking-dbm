@@ -57,6 +57,7 @@
             :z-index="99999">
             <BkButton
               class="refresh-btn"
+              :loading="retryLoading"
               @click="() => refreshShow = true">
               <i class="db-icon-refresh mr5" />{{ $t('失败重试') }}
             </BkButton>
@@ -111,14 +112,18 @@
 <script setup lang="tsx">
   import { format } from 'date-fns';
   import { useI18n } from 'vue-i18n';
+  import { useRequest } from 'vue-request';
 
   import {
     getNodeLog,
     getRetryNodeHistories,
+    retryTaskflowNode,
   } from '@services/source/taskflow';
 
   import CostTimer from '@components/cost-timer/CostTimer.vue';
   import BkLog from '@components/vue2/bk-log/index.vue';
+
+  import { messageSuccess } from '@utils';
 
   import { useFullscreen, useTimeoutPoll } from '@vueuse/core';
 
@@ -128,6 +133,7 @@
   import RetrySelector from './RetrySelector.vue';
 
   import { useCopy } from '@/hooks';
+
 
   type NodeLog = ServiceReturnType<typeof getNodeLog>[number]
 
@@ -151,10 +157,12 @@
   const copy = useCopy();
 
   const route = useRoute();
-  const rootId = computed(() => route.params.root_id as string);
+  const rootId = route.params.root_id as string;
+
   const state = reactive({
     isShow: false,
   });
+
   const nodeData = computed(() => props.node.data || {});
   const status = computed(() => {
     const themesMap =  {
@@ -186,6 +194,17 @@
     return 0;
   });
 
+  const {
+    loading: retryLoading,
+    run: runRetryTaskflowNode,
+  } = useRequest(retryTaskflowNode, {
+    manual: true,
+    onSuccess: () => {
+      messageSuccess(t('重试成功'));
+      location.reload();
+    },
+  });
+
   const formatLogData = (data: NodeLog[] = []) => {
     const regex = /^##\[[a-z]+]/;
 
@@ -206,7 +225,7 @@
     if (!currentData.value.version) return;
 
     const params: any = {
-      root_id: rootId.value,
+      root_id: rootId,
       node_id: nodeData.value.id,
       version_id: currentData.value.version,
     };
@@ -270,7 +289,7 @@
    */
   const handleDownLoaderLog = () => {
     const params: any = {
-      root_id: rootId.value,
+      root_id: rootId,
       node_id: nodeData.value.id,
       version_id: currentData.value.version,
     };
@@ -301,6 +320,10 @@
 
   const handleRefresh = () => {
     refreshShow.value = false;
+    runRetryTaskflowNode({
+      root_id: rootId,
+      node_id: props.node.id,
+    });
   };
 
   const refreshShow = ref(false);

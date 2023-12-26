@@ -9,6 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import copy
+import re
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Any, Dict, List, Union
 
@@ -21,6 +22,8 @@ from backend import env
 from backend.components.gcs.client import GcsApi
 from backend.components.mysql_priv_manager.client import MySQLPrivManagerApi
 from backend.components.scr.client import ScrApi
+from backend.configuration.constants import DBType
+from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Cluster
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.db_services.mysql.permission.authorize.dataclass import (
@@ -30,7 +33,9 @@ from backend.db_services.mysql.permission.authorize.dataclass import (
 )
 from backend.db_services.mysql.permission.authorize.models import MySQLAuthorizeRecord
 from backend.db_services.mysql.permission.constants import AUTHORIZE_DATA_EXPIRE_TIME, AUTHORIZE_EXCEL_ERROR_TEMPLATE
+from backend.db_services.mysql.permission.exceptions import DBPermissionBaseException
 from backend.exceptions import ApiResultError
+from backend.ticket.builders.mysql.mysql_authorize_rules import MySQLAuthorizeRulesSerializer
 from backend.ticket.constants import TicketStatus, TicketType
 from backend.ticket.models import Ticket
 from backend.utils.cache import data_cache
@@ -205,6 +210,7 @@ class AuthorizeHandler(object):
 
     def authorize_apply(
         self,
+        request,
         user: str,
         access_db: str,
         source_ips: str,
@@ -216,31 +222,46 @@ class AuthorizeHandler(object):
         module_name_list: str = "",
         type: str = "",
     ):
+
         """直接授权，兼容gcs老的授权方式"""
+
+        def parse_domain(raw_domain):
+            match = re.compile("^(.*?)[#|:]?(\d*)$").match(raw_domain)  # noqa
+            if not match:
+                raise DBPermissionBaseException(_("域名解析失败，请输入合法域名"))
+            _domain, _port = match.group(1).rstrip("."), match.group(2)
+            return _domain, _port
+
         if app:
             app_detail = ScrApi.common_query(params={"app": app, "columns": ["appid", "ccId"]})["detail"][0]
 
         # 域名存在，则走dbm的授权方式，否则走gcs的授权方式
-        cluster = Cluster.objects.filter(immute_domain=target_instance)
+        domain, __ = parse_domain(target_instance)
+        cluster = Cluster.objects.filter(immute_domain=domain)
         bk_biz_id = bk_biz_id or app_detail["ccId"]
         if cluster.exists():
             cluster = cluster.first()
+            db_type = ClusterType.cluster_type_to_db_type(cluster.cluster_type)
             authorize_infos = {
                 "bk_biz_id": bk_biz_id,
                 "user": user,
                 "access_dbs": [access_db],
                 "source_ips": source_ips.split(","),
-                "target_instances": [target_instance],
+                "target_instances": [cluster.immute_domain],
                 "cluster_type": cluster.cluster_type,
             }
+            authorize_info_slz = MySQLAuthorizeRulesSerializer(data={"authorize_plugin_infos": [authorize_infos]})
+            authorize_info_slz.context["request"] = request
+            authorize_info_slz.is_valid(raise_exception=True)
+
             ticket = Ticket.create_ticket(
                 bk_biz_id=bk_biz_id,
                 ticket_type=TicketType.MYSQL_AUTHORIZE_RULES
-                if type == "mysql"
+                if db_type == DBType.MySQL
                 else TicketType.TENDBCLUSTER_AUTHORIZE_RULES,
                 creator=self.operator,
                 remark=_("第三方请求授权"),
-                details={"authorize_plugin_infos": [authorize_infos]},
+                details=authorize_info_slz.validated_data,
             )
             return {"task_id": ticket.id, "platform": "dbm"}
         else:

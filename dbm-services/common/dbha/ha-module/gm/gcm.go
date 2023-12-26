@@ -228,7 +228,7 @@ func (gcm *GCM) InsertSwitchLogs(instance dbutil.DataBaseSwitch, result bool, re
 
 	ip, port := instance.GetAddress()
 	err := gcm.HaDBClient.InsertSwitchLog(
-		instance.GetSwitchUid(), ip, port, resultDetail, comment, time.Now(),
+		instance.GetSwitchUid(), ip, port, instance.GetApp(), resultDetail, comment, time.Now(),
 	)
 	if err != nil {
 		log.Logger.Errorf("insert switch logs failed. err:%s", err.Error())

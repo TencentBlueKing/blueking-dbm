@@ -66,7 +66,7 @@ var queryCmd = &cobra.Command{
 		table.SetAutoMergeCellsByColumnIndex([]int{0, 1})
 		table.SetRowLine(true)
 		table.SetHeader([]string{"Port", "DBRole", "Filename", "Filesize", "FimeMtime", "StopTime",
-			"BackupTaskId", "BackupStatus", "ClusterId", "Host"})
+			"BackupTaskId", "BackupStatus", "StatusMsg", "ClusterId", "Host"})
 		for _, fi := range files {
 			if fi != nil {
 				table.Append([]string{
@@ -78,6 +78,7 @@ var queryCmd = &cobra.Command{
 					fi.StopTime,
 					fi.BackupTaskid,
 					cast.ToString(fi.BackupStatus),
+					models.IBStatusMap[fi.BackupStatus],
 					cast.ToString(fi.ClusterId),
 					fi.Host,
 				})

@@ -58,6 +58,8 @@
 
   import { queryBackupLogFromBklog } from '@services/source/fixpointRollback';
 
+  import { useTimeZoneFormat } from '@hooks';
+
   import TableEditDateTime from '@views/mysql/common/edit/DateTime.vue';
   import TableEditSelect from '@views/mysql/common/edit/Select.vue';
 
@@ -78,6 +80,7 @@
   const disableDate = (date: Date) => date && date.valueOf() > Date.now();
 
   const { t } = useI18n();
+  const formatDateToUTC = useTimeZoneFormat();
 
   const timerRules = [
     {
@@ -170,7 +173,7 @@
       return localRollbackTimeRef.value.getValue()
         .then(() => ({
           rollback_type: 'REMOTE_AND_TIME',
-          rollback_time: localRollbackTime.value,
+          rollback_time: formatDateToUTC(localRollbackTime.value),
         }));
     },
   });

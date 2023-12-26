@@ -35,8 +35,9 @@ class MySQLDownloadBackupfile(BkJobService):
             "taskid_list": kwargs["task_ids"],
             "dest_ip": kwargs["dest_ip"],
             "login_user": kwargs["login_user"],
-            "dest_dir": kwargs["desc_dir"],
+            "dest_dir": kwargs["dest_dir"],
             "reason": kwargs["reason"],
+            "login_passwd": kwargs["login_passwd"],
         }
         self.log_debug(params)
         response = MysqlBackupApi.download(params=params)

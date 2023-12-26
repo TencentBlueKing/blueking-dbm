@@ -224,6 +224,10 @@
     .nav-slider{
       border: none !important;
     }
+
+    .group-name {
+      color: #fff;
+    }
   }
 }
 

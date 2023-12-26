@@ -24,13 +24,25 @@
         v-bk-tooltips="{
           content: t('请选择xx', [t('规格')]),
           disabled: hasSelected
-        }"
-        class="delete-button">
+        }">
         <BkButton
           class="w-88 mr-8"
           :disabled="!hasSelected"
           @click="handleBacthDelete">
           {{ t('删除') }}
+        </BkButton>
+      </span>
+      <span
+        v-bk-tooltips="{
+          content: t('请选择xx', [t('规格')]),
+          disabled: hasSelected
+        }"
+        class="delete-button">
+        <BkButton
+          class="w-88 mr-8"
+          :disabled="!hasSelected"
+          @click="handleBacthEnable">
+          {{ t('启用') }}
         </BkButton>
       </span>
       <BkInput
@@ -87,13 +99,14 @@
 
 <script setup lang="tsx">
   import type { Column } from 'bkui-vue/lib/table/props';
-  import { differenceInSeconds } from 'date-fns';
   import { useI18n } from 'vue-i18n';
+  import { useRequest } from 'vue-request';
 
   import type ResourceSpecModel from '@services/model/resource-spec/resourceSpec';
   import {
     batchDeleteResourceSpec,
     getResourceSpecList,
+    updateResourceSpecEnableStatus,
   } from '@services/source/dbresourceSpec';
 
   import { useBeforeClose, useDebouncedRef, useInfoWithIcon, useTableSettings } from '@hooks';
@@ -117,25 +130,18 @@
 
   const { t } = useI18n();
   const handleBeforeClose = useBeforeClose();
-
-  const isRecentSeconds = (date: string | Date, seconds: number) => {
-    try {
-      const createDay = new Date(date);
-      const today = new Date();
-      return differenceInSeconds(today, createDay) < seconds;
-    } catch (e) {
-      return false;
-    }
-  };
+  const searchKey = useDebouncedRef('');
 
   const tableRef = ref();
-  const searchKey = useDebouncedRef('');
+
   const specOperationState = reactive({
     isShow: false,
     type: 'create' as SpecOperationType,
     data: null as ResourceSpecModel | null,
   });
+
   const batchSelected = shallowRef<Record<number, ResourceSpecModel>>({});
+
   const hasSelected = computed(() => Object.values(batchSelected.value).length > 0);
   const isSpecOperationEdit = computed(() => specOperationState.type === 'edit');
   const hasInstanceSpecs = [`${ClusterTypes.ES}_es_datanode`];
@@ -163,7 +169,7 @@
               <a href="javascript:" onClick={handleShowUpdate.bind(null, data)}>{data.spec_name}</a>
             </div>
             {
-              isRecentSeconds(data.create_at, 30)
+              data.isRecentSeconds
                 ? <span class="glob-new-tag ml-4" data-text="NEW" />
                 : null
             }
@@ -236,6 +242,27 @@
         field: 'desc',
       },
       {
+        label: t('是否启用'),
+        field: 'enable',
+        render: ({ data }: { data: ResourceSpecModel }) => (
+          <bk-pop-confirm
+            title={data.enable ? t('确认停用该规格？') : t('确认启用该规格？')}
+            content={data.enable ? t('停用后，在资源规格选择时，将不可见，且不可使用') : t('启用后，在资源规格选择时，将开放选择')}
+            width="308"
+            trigger="click"
+            placement="bottom"
+            confirm-text={data.enable ? t('停用') : t('启用')}
+            onConfirm={() => handleConfirmSwitch(data)}
+          >
+            <bk-switcher
+              size="small"
+              model-value={data.enable}
+              theme="primary"
+            />
+          </bk-pop-confirm>
+        ),
+      },
+      {
         label: t('更新时间'),
         field: 'update_at',
         sort: true,
@@ -253,15 +280,37 @@
         fixed: 'right',
         render: ({ data }: { data: ResourceSpecModel }) => (
           <>
-            <bk-button class="mr-8" theme="primary" text onClick={handleShowUpdate.bind(null, data)}>{t('编辑')}</bk-button>
-            <bk-button class="mr-8" theme="primary" text onClick={handleShowClone.bind(null, data)}>{t('克隆')}</bk-button>
-            {
-              data.is_refer
-                ? <span class="inline-block;" v-bk-tooltips={t('该规格已被使用_无法删除')}>
-                    <bk-button theme="primary" text disabled>{t('删除')}</bk-button>
-                  </span>
-                : <bk-button theme="primary" text onClick={handleDelete.bind(null, [data])}>{t('删除')}</bk-button>
-            }
+            <bk-button
+              class="mr-8"
+              theme="primary"
+              text
+              onClick={handleShowUpdate.bind(null, data)}>
+              {t('编辑')}
+            </bk-button>
+            <bk-button
+              class="mr-8"
+              theme="primary"
+              text
+              onClick={handleShowClone.bind(null, data)}>
+              {t('克隆')}
+            </bk-button>
+            {data.is_refer ? (
+              <span class="inline-block;" v-bk-tooltips={t('该规格已被使用_无法删除')}>
+                <bk-button
+                  theme="primary"
+                  text
+                  disabled>
+                  {t('删除')}
+                </bk-button>
+              </span>
+            ) : (
+              <bk-button
+                theme="primary"
+                text
+                onClick={handleDelete.bind(null, [data])}>
+                {t('删除')}
+              </bk-button>
+            )}
           </>
         ),
       },
@@ -276,9 +325,6 @@
     return baseColumns;
   });
 
-  const setRowSelectable = ({ row }: { row: ResourceSpecModel }) => !row.is_refer;
-  const setRowClass = (data: ResourceSpecModel) => (isRecentSeconds(data.create_at, 30) ? 'is-new-row' : '');
-
   // 设置用户个人表头信息
   const disabledFields = ['spec_name', 'model'];
   const defaultSettings = {
@@ -289,10 +335,37 @@
     })),
     checked: columns.value.map(item => item.field).filter(key => !!key) as string[],
   };
+
   const {
     settings,
     updateTableSettings,
   } = useTableSettings(UserPersonalSettings.SPECIFICATION_TABLE_SETTINGS, defaultSettings);
+
+  const { run: runUpdateResourceSpec } = useRequest(updateResourceSpecEnableStatus, {
+    manual: true,
+    onSuccess: () => {
+      messageSuccess(t('操作成功'));
+      fetchData();
+    },
+  });
+
+  watch(() => [
+    props.clusterType,
+    props.machineType,
+    searchKey,
+  ], () => {
+    fetchData();
+  });
+
+  const setRowSelectable = ({ row }: { row: ResourceSpecModel }) => !row.is_refer;
+  const setRowClass = (data: ResourceSpecModel) => (data.isRecentSeconds ? 'is-new-row' : '');
+
+  const handleConfirmSwitch = (row: ResourceSpecModel) => {
+    runUpdateResourceSpec({
+      spec_ids: [row.spec_id],
+      enable: !row.enable,
+    });
+  };
 
   const fetchData = () => {
     tableRef.value.fetchData({
@@ -302,14 +375,6 @@
       spec_machine_type: props.machineType,
     });
   };
-
-  watch(() => [props.clusterType, props.machineType], () => {
-    fetchData();
-  });
-
-  watch(searchKey, () => {
-    fetchData();
-  });
 
   // 选择单台
   const handleSelect = (data: { checked: boolean, row: ResourceSpecModel }) => {
@@ -374,6 +439,14 @@
   const handleBacthDelete = () => {
     const list = Object.values(batchSelected.value);
     handleDelete(list);
+  };
+
+  const handleBacthEnable = () => {
+    const list = Object.values(batchSelected.value);
+    runUpdateResourceSpec({
+      spec_ids: list.map(item => item.spec_id),
+      enable: true,
+    });
   };
 
   const handleDelete = (list: ResourceSpecModel[]) => {

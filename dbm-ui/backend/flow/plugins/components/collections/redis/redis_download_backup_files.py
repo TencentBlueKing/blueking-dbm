@@ -9,6 +9,8 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
+import logging.config
+
 from django.utils.translation import ugettext as _
 from pipeline.component_framework.component import Component
 from pipeline.core.flow.activity import StaticIntervalGenerator
@@ -17,6 +19,8 @@ import backend.flow.utils.redis.redis_context_dataclass as flow_context
 from backend.components.mysql_backup.client import RedisBackupApi
 from backend.flow.plugins.components.collections.common.base_service import BaseService
 from backend.flow.utils.redis.redis_context_dataclass import RedisDataStructureContext
+
+logger = logging.getLogger("flow")
 
 
 class RedisDownloadBackupfile(BaseService):
@@ -39,9 +43,12 @@ class RedisDownloadBackupfile(BaseService):
             "taskid_list": kwargs["task_ids"],
             "dest_ip": kwargs["dest_ip"],
             "login_user": kwargs["login_user"],
+            "login_passwd": kwargs["login_passwd"],
             "dest_dir": dest_dir,
             "reason": kwargs["reason"],
         }
+        logger.info("+==RedisDownloadBackupfile params :{} +++ ".format(params))
+
         self.log_debug(params)
         response = RedisBackupApi.download(params=params)
         backup_bill_id = response.get("bill_id", -1)

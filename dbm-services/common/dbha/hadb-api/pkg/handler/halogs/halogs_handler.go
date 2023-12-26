@@ -52,7 +52,7 @@ func Handler(ctx *fasthttp.RequestCtx) {
 
 // PutHALogs TODO
 func PutHALogs(ctx *fasthttp.RequestCtx, setParam interface{}) {
-	input := &model.HaLogs{}
+	input := &model.HaGMLogs{}
 	response := api.ResponseInfo{
 		Data:    nil,
 		Code:    api.RespOK,

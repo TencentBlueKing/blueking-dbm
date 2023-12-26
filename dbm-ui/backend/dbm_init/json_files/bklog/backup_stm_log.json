@@ -9,7 +9,6 @@
     "environment": "linux",
     "data_encoding": "UTF-8",
     "retention": 7,
-    "allocation_min_days": 3,
     "es_shards": 3,
     "target_object_type": "HOST",
     "target_node_type": "TOPO",

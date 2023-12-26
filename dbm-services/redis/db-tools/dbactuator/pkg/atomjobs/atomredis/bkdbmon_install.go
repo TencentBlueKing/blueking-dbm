@@ -112,10 +112,6 @@ func (job *BkDbmonInstall) Init(m *jobruntime.JobGenericRuntime) error {
 				job.runtime.Logger.Error("BkDbmonInstall Init params validate failed,err:ClusterType is empty")
 				return fmt.Errorf("ClusterType is empty")
 			}
-			if svrItem.ClusterType == "" {
-				job.runtime.Logger.Error("BkDbmonInstall Init params validate failed,err:ClusterType is empty")
-				return fmt.Errorf("ClusterType is empty")
-			}
 		}
 	}
 	return nil
@@ -193,6 +189,35 @@ func (job *BkDbmonInstall) stopDbmonWhenNoServers() (err error) {
 	return
 }
 
+func (job *BkDbmonInstall) getOldDbmonTar() string {
+	backupDir := filepath.Join(consts.GetRedisBackupDir(), "dbbak") // 如 /data/dbbak
+	dbmonName := filepath.Base(consts.BkDbmonPath)
+	bakdirToolsTar := filepath.Join(backupDir, dbmonName+".tar.gz") // 如 /data/dbbak/bk-dbmon.tar.gz
+	return bakdirToolsTar
+}
+
+func (job *BkDbmonInstall) isDbmonPkgMd5Equal() (bool, error) {
+	newFile := job.params.BkDbmonPkg.GetAbsolutePath()
+	oldFile := job.getOldDbmonTar()
+	if !util.FileExists(oldFile) {
+		return false, nil
+	}
+	newMd5, err := util.GetFileMd5(newFile)
+	if err != nil {
+		job.runtime.Logger.Error(err.Error())
+		return false, err
+	}
+	oldMd5, err := util.GetFileMd5(oldFile)
+	if err != nil {
+		job.runtime.Logger.Error(err.Error())
+		return false, err
+	}
+	if newMd5 == oldMd5 {
+		return true, nil
+	}
+	return false, nil
+}
+
 // UntarMedia 解压介质
 // 如果/home/mysql/bk-dbmon/bk-dbmon 存在,且版本正确,则不解压
 // 否则解压最新bk-dbmon,并修改 /home/mysql/bk-dbmon 的指向;
@@ -225,12 +250,26 @@ func (job *BkDbmonInstall) UntarMedia() (err error) {
 		}
 		localVersion = strings.TrimSpace(localVersion)
 	}
-	if remoteVersion != "" && remoteVersion == localVersion {
-		// 如果本地版本和远程版本一致,则无需更新
-		job.runtime.Logger.Info("本地bk-dbmon版本%s 与 目标bk-dbmon版本%s 一致,无需更新本地bk-dbmon版本", localVersion, remoteVersion)
+	md5Equal, err := job.isDbmonPkgMd5Equal()
+	if err != nil {
+		job.runtime.Logger.Error(err.Error())
+		return
+	}
+	if md5Equal && remoteVersion != "" && remoteVersion == localVersion {
+		// 如果本地文件和远程文件一致(版本和md5都相同),则无需更新
+		job.runtime.Logger.Info("本地bk-dbmon版本%s 与 目标bk-dbmon版本%s 一致,md5相同,无需更新本地bk-dbmon介质",
+			localVersion, remoteVersion)
 		return
 	}
 	job.bkDbmonBinUpdated = true
+
+	// 拷贝 bk-dbmon-v\d+.\d+.tar.gz 到 /data/dbbak/bk-dbmon.tar.gz
+	bakDbmonTar := job.getOldDbmonTar()
+	cpCmd := fmt.Sprintf("cp -f %s %s", job.params.BkDbmonPkg.GetAbsolutePath(), bakDbmonTar)
+	job.runtime.Logger.Info(cpCmd)
+	util.RunBashCmd(cpCmd, "", nil, 5*time.Minute)
+
+	// 更新bk-dbmon
 	err = job.StopBkDbmon()
 	if err != nil {
 		return

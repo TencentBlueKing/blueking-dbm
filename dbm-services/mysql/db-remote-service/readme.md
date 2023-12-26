@@ -33,6 +33,7 @@ export DRS_LOG_FILE_DIR=/log/dir # 是否在文件打印日志, 文件目录
 
 `POST /mysql/rpc`
 
+**注意，数据如果 mysql 字段定义是 timestamp 类型，返回的是 +00:00 时间**
 
 ## _Request_
 ```go

@@ -30,3 +30,4 @@ class QuickSearchSerializer(serializers.Serializer):
     )
     filter_type = serializers.ChoiceField(help_text=_("检索类型"), choices=FilterType.get_choices(), required=False)
     keyword = serializers.CharField(help_text=_("关键字过滤"), required=True, max_length=128)
+    limit = serializers.IntegerField(help_text=_("分页大小"), required=False, default=10, min_value=1, max_value=1000)

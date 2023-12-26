@@ -59,7 +59,7 @@ class ProxyActPayload(object):
         """
         拼接安装proxy的payload参数
         """
-        proxy_pkg = Package.get_latest_package(version="latest", pkg_type=MediumEnum.Proxy)
+        proxy_pkg = Package.get_latest_package(version="latest", pkg_type=MediumEnum.MySQLProxy)
         return {
             "db_type": DBActuatorTypeEnum.Proxy.value,
             "action": DBActuatorActionEnum.Deploy.value,

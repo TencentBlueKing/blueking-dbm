@@ -41,6 +41,8 @@
   import { watch } from 'vue';
   import { useI18n } from 'vue-i18n';
 
+  import { useTimeZoneFormat } from '@hooks';
+
   import TableEditDateTime from '@components/render-table/columns/DateTime.vue';
 
   interface Props {
@@ -58,6 +60,8 @@
   });
 
   const { t } = useI18n();
+  const formatDateToUTC = useTimeZoneFormat();
+
   const editRef = ref();
   const isNowTime = ref(false);
 
@@ -95,7 +99,7 @@
       }
       return editRef.value.getValue()
         .then(() => ({
-          end_time: modelValue.value,
+          end_time: formatDateToUTC(modelValue.value!),
         }));
     },
   });

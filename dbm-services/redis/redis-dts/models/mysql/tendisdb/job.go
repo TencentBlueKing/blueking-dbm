@@ -41,8 +41,8 @@ type TbTendisDTSJob struct {
 	KeyBlackRegex                     string                `json:"key_black_regex" gorm:"column:key_black_regex"`
 	Status                            int                   `json:"status" gorm:"column:status"`
 	Reason                            string                `json:"reason" gorm:"column:reason"`
-	CreateTime                        customtime.CustomTime `json:"createTime" gorm:"column:create_time"`
-	UpdateTime                        customtime.CustomTime `json:"updateTime" gorm:"column:update_time"`
+	CreateTime                        customtime.CustomTime `json:"create_time" gorm:"column:create_time"`
+	UpdateTime                        customtime.CustomTime `json:"update_time" gorm:"column:update_time"`
 }
 
 // TableName sets the insert table name for this struct type

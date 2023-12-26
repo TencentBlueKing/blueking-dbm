@@ -24,7 +24,7 @@ from backend.constants import BACKUP_SYS_STATUS, IP_PORT_DIVIDER
 from backend.db_meta import api as metaApi
 from backend.db_meta.api.cluster import nosqlcomm
 from backend.db_meta.enums.cluster_type import ClusterType
-from backend.db_meta.models import Cluster
+from backend.db_meta.models import Cluster, StorageInstance
 from backend.db_package.models import Package
 from backend.db_services.redis.util import (
     is_predixy_proxy_type,
@@ -79,6 +79,13 @@ twemproxy_cluster_type_list = [
 predixy_cluster_type_list = [
     ClusterType.TendisPredixyTendisplusCluster.value,
     ClusterType.TendisPredixyRedisCluster.value,
+]
+cache_cluster_type_list = [
+    ClusterType.RedisCluster.value,
+    ClusterType.TendisPredixyRedisCluster.value,
+    ClusterType.TendisTwemproxyRedisInstance.value,
+    ClusterType.TendisRedisInstance.value,
+    ClusterType.TendisRedisCluster.value,
 ]
 
 
@@ -172,15 +179,16 @@ class RedisActPayload(object):
                 "level_value": cluster_map["domain_name"],
             }
         )
-        # 备份相关的配置，需要单独写进去
-        if "backup_config" in cluster_map:
-            if "cache_backup_mode" in cluster_map["backup_config"]:
-                set_backup_mode(
-                    cluster_map["domain_name"],
-                    self.bk_biz_id,
-                    self.namespace,
-                    cluster_map["backup_config"]["cache_backup_mode"],
-                )
+        # 备份相关的配置，需要单独写进去。只有cache类型的的集群，才会去修改fullbackup的参数
+        if self.namespace in cache_cluster_type_list:
+            if "backup_config" in cluster_map:
+                if "cache_backup_mode" in cluster_map["backup_config"]:
+                    set_backup_mode(
+                        cluster_map["domain_name"],
+                        self.bk_biz_id,
+                        self.namespace,
+                        cluster_map["backup_config"]["cache_backup_mode"],
+                    )
 
         return data
 
@@ -802,6 +810,16 @@ class RedisActPayload(object):
             "payload": {},
         }
 
+    def __is_all_instances_shutdown(self, ip: str, port: list) -> bool:
+        """
+        判断所有实例是否都已经下架
+        """
+        insts = StorageInstance.objects.filter(machine__ip=ip)
+        for inst in insts:
+            if inst.port not in port:
+                return False
+        return True
+
     def redis_shutdown_payload(self, **kwargs) -> dict:
         """
         redis下架
@@ -812,7 +830,11 @@ class RedisActPayload(object):
         return {
             "db_type": DBActuatorTypeEnum.Redis.value,
             "action": DBActuatorTypeEnum.Redis.value + "_" + RedisActuatorActionEnum.Shutdown.value,
-            "payload": {"ip": ip, "ports": ports},
+            "payload": {
+                "ip": ip,
+                "ports": ports,
+                "is_all_instances_shutdown": self.__is_all_instances_shutdown(ip, ports),
+            },
         }
 
     def redis_flush_data_payload(self, **kwargs) -> dict:

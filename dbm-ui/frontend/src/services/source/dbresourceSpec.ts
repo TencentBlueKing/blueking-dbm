@@ -21,9 +21,10 @@ const path = '/apis/dbresource/spec';
 /**
  * 获取资源规格列表
  */
-export  function getResourceSpecList(params: Record<string, any> & {
+export function getResourceSpecList(params: Record<string, any> & {
   spec_cluster_type: string,
   spec_machine_type?: string,
+  enable?: boolean,
 }) {
   return http.get<ListBase<ResourceSpecModel[]>>(`${path}/`, params)
     .then(res => ({
@@ -114,8 +115,25 @@ export function getResourceSpec(params: { spec_id: number }) {
 /**
  * 更新规格
  */
-export function updateResourceSpec(params: Record<string, any> & { specId: number }) {
-  return http.put<ResourceSpecModel>(`${path}/${params.specId}/`, params);
+export function updateResourceSpec(params: Record<string, any> & {
+  spec_id: number,
+  spec_name: string,
+  spec_cluster_type: string,
+  spec_machine_type: string,
+  enable?: boolean,
+  device_class?: string[],
+}) {
+  return http.put<ResourceSpecModel>(`${path}/${params.spec_id}/`, params);
+}
+
+/**
+ * 更新规格的启用禁用态
+ */
+export function updateResourceSpecEnableStatus(params: {
+  spec_ids: number[],
+  enable: boolean,
+}) {
+  return http.post<ResourceSpecModel>(`${path}/modify_spec_enable_status/`, params);
 }
 
 /**

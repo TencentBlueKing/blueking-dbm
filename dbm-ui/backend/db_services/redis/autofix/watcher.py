@@ -43,7 +43,9 @@ def watcher_get_by_hosts() -> (int, dict):
 
     logger.info("watch_dbha_switch_log from id {}".format(switch_id))
     try:
-        switch_queues = HADBApi.switch_queue(params={"name": "query_switch_queue", "query_args": {"uid": switch_id}})
+        switch_queues = HADBApi.switch_queue(
+            params={"name": "query_switch_queue_by_uid", "query_args": {"uid": switch_id}}
+        )
     except (ApiResultError, ApiRequestError, Exception) as error:  # pylint: disable=broad-except
         # 捕获ApiResultError, ApiRequestError和其他未知异常
         logger.warn("meet exception {}  when request switch logs".format(error))

@@ -26,15 +26,12 @@
         type="search"
         @clear="handleClickSearch"
         @enter="handleClickSearch" />
-      <BkDatePicker
-        ref="datePickerRef"
-        append-to-body
-        class="time-picker"
-        clearable
-        :model-value="dateTimeRange"
-        type="datetimerange"
-        @change="handlerChangeDatetime"
-        @pick-success="handleConfirmDatetime" />
+      <DatePicker
+        v-model="dateTimeRange"
+        behavior="normal"
+        :disabled="false"
+        :version="2"
+        @update:model-value="handleValueChange" />
     </div>
     <BkLoading
       :loading="isTableDataLoading"
@@ -113,23 +110,32 @@
   import { LocalStorageKeys   } from '@common/const';
 
   import useResetTableHeight from '@views/redis/common/hooks/useResetTableHeight';
-  import { formatDatetime } from '@views/redis/common/utils';
+
+  import DatePicker, { DateRange } from '@blueking/date-picker';
 
   import DataCopyTransferDetail from './components/DataCopyTransferDetail.vue';
   import ExecuteStatus from './components/ExecuteStatus.vue';
   import KeyTags from './components/KeyTags.vue';
 
+  import '@blueking/date-picker/dist/vue3-full.css';
+
   const { t } = useI18n();
   const router = useRouter();
+
+  const datePickerFormat = 'YYYY-MM-DDTHH:mm:ssZ';
+
+  // eslint-disable-next-line max-len
+  const generateUTCDateTime = (value?: [string, string]) => new DateRange(value ? value : dateTimeRange.value, datePickerFormat)
+    .toEmitValue()[1]
+    .map(item => item.formatText) as [string, string];
 
   const tableData = ref<RedisDSTHistoryJobModel[]>([]);
   const isTableDataLoading = ref(false);
   const isShowDataCopyTransferDetail = ref(false);
   const currentActiveRow = ref<RedisDSTHistoryJobModel>();
-  // const copyType = ref(0);
-  // const showRecopyDialog = ref(false);
   const searchValue = ref('');
-  const dateTimeRange = ref<[Date, Date]>([new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), new Date()]);
+  const dateTimeRange = ref<[string, string]>(['now-30d/d', 'now']);
+  const dateTimeRangeUTC = ref(generateUTCDateTime());
   const timer = ref();
   const tableHeight = ref(500);
   const pagination = ref(useDefaultPagination());
@@ -382,11 +388,14 @@
 
 
   const fetchHostNodes = async () => {
+    if (!dateTimeRangeUTC.value[0] || !dateTimeRangeUTC.value[0]) {
+      return;
+    }
     const ret = await getRedisDTSHistoryJobs({
       page: pagination.value.current,
       page_size: pagination.value.limit,
-      start_time: formatDatetime(dateTimeRange.value[0]),
-      end_time: formatDatetime(dateTimeRange.value[1]),
+      start_time: dateTimeRangeUTC.value[0],
+      end_time: dateTimeRangeUTC.value[1],
       cluster_name: searchValue.value,
     });
     tableData.value = ret.jobs;
@@ -395,12 +404,12 @@
 
   fetchHostNodes();
 
-  const handlerChangeDatetime = (range: [Date, Date]) => {
-    dateTimeRange.value = range;
-  };
-
-  const handleConfirmDatetime = () => {
-    fetchHostNodes();
+  const handleValueChange = (value: number[],  info: { formatText: string }[]) => {
+    const [{ formatText: startDate }, { formatText: endDate }] = info;
+    dateTimeRangeUTC.value = generateUTCDateTime([startDate, endDate]);
+    nextTick(() => {
+      fetchHostNodes();
+    });
   };
 
   const handleClickOpenTransferDetail = (row: RedisDSTHistoryJobModel) => {

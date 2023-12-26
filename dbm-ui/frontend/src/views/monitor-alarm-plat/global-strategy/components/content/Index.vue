@@ -32,13 +32,12 @@
         @clear-search="handleClearSearch" />
     </BkLoading>
   </div>
-  <EditRule
+  <EditStrategy
     v-model="isShowEditStrrategySideSilder"
     :data="currentChoosedRow"
     @success="handleEditRuleSuccess" />
 </template>
 <script setup lang="tsx">
-  import dayjs from 'dayjs';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
@@ -52,7 +51,7 @@
 
   import { messageSuccess } from '@utils';
 
-  import EditRule from '../edit-strategy/Index.vue';
+  import EditStrategy from '../edit-strategy/Index.vue';
 
   export type RowData = ServiceReturnType<typeof queryMonitorPolicyList>['results'][0];
 
@@ -74,6 +73,7 @@
   const isShowEditStrrategySideSilder = ref(false);
   const currentChoosedRow = ref({} as RowData);
   const isTableLoading = ref(false);
+  const showTipMap = ref<Record<string, boolean>>({});
 
   async function fetchHostNodes() {
     isTableLoading.value = true;
@@ -116,18 +116,17 @@
       field: 'name',
       fixed: 'left',
       minWidth: 150,
-      render: ({ row }: { row: RowData }) => {
-        const isNew = dayjs().isBefore(dayjs(row.create_at).add(24, 'hour'));
-        return (<span>
+      render: ({ data }: { data: RowData }) => (
+        <span>
           <bk-button
             text
             theme="primary"
-            onClick={() => handleEdit(row)}>
-            {row.name}
+            onClick={() => handleEdit(data)}>
+            {data.name}
           </bk-button>
-          {isNew && <MiniTag theme='success' content="NEW" />}
-        </span>);
-      },
+          {data.isNewCreated && <MiniTag theme='success' content="NEW" />}
+        </span>
+      ),
     },
     {
       label: t('监控目标'),
@@ -163,22 +162,22 @@
       label: t('启停'),
       field: 'is_enabled',
       width: 120,
-      render: ({ row }: { row: RowData }) => (
+      render: ({ data }: { data: RowData }) => (
       <bk-pop-confirm
         title={t('确认停用该策略？')}
         content={t('停用后，所有的业务将会停用该策略，请谨慎操作！')}
         width="320"
-        is-show={row.is_show_tip}
+        is-show={showTipMap.value[data.id]}
         trigger="manual"
         placement="bottom"
-        onConfirm={() => handleClickConfirm(row)}
-        onCancel={() => handleCancelConfirm(row)}
+        onConfirm={() => handleClickConfirm(data)}
+        onCancel={() => handleCancelConfirm(data)}
       >
         <bk-switcher
-          v-model={row.is_enabled}
+          v-model={data.is_enabled}
           size="small"
           theme="primary"
-          onChange={() => handleChangeSwitch(row)} />
+          onChange={() => handleChangeSwitch(data)} />
       </bk-pop-confirm>
     ),
     },
@@ -188,12 +187,12 @@
       showOverflowTooltip: false,
       field: '',
       width: 120,
-      render: ({ row }: { row: RowData }) => (
+      render: ({ data }: { data: RowData }) => (
       <div class="operate-box">
         <bk-button
           text
           theme="primary"
-          onClick={() => handleEdit(row)}>
+          onClick={() => handleEdit(data)}>
           {t('编辑')}
         </bk-button>
       </div>),
@@ -270,15 +269,13 @@
     immediate: true,
   });
 
-  const updateRowClass = (row: RowData) => (dayjs().isBefore(dayjs(row.create_at).add(24, 'hour')) ? 'is-new' : '');
+  const updateRowClass = (row: RowData) => (row.isNewCreated ? 'is-new' : '');
 
   const handleChangeSwitch = (row: RowData) => {
     if (!row.is_enabled) {
-      nextTick(() => {
-        Object.assign(row, {
-          is_show_tip: true,
-          is_enabled: !row.is_enabled,
-        });
+      showTipMap.value[row.id] = true;
+      Object.assign(row, {
+        is_enabled: !row.is_enabled,
       });
     } else {
       // 启用
@@ -288,12 +285,11 @@
 
   const handleClickConfirm = (row: RowData) => {
     runDisablePolicy({ id: row.id });
+    showTipMap.value[row.id] = false;
   };
 
   const handleCancelConfirm = (row: RowData) => {
-    Object.assign(row, {
-      is_show_tip: false,
-    });
+    showTipMap.value[row.id] = false;
   };
 
   const handleEdit = (row: RowData) => {

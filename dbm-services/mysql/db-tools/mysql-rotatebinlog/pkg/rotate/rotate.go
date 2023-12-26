@@ -116,7 +116,7 @@ func (i *ServerObj) FlushLogs() error {
 	// 最后一个文件是当前正在写入的，获取倒数第二个文件的结束时间，在 5m 内，说明 mysqld 自己已经做了切换
 	if len(binlogFilesObj) >= 1 {
 		fileName := filepath.Join(i.binlogDir, binlogFilesObj[len(binlogFilesObj)-1].Filename)
-		bp, _ := binlog_parser.NewBinlogParse("", 0, reportlog.ReportTimeLayout1)
+		bp, _ := binlog_parser.NewBinlogParse("", 0, time.RFC3339)
 		events, err := bp.GetTime(fileName, true, false) // 只获取start_time
 		if err != nil {
 			logger.Warn("FlushLogs GetTime %s", fileName, err.Error())
@@ -159,13 +159,13 @@ func (i *ServerObj) RemoveMaxKeepDuration() error {
 		return nil
 	}
 	nowTime := time.Now()
-	fileTimeExpire := nowTime.Add(-1 * i.rotate.maxKeepDuration).Format(cst.DBTimeLayout)
+	fileTimeExpire := nowTime.Add(-1 * i.rotate.maxKeepDuration)
 
 	num := len(i.binlogFiles)
 	var binlogFilesNew []*BinlogFile
 	var binlogFilesDel []*BinlogFile
 	for j, f := range i.binlogFiles {
-		if f.Mtime < fileTimeExpire {
+		if f.Mtime.Compare(fileTimeExpire) < 0 {
 			binlogFilesDel = append(binlogFilesDel, f)
 			logger.Info("%s [%s]has exceed max_keep_duration=%s", f.Filename, f.Mtime, i.rotate.maxKeepDuration)
 			if num-j-cst.ReserveMinBinlogNum < 0 {
@@ -195,11 +195,32 @@ func (i *ServerObj) RemoveMaxKeepDuration() error {
 // RegisterBinlog 将新产生的 binlog 记录存入 本地 sqlite db
 // lastFileBefore 是上一次处理的最后一个文件
 // 实例最后一个 binlog 正在使用，不登记
-func (i *ServerObj) RegisterBinlog(lastFileBefore string) error {
+func (i *ServerObj) RegisterBinlog(lastFileBefore *models.BinlogFileModel) error {
 	fLen := len(i.binlogFiles)
+	var roleSwitched bool
+	if i.Tags.DBRole == cst.RoleMaster && lastFileBefore.DBRole == cst.RoleSlave {
+		// 刚刚发生过切换，上报过去 24h 的 binlog
+		roleSwitched = true
+	}
+	if roleSwitched {
+		logger.Warn("RegisterBinlog detect instance %d role changed to master", i.Port)
+		ff := &models.BinlogFileModel{
+			BkBizId:       i.Tags.BkBizId,
+			ClusterId:     i.Tags.ClusterId,
+			ClusterDomain: i.Tags.ClusterDomain,
+			DBRole:        i.Tags.DBRole,
+			Host:          i.Host,
+			Port:          i.Port,
+		}
+		if err := ff.HandleSwitchRole(models.DB.Conn); err != nil {
+			return errors.WithMessage(err, "handle binlog for switching slave to master")
+		}
+	}
+
+	lastFileNameRegistered := filepath.Base(lastFileBefore.Filename)
 	var filesModel []*models.BinlogFileModel
 	for j, fileObj := range i.binlogFiles {
-		if fileObj.Filename <= lastFileBefore || j == fLen-1 { // 忽略最后一个binlog
+		if fileObj.Filename <= lastFileNameRegistered || j == fLen-1 { // 忽略最后一个binlog
 			continue
 		}
 		backupStatus := models.IBStatusNew
@@ -234,7 +255,7 @@ func (i *ServerObj) RegisterBinlog(lastFileBefore string) error {
 			Port:             i.Port,
 			Filename:         fileObj.Filename,
 			Filesize:         fileObj.Size,
-			FileMtime:        fileObj.Mtime,
+			FileMtime:        fileObj.Mtime.Format(time.RFC3339),
 			BackupStatus:     backupStatus,
 			BackupStatusInfo: backupStatusInfo,
 			StartTime:        startTime,
@@ -287,7 +308,6 @@ func (r *BinlogRotate) Backup(backupClient backup.BackupClient) error {
 				f.BackupStatus = models.IBStatusClientFail
 				f.BackupStatusInfo = err.Error()
 			} else {
-				fmt.Println("aaaaaaab", taskid, err)
 				// 异步查询状态
 				f.BackupTaskid = taskid
 				f.BackupStatus = models.IBStatusWaiting

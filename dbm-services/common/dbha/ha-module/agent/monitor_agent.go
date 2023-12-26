@@ -127,7 +127,7 @@ func (a *MonitorAgent) DoDetectSingle(ins dbutil.DataBaseDetect) {
 	a.reportMonitor(ins, err)
 	if ins.NeedReporter() {
 		// reporter detect result to hadb
-		err = a.HaDBClient.ReportDBStatus(a.MonIp, ip, port,
+		err = a.HaDBClient.ReportDBStatus(ins.GetApp(), a.MonIp, ip, port,
 			string(ins.GetType()), string(ins.GetStatus()))
 		if err != nil {
 			log.Logger.Errorf(
@@ -187,7 +187,7 @@ func (a *MonitorAgent) FetchDBInstance() error {
 		return err
 	}
 
-	log.Logger.Debugf("fetch db instance info len:%d", len(rawInfo))
+	log.Logger.Debugf("get db instance number:%d", len(rawInfo))
 	// get callback function by db type
 	cb, ok := dbmodule.DBCallbackMap[a.DetectType]
 	if !ok {
@@ -201,12 +201,14 @@ func (a *MonitorAgent) FetchDBInstance() error {
 		log.Logger.Errorf("fetch db instance failed. err:%s", err.Error())
 		return err
 	}
+	log.Logger.Debugf("get type[%s] instance info number:%d", a.DetectType, len(AllDbInstance))
 
 	a.DBInstance, err = a.moduloHashSharding(AllDbInstance)
 	if err != nil {
-		log.Logger.Errorf("fetch modulo hash sharding failed. err:%s", err.Error())
+		log.Logger.Errorf("fetch module hash sharding failed. err:%s", err.Error())
 		return err
 	}
+	log.Logger.Debugf("current agent need to detect type[%s] number:%d", a.DetectType, len(a.DBInstance))
 	return nil
 }
 
@@ -352,7 +354,7 @@ func (a *MonitorAgent) registerAgentInfoToHaDB() error {
 	err := a.HaDBClient.RegisterDBHAInfo(
 		a.MonIp,
 		0,
-		"agent",
+		constvar.Agent,
 		a.CityID,
 		a.Campus,
 		a.DetectType)
@@ -366,11 +368,13 @@ func (a *MonitorAgent) registerAgentInfoToHaDB() error {
 // only detect the minimum port instance, other instances ignore.
 func (a *MonitorAgent) moduloHashSharding(allDbInstance []dbutil.DataBaseDetect) (map[string]dbutil.DataBaseDetect,
 	error) {
-	mod, modValue, err := a.HaDBClient.AgentGetHashValue(a.MonIp, a.DetectType, a.Conf.AgentConf.FetchInterval)
+	mod, modValue, err := a.HaDBClient.AgentGetHashValue(a.MonIp, a.CityID, a.DetectType, a.Conf.AgentConf.FetchInterval)
 	if err != nil {
 		log.Logger.Errorf("get Modulo failed and wait next refresh time. err:%s", err.Error())
 		return nil, err
 	}
+	log.Logger.Debugf("current agent detect dbType[%s], mod[%d], modValue[%d]",
+		a.DetectType, mod, modValue)
 	shieldConfig, err := a.HaDBClient.GetShieldConfig(&model.HAShield{
 		ShieldType: string(model.ShieldSwitch),
 	})
@@ -400,7 +404,7 @@ func (a *MonitorAgent) moduloHashSharding(allDbInstance []dbutil.DataBaseDetect)
 	return result, nil
 }
 
-// reporterHeartbeat send heartbeat to hadb
+// reporterHeartbeat send agent heartbeat to HA-DB
 func (a *MonitorAgent) reporterHeartbeat() error {
 	interval := time.Now().Sub(a.heartbeat).Seconds()
 	err := a.HaDBClient.ReporterAgentHeartbeat(a.MonIp, a.DetectType, int(interval), "N/A")

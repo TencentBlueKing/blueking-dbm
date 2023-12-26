@@ -5,9 +5,10 @@ import (
 	"time"
 )
 
-// HaLogs gm logs
-type HaLogs struct {
+// HaGMLogs gm logs
+type HaGMLogs struct {
 	Uid      uint       `gorm:"column:uid;primary_key;type:bigint;AUTO_INCREMENT" json:"uid,omitempty"`
+	App      string     `gorm:"column:app;type:varchar(32);index:idx_ins;NOT NULL" json:"app,omitempty"`
 	IP       string     `gorm:"column:ip;type:varchar(32);index:idx_ins;NOT NULL" json:"ip,omitempty"`
 	Port     int        `gorm:"column:port;type:int(11);index:idx_ins;NOT NULL" json:"port,omitempty"`
 	MonIP    string     `gorm:"column:mon_ip;type:varchar(32);index:idx_mon_ip;NOT NULL" json:"mon_ip,omitempty"`
@@ -18,6 +19,6 @@ type HaLogs struct {
 }
 
 // TableName table name
-func (m *HaLogs) TableName() string {
-	return "ha_logs"
+func (m *HaGMLogs) TableName() string {
+	return "ha_gm_logs"
 }

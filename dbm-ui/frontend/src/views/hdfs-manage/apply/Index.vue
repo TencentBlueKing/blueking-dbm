@@ -49,18 +49,10 @@
           :label="$t('Hadoop版本')"
           property="details.db_version"
           required>
-          <BkSelect
+          <DeployVersion
             v-model="formData.details.db_version"
-            class="item-input"
-            filterable
-            :input-search="false"
-            :loading="isDbVersionLoading">
-            <BkOption
-              v-for="item in dbVersionList"
-              :key="item"
-              :label="item"
-              :value="item" />
-          </BkSelect>
+            db-type="hdfs"
+            query-key="hdfs" />
         </BkFormItem>
         <BkFormItem
           :label="$t('服务器选择')"
@@ -348,7 +340,6 @@
     useRouter,
   } from 'vue-router';
 
-  import { getVersions } from '@services/source/version';
   import type {
     BizItem,
     HostDetails,
@@ -364,6 +355,7 @@
   import CloudItem from '@components/apply-items/CloudItem.vue';
   import ClusterAlias from '@components/apply-items/ClusterAlias.vue';
   import ClusterName from '@components/apply-items/ClusterName.vue';
+  import DeployVersion from '@components/apply-items/DeployVersion.vue';
   import RegionItem from '@components/apply-items/RegionItem.vue';
   import SpecSelector from '@components/apply-items/SpecSelector.vue';
   import HdfsHostTable, {
@@ -419,7 +411,6 @@
   const specDatanodeRef = ref();
   const specNamenodeRef = ref();
   const specZookeeperRef = ref();
-  const isDbVersionLoading = ref(true);
   const totalCapacity = ref(0);
   const regionItemRef = ref();
 
@@ -429,7 +420,6 @@
   });
   const formData = reactive(genDefaultFormData());
 
-  const dbVersionList = shallowRef<Array<string>>([]);
   const nodeAndZookerperMergeList = shallowRef<Array<IHostTableData>>([]);
 
   const isDefaultCity = computed(() => formData.details.city_code === 'default');
@@ -485,16 +475,6 @@
       totalCapacity.value = disk * count;
     }
   }, { flush: 'post', deep: true });
-
-  // 获取 DB 版本列表
-  getVersions({
-    query_key: 'hdfs',
-  }).then((data) => {
-    dbVersionList.value = data;
-  })
-    .finally(() => {
-      isDbVersionLoading.value = false;
-    });
 
   const {
     baseState,

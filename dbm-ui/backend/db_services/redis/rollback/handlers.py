@@ -264,7 +264,7 @@ class DataStructureHandler:
             "uptime": bk_binlog["end_time"],
             # latest_log["start_time"] 是全备份快照开始的时间-》文件最后写入时间作为binlog查询开始的时间
             "file_last_mtime": bk_binlog["start_time"],
-            "size": bk_binlog["backup_file_size"],
+            "size": int(bk_binlog["backup_file_size"]),
             "source_ip": bk_binlog["server_ip"],
             "task_id": bk_binlog["backup_taskid"],
             "file_name": bk_binlog["backup_file"].split("/")[-1],
@@ -280,7 +280,7 @@ class DataStructureHandler:
         :param start_time: 开始时间
         :param end_time: 结束时间
         """
-
+        logger.info("+===get_specified_format_binlog filter:{} ===++++ ".format(filter))
         binlog_file_list = []
         # 过滤后的包含指定filter的binlog列表
         filtered_binlogs = [binlog for binlog in binlogs if filter in binlog["backup_file"].split("/")[-1]]
@@ -291,7 +291,7 @@ class DataStructureHandler:
             # 获取小于且最接近start_time 的一个binlog文件 ；flag为1，则搜索小于或等于start_time的最近时间点
             latest_start_time_binlog = filtered_binlogs[find_nearby_time(time_keys, datetime2str(start_time), 1)]
         except IndexError:
-            raise AppBaseException(_("无法找到小于时间点{}附近的日志记录，请检查时间点的合法性或稍后重试").format(start_time))
+            raise AppBaseException(_("无法找到filter:{}小于时间点{}附近的日志记录，请检查时间点的合法性或稍后重试").format(filter, start_time))
         # 转化为直接查询备份系统返回的格式
         backup_binlog = self.convert_to_backup_system_format(latest_start_time_binlog)
         binlog_file_list.append(backup_binlog)
@@ -300,7 +300,7 @@ class DataStructureHandler:
             # 获取大于且最接近end_time 的一个binlog文件 ；flag为0，则搜索大于或等于end_time的最近时间点
             latest_end_time_binlog = filtered_binlogs[find_nearby_time(time_keys, datetime2str(end_time), 0)]
         except IndexError:
-            raise AppBaseException(_("无法找到大于时间点{}附近的日志记录，请检查时间点的合法性或稍后重试").format(end_time))
+            raise AppBaseException(_("无法找到filter:{}大于时间点{}附近的日志记录，请检查时间点的合法性或稍后重试").format(filter, end_time))
 
         # 转化为直接查询备份系统返回的格式
         backup_binlog = self.convert_to_backup_system_format(latest_end_time_binlog)

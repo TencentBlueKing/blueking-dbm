@@ -193,7 +193,6 @@
 
   recoverDataListFromLocalStorage();
 
-
   const handleShowMasterBatchSelector = () => {
     isShowClusterSelector.value = true;
   };
@@ -206,7 +205,6 @@
     const [firstRow] = list;
     return !firstRow.srcCluster;
   };
-
 
   // 追加一个集群
   const handleAppend = (index: number, appendList: Array<IDataRow>) => {

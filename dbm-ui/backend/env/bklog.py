@@ -15,6 +15,12 @@ from backend.utils.env import get_type_env
 # 日志平台存储集群
 BKLOG_STORAGE_CLUSTER_ID = get_type_env(key="BKLOG_STORAGE_CLUSTER_ID", _type=int)
 
+# 存储集群是否支持冷热数据功能
+BKLOG_CLUSTER_SUPPORT_HOT_COLD = get_type_env(key="BKLOG_CLUSTER_SUPPORT_HOT_COLD", _type=bool)
+
+# 日志默认存储天数
+BKLOG_DEFAULT_RETENTION = get_type_env(key="BKLOG_CLUSTER_SUPPORT_HOT_COLD", _type=int, default=7)
+
 # 自定义日志保留天数
 BKLOG_MYSQL_BACKUP_RESULT_RETENTION = get_type_env(key="BKLOG_MYSQL_BACKUP_RESULT_RETENTION", _type=int)
 BKLOG_MYSQL_DBBACKUP_RESULT_RETENTION = get_type_env(key="BKLOG_MYSQL_DBBACKUP_RESULT_RETENTION", _type=int)

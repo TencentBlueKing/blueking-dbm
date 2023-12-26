@@ -217,7 +217,7 @@ def mysql_rollback_data_sub_flow(
             bk_cloud_id=cluster_model.bk_cloud_id,
             task_ids=task_ids,
             dest_ip=cluster["rollback_ip"],
-            desc_dir=cluster["file_target_path"],
+            dest_dir=cluster["file_target_path"],
             reason="rollback node rollback binlog",
             cluster=cluster,
         )

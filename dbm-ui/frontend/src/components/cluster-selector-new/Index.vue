@@ -120,15 +120,19 @@
     </template>
   </BkDialog>
 </template>
-<script setup lang="tsx" generic="T extends ClusterTypes">
+<script setup lang="tsx" generic="T extends RedisModel | TendbhaModel | SpiderModel">
   import _ from 'lodash';
   import {
     ref,
     shallowRef,
   } from 'vue';
 
+  import TendbhaModel from '@services/model/mysql/tendbha';
+  import RedisModel from '@services/model/redis/redis';
+  import SpiderModel from '@services/model/spider/spider';
   import { getRedisList } from '@services/source/redis';
   import { getSpiderList } from '@services/source/spider';
+  import { getTendbhaList } from '@services/source/tendbha';
   import type { ListBase } from '@services/types';
 
   import { useCopy, useSelectorDialogWidth } from '@hooks';
@@ -143,6 +147,7 @@
   import type { SearchSelectList } from './components/common/SearchBar.vue';
   import RedisTable from './components/redis/Index.vue';
   import SpiderTable from './components/tendb-cluster/Index.vue';
+  import TendbhaTable from './components/tendbha/Index.vue';
 
   export type TabListType = {
     name: string,
@@ -173,18 +178,13 @@
 
   type TabConfig = Omit<TabItem, 'name' | 'id' | 'tableContent' | 'resultContent'>
 
-  type SpiderModel = ServiceReturnType<typeof getSpiderList>['results'][number];
-  type RedisModel = ServiceReturnType<typeof getRedisList>['results'][number];
-
   const props = defineProps<Props>();
 
   const emits = defineEmits<Emits>();
 
-  type SelectedItems<T extends ClusterTypes> = T extends ClusterTypes.REDIS ? RedisModel[] : SpiderModel[];
-
   interface Props {
-    selected: Record<string, SelectedItems<T>>,
-    clusterTypes: T[],
+    selected: Record<string, T[]>,
+    clusterTypes: ClusterTypes[],
     tabListConfig?: Record<string, TabConfig>
   }
 
@@ -218,6 +218,13 @@
         id: 'name',
       }],
       searchPlaceholder: t('集群_集群别名'),
+    },
+    [ClusterTypes.TENDBHA]: {
+      id: ClusterTypes.TENDBHA,
+      name: t('集群选择'),
+      getResourceList: getTendbhaList,
+      tableContent: TendbhaTable,
+      resultContent: ResultPreview,
     },
   };
 

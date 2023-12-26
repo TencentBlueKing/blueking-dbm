@@ -94,8 +94,8 @@ def ProxyBatchInstallAtomJob(root_id, ticket_data, act_kwargs: ActKwargs, param:
         ),
     )
 
-    # proxy扩容是，config从参数传过来
-    if ticket_data["ticket_type"] == TicketType.PROXY_SCALE_UP.value:
+    # proxy扩容/替换/自愈，config从参数传过来
+    if "conf_configs" in param:
         act_kwargs.cluster["conf_configs"] = param["conf_configs"]
         act_kwargs.cluster["dbconfig"] = param["conf_configs"]
 

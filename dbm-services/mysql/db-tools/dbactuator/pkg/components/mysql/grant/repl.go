@@ -5,9 +5,12 @@
 package grant
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"strings"
+
+	"github.com/pkg/errors"
 
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components"
@@ -70,44 +73,37 @@ func (g *GrantReplComp) Init() (err error) {
 	return
 }
 
-// GrantRepl TODO
+// GrantRepl grant user if not exists
+// 幂等
 func (g *GrantReplComp) GrantRepl() (err error) {
-	repl_user := g.GeneralParam.RuntimeAccountParam.ReplUser
-	repl_pwd := g.GeneralParam.RuntimeAccountParam.ReplPwd
-	var execSQLs []string
+	replUser := g.GeneralParam.RuntimeAccountParam.ReplUser
+	replPass := g.GeneralParam.RuntimeAccountParam.ReplPwd
 
+	// 因为可能需要 set session 会话，需要使用独立的connection
+	ctx := context.Background()
+	conn, err := g.Db.Db.Conn(ctx)
+	if err != nil {
+		return errors.WithMessage(err, "get connection")
+	}
 	// 增加对tdbctl授权的判断，初始化session设置tc_admin=0
 	if strings.Contains(g.masterVersion, "tdbctl") {
-		execSQLs = append(execSQLs, "set tc_admin = 0;")
+		if _, err = conn.ExecContext(ctx, "set tc_admin = 0;"); err != nil {
+			return err
+		}
 	}
 
 	for _, replHost := range g.Params.ReplHosts {
-		execSQLs = append(
-			execSQLs,
-			fmt.Sprintf(
-				"CREATE USER /*!50706 IF NOT EXISTS */ `%s`@`%s` IDENTIFIED BY '%s';",
-				repl_user, replHost, repl_pwd,
-			),
-		)
-		execSQLs = append(
-			execSQLs,
-			fmt.Sprintf("GRANT REPLICATION SLAVE, REPLICATION CLIENT ON *.* TO `%s`@`%s`;", repl_user, replHost),
-		)
+		if err = native.DropUserIfExists(replUser, replHost, conn); err != nil {
+			return err
+		}
+		if err = native.CreateUserIfNotExists(replUser, replHost, replPass, conn); err != nil {
+			return err
+		}
+		grantSQL := fmt.Sprintf("GRANT REPLICATION SLAVE, REPLICATION CLIENT ON *.* TO `%s`@`%s`;", replUser, replHost)
+		if _, err = conn.ExecContext(ctx, grantSQL); err != nil {
+			return err
+		}
 	}
-	if _, err := g.Db.ExecMore(execSQLs); err != nil {
-		logger.Error("create repl user failed:[%s]", err.Error())
-		return err
-	}
-
-	// sqls := []string{
-	// 	fmt.Sprintf("CREATE USER /*!50706 IF NOT EXISTS */ `%s`@`%s` IDENTIFIED BY '%s';",
-	// 		repl_user, g.Params.ReplHost, repl_pwd),
-	// 	fmt.Sprintf("GRANT REPLICATION SLAVE, REPLICATION CLIENT ON *.* TO `%s`@`%s`;", repl_user, g.Params.ReplHost)}
-	// for _, lqs := range sqls {
-	// 	if _, err := g.Db.Exec(lqs); err != nil {
-	// 		return err
-	// 	}
-	// }
 	return nil
 }
 

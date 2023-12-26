@@ -29,6 +29,19 @@
           <BkButton
             class="ml-8"
             :disabled="!hasSelected"
+            @click="() => handleShowCreateSubscribeRuleSlider()">
+            {{ t('批量订阅') }}
+          </BkButton>
+        </span>
+        <span
+          v-bk-tooltips="{
+            disabled: hasSelected,
+            content: t('请选择集群')
+          }"
+          class="inline-block">
+          <BkButton
+            class="ml-8"
+            :disabled="!hasSelected"
             @click="handleShowAuthorize(state.selected)">
             {{ t('批量授权') }}
           </BkButton>
@@ -86,6 +99,10 @@
     :id="clusterId"
     v-model:is-show="showEditEntryConfig"
     :get-detail-info="getTendbhaDetail" />
+  <CreateSubscribeRuleSlider
+    v-model="showCreateSubscribeRuleSlider"
+    :selected-clusters="selectedClusterList"
+    show-tab-panel />
 </template>
 
 <script setup lang="tsx">
@@ -133,6 +150,7 @@
   import RenderTextEllipsisOneLine from '@components/text-ellipsis-one-line/index.vue';
 
   import RenderOperationTag from '@views/mysql/common/RenderOperationTag.vue';
+  import CreateSubscribeRuleSlider from '@views/mysql/dumper/components/create-rule/Index.vue';
 
   import {
     getMenuListSearch,
@@ -186,6 +204,8 @@
   const isShowExcelAuthorize = ref(false);
   const isInit = ref(false);
   const showEditEntryConfig = ref(false);
+  const showCreateSubscribeRuleSlider = ref(false);
+  const selectedClusterList = ref<ColumnData['data'][]>([]);
 
   const state = reactive<State>({
     data: [],
@@ -228,7 +248,7 @@
   ]);
   const tableOperationWidth = computed(() => {
     if (!isStretchLayoutOpen.value) {
-      return isCN.value ? 140 : 200;
+      return isCN.value ? 200 : 280;
     }
     return 60;
   });
@@ -434,6 +454,12 @@
       render: ({ cell }: ColumnData) => <span>{cell || '--'}</span>,
     },
     {
+      label: t('时区'),
+      field: 'cluster_time_zone',
+      width: 100,
+      render: ({ cell }: ColumnData) => <span>{cell || '--'}</span>,
+    },
+    {
       label: t('操作'),
       field: '',
       width: tableOperationWidth.value,
@@ -446,6 +472,13 @@
               class="mr-8"
               onClick={() => handleShowAuthorize([data])}>
               { t('授权') }
+            </bk-button>
+            <bk-button
+              text
+              theme="primary"
+              class="mr-8"
+              onClick={() => handleShowCreateSubscribeRuleSlider(data)}>
+              { t('数据订阅') }
             </bk-button>
             {
               data.isOnline ? (
@@ -546,12 +579,22 @@
   };
   const handleSelection = (data: TendbhaModel, list: TendbhaModel[]) => {
     state.selected = list;
+    selectedClusterList.value = list;
   };
 
   const handleShowAuthorize = (selected: TendbhaModel[] = []) => {
     authorizeState.isShow = true;
     authorizeState.selected = selected;
   };
+
+  const handleShowCreateSubscribeRuleSlider = (data?: ColumnData['data']) => {
+    if (data) {
+      // 单个集群订阅
+      selectedClusterList.value = [data];
+    }
+    showCreateSubscribeRuleSlider.value = true;
+  };
+
   const handleClearSelected = () => {
     state.selected = [];
     authorizeState.selected = [];

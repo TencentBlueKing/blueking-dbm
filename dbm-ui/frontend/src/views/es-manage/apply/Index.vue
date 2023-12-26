@@ -48,18 +48,10 @@
           :label="$t('ES版本')"
           property="details.db_version"
           required>
-          <BkSelect
+          <DeployVersion
             v-model="formData.details.db_version"
-            class="item-input"
-            filterable
-            :input-search="false"
-            :loading="isDbVersionLoading">
-            <BkOption
-              v-for="item in dbVersionList"
-              :key="item"
-              :label="item"
-              :value="item" />
-          </BkSelect>
+            db-type="es"
+            query-key="es" />
         </BkFormItem>
         <BkFormItem
           :label="$t('服务器选择')"
@@ -335,17 +327,12 @@
 </template>
 <script setup lang="ts">
   import _ from 'lodash';
-  import {
-    reactive,
-    shallowRef,
-  } from 'vue';
   import { useI18n } from 'vue-i18n';
   import {
     useRoute,
     useRouter,
   } from 'vue-router';
 
-  import { getVersions } from '@services/source/version';
   import type {
     BizItem,
     HostDetails,
@@ -358,6 +345,7 @@
   import CloudItem from '@components/apply-items/CloudItem.vue';
   import ClusterAlias from '@components/apply-items/ClusterAlias.vue';
   import ClusterName from '@components/apply-items/ClusterName.vue';
+  import DeployVersion from '@components/apply-items/DeployVersion.vue';
   import RegionItem from '@components/apply-items/RegionItem.vue';
   import SpecSelector from '@components/apply-items/SpecSelector.vue';
   import WithInstanceHostTable, {
@@ -434,9 +422,6 @@
   const formData = reactive(genDefaultFormData());
 
   const totalCapacity = ref(0);
-  const isDbVersionLoading = ref(true);
-
-  const dbVersionList = shallowRef<Array<string>>([]);
 
   const cloudInfo = reactive({
     id: '' as number | string,
@@ -508,16 +493,6 @@
   }, { flush: 'post', deep: true });
 
   const getSmartActionOffsetTarget = () => document.querySelector('.bk-form-content');
-
-  // 获取 DB 版本列表
-  getVersions({
-    query_key: 'es',
-  }).then((data) => {
-    dbVersionList.value = data;
-  })
-    .finally(() => {
-      isDbVersionLoading.value = false;
-    });
 
   const {
     baseState,

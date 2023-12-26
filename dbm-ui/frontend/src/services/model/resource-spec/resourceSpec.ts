@@ -10,10 +10,7 @@
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
 */
-
-/**
- * 资源规格
- */
+import { differenceInSeconds } from 'date-fns';
 export default class ResourceSpec {
   cpu: {
     max: number,
@@ -32,6 +29,7 @@ export default class ResourceSpec {
   create_at: string;
   creator: string;
   desc: string;
+  enable: boolean;
   spec_cluster_type: string;
   spec_machine_type: string;
   spec_name: string;
@@ -53,6 +51,7 @@ export default class ResourceSpec {
     this.create_at = payload.create_at;
     this.creator = payload.creator;
     this.desc = payload.desc;
+    this.enable = payload.enable;
     this.spec_cluster_type = payload.spec_cluster_type;
     this.spec_machine_type = payload.spec_machine_type;
     this.spec_name = payload.spec_name;
@@ -68,5 +67,15 @@ export default class ResourceSpec {
 
   get name() {
     return this.spec_name;
+  }
+
+  get isRecentSeconds() {
+    try {
+      const createDay = new Date(this.create_at);
+      const today = new Date();
+      return differenceInSeconds(today, createDay) < 30;
+    } catch (e) {
+      return false;
+    }
   }
 }

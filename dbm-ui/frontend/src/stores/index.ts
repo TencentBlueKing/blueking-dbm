@@ -17,4 +17,5 @@ export * from './useFunController';
 export * from './useMenu';
 export * from './useSQLTaskCount';
 export * from './useSystemEnviron';
+export * from './useTimeZone';
 export * from './useUserProfile';

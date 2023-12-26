@@ -27,12 +27,12 @@
         <BkButton
           theme="primary"
           @click="handleCreate">
-          {{ $t('新增') }}
+          {{ t('新增') }}
         </BkButton>
         <BkInput
           v-model="state.search"
           clearable
-          :placeholder="$t('请输入名称关键字')"
+          :placeholder="t('请输入名称关键字')"
           style="width: 500px;"
           type="search"
           @clear="handleChangePage(1)"
@@ -61,7 +61,7 @@
     height="auto"
     :mask-close="false"
     theme="primary"
-    :title="$t('新增版本')"
+    :title="t('新增版本')"
     :width="480">
     <BkForm
       ref="versionFormRef"
@@ -70,13 +70,13 @@
       :model="createFileState.formdata"
       :rules="rules">
       <BkFormItem
-        :label="$t('版本名称')"
+        :label="t('版本名称')"
         property="version"
         required>
         <template v-if="isInputType">
           <BkInput
             v-model="createFileState.formdata.version"
-            :placeholder="$t('请输入')" />
+            :placeholder="t('请输入')" />
         </template>
         <template v-else>
           <BkSelect
@@ -95,7 +95,7 @@
       </BkFormItem>
       <BkFormItem
         class="pb-16"
-        :label="$t('文件')"
+        :label="t('文件')"
         property="name"
         required>
         <BkUpload
@@ -121,12 +121,12 @@
         :loading="createFileState.isLoading"
         theme="primary"
         @click="handleConfirmCreate">
-        {{ $t('确定') }}
+        {{ t('确定') }}
       </BkButton>
       <BkButton
         :disabled="createFileState.isLoading"
         @click="handleClose">
-        {{ $t('取消') }}
+        {{ t('取消') }}
       </BkButton>
     </template>
   </BkDialog>
@@ -135,8 +135,12 @@
   import { Form, Message } from 'bkui-vue';
   import Cookies from 'js-cookie';
   import { useI18n } from 'vue-i18n';
+  import { useRequest } from 'vue-request';
 
-  import { createPackage } from '@services/source/package';
+  import {
+    createPackage,
+    updatePackage,
+  } from '@services/source/package';
   import { getVersions } from '@services/source/version';
   import type { PackageItem } from '@services/types/versionFiles';
 
@@ -148,6 +152,8 @@
 
   import { DBTypes } from '@common/const';
 
+  import { messageSuccess } from '@utils';
+
   import { useVersionFiles } from '../hooks/useVersionFiles';
 
   import type { IState, VersionFileType } from './types';
@@ -155,7 +161,8 @@
   import type { TableColumnRender } from '@/types/bkui-vue';
 
   interface Props {
-    info: VersionFileType
+    info: VersionFileType,
+    pkgTypeList: string[],
   }
 
   const props = defineProps<Props>();
@@ -193,37 +200,7 @@
     handleConfirmDelete,
   } = useVersionFiles(state, typeParams);
 
-  const columns = [{
-    label: t('版本名称'),
-    field: 'version',
-  }, {
-    label: t('文件名称'),
-    field: 'name',
-    render: ({ cell }: TableColumnRender) => (
-      <div class="text-overflow" v-overflow-tips>{cell}</div>
-    ),
-  }, {
-    label: 'MD5',
-    field: 'md5',
-    showOverflowTooltip: false,
-    render: ({ cell }: TableColumnRender) => (
-      <span class="md-five">
-        <span class="md-five-value" v-overflow-tips>{cell}</span>
-        <i class="db-icon-copy" onClick={() => copy(cell)} />
-      </span>
-    ),
-  }, {
-    label: t('更新人'),
-    field: 'updater',
-  }, {
-    label: t('更新时间'),
-    field: 'update_at',
-  }, {
-    label: t('操作'),
-    field: 'id',
-    width: 100,
-    render: ({ data }: TableColumnRender) => <bk-button text theme="primary" onClick={handleConfirmDelete.bind(this, data)}>{ t('删除') }</bk-button>,
-  }];
+  const limitTypes = ['mysql', 'mysql-proxy'];
 
   /** 新增文件功能 */
   const createFileState = reactive({
@@ -243,7 +220,6 @@
     { name: 'db_type', value: props.info.name },
   ]));
 
-  const limitTypes = ['mysql', 'mysql-proxy'];
   const acceptInfo = computed(() => {
     if (limitTypes.includes(state.active)) {
       return {
@@ -255,6 +231,91 @@
       accept: '',
       tips: t('文件大小不超过1GB'),
     };
+  });
+
+  const isShowSwitch = computed(() => props.pkgTypeList.length > 0 && props.pkgTypeList.includes(state.active));
+
+  const columns = computed(() => {
+    const basicColumns = [
+      {
+        label: t('版本名称'),
+        field: 'version',
+        render: ({ data }: { data: PackageItem }) => (
+          <div class="version-name text-overflow" v-overflow-tips>
+            {data.version}
+            {data.priority && <bk-tag theme="info" class="ml-5">{t('默认')}</bk-tag>}
+            {isShowSwitch.value && data.priority === 0 && (
+              <bk-button
+                v-bk-tooltips={{
+                  disabled: data.enable,
+                  content: t('未启用的版本不能设为默认'),
+                }}
+                class={{ 'set-btn': true, 'set-btn-disable': !data.enable }}
+                size="small"
+                onClick={() => handleSetDefaultVersion(data)}
+              >
+              {t('设为默认版本')}
+              </bk-button>
+            )}
+          </div>
+        ),
+      },
+      {
+        label: t('文件名称'),
+        field: 'name',
+        render: ({ cell }: TableColumnRender) => <div class="text-overflow" v-overflow-tips>{cell}</div>,
+      },
+      {
+        label: 'MD5',
+        field: 'md5',
+        showOverflowTooltip: false,
+        render: ({ cell }: TableColumnRender) => (
+          <span class="md-five">
+            <span class="md-five-value" v-overflow-tips>{cell}</span>
+            <i class="db-icon-copy" onClick={() => copy(cell)} />
+          </span>
+        ),
+      },
+      {
+        label: t('更新人'),
+        field: 'updater',
+      },
+      {
+        label: t('更新时间'),
+        field: 'update_at',
+      },
+      {
+        label: t('操作'),
+        field: 'id',
+        width: 100,
+        render: ({ data }: TableColumnRender) => <bk-button text theme="primary" onClick={handleConfirmDelete.bind(this, data)}>{ t('删除') }</bk-button>,
+      },
+    ];
+    if (isShowSwitch.value) {
+      const switchColumn = {
+        label: t('是否启用'),
+        field: 'enable',
+        render: ({ data }: { data: PackageItem }) => (
+          <bk-pop-confirm
+            title={data.enable ? t('确认停用该版本？') : t('确认启用该版本？')}
+            content={data.enable ? t('停用后，在选择版本时，将不可见，且不可使用') : t('启用后，在选择版本时，将开放选择')}
+            width="308"
+            placement="bottom"
+            trigger="click"
+            confirm-text={data.enable ? t('停用') : t('启用')}
+            onConfirm={() => handleConfirmSwitch(data)}
+          >
+            <bk-switcher
+              size="small"
+              model-value={data.enable}
+              theme="primary"
+            />
+          </bk-pop-confirm>
+        ),
+      };
+      basicColumns.splice(2, 1, switchColumn);
+    }
+    return basicColumns;
   });
 
   const rules = {
@@ -269,6 +330,31 @@
       trigger: 'change',
       validator: (val: string[]) => val.length > 0,
     }],
+  };
+
+  const { run: runUpdatePackage } = useRequest(updatePackage, {
+    manual: true,
+    onSuccess: () => {
+      messageSuccess(t('操作成功'));
+      fetchPackages();
+    },
+  });
+
+  const handleSetDefaultVersion = (row: PackageItem) => {
+    if (!row.enable) {
+      return;
+    }
+    runUpdatePackage({
+      id: row.id,
+      priority: 1,
+    });
+  };
+
+  const handleConfirmSwitch = async (row: PackageItem) => {
+    runUpdatePackage({
+      id: row.id,
+      enable: !row.enable,
+    });
   };
 
   function handleClearSearch() {
@@ -370,74 +456,97 @@
   }
 </script>
 <style lang="less" scoped>
-  @import "@styles/mixins.less";
+@import "@styles/mixins.less";
 
-  .version-files {
-    padding: 24px;
+.version-files {
+  padding: 24px;
 
-    .version-files-content {
-      padding: 16px;
-      background: #fff;
-    }
-
-    .version-files-operations {
-      margin-bottom: 16px;
-      justify-content: space-between;
-      .flex-center();
-
-      .bk-button {
-        width: 88px;
-      }
-    }
-
-    .bk-tab {
-      background-color: #fafbfd;
-    }
-
-    :deep(.bk-tab-content) {
-      padding: 0;
-    }
-
-    :deep(.bk-tab-header--active) {
-      background-color: @bg-white;
-    }
+  .version-files-content {
+    padding: 16px;
+    background: #fff;
   }
 
-  .version-files-table {
-    :deep(.bk-table-body) {
-      .md-five {
-        display: flex;
-
-        .md-five-value {
-          display: inline-block;
-          overflow: hidden;
-          text-overflow: ellipsis;
-        }
-
-        .db-icon-copy {
-          display: none;
-          margin-left: 12px;
-          line-height: 40px;
-          color: @primary-color;
-          cursor: pointer;
-        }
-      }
-
-      tr:hover .db-icon-copy {
-        display: inline-block;
-      }
-    }
-  }
-
-  .create-dialog-operations {
+  .version-files-operations {
     margin-bottom: 16px;
+    justify-content: space-between;
+    .flex-center();
 
     .bk-button {
-      min-width: 64px;
+      width: 88px;
     }
   }
 
-  :deep(.bk-upload__tip) {
-    line-height: normal;
+  .bk-tab {
+    background-color: #fafbfd;
   }
+
+  :deep(.bk-tab-content) {
+    padding: 0;
+  }
+
+  :deep(.bk-tab-header--active) {
+    background-color: @bg-white;
+  }
+}
+
+.version-files-table {
+  :deep(.bk-table-body) {
+    .md-five {
+      display: flex;
+
+      .md-five-value {
+        display: inline-block;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .db-icon-copy {
+        display: none;
+        margin-left: 12px;
+        line-height: 40px;
+        color: @primary-color;
+        cursor: pointer;
+      }
+
+    }
+
+    .version-name {
+      .set-btn {
+        display: none;
+        height: 22px;
+        padding: 3px 8px;
+        margin-left: 5px;
+        cursor: pointer;
+        background: #FAFBFD;
+        border: 1px solid #DCDEE5;
+      }
+
+      .set-btn-disable {
+        color: #C4C6CC;
+      }
+    }
+
+    tr:hover .db-icon-copy {
+      display: inline-block;
+    }
+
+    tr:hover {
+      .set-btn {
+        display: inline-flex;
+      }
+    }
+  }
+}
+
+.create-dialog-operations {
+  margin-bottom: 16px;
+
+  .bk-button {
+    min-width: 64px;
+  }
+}
+
+:deep(.bk-upload__tip) {
+  line-height: normal;
+}
 </style>

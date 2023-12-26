@@ -104,8 +104,7 @@ def _check_dbmon_heart_beat():
         Q(cluster_type=ClusterType.TendisPredixyTendisplusCluster)
         | Q(cluster_type=ClusterType.TwemproxyTendisSSDInstance)
         | Q(cluster_type=ClusterType.TendisTwemproxyRedisInstance)
-        | Q(create_at__gt=timezone.now() - timedelta(hours=2))
-    )
+    ) & Q(create_at__lt=timezone.now() - timedelta(hours=2))
     # 遍历集群
     for c in Cluster.objects.filter(query):
         logger.info("+===+++++===  start check {} dbmon heartbeat +++++===++++ ".format(c.immute_domain))

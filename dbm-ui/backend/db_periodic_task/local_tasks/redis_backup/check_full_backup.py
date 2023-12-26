@@ -60,8 +60,7 @@ def _check_tendis_full_backup():
         Q(cluster_type=ClusterType.TendisPredixyTendisplusCluster)
         | Q(cluster_type=ClusterType.TwemproxyTendisSSDInstance)
         | Q(cluster_type=ClusterType.TendisTwemproxyRedisInstance)
-        | Q(create_at__gt=timezone.now() - timedelta(days=1))
-    )
+    ) & Q(create_at__lt=timezone.now() - timedelta(days=1))
     # 遍历集群
     for c in Cluster.objects.filter(query):
         logger.info("+===+++++===  start check {} full backup +++++===++++ ".format(c.immute_domain))

@@ -47,8 +47,10 @@ data:
   JOB_BLUEKING_BIZ_ID: "{{ .Values.bk.bluekingBizId }}"
   # 蓝鲸节点管理
   BK_NODEMAN_URL: "{{ .Values.bk.bkNodemanUrl}}"
-  # scr平台
+  # gcs/scr平台
   BK_SCR_URL: "{{ .Values.bk.bkScrUrl}}"
+  SCR_APIGW_DOMAIN: "{{ .Values.bk.bkScrApigwDomain }}"
+  GCS_APIGW_DOMAIN: "{{  .Values.bk.bkGcsApigwDomain }}"
   # 蓝鲸制品库
   BKREPO_PROJECT: "{{ .Values.bk.bkRepoProject }}"
   BKREPO_PASSWORD: "{{ .Values.bk.bkRepoPassword }}"

@@ -67,6 +67,7 @@ export default class Es {
   cluster_name: string;
   cluster_type: string;
   cluster_type_name: string;
+  cluster_time_zone: string;
   cluster_entry_details: {
     cluster_entry_type: string,
     entry: string,
@@ -121,6 +122,7 @@ export default class Es {
     this.cluster_name = payload.cluster_name;
     this.cluster_type = payload.cluster_type;
     this.cluster_type_name = payload.cluster_type_name;
+    this.cluster_time_zone = payload.cluster_time_zone;
     this.cluster_entry_details = payload.cluster_entry_details;
     this.create_at = payload.create_at;
     this.creator = payload.creator;

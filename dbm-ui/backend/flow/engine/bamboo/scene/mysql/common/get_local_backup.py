@@ -27,7 +27,7 @@ def get_local_backup(instances: list, cluster: Cluster, end_time: str = None):
     """
     @param instances:实例列表 ip:port
     @param cluster: 集群
-    @param end_time: 备份最大时间爱你
+    @param end_time: 备份最大时间
     @return: dict
     """
     if end_time:

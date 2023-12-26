@@ -26,6 +26,7 @@ import (
 	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/logger"
 	binlog_parser "dbm-services/mysql/db-tools/mysql-rotatebinlog/pkg/binlog-parser"
+	"dbm-services/mysql/db-tools/mysql-rotatebinlog/pkg/log"
 	"dbm-services/mysql/db-tools/mysql-rotatebinlog/pkg/models"
 )
 
@@ -44,31 +45,15 @@ func DumpOldFileList(dir string, portMap map[int]models.BinlogFileModel) error {
 		return nil
 	}
 
-	/*
-		// binlog20000.058843 2023-12-19 16:20:14 2023-12-19 16:20:14 succ
-		f1, err := os.Open(binlog_backup_file_list)
-		if err != nil {
-			return err
-		}
-		scanner := bufio.NewScanner(f1)
-		for scanner.Scan() {
-			fields := strings.Fields(scanner.Text())
-			filename := fields[0]
-			fileMtime := fields[1] + " " + fields[2]
-			upTime := fields[3] + " " + fields[4]
-			fileStatus := fields[5]
-		}
-		if err := scanner.Err(); err != nil {
-			return err
-		}
-	*/
 	// 2021-09-24:/data/mysqllog/20000/binlog/binlog20000.000076:taskid:9856951663
 	f2, err := os.Open(binlog_task)
 	if err != nil {
 		return err
 	}
 	scanner2 := bufio.NewScanner(f2)
-
+	if err = log.InitReporter(); err != nil {
+		return err
+	}
 	for scanner2.Scan() {
 		binlogTask := strings.Split(scanner2.Text(), ":")
 		binlogFile := binlogTask[1]
@@ -120,6 +105,8 @@ func DumpOldFileList(dir string, portMap map[int]models.BinlogFileModel) error {
 
 		if err = fileObj.Save(models.DB.Conn, true); err != nil {
 			return errors.WithMessagef(err, "write sqlite %s", binlogFile)
+		} else {
+			log.Reporter().Result.Println(fileObj)
 		}
 	}
 	if err := scanner2.Err(); err != nil {
@@ -131,7 +118,7 @@ func DumpOldFileList(dir string, portMap map[int]models.BinlogFileModel) error {
 	return nil
 }
 
-var ReBinlogName = regexp.MustCompile(`binlog(\d+)\.\d+`)
+var ReBinlogName = regexp.MustCompile(`binlog(\d*)\.\d+`)
 
 func getPortFromBinlogName(name string) int {
 	matches := ReBinlogName.FindStringSubmatch(name)

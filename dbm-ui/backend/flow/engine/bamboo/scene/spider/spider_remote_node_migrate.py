@@ -208,7 +208,7 @@ def remote_instance_migrate_sub_flow(root_id: str, ticket_data: dict, cluster_in
         bk_cloud_id=cluster["bk_cloud_id"],
         task_ids=task_ids,
         dest_ip=cluster["new_master_ip"],
-        desc_dir=cluster["file_target_path"],
+        dest_dir=cluster["file_target_path"],
         reason="spider remote node sync data",
     )
     download_sub_pipeline_list.append(

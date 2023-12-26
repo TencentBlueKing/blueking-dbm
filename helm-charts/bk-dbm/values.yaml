@@ -25,8 +25,10 @@ bk:
   bkJobApiUrl: ""
   # 蓝鲸节点管理
   bkNodemanUrl: https://apps.example.com/bk--nodeman
-  # scr平台
+  #gcs/scr平台
   bkScrUrl: https://scr.example.com/
+  bkScrApigwDomain: https://api.scr.example.com/
+  bkGcsApigwDomain: https://api.gcs.example.com/
   # 蓝鲸制品库
   bkRepoProject: "blueking"
   bkRepoPassword: "bk_dbm"
@@ -377,6 +379,9 @@ backup-consumer:
 
 backup-server:
   enabled: true
+  envs:
+    # default mysql user pass for hdfs download, only used in tencent internal
+    HDFS_DOWNLOAD_USER_PASS: ""
   hdfs:
     enable: false
     server_addr: "http://example.com"

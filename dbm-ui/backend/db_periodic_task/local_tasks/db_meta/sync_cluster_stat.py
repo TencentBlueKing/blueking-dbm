@@ -15,6 +15,7 @@ import logging
 from collections import defaultdict
 
 from celery.schedules import crontab
+from celery.task import task
 from django.core.cache import cache
 from django.utils import timezone
 
@@ -46,6 +47,8 @@ def query_cap(cluster_type, cap_key="used"):
     params["bk_biz_id"] = env.DBA_APP_BK_BIZ_ID
     params["start_time"] = int(start_time.timestamp())
     params["end_time"] = int(end_time.timestamp())
+    # 加速查询
+    params["type"] = "instant"
 
     params["query_configs"][0]["promql"] = query_template[cap_key]
     series = BKMonitorV3Api.unify_query(params)["series"]
@@ -72,14 +75,11 @@ def query_cluster_capacity(cluster_type):
 
     cluster_cap_bytes = defaultdict(dict)
 
-    domains = list(
-        Cluster.objects.filter(cluster_type=cluster_type).values_list("immute_domain", flat=True).distinct()
+    domains = (
+        list(Cluster.objects.filter(cluster_type=cluster_type).values_list("immute_domain", flat=True).distinct())
+        if cluster_type != ClusterType.Influxdb
+        else StorageInstance.objects.filter(instance_role=InstanceRole.INFLUXDB).values_list("machine__ip", flat=True)
     )
-
-    influxdb_hosts = StorageInstance.objects.filter(instance_role=InstanceRole.INFLUXDB).values_list(
-        "machine__ip", flat=True
-    )
-    domains.extend(influxdb_hosts)
 
     used_data = query_cap(cluster_type, "used")
     for cluster, used in used_data.items():
@@ -99,6 +99,34 @@ def query_cluster_capacity(cluster_type):
     return cluster_cap_bytes
 
 
+@task
+def sync_cluster_stat_by_cluster_type(cluster_type):
+    """
+    按集群类型同步各集群容量状态
+    """
+
+    logger.info("sync_cluster_stat_from_monitor started")
+    cluster_types = list(Cluster.objects.values_list("cluster_type", flat=True).distinct())
+    cluster_types.append(ClusterType.Influxdb.value)
+
+    cluster_stats = {}
+    try:
+        cluster_capacity = query_cluster_capacity(cluster_type)
+        cluster_stats.update(cluster_capacity)
+    except Exception as e:
+        logger.error("query_cluster_capacity error: %s -> %s", cluster_type, e)
+
+    # 计算使用率
+    for cluster, cap in cluster_stats.items():
+        # 兼容查不到数据的情况
+        if not ("used" in cap and "total" in cap):
+            continue
+        cap["in_use"] = round(cap["used"] * 100.0 / cap["total"], 2)
+
+    # print(cluster_stats)
+    cache.set(f"{CACHE_CLUSTER_STATS}_{cluster_type}", json.dumps(cluster_stats))
+
+
 @register_periodic_task(run_every=crontab(minute="*/3"))
 def sync_cluster_stat_from_monitor():
     """
@@ -109,20 +137,5 @@ def sync_cluster_stat_from_monitor():
     cluster_types = list(Cluster.objects.values_list("cluster_type", flat=True).distinct())
     cluster_types.append(ClusterType.Influxdb.value)
 
-    cluster_stats = {}
     for cluster_type in cluster_types:
-        try:
-            cluster_capacity = query_cluster_capacity(cluster_type)
-            cluster_stats.update(cluster_capacity)
-        except Exception as e:
-            logger.error("query_cluster_capacity error: %s -> %s", cluster_type, e)
-
-    # 计算使用率
-    for cluster, cap in cluster_stats.items():
-        # 兼容查不到数据的情况
-        if not ("used" in cap and "total" in cap):
-            continue
-        cap["in_use"] = round(cap["used"] * 100.0 / cap["total"], 2)
-
-    # print(cluster_stats)
-    cache.set(CACHE_CLUSTER_STATS, json.dumps(cluster_stats))
+        sync_cluster_stat_by_cluster_type.apply_async(args=[cluster_type])

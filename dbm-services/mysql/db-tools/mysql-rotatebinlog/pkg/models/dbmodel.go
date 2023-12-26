@@ -8,15 +8,15 @@ import (
 	"path/filepath"
 	"time"
 
-	"dbm-services/common/go-pubpkg/logger"
-	"dbm-services/mysql/db-tools/mysql-rotatebinlog/pkg/cst"
-
 	sq "github.com/Masterminds/squirrel"
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/jmoiron/sqlx"
 	"github.com/mitchellh/mapstructure"
 	"github.com/pkg/errors"
 	_ "modernc.org/sqlite" // sqlite TODO
+
+	"dbm-services/common/go-pubpkg/logger"
+	"dbm-services/mysql/db-tools/mysql-rotatebinlog/pkg/cst"
 )
 
 // DBO db object wrapper
@@ -122,9 +122,9 @@ func (m *BinlogFileModel) autoTime() {
 func (d *ModelAutoDatetime) autoTime() {
 	nowTime := time.Now()
 	if d.CreatedAt == "" {
-		d.CreatedAt = nowTime.Format(cst.DBTimeLayout)
+		d.CreatedAt = nowTime.Format(time.RFC3339)
 	}
-	d.UpdatedAt = nowTime.Format(cst.DBTimeLayout)
+	d.UpdatedAt = nowTime.Format(time.RFC3339)
 }
 
 // TableName TODO
@@ -172,7 +172,7 @@ func (m *BinlogFileModel) BatchSave(models []*BinlogFileModel, db *sqlx.DB) erro
 	if len(models) == 0 {
 		return nil
 	}
-	sqlBuilder := sq.Insert("").Into(m.TableName()).
+	sqlBuilder := sq.Replace("").Into(m.TableName()).
 		Columns(
 			"bk_biz_id", "cluster_id", "cluster_domain", "db_role", "host", "port", "filename",
 			"filesize", "start_time", "stop_time", "file_mtime", "backup_status", "task_id",
@@ -192,6 +192,44 @@ func (m *BinlogFileModel) BatchSave(models []*BinlogFileModel, db *sqlx.DB) erro
 	}
 	if _, err = db.Exec(sqlStr, args...); err != nil {
 		return err
+	}
+	return nil
+}
+
+// HandleSwitchRole 如果该实例发生切换，从slave变成master, 补录binlog
+func (m *BinlogFileModel) HandleSwitchRole(db *sqlx.DB) error {
+	m.autoTime()
+	if m.BackupStatusInfo == "" {
+		m.BackupStatusInfo = fmt.Sprintf(IBStatusMap[m.BackupStatus])
+	}
+	_ = map[string]interface{}{
+		"backup_status":      IBStatusNew,
+		"db_role":            cst.RoleMaster,
+		"backup_status_info": "switch to master",
+		"updated_at":         m.UpdatedAt,
+	}
+	sqlBuilder := sq.Update("").Table(m.TableName()).
+		Set("backup_status", IBStatusNew).
+		Set("backup_status_info", "switch to master").
+		Set("updated_at", m.UpdatedAt).Set("db_role", cst.RoleMaster)
+
+	timeBefore := time.Now().Add(-24 * time.Hour).Format(time.RFC3339)
+	sqlBuilder = sqlBuilder.Where(
+		"host=? and port=? and cluster_id=? "+
+			"and db_role=? and start_time > ? and backup_status!=4",
+		m.Host, m.Port, m.ClusterId, cst.RoleSlave, timeBefore,
+	)
+
+	sqlStr, args, err := sqlBuilder.ToSql()
+	logger.Info("HandleSwitchRole update sql: %s, args:%v", sqlStr, args)
+	if err != nil {
+		return err
+	}
+	if res, err := db.Exec(sqlStr, args...); err != nil {
+		return err
+	} else {
+		cnt, _ := res.RowsAffected()
+		logger.Warn("HandleSwitchRole has %d binlog files status updated", cnt)
 	}
 	return nil
 }
@@ -236,7 +274,7 @@ func (m *BinlogFileModel) Update(db *sqlx.DB) error {
 }
 
 const (
-	// IBStatusNew 一般不存在
+	// IBStatusNew TODO
 	IBStatusNew = -2 // 文件尚未提交
 	// IBStatusClientFail TODO
 	IBStatusClientFail = -1 // 文件上传 提交失败
@@ -293,9 +331,9 @@ var IBStatusUnfinish = []int{IBStatusNew, IBStatusClientFail, 0, IBStatusWaiting
 
 // DeleteExpired godoc
 // 删除过期记录
-func (m *BinlogFileModel) DeleteExpired(db *sqlx.DB, mTime string) (int64, error) {
+func (m *BinlogFileModel) DeleteExpired(db *sqlx.DB, mTime time.Time) (int64, error) {
 	sqlBuilder := sq.Delete("").From(m.TableName()).
-		Where(m.instanceWhere()).Where("file_mtime < ?", mTime)
+		Where(m.instanceWhere()).Where("file_mtime < ?", mTime.Format(time.RFC3339))
 	sqlStr, args, err := sqlBuilder.ToSql()
 	if err != nil {
 		return 0, err
@@ -373,7 +411,8 @@ func (m *BinlogFileModel) QueryWithBuildWhere(db *sqlx.DB, builder *sq.SelectBui
 
 // QueryLastFileReport 获取上一轮最后被处理的文件
 func (m *BinlogFileModel) QueryLastFileReport(db *sqlx.DB) (*BinlogFileModel, error) {
-	sqlBuilder := sq.Select("filename", "backup_status").From(m.TableName()).
+	sqlBuilder := sq.Select("filename", "backup_status", "db_role", "start_time", "file_mtime").
+		From(m.TableName()).
 		Where(m.instanceWhere()).OrderBy("filename desc").Limit(1)
 	sqlStr, args, err := sqlBuilder.ToSql()
 	if err != nil {
@@ -385,7 +424,7 @@ func (m *BinlogFileModel) QueryLastFileReport(db *sqlx.DB) (*BinlogFileModel, er
 		if errors.Is(err, sql.ErrNoRows) {
 			return bf, nil
 		}
-		return nil, errors.Wrap(err, "QueryLastFileReport")
+		return nil, errors.WithMessage(err, "QueryLastFileReport")
 	}
 	return bf, nil
 }
@@ -406,7 +445,7 @@ func (t *TimeInterval) TableName() string {
 // Update TODO
 func (t *TimeInterval) Update(db *sqlx.DB) error {
 	nowTime := time.Now()
-	t.LastRunAt = nowTime.Format(cst.DBTimeLayout) // 会吧 utc 转换成当前时区 str
+	t.LastRunAt = nowTime.Format(time.RFC3339) // 会吧 utc 转换成当前时区 str
 	replace := sq.Replace("").Into(t.TableName()).
 		Columns("task_name", "tag", "last_run_at").
 		Values(t.TaskName, t.Tag, t.LastRunAt)
@@ -456,7 +495,7 @@ func (t *TimeInterval) IntervalOut(db *sqlx.DB, dura time.Duration) bool {
 	}
 
 	nowTime := time.Now()
-	lastRunTime, err := time.ParseInLocation(cst.DBTimeLayout, lastRunAt, time.Local)
+	lastRunTime, err := time.ParseInLocation(time.RFC3339, lastRunAt, time.Local)
 	if err != nil {
 		logger.Error("error time_interval: task_name=%s, tag=%s, last_run_aat", t.TaskName, t.Tag, t.LastRunAt)
 		return true

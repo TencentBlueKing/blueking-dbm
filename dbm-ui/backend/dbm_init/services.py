@@ -139,9 +139,14 @@ class Services:
                 if hasattr(JsonConfigFormat, f"custom_modify_{log_name}"):
                     bklog_params = JsonConfigFormat.custom_modify(bklog_params, f"custom_modify_{log_name}")
                 # 如果存在对应的环境变量设置了日志自定义的保留天数，则进行更新
-                if getattr(env, f"BKLOG_{log_name.upper()}_RETENTION", 0):
-                    retention = getattr(env, f"BKLOG_{log_name.upper()}_RETENTION")
-                    bklog_params.update({"retention": retention, "allocation_min_days": retention // 2})
+                retention = getattr(env, f"BKLOG_{log_name.upper()}_RETENTION", env.BKLOG_DEFAULT_RETENTION)
+                bklog_params["retention"] = retention
+                # 自定义了 ES 存储集群，则指定 storage_cluster_id
+                if env.BKLOG_STORAGE_CLUSTER_ID:
+                    bklog_params["storage_cluster_id"] = env.BKLOG_STORAGE_CLUSTER_ID
+                # 如果集群支持冷热数据，则补充 allocation_min_days，为 retention 的一半即可
+                if env.BKLOG_CLUSTER_SUPPORT_HOT_COLD:
+                    bklog_params["allocation_min_days"] = retention // 2
 
             # 获取当前采集项的列表
             data = BKLogApi.list_collectors(

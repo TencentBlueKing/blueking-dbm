@@ -43,6 +43,7 @@ export interface ResourceItem {
   create_at: string;
   creator: string;
   db_module_name: string;
+  db_module_id: number;
   id: number;
   master_domain: string;
   masters: {

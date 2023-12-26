@@ -9,13 +9,14 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import abc
-from typing import Dict, List
+from typing import Dict, List, Union
 
 import attr
+from django.db.models import Q
 from django.utils.translation import ugettext_lazy as _
 
 from backend.db_meta.enums import ClusterEntryType
-from backend.db_meta.models import Cluster, ClusterEntry, Machine
+from backend.db_meta.models import Cluster, ClusterEntry, Machine, ProxyInstance, StorageInstance
 from backend.flow.utils.dns_manage import DnsManage
 
 
@@ -27,6 +28,7 @@ class ResourceList:
 
 class ListRetrieveResource(abc.ABC):
     fields = [{"name": _("业务"), "key": "bk_biz_name"}]
+    cluster_types = []
 
     @classmethod
     @abc.abstractmethod
@@ -108,3 +110,114 @@ class ListRetrieveResource(abc.ABC):
     @classmethod
     def get_fields(cls) -> List[Dict[str, str]]:
         return cls.fields
+
+    @classmethod
+    def export_cluster(cls, bk_biz_id: int, cluster_ids: list) -> Dict[str, List]:
+        # 获取所有符合条件的集群对象
+        clusters = Cluster.objects.prefetch_related(
+            "storageinstance_set", "proxyinstance_set", "storageinstance_set__machine", "proxyinstance_set__machine"
+        ).filter(bk_biz_id=bk_biz_id, cluster_type__in=cls.cluster_types)
+        if cluster_ids:
+            clusters = clusters.filter(id__in=cluster_ids)
+
+        # 初始化用于存储Excel数据的字典列表
+        headers = [
+            {"id": "cluster_id", "name": _("集群 ID")},
+            {"id": "cluster_name", "name": _("集群名称")},
+            {"id": "cluster_alias", "name": _("集群别名")},
+            {"id": "cluster_type", "name": _("集群类型")},
+            {"id": "master_domain", "name": _("主域名")},
+            {"id": "major_version", "name": _("主版本")},
+            {"id": "region", "name": _("地域")},
+            {"id": "disaster_tolerance_level", "name": _("容灾级别")},
+        ]
+
+        def fill_instances_to_cluster_info(
+            _cluster_info: Dict, instances: List[Union[StorageInstance, ProxyInstance]]
+        ):
+            """
+            把实例信息填充到集群信息中
+            """
+            for ins in instances:
+                # 获取存储实例所属角色
+                role = ins.instance_role
+
+                # 如果该角色已经存在于集群信息字典中，则添加新的IP和端口；否则，更新字典的值
+                if role in cluster_info:
+                    cluster_info[role] += f"\n{ins.machine.ip}#{ins.port}"
+                else:
+                    if role not in headers:
+                        headers.append({"id": role, "name": role})
+                    cluster_info[role] = f"{ins.machine.ip}#{ins.port}"
+
+        # 遍历所有的集群对象
+        data_list = []
+        for cluster in clusters:
+            # 创建一个空字典来保存当前集群的信息
+            cluster_info = {
+                "cluster_id": cluster.id,
+                "cluster_name": cluster.name,
+                "cluster_alias": cluster.alias,
+                "cluster_type": cluster.cluster_type,
+                "master_domain": cluster.immute_domain,
+                "major_version": cluster.major_version,
+                "region": cluster.region,
+                "disaster_tolerance_level": cluster.get_disaster_tolerance_level_display(),
+            }
+            fill_instances_to_cluster_info(cluster_info, cluster.storageinstance_set.all())
+            fill_instances_to_cluster_info(cluster_info, cluster.proxyinstance_set.all())
+
+            # 将当前集群的信息追加到data_list列表中
+            data_list.append(cluster_info)
+        return {"headers": headers, "data_list": data_list}
+
+    @classmethod
+    def export_instance(cls, bk_biz_id: int, bk_host_ids: list) -> Dict[str, List]:
+        # 查询实例
+        query_condition = Q(bk_biz_id=bk_biz_id)
+        if bk_host_ids:
+            query_condition = query_condition & Q(machine__bk_host_id__in=bk_host_ids)
+        storages = StorageInstance.objects.prefetch_related("machine", "machine__bk_city", "cluster").filter(
+            query_condition
+        )
+        proxies = ProxyInstance.objects.prefetch_related("machine", "machine__bk_city", "cluster").filter(
+            query_condition
+        )
+        headers = [
+            {"id": "bk_host_id", "name": _("主机 ID")},
+            {"id": "bk_cloud_id", "name": _("云区域 ID")},
+            {"id": "ip", "name": _("IP")},
+            {"id": "ip_port", "name": _("IP 端口")},
+            {"id": "instance_role", "name": _("实例角色")},
+            {"id": "bk_idc_city_name", "name": _("城市")},
+            {"id": "bk_idc_name", "name": _("机房")},
+            {"id": "cluster_id", "name": _("集群 ID")},
+            {"id": "cluster_name", "name": _("集群名称")},
+            {"id": "cluster_alias", "name": _("集群别名")},
+            {"id": "cluster_type", "name": _("集群类型")},
+            {"id": "master_domain", "name": _("主域名")},
+            {"id": "major_version", "name": _("主版本")},
+        ]
+        # 插入数据
+        data_list = []
+        for instances in [storages, proxies]:
+            for ins in instances:
+                for cluster in ins.cluster.all():
+                    data_list.append(
+                        {
+                            "bk_host_id": ins.machine.bk_host_id,
+                            "bk_cloud_id": ins.machine.bk_cloud_id,
+                            "ip": ins.machine.ip,
+                            "ip_port": ins.ip_port,
+                            "instance_role": ins.instance_role,
+                            "bk_idc_city_name": ins.machine.bk_city.bk_idc_city_name,
+                            "bk_idc_name": ins.machine.bk_idc_name,
+                            "cluster_id": cluster.id,
+                            "cluster_name": cluster.name,
+                            "cluster_alias": cluster.alias,
+                            "cluster_type": cluster.cluster_type,
+                            "master_domain": cluster.immute_domain,
+                            "major_version": cluster.major_version,
+                        }
+                    )
+        return {"headers": headers, "data_list": data_list}

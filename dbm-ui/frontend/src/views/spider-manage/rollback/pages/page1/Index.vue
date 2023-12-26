@@ -18,6 +18,10 @@
         closable
         theme="info"
         :title="$t('定点构造：新建一个单节点实例，通过全备 +binlog 的方式，将数据库恢复到过去的某一时间点或者某个指定备份文件的状态')" />
+      <div class="title-spot mt-12 mb-10">
+        {{ $t('时区') }}<span class="required" />
+      </div>
+      <TimeZonePicker style="width: 450px;" />
       <RenderData
         class="mt16"
         @batch-select-cluster="handleShowBatchSelector">
@@ -69,6 +73,7 @@
   import { ClusterTypes } from '@common/const';
 
   import ClusterSelector from '@components/cluster-selector-new/Index.vue';
+  import TimeZonePicker from '@components/time-zone-picker/index.vue';
 
   import BatchEntry, {
     type IValue as IBatchEntryValue,

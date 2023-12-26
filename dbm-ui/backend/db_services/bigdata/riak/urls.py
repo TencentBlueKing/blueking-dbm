@@ -11,9 +11,9 @@ specific language governing permissions and limitations under the License.
 
 from rest_framework.routers import DefaultRouter
 
-from backend.db_services.bigdata.riak.views import RiakClusterViewSet
+from backend.db_services.bigdata.riak.views import RiakClusterViewSetBigdata
 
 router = DefaultRouter(trailing_slash=True)
-router.register(r"riak_resources", RiakClusterViewSet, basename="riak_resources")
+router.register(r"riak_resources", RiakClusterViewSetBigdata, basename="riak_resources")
 
 urlpatterns = router.urls

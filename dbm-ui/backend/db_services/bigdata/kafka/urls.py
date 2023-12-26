@@ -11,9 +11,9 @@ specific language governing permissions and limitations under the License.
 
 from rest_framework.routers import DefaultRouter
 
-from backend.db_services.bigdata.kafka.views import KafkaClusterViewSet
+from backend.db_services.bigdata.kafka.views import KafkaClusterViewSetBigdata
 
 router = DefaultRouter(trailing_slash=True)
-router.register(r"kafka_resources", KafkaClusterViewSet, basename="kafka_resources")
+router.register(r"kafka_resources", KafkaClusterViewSetBigdata, basename="kafka_resources")
 
 urlpatterns = router.urls

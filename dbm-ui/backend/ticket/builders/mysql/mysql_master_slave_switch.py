@@ -75,7 +75,10 @@ class MysqlMasterSlaveSwitchParamBuilder(builders.FlowParamBuilder):
                 ticket=self.ticket,
                 details__controller_info__func_name=MysqlDumperMigrateParamBuilder.controller.__name__,
             )
-            Flow.objects.filter(flow_filter).update(status=TicketFlowStatus.SKIPPED)
+            # 用save方法来触发ticket单据更新的信号
+            for flow in Flow.objects.filter(flow_filter):
+                flow.status = TicketFlowStatus.SKIPPED
+                flow.save(update_fields=["status"])
             return
 
         dumper_migrate_flow.details["ticket_data"]["infos"] = switch_infos
@@ -105,6 +108,10 @@ class MysqlMasterSlaveSwitchFlowBuilder(BaseMySQLTicketFlowBuilder):
         dumper_instances = ExtraProcessInstance.objects.filter(
             cluster_id__in=cluster_ids, proc_type=ExtraProcessType.TBINLOGDUMPER
         )
+        # 补充单据详情的dumper_instance_ids，用于dumper迁移状态查询
+        if dumper_instances.exists():
+            dumper_instance_ids = [dumper.id for dumper in dumper_instances]
+            self.ticket.update_details(dumper_instance_ids=dumper_instance_ids)
         return dumper_instances.exists()
 
     def custom_ticket_flows(self):

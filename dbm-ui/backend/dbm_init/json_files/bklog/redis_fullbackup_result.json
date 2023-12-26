@@ -8,7 +8,6 @@
     "category_id": "host_process",
     "data_encoding": "UTF-8",
     "retention": 7,
-    "allocation_min_days": 3,
     "es_shards": 3,
     "target_object_type": "HOST",
     "target_node_type": "TOPO",
@@ -44,7 +43,6 @@
     },
     "fields": [
         {
-            "value": "/data/dbbak",
             "option": {
                 "time_zone": "",
                 "time_format": ""
@@ -62,7 +60,6 @@
             "previous_type": "string"
         },
         {
-            "value": "/data/dbbak/3-redis-slave-127.0.0.1-30001-20230907-161421.aof.zst",
             "option": {
                 "time_zone": "",
                 "time_format": ""
@@ -80,7 +77,6 @@
             "previous_type": "string"
         },
         {
-            "value": 102872312,
             "option": {
                 "time_zone": "",
                 "time_format": ""
@@ -98,7 +94,6 @@
             "previous_type": "long"
         },
         {
-            "value": "",
             "option": {
                 "time_zone": "",
                 "time_format": ""
@@ -116,7 +111,6 @@
             "previous_type": "string"
         },
         {
-            "value": "REDIS_FULL",
             "option": {
                 "time_zone": "",
                 "time_format": ""
@@ -134,7 +128,6 @@
             "previous_type": "string"
         },
         {
-            "value": "",
             "option": {
                 "time_zone": "",
                 "time_format": ""
@@ -152,7 +145,6 @@
             "previous_type": "string"
         },
         {
-            "value": "3",
             "option": {
                 "time_zone": "",
                 "time_format": ""
@@ -160,17 +152,17 @@
             "is_time": false,
             "verdict": false,
             "is_delete": false,
-            "alias_name": "bk_app_id",
+            "alias_name": "bkbizid",
             "field_name": "bk_biz_id",
-            "field_type": "string",
+            "field_type": "int",
             "description": "",
             "is_analyzed": false,
             "is_built_in": false,
             "is_dimension": false,
-            "previous_type": "string"
+            "previousType": "int",
+            "previous_type": "int"
         },
         {
-            "value": 0,
             "option": {
                 "time_zone": "",
                 "time_format": ""
@@ -178,7 +170,7 @@
             "is_time": false,
             "verdict": false,
             "is_delete": false,
-            "alias_name": "bk_appcloud_id",
+            "alias_name": "bkcloudid",
             "field_name": "bk_cloud_id",
             "field_type": "int",
             "description": "",
@@ -188,7 +180,6 @@
             "previous_type": "int"
         },
         {
-            "value": "RedisInstance",
             "option": {
                 "time_zone": "",
                 "time_format": ""
@@ -206,7 +197,6 @@
             "previous_type": "string"
         },
         {
-            "value": "ssd.wuhan.dba.db",
             "option": {
                 "time_zone": "",
                 "time_format": ""
@@ -224,7 +214,6 @@
             "previous_type": "string"
         },
         {
-            "value": "2023-09-07 16:14:26",
             "option": {
                 "time_zone": "",
                 "time_format": ""
@@ -242,7 +231,6 @@
             "previous_type": "string"
         },
         {
-            "value": "taskId is empty",
             "option": {
                 "time_zone": "",
                 "time_format": ""
@@ -260,7 +248,6 @@
             "previous_type": "string"
         },
         {
-            "value": "redis_fullbackup",
             "option": {
                 "time_zone": "",
                 "time_format": ""
@@ -278,7 +265,6 @@
             "previous_type": "string"
         },
         {
-            "value": "slave",
             "option": {
                 "time_zone": "",
                 "time_format": ""
@@ -296,7 +282,6 @@
             "previous_type": "string"
         },
         {
-            "value": "127.0.0.1",
             "option": {
                 "time_zone": "",
                 "time_format": ""
@@ -314,7 +299,6 @@
             "previous_type": "string"
         },
         {
-            "value": 30001,
             "option": {
                 "time_zone": "",
                 "time_format": ""
@@ -332,7 +316,6 @@
             "previous_type": "int"
         },
         {
-            "value": "105000-209999",
             "option": {
                 "time_zone": "",
                 "time_format": ""
@@ -350,10 +333,9 @@
             "previous_type": "string"
         },
         {
-            "value": "2023-09-07 16:14:21",
             "option": {
                 "time_zone": 8,
-                "time_format": "yyyy-MM-dd HH:mm:ss"
+                "time_format": "strict_date_time_no_millis"
             },
             "is_time": true,
             "verdict": true,
@@ -368,7 +350,6 @@
             "previous_type": "string"
         },
         {
-            "value": "to_backup_system_failed",
             "option": {
                 "time_zone": "",
                 "time_format": ""
@@ -378,6 +359,23 @@
             "is_delete": false,
             "alias_name": "",
             "field_name": "status",
+            "field_type": "string",
+            "description": "",
+            "is_analyzed": false,
+            "is_built_in": false,
+            "is_dimension": false,
+            "previous_type": "string"
+        },
+        {
+            "option": {
+                "time_zone": "",
+                "time_format": ""
+            },
+            "is_time": false,
+            "verdict": true,
+            "is_delete": false,
+            "alias_name": "",
+            "field_name": "time_zone",
             "field_type": "string",
             "description": "",
             "is_analyzed": false,

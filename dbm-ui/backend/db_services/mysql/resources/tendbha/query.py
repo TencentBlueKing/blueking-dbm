@@ -34,6 +34,7 @@ class ListRetrieveResource(query.ListRetrieveResource):
     """查看 mysql dbha 架构的资源"""
 
     cluster_type = ClusterType.TenDBHA
+    cluster_types = [ClusterType.TenDBHA]
 
     fields = [
         {"name": _("集群名"), "key": "cluster_name"},

@@ -106,7 +106,7 @@ class GetFileList(object):
         """
         mysql_proxy安装需要的安装包列表
         """
-        proxy_pkg = Package.get_latest_package(version=MediumEnum.Latest, pkg_type=MediumEnum.Proxy)
+        proxy_pkg = Package.get_latest_package(version=MediumEnum.Latest, pkg_type=MediumEnum.MySQLProxy)
         mysql_crond_pkg = Package.get_latest_package(version=MediumEnum.Latest, pkg_type=MediumEnum.MySQLCrond)
         mysql_monitor_pkg = Package.get_latest_package(version=MediumEnum.Latest, pkg_type=MediumEnum.MySQLMonitor)
         return [

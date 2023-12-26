@@ -6,9 +6,11 @@ export default class Tendbha {
   bk_cloud_name: string;
   cluster_name: string;
   cluster_type: string;
+  cluster_time_zone: string;
   create_at: string;
   creator: string;
   db_module_name: string;
+  db_module_id: number;
   id: number;
   master_domain: string;
   masters: {
@@ -48,9 +50,11 @@ export default class Tendbha {
     this.bk_cloud_name = payload.bk_cloud_name || '';
     this.cluster_name = payload.cluster_name || '';
     this.cluster_type = payload.cluster_type || '';
+    this.cluster_time_zone = payload.cluster_time_zone || '';
     this.create_at = payload.create_at || '';
     this.creator = payload.creator || '';
     this.db_module_name = payload.db_module_name || '';
+    this.db_module_id = payload.db_module_id || 0;
     this.id = payload.id || 0;
     this.master_domain = payload.master_domain || '';
     this.masters = payload.masters || [];

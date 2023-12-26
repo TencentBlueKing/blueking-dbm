@@ -18,6 +18,10 @@
         closable
         theme="info"
         :title="t('闪回：通过 flashback 工具，对 row 格式的 binlog 做逆向操作')" />
+      <div class="title-spot mt-12 mb-10">
+        {{ t('时区') }}<span class="required" />
+      </div>
+      <TimeZonePicker style="width: 450px;" />
       <RenderData
         class="mt16"
         @batch-select-cluster="handleShowBatchSelector">
@@ -72,6 +76,7 @@
   import { ClusterTypes } from '@common/const';
 
   import ClusterSelector from '@components/cluster-selector-new/Index.vue';
+  import TimeZonePicker from '@components/time-zone-picker/index.vue';
 
   import { messageError } from '@utils';
 

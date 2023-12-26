@@ -31,9 +31,13 @@ const path = `/apis/mysql/bizs/${currentBizId}/tendbha_resources`;
  * 查询资源列表
  */
 export function getTendbhaList(params: {
-  limit: number,
-  offset: number,
+  bk_biz_id?: number,
+  limit?: number,
+  offset?: number,
+  type?: string,
+  dbType?: string,
   cluster_ids?: number[] | number,
+  domain?: string
 }) {
   return http.get<ListBase<TendbhaModel[]>>(`${path}/`, params)
     .then(data => ({

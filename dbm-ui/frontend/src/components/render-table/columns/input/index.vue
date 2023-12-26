@@ -17,7 +17,8 @@
     class="table-edit-input"
     :class="{
       'is-error': Boolean(errorMessage),
-      'is-disabled': disabled}">
+      'is-disabled': disabled,
+      'is-password': isPassword}">
     <BkInput
       v-model="localValue"
       class="input-box"
@@ -68,8 +69,8 @@
     rules: undefined,
     disabled: false,
     type: 'text',
-    min: 1,
-    max: 100,
+    min: Number.MIN_SAFE_INTEGER,
+    max: Number.MAX_SAFE_INTEGER,
   });
 
   const emits = defineEmits<Emits>();
@@ -80,6 +81,8 @@
 
   const rootRef = ref<HTMLElement>();
   const localValue = ref('');
+
+  const isPassword = computed(() => props.type === 'password');
 
   const {
     message: errorMessage,
@@ -171,6 +174,10 @@
   :deep(.bk-input--number-control) {
     display: none !important;
   }
+
+  :deep(.bk-input--suffix-icon) {
+    display: none !important;
+  }
 }
 
 .is-disabled {
@@ -182,6 +189,17 @@
   :deep(.bk-input--number-control) {
     background-color: #fafbfd;
   }
+}
+
+.is-password {
+  :deep(.bk-input) {
+    box-shadow: none !important;
+  }
+
+  :deep(.bk-input--suffix-icon) {
+    padding: 0 4px;
+  }
+
 }
 
 .table-edit-input {
@@ -211,6 +229,7 @@
 
       &:focus {
         border-color: #3a84ff;
+
       }
     }
   }

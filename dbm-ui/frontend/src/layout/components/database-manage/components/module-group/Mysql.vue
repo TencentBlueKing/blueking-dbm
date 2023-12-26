@@ -71,6 +71,16 @@
           </span>
         </BkMenuItem>
       </BkSubmenu>
+      <BkMenuItem key="DumperDataSubscription">
+        <template #icon>
+          <i class="db-icon-mobanshili" />
+        </template>
+        <span
+          v-overflow-tips.right
+          class="text-overflow">
+          {{ t('数据订阅') }}
+        </span>
+      </BkMenuItem>
       <div
         v-if="Object.keys(favorMeunMap).length > 0"
         class="split-line" />

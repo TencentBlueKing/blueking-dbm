@@ -11,9 +11,9 @@ specific language governing permissions and limitations under the License.
 
 from rest_framework.routers import DefaultRouter
 
-from backend.db_services.bigdata.influxdb.views import InfluxDBClusterViewSet
+from backend.db_services.bigdata.influxdb.views import InfluxDBClusterViewSetBigdata
 
 router = DefaultRouter(trailing_slash=True)
-router.register(r"influxdb_resources", InfluxDBClusterViewSet, basename="influxdb_resources")
+router.register(r"influxdb_resources", InfluxDBClusterViewSetBigdata, basename="influxdb_resources")
 
 urlpatterns = router.urls

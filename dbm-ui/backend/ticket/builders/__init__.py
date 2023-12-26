@@ -390,7 +390,7 @@ class TicketFlowBuilder:
         return list(Flow.objects.filter(ticket=self.ticket))
 
     def patch_ticket_detail(self):
-        """补充单据详情"""
+        """自定义补充单据详情，留给子类实现"""
         pass
 
     @classmethod

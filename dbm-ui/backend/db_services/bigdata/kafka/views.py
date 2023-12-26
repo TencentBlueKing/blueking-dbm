@@ -16,7 +16,7 @@ from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.db_services.bigdata.kafka import constants
 from backend.db_services.bigdata.kafka.query import KafkaListRetrieveResource
 from backend.db_services.bigdata.resources import yasg_slz
-from backend.db_services.bigdata.resources.views import ResourceViewSet
+from backend.db_services.bigdata.resources.views import BigdataResourceViewSet
 from backend.db_services.dbbase.resources import serializers
 
 
@@ -70,6 +70,6 @@ from backend.db_services.dbbase.resources import serializers
         tags=[constants.RESOURCE_TAG],
     ),
 )
-class KafkaClusterViewSet(ResourceViewSet):
+class KafkaClusterViewSetBigdata(BigdataResourceViewSet):
     query_class = KafkaListRetrieveResource
     query_serializer_class = serializers.ListResourceSLZ

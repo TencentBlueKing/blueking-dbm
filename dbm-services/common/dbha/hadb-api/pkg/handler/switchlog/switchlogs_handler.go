@@ -23,6 +23,7 @@ const (
 type SwitchLogsApi struct {
 	UID      uint   `json:"uid"`
 	SwitchID uint   `json:"sw_id"`
+	App      string `json:"app"`
 	IP       string `json:"ip"`
 	Result   string `json:"result"`
 	Datetime string `json:"datetime,omitempty"`
@@ -92,9 +93,16 @@ func GetSwitchLogs(ctx *fasthttp.RequestCtx, param interface{}) {
 	}
 	log.Logger.Debugf("%+v", whereCond)
 
-	if err := model.HADB.Self.Table(whereCond.TableName()).
-		Where("sw_id = ?", whereCond.SwitchID).
-		Order("uid DESC").Find(&result).Error; err != nil {
+	db := model.HADB.Self.Table(whereCond.TableName())
+	if whereCond.App != "" {
+		db = db.Where("app = ?", whereCond.App)
+	}
+
+	if whereCond.SwitchID > 0 {
+		db = db.Where("sw_id = ?", whereCond.SwitchID)
+	}
+
+	if err := db.Order("uid DESC").Find(&result).Error; err != nil {
 		response.Code = api.RespErr
 		response.Message = err.Error()
 		response.Data = nil
@@ -155,6 +163,7 @@ func TransSwitchLogsToApi(result []model.HASwitchLogs) []SwitchLogsApi {
 		logApi := SwitchLogsApi{
 			UID:      log.UID,
 			SwitchID: log.SwitchID,
+			App:      log.App,
 			IP:       log.IP,
 			Result:   log.Result,
 			Datetime: log.Datetime.In(loc).Format("2006-01-02T15:04:05-07:00"),

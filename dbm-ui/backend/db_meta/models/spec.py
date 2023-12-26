@@ -42,6 +42,7 @@ class Spec(AuditedModel):
     device_class = models.JSONField(null=True, help_text=_("实际机器机型: ['class1','class2'] "))
     storage_spec = models.JSONField(null=True, help_text=_("存储磁盘需求配置:{'mount_point':'/data','size':500,'type':'ssd'}"))
     desc = models.TextField(help_text=_("资源规格描述"), null=True, blank=True)
+    enable = models.BooleanField(help_text=_("是否启用"), default=True)
     # es专属
     instance_num = models.IntegerField(default=0, help_text=_("实例数(es专属)"))
     # spider，redis集群专属

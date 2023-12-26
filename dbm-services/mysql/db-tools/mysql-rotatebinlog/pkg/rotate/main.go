@@ -102,10 +102,9 @@ func (c *RotateBinlogComp) Start() (err error) {
 			errRet = errors.Join(errRet, err)
 			continue
 		} else {
-			if err = inst.RegisterBinlog(filepath.Base(lastFileBefore.Filename)); err != nil {
+			if err = inst.RegisterBinlog(lastFileBefore); err != nil {
 				logger.Error(err.Error())
 			}
-			//inst.rotate.backupClient = inst.backupClient
 		}
 	}
 	if err = c.decideSizeToFree(servers); err != nil {

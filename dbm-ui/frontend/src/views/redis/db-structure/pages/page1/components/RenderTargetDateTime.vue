@@ -20,7 +20,7 @@
       clearable
       :disabled-date="disableDate"
       :model-value="dateValue"
-      :placeholder="$t('请输入')"
+      :placeholder="t('请输入')"
       :rules="rules"
       type="datetime"
       @change="handleDatetimeChange" />
@@ -28,6 +28,8 @@
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
+
+  import { useTimeZoneFormat } from '@hooks';
 
   import DateTimePicker from '@views/redis/common/edit/DateTime.vue';
 
@@ -48,6 +50,8 @@
   });
 
   const { t } = useI18n();
+  const formatDateToUTC = useTimeZoneFormat();
+
   const editRef = ref();
   const dateValue = ref(props.data);
 
@@ -71,7 +75,7 @@
     getValue() {
       return editRef.value
         .getValue()
-        .then(() => (dateValue.value));
+        .then(() => (formatDateToUTC(dateValue.value)));
     },
   });
 

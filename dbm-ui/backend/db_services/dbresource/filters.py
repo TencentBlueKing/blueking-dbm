@@ -21,6 +21,7 @@ class SpecListFilter(filters.FilterSet):
     spec_cluster_type = filters.CharFilter(field_name="spec_cluster_type", lookup_expr="exact", label=_("规格集群类型"))
     spec_machine_type = filters.CharFilter(field_name="spec_machine_type", lookup_expr="exact", label=_("规格机器类型"))
     update_at = filters.BooleanFilter(field_name="update_at", method="filter_update_at", label=_("根据时间正序/逆序"))
+    enable = filters.BooleanFilter(field_name="enable", label=_("过滤启用/禁用的规格"))
 
     def filter_update_at(self, queryset, name, value):
         time_field = "update_at" if value else "-update_at"

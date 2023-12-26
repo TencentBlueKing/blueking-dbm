@@ -105,12 +105,10 @@ func (job *TwemproxyOperate) Run() (err error) {
 		if !running {
 			// 如果是shutdown,此时需要清理相关目录
 			if op == consts.ProxyShutdown {
-				if err := common.DeleteExporterConfigFile(port); err != nil {
-					job.runtime.Logger.Warn("twemproxy %d DeleteExporterConfigFile return err:%v", port, err)
-				} else {
-					job.runtime.Logger.Info("twemproxy %d DeleteExporterConfigFile success", port)
+				err = job.ClearMoreDirsWhenShutdown(port)
+				if err != nil {
+					return err
 				}
-
 				return job.DirBackup(execUser, port)
 			}
 			return nil
@@ -133,14 +131,10 @@ func (job *TwemproxyOperate) Run() (err error) {
 	} else if !running && op == consts.ProxyStop {
 		return nil
 	} else if !running && op == consts.ProxyShutdown {
-
-		// 删除Exporter配置文件，删除失败有Warn，但不会停止
-		if err := common.DeleteExporterConfigFile(port); err != nil {
-			job.runtime.Logger.Warn("twemproxy %d DeleteExporterConfigFile return err:%v", port, err)
-		} else {
-			job.runtime.Logger.Info("twemproxy %d DeleteExporterConfigFile success", port)
+		err = job.ClearMoreDirsWhenShutdown(port)
+		if err != nil {
+			return err
 		}
-
 		return job.DirBackup(execUser, port)
 	} else {
 		return err
@@ -191,4 +185,56 @@ func (job *TwemproxyOperate) DirBackup(execUser string, port int) error {
 	}
 	job.runtime.Logger.Info("mv twemproxy port[%d] dir faild....", port)
 	return fmt.Errorf("twemproxy port[%d] dir [%s] exists too..pleace check", port, insDir)
+}
+
+// ClearMoreDirsWhenShutdown TODO
+func (job *TwemproxyOperate) ClearMoreDirsWhenShutdown(port int) (err error) {
+	var psRet string
+	// 再次判断是否还有不必要的进程存在
+	psCmd := `ps aux|grep nutcracker|grep -vE 'grep|exporter|redis-cli' || { true; }`
+	job.runtime.Logger.Info(psCmd)
+	psRet, err = util.RunBashCmd(psCmd, "", nil, 10*time.Second)
+	if err != nil {
+		job.runtime.Logger.Error("exec ps cmd error[%s]", err.Error())
+		return err
+	}
+	if psRet != "" {
+		job.runtime.Logger.Error("ClearMoreDirsWhenShutdown psCmd:%s result:%s", psCmd, psRet)
+		return fmt.Errorf("ps result:%s", psRet)
+	}
+	job.runtime.Logger.Info("%s all nutcracker process have been shutdown,start clear some dirs", job.params.IP)
+	// 删除Exporter配置文件，删除失败有Warn，但不会停止
+	if err := common.DeleteExporterConfigFile(port); err != nil {
+		job.runtime.Logger.Warn("twemproxy %d DeleteExporterConfigFile return err:%v", port, err)
+	} else {
+		job.runtime.Logger.Info("twemproxy %d DeleteExporterConfigFile success", port)
+	}
+
+	// 清理 backup-client 相关数据
+	job.runtime.Logger.Info("start clear backup-client dir")
+	err = util.ClearBackupClientDir()
+	if err != nil {
+		return
+	}
+	// 清理 /usr/local/twemproxy 目录
+	job.runtime.Logger.Info("start clear /usr/local/twemproxy dir")
+	err = util.ClearUsrLocalTwemproxy(true)
+	if err != nil {
+		return
+	}
+	// 清理环境变量 REDIS_DATA_DIR
+	job.runtime.Logger.Info("start clear env REDIS_DATA_DIR")
+	err = consts.RemoveRedisDataDirFromEnv()
+	if err != nil {
+		job.runtime.Logger.Error(err.Error())
+		return
+	}
+	// 清理环境变量 REDIS_BACKUP_DIR
+	job.runtime.Logger.Info("start clear env REDIS_BACKUP_DIR")
+	err = consts.RemoveRedisBackupDirFromEnv()
+	if err != nil {
+		job.runtime.Logger.Error(err.Error())
+		return
+	}
+	return nil
 }

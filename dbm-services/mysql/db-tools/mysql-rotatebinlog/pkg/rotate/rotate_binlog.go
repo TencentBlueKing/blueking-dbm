@@ -11,7 +11,6 @@ import (
 
 	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/logger"
-	"dbm-services/common/go-pubpkg/reportlog"
 	"dbm-services/common/go-pubpkg/timeutil"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/native"
 	"dbm-services/mysql/db-tools/mysql-rotatebinlog/pkg/backup"
@@ -136,7 +135,7 @@ func (i *ServerObj) GetEarliestAliveBinlog() (string, error) {
 // BinlogFile TODO
 type BinlogFile struct {
 	Filename string
-	Mtime    string
+	Mtime    time.Time
 	Size     int64
 }
 
@@ -153,6 +152,8 @@ func (i *ServerObj) getBinlogFilesLocal() (string, []*BinlogFile, error) {
 		return "", nil, errors.Wrap(err, "read binlog dir")
 	}
 	reFilename := regexp.MustCompile(cst.ReBinlogFilename)
+	timeNow := time.Now()
+	days15 := 24 * 15 * time.Hour // 超过 15 天的不处理
 	for _, fi := range files {
 		if !reFilename.MatchString(fi.Name()) {
 			if !strings.HasSuffix(fi.Name(), ".index") {
@@ -161,10 +162,13 @@ func (i *ServerObj) getBinlogFilesLocal() (string, []*BinlogFile, error) {
 			continue
 		} else {
 			fii, _ := fi.Info()
+			if timeNow.Sub(fii.ModTime()) > days15 {
+				continue
+			}
 			i.binlogFiles = append(
 				i.binlogFiles, &BinlogFile{
 					Filename: fi.Name(),
-					Mtime:    fii.ModTime().Format(reportlog.ReportTimeLayout1),
+					Mtime:    fii.ModTime(),
 					Size:     fii.Size(),
 				},
 			)

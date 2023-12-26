@@ -30,7 +30,7 @@ import { paramsSerializer } from './utils';
 
 const cacheHandler = new Cache();
 
-export type Method = 'get' | 'delete' | 'post' | 'put' | 'download'
+export type Method = 'get' | 'delete' | 'post' | 'put' | 'download' | 'patch'
 export interface Config {
   url: string,
   method: Method,
@@ -76,13 +76,13 @@ const defaultConfig = {
 
 export default class Request {
   static supporMethods = [
-    'get', 'post', 'delete', 'put',
+    'get', 'post', 'delete', 'put', 'patch',
   ];
   static willCachedMethods = [
     'get',
   ];
   static bodyDataMethods = [
-    'post', 'put', 'delete',
+    'post', 'put', 'delete', 'patch',
   ];
 
   cache: Cache;

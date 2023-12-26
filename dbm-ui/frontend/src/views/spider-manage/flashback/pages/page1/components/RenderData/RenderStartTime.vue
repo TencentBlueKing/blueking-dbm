@@ -23,6 +23,8 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
+  import { useTimeZoneFormat } from '@hooks';
+
   import TableEditDateTime from '@views/spider-manage/common/edit/DateTime.vue';
 
   interface Exposes {
@@ -34,6 +36,8 @@
   });
 
   const { t } = useI18n();
+  const formatDateToUTC = useTimeZoneFormat();
+
   const editRef = ref();
 
   const disableDate = (date: Date) => date && date.valueOf() > Date.now();
@@ -49,7 +53,7 @@
     getValue() {
       return editRef.value.getValue()
         .then(() => ({
-          start_time: modelValue.value,
+          start_time: formatDateToUTC(modelValue.value!),
         }));
     },
   });

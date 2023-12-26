@@ -110,7 +110,9 @@ class ResourceQueryHelper:
 
         if return_all:
             try:
-                topo_tree: types.TreeNode = CCApi.search_biz_inst_topo({"bk_biz_id": bk_biz_id, "no_request": True})[0]
+                topo_tree: types.TreeNode = CCApi.search_biz_inst_topo(
+                    {"bk_biz_id": bk_biz_id, "no_request": True}, use_admin=True
+                )[0]
             except IndexError:
                 logger.error(f"topo not exists, bk_biz_id -> {bk_biz_id}")
                 raise exceptions.TopoNotExistsError({"bk_biz_id": bk_biz_id})
@@ -372,7 +374,7 @@ class ResourceQueryHelper:
         if host_property_filter["rules"]:
             list_host_total_mainline_topo_filter["host_property_filter"] = host_property_filter
 
-        resp = CCApi.list_host_total_mainline_topo(list_host_total_mainline_topo_filter)
+        resp = CCApi.list_host_total_mainline_topo(list_host_total_mainline_topo_filter, use_admin=True)
 
         # 格式化主机信息，铺平拓扑信息
         host_topo_info_list: List[Dict[str, Any]] = []

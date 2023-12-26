@@ -2,6 +2,7 @@ package util
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 	"strings"
 	"time"
@@ -112,4 +113,118 @@ func GetRedisDbTypeByPkgName(pkgName string) (dbType string) {
 		dbType = consts.TendisTypeRedisInstance
 	}
 	return
+}
+
+// ClearBackupClientDir TODO
+func ClearBackupClientDir() (err error) {
+	stmDir := "/data/backup_stm"
+	if FileExists(stmDir) {
+		cmd := fmt.Sprintf("rm -rf %s", stmDir)
+		mylog.Logger.Info(cmd)
+		_, err = RunBashCmd(cmd, "", nil, 1*time.Minute)
+		if err != nil {
+			mylog.Logger.Error(err.Error())
+			return
+		}
+	}
+	if FileExists(consts.COSInfoFile) {
+		cmd := fmt.Sprintf("rm -rf %s", consts.COSInfoFile)
+		mylog.Logger.Info(cmd)
+		_, err = RunBashCmd(cmd, "", nil, 1*time.Minute)
+		if err != nil {
+			mylog.Logger.Error(err.Error())
+			return
+		}
+	}
+	return nil
+}
+
+// ClearUsrLocalRedis TODO
+func ClearUsrLocalRedis(clearTarget bool) (err error) {
+	redisSoftLink := filepath.Join(consts.UsrLocal, "redis")
+	if !FileExists(redisSoftLink) {
+		// 如果 /usr/local/redis 不存在,则不需要清理
+		return nil
+	}
+	realLink, err := os.Readlink(redisSoftLink)
+	// 无论/usr/local/redis是好连接 还是 坏连接
+	// 都清理 /usr/local/redis
+	rmCmd := fmt.Sprintf("rm -rf %s", redisSoftLink)
+	mylog.Logger.Info(rmCmd)
+	_, err = RunBashCmd(rmCmd, "", nil, 1*time.Minute)
+	if err != nil {
+		mylog.Logger.Error(err.Error())
+		return
+	}
+	if err == nil && realLink != "" && FileExists(realLink) && clearTarget {
+		// 如果 /usr/local/redis 是一个好的软连接,则清理 连接指向的目标目录
+		rmCmd := fmt.Sprintf("rm -rf %s", realLink)
+		mylog.Logger.Info(rmCmd)
+		_, err = RunBashCmd(rmCmd, "", nil, 1*time.Minute)
+		if err != nil {
+			mylog.Logger.Error(err.Error())
+			return
+		}
+	}
+	return nil
+}
+
+// ClearUsrLocalTwemproxy TODO
+func ClearUsrLocalTwemproxy(clearTarget bool) (err error) {
+	twemproxySoftLink := filepath.Join(consts.UsrLocal, "twemproxy")
+	if !FileExists(twemproxySoftLink) {
+		// 如果 /usr/local/twemproxy 不存在,则不需要清理
+		return nil
+	}
+	realLink, err := os.Readlink(twemproxySoftLink)
+	// 无论/usr/local/twemproxy是好连接 还是 坏连接
+	// 都清理 /usr/local/twemproxy
+	rmCmd := fmt.Sprintf("rm -rf %s", twemproxySoftLink)
+	mylog.Logger.Info(rmCmd)
+	_, err = RunBashCmd(rmCmd, "", nil, 1*time.Minute)
+	if err != nil {
+		mylog.Logger.Error(err.Error())
+		return
+	}
+	if err == nil && realLink != "" && FileExists(realLink) && clearTarget {
+		// 如果 /usr/local/twemproxy 是一个好的软连接,则清理 连接指向的目标目录
+		rmCmd := fmt.Sprintf("rm -rf %s", realLink)
+		mylog.Logger.Info(rmCmd)
+		_, err = RunBashCmd(rmCmd, "", nil, 1*time.Minute)
+		if err != nil {
+			mylog.Logger.Error(err.Error())
+			return
+		}
+	}
+	return nil
+}
+
+// ClearUsrLocalPredixy TODO
+func ClearUsrLocalPredixy(clearTarget bool) (err error) {
+	predixySoftLink := filepath.Join(consts.UsrLocal, "predixy")
+	if !FileExists(predixySoftLink) {
+		// 如果 /usr/local/predixy 不存在,则不需要清理
+		return nil
+	}
+	realLink, err := os.Readlink(predixySoftLink)
+	// 无论/usr/local/predixy是好连接 还是 坏连接
+	// 都清理 /usr/local/predixy
+	rmCmd := fmt.Sprintf("rm -rf %s", predixySoftLink)
+	mylog.Logger.Info(rmCmd)
+	_, err = RunBashCmd(rmCmd, "", nil, 1*time.Minute)
+	if err != nil {
+		mylog.Logger.Error(err.Error())
+		return
+	}
+	if err == nil && realLink != "" && FileExists(realLink) && clearTarget {
+		// 如果 /usr/local/predixy 是一个好的软连接,则清理 连接指向的目标目录
+		rmCmd := fmt.Sprintf("rm -rf %s", realLink)
+		mylog.Logger.Info(rmCmd)
+		_, err = RunBashCmd(rmCmd, "", nil, 1*time.Minute)
+		if err != nil {
+			mylog.Logger.Error(err.Error())
+			return
+		}
+	}
+	return nil
 }

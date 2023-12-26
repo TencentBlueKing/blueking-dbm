@@ -150,6 +150,7 @@ func (gdm *GDM) flushCache() {
 	// 清除超过DupExpire的缓存
 	for key, val := range gdm.ReporterCache {
 		if now.After(val.ReceivedTime.Add(time.Second * time.Duration(gdm.DupExpire))) {
+			log.Logger.Debugf("clean cache for instance[%v]", key)
 			delete(gdm.ReporterCache, key)
 		}
 	}

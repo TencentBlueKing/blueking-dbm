@@ -11,9 +11,9 @@ specific language governing permissions and limitations under the License.
 
 from rest_framework.routers import DefaultRouter
 
-from backend.db_services.bigdata.pulsar.views import PulsarClusterViewSet
+from backend.db_services.bigdata.pulsar.views import PulsarClusterViewSetBigdata
 
 router = DefaultRouter(trailing_slash=True)
-router.register(r"pulsar_resources", PulsarClusterViewSet, basename="pulsar_resources")
+router.register(r"pulsar_resources", PulsarClusterViewSetBigdata, basename="pulsar_resources")
 
 urlpatterns = router.urls

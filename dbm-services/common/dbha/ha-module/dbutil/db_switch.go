@@ -279,7 +279,7 @@ func (ins *BaseSwitch) ReportLogs(result string, comment string) bool {
 	}
 
 	err := ins.HaDBClient.InsertSwitchLog(
-		ins.SwitchUid, ins.Ip, ins.Port, result, comment, time.Now(),
+		ins.SwitchUid, ins.Ip, ins.Port, ins.App, result, comment, time.Now(),
 	)
 	if err != nil {
 		return false

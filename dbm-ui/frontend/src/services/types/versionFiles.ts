@@ -36,19 +36,21 @@ export interface PackagesResult {
  * 版本信息
  */
 export interface PackageItem {
-  id: number,
-  creator: string,
-  create_at: string,
-  updater: string,
-  update_at: string,
-  name: string,
-  version: string,
-  pkg_type: string,
-  path: string,
-  size: number,
-  md5: string,
-  allow_biz_ids: number[],
-  mode: string
+  allow_biz_ids: number[];
+  create_at: string;
+  creator: string;
+  enable: boolean;
+  id: number;
+  md5: string;
+  mode: string;
+  name: string;
+  path: string;
+  pkg_type: string;
+  priority: number;
+  size: number;
+  update_at: string;
+  updater: string;
+  version: string;
 }
 
 /**

@@ -22,7 +22,9 @@ from backend.flow.plugins.components.collections.common.base_service import Base
 from backend.utils.time import str2datetime
 
 
-class SleepTimerService(BaseService):
+class DeprecatedSleepTimerService(BaseService):
+    # todo: Deprecated, 准备移除
+
     __need_schedule__ = True
     interval = StaticIntervalGenerator(0)
     BK_TIMEMING_TICK_INTERVAL = int(os.getenv("BK_TIMEMING_TICK_INTERVAL", 60 * 60 * 24))
@@ -93,7 +95,9 @@ class SleepTimerService(BaseService):
         return True
 
 
-class SleepTimerComponent(Component):
+class DeprecatedSleepTimerComponent(Component):
+    # todo: Deprecated, 准备移除
+
     name = _("定时")
-    code = "sleep_timer"
-    bound_service = SleepTimerService
+    code = "deprecated_sleep_timer"
+    bound_service = DeprecatedSleepTimerService

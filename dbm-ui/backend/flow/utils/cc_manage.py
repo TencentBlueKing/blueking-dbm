@@ -10,7 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 import json
 import logging
-from typing import Dict, List
+from typing import Any, Dict, List
 
 from django.db import transaction
 
@@ -187,39 +187,32 @@ class CcManage(object):
         module_type__module = {module["default"]: module for module in biz_internal_module["module"]}
         return module_type__module
 
-    def update_host_properties(self, bk_host_ids: List[int], need_monitor: bool, dbm_meta=None):
-        """更新主机属性"""
-        machines = Machine.objects.filter(bk_host_id__in=bk_host_ids)
-        if not machines:
-            return
-        # 这里可以认为一批操作的机器的数据库类型是相同的
-        db_type = ClusterType.cluster_type_to_db_type(machines.first().cluster_type)
-        biz_dba = DBAdministrator.get_biz_db_type_admins(bk_biz_id=self.bk_biz_id, db_type=db_type)
-
+    @staticmethod
+    def batch_update_host(host_info_list: List[Dict[str, Any]], need_monitor: bool):
+        """CC批量更新主机属性"""
         # 批量更新接口限制最多500条，这里取456条
         step_size = 456
         updated_hosts, failed_updates = [], []
-        machine_count = machines.count()
+        machine_count = len(host_info_list)
         for step in range(machine_count // step_size + 1):
             updates = []
-            for machine in machines[step * step_size : (step + 1) * step_size]:
-                cc_dbm_meta = machine.dbm_meta if dbm_meta is None else dbm_meta
-                updates.append(
-                    {
-                        "properties": {
-                            CC_HOST_DBM_ATTR: json.dumps(cc_dbm_meta),
-                            # 主要维护人
-                            "operator": ",".join(biz_dba),
-                            # 备份维护人
-                            "bk_bak_operator": ",".join(biz_dba),
-                            # 主机状态
-                            env.CMDB_HOST_STATE_ATTR: env.CMDB_NEED_MONITOR_STATUS
-                            if need_monitor
-                            else env.CMDB_NO_MONITOR_STATUS,
-                        },
-                        "bk_host_id": machine.bk_host_id,
-                    }
-                )
+            for machine in host_info_list[step * step_size : (step + 1) * step_size]:
+                update_info = {
+                    "properties": {
+                        # 主机状态
+                        env.CMDB_HOST_STATE_ATTR: env.CMDB_NEED_MONITOR_STATUS
+                        if need_monitor
+                        else env.CMDB_NO_MONITOR_STATUS,
+                    },
+                    "bk_host_id": machine["bk_host_id"],
+                }
+                # 其他主机属性可选更新字段：db_meta, 主要维护人，备份维护人
+                update_fields = [CC_HOST_DBM_ATTR, "operator", "bk_bak_operator"]
+                for field in update_fields:
+                    if field in machine:
+                        update_info["properties"][field] = machine[field]
+
+                updates.append(update_info)
 
             updated_hosts.extend(updates)
             res = CCApi.batch_update_host({"update": updates}, use_admin=True, raw=True)
@@ -229,6 +222,36 @@ class CcManage(object):
             if res.get("code") not in [0, 1199036, 1199048, 1306000]:
                 logger.error("[update_host_dbmeta] batch update failed: %s (%s)", updates, res.get("code"))
                 failed_updates.extend(updates)
+
+        return updated_hosts, failed_updates
+
+    def update_host_properties(
+        self, bk_host_ids: List[int], need_monitor: bool, dbm_meta=None, update_operator: bool = True
+    ):
+        """批量更新主机属性"""
+        # 如果传递了dbm_meta信息和选择不更新维护人，则无需查询machine表，可以直接构造主机属性
+        if dbm_meta is not None and not update_operator:
+            dbm_meta = json.dumps(dbm_meta)
+            host_info_list = [{"bk_host_id": bk_host_id, CC_HOST_DBM_ATTR: dbm_meta} for bk_host_id in bk_host_ids]
+        else:
+            machines = Machine.objects.filter(bk_host_id__in=bk_host_ids)
+            # 这里可以认为一批操作的机器的数据库类型是相同的
+            db_type = ClusterType.cluster_type_to_db_type(machines.first().cluster_type)
+            biz_dba = DBAdministrator.get_biz_db_type_admins(bk_biz_id=self.bk_biz_id, db_type=db_type)
+            host_info_list = [
+                {
+                    "bk_host_id": machine.bk_host_id,
+                    # 主要维护人
+                    "operator": ",".join(biz_dba),
+                    # 备份维护人
+                    "bk_bak_operator": ",".join(biz_dba),
+                    # db_meta信息
+                    CC_HOST_DBM_ATTR: json.dumps(machine.dbm_meta),
+                }
+                for machine in machines
+            ]
+
+        __, failed_updates = self.batch_update_host(host_info_list, need_monitor)
 
         # 容错处理：逐个更新，避免批量更新误伤有效ip
         for fail_update in failed_updates:
@@ -267,11 +290,18 @@ class CcManage(object):
             else:
                 raise ApiError(f"transfer_host_to_idlemodule error, resp:{resp}")
 
-    def transfer_host_module(self, bk_host_ids: list, target_module_ids: list, is_increment=False):
+    def transfer_host_module(
+        self,
+        bk_host_ids: list,
+        target_module_ids: list,
+        is_increment: bool = False,
+        update_host_properties: dict = None,
+    ):
         """
-        @params bk_host_ids 主机id列表
-        @params target_module_ids 目标模块id列表
-        @params is_increment 是否增量转移，即主机处于多模块
+        @param bk_host_ids 主机id列表
+        @param target_module_ids 目标模块id列表
+        @param is_increment 是否增量转移，即主机处于多模块
+        @param update_host_properties 主机属性更新选项
         跨业务转移主机，需要先做中转处理
         循环判断处理，逻辑保证幂等操作
         考虑这几种情况：
@@ -338,7 +368,11 @@ class CcManage(object):
             },
             use_admin=True,
         )
-        self.update_host_properties(bk_host_ids, need_monitor=True)
+        # 如果没有传递update_host_properties，那就按照[需告警]来更新主机属性
+        if not update_host_properties:
+            self.update_host_properties(bk_host_ids, need_monitor=True)
+        else:
+            self.update_host_properties(bk_host_ids, **update_host_properties)
 
     def recycle_host(self, bk_host_ids: list):
         """

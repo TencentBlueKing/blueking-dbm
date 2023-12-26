@@ -5,6 +5,7 @@ export default class Tendbsingle {
   bk_cloud_id: number;
   bk_cloud_name: string;
   cluster_name: string;
+  cluster_time_zone: string;
   cluster_type: string;
   create_at: string;
   creator: string;
@@ -47,6 +48,7 @@ export default class Tendbsingle {
     this.bk_cloud_id = payload.bk_cloud_id || 0;
     this.bk_cloud_name = payload.bk_cloud_name || '';
     this.cluster_name = payload.cluster_name || '';
+    this.cluster_time_zone = payload.cluster_time_zone || '';
     this.cluster_type = payload.cluster_type || '';
     this.create_at = payload.create_at || '';
     this.creator = payload.creator || '';

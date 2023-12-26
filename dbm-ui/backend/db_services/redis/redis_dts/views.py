@@ -8,6 +8,8 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import logging.config
+
 from django.utils.translation import ugettext as _
 from rest_framework import status
 from rest_framework.decorators import action
@@ -15,7 +17,7 @@ from rest_framework.response import Response
 
 from backend.bk_web import viewsets
 from backend.bk_web.swagger import common_swagger_auto_schema
-from backend.iam_app.handlers.drf_perm import ViewBusinessIAMPermission
+from backend.iam_app.handlers.drf_perm import DBManageIAMPermission
 
 from .apis import (
     dts_job_disconnct_sync,
@@ -33,13 +35,14 @@ from .serializers import (
 )
 
 RESOURCE_TAG = "db_services/redis/redis_dts"
+logger = logging.getLogger("flow")
 
 
 class TendisDtsJobViewSet(viewsets.AuditedModelViewSet):
     serializer_class = TbTendisDTSJobSerializer
 
     def _get_custom_permissions(self):
-        return [ViewBusinessIAMPermission()]
+        return [DBManageIAMPermission()]
 
     @common_swagger_auto_schema(
         operation_summary=_("获取DTS历史任务以及其对应task cnt"),
@@ -50,6 +53,7 @@ class TendisDtsJobViewSet(viewsets.AuditedModelViewSet):
     def historyjobs(self, request, *args, **kwargs):
         slz_data = self.params_validate(self.get_serializer_class())
         slz_data.update(user=request.user.username)
+        slz_data.update(bk_biz_id=kwargs.get("bk_biz_id", ""))
         return Response(get_dts_history_jobs(slz_data))
 
     @common_swagger_auto_schema(

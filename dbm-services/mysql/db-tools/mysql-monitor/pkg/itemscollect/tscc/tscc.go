@@ -167,10 +167,10 @@ func (c *tableSchemaConsistencyCheck) Run() (msg string, err error) {
 			for _, tblRow := range tblRows {
 				var result SchemaCheckResults
 				c.ctldb.Exec("set tc_admin = 1;")
-				err = c.ctldb.Select(&result, fmt.Sprintf("tdbctl checksum `%s`.`%s`;", tblRow.Db, tblRow.Tbl))
+				err = c.ctldb.Select(&result, fmt.Sprintf("tdbctl check `%s`.`%s`;", tblRow.Db, tblRow.Tbl))
 				if err != nil {
 					errChan <- struct{}{}
-					slog.Error("exec tdbctl checksum table failed", slog.String("error", err.Error()))
+					slog.Error("exec tdbctl check table failed", slog.String("error", err.Error()))
 					continue
 				}
 				c.ctldb.Exec("set tc_admin = 0;")

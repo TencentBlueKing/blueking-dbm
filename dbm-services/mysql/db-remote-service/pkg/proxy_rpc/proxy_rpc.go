@@ -43,6 +43,8 @@ func (c *ProxyRPCEmbed) MakeConnection(address string, user string, password str
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*time.Duration(timeout))
 	defer cancel()
 
+	// TODO 如果连接的是业务端口（非 admin 端口），也应该设置时区？
+	// tz := "loc=Local&time_zone=%27%2B08%3A00%27"
 	db, err := sqlx.ConnectContext(
 		ctx,
 		"mysql",

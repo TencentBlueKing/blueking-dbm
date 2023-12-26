@@ -166,7 +166,7 @@ func (task *RedisDataStructure) Run() (err error) {
 
 	}
 
-	// 停BkDbmon
+	// 确认停BkDbmon成功，这里会影响binlog的导入
 	err = util.StopBkDbmon()
 	if err != nil {
 		return err
@@ -199,12 +199,6 @@ func (task *RedisDataStructure) Run() (err error) {
 		if recoverItem.Err != nil {
 			return recoverItem.Err
 		}
-	}
-
-	// 	拉起BkDbmon
-	err = util.StartBkDbmon()
-	if err != nil {
-		return err
 	}
 
 	return nil

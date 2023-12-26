@@ -20,24 +20,24 @@
       :model="formData">
       <DbCard
         class="mb-16"
-        :title="$t('模块信息')">
+        :title="t('模块信息')">
         <BkFormItem
-          :label="$t('模块名称')"
+          :label="t('模块名称')"
           property="module_name"
           required
           :rules="rules.module_name">
           <BkInput
             v-model="formData.module_name"
-            :placeholder="$t('由英文字母_数字_连字符_组成')"
+            :placeholder="t('由英文字母_数字_连字符_组成')"
             :readonly="isReadonly" />
-          <span class="belong-business">{{ $t('所属业务') }} : {{ bizInfo.name }}</span>
+          <span class="belong-business">{{ t('所属业务') }} : {{ bizInfo.name }}</span>
         </BkFormItem>
       </DbCard>
       <DbCard
         class="mb-16"
-        :title="$t('绑定数据库配置')">
+        :title="t('绑定数据库配置')">
         <BkFormItem
-          :label="$t('数据库类型')"
+          :label="t('数据库类型')"
           property="mysql_type"
           required>
           <BkTag
@@ -51,26 +51,17 @@
           </BkTag>
         </BkFormItem>
         <BkFormItem
-          :label="$t('数据库版本')"
+          :label="t('数据库版本')"
           property="version"
           required>
-          <BkSelect
+          <DeployVersion
             v-model="formData.version"
-            :clearable="false"
-            :disabled="isBindSuccessfully"
-            filterable
-            :input-search="false"
-            :loading="loadingState.versions"
-            :placeholder="$t('请选择数据库版本')">
-            <BkOption
-              v-for="(item, index) in listState.versions"
-              :key="index"
-              :label="item"
-              :value="item" />
-          </BkSelect>
+            db-type="mysql"
+            :placeholder="t('请选择数据库版本')"
+            query-key="mysql" />
         </BkFormItem>
         <BkFormItem
-          :label="$t('字符集')"
+          :label="t('字符集')"
           property="character_set"
           required>
           <BkSelect
@@ -78,7 +69,7 @@
             :clearable="false"
             :disabled="isBindSuccessfully"
             filterable
-            :placeholder="$t('请选择字符集')">
+            :placeholder="t('请选择字符集')">
             <BkOption
               v-for="(item, index) in listState.characterSets"
               :key="index"
@@ -87,7 +78,7 @@
           </BkSelect>
         </BkFormItem>
       </DbCard>
-      <DbCard :title="$t('参数配置')">
+      <DbCard :title="t('参数配置')">
         <BkLoading :loading="configState.loading">
           <ParameterTable
             ref="parameterTableRef"
@@ -115,13 +106,13 @@
         :loading="loadingState.submit"
         theme="primary"
         @click="handleSubmit">
-        {{ $t('保存') }}
+        {{ t('保存') }}
       </BkButton>
       <BkButton
         class="w-88 ml-8"
         :disabled="loadingState.submit"
         @click="resetFormData()">
-        {{ $t('重置') }}
+        {{ t('重置') }}
       </BkButton>
     </template>
   </SmartAction>
@@ -139,7 +130,6 @@
     saveModulesDeployInfo,
     updateBusinessConfig,
   } from '@services/source/configs';
-  import { getVersions } from '@services/source/version';
 
   import { useInfo } from '@hooks';
 
@@ -149,6 +139,8 @@
     mysqlType,
     type MysqlTypeString,
   } from '@common/const';
+
+  import DeployVersion from '@components/apply-items/DeployVersion.vue';
 
   import ParameterTable from '@views/db-configure/components/ParameterTable.vue';
   import {
@@ -215,22 +207,6 @@
       },
     ],
   };
-
-
-  /**
-   * 获取版本列表
-   */
-  function fetchVersions() {
-    loadingState.versions = true;
-    getVersions({ query_key: ticketInfo.value.type, db_type: 'mysql' })
-      .then((res) => {
-        listState.versions = res;
-      })
-      .finally(() => {
-        loadingState.versions = false;
-      });
-  }
-  fetchVersions();
 
   const createModuleFormRef = ref();
   const parameterTableRef = ref();

@@ -100,10 +100,9 @@ func (job *PredixyOperate) Run() (err error) {
 		// stop or shutdown
 		if !running {
 			if op == consts.ProxyShutdown {
-				if err := common.DeleteExporterConfigFile(port); err != nil {
-					job.runtime.Logger.Warn("predixy %d DeleteExporterConfigFile return err:%v", port, err)
-				} else {
-					job.runtime.Logger.Info("predixy %d DeleteExporterConfigFile success", port)
+				err = job.ClearMoreDirsWhenShutdown(port)
+				if err != nil {
+					return err
 				}
 				return job.DirBackup(execUser, port)
 			}
@@ -126,11 +125,9 @@ func (job *PredixyOperate) Run() (err error) {
 	} else if !running && op == consts.ProxyStop {
 		return nil
 	} else if !running && op == consts.ProxyShutdown {
-		// 删除Exporter配置文件，删除失败有Warn，但不会停止
-		if err := common.DeleteExporterConfigFile(port); err != nil {
-			job.runtime.Logger.Warn("predixy %d DeleteExporterConfigFile return err:%v", port, err)
-		} else {
-			job.runtime.Logger.Info("predixy %d DeleteExporterConfigFile success", port)
+		err = job.ClearMoreDirsWhenShutdown(port)
+		if err != nil {
+			return err
 		}
 		return job.DirBackup(execUser, port)
 	} else {
@@ -182,4 +179,57 @@ func (job *PredixyOperate) DirBackup(execUser string, port int) error {
 	}
 	job.runtime.Logger.Info("mv Predixy port[%d] dir faild....", port)
 	return fmt.Errorf("Predixy port[%d] dir [%s] exists too..pleace check", port, insDir)
+}
+
+// ClearMoreDirsWhenShutdown TODO
+func (job *PredixyOperate) ClearMoreDirsWhenShutdown(port int) (err error) {
+	var psRet string
+	// 再次判断是否还有不必要的进程存在
+	psCmd := `ps aux|grep predixy|grep -vE 'grep|exporter|redis-cli' || { true; }`
+	job.runtime.Logger.Info(psCmd)
+	psRet, err = util.RunBashCmd(psCmd, "", nil, 10*time.Second)
+	if err != nil {
+		job.runtime.Logger.Error("exec ps cmd error[%s]", err.Error())
+		return err
+	}
+	if psRet != "" {
+		job.runtime.Logger.Error("ClearMoreDirsWhenShutdown psCmd:%s result:%s", psCmd, psRet)
+		return fmt.Errorf("ps result:%s", psRet)
+	}
+	job.runtime.Logger.Info("%s all predixy process have been shutdown,start clear some dirs", job.params.IP)
+	// 删除Exporter配置文件，删除失败有Warn，但不会停止
+	err = common.DeleteExporterConfigFile(port)
+	if err != nil {
+		job.runtime.Logger.Warn("predixy %d DeleteExporterConfigFile return err:%v", port, err)
+	} else {
+		job.runtime.Logger.Info("predixy %d DeleteExporterConfigFile success", port)
+	}
+
+	// 清理 backup-client 相关数据
+	job.runtime.Logger.Info("start clear backup-client dir")
+	err = util.ClearBackupClientDir()
+	if err != nil {
+		return
+	}
+	// 清理 /usr/local/predixy 目录
+	job.runtime.Logger.Info("start clear /usr/local/predixy dir")
+	err = util.ClearUsrLocalPredixy(true)
+	if err != nil {
+		return
+	}
+	// 清理环境变量 REDIS_DATA_DIR
+	job.runtime.Logger.Info("start clear env REDIS_DATA_DIR")
+	err = consts.RemoveRedisDataDirFromEnv()
+	if err != nil {
+		job.runtime.Logger.Error(err.Error())
+		return
+	}
+	// 清理环境变量 REDIS_BACKUP_DIR
+	job.runtime.Logger.Info("start clear env REDIS_BACKUP_DIR")
+	err = consts.RemoveRedisBackupDirFromEnv()
+	if err != nil {
+		job.runtime.Logger.Error(err.Error())
+		return
+	}
+	return nil
 }

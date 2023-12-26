@@ -10,6 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 from django.utils.translation import ugettext_lazy as _
 
+from backend.configuration.constants import DBType
 from backend.flow.consts import MediumEnum
 from blue_krill.data_types.enum import EnumField, StructuredEnum
 
@@ -22,3 +23,20 @@ class PackageMode(str, StructuredEnum):
 
 
 PackageType = MediumEnum
+
+# 各个组件的安装包类型
+INSTALL_PACKAGE_LIST = {
+    DBType.MySQL: [PackageType.MySQLProxy, PackageType.MySQL, PackageType.Spider, PackageType.tdbCtl],
+    DBType.Es: [PackageType.Es],
+    DBType.Hdfs: [PackageType.Hdfs],
+    DBType.Kafka: [PackageType.Kafka],
+    DBType.Pulsar: [PackageType.Pulsar],
+    DBType.InfluxDB: [PackageType.Influxdb],
+    DBType.Redis: [
+        PackageType.Redis,
+        PackageType.Twemproxy,
+        PackageType.TendisPlus,
+        PackageType.TendisSsd,
+        PackageType.Predixy,
+    ],
+}
