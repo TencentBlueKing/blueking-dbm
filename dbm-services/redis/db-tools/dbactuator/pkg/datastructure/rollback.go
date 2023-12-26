@@ -945,16 +945,10 @@ func (task *TendisInsRecoverTask) CheckRollbackResult() error {
 			symbol = ">"
 		}
 		if symbol != "" {
-<<<<<<< HEAD
-			msg = fmt.Sprintf("目的tendisplus:%s 源tendisplus:%s rocksdbid:%d 回档到时间:%s %s 目的时间:%s",
-				redisAddr, srcRedisAddr, i, symbol,
-				hearbeatVal.Local().Format(consts.UnixtimeLayoutZone),
-=======
 			msg = fmt.Sprintf("目的tendisplus:%s 源tendisplus:%s rocksdbid:%d 回档心跳时间:%s %s 回档目的时间:%s",
 				redisAddr, srcRedisAddr, i,
 				hearbeatVal.Local().Format(consts.UnixtimeLayoutZone),
 				symbol,
->>>>>>> d5ec126a220b4c3ef375c443e1dfd1dcc75977cd
 				rollbackDstTime.Local().Format(consts.UnixtimeLayoutZone))
 			errList = append(errList)
 			mylog.Logger.Error(msg)
