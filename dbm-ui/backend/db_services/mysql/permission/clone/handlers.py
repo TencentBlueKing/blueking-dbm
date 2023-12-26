@@ -188,7 +188,7 @@ class CloneHandler(object):
         # 生成excel文件并返回
         wb = ExcelHandler.serialize(
             data_dict__list=excel_data_dict__list,
-            header=CLONE_EXCEL_ERROR_HEADER_MAP[self.clone_type],
+            headers=CLONE_EXCEL_ERROR_HEADER_MAP[self.clone_type],
             header_style=CLONE_EXCEL_STYLE_HEADER_MAP[self.clone_type],
         )
         return ExcelHandler.response(wb, excel_name)

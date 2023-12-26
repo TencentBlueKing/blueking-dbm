@@ -48,7 +48,7 @@ class TestCloneHandler:
     @patch("backend.db_services.mysql.permission.clone.handlers.MySQLPrivManagerApi", MySQLPrivManagerApiMock)
     def test_pre_check_excel_clone(self):
         data_dict__list = EXCEL_CLONE_CLIENT_LIST_DATA
-        excel_bytes = save_virtual_workbook(ExcelHandler.serialize(data_dict__list, header=CLONE_CLIENT_EXCEL_HEADER))
+        excel_bytes = save_virtual_workbook(ExcelHandler.serialize(data_dict__list, headers=CLONE_CLIENT_EXCEL_HEADER))
         excel = io.BytesIO(excel_bytes)
 
         excel_obj = namedtuple("ExcelObj", ["file"])(file=excel)
