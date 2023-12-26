@@ -279,6 +279,8 @@ class ListRetrieveResource(query.ListRetrieveResource):
             "bk_biz_name": AppCache.objects.get(bk_biz_id=cluster.bk_biz_id).bk_biz_name,
             "bk_cloud_id": cluster.bk_cloud_id,
             "bk_cloud_name": cloud_info[str(cluster.bk_cloud_id)]["bk_cloud_name"],
+            "major_version": cluster.major_version,
+            "region": cluster.region,
             "proxies": proxies,
             "masters": masters,
             "slaves": slaves,
