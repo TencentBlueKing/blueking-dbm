@@ -10,8 +10,6 @@
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
 */
-
-
 import type {
   AxiosError,
   AxiosInterceptorManager,
@@ -23,6 +21,7 @@ import IamApplyDataModel from '@services/model/iam/apply-data';
 import { useEventBus } from '@hooks';
 
 import {
+  downloadFile,
   loginDialog,
   messageError,
   parseURL,
@@ -74,6 +73,13 @@ export default (interceptors: AxiosInterceptorManager<AxiosResponse>) => {
         hasLogined = true;
         return response.data;
       default: {
+        // 文件的字节流
+        if (response.headers['content-type'] === 'application/octet-stream') {
+          const contentDisposition = response.headers['content-disposition'];
+          const filename = contentDisposition ? contentDisposition.split('=')[1] : 'download';
+          downloadFile(response.data, filename);
+          return response.data;
+        }
         // 后端逻辑处理报错
         const { code, message = '系统错误' } = response.data;
         throw new RequestError(code, message, response);

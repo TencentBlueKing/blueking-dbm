@@ -10,7 +10,6 @@
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
 */
-
 import TendbsingleInstanceModel from '@services/model/mysql/tendbha-instance';
 import TendbsingleModel from '@services/model/mysql/tendbsingle';
 
@@ -134,4 +133,18 @@ export function getTendbsingleDetail(params: { id: number }) {
  */
 export function getTendbsingleTopoGraph(params: { cluster_id: number }) {
   return http.get<ResourceTopo>(`${path}/${params.cluster_id}/get_topo_graph/`);
+}
+
+/**
+ * 导出集群数据为 excel 文件
+ */
+export function exportTendbsingleClusterToExcel(params: { cluster_ids?: number[] }) {
+  return http.post<string>(`${path}/export_cluster/`, params, { responseType: 'blob' });
+}
+
+/**
+ * 导出实例数据为 excel 文件
+ */
+export function exportTendbsingleInstanceToExcel(params: { bk_host_ids?: number[] }) {
+  return http.post<string>(`${path}/export_instance/`, params, { responseType: 'blob' });
 }

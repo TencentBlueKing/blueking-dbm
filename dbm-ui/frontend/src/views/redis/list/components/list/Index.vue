@@ -57,6 +57,10 @@
             </BkDropdownMenu>
           </template>
         </BkDropdown>
+        <DropdownExportExcel
+          :has-selected="hasSelected"
+          :ids="selectedIds"
+          type="redis" />
       </div>
       <DbSearchSelect
         v-model="state.searchValues"
@@ -89,6 +93,7 @@
           @page-limit-change="handeChangeLimit"
           @page-value-change="handleChangePage"
           @refresh="fetchResources"
+          @select-all="handleTableSelectedAll"
           @selection-change="handleTableSelected"
           @setting-change="updateTableSettings" />
       </div>
@@ -158,6 +163,7 @@
 
   import EditEntryConfig from '@components/cluster-entry-config/Index.vue';
   import DbStatus from '@components/db-status/index.vue';
+  import DropdownExportExcel from '@components/dropdown-export-excel/index.vue';
   import MiniTag from '@components/mini-tag/index.vue';
   import RenderInstances from '@components/render-instances/RenderInstances.vue';
   import RenderTextEllipsisOneLine from '@components/text-ellipsis-one-line/index.vue';
@@ -280,6 +286,7 @@
     };
   });
   const hasSelected = computed(() => state.selected.length > 0);
+  const selectedIds = computed(() => state.selected.map(item => item.id));
   const isCN = computed(() => locale.value === 'zh-cn');
   const tableOperationWidth = computed(() => {
     if (!isStretchLayoutOpen.value) {
@@ -876,14 +883,7 @@
   /**
    * 表格选中
    */
-  const handleTableSelected = ({ isAll, checked, data, row }: TableSelectionData<RedisModel>) => {
-    // 全选 checkbox 切换
-    if (isAll) {
-      const filterData = data.filter(item => item.phase === 'online');
-      state.selected = checked ? [...filterData] : [];
-      return;
-    }
-
+  const handleTableSelected = ({ checked, row }: TableSelectionData<RedisModel>) => {
     // 单选 checkbox 选中
     if (checked) {
       const toggleIndex = state.selected.findIndex(item => item.id === row.id);
@@ -898,6 +898,13 @@
     if (toggleIndex > -1) {
       state.selected.splice(toggleIndex, 1);
     }
+  };
+
+  /**
+   * 表格全选
+   */
+  const handleTableSelectedAll = ({ checked, data }: {checked: boolean, data: RedisModel[]}) => {
+    state.selected = checked ? [...data] : [];
   };
 
   const handleShowPassword = (id: number) => {

@@ -131,7 +131,7 @@
       spec: {
         ...item.proxy[0].spec_config,
         name: item.cluster_spec.spec_name,
-        id: item.cluster_spec.spec_id,
+        id: item.proxy[0].spec_config.id,
         count: item.proxy.length,
       },
       targetNum: `${item.proxy.length}`,

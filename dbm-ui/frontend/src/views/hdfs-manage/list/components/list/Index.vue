@@ -20,6 +20,10 @@
         @click="handleGoApply">
         {{ t('申请实例') }}
       </BkButton>
+      <DropdownExportExcel
+        :has-selected="hasSelected"
+        :ids="selectedIds"
+        type="hdfs" />
       <DbSearchSelect
         v-model="searchValues"
         class="mb16"
@@ -37,8 +41,10 @@
         :data-source="dataSource"
         :pagination-extra="paginationExtra"
         :row-class="getRowClass"
+        selectable
         :settings="tableSetting"
         @clear-search="handleClearSearch"
+        @selection="handleSelection"
         @setting-change="updateTableSettings" />
     </div>
     <DbSideslider
@@ -128,6 +134,7 @@
   import RenderPassword from '@components/cluster-common/RenderPassword.vue';
   import RenderClusterStatus from '@components/cluster-common/RenderStatus.vue';
   import EditEntryConfig from '@components/cluster-entry-config/Index.vue';
+  import DropdownExportExcel from '@components/dropdown-export-excel/index.vue';
   import RenderTextEllipsisOneLine from '@components/text-ellipsis-one-line/index.vue';
 
   import ClusterExpansion from '@views/hdfs-manage/common/expansion/Index.vue';
@@ -174,6 +181,22 @@
   const searchValues = ref([]);
 
   const operationData = shallowRef<HdfsModel>();
+  const selected = shallowRef<HdfsModel[]>([]);
+
+  const hasSelected = computed(() => selected.value.length > 0);
+  const selectedIds = computed(() => selected.value.map(item => item.id));
+  const isCN = computed(() => locale.value === 'zh-cn');
+  const paginationExtra = computed(() => {
+    if (isStretchLayoutOpen.value) {
+      return { small: false };
+    }
+
+    return {
+      small: true,
+      align: 'left',
+      layout: ['total', 'limit', 'list'],
+    };
+  });
 
   const serachData = [
     {
@@ -193,18 +216,6 @@
       id: 'ip',
     },
   ];
-  const isCN = computed(() => locale.value === 'zh-cn');
-  const paginationExtra = computed(() => {
-    if (isStretchLayoutOpen.value) {
-      return { small: false };
-    }
-
-    return {
-      small: true,
-      align: 'left',
-      layout: ['total', 'limit', 'list'],
-    };
-  });
 
   const checkClusterOnline = (data: HdfsModel) => data.phase === 'online';
 
@@ -525,6 +536,10 @@
     const searchParams = getSearchSelectorParams(searchValues.value);
     tableRef.value?.fetchData(searchParams, {}, loading);
     isInit.value = false;
+  };
+
+  const handleSelection = (data: HdfsModel, list: HdfsModel[]) => {
+    selected.value = list;
   };
 
   const {

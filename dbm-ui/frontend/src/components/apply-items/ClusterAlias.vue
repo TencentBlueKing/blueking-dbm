@@ -53,6 +53,9 @@
     },
     {
       validator: (val: string) => {
+        if (!val) {
+          return true;
+        }
         if (!props.bizId) {
           return false;
         }

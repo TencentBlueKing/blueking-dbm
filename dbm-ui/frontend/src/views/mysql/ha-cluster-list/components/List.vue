@@ -59,6 +59,10 @@
             {{ t('导入授权') }}
           </BkButton>
         </span>
+        <DropdownExportExcel
+          :has-selected="hasSelected"
+          :ids="selectedIds"
+          type="tendbha" />
       </div>
       <DbSearchSelect
         v-model="state.filters"
@@ -146,6 +150,7 @@
   import ExcelAuthorize from '@components/cluster-common/ExcelAuthorize.vue';
   import EditEntryConfig from '@components/cluster-entry-config/Index.vue';
   import DbStatus from '@components/db-status/index.vue';
+  import DropdownExportExcel from '@components/dropdown-export-excel/index.vue';
   import RenderInstances from '@components/render-instances/RenderInstances.vue';
   import RenderTextEllipsisOneLine from '@components/text-ellipsis-one-line/index.vue';
 
@@ -222,6 +227,7 @@
 
   const isCN = computed(() => locale.value === 'zh-cn');
   const hasSelected = computed(() => state.selected.length > 0);
+  const selectedIds = computed(() => state.selected.map(item => item.id));
   const hasData = computed(() => state.data.length > 0);
   const searchSelectData = computed(() => [
     {
@@ -577,6 +583,7 @@
     showEditEntryConfig.value  = true;
     clusterId.value = row.id;
   };
+
   const handleSelection = (data: TendbhaModel, list: TendbhaModel[]) => {
     state.selected = list;
     selectedClusterList.value = list;
