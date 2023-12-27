@@ -107,6 +107,18 @@ class MySQLHaMetadataImportDetailSerializer(MySQLBaseOperateDetailSerializer):
         self.__validate_proxy_spec_match(cluster_json=cluster_json)
         self.__validate_storage_spec_match(cluster_json=cluster_json)
         self.__validate_cluster_disaster(cluster_json=cluster_json)
+        self.__validate_cluster_id(cluster_json=cluster_json)
+
+    @staticmethod
+    def __validate_cluster_id(cluster_json):
+        """
+        集群迁移 tendbha 集群 id 范围验证
+        在 dbm 中 scr tendbha 的 id 空间是 [100w, 200w)
+        详情可参考 <<scr/gcs 集群 id 预订>>
+        """
+        cluster_id = cluster_json["cluster_id"]
+        if not 1000000 <= cluster_id < 2000000:
+            raise serializers.ValidationError(_("{} 超出 scr mysql segment 范围".format(cluster_id)))
 
     @staticmethod
     def __validate_cluster_disaster(cluster_json):

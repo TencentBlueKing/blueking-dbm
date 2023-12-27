@@ -5557,7 +5557,7 @@ sub main {
             my $JSON = JSON->new->utf8;
             $JSON->convert_blessed(1);
             my $json_diffs = {};
-            foreach my $key (keys $diffs) {
+            foreach my $key (keys %$diffs) {
                $json_diffs->{$key} = {
                   $config_names[0] => $diffs->{$key}[0],
                   $config_names[1] => $diffs->{$key}[1],
