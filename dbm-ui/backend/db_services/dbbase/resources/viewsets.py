@@ -74,13 +74,13 @@ class ResourceViewSet(SystemViewSet):
     @action(methods=["POST", "GET"], detail=False, url_path="export_cluster")
     def export_cluster(self, request, bk_biz_id: int):
         """导出集群数据为 excel 文件"""
-        cluster_ids = request.POST.get("cluster_ids")
+        cluster_ids = request.data.get("cluster_ids")
         return self.query_class.export_cluster(bk_biz_id, cluster_ids)
 
     @action(methods=["POST", "GET"], detail=False, url_path="export_instance")
     def export_instance(self, request, bk_biz_id: int):
         """导出实例数据为 excel 文件"""
-        bk_host_ids = request.POST.get("bk_host_ids")
+        bk_host_ids = request.data.get("bk_host_ids")
         return self.query_class.export_instance(bk_biz_id, bk_host_ids)
 
     def _paginate_resource_list(self, request, bk_biz_id: int):

@@ -1,0 +1,182 @@
+{
+    "bk_biz_id": null,
+    "etl_config": "bk_log_json",
+    "table_id": "redis_hotkey",
+    "collector_config_name": "redis_hotkey",
+    "collector_config_name_en": "redis_hotkey",
+    "collector_scenario_id": "row",
+    "category_id": "application_check",
+    "data_encoding": "UTF-8",
+    "retention": 7,
+    "es_shards": 3,
+    "target_object_type": "HOST",
+    "target_node_type": "TOPO",
+    "target_nodes": [],
+    "params": {
+        "paths": [
+            "/home/mysql/dbareport/keylifecycle/redis_hotkey_*.log"
+        ],
+        "conditions": {
+            "separator": "",
+            "separator_filters": [],
+            "type": "match",
+            "match_type": "include",
+            "match_content": ""
+        },
+        "encoding": "UTF-8"
+    },
+    "etl_params": {
+        "es_unique_field_list": [
+            "cloudId",
+            "serverIp",
+            "path",
+            "gseIndex",
+            "iterationIndex",
+            "bk_host_id"
+        ],
+        "separator_node_source": "data",
+        "separator_node_action": "json",
+        "separator_node_name": "bk_separator_object",
+        "retain_original_text": true,
+        "separator_fields_remove": "",
+        "etl_flat": false
+    },
+    "fields": [
+        {
+            "option": {
+                "time_zone": 8,
+                "time_format": "strict_date_time_no_millis"
+            },
+            "is_time": true,
+            "verdict": true,
+            "is_delete": false,
+            "alias_name": "stattime",
+            "field_name": "@timestamp",
+            "field_type": "string",
+            "description": "",
+            "is_analyzed": false,
+            "is_built_in": false,
+            "is_dimension": false,
+            "previous_type": "string"
+        },
+        {
+            "option": {
+                "time_zone": "",
+                "time_format": ""
+            },
+            "is_time": false,
+            "verdict": true,
+            "is_delete": false,
+            "alias_name": "",
+            "field_name": "addr",
+            "field_type": "string",
+            "description": "",
+            "is_analyzed": false,
+            "is_built_in": false,
+            "is_dimension": false,
+            "previous_type": "string"
+        },
+        {
+            "option": {
+                "time_zone": "",
+                "time_format": ""
+            },
+            "is_time": false,
+            "verdict": false,
+            "is_delete": false,
+            "alias_name": "",
+            "field_name": "app",
+            "field_type": "string",
+            "description": "",
+            "is_analyzed": false,
+            "is_built_in": false,
+            "is_dimension": false,
+            "previous_type": "string"
+        },
+        {
+            "option": {
+                "time_zone": "",
+                "time_format": ""
+            },
+            "is_time": false,
+            "verdict": true,
+            "is_delete": false,
+            "alias_name": "",
+            "field_name": "domain",
+            "field_type": "string",
+            "description": "",
+            "is_analyzed": false,
+            "is_built_in": false,
+            "is_dimension": false,
+            "previous_type": "string"
+        },
+        {
+            "option": {
+                "time_zone": "",
+                "time_format": ""
+            },
+            "is_time": false,
+            "verdict": false,
+            "is_delete": false,
+            "alias_name": "",
+            "field_name": "key_cnt",
+            "field_type": "int",
+            "description": "",
+            "is_analyzed": false,
+            "is_built_in": false,
+            "is_dimension": false,
+            "previous_type": "int"
+        },
+        {
+            "option": {
+                "time_zone": "",
+                "time_format": ""
+            },
+            "is_time": false,
+            "verdict": true,
+            "is_delete": false,
+            "alias_name": "",
+            "field_name": "key_ops",
+            "field_type": "string",
+            "description": "",
+            "is_analyzed": false,
+            "is_built_in": false,
+            "is_dimension": false,
+            "previous_type": "string"
+        },
+        {
+            "option": {
+                "time_zone": "",
+                "time_format": ""
+            },
+            "is_time": false,
+            "verdict": false,
+            "is_delete": false,
+            "alias_name": "",
+            "field_name": "key_ratio",
+            "field_type": "double",
+            "description": "",
+            "is_analyzed": false,
+            "is_built_in": false,
+            "is_dimension": false,
+            "previous_type": "double"
+        },
+        {
+            "option": {
+                "time_zone": "",
+                "time_format": ""
+            },
+            "is_time": false,
+            "verdict": true,
+            "is_delete": false,
+            "alias_name": "",
+            "field_name": "key_sample",
+            "field_type": "string",
+            "description": "",
+            "is_analyzed": false,
+            "is_built_in": false,
+            "is_dimension": false,
+            "previous_type": "string"
+        }
+    ]
+}
