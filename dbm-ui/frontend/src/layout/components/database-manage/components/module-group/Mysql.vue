@@ -71,16 +71,22 @@
           </span>
         </BkMenuItem>
       </BkSubmenu>
-      <BkMenuItem key="DumperDataSubscription">
-        <template #icon>
-          <i class="db-icon-mobanshili" />
-        </template>
-        <span
-          v-overflow-tips.right
-          class="text-overflow">
-          {{ t('数据订阅') }}
-        </span>
-      </BkMenuItem>
+      <FunController
+        :controller-id="dumperControlId"
+        module-id="mysql">
+        <BkMenuItem
+          key="DumperDataSubscription">
+          <template #icon>
+            <i class="db-icon-mobanshili" />
+          </template>
+          <span
+            v-overflow-tips.right
+            class="text-overflow">
+            {{ t('数据订阅') }}
+          </span>
+        </BkMenuItem>
+      </FunController>
+
       <div
         v-if="Object.keys(favorMeunMap).length > 0"
         class="split-line" />
@@ -114,9 +120,11 @@
   } from 'vue';
   import { useI18n } from 'vue-i18n';
 
+  import type { FunctionKeys } from '@services/model/function-controller/functionController';
+
   import { useEventBus } from '@hooks';
 
-  import { useUserProfile  } from '@stores';
+  import { useUserProfile } from '@stores';
 
   import { UserPersonalSettings } from '@common/const';
 
@@ -133,6 +141,8 @@
   const toolboxMenuSortList = shallowRef<string[]>([]);
   const favorMeunMap = shallowRef<Record<string, boolean>>({});
 
+  const dumperControlId = `dumper_biz_${window.PROJECT_CONFIG.BIZ_ID}` as FunctionKeys;
+
   const renderToolboxMenu = () => {
     toolboxMenuSortList.value = userProfile.profile[UserPersonalSettings.MYSQL_TOOLBOX_MENUS]
       || toolboxMenuConfig.map(item => item.id);
@@ -140,6 +150,7 @@
   };
 
   renderToolboxMenu();
+
 
   eventBus.on('MYSQL_TOOLBOX_CHANGE', renderToolboxMenu);
 

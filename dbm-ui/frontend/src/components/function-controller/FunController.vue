@@ -31,7 +31,7 @@
       // 数据库组件开启且具体功能开启
       if (controllerId) {
         const children = data.children as Record<T, ControllerBaseInfo>;
-        return data.is_enabled && children[controllerId].is_enabled;
+        return data.is_enabled && children[controllerId]?.is_enabled;
       }
 
       // 只需判断数据库组件是否开启
