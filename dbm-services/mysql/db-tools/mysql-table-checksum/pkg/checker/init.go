@@ -46,7 +46,7 @@ func init() {
 	commonForceSwitchStrategies = []switchStrategy{
 		{Name: "check-binlog-format", Value: false, HasOpposite: true},
 		{Name: "check-replication-filters", Value: false, HasOpposite: true},
-		{Name: "quiet", Value: false, HasOpposite: false},
+		{Name: "quiet", Value: true, HasOpposite: false},
 		{Name: "binary-index", Value: true, HasOpposite: false},
 		{Name: "version-check", Value: false, HasOpposite: true},
 	}
