@@ -20,6 +20,7 @@ from backend.db_meta.models import Group
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.influxdb import InfluxdbController
 from backend.ticket import builders
+from backend.ticket.builders.common.base import format_bigdata_resource_spec
 from backend.ticket.builders.common.bigdata import BaseInfluxDBTicketFlowBuilder, BigDataDetailsSerializer
 from backend.ticket.constants import TicketType
 
@@ -44,6 +45,7 @@ class InfluxDBApplyDetailSerializer(BigDataDetailsSerializer):
     def validate(self, attrs):
         # 判断主机是否来自手工输入，从资源池拿到的主机不需要校验
         if attrs["ip_source"] == IpSource.RESOURCE_POOL:
+            format_bigdata_resource_spec(attrs)
             return attrs
 
         # 判断主机是否都来自空闲机

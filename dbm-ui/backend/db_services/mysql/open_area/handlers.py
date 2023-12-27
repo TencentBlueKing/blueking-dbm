@@ -82,7 +82,7 @@ class OpenAreaHandler:
                 "account_rules": [
                     {"bk_biz_id": config.bk_biz_id, "dbname": dbname} for dbname in user__dbs_rules[user]
                 ],
-                "cluster_type": config.cluster_type,
+                "cluster_type": cluster_id__cluster[data["cluster_id"]].cluster_type,
             }
             for data in config_data
             for user in user__dbs_rules.keys()
