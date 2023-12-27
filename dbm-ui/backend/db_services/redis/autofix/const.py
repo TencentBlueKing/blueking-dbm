@@ -34,6 +34,7 @@ class RedisSwitchHost:
     sw_min_id: int
     sw_max_id: int
     sw_result: dict
+    ignore_fix: bool
 
 
 @dataclass()

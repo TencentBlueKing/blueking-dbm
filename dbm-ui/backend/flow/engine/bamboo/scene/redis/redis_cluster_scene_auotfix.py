@@ -45,6 +45,7 @@ from backend.flow.plugins.components.collections.redis.exec_shell_script import 
 from backend.flow.plugins.components.collections.redis.get_redis_payload import GetRedisActPayloadComponent
 from backend.flow.plugins.components.collections.redis.redis_db_meta import RedisDBMetaComponent
 from backend.flow.plugins.components.collections.redis.redis_ticket import RedisTicketComponent
+from backend.flow.utils.base.payload_handler import PayloadHandler
 from backend.flow.utils.redis.redis_context_dataclass import ActKwargs, CommonContext
 from backend.flow.utils.redis.redis_db_meta import RedisDBMeta
 from backend.flow.utils.redis.redis_proxy_util import get_cache_backup_mode, get_twemproxy_cluster_server_shards
@@ -116,18 +117,18 @@ class RedisClusterAutoFixSceneFlow(object):
             else:
                 slave_master_map[slave_obj.machine.ip] = master_obj.machine.ip
 
-            cluster_info = api.cluster.nosqlcomm.other.get_cluster_detail(cluster_id)[0]
-            cluster_name = cluster_info["name"]
-            cluster_type = cluster_info["cluster_type"]
-            redis_master_set = cluster_info["redis_master_set"]
-            redis_slave_set = cluster_info["redis_slave_set"]
-            servers = []
-            if cluster_type in [ClusterType.TendisTwemproxyRedisInstance, ClusterType.TwemproxyTendisSSDInstance]:
-                for set in redis_master_set:
-                    ip_port, seg_range = str.split(set)
-                    servers.append("{} {} {} {}".format(ip_port, cluster_name, seg_range, 1))
-            else:
-                servers = redis_master_set + redis_slave_set
+        cluster_info = api.cluster.nosqlcomm.other.get_cluster_detail(cluster_id)[0]
+        redis_master_set, redis_slave_set, servers = (
+            cluster_info["redis_master_set"],
+            cluster_info["redis_slave_set"],
+            [],
+        )
+        if cluster.cluster_type in [ClusterType.TendisTwemproxyRedisInstance, ClusterType.TwemproxyTendisSSDInstance]:
+            for set in redis_master_set:
+                ip_port, seg_range = str.split(set)
+                servers.append("{} {} {} {}".format(ip_port, cluster.name, seg_range, 1))
+        else:
+            servers = redis_master_set + redis_slave_set
 
         return {
             "immute_domain": cluster.immute_domain,
@@ -147,6 +148,9 @@ class RedisClusterAutoFixSceneFlow(object):
 
     @staticmethod
     def __get_cluster_config(bk_biz_id: int, namespace: str, domain_name: str, db_version: str) -> Any:
+        """
+        获取已部署的实例配置
+        """
         data = DBConfigApi.query_conf_item(
             params={
                 "bk_biz_id": str(bk_biz_id),
@@ -159,6 +163,15 @@ class RedisClusterAutoFixSceneFlow(object):
                 "format": FormatType.MAP.value,
             }
         )
+
+        passwd_ret = PayloadHandler.redis_get_password_by_domain(domain_name)
+        if passwd_ret.get("redis_password"):
+            data["content"]["redis_password"] = passwd_ret.get("redis_password")
+        if passwd_ret.get("redis_proxy_password"):
+            data["content"]["password"] = passwd_ret.get("redis_proxy_password")
+        if passwd_ret.get("redis_proxy_admin_password"):
+            data["content"]["redis_proxy_admin_password"] = passwd_ret.get("redis_proxy_admin_password")
+
         return data["content"]
 
     def __init_builder(self, operate_name: str):
@@ -190,8 +203,7 @@ class RedisClusterAutoFixSceneFlow(object):
                 act_component_code=GetRedisActPayloadComponent.code,
                 kwargs=asdict(cluster_kwargs),
             )
-            sub_pipeline = self.cluster_fix(flow_data, cluster_kwargs, cluster_fix)
-            sub_pipelines.append(sub_pipeline)
+            sub_pipelines.append(self.cluster_fix(flow_data, cluster_kwargs, cluster_fix))
 
         redis_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
         return redis_pipeline.run_pipeline()
@@ -203,26 +215,31 @@ class RedisClusterAutoFixSceneFlow(object):
         # 先补充slave
         if fix_params.get("redis_slave"):
             slave_kwargs = deepcopy(act_kwargs)
-            self.slave_fix(
-                flow_data,
-                slave_kwargs,
-                {
-                    "redis_slave": fix_params.get("redis_slave"),
-                    "slave_spec": fix_params.get("resource_spec", {}).get("redis_slave", {}),
-                },
+            sub_pipeline.add_sub_pipeline(
+                self.slave_fix(
+                    flow_data,
+                    slave_kwargs,
+                    {
+                        "redis_slave": fix_params.get("redis_slave"),
+                        "slave_spec": fix_params.get("resource_spec", {}).get("redis_slave", {}),
+                    },
+                )
             )
 
         # 然后在搞定proxy
         if fix_params.get("proxy"):
             proxy_kwargs = deepcopy(act_kwargs)
-            self.proxy_fix(
-                flow_data,
-                proxy_kwargs,
-                {
-                    "proxy": fix_params.get("proxy"),
-                    "proxy_spec": fix_params.get("resource_spec", {}).get("proxy", {}),
-                },
+            sub_pipeline.add_sub_pipeline(
+                self.proxy_fix(
+                    flow_data,
+                    proxy_kwargs,
+                    {
+                        "proxy": fix_params.get("proxy"),
+                        "proxy_spec": fix_params.get("resource_spec", {}).get("proxy", {}),
+                    },
+                )
             )
+
         return sub_pipeline.build_sub_process(sub_name=_("故障自愈-{}").format(act_kwargs.cluster["immute_domain"]))
 
     def proxy_fix(self, flow_data, act_kwargs, proxy_fix_info):
@@ -256,6 +273,7 @@ class RedisClusterAutoFixSceneFlow(object):
                 "ip": proxy_ip,
                 "redis_pwd": config_info["redis_password"],
                 "proxy_pwd": config_info["password"],
+                "proxy_admin_pwd": config_info["redis_proxy_admin_password"],
                 "conf_configs": config_info,
                 "proxy_port": int(config_info["port"]),
                 "servers": replace_kwargs.cluster["backend_servers"],
@@ -291,7 +309,7 @@ class RedisClusterAutoFixSceneFlow(object):
             )
         )
 
-        # 第四步: 旧-接入层剔除
+        # 第四步: 旧-接入层剔除, 理论上这里DBHA已经清理过了
         sub_pipeline.add_sub_pipeline(
             sub_flow=AccessManagerAtomJob(
                 self.root_id,
@@ -327,7 +345,7 @@ class RedisClusterAutoFixSceneFlow(object):
     def slave_fix(self, flow_data, sub_kwargs, slave_fix_info):
         sub_pipeline = SubBuilder(root_id=self.root_id, data=flow_data)
         slave_fix_detail = slave_fix_info["redis_slave"]
-        newslave_to_master, replace_link_info = [], {}, {}
+        newslave_to_master, replace_link_info = {}, {}
 
         for fix_link in slave_fix_detail:
             old_slave, new_slave = fix_link["ip"], fix_link["target"]["ip"]
