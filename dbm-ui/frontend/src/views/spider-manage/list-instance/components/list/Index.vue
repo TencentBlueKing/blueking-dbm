@@ -20,6 +20,11 @@
         @click="handleApply">
         {{ $t('实例申请') }}
       </BkButton>
+      <DropdownExportExcel
+        export-type="instance"
+        :has-selected="hasSelected"
+        :ids="selectedIds"
+        type="spider" />
       <DbSearchSelect
         v-model="filterData"
         class="mb-16"
@@ -37,8 +42,10 @@
         :data-source="getSpiderInstanceList"
         :pagination-extra="paginationExtra"
         :row-class="setRowClass"
+        selectable
         :settings="settings"
         @clear-search="handleClearSearch"
+        @selection="handleSelection"
         @setting-change="updateTableSettings" />
     </div>
   </div>
@@ -64,6 +71,7 @@
   } from '@common/const';
 
   import DbStatus from '@components/db-status/index.vue';
+  import DropdownExportExcel from '@components/dropdown-export-excel/index.vue';
 
   import { getSearchSelectorParams, isRecentDays } from '@utils';
 
@@ -85,31 +93,13 @@
     splitScreen: stretchLayoutSplitScreen,
   } = useStretchLayout();
 
-  const searchSelectData = [
-    {
-      name: t('实例'),
-      id: 'instance_address',
-    },
-    {
-      name: t('域名'),
-      id: 'domain',
-    },
-    {
-      name: 'IP',
-      id: 'ip',
-    },
-    {
-      name: t('端口'),
-      id: 'port',
-    },
-    {
-      name: t('状态'),
-      id: 'status',
-      children: Object.values(clusterInstStatus).map(item => ({ id: item.key, name: item.text })),
-    },
-  ];
   const tableRef = ref();
+
+  const selected = shallowRef<TendbInstanceModel[]>([]);
   const filterData = shallowRef<SearchSelectValues>([]);
+
+  const hasSelected = computed(() => selected.value.length > 0);
+  const selectedIds = computed(() => selected.value.map(item => item.bk_host_id));
   const paginationExtra = computed(() => {
     if (!isStretchLayoutOpen.value) {
       return { small: false };
@@ -240,6 +230,30 @@
     return list;
   });
 
+  const searchSelectData = [
+    {
+      name: t('实例'),
+      id: 'instance_address',
+    },
+    {
+      name: t('域名'),
+      id: 'domain',
+    },
+    {
+      name: 'IP',
+      id: 'ip',
+    },
+    {
+      name: t('端口'),
+      id: 'port',
+    },
+    {
+      name: t('状态'),
+      id: 'status',
+      children: Object.values(clusterInstStatus).map(item => ({ id: item.key, name: item.text })),
+    },
+  ];
+
   // 设置行样式
   const setRowClass = (row: TendbInstanceModel) => {
     const classList = [isRecentDays(row.create_at, 24 * 3) ? 'is-new-row' : ''];
@@ -273,6 +287,10 @@
     tableRef.value.fetchData({
       ...getSearchSelectorParams(filterData.value),
     }, {});
+  };
+
+  const handleSelection = (data: TendbInstanceModel, list: TendbInstanceModel[]) => {
+    selected.value = list;
   };
 
   // 清空搜索条件

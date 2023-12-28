@@ -20,6 +20,10 @@
         @click="handleGoApply">
         {{ t('申请实例') }}
       </BkButton>
+      <DropdownExportExcel
+        :has-selected="hasSelected"
+        :ids="selectedIds"
+        type="es" />
       <DbSearchSelect
         v-model="searchValues"
         class="mb16"
@@ -37,8 +41,10 @@
         :data-source="dataSource"
         :pagination-extra="paginationExtra"
         :row-class="getRowClass"
+        selectable
         :settings="tableSetting"
         @clear-search="handleClearSearch"
+        @selection="handleSelection"
         @setting-change="updateTableSettings" />
     </div>
     <DbSideslider
@@ -119,6 +125,7 @@
   import RenderPassword from '@components/cluster-common/RenderPassword.vue';
   import RenderClusterStatus from '@components/cluster-common/RenderStatus.vue';
   import EditEntryConfig from '@components/cluster-entry-config/Index.vue';
+  import DropdownExportExcel from '@components/dropdown-export-excel/index.vue';
   import RenderTextEllipsisOneLine from '@components/text-ellipsis-one-line/index.vue';
 
   import ClusterExpansion from '@views/es-manage/common/expansion/Index.vue';
@@ -174,8 +181,12 @@
   const showEditEntryConfig = ref(false);
   const searchValues = ref([]);
 
+  const selected = shallowRef<EsModel[]>([]);
   const operationData = shallowRef<EsModel>();
   const tableDataActionLoadingMap = shallowRef<Record<number, boolean>>({});
+
+  const hasSelected = computed(() => selected.value.length > 0);
+  const selectedIds = computed(() => selected.value.map(item => item.id));
 
   const paginationExtra = computed(() => {
     if (isStretchLayoutOpen.value) {
@@ -491,6 +502,10 @@
     const searchParams = getSearchSelectorParams(searchValues.value);
     tableRef.value?.fetchData(searchParams, {}, loading);
     isInit.value = false;
+  };
+
+  const handleSelection = (data: EsModel, list: EsModel[]) => {
+    selected.value = list;
   };
 
   const {

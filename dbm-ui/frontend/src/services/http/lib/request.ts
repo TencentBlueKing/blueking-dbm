@@ -12,6 +12,7 @@
 */
 
 import axios, {
+  type AxiosRequestConfig,
   type CancelTokenSource,
 } from 'axios';
 import Cookie from 'js-cookie';
@@ -41,7 +42,7 @@ export interface Config {
     onUploadProgress?: (params: CancelTokenSource) => void,
     permission?: 'page' | 'dialog' | 'catch',
     catchError?: boolean
-  }
+  } & AxiosRequestConfig,
 }
 
 requestMiddleware(axios.interceptors.request);

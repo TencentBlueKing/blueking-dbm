@@ -46,6 +46,10 @@
             {{ t('导入授权') }}
           </BkButton>
         </span>
+        <DropdownExportExcel
+          :has-selected="hasSelected"
+          :ids="selectedIds"
+          type="tendbsingle" />
       </div>
       <DbSearchSelect
         v-model="state.filters"
@@ -73,6 +77,7 @@
         @page-limit-change="handeChangeLimit"
         @page-value-change="handleChangePage"
         @refresh="fetchResources(true)"
+        @select-all="handleTableSelectedAll"
         @selection-change="handleTableSelected"
         @setting-change="updateTableSettings" />
     </div>
@@ -137,6 +142,7 @@
   import ExcelAuthorize from '@components/cluster-common/ExcelAuthorize.vue';
   import EditEntryConfig from '@components/cluster-entry-config/Index.vue';
   import DbStatus from '@components/db-status/index.vue';
+  import DropdownExportExcel from '@components/dropdown-export-excel/index.vue';
   import RenderInstances from '@components/render-instances/RenderInstances.vue';
   import RenderTextEllipsisOneLine from '@components/text-ellipsis-one-line/index.vue';
 
@@ -186,6 +192,7 @@
   const isAnomalies = ref(false);
   const isInit = ref(true);
   const showEditEntryConfig = ref(false);
+  const isShowExcelAuthorize = ref(false);
 
   const state = reactive<State>({
     isLoading: false,
@@ -196,8 +203,14 @@
     dbModuleList: [],
   });
 
+  const authorizeState = reactive({
+    isShow: false,
+    selected: [] as TendbsingleModel[],
+  });
+
   const isCN = computed(() => locale.value === 'zh-cn');
   const hasSelected = computed(() => state.selected.length > 0);
+  const selectedIds = computed(() => state.selected.map(item => item.id));
   const hasData = computed(() => state.data.length > 0);
   const searchSelectData = computed(() => [
     {
@@ -485,7 +498,7 @@
   //   pause();
   // });
 
-  async function getMenuList(item: SearchSelectItem | undefined, keyword: string) {
+  const getMenuList = async (item: SearchSelectItem | undefined, keyword: string) => {
     if (item?.id !== 'creator' && keyword) {
       return getMenuListSearch(item, keyword, searchSelectData.value as SearchSelectData, state.filters);
     }
@@ -504,61 +517,54 @@
 
     // 不需要远层加载
     return searchSelectData.value.find(set => set.id === item.id)?.children || [];
-  }
+  };
 
   /**
    * 获取人员列表
    */
-  function fetchUseList(fuzzyLookups: string) {
+  const fetchUseList = (fuzzyLookups: string) => {
     if (!fuzzyLookups) return [];
 
     return getUserList({ fuzzy_lookups: fuzzyLookups }).then(res => res.results.map(item => ({
       id: item.username,
       name: item.username,
     })));
-  }
+  };
 
-  /** 集群授权 */
-  const authorizeState = reactive({
-    isShow: false,
-    selected: [] as TendbsingleModel[],
-  });
-  function handleShowAuthorize(selected: TendbsingleModel[] = []) {
+  const handleShowAuthorize = (selected: TendbsingleModel[] = []) => {
     authorizeState.isShow = true;
     authorizeState.selected = selected;
-  }
-  function handleClearSelected() {
+  };
+  const handleClearSelected = () => {
     state.selected = [];
     authorizeState.selected = [];
-  }
+  };
 
-  // excel 授权
-  const isShowExcelAuthorize = ref(false);
-  function handleShowExcelAuthorize() {
+  const handleShowExcelAuthorize = () => {
     isShowExcelAuthorize.value = true;
-  }
+  };
 
   /**
    * 获取模块列表
    */
-  function fetchModules() {
-    return getModules({
-      bk_biz_id: globalBizsStore.currentBizId,
-      cluster_type: ClusterTypes.TENDBSINGLE,
-    }).then((res) => {
-      state.dbModuleList = res.map(item => ({
-        id: item.db_module_id,
-        name: item.name,
-      }));
-      return state.dbModuleList;
-    });
-  }
+  const fetchModules = () => getModules({
+    bk_biz_id: globalBizsStore.currentBizId,
+    cluster_type: ClusterTypes.TENDBSINGLE,
+  }).then((res) => {
+    state.dbModuleList = res.map(item => ({
+      id: item.db_module_id,
+      name: item.name,
+    }));
+    return state.dbModuleList;
+  });
+
+
   fetchModules();
 
   /**
    * 获取列表
    */
-  function fetchResources(isLoading = false) {
+  const fetchResources = (isLoading = false) => {
     const params = {
       dbType: DBTypes.MYSQL,
       bk_biz_id: globalBizsStore.currentBizId,
@@ -586,31 +592,25 @@
       .finally(() => {
         state.isLoading = false;
       });
-  }
+  };
 
-  function handleClearSearch() {
+  const handleClearSearch = () => {
     state.filters = [];
     handleChangePage(1);
-  }
+  };
 
   /**
    * 查看详情
    */
-  function handleToDetails(id: number) {
+  const handleToDetails = (id: number) => {
     stretchLayoutSplitScreen();
     clusterId.value = id;
-  }
+  };
 
   /**
    * 表格选中
    */
-  function handleTableSelected({ isAll, checked, data, row }: TableSelectionData<TendbsingleModel>) {
-    // 全选 checkbox 切换
-    if (isAll) {
-      state.selected = checked ? [...data] : [];
-      return;
-    }
-
+  const handleTableSelected = ({ row, checked }: TableSelectionData<TendbsingleModel>) => {
     // 单选 checkbox 选中
     if (checked) {
       const toggleIndex = state.selected.findIndex(item => item.id === row.id);
@@ -625,17 +625,24 @@
     if (toggleIndex > -1) {
       state.selected.splice(toggleIndex, 1);
     }
-  }
+  };
 
-  function handleChangePage(value: number) {
+  /**
+   * 表格全选
+   */
+  const handleTableSelectedAll = ({ checked, data }: {checked: boolean, data: TendbsingleModel[]}) => {
+    state.selected = checked ? [...data] : [];
+  };
+
+  const handleChangePage = (value: number) => {
     state.pagination.current = value;
     fetchResources(true);
-  }
+  };
 
-  function handeChangeLimit(value: number) {
+  const handeChangeLimit = (value: number) => {
     state.pagination.limit = value;
     handleChangePage(1);
-  }
+  };
 
   const handleChangeValues = () => {
     nextTick(() => {
@@ -646,7 +653,7 @@
   /**
    * 集群启停
    */
-  function handleSwitchCluster(type: TicketTypesStrings, data: TendbsingleModel) {
+  const handleSwitchCluster = (type: TicketTypesStrings, data: TendbsingleModel) => {
     if (!type) return;
 
     const isOpen = type === TicketTypes.MYSQL_SINGLE_ENABLE;
@@ -682,12 +689,12 @@
         }
       },
     });
-  }
+  };
 
   /**
    * 删除集群
    */
-  function handleDeleteCluster(data: TendbsingleModel) {
+  const handleDeleteCluster = (data: TendbsingleModel) => {
     const { cluster_name: name } = data;
     useInfoWithIcon({
       type: 'warnning',
@@ -721,12 +728,12 @@
         }
       },
     });
-  }
+  };
 
   /**
    * 申请实例
    */
-  function handleApply() {
+  const handleApply = () => {
     router.push({
       name: 'SelfServiceApplySingle',
       query: {
@@ -734,7 +741,7 @@
         from: route.name as string,
       },
     });
-  }
+  };
 </script>
 
 <style lang="less" scoped>

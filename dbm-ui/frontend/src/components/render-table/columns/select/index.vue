@@ -35,6 +35,7 @@
       :input-search="false"
       :multiple="multiple"
       :placeholder="placeholder"
+      :show-select-all="showSelectAll"
       @change="handleSelect"
       @clear="handleRemove">
       <BkOption
@@ -62,6 +63,7 @@
     rules?: Rules,
     disabled?: boolean,
     multiple?: boolean,
+    showSelectAll?: boolean,
   }
   interface Emits {
     (e: 'change', value: IKey): void
@@ -77,6 +79,7 @@
     rules: () => [],
     disabled: false,
     multiple: false,
+    showSelectAll: false,
   });
   const emits = defineEmits<Emits>();
 

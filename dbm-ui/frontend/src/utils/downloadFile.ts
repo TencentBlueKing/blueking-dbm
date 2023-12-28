@@ -10,26 +10,20 @@
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
 */
+import type { AxiosResponse } from 'axios';
+import dayjs from 'dayjs';
 
-import { t } from '@locales/index';
-
-import { messageSuccess } from './message';
-
-export const downloadText = (filename: string, text: string) => {
-  const element = document.createElement('a');
-  const blob = new Blob([text]);
-  element.href = URL.createObjectURL(blob);
-
-  element.setAttribute('protocol', 'https');
-  element.setAttribute('download', filename);
-
-  element.style.display = 'none';
-  document.body.appendChild(element);
-
-  element.click();
-
-  document.body.removeChild(element);
-
-  messageSuccess(t('下载成功'));
+export const downloadFile = (response: AxiosResponse): void => {
+  const contentDisposition = response.headers['content-disposition'];
+  const fileBasename = contentDisposition ? contentDisposition.split('=')[1] : 'download';
+  const utcTimeStamp = dayjs().format('YYYYMMDDHHmmss');
+  const fileName = `${utcTimeStamp}_${fileBasename}`;
+  const url = window.URL.createObjectURL(new Blob([response.data]));
+  const link = document.createElement('a');
+  link.href = url;
+  link.setAttribute('download', fileName);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
 };
 

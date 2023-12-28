@@ -28,8 +28,6 @@
         </span>
         <template v-if="index === 0">
           <BkPopover
-            boundary="parent"
-            disable-teleport
             ext-cls="copy-popover"
             placement="top"
             theme="light">

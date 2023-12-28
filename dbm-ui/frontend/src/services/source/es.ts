@@ -39,7 +39,7 @@ export function getEsList(params: Record<string, any> & { bk_biz_id: number }) {
 /**
  * 获取查询返回字段
  */
-export function getEsTableFields()  {
+export function getEsTableFields() {
   return http.get<ListBase<EsModel[]>>(`${path}/get_table_fields/`);
 }
 
@@ -103,4 +103,18 @@ export function getEsNodeList(params: Record<string, any> & {
       ...data,
       results: data.results.map((item: EsNodeModel) => new EsNodeModel(item)),
     }));
+}
+
+/**
+ * 导出集群数据为 excel 文件
+ */
+export function exportEsClusterToExcel(params: { cluster_ids?: number[] }) {
+  return http.post<string>(`${path}/export_cluster/`, params, { responseType: 'blob' });
+}
+
+/**
+ * 导出实例数据为 excel 文件
+ */
+export function exportEsInstanceToExcel(params: { bk_host_ids?: number[] }) {
+  return http.post<string>(`${path}/export_instance/`, params, { responseType: 'blob' });
 }
