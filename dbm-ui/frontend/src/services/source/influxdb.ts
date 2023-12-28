@@ -25,7 +25,7 @@ const path = `/apis/bigdata/bizs/${currentBizId}/influxdb/influxdb_resources`;
 /**
  * 获取实例列表
  */
-export function getInfluxdbInstanceList(params: Record<string, any> & {bk_biz_id: number}) {
+export function getInfluxdbInstanceList(params: Record<string, any> & { bk_biz_id: number }) {
   return http.get<ListBase<InfluxdbInstanceModel[]>>(`${path}/list_instances/`, params)
     .then(res => ({
       ...res,
@@ -43,3 +43,18 @@ export function retrieveInfluxdbInstance(params: {
   return http.get<InfluxdbInstanceModel>(`${path}/retrieve_instance/`, params)
     .then(data => new InfluxdbInstanceModel(data));
 }
+
+/**
+ * 导出集群数据为 excel 文件
+ */
+export function exportInfluxdbClusterToExcel(params: { cluster_ids?: number[] }) {
+  return http.post<string>(`${path}/export_cluster/`, params, { responseType: 'blob' });
+}
+
+/**
+ * 导出实例数据为 excel 文件
+ */
+export function exportInfluxdbInstanceToExcel(params: { bk_host_ids?: number[] }) {
+  return http.post<string>(`${path}/export_instance/`, params, { responseType: 'blob' });
+}
+

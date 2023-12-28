@@ -30,7 +30,6 @@
       </BkTag>
       <template v-if="index === 0">
         <BkPopover
-          boundary="parent"
           ext-cls="copy-popover"
           placement="top"
           theme="light">

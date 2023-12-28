@@ -20,6 +20,10 @@
         @click="handleGoApply">
         {{ t('申请实例') }}
       </BkButton>
+      <DropdownExportExcel
+        :has-selected="hasSelected"
+        :ids="selectedIds"
+        type="kafka" />
       <DbSearchSelect
         v-model="searchValues"
         class="mb16"
@@ -37,8 +41,10 @@
         :data-source="dataSource"
         :pagination-extra="paginationExtra"
         :row-class="getRowClass"
+        selectable
         :settings="tableSetting"
         @clear-search="handleClearSearch"
+        @selection="handleSelection"
         @setting-change="updateTableSettings" />
     </div>
     <DbSideslider
@@ -119,6 +125,7 @@
   import RenderPassword from '@components/cluster-common/RenderPassword.vue';
   import RenderClusterStatus from '@components/cluster-common/RenderStatus.vue';
   import EditEntryConfig from '@components/cluster-entry-config/Index.vue';
+  import DropdownExportExcel from '@components/dropdown-export-excel/index.vue';
   import RenderTextEllipsisOneLine from '@components/text-ellipsis-one-line/index.vue';
 
   import ClusterExpansion from '@views/kafka-manage/common/expansion/Index.vue';
@@ -165,7 +172,10 @@
   const searchValues = ref([]);
 
   const operationData = shallowRef<KafkaModel>();
+  const selected = shallowRef<KafkaModel[]>([]);
 
+  const hasSelected = computed(() => selected.value.length > 0);
+  const selectedIds = computed(() => selected.value.map(item => item.id));
   const isCN = computed(() => locale.value === 'zh-cn');
   const paginationExtra = computed(() => {
     if (!isStretchLayoutOpen.value) {
@@ -456,6 +466,10 @@
     settings: tableSetting,
     updateTableSettings,
   } = useTableSettings(UserPersonalSettings.KAFKA_TABLE_SETTINGS, defaultSettings);
+
+  const handleSelection = (data: KafkaModel, list: KafkaModel[]) => {
+    selected.value = list;
+  };
 
   const handleOpenEntryConfig = (row: KafkaModel) => {
     showEditEntryConfig.value  = true;

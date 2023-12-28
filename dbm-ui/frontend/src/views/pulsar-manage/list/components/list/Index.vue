@@ -19,6 +19,10 @@
       @click="handleGoApply">
       {{ t('申请实例') }}
     </BkButton>
+    <DropdownExportExcel
+      :has-selected="hasSelected"
+      :ids="selectedIds"
+      type="pulsar" />
     <div
       class="table-wrapper"
       :class="{'is-shrink-table': isStretchLayoutOpen}">
@@ -28,7 +32,9 @@
         :data-source="dataSource"
         :pagination-extra="paginationExtra"
         :row-class="getRowClass"
+        selectable
         :settings="tableSetting"
+        @selection="handleSelection"
         @setting-change="updateTableSettings" />
     </div>
     <DbSideslider
@@ -106,6 +112,7 @@
   import RenderOperationTag from '@components/cluster-common/RenderOperationTag.vue';
   import RenderClusterStatus from '@components/cluster-common/RenderStatus.vue';
   import EditEntryConfig from '@components/cluster-entry-config/Index.vue';
+  import DropdownExportExcel from '@components/dropdown-export-excel/index.vue';
   import RenderTextEllipsisOneLine from '@components/text-ellipsis-one-line/index.vue';
 
   import ClusterExpansion from '@views/pulsar-manage/common/expansion/Index.vue';
@@ -155,7 +162,10 @@
   const showEditEntryConfig = ref(false);
 
   const operationData = shallowRef<PulsarModel>();
+  const selected = shallowRef<PulsarModel[]>([]);
 
+  const hasSelected = computed(() => selected.value.length > 0);
+  const selectedIds = computed(() => selected.value.map(item => item.id));
   const isCN = computed(() => locale.value === 'zh-cn');
   const paginationExtra = computed(() => {
     if (isStretchLayoutOpen.value) {
@@ -451,6 +461,10 @@
     settings: tableSetting,
     updateTableSettings,
   } = useTableSettings(UserPersonalSettings.PULSAR_TABLE_SETTINGS, defaultSettings);
+
+  const handleSelection = (data: PulsarModel, list: PulsarModel[]) => {
+    selected.value = list;
+  };
 
   const handleOpenEntryConfig = (row: PulsarModel) => {
     showEditEntryConfig.value  = true;

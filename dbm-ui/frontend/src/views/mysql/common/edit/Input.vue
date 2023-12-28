@@ -103,7 +103,7 @@
       return {};
     }
     return {
-      height: '40px',
+      height: '42px',
       overflow: 'hidden',
       'text-overflow': 'ellipsis',
       'white-space': 'nowrap',
@@ -293,7 +293,7 @@
       padding: 8px 16px;
       overflow: auto;
       font-size: 12px;
-      line-height: 20px;
+      line-height: 22px;
       color: #63656e;
       word-break: break-all;
       background: inherit;

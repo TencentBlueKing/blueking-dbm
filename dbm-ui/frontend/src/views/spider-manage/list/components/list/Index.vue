@@ -45,6 +45,10 @@
             {{ t('导入授权') }}
           </BkButton>
         </span>
+        <DropdownExportExcel
+          :has-selected="hasSelected"
+          :ids="selectedIds"
+          type="spider" />
       </div>
       <DbSearchSelect
         v-model="searchValues"
@@ -65,8 +69,9 @@
         :data-source="getTendbClusterList"
         :pagination-extra="paginationExtra"
         :row-class="setRowClass"
+        selectable
         :settings="settings"
-        @selection-change="handleTableSelected"
+        @selection="handleTableSelected"
         @setting-change="updateTableSettings" />
     </div>
   </div>
@@ -157,6 +162,7 @@
   import RenderOperationTag from '@components/cluster-common/RenderOperationTag.vue';
   import EditEntryConfig from '@components/cluster-entry-config/Index.vue';
   import DbStatus from '@components/db-status/index.vue';
+  import DropdownExportExcel from '@components/dropdown-export-excel/index.vue';
   import RenderInstances from '@components/render-instances/RenderInstances.vue';
   import RenderTextEllipsisOneLine from '@components/text-ellipsis-one-line/index.vue';
 
@@ -169,8 +175,6 @@
   import CapacityChange from './components/CapacityChange.vue';
   import ScaleUp from './components/ScaleUp.vue';
   import Shrink from './components/Shrink.vue';
-
-  import type { TableSelectionData } from '@/types/bkui-vue';
 
   interface IColumn {
     data: TendbClusterModel
@@ -218,11 +222,15 @@
   const isChangeCapacityForm = ref(false);
   const removeMNTInstanceIds = ref<number[]>([]);
   const searchValues = ref<Array<any>>([]);
-  const operationData = shallowRef({} as TendbClusterModel);
   const excelAuthorizeShow = ref(false);
   const showEditEntryConfig = ref(false);
+  const clusterAuthorizeShow = ref(false);
 
-  // excel 授权
+  const selected = shallowRef<ResourceItem[]>([]);
+  const operationData = shallowRef({} as TendbClusterModel);
+
+  const hasSelected = computed(() => selected.value.length > 0);
+  const selectedIds = computed(() => selected.value.map(item => item.id));
   const hasData = computed(() => tableRef.value?.getData().length > 0);
   const isCN = computed(() => locale.value === 'zh-cn');
   const paginationExtra = computed(() => {
@@ -250,13 +258,6 @@
     return [];
   });
   const columns = computed(() => [
-    {
-      type: 'selection',
-      width: 48,
-      minWidth: 48,
-      label: '',
-      fixed: 'left',
-    },
     {
       label: 'ID',
       field: 'id',
@@ -896,33 +897,9 @@
     });
   };
 
-  const handleTableSelected = ({ isAll, checked, data, row }: TableSelectionData<ResourceItem>) => {
-    // 全选 checkbox 切换
-    if (isAll) {
-      selected.value = checked ? [...data] : [];
-      return;
-    }
-
-    // 单选 checkbox 选中
-    if (checked) {
-      const toggleIndex = selected.value.findIndex(item => item.id === row.id);
-      if (toggleIndex === -1) {
-        selected.value.push(row);
-      }
-      return;
-    }
-
-    // 单选 checkbox 取消选中
-    const toggleIndex = selected.value.findIndex(item => item.id === row.id);
-    if (toggleIndex > -1) {
-      selected.value.splice(toggleIndex, 1);
-    }
+  const handleTableSelected = (data: ResourceItem, list: ResourceItem[]) => {
+    selected.value = list;
   };
-
-  // 批量授权
-  const selected = ref<ResourceItem[]>([]);
-  const hasSelected = computed(() => selected.value.length > 0);
-  const clusterAuthorizeShow = ref(false);
 
   const handleShowAuthorize = () => {
     clusterAuthorizeShow.value = true;

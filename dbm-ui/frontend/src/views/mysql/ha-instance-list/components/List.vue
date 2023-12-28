@@ -20,6 +20,11 @@
         @click="handleApply">
         {{ t('实例申请') }}
       </BkButton>
+      <DropdownExportExcel
+        export-type="instance"
+        :has-selected="hasSelected"
+        :ids="selectedIds"
+        type="tendbha" />
       <DbSearchSelect
         v-model="state.filters"
         class="mb-16"
@@ -45,6 +50,8 @@
         @page-limit-change="handeChangeLimit"
         @page-value-change="handleChangePage"
         @refresh="fetchResourceInstances"
+        @select-all="handleTableSelectedAll"
+        @selection-change="handleTableSelected"
         @setting-change="updateTableSettings" />
     </div>
   </div>
@@ -74,6 +81,7 @@
   } from '@common/const';
 
   import DbStatus from '@components/db-status/index.vue';
+  import DropdownExportExcel from '@components/dropdown-export-excel/index.vue';
 
   import {
     getSearchSelectorParams,
@@ -89,7 +97,8 @@
     isLoading: boolean,
     data: Array<ResourceInstance>,
     pagination: IPagination,
-    filters: Array<any>
+    filters: Array<any>,
+    selected: ResourceInstance[],
   }
 
   const instanceData = defineModel<{instanceAddress: string, clusterId: number}>('instanceData');
@@ -135,11 +144,22 @@
     data: [] as ResourceInstance[],
     pagination: useDefaultPagination(),
     filters: [],
+    selected: [],
   });
   const isAnomalies = ref(false);
 
+  const hasSelected = computed(() => state.selected.length > 0);
+  const selectedIds = computed(() => state.selected.map(item => item.bk_host_id));
+
   const columns = computed(() => {
     const list = [
+      {
+        type: 'selection',
+        width: 54,
+        minWidth: 54,
+        label: '',
+        fixed: 'left',
+      },
       {
         label: t('实例'),
         field: 'instance_address',
@@ -335,6 +355,30 @@
         state.isLoading = false;
       });
   }
+
+  const handleTableSelected = ({ row, checked }: {row: ResourceInstance, checked: boolean}) => {
+    // 单选 checkbox 选中
+    if (checked) {
+      const toggleIndex = state.selected.findIndex(item => item.id === row.id);
+      if (toggleIndex === -1) {
+        state.selected.push(row);
+      }
+      return;
+    }
+
+    // 单选 checkbox 取消选中
+    const toggleIndex = state.selected.findIndex(item => item.id === row.id);
+    if (toggleIndex > -1) {
+      state.selected.splice(toggleIndex, 1);
+    }
+  };
+
+  /**
+   * 表格全选
+   */
+  const handleTableSelectedAll = ({ checked, data }: {checked: boolean, data: ResourceInstance[]}) => {
+    state.selected = checked ? [...data] : [];
+  };
 
   function handleClearSearch() {
     state.filters = [];

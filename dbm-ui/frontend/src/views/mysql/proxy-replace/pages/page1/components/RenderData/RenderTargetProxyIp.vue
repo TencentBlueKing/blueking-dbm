@@ -52,11 +52,19 @@
 
   const props = defineProps<Props>();
 
-  const { currentBizId } = useGlobalBizs();
-  const { t } = useI18n();
+  const {
+    t,
+    locale,
+  } = useI18n();
+  const {
+    currentBizId,
+    currentBizInfo,
+  } = useGlobalBizs();
 
   const inputRef = ref();
   const localValue = ref('');
+
+  const isCN = computed(() => locale.value === 'zh-cn');
 
   let hostDataMemo  = {} as ServiceReturnType<typeof getHostTopoInfos>['hosts_topo_info'][number];
   let errorMessage = t('IP不存在');
@@ -75,7 +83,8 @@
         bk_biz_id: currentBizId,
       }).then((data) => {
         if (data.hosts_topo_info.length < 1) {
-          errorMessage = t('IP不在空闲机中');
+          const bizName = isCN.value ? currentBizInfo?.name || '--' : currentBizInfo?.english_name || '--';
+          errorMessage = t('IP不在x业务空闲机模块', { name: bizName });
           return false;
         }
         const hostData = data.hosts_topo_info.find(item => item.bk_cloud_id === props.cloudId);

@@ -114,7 +114,10 @@
 
   import type { TableProps } from '@/types/bkui-vue';
 
-  const { t } = useI18n();
+  const {
+    t,
+    locale,
+  } = useI18n();
   const globalBizsStore = useGlobalBizs();
   const tableMaxHeight = useTableMaxHeight(334);
 
@@ -127,6 +130,8 @@
   const hostInfoMap: Map<string, ServiceReturnType<typeof checkHost>[number]> = reactive(new Map());
   const tableData = ref<Array<TableItem>>([getTableItem()]);
   const backupSource = ref('local');
+
+  const isCN = computed(() => locale.value === 'zh-cn');
 
   const columns: TableProps['columns'] = [
     {
@@ -190,6 +195,7 @@
   }
 
   function getRules(data: TableItem) {
+    const bizName = isCN.value ? globalBizsStore.currentBizInfo?.name || '--' : globalBizsStore.currentBizInfo?.english_name || '--';
     return {
       cluster: [
         {
@@ -216,7 +222,7 @@
 
             return verifyIP(data, value);
           },
-          message: t('IP不在空闲机中'),
+          message: t('IP不在x业务空闲机模块', { name: bizName }),
           trigger: 'blur',
         },
         {

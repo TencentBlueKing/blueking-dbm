@@ -11,9 +11,7 @@
  * the specific language governing permissions and limitations under the License.
 */
 
-import type {
-  CancelTokenSource,
-} from 'axios';
+import type { CancelTokenSource } from 'axios';
 import _ from 'lodash';
 
 import {
@@ -49,8 +47,7 @@ export const setCancelTokenSource = (source: CancelTokenSource) => {
 export const getCancelTokenSource = () => cancelTokenSource;
 
 const handler = {} as {
-  [n in Method]: <T = any>(url: string, params?: Record<string, any>, payload?: IRequestPayload) =>
-    Promise<T>
+  [n in Method]: <T = any>(url: string, params?: Record<string, any>, payload?: IRequestPayload) => Promise<T>
 };
 
 methodList.forEach((method) => {

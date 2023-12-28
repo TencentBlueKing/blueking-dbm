@@ -104,6 +104,11 @@
           </BkDropdownMenu>
         </template>
       </BkDropdown>
+      <DropdownExportExcel
+        export-type="instance"
+        :has-selected="hasSelectedInstances"
+        :ids="selectedIds"
+        type="influxdb" />
       <div class="instances-view-operations-right">
         <DbSearchSelect
           v-model="search"
@@ -157,6 +162,7 @@
   import OperationStatusTips from '@components/cluster-common/OperationStatusTips.vue';
   import RenderInstanceStatus from '@components/cluster-common/RenderInstanceStatus.vue';
   import RenderOperationTag from '@components/cluster-common/RenderOperationTag.vue';
+  import DropdownExportExcel from '@components/dropdown-export-excel/index.vue';
 
   import {
     getSearchSelectorParams,
@@ -224,6 +230,7 @@
   });
   const curGroupInfo = computed(() => groupList.value.find(item => item.id === groupId.value));
   const hasSelectedInstances = computed(() => Object.keys(batchSelectInstances.value).length > 0);
+  const selectedIds = computed(() => Object.values(batchSelectInstances.value).map(item => item.bk_host_id));
   const renderSettings = computed(() => {
     const cloneSettings = _.cloneDeep(settings.value);
     if (groupId.value) {
@@ -436,7 +443,7 @@
 
   const {
     resume: resumeFetchTableData,
-  } = useTimeoutPoll(() => fetchTableData(isInit.value), 10000, {
+  } = useTimeoutPoll(() => fetchTableData(isInit.value), 30000, {
     immediate: false,
   });
 
