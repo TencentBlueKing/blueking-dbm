@@ -23,9 +23,11 @@ conf/
 .DS_Store
 sync_test.sh
 .vscode/
+.history/
 scripts/upload_media.sh
 scripts/upload.sh
 localtest/
 .codecc
 .idea
 .vscode
+

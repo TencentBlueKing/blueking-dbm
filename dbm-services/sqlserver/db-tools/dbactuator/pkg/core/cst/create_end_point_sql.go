@@ -8,33 +8,15 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package sqlserver_test
+package cst
 
-import (
-	"fmt"
-	"testing"
-
-	"dbm-services/sqlserver/db-tools/dbactuator/pkg/util/sqlserver"
-)
-
-func Test(t *testing.T) {
-	var dbWork *sqlserver.DbWorker
-	var err error
-	if dbWork, err = sqlserver.NewDbWorker(
-		"xx",
-		"xx!",
-		"xx",
-		1433,
-	); err != nil {
-		t.Log(err)
-		return
-	}
-	var aaa int
-	checkCmd := "select count(0) as a  from master.sys.database_mirroring where database_id= 5 and mirroring_guid is not null"
-	if err := dbWork.Queryxs(&aaa, checkCmd); err != nil {
-		t.Log(err)
-		return
-	}
-	fmt.Printf("%+v\n", aaa)
-	fmt.Printf("%+v\n", checkCmd)
-}
+var GET_CREATE_END_POINT_SQL = `
+IF EXISTS(select 1 from [master].[sys].[database_mirroring_endpoints] where name='endpoint_mirroring') 
+	DROP ENDPOINT [endpoint_mirroring]
+CREATE ENDPOINT [endpoint_mirroring] 
+STATE=STARTED AS TCP (LISTENER_PORT = %s, LISTENER_IP = ALL) 
+FOR DATA_MIRRORING (ROLE = PARTNER, AUTHENTICATION = WINDOWS NEGOTIATE, ENCRYPTION = REQUIRED ALGORITHM AES);
+DECLARE @Login sysname;
+SELECT @Login=name FROM sys.syslogins WHERE isntuser=1 and name like '%sqlserver'           
+EXEC sp_addsrvrolemember @Login, 'sysadmin'
+`

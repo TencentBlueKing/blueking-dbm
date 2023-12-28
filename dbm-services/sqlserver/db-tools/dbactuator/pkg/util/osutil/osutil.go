@@ -15,11 +15,15 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"math/rand"
 	"os"
 	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
+
+	"dbm-services/sqlserver/db-tools/dbactuator/pkg/core/cst"
 )
 
 // StringToMap 字符串 TO map
@@ -136,7 +140,7 @@ func GetVersionYears(SQlServerVersion string) (int, error) {
 	match := re.FindString(SQlServerVersion)
 	num, err := strconv.Atoi(match)
 	if err != nil {
-		return 0, fmt.Errorf("Error converting string to int:", err)
+		return 0, fmt.Errorf("error converting string to int:[%v] ", err)
 	}
 	return num, nil
 }
@@ -144,4 +148,45 @@ func GetVersionYears(SQlServerVersion string) (int, error) {
 // GetInstallPackageName 根据端口号拼接sqlserver的实例名称，比如48322，那么端口号是S48322
 func GetInstallPackageName(version string) string {
 	return fmt.Sprintf("%s_SorceMedia", version)
+}
+
+// GenerateRandomString 随机生成字符串
+func GenerateRandomString(length int) string {
+	seed := time.Now().UnixNano()
+	rng := rand.New(rand.NewSource(seed))
+
+	// 定义包含所有可能字符的字符集
+	charset := cst.LETTERS
+
+	// 生成随机字符串
+	result := make([]byte, length)
+	for i := 0; i < length; i++ {
+		result[i] = charset[rng.Intn(len(charset))]
+	}
+
+	return string(result)
+}
+
+// GetListenPort 根据实例端口计算出endpoint 监听端口
+func GetListenPort(port int) int {
+	temp := port % 100
+	newTemp := (temp%10)*10 + (temp / 10)
+	listenPort := (port - 11300) - temp + newTemp
+
+	if listenPort <= 0 {
+		listenPort = 37022
+	}
+	return listenPort
+}
+
+// ArrayTransString 根据传入的数组，转成对应字符串
+// 转换格式：[a,b,c] 转换成："'a','b','c'"
+func ArrayTransString(arr []string) string {
+	// 使用循环和字符串拼接
+	var str string
+	for _, item := range arr {
+		str += fmt.Sprintf("'%s',", item)
+	}
+	str = strings.TrimRight(str, ",")
+	return str
 }

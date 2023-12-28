@@ -14,6 +14,7 @@ package sysinit
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/sqlserver/db-tools/dbactuator/pkg/core/cst"
@@ -45,7 +46,7 @@ func (s *SysInitParam) PreCheck() error {
 		return err
 	}
 	if !check {
-		return fmt.Errorf("data dir [%s] not exists!", cst.BASE_DATA_PATH)
+		return fmt.Errorf("data dir [%s] not exists", cst.BASE_DATA_PATH)
 	}
 	logger.Info("data dir [%s] exists, pass", cst.BASE_DATA_PATH)
 
@@ -79,7 +80,7 @@ func (s *SysInitParam) PreCheck() error {
 		return err
 	}
 	if mem.Total < 2*1024*1024*2024 {
-		return fmt.Errorf("System  memory does not exceed 2GB")
+		return fmt.Errorf("system  memory does not exceed 2GB")
 	}
 	logger.Info("System memory exceed 2GB, pass")
 	return nil
@@ -141,12 +142,12 @@ func (s *SysInitParam) CreateSysUser() error {
 func (s *SysInitParam) CreateSysDir() error {
 	logger.Info("start exec createSysDir ...")
 	createDir := []string{
-		fmt.Sprintf("%s\\%s", cst.BASE_DATA_PATH, cst.BK_PKG_INSTALL_NAME),
-		fmt.Sprintf("%s\\%s", cst.BASE_DATA_PATH, cst.MSSQL_DATA_NAME),
-		fmt.Sprintf("%s\\%s", cst.BASE_DATA_PATH, cst.MSSQL_BACKUP_NAME),
-		fmt.Sprintf("%s\\%s", cst.BASE_DATA_PATH, cst.IEOD_FILE_BACKUP),
-		fmt.Sprintf("%s\\%s\\%s", cst.BASE_DATA_PATH, cst.MSSQL_BACKUP_NAME, "full"),
-		fmt.Sprintf("%s\\%s\\%s", cst.BASE_DATA_PATH, cst.MSSQL_BACKUP_NAME, "log"),
+		filepath.Join(cst.BASE_DATA_PATH, cst.BK_PKG_INSTALL_NAME),
+		filepath.Join(cst.BASE_DATA_PATH, cst.MSSQL_DATA_NAME),
+		filepath.Join(cst.BASE_DATA_PATH, cst.MSSQL_BACKUP_NAME),
+		filepath.Join(cst.BASE_DATA_PATH, cst.IEOD_FILE_BACKUP),
+		filepath.Join(cst.BASE_DATA_PATH, cst.MSSQL_BACKUP_NAME, "full"),
+		filepath.Join(cst.BASE_DATA_PATH, cst.MSSQL_BACKUP_NAME, "log"),
 	}
 	// 判断机器是否存在E盘，如果有在创建必要目录
 	e := osutil.WINSFile{FileName: cst.BASE_BACKUP_PATH}
@@ -156,9 +157,9 @@ func (s *SysInitParam) CreateSysDir() error {
 	}
 	if check {
 		// 添加E盘必须创建的目录
-		createDir = append(createDir, fmt.Sprintf("%s\\%s", cst.BASE_DATA_PATH, cst.BASE_BACKUP_PATH))
-		createDir = append(createDir, fmt.Sprintf("%s\\%s\\%s", cst.BASE_DATA_PATH, cst.BASE_BACKUP_PATH, "full"))
-		createDir = append(createDir, fmt.Sprintf("%s\\%s\\%s", cst.BASE_DATA_PATH, cst.BASE_BACKUP_PATH, "log"))
+		createDir = append(createDir, filepath.Join(cst.BASE_DATA_PATH, cst.BASE_BACKUP_PATH))
+		createDir = append(createDir, filepath.Join(cst.BASE_DATA_PATH, cst.BASE_BACKUP_PATH, "full"))
+		createDir = append(createDir, filepath.Join(cst.BASE_DATA_PATH, cst.BASE_BACKUP_PATH, "log"))
 	}
 
 	// 循环创建目录
@@ -190,7 +191,8 @@ func (s *SysInitParam) SysInitMachine() error {
 		logger.Error("read sysinit script failed %s", err.Error())
 		return err
 	}
-	tmpScriptName := fmt.Sprintf("%s\\%s\\sysinit.ps1", cst.BASE_DATA_PATH, cst.BK_PKG_INSTALL_NAME)
+	// tmpScriptName := fmt.Sprintf("%s\\%s\\sysinit.ps1", cst.BASE_DATA_PATH, cst.BK_PKG_INSTALL_NAME)
+	tmpScriptName := filepath.Join(cst.BASE_DATA_PATH, cst.BK_PKG_INSTALL_NAME, "sysinit.ps1")
 	if err = os.WriteFile(tmpScriptName, data, 0755); err != nil {
 		logger.Error("write tmp script failed %s", err.Error())
 		return err

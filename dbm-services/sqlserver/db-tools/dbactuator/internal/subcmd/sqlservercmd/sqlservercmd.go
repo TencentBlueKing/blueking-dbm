@@ -18,7 +18,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// NewSQLserverCommand mysql子命令
+// NewSQLserverCommand sqlserver子命令
 func NewSQLserverCommand() *cobra.Command {
 	cmds := &cobra.Command{
 		Use:   "sqlserver [sqlserver operation]",
@@ -29,13 +29,32 @@ func NewSQLserverCommand() *cobra.Command {
 		{
 			Message: "sqlserver operation sets",
 			Commands: []*cobra.Command{
+				// install
 				NewDeploySqlServerCommand(),
+				// uninstall
 				NewUnInstallSqlServerCommand(),
+				// sql execute
 				ExecuteSQLFilesCommand(),
+				// switch
 				ClusterRoleSwitchCommand(),
+				// clone
 				CloneLoginUsersCommand(),
 				CloneLinkserversCommand(),
 				CloneJobsCommand(),
+				// backup dbs
+				BackupDBSCommand(),
+				// restore dbs
+				RestoreDBSForFullCommand(),
+				// mirroring
+				BuildDBMirroringCommand(),
+				// alwayon
+				InitMachineForAlwaysonCommand(),
+				BuildAlwaysOnCommand(),
+				AddDBSInAlwaysOnCommand(),
+				// raname dbs
+				RenameDBSCommand(),
+				// clean dbs
+				CleanDBSCommand(),
 			},
 		},
 	}
