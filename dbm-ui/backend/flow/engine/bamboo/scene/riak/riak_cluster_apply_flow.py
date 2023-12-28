@@ -186,7 +186,7 @@ class RiakClusterApplyFlow(object):
     def _get_riak_config(self):
         # 从dbconfig获取配置信息
         version = self.data["db_version"].replace(".", "")
-        resp = DBConfigApi.get_instance_config(
+        resp = DBConfigApi.get_or_generate_instance_config(
             {
                 "bk_biz_id": str(self.data["bk_biz_id"]),
                 "level_name": LevelName.CLUSTER,
