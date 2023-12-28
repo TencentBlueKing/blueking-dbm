@@ -36,6 +36,10 @@ logger = logging.getLogger("root")
 class JobCallBackViewSet(BaseProxyPassViewSet):
     """专门用于nginx文件下发回调的视图"""
 
+    def get_permissions(self):
+        # job回调无需鉴权
+        return []
+
     @common_swagger_auto_schema(
         operation_summary=_("nginx文件下发job回调视图"),
         request_body=JobCallBackSerializer(),
