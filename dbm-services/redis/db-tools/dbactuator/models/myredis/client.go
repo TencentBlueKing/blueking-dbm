@@ -1679,6 +1679,96 @@ func (db *RedisClient) GetTendisplusHeartbeat(key string) (heartbeat map[int]tim
 	return heartbeat, nil
 }
 
+// SelectDB1WhenClusterDisabled 当cluster-enabled=no时,执行select 1,否则依然连db 0
+func (db *RedisClient) SelectDB1WhenClusterDisabled() (err error) {
+	var clusterEnabled bool
+	clusterEnabled, err = db.IsClusterEnabled()
+	if err != nil {
+		return
+	}
+	if !clusterEnabled {
+		return db.SelectDB(1)
+	}
+	return nil
+}
+
+// GetTendisHeartbeat 获取心跳信息
+func (db *RedisClient) GetTendisHeartbeat(dbSizeKey, srcHearbeatKey string) (dbSize int, timestamp time.Time, err error) {
+	// 命令'mget ',用普通redis client
+	if db.InstanceClient == nil {
+		err = fmt.Errorf("'adminget' redis:%s must create a standalone client", db.Addr)
+		mylog.Logger.Error(err.Error())
+		return 0, time.Time{}, err
+	}
+
+	cmd := []interface{}{"mget", dbSizeKey, srcHearbeatKey}
+	mgetRet, err := db.InstanceClient.Do(context.TODO(), cmd...).Result()
+	if err != nil {
+		err = fmt.Errorf("redis:%s 'mget %s %s' fail, err: %v", db.Addr, dbSizeKey, srcHearbeatKey, err)
+		mylog.Logger.Error(err.Error())
+		return 0, time.Time{}, err
+	}
+	mylog.Logger.Info("心跳mget执行结果：%v", mgetRet)
+
+	mgetRets, ok := mgetRet.([]interface{})
+	if !ok {
+		err = fmt.Errorf("GetTendisHeartbeat 'mget %s %s' result not []interface{}, nodeAddr: %s",
+			dbSizeKey, srcHearbeatKey, db.Addr)
+		mylog.Logger.Error(err.Error())
+		return 0, time.Time{}, err
+	}
+
+	result, err := ParseMgetResult(mgetRets)
+	if err != nil {
+		return 0, time.Time{}, err
+	}
+	mylog.Logger.Info("心跳解析结果：%v", result)
+
+	return result.dbSize, result.timestamp, nil
+}
+
+// ParseMgetResult 解析结果
+func ParseMgetResult(result []interface{}) (resultStruct struct {
+	dbSize    int
+	timestamp time.Time
+}, err error) {
+	if len(result) != 2 {
+		err = fmt.Errorf("无效的结果长度")
+		return resultStruct, err
+	}
+
+	dbSizeStr, ok := result[0].(string)
+	if !ok {
+		err = fmt.Errorf("无效的dbSize值")
+		return resultStruct, err
+	}
+
+	resultStruct.dbSize, err = strconv.Atoi(dbSizeStr)
+	if err != nil {
+		err = fmt.Errorf("无效的dbSize值：%v", err)
+		return resultStruct, err
+	}
+
+	timestampStr, ok := result[1].(string)
+	if !ok {
+		err = fmt.Errorf("result[1].(string) 无效的timestamp值")
+		return resultStruct, err
+	}
+	timestamp, err := strconv.ParseInt(timestampStr, 10, 64)
+	if err != nil {
+		err = fmt.Errorf("strconv.ParseInt(timestampStr, 10, 64) 解析，无效的timestamp值：%v", err)
+		return resultStruct, err
+	}
+
+	resultStruct.timestamp = time.Unix(timestamp, 0).UTC()
+	if err != nil {
+		err = fmt.Errorf("无效的timestamp值：%v", err)
+		return resultStruct, err
+	}
+
+	return resultStruct, nil
+}
+
 // Close 关闭连接
 func (db *RedisClient) Close() {
 	if db.InstanceClient == nil && db.ClusterClient == nil {

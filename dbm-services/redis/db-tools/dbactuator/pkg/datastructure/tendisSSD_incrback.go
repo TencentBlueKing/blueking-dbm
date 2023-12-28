@@ -87,17 +87,17 @@ func NewTredisRocksDBIncrBack(filename, sourceIP string, fullStartPos uint64, st
 		RecoveryTimePoint: recoveryTimePoint,
 	}
 	var err error
-	ret.StartTime, err = time.ParseInLocation(consts.UnixtimeLayoutZone, startTime, time.Local)
+	ret.StartTime, err = time.ParseInLocation(time.RFC3339, startTime, time.Local)
 	if err != nil {
-		ret.Err = fmt.Errorf("startTime:%s time.parse fail,err:%s,consts.UnixtimeLayoutZone:%s",
-			startTime, err, consts.UnixtimeLayoutZone)
+		ret.Err = fmt.Errorf("startTime:%s time.parse fail,err:%s,time.RFC3339:%s",
+			startTime, err, time.RFC3339)
 		mylog.Logger.Error(ret.Err.Error())
 		return ret
 	}
-	ret.EndTime, err = time.ParseInLocation(consts.UnixtimeLayoutZone, endTime, time.Local)
+	ret.EndTime, err = time.ParseInLocation(time.RFC3339, endTime, time.Local)
 	if err != nil {
-		ret.Err = fmt.Errorf("endTime:%s time.parse fail,err:%s,consts.UnixtimeLayoutZone:%s",
-			endTime, err, consts.UnixtimeLayoutZone)
+		ret.Err = fmt.Errorf("endTime:%s time.parse fail,err:%s,time.RFC3339:%s",
+			endTime, err, time.RFC3339)
 		mylog.Logger.Error(ret.Err.Error())
 		return ret
 	}
@@ -181,10 +181,12 @@ func (incr *TredisRocksDBIncrBack) AddBinlogToMap(item01 *TredisRocksDBIncrBackI
 func (incr *TredisRocksDBIncrBack) GetTredisIncrbacks(binlogFileList []FileDetail) (backs []*TredisRocksDBIncrBackItem) {
 	mylog.Logger.Info("GetTredisIncrbacks start ...")
 	mylog.Logger.Info("fileName:%s", incr.FileName)
-	// tredis示例：  binlog-127.0.0.x-30000-7-0003612-20230326232536.log.zst
+	// tendisplus示例：  binlog-127.0.0.x-30000-7-0003612-20230326232536.log.zst
 	// ssd示例：  binlog-127.0.0.x-30000-0000386-20230420021655.log.zst
+	// gcs ssd : binlog-30000-0009936-20231228062236.log.lzo
 
-	binlogReg := regexp.MustCompile(`^*?-(\d+)-(\d+)-(\d+).log.zst`)
+	// binlogReg := regexp.MustCompile(`^*?-(\d+)-(\d+)-(\d+).log.zst`)
+	binlogReg := regexp.MustCompile(`^*?-(\d+)-(\d+)-(\d+).log.(?:zst|lzo)$`)
 	layout1 := "20060102150405"
 	for _, str01 := range binlogFileList {
 		back01 := &TredisRocksDBIncrBackItem{}
@@ -197,6 +199,7 @@ func (incr *TredisRocksDBIncrBack) GetTredisIncrbacks(binlogFileList []FileDetai
 			mylog.Logger.Info(msg)
 			continue
 		}
+		back01.NodeIP = str01.SourceIP
 		back01.BackupTaskid, _ = strconv.ParseInt(str01.TaskID, 10, 64)
 		back01.BackupSize, _ = strconv.ParseInt(strconv.Itoa(str01.Size), 10, 64)
 		back01.BackupFile = str01.FileName
@@ -205,7 +208,7 @@ func (incr *TredisRocksDBIncrBack) GetTredisIncrbacks(binlogFileList []FileDetai
 		mylog.Logger.Info("BackupSize:%d", back01.BackupSize)
 		mylog.Logger.Debug("BackupTaskid:%d", back01.BackupTaskid)
 		match01 := binlogReg.FindStringSubmatch(str01.FileName)
-
+		mylog.Logger.Debug("match01:%s", match01)
 		if len(match01) != 4 {
 			incr.Err = fmt.Errorf(
 				"filename:%s  backup:%v format not correct,backupFile:%s cann't find rocksdbIdx/binlogIdx/createTime",
@@ -224,24 +227,28 @@ func (incr *TredisRocksDBIncrBack) GetTredisIncrbacks(binlogFileList []FileDetai
 
 		back01.BinlogIdx, _ = strconv.ParseInt(match01[2], 10, 64)
 		back01.BackupStart.Time = bkCreateTime //不要用backupStart值
-		back01.BackupEnd.Time, err01 = time.ParseInLocation(consts.UnixtimeLayoutZone,
+		back01.BackupEnd.Time, err01 = time.ParseInLocation(time.RFC3339,
 			str01.FileLastMtime, time.Local) //文件最后修改时间
 		if err01 != nil {
 			incr.Err = fmt.Errorf(
-				"backup file lastTime:%s time.parese fail,err:%s,consts.UnixtimeLayoutZone:%s",
-				str01.FileLastMtime, err01, consts.UnixtimeLayoutZone)
+				"backup file lastTime:%s time.parese fail,err:%s,time.RFC3339:%s",
+				str01.FileLastMtime, err01, time.RFC3339)
 			mylog.Logger.Error(incr.Err.Error())
 			return
 		}
 
 		// 过滤节点维度的文件,这里比较重要，因为flow传下来的是这台机器涉及到的所有节点信息，
 		// 这里是针对单节点的，所以需要过滤出来，这个值返回给前置函数
-		if strings.Contains(back01.BackupFile, incr.FileName) {
+		if strings.Contains(back01.BackupFile, incr.FileName) && (back01.NodeIP == incr.SourceIP) {
+			mylog.Logger.Info("back01.BackupFile:%s,incr.FileName:%s,back01.NodeIP:%s,incr.SourceIP:%s",
+				back01.BackupFile, incr.FileName, back01.NodeIP, incr.SourceIP)
 			backs = append(backs, back01)
 		}
 	}
 	mylog.Logger.Info("len(backs):%d", len(backs))
-	mylog.Logger.Info("TredisRocksDBIncrBackItem:%v", backs[0])
+	for _, item := range backs {
+		mylog.Logger.Info("TredisRocksDBIncrBackItem:%v", item.BackupFile)
+	}
 	return
 }
 
@@ -446,8 +453,8 @@ func (incr *TredisRocksDBIncrBack) isGetAllBinlogInfo() (ret bool) {
 		incr.Err = fmt.Errorf(
 			"filename:%s 拉取[%s ~ %s]时间段的binlog,至少包含2个binglo,当前%d个binlog,详情:%s",
 			incr.FileName,
-			incr.StartTime.Local().Format(consts.UnixtimeLayoutZone),
-			incr.EndTime.Local().Format(consts.UnixtimeLayoutZone),
+			incr.StartTime.Local().Format(time.RFC3339),
+			incr.EndTime.Local().Format(time.RFC3339),
 			cnt, str01)
 		mylog.Logger.Error(incr.Err.Error())
 		mylog.Logger.Error(incr.Err.Error())
@@ -463,8 +470,8 @@ func (incr *TredisRocksDBIncrBack) isGetAllBinlogInfo() (ret bool) {
 		incr.Err = fmt.Errorf(
 			"filename:%s 拉取[%s ~ %s]时间段的binlog,第一binlog:%s 和 第二binlog:%s 不连续",
 			incr.FileName,
-			incr.StartTime.Local().Format(consts.UnixtimeLayoutZone),
-			incr.EndTime.Local().Format(consts.UnixtimeLayoutZone),
+			incr.StartTime.Local().Format(time.RFC3339),
+			incr.EndTime.Local().Format(time.RFC3339),
 			firstBinlog.BackupFile, secondBinlog.BackupFile,
 		)
 
@@ -475,8 +482,8 @@ func (incr *TredisRocksDBIncrBack) isGetAllBinlogInfo() (ret bool) {
 		incr.Err = fmt.Errorf(
 			"filename:%s 拉取[%s ~ %s]时间段的binlog,倒数第二binlog:%s 和 倒数第一binlog:%s 不连续",
 			incr.FileName,
-			incr.StartTime.Local().Format(consts.UnixtimeLayoutZone),
-			incr.EndTime.Local().Format(consts.UnixtimeLayoutZone),
+			incr.StartTime.Local().Format(time.RFC3339),
+			incr.EndTime.Local().Format(time.RFC3339),
 			beforeLastBinlog.BackupFile, lastBinlog.BackupFile,
 		)
 		mylog.Logger.Error(incr.Err.Error())
@@ -502,8 +509,8 @@ func (incr *TredisRocksDBIncrBack) isGetAllBinlogInfo() (ret bool) {
 			"filename:%s ,第一个binog:%s,binlogStart:%s 大于startTime(全备时间):%s",
 			incr.FileName,
 			firstBinlog.BackupFile,
-			firstBinlog.BackupStart.Local().Format(consts.UnixtimeLayoutZone),
-			incr.StartTime.Local().Format(consts.UnixtimeLayoutZone))
+			firstBinlog.BackupStart.Local().Format(time.RFC3339),
+			incr.StartTime.Local().Format(time.RFC3339))
 		mylog.Logger.Error(incr.Err.Error())
 
 		return false
@@ -518,8 +525,8 @@ func (incr *TredisRocksDBIncrBack) isGetAllBinlogInfo() (ret bool) {
 			"filename:%s ,第二个binlog:%s,binlogStart:%s 时间小于startTime(全备时间):%s",
 			incr.FileName,
 			secondBinlog.BackupFile,
-			secondBinlog.BackupStart.Local().Format(consts.UnixtimeLayoutZone),
-			incr.StartTime.Local().Format(consts.UnixtimeLayoutZone))
+			secondBinlog.BackupStart.Local().Format(time.RFC3339),
+			incr.StartTime.Local().Format(time.RFC3339))
 		mylog.Logger.Error(err.Error())
 
 		return false
@@ -534,8 +541,8 @@ func (incr *TredisRocksDBIncrBack) isGetAllBinlogInfo() (ret bool) {
 			"filename:%s ,倒数第二个binlog:%s,binlogStart:%s 时间大于endTime(回档目标时间):%s",
 			incr.FileName,
 			beforeLastBinlog.BackupFile,
-			beforeLastBinlog.BackupStart.Local().Format(consts.UnixtimeLayoutZone),
-			incr.EndTime.Local().Format(consts.UnixtimeLayoutZone))
+			beforeLastBinlog.BackupStart.Local().Format(time.RFC3339),
+			incr.EndTime.Local().Format(time.RFC3339))
 		mylog.Logger.Error(incr.Err.Error())
 
 		return false
@@ -546,21 +553,21 @@ func (incr *TredisRocksDBIncrBack) isGetAllBinlogInfo() (ret bool) {
 			"filename:%s ,最后一个binlog:%s,binlogStart:%s 时间小于endTime(回档目标时间):%s",
 			incr.FileName,
 			lastBinlog.BackupFile,
-			lastBinlog.BackupStart.Local().Format(consts.UnixtimeLayoutZone),
-			incr.EndTime.Local().Format(consts.UnixtimeLayoutZone))
+			lastBinlog.BackupStart.Local().Format(time.RFC3339),
+			incr.EndTime.Local().Format(time.RFC3339))
 		mylog.Logger.Error(incr.Err.Error())
 		return false
 	}
 	msg := fmt.Sprintf(`filename:%s找到所有[%s~%s]时间段的binlog,
 	共%d个,第一个binlog:%s binlogStart:%s,最后一个binlog:%s binlogStart:%s`,
 		incr.FileName,
-		incr.StartTime.Local().Format(consts.UnixtimeLayoutZone),
-		incr.EndTime.Local().Format(consts.UnixtimeLayoutZone),
+		incr.StartTime.Local().Format(time.RFC3339),
+		incr.EndTime.Local().Format(time.RFC3339),
 		cnt,
 		firstBinlog.BackupFile,
-		firstBinlog.BackupStart.Local().Format(consts.UnixtimeLayoutZone),
+		firstBinlog.BackupStart.Local().Format(time.RFC3339),
 		lastBinlog.BackupFile,
-		lastBinlog.BackupStart.Local().Format(consts.UnixtimeLayoutZone),
+		lastBinlog.BackupStart.Local().Format(time.RFC3339),
 	)
 	mylog.Logger.Info(msg)
 	return
@@ -848,8 +855,8 @@ func (incr *TredisRocksDBIncrBack) DecompressedOne(item *TredisRocksDBIncrBackIt
 		cmd = fmt.Sprintf("cd %s && unzip %s",
 			incr.SaveMyDir, item.BackupFile)
 	} else if bkFileExt == ".lzo" {
-		cmd = fmt.Sprintf("cd %s && lzop -d %s",
-			incr.SaveMyDir, item.BackupFile)
+		cmd = fmt.Sprintf("cd %s && %s -d %s",
+			incr.SaveMyDir, consts.LzopBin, item.BackupFile)
 	} else if bkFileExt == ".zst" {
 		cmd = fmt.Sprintf("cd %s && %s -d %s",
 			incr.SaveMyDir, consts.ZstdBin, item.BackupFile)
@@ -1043,7 +1050,7 @@ func (incr *TredisRocksDBIncrBack) ImportOneBinlogToTredis(tplusIP string, tplus
 	cmdfile := fmt.Sprintf("%s.cmd", incrBackFile)
 	outfile := fmt.Sprintf("%s.out", incrBackFile)
 	// incr.RecoveryTimePoint := "2022-01-01 00:00:00" // 待转换的字符串时间
-	t, err := time.Parse(consts.UnixtimeLayoutZone, incr.RecoveryTimePoint)
+	t, err := time.Parse(time.RFC3339, incr.RecoveryTimePoint)
 	if err != nil {
 		err = fmt.Errorf("%s:时间转换失败,请检查:%v", incr.RecoveryTimePoint, err)
 		mylog.Logger.Error(err.Error())

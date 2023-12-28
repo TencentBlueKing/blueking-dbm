@@ -77,13 +77,13 @@ func NewFullbackPull(sourceIP, filehead, rollbackTime,
 		TendisType:  tendisType,
 	}
 	mylog.Logger.Info("NewFullbackPull rollbackTime:%v", rollbackTime)
-	ret.RollbackDstTime, ret.Err = time.ParseInLocation(consts.UnixtimeLayoutZone, rollbackTime, time.Local)
-	mylog.Logger.Info("NewFullbackPull UnixtimeLayoutZone ret.RollbackDstTime:%v",
-		ret.RollbackDstTime.Format(consts.UnixtimeLayoutZone))
+	ret.RollbackDstTime, ret.Err = time.ParseInLocation(time.RFC3339, rollbackTime, time.Local)
+	mylog.Logger.Info("NewFullbackPull time.RFC3339 ret.RollbackDstTime:%v",
+		ret.RollbackDstTime.Format(time.RFC3339))
 	mylog.Logger.Info("NewFullbackPull ret.RollbackDstTime:%v", ret.RollbackDstTime)
 	if ret.Err != nil {
-		ret.Err = fmt.Errorf("rollbackTime:%s time.parese fail,err:%s,consts.UnixtimeLayoutZone:%s",
-			rollbackTime, ret.Err, consts.UnixtimeLayoutZone)
+		ret.Err = fmt.Errorf("rollbackTime:%s time.parese fail,err:%s,time.RFC3339:%s",
+			rollbackTime, ret.Err, time.RFC3339)
 		mylog.Logger.Error(ret.Err.Error())
 		return ret
 	}
@@ -105,48 +105,49 @@ func LastNDaysFullBack() int {
 	return lastNDays
 }
 
-// GetFullFilesSpecTimeRange 获取某个正则指定时间范围内的所有全备文件
+// GetFullFilesSpecTimeRange 获取某个正则指定时间的全备文件和时间
 // NOCC:golint/fnsize(设计如此)
 func (full *TendisFullBackPull) GetFullFilesSpecTimeRange(fullFileList []FileDetail) (backs []*TendisFullBackItem) {
 	mylog.Logger.Info("GetFullFilesSpecTimeRange start ... ")
-
 	mylog.Logger.Info("fileName 正则匹配:%s", full.FileHead)
 	// 如没有切割的备份文件：
 	// 2005000194-TENDISPLUS-FULL-slave-127.0.0.x-30008-20230323-214618.tar
 	// 2005000191-TENDISSSD-FULL-slave-127.0.0.x-30000-20230418-050000-227999.tar
+	// REDIS-FULL-rocksdb-127.0.0.xx-30000-20231227-000154-1634640184.tar
 	// 有切割的备份文件：
 	// 2005000194-TENDISPLUS-FULL-slave-127.0.0.x-30008-20230326-131129.split.000
 	// 2005000194-TENDISPLUS-FULL-slave-127.0.0.x-30008-20230326-131129.split.001
 	// 2005000194-TENDISPLUS-FULL-slave-127.0.0.x-30003-20230629-130151.tar
 	// 获得最后的: 20230326-131129
-	// tendisplus
+	// 定义正则表达式
 	var lastDateReg *regexp.Regexp
 	var lastDateReg1 *regexp.Regexp
-	if full.TendisType == consts.TendisTypeTendisplusInsance {
+	var lastDateReg2 *regexp.Regexp
+
+	switch full.TendisType {
+	case consts.TendisTypeTendisplusInsance:
 		lastDateReg = regexp.MustCompile(`^.*?(\d+-\d+).tar`)
 		lastDateReg1 = regexp.MustCompile(`^.*?(\d+-\d+).split.(\d+)`)
-
-	} else if full.TendisType == consts.TendisTypeTendisSSDInsance {
-		// tendis ssd
+	case consts.TendisTypeTendisSSDInsance:
 		lastDateReg = regexp.MustCompile(`^.*?(\d+-\d+)-(\d+).tar`)
 		lastDateReg1 = regexp.MustCompile(`^.*?(\d+-\d+-\d+).split.(\d+)`)
-	} else {
+	default:
 		// tendis cache  （cache 这里没有做文件分割）
 		// 2005000194-redis-master-127.0.0.x-30000-20230426-210004.rdb
 		// 2005000194-redis-slave-127.0.0.x-30000-20230508-130108.aof.zst
+		// 127.0.0.xx-30000-20231219-200152-appendonly.aof.lzo
 		// rdb 文件不会压缩，因为redis本身有做压缩
 		// aof 文件会压缩，需要解压
 		lastDateReg = regexp.MustCompile(`^.*?(\d+-\d+).aof.zst`)
 		lastDateReg1 = regexp.MustCompile(`^.*?(\d+-\d+).rdb`)
+		lastDateReg2 = regexp.MustCompile(`^.*?(\d+-\d+)-appendonly.aof.lzo`)
 	}
 
 	for _, str01 := range fullFileList {
 		back01 := &TendisFullBackItem{}
 		taskID, _ := strconv.Atoi(str01.TaskID)
-		// size, _ := strconv.Atoi(str01.Size)
-		// size := str01.Size
+
 		if taskID < 0 || str01.Size < 0 {
-			//backup_taskid 小于0 或backup_size 小于0的备份,是无效备份
 			msg := fmt.Sprintf("fileNameHead:%s fullbackup:%s backupTaskid:%s<0  backupSize:%d<0 is invalid,skip...",
 				full.FileHead, str01.FileName, str01.TaskID, str01.Size)
 			mylog.Logger.Info(msg)
@@ -156,18 +157,23 @@ func (full *TendisFullBackPull) GetFullFilesSpecTimeRange(fullFileList []FileDet
 		back01.BackupTaskid, _ = strconv.ParseInt(str01.TaskID, 10, 64)
 		back01.BackupSize, _ = strconv.ParseInt(strconv.Itoa(str01.Size), 10, 64)
 		mylog.Logger.Info("back01.BackupSize:%d", back01.BackupSize)
+
 		back01.BackupFile = str01.FileName
 		back01.NodeIP = str01.SourceIP
 		mylog.Logger.Debug("str01.FileName:%s", str01.FileName)
+
 		match01 := lastDateReg.FindStringSubmatch(str01.FileName)
 		mylog.Logger.Debug("match01:%s", match01)
-
-		//备份文件有切割
+		//match01=nil，备份文件有切割
 		if match01 == nil {
 			match01 = lastDateReg1.FindStringSubmatch(str01.FileName)
 			if full.TendisType == consts.TendisTypeTendisSSDInsance || full.TendisType == consts.TendisTypeTendisplusInsance {
 				back01.SplitFileIdx, _ = strconv.Atoi(match01[2])
 			}
+		}
+		// xx-appendonly.aof.lzo`
+		if match01 == nil {
+			match01 = lastDateReg2.FindStringSubmatch(str01.FileName)
 		}
 
 		if len(match01) < 2 {
@@ -176,8 +182,8 @@ func (full *TendisFullBackPull) GetFullFilesSpecTimeRange(fullFileList []FileDet
 			full.Err = err
 			return
 		}
-		bkCreateTime, err01 := time.ParseInLocation(consts.FilenameTimeLayout, match01[1], time.Local)
 
+		bkCreateTime, err01 := time.ParseInLocation(consts.FilenameTimeLayout, match01[1], time.Local)
 		// 3-TENDISPLUS-FULL-slave-127.0.0.x-30002-20230810-050140.tar
 		// 3-TENDISSSD-FULL-slave-127.0.0.x-30000-20230809-105510-52447.tar
 		if full.TendisType == consts.TendisTypeTendisSSDInsance {
@@ -191,6 +197,7 @@ func (full *TendisFullBackPull) GetFullFilesSpecTimeRange(fullFileList []FileDet
 			mylog.Logger.Error(full.Err.Error())
 			return
 		}
+
 		back01.BackupStart.Time = bkCreateTime
 		back01.FileName = str01.FileName
 		// 过滤节点维度的文件,这里比较重要，因为flow传下来的是这台机器涉及到的所有节点信息，
@@ -198,7 +205,6 @@ func (full *TendisFullBackPull) GetFullFilesSpecTimeRange(fullFileList []FileDet
 		if strings.Contains(back01.BackupFile, full.FileHead) {
 			backs = append(backs, back01)
 		}
-
 	}
 	for _, bk02 := range backs {
 		mylog.Logger.Info("GetFullFilesSpecTimeRange bk:%v", bk02)
@@ -474,6 +480,8 @@ func (full *TendisFullBackPull) GetBackupFileExt() (fileExt string) {
 		fileExt = ".zst"
 	} else if strings.HasSuffix(full.ResultFullbackup[0].BackupFile, ".rdb") {
 		fileExt = ".rdb"
+	} else if strings.HasSuffix(full.ResultFullbackup[0].BackupFile, ".lzo") {
+		fileExt = ".lzo"
 	} else if strings.Contains(full.ResultFullbackup[0].BackupFile, ".split.") {
 		fileExt = "split"
 	} else {
@@ -521,6 +529,16 @@ func (full *TendisFullBackPull) SetDecompressedDir() {
 		if full.Err != nil {
 			return
 		}
+	} else if bkFileExt == ".lzo" {
+		// xx-xx-xx.aof.lzo
+		prefix = strings.TrimSuffix(full.ResultFullbackup[0].BackupFile, ".aof.lzo")
+		mylog.Logger.Info("prefix:%s", prefix)
+		cmd01 := fmt.Sprintf("cd %s && mkdir -p %s ", full.SaveDir, prefix)
+		mylog.Logger.Info("SetDecompressedDir bkFileExt:%s, cmd01:%s", bkFileExt, cmd01)
+		_, full.Err = util.RunLocalCmd("bash", []string{"-c", cmd01}, "", nil, 1800*time.Second)
+		if full.Err != nil {
+			return
+		}
 	} else if bkFileExt == ".rdb" {
 		// xx-xx.rdb
 		prefix = strings.TrimSuffix(full.ResultFullbackup[0].BackupFile, ".rdb")
@@ -553,6 +571,7 @@ func (full *TendisFullBackPull) GetDecompressedDir() (decpDir string) {
 
 // CheckDecompressedDirIsOK 检查全备解压文件夹 是否存在,数据是否完整
 // 数据是否完整:通过判断是否有clustermeta.txt、${rocksdbIdx}/backup_meta文件来确认
+// NOCC:golint/fnsize(设计如此)
 func (full *TendisFullBackPull) CheckDecompressedDirIsOK() (isExists, isCompelete bool, msg string) {
 
 	mylog.Logger.Info("开始检查全备(已解压)目录是否存在,是否完整")
@@ -617,6 +636,9 @@ func (full *TendisFullBackPull) CheckDecompressedDirIsOK() (isExists, isCompelet
 
 		} else if bkFileExt == ".rdb" {
 			backupFile = full.ResultFullbackup[0].BackupFile
+			file, _ = findDstFileInDir(decpFullPath, backupFile)
+		} else if bkFileExt == ".lzo" {
+			backupFile = strings.TrimSuffix(full.ResultFullbackup[0].BackupFile, ".lzo")
 			file, _ = findDstFileInDir(decpFullPath, backupFile)
 		}
 
@@ -819,6 +841,8 @@ func (full *TendisFullBackPull) Decompressed() {
 			cmd01 = fmt.Sprintf("tar -xf %s", full.ResultFullbackup[0].BackupFile)
 		}
 	} else if bkFileExt == ".zst" {
+		mylog.Logger.Info("len(full.ResultFullbackup) is %d", len(full.ResultFullbackup))
+		mylog.Logger.Info("Decompressed_bkFileExt is %s", bkFileExt)
 		if len(full.ResultFullbackup) == 1 {
 			// 检查 zst 是否存在
 			_, err := os.Stat(consts.ZstdBin)
@@ -836,9 +860,43 @@ func (full *TendisFullBackPull) Decompressed() {
 				consts.ZstdBin, full.ResultFullbackup[0].BackupFile)
 		}
 		prefix := strings.TrimSuffix(full.ResultFullbackup[0].BackupFile, ".aof.zst")
-		cmd01 := fmt.Sprintf("cd %s && mkdir -p %s ", full.SaveDir, prefix)
-		mylog.Logger.Info("SetDecompressedDir bkFileExt:%s, cmd01:%s", bkFileExt, cmd01)
-		_, full.Err = util.RunLocalCmd("bash", []string{"-c", cmd01}, "", nil, 1800*time.Second)
+		mkcmd := fmt.Sprintf("cd %s && mkdir -p %s ", full.SaveDir, prefix)
+		mylog.Logger.Info("SetDecompressedDir bkFileExt:%s, mkcmd:%s", bkFileExt, mkcmd)
+		_, full.Err = util.RunLocalCmd("bash", []string{"-c", mkcmd}, "", nil, 1800*time.Second)
+		if full.Err != nil {
+			return
+		}
+		// 将备份文件mv到解压目录下
+		DecompressDir := filepath.Join(full.SaveDir, full.GetDecompressedDir())
+		mvCmd := fmt.Sprintf("cd %s && mv %s %s ", full.SaveDir, full.ResultFullbackup[0].BackupFile, DecompressDir)
+		mylog.Logger.Info("将备份文件mv到解压目录下 mvCmd:%s", mvCmd)
+		_, full.Err = util.RunLocalCmd("bash", []string{"-c", mvCmd}, "", nil, 1800*time.Second)
+		if full.Err != nil {
+			return
+		}
+
+	} else if bkFileExt == ".lzo" {
+		mylog.Logger.Info("Decompressed_bkFileExt is %s", bkFileExt)
+		mylog.Logger.Info("len(full.ResultFullbackup) is %d", len(full.ResultFullbackup))
+		if len(full.ResultFullbackup) == 1 {
+			// 检查 lzop 是否存在
+			_, err := os.Stat(consts.LzopBin)
+			if err != nil && os.IsNotExist(err) {
+				mylog.Logger.Error("Decompress: 解压工具 lzop 不存在,"+
+					"请检查 %s  是否存在 err:%v", consts.LzopBin, err)
+				mylog.Logger.Error(err.Error())
+				full.Err = err
+				return
+
+			}
+			cmd01 = fmt.Sprintf(" cd %s && %s -d %s ", full.GetDecompressedDir(),
+				consts.LzopBin, full.ResultFullbackup[0].BackupFile)
+
+		}
+		prefix := strings.TrimSuffix(full.ResultFullbackup[0].BackupFile, ".aof.lzo")
+		mkcmd := fmt.Sprintf("cd %s && mkdir -p %s ", full.SaveDir, prefix)
+		mylog.Logger.Info("SetDecompressedDir bkFileExt:%s, mkcmd:%s", bkFileExt, mkcmd)
+		_, full.Err = util.RunLocalCmd("bash", []string{"-c", mkcmd}, "", nil, 1800*time.Second)
 		if full.Err != nil {
 			return
 		}
@@ -1440,9 +1498,11 @@ func (full *TendisFullBackPull) RecoverCacheRedisFromBackupFile(sourceIP string,
 	mylog.Logger.Info("appendonly:%s", appendonly)
 	var dataPath, backupFile, backupFilePath string
 
-	if strings.Contains(full.ResultFullbackup[0].BackupFile, ".aof.zst") {
+	if strings.Contains(full.ResultFullbackup[0].BackupFile, ".aof.zst") ||
+		strings.Contains(full.ResultFullbackup[0].BackupFile, ".aof.lzo") {
 		// 解压后文件
-		backupFile = strings.Trim(full.ResultFullbackup[0].BackupFile, ".zst")
+		backupFile := strings.TrimSuffix(full.ResultFullbackup[0].BackupFile,
+			filepath.Ext(full.ResultFullbackup[0].BackupFile))
 		backupFilePath = filepath.Join(fullFilePath, backupFile)
 		dataPath = filepath.Join(consts.GetRedisDataDir(), "redis", strconv.Itoa(dstTendisPort), "data", "appendonly.aof")
 		if appendonly != "yes" {
@@ -1513,6 +1573,7 @@ func (full *TendisFullBackPull) RecoverCacheRedisFromBackupFile(sourceIP string,
 	// 确保data 目录不为空
 	if dataPath == "" {
 		err = fmt.Errorf("get dataPath failed,dataPath:%s", dataPath)
+		full.Err = err
 		mylog.Logger.Error(err.Error())
 		return
 	}
