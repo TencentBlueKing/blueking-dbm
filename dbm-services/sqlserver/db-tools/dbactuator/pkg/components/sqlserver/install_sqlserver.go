@@ -16,6 +16,8 @@ import (
 	"fmt"
 	"html/template"
 	"os"
+	"path/filepath"
+	"strconv"
 	"strings"
 
 	"dbm-services/common/go-pubpkg/logger"
@@ -123,15 +125,15 @@ func (i *InstallSqlServerComp) Example() interface{} {
 // InitDefaultParam 初始化一些安装时需要的变量
 func (i *InstallSqlServerComp) InitDefaultParam() error {
 	i.InstallDir = cst.INSTALL_SQL_DATA_DIR
-	i.DataRootPath = fmt.Sprintf("%s\\%s", cst.BASE_DATA_PATH, cst.MSSQL_DATA_NAME)
+	i.DataRootPath = filepath.Join(cst.BASE_DATA_PATH, cst.MSSQL_DATA_NAME)
 	i.InsPorts = i.Params.Ports
 
 	// 判断E盘是否存在，如果存在，设计backup目录在E盘上
 	e := osutil.WINSFile{FileName: cst.BASE_BACKUP_PATH}
 	if _, check := e.FileExists(); check {
-		i.BackupRootPath = fmt.Sprintf("%s\\%s", cst.BASE_BACKUP_PATH, cst.MSSQL_BACKUP_NAME)
+		i.BackupRootPath = filepath.Join(cst.BASE_BACKUP_PATH, cst.MSSQL_BACKUP_NAME)
 	} else {
-		i.BackupRootPath = fmt.Sprintf("%s\\%s", cst.BASE_DATA_PATH, cst.MSSQL_BACKUP_NAME)
+		i.BackupRootPath = filepath.Join(cst.BASE_DATA_PATH, cst.MSSQL_BACKUP_NAME)
 	}
 
 	i.CnfTpls = make(map[int]*Cnf)
@@ -147,8 +149,11 @@ func (i *InstallSqlServerComp) InitDefaultParam() error {
 	for _, port := range i.InsPorts {
 		var conf json.RawMessage
 		var ok bool
-		confFile := fmt.Sprintf(
-			"%s\\%s\\%s_%d", cst.BASE_DATA_PATH, cst.BK_PKG_INSTALL_NAME, cst.CONFIGURATION_FILE_NAME, port,
+		// confFile := fmt.Sprintf(
+		// 	"%s\\%s\\%s_%d", cst.BASE_DATA_PATH, cst.BK_PKG_INSTALL_NAME, cst.CONFIGURATION_FILE_NAME, port,
+		// )
+		confFile := filepath.Join(
+			cst.BASE_DATA_PATH, cst.BK_PKG_INSTALL_NAME, fmt.Sprintf("%s_%d", cst.CONFIGURATION_FILE_NAME, port),
 		)
 		if conf, ok = MssqlCnfs[port]; !ok {
 			return fmt.Errorf("参数中没有%d的配置", port)
@@ -159,10 +164,11 @@ func (i *InstallSqlServerComp) InitDefaultParam() error {
 	i.RenderConfigs = make(map[Port]RenderConfig)
 	for _, port := range i.InsPorts {
 		i.RenderConfigs[port] = RenderConfig{
-			InstanceID:     osutil.GetInstallName(port),
-			InstanceName:   osutil.GetInstallName(port),
-			InstallKey:     i.Params.InstallKey,
-			DataDir:        fmt.Sprintf("%s\\\\%d", i.DataRootPath, port),
+			InstanceID:   osutil.GetInstallName(port),
+			InstanceName: osutil.GetInstallName(port),
+			InstallKey:   i.Params.InstallKey,
+			// DataDir:        fmt.Sprintf("%s\\\\%d", i.DataRootPath, port),
+			DataDir:        filepath.Join(i.DataRootPath, strconv.Itoa(port)),
 			SqlSVCAccout:   i.GeneralParam.RuntimeAccountParam.SQLServerUser,
 			SqlSVCPassWord: i.GeneralParam.RuntimeAccountParam.SQLServerPwd,
 			AgtSVCAccount:  i.GeneralParam.RuntimeAccountParam.SQLServerUser,
@@ -249,7 +255,8 @@ func (i *InstallSqlServerComp) GenerateCnf() error {
 // 因为安装SQLserver时候数据目录是不影响安装进度的，所以这里如果检测不存在，则做生成处理
 func (i *InstallSqlServerComp) InitInstanceDirs() error {
 	for _, port := range i.InsPorts {
-		dataDir := fmt.Sprintf("%s\\\\%d", i.DataRootPath, port)
+		// dataDir := fmt.Sprintf("%s\\\\%d", i.DataRootPath, port)
+		dataDir := filepath.Join(i.DataRootPath, strconv.Itoa(port))
 		f := osutil.WINSFile{FileName: dataDir}
 		if _, check := f.FileExists(); !check {
 			// 不存在则创建
@@ -312,10 +319,15 @@ func (i *InstallSqlServerComp) SqlServerStartup() error {
 	// 遍历端口安装启动实例
 	for _, port := range i.InsPorts {
 		_, err := osutil.StandardPowerShellCommand(
+			// fmt.Sprintf(
+			// 	"& %s\\%s\\setup.exe /ConfigurationFile=%s",
+			// 	cst.BASE_DATA_PATH,
+			// 	osutil.GetInstallPackageName(i.Params.SQlServerVersion),
+			// 	i.CnfTpls[port].ConfFile,
+			// ),
 			fmt.Sprintf(
-				"& %s\\%s\\setup.exe /ConfigurationFile=%s",
-				cst.BASE_DATA_PATH,
-				osutil.GetInstallPackageName(i.Params.SQlServerVersion),
+				"& %s /ConfigurationFile=%s",
+				filepath.Join(cst.BASE_DATA_PATH, osutil.GetInstallPackageName(i.Params.SQlServerVersion), "setup.exe"),
 				i.CnfTpls[port].ConfFile,
 			),
 		)
@@ -349,7 +361,8 @@ func (i *InstallSqlServerComp) InitConfigs() error {
 		logger.Error("read init_sqlserver script failed %s", err.Error())
 		return err
 	}
-	tmpScriptName := fmt.Sprintf("%s\\%s\\init_sqlserver.ps1", cst.BASE_DATA_PATH, cst.BK_PKG_INSTALL_NAME)
+	// tmpScriptName := fmt.Sprintf("%s\\%s\\init_sqlserver.ps1", cst.BASE_DATA_PATH, cst.BK_PKG_INSTALL_NAME)
+	tmpScriptName := filepath.Join(cst.BASE_DATA_PATH, cst.BK_PKG_INSTALL_NAME, "init_sqlserver.ps1")
 	if err = os.WriteFile(tmpScriptName, data, 0755); err != nil {
 		logger.Error("write tmp script failed %s", err.Error())
 		return err
@@ -487,7 +500,8 @@ func WriteInitSQLFile() ([]string, error) {
 			logger.Error("read sql script failed %s", err.Error())
 			return nil, err
 		}
-		tmpScriptName := fmt.Sprintf("%s\\%s", cst.BASE_DATA_PATH, sqlFile)
+		// tmpScriptName := fmt.Sprintf("%s\\%s", cst.BASE_DATA_PATH, sqlFile)
+		tmpScriptName := filepath.Join(cst.BASE_DATA_PATH, sqlFile)
 		if err = os.WriteFile(tmpScriptName, data, 0755); err != nil {
 			logger.Error("write sql script failed %s", err.Error())
 			return nil, err

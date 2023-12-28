@@ -24,6 +24,8 @@ const (
 	TIMELAYOUTSEQ = "2006-01-02_15:04:05"
 	// TimeLayoutDir TODO
 	TimeLayoutDir = "20060102150405"
+	// letters
+	LETTERS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 )
 
 const (
@@ -56,6 +58,8 @@ const (
 	// SQLSERVER_UNZIP_TOOL TODO
 	// SQLserver安装包解压工具，默认初始化会有7z解压工具
 	SQLSERVER_UNZIP_TOOL = "C:\\Program Files\\7-Zip\\7z"
+	// window hostname 文件
+	WINDOW_ETC_HOSTS = "C:\\Windows\\System32\\drivers\\etc\\hosts"
 )
 
 // 定义一些sqlserver专用的注册表信息
@@ -75,6 +79,8 @@ const (
 // 定义不同mssql版本的sqlcmd的文件路径
 
 const (
+	// SQLCMD_2022 TODO
+	SQLCMD_2022 = "C:\\Program Files\\Microsoft SQL Server\\Client SDK\\ODBC\170\\Tools\\Binn\\SQLCMD.EXE"
 	// SQLCMD_2019 TODO
 	SQLCMD_2019 = "C:\\Program Files\\Microsoft SQL Server\\Client SDK\\ODBC\170\\Tools\\Binn\\SQLCMD.EXE"
 	// SQLCMD_2017 TODO
@@ -93,6 +99,7 @@ const (
 const (
 	MIRRORING = 1
 	ALWAYSON  = 2
+	SINGLE    = 3
 )
 
 // 定义一些常用的检查SQL
@@ -145,10 +152,10 @@ const (
 
 // 定义SQL版本兼容性级别范围
 
-type SQLServerVersion int
+type SQLServerVersionYear int
 type SupportedValues []int
 
-var CompatibilityLevelMap = map[SQLServerVersion]SupportedValues{
+var CompatibilityLevelMap = map[SQLServerVersionYear]SupportedValues{
 	2008: {100, 90, 80},
 	2012: {110, 100, 90},
 	2014: {120, 110, 100},
@@ -156,4 +163,10 @@ var CompatibilityLevelMap = map[SQLServerVersion]SupportedValues{
 	2017: {140, 130, 120, 110, 100},
 	2019: {150, 140, 130, 120, 110, 100},
 	2022: {160, 150, 140, 130, 120, 110, 100},
+}
+
+// 定义通用的实例结构体
+type Instnace struct {
+	Host string `json:"host"`
+	Port int    `json:"port"`
 }

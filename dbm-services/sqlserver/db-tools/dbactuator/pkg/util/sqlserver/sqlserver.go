@@ -32,8 +32,19 @@ type DbWorker struct {
 }
 
 type InstanceInfo struct {
-	ServerName   string `db:"login_name"`
-	InstanceName string `db:"login_name"`
+	ServerName string `db:"servername"`
+	Hostname   string `db:"hostname"`
+}
+
+// 定义连接状态的结构
+type ProcessInfo struct {
+	Spid        int    `db:"spid"`
+	DbName      string `db:"dbname"`
+	Cmd         string `db:"cmd"`
+	Status      string `db:"status"`
+	ProgramName string `db:"program_name"`
+	Hostname    string `db:"hostname"`
+	LoginTime   string `db:"login_time"`
 }
 
 // NewDbWorker 初始化SQLserver实例对象
@@ -140,8 +151,35 @@ func (h *DbWorker) GetVersion() (version string, err error) {
 	return
 }
 
+// GetGroupName 获取Alwayson的group name
+func (h *DbWorker) GetGroupName() (name string, err error) {
+	cmd := "SELECT name from sys.availability_groups;"
+	err = h.Queryxs(&name, cmd)
+	return
+}
+
+// CheckDBProcessExist 判断db是否存在相关请求
+func (h *DbWorker) CheckDBProcessExist(dbName string) bool {
+	var procinfos []ProcessInfo
+	checkCmd := fmt.Sprintf("select spid, DB_NAME(dbid) as dbname ,cmd, status, program_name,hostname, login_time"+
+		" from master.sys.sysprocesses where dbid >4  and dbid = DB_ID('%s') order by login_time desc;", dbName)
+	if err := h.Queryx(&procinfos, checkCmd); err != nil {
+		logger.Error("check-db-process failed %v", err)
+		return false
+	}
+	if len(procinfos) == 0 {
+		// 没有返回异常db列表则正常退出
+		return true
+	}
+	// 异常退出
+	for _, info := range procinfos {
+		logger.Error("process:[%+v]", info)
+	}
+	return false
+}
+
 // GetServerNameAndInstanceName 获取实例的相关信息
-func (h *DbWorker) GetServerNameAndInstanceName() (info InstanceInfo, err error) {
+func (h *DbWorker) GetServerNameAndInstanceName() (info []InstanceInfo, err error) {
 
 	cmd := "SELECT CAST(SERVERPROPERTY('ServerName') AS sysname) as servername, " +
 		"case when CAST(SERVERPROPERTY('ServerName') AS sysname) " +
@@ -149,7 +187,7 @@ func (h *DbWorker) GetServerNameAndInstanceName() (info InstanceInfo, err error)
 		"0,charindex('\\',CAST(SERVERPROPERTY('ServerName') AS sysname))) " +
 		"else CAST(SERVERPROPERTY('ServerName') AS sysname) end as hostname"
 
-	err = h.Queryxs(&info, cmd)
+	err = h.Queryx(&info, cmd)
 	return
 }
 
@@ -200,6 +238,45 @@ func (h *DbWorker) EnableEndPoint(end_port int) (err error) {
 	return nil
 }
 
+// 操作全量恢复命令
+func (h *DbWorker) DBRestoreForFullBackup(dbname string, fullBakFile string, move string, restoreMode string) error {
+	var restoreSQL string
+	if move == "" {
+		restoreSQL = fmt.Sprintf(
+			"restore database %s from disk='%s' with file = 1, %s",
+			dbname, fullBakFile, restoreMode,
+		)
+	} else {
+		restoreSQL = fmt.Sprintf(
+			"restore database %s from disk='%s' with file = 1, %s, %s",
+			dbname, fullBakFile, move, restoreMode,
+		)
+
+	}
+	logger.Info("execute restore full-backup-sql: %s", restoreSQL)
+	if _, err := h.Exec(restoreSQL); err != nil {
+		return fmt.Errorf("restore sql failed %v", err)
+	}
+	return nil
+
+}
+
+// 操作日志备份恢复命令
+func (h *DbWorker) DBRestoreForLogBackup(dbname string, logBakFile string, restoreMode string) error {
+
+	restoreSQL := fmt.Sprintf(
+		"restore log %s from disk='%s' with file = 1, %s",
+		dbname, logBakFile, restoreMode,
+	)
+
+	logger.Info("execute restore log-backup-sql: %s", restoreSQL)
+	if _, err := h.Exec(restoreSQL); err != nil {
+		return fmt.Errorf("restore sql failed %v", err)
+	}
+	return nil
+
+}
+
 // ExecLocalSQLFile TODO
 // 调用本地的sqlcmd执行本地sql脚本，识别smss的语法（主要是go语法）
 // 适配sql脚本执行、初始化等相关大脚本操作
@@ -222,6 +299,8 @@ func ExecLocalSQLFile(sqlVersion string, dbName string, charsetNO int, filenames
 		cmdSql = cst.SQLCMD_2017
 	case strings.Contains(sqlVersion, "2019"):
 		cmdSql = cst.SQLCMD_2019
+	case strings.Contains(sqlVersion, "2022"):
+		cmdSql = cst.SQLCMD_2022
 	default:
 		return fmt.Errorf("this version [%s] is not supported", sqlVersion)
 	}

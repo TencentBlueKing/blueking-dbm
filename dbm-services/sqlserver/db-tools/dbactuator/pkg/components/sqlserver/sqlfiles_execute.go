@@ -12,6 +12,7 @@ package sqlserver
 
 import (
 	"fmt"
+	"path/filepath"
 	"strings"
 
 	"dbm-services/common/go-pubpkg/logger"
@@ -107,7 +108,8 @@ func (s *SQLFileExecuteComp) PreCheck() (err error) {
 		// 拼接工作目录
 		s.TaskDir = strings.TrimSpace(s.Params.FilePath)
 		if s.TaskDir == "" {
-			s.TaskDir = fmt.Sprintf("%s\\%s", cst.BASE_DATA_PATH, cst.BK_PKG_INSTALL_NAME)
+			// s.TaskDir = fmt.Sprintf("%s\\%s", cst.BASE_DATA_PATH, cst.BK_PKG_INSTALL_NAME)
+			s.TaskDir = filepath.Join(cst.BASE_DATA_PATH, cst.BK_PKG_INSTALL_NAME)
 		}
 
 	}
@@ -161,7 +163,8 @@ func (s *SQLFileExecuteComp) executeForport(port int) (err error) {
 			}
 		}
 
-		files := []string{fmt.Sprintf("%s\\%s", s.TaskDir, object.SQLFile)}
+		// files := []string{fmt.Sprintf("%s\\%s", s.TaskDir, object.SQLFile)}
+		files := []string{filepath.Join(s.TaskDir, object.SQLFile)}
 		logger.Info("will real execute sqlfile %s on %v", files[0], realexcutedbs)
 
 		// 调用本地执行SQL

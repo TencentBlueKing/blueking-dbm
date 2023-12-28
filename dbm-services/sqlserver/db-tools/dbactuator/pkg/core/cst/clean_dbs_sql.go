@@ -8,33 +8,20 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package sqlserver_test
+package cst
 
-import (
-	"fmt"
-	"testing"
+var TRUNCATE_TABLES_SQL = `
+use %s
+EXEC sp_MSForEachTable 'ALTER TABLE ? NOCHECK CONSTRAINT ALL'
+EXEC sp_MSForEachTable 'ALTER TABLE ? DISABLE TRIGGER ALL'
+EXEC sp_MSForEachTable 'TRUNCATE TABLE ?;'
+EXEC sp_MSForEachTable 'ALTER TABLE ? CHECK CONSTRAINT ALL'
+EXEC sp_MSForEachTable 'ALTER TABLE ? ENABLE TRIGGER ALL'
+`
 
-	"dbm-services/sqlserver/db-tools/dbactuator/pkg/util/sqlserver"
-)
-
-func Test(t *testing.T) {
-	var dbWork *sqlserver.DbWorker
-	var err error
-	if dbWork, err = sqlserver.NewDbWorker(
-		"xx",
-		"xx!",
-		"xx",
-		1433,
-	); err != nil {
-		t.Log(err)
-		return
-	}
-	var aaa int
-	checkCmd := "select count(0) as a  from master.sys.database_mirroring where database_id= 5 and mirroring_guid is not null"
-	if err := dbWork.Queryxs(&aaa, checkCmd); err != nil {
-		t.Log(err)
-		return
-	}
-	fmt.Printf("%+v\n", aaa)
-	fmt.Printf("%+v\n", checkCmd)
-}
+var DROP_TABLES_SQL = `
+use %s
+EXEC sp_MSForEachTable 'ALTER TABLE ? NOCHECK CONSTRAINT ALL'
+EXEC sp_MSForEachTable 'ALTER TABLE ? DISABLE TRIGGER ALL'
+EXEC sp_MSForEachTable 'DROP TABLE ?;'
+`

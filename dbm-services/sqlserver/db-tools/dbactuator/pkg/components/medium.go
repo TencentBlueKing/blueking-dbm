@@ -12,6 +12,7 @@ package components
 
 import (
 	"fmt"
+	"path/filepath"
 
 	"dbm-services/sqlserver/db-tools/dbactuator/pkg/core/cst"
 	"dbm-services/sqlserver/db-tools/dbactuator/pkg/util"
@@ -43,5 +44,6 @@ func (m *Medium) Check() (err error) {
 
 // GetAbsolutePath 返回介质存放的绝对路径
 func (m *Medium) GetAbsolutePath() string {
-	return fmt.Sprintf("%s%s\\%s", cst.BASE_DATA_PATH, cst.BK_PKG_INSTALL_NAME, m.Pkg)
+	// return fmt.Sprintf("%s%s\\%s", cst.BASE_DATA_PATH, cst.BK_PKG_INSTALL_NAME, m.Pkg)
+	return filepath.Join(cst.BASE_DATA_PATH, cst.BK_PKG_INSTALL_NAME, m.Pkg)
 }
