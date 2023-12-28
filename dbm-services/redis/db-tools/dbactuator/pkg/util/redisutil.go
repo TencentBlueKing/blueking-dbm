@@ -115,6 +115,18 @@ func GetRedisDbTypeByPkgName(pkgName string) (dbType string) {
 	return
 }
 
+// GetRedisDbTypeByClusterType 根据集群类型推断 dbtype
+func GetRedisDbTypeByClusterType(clusterType string) string {
+	if consts.IsRedisInstanceDbType(clusterType) {
+		return consts.TendisTypeRedisInstance
+	} else if consts.IsTendisplusInstanceDbType(clusterType) {
+		return consts.TendisTypeTendisplusInsance
+	} else if consts.IsTendisSSDInstanceDbType(clusterType) {
+		return consts.TendisTypeTendisSSDInsance
+	}
+	return ""
+}
+
 // ClearBackupClientDir TODO
 func ClearBackupClientDir() (err error) {
 	stmDir := "/data/backup_stm"

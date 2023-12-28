@@ -35,6 +35,7 @@ from backend.flow.engine.bamboo.scene.redis.redis_keys_delete import RedisKeysDe
 from backend.flow.engine.bamboo.scene.redis.redis_keys_extract import RedisKeysExtractFlow
 from backend.flow.engine.bamboo.scene.redis.redis_proxy_scale import RedisProxyScaleFlow
 from backend.flow.engine.bamboo.scene.redis.redis_remove_dts_server import RedisRemoveDtsServerFlow
+from backend.flow.engine.bamboo.scene.redis.redis_reupload_old_backup_records import RedisReuploadOldBackupRecordsFlow
 from backend.flow.engine.bamboo.scene.redis.redis_slots_migrate import RedisSlotsMigrateFlow
 from backend.flow.engine.bamboo.scene.redis.singele_redis_shutdown import SingleRedisShutdownFlow
 from backend.flow.engine.bamboo.scene.redis.single_proxy_shutdown import SingleProxyShutdownFlow
@@ -284,3 +285,10 @@ class RedisController(BaseController):
         """
         flow = RedisSlotsMigrateFlow(root_id=self.root_id, data=self.ticket_data)
         flow.redis_slots_migrate_for_hotkey_flow()
+
+    def redis_reupload_old_backup_records(self):
+        """
+        redis 重新上报备份记录
+        """
+        flow = RedisReuploadOldBackupRecordsFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.reupload_old_backup_records_flow()

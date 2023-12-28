@@ -781,11 +781,13 @@ class RedisActPayload(object):
         redis集群备份
         """
         ip = kwargs["ip"]
+        cluster = Cluster.objects.get(immute_domain=self.cluster["domain_name"])
         return {
             "db_type": DBActuatorTypeEnum.Redis.value,
             "action": DBActuatorTypeEnum.Redis.value + "_" + RedisActuatorActionEnum.Backup.value,
             "payload": {
                 "bk_biz_id": self.bk_biz_id,
+                "bk_cloud_id": cluster.bk_cloud_id,
                 "ip": ip,
                 "ports": self.cluster[ip],
                 "backup_type": self.cluster["backup_type"],
@@ -863,6 +865,28 @@ class RedisActPayload(object):
                 "password": redis_config["requirepass"],
                 "db_list": db_list,
                 "is_flush_all": flushall,
+            },
+        }
+
+    def redis_reupload_old_backup_records_payload(self, **kwargs) -> dict:
+        """
+        重新上传旧备份记录
+        """
+        params = kwargs["params"]
+        return {
+            "db_type": DBActuatorTypeEnum.Redis.value,
+            "action": DBActuatorTypeEnum.Redis.value + "_" + RedisActuatorActionEnum.REUPLOAD_OLD_BACKUP_RECORDS.value,
+            "payload": {
+                "bk_biz_id": params["bk_biz_id"],
+                "bk_cloud_id": params["bk_cloud_id"],
+                "server_ip": params["server_ip"],
+                "server_ports": params["server_ports"],
+                "cluster_domain": params["cluster_domain"],
+                "cluster_type": params["cluster_type"],
+                "meta_role": params["meta_role"],
+                "server_shards": params.get("server_shards", {}),
+                "records_file": params["records_file"],
+                "force": True,
             },
         }
 
@@ -1074,12 +1098,13 @@ class RedisActPayload(object):
         {"backup_instance":30001,"exec_ip":"","bk_biz_id":1,"immute_domain":"xx","ssd_log_count":{}}
         """
         params = kwargs["params"]
-
+        cluster = Cluster.objects.get(immute_domain=params["immute_domain"])
         return {
             "db_type": DBActuatorTypeEnum.Redis.value,
             "action": DBActuatorTypeEnum.Redis.value + "_" + RedisActuatorActionEnum.Backup.value,
             "payload": {
                 "bk_biz_id": str(params["bk_biz_id"]),
+                "bk_cloud_id": cluster.bk_cloud_id,
                 "domain": params["immute_domain"],
                 "ip": params["backup_host"],
                 "ports": params["backup_instances"],
