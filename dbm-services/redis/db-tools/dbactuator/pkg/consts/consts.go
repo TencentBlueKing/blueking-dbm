@@ -155,19 +155,23 @@ const (
 
 // backup
 const (
-	NormalBackupType              = "normal_backup"
-	ForeverBackupType             = "forever_backup"
-	IBSBackupClient               = "/usr/local/bin/backup_client"
-	COSBackupClient               = "/usr/local/backup_client/bin/backup_client"
-	COSInfoFile                   = "/home/mysql/.cosinfo.toml"
-	BackupTarSplitSize            = "8G"
-	RedisFullBackupTAG            = "REDIS_FULL"
-	RedisBinlogTAG                = "REDIS_BINLOG"
-	RedisForeverBackupTAG         = "DBFILE"
-	RedisFullBackupReportType     = "redis_fullbackup"
-	RedisBinlogBackupReportType   = "redis_binlogbackup"
-	RedisFullbackupRepoter        = "redis_fullbackup_%s.log"
-	RedisBinlogRepoter            = "redis_binlog_%s.log"
+	NormalBackupType   = "normal_backup"
+	ForeverBackupType  = "forever_backup"
+	IBSBackupClient    = "/usr/local/bin/backup_client"
+	COSBackupClient    = "/usr/local/backup_client/bin/backup_client"
+	COSInfoFile        = "/home/mysql/.cosinfo.toml"
+	BackupTarSplitSize = "8G"
+
+	RedisFullBackupTAG    = "REDIS_FULL"
+	RedisBinlogTAG        = "REDIS_BINLOG"
+	RedisForeverBackupTAG = "DBFILE"
+
+	RedisFullBackupReportType   = "redis_fullbackup"
+	RedisBinlogBackupReportType = "redis_binlogbackup"
+
+	RedisFullbackupRepoter = "redis_fullbackup_%s.log"
+	RedisBinlogRepoter     = "redis_binlog_%s.log"
+
 	BackupStatusStart             = "start"
 	BackupStatusRunning           = "running"
 	BackupStatusToBakSystemStart  = "to_backup_system_start"
@@ -175,8 +179,9 @@ const (
 	BackupStatusToBakSysSuccess   = "to_backup_system_success"
 	BackupStatusFailed            = "failed"
 	BackupStatusLocalSuccess      = "local_success"
-	BackupClientStrorageTypeCOS   = "cos"
-	BackupClientStrorageTypeHDFS  = "hdfs"
+
+	BackupClientStrorageTypeCOS  = "cos"
+	BackupClientStrorageTypeHDFS = "hdfs"
 )
 
 // BackupSystem

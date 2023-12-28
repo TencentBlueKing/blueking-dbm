@@ -707,3 +707,45 @@ class RedisSlotsMigrateForHotkeySceneApiView(FlowTestView):
         root_id = uuid.uuid1().hex
         RedisController(root_id=root_id, ticket_data=request.data).redis_slots_migrate_for_hotkey()
         return Response({"root_id": root_id})
+
+
+class RedisReuploadOldBackupRecordsSceneApiView(FlowTestView):
+    """
+    api:   /apis/v1/flow/scene/redis_reupload_old_backup_records
+    redis 重新上报备份记录
+    params:
+    {
+        "uid": "2022051612120001",
+        "created_by":"admin",
+        "ticket_type":"REDIS_SLOTS_MIGRATE",
+        "bk_biz_id": "3",
+        "bk_cloud_id": 0,
+        "cluster_domain":"cache.test.test.db",
+        "cluster_type":"TwemproxyRedisInstance",
+        "server_shards":{
+            "a.a.a.a:30000":"0-14999",
+            "a.a.a.a:30001":"15000-29999",
+            "a.a.a.a:30002":"30000-44999"
+        },
+        "ndays": 7,
+        "infos":[
+            {
+                "server_ip": "a.a.a.a",
+                "server_ports":[30000,30001,30002],
+                "meta_role":"redis_slave"
+            },
+            {
+                "server_ip": "b.b.b.b",
+                "server_ports":[30000,30001,30002],
+                "meta_role":"redis_slave"
+            }
+        ]
+    }
+
+    """
+
+    @staticmethod
+    def post(request):
+        root_id = uuid.uuid1().hex
+        RedisController(root_id=root_id, ticket_data=request.data).redis_reupload_old_backup_records()
+        return Response({"root_id": root_id})

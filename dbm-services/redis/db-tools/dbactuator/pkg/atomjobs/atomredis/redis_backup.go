@@ -36,6 +36,7 @@ type TendisSSDSetLogCount struct {
 // RedisBackupParams 备份参数
 type RedisBackupParams struct {
 	BkBizID                  string               `json:"bk_biz_id" validate:"required"`
+	BkCloudID                int64                `json:"bk_cloud_id"`
 	Domain                   string               `json:"domain"`
 	IP                       string               `json:"ip" validate:"required"`
 	Ports                    []int                `json:"ports"`      // 如果端口不连续,可直接指定端口
@@ -155,7 +156,8 @@ func (job *RedisBackup) Run() (err error) {
 		if err != nil {
 			return
 		}
-		task := NewFullBackupTask(job.params.BkBizID, job.params.Domain, job.params.IP, port, password,
+		task := NewFullBackupTask(job.params.BkBizID, job.params.BkCloudID,
+			job.params.Domain, job.params.IP, port, password,
 			toBackSys, job.params.BackupType, bakDir,
 			true, consts.BackupTarSplitSize, job.params.SSDLogCount,
 			job.Reporter, job.backupClient, job.sqdb)
@@ -227,9 +229,9 @@ func (job *RedisBackup) GetReporter() (err error) {
 		return
 	}
 	util.MkDirsIfNotExists([]string{consts.RedisReportSaveDir})
-	util.LocalDirChownMysql(consts.RedisReportSaveDir)
 	reportFile := fmt.Sprintf(consts.RedisFullbackupRepoter, time.Now().Local().Format(consts.FilenameDayLayout))
 	job.Reporter, err = report.NewFileReport(filepath.Join(consts.RedisReportSaveDir, reportFile))
+	util.LocalDirChownMysql(consts.RedisReportSaveDir)
 	return
 }
 
@@ -346,7 +348,8 @@ type BackupTask struct {
 }
 
 // NewFullBackupTask new backup task
-func NewFullBackupTask(bkBizID, domain, ip string, port int, password,
+func NewFullBackupTask(bkBizID string, bkCloudID int64,
+	domain, ip string, port int, password,
 	toBackupSys, backupType, backupDir string, tarSplit bool, tarSplitSize string,
 	ssdLogCount TendisSSDSetLogCount, reporter report.Reporter,
 	bakCli backupsys.BackupClient,
@@ -366,6 +369,7 @@ func NewFullBackupTask(bkBizID, domain, ip string, port int, password,
 	ret.RedisFullbackupHistorySchema = RedisFullbackupHistorySchema{
 		ReportType:   consts.RedisFullBackupReportType,
 		BkBizID:      bkBizID,
+		BkCloudID:    bkCloudID,
 		Domain:       domain,
 		ServerIP:     ip,
 		ServerPort:   port,
