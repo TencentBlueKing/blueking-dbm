@@ -277,18 +277,6 @@ class MySQLMigrateClusterRemoteFlow(object):
             uninstall_svr_sub_pipeline_list = []
             for ip in [self.data["slave_ip"], self.data["master_ip"]]:
                 uninstall_svr_sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
-                cluster = {"uninstall_ip": ip, "ports": self.data["ports"], "bk_cloud_id": self.data["bk_cloud_id"]}
-                uninstall_svr_sub_pipeline.add_act(
-                    act_name=_("整机卸载成功后删除元数据"),
-                    act_component_code=MySQLDBMetaComponent.code,
-                    kwargs=asdict(
-                        DBMetaOPKwargs(
-                            db_meta_class_func=MySQLDBMeta.uninstall_instance.__name__,
-                            is_update_trans_data=True,
-                            cluster=cluster,
-                        )
-                    ),
-                )
                 # 考虑到部分实例成对迁移的情况(即拆分)
                 cluster = {
                     "uninstall_ip": ip,
@@ -306,6 +294,19 @@ class MySQLMigrateClusterRemoteFlow(object):
                             bk_cloud_id=cluster["bk_cloud_id"],
                             cluster=cluster,
                             get_mysql_payload_func=MysqlActPayload.get_clear_surrounding_config_payload.__name__,
+                        )
+                    ),
+                )
+
+                cluster = {"uninstall_ip": ip, "ports": self.data["ports"], "bk_cloud_id": self.data["bk_cloud_id"]}
+                uninstall_svr_sub_pipeline.add_act(
+                    act_name=_("实例卸载前删除元数据"),
+                    act_component_code=MySQLDBMetaComponent.code,
+                    kwargs=asdict(
+                        DBMetaOPKwargs(
+                            db_meta_class_func=MySQLDBMeta.uninstall_instance.__name__,
+                            is_update_trans_data=True,
+                            cluster=cluster,
                         )
                     ),
                 )
