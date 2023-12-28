@@ -144,7 +144,7 @@ def master_and_slave_switch(root_id: str, ticket_data: dict, cluster: Cluster, c
 
     # 代理层、账号等等。
     mysql_proxy = cluster.proxyinstance_set.all()
-    domain = ClusterEntry.get_cluster_entry_map_by_cluster_ids([cluster.id])
+    domain = ClusterEntry.get_cluster_entry_map([cluster.id])
     mysql_storage_slave = cluster.storageinstance_set.filter(
         instance_inner_role=InstanceInnerRole.SLAVE.value, status=InstanceStatus.RUNNING.value
     )

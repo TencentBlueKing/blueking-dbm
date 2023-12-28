@@ -20,17 +20,6 @@ from backend.dbm_init.constants import CC_APP_ABBR_ATTR
 logger = logging.getLogger("root")
 
 
-# todo: Deprecated, 准备移除
-class App(AuditedModel):
-    """
-    注册在管理平台中的业务
-    由于常年的历史习惯, app 这 3 个字母虽然在 django 中有些敏感, 但先暂时保留吧
-    """
-
-    bk_biz_id = models.IntegerField(primary_key=True, help_text=_("业务的 cmdb id"))
-    bk_set_id = models.IntegerField(unique=True, default=0, help_text=_("业务需要在 dba 业务下新增一个 set, 需要记录下这个 set id"))
-
-
 class AppCache(AuditedModel):
     """CMDB业务信息缓存表"""
 
@@ -42,12 +31,19 @@ class AppCache(AuditedModel):
     bk_biz_maintainer = models.CharField(_("运维人员"), max_length=512, default="")
 
     class Meta:
-        verbose_name = _("CMDB业务信息缓存表")
-        verbose_name_plural = _("CMDB业务信息缓存表")
+        verbose_name = verbose_name_plural = _("CMDB业务信息缓存表(AppCache)")
 
     @classmethod
     def id_to_name(cls):
         return dict(cls.objects.values_list("bk_biz_id", "bk_biz_name"))
+
+    @classmethod
+    def get_biz_name(cls, bk_biz_id: int) -> str:
+        try:
+            app_cache = AppCache.objects.get(bk_biz_id=bk_biz_id)
+        except AppCache.DoesNotExist:
+            return str(bk_biz_id)
+        return app_cache.bk_biz_name
 
     @classmethod
     def get_app_attr(cls, bk_biz_id, attr_name="db_app_abbr", default=""):

@@ -24,7 +24,7 @@ from backend.db_meta.enums import (
     InstanceStatus,
     MachineType,
 )
-from backend.db_meta.models import App, BKCity, Cluster, ClusterEntry, DBModule, LogicalCity, Machine, StorageInstance
+from backend.db_meta.models import BKCity, Cluster, ClusterEntry, DBModule, LogicalCity, Machine, StorageInstance
 
 logger = logging.getLogger("root")
 
@@ -38,25 +38,11 @@ def fake_create_tendbsingle(
     db_module_id: Optional[int] = None,
     bk_cloud_id: int = DEFAULT_BK_CLOUD_ID,
 ):
-    if bk_biz_id and not App.objects.filter(bk_biz_id=bk_biz_id).exists():
-        App.objects.create(bk_biz_id=1, bk_set_id=1)
-
-    if bk_biz_id:
-        if not App.objects.filter(bk_biz_id=bk_biz_id).exists():
-            app = App.objects.create(bk_biz_id=bk_biz_id)
-        else:
-            app = App.objects.get(bk_biz_id=bk_biz_id)
-    else:
-        if not App.objects.exists():
-            app = App.objects.create(bk_biz_id=1)
-        else:
-            app = App.objects.first()
-
     if db_module_id:
         if not DBModule.objects.filter(db_module_id=db_module_id).exists():
             db_module = DBModule.objects.create(
-                bk_biz_id=app.bk_biz_id,
-                db_module_name="fake_dbmodule_app_{}".format(app.bk_biz_id),
+                bk_biz_id=bk_biz_id,
+                db_module_name="fake_dbmodule_app_{}".format(bk_biz_id),
                 db_module_id=db_module_id,
                 cluster_type=ClusterType.TenDBSingle,
             )
@@ -65,8 +51,8 @@ def fake_create_tendbsingle(
     else:
         if not DBModule.objects.exists():
             db_module = DBModule.objects.create(
-                bk_biz_id=app.bk_biz_id,
-                db_module_name="fake_dbmodule_app_{}".format(app.bk_biz_id),
+                bk_biz_id=bk_biz_id,
+                db_module_name="fake_dbmodule_app_{}".format(bk_biz_id),
                 cluster_type=ClusterType.TenDBSingle,
             )
         else:
@@ -85,7 +71,7 @@ def fake_create_tendbsingle(
     [ip, port] = storage_instance.split(":")
     m = Machine.objects.create(
         ip=ip,
-        bk_biz_id=app.bk_biz_id,
+        bk_biz_id=bk_biz_id,
         db_module_id=db_module.db_module_id,
         access_layer=AccessLayer.STORAGE,
         machine_type=MachineType.SINGLE,
@@ -98,7 +84,7 @@ def fake_create_tendbsingle(
         machine=m,
         port=int(port),
         db_module_id=db_module.db_module_id,
-        bk_biz_id=app.bk_biz_id,
+        bk_biz_id=bk_biz_id,
         access_layer=AccessLayer.STORAGE,
         machine_type=MachineType.SINGLE,
         instance_role=InstanceRole.ORPHAN,
@@ -112,7 +98,7 @@ def fake_create_tendbsingle(
     else:
         cluster_name = immute_domain
     cluster = Cluster.objects.create(
-        bk_biz_id=app.bk_biz_id,
+        bk_biz_id=bk_biz_id,
         name=cluster_name,
         cluster_type=ClusterType.TenDBSingle,
         db_module_id=db_module.db_module_id,

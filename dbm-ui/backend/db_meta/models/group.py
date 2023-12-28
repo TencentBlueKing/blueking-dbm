@@ -23,8 +23,8 @@ class Group(AuditedModel):
     name = models.CharField(_("分组名"), max_length=64)
 
     class Meta:
-        verbose_name = _("分组表")
-        verbose_name_plural = _("分组表")
+        verbose_name = _("分组表(Group)")
+        verbose_name_plural = _("分组表(Group)")
         unique_together = ("bk_biz_id", "name")
 
 

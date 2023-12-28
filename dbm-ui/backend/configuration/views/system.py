@@ -26,6 +26,7 @@ from backend.configuration.serializers import (
     UpdateBizSettingsSerializer,
     UpdateDutyNoticeSerializer,
 )
+from backend.db_meta.models import AppCache
 from backend.db_services.ipchooser.constants import IDLE_HOST_MODULE
 from backend.flow.utils.cc_manage import CcManage
 from backend.iam_app.handlers.drf_perm import DBManageIAMPermission, RejectPermission
@@ -91,6 +92,8 @@ class SystemSettingsViewSet(viewsets.SystemViewSet):
                 "BK_SCR_URL": env.BK_SCR_URL,
                 "BK_HELPER_URL": env.BK_HELPER_URL,
                 "BK_DBM_URL": env.BK_SAAS_HOST,
+                "DBA_APP_BK_BIZ_ID": env.DBA_APP_BK_BIZ_ID,
+                "DBA_APP_BK_BIZ_NAME": AppCache.get_biz_name(env.DBA_APP_BK_BIZ_ID),
                 "CC_IDLE_MODULE_ID": CcManage(env.DBA_APP_BK_BIZ_ID).get_biz_internal_module(env.DBA_APP_BK_BIZ_ID)[
                     IDLE_HOST_MODULE
                 ]["bk_module_id"],

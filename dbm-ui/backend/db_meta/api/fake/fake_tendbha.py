@@ -26,7 +26,6 @@ from backend.db_meta.enums import (
     MachineType,
 )
 from backend.db_meta.models import (
-    App,
     BKCity,
     Cluster,
     ClusterEntry,
@@ -54,22 +53,11 @@ def fake_create_tendbha_cluster(
     bk_cloud_id: int = DEFAULT_BK_CLOUD_ID,
 ):
 
-    if bk_biz_id:
-        if not App.objects.filter(bk_biz_id=bk_biz_id).exists():
-            app = App.objects.create(bk_biz_id=bk_biz_id)
-        else:
-            app = App.objects.get(bk_biz_id=bk_biz_id)
-    else:
-        if not App.objects.exists():
-            app = App.objects.create(bk_biz_id=1)
-        else:
-            app = App.objects.first()
-
     if db_module_id:
         if not DBModule.objects.filter(db_module_id=db_module_id).exists():
             db_module = DBModule.objects.create(
-                bk_biz_id=app.bk_biz_id,
-                db_module_name="fake_dbmodule_app_{}".format(app.bk_biz_id),
+                bk_biz_id=bk_biz_id,
+                db_module_name="fake_dbmodule_app_{}".format(bk_biz_id),
                 db_module_id=db_module_id,
                 cluster_type=ClusterType.TenDBHA,
             )
@@ -78,8 +66,8 @@ def fake_create_tendbha_cluster(
     else:
         if not DBModule.objects.exists():
             db_module = DBModule.objects.create(
-                bk_biz_id=app.bk_biz_id,
-                db_module_name="fake_dbmodule_app_{}".format(app.bk_biz_id),
+                bk_biz_id=bk_biz_id,
+                db_module_name="fake_dbmodule_app_{}".format(bk_biz_id),
                 cluster_type=ClusterType.TenDBHA,
             )
         else:
@@ -98,7 +86,7 @@ def fake_create_tendbha_cluster(
     [master_ip, master_port] = master_instance.split(IP_PORT_DIVIDER)
     master_machine = Machine.objects.create(
         ip=master_ip,
-        bk_biz_id=app.bk_biz_id,
+        bk_biz_id=bk_biz_id,
         db_module_id=db_module.db_module_id,
         access_layer=AccessLayer.STORAGE,
         machine_type=MachineType.BACKEND,
@@ -111,7 +99,7 @@ def fake_create_tendbha_cluster(
         machine=master_machine,
         port=int(master_port),
         db_module_id=db_module.db_module_id,
-        bk_biz_id=app.bk_biz_id,
+        bk_biz_id=bk_biz_id,
         access_layer=AccessLayer.STORAGE,
         machine_type=MachineType.BACKEND,
         instance_role=InstanceRole.BACKEND_MASTER,
@@ -123,7 +111,7 @@ def fake_create_tendbha_cluster(
     [slave_ip, slave_port] = slave_instance.split(IP_PORT_DIVIDER)
     slave_machine = Machine.objects.create(
         ip=slave_ip,
-        bk_biz_id=app.bk_biz_id,
+        bk_biz_id=bk_biz_id,
         db_module_id=db_module.db_module_id,
         access_layer=AccessLayer.STORAGE,
         machine_type=MachineType.BACKEND,
@@ -135,7 +123,7 @@ def fake_create_tendbha_cluster(
         machine=slave_machine,
         port=int(slave_port),
         db_module_id=db_module.db_module_id,
-        bk_biz_id=app.bk_biz_id,
+        bk_biz_id=bk_biz_id,
         access_layer=AccessLayer.STORAGE,
         machine_type=MachineType.BACKEND,
         instance_role=InstanceRole.BACKEND_SLAVE,
@@ -151,7 +139,7 @@ def fake_create_tendbha_cluster(
     else:
         cluster_name = immute_domain
     cluster = Cluster.objects.create(
-        bk_biz_id=app.bk_biz_id,
+        bk_biz_id=bk_biz_id,
         name=cluster_name,
         cluster_type=ClusterType.TenDBHA,
         db_module_id=db_module.db_module_id,
@@ -174,7 +162,7 @@ def fake_create_tendbha_cluster(
         [ip, port] = proxy.split(IP_PORT_DIVIDER)
         m = Machine.objects.create(
             ip=ip,
-            bk_biz_id=app.bk_biz_id,
+            bk_biz_id=bk_biz_id,
             db_module_id=db_module.db_module_id,
             access_layer=AccessLayer.PROXY,
             machine_type=MachineType.PROXY,
@@ -187,7 +175,7 @@ def fake_create_tendbha_cluster(
             port=int(port),
             admin_port=int(port) + 1000,
             db_module_id=db_module.db_module_id,
-            bk_biz_id=app.bk_biz_id,
+            bk_biz_id=bk_biz_id,
             access_layer=AccessLayer.PROXY,
             machine_type=MachineType.PROXY,
             cluster_type=ClusterType.TenDBHA,

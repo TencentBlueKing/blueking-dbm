@@ -12,9 +12,10 @@ import logging
 
 from django.db import models
 from django.db.models import Q
+from django.utils.translation import ugettext_lazy as _
 
 from backend.bk_web.models import AuditedModel
-from backend.db_meta.enums import ClusterEntryType, MachineType
+from backend.db_meta.enums import ClusterEntryType
 from backend.db_meta.models import AppCache
 
 logger = logging.getLogger("root")
@@ -31,6 +32,7 @@ class DBModule(AuditedModel):
     cluster_type = models.CharField(max_length=64, choices=ClusterEntryType.get_choices(), default="")
 
     class Meta:
+        verbose_name = verbose_name_plural = _("DB模块(DBModule)")
         unique_together = [
             ("db_module_id", "bk_biz_id", "cluster_type"),
             ("db_module_name", "bk_biz_id", "cluster_type"),
@@ -84,9 +86,3 @@ class DBModule(AuditedModel):
             # 忽略出现的异常，此时可能因为表未初始化
             db_module_choices = []
         return db_module_choices
-
-
-class BKModule(AuditedModel):
-    bk_module_id = models.IntegerField(primary_key=True)
-    db_module_id = models.BigIntegerField(default=0)
-    machine_type = models.CharField(max_length=64, choices=MachineType.get_choices(), default="")

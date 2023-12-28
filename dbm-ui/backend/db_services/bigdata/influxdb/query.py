@@ -14,7 +14,7 @@ from django.db.models import F, Q, Value
 from django.utils.translation import ugettext_lazy as _
 
 from backend import env
-from backend.db_meta.enums import InstanceRole
+from backend.db_meta.enums import ClusterType, InstanceRole
 from backend.db_meta.models import Machine
 from backend.db_meta.models.group import Group, GroupInstance
 from backend.db_meta.models.instance import StorageInstance
@@ -29,6 +29,7 @@ from backend.utils.time import datetime2str
 
 class InfluxDBListRetrieveResource(BigDataBaseListRetrieveResource):
     instance_roles = []
+    cluster_types = [ClusterType.Influxdb]
     fields = [
         {"name": _("版本"), "key": "major_version"},
         {"name": _("创建人"), "key": "creator"},

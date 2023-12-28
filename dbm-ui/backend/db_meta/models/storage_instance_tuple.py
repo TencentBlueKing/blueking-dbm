@@ -9,6 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 from django.db import models
+from django.utils.translation import ugettext_lazy as _
 
 from backend.bk_web.models import AuditedModel
 from backend.db_meta.models import StorageInstance
@@ -26,10 +27,10 @@ class StorageInstanceTuple(AuditedModel):
         on_delete=models.CASCADE,
         related_name="as_receiver",
         db_column="receiver",
-        # unique=True
     )
 
     class Meta:
+        verbose_name = verbose_name_plural = _("存储实例元组对(StorageInstanceTuple)")
         unique_together = (
             "ejector",
             "receiver",

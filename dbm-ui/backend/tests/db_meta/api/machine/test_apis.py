@@ -14,7 +14,7 @@ from mock.mock import patch
 
 from backend.db_meta import api
 from backend.db_meta.enums import MachineType
-from backend.db_meta.models import App, BKCity, Machine
+from backend.db_meta.models import BKCity, Machine
 from backend.tests.mock_data import constant
 from backend.tests.mock_data.components import cc
 
@@ -23,11 +23,10 @@ pytestmark = pytest.mark.django_db
 
 @pytest.fixture
 def machine_fixture(create_city):
-    app = App.objects.create(bk_biz_id=constant.BK_BIZ_ID, bk_set_id=constant.BK_SET_ID)
     bk_city = BKCity.objects.first()
     Machine.objects.create(
         ip=cc.NORMAL_IP2,
-        bk_biz_id=app.bk_biz_id,
+        bk_biz_id=constant.BK_BIZ_ID,
         machine_type=MachineType.BACKEND.value,
         bk_city=bk_city,
         bk_cloud_id=1,

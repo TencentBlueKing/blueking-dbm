@@ -177,7 +177,7 @@ class ListRetrieveResource(query.ListRetrieveResource):
         instances_qs = cls._filter_instance_qs(query_conditions, query_params)
         instances = instances_qs[offset : limit + offset]
         cluster_ids = [instance["cluster__id"] for instance in instances]
-        cluster_entry_map = ClusterEntry.get_cluster_entry_map_by_cluster_ids(cluster_ids)
+        cluster_entry_map = ClusterEntry.get_cluster_entry_map(cluster_ids)
         instances = [cls._to_instance_representation(instance, cluster_entry_map) for instance in instances]
 
         # 补充实例的额外信息
@@ -202,7 +202,7 @@ class ListRetrieveResource(query.ListRetrieveResource):
             module.db_module_id: module.db_module_name
             for module in DBModule.objects.filter(db_module_id=cluster.db_module_id)
         }
-        cluster_entry_map = ClusterEntry.get_cluster_entry_map_by_cluster_ids([cluster.id])
+        cluster_entry_map = ClusterEntry.get_cluster_entry_map([cluster.id])
         return cls._to_cluster_representation_with_instances(cluster, db_module_names, cluster_entry_map)
 
     @classmethod
@@ -241,7 +241,7 @@ class ListRetrieveResource(query.ListRetrieveResource):
             Prefetch("storageinstance_set", queryset=storage_inst_qset.select_related("machine"), to_attr="storages"),
             "tag_set",
         )
-        cluster_entry_map = ClusterEntry.get_cluster_entry_map_by_cluster_ids([cluster.id for cluster in cluster_qset])
+        cluster_entry_map = ClusterEntry.get_cluster_entry_map([cluster.id for cluster in cluster_qset])
 
         clusters = []
         for cluster in cluster_qset:

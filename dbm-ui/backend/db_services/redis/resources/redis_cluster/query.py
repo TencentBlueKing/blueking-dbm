@@ -176,7 +176,7 @@ class ListRetrieveResource(query.ListRetrieveResource):
 
         cluster.storages = cluster.storageinstance_set.filter(cluster_type=cluster.cluster_type, bk_biz_id=bk_biz_id)
         cluster.proxies = cluster.proxyinstance_set.filter(cluster_type=cluster.cluster_type, bk_biz_id=bk_biz_id)
-        cluster_entry_map = ClusterEntry.get_cluster_entry_map_by_cluster_ids([cluster.id])
+        cluster_entry_map = ClusterEntry.get_cluster_entry_map([cluster.id])
         cluster_stats_map = Cluster.get_cluster_stats([cluster.cluster_type])
 
         return cls._to_cluster_list(cluster, cluster_entry_map, cluster_stats_map)
@@ -225,9 +225,7 @@ class ListRetrieveResource(query.ListRetrieveResource):
             Prefetch("storageinstance_set", queryset=qs_storage.select_related("machine"), to_attr="storages"),
         )
 
-        cluster_entry_map = ClusterEntry.get_cluster_entry_map_by_cluster_ids(
-            list(clusters.values_list("id", flat=True))
-        )
+        cluster_entry_map = ClusterEntry.get_cluster_entry_map(list(clusters.values_list("id", flat=True)))
 
         cluster_stats_map = Cluster.get_cluster_stats(cls.cluster_types)
 

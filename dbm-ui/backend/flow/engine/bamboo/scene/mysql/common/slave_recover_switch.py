@@ -42,7 +42,7 @@ def slave_migrate_switch_sub_flow(
 ):
     """"""
     # 默认预检测连接情况、同步延时、checksum校验结果
-    domain = ClusterEntry.get_cluster_entry_map_by_cluster_ids([cluster.id])
+    domain = ClusterEntry.get_cluster_entry_map([cluster.id])
     master = cluster.main_storage_instances()[0]
     old_slave = "{}{}{}".format(old_slave_ip, IP_PORT_DIVIDER, master.port)
     new_slave = "{}{}{}".format(new_slave_ip, IP_PORT_DIVIDER, master.port)

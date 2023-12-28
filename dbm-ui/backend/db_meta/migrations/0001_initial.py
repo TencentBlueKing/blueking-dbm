@@ -26,23 +26,6 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.CreateModel(
-            name="App",
-            fields=[
-                ("creator", models.CharField(max_length=64, verbose_name="创建人")),
-                ("create_at", models.DateTimeField(auto_now_add=True, verbose_name="创建时间")),
-                ("updater", models.CharField(max_length=64, verbose_name="修改人")),
-                ("update_at", models.DateTimeField(auto_now=True, verbose_name="更新时间")),
-                ("bk_biz_id", models.IntegerField(help_text="业务的 cmdb id", primary_key=True, serialize=False)),
-                (
-                    "bk_set_id",
-                    models.IntegerField(default=0, help_text="业务需要在 dba 业务下新增一个 set, 需要记录下这个 set id", unique=True),
-                ),
-            ],
-            options={
-                "abstract": False,
-            },
-        ),
-        migrations.CreateModel(
             name="AppCache",
             fields=[
                 ("creator", models.CharField(max_length=64, verbose_name="创建人")),
@@ -105,28 +88,6 @@ class Migration(migrations.Migration):
                 ("update_at", models.DateTimeField(auto_now=True, verbose_name="更新时间")),
                 ("bk_idc_city_id", models.IntegerField(default=0, primary_key=True, serialize=False)),
                 ("bk_idc_city_name", models.CharField(default="", help_text="IDC 城市名", max_length=128, unique=True)),
-            ],
-            options={
-                "abstract": False,
-            },
-        ),
-        migrations.CreateModel(
-            name="BKModule",
-            fields=[
-                ("creator", models.CharField(max_length=64, verbose_name="创建人")),
-                ("create_at", models.DateTimeField(auto_now_add=True, verbose_name="创建时间")),
-                ("updater", models.CharField(max_length=64, verbose_name="修改人")),
-                ("update_at", models.DateTimeField(auto_now=True, verbose_name="更新时间")),
-                ("bk_module_id", models.IntegerField(primary_key=True, serialize=False)),
-                ("db_module_id", models.BigIntegerField(default=0)),
-                (
-                    "machine_type",
-                    models.CharField(
-                        choices=MachineType.get_choices(),
-                        default="",
-                        max_length=64,
-                    ),
-                ),
             ],
             options={
                 "abstract": False,
