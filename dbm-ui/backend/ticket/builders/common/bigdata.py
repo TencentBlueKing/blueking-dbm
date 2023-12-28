@@ -26,9 +26,10 @@ from backend.ticket.builders.common.base import (
     BigDataTicketFlowBuilderPatchMixin,
     CommonValidate,
     InfluxdbTicketFlowBuilderPatchMixin,
-    remove_useless_spec,
+    format_bigdata_resource_spec,
 )
 from backend.ticket.builders.common.constants import BigDataRole
+from backend.ticket.constants import TicketType
 
 
 class BigDataDetailsSerializer(serializers.Serializer):
@@ -93,6 +94,7 @@ class BigDataScaleDetailSerializer(BigDataSingleClusterOpsDetailsSerializer):
     def validate(self, attrs):
         # 判断主机是否来自手工输入，从资源池拿到的主机不需要校验
         if attrs["ip_source"] == IpSource.RESOURCE_POOL:
+            format_bigdata_resource_spec(attrs)
             return attrs
 
         # 判断主机是否都来自空闲机
@@ -140,7 +142,7 @@ class BigDataApplyDetailsSerializer(BigDataDetailsSerializer):
 
         # 判断主机是否来自手工输入，从资源池拿到的主机不需要校验
         if attrs["ip_source"] == IpSource.RESOURCE_POOL:
-            remove_useless_spec(attrs)
+            format_bigdata_resource_spec(attrs)
             return attrs
 
         # 判断主机角色是否互斥
@@ -197,6 +199,9 @@ class BigDataReplaceDetailSerializer(BigDataSingleClusterOpsDetailsSerializer):
 
         # 判断主机是否来自手工输入，从资源池拿到的主机不需要校验
         if attrs["ip_source"] == IpSource.RESOURCE_POOL:
+            # influxdb的替换无需地域和亲和性要求
+            if self.context["ticket_type"] != TicketType.INFLUXDB_REPLACE:
+                format_bigdata_resource_spec(attrs)
             return attrs
 
         # 校验替换后新的主机是否存在于空闲机

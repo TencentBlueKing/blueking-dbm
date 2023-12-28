@@ -390,8 +390,6 @@ func GetInstancePass(insArr []dbutil.DataBaseDetect,
 		if ok {
 			passwdRedis := passwdVal.(RedisPasswd)
 			cluster2Passwd[key] = passwdRedis
-			log.Logger.Debugf("hit cache, key:%s, passwd:%v",
-				key, passwdRedis)
 		} else {
 			pins = append(pins, client.PasswdInstance{
 				Ip:    strconv.Itoa(ins.GetClusterId()),
@@ -437,7 +435,6 @@ func GetInstancePass(insArr []dbutil.DataBaseDetect,
 			log.Logger.Errorf("PassWDClusters ins[%s:%d] db[%s] not find cluster[%s] in passwds",
 				host, port, ins.GetType(), ins.GetCluster())
 		} else {
-			log.Logger.Debugf("passwd set,addr[%s:%d] val:%v", host, port, passwd)
 			err := SetPasswordToInstanceEx(ins.GetType(), passwd, ins)
 			if err != nil {
 				log.Logger.Errorf("PassWDClusters ins[%s:%d] db[%s] cluster[%s] set passwd[%v] fail",
@@ -475,17 +472,13 @@ func ProcessSinglePassword(key string, pw client.PasswdItem,
 	}
 
 	pwVal := string(pwByte)
-	log.Logger.Debugf("passwd cluster:%s  encode_pw:%s, decode_pw:%s",
-		pw.Ip, pw.Passwd, pwVal)
 	tmp, find := cluster2passwd[key]
 	if !find {
 		if pw.Component == constvar.ComponentRedisProxy {
-			log.Logger.Debugf("passwd set redisProxy, key:%s, pw:%s", key, pwVal)
 			cluster2passwd[key] = RedisPasswd{
 				Proxy: pwVal,
 			}
 		} else if pw.Component == constvar.ComponentRedis {
-			log.Logger.Debugf("passwd set redis, key:%s, pw:%s", key, pwVal)
 			cluster2passwd[key] = RedisPasswd{
 				Redis: pwVal,
 			}
@@ -495,12 +488,8 @@ func ProcessSinglePassword(key string, pw client.PasswdItem,
 	} else {
 		if pw.Component == constvar.ComponentRedisProxy {
 			tmp.Proxy = pwVal
-			log.Logger.Debugf("passwd set proxy exist, key:%s, redis_pw:%s, proxy_pw:%s",
-				key, tmp.Redis, tmp.Proxy)
 		} else if pw.Component == constvar.ComponentRedis {
 			tmp.Redis = pwVal
-			log.Logger.Debugf("passwd set redis exist, key:%s, redis_pw:%s, proxy_pw:%s",
-				key, tmp.Redis, tmp.Proxy)
 		} else {
 			return passwd, setCache
 		}
@@ -508,7 +497,6 @@ func ProcessSinglePassword(key string, pw client.PasswdItem,
 		passwd = tmp
 		cluster2passwd[key] = tmp
 		if len(passwd.Redis) > 0 && len(passwd.Proxy) > 0 {
-			log.Logger.Debugf("passwd write to cache, key:%s", key)
 			setCache = true
 		}
 	}
@@ -574,14 +562,10 @@ func GetInstancePassByClusterId(dbType string, clusterId int,
 
 	if dbType == constvar.TwemproxyMetaType ||
 		dbType == constvar.PredixyMetaType {
-		log.Logger.Debugf("GetPasswdByCId proxy type[%s], passwd:%s",
-			string(dbType), passwdCluster.Proxy)
 		return passwdCluster.Proxy, nil
 	} else if dbType == constvar.RedisMetaType ||
 		dbType == constvar.TendisplusMetaType ||
 		dbType == constvar.TendisSSDMetaType {
-		log.Logger.Debugf("GetPasswdByCId redis type[%s], passwd:%s",
-			string(dbType), passwdCluster.Redis)
 		return passwdCluster.Redis, nil
 	} else {
 		typeErr := fmt.Errorf("GetInstancePassByClusterId dbtype[%s] not support",

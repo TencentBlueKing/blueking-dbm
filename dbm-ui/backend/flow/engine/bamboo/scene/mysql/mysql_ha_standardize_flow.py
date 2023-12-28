@@ -29,6 +29,9 @@ from backend.flow.plugins.components.collections.mysql.cluster_standardize_trans
     ClusterStandardizeTransModuleComponent,
 )
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
+from backend.flow.plugins.components.collections.mysql.tendbha_instantiate_config import (
+    TendbHAInstantiateConfigComponent,
+)
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
 from backend.flow.utils.common_act_dataclass import DownloadBackupClientKwargs
 from backend.flow.utils.mysql.mysql_act_dataclass import DownloadMediaKwargs, ExecActuatorKwargs
@@ -70,6 +73,7 @@ class MySQLHAStandardizeFlow(object):
             need_random_pass_cluster_ids=list(set(self.data["infos"]["cluster_ids"])),
         )
         standardize_pipe.add_sub_pipeline(self._build_trans_module_sub(clusters=cluster_objects))
+        standardize_pipe.add_sub_pipeline(self._build_instantiate_mysql_config_sub(clusters=cluster_objects))
 
         # 为了代码方便这里稍微特殊点
         # 这两个字典的 key 是 ip 地址
@@ -169,6 +173,21 @@ class MySQLHAStandardizeFlow(object):
         p = SubBuilder(root_id=self.root_id, data=self.data)
         p.add_parallel_sub_pipeline(sub_flow_list=pipes)
         return p.build_sub_process(sub_name=_("CC标准化"))
+
+    def _build_instantiate_mysql_config_sub(self, clusters: List[Cluster]) -> SubProcess:
+        pipes = []
+        for cluster in clusters:
+            cluster_pipe = SubBuilder(
+                root_id=self.root_id, data={**copy.deepcopy(self.data), "cluster_id": cluster.id}
+            )
+            cluster_pipe.add_act(
+                act_name=_("实例化配置"), act_component_code=TendbHAInstantiateConfigComponent.code, kwargs={}
+            )
+            pipes.append(cluster_pipe.build_sub_process(sub_name=_("实例化 {} 配置".format(cluster.immute_domain))))
+
+        p = SubBuilder(root_id=self.root_id, data=self.data)
+        p.add_parallel_sub_pipeline(sub_flow_list=pipes)
+        return p.build_sub_process(sub_name=_("实例化集群配置"))
 
     def _build_proxy_sub(self, ips: Dict) -> SubProcess:
         pipes = []

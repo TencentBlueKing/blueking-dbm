@@ -83,10 +83,12 @@ class RedisClusterAutofixFlowBuilder(BaseRedisTicketFlowBuilder):
     inner_flow_builder = RedisClusterAutofixParamBuilder
     inner_flow_name = _("故障自愈")
     resource_batch_apply_builder = RedisClusterAutofixResourceParamBuilder
+    default_need_itsm = True
+    default_need_manual_confirm = False
 
     @property
     def need_itsm(self):
-        return False
+        return True
 
     def patch_ticket_detail(self):
         """redis_master -> backend_group"""

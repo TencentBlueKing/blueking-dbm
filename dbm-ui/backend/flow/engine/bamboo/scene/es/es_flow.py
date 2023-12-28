@@ -81,7 +81,7 @@ class EsFlow(object):
             self.bk_cloud_id = cluster.bk_cloud_id
 
             # 从dbconfig获取配置信息
-            dbconfig = DBConfigApi.get_instance_config(
+            dbconfig = DBConfigApi.get_or_generate_instance_config(
                 {
                     "bk_biz_id": str(self.bk_biz_id),
                     "level_name": LevelName.CLUSTER,

@@ -33,6 +33,7 @@ class CheckClientConnService(BaseService):
 
             if res["cmd_results"][0]["table_data"]:
                 self.log_error(f"There are also {len(res['cmd_results'][0]['table_data'])} not-system threads")
+                self.log_error(f"processlist detail:{res['cmd_results'][0]['table_data']}")
                 return False
 
             else:

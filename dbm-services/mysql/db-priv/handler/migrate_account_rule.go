@@ -27,12 +27,22 @@ func (m *PrivService) MigrateAccountRule(c *gin.Context) {
 		SendResponse(c, errno.ErrBind, err)
 		return
 	}
-	// MigrateAccountRule 获取安全规则
-	err = input.MigrateAccountRule()
+	//  获取帐号规则
+	success, fail, successSpider, failSpider, exUids, err := input.MigrateAccountRule()
+	info := "成功"
 	if err != nil {
-		slog.Error("msg", err)
+		slog.Error("msg", "失败", err.Error())
+		info = "失败"
 	}
-	SendResponse(c, err, nil)
+	data := struct {
+		MigratedMysqlUids  []service.PrivRule `json:"migrated_mysql"`
+		MysqlMigrateFail   []service.PrivRule `json:"mysql_migrate_fail"`
+		MigratedSpiderUids []service.PrivRule `json:"migrated_spider"`
+		SpiderMigrateFail  []service.PrivRule `json:"spider_migrate_fail"`
+		CanNotMigrateUids  []int              `json:"can_not_migrate_uids"`
+		Info               string             `json:"info"`
+	}{success, fail, successSpider,
+		failSpider, exUids, info}
+	SendResponse(c, err, data)
 	return
-
 }

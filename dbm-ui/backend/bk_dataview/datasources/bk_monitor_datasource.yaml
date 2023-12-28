@@ -28,10 +28,16 @@ datasources:
       keepCookies:
         - bk_uid
       baseUrl: ${BKMONITOR_URL}/rest/v2/grafana/
-#  - name: 日志平台
-#    type: bk_log_datasource
-#    access: direct
-#    isDefault: false
-#    url: ""
-#    jsonData:
-#      baseUrl: ${BKMONITOR_URL}/rest/v2/grafana/bk_log_search/
+  - name: 日志平台
+    type: bk_log_datasource
+    access: proxy
+    isDefault: false
+    url: ""
+    secureJsonData:
+      token: ${BKM_DBM_TOKEN}
+    jsonData:
+      bizId: ${DBA_APP_BK_BIZ_ID}
+      useToken: true
+      keepCookies:
+        - bk_uid
+      baseUrl: ${BKMONITOR_URL}/rest/v2/grafana/bk_log_search/

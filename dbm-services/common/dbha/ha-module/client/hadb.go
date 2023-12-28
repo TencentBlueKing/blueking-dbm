@@ -194,7 +194,7 @@ func (c *HaDBClient) ReportDBStatus(app, agentIp, ip string, port int, dbType, s
 		return nil
 	}
 	if result.RowsAffected > 1 {
-		log.Logger.Fatalf("bug: update instance status affect rows %d", result.RowsAffected)
+		log.Logger.Errorf("bug: update instance status affect rows %d", result.RowsAffected)
 	}
 
 	insertReq := DbStatusRequest{
