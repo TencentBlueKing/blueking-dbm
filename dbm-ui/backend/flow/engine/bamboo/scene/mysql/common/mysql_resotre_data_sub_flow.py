@@ -14,6 +14,7 @@ from dataclasses import asdict
 
 from django.utils.translation import ugettext as _
 
+from backend.configuration.constants import MYSQL_DATA_RESTORE_TIME
 from backend.db_meta.models import Cluster
 from backend.db_services.mysql.fixpoint_rollback.handlers import FixPointRollbackHandler
 from backend.flow.consts import MysqlChangeMasterType
@@ -91,7 +92,7 @@ def mysql_restore_data_sub_flow(
     cluster["change_master"] = False
     exec_act_kwargs.cluster = copy.deepcopy(cluster)
     exec_act_kwargs.exec_ip = cluster["new_slave_ip"]
-    exec_act_kwargs.job_timeout = 172800
+    exec_act_kwargs.job_timeout = MYSQL_DATA_RESTORE_TIME
     exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.tendb_restore_remotedb_payload.__name__
     sub_pipeline.add_act(
         act_name=_("恢复新从节点数据 {}:{}".format(exec_act_kwargs.exec_ip, cluster["restore_port"])),
@@ -142,6 +143,7 @@ def mysql_rollback_data_sub_flow(
     @return:
     cluster: new_slave_ip,new_slave_port,master_ip,master_port,file_target_path,charset,change_master_force,backup_time
     """
+    rollback_time = str2datetime(cluster["rollback_time"], "%Y-%m-%d %H:%M:%S")
     if is_rollback_binlog:
         cluster["recover_binlog"] = True
     else:
@@ -187,7 +189,7 @@ def mysql_rollback_data_sub_flow(
     cluster["change_master"] = False
     exec_act_kwargs.cluster = copy.deepcopy(cluster)
     exec_act_kwargs.exec_ip = cluster["rollback_ip"]
-    exec_act_kwargs.job_timeout = 172800
+    exec_act_kwargs.job_timeout = MYSQL_DATA_RESTORE_TIME
     exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_rollback_data_restore_payload.__name__
     sub_pipeline.add_act(
         act_name=_("恢复新从节点数据 {}:{}".format(exec_act_kwargs.exec_ip, cluster["rollback_port"])),
@@ -198,7 +200,6 @@ def mysql_rollback_data_sub_flow(
 
     if is_rollback_binlog:
         backup_time = str2datetime(backup_info["backup_time"], "%Y-%m-%d %H:%M:%S")
-        rollback_time = str2datetime(cluster["rollback_time"], "%Y-%m-%d %H:%M:%S")
         rollback_handler = FixPointRollbackHandler(cluster_model.id)
         #  从父节点来
         backup_binlog = rollback_handler.query_binlog_from_bklog(
@@ -296,7 +297,7 @@ def mysql_restore_master_slave_sub_flow(
     cluster["source_port"] = cluster["master_port"]
     cluster["change_master"] = False
     exec_act_kwargs.exec_ip = cluster["new_master_ip"]
-    exec_act_kwargs.job_timeout = 172800
+    exec_act_kwargs.job_timeout = MYSQL_DATA_RESTORE_TIME
     exec_act_kwargs.cluster = copy.deepcopy(cluster)
     exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.tendb_restore_remotedb_payload.__name__
     restore_list.append(
