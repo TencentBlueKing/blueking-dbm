@@ -94,17 +94,17 @@ func NewTplusRocksDBIncrBack(filename, sourceIP string, rocksdbIdx int, startPos
 		StartPos:     startPos,
 	}
 	var err error
-	ret.StartTime, err = time.ParseInLocation(consts.UnixtimeLayoutZone, startTime, time.Local)
+	ret.StartTime, err = time.ParseInLocation(time.RFC3339, startTime, time.Local)
 	if err != nil {
-		ret.Err = fmt.Errorf("startTime:%s time.parse fail,err:%s,consts.UnixtimeLayoutZone:%s",
-			startTime, err, consts.UnixtimeLayoutZone)
+		ret.Err = fmt.Errorf("startTime:%s time.parse fail,err:%s,time.RFC3339:%s",
+			startTime, err, time.RFC3339)
 		mylog.Logger.Error(ret.Err.Error())
 		return ret
 	}
-	ret.EndTime, err = time.ParseInLocation(consts.UnixtimeLayoutZone, endTime, time.Local)
+	ret.EndTime, err = time.ParseInLocation(time.RFC3339, endTime, time.Local)
 	if err != nil {
-		ret.Err = fmt.Errorf("endTime:%s time.parse fail,err:%s,consts.UnixtimeLayoutZone:%s",
-			endTime, err, consts.UnixtimeLayoutZone)
+		ret.Err = fmt.Errorf("endTime:%s time.parse fail,err:%s,time.RFC3339:%s",
+			endTime, err, time.RFC3339)
 		mylog.Logger.Error(ret.Err.Error())
 		return ret
 	}
@@ -196,12 +196,12 @@ func (incr *TplusRocksDBIncrBack) GetTplusIncrbacks(binlogFileList []FileDetail)
 		back01.RocksdbIdx, _ = strconv.Atoi(match01[2])
 		back01.BinlogIdx, _ = strconv.ParseInt(match01[3], 10, 64)
 		back01.BackupStart.Time = bkCreateTime //不要用backupStart值
-		back01.BackupEnd.Time, err01 = time.ParseInLocation(consts.UnixtimeLayoutZone,
+		back01.BackupEnd.Time, err01 = time.ParseInLocation(time.RFC3339,
 			str01.FileLastMtime, time.Local) //文件最后修改时间
 		if err01 != nil {
 			incr.Err = fmt.Errorf(
-				"backup file lastTime:%s time.parese fail,err:%s,consts.UnixtimeLayoutZone:%s",
-				str01.FileLastMtime, err01, consts.UnixtimeLayoutZone)
+				"backup file lastTime:%s time.parese fail,err:%s,time.RFC3339:%s",
+				str01.FileLastMtime, err01, time.RFC3339)
 			mylog.Logger.Error(incr.Err.Error())
 			return
 		}
@@ -427,8 +427,8 @@ func (incr *TplusRocksDBIncrBack) isGetAllBinlogInfo() (ret bool) {
 		incr.Err = fmt.Errorf(
 			"filename:%s rocksdbIdx:%d拉取[%s ~ %s]时间段的binlog,至少包含2个binglo,当前%d个binlog,详情:%s",
 			incr.FileName, incr.RocksDBIndex,
-			incr.StartTime.Local().Format(consts.UnixtimeLayoutZone),
-			incr.EndTime.Local().Format(consts.UnixtimeLayoutZone),
+			incr.StartTime.Local().Format(time.RFC3339),
+			incr.EndTime.Local().Format(time.RFC3339),
 			cnt, str01)
 		mylog.Logger.Error(incr.Err.Error())
 		mylog.Logger.Error(incr.Err.Error())
@@ -444,8 +444,8 @@ func (incr *TplusRocksDBIncrBack) isGetAllBinlogInfo() (ret bool) {
 		incr.Err = fmt.Errorf(
 			"filename:%s rocksdbIdx:%d拉取[%s ~ %s]时间段的binlog,第一binlog:%s 和 第二binlog:%s 不连续",
 			incr.FileName, incr.RocksDBIndex,
-			incr.StartTime.Local().Format(consts.UnixtimeLayoutZone),
-			incr.EndTime.Local().Format(consts.UnixtimeLayoutZone),
+			incr.StartTime.Local().Format(time.RFC3339),
+			incr.EndTime.Local().Format(time.RFC3339),
 			firstBinlog.BackupFile, secondBinlog.BackupFile,
 		)
 
@@ -456,8 +456,8 @@ func (incr *TplusRocksDBIncrBack) isGetAllBinlogInfo() (ret bool) {
 		incr.Err = fmt.Errorf(
 			"filename:%s rocksdbIdx:%d拉取[%s ~ %s]时间段的binlog,倒数第二binlog:%s 和 倒数第一binlog:%s 不连续",
 			incr.FileName, incr.RocksDBIndex,
-			incr.StartTime.Local().Format(consts.UnixtimeLayoutZone),
-			incr.EndTime.Local().Format(consts.UnixtimeLayoutZone),
+			incr.StartTime.Local().Format(time.RFC3339),
+			incr.EndTime.Local().Format(time.RFC3339),
 			beforeLastBinlog.BackupFile, lastBinlog.BackupFile,
 		)
 		mylog.Logger.Error(incr.Err.Error())
@@ -483,8 +483,8 @@ func (incr *TplusRocksDBIncrBack) isGetAllBinlogInfo() (ret bool) {
 			"filename:%s rocksdbIdx:%d,第一个binog:%s,binlogStart:%s 大于startTime(全备时间):%s",
 			incr.FileName, incr.RocksDBIndex,
 			firstBinlog.BackupFile,
-			firstBinlog.BackupStart.Local().Format(consts.UnixtimeLayoutZone),
-			incr.StartTime.Local().Format(consts.UnixtimeLayoutZone))
+			firstBinlog.BackupStart.Local().Format(time.RFC3339),
+			incr.StartTime.Local().Format(time.RFC3339))
 		mylog.Logger.Error(incr.Err.Error())
 
 		return false
@@ -499,8 +499,8 @@ func (incr *TplusRocksDBIncrBack) isGetAllBinlogInfo() (ret bool) {
 			"filename:%s RocksdbIdx:%d,第二个binlog:%s,binlogStart:%s 时间小于startTime(全备时间):%s",
 			incr.FileName, incr.RocksDBIndex,
 			secondBinlog.BackupFile,
-			secondBinlog.BackupStart.Local().Format(consts.UnixtimeLayoutZone),
-			incr.StartTime.Local().Format(consts.UnixtimeLayoutZone))
+			secondBinlog.BackupStart.Local().Format(time.RFC3339),
+			incr.StartTime.Local().Format(time.RFC3339))
 		mylog.Logger.Error(err.Error())
 
 		return false
@@ -515,8 +515,8 @@ func (incr *TplusRocksDBIncrBack) isGetAllBinlogInfo() (ret bool) {
 			"filename:%s RocksdbIdx:%d,倒数第二个binlog:%s,binlogStart:%s 时间大于endTime(回档目标时间):%s",
 			incr.FileName, incr.RocksDBIndex,
 			beforeLastBinlog.BackupFile,
-			beforeLastBinlog.BackupStart.Local().Format(consts.UnixtimeLayoutZone),
-			incr.EndTime.Local().Format(consts.UnixtimeLayoutZone))
+			beforeLastBinlog.BackupStart.Local().Format(time.RFC3339),
+			incr.EndTime.Local().Format(time.RFC3339))
 		mylog.Logger.Error(incr.Err.Error())
 
 		return false
@@ -527,21 +527,21 @@ func (incr *TplusRocksDBIncrBack) isGetAllBinlogInfo() (ret bool) {
 			"filename:%s RocksdbIdx:%d,最后一个binlog:%s,binlogStart:%s 时间小于endTime(回档目标时间):%s",
 			incr.FileName, incr.RocksDBIndex,
 			lastBinlog.BackupFile,
-			lastBinlog.BackupStart.Local().Format(consts.UnixtimeLayoutZone),
-			incr.EndTime.Local().Format(consts.UnixtimeLayoutZone))
+			lastBinlog.BackupStart.Local().Format(time.RFC3339),
+			incr.EndTime.Local().Format(time.RFC3339))
 		mylog.Logger.Error(incr.Err.Error())
 		return false
 	}
 	msg := fmt.Sprintf(`filename:%s rocksdbIdx:%d 找到所有[%s~%s]时间段的binlog,
 	共%d个,第一个binlog:%s binlogStart:%s,最后一个binlog:%s binlogStart:%s`,
 		incr.FileName, incr.RocksDBIndex,
-		incr.StartTime.Local().Format(consts.UnixtimeLayoutZone),
-		incr.EndTime.Local().Format(consts.UnixtimeLayoutZone),
+		incr.StartTime.Local().Format(time.RFC3339),
+		incr.EndTime.Local().Format(time.RFC3339),
 		cnt,
 		firstBinlog.BackupFile,
-		firstBinlog.BackupStart.Local().Format(consts.UnixtimeLayoutZone),
+		firstBinlog.BackupStart.Local().Format(time.RFC3339),
 		lastBinlog.BackupFile,
-		lastBinlog.BackupStart.Local().Format(consts.UnixtimeLayoutZone),
+		lastBinlog.BackupStart.Local().Format(time.RFC3339),
 	)
 	mylog.Logger.Info(msg)
 	return

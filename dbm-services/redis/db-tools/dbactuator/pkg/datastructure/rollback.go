@@ -728,8 +728,8 @@ func (task *TendisInsRecoverTask) PullFullbackup() error {
 		task.runtime.Logger.Info("PullFullbackup task.RecoveryTimePoint :%s", task.RecoveryTimePoint)
 
 	} else if task.TendisType == consts.TendisTypeTendisSSDInsance {
-		filename := fmt.Sprintf("TENDISSSD-FULL-slave-%s-%d", task.SourceIP, task.SourcePort)
-		task.runtime.Logger.Info("filename:%s", filename)
+		filename := fmt.Sprintf("%s-%d", task.SourceIP, task.SourcePort)
+		task.runtime.Logger.Info("需要匹配的文件名filename包括:%s", filename)
 		fullBack = NewFullbackPull(task.SourceIP, filename, task.RecoveryTimePoint,
 			task.NeWTempIP, task.RecoverDir, 0, task.TendisType)
 		if fullBack.Err != nil {
@@ -801,7 +801,7 @@ func (task *TendisInsRecoverTask) PullIncrbackup() {
 		task.Err = incrBack.Err
 		return
 	}
-	rbDstTime, _ := time.ParseInLocation(consts.UnixtimeLayoutZone, task.RecoveryTimePoint, time.Local)
+	rbDstTime, _ := time.ParseInLocation(time.RFC3339, task.RecoveryTimePoint, time.Local)
 	// 回档目标时间 比 用户填写的时间多1秒
 	// (因为binlog_tool的--end-datetime参数,--end-datetime这个时间点的binlog是不会被应用的)
 	rbDstTime = rbDstTime.Add(1 * time.Second)
@@ -831,8 +831,8 @@ func (task *TendisInsRecoverTask) PullIncrbackup() {
 		}
 		// task.runtime.Logger.Info("kvstore:%d ,backupMeta:%v", i, backupMeta)
 		// kvstore 维度的 的拉取备份文件任务，每个kvstore都是一个任务，因为kvstore的开始时间不一样
-		incrBack.NewRocksDBIncrBack(i, backupMeta.BinlogPos+1, backupMeta.StartTime.Local().Format(consts.UnixtimeLayoutZone),
-			rbDstTime.Local().Format(consts.UnixtimeLayoutZone), task.NeWTempIP, task.RecoverDir, task.RecoverDir)
+		incrBack.NewRocksDBIncrBack(i, backupMeta.BinlogPos+1, backupMeta.StartTime.Local().Format(time.RFC3339),
+			rbDstTime.Local().Format(time.RFC3339), task.NeWTempIP, task.RecoverDir, task.RecoverDir)
 		if incrBack.Err != nil {
 			task.Err = incrBack.Err
 			return
@@ -927,7 +927,7 @@ func (task *TendisInsRecoverTask) CheckRollbackResult() error {
 		return task.Err
 	}
 
-	rollbackDstTime, _ := time.ParseInLocation(consts.UnixtimeLayoutZone, task.RecoveryTimePoint, time.Local)
+	rollbackDstTime, _ := time.ParseInLocation(time.RFC3339, task.RecoveryTimePoint, time.Local)
 	var hearbeatVal time.Time
 	var ok bool
 	var errList []string
@@ -947,17 +947,17 @@ func (task *TendisInsRecoverTask) CheckRollbackResult() error {
 		if symbol != "" {
 			msg = fmt.Sprintf("目的tendisplus:%s 源tendisplus:%s rocksdbid:%d 回档心跳时间:%s %s 回档目的时间:%s",
 				redisAddr, srcRedisAddr, i,
-				hearbeatVal.Local().Format(consts.UnixtimeLayoutZone),
+				hearbeatVal.Local().Format(time.RFC3339),
 				symbol,
-				rollbackDstTime.Local().Format(consts.UnixtimeLayoutZone))
+				rollbackDstTime.Local().Format(time.RFC3339))
 			errList = append(errList)
 			mylog.Logger.Error(msg)
 			continue
 		}
 		msg = fmt.Sprintf("目的tendisplus:%s 源tendisplus:%s rocksdbid:%d 回档心跳时间:%s =~ 回档目的时间:%s",
 			redisAddr, srcRedisAddr, i,
-			hearbeatVal.Local().Format(consts.UnixtimeLayoutZone),
-			rollbackDstTime.Local().Format(consts.UnixtimeLayoutZone))
+			hearbeatVal.Local().Format(time.RFC3339),
+			rollbackDstTime.Local().Format(time.RFC3339))
 		mylog.Logger.Info(msg)
 	}
 	if len(errList) > 0 {
@@ -967,16 +967,100 @@ func (task *TendisInsRecoverTask) CheckRollbackResult() error {
 	return nil
 }
 
+// GetTendisHearbeatKey 根据tendis 节点信息获取心跳key
+func (task *TendisInsRecoverTask) GetTendisHearbeatKey(masterIP string, masterPort int) (string, string) {
+
+	Heartbeat := fmt.Sprintf("%s:%s:time", masterIP, strconv.Itoa(masterPort))
+	Dbsize := fmt.Sprintf("%s:%s:0:dbsize", masterIP, strconv.Itoa(masterPort))
+	return Dbsize, Heartbeat
+}
+
+// CheckTendisRollbackResult check rollback result is ok ?
+func (task *TendisInsRecoverTask) CheckTendisRollbackResult() error {
+
+	redisAddr := fmt.Sprintf("%s:%s", task.NeWTempIP, strconv.Itoa(task.NewTmpPort))
+	msg := fmt.Sprintf("CheckTendisRollbackResult: master:%s开始检查回档结果是否正确", redisAddr)
+	task.runtime.Logger.Info(msg)
+	// 获取redis连接
+	redisCli, err := myredis.NewRedisClientWithTimeout(redisAddr, task.NewTmpPassword, 0,
+		consts.TendisTypeRedisInstance, 5*time.Second)
+	if err != nil {
+		task.Err = err
+		return task.Err
+	}
+	defer redisCli.Close()
+	// 检查目的集群是否有源集群的心跳数据
+	dbSizeKey, srcHearbeatKey := task.GetTendisHearbeatKey(task.SourceIP, task.SourcePort)
+	mylog.Logger.Info("dbSize:%s,srcHearbeatKey:%s", dbSizeKey, srcHearbeatKey)
+	if task.TendisType == consts.TendisTypeRedisInstance {
+		// cache 需要切换到db1，ssd db0
+		task.Err = redisCli.SelectDB1WhenClusterDisabled()
+		if task.Err != nil {
+			mylog.Logger.Error(err.Error())
+			return task.Err
+		}
+	}
+
+	dbSize, hearbeatVal, err := redisCli.GetTendisHeartbeat(dbSizeKey, srcHearbeatKey)
+	if err != nil {
+		task.Err = err
+		mylog.Logger.Error(err.Error())
+		return task.Err
+	}
+	msg = fmt.Sprintf("检查目的集群是否有源集群的心跳数据dbSize:%d,hearbeatVal:%v", dbSize, hearbeatVal.Local().Format(time.RFC3339))
+	mylog.Logger.Info(msg)
+
+	srcRedisAddr := fmt.Sprintf("%s:%s", task.SourceIP, strconv.Itoa(task.SourcePort))
+	if hearbeatVal.IsZero() {
+		msg = fmt.Sprintf("源tendis:%s 没有心跳写入,跳过回档结果校验", srcRedisAddr)
+		mylog.Logger.Warn(msg)
+		return task.Err
+	}
+	rollbackDstTime, _ := time.ParseInLocation(time.RFC3339, task.RecoveryTimePoint, time.Local)
+	symbol := ""
+	if rollbackDstTime.Sub(hearbeatVal).Minutes() > 10 {
+		symbol = "<"
+	} else if rollbackDstTime.Sub(hearbeatVal).Minutes() < -10 {
+		symbol = ">"
+	}
+	if symbol != "" {
+		if task.TendisType == consts.TendisTypeTendisSSDInsance {
+
+			task.Err = fmt.Errorf("目的tendis:%s 源tendis:%s 回档心跳时间:%s %s 回档目的时间:%s",
+				redisAddr, srcRedisAddr,
+				hearbeatVal.Local().Format(time.RFC3339),
+				symbol,
+				rollbackDstTime.Local().Format(time.RFC3339))
+			mylog.Logger.Error(task.Err.Error())
+			return task.Err
+
+		}
+		msg = fmt.Sprintf("目的tendis:%s 源tendis:%s  回档心跳时间:%s ， 回档目的时间:%s",
+			redisAddr, srcRedisAddr,
+			hearbeatVal.Local().Format(time.RFC3339),
+			rollbackDstTime.Local().Format(time.RFC3339))
+		mylog.Logger.Warn(msg)
+		return nil
+	}
+	msg = fmt.Sprintf("目的tendis:%s 源tendis:%s  回档心跳时间:%s ~= 回档目的时间:%s",
+		redisAddr, srcRedisAddr,
+		hearbeatVal.Local().Format(time.RFC3339),
+		rollbackDstTime.Local().Format(time.RFC3339))
+	mylog.Logger.Info(msg)
+	return nil
+}
+
 // SSDPullIncrbackup ssd拉取增备
 func (task *TendisInsRecoverTask) SSDPullIncrbackup() {
 	task.runtime.Logger.Info("SSDPullIncrbackup start...")
 
 	redisAddr := fmt.Sprintf("%s:%s", task.NeWTempIP, strconv.Itoa(task.NewTmpPort))
-	fileName := fmt.Sprintf("binlog-%s-%d", task.SourceIP, task.SourcePort)
+	// 兼容gcs binlog格式
+	fileName := fmt.Sprintf("%d", task.SourcePort)
 	task.runtime.Logger.Info("Source fileName:%s,DstAddr:%s", fileName, redisAddr)
 	// 节点维度增备信息：fileName 过滤，task.SourceIP 备份的源IP
 
-	rbDstTime, _ := time.ParseInLocation(consts.UnixtimeLayoutZone, task.RecoveryTimePoint, time.Local)
+	rbDstTime, _ := time.ParseInLocation(time.RFC3339, task.RecoveryTimePoint, time.Local)
 	// 回档目标时间 比 用户填写的时间多1秒
 	// (因为binlog_tool的--end-datetime参数,--end-datetime这个时间点的binlog是不会被应用的)
 	rbDstTime = rbDstTime.Add(1 * time.Second)
@@ -986,8 +1070,8 @@ func (task *TendisInsRecoverTask) SSDPullIncrbackup() {
 	// startTime 拉取增备的开始时间 -> 全备份的开始时间
 	// endTime 拉取增备份的结束时间 -> 回档时间
 	ssdIncrBackup := NewTredisRocksDBIncrBack(fileName, task.SourceIP, task.FullBackup.ResultFullbackup[0].StartPos,
-		task.FullBackup.ResultFullbackup[0].BackupStart.Local().Format(consts.UnixtimeLayoutZone),
-		rbDstTime.Local().Format(consts.UnixtimeLayoutZone), task.NeWTempIP,
+		task.FullBackup.ResultFullbackup[0].BackupStart.Local().Format(time.RFC3339),
+		rbDstTime.Local().Format(time.RFC3339), task.NeWTempIP,
 		task.RecoverDir, task.RecoverDir, task.RecoveryTimePoint)
 	if ssdIncrBackup.Err != nil {
 		task.Err = ssdIncrBackup.Err
@@ -1261,6 +1345,12 @@ func (task *TendisInsRecoverTask) Run() {
 			task.Err = err
 			return
 		}
+		// 回档结果校验
+		err = task.CheckTendisRollbackResult()
+		if err != nil {
+			task.Err = err
+			return
+		}
 
 	} else if task.TendisType == consts.TendisTypeRedisInstance {
 		task.runtime.Logger.Info("开始Tendis Cache 回档流程")
@@ -1274,6 +1364,12 @@ func (task *TendisInsRecoverTask) Run() {
 
 		// 加载备份文件
 		err = task.CacheRestoreFullbackup()
+		if err != nil {
+			task.Err = err
+			return
+		}
+		// 回档结果校验
+		err = task.CheckTendisRollbackResult()
 		if err != nil {
 			task.Err = err
 			return
