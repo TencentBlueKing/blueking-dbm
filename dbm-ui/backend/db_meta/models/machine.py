@@ -25,34 +25,32 @@ from backend.db_meta.models import AppCache, BKCity
 
 class Machine(AuditedModel):
     ip = models.GenericIPAddressField(default="", help_text=_("IP 地址"))
-
     bk_biz_id = models.IntegerField(default=0)
     db_module_id = models.IntegerField(default=0)
     access_layer = models.CharField(max_length=64, choices=AccessLayer.get_choices(), default="")
     machine_type = models.CharField(max_length=64, choices=MachineType.get_choices(), default="")
     cluster_type = models.CharField(max_length=64, choices=ClusterType.get_choices(), default="")
-
     bk_city = models.ForeignKey(BKCity, on_delete=models.PROTECT)
-
     bk_host_id = models.PositiveBigIntegerField(primary_key=True, default=0)
-    bk_os_name = models.CharField(max_length=128, default="", help_text=_("操作系统"))
-    bk_idc_area = models.CharField(max_length=128, default="", help_text=_("区域"))
+    bk_os_name = models.CharField(max_length=128, default="", blank=True, null=True, help_text=_("操作系统"))
+    bk_idc_area = models.CharField(max_length=128, default="", blank=True, null=True, help_text=_("区域"))
     bk_idc_area_id = models.IntegerField(default=0, help_text=_("区域 ID"))
-    bk_sub_zone = models.CharField(max_length=128, default="", help_text=_("子 Zone"))
+    bk_sub_zone = models.CharField(max_length=128, default="", blank=True, null=True, help_text=_("子 Zone"))
     bk_sub_zone_id = models.IntegerField(default=0, help_text=_("子 Zone ID"))
-    bk_rack = models.CharField(max_length=128, default="", help_text=_("机架"))
+    bk_rack = models.CharField(max_length=128, default="", blank=True, null=True, help_text=_("机架"))
     bk_rack_id = models.IntegerField(default=0, help_text=_("机架 ID"))
-    bk_svr_device_cls_name = models.CharField(max_length=128, default="", help_text=_("标准设备类型"))
-    bk_idc_name = models.CharField(max_length=128, default="", help_text=_("机房"))
+    bk_svr_device_cls_name = models.CharField(max_length=128, default="", blank=True, null=True, help_text=_("标准设备类型"))
+    bk_idc_name = models.CharField(max_length=128, default="", blank=True, null=True, help_text=_("机房"))
     bk_idc_id = models.IntegerField(default=0, help_text=_("机房 ID"))
     bk_cloud_id = models.IntegerField(default=0, help_text=_("云区域 ID"))
-    bk_agent_id = models.CharField(max_length=128, default="", help_text=_("Agent ID"))
-    net_device_id = models.CharField(max_length=256, default="")  # 这个 id 是个逗号分割的字符串
+    bk_agent_id = models.CharField(max_length=128, default="", blank=True, null=True, help_text=_("Agent ID"))
+    net_device_id = models.CharField(max_length=256, default="", blank=True, null=True)  # 这个 id 是个逗号分割的字符串
     spec_id = models.PositiveBigIntegerField(default=0, help_text=_("虚拟规格ID"))
     spec_config = models.JSONField(default=dict, help_text=_("当前的虚拟规格配置"))
 
     class Meta:
         unique_together = ("ip", "bk_cloud_id")
+        verbose_name = verbose_name_plural = _("机器主机(Machine)")
 
     def __str__(self):
         return self.ip

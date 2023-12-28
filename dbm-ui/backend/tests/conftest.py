@@ -15,8 +15,8 @@ import pytest
 from django.contrib.auth import get_user_model
 from django.utils.crypto import get_random_string
 
-from backend.db_meta.enums import ClusterType, MachineType
-from backend.db_meta.models import BKCity, BKModule, DBModule, LogicalCity
+from backend.db_meta.enums import ClusterType
+from backend.db_meta.models import BKCity, DBModule, LogicalCity
 from backend.tests.constants import TEST_ADMIN_USERNAME
 from backend.tests.mock_data import constant
 
@@ -61,13 +61,6 @@ def init_db_module():
         cluster_type=ClusterType.TenDBHA.value,
         db_module_name="test",
     )
-    BKModule.objects.create(
-        bk_module_id=constant.BK_MODULE_ID, db_module_id=constant.DB_MODULE_ID, machine_type=MachineType.PROXY.value
-    )
-    BKModule.objects.create(
-        bk_module_id=constant.BK_MODULE_ID2, db_module_id=constant.DB_MODULE_ID, machine_type=MachineType.BACKEND.value
-    )
-    BKModule.objects.create(bk_module_id=1, db_module_id=1, machine_type=MachineType.SINGLE.value)
 
 
 mark_global_skip = pytest.mark.skipif(os.environ.get("GLOBAL_SKIP") == "true", reason="disable in landun WIP")

@@ -14,6 +14,7 @@ from typing import Dict, List
 
 from django.db import models
 from django.forms import model_to_dict
+from django.utils.translation import ugettext_lazy as _
 
 from backend import env
 from backend.bk_web.models import AuditedModel
@@ -50,9 +51,10 @@ class ClusterEntry(AuditedModel):
 
     class Meta:
         unique_together = ("cluster_entry_type", "entry")
+        verbose_name = verbose_name_plural = _("集群访问入口(ClusterEntry)")
 
     @classmethod
-    def get_cluster_entry_map_by_cluster_ids(cls, cluster_ids: List[int]) -> Dict[int, Dict[str, str]]:
+    def get_cluster_entry_map(cls, cluster_ids: List[int]) -> Dict[int, Dict[str, str]]:
         """
         返回格式如：
         {

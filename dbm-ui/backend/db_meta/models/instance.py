@@ -129,7 +129,7 @@ class InstanceMixin(object):
 
 
 class StorageInstance(InstanceMixin, AuditedModel):
-    version = models.CharField(max_length=64, default="", help_text=_("版本号"))
+    version = models.CharField(max_length=64, default="", help_text=_("版本号"), blank=True, null=True)
     port = models.PositiveIntegerField(default=0)
     machine = models.ForeignKey(Machine, on_delete=models.PROTECT)
 
@@ -145,12 +145,13 @@ class StorageInstance(InstanceMixin, AuditedModel):
     status = models.CharField(max_length=64, choices=InstanceStatus.get_choices(), default="")
     phase = models.CharField(max_length=64, choices=InstancePhase.get_choices(), default=InstancePhase.ONLINE.value)
     bind_entry = models.ManyToManyField(ClusterEntry, blank=True)
-    name = models.CharField(max_length=255, default="")
+    name = models.CharField(max_length=255, default="", blank=True, null=True)
     time_zone = models.CharField(max_length=16, default=DEFAULT_TIME_ZONE, help_text=_("实例所在的时区"))
     bk_instance_id = models.BigIntegerField(default=0, help_text=_("对应在cc的服务实例的id"))
     is_stand_by = models.BooleanField(default=True, help_text=_("多 slave 的备选标志"))
 
     class Meta:
+        verbose_name = verbose_name_plural = _("存储实例(StorageInstance)")
         unique_together = (
             "machine",
             "port",
@@ -177,7 +178,7 @@ class StorageInstance(InstanceMixin, AuditedModel):
 
 
 class ProxyInstance(InstanceMixin, AuditedModel):
-    version = models.CharField(max_length=64, default="", help_text=_("版本号"))
+    version = models.CharField(max_length=64, default="", help_text=_("版本号"), blank=True, null=True)
     port = models.PositiveIntegerField(default=0)
     admin_port = models.PositiveIntegerField(default=0)
     machine = models.ForeignKey(Machine, on_delete=models.PROTECT)
@@ -195,11 +196,12 @@ class ProxyInstance(InstanceMixin, AuditedModel):
     phase = models.CharField(max_length=64, choices=InstancePhase.get_choices(), default=InstancePhase.ONLINE.value)
     status = models.CharField(max_length=64, choices=InstanceStatus.get_choices(), default="")
     bind_entry = models.ManyToManyField(ClusterEntry, blank=True)
-    name = models.CharField(max_length=255, default="")
+    name = models.CharField(max_length=255, default="", blank=True, null=True)
     time_zone = models.CharField(max_length=16, default=DEFAULT_TIME_ZONE, help_text=_("实例所在的时区"))
     bk_instance_id = models.BigIntegerField(default=0, help_text=_("对应在cc的服务实例的id"))
 
     class Meta:
+        verbose_name = verbose_name_plural = _("代理实例(ProxyInstance)")
         unique_together = (
             "machine",
             "port",

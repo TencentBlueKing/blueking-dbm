@@ -41,13 +41,12 @@ TEST_STORAGE_PORT3 = 20002
 
 @pytest.fixture
 def dbha_fixture(create_city):
-    ap = models.App.objects.create(bk_biz_id=constant.BK_BIZ_ID, bk_set_id=constant.BK_SET_ID)
     # TODO 提取常量，把 conftest 里的 yaml 用常量维护起来
     city1 = models.BKCity.objects.get(bk_idc_city_name="南京")
     city2 = models.BKCity.objects.get(bk_idc_city_name="上海")
     m1 = models.Machine.objects.create(
         ip=cc.NORMAL_IP,
-        bk_biz_id=ap.bk_biz_id,
+        bk_biz_id=constant.BK_BIZ_ID,
         machine_type=MachineType.PROXY,
         access_layer=AccessLayer.PROXY,
         bk_city=city1,
@@ -55,7 +54,7 @@ def dbha_fixture(create_city):
     )
     m2 = models.Machine.objects.create(
         ip=cc.NORMAL_IP2,
-        bk_biz_id=ap.bk_biz_id,
+        bk_biz_id=constant.BK_BIZ_ID,
         machine_type=MachineType.BACKEND,
         access_layer=AccessLayer.STORAGE,
         bk_city=city2,
@@ -63,7 +62,7 @@ def dbha_fixture(create_city):
     )
     m3 = models.Machine.objects.create(
         ip=cc.NORMAL_IP3,
-        bk_biz_id=ap.bk_biz_id,
+        bk_biz_id=constant.BK_BIZ_ID,
         machine_type=MachineType.BACKEND,
         access_layer=AccessLayer.STORAGE,
         bk_city=city2,
@@ -122,7 +121,7 @@ def dbha_fixture(create_city):
     s1.proxyinstance_set.add(p1, p2)
 
     cluster = models.Cluster.objects.create(
-        bk_biz_id=ap.bk_biz_id,
+        bk_biz_id=constant.BK_BIZ_ID,
         name=constant.CLUSTER_NAME,
         db_module_id=constant.DB_MODULE_ID,
         immute_domain=constant.CLUSTER_IMMUTE_DOMAIN,

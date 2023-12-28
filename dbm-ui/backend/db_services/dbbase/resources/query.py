@@ -14,10 +14,11 @@ from typing import Dict, List, Union
 import attr
 from django.db.models import Q
 from django.http import HttpResponse
+from django.utils.http import urlquote
 from django.utils.translation import ugettext_lazy as _
 
-from backend.db_meta.enums import ClusterEntryType
-from backend.db_meta.models import Cluster, ClusterEntry, Machine, ProxyInstance, StorageInstance
+from backend.db_meta.enums import ClusterEntryType, ClusterType
+from backend.db_meta.models import AppCache, Cluster, ClusterEntry, Machine, ProxyInstance, StorageInstance
 from backend.flow.utils.dns_manage import DnsManage
 from backend.utils.excel import ExcelHandler
 
@@ -171,14 +172,17 @@ class ListRetrieveResource(abc.ABC):
 
             # 将当前集群的信息追加到data_list列表中
             data_list.append(cluster_info)
-
+        biz_name = AppCache.get_biz_name(bk_biz_id)
+        db_type = ClusterType.cluster_type_to_db_type(cls.cluster_types[0])
         wb = ExcelHandler.serialize(data_list, headers=headers, match_header=True)
-        return ExcelHandler.response(wb, f"biz_{bk_biz_id}_instances.xlsx")
+        return ExcelHandler.response(
+            wb, urlquote(_("{export_prefix}集群列表.xlsx").format(export_prefix=f"{biz_name}[{bk_biz_id}]{db_type}"))
+        )
 
     @classmethod
     def export_instance(cls, bk_biz_id: int, bk_host_ids: list) -> HttpResponse:
         # 查询实例
-        query_condition = Q(bk_biz_id=bk_biz_id)
+        query_condition = Q(bk_biz_id=bk_biz_id, cluster_type__in=cls.cluster_types)
         if bk_host_ids:
             query_condition = query_condition & Q(machine__bk_host_id__in=bk_host_ids)
         storages = StorageInstance.objects.prefetch_related("machine", "machine__bk_city", "cluster").filter(
@@ -225,5 +229,9 @@ class ListRetrieveResource(abc.ABC):
                         }
                     )
 
+        biz_name = AppCache.get_biz_name(bk_biz_id)
+        db_type = ClusterType.cluster_type_to_db_type(cls.cluster_types[0])
         wb = ExcelHandler.serialize(data_list, headers=headers, match_header=True)
-        return ExcelHandler.response(wb, f"biz_{bk_biz_id}_instances.xlsx")
+        return ExcelHandler.response(
+            wb, urlquote(_("{export_prefix}实例列表.xlsx").format(export_prefix=f"{biz_name}[{bk_biz_id}]{db_type}"))
+        )

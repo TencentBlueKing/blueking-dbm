@@ -15,9 +15,7 @@ from django.test import Client
 
 from backend.db_meta.enums import AccessLayer, ClusterType, InstanceInnerRole, InstanceRole, MachineType
 from backend.db_meta.models import (
-    App,
     BKCity,
-    BKModule,
     Cluster,
     ClusterEntry,
     DBModule,
@@ -26,6 +24,7 @@ from backend.db_meta.models import (
     StorageInstance,
     StorageInstanceTuple,
 )
+from backend.tests.mock_data import constant
 
 logger = logging.getLogger("root")
 pytestmark = pytest.mark.django_db
@@ -37,14 +36,10 @@ mocked_search_business_fake_app = {"count": 1, "info": [{"db_app_abbr": "fake_ap
 @pytest.fixture(scope="module")
 def cluster_base_fixture(django_db_blocker):
     with django_db_blocker.unblock():
-        ap = App.objects.create(bk_biz_id=32, bk_set_id=132)
 
         DBModule.objects.create(
-            bk_biz_id=ap.bk_biz_id, cluster_type=ClusterType.TenDBHA, db_module_id=100, db_module_name="rise"
+            bk_biz_id=constant.BK_BIZ_ID, cluster_type=ClusterType.TenDBHA, db_module_id=100, db_module_name="rise"
         )
-
-        BKModule.objects.create(bk_module_id=1, db_module_id=100, machine_type=MachineType.PROXY)
-        BKModule.objects.create(bk_module_id=2, db_module_id=100, machine_type=MachineType.BACKEND)
 
         yield
 
@@ -55,41 +50,36 @@ def cluster_base_fixture(django_db_blocker):
         StorageInstance.objects.all().delete()
         Machine.objects.all().delete()
         DBModule.objects.all().delete()
-        App.objects.all().delete()
-        BKModule.objects.all().delete()
 
 
 @pytest.fixture(scope="function")
 def cluster_create_base_fixture(django_db_blocker, cluster_base_fixture):
     with django_db_blocker.unblock():
-        ap = App.objects.get(bk_biz_id=32)
-
         bk_city = BKCity.objects.first()
-
         pm1 = Machine.objects.create(
             ip="1.1.1.1",
-            bk_biz_id=ap.bk_biz_id,
+            bk_biz_id=constant.BK_BIZ_ID,
             machine_type=MachineType.PROXY,
             access_layer=AccessLayer.PROXY,
             bk_city=bk_city,
         )
         pm2 = Machine.objects.create(
             ip="2.2.2.2",
-            bk_biz_id=ap.bk_biz_id,
+            bk_biz_id=constant.BK_BIZ_ID,
             machine_type=MachineType.PROXY,
             access_layer=AccessLayer.PROXY,
             bk_city=bk_city,
         )
         sm1 = Machine.objects.create(
             ip="3.3.3.3",
-            bk_biz_id=ap.bk_biz_id,
+            bk_biz_id=constant.BK_BIZ_ID,
             machine_type=MachineType.BACKEND,
             access_layer=AccessLayer.STORAGE,
             bk_city=bk_city,
         )
         sm2 = Machine.objects.create(
             ip="4.4.4.4",
-            bk_biz_id=ap.bk_biz_id,
+            bk_biz_id=constant.BK_BIZ_ID,
             machine_type=MachineType.BACKEND,
             access_layer=AccessLayer.STORAGE,
             bk_city=bk_city,
@@ -111,20 +101,15 @@ def cluster_create_base_fixture(django_db_blocker, cluster_base_fixture):
         )
 
         StorageInstanceTuple.objects.create(ejector=s1, receiver=s2)
-        # p1.storageinstance.add(s1)
-        # p2.storageinstance.add(s1)
 
 
 @pytest.fixture(scope="function")
 def cluster_create_dirty_base(django_db_blocker, cluster_create_base_fixture):
-    ap = App.objects.get(bk_biz_id=32)
-    # cluster_type = MetaClusterType.objects.get(name=MetaClusterType.ClusterTypeChoice.TenDBHA)
     db_module = DBModule.objects.get(db_module_id=100)
-    # p = ProxyInstance.objects.get(port=10000, machine__ip='1.1.1.1')
 
     Cluster.objects.create(
         name="dirty",
-        bk_biz_id=ap.bk_biz_id,
+        bk_biz_id=constant.BK_BIZ_ID,
         cluster_type=ClusterType.TenDBHA,
         db_module_id=db_module.db_module_id,
         immute_domain="dirty.test.db",

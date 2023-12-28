@@ -16,6 +16,7 @@ from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Cluster, Machine, ProxyInstance, StorageInstance
 from backend.db_services.quick_search.constants import FilterType, ResourceType
 from backend.flow.models import FlowTree
+from backend.ticket.constants import TicketType
 from backend.ticket.models import Ticket
 from backend.utils.string import split_str_to_list
 
@@ -135,8 +136,11 @@ class QSearchHandler(object):
         if self.bk_biz_ids:
             objs = objs.filter(bk_biz_id__in=self.bk_biz_ids)
 
-        # TODO: db类型任务的过滤
-        return list(objs[: self.limit].values("uid", "bk_biz_id", "ticket_type", "root_id", "status", "created_by"))
+        results = list(objs[: self.limit].values("uid", "bk_biz_id", "ticket_type", "root_id", "status", "created_by"))
+        # 补充 ticket_type_display
+        for ticket in results:
+            ticket["ticket_type_display"] = TicketType.get_choice_label(ticket["ticket_type"])
+        return results
 
     def filter_machine(self, keyword_list: list):
         """过滤主机"""
@@ -200,12 +204,16 @@ class QSearchHandler(object):
 
         if self.bk_biz_ids:
             qs = qs & Q(bk_biz_id__in=self.bk_biz_ids)
-        objs = Ticket.objects.filter(qs).order_by("id")
-        return list(
-            objs[: self.limit].values(
+        tickets = Ticket.objects.filter(qs).order_by("id")
+        results = list(
+            tickets[: self.limit].values(
                 "id", "creator", "create_at", "bk_biz_id", "ticket_type", "group", "status", "is_reviewed"
             )
         )
+        # 补充 ticket_type_display
+        for ticket in results:
+            ticket["ticket_type_display"] = TicketType.get_choice_label(ticket["ticket_type"])
+        return results
 
     def filter_resource_pool(self, keyword_list: list):
         return DBResourceApi.resource_list({"hosts": keyword_list, "limit": self.limit, "offset": 0})["details"]

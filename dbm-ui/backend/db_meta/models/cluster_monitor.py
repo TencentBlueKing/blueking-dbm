@@ -231,8 +231,8 @@ class AppMonitorTopo(AuditedModel):
                     obj.save()
 
     class Meta:
-        verbose_name = _("业务监控拓扑")
-        verbose_name_plural = _("业务监控拓扑")
+        verbose_name = _("业务监控拓扑(AppMonitorTopo)")
+        verbose_name_plural = _("业务监控拓扑(AppMonitorTopo)")
 
 
 class ClusterMonitorTopo(AuditedModel):
@@ -250,8 +250,8 @@ class ClusterMonitorTopo(AuditedModel):
     machine_type = models.CharField(max_length=64, choices=MachineType.get_choices(), default="")
 
     class Meta:
-        verbose_name = _("CMDB模块映射")
-        verbose_name_plural = _("CMDB模块映射")
+        verbose_name = _("CMDB模块映射(ClusterMonitorTopo)")
+        verbose_name_plural = _("CMDB模块映射(ClusterMonitorTopo)")
 
 
 class SyncFailedMachine(AuditedModel):
@@ -261,5 +261,5 @@ class SyncFailedMachine(AuditedModel):
     error = models.CharField(max_length=LEN_X_LONG)
 
     class Meta:
-        verbose_name = _("同步失败的IP")
-        verbose_name_plural = _("同步失败的IP")
+        verbose_name = _("同步失败的IP(SyncFailedMachine)")
+        verbose_name_plural = _("同步失败的IP(SyncFailedMachine)")

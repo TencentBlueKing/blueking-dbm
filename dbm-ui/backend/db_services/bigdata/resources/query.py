@@ -133,7 +133,7 @@ class BigDataBaseListRetrieveResource(query.ListRetrieveResource):
 
         instances = instances_queryset[offset : limit + offset]
         cluster_ids = [instance["cluster__id"] for instance in instances]
-        cluster_entry_map = ClusterEntry.get_cluster_entry_map_by_cluster_ids(cluster_ids)
+        cluster_entry_map = ClusterEntry.get_cluster_entry_map(cluster_ids)
 
         restart_records = InstanceOperateRecord.objects.filter(
             instance_id__in=[instance["id"] for instance in instances],
@@ -157,7 +157,7 @@ class BigDataBaseListRetrieveResource(query.ListRetrieveResource):
         cluster = Cluster.objects.get(id=cluster_id)
 
         cluster.storages = cluster.storageinstance_set.filter(cluster_type=cluster.cluster_type, bk_biz_id=bk_biz_id)
-        cluster_entry_map = ClusterEntry.get_cluster_entry_map_by_cluster_ids([cluster.id])
+        cluster_entry_map = ClusterEntry.get_cluster_entry_map([cluster.id])
 
         return cls._to_cluster_detail(cluster, cluster_entry_map)
 
@@ -207,9 +207,7 @@ class BigDataBaseListRetrieveResource(query.ListRetrieveResource):
             Prefetch("storageinstance_set", queryset=qs_storage.select_related("machine"), to_attr="storages"),
         )
 
-        cluster_entry_map = ClusterEntry.get_cluster_entry_map_by_cluster_ids(
-            list(clusters.values_list("id", flat=True))
-        )
+        cluster_entry_map = ClusterEntry.get_cluster_entry_map(list(clusters.values_list("id", flat=True)))
 
         return query.ResourceList(
             count=count, data=[cls._to_cluster_detail(cluster, cluster_entry_map) for cluster in clusters]

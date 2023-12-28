@@ -53,7 +53,7 @@ def get_cluster_info(cluster_id: int) -> Dict:
     cluster["proxy_port"] = mysql_proxy[0].port
 
     # 查询待替换的slave节点对应的域名映射关系
-    domain = ClusterEntry.get_cluster_entry_map_by_cluster_ids([cluster_id])
+    domain = ClusterEntry.get_cluster_entry_map([cluster_id])
     cluster["master_domain"] = domain[cluster_id]["master_domain"]
     cluster["slave_domain"] = domain[cluster_id]["slave_domain"]
     old_slave = mysql_cluster.storageinstance_set.filter(is_stand_by=True).first()

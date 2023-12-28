@@ -26,6 +26,9 @@ class LogicalCity(AuditedModel):
     def __str__(self):
         return self.name
 
+    class Meta:
+        verbose_name = verbose_name_plural = _("逻辑城市表(LogicalCity)")
+
 
 class BKCity(AuditedModel):
     """
@@ -38,3 +41,6 @@ class BKCity(AuditedModel):
 
     def __str__(self):
         return self.bk_idc_city_name
+
+    class Meta:
+        verbose_name = verbose_name_plural = _("蓝鲸城市表(BKCity)")

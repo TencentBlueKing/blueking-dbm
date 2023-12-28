@@ -286,7 +286,7 @@ class MySQLRestoreSlaveFlow(object):
             if not self.add_slave_only:
                 for cluster_id in self.data["cluster_ids"]:
                     cluster_model = Cluster.objects.get(id=cluster_id)
-                    domain = ClusterEntry.get_cluster_entry_map_by_cluster_ids([cluster_model.id])
+                    domain = ClusterEntry.get_cluster_entry_map([cluster_model.id])
                     switch_sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
                     switch_sub_pipeline.add_sub_pipeline(
                         sub_flow=slave_migrate_switch_sub_flow(

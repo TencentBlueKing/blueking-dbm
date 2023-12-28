@@ -8,12 +8,12 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from .app import App, AppCache
+from .app import AppCache
 from .city_map import BKCity, LogicalCity
 from .cluster import Cluster
 from .cluster_entry import CLBEntryDetail, ClusterEntry, PolarisEntryDetail
 from .cluster_monitor import AppMonitorTopo, ClusterMonitorTopo
-from .db_module import BKModule, DBModule
+from .db_module import DBModule
 from .extra_process import ExtraProcessInstance
 from .group import Group, GroupInstance
 from .instance import ProxyInstance, StorageInstance

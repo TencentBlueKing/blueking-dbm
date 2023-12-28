@@ -49,6 +49,7 @@ class Spec(AuditedModel):
     qps = models.JSONField(default=dict, help_text=_("qps规格描述:{'min': 1, 'max': 100}"))
 
     class Meta:
+        verbose_name = verbose_name_plural = _("资源规格(Spec)")
         index_together = [("spec_cluster_type", "spec_machine_type", "spec_name")]
 
     @property

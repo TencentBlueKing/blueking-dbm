@@ -42,5 +42,6 @@ class ExtraProcessInstance(AuditedModel):
     extra_config = models.JSONField(default=dict, help_text=_("进程的定制化属性"))
 
     class Meta:
+        verbose_name = verbose_name_plural = _("附属进程实例(ExtraProcessInstance)")
         unique_together = ("ip", "bk_cloud_id", "listen_port")
         indexes = [models.Index(fields=["cluster_id", "proc_type"])]

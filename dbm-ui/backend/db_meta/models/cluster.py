@@ -60,6 +60,7 @@ class Cluster(AuditedModel):
 
     class Meta:
         unique_together = ("bk_biz_id", "name", "cluster_type", "db_module_id")
+        verbose_name = verbose_name_plural = _("集群(Cluster)")
 
     def __str__(self):
         return self.name
