@@ -22,7 +22,13 @@ def check_client_connection(bk_cloud_id: int, instances: list, is_filter_sleep: 
     """
 
     # 获取内置账号名称
-    admin_user_name_list = [UserName.ADMIN.value, UserName.BACKUP.value, UserName.MONITOR.value, UserName.REPL.value]
+    admin_user_name_list = [
+        UserName.ADMIN.value,
+        UserName.BACKUP.value,
+        UserName.MONITOR.value,
+        UserName.REPL.value,
+        UserName.YW.value,
+    ]
     # 对于tendb-cluster集群的实例，这里不考虑过滤内置账号的session，因为执行ddl时候，实例会存在内置账号session
     # 过滤会有风险
     users = ",".join(

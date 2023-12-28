@@ -21,6 +21,7 @@ from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.enums import ClusterType, TenDBClusterSpiderRole
 from backend.db_meta.exceptions import ClusterNotExistException
 from backend.db_meta.models import Cluster, StorageInstance
+from backend.flow.consts import LONG_JOB_TIMEOUT
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.spider.common.common_sub_flow import build_ctl_replication_with_gtid
@@ -176,7 +177,7 @@ class MigrateClusterFromGcsFlow(object):
         exec_act_kwargs = ExecActuatorKwargs(
             bk_cloud_id=int(self.data["bk_cloud_id"]),
             cluster_type=ClusterType.TenDBCluster,
-            job_timeout=86400,
+            job_timeout=LONG_JOB_TIMEOUT,
         )
 
         for cluser_id in cluster_ids:
