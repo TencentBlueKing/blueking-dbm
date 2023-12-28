@@ -64,6 +64,9 @@ GB = 1 << 30
 TB = 1 << 40
 PB = 1 << 50
 
+DEFAULT_JOB_TIMEOUT = 7200
+LONG_JOB_TIMEOUT = 86400
+
 # 默认监听时间，1分钟
 DEFAULT_MONITOR_TIME = 60000
 # 默认监听排除请求命令
