@@ -14,7 +14,7 @@ from dataclasses import asdict
 
 from django.utils.translation import ugettext as _
 
-from backend.configuration.constants import DBType
+from backend.configuration.constants import MYSQL_DATA_RESTORE_TIME, DBType
 from backend.db_services.mysql.fixpoint_rollback.handlers import FixPointRollbackHandler
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
@@ -27,15 +27,13 @@ from backend.flow.plugins.components.collections.mysql.mysql_download_backupfile
 from backend.flow.plugins.components.collections.mysql.mysql_rollback_data_download_binlog import (
     MySQLRollbackDownloadBinlogComponent,
 )
-from backend.flow.plugins.components.collections.mysql.rollback_local_trans_flies import (
-    RollBackLocalTransFileComponent,
-)
 from backend.flow.plugins.components.collections.mysql.rollback_trans_flies import RollBackTransFileComponent
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
 from backend.flow.utils.mysql.mysql_act_dataclass import (
     DownloadBackupFileKwargs,
     DownloadMediaKwargs,
     ExecActuatorKwargs,
+    P2PFileKwargs,
     RollBackTransFileKwargs,
 )
 from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
@@ -68,6 +66,7 @@ def rollback_local_and_time(root_id: str, ticket_data: dict, cluster_info: dict)
         bk_cloud_id=cluster_info["bk_cloud_id"],
         cluster_type=cluster_info["cluster_type"],
         cluster=cluster_info,
+        job_timeout=MYSQL_DATA_RESTORE_TIME,
     )
     exec_act_kwargs.exec_ip = cluster_info["master_ip"]
     exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_find_local_backup_payload.__name__
@@ -154,15 +153,14 @@ def rollback_remote_and_time(root_id: str, ticket_data: dict, cluster_info: dict
         raise TendbGetBackupInfoFailedException(message=_("获取集群 {} 的备份信息失败".format(cluster_info["cluster_id"])))
     cluster_info["backupinfo"] = copy.deepcopy(backupinfo)
     cluster_info["backup_time"] = backupinfo["backup_time"]
-
     task_files = [{"file_name": i} for i in backupinfo["file_list"]]
     cluster_info["task_files"] = task_files
-    cluster_info["backup_time"] = backupinfo["backup_time"]
 
     exec_act_kwargs = ExecActuatorKwargs(
         bk_cloud_id=cluster_info["bk_cloud_id"],
         cluster_type=cluster_info["cluster_type"],
         cluster=cluster_info,
+        job_timeout=MYSQL_DATA_RESTORE_TIME,
     )
 
     exec_act_kwargs.cluster = cluster_info
@@ -244,6 +242,7 @@ def rollback_remote_and_backupid(root_id: str, ticket_data: dict, cluster_info: 
         bk_cloud_id=cluster_info["bk_cloud_id"],
         cluster_type=cluster_info["cluster_type"],
         cluster=cluster_info,
+        job_timeout=MYSQL_DATA_RESTORE_TIME,
     )
     task_ids = [i["task_id"] for i in backupinfo["file_list_details"]]
     download_kwargs = DownloadBackupFileKwargs(
@@ -285,27 +284,43 @@ def rollback_local_and_backupid(root_id: str, ticket_data: dict, cluster_info: d
         bk_cloud_id=cluster_info["bk_cloud_id"],
         cluster_type=cluster_info["cluster_type"],
         cluster=cluster_info,
+        job_timeout=MYSQL_DATA_RESTORE_TIME,
     )
-
-    # backupinfo = cluster_info["backupinfo"]
-    # backupinfo["backup_begin_time"] = backupinfo["backup_time"]
-
-    exec_act_kwargs.exec_ip = cluster_info["rollback_ip"]
-    exec_act_kwargs.cluster = cluster_info
+    #  改为从本地表 local_backup_report 获取备份
+    backup_info = cluster_info["backupinfo"]
+    task_ids = ["{}/{}".format(backup_info["backup_dir"], i["file_name"]) for i in backup_info["file_list"]]
+    if backup_info["backup_meta_file"] not in task_ids:
+        task_ids.append(backup_info["backup_meta_file"])
     sub_pipeline.add_act(
-        act_name=_("传输文件{}").format(cluster_info["rollback_ip"]),
-        act_component_code=RollBackLocalTransFileComponent.code,
+        act_name=_("本地备份文件下载"),
+        act_component_code=TransFileComponent.code,
         kwargs=asdict(
-            RollBackTransFileKwargs(
+            P2PFileKwargs(
                 bk_cloud_id=cluster_info["bk_cloud_id"],
-                file_list=[],
+                file_list=task_ids,
                 file_target_path=cluster_info["file_target_path"],
-                source_ip_list=[],
+                source_ip_list=[backup_info["instance_ip"]],
                 exec_ip=cluster_info["rollback_ip"],
-                cluster=cluster_info,
             )
         ),
     )
+
+    # exec_act_kwargs.exec_ip = cluster_info["rollback_ip"]
+    # exec_act_kwargs.cluster = cluster_info
+    # sub_pipeline.add_act(
+    #     act_name=_("传输文件{}").format(cluster_info["rollback_ip"]),
+    #     act_component_code=RollBackLocalTransFileComponent.code,
+    #     kwargs=asdict(
+    #         RollBackTransFileKwargs(
+    #             bk_cloud_id=cluster_info["bk_cloud_id"],
+    #             file_list=[],
+    #             file_target_path=cluster_info["file_target_path"],
+    #             source_ip_list=[],
+    #             exec_ip=cluster_info["rollback_ip"],
+    #             cluster=cluster_info,
+    #         )
+    #     ),
+    # )
 
     exec_act_kwargs.exec_ip = cluster_info["rollback_ip"]
     exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_rollback_data_restore_payload.__name__
