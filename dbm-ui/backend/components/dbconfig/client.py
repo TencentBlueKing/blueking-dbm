@@ -99,7 +99,7 @@ class _DBConfigApi(object):
             module=self.MODULE,
             description=_("查询版本详细信息"),
         )
-        self.get_instance_config = DataAPI(
+        self.get_or_generate_instance_config = DataAPI(
             method="POST",
             base=DBCONFIG_APIGW_DOMAIN,
             url="bkconfig/v1/version/generate",

@@ -30,6 +30,7 @@ class AffinityEnum(str, StructuredEnum):
     SAME_SUBZONE = EnumField("SAME_SUBZONE", _("同城同subzone"))
     CROS_SUBZONE = EnumField("CROS_SUBZONE", _("CROS_SUBZONE"))
     NONE = EnumField("NONE", _("NONE"))
+    MAX_EACH_ZONE_EQUAL = EnumField("MAX_EACH_ZONE_EQUAL", _("每个subzone尽量均匀分布"))
 
 
 class DBType(str, StructuredEnum):

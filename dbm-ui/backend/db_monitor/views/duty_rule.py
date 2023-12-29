@@ -68,6 +68,8 @@ class MonitorDutyRuleViewSet(viewsets.AuditedModelViewSet):
     search_fields = ["name"]
 
     def _get_custom_permissions(self):
+        if self.action in ["priority_distinct"]:
+            return []
         return [GlobalManageIAMPermission()]
 
     @common_swagger_auto_schema(operation_summary=_("轮值规则优先级统计"), tags=[SWAGGER_TAG])

@@ -17,7 +17,8 @@
     :model-value="localValue"
     :placeholder="t('请输入单个库名，可以包含通配符 %')"
     :rules="rules"
-    single>
+    single
+    @change="handleTagValueChange">
     <template #tip>
       <p>{{ t('%：匹配任意长度字符串，如 a%， 不允许独立使用') }}</p>
     </template>
@@ -36,7 +37,7 @@
   const { t } = useI18n();
 
   const tagRef = ref();
-  const localValue  = ref(undefined);
+  const localValue  = ref<string[]>([]);
 
   const rules = [
     {
@@ -54,6 +55,10 @@
       trigger: 'change',
     },
   ];
+
+  const handleTagValueChange = (value: string[]) => {
+    localValue.value = value;
+  };
 
   defineExpose<Exposes>({
     getValue() {

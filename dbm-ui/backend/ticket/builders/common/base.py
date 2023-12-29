@@ -18,7 +18,7 @@ from django.forms.models import model_to_dict
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
-from backend.configuration.constants import MASTER_DOMAIN_INITIAL_VALUE
+from backend.configuration.constants import MASTER_DOMAIN_INITIAL_VALUE, AffinityEnum
 from backend.db_meta.enums import AccessLayer, ClusterType, InstanceInnerRole
 from backend.db_meta.models import Cluster, ExtraProcessInstance, Machine, ProxyInstance, StorageInstance
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
@@ -60,6 +60,24 @@ def remove_useless_spec(attrs: Dict[str, Any]) -> Dict[str, Any]:
 
     attrs["resource_spec"] = real_resource_spec
     return attrs
+
+
+def format_bigdata_resource_spec(attrs: Dict[str, Any]) -> Dict[str, Any]:
+    if "resource_spec" not in attrs:
+        return
+    # 移除无用的资源角色申请
+    remove_useless_spec(attrs)
+    # 获取集群所在的城市
+    cluster_location_spec = {}
+    if "cluster_id" in attrs:
+        cluster = Cluster.objects.get(id=attrs["cluster_id"])
+        cluster_location_spec = {"city": cluster.region, "sub_zone_ids": []}
+    # 格式化资源规格的亲和性和城市
+    for role, resource_spec in attrs["resource_spec"].items():
+        # 大数据亲和性固定为MAX_EACH_ZONE_EQUAL
+        resource_spec["affinity"] = AffinityEnum.MAX_EACH_ZONE_EQUAL
+        # 城市优先以传递的为准，然后以集群为准
+        resource_spec["location_spec"] = resource_spec.get("location_spec") or cluster_location_spec
 
 
 class HostInfoSerializer(serializers.Serializer):

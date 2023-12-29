@@ -86,6 +86,7 @@ def watcher_get_by_hosts() -> (int, dict):
                 switch_ports=[],
                 sw_max_id=0,
                 sw_min_id=SWITCH_SMALL,
+                ignore_fix=False,
                 sw_result={},
             )
         current_host = switch_hosts[switch_ip]
@@ -122,16 +123,14 @@ def get_4_next_watch_ID(batch_small: int, switch_hosts: Dict) -> int:
             and len(swiched_host.sw_result) == 1
             and swiched_host.sw_result.get(DBHASwitchResult.SUCC.value)
         ):
-            logger.info(
-                "machine {} {} all instance swithed success -_- ".format(swiched_host.ip, swiched_host.switch_ports)
-            )
-            if swiched_host.sw_max_id > succ_max_uid:
+            logger.info("machine {} {} all instance swithed success -_- ".format(swiched_host.ip, swiched_host))
+            if swiched_host.sw_max_id >= succ_max_uid:
                 succ_max_uid = swiched_host.sw_max_id + 1
             continue
         # 需要等待切换
         logger.info(
             "machine {} {} NOT all instance swithed success ! {}".format(
-                swiched_host.ip, swiched_host.switch_ports, swiched_host.sw_result
+                swiched_host.ip, swiched_host.switch_ports, swiched_host
             )
         )
         waiter = REDIS_SWITCH_WAITER.get(swiched_host.ip)
@@ -144,10 +143,10 @@ def get_4_next_watch_ID(batch_small: int, switch_hosts: Dict) -> int:
             )
             logger.info(
                 "machine {} {} NOT all instance swithed , need wait seconds {}".format(
-                    swiched_host.ip, swiched_host.switch_ports, swiched_host.sw_result
+                    swiched_host.ip, swiched_host.switch_ports, swiched_host
                 )
             )
-            if wait_small_uid < swiched_host.sw_min_id:
+            if wait_small_uid <= swiched_host.sw_min_id:
                 wait_small_uid = swiched_host.sw_min_id
             continue
         elif (now_timestamp - waiter.entry) > SWITCH_MAX_WAIT_SECONDS:
@@ -156,30 +155,31 @@ def get_4_next_watch_ID(batch_small: int, switch_hosts: Dict) -> int:
                 waiter.counter = 1
                 waiter.err = ""
                 logger.info(
-                    "machine {} {} NOT all instance swithed , need wait seconds.".format(
-                        swiched_host.ip, swiched_host.switch_ports
+                    "machine {} {} NOT all instance swithed , need wait seconds. {}".format(
+                        swiched_host.ip, swiched_host.switch_ports, swiched_host
                     )
                 )
-                if wait_small_uid < swiched_host.sw_min_id:
+                if wait_small_uid <= swiched_host.sw_min_id:
                     wait_small_uid = swiched_host.sw_min_id
                 continue
             # 等待切换超时
             logger.info(
                 "machine {} {} NOT all instance swithed , wait timeout entry time : {} {}".format(
-                    swiched_host.ip, swiched_host.switch_ports, waiter.entry, swiched_host.sw_result
+                    swiched_host.ip, swiched_host.switch_ports, waiter.entry, swiched_host
                 )
             )
+            swiched_host.ignore_fix = True
             # save ignore swithed host
             save_ignore_host(swiched_host, "wait_timeout")
-            if ignore_max_uid > swiched_host.sw_max_id:
-                ignore_max_uid = swiched_host.sw_max_id
+            if ignore_max_uid >= swiched_host.sw_max_id:
+                ignore_max_uid = swiched_host.sw_max_id + 1
         else:
             logger.info(
                 "machine {} {} NOT all instance swithed , continue wait entry time : {} {}".format(
-                    swiched_host.ip, swiched_host.switch_ports, waiter.entry, swiched_host.sw_result
+                    swiched_host.ip, swiched_host.switch_ports, waiter.entry, swiched_host
                 )
             )
-            if wait_small_uid < swiched_host.sw_min_id:
+            if wait_small_uid <= swiched_host.sw_min_id:
                 wait_small_uid = swiched_host.sw_min_id
             waiter.counter = waiter.counter + 1
 
@@ -206,7 +206,7 @@ def save_swithed_host_by_cluster(batch_small: int, switch_hosts: Dict):
     switched_cluster = {}
     # 以集群维度聚合故障信息
     for swiched_host in switch_hosts.values():
-        if swiched_host.sw_max_id < batch_small:
+        if swiched_host.sw_max_id < batch_small and not swiched_host.ignore_fix:
             cluster = swiched_host.immute_domain
             if not switched_cluster.get(cluster):
                 switched_cluster[cluster] = {

@@ -11,11 +11,11 @@ import (
 )
 
 // FilterMigratePriv 过滤不能迁移的帐号规则
-func FilterMigratePriv(appWhere string, exclude *[]AppUser) ([]string, []string, []string, error) {
+func FilterMigratePriv(appWhere string, exclude *[]AppUser) ([]string, []string, []int, error) {
 	all := make([]*PrivModule, 0)
 	uids := make([]string, 0)
 	mysqlUids := make([]string, 0)
-	exUids := make([]string, 0)
+	exUids := make([]int, 0)
 
 	// 获取所有的帐号规则
 	vsql := fmt.Sprintf("select uid,app,db_module,user "+
@@ -36,14 +36,14 @@ func FilterMigratePriv(appWhere string, exclude *[]AppUser) ([]string, []string,
 			}
 		}
 		if !excludeFlag {
-			suid := strconv.FormatInt(module.Uid, 10)
+			suid := strconv.Itoa(module.Uid)
 			uids = append(uids, suid)
 			// gcs spider_master 、spider_slave 的帐号规则不被添加到dbm tendbha的帐号规则中
 			if module.DbModule != "spider_master" && module.DbModule != "spider_slave" {
 				mysqlUids = append(mysqlUids, suid)
 			}
 		} else {
-			exUids = append(exUids, strconv.FormatInt(module.Uid, 10))
+			exUids = append(exUids, module.Uid)
 		}
 	}
 	if len(uids) == 0 && len(mysqlUids) == 0 {

@@ -114,7 +114,11 @@
           :label="t('binlog pos')"
           property="binlog_pos"
           required>
-          <NumberInput v-model="formModel.binlog_pos" />
+          <BkInput
+            v-model="formModel.binlog_pos"
+            :min="1"
+            type="number" />
+          <!-- <NumberInput v-model="formModel.binlog_pos" /> -->
         </BkFormItem>
       </BkForm>
     </div>
@@ -152,7 +156,7 @@
 
   import type { DumperInstanceModel } from '../Index.vue';
 
-  import NumberInput from './NumberInput.vue';
+  // import NumberInput from './NumberInput.vue';
 
   interface Props {
     data: DumperInstanceModel,

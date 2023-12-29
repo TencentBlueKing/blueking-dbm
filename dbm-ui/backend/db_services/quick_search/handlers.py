@@ -11,6 +11,7 @@ specific language governing permissions and limitations under the License.
 from django.db.models import F, Q
 from django.forms import model_to_dict
 
+from backend.components.dbresource.client import DBResourceApi
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Cluster, Machine, ProxyInstance, StorageInstance
 from backend.db_services.quick_search.constants import FilterType, ResourceType
@@ -205,3 +206,6 @@ class QSearchHandler(object):
                 "id", "creator", "create_at", "bk_biz_id", "ticket_type", "group", "status", "is_reviewed"
             )
         )
+
+    def filter_resource_pool(self, keyword_list: list):
+        return DBResourceApi.resource_list({"hosts": keyword_list, "limit": self.limit, "offset": 0})["details"]

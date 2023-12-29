@@ -67,7 +67,7 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
         生成并获取mysql实例配置,集群级别配置
         spider/spider-ctl/spider-mysql实例统一用这里拿去配置
         """
-        data = DBConfigApi.get_instance_config(
+        data = DBConfigApi.get_or_generate_instance_config(
             {
                 "bk_biz_id": str(self.ticket_data["bk_biz_id"]),
                 "level_name": LevelName.CLUSTER,

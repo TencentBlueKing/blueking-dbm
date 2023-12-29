@@ -52,9 +52,16 @@ def _check_tendis_full_backup():
                 1.2.4  过滤掉 刚扩容，重建热备-> 创建时间小于24小时的节点
 
     备份规则：
-    redis 全备份每天三次，一般的时间点如下：
+    redis cache 全备份每天三次，一般的时间点如下：
     cron: 0 5,13,21 * * *
+    ssd，plus 每天一次全备份,早上五点
     """
+
+    """
+    删除时间大于60天的记录,全备份和binlog都是同一张表，这里操作就好
+    """
+    RedisBackupCheckReport.objects.filter(create_at__lte=timezone.now() - timedelta(days=60)).delete()
+
     # 构建查询条件:tendisplus,ssd,cache,集群创建时间大于1天，巡检0点发起
     query = (
         Q(cluster_type=ClusterType.TendisPredixyTendisplusCluster)
@@ -110,67 +117,67 @@ def _check_tendis_full_backup():
         if not bklogs:
             msg = _("无法查找到在时间范围内{}-{}，集群{}的全备份日志").format(start_time, end_time, c.immute_domain)
             logger.error(msg)
-            RedisBackupCheckReport.objects.create(
-                creator=c.creator,
-                bk_biz_id=c.bk_biz_id,
-                bk_cloud_id=c.bk_cloud_id,
-                cluster=c.immute_domain,
-                cluster_type=c.cluster_type,
-                instance="all instance",
-                status=False,
-                msg=msg,
-                subtype=RedisBackupCheckSubType.FullBackup.value,
-            )
+            instance = "all instance"
+            full_backup_failed_record(c, instance, msg)
+            continue
 
-        else:
-            for bklog in bklogs:
-                # 失败的记录，直接记录:同一条记录，不可能又存在失败的，又存在成功的，所以有失败的直接入库了
-                if bklog.get("backup_status", "") == "to_backup_system_failed":
-                    logger.error("+===+++++=== to_backup_system_failed bklog: {} +++++===++++ ".format(bklog))
-                    RedisBackupCheckReport.objects.create(
-                        creator=c.creator,
-                        bk_biz_id=c.bk_biz_id,
-                        bk_cloud_id=c.bk_cloud_id,
-                        cluster=c.immute_domain,
-                        cluster_type=c.cluster_type,
-                        instance=bklog["redis_ip"] + IP_PORT_DIVIDER + str(bklog["redis_port"]),
-                        status=False,
-                        msg=bklog["backup_status_info"],
-                        subtype=RedisBackupCheckSubType.FullBackup.value,
-                    )
+        logger.info(_("+===+++++===  {} 集群维度日志不为空 +++++===++++ ".format(c.immute_domain)))
+        for bklog in bklogs:
+            # 失败的记录，直接记录:同一条记录，不可能又存在失败的，又存在成功的，所以有失败的直接入库了
+            if bklog.get("backup_status", "") == "to_backup_system_failed":
+                logger.error("+===+++++=== to_backup_system_failed bklog: {} +++++===++++ ".format(bklog))
+                msg = bklog["backup_status_info"]
+                instance = bklog["redis_ip"] + IP_PORT_DIVIDER + str(bklog["redis_port"])
+                full_backup_failed_record(c, instance, msg)
 
-                # 对成功的进行处理
-                if bklog.get("backup_status", "") == "to_backup_system_success":
-                    # 集群的master和slave 都进行统计
-                    for instance in cluster_all_instance:
-                        ip, port = instance.split(":")
-                        if ip == bklog["redis_ip"] and int(port) == bklog["redis_port"]:
-                            # 找到匹配的项，更新计数
-                            bklog_success_instance_count[instance] += 1
+            # 对成功的进行处理
+            if bklog.get("backup_status", "") == "to_backup_system_success":
+                # 集群的master和slave 都进行统计
+                for instance in cluster_all_instance:
+                    ip, port = instance.split(":")
+                    if ip == bklog["redis_ip"] and int(port) == bklog["redis_port"]:
+                        # 找到匹配的项，更新计数
+                        bklog_success_instance_count[instance] += 1
+        # 校验instance和对应的计数：可能存在master备份，也可能存在slave的备份
+        for instance, count in bklog_success_instance_count.items():
+            # 默认是对slave进行备份，slave进行校验
+            if instance not in cluster_slave_instance:
+                continue
+            logger.info(_("+===++==={}正常备份次数{}，集群类型{} ++++++++ ".format(instance, count, c.cluster_type)))
+            # ssd,plus 每天备份一次
+            if c.cluster_type in (ClusterType.TendisPredixyTendisplusCluster, ClusterType.TwemproxyTendisSSDInstance):
+                expect_count = 1
+            # cahce 每天备份三次
+            elif c.cluster_type == ClusterType.TendisTwemproxyRedisInstance:
+                expect_count = 3
+            else:
+                continue
+            master_instance = slave_ins_map[instance]
+            master_backup_count = bklog_success_instance_count[master_instance]
 
-            # 校验instance 和对应的计数:可能存在master,也可能存在slave的
-            for instance, count in bklog_success_instance_count.items():
-                # 先对slave进行校验
-                if instance in cluster_slave_instance:
-                    # slave 备份不完整时，继续校验master备份是否完整
-                    if count < 3:
-                        # 获取slave对应的master
-                        master_instance = slave_ins_map[instance]
-                        master_backup_count = bklog_success_instance_count[master_instance]
-                        # 如果master也不足3次备份，则记录备份异常
-                        if master_backup_count < 3:
-                            RedisBackupCheckReport.objects.create(
-                                creator=c.creator,
-                                bk_biz_id=c.bk_biz_id,
-                                bk_cloud_id=c.bk_cloud_id,
-                                cluster=c.immute_domain,
-                                cluster_type=c.cluster_type,
-                                instance=instance,
-                                status=False,
-                                msg="slave:{} the number of files successfully backed is:{},"
-                                "master:{} the number of files successfully backed is:{}："
-                                "There are no backup files 3 times，please check! ".format(
-                                    instance, count, master_instance, master_backup_count
-                                ),
-                                subtype=RedisBackupCheckSubType.FullBackup.value,
-                            )
+            if count < expect_count and master_backup_count < expect_count:
+                msg = """slave:{} the number of files successfully backed is:{},
+                master:{} the number of files successfully backed is:{}：
+                There are no backup files {} times, please check! """.format(
+                    instance, count, master_instance, master_backup_count, expect_count
+                )
+                # 记录备份失败的集群和实例
+                full_backup_failed_record(c, instance, msg)
+
+
+def full_backup_failed_record(c: Cluster, instance: str, msg: str):
+    """
+    记录全备备份失败的集群和实例
+    """
+    logger.info(_("+===++===  实例{}全备份失败，集群类型{}写入表 ++++++++ ".format(instance, c.cluster_type)))
+    RedisBackupCheckReport.objects.create(
+        creator=c.creator,
+        bk_biz_id=c.bk_biz_id,
+        bk_cloud_id=c.bk_cloud_id,
+        cluster=c.immute_domain,
+        cluster_type=c.cluster_type,
+        instance=instance,
+        status=False,
+        msg=msg,
+        subtype=RedisBackupCheckSubType.FullBackup.value,
+    )

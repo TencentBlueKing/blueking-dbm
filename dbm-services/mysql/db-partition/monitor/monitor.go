@@ -48,8 +48,8 @@ func SendEvent(eventName string, dimension map[string]interface{}, content strin
 	}
 	c := util.NewClientByHosts(viper.GetString("monitor.service"))
 	_, err := c.Do(http.MethodPost, "", body)
+	slog.Info(fmt.Sprintf("SendEvent:%v", body))
 	if err != nil {
-		slog.Info(fmt.Sprintf("%v", body))
 		slog.Error("msg", "send partition event error", err)
 		// 监控无法上报，如果服务异常无法上报监控，所以让服务退出，可触发服务故障的告警。
 		InitMonitor()
@@ -103,8 +103,8 @@ func TestSendEvent(dataId int, token string, serviceHost string) error {
 	}
 	c := util.NewClientByHosts(serviceHost)
 	_, err := c.Do(http.MethodPost, "", body)
+	slog.Info(fmt.Sprintf("TestSendEvent:%v", body))
 	if err != nil {
-		slog.Info(fmt.Sprintf("%v", body))
 		slog.Error("msg", "send partition event error", err)
 		return err
 	}

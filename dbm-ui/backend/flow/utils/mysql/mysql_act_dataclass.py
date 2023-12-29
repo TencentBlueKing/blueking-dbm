@@ -14,7 +14,7 @@ from typing import Any, Optional
 
 from backend import env
 from backend.env import BACKUP_DOWNLOAD_USER, BACKUP_DOWNLOAD_USER_PWD
-from backend.flow.consts import DBA_ROOT_USER, DnsOpType, MediumFileTypeEnum
+from backend.flow.consts import DBA_ROOT_USER, DEFAULT_JOB_TIMEOUT, DnsOpType, MediumFileTypeEnum
 from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
 
 """
@@ -36,7 +36,7 @@ class ExecActuatorBaseKwargs:
     get_mysql_payload_func: str = None  # 上下文中MysqlActPayload类的获取参数方法名称。空则传入None
     cluster_type: str = None  # 表示操作的集群类型,如果过程中不需要这个变量，则可以传None
     cluster: dict = field(default_factory=dict)  # 表示单据执行的集群信息，比如集群名称，集群域名等
-    job_timeout: int = 7200
+    job_timeout: int = DEFAULT_JOB_TIMEOUT
 
 
 @dataclass()

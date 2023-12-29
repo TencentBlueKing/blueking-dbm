@@ -126,7 +126,7 @@ func (b *BaseOptions) DeserializeNonStandard(s interface{}) (err error) {
 	if b.PayloadFormat == PayloadFormatRaw {
 		bp = []byte(b.Payload)
 	} else {
-		logger.Info("DeserializeAndValidate payload body: %s", b.Payload)
+		// logger.Info("DeserializeAndValidate payload body: %s", b.Payload)
 		bp, err = base64.StdEncoding.DecodeString(b.Payload)
 		if err != nil {
 			return err
@@ -138,7 +138,6 @@ func (b *BaseOptions) DeserializeNonStandard(s interface{}) (err error) {
 		logger.Warn("env parse error, ignore environment variables for payload:%s", err.Error())
 		// env: expected a pointer to a Struct
 	}
-	defer logger.Info("payload parsed: %+v", s)
 	if err = json.Unmarshal(bp, s); err != nil {
 		logger.Error("json.Unmarshal failed, %v", s, err)
 		return
@@ -159,7 +158,7 @@ func Deserialize(s interface{}) (p *BaseOptions, err error) {
 	if GBaseOptions.PayloadFormat == PayloadFormatRaw {
 		bp = []byte(GBaseOptions.Payload)
 	} else {
-		logger.Info("Deserialize payload body: %s", GBaseOptions.Payload)
+		// logger.Debug("Deserialize payload body: %s", GBaseOptions.Payload)
 		bp, err = base64.StdEncoding.DecodeString(GBaseOptions.Payload)
 		if err != nil {
 			return nil, err
@@ -168,7 +167,6 @@ func Deserialize(s interface{}) (p *BaseOptions, err error) {
 	if err := env.Parse(s); err != nil {
 		logger.Warn("env parse error, ignore environment variables for payload:%s", err.Error())
 	}
-	logger.Info("params from env %+v", s)
 	g := components.RuntimeAccountParam{}
 	if err := env.Parse(&g); err != nil {
 		logger.Warn("env parse error, ignore environment variables for payload:%s", err.Error())
@@ -184,7 +182,6 @@ func Deserialize(s interface{}) (p *BaseOptions, err error) {
 		err = errors.WithMessage(err, "参数解析错误")
 		return nil, err
 	}
-	// logger.Info("params after unmarshal %+v", bip)
 	if err = validate.GoValidateStruct(bip, false, true); err != nil {
 		logger.Error("validate struct failed, %v", s, err)
 		err = errors.WithMessage(err, "参数输入错误")
@@ -205,7 +202,7 @@ func (b *BaseOptions) Deserialize(s interface{}) (err error) {
 	if b.PayloadFormat == PayloadFormatRaw {
 		bp = []byte(b.Payload)
 	} else {
-		logger.Info("Deserialize payload body: %s", b.Payload)
+		//	logger.Info("Deserialize payload body: %s", b.Payload)
 		bp, err = base64.StdEncoding.DecodeString(b.Payload)
 		if err != nil {
 			return err
@@ -214,24 +211,20 @@ func (b *BaseOptions) Deserialize(s interface{}) (err error) {
 	if err := env.Parse(s); err != nil {
 		logger.Warn("env parse error, ignore environment variables for payload:%s", err.Error())
 	}
-	logger.Info("params from env %+v", s)
 	g := components.RuntimeAccountParam{}
 	if err := env.Parse(&g); err != nil {
 		logger.Warn("env parse error, ignore environment variables for payload:%s", err.Error())
 	}
-	// logger.Info("Account from env: %+v", g)
 	bip := components.BaseInputParam{
 		ExtendParam:  s,
 		GeneralParam: &components.GeneralParam{RuntimeAccountParam: g},
 	}
-	defer logger.Info("payload parsed: %+v", bip)
 	if err = json.Unmarshal(bp, &bip); err != nil {
 		logger.Error("json.Unmarshal failed, %v", s, err)
 		err = errors.WithMessage(err, "参数解析错误")
 		return err
 	}
 	s = bip.ExtendParam
-	// logger.Info("params after unmarshal %+v", bip)
 	if err = validate.GoValidateStruct(bip, false, true); err != nil {
 		logger.Error("validate struct failed, %v", s, err)
 		err = errors.WithMessage(err, "参数输入错误")

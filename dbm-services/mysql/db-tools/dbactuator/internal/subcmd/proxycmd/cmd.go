@@ -27,6 +27,7 @@ func NewMysqlProxyCommand() *cobra.Command {
 				NewUnInstallProxyCommand(),
 				NewCloneProxyUserCommand(),
 				NewRestartProxyCommand(),
+				NewMySQLProxyUpgradeAct(),
 			},
 		},
 	}

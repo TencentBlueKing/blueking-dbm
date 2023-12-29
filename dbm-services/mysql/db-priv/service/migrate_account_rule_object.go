@@ -13,9 +13,15 @@ type AppUser struct {
 	User string `json:"user" gorm:"column:user"`
 }
 
+type PrivRule struct {
+	App    string `json:"app" gorm:"column:app"`
+	User   string `json:"user" gorm:"column:user"`
+	Dbname string `json:"dbname" gorm:"column:dbname"`
+}
+
 // PrivModule scr、gcs账号规则的结构
 type PrivModule struct {
-	Uid        int64  `json:"uid" gorm:"column:uid"`
+	Uid        int    `json:"uid" gorm:"column:uid"`
 	App        string `json:"app" gorm:"column:app"`
 	DbModule   string `json:"db_module" gorm:"column:db_module"`
 	Module     string `json:"module" gorm:"column:module"`
@@ -32,6 +38,8 @@ type MigratePara struct {
 	Apps  string `json:"apps" `
 	Key   string `json:"key"`
 	Mode  string `json:"mode"`
+	// 迁移范围，可选all、mysql、spider
+	Range string `json:"range"`
 }
 
 // DbConf 帐号规则所在数据库的配置

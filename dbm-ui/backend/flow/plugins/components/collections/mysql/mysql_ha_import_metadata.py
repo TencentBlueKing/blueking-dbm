@@ -113,10 +113,12 @@ class MySQLHAImportMetadataService(BaseService):
         cluster_ids = []
         for cluster_json in json_content:
             cluster_obj = self._create_cluster(
+                cluster_id=cluster_json["cluster_id"],
                 name=cluster_json["name"],
                 immute_domain=cluster_json["immute_domain"].rstrip("."),
                 version=cluster_json["version"],  # ["master"]["Version"],
                 disaster=cluster_json["disaster_level"],
+                creator=global_data["created_by"],
             )
 
             master_obj = self._create_master_instance(cluster_json=cluster_json)
@@ -246,8 +248,11 @@ class MySQLHAImportMetadataService(BaseService):
             phase=InstancePhase.TRANS_STAGE.value,
         )
 
-    def _create_cluster(self, name: str, immute_domain: str, version: str, disaster: str) -> Cluster:
+    def _create_cluster(
+        self, cluster_id: int, name: str, immute_domain: str, version: str, disaster: str, creator: str
+    ) -> Cluster:
         return Cluster.objects.create(
+            id=cluster_id,
             name=name,
             bk_biz_id=self.bk_biz_id,
             cluster_type=ClusterType.TenDBHA.value,
@@ -258,6 +263,7 @@ class MySQLHAImportMetadataService(BaseService):
             status=ClusterStatus.NORMAL.value,
             bk_cloud_id=0,
             disaster_tolerance_level=disaster,
+            creator=creator,
         )
 
     def _create_master_instance(self, cluster_json: Dict) -> StorageInstance:
