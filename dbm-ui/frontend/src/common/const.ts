@@ -25,6 +25,7 @@ export enum DBTypes {
   PULSAR = 'pulsar',
   INFLUXDB = 'influxdb',
   SPIDER = 'spider',
+  RIAK = 'riak'
 }
 export type DBTypesValues = `${DBTypes}`
 
@@ -261,7 +262,14 @@ export enum TicketTypes {
   TBINLOGDUMPER_REDUCE_NODES = 'TBINLOGDUMPER_REDUCE_NODES', // dumper 节点下架
   TBINLOGDUMPER_ENABLE_NODES = 'TBINLOGDUMPER_ENABLE_NODES', // dumper 节点启动
   TBINLOGDUMPER_DISABLE_NODES = 'TBINLOGDUMPER_DISABLE_NODES', // dumper 节点禁用
-}
+  RIAK_CLUSTER_APPLY = 'RIAK_CLUSTER_APPLY', // Riak 集群申请
+  RIAK_CLUSTER_DESTROY = 'RIAK_CLUSTER_DESTROY', // Riak 集群删除
+  RIAK_CLUSTER_DISABLE = 'RIAK_CLUSTER_DISABLE', // Riak 集群禁用
+  RIAK_CLUSTER_ENABLE = 'RIAK_CLUSTER_ENABLE', // Riak 集群启用
+  RIAK_CLUSTER_SCALE_OUT = 'RIAK_CLUSTER_SCALE_OUT', // Riak 集群扩容
+  RIAK_CLUSTER_SCALE_IN = 'RIAK_CLUSTER_SCALE_IN', // Riak 集群缩容
+  RIAK_CLUSTER_REBOOT = 'RIAK_CLUSTER_REBOOT' // Riak 节点重启
+ }
 export type TicketTypesStrings = keyof typeof TicketTypes;
 
 /**
@@ -326,6 +334,11 @@ export const bigDataType = {
     id: TicketTypes.INFLUXDB_APPLY,
     name: t('InfluxDB集群部署'),
     type: ClusterTypes.INFLUXDB,
+  },
+  [TicketTypes.RIAK_CLUSTER_APPLY]: {
+    id: TicketTypes.RIAK_CLUSTER_APPLY,
+    name: t('Riak集群部署'),
+    type: ClusterTypes.RIAK,
   },
 };
 

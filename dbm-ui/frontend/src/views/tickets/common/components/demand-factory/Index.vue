@@ -29,9 +29,12 @@
   import DetailsInfluxDB from './bigdata/DetailsInfluxDB.vue';
   import DetailsKafka from './bigdata/DetailsKafka.vue';
   import DetailsPulsar from './bigdata/DetailsPulsar.vue';
+  import DetailRiak from './bigdata/DetailsRiak.vue';
   import BigDataExpansionCapacity from './bigdata/expansion-capacity/Index.vue';
   import BigDataReboot from './bigdata/Reboot.vue';
   import BigDataReplace from './bigdata/Replace.vue';
+  import RiakExpansionCapacity from './bigdata/RiakExpansionCapacity.vue';
+  import RiakReboot from './bigdata/RiakReboot.vue';
   import InfluxdbOperations from './influxdb/Operations.vue';
   import InfluxdbReplace from './influxdb/Replace.vue';
   import MySQLChecksum from './mysql/Checksum.vue';
@@ -129,6 +132,9 @@
     TicketTypes.PULSAR_ENABLE,
     TicketTypes.PULSAR_DISABLE,
     TicketTypes.PULSAR_DESTROY,
+    TicketTypes.RIAK_CLUSTER_DISABLE,
+    TicketTypes.RIAK_CLUSTER_ENABLE,
+    TicketTypes.RIAK_CLUSTER_DESTROY,
   ];
 
   const mysqlClusterTicketType = [
@@ -173,6 +179,11 @@
     TicketTypes.KAFKA_SHRINK,
     TicketTypes.PULSAR_SHRINK,
     TicketTypes.PULSAR_SCALE_UP,
+  ];
+
+  const riakCapacityType = [
+    TicketTypes.RIAK_CLUSTER_SCALE_IN,
+    TicketTypes.RIAK_CLUSTER_SCALE_OUT,
   ];
 
   const clones = [
@@ -268,6 +279,8 @@
     [TicketTypes.TENDBCLUSTER_DB_TABLE_BACKUP]: SpiderTableBackup,
     [TicketTypes.TENDBCLUSTER_TRUNCATE_DATABASE]: SpiderTruncateDatabase,
     [TicketTypes.TENDBCLUSTER_PARTITION]: SpiderPartitionManage,
+    [TicketTypes.RIAK_CLUSTER_APPLY]: DetailRiak,
+    [TicketTypes.RIAK_CLUSTER_REBOOT]: RiakReboot,
   };
 
   // 不同集群详情组件
@@ -310,6 +323,10 @@
     // 大数据扩缩容
     if (bigDataCapacityType.includes(ticketType)) {
       return BigDataExpansionCapacity;
+    }
+    // Riak 扩缩容
+    if (riakCapacityType.includes(ticketType)) {
+      return RiakExpansionCapacity;
     }
     // Spider 主从相关
     if (spiderMasterSlaveTypes.includes(ticketType)) {

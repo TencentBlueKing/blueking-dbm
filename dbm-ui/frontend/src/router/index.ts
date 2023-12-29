@@ -45,6 +45,7 @@ import getPlatformDbConfigureRoutes from '@views/platform-db-configure/routes';
 import getPulsarRoutes from '@views/pulsar-manage/routes';
 import getRedisRoutes from '@views/redis/routes';
 import getResourceManageRoutes from '@views/resource-manage/routes';
+import getRiakManage from '@views/riak-manage/routes';
 import getServiceApplyRoutes from '@views/service-apply/routes';
 import getSpiderManageRoutes from '@views/spider-manage/routes';
 import getStaffSettingRoutes from '@views/staff-setting/routes';
@@ -125,6 +126,7 @@ export default () => {
           ...getWhitelistRoutes(),
           ...getTicketManageRoutes(),
           ...getTemporaryPasswordModify(),
+          ...getRiakManage(bigdataController),
         ],
       },
       {
