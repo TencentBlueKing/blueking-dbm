@@ -12,7 +12,7 @@ specific language governing permissions and limitations under the License.
 fast_execute_script_common_kwargs = {
     "timeout": 3600,
     "account_alias": "root",
-    "is_param_sensitive": 0,
+    "is_param_sensitive": 1,
 }
 
 # fast_transfer_file接口固定参数
@@ -36,7 +36,7 @@ fi
 
 cd /data/install/dbactuator-{{uid}}
 chmod +x dbactuator
-./dbactuator {{db_type}} {{action}} --uid {{uid}} --root_id {{root_id}} --node_id {{node_id}} --version_id {{version_id}} --payload {{payload}}
+./dbactuator {{db_type}} {{action}} --uid {{uid}} --root_id {{root_id}} --node_id {{node_id}} --version_id {{version_id}} --payload $1
 """  # noqa
 
 # 运行dba_toolkit的命令
