@@ -67,7 +67,6 @@ class CCTopoOperator:
                 cluster_id=cluster.id,
                 creator=cluster.creator,
             )
-
         # 创建完成后进行缓存，不重复检查和创建
         self.is_bk_module_created = True
 

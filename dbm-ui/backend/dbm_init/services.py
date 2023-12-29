@@ -26,19 +26,14 @@ from backend.core.storages.constants import FileCredentialType, StorageType
 from backend.core.storages.file_source import BkJobFileSourceManager
 from backend.core.storages.storage import get_storage
 from backend.db_meta.models import AppMonitorTopo
+from backend.db_services.cmdb.biz import get_or_create_cmdb_module_with_name, get_or_create_set_with_name
 from backend.db_services.ipchooser.constants import DB_MANAGE_SET, DIRTY_MODULE, RESOURCE_MODULE
 from backend.dbm_init.constants import CC_APP_ABBR_ATTR, CC_HOST_DBM_ATTR
 from backend.dbm_init.json_files.format import JsonConfigFormat
 from backend.exceptions import ApiError, ApiRequestError, ApiResultError
-from backend.flow.utils.cc_manage import CcManage
 from backend.utils.time import datetime2str
 
 logger = logging.getLogger("root")
-
-# ToDo：支持命令行参数控制
-EXCLUDE_DB_TYPES = [
-    # DBType.Pulsar.value, DBType.InfluxDB.value
-]
 
 
 class Services:
@@ -102,15 +97,15 @@ class Services:
         return dbm_service_id
 
     @staticmethod
-    def auto_create_bklog_service() -> bool:
+    def auto_create_bklog_service(startswith: str = "") -> bool:
         """
-        创建/更新 bk dbm的itsm服务
-        采集项服务一般不会更改，因此这里就不涉及更新服务了
+        创建/更新 日志平台 采集项
         """
-
         bklog_json_files_path = "backend/dbm_init/json_files/bklog"
         for filename in os.listdir(bklog_json_files_path):
             if not filename.endswith(".json"):
+                continue
+            if not filename.startswith(startswith):
                 continue
 
             # 读取日志采集项json文件，并渲染配置
@@ -123,10 +118,7 @@ class Services:
                 log_name = filename.split(".")[0]
                 # 优先获取指定了 log_name 的 formatter
                 if hasattr(JsonConfigFormat, f"format_{log_name}"):
-                    bklog_params = JsonConfigFormat.format(
-                        bklog_params,
-                        f"format_{log_name}",
-                    )
+                    bklog_params = JsonConfigFormat.format(bklog_params, f"format_{log_name}")
                 # 根据不同 db 类型，指定对应的 formatter，主要是区分采集目标
                 elif "mysql" in filename:
                     bklog_params = JsonConfigFormat.format(bklog_params, JsonConfigFormat.format_mysql.__name__)
@@ -245,14 +237,12 @@ class Services:
         # 初始化db的管理集群和相关模块
         if not SystemSettings.get_setting_value(key=SystemSettingsEnum.MANAGE_TOPO.value):
             # 创建管理集群
-            manage_set_id = CcManage.get_or_create_set_with_name(
-                bk_biz_id=env.DBA_APP_BK_BIZ_ID, bk_set_name=DB_MANAGE_SET
-            )
+            manage_set_id = get_or_create_set_with_name(bk_biz_id=env.DBA_APP_BK_BIZ_ID, bk_set_name=DB_MANAGE_SET)
             # 创建资源池模块和污点池模块
             manage_modules = [RESOURCE_MODULE, DIRTY_MODULE]
             module_name__module_id = {}
             for module in manage_modules:
-                module_id = CcManage.get_or_create_module_with_name(
+                module_id = get_or_create_cmdb_module_with_name(
                     bk_biz_id=env.DBA_APP_BK_BIZ_ID, bk_set_id=manage_set_id, bk_module_name=module
                 )
                 module_name__module_id[module] = module_id

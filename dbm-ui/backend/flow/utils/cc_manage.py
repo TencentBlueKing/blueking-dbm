@@ -20,9 +20,11 @@ from backend.configuration.models import DBAdministrator, SystemSettings
 from backend.db_meta.enums import ClusterType, ClusterTypeMachineTypeDefine
 from backend.db_meta.models import AppMonitorTopo, Cluster, ClusterMonitorTopo, Machine, StorageInstance
 from backend.db_meta.models.cluster_monitor import INSTANCE_MONITOR_PLUGINS, SET_NAME_TEMPLATE
+from backend.db_monitor.models import CollectInstance
 from backend.db_services.ipchooser.constants import IDLE_HOST_MODULE
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.dbm_init.constants import CC_HOST_DBM_ATTR
+from backend.dbm_init.services import Services
 from backend.exceptions import ApiError
 
 logger = logging.getLogger("flow")
@@ -40,67 +42,6 @@ class CcManage(object):
         # 主机在 cmdb 上实际托管的业务（通常可能为 DBM 统一业务）
         self.hosting_biz_id = SystemSettings.get_exact_hosting_biz(bk_biz_id)
 
-    @classmethod
-    def get_or_create_set_with_name(cls, bk_biz_id: int, bk_set_name: str) -> int:
-        """
-        根据名称获取拓扑中的集群id
-        @param bk_biz_id: 业务ID
-        @param bk_set_name: 集群名
-        """
-        res = CCApi.search_set(
-            params={
-                "bk_biz_id": bk_biz_id,
-                "fields": ["bk_set_name", "bk_set_id"],
-                "condition": {"bk_set_name": bk_set_name},
-            },
-            use_admin=True,
-        )
-
-        if res["count"] > 0:
-            return res["info"][0]["bk_set_id"]
-
-        res = CCApi.create_set(
-            params={
-                "bk_biz_id": bk_biz_id,
-                "data": {
-                    "bk_parent_id": bk_biz_id,
-                    "bk_set_name": bk_set_name,
-                },
-            },
-            use_admin=True,
-        )
-        return res["bk_set_id"]
-
-    @classmethod
-    def get_or_create_module_with_name(cls, bk_biz_id: int, bk_set_id: int, bk_module_name: str) -> int:
-        """
-        根据名称获取模块id(不同组件属于到不同的模块)
-        @param bk_biz_id: 业务ID
-        @param bk_set_id: 集群ID
-        @param bk_module_name: 模块名字
-        """
-        res = CCApi.search_module(
-            {
-                "bk_biz_id": bk_biz_id,
-                "bk_set_id": bk_set_id,
-                "condition": {"bk_module_name": bk_module_name},
-            },
-            use_admin=True,
-        )
-
-        if res["count"] > 0:
-            return res["info"][0]["bk_module_id"]
-
-        res = CCApi.create_module(
-            {
-                "bk_biz_id": env.DBA_APP_BK_BIZ_ID,
-                "bk_set_id": bk_set_id,
-                "data": {"bk_parent_id": bk_set_id, "bk_module_name": bk_module_name},
-            },
-            use_admin=True,
-        )
-        return res["bk_module_id"]
-
     def get_or_create_set_module(
         self,
         db_type: str,
@@ -111,7 +52,9 @@ class CcManage(object):
         creator: str = "",
     ):
         """创建监控拓扑相关模块"""
-
+        # 是否同步采集项标志
+        sync_collector_flag = False
+        # 主机拓扑
         machine_topo = {}
         for machine_type in ClusterTypeMachineTypeDefine[cluster_type]:
             monitor_plugin = INSTANCE_MONITOR_PLUGINS[db_type][machine_type]
@@ -142,6 +85,10 @@ class CcManage(object):
                     bk_set_id=bk_set["bk_set_id"],
                     bk_set_name=bk_set["bk_set_name"],
                 )
+
+                # 创建蓝鲸模块时，如果是独立托管的业务，需要更新采集，把新增的 集群/模块 同步给监控采集项/日志采集项
+                if created and self.hosting_biz_id != env.DBA_APP_BK_BIZ_ID:
+                    sync_collector_flag = True
 
             bk_set_id = app_monitor_topo.bk_set_id
 
@@ -178,10 +125,17 @@ class CcManage(object):
                 bk_module_id=bk_module["bk_module_id"],
             )
             machine_topo[machine_type] = topo.bk_module_id
+
+        # 同步采集项
+        if sync_collector_flag:
+            CollectInstance.sync_collect_strategy(db_type=db_type, force=True)
+            Services.auto_create_bklog_service(startswith=db_type)
+
         logger.info("get_or_create_set_module machine_topo: {}".format(machine_topo))
         return machine_topo
 
-    def get_biz_internal_module(self, bk_biz_id: int):
+    @staticmethod
+    def get_biz_internal_module(bk_biz_id: int):
         """获取业务下的内置模块"""
         biz_internal_module = ResourceQueryHelper.get_biz_internal_module(bk_biz_id)
         module_type__module = {module["default"]: module for module in biz_internal_module["module"]}

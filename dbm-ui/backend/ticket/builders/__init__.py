@@ -23,7 +23,6 @@ from backend.configuration.constants import SystemSettingsEnum
 from backend.configuration.models import DBAdministrator, SystemSettings
 from backend.db_meta.models import Cluster
 from backend.db_services.dbbase.constants import IpSource
-from backend.dbm_init.services import Services
 from backend.ticket.constants import FlowRetryType, FlowType
 from backend.ticket.models import Flow, Ticket, TicketFlowConfig
 
@@ -131,10 +130,6 @@ class ItsmParamBuilder(CallBackBuilderMixin):
         # clusters只是为了给服务单详情展示的信息，不需要在单据中体现
         self.details.pop("clusters", None)
         service_id = SystemSettings.get_setting_value(SystemSettingsEnum.BK_ITSM_SERVICE_ID.value)
-        if not service_id:
-            Services.auto_create_itsm_service()
-            service_id = SystemSettings.get_setting_value(SystemSettingsEnum.BK_ITSM_SERVICE_ID.value)
-
         title = self.ticket.get_ticket_type_display()
         params = {
             "service_id": service_id,
