@@ -20,6 +20,7 @@ import { retrieveHdfsInstance } from '@services/source/hdfs';
 import { retrieveKafkaInstance } from '@services/source/kafka';
 import { retrievePulsarInstance } from '@services/source/pulsar';
 import { retrieveRedisInstance } from '@services/source/redis';
+import { retrieveRiakInstance } from '@services/source/riak';
 import { retrieveSpiderInstance } from '@services/source/spider';
 import { retrieveTendbhaInstance } from '@services/source/tendbha';
 import { retrieveTendbsingleInstance } from '@services/source/tendbsingle';
@@ -28,6 +29,7 @@ import type { InstanceDetails } from '@services/types/clusters';
 
 import { useGlobalBizs } from '@stores';
 
+import { DBTypes } from '@common/const';
 import { dbTippy } from '@common/tippy';
 
 import DbStatus from '@components/db-status/index.vue';
@@ -122,6 +124,7 @@ const apiMap: Record<string, (params: any) => Promise<any>> = {
   tendbsingle: retrieveTendbsingleInstance,
   tendbha: retrieveTendbhaInstance,
   tendbcluster: retrieveSpiderInstance,
+  riak: retrieveRiakInstance,
 };
 
 const entryTagMap: Record<string, string> = {
@@ -286,6 +289,67 @@ export const useRenderGraph = (props: ClusterTopoProps, nodeConfig: NodeConfig =
       });
   }
 
+  /**
+   * 获取渲染节点 html
+   * @param node 渲染节点
+   * @returns 节点 html
+   */
+  function getNodeRender(node: GraphNode) {
+    let vNode: VNode | string = '';
+
+    if (props.dbType === DBTypes.RIAK) {
+      const { url } = node.data as ResourceTopoNode;
+      vNode = (
+        <div class={['cluster-node', 'riak-node', { 'has-link': url }]} id={node.id}>
+          <div class="cluster-node__content riak-node-content text-overflow">{node.id}</div>
+        </div>
+      );
+    } else {
+      const isInstance = [nodeTypes.MASTER, nodeTypes.SLAVE].includes(node.id);
+      const iconType = isInstance ? 'cluster-group__icon--round' : '';
+      const isGroup = node.type === GroupTypes.GROUP;
+
+      if (isGroup) {
+        vNode = (
+          <div class="cluster-group">
+            <div class="cluster-group__title">
+              <span class={['cluster-group__icon', iconType]}>{node.label.charAt(0).toUpperCase()}</span>
+              <h5 class="cluster-group__label">{node.label}</h5>
+            </div>
+          </div>
+        );
+      } else {
+        const { node_type: nodeType, url } = node.data as ResourceTopoNode;
+        const isEntryExternalLinks = nodeType.startsWith('entry_') && /^https?:\/\//.test(url);
+        vNode = (
+          <div class={['cluster-node', { 'has-link': url }]} id={node.id}>
+            {
+              isEntryExternalLinks
+                ? (
+                  <a
+                    style="display: flex; align-items: center; color: #63656E;"
+                    href={url}
+                    target="__blank">
+                    <span class="cluster-node__content text-overflow">{node.id}</span>
+                    {
+                      entryTagMap[nodeType]
+                        ? <span class="cluster-node__tag">{entryTagMap[nodeType]}</span>
+                        : null
+                    }
+                    <i class="db-icon-link cluster-node__link" style="flex-shrink: 0; color: #3a84ff;" />
+                  </a>
+                )
+                : <div class="cluster-node__content text-overflow">{node.id}</div>
+            }
+          </div>
+        );
+      }
+    }
+
+    const html = vNodeToHtml(vNode);
+    return typeof html === 'string' ? html : html.outerHTML;
+  }
+
   return {
     graphState,
     instState,
@@ -296,56 +360,6 @@ export const useRenderGraph = (props: ClusterTopoProps, nodeConfig: NodeConfig =
     handleZoomReset,
   };
 };
-
-/**
- * 获取渲染节点 html
- * @param node 渲染节点
- * @returns 节点 html
- */
-function getNodeRender(node: GraphNode) {
-  const isInstance = [nodeTypes.MASTER, nodeTypes.SLAVE].includes(node.id);
-  const iconType = isInstance ? 'cluster-group__icon--round' : '';
-  const isGroup = node.type === GroupTypes.GROUP;
-  let vNode: VNode | string = '';
-
-  if (isGroup) {
-    vNode = (
-      <div class="cluster-group">
-        <div class="cluster-group__title">
-          <span class={['cluster-group__icon', iconType]}>{node.label.charAt(0).toUpperCase()}</span>
-          <h5 class="cluster-group__label">{node.label}</h5>
-        </div>
-      </div>
-    );
-  } else {
-    const { node_type: nodeType, url } = node.data as ResourceTopoNode;
-    const isEntryExternalLinks = nodeType.startsWith('entry_') && /^https?:\/\//.test(url);
-    vNode = (
-      <div class={['cluster-node', { 'has-link': url }]} id={node.id}>
-        {
-          isEntryExternalLinks
-            ? (
-              <a
-                style="display: flex; align-items: center; color: #63656E;"
-                href={url}
-                target="__blank">
-                <span class="cluster-node__content text-overflow">{node.id}</span>
-                {
-                  entryTagMap[nodeType]
-                    ? <span class="cluster-node__tag">{entryTagMap[nodeType]}</span>
-                    : null
-                }
-                <i class="db-icon-link cluster-node__link" style="flex-shrink: 0; color: #3a84ff;" />
-              </a>
-            )
-            : <div class="cluster-node__content text-overflow">{node.id}</div>
-        }
-      </div>
-    );
-  }
-  const html = vNodeToHtml(vNode);
-  return typeof html === 'string' ? html : html.outerHTML;
-}
 
 /**
  * 绘制连线 label

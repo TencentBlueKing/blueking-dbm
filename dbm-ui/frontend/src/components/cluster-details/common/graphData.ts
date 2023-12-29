@@ -15,7 +15,10 @@ import _ from 'lodash';
 
 import type { ResourceTopo } from '@services/types';
 
-import { ClusterTypes } from '@common/const';
+import {
+  ClusterTypes,
+  DBTypes,
+} from '@common/const';
 
 const defaultNodeConfig = {
   width: 296,
@@ -132,26 +135,44 @@ export class GraphData {
    * @param type 集群类型
    * @returns graph data
    */
-  formatGraphData(data: ResourceTopo) {
-    const rootGroups = this.getRootGroups(data);
-    const groups = this.getGroups(data, rootGroups);
-    const groupLines = this.getGroupLines(data);
-    this.calcRootLocations(rootGroups);
-    const [firstRoot] = rootGroups;
-    this.calcNodeLocations(firstRoot, groups, groupLines);
+  formatGraphData(data: ResourceTopo, dbType: string) {
+    let locations: GraphNode[] = [];
+    let lines: GraphLine[] = [];
 
-    // es hdfs 集群特殊逻辑
-    if (([ClusterTypes.ES, ClusterTypes.HDFS] as string[]).includes(this.clusterType)) {
-      this.calcHorizontalAlignLocations(groups);
-    } else if (this.clusterType === ClusterTypes.TENDBCLUSTER) {
-      this.calcSpiderNodeLocations(rootGroups, groups);
+    if (dbType === DBTypes.RIAK) {
+      locations = data.nodes.map((item, index) => ({
+        id: item.node_id,
+        label: item.node_id,
+        data: item,
+        children: [],
+        width: 192,
+        height: 44,
+        x: 100 + (index % 4) * 208,
+        y: 100 + Math.floor(index / 4) * 56,
+        type: 'node', // 节点类型 group | node
+        belong: '', // 节点所属组 ID
+      }));
+    } else {
+      const rootGroups = this.getRootGroups(data);
+      const groups = this.getGroups(data, rootGroups);
+      const groupLines = this.getGroupLines(data);
+      this.calcRootLocations(rootGroups);
+      const [firstRoot] = rootGroups;
+      this.calcNodeLocations(firstRoot, groups, groupLines);
+
+      // es hdfs 集群特殊逻辑
+      if (([ClusterTypes.ES, ClusterTypes.HDFS] as string[]).includes(this.clusterType)) {
+        this.calcHorizontalAlignLocations(groups);
+      } else if (this.clusterType === ClusterTypes.TENDBCLUSTER) {
+        this.calcSpiderNodeLocations(rootGroups, groups);
+      }
+
+      lines = this.getLines(data);
+      const locations: GraphNode[] = [...rootGroups, ...groups].reduce((nodes: GraphNode[], node) => (
+        nodes.concat([node], node.children)
+      ), []);
+      this.calcLines(lines, locations);
     }
-
-    const lines = this.getLines(data);
-    const locations: GraphNode[] = [...rootGroups, ...groups].reduce((nodes: GraphNode[], node) => (
-      nodes.concat([node], node.children)
-    ), []);
-    this.calcLines(lines, locations);
 
     this.graphData = {
       locations,

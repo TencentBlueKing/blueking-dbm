@@ -53,6 +53,9 @@
       },
       "pulsar": {
         "is_enabled": true
+      },
+      "riak": {
+        "is_enabled": true
       }
     }
   },

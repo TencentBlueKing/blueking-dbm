@@ -254,6 +254,13 @@
           name: bigDataType[TicketTypes.KAFKA_APPLY].name,
           icon: 'kafka',
         },
+        {
+          controllerId: 'riak',
+          routeName: 'RiakApply',
+          id: bigDataType[TicketTypes.RIAK_CLUSTER_APPLY].id,
+          name: bigDataType[TicketTypes.RIAK_CLUSTER_APPLY].name,
+          icon: 'cluster',
+        },
       ],
     },
   ];
