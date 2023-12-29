@@ -11,124 +11,93 @@ See the License for the specific language governing permissions and limitations 
 
 from django.utils.translation import ugettext_lazy as _
 
-from ..base import DataAPI
+from ..base import BaseApi
 from ..domains import DBRESOURCE_APIGW_DOMAIN
 
 
-class _DBResourceApi(object):
+class _DBResourceApi(BaseApi):
     MODULE = _("资源池 服务")
+    BASE = DBRESOURCE_APIGW_DOMAIN
 
     def __init__(self):
-        self.resource_import = DataAPI(
+        self.resource_import = self.generate_data_api(
             method="POST",
-            base=DBRESOURCE_APIGW_DOMAIN,
             url="resource/import",
-            module=self.MODULE,
             description=_("资源导入"),
         )
-        self.resource_list = DataAPI(
+        self.resource_list = self.generate_data_api(
             method="POST",
-            base=DBRESOURCE_APIGW_DOMAIN,
             url="resource/list",
-            module=self.MODULE,
             description=_("资源池资源列表"),
         )
-        self.resource_list_all = DataAPI(
+        self.resource_list_all = self.generate_data_api(
             method="POST",
-            base=DBRESOURCE_APIGW_DOMAIN,
             url="resource/list/all",
-            module=self.MODULE,
             description=_("资源池全部资源列表"),
         )
-        self.resource_apply = DataAPI(
+        self.resource_apply = self.generate_data_api(
             method="POST",
-            base=DBRESOURCE_APIGW_DOMAIN,
             url="resource/apply",
-            module=self.MODULE,
             description=_("资源池资源申请"),
         )
-        self.get_mountpoints = DataAPI(
+        self.get_mountpoints = self.generate_data_api(
             method="POST",
-            base=DBRESOURCE_APIGW_DOMAIN,
             url="resource/mountpoints",
-            module=self.MODULE,
             description=_("获取挂载点"),
         )
-        self.get_disktypes = DataAPI(
+        self.get_disktypes = self.generate_data_api(
             method="POST",
-            base=DBRESOURCE_APIGW_DOMAIN,
             url="resource/disktypes",
-            module=self.MODULE,
             description=_("获取磁盘类型"),
         )
-        self.get_subzones = DataAPI(
+        self.get_subzones = self.generate_data_api(
             method="POST",
-            base=DBRESOURCE_APIGW_DOMAIN,
             url="resource/subzones",
-            module=self.MODULE,
             description=_("根据逻辑城市查询园区"),
         )
-        self.resource_pre_apply = DataAPI(
+        self.resource_pre_apply = self.generate_data_api(
             method="POST",
-            base=DBRESOURCE_APIGW_DOMAIN,
             url="resource/pre-apply",
-            module=self.MODULE,
             description=_("资源申请预占用"),
         )
-        self.resource_confirm = DataAPI(
+        self.resource_confirm = self.generate_data_api(
             method="POST",
-            base=DBRESOURCE_APIGW_DOMAIN,
             url="resource/confirm/apply",
-            module=self.MODULE,
             description=_("资源申请确认"),
         )
-        self.resource_delete = DataAPI(
+        self.resource_delete = self.generate_data_api(
             method="POST",
-            base=DBRESOURCE_APIGW_DOMAIN,
             url="resource/delete",
-            module=self.MODULE,
             description=_("资源删除"),
         )
-        self.resource_update = DataAPI(
+        self.resource_update = self.generate_data_api(
             method="POST",
-            base=DBRESOURCE_APIGW_DOMAIN,
             url="resource/update",
-            module=self.MODULE,
             description=_("资源更新"),
         )
-        self.resource_batch_update = DataAPI(
+        self.resource_batch_update = self.generate_data_api(
             method="POST",
-            base=DBRESOURCE_APIGW_DOMAIN,
             url="resource/batch/update",
-            module=self.MODULE,
             description=_("资源批量更新"),
         )
-        self.get_device_class = DataAPI(
+        self.get_device_class = self.generate_data_api(
             method="POST",
-            base=DBRESOURCE_APIGW_DOMAIN,
             url="/resource/deviceclass",
-            module=self.MODULE,
             description=_("获取机型List"),
         )
-        self.operation_list = DataAPI(
+        self.operation_list = self.generate_data_api(
             method="POST",
-            base=DBRESOURCE_APIGW_DOMAIN,
             url="/resource/operation/list",
-            module=self.MODULE,
             description=_("获取操作记录"),
         )
-        self.import_operation_create = DataAPI(
+        self.import_operation_create = self.generate_data_api(
             method="POST",
-            base=DBRESOURCE_APIGW_DOMAIN,
             url="/resource/operation/create",
-            module=self.MODULE,
             description=_("创建导入操作记录"),
         )
-        self.apply_count = DataAPI(
+        self.apply_count = self.generate_data_api(
             method="POST",
-            base=DBRESOURCE_APIGW_DOMAIN,
             url="/resource/spec/sum",
-            module=self.MODULE,
             description=_("预申请获取资源数量"),
         )
 

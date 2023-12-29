@@ -12,24 +12,23 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import ugettext_lazy as _
 
 from ..base import BaseApi
-from ..domains import CMSI_APIGW_DOMAIN
+from ..domains import BKNODEMAN_APIGW_DOMAIN
 
 
-class _CmsiApi(BaseApi):
-    MODULE = _("消息管理")
-    BASE = CMSI_APIGW_DOMAIN
+class _BKNodeManApi(BaseApi):
+    MODULE = _("节点管理")
+    BASE = BKNODEMAN_APIGW_DOMAIN
+
+    class JobStatusType(object):
+        PENDING = "PENDING"
+        RUNNING = "RUNNING"
+        SUCCESS = "SUCCESS"
+        FAILED = "FAILED"
+        PROCESSING_STATUS = [PENDING, RUNNING]
 
     def __init__(self):
-        self.send_msg = self.generate_data_api(
-            method="POST",
-            url="send_msg/",
-            description=_("通用消息发送"),
-        )
-        self.get_msg_type = self.generate_data_api(
-            method="GET",
-            url="get_msg_type/",
-            description=_("查询通知类型"),
-        )
+        self.operate_plugin = self.generate_data_api(method="POST", url="api/plugin/operate/", description=_("插件操作任务"))
+        self.job_details = self.generate_data_api(method="GET", url="api/job/details/", description=_("查询任务详情"))
 
 
-CmsiApi = _CmsiApi()
+BKNodeManApi = _BKNodeManApi()

@@ -10,91 +10,63 @@ specific language governing permissions and limitations under the License.
 """
 from django.utils.translation import ugettext_lazy as _
 
-from ..base import DataAPI
+from ..base import BaseApi
 from ..domains import PARTITION_APIGW_DOMAIN
 
 
-class _PartitionApi(object):
+class _PartitionApi(BaseApi):
     MODULE = _("分区管理")
+    BASE = PARTITION_APIGW_DOMAIN
 
     def __init__(self):
-        self.dry_run = DataAPI(
+        self.dry_run = self.generate_data_api(
             method="POST",
-            base=PARTITION_APIGW_DOMAIN,
             url="partition/dry_run",
-            module=self.MODULE,
             description=_("获取分区语句"),
         )
-
-        self.create_conf = DataAPI(
+        self.create_conf = self.generate_data_api(
             method="POST",
-            base=PARTITION_APIGW_DOMAIN,
             url="partition/create_conf",
-            module=self.MODULE,
             description=_("添加分区配置"),
         )
-
-        self.del_conf = DataAPI(
+        self.del_conf = self.generate_data_api(
             method="POST",
-            base=PARTITION_APIGW_DOMAIN,
             url="partition/del_conf",
-            module=self.MODULE,
             description=_("删除分区配置"),
         )
-
-        self.cluster_del_conf = DataAPI(
+        self.cluster_del_conf = self.generate_data_api(
             method="POST",
-            base=PARTITION_APIGW_DOMAIN,
             url="partition/cluster_del_conf",
-            module=self.MODULE,
             description=_("cluster_del_conf"),
         )
-
-        self.update_conf = DataAPI(
+        self.update_conf = self.generate_data_api(
             method="POST",
-            base=PARTITION_APIGW_DOMAIN,
             url="partition/update_conf",
-            module=self.MODULE,
             description=_("修改分区配置"),
         )
-
-        self.query_conf = DataAPI(
+        self.query_conf = self.generate_data_api(
             method="POST",
-            base=PARTITION_APIGW_DOMAIN,
             url="partition/query_conf",
-            module=self.MODULE,
             description=_("查询分区配置"),
         )
-
-        self.enable_partition = DataAPI(
+        self.enable_partition = self.generate_data_api(
             method="POST",
-            base=PARTITION_APIGW_DOMAIN,
             url="partition/enable_partition",
-            module=self.MODULE,
             description=_("启用分区"),
         )
-
-        self.disable_partition = DataAPI(
+        self.disable_partition = self.generate_data_api(
             method="POST",
-            base=PARTITION_APIGW_DOMAIN,
             url="partition/disable_partition",
-            module=self.MODULE,
             description=_("禁用分区"),
         )
-
-        self.query_log = DataAPI(
+        self.query_log = self.generate_data_api(
             method="POST",
-            base=PARTITION_APIGW_DOMAIN,
             url="partition/query_log",
-            module=self.MODULE,
             description=_("查询分区日志"),
         )
-
-        self.create_log = DataAPI(
+        self.create_log = self.generate_data_api(
             method="POST",
-            base=PARTITION_APIGW_DOMAIN,
             url="partition/create_log",
-            module=self.MODULE,
             description=_("创建分区操作日志"),
         )
 

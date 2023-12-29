@@ -11,27 +11,24 @@ See the License for the specific language governing permissions and limitations 
 
 from django.utils.translation import ugettext_lazy as _
 
-from ..base import DataAPI
+from ..base import BaseApi
 from ..domains import GCS_APIGW_DOMAIN
 
 
-class _GcsApi(object):
+class _GcsApi(BaseApi):
     MODULE = _("Gcs平台")
+    BASE = GCS_APIGW_DOMAIN
 
     def __init__(self):
-        self.cloud_privileges_asyn_bydbname = DataAPI(
+        self.cloud_privileges_asyn_bydbname = self.generate_data_api(
             method="POST",
-            base=GCS_APIGW_DOMAIN,
             url="mysql_privileges/",
-            module=self.MODULE,
             description=_("gcs授权接口(mysql和spider)"),
         )
 
-        self.cloud_service_status = DataAPI(
+        self.cloud_service_status = self.generate_data_api(
             method="GET",
-            base=GCS_APIGW_DOMAIN,
             url="check_service_status/",
-            module=self.MODULE,
             description=_("查询gcs作业执行状态"),
         )
 

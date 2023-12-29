@@ -11,27 +11,24 @@ specific language governing permissions and limitations under the License.
 
 from django.utils.translation import ugettext_lazy as _
 
-from ..base import DataAPI
+from ..base import BaseApi
 from ..domains import USER_MANAGE_APIGW_DOMAIN
 
 
-class _UserManageApi(object):
+class _UserManageApi(BaseApi):
     MODULE = _("用户管理模块")
+    BASE = USER_MANAGE_APIGW_DOMAIN
 
     def __init__(self):
-        self.list_users = DataAPI(
+        self.list_users = self.generate_data_api(
             method="GET",
-            base=USER_MANAGE_APIGW_DOMAIN,
             url="list_users/",
-            module=self.MODULE,
             description=_("获取所有用户"),
             cache_time=300,
         )
-        self.retrieve_user = DataAPI(
+        self.retrieve_user = self.generate_data_api(
             method="GET",
-            base=USER_MANAGE_APIGW_DOMAIN,
             url="retrieve_user/",
-            module=self.MODULE,
             description=_("获取单个用户"),
         )
 

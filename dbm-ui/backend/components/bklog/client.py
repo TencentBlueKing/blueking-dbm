@@ -10,50 +10,41 @@ specific language governing permissions and limitations under the License.
 """
 from django.utils.translation import ugettext_lazy as _
 
-from ..base import DataAPI
+from ..base import BaseApi
 from ..domains import BKLOG_APIGW_DOMAIN, ESB_PREFIX
 
 
-class _BKLogApi(object):
+class _BKLogApi(BaseApi):
     MODULE = _("蓝鲸日志平台")
+    BASE = BKLOG_APIGW_DOMAIN
 
     def __init__(self):
         is_esb = ESB_PREFIX in BKLOG_APIGW_DOMAIN
-        self.esquery_search = DataAPI(
+        self.esquery_search = self.generate_data_api(
             method="POST",
-            base=BKLOG_APIGW_DOMAIN,
             url="esquery_search/",
-            module=self.MODULE,
             description=_("查询索引"),
         )
-        self.fast_create = DataAPI(
+        self.fast_create = self.generate_data_api(
             method="POST",
-            base=BKLOG_APIGW_DOMAIN,
             url="databus/collectors/fast_create/" if is_esb else "databus_collectors/fast_create/",
-            module=self.MODULE,
             description=_("简易创建采集配置"),
         )
-        self.fast_update = DataAPI(
+        self.fast_update = self.generate_data_api(
             method="POST",
-            base=BKLOG_APIGW_DOMAIN,
             url="databus/collectors/{collector_config_id}/fast_update/"
             if is_esb
             else "/databus_collectors/{collector_config_id}/fast_update/",
-            module=self.MODULE,
             description=_("简易更新采集配置"),
         )
-        self.pre_check = DataAPI(
+        self.pre_check = self.generate_data_api(
             method="GET",
-            base=BKLOG_APIGW_DOMAIN,
             url="databus_collectors/pre_check/",
-            module=self.MODULE,
             description=_("创建采集项的前置检查"),
         )
-        self.list_collectors = DataAPI(
+        self.list_collectors = self.generate_data_api(
             method="GET",
-            base=BKLOG_APIGW_DOMAIN,
             url="databus_collectors/",
-            module=self.MODULE,
             description=_("获取采集项列表"),
         )
 

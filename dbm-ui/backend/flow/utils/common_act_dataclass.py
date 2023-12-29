@@ -9,7 +9,7 @@ specific language governing permissions and limitations under the License.
 """
 
 from dataclasses import dataclass, field
-from typing import Any, Optional
+from typing import Any, List, Optional
 
 from backend.flow.consts import BACKUP_DEFAULT_OS_USER
 
@@ -31,3 +31,13 @@ class DownloadBackupClientKwargs:
 class DNSContext:
     common_act_payload: Optional[Any] = None  # 代表获取payload参数的类
     resolv_content: dict = field(default_factory=dict)
+
+
+@dataclass
+class InstallNodemanPluginKwargs:
+    """
+    定义安装插件的私有变量结构体
+    """
+
+    bk_host_ids: List[int]
+    plugin_name: str

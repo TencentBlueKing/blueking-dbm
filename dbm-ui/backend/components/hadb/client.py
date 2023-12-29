@@ -11,54 +11,43 @@ See the License for the specific language governing permissions and limitations 
 
 from django.utils.translation import ugettext_lazy as _
 
-from ..base import DataAPI
+from ..base import BaseApi
 from ..domains import HADB_APIGW_DOMAIN
 
 
-class _HADBApi(object):
+class _HADBApi(BaseApi):
     MODULE = _("HADB 服务")
+    BASE = HADB_APIGW_DOMAIN
 
     def __init__(self):
-        self.ha_logs = DataAPI(
+        self.ha_logs = self.generate_data_api(
             method="POST",
-            base=HADB_APIGW_DOMAIN,
             url="halogs/",
-            module=self.MODULE,
             description=_("上报和查询ha的探测切换日志"),
         )
-        self.db_status = DataAPI(
+        self.db_status = self.generate_data_api(
             method="POST",
-            base=HADB_APIGW_DOMAIN,
             url="dbstatus/",
-            module=self.MODULE,
             description=_("上报和查询数据库实例的状态"),
         )
-        self.ha_status = DataAPI(
+        self.ha_status = self.generate_data_api(
             method="POST",
-            base=HADB_APIGW_DOMAIN,
             url="hastatus/",
-            module=self.MODULE,
             description=_("上报和查询ha服务的状态"),
         )
-        self.switch_queue = DataAPI(
+        self.switch_queue = self.generate_data_api(
             method="POST",
-            base=HADB_APIGW_DOMAIN,
             url="switchqueue/",
-            module=self.MODULE,
             description=_("查询和上报切换队列"),
         )
-        self.switch_logs = DataAPI(
+        self.switch_logs = self.generate_data_api(
             method="POST",
-            base=HADB_APIGW_DOMAIN,
             url="switchlogs/",
-            module=self.MODULE,
             description=_("查询切换详情"),
         )
-        self.shieldconfig = DataAPI(
+        self.shieldconfig = self.generate_data_api(
             method="POST",
-            base=HADB_APIGW_DOMAIN,
             url="shieldconfig/",
-            module=self.MODULE,
             description=_("DBHA切换屏蔽配置"),
         )
 

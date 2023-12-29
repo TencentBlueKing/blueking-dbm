@@ -11,54 +11,43 @@ specific language governing permissions and limitations under the License.
 
 from django.utils.translation import ugettext_lazy as _
 
-from ..base import DataAPI
+from ..base import BaseApi
 from ..domains import DNS_APIGW_DOMAIN
 
 
-class _DnsApi(object):
+class _DnsApi(BaseApi):
     MODULE = _("DNS域名管理")
+    BASE = DNS_APIGW_DOMAIN
 
     def __init__(self):
-        self.get_domain = DataAPI(
+        self.get_domain = self.generate_data_api(
             method="GET",
-            base=DNS_APIGW_DOMAIN,
             url="/api/v1/dns/domain/",
-            module=self.MODULE,
             description=_("获取域名映射关系"),
         )
-        self.delete_domain = DataAPI(
+        self.delete_domain = self.generate_data_api(
             method="DELETE",
-            base=DNS_APIGW_DOMAIN,
             url="/api/v1/dns/domain/",
-            module=self.MODULE,
             description=_("删除域名映射"),
         )
-        self.update_domain = DataAPI(
+        self.update_domain = self.generate_data_api(
             method="POST",
-            base=DNS_APIGW_DOMAIN,
             url="/api/v1/dns/domain/",
-            module=self.MODULE,
             description=_("更新域名映射关系"),
         )
-        self.create_domain = DataAPI(
+        self.create_domain = self.generate_data_api(
             method="PUT",
-            base=DNS_APIGW_DOMAIN,
             url="/api/v1/dns/domain/",
-            module=self.MODULE,
             description=_("新增域名映射关系"),
         )
-        self.batch_update_domain = DataAPI(
+        self.batch_update_domain = self.generate_data_api(
             method="POST",
-            base=DNS_APIGW_DOMAIN,
             url="/api/v1/dns/domain/batch",
-            module=self.MODULE,
             description=_("批量更新域名映射关系"),
         )
-        self.get_all_domain_list = DataAPI(
+        self.get_all_domain_list = self.generate_data_api(
             method="GET",
-            base=DNS_APIGW_DOMAIN,
             url="/api/v1/dns/domain/all",
-            module=self.MODULE,
             description=_("获取所有ip、域名关系"),
         )
 
