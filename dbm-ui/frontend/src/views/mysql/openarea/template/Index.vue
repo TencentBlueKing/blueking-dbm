@@ -1,5 +1,5 @@
 <template>
-  <div class="spider-openarea-page">
+  <div class="mysql-openarea-page">
     <BkAlert
       closable
       theme="info"
@@ -23,10 +23,6 @@
   </div>
 </template>
 <script setup lang="tsx">
-  import {
-    onMounted,
-    ref,
-  } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
@@ -39,7 +35,6 @@
   import { useDebouncedRef } from '@hooks';
 
   import { messageSuccess } from '@utils';
-
 
   const { t } = useI18n();
   const router = useRouter();
@@ -78,7 +73,7 @@
         <>
           <router-link
             to={{
-              name: 'spiderOpenareaCreate',
+              name: 'mysqlOpenareaCreate',
               params: {
                 id: data.id,
               },
@@ -88,7 +83,7 @@
           <router-link
             class="ml-16"
             to={{
-              name: 'spiderOpenareaTemplateEdit',
+              name: 'mysqlOpenareaTemplateEdit',
               params: {
                 id: data.id,
               },
@@ -113,7 +108,7 @@
 
   const fetchData = () => {
     tableRef.value.fetchData({
-      cluster_type: 'tendbcluster',
+      cluster_type: 'tendbha',
     });
   };
 
@@ -125,7 +120,7 @@
 
   const handleGoCreate = () => {
     router.push({
-      name: 'spiderOpenareaTemplateCreate',
+      name: 'mysqlOpenareaTemplateCreate',
     });
   };
 
@@ -139,7 +134,7 @@
   });
 </script>
 <style lang="less">
-  .spider-openarea-page {
+  .mysql-openarea-page {
     .header-action{
       display: flex;
 

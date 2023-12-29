@@ -22,7 +22,7 @@ import { messageError } from '@utils';
 import { locale, t } from '@locales/index';
 
 import http from './http';
-import type { HostNode, ListBase  } from './types';
+import type { HostNode, ListBase } from './types';
 import type {
   CapSepcs,
   CapSpecsParams,

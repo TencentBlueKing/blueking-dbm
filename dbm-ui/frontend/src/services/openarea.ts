@@ -10,7 +10,13 @@ const { currentBizId } = useGlobalBizs();
 const path = '/apis/mysql/bizs';
 
 // 开区模板列表
-export const getList = function (params: Record<string, any>) {
+export const getList = function (params: {
+  config_name?: string,
+  bk_biz_id?: number,
+  cluster_type?: 'tendbha' | 'tendbcluster',
+  limit?: number,
+  offset?: number,
+}) {
   return http.get<ListBase<OpenareaTemplateModel[]>>(`${path}/${currentBizId}/openarea/`, params)
     .then(data => ({
       ...data,
@@ -29,7 +35,8 @@ export const create = function (params: {
     source_db: string,
     target_db_pattern: string
   }[],
-  source_cluster_id: number
+  source_cluster_id: number,
+  cluster_type?: 'tendbha' | 'tendbcluster',
 }) {
   return http.post(`${path}/${currentBizId}/openarea/`, params);
 };
@@ -54,7 +61,7 @@ export const getPreview = function (params: {
       execute_objects: {
         authorize_ips: string[],
         data_tblist: string[],
-        priv_data: string[],
+        priv_data: number[],
         schema_tblist: string[],
         source_db: string,
         target_db: string,
@@ -104,18 +111,18 @@ export const update = function (params: {
   return http.get(`${path}/${currentBizId}/openarea/${params.id}/`, realParams);
 };
 
-export const updateVariable = function <T extends 'add'|'update'|'delete'> (params: {
+export const updateVariable = function <T extends 'add' | 'update' | 'delete'> (params: {
   op_type: T,
-  old_var: T extends 'update'|'delete' ? {
+  old_var: T extends 'update' | 'delete' ? {
     name: string,
     builtin: boolean,
     desc: string
-  }: undefined,
-  new_var: T extends 'add'|'update' ? {
+  } : undefined,
+  new_var: T extends 'add' | 'update' ? {
     name: string,
     builtin: boolean,
     desc: string
-  }: undefined,
+  } : undefined,
 }) {
   return http.post(`${path}/${currentBizId}/openarea/alter_var/`, params);
 };

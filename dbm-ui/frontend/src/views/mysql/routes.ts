@@ -154,6 +154,14 @@ export const mysqlToolboxChildrenRouters: RouteRecordRaw[] = [
     },
     component: () => import('@views/mysql/checksum/Index.vue'),
   },
+  {
+    path: 'openarea-template',
+    name: 'mysqlOpenareaTemplate',
+    meta: {
+      navName: t('开区模版'),
+    },
+    component: () => import('@views/mysql/openarea/template/Index.vue'),
+  },
 ];
 
 const singleRoutes: RouteRecordRaw[] = [
@@ -210,7 +218,6 @@ const mysqlToolboxRouters: RouteRecordRaw[] = [
 ];
 
 const commonRouters: RouteRecordRaw[] = [
-
   {
     name: 'MysqlManage',
     path: 'mysql-manage',
@@ -247,6 +254,30 @@ const commonRouters: RouteRecordRaw[] = [
         },
         component: () => import('@views/mysql/dumper/Index.vue'),
       },
+      {
+        path: 'openarea-template-create',
+        name: 'mysqlOpenareaTemplateCreate',
+        meta: {
+          navName: t('新建开区模板'),
+        },
+        component: () => import('@views/mysql/openarea/template-create/Index.vue'),
+      },
+      {
+        path: 'openarea-template-edit/:id',
+        name: 'mysqlOpenareaTemplateEdit',
+        meta: {
+          navName: t('编辑开区模板'),
+        },
+        component: () => import('@views/mysql/openarea/template-create/Index.vue'),
+      },
+      {
+        path: 'openarea-create/:id',
+        name: 'mysqlOpenareaCreate',
+        meta: {
+          navName: t('新建开区'),
+        },
+        component: () => import('@views/mysql/openarea/create/Index.vue'),
+      },
     ],
   },
 ];
@@ -272,6 +303,5 @@ export default function getRoutes(controller: Record<MySQLFunctions | 'mysql', b
   if (controller.toolbox) {
     renderRoutes.children?.push(...mysqlToolboxRouters);
   }
-
   return commonRouters;
 }

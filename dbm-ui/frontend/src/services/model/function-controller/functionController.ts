@@ -12,7 +12,7 @@
 */
 
 export type AddonsFunctions = 'redis_nameservice';
-export type MySQLFunctions = 'toolbox' | 'tendbsingle' | 'tendbha' | 'tendbcluster' | 'tendbcluster_toolbox' | 'dumper';
+export type MySQLFunctions = 'toolbox' | 'tendbsingle' | 'tendbha' | 'tendbcluster' | 'tendbcluster_toolbox';
 export type RedisFunctions = 'PredixyTendisplusCluster' | 'TwemproxyRedisInstance' | 'TwemproxyTendisSSDInstance' | 'toolbox';
 export type BigdataFunctions = 'es' | 'kafka' | 'hdfs' | 'influxdb' | 'pulsar';
 export type MonitorFunctions = 'duty_rule' | 'monitor_policy' | 'notice_group';

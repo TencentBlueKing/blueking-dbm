@@ -168,7 +168,7 @@ export default [
   {
     name: t('克隆开区'),
     id: 'spider_openarea',
-    icon: 'db-icon-clone',
+    icon: 'db-icon-template',
     children: [
       {
         name: t('开区模版'),

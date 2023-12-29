@@ -1,7 +1,7 @@
 <template>
   <BkLoading :loading="isDetailLoading">
     <SmartAction
-      class="spider-openarea-page"
+      class="mysql-openarea-page"
       :offset-target="getSmartActionOffsetTarget">
       <BkForm
         ref="formRef"
@@ -68,7 +68,6 @@
 </template>
 <script setup lang="ts">
   import { Form } from 'bkui-vue';
-  import { reactive } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
   import {
@@ -89,12 +88,11 @@
   import ConfigRule from './components/config-rule/Index.vue';
 
   const { currentBizId } = useGlobalBizs();
-
   const { t } = useI18n();
   const router = useRouter();
   const route = useRoute();
 
-  const isEditMode = route.name === 'spiderOpenareaTemplateEdit';
+  const isEditMode = route.name === 'mysqlOpenareaTemplateEdit';
 
   const getSmartActionOffsetTarget = () => document.querySelector('.bk-form-content');
 
@@ -106,8 +104,9 @@
 
   const configRuleRef = ref<InstanceType<typeof ConfigRule>>();
   const formRef = ref<InstanceType<typeof Form>>();
-  const formData = reactive(genDefaultValue());
   const isSubmiting = ref(false);
+
+  const formData = reactive(genDefaultValue());
 
   const {
     data: clusterList,
@@ -115,7 +114,7 @@
     defaultParams: [
       {
         bk_biz_id: currentBizId,
-        cluster_types: 'tendbcluster',
+        cluster_types: 'tendbha',
         phase: 'online',
       },
     ],
@@ -149,12 +148,12 @@
       bk_biz_id: currentBizId,
       ...formData,
       config_rules: configRule,
-      cluster_type: 'tendbcluster',
+      cluster_type: 'tendbha',
     }).then(() => {
       messageSuccess(t('新建成功'));
       window.changeConfirm = false;
       router.push({
-        name: 'spiderOpenareaTemplate',
+        name: 'mysqlOpenareaTemplate',
       });
     }))
       .finally(() => {
