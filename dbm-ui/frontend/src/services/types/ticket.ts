@@ -1490,3 +1490,48 @@ export interface DumperNodeStatusUpdateDetails {
   dumper_instance_ids: number[];
 }
 
+export interface MysqlOpenAreaDetails {
+  cluster_id: number;
+  clusters: {
+    [key: string]: {
+      alias: string;
+      bk_biz_id: number;
+      bk_cloud_id: number;
+      cluster_type: string;
+      cluster_type_name: string;
+      creator: string;
+      db_module_id: number;
+      disaster_tolerance_level: string;
+      id: number;
+      immute_domain: string;
+      major_version: string;
+      name: string;
+      phase: string;
+      region: string;
+      status: string;
+      tag: string[];
+      time_zone: string;
+      updater: string;
+    };
+  };
+  config_data: {
+    cluster_id: number;
+    execute_objects: {
+      data_tblist: string[];
+      schema_tblist: string[];
+      source_db: string;
+      target_db: string;
+    }[];
+  }[];
+  force: boolean;
+  rules_set: {
+    account_rules: {
+      bk_biz_id: number;
+      dbname: string;
+    }[];
+    cluster_type: string;
+    source_ips: string[];
+    target_instances: string[];
+    user: string;
+  }[];
+}

@@ -7,10 +7,6 @@
 </template>
 <script setup lang="tsx">
   import type { UnwrapRef } from 'vue';
-  import {
-    shallowRef,
-    watch,
-  } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
@@ -25,6 +21,7 @@
     data: ServiceReturnType<typeof getPreview>,
     sourceClusterId: number
   }
+
   interface Expose{
     submit: () => Promise<any>
   }
@@ -61,9 +58,7 @@
       showOverflowTooltip: true,
       render: ({ data }: {data: UnwrapRef<typeof tableData>[0]}) => (
         <>
-          {data.schema_tblist.map(item => (
-            <bk-tag>{item}</bk-tag>
-          ))}
+          {data.schema_tblist.map(item => <bk-tag>{item}</bk-tag>)}
         </>
       ),
     },
@@ -72,9 +67,7 @@
       showOverflowTooltip: true,
       render: ({ data }: {data: UnwrapRef<typeof tableData>[0]}) => (
         <>
-          {data.data_tblist.map(item => (
-            <bk-tag>{item}</bk-tag>
-          ))}
+          {data.data_tblist.map(item => <bk-tag>{item}</bk-tag>)}
         </>
       ),
     },
@@ -118,6 +111,7 @@
     immediate: true,
   });
 
+
   defineExpose<Expose>({
     submit() {
       return createTicket({
@@ -133,7 +127,7 @@
         messageSuccess(t('新建开区成功'));
         window.changeConfirm = false;
         router.push({
-          name: 'spiderOpenareaTemplate',
+          name: 'mysqlOpenareaTemplate',
         });
       });
     },

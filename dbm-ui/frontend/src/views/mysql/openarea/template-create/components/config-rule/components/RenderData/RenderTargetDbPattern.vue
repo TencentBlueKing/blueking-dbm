@@ -12,38 +12,36 @@
 -->
 
 <template>
-  <td style="padding: 0;">
+  <div>
     <TableEditInput
       ref="editRef"
-      v-model="localValue"
-      :placeholder="t('请输入')"
+      v-model="modelValue"
+      :placeholder="t('可使用全局变量，如：{test}')"
       :rules="rules" />
-  </td>
+  </div>
 </template>
 <script setup lang="ts">
-  import { ref } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import TableEditInput from '@views/spider-manage/common/edit/Input.vue';
 
-  interface Props {
-    name: string
-  }
   interface Exposes {
-    getValue: () => Promise<Record<string, string>>
+    getValue: () => Promise<{
+      target_db_pattern: string
+    }>
   }
-
-  const props = defineProps<Props>();
 
   const { t } = useI18n();
 
-  const localValue = ref('');
+  const modelValue = defineModel<string>({
+    default: '',
+  });
   const editRef = ref();
 
   const rules = [
     {
       validator: (value: string) => Boolean(value),
-      message: t('变量名name不能为空', { name: props.name }),
+      message: t('目标集群不能为空'),
     },
   ];
 
@@ -52,7 +50,7 @@
       return (editRef.value as InstanceType<typeof TableEditInput>)
         .getValue()
         .then(() => ({
-          [props.name]: localValue.value,
+          target_db_pattern: modelValue.value,
         }));
     },
   });

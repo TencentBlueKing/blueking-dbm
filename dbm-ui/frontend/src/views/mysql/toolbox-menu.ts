@@ -146,4 +146,16 @@ export default [
       },
     ],
   },
+  {
+    name: t('克隆开区'),
+    id: 'mysql_openarea',
+    icon: 'db-icon-template',
+    children: [
+      {
+        name: t('开区模版'),
+        id: 'mysqlOpenareaTemplate',
+        parentId: 'mysql_openarea',
+      },
+    ],
+  },
 ];

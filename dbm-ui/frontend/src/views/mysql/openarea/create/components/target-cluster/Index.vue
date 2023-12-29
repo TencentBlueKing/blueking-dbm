@@ -16,15 +16,13 @@
     </RenderTable>
     <ClusterSelector
       v-model:is-show="isShowBatchSelector"
-      :cluster-types="[ClusterTypes.TENDBCLUSTER]"
+      :cluster-types="[ClusterTypes.TENDBHA]"
       :selected="selectedClusters"
       @change="handelClusterChange" />
   </div>
 </template>
 <script setup lang="ts">
-  import { shallowRef } from 'vue';
-
-  import SpiderModel from '@services/model/spider/spider';
+  import TendbhaModel from '@services/model/mysql/tendbha';
 
   import { ClusterTypes } from '@common/const';
 
@@ -56,8 +54,9 @@
 
   const rowRefs = ref<InstanceType<typeof RenderDataRow>[]>([]);
   const isShowBatchSelector = ref(false);
-  const selectedClusters = shallowRef<{[key: string]: Array<SpiderModel>}>({
-    [ClusterTypes.TENDBCLUSTER]: [],
+
+  const selectedClusters = shallowRef<{[key: string]: Array<TendbhaModel>}>({
+    [ClusterTypes.TENDBHA]: [],
   });
 
   const tableData = shallowRef<IDataRow[]>([createRowData()]);
@@ -67,9 +66,9 @@
   };
 
   // 批量选择
-  const handelClusterChange = (selected: {[key: string]: Array<SpiderModel>}) => {
+  const handelClusterChange = (selected: {[key: string]: Array<TendbhaModel>}) => {
     selectedClusters.value = selected;
-    const list = selected[ClusterTypes.TENDBCLUSTER];
+    const list = selected[ClusterTypes.TENDBHA];
     const newList = list.reduce((result, item) => {
       const row = createRowData({
         clusterData: {

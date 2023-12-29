@@ -19,7 +19,7 @@
         controller-id="tendbha"
         module-id="mysql">
         <BkSubmenu
-          key="database-tendbha-cluster"
+          key="MysqlManage"
           :title="t('主从')">
           <template #icon>
             <DbIcon type="cluster" />

@@ -12,16 +12,15 @@
 -->
 
 <template>
-  <td style="padding: 0;">
+  <div>
     <TableEditInput
       ref="editRef"
       v-model="localValue"
       :placeholder="t('请输入')"
       :rules="rules" />
-  </td>
+  </div>
 </template>
 <script setup lang="ts">
-  import { ref } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import TableEditInput from '@views/spider-manage/common/edit/Input.vue';

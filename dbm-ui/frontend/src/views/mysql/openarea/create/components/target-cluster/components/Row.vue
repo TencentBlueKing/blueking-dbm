@@ -19,11 +19,14 @@
           ref="clusterRef"
           :model-value="localClusterData" />
       </td>
-      <ColumnVariable
+      <td
         v-for="variableName in variableList"
         :key="variableName"
-        ref="variableRefs"
-        :name="variableName" />
+        style="padding: 0;">
+        <ColumnVariable
+          ref="variableRefs"
+          :name="variableName" />
+      </td>
       <td style="padding: 0;">
         <ColumnHost
           ref="hostRef"
@@ -120,7 +123,7 @@
     getValue() {
       return Promise.all([
         (clusterRef.value as InstanceType<typeof ColumnCluster>).getValue(),
-        Promise.all((variableRefs.value.map(item => item.getValue()))),
+        Promise.all((variableRefs.value).map(item => item.getValue())),
         (hostRef.value as InstanceType<typeof ColumnHost>).getValue(),
       ]).then(([
         clusterData,

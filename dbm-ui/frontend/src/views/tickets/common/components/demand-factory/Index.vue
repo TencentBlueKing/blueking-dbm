@@ -48,6 +48,7 @@
   import MySQLMasterFailOver from './mysql/MasterFailOver.vue';
   import MySQLMasterSlaveSwitch from './mysql/MasterSlaveSwitch.vue';
   import MySQLMigrateCluster from './mysql/MigrateCluster.vue';
+  import MysqlOpenArea from './mysql/OpenArea.vue';
   import MySQLOperation from './mysql/Operation.vue';
   import MySQLProxyAdd from './mysql/ProxyAdd.vue';
   import MySQLProxySwitch from './mysql/ProxySwitch.vue';
@@ -230,6 +231,7 @@
     [TicketTypes.MYSQL_RESTORE_SLAVE]: MySQLRestoreSlave,
     [TicketTypes.MYSQL_HA_FULL_BACKUP]: MySQLFullBackup,
     [TicketTypes.MYSQL_CHECKSUM]: MySQLChecksum,
+    [TicketTypes.MYSQL_OPEN_AREA]: MysqlOpenArea,
     [TicketTypes.TBINLOGDUMPER_INSTALL]: DumperInstall,
     [TicketTypes.TBINLOGDUMPER_SWITCH_NODES]: DumperSwitchNode,
     [TicketTypes.PULSAR_APPLY]: DetailsPulsar,
