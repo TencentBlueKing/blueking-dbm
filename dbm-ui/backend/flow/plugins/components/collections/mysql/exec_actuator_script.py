@@ -15,6 +15,7 @@ import logging
 import re
 from dataclasses import asdict, is_dataclass
 
+from django.conf import settings
 from django.utils.translation import ugettext as _
 from jinja2 import Environment
 from pipeline.component_framework.component import Component
@@ -124,6 +125,7 @@ class ExecuteDBActuatorScriptService(BkJobService):
             "script_content": str(base64.b64encode(template.render(db_act_template).encode("utf-8")), "utf-8"),
             "script_language": 1,
             "target_server": {"ip_list": target_ip_info},
+            "script_param": str(base64.b64encode(json.dumps(db_act_template["payload"]).encode("utf-8")), "utf-8"),
         }
         self.log_info("[{}] ready start task with body {}".format(node_name, body))
 
@@ -135,6 +137,9 @@ class ExecuteDBActuatorScriptService(BkJobService):
             common_kwargs["account_alias"] = DBA_ROOT_USER
         if kwargs.get("job_timeout"):
             common_kwargs["timeout"] = kwargs["job_timeout"]
+        if settings.DEBUG:
+            # debug模式下打开
+            common_kwargs["is_param_sensitive"] = 0
 
         resp = JobApi.fast_execute_script({**common_kwargs, **body}, raw=True)
         self.log_info(f"{node_name} fast execute script response: {resp}")
