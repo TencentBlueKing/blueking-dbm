@@ -31,7 +31,6 @@ __all__ = [
 
 from backend.db_meta.models import AppMonitorTopo
 from backend.db_monitor.constants import TPLS_COLLECT_DIR
-from backend.dbm_init.services import EXCLUDE_DB_TYPES
 
 logger = logging.getLogger("root")
 
@@ -70,19 +69,10 @@ class CollectInstance(CollectTemplateBase):
     sync_at = models.DateTimeField(_("最近一次的同步时间"), null=True)
 
     def save(self, force_insert=False, force_update=False, using=None, update_fields=None):
-
-        # collect_params = copy.deepcopy(self.details)
-        #
-        # res = BKMonitorV3Api.save_collect_config(collect_params, use_admin=True)
-        #
-        # self.details = res
-        # self.collect_id = self.details["id"]
-        # self.sync_at = datetime.datetime.now(timezone.utc)
-
         super().save(force_insert, force_update, using)
 
     @staticmethod
-    def sync_collect_strategy(bk_biz_id=env.DBA_APP_BK_BIZ_ID):
+    def sync_collect_strategy(bk_biz_id: int = env.DBA_APP_BK_BIZ_ID, db_type: str = None, force=False):
         """同步监控采集项"""
         now = datetime.datetime.now(timezone.utc)
         updated_collectors = 0
@@ -99,8 +89,8 @@ class CollectInstance(CollectTemplateBase):
 
             collect_params = template.details
 
-            # 支持跳过部分db类型的初始化
-            if template.db_type in EXCLUDE_DB_TYPES:
+            # 如果指定了 db_type，则忽略其他db类型的采集模块
+            if db_type is not None and template.db_type != db_type:
                 continue
 
             try:
@@ -112,13 +102,6 @@ class CollectInstance(CollectTemplateBase):
                         name=template.name,
                         machine_types=template.machine_types,
                     )
-                    collect_params["id"] = collect_instance.collect_id
-
-                    if template.version <= collect_instance.version:
-                        logger.warning("[init_collect_strategy] skip update bkmonitor collector: %s " % template.name)
-                        continue
-
-                    logger.info("[init_collect_strategy] update bkmonitor collector: %s " % template.name)
                 except CollectInstance.DoesNotExist:
                     # 为了能够重复执行，这里考虑下CollectInstance被清空的情况
                     res = BKMonitorV3Api.query_collect_config(
@@ -134,7 +117,15 @@ class CollectInstance(CollectTemplateBase):
                         logger.warning("[init_collect_strategy] sync bkmonitor collector: %s " % template.db_type)
                     else:
                         logger.warning("[init_collect_strategy] create bkmonitor collector: %s " % template.db_type)
+                else:
+                    collect_params["id"] = collect_instance.collect_id
+                    # 如果版本相同，说明采集模板没有更新，则跳过
+                    # 强制执行除外（采集对象有变更时，需要强制执行）
+                    if template.version <= collect_instance.version and not force:
+                        logger.warning("[init_collect_strategy] skip update bkmonitor collector: %s " % template.name)
+                        continue
 
+                logger.info("[init_collect_strategy] update bkmonitor collector: %s " % template.name)
                 collect_params.update(
                     bk_biz_id=bk_biz_id,
                     plugin_id=template.plugin_id,

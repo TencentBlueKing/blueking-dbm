@@ -14,9 +14,9 @@ from typing import Dict, List
 from django.utils.translation import ugettext as _
 
 from backend.components import CCApi
+from backend.db_services.cmdb.biz import get_or_create_cmdb_module_with_name, get_or_create_set_with_name
 from backend.db_services.ipchooser.constants import DB_MANAGE_SET
 from backend.flow.consts import CloudServiceModuleName
-from backend.flow.utils.cc_manage import CcManage
 
 logger = logging.getLogger("flow")
 
@@ -84,8 +84,8 @@ class CloudModuleHandler:
         @param bk_host_ids: 转移主机的ID列表
         """
 
-        bk_set_id = CcManage.get_or_create_set_with_name(bk_biz_id=bk_biz_id, bk_set_name=DB_MANAGE_SET)
-        transfer_module_id = CcManage.get_or_create_module_with_name(
+        bk_set_id = get_or_create_set_with_name(bk_biz_id=bk_biz_id, bk_set_name=DB_MANAGE_SET)
+        transfer_module_id = get_or_create_cmdb_module_with_name(
             bk_biz_id=bk_biz_id, bk_set_id=bk_set_id, bk_module_name=bk_module_name
         )
         # 获取所有主机并集的module_id，这样可以避免模块的转移覆盖(因为有可能A主机即属于DRS服务又属于DBHA服务)
@@ -106,9 +106,9 @@ class CloudModuleHandler:
         @param bk_module_name: 待删除的模块名
         @param bk_host_ids: 转移主机的ID列表
         """
-        bk_set_id = CcManage.get_or_create_set_with_name(bk_biz_id=bk_biz_id, bk_set_name=DB_MANAGE_SET)
+        bk_set_id = get_or_create_set_with_name(bk_biz_id=bk_biz_id, bk_set_name=DB_MANAGE_SET)
         host_id__module_ids_map = cls.find_cloud_module_host_relation(bk_biz_id, bk_set_id)
-        origin_module_id = CcManage.get_or_create_module_with_name(
+        origin_module_id = get_or_create_cmdb_module_with_name(
             bk_biz_id=bk_biz_id, bk_set_id=bk_set_id, bk_module_name=bk_module_name
         )
         recycle_host_ids = []
