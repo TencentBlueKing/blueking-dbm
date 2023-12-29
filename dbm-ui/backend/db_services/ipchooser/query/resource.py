@@ -257,7 +257,7 @@ class ResourceQueryHelper:
             return
 
         # 补充云区域名称
-        resp = CCApi.search_cloud_area({"page": {"start": 0, "limit": 1000}})
+        resp = CCApi.search_cloud_area({"page": {"start": 0, "limit": 1000}}, use_admin=True)
 
         cloud_map = (
             {cloud_info["bk_cloud_id"]: cloud_info["bk_cloud_name"] for cloud_info in resp["info"]}
@@ -500,11 +500,7 @@ class ResourceQueryHelper:
         查询云区域信息
         """
 
-        resp = batch_request(
-            func=CCApi.search_cloud_area,
-            params={},
-            get_data=lambda x: x["info"],
-        )
+        resp = batch_request(func=CCApi.search_cloud_area, params={}, get_data=lambda x: x["info"], use_admin=True)
         cloud_id__cloud_info = {
             str(info["bk_cloud_id"]): {f: info[f] for f in fields} if fields else info for info in resp
         }

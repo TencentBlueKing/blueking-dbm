@@ -70,6 +70,7 @@ def batch_request(
     limit=QUERY_CMDB_LIMIT,
     sort=None,
     split_params=False,
+    **kwargs
 ):
     """
     异步并发请求接口
@@ -91,7 +92,7 @@ def batch_request(
 
     if not split_params:
         final_request_params = [
-            {"count": get_count(func(dict(page={start_key: 0, limit_key: 1}, **params))), "params": params}
+            {"count": get_count(func(dict(page={start_key: 0, limit_key: 1}, **params), **kwargs)), "params": params}
         ]
     else:
         final_request_params = format_params(params, get_count, func, start_key, limit_key)
@@ -109,7 +110,7 @@ def batch_request(
             if sort:
                 request_params["page"]["sort"] = sort
             request_params.update(req["params"])
-            futures.append(pool.apply_async(inject_request(func), args=(request_params,)))
+            futures.append(pool.apply_async(inject_request(func), args=(request_params,), kwds=kwargs))
 
             start += limit
 

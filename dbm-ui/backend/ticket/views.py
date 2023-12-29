@@ -460,6 +460,7 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
         for flow_config in ticket_flow_configs:
             flow_config_info = model_to_dict(flow_config)
             flow_config_info["ticket_type_display"] = flow_config.get_ticket_type_display()
+            flow_config_info["update_at"] = flow_config.update_at
             # 获取当前单据的执行流程
             flow_desc = BuilderFactory.registry[flow_config.ticket_type].describe_ticket_flows(flow_config_map)
             flow_config_info["flow_desc"] = flow_desc
