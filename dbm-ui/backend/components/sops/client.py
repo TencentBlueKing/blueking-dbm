@@ -9,47 +9,37 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
-import logging
 
 from django.utils.translation import ugettext_lazy as _
 
-from ..base import DataAPI
+from ..base import BaseApi
 from ..domains import ESB_PREFIX, SOPS_APIGW_DOMAIN
 
-logger = logging.getLogger("component")
 
-
-class _BkSopsApi(object):
+class _BkSopsApi(BaseApi):
     MODULE = _("标准运维")
+    BASE_URL = SOPS_APIGW_DOMAIN
 
     def __init__(self):
         is_esb = ESB_PREFIX in SOPS_APIGW_DOMAIN
-        self.create_task = DataAPI(
+        self.create_task = self.generate_data_api(
             method="POST",
-            base=SOPS_APIGW_DOMAIN,
             url="create_task/" if is_esb else "create_task/{template_id}/{bk_biz_id}/",
-            module=self.MODULE,
             description=_("通过业务流程模版创建任务"),
         )
-        self.start_task = DataAPI(
+        self.start_task = self.generate_data_api(
             method="POST",
-            base=SOPS_APIGW_DOMAIN,
             url="start_task/" if is_esb else "start_task/{task_id}/{bk_biz_id}/",
-            module=self.MODULE,
             description=_("启动任务"),
         )
-        self.get_task_status = DataAPI(
+        self.get_task_status = self.generate_data_api(
             method="GET",
-            base=SOPS_APIGW_DOMAIN,
             url="get_task_status/" if is_esb else "get_task_status/{task_id}/{bk_biz_id}/",
-            module=self.MODULE,
             description=_("查询任务状态"),
         )
-        self.get_task_node_detail = DataAPI(
+        self.get_task_node_detail = self.generate_data_api(
             method="GET",
-            base=SOPS_APIGW_DOMAIN,
             url="get_task_node_detail/" if is_esb else "get_task_node_detail/{task_id}/{bk_biz_id}/",
-            module=self.MODULE,
             description=_("查询任务节点执行详情"),
         )
 

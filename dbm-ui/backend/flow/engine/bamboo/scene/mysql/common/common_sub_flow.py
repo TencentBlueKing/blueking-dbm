@@ -9,7 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 from dataclasses import asdict
-from typing import Optional
+from typing import List, Optional
 
 from django.utils.translation import gettext as _
 
@@ -19,10 +19,13 @@ from backend.components.dbconfig.constants import FormatType, LevelName
 from backend.configuration.constants import DBType
 from backend.db_meta.enums import ClusterType, InstanceInnerRole
 from backend.db_meta.models import Cluster
-from backend.flow.consts import DBA_ROOT_USER
+from backend.flow.consts import DBA_ROOT_USER, DEPENDENCIES_PLUGINS
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.plugins.components.collections.common.download_backup_client import DownloadBackupClientComponent
+from backend.flow.plugins.components.collections.common.install_nodeman_plugin import (
+    InstallNodemanPluginServiceComponent,
+)
 from backend.flow.plugins.components.collections.common.sa_idle_check import CheckMachineIdleComponent
 from backend.flow.plugins.components.collections.mysql.check_client_connections import CheckClientConnComponent
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
@@ -33,7 +36,7 @@ from backend.flow.plugins.components.collections.mysql.mysql_os_init import (
 )
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
 from backend.flow.plugins.components.collections.mysql.verify_checksum import VerifyChecksumComponent
-from backend.flow.utils.common_act_dataclass import DownloadBackupClientKwargs
+from backend.flow.utils.common_act_dataclass import DownloadBackupClientKwargs, InstallNodemanPluginKwargs
 from backend.flow.utils.mysql.mysql_act_dataclass import (
     CheckClientConnKwargs,
     DownloadMediaKwargs,
@@ -564,6 +567,7 @@ def init_machine_sub_flow(
     sys_init_ips: list,
     init_check_ips: list = None,
     yum_install_perl_ips: list = None,
+    bk_host_ids: List[int] = None,
 ):
     """
     定义初始化机器的公共子流程，提供给mysql/spider/proxy新机器的初始化适用，不支持跨云区域处理
@@ -573,6 +577,7 @@ def init_machine_sub_flow(
     @param sys_init_ips: 需要初始化的机器ip列表
     @param init_check_ips: 需要做空闲检查的机器ip列表
     @param yum_install_perl_ips:需要按照perl环境的机器ip列表
+    @param bk_host_ids: List[int] 操作的主机
     """
     if not sys_init_ips and not init_check_ips and not yum_install_perl_ips:
         raise Exception(
@@ -603,6 +608,20 @@ def init_machine_sub_flow(
                 "bk_cloud_id": bk_cloud_id,
             },
         )
+
+    # 安装插件
+    acts_list = []
+    # 这里用 bk_host_ids 临时兼容，更合理的做法是，参数流转都不使用 IP，统一使用 bk_host_id
+    if bk_host_ids:
+        for plugin_name in DEPENDENCIES_PLUGINS:
+            acts_list.append(
+                {
+                    "act_name": _("安装[{}]插件".format(plugin_name)),
+                    "act_component_code": InstallNodemanPluginServiceComponent.code,
+                    "kwargs": asdict(InstallNodemanPluginKwargs(bk_host_ids=bk_host_ids, plugin_name=plugin_name)),
+                }
+            )
+    sub_pipeline.add_parallel_acts(acts_list=acts_list)
 
     # 判断是否需要执行按照MySQL Perl依赖
     if env.YUM_INSTALL_PERL and yum_install_perl_ips:

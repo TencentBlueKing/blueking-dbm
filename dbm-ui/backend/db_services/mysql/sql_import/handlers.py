@@ -19,7 +19,7 @@ from django.core.cache import cache
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.utils.translation import ugettext as _
 
-from backend.components.sql_import.client import SQLImportApi
+from backend.components.sql_import.client import SQLSimulationApi
 from backend.configuration.constants import PLAT_BIZ_ID, DBType
 from backend.core.storages.storage import get_storage
 from backend.db_services.mysql.sql_import.constants import (
@@ -104,7 +104,7 @@ class SQLHandler(object):
         dir_name = os.path.split(sql_file_info_list[0]["sql_path"])[0]
 
         # 获取检查信息
-        check_info = SQLImportApi.grammar_check(
+        check_info = SQLSimulationApi.grammar_check(
             params={"path": dir_name, "files": file_name_list, "cluster_type": self.cluster_type}
         )
 

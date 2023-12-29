@@ -11,58 +11,43 @@ specific language governing permissions and limitations under the License.
 
 from django.utils.translation import ugettext_lazy as _
 
-from ..base import DataAPI
+from ..base import BaseApi
 from ..domains import ITSM_APIGW_DOMAIN
 
 
-class _ItsmApi(object):
+class _ItsmApi(BaseApi):
     MODULE = _("ITSM流程管理")
+    BASE = ITSM_APIGW_DOMAIN
 
     def __init__(self):
-        self.create_ticket = DataAPI(
+        self.create_ticket = self.generate_data_api(
             method="POST",
-            base=ITSM_APIGW_DOMAIN,
             url="create_ticket/",
-            module=self.MODULE,
             description=_("创建单据"),
         )
-        self.ticket_approval_result = DataAPI(
+        self.ticket_approval_result = self.generate_data_api(
             method="POST",
-            base=ITSM_APIGW_DOMAIN,
             url="ticket_approval_result/",
-            module=self.MODULE,
             description=_("审批结果查询"),
         )
-        self.get_ticket_logs = DataAPI(
+        self.get_ticket_logs = self.generate_data_api(
             method="GET",
-            base=ITSM_APIGW_DOMAIN,
             url="get_ticket_logs/",
-            module=self.MODULE,
             description=_("单据日志查询"),
         )
-        self.get_service_catalogs = DataAPI(
+        self.get_service_catalogs = self.generate_data_api(
             method="GET",
-            base=ITSM_APIGW_DOMAIN,
             url="get_service_catalogs/",
-            module=self.MODULE,
             description=_("服务目录查询"),
         )
-        self.get_services = DataAPI(
-            method="GET", base=ITSM_APIGW_DOMAIN, url="get_services/", module=self.MODULE, description=_("服务列表查询")
-        )
-        self.create_service_catalog = DataAPI(
+        self.get_services = self.generate_data_api(method="GET", url="get_services/", description=_("服务列表查询"))
+        self.create_service_catalog = self.generate_data_api(
             method="POST",
-            base=ITSM_APIGW_DOMAIN,
             url="create_service_catalog/",
-            module=self.MODULE,
             description=_("创建服务目录"),
         )
-        self.import_service = DataAPI(
-            method="POST", base=ITSM_APIGW_DOMAIN, url="import_service/", module=self.MODULE, description=_("导入服务")
-        )
-        self.update_service = DataAPI(
-            method="POST", base=ITSM_APIGW_DOMAIN, url="update_service/", module=self.MODULE, description=_("更新服务")
-        )
+        self.import_service = self.generate_data_api(method="POST", url="import_service/", description=_("导入服务"))
+        self.update_service = self.generate_data_api(method="POST", url="update_service/", description=_("更新服务"))
 
 
 ItsmApi = _ItsmApi()

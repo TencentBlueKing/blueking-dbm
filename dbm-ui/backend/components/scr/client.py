@@ -11,19 +11,18 @@ See the License for the specific language governing permissions and limitations 
 
 from django.utils.translation import ugettext_lazy as _
 
-from ..base import DataAPI
+from ..base import BaseApi
 from ..domains import SCR_APIGW_DOMAIN
 
 
-class _ScrApi(object):
+class _ScrApi(BaseApi):
     MODULE = _("Scr平台")
+    BASE = SCR_APIGW_DOMAIN
 
     def __init__(self):
-        self.common_query = DataAPI(
+        self.common_query = self.generate_data_api(
             method="POST",
-            base=SCR_APIGW_DOMAIN,
             url="gcscmdb/common/query/",
-            module=self.MODULE,
             freeze_params=True,
             description=_("scr平台通用查询接口)"),
         )

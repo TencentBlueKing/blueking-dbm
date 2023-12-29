@@ -348,16 +348,6 @@ class DownloadBackupFileKwargs:
     login_passwd: str = BACKUP_DOWNLOAD_USER_PWD
 
 
-#
-# @dataclass()
-# class RollbackDownloadBinlogKwargs(DownloadBackupFileKwargs):
-#     """
-#     定义下载mysql定点回档 本地+时间 模式的下载binlog
-#     """
-#
-#     cluster: dict
-
-
 @dataclass
 class CheckClientConnKwargs:
     """

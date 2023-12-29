@@ -11,27 +11,24 @@ See the License for the specific language governing permissions and limitations 
 
 from django.utils.translation import ugettext_lazy as _
 
-from ..base import DataAPI
+from ..base import BaseApi
 from ..domains import GSE_APIGW_DOMAIN
 
 
-class _GseApi(object):
+class _GseApi(BaseApi):
     MODULE = _("管控平台")
+    BASE = GSE_APIGW_DOMAIN
 
     def __init__(self):
-        self.get_agent_status = DataAPI(
+        self.get_agent_status = self.generate_data_api(
             method="POST",
-            base=GSE_APIGW_DOMAIN,
             url="get_agent_status/",
-            module=self.MODULE,
             description=_("Agent在线状态查询 - 1.0"),
         )
 
-        self.list_agent_state = DataAPI(
+        self.list_agent_state = self.generate_data_api(
             method="POST",
-            base=GSE_APIGW_DOMAIN,
             url="list_agent_state/",
-            module=self.MODULE,
             description=_("查询Agent状态列表信息 - 2.0"),
         )
 

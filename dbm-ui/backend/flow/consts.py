@@ -18,6 +18,7 @@ HOST = "host"
 MASTER_HOST = "master_host"
 REPL_HOST = "repl_host"
 BACKEND_HOST = "backend_host"
+DEPENDENCIES_PLUGINS = ["bkmonitorbeat", "bkunifylogbeat"]
 
 # 默认DB moudle id
 DEFAULT_DB_MODULE_ID = 0

@@ -11,53 +11,36 @@ specific language governing permissions and limitations under the License.
 
 from django.utils.translation import ugettext_lazy as _
 
-from ..base import DataAPI
+from ..base import BaseApi
 from ..domains import MYSQL_SIMULATION_DOMAIN
 
 
-class _SQLImportApi(object):
-
-    MODULE = _("SQL语句导入")
+class _SQLSimulationApi(BaseApi):
+    MODULE = _("SQL模拟执行")
+    BASE = MYSQL_SIMULATION_DOMAIN
 
     def __init__(self):
-        self.grammar_check = DataAPI(
+        self.grammar_check = self.generate_data_api(
             method="POST",
-            base=MYSQL_SIMULATION_DOMAIN,
             url="/syntax/check/file",
-            module=self.MODULE,
             description=_("sql语法检查"),
         )
-
-
-class _SQLSimulation(object):
-
-    MODULE = _("SQL模拟执行")
-
-    def __init__(self):
-        self.mysql_simulation = DataAPI(
+        self.mysql_simulation = self.generate_data_api(
             method="POST",
-            base=MYSQL_SIMULATION_DOMAIN,
             url="/mysql/simulation",
-            module=self.MODULE,
             description=_("容器化SQL模拟执行"),
         )
-
-        self.query_simulation_task = DataAPI(
+        self.query_simulation_task = self.generate_data_api(
             method="POST",
-            base=MYSQL_SIMULATION_DOMAIN,
             url="/mysql/task",
-            module=self.MODULE,
             description=_("查询模拟执行任务状态也"),
         )
 
-        self.spider_simulation = DataAPI(
+        self.spider_simulation = self.generate_data_api(
             method="POST",
-            base=MYSQL_SIMULATION_DOMAIN,
             url="/spider/simulation",
-            module=self.MODULE,
             description=_("容器化SQL模拟执行"),
         )
 
 
-SQLImportApi = _SQLImportApi()
-SQLSimulation = _SQLSimulation()
+SQLSimulationApi = _SQLSimulationApi()

@@ -15,7 +15,7 @@ from django.utils.translation import ugettext as _
 from pipeline.component_framework.component import Component
 from pipeline.core.flow.activity import StaticIntervalGenerator
 
-from backend.components.sql_import.client import SQLSimulation
+from backend.components.sql_import.client import SQLSimulationApi
 from backend.db_meta.enums.cluster_type import ClusterType
 from backend.db_services.mysql.sql_import.constants import (
     CACHE_SEMANTIC_AUTO_COMMIT_FIELD,
@@ -50,9 +50,9 @@ class SemanticCheckService(BaseService):
         payload["version_id"] = self._runtime_attrs.get("version")
         try:
             if cluster_type == ClusterType.TenDBCluster:
-                resp = SQLSimulation.spider_simulation(payload, raw=True)
+                resp = SQLSimulationApi.spider_simulation(payload, raw=True)
             else:
-                resp = SQLSimulation.mysql_simulation(payload, raw=True)
+                resp = SQLSimulationApi.mysql_simulation(payload, raw=True)
             self.log_info(_("创建模拟执行任务resp{}").format(resp))
             code = resp["code"]
             if code != 0:
@@ -77,7 +77,7 @@ class SemanticCheckService(BaseService):
         try:
             # code:0 成功 code:1 失败 code:2 running
             # -
-            resp = SQLSimulation.query_simulation_task({"task_id": payload["task_id"]}, raw=True)
+            resp = SQLSimulationApi.query_simulation_task({"task_id": payload["task_id"]}, raw=True)
             code = resp["code"]
             msg = resp["msg"]
 

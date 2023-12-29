@@ -10,7 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 
 
-class SQLImportApiMock:
+class SQLSimulationApiMock:
     """
     sql导入的相关mock
     """

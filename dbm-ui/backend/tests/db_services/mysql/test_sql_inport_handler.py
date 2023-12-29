@@ -14,7 +14,7 @@ from mock import patch
 
 from backend.db_services.mysql.sql_import.handlers import SQLHandler
 from backend.tests.mock_data import constant
-from backend.tests.mock_data.components.sql_import import SQLImportApiMock
+from backend.tests.mock_data.components.sql_import import SQLSimulationApiMock
 from backend.tests.mock_data.components.storage import get_storage_mock
 
 pytestmark = pytest.mark.django_db
@@ -28,7 +28,7 @@ class TestSQLImportHandler:
     handler = SQLHandler(bk_biz_id=constant.BK_BIZ_ID)
 
     @patch("backend.db_services.mysql.sql_import.handlers.get_storage", get_storage_mock)
-    @patch("backend.db_services.mysql.sql_import.handlers.SQLImportApi", SQLImportApiMock)
+    @patch("backend.db_services.mysql.sql_import.handlers.SQLSimulationApi", SQLSimulationApiMock)
     def test_grammar_check(self):
         sql_content = "select * from user"
         check_info = self.handler.grammar_check(sql_content)

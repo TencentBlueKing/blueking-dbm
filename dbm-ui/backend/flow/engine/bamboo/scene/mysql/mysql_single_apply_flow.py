@@ -113,6 +113,7 @@ class MySQLSingleApplyFlow(object):
                     sys_init_ips=[info["new_ip"]["ip"]],
                     init_check_ips=[info["new_ip"]["ip"]],
                     yum_install_perl_ips=[info["new_ip"]["ip"]],
+                    bk_host_ids=[info["new_ip"]["bk_host_id"]],
                 )
             )
 

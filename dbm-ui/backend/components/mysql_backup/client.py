@@ -10,44 +10,33 @@ specific language governing permissions and limitations under the License.
 """
 from django.utils.translation import ugettext_lazy as _
 
-from ..base import DataAPI
+from ..base import BaseApi
 from ..domains import BACKUP_APIGW_DOMAIN
 
 
-class _BackupApi(object):
+class _BackupApi(BaseApi):
     MODULE = _("备份文件下载")
+    BASE = BACKUP_APIGW_DOMAIN
 
     def __init__(self):
-        self.query = DataAPI(
+        self.query = self.generate_data_api(
             method="POST",
-            base=BACKUP_APIGW_DOMAIN,
             url="backupapi/query",
-            module=self.MODULE,
             description=_("获取备份"),
         )
-
-        self.download = DataAPI(
+        self.download = self.generate_data_api(
             method="POST",
-            base=BACKUP_APIGW_DOMAIN,
             url="backupapi/recover",
-            module=self.MODULE,
             description=_("备份文件下载"),
         )
 
-        self.download_result = DataAPI(
+        self.download_result = self.generate_data_api(
             method="GET",
-            base=BACKUP_APIGW_DOMAIN,
             url="backupapi/get_recover_result",
-            module=self.MODULE,
             description=_("查询单据状态"),
         )
-        self.download_backup_client = DataAPI(
-            method="POST",
-            base=BACKUP_APIGW_DOMAIN,
-            url="backupapi/client/install",
-            module=self.MODULE,
-            description=_("backup_client下载，同步任务"),
-            default_timeout=300,
+        self.download_backup_client = self.generate_data_api(
+            method="POST", url="backupapi/client/install", description=_("backup_client下载，同步任务"), default_timeout=300
         )
 
 

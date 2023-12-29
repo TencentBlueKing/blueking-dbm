@@ -11,41 +11,34 @@ specific language governing permissions and limitations under the License.
 
 from django.utils.translation import ugettext_lazy as _
 
-from ..base import DataAPI
+from ..base import BaseApi
 from ..domains import CELERY_SERVICE_APIGW_DOMAIN
 
 
-class _CeleryServiceApi(object):
+class _CeleryServiceApi(BaseApi):
     MODULE = _("周期任务服务")
+    BASE = CELERY_SERVICE_APIGW_DOMAIN
 
     def __init__(self):
-        self.list = DataAPI(
+        self.list = self.generate_data_api(
             method="GET",
-            base=CELERY_SERVICE_APIGW_DOMAIN,
             freeze_params=True,
             url="/list",
-            module=self.MODULE,
             description=_("获取API列表"),
         )
-        self.async_list = DataAPI(
+        self.async_list = self.generate_data_api(
             method="GET",
-            base=CELERY_SERVICE_APIGW_DOMAIN,
             url="/discovery",
-            module=self.MODULE,
             description=_("获取周期任务的注册列表"),
         )
-        self.async_query = DataAPI(
+        self.async_query = self.generate_data_api(
             method="POST",
-            base=CELERY_SERVICE_APIGW_DOMAIN,
             url="/async/query",
-            module=self.MODULE,
             description=_("查询异步会话"),
         )
-        self.async_kill = DataAPI(
+        self.async_kill = self.generate_data_api(
             method="POST",
-            base=CELERY_SERVICE_APIGW_DOMAIN,
             url="/async/kill",
-            module=self.MODULE,
             description=_("结束异步会话"),
         )
 

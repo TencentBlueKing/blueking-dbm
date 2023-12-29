@@ -24,16 +24,17 @@ from django.utils.translation import ugettext as _
 from urllib3.exceptions import ConnectTimeoutError
 
 from backend import env
+from backend.components.constants import CLIENT_CRT_PATH, SSL_KEY, SSLEnum
+from backend.components.exception import DataAPIException
+from backend.components.utils.params import add_esb_info_before_request, remove_auth_args
 from backend.configuration.models.system import SystemSettings
 from backend.exceptions import ApiError, ApiRequestError, ApiResultError, AppBaseException
 from backend.utils.local import local
 
-# TODO 整体复杂度较高，待优化降低复杂度和提高可读性
-from .constants import CLIENT_CRT_PATH, SSL_KEY, SSLEnum
-from .exception import DataAPIException
-from .utils.params import add_esb_info_before_request, remove_auth_args
-
 logger = logging.getLogger("root")
+
+
+# TODO 整体复杂度较高，待优化降低复杂度和提高可读性
 
 
 class DataResponse(object):
@@ -529,3 +530,18 @@ class DataAPI(object):
         """
         if cache.get(cache_key):
             return cache.get(cache_key)
+
+
+class BaseApi(object):
+    """
+    接口基类
+    """
+
+    MODULE = ""
+    BASE = ""
+
+    def generate_data_api(self, method, url, description, **kwargs):
+        """
+        生成 DataAPI，使用类变量 BASE，MODULE 作为统一参数
+        """
+        return DataAPI(method=method, base=self.BASE, url=url, module=self.MODULE, description=description, **kwargs)
