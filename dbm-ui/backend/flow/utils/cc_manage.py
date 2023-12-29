@@ -233,21 +233,24 @@ class CcManage(object):
             host_info_list = [{"bk_host_id": bk_host_id, CC_HOST_DBM_ATTR: dbm_meta} for bk_host_id in bk_host_ids]
         else:
             machines = Machine.objects.filter(bk_host_id__in=bk_host_ids)
-            # 这里可以认为一批操作的机器的数据库类型是相同的
-            db_type = ClusterType.cluster_type_to_db_type(machines.first().cluster_type)
-            biz_dba = DBAdministrator.get_biz_db_type_admins(bk_biz_id=self.bk_biz_id, db_type=db_type)
-            host_info_list = [
-                {
-                    "bk_host_id": machine.bk_host_id,
-                    # 主要维护人
-                    "operator": ",".join(biz_dba),
-                    # 备份维护人
-                    "bk_bak_operator": ",".join(biz_dba),
-                    # db_meta信息
-                    CC_HOST_DBM_ATTR: json.dumps(machine.dbm_meta),
-                }
-                for machine in machines
-            ]
+            if machines.exists():
+                # 这里可以认为一批操作的机器的数据库类型是相同的
+                db_type = ClusterType.cluster_type_to_db_type(machines.first().cluster_type)
+                biz_dba = DBAdministrator.get_biz_db_type_admins(bk_biz_id=self.bk_biz_id, db_type=db_type)
+                host_info_list = [
+                    {
+                        "bk_host_id": machine.bk_host_id,
+                        # 主要维护人
+                        "operator": ",".join(biz_dba),
+                        # 备份维护人
+                        "bk_bak_operator": ",".join(biz_dba),
+                        # db_meta信息
+                        CC_HOST_DBM_ATTR: json.dumps(machine.dbm_meta),
+                    }
+                    for machine in machines
+                ]
+            else:
+                host_info_list = [{"bk_host_id": bk_host_id} for bk_host_id in bk_host_ids]
 
         __, failed_updates = self.batch_update_host(host_info_list, need_monitor)
 
