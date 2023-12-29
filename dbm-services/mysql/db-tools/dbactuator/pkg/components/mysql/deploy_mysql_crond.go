@@ -260,23 +260,38 @@ func (c *DeployMySQLCrondComp) CheckStart() (err error) {
 			}
 		}
 
-		content, err := os.ReadFile(path.Join(cst.MySQLCrondInstallPath, "start-crond.err"))
-		if err != nil {
-			logger.Error(err.Error())
-			return err
-		}
-
-		if len(content) > 0 {
-			logger.Error(string(content))
-			return fmt.Errorf("start mysql-crond failed: %s", string(content))
-		}
-
 		return nil // 如果能走到这里, 说明正常启动了
 	}
 
 	err = errors.Errorf("mysql-crond check start failed")
-	logger.Error(err.Error())
-	return err
+
+	startErrFilePath := path.Join(cst.MySQLCrondInstallPath, "start-crond.err")
+	_, err = os.Stat(startErrFilePath)
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			sterr := errors.Errorf("start mysql-crond failed without start-crond.err file")
+			return sterr
+		} else {
+			sterr := errors.Wrapf(err, "get start-crond.err stat failed")
+			logger.Error(sterr.Error())
+			return sterr
+		}
+	}
+
+	content, err := os.ReadFile(startErrFilePath)
+	if err != nil {
+		logger.Error("read mysql-crond.err", err.Error())
+		return err
+	}
+	if len(content) > 0 {
+		ferr := errors.Errorf("start-crond.err content: %s", string(content))
+		logger.Error(ferr.Error())
+		return ferr
+	} else {
+		err := errors.Errorf("start mysql-crond failed with empty start-crond.err")
+		logger.Error(err.Error())
+		return err
+	}
 }
 
 func (c *DeployMySQLCrondComp) AddKeepAlive() (err error) {
