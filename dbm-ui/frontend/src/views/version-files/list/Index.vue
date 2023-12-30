@@ -293,7 +293,7 @@
     };
   });
 
-  const pkgList = computed(() => pkgTypesMap.value![tabActive.value] ?? []);
+  const pkgList = computed(() => (pkgTypesMap.value && pkgTypesMap.value[tabActive.value]) ?? []);
 
   const { data: pkgTypesMap } = useRequest(listPackageTypes, {
     defaultParams: [{

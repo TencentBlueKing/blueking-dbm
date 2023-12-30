@@ -245,3 +245,39 @@ export function retryTicketFlow(params: {
 }) {
   return http.post(`${path}/${params.ticketId}/retry_flow/`, params);
 }
+
+/**
+  * 查询可编辑单据流程描述
+  */
+export function queryTicketFlowDescribe(params: {
+  db_type: string,
+  ticket_types?: string,
+  limit?: number,
+  offset?: number,
+}) {
+  return http.get<{
+    configs: Record<string, boolean>;
+    creator: string;
+    editable: boolean;
+    flow_desc: string[];
+    group: string;
+    ticket_type: string;
+    ticket_type_display: string;
+    updater: string;
+  }[]>(`${path}/query_ticket_flow_describe/`, params).then(data => ({
+    count: data.length,
+    results: data,
+  }));
+}
+
+/**
+  * 修改可编辑的单据流程
+  */
+export function updateTicketFlowConfig(params: {
+  ticket_types: string[],
+  configs: Record<string, boolean>,
+}) {
+  return http.post<{
+    ticket_types: string[],
+  }>(`${path}/update_ticket_flow_config/`, params);
+}

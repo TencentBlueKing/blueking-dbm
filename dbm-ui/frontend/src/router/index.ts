@@ -51,6 +51,7 @@ import getSpiderManageRoutes from '@views/spider-manage/routes';
 import getStaffSettingRoutes from '@views/staff-setting/routes';
 import getTaskHistoryRoutes from '@views/task-history/routes';
 import getTemporaryPasswordModify from '@views/temporary-paassword-modify/routes';
+import getTicketFlowSettingRoutes from '@views/ticket-flow-setting/routes';
 import getTicketManageRoutes from '@views/ticket-manage/routes';
 import getTicketsRoutes from '@views/tickets/routes';
 import getVersionFilesRoutes from '@views/version-files/routes';
@@ -127,6 +128,7 @@ export default () => {
           ...getTicketManageRoutes(),
           ...getTemporaryPasswordModify(),
           ...getRiakManage(bigdataController),
+          ...getTicketFlowSettingRoutes(),
         ],
       },
       {

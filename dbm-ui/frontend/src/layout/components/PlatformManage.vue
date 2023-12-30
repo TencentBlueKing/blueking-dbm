@@ -129,6 +129,16 @@
               {{ t('DBA人员管理') }}
             </span>
           </BkMenuItem>
+          <BkMenuItem key="PlatformTicketFlowSetting">
+            <template #icon>
+              <DbIcon type="dba-config" />
+            </template>
+            <span
+              v-overflow-tips.right
+              class="text-overflow">
+              {{ t('单据流程设置') }}
+            </span>
+          </BkMenuItem>
           <BkSubmenu
             key="platform-mysql"
             title="MySQL">
