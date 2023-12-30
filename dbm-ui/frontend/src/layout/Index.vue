@@ -33,7 +33,9 @@
     <template #menu>
       <component :is="renderMenuCom" />
     </template>
-    <div class="db-navigation-content-header">
+    <div
+      class="db-navigation-content-header"
+      :style="{'box-shadow': isContendFullscreen ? 'none' : '0 3px 4px 0 #0000000a'}">
       <slot name="content-header" />
       <div class="db-navigation-content-title">
         {{ contentTitle }}
@@ -145,6 +147,7 @@
       'PlatRotateSet',
       'PlatMonitorAlarmGroup',
       'passwordManage',
+      'PlatformTicketFlowSetting',
     ],
     [menuEnum.personalWorkbench]: [
       'SelfServiceMyTickets',
@@ -279,7 +282,6 @@
   height: 52px;
   padding: 0 14px;
   background: #FFF;
-  box-shadow: 0 3px 4px 0 #0000000a;
   align-content: center;
 
   #dbContentHeaderAppend{

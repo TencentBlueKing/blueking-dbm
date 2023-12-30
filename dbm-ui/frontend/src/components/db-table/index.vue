@@ -26,7 +26,7 @@
         :max-height="tableMaxHeight"
         :pagination="pagination"
         :pagination-heihgt="60"
-        remote-pagination
+        :remote-pagination="remotePagination"
         show-overflow-tooltip
         v-bind="$attrs"
         @column-sort="handleColumnSortChange"
@@ -119,6 +119,8 @@
     releateUrlQuery?: boolean,
     // 没提供默认使用浏览器窗口的高度 window.innerHeight
     containerHeight?: number,
+    // 是否开启远程分页
+    remotePagination?: boolean,
   }
 
   interface Emits {
@@ -148,6 +150,7 @@
     primaryKey: 'id',
     releateUrlQuery: false,
     containerHeight: undefined,
+    remotePagination: true,
   });
 
   const emits = defineEmits<Emits>();
