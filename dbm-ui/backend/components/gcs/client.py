@@ -21,9 +21,7 @@ class _GcsApi(BaseApi):
 
     def __init__(self):
         self.cloud_privileges_asyn_bydbname = self.generate_data_api(
-            method="POST",
-            url="mysql_privileges/",
-            description=_("gcs授权接口(mysql和spider)"),
+            method="POST", url="mysql_privileges/", description=_("gcs授权接口(mysql和spider)"), freeze_params=True
         )
 
         self.cloud_service_status = self.generate_data_api(
