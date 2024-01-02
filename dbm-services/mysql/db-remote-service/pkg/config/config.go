@@ -15,17 +15,19 @@ var RuntimeConfig *runtimeConfig
 var LogConfig *logConfig
 
 type runtimeConfig struct {
-	Concurrent         int
-	MySQLAdminUser     string
-	MySQLAdminPassword string
-	ProxyAdminUser     string
-	ProxyAdminPassword string
-	Port               int
-	ParserBin          string
-	CAFile             string
-	CertFile           string
-	KeyFile            string
-	TLS                bool
+	Concurrent             int
+	MySQLAdminUser         string
+	MySQLAdminPassword     string
+	ProxyAdminUser         string
+	ProxyAdminPassword     string
+	SqlserverAdminUser     string
+	SqlserverAdminPassword string
+	Port                   int
+	ParserBin              string
+	CAFile                 string
+	CertFile               string
+	KeyFile                string
+	TLS                    bool
 }
 
 type logConfig struct {
@@ -39,17 +41,19 @@ type logConfig struct {
 // InitConfig 初始化配置
 func InitConfig() {
 	RuntimeConfig = &runtimeConfig{
-		Concurrent:         viper.GetInt("concurrent"),
-		MySQLAdminUser:     viper.GetString("mysql_admin_user"),
-		MySQLAdminPassword: viper.GetString("mysql_admin_password"),
-		ProxyAdminUser:     viper.GetString("proxy_admin_user"),
-		ProxyAdminPassword: viper.GetString("proxy_admin_password"),
-		Port:               viper.GetInt("port"),
-		ParserBin:          viper.GetString("tmysqlparser_bin"),
-		TLS:                viper.GetBool("tls"),
-		CAFile:             viper.GetString("ca_file"),
-		CertFile:           viper.GetString("cert_file"),
-		KeyFile:            viper.GetString("key_file"),
+		Concurrent:             viper.GetInt("concurrent"),
+		MySQLAdminUser:         viper.GetString("mysql_admin_user"),
+		MySQLAdminPassword:     viper.GetString("mysql_admin_password"),
+		ProxyAdminUser:         viper.GetString("proxy_admin_user"),
+		ProxyAdminPassword:     viper.GetString("proxy_admin_password"),
+		SqlserverAdminUser:     viper.GetString("sqlserver_admin_user"),
+		SqlserverAdminPassword: viper.GetString("sqlserver_admin_password"),
+		Port:                   viper.GetInt("port"),
+		ParserBin:              viper.GetString("tmysqlparser_bin"),
+		TLS:                    viper.GetBool("tls"),
+		CAFile:                 viper.GetString("ca_file"),
+		CertFile:               viper.GetString("cert_file"),
+		KeyFile:                viper.GetString("key_file"),
 	}
 
 	if !filepath.IsAbs(RuntimeConfig.ParserBin) {
