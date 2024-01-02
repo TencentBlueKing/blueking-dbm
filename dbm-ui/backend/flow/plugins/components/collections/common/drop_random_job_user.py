@@ -21,6 +21,7 @@ from backend.db_meta.exceptions import ClusterNotExistException
 from backend.db_meta.models import Cluster
 from backend.flow.consts import DBM_JOB
 from backend.flow.plugins.components.collections.common.base_service import BaseService
+from backend.flow.utils.mysql import mysql_version_parse
 from backend.ticket.constants import TicketType
 
 logger = logging.getLogger("flow")
@@ -76,11 +77,17 @@ class DropTempUserForClusterService(BaseService):
                 cmd = []
                 if instance["is_tdbctl"]:
                     cmd.append("set tc_admin = 0;")
-
-                cmd += [
-                    f"drop user if exists `{user}`@`localhost`;",
-                    f"drop user if exists `{user}`@`{instance['ip_port'].split(':')[0]}`;",
-                ]
+                self.log_info(f"the instance version is {instance.version}")
+                if mysql_version_parse(instance.version) > mysql_version_parse("5.7"):
+                    cmd += [
+                        f"drop user if exists `{user}`@`localhost`;",
+                        f"drop user if exists `{user}`@`{instance['ip_port'].split(':')[0]}`;",
+                    ]
+                else:
+                    cmd += [
+                        f"drop user `{user}`@`localhost`;",
+                        f"drop user `{user}`@`{instance['ip_port'].split(':')[0]}`;",
+                    ]
 
                 resp = DRSApi.rpc(
                     {
