@@ -17,7 +17,6 @@ import (
 
 	"dbm-services/mysql/priv-service/assests"
 	"dbm-services/mysql/priv-service/handler"
-	"dbm-services/mysql/priv-service/util"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-migrate/migrate/v4"
@@ -40,11 +39,6 @@ func main() {
 			slog.Error("migrate失败", err)
 			os.Exit(0)
 		}
-	}
-
-	// 生成公钥、私钥
-	if err := util.CreateKeyFile(); err != nil {
-		slog.Error("读取密码文件失败", err)
 	}
 
 	// 注册服务

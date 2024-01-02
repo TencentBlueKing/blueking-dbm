@@ -2,6 +2,7 @@
 package handler
 
 import (
+	"dbm-services/mysql/db-partition/monitor"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -301,6 +302,13 @@ func CronStart(r *gin.Context) {
 		v.Start()
 	}
 	SendResponse(r, nil, "开启分区定时任务成功")
+	return
+}
+
+// InitMonitor 初始监控配置
+func InitMonitor(r *gin.Context) {
+	monitor.InitMonitor()
+	SendResponse(r, nil, "初始监控配置")
 	return
 }
 

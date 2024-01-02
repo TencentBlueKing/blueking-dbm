@@ -59,6 +59,7 @@ func SendEvent(eventName string, dimension map[string]interface{}, content strin
 // NewDeveloperEventDimension 构建自定监控事件的维度，发送给平台管理员
 func NewDeveloperEventDimension(serverIp string) map[string]interface{} {
 	dimension := make(map[string]interface{})
+	dimension["appid"] = viper.GetString("dba.bk_biz_id")
 	dimension["bk_biz_id"] = viper.GetString("dba.bk_biz_id")
 	dimension["bk_cloud_id"] = 0
 	dimension["cluster_domain"] = PartitionCron
@@ -70,6 +71,7 @@ func NewDeveloperEventDimension(serverIp string) map[string]interface{} {
 // NewPartitionEventDimension 构建自定监控事件的维度，发送给业务的dba
 func NewPartitionEventDimension(bkBizId int, bkCloudId int, domain string) map[string]interface{} {
 	dimension := make(map[string]interface{})
+	dimension["appid"] = bkBizId
 	dimension["bk_biz_id"] = bkBizId
 	dimension["bk_cloud_id"] = bkCloudId
 	dimension["cluster_domain"] = domain
@@ -78,7 +80,7 @@ func NewPartitionEventDimension(bkBizId int, bkCloudId int, domain string) map[s
 
 // TestSendEvent 测试监控上报链路
 func TestSendEvent(dataId int, token string, serviceHost string) error {
-	dimension := NewDeveloperEventDimension("0.0.0.0")
+	dimension := NewDeveloperEventDimension("127.0.0.1")
 	l, _ := time.LoadLocation("Local")
 
 	body := eventBody{
@@ -93,7 +95,7 @@ func TestSendEvent(dataId int, token string, serviceHost string) error {
 					"content": "test partition monitor",
 				},
 				commonData: commonData{
-					Target:    "0.0.0.0",
+					Target:    "127.0.0.1",
 					Timestamp: time.Now().In(l).UnixMilli(),
 					Dimension: dimension,
 					Metrics:   nil,

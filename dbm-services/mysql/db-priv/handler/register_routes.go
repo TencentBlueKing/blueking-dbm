@@ -45,9 +45,6 @@ func (m *PrivService) Routes() []*gin.RouteInfo {
 		{Method: http.MethodPost, Path: "clone_client_priv_dry_run", HandlerFunc: m.CloneClientPrivDryRun},
 		{Method: http.MethodPost, Path: "clone_client_priv", HandlerFunc: m.CloneClientPriv},
 
-		// 获取公钥，用于传输过程中加密密码
-		{Method: http.MethodPost, Path: "pub_key", HandlerFunc: m.GetPubKey},
-
 		// 修改mysql实例管理用户的密码
 		{Method: http.MethodPost, Path: "modify_mysql_admin_password", HandlerFunc: m.ModifyMysqlAdminPassword},
 		// 查看mysql实例管理用户的密码
@@ -76,6 +73,9 @@ func (m *PrivService) Routes() []*gin.RouteInfo {
 
 		// 检查和迁移账号规则
 		{Method: http.MethodPost, Path: "migrate_account_rule", HandlerFunc: m.MigrateAccountRule},
+
+		// 查询帐号，并且包含密码，为mongodb等非mysql数据库类型使用
+		{Method: http.MethodPost, Path: "get_account_include_psw", HandlerFunc: m.GetAccountIncludePsw},
 	}
 }
 

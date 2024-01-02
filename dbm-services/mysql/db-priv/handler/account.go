@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"log/slog"
+	"net/http"
 
 	"dbm-services/common/go-pubpkg/errno"
 	"dbm-services/mysql/priv-service/service"
@@ -23,7 +24,7 @@ func (m *PrivService) AddAccount(c *gin.Context) {
 		return
 	}
 
-	if err := json.Unmarshal(body, &input); err != nil {
+	if err = json.Unmarshal(body, &input); err != nil {
 		slog.Error("msg", err)
 		SendResponse(c, errno.ErrBind, err)
 		return
@@ -51,7 +52,7 @@ func (m *PrivService) DeleteAccount(c *gin.Context) {
 		return
 	}
 
-	if err := json.Unmarshal(body, &input); err != nil {
+	if err = json.Unmarshal(body, &input); err != nil {
 		slog.Error("msg", err)
 		SendResponse(c, errno.ErrBind, err)
 		return
@@ -75,7 +76,7 @@ func (m *PrivService) ModifyAccount(c *gin.Context) {
 		return
 	}
 
-	if err := json.Unmarshal(body, &input); err != nil {
+	if err = json.Unmarshal(body, &input); err != nil {
 		slog.Error("msg", err)
 		SendResponse(c, errno.ErrBind, err)
 		return
@@ -103,7 +104,7 @@ func (m *PrivService) GetAccount(c *gin.Context) {
 		return
 	}
 
-	if err := json.Unmarshal(body, &input); err != nil {
+	if err = json.Unmarshal(body, &input); err != nil {
 		slog.Error("msg", err)
 		SendResponse(c, errno.ErrBind, err)
 		return
@@ -115,4 +116,54 @@ func (m *PrivService) GetAccount(c *gin.Context) {
 		Items: accounts,
 	})
 	return
+}
+
+// GetAccount 获取账号
+func (m *PrivService) GetAccountIncludePsw(c *gin.Context) {
+	slog.Info("do GetAccount!")
+	var input service.GetAccountIncludePswPara
+
+	body, err := ioutil.ReadAll(c.Request.Body)
+	if err != nil {
+		slog.Error("msg", err)
+		SendResponse(c, errno.ErrBind, err)
+		return
+	}
+
+	if err = json.Unmarshal(body, &input); err != nil {
+		slog.Error("msg", err)
+		SendResponse(c, errno.ErrBind, err)
+		return
+	}
+
+	accounts, count, err := input.GetAccountIncludePsw()
+	SendResponse(c, err, ListResponse{
+		Count: count,
+		Items: accounts,
+	})
+	return
+}
+
+// SendResponse TODO
+func SendResponse(c *gin.Context, err error, data interface{}) {
+	code, message := errno.DecodeErr(err)
+
+	c.JSON(http.StatusOK, Response{
+		Code:    code,
+		Message: message,
+		Data:    data,
+	})
+}
+
+// Response TODO
+type Response struct {
+	Code    int         `json:"code"`
+	Message string      `json:"message"`
+	Data    interface{} `json:"data"`
+}
+
+// ListResponse TODO
+type ListResponse struct {
+	Count int64       `json:"count"`
+	Items interface{} `json:"items"`
 }

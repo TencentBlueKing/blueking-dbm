@@ -70,39 +70,11 @@ func (i *InstallRiakComp) Init() error {
 
 // PreCheck 预检查
 func (i *InstallRiakComp) PreCheck() error {
-	// 空闲检查
-	err := i.OsClearCheck()
-	if err != nil {
-		logger.Error("OsClearCheck failed: %s", err.Error())
-		return err
-	}
 	// 校验介质
-	err = i.Params.Pkg.Check()
+	err := i.Params.Pkg.Check()
 	if err != nil {
 		logger.Error("riak rpm package check failed: %s", err.Error())
 		return err
-	}
-	return nil
-}
-
-// OsClearCheck 空闲检查
-func (i *InstallRiakComp) OsClearCheck() error {
-	cmd := fmt.Sprintf(`%s | grep 'RESULT:' | cut -d':' -f2`, cst.OsClearScriptPath)
-	result, err := osutil.ExecShellCommand(false, cmd)
-	if err != nil {
-		logger.Error("[%s] error occurs while checking os clear %s", cmd, err.Error())
-		return fmt.Errorf("[%s] error occurs while checking os clear %s", cmd, err.Error())
-	}
-	ignoreDirtyFile := fmt.Sprintf("%s%s", result[0:3], result[4:5])
-	if strings.Contains(ignoreDirtyFile, "1") {
-		cmd = fmt.Sprintf(`%s | grep 'dirty' | grep -v 'dirty FILE'`, cst.OsClearScriptPath)
-		dirty, err := osutil.ExecShellCommand(false, cmd)
-		if err != nil {
-			logger.Error("[%s] error occurs while checking os clear %s", cmd, err.Error())
-			return fmt.Errorf("[%s] error occurs while checking os clear %s", cmd, err.Error())
-		}
-		logger.Error("os not clear:\n %s", dirty)
-		return fmt.Errorf("os not clear:\n %s", dirty)
 	}
 	return nil
 }
