@@ -232,3 +232,13 @@ func ZonenameTransform(zoneName string) string {
 		return zoneName
 	}
 }
+
+// dts write_mode
+const (
+	// 先删除同名redis key, 再执行写入(如:del $key + hset $key)
+	WriteModeDeleteAndWriteToRedis = "delete_and_write_to_redis"
+	// 保留同名redis key,追加写入(如hset $key)
+	WriteModeKeepAndAppendToRedis = "keep_and_append_to_redis"
+	// 先清空目标集群所有数据,在写入(如flushall + hset $key)
+	WriteModeFlushallAndWriteToRedis = "flushall_and_write_to_redis"
+)

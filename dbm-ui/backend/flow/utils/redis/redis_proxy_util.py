@@ -358,3 +358,32 @@ def get_db_versions_by_cluster_type(cluster_type: str) -> list:
         )
         return list(ret)
     raise Exception(_("集群类型:{} 不是一个 redis 集群类型?").format(cluster_type))
+
+
+def get_twemproxy_cluster_hash_tag(cluster_type: str, cluster_id: int) -> str:
+    """
+    获取twemproxy集群的hash_tag值
+    如果集群类型不是twemproxy集群,则返回空字符串
+    """
+    if cluster_type and (not is_twemproxy_proxy_type(cluster_type)):
+        return ""
+    try:
+        cluster = Cluster.objects.get(id=cluster_id)
+        if not is_twemproxy_proxy_type(cluster.cluster_type):
+            return ""
+        resp = DBConfigApi.query_conf_item(
+            params={
+                "bk_biz_id": str(cluster.bk_biz_id),
+                "level_name": LevelName.CLUSTER,
+                "level_value": cluster.immute_domain,
+                "level_info": {"module": str(DEFAULT_DB_MODULE_ID)},
+                "conf_file": cluster.proxy_version,
+                "conf_type": ConfigTypeEnum.ProxyConf,
+                "namespace": cluster.cluster_type,
+                "format": "map",
+            }
+        )
+        if resp["content"]:
+            return resp["content"].get("hash_tag", "")
+    except Exception:
+        return ""

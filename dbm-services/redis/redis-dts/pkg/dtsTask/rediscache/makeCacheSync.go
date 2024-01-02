@@ -238,6 +238,32 @@ func (task *MakeCacheSyncTask) IsSyncStateOK() (ok bool) {
 	if !ok {
 		return false
 	}
+	getHttpProfileCmd := fmt.Sprintf(`
+	confFile=$(ps -ef|grep %s_%d|grep 'taskid%d-'|grep -v grep|grep 'redis-shake'| \
+	grep conf|grep -P --only-match "\-conf (.*.conf)$"|awk '{print $2}')
+	if [ -n "$confFile" ] &&  [ -f "$confFile" ]
+	then
+			ret=$(grep -iP "^http_profile" $confFile|awk '{print $3}')
+			echo $ret
+	else
+			echo "0000"
+	fi
+	`, task.RowData.SrcIP, task.RowData.SrcPort, task.RowData.ID)
+	task.Logger.Info("IsSyncStateOK ", zap.String("getHttpProfileCmd", getHttpProfileCmd))
+	ret, err := util.RunLocalCmd("bash", []string{"-c", getHttpProfileCmd}, "", nil, 1*time.Minute, task.Logger)
+	if err != nil {
+		task.Logger.Error("IsSyncStateOK fail", zap.Error(err))
+		return false
+	}
+	ret = strings.TrimSpace(ret)
+	task.Logger.Info("IsSyncStateOK ", zap.String("getHttpProfileCmd result:", ret))
+	if ret == "0000" || ret == "" {
+		return false
+	}
+	task.HTTPProfile, _ = strconv.Atoi(ret)
+	task.SystemProfile = task.HTTPProfile + 1
+	task.SetSyncerPort(task.HTTPProfile)
+	task.UpdateRow()
 	// redis-shake 获取metrics是否成功
 	metrics := task.GetShakeMerics()
 	if task.Err != nil {
@@ -452,6 +478,20 @@ func (task *MakeCacheSyncTask) createShakeConfigFile() {
 	if task.RowData.KeyBlackRegex != "" && !task.IsMatchAny(task.RowData.KeyBlackRegex) {
 		keyBlackRegex = ";" + task.RowData.KeyBlackRegex // 注意最前面有个分号
 	}
+	var twemproxyHashTagEnabled = "false"
+	if task.RowData.SrcTwemproxyHashTagEnabled == 1 {
+		twemproxyHashTagEnabled = "true"
+	}
+	// WriteMode=delete_and_write_to_redis/flushall_and_write_to_redis
+	// 都需要用 restore [replace]
+	keyExists := "rewrite"
+	bigKeyThreshold := 524288000
+	if task.RowData.WriteMode == constvar.WriteModeKeepAndAppendToRedis {
+		// 设置这两个参数后,redis-shake将通过 hset/rpush等命令同步数据
+		// 而不是restore 命令同步数据
+		keyExists = "ignore"
+		bigKeyThreshold = 1
+	}
 
 	tempData := string(tempContent)
 	tempData = strings.ReplaceAll(tempData, "{{LOG_FILE}}", task.ShakeLogFile)
@@ -463,11 +503,14 @@ func (task *MakeCacheSyncTask) createShakeConfigFile() {
 	tempData = strings.ReplaceAll(tempData, "{{SRC_PASSWORD}}", task.SrcPassword)
 	tempData = strings.ReplaceAll(tempData, "{{START_SEGMENT}}", strconv.Itoa(startSeg))
 	tempData = strings.ReplaceAll(tempData, "{{END_SEGMENT}}", strconv.Itoa(endSeg))
+	tempData = strings.ReplaceAll(tempData, "{{TWEMPROXY_HASH_TAG_ENABLED}}", twemproxyHashTagEnabled)
 	tempData = strings.ReplaceAll(tempData, "{{TARGET_ADDR}}", task.DstADDR)
 	tempData = strings.ReplaceAll(tempData, "{{TARGET_PASSWORD}}", task.DstPassword)
 	tempData = strings.ReplaceAll(tempData, "{{TARGET_VERSION}}", task.DstVersion)
 	tempData = strings.ReplaceAll(tempData, "{{KEY_WHITE_REGEX}}", keyWhiteRegex)
 	tempData = strings.ReplaceAll(tempData, "{{KEY_BLACK_REGEX}}", keyBlackRegex)
+	tempData = strings.ReplaceAll(tempData, "{{KEY_EXISTS}}", keyExists)
+	tempData = strings.ReplaceAll(tempData, "{{BIG_KEY_THRESHOLD}}", strconv.Itoa(bigKeyThreshold))
 
 	err = ioutil.WriteFile(task.ShakeConfFile, []byte(tempData), 0755)
 	if err != nil {

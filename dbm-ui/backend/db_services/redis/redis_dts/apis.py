@@ -192,13 +192,24 @@ def dts_job_tasks_failed_retry(payload: dict):
 
     tasks = TbTendisDtsTask.objects.filter(id__in=payload.get("task_ids"))
     for task in tasks:
-        if task.src_have_list_keys > 0 and task.src_dbtype != ClusterType.TendisRedisInstance.value:
-            """
-            SrcHaveListKeys>0,其实只有在TendisSSD中才会出现,RedisInstance、tendisplus中很难发现是否有list类型的key
-            而且当SrcHaveListKeys>0时,代表tendisSSD已经在 tredisump 阶段以后了,有list类型key情况下后续阶段重试是有风险的;
-            RedisInstance不用管是否有list,因为有同名key存在时,通过restore replace会完全覆盖;
-            """
-            raise Exception("{} include list type keys,cannot retry".format(task.get_src_redis_addr()))
+        if task.status != -1:
+            logger.info(
+                "{} taskid:{} status={} is not failed status,skip retry".format(
+                    task.get_src_redis_addr(), task.status, task.id
+                )
+            )
+            continue
+        # if task.src_have_list_keys > 0 and task.src_dbtype != ClusterType.TendisRedisInstance.value:
+        #     """
+        #     - NEW_NOTE:对 tendisSSD/tendisplus/tendisCache来说,用户选择 del+hset/flushall+hset模式,
+        #       在redis_dts_server都会先执行del,再执行rpush,所以list类型的key不影响结果;
+        #     - 如果用户选择直接 hset 模式,那么 rpush 导致 list 中有重复的 key 应该也是预料中的事情;
+
+        #     - OLD_NOTE:SrcHaveListKeys>0,其实只有在TendisSSD中才会出现,RedisInstance、tendisplus中很难发现是否有list类型的key
+        #     - 而且当SrcHaveListKeys>0时,代表tendisSSD已经在 tredisump 阶段以后了,有list类型key情况下后续阶段重试是有风险的;
+        #     - RedisInstance不用管是否有list,因为有同名key存在时,通过restore replace会完全覆盖;
+        #     """
+        #     raise Exception("{} include list type keys,cannot retry".format(task.get_src_redis_addr()))
         if task.src_dbtype == ClusterType.TendisTendisSSDInstance.value:
             task.task_type = DtsTaskType.TENDISSSD_BACKUP.value
         elif task.src_dbtype == ClusterType.TendisRedisInstance.value:
