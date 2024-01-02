@@ -21,7 +21,6 @@ class ServerItemSerializer(serializers.Serializer):
 
 
 class FastExecuteScriptSerializer(BaseProxyPassSerializer):
-    bk_cloud_id = serializers.IntegerField()
     ip_list = serializers.ListField(help_text=_("执行脚本的主机ip列表"), child=ServerItemSerializer(), required=True)
     script_content = serializers.CharField(help_text=_("脚本内容"), required=True)
     script_language = serializers.IntegerField(help_text=_("脚本语言类型"), required=True)
@@ -44,7 +43,6 @@ class GetJobInstanceStatusResponseSerializer(serializers.Serializer):
 
 
 class GetJobInstanceIpLogSerializer(BaseProxyPassSerializer):
-    bk_cloud_id = serializers.IntegerField()
     job_instance_id = serializers.IntegerField(help_text=_("任务实例ID"), required=True)
     step_instance_id = serializers.IntegerField(help_text=_("步骤实例ID"), required=True)
     ip_list = serializers.ListField(help_text=_("执行脚本的主机ip列表"), child=ServerItemSerializer(), required=True)
@@ -75,8 +73,6 @@ class TransferFileSerializer(BaseProxyPassSerializer):
     target_dir = serializers.CharField(help_text=_("目标目录"), required=True)
     target_ip_list = serializers.ListField(help_text=_("目标主机ip列表"), child=TargetServerItemSerializer(), required=True)
     timeout = serializers.IntegerField(help_text=_("超时时间,单位秒"), required=True)
-    bk_cloud_id = serializers.IntegerField(help_text=_("云区域ID"), required=True)
-    db_cloud_token = serializers.CharField(help_text=_("db_cloud_token"), required=True)
 
 
 class TransferFileResponseSerializer(serializers.Serializer):

@@ -663,7 +663,7 @@ func (task *CmdsImporterTask) Execute() {
 
 	task.UpdateDbAndLogLocal("found %d del files", len(task.DelFiles))
 
-	if len(task.DelFiles) > 0 && task.RowData.RetryTimes > 0 {
+	if task.IsToDelFirst() {
 		// 如果是重试迁移,则优先导入 del 命令
 		task.UpdateDbAndLogLocal("found %d del files", len(task.DelFiles))
 
@@ -799,6 +799,24 @@ func (task *CmdsImporterTask) Execute() {
 	task.SetStatus(0)
 	task.UpdateDbAndLogLocal("等待启动redis_sync")
 	return
+}
+
+// IsToDelFirst 是否先执行del命令
+func (task *CmdsImporterTask) IsToDelFirst() bool {
+	if len(task.DelFiles) == 0 {
+		return false
+	}
+	if task.RowData.WriteMode == constvar.WriteModeDeleteAndWriteToRedis {
+		// 用户选择的就是 del + hset
+		return true
+	}
+	if task.RowData.WriteMode == constvar.WriteModeFlushallAndWriteToRedis &&
+		task.RowData.RetryTimes > 0 {
+		// 用户选择 flushall + hset,第一次无需执行del,重试迁移时,先执行del
+		return true
+	}
+	// 如果是 keep_and_append_to_redis模式,则不执行del
+	return false
 }
 
 // EndClear 命令导入完成后清理output、expires文件

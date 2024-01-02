@@ -125,6 +125,15 @@ func (task *TendisBackupTask) Execute() {
 			task.UpdateRow()
 		}
 	}()
+	// 如果当前tendisSSD的redis-sync状态正常,则直接watch redis-sync 即可
+	isSyncOK := task.IsSyncStateOK()
+	if isSyncOK {
+		task.Logger.Info(fmt.Sprintf("redis:%s 同步状态ok,无需重新导全备,开始makeSync", task.GetSrcRedisAddr()))
+		task.SetTaskType(constvar.MakeSyncTaskType)
+		task.SetStatus(0)
+		task.UpdateRow()
+		return
+	}
 
 	task.PreClear()
 	if task.Err != nil {
@@ -301,4 +310,46 @@ func (task *TendisBackupTask) EndClear() {
 	}
 
 	return
+}
+
+// IsSyncStateOK 检查tendisSSD redis-sync状态是否正常
+func (task *TendisBackupTask) IsSyncStateOK() bool {
+	var err error
+	// 检查 redis-sync 进程是否存在
+	isSyncAliaveCmd := fmt.Sprintf("ps -ef|grep %s_%d|grep 'taskid%d-'|grep -v grep|grep sync|grep conf || true",
+		task.RowData.SrcIP, task.RowData.SrcPort, task.RowData.ID)
+	task.Logger.Info("", zap.String("isSyncAliaveCmd", isSyncAliaveCmd))
+	ret, err := util.RunLocalCmd("bash", []string{"-c", isSyncAliaveCmd}, "", nil, 1*time.Minute, task.Logger)
+	if err != nil {
+		task.Logger.Error("IsSyncStateOK IsSyncAlive fail", zap.Error(err))
+		return false
+	}
+	ret = strings.TrimSpace(ret)
+	if ret == "" {
+		return false
+	}
+	// 检查 redis-sync 配置文件是否存在,从配置文件中获取 syncerPort
+	getSyncPortCmd := fmt.Sprintf(`
+	confFile=$(ps -ef|grep %s_%d|grep 'taskid%d-'|grep conf| \
+	grep -P --only-match "redis-sync -f (.*.conf)$"|awk '{print $3}')
+	if [ -n "$confFile" ] &&  [ -f "$confFile" ]
+	then
+			ret=$(grep -i "^port=" $confFile|awk -F= '{print $2}')
+			echo $ret
+	else
+			echo "0000"
+	fi
+	`, task.RowData.SrcIP, task.RowData.SrcPort, task.RowData.ID)
+	task.Logger.Info("IsSyncStateOK ", zap.String("getSyncPortCmd", getSyncPortCmd))
+	ret, err = util.RunLocalCmd("bash", []string{"-c", getSyncPortCmd}, "", nil, 1*time.Minute, task.Logger)
+	if err != nil {
+		task.Logger.Error("IsSyncStateOK fail", zap.Error(err))
+		return false
+	}
+	ret = strings.TrimSpace(ret)
+	task.Logger.Info("IsSyncStateOK ", zap.String("getSyncPortCmd result:", ret))
+	if ret == "0000" || ret == "" {
+		return false
+	}
+	return true
 }

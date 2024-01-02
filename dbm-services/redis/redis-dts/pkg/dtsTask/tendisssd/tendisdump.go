@@ -149,8 +149,9 @@ func (task *TredisdumpTask) Execute() {
 			task.Logger.Error(err.Error())
 			return
 		}
-		dumperCmd = fmt.Sprintf("%s --start_segment %d --end_segment %d",
-			dumperCmd, task.RowData.SrcSegStart, task.RowData.SrcSegEnd)
+		dumperCmd = fmt.Sprintf("%s --start_segment %d --end_segment %d --twemproxy_hash_tag_enabled %d",
+			dumperCmd, task.RowData.SrcSegStart, task.RowData.SrcSegEnd,
+			task.RowData.SrcTwemproxyHashTagEnabled)
 	}
 
 	dumperCmd = fmt.Sprintf("%s >%s 2>&1", dumperCmd, dumperLogFile)

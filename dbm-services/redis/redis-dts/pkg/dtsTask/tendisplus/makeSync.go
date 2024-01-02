@@ -334,6 +334,20 @@ func (task *MakeSyncTask) clearOldSyncLogFile() {
 	}
 }
 
+// IsKeysExistsRewrite 当目的端key存在时,是否覆盖写(如 del+hset)
+func (task *MakeSyncTask) IsKeysExistsRewrite() bool {
+	if task.RowData.WriteMode == constvar.WriteModeDeleteAndWriteToRedis {
+		// 用户选择的就是 del + hset
+		return true
+	}
+	if task.RowData.WriteMode == constvar.WriteModeFlushallAndWriteToRedis &&
+		task.RowData.RetryTimes > 0 {
+		// 用户选择 flushall + hset,第一次无需执行del,重试迁移时,先执行del
+		return true
+	}
+
+	return false
+}
 func (task *MakeSyncTask) createSyncConfigFile() {
 	task.MkSyncDirIfNotExists()
 	if task.Err != nil {
@@ -495,8 +509,40 @@ func (task *MakeSyncTask) IsSyncStateOK() (ok bool) {
 		return false
 	}
 	if !ok {
+		task.Logger.Warn("redis-sync not alive", zap.String("srcRedisAddr", task.GetSrcRedisAddr()),
+			zap.Int64("taskid", task.RowData.ID))
 		return false
 	}
+	task.Logger.Warn("redis-sync alive", zap.String("srcRedisAddr", task.GetSrcRedisAddr()),
+		zap.Int64("taskid", task.RowData.ID))
+
+	// 从配置文件中获取 syncerPort
+	getSyncPortCmd := fmt.Sprintf(`
+	confFile=$(ps -ef|grep 'taskid%d-'|grep 'kvstore-%d-'|grep conf| \
+	grep -P --only-match "redis-sync -f (.*.conf)$"|awk '{print $3}')
+	if [ -n "$confFile" ] &&  [ -f "$confFile" ]
+	then
+			ret=$(grep -i "^port=" $confFile|awk -F= '{print $2}')
+			echo $ret
+	else
+			echo "0000"
+	fi
+	`, task.RowData.ID, task.RowData.SrcKvStoreID)
+	task.Logger.Info("IsSyncStateOK ", zap.String("getSyncPortCmd", getSyncPortCmd))
+	ret, err := util.RunLocalCmd("bash", []string{"-c", getSyncPortCmd}, "", nil, 1*time.Minute, task.Logger)
+	if err != nil {
+		task.Logger.Error("IsSyncStateOK fail", zap.Error(err))
+		return false
+	}
+	ret = strings.TrimSpace(ret)
+	task.Logger.Info("IsSyncStateOK ", zap.String("getSyncPortCmd result:", ret))
+	if ret == "0000" || ret == "" {
+		return false
+	}
+	syncPort, _ := strconv.Atoi(ret)
+
+	task.SetSyncerPort(syncPort)
+	task.UpdateRow()
 	// 同步状态是否本来就是ok的
 	syncInfoMap := task.RedisSyncInfo("")
 	if task.Err != nil {

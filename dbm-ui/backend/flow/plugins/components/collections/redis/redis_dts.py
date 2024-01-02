@@ -59,6 +59,7 @@ from backend.flow.utils.redis.redis_cluster_nodes import (
     group_slaves_by_master_id,
 )
 from backend.flow.utils.redis.redis_context_dataclass import ActKwargs, RedisDtsContext
+from backend.flow.utils.redis.redis_proxy_util import get_twemproxy_cluster_hash_tag
 from backend.ticket.constants import TicketType
 
 logger = logging.getLogger("flow")
@@ -418,6 +419,15 @@ class RedisDtsExecuteService(BaseService):
                 dst_domain = dst_addr_pair[0]
                 cluster = Cluster.objects.get(bk_biz_id=bk_biz_id, immute_domain=dst_domain)
                 dst_cluster_id = cluster.id
+            src_twemproxy_hash_tag_enabled = 0
+            if dts_copy_type != DtsCopyType.USER_BUILT_TO_DBM:
+                # 如果不是用户自建集群,则获取twemproxy的hash_tag_enabled
+                hash_tag_val = get_twemproxy_cluster_hash_tag(
+                    cluster_type=kwargs["cluster"]["src"]["cluster_type"],
+                    cluster_id=kwargs["cluster"]["src"]["cluster_id"],
+                )
+                if hash_tag_val == "{}":
+                    src_twemproxy_hash_tag_enabled = 1
             with transaction.atomic():
                 job = TbTendisDTSJob()
                 job.bill_id = uid
@@ -494,6 +504,7 @@ class RedisDtsExecuteService(BaseService):
                         task.src_ip_concurrency_limit = cuncurrency_limit
                         task.src_ip_zonename = kwargs["cluster"]["src"]["cluster_city_name"]
                         task.src_kvstore_id = kvstoreid
+                        task.src_twemproxy_hash_tag_enabled = src_twemproxy_hash_tag_enabled
                         task.key_white_regex = task_white_regex
                         task.key_black_regex = task_black_regex
                         task.dst_cluster = kwargs["cluster"]["dst"]["cluster_addr"]

@@ -75,7 +75,7 @@ func (task *MakeSyncTask) PreClear() {
 			return
 		}
 		rmCmd := fmt.Sprintf("cd %s && rm -rf *-taskid%d-*.log *-taskid%d-*.conf", syncDir, task.RowData.ID, task.RowData.ID)
-		task.Logger.Info(fmt.Sprintf("tendisplus makeSync preClear execute:%s", rmCmd))
+		task.Logger.Info(fmt.Sprintf("tendisssd makeSync preClear execute:%s", rmCmd))
 		util.RunLocalCmd("bash", []string{"-c", rmCmd}, "", nil, 10*time.Second, task.Logger)
 
 	}()
@@ -215,7 +215,9 @@ func (task *MakeSyncTask) GetLastSyncSeq(subOffset uint64) (lastSeq dtsTask.Sync
 			return
 		}
 		task.Logger.Info("GetLastSyncSeq before sub offset", zap.Any("savedLastSeq", savedLastSeq))
-		savedLastSeq.Seq = savedLastSeq.Seq - subOffset
+		if savedLastSeq.Seq > subOffset {
+			savedLastSeq.Seq = savedLastSeq.Seq - subOffset
+		}
 		task.Logger.Info("GetLastSyncSeq after sub offset", zap.Any("savedLastSeq", savedLastSeq))
 	}
 	bakSeq := task.GetSyncSeqFromFullBackup()
@@ -501,7 +503,7 @@ func (task *MakeSyncTask) IsSyncAlive() (isAlive bool, err error) {
 	task.Logger.Info("", zap.String("isSyncAliaveCmd", isSyncAliaveCmd))
 	ret, err := util.RunLocalCmd("bash", []string{"-c", isSyncAliaveCmd}, "", nil, 1*time.Minute, task.Logger)
 	if err != nil {
-		task.Logger.Error("RedisSyncStop IsSyncAlive fail", zap.Error(err))
+		task.Logger.Error("IsSyncAlive fail", zap.Error(err))
 		return false, err
 	}
 	ret = strings.TrimSpace(ret)
@@ -518,8 +520,40 @@ func (task *MakeSyncTask) IsSyncStateOK() (ok bool) {
 		return false
 	}
 	if !ok {
+		task.Logger.Warn("redis-sync not alive", zap.String("srcInstance", task.SrcADDR),
+			zap.Int64("taskid", task.RowData.ID))
 		return false
 	}
+	task.Logger.Info("redis-sync is alive", zap.String("srcInstance", task.SrcADDR),
+		zap.Int64("taskid", task.RowData.ID))
+
+	// 从配置文件中获取 syncerPort
+	getSyncPortCmd := fmt.Sprintf(`
+	confFile=$(ps -ef|grep %s_%d|grep 'taskid%d-'|grep conf| \
+	grep -P --only-match "redis-sync -f (.*.conf)$"|awk '{print $3}')
+	if [ -n "$confFile" ] &&  [ -f "$confFile" ]
+	then
+			ret=$(grep -i "^port=" $confFile|awk -F= '{print $2}')
+			echo $ret
+	else
+			echo "0000"
+	fi
+	`, task.RowData.SrcIP, task.RowData.SrcPort, task.RowData.ID)
+	task.Logger.Info("IsSyncStateOK ", zap.String("getSyncPortCmd", getSyncPortCmd))
+	ret, err := util.RunLocalCmd("bash", []string{"-c", getSyncPortCmd}, "", nil, 1*time.Minute, task.Logger)
+	if err != nil {
+		task.Logger.Error("IsSyncStateOK fail", zap.Error(err))
+		return false
+	}
+	ret = strings.TrimSpace(ret)
+	task.Logger.Info("IsSyncStateOK ", zap.String("getSyncPortCmd result:", ret))
+	if ret == "0000" || ret == "" {
+		return false
+	}
+	syncPort, _ := strconv.Atoi(ret)
+
+	task.SetSyncerPort(syncPort)
+	task.UpdateRow()
 
 	jobRows, err := tendisdb.GetTendisDTSJob(task.RowData.BillID, task.RowData.SrcCluster,
 		task.RowData.DstCluster, task.Logger)
@@ -530,7 +564,7 @@ func (task *MakeSyncTask) IsSyncStateOK() (ok bool) {
 	if task.Err != nil {
 		return false
 	}
-	if jobRows[0].SrcClusterType != constvar.UserTwemproxyType {
+	if jobRows[0].SrcClusterType == constvar.UserTwemproxyType {
 		// 回档临时环境不会时时有心跳写入,tendis_last_seq不会变
 		// 所以直接返回成功
 		return true
@@ -546,7 +580,7 @@ func (task *MakeSyncTask) IsSyncStateOK() (ok bool) {
 	secondSeq, _ := strconv.ParseUint(syncInfoMap["tendis_last_seq"], 10, 64)
 
 	// 第二次获取的seq比第一次大,则认为sync同步正常
-	if secondSeq > firstSeq {
+	if secondSeq >= firstSeq {
 		return true
 	}
 	return false

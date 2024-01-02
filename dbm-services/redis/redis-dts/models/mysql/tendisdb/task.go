@@ -24,50 +24,51 @@ var (
 
 // TbTendisDTSTask 迁移task
 type TbTendisDTSTask struct {
-	ID                    int64                 `json:"id" gorm:"column:id;primary_key"`
-	BillID                int64                 `json:"bill_id" gorm:"column:bill_id"`         // 单据号
-	App                   string                `json:"app" gorm:"column:app"`                 // 业务英文名
-	BkCloudID             int64                 `json:"bk_cloud_id" gorm:"column:bk_cloud_id"` // 云区域id
-	DtsServer             string                `json:"dts_server" gorm:"column:dts_server"`   // 执行迁移任务的server ip
-	WriteMode             string                `json:"write_mode" gorm:"column:write_mode"`
-	User                  string                `json:"user" gorm:"column:user"`                                         // 申请人
-	SrcCluster            string                `json:"src_cluster" gorm:"column:src_cluster"`                           // 源集群域名
-	SrcClusterPriority    int                   `json:"src_cluster_priority" gorm:"column:src_cluster_priority"`         // 源集群优先级,值越大,优先级越高
-	SrcIP                 string                `json:"src_ip" gorm:"column:src_ip"`                                     // 源slave ip
-	SrcPort               int                   `json:"src_port" gorm:"column:src_port"`                                 // 源slave port
-	SrcPassword           string                `json:"src_password" gorm:"column:src_password"`                         // 源实例密码base64值
-	SrcDbType             string                `json:"src_dbtype" gorm:"column:src_dbtype"`                             // 源实例db类型,TendisSSDInstance/RedisInstance/TendisplusInstance
-	SrcDbSize             int64                 `json:"src_dbsize" gorm:"column:src_dbsize"`                             // 源实例数据量大小,单位byte,ssd=>rocksdbSize,cache=>used_memory
-	SrcSegStart           int                   `json:"src_seg_start" gorm:"column:src_seg_start"`                       // 源实例所属segment start
-	SrcSegEnd             int                   `json:"src_seg_end" gorm:"column:src_seg_end"`                           // 源实例所属segment end
-	SrcWeight             int                   `json:"src_weight" gorm:"column:src_weight"`                             // 源实例权重,单个集群中根据实例的weight从小到大执行迁移
-	SrcIPConcurrencyLimit int                   `json:"src_ip_concurrency_limit" gorm:"column:src_ip_concurrency_limit"` // 源slave ip上task并发数控制
-	SrcIPZonename         string                `json:"src_ip_zonename" gorm:"column:src_ip_zonename"`                   // 源实例所在城市
-	SrcOldLogCount        int64                 `json:"src_old_logcount" gorm:"column:src_old_logcount"`                 // 源实例slave-keep-log-count的旧值
-	SrcNewLogCount        int64                 `json:"src_new_logcount" gorm:"column:src_new_logcount"`                 // 源实例slave-keep-log-count的新值
-	IsSrcLogCountRestored int                   `json:"is_src_logcount_restored" gorm:"column:is_src_logcount_restored"` // 源实例slave-keep-log-count是否恢复
-	SrcHaveListKeys       int                   `json:"src_have_list_keys" gorm:"column:src_have_list_keys"`             // srcRedis是否包含list类型key,list类型key重试存在风险
-	KeyWhiteRegex         string                `json:"key_white_regex" gorm:"column:key_white_regex"`                   // key正则(白名单)
-	KeyBlackRegex         string                `json:"key_black_regex" gorm:"column:key_black_regex"`                   // key正则(黑名单)
-	SrcKvStoreID          int                   `json:"src_kvstore_id" gorm:"column:src_kvstore_id"`                     // tendisplus kvstore id
-	DstCluster            string                `json:"dst_cluster" gorm:"column:dst_cluster"`                           // 目的集群
-	DstPassword           string                `json:"dst_password" gorm:"column:dst_password"`                         // 目的密码base64值
-	TaskType              string                `json:"task_type" gorm:"column:task_type"`                               // task类型,包含tendis_backup, backupfile_fetch,tendisdump,cmdsImporter,make_sync
-	TendisbackupFile      string                `json:"tendisbackup_file" gorm:"column:tendisbackup_file"`               // tendis slave上bakup文件位置
-	FetchFile             string                `json:"fetch_file" gorm:"column:fetch_file"`                             // backup文件拉取到dtsserver本地位置
-	SqlfileDir            string                `json:"sqlfile_dir" gorm:"column:sqlfile_dir"`                           // tendisdumper得到的sql文件夹
-	SyncerPort            int                   `json:"syncer_port" gorm:"column:syncer_port"`                           // redis-sync端口
-	SyncerPid             int                   `json:"syncer_pid" gorm:"column:syncer_pid"`                             // sync的进程id
-	TendisBinlogLag       int64                 `json:"tendis_binlog_lag" gorm:"column:tendis_binlog_lag"`               // redis-sync tendis_binlog_lag信息
-	RetryTimes            int                   `json:"retry_times" gorm:"column:retry_times"`                           // task重试次数
-	SyncOperate           string                `json:"sync_operate" gorm:"column:sync_operate"`                         // sync操作,包括pause,resume,upgrade,stop等,对应值有PauseTodo PauseFail PauseSucc
-	KillSyncer            int                   `json:"kill_syncer" gorm:"column:kill_syncer"`                           // 杀死syncer,0代表否,1代表是
-	Message               string                `json:"message" gorm:"column:message"`                                   // 信息
-	Status                int                   `json:"status" gorm:"column:status"`                                     // 0:未开始 1:执行中 2:完成 -1:发生错误
-	IgnoreErrlist         string                `json:"ignore_errlist" gorm:"column:ignore_errlist"`                     // 迁移过程中被忽略的错误,如key同名不同类型WRONGTYPE Operation
-	ResyncFromTime        customtime.CustomTime `json:"resync_from_time" gorm:"column:resync_from_time"`                 // sync从该时间点重新同步增量数据
-	CreateTime            customtime.CustomTime `json:"create_time" gorm:"column:create_time"`                           // 创建时间
-	UpdateTime            customtime.CustomTime `json:"update_time" gorm:"column:update_time"`                           // 更新时间
+	ID                         int64                 `json:"id" gorm:"column:id;primary_key"`
+	BillID                     int64                 `json:"bill_id" gorm:"column:bill_id"`         // 单据号
+	App                        string                `json:"app" gorm:"column:app"`                 // 业务英文名
+	BkCloudID                  int64                 `json:"bk_cloud_id" gorm:"column:bk_cloud_id"` // 云区域id
+	DtsServer                  string                `json:"dts_server" gorm:"column:dts_server"`   // 执行迁移任务的server ip
+	WriteMode                  string                `json:"write_mode" gorm:"column:write_mode"`
+	User                       string                `json:"user" gorm:"column:user"`                                                 // 申请人
+	SrcCluster                 string                `json:"src_cluster" gorm:"column:src_cluster"`                                   // 源集群域名
+	SrcClusterPriority         int                   `json:"src_cluster_priority" gorm:"column:src_cluster_priority"`                 // 源集群优先级,值越大,优先级越高
+	SrcIP                      string                `json:"src_ip" gorm:"column:src_ip"`                                             // 源slave ip
+	SrcPort                    int                   `json:"src_port" gorm:"column:src_port"`                                         // 源slave port
+	SrcPassword                string                `json:"src_password" gorm:"column:src_password"`                                 // 源实例密码base64值
+	SrcDbType                  string                `json:"src_dbtype" gorm:"column:src_dbtype"`                                     // 源实例db类型,TendisSSDInstance/RedisInstance/TendisplusInstance
+	SrcDbSize                  int64                 `json:"src_dbsize" gorm:"column:src_dbsize"`                                     // 源实例数据量大小,单位byte,ssd=>rocksdbSize,cache=>used_memory
+	SrcSegStart                int                   `json:"src_seg_start" gorm:"column:src_seg_start"`                               // 源实例所属segment start
+	SrcSegEnd                  int                   `json:"src_seg_end" gorm:"column:src_seg_end"`                                   // 源实例所属segment end
+	SrcWeight                  int                   `json:"src_weight" gorm:"column:src_weight"`                                     // 源实例权重,单个集群中根据实例的weight从小到大执行迁移
+	SrcIPConcurrencyLimit      int                   `json:"src_ip_concurrency_limit" gorm:"column:src_ip_concurrency_limit"`         // 源slave ip上task并发数控制
+	SrcIPZonename              string                `json:"src_ip_zonename" gorm:"column:src_ip_zonename"`                           // 源实例所在城市
+	SrcOldLogCount             int64                 `json:"src_old_logcount" gorm:"column:src_old_logcount"`                         // 源实例slave-keep-log-count的旧值
+	SrcNewLogCount             int64                 `json:"src_new_logcount" gorm:"column:src_new_logcount"`                         // 源实例slave-keep-log-count的新值
+	IsSrcLogCountRestored      int                   `json:"is_src_logcount_restored" gorm:"column:is_src_logcount_restored"`         // 源实例slave-keep-log-count是否恢复
+	SrcHaveListKeys            int                   `json:"src_have_list_keys" gorm:"column:src_have_list_keys"`                     // srcRedis是否包含list类型key,list类型key重试存在风险
+	SrcTwemproxyHashTagEnabled int                   `json:"srcTwemproxyHashTagEnabled" gorm:"column:src_twemproxy_hash_tag_enabled"` // 源实例twemproxy是否开启hash_tag
+	KeyWhiteRegex              string                `json:"key_white_regex" gorm:"column:key_white_regex"`                           // key正则(白名单)
+	KeyBlackRegex              string                `json:"key_black_regex" gorm:"column:key_black_regex"`                           // key正则(黑名单)
+	SrcKvStoreID               int                   `json:"src_kvstore_id" gorm:"column:src_kvstore_id"`                             // tendisplus kvstore id
+	DstCluster                 string                `json:"dst_cluster" gorm:"column:dst_cluster"`                                   // 目的集群
+	DstPassword                string                `json:"dst_password" gorm:"column:dst_password"`                                 // 目的密码base64值
+	TaskType                   string                `json:"task_type" gorm:"column:task_type"`                                       // task类型,包含tendis_backup, backupfile_fetch,tendisdump,cmdsImporter,make_sync
+	TendisbackupFile           string                `json:"tendisbackup_file" gorm:"column:tendisbackup_file"`                       // tendis slave上bakup文件位置
+	FetchFile                  string                `json:"fetch_file" gorm:"column:fetch_file"`                                     // backup文件拉取到dtsserver本地位置
+	SqlfileDir                 string                `json:"sqlfile_dir" gorm:"column:sqlfile_dir"`                                   // tendisdumper得到的sql文件夹
+	SyncerPort                 int                   `json:"syncer_port" gorm:"column:syncer_port"`                                   // redis-sync端口
+	SyncerPid                  int                   `json:"syncer_pid" gorm:"column:syncer_pid"`                                     // sync的进程id
+	TendisBinlogLag            int64                 `json:"tendis_binlog_lag" gorm:"column:tendis_binlog_lag"`                       // redis-sync tendis_binlog_lag信息
+	RetryTimes                 int                   `json:"retry_times" gorm:"column:retry_times"`                                   // task重试次数
+	SyncOperate                string                `json:"sync_operate" gorm:"column:sync_operate"`                                 // sync操作,包括pause,resume,upgrade,stop等,对应值有PauseTodo PauseFail PauseSucc
+	KillSyncer                 int                   `json:"kill_syncer" gorm:"column:kill_syncer"`                                   // 杀死syncer,0代表否,1代表是
+	Message                    string                `json:"message" gorm:"column:message"`                                           // 信息
+	Status                     int                   `json:"status" gorm:"column:status"`                                             // 0:未开始 1:执行中 2:完成 -1:发生错误
+	IgnoreErrlist              string                `json:"ignore_errlist" gorm:"column:ignore_errlist"`                             // 迁移过程中被忽略的错误,如key同名不同类型WRONGTYPE Operation
+	ResyncFromTime             customtime.CustomTime `json:"resync_from_time" gorm:"column:resync_from_time"`                         // sync从该时间点重新同步增量数据
+	CreateTime                 customtime.CustomTime `json:"create_time" gorm:"column:create_time"`                                   // 创建时间
+	UpdateTime                 customtime.CustomTime `json:"update_time" gorm:"column:update_time"`                                   // 更新时间
 }
 
 // TableName 表名

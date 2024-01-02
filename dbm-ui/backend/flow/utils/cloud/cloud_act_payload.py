@@ -15,8 +15,6 @@ import logging
 from django.utils.translation import ugettext as _
 
 from backend import env
-from backend.components import DBConfigApi
-from backend.components.dbconfig.constants import FormatType, LevelName
 from backend.configuration.handlers.password import DBPasswordHandler
 from backend.configuration.models import SystemSettings
 from backend.core.encrypt.constants import AsymmetricCipherConfigType
@@ -29,11 +27,9 @@ from backend.flow.consts import (
     CloudDBHATypeEnum,
     CloudServiceConfFileEnum,
     CloudServiceName,
-    ConfigFileEnum,
-    ConfigTypeEnum,
-    NameSpaceEnum,
 )
 from backend.flow.engine.exceptions import ServiceDoesNotApply
+from backend.flow.utils.base.payload_handler import PayloadHandler
 
 logger = logging.getLogger("flow")
 
@@ -175,23 +171,6 @@ class CloudServiceActPayload(object):
     def privilege_flush_payload(self):
         return {"access_hosts": self.kwargs["access_hosts"], "user": self.kwargs["user"], "pwd": self.kwargs["pwd"]}
 
-    def __get_redis_os_user_info(self):
-        data = DBConfigApi.query_conf_item(
-            params={
-                "bk_biz_id": "3",
-                "level_name": LevelName.APP,
-                "level_value": "3",
-                "conf_file": ConfigFileEnum.OS,
-                "conf_type": ConfigTypeEnum.OSConf,
-                "namespace": NameSpaceEnum.Common,
-                "format": FormatType.MAP,
-            }
-        )
-        return {
-            "system_user": data["content"]["user"],
-            "system_password": data["content"]["user_pwd"],
-        }
-
     @staticmethod
     def get_cloud_nginx_url(bk_cloud_id: int):
         nginx = DBExtension.objects.filter(
@@ -213,10 +192,10 @@ class CloudServiceActPayload(object):
         nginx_url = self.get_cloud_nginx_url(self.cloud_id)
         dns_servers = self.get_dns_nameservers(self.cloud_id)
         cloud_token = self.__generate_service_token(service_type=CloudServiceName.RedisDTS.value)
-        redis_os_info = self.__get_redis_os_user_info()
+        redis_os_acc = PayloadHandler.redis_get_os_account()
         paylod_obj = {
-            "user": redis_os_info["system_user"],
-            "password": redis_os_info["system_password"],
+            "user": redis_os_acc["os_user"],
+            "password": redis_os_acc["os_password"],
         }
         paylod_json = json.dumps(paylod_obj)
         payload_base64 = str(base64.b64encode(paylod_json.encode("utf-8")), "utf-8")
@@ -224,8 +203,8 @@ class CloudServiceActPayload(object):
             "bk_dbm_nginx_url": nginx_url,
             "bk_dbm_cloud_id": self.cloud_id,
             "bk_dbm_cloud_token": cloud_token,
-            "system_user": redis_os_info["system_user"],
-            "system_password": redis_os_info["system_password"],
+            "system_user": redis_os_acc["os_user"],
+            "system_password": redis_os_acc["os_password"],
             "city_name": self.kwargs["exec_ip"]["bk_city_name"],
             "warning_msg_notifiers": "xxxxx",
             "sys_init_paylod": payload_base64,
