@@ -64,5 +64,14 @@ class _DRSApi(object):
             description=_("twemproxy 远程执行"),
         )
 
+        self.sqlserver_rpc = ProxyAPI(
+            method="POST",
+            base=self.BASE_DOMAIN,
+            url="sqlserver/rpc",
+            module=self.MODULE,
+            ssl=ssl_flag,
+            description=_("sqlserver 远程执行"),
+        )
+
 
 DRSApi = _DRSApi()

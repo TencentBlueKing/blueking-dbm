@@ -23,4 +23,7 @@ func RegisterRouter(engine *gin.Engine) {
 
 	// predixyGroup := engine.Group("/predixy")
 	// predixyGroup.POST("/rpc", handler_rpc.RedisRPCHandler)
+
+	sqlserverGroup := engine.Group("/sqlserver")
+	sqlserverGroup.POST("/rpc", handler_rpc.SqlserverRPCHandler)
 }

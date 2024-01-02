@@ -11,6 +11,9 @@ func init() {
 	rootCmd.PersistentFlags().String("proxy_admin_password", "123", "proxy password")
 	rootCmd.PersistentFlags().String("proxy_admin_user", "root", "proxy user")
 
+	rootCmd.PersistentFlags().String("sqlserver_admin_password", "123", "sqlserver password")
+	rootCmd.PersistentFlags().String("sqlserver_admin_user", "root", "sqlserver user")
+
 	rootCmd.PersistentFlags().Int("port", 8888, "port")
 
 	rootCmd.PersistentFlags().Bool("log_json", true, "json format log")
@@ -34,6 +37,8 @@ func init() {
 	_ = viper.BindEnv("mysql_admin_password", "MYSQL_ADMIN_PASSWORD")
 	_ = viper.BindEnv("proxy_admin_user", "PROXY_ADMIN_USER")
 	_ = viper.BindEnv("proxy_admin_password", "PROXY_ADMIN_PASSWORD")
+	_ = viper.BindEnv("sqlserver_admin_user", "SQLSERVER_ADMIN_USER")
+	_ = viper.BindEnv("sqlserver_admin_password", "SQLSERVER_ADMIN_PASSWORD")
 	_ = viper.BindEnv("concurrent", "CONCURRENT")
 	_ = viper.BindEnv("port", "PORT")
 	_ = viper.BindEnv("tmysqlparser_bin", "TMYSQLPARSER_BIN")
