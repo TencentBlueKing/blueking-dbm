@@ -97,6 +97,7 @@
   } from '@services/source/dbresourceResource';
 
   import HostAgentStatus from '@components/cluster-common/HostAgentStatus.vue';
+  import DiskPopInfo from '@components/disk-pop-info/DiskPopInfo.vue';
 
   import {
     execCopy,
@@ -104,7 +105,6 @@
   } from '@utils';
 
   import BatchSetting from './components/batch-setting/Index.vue';
-  import DiskPopInfo from './components/DiskPopInfo.vue';
   import ImportHost from './components/import-host/Index.vue';
   import ImportHostBtn from './components/ImportHostBtn.vue';
   import RenderTable from './components/RenderTable.vue';

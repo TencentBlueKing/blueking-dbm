@@ -48,10 +48,10 @@
   import { useRequest } from 'vue-request';
   import { useRoute } from 'vue-router';
 
+  import TaskFlowModel from '@services/model/taskflow/taskflow';
   import { getTaskflow } from '@services/source/taskflow';
   import { getTicketTypes } from '@services/source/ticket';
   import { getUserList } from '@services/source/user';
-  import type { TaskflowItem } from '@services/types/taskflow';
 
   import {
     TicketTypes,
@@ -85,16 +85,6 @@
     start.setTime(start.getTime() - 3600 * 1000 * 24 * 7);
     return [start.toISOString(), end.toISOString()] as [string, string];
   };
-  const statusMap = {
-    CREATED: '等待执行',
-    READY: '等待执行',
-    RUNNING: '执行中',
-    SUSPENDED: '执行中',
-    BLOCKED: '执行中',
-    FINISHED: '执行成功',
-    FAILED: '执行失败',
-    REVOKED: '已终止',
-  } as Record<string, string>;
 
   // 可查看结果文件类型
   const includesResultFiles: TicketTypesStrings[] = [TicketTypes.REDIS_KEYS_EXTRACT, TicketTypes.REDIS_KEYS_DELETE];
@@ -129,9 +119,9 @@
       name: t('状态'),
       id: 'status__in',
       multiple: true,
-      children: Object.keys(statusMap).map((id: string) => ({
+      children: Object.keys(TaskFlowModel.STATUS_TEXT_MAP).map((id: string) => ({
         id,
-        name: t(statusMap[id]),
+        name: t(TaskFlowModel.STATUS_TEXT_MAP[id]),
       })),
     },
     {
@@ -181,22 +171,17 @@
       label: t('状态'),
       field: 'status',
       filter: {
-        list: Object.keys(statusMap).map(id => ({
-          text: t(statusMap[id]), value: id,
+        list: Object.keys(TaskFlowModel.STATUS_TEXT_MAP).map(id => ({
+          text: t(TaskFlowModel.STATUS_TEXT_MAP[id]), value: id,
         })),
       },
-      render: ({ cell }: { cell: string }) => {
-        const themes: Partial<Record<string, string>> = {
-          RUNNING: 'loading',
-          SUSPENDED: 'loading',
-          BLOCKED: 'loading',
-          CREATED: 'default',
-          READY: 'default',
-          FINISHED: 'success',
-        };
-        const text = statusMap[cell] ? t(statusMap[cell]) : '--';
-        return <DbStatus type="linear" theme={themes[cell] || 'danger'}>{text}</DbStatus>;
-      },
+      render: ({ data }: { data: TaskFlowModel }) => (
+        <DbStatus
+          type="linear"
+          theme={data.statusTheme}>
+          {t(data.statusText)}
+        </DbStatus>
+      ),
     },
     {
       label: t('关联单据'),
@@ -229,7 +214,7 @@
       field: 'operation',
       fixed: 'right',
       minWidth: 210,
-      render: ({ data }: { data: TaskflowItem }) => (
+      render: ({ data }: { data: TaskFlowModel }) => (
         <div class="table-operations">
           <router-link
             to={{

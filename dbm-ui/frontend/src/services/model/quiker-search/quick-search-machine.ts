@@ -11,21 +11,26 @@
  * the specific language governing permissions and limitations under the License.
 */
 
-// import type { DatePickerValueType } from 'bkui-vue/lib/date-picker/interface';
+export default class QuickSearchMachine {
+  ip: string;
+  bk_biz_id: number;
+  cluster_type: string;
+  bk_city: number;
+  bk_host_id: number;
+  bk_cloud_id: number;
+  spec_id: number;
+  cluster_id: number;
+  cluster_domain: string;
 
-import TaskFlowModel from '@services/model/taskflow/taskflow';
-
-import type { SearchSelectValues } from '@/types/bkui-vue';
-
-
-/**
- * 任务历史列表基础 state
- */
-export interface ListState {
-  data: TaskFlowModel[],
-  ticketTypes: Array<{id: string, name: string}>,
-  filter: {
-    daterange: [string, string],
-    searchValues: SearchSelectValues,
-  },
+  constructor(payload = {} as QuickSearchMachine) {
+    this.ip = payload.ip;
+    this.bk_biz_id = payload.bk_biz_id;
+    this.cluster_type = payload.cluster_type;
+    this.bk_city = payload.bk_city;
+    this.bk_host_id = payload.bk_host_id;
+    this.bk_cloud_id = payload.bk_cloud_id;
+    this.spec_id = payload.spec_id;
+    this.cluster_id = payload.cluster_id;
+    this.cluster_domain = payload.cluster_domain;
+  }
 }

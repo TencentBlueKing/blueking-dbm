@@ -55,6 +55,10 @@
   import FilterOptions from './FilterOptions.vue';
   import RenderResult from './render-result/Index.vue';
 
+  interface Expose {
+    getFilterOptions: () => typeof formData.value
+  }
+
   const modelValue = defineModel<string>({
     default: '',
     local: true,
@@ -90,7 +94,7 @@
 
   watch([modelValue, formData], () => {
     if (!modelValue.value) {
-      serachResult.value = {};
+      serachResult.value = {} as ServiceReturnType<typeof quickSearch>;
       return;
     }
     handleSerach({
@@ -105,6 +109,15 @@
   const handleClearSearch = () => {
     modelValue.value = '';
   };
+
+  defineExpose<Expose>({
+    getFilterOptions() {
+      return {
+        ...formData.value,
+        keyword: modelValue.value,
+      };
+    },
+  });
 </script>
 <style lang="less">
 .system-serach-box {

@@ -21,6 +21,7 @@ export * from './downloadText';
 export * from './downloadUrl';
 export * from './encode';
 export * from './execCopy';
+export * from './exportExcelFile';
 export * from './generateId';
 export * from './getCostTimeDisplay';
 export * from './getMenuListSearch';

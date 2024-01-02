@@ -21,10 +21,11 @@
   </div>
 </template>
 <script setup lang="ts">
+  import { useLocation } from '@hooks';
+
   import { systemSearchCache } from '@common/cache';
 
   import HightLightText from './components/HightLightText.vue';
-  import useLocation from './hooks/useLocation';
 
   interface Props {
     keyWord: string,

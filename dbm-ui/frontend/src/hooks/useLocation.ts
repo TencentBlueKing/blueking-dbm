@@ -13,7 +13,7 @@ export const locationUrl = (params: RouteLocationRaw, bizId?: number) => {
   window.open(href);
 };
 
-export default () => {
+export const useLocation = () => {
   const router = useRouter();
 
   return (params: RouteLocationRaw, bizId?: number) => {

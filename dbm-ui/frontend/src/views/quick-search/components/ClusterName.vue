@@ -1,0 +1,228 @@
+<template>
+  <div>
+    <DbCard
+      v-for="item in renderData.dataList"
+      :key="item.clusterType"
+      class="search-result-cluster search-result-card"
+      mode="collapse"
+      :title="item.clusterType">
+      <template #desc>
+        <span>{{ t('共n条', { n: item.dataList.length }) }}</span>
+        <BkButton
+          class="ml-16"
+          text
+          theme="primary"
+          @click.stop="handleExport(item.clusterType, item.dataList)">
+          <DbIcon
+            class="export-button-icon"
+            type="host-select" />
+          <span class="export-button-text">{{ t('导出') }}</span>
+        </BkButton>
+      </template>
+      <DbOriginalTable
+        cell-class="custom-table-cell"
+        class="search-result-table mt-14 mb-8"
+        :columns="columnsMap[item.clusterType]"
+        :data="item.dataList" />
+    </DbCard>
+  </div>
+</template>
+
+<script setup lang="tsx">
+  import type { Column } from 'bkui-vue/lib/table/props';
+  import { useI18n } from 'vue-i18n';
+
+  import QuickSearchClusterNameModel from '@services/model/quiker-search/quick-search-cluster-name';
+
+  import {
+    useCopy,
+    useLocation,
+  } from '@hooks';
+
+  import RenderClusterStatus from '@components/cluster-common/RenderStatus.vue';
+  import HightLightText from '@components/system-search/components/search-result/render-result/components/HightLightText.vue';
+
+  import {
+    exportClusterExcelFile,
+    formatCluster,
+  } from '../common/utils';
+
+  interface TableColumn {
+    data: QuickSearchClusterNameModel
+  }
+
+  interface Props {
+    keyword: string,
+    data: QuickSearchClusterNameModel[],
+    bizIdNameMap: Record<number, string>
+  }
+
+  const props = defineProps<Props>();
+
+  const { t } = useI18n();
+  const copy = useCopy();
+  const location = useLocation();
+
+  const renderData = computed(() => formatCluster<QuickSearchClusterNameModel>(props.data));
+  const columnsMap = computed(() => {
+    const {
+      dataList,
+      bizMap,
+    } = renderData.value;
+    const { bizIdNameMap } = props;
+
+    return dataList.reduce((prevColumnsMap, dataItem) => {
+      const bizList = Array.from(bizMap[dataItem.clusterType]).map(bizId => ({
+        value: bizId,
+        text: bizIdNameMap[bizId],
+      }));
+
+      return Object.assign(prevColumnsMap, {
+        [dataItem.clusterType]: [
+          {
+            label: t('主访问入口'),
+            field: 'immute_domain',
+            width: 160,
+            render: ({ data }: TableColumn) => <>
+              <bk-button
+                text
+                theme="primary"
+                onclick={() => handleToCluster(data)}>
+                {data.immute_domain}
+              </bk-button>
+              <bk-button
+                class="copy-button ml-4"
+                text
+                theme="primary"
+                onclick={() => handleCopy(data.immute_domain)}>
+                <db-icon type="copy" />
+              </bk-button>
+            </>,
+          },
+          {
+            label: t('集群名称'),
+            field: 'name',
+            minWidth: 220,
+            render: ({ data }: TableColumn) => (
+              <HightLightText
+                keyWord={props.keyword}
+                text={data.name}
+                highLightColor='#FF9C01' />
+            ),
+          },
+          {
+            label: t('管控区域'),
+            field: 'bk_cloud_id',
+            render: ({ data }: TableColumn) => data.bk_cloud_id || '--',
+          },
+          {
+            label: t('状态'),
+            field: 'status',
+            render: ({ data }: TableColumn) => <RenderClusterStatus data={data.status} />,
+          },
+          // {
+          //   label: t('实例'),
+          //   field: 'bk_idc_name',
+          //   render: ({ data }: TableColumn) => data.bk_idc_name || '--',
+          // },
+          {
+            label: t('所属DB模块'),
+            field: 'cluster_type',
+            render: ({ data }: TableColumn) => data.cluster_type || '--',
+          },
+          {
+            label: t('业务'),
+            field: 'bk_biz_id',
+            filter: {
+              list: bizList,
+            },
+            render: ({ data }: TableColumn) => props.bizIdNameMap[data.bk_biz_id] || '--',
+          },
+          {
+            label: t('创建人'),
+            field: 'creator',
+            render: ({ data }: TableColumn) => data.creator || '--',
+          },
+          {
+            label: t('创建时间'),
+            field: 'create_at',
+            render: ({ data }: TableColumn) => data.create_at || '--',
+          },
+        ],
+      });
+    }, {} as Record<string, Array<Column>>);
+  });
+
+  const handleExport = (clusterType: string, dataList: QuickSearchClusterNameModel[]) => {
+    const exportList = dataList.map(dataItem => ({
+      clusterId: dataItem.id,
+      clusterName: dataItem.name,
+      clusterAlias: dataItem.alias,
+      clusterType: dataItem.cluster_type,
+      immuteDomain: dataItem.immute_domain,
+      majorVersion: dataItem.major_version,
+      region: dataItem.region,
+      disasterTolerancLevel: dataItem.disaster_tolerance_level,
+    }));
+    exportClusterExcelFile(clusterType, exportList);
+  };
+
+  const handleCopy = (content: string) => {
+    copy(content);
+  };
+
+  const handleToCluster = (data: QuickSearchClusterNameModel) => {
+    const routerNameMap = {
+      TwemproxyRedisInstance: 'DatabaseRedisList',
+      tendbha: 'DatabaseTendbha',
+      tendbsingle: 'DatabaseTendbsingle',
+      tendbcluster: 'tendbClusterList',
+      es: 'EsList',
+      kafka: 'KafkaList',
+      hdfs: 'HdfsList',
+      pulsar: 'PulsarList',
+      redis: 'DatabaseRedisList',
+      riak: 'RiakList',
+    } as Record<string, string>;
+
+    if (!routerNameMap[data.cluster_type]) {
+      return;
+    }
+
+    location({
+      name: routerNameMap[data.cluster_type],
+      query: {
+        id: data.id,
+      },
+    }, data.bk_biz_id);
+  };
+</script>
+
+<style lang="less" scoped>
+@import "../style/table-card.less";
+
+.search-result-cluster {
+  .export-button-icon {
+    font-size: 14px;
+  }
+
+  .export-button-text {
+    margin-left: 4px;
+    font-size: 12px;
+  }
+
+  .search-result-table {
+    :deep(.custom-table-cell) {
+      .copy-button {
+        display: none;
+      }
+
+      &:hover {
+        .copy-button {
+          display: inline-block;
+        }
+      }
+    }
+  }
+}
+</style>

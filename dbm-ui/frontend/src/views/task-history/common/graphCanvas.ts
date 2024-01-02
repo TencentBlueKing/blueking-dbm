@@ -11,7 +11,7 @@
  * the specific language governing permissions and limitations under the License.
 */
 
-import type { TaskflowItem } from '@services/types/taskflow';
+import TaskFlowModel from '@services/model/taskflow/taskflow';
 
 import D3Graph from '@blueking/bkflow.js';
 
@@ -29,9 +29,9 @@ export default class GraphCanvas {
   tplRender: GraphRender;
   graphData: GraphData;
   expandNodes: string[]; // 展开节点
-  flowInfo: TaskflowItem;
+  flowInfo: TaskFlowModel;
 
-  constructor(selector: string, flowInfo: TaskflowItem) {
+  constructor(selector: string, flowInfo: TaskFlowModel) {
     this.expandNodes = [];
     this.flowInstance = null;
     this.selector = selector;

@@ -29,7 +29,10 @@ export default class DbResource {
   consume_time: string;
   create_time: string;
   device_class: string;
-  for_bizs: Array<{ bk_biz_id: number; bk_biz_name: string; }>;
+  for_bizs: Array<{
+    bk_biz_id: number;
+    bk_biz_name: string;
+  }>;
   ip: string;
   label: string;
   net_device_id: string;

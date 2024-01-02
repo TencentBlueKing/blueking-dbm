@@ -112,6 +112,7 @@
   const clusterId = defineModel<number>('clusterId');
 
   const router = useRouter();
+  const route = useRoute();
   const { t } = useI18n();
   const { currentBizId } = useGlobalBizs();
   const {
@@ -152,7 +153,7 @@
             textStyle={{
               fontWeight: '700',
             }}
-            onClick={() => toDetail(data)}>
+            onClick={() => toDetail(data.id)}>
             {content}
           </RenderTextEllipsisOneLine>
         );
@@ -311,9 +312,9 @@
     });
   };
 
-  const toDetail = (row: RiakModel) => {
+  const toDetail = (id: number) => {
     stretchLayoutSplitScreen();
-    clusterId.value = row.id;
+    clusterId.value = id;
   };
 
   const handleAddNodes = (data: RiakModel) => {
@@ -446,6 +447,9 @@
 
   onMounted(() => {
     fetchData();
+    if (!clusterId.value && route.query.id) {
+      toDetail(Number(route.query.id));
+    }
   });
 
   defineExpose<Expose>({
