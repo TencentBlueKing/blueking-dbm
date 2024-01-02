@@ -112,6 +112,10 @@ func (m *ModifyPasswordPara) ModifyPassword() error {
 		}
 	}
 	encrypt, err = SM4Encrypt(psw)
+	if err != nil {
+		slog.Error("SM4Encrypt", "error", err)
+		return err
+	}
 	tx := DB.Self.Begin()
 	for _, item := range m.Instances {
 		// 平台通用账号的密码，不允许修改

@@ -50,7 +50,7 @@ class InstallNodemanPluginService(BaseService):
         plugin_name = kwargs["plugin_name"]
         self.log_info(f"start installing {plugin_name} plugin")
         job = BKNodeManApi.operate_plugin(
-            {"job_type": "MAIN_START_PLUGIN", "plugin_params": {"name": plugin_name}, "bk_host_id": bk_host_ids}
+            {"job_type": "MAIN_INSTALL_PLUGIN", "plugin_params": {"name": plugin_name}, "bk_host_id": bk_host_ids}
         )
         data.outputs.job_id = job["job_id"]
 

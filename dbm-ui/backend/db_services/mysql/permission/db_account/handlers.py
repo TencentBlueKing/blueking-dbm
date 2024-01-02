@@ -278,6 +278,8 @@ class AccountHandler(object):
                         return True
                 except KeyError:
                     raise DBPermissionBaseException(
-                        _("授权规则{}-{}不存在，请检查检查后重新提单").format(rule_set["user"], rule["dbname"])
+                        _("授权规则{}-{}不存在，bk_biz_id[{}] cluster_type[{}], 请检查检查后重新提单").format(
+                            rule_set["user"], rule["dbname"], self.bk_biz_id, self.account_type
+                        )
                     )
         return False

@@ -27,6 +27,7 @@ func RegisterRouter(engine *gin.Engine) {
 	p.POST("/cron_start", handler.CronStart)
 	p.POST("/cron_entries", handler.CronEntries)
 	p.POST("/cron_stop", handler.CronStop)
+	p.POST("/init_monitor", handler.InitMonitor)
 	// 迁移分区配置
 	p.POST("/migrate_config", handler.MigrateConfig)
 }

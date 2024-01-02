@@ -1,17 +1,15 @@
 package service
 
 import (
+	"encoding/hex"
 	"fmt"
-	"io/ioutil"
 	"log/slog"
-	"os"
 	"strings"
 	"time"
 
 	"github.com/jinzhu/gorm"
 
 	"dbm-services/common/go-pubpkg/errno"
-	"dbm-services/mysql/priv-service/util"
 
 	"github.com/spf13/viper"
 )
@@ -45,17 +43,7 @@ func (m *AccountPara) AddAccount(jsonPara string) error {
 	if count != 0 {
 		return errno.AccountExisted.AddBefore(m.User)
 	}
-	if m.MigrateFlag {
-		psw = m.Psw
-	} else {
-		// 页面创建的帐号解码
-		psw, err = DecryptPsw(m.Psw)
-		if err != nil {
-			slog.Error("msg", "decrypt psw error", err)
-			return fmt.Errorf("decrypt psw error: %s", err.Error())
-		}
-	}
-
+	psw = m.Psw
 	// 从旧系统迁移的，不检查是否帐号和密码不同
 	if psw == m.User && !m.MigrateFlag {
 		return errno.PasswordConsistentWithAccountName
@@ -63,11 +51,19 @@ func (m *AccountPara) AddAccount(jsonPara string) error {
 	// 从旧系统迁移的，存储的密码为mysql password()允许迁移，old_password()已过滤不迁移
 	if m.PasswordFunc {
 		psw = fmt.Sprintf(`{"old_psw":"","psw":"%s"}`, psw)
-	} else {
+	} else if *m.ClusterType == mysql || *m.ClusterType == tendbcluster {
 		psw, err = EncryptPswInDb(psw)
 		if err != nil {
 			return err
 		}
+	} else {
+		// 兼容其他数据库类型比如，密码不存储mysql password函数，而是SM4，需要能够查询
+		psw, err = SM4Encrypt(psw)
+		if err != nil {
+			slog.Error("SM4Encrypt", "error", err)
+			return err
+		}
+		psw = fmt.Sprintf(`{"sm4":"%s"}`, psw)
 	}
 	account = &TbAccounts{BkBizId: m.BkBizId, ClusterType: *m.ClusterType, User: m.User, Psw: psw, Creator: m.Operator,
 		CreateTime: time.Now()}
@@ -105,19 +101,25 @@ func (m *AccountPara) ModifyAccountPassword(jsonPara string) error {
 		// return errno.ClusterTypeIsEmpty
 	}
 
-	psw, err = DecryptPsw(m.Psw)
-	if err != nil {
-		return err
-	}
-
-	if psw == m.User {
+	if m.Psw == m.User {
 		return errno.PasswordConsistentWithAccountName
 	}
 
-	psw, err = EncryptPswInDb(psw)
-	if err != nil {
-		return err
+	if *m.ClusterType == mysql || *m.ClusterType == tendbcluster {
+		psw, err = EncryptPswInDb(m.Psw)
+		if err != nil {
+			return err
+		}
+	} else {
+		// 兼容其他数据库类型比如，密码不存储mysql password函数，而是SM4，需要能够查询
+		psw, err = SM4Encrypt(psw)
+		if err != nil {
+			slog.Error("SM4Encrypt", "error", err)
+			return err
+		}
+		psw = fmt.Sprintf(`{"sm4":"%s"}`, psw)
 	}
+
 	account = TbAccounts{Psw: psw, Operator: m.Operator, UpdateTime: time.Now()}
 	id = TbAccounts{Id: m.Id}
 	result := DB.Self.Model(&id).Update(&account)
@@ -173,6 +175,7 @@ func (m *AccountPara) GetAccount() ([]*TbAccounts, int64, error) {
 	if m.BkBizId == 0 {
 		return nil, 0, errno.BkBizIdIsEmpty
 	}
+	// mongodb 需要查询psw
 	result = DB.Self.Model(&TbAccounts{}).Where(&TbAccounts{
 		BkBizId: m.BkBizId, ClusterType: *m.ClusterType, User: m.User}).Select(
 		"id,bk_biz_id,user,cluster_type,creator,create_time,update_time").Scan(&accounts)
@@ -182,30 +185,42 @@ func (m *AccountPara) GetAccount() ([]*TbAccounts, int64, error) {
 	return accounts, int64(len(accounts)), nil
 }
 
-// DecryptPsw 对使用公钥加密的密文，用私钥解密
-func DecryptPsw(psw string) (string, error) {
+// GetAccountIncludePsw 获取帐号以及密码
+func (m *GetAccountIncludePswPara) GetAccountIncludePsw() ([]*TbAccounts, int64, error) {
 	var (
-		xrsa       *util.XRsa
-		decryptPsw string
+		accounts []*TbAccounts
+		result   *gorm.DB
 	)
-	file, err := os.Open("./privkey.pem")
-	if err != nil {
-		return decryptPsw, err
+	if m.BkBizId == 0 {
+		return nil, 0, errno.BkBizIdIsEmpty
 	}
-	defer file.Close()
-	content, err := ioutil.ReadAll(file)
-	if err != nil {
-		return decryptPsw, err
+	if len(m.Users) == 0 {
+		return nil, 0, errno.ErrUserIsEmpty
 	}
-	xrsa, err = util.NewXRsa(nil, content)
-	if err != nil {
-		return decryptPsw, err
+	// mongodb 需要查询psw
+	users := "'" + strings.Join(m.Users, "','") + "'"
+	where := fmt.Sprintf("bk_biz_id=%d and cluster_type='%s' and user in (%s)", m.BkBizId, *m.ClusterType, users)
+	result = DB.Self.Model(&TbAccounts{}).Where(where).
+		Select("id,bk_biz_id,user,cluster_type,json_unquote(json_extract(psw,'$.sm4')) as psw," +
+			"creator,create_time,update_time").Scan(&accounts)
+	if result.Error != nil {
+		return nil, 0, result.Error
 	}
-	decryptPsw, err = xrsa.PrivateDecrypt(psw)
-	if err != nil {
-		return decryptPsw, err
+
+	for k, v := range accounts {
+		// 避免在写入和读取数据库时乱码，存储hex进制
+		bytes, err := hex.DecodeString(v.Psw)
+		if err != nil {
+			slog.Error("msg", "get hex decode error", err)
+			return nil, 0, fmt.Errorf("get hex decode error: %s", err.Error())
+		}
+		accounts[k].Psw, err = SM4Decrypt(string(bytes))
+		if err != nil {
+			slog.Error("SM4Decrypt", "error", err)
+			return nil, 0, fmt.Errorf("SM4Decrypt error: %s", err.Error())
+		}
 	}
-	return decryptPsw, nil
+	return accounts, int64(len(accounts)), nil
 }
 
 // EncryptPswInDb 明文加密

@@ -42,9 +42,15 @@ type AccountPara struct {
 	User         string  `json:"user"`
 	Psw          string  `json:"psw"`
 	Operator     string  `json:"operator"`
-	ClusterType  *string `json:"cluster_type" `
+	ClusterType  *string `json:"cluster_type"`
 	MigrateFlag  bool    `json:"migrate_flag"`
 	PasswordFunc bool    `json:"password_func"`
+}
+
+type GetAccountIncludePswPara struct {
+	BkBizId     int64    `json:"bk_biz_id"`
+	Users       []string `json:"users"`
+	ClusterType *string  `json:"cluster_type"`
 }
 
 // PrivLog 记录权限相关接口的调用日志
