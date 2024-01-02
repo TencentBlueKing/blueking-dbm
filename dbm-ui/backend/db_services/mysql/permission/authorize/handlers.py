@@ -221,6 +221,7 @@ class AuthorizeHandler(object):
         module_host_info: str = "",
         module_name_list: str = "",
         type: str = "",
+        operator: str = "scr-system",
     ):
 
         """直接授权，兼容gcs老的授权方式"""
@@ -273,7 +274,7 @@ class AuthorizeHandler(object):
                 "db_name": access_db,
                 "type": type,
                 "target_ip": target_instance,
-                "operator": self.operator,
+                "operator": operator,
             }
             # 填充Set，模块主机和模块列表信息
             if set_name:
