@@ -14,13 +14,13 @@ from typing import Dict, List
 
 from django.core.cache import cache
 from django.db import models
-from django.db.models import Count, QuerySet
+from django.db.models import Count, Q, QuerySet
 from django.forms import model_to_dict
 from django.utils.translation import ugettext_lazy as _
 
 from backend.bk_web.models import AuditedModel
 from backend.components.db_remote_service.client import DRSApi
-from backend.configuration.constants import AffinityEnum
+from backend.configuration.constants import AffinityEnum, DBType
 from backend.constants import CACHE_CLUSTER_STATS, DEFAULT_BK_CLOUD_ID, DEFAULT_TIME_ZONE, IP_PORT_DIVIDER
 from backend.db_meta.enums import (
     ClusterDBHAStatusFlags,
@@ -29,12 +29,14 @@ from backend.db_meta.enums import (
     ClusterTenDBClusterStatusFlag,
     ClusterType,
     InstanceInnerRole,
+    InstanceRole,
     InstanceStatus,
     TenDBClusterSpiderRole,
 )
 from backend.db_meta.enums.cluster_status import ClusterDBSingleStatusFlags, ClusterStatusFlags
 from backend.db_meta.exceptions import ClusterExclusiveOperateException, DBMetaException
 from backend.db_services.version.constants import LATEST, PredixyVersion, TwemproxyVersion
+from backend.flow.consts import DEFAULT_RIAK_PORT
 from backend.ticket.constants import TicketType
 from backend.ticket.models import ClusterOperateRecord
 
@@ -220,6 +222,38 @@ class Cluster(AuditedModel):
             return self.storageinstance_set.filter(instance_inner_role=InstanceInnerRole.MASTER.value)
         else:
             raise DBMetaException(message=_("{} 未实现 main_storage_instance".format(self.cluster_type)))
+
+    @property
+    def access_port(self) -> int:
+        """
+        获取集群的访问端口，如果要批量查询，请使用prefetch预存instance得queryset
+        tendbsingle: 只有一台机器，直接取那个port
+        tendbha, redis: 取proxy的一台port
+        tendbcluster: 主域名取spider master的port   从域名取spider slave的port
+        es: es_datanode_hot
+        kafka: broker
+        hdfs: namenode
+        pulsar: broker
+        riak: 固定为8087
+        mongo: ?
+        """
+        if self.cluster_type == ClusterType.TenDBSingle:
+            return self.storageinstance_set.first().port
+        elif self.cluster_type in [ClusterType.TenDBHA, *ClusterType.db_type_to_cluster_type(DBType.Redis)]:
+            return self.proxyinstance_set.first().port
+        elif self.cluster_type == ClusterType.TenDBCluster:
+            spider_master_filter = Q(tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_MASTER)
+            return self.proxyinstance_set.filter(spider_master_filter).first().port
+        elif self.cluster_type == ClusterType.Es:
+            return self.storageinstance_set.filter(instance_role=InstanceRole.ES_DATANODE_HOT).first().port
+        elif self.cluster_type == ClusterType.Kafka:
+            return self.storageinstance_set.filter(instance_role=InstanceRole.BROKER).first().port
+        elif self.cluster_type == ClusterType.Hdfs:
+            return self.storageinstance_set.filter(instance_role=InstanceRole.HDFS_NAME_NODE).first().port
+        elif self.cluster_type == ClusterType.Pulsar:
+            return self.storageinstance_set.filter(instance_role=InstanceRole.PULSAR_BROKER).first().port
+        elif self.cluster_type == ClusterType.Riak:
+            return DEFAULT_RIAK_PORT
 
     def get_partition_port(self):
         """

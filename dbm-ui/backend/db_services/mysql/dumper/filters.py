@@ -59,7 +59,7 @@ class DumperInstanceListFilter(filters.FilterSet):
         return queryset.filter(ip=ip, listen_port=port)
 
     def filter_dumper_id(self, queryset, name, value):
-        return queryset.filter(extra_config__dumper_id=int(value))
+        return queryset.filter(extra_config__dumper_id=value)
 
     def filter_source_cluster(self, queryset, name, value):
         cluster_ids = list(Cluster.objects.filter(immute_domain__icontains=value).values_list("id", flat=True))

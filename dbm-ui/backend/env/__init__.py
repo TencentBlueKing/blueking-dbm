@@ -144,3 +144,6 @@ GSE_AGENT_VERSION = get_type_env(key="GSE_AGENT_VERSION", _type=str, default="1.
 # 后端加密算法
 ASYMMETRIC_CIPHER_TYPE = get_type_env(key="ASYMMETRIC_CIPHER_TYPE", _type=str, default=AsymmetricCipherType.RSA.value)
 SYMMETRIC_CIPHER_TYPE = get_type_env(key="SYMMETRIC_CIPHER_TYPE", _type=str, default=SymmetricCipherType.AES.value)
+
+# gcs/scr平台
+GCS_SCR_OPERATOR = get_type_env(key="GCS_SCR_OPERATOR", _type=str, default="scr-system")

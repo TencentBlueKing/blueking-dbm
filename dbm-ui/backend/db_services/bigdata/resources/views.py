@@ -146,6 +146,7 @@ class BigdataResourceViewSet(ResourceViewSet):
             {
                 "cluster_name": cluster.name,
                 "domain": cluster.immute_domain,
+                "access_port": cluster.access_port,
                 "password": password,
                 "username": username,
                 "token": token,

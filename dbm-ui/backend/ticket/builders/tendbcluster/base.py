@@ -36,7 +36,7 @@ class BaseTendbTicketFlowBuilder(MySQLTicketFlowBuilderPatchMixin, TicketFlowBui
 
 
 class BaseDumperTicketFlowBuilder(DumperTicketFlowBuilderPatchMixin, TicketFlowBuilder):
-    group = DBType.TenDBCluster.value
+    group = DBType.MySQL.value
 
 
 class TendbBasePauseParamBuilder(builders.PauseParamBuilder):
