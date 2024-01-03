@@ -384,7 +384,7 @@
       label: t('创建时间'),
       field: 'create_at',
       width: 160,
-      render: ({ cell }: ColumnData) => <span>{cell || '--'}</span>,
+      render: ({ data }: ColumnData) => <span>{data.createAtDisplay || '--'}</span>,
     },
     {
       label: t('时区'),

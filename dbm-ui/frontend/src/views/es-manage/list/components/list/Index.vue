@@ -370,6 +370,7 @@
       label: t('部署时间'),
       field: 'create_at',
       width: 160,
+      render: ({ data }: {data: EsModel}) => <span>{data.createAtDisplay}</span>,
     },
     {
       label: t('时区'),

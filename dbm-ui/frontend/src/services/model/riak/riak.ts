@@ -10,10 +10,11 @@
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
  */
-
 import dayjs from 'dayjs';
 
 import { TicketTypes } from '@common/const';
+
+import { utcDisplayTime } from '@utils';
 
 import { t } from '@locales/index';
 
@@ -66,8 +67,8 @@ export default class Riak {
     status: 'running' | 'unavailable'
     phase: string
     bk_instance_id: number
-    bk_host_id:  number
-    bk_cloud_id:  number
+    bk_host_id: number
+    bk_cloud_id: number
     spec_config: {
       id: number,
       cpu: {
@@ -185,5 +186,9 @@ export default class Riak {
 
   get isOnline() {
     return this.phase === 'online';
+  }
+
+  get createAtDisplay() {
+    return utcDisplayTime(this.create_at);
   }
 }

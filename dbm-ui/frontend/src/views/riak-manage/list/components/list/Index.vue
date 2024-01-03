@@ -127,18 +127,18 @@
       minWidth: 240,
       fixed: 'left',
       showOverflowTooltip: false,
-      render: ({ row }: { row: RiakModel }) => {
+      render: ({ data }: { data: RiakModel }) => {
         const content = <>
           {
-            row.isNewRow
+            data.isNewRow
               && <MiniTag
                 content='NEW'
                 theme='success'>
               </MiniTag>
           }
-          <RenderOperationTag data={row} class='ml-4' />
+          <RenderOperationTag data={data} class='ml-4' />
           {
-            !row.isOnline
+            !data.isOnline
               && <db-icon
                 svg
                 type="yijinyong"
@@ -148,11 +148,11 @@
 
         return (
           <RenderTextEllipsisOneLine
-            text={row.cluster_name}
+            text={data.cluster_name}
             textStyle={{
               fontWeight: '700',
             }}
-            onClick={() => toDetail(row)}>
+            onClick={() => toDetail(data)}>
             {content}
           </RenderTextEllipsisOneLine>
         );
@@ -163,29 +163,29 @@
       field: 'major_version',
       width: 80,
       sort: true,
-      render: ({ row }: { row: RiakModel }) => <span>{row.major_version || '--'}</span>,
+      render: ({ data }: { data: RiakModel }) => <span>{data.major_version || '--'}</span>,
     },
     {
       label: t('管控区域'),
       width: 120,
       field: 'bk_cloud_name',
-      render: ({ row }: { row: RiakModel }) => <span>{row.bk_cloud_name || '--'}</span>,
+      render: ({ data }: { data: RiakModel }) => <span>{data.bk_cloud_name || '--'}</span>,
     },
     {
       label: t('状态'),
       field: 'status',
       width: 100,
-      render: ({ row }: { row: RiakModel }) => <RenderClusterStatus data={row.status} />,
+      render: ({ data }: { data: RiakModel }) => <RenderClusterStatus data={data.status} />,
     },
     {
       label: t('节点'),
       field: 'riak_node',
-      render: ({ row }: { row: RiakModel }) => (
+      render: ({ data }: { data: RiakModel }) => (
         <RenderNodeInstance
           role="riak_node"
-          title={`【${row.cluster_name}】${t('节点')}`}
-          clusterId={row.id}
-          originalList={row.riak_node.map(nodeItem => ({
+          title={`【${data.cluster_name}】${t('节点')}`}
+          clusterId={data.id}
+          originalList={data.riak_node.map(nodeItem => ({
             ip: nodeItem.ip,
             port: nodeItem.port,
             status: nodeItem.status,
@@ -198,62 +198,62 @@
       field: 'create_at',
       width: 160,
       sort: true,
-      render: ({ row }: { row: RiakModel }) => <span>{row.create_at || '--'}</span>,
+      render: ({ data }: { data: RiakModel }) => <span>{data.createAtDisplay || '--'}</span>,
     },
     {
       label: t('操作'),
       width: 300,
-      render: ({ row }: { row: RiakModel }) => (
-        row.isOnline
+      render: ({ data }: { data: RiakModel }) => (
+        data.isOnline
           ? <>
-              <OperationStatusTips data={row}>
+              <OperationStatusTips data={data}>
                 <bk-button
                   text
                   theme="primary"
-                  disabled={row.operationDisabled}
-                  onClick={() => handleAddNodes(row)}
+                  disabled={data.operationDisabled}
+                  onClick={() => handleAddNodes(data)}
                 >
                   { t('添加节点') }
                 </bk-button>
               </OperationStatusTips>
-              <OperationStatusTips data={row} class="ml-16">
+              <OperationStatusTips data={data} class="ml-16">
                 <bk-button
                   text
                   theme="primary"
-                  disabled={row.operationDisabled}
-                  onClick={() => handleDeleteNodes(row)}
+                  disabled={data.operationDisabled}
+                  onClick={() => handleDeleteNodes(data)}
                 >
                   { t('删除节点') }
                 </bk-button>
               </OperationStatusTips>
-              <OperationStatusTips data={row} class="ml-16">
+              <OperationStatusTips data={data} class="ml-16">
                 <bk-button
                   text
                   theme="primary"
-                  disabled={row.operationDisabled}
-                  onclick={() => handlDisabled(row)}
+                  disabled={data.operationDisabled}
+                  onclick={() => handlDisabled(data)}
                 >
                   { t('禁用') }
                 </bk-button>
               </OperationStatusTips>
             </>
           : <>
-              <OperationStatusTips data={row}>
+              <OperationStatusTips data={data}>
                 <bk-button
                   text
                   theme="primary"
-                  disabled={row.operationDisabled}
-                  onclick={() => handleEnabled(row)}
+                  disabled={data.operationDisabled}
+                  onclick={() => handleEnabled(data)}
                 >
                   { t('启用') }
                 </bk-button>
               </OperationStatusTips>
-              <OperationStatusTips data={row} class="ml-16">
+              <OperationStatusTips data={data} class="ml-16">
                 <bk-button
                   text
                   theme="primary"
-                  disabled={row.operationDisabled}
-                  onclick={() => handleDelete(row)}
+                  disabled={data.operationDisabled}
+                  onclick={() => handleDelete(data)}
                 >
                   { t('删除') }
                 </bk-button>

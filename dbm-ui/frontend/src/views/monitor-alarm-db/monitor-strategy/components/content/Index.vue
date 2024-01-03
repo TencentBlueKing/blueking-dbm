@@ -263,6 +263,7 @@
       showOverflowTooltip: true,
       sort: true,
       minWidth: 160,
+      render: ({ data }: {data: RowData}) => <span>{data.updateAtDisplay}</span>,
     },
     {
       label: t('更新人'),

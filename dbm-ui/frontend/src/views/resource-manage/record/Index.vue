@@ -127,6 +127,7 @@
       fixed: true,
       width: 170,
       sort: true,
+      render: ({ data }: {data: OperationModel}) => data.updateTimeDisplay,
     },
     {
       label: t('操作主机明细（台）'),

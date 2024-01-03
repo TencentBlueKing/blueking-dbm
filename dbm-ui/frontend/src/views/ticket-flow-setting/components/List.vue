@@ -65,7 +65,10 @@
     updateTicketFlowConfig,
   } from '@services/source/ticket';
 
-  import { messageSuccess } from '@utils';
+  import {
+    messageSuccess,
+    utcDisplayTime,
+  } from '@utils';
 
   import BatchConfigDialog from './BatchConfigDialog.vue';
 
@@ -207,6 +210,7 @@
       field: 'update_at',
       showOverflowTooltip: true,
       sort: true,
+      render: ({ data }: { data: RowData }) => <span>{utcDisplayTime(data.update_at)}</span>,
     },
   ];
 

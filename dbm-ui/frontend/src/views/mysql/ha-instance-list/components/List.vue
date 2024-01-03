@@ -86,6 +86,7 @@
   import {
     getSearchSelectorParams,
     isRecentDays,
+    utcDisplayTime,
   } from '@utils';
 
   interface ColumnData {
@@ -258,6 +259,7 @@
         label: t('部署时间'),
         field: 'create_at',
         width: 160,
+        render: ({ cell }: ColumnData) => <span>{utcDisplayTime(cell)}</span>,
       },
       {
         label: t('操作'),

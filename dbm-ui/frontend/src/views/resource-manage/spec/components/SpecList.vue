@@ -267,6 +267,7 @@
         field: 'update_at',
         sort: true,
         width: 180,
+        render: ({ data }: { data: ResourceSpecModel }) => <span>{data.updateAtDisplay}</span>,
       },
       {
         label: t('更新人'),

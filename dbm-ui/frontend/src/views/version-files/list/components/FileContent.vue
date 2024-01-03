@@ -152,7 +152,10 @@
 
   import { DBTypes } from '@common/const';
 
-  import { messageSuccess } from '@utils';
+  import {
+    messageSuccess,
+    utcDisplayTime,
+  } from '@utils';
 
   import { useVersionFiles } from '../hooks/useVersionFiles';
 
@@ -283,6 +286,7 @@
       {
         label: t('更新时间'),
         field: 'update_at',
+        render: ({ data }: TableColumnRender) => <span>{utcDisplayTime(data.update_at)}</span>,
       },
       {
         label: t('操作'),

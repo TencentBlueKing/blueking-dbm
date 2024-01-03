@@ -10,6 +10,7 @@
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
 */
+import { utcDisplayTime } from '@utils';
 
 import { t } from '@locales/index';
 
@@ -196,6 +197,10 @@ export default class Hdfs {
     const port = this.hdfs_namenode[0]?.port;
     const displayName = port ? `${this.domain}:${port}` : this.domain;
     return displayName;
+  }
+
+  get createAtDisplay() {
+    return utcDisplayTime(this.create_at);
   }
 
   initOperations(payload = [] as Hdfs['operations']) {

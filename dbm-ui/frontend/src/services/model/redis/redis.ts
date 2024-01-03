@@ -12,6 +12,8 @@
 */
 import { PipelineStatus } from '@common/const';
 
+import { utcDisplayTime } from '@utils';
+
 export const enum RedisClusterTypes {
   PredixyTendisplusCluster = 'PredixyTendisplusCluster', // Tendisplus
   TwemproxyRedisInstance = 'TwemproxyRedisInstance', // TendisCache
@@ -232,5 +234,13 @@ export default class Redis {
 
   get isOnlinePolaris() {
     return this.cluster_entry.some(item => item.cluster_entry_type === 'polaris');
+  }
+
+  get createAtDisplay() {
+    return utcDisplayTime(this.create_at);
+  }
+
+  get updateAtDisplay() {
+    return utcDisplayTime(this.update_at);
   }
 }
