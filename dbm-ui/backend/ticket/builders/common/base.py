@@ -368,15 +368,15 @@ class BaseOperateResourceParamBuilder(builders.ResourceApplyParamBuilder):
     def format(self):
         # 对每个info补充云区域ID和业务ID
         cluster_ids = fetch_cluster_ids(self.ticket_data)
-        clusters = Cluster.objects.filter(id__in=cluster_ids)
+        id__clusters = {cluster.id: cluster for cluster in Cluster.objects.filter(id__in=cluster_ids)}
         for info in self.ticket_data["infos"]:
             # 如果已经存在则跳过
             if info.get("bk_cloud_id") and info.get("bk_biz_id"):
                 continue
 
             # 默认从集群中获取云区域ID和业务ID
-            cluster_id = info.get("cluster_id") or info.get("cluster_ids")[0]
-            bk_cloud_id = clusters.get(id=cluster_id).bk_cloud_id
+            cluster_id = info.get("cluster_id") or info.get("src_cluster") or info.get("cluster_ids")[0]
+            bk_cloud_id = id__clusters[cluster_id].bk_cloud_id
             info.update(bk_cloud_id=bk_cloud_id, bk_biz_id=self.ticket.bk_biz_id)
 
     def post_callback(self):

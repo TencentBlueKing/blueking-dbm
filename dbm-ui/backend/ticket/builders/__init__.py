@@ -235,6 +235,8 @@ class ResourceApplyParamBuilder(CallBackBuilderMixin):
         for info in self.ticket_data["infos"]:
             cluster = id__cluster[info.get("cluster_id") or info.get("src_cluster")]
             self.patch_affinity_location(cluster, info["resource_spec"], roles)
+            # 工具箱操作，补充业务和云区域ID
+            info.update(bk_cloud_id=cluster.bk_cloud_id, bk_biz_id=self.ticket.bk_biz_id)
 
     @classmethod
     def patch_affinity_location(cls, cluster, resource_spec, roles=None):

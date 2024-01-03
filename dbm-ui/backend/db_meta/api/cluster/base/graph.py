@@ -28,6 +28,7 @@ class Node:
     node_id: str
     node_type: str
     url: str
+    status: str
 
     @staticmethod
     def generate_node_id(ins: Union[StorageInstance, ProxyInstance, ClusterEntry]) -> str:
@@ -77,16 +78,25 @@ class Node:
 
         return ""
 
+    @staticmethod
+    def generate_status(ins: Union[StorageInstance, ProxyInstance, ClusterEntry]) -> str:
+        if isinstance(ins, (StorageInstance, ProxyInstance)):
+            return ins.status
+        else:
+            return ins.cluster.status
+
     def __init__(
         self,
         ins: Union[StorageInstance, ProxyInstance, ClusterEntry],
         node_id: str = None,
         node_type: str = None,
         url: str = None,
+        status: str = None,
     ):
         self.node_id = node_id or Node.generate_node_id(ins)
         self.node_type = node_type or Node.generate_node_type(ins)
         self.url = url or Node.generate_url(ins)
+        self.status = status or Node.generate_status(ins)
         super(Node, self).__init__()
 
 

@@ -15,6 +15,7 @@ from rest_framework import serializers
 from backend.db_services.redis.redis_dts.enums import DtsDataRepairMode, ExecuteMode
 from backend.flow.engine.controller.redis import RedisController
 from backend.ticket import builders
+from backend.ticket.builders.common.base import BaseOperateResourceParamBuilder
 from backend.ticket.builders.common.field import DBTimezoneField
 from backend.ticket.builders.redis.base import BaseRedisTicketFlowBuilder
 from backend.ticket.constants import TicketType
@@ -61,7 +62,7 @@ class RedisDataCheckRepairParamBuilder(builders.FlowParamBuilder):
         super().format_ticket_data()
 
 
-class RedisDataCheckRepairResourceParamBuilder(builders.ResourceApplyParamBuilder):
+class RedisDataCheckRepairResourceParamBuilder(BaseOperateResourceParamBuilder):
     def post_callback(self):
         super().post_callback()
 

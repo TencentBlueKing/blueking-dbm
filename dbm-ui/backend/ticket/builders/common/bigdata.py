@@ -20,9 +20,9 @@ from backend.db_meta.enums.cluster_phase import ClusterPhase
 from backend.db_meta.models.cluster import Cluster
 from backend.db_meta.models.instance import StorageInstance
 from backend.db_services.dbbase.constants import IpSource
-from backend.ticket import builders
 from backend.ticket.builders import BuilderFactory, TicketFlowBuilder
 from backend.ticket.builders.common.base import (
+    BaseOperateResourceParamBuilder,
     BigDataTicketFlowBuilderPatchMixin,
     CommonValidate,
     InfluxdbTicketFlowBuilderPatchMixin,
@@ -244,7 +244,7 @@ class BigDataRebootDetailSerializer(BigDataSingleClusterOpsDetailsSerializer):
         return attrs
 
 
-class BigDataScaleUpResourceParamBuilder(builders.ResourceApplyParamBuilder):
+class BigDataScaleUpResourceParamBuilder(BaseOperateResourceParamBuilder):
     def format(self):
         super(BigDataScaleUpResourceParamBuilder, self).format()
         # 补充亲和性和位置参数
@@ -254,7 +254,7 @@ class BigDataScaleUpResourceParamBuilder(builders.ResourceApplyParamBuilder):
         self.ticket_data["bk_cloud_id"] = cluster.bk_cloud_id
 
 
-class BigDataReplaceResourceParamBuilder(builders.ResourceApplyParamBuilder):
+class BigDataReplaceResourceParamBuilder(BaseOperateResourceParamBuilder):
     def format(self):
         super(BigDataReplaceResourceParamBuilder, self).format()
         # 补充亲和性和位置参数

@@ -20,6 +20,7 @@ from backend.db_meta.models import Cluster
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.redis import RedisController
 from backend.ticket import builders
+from backend.ticket.builders.common.base import BaseOperateResourceParamBuilder
 from backend.ticket.builders.common.field import DBTimezoneField
 from backend.ticket.builders.redis.base import BaseRedisTicketFlowBuilder, ClusterValidateMixin
 from backend.ticket.constants import TicketType
@@ -82,7 +83,7 @@ class RedisFixPointMakeParamBuilder(builders.FlowParamBuilder):
         super().format_ticket_data()
 
 
-class RedisFixPointMakeResourceParamBuilder(builders.ResourceApplyParamBuilder):
+class RedisFixPointMakeResourceParamBuilder(BaseOperateResourceParamBuilder):
     def format(self):
         # 申请的机器 和 现网集群同城即可， 无所谓是否 跨机房、同机房
         cluster_ids = [info["cluster_id"] for info in self.ticket_data["infos"]]
@@ -92,6 +93,7 @@ class RedisFixPointMakeResourceParamBuilder(builders.ResourceApplyParamBuilder):
             info["resource_spec"]["redis"].update(
                 affinity=AffinityEnum.NONE.value, location_spec={"city": cluster.region, "sub_zone_ids": []}
             )
+            info.update(bk_cloud_id=cluster.bk_cloud_id, bk_biz_id=self.ticket.bk_biz_id)
 
     def post_callback(self):
         super().post_callback()

@@ -16,6 +16,7 @@ from rest_framework import serializers
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.redis import RedisController
 from backend.ticket import builders
+from backend.ticket.builders.common.base import BaseOperateResourceParamBuilder
 from backend.ticket.builders.redis.base import BaseRedisTicketFlowBuilder, ClusterValidateMixin
 from backend.ticket.constants import TicketType
 
@@ -42,7 +43,7 @@ class ProxyScaleUpParamBuilder(builders.FlowParamBuilder):
         super().format_ticket_data()
 
 
-class ProxyScaleUpResourceParamBuilder(builders.ResourceApplyParamBuilder):
+class ProxyScaleUpResourceParamBuilder(BaseOperateResourceParamBuilder):
     def format(self):
         # 在跨机房亲和性要求下，接入层proxy的亲和性要求至少分布在2个机房
         self.patch_info_affinity_location(roles=["proxy"])

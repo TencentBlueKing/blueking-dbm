@@ -17,6 +17,7 @@ from backend.db_meta.models import Cluster, StorageInstance
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.redis import RedisController
 from backend.ticket import builders
+from backend.ticket.builders.common.base import BaseOperateResourceParamBuilder
 from backend.ticket.builders.redis.base import BaseRedisTicketFlowBuilder
 from backend.ticket.constants import TicketType
 
@@ -45,7 +46,7 @@ class RedisClusterAutofixParamBuilder(builders.FlowParamBuilder):
         super().format_ticket_data()
 
 
-class RedisClusterAutofixResourceParamBuilder(builders.ResourceApplyParamBuilder):
+class RedisClusterAutofixResourceParamBuilder(BaseOperateResourceParamBuilder):
     def post_callback(self):
         nodes = self.ticket_data.pop("nodes", [])
 
