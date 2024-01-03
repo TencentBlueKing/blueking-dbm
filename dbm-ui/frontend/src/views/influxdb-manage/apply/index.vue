@@ -37,11 +37,11 @@
       <RegionItem
         ref="regionItemRef"
         v-model="formdata.details.city_code" />
-      <DbCard
+      <!-- <DbCard
         v-if="!isDefaultCity"
         :title="$t('数据库部署信息')">
         <AffinityItem v-model="formdata.details.disaster_tolerance_level" />
-      </DbCard>
+      </DbCard> -->
       <DbCard :title="$t('部署需求')">
         <BkFormItem
           :label="$t('InfluxDB版本')"
@@ -178,7 +178,7 @@
 
   import { useApplyBase, useInfo } from '@hooks';
 
-  import AffinityItem from '@components/apply-items/AffinityItem.vue';
+  // import AffinityItem from '@components/apply-items/AffinityItem.vue';
   import BusinessItems from '@components/apply-items/BusinessItems.vue';
   import CloudItem from '@components/apply-items/CloudItem.vue';
   import DeployVersion from '@components/apply-items/DeployVersion.vue';
@@ -214,7 +214,7 @@
   const specRef = ref();
   const regionItemRef = ref();
 
-  const isDefaultCity = computed(() => formdata.details.city_code === 'default');
+  // const isDefaultCity = computed(() => formdata.details.city_code === 'default');
 
   const rules = {
     'details.nodes.influxdb': [

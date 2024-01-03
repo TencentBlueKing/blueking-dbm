@@ -38,11 +38,11 @@
       <RegionItem
         ref="regionItemRef"
         v-model="formData.details.city_code" />
-      <DbCard
+      <!-- <DbCard
         v-if="!isDefaultCity"
         :title="$t('数据库部署信息')">
         <AffinityItem v-model="formData.details.disaster_tolerance_level" />
-      </DbCard>
+      </DbCard> -->
       <DbCard :title="$t('部署需求')">
         <BkFormItem
           :label="$t('kafka版本')"
@@ -322,7 +322,7 @@
     useInfo,
   } from '@hooks';
 
-  import AffinityItem from '@components/apply-items/AffinityItem.vue';
+  // import AffinityItem from '@components/apply-items/AffinityItem.vue';
   import BusinessItems from '@components/apply-items/BusinessItems.vue';
   import CloudItem from '@components/apply-items/CloudItem.vue';
   import ClusterAlias from '@components/apply-items/ClusterAlias.vue';
@@ -435,7 +435,7 @@
 
   const formData = reactive(genDefaultFormData());
 
-  const isDefaultCity = computed(() => formData.details.city_code === 'default');
+  // const isDefaultCity = computed(() => formData.details.city_code === 'default');
 
   watch(() => formData.details.resource_spec.broker, () => {
     const count = Number(formData.details.resource_spec.broker.count);
