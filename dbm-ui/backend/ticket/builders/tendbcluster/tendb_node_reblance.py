@@ -17,7 +17,11 @@ from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.spider import SpiderController
 from backend.ticket import builders
 from backend.ticket.builders.common.field import DBTimezoneField
-from backend.ticket.builders.tendbcluster.base import BaseTendbTicketFlowBuilder, TendbBaseOperateDetailSerializer
+from backend.ticket.builders.tendbcluster.base import (
+    BaseTendbTicketFlowBuilder,
+    TendbBaseOperateDetailSerializer,
+    TendbBaseOperateResourceParamBuilder,
+)
 from backend.ticket.constants import TicketType, TriggerChecksumType
 
 
@@ -59,7 +63,7 @@ class TendbNodeRebalanceFlowParamBuilderBuilder(builders.FlowParamBuilder):
             info["db_module_id"] = cluster__module_id[info["cluster_id"]]
 
 
-class TendbNodeRebalanceResourceParamBuilder(builders.ResourceApplyParamBuilder):
+class TendbNodeRebalanceResourceParamBuilder(TendbBaseOperateResourceParamBuilder):
     def format(self):
         self.patch_info_affinity_location(roles=["backend_group"])
 

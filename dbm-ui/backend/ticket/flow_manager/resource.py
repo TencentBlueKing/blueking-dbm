@@ -23,7 +23,6 @@ from backend import env
 from backend.components.dbresource.client import DBResourceApi
 from backend.configuration.constants import AffinityEnum
 from backend.configuration.models import DBAdministrator
-from backend.constants import DEFAULT_BK_CLOUD_ID
 from backend.db_meta.models import Spec
 from backend.db_services.dbresource.exceptions import ResourceApplyException, ResourceApplyInsufficientException
 from backend.db_services.ipchooser.constants import CommonEnum
@@ -207,7 +206,7 @@ class ResourceApplyFlow(BaseTicketFlow):
 
     def fetch_apply_params(self, ticket_data):
         """构造资源申请参数"""
-        bk_cloud_id: int = ticket_data.get("bk_cloud_id", DEFAULT_BK_CLOUD_ID)
+        bk_cloud_id: int = ticket_data["bk_cloud_id"]
         details: List[Dict[str, Any]] = []
 
         # 根据规格来填充相应机器的申请参数

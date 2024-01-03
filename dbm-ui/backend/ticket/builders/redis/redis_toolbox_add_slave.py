@@ -16,6 +16,7 @@ from backend.db_meta.models import Cluster, Machine, StorageInstanceTuple
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.redis import RedisController
 from backend.ticket import builders
+from backend.ticket.builders.common.base import BaseOperateResourceParamBuilder
 from backend.ticket.builders.redis.base import BaseRedisTicketFlowBuilder, ClusterValidateMixin
 from backend.ticket.constants import TicketType
 from backend.utils.basic import get_target_items_from_details
@@ -53,7 +54,7 @@ class RedisAddSlaveParamBuilder(builders.FlowParamBuilder):
         super().format_ticket_data()
 
 
-class RedisAddSlaveResourceParamBuilder(builders.ResourceApplyParamBuilder):
+class RedisAddSlaveResourceParamBuilder(BaseOperateResourceParamBuilder):
     def post_callback(self):
         next_flow = self.ticket.next_flow()
         ticket_data = next_flow.details["ticket_data"]

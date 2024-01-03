@@ -19,13 +19,13 @@ class AuthorizeApplySerializer(serializers.Serializer):
     access_db = serializers.CharField(help_text=_("准入DB"))
     source_ips = serializers.CharField(help_text=_("源IP列表"))
     target_instance = serializers.CharField(help_text=_("目标域名"))
+    operator = serializers.CharField(help_text=_("操作人"), required=False)
     # gcs专属
     app = serializers.CharField(help_text=_("GCS业务缩写，如qxzb"), required=False)
     set_name = serializers.CharField(help_text=_("Set名称，多个以逗号分隔"), required=False)
     module_host_info = serializers.CharField(help_text=_("模块主机信息"), required=False)
     module_name_list = serializers.CharField(help_text=_("模块列表，多个以逗号分隔"), required=False)
     type = serializers.CharField(help_text=_("类型"), required=False)
-    operator = serializers.CharField(help_text=_("操作人"), required=False)
 
     def validate(self, attrs):
         if not attrs.get("app") and not attrs.get("bk_biz_id"):

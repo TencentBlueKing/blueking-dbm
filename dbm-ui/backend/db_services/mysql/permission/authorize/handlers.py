@@ -221,7 +221,7 @@ class AuthorizeHandler(object):
         module_host_info: str = "",
         module_name_list: str = "",
         type: str = "",
-        operator: str = env.GCS_SCR_OPERATOR,
+        operator: str = "",
     ):
 
         """直接授权，兼容gcs老的授权方式"""
@@ -234,7 +234,10 @@ class AuthorizeHandler(object):
             return _domain, _port
 
         if app:
-            app_detail = ScrApi.common_query(params={"app": app, "columns": ["appid", "ccId"]})["detail"][0]
+            app_detail = ScrApi.common_query(params={"app": app, "columns": ["appid", "ccId"]})["detail"]
+            if not app_detail:
+                raise DBPermissionBaseException(_("无法查询app相关信息，请检查app输入是否合法"))
+            app_detail = app_detail[0]
 
         # 域名存在，则走dbm的授权方式，否则走gcs的授权方式
         domain, __ = parse_domain(target_instance)
@@ -260,7 +263,7 @@ class AuthorizeHandler(object):
                 ticket_type=TicketType.MYSQL_AUTHORIZE_RULES
                 if db_type == DBType.MySQL
                 else TicketType.TENDBCLUSTER_AUTHORIZE_RULES,
-                creator=self.operator,
+                creator=operator or self.operator,
                 remark=_("第三方请求授权"),
                 details=authorize_info_slz.validated_data,
             )
@@ -275,7 +278,7 @@ class AuthorizeHandler(object):
                 "type": type,
                 "target_ip": target_instance,
                 # 补充gcs网关的鉴权信息
-                "bk_username": operator,
+                "bk_username": operator or env.GCS_SCR_OPERATOR,
                 "bk_app_code": settings.APP_CODE,
                 "bk_app_secret": settings.SECRET_KEY,
             }

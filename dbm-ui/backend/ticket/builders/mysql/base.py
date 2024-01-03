@@ -24,6 +24,7 @@ from backend.flow.utils.mysql.db_table_filter.tools import glob_check
 from backend.ticket import builders
 from backend.ticket.builders import BuilderFactory, TicketFlowBuilder
 from backend.ticket.builders.common.base import (
+    BaseOperateResourceParamBuilder,
     CommonValidate,
     MySQLTicketFlowBuilderPatchMixin,
     SkipToRepresentationMixin,
@@ -171,18 +172,12 @@ class MySQLClustersTakeDownDetailsSerializer(SkipToRepresentationMixin, serializ
         return value
 
 
-class MySQLBaseOperateResourceParamBuilder(builders.ResourceApplyParamBuilder):
+class MySQLBaseOperateResourceParamBuilder(BaseOperateResourceParamBuilder):
     def format(self):
-        cluster_ids = fetch_cluster_ids(self.ticket_data)
-        clusters = Cluster.objects.filter(id__in=cluster_ids)
-        # 对每个info补充bk_cloud_id和bk_biz_id
-        for info in self.ticket_data["infos"]:
-            cluster_id = info.get("cluster_id") or info.get("cluster_ids")[0]
-            bk_cloud_id = clusters.get(id=cluster_id).bk_cloud_id
-            info.update(bk_cloud_id=bk_cloud_id, bk_biz_id=self.ticket.bk_biz_id)
+        super().format()
 
     def post_callback(self):
-        pass
+        super().post_callback()
 
 
 class DBTableField(serializers.CharField):

@@ -19,15 +19,12 @@ from backend.flow.consts import MAX_SPIDER_MASTER_COUNT, MIN_SPIDER_MASTER_COUNT
 from backend.ticket import builders
 from backend.ticket.builders import TicketFlowBuilder
 from backend.ticket.builders.common.base import (
+    BaseOperateResourceParamBuilder,
     DumperTicketFlowBuilderPatchMixin,
     MySQLTicketFlowBuilderPatchMixin,
     fetch_cluster_ids,
 )
-from backend.ticket.builders.mysql.base import (
-    MySQLBaseOperateDetailSerializer,
-    MySQLBaseOperateResourceParamBuilder,
-    MySQLClustersTakeDownDetailsSerializer,
-)
+from backend.ticket.builders.mysql.base import MySQLBaseOperateDetailSerializer, MySQLClustersTakeDownDetailsSerializer
 from backend.ticket.constants import TicketType
 
 
@@ -164,5 +161,9 @@ class TendbClustersTakeDownDetailsSerializer(MySQLClustersTakeDownDetailsSeriali
     is_only_add_slave_domain = serializers.BooleanField(help_text=_("是否只启用只读接入层"), required=False, default=False)
 
 
-class TendbBaseOperateResourceParamBuilder(MySQLBaseOperateResourceParamBuilder):
-    pass
+class TendbBaseOperateResourceParamBuilder(BaseOperateResourceParamBuilder):
+    def format(self):
+        super().format()
+
+    def post_callback(self):
+        super().post_callback()

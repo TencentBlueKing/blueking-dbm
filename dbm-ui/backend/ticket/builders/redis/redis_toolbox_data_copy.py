@@ -16,6 +16,7 @@ from backend.db_meta.models import Cluster
 from backend.db_services.redis.redis_dts.enums import DtsCopyType
 from backend.flow.engine.controller.redis import RedisController
 from backend.ticket import builders
+from backend.ticket.builders.common.base import BaseOperateResourceParamBuilder
 from backend.ticket.builders.redis.base import (
     BaseRedisTicketFlowBuilder,
     ClusterValidateMixin,
@@ -121,7 +122,7 @@ class RedisDataCopyParamBuilder(builders.FlowParamBuilder):
         super().format_ticket_data()
 
 
-class RedisDataCopyResourceParamBuilder(builders.ResourceApplyParamBuilder):
+class RedisDataCopyResourceParamBuilder(BaseOperateResourceParamBuilder):
     def post_callback(self):
         super().post_callback()
 

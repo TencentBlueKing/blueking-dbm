@@ -15,6 +15,7 @@ from backend.configuration.constants import AffinityEnum
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.redis import RedisController
 from backend.ticket import builders
+from backend.ticket.builders.common.base import BaseOperateResourceParamBuilder
 from backend.ticket.builders.redis.base import BaseRedisTicketFlowBuilder, ClusterValidateMixin
 from backend.ticket.constants import SwitchConfirmType, TicketType
 
@@ -56,7 +57,7 @@ class RedisScaleUpDownParamBuilder(builders.FlowParamBuilder):
         super().format_ticket_data()
 
 
-class RedisScaleUpDownResourceParamBuilder(builders.ResourceApplyParamBuilder):
+class RedisScaleUpDownResourceParamBuilder(BaseOperateResourceParamBuilder):
     def format(self):
         self.patch_info_affinity_location(roles=["backend_group"])
 
