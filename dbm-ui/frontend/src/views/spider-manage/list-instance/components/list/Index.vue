@@ -73,7 +73,11 @@
   import DbStatus from '@components/db-status/index.vue';
   import DropdownExportExcel from '@components/dropdown-export-excel/index.vue';
 
-  import { getSearchSelectorParams, isRecentDays } from '@utils';
+  import {
+    getSearchSelectorParams,
+    isRecentDays,
+    utcDisplayTime,
+  } from '@utils';
 
   import type { SearchSelectValues } from '@/types/bkui-vue';
 
@@ -206,6 +210,7 @@
         label: t('部署时间'),
         field: 'create_at',
         width: 160,
+        render: ({ cell }: IColumn) => <span>{utcDisplayTime(cell)}</span>,
       },
       {
         label: t('操作'),

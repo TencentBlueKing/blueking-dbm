@@ -64,7 +64,7 @@
   import MiniTag from '@components/mini-tag/index.vue';
   import RenderTextEllipsisOneLine from '@components/text-ellipsis-one-line/index.vue';
 
-  import { messageSuccess } from '@utils';
+  import { messageSuccess, utcDisplayTime  } from '@utils';
 
   import DetailDialog from './components/DetailDialog.vue';
   import RenderRow from './components/RenderRow.vue';
@@ -180,7 +180,7 @@
       field: 'update_at',
       width: 160,
       sort: true,
-      render: ({ row }: TableRenderData) => (<span>{ row.update_at || '--' }</span>),
+      render: ({ row }: TableRenderData) => (<span>{ utcDisplayTime(row.update_at) || '--' }</span>),
     },
     {
       label: t('更新人'),

@@ -111,6 +111,8 @@
 
   import useResetTableHeight from '@views/redis/common/hooks/useResetTableHeight';
 
+  import { utcDisplayTime } from '@utils';
+
   import DatePicker, { DateRange } from '@blueking/date-picker';
 
   import DataCopyTransferDetail from './components/DataCopyTransferDetail.vue';
@@ -311,6 +313,7 @@
       field: 'update_time',
       showOverflowTooltip: true,
       width: 120,
+      render: ({ data }: {data: RedisDSTHistoryJobModel}) => <span>{utcDisplayTime(data.update_time)}</span>,
     },
     {
       label: t('状态'),
@@ -324,6 +327,7 @@
       field: 'create_time',
       showOverflowTooltip: true,
       width: 180,
+      render: ({ data }: {data: RedisDSTHistoryJobModel}) => <span>{utcDisplayTime(data.create_time)}</span>,
     },
     {
       label: t('操作'),

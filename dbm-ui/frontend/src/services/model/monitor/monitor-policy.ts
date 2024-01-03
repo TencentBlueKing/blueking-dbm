@@ -11,6 +11,8 @@
  * the specific language governing permissions and limitations under the License.
 */
 import dayjs from 'dayjs';
+
+import { utcDisplayTime } from '@utils';
 export default class MonitorPolicy {
   bk_biz_id: number;  // 所属业务，等于0则属于平台策略
   creator: string;
@@ -94,5 +96,9 @@ export default class MonitorPolicy {
 
   get isNewCreated() {
     return dayjs().isBefore(dayjs(this.create_at).add(24, 'hour'));
+  }
+
+  get updateAtDisplay() {
+    return utcDisplayTime(this.update_at);
   }
 }

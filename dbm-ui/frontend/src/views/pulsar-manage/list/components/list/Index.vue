@@ -323,6 +323,7 @@
       label: t('部署时间'),
       width: 160,
       field: 'create_at',
+      render: ({ data }: {data: PulsarModel}) => <span>{data.createAtDisplay}</span>,
     },
     {
       label: t('时区'),

@@ -10,8 +10,10 @@
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
 */
-
-import { isRecentDays } from '@utils';
+import {
+  isRecentDays,
+  utcDisplayTime,
+} from '@utils';
 
 import { t } from '@locales/index';
 
@@ -202,6 +204,10 @@ export default class Pulsar {
     const port = this.pulsar_broker[0]?.port;
     const displayName = port ? `${this.domain}:${port}` : this.domain;
     return displayName;
+  }
+
+  get createAtDisplay() {
+    return utcDisplayTime(this.create_at);
   }
 
   initOperations(payload = [] as Pulsar['operations']) {

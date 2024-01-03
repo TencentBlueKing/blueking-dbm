@@ -64,6 +64,7 @@
     getCostTimeDisplay,
     getMenuListSearch,
     getSearchSelectorParams,
+    utcDisplayTime,
   } from '@utils';
 
   import type { ListState } from '../common/types';
@@ -216,6 +217,7 @@
     {
       label: t('执行时间'),
       field: 'created_at',
+      render: ({ cell }: { cell: string }) => utcDisplayTime(cell),
     },
     {
       label: t('耗时'),

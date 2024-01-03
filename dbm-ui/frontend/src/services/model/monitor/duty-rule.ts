@@ -11,6 +11,8 @@
  * the specific language governing permissions and limitations under the License.
 */
 import dayjs from 'dayjs';
+
+import { utcDisplayTime } from '@utils';
 export interface DutyCycleItem {
   members: string[],
   duty_day: number,
@@ -63,6 +65,14 @@ export default class DutyRule {
 
   get isNewCreated() {
     return dayjs().isBefore(dayjs(this.create_at).add(24, 'hour'));
+  }
+
+  get updateAtDisplay() {
+    return utcDisplayTime(this.update_at);
+  }
+
+  get effectiveTimeDisplay() {
+    return utcDisplayTime(this.effective_time);
   }
 
   generateStatus() {

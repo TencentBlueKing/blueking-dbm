@@ -206,7 +206,7 @@
       label: t('最近一次执行时间'),
       field: 'execute_time',
       minWidth: 180,
-      render: ({ data }: {data: PartitionModel}) => data.execute_time || '--',
+      render: ({ data }: {data: PartitionModel}) => data.executeTimeDisplay || '--',
     },
     {
       label: t('操作'),

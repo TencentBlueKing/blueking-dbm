@@ -78,7 +78,10 @@
 
   import DbStatus from '@components/db-status/index.vue';
 
-  import { getCostTimeDisplay } from '@utils';
+  import {
+    getCostTimeDisplay,
+    utcDisplayTime,
+  } from '@utils';
 
   import SwtichEventDetatils from './components/SwtichEventDetatils.vue';
 
@@ -158,10 +161,12 @@
     {
       label: t('开始时间'),
       field: 'switch_start_time',
+      render: ({ cell }: { cell: string }) => utcDisplayTime(cell) || '--',
     },
     {
       label: t('结束时间'),
       field: 'switch_finished_time',
+      render: ({ cell }: { cell: string }) => utcDisplayTime(cell) || '--',
     },
     {
       label: t('耗时'),

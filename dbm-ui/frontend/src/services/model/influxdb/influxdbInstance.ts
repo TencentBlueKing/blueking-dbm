@@ -10,8 +10,7 @@
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
 */
-
-// const STATUS_UNAVAILABLE = 'unavailable';
+import { utcDisplayTime } from '@utils';
 
 import { t } from '@locales/index';
 
@@ -34,7 +33,7 @@ export default class InfluxDBInstance {
   bk_host_id: number;
   create_at: string;
   restart_at: string;
-  update_at:string;
+  update_at: string;
   domain: string;
   id: number;
   instance_address: string;
@@ -138,6 +137,10 @@ export default class InfluxDBInstance {
 
   get isOnline() {
     return this.phase === 'online';
+  }
+
+  get createAtDisplay() {
+    return utcDisplayTime(this.create_at);
   }
 
   initOperations(payload = [] as InfluxDBInstance['operations']) {

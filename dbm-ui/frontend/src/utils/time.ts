@@ -24,3 +24,11 @@ export function getDiffDays(start: string, end: string) {
   }
   return dateArr;
 }
+
+// 统一的带时区时间显示
+export function utcDisplayTime(time: string) {
+  if (!time) {
+    return '';
+  }
+  return dayjs(time).format('YYYY-MM-DD HH:mm:ss ZZ');
+}

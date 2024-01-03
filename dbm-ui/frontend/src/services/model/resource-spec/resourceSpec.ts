@@ -11,6 +11,8 @@
  * the specific language governing permissions and limitations under the License.
 */
 import { differenceInSeconds } from 'date-fns';
+
+import { utcDisplayTime } from '@utils';
 export default class ResourceSpec {
   cpu: {
     max: number,
@@ -77,5 +79,9 @@ export default class ResourceSpec {
     } catch (e) {
       return false;
     }
+  }
+
+  get updateAtDisplay() {
+    return utcDisplayTime(this.update_at);
   }
 }

@@ -80,7 +80,7 @@
 
   import RenderRow from '@components/render-row/index.vue';
 
-  import { messageSuccess } from '@utils';
+  import { messageSuccess, utcDisplayTime  } from '@utils';
 
   import WhitelistOperation from './components/WhitelistOperation.vue';
 
@@ -154,6 +154,7 @@
       field: 'update_at',
       width: 160,
       sort: true,
+      render: ({ data }: TableRenderData) => utcDisplayTime(data.update_at) || '--',
     },
     {
       label: t('操作'),

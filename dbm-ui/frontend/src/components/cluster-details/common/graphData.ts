@@ -168,7 +168,7 @@ export class GraphData {
       }
 
       lines = this.getLines(data);
-      const locations: GraphNode[] = [...rootGroups, ...groups].reduce((nodes: GraphNode[], node) => (
+      locations = [...rootGroups, ...groups].reduce((nodes: GraphNode[], node) => (
         nodes.concat([node], node.children)
       ), []);
       this.calcLines(lines, locations);

@@ -74,6 +74,8 @@
 
   import RenderRow from '@components/render-row/index.vue';
 
+  import { utcDisplayTime } from '@utils';
+
   import WhitelistOperation from './components/WhitelistOperation.vue';
 
   import { useGlobalBizs } from '@/stores';
@@ -138,6 +140,7 @@
       label: t('更新时间'),
       field: 'update_at',
       width: 180,
+      render: ({ data }: TableRenderData) => <span>{utcDisplayTime(data.update_at)}</span>,
     },
     {
       label: t('操作'),

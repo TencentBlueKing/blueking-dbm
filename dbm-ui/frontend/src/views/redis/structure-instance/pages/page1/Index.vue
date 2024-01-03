@@ -289,6 +289,7 @@
       field: 'recovery_time_point',
       showOverflowTooltip: true,
       minWidth: 150,
+      render: ({ data }: {data: RedisRollbackModel}) => <span>{data.recoveryTimePointDisplay}</span>,
     },
     {
       label: t('操作'),

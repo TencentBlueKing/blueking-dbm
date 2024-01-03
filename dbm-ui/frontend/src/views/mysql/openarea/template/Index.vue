@@ -50,21 +50,16 @@
     {
       label: t('源集群'),
       field: 'config_name',
-      render: ({ data }: {data: OpenareaTemplateModel}) => (
-        data.source_cluster.immute_domain || '--'
-      ),
+      render: ({ data }: {data: OpenareaTemplateModel}) => data.source_cluster.immute_domain || '--',
     },
     {
       label: t('更新人'),
-      render: ({ data }: {data: OpenareaTemplateModel}) => (
-        data.updater || '--'
-      ),
+      field: 'updater',
     },
     {
       label: t('更新时间'),
-      render: ({ data }: {data: OpenareaTemplateModel}) => (
-        data.update_at || '--'
-      ),
+      field: 'update_at',
+      render: ({ data }: {data: OpenareaTemplateModel}) => data.updateAtDisplay || '--',
     },
     {
       label: t('操作'),

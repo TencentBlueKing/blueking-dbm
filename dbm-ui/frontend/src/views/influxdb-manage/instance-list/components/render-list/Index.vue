@@ -307,6 +307,7 @@
       {
         label: t('部署时间'),
         field: 'create_at',
+        render: ({ data }: {data: InfluxDBInstanceModel}) => <span>{data.createAtDisplay}</span>,
       },
       {
         label: t('操作'),

@@ -10,8 +10,9 @@
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
 */
-
 import type { InstanceSpecInfo } from '@services/model/spider/tendbCluster';
+
+import { utcDisplayTime } from '@utils';
 
 export default class TendbInstance {
   id: number;
@@ -39,7 +40,7 @@ export default class TendbInstance {
   bk_os_name: string;
   bk_idc_name: string;
   bk_idc_id: string;
-  db_version:string;
+  db_version: string;
 
 
   constructor(payload = {} as TendbInstance) {
@@ -69,5 +70,9 @@ export default class TendbInstance {
     this.bk_idc_id = payload.bk_idc_id ?? '';
     this.bk_idc_name = payload.bk_idc_name ?? '';
     this.db_version = payload.db_version ?? '';
+  }
+
+  get createAtDisplay() {
+    return utcDisplayTime(this.create_at);
   }
 }
