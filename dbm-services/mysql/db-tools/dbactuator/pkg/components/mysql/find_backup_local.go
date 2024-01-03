@@ -15,7 +15,6 @@ import (
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components/mysql/common"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components/mysql/dbbackup"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/native"
-	"dbm-services/mysql/db-tools/dbactuator/pkg/util"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util/osutil"
 )
 
@@ -121,7 +120,7 @@ func (f *FindLocalBackupParam) StartOld() error {
 			return err
 		}
 		logger.Info("find cmd output: %s", out)
-		infoList := util.SplitAnyRune(strings.TrimSpace(out), " \n")
+		infoList := cmutil.SplitAnyRune(strings.TrimSpace(out), " \n")
 		for _, info := range infoList {
 			file := dbbackup.InfoFileDetail{}
 			if err = dbbackup.ParseBackupInfoFile(info, &file); err != nil {
@@ -179,7 +178,7 @@ func (f *FindLocalBackupParam) Start() error {
 			return err
 		}
 		logger.Info("find cmd output: %s", out)
-		indexList := util.SplitAnyRune(strings.TrimSpace(out), " \n")
+		indexList := cmutil.SplitAnyRune(strings.TrimSpace(out), " \n")
 		for _, info := range indexList {
 			file := dbbackup.BackupIndexFile{}
 			if err := dbbackup.ParseBackupIndexFile(info, &file); err != nil {

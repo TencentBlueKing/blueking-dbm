@@ -1,6 +1,7 @@
 package common
 
 import (
+	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util"
 )
@@ -18,7 +19,7 @@ func LooseBackupTypeList() []string {
 // 不区分大小写
 func LooseBackupTypeMap(backupType string) string {
 	for t, v := range cst.LooseBackupTypes {
-		if util.StringsHasICase(v, backupType) {
+		if cmutil.StringsHasICase(v, backupType) {
 			return t
 		}
 	}

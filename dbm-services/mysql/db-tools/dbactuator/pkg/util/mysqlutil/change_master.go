@@ -5,7 +5,6 @@ import (
 	"regexp"
 	"strconv"
 
-	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util"
 
 	"github.com/pkg/errors"
@@ -77,7 +76,7 @@ func (c *ChangeMaster) ParseChangeSQL() error {
 	if m := rePort.FindStringSubmatch(c.ChangeSQL); len(m) == 2 {
 		c.MasterPort, _ = strconv.Atoi(m[1])
 	}
-	logger.Warn("parsed items %+v", c)
+	//logger.Warn("parsed items %+v", c)
 	return nil
 }
 

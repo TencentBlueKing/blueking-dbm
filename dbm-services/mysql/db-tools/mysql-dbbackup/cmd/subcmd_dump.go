@@ -229,7 +229,7 @@ func backupData(cnf *config.BackupConfig) (err error) {
 	}
 	// run backup_client
 	fmt.Printf("backup_index_file:%s\n", indexFilePath)
-	if err = logReport.ReportBackupResult(indexFilePath); err != nil {
+	if err = logReport.ReportBackupResult(indexFilePath, true); err != nil {
 		logger.Log.Error("failed to report backup result, err: ", err)
 		return err
 	}
