@@ -90,6 +90,7 @@
       runGetDumperConfigDetail({ id: props.data.id });
       return;
     }
+    activePanel.value = 'instance';
     activeGroup.value = null;
   }, {
     immediate: true,

@@ -1413,6 +1413,7 @@ export interface DumperInstallDetails {
     protocol_type: string;
     target_port: number;
     target_address: string;
+    kafka_pwd: string;
   }[];
   add_type: string;
   clusters: {

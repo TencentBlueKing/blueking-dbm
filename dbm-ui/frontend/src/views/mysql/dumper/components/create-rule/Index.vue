@@ -61,6 +61,15 @@
               :key="index"
               :label="item.label"
               :value="item.value" />
+            <template #extension>
+              <BkButton
+                class="create-module"
+                text
+                @click="handleGoDumper">
+                <i class="db-icon-plus-circle" />
+                {{ $t('新建订阅规则') }}
+              </BkButton>
+            </template>
           </BkSelect>
         </BkFormItem>
         <BkFormItem
@@ -178,6 +187,7 @@
   const handleBeforeClose = useBeforeClose();
   const { currentBizId } = useGlobalBizs();
   const ticketMessage = useTicketMessage();
+  const router = useRouter();
 
   const formRef = ref();
   const subscribeDbTableRef = ref();
@@ -292,6 +302,12 @@
 
   const initFormData = () => {
     formModel.name = '';
+  };
+
+  const handleGoDumper = () => {
+    router.push({
+      name: 'DumperDataSubscription',
+    });
   };
 
   const handleChangeCreateType = () => {
@@ -480,5 +496,18 @@
   }
 }
 
+.create-module {
+  display: block;
+  width: 100%;
+  padding: 0 8px;
+  text-align: left;
 
+  .db-icon-plus-circle {
+    margin-right: 4px;
+  }
+
+  &:hover:not(.is-disabled) {
+    color: @primary-color;
+  }
+}
 </style>

@@ -33,7 +33,7 @@ export const NODE_STATUS_TEXT = {
   FAILED: '执行失败',
   READY: '待执行',
   CREATED: '待执行',
-  SKIPPED: '忽略错误',
+  SKIPPED: '跳过',
   REVOKED: '已终止',
 } as Readonly<Record<string, string>>;
 
@@ -149,7 +149,7 @@ export default class GraphRender {
             }
             {
               status === 'FAILED' && skippable
-                ? <i class="operation-icon db-icon-stop mr-4" v-bk-tooltips={t('忽略错误')} data-evt-type="skipp" />
+                ? <i class="operation-icon db-icon-stop mr-4" v-bk-tooltips={t('跳过')} data-evt-type="skipp" />
                 : ''
             }
             {

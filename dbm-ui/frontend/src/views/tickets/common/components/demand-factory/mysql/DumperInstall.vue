@@ -108,27 +108,33 @@
       {
         label: t('数据源集群'),
         field: 'source_cluster_domain',
+        showOverflowTooltip: true,
       },
       {
         label: t('部署dumper实例ID'),
         field: 'dumper_id',
+        showOverflowTooltip: true,
       },
       {
         label: t('接收端类型'),
         field: 'protocol_type',
+        showOverflowTooltip: true,
       },
-    ] as {label: string, field: string, render?: any}[];
+    ] as {
+      label: string,
+      field: string,
+      showOverflowTooltip?: boolean,
+      render?: any
+    }[];
     if (protocolType === 'L5_AGENT') {
       const l5Columns = [
         {
           label: 'l5_modid',
           field: 'l5_modid',
-          showOverflowTooltip: true,
         },
         {
           label: 'l5_cmdid',
           field: 'l5_modid',
-          showOverflowTooltip: true,
         },
       ];
       return [...basicColumns, ...l5Columns];
@@ -136,6 +142,7 @@
     basicColumns.push({
       label: t('接收端集群与端口'),
       field: 'target_address',
+      showOverflowTooltip: true,
       render: ({ data }: {data: DumperInstallDetails['infos'][number]}) => <span>{data.target_address}:{data.target_port}</span>,
     });
     if (protocolType === 'KAFKA') {
@@ -143,10 +150,17 @@
         {
           label: t('账号'),
           field: 'kafka_user',
+          showOverflowTooltip: true,
         },
         {
           label: t('密码'),
           field: 'kafka_pwd',
+          render: ({ data }: {data: DumperInstallDetails['infos'][number]}) => (
+            <bk-input
+              model-value={data.kafka_pwd}
+              disabled
+              type="password" />
+          ),
         },
       ];
       return [...basicColumns, ...kafkaColumns];

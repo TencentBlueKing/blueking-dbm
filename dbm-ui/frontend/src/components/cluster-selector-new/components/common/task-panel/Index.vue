@@ -16,12 +16,14 @@
     <div class="title">
       {{ $t('集群关联的其他任务') }}
     </div>
-    <template v-if="data && data.length > 0">
-      <ClusterRelatedTaskItem
-        v-for="item in data"
-        :key="item.flow_id"
-        :data="item" />
-    </template>
+    <div class="content-list">
+      <template v-if="data && data.length > 0">
+        <ClusterRelatedTaskItem
+          v-for="item in data"
+          :key="item.flow_id"
+          :data="item" />
+      </template>
+    </div>
   </div>
 </template>
 <script setup lang="ts">
@@ -39,6 +41,8 @@
 .task-panel {
   display: flex;
   width: 100%;
+  max-height: 400px;
+  overflow: hidden;
   flex-direction: column;
 
   .title {
@@ -49,19 +53,9 @@
     color: #313238;
   }
 
-  .item {
-    display: flex;
-    width: 100%;
-    height: 20px;
-    align-items: center;
-    font-size: 12px;
-    color: #63656E;
-
-    .loading-flag {
-      display: flex;
-      color: #3a84ff;
-      animation: rotate-loading 1s linear infinite;
-    }
+  .content-list {
+    flex: 1;
+    overflow-y: auto;
   }
 }
 </style>

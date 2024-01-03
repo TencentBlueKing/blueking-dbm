@@ -281,7 +281,7 @@
     routerBack() {
       if (!route.query.form) {
         router.push({
-          name: 'DbConfigureList',
+          name: 'PlatformDbConfigureList',
         });
         return;
       }

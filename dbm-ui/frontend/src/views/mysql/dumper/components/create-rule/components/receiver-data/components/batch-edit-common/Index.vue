@@ -5,7 +5,7 @@
     :is-show="isShow"
     :quick-close="false"
     theme="primary"
-    :title="$t('批量编辑')"
+    :title="t('批量编辑')"
     width="330"
     @closed="handleClose"
     @confirm="handleConfirm">
@@ -28,6 +28,8 @@
 </template>
 
 <script setup lang="ts">
+  import { useI18n } from 'vue-i18n';
+
   import MultipleInput from './MultipleInput.vue';
 
   interface Props {
@@ -47,6 +49,8 @@
   const emits = defineEmits<Emits>();
 
   const isShow = defineModel<boolean>();
+
+  const { t } = useI18n();
 
   const multipleInputRef = ref();
   const localValue = ref('');
@@ -82,12 +86,11 @@
   }
 
   :deep(.bk-dialog-header) {
-    padding: 14px 16px;
+    padding: 14px 16px 10px;
 
     .bk-dialog-title {
-      font-size: 12px !important;
-      font-weight: 700;
-      color: #63656E;
+      font-size: 16px !important;
+      color: #313238;
     }
   }
 

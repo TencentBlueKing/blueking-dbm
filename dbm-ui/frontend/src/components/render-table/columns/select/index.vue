@@ -13,11 +13,13 @@
 
 <template>
   <div
+    ref="rootRef"
     class="table-edit-select"
     :class="{
       'is-error': Boolean(errorMessage),
       'is-disable': disabled,
-    }">
+    }"
+    :style="{height: rootHeight + 'px'}">
     <div
       v-if="errorMessage"
       class="select-error">
@@ -55,6 +57,10 @@
   }
 </script>
 <script setup lang="ts">
+  import _ from 'lodash';
+
+  import { useResizeObserver } from '@vueuse/core';
+
   import useValidtor, { type Rules } from '../../hooks/useValidtor';
 
   interface Props {
@@ -85,12 +91,14 @@
 
   const modelValue = defineModel<IKey>();
 
+  const rootRef = ref();
+  const localValue = ref<IKey>('');
+  const rootHeight = ref(42);
+
   const {
     message: errorMessage,
     validator,
   } = useValidtor(props.rules);
-
-  const localValue = ref<IKey>('');
 
   watch(modelValue, (value) => {
     if (!value) return;
@@ -118,7 +126,7 @@
       });
   };
 
-  // // 删除值
+  // 删除值
   const handleRemove = () => {
     localValue.value = '';
     validator(localValue.value)
@@ -128,6 +136,12 @@
         emits('change', localValue.value);
       });
   };
+
+  const checkRootHeight = () => {
+    rootHeight.value = rootRef.value.parentNode.clientHeight;
+  };
+
+  useResizeObserver(rootRef, _.throttle(checkRootHeight, 500));
 
   defineExpose<Exposes>({
     getValue() {
@@ -156,7 +170,6 @@
 
 .table-edit-select {
   position: relative;
-  height: 42px;
   overflow: hidden;
   color: #63656e;
   cursor: pointer;

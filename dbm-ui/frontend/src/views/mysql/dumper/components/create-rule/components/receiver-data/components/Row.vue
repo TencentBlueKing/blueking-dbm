@@ -29,8 +29,9 @@
     <td
       v-if="index === 0"
       :rowspan="rowSpan"
-      style="padding: 0;">
+      style="padding: 0">
       <RenderReceiverType
+        :key="rowSpan"
         :data="receiverType"
         @type-change="handleReceiverTypeChange" />
     </td>

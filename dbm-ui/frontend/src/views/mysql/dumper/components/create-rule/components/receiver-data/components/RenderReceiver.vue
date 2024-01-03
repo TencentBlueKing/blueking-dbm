@@ -15,7 +15,7 @@
   <TableEditInput
     ref="editRef"
     v-model="localValue"
-    :placeholder="$t('如n', {n: '（IP或集群）:10000'})"
+    :placeholder="t('IP_PORT_或_域名_端口')"
     :rules="rules" />
 </template>
 <script setup lang="ts">

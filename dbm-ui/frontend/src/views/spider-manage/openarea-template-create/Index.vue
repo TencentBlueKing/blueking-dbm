@@ -78,8 +78,8 @@
 
   import { queryAllTypeCluster } from '@services/dbbase';
   import {
-    create as createOpenarea,
     getDetail,
+    update as updateOpenarea,
   } from '@services/openarea';
 
   import { useGlobalBizs } from '@stores';
@@ -145,13 +145,14 @@
     Promise.all([
       (configRuleRef.value as InstanceType<typeof ConfigRule>).getValue(),
       (formRef.value as InstanceType<typeof Form>).validate(),
-    ]).then(([configRule]) => createOpenarea({
+    ]).then(([configRule]) => updateOpenarea({
+      id: Number(route.params.id),
       bk_biz_id: currentBizId,
       ...formData,
       config_rules: configRule,
       cluster_type: 'tendbcluster',
     }).then(() => {
-      messageSuccess(t('新建成功'));
+      messageSuccess(t('编辑成功'));
       window.changeConfirm = false;
       router.push({
         name: 'spiderOpenareaTemplate',

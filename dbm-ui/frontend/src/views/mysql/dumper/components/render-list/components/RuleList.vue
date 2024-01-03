@@ -35,11 +35,6 @@
       style="margin-top: 35px;margin-bottom: 16px;">
       {{ t('数据源与接收端') }}
     </div>
-    <BkButton
-      style="margin-bottom: 16px;"
-      @click="handleAppendInstance">
-      {{ t('追加订阅') }}
-    </BkButton>
     <BkTable
       class="subscribe-table"
       :columns="receiverColumns"
@@ -50,9 +45,6 @@
       {{ t('部署位置') }}：<span class="content">{{ t('集群Master所在主机') }}</span>
     </div>
   </div>
-  <AppendSubscribeSlider
-    v-model="showAppendSubscribeSlider"
-    :data="data" />
 </template>
 
 <script setup lang="tsx">
@@ -61,8 +53,6 @@
   import { listDumperConfig } from '@services/source/dumper';
 
   import { getSearchSelectorParams } from '@utils';
-
-  import AppendSubscribeSlider from './append-subscribe/Index.vue';
 
   interface Props {
     data: DumperConfig | null
@@ -75,7 +65,6 @@
   const { t } = useI18n();
 
   const search = ref([]);
-  const showAppendSubscribeSlider = ref(false);
   const subscribeTableData = ref<DumperConfig['repl_tables']>([]);
   const receiverTableData = ref<DumperConfig['dumper_instances']>([]);
 
@@ -150,10 +139,6 @@
   }, {
     immediate: true,
   });
-
-  const handleAppendInstance = () => {
-    showAppendSubscribeSlider.value = true;
-  };
 
   const handleLocalSearch = () => {
     const searchParams = getSearchSelectorParams(search.value);
