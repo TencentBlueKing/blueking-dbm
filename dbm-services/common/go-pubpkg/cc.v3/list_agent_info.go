@@ -26,7 +26,7 @@ type ListAgentState struct {
 func NewListAgentState(client *Client) *ListAgentState {
 	return &ListAgentState{
 		client: client,
-		Url:    "/api/v2/cluster/list_agent_info",
+		Url:    "/list_agent_info",
 	}
 }
 

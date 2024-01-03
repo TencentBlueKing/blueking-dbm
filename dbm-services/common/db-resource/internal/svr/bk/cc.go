@@ -11,7 +11,7 @@
 package bk
 
 import (
-	"net/url"
+	"os"
 	"sync"
 	"time"
 
@@ -68,14 +68,11 @@ func init() {
 // NewGseClient TODO
 func NewGseClient() (*cc.Client, error) {
 	var apiserver string
-	var err error
 	apiserver = config.AppConfig.BkSecretConfig.GseBaseUrl
-	if cmutil.IsEmpty(apiserver) {
-		apiserver, err = url.JoinPath(config.AppConfig.BkSecretConfig.BkBaseUrl, "/api/bk-gse/prod")
-		if err != nil {
-			return nil, err
-		}
+	if cmutil.IsNotEmpty(os.Getenv("GSE_APIGW_DOMAIN")) {
+		apiserver = os.Getenv("GSE_APIGW_DOMAIN")
 	}
+	logger.Info("gse api url %s", apiserver)
 	return cc.NewClient(apiserver, cc.Secret{
 		BKAppCode:   config.AppConfig.BkSecretConfig.BkAppCode,
 		BKAppSecret: config.AppConfig.BkSecretConfig.BKAppSecret,
