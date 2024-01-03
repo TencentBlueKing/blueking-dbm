@@ -62,7 +62,7 @@
                 @click.stop="handleEdit(item.id)" />
               <DbIcon
                 v-if="item.instance_count > 0"
-                v-bk-tooltips="t('分组下存在实例_不可删除')"
+                v-bk-tooltips="t('规则下存在实例_不可删除')"
                 class="group-item-btn is-disabled"
                 type="delete"
                 @click.stop />
@@ -70,7 +70,7 @@
                 v-else
                 :confirm-handler="() => handleDelete(item)"
                 :content="t('删除后将不可恢复_请确认操作')"
-                :title="t('确认删除该分组')">
+                :title="t('确认删除该规则？')">
                 <DbIcon
                   v-bk-tooltips="t('删除')"
                   class="group-item-btn"

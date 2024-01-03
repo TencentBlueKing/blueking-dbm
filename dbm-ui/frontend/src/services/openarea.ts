@@ -104,11 +104,12 @@ export const update = function (params: {
     target_db_pattern: string
   }[],
   source_cluster_id: number,
+  cluster_type?: 'tendbha' | 'tendbcluster',
 }) {
   const realParams = { ...params } as { id?: number };
   delete realParams.id;
 
-  return http.get(`${path}/${currentBizId}/openarea/${params.id}/`, realParams);
+  return http.put(`${path}/${currentBizId}/openarea/${params.id}/`, realParams);
 };
 
 export const updateVariable = function <T extends 'add' | 'update' | 'delete'> (params: {

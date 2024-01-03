@@ -117,6 +117,10 @@
           label: 'TDBCTL',
           name: 'tdbctl',
         },
+        {
+          label: 'tbinlogdumper',
+          name: 'tbinlogdumper',
+        },
       ],
     },
     {

@@ -12,25 +12,22 @@
 -->
 
 <template>
-  <div class="render-switch-box">
-    <TableEditSelect
-      ref="selectRef"
-      v-model="localValue"
-      :list="selectList"
-      :placeholder="t('请选择')"
-      :rules="rules"
-      @change="(value) => handleChange(value as string)" />
-  </div>
+  <TableEditSelect
+    ref="selectRef"
+    v-model="localValue"
+    :list="selectList"
+    :placeholder="t('请选择')"
+    :rules="rules"
+    @change="(value) => handleChange(value as string)" />
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import TableEditSelect from '@views/redis/common/edit/Select.vue';
+  import TableEditSelect from '@components/render-table/columns/select/index.vue';
 
   interface Props {
     data: string;
   }
-
 
   interface Exposes {
     getValue: () => Promise<string>
@@ -93,12 +90,19 @@
 </script>
 <style lang="less" scoped>
   .render-switch-box {
-    padding: 0;
-    color: #63656e;
+    position: absolute;
+    display: flex;
+    border: 1px solid transparent;
+    inset: 0;
+    align-items: center;
 
-    :deep(.bk-input--text) {
-      border: none;
-      outline: none;
+    &:hover {
+      background-color: #fafbfd;
+      border-color:#a3c5fd;
     }
+  }
+
+  .is-no-hover {
+    border: none !important;
   }
 </style>

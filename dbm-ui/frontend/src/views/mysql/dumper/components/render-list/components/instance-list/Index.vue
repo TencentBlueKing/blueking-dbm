@@ -29,7 +29,7 @@
         <BkButton
           :disabled="!hasSelectedInstances"
           @click="handleBatchStopInstance">
-          {{ t('停用') }}
+          {{ t('禁用') }}
         </BkButton>
       </span>
       <span
@@ -254,13 +254,13 @@
             </bk-popover>
           )}
             <RenderOperationTag data={data} />
-            {!data.isRunning && <MiniTag content={t('已停用')} extCls='stoped-icon'/>}
+            {!data.isRunning && <MiniTag content={t('已禁用')} extCls='stoped-icon'/>}
             {data.isNew && <MiniTag theme='success' content="NEW" extCls='success-icon' />}
         </>;
         return (
           <div class="instance-box">
             <RenderTextEllipsisOneLine
-              text={`${data.ip}#${data.listen_port}`}
+              text={`${data.ip}:${data.listen_port}`}
               textStyle={{ color: '#63656E' }}>
               {content}
             </RenderTextEllipsisOneLine>
@@ -280,11 +280,11 @@
       width: 250,
       render: ({ data }: {data: DumperInstanceModel}) => (
         <bk-button
-          class="mr-8"
+          class="mr-8 source-cluster-btn"
           text
           theme="primary"
           onClick={() => handleOpenClusterDetailPage(data.source_cluster.id)}>
-          {data.target_address}:{data.target_port}
+          {data.source_cluster.immute_domain}:{data.source_cluster.master_port}
         </bk-button>
       ),
     },
@@ -322,13 +322,20 @@
       width: isCN.value ? 160 : 220,
       render: ({ data }: {data: DumperInstanceModel}) => (
         <>
-          <bk-button
-            class="mr-8"
-            text
-            theme="primary"
-            onClick={() => handleOpenOrCloseInstance(data)}>
-              { data.isRunning ? t('停用') : t('启用') }
-          </bk-button>
+          <span
+            v-bk-tooltips={{
+              content: t('禁用任务进行中，不可禁用'),
+              disabled: !data.isStopping,
+            }}>
+            <bk-button
+              class="mr-8"
+              text
+              disabled={data.isStopping}
+              theme="primary"
+              onClick={() => handleOpenOrCloseInstance(data)}>
+                { data.isRunning ? t('禁用') : t('启用') }
+            </bk-button>
+          </span>
           {!data.isRunning && (
             <bk-button
               class="mr-8"
@@ -428,11 +435,11 @@
       InfoBox({
         extCls: 'dumper-instance-infobox',
         infoType: 'warning',
-        title: t('确认停用该实例？'),
-        confirmText: t('停用'),
+        title: t('确认禁用该实例？'),
+        confirmText: t('禁用'),
         subTitle: <div class="dumper-instance-infobox-subtitle">
           <div>{t('实例')}：{data.ip}:{data.listen_port}</div>
-          <div style="margin-top: 8px;">{t('停用后数据传输将会终止，请谨慎操作！')}</div>
+          <div style="margin-top: 8px;">{t('禁用后数据传输将会终止，请谨慎操作！')}</div>
         </div>,
         width: 400,
         onConfirm: () => {
@@ -462,14 +469,14 @@
     runCreateTicket(params);
   };
 
-  // 批量停用
+  // 批量禁用
   const handleBatchStopInstance = () => {
     InfoBox({
       extCls: 'dumper-instance-infobox',
       infoType: 'warning',
-      title: t('确认批量停用n个实例？', { n: selectedInstances.value.length }),
-      confirmText: t('停用'),
-      subTitle: t('停用后数据传输将会终止，请谨慎操作！'),
+      title: t('确认批量禁用n个实例？', { n: selectedInstances.value.length }),
+      confirmText: t('禁用'),
+      subTitle: t('禁用后数据传输将会终止，请谨慎操作！'),
       width: 400,
       onConfirm: () => {
         const params = {
@@ -766,6 +773,18 @@
       margin-left: 4px;
       color: @primary-color;
       cursor: pointer;
+    }
+  }
+
+  .source-cluster-btn {
+    width: auto;
+    max-width: 100%;
+    overflow: hidden;
+
+    .bk-button-text {
+      width: 100%;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
   }
 

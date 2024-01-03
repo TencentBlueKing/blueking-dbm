@@ -40,7 +40,7 @@
               :width="320">
               <BkButton
                 class="w-88 mr-8"
-                :loading="state.isLoading"
+                :loading="state.isApproveLoading"
                 theme="primary"
                 @click="handleConfirmToggle(true)">
                 {{ getConfirmText(item) }}
@@ -52,14 +52,14 @@
                   </div>
                   <div class="todos-tips-content__buttons">
                     <BkButton
-                      :loading="state.isLoading"
+                      :loading="state.isApproveLoading"
                       size="small"
                       theme="primary"
                       @click="handleConfirm('APPROVE', item)">
                       {{ getConfirmText(item) }}
                     </BkButton>
                     <BkButton
-                      :disabled="state.isLoading"
+                      :disabled="state.isApproveLoading"
                       size="small"
                       @click="handleConfirmToggle(false)">
                       {{ $t('取消') }}
@@ -75,7 +75,7 @@
               :width="320">
               <BkButton
                 class="w-88 mr-8"
-                :loading="state.isLoading"
+                :loading="state.isTerminateLoading"
                 theme="danger"
                 @click="handleCancelToggle(true)">
                 {{ $t('终止单据') }}
@@ -87,14 +87,14 @@
                   </div>
                   <div class="todos-tips-content__buttons">
                     <BkButton
-                      :loading="state.isLoading"
+                      :loading="state.isTerminateLoading"
                       size="small"
                       theme="danger"
                       @click="handleConfirm('TERMINATE', item)">
                       {{ $t('终止单据') }}
                     </BkButton>
                     <BkButton
-                      :disabled="state.isLoading"
+                      :disabled="state.isTerminateLoading"
                       size="small"
                       @click="handleCancelToggle(false)">
                       {{ $t('取消') }}
@@ -171,7 +171,8 @@
   const state = reactive({
     confirmTips: false,
     cancelTips: false,
-    isLoading: false,
+    isApproveLoading: false,
+    isTerminateLoading: false,
   });
 
   const flowTimeline = computed(() => props.flows.map((flow: FlowItem) => ({
@@ -214,7 +215,12 @@
   function handleConfirm(action: 'APPROVE' | 'TERMINATE', item: FlowItemTodo) {
     state.confirmTips = false;
     state.cancelTips = false;
-    state.isLoading = true;
+    if (action === 'APPROVE') {
+      state.isApproveLoading = true;
+    } else {
+      state.isTerminateLoading = true;
+    }
+
     processTicketTodo({
       action,
       todo_id: item.id,
@@ -226,7 +232,11 @@
         menuStore.fetchTodosCount();
       })
       .finally(() => {
-        state.isLoading = false;
+        if (action === 'APPROVE') {
+          state.isApproveLoading = false;
+        } else {
+          state.isTerminateLoading = false;
+        }
       });
   }
 

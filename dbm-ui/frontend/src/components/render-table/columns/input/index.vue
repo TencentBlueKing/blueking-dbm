@@ -192,12 +192,18 @@
 }
 
 .is-password {
-  :deep(.bk-input) {
-    box-shadow: none !important;
+  :deep(.bk-input--text) {
+    padding-right: 25px;
   }
 
   :deep(.bk-input--suffix-icon) {
-    padding: 0 4px;
+    position: absolute;
+    right: 1px;
+    display: flex;
+    height: 40px;
+    justify-content: center;
+    padding: 0 5px;
+    background: transparent;
   }
 
 }

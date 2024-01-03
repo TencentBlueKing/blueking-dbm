@@ -18,7 +18,7 @@
       ref="skippTipsRef"
       class="mission-tips-content">
       <div class="title">
-        {{ t('确定忽略错误吗') }}
+        {{ t('确定跳过吗') }}
       </div>
       <div class="btn">
         <span
@@ -581,7 +581,7 @@
         });
         skippInstances.value?.forEach?.(t => t.destroy());
         skippInstances.value = dbTippy(document.querySelectorAll('.operation-icon.db-icon-stop'), {
-          content: t('忽略错误'),
+          content: t('跳过'),
         });
         forceFailInstances.value?.forEach?.(t => t.destroy());
         forceFailInstances.value = dbTippy(document.querySelectorAll('.operation-icon.db-icon-qiangzhizhongzhi'), {

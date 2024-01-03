@@ -138,6 +138,10 @@ export default class Dumper {
     return this.operation.ticket_type === Dumper.TBINLOGDUMPER_SWITCH_NODES;
   }
 
+  get isStopping() {
+    return this.operation.ticket_type === Dumper.TBINLOGDUMPER_DISABLE_NODES;
+  }
+
   get isNew() {
     return dayjs().isBefore(dayjs(this.create_at).add(24, 'hour'));
   }
