@@ -116,6 +116,24 @@ func StringsRemoveEmpty(elems []string) []string {
 	return result
 }
 
+// RemoveEmpty 过滤掉空字符串
+func RemoveEmpty(input []string) []string {
+	return slices.DeleteFunc(input, func(s string) bool {
+		return strings.TrimSpace(s) == ""
+	})
+}
+
+// StringsHasICase check the []string contains the given element. insensitive case
+func StringsHasICase(ss []string, val string) bool {
+	val = strings.ToLower(val)
+	for _, ele := range ss {
+		if strings.ToLower(ele) == val {
+			return true
+		}
+	}
+	return false
+}
+
 // ElementNotInArry TODO
 func ElementNotInArry(ele string, arry []string) bool {
 	if len(arry) <= 0 {

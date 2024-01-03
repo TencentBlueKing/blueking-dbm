@@ -99,13 +99,6 @@ func IsConsecutiveStrings(strList []string, isNumber bool) error {
 	return nil
 }
 
-// RemoveEmpty 过滤掉空字符串
-func RemoveEmpty(input []string) []string {
-	return slices.DeleteFunc(input, func(s string) bool {
-		return strings.TrimSpace(s) == ""
-	})
-}
-
 // StringSliceToInterfaceSlice 把字符串数组转换为interface{}数组
 func StringSliceToInterfaceSlice(ids []string) []interface{} {
 	var result []interface{}
@@ -117,14 +110,6 @@ func StringSliceToInterfaceSlice(ids []string) []interface{} {
 		}
 	}
 	return result
-}
-
-// StringsRemove an value form an string slice
-func StringsRemove(ss []string, s string) (ns []string) {
-	ns = slices.DeleteFunc(ss, func(item string) bool {
-		return item == s
-	})
-	return
 }
 
 // FilterOutStringSlice 滤除scr中含有filters 里面元素的数组

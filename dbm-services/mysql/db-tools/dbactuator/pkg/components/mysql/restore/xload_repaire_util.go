@@ -9,6 +9,7 @@ import (
 	"strings"
 	"sync"
 
+	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/native"
@@ -41,7 +42,7 @@ func (x *XLoad) RepairUserAdminByLocal(user, password string) error {
 
 // RepairAndTruncateMyIsamTables TODO
 func (x *XLoad) RepairAndTruncateMyIsamTables() error {
-	systemDbs := util.StringsRemove(native.DBSys, native.TEST_DB)
+	systemDbs := cmutil.StringsRemove(native.DBSys, native.TEST_DB)
 	sql := fmt.Sprintf(
 		`SELECT table_schema, table_name FROM information_schema.tables `+
 			`WHERE table_schema not in (%s) AND engine = 'MyISAM'`,

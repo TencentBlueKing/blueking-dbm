@@ -101,6 +101,7 @@ func (c *Public) IfBackupGrant() bool {
 		slices.Index(c.splitDataSchemaGrant(), cst.BackupGrant) >= 0
 }
 
+// TargetName return targetName, will generate one when empty
 func (c *Public) TargetName() string {
 	if c.targetName == "" {
 		currentTime := time.Now().Format("20060102150405")
@@ -110,4 +111,8 @@ func (c *Public) TargetName() string {
 		logger.Log.Info("generate target name: ", c.targetName)
 	}
 	return c.targetName
+}
+
+func (c *Public) SetTargetName(targetName string) {
+	c.targetName = targetName
 }

@@ -6,16 +6,15 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/pkg/errors"
+
 	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/common/go-pubpkg/validate"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/native"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/tools"
-	"dbm-services/mysql/db-tools/dbactuator/pkg/util"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util/mysqlutil"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util/osutil"
-
-	"github.com/pkg/errors"
 )
 
 // MLoad TODO
@@ -170,7 +169,7 @@ func (m *MLoad) getChangeMasterPos(masterInst native.Instance) (*mysqlutil.Chang
 	if err != nil {
 		return nil, err
 	}
-	changeSqls := util.SplitAnyRune(out, "\n")
+	changeSqls := cmutil.SplitAnyRune(out, "\n")
 	if len(changeSqls) == 2 {
 		// backupRole := DBRoleSlave
 	}

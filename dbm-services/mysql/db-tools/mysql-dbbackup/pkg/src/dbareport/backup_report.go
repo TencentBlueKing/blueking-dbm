@@ -50,8 +50,10 @@ type BackupLogReport struct {
 
 // BinlogStatusInfo master status and slave status
 type BinlogStatusInfo struct {
+	// ShowMasterStatus 当前实例 show master status 输出，本机位点
 	ShowMasterStatus *StatusInfo `json:"show_master_status"`
-	ShowSlaveStatus  *StatusInfo `json:"show_slave_status"`
+	// ShowSlaveStatus 显示的是当前实例的 master 的位点
+	ShowSlaveStatus *StatusInfo `json:"show_slave_status"`
 }
 
 // StatusInfo detailed binlog information
@@ -325,7 +327,7 @@ func (r *BackupLogReport) ReportToLocalBackup(indexFilePath string, metaInfo *In
 // run ExecuteBackupClient to upload to remote
 // report backup to db
 // report backup to log file
-func (r *BackupLogReport) ReportBackupResult(indexFilePath string) error {
+func (r *BackupLogReport) ReportBackupResult(indexFilePath string, upload bool) error {
 	var err error
 	var metaInfo = &IndexContent{}
 	if buf, err := os.ReadFile(indexFilePath); err != nil {
@@ -338,27 +340,29 @@ func (r *BackupLogReport) ReportBackupResult(indexFilePath string) error {
 	// index file 里面不会包含自身信息，这里上报时添加
 	metaInfo.AddIndexFileItem(indexFilePath)
 
-	// 上传、上报备份文件
-	for _, f := range metaInfo.FileList {
-		filePath := filepath.Join(r.cfg.Public.BackupDir, f.FileName)
-		var taskId string
-		if taskId, err = r.ExecuteBackupClient(filePath); err != nil {
-			return err
+	if upload {
+		// 上传、上报备份文件
+		for _, f := range metaInfo.FileList {
+			filePath := filepath.Join(r.cfg.Public.BackupDir, f.FileName)
+			var taskId string
+			if taskId, err = r.ExecuteBackupClient(filePath); err != nil {
+				return err
+			}
+			f.TaskId = taskId
+			backupTaskResult := BackupLogReport{}
+			backupTaskResult.BackupMetaFileBase = deepcopy.Copy(metaInfo.BackupMetaFileBase).(BackupMetaFileBase)
+			backupTaskResult.ExtraFields = deepcopy.Copy(metaInfo.ExtraFields).(ExtraFields)
+			backupTaskResult.EncryptedKey = r.EncryptedKey
+			backupTaskResult.ConsistentBackupTime = metaInfo.BackupConsistentTime
+			backupTaskResult.TaskId = taskId
+			backupTaskResult.FileName = f.FileName
+			backupTaskResult.FileType = f.FileType
+			backupTaskResult.FileSize = f.FileSize
+			Report().Files.Println(backupTaskResult)
 		}
-		f.TaskId = taskId
-		backupTaskResult := BackupLogReport{}
-		backupTaskResult.BackupMetaFileBase = deepcopy.Copy(metaInfo.BackupMetaFileBase).(BackupMetaFileBase)
-		backupTaskResult.ExtraFields = deepcopy.Copy(metaInfo.ExtraFields).(ExtraFields)
-		backupTaskResult.EncryptedKey = r.EncryptedKey
-		backupTaskResult.ConsistentBackupTime = metaInfo.BackupConsistentTime
-		backupTaskResult.TaskId = taskId
-		backupTaskResult.FileName = f.FileName
-		backupTaskResult.FileType = f.FileType
-		backupTaskResult.FileSize = f.FileSize
-		Report().Files.Println(backupTaskResult)
 	}
-	// report backup record
 
+	// report backup record
 	//  index file 里面是完整的信息，上报日志以及写 local_backup_report，无需包含文件包含内容
 	fileListSimple := make([]*TarFileItem, 0)
 	for _, tf := range metaInfo.FileList {

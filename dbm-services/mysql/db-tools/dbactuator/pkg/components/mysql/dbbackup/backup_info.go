@@ -90,14 +90,14 @@ func ParseBackupInfoFile(infoFilePath string, infoObj *InfoFileDetail) error {
 		case "CHARSET":
 			infoObj.Charset = v
 		case "DBLIST":
-			dblist := util.SplitAnyRune(v, " ")
-			dblist = util.RemoveEmpty(dblist)
+			dblist := cmutil.SplitAnyRune(v, " ")
+			dblist = cmutil.RemoveEmpty(dblist)
 			infoObj.DbList = dblist
 		case "CMD":
 			infoObj.Cmd = v
 		case "BACKTYPE":
 			infoObj.BackupType = common.LooseBackupTypeMap(v)
-			if util.StringsHasICase(common.LooseBackupTypeList(), v) {
+			if cmutil.StringsHasICase(common.LooseBackupTypeList(), v) {
 				infoObj.flagTar = true
 			}
 		case "BACKROLE":

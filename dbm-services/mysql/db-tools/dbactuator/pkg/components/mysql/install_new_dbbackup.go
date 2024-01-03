@@ -11,6 +11,7 @@ import (
 
 	"gopkg.in/ini.v1"
 
+	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/common/go-pubpkg/mysqlcomm"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components"
@@ -164,11 +165,11 @@ func (i *InstallNewDbBackupComp) initBackupOptions() {
 	ignoredbs = strings.Split(i.Params.Options.IgnoreObjs.IgnoreDatabases, ",")
 	ignoredbs = append(ignoredbs, native.DBSys...)
 	// 默认备份需要 infodba_schema 库
-	ignoredbs = util.StringsRemove(ignoredbs, native.INFODBA_SCHEMA)
+	ignoredbs = cmutil.StringsRemove(ignoredbs, native.INFODBA_SCHEMA)
 	ignoretbls = strings.Split(i.Params.Options.IgnoreObjs.IgnoreTables, ",")
 
-	i.ignoredbs = util.UniqueStrings(util.RemoveEmpty(ignoredbs))
-	i.ignoretbls = util.UniqueStrings(util.RemoveEmpty(ignoretbls))
+	i.ignoredbs = util.UniqueStrings(cmutil.RemoveEmpty(ignoredbs))
+	i.ignoretbls = util.UniqueStrings(cmutil.RemoveEmpty(ignoretbls))
 	if len(i.ignoretbls) <= 0 {
 		i.ignoretbls = []string{"*"}
 	}

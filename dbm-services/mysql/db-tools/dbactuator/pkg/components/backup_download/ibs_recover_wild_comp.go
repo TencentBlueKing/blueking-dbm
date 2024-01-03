@@ -5,6 +5,7 @@ import (
 	"regexp"
 	"strings"
 
+	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util"
 
@@ -79,7 +80,7 @@ func (c *IBSRecoverComp) skipFilesAndInit() error {
 	}
 	logger.Info("files already exists and skip download: %+v", taskFilesExist)
 	if c.Params.IBSRecoverReq.TaskidList != "" {
-		taskIdList := util.SplitAnyRuneTrim(c.Params.IBSRecoverReq.TaskidList, ",")
+		taskIdList := cmutil.SplitAnyRuneTrim(c.Params.IBSRecoverReq.TaskidList, ",")
 		c.Params.taskIdSlice = append(c.Params.taskIdSlice, taskIdList...)
 		c.Params.taskIdSlice = util.UniqueStrings(c.Params.taskIdSlice)
 	}

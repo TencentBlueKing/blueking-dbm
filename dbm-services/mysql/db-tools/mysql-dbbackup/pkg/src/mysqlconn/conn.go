@@ -23,12 +23,12 @@ func InitConn(cfg *config.Public) (*sql.DB, error) {
 		cfg.MysqlUser, cfg.MysqlPasswd, cfg.MysqlHost, cfg.MysqlPort, true)
 	db, err := sql.Open("mysql", dsn)
 	if err != nil {
-		logger.Log.Error("can't create the connection to Mysql server %v\n", err)
+		logger.Log.Error("can't create the connection to Mysql server:", err)
 		return nil, err
 	}
 
 	if err := db.Ping(); err != nil {
-		logger.Log.Error("The connection is dead %v\n", err)
+		logger.Log.Error("The connection is dead:", err)
 		return nil, err
 	}
 	return db, nil
