@@ -141,7 +141,7 @@
             <router-link
               to={{
                 name: InstanceListModel.staticClusterType === 'replicaset' ? 'replicaSetList' : 'sharedClusterList',
-                params: { id: data.cluster_name },
+                query: { name: data.cluster_name },
                 }}>
               { cell }
             </router-link>
