@@ -99,4 +99,4 @@ jobs:
         git remote add upstream https://$WORKFLOW_ACTION_TOKEN@github.com/TencentBlueKing/blueking-dbm
         git add .
         git commit -m "chore: release version ${{ steps.yaml-data.outputs.data }} #1"
-        git push upstream ${{ steps.get-current-branch.outputs.current_branch }}
+        git push --set-upstream upstream ${{ steps.get-current-branch.outputs.current_branch }}

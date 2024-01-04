@@ -95,7 +95,7 @@ RUN set -ex && \
     git diff-index --quiet HEAD && rm -rf /blueking-dbm || \
     ( \
      git commit -m "chore: [$(date +"%Y-%m-%d %H:%M:%S")]update medium.lock #1" && \
-     git push --set-upstream --force origin ${MEDIUM_BUILDER_BRANCH}:medicum_lock && \
+     git push --set-upstream --force origin ${MEDIUM_BUILDER_BRANCH}:medium_lock && \
      rm -rf /blueking-dbm \
     )
 
