@@ -15,7 +15,6 @@ from pipeline.component_framework.component import Component
 from backend.components import DBConfigApi, DRSApi, MySQLPrivManagerApi
 from backend.components.dbconfig.constants import FormatType, LevelName
 from backend.constants import IP_PORT_DIVIDER
-from backend.core.encrypt.handlers import AsymmetricHandler
 from backend.db_meta.enums import TenDBClusterSpiderRole
 from backend.db_meta.models import Cluster
 from backend.flow.consts import TDBCTL_USER, ConfigTypeEnum, NameSpaceEnum, PrivRole
@@ -191,9 +190,7 @@ class CtlSwitchToSlaveService(BaseService):
                 "bk_biz_id": cluster.bk_biz_id,
                 "operator": "",
                 "user": data["repl_user"],
-                "psw": AsymmetricHandler.encrypt_with_pubkey(
-                    pubkey=MySQLPrivManagerApi.fetch_public_key(), content=data["repl_pwd"]
-                ),
+                "psw": data["repl_pwd"],
                 "hosts": [slave.machine.ip for slave in other_secondary],
                 "dbname": "%",
                 "dml_ddl_priv": "",

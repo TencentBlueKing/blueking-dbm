@@ -27,10 +27,7 @@ class MySQLPrivManagerApiMock(object):
     def create_account(cls, *args, **kwargs):
         data = args[0]
         password = data.get("psw", "")
-        plain_password = AsymmetricHandler.decrypt(
-            name=AsymmetricCipherConfigType.PASSWORD.value, content=password, salted=False
-        )
-        data.update(password=plain_password)
+        data.update(password=password)
         return data
 
     @classmethod
