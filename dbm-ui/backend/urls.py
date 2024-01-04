@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+from bk_notice_sdk import config
 from django.conf import settings
 from django.contrib import admin
 from django.urls import include, path, re_path
@@ -69,6 +70,8 @@ urlpatterns = [
     # 版本日志
     path("version_log/", include("backend.version_log.urls")),
     path("db_report/", include("backend.db_report.urls")),
+    # 接入消息通知
+    path("{}".format(config.ENTRANCE_URL), include("bk_notice_sdk.urls")),
 ]
 
 # TODO 正式环境屏蔽swagger访问路径，目前开发测试只使用了 prod

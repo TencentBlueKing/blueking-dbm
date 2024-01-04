@@ -63,6 +63,8 @@ INSTALLED_APPS += (
     "django_filters",
     # version log
     "backend.version_log",
+    # bk_notice
+    "bk_notice_sdk",
     # pipeline
     "pipeline.component_framework",
     "pipeline.eri",
@@ -254,9 +256,14 @@ BK_APIGW_STATIC_VERSION = env.BK_APIGW_STATIC_VERSION
 BK_APIGW_MANAGER_MAINTAINERS = env.BK_APIGW_MANAGER_MAINTAINERS
 BK_APIGW_STAGE_NAME = env.BK_APIGW_STAGE_NAME
 BK_APIGATEWAY_DOMAIN = env.BK_APIGATEWAY_DOMAIN
-BK_API_URL_TMPL = f"{BK_APIGATEWAY_DOMAIN}/api/{{api_name}}/"
+BK_API_URL_TMPL = env.BK_API_URL_TMPL
 BK_APIGW_NAME = "bkdbm"
 BK_APIGW_GRANT_APPS = env.BK_APIGW_GRANT_APPS
+
+BK_NOTICE = {
+    "BK_API_URL_TMPL": BK_API_URL_TMPL,
+}
+
 # TODO: apigw文档待补充
 BK_APIGW_RESOURCE_DOCS_ARCHIVE_FILE = env.BK_APIGW_RESOURCE_DOCS_ARCHIVE_FILE
 # 需将 bkapi.example.com 替换为真实的云 API 域名，在 PaaS 3.0 部署的应用，可从环境变量中获取 BK_API_URL_TMPL
