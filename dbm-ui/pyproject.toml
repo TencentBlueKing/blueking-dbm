@@ -57,6 +57,7 @@ opentelemetry-api = "1.11.0"
 flake8 = "5.0.4"
 opentelemetry-exporter-otlp = "1.11.0"
 opentelemetry-exporter-jaeger = "1.11.0"
+bk-notice-sdk = "^1.1.1"
 
 
 [tool.poetry.dev-dependencies]

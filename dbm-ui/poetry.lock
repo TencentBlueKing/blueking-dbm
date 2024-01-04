@@ -211,6 +211,17 @@ requests = "*"
 six = ">=1.11.0"
 
 [[package]]
+name = "bk-notice-sdk"
+version = "1.1.1"
+description = "A project for fetching and displaying announcement notifications."
+category = "main"
+optional = false
+python-versions = "*"
+
+[package.dependencies]
+bkapi-client-core = ">=1.0.2,<2.0.0"
+
+[[package]]
 name = "bkapi-bk-apigateway"
 version = "1.0.11"
 description = "蓝鲸API网关"
@@ -2189,7 +2200,7 @@ testing = ["func-timeout", "jaraco.itertools", "pytest (>=4.6)", "pytest-black (
 [metadata]
 lock-version = "1.1"
 python-versions = ">=3.6.2,<3.7"
-content-hash = "9a03f0fa0a96cea810820c6fffbc20aceb15c7630755990f9c2500970de851f3"
+content-hash = "af8c92231e42b5337c2fb983165c49a2e977d9f6b4e9b380d737fbd5aa3bb9e5"
 
 [metadata.files]
 aiocontextvars = [
@@ -2258,6 +2269,9 @@ bk-crypto-python-sdk = [
 bk-iam = [
     {file = "bk-iam-1.2.0.tar.gz", hash = "sha256:26559daf5a92bcd2d6ff2a2b34bd09c2854693f20f8637d6d5ac7d6e28c92400"},
     {file = "bk_iam-1.2.0-py2.py3-none-any.whl", hash = "sha256:76d60ae7b911d787afeb375a51df137daa63822cfb08495720c4d89a6e161108"},
+]
+bk-notice-sdk = [
+    {file = "bk-notice-sdk-1.1.1.tar.gz", hash = "sha256:7dc58e7ea222a837ab6073c2cc102991caaab85b2bd339badac4d326e7ed0e2e"},
 ]
 bkapi-bk-apigateway = [
     {file = "bkapi-bk-apigateway-1.0.11.tar.gz", hash = "sha256:fcdbc4eca8bfd3310995cec532ae127ee0533ea858c82916d9782e4df3df4c49"},
