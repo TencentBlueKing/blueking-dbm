@@ -26,7 +26,15 @@ from backend.db_meta.enums import DataStructureStatus, InstanceRole
 from backend.db_meta.enums.cluster_type import ClusterType
 from backend.db_meta.models import Cluster
 from backend.db_services.redis.rollback.handlers import DataStructureHandler
-from backend.flow.consts import DEFAULT_DB_MODULE_ID, DEFAULT_REDIS_START_PORT, ConfigTypeEnum, WriteContextOpType
+from backend.flow.consts import (
+    DEFAULT_DB_MODULE_ID,
+    DEFAULT_REDIS_START_PORT,
+    DEFAULT_TWEMPROXY_SEG_MIN_NUM,
+    DEFAULT_TWEMPROXY_SEG_TOTOL_NUM,
+    ConfigTypeEnum,
+    RedisSlotNum,
+    WriteContextOpType,
+)
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.redis.atom_jobs import RedisBatchInstallAtomJob
@@ -49,6 +57,7 @@ from backend.flow.plugins.components.collections.redis.redis_db_meta import Redi
 from backend.flow.plugins.components.collections.redis.trans_flies import TransFileComponent
 from backend.flow.utils.common_act_dataclass import DownloadBackupClientKwargs
 from backend.flow.utils.redis.redis_act_playload import RedisActPayload
+from backend.flow.utils.redis.redis_cluster_nodes import convert_slot_to_str
 from backend.flow.utils.redis.redis_context_dataclass import ActKwargs, RedisDataStructureContext
 from backend.flow.utils.redis.redis_db_meta import RedisDBMeta
 from backend.utils.time import str2datetime
@@ -102,15 +111,16 @@ class RedisDataStructureFlow(object):
             """"""
             logger.info("redis_data_structure_flow info:{}".format(info))
             redis_pipeline, act_kwargs = self.__init_builder(_("REDIS_DATA_STRUCTURE"), info)
+            cluster_type = act_kwargs.cluster["cluster_type"]
             # 获取 kvstorecount
             redis_config = self.__get_cluster_config(
                 act_kwargs.cluster["domain_name"],
                 act_kwargs.cluster["db_version"],
                 ConfigTypeEnum.DBConf,
-                act_kwargs.cluster["cluster_type"],
+                cluster_type,
             )
 
-            if act_kwargs.cluster["cluster_type"] == ClusterType.TendisPredixyTendisplusCluster.value:
+            if cluster_type == ClusterType.TendisPredixyTendisplusCluster.value:
                 logger.info("redis_data_structure_flow kvstorecount:{}".format(redis_config["kvstorecount"]))
                 act_kwargs.cluster["kvstorecount"] = redis_config["kvstorecount"]
             act_kwargs.cluster["ticket_type"] = self.data["ticket_type"]
@@ -118,11 +128,41 @@ class RedisDataStructureFlow(object):
             cluster_kwargs = deepcopy(act_kwargs)
             # 源节点列表
             logger.info("redis_data_structure_flow  info['master_instances']: {}".format(info["master_instances"]))
-            # sass 层传入节点信息（集群维度传入所有节点）
-            # 根据传入的master_instance 获取其slave_instance
-            cluster_src_instance = self.get_slave_instance_by_master(info["master_instances"], cluster_kwargs)
+            logger.info("redis_master_set:{}".format(cluster_kwargs.cluster["redis_master_set"]))
+            is_cluster_all = self.check_all_instances(
+                info["master_instances"], cluster_kwargs.cluster["redis_master_set"], cluster_type
+            )
+            logger.info(_("是否是集群维度：is_cluster_all:{}".format(is_cluster_all)))
+            # 如果是tendisplus必须要传入所有节点，也就是需要是集群维度的
+            if cluster_type == ClusterType.TendisPredixyTendisplusCluster.value and not is_cluster_all:
+                raise Exception(
+                    _(
+                        "tendisplus 需要按集群维度进行数据构造，请检查传入的节点：cluster_type is :{},"
+                        "传入节点：master_instances is：{},redis_master_set is :{}".format(
+                            cluster_type,
+                            info["master_instances"],
+                            cluster_kwargs.cluster["redis_master_set"],
+                        )
+                    )
+                )
+
+            # sass 层传入部分节点信息,不是集群所有节点
+            if not is_cluster_all:
+                # 用户选择 构造 "1.1.1.1:30000、1.1.1.1:30001" 部分实例的情况下，
+                # 因为 ip 可能变了，shard_value 可能变了，不支持 回档到  "集群容量变更" 以前；
+                # 从db_mate 根据传入的master_instance 获取其slave_instance -》 部分节点
+                cluster_src_instance = self.get_slave_instance_by_master(info["master_instances"], cluster_kwargs)
+                redis_instance_set = cluster_kwargs.cluster["redis_slave_set"]
+                logger.info(_("redis_data_structure_flow 从db_meta 查询的备份节点信息"))
+            # sass 层传入集群所有节点信息
+            else:
+                # 用户选择 构造 "all"的情况下， 可以支持 回档到  "集群容量变更" 以前,以及故障替换场景；
+                # 从bklog查询备份节点信息
+                cluster_src_instance, redis_instance_set = self.get_backup_instance_by_bklog(info, cluster_type)
+                logger.info(_("redis_data_structure_flow 从bklog查询的备份节点信息"))
 
             logger.info("redis_data_structure_flow cluster_src_instance: {}".format(cluster_src_instance))
+            logger.info(_("这个值和部署proxy有关系 redis_instance_set: {}".format(redis_instance_set)))
             logger.info("redis_data_structure_flow  len(info['redis']): {}".format(len(info["redis"])))
 
             if len(info["redis"]) > 0:
@@ -136,7 +176,6 @@ class RedisDataStructureFlow(object):
             # ### 部署redis ############################################################
             sub_pipelines_install = []
             cluster_dst_instance = []
-            cluster_type = act_kwargs.cluster["cluster_type"]
             resource_spec = info["resource_spec"]["redis"]
             for index, new_master in enumerate([host["ip"] for host in info["redis"]]):
                 # 将整除后多于的节点一个一个地分配给每台主机
@@ -349,7 +388,7 @@ class RedisDataStructureFlow(object):
 
             # 构造proxy server信息
             if cluster_type in [ClusterType.TendisTwemproxyRedisInstance, ClusterType.TwemproxyTendisSSDInstance]:
-                servers = self.cal_twemproxy_serveres("admin", act_kwargs.cluster["redis_slave_set"], node_pairs)
+                servers = self.cal_twemproxy_serveres("admin", redis_instance_set, node_pairs)
             elif cluster_type == ClusterType.TendisPredixyTendisplusCluster:
                 servers = cluster_dst_instance
             else:
@@ -481,6 +520,109 @@ class RedisDataStructureFlow(object):
         return cluster_src_instance
 
     @staticmethod
+    def check_all_instances(master_instances: List[str], all_master_instances: List[str], cluster_type: str) -> bool:
+        """
+        "master_instances:['xx.xx.xx.xx:30000', 'xx.xx.xx.xx:30001', 'xx.xx.xx.xx:30002', 'xx.xx.xx.xx:30003']"}
+        cahce,ssd :
+        "all_master_instances:['xx.xx.xx.xx:30000 0-104999', 'xx.xx.xx.xx:30001 105000-209999',
+         'xx.xx.xx.xx:30002 210000-314999', 'xx.xx.xx.xx:30003 315000-419999']"}
+         tendisplus:
+         'all_master_instances': ['xx.xx.xx.xx:30000', 'xx.xx.xx.xx:30000', 'xx.xx.xx.xx:30000'],
+
+         检验传入的master_instances是否是集群所有节点：
+        """
+        # 1、如果长度不等，那么就一定不是集群维度的
+        if len(master_instances) != len(all_master_instances):
+            logger.warning(
+                _(
+                    "len(master_instances):{} != len(all_master_instances):{}".format(
+                        len(master_instances), len(all_master_instances)
+                    )
+                )
+            )
+            return False
+        # 2、长度相等，再检验是否每个节点都存在
+        # ssd、cache 去掉shard信息
+        all_master_list = []
+        if cluster_type in [ClusterType.TendisTwemproxyRedisInstance, ClusterType.TwemproxyTendisSSDInstance]:
+            for instance_shard in all_master_instances:
+                instance = instance_shard.split(" ")[0]
+                all_master_list.append(instance)
+            all_master_instances_set = set(all_master_list)
+        else:
+            all_master_instances_set = set(all_master_instances)
+
+        master_instances_set = set(master_instances)
+        diff = all_master_instances_set - master_instances_set
+        logger.info(
+            _(
+                "cluster_type:{}、master_instances_set：{}、all_master_instances_set：{}-> diff:{}".format(
+                    cluster_type, master_instances_set, all_master_instances_set, diff
+                )
+            )
+        )
+        return len(diff) == 0
+
+    @staticmethod
+    def get_backup_instance_by_bklog(info: dict, cluster_type: str) -> (list, list):
+        # 根据传入的集群和时间获取其backup_instance
+        rollback_handler = DataStructureHandler(info["cluster_id"])
+        cluster_full_instance_backup = rollback_handler.query_donmain_backup_log(
+            str2datetime(info["recovery_time_point"])
+        )
+        logger.info(_("获取的同一批次备份信息_instance_backup: {}".format(cluster_full_instance_backup)))
+
+        instance_shard_dict = {}
+        duplicate_instances = []
+        missing_ranges = []
+        for item in cluster_full_instance_backup:
+            source_ip = item["source_ip"]
+            server_port = item["server_port"]
+            instance = f"{source_ip}{IP_PORT_DIVIDER}{server_port}"
+            shard_value = item["shard_value"]
+            if not shard_value:
+                raise Exception(_("备份文件中没有上报shard_value，集群维度的场景需要校验shard_value信息，请检查备份情况！备份文件：{}".format(item)))
+            if instance in instance_shard_dict:
+                duplicate_instances.append(instance)
+            else:
+                instance_shard_dict[instance] = shard_value
+            shard_start, shard_end = map(int, shard_value.split("-"))
+            missing_ranges.extend(range(shard_start, shard_end + 1))
+
+        logger.info(_("实例 segment 对应关系，instance_shard_dict: {}".format(instance_shard_dict)))
+        if duplicate_instances:
+            logger.warning(_("重复的instance值，duplicate_instances: {}".format(duplicate_instances)))
+        else:
+            logger.info(_("没有重复的instance值，cluster_id: {}".format(info["cluster_id"])))
+        # ssd、cache
+        if cluster_type in [ClusterType.TendisTwemproxyRedisInstance, ClusterType.TwemproxyTendisSSDInstance]:
+            missing_ranges = set(range(DEFAULT_TWEMPROXY_SEG_MIN_NUM, DEFAULT_TWEMPROXY_SEG_TOTOL_NUM)) - set(
+                missing_ranges
+            )
+        # tendisplus
+        if cluster_type == ClusterType.TendisPredixyTendisplusCluster:
+            missing_ranges = set(range(RedisSlotNum.MIN_SLOT, RedisSlotNum.TOTAL_SLOT)) - set(missing_ranges)
+
+        if missing_ranges:
+            raise Exception(
+                _(
+                    "cluster_id:{},缺失的shard_value值missing_ranges:{}，可以从instance_shard_dict中看出:{}".format(
+                        info["cluster_id"], convert_slot_to_str(list(missing_ranges)), instance_shard_dict
+                    )
+                )
+            )
+        else:
+            logger.info(_("没有缺失的shard_value值，cluster_id: {}".format(info["cluster_id"])))
+        # 转换为db_meta的形式，方便后续统一处理
+        # 'xx.xx.xx.xx:30000': '0-104999' -> 'xx.xx.xx.xx:30000 0-104999'
+        redis_instance_set = [f"{instance} {segment}" for instance, segment in instance_shard_dict.items()]
+
+        cluster_backup_instance = sorted(list(instance_shard_dict.keys()))
+        logger.info(_("cluster_id: {},所有的instance:{}".format(info["cluster_id"], cluster_backup_instance)))
+        logger.info(_("cluster_id: {},所有的redis_instance_set:{}".format(info["cluster_id"], redis_instance_set)))
+        return cluster_backup_instance, redis_instance_set
+
+    @staticmethod
     def __get_cluster_info(bk_biz_id: int, cluster_id: int) -> dict:
         """获取集群现有信息
         1. slave 对应 master 机器
@@ -513,11 +655,10 @@ class RedisDataStructureFlow(object):
             slave_master_map[slave_obj.machine.ip] = master_obj.machine.ip
 
         cluster_info = api.cluster.nosqlcomm.get_cluster_detail(cluster_id)[0]
+        logger.info("cluster_info:{}".format(cluster_info))
         cluster_name = cluster_info["name"]
-        cluster_type = cluster_info["cluster_type"]
-        redis_slave_set = ""
-        if cluster_type in [ClusterType.TendisTwemproxyRedisInstance, ClusterType.TwemproxyTendisSSDInstance]:
-            redis_slave_set = cluster_info["redis_slave_set"]
+        redis_slave_set = cluster_info["redis_slave_set"]
+        redis_master_set = cluster_info["redis_master_set"]
 
         return {
             "immute_domain": cluster.immute_domain,
@@ -534,6 +675,7 @@ class RedisDataStructureFlow(object):
             "db_version": cluster.major_version,
             "domain_name": cluster_info["clusterentry_set"]["dns"][0]["domain"],
             "redis_slave_set": redis_slave_set,
+            "redis_master_set": redis_master_set,
         }
 
     def __init_builder(self, operate_name: str, info: dict):
@@ -578,7 +720,7 @@ class RedisDataStructureFlow(object):
         )
         return data["content"]
 
-    def cal_twemproxy_serveres(self, name, redis_slave_set, node_pairs) -> list:
+    def cal_twemproxy_serveres(self, name, redis_instance_set, node_pairs) -> list:
         """
         计算twemproxy的servers 列表
         - redisip:redisport:1 app beginSeg-endSeg 1
@@ -588,7 +730,7 @@ class RedisDataStructureFlow(object):
         miss_range_instance = "127.0.0.1:6379"
         servers = []
         node_dict = dict(node_pairs)
-        for slave in redis_slave_set:
+        for slave in redis_instance_set:
             instance, seg_range = slave.split(" ")
             servers.append("{} {} {} 1".format(node_dict.get(instance, miss_range_instance), name, seg_range))
         return servers

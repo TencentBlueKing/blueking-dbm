@@ -12,3 +12,5 @@ RESOURCE_TAG = "db_services/redis/rollback"
 
 # 查询某个特定时间点附近的日志时，默认在3天内
 BACKUP_LOG_ROLLBACK_TIME_RANGE_DAYS = 3
+# 查询同一批次备份，默认是三小时内
+BACKUP_LOG_ROLLBACK_TIME_RANGE_HOURS = 3

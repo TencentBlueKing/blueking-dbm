@@ -711,9 +711,9 @@ func (task *TendisInsRecoverTask) PullFullbackup() error {
 	fullBack := &TendisFullBackPull{}
 	if task.TendisType == consts.TendisTypeTendisplusInsance {
 		// 节点维度的
-		// 查询时过滤正则
-		filename := fmt.Sprintf("TENDISPLUS-FULL-slave-%s-%d", task.SourceIP, task.SourcePort)
-		task.runtime.Logger.Info("filename:%s", filename)
+		// 查询时过滤正则,master、slave都可以
+		filename := fmt.Sprintf("%s-%d", task.SourceIP, task.SourcePort)
+		task.runtime.Logger.Info("需要匹配的文件名filename包括:%s", filename)
 		kvstoreNums, err := task.GetRocksdbNum()
 		if err != nil {
 			return err
@@ -950,7 +950,7 @@ func (task *TendisInsRecoverTask) CheckRollbackResult() error {
 				hearbeatVal.Local().Format(time.RFC3339),
 				symbol,
 				rollbackDstTime.Local().Format(time.RFC3339))
-			errList = append(errList)
+			errList = append(errList, msg)
 			mylog.Logger.Error(msg)
 			continue
 		}
