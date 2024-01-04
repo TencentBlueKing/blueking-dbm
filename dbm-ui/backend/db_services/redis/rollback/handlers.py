@@ -19,7 +19,10 @@ from backend import env
 from backend.components.bklog.client import BKLogApi
 from backend.db_meta.enums import ClusterType, InstanceInnerRole
 from backend.db_meta.models.cluster import Cluster
-from backend.db_services.redis.rollback.constants import BACKUP_LOG_ROLLBACK_TIME_RANGE_DAYS
+from backend.db_services.redis.rollback.constants import (
+    BACKUP_LOG_ROLLBACK_TIME_RANGE_DAYS,
+    BACKUP_LOG_ROLLBACK_TIME_RANGE_HOURS,
+)
 from backend.exceptions import AppBaseException
 from backend.utils.string import pascal_to_snake
 from backend.utils.time import datetime2str, find_nearby_time, str2datetime
@@ -95,7 +98,7 @@ class DataStructureHandler:
                 # 这里需要精确查询集群域名，所以可以通过log: "key: \"value\""的格式查询
                 "query_string": query_string,
                 "start": 0,
-                "size": 1000,
+                "size": 6000,
                 "sort_list": [["dtEventTimeStamp", "asc"], ["gseIndex", "asc"], ["iterationIndex", "asc"]],
             },
             use_admin=True,
@@ -106,6 +109,63 @@ class DataStructureHandler:
             backup_logs.append({pascal_to_snake(key): value for key, value in raw_log.items()})
 
         return backup_logs
+
+    def get_bklog_by_domain(self, start_time: datetime, end_time: datetime) -> List[Dict]:
+        """
+        通过日志平台查询集群的时间范围内的备份记录
+        :param start_time: 开始时间
+        :param end_time: 结束时间
+        """
+
+        cluster_domain = self.cluster.immute_domain
+        status = "to_backup_system_success"
+        backup_logs = self._get_log_from_bklog(
+            collector="redis_fullbackup_result",
+            start_time1=start_time,
+            end_time1=end_time,
+            # 得到的是该集群上传成功的： to_backup_system_success
+            query_string=f"domain: {cluster_domain} AND status: {status} ",
+        )
+        return backup_logs
+
+    def query_donmain_backup_log(self, rollback_time: datetime) -> List[Dict[str, Union[int, Any]]]:
+        # 1、通过集群名从日志平台查询集群信息,首先是扩大范围查询到离回档时间点最近的一个备份文件
+        end_time = rollback_time
+        start_time = end_time - timedelta(days=BACKUP_LOG_ROLLBACK_TIME_RANGE_DAYS)
+        backup_logs = self.get_bklog_by_domain(start_time=start_time, end_time=end_time)
+        if not backup_logs:
+            raise AppBaseException(
+                _("无法查找到在时间范围内{}-{}，集群{}的全备份日志").format(start_time, end_time, self.cluster.immute_domain)
+            )
+        logger.info(_("大范围内的查询结果 backup_logs: {}".format(backup_logs)))
+        backup_logs.sort(key=lambda x: x["start_time"])
+        time_keys = [log["start_time"] for log in backup_logs]
+        try:
+            # 获取最近的一个备份文件，然后获取到时间
+            latest_log = backup_logs[find_nearby_time(time_keys, datetime2str(rollback_time), 1)]
+            logger.info(_("latest_log:{},start_time:{}".format(latest_log, latest_log["start_time"])))
+        except IndexError:
+            raise AppBaseException(_("没有找到小于时间点{}附近的备份日志记录，请检查时间点的合法性或稍后重试").format(rollback_time))
+
+        # 2、缩小范围过滤3小时内一般是同一批次备份的
+        latest_log_start_time = str2datetime(latest_log["start_time"])
+        start_time = latest_log_start_time - timedelta(hours=BACKUP_LOG_ROLLBACK_TIME_RANGE_HOURS)
+
+        # 指定时间内备份文件
+        backup_logs_cluster_same_batch = []
+        for log in backup_logs:
+            # 获取end_time到start_time时间范围内的备份文件
+            if (
+                str2datetime(log["start_time"]).replace(tzinfo=end_time.tzinfo) > end_time
+                or str2datetime(log["start_time"]).replace(tzinfo=start_time.tzinfo) < start_time
+            ):
+                continue
+            # 转化为直接查询备份系统返回的格式
+            backup_binlog = self.convert_to_backup_system_format(log)
+            backup_logs_cluster_same_batch.append(backup_binlog)
+            logger.info(_("backup_logs_cluster_same_batch:{}".format(backup_logs_cluster_same_batch)))
+
+        return backup_logs_cluster_same_batch
 
     def query_binlog_from_bklog(
         self,
@@ -266,8 +326,11 @@ class DataStructureHandler:
             "file_last_mtime": bk_binlog["start_time"],
             "size": int(bk_binlog["backup_file_size"]),
             "source_ip": bk_binlog["server_ip"],
+            "server_port": bk_binlog["server_port"],
             "task_id": bk_binlog["backup_taskid"],
             "file_name": bk_binlog["backup_file"].split("/")[-1],
+            # segment信息
+            "shard_value": bk_binlog["shard_value"],
         }
 
     def get_specified_format_binlog(

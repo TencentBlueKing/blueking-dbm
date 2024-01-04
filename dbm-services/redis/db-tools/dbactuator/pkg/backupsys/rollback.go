@@ -1133,7 +1133,7 @@ func (task *RedisInsRecoverTask) CheckRollbackResult() error {
 				redisAddr, srcRedisAddr, i, symbol,
 				hearbeatVal.Local().Format(consts.UnixtimeLayout),
 				rollbackDstTime.Local().Format(consts.UnixtimeLayout))
-			errList = append(errList)
+			errList = append(errList, msg)
 			mylog.Logger.Error(msg)
 			continue
 		}

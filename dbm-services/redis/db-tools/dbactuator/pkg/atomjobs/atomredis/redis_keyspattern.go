@@ -755,6 +755,7 @@ func (task *RedisInsKeyPatternTask) getSSDLdbTool(fetchLatest bool) (bool, error
 }
 
 // tendisSSDAllKeys 获取tendisSSD  keys
+// NOCC:golint/fnsize(设计如此)
 func (task *RedisInsKeyPatternTask) tendisSSDAllKeys() {
 	task.getSSDLdbTool(false)
 	if task.Err != nil {
@@ -770,7 +771,8 @@ func (task *RedisInsKeyPatternTask) tendisSSDAllKeys() {
 	rocksdbFile := filepath.Join(task.DataDir, "rocksdb")
 	_, err := os.Stat(rocksdbFile)
 	if os.IsNotExist(err) {
-		task.runtime.Logger.Error("tendisSSDAllKeys", fmt.Sprintf("%s not exists", rocksdbFile))
+		err := fmt.Errorf("tendisSSDAllKeys %s not exists", rocksdbFile)
+		task.runtime.Logger.Error(err.Error())
 		return
 	}
 
