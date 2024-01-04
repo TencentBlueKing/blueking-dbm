@@ -29,7 +29,7 @@ func mysqlDirs(db *sqlx.DB, variables []string) (dirs []string, err error) {
 	for _, v := range variables {
 		var dir sql.NullString
 		err = db.GetContext(ctx, &dir, fmt.Sprintf(`SELECT @@%s`, v))
-		if err != nil && err != sql.ErrNoRows {
+		if err != nil && !errors.Is(err, sql.ErrNoRows) {
 			return nil, errors.Wrap(err, fmt.Sprintf(`SELECT @@%s`, v))
 		}
 
@@ -44,7 +44,7 @@ func mysqlDirs(db *sqlx.DB, variables []string) (dirs []string, err error) {
 
 	var binlogBase sql.NullString
 	err = db.GetContext(ctx, &binlogBase, `SELECT @@log_bin_basename`)
-	if err != nil && err != sql.ErrNoRows {
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		return nil, errors.Wrap(err, `SELECT @@log_bin_basename`)
 	}
 
@@ -54,12 +54,11 @@ func mysqlDirs(db *sqlx.DB, variables []string) (dirs []string, err error) {
 
 	var relaylogBase sql.NullString
 	err = db.GetContext(ctx, &relaylogBase, `SELECT @@relay_log_basename`)
-	if err != nil && err != sql.ErrNoRows {
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		return nil, errors.Wrap(err, `SELECT @@relay_log_basename`)
 	}
 
 	if relaylogBase.Valid {
-		// fmt.Printf("relay-log: %s\n", filepath.Dir(relaylogBase.String))
 		dirs = append(dirs, filepath.Dir(relaylogBase.String))
 	}
 

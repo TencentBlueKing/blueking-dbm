@@ -22,11 +22,6 @@ import (
 )
 
 func snapShot(db *sqlx.DB) error {
-	//slog.Debug("snap shot err log", slog.Bool("scanned", scanned))
-	//if scanned {
-	//	return nil
-	//}
-
 	errLogPath, err := findErrLogFile(db)
 	if err != nil {
 		return err

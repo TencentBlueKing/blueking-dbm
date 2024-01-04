@@ -14,11 +14,10 @@ func SendMonitorMetrics(name string, value int64, customDimension map[string]int
 	crondManager := ma.NewManager(config.MonitorConfig.ApiUrl)
 
 	additionDimension := map[string]interface{}{
-		"cluster_domain": config.MonitorConfig.ImmuteDomain,
-		"db_module":      *config.MonitorConfig.DBModuleID,
-		"machine_type":   config.MonitorConfig.MachineType,
-		"bk_cloud_id":    strconv.Itoa(*config.MonitorConfig.BkCloudID),
-		// "port":                       strconv.Itoa(config.MonitorConfig.Port),
+		"cluster_domain":                config.MonitorConfig.ImmuteDomain,
+		"db_module":                     *config.MonitorConfig.DBModuleID,
+		"machine_type":                  config.MonitorConfig.MachineType,
+		"bk_cloud_id":                   strconv.Itoa(*config.MonitorConfig.BkCloudID),
 		"instance_port":                 strconv.Itoa(config.MonitorConfig.Port),
 		"instance_host":                 config.MonitorConfig.Ip,
 		"bk_target_service_instance_id": strconv.FormatInt(config.MonitorConfig.BkInstanceId, 10),
@@ -29,7 +28,6 @@ func SendMonitorMetrics(name string, value int64, customDimension map[string]int
 	}
 
 	if config.MonitorConfig.Role != nil {
-		// additionDimension["role"] = *config.MonitorConfig.Role
 		additionDimension["instance_role"] = *config.MonitorConfig.Role
 	}
 

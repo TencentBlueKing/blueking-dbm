@@ -71,19 +71,6 @@ func (c *ctlReplicateChecker) isPrimary() (bool, error) {
 		return false, err
 	}
 
-	//var tcIsPrimary sql.NullInt32
-	//err := c.db.GetContext(ctx, &tcIsPrimary, `SELECT @@tc_is_primary`)
-	//if err != nil {
-	//	slog.Error("select @@tc_is_primary", err)
-	//	return false, err
-	//}
-	//
-	//if !tcIsPrimary.Valid {
-	//	err := errors.Errorf("invalide tc_is_primary: %v", tcIsPrimary)
-	//	slog.Error("select @@tc_is_primary", err)
-	//	return false, err
-	//}
-
 	return getPrimaryRes[0].IsThis == 1, nil
 }
 

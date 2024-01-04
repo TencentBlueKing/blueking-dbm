@@ -31,10 +31,7 @@ import (
 1. binlog 是 session 变量, 所以只需要禁用就行了
 */
 func mysqlConnLogRotate(db *sqlx.DB) (string, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), config.MonitorConfig.InteractTimeout)
-	defer cancel()
-
-	conn, err := prepareRotate(db, ctx)
+	conn, err := prepareRotate(db)
 	if err != nil {
 		return "", err
 	}
@@ -42,26 +39,22 @@ func mysqlConnLogRotate(db *sqlx.DB) (string, error) {
 		_ = conn.Close()
 	}()
 
-	err = report(conn, ctx)
+	err = report(conn)
 	if err != nil {
 		return "", err
 	}
 
-	err = clean(conn, ctx)
+	err = clean(conn)
 	if err != nil {
 		return "", err
 	}
-
-	//_, err = conn.ExecContext(ctx, `SET GLOBAL INIT_CONNECT = @OLD_INIT_CONNECT`)
-	//if err != nil {
-	//	slog.Error("restore init_connect", slog.String("error", err.Error()))
-	//	return "", err
-	//}
-	//slog.Info("restore init_connect")
 	return "", nil
 }
 
-func prepareRotate(db *sqlx.DB, ctx context.Context) (conn *sqlx.Conn, err error) {
+func prepareRotate(db *sqlx.DB) (conn *sqlx.Conn, err error) {
+	ctx, cancel := context.WithTimeout(context.Background(), config.MonitorConfig.InteractTimeout)
+	defer cancel()
+
 	conn, err = db.Connx(ctx)
 	if err != nil {
 		slog.Error("connlog rotate get conn from db", slog.String("error", err.Error()))
@@ -91,24 +84,10 @@ func prepareRotate(db *sqlx.DB, ctx context.Context) (conn *sqlx.Conn, err error
 	}
 	slog.Info("rotate conn log disable binlog success")
 
-	//_, err = conn.ExecContext(ctx, `SET @OLD_INIT_CONNECT=@@INIT_CONNECT`)
-	//if err != nil {
-	//	slog.Error("save init_connect", slog.String("error", err.Error()))
-	//	return nil, err
-	//}
-	//slog.Info("save init connect to OLD_INIT_CONNECT")
-	//
-	//_, err = conn.ExecContext(ctx, `SET GLOBAL INIT_CONNECT = ''`)
-	//if err != nil {
-	//	slog.Error("disable init_connect", slog.String("error", err.Error()))
-	//	return nil, err
-	//}
-	//slog.Info("disable init connect")
-
 	return
 }
 
-func report(conn *sqlx.Conn, ctx context.Context) error {
+func report(conn *sqlx.Conn) error {
 	reportFilePath := filepath.Join(cst.DBAReportBase, "mysql", "conn_log", "report.log")
 	err := os.MkdirAll(filepath.Dir(reportFilePath), 0755)
 	if err != nil {
@@ -130,6 +109,8 @@ func report(conn *sqlx.Conn, ctx context.Context) error {
 
 	lf := ratelimit.Writer(f, ratelimit.NewBucketWithRate(float64(speedLimit), speedLimit))
 
+	ctx, cancel := context.WithTimeout(context.Background(), config.MonitorConfig.InteractTimeout)
+	defer cancel()
 	rows, err := conn.QueryxContext(
 		ctx,
 		fmt.Sprintf(
@@ -176,23 +157,10 @@ func report(conn *sqlx.Conn, ctx context.Context) error {
 	return nil
 }
 
-func clean(conn *sqlx.Conn, ctx context.Context) error {
+func clean(conn *sqlx.Conn) error {
 	for {
-		r, err := conn.ExecContext(
-			ctx,
-			fmt.Sprintf(
-				`DELETE FROM %s.conn_log WHERE conn_time < DATE_SUB(NOW(), INTERVAL 3 DAY) LIMIT 500`,
-				cst.DBASchema,
-			),
-		)
+		rowsDeleted, err := cleanOneRound(conn)
 		if err != nil {
-			slog.Error("clean 3days ago conn_log", slog.String("error", err.Error()))
-			return err
-		}
-
-		rowsDeleted, err := r.RowsAffected()
-		if err != nil {
-			slog.Error("clean 3days ago conn_log", slog.String("error", err.Error()))
 			return err
 		}
 
@@ -205,4 +173,29 @@ func clean(conn *sqlx.Conn, ctx context.Context) error {
 
 	slog.Info("clean 3days ago conn_log")
 	return nil
+}
+
+func cleanOneRound(conn *sqlx.Conn) (affectedRows int64, err error) {
+	ctx, cancel := context.WithTimeout(context.Background(), config.MonitorConfig.InteractTimeout)
+	defer cancel()
+
+	r, err := conn.ExecContext(
+		ctx,
+		fmt.Sprintf(
+			`DELETE FROM %s.conn_log WHERE conn_time < DATE_SUB(NOW(), INTERVAL 3 DAY) LIMIT 500`,
+			cst.DBASchema,
+		),
+	)
+	if err != nil {
+		slog.Error("clean 3days ago conn_log", slog.String("error", err.Error()))
+		return 0, err
+	}
+
+	rowsDeleted, err := r.RowsAffected()
+	if err != nil {
+		slog.Error("clean 3days ago conn_log", slog.String("error", err.Error()))
+		return 0, err
+	}
+
+	return rowsDeleted, nil
 }

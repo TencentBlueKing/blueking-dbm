@@ -31,8 +31,6 @@ type mysqlProcess struct {
 	Time    sql.NullInt64  `db:"TIME" json:"time"`
 	State   sql.NullString `db:"STATE" json:"state"`
 	Info    sql.NullString `db:"INFO" json:"info"`
-	//RowsSent     sql.NullInt64  `db:"Rows_sent" json:"rows_sent"`
-	//RowsExamined sql.NullInt64  `db:"Rows_examined" json:"rows_examined"`
 }
 
 func (c *mysqlProcess) JsonString() (string, error) {
@@ -46,8 +44,6 @@ func (c *mysqlProcess) JsonString() (string, error) {
 			Time    int64  `json:"time"`
 			State   string `json:"state"`
 			Info    string `json:"info"`
-			//RowsSent     int64  `json:"rows_sent"`
-			//RowsExamined int64  `json:"rows_examined"`
 		}{
 			Id:      c.Id.Int64,
 			User:    c.User.String,
@@ -57,8 +53,6 @@ func (c *mysqlProcess) JsonString() (string, error) {
 			Time:    c.Time.Int64,
 			State:   c.State.String,
 			Info:    c.Info.String,
-			//RowsSent:     c.RowsSent.Int64,
-			//RowsExamined: c.RowsExamined.Int64,
 		},
 	)
 
@@ -71,10 +65,6 @@ func (c *mysqlProcess) JsonString() (string, error) {
 }
 
 func snapShot(db *sqlx.DB) error {
-	//if stored {
-	//	return nil
-	//}
-
 	processList, err := queryProcessList(db)
 	if err != nil {
 		return err
@@ -109,7 +99,6 @@ func snapShot(db *sqlx.DB) error {
 		return err
 	}
 
-	//stored = true
 	return nil
 }
 
