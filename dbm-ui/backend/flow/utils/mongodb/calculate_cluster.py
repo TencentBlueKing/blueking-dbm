@@ -243,6 +243,7 @@ def calculate_cluster(payload: dict) -> dict:
         MongoDBDomainPrefix.M10,
         MongoDBDomainPrefix.BACKUP,
     ]
+
     result = {}
     if cluster_type == ClusterType.MongoReplicaSet.value:
         result = replicase_calc(payload, payload_clusters, app, domain_prefix)
