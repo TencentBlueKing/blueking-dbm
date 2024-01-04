@@ -180,7 +180,7 @@ class QSearchHandler(object):
                     if cluster_info:
                         break
                     for cluster in inst.cluster.all():
-                        cluster_info = {"cluster_id": cluster.id, "cluster_dresultomain": cluster.immute_domain}
+                        cluster_info = {"cluster_id": cluster.id, "cluster_domain": cluster.immute_domain}
 
             if cluster_info is None:
                 cluster_info = {"cluster_id": None, "cluster_domain": None}
