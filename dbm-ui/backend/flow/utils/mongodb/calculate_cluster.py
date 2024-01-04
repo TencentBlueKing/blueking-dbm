@@ -250,3 +250,4 @@ def calculate_cluster(payload: dict) -> dict:
     elif cluster_type == ClusterType.MongoShardedCluster.value:
         result = cluster_calc(payload, payload_clusters, app)
     return result
+
