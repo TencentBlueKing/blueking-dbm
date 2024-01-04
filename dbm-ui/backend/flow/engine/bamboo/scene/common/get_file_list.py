@@ -527,3 +527,20 @@ class GetFileList(object):
             f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{tbinlogdumper_pkg.path}",
             f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{self.actuator_pkg.path}",
         ]
+
+    def mongodb_pkg(self, db_version: str) -> list:
+        """
+        部署mongodb,需要的pkg包
+        """
+
+        mongodb_pkg = Package.get_latest_package(
+            version=db_version, pkg_type=MediumEnum.MongoDB, db_type=DBType.MongoDB
+        )
+        # bkdbmon_pkg = Package.get_latest_package(
+        #     version=MediumEnum.Latest, pkg_type=MediumEnum.DbMon, db_type=DBType.MongoDB
+        # )
+        return [
+            f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}{self.actuator_pkg.path}",
+            f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}{mongodb_pkg.path}",
+            # f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{bkdbmon_pkg.path}",
+        ]

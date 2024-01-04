@@ -167,6 +167,7 @@ class NameSpaceEnum(str, StructuredEnum):
     Influxdb = EnumField("influxdb", _("Influxdb"))
     TenDBCluster = EnumField("tendbcluster", _("tendbcluster"))
     Riak = EnumField("riak", _("Riak"))
+    MongoDB = EnumField("mongodb", _("mongodb"))
 
 
 class ConfigTypeEnum(str, StructuredEnum):
@@ -184,6 +185,8 @@ class ConfigTypeEnum(str, StructuredEnum):
     HdfsSite = EnumField("hdfs-site", _("HDFS实例hdfs-site配置"))
     CoreSite = EnumField("core-site", _("HDFS实例core-site配置"))
     HdfsInstall = EnumField("install", _("HDFS实例安装配置"))
+    MongoD = EnumField("mongod", _("mongod配置"))
+    MongoS = EnumField("mongos", _("mongos配置"))
 
 
 class ConfigFileEnum(str, StructuredEnum):
@@ -198,6 +201,8 @@ class ConfigFileEnum(str, StructuredEnum):
     Base = EnumField("base", _("基本配置"))
     HotKey = EnumField("hotkey", _("热key配置"))
     BigKey = EnumField("bigkey", _("大key配置"))
+    DefaultConf = EnumField("defaultconf", _("默认配置"))
+    OsConf = EnumField("osconf", _("os配置"))
 
 
 class DbBackupRoleEnum(str, StructuredEnum):
@@ -240,6 +245,28 @@ class MediumEnum(str, StructuredEnum):
     RiakMonitor = EnumField("riak-monitor", _("riak-monitor"))
     RedisDts = EnumField("redis-dts", _("redis-dts"))
     TBinlogDumper = EnumField("tbinlogdumper", _("tbinlogdumper实例"))
+    MongoDB = EnumField("mongodb", _("mongodb"))
+    MongoD = EnumField("mongod", _("mongod"))
+    MongoS = EnumField("mongos", _("mongos"))
+    MongoShardSvr = EnumField("shardsvr", _("shardsvr"))
+    MongoConfigSvr = EnumField("configsvr", _("configsvr"))
+    AuthDB = EnumField("admin", _("admin"))
+    DbaUser = EnumField("dba", _("dba"))
+    AppDbaUser = EnumField("appdba", _("appdba"))
+    MonitorUser = EnumField("monitor", _("monitor"))
+    AppMonitorUser = EnumField("appmonitor", _("appmonitor"))
+    RootRole = EnumField("root", _("root"))
+    BackupRole = EnumField("backup", _("backup"))
+    ClusterMonitorRole = EnumField("clusterMonitor", _("clusterMonitor"))
+    ReadAnyDatabaseRole = EnumField("readAnyDatabase", _("readAnyDatabase"))
+    HostManagerRole = EnumField("hostManager", _("hostManager"))
+    ReadWriteRole = EnumField("readWrite", _("readWrite"))
+    UserAdminAnyDatabaseRole = EnumField("userAdminAnyDatabase", _("userAdminAnyDatabase"))
+    DbAdminAnyDatabaseRole = EnumField("dbAdminAnyDatabase", _("dbAdminAnyDatabase"))
+    ReadWriteAnyDatabaseRole = EnumField("readWriteAnyDatabase", _("readWriteAnyDatabase"))
+    ClusterAdminRole = EnumField("clusterAdmin", _("clusterAdmin"))
+    MongoDBInitSet = EnumField("mongodb_init_set", _("mongodb_init_set"))
+    MongoDBExtraUserCreate = EnumField("mongodb_extra_user_create", _("mongodb_extra_user_create"))
 
 
 class CloudServiceName(str, StructuredEnum):
@@ -399,6 +426,20 @@ class RedisActuatorActionEnum(str, StructuredEnum):
     CLUSTER_FAILOVER = EnumField("cluster_failover", _("cluster_failover"))
     SLOTS_MIGRATE = EnumField("migrate_slots", _("migrate_slots"))
     REUPLOAD_OLD_BACKUP_RECORDS = EnumField("reupload_old_backup_records", _("reupload_old_backup_records"))
+
+
+class MongoDBActuatorActionEnum(str, StructuredEnum):
+    OsInit = EnumField("os_mongo_init", _("os_mongo_init"))
+    mongoDInstall = EnumField("mongod_install", _("mongod_install"))
+    mongoSInstall = EnumField("mongos_install", _("mongos_install"))
+    InitReplicaset = EnumField("init_replicaset", _("init_replicaset"))
+    AddUser = EnumField("add_user", _("add_user"))
+    DeleteUser = EnumField("delete_user", _("delete_user"))
+    MongoExecuteScript = EnumField("mongo_execute_script", _("mongo_execute_script"))
+    Backup = EnumField("mongodb_backup", _("mongodb_backup"))
+    RemoveNs = EnumField("mongodb_remove_ns", _("mongodb_remove_ns"))
+    Restore = EnumField("mongodb_restore", _("mongodb_restore"))
+    PitRestore = EnumField("mongodb_pit_restore", _("mongodb_pit_restore"))
 
 
 class EsActuatorActionEnum(str, StructuredEnum):
@@ -944,6 +985,58 @@ class MySQLPrivComponent(str, StructuredEnum):
     INFLUXDB_FAKE_USER = EnumField("influxdb_user", _("influxdb_user"))
     HDFS_FAKE_USER = EnumField("hdfs_user", _("hdfs_user"))
     PULSAR_FAKE_USER = EnumField("pulsar_user", _("pulsar_user"))
+
+
+class RequestResultCode(int, StructuredEnum):
+    """
+    请求结果code状态
+    """
+
+    Success = EnumField(0, _("success"))
+
+
+class MongoDBPasswordRule(str, StructuredEnum):
+    """
+    mongodb密码规则
+    """
+
+    RULE = EnumField("password", _("密码规则"))
+
+
+class MongoDBClusterRole(str, StructuredEnum):
+    """
+    mongodb cluster role
+    """
+
+    ConfigSvr = EnumField("configsvr", _("configsvr"))
+    ShardSvr = EnumField("shardsvr", _("shardsvr"))
+
+
+class MongoDBTotalCache(float, StructuredEnum):
+    """
+    cache占机器内存的百分比
+    """
+
+    Cache_Percent = EnumField(0.65, _("cache_percent"))
+
+
+class MongoDBDomainPrefix(str, StructuredEnum):
+    """
+    mongodb domain Prefix
+    """
+
+    MONGOS = EnumField("mongos", _("mongos"))
+    M1 = EnumField("m1", _("m1"))
+    M2 = EnumField("m2", _("m2"))
+    M3 = EnumField("m3", _("m3"))
+    M4 = EnumField("m4", _("m4"))
+    M5 = EnumField("m5", _("m5"))
+    M6 = EnumField("m6", _("m6"))
+    M7 = EnumField("m7", _("m7"))
+    M8 = EnumField("m8", _("m8"))
+    M9 = EnumField("m9", _("m9"))
+    M10 = EnumField("m10", _("m10"))
+    BACKUP = EnumField("backup", _("backup"))
 
 
 class TBinlogDumperProtocolType(str, StructuredEnum):
