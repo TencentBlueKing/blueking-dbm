@@ -62,6 +62,12 @@ from backend.flow.views.migrate_views.redis_migrate import (
     RedisClusterMigrateLoad,
     RedisClusterMigratePrecheck,
 )
+from backend.flow.views.mongodb_scene import (
+    ClusterInstallApiView,
+    MongoBackupApiView,
+    MongoFakeInstallApiView,
+    MultiReplicasetInstallApiView,
+)
 from backend.flow.views.mysql_add_slave import AddMysqlSlaveSceneApiView
 from backend.flow.views.mysql_add_slave_remote import AddMysqlSlaveRemoteSceneApiView
 from backend.flow.views.mysql_checksum import MysqlChecksumSceneApiView
@@ -239,6 +245,12 @@ urlpatterns = [
     url(r"^scene/nameservice_polaris_create$", PolarisCreateSceneApiView.as_view()),
     url(r"^scene/nameservice_polaris_delete$", PolarisDeleteSceneApiView.as_view()),
     # name_service end
+    # mongodb start
+    url(r"^scene/multi_replicaset_create$", MultiReplicasetInstallApiView.as_view()),
+    url(r"^scene/cluster_create$", ClusterInstallApiView.as_view()),
+    url(r"^scene/mongo_backup$", MongoBackupApiView.as_view()),
+    url(r"^scene/install_rs_fake$", MongoFakeInstallApiView.as_view()),
+    # mongodb end
     url(r"^scene/install_mysql_apply$", InstallMySQLSingleSceneApiView.as_view()),
     url(r"^scene/install_mysql_ha_apply$", InstallMySQLHASceneApiView.as_view()),
     url(r"^scene/destroy_mysql_ha$", DestroyMySQLHASceneApiView.as_view()),
