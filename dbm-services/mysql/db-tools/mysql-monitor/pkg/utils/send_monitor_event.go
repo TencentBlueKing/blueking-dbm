@@ -18,7 +18,6 @@ func SendMonitorEvent(name string, msg string) {
 		"db_module":      *config.MonitorConfig.DBModuleID,
 		"machine_type":   config.MonitorConfig.MachineType,
 		"bk_cloud_id":    *config.MonitorConfig.BkCloudID,
-		// "port":                          config.MonitorConfig.Port, // 监控插件服务实例维度和自定义上报维度统一
 		// "server_ip":                     config.MonitorConfig.Ip,   // 监控插件服务实例维度和自定义上报维度统一
 		"instance_port":                 config.MonitorConfig.Port,
 		"instance_host":                 config.MonitorConfig.Ip,
@@ -26,7 +25,6 @@ func SendMonitorEvent(name string, msg string) {
 	}
 
 	if config.MonitorConfig.Role != nil {
-		// additionDimension["role"] = *config.MonitorConfig.Role // 监控插件服务实例维度和自定义上报维度统一
 		additionDimension["instance_role"] = *config.MonitorConfig.Role
 	}
 

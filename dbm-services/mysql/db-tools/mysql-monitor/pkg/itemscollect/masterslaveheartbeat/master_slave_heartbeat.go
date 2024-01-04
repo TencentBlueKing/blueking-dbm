@@ -31,7 +31,6 @@ var (
 		PRIMARY KEY (master_server_id)
 		) ENGINE=InnoDB`, HeartBeatTable,
 	)
-	// 		beat_sec int DEFAULT 0 COMMENT 'the beat since master heartbeat:timestampdiff(SECOND, master_time, now())',
 )
 
 // Checker TODO

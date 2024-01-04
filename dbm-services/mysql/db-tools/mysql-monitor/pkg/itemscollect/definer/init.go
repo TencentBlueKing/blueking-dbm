@@ -17,7 +17,6 @@ var nameTrigger = "trigger-definer"
 
 var mysqlUsers []string
 
-// var snapped bool
 var snapErr error
 var once sync.Once
 

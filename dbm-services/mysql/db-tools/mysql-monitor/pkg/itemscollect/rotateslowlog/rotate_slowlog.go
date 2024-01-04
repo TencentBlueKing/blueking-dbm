@@ -47,13 +47,13 @@ qq{set global slow_query_log=\@sq_log_save},
 
 // Run 运行
 func (d *Dummy) Run() (msg string, err error) {
-	ctx, cancel := context.WithTimeout(context.Background(), config.MonitorConfig.InteractTimeout)
-	defer cancel()
+	queryCtx, queryCancel := context.WithTimeout(context.Background(), config.MonitorConfig.InteractTimeout)
+	defer queryCancel()
 
 	var slowLogPath string
 	var slowLogOn bool
 	err = d.db.QueryRowxContext(
-		ctx,
+		queryCtx,
 		`SELECT @@slow_query_log, @@slow_query_log_file`,
 	).Scan(&slowLogOn, &slowLogPath)
 	if err != nil {
@@ -135,7 +135,9 @@ func (d *Dummy) Run() (msg string, err error) {
 		return "", err
 	}
 
-	_, err = d.db.ExecContext(ctx, `FLUSH SLOW LOGS`)
+	execCtx, execCancel := context.WithTimeout(context.Background(), config.MonitorConfig.InteractTimeout)
+	defer execCancel()
+	_, err = d.db.ExecContext(execCtx, `FLUSH SLOW LOGS`)
 	if err != nil {
 		slog.Error("flush slow logs", slog.String("error", err.Error()))
 		return "", err

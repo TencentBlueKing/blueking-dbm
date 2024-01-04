@@ -22,8 +22,6 @@ import (
 var nameMySQLConnLogSize = "mysql-connlog-size"
 var nameMySQLConnLogRotate = "mysql-connlog-rotate"
 
-//var nameMySQLConnLogReport = "mysql-connlog-report"
-
 var sizeLimit int64 = 1024 * 1024 * 1024 * 2
 var speedLimit int64 = 1024 * 1024 * 10
 

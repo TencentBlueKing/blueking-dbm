@@ -18,7 +18,6 @@ import (
 )
 
 func snapshot(db *sqlx.DB) error {
-	//if !snapped {
 	ctx, cancel := context.WithTimeout(context.Background(), config.MonitorConfig.InteractTimeout)
 	defer cancel()
 
@@ -28,7 +27,5 @@ func snapshot(db *sqlx.DB) error {
 		return err
 	}
 	slog.Debug("query users", slog.Any("users", mysqlUsers))
-	//snapped = true
-	//}
 	return nil
 }
