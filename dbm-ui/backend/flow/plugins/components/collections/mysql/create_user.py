@@ -12,7 +12,6 @@ from django.utils.translation import ugettext as _
 from pipeline.component_framework.component import Component
 
 from backend.components import MySQLPrivManagerApi
-from backend.core.encrypt.handlers import AsymmetricHandler
 from backend.flow.plugins.components.collections.common.base_service import BaseService
 
 
@@ -31,10 +30,6 @@ class CreateUserService(BaseService):
         trans_data.master_access_slave_password = kwargs["psw"]
         data.outputs["trans_data"] = trans_data
 
-        encrypted = AsymmetricHandler.encrypt_with_pubkey(
-            pubkey=MySQLPrivManagerApi.fetch_public_key(), content=kwargs["psw"]
-        )
-
         try:
             MySQLPrivManagerApi.add_priv_without_account_rule(
                 params={
@@ -42,7 +37,7 @@ class CreateUserService(BaseService):
                     "bk_biz_id": global_data["bk_biz_id"],
                     "operator": global_data["created_by"],
                     "user": kwargs["user"],
-                    "psw": encrypted,
+                    "psw": kwargs["psw"],
                     "hosts": kwargs["hosts"],
                     "dbname": kwargs["dbname"],
                     "dml_ddl_priv": kwargs["dml_ddl_priv"],

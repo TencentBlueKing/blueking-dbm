@@ -16,7 +16,6 @@ from pipeline.component_framework.component import Component
 
 from backend.components.mysql_priv_manager.client import MySQLPrivManagerApi
 from backend.constants import IP_PORT_DIVIDER
-from backend.core.encrypt.handlers import AsymmetricHandler
 from backend.db_meta.enums import ClusterType, TenDBClusterSpiderRole
 from backend.db_meta.exceptions import ClusterNotExistException
 from backend.db_meta.models import Cluster
@@ -79,11 +78,7 @@ class AddTempUserForClusterService(BaseService):
         kwargs = data.get_one_of_inputs("kwargs")
         global_data = data.get_one_of_inputs("global_data")
 
-        # 密码加密
-        encrypt_switch_pwd = AsymmetricHandler.encrypt_with_pubkey(
-            pubkey=MySQLPrivManagerApi.fetch_public_key(), content=global_data["job_root_id"]
-        )
-
+        encrypt_switch_pwd = global_data["job_root_id"]
         common_param = {
             "bk_cloud_id": -1,
             "bk_biz_id": int(global_data["bk_biz_id"]),

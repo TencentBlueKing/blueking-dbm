@@ -65,15 +65,6 @@ class AccountHandler(object):
         return is_validity, validity_map
 
     @staticmethod
-    def _encrypt_password(password: str) -> str:
-        """
-        - 获取后台公钥，将password利用公钥加密
-        :param password: 待加密密码
-        """
-        public_key = MySQLPrivManagerApi.fetch_public_key()
-        return AsymmetricHandler.encrypt_with_pubkey(pubkey=public_key, content=password)
-
-    @staticmethod
     def _decrypt_password(password: str) -> str:
         """
         - 获取saas侧私钥，将password利用私钥解密
@@ -106,7 +97,7 @@ class AccountHandler(object):
                 "bk_biz_id": self.bk_biz_id,
                 "operator": self.operator,
                 "user": account.user,
-                "psw": self._encrypt_password(account.password),
+                "psw": account.password,
             }
         )
         return resp
@@ -137,7 +128,7 @@ class AccountHandler(object):
                 "bk_biz_id": self.bk_biz_id,
                 "operator": self.operator,
                 "id": account.account_id,
-                "psw": self._encrypt_password(account.password),
+                "psw": account.password,
             }
         )
         return resp
