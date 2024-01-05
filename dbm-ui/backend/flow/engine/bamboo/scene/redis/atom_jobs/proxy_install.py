@@ -18,13 +18,17 @@ from backend.configuration.constants import DBType
 from backend.db_meta.enums.cluster_type import ClusterType
 from backend.db_meta.enums.machine_type import MachineType
 from backend.db_meta.models import AppCache
+from backend.flow.consts import DEPENDENCIES_PLUGINS
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.plugins.components.collections.common.download_backup_client import DownloadBackupClientComponent
+from backend.flow.plugins.components.collections.common.install_nodeman_plugin import (
+    InstallNodemanPluginServiceComponent,
+)
 from backend.flow.plugins.components.collections.redis.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.redis.redis_db_meta import RedisDBMetaComponent
 from backend.flow.plugins.components.collections.redis.trans_flies import TransFileComponent
-from backend.flow.utils.common_act_dataclass import DownloadBackupClientKwargs
+from backend.flow.utils.common_act_dataclass import DownloadBackupClientKwargs, InstallNodemanPluginKwargs
 from backend.flow.utils.redis.redis_act_playload import RedisActPayload
 from backend.flow.utils.redis.redis_context_dataclass import ActKwargs
 from backend.flow.utils.redis.redis_db_meta import RedisDBMeta
@@ -93,6 +97,22 @@ def ProxyBatchInstallAtomJob(root_id, ticket_data, act_kwargs: ActKwargs, param:
             ),
         ),
     )
+
+    # 安装插件
+    acts_list = []
+    for plugin_name in DEPENDENCIES_PLUGINS:
+        acts_list.append(
+            {
+                "act_name": _("安装[{}]插件".format(plugin_name)),
+                "act_component_code": InstallNodemanPluginServiceComponent.code,
+                "kwargs": asdict(
+                    InstallNodemanPluginKwargs(
+                        bk_cloud_id=int(act_kwargs.cluster["bk_cloud_id"]), ips=[exec_ip], plugin_name=plugin_name
+                    )
+                ),
+            }
+        )
+    sub_pipeline.add_parallel_acts(acts_list=acts_list)
 
     # proxy扩容/替换/自愈，config从参数传过来
     if "conf_configs" in param:
