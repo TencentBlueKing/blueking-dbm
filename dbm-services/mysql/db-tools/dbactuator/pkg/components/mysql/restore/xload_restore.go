@@ -9,9 +9,11 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/mohae/deepcopy"
 	"github.com/pkg/errors"
 
 	"dbm-services/common/go-pubpkg/logger"
+	"dbm-services/mysql/db-tools/dbactuator/pkg/components"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components/computil"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/native"
@@ -58,10 +60,14 @@ func (x *XLoad) Init() error {
 	cnfFile := &util.CnfFile{FileName: cnfFileName}
 	var err error
 	if err = cnfFile.Load(); err != nil {
-		logger.Info("get my.conf failed %v", cnfFileName)
+		logger.Info("xload get my.conf failed %v", cnfFileName)
 		return errors.WithStack(err)
 	} else {
 		x.myCnf = cnfFile
+		x.TgtInstance.Socket, err = x.myCnf.GetMySQLSocket()
+		if err != nil {
+			logger.Warn("xload fail to get mysqld socket: %s", cnfFileName)
+		}
 	}
 	if err = x.BackupInfo.infoObj.ValidateFiles(); err != nil {
 		return err
@@ -72,7 +78,7 @@ func (x *XLoad) Init() error {
 	// logger.Info("tgtInstance: %+v", x.TgtInstance)
 	x.dbWorker, err = x.TgtInstance.Conn()
 	if err != nil {
-		return errors.Wrap(err, "目标实例连接失败")
+		logger.Warn("xload fail to connect mysqld %s", cnfFileName)
 	}
 	// x.dbWorker.Db.Close()
 	logger.Info("XLoad params: %+v", x)
@@ -162,31 +168,33 @@ func (x *XLoad) getChangeMasterPos(masterInst native.Instance) (*mysqlutil.Chang
 }
 
 // DoXLoad 以下所有步骤必须可重试
-func (x *XLoad) DoXLoad() error {
+func (x *XLoad) DoXLoad() (err error) {
 	// 关闭本地mysql
 	inst := x.TgtInstance
-	if err := computil.ShutdownMySQLBySocket2(inst.User, inst.Pwd, inst.Socket); err != nil {
-		logger.Error("shutdown mysqld failed %s", inst.Socket)
+	param := &computil.ShutdownMySQLParam{MySQLUser: inst.User, MySQLPwd: inst.Pwd,
+		Socket: inst.Socket, Host: inst.Host, Port: inst.Port}
+	if err := param.ForceShutDownMySQL(); err != nil {
+		logger.Error("xload shutdown mysqld failed %s", inst.Socket)
 		return err
 	}
 
 	// 清理本地目录
-	if err := x.cleanXtraEnv(); err != nil {
+	if err = x.cleanXtraEnv(); err != nil {
 		return err
 	}
 
 	// 调整my.cnf文件
-	if err := x.doReplaceCnf(); err != nil {
+	if err = x.doReplaceCnf(); err != nil {
 		return err
 	}
 
 	// 恢复物理全备
-	if err := x.importData(); err != nil {
+	if err = x.importData(); err != nil {
 		return err
 	}
 
 	// 调整目录属主
-	if err := x.changeDirOwner(); err != nil {
+	if err = x.changeDirOwner(); err != nil {
 		return err
 	}
 
@@ -194,33 +202,68 @@ func (x *XLoad) DoXLoad() error {
 	startParam := computil.StartMySQLParam{
 		MediaDir:        cst.MysqldInstallPath,
 		MyCnfName:       x.myCnf.FileName,
-		MySQLUser:       inst.User, // 用ADMIN
+		MySQLUser:       native.DBUserAdmin, // 用ADMIN
 		MySQLPwd:        inst.Pwd,
 		Socket:          inst.Socket,
 		SkipGrantTables: true, // 以 skip-grant-tables 启动来修复 ADMIN
 	}
-	if _, err := startParam.StartMysqlInstance(); err != nil {
+	if _, err = startParam.StartMysqlInstance(); err != nil {
+		return errors.WithMessage(err, "xload start mysqld with --skip-grant-table")
+	}
+
+	// DMB_JOB_xx admin用户清零
+	tmpAdminPassInst := deepcopy.Copy(x.TgtInstance).(native.InsObject)
+	tmpAdminPassInst.User = native.DBUserAdmin
+	//tmpAdminPassInst.ConnBySocket()
+	if x.dbWorker, err = tmpAdminPassInst.Conn(); err != nil {
+		return err
+	} else {
+		defer x.dbWorker.Stop()
+	}
+
+	serverVersion, err := x.dbWorker.SelectVersion()
+	if err != nil {
+		//return errors.Wrapf(err, "get mysql version")
+		logger.Warn("get version failed: %s. set it to 5.7.20", err.Error())
+		serverVersion = "5.7.20" // fake
 	}
 
 	// 物理备份，ADMIN密码与 backup instance(cluster?) 相同，修复成
 	// 修复ADMIN用户
-	if err := x.RepairUserAdminByLocal(native.DBUserAdmin, inst.Pwd); err != nil {
+	if err = x.RepairUserAdminByLocal(inst.Host, native.DBUserAdmin, inst.Pwd, serverVersion); err != nil {
 		return err
 	}
 
 	// 修复权限
-	if err := x.RepairPrivileges(); err != nil {
+	if err = x.RepairPrivileges(); err != nil {
 		return err
 	}
 
+	x.dbWorker.Stop()
+	logger.Info("restart local mysqld %d", x.TgtInstance.Port)
 	// 重启mysql（去掉 skip-grant-tables）
 	startParam.SkipGrantTables = false
-	if _, err := startParam.RestartMysqlInstance(); err != nil {
+	startParam.MySQLUser = native.DBUserAdmin
+	if _, err = startParam.RestartMysqlInstance(); err != nil {
 		return err
 	}
-
+	// reconnect use ADMIN and temp_job_user pwd(already repaired)
+	if x.dbWorker, err = tmpAdminPassInst.Conn(); err != nil {
+		return err
+	} else {
+		defer x.dbWorker.Stop()
+	}
+	// try to re-create DBM_JOB_xxx
+	if x.TgtInstance.User != native.DBUserAdmin {
+		adminPriv := components.MySQLAdminAccount{AdminUser: x.TgtInstance.User, AdminPwd: x.TgtInstance.Pwd}.
+			GetAccountPrivs(x.TgtInstance.Host)
+		adminInitSqls := adminPriv.GenerateInitSql(serverVersion)
+		if _, err = x.dbWorker.ExecMore(adminInitSqls); err != nil {
+			logger.Warn("fail to reset user %s", x.TgtInstance.User)
+		}
+	}
 	// 修复MyIsam表
-	if err := x.RepairAndTruncateMyIsamTables(); err != nil {
+	if err = x.RepairAndTruncateMyIsamTables(); err != nil {
 		return err
 	}
 

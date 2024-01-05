@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/mohae/deepcopy"
 	"github.com/pkg/errors"
 	"github.com/spf13/cast"
 
@@ -22,6 +23,8 @@ import (
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/mysqlconn"
 )
 
+// MigrateInstanceBackupInfo convert into to index
+// 保存index file
 func MigrateInstanceBackupInfo(infoFilePath string, cnf *config.BackupConfig) (string, *dbareport.IndexContent, error) {
 	var infoObj = InfoFileDetail{}
 	if err := ParseBackupInfoFile(infoFilePath, &infoObj); err != nil {
@@ -61,27 +64,28 @@ func MigrateInstanceBackupInfo(infoFilePath string, cnf *config.BackupConfig) (s
 			beginTime.Format("20060102"))
 	} else {
 		backupId = fmt.Sprintf("mysql-%d-%d-%s", cnf.Public.BkBizId, cnf.Public.ClusterId,
-			beginTime.Format("20060102-15"))
+			beginTime.Format("20060102-150405"))
 	}
 
 	// 转换 file_list 格式，需要读取 backup task_id
 	fileList := make([]*dbareport.TarFileItem, 0)
 	for fName, _ := range infoObj.FileInfo {
-		if uploadInfo := readIedBackupUploadInfo(fName); uploadInfo != nil {
-			fileList = append(fileList, &dbareport.TarFileItem{FileName: fName, TaskId: uploadInfo.TaskId})
-		} else {
+		if uploadInfo, err := readIedBackupUploadInfo(fName); err != nil {
+			fmt.Println(err)
 			fileList = append(fileList, &dbareport.TarFileItem{FileName: fName})
+		} else {
+			fileList = append(fileList, &dbareport.TarFileItem{FileName: fName, TaskId: uploadInfo.TaskId})
 		}
 	}
 	// add info file to file_list
-	uploadInfo := readIedBackupUploadInfo(infoFilePath)
-	if uploadInfo == nil {
+	uploadInfo, err := readIedBackupUploadInfo(infoFilePath)
+	if err != nil {
 		return "", nil, errors.WithMessagef(err, "get infoFile %s upload info", infoFilePath)
 	}
 	fileList = append(fileList, &dbareport.TarFileItem{
 		FileName: infoObj.GetMetafileBasename() + ".info",
 		TaskId:   uploadInfo.TaskId,
-		FileType: "info",
+		FileType: "index", // treat info as index
 	})
 
 	// 补齐 version , storage_engine 信息
@@ -183,10 +187,13 @@ func MLoadGetBackupSlaveStatus(gztabBeginFile string) (*dbareport.StatusInfo,
 	changeSqls := cmutil.SplitAnyRune(out, "\n")
 
 	masterStatus := dbareport.StatusInfo{}
-	slaveStatus := dbareport.StatusInfo{}
+	var slaveStatus *dbareport.StatusInfo
+	//slaveStatus := dbareport.StatusInfo{}
 	// 在 slave 上备份，会同时有 CHANGE MASTER, CHANGE SLAVE
+	// 在 master 上备份，只有 CHANGE MASTER
+	// CHANGE MASTER 指向的是 master的位点，物理备份是在slave/master
 	reChangeMaster := regexp.MustCompile(`(?i:CHANGE MASTER TO)`)
-	reChangeSlave := regexp.MustCompile(`(?i:CHANGE SLAVE TO)`) // 在 master 上备份，只有 CHANGE SLAVE
+	reChangeSlave := regexp.MustCompile(`(?i:CHANGE SLAVE TO)`)
 	for _, sql := range changeSqls {
 		if reChangeMaster.MatchString(sql) {
 			sql = strings.ReplaceAll(sql, "--", "")
@@ -194,19 +201,27 @@ func MLoadGetBackupSlaveStatus(gztabBeginFile string) (*dbareport.StatusInfo,
 			if err := cm.ParseChangeSQL(); err != nil {
 				return nil, nil, errors.Wrap(err, sql)
 			}
-			slaveStatus.BinlogFile = cm.MasterLogFile
-			slaveStatus.BinlogPos = cast.ToString(cm.MasterLogPos)
+			masterStatus.BinlogFile = cm.MasterLogFile
+			masterStatus.BinlogPos = cast.ToString(cm.MasterLogPos)
 		} else if reChangeSlave.MatchString(sql) {
 			sql = strings.ReplaceAll(sql, "--", "")
 			cm := &mysqlutil.ChangeMaster{ChangeSQL: sql}
 			if err := cm.ParseChangeSQL(); err != nil {
 				return nil, nil, errors.Wrap(err, sql)
 			}
-			masterStatus.BinlogFile = cm.MasterLogFile
-			masterStatus.BinlogPos = cast.ToString(cm.MasterLogPos)
+			slaveStatus = &dbareport.StatusInfo{}
+			slaveStatus.BinlogFile = cm.MasterLogFile
+			slaveStatus.BinlogPos = cast.ToString(cm.MasterLogPos)
 		}
 	}
-	return &masterStatus, &slaveStatus, nil
+	if slaveStatus != nil {
+		// masterStatus 表示的是本机show master status的输出
+		// 当本机是slave的时候，gztab 输出的时候把show slave status作为了do Slave --CHANGE MASTER
+		var tmpSlaveStatus = deepcopy.Copy(*slaveStatus).(dbareport.StatusInfo)
+		slaveStatus = deepcopy.Copy(&masterStatus).(*dbareport.StatusInfo)
+		masterStatus = deepcopy.Copy(tmpSlaveStatus).(dbareport.StatusInfo)
+	}
+	return &masterStatus, slaveStatus, nil
 }
 
 // BackupUploadInfo /data/IEOD_FILE_BACKUP/xxx.done
@@ -220,12 +235,12 @@ type BackupUploadInfo struct {
 }
 
 // readIedBackupUploadInfo maybe master's ip
-func readIedBackupUploadInfo(infoFilePath string) *BackupUploadInfo {
+func readIedBackupUploadInfo(infoFilePath string) (*BackupUploadInfo, error) {
 	filename := filepath.Base(infoFilePath)
 	doneFile := filepath.Join("/data/IEOD_FILE_BACKUP/", filename+".Done")
 	buf, err := os.ReadFile(doneFile)
 	if err != nil {
-		return nil
+		return nil, errors.WithMessagef(err, "read backup Done file")
 	}
 	uploadInfo := BackupUploadInfo{}
 	lines := strings.Split(string(buf), "\n")
@@ -237,16 +252,16 @@ func readIedBackupUploadInfo(infoFilePath string) *BackupUploadInfo {
 			fileName = strings.TrimSpace(strings.TrimPrefix(l, "NAME="))
 		} else if strings.HasPrefix(l, "TAG=") {
 			fileTag = strings.TrimSpace(strings.TrimPrefix(l, "TAG="))
-		} else if strings.HasPrefix(l, "TASKID=") {
-			taskId = strings.TrimSpace(strings.TrimPrefix(l, "TASKID="))
+		} else if strings.HasPrefix(l, "taskid:") {
+			taskId = strings.TrimSpace(strings.TrimPrefix(l, "taskid:"))
 		}
 	}
-	if fileName != "" {
+	if fileName != "" && taskId != "" {
 		//fileNameBase := filepath.Base(fileName)
 		uploadInfo = BackupUploadInfo{Name: fileName, BindIp: bindIp, Tag: fileTag, TaskId: taskId}
-		return &uploadInfo
+		return &uploadInfo, nil
 	}
-	return &uploadInfo
+	return nil, errors.Errorf("done file %s taskid:%s NAME=%s", doneFile, taskId, fileName)
 }
 
 // XLoadGetBackupSlaveStatus godoc
@@ -267,8 +282,7 @@ func XLoadGetBackupSlaveStatus(xtraInfoFile string) (*dbareport.StatusInfo, *dba
 		backupRole = "master"
 	}
 	masterStatus := dbareport.StatusInfo{}
-	slaveStatus := dbareport.StatusInfo{}
-
+	var slaveStatus *dbareport.StatusInfo
 	if cm, err := mysqlutil.ParseXtraBinlogInfo(string(binlogInfo)); err != nil {
 		return nil, nil, err
 	} else {
@@ -283,11 +297,12 @@ func XLoadGetBackupSlaveStatus(xtraInfoFile string) (*dbareport.StatusInfo, *dba
 			if err := cm.ParseChangeSQL(); err != nil {
 				return nil, nil, errors.Wrap(err, string(slaveInfo))
 			}
+			slaveStatus = &dbareport.StatusInfo{}
 			slaveStatus.BinlogFile = cm.MasterLogFile
 			slaveStatus.BinlogPos = cast.ToString(cm.MasterLogPos)
 		}
 	}
-	return &masterStatus, &slaveStatus, nil
+	return &masterStatus, slaveStatus, nil
 }
 
 // BackupFile TODO
@@ -400,10 +415,10 @@ func ParseBackupInfoFile(infoFilePath string, infoObj *InfoFileDetail) error {
 	if err := scanner.Err(); err != nil {
 		return fmt.Errorf("scan file %s failed, err:%s", infoFilePath, err.Error())
 	}
+	infoObj.infoFilePath = infoFilePath
 	if err := infoObj.parseBackupInstance(); err != nil {
 		return err
 	}
-	infoObj.infoFilePath = infoFilePath
 	infoObj.backupBasename = strings.TrimSuffix(fileName, ".info")
 	infoObj.backupDir = fileDir
 	// infoObj.targetDir = filepath.Join(fileDir, infoObj.backupIndexBasename)
@@ -419,18 +434,31 @@ const (
 func (i *InfoFileDetail) parseBackupInstance() error {
 	var reg *regexp.Regexp
 	if i.BackupType == TypeGZTAB {
-		// --gztab=/data1/dbbak/DBHA_host-1_127.0.0.1_20000_20220831_200425
-		reg = regexp.MustCompile(`gztab=.*_(\d+\.\d+\.\d+\.\d+)_(\d+)_(\d+_\d+).*`)
+		reg = regexp.MustCompile(`.*_(\d+\.\d+\.\d+\.\d+)_(\d+)_(\d+_\d+)\.info`)
 	} else if i.BackupType == TypeXTRA {
-		// --target-dir=/data1/dbbak/DBHA_host-1_127.0.0.1_20000_20220907_040332_xtra
-		reg = regexp.MustCompile(`target-dir=.*_(\d+\.\d+\.\d+\.\d+)_(\d+)_(\d+_\d+).*`)
+		reg = regexp.MustCompile(`.*_(\d+\.\d+\.\d+\.\d+)_(\d+)_(\d+_\d+)_xtra\.info`)
 	} else {
 		return fmt.Errorf("uknown backup type %s", i.BackupType)
 	}
-	m := reg.FindStringSubmatch(i.Cmd)
+	m := reg.FindStringSubmatch(filepath.Base(i.infoFilePath))
 	if len(m) != 4 {
-		return fmt.Errorf("failed to get host:port from %s", i.Cmd)
+		return fmt.Errorf("failed to get host:port from %s", i.infoFilePath)
 	}
+	/*
+		if i.BackupType == TypeGZTAB {
+			// --gztab=/data1/dbbak/DBHA_host-1_127.0.0.1_20000_20220831_200425
+			reg = regexp.MustCompile(`gztab=.*_(\d+\.\d+\.\d+\.\d+)_(\d+)_(\d+_\d+).*`)
+		} else if i.BackupType == TypeXTRA {
+			// --target-dir=/data1/dbbak/DBHA_host-1_127.0.0.1_20000_20220907_040332_xtra
+			reg = regexp.MustCompile(`target-dir=.*_(\d+\.\d+\.\d+\.\d+)_(\d+)_(\d+_\d+).*`)
+		} else {
+			return fmt.Errorf("uknown backup type %s", i.BackupType)
+		}
+		m := reg.FindStringSubmatch(i.Cmd)
+		if len(m) != 4 {
+			return fmt.Errorf("failed to get host:port from %s", i.Cmd)
+		}
+	*/
 	i.BackupHost = m[1]
 	i.BackupPort, _ = strconv.Atoi(m[2])
 	timeLayout := `20060102_150405`

@@ -379,6 +379,14 @@ func (h *DbWorker) GetBinlogDir(port int) (string, string, error) {
 	}
 }
 
+func (h *DbWorker) GetSocketPath() (string, error) {
+	socketPath, err := h.GetSingleGlobalVar("socket")
+	if err != nil {
+		return "", err
+	}
+	return socketPath, nil
+}
+
 // ShowApplicationProcesslist 查询是否存在非系统用户的processlist
 // 已经忽略了dbsysUsers
 func (h *DbWorker) ShowApplicationProcesslist(sysUsers []string) (processLists []SelectProcessListResp, err error) {

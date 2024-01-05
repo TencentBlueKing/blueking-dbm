@@ -64,10 +64,11 @@ func (b *BackupInfo) GetBackupMetaFile(fileType string) error {
 	}
 	metaFilename := strings.TrimSpace(fileList[0])
 	metaFilePath := filepath.Join(b.BackupDir, metaFilename)
+	logger.Info("GetBackupMetaFile metaFilePath:%+v", metaFilePath)
 	if err := cmutil.FileExistsErr(metaFilePath); err != nil {
 		return err
 	}
-	if strings.HasSuffix(metaFilename, ".index") || fileType == dbbackup.BACKUP_INDEX_FILE {
+	if strings.HasSuffix(metaFilename, ".index") {
 		b.indexFilePath = metaFilePath
 		//b.backupBaseName = strings.TrimSuffix(metaFilename, ".index")
 		var indexObj = &dbbackup.BackupIndexFile{}
@@ -79,7 +80,21 @@ func (b *BackupInfo) GetBackupMetaFile(fileType string) error {
 			b.backupHost = b.indexObj.BackupHost
 			b.backupPort = b.indexObj.BackupPort
 		}
-	} else if strings.HasSuffix(metaFilename, ".info") || fileType == dbbackup.MYSQL_INFO_FILE {
+	}
+
+	if cmutil.StringsHas([]string{"gztab", "xtra"}, b.backupType) {
+		indexInfoFile := ""
+		for _, fileItem := range b.indexObj.FileList {
+			if fileItem.FileType == "index" {
+				indexInfoFile = fileItem.FileName
+				break
+			}
+		}
+		metaFilename = indexInfoFile
+		metaFilePath = filepath.Join(b.BackupDir, metaFilename)
+	}
+	logger.Info("GetBackupMetaFile backupType:%+v metaFilename", b.backupType, metaFilename)
+	if strings.HasSuffix(metaFilename, ".info") {
 		b.infoFilePath = metaFilePath
 		//b.backupBaseName = strings.TrimSuffix(metaFilename, ".info")
 		var infoObj = &dbbackup.InfoFileDetail{}
@@ -90,9 +105,8 @@ func (b *BackupInfo) GetBackupMetaFile(fileType string) error {
 			b.backupType = b.infoObj.BackupType
 			b.backupHost = b.infoObj.BackupHost
 			b.backupPort = b.infoObj.BackupPort
+			logger.Info("GetBackupMetaFile infoObj:%+v", b.infoObj)
 		}
-	} else {
-		return errors.Errorf("unknown meta file_type: %s", fileType)
 	}
 	logger.Info("backupType=%s, backupHost=%s, backupPort=%d", b.backupType, b.backupHost, b.backupPort)
 	return nil

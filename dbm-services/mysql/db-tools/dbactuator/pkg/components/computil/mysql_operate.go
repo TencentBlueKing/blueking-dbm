@@ -71,7 +71,7 @@ func IsInstanceRunning(inst native.InsObject) bool {
 
 // RestartMysqlInstance TODO
 func (p *StartMySQLParam) RestartMysqlInstance() (pid int, err error) {
-	if err := ShutdownMySQLBySocket2(p.MySQLUser, p.MySQLPwd, p.Socket); err != nil {
+	if err := ForceShutDownMySQL(p.MySQLUser, p.MySQLPwd, p.Socket); err != nil {
 		return 0, err
 	}
 	return p.StartMysqlInstance()
@@ -151,6 +151,8 @@ func (p *StartMySQLParam) CheckMysqlProcess() (err error) {
 
 // ShutdownMySQLParam TODO
 type ShutdownMySQLParam struct {
+	Host      string
+	Port      int
 	MySQLUser string
 	MySQLPwd  string
 	Socket    string
@@ -173,12 +175,18 @@ func (param ShutdownMySQLParam) ShutdownMySQLBySocket() (err error) {
 	return JudgeMysqldShutDown(param.Socket)
 }
 
-// ShutdownMySQLBySocket2 通过 socket 连接关闭 MySQL，这样的关闭更加可靠。
+// ShutdownMySQLBySocket 通过 socket 连接关闭 MySQL，这样的关闭更加可靠。
 //  1. 可能还需要考虑 shutdown 超时问题。
 //  2. 可能需要通过 expect 方式，避免暴露密码。
-func ShutdownMySQLBySocket2(user, password, socket string) (err error) {
+func ShutdownMySQLBySocket(user, password, socket string) (err error) {
 	param := &ShutdownMySQLParam{MySQLUser: user, MySQLPwd: password, Socket: socket}
 	return param.ShutdownMySQLBySocket()
+}
+
+// ForceShutDownMySQL force shutdown mysqld by socket
+func ForceShutDownMySQL(user, password, socket string) (err error) {
+	param := &ShutdownMySQLParam{MySQLUser: user, MySQLPwd: password, Socket: socket}
+	return param.ForceShutDownMySQL()
 }
 
 // ForceShutDownMySQL 强制关闭mysqld
@@ -187,10 +195,19 @@ func ShutdownMySQLBySocket2(user, password, socket string) (err error) {
 //	@return err
 func (param ShutdownMySQLParam) ForceShutDownMySQL() (err error) {
 	if param.Socket == "" {
+		//return errors.Errorf("no socket file givien")
+		//param.Socket = getSocketByPort()
+	}
+	mysqladminCmd := []string{"mysqladmin", "-u", param.MySQLUser, "-p" + param.MySQLPwd}
+	if param.Socket != "" {
+		mysqladminCmd = append(mysqladminCmd, "--socket", param.Socket)
+	} else if param.Host != "" && param.Port != 0 {
+		mysqladminCmd = append(mysqladminCmd, "-h", param.Host, "-P", cast.ToString(param.Port))
+	} else {
 		return errors.Errorf("no socket file givien")
 	}
-	shellCMD := fmt.Sprintf("mysqladmin -u%s -p%s -S%s shutdown", param.MySQLUser, param.MySQLPwd, param.Socket)
-	output, err := mysqlutil.ExecCommandMySQLShell(shellCMD)
+	//shellCMD := fmt.Sprintf("mysqladmin -u%s -p%s -S%s shutdown", param.MySQLUser, param.MySQLPwd, param.Socket)
+	output, err := mysqlutil.ExecCommandMySQLShell(strings.Join(mysqladminCmd, " "))
 	if err != nil {
 		logger.Warn("使用mysqladmin shutdown 失败:%s output:%s", err.Error(), string(output))
 		// 如果用 shutdown 执行失败
@@ -284,7 +301,7 @@ func KillMySQLD(regexpStr string) error {
 	} else if processCnt > 1 {
 		return errors.Errorf("expect found mysql process %s count 1, bug got %d", regexpStr, processCnt)
 	}
-	logger.Info("will kill this %d  %s", regexpStr, processCnt)
+	logger.Info("will kill this %s  %d", regexpStr, processCnt)
 	killCmd := fmt.Sprintf("ps -efwww|grep %s|egrep -v grep |awk '{print $2}'|xargs  kill -15", regexpStr)
 	logger.Info(" kill command is %s", killCmd)
 	kOutput, err := osutil.ExecShellCommand(false, killCmd)

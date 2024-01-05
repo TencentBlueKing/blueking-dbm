@@ -94,6 +94,6 @@ func (b *BuildMsRelationAct) Run() (err error) {
 		return err
 	}
 
-	logger.Info("build master slave realtion successfully")
+	logger.Info("build master slave relation successfully")
 	return nil
 }

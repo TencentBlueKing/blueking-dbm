@@ -19,21 +19,25 @@ import (
 )
 
 // RepairUserAdminByLocal TODO
-func (x *XLoad) RepairUserAdminByLocal(user, password string) error {
-	sql := fmt.Sprintf(
+func (x *XLoad) RepairUserAdminByLocal(host, user, password string, version string) error {
+	sql1 := fmt.Sprintf(
 		"UPDATE `mysql`.`user` SET `authentication_string`=password('%s') WHERE `user`='%s'",
 		password, user,
 	)
-	// sql := fmt.Sprintf("ALTER USER %s@'localhost' IDENTIFIED WITH mysql_native_password BY '%s'", password, user)
-	logger.Info("RepairUserAdminByLocal: %s", sql)
-	if _, err := x.dbWorker.Exec(sql); err != nil {
+	if mysqlutil.MySQLVersionParse(version) < mysqlutil.MySQLVersionParse("5.7.6") {
+		sql1 = fmt.Sprintf(
+			"UPDATE `mysql`.`user` SET `Password`=password('%s') WHERE `user`='%s'",
+			password, user,
+		)
+	}
+	sql2 := fmt.Sprintf("UPDATE `mysql`.`user` SET `host`='%s' "+
+		"WHERE `host` NOT IN ('127.0.0.1', 'localhost') AND `user`='%s' LIMIT 1", host, user)
+	logger.Info("RepairUserAdminByLocal: %s ; %s", sql1, sql2)
+	if _, err := x.dbWorker.Exec(sql1); err != nil {
 		return err
 	}
+	_, _ = x.dbWorker.Exec(sql2)
 
-	// ALTER USER ADMIN@'localhost' IDENTIFIED BY 'auth_string';
-	// SET PASSWORD FOR 'ADMIN'@'localhost' = 'auth_string';
-	// ALTER USER 'root'@'%' IDENTIFIED WITH mysql_native_password BY 'XXX';
-	// flush privileges;
 	if _, err := x.dbWorker.Exec("FLUSH PRIVILEGES"); err != nil {
 		return err
 	}
@@ -226,8 +230,12 @@ func (x *XLoad) ReplaceMycnf(items []string) error {
 		if util.StringsHas(itemsExclude, key) {
 			continue
 		}
-		itemMap[key] = bakCnfMap.Section[util.MysqldSec].KvMap[key]
-		// sed 's///g' f > /tmp/f && cat /tmp/f > f
+		// 需要忽略没在 backup-my.cnf 里面的配置项
+		if val, ok := bakCnfMap.Section[util.MysqldSec].KvMap[key]; ok {
+			itemMap[key] = val
+		} else {
+			continue
+		}
 	}
 	if len(itemMap) > 0 {
 		logger.Info("ReplaceMycnf new: %v", itemMap)

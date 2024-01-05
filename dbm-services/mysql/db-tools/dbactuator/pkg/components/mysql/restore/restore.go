@@ -172,11 +172,7 @@ func (r *RestoreDRComp) BuildChangeMaster() *mysql.BuildMSRelationComp {
 func (r *RestoreDRComp) ChooseType() error {
 	b := &r.Params.BackupInfo
 	if err := b.GetBackupMetaFile(dbbackup.BACKUP_INDEX_FILE); err != nil {
-		logger.Warn("get index file failed: %s, try to get info file", err.Error())
-		// return err
-		if err := b.GetBackupMetaFile(dbbackup.MYSQL_INFO_FILE); err != nil {
-			return err
-		}
+		return err
 	}
 	b.backupType = strings.ToLower(b.backupType) // 一律转成小写来判断
 	if b.backupType == cst.TypeXTRA {
