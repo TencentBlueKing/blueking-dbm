@@ -8,12 +8,15 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+from collections import defaultdict
 
+from django.db.models import Q
 from django.utils.translation import ugettext_lazy as _
 from rest_framework.decorators import action
+from rest_framework.response import Response
 
 from backend.bk_web.swagger import common_swagger_auto_schema
-from backend.db_meta.models import Cluster
+from backend.db_meta.models import Cluster, ExtraProcessInstance
 from backend.db_proxy.constants import SWAGGER_TAG
 from backend.ticket.constants import TicketType
 from backend.ticket.models import Ticket
@@ -42,8 +45,31 @@ class DumperProxyPassViewSet(BaseProxyPassViewSet):
         domain__cluster = {
             cluster.immute_domain: cluster for cluster in Cluster.objects.filter(immute_domain__in=cluster_domains)
         }
+
+        dumper_filers = Q()
+        # 格式化单据detail信息
         for info in data["infos"]:
-            info["cluster_id"] = domain__cluster[info["cluster_domain"]]
+            info["cluster_id"] = domain__cluster[info["cluster_domain"]].id
+            # 兼容适配dbha的切换结构体，将字段转换为dumper切换的单据协议
+            dumper_ip_port_filter = Q()
+            for switch in info["switch_instances"]:
+                switch["host"] = switch.pop("ip")
+                switch["repl_binlog_file"] = switch.pop("binlog_file")
+                switch["repl_binlog_pos"] = switch.pop("binlog_position")
+                dumper_ip_port_filter |= Q(ip=switch["host"], listen_port=switch["port"])
+
+            dumper_filers = dumper_filers | (Q(cluster_id=info["cluster_id"]) & dumper_ip_port_filter)
+
+        # 查询dumper信息，填充dumper_instance_id
+        dumpers = ExtraProcessInstance.objects.filter(dumper_filers)
+        ip_port__dumper = defaultdict(dict)
+        for dumper in dumpers:
+            ip_port__dumper[dumper.ip][dumper.listen_port] = dumper
+        for info in data["infos"]:
+            for switch in info["switch_instances"]:
+                ip, port = switch["host"], switch["port"]
+                switch["dumper_instance_id"] = ip_port__dumper[ip][port].id
+
         # 创建dumper迁移单据
         Ticket.create_ticket(
             ticket_type=TicketType.TBINLOGDUMPER_SWITCH_NODES,
@@ -52,3 +78,4 @@ class DumperProxyPassViewSet(BaseProxyPassViewSet):
             remark=_("透传接口dumper迁移创建的单据"),
             details=data,
         )
+        return Response(data)

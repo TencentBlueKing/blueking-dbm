@@ -18,12 +18,12 @@ from backend.db_proxy.views.serialiers import BaseProxyPassSerializer
 class DumperMigrateProxyPassSerializer(BaseProxyPassSerializer):
     class DumperSwitchInfoSerializer(serializers.Serializer):
         class SwitchInstanceSerializer(serializers.Serializer):
-            host = serializers.CharField(help_text=_("主机IP"))
+            ip = serializers.CharField(help_text=_("主机IP"))
             port = serializers.IntegerField(help_text=_("主机端口"))
-            repl_binlog_file = serializers.CharField(help_text=_("待切换后需要同步的binlog文件"))
-            repl_binlog_pos = serializers.IntegerField(help_text=_("待切换后需要同步的binlog文件的为位点"))
+            binlog_file = serializers.CharField(help_text=_("待切换后需要同步的binlog文件"))
+            binlog_position = serializers.IntegerField(help_text=_("待切换后需要同步的binlog文件的为位点"))
 
-        cluster_domain = serializers.IntegerField(help_text=_("集群域名"))
+        cluster_domain = serializers.CharField(help_text=_("集群域名"))
         switch_instances = serializers.ListSerializer(help_text=_("dumper切换信息"), child=SwitchInstanceSerializer())
 
     infos = serializers.ListSerializer(child=DumperSwitchInfoSerializer())
