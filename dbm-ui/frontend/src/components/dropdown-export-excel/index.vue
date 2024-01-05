@@ -36,6 +36,7 @@
   import { exportHdfsClusterToExcel, exportHdfsInstanceToExcel } from '@services/source/hdfs';
   import { exportInfluxdbClusterToExcel, exportInfluxdbInstanceToExcel } from '@services/source/influxdb';
   import { exportKafkaClusterToExcel, exportKafkaInstanceToExcel } from '@services/source/kafka';
+  import { exportMongodbInstanceToExcel } from '@services/source/mongodb';
   import { exportPulsarClusterToExcel, exportPulsarInstanceToExcel } from '@services/source/pulsar';
   import { exportRedisClusterToExcel, exportRedisInstanceToExcel } from '@services/source/redis';
   import { exportSpiderClusterToExcel, exportSpiderInstanceToExcel } from '@services/source/spider';
@@ -43,7 +44,7 @@
   import { exportTendbsingleClusterToExcel, exportTendbsingleInstanceToExcel } from '@services/source/tendbsingle';
 
   interface Props {
-    type: 'tendbsingle' | 'tendbha' | 'spider' | 'redis' | 'pulsar' | 'kafka' | 'influxdb' | 'hdfs' | 'es';
+    type: 'tendbsingle' | 'tendbha' | 'spider' | 'redis' | 'pulsar' | 'kafka' | 'influxdb' | 'hdfs' | 'es' |'mongodb';
     ids?: number[];
     exportType?: 'cluster' | 'instance';
     hasSelected?: boolean;
@@ -97,6 +98,9 @@
     es: {
       cluster: exportEsClusterToExcel,
       instance: exportEsInstanceToExcel,
+    },
+    mongodb: {
+      instance: exportMongodbInstanceToExcel,
     },
   };
 
