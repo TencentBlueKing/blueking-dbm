@@ -20,6 +20,7 @@ import {
 
 import type {
   BigdataFunctions,
+  MongoFunctions,
   MySQLFunctions,
   RedisFunctions,
 } from '@services/model/function-controller/functionController';
@@ -57,6 +58,7 @@ import getTicketsRoutes from '@views/tickets/routes';
 import getVersionFilesRoutes from '@views/version-files/routes';
 import getWhitelistRoutes from '@views/whitelist/routes';
 
+import getMongoRoutes from '@/views/mongodb-manage/routes';
 let appRouter: Router;
 export default () => {
   // 解析 url 业务id
@@ -86,6 +88,7 @@ export default () => {
   const mysqlController = funControllerData.getFlatData<MySQLFunctions, 'mysql'>('mysql');
   const redisController = funControllerData.getFlatData<RedisFunctions, 'redis'>('redis');
   const bigdataController = funControllerData.getFlatData<BigdataFunctions, 'bigdata'>('bigdata');
+  const mongdbController = funControllerData.getFlatData<MongoFunctions, 'mongodb'>('mongodb');
 
   appRouter = createRouter({
     history: createWebHistory(),
@@ -129,6 +132,7 @@ export default () => {
           ...getTemporaryPasswordModify(),
           ...getRiakManage(bigdataController),
           ...getTicketFlowSettingRoutes(),
+          ...getMongoRoutes(mongdbController),
         ],
       },
       {
