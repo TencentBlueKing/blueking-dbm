@@ -35,6 +35,14 @@ from backend.flow.consts import (
     RedisSlotNum,
     WriteContextOpType,
 )
+from backend.db_services.redis.util import (
+    is_predixy_proxy_type,
+    is_redis_cluster_protocal,
+    is_redis_instance_type,
+    is_tendisplus_instance_type,
+    is_tendisssd_instance_type,
+    is_twemproxy_proxy_type,
+)
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.redis.atom_jobs import RedisBatchInstallAtomJob
@@ -120,7 +128,7 @@ class RedisDataStructureFlow(object):
                 cluster_type,
             )
 
-            if cluster_type == ClusterType.TendisPredixyTendisplusCluster.value:
+            if is_tendisplus_instance_type(act_kwargs.cluster["cluster_type"]):
                 logger.info("redis_data_structure_flow kvstorecount:{}".format(redis_config["kvstorecount"]))
                 act_kwargs.cluster["kvstorecount"] = redis_config["kvstorecount"]
             act_kwargs.cluster["ticket_type"] = self.data["ticket_type"]
@@ -346,7 +354,7 @@ class RedisDataStructureFlow(object):
             # # ### cc 转移机器模块完成 ############################################################
 
             # ### 如果是tendisplus,需要构建tendis cluster关系 ############################################################
-            if cluster_type == ClusterType.TendisPredixyTendisplusCluster.value:
+            if is_redis_cluster_protocal(cluster_type):
                 logger.info("cluster_type is:{} need tendis cluster relation".format(cluster_type))
                 act_kwargs.cluster["all_instance"] = cluster_dst_instance
                 act_kwargs.get_redis_payload_func = RedisActPayload.rollback_clustermeet_payload.__name__
@@ -365,14 +373,11 @@ class RedisDataStructureFlow(object):
             act_kwargs.get_trans_data_ip_var = RedisDataStructureContext.get_proxy_exec_ip_var_name()
 
             trans_files = GetFileList(db_type=DBType.Redis)
-            if cluster_type in [
-                ClusterType.TendisTwemproxyRedisInstance.value,
-                ClusterType.TwemproxyTendisSSDInstance.value,
-            ]:
+            if is_twemproxy_proxy_type(cluster_type):
                 # 部署proxy pkg包
                 act_kwargs.file_list = trans_files.redis_cluster_apply_proxy(cluster_type)
                 proxy_payload = RedisActPayload.add_twemproxy_payload.__name__
-            elif cluster_type == ClusterType.TendisPredixyTendisplusCluster.value:
+            elif is_predixy_proxy_type(cluster_type):
                 act_kwargs.file_list = trans_files.tendisplus_apply_proxy()
                 proxy_payload = RedisActPayload.add_predixy_payload.__name__
             else:
@@ -387,7 +392,7 @@ class RedisDataStructureFlow(object):
             )
 
             # 构造proxy server信息
-            if cluster_type in [ClusterType.TendisTwemproxyRedisInstance, ClusterType.TwemproxyTendisSSDInstance]:
+            if is_twemproxy_proxy_type(cluster_type):
                 servers = self.cal_twemproxy_serveres("admin", redis_instance_set, node_pairs)
             elif cluster_type == ClusterType.TendisPredixyTendisplusCluster:
                 servers = cluster_dst_instance
@@ -409,7 +414,7 @@ class RedisDataStructureFlow(object):
             redis_pipeline.add_parallel_acts(acts_list=acts_list)
 
             # # ###  # ### 如果是tendisplus,需要重新构建 cluster关系,因为tendisplus数据构造需要reset集群关系  ##############
-            if cluster_type == ClusterType.TendisPredixyTendisplusCluster.value:
+            if is_redis_cluster_protocal(cluster_type):
                 logger.info("cluster_type is:{}  cluster  meet and check finish relation".format(cluster_type))
                 act_kwargs.cluster["all_instance"] = cluster_dst_instance
                 act_kwargs.get_redis_payload_func = RedisActPayload.clustermeet_check_payload.__name__
@@ -495,11 +500,11 @@ class RedisDataStructureFlow(object):
 
     @staticmethod
     def get_tendis_type_by_cluster_type(cluster_type: str) -> str:
-        if cluster_type == ClusterType.TendisTwemproxyRedisInstance.value:
+        if is_redis_instance_type(cluster_type):
             tendis_type = ClusterType.RedisInstance.value
-        elif cluster_type == ClusterType.TendisPredixyTendisplusCluster.value:
+        elif is_tendisplus_instance_type(cluster_type):
             tendis_type = ClusterType.TendisplusInstance.value
-        elif cluster_type == ClusterType.TwemproxyTendisSSDInstance.value:
+        elif is_tendisssd_instance_type(cluster_type):
             tendis_type = ClusterType.TendisSSDInstance.value
         else:
             raise NotImplementedError("Not supported tendis type: %s" % cluster_type)

@@ -20,6 +20,7 @@ from backend.configuration.constants import DBType
 from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.enums import ClusterType, InstanceRole, MigrateStatus
 from backend.db_meta.models import Cluster
+from backend.db_services.redis.util import is_predixy_proxy_type
 from backend.flow.consts import DEFAULT_REDIS_START_PORT
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
@@ -235,7 +236,7 @@ def redis_migrate_slots_4_contraction(root_id: str, flow_data: dict, act_kwargs:
     )
     # 获取所有proxy ip
     predixy_kwargs.cluster["proxy_ips"] = [proxy_obj.machine.ip for proxy_obj in cluster.proxyinstance_set.all()]
-    if act_kwargs.cluster["cluster_type"] == ClusterType.TendisPredixyTendisplusCluster.value:
+    if is_predixy_proxy_type(act_kwargs.cluster["cluster_type"]):
         predixy_kwargs.exec_ip = predixy_kwargs.cluster["proxy_ips"]
         # 已下架的节点，需要在proxy里去掉
         for instance in contraction_instance:
@@ -477,7 +478,7 @@ def redis_rebalance_slots_4_expansion(root_id: str, flow_data: dict, act_kwargs:
     )
     # 获取所有proxy ip
     predixy_kwargs.cluster["proxy_ips"] = [proxy_obj.machine.ip for proxy_obj in cluster.proxyinstance_set.all()]
-    if act_kwargs.cluster["cluster_type"] == ClusterType.TendisPredixyTendisplusCluster.value:
+    if is_predixy_proxy_type(act_kwargs.cluster["cluster_type"]):
         predixy_kwargs.exec_ip = predixy_kwargs.cluster["proxy_ips"]
         for instance in new_master_instance:
             predixy_kwargs.cluster[

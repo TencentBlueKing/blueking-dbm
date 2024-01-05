@@ -21,6 +21,7 @@ from backend.components.dbconfig.constants import FormatType, LevelName
 from backend.db_meta import api
 from backend.db_meta.enums.cluster_type import ClusterType
 from backend.db_meta.models import Machine
+from backend.db_services.redis.util import is_twemproxy_proxy_type
 from backend.flow.consts import DEFAULT_DB_MODULE_ID, ConfigFileEnum, ConfigTypeEnum, DnsOpType
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.redis.atom_jobs import (
@@ -74,7 +75,7 @@ class RedisProxyScaleFlow(object):
         redis_slave_set = cluster_info["redis_slave_set"]
         proxy_port = cluster_info["twemproxy_ports"][0]
         servers = []
-        if cluster_type in [ClusterType.TendisTwemproxyRedisInstance, ClusterType.TwemproxyTendisSSDInstance]:
+        if is_twemproxy_proxy_type(cluster_type):
             for set in redis_master_set:
                 ip_port, seg_range = str.split(set)
                 servers.append("{} {} {} {}".format(ip_port, cluster_name, seg_range, 1))

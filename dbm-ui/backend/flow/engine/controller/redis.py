@@ -165,7 +165,14 @@ class RedisController(BaseController):
         tendis 安装dbmon, 适用于 proxy、 redis
         """
         flow = RedisDbmonSceneFlow(root_id=self.root_id, data=self.ticket_data)
-        flow.batch_update_dbmon()
+        flow.batch_ips_update_dbmon()
+
+    def redis_clusters_reinstall_dbmon_scene(self):
+        """
+        tendis 集群重新安装dbmon, 集群所有proxy、 redis机器dbmon都会被重转
+        """
+        flow = RedisDbmonSceneFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.batch_clusters_update_dbmon()
 
     def redis_cluster_data_copy(self):
         """
