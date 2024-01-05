@@ -14,10 +14,10 @@ import (
 	"fmt"
 	"strings"
 
+	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/native"
-	"dbm-services/mysql/db-tools/dbactuator/pkg/util/mysqlutil"
 )
 
 // CloneClentGRantComp TODO
@@ -75,7 +75,7 @@ func (g *CloneClentGRantComp) ReadTemplateClientPriv() (grantSql []string, err e
 	)
 	created := false
 
-	if mysqlutil.MySQLVersionParse(g.masterVersion) > 5007000 {
+	if cmutil.MySQLVersionParse(g.masterVersion) > 5007000 {
 		created = true
 	}
 

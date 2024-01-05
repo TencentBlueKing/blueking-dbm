@@ -8,6 +8,7 @@ import (
 
 	"github.com/spf13/cast"
 
+	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/native"
@@ -303,11 +304,11 @@ func KillMySQLD(regexpStr string) error {
 func GetMysqlSystemDatabases(version string) []string {
 	DBs := []string{"information_schema", "mysql", "performance_schema"}
 
-	if mysqlutil.MySQLVersionParse(version) > mysqlutil.MySQLVersionParse("5.7.0") {
+	if cmutil.MySQLVersionParse(version) > cmutil.MySQLVersionParse("5.7.0") {
 		DBs = append(DBs, "sys")
-	} else if mysqlutil.MySQLVersionParse(version) < mysqlutil.MySQLVersionParse("5.0.0") {
+	} else if cmutil.MySQLVersionParse(version) < cmutil.MySQLVersionParse("5.0.0") {
 		DBs = []string{"mysql"}
-	} else if mysqlutil.MySQLVersionParse(version) < mysqlutil.MySQLVersionParse("5.5.0") {
+	} else if cmutil.MySQLVersionParse(version) < cmutil.MySQLVersionParse("5.5.0") {
 		DBs = []string{"information_schema", "mysql"}
 	}
 	return DBs

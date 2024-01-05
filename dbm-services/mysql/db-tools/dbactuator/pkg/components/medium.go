@@ -56,13 +56,14 @@ func (m *Medium) GePkgBaseName() string {
 // 官方包名：mysql-8.0.32-linux-glibc2.12-x86_64.tar.xz mysql-5.7.42-linux-glibc2.12-x86_64.tar.gz
 // txsql: mysql-txsql-8.0.30-12345678-linux-x86_64.tar.gz
 func (m *Medium) GetPkgTypeName() string {
-	if strings.Contains(m.Pkg, "tdbctl") {
+	switch {
+	case strings.Contains(m.Pkg, "tdbctl"):
 		return cst.PkgTypeTdbctl
-	} else if strings.Contains(m.Pkg, "tspider") {
+	case strings.Contains(m.Pkg, "tspider"):
 		return cst.PkgTypeSpider
-	} else if strings.HasPrefix(m.Pkg, "mysql-") {
+	case strings.Contains(m.Pkg, "mysql-"):
 		return cst.PkgTypeMysql
-	} else {
+	default:
 		return strings.Split(m.Pkg, "-")[0]
 	}
 }

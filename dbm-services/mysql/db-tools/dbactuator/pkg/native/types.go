@@ -108,7 +108,7 @@ type SelectProcessListResp struct {
 	Time         string         `json:"TIME" db:"TIME"`
 	State        sql.NullString `json:"STATE" db:"STATE"`
 	Info         sql.NullString `json:"INFO" db:"INFO"`
-	TimeMs       int64          `json:"TIME_MS" db:"TIME_MS"`
+	TimeMs       float64        `json:"TIME_MS" db:"TIME_MS"`
 	RowsSent     uint64         `json:"ROWS_SENT" db:"ROWS_SENT"`
 	RowsExamined uint64         `json:"ROWS_EXAMINED" db:"ROWS_EXAMINED"`
 	RowsRead     uint64         `json:"ROWS_READ" db:"ROWS_READ"`

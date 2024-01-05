@@ -551,7 +551,7 @@ func (i *InstallMySQLComp) Install() (err error) {
 			myCnf, initialLogFile)
 
 		// mysql5.7.18以上的版本
-		if mysqlutil.MySQLVersionParse(i.Params.MysqlVersion) >= mysqlutil.MySQLVersionParse("5.7.18") &&
+		if cmutil.MySQLVersionParse(i.Params.MysqlVersion) >= cmutil.MySQLVersionParse("5.7.18") &&
 			i.Params.Medium.GetPkgTypeName() == "mysql" {
 			initialMysql = fmt.Sprintf(
 				"su - mysql -c \"cd /usr/local/mysql && ./bin/mysqld --defaults-file=%s --initialize-insecure --user=mysql &>%s\"",
@@ -652,7 +652,7 @@ func (i *InstallMySQLComp) generateDefaultMysqlAccount(realVersion string) (init
 	for _, v := range privParis {
 		initAccountsql = append(initAccountsql, v.GenerateInitSql(realVersion)...)
 	}
-	if mysqlutil.MySQLVersionParse(realVersion) >= mysqlutil.MySQLVersionParse("5.7.18") {
+	if cmutil.MySQLVersionParse(realVersion) >= cmutil.MySQLVersionParse("5.7.18") {
 		s :=
 			`REPLACE INTO mysql.db(Host,Db,User,Select_priv,Insert_priv,Update_priv,Delete_priv,Create_priv,Drop_priv,
                      Grant_priv,References_priv,Index_priv,Alter_priv,Create_tmp_table_priv,Lock_tables_priv,
@@ -660,7 +660,7 @@ func (i *InstallMySQLComp) generateDefaultMysqlAccount(realVersion string) (init
                      Event_priv,Trigger_priv)
 VALUES ('%','test','','Y','Y','Y','Y','Y','Y','N','Y','Y','Y','Y','Y','Y','Y','Y','N','N','Y','Y');`
 		initAccountsql = append(initAccountsql, s)
-	} else if mysqlutil.MySQLVersionParse(i.Params.MysqlVersion) <= mysqlutil.MySQLVersionParse("5.6") {
+	} else if cmutil.MySQLVersionParse(i.Params.MysqlVersion) <= cmutil.MySQLVersionParse("5.6") {
 		s := `alter table mysql.general_log change thread_id thread_id bigint(21) unsigned NOT NULL;`
 		initAccountsql = append(initAccountsql, s)
 	}
@@ -680,7 +680,7 @@ type AdditionalAccount struct {
 // GetSuperUserAccount TODO
 func (a *AdditionalAccount) GetSuperUserAccount(realVersion string) (initAccountsql []string) {
 	for _, host := range cmutil.RemoveDuplicate(a.AccessHosts) {
-		if mysqlutil.MySQLVersionParse(realVersion) >= mysqlutil.MySQLVersionParse("5.7.18") {
+		if cmutil.MySQLVersionParse(realVersion) >= cmutil.MySQLVersionParse("5.7.18") {
 			initAccountsql = append(initAccountsql,
 				fmt.Sprintf("CREATE USER IF NOT EXISTS '%s'@'%s' IDENTIFIED WITH mysql_native_password BY '%s' ;",
 					a.User, host, a.Pwd))
@@ -699,7 +699,7 @@ func (a *AdditionalAccount) GetSuperUserAccount(realVersion string) (initAccount
 // 获取生成DHBA-GM访问账号的生成语句
 func (a *AdditionalAccount) GetDBHAAccount(realVersion string) (initAccountsql []string) {
 	for _, host := range cmutil.RemoveDuplicate(a.AccessHosts) {
-		if mysqlutil.MySQLVersionParse(realVersion) >= mysqlutil.MySQLVersionParse("5.7.18") {
+		if cmutil.MySQLVersionParse(realVersion) >= cmutil.MySQLVersionParse("5.7.18") {
 			initAccountsql = append(initAccountsql,
 				fmt.Sprintf("CREATE USER IF NOT EXISTS '%s'@'%s' IDENTIFIED WITH mysql_native_password BY '%s' ;",
 					a.User, host, a.Pwd))
@@ -986,7 +986,7 @@ func (i *InstallMySQLComp) generateDefaultSpiderAccount(realVersion string) (ini
 	for _, v := range privParis {
 		initAccountsql = append(initAccountsql, v.GenerateInitSql(realVersion)...)
 	}
-	if mysqlutil.MySQLVersionParse(realVersion) <= mysqlutil.MySQLVersionParse("5.6") {
+	if cmutil.MySQLVersionParse(realVersion) <= cmutil.MySQLVersionParse("5.6") {
 		s := `alter table mysql.general_log change thread_id thread_id bigint(21) unsigned NOT NULL;`
 		initAccountsql = append(initAccountsql, s)
 	}

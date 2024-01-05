@@ -2,10 +2,10 @@ package mysqlutil
 
 import (
 	"fmt"
-	"regexp"
 	"strconv"
 	"strings"
 
+	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util/osutil"
 
@@ -71,34 +71,11 @@ func IsSudo() bool {
 	return false
 }
 
-// 	return ""
-// }
-
-// MySQLVersionParse ():
-// input: select version() 获取到的string
-// output: 获取tmysql中的mysql前缀版本
-// example:
-// 5.7.20-tmysql-3.1.5-log ==> 5*1000000 + 7*1000 + 20 ==> 5007020
-// 5.1.13 ==>  5*1000000+1*1000+13 ==> 5001013
-func MySQLVersionParse(version string) uint64 {
-	re := regexp.MustCompile(`([\d]+).?([\d]+)?.?([\d]+)?`)
-	return mysqlVersionParse(re, version)
-}
-
-// TmysqlVersionParse tmysql version parse
-//
-//	@receiver mysqlVersion
-//	@return uint64
-func TmysqlVersionParse(mysqlVersion string) uint64 {
-	re := regexp.MustCompile(`tmysql-([\d]+).?([\d]+)?.?([\d]+)?`)
-	return mysqlVersionParse(re, mysqlVersion)
-}
-
-// GetMajorVerNum TODO
+// getMajorVerNum TODO
 // GetIntMajorVersion
 // 获取主版本 int 类型
 // 用于版本比较
-func GetMajorVerNum(versionNu uint64) uint64 {
+func getMajorVerNum(versionNu uint64) uint64 {
 	return versionNu / 1000000
 }
 
@@ -111,8 +88,8 @@ func VersionCompare(masterVer, slaveVer string) (err error) {
 	if strings.TrimSpace(masterVer) == "" || strings.TrimSpace(slaveVer) == "" {
 		return errors.New("Compare Version Is Empty String!!!")
 	}
-	masterMajVer := GetMajorVerNum(MySQLVersionParse(masterVer))
-	slaveMajVer := GetMajorVerNum(MySQLVersionParse(slaveVer))
+	masterMajVer := getMajorVerNum(cmutil.MySQLVersionParse(masterVer))
+	slaveMajVer := getMajorVerNum(cmutil.MySQLVersionParse(slaveVer))
 	if masterMajVer > slaveMajVer {
 		err = fmt.Errorf("master version(%s) must less than or equal to slave version(%s)", masterVer, slaveVer)
 		return err
@@ -128,51 +105,6 @@ func GetMajorVersion(versionNu uint64) (majorVersion string) {
 	first := versionNu / 1000000
 	second := (versionNu % 1000000) / 1000
 	return fmt.Sprintf("%d.%d", first, second)
-}
-
-func mysqlVersionParse(re *regexp.Regexp, mysqlVersion string) uint64 {
-	result := re.FindStringSubmatch(mysqlVersion)
-	var (
-		total    uint64
-		billion  string
-		thousand string
-		single   string
-		// 2.1.5  => 2 * 1000000 + 1 * 1000 + 5
-	)
-	switch len(result) {
-	case 0:
-		return 0
-	case 4:
-		billion = result[1]
-		thousand = result[2]
-		single = result[3]
-		if billion != "" {
-			b, err := strconv.ParseUint(billion, 10, 64)
-			if err != nil {
-				// log.Printf("%s", err)
-				b = 0
-			}
-			total += b * 1000000
-		}
-		if thousand != "" {
-			t, err := strconv.ParseUint(thousand, 10, 64)
-			if err != nil {
-				// log.Printf("%s", err)
-				t = 0
-			}
-			total += t * 1000
-		}
-		if single != "" {
-			s, err := strconv.ParseUint(single, 10, 64)
-			if err != nil {
-				s = 0
-			}
-			total += s
-		}
-	default:
-		return 0
-	}
-	return total
 }
 
 // GenMysqlServerId  生成my.cnf 里面的server_id

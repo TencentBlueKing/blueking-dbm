@@ -25,6 +25,7 @@ func NewSpiderCommand() *cobra.Command {
 				NewDeploySpiderCommand(),
 				NewUnInstallSpiderCommand(),
 				NewRestratSpiderCommand(),
+				NewUpgradeSpiderCommand(),
 			},
 		},
 	}

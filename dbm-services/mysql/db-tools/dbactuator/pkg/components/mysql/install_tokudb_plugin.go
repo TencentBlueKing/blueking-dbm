@@ -104,7 +104,7 @@ func (t *EnableTokudbEngineComp) Init() (err error) {
 			return err
 		}
 		// version check
-		if mysqlutil.GetMajorVersion(mysqlutil.MySQLVersionParse(ver)) != "5.6" {
+		if mysqlutil.GetMajorVersion(cmutil.MySQLVersionParse(ver)) != "5.6" {
 			return errors.New("tokudb engine only support mysql 5.6  vesion")
 		}
 		// my.cnf  exist check

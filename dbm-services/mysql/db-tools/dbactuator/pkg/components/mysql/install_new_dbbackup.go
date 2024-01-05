@@ -11,6 +11,7 @@ import (
 
 	"gopkg.in/ini.v1"
 
+	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/common/go-pubpkg/mysqlcomm"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components"
@@ -18,7 +19,6 @@ import (
 	"dbm-services/mysql/db-tools/dbactuator/pkg/native"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util/db_table_filter"
-	"dbm-services/mysql/db-tools/dbactuator/pkg/util/mysqlutil"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util/osutil"
 	ma "dbm-services/mysql/db-tools/mysql-crond/api"
 
@@ -96,7 +96,7 @@ func (i *InstallNewDbBackupComp) Example() interface{} {
 				Master:      logicBackupDataOption{DataSchemaGrant: "grant"},
 				Slave:       logicBackupDataOption{DataSchemaGrant: "grant"},
 			},
-			Configs:        nil, //&config.BackupConfig{},
+			Configs:        nil, // &config.BackupConfig{},
 			Role:           "slave",
 			ClusterAddress: map[Port]string{20000: "testdb1.xx.a1.db", 20001: "testdb2.xx.a1.db"},
 			ClusterId:      map[Port]int{20000: 111, 20001: 112},
@@ -342,7 +342,7 @@ func (i *InstallNewDbBackupComp) InitBackupUserPriv() (err error) {
 
 func (i *InstallNewDbBackupComp) initPriv(port int, isTdbCtl bool) (err error) {
 	ver := i.versionMap[port]
-	var isMysql80 = mysqlutil.MySQLVersionParse(ver) >= mysqlutil.MySQLVersionParse("8.0") &&
+	var isMysql80 = cmutil.MySQLVersionParse(ver) >= cmutil.MySQLVersionParse("8.0") &&
 		!strings.Contains(ver, "tspider")
 	logger.Info("mysql version", ver, ", is >=8.0 : ", isMysql80)
 	privs := i.GeneralParam.RuntimeAccountParam.MySQLDbBackupAccount.GetAccountPrivs(isMysql80, i.Params.Host)
@@ -419,7 +419,7 @@ func (i *InstallNewDbBackupComp) GenerateDbbackupConfig() (err error) {
 
 func (i *InstallNewDbBackupComp) writeCnf(port int, tpl *template.Template) (cnfPath string, err error) {
 	cnfPath = path.Join(i.installPath, cst.GetNewConfigByPort(port))
-	cnfFile, err := os.OpenFile(cnfPath, os.O_CREATE|os.O_RDWR|os.O_TRUNC, 0755) //os.Create(cnfPath)
+	cnfFile, err := os.OpenFile(cnfPath, os.O_CREATE|os.O_RDWR|os.O_TRUNC, 0755) // os.Create(cnfPath)
 	if err != nil {
 		return "", errors.WithMessage(err, fmt.Sprintf("create %s failed", cnfPath))
 	}
