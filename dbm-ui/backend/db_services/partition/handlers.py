@@ -74,6 +74,11 @@ class PartitionHandler(object):
         except (ApiRequestError, ApiResultError) as e:
             raise DBPartitionCreateException(_("分区管理创建失败，创建参数:{}, 错误信息: {}").format(create_data, e))
 
+        # 如果不需要分区执行的数据，则默认直接返回分区创建数据
+        need_dry_run = create_data.pop("need_dry_run", True)
+        if not need_dry_run:
+            return partition
+
         # 判断是否需要执行分区
         partition_ids = partition["config_ids"]
         partition_dry_run_params: List[Dict] = [
