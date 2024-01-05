@@ -621,7 +621,7 @@ def init_machine_sub_flow(
                     "kwargs": asdict(InstallNodemanPluginKwargs(bk_host_ids=bk_host_ids, plugin_name=plugin_name)),
                 }
             )
-    sub_pipeline.add_parallel_acts(acts_list=acts_list)
+        sub_pipeline.add_parallel_acts(acts_list=acts_list)
 
     # 判断是否需要执行按照MySQL Perl依赖
     if env.YUM_INSTALL_PERL and yum_install_perl_ips:
