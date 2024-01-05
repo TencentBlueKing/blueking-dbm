@@ -172,7 +172,8 @@
     ],
     "params": {
         "paths": [
-            "/data/mysqllog/{{ cmdb_instance.service.labels[\"instance_port\"] }}/slow-query.log"
+            "/data/mysqllog/{{ cmdb_instance.service.labels[\"instance_port\"] }}/slow-query.log",
+            "/data/mysqllog/slow-query*.log"
         ],
         "conditions": {
             "separator": "",

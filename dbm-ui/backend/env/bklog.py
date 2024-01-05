@@ -19,7 +19,7 @@ BKLOG_STORAGE_CLUSTER_ID = get_type_env(key="BKLOG_STORAGE_CLUSTER_ID", _type=in
 BKLOG_CLUSTER_SUPPORT_HOT_COLD = get_type_env(key="BKLOG_CLUSTER_SUPPORT_HOT_COLD", _type=bool, default=False)
 
 # 日志默认存储天数
-BKLOG_DEFAULT_RETENTION = get_type_env(key="BKLOG_CLUSTER_SUPPORT_HOT_COLD", _type=int, default=7)
+BKLOG_DEFAULT_RETENTION = get_type_env(key="BKLOG_DEFAULT_RETENTION", _type=int, default=7)
 
 # 自定义日志保留天数
 BKLOG_MYSQL_DBBACKUP_RESULT_RETENTION = get_type_env(key="BKLOG_MYSQL_DBBACKUP_RESULT_RETENTION", _type=int)
