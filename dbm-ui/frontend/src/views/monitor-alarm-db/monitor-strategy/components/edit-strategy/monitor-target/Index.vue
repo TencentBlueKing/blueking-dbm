@@ -13,7 +13,11 @@
 
 <template>
   <div class="monitor-targets-box">
-    <div class="left-box">
+    <div
+      class="left-box"
+      :style="{
+        display: flowList.length === 0 ? 'none' : 'block'
+      }">
       <div
         v-show="flowList.length > 0"
         class="item-box">
@@ -458,7 +462,7 @@
       position: relative;
       width: 44px;
       height: 22px;
-      margin-top: 20px;
+      margin-top: 31px;
       font-size: 12px;
       line-height: 22px;
       color: #3A84FF;
@@ -511,7 +515,6 @@
       display: flex;
       width: 100%;
       height: 32px;
-      margin-top: -11px;
 
 
       .left-bar {

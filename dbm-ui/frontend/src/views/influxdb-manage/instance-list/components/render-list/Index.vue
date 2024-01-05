@@ -264,6 +264,9 @@
                   params: {
                     instId: data.id,
                   },
+                  query: {
+                    from: route.name as string,
+                  },
                 }}>
                 {data.instance_address}
               </router-link>

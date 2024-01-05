@@ -243,4 +243,11 @@ export default class Redis {
   get updateAtDisplay() {
     return utcDisplayTime(this.update_at);
   }
+
+  /**
+   * 已禁用
+   */
+  get isStoped() {
+    return this.phase === 'offline';
+  }
 }

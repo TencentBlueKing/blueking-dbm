@@ -84,6 +84,7 @@
           :is-anomalies="state.isAnomalies"
           :is-row-select-enable="setRowSelectable"
           :is-searching="state.searchValues.length > 0"
+          :is-selected-fn="isSelectedFunc"
           :max-height="tableMaxHeight"
           :pagination="renderPagination"
           remote-pagination
@@ -388,7 +389,7 @@
               data.operations.map(item => <RenderOperationTag class="cluster-tag" data={item} />)
             }
             {
-              data.phase === 'offline'
+              data.isStoped
               && <db-icon
                   svg
                   type="yijinyong"
@@ -544,7 +545,7 @@
               {{
                 default: ({ disabled }: { disabled: boolean }) => (
                   <bk-button
-                    disabled={disabled || data.phase === 'offline'}
+                    disabled={disabled || data.isStoped}
                     text
                     theme={theme}
                     onClick={() => handleShowBackup([data])}>
@@ -560,7 +561,7 @@
               {{
                 default: ({ disabled }: { disabled: boolean }) => (
                   <bk-button
-                    disabled={disabled || data.phase === 'offline'}
+                    disabled={disabled || data.isStoped}
                     text
                     theme={theme}
                     onClick={() => handleShowPurge([data])}>
@@ -599,7 +600,7 @@
               {{
                 default: ({ disabled }: { disabled: boolean }) => (
                   <bk-button
-                    disabled={disabled || data.phase === 'offline'}
+                    disabled={disabled || data.isStoped}
                     text
                     theme={theme}
                     onClick={() => handleShowExtract([data])}>
@@ -615,7 +616,7 @@
               {{
                 default: ({ disabled }: { disabled: boolean }) => (
                   <bk-button
-                    disabled={disabled || data.phase === 'offline'}
+                    disabled={disabled || data.isStoped}
                     text
                     theme={theme}
                     onClick={() => handlShowDeleteKeys([data])}>
@@ -657,7 +658,7 @@
                     default: ({ disabled }: { disabled: boolean }) => (
                       <bk-button
                         style="width: 100%;height: 32px; justify-content: flex-start;"
-                        disabled={disabled || data.phase === 'offline'}
+                        disabled={disabled || data.isStoped}
                         text
                         onClick={() => handleSwitchCLB(clbSwitchTicketKey, data)}>
                         { data.isOnlineCLB ? t('禁用CLB') : t('启用CLB') }
@@ -675,7 +676,7 @@
                     default: ({ disabled }: { disabled: boolean }) => (
                       <bk-button
                         style="width: 100%;height: 32px; justify-content: flex-start;"
-                        disabled={disabled || data.phase === 'offline'}
+                        disabled={disabled || data.isStoped}
                         text
                         onClick={() => handleSwitchDNSBindCLB(data)}>
                         { data.dns_to_clb ? t('恢复DNS域名指向') : t('DNS域名指向CLB') }
@@ -693,7 +694,7 @@
                     default: ({ disabled }: { disabled: boolean }) => (
                       <bk-button
                         style="width: 100%;height: 32px; justify-content: flex-start;"
-                        disabled={disabled || data.phase === 'offline'}
+                        disabled={disabled || data.isStoped}
                         text
                         onClick={() => handleSwitchPolaris(polarisSwitchTicketKey, data)}>
                         { data.isOnlinePolaris ? t('禁用北极星') : t('启用北极星') }
@@ -727,7 +728,7 @@
                 ) : null
             }
             {
-              data.phase === 'offline'
+              data.isStoped
                 ? [
                   <bk-dropdown-item>
                     <OperationStatusTips
@@ -832,9 +833,11 @@
     clusterId.value = row.id;
   };
 
+  const isSelectedFunc = ({ row }: {row: RedisModel}) => !row.isStoped;
+
   // 设置行样式
   const setRowClass = (row: RedisModel) => {
-    const classList = [row.phase === 'offline' ? 'is-offline' : ''];
+    const classList = [row.isStoped ? 'is-offline' : ''];
     const newClass = isRecentDays(row.create_at, 24 * 3) ? 'is-new-row' : '';
     classList.push(newClass);
     if (row.id === clusterId.value) {
@@ -843,7 +846,7 @@
     return classList.filter(cls => cls).join(' ');
   };
   const setRowSelectable = ({ row }: { row: RedisModel }) => {
-    if (row.phase === 'offline') return false;
+    if (row.isStoped) return false;
 
     if (row.operations?.length > 0) {
       const operationData = row.operations[0];
@@ -904,7 +907,7 @@
    * 表格全选
    */
   const handleTableSelectedAll = ({ checked, data }: {checked: boolean, data: RedisModel[]}) => {
-    state.selected = checked ? [...data] : [];
+    state.selected = checked ? data : [];
   };
 
   const handleShowPassword = (id: number) => {

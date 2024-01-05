@@ -301,9 +301,10 @@
     max-height: 300px;
     min-height: 42px;
     padding: 0 16px;
+    padding-top: 10px;
     overflow-y: auto;
     font-size: 12px;
-    line-height: 40px;
+    line-height: 20px;
     color: #63656e;
     word-break: break-all;
     background: inherit;

@@ -125,7 +125,7 @@
         render: ({ cell, data }: IColumn) => (
           <div style="display: flex; align-items: center;">
             <div class="text-overflow" v-overflow-tips>
-              <a href="javascript:" onClick={() => handleToDetails(data)}>{cell}</a>
+              <a href="javascript:" onClick={e => handleToDetails(e, data)}>{cell}</a>
             </div>
             {
               isRecentDays(data.create_at, 24 * 3)
@@ -221,7 +221,7 @@
           <bk-button
             theme="primary"
             text
-            onClick={() => handleToDetails(data)}>
+            onClick={(e: Event) => handleToDetails(e, data)}>
               { t('查看详情') }
             </bk-button>
         ),
@@ -305,7 +305,8 @@
   };
 
   // 查看实例详情
-  const handleToDetails = (data: TendbInstanceModel) => {
+  const handleToDetails = (e: Event, data: TendbInstanceModel) => {
+    e.stopPropagation();
     stretchLayoutSplitScreen();
     instanceData.value = {
       instanceAddress: data.instance_address,

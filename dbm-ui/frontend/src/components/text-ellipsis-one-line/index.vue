@@ -11,7 +11,7 @@
       :style="[{'flex': isOverflow ? 1 : 'none'}, textStyle]"
       text
       theme="primary"
-      @click="handleClickText">
+      @click.stop="handleClickText">
       <div
         ref="rowRef"
         class="text">

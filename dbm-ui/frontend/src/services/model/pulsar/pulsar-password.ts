@@ -12,6 +12,7 @@
 */
 
 export default class PulsarPassword {
+  access_port: number;
   cluster_name: string;
   domain: string;
   username: string;
@@ -19,6 +20,7 @@ export default class PulsarPassword {
   token: string;
 
   constructor(payload = {} as PulsarPassword) {
+    this.access_port = payload.access_port;
     this.cluster_name = payload.cluster_name;
     this.domain = payload.domain;
     this.username = payload.username;
