@@ -59,6 +59,7 @@ class PartitionCreateSerializer(serializers.Serializer):
     partition_column_type = serializers.CharField(help_text=_("分区字段类型"))
     expire_time = serializers.IntegerField(help_text=_("过期时间"))
     partition_time_interval = serializers.IntegerField(help_text=_("分区间隔"))
+    need_dry_run = serializers.BooleanField(help_text=_("是否需要获取分区执行数据"), required=False, default=True)
 
     def validate(self, attrs):
         # 表不支持通配
