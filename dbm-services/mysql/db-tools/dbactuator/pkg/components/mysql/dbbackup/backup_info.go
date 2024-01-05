@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"dbm-services/common/go-pubpkg/cmutil"
+	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components/mysql/common"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util"
@@ -124,10 +125,10 @@ func ParseBackupInfoFile(infoFilePath string, infoObj *InfoFileDetail) error {
 	if err := scanner.Err(); err != nil {
 		return fmt.Errorf("scan file %s failed, err:%s", infoFilePath, err.Error())
 	}
+	infoObj.infoFilePath = infoFilePath
 	if err := infoObj.parseBackupInstance(); err != nil {
 		return err
 	}
-	infoObj.infoFilePath = infoFilePath
 	infoObj.backupBasename = strings.TrimSuffix(fileName, ".info")
 	infoObj.backupDir = fileDir
 	// infoObj.targetDir = filepath.Join(fileDir, infoObj.backupIndexBasename)
@@ -141,26 +142,24 @@ func ParseBackupInfoFile(infoFilePath string, infoObj *InfoFileDetail) error {
 func (i *InfoFileDetail) parseBackupInstance() error {
 	var reg *regexp.Regexp
 	if i.BackupType == cst.TypeGZTAB {
-		// --gztab=/data1/dbbak/DBHA_host-1_127.0.0.1_20000_20220831_200425
-		reg = regexp.MustCompile(`gztab=.*_(\d+\.\d+\.\d+\.\d+)_(\d+)_(\d+_\d+).*`)
+		reg = regexp.MustCompile(`.*_(\d+\.\d+\.\d+\.\d+)_(\d+)_(\d+_\d+)\.info`)
 	} else if i.BackupType == cst.TypeXTRA {
-		// --target-dir=/data1/dbbak/DBHA_host-1_127.0.0.1_20000_20220907_040332_xtra
-		reg = regexp.MustCompile(`target-dir=.*_(\d+\.\d+\.\d+\.\d+)_(\d+)_(\d+_\d+).*`)
+		reg = regexp.MustCompile(`.*_(\d+\.\d+\.\d+\.\d+)_(\d+)_(\d+_\d+)_xtra\.info`)
 	} else {
 		return fmt.Errorf("uknown backup type %s", i.BackupType)
 	}
-	m := reg.FindStringSubmatch(i.Cmd)
+	m := reg.FindStringSubmatch(filepath.Base(i.infoFilePath))
 	if len(m) != 4 {
-		return fmt.Errorf("failed to get host:port from %s", i.Cmd)
+		return fmt.Errorf("failed to get host:port from %s", i.infoFilePath)
 	}
+
 	i.BackupHost = m[1]
 	i.BackupPort, _ = strconv.Atoi(m[2])
 	timeLayout := `20060102_150405`
-	timeLayoutNew := `2006-01-02 15:04:05`
 	if t, e := time.Parse(timeLayout, m[3]); e != nil {
 		return fmt.Errorf("backup start_time parse failed %s", m[3])
 	} else {
-		i.StartTime = t.Format(timeLayoutNew)
+		i.StartTime = t.Format(time.DateTime)
 	}
 	return nil
 }
@@ -171,6 +170,7 @@ func (i *InfoFileDetail) parseBackupInstance() error {
 // full 会校验它的连续性
 func (i *InfoFileDetail) ValidateFiles() error {
 	var errFiles []string
+	logger.Info("mload infoObj backupFiles:%+v", i.backupFiles)
 
 	// BackupFiles[MYSQL_FULL_BACKUP] 可能来自参数传递，也可能来自 .info 里面读取
 	fullFileList := i.backupFiles[MYSQL_FULL_BACKUP]
@@ -209,6 +209,9 @@ func (i *InfoFileDetail) getFullFileListFromInfo(checkMD5 bool) error {
 	}
 	if len(fullFiles) == 0 {
 		return errors.New("full files not found")
+	}
+	if i.backupFiles == nil {
+		i.backupFiles = make(map[string][]string)
 	}
 	i.backupFiles[MYSQL_FULL_BACKUP] = fullFileNames
 	// sort.Strings(fullFileList)

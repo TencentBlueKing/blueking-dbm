@@ -145,36 +145,8 @@ func (m *MLoadParam) MLoadData() error {
 		if m.NoCreateTable {
 			m.mloadScript += ` --no-create-table`
 		}
-		// 判断是否需要将导入拆分成：先导 schema，再导 data. 下面这一段的执行顺序很重要
-		if m.filterOpts != "" && m.flagApartSchemaData {
-			// 这里默认 schema 导全量，data 只到需要的库表
-			if m.flagSchemaImported == 0 {
-				logger.Warn("filterImportFullSchema=true, 先导全量 schema")
-				// 先导全量 schema，不加filterOpts
-				m.NoData = true
-				m.NoCreateTable = false
-				m.flagSchemaImported = 1              // 避免进入死循环
-				if err := m.MLoadData(); err != nil { // 只用于设置参数，实际导入要调到跳出去
-					return errors.Wrap(err, "import full schema")
-				}
-				m.flagSchemaImported = 2 // 设置 flag 已导入 schema
-			}
-			if m.flagSchemaImported == 2 && m.flagDataImported == 0 {
-				// 再继续导需要的数据
-				logger.Warn("flagSchemaImported=true，导入需要的库表数据")
-				m.NoData = false
-				m.NoCreateTable = true
-				m.flagDataImported = 1
-				if err := m.MLoadData(); err != nil {
-					return errors.Wrap(err, "import data")
-				}
-				m.flagDataImported = 2
-			}
-			if m.flagDataImported == 1 {
-				m.mloadScript += " " + m.filterOpts
-			} else if m.flagSchemaImported == 2 && m.flagDataImported == 2 {
-				return nil
-			}
+		if m.filterOpts != "" {
+			m.mloadScript += " " + m.filterOpts
 		}
 
 		logger.Info("MLoad script:%s", mysqlutil.RemovePassword(m.mloadScript))

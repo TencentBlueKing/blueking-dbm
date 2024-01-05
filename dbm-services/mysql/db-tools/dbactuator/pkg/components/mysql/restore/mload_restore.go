@@ -30,13 +30,14 @@ type MLoad struct {
 // Init TODO
 func (m *MLoad) Init() error {
 	var err error
+	logger.Info("mload infoObj:%+v file=%s", m.BackupInfo.infoObj, m.BackupInfo.infoFilePath)
 	if err = m.BackupInfo.infoObj.ValidateFiles(); err != nil {
 		return err
 	}
 	if err = m.initDirs(); err != nil {
 		return err
 	}
-	// logger.Info("tgtInstance: %+v", m.TgtInstance)
+	// 本地实例是否可联通
 	m.dbWorker, err = m.TgtInstance.Conn()
 	if err != nil {
 		return errors.Wrap(err, "目标实例连接失败")
@@ -54,7 +55,6 @@ func (m *MLoad) PreCheck() error {
 		return err
 	}
 	// 工具可执行权限
-	// 本地实例是否可联通
 	return nil
 }
 

@@ -83,7 +83,7 @@ func (x *Xtrabackup) PostRun() (err error) {
 	startParam := computil.StartMySQLParam{
 		MediaDir:        cst.MysqldInstallPath,
 		MyCnfName:       x.myCnf.FileName,
-		MySQLUser:       x.TgtInstance.User, // 用ADMIN | DMB_JOB_xx
+		MySQLUser:       native.DBUserAdmin, // 用ADMIN | DMB_JOB_xx
 		MySQLPwd:        x.TgtInstance.Pwd,
 		Socket:          x.TgtInstance.Socket,
 		SkipGrantTables: true, // 以 skip-grant-tables 启动来修复 ADMIN
@@ -115,7 +115,7 @@ func (x *Xtrabackup) PostRun() (err error) {
 	}
 	x.dbWorker.Stop()
 
-	logger.Info("restart local mysqld")
+	logger.Info("restart local mysqld", x.TgtInstance.Port)
 	// 重启mysql（去掉 skip-grant-tables）
 	startParam.SkipGrantTables = false
 	startParam.MySQLUser = native.DBUserAdmin

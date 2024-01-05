@@ -34,11 +34,6 @@ type DBLoader struct {
 // Init load index file
 func (m *DBLoader) Init() error {
 	var err error
-	/*
-		if err = m.BackupInfo.GetBackupMetaFile(dbbackup.BACKUP_INDEX_FILE); err != nil {
-			return err
-		}
-	*/
 	cnfFileName := util.GetMyCnfFileName(m.TgtInstance.Port)
 	cnfFile := &util.CnfFile{FileName: cnfFileName}
 	if err = cnfFile.Load(); err != nil {

@@ -228,7 +228,7 @@ func (i *IndexContent) SaveIndexContent(cnf *config.Public) (string, error) {
 		return "", err
 	}
 	indexFilePath := path.Join(cnf.BackupDir, cnf.TargetName()+".index")
-	indexFile, err := os.OpenFile(indexFilePath, os.O_RDWR|os.O_CREATE, 0666)
+	indexFile, err := os.OpenFile(indexFilePath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0666)
 	if err != nil {
 		logger.Log.Error("failed to create index file: ", indexFilePath)
 		return "", err

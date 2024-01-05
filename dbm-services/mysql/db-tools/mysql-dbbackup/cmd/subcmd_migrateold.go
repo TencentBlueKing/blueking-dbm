@@ -119,14 +119,14 @@ func migrateOld(cmd *cobra.Command, args []string) (errs error) {
 				errs = errors2.Join(errs, errors.New(errMsg))
 				continue
 			} else {
-				fmt.Println(indexFilePath)
+				fmt.Println("migrate infoFile", infoFilePath)
 				cnf.Public.BackupId = indexContent.BackupId
 				report, err := dbareport.NewBackupLogReport(&cnf)
 				if err != nil {
 					errs = errors2.Join(errs, err)
 					continue
 				}
-				if err = report.ReportBackupResult(indexFilePath, false); err != nil {
+				if err = report.ReportBackupResult(indexFilePath, false, false); err != nil {
 					errs = errors2.Join(errs, err)
 				} else {
 					fmt.Println("report success", indexFilePath)

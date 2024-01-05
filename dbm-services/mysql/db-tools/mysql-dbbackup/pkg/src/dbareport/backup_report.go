@@ -230,6 +230,7 @@ func (r *BackupLogReport) ExecuteBackupClient(fileName string) (taskid string, e
 
 // ReportToLocalBackup 写入本地 infodba_schema.local_backup_report 表
 // indexFilePath 是全路径
+// 内存是传进来的，不是内部读取 indexFilePath
 func (r *BackupLogReport) ReportToLocalBackup(indexFilePath string, metaInfo *IndexContent) error {
 	logger.Log.Infof("write backup result to local_backup_report")
 	db, err := mysqlconn.InitConn(&r.cfg.Public)
@@ -267,7 +268,6 @@ func (r *BackupLogReport) ReportToLocalBackup(indexFilePath string, metaInfo *In
 	if err = row.Scan(&serverId); err != nil {
 		return err
 	}
-
 	// 写入本地db的file_list字段，精简一下
 	fileList := make([]*TarFileItem, 0)
 	for _, tf := range metaInfo.FileList {
@@ -309,6 +309,7 @@ func (r *BackupLogReport) ReportToLocalBackup(indexFilePath string, metaInfo *In
 	if err != nil {
 		return err
 	}
+	_, _ = conn.ExecContext(ctx, "set session sql_log_bin=0;") // 关闭 binlog
 	_, err = conn.ExecContext(ctx, sqlStr, sqlArgs...)
 	if err != nil {
 		logger.Log.Warnf("failed to write %d local_backup_report, err: %s, fix it", metaInfo.BackupPort, err)
@@ -327,18 +328,20 @@ func (r *BackupLogReport) ReportToLocalBackup(indexFilePath string, metaInfo *In
 // run ExecuteBackupClient to upload to remote
 // report backup to db
 // report backup to log file
-func (r *BackupLogReport) ReportBackupResult(indexFilePath string, upload bool) error {
+func (r *BackupLogReport) ReportBackupResult(indexFilePath string, index, upload bool) error {
 	var err error
 	var metaInfo = &IndexContent{}
 	if buf, err := os.ReadFile(indexFilePath); err != nil {
 		return err
 	} else {
 		if err = json.Unmarshal(buf, metaInfo); err != nil {
-			return err
+			return errors.WithMessagef(err, "unmarshal metaInfo %s", indexFilePath)
 		}
 	}
-	// index file 里面不会包含自身信息，这里上报时添加
-	metaInfo.AddIndexFileItem(indexFilePath)
+	if index {
+		// index file 里面不会包含自身信息，这里上报时添加
+		metaInfo.AddIndexFileItem(indexFilePath)
+	}
 
 	if upload {
 		// 上传、上报备份文件

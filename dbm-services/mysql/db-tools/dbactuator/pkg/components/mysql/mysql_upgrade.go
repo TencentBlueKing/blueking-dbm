@@ -263,7 +263,7 @@ func (m *MysqlUpgradeComp) Upgrade() (err error) {
 		}
 		// shutfown mysql
 		logger.Info("do shutdown mysql for %d", port)
-		if err = computil.ShutdownMySQLBySocket2(m.adminUser, m.adminPwd, socket); err != nil {
+		if err = computil.ShutdownMySQLBySocket(m.adminUser, m.adminPwd, socket); err != nil {
 			logger.Error("shutdown mysql %d failed %s", port, err.Error())
 			return err
 		}
