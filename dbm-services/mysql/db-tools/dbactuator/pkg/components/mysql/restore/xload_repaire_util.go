@@ -24,7 +24,7 @@ func (x *XLoad) RepairUserAdminByLocal(host, user, password string, version stri
 		"UPDATE `mysql`.`user` SET `authentication_string`=password('%s') WHERE `user`='%s'",
 		password, user,
 	)
-	if mysqlutil.MySQLVersionParse(version) < mysqlutil.MySQLVersionParse("5.7.6") {
+	if cmutil.MySQLVersionParse(version) < cmutil.MySQLVersionParse("5.7.6") {
 		sql1 = fmt.Sprintf(
 			"UPDATE `mysql`.`user` SET `Password`=password('%s') WHERE `user`='%s'",
 			password, user,
