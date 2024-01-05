@@ -28,6 +28,7 @@ from backend.db_meta.models import AppCache, Cluster
 from backend.db_periodic_task.local_tasks.db_meta.constants import QUERY_TEMPLATE, UNIFY_QUERY_PARAMS
 from backend.db_report.enums import DbmonHeartbeatReportSubType
 from backend.db_report.models import DbmonHeartbeatReport
+from backend.db_services.redis.util import is_predixy_proxy_type, is_twemproxy_proxy_type
 
 logger = logging.getLogger("root")
 
@@ -86,9 +87,9 @@ def get_report_subtype_for_storage(cluster_type):
 
 
 def get_report_subtype_for_proxy(cluster_type):
-    if cluster_type in [ClusterType.TwemproxyTendisSSDInstance.value, ClusterType.TendisTwemproxyRedisInstance.value]:
+    if is_twemproxy_proxy_type(cluster_type):
         heart_beat_subtype = DbmonHeartbeatReportSubType.TWEMPROXY.value
-    elif cluster_type == ClusterType.TendisPredixyTendisplusCluster.value:
+    elif is_predixy_proxy_type(cluster_type):
         heart_beat_subtype = DbmonHeartbeatReportSubType.PREDIXY.value
     else:
         raise NotImplementedError("Dbmon Not supported tendis type:{}".format(cluster_type))
@@ -158,10 +159,7 @@ def _check_dbmon_heart_beat():
                 # ssd 和cache 有segment，tendisplus没有
                 for item in redis_set:
                     if item.startswith(ip):
-                        if c.cluster_type in [
-                            ClusterType.TwemproxyTendisSSDInstance.value,
-                            ClusterType.TendisTwemproxyRedisInstance.value,
-                        ]:
+                        if is_twemproxy_proxy_type(c.cluster_type):
                             # 格式为 "ip:port range"
                             ip_port, range = item.split(" ")
                             ip, port = ip_port.split(IP_PORT_DIVIDER)

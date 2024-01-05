@@ -24,7 +24,7 @@ from backend.constants import BACKUP_SYS_STATUS, IP_PORT_DIVIDER
 from backend.db_meta import api as metaApi
 from backend.db_meta.api.cluster import nosqlcomm
 from backend.db_meta.enums.cluster_type import ClusterType
-from backend.db_meta.models import Cluster, StorageInstance
+from backend.db_meta.models import AppCache, Cluster, StorageInstance
 from backend.db_package.models import Package
 from backend.db_services.redis.util import (
     is_predixy_proxy_type,
@@ -48,7 +48,11 @@ from backend.flow.consts import (
     RedisActuatorActionEnum,
 )
 from backend.flow.utils.base.payload_handler import PayloadHandler
-from backend.flow.utils.redis.redis_proxy_util import set_backup_mode
+from backend.flow.utils.redis.redis_proxy_util import (
+    get_cache_backup_mode,
+    get_twemproxy_cluster_server_shards,
+    set_backup_mode,
+)
 from backend.flow.utils.redis.redis_util import get_latest_redis_package_by_version
 from backend.ticket.constants import TicketType
 
@@ -137,11 +141,9 @@ class RedisActPayload(object):
         elif "cluster_type" in self.ticket_data:
             self.namespace = self.ticket_data["cluster_type"]
 
-        if self.namespace == ClusterType.TendisTwemproxyRedisInstance.value:
+        if is_twemproxy_proxy_type(self.namespace):
             self.proxy_version = ConfigFileEnum.Twemproxy
-        elif self.namespace == ClusterType.TwemproxyTendisSSDInstance.value:
-            self.proxy_version = ConfigFileEnum.Twemproxy
-        elif self.namespace == ClusterType.TendisPredixyTendisplusCluster.value:
+        elif is_predixy_proxy_type(self.namespace):
             self.proxy_version = ConfigFileEnum.Predixy
 
     def __get_define_config(self, namespace: str, conf_file: str, conf_type: str) -> Any:
@@ -151,6 +153,22 @@ class RedisActPayload(object):
                 "bk_biz_id": self.bk_biz_id,
                 "level_name": LevelName.APP,
                 "level_value": self.bk_biz_id,
+                "conf_file": conf_file,
+                "conf_type": conf_type,
+                "namespace": namespace,
+                "format": FormatType.MAP,
+            }
+        )
+        return data["content"]
+
+    @staticmethod
+    def get_common_config(bk_biz_id: str, namespace: str, conf_file: str, conf_type: str) -> Any:
+        """获取一些common的参数配置"""
+        data = DBConfigApi.query_conf_item(
+            params={
+                "bk_biz_id": bk_biz_id,
+                "level_name": LevelName.APP,
+                "level_value": bk_biz_id,
                 "conf_file": conf_file,
                 "conf_type": conf_type,
                 "namespace": namespace,
@@ -915,24 +933,37 @@ class RedisActPayload(object):
             },
         }
 
-    def bkdbmon_install(self, **kwargs) -> dict:
-        """
-        redis bk-dbmon安装
-        """
+    @staticmethod
+    def get_bkdbmon_payload_header(bk_biz_id: str) -> dict:
         bkdbmon_pkg = Package.get_latest_package(
             version=MediumEnum.Latest, pkg_type=MediumEnum.DbMon, db_type=DBType.Redis
         )
-        fullbackup_config = self.__get_define_config(
-            NameSpaceEnum.RedisCommon, ConfigFileEnum.FullBackup, ConfigTypeEnum.Config
+        tools_pkg = Package.get_latest_package(
+            version=MediumEnum.Latest, pkg_type=MediumEnum.RedisTools, db_type=DBType.Redis
         )
-        binlogbackup_config = self.__get_define_config(
-            NameSpaceEnum.RedisCommon, ConfigFileEnum.BinlogBackup, ConfigTypeEnum.Config
+        fullbackup_config = RedisActPayload.get_common_config(
+            bk_biz_id=bk_biz_id,
+            namespace=NameSpaceEnum.RedisCommon,
+            conf_file=ConfigFileEnum.FullBackup,
+            conf_type=ConfigTypeEnum.Config,
         )
-        heartbeat_config = self.__get_define_config(
-            NameSpaceEnum.RedisCommon, ConfigFileEnum.Heartbeat, ConfigTypeEnum.Config
+        binlogbackup_config = RedisActPayload.get_common_config(
+            bk_biz_id=bk_biz_id,
+            namespace=NameSpaceEnum.RedisCommon,
+            conf_file=ConfigFileEnum.BinlogBackup,
+            conf_type=ConfigTypeEnum.Config,
         )
-        monitor_config = self.__get_define_config(
-            NameSpaceEnum.RedisCommon, ConfigFileEnum.Monitor, ConfigTypeEnum.Config
+        heartbeat_config = RedisActPayload.get_common_config(
+            bk_biz_id=bk_biz_id,
+            namespace=NameSpaceEnum.RedisCommon,
+            conf_file=ConfigFileEnum.Heartbeat,
+            conf_type=ConfigTypeEnum.Config,
+        )
+        monitor_config = RedisActPayload.get_common_config(
+            bk_biz_id=bk_biz_id,
+            namespace=NameSpaceEnum.RedisCommon,
+            conf_file=ConfigFileEnum.Monitor,
+            conf_type=ConfigTypeEnum.Config,
         )
         bkm_dbm_report = SystemSettings.get_setting_value(key="BKM_DBM_REPORT")
         monitor_config["bkmonitor_event_data_id"] = bkm_dbm_report["event"]["data_id"]
@@ -942,30 +973,111 @@ class RedisActPayload(object):
 
         keylife_config = {
             "stat_dir": DirEnum.REDIS_KEY_LIFE_DIR,
-            **self.__get_define_config(NameSpaceEnum.RedisCommon, ConfigFileEnum.Base, ConfigTypeEnum.Config),
-            "hotkey_conf": self.__get_define_config(
-                NameSpaceEnum.RedisCommon, ConfigFileEnum.HotKey, ConfigTypeEnum.Config
+            **RedisActPayload.get_common_config(
+                bk_biz_id=bk_biz_id,
+                namespace=NameSpaceEnum.RedisCommon,
+                conf_file=ConfigFileEnum.Base,
+                conf_type=ConfigTypeEnum.Config,
             ),
-            "bigkey_conf": self.__get_define_config(
-                NameSpaceEnum.RedisCommon, ConfigFileEnum.BigKey, ConfigTypeEnum.Config
+            "hotkey_conf": RedisActPayload.get_common_config(
+                bk_biz_id=bk_biz_id,
+                namespace=NameSpaceEnum.RedisCommon,
+                conf_file=ConfigFileEnum.HotKey,
+                conf_type=ConfigTypeEnum.Config,
+            ),
+            "bigkey_conf": RedisActPayload.get_common_config(
+                bk_biz_id=bk_biz_id,
+                namespace=NameSpaceEnum.RedisCommon,
+                conf_file=ConfigFileEnum.BigKey,
+                conf_type=ConfigTypeEnum.Config,
             ),
         }
+        return {
+            "bkdbmonpkg": {"pkg": bkdbmon_pkg.name, "pkg_md5": bkdbmon_pkg.md5},
+            "dbtoolspkg": {"pkg": tools_pkg.name, "pkg_md5": tools_pkg.md5},
+            "agent_address": env.MYSQL_CROND_AGENT_ADDRESS,
+            "beat_path": env.MYSQL_CROND_BEAT_PATH,
+            "backup_client_storage_type": "",  # 留空,使用系统默认
+            "redis_fullbackup": fullbackup_config,
+            "redis_binlogbackup": binlogbackup_config,
+            "redis_heartbeat": heartbeat_config,
+            "redis_monitor": monitor_config,
+            "redis_keylife": keylife_config,
+        }
+
+    def bkdbmon_install(self, **kwargs) -> dict:
+        """
+        redis bk-dbmon安装
+        """
 
         return {
             "db_type": DBActuatorTypeEnum.Bkdbmon.value,
             "action": DBActuatorTypeEnum.Bkdbmon.value + "_" + RedisActuatorActionEnum.Install.value,
-            "payload": {
-                "bkdbmonpkg": {"pkg": bkdbmon_pkg.name, "pkg_md5": bkdbmon_pkg.md5},
-                "dbtoolspkg": {"pkg": self.tools_pkg.name, "pkg_md5": self.tools_pkg.md5},
-                "agent_address": env.MYSQL_CROND_AGENT_ADDRESS,
-                "beat_path": env.MYSQL_CROND_BEAT_PATH,
-                "backup_client_storage_type": "",  # 留空,使用系统默认
-                "redis_fullbackup": fullbackup_config,
-                "redis_binlogbackup": binlogbackup_config,
-                "redis_heartbeat": heartbeat_config,
-                "redis_monitor": monitor_config,
-                "redis_keylife": keylife_config,
-            },
+            "payload": self.get_bkdbmon_payload_header(str(self.bk_biz_id)),
+        }
+
+    @staticmethod
+    def get_bkdbmon_servers_params(cluster: Cluster, ip: str) -> dict:
+        app = AppCache.get_app_attr(cluster.bk_biz_id, "db_app_abbr")
+        app_name = AppCache.get_app_attr(cluster.bk_biz_id, "bk_biz_name")
+        ret = {
+            "app": app,
+            "app_name": app_name,
+            "bk_biz_id": str(cluster.bk_biz_id),
+            "bk_cloud_id": cluster.bk_cloud_id,
+            "cluster_name": cluster.name,
+            "cluster_type": cluster.cluster_type,
+            "cluster_domain": cluster.immute_domain,
+            "cache_backup_mode": get_cache_backup_mode(bk_biz_id=cluster.bk_biz_id, cluster_id=cluster.id),
+            "meta_role": "",
+            "server_ip": ip,
+            "server_ports": [],
+            "server_shards": {},
+        }
+        proxys = cluster.proxyinstance_set.filter(machine__ip=ip)
+        storages = cluster.storageinstance_set.filter(machine__ip=ip)
+        ports = set()
+        if proxys:
+            for p in proxys:
+                ports.add(p.port)
+            ret["server_ports"] = list(ports)
+            ret["meta_role"] = proxys.first().machine_type
+            return ret
+        if storages:
+            twemproxy_server_shards = get_twemproxy_cluster_server_shards(
+                bk_biz_id=cluster.bk_biz_id, cluster_id=cluster.id, other_to_master={}
+            )
+            for s in storages:
+                ports.add(s.port)
+            ret["server_ports"] = list(ports)
+            ret["meta_role"] = storages.first().instance_role
+            ret["server_shards"] = twemproxy_server_shards.get(ip, {})
+            return ret
+        raise Exception(_("集群{}中没有找到{}相关实例").format(cluster.immute_domain, ip))
+
+    def bkdbmon_install_new(self, **kwargs) -> dict:
+        """
+        redis new bk-dbmon安装,参数只需传入下面两个
+        {
+            "clluster_domain":"cache.test.testapp.db",
+            "ip":"a.a.a.a"
+        }
+        """
+        params = kwargs["params"]
+        cluster: Cluster = None
+        try:
+            cluster = Cluster.objects.get(immute_domain=params["cluster_domain"])
+        except Cluster.DoesNotExist:
+            raise Exception("redis cluster {} does not exist".format(params["cluster_domain"]))
+        payload = self.get_bkdbmon_payload_header(str(cluster.bk_biz_id))
+        if params["is_stop"]:
+            payload["servers"] = []
+        else:
+            payload["servers"] = [RedisActPayload.get_bkdbmon_servers_params(cluster, params["ip"])]
+        return {
+            "db_type": DBActuatorTypeEnum.Bkdbmon.value,
+            "action": DBActuatorTypeEnum.Bkdbmon.value + "_" + RedisActuatorActionEnum.Install.value,
+            "payload": payload,
         }
 
     # 场景化需求
@@ -1051,7 +1163,7 @@ class RedisActPayload(object):
             "redis_conf_configs": redis_conf,
         }
         # tendisplus cluster 模式暂时不需要特别指定这两个参数
-        if self.namespace in [ClusterType.TendisTwemproxyRedisInstance, ClusterType.TwemproxyTendisSSDInstance]:
+        if is_twemproxy_proxy_type(self.namespace):
             install_payload["databases"] = int(redis_config["databases"])
             install_payload["maxmemory"] = int(float(redis_config["maxmemory"]))
 
@@ -1209,12 +1321,9 @@ class RedisActPayload(object):
         """
         params, proxy_version = kwargs["params"], ""
         self.namespace = params["cluster_type"]
-        if self.namespace in [
-            ClusterType.TendisTwemproxyRedisInstance.value,
-            ClusterType.TwemproxyTendisSSDInstance.value,
-        ]:
+        if is_twemproxy_proxy_type(self.namespace):
             proxy_version = ConfigFileEnum.Twemproxy
-        elif self.namespace == ClusterType.TendisPredixyTendisplusCluster.value:
+        elif is_predixy_proxy_type(self.namespace):
             proxy_version = ConfigFileEnum.Predixy
         proxy_config = self.__get_cluster_config(params["immute_domain"], proxy_version, ConfigTypeEnum.ProxyConf)
         cluster_meta = nosqlcomm.other.get_cluster_detail(cluster_id=params["cluster_id"])[0]

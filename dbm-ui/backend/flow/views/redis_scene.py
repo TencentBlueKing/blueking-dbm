@@ -77,6 +77,25 @@ class RedisInstallDbmonSceneApiView(FlowTestView):
         return Response({"root_id": root_id})
 
 
+class RedisClusterReinstallDbmonSceneApiView(FlowTestView):
+    """
+    /apis/v1/flow/scene/redis_clusters_reinstall_dbmon
+    params:
+    {
+      "bk_biz_id":"",
+      "cluster_ids":[1,2,3],
+      "is_stop": True/False, # 是否停止dbmon
+      "ticket_type": "REDIS_CLUSTER_REINSTALL_DBMON"
+    }
+    """
+
+    @staticmethod
+    def post(request):
+        root_id = uuid.uuid1().hex
+        RedisController(root_id=root_id, ticket_data=request.data).redis_clusters_reinstall_dbmon_scene()
+        return Response({"root_id": root_id})
+
+
 class RedisClusterMSSwitchSceneApiView(FlowTestView):
     """
     /apis/v1/flow/scene/switch/redis_cluster

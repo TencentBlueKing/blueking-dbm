@@ -194,9 +194,10 @@ func (task *MakeSyncTask) isRedisConnectOK() {
 // TendisplusMasterSlaveConfigSet 'config set'修改必要配置
 // redis-sync will connect to tendisplus slave or master when migrating data
 // 1. tendisplus master/slave aof-enabled=yes
-// 2. tendisplus slave fullpushthreadnum=10
-// 3. tendisplus master/slave incrpushthreadnum >=10
-// 4. tendisplus slave supply-fullpsync-key-batch-num=50
+// 2. tendisplus slave fullpsync-notice-enabled=yes
+// 3. tendisplus slave fullpushthreadnum=10
+// 4. tendisplus master/slave incrpushthreadnum >=10
+// 5. tendisplus slave supply-fullpsync-key-batch-num=50
 func (task *MakeSyncTask) TendisplusMasterSlaveConfigSet() {
 	var ok bool
 	// slaveConn 和 masterConn 可能指向同一个tendisplus实例
@@ -221,6 +222,8 @@ func (task *MakeSyncTask) TendisplusMasterSlaveConfigSet() {
 	}
 	task.Logger.Info(fmt.Sprintf("tendisplus master:%s config set 'aof-enabled' 'yes' success", masterConn.Addr))
 	task.Logger.Info(fmt.Sprintf("tendisplus slave:%s config set 'aof-enabled' 'yes' success", masterConn.Addr))
+
+	slaveConn.ConfigSet("fullpsync-notice-enabled", "yes")
 
 	var slaveFullThreadNum int
 	var masterIncrThreadNum int
@@ -376,6 +379,14 @@ func (task *MakeSyncTask) createSyncConfigFile() {
 		task.Logger.Error(task.Err.Error())
 		return
 	}
+	var keyWhiteRegex string = ""
+	var keyBlackRegex string = ""
+	if task.RowData.KeyWhiteRegex != "" && !task.IsMatchAny(task.RowData.KeyWhiteRegex) {
+		keyWhiteRegex = task.RowData.KeyWhiteRegex
+	}
+	if task.RowData.KeyBlackRegex != "" && !task.IsMatchAny(task.RowData.KeyBlackRegex) {
+		keyBlackRegex = task.RowData.KeyBlackRegex
+	}
 	sampleData := string(sampleBytes)
 	sampleData = strings.ReplaceAll(sampleData, "{{SYNC_PORT}}", strconv.Itoa(task.RowData.SyncerPort))
 	// sampleData = strings.ReplaceAll(sampleData, "{{SYNC_LOG_FILE}}", task.SyncLogFile)
@@ -385,6 +396,8 @@ func (task *MakeSyncTask) createSyncConfigFile() {
 	sampleData = strings.ReplaceAll(sampleData, "{{SRC_PASSWORD}}", task.GetSrcRedisPasswd())
 	sampleData = strings.ReplaceAll(sampleData, "{{DST_ADDR}}", task.GetDstRedisAddr())
 	sampleData = strings.ReplaceAll(sampleData, "{{DST_PASSWORD}}", task.GetDstRedisPasswd())
+	sampleData = strings.ReplaceAll(sampleData, "{{KEY_WHITE_REGEX}}", keyWhiteRegex)
+	sampleData = strings.ReplaceAll(sampleData, "{{KEY_BLACK_REGEX}}", keyBlackRegex)
 	// 如果目标集群是域名,则redis-sync需要先解析域名中的 proxy ips,而后连接;该行为通过 proxy-enable 参数控制
 	proxyEnable := "no"
 	if util.IsDbDNS(task.GetDstRedisAddr()) {

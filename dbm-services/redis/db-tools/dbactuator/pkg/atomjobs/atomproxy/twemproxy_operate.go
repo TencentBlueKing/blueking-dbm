@@ -191,7 +191,7 @@ func (job *TwemproxyOperate) DirBackup(execUser string, port int) error {
 func (job *TwemproxyOperate) ClearMoreDirsWhenShutdown(port int) (err error) {
 	var psRet string
 	// 再次判断是否还有不必要的进程存在
-	psCmd := `ps aux|grep nutcracker|grep -vE 'grep|exporter|redis-cli' || { true; }`
+	psCmd := `ps aux|grep nutcracker|grep -vE 'grep|exporter|redis-cli|dbactuator' || { true; }`
 	job.runtime.Logger.Info(psCmd)
 	psRet, err = util.RunBashCmd(psCmd, "", nil, 10*time.Second)
 	if err != nil {

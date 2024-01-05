@@ -11,8 +11,8 @@ specific language governing permissions and limitations under the License.
 from backend import env
 from backend.components.constants import SSLEnum
 from backend.configuration.constants import DBType
-from backend.db_meta.enums.cluster_type import ClusterType
 from backend.db_package.models import Package
+from backend.db_services.redis.util import is_predixy_proxy_type
 from backend.db_services.version.constants import PredixyVersion, TwemproxyVersion
 from backend.flow.consts import CLOUD_SSL_PATH, MediumEnum
 from backend.flow.utils.redis.redis_util import get_latest_redis_package_by_version
@@ -138,7 +138,7 @@ class GetFileList(object):
         """
         version = TwemproxyVersion.TwemproxyLatest
         pkg_type = MediumEnum.Twemproxy
-        if cluster_type == ClusterType.TendisPredixyTendisplusCluster.value:
+        if is_predixy_proxy_type(cluster_type):
             version = PredixyVersion.PredixyLatest
             pkg_type = MediumEnum.Predixy
 

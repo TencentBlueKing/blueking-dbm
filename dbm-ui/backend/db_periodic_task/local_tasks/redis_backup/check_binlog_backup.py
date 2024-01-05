@@ -22,6 +22,7 @@ from backend.db_meta.enums import ClusterType, InstanceRole
 from backend.db_meta.models import Cluster
 from backend.db_report.enums import RedisBackupCheckSubType
 from backend.db_report.models import RedisBackupCheckReport
+from backend.db_services.redis.util import is_tendisplus_instance_type, is_tendisssd_instance_type
 from backend.flow.consts import DEFAULT_DB_MODULE_ID, ConfigTypeEnum
 
 from .bklog_query import ClusterBackup
@@ -54,7 +55,7 @@ def _check_tendis_binlog_backup():
         logger.info("+===+++++===  cluster type is: {} +++++===++++ ".format(c.cluster_type))
         cluster_slave_instance = []  # 初始化集群slave列表，binlog只在slave上生成
         # 如果是tendisplus,需要单独校验每个节点的kvstore 的binlog连续性
-        if c.cluster_type == ClusterType.TendisPredixyTendisplusCluster.value:
+        if is_tendisplus_instance_type(c.cluster_type):
             # 获取 kvstorecount
             redis_config = __get_cluster_config(
                 c.immute_domain, c.major_version, ConfigTypeEnum.DBConf, c.cluster_type, str(c.bk_biz_id)
@@ -109,7 +110,7 @@ def _check_tendis_binlog_backup():
                     suceess_binlog_file_list.append(bklog)
 
             #  tendisplus 的情况
-            if c.cluster_type == ClusterType.TendisPredixyTendisplusCluster.value:
+            if is_tendisplus_instance_type(c.cluster_type):
                 # 每个节点又分不同kvstore,校验binlog完整性
                 for i in range(0, int(kvstorecount)):
                     # 过滤不同kvstore
@@ -130,7 +131,7 @@ def _check_tendis_binlog_backup():
                     # 这里打日志的话，有助于排查问题，但是日志有点多
                     # logger.info("+===+++++=== {} binlog 序号连续 +++++===++++ ".format(kvstore_filter))
             #  tendis ssd 的情况
-            elif c.cluster_type == ClusterType.TwemproxyTendisSSDInstance.value:
+            elif is_tendisssd_instance_type(c.cluster_type):
                 # 校验binlog完整性
                 # 检查是否获取到所有binlog
                 bin_index_list = is_get_all_binlog(suceess_binlog_file_list, c.cluster_type)
@@ -171,10 +172,10 @@ def is_get_all_binlog(binlogs_list: List, tendis_type: str):
     # 1. 获取binlog_file_list里每个字典的file_name值组成新的binlog_file_name_list
     binlog_file_name_list = [item["file_name"] for item in binlogs_list]
     # 2. 根据binlog_file_name_list如 0002437，0002438来排序
-    if tendis_type == ClusterType.TendisPredixyTendisplusCluster.value:
+    if is_tendisplus_instance_type(tendis_type):
         # binlog-xxxx-30002-0-0002437-20230911164611.log.zst
         sorted_binlog_file_name_list = sorted(binlog_file_name_list, key=lambda x: int(x.split("-")[4]))
-    elif tendis_type == ClusterType.TwemproxyTendisSSDInstance.value:
+    elif is_tendisssd_instance_type(tendis_type):
         # binlog-xxxx-30002-0002500-20230913101206.log.zst
         sorted_binlog_file_name_list = sorted(binlog_file_name_list, key=lambda x: int(x.split("-")[3]))
     else:
@@ -186,9 +187,9 @@ def is_get_all_binlog(binlogs_list: List, tendis_type: str):
     previous_file_name = None
 
     for file_name in sorted_binlog_file_name_list:
-        if tendis_type == ClusterType.TendisPredixyTendisplusCluster.value:
+        if is_tendisplus_instance_type(tendis_type):
             current_number = int(file_name.split("-")[4])
-        elif tendis_type == ClusterType.TwemproxyTendisSSDInstance.value:
+        elif is_tendisssd_instance_type(tendis_type):
             current_number = int(file_name.split("-")[3])
         else:
             raise NotImplementedError("Not supported tendis_type: %s" % tendis_type)

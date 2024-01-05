@@ -24,6 +24,7 @@ from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta import api
 from backend.db_meta.enums import ClusterType, InstanceRole
 from backend.db_meta.models import Cluster
+from backend.db_services.redis.util import is_twemproxy_proxy_type
 from backend.flow.consts import DEFAULT_DB_MODULE_ID, ConfigFileEnum, ConfigTypeEnum, DnsOpType, SyncType
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
@@ -134,7 +135,7 @@ class RedisClusterCMRSceneFlow(object):
             cluster_info["redis_slave_set"],
             [],
         )
-        if cluster.cluster_type in [ClusterType.TendisTwemproxyRedisInstance, ClusterType.TwemproxyTendisSSDInstance]:
+        if is_twemproxy_proxy_type(cluster.cluster_type):
             for set in redis_master_set:
                 ip_port, seg_range = str.split(set)
                 servers.append("{} {} {} {}".format(ip_port, cluster.name, seg_range, 1))

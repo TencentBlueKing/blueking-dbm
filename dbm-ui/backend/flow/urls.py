@@ -143,6 +143,7 @@ from backend.flow.views.redis_keys import RedisKeysDeleteSceneApiView, RedisKeys
 from backend.flow.views.redis_scene import (
     RedisClusterCompleteReplaceSceneApiView,
     RedisClusterMSSwitchSceneApiView,
+    RedisClusterReinstallDbmonSceneApiView,
     RedisInstallDbmonSceneApiView,
 )
 from backend.flow.views.riak_apply import RiakApplySceneApiView
@@ -207,6 +208,7 @@ urlpatterns = [
     url(r"^scene/cutoff/redis_cluster$", RedisClusterCompleteReplaceSceneApiView.as_view()),
     url(r"^scene/switch/redis_cluster$", RedisClusterMSSwitchSceneApiView.as_view()),
     url(r"^scene/install/dbmon$", RedisInstallDbmonSceneApiView.as_view()),
+    url(r"^scene/redis_clusters_reinstall_dbmon$", RedisClusterReinstallDbmonSceneApiView.as_view()),
     url(r"^scene/redis_cluster_data_copy$", RedisClusterDataCopySceneApiView.as_view()),
     url(r"^scene/redis_cluster_shard_num_update$", RedisClusterShardNumUpdateSceneApiView.as_view()),
     url(r"^scene/redis_cluster_type_update$", RedisClusterTypeUpdateSceneApiView.as_view()),

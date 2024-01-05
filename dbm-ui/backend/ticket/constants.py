@@ -240,6 +240,7 @@ class TicketType(str, StructuredEnum):
     TENDIS_META_MITRATE = EnumField("TENDIS_META_MITRATE", _("Redis 数据迁移"))
     REDIS_SLOTS_MIGRATE = EnumField("REDIS_SLOTS_MIGRATE", _("Redis slots 迁移"))
     REDIS_CLUSTER_VERSION_UPDATE_ONLINE = EnumField("REDIS_CLUSTER_VERSION_UPDATE_ONLINE", _("Redis 集群版本升级"))
+    REDIS_CLUSTER_REINSTALL_DBMON = EnumField("REDIS_CLUSTER_REINSTALL_DBMON", _("Redis 集群重装DBMON"))
 
     # 大数据
     KAFKA_APPLY = EnumField("KAFKA_APPLY", _("Kafka 集群部署"))

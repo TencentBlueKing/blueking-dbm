@@ -9,16 +9,19 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import logging.config
+from copy import deepcopy
 from dataclasses import asdict
 from typing import Dict
 
 from django.utils.translation import ugettext as _
 
 from backend.configuration.constants import DBType
-from backend.db_meta.models import AppCache
+from backend.db_meta.enums import InstanceStatus
+from backend.db_meta.models import Cluster
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.plugins.components.collections.redis.exec_actuator_script import ExecuteDBActuatorScriptComponent
+from backend.flow.plugins.components.collections.redis.get_redis_payload import GetRedisActPayloadComponent
 from backend.flow.plugins.components.collections.redis.trans_flies import TransFileComponent
 from backend.flow.utils.redis.redis_act_playload import RedisActPayload
 from backend.flow.utils.redis.redis_context_dataclass import ActKwargs
@@ -26,56 +29,125 @@ from backend.flow.utils.redis.redis_context_dataclass import ActKwargs
 logger = logging.getLogger("flow")
 
 
-def RedisDbmonAtomJob(root_id, ticket_data, act_kwargs: ActKwargs, param: Dict) -> SubBuilder:
+def ClusterDbmonInstallAtomJob(root_id, ticket_data, sub_kwargs: ActKwargs, param: Dict) -> SubBuilder:
     """
-    ### SubBuilder: Redis安装 dbmon 原子人物
-
+    ### SubBuilder: 集群所有机器安装bk-dbmon,只安装存在running instance的机器
+    注意: 因为流程执行前需要获取集群有哪些ips
+         所以该任务只能在集群创建成功后执行,也就是集群元数据已经存在 db_meta 中了
     Args:
         param (Dict): {
-            "ip":"1.1.1.x",
-            "ports":[],
-            "meta_role":"redis_slave",
-            "cluster_type":"",
-            "immute_domain":"",
+            "cluster_domain": "cache.test.testapp.db",
+            "is_stop": True/False
         }
     """
-    app = AppCache.get_app_attr(ticket_data["bk_biz_id"], "db_app_abbr")
-    app_name = AppCache.get_app_attr(ticket_data["bk_biz_id"], "bk_biz_name")
+    cluster_ips_set = set()
+    cluster = Cluster.objects.get(immute_domain=param["cluster_domain"])
+    for proxy in cluster.proxyinstance_set.filter(status=InstanceStatus.RUNNING):
+        cluster_ips_set.add(proxy.machine.ip)
+    for redis in cluster.storageinstance_set.filter(status=InstanceStatus.RUNNING):
+        cluster_ips_set.add(redis.machine.ip)
 
     sub_pipeline = SubBuilder(root_id=root_id, data=ticket_data)
-    exec_ip = param["ip"]
-
-    # 下发介质包
+    act_kwargs = deepcopy(sub_kwargs)
+    act_kwargs.cluster = {}
     trans_files = GetFileList(db_type=DBType.Redis)
     act_kwargs.file_list = trans_files.redis_dbmon()
-    act_kwargs.exec_ip = exec_ip
+
     sub_pipeline.add_act(
-        act_name=_("Redis-201-{}-下发介质包").format(exec_ip),
-        act_component_code=TransFileComponent.code,
-        kwargs=asdict(act_kwargs),
+        act_name=_("初始化配置"), act_component_code=GetRedisActPayloadComponent.code, kwargs=asdict(act_kwargs)
     )
 
-    # 部署bkdbmon
-    act_kwargs.cluster["servers"] = [
-        {
-            "app": app,
-            "app_name": app_name,
-            "bk_biz_id": str(ticket_data["bk_biz_id"]),
-            "bk_cloud_id": int(ticket_data["bk_cloud_id"]),
-            "server_ip": exec_ip,
-            "server_ports": param["ports"],
-            "meta_role": param["meta_role"],
-            "cluster_name": param["cluster_name"],
-            "cluster_type": param["cluster_type"],
-            "cluster_domain": param["immute_domain"],
+    acts_list = []
+    for ip in cluster_ips_set:
+        # 下发介质
+        act_kwargs.exec_ip = ip
+        acts_list.append(
+            {
+                "act_name": _("{}-下发介质包").format(ip),
+                "act_component_code": TransFileComponent.code,
+                "kwargs": asdict(act_kwargs),
+            }
+        )
+    if acts_list:
+        sub_pipeline.add_parallel_acts(acts_list=acts_list)
+
+    acts_list = []
+    for ip in cluster_ips_set:
+        act_kwargs.exec_ip = ip
+        act_kwargs.cluster = {
+            "cluster_domain": param["cluster_domain"],
+            "ip": ip,
+            "is_stop": param.get("is_stop", False),
         }
-    ]
-    act_kwargs.get_redis_payload_func = RedisActPayload.bkdbmon_install.__name__
+        act_kwargs.get_redis_payload_func = RedisActPayload.bkdbmon_install_new.__name__
+        acts_list.append(
+            {
+                "act_name": _("{}-安装bkdbmon").format(ip),
+                "act_component_code": ExecuteDBActuatorScriptComponent.code,
+                "kwargs": asdict(act_kwargs),
+            }
+        )
+    if acts_list:
+        sub_pipeline.add_parallel_acts(acts_list=acts_list)
+    return sub_pipeline.build_sub_process(sub_name=_("{}-集群机器安装bkdbmon").format(param["cluster_domain"]))
+
+
+def ClusterIPsDbmonInstallAtomJob(root_id, ticket_data, sub_kwargs: ActKwargs, param: Dict) -> SubBuilder:
+    """
+    ### SubBuilder: 集群指定机器安装bk-dbmon
+    注意: 该任务元数据是在RedisActPayload.bkdbmon_install_new 中动态获取
+         也就意味着该子流程可以用到各种场景中
+         如: redis重建slave场景,new slave一开始在没有元数据信息,
+             只要在 "写入元数据" 流程节点之后调用 ClusterIPsDbmonInstallAtomJob 就能为new slave正确安装bkdbmon
+         如: redis集群创建场景, 元数据一开始是不清楚的,
+             只要在 "写入元数据" 流程节点之后调用 ClusterIPsDbmonInstallAtomJob 就能为所有ip正确安装bkdbmon
+    Args:
+        param (Dict): {
+            "cluster_domain": "cache.test.testapp.db",
+            "ips":["a.a.a.a","b.b,b.b"],
+            "is_stop": True/False
+        }
+    """
+    sub_pipeline = SubBuilder(root_id=root_id, data=ticket_data)
+    act_kwargs = deepcopy(sub_kwargs)
+    act_kwargs.cluster = {}
+    trans_files = GetFileList(db_type=DBType.Redis)
+    act_kwargs.file_list = trans_files.redis_dbmon()
+
     sub_pipeline.add_act(
-        act_name=_("Redis-202-{}-安装监控").format(exec_ip),
-        act_component_code=ExecuteDBActuatorScriptComponent.code,
-        kwargs=asdict(act_kwargs),
+        act_name=_("初始化配置"), act_component_code=GetRedisActPayloadComponent.code, kwargs=asdict(act_kwargs)
     )
 
-    # 启动bkdbmon
-    return sub_pipeline.build_sub_process(sub_name=_("Redis-{}-安装原子任务").format(exec_ip))
+    acts_list = []
+    for ip in param["ips"]:
+        # 下发介质
+        act_kwargs.exec_ip = ip
+        acts_list.append(
+            {
+                "act_name": _("{}-下发介质包").format(ip),
+                "act_component_code": TransFileComponent.code,
+                "kwargs": asdict(act_kwargs),
+            }
+        )
+    if acts_list:
+        sub_pipeline.add_parallel_acts(acts_list=acts_list)
+
+    acts_list = []
+    for ip in param["ips"]:
+        act_kwargs.exec_ip = ip
+        act_kwargs.cluster = {
+            "cluster_domain": param["cluster_domain"],
+            "ip": ip,
+            "is_stop": param.get("is_stop", False),
+        }
+        act_kwargs.get_redis_payload_func = RedisActPayload.bkdbmon_install_new.__name__
+        acts_list.append(
+            {
+                "act_name": _("{}-安装bkdbmon").format(ip),
+                "act_component_code": ExecuteDBActuatorScriptComponent.code,
+                "kwargs": asdict(act_kwargs),
+            }
+        )
+    if acts_list:
+        sub_pipeline.add_parallel_acts(acts_list=acts_list)
+    return sub_pipeline.build_sub_process(sub_name=_("{}-集群机器安装bkdbmon").format(param["cluster_domain"]))

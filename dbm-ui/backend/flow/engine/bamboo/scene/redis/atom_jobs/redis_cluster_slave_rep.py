@@ -16,7 +16,8 @@ from typing import Dict
 from django.utils.translation import ugettext as _
 
 from backend.constants import IP_PORT_DIVIDER
-from backend.db_meta.enums import ClusterType, InstanceRole
+from backend.db_meta.enums import InstanceRole
+from backend.db_services.redis.util import is_predixy_proxy_type
 from backend.flow.consts import DEFAULT_REDIS_START_PORT, SyncType
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
 from backend.flow.plugins.components.collections.redis.exec_shell_script import ExecuteShellReloadMetaComponent
@@ -167,7 +168,7 @@ def RedisClusterSlaveReplaceJob(root_id, ticket_data, sub_kwargs: ActKwargs, sla
     # #### 新节点加入集群 ################################################################# 完毕 ###
 
     # predixy类型的集群需要刷新配置文件 #################################################################
-    if act_kwargs.cluster["cluster_type"] == ClusterType.TendisPredixyTendisplusCluster.value:
+    if is_predixy_proxy_type(act_kwargs.cluster["cluster_type"]):
         sed_args = []
         for replace_link in slave_replace_detail:
             old_slave, new_slave = replace_link["ip"], replace_link["target"]["ip"]

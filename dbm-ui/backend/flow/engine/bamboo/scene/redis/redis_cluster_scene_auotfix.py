@@ -24,6 +24,7 @@ from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta import api
 from backend.db_meta.enums import ClusterType, InstanceRole
 from backend.db_meta.models import Cluster
+from backend.db_services.redis.util import is_predixy_proxy_type, is_twemproxy_proxy_type
 from backend.flow.consts import (
     DEFAULT_DB_MODULE_ID,
     DEFAULT_REDIS_START_PORT,
@@ -123,7 +124,7 @@ class RedisClusterAutoFixSceneFlow(object):
             cluster_info["redis_slave_set"],
             [],
         )
-        if cluster.cluster_type in [ClusterType.TendisTwemproxyRedisInstance, ClusterType.TwemproxyTendisSSDInstance]:
+        if is_twemproxy_proxy_type(cluster.cluster_type):
             for set in redis_master_set:
                 ip_port, seg_range = str.split(set)
                 servers.append("{} {} {} {}".format(ip_port, cluster.name, seg_range, 1))
@@ -456,7 +457,7 @@ class RedisClusterAutoFixSceneFlow(object):
         # #### 新节点加入集群 ################################################################# 完毕 ###
 
         # predixy类型的集群需要刷新配置文件 #################################################################
-        if sub_kwargs.cluster["cluster_type"] == ClusterType.TendisPredixyTendisplusCluster.value:
+        if is_predixy_proxy_type(sub_kwargs.cluster["cluster_type"]):
             sed_args = []
             for fix_link in slave_fix_detail:
                 old_slave, new_slave = fix_link["ip"], fix_link["target"]["ip"]

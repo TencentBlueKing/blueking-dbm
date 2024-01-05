@@ -47,6 +47,11 @@ from backend.db_meta.models import (
 from backend.db_services.dbbase.constants import IP_PORT_DIVIDER, SPACE_DIVIDER
 from backend.db_services.redis.rollback.models import TbTendisRollbackTasks
 from backend.db_services.redis.slots_migrate.models import TbTendisSlotsMigrateRecord
+from backend.db_services.redis.util import (
+    is_redis_instance_type,
+    is_tendisplus_instance_type,
+    is_tendisssd_instance_type,
+)
 from backend.flow.consts import DEFAULT_DB_MODULE_ID, InstanceStatus
 from backend.flow.utils.base.payload_handler import PayloadHandler
 from backend.flow.utils.cc_manage import CcManage
@@ -184,12 +189,12 @@ class RedisDBMeta(object):
         else:
             cluster_type = self.cluster["cluster_type"]
 
-        if cluster_type == ClusterType.TendisTwemproxyRedisInstance.value:
+        if is_redis_instance_type(cluster_type):
             machine_type = MachineType.TENDISCACHE.value
-        elif cluster_type == ClusterType.TendisPredixyTendisplusCluster.value:
-            machine_type = MachineType.TENDISPLUS.value
-        elif cluster_type == ClusterType.TwemproxyTendisSSDInstance.value:
+        elif is_tendisssd_instance_type(cluster_type):
             machine_type = MachineType.TENDISSSD.value
+        elif is_tendisplus_instance_type(cluster_type):
+            machine_type = MachineType.TENDISPLUS.value
         else:
             machine_type = ""
 
