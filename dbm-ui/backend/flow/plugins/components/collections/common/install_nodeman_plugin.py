@@ -12,6 +12,7 @@ specific language governing permissions and limitations under the License.
 from pipeline.component_framework.component import Component
 from pipeline.core.flow import StaticIntervalGenerator
 
+from backend.components import CCApi
 from backend.components.bknodeman.client import BKNodeManApi
 from backend.flow.plugins.components.collections.common.base_service import BaseService
 
@@ -24,7 +25,28 @@ class InstallNodemanPluginService(BaseService):
 
     def _execute(self, data, parent_data):
         kwargs = data.get_one_of_inputs("kwargs")
-        bk_host_ids = kwargs["bk_host_ids"]
+
+        # bk_cloud_id + ips 组合，在这里获取bk_host_id
+        if "ips" in kwargs:
+            ips = kwargs["ips"]
+            bk_cloud_id = kwargs["bk_cloud_id"]
+            # 获取对应的bk_host_id
+            res = CCApi.list_hosts_without_biz(
+                {
+                    "fields": ["bk_host_id"],
+                    "host_property_filter": {
+                        "condition": "AND",
+                        "rules": [
+                            {"field": "bk_host_innerip", "operator": "in", "value": ips},
+                            {"field": "bk_cloud_id", "operator": "equal", "value": bk_cloud_id},
+                        ],
+                    },
+                },
+                use_admin=True,
+            )
+            bk_host_ids = [host["bk_host_id"] for host in res["info"]]
+        else:
+            bk_host_ids = kwargs["bk_host_ids"]
         plugin_name = kwargs["plugin_name"]
         self.log_info(f"start installing {plugin_name} plugin")
         job = BKNodeManApi.operate_plugin(

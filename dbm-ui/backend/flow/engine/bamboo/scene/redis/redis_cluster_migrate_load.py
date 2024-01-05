@@ -24,6 +24,9 @@ from backend.db_meta.models import AppCache, Spec
 from backend.flow.consts import ClusterStatus, InstanceStatus
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
+from backend.flow.engine.bamboo.scene.redis.atom_jobs.reupload_old_backup_records import (
+    RedisReuploadOldBackupRecordsAtomJob,
+)
 from backend.flow.plugins.components.collections.common.download_backup_client import DownloadBackupClientComponent
 from backend.flow.plugins.components.collections.redis.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.redis.get_redis_payload import GetRedisActPayloadComponent
@@ -332,6 +335,28 @@ class RedisClusterMigrateLoadFlow(object):
                     },
                 )
             sub_pipeline.add_parallel_acts(acts_list)
+            # 历史备份记录上报
+            upload_backup_sub_pipelines = []
+            for redis_ip in cluster["slave_ips"]:
+                upload_backup_sub_pipelines.append(
+                    RedisReuploadOldBackupRecordsAtomJob(
+                        self.root_id,
+                        self.data,
+                        act_kwargs,
+                        {
+                            "bk_biz_id": self.data["bk_biz_id"],
+                            "bk_cloud_id": self.data["bk_cloud_id"],
+                            "server_ip": redis_ip,
+                            "server_ports": cluster["ip_port_dict"][redis_ip],
+                            "cluster_domain": params["clusterinfo"]["immute_domain"],
+                            "cluster_type": params["clusterinfo"]["cluster_type"],
+                            "meta_role": InstanceRole.REDIS_SLAVE.value,
+                            "server_shards": cluster["server_shards"][redis_ip],
+                        },
+                    )
+                )
+            sub_pipeline.add_parallel_sub_pipeline(upload_backup_sub_pipelines)
+
             # 建立主从关系
             act_kwargs.cluster = {
                 "repl": cluster["repl_list"],

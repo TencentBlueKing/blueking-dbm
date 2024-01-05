@@ -39,5 +39,7 @@ class InstallNodemanPluginKwargs:
     定义安装插件的私有变量结构体
     """
 
-    bk_host_ids: List[int]
     plugin_name: str
+    bk_host_ids: List[int] = None
+    ips: List[str] = None
+    bk_cloud_id: int = None
