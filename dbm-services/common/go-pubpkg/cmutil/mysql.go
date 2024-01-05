@@ -63,6 +63,15 @@ func MySQLVersionParse(version string) uint64 {
 	return mysqlVersionParse(re, version)
 }
 
+// SpiderVersionParse 解析spider version
+// example:
+// mariadb-10.3.7-linux-x86_64-tspider-3.7.6-gcs.tar.gz
+// parse version is:3007006
+func SpiderVersionParse(version string) uint64 {
+	re := regexp.MustCompile(`tspider-([\d]+).?([\d]+)?.?([\d]+)?`)
+	return mysqlVersionParse(re, version)
+}
+
 func mysqlVersionParse(re *regexp.Regexp, mysqlVersion string) uint64 {
 	result := re.FindStringSubmatch(mysqlVersion)
 	var (

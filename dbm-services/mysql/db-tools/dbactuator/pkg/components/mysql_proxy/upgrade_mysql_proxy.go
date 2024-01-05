@@ -32,9 +32,9 @@ type UpgradeProxyComp struct {
 
 // UpgradeProxyParam MySQL proxy upgrade param
 type UpgradeProxyParam struct {
-	Host  string `json:"host" validate:"required,ip" `     // 当前实例的主机地址
-	Ports []Port `json:"port" validate:"required,gt=3306"` // 当前实例的端口
-	Force bool   `json:"force"`                            // 是否强制升级
+	Host  string `json:"host" validate:"required,ip" ` // 当前实例的主机地址
+	Ports []Port `json:"port" validate:"required"`     // 当前实例的端口
+	Force bool   `json:"force"`                        // 是否强制升级
 	components.Medium
 }
 
@@ -82,6 +82,8 @@ func (p *UpgradeProxyComp) connAllProxyAdminPorts() (err error) {
 		conn, err := native.InsObject{
 			Port: port,
 			Host: p.Params.Host,
+			User: p.adminUser,
+			Pwd:  p.adminPwd,
 		}.ConnProxyAdmin()
 		if err != nil {
 			logger.Error("connect proxy %d admin port failed %s", port, err.Error())
@@ -128,13 +130,14 @@ func (p *UpgradeProxyComp) checkAppProcessist() (err error) {
 func (p *UpgradeProxyComp) ReplaceMedium() (err error) {
 	logger.Info("解压新版的介质")
 	pkgAbPath := p.Params.Medium.GetAbsolutePath()
-	if output, err := osutil.StandardShellCommand(false, fmt.Sprintf("tar zxf %s -C %s ", pkgAbPath,
-		p.installPath)); err != nil {
+	if output, err := osutil.StandardShellCommand(false, fmt.Sprintf("cd %s && tar zxf %s -C ./ ", p.installPath,
+		pkgAbPath)); err != nil {
 		logger.Error("tar zxf %s error:%s,%s", pkgAbPath, output, err.Error())
 		return err
 	}
 	logger.Info("更改mysql-proxy的软连接指向新的版本")
-	replaceCmd := fmt.Sprintf("unlink %s && ln -s %s %s", cst.ProxyInstallPath, p.Params.GePkgBaseName(),
+	replaceCmd := fmt.Sprintf("cd %s && unlink %s && ln -s %s %s", p.installPath, cst.ProxyInstallPath,
+		p.Params.GePkgBaseName(),
 		cst.ProxyInstallPath)
 	logger.Info("替换命令 %s", replaceCmd)
 	if output, err := osutil.StandardShellCommand(false, replaceCmd); err != nil {

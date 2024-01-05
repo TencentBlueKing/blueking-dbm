@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"strings"
 
+	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/native"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util"
-	"dbm-services/mysql/db-tools/dbactuator/pkg/util/mysqlutil"
 )
 
 // MySQLAccountParam TODO
@@ -68,7 +68,7 @@ func (p *MySQLAccountPrivs) useAuthString() bool {
 // GenerateInitSql TODO
 // 兼容spider授权的情况
 func (p *MySQLAccountPrivs) GenerateInitSql(version string) (initPrivSqls []string) {
-	var needCreate bool = mysqlutil.MySQLVersionParse(version) >= mysqlutil.MySQLVersionParse("8.0") &&
+	var needCreate bool = cmutil.MySQLVersionParse(version) >= cmutil.MySQLVersionParse("8.0") &&
 		!strings.Contains(version, "tspider")
 	withGrant := ""
 	encr := "BY"

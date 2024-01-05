@@ -8,6 +8,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
+// Package tbinlogdumper TODO
 package tbinlogdumper
 
 import (
@@ -268,7 +269,7 @@ func (i *InstallTbinlogDumperComp) DumperInstall() (err error) {
 			i.MysqlInstallDir, myCnf, initialLogFile)
 
 		// mysql5.7.18以上的版本
-		if mysqlutil.MySQLVersionParse(i.Params.MysqlVersion) >= mysqlutil.MySQLVersionParse("5.7.18") {
+		if cmutil.MySQLVersionParse(i.Params.MysqlVersion) >= cmutil.MySQLVersionParse("5.7.18") {
 			initialMysql = fmt.Sprintf(
 				"su - mysql -c \"cd %s && ./bin/mysqld --defaults-file=%s --initialize-insecure --user=mysql &>%s\"",
 				i.MysqlInstallDir, myCnf, initialLogFile)

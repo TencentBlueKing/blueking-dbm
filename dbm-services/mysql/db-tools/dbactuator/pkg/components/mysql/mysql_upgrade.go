@@ -85,7 +85,7 @@ func (c *MysqlUpgradeComp) Example() interface{} {
 		},
 		GeneralParam: &components.GeneralParam{
 			RuntimeAccountParam: components.RuntimeAccountParam{
-				MySQLAccountParam: common.MySQLAdminReplExample,
+				MySQLAccountParam: common.AccountAdminExample,
 			},
 		},
 	}

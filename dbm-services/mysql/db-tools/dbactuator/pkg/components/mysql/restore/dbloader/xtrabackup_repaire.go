@@ -70,7 +70,7 @@ func (x *Xtrabackup) RepairUserAdmin(userAdmin, password string, version string)
 	}
 
 	for _, adminHost := range keepUserHosts {
-		if mysqlutil.MySQLVersionParse(version) < mysqlutil.MySQLVersionParse("5.7.6") {
+		if cmutil.MySQLVersionParse(version) < cmutil.MySQLVersionParse("5.7.6") {
 			sqlList = append(sqlList, fmt.Sprintf("SET PASSWORD FOR %s@'%s' = PASSWORD('%s');",
 				userAdmin, adminHost, password))
 		} else {
@@ -133,7 +133,7 @@ func (x *Xtrabackup) RepairAndTruncateMyIsamTables() error {
 
 			sql := ""
 			if db == native.TEST_DB || db == native.INFODBA_SCHEMA {
-				//sql = fmt.Sprintf("truncate table %s.%s", db, table)
+				// sql = fmt.Sprintf("truncate table %s.%s", db, table)
 			} else {
 				sql = fmt.Sprintf("repair table %s.%s", db, table)
 			}
