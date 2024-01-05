@@ -158,6 +158,7 @@
       field: 'updater',
       showOverflowTooltip: true,
       width: 150,
+      render: ({ data }: {data: RowData}) => <span>{data.updater || '--'}</span>,
     },
     {
       label: t('启停'),

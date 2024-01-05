@@ -113,11 +113,17 @@
     onSuccess: (res) => {
       contactList.value = res.results.reduce((results, item) => {
         if (!tagsList.value?.includes(item.username)) {
-          const obj = { label: item.username, value: item.username };
+          const obj = {
+            label: item.username,
+            value: item.username,
+          };
           results.push(obj);
         }
         return results;
-      }, [] as { label: string, value: string }[]);
+      }, [] as {
+        label: string,
+        value: string,
+      }[]);
     },
   });
 
@@ -151,7 +157,7 @@
   const handleClickEnter = () => {
     const inputValue = localValue.value;
     if (inputValue) {
-      if (!tagsList.value.includes(inputValue)) {
+      if (!tagsList.value.includes(inputValue) && contactList.value.findIndex(item => item.value === inputValue) > -1) {
         tagsList.value.push(inputValue);
       }
       localValue.value = '';

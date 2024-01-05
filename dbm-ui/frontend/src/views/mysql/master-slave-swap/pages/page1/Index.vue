@@ -131,9 +131,9 @@
   const tableData = shallowRef<Array<IDataRow>>([createRowData({})]);
 
   const formData = reactive({
-    is_check_process: false,
-    is_verify_checksum: false,
-    is_check_delay: false,
+    is_check_process: true,
+    is_verify_checksum: true,
+    is_check_delay: true,
   });
 
   const panelList = [

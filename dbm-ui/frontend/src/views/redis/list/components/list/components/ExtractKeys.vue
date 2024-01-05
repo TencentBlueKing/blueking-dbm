@@ -414,6 +414,11 @@
 
       :deep(.regex-input) {
         margin: 8px 0;
+        resize: none;
+
+        textarea {
+          height: 100%;
+        }
       }
     }
   }

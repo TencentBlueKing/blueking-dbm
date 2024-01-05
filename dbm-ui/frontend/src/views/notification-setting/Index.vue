@@ -115,22 +115,19 @@
             :max="14"
             :min="1"
             style="width: 178px;"
-            type="number">
-            <template #suffix>
-              <div class="suffix-box">
-                <BkSelect
-                  v-model="formData.person_duty.send_at.unit"
-                  :clearable="false"
-                  style="width:58px">
-                  <BkOption
-                    v-for="(item, index) in periodList"
-                    :key="index"
-                    :label="item.label"
-                    :value="item.value" />
-                </BkSelect>
-              </div>
-            </template>
-          </BkInput>
+            type="number" />
+          <div class="suffix-box">
+            <BkSelect
+              v-model="formData.person_duty.send_at.unit"
+              :clearable="false"
+              style="width:58px">
+              <BkOption
+                v-for="(item, index) in periodList"
+                :key="index"
+                :label="item.label"
+                :value="item.value" />
+            </BkSelect>
+          </div>
           <span>{{ t('收到通知') }}</span>
         </div>
       </div>
@@ -310,7 +307,7 @@
     margin-bottom: 16px;
 
     .title {
-      width: 100px;
+      width: 200px;
       height: 32px;
       margin-right: 22px;
       line-height: 32px;
@@ -343,9 +340,10 @@
       }
 
       .suffix-box {
+        margin-left: -8px;
+
         :deep(.bk-input) {
-          height: 30px;
-          border: none;
+          height: 32px;
         }
       }
 
@@ -364,7 +362,7 @@
 
 
 .notification-setting-footer {
-  margin: 32px 0 0 260px;
+  margin: 32px 0 0 240px;
 
   .bk-button {
     width: 88px;

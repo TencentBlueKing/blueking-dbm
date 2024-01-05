@@ -16,32 +16,39 @@
     class="cluster-username-password-box"
     :loading="isLoading">
     <div class="item">
-      <span class="item-label">{{ $t('集群名称') }}：</span>
+      <span class="item-label">{{ t('集群名称') }}：</span>
       <span class="item-value">{{ result.cluster_name || '--' }}</span>
     </div>
     <div class="item">
-      <span class="item-label">{{ $t('域名') }}：</span>
-      <span class="item-value">{{ result.domain || '--' }}</span>
+      <span class="item-label">{{ t('域名') }}：</span>
+      <span class="item-value">{{ `${result.domain}:${result.access_port}` }}</span>
     </div>
     <div class="item">
-      <span class="item-label">{{ $t('账号') }}：</span>
+      <span class="item-label">{{ t('账号') }}：</span>
       <span class="item-value">{{ result.username || '--' }}</span>
       <span
-        v-bk-tooltips="$t('复制账号及密码')"
+        v-bk-tooltips="t('复制账号')"
         class="copy-btn">
         <i
           class="db-icon-copy"
-          @click="handleCopy" />
+          @click="() => handleCopy('username')" />
       </span>
     </div>
     <div class="item">
-      <span class="item-label">{{ $t('密码') }}：</span>
+      <span class="item-label">{{ t('密码') }}：</span>
       <span class="item-value">{{ passwordText }}</span>
       <span
         class="password-btn"
         @click="handlePasswordToggle">
         <Unvisible v-if="isShowPassword" />
         <Eye v-else />
+      </span>
+      <span
+        v-bk-tooltips="t('复制密码')"
+        class="copy-btn">
+        <DbIcon
+          type="copy"
+          @click="() => handleCopy('password')" />
       </span>
     </div>
   </BkLoading>
@@ -53,6 +60,7 @@
     Unvisible,
   } from 'bkui-vue/lib/icon';
   import { ref } from 'vue';
+  import { useI18n } from 'vue-i18n';
 
   import { getPulsarPassword } from '@services/source/pulsar';
 
@@ -65,10 +73,12 @@
   const props = defineProps<Props>();
 
   const copy = useCopy();
+  const { t } = useI18n();
 
   const isLoading = ref(true);
   const isShowPassword = ref(false);
   const result = ref({
+    access_port: 0,
     cluster_name: '',
     domain: '',
     username: '',
@@ -92,13 +102,21 @@
   });
 
 
-  const handleCopy = () => {
+  const handleCopy = (type: 'username' | 'password') => {
     const {
       username,
       password,
       token,
     } = result.value;
-    copy(`${username} ${password} ${token}`);
+    if (type === 'username') {
+      copy(username);
+      return;
+    }
+    if (token) {
+      copy(`${password} ${token}`);
+      return;
+    }
+    copy(password);
   };
 
   const handlePasswordToggle = () => {
@@ -115,6 +133,7 @@
       display: flex;
       padding: 8px 0;
       font-size: 12px;
+      align-items: center;
 
       .item-label {
         flex-shrink: 0;
@@ -135,6 +154,7 @@
         color: @primary-color;
         cursor: pointer;
       }
+
     }
   }
 </style>

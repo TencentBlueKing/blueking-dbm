@@ -98,6 +98,8 @@
     link: string,
   }
 
+  const route = useRoute();
+  const router = useRouter();
   const { t } = useI18n();
   const { currentBizId } = useGlobalBizs();
 
@@ -216,11 +218,23 @@
     fetchInstanceDetails();
   };
 
+  defineExpose({
+    routerBack() {
+      if (!route.query.form) {
+        router.back();
+        return;
+      }
+      router.push({
+        name: route.query.form as string,
+      });
+    },
+  });
+
 
 </script>
 <style lang="less">
 .influxdb-instance-detail {
-  height: calc(100% - 52px);
+  height: 100%;
 
   .bk-resize-layout-aside-content {
     width: calc(100% + 1px);

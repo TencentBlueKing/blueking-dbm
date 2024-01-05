@@ -311,11 +311,11 @@
     overflow: hidden;
 
     .cluster-name {
+      width: auto;
       margin-right: 8px;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
-      flex:1;
     }
 
     .tag-box {

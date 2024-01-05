@@ -220,6 +220,9 @@
       field: 'notify_groups',
       minWidth: 180,
       render: ({ data }: {data: RowData}) => {
+        if (data.notify_groups.length === 0) {
+          return '--';
+        }
         const dataList = data.notify_groups.map(item => ({
           id: `${item}`,
           displayName: alarmGroupNameMap[item],
@@ -270,6 +273,7 @@
       field: 'updater',
       showOverflowTooltip: true,
       minWidth: 100,
+      render: ({ data }: {data: RowData}) => <span>{data.updater || '--'}</span>,
     },
     {
       label: t('操作'),
