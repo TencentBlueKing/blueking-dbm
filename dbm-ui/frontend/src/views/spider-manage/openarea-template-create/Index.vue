@@ -78,6 +78,7 @@
 
   import { queryAllTypeCluster } from '@services/dbbase';
   import {
+    create as createOpenarea,
     getDetail,
     update as updateOpenarea,
   } from '@services/openarea';
@@ -87,6 +88,8 @@
   import { messageSuccess } from '@utils';
 
   import ConfigRule from './components/config-rule/Index.vue';
+
+  type CreateOpenareaParams = ServiceParameters<typeof createOpenarea>;
 
   const { currentBizId } = useGlobalBizs();
 
@@ -145,22 +148,29 @@
     Promise.all([
       (configRuleRef.value as InstanceType<typeof ConfigRule>).getValue(),
       (formRef.value as InstanceType<typeof Form>).validate(),
-    ]).then(([configRule]) => updateOpenarea({
-      id: Number(route.params.id),
-      bk_biz_id: currentBizId,
-      ...formData,
-      config_rules: configRule,
-      cluster_type: 'tendbcluster',
-    }).then(() => {
-      messageSuccess(t('编辑成功'));
-      window.changeConfirm = false;
-      router.push({
-        name: 'spiderOpenareaTemplate',
-      });
-    }))
-      .finally(() => {
-        isSubmiting.value = false;
-      });
+    ]).then(([configRule]) => {
+      const params: CreateOpenareaParams & { id: number } = {
+        id: 0,
+        bk_biz_id: currentBizId,
+        ...formData,
+        config_rules: configRule,
+        cluster_type: 'tendbcluster',
+      };
+      if (isEditMode) {
+        params.id = Number(route.params.id);
+      }
+      const handler = isEditMode ? updateOpenarea : createOpenarea;
+      handler(params).then(() => {
+        messageSuccess(isEditMode ? t('编辑成功') : t('新建成功'));
+        window.changeConfirm = false;
+        router.push({
+          name: 'spiderOpenareaTemplate',
+        });
+      })
+        .finally(() => {
+          isSubmiting.value = false;
+        });
+    });
   };
 
   const handleReset = () => {
