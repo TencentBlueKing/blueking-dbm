@@ -1,0 +1,87 @@
+<template>
+  <div
+    v-bkloading="{loading: isLoading}"
+    class="instance-details">
+    <BkTab
+      v-model:active="activePanel"
+      class="content-tabs"
+      type="card-tab">
+      <BkTabPanel
+        :label="t('基本信息')"
+        name="info" />
+      <BkTabPanel
+        :label="t('参数配置')"
+        name="config" />
+    </BkTab>
+    <div class="content-wrapper">
+      <BaseInfo
+        v-if="activePanel === 'info' && data"
+        :data="data" />
+      <Config
+        v-if="activePanel === 'config'"
+        :payload="data" />
+    </div>
+  </div>
+</template>
+
+<script setup lang="tsx">
+  import { useI18n } from 'vue-i18n';
+  import { useRequest } from 'vue-request';
+
+  import { getInstanceDetail } from '@services/source/mongodbInstance';
+
+  import BaseInfo from './components/BaseInfo.vue';
+  import Config from './components/Config.vue';
+
+  interface Props {
+    instanceData: {
+      instanceAddress: string,
+      clusterId: number,
+    },
+  }
+
+  const props = defineProps<Props>();
+
+  const { t } = useI18n();
+
+  const activePanel = ref('info');
+  const data = ref();
+
+  const {
+    loading: isLoading,
+    run: fetchInstDetails,
+  } = useRequest(getInstanceDetail, {
+    manual: true,
+    onSuccess(result) {
+      data.value = result;
+    },
+  });
+
+  watch(() => props.instanceData, () => {
+    fetchInstDetails({
+      instance_address: props.instanceData.instanceAddress,
+      cluster_id: props.instanceData.clusterId,
+    });
+  }, {
+    immediate: true,
+  });
+</script>
+
+<style lang="less" scoped>
+.instance-details {
+  height: 100%;
+  background: #fff;
+
+  .content-tabs {
+    :deep(.bk-tab-content) {
+      padding: 0;
+    }
+  }
+
+  .content-wrapper {
+    height: 100%;
+    padding: 0 24px;
+    overflow: auto;
+  }
+}
+</style>
