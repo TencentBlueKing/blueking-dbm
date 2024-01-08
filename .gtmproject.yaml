@@ -6,7 +6,7 @@ github:
   repo_name: "blueking-dbm"
 
   # 指定里程碑ID，
-  milestone_id: "7"
+  milestone_id: "8"
 
 project:
   # 主分支

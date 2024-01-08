@@ -111,6 +111,7 @@ dbm:
     nameServiceApigwDomain: "http://bk-dbm-addons-db-name-service"
     dbResourceApigwDomain: "http://bk-dbm-db-resource"
     dbRemoteServiceApigwDomain: "http://bk-dbm-db-remote-service"
+    slowQueryParseApigwDomain: ""
 
   ingress:
     # 在跨云管控场景下，需要配置公网 clb 进行访问
