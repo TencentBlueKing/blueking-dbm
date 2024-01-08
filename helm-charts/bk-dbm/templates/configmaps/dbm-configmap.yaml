@@ -78,7 +78,7 @@ data:
   HADB_APIGW_DOMAIN: "{{ .Values.dbm.envs.hadbApigwDomain }}"
   DBRESOURCE_APIGW_DOMAIN: "{{ .Values.dbm.envs.dbResourceApigwDomain }}"
   DRS_APIGW_DOMAIN: "{{ .Values.dbm.envs.dbRemoteServiceApigwDomain }}"
-  # 蓝鲸网关
+  SLOW_QUERY_PARSER_DOMAIN: "{{ .Values.dbm.envs.slowQueryParseApigwDomain | default (printf "http://bk-dbm-slow-query-parser-service.%s.svc.cluster.local" .Values.bk.bkBcsNamespace) }}"
   BK_APIGW_STATIC_VERSION: "{{ .Values.bk.bkApigwStaticVersion }}"
   BK_APIGW_MANAGER_MAINTAINERS: "{{ .Values.bk.bkApigwManagerMaintainers }}"
   BK_APIGW_STAGE_NAME: "{{ .Values.bk.bkApigwStageName }}"
