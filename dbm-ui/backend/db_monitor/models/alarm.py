@@ -44,8 +44,6 @@ from backend.exceptions import ApiError, ApiResultError
 
 __all__ = ["NoticeGroup", "AlertRule", "RuleTemplate", "DispatchGroup", "MonitorPolicy", "DutyRule"]
 
-from backend.utils.time import datetime2str
-
 logger = logging.getLogger("root")
 
 
@@ -107,7 +105,7 @@ class NoticeGroup(AuditedModel):
             save_duty_rule_params = {
                 "name": f"{self.name}_{self.bk_biz_id}",
                 "bk_biz_id": env.DBA_APP_BK_BIZ_ID,
-                "effective_time": datetime2str(datetime.datetime.now(timezone.utc)),
+                "effective_time": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                 "end_time": "",
                 "labels": [self.db_type],
                 "enabled": True,
@@ -136,7 +134,7 @@ class NoticeGroup(AuditedModel):
                     .values_list("monitor_duty_rule_id", flat=True)
                 )
                 save_monitor_group_params["need_duty"] = True
-                save_monitor_group_params["duty_rules"] = list(monitor_duty_rule_ids)
+                save_monitor_group_params["duty_rules"] = list(monitor_duty_rule_ids) + [self.monitor_duty_rule_id]
         else:
             save_monitor_group_params["duty_arranges"][0]["users"] = self.receivers
 
@@ -226,8 +224,8 @@ class DutyRule(AuditedModel):
         params = {
             "name": f"{self.db_type}_{self.name}",
             "bk_biz_id": env.DBA_APP_BK_BIZ_ID,
-            "effective_time": datetime2str(self.effective_time),
-            "end_time": datetime2str(self.end_time) if self.end_time else "",
+            "effective_time": self.effective_time.strftime("%Y-%m-%d %H:%M:%S"),
+            "end_time": self.end_time.strftime("%Y-%m-%d %H:%M:%S") if self.end_time else "",
             "labels": [self.db_type],
             "enabled": self.is_enabled,
             "category": self.category,
