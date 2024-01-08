@@ -20,7 +20,8 @@
       :list="dbNameList"
       multiple
       :placeholder="t('请选择')"
-      :rules="rules" />
+      :rules="rules"
+      show-select-all />
   </BkLoading>
 </template>
 <script setup lang="ts">
