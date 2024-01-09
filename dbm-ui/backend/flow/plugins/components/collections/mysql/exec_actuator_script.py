@@ -126,7 +126,7 @@ class ExecuteDBActuatorScriptService(BkJobService):
             "target_server": {"ip_list": target_ip_info},
             "script_param": str(base64.b64encode(json.dumps(db_act_template["payload"]).encode("utf-8")), "utf-8"),
         }
-        self.log_info("[{}] ready start task with body {}".format(node_name, body))
+        # self.log_info("[{}] ready start task with body {}".format(node_name, body))
 
         common_kwargs = copy.deepcopy(fast_execute_script_common_kwargs)
         if kwargs.get("run_as_system_user"):

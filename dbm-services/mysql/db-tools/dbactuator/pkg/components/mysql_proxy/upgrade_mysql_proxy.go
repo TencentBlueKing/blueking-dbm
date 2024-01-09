@@ -33,7 +33,7 @@ type UpgradeProxyComp struct {
 // UpgradeProxyParam MySQL proxy upgrade param
 type UpgradeProxyParam struct {
 	Host  string `json:"host" validate:"required,ip" ` // 当前实例的主机地址
-	Ports []Port `json:"port" validate:"required"`     // 当前实例的端口
+	Ports []Port `json:"ports" validate:"required"`    // 当前实例的端口
 	Force bool   `json:"force"`                        // 是否强制升级
 	components.Medium
 }
@@ -92,6 +92,7 @@ func (p *UpgradeProxyComp) connAllProxyAdminPorts() (err error) {
 		p.proxyAdminConns[port] = conn
 		backend, err := conn.SelectBackend()
 		if err != nil {
+			logger.Error("select backends info failed %s", err.Error())
 			return err
 		}
 		p.proxyBackend[port] = backend.Address
