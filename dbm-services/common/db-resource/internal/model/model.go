@@ -248,96 +248,136 @@ func (jsonQuery *JSONQueryExpression) Equals(value interface{}, keys ...string) 
 	return jsonQuery
 }
 
+func (jsonQuery *JSONQueryExpression) jointOrContainsBuild(builder clause.Builder) {
+	for idx, v := range jsonQuery.jointOrContainVals {
+		if idx != 0 {
+			builder.WriteString(" OR ")
+		}
+		builder.WriteString("JSON_CONTAINS(")
+		builder.WriteQuoted(jsonQuery.column)
+		builder.WriteString(",'")
+		builder.WriteString("[\"")
+		builder.WriteString(v)
+		builder.WriteString("\"]') ")
+	}
+}
+
+func (jsonQuery *JSONQueryExpression) extractBuild(stmt *gorm.Statement, builder clause.Builder) {
+	builder.WriteString("JSON_EXTRACT(")
+	builder.WriteQuoted(jsonQuery.column)
+	builder.WriteByte(',')
+	builder.AddVar(stmt, jsonQuery.path)
+	builder.WriteString(")")
+}
+
+func (jsonQuery *JSONQueryExpression) hasKeysBuild(stmt *gorm.Statement, builder clause.Builder) {
+	if len(jsonQuery.keys) > 0 {
+		builder.WriteString("JSON_EXTRACT(")
+		builder.WriteQuoted(jsonQuery.column)
+		builder.WriteByte(',')
+		builder.AddVar(stmt, jsonQueryJoin(jsonQuery.keys))
+		builder.WriteString(") IS NOT NULL")
+	}
+}
+
+func (jsonQuery *JSONQueryExpression) gteBuild(stmt *gorm.Statement, builder clause.Builder) {
+	builder.WriteString("JSON_EXTRACT(")
+	builder.WriteQuoted(jsonQuery.column)
+	builder.WriteByte(',')
+	builder.AddVar(stmt, jsonQueryJoin(jsonQuery.keys))
+	builder.WriteString(") >=")
+	builder.WriteString(strconv.Itoa(jsonQuery.Gtv))
+}
+
+func (jsonQuery *JSONQueryExpression) lteBuild(stmt *gorm.Statement, builder clause.Builder) {
+	builder.WriteString("JSON_EXTRACT(")
+	builder.WriteQuoted(jsonQuery.column)
+	builder.WriteByte(',')
+	builder.AddVar(stmt, jsonQueryJoin(jsonQuery.keys))
+	builder.WriteString(") <=")
+	builder.WriteString(strconv.Itoa(jsonQuery.Ltv))
+}
+
+func (jsonQuery *JSONQueryExpression) numrangesBuild(stmt *gorm.Statement, builder clause.Builder) {
+	builder.WriteString("JSON_EXTRACT(")
+	builder.WriteQuoted(jsonQuery.column)
+	builder.WriteByte(',')
+	builder.AddVar(stmt, jsonQueryJoin(jsonQuery.keys))
+	builder.WriteString(") ")
+	builder.WriteString(" BETWEEN ")
+	builder.WriteString(strconv.Itoa(jsonQuery.numRange.Min))
+	builder.WriteString(" AND ")
+	builder.WriteString(strconv.Itoa(jsonQuery.numRange.Max))
+}
+
+func (jsonQuery *JSONQueryExpression) mapcontainsBuild(stmt *gorm.Statement, builder clause.Builder) {
+	builder.WriteString("JSON_CONTAINS(JSON_KEYS(")
+	builder.WriteQuoted(jsonQuery.column)
+	builder.WriteString("),'[")
+	builder.WriteString(jsonArryJoin(jsonQuery.mapcontainVals))
+	builder.WriteString("]') ")
+}
+
+func (jsonQuery *JSONQueryExpression) containsBuild(stmt *gorm.Statement, builder clause.Builder) {
+	builder.WriteString("JSON_CONTAINS(")
+	builder.WriteQuoted(jsonQuery.column)
+	builder.WriteString(",'")
+	builder.WriteString("[")
+	builder.WriteString(jsonArryJoin(jsonQuery.containVals))
+	builder.WriteString("]') ")
+}
+
+func (jsonQuery *JSONQueryExpression) subcontainsBuild(stmt *gorm.Statement, builder clause.Builder) {
+	builder.WriteString("JSON_CONTAINS(JSON_EXTRACT(")
+	builder.WriteQuoted(jsonQuery.column)
+	builder.WriteString(",'$.*.\"")
+	builder.WriteString(jsonQuery.keys[0])
+	builder.WriteString("\"'),'[\"")
+	builder.WriteString(jsonQuery.subcontainVal)
+	builder.WriteString("\"]') ")
+}
+
+func (jsonQuery *JSONQueryExpression) equalsBuild(stmt *gorm.Statement, builder clause.Builder) {
+	if len(jsonQuery.keys) > 0 {
+		builder.WriteString("JSON_EXTRACT(")
+		builder.WriteQuoted(jsonQuery.column)
+		builder.WriteByte(',')
+		builder.AddVar(stmt, jsonQueryJoin(jsonQuery.keys))
+		builder.WriteString(") = ")
+		if value, ok := jsonQuery.equalsValue.(bool); ok {
+			builder.WriteString(strconv.FormatBool(value))
+		} else {
+			stmt.AddVar(builder, jsonQuery.equalsValue)
+		}
+	}
+}
+
 // Build implements clause.Expression
 func (jsonQuery *JSONQueryExpression) Build(builder clause.Builder) {
 	if stmt, ok := builder.(*gorm.Statement); ok {
 		switch stmt.Dialector.Name() {
-		case "mysql", "sqlite":
+		case "mysql":
 			switch {
 			case jsonQuery.extract:
-				builder.WriteString("JSON_EXTRACT(")
-				builder.WriteQuoted(jsonQuery.column)
-				builder.WriteByte(',')
-				builder.AddVar(stmt, jsonQuery.path)
-				builder.WriteString(")")
+				jsonQuery.extractBuild(stmt, builder)
 			case jsonQuery.hasKeys:
-				if len(jsonQuery.keys) > 0 {
-					builder.WriteString("JSON_EXTRACT(")
-					builder.WriteQuoted(jsonQuery.column)
-					builder.WriteByte(',')
-					builder.AddVar(stmt, jsonQueryJoin(jsonQuery.keys))
-					builder.WriteString(") IS NOT NULL")
-				}
+				jsonQuery.hasKeysBuild(stmt, builder)
 			case jsonQuery.gte:
-				builder.WriteString("JSON_EXTRACT(")
-				builder.WriteQuoted(jsonQuery.column)
-				builder.WriteByte(',')
-				builder.AddVar(stmt, jsonQueryJoin(jsonQuery.keys))
-				builder.WriteString(") >=")
-				builder.WriteString(strconv.Itoa(jsonQuery.Gtv))
+				jsonQuery.gteBuild(stmt, builder)
 			case jsonQuery.lte:
-				builder.WriteString("JSON_EXTRACT(")
-				builder.WriteQuoted(jsonQuery.column)
-				builder.WriteByte(',')
-				builder.AddVar(stmt, jsonQueryJoin(jsonQuery.keys))
-				builder.WriteString(") <=")
-				builder.WriteString(strconv.Itoa(jsonQuery.Ltv))
+				jsonQuery.lteBuild(stmt, builder)
 			case jsonQuery.numranges:
-				builder.WriteString("JSON_EXTRACT(")
-				builder.WriteQuoted(jsonQuery.column)
-				builder.WriteByte(',')
-				builder.AddVar(stmt, jsonQueryJoin(jsonQuery.keys))
-				builder.WriteString(") ")
-				builder.WriteString(" BETWEEN ")
-				builder.WriteString(strconv.Itoa(jsonQuery.numRange.Min))
-				builder.WriteString(" AND ")
-				builder.WriteString(strconv.Itoa(jsonQuery.numRange.Max))
+				jsonQuery.numrangesBuild(stmt, builder)
 			case jsonQuery.mapcontains:
-				builder.WriteString("JSON_CONTAINS(JSON_KEYS(")
-				builder.WriteQuoted(jsonQuery.column)
-				builder.WriteString("),'[")
-				builder.WriteString(jsonArryJoin(jsonQuery.mapcontainVals))
-				builder.WriteString("]') ")
+				jsonQuery.mapcontainsBuild(stmt, builder)
 			case jsonQuery.contains:
-				builder.WriteString("JSON_CONTAINS(")
-				builder.WriteQuoted(jsonQuery.column)
-				builder.WriteString(",'")
-				builder.WriteString("[")
-				builder.WriteString(jsonArryJoin(jsonQuery.containVals))
-				builder.WriteString("]') ")
+				jsonQuery.containsBuild(stmt, builder)
 			case jsonQuery.jointOrContains:
-				for idx, v := range jsonQuery.jointOrContainVals {
-					if idx != 0 {
-						builder.WriteString(" OR ")
-					}
-					builder.WriteString("JSON_CONTAINS(")
-					builder.WriteQuoted(jsonQuery.column)
-					builder.WriteString(",'")
-					builder.WriteString("[\"")
-					builder.WriteString(v)
-					builder.WriteString("\"]') ")
-				}
+				jsonQuery.jointOrContainsBuild(builder)
 			case jsonQuery.subcontains:
-				builder.WriteString("JSON_CONTAINS(JSON_EXTRACT(")
-				builder.WriteQuoted(jsonQuery.column)
-				builder.WriteString(",'$.*.\"")
-				builder.WriteString(jsonQuery.keys[0])
-				builder.WriteString("\"'),'[\"")
-				builder.WriteString(jsonQuery.subcontainVal)
-				builder.WriteString("\"]') ")
+				jsonQuery.subcontainsBuild(stmt, builder)
 			case jsonQuery.equals:
-				if len(jsonQuery.keys) > 0 {
-					builder.WriteString("JSON_EXTRACT(")
-					builder.WriteQuoted(jsonQuery.column)
-					builder.WriteByte(',')
-					builder.AddVar(stmt, jsonQueryJoin(jsonQuery.keys))
-					builder.WriteString(") = ")
-					if value, ok := jsonQuery.equalsValue.(bool); ok {
-						builder.WriteString(strconv.FormatBool(value))
-					} else {
-						stmt.AddVar(builder, jsonQuery.equalsValue)
-					}
-				}
+				jsonQuery.equalsBuild(stmt, builder)
 			}
 		}
 	}
