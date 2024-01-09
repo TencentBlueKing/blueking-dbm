@@ -14,7 +14,7 @@ from dataclasses import asdict
 
 from django.utils.translation import ugettext as _
 
-from backend.configuration.constants import MYSQL_DATA_RESTORE_TIME
+from backend.configuration.constants import MYSQL_DATA_RESTORE_TIME, MYSQL_USUAL_JOB_TIME
 from backend.db_meta.models import Cluster
 from backend.db_services.mysql.fixpoint_rollback.handlers import FixPointRollbackHandler
 from backend.flow.consts import MysqlChangeMasterType
@@ -50,8 +50,8 @@ def mysql_restore_data_sub_flow(
     cluster["change_master"] = False
     backup_info = get_local_backup(ins_list, cluster_model)
     if backup_info is None:
-        logger.error("cluster {} backup info not exists".format(cluster["cluster_id"]))
-        raise TendbGetBackupInfoFailedException(message=_("获取集群 {} 的备份信息失败".format(cluster["cluster_id"])))
+        logger.error("cluster {} backup info not exists".format(cluster_model.id))
+        raise TendbGetBackupInfoFailedException(message=_("获取集群 {} 的备份信息失败".format(cluster_model.id)))
     cluster["backupinfo"] = backup_info
     exec_act_kwargs = ExecActuatorKwargs(
         bk_cloud_id=cluster_model.bk_cloud_id,
@@ -107,7 +107,7 @@ def mysql_restore_data_sub_flow(
     cluster["repl_ip"] = cluster["new_slave_ip"]
     exec_act_kwargs.cluster = copy.deepcopy(cluster)
     exec_act_kwargs.exec_ip = cluster["master_ip"]
-    exec_act_kwargs.job_timeout = 7200
+    exec_act_kwargs.job_timeout = MYSQL_USUAL_JOB_TIME
     exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.tendb_grant_remotedb_repl_user.__name__
     sub_pipeline.add_act(
         act_name=_("新增repl帐户{}".format(exec_act_kwargs.exec_ip)),
@@ -256,8 +256,8 @@ def mysql_restore_master_slave_sub_flow(
     cluster["change_master"] = False
     backup_info = get_local_backup(ins_list, cluster_model)
     if backup_info is None:
-        logger.error("cluster {} backup info not exists".format(cluster["cluster_id"]))
-        raise TendbGetBackupInfoFailedException(message=_("获取集群 {} 的备份信息失败".format(cluster["cluster_id"])))
+        logger.error("cluster {} backup info not exists".format(cluster_model.id))
+        raise TendbGetBackupInfoFailedException(message=_("获取集群 {} 的备份信息失败".format(cluster_model.id)))
     cluster["backupinfo"] = backup_info
     exec_act_kwargs = ExecActuatorKwargs(
         bk_cloud_id=cluster_model.bk_cloud_id,
