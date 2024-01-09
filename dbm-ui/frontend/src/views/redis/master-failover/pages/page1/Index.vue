@@ -1,4 +1,3 @@
-<!-- eslint-disable max-len -->
 <!--
  * TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
  *
@@ -18,7 +17,7 @@
       <BkAlert
         closable
         theme="info"
-        :title="t('主从切换：针对TendisSSD、TendisCache，主从切换是把Slave提升为Master，原Master被剔除，针对Tendisplus集群，主从切换是把Slave和Master互换')" />
+        :title="t(title)" />
       <BkLoading :loading="isLoading">
         <RenderData
           class="mt16"
@@ -110,6 +109,7 @@
   const { currentBizId } = useGlobalBizs();
   const { t } = useI18n();
   const router = useRouter();
+  const title = '主从切换：针对TendisSSD、TendisCache，主从切换是把Slave提升为Master，原Master被剔除，针对Tendisplus集群，主从切换是把Slave和Master互换';
 
   const rowRefs = ref();
   const isShowMasterInstanceSelector = ref(false);
