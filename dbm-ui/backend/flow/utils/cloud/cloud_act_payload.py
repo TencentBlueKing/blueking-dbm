@@ -108,6 +108,7 @@ class CloudServiceActPayload(object):
             "data_id": bkm_dbm_report["event"]["data_id"],
             "access_token": bkm_dbm_report["event"]["token"],
             "bkmonitor_beat_path": env.MYSQL_CROND_BEAT_PATH,
+            "local_ip": self.kwargs["exec_ip"]["ip"],
             "agent_address": env.MYSQL_CROND_AGENT_ADDRESS,
         }
 

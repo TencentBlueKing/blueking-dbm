@@ -123,7 +123,7 @@ MYSQL_CROND_BEAT_PATH = get_type_env(
     key="MYSQL_CROND_BEAT_PATH", _type=str, default="/usr/local/gse_bkte/plugins/bin/bkmonitorbeat"
 )
 MYSQL_CROND_AGENT_ADDRESS = get_type_env(
-    key="MYSQL_CROND_AGENT_ADDRESS", _type=str, default="/usr/local/gse_bkte/agent/data/ipc.state.report"
+    key="MYSQL_CROND_AGENT_ADDRESS", _type=str, default="/var/run/ipc.state.report"
 )
 
 # 云区域服务部署
