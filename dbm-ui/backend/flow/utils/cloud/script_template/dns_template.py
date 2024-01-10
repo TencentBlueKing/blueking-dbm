@@ -126,6 +126,7 @@ data_id={{data_id}}
 access_token="{{access_token}}"
 bkmonitorbeat="{{bkmonitor_beat_path}}"
 agent_address="{{agent_address}}"
+local_ip="{{local_ip}}"
 
 interval="3"
 flush_switch="true"
