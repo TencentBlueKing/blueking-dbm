@@ -20,6 +20,7 @@ from django.utils.translation import ugettext as _
 
 from backend.components.mysql_backup.client import RedisBackupApi
 from backend.configuration.constants import DBType
+from backend.constants import DEFAULT_BK_CLOUD_ID
 from backend.flow.consts import WriteContextOpType
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
@@ -31,6 +32,30 @@ from backend.flow.utils.redis.redis_act_playload import RedisActPayload
 from backend.flow.utils.redis.redis_context_dataclass import ActKwargs
 
 logger = logging.getLogger("flow")
+
+
+def get_last_n_days_backup_records(n_days: int, bk_cloud_id: 0, server_ip: str) -> list:
+    """逐天获取最近n天的备份记录"""
+    records_unique = set()
+    records_ret = []
+    now = datetime.now()
+    for i in range(n_days):
+        start_date = (now - timedelta(days=i + 1)).strftime("%Y-%m-%d %H:%M:%S")
+        end_date = (now - timedelta(days=i)).strftime("%Y-%m-%d %H:%M:%S")
+        query_param = {
+            "bk_cloud_id": bk_cloud_id,
+            "source_ip": server_ip,
+            "begin_date": start_date,
+            "end_date": end_date,
+            "filename": "",
+        }
+        query_result = RedisBackupApi.query(query_param)
+        for record in query_result:
+            if record["task_id"] in records_unique:
+                continue
+            records_unique.add(record["task_id"])
+            records_ret.append(record)
+    return records_ret
 
 
 def RedisReuploadOldBackupRecordsAtomJob(root_id, ticket_data, sub_kwargs: ActKwargs, params: Dict) -> SubBuilder:
@@ -53,19 +78,10 @@ def RedisReuploadOldBackupRecordsAtomJob(root_id, ticket_data, sub_kwargs: ActKw
     """
     # 查询历史备份记录
     bk_biz_id = params["bk_biz_id"]
-    bk_cloud_id = params.get("bk_cloud_id", 0)
+    bk_cloud_id = params.get("bk_cloud_id", DEFAULT_BK_CLOUD_ID)
     server_ip = params["server_ip"]
     ndays = params.get("ndays", 7) + 1
-    start_date = (datetime.now() - timedelta(days=ndays)).strftime("%Y-%m-%d %H:%M:%S")
-    end_date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    query_param = {
-        "bk_cloud_id": 0,
-        "source_ip": server_ip,
-        "begin_date": start_date,
-        "end_date": end_date,
-        "filename": "",
-    }
-    query_result = RedisBackupApi.query(query_param)
+    query_result = get_last_n_days_backup_records(ndays, bk_cloud_id, server_ip)
     encode_str = str(base64.b64encode(json.dumps(query_result).encode("utf-8")), "utf-8")
 
     local_file = "/data/dbbak/last_n_days_gcs_backup_record.txt"
@@ -100,7 +116,7 @@ EOF
     # 上报备份记录到bklog
     act_kwargs.exec_ip = server_ip
     act_kwargs.cluster = {
-        "bk_biz_id": bk_biz_id,
+        "bk_biz_id": str(bk_biz_id),
         "bk_cloud_id": bk_cloud_id,
         "server_ip": server_ip,
         "server_ports": params["server_ports"],
