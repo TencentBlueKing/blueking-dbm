@@ -1,3 +1,4 @@
+/* eslint-disable max-len */
 /*
  * TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
  *
@@ -16,7 +17,8 @@ export type MySQLFunctions = 'toolbox' | 'tendbsingle' | 'tendbha' | 'tendbclust
 export type RedisFunctions = 'PredixyTendisplusCluster' | 'TwemproxyRedisInstance' | 'TwemproxyTendisSSDInstance' | 'toolbox';
 export type BigdataFunctions = 'es' | 'kafka' | 'hdfs' | 'influxdb' | 'pulsar' | 'riak';
 export type MonitorFunctions = 'duty_rule' | 'monitor_policy' | 'notice_group';
-export type FunctionKeys = AddonsFunctions | MySQLFunctions | RedisFunctions | BigdataFunctions | MonitorFunctions
+export type MongoFunctions = 'mongodb';
+export type FunctionKeys = AddonsFunctions | MySQLFunctions | RedisFunctions | BigdataFunctions | MonitorFunctions | MongoFunctions
 
 export interface ControllerBaseInfo {
   is_enabled: boolean,
@@ -32,6 +34,7 @@ interface ControllerData {
   redis: ControllerItem<RedisFunctions>,
   bigdata: ControllerItem<BigdataFunctions>,
   monitor: ControllerItem<MonitorFunctions>,
+  mongodb: ControllerItem<MongoFunctions>,
 }
 
 export type ExtractedControllerDataKeys = Extract<keyof ControllerData, string>;
@@ -42,6 +45,7 @@ export default class FunctionController {
   redis: ControllerItem<RedisFunctions>;
   bigdata: ControllerItem<BigdataFunctions>;
   monitor: ControllerItem<MonitorFunctions>;
+  mongodb: ControllerItem<MongoFunctions>;
 
   constructor(payload = {} as ControllerData) {
     this.addons = payload.addons;
@@ -49,6 +53,7 @@ export default class FunctionController {
     this.redis = payload.redis;
     this.bigdata = payload.bigdata;
     this.monitor = payload.monitor;
+    this.mongodb = payload.mongodb;
   }
 
   getFlatData<
