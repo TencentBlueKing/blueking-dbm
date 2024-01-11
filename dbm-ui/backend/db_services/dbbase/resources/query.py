@@ -9,7 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import abc
-from typing import Dict, List, Union
+from typing import Dict, List, Tuple, Union
 
 import attr
 from django.db.models import Q
@@ -114,14 +114,17 @@ class ListRetrieveResource(abc.ABC):
     def get_fields(cls) -> List[Dict[str, str]]:
         return cls.fields
 
-    @classmethod
-    def export_cluster(cls, bk_biz_id: int, cluster_ids: list) -> HttpResponse:
+    @staticmethod
+    def common_query_cluster(bk_biz_id: int, cluster_types: list, cluster_ids: list) -> Tuple[List[Dict], List[Dict]]:
+        """集群的通用属性查询"""
         # 获取所有符合条件的集群对象
         clusters = Cluster.objects.prefetch_related(
             "storageinstance_set", "proxyinstance_set", "storageinstance_set__machine", "proxyinstance_set__machine"
-        ).filter(bk_biz_id=bk_biz_id, cluster_type__in=cls.cluster_types)
+        ).filter(bk_biz_id=bk_biz_id, cluster_type__in=cluster_types)
         if cluster_ids:
             clusters = clusters.filter(id__in=cluster_ids)
+
+        cluster_entry_map = ClusterEntry.get_cluster_entry_map(cluster_ids=list(clusters.values_list("id", flat=True)))
 
         # 初始化用于存储Excel数据的字典列表
         headers = [
@@ -130,6 +133,7 @@ class ListRetrieveResource(abc.ABC):
             {"id": "cluster_alias", "name": _("集群别名")},
             {"id": "cluster_type", "name": _("集群类型")},
             {"id": "master_domain", "name": _("主域名")},
+            {"id": "slave_domain", "name": _("从域名")},
             {"id": "major_version", "name": _("主版本")},
             {"id": "region", "name": _("地域")},
             {"id": "disaster_tolerance_level", "name": _("容灾级别")},
@@ -149,8 +153,9 @@ class ListRetrieveResource(abc.ABC):
                 if role in cluster_info:
                     cluster_info[role] += f"\n{ins.machine.ip}#{ins.port}"
                 else:
-                    if role not in headers:
-                        headers.append({"id": role, "name": role})
+                    role_header = {"id": role, "name": role}
+                    if role_header not in headers:
+                        headers.append(role_header)
                     cluster_info[role] = f"{ins.machine.ip}#{ins.port}"
 
         # 遍历所有的集群对象
@@ -163,6 +168,7 @@ class ListRetrieveResource(abc.ABC):
                 "cluster_alias": cluster.alias,
                 "cluster_type": cluster.cluster_type,
                 "master_domain": cluster.immute_domain,
+                "slave_domain": cluster_entry_map[cluster.id].get("slave_domain", ""),
                 "major_version": cluster.major_version,
                 "region": cluster.region,
                 "disaster_tolerance_level": cluster.get_disaster_tolerance_level_display(),
@@ -172,17 +178,13 @@ class ListRetrieveResource(abc.ABC):
 
             # 将当前集群的信息追加到data_list列表中
             data_list.append(cluster_info)
-        biz_name = AppCache.get_biz_name(bk_biz_id)
-        db_type = ClusterType.cluster_type_to_db_type(cls.cluster_types[0])
-        wb = ExcelHandler.serialize(data_list, headers=headers, match_header=True)
-        return ExcelHandler.response(
-            wb, urlquote(_("{export_prefix}集群列表.xlsx").format(export_prefix=f"{biz_name}[{bk_biz_id}]{db_type}"))
-        )
 
-    @classmethod
-    def export_instance(cls, bk_biz_id: int, bk_host_ids: list) -> HttpResponse:
-        # 查询实例
-        query_condition = Q(bk_biz_id=bk_biz_id, cluster_type__in=cls.cluster_types)
+        return headers, data_list
+
+    @staticmethod
+    def common_query_instance(bk_biz_id: int, cluster_types: list, bk_host_ids: list) -> Tuple[List[Dict], List[Dict]]:
+        """实例通用属性查询"""
+        query_condition = Q(bk_biz_id=bk_biz_id, cluster_type__in=cluster_types)
         if bk_host_ids:
             query_condition = query_condition & Q(machine__bk_host_id__in=bk_host_ids)
         storages = StorageInstance.objects.prefetch_related("machine", "machine__bk_city", "cluster").filter(
@@ -229,9 +231,30 @@ class ListRetrieveResource(abc.ABC):
                         }
                     )
 
+        return headers, data_list
+
+    @classmethod
+    def export_cluster(cls, bk_biz_id: int, cluster_ids: list) -> HttpResponse:
+        """集群通用属性导出"""
+        headers, data_list = cls.common_query_cluster(bk_biz_id, cls.cluster_types, cluster_ids)
+
         biz_name = AppCache.get_biz_name(bk_biz_id)
         db_type = ClusterType.cluster_type_to_db_type(cls.cluster_types[0])
         wb = ExcelHandler.serialize(data_list, headers=headers, match_header=True)
+
+        return ExcelHandler.response(
+            wb, urlquote(_("{export_prefix}集群列表.xlsx").format(export_prefix=f"{biz_name}[{bk_biz_id}]{db_type}"))
+        )
+
+    @classmethod
+    def export_instance(cls, bk_biz_id: int, bk_host_ids: list) -> HttpResponse:
+        """实例通用属性导出"""
+        headers, data_list = cls.common_query_instance(bk_biz_id, cls.cluster_types, bk_host_ids)
+
+        biz_name = AppCache.get_biz_name(bk_biz_id)
+        db_type = ClusterType.cluster_type_to_db_type(cls.cluster_types[0])
+        wb = ExcelHandler.serialize(data_list, headers=headers, match_header=True)
+
         return ExcelHandler.response(
             wb, urlquote(_("{export_prefix}实例列表.xlsx").format(export_prefix=f"{biz_name}[{bk_biz_id}]{db_type}"))
         )
