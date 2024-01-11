@@ -1,7 +1,7 @@
 import http from './http';
 
 // 查询集群名字是否重复
-export  function verifyDuplicatedClusterName(params: {
+export function verifyDuplicatedClusterName(params: {
   cluster_type: string,
   name: string,
   bk_biz_id: number
@@ -10,7 +10,7 @@ export  function verifyDuplicatedClusterName(params: {
 }
 
 // 查询全集群信息
-export  function queryAllTypeCluster(params: {
+export function queryAllTypeCluster(params: {
   bk_biz_id: number
   cluster_types?: string,
   immute_domain?: string,
@@ -24,5 +24,5 @@ export  function queryAllTypeCluster(params: {
     major_version: string,
     name: string,
     region: string
-  }[]>('/apis/dbbase/query_all_type_cluster/', params);
+  }[]>('/apis/dbbase/simple_query_cluster/', params);
 }

@@ -25,6 +25,7 @@ export default class Tendbha {
   db_module_id: number;
   id: number;
   master_domain: string;
+  major_version: string;
   masters: {
     bk_biz_id: number,
     bk_cloud_id: number,
@@ -51,6 +52,7 @@ export default class Tendbha {
   phase: string;
   phase_name: string;
   proxies: Tendbha['masters'];
+  region: string;
   slave_domain: string;
   slaves: Tendbha['masters'];
   status: string;
@@ -69,12 +71,14 @@ export default class Tendbha {
     this.db_module_id = payload.db_module_id || 0;
     this.id = payload.id || 0;
     this.master_domain = payload.master_domain || '';
+    this.major_version = payload.major_version || '';
     this.masters = payload.masters || [];
     this.operations = payload.operations || [];
     this.permission = payload.permission || {};
     this.phase = payload.phase || '';
     this.phase_name = payload.phase_name || '';
     this.proxies = payload.proxies || [];
+    this.region = payload.region || '';
     this.slave_domain = payload.slave_domain || '';
     this.slaves = payload.slaves || [];
     this.status = payload.status || '';

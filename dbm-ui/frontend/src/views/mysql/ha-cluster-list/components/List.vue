@@ -21,6 +21,7 @@
           {{ t('实例申请') }}
         </BkButton>
         <span
+          v-if="isShowDumperEntry"
           v-bk-tooltips="{
             disabled: hasSelected,
             content: t('请选择集群')
@@ -116,6 +117,7 @@
     useRouter,
   } from 'vue-router';
 
+  import type { MySQLFunctions } from '@services/model/function-controller/functionController';
   import TendbhaModel from '@services/model/mysql/tendbha';
   import { getModules } from '@services/source/cmdb';
   import {
@@ -137,7 +139,11 @@
     useTicketMessage,
   } from '@hooks';
 
-  import { useGlobalBizs, useUserProfile } from '@stores';
+  import {
+    useFunController,
+    useGlobalBizs,
+    useUserProfile,
+  } from '@stores';
 
   import {
     ClusterTypes,
@@ -191,11 +197,11 @@
     return classList.filter(cls => cls).join(' ');
   };
 
-
   const route = useRoute();
   const router = useRouter();
-  const globalBizsStore = useGlobalBizs();
+  const { currentBizId } = useGlobalBizs();
   const userProfileStore = useUserProfile();
+  const funControllerStore = useFunController();
   const copy = useCopy();
   const ticketMessage = useTicketMessage();
   const { t, locale } = useI18n();
@@ -229,29 +235,6 @@
   const hasSelected = computed(() => state.selected.length > 0);
   const selectedIds = computed(() => state.selected.map(item => item.id));
   const hasData = computed(() => state.data.length > 0);
-  const searchSelectData = computed(() => [
-    {
-      name: 'ID',
-      id: 'id',
-    },
-    {
-      name: t('主访问入口'),
-      id: 'domain',
-    },
-    {
-      name: 'IP',
-      id: 'ip',
-    },
-    {
-      name: t('创建人'),
-      id: 'creator',
-    },
-    {
-      name: t('模块'),
-      id: 'db_module_id',
-      children: [],
-    },
-  ]);
   const tableOperationWidth = computed(() => {
     if (!isStretchLayoutOpen.value) {
       return isCN.value ? 200 : 280;
@@ -265,6 +248,11 @@
       return [ipObj.values[0].id];
     }
     return [];
+  });
+
+  const isShowDumperEntry = computed(() => {
+    const currentKey = `dumper_biz_${currentBizId}` as MySQLFunctions;
+    return funControllerStore.funControllerData.mysql.children[currentKey];
   });
 
   const columns = computed(() => [
@@ -479,13 +467,15 @@
               onClick={() => handleShowAuthorize([data])}>
               { t('授权') }
             </bk-button>
-            <bk-button
-              text
-              theme="primary"
-              class="mr-8"
-              onClick={() => handleShowCreateSubscribeRuleSlider(data)}>
-              { t('数据订阅') }
-            </bk-button>
+            {isShowDumperEntry.value && (
+              <bk-button
+                text
+                theme="primary"
+                class="mr-8"
+                onClick={() => handleShowCreateSubscribeRuleSlider(data)}>
+                { t('数据订阅') }
+              </bk-button>
+            )}
             {
               data.isOnline ? (
                 <bk-button
@@ -519,6 +509,30 @@
     },
   ]);
 
+  const searchSelectData = [
+    {
+      name: 'ID',
+      id: 'id',
+    },
+    {
+      name: t('主访问入口'),
+      id: 'domain',
+    },
+    {
+      name: 'IP',
+      id: 'ip',
+    },
+    {
+      name: t('创建人'),
+      id: 'creator',
+    },
+    {
+      name: t('模块'),
+      id: 'db_module_id',
+      children: [],
+    },
+  ];
+
   // 设置用户个人表头信息
   const defaultSettings = {
     fields: (columns.value || []).filter(item => item.field).map(item => ({
@@ -537,14 +551,14 @@
 
   const getMenuList = async (item: SearchSelectItem | undefined, keyword: string) => {
     if (item?.id !== 'creator' && keyword) {
-      return getMenuListSearch(item, keyword, searchSelectData.value, state.filters);
+      return getMenuListSearch(item, keyword, searchSelectData, state.filters);
     }
 
     // 没有选中过滤标签
     if (!item) {
       // 过滤掉已经选过的标签
       const selected = (state.filters || []).map(value => value.id);
-      return searchSelectData.value.filter(item => !selected.includes(item.id));
+      return searchSelectData.filter(item => !selected.includes(item.id));
     }
 
     // 远程加载执行人
@@ -561,7 +575,7 @@
     }
 
     // 不需要远层加载
-    return searchSelectData.value.find(set => set.id === item.id)?.children || [];
+    return searchSelectData.find(set => set.id === item.id)?.children || [];
   };
 
   const fetchData = (loading?:boolean) => {
@@ -616,7 +630,7 @@
    * 获取模块列表
    */
   const fetchModules = () => getModules({
-    bk_biz_id: globalBizsStore.currentBizId,
+    bk_biz_id: currentBizId,
     cluster_type: ClusterTypes.TENDBHA,
   }).then((res) => {
     state.dbModuleList = res.map(item => ({
@@ -666,7 +680,7 @@
       onConfirm: async () => {
         try {
           const params = {
-            bk_biz_id: globalBizsStore.currentBizId,
+            bk_biz_id: currentBizId,
             ticket_type: type,
             details: {
               cluster_ids: [data.id],
@@ -705,7 +719,7 @@
       onConfirm: async () => {
         try {
           const params = {
-            bk_biz_id: globalBizsStore.currentBizId,
+            bk_biz_id: currentBizId,
             ticket_type: TicketTypes.MYSQL_HA_DESTROY,
             details: {
               cluster_ids: [data.id],
@@ -730,7 +744,7 @@
     router.push({
       name: 'SelfServiceApplyHa',
       query: {
-        bizId: globalBizsStore.currentBizId,
+        bizId: currentBizId,
         from: route.name as string,
       },
     });

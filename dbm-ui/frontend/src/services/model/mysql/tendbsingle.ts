@@ -24,6 +24,7 @@ export default class Tendbsingle {
   db_module_name: string;
   id: number;
   master_domain: string;
+  major_version: string;
   masters: {
     bk_biz_id: number,
     bk_cloud_id: number,
@@ -50,6 +51,7 @@ export default class Tendbsingle {
   phase: string;
   phase_name: string;
   proxies: Tendbsingle['masters'];
+  region: string;
   slave_domain: string;
   slaves: Tendbsingle['masters'];
   status: string;
@@ -67,12 +69,14 @@ export default class Tendbsingle {
     this.db_module_name = payload.db_module_name || '';
     this.id = payload.id || 0;
     this.master_domain = payload.master_domain || '';
+    this.major_version = payload.major_version || '';
     this.masters = payload.masters || [];
     this.operations = payload.operations || [];
     this.permission = payload.permission || {};
     this.phase = payload.phase || '';
     this.phase_name = payload.phase_name || '';
     this.proxies = payload.proxies || [];
+    this.region = payload.region || '';
     this.slave_domain = payload.slave_domain || '';
     this.slaves = payload.slaves || [];
     this.status = payload.status || '';

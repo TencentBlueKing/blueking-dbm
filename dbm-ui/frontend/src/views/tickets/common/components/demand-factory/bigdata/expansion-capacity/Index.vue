@@ -58,7 +58,9 @@
           <div class="ticket-details__item">
             <span class="ticket-details__item-label">{{ t('已选IP') }}：</span>
           </div>
-          <SelectIpTable :data="item.hostList" />
+          <div class="inline-table">
+            <SelectIpTable :data="item.hostList" />
+          </div>
         </template>
       </div>
     </div>
@@ -164,4 +166,9 @@
 
 <style lang="less" scoped>
   @import "@views/tickets/common/styles/ticketDetails.less";
+
+  .inline-table {
+    padding-left: 160px;
+    margin-top: -24px;
+  }
 </style>

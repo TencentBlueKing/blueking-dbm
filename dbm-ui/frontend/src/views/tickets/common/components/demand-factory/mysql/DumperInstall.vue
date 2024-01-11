@@ -26,7 +26,7 @@
       </span>
     </div>
     <div
-      class="ticket-details__item"
+      class="ticket-details__item mt-16"
       style="align-items: flex-start;">
       <span
         class="ticket-details__item-label">{{ t('数据源与接收端') }}：</span>
