@@ -1,11 +1,11 @@
 <template>
   <RenderDynamicTable
     :search-params="searchParams"
-    :service="getChecksumReport" />
+    :service="getDbmonHeartbeat" />
 </template>
 <script setup lang="tsx">
   import {
-    getChecksumReport,
+    getDbmonHeartbeat,
   } from '@services/report';
 
   import RenderDynamicTable from '../render-dynamic-table/Index.vue';

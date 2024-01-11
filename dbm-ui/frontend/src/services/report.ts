@@ -10,6 +10,7 @@ interface IResult {
     format: 'text'|'status'|'fail_slave_instance'
   }[]
 }
+
 // 数据校验
 export const getChecksumReport = function (params: Record<string, any>) {
   return http.get<IResult>('/db_report/checksum_check/report', params);
@@ -27,7 +28,6 @@ export const getChecksumInstance = function (params: Record<string, any>) {
   }[]>>('/db_report/checksum_check/instance', params);
 };
 
-
 // 元数据检查报告列表
 export const getMetaCheckInsganceBelong = function (params: Record<string, any>) {
   return http.get<IResult>('/db_report/meta_check/instance_belong', params);
@@ -41,4 +41,29 @@ export const getmysqlCheckBinlogBackup = function (params: Record<string, any>) 
 // 全备检查报告
 export const getmysqlCheckFullBackup = function (params: Record<string, any>) {
   return http.get<IResult>('/db_report/mysql_check/full_backup', params);
+};
+
+// dbmon心跳超时检查报告
+export const getDbmonHeartbeat = function (params: Record<string, any>) {
+  return http.get<IResult>('/db_report/dbmon/heartbeat', params);
+};
+
+// redis binlog检查报告
+export const getRedisCheckBinlogBackup = function (params: Record<string, any>) {
+  return http.get<IResult>('/db_report/redis_check/binlog_backup', params);
+};
+
+// redis 全备检查报告
+export const getRedisCheckFullBackup = function (params: Record<string, any>) {
+  return http.get<IResult>('/db_report/redis_check/full_backup', params);
+};
+
+// redis 孤立节点检查报告
+export const getRedisMetaCheckAloneInstance = function (params: Record<string, any>) {
+  return http.get<IResult>('/db_report/redis_meta_check/alone_instance', params);
+};
+
+// 实例状态异常检查
+export const getRedisMetaCheckStatusAbnormal = function (params: Record<string, any>) {
+  return http.get<IResult>('/db_report/redis_meta_check/status_abnormal', params);
 };
