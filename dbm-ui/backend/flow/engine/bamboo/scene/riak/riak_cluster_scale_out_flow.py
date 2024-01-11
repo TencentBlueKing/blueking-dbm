@@ -15,14 +15,20 @@ from typing import Dict, Optional
 from django.utils.translation import ugettext as _
 
 from backend.configuration.constants import DBType
-from backend.flow.consts import DBA_ROOT_USER
+from backend.flow.consts import DBA_ROOT_USER, DEPENDENCIES_PLUGINS
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
+from backend.flow.plugins.components.collections.common.install_nodeman_plugin import (
+    InstallNodemanPluginServiceComponent,
+)
+from backend.flow.plugins.components.collections.common.sa_idle_check import CheckMachineIdleComponent
 from backend.flow.plugins.components.collections.riak.exec_actuator_script import ExecuteRiakActuatorScriptComponent
 from backend.flow.plugins.components.collections.riak.get_riak_cluster_node import GetRiakClusterNodeComponent
 from backend.flow.plugins.components.collections.riak.get_riak_resource import GetRiakResourceComponent
 from backend.flow.plugins.components.collections.riak.riak_db_meta import RiakDBMetaComponent
 from backend.flow.plugins.components.collections.riak.trans_files import TransFileComponent
+from backend.flow.utils.common_act_dataclass import InstallNodemanPluginKwargs
+from backend.flow.utils.mysql.mysql_act_dataclass import InitCheckKwargs
 from backend.flow.utils.riak.riak_act_dataclass import DBMetaFuncKwargs, DownloadMediaKwargsFromTrans
 from backend.flow.utils.riak.riak_act_payload import RiakActPayload
 from backend.flow.utils.riak.riak_context_dataclass import RiakActKwargs, ScaleOutManualContext
@@ -70,6 +76,31 @@ class RiakClusterScaleOutFlow(object):
         sub_pipeline.add_act(act_name=_("获取机器信息"), act_component_code=GetRiakResourceComponent.code, kwargs={})
         sub_pipeline.add_act(act_name=_("获取集群中的节点"), act_component_code=GetRiakClusterNodeComponent.code, kwargs={})
         ips = [node["ip"] for node in self.data["nodes"]]
+        bk_cloud_id = self.data["bk_cloud_id"]
+
+        acts_list = []
+        for ip in ips:
+            acts_list.append(
+                {
+                    "act_name": _("空闲检查[{}]".format(ip)),
+                    "act_component_code": CheckMachineIdleComponent.code,
+                    "kwargs": asdict(InitCheckKwargs(ips=[ip], bk_cloud_id=bk_cloud_id)),
+                }
+            )
+        sub_pipeline.add_parallel_acts(acts_list=acts_list)
+
+        acts_list = []
+        for plugin_name in DEPENDENCIES_PLUGINS:
+            acts_list.append(
+                {
+                    "act_name": _("安装[{}]插件".format(plugin_name)),
+                    "act_component_code": InstallNodemanPluginServiceComponent.code,
+                    "kwargs": asdict(
+                        InstallNodemanPluginKwargs(ips=ips, plugin_name=plugin_name, bk_cloud_id=bk_cloud_id)
+                    ),
+                }
+            )
+        sub_pipeline.add_parallel_acts(acts_list=acts_list)
 
         sub_pipeline.add_act(
             act_name=_("下发actuator以及riak介质"),
@@ -77,7 +108,7 @@ class RiakClusterScaleOutFlow(object):
             kwargs=asdict(
                 DownloadMediaKwargsFromTrans(
                     get_trans_data_ip_var=ScaleOutManualContext.get_nodes_var_name(),
-                    bk_cloud_id=self.data["bk_cloud_id"],
+                    bk_cloud_id=bk_cloud_id,
                     file_list=GetFileList(db_type=DBType.Riak).riak_install_package(self.data["db_version"]),
                 )
             ),
@@ -89,7 +120,7 @@ class RiakClusterScaleOutFlow(object):
             kwargs=asdict(
                 RiakActKwargs(
                     get_trans_data_ip_var=ScaleOutManualContext.get_base_node_var_name(),
-                    bk_cloud_id=self.data["bk_cloud_id"],
+                    bk_cloud_id=bk_cloud_id,
                     run_as_system_user=DBA_ROOT_USER,
                     get_riak_payload_func=RiakActPayload.get_config_payload.__name__,
                 )
@@ -103,7 +134,7 @@ class RiakClusterScaleOutFlow(object):
             kwargs=asdict(
                 RiakActKwargs(
                     get_trans_data_ip_var=ScaleOutManualContext.get_operate_nodes_var_name(),
-                    bk_cloud_id=self.data["bk_cloud_id"],
+                    bk_cloud_id=bk_cloud_id,
                     run_as_system_user=DBA_ROOT_USER,
                     get_riak_payload_func=RiakActPayload.get_sysinit_payload.__name__,
                 )
@@ -116,7 +147,7 @@ class RiakClusterScaleOutFlow(object):
             kwargs=asdict(
                 RiakActKwargs(
                     get_trans_data_ip_var=ScaleOutManualContext.get_operate_nodes_var_name(),
-                    bk_cloud_id=self.data["bk_cloud_id"],
+                    bk_cloud_id=bk_cloud_id,
                     run_as_system_user=DBA_ROOT_USER,
                     get_riak_payload_func=RiakActPayload.get_deploy_trans_payload.__name__,
                 )
@@ -129,7 +160,7 @@ class RiakClusterScaleOutFlow(object):
             kwargs=asdict(
                 RiakActKwargs(
                     get_trans_data_ip_var=ScaleOutManualContext.get_operate_nodes_var_name(),
-                    bk_cloud_id=self.data["bk_cloud_id"],
+                    bk_cloud_id=bk_cloud_id,
                     run_as_system_user=DBA_ROOT_USER,
                     get_riak_payload_func=RiakActPayload.get_join_cluster_trans_payload.__name__,
                 )
@@ -142,7 +173,7 @@ class RiakClusterScaleOutFlow(object):
             kwargs=asdict(
                 RiakActKwargs(
                     get_trans_data_ip_var=ScaleOutManualContext.get_base_node_var_name(),
-                    bk_cloud_id=self.data["bk_cloud_id"],
+                    bk_cloud_id=bk_cloud_id,
                     run_as_system_user=DBA_ROOT_USER,
                     get_riak_payload_func=RiakActPayload.get_commit_cluster_change_payload.__name__,
                 )
@@ -155,7 +186,7 @@ class RiakClusterScaleOutFlow(object):
             kwargs=asdict(
                 RiakActKwargs(
                     get_trans_data_ip_var=ScaleOutManualContext.get_operate_nodes_var_name(),
-                    bk_cloud_id=self.data["bk_cloud_id"],
+                    bk_cloud_id=bk_cloud_id,
                     run_as_system_user=DBA_ROOT_USER,
                     get_riak_payload_func=RiakActPayload.get_transfer_payload.__name__,
                 )
@@ -177,7 +208,7 @@ class RiakClusterScaleOutFlow(object):
         for ip in ips:
             monitor_kwargs = RiakActKwargs(
                 exec_ip=ip,
-                bk_cloud_id=self.data["bk_cloud_id"],
+                bk_cloud_id=bk_cloud_id,
                 run_as_system_user=DBA_ROOT_USER,
                 get_riak_payload_func=RiakActPayload.get_install_monitor_payload.__name__,
             )

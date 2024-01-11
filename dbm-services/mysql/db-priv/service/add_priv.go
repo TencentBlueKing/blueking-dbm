@@ -177,16 +177,10 @@ func (m *PrivTaskPara) AddPriv(jsonPara string) error {
 // AddPrivWithoutAccountRule 不使用账号规则模版，在mysql实例授权。此接口不被页面前端调用，为后台服务设计。不建议通过此接口授权。
 func (m *AddPrivWithoutAccountRule) AddPrivWithoutAccountRule(jsonPara string) error {
 	var clusterType string
-	psw, err := DecryptPsw(m.Psw)
-	if err != nil {
-		return err
-	}
-
-	if psw == m.User {
+	if m.Psw == m.User {
 		return errno.PasswordConsistentWithAccountName
 	}
-
-	psw, err = EncryptPswInDb(psw)
+	psw, err := EncryptPswInDb(m.Psw)
 	if err != nil {
 		return err
 	}

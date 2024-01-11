@@ -12,7 +12,6 @@ import logging
 from pipeline.component_framework.component import Component
 
 from backend.components import MySQLPrivManagerApi
-from backend.core.encrypt.handlers import AsymmetricHandler
 from backend.db_meta.models import Cluster
 from backend.flow.consts import TDBCTL_USER
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptService
@@ -36,16 +35,12 @@ class RemoteMigrateCutOverService(ExecuteDBActuatorScriptService):
         ctl_primary = cluster.tendbcluster_ctl_primary_address()
 
         # 添加临时账号
-        encrypt_switch_pwd = AsymmetricHandler.encrypt_with_pubkey(
-            pubkey=MySQLPrivManagerApi.fetch_public_key(), content=global_data["tdbctl_pass"]
-        )
-
         params = {
             "bk_cloud_id": cluster.bk_cloud_id,
             "bk_biz_id": global_data["bk_biz_id"],
             "operator": global_data.get("created_by", ""),
             "user": TDBCTL_USER,
-            "psw": encrypt_switch_pwd,
+            "psw": global_data["tdbctl_pass"],
             "dbname": "%",
             "dml_ddl_priv": "",
             "global_priv": "all privileges",

@@ -13,14 +13,12 @@ package cron
 import (
 	"fmt"
 	"log/slog"
-	"strings"
 	"time"
 
 	"dbm-services/common/go-pubpkg/errno"
 	"dbm-services/mysql/db-partition/model"
 	"dbm-services/mysql/db-partition/monitor"
 	"dbm-services/mysql/db-partition/service"
-	"dbm-services/mysql/db-partition/util"
 )
 
 // Scheduler TODO
@@ -30,12 +28,7 @@ var Scheduler string
 func (m PartitionJob) Run() {
 	var err error
 	var key string
-	Scheduler, err = util.ExecShellCommand(false, `hostname -I`)
-	Scheduler = strings.Replace(Scheduler, " ", "", -1)
-	Scheduler = strings.Replace(Scheduler, "\n", "", -1)
-	if err != nil {
-		Scheduler = "0.0.0.0"
-	}
+	Scheduler = "127.0.0.1"
 	offetSeconds := m.ZoneOffset * 60 * 60
 	zone := time.FixedZone(m.ZoneName, offetSeconds)
 	m.CronDate = time.Now().In(zone).Format("20060102")
@@ -80,7 +73,7 @@ func (m PartitionJob) ExecutePartitionCron(clusterType string) {
 			} else {
 				dimension := monitor.NewPartitionEventDimension(item.BkBizId, *item.BkCloudId, item.ImmuteDomain)
 				content := fmt.Sprintf("partition error. get partition sql fail: %s", err.Error())
-				monitor.SendEvent(monitor.PartitionEvent, dimension, content, "0.0.0.0")
+				monitor.SendEvent(monitor.PartitionEvent, dimension, content, "127.0.0.1")
 				_ = service.AddLog(item.ConfigId, item.BkBizId, item.ClusterId, *item.BkCloudId, 0,
 					item.ImmuteDomain, zone, m.CronDate, Scheduler, content, service.CheckFailed, item.ClusterType)
 				slog.Error(fmt.Sprintf("%v", *item), "get partition sql fail", err)

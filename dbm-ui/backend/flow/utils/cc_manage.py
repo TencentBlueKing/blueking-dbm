@@ -180,7 +180,12 @@ class CcManage(object):
     def update_host_properties(
         self, bk_host_ids: List[int], need_monitor: bool, dbm_meta=None, update_operator: bool = True
     ):
-        """批量更新主机属性"""
+        """
+        批量更新主机属性
+        """
+        # 给业务主机模型增加dbm_meta自定义字段
+        Services.init_cc_dbm_meta(self.bk_biz_id)
+
         # 如果传递了dbm_meta信息和选择不更新维护人，则无需查询machine表，可以直接构造主机属性
         if dbm_meta is not None and not update_operator:
             dbm_meta = json.dumps(dbm_meta)

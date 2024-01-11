@@ -631,7 +631,7 @@ func CreatePartitionTicket(check Checker, objects []PartitionObject, zoneOffset 
 	if err != nil {
 		dimension := monitor.NewPartitionEventDimension(check.BkBizId, *check.BkCloudId, check.ImmuteDomain)
 		content := fmt.Sprintf("partition error. create ticket fail: %s", err.Error())
-		monitor.SendEvent(monitor.PartitionEvent, dimension, content, "0.0.0.0")
+		monitor.SendEvent(monitor.PartitionEvent, dimension, content, "127.0.0.1")
 		slog.Error("msg", fmt.Sprintf("create ticket fail: %v", ticket), err)
 		_ = AddLog(check.ConfigId, check.BkBizId, check.ClusterId, *check.BkCloudId,
 			0, check.ImmuteDomain, zone, date, scheduler,
