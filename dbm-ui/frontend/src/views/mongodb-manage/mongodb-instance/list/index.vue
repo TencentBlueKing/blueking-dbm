@@ -39,7 +39,7 @@
       <DbTable
         ref="tableRef"
         :columns="columns"
-        :data-source="getInstanceList"
+        :data-source="getMongoInstancesList"
         :is-anomalies="isAnomalies"
         :pagination="renderPagination"
         :pagination-extra="{ small: false }"
@@ -59,9 +59,9 @@
 
   import MongodbInstanceModel from '@services/model/mongodb/mongodb-instance';
   import  {
-    getInstanceList,
-    getRoleList,
-  } from '@services/source/mongodbInstance';
+    getMongoInstancesList,
+    getMongoRoleList,
+  } from '@services/source/mongodb';
   import { createTicket } from '@services/source/ticket';
 
   import {
@@ -84,8 +84,6 @@
   import DropdownExportExcel from '@components/dropdown-export-excel/index.vue';
 
   import { getSearchSelectorParams } from '@utils';
-
-  import type { SearchSelectValues } from '@types/bkui-vue';
 
   const instanceData = defineModel<{
     instanceAddress: string,
@@ -133,7 +131,7 @@
     name: string
   }[]>([]);
 
-  const searchValues = ref<SearchSelectValues>([]);
+  const searchValues = ref([]);
   const selected = ref<MongodbInstanceModel[]>([]);
   const pagination = ref<IPagination>(useDefaultPagination());
 
@@ -331,7 +329,7 @@
     updateTableSettings,
   } = useTableSettings(UserPersonalSettings.MONGODB_INSTANCE_TABLE_SETTINGS, defaultSettings);
 
-  useRequest(getRoleList, {
+  useRequest(getMongoRoleList, {
     onSuccess(data) {
       roleListType.value = data.map(item => ({
         id: item,
