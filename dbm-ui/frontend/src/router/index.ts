@@ -20,6 +20,7 @@ import {
 
 import type {
   BigdataFunctions,
+  MongoFunctions,
   MySQLFunctions,
   RedisFunctions,
 } from '@services/model/function-controller/functionController';
@@ -36,6 +37,7 @@ import getHDFSRoutes from '@views/hdfs-manage/routes';
 import getInfluxDBRoutes from '@views/influxdb-manage/routes';
 import getInspectionRoutes from '@views/inspection-manage/routes';
 import getKafkaRoutes from '@views/kafka-manage/routes';
+import getMongoRoutes from '@views/mongodb-manage/routes';
 import getDBMonitorAlarmRoutes from '@views/monitor-alarm-db/routes';
 import getPlatMonitorAlarmRoutes from '@views/monitor-alarm-plat/routes';
 import getMysqlRoutes from '@views/mysql/routes';
@@ -87,6 +89,7 @@ export default () => {
   const mysqlController = funControllerData.getFlatData<MySQLFunctions, 'mysql'>('mysql');
   const redisController = funControllerData.getFlatData<RedisFunctions, 'redis'>('redis');
   const bigdataController = funControllerData.getFlatData<BigdataFunctions, 'bigdata'>('bigdata');
+  const mongdbController = funControllerData.getFlatData<MongoFunctions, 'mongodb'>('mongodb');
 
   appRouter = createRouter({
     history: createWebHistory(),
@@ -131,6 +134,7 @@ export default () => {
           ...getTemporaryPasswordModify(),
           ...getRiakManage(bigdataController),
           ...getTicketFlowSettingRoutes(),
+          ...getMongoRoutes(mongdbController),
         ],
       },
       {
