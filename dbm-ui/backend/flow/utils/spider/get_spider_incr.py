@@ -14,7 +14,6 @@ from django.utils.translation import ugettext_lazy as _
 
 from backend.components import DRSApi
 from backend.db_meta.models import Cluster
-from backend.flow.consts import MAX_SPIDER_MASTER_COUNT
 from backend.flow.engine.bamboo.scene.spider.common.exceptions import FailedToAssignIncrException
 
 logger = logging.getLogger("root")
@@ -49,10 +48,17 @@ def get_spider_master_incr(cluster: Cluster, add_spiders: list) -> list:
     # 生成对比list
     tmp_list = [int(info["SPIDER_AUTO_INCREMENT_MODE_VALUE"]) for info in res[0]["cmd_results"][1]["table_data"]]
 
+    increment_step_list = list(
+        set([int(info["SPIDER_AUTO_INCREMENT_STEP"]) for info in res[0]["cmd_results"][1]["table_data"]])
+    )
+    if len(increment_step_list) > 1:
+        raise FailedToAssignIncrException(message=_("there are several different self incrementing steps"))
+    max_spider_master_count = increment_step_list[0]
+    logger.info("get the spider_auto_increment val: {}".format(max_spider_master_count))
     # incr_number 从1开始寻找，如果已使用则跳过，直至到未使用则赋值给对应的待加入的spider-master节点，且跳出
     start = 0
     for spider in new_add_spiders:
-        for incr_number in range(start + 1, MAX_SPIDER_MASTER_COUNT + 1):
+        for incr_number in range(start + 1, max_spider_master_count + 1):
             if incr_number not in tmp_list:
                 spider["incr_number"] = incr_number
                 break
