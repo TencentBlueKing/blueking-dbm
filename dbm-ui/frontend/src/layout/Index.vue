@@ -129,6 +129,7 @@
       'DatabaseWhitelist',
       'ticketManage',
       'DBPasswordTemporaryModify',
+      'Mongodb',
     ],
     [menuEnum.observableManage]: [
       'DBHASwitchEvents',
