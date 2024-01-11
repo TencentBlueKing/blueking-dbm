@@ -80,6 +80,7 @@ class ResourceListSerializer(serializers.Serializer):
     city = serializers.CharField(help_text=_("城市"), required=False)
     subzones = serializers.CharField(help_text=_("园区"), required=False)
 
+    os_type = serializers.CharField(help_text=_("操作系统类型"), required=False)
     cpu = serializers.CharField(help_text=_("cpu资源限制"), required=False)
     mem = serializers.CharField(help_text=_("内存资源限制"), required=False)
     disk = serializers.CharField(help_text=_("磁盘资源限制"), required=False)
