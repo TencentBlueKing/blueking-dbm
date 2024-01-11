@@ -142,7 +142,7 @@ CREATE TABLE IF NOT EXISTS %s.global_backup (
   BackupId varchar(40) NOT NULL DEFAULT '',
   BackupStatus varchar(30) NOT NULL DEFAULT '',
   TaskPid int NOT NULL DEFAULT -1,
-  CreatedAt timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CreatedAt timestamp NOT NULL DEFAULT '0000-00-00 00:00:00',
   UpdatedAt timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (BackupId,Host,Port,ShardValue)
 ) ENGINE=%s DEFAULT CHARSET=utf8mb4 COMMENT='shard_key "ShardValue"'

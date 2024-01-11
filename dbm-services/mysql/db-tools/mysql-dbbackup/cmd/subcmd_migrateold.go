@@ -14,6 +14,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -113,7 +114,13 @@ func migrateOld(cmd *cobra.Command, args []string) (errs error) {
 			errs = errors2.Join(errs, errors.Errorf("infoFile need /data/dbbak/backupinfo, %s", infoFile))
 			continue
 		}
+		nowTime := time.Now().AddDate(0, 0, -24) // 只迁移 24天内的 .info
 		for _, infoFilePath := range files {
+			if fi, err := os.Stat(infoFilePath); err != nil {
+				continue
+			} else if nowTime.Compare(fi.ModTime()) > 0 {
+				continue
+			}
 			if indexFilePath, indexContent, err := backupexe.MigrateInstanceBackupInfo(infoFilePath, &cnf); err != nil {
 				errMsg := fmt.Sprintf("failed migrate backup info port %d\n: %s", cnf.Public.MysqlPort, err.Error())
 				errs = errors2.Join(errs, errors.New(errMsg))
