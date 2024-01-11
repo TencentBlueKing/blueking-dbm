@@ -16,24 +16,30 @@ from typing import Dict, Optional
 
 from django.utils.translation import ugettext as _
 
+from backend.components import DBConfigApi
+from backend.components.dbconfig.constants import ConfType, FormatType, LevelName
 from backend.configuration.constants import AffinityEnum, DBType
 from backend.db_meta.enums import InstanceRole
 from backend.db_meta.enums.cluster_type import ClusterType
 from backend.db_meta.enums.machine_type import MachineType
 from backend.db_meta.models import AppCache, Spec
-from backend.flow.consts import ClusterStatus, InstanceStatus
+from backend.db_services.version.constants import RedisVersion
+from backend.flow.consts import DEPENDENCIES_PLUGINS, ClusterStatus, InstanceStatus
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.redis.atom_jobs.reupload_old_backup_records import (
     RedisReuploadOldBackupRecordsAtomJob,
 )
 from backend.flow.plugins.components.collections.common.download_backup_client import DownloadBackupClientComponent
+from backend.flow.plugins.components.collections.common.install_nodeman_plugin import (
+    InstallNodemanPluginServiceComponent,
+)
 from backend.flow.plugins.components.collections.redis.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.redis.get_redis_payload import GetRedisActPayloadComponent
 from backend.flow.plugins.components.collections.redis.redis_config import RedisConfigComponent
 from backend.flow.plugins.components.collections.redis.redis_db_meta import RedisDBMetaComponent
 from backend.flow.plugins.components.collections.redis.trans_flies import TransFileComponent
-from backend.flow.utils.common_act_dataclass import DownloadBackupClientKwargs
+from backend.flow.utils.common_act_dataclass import DownloadBackupClientKwargs, InstallNodemanPluginKwargs
 from backend.flow.utils.redis.redis_act_playload import RedisActPayload
 from backend.flow.utils.redis.redis_context_dataclass import ActKwargs, CommonContext
 from backend.flow.utils.redis.redis_db_meta import RedisDBMeta
@@ -104,6 +110,27 @@ class RedisClusterMigrateLoadFlow(object):
             "slave_ips": list(set(slave_ips)),
             "server_shards": dict(server_shards),
         }
+
+    # 检查传参的配置与配置中心当前版本模板是否匹配，是否多了配置
+    def __check_config(self, bk_biz_id: str, conf_file: str, conf_type, namespace: str, conf: dict) -> dict:
+        config_data = DBConfigApi.query_conf_item(
+            params={
+                "bk_biz_id": bk_biz_id,
+                "level_name": LevelName.APP,
+                "level_value": bk_biz_id,
+                "conf_file": conf_file,
+                "conf_type": conf_type,
+                "namespace": namespace,
+                "format": FormatType.MAP,
+            }
+        )
+        # 传入的参数不在对应版本的配置中，需要删除
+        redis_config_tpl = config_data["content"].keys()
+        conf_copy = copy.deepcopy(conf)
+        for k in conf_copy.keys():
+            if k not in redis_config_tpl:
+                del conf[k]
+        return conf
 
     def redis_cluster_migrate_load_flow(self):
         """
@@ -427,6 +454,13 @@ class RedisClusterMigrateLoadFlow(object):
             proxy_pwd = ""
             redis_password = ""
             # 处理配置
+            params["redis_config"] = self.__check_config(
+                str(self.data["bk_biz_id"]),
+                params["clusterinfo"]["db_version"],
+                ConfType.DBCONF,
+                params["clusterinfo"]["cluster_type"],
+                params["redis_config"],
+            )
             if "requirepass" in params["redis_config"]:
                 del params["redis_config"]["requirepass"]
             if "redis_password" in params["proxy_config"]:
@@ -441,7 +475,10 @@ class RedisClusterMigrateLoadFlow(object):
                 "db_version": params["clusterinfo"]["db_version"],
                 "domain_name": params["clusterinfo"]["immute_domain"],
             }
-            if params["clusterinfo"]["cluster_type"] == ClusterType.TendisTwemproxyRedisInstance.value:
+            if (
+                params["clusterinfo"]["cluster_type"] == ClusterType.TendisTwemproxyRedisInstance.value
+                and params["clusterinfo"]["db_version"] != RedisVersion.Redis20.value
+            ):
                 act_kwargs.cluster["conf"]["cluster-enabled"] = ClusterStatus.REDIS_CLUSTER_NO
 
             act_kwargs.get_redis_payload_func = RedisActPayload.set_redis_config.__name__
@@ -472,6 +509,25 @@ class RedisClusterMigrateLoadFlow(object):
             )
             sub_pipeline.add_parallel_acts(acts_list)
             # 写配置文件 end
+
+            # 安装插件
+            acts_list = []
+            for plugin_name in DEPENDENCIES_PLUGINS:
+                acts_list.append(
+                    {
+                        "act_name": _("安装[{}]插件".format(plugin_name)),
+                        "act_component_code": InstallNodemanPluginServiceComponent.code,
+                        "kwargs": asdict(
+                            InstallNodemanPluginKwargs(
+                                bk_cloud_id=int(self.data["bk_cloud_id"]),
+                                ips=cluster["master_ips"] + cluster["slave_ips"] + cluster["proxy_ips"],
+                                plugin_name=plugin_name,
+                            )
+                        ),
+                    }
+                )
+            sub_pipeline.add_parallel_acts(acts_list=acts_list)
+            # 安装插件 end
 
             sub_pipelines.append(
                 sub_pipeline.build_sub_process(sub_name=_("{}迁移子任务").format(params["clusterinfo"]["immute_domain"]))
