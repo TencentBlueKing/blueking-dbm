@@ -251,17 +251,22 @@
       return;
     }
     tableData.value[index].isLoading = true;
+    // TODO: 使用精确查询接口替换
     const result = await getRedisList({ domain }).finally(() => {
       tableData.value[index].isLoading = false;
     });
     if (result.results.length < 1) {
       return;
     }
-    const data = result.results[0];
-    const row = generateTableRow(data);
+    const list = result.results.filter(item => item.master_domain === domain);
+    if (list.length === 0) {
+      return;
+    }
+    const item = list[0];
+    const row = generateTableRow(item);
     tableData.value[index] = row;
     domainMemo[domain] = true;
-    selectedClusters.value[ClusterTypes.REDIS].push(data);
+    selectedClusters.value[ClusterTypes.REDIS].push(item);
   };
 
   // 追加一个集群

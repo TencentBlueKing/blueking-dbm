@@ -93,8 +93,9 @@
     },
     {
       validator: async (value: string) => {
+        // TODO: 使用精确查询接口替换
         const result = await getRedisList({ domain: value });
-        return result.results.length > 0;
+        return result.results.filter(item => item.master_domain === value).length > 0;
       },
       message: t('目标集群不存在'),
     },

@@ -278,7 +278,10 @@
   };
 
   const queryClusterList = async () => {
-    const result = await getRedisList();
+    const result = await getRedisList({
+      offset: 0,
+      limit: -1,
+    });
     clusterList.value = result.results.map(item => ({
       value: item.id,
       label: item.master_domain,
