@@ -120,16 +120,14 @@
     </template>
   </BkDialog>
 </template>
-<script setup lang="tsx" generic="T extends RedisModel | TendbhaModel | SpiderModel">
+<script setup lang="tsx" generic="T extends RedisModel | TendbhaModel | SpiderModel | MongodbModel">
   import _ from 'lodash';
-  import {
-    ref,
-    shallowRef,
-  } from 'vue';
 
+  import MongodbModel from '@services/model/mongodb/mongodb';
   import TendbhaModel from '@services/model/mysql/tendbha';
   import RedisModel from '@services/model/redis/redis';
   import SpiderModel from '@services/model/spider/spider';
+  import { getMongoList } from '@services/source/mongodb';
   import { getRedisList } from '@services/source/redis';
   import { getSpiderList } from '@services/source/spider';
   import { getTendbhaList } from '@services/source/tendbha';
@@ -145,6 +143,7 @@
 
   import ResultPreview from './components/common/result-preview/Index.vue';
   import type { SearchSelectList } from './components/common/SearchBar.vue';
+  import MongoTable from './components/mongo/Index.vue';
   import RedisTable from './components/redis/Index.vue';
   import SpiderTable from './components/tendb-cluster/Index.vue';
   import TendbhaTable from './components/tendbha/Index.vue';
@@ -226,6 +225,20 @@
       tableContent: TendbhaTable,
       resultContent: ResultPreview,
     },
+    [ClusterTypes.MONGO_REPLICA_SET]: {
+      id: ClusterTypes.MONGO_REPLICA_SET,
+      name: t('集群选择'),
+      getResourceList: getMongoList,
+      tableContent: MongoTable,
+      resultContent: ResultPreview,
+    },
+    [ClusterTypes.MONGO_SHARED_CLUSTER]: {
+      id: ClusterTypes.MONGO_SHARED_CLUSTER,
+      name: t('集群选择'),
+      getResourceList: getMongoList,
+      tableContent: MongoTable,
+      resultContent: ResultPreview,
+    },
   };
 
   const copy = useCopy();
@@ -256,7 +269,8 @@
   // eslint-disable-next-line max-len
   const tabList = computed(() => (props.clusterTypes ? props.clusterTypes.map(type => clusterTabListMap.value[type]) : []));
 
-  const selectedArr = computed(() => (activeTab.value && (Object.keys(selectedMap.value).length > 0)
+  const selectedArr = computed(() => (activeTab.value
+    && selectedMap.value[activeTab.value] && (Object.keys(selectedMap.value).length > 0)
     ? ({ [activeTab.value]: Object.values(selectedMap.value[activeTab.value]) }) :  {}));
 
   // 显示切换 tab tips
@@ -330,7 +344,7 @@
   /**
    * 复制集群域名
    */
-  function handleCopyCluster() {
+  const handleCopyCluster = () => {
     const copyValues = Object.values(selectedMap.value).reduce((result, selectItem) => {
       result.push(...Object.values(selectItem).map(item => item.master_domain));
       return result;
@@ -342,20 +356,20 @@
     }
 
     copy(copyValues.join('\n'));
-  }
+  };
 
-  function handleConfirm() {
+  const handleConfirm = () => {
     const result = Object.keys(selectedMap.value).reduce((result, tabKey) => ({
       ...result,
       [tabKey]: Object.values(selectedMap.value[tabKey]),
     }), {});
     emits('change', result);
     handleClose();
-  }
+  };
 
-  function handleClose() {
+  const handleClose = () => {
     isShow.value =  false;
-  }
+  };
 
   /**
    * 选择当行数据

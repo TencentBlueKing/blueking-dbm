@@ -70,9 +70,9 @@
     state.collapse = props.collapse;
   });
 
-  function handleToggle() {
+  const handleToggle = () => {
     state.collapse = !state.collapse;
-  }
+  };
 </script>
 
 <style lang="less" scoped>

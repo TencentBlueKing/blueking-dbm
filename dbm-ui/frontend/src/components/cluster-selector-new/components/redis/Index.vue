@@ -90,9 +90,25 @@
         />
       ),
       render: ({ data }: { data: ResourceItem }) => {
+        if (data.phase === 'offline') {
+          return (
+            <bk-popover
+              theme="dark"
+              placement="top"
+              popoverDelay={0}>
+              {{
+                default: () => <bk-checkbox style="vertical-align: middle;" disabled />,
+                content: () => <span>{t('集群已禁用')}</span>,
+              }}
+            </bk-popover>
+          );
+        }
         if (props.disabledRowConfig && props.disabledRowConfig.handler(data)) {
           return (
-            <bk-popover theme="dark" placement="top" popoverDelay={0}>
+            <bk-popover
+              theme="dark"
+              placement="top"
+              popoverDelay={0}>
               {{
                 default: () => <bk-checkbox style="vertical-align: middle;" disabled />,
                 content: () => <span>{props.disabledRowConfig?.tip}</span>,
@@ -117,14 +133,23 @@
       render: ({ data }: { data: ResourceItem }) => (
       <div class="cluster-name-box">
           <div class="cluster-name">{data.master_domain}</div>
-          {data.operations && data.operations.length > 0 && <bk-popover
-            theme="light"
-            width="360">
-            {{
-              default: () => <bk-tag theme="info" class="tag-box">{data.operations.length}</bk-tag>,
-              content: () => <ClusterRelatedTasks data={data.operations} />,
-            }}
-          </bk-popover>}
+          {data.phase === 'offline' && (
+            <db-icon
+              svg
+              type="yijinyong"
+              class="mr-8"
+              style="width: 38px; height: 16px;" />
+          )}
+          {data.operations && data.operations.length > 0 && (
+            <bk-popover
+              theme="light"
+              width="360">
+              {{
+                default: () => <bk-tag theme="info" class="tag-box">{data.operations.length}</bk-tag>,
+                content: () => <ClusterRelatedTasks data={data.operations} />,
+              }}
+            </bk-popover>
+          )}
       </div>),
     },
     {
@@ -142,11 +167,6 @@
       field: 'cluster_name',
       showOverflowTooltip: true,
     },
-    // {
-    //   label: t('所属模块'),
-    //   field: 'db_module_name',
-    //   showOverflowTooltip: true,
-    // },
     {
       label: t('管控区域'),
       field: 'bk_cloud_name',
@@ -214,7 +234,6 @@
   watch(() => activeTab.value, (tab) => {
     if (tab) {
       searchSelectValue.value = [];
-      handleTablePageChange(1);
     }
   });
 
@@ -232,7 +251,9 @@
       return;
     }
     for (const data of tableData.value) {
-      handleSelecteRow(data, value);
+      if (data.phase !== 'offline') {
+        handleSelecteRow(data, value);
+      }
     }
   };
 
@@ -276,7 +297,7 @@
   };
 
   const handleRowClick = (row:any, data: ResourceItem) => {
-    if (props.disabledRowConfig && props.disabledRowConfig.handler(data)) {
+    if ((props.disabledRowConfig && props.disabledRowConfig.handler(data)) || data.phase === 'offline') {
       return;
     }
     const currentSelected = selectedMap.value[activeTab.value];
@@ -285,19 +306,19 @@
   };
 
 
-  function handleTablePageChange(value: number) {
+  const handleTablePageChange = (value: number) => {
     handleChangePage(value)
       .then(() => {
         checkSelectedAll();
       });
-  }
+  };
 
-  function handleTableLimitChange(value: number) {
+  const handleTableLimitChange = (value: number) => {
     handeChangeLimit(value)
       .then(() => {
         checkSelectedAll();
       });
-  }
+  };
 </script>
 
 <style lang="less" scoped>
