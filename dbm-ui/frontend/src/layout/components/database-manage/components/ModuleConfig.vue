@@ -253,7 +253,7 @@
   margin-right: 10px;
   margin-left: 10px;
   font-size: 14px;
-  color: #63656E;
+  color: #939EB5;
   cursor: pointer;
   background: #2C323F;
   border-radius: 4px;
