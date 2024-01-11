@@ -440,10 +440,13 @@ func (i *InstallNewDbBackupComp) writeCnf(port int, tpl *template.Template) (cnf
 
 // ChownGroup 更改安装目录的所属组
 func (i *InstallNewDbBackupComp) ChownGroup() (err error) {
-	migrateOldCmd := []string{
-		filepath.Join(i.installPath, "dbbackup"), "migrateold",
-	}
-	_, err = osutil.ExecShellCommand(false, strings.Join(migrateOldCmd, " "))
+	//migrateOldCmd := []string{filepath.Join(i.installPath, "dbbackup"), "migrateold"}
+	// run dbbackup migrateold
+	_, _, err = cmutil.ExecCommandReturnBytes(false,
+		i.installPath,
+		filepath.Join(i.installPath, "dbbackup"),
+		"migrateold")
+	//_, err = osutil.ExecShellCommand(false, "cd /home/mysql/dbbackup-go && " + strings.Join(migrateOldCmd, " "))
 	if err != nil {
 		return err
 	}
