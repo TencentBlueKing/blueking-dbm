@@ -272,11 +272,15 @@
     if (ret.results.length < 1) {
       return;
     }
-    const data = ret.results[0];
-    const row = generateTableRow(data);
+    const list = ret.results.filter(item => item.temp_cluster_proxy === domain);
+    if (list.length === 0) {
+      return;
+    }
+    const item = list[0];
+    const row = generateTableRow(item);
     tableData.value[index] = row;
     domainMemo[domain] = true;
-    selectedClusters.value[ClusterTypes.REDIS].push(data);
+    selectedClusters.value[ClusterTypes.REDIS].push(item);
   };
 
   // 提交
