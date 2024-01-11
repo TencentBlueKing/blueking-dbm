@@ -57,6 +57,7 @@
   import Hosts from './components/Hosts.vue';
   import Mem from './components/Mem.vue';
   import MountPoint from './components/MountPoint.vue';
+  import OSType from './components/OSType.vue';
   import ResourceTypes from './components/ResourceTypes.vue';
   import SpecId from './components/SpecId.vue';
   import Subzones from './components/Subzones.vue';
@@ -89,6 +90,7 @@
     agent_status: AgentStatus,
     city: City,
     device_class: DeviceClass,
+    os_type: OSType,
     mount_point: MountPoint,
     cpu: Cpu,
     mem: Mem,

@@ -51,6 +51,10 @@ export default function () {
         field: 'device_class',
       },
       {
+        label: t('操作系统类型'),
+        field: 'os_type',
+      },
+      {
         label: t('地域'),
         field: 'city',
       },
@@ -83,6 +87,7 @@ export default function () {
       'bk_cpu',
       'bk_mem',
       'bk_disk',
+      'os_type',
     ],
     size: cache.size || 'small',
   });

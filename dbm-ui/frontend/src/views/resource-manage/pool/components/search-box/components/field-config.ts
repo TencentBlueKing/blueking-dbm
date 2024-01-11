@@ -105,6 +105,10 @@ export default {
     label: t('机型'),
     component: 'device_class',
   },
+  os_type: {
+    label: t('操作系统类型'),
+    component: 'os_type',
+  },
   mount_point: {
     label: t('磁盘挂载点'),
     component: 'mount_point',
