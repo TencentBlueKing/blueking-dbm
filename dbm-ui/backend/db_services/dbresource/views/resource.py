@@ -53,7 +53,7 @@ from backend.db_services.dbresource.serializers import (
     SpecCountResourceResponseSerializer,
     SpecCountResourceSerializer,
 )
-from backend.db_services.ipchooser.constants import ModeType
+from backend.db_services.ipchooser.constants import BkOsType, ModeType
 from backend.db_services.ipchooser.handlers.host_handler import HostHandler
 from backend.db_services.ipchooser.handlers.topo_handler import TopoHandler
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
@@ -260,6 +260,14 @@ class DBResourceViewSet(viewsets.SystemViewSet):
     @action(detail=False, methods=["GET"])
     def get_disktypes(self, request):
         return Response(DBResourceApi.get_disktypes())
+
+    @common_swagger_auto_schema(
+        operation_summary=_("获取操作系统类型"),
+        tags=[SWAGGER_TAG],
+    )
+    @action(detail=False, methods=["GET"])
+    def get_os_types(self, request):
+        return Response(BkOsType.get_values())
 
     @common_swagger_auto_schema(
         operation_summary=_("根据逻辑城市查询园区"),
