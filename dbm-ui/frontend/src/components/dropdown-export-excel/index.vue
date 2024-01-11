@@ -74,7 +74,6 @@
     exportTendbsingleInstanceToExcel,
   } from '@services/source/tendbsingle';
 
-
   interface Props {
     type: 'tendbsingle' | 'tendbha' | 'spider' | 'redis' | 'pulsar' | 'kafka' | 'influxdb' | 'hdfs' | 'es' | 'riak' | 'mongodb';
     ids?: number[];
