@@ -1,6 +1,7 @@
 import dayjs from 'dayjs';
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 import { t } from '@locales/index';
 
 export default class MongodbInstance {
@@ -9,6 +10,11 @@ import { t } from '@locales';
 
 export default class mongodbInstance {
 >>>>>>> e2ee6d5d (fix(frontend):  mongodb实例视图 #2920)
+=======
+import { t } from '@locales/index';
+
+export default class MongodbInstance {
+>>>>>>> c4ed1b10 (feat(frontend): 集群选择器新增已禁用交互与mongodb类型 #3004)
   static themes: Record<string, string> = {
     running: 'success',
   };
@@ -48,10 +54,14 @@ export default class mongodbInstance {
   version: string;
 
 <<<<<<< HEAD
+<<<<<<< HEAD
   constructor(payload = {} as MongodbInstance) {
 =======
   constructor(payload = {} as mongodbInstance) {
 >>>>>>> e2ee6d5d (fix(frontend):  mongodb实例视图 #2920)
+=======
+  constructor(payload = {} as MongodbInstance) {
+>>>>>>> c4ed1b10 (feat(frontend): 集群选择器新增已禁用交互与mongodb类型 #3004)
     this.bk_cloud_id = payload.bk_cloud_id;
     this.bk_cloud_name = payload.bk_cloud_name;
     this.bk_host_id = payload.bk_host_id;
@@ -81,12 +91,17 @@ export default class mongodbInstance {
 
   get dbStatusConfigureObj() {
 <<<<<<< HEAD
+<<<<<<< HEAD
     const text = MongodbInstance.statusMap[this.status] || '--';
     const theme = MongodbInstance.themes[this.status] || 'danger';
 =======
     const text = mongodbInstance.statusMap[this.status] || '--';
     const theme = mongodbInstance.themes[this.status] || 'danger';
 >>>>>>> e2ee6d5d (fix(frontend):  mongodb实例视图 #2920)
+=======
+    const text = MongodbInstance.statusMap[this.status] || '--';
+    const theme = MongodbInstance.themes[this.status] || 'danger';
+>>>>>>> c4ed1b10 (feat(frontend): 集群选择器新增已禁用交互与mongodb类型 #3004)
     return { text, theme };
   }
 
