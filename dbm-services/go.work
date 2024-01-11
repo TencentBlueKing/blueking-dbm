@@ -27,4 +27,5 @@ use (
 	riak/db-tools/dbactuator
 	riak/db-tools/riak-monitor
 	sqlserver/db-tools/dbactuator
+	mongo/db-tools/dbactuator
 )

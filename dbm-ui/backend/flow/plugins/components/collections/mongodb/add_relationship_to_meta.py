@@ -62,6 +62,7 @@ class ExecAddRelationshipOperation(BaseService):
                     name=kwargs["name"],
                     immute_domain=kwargs["immute_domain"],
                     alias=kwargs["alias"],
+                    db_module_id=kwargs["db_module_id"],
                     major_version=kwargs["major_version"],
                     proxies=kwargs["proxies"],
                     configs=kwargs["configs"],

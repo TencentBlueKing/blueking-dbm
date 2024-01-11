@@ -60,9 +60,9 @@ class ActKwargs:
 
         data = DBConfigApi.query_conf_item(
             params={
-                "bk_biz_id": self.payload["bk_biz_id"],
+                "bk_biz_id": str(self.payload["bk_biz_id"]),
                 "level_name": LevelName.APP,
-                "level_value": self.payload["bk_biz_id"],
+                "level_value": str(self.payload["bk_biz_id"]),
                 "conf_file": conf_file,
                 "conf_type": conf_type,
                 "namespace": namespace,
@@ -185,6 +185,7 @@ class ActKwargs:
                     "instanceType": MediumEnum.MongoD,
                     "app": self.payload["app"],
                     "setId": self.replicaset_info["set_id"],
+                    "keyFile": self.payload["key_file"],
                     "auth": True,
                     "clusterRole": cluster_role,
                     "dbConfig": db_config,
@@ -227,6 +228,7 @@ class ActKwargs:
                     "instanceType": MediumEnum.MongoS,
                     "app": self.payload["app"],
                     "setId": self.mongos_info["set_id"],
+                    "keyFile": self.payload["key_file"],
                     "auth": True,
                     "configDB": config_db,
                     "dbConfig": db_config,
@@ -275,10 +277,11 @@ class ActKwargs:
         """添加replicaset关系到meta的kwargs"""
 
         info = {
-            "bk_biz_id": int(self.payload["bk_biz_id"]),
+            "bk_biz_id": self.payload["bk_biz_id"],
             "major_version": self.payload["db_version"],
             "creator": self.payload["created_by"],
             "region": self.payload["city"],
+            "db_module_id": 0,
         }
         instance_role = [
             InstanceRole.MONGO_M1,
@@ -297,12 +300,12 @@ class ActKwargs:
             info["cluster_type"] = ClusterType.MongoReplicaSet.value
             info["skip_machine"] = replicaset_info["skip_machine"]
             info["immute_domain"] = replicaset_info["nodes"][0]["domain"]
-            info["name"] = "{}-{}".format(self.payload["app"], replicaset_info["set_id"])
+            info["name"] = replicaset_info["set_id"]
             info["alias"] = replicaset_info["alias"]
             info["spec_id"] = self.payload["spec_id"]
             info["spec_config"] = self.payload["spec_config"]
             info["bk_cloud_id"] = replicaset_info["nodes"][0]["bk_cloud_id"]
-            info["db_module_id"] = 0
+
             # 复制集节点
             info["storages"] = []
             if len(replicaset_info["nodes"]) <= 11:
@@ -327,7 +330,7 @@ class ActKwargs:
                         )
         elif self.payload["cluster_type"] == ClusterType.MongoShardedCluster.value:
             info["cluster_type"] = ClusterType.MongoShardedCluster.value
-            info["name"] = "{}-{}".format(self.payload["app"], self.payload["config"]["set_id"])
+            info["name"] = self.payload["cluster_id"]
             info["alias"] = self.payload["alias"]
             info["bk_cloud_id"] = self.payload["config"]["nodes"][0]["bk_cloud_id"]
             info["machine_specs"] = self.payload["machine_specs"]
@@ -338,22 +341,26 @@ class ActKwargs:
             ]
             # config
             info["configs"] = []
-            # TODO config name
-            for index, node in enumerate(self.payload["config"]["nodes"]):
-                if index == len(self.payload["config"]["nodes"]) - 1:
-                    info["configs"].append(
-                        {"ip": node["ip"], "port": self.payload["config"]["port"], "role": instance_role[-1]}
-                    )
-                else:
-                    info["configs"].append(
-                        {"ip": node["ip"], "port": self.payload["config"]["port"], "role": instance_role[index]}
-                    )
-
+            config = {
+                "shard": self.payload["config"]["set_id"],
+                "nodes": [],
+            }
+            if len(self.payload["config"]["nodes"]) <= 11:
+                for index, node in enumerate(self.payload["config"]["nodes"]):
+                    if index == len(self.payload["config"]["nodes"]) - 1:
+                        config["nodes"].append(
+                            {"ip": node["ip"], "port": self.payload["config"]["port"], "role": instance_role[-1]}
+                        )
+                    else:
+                        config["nodes"].append(
+                            {"ip": node["ip"], "port": self.payload["config"]["port"], "role": instance_role[index]}
+                        )
+            info["configs"].append(config)
             # shard
             info["storages"] = []
             for shard in self.payload["shards"]:
                 storage = {
-                    "shard": "{}-{}".format(self.payload["app"], shard["set_id"]),
+                    "shard": shard["set_id"],
                     "nodes": [],
                 }
                 if len(shard["nodes"]) <= 11:
@@ -371,6 +378,7 @@ class ActKwargs:
 
     def get_add_domain_to_dns_kwargs(self, cluster: bool) -> dict:
         """添加域名到dns的kwargs"""
+
         if not cluster:
             domains = [
                 {
@@ -397,6 +405,27 @@ class ActKwargs:
                 "bk_cloud_id": self.payload["mongos"]["nodes"][0]["bk_cloud_id"],
                 "domains": domains,
             }
+
+    def get_add_shard_to_cluster_kwargs(self) -> dict:
+        """把shard添加到cluster的kwargs"""
+
+        return {
+            "set_trans_data_dataclass": CommonContext.__name__,
+            "get_trans_data_ip_var": None,
+            "add_shard_to_cluster": True,
+            "bk_cloud_id": self.payload["mongos"]["nodes"][0]["bk_cloud_id"],
+            "exec_ip": self.payload["mongos"]["nodes"][0]["ip"],
+            "db_act_template": {
+                "action": MongoDBActuatorActionEnum.AddShardToCluster,
+                "file_path": self.file_path,
+                "payload": {
+                    "ip": self.payload["mongos"]["nodes"][0]["ip"],
+                    "port": self.payload["mongos"]["port"],
+                    "adminUsername": MediumEnum.DbaUser,
+                    "shards": self.payload["add_shards"],
+                },
+            },
+        }
 
     def get_init_exec_script_kwargs(self, script_type: str) -> dict:
         """通过执行脚本"""
