@@ -1,4 +1,4 @@
-export default class mongodbInstanceDetail {
+export default class MongodbInstanceDetail {
   bk_agent_id: string;
   bk_cloud_id: number;
   bk_cloud_name: string;
@@ -29,7 +29,7 @@ export default class mongodbInstanceDetail {
   status: string;
   version: string;
 
-  constructor(payload: mongodbInstanceDetail) {
+  constructor(payload: MongodbInstanceDetail) {
     this.bk_agent_id = payload.bk_agent_id;
     this.bk_cloud_id = payload.bk_cloud_id;
     this.bk_cloud_name = payload.bk_cloud_name;
