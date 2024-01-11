@@ -1,8 +1,8 @@
 import dayjs from 'dayjs';
 
-import { t } from '@locales';
+import { t } from '@locales/index';
 
-export default class mongodbInstance {
+export default class MongodbInstance {
   static themes: Record<string, string> = {
     running: 'success',
   };
@@ -41,7 +41,7 @@ export default class mongodbInstance {
   status: string;
   version: string;
 
-  constructor(payload = {} as mongodbInstance) {
+  constructor(payload = {} as MongodbInstance) {
     this.bk_cloud_id = payload.bk_cloud_id;
     this.bk_cloud_name = payload.bk_cloud_name;
     this.bk_host_id = payload.bk_host_id;
@@ -70,8 +70,8 @@ export default class mongodbInstance {
   }
 
   get dbStatusConfigureObj() {
-    const text = mongodbInstance.statusMap[this.status] || '--';
-    const theme = mongodbInstance.themes[this.status] || 'danger';
+    const text = MongodbInstance.statusMap[this.status] || '--';
+    const theme = MongodbInstance.themes[this.status] || 'danger';
     return { text, theme };
   }
 

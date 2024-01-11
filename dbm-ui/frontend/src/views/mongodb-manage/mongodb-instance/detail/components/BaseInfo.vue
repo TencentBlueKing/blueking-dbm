@@ -8,7 +8,7 @@
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
 
-  import { getInstanceDetail } from '@services/source/mongodbInstance';
+  import { getMongoInstanceDetail } from '@services/source/mongodb';
 
   import {
     type ClusterInstStatus,
@@ -21,7 +21,7 @@
   } from '@components/editable-info/index.vue';
 
   interface Props {
-    data: ServiceReturnType<typeof getInstanceDetail>
+    data: ServiceReturnType<typeof getMongoInstanceDetail>
   }
 
   const props = defineProps<Props>();
