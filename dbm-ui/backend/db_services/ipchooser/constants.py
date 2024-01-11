@@ -16,6 +16,7 @@ from django.utils.translation import ugettext as _
 from backend.utils import env
 from backend.utils.basic import choices_to_namedtuple, tuple_choices
 from backend.utils.enum import EnhanceEnum
+from blue_krill.data_types.enum import EnumField, StructuredEnum
 
 
 class CommonEnum(EnhanceEnum):
@@ -47,6 +48,17 @@ class CommonEnum(EnhanceEnum):
             cls.DEFAULT_HOST_FUZZY_SEARCH_FIELDS: _("默认模糊查询字段"),
             cls.DEFAULT_HOST_FIELDS: _("主机列表默认返回字段"),
         }
+
+
+class BkOsType(str, StructuredEnum):
+    """蓝鲸操作系统类型"""
+
+    LINUX = EnumField("Linux", "Linux")
+    WINDOWS = EnumField("Windows", "Windows")
+    AIX = EnumField("Aix", "Aix")
+    UNIX = EnumField("Unix", "Unix")
+    SOLARIS = EnumField("Solaris", "Solaris")
+    FREEBSD = EnumField("FreeBSD", "FreeBSD")
 
 
 class ScopeType(EnhanceEnum):

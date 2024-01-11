@@ -40,8 +40,8 @@ class EsScaleUpDetailSerializer(BigDataScaleDetailSerializer):
         for role_nodes in role_nodes_list:
             node_list.extend(role_nodes)
 
-        min_instance_num = min([node["instance_num"] for node in node_list if "instance_num" in node.keys()])
-        if min_instance_num <= 0:
+        instance_num_list = [node["instance_num"] for node in node_list if "instance_num" in node.keys()]
+        if instance_num_list and min(instance_num_list) <= 0:
             raise serializers.ValidationError(_("实例数必须为正数，请确保实例的合法性"))
 
         return attrs
