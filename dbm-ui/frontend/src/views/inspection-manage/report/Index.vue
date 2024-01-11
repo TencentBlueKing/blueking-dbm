@@ -13,6 +13,9 @@
       <BkTabPanel
         :label="t('元数据检查')"
         name="metadataCheck" />
+      <BkTabPanel
+        :label="t('其它')"
+        name="more" />
     </BkTab>
     <div class="content-wrapper">
       <SearchBox
@@ -36,6 +39,7 @@
   import BackupInspection from './components/backup-inspection/Index.vue';
   import DataValidation from './components/data-validation/Index.vue';
   import MetadataCheck from './components/metadata-check/Index.vue';
+  import More from './components/more/Index.vue';
   import SearchBox from './components/SearchBox.vue';
 
   const URL_MEMO_KEY = 'tabType';
@@ -55,6 +59,7 @@
       backupInspection: BackupInspection,
       dataValidation: DataValidation,
       metadataCheck: MetadataCheck,
+      more: More,
     } as Record<string, any>;
 
     return comMap[tabType.value];
