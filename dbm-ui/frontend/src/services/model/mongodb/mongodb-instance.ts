@@ -1,8 +1,14 @@
 import dayjs from 'dayjs';
 
+<<<<<<< HEAD
 import { t } from '@locales/index';
 
 export default class MongodbInstance {
+=======
+import { t } from '@locales';
+
+export default class mongodbInstance {
+>>>>>>> e2ee6d5d (fix(frontend):  mongodb实例视图 #2920)
   static themes: Record<string, string> = {
     running: 'success',
   };
@@ -41,7 +47,11 @@ export default class MongodbInstance {
   status: string;
   version: string;
 
+<<<<<<< HEAD
   constructor(payload = {} as MongodbInstance) {
+=======
+  constructor(payload = {} as mongodbInstance) {
+>>>>>>> e2ee6d5d (fix(frontend):  mongodb实例视图 #2920)
     this.bk_cloud_id = payload.bk_cloud_id;
     this.bk_cloud_name = payload.bk_cloud_name;
     this.bk_host_id = payload.bk_host_id;
@@ -70,8 +80,13 @@ export default class MongodbInstance {
   }
 
   get dbStatusConfigureObj() {
+<<<<<<< HEAD
     const text = MongodbInstance.statusMap[this.status] || '--';
     const theme = MongodbInstance.themes[this.status] || 'danger';
+=======
+    const text = mongodbInstance.statusMap[this.status] || '--';
+    const theme = mongodbInstance.themes[this.status] || 'danger';
+>>>>>>> e2ee6d5d (fix(frontend):  mongodb实例视图 #2920)
     return { text, theme };
   }
 
