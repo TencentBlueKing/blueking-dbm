@@ -12,6 +12,7 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
+from backend.db_meta.enums import InstanceRole
 from backend.db_meta.models import Cluster, StorageInstance
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.redis import RedisController
@@ -55,19 +56,20 @@ class RedisClusterCutOffResourceParamBuilder(BaseOperateResourceParamBuilder):
         ticket_data = next_flow.details["ticket_data"]
 
         for info_index, info in enumerate(self.ticket_data["infos"]):
-            for role in ["redis_master", "proxy", "redis_slave"]:
-                role_hosts = info.get(role)
+            slave_role_groups = []
+            for role in [InstanceRole.REDIS_PROXY.value, InstanceRole.REDIS_SLAVE.value, InstanceRole.REDIS_MASTER]:
+                role_hosts, role_group = info.get(role), role
 
                 if not role_hosts:
                     continue
 
-                role_group = "backend_group" if role == "redis_master" else role
                 for role_host_index, role_host in enumerate(role_hosts):
-                    if role == "redis_master":
+                    if role == InstanceRole.REDIS_MASTER:
                         role_group, index = "backend_group", role_host_index
-                    elif role == "redis_slave":
+                    elif role == InstanceRole.REDIS_SLAVE:
                         role_group, index = f"{role}_{role_host['ip']}", 0
-                    elif role == "proxy":
+                        slave_role_groups.append(role_group)
+                    elif role == InstanceRole.REDIS_PROXY:
                         role_group, index = role, role_host_index
 
                     role_host["target"] = nodes.get(f"{info_index}_{role_group}")[index]
@@ -75,6 +77,10 @@ class RedisClusterCutOffResourceParamBuilder(BaseOperateResourceParamBuilder):
             # 保留下个节点更完整的resource_spec
             info["resource_spec"] = ticket_data["infos"][info_index]["resource_spec"]
             info["resource_spec"].pop("backend_group", None)
+            # 将redis_slave_{ip}重命名为redis_slave
+            if slave_role_groups:
+                info["resource_spec"][InstanceRole.REDIS_SLAVE] = info["resource_spec"][slave_role_groups[0]]
+                info["resource_spec"] = {k: v for k, v in info["resource_spec"].items() if k not in slave_role_groups}
             ticket_data["infos"][info_index] = info
 
         next_flow.save(update_fields=["details"])
@@ -98,13 +104,17 @@ class RedisClusterCutOffFlowBuilder(BaseRedisTicketFlowBuilder):
         id__cluster = {cluster.id: cluster for cluster in Cluster.objects.filter(id__in=cluster_ids)}
         for info in self.ticket.details["infos"]:
             cluster = id__cluster[info["cluster_id"]]
-            for role in ["redis_master", "proxy", "redis_slave"]:
+            for role in [
+                InstanceRole.REDIS_MASTER.value,
+                InstanceRole.REDIS_PROXY.value,
+                InstanceRole.REDIS_SLAVE.value,
+            ]:
                 role_hosts = info.get(role)
 
                 if not role_hosts:
                     continue
 
-                if role == "redis_master":
+                if role == InstanceRole.REDIS_MASTER.value:
                     # 如果替换角色是master，则是master/slave成对替换
                     resource_spec["backend_group"] = {
                         "spec_id": info[role][0]["spec_id"],
@@ -112,7 +122,7 @@ class RedisClusterCutOffFlowBuilder(BaseRedisTicketFlowBuilder):
                         "location_spec": {"city": cluster.region, "sub_zone_ids": []},
                         "affinity": cluster.disaster_tolerance_level,
                     }
-                elif role == "redis_slave":
+                elif role == InstanceRole.REDIS_SLAVE.value:
                     # 如果是替换slave， 需要和当前集群中的配对的 master 不同机房
                     redis_slaves = StorageInstance.objects.prefetch_related("as_receiver", "machine").filter(
                         cluster=cluster, machine__ip__in=[host["ip"] for host in role_hosts]
@@ -129,7 +139,7 @@ class RedisClusterCutOffFlowBuilder(BaseRedisTicketFlowBuilder):
                                 "include_or_exclue": False,
                             },
                         }
-                elif role == "proxy":
+                elif role == InstanceRole.REDIS_PROXY.value:
                     # TODO: proxy替换的亲和性需要衡量存量proxy的分布，暂时忽略
                     resource_spec[role] = {"spec_id": info[role][0]["spec_id"], "count": len(role_hosts)}
 
