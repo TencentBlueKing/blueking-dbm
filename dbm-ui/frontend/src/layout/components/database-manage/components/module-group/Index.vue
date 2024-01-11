@@ -8,6 +8,7 @@
   import Hdfs from './Hdfs.vue';
   import Influxdb from './Influxdb.vue';
   import Kafka from './Kafka.vue';
+  import MongoDB from './MongoDB.vue';
   import Mysql from './Mysql.vue';
   import Pulsar from './Pulsar.vue';
   import Redis from './Redis.vue';
@@ -30,6 +31,7 @@
     redis: Redis,
     tendbCluster: TendbCluster,
     riak: Riak,
+    mongodb: MongoDB,
   };
 
   const renderCom = computed(() => comMap[props.name as keyof typeof comMap]);

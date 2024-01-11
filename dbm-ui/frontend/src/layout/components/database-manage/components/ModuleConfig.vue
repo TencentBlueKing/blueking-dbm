@@ -137,11 +137,11 @@
         value: 'riak',
         icon: 'cluster',
       },
-      // {
-      //   name: 'MongoDB',
-      //   value: 'mongoDB',
-      //   icon: 'mysql',
-      // },
+      {
+        name: 'MongoDB',
+        value: 'mongodb',
+        icon: 'mysql',
+      },
     ],
     [t('时序数据库')]: [
       {

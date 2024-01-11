@@ -538,6 +538,7 @@ class GetFileList(object):
         return [
             f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{sqlserver_pkg.path}",
             f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{self.actuator_pkg.path}",
+        ]
 
     def mongodb_pkg(self, db_version: str) -> list:
         """
