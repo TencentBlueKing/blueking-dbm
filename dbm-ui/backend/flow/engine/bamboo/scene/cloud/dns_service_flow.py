@@ -35,10 +35,12 @@ class CloudDNSServiceFlow(CloudBaseServiceFlow):
         inventory_hosts.extend(self.data["drs"]["host_infos"])
         return inventory_hosts
 
-    def build_dns_apply_flow(self, dns_pipeline: Union[Builder, SubBuilder]) -> Union[Builder, SubBuilder]:
-        sub_dns_pipeline = SubBuilder(self.root_id, data=self.data)
+    def build_dns_apply_flow(
+        self, dns_pipeline: Union[Builder, SubBuilder], grayscale: bool = False
+    ) -> Union[Builder, SubBuilder]:
         sub_dns_pipeline_list: List[SubProcess] = []
 
+        # 构造dns部署子流程
         for host_info in self.data["dns"]["host_infos"]:
             dns_deploy_pipeline = SubBuilder(self.root_id, data=self.data)
             dns_deploy_pipeline = self.deploy_dns_service_pipeline(host_info, dns_deploy_pipeline)
@@ -46,8 +48,12 @@ class CloudDNSServiceFlow(CloudBaseServiceFlow):
                 dns_deploy_pipeline.build_sub_process(sub_name=_("主机{}部署dns服务").format(host_info["ip"]))
             )
 
-        sub_dns_pipeline.add_parallel_sub_pipeline(sub_dns_pipeline_list)
-        dns_pipeline.add_sub_pipeline(sub_dns_pipeline.build_sub_process(sub_name=_("部署dns服务")))
+        # 灰度部署的场景在重装会用到，每次按1/2的数量进行重启
+        ratio = 2 if grayscale else 1
+        dns_pipeline = self.deploy_batch_service_flow(
+            sub_pipeline_list=sub_dns_pipeline_list, pipeline=dns_pipeline, name=_("部署dns服务"), ratio=ratio
+        )
+
         return dns_pipeline
 
     def add_dns_flush_act(self, dns_pipeline: Union[Builder, SubBuilder], host_infos: Dict, flush_type: str):
@@ -91,7 +97,7 @@ class CloudDNSServiceFlow(CloudBaseServiceFlow):
         """
         # 重启/重装等同于重新部署，不影响其他组件
         dns_pipeline = Builder(root_id=self.root_id, data=self.data)
-        dns_pipeline = self.build_dns_apply_flow(dns_pipeline)
+        dns_pipeline = self.build_dns_apply_flow(dns_pipeline, grayscale=True)
         dns_pipeline.run_pipeline()
 
     def service_add_flow(self):

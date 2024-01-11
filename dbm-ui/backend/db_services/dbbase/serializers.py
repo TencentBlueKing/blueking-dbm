@@ -47,3 +47,19 @@ class QueryAllTypeClusterSerializer(serializers.Serializer):
 class QueryAllTypeClusterResponseSerializer(serializers.Serializer):
     class Meta:
         swagger_schema_fields = {"example": [{"id": 47, "immute_domain": "mysql.dba.db.com"}]}
+
+
+class CommonQueryClusterSerializer(serializers.Serializer):
+    bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
+    cluster_types = serializers.CharField(help_text=_("集群类型(逗号分隔)"))
+    cluster_ids = serializers.CharField(help_text=_("集群ID(逗号分割)"), required=False, default="")
+
+    def validate(self, attrs):
+        attrs["cluster_types"] = attrs["cluster_types"].split(",")
+        attrs["cluster_ids"] = attrs["cluster_ids"].split(",") if attrs["cluster_ids"] else []
+        return attrs
+
+
+class CommonQueryClusterResponseSerializer(serializers.Serializer):
+    class Meta:
+        swagger_schema_fields = {"example": []}
