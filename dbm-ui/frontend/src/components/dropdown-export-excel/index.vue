@@ -36,7 +36,7 @@
   import { exportHdfsClusterToExcel, exportHdfsInstanceToExcel } from '@services/source/hdfs';
   import { exportInfluxdbClusterToExcel, exportInfluxdbInstanceToExcel } from '@services/source/influxdb';
   import { exportKafkaClusterToExcel, exportKafkaInstanceToExcel } from '@services/source/kafka';
-  import { exportMongodbInstanceToExcel } from '@services/source/mongodbInstance';
+  import { exportMongodbInstanceToExcel } from '@services/source/mongodb';
   import { exportPulsarClusterToExcel, exportPulsarInstanceToExcel } from '@services/source/pulsar';
   import { exportRedisClusterToExcel, exportRedisInstanceToExcel } from '@services/source/redis';
   import { exportSpiderClusterToExcel, exportSpiderInstanceToExcel } from '@services/source/spider';

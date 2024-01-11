@@ -27,7 +27,7 @@
       :is-anomalies="isAnomalies"
       :is-searching="searchSelectValue.length > 0"
       :max-height="528"
-      :pagination="pagination.count < 10 ? false: pagination"
+      :pagination="pagination.count < 10 ? false : pagination"
       remote-pagination
       row-style="cursor: pointer;"
       @page-limit-change="handleTableLimitChange"
@@ -86,7 +86,6 @@
           indeterminate={isIndeterminate.value}
           disabled={mainSelectDisable.value}
           label={true}
-          onClick={(e: Event) => e.stopPropagation()}
           onChange={handleSelecteAll}
         />
       ),
@@ -122,7 +121,6 @@
             style="vertical-align: middle;"
             model-value={Boolean(selectedDomainMap.value[data.id])}
             label={true}
-            onClick={(e: Event) => e.stopPropagation()}
             onChange={(value: boolean) => handleSelecteRow(data, value)}
           />
         );
@@ -172,13 +170,11 @@
     {
       label: t('所属模块'),
       field: 'db_module_name',
-      width: 130,
       showOverflowTooltip: true,
     },
     {
       label: t('管控区域'),
       field: 'bk_cloud_name',
-      width: 140,
       showOverflowTooltip: true,
     },
   ];
@@ -210,8 +206,9 @@
   const isIndeterminate = computed(() => !isSelectedAll.value
     && selectedMap.value[activeTab.value] && Object.keys(selectedMap.value[activeTab.value]).length > 0);
 
-  // eslint-disable-next-line max-len
-  const mainSelectDisable = computed(() => (props.disabledRowConfig ? tableData.value.filter(data => props.disabledRowConfig?.handler(data)).length === tableData.value.length : false));
+  const mainSelectDisable = computed(() => (props.disabledRowConfig
+    // eslint-disable-next-line max-len
+    ? tableData.value.filter(data => props.disabledRowConfig?.handler(data)).length === tableData.value.length : false));
 
   const generatedColumns = computed(() => {
     if (props.customColums) {
@@ -220,18 +217,18 @@
     return columns;
   });
 
-  watch(() => [props.activeTab, props.selected] as [string, Record<string, any[]>], () => {
-    if (props.activeTab) {
-      activeTab.value = props.activeTab;
-      if (!props.selected || !props.selected[props.activeTab]) {
+  watch(() => [props.activeTab, props.selected] as [string, Record<string, any[]>], ([tabKey, selected]) => {
+    if (tabKey) {
+      activeTab.value = tabKey;
+      if (!selected[tabKey] || !props.selected) {
         return;
       }
-      // eslint-disable-next-line max-len
-      const tabSelectMap = props.selected[props.activeTab].reduce((selectResult, selectItem) => Object.assign({}, selectResult, {
+      const tabSelectMap = selected[tabKey].reduce((selectResult, selectItem) => ({
+        ...selectResult,
         [selectItem.id]: selectItem,
       }), {} as Record<string, ResourceItem>);
       selectedMap.value = {
-        [props.activeTab]: tabSelectMap,
+        [tabKey]: tabSelectMap,
       };
     }
   }, {
@@ -239,7 +236,7 @@
     deep: true,
   });
 
-  watch(() => activeTab.value, (tab) => {
+  watch(activeTab, (tab) => {
     if (tab) {
       searchSelectValue.value = [];
     }
@@ -305,7 +302,7 @@
   };
 
   const handleRowClick = (row:any, data: ResourceItem) => {
-    if ((props.disabledRowConfig && props.disabledRowConfig.handler(data))  || data.phase === 'offline') {
+    if ((props.disabledRowConfig && props.disabledRowConfig.handler(data)) || data.phase === 'offline') {
       return;
     }
     const currentSelected = selectedMap.value[activeTab.value];
@@ -338,11 +335,11 @@
     overflow: hidden;
 
     .cluster-name {
-      width: auto;
       margin-right: 8px;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
+      flex:1;
     }
 
     .tag-box {
