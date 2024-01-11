@@ -18,7 +18,10 @@ from backend.bk_web import viewsets
 from backend.bk_web.pagination import AuditedLimitOffsetPagination
 from backend.bk_web.swagger import ResponseSwaggerAutoSchema, common_swagger_auto_schema
 from backend.db_meta.models import Cluster
+from backend.db_services.dbbase.resources.query import ListRetrieveResource
 from backend.db_services.dbbase.serializers import (
+    CommonQueryClusterResponseSerializer,
+    CommonQueryClusterSerializer,
     IsClusterDuplicatedResponseSerializer,
     IsClusterDuplicatedSerializer,
     QueryAllTypeClusterResponseSerializer,
@@ -49,16 +52,29 @@ class DBBaseViewSet(viewsets.SystemViewSet):
         return Response(is_duplicated)
 
     @common_swagger_auto_schema(
-        operation_summary=_("查询全集群信息"),
+        operation_summary=_("查询全集群简略信息"),
         auto_schema=ResponseSwaggerAutoSchema,
         query_serializer=QueryAllTypeClusterSerializer(),
         responses={status.HTTP_200_OK: QueryAllTypeClusterResponseSerializer()},
         tags=[SWAGGER_TAG],
     )
     @action(methods=["GET"], detail=False, serializer_class=QueryAllTypeClusterSerializer)
-    def query_all_type_cluster(self, request, *args, **kwargs):
+    def simple_query_cluster(self, request, *args, **kwargs):
         data = self.params_validate(self.get_serializer_class())
         conditions = self.get_serializer().get_conditions(data)
         cluster_queryset = Cluster.objects.filter(**conditions)
         cluster_infos = [cluster.simple_desc for cluster in cluster_queryset]
+        return Response(cluster_infos)
+
+    @common_swagger_auto_schema(
+        operation_summary=_("查询集群通用信息"),
+        auto_schema=ResponseSwaggerAutoSchema,
+        query_serializer=CommonQueryClusterSerializer(),
+        responses={status.HTTP_200_OK: CommonQueryClusterResponseSerializer()},
+        tags=[SWAGGER_TAG],
+    )
+    @action(methods=["GET"], detail=False, serializer_class=CommonQueryClusterSerializer)
+    def common_query_cluster(self, request, *args, **kwargs):
+        data = self.params_validate(self.get_serializer_class())
+        __, cluster_infos = ListRetrieveResource.common_query_cluster(**data)
         return Response(cluster_infos)

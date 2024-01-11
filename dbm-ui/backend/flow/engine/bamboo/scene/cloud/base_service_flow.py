@@ -12,6 +12,7 @@ import logging.config
 from dataclasses import asdict
 from typing import Any, Dict, List, Optional, Union
 
+from bamboo_engine.builder import SubProcess
 from django.utils.crypto import get_random_string
 from django.utils.translation import ugettext as _
 
@@ -89,6 +90,33 @@ class CloudBaseServiceFlow(object):
 
     def _get_access_hosts(self, host_infos):
         return [host["ip"] for host in host_infos]
+
+    def deploy_batch_service_flow(
+        self,
+        sub_pipeline_list: List[SubProcess],
+        pipeline: Union[Builder, SubBuilder],
+        name: str,
+        ratio: int = 1,
+    ):
+        """
+        分批串行化部署流程，每一批的子流程并行部署。一般用于灰度重装场景
+        @param sub_pipeline_list: 子流程列表
+        @param pipeline: 父流程
+        @param name: 流程名称
+        @param ratio: 分多少批次部署
+        """
+        step = len(sub_pipeline_list) // ratio
+        for batch in range(ratio):
+            st = batch * step
+            ed = (batch + 1) * step if batch != ratio - 1 else len(sub_pipeline_list)
+
+            batch_sub_list = sub_pipeline_list[st:ed]
+            sub_pipeline = SubBuilder(self.root_id, data=self.data)
+            sub_pipeline.add_parallel_sub_pipeline(batch_sub_list)
+
+            pipeline.add_sub_pipeline(sub_pipeline.build_sub_process(sub_name=_("[batch{}]{}").format(batch, name)))
+
+        return pipeline
 
     def deploy_service_flow(
         self,
