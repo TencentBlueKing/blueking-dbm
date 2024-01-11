@@ -48,6 +48,7 @@
     exportKafkaClusterToExcel,
     exportKafkaInstanceToExcel,
   } from '@services/source/kafka';
+  import { exportMongodbInstanceToExcel } from '@services/source/mongodbInstance';
   import {
     exportPulsarClusterToExcel,
     exportPulsarInstanceToExcel,
@@ -73,8 +74,9 @@
     exportTendbsingleInstanceToExcel,
   } from '@services/source/tendbsingle';
 
+
   interface Props {
-    type: 'tendbsingle' | 'tendbha' | 'spider' | 'redis' | 'pulsar' | 'kafka' | 'influxdb' | 'hdfs' | 'es' | 'riak';
+    type: 'tendbsingle' | 'tendbha' | 'spider' | 'redis' | 'pulsar' | 'kafka' | 'influxdb' | 'hdfs' | 'es' | 'riak' | 'mongodb';
     ids?: number[];
     exportType?: 'cluster' | 'instance';
     hasSelected?: boolean;
@@ -132,6 +134,9 @@
     riak: {
       cluster: exportRiakClusterToExcel,
       instance: exportRiakInstanceToExcel,
+    },
+    mongodb: {
+      instance: exportMongodbInstanceToExcel,
     },
   };
 
