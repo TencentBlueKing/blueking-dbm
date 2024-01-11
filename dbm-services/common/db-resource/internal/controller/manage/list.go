@@ -43,6 +43,7 @@ type MachineResourceGetterInputParam struct {
 	Mem          apply.MeasureRange `json:"mem"`
 	Disk         apply.MeasureRange `json:"disk"`
 	DiskType     string             `json:"disk_type"`
+	OsType       string             `json:"os_type"`
 	StorageSpecs []apply.DiskSpec   `json:"storage_spec"`
 	// true,false,""
 	GseAgentAlive string `json:"gse_agent_alive"`
@@ -198,7 +199,9 @@ func (c *MachineResourceGetterInputParam) queryBs(db *gorm.DB) (err error) {
 			db.Where("(?)", model.JSONQuery("dedicated_bizs").JointOrContains(cmutil.IntSliceToStrSlice(c.ForBizs)))
 		}
 	}
-
+	if cmutil.IsNotEmpty(c.OsType) {
+		db.Where("os_type = ?", c.OsType)
+	}
 	db.Order("create_time desc")
 	return nil
 }
