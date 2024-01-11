@@ -30,7 +30,6 @@ class RedisTicketService(BaseService):
 
     def _execute(self, data, parent_data) -> bool:
         kwargs = data.get_one_of_inputs("kwargs")
-
         self.log_info(
             "create ticket for cluster {} , details : {}".format(kwargs["immute_domain"], kwargs["ticket_details"])
         )
@@ -41,7 +40,7 @@ class RedisTicketService(BaseService):
             ticket_type=kwargs["ticket_type"],
             group=DBType.Redis.value,
             status=TicketStatus.PENDING.value,
-            remark=_("自动发起-实例下架-{cluster.immute_domain}"),
+            remark=_("自愈发起-实例下架-{}".format(kwargs["immute_domain"])),
             details=kwargs["ticket_details"],
             is_reviewed=False,
         )

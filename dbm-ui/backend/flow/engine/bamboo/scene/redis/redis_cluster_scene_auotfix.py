@@ -335,8 +335,14 @@ class RedisClusterAutoFixSceneFlow(object):
                 "immute_domain": act_kwargs.cluster["immute_domain"],
                 "ticket_type": TicketType.REDIS_CLUSTER_INSTANCE_SHUTDOWN.value,
                 "ticket_details": {
-                    "cluster_id": act_kwargs.cluster["cluster_id"],
-                    "proxy": old_proxies,
+                    "infos": [
+                        {
+                            "cluster_id": act_kwargs.cluster["cluster_id"],
+                            "immute_domain": act_kwargs.cluster["immute_domain"],
+                            "bk_cloud_id": act_kwargs.cluster["bk_cloud_id"],
+                            "proxy": old_proxies,
+                        }
+                    ],
                 },
             },
         )
@@ -498,8 +504,14 @@ class RedisClusterAutoFixSceneFlow(object):
                 "immute_domain": sub_kwargs.cluster["immute_domain"],
                 "ticket_type": TicketType.REDIS_CLUSTER_INSTANCE_SHUTDOWN.value,
                 "ticket_details": {
-                    "cluster_id": sub_kwargs.cluster["cluster_id"],
-                    "redis_slave": old_slaves,
+                    "infos": [
+                        {
+                            "cluster_id": sub_kwargs.cluster["cluster_id"],
+                            "immute_domain": sub_kwargs.cluster["immute_domain"],
+                            "bk_cloud_id": sub_kwargs.cluster["bk_cloud_id"],
+                            "redis_slave": old_slaves,
+                        }
+                    ],
                 },
             },
         )
