@@ -87,7 +87,11 @@
             :model="localValueMemo"
             name="subzones"
             @change="handleChange" />
-          <div style="flex: 1" />
+          <ComFactory
+            :ref="(el: any) => initInputRefCallback(el, 'os_type')"
+            :model="localValueMemo"
+            name="os_type"
+            @change="handleChange" />
           <div style="flex: 1" />
         </div>
       </template>

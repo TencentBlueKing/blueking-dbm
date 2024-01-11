@@ -33,6 +33,9 @@ export default class DbResource {
   ip: string;
   label: string;
   net_device_id: string;
+  os_bit: string;
+  os_type: string;
+  os_version: string;
   rack_id: string;
   raid: string;
   resource_types: string[];
@@ -67,9 +70,12 @@ export default class DbResource {
     this.create_time = payload.create_time;
     this.device_class = payload.device_class;
     this.for_bizs = payload.for_bizs || [];
-    this.ip  = payload.ip;
+    this.ip = payload.ip;
     this.label = payload.label;
     this.net_device_id = payload.net_device_id;
+    this.os_bit = payload.os_bit;
+    this.os_type = payload.os_type;
+    this.os_version = payload.os_version;
     this.rack_id = payload.rack_id;
     this.raid = payload.raid;
     this.resource_types = payload.resource_types || [];

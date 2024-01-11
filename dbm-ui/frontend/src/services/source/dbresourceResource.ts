@@ -171,7 +171,17 @@ export function updateResource(params: {
   resource_types: string[],
   set_empty_biz: boolean,
   set_empty_resource_type: boolean,
-  storage_device: Record<string, {size: number, disk_type: string}>
+  storage_device: Record<string, { size: number, disk_type: string }>
 }) {
   return http.post(`${path}/update/`, params);
+}
+
+/**
+ * 获取操作系统类型
+ */
+export function getOsTypeList(params: {
+  offset?: number,
+  limit?: number,
+}) {
+  return http.get<string[]>(`${path}/get_os_types/`, params);
 }

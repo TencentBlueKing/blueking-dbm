@@ -173,6 +173,11 @@
       render: ({ data }: {data: DbResourceModel}) => data.device_class || '--',
     },
     {
+      label: t('操作系统类型'),
+      field: 'os_type',
+      render: ({ data }: {data: DbResourceModel}) => data.os_type || '--',
+    },
+    {
       label: t('地域'),
       field: 'city',
       render: ({ data }: {data: DbResourceModel}) => data.city || '--',
