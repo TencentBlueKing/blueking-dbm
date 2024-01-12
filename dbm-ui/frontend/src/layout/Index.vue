@@ -226,12 +226,17 @@
     }
 
     .nav-slider{
+      background-color: #1f2533 !important;
       border: none !important;
     }
 
     .group-name {
       color: #fff;
     }
+  }
+
+  .bk-navigation-header {
+    background: #0e1525;
   }
 }
 

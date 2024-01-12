@@ -64,7 +64,7 @@
 
   const { t } = useI18n();
 
-  const localValue = ref(props.modelValue);
+  const localValue = ref<string[] | string>(props.modelValue);
   const rules = [
     {
       required: true,
@@ -78,8 +78,18 @@
     data: deviceClassList,
   } = useRequest(getDeviceClassList);
 
+  watch(() => props.modelValue, () => {
+    if (props.modelValue.length === 0) {
+      localValue.value = '';
+      return;
+    }
+    localValue.value = props.modelValue;
+  }, {
+    immediate: true,
+  });
+
   const handleChange = () => {
-    emits('update:modelValue', localValue.value);
+    emits('update:modelValue', localValue.value as string[]);
   };
 </script>
 
