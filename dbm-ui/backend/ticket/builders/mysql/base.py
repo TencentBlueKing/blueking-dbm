@@ -144,6 +144,11 @@ class MySQLBaseOperateDetailSerializer(SkipToRepresentationMixin, serializers.Se
         if not is_valid:
             raise serializers.ValidationError(message)
 
+    def validate_slave_is_stand_by(self, attrs):
+        """校验从库的is_stand_by标志必须为true"""
+        slave_insts = [f"{info['slave_ip']['ip']}" for info in attrs["infos"]]
+        CommonValidate.validate_slave_is_stand_by(slave_insts)
+
     def validate(self, attrs):
         # 默认全局校验只需要校验集群的状态
         self.validate_cluster_can_access(attrs)

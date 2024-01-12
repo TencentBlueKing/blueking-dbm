@@ -22,9 +22,12 @@ class DBConfigHandler:
     TEMPLATE_FLAG_STATUS = 2
 
     def __init__(self, base_data: DBBaseConfig, skip_template_item: bool = False):
-        self.meta_cluster_type = base_data.meta_cluster_type
         self.conf_type = base_data.conf_type
         self.skip_template_item = skip_template_item
+        self.meta_cluster_type = base_data.meta_cluster_type
+        # TODO：待确认，sqlserver的namespace不区分单节点/高可用？
+        # if self.meta_cluster_type in [ClusterType.SqlserverHA, ClusterType.SqlserverSingle]:
+        #     self.meta_cluster_type = "sqlserver"
 
     def list_config_names(self, version) -> List[Dict[str, str]]:
         """查询配置项列表"""

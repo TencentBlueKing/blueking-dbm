@@ -56,15 +56,16 @@ class SQLHandler(object):
         self.context = context
         self.cluster_type = cluster_type
 
-    def _upload_sql_file(
-        self, sql_content: str = None, sql_file_list: List[InMemoryUploadedFile] = None
+    @staticmethod
+    def upload_sql_file(
+        bkrepo_path, sql_content: str = None, sql_file_list: List[InMemoryUploadedFile] = None
     ) -> List[Dict[str, Any]]:
         """
         - 将sql文本或者sql文件上传到制品库
-        :param sql_content: sql 语句内容
-        :param sql_file: sql 语句文件
+        @param bkrepo_path: sql 路径
+        @param sql_content: sql 语句内容
+        @param sql_file_list: sql 语句文件
         """
-
         storage = get_storage(file_overwrite=False)
 
         # 如果上传的是sql内容, 则创建一个sql文件
@@ -79,9 +80,9 @@ class SQLHandler(object):
             sql_file_info: Dict[str, Any] = {}
             with sql_file as file:
                 # TODO: 是否需要考虑windows机器的路径分隔
-                sql_path = storage.save(name=os.path.join(BKREPO_SQLFILE_PATH, file.name.split("/")[-1]), content=file)
+                sql_path = storage.save(name=os.path.join(bkrepo_path, file.name.split("/")[-1]), content=file)
 
-                # 恢复文件指针为文件头，否则会无法读取内容
+                # 恢复文件指针为文件头，否则会无法读取内容 TODO：如果sql内容过大需要进行内容读取吗？
                 file.seek(0)
                 sql_file_info.update(
                     sql_path=sql_path, sql_content=file.read().decode("utf-8"), raw_file_name=file.name
@@ -103,7 +104,7 @@ class SQLHandler(object):
         if sql_filenames:
             sql_file_info_list = [{"sql_path": filename} for filename in sql_filenames]
         else:
-            sql_file_info_list = self._upload_sql_file(sql_content, sql_files)
+            sql_file_info_list = self.upload_sql_file(BKREPO_SQLFILE_PATH, sql_content, sql_files)
 
         file_name_list = [os.path.split(sql_file_info["sql_path"])[1] for sql_file_info in sql_file_info_list]
         dir_name = os.path.split(sql_file_info_list[0]["sql_path"])[0]
@@ -113,7 +114,7 @@ class SQLHandler(object):
             params={"path": dir_name, "files": file_name_list, "cluster_type": self.cluster_type}
         )
 
-        # 填充sql内容。TODO：如果sql内容过大需要进行压缩吗？
+        # 填充sql内容。
         for sql_file_info in sql_file_info_list:
             sql_path = sql_file_info["sql_path"]
             file_name = os.path.split(sql_path)[1]

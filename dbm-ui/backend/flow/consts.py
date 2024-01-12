@@ -1103,7 +1103,7 @@ class SqlserverVersion(str, StructuredEnum):
     """
 
     MSSQL_Enterprise_2008 = EnumField("MSSQL_Enterprise_2008", _("2008企业版"))
-    MSSQL_Enterprise_2012 = EnumField("MSSQL-Enterprise_2012", _("2012企业版"))
+    MSSQL_Enterprise_2012 = EnumField("MSSQL_Enterprise_2012", _("2012企业版"))
     MSSQL_Enterprise_2014 = EnumField("MSSQL_Enterprise_2014", _("2014企业版"))
     MSSQL_Enterprise_2016 = EnumField("MSSQL_Enterprise_2016", _("2016企业版"))
     MSSQL_Enterprise_2017 = EnumField("MSSQL_Enterprise_2017", _("2017企业版"))
@@ -1350,3 +1350,9 @@ class MongoOplogSizePercent(float, StructuredEnum):
     """
 
     Oplog_Percent = EnumField(0.15, _("cache_percent"))
+
+
+class SqlserverBackupFileTagEnum(str, StructuredEnum):
+    MSSQL_FULL_BACKUP = EnumField("MSSQL_FULL_BACKUP", _("全备-保留30天"))
+    LONGDAY_DBFILE_3Y = EnumField("LONGDAY_DBFILE_3Y", _("长久存储-保留三年"))
+    INCREMENT_BACKUP = EnumField("MSSQL_FULL_BACKUP", _("增量备份-保留15天"))

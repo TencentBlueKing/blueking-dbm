@@ -8,19 +8,13 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from django.utils.translation import gettext_lazy as _
-from rest_framework import serializers
 
-from backend.db_meta.enums import ClusterType
-from backend.db_package.constants import PackageType
-from backend.flow.consts import SqlserverVersion
+from rest_framework.routers import DefaultRouter
 
+from backend.db_services.sqlserver.cluster.views import ClusterViewSet
 
-class ListVersionSerializer(serializers.Serializer):
-    query_key = serializers.ChoiceField(
-        help_text=_("查询关键字"), choices=ClusterType.get_choices() + PackageType.get_choices()
-    )
+router = DefaultRouter(trailing_slash=True)
+router.register(r"cluster", ClusterViewSet, basename="cluster")
 
-
-class ListSQLServerSystemVersionSerializer(serializers.Serializer):
-    sqlserver_version = serializers.ChoiceField(help_text=_("数据库版本"), choices=SqlserverVersion.get_choices())
+urlpatterns = []
+urlpatterns += router.urls

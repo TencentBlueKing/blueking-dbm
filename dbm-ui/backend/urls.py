@@ -45,6 +45,7 @@ api_patterns = [
     path("version/", include("backend.db_services.version.urls")),
     path("metadata/", include("backend.db_services.meta_import.urls")),
     path("mysql/", include("backend.db_services.mysql.urls")),
+    path("sqlserver/", include("backend.db_services.sqlserver.urls")),
     path("redis/", include("backend.db_services.redis.urls")),
     path("bigdata/", include("backend.db_services.bigdata.urls")),
     path("mongodb/", include("backend.db_services.mongodb.urls")),

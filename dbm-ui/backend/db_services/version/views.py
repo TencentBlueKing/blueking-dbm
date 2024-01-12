@@ -17,6 +17,7 @@ from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.db_meta.enums import ClusterType
 from backend.db_services.version import serializers
 from backend.db_services.version.utils import query_versions_by_key
+from backend.flow.consts import MssqlSystemVersionSupportMap
 
 SWAGGER_TAG = "version"
 
@@ -44,3 +45,14 @@ class VersionViewSet(viewsets.SystemViewSet):
         query_key = validated_data["query_key"]
         versions = query_versions_by_key(query_key)
         return Response(versions)
+
+    @common_swagger_auto_schema(
+        operation_summary=_("根据sqlserver部署版本查询可支持的系统版本"),
+        query_serializer=serializers.ListSQLServerSystemVersionSerializer(),
+        tags=[SWAGGER_TAG],
+    )
+    @action(methods=["GET"], detail=False, serializer_class=serializers.ListSQLServerSystemVersionSerializer)
+    def list_sqlserver_system_version(self, requests, *args, **kwargs):
+        sqlserver_version = self.params_validate(self.get_serializer_class())["sqlserver_version"]
+        sys_versions = MssqlSystemVersionSupportMap[sqlserver_version]
+        return Response(sys_versions)

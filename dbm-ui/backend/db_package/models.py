@@ -31,7 +31,7 @@ class Package(AuditedModel):
         _("存储类型"), choices=DBType.get_choices(), max_length=LEN_SHORT, default=DBType.MySQL.value
     )
     path = models.CharField(_("包路径"), max_length=LEN_LONG)
-    size = models.IntegerField(_("包大小"))
+    size = models.BigIntegerField(_("包大小"))
     md5 = models.CharField(_("md5值"), max_length=LEN_SHORT)
     # allow_biz_ids 主要用于灰度场景，部分业务先用，不配置/为空 代表全业务可用
     allow_biz_ids = models.JSONField(_("允许的业务列表"), null=True)
