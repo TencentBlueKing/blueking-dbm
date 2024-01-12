@@ -10,6 +10,71 @@
     "target_object_type": "SERVICE",
     "target_node_type": "TOPO",
     "target_nodes": [],
+    "clean_type": "bk_log_json",
+    "etl_params": {
+        "retain_original_text": true,
+        "separator_regexp": "",
+        "separator": "",
+        "retain_extra_json": false
+    },
+    "etl_fields": [
+        {
+            "option": {
+                "time_zone": "",
+                "time_format": ""
+            },
+            "is_time": false,
+            "verdict": true,
+            "is_delete": false,
+            "alias_name": "",
+            "field_name": "event",
+            "field_type": "object",
+            "description": "",
+            "is_analyzed": false,
+            "is_built_in": false,
+            "is_dimension": false,
+            "previous_type": "object",
+            "previousType": "object",
+            "field_index": 0
+        },
+        {
+            "option": {
+                "time_zone": "",
+                "time_format": ""
+            },
+            "is_time": false,
+            "verdict": true,
+            "is_delete": false,
+            "alias_name": "",
+            "field_name": "message",
+            "field_type": "string",
+            "description": "",
+            "is_analyzed": false,
+            "is_built_in": false,
+            "is_dimension": false,
+            "previous_type": "string",
+            "field_index": 1
+        },
+        {
+            "option": {
+                "time_zone": "",
+                "time_format": ""
+            },
+            "is_time": false,
+            "verdict": true,
+            "is_delete": false,
+            "alias_name": "",
+            "field_name": "redis",
+            "field_type": "object",
+            "description": "",
+            "is_analyzed": false,
+            "is_built_in": false,
+            "is_dimension": false,
+            "previous_type": "object",
+            "previousType": "object",
+            "field_index": 2
+        }
+    ],
     "params": {
         "redis_hosts": [
             "{{ cmdb_instance.service.labels[\"instance_host\"] }}:{{ cmdb_instance.service.labels[\"instance_port\"] }}"
@@ -31,7 +96,7 @@
                 "key": "$body",
                 "value": {
                     "app": "{{ cmdb_instance.service.labels[\"app\"] }}",
-                    "app_id": "{{ cmdb_instance.service.labels[\"app_id\"] }}",
+                    "app_id": "{{ cmdb_instance.service.labels[\"appid\"] }}",
                     "bk_cloud_id": "{{ cmdb_instance.service.labels[\"bk_cloud_id\"] }}",
                     "cluster_name": "{{ cmdb_instance.service.labels[\"cluster_name\"] }}",
                     "cluster_type": "{{ cmdb_instance.service.labels[\"cluster_type\"] }}",
