@@ -10,6 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 import operator
 import re
+from collections import defaultdict
 from functools import reduce
 from typing import Any, Dict, List, Set, Tuple, Union
 
@@ -19,14 +20,15 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from backend.configuration.constants import MASTER_DOMAIN_INITIAL_VALUE, AffinityEnum
-from backend.db_meta.enums import AccessLayer, ClusterPhase, ClusterType, InstanceInnerRole
 from backend.db_meta.enums.comm import SystemTagEnum
 from backend.db_meta.models import Cluster, ExtraProcessInstance, Machine, ProxyInstance, Spec, StorageInstance
+from backend.db_meta.enums import AccessLayer, ClusterType, InstanceInnerRole, InstanceStatus, ClusterPhase
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.db_services.mysql.cluster.handlers import ClusterServiceHandler
 from backend.db_services.mysql.dumper.handlers import DumperHandler
 from backend.db_services.mysql.remote_service.handlers import RemoteServiceHandler
 from backend.flow.utils.mysql.db_table_filter import DbTableFilter
+from backend.flow.utils.mysql.db_table_filter.tools import contain_glob
 from backend.ticket import builders
 from backend.ticket.builders.common.constants import MAX_DOMAIN_LEN_LIMIT
 from backend.ticket.constants import TicketType
@@ -288,6 +290,62 @@ class CommonValidate(object):
 
         return True, ""
 
+    @classmethod
+    def validate_mysql_db_rename(cls, infos: Dict, cluster__databases: Dict[int, List[str]]):
+        """
+        校验mysql db重命名逻辑
+        1. 不允许包含通配符
+        2. 校验校验源DB是否存在于数据库
+        3. 校验在同一个集群内，源DB名必须唯一，新DB名必须唯一，且源DB名不能出现在新DB名中
+        4. 系统库不允许重命名
+        5. 在一个单据中，同一个集群修改的时候 源库和目标库不允许重复，即不能出现： A 重命名为 B，然后A 又重命名为 C的情况
+        @param infos: 重命名信息 [{"cluster_id": 1, "from_database": "abc", "to_database": "cde"}]
+        @param cluster__databases: 集群与业务库的映射
+        """
+        cluster__db_name_map: Dict[int, Dict[str, List]] = defaultdict(
+            lambda: {"from_database": [], "to_database": []}
+        )
+
+        for db_info in infos:
+            cluster__db_name_map[db_info["cluster_id"]]["from_database"].append(db_info["from_database"])
+            cluster__db_name_map[db_info["cluster_id"]]["to_database"].append(db_info["to_database"])
+
+            # 校验源dbname和新db那么不包含通配符
+            if contain_glob(db_info["to_database"]) or contain_glob(db_info["from_database"]):
+                raise serializers.ValidationError(_("源DB名和新DB名不允许包含通配符"))
+
+        # 校验在同一个集群内，源DB名必须唯一，新DB名必须唯一，且源DB名不能出现在新DB名中
+        for cluster_id, name_info in cluster__db_name_map.items():
+            from_database_list = name_info["from_database"]
+            for db_name in from_database_list:
+                if db_name not in cluster__databases[cluster_id]:
+                    raise serializers.ValidationError(_("数据库[{}]不存在于集群{}中").format(db_name, cluster_id))
+
+            to_database_list = name_info["to_database"]
+            if len(set(from_database_list)) != len(from_database_list):
+                raise serializers.ValidationError(_("请保证集群{}中源数据库名{}的名字唯一").format(cluster_id, from_database_list))
+
+            if len(set(to_database_list)) != len(to_database_list):
+                raise serializers.ValidationError(_("请保证集群{}中新数据库名{}的名字唯一").format(cluster_id, to_database_list))
+
+            intersected_db_names = set(from_database_list).intersection(set(to_database_list))
+            if intersected_db_names:
+                raise serializers.ValidationError(_("请保证源数据库名{}不要出现在新数据库名列表中").format(intersected_db_names))
+
+    @classmethod
+    def validate_slave_is_stand_by(cls, slave_insts: List[str]):
+        """校验slave实例的is_stand_by为true，并且处于正常状态，用于校验主从互切是否合法"""
+        # 注意：这里的slave_insts是一个ip列表
+        slaves = StorageInstance.find_storage_instance_by_addresses(slave_insts)
+        normal_slaves = slaves.filter(
+            instance_inner_role=InstanceInnerRole.SLAVE, is_stand_by=True, status=InstanceStatus.RUNNING
+        ).values("machine__ip")
+        normal_slaves = [f"{slave['machine__ip']}" for slave in normal_slaves]
+
+        bad_slaves = set(slave_insts) - set(normal_slaves)
+        if bad_slaves:
+            raise serializers.ValidationError(_("slave: {}的is_stand_by不为true，或者处于异常状态").format(bad_slaves))
+
 
 class BaseTicketFlowBuilderPatchMixin(object):
     need_patch_cluster_details: bool = True
@@ -345,6 +403,16 @@ class BigDataTicketFlowBuilderPatchMixin(BaseTicketFlowBuilderPatchMixin):
 
 class MySQLTicketFlowBuilderPatchMixin(BaseTicketFlowBuilderPatchMixin):
     pass
+
+
+class SQLServerTicketFlowBuilderPatchMixin(object):
+    def patch_ticket_detail(self):
+        """补充SQLServer的集群信息和实例信息"""
+        details = self.ticket.details
+        cluster_ids = fetch_cluster_ids(details)
+        self.ticket.update_details(
+            clusters={cluster.id: cluster.to_dict() for cluster in Cluster.objects.filter(id__in=cluster_ids)}
+        )
 
 
 class DumperTicketFlowBuilderPatchMixin(MySQLTicketFlowBuilderPatchMixin):

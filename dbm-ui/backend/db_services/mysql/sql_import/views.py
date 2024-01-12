@@ -42,7 +42,7 @@ from backend.iam_app.handlers.drf_perm.taskflow import TaskFlowPermission
 from backend.iam_app.handlers.drf_perm.ticket import CreateTicketPermission
 from backend.ticket.constants import TicketType
 
-SWAGGER_TAG = "db_services/sql_import"
+SWAGGER_TAG = "db_services/mysql/sql_import"
 
 
 class SQLImportViewSet(viewsets.SystemViewSet):
