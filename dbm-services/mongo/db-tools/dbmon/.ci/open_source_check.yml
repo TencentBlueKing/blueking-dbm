@@ -1,0 +1,84 @@
+version: "v2.0"
+name: "开源检查"
+label: []
+variables: {}
+stages:
+- name: "开源检查"
+  label:
+  - "Build"
+  jobs:
+    job_AfK:
+      name: "构建环境-LINUX"
+      runs-on:
+        pool-name: "docker"
+        container:
+          image: "mirrors.tencent.com/ci/tlinux3_ci:2.3.0"
+        needs: {}
+      steps:
+      - checkout: self
+      - name: "敏感信息检查-部门RTX"
+        uses: "SensitiveRtxChecker@3.*"
+      - name: "腾讯代码分析(官方-代码分析工作组)"
+        uses: "CodeccCheckAtomDebug@4.*"
+        with:
+          beAutoLang: true
+          languages:
+          - "GOLANG"
+          checkerSetType: "communityOpenScan"
+          tools:
+          - "WOODPECKER_COMMITSCAN"
+          - "SCC"
+          - "PECKER_SECURITY"
+          - "SENSITIVE"
+          - "DUPC"
+          - "IP_CHECK"
+          - "WOODPECKER_SENSITIVE"
+          - "HORUSPY"
+          - "XCHECK"
+          - "CCN"
+          asyncTask: false
+          asyncTaskId: ""
+          scriptType: "SHELL"
+          script: |-
+            # Coverity/Klocwork将通过调用编译脚本来编译您的代码，以追踪深层次的缺陷
+            # 请使用依赖的构建工具如maven/cmake等写一个编译脚本build.sh
+            # 确保build.sh能够编译代码
+            # cd path/to/build.sh
+            # sh build.sh
+          languageRuleSetMap: {}
+          checkerSetEnvType: "prod"
+          multiPipelineMark: ""
+          rtxReceiverType: "1"
+          botWebhookUrl: ""
+          botRemindRange: "2"
+          botRemindSeverity: "7"
+          botRemaindTools: []
+          emailReceiverType: "1"
+          emailCCReceiverList: []
+          instantReportStatus: "2"
+          reportDate: []
+          reportTime: ""
+          reportTools: []
+          toolScanType: "1"
+          diffBranch: ""
+          byFile: false
+          mrCommentEnable: true
+          prohibitIgnore: false
+          newDefectJudgeFromDate: ""
+          transferAuthorList: []
+          path: []
+          customPath: []
+          scanTestSource: false
+          openScanPrj: false
+          openScanFilterEnable: false
+          issueSystem: "TAPD"
+          issueSubSystem: ""
+          issueResolvers: []
+          issueReceivers: []
+          issueFindByVersion: ""
+          maxIssue: 1000
+          issueAutoCommit: false
+  check-out:
+    gates:
+      - template: open_source_gate.yml
+    timeout-hours: 10
