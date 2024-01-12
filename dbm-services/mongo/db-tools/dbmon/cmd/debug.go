@@ -1,0 +1,108 @@
+package cmd
+
+import (
+	"dbm-services/mongo/db-tools/dbmon/cmd/mongojob"
+	"dbm-services/mongo/db-tools/dbmon/config"
+	"dbm-services/mongo/db-tools/dbmon/mylog"
+	"encoding/json"
+	"fmt"
+	log "github.com/sirupsen/logrus"
+	"github.com/spf13/cobra"
+	"os"
+	"slices"
+)
+
+var (
+	debugCmd = &cobra.Command{
+		Use:   "debug",
+		Short: "debug",
+		Long:  `debug`,
+		Run: func(cmd *cobra.Command, args []string) {
+			debugMain()
+		},
+	}
+
+	sendMsgCmd = &cobra.Command{
+		Use:   "sendmsg",
+		Short: "sendmsg",
+		Long:  `sendmsg`,
+		Run: func(cmd *cobra.Command, args []string) {
+			sendmsgCmdMain()
+		},
+	}
+)
+var instancePort int
+var msgType string
+var msgVal int // for ts type
+var msgEventName, msgEventMsg, msgEventLevel, msgTargetIp string
+
+func init() {
+	sendMsgCmd.Flags().StringVar(&msgType, "type", "event|ts", "msg type")
+	sendMsgCmd.Flags().IntVar(&msgVal, "val", 1, "the value or content of msg")
+	sendMsgCmd.Flags().IntVar(&instancePort, "port", 27017, "port")
+	sendMsgCmd.Flags().StringVar(&msgEventName, "name", "redis_login", "")
+	sendMsgCmd.Flags().StringVar(&msgEventMsg, "msg", "msg", "")
+	sendMsgCmd.Flags().StringVar(&msgEventLevel, "level", "warning", "warning|critical|error")
+	sendMsgCmd.Flags().StringVar(&msgTargetIp, "targetIp", "", "default: servers[port].ServerIp")
+	debugCmd.AddCommand(sendMsgCmd)
+}
+
+func debugMain() {
+
+}
+
+func reloadConfig() {
+	for i := 0; i < 10; i++ {
+		i := i
+		go func(i int) {
+			for {
+				ip := config.GlobalConf.Servers[0].ServerIP
+				_ = ip
+			}
+		}(i)
+	}
+}
+
+func sendmsgCmdMain() {
+	config.InitConfig(cfgFile)
+	mylog.InitRotateLoger()
+	jsonTxt, _ := json.Marshal(config.GlobalConf)
+	log.Printf("cfgFile:\n%s\n", jsonTxt)
+	servers := config.GlobalConf.Servers
+	idx := slices.IndexFunc(servers, func(s config.ConfServerItem) bool {
+		return s.ServerPort == instancePort
+	})
+	if idx < 0 {
+		log.Fatalf("config文件:%q中不存在port==%d的server\n", cfgFile, instancePort)
+	}
+	server := servers[idx]
+	if msgTargetIp == "" {
+		msgTargetIp = server.ServerIP
+	}
+	beatConfig := &config.GlobalConf.BkMonitorBeat
+	if msgType == "event" {
+		msgH, err := mongojob.GetBkMonitorEventSender(beatConfig, &server)
+		if err != nil {
+			fmt.Printf("fatal err %s", err)
+			os.Exit(1)
+		}
+		msgH.SendEventMsg(
+			beatConfig.EventConfig.DataID,
+			beatConfig.EventConfig.Token,
+			msgEventName, msgEventMsg, msgEventLevel, msgTargetIp)
+	} else if msgType == "ts" {
+		msgH, err := mongojob.GetBkMonitorMetricSender(beatConfig, &server)
+		if err != nil {
+			fmt.Printf("fatal err %s", err)
+			os.Exit(1)
+		}
+		msgH.SendTimeSeriesMsg(
+			beatConfig.MetricConfig.DataID,
+			beatConfig.MetricConfig.Token,
+			msgTargetIp, msgEventName, float64(msgVal))
+	} else {
+		fmt.Printf("bad msgType %q", msgType)
+		os.Exit(1)
+	}
+
+}
