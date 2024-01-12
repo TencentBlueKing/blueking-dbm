@@ -16,6 +16,7 @@ from django.utils.translation import ugettext as _
 from backend.db_meta.models import Cluster
 from backend.flow.engine.controller.riak import RiakController
 from backend.ticket import builders
+from backend.ticket.builders.common.base import BaseOperateResourceParamBuilder
 from backend.ticket.builders.common.bigdata import BigDataScaleDetailSerializer
 from backend.ticket.builders.riak.base import BaseRiakTicketFlowBuilder
 from backend.ticket.constants import TicketType
@@ -36,7 +37,7 @@ class RiakScaleUpFlowParamBuilder(builders.FlowParamBuilder):
         self.ticket_data["db_version"] = cluster.major_version
 
 
-class RiakScaleUpResourceParamBuilder(builders.ResourceApplyParamBuilder):
+class RiakScaleUpResourceParamBuilder(BaseOperateResourceParamBuilder):
     def post_callback(self):
         next_flow = self.ticket.next_flow()
         riak_nodes = next_flow.details["ticket_data"].pop("nodes")["riak"]

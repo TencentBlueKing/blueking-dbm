@@ -92,6 +92,12 @@ class ClusterSpecFilter(object):
 class TenDBClusterSpecFilter(ClusterSpecFilter):
     """TendbCluster集群规格的过滤器"""
 
+    def __init__(self, capacity, future_capacity, spec_cluster_type, spec_machine_type, qps=None, shard_num=0):
+        super().__init__(capacity, future_capacity, spec_cluster_type, spec_machine_type, qps, shard_num)
+        # 如果不存在qps，则过滤
+        valid_specs = [spec for spec in self.specs if spec["qps"]]
+        self.specs = valid_specs
+
     def calc_cluster_shard_num(self):
         for spec in self.specs:
             # 一定要保证集群总分片数是机器组数的整数倍，因此单机分片数要上取整

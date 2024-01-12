@@ -1746,7 +1746,10 @@
                 ],
                 "desc": "",
                 "instance_num": 0,
-                "qps": {}
+                "qps": {
+                    "min": 10,
+                    "max": 50
+                }
             },
             {
                 "spec_name": "4核_8G_100G",
@@ -1768,7 +1771,10 @@
                 ],
                 "desc": "",
                 "instance_num": 0,
-                "qps": {}
+                "qps": {
+                    "min": 300,
+                    "max": 500
+                }
             },
             {
                 "spec_name": "8核_16G_500G",
@@ -1790,7 +1796,10 @@
                 ],
                 "desc": "",
                 "instance_num": 0,
-                "qps": {}
+                "qps": {
+                    "min": 1000,
+                    "max": 2000
+                }
             },
             {
                 "spec_name": "16核_32G_500G",
@@ -1812,7 +1821,10 @@
                 ],
                 "desc": "",
                 "instance_num": 0,
-                "qps": {}
+                "qps": {
+                    "min": 5000,
+                    "max": 8000
+                }
             },
             {
                 "spec_name": "16核_32G_1000G",
@@ -1834,7 +1846,10 @@
                 ],
                 "desc": "",
                 "instance_num": 0,
-                "qps": {}
+                "qps": {
+                    "min": 5000,
+                    "max": 8000
+                }
             },
             {
                 "spec_name": "32核_64G_1000G",
@@ -1856,7 +1871,10 @@
                 ],
                 "desc": "",
                 "instance_num": 0,
-                "qps": {}
+                "qps": {
+                    "min": 6000,
+                    "max": 12000
+                }
             },
             {
                 "spec_name": "64核_128G_1000G",
@@ -1878,7 +1896,10 @@
                 ],
                 "desc": "",
                 "instance_num": 0,
-                "qps": {}
+                "qps": {
+                    "min": 10000,
+                    "max": 15000
+                }
             }
         ]
     }
