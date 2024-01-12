@@ -18,7 +18,7 @@
     <DbForm
       ref="formRef"
       auto-label-width
-      class="mb-16"
+      class="mb-32"
       :model="formData"
       :rules="formRules">
       <DbCard :title="t('业务信息')">
@@ -182,7 +182,7 @@
     spec_id: '' as number | '',
     nodes_num: 3,
     details: {
-      bk_cloud_id: '' as number | '',
+      bk_cloud_id: 0,
       db_app_abbr: '',
       ip_source: 'resource_pool',
       db_module_id: '' as number | '',
@@ -194,6 +194,8 @@
     },
   });
 
+  const route = useRoute();
+  const router = useRouter();
   const { t } = useI18n();
   const {
     baseState,
@@ -294,6 +296,18 @@
       },
     });
   };
+
+  defineExpose({
+    routerBack() {
+      if (!route.query.from) {
+        router.back();
+        return;
+      }
+      router.push({
+        name: route.query.from as string,
+      });
+    },
+  });
 </script>
 
 <style lang="less">

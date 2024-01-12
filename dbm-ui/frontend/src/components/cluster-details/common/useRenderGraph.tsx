@@ -298,10 +298,16 @@ export const useRenderGraph = (props: ClusterTopoProps, nodeConfig: NodeConfig =
     let vNode: VNode | string = '';
 
     if (props.dbType === DBTypes.RIAK) {
-      const { url } = node.data as ResourceTopoNode;
+      const {
+        url,
+        status,
+      } = node.data as ResourceTopoNode;
       vNode = (
         <div class={['cluster-node', 'riak-node', { 'has-link': url }]} id={node.id}>
-          <div class="cluster-node__content riak-node-content text-overflow">{node.id}</div>
+          <svg class="db-svg-icon">
+            <use xlinkHref={ `#db-icon-${status === 'running' ? 'sync-success' : 'sync-failed'}`} />
+          </svg>
+          <div class="cluster-node__content riak-node-content text-overflow ml-4">{node.id}</div>
         </div>
       );
     } else {

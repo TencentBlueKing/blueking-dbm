@@ -18,10 +18,16 @@
     required
     :rules="rules">
     <BkInput
+      v-bk-tooltips="{
+        trigger: 'click',
+        placement: 'right',
+        theme: 'light',
+        content: clusterNamePlaceholder
+      }"
       class="item-input"
       :maxlength="63"
       :model-value="modelValue"
-      :placeholder="$t('以小写英文字符开头_且只能包含英文字母_数字_连字符')"
+      :placeholder="clusterNamePlaceholder"
       show-word-limit
       @change="handleChange" />
   </BkFormItem>
@@ -43,10 +49,12 @@
 
   const { t } = useI18n();
 
+  const clusterNamePlaceholder = t('以小写英文字母开头_且只能包含英文字母_数字_连字符');
+
   const rules = [
     {
       validator: (val: string) => nameRegx.test(val),
-      message: t('以小写英文字母开头_且只能包含英文字母_数字_连字符'),
+      message: clusterNamePlaceholder,
       trigger: 'blur',
     },
   ];

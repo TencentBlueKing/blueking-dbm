@@ -32,18 +32,49 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import { exportEsClusterToExcel, exportEsInstanceToExcel } from '@services/source/es';
-  import { exportHdfsClusterToExcel, exportHdfsInstanceToExcel } from '@services/source/hdfs';
-  import { exportInfluxdbClusterToExcel, exportInfluxdbInstanceToExcel } from '@services/source/influxdb';
-  import { exportKafkaClusterToExcel, exportKafkaInstanceToExcel } from '@services/source/kafka';
-  import { exportPulsarClusterToExcel, exportPulsarInstanceToExcel } from '@services/source/pulsar';
-  import { exportRedisClusterToExcel, exportRedisInstanceToExcel } from '@services/source/redis';
-  import { exportSpiderClusterToExcel, exportSpiderInstanceToExcel } from '@services/source/spider';
-  import { exportTendbhaClusterToExcel, exportTendbhaInstanceToExcel } from '@services/source/tendbha';
-  import { exportTendbsingleClusterToExcel, exportTendbsingleInstanceToExcel } from '@services/source/tendbsingle';
+  import {
+    exportEsClusterToExcel,
+    exportEsInstanceToExcel,
+  } from '@services/source/es';
+  import {
+    exportHdfsClusterToExcel,
+    exportHdfsInstanceToExcel,
+  } from '@services/source/hdfs';
+  import {
+    exportInfluxdbClusterToExcel,
+    exportInfluxdbInstanceToExcel,
+  } from '@services/source/influxdb';
+  import {
+    exportKafkaClusterToExcel,
+    exportKafkaInstanceToExcel,
+  } from '@services/source/kafka';
+  import {
+    exportPulsarClusterToExcel,
+    exportPulsarInstanceToExcel,
+  } from '@services/source/pulsar';
+  import {
+    exportRedisClusterToExcel,
+    exportRedisInstanceToExcel,
+  } from '@services/source/redis';
+  import {
+    exportRiakClusterToExcel,
+    exportRiakInstanceToExcel,
+  } from '@services/source/riak';
+  import {
+    exportSpiderClusterToExcel,
+    exportSpiderInstanceToExcel,
+  } from '@services/source/spider';
+  import {
+    exportTendbhaClusterToExcel,
+    exportTendbhaInstanceToExcel,
+  } from '@services/source/tendbha';
+  import {
+    exportTendbsingleClusterToExcel,
+    exportTendbsingleInstanceToExcel,
+  } from '@services/source/tendbsingle';
 
   interface Props {
-    type: 'tendbsingle' | 'tendbha' | 'spider' | 'redis' | 'pulsar' | 'kafka' | 'influxdb' | 'hdfs' | 'es';
+    type: 'tendbsingle' | 'tendbha' | 'spider' | 'redis' | 'pulsar' | 'kafka' | 'influxdb' | 'hdfs' | 'es' | 'riak';
     ids?: number[];
     exportType?: 'cluster' | 'instance';
     hasSelected?: boolean;
@@ -97,6 +128,10 @@
     es: {
       cluster: exportEsClusterToExcel,
       instance: exportEsInstanceToExcel,
+    },
+    riak: {
+      cluster: exportRiakClusterToExcel,
+      instance: exportRiakInstanceToExcel,
     },
   };
 

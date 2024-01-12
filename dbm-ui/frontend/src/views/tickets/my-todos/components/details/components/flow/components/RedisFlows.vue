@@ -257,7 +257,7 @@
 
   const handleToApply = () => {
     router.push({
-      name: 'resourcePoolList',
+      name: 'resourcePool',
     });
   };
 </script>

@@ -112,10 +112,10 @@
   import RenderClusterStatus from '@components/cluster-common/RenderStatus.vue';
   import StretchLayout from '@components/stretch-layout/StretchLayout.vue';
 
+  import AddNodes from './components/components/AddNodes.vue';
+  import DeleteNodes from './components/components/DeleteNodes.vue';
   import Detail from './components/detail/Index.vue';
   import List from './components/list/Index.vue';
-  import AddNodes from './components/sideslider/AddNodes.vue';
-  import DeleteNodes from './components/sideslider/DeleteNodes.vue';
 
   const { t } = useI18n();
   const ticketMessage = useTicketMessage();

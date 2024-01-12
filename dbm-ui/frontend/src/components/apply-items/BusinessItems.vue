@@ -13,7 +13,7 @@
 
 <template>
   <BkFormItem
-    :label="$t('所属业务')"
+    :label="t('所属业务')"
     property="bk_biz_id"
     required>
     <BusinessSelector
@@ -23,15 +23,21 @@
   </BkFormItem>
   <BkFormItem
     ref="appAbbrRef"
-    :label="$t('业务Code')"
+    :label="t('业务Code')"
     property="details.db_app_abbr"
     required
     :rules="bkAppAbbrRuels">
     <BkInput
       v-model="state.appAbbr"
+      v-bk-tooltips="{
+        trigger: 'click',
+        placement: 'right',
+        theme: 'light',
+        content: dbAppAbbrPlaceholder
+      }"
       class="item-input"
       :disabled="state.hasEnglishName"
-      :placeholder="$t('以小写英文字母开头_且只能包含英文字母_数字_连字符')"
+      :placeholder="dbAppAbbrPlaceholder"
       @input="handleChangeAppAbbr" />
   </BkFormItem>
 </template>
@@ -64,10 +70,12 @@
   const route = useRoute();
   const { t } = useI18n();
 
+  const dbAppAbbrPlaceholder = t('以小写英文字母开头_且只能包含英文字母_数字_连字符');
+
   const bkAppAbbrRuels = [
     {
       validator: (val: string) => nameRegx.test(val),
-      message: t('以小写英文字母开头_且只能包含英文字母_数字_连字符'),
+      message: dbAppAbbrPlaceholder,
       trigger: 'change',
     },
   ];

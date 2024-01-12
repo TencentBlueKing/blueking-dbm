@@ -20,6 +20,7 @@ export interface ResourceTopo {
     node_id: string,
     node_type: string
     url: string
+    status?: string
   }[]
   groups: {
     node_id: string,

@@ -17,7 +17,7 @@
       :is="flowComponent"
       :key="data.id"
       :flows="state.flows"
-      @fetch-data="fetchTicketFlows(data.id)" />
+      @fetch-data="handleFecthData" />
   </BkLoading>
 </template>
 
@@ -38,7 +38,12 @@
     data: TicketModel
   }
 
+  interface Emits {
+    (e: 'fetchData'): void
+  }
+
   const props = defineProps<Props>();
+  const emits = defineEmits<Emits>();
 
   const currentScope = getCurrentScope();
 
@@ -93,6 +98,11 @@
         state.isLoading = false;
       });
   }
+
+  const handleFecthData = () => {
+    fetchTicketFlows(props.data.id);
+    emits('fetchData'); // 操作单据后立即查询基本信息
+  };
 </script>
 
 <style lang="less" scoped>

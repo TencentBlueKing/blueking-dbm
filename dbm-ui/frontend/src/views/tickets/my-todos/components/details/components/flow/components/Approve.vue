@@ -19,9 +19,13 @@
           v-for="item in content.todos"
           :key="item.id"
           class="flow-todo">
-          <div class="flow-todo__title">
-            {{ item.name }}
-            <div v-if="content.err_msg">
+          <div>
+            <div class="flow-todo__title">
+              {{ item.name }}
+            </div>
+            <div
+              v-if="content.err_msg"
+              class="mb-8">
               {{ content.err_msg }}
             </div>
             <template v-if="isShowResourceApply(item)">
@@ -32,7 +36,7 @@
           </div>
           <div
             v-if="item.status === 'TODO'"
-            class="operations">
+            class="operations mt-8">
             <BkPopover
               v-model:is-show="state.confirmTips"
               theme="light"
@@ -242,7 +246,7 @@
 
   const handleToApply = () => {
     router.push({
-      name: 'resourcePoolList',
+      name: 'resourcePool',
     });
   };
 </script>

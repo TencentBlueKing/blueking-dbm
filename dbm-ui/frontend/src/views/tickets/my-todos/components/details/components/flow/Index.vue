@@ -38,7 +38,12 @@
     data: TicketModel
   }
 
+  interface Emits {
+    (e: 'fetchData'): void
+  }
+
   const props = defineProps<Props>();
+  const emits = defineEmits<Emits>();
 
   const currentScope = getCurrentScope();
 
@@ -98,6 +103,7 @@
     if (props.data.id) {
       fetchTicketFlows(props.data.id);
     }
+    emits('fetchData'); // 操作单据后立即查询基本信息
   }
 </script>
 

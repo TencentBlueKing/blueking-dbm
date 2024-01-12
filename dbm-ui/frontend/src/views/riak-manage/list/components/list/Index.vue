@@ -15,16 +15,20 @@
   <div class="riak-list-container">
     <div class="header-action">
       <BkButton
-        class="mr-8"
         theme="primary"
         @click="toApply">
         {{ t('申请实例') }}
       </BkButton>
+      <DropdownExportExcel
+        class="mr-8"
+        :has-selected="hasSelected"
+        :ids="selectedIds"
+        type="riak" />
       <DbSearchSelect
         v-model="searchValues"
         class="header-action-search-select"
         :data="serachData"
-        :placeholder="t('请输入操作人或选择条件搜索')"
+        :placeholder="t('输入集群名_IP_访问入口关键字')"
         unique-select
         @change="() => fetchData()" />
       <BkDatePicker
@@ -42,9 +46,12 @@
       :columns="columns"
       :data-source="getRiakList"
       :row-class="setRowClass"
+      selectable
       @column-filter="handleColunmFilter"
-      @colunm-sort="fetchData" />
+      @colunm-sort="fetchData"
+      @selection="handleSelection" />
     <DbSideslider
+      v-if="detailData"
       v-model:is-show="addNodeShow"
       quick-close
       :title="t('添加节点【xx】', [detailData.cluster_name])"
@@ -55,6 +62,7 @@
         @submit-success="fetchData" />
     </DbSideslider>
     <DbSideslider
+      v-if="detailData"
       v-model:is-show="deleteNodeShow"
       :title="t('删除节点【xx】', [detailData.cluster_name])"
       :width="960">
@@ -92,13 +100,15 @@
   import RenderNodeInstance from '@components/cluster-common/RenderNodeInstance.vue';
   import RenderOperationTag from '@components/cluster-common/RenderOperationTag.vue';
   import RenderClusterStatus from '@components/cluster-common/RenderStatus.vue';
+  import DbTable from '@components/db-table/index.vue';
+  import DropdownExportExcel from '@components/dropdown-export-excel/index.vue';
   import MiniTag from '@components/mini-tag/index.vue';
   import RenderTextEllipsisOneLine from '@components/text-ellipsis-one-line/index.vue';
 
   import { getSearchSelectorParams } from '@utils';
 
-  import AddNodes from '../sideslider/AddNodes.vue';
-  import DeleteNodes from '../sideslider/DeleteNodes.vue';
+  import AddNodes from '../components/AddNodes.vue';
+  import DeleteNodes from '../components/DeleteNodes.vue';
 
   interface Emits {
     (e: 'detailOpenChange', data: boolean): void
@@ -130,23 +140,30 @@
       render: ({ data }: { data: RiakModel }) => {
         const content = <>
           {
-            data.isNewRow
-              && <MiniTag
+            data.isNewRow && (
+             <MiniTag
                 content='NEW'
-                theme='success'>
+                theme='success'
+                class='new-tag'>
               </MiniTag>
+            )
           }
-          <RenderOperationTag data={data} class='ml-4' />
+          <RenderOperationTag
+            style="flex-shrink: 0;"
+            data={data}
+            class='ml-4' />
           {
-            !data.isOnline
-              && <db-icon
+            data.isDisabled && (
+              <db-icon
                 svg
                 type="yijinyong"
                 class="disabled-tag" />
+            )
           }
         </>;
 
         return (
+        <>
           <RenderTextEllipsisOneLine
             text={data.cluster_name}
             textStyle={{
@@ -155,6 +172,8 @@
             onClick={() => toDetail(data)}>
             {content}
           </RenderTextEllipsisOneLine>
+          <span style='color: #C4C6CC;'>{data.cluster_alias || '--'}</span>
+        </>
         );
       },
     },
@@ -174,6 +193,7 @@
     {
       label: t('状态'),
       field: 'status',
+      sort: true,
       width: 100,
       render: ({ data }: { data: RiakModel }) => <RenderClusterStatus data={data.status} />,
     },
@@ -265,25 +285,33 @@
 
   const serachData = [
     {
-      name: t('集群'),
-      id: 'cluster_name',
+      name: 'ID',
+      id: 'id',
     },
     {
-      name: t('管控区域'),
-      id: 'bk_cloud_name',
+      name: t('集群名'),
+      id: 'name',
     },
     {
-      name: t('节点'),
-      id: 'riak_node',
+      name: t('创建人'),
+      id: 'creator',
+    },
+    {
+      name: 'IP',
+      id: 'ip',
     },
   ];
 
-  const tableRef = ref();
+  const tableRef = ref<InstanceType<typeof DbTable>>();
   const searchValues = ref([]);
   const deployTime = ref(['', ''] as [string, string]);
   const addNodeShow = ref(false);
   const deleteNodeShow = ref(false);
-  const detailData = ref(new RiakModel());
+  const detailData = ref<RiakModel>();
+  const selected = shallowRef<RiakModel[]>([]);
+
+  const hasSelected = computed(() => selected.value.length > 0);
+  const selectedIds = computed(() => selected.value.map(item => item.id));
 
   watch(isStretchLayoutOpen, (newVal) => {
     emits('detailOpenChange', newVal);
@@ -298,6 +326,9 @@
     if (!row.isOnline) {
       classList.push('is-offline');
     }
+    if (row.id === clusterId.value) {
+      classList.push('is-selected-row');
+    }
 
     return classList.join(' ');
   };
@@ -309,6 +340,10 @@
         bizId: currentBizId,
       },
     });
+  };
+
+  const handleSelection = (key: number[], list: Record<any, any>[]) => {
+    selected.value = list as RiakModel[];
   };
 
   const toDetail = (row: RiakModel) => {
@@ -437,7 +472,7 @@
       });
     }
 
-    tableRef.value.fetchData({ ...params });
+    tableRef.value!.fetchData({ ...params }, {});
   };
 
   const handleColunmFilter = ({ checked }: { checked: string[] }) => {
@@ -494,10 +529,28 @@
       }
     }
 
+    .new-tag {
+      height: 19px;
+    }
+
     .disabled-tag {
       width: 38px;
       height: 16px;
       margin-left: 4px;
+    }
+
+    .db-icon-copy {
+      display: none;
+    }
+
+    tr:hover {
+      .db-icon-copy {
+        display: inline-block !important;
+        margin-left: 4px;
+        color: #3a84ff;
+        vertical-align: middle;
+        cursor: pointer;
+      }
     }
   }
 }

@@ -130,3 +130,17 @@ export function getRiakNodeList(params: Record<string, any> & {
     results: data.results.map((item: RiakNodeModel) => new RiakNodeModel(item)),
   }));
 }
+
+/**
+ * 导出集群数据为 excel 文件
+ */
+export function exportRiakClusterToExcel(params: { cluster_ids?: number[] }) {
+  return http.post<string>(`${path}/export_cluster/`, params, { responseType: 'blob' });
+}
+
+/**
+ * 导出实例数据为 excel 文件
+ */
+export function exportRiakInstanceToExcel(params: { bk_host_ids?: number[] }) {
+  return http.post<string>(`${path}/export_instance/`, params, { responseType: 'blob' });
+}

@@ -261,6 +261,28 @@
         },
       ],
     },
+    {
+      controller: {
+        moduleId: 'bigdata',
+        id: 'riak',
+      },
+      label: 'Riak',
+      name: DBTypes.RIAK,
+      children: [
+        {
+          label: 'Riak',
+          name: DBTypes.RIAK,
+        },
+        {
+          label: t('任务执行器'),
+          name: 'actuator',
+        },
+        {
+          label: t('Riak监控'),
+          name: 'riak-monitor',
+        },
+      ],
+    },
   ];
 
   const renderTabs = computed(() => tabs.filter((item) => {

@@ -397,6 +397,7 @@
       width: 100px;
       height: 40px;
       margin-right: 16px;
+      font-size: 12px;
       font-weight: bold;
       color: #313238;
       background: #EAEBF0;
