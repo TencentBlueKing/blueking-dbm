@@ -117,6 +117,8 @@ class RedisClusterInstanceShutdownSceneFlow(object):
 
         redis_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
 
+        return redis_pipeline.run_pipeline()
+
     # 对每个集群操作
     def instance_shutdown(self, sub_kwargs, shutdown_params):
         sub_pipeline = SubBuilder(root_id=self.root_id, data=self.data)
