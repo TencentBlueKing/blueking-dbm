@@ -191,7 +191,7 @@ func (i *InstallMySQLProxyComp) GenerateProxycnf() (err error) {
 	var tmplFileName = "proxy.cnf.tpl"
 	var nf *util.CnfFile
 	logger.Info("proxy Configs: %s", i.Params.ProxyConfigs)
-	if err = json.Unmarshal([]byte(i.Params.ProxyConfigs), &tmplConfigs); err != nil {
+	if err = json.Unmarshal(i.Params.ProxyConfigs, &tmplConfigs); err != nil {
 		logger.Error("反序列化配置失败:%s", err.Error())
 		return err
 	}
@@ -349,61 +349,28 @@ func (i *InstallMySQLProxyComp) Start() error {
  */
 func (i *InstallMySQLProxyComp) InitProxyAdminAccount() (err error) {
 	for _, port := range i.InsPorts {
-		// Test Conn ...
-		pc, err := native.NewDbWorkerNoPing(
-			fmt.Sprintf("%s:%d", i.Params.Host, native.GetProxyAdminPort(port)), i.ProxyAdminUser,
-			i.ProxyAdminPwd,
-		)
+		err = i.initOneProxyAdminAccount(port)
 		if err != nil {
-			logger.Error("connect %d failed", port)
-			return err
-		}
-		defer pc.Stop()
-		_, err = pc.Exec(fmt.Sprintf("refresh_users('%s','+')", cst.ProxyUserMonitorAccessAll))
-		if err != nil {
-			logger.Error("add ProxyAdminAccout failed %s", err.Error())
 			return err
 		}
 	}
 	return
 }
 
-// CreateExporterCnf 根据mysql-proxy部署端口生成对应的exporter配置文件
-func (i *InstallMySQLProxyComp) CreateExporterCnf() (err error) {
-	for _, port := range i.InsPorts {
-		exporterConfName := fmt.Sprintf("/etc/exporter_%d.cnf", port)
-		exporterContext := fmt.Sprintf(
-			"%s:%d,,,%s:%d,%s,%s",
-			i.Params.Host,
-			port,
-			i.Params.Host,
-			native.GetProxyAdminPort(port),
-			i.ProxyAdminUser,
-			i.ProxyAdminPwd,
-		)
-
-		f, err := os.OpenFile(
-			exporterConfName,
-			os.O_CREATE|os.O_TRUNC|os.O_WRONLY,
-			0644,
-		)
-		if err != nil {
-			logger.Error("create config file [%s] failed: %s", exporterConfName, err.Error())
-			return err
-		}
-		defer f.Close()
-
-		_, err = f.Write([]byte(exporterContext))
-		if err != nil {
-			logger.Error("write config file [%s] failed: %s", exporterConfName, err.Error())
-			return err
-		}
-
-		if _, err = osutil.ExecShellCommand(false, fmt.Sprintf("chown -R mysql %s", exporterConfName)); err != nil {
-			logger.Error("chown -R mysql %s %s", exporterConfName, err.Error())
-			return err
-		}
+func (i *InstallMySQLProxyComp) initOneProxyAdminAccount(port Port) (err error) {
+	pc, err := native.NewDbWorkerNoPing(
+		fmt.Sprintf("%s:%d", i.Params.Host, native.GetProxyAdminPort(port)), i.ProxyAdminUser,
+		i.ProxyAdminPwd,
+	)
+	if err != nil {
+		logger.Error("connect %d failed", port)
+		return err
+	}
+	defer pc.Stop()
+	_, err = pc.Exec(fmt.Sprintf("refresh_users('%s','+')", cst.ProxyUserMonitorAccessAll))
+	if err != nil {
+		logger.Error("add ProxyAdminAccount failed %s", err.Error())
+		return err
 	}
 	return nil
-
 }

@@ -87,10 +87,6 @@ func (d *MySQLProxyAct) Run() error {
 			FunName: "初始化默认账户",
 			Func:    d.Service.InitProxyAdminAccount,
 		},
-		{
-			FunName: "生成exporter配置文件",
-			Func:    d.Service.CreateExporterCnf,
-		},
 	}
 
 	if err := steps.Run(); err != nil {
