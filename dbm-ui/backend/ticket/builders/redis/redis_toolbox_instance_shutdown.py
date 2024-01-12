@@ -27,8 +27,12 @@ class RedisClusterInstShutdownDetailSerializer(serializers.Serializer):
 
         cluster_id = serializers.IntegerField(help_text=_("集群ID"))
         # bk_cloud_id = serializers.IntegerField(help_text=_("云区域ID"))
-        proxy = serializers.ListField(help_text=_("proxy列表"), child=HostInfoSerializer(), required=False)
-        redis_slave = serializers.ListField(help_text=_("slave列表"), child=HostInfoSerializer(), required=False)
+        proxy = serializers.ListField(
+            help_text=_("proxy列表"), allow_empty=True, child=serializers.IPAddressField(), required=False
+        )
+        redis_slave = serializers.ListField(
+            help_text=_("slave列表"), allow_empty=True, child=serializers.IPAddressField(), required=False
+        )
 
     infos = serializers.ListField(help_text=_("批量操作参数列表"), child=InfoSerializer())
 
