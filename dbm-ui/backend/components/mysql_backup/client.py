@@ -36,7 +36,11 @@ class _BackupApi(BaseApi):
             description=_("查询单据状态"),
         )
         self.download_backup_client = self.generate_data_api(
-            method="POST", url="backupapi/client/install", description=_("backup_client下载，同步任务"), default_timeout=300
+            method="POST",
+            url="backupapi/client/install",
+            description=_("backup_client下载，同步任务"),
+            default_timeout=600,
+            max_retry_times=0,
         )
 
 

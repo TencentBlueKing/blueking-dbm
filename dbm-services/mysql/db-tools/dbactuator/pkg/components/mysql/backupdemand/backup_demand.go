@@ -204,17 +204,17 @@ func (c *Component) DoBackup() error {
 	return nil
 }
 
-func (c *Component) generateReport() (report *Report, err error) {
+func (c *Component) generateReport() (report *Report, indexFile string, err error) {
 	report = &Report{}
 
 	indexFileSearch := filepath.Join(c.backupDir, "*.index")
 	if files, err := filepath.Glob(indexFileSearch); err != nil {
-		return nil, err
+		return nil, indexFile, err
 	} else {
 		for _, f := range files {
 			indexContent, err := os.ReadFile(f)
 			if err != nil {
-				return nil, err
+				return nil, indexFile, err
 			}
 			var result dbareport.IndexContent
 			err = json.Unmarshal(indexContent, &result)
@@ -223,20 +223,21 @@ func (c *Component) generateReport() (report *Report, err error) {
 				continue
 				//return nil, err
 			}
-			if result.BillId == c.Params.BillId {
+			if result.BillId == c.Params.BillId && c.Params.BillId != "" {
 				report.Result = &result
+				indexFile = f
 				break
 			}
 		}
 	}
 	if report.Result == nil {
-		return nil, errors.Errorf("backup index file not found for %d", c.backupPort)
+		return nil, indexFile, errors.Errorf("backup index file not found for %d", c.backupPort)
 	}
 
 	statusLogFile, err := os.Open(c.statusReportPath)
 	if err != nil {
 		logger.Error(err.Error())
-		return nil, err
+		return nil, indexFile, err
 	}
 	defer func() {
 		_ = statusLogFile.Close()
@@ -249,7 +250,7 @@ func (c *Component) generateReport() (report *Report, err error) {
 	for scanner.Scan() {
 		if err := scanner.Err(); err != nil {
 			logger.Error("scan status report failed: %s", err.Error())
-			return nil, err
+			return nil, indexFile, err
 		}
 		line := scanner.Text()
 		if strings.Contains(line, thisBillFlag) {
@@ -259,7 +260,7 @@ func (c *Component) generateReport() (report *Report, err error) {
 	err = json.Unmarshal([]byte(thisBillLatestStatusLine), &thisBillLatestStatus)
 	if err != nil {
 		logger.Error("unmarshal %s failed: %s", thisBillLatestStatusLine, err.Error())
-		return nil, err
+		return nil, indexFile, err
 	}
 	logger.Info("backup status: %v", thisBillLatestStatus)
 
@@ -267,14 +268,14 @@ func (c *Component) generateReport() (report *Report, err error) {
 	if thisBillLatestStatus.Status != "Success" {
 		err := fmt.Errorf("report status is not Success: %s", thisBillLatestStatusLine)
 		logger.Error(err.Error())
-		return nil, err
+		return nil, indexFile, err
 	}
 	report.Status = &thisBillLatestStatus
 	return
 }
 
 func (c *Component) OutPut() error {
-	report, err := c.generateReport()
+	report, _, err := c.generateReport()
 	if err != nil {
 		return err
 	}
@@ -305,13 +306,14 @@ func (c *Component) Example() interface{} {
 // OutPutForTBinlogDumper 增加为tbinlogdumper做库表备份的日志输出，保存流程上下文
 func (c *Component) OutPutForTBinlogDumper() error {
 	ret := make(map[string]interface{})
-	report, err := c.generateReport()
+	report, indexFile, err := c.generateReport()
 	if err != nil {
 		return err
 	}
 	ret["report_result"] = report.Result
 	ret["report_status"] = report.Status
 	ret["backup_dir"] = c.backupDir
+	ret["backup_index"] = indexFile
 
 	err = components.PrintOutputCtx(ret)
 	if err != nil {
