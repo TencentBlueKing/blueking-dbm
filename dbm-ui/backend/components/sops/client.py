@@ -18,7 +18,7 @@ from ..domains import ESB_PREFIX, SOPS_APIGW_DOMAIN
 
 class _BkSopsApi(BaseApi):
     MODULE = _("标准运维")
-    BASE_URL = SOPS_APIGW_DOMAIN
+    BASE = SOPS_APIGW_DOMAIN
 
     def __init__(self):
         is_esb = ESB_PREFIX in SOPS_APIGW_DOMAIN
