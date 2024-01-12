@@ -65,8 +65,10 @@ class RedisClusterInstanceShutdownSceneFlow(object):
         slave_ports = defaultdict(list)
 
         for master_obj in cluster.storageinstance_set.filter(instance_role=InstanceRole.REDIS_MASTER.value):
-            slave_obj = master_obj.as_ejector.get().receiver
-            slave_ports[slave_obj.machine.ip].append(slave_obj.port)
+            for slave_tuple in master_obj.as_ejector.all():  # 这里有多Slave的情况
+                slave_obj = slave_tuple.receiver
+                slave_ports[slave_obj.machine.ip].append(slave_obj.port)
+
         return {
             "immute_domain": cluster.immute_domain,
             "bk_biz_id": str(cluster.bk_biz_id),
