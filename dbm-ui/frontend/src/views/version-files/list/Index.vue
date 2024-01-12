@@ -292,7 +292,7 @@
     if (data.is_enabled !== true) return false;
     const children = (data.children as Record<FunctionKeys, ControllerBaseInfo>);
     // 模块中的功能没开启
-    if (id && children[id].is_enabled !== true) {
+    if (id && !children[id]?.is_enabled) {
       return false;
     }
 
