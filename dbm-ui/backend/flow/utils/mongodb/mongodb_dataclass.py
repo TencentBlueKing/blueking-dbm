@@ -356,7 +356,6 @@ class ActKwargs:
                             {"ip": node["ip"], "port": self.payload["config"]["port"], "role": instance_role[index]}
                         )
             info["configs"].append(config)
-
             # shard
             info["storages"] = []
             for shard in self.payload["shards"]:
