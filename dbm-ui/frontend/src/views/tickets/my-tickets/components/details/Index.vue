@@ -42,7 +42,9 @@
           class="ticket-flows"
           mode="collapse"
           :title="$t('实施进度')">
-          <FlowInfo :data="state.ticketData" />
+          <FlowInfo
+            :data="state.ticketData"
+            @fetch-data="handleFetchData" />
         </DbCard>
       </template>
     </BkLoading>
@@ -180,6 +182,12 @@
   const exitFullscreen = (e: KeyboardEvent) => {
     if (e.keyCode === 27) {
       isFullscreen.value = undefined;
+    }
+  };
+
+  const handleFetchData = () => {
+    if (props.data?.id) {
+      fetchTicketDetails(props.data.id);
     }
   };
 

@@ -41,13 +41,31 @@
         <template #content>
           <BkDropdownMenu>
             <BkDropdownItem @click="handleCopyAll">
-              {{ $t('复制全部IP') }}
+              {{ t('复制全部IP') }}
             </BkDropdownItem>
-            <BkDropdownItem @click="handleCopeFailed">
-              {{ $t('复制异常IP') }}
+            <BkDropdownItem>
+              <BkButton
+                v-bk-tooltips="{
+                  content: t('暂无异常IP'),
+                  disabled: isAbnormalNodeExits
+                }"
+                :disabled="!isAbnormalNodeExits"
+                text
+                @click="handleCopyAbmormal">
+                {{ t('复制异常IP') }}
+              </BkButton>
             </BkDropdownItem>
-            <BkDropdownItem @click="handleCopeActive">
-              {{ $t('复制已选IP') }}
+            <BkDropdownItem>
+              <BkButton
+                v-bk-tooltips="{
+                  content: t('请先勾选IP'),
+                  disabled: isTableSelected
+                }"
+                :disabled="!isTableSelected"
+                text
+                @click="handleCopySelected">
+                {{ t('复制已选IP') }}
+              </BkButton>
             </BkDropdownItem>
           </BkDropdownMenu>
         </template>
@@ -56,16 +74,39 @@
         v-model="searchKey"
         class="action-box-search"
         clearable
-        :placeholder="t('请输入节点实例或选择字段搜索')" />
+        :placeholder="t('请输入节点实例或选择字段搜索')"
+        @change="() => fetchData()" />
     </div>
+    <BkAlert
+      v-if="operationData?.operationStatusText"
+      class="mb16"
+      theme="warning">
+      <I18nT
+        keypath="当前集群有xx暂时不能进行其他操作跳转xx查看进度"
+        tag="div">
+        <span>{{ operationData?.operationStatusText }}</span>
+        <RouterLink
+          target="_blank"
+          :to="{
+            name: 'SelfServiceMyTickets',
+            query: {
+              id: operationData?.operationTicketId,
+            },
+          }">
+          {{ t('我的服务单') }}
+        </RouterLink>
+      </I18nT>
+    </BkAlert>
     <DbTable
       ref="tableRef"
       class="node-list-table"
       :columns="columns"
       :data-source="getRiakNodeList"
       :row-class="setRowClass"
+      selectable
       @column-filter="handleColunmFilter"
-      @colunm-sort="fetchData" />
+      @colunm-sort="fetchData"
+      @selection="handleSelection" />
     <DbSideslider
       v-model:is-show="addNodeShow"
       quick-close
@@ -111,6 +152,7 @@
   import { TicketTypes } from '@common/const';
 
   import OperationStatusTips from '@components/cluster-common/OperationStatusTips.vue';
+  import DbTable from '@components/db-table/index.vue';
   import MiniTag from '@components/mini-tag/index.vue';
   import RenderHostStatus from '@components/render-host-status/Index.vue';
   import RenderTextEllipsisOneLine from '@components/text-ellipsis-one-line/index.vue';
@@ -119,8 +161,8 @@
 
   import { useTimeoutPoll } from '@vueuse/core';
 
-  import AddNodes from '../../sideslider/AddNodes.vue';
-  import DeleteNodes from '../../sideslider/DeleteNodes.vue';
+  import AddNodes from '../../components/AddNodes.vue';
+  import DeleteNodes from '../../components/DeleteNodes.vue';
 
   interface Props {
     clusterId: number;
@@ -150,21 +192,16 @@
     immediate: true,
   });
 
-  const tableRef = ref();
+  const tableRef = ref<InstanceType<typeof DbTable>>();
   const isCopyDropdown = ref(false);
   const addNodeShow = ref(false);
   const deleteNodeShow = ref(false);
+  const selected = shallowRef<RiakNodeModel[]>([]);
   const operationData = shallowRef<RiakModel>();
 
   const setRowClass = (data: RiakNodeModel) => (data.isNewRow ? 'is-new-row' : '');
 
   const columns = [
-    {
-      type: 'selection',
-      width: 48,
-      minWidth: 48,
-      fixed: 'left',
-    },
     {
       label: t('节点实例'),
       field: 'ip',
@@ -236,21 +273,18 @@
     {
       label: t('管控区域'),
       field: 'bk_cloud_name',
-      sort: true,
       render: ({ row }: { row: RiakNodeModel }) => <span>{row.bk_cloud_name || '--'}</span>,
     },
     {
       label: t('机型'),
       field: 'bk_host_name',
-      sort: true,
       render: ({ row }: { row: RiakNodeModel }) => <span>{row.bk_host_name || '--'}</span>,
     },
     {
       label: t('部署时间'),
       width: 160,
       field: 'create_at',
-      sort: true,
-      render: ({ row }: { row: RiakNodeModel }) => <span>{row.create_at || '--'}</span>,
+      render: ({ row }: { row: RiakNodeModel }) => <span>{row.createAtDisplay || '--'}</span>,
     },
     {
       label: t('操作'),
@@ -283,6 +317,10 @@
     },
   ];
 
+  const isAbnormalNodeExits = computed(() => tableRef.value!.getData<RiakNodeModel>()
+    .some((riakNode: RiakNodeModel) => !riakNode.isNodeNormal));
+  const isTableSelected = computed(() => selected.value.length > 0);
+
   watch(() => props.clusterId, () => {
     nextTick(() => {
       pauseFetchClusterDetail();
@@ -292,6 +330,10 @@
   }, {
     immediate: true,
   });
+
+  const handleSelection = (key: number[], list: Record<any, any>[]) => {
+    selected.value = list as RiakNodeModel[];
+  };
 
   const handleAddNode = () => {
     addNodeShow.value = true;
@@ -378,33 +420,34 @@
 
   // 复制所有 IP
   const handleCopyAll = () => {
-    const ipList = tableRef.value.getData().map((riakNodeItem: RiakNodeModel) => riakNodeItem.ip);
+    const ipList = tableRef.value!.getData<RiakNodeModel>().map((riakNodeItem: RiakNodeModel) => riakNodeItem.ip);
     handleCopy(ipList);
   };
 
   // 复制异常 IP
-  const handleCopeFailed = () => {
-    const ipList = tableRef.value.getData().reduce((ipArr: Array<string>, riakNodeItem: RiakNodeModel) => {
-      if (!riakNodeItem.isNodeNormal) {
-        return [...ipArr, riakNodeItem.ip];
-      }
-      return ipArr;
-    }, [] as Array<string>);
+  const handleCopyAbmormal = () => {
+    const ipList = tableRef.value!.getData<RiakNodeModel>()
+      .reduce((ipArr: Array<string>, riakNodeItem: RiakNodeModel) => {
+        if (!riakNodeItem.isNodeNormal) {
+          return [...ipArr, riakNodeItem.ip];
+        }
+        return ipArr;
+      }, [] as Array<string>);
 
     handleCopy(ipList);
   };
 
   // 复制已选 IP
-  const handleCopeActive = () => {
-    const ipList = tableRef.value.bkTableRef.getSelection().map((riakNodeItem: RiakNodeModel) => riakNodeItem.ip);
+  const handleCopySelected = () => {
+    const ipList = selected.value.map((riakNodeItem: RiakNodeModel) => riakNodeItem.ip);
     handleCopy(ipList);
   };
 
   const fetchData = (otherParamas: object = {}) => {
-    tableRef.value.fetchData(
+    tableRef.value!.fetchData(
       {
         ...otherParamas,
-        searchKey: searchKey.value,
+        ip: searchKey.value,
       },
       {
         bk_biz_id: currentBizId,

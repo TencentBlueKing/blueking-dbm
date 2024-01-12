@@ -71,6 +71,8 @@
             @focus="handlePasswordFocus" />
           <BkButton
             class="form-item-suffix"
+            outline
+            theme="primary"
             @click="randomlyGenerate">
             {{ t('随机生成') }}
           </BkButton>
@@ -150,13 +152,13 @@
       </span>
       <BkButton
         v-if="!submitting && !submitted"
-        class="head-button"
         text
         theme="primary"
         @click="passwordSidesliderShow = true">
-        <DbIcon
-          type="history-2 mr-4" />
-        {{ t('临时密码生效的实例') }}
+        <div class="head-button">
+          <DbIcon type="history-2 mr-4" />
+          <span class="head-button-text">{{ t('临时密码生效的实例') }}</span>
+        </div>
       </BkButton>
     </div>
   </Teleport>
@@ -626,7 +628,12 @@
   }
 
   .head-button {
-    font-size: 14px;
+    display: flex;
+    align-items: center;
+
+    .head-button-text {
+      font-size: 12px;
+    }
   }
 }
 

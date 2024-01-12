@@ -332,10 +332,18 @@
     }
 
     :deep(.riak-node) {
+      display: flex;
       height: 100%;
+      padding: 0 14px 0 20px;
       background: #FFF;
       border-radius: 4px;
       box-shadow: 0 2px 4px 0 #1919290d;
+      align-items: center;
+
+      .db-svg-icon {
+        margin-top: 1px;
+        font-size: 16px;
+      }
 
       .riak-node-content {
         line-height: 44px;

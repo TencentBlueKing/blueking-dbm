@@ -28,6 +28,9 @@
       <template
         v-if="content.status === 'RUNNING' &&
           (content.flow_type === 'RESOURCE_APPLY' || content.flow_type === 'RESOURCE_BATCH_APPLY')">
+        <DbIcon
+          class="resource-apply-exclamation-fill"
+          type="exclamation-fill" />
         <I18nT
           keypath="主机资源不足_等待管理员users补货_补货完成后可以前往place重试"
           tag="span">
@@ -190,3 +193,11 @@
     emits('fetch-data');
   }
 </script>
+
+<style scoped>
+.resource-apply-exclamation-fill {
+  margin-right: 4px;
+  font-size: 14px;
+  color: #ff9c01;
+}
+</style>

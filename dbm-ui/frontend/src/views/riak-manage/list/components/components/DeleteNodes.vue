@@ -85,8 +85,8 @@
     },
     {
       label: t('CPU内存'),
-      field: 'create_at',
-      render: ({ data }: { data: RiakNodeModel }) => <span>{ data.create_at || '--' }</span>,
+      field: 'cpu',
+      render: ({ data }: { data: RiakNodeModel }) => <span>{ data.cpu || '--' }</span>,
     },
     {
       label: t('机型'),

@@ -154,6 +154,17 @@ export default class Riak {
     return Riak.operationIconMap[this.operationRunningStatus];
   }
 
+  get isOfflineOperationRunning() {
+    return ([
+      TicketTypes.RIAK_CLUSTER_ENABLE,
+      TicketTypes.RIAK_CLUSTER_DESTROY,
+    ] as string[]).includes(this.operationRunningStatus);
+  }
+
+  get isDisabled() {
+    return !this.isOnline && !this.isOfflineOperationRunning;
+  }
+
   get operationTicketId() {
     if (this.operations.length < 1) {
       return 0;

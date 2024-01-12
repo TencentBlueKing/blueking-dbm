@@ -158,7 +158,8 @@
     }
 
     .bk-modal-content {
-      padding: 0 !important;
+      max-height: calc(100% - 300px) !important;
+      padding: 0 !important
     }
   }
 </style>

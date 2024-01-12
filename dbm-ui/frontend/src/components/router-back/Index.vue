@@ -47,11 +47,12 @@
   .router-back {
     display: inline-flex;
     padding-right: 10px;
+    margin-top: 2px;
+    font-size: 20px;
     align-items: center;
 
     .route-btn{
-      padding-right: 5px;
-      padding-left: 10px;
+      padding-left: 8px;
       color: #3A84FF;
       cursor: pointer;
     }

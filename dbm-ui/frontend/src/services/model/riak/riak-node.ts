@@ -13,6 +13,8 @@
 
 import dayjs from 'dayjs';
 
+import { utcDisplayTime } from '@utils';
+
 import { t } from '@locales/index';
 
 export default class RiakNode {
@@ -87,6 +89,10 @@ export default class RiakNode {
 
   get isNodeNormal() {
     return this.status !== 0;
+  }
+
+  get createAtDisplay() {
+    return utcDisplayTime(this.create_at);
   }
 
   // get getCpuInfo() {

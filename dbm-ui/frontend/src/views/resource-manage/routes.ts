@@ -19,7 +19,7 @@ export default () => [
     path: 'resource-manage',
     component: () => import('@views/resource-manage/Index.vue'),
     redirect: {
-      name: 'resourcePoolList',
+      name: 'resourcePool',
     },
     children: [
       {

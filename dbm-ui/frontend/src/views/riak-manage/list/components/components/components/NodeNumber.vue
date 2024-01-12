@@ -20,6 +20,7 @@
       </div>
       <div class="node-number-item">
         <DbIcon
+          class="mr-4"
           svg
           type="normal" />
         {{ t('正常') }} :
@@ -27,6 +28,7 @@
       </div>
       <div class="node-number-item">
         <DbIcon
+          class="mr-4"
           svg
           type="abnormal" />
         {{ t('异常') }} :
