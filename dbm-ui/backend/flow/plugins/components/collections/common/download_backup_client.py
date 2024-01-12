@@ -32,6 +32,7 @@ class DownloadBackupClientService(BaseService):
     def _execute(self, data, parent_data) -> bool:
         kwargs = data.get_one_of_inputs("kwargs")
 
+        self.log_info("download and install backup_client receive ips: {}".format(kwargs["download_host_list"]))
         params = {
             "host_list": [
                 {"bk_cloud_id": int(kwargs["bk_cloud_id"]), "bk_biz_id": int(kwargs["bk_biz_id"]), "ip": ip}

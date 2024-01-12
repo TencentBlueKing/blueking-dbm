@@ -21,10 +21,13 @@ from backend.configuration.constants import DBType
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.exceptions import DBMetaException
 from backend.db_meta.models import Cluster, StorageInstance
-from backend.flow.consts import DBA_ROOT_USER
+from backend.flow.consts import DBA_ROOT_USER, DEPENDENCIES_PLUGINS
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder, SubProcess
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.plugins.components.collections.common.download_backup_client import DownloadBackupClientComponent
+from backend.flow.plugins.components.collections.common.install_nodeman_plugin import (
+    InstallNodemanPluginServiceComponent,
+)
 from backend.flow.plugins.components.collections.mysql.cluster_standardize_trans_module import (
     ClusterStandardizeTransModuleComponent,
 )
@@ -33,7 +36,7 @@ from backend.flow.plugins.components.collections.mysql.tendbha_instantiate_confi
     TendbHAInstantiateConfigComponent,
 )
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
-from backend.flow.utils.common_act_dataclass import DownloadBackupClientKwargs
+from backend.flow.utils.common_act_dataclass import DownloadBackupClientKwargs, InstallNodemanPluginKwargs
 from backend.flow.utils.mysql.mysql_act_dataclass import DownloadMediaKwargs, ExecActuatorKwargs
 from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
 
@@ -137,6 +140,15 @@ class MySQLHAStandardizeFlow(object):
                     )
                 ),
             )
+
+            for plugin_name in DEPENDENCIES_PLUGINS:
+                cloud_trans_file_pipe.add_act(
+                    act_name=_("安装{}插件".format(plugin_name)),
+                    act_component_code=InstallNodemanPluginServiceComponent.code,
+                    kwargs=asdict(
+                        InstallNodemanPluginKwargs(ips=unique_ips, plugin_name=plugin_name, bk_cloud_id=bk_cloud_id)
+                    ),
+                )
 
             cloud_trans_file_pipe.add_act(
                 act_name=_("安装backup-client工具"),

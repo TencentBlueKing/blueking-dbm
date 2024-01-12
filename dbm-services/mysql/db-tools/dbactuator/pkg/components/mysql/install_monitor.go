@@ -360,33 +360,83 @@ func (c *InstallMySQLMonitorComp) GenerateItemsConfig() (err error) {
 // CreateExporterCnf 根据mysql部署端口生成对应的exporter配置文件
 func (c *InstallMySQLMonitorComp) CreateExporterCnf() (err error) {
 	for _, inst := range c.Params.InstancesInfo {
-		if c.Params.MachineType == "proxy" { // || inst.Role == ""
-			// mysql-proxy 的exporter 还在 proxy-deploy 任务里
-			continue
-		}
 		exporterConfName := fmt.Sprintf("/etc/exporter_%d.cnf", inst.Port)
-		if err = util.CreateExporterConf(
-			exporterConfName,
-			inst.Ip,
-			strconv.Itoa(inst.Port),
-			c.GeneralParam.RuntimeAccountParam.MonitorUser,
-			c.GeneralParam.RuntimeAccountParam.MonitorPwd,
-		); err != nil {
-			logger.Error("create exporter conf err : %s", err.Error())
-			return err
+
+		if c.Params.MachineType == "proxy" {
+			err = c.createProxyExporterCnf(exporterConfName, inst)
+		} else {
+			err = c.createMySQLExporterCnf(exporterConfName, inst)
 		}
-		// /etc/exporter_xxx.args is used to set mysqld_exporter collector args
-		exporterArgsName := fmt.Sprintf("/etc/exporter_%d.args", inst.Port)
-		if err = util.CreateMysqlExporterArgs(exporterArgsName, c.Params.GetPkgTypeName(), inst.Port); err != nil {
-			logger.Error("create exporter collector args err : %s", err.Error())
-			return err
-		}
-		if _, err = osutil.ExecShellCommand(false,
-			fmt.Sprintf("chown -R mysql %s %s", exporterConfName, exporterArgsName)); err != nil {
-			logger.Error("chown -R mysql %s %s : %s", exporterConfName, exporterArgsName, err.Error())
+
+		if err != nil {
 			return err
 		}
 	}
+
+	return nil
+}
+
+func (c *InstallMySQLMonitorComp) createProxyExporterCnf(exporterConfName string, inst InstanceInfo) (err error) {
+	exporterContext := fmt.Sprintf(
+		"%s:%d,,,%s:%d,%s,%s",
+		inst.Ip,
+		inst.Port,
+		inst.Ip,
+		native.GetProxyAdminPort(inst.Port),
+		c.GeneralParam.RuntimeAccountParam.ProxyAdminUser,
+		c.GeneralParam.RuntimeAccountParam.ProxyAdminPwd,
+	)
+
+	f, err := os.OpenFile(
+		exporterConfName,
+		os.O_CREATE|os.O_TRUNC|os.O_WRONLY,
+		0644,
+	)
+	if err != nil {
+		logger.Error("create config file [%s] failed: %s", exporterConfName, err.Error())
+		return err
+	}
+	defer func() {
+		_ = f.Close()
+	}()
+
+	_, err = f.Write([]byte(exporterContext))
+	if err != nil {
+		logger.Error("write config file [%s] failed: %s", exporterConfName, err.Error())
+		return err
+	}
+
+	if _, err = osutil.ExecShellCommand(false, fmt.Sprintf("chown -R mysql %s", exporterConfName)); err != nil {
+		logger.Error("chown -R mysql %s %s", exporterConfName, err.Error())
+		return err
+	}
+
+	return nil
+}
+
+func (c *InstallMySQLMonitorComp) createMySQLExporterCnf(exporterConfName string, inst InstanceInfo) (err error) {
+	if err = util.CreateExporterConf(
+		exporterConfName,
+		inst.Ip,
+		strconv.Itoa(inst.Port),
+		c.GeneralParam.RuntimeAccountParam.MonitorUser,
+		c.GeneralParam.RuntimeAccountParam.MonitorPwd,
+	); err != nil {
+		logger.Error("create exporter conf err : %s", err.Error())
+		return err
+	}
+	// /etc/exporter_xxx.args is used to set mysqld_exporter collector args
+	exporterArgsName := fmt.Sprintf("/etc/exporter_%d.args", inst.Port)
+	if err = util.CreateMysqlExporterArgs(exporterArgsName, c.Params.GetPkgTypeName(), inst.Port); err != nil {
+		logger.Error("create exporter collector args err : %s", err.Error())
+		return err
+	}
+	if _, err = osutil.ExecShellCommand(false,
+		fmt.Sprintf("chown -R mysql %s %s", exporterConfName, exporterArgsName)); err != nil {
+		logger.Error("chown -R mysql %s %s : %s", exporterConfName, exporterArgsName, err.Error())
+		return err
+	}
+
 	return nil
 }
 
