@@ -56,6 +56,9 @@ class MysqlMasterSlaveSwitchDetailSerializer(MySQLBaseOperateDetailSerializer):
             attrs, instance_key=["slave_ip"], cluster_key=["cluster_ids"], role=InstanceInnerRole.SLAVE
         )
 
+        # 校验从库的is_stand_by标志必须为true
+        super().validate_slave_is_stand_by(attrs)
+
         return attrs
 
 

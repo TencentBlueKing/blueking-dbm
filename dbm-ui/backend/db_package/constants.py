@@ -39,4 +39,5 @@ INSTALL_PACKAGE_LIST = {
         PackageType.TendisSsd,
         PackageType.Predixy,
     ],
+    DBType.Sqlserver: [PackageType.Sqlserver],
 }

@@ -37,6 +37,11 @@ class ListMongoDBResourceSLZ(ListResourceSLZ):
     domains = serializers.CharField(help_text=_("批量域名查询(逗号分割)"), required=False)
 
 
+class ListSQLServerResourceSLZ(ListResourceSLZ):
+    db_module_id = serializers.IntegerField(required=False)
+    cluster_ids = serializers.ListField(child=serializers.IntegerField(), required=False, allow_empty=True)
+
+
 class ClusterSLZ(serializers.ModelSerializer):
     cluster_name = serializers.CharField(source="name")
     cluster_alias = serializers.CharField(source="alias")
