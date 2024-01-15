@@ -12,69 +12,32 @@ import base64
 
 from django.utils.decorators import method_decorator
 from django.utils.translation import ugettext as _
-from django_filters import rest_framework as filters
 from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from backend.bk_web.swagger import common_swagger_auto_schema
-from backend.bk_web.viewsets import AuditedModelViewSet, SystemViewSet
+from backend.bk_web.viewsets import SystemViewSet
 from backend.components import DBConfigApi, MySQLPrivManagerApi
 from backend.components.dbconfig.constants import FormatType, LevelName
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models.cluster import Cluster
 from backend.db_services.bigdata.resources import constants, yasg_slz
 from backend.db_services.dbbase.resources.constants import ResourceNodeType
-from backend.db_services.dbbase.resources.serializers import ClusterSLZ, SearchResourceTreeSLZ
+from backend.db_services.dbbase.resources.serializers import SearchResourceTreeSLZ
+from backend.db_services.dbbase.resources.views import BaseListResourceViewSet
 from backend.db_services.dbbase.resources.viewsets import ResourceViewSet
 from backend.db_services.dbbase.resources.yasg_slz import ResourceTreeSLZ
 from backend.flow.consts import ConfigTypeEnum, LevelInfoEnum, UserName
 from backend.flow.utils.pulsar.consts import PulsarConfigEnum
 
 
-class ResourceFilterBackend(filters.DjangoFilterBackend):
-    def get_filterset_kwargs(self, request, queryset, view):
-        kwargs = super().get_filterset_kwargs(request, queryset, view)
-
-        # merge filterset kwargs provided by view class
-        if hasattr(view, "get_filterset_kwargs"):
-            kwargs.update(view.get_filterset_kwargs())
-
-        return kwargs
-
-
-class ResourceFilter(filters.FilterSet):
-    bk_biz_id = filters.NumberFilter(field_name="bk_biz_id", lookup_expr="exact")
-    db_module_id = filters.NumberFilter(field_name="db_module_id", lookup_expr="exact")
-
-    class Meta:
-        model = Cluster
-        fields = ["bk_biz_id", "db_module_id"]
-
-    def __init__(self, *args, bk_biz_id=None, **kwargs):
-        """将路径参数 bk_biz_id 添加到 QueryDict"""
-        data = kwargs["data"].copy()
-        data.update({"bk_biz_id": bk_biz_id})
-        kwargs["data"] = data
-
-        super().__init__(*args, **kwargs)
-
-
 @method_decorator(
     name="list",
     decorator=common_swagger_auto_schema(tags=[constants.RESOURCE_TAG]),
 )
-class ListResourceViewSet(AuditedModelViewSet):
-    """提供资源(集群)通用属性的查询. 这些属性与集群类型无关, 如集群名, 集群创建者等"""
-
-    queryset = Cluster.objects.all()
-    serializer_class = ClusterSLZ
-    filter_backends = (ResourceFilterBackend,)
-    filterset_class = ResourceFilter
-    pagination_class = None
-
-    def get_filterset_kwargs(self):
-        return {"bk_biz_id": self.kwargs["bk_biz_id"]}
+class ListResourceViewSet(BaseListResourceViewSet):
+    pass
 
 
 class BigdataResourceViewSet(ResourceViewSet):
@@ -161,7 +124,6 @@ class BigdataResourceViewSet(ResourceViewSet):
     @action(methods=["GET"], detail=True, url_path="list_nodes", serializer_class=None)
     def list_nodes(self, request, bk_biz_id: int, cluster_id: int):
         """获取集群节点列表信息"""
-
         data = self.paginator.paginate_list(
             request, bk_biz_id, self.query_class.list_nodes, {"cluster_id": cluster_id}
         )
@@ -183,7 +145,6 @@ class ResourceTreeViewSet(SystemViewSet):
             bk_biz_id=bk_biz_id,
             cluster_type=cluster_type,
         )
-
         return Response(
             [
                 {

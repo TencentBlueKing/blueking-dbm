@@ -10,67 +10,27 @@ specific language governing permissions and limitations under the License.
 """
 from django.utils.decorators import method_decorator
 from django.utils.translation import ugettext as _
-from django_filters import rest_framework as filters
 from rest_framework import status
 from rest_framework.response import Response
 
 from backend.bk_web.swagger import common_swagger_auto_schema
-from backend.bk_web.viewsets import AuditedModelViewSet, SystemViewSet
+from backend.bk_web.viewsets import SystemViewSet
 from backend.db_meta.models.cluster import Cluster
 from backend.iam_app.handlers.drf_perm import DBManageIAMPermission
 
 from ...dbbase.resources.constants import ResourceNodeType
-from ...dbbase.resources.serializers import ClusterSLZ, SearchResourceTreeSLZ
+from ...dbbase.resources.serializers import SearchResourceTreeSLZ
+from ...dbbase.resources.views import BaseListResourceViewSet
 from ...dbbase.resources.yasg_slz import ResourceTreeSLZ
 from . import constants
-
-
-class ResourceFilterBackend(filters.DjangoFilterBackend):
-    def get_filterset_kwargs(self, request, queryset, view):
-        kwargs = super().get_filterset_kwargs(request, queryset, view)
-
-        # merge filterset kwargs provided by view class
-        if hasattr(view, "get_filterset_kwargs"):
-            kwargs.update(view.get_filterset_kwargs())
-
-        return kwargs
-
-
-class ResourceFilter(filters.FilterSet):
-    bk_biz_id = filters.NumberFilter(field_name="bk_biz_id", lookup_expr="exact")
-    db_module_id = filters.NumberFilter(field_name="db_module_id", lookup_expr="exact")
-
-    class Meta:
-        model = Cluster
-        fields = ["bk_biz_id", "db_module_id"]
-
-    def __init__(self, *args, bk_biz_id=None, **kwargs):
-        """将路径参数 bk_biz_id 添加到 QueryDict"""
-        data = kwargs["data"].copy()
-        data.update({"bk_biz_id": bk_biz_id})
-        kwargs["data"] = data
-
-        super().__init__(*args, **kwargs)
 
 
 @method_decorator(
     name="list",
     decorator=common_swagger_auto_schema(tags=[constants.RESOURCE_TAG]),
 )
-class ListResourceViewSet(AuditedModelViewSet):
-    """提供资源(集群)通用属性的查询. 这些属性与集群类型无关, 如集群名, 集群创建者等"""
-
-    queryset = Cluster.objects.all()
-    serializer_class = ClusterSLZ
-    filter_backends = (ResourceFilterBackend,)
-    filterset_class = ResourceFilter
-    pagination_class = None
-
-    def _get_custom_permissions(self):
-        return [DBManageIAMPermission()]
-
-    def get_filterset_kwargs(self):
-        return {"bk_biz_id": self.kwargs["bk_biz_id"]}
+class ListResourceViewSet(BaseListResourceViewSet):
+    pass
 
 
 class ResourceTreeViewSet(SystemViewSet):

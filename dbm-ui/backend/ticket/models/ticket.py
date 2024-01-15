@@ -293,7 +293,7 @@ class ClusterOperateRecord(AuditedModel):
             "flow_id": self.flow.id,
             "ticket_id": self.ticket.id,
             "ticket_type": self.ticket.ticket_type,
-            "title": self.ticket.get_ticket_type_display(),
+            "title": TicketType.get_choice_label(self.ticket.ticket_type),
             "status": self.ticket.status,
         }
 
@@ -311,7 +311,6 @@ class InstanceOperateRecordManager(models.Manager):
         return self.filter(
             instance_id=instance_id,
             ticket__status__in=[TicketStatus.RUNNING, TicketStatus.PENDING],
-            ticket__ticket_type__in=self.LOCKED_TICKET_TYPES,
             **kwargs,
         )
 

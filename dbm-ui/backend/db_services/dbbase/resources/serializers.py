@@ -51,7 +51,10 @@ class InstanceAddressSerializer(serializers.Serializer):
 
     def to_internal_value(self, data):
         """获取根据address获取ip和port，优先考虑从address获取"""
-        instance_address = data.get("instance_address", "")
+        if "instance_address" not in data:
+            return data
+
+        instance_address = data["instance_address"]
         if IP_PORT_DIVIDER not in instance_address:
             data["ip"] = instance_address or data.get("ip", "")
             return data
