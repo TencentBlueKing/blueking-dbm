@@ -19,9 +19,12 @@ export const useFullscreenStyle = (elementRef: Ref<HTMLElement|undefined>) => {
       style.value = {
         height: `calc(100vh - ${top}px)`,
       };
-    }, 100));
+    }, 300, {
+      leading: false,
+      trailing: true,
+    }));
 
-    observer.observe(elementRef.value, {
+    observer.observe(document.body, {
       subtree: true,
       childList: true,
       attributes: true,
