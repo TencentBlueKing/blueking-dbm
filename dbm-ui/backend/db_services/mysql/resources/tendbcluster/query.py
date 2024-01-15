@@ -11,7 +11,7 @@ specific language governing permissions and limitations under the License.
 
 from typing import Any, Dict, List
 
-from django.db.models import F, Q, QuerySet, Value
+from django.db.models import F, Q, Value
 from django.forms import model_to_dict
 from django.utils.translation import ugettext_lazy as _
 
@@ -20,18 +20,15 @@ from backend.db_meta.enums import InstanceInnerRole, TenDBClusterSpiderRole
 from backend.db_meta.enums.cluster_type import ClusterType
 from backend.db_meta.enums.comm import SystemTagEnum
 from backend.db_meta.exceptions import DBMetaException
-from backend.db_meta.models import AppCache, Machine, Spec
+from backend.db_meta.models import Machine, Spec
 from backend.db_meta.models.cluster import Cluster
 from backend.db_meta.models.instance import ProxyInstance, StorageInstance
 from backend.db_services.dbbase.resources import query
-from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
-from backend.db_services.mysql.resources.tendbha.query import ListRetrieveResource as DBHAListRetrieveResource
 from backend.ticket.constants import TicketType
 from backend.ticket.models import ClusterOperateRecord
-from backend.utils.time import datetime2str
 
 
-class ListRetrieveResource(DBHAListRetrieveResource):
+class ListRetrieveResource(query.ListRetrieveResource):
     """查看 mysql dbha 架构的资源"""
 
     cluster_type = ClusterType.TenDBCluster
@@ -52,24 +49,13 @@ class ListRetrieveResource(DBHAListRetrieveResource):
     ]
 
     @classmethod
-    def _list_clusters(cls, bk_biz_id: int, query_params: Dict, limit: int, offset: int) -> query.ResourceList:
-        return super()._list_clusters(bk_biz_id, query_params, limit, offset)
-
-    @classmethod
-    def _list(
-        cls,
-        cluster_qset: QuerySet,
-        proxy_inst_qset: QuerySet,
-        storage_inst_qset: QuerySet,
-        db_module_names: Dict[int, str],
-        limit: int,
-        offset: int,
-    ) -> query.ResourceList:
-        return super()._list(cluster_qset, proxy_inst_qset, storage_inst_qset, db_module_names, limit, offset)
-
-    @classmethod
     def _to_cluster_representation(
-        cls, cluster: Cluster, db_module_names: Dict[int, str], cluster_entry_map: Dict[int, Dict[str, str]]
+        cls,
+        cluster: Cluster,
+        db_module_names_map: Dict[int, str],
+        cluster_entry_map: Dict[int, Dict[str, str]],
+        cluster_operate_records_map: Dict[int, List],
+        **kwargs,
     ) -> Dict[str, Any]:
         """将集群对象转为可序列化的 dict 结构"""
 
@@ -101,27 +87,10 @@ class ListRetrieveResource(DBHAListRetrieveResource):
 
         spec_id = Machine.objects.get(bk_host_id=machine_list[0]).spec_id
         cluster_spec = Spec.objects.get(spec_id=spec_id)
-        cluster_entry = cluster_entry_map.get(cluster.id, {})
-        cloud_info = ResourceQueryHelper.search_cc_cloud(get_cache=True)
 
-        return {
-            "id": cluster.id,
-            "phase": cluster.phase,
-            "status": cluster.status,
-            "operations": ClusterOperateRecord.objects.get_cluster_operations(cluster.id),
-            "cluster_time_zone": cluster.time_zone,
-            "cluster_name": cluster.name,
-            "cluster_type": cluster.cluster_type,
+        cluster_extra_info = {
             "cluster_spec": model_to_dict(cluster_spec),
             "cluster_capacity": cluster_spec.capacity * machine_pair_cnt,
-            "major_version": cluster.major_version,
-            "region": cluster.region,
-            "master_domain": cluster_entry.get("master_domain", ""),
-            "slave_domain": cluster_entry.get("slave_domain", ""),
-            "bk_biz_id": cluster.bk_biz_id,
-            "bk_biz_name": AppCache.objects.get(bk_biz_id=cluster.bk_biz_id).bk_biz_name,
-            "bk_cloud_id": cluster.bk_cloud_id,
-            "bk_cloud_name": cloud_info[str(cluster.bk_cloud_id)]["bk_cloud_name"],
             "spider_master": spider[TenDBClusterSpiderRole.SPIDER_MASTER],
             "spider_slave": spider[TenDBClusterSpiderRole.SPIDER_SLAVE],
             "spider_mnt": spider[TenDBClusterSpiderRole.SPIDER_MNT],
@@ -131,12 +100,13 @@ class ListRetrieveResource(DBHAListRetrieveResource):
             "machine_pair_cnt": machine_pair_cnt,
             "remote_db": remote_db,
             "remote_dr": remote_dr,
-            "db_module_id": cluster.db_module_id,
-            "db_module_name": db_module_names.get(cluster.db_module_id, ""),
-            "creator": cluster.creator,
-            "create_at": datetime2str(cluster.create_at),
             "temporary_info": cls._fill_temporary_cluster_info(cluster),
         }
+        cluster_info = super()._to_cluster_representation(
+            cluster, db_module_names_map, cluster_entry_map, cluster_operate_records_map, **kwargs
+        )
+        cluster_info.update(cluster_extra_info)
+        return cluster_info
 
     @staticmethod
     def _fill_temporary_cluster_info(cluster):
@@ -158,20 +128,20 @@ class ListRetrieveResource(DBHAListRetrieveResource):
         return temporary_info
 
     @classmethod
-    def _to_cluster_representation_with_instances(
-        cls, cluster: Cluster, db_module_names: Dict[int, str], cluster_entry_map: Dict[int, Dict[str, str]]
-    ) -> Dict[str, Any]:
-        """添加实例的相关信息"""
-        cluster_info = super()._to_cluster_representation_with_instances(cluster, db_module_names, cluster_entry_map)
-        # 补充中控节点信息，异常则返回空
-        try:
-            cluster_info["spider_ctl_primary"] = cluster.tendbcluster_ctl_primary_address()
-        except DBMetaException:
-            cluster_info["spider_ctl_primary"] = ""
-        return cluster_info
+    def _retrieve_cluster(cls, cluster_details: dict, cluster_id: int) -> dict:
+        """补充集群详情信息，子类可继承实现"""
+        cluster = Cluster.objects.get(id=cluster_id)
+        cluster_details["cluster_entry_details"] = cls.query_cluster_entry_details(cluster_details)
 
-    @staticmethod
-    def _filter_instance_qs(query_conditions, query_params):
+        try:
+            cluster_details["spider_ctl_primary"] = cluster.tendbcluster_ctl_primary_address()
+        except DBMetaException:
+            cluster_details["spider_ctl_primary"] = ""
+
+        return cluster_details
+
+    @classmethod
+    def _filter_instance_qs(cls, query_filters, query_params):
         fields = [
             "id",
             "cluster__id",
@@ -194,16 +164,15 @@ class ListRetrieveResource(DBHAListRetrieveResource):
             StorageInstance.objects.select_related("machine")
             .prefetch_related("cluster")
             .annotate(role=F("instance_role"), inst_port=F("port"))
-            .filter(query_conditions)
+            .filter(query_filters)
         )
         # 获取spider实例的查询集
         spider_insts = (
             ProxyInstance.objects.select_related("machine")
             .prefetch_related("cluster")
             .annotate(role=F("tendbclusterspiderext__spider_role"), inst_port=F("port"))
-            .filter(query_conditions)
+            .filter(query_filters)
         )
-
         # 涉及spider_controller的查询
         if query_params.get("spider_ctl"):
             # 额外获取spider master混部的中控节点的查询集 这里有一点: 通过value和annotate来将admin_port覆写port，达到过滤效果
@@ -214,7 +183,7 @@ class ListRetrieveResource(DBHAListRetrieveResource):
                 .values("admin_port")
                 .annotate(port=F("admin_port"))
                 .values(role=Value("spider_ctl"), inst_port=F("admin_port"))
-                .filter(query_conditions & filter_spider_master)
+                .filter(query_filters & filter_spider_master)
             )
             # ⚠️这里的union不要用链式union(eg: s1.union(s2).union(s3))，否则django解析sql语句会生成额外的扩号导致mysql语法错误。
             instances = remote_insts.union(spider_insts, controller_insts).values(*fields).order_by("-create_at")
@@ -224,14 +193,14 @@ class ListRetrieveResource(DBHAListRetrieveResource):
         return instances
 
     @classmethod
-    def list_instances(cls, bk_biz_id: int, query_params: Dict, limit: int, offset: int) -> query.ResourceList:
-        return super().list_instances(bk_biz_id, query_params, limit, offset)
-
-    @classmethod
-    def retrieve_instance(cls, bk_biz_id: int, cluster_id: int, ip: str, port: int) -> dict:
-        instances = cls.list_instances(bk_biz_id, {"ip": ip, "port": port, "spider_ctl": True}, limit=1, offset=0)
-        instance = instances.data[0]
-        return cls._fill_instance_info(instance, cluster_id)
+    def _to_instance_representation(cls, instance: dict, cluster_entry_map: dict, **kwargs) -> Dict[str, Any]:
+        """
+        将实例对象转为可序列化的 dict 结构
+        @param instance: 实例信息
+        @param cluster_entry_map: key 是 cluster.id, value 是当前集群对应的 entry 映射
+        """
+        instance["port"] = instance["inst_port"]
+        return super()._to_instance_representation(instance, cluster_entry_map, **kwargs)
 
     @classmethod
     def get_topo_graph(cls, bk_biz_id: int, cluster_id: int) -> dict:
