@@ -54,6 +54,7 @@
   <SystemVersionLog v-model:is-show="isShowSystemVersionLog" />
 </template>
 <script setup lang="ts">
+  import urlJoin from 'url-join';
   import {
     onMounted,
     watch,
@@ -86,7 +87,7 @@
     'zh-cn': '数据库管理 | 腾讯蓝鲸智云',
   };
 
-  const noticeApi = `${window.PROJECT_ENV.VITE_AJAX_URL_PREFIX}/notice/announcements/`;
+  const noticeApi = urlJoin(window.PROJECT_ENV.VITE_AJAX_URL_PREFIX, '/notice/announcements/');
   const isShowHelp = ref(false);
   const isShowLogout = ref(false);
   const isShowSystemVersionLog = ref(false);
