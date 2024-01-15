@@ -29,7 +29,7 @@ class TBinlogDumperFullSyncDataService(ExecuteDBActuatorScriptService):
         backup_role = kwargs["backup_role"]
 
         # 拼装备份你库表正则表达式, 目前只考虑replicate_do_table 和 replicate_wild_do_table的 过滤同步场景
-        backup_regex = "|"
+        backup_regex = ""
         tmp = "|".join(kwargs["repl_tables"])
         backup_regex += tmp.replace("%", "*")
 

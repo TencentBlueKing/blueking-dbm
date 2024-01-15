@@ -208,11 +208,7 @@ class TBinlogDumperActPayload(object):
         """
         cluster = Cluster.objects.get(id=self.ticket_data["cluster_id"])
         master = cluster.storageinstance_set.get(instance_role=InstanceRole.BACKEND_MASTER)
-        index_file = ""
-        for result in kwargs["trans_data"]["backup_info"]["report_result"]:
-            if result["file_type"] == "index":
-                index_file = result["file_name"]
-                break
+        index_file = kwargs["trans_data"]["backup_info"]["backup_index"]
 
         return {
             "db_type": DBActuatorTypeEnum.MySQL.value,
