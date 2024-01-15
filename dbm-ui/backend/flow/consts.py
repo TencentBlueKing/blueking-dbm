@@ -433,6 +433,7 @@ class MongoDBActuatorActionEnum(str, StructuredEnum):
     mongoDInstall = EnumField("mongod_install", _("mongod_install"))
     mongoSInstall = EnumField("mongos_install", _("mongos_install"))
     InitReplicaset = EnumField("init_replicaset", _("init_replicaset"))
+    AddShardToCluster = EnumField("add_shard_to_cluster", _("add_shard_to_cluster"))
     AddUser = EnumField("add_user", _("add_user"))
     DeleteUser = EnumField("delete_user", _("delete_user"))
     MongoExecuteScript = EnumField("mongo_execute_script", _("mongo_execute_script"))
@@ -1047,3 +1048,10 @@ class TBinlogDumperProtocolType(str, StructuredEnum):
     KAFKA = EnumField("KAFKA", _("KAFKA"))
     L5_AGENT = EnumField("L5_AGENT", _("L5_AGENT"))
     TCP_IP = EnumField("TCP/IP", _("TCP/IP"))
+
+
+class MongoDBClusterDefaultPort(int, StructuredEnum):
+    """mongodb cluster默认端口"""
+
+    CONFIG_PORT = EnumField(28021, _("config_port"))
+    SHARD_START_PORT = EnumField(27001, _("shard_start_port"))
