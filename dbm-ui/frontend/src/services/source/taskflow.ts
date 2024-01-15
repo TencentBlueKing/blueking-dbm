@@ -11,7 +11,7 @@
  * the specific language governing permissions and limitations under the License.
 */
 
-import type { TicketTypesStrings } from '@common/const';
+import TaskFlowModel from '@services/model/taskflow/taskflow';
 
 import http from '../http';
 import type { ListBase } from '../types';
@@ -54,26 +54,14 @@ interface GetTaskflowParams {
 }
 
 /**
- * 任务列表项
- */
-interface TaskflowItem {
-  root_id: string,
-  ticket_type_display: string,
-  ticket_type: TicketTypesStrings,
-  status: string,
-  uid: string,
-  created_by: string,
-  created_at: string,
-  cost_time: number,
-  bk_biz_id: number,
-  bk_host_ids?: number[],
-}
-
-/**
  * 查询任务列表
  */
 export function getTaskflow(params: GetTaskflowParams) {
-  return http.get<ListBase<TaskflowItem[]>>(`${path}/`, params);
+  return http.get<ListBase<TaskFlowModel[]>>(`${path}/`, params)
+    .then(res => ({
+      ...res,
+      results: res.results.map(item => new TaskFlowModel(item)),
+    }));
 }
 
 /**
@@ -156,7 +144,7 @@ interface FlowsData {
   },
   gateways: { [key: string]: FlowItem },
   activities: { [key: string]: FlowItem },
-  flow_info: TaskflowItem,
+  flow_info: TaskFlowModel,
 }
 
 /**

@@ -43,6 +43,7 @@ import getNotificationSettingRoutes from '@views/notification-setting/routes';
 import getPasswordManageRoutes from '@views/password-manage/routes';
 import getPlatformDbConfigureRoutes from '@views/platform-db-configure/routes';
 import getPulsarRoutes from '@views/pulsar-manage/routes';
+import getQuickSearchRoutes from '@views/quick-search/routes';
 import getRedisRoutes from '@views/redis/routes';
 import getResourceManageRoutes from '@views/resource-manage/routes';
 import getRiakManage from '@views/riak-manage/routes';
@@ -102,6 +103,7 @@ export default () => {
           ...getPlatformDbConfigureRoutes(),
           ...getPasswordManageRoutes(),
           ...getServiceApplyRoutes(),
+          ...getQuickSearchRoutes(),
         ],
       },
       {

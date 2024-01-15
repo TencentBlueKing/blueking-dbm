@@ -1,8 +1,11 @@
 <template>
   <span v-if="keywordMatch">
     <span>{{ keywordMatch[1] || '' }}</span>
-    <span style="color: #3A84FF">{{ keywordMatch[2] }}</span>
+    <span :style="{ color: highLightColor }">{{ keywordMatch[2] }}</span>
     <span>{{ keywordMatch[3] || '' }}</span>
+  </span>
+  <span v-else>
+    {{ props.text }}
   </span>
 </template>
 <script setup lang="ts">
@@ -12,10 +15,13 @@
 
   interface Props {
     keyWord: string,
-    text: string
+    text: string,
+    highLightColor?: string
   }
 
-  const props = defineProps<Props>();
+  const props = withDefaults(defineProps<Props>(), {
+    highLightColor: '#3A84FF',
+  });
 
   const keywordMatch = computed(() => props.text.match(new RegExp(`^(.*?)(${encodeRegexp(props.keyWord)})(.*)$`)));
 </script>

@@ -11,21 +11,33 @@
  * the specific language governing permissions and limitations under the License.
 */
 
-// import type { DatePickerValueType } from 'bkui-vue/lib/date-picker/interface';
-
-import TaskFlowModel from '@services/model/taskflow/taskflow';
-
-import type { SearchSelectValues } from '@/types/bkui-vue';
-
+import {
+  utils,
+  type WorkBook,
+  writeFile,
+} from 'xlsx';
 
 /**
- * 任务历史列表基础 state
+ * 导出 excel 文件
+ * @param array      数据源数组
+ * @param colsWidths 列宽设置
+ * @param sheetName  sheet名
+ * @param fileName   excel名
  */
-export interface ListState {
-  data: TaskFlowModel[],
-  ticketTypes: Array<{id: string, name: string}>,
-  filter: {
-    daterange: [string, string],
-    searchValues: SearchSelectValues,
-  },
+export function exportExcelFile(
+  array: any[],
+  colsWidths: { width: number }[],
+  sheetName = 'sheet',
+  fileName = 'example.xlsx',
+) {
+  const jsonWorkSheet = utils.json_to_sheet(array);
+  jsonWorkSheet['!cols'] = colsWidths;
+
+  const workBook: WorkBook = {
+    SheetNames: [sheetName],
+    Sheets: {
+      [sheetName]: jsonWorkSheet,
+    },
+  };
+  return writeFile(workBook, fileName);
 }

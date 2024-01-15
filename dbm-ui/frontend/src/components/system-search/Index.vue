@@ -11,7 +11,8 @@
       clearable
       :placeholder="t('全站搜索 Ctrl + K')"
       type="search"
-      @click="handleClick" />
+      @click="handleClick"
+      @enter="handleEnter" />
   </div>
   <div
     ref="popRef"
@@ -19,6 +20,7 @@
     :style="popContentStyle">
     <SearchResult
       v-if="isPopMenuShow"
+      ref="searchResultRef"
       v-model="serach">
       <SearchHistory
         v-if="!serach"
@@ -44,10 +46,12 @@
   import SearchHistory from './components/SearchHistory.vue';
 
   const { t } = useI18n();
+  const router = useRouter();
+  const serach = useDebouncedRef('');
 
   const rootRef = ref<HTMLElement>();
   const popRef = ref();
-  const serach = useDebouncedRef('');
+  const searchResultRef = ref();
   const isFocused = ref(false);
   const popContentStyle = ref({});
   const isPopMenuShow = ref(false);
@@ -96,6 +100,37 @@
       return;
     }
     handleClick();
+  };
+
+  const handleEnter = () => {
+    // 页面跳转参数处理
+    const options = searchResultRef.value.getFilterOptions();
+    const query = Object.keys(options).reduce((prevQuery, optionKey) => {
+      const optionItem = options[optionKey];
+
+      if (optionItem !== '' && !(Array.isArray(optionItem) && optionItem.length === 0)) {
+        if (Array.isArray(optionItem)) {
+          return {
+            ...prevQuery,
+            [optionKey]: optionItem.join(','),
+          };
+        }
+
+        return {
+          ...prevQuery,
+          [optionKey]: optionItem,
+        };
+      }
+
+      return prevQuery;
+    }, {});
+
+
+    const url = router.resolve({
+      name: 'QuickSearch',
+      query,
+    });
+    window.open(url.href, '_blank');
   };
 
   onMounted(() => {

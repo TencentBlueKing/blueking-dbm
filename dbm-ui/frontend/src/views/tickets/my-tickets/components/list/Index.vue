@@ -85,8 +85,8 @@
                 </strong>
                 <BkTag
                   class="side-item-tag"
-                  :theme="item.getTagTheme()">
-                  {{ t(item.getStatusText()) }}
+                  :theme="item.tagTheme">
+                  {{ t(item.statusText) }}
                 </BkTag>
               </div>
               <div
@@ -106,7 +106,7 @@
               </div>
               <div class="side-item-info">
                 <span>{{ t('申请人') }}： {{ item.creator }}</span>
-                <span>{{ item.getFormatCreateAt() }}</span>
+                <span>{{ item.formatCreateAt }}</span>
               </div>
             </div>
           </template>

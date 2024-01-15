@@ -72,7 +72,6 @@ export const buildURLParams = (params: any) => {
   }
 
   const parts: Array<string> = [];
-
   forEach(params, (val:any, key: any) => {
     if (val === null || typeof val === 'undefined') {
       return;

@@ -19,7 +19,7 @@
       <template v-if="state.ticketData">
         <DbCard
           mode="collapse"
-          :title="$t('基本信息')">
+          :title="t('基本信息')">
           <Baseinfo
             :columns="baseColumns"
             :data="state.ticketData"
@@ -32,7 +32,7 @@
             v-model:collapse="demandCollapse"
             :class="{'tickets-main-is-fullscreen' : isFullscreen}"
             mode="collapse"
-            :title="$t('需求信息')">
+            :title="t('需求信息')">
             <DemandInfo
               :data="state.ticketData"
               :is-loading="state.isLoading" />
@@ -41,7 +41,7 @@
         <DbCard
           class="ticket-flows"
           mode="collapse"
-          :title="$t('实施进度')">
+          :title="t('实施进度')">
           <FlowInfo
             :data="state.ticketData"
             @fetch-data="handleFetchData" />
@@ -135,7 +135,7 @@
       key: 'status',
       render: () => {
         if (state.ticketData) {
-          return <bk-tag theme={state.ticketData.getTagTheme()}>{t(state.ticketData.getStatusText())}</bk-tag>;
+          return <bk-tag theme={state.ticketData.tagTheme}>{t(state.ticketData.statusText)}</bk-tag>;
         }
         return <bk-tag theme={undefined} />;
       },
