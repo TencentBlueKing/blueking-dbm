@@ -150,6 +150,7 @@ const (
 	RedisFullbackupRepoter   = "redis_fullbackup_%s.log"
 	RedisBinlogRepoter       = "redis_binlog_%s.log"
 	RedisClusterNodesRepoter = "redis_cluster_nodes_%s.log"
+	RedisServerLogRepoter    = "redis_server_log_%d_%s.log"
 
 	BackupStatusStart             = "start"
 	BackupStatusRunning           = "running"

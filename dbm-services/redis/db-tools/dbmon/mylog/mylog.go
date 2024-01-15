@@ -22,8 +22,11 @@ import (
 // Logger 全局logger
 var Logger *zap.Logger
 
-// AdapterLog 适配器logger
-var AdapterLog *LogAdapter
+// GlobCronLogger 适配robfig/cron logger
+var GlobCronLogger *cronLogAdapter
+
+// GlobTailLogger 适配github.com/nxadm/tail.logger
+var GlobTailLogger *tailLogAdapter
 
 // getCurrentDirectory 获取当前二进制程序所在执行路径
 func getCurrentDirectory() string {
@@ -96,27 +99,29 @@ func InitRotateLoger() {
 	core := zapcore.NewCore(zapcore.NewJSONEncoder(cfg.EncoderConfig), zapcore.NewMultiWriteSyncer(lj), level)
 	Logger = zap.New(core, zap.AddCaller())
 
-	AdapterLog = &LogAdapter{}
-	AdapterLog.Logger = Logger
+	GlobCronLogger = &cronLogAdapter{}
+	GlobCronLogger.Logger = Logger
+	GlobTailLogger = &tailLogAdapter{}
+	GlobTailLogger.Logger = Logger
 }
 
 // 无实际作用,仅确保实现了 cron.Logger  接口
-var _ cron.Logger = (*LogAdapter)(nil)
+var _ cron.Logger = (*cronLogAdapter)(nil)
 
-// LogAdapter 适配器,目标兼容 go.uber.org/zap.Logger 和 robfig/cron.Logger的接口
-type LogAdapter struct {
+// cronLogAdapter 适配器,目标兼容 go.uber.org/zap.Logger 和 robfig/cron.Logger的接口
+type cronLogAdapter struct {
 	*zap.Logger
 }
 
 // Error error
-func (l *LogAdapter) Error(err error, msg string, keysAndValues ...interface{}) {
+func (l *cronLogAdapter) Error(err error, msg string, keysAndValues ...interface{}) {
 	keysAndValues = formatTimes(keysAndValues)
 	l.Error(err, fmt.Sprintf(formatString(len(keysAndValues)+2), append([]interface{}{msg, "error", err},
 		keysAndValues...)...))
 }
 
 // Info info
-func (l *LogAdapter) Info(msg string, keysAndValues ...interface{}) {
+func (l *cronLogAdapter) Info(msg string, keysAndValues ...interface{}) {
 	keysAndValues = formatTimes(keysAndValues)
 	l.Logger.Info(fmt.Sprintf(formatString(len(keysAndValues)), append([]interface{}{msg}, keysAndValues...)...))
 }
@@ -148,4 +153,54 @@ func formatTimes(keysAndValues []interface{}) []interface{} {
 		formattedArgs = append(formattedArgs, arg)
 	}
 	return formattedArgs
+}
+
+// tailLogAdapter 适配器,目标兼容 go.uber.org/zap.Logger 和 github.com/nxadm/tail.logger 的接口
+type tailLogAdapter struct {
+	*zap.Logger
+}
+
+// Fatal fatal
+func (t *tailLogAdapter) Fatal(v ...interface{}) {
+	t.Logger.Fatal(fmt.Sprint(v...))
+}
+
+// Fatalf fatal
+func (t *tailLogAdapter) Fatalf(format string, v ...interface{}) {
+	t.Logger.Fatal(fmt.Sprintf(format, v...))
+}
+
+// Fatalln fatal
+func (t *tailLogAdapter) Fatalln(v ...interface{}) {
+	t.Logger.Fatal(fmt.Sprint(v...))
+}
+
+// Panic panic
+func (t *tailLogAdapter) Panic(v ...interface{}) {
+	t.Logger.Fatal(fmt.Sprint(v...))
+}
+
+// Panicf panic
+func (t *tailLogAdapter) Panicf(format string, v ...interface{}) {
+	t.Logger.Fatal(fmt.Sprintf(format, v...))
+}
+
+// Panicln panic
+func (t *tailLogAdapter) Panicln(v ...interface{}) {
+	t.Logger.Fatal(fmt.Sprint(v...))
+}
+
+// Print print
+func (t *tailLogAdapter) Print(v ...interface{}) {
+	t.Logger.Info(fmt.Sprint(v...))
+}
+
+// Printf print
+func (t *tailLogAdapter) Printf(format string, v ...interface{}) {
+	t.Logger.Info(fmt.Sprintf(format, v...))
+}
+
+// Println print
+func (t *tailLogAdapter) Println(v ...interface{}) {
+	t.Logger.Info(fmt.Sprint(v...))
 }
