@@ -1,16 +1,16 @@
 {
   "bk_biz_id": 0,
-  "name": "Redis(TendisCache)\u4e3b\u673a\u5355\u6838CPU\u4f7f\u7528\u7387",
+  "name": "Redis(TendisCache)主机单核CPU使用率",
   "db_type": "redis",
   "details": {
     "bk_biz_id": "",
-    "name": "Redis(TendisCache)\u4e3b\u673a\u5355\u6838CPU\u4f7f\u7528\u7387",
+    "name": "Redis(TendisCache)主机单核CPU使用率",
     "source": "dbm",
     "scenario": "os",
     "type": "monitor",
     "items": [
       {
-        "name": "[TendisCache]\u4e3b\u673a\u5355\u6838CPU\u4f7f\u7528\u7387",
+        "name": "[TendisCache]主机单核CPU使用率",
         "no_data_config": {
           "level": 2,
           "continuous": 10,
@@ -270,8 +270,8 @@
     "is_enabled": true
   },
   "is_enabled": true,
-  "monitor_indicator": "[TendisCache]\u4e3b\u673a\u5355\u6838CPU\u4f7f\u7528\u7387",
-  "version": 0,
+  "monitor_indicator": "[TendisCache]主机单核CPU使用率",
+  "version": 16,
   "alert_source": "time_series",
   "custom_conditions": []
 }

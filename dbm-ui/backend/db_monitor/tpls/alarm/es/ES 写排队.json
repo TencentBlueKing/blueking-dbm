@@ -1,10 +1,10 @@
 {
   "bk_biz_id": 0,
-  "name": "ES \u5199\u6392\u961f",
+  "name": "ES 写排队",
   "db_type": "es",
   "details": {
     "bk_biz_id": "",
-    "name": "ES \u5199\u6392\u961f",
+    "name": "ES 写排队",
     "source": "dbm",
     "scenario": "component",
     "type": "monitor",
@@ -101,8 +101,8 @@
       "config_id": 40780,
       "user_groups": [],
       "signal": [
-        "no_data",
-        "abnormal"
+        "abnormal",
+        "no_data"
       ],
       "options": {
         "end_time": "23:59:59",
@@ -249,9 +249,9 @@
     "app": "",
     "path": "",
     "priority": 0,
-    "priority_group_key": "",
+    "priority_group_key": "6d660153fc4e76bb",
     "metric_type": "time_series",
-    "data_source_type": "\u76d1\u63a7\u91c7\u96c6\u6307\u6807",
+    "data_source_type": "监控采集指标",
     "is_enabled": true
   },
   "is_enabled": true,

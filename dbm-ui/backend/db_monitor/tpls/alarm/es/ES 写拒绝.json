@@ -1,16 +1,16 @@
 {
   "bk_biz_id": 0,
-  "name": "ES \u5199\u62d2\u7edd",
+  "name": "ES 写拒绝",
   "db_type": "es",
   "details": {
     "bk_biz_id": "",
-    "name": "ES \u5199\u62d2\u7edd",
+    "name": "ES 写拒绝",
     "source": "dbm",
     "scenario": "component",
     "type": "monitor",
     "items": [
       {
-        "name": "max_without_time(elasticsearch_thread_pool_rejected_count)",
+        "name": "ES 写拒绝",
         "no_data_config": {
           "level": 2,
           "continuous": 10,
@@ -23,35 +23,14 @@
         "origin_sql": "",
         "query_configs": [
           {
-            "data_source_label": "bk_monitor",
+            "data_source_label": "prometheus",
             "data_type_label": "time_series",
             "alias": "a",
-            "metric_id": "bk_monitor.exporter_dbm_elasticsearch_exporter.__default__.elasticsearch_thread_pool_rejected_count",
+            "metric_id": "max by (bk_target_service_instance_id, app, cluster_name, name, appid) (irate(bkmonitor:exporter_dbm_elasticsearch_exporter:elas",
             "functions": [],
-            "result_table_id": "exporter_dbm_elasticsearch_exporter.__default__",
-            "data_label": "exporter_dbm_elasticsearch_exporter",
-            "agg_method": "max_without_time",
+            "promql": "max by (bk_target_service_instance_id, app, cluster_name, name, appid) (irate(bkmonitor:exporter_dbm_elasticsearch_exporter:elasticsearch_thread_pool_rejected_count{type=\"write\"}[2m]))",
             "agg_interval": 60,
-            "agg_dimension": [
-              "bk_target_service_instance_id",
-              "app",
-              "cluster_name",
-              "name",
-              "appid"
-            ],
-            "agg_condition": [
-              {
-                "key": "type",
-                "value": [
-                  "write"
-                ],
-                "method": "eq",
-                "dimension_name": "type"
-              }
-            ],
-            "metric_field": "elasticsearch_thread_pool_rejected_count",
-            "unit": "",
-            "name": "elasticsearch_thread_pool_rejected_count"
+            "name": ""
           }
         ],
         "algorithms": [
@@ -251,11 +230,11 @@
     "priority": 0,
     "priority_group_key": "",
     "metric_type": "time_series",
-    "data_source_type": "\u76d1\u63a7\u91c7\u96c6\u6307\u6807",
+    "data_source_type": "Prometheus",
     "is_enabled": true
   },
   "is_enabled": true,
-  "monitor_indicator": "max_without_time(elasticsearch_thread_pool_rejected_count)",
+  "monitor_indicator": "ES 写拒绝",
   "version": 16,
   "alert_source": "time_series",
   "custom_conditions": []

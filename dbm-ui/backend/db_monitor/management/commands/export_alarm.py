@@ -133,15 +133,6 @@ class Command(BaseCommand):
             strategy_id, strategy_template = self.to_template(db_type, strategy_config)
             logger.info(f"[{db_type}-{strategy_id}]update policy template: {strategy_template['name']}")
 
-            # obj, _ = RuleTemplate.objects.update_or_create(
-            #     defaults={
-            #         "name": strategy_template["name"],
-            #         "details": strategy_template,
-            #     },
-            #     monitor_strategy_id=strategy_id,
-            #     db_type=db_type,
-            # )
-
             template_name = strategy_template["name"].replace("/", "-")
             strategy_template["labels"] = sorted(set(strategy_template["labels"]))
             strategy_template["source"] = "dbm"
@@ -203,7 +194,9 @@ class Command(BaseCommand):
 
             self.clear_id(strategy_template["items"])
 
-            with open(os.path.join(TPLS_ALARM_DIR, db_type, f"{template_name}.json"), "w") as template_file:
+            with open(
+                os.path.join(TPLS_ALARM_DIR, db_type, f"{template_name}.json"), "w", encoding="utf-8"
+            ) as template_file:
                 is_enabled = not is_disabled
                 strategy_template["is_enabled"] = is_enabled
                 template_dict = OrderedDict(
@@ -214,10 +207,9 @@ class Command(BaseCommand):
                         "details": strategy_template,
                         "is_enabled": is_enabled,
                         "monitor_indicator": strategy_template["items"][0]["name"],
-                        "version": 0,
+                        "version": 16,
                         "alert_source": data_type_label,
                         "custom_conditions": custom_agg_conditions,
                     }
                 )
-
-                template_file.write(json.dumps(template_dict, indent=2))
+                json.dump(template_dict, template_file, ensure_ascii=False, indent=2)

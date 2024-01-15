@@ -1,16 +1,16 @@
 {
   "bk_biz_id": 0,
-  "name": "Redis(TendisPlus)\u96c6\u7fa4P99\u5ef6\u8fdf",
+  "name": "Redis(TendisPlus)集群P99延迟",
   "db_type": "redis",
   "details": {
     "bk_biz_id": "",
-    "name": "Redis(TendisPlus)\u96c6\u7fa4P99\u5ef6\u8fdf",
+    "name": "Redis(TendisPlus)集群P99延迟",
     "source": "dbm",
     "scenario": "component",
     "type": "monitor",
     "items": [
       {
-        "name": "[TendisPlus]\u96c6\u7fa4P99\u5ef6\u8fdf",
+        "name": "[TendisPlus]集群P99延迟",
         "no_data_config": {
           "level": 2,
           "continuous": 10,
@@ -270,8 +270,8 @@
     "is_enabled": true
   },
   "is_enabled": true,
-  "monitor_indicator": "[TendisPlus]\u96c6\u7fa4P99\u5ef6\u8fdf",
-  "version": 0,
+  "monitor_indicator": "[TendisPlus]集群P99延迟",
+  "version": 16,
   "alert_source": "time_series",
   "custom_conditions": []
 }

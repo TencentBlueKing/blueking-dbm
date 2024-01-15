@@ -1,10 +1,10 @@
 {
   "bk_biz_id": 0,
-  "name": "MySQL Proxy\u7aef\u53e3\u63a2\u6d4b\u5f02\u5e38",
+  "name": "MySQL Proxy端口探测异常",
   "db_type": "mysql",
   "details": {
     "bk_biz_id": "",
-    "name": "MySQL Proxy\u7aef\u53e3\u63a2\u6d4b\u5f02\u5e38",
+    "name": "MySQL Proxy端口探测异常",
     "source": "dbm",
     "scenario": "component",
     "type": "monitor",
@@ -91,11 +91,11 @@
     ],
     "actions": [],
     "notice": {
-      "config_id": 40792,
+      "config_id": 41020,
       "user_groups": [],
       "signal": [
-        "no_data",
-        "abnormal"
+        "abnormal",
+        "no_data"
       ],
       "options": {
         "end_time": "23:59:59",
@@ -242,9 +242,9 @@
     "app": "",
     "path": "",
     "priority": 0,
-    "priority_group_key": "",
+    "priority_group_key": "6754c7327eea4967",
     "metric_type": "time_series",
-    "data_source_type": "\u76d1\u63a7\u91c7\u96c6\u6307\u6807",
+    "data_source_type": "监控采集指标",
     "is_enabled": true
   },
   "is_enabled": true,

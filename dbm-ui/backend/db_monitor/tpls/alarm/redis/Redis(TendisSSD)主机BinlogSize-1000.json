@@ -1,16 +1,16 @@
 {
   "bk_biz_id": 0,
-  "name": "Redis(TendisSSD)\u4e3b\u673aBinlogSize-1000",
+  "name": "Redis(TendisSSD)主机BinlogSize-1000",
   "db_type": "redis",
   "details": {
     "bk_biz_id": "",
-    "name": "Redis(TendisSSD)\u4e3b\u673aBinlogSize/1000",
+    "name": "Redis(TendisSSD)主机BinlogSize/1000",
     "source": "dbm",
     "scenario": "os",
     "type": "monitor",
     "items": [
       {
-        "name": "[TendisSSD]\u4e3b\u673aBinlogSize/1000",
+        "name": "[TendisSSD]主机BinlogSize/1000",
         "no_data_config": {
           "level": 2,
           "continuous": 10,
@@ -270,8 +270,8 @@
     "is_enabled": true
   },
   "is_enabled": true,
-  "monitor_indicator": "[TendisSSD]\u4e3b\u673aBinlogSize/1000",
-  "version": 0,
+  "monitor_indicator": "[TendisSSD]主机BinlogSize/1000",
+  "version": 16,
   "alert_source": "time_series",
   "custom_conditions": []
 }

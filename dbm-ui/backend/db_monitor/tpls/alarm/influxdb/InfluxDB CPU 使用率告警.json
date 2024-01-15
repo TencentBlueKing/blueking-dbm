@@ -1,17 +1,60 @@
 {
   "bk_biz_id": 0,
-  "name": "InfluxDB CPU \u4f7f\u7528\u7387\u544a\u8b66",
+  "name": "InfluxDB CPU 使用率告警",
   "db_type": "influxdb",
   "details": {
-    "app": "",
-    "name": "InfluxDB CPU \u4f7f\u7528\u7387\u544a\u8b66",
-    "path": "",
+    "bk_biz_id": "",
+    "name": "InfluxDB CPU 使用率告警",
+    "source": "dbm",
+    "scenario": "os",
     "type": "monitor",
     "items": [
       {
-        "name": "AVG(CPU\u4f7f\u7528\u7387)",
+        "name": "AVG(CPU使用率)",
+        "no_data_config": {
+          "level": 2,
+          "continuous": 10,
+          "is_enabled": false,
+          "agg_dimension": [
+            "bk_target_ip",
+            "bk_target_cloud_id"
+          ]
+        },
         "target": [],
+        "expression": "a",
         "functions": [],
+        "origin_sql": "",
+        "query_configs": [
+          {
+            "data_source_label": "bk_monitor",
+            "data_type_label": "time_series",
+            "alias": "a",
+            "metric_id": "bk_monitor.dbm_system.cpu_summary.usage",
+            "functions": [],
+            "result_table_id": "dbm_system.cpu_summary",
+            "agg_method": "AVG",
+            "agg_interval": 60,
+            "agg_dimension": [
+              "bk_target_ip",
+              "bk_target_cloud_id",
+              "appid"
+            ],
+            "agg_condition": [
+              {
+                "key": "db_type",
+                "value": [
+                  "influxdb"
+                ],
+                "method": "eq",
+                "condition": "and",
+                "dimension_name": "db_type"
+              }
+            ],
+            "metric_field": "usage",
+            "unit": "percent",
+            "name": "CPU使用率"
+          }
+        ],
         "algorithms": [
           {
             "type": "Threshold",
@@ -40,78 +83,59 @@
             "unit_prefix": "%"
           }
         ],
-        "expression": "a",
-        "origin_sql": "",
-        "query_configs": [
-          {
-            "name": "CPU\u4f7f\u7528\u7387",
-            "unit": "percent",
-            "alias": "a",
-            "functions": [],
-            "metric_id": "bk_monitor.dbm_system.cpu_summary.usage",
-            "agg_method": "AVG",
-            "agg_interval": 60,
-            "metric_field": "usage",
-            "agg_condition": [
-              {
-                "key": "db_type",
-                "value": [
-                  "influxdb"
-                ],
-                "method": "eq",
-                "condition": "and",
-                "dimension_name": "db_type"
-              }
-            ],
-            "agg_dimension": [
-              "bk_target_ip",
-              "bk_target_cloud_id",
-              "appid"
-            ],
-            "data_type_label": "time_series",
-            "result_table_id": "dbm_system.cpu_summary",
-            "data_source_label": "bk_monitor"
-          }
-        ],
-        "no_data_config": {
-          "level": 2,
-          "continuous": 10,
-          "is_enabled": false,
-          "agg_dimension": [
-            "bk_target_ip",
-            "bk_target_cloud_id"
-          ]
-        }
+        "metric_type": "time_series"
       }
     ],
-    "labels": [
-      "DBM",
-      "DBM_INFLUXDB",
-      "InfluxDB"
-    ],
-    "notice": {
-      "config": {
-        "template": [
-          {
-            "signal": "abnormal",
-            "title_tmpl": "{{business.bk_biz_name}} - {{alarm.name}}{{alarm.display_type}}",
-            "message_tmpl": "{{content.level}}\n{{content.begin_time}}\n{{content.time}}\n{{content.duration}}\n{{content.target_type}}\n{{content.data_source}}\n{{content.content}}\n{{content.current_value}}\n{{content.biz}}\n{{content.target}}\n{{content.dimension}}\n{{content.detail}}\n{{content.assign_detail}}\n{{content.related_info}}"
+    "detects": [
+      {
+        "level": 3,
+        "expression": "",
+        "trigger_config": {
+          "count": 1,
+          "uptime": {
+            "calendars": [],
+            "time_ranges": [
+              {
+                "end": "23:59",
+                "start": "00:00"
+              }
+            ]
           },
-          {
-            "signal": "recovered",
-            "title_tmpl": "{{business.bk_biz_name}} - {{alarm.name}}{{alarm.display_type}}",
-            "message_tmpl": "{{content.level}}\n{{content.begin_time}}\n{{content.time}}\n{{content.duration}}\n{{content.target_type}}\n{{content.data_source}}\n{{content.content}}\n{{content.current_value}}\n{{content.biz}}\n{{content.target}}\n{{content.dimension}}\n{{content.detail}}\n{{content.assign_detail}}\n{{content.related_info}}"
-          },
-          {
-            "signal": "closed",
-            "title_tmpl": "{{business.bk_biz_name}} - {{alarm.name}}{{alarm.display_type}}",
-            "message_tmpl": "{{content.level}}\n{{content.begin_time}}\n{{content.time}}\n{{content.duration}}\n{{content.target_type}}\n{{content.data_source}}\n{{content.content}}\n{{content.current_value}}\n{{content.biz}}\n{{content.target}}\n{{content.dimension}}\n{{content.detail}}\n{{content.assign_detail}}\n{{content.related_info}}"
-          }
-        ],
-        "need_poll": true,
-        "notify_interval": 7200,
-        "interval_notify_mode": "standard"
+          "check_window": 5
+        },
+        "recovery_config": {
+          "check_window": 5,
+          "status_setter": "recovery"
+        },
+        "connector": "and"
       },
+      {
+        "level": 2,
+        "expression": "",
+        "trigger_config": {
+          "count": 1,
+          "uptime": {
+            "calendars": [],
+            "time_ranges": [
+              {
+                "end": "23:59",
+                "start": "00:00"
+              }
+            ]
+          },
+          "check_window": 5
+        },
+        "recovery_config": {
+          "check_window": 5,
+          "status_setter": "recovery"
+        },
+        "connector": "and"
+      }
+    ],
+    "actions": [],
+    "notice": {
+      "config_id": 40808,
+      "user_groups": [],
       "signal": [
         "abnormal",
         "no_data"
@@ -131,46 +155,46 @@
           "count": 1,
           "condition": [
             {
+              "dimension": "strategy_id",
               "value": [
                 "self"
-              ],
-              "dimension": "strategy_id"
+              ]
             },
             {
+              "dimension": "dimensions",
               "value": [
                 "self"
-              ],
-              "dimension": "dimensions"
+              ]
             },
             {
+              "dimension": "alert_level",
               "value": [
                 "self"
-              ],
-              "dimension": "alert_level"
+              ]
             },
             {
+              "dimension": "signal",
               "value": [
                 "self"
-              ],
-              "dimension": "signal"
+              ]
             },
             {
+              "dimension": "bk_biz_id",
               "value": [
                 "self"
-              ],
-              "dimension": "bk_biz_id"
+              ]
             },
             {
+              "dimension": "notice_receiver",
               "value": [
                 "self"
-              ],
-              "dimension": "notice_receiver"
+              ]
             },
             {
+              "dimension": "notice_way",
               "value": [
                 "self"
-              ],
-              "dimension": "notice_way"
+              ]
             }
           ],
           "timedelta": 60,
@@ -178,43 +202,44 @@
           "converge_func": "collect",
           "need_biz_converge": true,
           "sub_converge_config": {
+            "timedelta": 60,
             "count": 2,
             "condition": [
               {
+                "dimension": "bk_biz_id",
                 "value": [
                   "self"
-                ],
-                "dimension": "bk_biz_id"
+                ]
               },
               {
+                "dimension": "notice_receiver",
                 "value": [
                   "self"
-                ],
-                "dimension": "notice_receiver"
+                ]
               },
               {
+                "dimension": "notice_way",
                 "value": [
                   "self"
-                ],
-                "dimension": "notice_way"
+                ]
               },
               {
+                "dimension": "alert_level",
                 "value": [
                   "self"
-                ],
-                "dimension": "alert_level"
+                ]
               },
               {
+                "dimension": "signal",
                 "value": [
                   "self"
-                ],
-                "dimension": "signal"
+                ]
               }
             ],
-            "timedelta": 60,
             "converge_func": "collect_alarm"
           }
         },
+        "chart_image_enabled": true,
         "exclude_notice_ways": {
           "ack": [],
           "closed": [],
@@ -228,66 +253,46 @@
           "is_enabled": false
         }
       },
-      "config_id": 9006,
       "relate_type": "NOTICE",
-      "user_groups": []
-    },
-    "source": "dbm",
-    "actions": [],
-    "detects": [
-      {
-        "level": 3,
-        "connector": "and",
-        "expression": "",
-        "trigger_config": {
-          "count": 1,
-          "uptime": {
-            "calendars": [],
-            "time_ranges": [
-              {
-                "end": "23:59",
-                "start": "00:00"
-              }
-            ]
+      "config": {
+        "need_poll": true,
+        "notify_interval": 7200,
+        "interval_notify_mode": "standard",
+        "template": [
+          {
+            "signal": "abnormal",
+            "message_tmpl": "{{content.level}}\n{{content.begin_time}}\n{{content.time}}\n{{content.duration}}\n{{content.target_type}}\n{{content.data_source}}\n{{content.content}}\n{{content.current_value}}\n{{content.biz}}\n{{content.target}}\n{{content.dimension}}\n{{content.detail}}\n{{content.assign_detail}}\n{{content.related_info}}",
+            "title_tmpl": "{{business.bk_biz_name}} - {{alarm.name}}{{alarm.display_type}}"
           },
-          "check_window": 5
-        },
-        "recovery_config": {
-          "check_window": 5,
-          "status_setter": "recovery"
-        }
-      },
-      {
-        "level": 2,
-        "connector": "and",
-        "expression": "",
-        "trigger_config": {
-          "count": 1,
-          "uptime": {
-            "calendars": [],
-            "time_ranges": [
-              {
-                "end": "23:59",
-                "start": "00:00"
-              }
-            ]
+          {
+            "signal": "recovered",
+            "message_tmpl": "{{content.level}}\n{{content.begin_time}}\n{{content.time}}\n{{content.duration}}\n{{content.target_type}}\n{{content.data_source}}\n{{content.content}}\n{{content.current_value}}\n{{content.biz}}\n{{content.target}}\n{{content.dimension}}\n{{content.detail}}\n{{content.assign_detail}}\n{{content.related_info}}",
+            "title_tmpl": "{{business.bk_biz_name}} - {{alarm.name}}{{alarm.display_type}}"
           },
-          "check_window": 5
-        },
-        "recovery_config": {
-          "check_window": 5,
-          "status_setter": "recovery"
-        }
+          {
+            "signal": "closed",
+            "message_tmpl": "{{content.level}}\n{{content.begin_time}}\n{{content.time}}\n{{content.duration}}\n{{content.target_type}}\n{{content.data_source}}\n{{content.content}}\n{{content.current_value}}\n{{content.biz}}\n{{content.target}}\n{{content.dimension}}\n{{content.detail}}\n{{content.assign_detail}}\n{{content.related_info}}",
+            "title_tmpl": "{{business.bk_biz_name}} - {{alarm.name}}{{alarm.display_type}}"
+          }
+        ]
       }
+    },
+    "labels": [
+      "DBM",
+      "DBM_INFLUXDB",
+      "InfluxDB"
     ],
-    "scenario": "os",
-    "bk_biz_id": "",
-    "data_source_type": "\u76d1\u63a7\u91c7\u96c6\u6307\u6807",
-    "priority": 0
+    "app": "",
+    "path": "",
+    "priority": 0,
+    "priority_group_key": "5ffd1f3e6c2b60a4",
+    "metric_type": "time_series",
+    "data_source_type": "监控采集指标",
+    "is_enabled": true
   },
   "is_enabled": true,
-  "monitor_indicator": "AVG(CPU\u4f7f\u7528\u7387)",
-  "version": 17,
+  "monitor_indicator": "AVG(CPU使用率)",
+  "version": 16,
   "alert_source": "time_series",
   "custom_conditions": []
 }
