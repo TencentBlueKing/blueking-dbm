@@ -189,6 +189,9 @@ func (i *InfoFileDetail) ValidateFiles() error {
 		if cmutil.GetFileSize(filepath.Join(i.backupDir, f)) < 0 {
 			errFiles = append(errFiles, f)
 		}
+		if !cmutil.FileExists(filepath.Join(i.backupDir, f)) {
+			return errors.Errorf("file not exists: %s", filepath.Join(i.backupDir, f))
+		}
 	}
 	if len(errFiles) > 0 {
 		return errors.Errorf("error files: %v", errFiles)
