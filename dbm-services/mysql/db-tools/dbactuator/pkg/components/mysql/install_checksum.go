@@ -214,15 +214,16 @@ func (c *InstallMySQLChecksumComp) AddToCrond() (err error) {
 
 	for _, ins := range c.Params.InstancesInfo {
 		command := exec.Command(
-			mysqlTableChecksum,
-			"reschedule",
-			"--staff", c.Params.ExecUser,
-			"--config",
-			path.Join(
-				cst.ChecksumInstallPath,
-				fmt.Sprintf("checksum_%d.yaml", ins.Port),
-			),
-		)
+			"su", []string{
+				"-", "mysql", "-c",
+				fmt.Sprintf("%s reschedule --staff %s --config %s",
+					mysqlTableChecksum,
+					c.Params.ExecUser,
+					path.Join(
+						cst.ChecksumInstallPath,
+						fmt.Sprintf("checksum_%d.yaml", ins.Port),
+					)),
+			}...)
 		var stdout, stderr bytes.Buffer
 		command.Stdout = &stdout
 		command.Stderr = &stderr

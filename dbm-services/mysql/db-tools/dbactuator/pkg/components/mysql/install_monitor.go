@@ -350,7 +350,21 @@ func (c *InstallMySQLMonitorComp) GenerateItemsConfig() (err error) {
 
 		_, err = f.Write(append(content, []byte("\n")...))
 		if err != nil {
-			logger.Error("write items-config file faield: %s", err.Error())
+			logger.Error("write items-config file failed: %s", err.Error())
+			return err
+		}
+
+		_, err = osutil.ExecShellCommand(
+			false,
+			fmt.Sprintf(
+				`chown mysql %s`,
+				path.Join(
+					cst.MySQLMonitorInstallPath, fmt.Sprintf("items-config_%d.yaml", instance.Port),
+				),
+			),
+		)
+		if err != nil {
+			logger.Error("chown items config for %d failed: %s", instance.Port, err.Error())
 			return err
 		}
 	}
@@ -406,7 +420,8 @@ func (c *InstallMySQLMonitorComp) createProxyExporterCnf(exporterConfName string
 		return err
 	}
 
-	if _, err = osutil.ExecShellCommand(false, fmt.Sprintf("chown -R mysql %s", exporterConfName)); err != nil {
+	if _, err = osutil.ExecShellCommand(false,
+		fmt.Sprintf("chown -R mysql %s", exporterConfName)); err != nil {
 		logger.Error("chown -R mysql %s %s", exporterConfName, err.Error())
 		return err
 	}
@@ -450,13 +465,17 @@ func (c *InstallMySQLMonitorComp) AddToCrond() (err error) {
 
 	for _, ins := range c.Params.InstancesInfo {
 		command := exec.Command(
-			mysqlMonitor,
-			"reschedule",
-			"--staff", c.Params.ExecUser,
-			"--config", path.Join(
-				cst.MySQLMonitorInstallPath,
-				fmt.Sprintf("monitor-config_%d.yaml", ins.Port),
-			),
+			"su", []string{
+				"-", "mysql", "-c",
+				fmt.Sprintf("%s reschedule --staff %s --config %s",
+					mysqlMonitor,
+					c.Params.ExecUser,
+					path.Join(
+						cst.MySQLMonitorInstallPath,
+						fmt.Sprintf("monitor-config_%d.yaml", ins.Port),
+					),
+				),
+			}...,
 		)
 		var stdout, stderr bytes.Buffer
 		command.Stdout = &stdout

@@ -28,6 +28,14 @@ var name = "ibd-statistic"
 
 var ibdExt string
 var partitionPattern *regexp.Regexp
+var systemDBs = []string{
+	"mysql",
+	"sys",
+	"information_schema",
+	"infodba_schema",
+	"performance_schema",
+	"test",
+}
 
 func init() {
 	ibdExt = ".ibd"
