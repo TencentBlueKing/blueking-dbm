@@ -56,6 +56,8 @@ declare interface Window {
 }
 
 declare module 'js-cookie'
+declare module '@blueking/app-select'
+declare module '@blueking/notice-component'
 
 interface URLSearchParams {
   keys(): string[];

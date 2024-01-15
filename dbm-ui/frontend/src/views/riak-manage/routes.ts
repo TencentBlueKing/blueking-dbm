@@ -15,26 +15,13 @@ import type { RouteRecordRaw } from 'vue-router';
 
 import type { BigdataFunctions } from '@services/model/function-controller/functionController';
 
-import { MainViewRouteNames } from '@views/main-views/common/const';
-
 import { t } from '@locales/index';
 
 const routes: RouteRecordRaw[] = [
-  // {
-  //   name: 'RiakApply',
-  //   path: 'riak',
-  //   meta: {
-  //     routeParentName: MainViewRouteNames.SelfService,
-  //     navName: t('申请Riak集群部署'),
-  //     activeMenu: 'SelfServiceApply',
-  //   },
-  //   component: () => import('@views/riak-manage/apply/Index.vue'),
-  // },
   {
     name: 'RiakManage',
     path: 'riak-manage',
     meta: {
-      routeParentName: MainViewRouteNames.Database,
       navName: t('Riak_集群管理'),
       isMenu: true,
     },
@@ -47,9 +34,7 @@ const routes: RouteRecordRaw[] = [
         name: 'RiakList',
         path: 'list',
         meta: {
-          routeParentName: MainViewRouteNames.Database,
           navName: t('Riak_集群管理'),
-          activeMenu: 'RiakManage',
         },
         component: () => import('@views/riak-manage/list/Index.vue'),
       },

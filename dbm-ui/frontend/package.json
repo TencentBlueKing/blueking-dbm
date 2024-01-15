@@ -20,6 +20,7 @@
     "@blueking/bkflow.js": "0.1.10",
     "@blueking/date-picker": "^0.0.72",
     "@blueking/ip-selector": "0.0.1-beta.126",
+    "@blueking/notice-component": "^2.0.0",
     "@icon-cool/bk-icon-bk-biz-components": "0.0.4",
     "@vueuse/core": "^10.5.0",
     "axios": "^1.6.0",
