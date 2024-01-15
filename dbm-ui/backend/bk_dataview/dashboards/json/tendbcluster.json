@@ -634,7 +634,7 @@
               "method": "AVG",
               "metric_field": "usage",
               "refId": "a",
-              "result_table_id": "system.cpu_summary",
+              "result_table_id": "dbm_system.cpu_summary",
               "result_table_label": "os",
               "time_field": "",
               "where": [
@@ -680,7 +680,7 @@
               "method": "MAX",
               "metric_field": "load1",
               "refId": "a",
-              "result_table_id": "system.load",
+              "result_table_id": "dbm_system.load",
               "result_table_label": "os",
               "time_field": "",
               "where": [
@@ -4070,7 +4070,7 @@
                   "method": "max_without_time",
                   "metric_field": "in_use",
                   "refId": "a",
-                  "result_table_id": "system.disk",
+                  "result_table_id": "dbm_system.disk",
                   "result_table_label": "os",
                   "time_field": "",
                   "where": [
@@ -4126,7 +4126,7 @@
                   "method": "AVG",
                   "metric_field": "total",
                   "refId": "a",
-                  "result_table_id": "system.disk",
+                  "result_table_id": "dbm_system.disk",
                   "result_table_label": "os",
                   "time_field": "",
                   "where": [
