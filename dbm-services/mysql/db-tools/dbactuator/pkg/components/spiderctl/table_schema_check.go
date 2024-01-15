@@ -36,7 +36,8 @@ type TableSchemaCheckParam struct {
 	Port         int           `json:"port" validate:"required,lt=65536,gte=3306"`
 	CheckObjects []CheckObject `json:"check_objects"`
 	// 检查所有非系统库表
-	CheckAll bool `json:"check_all"`
+	CheckAll               bool `json:"check_all"`
+	InconsistencyThrowsErr bool `json:"inconsistency_throws_err"`
 }
 
 // CheckObject TODO
@@ -59,7 +60,7 @@ var TsccSchemaChecksum = `CREATE TABLE if not exists infodba_schema.tscc_schema_
 	PRIMARY KEY (db,tbl)
 );`
 
-// Example TODO
+// Example useage
 func (r *TableSchemaCheckComp) Example() interface{} {
 	return &TableSchemaCheckComp{
 		Params: TableSchemaCheckParam{
@@ -120,7 +121,7 @@ func (r *TableSchemaCheckComp) Run() (err error) {
 func (r *TableSchemaCheckComp) checkSpecial() (err error) {
 	for _, checkObject := range r.Params.CheckObjects {
 		if len(checkObject.Tables) <= 0 {
-			return r.checkdb(checkObject.DbName)
+			return r.atomUpdateDbTables(checkObject.DbName)
 		}
 		if err = r.atomUpdateTables(checkObject.DbName, checkObject.Tables); err != nil {
 			logger.Error("check %s tables failed: %v", checkObject.DbName, err)
@@ -137,23 +138,51 @@ func (r *TableSchemaCheckComp) checkAll() (err error) {
 		return err
 	}
 	for _, db := range util.FilterOutStringSlice(dbs, cmutil.GetMysqlSystemDatabases(r.version)) {
-		if err = r.checkdb(db); err != nil {
+		if err = r.atomUpdateDbTables(db); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (r *TableSchemaCheckComp) checkdb(dbName string) (err error) {
-	if cmutil.IsEmpty(dbName) {
-		return nil
-	}
-	tables, err := r.tdbCtlConn.ShowTables(dbName)
+func (r *TableSchemaCheckComp) atomUpdateDbTables(dbName string) (err error) {
+	xconn, err := r.tdbCtlConn.GetSqlxDb().Connx(context.Background())
 	if err != nil {
-		logger.Error("show tables error: %s", err.Error())
 		return err
 	}
-	return r.atomUpdateTables(dbName, tables)
+	defer xconn.Close()
+	xconn.ExecContext(context.Background(), "set tc_admin = 1;")
+	var result native.SchemaCheckResults
+	if err = xconn.SelectContext(context.Background(), &result, fmt.Sprintf("TDBCTL CHECK DATABASE `%s`;",
+		dbName)); err != nil {
+		logger.Error("check table schema: %s", err.Error())
+		return err
+	}
+	inconsistentItems := result.CheckResult()
+	if len(inconsistentItems) <= 0 {
+		logger.Info("完成校验%s库,暂未发现差异表", dbName)
+		return nil
+	}
+	inconsistentMap := make(map[string]native.SchemaCheckResults)
+	for _, item := range inconsistentItems {
+		inconsistentMap[item.Table] = append(inconsistentMap[item.Table], item)
+	}
+	for tbName, results := range inconsistentMap {
+		if err = r.atomUpdateCheckResult(dbName, tbName, results); err == nil {
+			logger.Info("update %s.%s checkresult ok", dbName, tbName)
+		}
+	}
+	if r.Params.InconsistencyThrowsErr {
+		for tbName, results := range inconsistentMap {
+			logger.Warn("the table %s there is an inconsistency in the table schema", tbName)
+			logger.Warn("details of the difference:\n")
+			for _, diffItem := range results {
+				logger.Warn("diff item %v\n", diffItem)
+			}
+		}
+		return fmt.Errorf("校验完成,存在表结构不一致的情况")
+	}
+	return nil
 }
 
 func (r *TableSchemaCheckComp) atomUpdateTables(dbName string, tables []string) (err error) {
