@@ -1,0 +1,26 @@
+parameters:
+- name: receivers
+  type: array
+  default: [ "${{ ci.actor }}" ]
+ 
+gates:
+- name: open-source-gate
+  rule:
+    - "CodeccCheckAtomDebug.all_risk <= 0"
+    - "CodeccCheckAtomDebug.high_med_new_issue <= 0"
+    - "CodeccCheckAtomDebug.ccn_new_max_value <= 40"
+    - "CodeccCheckAtomDebug.sensitive_defect <= 0"
+    - "CodeccCheckAtomDebug.dupc_average <= 15"
+    - "CodeccCheckAtomDebug.ccn_average <= 3"
+    - "CodeccCheckAtomDebug.ccn_new_defect <= 0"
+    - "CodeccCheckAtomDebug.ccn_funcmax <= 20"
+    - "CodeccCheckAtomDebug.woodpecker_all_defect <= 0"
+    - "CodeccCheckAtomDebug.horuspy_all_defect <= 0"
+    - "CodeccCheckAtomDebug.go_serious_defect <= 0"
+    - "CodeccCheckAtomDebug.go_all_defect <= 100"
+  notify-on-fail:
+  - type: wework-message
+    receivers: ${{ parameters.receivers }}
+  continue-on-fail:
+    gatekeepers:
+    - "${{ ci.actor }}"
