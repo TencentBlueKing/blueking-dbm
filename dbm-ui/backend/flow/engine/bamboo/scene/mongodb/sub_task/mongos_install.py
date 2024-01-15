@@ -61,6 +61,6 @@ def mongos_install(root_id: str, ticket_data: Optional[Dict], sub_kwargs: ActKwa
 
     return sub_pipeline.build_sub_process(
         sub_name=_(
-            "MongoDB--安装mongos--{}-{}".format(sub_get_kwargs.payload["app"], sub_get_kwargs.replicaset_info["areaId"])
+            "MongoDB--安装mongos--{}-{}".format(sub_get_kwargs.payload["app"], sub_get_kwargs.payload["cluster_id"])
         )
     )

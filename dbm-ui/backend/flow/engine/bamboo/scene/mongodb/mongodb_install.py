@@ -155,6 +155,14 @@ class MongoDBInstallFlow(object):
         sub_pipline = mongos_install(root_id=self.root_id, ticket_data=self.data, sub_kwargs=self.get_kwargs)
         pipeline.add_sub_pipeline(sub_flow=sub_pipline)
 
+        # 添加shard到cluster
+        kwargs = self.get_kwargs.get_add_shard_to_cluster_kwargs()
+        pipeline.add_act(
+            act_name=_("MongoDB--添加shards到cluster"),
+            act_component_code=ExecuteDBActuatorJobComponent.code,
+            kwargs=kwargs,
+        )
+
         # cluster关系写入meta
         kwargs = self.get_kwargs.get_add_relationship_to_meta_kwargs(replicaset_info={})
         pipeline.add_act(
