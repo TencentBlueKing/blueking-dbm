@@ -53,7 +53,7 @@ func TestGetInstanceByIp(t *testing.T) {
 	cmdbC := client.CmDBClient{
 		Client: *c,
 	}
-	inf, err := cmdbC.GetDBInstanceInfoByIp("6.6.6.6")
+	inf, err := cmdbC.GetDBInstanceInfoByIp("127.0.0.6")
 	if err != nil {
 		fmt.Printf("get instance failed. err:%s", err.Error())
 		t.FailNow()

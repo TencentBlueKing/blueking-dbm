@@ -14,8 +14,8 @@ func TestDecodeClusterNodes(t *testing.T) {
 	mylog.UnitTestInitLog()
 	convey.Convey("cluster nodes decode", t, func() {
 		clusterNodesStr := `
-	17922e98b0b8f7a9d233422cf8ae55f2d22fdab7 4.4.4.4:30003@40003 master - 0 1655005291000 20 connected 7509-8191
-	e81c4276dce41ae3ed4a5fe18e460ed5b9f77e8b 3.3.3.3:30003@40003 slave 17922e98b0b8f7a9d233422cf8ae55f2d22fdab7 0 1655005291000 20 connected
+	17922e98b0b8f7a9d233422cf8ae55f2d22fdab7 127.0.0.4:30003@40003 master - 0 1655005291000 20 connected 7509-8191
+	e81c4276dce41ae3ed4a5fe18e460ed5b9f77e8b 127.0.0.3:30003@40003 slave 17922e98b0b8f7a9d233422cf8ae55f2d22fdab7 0 1655005291000 20 connected
 	56e53ca70ef13f3ca1817b0746d64319a4b66fed synctest-redis-rdsplus1-0.synctest-svc.vip:30000@40000 myself,slave 72ffcd1f8d39d1b6011ab38f5e1a42dd6f66f765 0 1655006313000 3 connected
 	72ffcd1f8d39d1b6011ab38f5e1a42dd6f66f765 synctest-redis-rdsplus1-1.synctest-svc.vip:30000@40000 master - 0 1655006315419 7 connected 5461-10921
 	`
@@ -25,7 +25,7 @@ func TestDecodeClusterNodes(t *testing.T) {
 		}
 		convey.So(len(nodes), convey.ShouldEqual, 4)
 		convey.So(nodes[0].NodeID, convey.ShouldEqual, "17922e98b0b8f7a9d233422cf8ae55f2d22fdab7")
-		convey.So(nodes[0].IP, convey.ShouldEqual, "4.4.4.4")
+		convey.So(nodes[0].IP, convey.ShouldEqual, "127.0.0.4")
 		convey.So(nodes[0].Port, convey.ShouldEqual, 30003)
 		convey.So(nodes[0].SlotsMap, convey.ShouldContainKey, 7560)
 		convey.So(nodes[1].MasterID, convey.ShouldEqual, "17922e98b0b8f7a9d233422cf8ae55f2d22fdab7")
@@ -36,12 +36,12 @@ func TestDecodeClusterNodes(t *testing.T) {
 	})
 
 	convey.Convey("cluster nodes decode2", t, func() {
-		clusterNodesStr := `36b96240e16051711d2391472cfd5900d33dc8bd 5.5.5.5:46000@56000 master - 0 1660014754278 5 connected
-a32f9cb266d85ea96a1a87ce56872f339e2a257f 5.5.5.5:45001@55001 master - 0 1660014755280 4 connected 5462-10923
-5d555b4ab569de196f71afd275c1edf8c046959a 5.5.5.5:45000@55000 myself,master - 0 1660014753000 1 connected 0-5461
-90ed7be9db5e4b78e959ad3b40253c2ffb3d5845 5.5.5.5:46002@56002 master - 0 1660014752269 3 connected
-dcff36cc5e915024d12173b1c5a3235e9186f193 5.5.5.5:46001@56001 master - 0 1660014753273 2 connected
-ff29e2e2782916a0451d5f4064cb55483f4b2a97 5.5.5.5:45002@55002 master - 0 1660014753000 0 connected 10924-16383
+		clusterNodesStr := `36b96240e16051711d2391472cfd5900d33dc8bd 127.0.0.5:46000@56000 master - 0 1660014754278 5 connected
+a32f9cb266d85ea96a1a87ce56872f339e2a257f 127.0.0.5:45001@55001 master - 0 1660014755280 4 connected 5462-10923
+5d555b4ab569de196f71afd275c1edf8c046959a 127.0.0.5:45000@55000 myself,master - 0 1660014753000 1 connected 0-5461
+90ed7be9db5e4b78e959ad3b40253c2ffb3d5845 127.0.0.5:46002@56002 master - 0 1660014752269 3 connected
+dcff36cc5e915024d12173b1c5a3235e9186f193 127.0.0.5:46001@56001 master - 0 1660014753273 2 connected
+ff29e2e2782916a0451d5f4064cb55483f4b2a97 127.0.0.5:45002@55002 master - 0 1660014753000 0 connected 10924-16383
 `
 		nodes, err := DecodeClusterNodes(clusterNodesStr)
 		if err != nil {

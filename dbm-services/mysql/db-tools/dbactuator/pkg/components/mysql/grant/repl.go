@@ -39,7 +39,7 @@ func (g *GrantReplComp) Example() interface{} {
 		Params: &GrantReplParam{
 			Host:      "1.1.1.1",
 			Port:      3306,
-			ReplHosts: []string{"2.2.2.2", "3.3.3.3"},
+			ReplHosts: []string{"2.2.2.2", "127.0.0.3"},
 		},
 		GeneralParam: &components.GeneralParam{
 			RuntimeAccountParam: components.RuntimeAccountParam{

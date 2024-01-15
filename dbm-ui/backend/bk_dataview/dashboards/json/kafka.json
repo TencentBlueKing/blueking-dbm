@@ -4231,7 +4231,7 @@
                   "options": {
                     "mode": "exclude",
                     "names": [
-                      "172.27.129.217-9092"
+                      "127.0.0.1-9092"
                     ],
                     "prefix": "All except:",
                     "readOnly": true
@@ -4557,7 +4557,7 @@
                   "options": {
                     "mode": "exclude",
                     "names": [
-                      "172.27.128.218"
+                      "127.0.0.1"
                     ],
                     "prefix": "All except:",
                     "readOnly": true

@@ -107,7 +107,7 @@ func (r *SpiderClusterBackendSwitchComp) Example() interface{} {
 						Port: 3306,
 					},
 					Slave: Instance{
-						Host: "3.3.3.3",
+						Host: "127.0.0.3",
 						Port: 3306,
 					},
 				},
@@ -117,7 +117,7 @@ func (r *SpiderClusterBackendSwitchComp) Example() interface{} {
 						Port: 3307,
 					},
 					Slave: Instance{
-						Host: "3.3.3.3",
+						Host: "127.0.0.3",
 						Port: 3307,
 					},
 				},

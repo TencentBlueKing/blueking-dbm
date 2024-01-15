@@ -123,6 +123,15 @@ class TaskFlowViewSet(viewsets.AuditedModelViewSet):
         return Response(TaskFlowHandler(root_id=root_id).retry_node(node_id=validated_data["node_id"]).result)
 
     @common_swagger_auto_schema(
+        operation_summary=_("批量重试"),
+        tags=[SWAGGER_TAG],
+    )
+    @action(methods=["POST"], detail=True)
+    def batch_retry_nodes(self, requests, *args, **kwargs):
+        root_id = kwargs["root_id"]
+        return Response(TaskFlowHandler(root_id=root_id).batch_retry_nodes())
+
+    @common_swagger_auto_schema(
         operation_summary=_("跳过节点"),
         tags=[SWAGGER_TAG],
     )

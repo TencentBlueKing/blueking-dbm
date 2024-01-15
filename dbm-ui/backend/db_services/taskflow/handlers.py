@@ -19,6 +19,7 @@ from operator import itemgetter
 from typing import Any, Dict, List, Optional
 
 from bamboo_engine.api import EngineAPIResult
+from bamboo_engine.eri import NodeType
 from django.utils import timezone
 from django.utils.translation import gettext as _
 
@@ -78,6 +79,15 @@ class TaskFlowHandler:
         """重试节点"""
         return task.retry_node(root_id=self.root_id, node_id=node_id, retry_times=1)
 
+    def batch_retry_nodes(self):
+        """批量重试节点"""
+        node_ids = self.get_failed_node_ids()
+        for node_id in node_ids:
+            try:
+                self.retry_node(node_id)
+            except Exception as err:
+                logger.error(f"{node_id} retry failed, {err}")
+
     def skip_node(self, node_id: str):
         """跳过节点"""
         result = BambooEngine(root_id=self.root_id).skip_node(node_id=node_id)
@@ -106,6 +116,26 @@ class TaskFlowHandler:
             raise CallbackNodeException(",".join(result.exc.args))
 
         return result
+
+    def get_failed_node_ids(self) -> List[str]:
+        """
+        获取失败节点ID列表
+        """
+        node_ids = []
+        tree_states = BambooEngine(root_id=self.root_id).get_pipeline_tree_states()
+        activities = tree_states.get("activities", {})
+
+        def recurse_activities(current_activities):
+            for act_id, activity in current_activities.items():
+                # 如果有子流程，递归检查子流程内的活动
+                if "pipeline" in activity:
+                    pipeline_activities = activity["pipeline"].get("activities", {})
+                    recurse_activities(pipeline_activities)
+                if activity.get("status") == StateType.FAILED and activity.get("type") == NodeType.ServiceActivity:
+                    node_ids.append(act_id)
+
+        recurse_activities(activities)
+        return node_ids
 
     def get_node_histories(self, node_id: str) -> List[Dict[str, Any]]:
         """获取节点历史版本信息"""
