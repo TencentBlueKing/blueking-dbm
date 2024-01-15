@@ -15,7 +15,7 @@
   <div class="ticket-side">
     <div class="side-top">
       <div class="side-header">
-        <strong>{{ $t('待办列表') }}</strong>
+        <strong>{{ t('待办列表') }}</strong>
         <BkDropdown
           :is-show="isShowDropdown"
           trigger="click"
@@ -43,7 +43,7 @@
       <DbSearchSelect
         v-model="state.filters.search"
         :data="searchSelectData"
-        :placeholder="$t('单号_单据类型_业务')"
+        :placeholder="t('单号_单据类型_业务')"
         unique-select
         @change="handleChangePage(1)" />
     </div>
@@ -73,12 +73,12 @@
                 </strong>
                 <BkTag
                   class="side-item-tag"
-                  :theme="item.getTagTheme()">
-                  {{ $t(item.getStatusText()) }}
+                  :theme="item.tagTheme">
+                  {{ t(item.statusText) }}
                 </BkTag>
                 <span
                   v-if="item.is_reviewed === false"
-                  v-bk-tooltips="$t('未读')"
+                  v-bk-tooltips="t('未读')"
                   class="side-item-dot" />
               </div>
               <div
@@ -91,14 +91,14 @@
                   style="overflow: hidden;" />
               </div>
               <div class="side-item-info is-single">
-                <span class="info-item-label">{{ $t('业务') }}：</span>
+                <span class="info-item-label">{{ t('业务') }}：</span>
                 <span
                   v-overflow-tips
                   class="info-item-value text-overflow">{{ item.bk_biz_name }}</span>
               </div>
               <div class="side-item-info">
-                <span>{{ $t('申请人') }}： {{ item.creator }}</span>
-                <span>{{ item.getFormatCreateAt() }}</span>
+                <span>{{ t('申请人') }}： {{ item.creator }}</span>
+                <span>{{ item.formatCreateAt }}</span>
               </div>
             </div>
           </template>
@@ -188,19 +188,23 @@
       value: 'DONE_SUCCESS',
     },
   ];
-  const searchSelectData = computed(() => [{
-    name: t('单号'),
-    id: 'id',
-  }, {
-    name: t('业务'),
-    id: 'bk_biz_id',
-    children: state.bkBizIdList,
-  }, {
-    name: t('单据类型'),
-    id: 'ticket_type__in',
-    multiple: true,
-    children: state.ticketTypes,
-  }]);
+  const searchSelectData = computed(() => [
+    {
+      name: t('单号'),
+      id: 'id',
+    },
+    {
+      name: t('业务'),
+      id: 'bk_biz_id',
+      children: state.bkBizIdList,
+    },
+    {
+      name: t('单据类型'),
+      id: 'ticket_type__in',
+      multiple: true,
+      children: state.ticketTypes,
+    },
+  ]);
 
   // 状态选择设置
   const isShowDropdown = ref(false);

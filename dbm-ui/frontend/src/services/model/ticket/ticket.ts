@@ -14,6 +14,8 @@ import dayjs from 'dayjs';
 
 import { TicketTypes } from '@common/const';
 
+import { utcDisplayTime } from '@utils';
+
 /**
  * 单据状态类型
  */
@@ -87,15 +89,19 @@ export default class Ticket<T = any> {
   }
 
   // 获取状态对应文案
-  getTagTheme() {
+  get tagTheme() {
     return tagTheme[this.status] as BKTagTheme;
   }
 
-  getStatusText() {
+  get statusText() {
     return StatusTypes[this.status];
   }
 
-  getFormatCreateAt() {
+  get formatCreateAt() {
     return dayjs(this.create_at).format('YYYY-MM-DD');
+  }
+
+  get createAtDisplay() {
+    return utcDisplayTime(this.create_at);
   }
 }

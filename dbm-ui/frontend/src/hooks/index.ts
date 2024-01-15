@@ -24,6 +24,7 @@ export * from './useInfoWithIcon';
 export * from './useIsWidthOverflow';
 export * from './useListeners';
 export * from './useLocalPagination';
+export * from './useLocation';
 export * from './useModelProvider';
 export * from './useProps';
 export * from './useSelectorDialogWidth';

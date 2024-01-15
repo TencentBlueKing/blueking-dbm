@@ -28,7 +28,18 @@
       <div class="filter-title">
         {{ t('数据库组件') }}
       </div>
+      <BkCheckboxGroup
+        v-if="dbOptionsExpand"
+        v-model="modelValue.db_types">
+        <BkCheckbox
+          v-for="dbItem in dbList"
+          :key="dbItem.id"
+          :label="dbItem.id">
+          {{ dbItem.name }}
+        </BkCheckbox>
+      </BkCheckboxGroup>
       <BkSelect
+        v-else
         v-model="modelValue.db_types"
         behavior="simplicity"
         collapse-tags
@@ -89,10 +100,13 @@
   import { getBizs } from '@services/source/cmdb';
 
   interface Props {
-    bizList: ServiceReturnType<typeof getBizs>
+    bizList: ServiceReturnType<typeof getBizs>,
+    dbOptionsExpand?: boolean
   }
 
-  defineProps<Props>();
+  withDefaults(defineProps<Props>(), {
+    dbOptionsExpand: false,
+  });
 
   const modelValue = defineModel<{
     bk_biz_ids: number[],
@@ -170,15 +184,13 @@
       id: 'redis',
       name: 'Redis',
     },
+    {
+      id: 'riak',
+      name: 'Riak',
+    },
   ];
 
-  const isAllResourceType = ref(true);
-
-  watch(modelValue, () => {
-    isAllResourceType.value = modelValue.value.resource_types.length === 0;
-  }, {
-    deep: true,
-  });
+  const isAllResourceType = computed(() => modelValue.value.resource_types.length === 0);
 
   const handleResourceTypeAll = () => {
     modelValue.value.resource_types = [];
