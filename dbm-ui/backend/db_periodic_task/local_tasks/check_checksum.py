@@ -38,14 +38,22 @@ class Checksum:
             self.details[db].append(table)
 
 
-@register_periodic_task(run_every=crontab(minute=3, hour=3))
+# @register_periodic_task(run_every=crontab(minute="*/1"))
+@register_periodic_task(run_every=crontab(day_of_week="2,3,4,5,6", hour="3", minute="53"))
 def auto_check_checksum():
     """检查每天的校验结果，存入db_report数据库"""
     # 主库执行校验任务，备库第二天上报校验结果
+    # 周六、周日主库不校验、备库不上报
     # 日志平台获取日志
     now = datetime.now(timezone.utc)
-    start_time, end_time = now - timedelta(days=1), now
-
+    yesterday = now - timedelta(days=1)
+    before_yesterday = now - timedelta(days=2)
+    # 查询近两天的数据，避免日志上报延迟等情况
+    log_start_time = datetime(before_yesterday.year, before_yesterday.month, before_yesterday.day).astimezone(
+        timezone.utc
+    )
+    start_time = datetime(yesterday.year, yesterday.month, yesterday.day).astimezone(timezone.utc)
+    end_time = datetime(yesterday.year, yesterday.month, yesterday.day, 23, 59, 59).astimezone(timezone.utc)
     cluster_type_filter = [ClusterType.TenDBHA.value, ClusterType.TenDBCluster.value]
     cluster_ids = list(Cluster.objects.filter(cluster_type__in=cluster_type_filter).values_list("id", flat=True))
     count = len(cluster_ids)
@@ -54,12 +62,18 @@ def auto_check_checksum():
         countdown = calculate_countdown(count=count, index=index, duration=TimeUnit.HOUR)
         logger.info("cluster({}) checksum will be run after {} seconds.".format(cluster_id, countdown))
         check_cluster_checksum.apply_async(
-            kwargs={"cluster_id": cluster_id, "start_time": start_time, "end_time": end_time}, countdown=countdown
+            kwargs={
+                "cluster_id": cluster_id,
+                "start_time": start_time,
+                "end_time": end_time,
+                "log_start_time": log_start_time,
+            },
+            countdown=countdown,
         )
 
 
 @app.task
-def check_cluster_checksum(cluster_id: int, start_time: datetime, end_time: datetime):
+def check_cluster_checksum(cluster_id: int, start_time: datetime, end_time: datetime, log_start_time: datetime):
     try:
         cluster = Cluster.objects.get(id=cluster_id)
     except Cluster.DoesNotExist:
@@ -74,18 +88,21 @@ def check_cluster_checksum(cluster_id: int, start_time: datetime, end_time: date
     if len(machines) <= 0:
         return
     # BKLogApi.esquery_search的过滤条件filter
+    # 获取近1天的日志
     machine_filter = [
         {"field": "serverIp", "operator": "is one of", "value": machines},
         {"field": "cloudId", "operator": "is", "value": cluster.bk_cloud_id},
     ]
+
     resp = BKLogApi.esquery_search(
         {
             "indices": "{}_bklog.mysql_checksum_result".format(env.DBA_APP_BK_BIZ_ID),
-            "start_time": datetime2str(start_time),
+            "start_time": datetime2str(log_start_time),
             "end_time": datetime2str(end_time),
             "filter": machine_filter,
         }
     )
+
     # 数据不一致的实例列表
     fail = []
     # 没有校验的实例列表
@@ -99,15 +116,17 @@ def check_cluster_checksum(cluster_id: int, start_time: datetime, end_time: date
         checksum = Checksum(slave_ip, slave_port)
         for hit in resp["hits"]["hits"]:
             log = json.loads(hit["_source"]["log"])
+            print(log)
             # 过滤出本集群本实例的日志
             if log["cluster_id"] == cluster.id:
                 if log["ip"] == slave_ip and log["port"] == slave_port:
                     checksum.reported = True
-                    checksum.master_ip = log["master_ip"]
                     checksum.master_port = log["master_port"]
-                    # 检查校验日志，数据是否一致
+                    log_timestamp = round(int(hit["_source"]["dtEventTimeStamp"]) / 1000)
+                    log_datetime = datetime.fromtimestamp(log_timestamp).astimezone(timezone.utc)
                     is_consistent = log["master_crc"] == log["this_crc"] and log["master_cnt"] == log["this_cnt"]
-                    if not is_consistent:
+                    # 检查校验日志，数据是否一致；近1天上报的日志中数据不一致，记录到报告中
+                    if (not is_consistent) and log_datetime >= start_time:
                         checksum.add_not_consistent_table(log["db"], log["tbl"])
         if not checksum.reported:
             not_reported.append(checksum)
@@ -120,9 +139,9 @@ def check_cluster_checksum(cluster_id: int, start_time: datetime, end_time: date
     if len(not_reported) > 0:
         status = False
         if err_msg == "":
-            err_msg = _("未校验")
+            err_msg = _("近2天未校验")
         else:
-            err_msg = err_msg + _(";未校验")
+            err_msg = err_msg + _(";近2天未校验")
     fail.extend(not_reported)
     # 集群的校验结果
     report = ChecksumCheckReport.objects.create(
