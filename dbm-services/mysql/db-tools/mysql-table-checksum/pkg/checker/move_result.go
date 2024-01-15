@@ -70,7 +70,7 @@ func (r *Checker) moveResult() error {
 	_, err = conn.ExecContext(
 		context.Background(),
 		fmt.Sprintf(
-			`INSERT INTO %s.%s (%s) SELECT %s FROM %s.%s WHERE ts >= ?`,
+			`REPLACE INTO %s.%s (%s) SELECT %s FROM %s.%s WHERE ts >= ?`,
 			r.resultDB,
 			r.resultHistoryTable,
 			columnsStr,
