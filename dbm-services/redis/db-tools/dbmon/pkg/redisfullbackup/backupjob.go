@@ -238,9 +238,11 @@ func (job *Job) CheckOldFullbackupStatus(port int) {
 				continue
 			} else if taskStatus == 4 {
 				// 上传成功
-				row.Status = consts.BackupStatusToBakSysSuccess
-				row.Message = "上传备份系统成功"
-				row.BackupRecordReport(job.Reporter)
+				if row.Status != consts.BackupStatusToBakSysSuccess { // 成功状态不重复上报
+					row.Status = consts.BackupStatusToBakSysSuccess
+					row.Message = "上传备份系统成功"
+					row.BackupRecordReport(job.Reporter)
+				}
 			}
 			// 更新记录 status 和 message
 			job.Err = job.sqdb.Save(&row).Error

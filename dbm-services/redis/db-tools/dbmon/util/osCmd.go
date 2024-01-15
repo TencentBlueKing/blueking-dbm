@@ -132,6 +132,10 @@ func RunLocalCmdNoLog(
 	cmdCtx := exec.CommandContext(ctx, cmd, opts...)
 	var retBuffer bytes.Buffer
 	var errBuffer bytes.Buffer
+	defer func() {
+		retBuffer.Reset()
+		errBuffer.Reset()
+	}()
 	var outFileHandler *os.File
 	if len(strings.TrimSpace(outFile)) == 0 {
 		cmdCtx.Stdout = &retBuffer

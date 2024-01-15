@@ -48,6 +48,47 @@ func GetRedisPasswdFromConfFile(port int) (password string, err error) {
 	return
 }
 
+// GetTwemproxyLocalConfFile 本地获取twemproxy实例配置文件
+func GetTwemproxyLocalConfFile(port int) (confFile string, err error) {
+	psCmd := fmt.Sprintf(`
+	ps aux|grep nutcracker|grep %d|grep yml|grep -v grep\
+|head -1|grep --only-match -P '\-c\s+.*.yml'|awk '{print $2}'
+	`, port)
+	confFile, err = util.RunBashCmd(psCmd, "", nil, 10*time.Second)
+	if err != nil {
+		return
+	}
+	confFile = strings.TrimSpace(confFile)
+	if confFile == "" {
+		lsCmd := fmt.Sprintf(`ls %s/twemproxy*/%d/nutcracker.%d.yml|head -1`, consts.DataPath, port, port)
+		confFile, err = util.RunBashCmd(lsCmd, "", nil, 10*time.Second)
+		if err != nil {
+			return
+		}
+	}
+	return confFile, nil
+}
+
+// GetPredixyLocalConfFile 本地获取predixy实例配置文件
+func GetPredixyLocalConfFile(port int) (confFile string, err error) {
+	psCmd := fmt.Sprintf(`
+ps aux|grep predixy|grep %d|grep predixy.conf|grep -v grep|head -1|awk '{print $NF}'
+	`, port)
+	confFile, err = util.RunBashCmd(psCmd, "", nil, 10*time.Second)
+	if err != nil {
+		return
+	}
+	confFile = strings.TrimSpace(confFile)
+	if confFile == "" {
+		lsCmd := fmt.Sprintf(`ls %s/predixy/%d/predixy.conf|head -1`, consts.GetRedisDataDir(), port)
+		confFile, err = util.RunBashCmd(lsCmd, "", nil, 10*time.Second)
+		if err != nil {
+			return
+		}
+	}
+	return confFile, nil
+}
+
 // GetProxyPasswdFromConfFlie (从配置文件中)获取本地proxy实例密码
 func GetProxyPasswdFromConfFlie(port int, role string) (password string, err error) {
 	var grepCmd string

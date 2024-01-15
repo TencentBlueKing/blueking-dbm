@@ -387,6 +387,24 @@ func (db *RedisClient) GetDumpDir() (dir string, err error) {
 	return
 }
 
+// GetLogDir config get logdir 获取logdir(保存日志路径)
+func (db *RedisClient) GetLogDir() (dir string, err error) {
+	var ok bool
+	confRet, err := db.ConfigGet("logdir")
+	if err != nil {
+		return
+	}
+	dir, ok = confRet["logdir"]
+	if !ok {
+		err = fmt.Errorf("config get logdir result not include logdir?,result:%+v,addr:%s", confRet, db.Addr)
+		mylog.Logger.Error(err.Error())
+		return
+	}
+	dir = strings.TrimPrefix(dir, `"`)
+	dir = strings.TrimSuffix(dir, `"`)
+	return
+}
+
 // GetKvstoreCount config get kvstorecount 获取kvstore 数量
 func (db *RedisClient) GetKvstoreCount() (kvstorecount int, err error) {
 	var ok bool
