@@ -18,6 +18,8 @@ import (
 
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
+	"github.com/shopspring/decimal"
+	"gopkg.in/ini.v1"
 )
 
 func mysqlDirs(db *sqlx.DB, variables []string) (dirs []string, err error) {
@@ -42,24 +44,61 @@ func mysqlDirs(db *sqlx.DB, variables []string) (dirs []string, err error) {
 		}
 	}
 
-	var binlogBase sql.NullString
-	err = db.GetContext(ctx, &binlogBase, `SELECT @@log_bin_basename`)
-	if err != nil && !errors.Is(err, sql.ErrNoRows) {
-		return nil, errors.Wrap(err, `SELECT @@log_bin_basename`)
+	var versionStr string
+	err = db.GetContext(ctx, &versionStr, `SELECT SUBSTRING_INDEX(@@version, ".", 2)`)
+	if err != nil {
+		return nil, errors.Wrap(err, `SELECT SUBSTRING_INDEX(@@version, ".", 2)`)
+	}
+	version, err := decimal.NewFromString(versionStr)
+	if err != nil {
+		return nil, errors.Wrapf(err, "new decimal from %s", versionStr)
 	}
 
-	if binlogBase.Valid {
-		dirs = append(dirs, filepath.Dir(binlogBase.String))
-	}
+	if version.GreaterThanOrEqual(decimal.NewFromFloat(5.6)) {
+		var binlogBase sql.NullString
+		var relaylogBase sql.NullString
 
-	var relaylogBase sql.NullString
-	err = db.GetContext(ctx, &relaylogBase, `SELECT @@relay_log_basename`)
-	if err != nil && !errors.Is(err, sql.ErrNoRows) {
-		return nil, errors.Wrap(err, `SELECT @@relay_log_basename`)
-	}
+		err = db.GetContext(ctx, &binlogBase, `SELECT @@log_bin_basename`)
+		if err != nil && !errors.Is(err, sql.ErrNoRows) {
+			return nil, errors.Wrap(err, `SELECT @@log_bin_basename`)
+		}
 
-	if relaylogBase.Valid {
-		dirs = append(dirs, filepath.Dir(relaylogBase.String))
+		if binlogBase.Valid {
+			dirs = append(dirs, filepath.Dir(binlogBase.String))
+		}
+
+		err = db.GetContext(ctx, &relaylogBase, `SELECT @@relay_log_basename`)
+		if err != nil && !errors.Is(err, sql.ErrNoRows) {
+			return nil, errors.Wrap(err, `SELECT @@relay_log_basename`)
+		}
+
+		if relaylogBase.Valid {
+			dirs = append(dirs, filepath.Dir(relaylogBase.String))
+		}
+
+	} else {
+		var myCnfPath string
+		if config.MonitorConfig.Port == 3306 {
+			myCnfPath = "/etc/my.cnf"
+		} else {
+			myCnfPath = fmt.Sprintf("/etc/my.cnf.%d", config.MonitorConfig.Port)
+		}
+
+		myCnf, err := ini.LoadSources(ini.LoadOptions{
+			PreserveSurroundedQuote: true,
+			IgnoreInlineComment:     true,
+			AllowBooleanKeys:        true,
+			AllowShadows:            true,
+		}, myCnfPath)
+		if err != nil {
+			return nil, errors.Wrapf(err, "load %s failed", myCnfPath)
+		}
+
+		logBin := myCnf.Section("mysqld").Key("log_bin").String()
+		relayLog := myCnf.Section("mysqld").Key("relay_log").String()
+
+		dirs = append(dirs, filepath.Dir(logBin))
+		dirs = append(dirs, filepath.Dir(relayLog))
 	}
 
 	for i, dir := range dirs {
