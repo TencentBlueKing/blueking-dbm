@@ -56,7 +56,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               },
               {
                 "color": "red",
@@ -145,7 +146,7 @@
           "type": "instant"
         }
       ],
-      "title": "Capacity Used Percent",
+      "title": "Capacity Used",
       "type": "gauge"
     },
     {
@@ -194,7 +195,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               },
               {
                 "color": "red",
@@ -212,6 +214,7 @@
         "y": 1
       },
       "id": 55,
+      "interval": "1m",
       "options": {
         "legend": {
           "calcs": [],
@@ -241,13 +244,15 @@
           "promqlAlias": "",
           "query_configs": [
             {
-              "alias": "cpu_used total",
+              "alias": "$target_ip cpu_used total",
               "data_source_label": "bk_monitor",
               "data_type_label": "time_series",
               "display": true,
               "filter_dict": {},
               "functions": [],
-              "group_by": [],
+              "group_by": [
+                "bk_target_ip"
+              ],
               "interval": "auto",
               "interval_unit": "s",
               "method": "AVG",
@@ -258,18 +263,10 @@
               "time_field": "",
               "where": [
                 {
-                  "key": "cluster_domain",
+                  "key": "bk_target_ip",
                   "method": "eq",
                   "value": [
-                    "$cluster_domain"
-                  ]
-                },
-                {
-                  "condition": "and",
-                  "key": "instance_role",
-                  "method": "eq",
-                  "value": [
-                    "backend_master"
+                    "$host"
                   ]
                 }
               ]
@@ -330,7 +327,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               },
               {
                 "color": "red",
@@ -513,7 +511,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               },
               {
                 "color": "red",
@@ -683,7 +682,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               },
               {
                 "color": "red",
@@ -700,6 +700,7 @@
         "x": 0,
         "y": 5
       },
+      "hideTimeOverride": true,
       "id": 10,
       "options": {
         "colorMode": "value",
@@ -774,6 +775,7 @@
           "type": "instant"
         }
       ],
+      "timeFrom": "24h",
       "title": "MySQL Version",
       "type": "stat"
     },
@@ -794,7 +796,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               },
               {
                 "color": "yellow",
@@ -888,7 +891,7 @@
           "type": "range"
         }
       ],
-      "title": "Connection used ratio",
+      "title": "Connection Used",
       "type": "stat"
     },
     {
@@ -908,7 +911,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "red"
+                "color": "red",
+                "value": null
               },
               {
                 "color": "green",
@@ -1030,7 +1034,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               },
               {
                 "color": "red",
@@ -1048,6 +1053,7 @@
         "y": 5
       },
       "id": 32,
+      "interval": "1m",
       "options": {
         "legend": {
           "calcs": [
@@ -1184,7 +1190,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               },
               {
                 "color": "red",
@@ -1230,7 +1237,7 @@
           "promqlAlias": "",
           "query_configs": [
             {
-              "alias": "slave=$tag_instance, $tag_channel_name, master_uuid=$tag_master_uuid",
+              "alias": "slave=$tag_instance, master_uuid=$tag_master_server_id",
               "data_source_label": "bk_monitor",
               "data_type_label": "time_series",
               "display": true,
@@ -1238,8 +1245,7 @@
               "functions": [],
               "group_by": [
                 "instance",
-                "master_uuid",
-                "channel_name"
+                "master_server_id"
               ],
               "interval": "auto",
               "interval_unit": "s",
@@ -1285,7 +1291,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               }
             ]
           },
@@ -2044,7 +2051,32 @@
               },
               "unit": "dtdurations"
             },
-            "overrides": []
+            "overrides": [
+              {
+                "__systemRef": "hideSeriesFrom",
+                "matcher": {
+                  "id": "byNames",
+                  "options": {
+                    "mode": "exclude",
+                    "names": [
+                      "heartbeat_beat_sec, master_uuid=26169568"
+                    ],
+                    "prefix": "All except:",
+                    "readOnly": true
+                  }
+                },
+                "properties": [
+                  {
+                    "id": "custom.hideFrom",
+                    "value": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": true
+                    }
+                  }
+                ]
+              }
+            ]
           },
           "gridPos": {
             "h": 8,
@@ -2053,6 +2085,7 @@
             "y": 11
           },
           "id": 80,
+          "interval": "1m",
           "options": {
             "legend": {
               "calcs": [],
@@ -2080,14 +2113,14 @@
               "promqlAlias": "",
               "query_configs": [
                 {
-                  "alias": "heartbeat_delay_sec, master_uuid=$tag_master_uuid",
+                  "alias": "heartbeat_delay_sec, master_uuid=$tag_master_server_id",
                   "data_source_label": "bk_monitor",
                   "data_type_label": "time_series",
                   "display": true,
                   "filter_dict": {},
                   "functions": [],
                   "group_by": [
-                    "master_uuid"
+                    "master_server_id"
                   ],
                   "interval": "auto",
                   "interval_unit": "s",
@@ -2108,14 +2141,14 @@
                   ]
                 },
                 {
-                  "alias": "heartbeat_beat_sec, master_uuid=$tag_master_uuid",
+                  "alias": "heartbeat_beat_sec, master_uuid=$tag_master_server_id",
                   "data_source_label": "bk_monitor",
                   "data_type_label": "time_series",
                   "display": true,
                   "filter_dict": {},
                   "functions": [],
                   "group_by": [
-                    "master_uuid"
+                    "master_server_id"
                   ],
                   "interval": "auto",
                   "interval_unit": "s",
@@ -2218,8 +2251,8 @@
             "overrides": []
           },
           "gridPos": {
-            "h": 4,
-            "w": 8,
+            "h": 6,
+            "w": 13,
             "x": 0,
             "y": 12
           },
@@ -2255,7 +2288,7 @@
               "promqlAlias": "$tag_command",
               "query_configs": [
                 {
-                  "alias": "",
+                  "alias": "$tag_instance processes",
                   "data_source_label": "bk_monitor",
                   "data_type_label": "time_series",
                   "display": true,
@@ -2351,9 +2384,9 @@
             "overrides": []
           },
           "gridPos": {
-            "h": 4,
-            "w": 8,
-            "x": 8,
+            "h": 6,
+            "w": 11,
+            "x": 13,
             "y": 12
           },
           "id": 60,
@@ -2386,7 +2419,7 @@
               "promqlAlias": "",
               "query_configs": [
                 {
-                  "alias": "",
+                  "alias": "$target_ip cpu",
                   "data_source_label": "bk_monitor",
                   "data_type_label": "time_series",
                   "display": true,
@@ -2418,57 +2451,9 @@
               "source": "",
               "step": "",
               "type": "range"
-            },
-            {
-              "cluster": [],
-              "datasource": {
-                "type": "bkmonitor-timeseries-datasource",
-                "uid": "bkmonitor_timeseries"
-              },
-              "expressionList": [],
-              "format": "time_series",
-              "hide": false,
-              "host": [],
-              "mode": "ui",
-              "module": [],
-              "promqlAlias": "",
-              "query_configs": [
-                {
-                  "alias": "",
-                  "data_source_label": "bk_monitor",
-                  "data_type_label": "time_series",
-                  "display": true,
-                  "filter_dict": {},
-                  "functions": [],
-                  "group_by": [
-                    "bk_target_ip"
-                  ],
-                  "interval": "auto",
-                  "interval_unit": "s",
-                  "method": "AVG",
-                  "metric_field": "load1",
-                  "refId": "a",
-                  "result_table_id": "dbm_system.load",
-                  "result_table_label": "os",
-                  "time_field": "",
-                  "where": [
-                    {
-                      "key": "bk_target_ip",
-                      "method": "reg",
-                      "value": [
-                        "$proxy_host"
-                      ]
-                    }
-                  ]
-                }
-              ],
-              "refId": "A",
-              "source": "",
-              "step": "",
-              "type": "range"
             }
           ],
-          "title": "CPU Usage / Load",
+          "title": "CPU Usage",
           "type": "timeseries"
         }
       ],
@@ -2545,7 +2530,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 13
+            "y": 19
           },
           "id": 2,
           "options": {
@@ -2693,7 +2678,7 @@
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 13
+            "y": 19
           },
           "id": 4,
           "options": {
@@ -2868,7 +2853,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 21
+            "y": 27
           },
           "id": 5,
           "options": {
@@ -3043,7 +3028,7 @@
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 21
+            "y": 27
           },
           "id": 6,
           "options": {
@@ -5400,7 +5385,7 @@
             "h": 6,
             "w": 12,
             "x": 0,
-            "y": 18
+            "y": 24
           },
           "id": 65,
           "interval": "5m",
@@ -5537,7 +5522,7 @@
             "h": 6,
             "w": 12,
             "x": 12,
-            "y": 18
+            "y": 24
           },
           "id": 84,
           "interval": "5m",
@@ -5710,7 +5695,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 24
+            "y": 30
           },
           "id": 66,
           "options": {
@@ -5838,7 +5823,7 @@
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 24
+            "y": 30
           },
           "id": 68,
           "options": {
@@ -6066,7 +6051,7 @@
             "h": 7,
             "w": 12,
             "x": 0,
-            "y": 19
+            "y": 25
           },
           "id": 73,
           "interval": "5m",
@@ -6208,7 +6193,7 @@
             "h": 7,
             "w": 12,
             "x": 12,
-            "y": 19
+            "y": 25
           },
           "id": 74,
           "interval": "5m",
@@ -6363,7 +6348,7 @@
             "h": 5,
             "w": 12,
             "x": 0,
-            "y": 20
+            "y": 26
           },
           "id": 62,
           "options": {
@@ -6552,7 +6537,7 @@
             "h": 5,
             "w": 12,
             "x": 12,
-            "y": 20
+            "y": 26
           },
           "id": 63,
           "options": {
@@ -6696,7 +6681,7 @@
             "h": 5,
             "w": 12,
             "x": 0,
-            "y": 25
+            "y": 31
           },
           "id": 13,
           "options": {
@@ -6893,7 +6878,7 @@
             "h": 5,
             "w": 12,
             "x": 12,
-            "y": 25
+            "y": 31
           },
           "id": 67,
           "options": {
@@ -7042,7 +7027,7 @@
             "h": 5,
             "w": 8,
             "x": 0,
-            "y": 21
+            "y": 27
           },
           "id": 50,
           "options": {
@@ -7179,7 +7164,7 @@
             "h": 5,
             "w": 8,
             "x": 8,
-            "y": 21
+            "y": 27
           },
           "id": 52,
           "options": {
@@ -7338,7 +7323,7 @@
             "h": 5,
             "w": 8,
             "x": 16,
-            "y": 21
+            "y": 27
           },
           "id": 54,
           "options": {
@@ -7538,7 +7523,7 @@
             "h": 5,
             "w": 8,
             "x": 0,
-            "y": 26
+            "y": 32
           },
           "id": 51,
           "options": {
@@ -7666,7 +7651,7 @@
             "h": 5,
             "w": 8,
             "x": 8,
-            "y": 26
+            "y": 32
           },
           "id": 11,
           "options": {
@@ -7901,7 +7886,7 @@
             "h": 5,
             "w": 8,
             "x": 16,
-            "y": 26
+            "y": 32
           },
           "id": 53,
           "options": {
@@ -8060,7 +8045,7 @@
             "h": 5,
             "w": 16,
             "x": 0,
-            "y": 31
+            "y": 37
           },
           "id": 77,
           "options": {
@@ -8239,8 +8224,8 @@
       {
         "current": {
           "selected": false,
-          "text": "mysql80db.xiaogtest.dba.db",
-          "value": "mysql80db.xiaogtest.dba.db"
+          "text": "xiaog56db.txsql.dba.db",
+          "value": "xiaog56db.txsql.dba.db"
         },
         "datasource": {
           "type": "bkmonitor-timeseries-datasource",
@@ -8294,7 +8279,7 @@
           "text": "backend_master",
           "value": "backend_master"
         },
-        "hide": 2,
+        "hide": 0,
         "includeAll": false,
         "label": "dbrole",
         "multi": false,
@@ -8350,11 +8335,19 @@
                 "value": [
                   "$cluster_domain"
                 ]
+              },
+              {
+                "condition": "and",
+                "key": "instance_role",
+                "method": "eq",
+                "value": [
+                  "$dbrole"
+                ]
               }
             ]
           },
           "queryType": "dimension",
-          "variables": "$cluster_domain"
+          "variables": "$cluster_domain $dbrole"
         },
         "refresh": 1,
         "regex": "",
@@ -8365,8 +8358,8 @@
       {
         "current": {
           "selected": false,
-          "text": "None",
-          "value": "None"
+          "text": "9.143.80.224",
+          "value": "9.143.80.224"
         },
         "datasource": {
           "type": "bkmonitor-timeseries-datasource",
@@ -8429,14 +8422,14 @@
         "hide": 2,
         "includeAll": true,
         "label": "proxy_hosts",
-        "multi": false,
+        "multi": true,
         "name": "proxy_hosts",
         "options": [],
         "query": {
           "metricConfig": {
             "data_source_label": "bk_monitor",
             "data_type_label": "time_series",
-            "group_by": "instance_host",
+            "group_by": "instance_bost",
             "metric_field": "mysqlproxy_up",
             "result_table_id": "exporter_dbm_mysqlproxy_exporter.__default__",
             "result_table_label": "component",
@@ -8461,6 +8454,7 @@
       },
       {
         "current": {
+          "isNone": true,
           "selected": false,
           "text": "None",
           "value": ""
@@ -8510,6 +8504,74 @@
         "skipUrlSync": false,
         "sort": 0,
         "type": "query"
+      },
+      {
+        "auto": false,
+        "auto_count": 30,
+        "auto_min": "10s",
+        "current": {
+          "selected": false,
+          "text": "1m",
+          "value": "1m"
+        },
+        "hide": 2,
+        "name": "minInterval",
+        "options": [
+          {
+            "selected": true,
+            "text": "1m",
+            "value": "1m"
+          },
+          {
+            "selected": false,
+            "text": "10m",
+            "value": "10m"
+          },
+          {
+            "selected": false,
+            "text": "30m",
+            "value": "30m"
+          },
+          {
+            "selected": false,
+            "text": "1h",
+            "value": "1h"
+          },
+          {
+            "selected": false,
+            "text": "6h",
+            "value": "6h"
+          },
+          {
+            "selected": false,
+            "text": "12h",
+            "value": "12h"
+          },
+          {
+            "selected": false,
+            "text": "1d",
+            "value": "1d"
+          },
+          {
+            "selected": false,
+            "text": "7d",
+            "value": "7d"
+          },
+          {
+            "selected": false,
+            "text": "14d",
+            "value": "14d"
+          },
+          {
+            "selected": false,
+            "text": "30d",
+            "value": "30d"
+          }
+        ],
+        "query": "1m,10m,30m,1h,6h,12h,1d,7d,14d,30d",
+        "refresh": 2,
+        "skipUrlSync": false,
+        "type": "interval"
       }
     ]
   },
@@ -8521,6 +8583,6 @@
   "timezone": "default",
   "title": "MySQL-HA",
   "uid": "8wWk5T64z",
-  "version": 27,
+  "version": 43,
   "weekStart": ""
 }
