@@ -26,6 +26,14 @@ from backend.db_meta.enums import DataStructureStatus, InstanceRole
 from backend.db_meta.enums.cluster_type import ClusterType
 from backend.db_meta.models import Cluster
 from backend.db_services.redis.rollback.handlers import DataStructureHandler
+from backend.db_services.redis.util import (
+    is_predixy_proxy_type,
+    is_redis_cluster_protocal,
+    is_redis_instance_type,
+    is_tendisplus_instance_type,
+    is_tendisssd_instance_type,
+    is_twemproxy_proxy_type,
+)
 from backend.flow.consts import (
     DEFAULT_DB_MODULE_ID,
     DEFAULT_REDIS_START_PORT,
@@ -34,14 +42,6 @@ from backend.flow.consts import (
     ConfigTypeEnum,
     RedisSlotNum,
     WriteContextOpType,
-)
-from backend.db_services.redis.util import (
-    is_predixy_proxy_type,
-    is_redis_cluster_protocal,
-    is_redis_instance_type,
-    is_tendisplus_instance_type,
-    is_tendisssd_instance_type,
-    is_twemproxy_proxy_type,
 )
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
