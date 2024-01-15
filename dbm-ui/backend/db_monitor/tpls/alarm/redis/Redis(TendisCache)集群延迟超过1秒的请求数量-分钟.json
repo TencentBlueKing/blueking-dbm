@@ -1,16 +1,16 @@
 {
   "bk_biz_id": 0,
-  "name": "Redis(TendisCache)\u96c6\u7fa4\u5ef6\u8fdf\u8d85\u8fc71\u79d2\u7684\u8bf7\u6c42\u6570\u91cf-\u5206\u949f",
+  "name": "Redis(TendisCache)集群延迟超过1秒的请求数量-分钟",
   "db_type": "redis",
   "details": {
     "bk_biz_id": "",
-    "name": "Redis(TendisCache)\u96c6\u7fa4\u5ef6\u8fdf\u8d85\u8fc71\u79d2\u7684\u8bf7\u6c42\u6570\u91cf/\u5206\u949f",
+    "name": "Redis(TendisCache)集群延迟超过1秒的请求数量/分钟",
     "source": "dbm",
     "scenario": "component",
     "type": "monitor",
     "items": [
       {
-        "name": "[TendisCache]\u96c6\u7fa4\u5ef6\u8fdf\u8d85\u8fc71\u79d2\u7684\u8bf7\u6c42\u6570\u91cf/\u5206\u949f",
+        "name": "[TendisCache]集群延迟超过1秒的请求数量/分钟",
         "no_data_config": {
           "level": 2,
           "continuous": 10,
@@ -270,8 +270,8 @@
     "is_enabled": true
   },
   "is_enabled": true,
-  "monitor_indicator": "[TendisCache]\u96c6\u7fa4\u5ef6\u8fdf\u8d85\u8fc71\u79d2\u7684\u8bf7\u6c42\u6570\u91cf/\u5206\u949f",
-  "version": 0,
+  "monitor_indicator": "[TendisCache]集群延迟超过1秒的请求数量/分钟",
+  "version": 16,
   "alert_source": "time_series",
   "custom_conditions": []
 }

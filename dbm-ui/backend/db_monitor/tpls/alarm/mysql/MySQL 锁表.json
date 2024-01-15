@@ -1,17 +1,50 @@
 {
   "bk_biz_id": 0,
-  "name": "MySQL \u9501\u8868",
+  "name": "MySQL 锁表",
   "db_type": "mysql",
   "details": {
-    "app": "",
-    "name": "MySQL \u9501\u8868",
-    "path": "",
+    "bk_biz_id": "",
+    "name": "MySQL 锁表",
+    "source": "dbm",
+    "scenario": "other_rt",
     "type": "monitor",
     "items": [
       {
         "name": "COUNT(mysql-lock)",
+        "no_data_config": {
+          "level": 2,
+          "continuous": 10,
+          "is_enabled": false,
+          "agg_dimension": []
+        },
         "target": [],
+        "expression": "a",
         "functions": [],
+        "origin_sql": "",
+        "query_configs": [
+          {
+            "data_source_label": "custom",
+            "data_type_label": "event",
+            "alias": "a",
+            "metric_id": "custom.event.bkmonitor_event_{event_data_id}.mysql-lock",
+            "functions": [],
+            "result_table_id": "bkmonitor_event_{event_data_id}",
+            "agg_method": "COUNT",
+            "agg_interval": 60,
+            "agg_dimension": [
+              "bk_cloud_id",
+              "instance_host",
+              "instance_role",
+              "machine_type",
+              "cluster_domain",
+              "instance_port",
+              "appid"
+            ],
+            "agg_condition": [],
+            "custom_event_name": "mysql-lock",
+            "name": "mysql-lock"
+          }
+        ],
         "algorithms": [
           {
             "type": "Threshold",
@@ -27,188 +60,12 @@
             "unit_prefix": ""
           }
         ],
-        "expression": "a",
-        "origin_sql": "",
-        "query_configs": [
-          {
-            "name": "mysql-lock",
-            "alias": "a",
-            "functions": [],
-            "metric_id": "custom.event.bkmonitor_event_{event_data_id}.mysql-lock",
-            "agg_method": "COUNT",
-            "agg_interval": 60,
-            "agg_condition": [],
-            "agg_dimension": [
-              "bk_cloud_id",
-              "instance_host",
-              "instance_role",
-              "machine_type",
-              "cluster_domain",
-              "instance_port",
-              "appid"
-            ],
-            "data_type_label": "event",
-            "result_table_id": "bkmonitor_event_{event_data_id}",
-            "custom_event_name": "mysql-lock",
-            "data_source_label": "custom"
-          }
-        ],
-        "no_data_config": {
-          "level": 2,
-          "continuous": 10,
-          "is_enabled": false,
-          "agg_dimension": []
-        }
+        "metric_type": "event"
       }
     ],
-    "labels": [
-      "DBM",
-      "DBM_MYSQL"
-    ],
-    "notice": {
-      "config": {
-        "template": [
-          {
-            "signal": "abnormal",
-            "title_tmpl": "{{business.bk_biz_name}} - {{alarm.name}}{{alarm.display_type}}",
-            "message_tmpl": "{{content.level}}\n{{content.begin_time}}\n{{content.time}}\n{{content.duration}}\n{{content.target_type}}\n{{content.data_source}}\n{{content.content}}\n{{content.current_value}}\n{{content.biz}}\n{{content.target}}\n{{content.dimension}}\n{{content.detail}}\n{{content.related_info}}"
-          },
-          {
-            "signal": "recovered",
-            "title_tmpl": "{{business.bk_biz_name}} - {{alarm.name}}{{alarm.display_type}}",
-            "message_tmpl": "{{content.level}}\n{{content.begin_time}}\n{{content.time}}\n{{content.duration}}\n{{content.target_type}}\n{{content.data_source}}\n{{content.content}}\n{{content.current_value}}\n{{content.biz}}\n{{content.target}}\n{{content.dimension}}\n{{content.detail}}\n{{content.related_info}}"
-          },
-          {
-            "signal": "closed",
-            "title_tmpl": "{{business.bk_biz_name}} - {{alarm.name}}{{alarm.display_type}}",
-            "message_tmpl": "{{content.level}}\n{{content.begin_time}}\n{{content.time}}\n{{content.duration}}\n{{content.target_type}}\n{{content.data_source}}\n{{content.content}}\n{{content.current_value}}\n{{content.biz}}\n{{content.target}}\n{{content.dimension}}\n{{content.detail}}\n{{content.related_info}}"
-          }
-        ],
-        "need_poll": true,
-        "notify_interval": 7200,
-        "interval_notify_mode": "standard"
-      },
-      "signal": [
-        "no_data",
-        "abnormal"
-      ],
-      "options": {
-        "end_time": "23:59:59",
-        "start_time": "00:00:00",
-        "assign_mode": [
-          "by_rule"
-        ],
-        "converge_config": {
-          "count": 1,
-          "condition": [
-            {
-              "value": [
-                "self"
-              ],
-              "dimension": "strategy_id"
-            },
-            {
-              "value": [
-                "self"
-              ],
-              "dimension": "dimensions"
-            },
-            {
-              "value": [
-                "self"
-              ],
-              "dimension": "alert_level"
-            },
-            {
-              "value": [
-                "self"
-              ],
-              "dimension": "signal"
-            },
-            {
-              "value": [
-                "self"
-              ],
-              "dimension": "bk_biz_id"
-            },
-            {
-              "value": [
-                "self"
-              ],
-              "dimension": "notice_receiver"
-            },
-            {
-              "value": [
-                "self"
-              ],
-              "dimension": "notice_way"
-            }
-          ],
-          "timedelta": 60,
-          "is_enabled": true,
-          "converge_func": "collect",
-          "need_biz_converge": true,
-          "sub_converge_config": {
-            "count": 2,
-            "condition": [
-              {
-                "value": [
-                  "self"
-                ],
-                "dimension": "bk_biz_id"
-              },
-              {
-                "value": [
-                  "self"
-                ],
-                "dimension": "notice_receiver"
-              },
-              {
-                "value": [
-                  "self"
-                ],
-                "dimension": "notice_way"
-              },
-              {
-                "value": [
-                  "self"
-                ],
-                "dimension": "alert_level"
-              },
-              {
-                "value": [
-                  "self"
-                ],
-                "dimension": "signal"
-              }
-            ],
-            "timedelta": 60,
-            "converge_func": "collect_alarm"
-          }
-        },
-        "chart_image_enabled": true,
-        "exclude_notice_ways": {
-          "closed": [],
-          "recovered": []
-        },
-        "noise_reduce_config": {
-          "unit": "percent",
-          "count": 10,
-          "timedelta": 5,
-          "dimensions": [],
-          "is_enabled": false
-        }
-      },
-      "config_id": 72044,
-      "relate_type": "NOTICE",
-      "user_groups": []
-    },
-    "source": "dbm",
-    "actions": [],
     "detects": [
       {
         "level": 1,
-        "connector": "and",
         "expression": "",
         "trigger_config": {
           "count": 1,
@@ -226,13 +83,161 @@
         "recovery_config": {
           "check_window": 5,
           "status_setter": "recovery"
-        }
+        },
+        "connector": "and"
       }
     ],
-    "scenario": "other_rt",
-    "bk_biz_id": "",
-    "data_source_type": "\u81ea\u5b9a\u4e49\u4e8b\u4ef6",
-    "priority": 0
+    "actions": [],
+    "notice": {
+      "config_id": 40763,
+      "user_groups": [],
+      "signal": [
+        "abnormal",
+        "no_data"
+      ],
+      "options": {
+        "end_time": "23:59:59",
+        "start_time": "00:00:00",
+        "assign_mode": [
+          "by_rule"
+        ],
+        "upgrade_config": {},
+        "converge_config": {
+          "count": 1,
+          "condition": [
+            {
+              "dimension": "strategy_id",
+              "value": [
+                "self"
+              ]
+            },
+            {
+              "dimension": "dimensions",
+              "value": [
+                "self"
+              ]
+            },
+            {
+              "dimension": "alert_level",
+              "value": [
+                "self"
+              ]
+            },
+            {
+              "dimension": "signal",
+              "value": [
+                "self"
+              ]
+            },
+            {
+              "dimension": "bk_biz_id",
+              "value": [
+                "self"
+              ]
+            },
+            {
+              "dimension": "notice_receiver",
+              "value": [
+                "self"
+              ]
+            },
+            {
+              "dimension": "notice_way",
+              "value": [
+                "self"
+              ]
+            }
+          ],
+          "timedelta": 60,
+          "is_enabled": true,
+          "converge_func": "collect",
+          "need_biz_converge": true,
+          "sub_converge_config": {
+            "timedelta": 60,
+            "count": 2,
+            "condition": [
+              {
+                "dimension": "bk_biz_id",
+                "value": [
+                  "self"
+                ]
+              },
+              {
+                "dimension": "notice_receiver",
+                "value": [
+                  "self"
+                ]
+              },
+              {
+                "dimension": "notice_way",
+                "value": [
+                  "self"
+                ]
+              },
+              {
+                "dimension": "alert_level",
+                "value": [
+                  "self"
+                ]
+              },
+              {
+                "dimension": "signal",
+                "value": [
+                  "self"
+                ]
+              }
+            ],
+            "converge_func": "collect_alarm"
+          }
+        },
+        "chart_image_enabled": true,
+        "exclude_notice_ways": {
+          "closed": [],
+          "recovered": []
+        },
+        "noise_reduce_config": {
+          "unit": "percent",
+          "count": 10,
+          "timedelta": 5,
+          "dimensions": [],
+          "is_enabled": false
+        }
+      },
+      "relate_type": "NOTICE",
+      "config": {
+        "need_poll": true,
+        "notify_interval": 7200,
+        "interval_notify_mode": "standard",
+        "template": [
+          {
+            "signal": "abnormal",
+            "message_tmpl": "{{content.level}}\n{{content.begin_time}}\n{{content.time}}\n{{content.duration}}\n{{content.target_type}}\n{{content.data_source}}\n{{content.content}}\n{{content.current_value}}\n{{content.biz}}\n{{content.target}}\n{{content.dimension}}\n{{content.detail}}\n{{content.related_info}}",
+            "title_tmpl": "{{business.bk_biz_name}} - {{alarm.name}}{{alarm.display_type}}"
+          },
+          {
+            "signal": "recovered",
+            "message_tmpl": "{{content.level}}\n{{content.begin_time}}\n{{content.time}}\n{{content.duration}}\n{{content.target_type}}\n{{content.data_source}}\n{{content.content}}\n{{content.current_value}}\n{{content.biz}}\n{{content.target}}\n{{content.dimension}}\n{{content.detail}}\n{{content.related_info}}",
+            "title_tmpl": "{{business.bk_biz_name}} - {{alarm.name}}{{alarm.display_type}}"
+          },
+          {
+            "signal": "closed",
+            "message_tmpl": "{{content.level}}\n{{content.begin_time}}\n{{content.time}}\n{{content.duration}}\n{{content.target_type}}\n{{content.data_source}}\n{{content.content}}\n{{content.current_value}}\n{{content.biz}}\n{{content.target}}\n{{content.dimension}}\n{{content.detail}}\n{{content.related_info}}",
+            "title_tmpl": "{{business.bk_biz_name}} - {{alarm.name}}{{alarm.display_type}}"
+          }
+        ]
+      }
+    },
+    "labels": [
+      "DBM",
+      "DBM_MYSQL"
+    ],
+    "app": "",
+    "path": "",
+    "priority": 0,
+    "priority_group_key": "4c7e9750af045fd7",
+    "metric_type": "event",
+    "data_source_type": "自定义事件",
+    "is_enabled": true
   },
   "is_enabled": true,
   "monitor_indicator": "COUNT(mysql-lock)",

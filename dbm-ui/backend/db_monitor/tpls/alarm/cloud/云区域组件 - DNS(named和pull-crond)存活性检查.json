@@ -1,16 +1,16 @@
 {
   "bk_biz_id": 0,
-  "name": "Redis(TendisPlus)主机CPU使用率",
-  "db_type": "redis",
+  "name": "云区域组件 - DNS(named和pull-crond)存活性检查",
+  "db_type": "cloud",
   "details": {
     "bk_biz_id": "",
-    "name": "Redis(TendisPlus)主机CPU使用率",
+    "name": "云区域组件 - DNS(named和pull-crond)存活性检查",
     "source": "dbm",
-    "scenario": "os",
+    "scenario": "component",
     "type": "monitor",
     "items": [
       {
-        "name": "[TendisPlus]主机CPU使用率",
+        "name": "COUNT(dns_check_warning-dbm_report_channel)",
         "no_data_config": {
           "level": 2,
           "continuous": 10,
@@ -23,14 +23,32 @@
         "origin_sql": "",
         "query_configs": [
           {
-            "data_source_label": "prometheus",
-            "data_type_label": "time_series",
+            "data_source_label": "custom",
+            "data_type_label": "event",
             "alias": "a",
-            "metric_id": "max by (app,cluster_domain,bk_target_ip,instance_role,cluster_type,bk_target_cloud_id,appid) (max_over_time(bkmonitor:dbm_system",
+            "metric_id": "custom.event.bkmonitor_event_{event_data_id}.dns_check_warning",
             "functions": [],
-            "promql": "max by (app,cluster_domain,bk_target_ip,instance_role,cluster_type,bk_target_cloud_id,appid) (max_over_time(bkmonitor:dbm_system:cpu_summary:usage{cluster_type=\"PredixyTendisplusCluster\",instance_role=~\"redis_master|proxy\"}[1m]))",
+            "result_table_id": "bkmonitor_event_{event_data_id}",
+            "agg_method": "COUNT",
             "agg_interval": 60,
-            "name": ""
+            "agg_dimension": [
+              "target",
+              "bk_cloud_id",
+              "appid"
+            ],
+            "agg_condition": [
+              {
+                "key": "event_name",
+                "value": [
+                  "dns_check_warning"
+                ],
+                "method": "eq",
+                "condition": "and",
+                "dimension_name": "event_name"
+              }
+            ],
+            "custom_event_name": "dns_check_warning",
+            "name": "dns_check_warning"
           }
         ],
         "algorithms": [
@@ -41,27 +59,14 @@
               [
                 {
                   "method": "gte",
-                  "threshold": 90
-                }
-              ]
-            ],
-            "unit_prefix": ""
-          },
-          {
-            "type": "Threshold",
-            "level": 2,
-            "config": [
-              [
-                {
-                  "method": "gte",
-                  "threshold": 80
+                  "threshold": 1
                 }
               ]
             ],
             "unit_prefix": ""
           }
         ],
-        "metric_type": "time_series"
+        "metric_type": "event"
       }
     ],
     "detects": [
@@ -86,37 +91,15 @@
           "status_setter": "recovery"
         },
         "connector": "and"
-      },
-      {
-        "level": 2,
-        "expression": "",
-        "trigger_config": {
-          "count": 2,
-          "uptime": {
-            "calendars": [],
-            "time_ranges": [
-              {
-                "end": "23:59",
-                "start": "00:00"
-              }
-            ]
-          },
-          "check_window": 5
-        },
-        "recovery_config": {
-          "check_window": 5,
-          "status_setter": "recovery"
-        },
-        "connector": "and"
       }
     ],
     "actions": [],
     "notice": {
-      "config_id": 47087,
+      "config_id": 47312,
       "user_groups": [],
       "signal": [
-        "abnormal",
-        "no_data"
+        "no_data",
+        "abnormal"
       ],
       "options": {
         "end_time": "23:59:59",
@@ -228,7 +211,8 @@
           "count": 10,
           "timedelta": 5,
           "dimensions": [
-            "bk_target_ip"
+            "bk_cloud_id",
+            "target"
           ],
           "is_enabled": false
         }
@@ -236,22 +220,22 @@
       "relate_type": "NOTICE",
       "config": {
         "need_poll": true,
-        "notify_interval": 1800,
+        "notify_interval": 7200,
         "interval_notify_mode": "standard",
         "template": [
           {
             "signal": "abnormal",
-            "message_tmpl": "{{content.level}}\n{{content.begin_time}}\n{{content.time}}\n{{content.duration}}\n{{content.target_type}}\n{{content.data_source}}\n{{content.content}}\n{{content.current_value}}\n{{content.biz}}\n{{content.target}}\n{{content.dimension}}\n{{content.detail}}\n{{content.related_info}}",
+            "message_tmpl": "{{content.level}}\n{{content.begin_time}}\n{{content.time}}\n{{content.duration}}\n{{content.target_type}}\n{{content.data_source}}\n{{content.content}}\n{{content.current_value}}\n{{content.biz}}\n{{content.target}}\n{{content.dimension}}\n{{content.detail}}\n{{content.assign_detail}}\n{{content.related_info}}",
             "title_tmpl": "{{business.bk_biz_name}} - {{alarm.name}}{{alarm.display_type}}"
           },
           {
             "signal": "recovered",
-            "message_tmpl": "{{content.level}}\n{{content.begin_time}}\n{{content.time}}\n{{content.duration}}\n{{content.target_type}}\n{{content.data_source}}\n{{content.content}}\n{{content.current_value}}\n{{content.biz}}\n{{content.target}}\n{{content.dimension}}\n{{content.detail}}\n{{content.related_info}}",
+            "message_tmpl": "{{content.level}}\n{{content.begin_time}}\n{{content.time}}\n{{content.duration}}\n{{content.target_type}}\n{{content.data_source}}\n{{content.content}}\n{{content.current_value}}\n{{content.biz}}\n{{content.target}}\n{{content.dimension}}\n{{content.detail}}\n{{content.assign_detail}}\n{{content.related_info}}",
             "title_tmpl": "{{business.bk_biz_name}} - {{alarm.name}}{{alarm.display_type}}"
           },
           {
             "signal": "closed",
-            "message_tmpl": "{{content.level}}\n{{content.begin_time}}\n{{content.time}}\n{{content.duration}}\n{{content.target_type}}\n{{content.data_source}}\n{{content.content}}\n{{content.current_value}}\n{{content.biz}}\n{{content.target}}\n{{content.dimension}}\n{{content.detail}}\n{{content.related_info}}",
+            "message_tmpl": "{{content.level}}\n{{content.begin_time}}\n{{content.time}}\n{{content.duration}}\n{{content.target_type}}\n{{content.data_source}}\n{{content.content}}\n{{content.current_value}}\n{{content.biz}}\n{{content.target}}\n{{content.dimension}}\n{{content.detail}}\n{{content.assign_detail}}\n{{content.related_info}}",
             "title_tmpl": "{{business.bk_biz_name}} - {{alarm.name}}{{alarm.display_type}}"
           }
         ]
@@ -259,19 +243,20 @@
     },
     "labels": [
       "DBM",
-      "DBM_REDIS"
+      "DBM_CLOUD",
+      "DNS"
     ],
     "app": "",
     "path": "",
     "priority": 0,
     "priority_group_key": "",
-    "metric_type": "time_series",
-    "data_source_type": "Prometheus",
+    "metric_type": "event",
+    "data_source_type": "自定义事件",
     "is_enabled": true
   },
   "is_enabled": true,
-  "monitor_indicator": "[TendisPlus]主机CPU使用率",
+  "monitor_indicator": "COUNT(dns_check_warning-dbm_report_channel)",
   "version": 16,
-  "alert_source": "time_series",
+  "alert_source": "event",
   "custom_conditions": []
 }

@@ -1,16 +1,16 @@
 {
   "bk_biz_id": 0,
-  "name": "Redis(TendisPlus)\u4e3b\u673a\u7f51\u7edc\u6d41\u91cf\u4f7f\u7528\u7387",
+  "name": "Redis(TendisPlus)主机网络流量使用率",
   "db_type": "redis",
   "details": {
     "bk_biz_id": "",
-    "name": "Redis(TendisPlus)\u4e3b\u673a\u7f51\u7edc\u6d41\u91cf\u4f7f\u7528\u7387",
+    "name": "Redis(TendisPlus)主机网络流量使用率",
     "source": "dbm",
     "scenario": "os",
     "type": "monitor",
     "items": [
       {
-        "name": "[TendisPlus]\u4e3b\u673a\u7f51\u7edc\u6d41\u91cf\u4f7f\u7528\u7387",
+        "name": "[TendisPlus]主机网络流量使用率",
         "no_data_config": {
           "level": 2,
           "continuous": 10,
@@ -270,8 +270,8 @@
     "is_enabled": true
   },
   "is_enabled": true,
-  "monitor_indicator": "[TendisPlus]\u4e3b\u673a\u7f51\u7edc\u6d41\u91cf\u4f7f\u7528\u7387",
-  "version": 0,
+  "monitor_indicator": "[TendisPlus]主机网络流量使用率",
+  "version": 16,
   "alert_source": "time_series",
   "custom_conditions": []
 }

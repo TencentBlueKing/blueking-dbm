@@ -1,10 +1,10 @@
 {
   "bk_biz_id": 0,
-  "name": "Redis(TendisSSD)\u540c\u6b65\u5f02\u5e38critical\u4e8b\u4ef6",
+  "name": "Redis(TendisSSD)同步异常critical事件",
   "db_type": "redis",
   "details": {
     "bk_biz_id": "",
-    "name": "Redis(TendisSSD)\u540c\u6b65\u5f02\u5e38critical\u4e8b\u4ef6",
+    "name": "Redis(TendisSSD)同步异常critical事件",
     "source": "dbm",
     "scenario": "component",
     "type": "monitor",
@@ -265,12 +265,12 @@
     "priority": 0,
     "priority_group_key": "60f2cc8265043fce",
     "metric_type": "event",
-    "data_source_type": "\u81ea\u5b9a\u4e49\u4e8b\u4ef6",
+    "data_source_type": "自定义事件",
     "is_enabled": true
   },
   "is_enabled": true,
   "monitor_indicator": "COUNT(redis_sync-dbm_report_channel)",
-  "version": 0,
+  "version": 16,
   "alert_source": "event",
   "custom_conditions": []
 }

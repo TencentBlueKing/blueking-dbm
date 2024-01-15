@@ -1,10 +1,10 @@
 {
   "bk_biz_id": 0,
-  "name": "Kafka \u6d88\u8d39\u7ec4\u5ef6\u8fdf",
+  "name": "Kafka 消费组延迟",
   "db_type": "kafka",
   "details": {
     "bk_biz_id": "",
-    "name": "Kafka \u6d88\u8d39\u7ec4\u5ef6\u8fdf",
+    "name": "Kafka 消费组延迟",
     "source": "dbm",
     "scenario": "component",
     "type": "monitor",
@@ -78,7 +78,8 @@
             ],
             "unit_prefix": ""
           }
-        ]
+        ],
+        "metric_type": "time_series"
       }
     ],
     "detects": [
@@ -110,8 +111,8 @@
       "config_id": 40796,
       "user_groups": [],
       "signal": [
-        "no_data",
-        "abnormal"
+        "abnormal",
+        "no_data"
       ],
       "options": {
         "end_time": "23:59:59",
@@ -258,13 +259,33 @@
     "app": "",
     "path": "",
     "priority": 0,
-    "priority_group_key": "",
-    "is_enabled": false,
-    "data_source_type": "\u76d1\u63a7\u91c7\u96c6\u6307\u6807"
+    "priority_group_key": "7210f0409eed8857",
+    "metric_type": "time_series",
+    "data_source_type": "监控采集指标",
+    "is_enabled": false
   },
   "is_enabled": false,
   "monitor_indicator": "avg_without_time(kafka_consumergroup_lag_sum)",
   "version": 16,
   "alert_source": "time_series",
-  "custom_conditions": []
+  "custom_conditions": [
+    {
+      "key": "consumergroup",
+      "value": [
+        "gsin"
+      ],
+      "method": "eq",
+      "condition": "and",
+      "dimension_name": "consumergroup"
+    },
+    {
+      "key": "topic",
+      "value": [
+        "sinsin"
+      ],
+      "method": "eq",
+      "condition": "and",
+      "dimension_name": "topic"
+    }
+  ]
 }

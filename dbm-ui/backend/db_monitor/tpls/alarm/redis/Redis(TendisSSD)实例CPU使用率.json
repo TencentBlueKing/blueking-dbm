@@ -1,16 +1,16 @@
 {
   "bk_biz_id": 0,
-  "name": "Redis(TendisSSD)\u5b9e\u4f8bCPU\u4f7f\u7528\u7387",
+  "name": "Redis(TendisSSD)实例CPU使用率",
   "db_type": "redis",
   "details": {
     "bk_biz_id": "",
-    "name": "Redis(TendisSSD)\u5b9e\u4f8bCPU\u4f7f\u7528\u7387",
+    "name": "Redis(TendisSSD)实例CPU使用率",
     "source": "dbm",
     "scenario": "component",
     "type": "monitor",
     "items": [
       {
-        "name": "[TendisSSD]\u5b9e\u4f8bCPU\u4f7f\u7528\u7387",
+        "name": "[TendisSSD]实例CPU使用率",
         "no_data_config": {
           "level": 2,
           "continuous": 10,
@@ -270,8 +270,8 @@
     "is_enabled": true
   },
   "is_enabled": true,
-  "monitor_indicator": "[TendisSSD]\u5b9e\u4f8bCPU\u4f7f\u7528\u7387",
-  "version": 0,
+  "monitor_indicator": "[TendisSSD]实例CPU使用率",
+  "version": 16,
   "alert_source": "time_series",
   "custom_conditions": []
 }

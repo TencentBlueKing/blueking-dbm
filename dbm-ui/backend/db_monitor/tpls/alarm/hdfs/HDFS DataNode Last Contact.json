@@ -3,15 +3,36 @@
   "name": "HDFS DataNode Last Contact",
   "db_type": "hdfs",
   "details": {
-    "app": "",
+    "bk_biz_id": "",
     "name": "HDFS DataNode Last Contact",
-    "path": "",
+    "source": "dbm",
+    "scenario": "component",
     "type": "monitor",
     "items": [
       {
         "name": "[HDFS]-DataNode Last Contact",
+        "no_data_config": {
+          "level": 2,
+          "continuous": 10,
+          "is_enabled": false,
+          "agg_dimension": []
+        },
         "target": [],
+        "expression": "a * b",
         "functions": [],
+        "origin_sql": "",
+        "query_configs": [
+          {
+            "data_source_label": "prometheus",
+            "data_type_label": "time_series",
+            "alias": "a",
+            "metric_id": "max by (bk_target_service_instance_id, datanode) (max_over_time(bkmonitor:exporter_dbm_hdfs_exporter:hadoop_namenode_live_nodes_",
+            "functions": [],
+            "promql": "max by (bk_target_service_instance_id, datanode) (max_over_time(bkmonitor:exporter_dbm_hdfs_exporter:hadoop_namenode_live_nodes_last_contact{instance_role=\"hdfs_namenode\"}[1m])) * ignoring(datanode) group_left avg by (bk_target_service_instance_id) (avg_over_time(bkmonitor:exporter_dbm_hdfs_exporter:hadoop_namenode_State{instance_role=\"hdfs_namenode\"}[1m]))",
+            "agg_interval": 60,
+            "name": ""
+          }
+        ],
         "algorithms": [
           {
             "type": "Threshold",
@@ -27,56 +48,37 @@
             "unit_prefix": ""
           }
         ],
-        "expression": "a * b",
-        "origin_sql": "",
-        "query_configs": [
-          {
-            "name": "",
-            "alias": "a",
-            "promql": "max by (bk_target_service_instance_id, datanode) (max_over_time(bkmonitor:exporter_dbm_hdfs_exporter:hadoop_namenode_live_nodes_last_contact{instance_role=\"hdfs_namenode\"}[1m])) * ignoring(datanode) group_left avg by (bk_target_service_instance_id) (avg_over_time(bkmonitor:exporter_dbm_hdfs_exporter:hadoop_namenode_State{instance_role=\"hdfs_namenode\"}[1m]))",
-            "functions": [],
-            "metric_id": "max by (bk_target_service_instance_id, datanode) (max_over_time(bkmonitor:exporter_dbm_hdfs_exporter:hadoop_namenode_live_nodes_",
-            "agg_interval": 60,
-            "data_type_label": "time_series",
-            "data_source_label": "prometheus"
-          }
-        ],
-        "no_data_config": {
-          "level": 2,
-          "continuous": 10,
-          "is_enabled": false,
-          "agg_dimension": []
-        }
+        "metric_type": "time_series"
       }
     ],
-    "labels": [
-      "DBM",
-      "DBM_HDFS",
-      "HDFS"
+    "detects": [
+      {
+        "level": 2,
+        "expression": "",
+        "trigger_config": {
+          "count": 1,
+          "uptime": {
+            "calendars": [],
+            "time_ranges": [
+              {
+                "end": "23:59",
+                "start": "00:00"
+              }
+            ]
+          },
+          "check_window": 1
+        },
+        "recovery_config": {
+          "check_window": 5,
+          "status_setter": "recovery"
+        },
+        "connector": "and"
+      }
     ],
+    "actions": [],
     "notice": {
-      "config": {
-        "template": [
-          {
-            "signal": "abnormal",
-            "title_tmpl": "{{business.bk_biz_name}} - {{alarm.name}}{{alarm.display_type}}",
-            "message_tmpl": "{{content.level}}\n{{content.begin_time}}\n{{content.time}}\n{{content.duration}}\n{{content.target_type}}\n{{content.data_source}}\n{{content.content}}\n{{content.current_value}}\n{{content.biz}}\n{{content.target}}\n{{content.dimension}}\n{{content.detail}}\n{{content.assign_detail}}\n{{content.related_info}}"
-          },
-          {
-            "signal": "recovered",
-            "title_tmpl": "{{business.bk_biz_name}} - {{alarm.name}}{{alarm.display_type}}",
-            "message_tmpl": "{{content.level}}\n{{content.begin_time}}\n{{content.time}}\n{{content.duration}}\n{{content.target_type}}\n{{content.data_source}}\n{{content.content}}\n{{content.current_value}}\n{{content.biz}}\n{{content.target}}\n{{content.dimension}}\n{{content.detail}}\n{{content.assign_detail}}\n{{content.related_info}}"
-          },
-          {
-            "signal": "closed",
-            "title_tmpl": "{{business.bk_biz_name}} - {{alarm.name}}{{alarm.display_type}}",
-            "message_tmpl": "{{content.level}}\n{{content.begin_time}}\n{{content.time}}\n{{content.duration}}\n{{content.target_type}}\n{{content.data_source}}\n{{content.content}}\n{{content.current_value}}\n{{content.biz}}\n{{content.target}}\n{{content.dimension}}\n{{content.detail}}\n{{content.assign_detail}}\n{{content.related_info}}"
-          }
-        ],
-        "need_poll": true,
-        "notify_interval": 7200,
-        "interval_notify_mode": "standard"
-      },
+      "config_id": 40760,
+      "user_groups": [],
       "signal": [
         "no_data",
         "abnormal"
@@ -96,46 +98,46 @@
           "count": 1,
           "condition": [
             {
+              "dimension": "strategy_id",
               "value": [
                 "self"
-              ],
-              "dimension": "strategy_id"
+              ]
             },
             {
+              "dimension": "dimensions",
               "value": [
                 "self"
-              ],
-              "dimension": "dimensions"
+              ]
             },
             {
+              "dimension": "alert_level",
               "value": [
                 "self"
-              ],
-              "dimension": "alert_level"
+              ]
             },
             {
+              "dimension": "signal",
               "value": [
                 "self"
-              ],
-              "dimension": "signal"
+              ]
             },
             {
+              "dimension": "bk_biz_id",
               "value": [
                 "self"
-              ],
-              "dimension": "bk_biz_id"
+              ]
             },
             {
+              "dimension": "notice_receiver",
               "value": [
                 "self"
-              ],
-              "dimension": "notice_receiver"
+              ]
             },
             {
+              "dimension": "notice_way",
               "value": [
                 "self"
-              ],
-              "dimension": "notice_way"
+              ]
             }
           ],
           "timedelta": 60,
@@ -143,40 +145,40 @@
           "converge_func": "collect",
           "need_biz_converge": true,
           "sub_converge_config": {
+            "timedelta": 60,
             "count": 2,
             "condition": [
               {
+                "dimension": "bk_biz_id",
                 "value": [
                   "self"
-                ],
-                "dimension": "bk_biz_id"
+                ]
               },
               {
+                "dimension": "notice_receiver",
                 "value": [
                   "self"
-                ],
-                "dimension": "notice_receiver"
+                ]
               },
               {
+                "dimension": "notice_way",
                 "value": [
                   "self"
-                ],
-                "dimension": "notice_way"
+                ]
               },
               {
+                "dimension": "alert_level",
                 "value": [
                   "self"
-                ],
-                "dimension": "alert_level"
+                ]
               },
               {
+                "dimension": "signal",
                 "value": [
                   "self"
-                ],
-                "dimension": "signal"
+                ]
               }
             ],
-            "timedelta": 60,
             "converge_func": "collect_alarm"
           }
         },
@@ -194,44 +196,45 @@
           "is_enabled": false
         }
       },
-      "config_id": 40184,
       "relate_type": "NOTICE",
-      "user_groups": []
-    },
-    "source": "dbm",
-    "actions": [],
-    "detects": [
-      {
-        "level": 2,
-        "connector": "and",
-        "expression": "",
-        "trigger_config": {
-          "count": 1,
-          "uptime": {
-            "calendars": [],
-            "time_ranges": [
-              {
-                "end": "23:59",
-                "start": "00:00"
-              }
-            ]
+      "config": {
+        "need_poll": true,
+        "notify_interval": 7200,
+        "interval_notify_mode": "standard",
+        "template": [
+          {
+            "signal": "abnormal",
+            "message_tmpl": "{{content.level}}\n{{content.begin_time}}\n{{content.time}}\n{{content.duration}}\n{{content.target_type}}\n{{content.data_source}}\n{{content.content}}\n{{content.current_value}}\n{{content.biz}}\n{{content.target}}\n{{content.dimension}}\n{{content.detail}}\n{{content.assign_detail}}\n{{content.related_info}}",
+            "title_tmpl": "{{business.bk_biz_name}} - {{alarm.name}}{{alarm.display_type}}"
           },
-          "check_window": 1
-        },
-        "recovery_config": {
-          "check_window": 5,
-          "status_setter": "recovery"
-        }
+          {
+            "signal": "recovered",
+            "message_tmpl": "{{content.level}}\n{{content.begin_time}}\n{{content.time}}\n{{content.duration}}\n{{content.target_type}}\n{{content.data_source}}\n{{content.content}}\n{{content.current_value}}\n{{content.biz}}\n{{content.target}}\n{{content.dimension}}\n{{content.detail}}\n{{content.assign_detail}}\n{{content.related_info}}",
+            "title_tmpl": "{{business.bk_biz_name}} - {{alarm.name}}{{alarm.display_type}}"
+          },
+          {
+            "signal": "closed",
+            "message_tmpl": "{{content.level}}\n{{content.begin_time}}\n{{content.time}}\n{{content.duration}}\n{{content.target_type}}\n{{content.data_source}}\n{{content.content}}\n{{content.current_value}}\n{{content.biz}}\n{{content.target}}\n{{content.dimension}}\n{{content.detail}}\n{{content.assign_detail}}\n{{content.related_info}}",
+            "title_tmpl": "{{business.bk_biz_name}} - {{alarm.name}}{{alarm.display_type}}"
+          }
+        ]
       }
+    },
+    "labels": [
+      "DBM",
+      "DBM_HDFS",
+      "HDFS"
     ],
+    "app": "",
+    "path": "",
     "priority": 0,
-    "scenario": "component",
-    "bk_biz_id": "",
+    "priority_group_key": "c641733ae700b345",
+    "metric_type": "time_series",
     "data_source_type": "Prometheus",
-    "priority_group_key": ""
+    "is_enabled": true
   },
   "is_enabled": true,
-  "monitor_indicator": "DataNode\u6700\u540e\u4e00\u6b21\u901a\u4fe1\u65f6\u95f4",
+  "monitor_indicator": "[HDFS]-DataNode Last Contact",
   "version": 16,
   "alert_source": "time_series",
   "custom_conditions": []
