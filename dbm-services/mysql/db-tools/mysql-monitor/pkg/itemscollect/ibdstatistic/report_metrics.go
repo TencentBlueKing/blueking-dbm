@@ -11,6 +11,7 @@ package ibdstatistic
 import (
 	"log/slog"
 	"regexp"
+	"slices"
 
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/config"
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/utils"
@@ -36,7 +37,7 @@ func reportMetrics(result map[string]map[string]int64) error {
 		originalDbName := dbName
 
 		// 根据 dbm 枚举约定, remote 是 tendbcluster 的存储机器类型
-		if config.MonitorConfig.MachineType == "remote" {
+		if config.MonitorConfig.MachineType == "remote" && slices.Index(systemDBs, dbName) < 0 {
 			match := tendbClusterDbNamePattern.FindStringSubmatch(dbName)
 			if match == nil {
 				err := errors.Errorf(
