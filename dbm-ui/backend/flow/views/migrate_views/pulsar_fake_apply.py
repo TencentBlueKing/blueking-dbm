@@ -53,19 +53,19 @@ class FakeInstallPulsarSceneApiView(MigrateFlowView):
         "nodes": {
             "zookeeper": [
                 {
-                    "ip": "1.1.1.1",
+                    "ip": "127.0.0.1",
                     "bk_cloud_id": 0,
                     "bk_host_id": 1,
                     "bk_biz_id": 111
                 },
                 {
-                    "ip": "2.2.2.2",
+                    "ip": "127.0.0.2",
                     "bk_cloud_id": 0,
                     "bk_host_id": 2,
                     "bk_biz_id": 111
                 },
                 {
-                    "ip": "3.3.3.3",
+                    "ip": "127.0.0.3",
                     "bk_cloud_id": 0,
                     "bk_host_id": 3,
                     "bk_biz_id": 111
@@ -73,7 +73,7 @@ class FakeInstallPulsarSceneApiView(MigrateFlowView):
             ],
             "broker": [
                 {
-                    "ip": "4.4.4.4",
+                    "ip": "127.0.0.4",
                     "bk_cloud_id": 0,
                     "bk_host_id": 4,
                     "bk_biz_id": 111
@@ -81,13 +81,13 @@ class FakeInstallPulsarSceneApiView(MigrateFlowView):
             ],
             "bookkeeper": [
                 {
-                    "ip": "5.5.5.5",
+                    "ip": "127.0.0.5",
                     "bk_cloud_id": 0,
                     "bk_host_id": 5,
                     "bk_biz_id": 111
                 },
                 {
-                    "ip": "6.6.6.6",
+                    "ip": "127.0.0.6",
                     "bk_cloud_id": 0,
                     "bk_host_id": 6,
                     "bk_biz_id": 111

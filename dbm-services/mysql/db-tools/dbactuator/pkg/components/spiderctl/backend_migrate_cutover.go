@@ -141,13 +141,13 @@ func (s *SpiderClusterBackendMigrateCutoverComp) Example() interface{} {
 						Port: 3006,
 					},
 					DestMaster: CutoverUnit{
-						Host:     "3.3.3.3",
+						Host:     "127.0.0.3",
 						Port:     3306,
 						User:     "xx",
 						Password: "xx",
 					},
 					DestSlave: CutoverUnit{
-						Host:     "4.4.4.4",
+						Host:     "127.0.0.4",
 						Port:     3306,
 						User:     "xx",
 						Password: "xx",
@@ -159,13 +159,13 @@ func (s *SpiderClusterBackendMigrateCutoverComp) Example() interface{} {
 						Port: 3007,
 					},
 					DestMaster: CutoverUnit{
-						Host:     "3.3.3.3",
+						Host:     "127.0.0.3",
 						Port:     3307,
 						User:     "xx",
 						Password: "xx",
 					},
 					DestSlave: CutoverUnit{
-						Host:     "4.4.4.4",
+						Host:     "127.0.0.4",
 						Port:     3307,
 						User:     "xx",
 						Password: "xx",

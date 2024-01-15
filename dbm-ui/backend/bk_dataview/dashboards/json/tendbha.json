@@ -8358,8 +8358,8 @@
       {
         "current": {
           "selected": false,
-          "text": "9.143.80.224",
-          "value": "9.143.80.224"
+          "text": "127.0.0.1",
+          "value": "127.0.0.1"
         },
         "datasource": {
           "type": "bkmonitor-timeseries-datasource",

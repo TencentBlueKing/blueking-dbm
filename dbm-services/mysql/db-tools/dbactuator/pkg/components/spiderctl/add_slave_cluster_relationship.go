@@ -38,23 +38,23 @@ func (a *AddSlaveClusterRoutingComp) Example() interface{} {
 			Port: 26000,
 			SlaveInstances: []Instance{
 				{
-					Host:    "3.3.3.3",
+					Host:    "127.0.0.3",
 					Port:    20000,
 					ShardID: 0,
 				},
 				{
-					Host:    "3.3.3.3",
+					Host:    "127.0.0.3",
 					Port:    20001,
 					ShardID: 1,
 				},
 			},
 			SpiderSlaveInstances: []Instance{
 				{
-					Host: "3.3.3.3",
+					Host: "127.0.0.3",
 					Port: 25000,
 				},
 				{
-					Host: "3.3.3.3",
+					Host: "127.0.0.3",
 					Port: 25001,
 				},
 			},

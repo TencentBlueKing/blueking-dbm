@@ -59,12 +59,12 @@ GetAllClustersInfo 获取业务下所有集群信息
 		  ],
 		  "storages": [
 		    {
-		      "ip": "3.3.3.3",
+		      "ip": "127.0.0.3",
 		      "instance_role": "backend_slave",
 		      "port": 30000
 		    },
 		    {
-		      "ip": "4.4.4.4",
+		      "ip": "127.0.0.4",
 		      "instance_role": "backend_master",
 		      "port": 40000
 		    }
