@@ -29,4 +29,5 @@ use (
 	sqlserver/db-tools/dbactuator
 	mongo/db-tools/dbmon
 	mongo/db-tools/mongo-toolkit-go
+	mongo/db-tools/dbactuator
 )
