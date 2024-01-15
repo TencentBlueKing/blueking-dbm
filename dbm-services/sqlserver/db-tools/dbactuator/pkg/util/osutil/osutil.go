@@ -145,9 +145,9 @@ func GetVersionYears(SQlServerVersion string) (int, error) {
 	return num, nil
 }
 
-// GetInstallPackageName 根据端口号拼接sqlserver的实例名称，比如48322，那么端口号是S48322
-func GetInstallPackageName(version string) string {
-	return fmt.Sprintf("%s_SorceMedia", version)
+// GetInstallPackageName 根据压缩包，得到
+func GetInstallPackageName(name string) string {
+	return strings.Split(name, ".")[0]
 }
 
 // GenerateRandomString 随机生成字符串
@@ -189,4 +189,24 @@ func ArrayTransString(arr []string) string {
 	}
 	str = strings.TrimRight(str, ",")
 	return str
+}
+
+// CreateExporterConf 简单写一个根据端口号生成exporter文件的方法
+func CreateExporterConf(fileName string, host string, port int, user string, password string) (err error) {
+	// 检查文件是否存在
+	if _, err := os.Stat(fileName); err == nil {
+		// 文件存在，删除文件
+		err := os.Remove(fileName)
+		if err != nil {
+			return err
+		}
+	}
+	// 创建文件
+	file, err := os.Create(fileName)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+	file.WriteString(fmt.Sprintf("%s %d %s %s false false", host, port, user, password))
+	return nil
 }

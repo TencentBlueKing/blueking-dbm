@@ -48,6 +48,9 @@ class ClusterType(str, StructuredEnum):
 
     Riak = EnumField("riak", _("Riak集群"))
 
+    SqlserverSingle = EnumField("sqlserver_single", _("sqlserver单节点版"))
+    SqlserverHA = EnumField("sqlserver_ha", _("sqlserver主从版"))
+
     @classmethod
     def db_type_to_cluster_type(cls, db_type):
         return {

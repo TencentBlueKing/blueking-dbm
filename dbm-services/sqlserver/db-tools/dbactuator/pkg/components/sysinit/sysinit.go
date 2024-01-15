@@ -146,6 +146,7 @@ func (s *SysInitParam) CreateSysDir() error {
 		filepath.Join(cst.BASE_DATA_PATH, cst.MSSQL_DATA_NAME),
 		filepath.Join(cst.BASE_DATA_PATH, cst.MSSQL_BACKUP_NAME),
 		filepath.Join(cst.BASE_DATA_PATH, cst.IEOD_FILE_BACKUP),
+		filepath.Join(cst.BASE_DATA_PATH, cst.MSSQL_EXPOTER_NAME),
 		filepath.Join(cst.BASE_DATA_PATH, cst.MSSQL_BACKUP_NAME, "full"),
 		filepath.Join(cst.BASE_DATA_PATH, cst.MSSQL_BACKUP_NAME, "log"),
 	}

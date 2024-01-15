@@ -32,9 +32,9 @@ func CreateInstallConf(conf []byte, confFile string, version string) error {
 	defer file.Close()
 
 	// 这里写入配置文件的类别，不同版本类别名称都不一样
-	title := "[OPTIONS]"
+	title := "[OPTIONS]\n"
 	if strings.Contains(version, "2008") {
-		title = "[SQLSERVER2008]"
+		title = "[SQLSERVER2008]\n"
 	}
 	file.WriteString(title)
 

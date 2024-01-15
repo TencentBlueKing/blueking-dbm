@@ -19,6 +19,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/riak/db-tools/dbactuator/pkg/rollback"
@@ -50,25 +51,13 @@ type InstallSqlServerParams struct {
 	components.Medium
 	Ports            []int           `json:"ports" validate:"required,gt=0,dive"`
 	SQlServerVersion string          `json:"sqlserver_version"  validate:"required"`
+	Charset          string          `json:"charset"  validate:"required"`
 	Host             string          `json:"host" validate:"required,ip" `
 	InstallKey       string          `json:"install_key" validate:"required" `
 	BufferPercent    uint64          `json:"buffer_percent" validate:"required,gt=0,lt=100"`
 	MaxRemainMemGB   uint64          `json:"max_remain_mem_gb" validate:"required,gt=0"`
 	SQLServerConfigs json.RawMessage `json:"sqlserver_configs"  validate:"required" `
 }
-
-// RenderConfigs TODO
-// type RenderConfig struct {
-// 	InstanceID     string `json:"instance_id"`
-// 	InstanceName   string `json:"instance_name"`
-// 	InstallKey     string `json:"install_key"`
-// 	DataDir        string `json:"data_dir"`
-// 	SqlSVCAccout   string `json:"sql_svc_account"`
-// 	SqlSVCPassWord string `json:"sql_svc_password"`
-// 	AgtSVCAccount  string `json:"agt_svc_account"`
-// 	AgtSVCPassWord string `json:"agt_svc_password"`
-// 	SAPwd          string `json:"sa_pwd"`
-// }
 
 // RenderConfig TODO
 type RenderConfig struct {
@@ -81,6 +70,7 @@ type RenderConfig struct {
 	AgtSVCAccount  string
 	AgtSVCPassWord string
 	SAPwd          string
+	Charset        string
 }
 
 // Cnf TODO
@@ -164,16 +154,16 @@ func (i *InstallSqlServerComp) InitDefaultParam() error {
 	i.RenderConfigs = make(map[Port]RenderConfig)
 	for _, port := range i.InsPorts {
 		i.RenderConfigs[port] = RenderConfig{
-			InstanceID:   osutil.GetInstallName(port),
-			InstanceName: osutil.GetInstallName(port),
-			InstallKey:   i.Params.InstallKey,
-			// DataDir:        fmt.Sprintf("%s\\\\%d", i.DataRootPath, port),
-			DataDir:        filepath.Join(i.DataRootPath, strconv.Itoa(port)),
+			InstanceID:     osutil.GetInstallName(port),
+			InstanceName:   osutil.GetInstallName(port),
+			InstallKey:     i.Params.InstallKey,
+			DataDir:        fmt.Sprintf("%s\\%s\\\\%d", cst.BASE_DATA_PATH, cst.MSSQL_DATA_NAME, port),
 			SqlSVCAccout:   i.GeneralParam.RuntimeAccountParam.SQLServerUser,
 			SqlSVCPassWord: i.GeneralParam.RuntimeAccountParam.SQLServerPwd,
 			AgtSVCAccount:  i.GeneralParam.RuntimeAccountParam.SQLServerUser,
 			AgtSVCPassWord: i.GeneralParam.RuntimeAccountParam.SQLServerPwd,
 			SAPwd:          i.GeneralParam.RuntimeAccountParam.SAPwd,
+			Charset:        i.Params.Charset,
 		}
 	}
 
@@ -318,24 +308,29 @@ func (i *InstallSqlServerComp) SqlServerStartup() error {
 	}
 	// 遍历端口安装启动实例
 	for _, port := range i.InsPorts {
-		_, err := osutil.StandardPowerShellCommand(
-			// fmt.Sprintf(
-			// 	"& %s\\%s\\setup.exe /ConfigurationFile=%s",
-			// 	cst.BASE_DATA_PATH,
-			// 	osutil.GetInstallPackageName(i.Params.SQlServerVersion),
-			// 	i.CnfTpls[port].ConfFile,
-			// ),
+		cmds := []string{
+			fmt.Sprintf("Remove-Item -Path '%s' -Force", cst.REBOOTREQUIRED_KEY),
+			fmt.Sprintf("Remove-ItemProperty -Path '%s' -Name PendingFileRenameOperations' -Force", cst.SESSION_MANAGER_KEY),
+		}
+		osutil.StandardPowerShellCommands(cmds)
+
+		// 等到3秒，等注册表信息足够删除
+		time.Sleep(3 * time.Second)
+
+		// 执行安装
+		result, err := osutil.StandardPowerShellCommand(
 			fmt.Sprintf(
 				"& %s /ConfigurationFile=%s",
-				filepath.Join(cst.BASE_DATA_PATH, osutil.GetInstallPackageName(i.Params.SQlServerVersion), "setup.exe"),
+				filepath.Join(cst.BASE_DATA_PATH, osutil.GetInstallPackageName(i.Params.Medium.Pkg), "setup.exe"),
 				i.CnfTpls[port].ConfFile,
 			),
 		)
 		if err != nil {
-			i.DeleteConfs()
+			// i.DeleteConfs()
+			logger.Error("setup failed: %s", result)
 			return err
 		}
-		logger.Info("installing sqlserver instance [%d] successfully")
+		logger.Info("installing sqlserver instance [%d] successfully", port)
 	}
 	i.DeleteConfs()
 	return nil
@@ -388,7 +383,7 @@ func (i *InstallSqlServerComp) InitConfigs() error {
 	cmd := fmt.Sprintf("& %s %s %s %s %d %d",
 		tmpScriptName,
 		i.Params.Host,
-		i.Params.SQlServerVersion,
+		osutil.GetInstallPackageName(i.Params.Medium.Pkg),
 		strings.Join(InstanceNames, ","),
 		HADREnabled,
 		SSMSEnabled,
@@ -483,6 +478,22 @@ func (i *InstallSqlServerComp) InitInstanceBuffer() error {
 	return nil
 }
 
+// CreateExporterConf 创建exporter文件，每个端口有一份
+func (i *InstallSqlServerComp) CreateExporterConf() error {
+	for _, port := range i.InsPorts {
+		if err := osutil.CreateExporterConf(
+			filepath.Join(cst.BASE_DATA_PATH, cst.MSSQL_EXPOTER_NAME, fmt.Sprintf("exporter_%d.conf", port)),
+			"localhost",
+			port,
+			i.GeneralParam.RuntimeAccountParam.MssqlExporterUser,
+			i.GeneralParam.RuntimeAccountParam.MssqlExporterPwd,
+		); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // WriteInitSQLFile TODO
 // 把初始化的sql文件写入到本地
 func WriteInitSQLFile() ([]string, error) {
@@ -501,6 +512,9 @@ func WriteInitSQLFile() ([]string, error) {
 			return nil, err
 		}
 		// tmpScriptName := fmt.Sprintf("%s\\%s", cst.BASE_DATA_PATH, sqlFile)
+		// 添加 UTF-8 BOM 字节序列
+		data = append([]byte{0xEF, 0xBB, 0xBF}, data...)
+
 		tmpScriptName := filepath.Join(cst.BASE_DATA_PATH, sqlFile)
 		if err = os.WriteFile(tmpScriptName, data, 0755); err != nil {
 			logger.Error("write sql script failed %s", err.Error())

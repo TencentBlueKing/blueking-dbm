@@ -78,6 +78,10 @@ INSTANCE_MONITOR_PLUGINS = {
         MachineType.MONGOS: {"name": "mongos", "plugin_id": "dbm_mongodb_exporter", "func_name": "mongos"},
         MachineType.MONOG_CONFIG: {"name": "mongo_config", "plugin_id": "dbm_mongodb_exporter", "func_name": "mongod"},
     },
+    DBType.Sqlserver: {
+        MachineType.SQLSERVER_SINGLE: {"name": "sqlserver", "plugin_id": "dbm_mssql_exporter", "func_name": "mssql"},
+        MachineType.SQLSERVER_HA: {"name": "sqlserver", "plugin_id": "dbm_mssql_exporter", "func_name": "mssql"},
+    },
 }
 
 SET_NAME_TEMPLATE = "db.{db_type}.{monitor_plugin_name}"

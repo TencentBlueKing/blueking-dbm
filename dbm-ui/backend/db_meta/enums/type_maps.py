@@ -37,6 +37,8 @@ MachineTypeAccessLayerMap = {
     MachineType.PULSAR_ZOOKEEPER: AccessLayer.STORAGE,
     MachineType.INFLUXDB: AccessLayer.STORAGE,
     MachineType.RIAK: AccessLayer.STORAGE,
+    MachineType.SQLSERVER_SINGLE: AccessLayer.STORAGE,
+    MachineType.SQLSERVER_HA: AccessLayer.STORAGE,
 }
 
 ClusterTypeMachineTypeDefine = {
@@ -61,6 +63,8 @@ ClusterTypeMachineTypeDefine = {
     ClusterType.Pulsar: [MachineType.PULSAR_BROKER, MachineType.PULSAR_BOOKKEEPER, MachineType.PULSAR_ZOOKEEPER],
     ClusterType.Influxdb: [MachineType.INFLUXDB],
     ClusterType.Riak: [MachineType.RIAK],
+    ClusterType.SqlserverSingle: [MachineType.SQLSERVER_SINGLE],
+    ClusterType.SqlserverHA: [MachineType.SQLSERVER_HA],
 }
 
 ClusterMachineAccessTypeDefine = {
@@ -190,6 +194,12 @@ MachineTypeInstanceRoleMap = {
     MachineType.INFLUXDB: [InstanceRole.INFLUXDB],
     MachineType.RIAK: [InstanceRole.RIAK_NODE],
     # MachineType.SPIDER: [InstanceRole.SPIDER_MASTER,InstanceRole.SPIDER_SLAVE]
+    MachineType.SQLSERVER_SINGLE: [InstanceRole.ORPHAN],
+    MachineType.SQLSERVER_HA: [
+        InstanceRole.BACKEND_MASTER,
+        InstanceRole.BACKEND_REPEATER,
+        InstanceRole.BACKEND_SLAVE,
+    ],
 }
 
 InstanceRoleInstanceInnerRoleMap = {

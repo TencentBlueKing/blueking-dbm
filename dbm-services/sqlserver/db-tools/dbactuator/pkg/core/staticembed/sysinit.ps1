@@ -12,7 +12,7 @@ SET-SERVICE WinRM        -STARTUPTYPE DISABLED
 
 
 # if there are some previous operations make OS require a restart, turn it off
-Remove-Item -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager" -Name "PendingFileRenameOperations" -Force
+Remove-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager" -Name "PendingFileRenameOperations" -Force
 Remove-Item -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update\RebootRequired" -Force
 
 # wait 3s

@@ -97,6 +97,10 @@ func (d *DeploySqlServerAct) Run() (err error) {
 			Func:    d.BaseService.PreCheck,
 		},
 		{
+			FunName: "生成expoter文件",
+			Func:    d.BaseService.CreateExporterConf,
+		},
+		{
 			FunName: "渲染实例配置",
 			Func:    d.BaseService.GenerateCnf,
 		},

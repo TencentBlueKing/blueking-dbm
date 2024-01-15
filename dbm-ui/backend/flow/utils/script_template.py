@@ -54,3 +54,40 @@ chmod +x dbactuator
 echo privilege: {{access_hosts}}-{{usr}}--{{pwd}}; type: {{type}}
 echo Test privilege flush successfully!
 """
+
+# 在powershell 环境下 执行 sqlserver actuator 命令
+# 每个单据下创建单据目录，避免并发时的文件冲突
+# 同时对比actuator的md5,如果一致则不发，提供效率
+sqlserver_actuator_template = """
+param (
+    [string]$payload
+)
+$targetDir = "d:\\install\\dbactuator-{{uid}}"
+$logDir = Join-Path $targetDir "logs"
+$sourceFile = "d:\\install\\dbactuator.exe"
+
+# Create logs directory if it doesn't exist
+if (-not (Test-Path $logDir)) {
+    New-Item -ItemType Directory -Path $logDir | Out-Null
+}
+
+if (-not (Test-Path (Join-Path $targetDir "dbactuator"))) {
+    Copy-Item $sourceFile $targetDir
+}
+else {
+    $md5_1 = (Get-FileHash $sourceFile).Hash
+    $md5_2 = (Get-FileHash (Join-Path $targetDir "dbactuator")).Hash
+    if ($md5_1 -ne $md5_2) {
+        Copy-Item $sourceFile $targetDir -Force
+    }
+}
+
+Set-Location $targetDir
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Unrestricted -Force
+.\\dbactuator.exe  {{db_type}} {{action}} --uid {{uid}} --root_id {{root_id}} --node_id {{node_id}} --version_id \
+ {{version_id}}  --payload $payload
+
+if ($LASTEXITCODE -ne 0 ) {
+exit 1
+}
+"""

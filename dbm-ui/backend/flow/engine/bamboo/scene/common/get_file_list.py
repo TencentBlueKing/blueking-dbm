@@ -527,3 +527,15 @@ class GetFileList(object):
             f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{tbinlogdumper_pkg.path}",
             f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{self.actuator_pkg.path}",
         ]
+
+    def get_sqlserver_package(self, db_version: str):
+        """
+        获取Sqlserver的安装包
+        """
+        sqlserver_pkg = Package.get_latest_package(
+            version=db_version, pkg_type=MediumEnum.Sqlserver, db_type=DBType.Sqlserver
+        )
+        return [
+            f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{sqlserver_pkg.path}",
+            f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{self.actuator_pkg.path}",
+        ]

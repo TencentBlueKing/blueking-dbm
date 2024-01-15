@@ -175,6 +175,7 @@ from backend.flow.views.spider_slave_apply import InstallSpiderSlaveClusterScene
 from backend.flow.views.spider_slave_destroy import DestroySpiderSlaveClusterSceneApiView
 from backend.flow.views.spider_sql_import import SpiderSqlImportSceneApiView
 from backend.flow.views.sql_semantic_check import SqlSemanticCheckSceneApiView
+from backend.flow.views.sqlserver import SqlserverHAApplySceneApiView, SqlserverSingleApplySceneApiView
 from backend.flow.views.tbinlogdumper_add import (
     DisableTBinlogDumperSceneApiView,
     EnableTBinlogDumperSceneApiView,
@@ -385,4 +386,7 @@ urlpatterns = [
     url("^scene/mysql_open_area$", MysqlOpenAreaSceneApiView.as_view()),
     # migrate
     url("^scene/migrate_spider_cluster_from_gcs$", MigrateSpiderClusterFromGcsView.as_view()),
+    # sqlserver
+    url("^scene/sqlserver_single_apply$", SqlserverSingleApplySceneApiView.as_view()),
+    url("^scene/sqlserver_ha_apply$", SqlserverHAApplySceneApiView.as_view()),
 ]

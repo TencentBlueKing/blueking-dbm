@@ -260,7 +260,15 @@ class BkJobService(BaseService, metaclass=ABCMeta):
 
         # 获取本次执行的所有ip信息
         # ip_dict = {"bk_cloud_id": kwargs["bk_cloud_id"], "ip": exec_ips[0]} if exec_ips else {}
-        ip_dicts = [{"bk_cloud_id": kwargs["bk_cloud_id"], "ip": ip} for ip in exec_ips] if exec_ips else []
+        # ip_dicts = [{"bk_cloud_id": kwargs["bk_cloud_id"], "ip": ip} for ip in exec_ips] if exec_ips else []
+        ip_dicts = []
+        if exec_ips:
+            for i in exec_ips:
+                if isinstance(i, dict) and i.get("ip") is not None and i.get("bk_cloud_id") is not None:
+                    ip_dicts.append(i)
+                else:
+                    # 兼容之前代码
+                    ip_dicts.append({"bk_cloud_id": kwargs["bk_cloud_id"], "ip": i})
 
         # 判断本次job任务是否异常
         if job_status not in SUCCESS_LIST:
