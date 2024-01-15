@@ -1,4 +1,5 @@
 <template>
+  <NoticeComponent :api-url="noticeApi" />
   <Layout>
     <template #navigationHeaderRight>
       <SystemSearch
@@ -65,13 +66,16 @@
 
   import { useUserProfile } from '@stores';
 
-  // import DbRouterView from '@components/db-router-view/Index.vue';
   import LocaleSwitch from '@components/locale-switch/Index.vue';
   import RouterBack from '@components/router-back/Index.vue';
   import SystemSearch from '@components/system-search/Index.vue';
   import SystemVersionLog from '@components/system-version-log/Index.vue';
 
+  import NoticeComponent from '@blueking/notice-component';
+
   import Layout from './layout/Index.vue';
+
+  import '@blueking/notice-component/dist/style.css';
 
   const userProfileStore = useUserProfile();
   userProfileStore.fetchProfile();
@@ -82,6 +86,7 @@
     'zh-cn': '数据库管理 | 腾讯蓝鲸智云',
   };
 
+  const noticeApi = `${window.PROJECT_ENV.VITE_AJAX_URL_PREFIX}/notice/announcements/`;
   const isShowHelp = ref(false);
   const isShowLogout = ref(false);
   const isShowSystemVersionLog = ref(false);

@@ -33,9 +33,7 @@
     <template #menu>
       <component :is="renderMenuCom" />
     </template>
-    <div
-      class="db-navigation-content-header"
-      :style="{'box-shadow': isContendFullscreen ? 'none' : '0 3px 4px 0 #0000000a'}">
+    <div class="db-navigation-content-header">
       <slot name="content-header" />
       <div class="db-navigation-content-title">
         {{ contentTitle }}
@@ -44,8 +42,10 @@
       <div id="dbContentHeaderAppend" />
     </div>
     <div
+      ref="contentWrapperRef"
       class="db-navigation-content-wrapper"
-      :class="{'is-fullscreen': isContendFullscreen}">
+      :class="{'is-fullscreen': isContendFullscreen}"
+      :style="contentWrapperStyle">
       <slot />
     </div>
   </BkNavigation>
@@ -59,6 +59,8 @@
   } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRoute } from 'vue-router';
+
+  import { useFullscreenStyle } from '@hooks';
 
   import ConfigManage from './components/ConfigManage.vue';
   import DatabaseManage from './components/database-manage/Index.vue';
@@ -156,6 +158,8 @@
     ],
   } as Record<string, string[]>;
 
+  const contentWrapperRef = ref<HTMLElement>();
+  const contentWrapperStyle = useFullscreenStyle(contentWrapperRef);
   const menuType = ref('');
   const isSideMenuFlod = ref(localStorage.getItem(SIDE_MENU_TOGGLE_KEY) !== null);
 
@@ -288,6 +292,7 @@
   padding: 0 14px;
   background: #FFF;
   align-content: center;
+  box-shadow: 0 3px 4px 0 #0000000a;
 
   #dbContentHeaderAppend{
     flex: 1;
@@ -304,7 +309,6 @@
 }
 
 .db-navigation-content-wrapper{
-  height: calc(100vh - 104px);
   padding: 20px 24px 0;
   overflow: auto;
 

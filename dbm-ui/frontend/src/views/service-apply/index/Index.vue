@@ -12,8 +12,11 @@
 -->
 
 <template>
-  <div class="service-apply-page">
-    <ScrollFaker style="height: calc(100vh - 200px)">
+  <div
+    ref="rootRef"
+    class="service-apply-page"
+    :style="rootStyle">
+    <ScrollFaker style="height: calc(100% - 72px)">
       <ApplyCollapse
         v-if="historyCacheIdList.length > 0"
         class="apply-collapse">
@@ -110,6 +113,8 @@
     FunctionKeys,
   } from '@services/model/function-controller/functionController';
 
+  import { useFullscreenStyle } from '@hooks';
+
   import { useUserProfile  } from '@stores';
 
   import {
@@ -120,11 +125,10 @@
     UserPersonalSettings,
   } from '@common/const';
 
-  import Copyright from '@components/layouts/Copyright.vue';
-
   import { makeMap } from '@utils';
 
   import ApplyCollapse from './components/ApplyCollapse.vue';
+  import Copyright from './components/Copyright.vue';
 
   import haTipImg from '@/images/architecture-01.png';
   import singleTipImg from '@/images/architecture-02.png';
@@ -275,6 +279,8 @@
   }, {} as Record<string, IService['children'][number]>);
 
   const lastFavorIdMap = makeMap(userProfile.profile[UserPersonalSettings.SERVICE_APPLY_FAVOR] || []);
+  const rootRef = ref<HTMLElement>();
+  const rootStyle = useFullscreenStyle(rootRef);
   const historyCacheIdList = ref<string[]>(_.sortBy(
     JSON.parse(localStorage.getItem(localHistroyKey) || '[]'),
     item => lastFavorIdMap[item],
@@ -317,10 +323,6 @@
 @import "@styles/mixins.less";
 
 .service-apply-page {
-  .page-wrapper{
-    height: calc(100vh - 200px);
-  }
-
   .history-list{
     display: flex;
 
