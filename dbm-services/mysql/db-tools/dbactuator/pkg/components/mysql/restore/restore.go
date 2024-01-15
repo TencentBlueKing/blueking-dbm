@@ -180,20 +180,22 @@ func (r *RestoreDRComp) ChooseType() error {
 			RestoreParam: &r.Params,
 		}
 		r.restore = &xload
+		logger.Info("choose recover type [%s], infoObj.BackupType=%s", b.backupType, b.infoObj.BackupType)
 	} else if b.backupType == cst.TypeGZTAB {
 		mload := MLoad{
 			RestoreParam: &r.Params,
 		}
 		r.restore = &mload
+		logger.Info("choose recover type [%s], infoObj.BackupType=%s", b.backupType, b.infoObj.BackupType)
 	} else if b.backupType == cst.BackupTypeLogical || b.backupType == cst.BackupTypePhysical {
 		dbloader := DBLoader{
 			RestoreParam: &r.Params,
 		}
 		r.restore = &dbloader
+		logger.Info("choose recover type [%s], indexObj.BackupType=%s", b.backupType, b.indexObj.BackupType)
 	} else {
 		return errors.Errorf("unknown backup_type [%s]", b.backupType)
 	}
-	logger.Info("choose recover type [%s], indexObj.BackupType=%s", b.backupType, b.indexObj.BackupType)
 	return nil
 }
 
