@@ -2,6 +2,7 @@ package checker
 
 import (
 	"context"
+	"encoding/json"
 	"time"
 
 	"dbm-services/mysql/db-tools/mysql-table-checksum/pkg/config"
@@ -50,4 +51,9 @@ type Output struct {
 	PtStderr    string            `json:"pt_stderr"`
 	Summaries   []ChecksumSummary `json:"summaries"`
 	PtExitFlags []PtExitFlag      `json:"pt_exit_flags"`
+}
+
+func (c *Output) String() string {
+	b, _ := json.Marshal(*c)
+	return string(b)
 }

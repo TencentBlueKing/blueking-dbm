@@ -46,7 +46,7 @@ func init() {
 	commonForceSwitchStrategies = []switchStrategy{
 		{Name: "check-binlog-format", Value: false, HasOpposite: true},
 		{Name: "check-replication-filters", Value: false, HasOpposite: true},
-		{Name: "quiet", Value: true, HasOpposite: false},
+		{Name: "quiet", Value: false, HasOpposite: false},
 		{Name: "binary-index", Value: true, HasOpposite: false},
 		{Name: "version-check", Value: false, HasOpposite: true},
 	}
@@ -76,6 +76,13 @@ func init() {
 			Name: "chunk-time",
 			Value: func(checker *Checker) interface{} {
 				return 1
+			},
+			Enable: true,
+		},
+		{
+			Name: "progress",
+			Value: func(checker *Checker) interface{} {
+				return "time,864000"
 			},
 			Enable: true,
 		},
