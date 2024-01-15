@@ -48,3 +48,6 @@ class MachineType(str, StructuredEnum):
     PULSAR_BROKER = EnumField("pulsar_broker", _("pulsar_broker"))
 
     RIAK = EnumField("riak", _("riak"))
+
+    SQLSERVER_SINGLE = EnumField("sqlserver_single", _("sqlserver_single"))
+    SQLSERVER_HA = EnumField("sqlserver_ha", _("sqlserver_ha"))

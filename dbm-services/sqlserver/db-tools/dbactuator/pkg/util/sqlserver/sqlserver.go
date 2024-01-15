@@ -309,6 +309,7 @@ func ExecLocalSQLFile(sqlVersion string, dbName string, charsetNO int, filenames
 			"& '%s' -S \"127.0.0.1,%d\" -C -d %s -f %d -b -i %s",
 			cmdSql, port, dbName, charsetNO, filename,
 		)
+		fmt.Println(cmd)
 		if ret, err := osutil.StandardPowerShellCommand(cmd); err != nil {
 			logger.Error("exec sql script failed %s, result: %s ", err.Error(), ret)
 			return err

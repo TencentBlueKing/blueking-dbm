@@ -36,4 +36,8 @@ type RuntimeAccountParam struct {
 	SQLServerUser string `json:"sqlserver_user,omitempty"`
 	// sqlserver 密码
 	SQLServerPwd string `json:"sqlserver_pwd,omitempty"`
+	// mssql_exporter 账号
+	MssqlExporterUser string `json:"exporter_user,omitempty"`
+	// mssql_exporter 密码
+	MssqlExporterPwd string `json:"exporter_pwd,omitempty"`
 }

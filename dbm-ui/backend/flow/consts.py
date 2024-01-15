@@ -43,6 +43,12 @@ DEFAULT_LAST_IO_SECOND_AGO = 100
 # 默认Riak端口
 DEFAULT_RIAK_PORT = 8087
 
+# 默认Sqlserver端口
+DEFAULT_SQLSERVER_PORT = 48322
+
+# 默认Sqlserver下发路径
+DEFAULT_SQLSERVER_PATH = "d:\\install"
+
 # tendisplus默认kvstorecount
 DEFAULT_TENDISPLUS_KVSTORECOUNT = 10
 
@@ -240,6 +246,7 @@ class MediumEnum(str, StructuredEnum):
     RiakMonitor = EnumField("riak-monitor", _("riak-monitor"))
     RedisDts = EnumField("redis-dts", _("redis-dts"))
     TBinlogDumper = EnumField("tbinlogdumper", _("tbinlogdumper实例"))
+    Sqlserver = EnumField("sqlserver", _("sqlserver实例"))
 
 
 class CloudServiceName(str, StructuredEnum):
@@ -307,6 +314,7 @@ class DBActuatorTypeEnum(str, StructuredEnum):
     SpiderCtl = EnumField("spiderctl", _("spiderctl"))
     Riak = EnumField("riak", _("riak"))
     TBinlogDumper = EnumField("tbinlogdumper", _("tbinlogdumper"))
+    Sqlserver = EnumField("sqlserver", _("sqlserer"))
 
 
 class DBActuatorActionEnum(str, StructuredEnum):
@@ -503,6 +511,11 @@ class RiakActuatorActionEnum(str, StructuredEnum):
     DeployMonitor = EnumField("deploy-monitor", _("deploy-monitor"))
     StartMonitor = EnumField("start-monitor", _("start-monitor"))
     StopMonitor = EnumField("stop-monitor", _("stop-monitor"))
+
+
+class SqlserverActuatorActionEnum(str, StructuredEnum):
+    SysInit = EnumField("sysinit", _("机器初始化"))
+    Deploy = EnumField("deploy", _("实例安装"))
 
 
 class RiakModuleId(int, StructuredEnum):
@@ -954,3 +967,96 @@ class TBinlogDumperProtocolType(str, StructuredEnum):
     KAFKA = EnumField("KAFKA", _("KAFKA"))
     L5_AGENT = EnumField("L5_AGENT", _("L5_AGENT"))
     TCP_IP = EnumField("TCP/IP", _("TCP/IP"))
+
+
+class SqlserverUserName(str, StructuredEnum):
+    """
+    定义Sqlserver密码服务的用户名称
+    """
+
+    MSSQL = EnumField("mssql", _("mssql系统账号"))
+    SQLSERVER = EnumField("sqlserver", _("sqlserver系统账号，进程启动"))
+    SA = EnumField("sa", _("sa实例账号"))
+    EXPORTER = EnumField("mssql_exporter", _("exporter进程访问账号"))
+
+
+class SqlserverComponent(str, StructuredEnum):
+    """
+    定义sqlserver的密码component
+    """
+
+    SQLSERVER = EnumField("sqlserver", _("sqlserver"))
+
+
+class SqlserverVersion(str, StructuredEnum):
+    """
+    定义Sqlserver支持版本名称
+    """
+
+    MSSQL_Enterprise_2008 = EnumField("MSSQL_Enterprise_2008", _("2008企业版"))
+    MSSQL_Enterprise_2012 = EnumField("MSSQL-Enterprise_2012", _("2012企业版"))
+    MSSQL_Enterprise_2014 = EnumField("MSSQL_Enterprise_2014", _("2014企业版"))
+    MSSQL_Enterprise_2016 = EnumField("MSSQL_Enterprise_2016", _("2016企业版"))
+    MSSQL_Enterprise_2017 = EnumField("MSSQL_Enterprise_2017", _("2017企业版"))
+    MSSQL_Enterprise_2019 = EnumField("MSSQL_Enterprise_2019", _("2019企业版"))
+    MSSQL_Enterprise_2022 = EnumField("MSSQL_Enterprise_2022", _("2022企业版"))
+
+
+class SqlserverSysVersion(str, StructuredEnum):
+    """
+    定义Sqlserver支持操作系统版本名称
+    """
+
+    Windows_Server_2008 = EnumField("Windows Server 2008", _("2008服务器版"))
+    Windows_Server_2012 = EnumField("Windows Server 2012", _("2012服务器版"))
+    Windows_Server_2016 = EnumField("Windows Server 2016", _("2016服务器版"))
+    Windows_Server_2019 = EnumField("Windows Server 2019", _("2019服务器版"))
+    Windows_Server_2022 = EnumField("Windows Server 2022", _("2022服务器版"))
+
+
+# mssql各版本的操作系统版本支持
+MssqlSystemVersionSupportMap = {
+    SqlserverVersion.MSSQL_Enterprise_2022: [
+        SqlserverSysVersion.Windows_Server_2022,
+        SqlserverSysVersion.Windows_Server_2019,
+        SqlserverSysVersion.Windows_Server_2016,
+    ],
+    SqlserverVersion.MSSQL_Enterprise_2019: [
+        SqlserverSysVersion.Windows_Server_2022,
+        SqlserverSysVersion.Windows_Server_2019,
+        SqlserverSysVersion.Windows_Server_2016,
+    ],
+    SqlserverVersion.MSSQL_Enterprise_2017: [
+        SqlserverSysVersion.Windows_Server_2022,
+        SqlserverSysVersion.Windows_Server_2019,
+        SqlserverSysVersion.Windows_Server_2016,
+        SqlserverSysVersion.Windows_Server_2012,
+    ],
+    SqlserverVersion.MSSQL_Enterprise_2016: [
+        SqlserverSysVersion.Windows_Server_2022,
+        SqlserverSysVersion.Windows_Server_2019,
+        SqlserverSysVersion.Windows_Server_2016,
+        SqlserverSysVersion.Windows_Server_2012,
+    ],
+    SqlserverVersion.MSSQL_Enterprise_2014: [
+        SqlserverSysVersion.Windows_Server_2022,
+        SqlserverSysVersion.Windows_Server_2019,
+        SqlserverSysVersion.Windows_Server_2016,
+        SqlserverSysVersion.Windows_Server_2012,
+        SqlserverSysVersion.Windows_Server_2008,
+    ],
+    SqlserverVersion.MSSQL_Enterprise_2012: [
+        SqlserverSysVersion.Windows_Server_2022,
+        SqlserverSysVersion.Windows_Server_2019,
+        SqlserverSysVersion.Windows_Server_2016,
+        SqlserverSysVersion.Windows_Server_2012,
+        SqlserverSysVersion.Windows_Server_2008,
+    ],
+    SqlserverVersion.MSSQL_Enterprise_2008: [
+        SqlserverSysVersion.Windows_Server_2022,
+        SqlserverSysVersion.Windows_Server_2019,
+        SqlserverSysVersion.Windows_Server_2016,
+        SqlserverSysVersion.Windows_Server_2012,
+        SqlserverSysVersion.Windows_Server_2008,
+    ],
+}

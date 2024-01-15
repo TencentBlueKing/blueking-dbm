@@ -41,6 +41,8 @@ const (
 	MSSQL_BACKUP_NAME = "dbbak"
 	// CONFIGURATION_FILE_NAME 实例安装文件名称
 	CONFIGURATION_FILE_NAME = "configuationfile"
+	// mssql_exporter目录名称
+	MSSQL_EXPOTER_NAME = "mssql_exporter"
 	// DB_PORT_INIT 默认DB起始端口
 	DB_PORT_INIT = 48322
 	// MIRRORING_PORT_INIT 镜像服务起始端口
@@ -76,19 +78,25 @@ const (
 	MICROSOFT_CONNECT_TO_KEY   = "HKLM:\\SOFTWARE\\Microsoft\\MSSQLServer\\Client\\ConnectTo"
 )
 
+// 定义安装之前需要的清理的注册表信息
+const (
+	REBOOTREQUIRED_KEY  = "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\WindowsUpdate\\Auto Update\\RebootRequired"
+	SESSION_MANAGER_KEY = "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Session Manager"
+)
+
 // 定义不同mssql版本的sqlcmd的文件路径
 
 const (
 	// SQLCMD_2022 TODO
-	SQLCMD_2022 = "C:\\Program Files\\Microsoft SQL Server\\Client SDK\\ODBC\170\\Tools\\Binn\\SQLCMD.EXE"
+	SQLCMD_2022 = "C:\\Program Files\\Microsoft SQL Server\\Client SDK\\ODBC\\170\\Tools\\Binn\\SQLCMD.EXE"
 	// SQLCMD_2019 TODO
-	SQLCMD_2019 = "C:\\Program Files\\Microsoft SQL Server\\Client SDK\\ODBC\170\\Tools\\Binn\\SQLCMD.EXE"
+	SQLCMD_2019 = "C:\\Program Files\\Microsoft SQL Server\\Client SDK\\ODBC\\170\\Tools\\Binn\\SQLCMD.EXE"
 	// SQLCMD_2017 TODO
-	SQLCMD_2017 = "C:\\Program Files\\Microsoft SQL Server\\Client SDK\\ODBC\150\\Tools\\Binn\\SQLCMD.EXE"
+	SQLCMD_2017 = "C:\\Program Files\\Microsoft SQL Server\\Client SDK\\ODBC\\150\\Tools\\Binn\\SQLCMD.EXE"
 	// SQLCMD_2016 TODO
-	SQLCMD_2016 = "C:\\Program Files\\Microsoft SQL Server\\Client SDK\\ODBC\130\\Tools\\Binn\\SQLCMD.EXE"
+	SQLCMD_2016 = "C:\\Program Files\\Microsoft SQL Server\\Client SDK\\ODBC\\130\\Tools\\Binn\\SQLCMD.EXE"
 	// SQLCMD_2014 TODO
-	SQLCMD_2014 = "C:\\Program Files\\Microsoft SQL Server\\Client SDK\\ODBC\110\\Tools\\Binn\\SQLCMD.EXE"
+	SQLCMD_2014 = "C:\\Program Files\\Microsoft SQL Server\\Client SDK\\ODBC\\110\\Tools\\Binn\\SQLCMD.EXE"
 	// SQLCMD_2012 TODO
 	SQLCMD_2012 = "C:\\Program Files\\Microsoft SQL Server\\110\\Tools\\Binn\\SQLCMD.EXE"
 	// SQLCMD_2008 TODO
