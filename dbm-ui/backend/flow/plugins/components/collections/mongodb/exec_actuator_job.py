@@ -120,6 +120,12 @@ class ExecuteDBActuatorJobService(BkJobService):
                     kwargs["db_act_template"]["payload"]["adminUsername"]
                 ]
 
+        # cluster添加shards，从上游流程节点获取密码
+        if kwargs.get("add_shard_to_cluster", False):
+            kwargs["db_act_template"]["payload"]["adminPassword"] = trans_data[
+                kwargs["db_act_template"]["payload"]["adminUsername"]
+            ]
+
         # 拼接节点执行ip所需要的信息，ip信息统一用list处理拼接
         if kwargs["get_trans_data_ip_var"]:
             exec_ips = self.splice_exec_ips_list(
