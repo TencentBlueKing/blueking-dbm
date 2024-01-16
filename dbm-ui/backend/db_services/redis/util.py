@@ -74,3 +74,13 @@ def is_redis_cluster_protocal(cluster_type: str) -> bool:
         ClusterType.TendisPredixyTendisplusCluster,
         ClusterType.RedisCluster,
     ]
+
+
+def is_have_binlog(cluster_type: str) -> bool:
+    """
+    是否有binlog
+    """
+    return cluster_type in [
+        ClusterType.TendisplusInstance.value,
+        ClusterType.TendisSSDInstance.value,
+    ]
