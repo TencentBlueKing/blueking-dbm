@@ -76,6 +76,7 @@ class TicketStatus(str, StructuredEnum):
     SUCCEEDED = EnumField("SUCCEEDED", _("成功"))
     FAILED = EnumField("FAILED", _("失败"))
     REVOKED = EnumField("REVOKED", _("撤销"))
+    TERMINATED = EnumField("TERMINATED", _("终止"))
 
 
 class TicketFlowStatus(str, StructuredEnum):
@@ -84,6 +85,7 @@ class TicketFlowStatus(str, StructuredEnum):
     PENDING = EnumField("PENDING", _("等待中"))
     RUNNING = EnumField("RUNNING", _("执行中"))
     SUCCEEDED = EnumField("SUCCEEDED", _("成功"))
+    TERMINATED = EnumField("TERMINATED", _("终止"))
     FAILED = EnumField("FAILED", _("失败"))
     REVOKED = EnumField("REVOKED", _("撤销"))
     SKIPPED = EnumField("SKIPPED", _("跳过"))
@@ -95,7 +97,8 @@ FLOW_NOT_EXECUTE_STATUS = [TicketFlowStatus.SKIPPED, TicketStatus.PENDING]
 BAMBOO_STATE__TICKET_STATE_MAP = {
     StateType.FINISHED.value: TicketFlowStatus.SUCCEEDED.value,
     StateType.FAILED.value: TicketFlowStatus.FAILED.value,
-    StateType.REVOKED.value: TicketFlowStatus.REVOKED.value,
+    # bamboo engine流程的撤销对应单据flow的终止
+    StateType.REVOKED.value: TicketFlowStatus.TERMINATED.value,
     StateType.RUNNING.value: TicketFlowStatus.RUNNING.value,
 }
 
