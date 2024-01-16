@@ -11,14 +11,14 @@
 ## mongod
 ```json
 {
-  "ip":"10.1.1.1",
+  "ip":"1.1.1.1",
   "port":27002,
-  "sourceIP":"10.1.1.3",
+  "sourceIP":"1.1.1.3",
   "sourcePort":27007,
   "sourceDown":true,
   "adminUsername":"xxx",
   "adminPassword":"xxxxxxxx",
-  "targetIP":"10.1.1.1",
+  "targetIP":"1.1.1.1",
   "targetPort":27004,
   "targetPriority":"",
   "targetHidden":""

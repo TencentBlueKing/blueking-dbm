@@ -10,7 +10,7 @@
 
 ```json
 {
-  "ip":"10.1.1.1",
+  "ip":"1.1.1.1",
   "port":27021,
   "open": false,
   "adminUsername":"xxx",

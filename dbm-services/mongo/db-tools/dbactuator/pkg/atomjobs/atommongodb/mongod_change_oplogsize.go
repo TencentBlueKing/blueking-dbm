@@ -27,6 +27,7 @@ type MongoDChangeOplogSizeConfParams struct {
 
 // MongoDChangeOplogSize 修改oplog大小
 type MongoDChangeOplogSize struct {
+	BaseJob
 	runtime            *jobruntime.JobGenericRuntime
 	BinDir             string
 	Mongo              string

@@ -14,14 +14,14 @@
     "pkg":"mongodb-linux-x86_64-3.4.20.tar.gz",
     "pkg_md5":"e68d998d75df81b219e99795dec43ffb"
   },
-  "ip":"10.1.1.1",
+  "ip":"1.1.1.1",
   "port":27021,
   "dbVersion":"3.4.20",
   "instanceType":"mongos",
   "app":"test",
   "areaId":"test1",
   "auth": true,
-  "configDB":["10.1.1.2:27001","10.1.1.3:27002","10.1.1.4:27003"],
+  "configDB":["1.1.1.2:27001","1.1.1.3:27002","1.1.1.4:27003"],
   "dbConfig":{
     "slowOpThresholdMs":200,
     "destination":"file"
