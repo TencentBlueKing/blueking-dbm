@@ -11,7 +11,7 @@
 创建管理员用户
 ```json
 {
-  "ip":"10.1.1.1",
+  "ip":"1.1.1.1",
   "port":27001,
   "instanceType":"mongod",
   "username":"xxx",
@@ -31,7 +31,7 @@
 创建业务用户
 ```json
 {
-  "ip":"10.1.1.1",
+  "ip":"1.1.1.1",
   "port":27001,
   "instanceType":"mongod",
   "username":"xxx",

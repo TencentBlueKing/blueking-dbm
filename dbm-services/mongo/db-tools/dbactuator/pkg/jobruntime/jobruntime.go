@@ -69,8 +69,6 @@ func NewJobGenericRuntime(uid, rootID string,
 			os.Exit(0)
 		}
 		ret.PayloadDecoded = string(decodedStr)
-		// log.Printf("===========PayloadDecoded========")
-		// log.Printf(ret.PayloadDecoded)
 	}
 	ret.ctx, ret.cancelFunc = context.WithCancel(context.TODO())
 	ret.SetLogger()

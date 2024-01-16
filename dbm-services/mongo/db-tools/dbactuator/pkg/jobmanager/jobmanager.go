@@ -2,15 +2,16 @@
 package jobmanager
 
 import (
+	"dbm-services/mongo/db-tools/dbactuator/pkg/atomjobs/atommongodb"
+	"dbm-services/mongo/db-tools/dbactuator/pkg/atomjobs/atomsys"
 	"fmt"
 	"log"
 	"runtime/debug"
+	"slices"
 	"strings"
 	"sync"
 	"time"
 
-	"dbm-services/mongo/db-tools/dbactuator/pkg/atomjobs/atommongodb"
-	"dbm-services/mongo/db-tools/dbactuator/pkg/atomjobs/atomsys"
 	"dbm-services/mongo/db-tools/dbactuator/pkg/jobruntime"
 	"dbm-services/mongo/db-tools/dbactuator/pkg/util"
 )
@@ -105,13 +106,6 @@ func (m *JobGenericManager) RunAtomJobs() (err error) {
 		err = runner.Run()
 		if err != nil {
 			m.runtime.Logger.Info(fmt.Sprintf("runner %s run failed,err:%s", name, err))
-			// err = runner.Rollback()
-			// if err != nil {
-			// 	err = fmt.Errorf("runner %s rollback failed,err:%+v", name, err)
-			// 	m.runtime.Logger.Error(err.Error())
-			// 	return
-			// }
-			// m.runtime.Logger.Info(fmt.Sprintf("runner %s rollback success!!!", name))
 			return
 		}
 		m.runtime.Logger.Info(fmt.Sprintf("finished run %s", name))
@@ -122,29 +116,49 @@ func (m *JobGenericManager) RunAtomJobs() (err error) {
 	return
 }
 
-// GetAtomJobInstance 根据atomJobName,从m.atomJobMapper中获取其creator函数,执行creator函数
-func (m *JobGenericManager) GetAtomJobInstance(atomJob string) jobruntime.JobRunner {
+// RegisterAtomJob 注册原子任务
+func (m *JobGenericManager) RegisterAtomJob() {
 	m.once.Do(func() {
 		m.atomJobMapper = make(map[string]AtomJobCreatorFunc)
-
-		// os初始化
-		m.atomJobMapper[atomsys.NewOsMongoInit().Name()] = atomsys.NewOsMongoInit
-		// mongo atom jobs
-		m.atomJobMapper[atommongodb.NewMongoDBInstall().Name()] = atommongodb.NewMongoDBInstall
-		m.atomJobMapper[atommongodb.NewMongoSInstall().Name()] = atommongodb.NewMongoSInstall
-		m.atomJobMapper[atommongodb.NewInitiateReplicaset().Name()] = atommongodb.NewInitiateReplicaset
-		m.atomJobMapper[atommongodb.NewAddShardToCluster().Name()] = atommongodb.NewAddShardToCluster
-		m.atomJobMapper[atommongodb.NewAddUser().Name()] = atommongodb.NewAddUser
-		m.atomJobMapper[atommongodb.NewDelUser().Name()] = atommongodb.NewDelUser
-		m.atomJobMapper[atommongodb.NewMongoDReplace().Name()] = atommongodb.NewMongoDReplace
-		m.atomJobMapper[atommongodb.NewMongoRestart().Name()] = atommongodb.NewMongoRestart
-		m.atomJobMapper[atommongodb.NewStepDown().Name()] = atommongodb.NewStepDown
-		m.atomJobMapper[atommongodb.NewBalancer().Name()] = atommongodb.NewBalancer
-		m.atomJobMapper[atommongodb.NewDeInstall().Name()] = atommongodb.NewDeInstall
-		m.atomJobMapper[atommongodb.NewExecScript().Name()] = atommongodb.NewExecScript
-		m.atomJobMapper[atommongodb.NewSetProfiler().Name()] = atommongodb.NewSetProfiler
-		m.atomJobMapper[atommongodb.NewMongoDChangeOplogSize().Name()] = atommongodb.NewMongoDChangeOplogSize
+		for _, f := range []AtomJobCreatorFunc{
+			atomsys.NewOsMongoInit,
+			atommongodb.NewMongoDBInstall,
+			atommongodb.NewMongoSInstall,
+			atommongodb.NewInitiateReplicaset,
+			atommongodb.NewAddShardToCluster,
+			atommongodb.NewAddUser,
+			atommongodb.NewDelUser,
+			atommongodb.NewMongoDReplace,
+			atommongodb.NewMongoRestart,
+			atommongodb.NewStepDown,
+			atommongodb.NewBalancer,
+			atommongodb.NewDeInstall,
+			atommongodb.NewExecScript,
+			atommongodb.NewSetProfiler,
+			atommongodb.NewMongoDChangeOplogSize,
+			atommongodb.NewBackupJob,
+			atommongodb.NewRestoreJob,
+			atommongodb.NewPitrRecoverJob,
+			atommongodb.NewRemoveNsJob,
+		} {
+			m.atomJobMapper[f().Name()] = f
+		}
 	})
+}
+
+// GetJobNameList 获取原子任务名字列表
+func (m *JobGenericManager) GetJobNameList() []string {
+	var ret []string
+	for name := range m.atomJobMapper {
+		ret = append(ret, name)
+	}
+	slices.Sort(ret)
+	return ret
+}
+
+// GetAtomJobInstance 根据atomJobName,从m.atomJobMapper中获取其creator函数,执行creator函数
+func (m *JobGenericManager) GetAtomJobInstance(atomJob string) jobruntime.JobRunner {
+	m.RegisterAtomJob()
 	creator, ok := m.atomJobMapper[strings.ToLower(atomJob)]
 	if ok {
 		return creator()
