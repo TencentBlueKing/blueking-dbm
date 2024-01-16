@@ -28,6 +28,7 @@ type DeInstallConfParams struct {
 
 // DeInstall 添加分片到集群
 type DeInstall struct {
+	BaseJob
 	runtime          *jobruntime.JobGenericRuntime
 	BinDir           string
 	DataDir          string

@@ -16,4 +16,6 @@ type JobRunner interface {
 
 	// Rollback you can define some rollback logic here when job fails
 	Rollback() error
+
+	Param() string
 }

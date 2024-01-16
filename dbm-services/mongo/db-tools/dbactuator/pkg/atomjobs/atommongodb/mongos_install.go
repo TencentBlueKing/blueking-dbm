@@ -36,6 +36,7 @@ type MongoSConfParams struct {
 
 // MongoSInstall MongoS安装
 type MongoSInstall struct {
+	BaseJob
 	runtime               *jobruntime.JobGenericRuntime
 	BinDir                string
 	DataDir               string

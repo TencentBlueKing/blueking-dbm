@@ -15,7 +15,7 @@
     "pkg":"mongodb-linux-x86_64-3.4.20.tar.gz",
     "pkg_md5":"e68d998d75df81b219e99795dec43ffb"
   },
-  "ip":"10.1.1.1",
+  "ip":"1.1.1.1",
   "port":27001,
   "dbVersion":"3.4.20",
   "instanceType":"mongod",
@@ -41,7 +41,7 @@
     "pkg":"mongodb-linux-x86_64-3.4.20.tar.gz",
     "pkg_md5":"e68d998d75df81b219e99795dec43ffb"
   },
-  "ip":"10.1.1.1",
+  "ip":"1.1.1.1",
   "port":27002,
   "dbVersion":"3.4.20",
   "instanceType":"mongod",
