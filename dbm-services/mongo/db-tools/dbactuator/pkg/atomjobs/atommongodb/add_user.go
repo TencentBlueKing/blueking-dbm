@@ -33,6 +33,7 @@ type AddUserConfParams struct {
 
 // AddUser 添加分片到集群
 type AddUser struct {
+	BaseJob
 	runtime       *jobruntime.JobGenericRuntime
 	BinDir        string
 	Mongo         string

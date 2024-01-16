@@ -33,6 +33,7 @@ type MongoDReplaceConfParams struct {
 
 // MongoDReplace 添加分片到集群
 type MongoDReplace struct {
+	BaseJob
 	runtime         *jobruntime.JobGenericRuntime
 	BinDir          string
 	Mongo           string

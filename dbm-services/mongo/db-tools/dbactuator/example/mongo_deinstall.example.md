@@ -8,13 +8,13 @@
 原始payload
 ```json
 {
-  "ip":"10.1.1.1",
+  "ip":"1.1.1.1",
   "port":27002,
   "app":"test",
   "areaId":"test1",
   "nodeInfo":[
-    "10.1.1.1",
-    "10.1.1.2"
+    "1.1.1.1",
+    "1.1.1.2"
   ],
   "instanceType":"mongod"
 }

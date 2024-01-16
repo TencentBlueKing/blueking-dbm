@@ -33,6 +33,7 @@ type RestartConfParams struct {
 
 // MongoRestart 重启mongo进程
 type MongoRestart struct {
+	BaseJob
 	runtime            *jobruntime.JobGenericRuntime
 	BinDir             string
 	DataDir            string
