@@ -56,7 +56,11 @@ class MySQLDownloadBackupfile(BkJobService):
         result_response = MysqlBackupApi.download_result({"bill_id": backup_bill_id})
         # 如何判断
         if result_response is not None and "total" in result_response:
-            if result_response["total"]["todo"] == 0 and result_response["total"]["fail"] == 0:
+            if (
+                result_response["total"]["todo"] == 0
+                and result_response["total"]["doing"] == 0
+                and result_response["total"]["fail"] == 0
+            ):
                 self.log_info(_("{} 下载成功").format(backup_bill_id))
                 self.finish_schedule()
                 return True
