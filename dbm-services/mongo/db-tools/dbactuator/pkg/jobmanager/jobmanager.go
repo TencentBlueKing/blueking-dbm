@@ -2,27 +2,15 @@
 package jobmanager
 
 import (
-<<<<<<< HEAD
 	"dbm-services/mongo/db-tools/dbactuator/pkg/atomjobs/atommongodb"
 	"dbm-services/mongo/db-tools/dbactuator/pkg/atomjobs/atomsys"
 	"fmt"
-	"log"
-	"runtime/debug"
 	"slices"
-=======
-	"fmt"
 	"log"
 	"runtime/debug"
->>>>>>> a80e6634 (feat(mongodb): 增加原子任务，cluster安装flow #3018)
 	"strings"
 	"sync"
 	"time"
-
-<<<<<<< HEAD
-=======
-	"dbm-services/mongo/db-tools/dbactuator/pkg/atomjobs/atommongodb"
-	"dbm-services/mongo/db-tools/dbactuator/pkg/atomjobs/atomsys"
->>>>>>> a80e6634 (feat(mongodb): 增加原子任务，cluster安装flow #3018)
 	"dbm-services/mongo/db-tools/dbactuator/pkg/jobruntime"
 	"dbm-services/mongo/db-tools/dbactuator/pkg/util"
 )
