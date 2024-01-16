@@ -8,10 +8,8 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import logging
 from collections import defaultdict
-from datetime import datetime, timedelta
-
-from django.utils import timezone
 
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Cluster
@@ -19,6 +17,9 @@ from backend.db_report.enums import MysqlBackupCheckSubType
 from backend.db_report.models import MysqlBackupCheckReport
 
 from .bklog_query import ClusterBackup
+from .check_full_backup import get_last_date_time
+
+logger = logging.getLogger("root")
 
 
 def check_binlog_backup():
@@ -31,6 +32,7 @@ def _check_tendbha_binlog_backup():
     master 实例必须要有备份binlog
     且binlog序号要连续
     """
+    logger.info("+===+++++===  start check binlog for cluster type {} +++++===++++ ".format(ClusterType.TenDBHA))
     return _check_binlog_backup(ClusterType.TenDBHA)
 
 
@@ -39,6 +41,7 @@ def _check_tendbcluster_binlog_backup():
     master 实例必须要有备份binlog
     且binlog序号要连续
     """
+    logger.info("+===+++++===  start check binlog for cluster type {} +++++===++++ ".format(ClusterType.TenDBCluster))
     return _check_binlog_backup(ClusterType.TenDBCluster)
 
 
@@ -48,11 +51,9 @@ def _check_binlog_backup(cluster_type):
     且binlog序号要连续
     """
     for c in Cluster.objects.filter(cluster_type=cluster_type):
+        logger.info("+===+++++===  start check binlog for cluster {} +++++===++++ ".format(c.immute_domain))
         backup = ClusterBackup(c.id, c.immute_domain)
-        now = datetime.now(timezone.utc)
-        yesterday = now - timedelta(days=1)
-        start_time = datetime(yesterday.year, yesterday.month, yesterday.day)
-        end_time = datetime(yesterday.year, yesterday.month, yesterday.day, 23, 59, 59)
+        start_time, end_time = get_last_date_time()
 
         items = backup.query_binlog_from_bklog(start_time, end_time)
         instance_binlogs = defaultdict(list)

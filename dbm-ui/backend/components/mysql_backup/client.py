@@ -40,7 +40,7 @@ class _BackupApi(BaseApi):
             url="backupapi/client/install",
             description=_("backup_client下载，同步任务"),
             default_timeout=600,
-            max_retry_times=0,
+            max_retry_times=1,
         )
 
 
