@@ -66,7 +66,7 @@ class ClusterBackup:
         """
         backup_files = []
         backup_logs = _get_log_from_bklog(
-            collector="mysql_backup_result",
+            collector="mysql_dbbackup_result",
             start_time=start_time,
             end_time=end_time,
             query_string=f'log: "cluster_id: {self.cluster_id}"',
@@ -74,21 +74,23 @@ class ClusterBackup:
         )
         for log in backup_logs:
             bf = {
+                "bk_biz_id": log["bk_biz_id"],
                 "backup_id": log["backup_id"],
                 "cluster_domain": log["cluster_address"],
                 "cluster_id": log["cluster_id"],
-                "task_id": log["task_id"],
-                "file_name": log["file_name"],
-                "file_size": log["file_size"],
-                "file_type": log["file_type"],
                 "mysql_host": log["mysql_host"],
                 "mysql_port": log["mysql_port"],
                 "mysql_role": log["mysql_role"],
                 "backup_type": log["backup_type"],
+                "file_list": log["file_list"],
                 "data_schema_grant": log["data_schema_grant"],
+                "is_full_backup": log["is_full_backup"],
+                "total_filesize": log["total_filesize"],
+                "encrypt_enable": log["encrypt_enable"],
+                "mysql_version": log["mysql_version"],
                 "backup_begin_time": log["backup_begin_time"],
                 "backup_end_time": log["backup_end_time"],
-                "consistent_backup_time": log["consistent_backup_time"],
+                "backup_consistent_time": log["backup_consistent_time"],
                 "shard_value": log["shard_value"],
             }
             backup_files.append(bf)
