@@ -38,6 +38,10 @@ class RiakScaleUpFlowParamBuilder(builders.FlowParamBuilder):
 
 
 class RiakScaleUpResourceParamBuilder(BaseOperateResourceParamBuilder):
+    def format(self):
+        cluster = Cluster.objects.get(id=self.ticket_data["cluster_id"])
+        self.ticket_data.update(bk_cloud_id=cluster.bk_cloud_id, bk_biz_id=self.ticket.bk_biz_id)
+
     def post_callback(self):
         next_flow = self.ticket.next_flow()
         riak_nodes = next_flow.details["ticket_data"].pop("nodes")["riak"]
