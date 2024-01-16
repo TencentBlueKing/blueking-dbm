@@ -27,6 +27,7 @@ type BalancerConfParams struct {
 
 // Balancer 添加分片到集群
 type Balancer struct {
+	BaseJob
 	runtime    *jobruntime.JobGenericRuntime
 	BinDir     string
 	Mongo      string

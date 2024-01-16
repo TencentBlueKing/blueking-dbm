@@ -27,6 +27,7 @@ type AddConfParams struct {
 
 // AddShardToCluster 添加分片到集群
 type AddShardToCluster struct {
+	BaseJob
 	runtime         *jobruntime.JobGenericRuntime
 	BinDir          string
 	Mongo           string

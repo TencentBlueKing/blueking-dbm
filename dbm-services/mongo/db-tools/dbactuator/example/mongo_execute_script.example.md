@@ -11,7 +11,7 @@
 # 原始payload
 ```json
 {
-  "ip":"10.1.1.1",
+  "ip":"1.1.1.1",
   "port":27021,
   "script":"xxx",
   "type":"cluster",

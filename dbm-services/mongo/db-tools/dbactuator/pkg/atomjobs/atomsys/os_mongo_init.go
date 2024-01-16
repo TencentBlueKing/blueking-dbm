@@ -1,9 +1,10 @@
 package atomsys
 
 import (
+	"dbm-services/mongo/db-tools/dbactuator/pkg/atomjobs/atommongodb"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"strings"
 	"time"
 
@@ -23,6 +24,7 @@ type OsMongoInitConfParams struct {
 
 // OsMongoInit 系统初始化原子任务
 type OsMongoInit struct {
+	atommongodb.BaseJob
 	runtime    *jobruntime.JobGenericRuntime
 	ConfParams *OsMongoInitConfParams
 	OsUser     string
@@ -88,7 +90,7 @@ func (o *OsMongoInit) Run() error {
 	// 创建脚本文件
 	o.runtime.Logger.Info("start to create init script file")
 	tmpScriptName := "/tmp/sysinit.sh"
-	if err := ioutil.WriteFile(tmpScriptName, []byte(data), 07555); err != nil {
+	if err := os.WriteFile(tmpScriptName, []byte(data), 07555); err != nil {
 		o.runtime.Logger.Error("write tmp script failed %s", err.Error())
 		return err
 	}

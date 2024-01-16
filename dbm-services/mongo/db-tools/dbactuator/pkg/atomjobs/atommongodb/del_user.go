@@ -29,6 +29,7 @@ type DelUserConfParams struct {
 
 // DelUser 添加分片到集群
 type DelUser struct {
+	BaseJob
 	runtime       *jobruntime.JobGenericRuntime
 	BinDir        string
 	Mongo         string
