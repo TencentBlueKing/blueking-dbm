@@ -39,9 +39,9 @@ class BaseTicketFlow(ABC):
             # 如果flow的状态已经处于跳过，成功，则直接返回
             return self.flow_obj.status
 
-        if self.flow_obj.status == TicketFlowStatus.REVOKED:
-            # 如果flow的状态已经被撤销，则直接返回
-            return TicketFlowStatus.REVOKED
+        if self.flow_obj.status in [TicketFlowStatus.REVOKED, TicketFlowStatus.TERMINATED]:
+            # 如果flow的状态已经被撤销、终止，则直接返回
+            return self.flow_obj.status
 
         if self.flow_obj.err_msg:
             # 如果flow的状态包含错误信息，则是saas侧出错，当前的flow流程直接返回失败

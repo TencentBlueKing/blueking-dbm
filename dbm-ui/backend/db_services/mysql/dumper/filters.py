@@ -41,7 +41,8 @@ class DumperInstanceListFilter(filters.FilterSet):
     address = filters.CharFilter(field_name="address", method="filter_address", label=_("实例IP:Port"))
     dumper_id = filters.CharFilter(field_name="dumper_id", method="filter_dumper_id", label=_("dumper id"))
     source_cluster = filters.CharFilter(field_name="source_cluster", method="filter_source_cluster", label=_("源集群"))
-    protocol_type = filters.CharFilter(field_name="type", method="filter_protocol_type", label=_("接收端类型"))
+    protocol_type = filters.CharFilter(field_name="protocol_type", method="filter_protocol_type", label=_("接收端类型"))
+    add_type = filters.CharFilter(field_name="add_type", method="filter_add_type", label=_("同步方式"))
     target_address = filters.CharFilter(field_name="target_address", method="filter_target_address", label=_("接收端地址"))
     start_time = filters.DateTimeFilter(field_name="create_at", lookup_expr="gte")
     end_time = filters.DateTimeFilter(field_name="create_at", lookup_expr="lte")
@@ -55,8 +56,11 @@ class DumperInstanceListFilter(filters.FilterSet):
             return queryset
 
     def filter_address(self, queryset, name, value):
-        ip, port = value.split(":")
-        return queryset.filter(ip=ip, listen_port=port)
+        try:
+            ip, port = value.split(":")
+            return queryset.filter(ip=ip, listen_port=port)
+        except ValueError:
+            return queryset
 
     def filter_dumper_id(self, queryset, name, value):
         return queryset.filter(extra_config__dumper_id=value)
@@ -66,10 +70,15 @@ class DumperInstanceListFilter(filters.FilterSet):
         return queryset.filter(cluster_id__in=cluster_ids)
 
     def filter_protocol_type(self, queryset, name, value):
-        return queryset.filter(extra_config__protocol_type__icontains=value)
+        protocol_types = value.split(",")
+        return queryset.filter(extra_config__protocol_type__in=protocol_types)
 
     def filter_target_address(self, queryset, name, value):
         return queryset.filter(extra_config__target_address__icontains=value)
+
+    def filter_add_type(self, queryset, name, value):
+        add_types = value.split(",")
+        return queryset.filter(extra_config__add_type__in=add_types)
 
     class Meta:
         model = ExtraProcessInstance
@@ -82,4 +91,5 @@ class DumperInstanceListFilter(filters.FilterSet):
             "protocol_type",
             "start_time",
             "end_time",
+            "add_type",
         ]

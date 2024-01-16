@@ -36,7 +36,7 @@ class PauseTodo(todos.TodoActor):
         """确认/终止"""
 
         if action == ActionType.TERMINATE:
-            self.todo.set_failed(username, action)
+            self.todo.set_terminated(username, action)
             return
 
         self.todo.set_success(username, action)

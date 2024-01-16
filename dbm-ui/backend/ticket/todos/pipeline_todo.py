@@ -38,7 +38,7 @@ class PipelineTodo(todos.TodoActor):
         engine = BambooEngine(root_id=root_id)
 
         if action == ActionType.TERMINATE:
-            self.todo.set_failed(username, action)
+            self.todo.set_terminated(username, action)
             # 终止时，直接将流程设置为失败
             engine.force_fail_pipeline(node_id)
             return

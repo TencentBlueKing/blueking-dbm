@@ -117,8 +117,8 @@ class Ticket(AuditedModel):
     def url(self):
         return f"{env.BK_SAAS_HOST}/{self.bk_biz_id}/my-tickets?id={self.id}"
 
-    def set_failed(self):
-        self.status = TicketStatus.FAILED
+    def set_terminated(self):
+        self.status = TicketStatus.TERMINATED
         self.save()
 
     def get_cost_time(self):

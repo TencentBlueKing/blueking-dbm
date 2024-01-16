@@ -93,7 +93,10 @@ class TicketFlowManager(object):
             self.get_ticket_flow_cls(flow_type=flow.flow_type)(flow).status for flow in self.ticket.flows.all()
         }
         logger.info(f"update_ticket_status for ticket:{self.ticket.id}, statuses: {statuses}")
-        if constants.TicketFlowStatus.FAILED in statuses:
+        if constants.TicketFlowStatus.TERMINATED in statuses:
+            # 只要存在其中一个终止，则单据状态为已终止
+            target_status = constants.TicketStatus.TERMINATED
+        elif constants.TicketFlowStatus.FAILED in statuses:
             # 只要存在其中一个失败，则单据状态为失败态
             target_status = constants.TicketStatus.FAILED
         elif constants.TicketFlowStatus.REVOKED in statuses:

@@ -102,10 +102,10 @@ class Todo(AuditedModel):
         self.set_status(username, TodoStatus.DONE_SUCCESS)
         TodoHistory.objects.create(creator=username, todo=self, action=action)
 
-    def set_failed(self, username, action):
+    def set_terminated(self, username, action):
         self.set_status(username, TodoStatus.DONE_FAILED)
-        self.ticket.set_failed()
-        self.flow.update_status(TicketFlowStatus.FAILED)
+        self.ticket.set_terminated()
+        self.flow.update_status(TicketFlowStatus.TERMINATED)
         TodoHistory.objects.create(creator=username, todo=self, action=action)
 
     class Meta:
