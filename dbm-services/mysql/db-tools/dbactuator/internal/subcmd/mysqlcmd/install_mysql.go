@@ -120,6 +120,10 @@ func (d *DeployMySQLAct) Run() (err error) {
 			Func:    d.Service.InitDefaultPrivAndSchemaWithResetMaster,
 		},
 		{
+			FunName: "生成exporter配置文件",
+			Func:    d.Service.CreateExporterCnf,
+		},
+		{
 			FunName: "输出系统的时区设置",
 			Func: func() error {
 				d.OutputCtx(fmt.Sprintf("{\"time_zone\": \"%s\"}", d.Service.TimeZone))

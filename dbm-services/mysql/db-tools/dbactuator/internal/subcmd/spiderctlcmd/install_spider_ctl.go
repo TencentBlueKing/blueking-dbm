@@ -122,13 +122,13 @@ func (d *DeployCtlSpiderAct) Run() (err error) {
 			Func:    d.BaseService.InitDefaultPrivAndSchemaWithResetMaster,
 		},
 		{
+			FunName: "生成exporter配置文件",
+			Func:    d.BaseService.CreateExporterCnf,
+		},
+		{
 			FunName: "安装半同步复制插件",
 			Func:    d.BaseService.InstallRplSemiSyncPlugin,
 		},
-		// {
-		// 	FunName: "生成exporter配置文件",
-		// 	Func:    d.BaseService.CreateExporterCnf,
-		// },
 	}
 
 	if err := steps.Run(); err != nil {
