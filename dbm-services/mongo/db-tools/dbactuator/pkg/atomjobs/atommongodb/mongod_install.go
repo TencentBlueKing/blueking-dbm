@@ -64,6 +64,7 @@ type MongoDBConfParams struct {
 
 // MongoDBInstall MongoDB安装
 type MongoDBInstall struct {
+	BaseJob
 	runtime               *jobruntime.JobGenericRuntime
 	BinDir                string
 	BackupDir             string
