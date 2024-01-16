@@ -7,6 +7,7 @@ package cmd
 
 import (
 	"encoding/base64"
+	"fmt"
 	"log"
 	"os"
 
@@ -29,6 +30,8 @@ var payLoadFile string
 var atomJobList string
 var user string
 var group string
+var printParamJson string
+var listJob bool
 
 // RootCmd represents the base command when called without any subcommands
 var RootCmd = &cobra.Command{
@@ -90,13 +93,29 @@ var RootCmd = &cobra.Command{
 	},
 }
 
-// Execute adds all child commands to the root command and sets flags appropriately.
-// This is called by main.main(). It only needs to happen once to the rootCmd.
-func Execute() {
-	err := RootCmd.Execute()
-	if err != nil {
-		os.Exit(1)
-	}
+var debugCmd = &cobra.Command{
+	Use:   "debug",
+	Short: "debug",
+	Long:  `debug`,
+	Run: func(cmd *cobra.Command, args []string) {
+		if listJob {
+			dir, _ := util.GetCurrentDirectory()
+			if manager, err := jobmanager.NewJobGenericManager(uid, rootID, nodeID, versionID,
+				payLoad, payLoadFormat, atomJobList, dir); err != nil {
+				panic(err)
+			} else {
+				manager.RegisterAtomJob()
+				for _, r := range manager.GetJobNameList() {
+					fmt.Printf("%s\n", r)
+				}
+			}
+			os.Exit(0)
+		} else if printParamJson != "" {
+			doPrintParamJson()
+		} else {
+			cmd.Help()
+		}
+	},
 }
 
 func init() {
@@ -123,4 +142,35 @@ func init() {
 	RootCmd.PersistentFlags().StringVarP(&payLoadFile, "payload_file", "f", "", "原子任务参数信息,json文件")
 	RootCmd.PersistentFlags().StringVarP(&user, "user", "u", "", "开启进程的os用户")
 	RootCmd.PersistentFlags().StringVarP(&group, "group", "g", "", "开启进程的os用户属主")
+	debugCmd.PersistentFlags().StringVarP(&printParamJson, "param", "P", "", "print atom job param")
+	debugCmd.PersistentFlags().BoolVarP(&listJob, "list", "L", false, "list atom jobs")
+
+	RootCmd.AddCommand(debugCmd)
+
+}
+
+func doPrintParamJson() {
+	dir, _ := util.GetCurrentDirectory()
+	if manager, err := jobmanager.NewJobGenericManager(uid, rootID, nodeID, versionID,
+		payLoad, payLoadFormat, printParamJson, dir); err != nil {
+		panic(err)
+	} else {
+		err = manager.LoadAtomJobs()
+		if err != nil {
+			fmt.Printf("err %s\n", err.Error())
+			os.Exit(1)
+		}
+		r := manager.GetAtomJobInstance(printParamJson)
+		fmt.Printf("%s\n", r.Param())
+	}
+	os.Exit(0)
+}
+
+// Execute adds all child commands to the root command and sets flags appropriately.
+// This is called by main.main(). It only needs to happen once to the rootCmd.
+func Execute() {
+	err := RootCmd.Execute()
+	if err != nil {
+		os.Exit(1)
+	}
 }

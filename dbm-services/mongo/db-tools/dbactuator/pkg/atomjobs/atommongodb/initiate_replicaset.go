@@ -30,6 +30,7 @@ type InitConfParams struct {
 
 // InitiateReplicaset 复制集初始化
 type InitiateReplicaset struct {
+	BaseJob
 	runtime         *jobruntime.JobGenericRuntime
 	BinDir          string
 	Mongo           string

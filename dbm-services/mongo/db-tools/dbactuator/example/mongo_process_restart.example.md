@@ -11,7 +11,7 @@
 ## mongod
 ```json
 {
-  "ip":"10.1.1.1",
+  "ip":"1.1.1.1",
   "port":27001,
   "instanceType":"mongod",
   "singleNodeInstallRestart":false,  
@@ -28,14 +28,14 @@
 ## mongos
 ```json
 {
-  "ip":"10.1.1.1",
+  "ip":"1.1.1.1",
   "port":27021,
   "instanceType":"mongos",
   "singleNodeInstallRestart":false,
   "auth":true,
   "cacheSizeGB": null,
-  "mongoSConfDbOld":"10.1.1.2:27001",
-  "MongoSConfDbNew":"10.1.1.2:27004",
+  "mongoSConfDbOld":"1.1.1.2:27001",
+  "MongoSConfDbNew":"1.1.1.2:27004",
   "adminUsername":"",
   "adminPassword":""
 }

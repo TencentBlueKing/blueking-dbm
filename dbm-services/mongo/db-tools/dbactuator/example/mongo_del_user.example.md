@@ -10,7 +10,7 @@
 mongos删除业务用户
 ```json
 {
-  "ip":"10.1.1.1",
+  "ip":"1.1.1.1",
   "port":27023,
   "instanceType":"mongos",
   "adminUsername":"xxx",
@@ -23,7 +23,7 @@ mongos删除业务用户
 mongod删除业务用户
 ```json
 {
-  "ip":"10.1.1.1",
+  "ip":"1.1.1.1",
   "port":27001,
   "instanceType":"mongod",
   "adminUsername":"xxx",

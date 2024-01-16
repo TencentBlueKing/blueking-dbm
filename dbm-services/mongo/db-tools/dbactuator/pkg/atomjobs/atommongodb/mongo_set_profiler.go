@@ -29,6 +29,7 @@ type SetProfilerConfParams struct {
 
 // SetProfiler 添加分片到集群
 type SetProfiler struct {
+	BaseJob
 	runtime     *jobruntime.JobGenericRuntime
 	BinDir      string
 	Mongo       string
