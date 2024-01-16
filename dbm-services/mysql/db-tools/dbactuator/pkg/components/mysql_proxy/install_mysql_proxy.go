@@ -25,6 +25,7 @@ import (
 	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components"
+	"dbm-services/mysql/db-tools/dbactuator/pkg/components/mysql"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/native"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util"
@@ -372,5 +373,22 @@ func (i *InstallMySQLProxyComp) initOneProxyAdminAccount(port Port) (err error) 
 		logger.Error("add ProxyAdminAccount failed %s", err.Error())
 		return err
 	}
+	return nil
+}
+
+// CreateExporterCnf 根据mysql部署端口生成对应的exporter配置文件
+// 回档也会调用 install_mysql，但可能不会 install_monitor，为了避免健康误报，这个 install_mysql 阶段也渲染 exporter cnf
+func (i *InstallMySQLProxyComp) CreateExporterCnf() (err error) {
+	for _, inst := range i.InsPorts {
+		err = mysql.CreateProxyExporterCnf(
+			i.Params.Host, inst,
+			i.GeneralParam.RuntimeAccountParam.MonitorUser,
+			i.GeneralParam.RuntimeAccountParam.MonitorPwd,
+		)
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }

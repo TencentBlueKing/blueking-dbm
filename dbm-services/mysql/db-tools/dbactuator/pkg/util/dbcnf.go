@@ -17,6 +17,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -592,7 +593,7 @@ var MycnfItemsMap = map[string]string{
 }
 
 // CreateExporterConf 简单写一个根据端口号生成exporter文件的方法
-func CreateExporterConf(fileName string, host string, port string, user string, password string) (err error) {
+func CreateExporterConf(fileName string, host string, port int, user string, password string) (err error) {
 	cnfPath := fmt.Sprintf("%s", fileName)
 	cfg := ini.Empty()
 
@@ -603,7 +604,7 @@ func CreateExporterConf(fileName string, host string, port string, user string, 
 	exporterSection.NewKey("user", user)
 	exporterSection.NewKey("password", password)
 	exporterSection.NewKey("host", host)
-	exporterSection.NewKey("port", port)
+	exporterSection.NewKey("port", strconv.Itoa(port))
 	err = cfg.SaveTo(cnfPath)
 	if err != nil {
 		return err

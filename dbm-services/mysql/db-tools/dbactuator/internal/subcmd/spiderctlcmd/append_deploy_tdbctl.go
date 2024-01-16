@@ -132,6 +132,10 @@ func (d *AppendDeployCtlSpiderAct) Run() (err error) {
 			Func:    d.BaseService.InitDefaultPrivAndSchemaWithResetMaster,
 		},
 		{
+			FunName: "生成exporter配置文件",
+			Func:    d.BaseService.CreateExporterCnf,
+		},
+		{
 			FunName: "安装半同步复制插件",
 			Func:    d.BaseService.InstallRplSemiSyncPlugin,
 		},
