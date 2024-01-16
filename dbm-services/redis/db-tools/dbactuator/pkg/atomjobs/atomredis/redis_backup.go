@@ -444,6 +444,8 @@ func (task *BackupTask) GoFullBakcup() {
 
 	task.Status = consts.BackupStatusRunning
 	task.Message = "start backup..."
+	task.StartTime = time.Now().Local()
+	task.EndTime = time.Now().Local()
 	task.BackupRecordReport(task.reporter)
 
 	mylog.Logger.Info(fmt.Sprintf("redis(%s) dbType:%s start backup...", task.Addr(), task.DbType))

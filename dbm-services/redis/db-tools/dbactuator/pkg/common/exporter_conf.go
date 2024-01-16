@@ -48,6 +48,26 @@ func DeleteExporterConfigFile(port int) (err error) {
 	return os.Remove(confFile)
 }
 
+// IsTwemproxySupportSlowlog twemproxy是否支持slowlog命令
+func IsTwemproxySupportSlowlog() bool {
+	BinPath := filepath.Join(consts.UsrLocal, "twemproxy")
+	if !util.FileExists(BinPath) {
+		return false
+	}
+	realLink, err := filepath.EvalSymlinks(BinPath)
+	if err != nil {
+		return false
+	}
+	baseV, subV, err := util.VersionParse(filepath.Base(realLink))
+	if err != nil {
+		return false
+	}
+	if baseV >= 4001 && subV >= 22000000 {
+		return true
+	}
+	return false
+}
+
 // CreateLocalExporterConfigFile 创建本地Exporter配置文件.
 func CreateLocalExporterConfigFile(ip string, port int, metaRole, password string) (err error) {
 	addr := map[string]string{}
@@ -76,10 +96,20 @@ func CreateLocalExporterConfigFile(ip string, port int, metaRole, password strin
 		key = fmt.Sprintf("%s:%d", ip, port)
 		val = password
 		addr[key] = val
+		// 为了能做正确的慢查询日志采集,需要配置redis://ip:port
+		key = fmt.Sprintf("redis://%s:%d", ip, port)
+		val = password
+		addr[key] = val
 	} else if metaRole == consts.MetaRoleTwemproxy {
 		key = fmt.Sprintf("%s:%d", ip, port)
 		val = password
 		addr[key] = val
+		if IsTwemproxySupportSlowlog() {
+			// 为了能做正确的慢查询日志采集,需要配置redis://ip:port
+			key = fmt.Sprintf("redis://%s:%d", ip, port)
+			val = password
+			addr[key] = val
+		}
 		key = fmt.Sprintf("%s:%d:stat", ip, port)
 		val = fmt.Sprintf("%s:%d", ip, port+1000)
 		addr[key] = val
