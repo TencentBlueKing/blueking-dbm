@@ -124,6 +124,11 @@ class AppMonitorTopo(AuditedModel):
     bk_set_id = models.BigIntegerField(default=0)
     bk_set_name = models.CharField(max_length=64, default="")
 
+    class Meta:
+        unique_together = ("bk_biz_id", "db_type", "machine_type", "bk_set_id")
+        verbose_name = _("业务监控拓扑(AppMonitorTopo)")
+        verbose_name_plural = _("业务监控拓扑(AppMonitorTopo)")
+
     @classmethod
     def get_set_by_dbtype(cls, db_type):
         return [
@@ -234,10 +239,6 @@ class AppMonitorTopo(AuditedModel):
                     obj.bk_set_id = bk_set_id
                     obj.save()
 
-    class Meta:
-        verbose_name = _("业务监控拓扑(AppMonitorTopo)")
-        verbose_name_plural = _("业务监控拓扑(AppMonitorTopo)")
-
 
 class ClusterMonitorTopo(AuditedModel):
     """
@@ -256,6 +257,7 @@ class ClusterMonitorTopo(AuditedModel):
     class Meta:
         verbose_name = _("CMDB模块映射(ClusterMonitorTopo)")
         verbose_name_plural = _("CMDB模块映射(ClusterMonitorTopo)")
+        unique_together = ("bk_biz_id", "machine_type", "bk_set_id", "bk_module_id")
 
 
 class SyncFailedMachine(AuditedModel):

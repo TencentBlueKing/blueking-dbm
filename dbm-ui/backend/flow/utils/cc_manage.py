@@ -21,6 +21,7 @@ from backend.db_meta.enums import ClusterType, ClusterTypeMachineTypeDefine
 from backend.db_meta.models import AppMonitorTopo, Cluster, ClusterMonitorTopo, Machine, StorageInstance
 from backend.db_meta.models.cluster_monitor import INSTANCE_MONITOR_PLUGINS, SET_NAME_TEMPLATE
 from backend.db_monitor.models import CollectInstance
+from backend.db_services.cmdb.biz import get_or_create_cmdb_module_with_name, get_or_create_set_with_name
 from backend.db_services.ipchooser.constants import IDLE_HOST_MODULE
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.dbm_init.constants import CC_HOST_DBM_ATTR
@@ -58,32 +59,23 @@ class CcManage(object):
         machine_topo = {}
         for machine_type in ClusterTypeMachineTypeDefine[cluster_type]:
             monitor_plugin = INSTANCE_MONITOR_PLUGINS[db_type][machine_type]
-            try:
-                app_monitor_topo = AppMonitorTopo.objects.get(
-                    bk_biz_id=self.hosting_biz_id, db_type=db_type, machine_type=machine_type
-                )
-            except AppMonitorTopo.DoesNotExist:
+            app_monitor_topo = AppMonitorTopo.objects.filter(
+                bk_biz_id=self.hosting_biz_id, db_type=db_type, machine_type=machine_type
+            ).first()
+            if app_monitor_topo is None:
                 # 集群拓扑不存在则创建
                 bk_set_name = SET_NAME_TEMPLATE.format(db_type=db_type, monitor_plugin_name=monitor_plugin["name"])
-                res = CCApi.search_set({"bk_biz_id": self.hosting_biz_id, "condition": {"bk_set_name": bk_set_name}})
-                if res["count"]:
-                    bk_set = res["info"][0]
-                else:
-                    bk_set = CCApi.create_set(
-                        {
-                            "bk_biz_id": self.hosting_biz_id,
-                            "data": {"bk_parent_id": self.hosting_biz_id, "bk_set_name": bk_set_name},
-                        },
-                        use_admin=True,
-                    )
+                bk_set_id = get_or_create_set_with_name(self.hosting_biz_id, bk_set_name)
                 app_monitor_topo, created = AppMonitorTopo.objects.update_or_create(
-                    defaults={"monitor_plugin_id": monitor_plugin["plugin_id"]},
+                    defaults={
+                        "monitor_plugin_id": monitor_plugin["plugin_id"],
+                        "bk_set_name": bk_set_name,
+                        "monitor_plugin": monitor_plugin["name"],
+                    },
                     bk_biz_id=self.hosting_biz_id,
                     machine_type=machine_type,
                     db_type=db_type,
-                    monitor_plugin=monitor_plugin["name"],
-                    bk_set_id=bk_set["bk_set_id"],
-                    bk_set_name=bk_set["bk_set_name"],
+                    bk_set_id=bk_set_id,
                 )
 
                 # 创建蓝鲸模块时，如果是独立托管的业务，需要更新采集，把新增的 集群/模块 同步给监控采集项/日志采集项
@@ -93,36 +85,19 @@ class CcManage(object):
             bk_set_id = app_monitor_topo.bk_set_id
 
             # cmdb get_or_create_module
-            res = CCApi.search_module(
-                {
-                    "bk_biz_id": self.hosting_biz_id,
-                    "bk_set_id": bk_set_id,
-                    "condition": {"bk_module_name": bk_module_name},
-                },
-                use_admin=True,
-            )
-
-            if res["count"]:
-                bk_module = res["info"][0]
-            else:
-                bk_module = CCApi.create_module(
-                    {
-                        "bk_biz_id": self.hosting_biz_id,
-                        "bk_set_id": bk_set_id,
-                        "data": {"bk_parent_id": bk_set_id, "bk_module_name": bk_module_name},
-                    },
-                    use_admin=True,
-                )
+            bk_module_id = get_or_create_cmdb_module_with_name(self.hosting_biz_id, bk_set_id, bk_module_name)
 
             # 保留一份集群监控拓扑数据
             topo, created = ClusterMonitorTopo.objects.get_or_create(
-                defaults={"creator": creator},
+                defaults={
+                    "creator": creator,
+                    "cluster_id": cluster_id,
+                    "instance_id": instance_id,
+                },
                 machine_type=machine_type,
                 bk_biz_id=self.hosting_biz_id,
-                cluster_id=cluster_id,
-                instance_id=instance_id,
                 bk_set_id=bk_set_id,
-                bk_module_id=bk_module["bk_module_id"],
+                bk_module_id=bk_module_id,
             )
             machine_topo[machine_type] = topo.bk_module_id
 
