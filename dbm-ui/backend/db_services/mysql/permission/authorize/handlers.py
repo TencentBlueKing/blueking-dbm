@@ -236,7 +236,7 @@ class AuthorizeHandler(object):
         if app:
             app_detail = ScrApi.common_query(params={"app": app, "columns": ["appid", "ccId"]})["detail"]
             if not app_detail:
-                raise DBPermissionBaseException(_("无法查询app相关信息，请检查app输入是否合法"))
+                raise DBPermissionBaseException(_("无法查询app: {}相关信息，请检查app输入是否合法。").format(app))
             app_detail = app_detail[0]
 
         # 域名存在，则走dbm的授权方式，否则走gcs的授权方式
@@ -244,6 +244,8 @@ class AuthorizeHandler(object):
         cluster = Cluster.objects.filter(immute_domain=domain)
         bk_biz_id = bk_biz_id or app_detail["ccId"]
         if cluster.exists():
+            if not bk_biz_id:
+                raise DBPermissionBaseException(_("授权集群: [{}]。业务信息bk_biz_id为空请检查。").format(target_instance))
             cluster = cluster.first()
             db_type = ClusterType.cluster_type_to_db_type(cluster.cluster_type)
             authorize_infos = {
