@@ -9,12 +9,12 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import logging
-import uuid
 
 from rest_framework.response import Response
 
 from backend.flow.engine.controller.name_service import NameServiceController
 from backend.flow.views.base import FlowTestView
+from backend.utils.basic import generate_root_id
 
 logger = logging.getLogger("root")
 
@@ -29,7 +29,7 @@ class ClbCreateSceneApiView(FlowTestView):
         """
         创建clb
         """
-        root_id = uuid.uuid1().hex
+        root_id = generate_root_id()
         NameServiceController(root_id=root_id, ticket_data=request.data).clb_create()
         return Response({"root_id": root_id})
 
@@ -44,7 +44,7 @@ class ClbDeleteSceneApiView(FlowTestView):
         """
         删除clb
         """
-        root_id = uuid.uuid1().hex
+        root_id = generate_root_id()
         NameServiceController(root_id=root_id, ticket_data=request.data).clb_delete()
         return Response({"root_id": root_id})
 
@@ -59,7 +59,7 @@ class DomainBindClbIpSceneApiView(FlowTestView):
         """
         主域名绑定clb ip
         """
-        root_id = uuid.uuid1().hex
+        root_id = generate_root_id()
         NameServiceController(root_id=root_id, ticket_data=request.data).immute_domain_bind_clb_ip()
         return Response({"root_id": root_id})
 
@@ -74,7 +74,7 @@ class DomainUnBindClbIpSceneApiView(FlowTestView):
         """
         主域名解绑clb ip
         """
-        root_id = uuid.uuid1().hex
+        root_id = generate_root_id()
         NameServiceController(root_id=root_id, ticket_data=request.data).immute_domain_unbind_clb_ip()
         return Response({"root_id": root_id})
 
@@ -89,7 +89,7 @@ class PolarisCreateSceneApiView(FlowTestView):
         """
         创建polaris
         """
-        root_id = uuid.uuid1().hex
+        root_id = generate_root_id()
         NameServiceController(root_id=root_id, ticket_data=request.data).polaris_create()
         return Response({"root_id": root_id})
 
@@ -104,6 +104,6 @@ class PolarisDeleteSceneApiView(FlowTestView):
         """
         删除polaris
         """
-        root_id = uuid.uuid1().hex
+        root_id = generate_root_id()
         NameServiceController(root_id=root_id, ticket_data=request.data).polaris_delete()
         return Response({"root_id": root_id})

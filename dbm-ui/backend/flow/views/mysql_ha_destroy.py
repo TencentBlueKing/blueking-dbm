@@ -9,7 +9,6 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import logging
-import uuid
 
 from django.utils.translation import ugettext as _
 from rest_framework.permissions import AllowAny
@@ -17,6 +16,7 @@ from rest_framework.response import Response
 
 from backend.flow.engine.controller.mysql import MySQLController
 from backend.flow.views.base import FlowTestView
+from backend.utils.basic import generate_root_id
 
 logger = logging.getLogger("root")
 
@@ -30,7 +30,7 @@ class DestroyMySQLHASceneApiView(FlowTestView):
     def post(request):
         logger.info(_("开始回收mysql主从版场景"))
 
-        root_id = uuid.uuid1().hex
+        root_id = generate_root_id()
         logger.info("define root_id: {}".format(root_id))
         test = MySQLController(root_id=root_id, ticket_data=request.data)
         test.mysql_ha_destroy_scene()
@@ -48,7 +48,7 @@ class DisableMySQLHASceneApiView(FlowTestView):
     def post(request):
         logger.info(_("开始禁用mysql主从版场景"))
 
-        root_id = uuid.uuid1().hex
+        root_id = generate_root_id()
         logger.info("define root_id: {}".format(root_id))
         test = MySQLController(root_id=root_id, ticket_data=request.data)
         test.mysql_ha_disable_scene()
@@ -64,7 +64,7 @@ class EnableMySQLHASceneApiView(FlowTestView):
     def post(request):
         logger.info(_("开始启动mysql主从版场景"))
 
-        root_id = uuid.uuid1().hex
+        root_id = generate_root_id()
         logger.info("define root_id: {}".format(root_id))
         test = MySQLController(root_id=root_id, ticket_data=request.data)
         test.mysql_ha_enable_scene()

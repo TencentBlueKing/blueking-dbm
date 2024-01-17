@@ -9,12 +9,12 @@ specific language governing permissions and limitations under the License.
 """
 
 import logging
-import uuid
 
 from rest_framework.response import Response
 
 from backend.flow.engine.controller.sqlserver import SqlserverController
 from backend.flow.views.base import FlowTestView
+from backend.utils.basic import generate_root_id
 
 logger = logging.getLogger("root")
 
@@ -27,7 +27,7 @@ class SqlserverSingleApplySceneApiView(FlowTestView):
     """
 
     def post(self, request):
-        root_id = uuid.uuid1().hex
+        root_id = generate_root_id()
         test = SqlserverController(root_id=root_id, ticket_data=request.data)
         test.single_cluster_apply_scene()
         return Response({"root_id": root_id})
@@ -41,7 +41,7 @@ class SqlserverHAApplySceneApiView(FlowTestView):
     """
 
     def post(self, request):
-        root_id = uuid.uuid1().hex
+        root_id = generate_root_id()
         test = SqlserverController(root_id=root_id, ticket_data=request.data)
         test.ha_cluster_apply_scene()
         return Response({"root_id": root_id})

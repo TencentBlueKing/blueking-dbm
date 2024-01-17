@@ -8,17 +8,16 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-import uuid
-
 from rest_framework.response import Response
 
 from backend.flow.engine.controller.spider import SpiderController
 from backend.flow.views.base import FlowTestView
+from backend.utils.basic import generate_root_id
 
 
 class SpiderPartitionSceneApiView(FlowTestView):
     def post(self, request):
-        root_id = uuid.uuid1().hex
+        root_id = generate_root_id()
         flow = SpiderController(root_id=root_id, ticket_data=request.data)
         flow.spider_partition()
         return Response({"root_id": root_id})

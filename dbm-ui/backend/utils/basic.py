@@ -8,7 +8,8 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-
+import datetime
+import uuid
 from collections import Counter, namedtuple
 from copy import deepcopy
 from typing import Any, Dict, Iterable, List, Optional, Set, Union
@@ -243,3 +244,7 @@ def dictfetchall(cursor):
     """
     columns = [col[0] for col in cursor.description]
     return [dict(zip(columns, row)) for row in cursor.fetchall()]
+
+
+def generate_root_id():
+    return f"{datetime.date.today()}{uuid.uuid1().hex[:6]}".replace("-", "")
