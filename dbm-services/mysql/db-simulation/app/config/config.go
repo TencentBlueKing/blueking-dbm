@@ -40,6 +40,7 @@ type BkRepoConfig struct {
 
 // Images TODO
 type Images struct {
+	Tendb55Img string
 	Tendb57Img string // 5.7版本对应的镜像
 	Tendb56Img string // 5.6版本对应的镜像
 	Tendb80Img string // 8.0版本对应的镜像
@@ -171,6 +172,8 @@ func init() {
 	}
 	for _, v := range GAppConfig.MirrorsAddress {
 		switch v.Version {
+		case "5.5":
+			GAppConfig.Image.Tendb55Img = v.Image
 		case "5.6":
 			GAppConfig.Image.Tendb56Img = v.Image
 		case "5.7":
