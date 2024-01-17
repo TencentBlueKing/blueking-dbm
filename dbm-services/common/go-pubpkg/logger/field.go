@@ -116,6 +116,9 @@ var (
 	Fatal = std.Fatal
 	// Debug TODO
 	Debug = std.Debug
+
+	// Local TODO
+	Local = std.Local
 )
 
 var std = New(os.Stderr, false, InfoLevel)
@@ -135,6 +138,7 @@ func ResetDefault(l *Logger) {
 	Panic = std.Panic
 	Fatal = std.Fatal
 	Debug = std.Debug
+	Local = std.Local
 }
 
 // Sync TODO
