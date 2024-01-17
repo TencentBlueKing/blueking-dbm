@@ -43,7 +43,7 @@ func (s *Service) Type() string {
 	return "trace"
 }
 
-// newHTTPClient
+// newHTTPClient TODO
 func (s *Service) newHTTPClient() otlptrace.Client {
 	opts := []otlptracehttp.Option{
 		otlptracehttp.WithEndpoint(strings.Join([]string{otlpHost, otlpPort}, ":")),
@@ -59,7 +59,7 @@ func (s *Service) newHTTPClient() otlptrace.Client {
 	return client
 }
 
-// newGrpcClient
+// newGrpcClient TODO
 func (s *Service) newGrpcClient() otlptrace.Client {
 	opts := []otlptracegrpc.Option{
 		otlptracegrpc.WithEndpoint(strings.Join([]string{otlpHost, otlpPort}, ":")),
@@ -69,7 +69,7 @@ func (s *Service) newGrpcClient() otlptrace.Client {
 	return client
 }
 
-// newResource
+// newResource TODO
 func (s *Service) newResource() *resource.Resource {
 	return resource.NewWithAttributes(
 		semconv.SchemaURL,
