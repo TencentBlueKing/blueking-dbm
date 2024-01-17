@@ -14,6 +14,7 @@ from backend.core.encrypt.constants import AsymmetricCipherConfigType
 from backend.core.encrypt.handlers import AsymmetricHandler
 from backend.db_proxy.constants import ExtensionType
 from backend.db_proxy.models import DBExtension
+from backend.flow.consts import DBM_MYSQL_JOB_TMP_USER_PREFIX
 
 logger = logging.getLogger("flow")
 
@@ -37,3 +38,7 @@ def get_mysql_sys_users(bk_cloud_id) -> list:
             sys_users.append(AsymmetricHandler.decrypt(name=bk_cloud_name, content=info.details["user"]))
 
     return sys_users
+
+
+def generate_mysql_tmp_user(root_id):
+    return f"{DBM_MYSQL_JOB_TMP_USER_PREFIX}{root_id}"

@@ -19,8 +19,9 @@ from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.enums import ClusterType, TenDBClusterSpiderRole
 from backend.db_meta.exceptions import ClusterNotExistException
 from backend.db_meta.models import Cluster
-from backend.flow.consts import DBM_JOB, MachinePrivRoleMap, PrivRole
+from backend.flow.consts import MachinePrivRoleMap, PrivRole
 from backend.flow.plugins.components.collections.common.base_service import BaseService
+from backend.flow.utils.mysql.get_mysql_sys_user import generate_mysql_tmp_user
 from backend.ticket.constants import TicketType
 
 logger = logging.getLogger("flow")
@@ -83,7 +84,7 @@ class AddTempUserForClusterService(BaseService):
             "bk_cloud_id": -1,
             "bk_biz_id": int(global_data["bk_biz_id"]),
             "operator": global_data["created_by"],
-            "user": f"{DBM_JOB}{global_data['uid']}",
+            "user": generate_mysql_tmp_user(global_data["job_root_id"]),
             "psw": encrypt_switch_pwd,
             "hosts": [],
             "dbname": "%",

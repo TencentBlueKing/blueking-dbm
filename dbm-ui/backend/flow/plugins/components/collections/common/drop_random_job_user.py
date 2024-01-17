@@ -19,9 +19,9 @@ from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.enums import ClusterType, TenDBClusterSpiderRole
 from backend.db_meta.exceptions import ClusterNotExistException
 from backend.db_meta.models import Cluster
-from backend.flow.consts import DBM_JOB
 from backend.flow.plugins.components.collections.common.base_service import BaseService
-from backend.flow.utils.mysql import mysql_version_parse
+from backend.flow.utils.mysql.get_mysql_sys_user import generate_mysql_tmp_user
+from backend.flow.utils.mysql.mysql_version_parse import mysql_version_parse
 from backend.ticket.constants import TicketType
 
 logger = logging.getLogger("flow")
@@ -64,12 +64,12 @@ class DropTempUserForClusterService(BaseService):
                 objs.append({"ip_port": f"{spider.machine.ip}{IP_PORT_DIVIDER}{spider.admin_port}", "is_tdbctl": True})
         return objs
 
-    def drop_jor_user(self, cluster: Cluster, uid: str):
+    def drop_jor_user(self, cluster: Cluster, root_id: str):
         """
         集群维度删除job的临时用户
         """
         # 拼接临时用户的名称
-        user = f"{DBM_JOB}{uid}"
+        user = generate_mysql_tmp_user(root_id)
 
         try:
             # 删除localhost和 local_ip用户
@@ -125,9 +125,7 @@ class DropTempUserForClusterService(BaseService):
                 raise ClusterNotExistException(
                     cluster_id=cluster_id, bk_biz_id=global_data["bk_biz_id"], message=_("集群不存在")
                 )
-            # if not self.drop_jor_user(cluster=cluster, uid=global_data["uid"]):
-            #     return False
-            self.drop_jor_user(cluster=cluster, uid=global_data["uid"])
+            self.drop_jor_user(cluster=cluster, root_id=global_data["job_root_id"])
 
         return True
 
