@@ -87,3 +87,84 @@ class SqlserverActPayload(PayloadHandler):
                 },
             },
         }
+
+    def get_execute_sql_payload(self, **kwargs) -> dict:
+        """
+        执行SQL文件的payload
+        """
+        return {
+            "db_type": DBActuatorTypeEnum.Sqlserver.value,
+            "action": SqlserverActuatorActionEnum.ExecSQLFiles.value,
+            "payload": {
+                "general": {"runtime_account": PayloadHandler.get_sqlserver_account()},
+                "extend": {
+                    "host": kwargs["ips"][0]["ip"],
+                    "ports": self.global_data["ports"],
+                    "charset_no": self.global_data["charset_no"],
+                    "file_path": self.global_data["sql_target_path"],
+                    "execute_objects": self.global_data["execute_objects"],
+                },
+            },
+        }
+
+    def get_backup_dbs_payload(self, **kwargs) -> dict:
+        """
+        执行数据库备份的payload
+        """
+        return {
+            "db_type": DBActuatorTypeEnum.Sqlserver.value,
+            "action": SqlserverActuatorActionEnum.BackupDBS.value,
+            "payload": {
+                "general": {"runtime_account": PayloadHandler.get_sqlserver_account()},
+                "extend": {
+                    "host": kwargs["ips"][0]["ip"],
+                    "port": self.global_data["port"],
+                    "backup_dbs": self.global_data["backup_dbs"],
+                    "backup_type": self.global_data["backup_type"],
+                    "backup_id": self.global_data.get("backup_id", "backup_id"),
+                    "is_set_full_model": self.global_data.get("is_set_full_model", False),
+                    "target_backup_dir": self.global_data.get("target_backup_dir", ""),
+                },
+            },
+        }
+
+    def get_rename_dbs_payload(self, **kwargs) -> dict:
+        """
+        执行数据库重命名的payload
+        """
+        return {
+            "db_type": DBActuatorTypeEnum.Sqlserver.value,
+            "action": SqlserverActuatorActionEnum.RenameDBS.value,
+            "payload": {
+                "general": {"runtime_account": PayloadHandler.get_sqlserver_account()},
+                "extend": {
+                    "host": kwargs["ips"][0]["ip"],
+                    "port": self.global_data["port"],
+                    "rename_dbs": self.global_data["rename_infos"],
+                    "slaves": self.global_data["slaves"],
+                    "sync_mode": self.global_data["sync_mode"],
+                },
+            },
+        }
+
+    def get_clean_dbs_payload(self, **kwargs) -> dict:
+        """
+        执行数据库重命名的payload
+        """
+        return {
+            "db_type": DBActuatorTypeEnum.Sqlserver.value,
+            "action": SqlserverActuatorActionEnum.CleanDBS.value,
+            "payload": {
+                "general": {"runtime_account": PayloadHandler.get_sqlserver_account()},
+                "extend": {
+                    "host": kwargs["ips"][0]["ip"],
+                    "port": self.global_data["port"],
+                    "clean_dbs": self.global_data["clean_dbs"],
+                    "sync_mode": self.global_data["sync_mode"],
+                    "clean_mode": self.global_data["clean_mode"],
+                    "slaves": self.global_data["slaves"],
+                    "clean_tables": self.global_data["clean_tables"],
+                    "ignore_clean_tables": self.global_data["ignore_clean_tables"],
+                },
+            },
+        }

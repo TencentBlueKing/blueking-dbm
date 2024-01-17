@@ -35,6 +35,7 @@ class SqlserverHAClusterHandler(ClusterHandler):
         bk_cloud_id: int,
         resource_spec: dict,
         region: str,
+        sync_type: str,
     ):
         """
         1: 录入机器信息
@@ -102,6 +103,7 @@ class SqlserverHAClusterHandler(ClusterHandler):
                     time_zone=time_zone,
                     major_version=major_version,
                     region=region,
+                    sync_type=sync_type,
                 )
             )
 

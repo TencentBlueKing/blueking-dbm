@@ -19,6 +19,7 @@ import (
 
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/sqlserver/db-tools/dbactuator/pkg/core/cst"
+	"dbm-services/sqlserver/db-tools/dbactuator/pkg/util"
 	"dbm-services/sqlserver/db-tools/dbactuator/pkg/util/osutil"
 
 	_ "github.com/denisenkom/go-mssqldb" // go-mssqldb TODO
@@ -274,6 +275,39 @@ func (h *DbWorker) DBRestoreForLogBackup(dbname string, logBakFile string, resto
 		return fmt.Errorf("restore sql failed %v", err)
 	}
 	return nil
+
+}
+
+// GetTableListOnDB 在db匹配符合的表列表
+func (h *DbWorker) GetTableListOnDB(
+	dbName string,
+	intentionRegex []string,
+	ignoreRegex []string) (realTables []string, err error) {
+
+	var allTables []string
+	getTablesSQL := fmt.Sprintf("select name from [%s].[sys].[tables]", dbName)
+	logger.Info("get table list: %s", getTablesSQL)
+
+	if err = h.Queryx(&allTables, getTablesSQL); err != nil {
+		return realTables, fmt.Errorf("get table failed %v", err)
+	}
+	if len(allTables) == 0 {
+		// 如果数据库没有数据表，则正常返回
+		return realTables, nil
+	}
+	// 获取匹配到表列表
+	intentionTables, err := util.DbMatch(allTables, util.ChangeToMatch(intentionRegex))
+	if err != nil {
+		return realTables, err
+	}
+	// 获取匹配到忽略表列表
+	ignoreTables, err := util.DbMatch(allTables, util.ChangeToMatch(ignoreRegex))
+	if err != nil {
+		return realTables, err
+	}
+	// 获取最终需要匹配到的表
+	realTables = util.FilterOutStringSlice(intentionTables, ignoreTables)
+	return
 
 }
 

@@ -71,13 +71,21 @@ if (-not (Test-Path $logDir)) {
     New-Item -ItemType Directory -Path $logDir | Out-Null
 }
 
-if (-not (Test-Path (Join-Path $targetDir "dbactuator"))) {
+if (-not (Test-Path (Join-Path $targetDir "dbactuator.exe"))) {
+    if ((Get-Process | Where-Object { $_.Path -eq $sourceFile })) {
+        Write-Host "wait 5s"
+        Start-Sleep -Seconds 5
+    }
     Copy-Item $sourceFile $targetDir
 }
 else {
     $md5_1 = (Get-FileHash $sourceFile).Hash
-    $md5_2 = (Get-FileHash (Join-Path $targetDir "dbactuator")).Hash
+    $md5_2 = (Get-FileHash (Join-Path $targetDir "dbactuator.exe")).Hash
     if ($md5_1 -ne $md5_2) {
+        if ((Get-Process | Where-Object { $_.Path -eq $sourceFile })) {
+            Write-Host "wait 5s"
+            Start-Sleep -Seconds 5
+        }
         Copy-Item $sourceFile $targetDir -Force
     }
 }

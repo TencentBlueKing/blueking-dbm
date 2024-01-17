@@ -45,3 +45,59 @@ class SqlserverHAApplySceneApiView(FlowTestView):
         test = SqlserverController(root_id=root_id, ticket_data=request.data)
         test.ha_cluster_apply_scene()
         return Response({"root_id": root_id})
+
+
+class SqlserverSQLFileExecuteSceneApiView(FlowTestView):
+    """
+        api: /apis/v1/flow/scene/sqlserver_sql_file_execute
+        params:
+    }
+    """
+
+    def post(self, request):
+        root_id = generate_root_id()
+        test = SqlserverController(root_id=root_id, ticket_data=request.data)
+        test.sql_file_execute_scene()
+        return Response({"root_id": root_id})
+
+
+class SqlserverBackupDBSSceneApiView(FlowTestView):
+    """
+        api: /apis/v1/flow/scene/sqlserver_backup_dbs
+        params:
+    }
+    """
+
+    def post(self, request):
+        root_id = generate_root_id()
+        test = SqlserverController(root_id=root_id, ticket_data=request.data)
+        test.backup_dbs_scene()
+        return Response({"root_id": root_id})
+
+
+class SqlserverRenameDBSSceneApiView(FlowTestView):
+    """
+        api: /apis/v1/flow/scene/rename_backup_dbs
+        params:
+    }
+    """
+
+    def post(self, request):
+        root_id = generate_root_id()
+        test = SqlserverController(root_id=root_id, ticket_data=request.data)
+        test.rename_dbs_scene()
+        return Response({"root_id": root_id})
+
+
+class SqlserverCleanDBSSceneApiView(FlowTestView):
+    """
+        api: /apis/v1/flow/scene/clean_backup_dbs
+        params:
+    }
+    """
+
+    def post(self, request):
+        root_id = generate_root_id()
+        test = SqlserverController(root_id=root_id, ticket_data=request.data)
+        test.clean_dbs_scene()
+        return Response({"root_id": root_id})
