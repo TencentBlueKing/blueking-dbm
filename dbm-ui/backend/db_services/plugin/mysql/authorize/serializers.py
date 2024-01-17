@@ -14,7 +14,7 @@ from rest_framework import serializers
 
 
 class AuthorizeApplySerializer(serializers.Serializer):
-    bk_biz_id = serializers.IntegerField(help_text=_("业务ID"), required=False)
+    bk_biz_id = serializers.CharField(help_text=_("业务ID"), required=False, allow_blank=True, allow_null=True)
     user = serializers.CharField(help_text=_("授权账号"))
     access_db = serializers.CharField(help_text=_("准入DB"))
     source_ips = serializers.CharField(help_text=_("源IP列表"))
@@ -30,6 +30,10 @@ class AuthorizeApplySerializer(serializers.Serializer):
     def validate(self, attrs):
         if not attrs.get("app") and not attrs.get("bk_biz_id"):
             raise serializers.ValidationError(_("请保证至少输入bk_biz_id或者输入app其中之一"))
+
+        # 兼容bk_biz_id输入为空的情况
+        if attrs.get("bk_biz_id") and attrs["bk_biz_id"].isdigit():
+            attrs["bk_biz_id"] = int(attrs["bk_biz_id"])
 
         return attrs
 
