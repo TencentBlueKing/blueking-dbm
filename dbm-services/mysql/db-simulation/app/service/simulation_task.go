@@ -111,6 +111,8 @@ func changeToMatch(input []string) []string {
 // GetImgFromMySQLVersion TODO
 func GetImgFromMySQLVersion(verion string) (img string, err error) {
 	switch {
+	case regexp.MustCompile("5.5").MatchString(verion):
+		return config.GAppConfig.Image.Tendb55Img, nil
 	case regexp.MustCompile("5.6").MatchString(verion):
 		return config.GAppConfig.Image.Tendb56Img, nil
 	case regexp.MustCompile("5.7").MatchString(verion):
