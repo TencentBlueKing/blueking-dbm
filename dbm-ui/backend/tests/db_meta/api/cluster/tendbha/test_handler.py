@@ -28,6 +28,7 @@ pytestmark = pytest.mark.django_db
 
 
 class TestHandler:
+    @patch("backend.db_services.cmdb.biz.CCApi", CCApiMock())
     @patch("backend.db_meta.api.machine.apis.CCApi", CCApiMock())
     @patch("backend.db_meta.models.app.CCApi", CCApiMock())
     @patch("backend.flow.utils.cc_manage.CCApi", CCApiMock())

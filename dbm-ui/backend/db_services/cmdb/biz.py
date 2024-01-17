@@ -9,6 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import collections
+import logging
 from typing import List
 
 from backend import env
@@ -16,9 +17,11 @@ from backend.components import CCApi
 from backend.db_meta.models import AppCache, DBModule
 from backend.db_services.cmdb.exceptions import BkAppAttrAlreadyExistException
 from backend.dbm_init.constants import CC_APP_ABBR_ATTR
+from backend.exceptions import ApiError
 from backend.iam_app.dataclass.actions import ActionEnum
 from backend.iam_app.handlers.permission import Permission
 
+logger = logging.getLogger("root")
 BIZModel = collections.namedtuple("BIZModel", ["bk_biz_id", "name", "english_name", "permission"])
 
 ModuleModel = collections.namedtuple("ModuleModel", ["bk_biz_id", "db_module_id", "name"])
@@ -64,6 +67,7 @@ def set_db_app_abbr(bk_biz_id: int, db_app_abbr: str, raise_exception: bool = Fa
 
 
 def get_db_app_abbr(bk_biz_id: int) -> str:
+    # 查询 CC 的业务对象属性（英文缩写）"""
     abbr = CCApi.search_business(
         params={
             "fields": ["bk_biz_id", CC_APP_ABBR_ATTR],
@@ -143,9 +147,9 @@ def get_or_create_cmdb_module_with_name(bk_biz_id: int, bk_set_id: int, bk_modul
     return res["bk_module_id"]
 
 
-def get_or_create_set_with_name(bk_biz_id: int, bk_set_name: str) -> int:
+def search_set_id(bk_biz_id: int, bk_set_name: str) -> int or None:
     """
-    根据名称获取拓扑中的集群id
+    根据名称获取集群id
     @param bk_biz_id: 业务ID
     @param bk_set_name: 集群名
     """
@@ -157,18 +161,37 @@ def get_or_create_set_with_name(bk_biz_id: int, bk_set_name: str) -> int:
         },
         use_admin=True,
     )
-
     if res["count"] > 0:
         return res["info"][0]["bk_set_id"]
 
-    res = CCApi.create_set(
-        params={
-            "bk_biz_id": bk_biz_id,
-            "data": {
-                "bk_parent_id": bk_biz_id,
-                "bk_set_name": bk_set_name,
+
+def get_or_create_set_with_name(bk_biz_id: int, bk_set_name: str) -> int:
+    """
+    根据名称获取拓扑中的集群id
+    @param bk_biz_id: 业务ID
+    @param bk_set_name: 集群名
+    """
+    bk_set_id = search_set_id(bk_biz_id, bk_set_name)
+    # 先进行一次查询，如果不存在则创建
+    if bk_set_id:
+        return bk_set_id
+    try:
+        res = CCApi.create_set(
+            params={
+                "bk_biz_id": bk_biz_id,
+                "data": {
+                    "bk_parent_id": bk_biz_id,
+                    "bk_set_name": bk_set_name,
+                },
             },
-        },
-        use_admin=True,
-    )
-    return res["bk_set_id"]
+            use_admin=True,
+        )
+        return res["bk_set_id"]
+    except ApiError as err:
+        # 并发下可能出现重复创建，这里进行查询返回
+        logger.error(f"failed to create set: {err}")
+        bk_set_id = search_set_id(bk_biz_id, bk_set_name)
+        if bk_set_id is None:
+            raise err
+        else:
+            return bk_set_id
