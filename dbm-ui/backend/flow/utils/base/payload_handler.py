@@ -22,7 +22,8 @@ from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Cluster
 from backend.db_proxy.constants import ExtensionType
 from backend.db_proxy.models import DBExtension
-from backend.flow.consts import DBM_JOB, DEFAULT_INSTANCE, ConfigTypeEnum, LevelInfoEnum, MySQLPrivComponent, UserName
+from backend.flow.consts import DEFAULT_INSTANCE, ConfigTypeEnum, LevelInfoEnum, MySQLPrivComponent, UserName
+from backend.flow.utils.mysql.get_mysql_sys_user import generate_mysql_tmp_user
 from backend.ticket.constants import TicketType
 
 apply_list = [
@@ -119,7 +120,7 @@ class PayloadHandler(object):
             user_map["admin_user"] = "ADMIN"
         else:
             # 获取非部署类单据的临时账号作为这次的ADMIN账号
-            user_map["admin_user"] = f"{DBM_JOB}{self.ticket_data['uid']}"
+            user_map["admin_user"] = generate_mysql_tmp_user(self.ticket_data["job_root_id"])
 
         # 用job的root_id 作为这次的临时密码
         user_map["admin_pwd"] = self.ticket_data["job_root_id"]

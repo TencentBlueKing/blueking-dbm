@@ -61,7 +61,7 @@ MIN_SPIDER_SLAVE_COUNT = 1
 TDBCTL_USER = "spider"
 
 # 定义每个flow发起时的实例临时账号名称前缀
-DBM_JOB = "DBM_JOB_"
+DBM_MYSQL_JOB_TMP_USER_PREFIX = "J_"
 
 # 数据量大小单位
 BYTE = 1
