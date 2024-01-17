@@ -517,6 +517,10 @@ class RiakActuatorActionEnum(str, StructuredEnum):
 class SqlserverActuatorActionEnum(str, StructuredEnum):
     SysInit = EnumField("sysinit", _("机器初始化"))
     Deploy = EnumField("deploy", _("实例安装"))
+    ExecSQLFiles = EnumField("ExecSQLFiles", _("SQL文件执行"))
+    BackupDBS = EnumField("BackupDBS", _("备份数据库"))
+    RenameDBS = EnumField("RenameDBS", _("备份数据库"))
+    CleanDBS = EnumField("CleanDBS", _("数据库清档"))
 
 
 class RiakModuleId(int, StructuredEnum):
@@ -1061,3 +1065,54 @@ MssqlSystemVersionSupportMap = {
         SqlserverSysVersion.Windows_Server_2008,
     ],
 }
+
+
+class SqlserverCharSet(str, StructuredEnum):
+    """
+    目前支持的Sqlserver的字符集
+    """
+
+    Chinese_PRC_CI_AS = EnumField("Chinese_PRC_CI_AS", _("Chinese_PRC_CI_AS"))
+    Latin1_General_100_CI_AS = EnumField("Latin1_General_100_CI_AS", _("Latin1_General_100_CI_AS"))
+
+
+# sqlserver sqlcmd 文件输入格式编码对应的编号
+SQlCmdFileFormatNOMap = {"GBK": 936}
+
+
+class SqlserverSyncMode(str, StructuredEnum):
+    """
+    定义Sqlserver 数据库同步模式
+    """
+
+    MIRRORING = EnumField("mirroring", _("镜像同步"))
+    ALWAYS_ON = EnumField("always_on", _("Always_on同步"))
+
+
+# 各个同步模式定义的编号
+SqlserverSyncModeMaps = {
+    SqlserverSyncMode.MIRRORING: 1,
+    SqlserverSyncMode.ALWAYS_ON: 2,
+}
+
+# 无同步模式的编号
+NoSync = 3
+
+
+class SqlserverCleanMode(str, StructuredEnum):
+    """
+    Sqlserver清档模式
+    """
+
+    CLEAN_TABLES = EnumField("clean_tables", _("清理表数据"))
+    DROP_TABLES = EnumField("drop_tables", _("删除表"))
+    DROP_DBS = EnumField("drop_dbs", _("删除库"))
+
+
+class SqlserverBackupMode(str, StructuredEnum):
+    """
+    Sqlserver备份触发模式
+    """
+
+    FULL_BACKUP = EnumField("full_backup", _("全量备份"))
+    LOG_BACKUP = EnumField("log_backup", _("增量备份"))

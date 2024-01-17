@@ -175,7 +175,14 @@ from backend.flow.views.spider_slave_apply import InstallSpiderSlaveClusterScene
 from backend.flow.views.spider_slave_destroy import DestroySpiderSlaveClusterSceneApiView
 from backend.flow.views.spider_sql_import import SpiderSqlImportSceneApiView
 from backend.flow.views.sql_semantic_check import SqlSemanticCheckSceneApiView
-from backend.flow.views.sqlserver import SqlserverHAApplySceneApiView, SqlserverSingleApplySceneApiView
+from backend.flow.views.sqlserver import (
+    SqlserverBackupDBSSceneApiView,
+    SqlserverCleanDBSSceneApiView,
+    SqlserverHAApplySceneApiView,
+    SqlserverRenameDBSSceneApiView,
+    SqlserverSingleApplySceneApiView,
+    SqlserverSQLFileExecuteSceneApiView,
+)
 from backend.flow.views.tbinlogdumper_add import (
     DisableTBinlogDumperSceneApiView,
     EnableTBinlogDumperSceneApiView,
@@ -389,4 +396,8 @@ urlpatterns = [
     # sqlserver
     url("^scene/sqlserver_single_apply$", SqlserverSingleApplySceneApiView.as_view()),
     url("^scene/sqlserver_ha_apply$", SqlserverHAApplySceneApiView.as_view()),
+    url("^scene/sqlserver_sql_file_execute$", SqlserverSQLFileExecuteSceneApiView.as_view()),
+    url("^scene/sqlserver_backup_dbs$", SqlserverBackupDBSSceneApiView.as_view()),
+    url("^scene/sqlserver_rename_dbs$", SqlserverRenameDBSSceneApiView.as_view()),
+    url("^scene/sqlserver_clean_dbs$", SqlserverCleanDBSSceneApiView.as_view()),
 ]

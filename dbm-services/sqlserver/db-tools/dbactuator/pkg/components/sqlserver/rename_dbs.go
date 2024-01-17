@@ -189,6 +189,11 @@ func (r *RenameDBSComp) DoRenameDBWithMirroring() error {
 			)
 			isErr = true
 		}
+		// 从实例删除从库
+		if err := DropOldDatabaseOnslave(i.DBName, r.DRS); err != nil {
+			logger.Error(err.Error())
+			isErr = true
+		}
 	}
 	if isErr {
 		return fmt.Errorf("rename databases error")
@@ -204,7 +209,7 @@ func (r *RenameDBSComp) DoRenameDBWithAlwayson() error {
 		var execDBSQLs []string
 		checkSQL := fmt.Sprintf(
 			`select count(0) as cnt from master.sys.databases where 
-			"name= '%s' and replica_id is not null`,
+			name= '%s' and replica_id is not null`,
 			i.DBName,
 		)
 		if err := r.DB.Queryxs(&cnt, checkSQL); err != nil {
@@ -240,10 +245,66 @@ func (r *RenameDBSComp) DoRenameDBWithAlwayson() error {
 			)
 			isErr = true
 		}
+		// 从实例删除从库
+		if err := DropOldDatabaseOnslave(i.DBName, r.DRS); err != nil {
+			logger.Error(err.Error())
+			isErr = true
+		}
 	}
 	if isErr {
 		return fmt.Errorf("rename databases error")
 	}
 	return nil
 
+}
+
+// DropOldDatabaseOnslave 在存入的slave节点中删除就得DB库
+func DropOldDatabaseOnslave(dbname string, DRS []slaves) error {
+	var isErr bool
+	for _, slave := range DRS {
+		// 判断DB是否有相关请求
+		if !slave.Connet.CheckDBProcessExist(dbname) {
+			logger.Error(
+				"[%s] db-process exist on slave [%s:%d],check", dbname, slave.Host, slave.Port,
+			)
+			isErr = true
+		}
+		var cnt int
+		// 判断源库名是否存在，如果不存在，打印日志，但不作为报错
+		checkOldDBSQL := fmt.Sprintf(
+			"select count(0) as cnt from master.sys.databases where name = '%s';", dbname,
+		)
+		if err := slave.Connet.Queryxs(&cnt, checkOldDBSQL); err != nil {
+			logger.Error("check-db failed:%v", err)
+			isErr = true
+		}
+		if cnt == 0 {
+			// 代表DB不存在
+			logger.Warn("[%s] not exists on slave [%s:%d] ,skip", dbname, slave.Host, slave.Port)
+			continue
+		}
+
+		// 执行drop 从库
+		if _, err := slave.Connet.Exec(fmt.Sprintf("DROP DATABASE %s", dbname)); err != nil {
+			logger.Error(
+				"exec drop database [%s] in slave [%s:%s] failed: [%v]",
+				dbname,
+				slave.Host,
+				slave.Port,
+				err,
+			)
+		} else {
+			logger.Info(
+				"exec drop database [%s] is slave [%s:%s] successfully",
+				dbname,
+				slave.Host,
+				slave.Port,
+			)
+		}
+
+	}
+	if isErr {
+		return fmt.Errorf("drop databases error on slaves")
+	}
+	return nil
 }

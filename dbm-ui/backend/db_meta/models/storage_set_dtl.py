@@ -12,6 +12,7 @@ from django.db import models
 
 from backend.bk_web.models import AuditedModel
 from backend.db_meta.models import Cluster, StorageInstance, StorageInstanceTuple
+from backend.flow.consts import SqlserverSyncMode
 
 
 class ClusterStorageSetABS(AuditedModel):
@@ -58,3 +59,11 @@ class TenDBClusterStorageSet(ClusterStorageSetABS):
 
     def __str__(self):
         return "{}: {}".format(self.shard_id, self.storage_instance_tuple)
+
+
+class SqlserverClusterSyncMode(ClusterStorageSetABS):
+    """
+    保存Sqlserver集群的数据同步模式
+    """
+
+    sync_mode = models.CharField(max_length=64, choices=SqlserverSyncMode.get_choices())

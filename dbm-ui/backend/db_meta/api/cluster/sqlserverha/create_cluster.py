@@ -25,6 +25,7 @@ from backend.db_meta.enums import (
 )
 from backend.db_meta.exceptions import DBMetaException
 from backend.db_meta.models import Cluster, ClusterEntry, StorageInstance, StorageInstanceTuple
+from backend.db_meta.models.storage_set_dtl import SqlserverClusterSyncMode
 
 logger = logging.getLogger("root")
 
@@ -71,6 +72,7 @@ def create(
     bk_cloud_id: int,
     time_zone: str,
     region: str,
+    sync_type: str,
     slave_domain: Optional[str] = None,
     storages: Optional[List] = None,
     creator: str = "",
@@ -112,6 +114,10 @@ def create(
     for slave_storage_obj in slave_storage_objs:
         StorageInstanceTuple.objects.create(ejector=master_storage_obj, receiver=slave_storage_obj)
 
+    # 记录主机同步模式
+    SqlserverClusterSyncMode.objects.create(sync_mode=sync_type, cluster=cluster)
+
+    # 设置域名对应关系
     cluster_entry = ClusterEntry.objects.create(
         cluster=cluster, cluster_entry_type=ClusterEntryType.DNS, entry=immute_domain, creator=creator
     )

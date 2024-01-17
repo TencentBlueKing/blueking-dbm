@@ -14,7 +14,7 @@ from pipeline.component_framework.component import Component
 
 from backend import env
 from backend.components import JobApi
-from backend.flow.consts import DEFAULT_SQLSERVER_PATH, MediumFileTypeEnum
+from backend.flow.consts import MediumFileTypeEnum
 from backend.flow.models import FlowNode
 from backend.flow.plugins.components.collections.common.base_service import BkJobService
 
@@ -60,7 +60,6 @@ class TransFileInWindowsService(BkJobService):
                 "file_type": MediumFileTypeEnum.Server.value,
                 "server": {"ip_list": kwargs["source_hosts"]},
             }
-            file_target_path = kwargs["file_target_path"]
 
         else:
             # 第三方cos原文件传输模式
@@ -69,11 +68,9 @@ class TransFileInWindowsService(BkJobService):
                 "file_type": MediumFileTypeEnum.Repo.value,
                 "file_source_code": env.APP_CODE,
             }
-            file_target_path = DEFAULT_SQLSERVER_PATH
-
         payload = {
             "bk_biz_id": env.JOB_BLUEKING_BIZ_ID,
-            "file_target_path": file_target_path,
+            "file_target_path": kwargs["file_target_path"],
             "transfer_mode": 2,
             "file_source_list": [file_source],
             "account_alias": "system",

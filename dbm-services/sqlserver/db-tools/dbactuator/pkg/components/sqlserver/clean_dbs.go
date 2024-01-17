@@ -12,6 +12,7 @@ package sqlserver
 
 import (
 	"fmt"
+	"reflect"
 
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/sqlserver/db-tools/dbactuator/pkg/components"
@@ -28,16 +29,21 @@ type CleanDBSComp struct {
 
 // CleanDBSParam 参数
 type CleanDBSParam struct {
-	Host      string   `json:"host" validate:"required,ip" `   // 本地hostip
-	Port      int      `json:"port"  validate:"required,gt=0"` // 需要操作的实例端口
-	CleanDBS  []string `json:"clean_dbs" validate:"required" ` // 待重命名库的列表
-	SyncMode  int      `json:"sync_mode" validate:"required"`  // 集群的同步模式分别是：single:3/mirroring:2/alwayson:1
-	CleanMode string   `json:"clean_mode" validate:"required"` //这次的清档类型：clean_tables/drop_tables/drop_dbs
+	Host              string         `json:"host" validate:"required,ip" `            // 本地hostip
+	Port              int            `json:"port"  validate:"required,gt=0"`          // 需要操作的实例端口
+	CleanDBS          []string       `json:"clean_dbs" validate:"required" `          // 待清理库的列表
+	SyncMode          int            `json:"sync_mode" validate:"required"`           // 集群的同步模式分别是：single:3/mirroring:2/alwayson:1
+	CleanMode         string         `json:"clean_mode" validate:"required"`          //这次的清档类型：clean_tables/drop_tables/drop_dbs
+	Slaves            []cst.Instnace `json:"slaves" `                                 // 集群的从实例
+	CleanTables       []string       `json:"clean_tables" validate:"required"`        // 清理表信息
+	IgnoreCleanTables []string       `json:"ignore_clean_tables" validate:"required"` // 忽略清理表信息
+
 }
 
 // runTimeCtx 上下文
 type cleanDBSrunTimeCtx struct {
 	DB      *sqlserver.DbWorker
+	DRS     []slaves
 	RealDBS []string
 }
 
@@ -57,6 +63,25 @@ func (c *CleanDBSComp) Init() error {
 		return err
 	}
 	c.DB = LWork
+	// 从实例初始化连接
+	for _, s := range c.Params.Slaves {
+		var SWork *sqlserver.DbWorker
+		if SWork, err = sqlserver.NewDbWorker(
+			c.GeneralParam.RuntimeAccountParam.SAUser,
+			c.GeneralParam.RuntimeAccountParam.SAPwd,
+			s.Host,
+			s.Port,
+		); err != nil {
+			logger.Error("connenct by [%s:%d] failed,err:%s",
+				c.Params.Host, c.Params.Port, err.Error())
+			return err
+		}
+		c.DRS = append(c.DRS, slaves{
+			Host:   s.Host,
+			Port:   s.Port,
+			Connet: SWork,
+		})
+	}
 	return nil
 }
 
@@ -119,16 +144,26 @@ func (c *CleanDBSComp) DoCleanDBS() error {
 func (c *CleanDBSComp) CleanTablesInDBS() error {
 	var isErr bool
 	for _, dbName := range c.RealDBS {
-		execSQL := fmt.Sprintf(cst.TRUNCATE_TABLES_SQL, dbName)
-		// 执行命令
-		if _, err := c.DB.Exec(execSQL); err != nil {
-			logger.Error(
-				"exec clean tables in database [%s] failed: [%v]",
-				dbName,
-				err,
-			)
-			isErr = true
+
+		if reflect.DeepEqual(c.Params.CleanTables, []string{"*"}) && len(c.Params.IgnoreCleanTables) == 0 {
+			// 如果是全匹配，直接使用 sp_MSForEachTable 处理
+			execSQL := fmt.Sprintf(cst.TRUNCATE_TABLES_SQL, dbName)
+			if _, err := c.DB.Exec(execSQL); err != nil {
+				logger.Error(
+					"exec clean tables in database [%s] failed: [%v], execSQL: [%v]",
+					dbName,
+					err,
+					execSQL,
+				)
+				isErr = true
+			}
+		} else {
+			// 非匹配模式处理
+			if err := c.execTablesForPer("truncate", dbName); err != nil {
+				return err
+			}
 		}
+
 	}
 	if isErr {
 		return fmt.Errorf("clean tables error")
@@ -140,16 +175,24 @@ func (c *CleanDBSComp) CleanTablesInDBS() error {
 func (c *CleanDBSComp) DropTablesInDBS() error {
 	var isErr bool
 	for _, dbName := range c.RealDBS {
-		execSQL := fmt.Sprintf(cst.DROP_TABLES_SQL, dbName)
-		// 执行命令
-		if _, err := c.DB.Exec(execSQL); err != nil {
-			logger.Error(
-				"exec drop tables in database [%s] failed: [%v]",
-				dbName,
-				err,
-			)
-			isErr = true
+		if reflect.DeepEqual(c.Params.CleanTables, []string{"*"}) && len(c.Params.IgnoreCleanTables) == 0 {
+			execSQL := fmt.Sprintf(cst.DROP_TABLES_SQL, dbName)
+			// 执行命令
+			if _, err := c.DB.Exec(execSQL); err != nil {
+				logger.Error(
+					"exec drop tables in database [%s] failed: [%v]",
+					dbName,
+					err,
+				)
+				isErr = true
+			}
+		} else {
+			// 非匹配模式处理
+			if err := c.execTablesForPer("drop", dbName); err != nil {
+				return err
+			}
 		}
+
 	}
 	if isErr {
 		return fmt.Errorf("drop tables error")
@@ -225,13 +268,17 @@ func (c *CleanDBSComp) DropdbwithMirroring(dbName string) error {
 
 	// 执行drop 批命令
 	if _, err := c.DB.ExecMore(execDBSQLs); err != nil {
-		logger.Error(
-			"exec drop database [%s] in DB [%s:%s] failed: [%v]",
+		return fmt.Errorf(
+			"exec drop database [%s] in DB [%s:%d] failed: [%v]",
 			dbName,
 			c.Params.Host,
 			c.Params.Port,
 			err,
 		)
+	}
+	// 从实例删除从库
+	if err := DropOldDatabaseOnslave(dbName, c.DRS); err != nil {
+		return err
 	}
 	return nil
 }
@@ -244,7 +291,7 @@ func (c *CleanDBSComp) DropdbwithAlwayson(dbName string) error {
 	var execDBSQLs []string
 	checkSQL = fmt.Sprintf(
 		`select count(0) as cnt from master.sys.databases where 
-		"name= '%s' and replica_id is not null`,
+		name= '%s' and replica_id is not null`,
 		dbName,
 	)
 	if err := c.DB.Queryxs(&cnt, checkSQL); err != nil {
@@ -282,8 +329,8 @@ func (c *CleanDBSComp) DropdbwithAlwayson(dbName string) error {
 
 	// 执行drop 批命令
 	if _, err := c.DB.ExecMore(execDBSQLs); err != nil {
-		logger.Error(
-			"exec drop database [%s] in DB [%s:%s] failed: [%v]",
+		return fmt.Errorf(
+			"exec drop database [%s] in DB [%s:%d] failed: [%v]",
 			dbName,
 			c.Params.Host,
 			c.Params.Port,
@@ -291,5 +338,61 @@ func (c *CleanDBSComp) DropdbwithAlwayson(dbName string) error {
 		)
 	}
 
+	// 从实例删除从库
+	if err := DropOldDatabaseOnslave(dbName, c.DRS); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// execTablesForPer 非全匹配规则，每个表变量操作
+func (c *CleanDBSComp) execTablesForPer(execMode string, dbName string) error {
+	var execSQLs []string
+	var realTables []string
+	var err error
+	if realTables, err = c.DB.GetTableListOnDB(
+		dbName,
+		c.Params.CleanTables,
+		c.Params.IgnoreCleanTables); err != nil {
+		return fmt.Errorf("get tables list on db [%s] failed:[%v]", dbName, err)
+
+	}
+	if len(realTables) == 0 {
+		// 获取的表列表为空，正常跳过
+		logger.Info(
+			"table-list is empty on db [%s], skip. CleanTables:[%v];IgnoreCleanTables[%v]",
+			dbName,
+			c.Params.CleanTables,
+			c.Params.IgnoreCleanTables,
+		)
+		return nil
+	}
+	for _, t := range realTables {
+		switch execMode {
+		case "truncate":
+			execSQLs = append(execSQLs, fmt.Sprintf(
+				cst.TRUNCATE_TABLES_SQL_FOR_PER,
+				dbName, t, t, t, t, t,
+			))
+		case "drop":
+			execSQLs = append(execSQLs, fmt.Sprintf(
+				cst.DROP_TABLES_SQL_FOR_PER,
+				dbName, t, t, t,
+			))
+		default:
+			return fmt.Errorf("execMode [%s] not suppurt", execMode)
+		}
+
+	}
+	if _, err := c.DB.ExecMore(execSQLs); err != nil {
+		return fmt.Errorf(
+			"exec clean tables in database [%s] failed: [%v]; execSQls:[%v]",
+			dbName,
+			err,
+			execSQLs,
+		)
+	}
+	logger.Info("exec [%s] successfully on db [%s]", execMode, dbName)
 	return nil
 }

@@ -45,7 +45,7 @@ class P2PFileForWindowKwargs(ValidateHandler):
     定义执行trans_file_in_window活动节点的私用变量通用结构体
     制品库下载场景
     @attributes file_list 需要传送的源文件列表
-    @attributes file_target_path 表示下载到目标机器的路径，默认则传/data/install
+    @attributes file_target_path 表示下载到目标机器的路径，默认则传d:\\install
     @attributes source_hosts 源机器host列表
     @attributes target_hosts 目标机器host列表
     @attributes file_type 传输模式
@@ -65,11 +65,13 @@ class DownloadMediaKwargs(ValidateHandler):
     制品库下载场景
     @attributes file_list 需要传送的源文件列表
     @attributes target_hosts 目标机器host列表
+    @attributes file_target_path 表示下载到目标机器的路径，默认则传d:\\install
     @attributes file_type 传输模式
     """
 
     file_list: list  # 需要传送的源文件列表
     target_hosts: List[Host] = field(metadata={"validate": validate_hosts})
+    file_target_path: str = DEFAULT_SQLSERVER_PATH
     file_type: Optional[MediumFileTypeEnum] = MediumFileTypeEnum.Repo.value
 
 

@@ -17,6 +17,7 @@ import (
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/sqlserver/db-tools/dbactuator/pkg/components"
 	"dbm-services/sqlserver/db-tools/dbactuator/pkg/core/cst"
+	"dbm-services/sqlserver/db-tools/dbactuator/pkg/util/osutil"
 	"dbm-services/sqlserver/db-tools/dbactuator/pkg/util/sqlserver"
 )
 
@@ -76,6 +77,23 @@ func (b *BackupDBSComp) Init() error {
 	} else {
 		b.BackupDir = filepath.Join(cst.BASE_DATA_PATH, cst.MSSQL_BACKUP_NAME, b.Params.BackupID)
 	}
+	// 创建备份目录
+	dir := osutil.WINSFile{FileName: b.BackupDir}
+	err, check := dir.FileExists()
+	if check && err == nil {
+		// 表示目录在系统存在，先跳过
+		logger.Info(fmt.Sprintf("backup-dir [%s] exist", b.BackupDir))
+		return nil
+	}
+	if err != nil {
+		// 表示检查目录是否存在出现异常，报错
+		return err
+	}
+	// 创建目录
+	if !dir.Create(0777) {
+		return fmt.Errorf("create backup-dir [%s] failed", b.BackupDir)
+	}
+	logger.Info("create backup-dir [%s] successfully", b.BackupDir)
 	return nil
 }
 
