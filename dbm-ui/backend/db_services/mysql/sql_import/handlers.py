@@ -8,11 +8,9 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-import datetime
 import os.path
 import tempfile
 import time
-import uuid
 from typing import Any, Dict, List, Optional, Union
 
 from django.core.cache import cache
@@ -38,6 +36,7 @@ from backend.flow.engine.controller.mysql import MySQLController
 from backend.flow.engine.controller.spider import SpiderController
 from backend.flow.models import FlowNode, FlowTree
 from backend.flow.plugins.components.collections.mysql.semantic_check import SemanticCheckComponent
+from backend.utils.basic import generate_root_id
 from backend.utils.redis import RedisConn
 
 
@@ -151,7 +150,7 @@ class SQLHandler(object):
             execute_objects.extend([{"sql_file": sql_file, **db_info} for db_info in execute_db_infos])
 
         # 异步执行语义检查
-        root_id = f"{datetime.date.today()}{uuid.uuid1().hex[:6]}".replace("-", "")
+        root_id = generate_root_id()
         ticket_data = {
             "created_by": self.context["user"],
             "bk_biz_id": self.bk_biz_id,

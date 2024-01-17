@@ -10,7 +10,6 @@ specific language governing permissions and limitations under the License.
 """
 
 import logging
-import uuid
 
 from django.utils.translation import ugettext as _
 from rest_framework.permissions import AllowAny
@@ -18,6 +17,7 @@ from rest_framework.response import Response
 
 from backend.flow.engine.controller.spider import SpiderController
 from backend.flow.views.base import FlowTestView
+from backend.utils.basic import generate_root_id
 
 logger = logging.getLogger("root")
 
@@ -33,7 +33,7 @@ class DisableSpiderSceneApiView(FlowTestView):
         # from django.utils.translation import ugettext as _ 主要用于国际化中的翻译
         logger.info(_("开始禁用spider集群场景"))
 
-        root_id = uuid.uuid1().hex
+        root_id = generate_root_id()
         logger.info("define root_id: {}".format(root_id))
         test = SpiderController(root_id=root_id, ticket_data=request.data)
         test.spider_cluster_disable_scene()
@@ -52,7 +52,7 @@ class EnableSpiderSceneApiView(FlowTestView):
         # from django.utils.translation import ugettext as _ 主要用于国际化中的翻译
         logger.info(_("开始启用spider集群场景"))
 
-        root_id = uuid.uuid1().hex
+        root_id = generate_root_id()
         logger.info("define root_id: {}".format(root_id))
         test = SpiderController(root_id=root_id, ticket_data=request.data)
         test.spider_cluster_enable_scene()
@@ -68,7 +68,7 @@ class DestroySpiderClusterSceneApiView(FlowTestView):
 
     def post(self, request):
         # logger.info("开始部署tenDB cluster HA场景")
-        root_id = uuid.uuid1().hex
+        root_id = generate_root_id()
         test = SpiderController(root_id=root_id, ticket_data=request.data)
         test.spider_cluster_destroy_scene()
         return Response({"root_id": root_id})

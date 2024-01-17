@@ -10,7 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 # import json
 # import logging
-# import uuid
+# from backend.utils.basic import generate_root_id
 #
 # from django.core.files.uploadedfile import InMemoryUploadedFile
 # from django.utils.translation import gettext_lazy as _
@@ -68,7 +68,7 @@ specific language governing permissions and limitations under the License.
 #             # 2. 集群版本和字符集满足 db module 的要求
 #             # 3. 集群机器配置符合 spec
 #
-#             root_id = uuid.uuid1().hex
+#             root_id = generate_root_id()
 #             logger.info("define root_id: {}".format(root_id))
 #
 #             ticket = Ticket.objects.create(

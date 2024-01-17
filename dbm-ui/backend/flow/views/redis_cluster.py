@@ -9,13 +9,13 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import logging
-import uuid
 
 from rest_framework.response import Response
 
 from backend.db_meta.enums import ClusterType
 from backend.flow.engine.controller.redis import RedisController
 from backend.flow.views.base import FlowTestView
+from backend.utils.basic import generate_root_id
 
 logger = logging.getLogger("root")
 
@@ -65,7 +65,7 @@ class InstallRedisCacheClusterSceneApiView(FlowTestView):
 
     @staticmethod
     def post(request):
-        root_id = uuid.uuid1().hex
+        root_id = generate_root_id()
         if request.data["cluster_type"] == ClusterType.TendisPredixyRedisCluster:
             RedisController(root_id=root_id, ticket_data=request.data).tendisplus_apply_scene()
         elif request.data["cluster_type"] == ClusterType.TendisTwemproxyRedisInstance.value:
@@ -78,7 +78,7 @@ class InstallRedisCacheClusterSceneApiView(FlowTestView):
 class InstallTendisplusClusterSceneApiView(FlowTestView):
     @staticmethod
     def post(request):
-        root_id = uuid.uuid1().hex
+        root_id = generate_root_id()
         RedisController(root_id=root_id, ticket_data=request.data).tendisplus_apply_scene()
         return Response({"root_id": root_id})
 
@@ -107,7 +107,7 @@ class RedisClusterBackupSceneApiView(FlowTestView):
 
     @staticmethod
     def post(request):
-        root_id = uuid.uuid1().hex
+        root_id = generate_root_id()
         RedisController(root_id=root_id, ticket_data=request.data).redis_backup()
         return Response({"root_id": root_id})
 
@@ -127,7 +127,7 @@ class RedisClusterOpenCloseSceneApiView(FlowTestView):
 
     @staticmethod
     def post(request):
-        root_id = uuid.uuid1().hex
+        root_id = generate_root_id()
         RedisController(root_id=root_id, ticket_data=request.data).redis_cluster_open_close_scene()
         return Response({"root_id": root_id})
 
@@ -147,7 +147,7 @@ class RedisClusterShutdownSceneApiView(FlowTestView):
 
     @staticmethod
     def post(request):
-        root_id = uuid.uuid1().hex
+        root_id = generate_root_id()
         RedisController(root_id=root_id, ticket_data=request.data).redis_cluster_shutdown()
         return Response({"root_id": root_id})
 
@@ -167,7 +167,7 @@ class SingleRedisShutdownSceneApiView(FlowTestView):
 
     @staticmethod
     def post(request):
-        root_id = uuid.uuid1().hex
+        root_id = generate_root_id()
         RedisController(root_id=root_id, ticket_data=request.data).single_redis_shutdown()
         return Response({"root_id": root_id})
 
@@ -188,7 +188,7 @@ class SingleProxyShutdownSceneApiView(FlowTestView):
 
     @staticmethod
     def post(request):
-        root_id = uuid.uuid1().hex
+        root_id = generate_root_id()
         RedisController(root_id=root_id, ticket_data=request.data).single_proxy_shutdown()
         return Response({"root_id": root_id})
 
@@ -217,7 +217,7 @@ class RedisFlushDataSceneApiView(FlowTestView):
 
     @staticmethod
     def post(request):
-        root_id = uuid.uuid1().hex
+        root_id = generate_root_id()
         RedisController(root_id=root_id, ticket_data=request.data).redis_flush_data()
         return Response({"root_id": root_id})
 
@@ -249,7 +249,7 @@ class RedisProxyScaleSceneApiView(FlowTestView):
 
     @staticmethod
     def post(request):
-        root_id = uuid.uuid1().hex
+        root_id = generate_root_id()
         RedisController(root_id=root_id, ticket_data=request.data).redis_proxy_scale()
         return Response({"root_id": root_id})
 
@@ -291,7 +291,7 @@ class RedisBackendScaleSceneApiView(FlowTestView):
 
     @staticmethod
     def post(request):
-        root_id = uuid.uuid1().hex
+        root_id = generate_root_id()
         RedisController(root_id=root_id, ticket_data=request.data).redis_backend_scale()
         return Response({"root_id": root_id})
 
@@ -341,7 +341,7 @@ class RedisClusterDataCopySceneApiView(FlowTestView):
 
     @staticmethod
     def post(request):
-        root_id = uuid.uuid1().hex
+        root_id = generate_root_id()
         RedisController(root_id=root_id, ticket_data=request.data).redis_cluster_data_copy()
         return Response({"root_id": root_id})
 
@@ -351,7 +351,7 @@ class RedisClusterShardNumUpdateSceneApiView(FlowTestView):
 
     @staticmethod
     def post(request):
-        root_id = uuid.uuid1().hex
+        root_id = generate_root_id()
         RedisController(root_id=root_id, ticket_data=request.data).redis_cluster_shard_num_update()
         return Response({"root_id": root_id})
 
@@ -361,7 +361,7 @@ class RedisClusterTypeUpdateSceneApiView(FlowTestView):
 
     @staticmethod
     def post(request):
-        root_id = uuid.uuid1().hex
+        root_id = generate_root_id()
         RedisController(root_id=root_id, ticket_data=request.data).redis_cluster_type_update()
         return Response({"root_id": root_id})
 
@@ -396,7 +396,7 @@ class RedisClusterDataCheckRepairApiView(FlowTestView):
 
     @staticmethod
     def post(request):
-        root_id = uuid.uuid1().hex
+        root_id = generate_root_id()
         RedisController(root_id=root_id, ticket_data=request.data).redis_cluster_data_check_repair()
         return Response({"root_id": root_id})
 
@@ -419,7 +419,7 @@ class RedisAddDtsServerSceneApiView(FlowTestView):
 
     @staticmethod
     def post(request):
-        root_id = uuid.uuid1().hex
+        root_id = generate_root_id()
         RedisController(root_id=root_id, ticket_data=request.data).redis_add_dts_server()
         return Response({"root_id": root_id})
 
@@ -442,7 +442,7 @@ class RedisRemoveDtsServerSceneApiView(FlowTestView):
 
     @staticmethod
     def post(request):
-        root_id = uuid.uuid1().hex
+        root_id = generate_root_id()
         RedisController(root_id=root_id, ticket_data=request.data).redis_remove_dts_server()
         return Response({"root_id": root_id})
 
@@ -474,7 +474,7 @@ class RedisDataStructureSceneApiView(FlowTestView):
 
     @staticmethod
     def post(request):
-        root_id = uuid.uuid1().hex
+        root_id = generate_root_id()
         RedisController(root_id=root_id, ticket_data=request.data).redis_data_structure()
         return Response({"root_id": root_id})
 
@@ -506,7 +506,7 @@ class RedisDataStructureTaskDeleteSceneApiView(FlowTestView):
 
     @staticmethod
     def post(request):
-        root_id = uuid.uuid1().hex
+        root_id = generate_root_id()
         RedisController(root_id=root_id, ticket_data=request.data).redis_data_structure_task_delete()
         return Response({"root_id": root_id})
 
@@ -536,7 +536,7 @@ class RedisClusterAddSlaveApiView(FlowTestView):
 
     @staticmethod
     def post(request):
-        root_id = uuid.uuid1().hex
+        root_id = generate_root_id()
         RedisController(root_id=root_id, ticket_data=request.data).redis_cluster_add_slave()
         return Response({"root_id": root_id})
 
@@ -562,7 +562,7 @@ class RedisClusterVersionUpdateOnlineApiView(FlowTestView):
 
     @staticmethod
     def post(request):
-        root_id = uuid.uuid1().hex
+        root_id = generate_root_id()
         RedisController(root_id=root_id, ticket_data=request.data).redis_cluster_version_update_online()
         return Response({"root_id": root_id})
 
@@ -574,7 +574,7 @@ class RedisClusterMigratePrecheck(FlowTestView):
 
     @staticmethod
     def post(request):
-        root_id = uuid.uuid1().hex
+        root_id = generate_root_id()
         RedisController(root_id=root_id, ticket_data=request.data).redis_cluster_migrate_precheck()
         return Response({"root_id": root_id})
 
@@ -586,7 +586,7 @@ class RedisClusterMigrateLoad(FlowTestView):
 
     @staticmethod
     def post(request):
-        root_id = uuid.uuid1().hex
+        root_id = generate_root_id()
         RedisController(root_id=root_id, ticket_data=request.data).redis_cluster_migrate_load()
         return Response({"root_id": root_id})
 
@@ -598,7 +598,7 @@ class RedisClusterMigrateCompair(FlowTestView):
 
     @staticmethod
     def post(request):
-        root_id = uuid.uuid1().hex
+        root_id = generate_root_id()
         RedisController(root_id=root_id, ticket_data=request.data).redis_cluster_migrate_compair()
         return Response({"root_id": root_id})
 
@@ -636,7 +636,7 @@ class RedisSlotsMigrateForExpansionSceneApiView(FlowTestView):
 
     @staticmethod
     def post(request):
-        root_id = uuid.uuid1().hex
+        root_id = generate_root_id()
         RedisController(root_id=root_id, ticket_data=request.data).redis_slots_migrate_for_expansion()
         return Response({"root_id": root_id})
 
@@ -664,7 +664,7 @@ class RedisSlotsMigrateForContractionSceneApiView(FlowTestView):
 
     @staticmethod
     def post(request):
-        root_id = uuid.uuid1().hex
+        root_id = generate_root_id()
         RedisController(root_id=root_id, ticket_data=request.data).redis_slots_migrate_for_contraction()
         return Response({"root_id": root_id})
 
@@ -704,7 +704,7 @@ class RedisSlotsMigrateForHotkeySceneApiView(FlowTestView):
 
     @staticmethod
     def post(request):
-        root_id = uuid.uuid1().hex
+        root_id = generate_root_id()
         RedisController(root_id=root_id, ticket_data=request.data).redis_slots_migrate_for_hotkey()
         return Response({"root_id": root_id})
 
@@ -746,6 +746,6 @@ class RedisReuploadOldBackupRecordsSceneApiView(FlowTestView):
 
     @staticmethod
     def post(request):
-        root_id = uuid.uuid1().hex
+        root_id = generate_root_id()
         RedisController(root_id=root_id, ticket_data=request.data).redis_reupload_old_backup_records()
         return Response({"root_id": root_id})

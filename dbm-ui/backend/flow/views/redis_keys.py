@@ -9,12 +9,12 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import logging
-import uuid
 
 from rest_framework.response import Response
 
 from backend.flow.engine.controller.redis import RedisController
 from backend.flow.views.base import FlowTestView
+from backend.utils.basic import generate_root_id
 
 logger = logging.getLogger("root")
 
@@ -55,7 +55,7 @@ class RedisKeysExtractSceneApiView(FlowTestView):
 
     @staticmethod
     def post(request):
-        root_id = uuid.uuid1().hex
+        root_id = generate_root_id()
         RedisController(root_id=root_id, ticket_data=request.data).redis_keys_extract()
         return Response({"root_id": root_id})
 
@@ -97,6 +97,6 @@ class RedisKeysDeleteSceneApiView(FlowTestView):
 
     @staticmethod
     def post(request):
-        root_id = uuid.uuid1().hex
+        root_id = generate_root_id()
         RedisController(root_id=root_id, ticket_data=request.data).redis_keys_delete()
         return Response({"root_id": root_id})

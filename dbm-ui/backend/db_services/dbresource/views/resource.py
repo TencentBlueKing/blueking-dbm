@@ -9,10 +9,8 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
-import datetime
 import itertools
 import time
-import uuid
 from typing import Dict, List
 
 from django.utils.translation import ugettext_lazy as _
@@ -64,6 +62,7 @@ from backend.flow.models import FlowTree
 from backend.iam_app.handlers.drf_perm import GlobalManageIAMPermission
 from backend.ticket.constants import BAMBOO_STATE__TICKET_STATE_MAP, TicketStatus, TicketType
 from backend.ticket.models import Ticket
+from backend.utils.basic import generate_root_id
 from backend.utils.redis import RedisConn
 
 
@@ -178,7 +177,7 @@ class DBResourceViewSet(viewsets.SystemViewSet):
     @action(detail=False, methods=["POST"], url_path="import", serializer_class=ResourceImportSerializer)
     def resource_import(self, request):
         validated_data = self.params_validate(self.get_serializer_class())
-        root_id = f"{datetime.date.today()}{uuid.uuid1().hex[:6]}".replace("-", "")
+        root_id = generate_root_id()
 
         # 补充必要的单据参数
         validated_data.update(
