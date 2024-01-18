@@ -30,6 +30,7 @@ from backend.utils.time import datetime2str
 
 from .enums import AutofixStatus
 from .models import RedisAutofixCore
+from .qywx import MarkDownMsg, QyWxClient
 
 logger = logging.getLogger("root")
 
@@ -60,6 +61,7 @@ def create_ticket(cluster: RedisAutofixCore, redis_proxies: list, redis_slaves: 
         "ip_source": IpSource.RESOURCE_POOL.value,
         "infos": [
             {
+                "autofix_id": cluster.id,
                 "cluster_id": cluster.cluster_id,
                 "immute_domain": cluster.immute_domain,
                 "bk_cloud_id": cluster.bk_cloud_id,
@@ -91,5 +93,19 @@ def create_ticket(cluster: RedisAutofixCore, redis_proxies: list, redis_slaves: 
     cluster.update_at = datetime2str(datetime.datetime.now(timezone.utc))
     cluster.deal_status = AutofixStatus.AF_WFLOW.value
     cluster.save(update_fields=["ticket_id", "status_version", "deal_status", "update_at"])
+    QyWxClient().send_markdown_msg(
+        MarkDownMsg(
+            title="Tendis自愈通知(dbm)",
+            subTitle="自愈开始",
+            domain=cluster.immute_domain,
+            app=cluster.bk_biz_id,
+            dba=redisDBA,
+            subMsg={
+                "自愈序号": ticket.id,
+                "故障机器": {"proxies": redis_proxies, "storages": redis_slaves},
+                "开始时间": datetime2str(datetime.datetime.now(timezone.utc)),
+            },
+        )
+    )
 
     TicketFlowManager(ticket=ticket).run_next_flow()

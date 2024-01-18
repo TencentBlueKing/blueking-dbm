@@ -38,6 +38,7 @@ class RedisAutofixCore(AuditedModel):
     immute_domain = models.CharField(verbose_name=_("集群主域名"), max_length=LEN_LONG)
     fault_machines = models.JSONField(verbose_name=_("故障机器"), max_length=LEN_XX_LONG)
     ticket_id = models.BigIntegerField(verbose_name=_("单据ID"), default=-1)
+    shutdown_ticket_ids = models.CharField(verbose_name=_("实例下架单据IDs"), default=-1, max_length=LEN_NORMAL)
     deal_status = models.CharField(verbose_name=_("自愈状态"), choices=AutofixStatus.get_choices(), max_length=LEN_NORMAL)
     status_version = models.CharField(verbose_name=_("状态版本"), max_length=LEN_NORMAL)
 

@@ -8,19 +8,25 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import datetime
 from typing import List
 
+from django.utils import timezone
+from django.utils.crypto import get_random_string
 from django.utils.translation import ugettext_lazy as _
 from pipeline.component_framework.component import Component
 from pipeline.core.flow.activity import Service
 
 from backend.configuration.constants import DBType
 from backend.configuration.models.dba import DBAdministrator
+from backend.db_services.redis.autofix.bill import RedisAutofixCore
+from backend.db_services.redis.autofix.enums import AutofixStatus
 from backend.flow.plugins.components.collections.common.base_service import BaseService
 from backend.ticket.builders import BuilderFactory
 from backend.ticket.constants import TicketStatus
 from backend.ticket.flow_manager.manager import TicketFlowManager
 from backend.ticket.models import Ticket
+from backend.utils.time import datetime2str
 
 
 class RedisTicketService(BaseService):
@@ -50,8 +56,19 @@ class RedisTicketService(BaseService):
         builder.patch_ticket_detail()
         builder.init_ticket_flows()
         TicketFlowManager(ticket=ticket).run_next_flow()
-
         self.log_info("succ create ticket for cluster {} : {}".format(kwargs["immute_domain"], ticket))
+
+        # 回写自愈表
+        auotfix_obj = RedisAutofixCore.objects.get(id=kwargs["autofix_id"])
+        if auotfix_obj.shutdown_ticket_ids != "":
+            auotfix_obj.shutdown_ticket_ids = "{}|{}".format(ticket.id, auotfix_obj.shutdown_ticket_ids)
+        else:
+            auotfix_obj.shutdown_ticket_ids = ticket.id
+
+        auotfix_obj.update_at = datetime2str(datetime.datetime.now(timezone.utc))
+        auotfix_obj.status_version = get_random_string(12)
+        auotfix_obj.deal_status = AutofixStatus.AF_INST_JOB.value
+        auotfix_obj.save(update_fields=["shutdown_ticket_ids", "status_version", "deal_status", "update_at"])
 
         return True
 

@@ -25,6 +25,7 @@ from backend.utils.time import datetime2timestamp
 from .const import REDIS_SWITCH_WAITER, SWITCH_MAX_WAIT_SECONDS, SWITCH_SMALL, RedisSwitchHost, RedisSwitchWait
 from .enums import AutofixItem, AutofixStatus, DBHASwitchResult
 from .models import RedisAutofixCore, RedisAutofixCtl, RedisIgnoreAutofix
+from .qywx import MarkDownMsg, QyWxClient
 
 logger = logging.getLogger("root")
 
@@ -67,9 +68,15 @@ def watcher_get_by_hosts() -> (int, dict):
             # 忽略没有集群信息、或者多集群共用的情况
             cluster = query_cluster_by_hosts([switch_ip])  # return: [{},{}]
             if not cluster:
+                QyWxClient().send_txt_msg("【ignore autofix】get None cluster info by ip:{}".format(switch_ip))
                 logger.info("will ignore got none cluster info by ip {}".format(switch_ip))
                 continue
             elif len(cluster) > 1:
+                QyWxClient().send_txt_msg(
+                    "【ignore autofix】get two+ clusters info by ip:{} {}".format(
+                        switch_ip, [c["cluster"] for c in cluster]
+                    )
+                )
                 logger.info("will ignore got two+ cluster info by ip {} : {}".format(switch_ip, cluster))
                 continue
             one_cluster = cluster[0]
@@ -170,6 +177,20 @@ def get_4_next_watch_ID(batch_small: int, switch_hosts: Dict) -> int:
             )
             swiched_host.ignore_fix = True
             # save ignore swithed host
+            QyWxClient().send_markdown_msg(
+                MarkDownMsg(
+                    title="DBHA-切换异常检测提醒",
+                    subTitle="忽略故障自愈",
+                    domain=swiched_host.immute_domain,
+                    app=swiched_host.bk_biz_id,
+                    subMsg={
+                        "故障机器": swiched_host.ip,
+                        "实例角色": swiched_host.instance_type,
+                        "切换列表": swiched_host.switch_ports,
+                        "切换结果": json.dumps(swiched_host.sw_result),
+                    },
+                )
+            )
             save_ignore_host(swiched_host, "wait_timeout")
             if ignore_max_uid >= swiched_host.sw_max_id:
                 ignore_max_uid = swiched_host.sw_max_id + 1

@@ -66,6 +66,7 @@ class RedisClusterAutoFixSceneFlow(object):
         "ticket_type":"REDIS_CLUSTER_AUTOFIX",
         "infos": [
             {
+            "autofix_id":1111,
             "cluster_id": 1,
             "proxy": [
                    {"ip": "1.1.1.a","spec_id": 17,
@@ -330,6 +331,7 @@ class RedisClusterAutoFixSceneFlow(object):
             act_name=_("提交Proxy下架单-{}".format(old_proxies)),
             act_component_code=RedisTicketComponent.code,
             kwargs={
+                "autofix_id": flow_data["autofix_id"],
                 "bk_biz_id": act_kwargs.cluster["bk_biz_id"],
                 "cluster_id": act_kwargs.cluster["cluster_id"],
                 "immute_domain": act_kwargs.cluster["immute_domain"],
@@ -499,6 +501,7 @@ class RedisClusterAutoFixSceneFlow(object):
             act_name=_("提交Redis下架单-{}".format(old_slaves)),
             act_component_code=RedisTicketComponent.code,
             kwargs={
+                "autofix_id": flow_data["autofix_id"],
                 "bk_biz_id": sub_kwargs.cluster["bk_biz_id"],
                 "cluster_id": sub_kwargs.cluster["cluster_id"],
                 "immute_domain": sub_kwargs.cluster["immute_domain"],
