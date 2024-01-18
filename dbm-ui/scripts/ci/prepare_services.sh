@@ -1,5 +1,14 @@
+#!/bin/bash
+
 if [ "$YUM_INSTALL_SERVICE" ]; then
-  yum -y install python36-devel mysql-devel
+    case $PYTHON_VERSION in
+        3.6)
+            yum -y install python36-devel mysql-devel
+            ;;
+        3.10)
+            yum -y install python310-devel mysql-devel
+            ;;
+    esac
 fi
 
 
@@ -8,7 +17,7 @@ if [ "$CREATE_PYTHON_VENV" ]; then
   pip install virtualenv
   VENV_DIR="/tmp/ci_py_venv"
   virtualenv "$VENV_DIR"
-  virtualenv -p /usr/bin/python3.6 "$VENV_DIR"
+  virtualenv -p /usr/bin/python$PYTHON_VERSION "$VENV_DIR"
   # 激活Python虚拟环境
   source "${VENV_DIR}/bin/activate"
 fi

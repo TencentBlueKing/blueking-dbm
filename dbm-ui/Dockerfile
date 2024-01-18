@@ -10,10 +10,11 @@ FROM frontend-installer AS frontend-builder
 
 WORKDIR /frontend
 COPY frontend ./
-
+ENV NODE_OPTIONS="--max_old_space_size=4096"
 RUN yarn build
 
-FROM python:3.6.12-slim-buster AS base
+#FROM python:3.6.12-slim-buster AS base
+FROM python:3.10.13-slim AS base
 
 WORKDIR /
 ENV LC_ALL=C.UTF-8  LANG=C.UTF-8
@@ -30,11 +31,11 @@ ENV PATH="/venv/bin:$PATH"
 
 RUN set -ex && \
     chmod 1777 /tmp && \
-    rm /etc/apt/sources.list && \
-    echo "deb https://mirrors.cloud.tencent.com/debian buster main contrib non-free" >> /etc/apt/sources.list && \
-    echo "deb https://mirrors.cloud.tencent.com/debian buster-updates main contrib non-free" >> /etc/apt/sources.list && \
-    echo "deb-src https://mirrors.cloud.tencent.com/debian buster main contrib non-free" >> /etc/apt/sources.list && \
-    echo "deb-src https://mirrors.cloud.tencent.com/debian buster-updates main contrib non-free" >> /etc/apt/sources.list
+    rm /etc/apt/sources.list.d/debian.sources && \
+    echo "deb https://mirrors.cloud.tencent.com/debian bookworm main contrib non-free" >> /etc/apt/sources.list && \
+    echo "deb https://mirrors.cloud.tencent.com/debian bookworm-updates main contrib non-free" >> /etc/apt/sources.list && \
+    echo "deb-src https://mirrors.cloud.tencent.com/debian bookworm main contrib non-free" >> /etc/apt/sources.list && \
+    echo "deb-src https://mirrors.cloud.tencent.com/debian bookworm-updates main contrib non-free" >> /etc/apt/sources.list
 
 RUN set -ex && mkdir ~/.pip && printf '[global]\nindex-url = https://mirrors.tencent.com/pypi/simple/' > ~/.pip/pip.conf
 
@@ -47,7 +48,7 @@ WORKDIR /
 RUN set -ex &&  \
     apt-get update && \
     apt-get install -y --no-install-recommends \
-        gcc gettext mariadb-client libmariadbclient-dev default-libmysqlclient-dev && \
+    gcc gettext mariadb-client default-libmysqlclient-dev g++ pkg-config && \
     rm -rf /var/lib/apt/lists/*
 
 RUN ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime

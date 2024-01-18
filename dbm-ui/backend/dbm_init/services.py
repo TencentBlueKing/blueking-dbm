@@ -109,7 +109,7 @@ class Services:
                 continue
 
             # 读取日志采集项json文件，并渲染配置
-            with open(os.path.join(bklog_json_files_path, filename), "r") as file:
+            with open(os.path.join(bklog_json_files_path, filename), "r", encoding="utf-8") as file:
                 try:
                     bklog_params = json.load(file)
                 except json.decoder.JSONDecodeError as err:

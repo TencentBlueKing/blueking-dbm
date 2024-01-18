@@ -5,21 +5,24 @@ description = "blueking database management platform"
 authors = ["blueking"]
 
 [tool.poetry.dependencies]
-python = ">=3.6.2,<3.7"
+python = "~3.6.2 || ~3.10.0"
 Django = "3.2.19"
 djangorestframework = "3.12.4"
 PyMySQL = "1.0.2"
 requests = "2.22.0"
 Werkzeug = "1.0.1"
 celery = "4.4.0"
-bamboo-pipeline = "3.24.1"
+bamboo-pipeline = "3.29.1"
 django-comment-migrate = "^0.1.5"
 django-extensions = "^3.1.5"
 pydotplus = "^2.0.2"
 drf-yasg = "^1.20.0"
 django-crispy-forms = "^1.13.0"
 validators = "^0.18.2"
-PyYAML = "^5.4.1"
+PyYAML = [
+    { version = "5.4.1", python = "~3.6.2" },
+    { version = "6.0", python = "~3.10.0" }
+]
 django-filter = "^21.1"
 whitenoise = "5.2.0"
 attrs = "21.2.0"
@@ -45,7 +48,10 @@ django-cors-headers = "3.9"
 django-redis = "^5.2.0"
 pygtrans = "^1.4.0"
 astunparse = "^1.6.3"
-blueapps = {version = "4.8.0", extras = ["opentelemetry"]}
+blueapps = [
+    { version = "4.8.0", extras = ["opentelemetry"], python = "~3.6.2" },
+    { version = "4.9.0", extras = ["opentelemetry"], python = "~3.10.0" }
+]
 pyinstrument = "3.4.2"
 mistune = "0.8.4"
 bkoauth = "0.1.0"
@@ -58,7 +64,7 @@ flake8 = "5.0.4"
 opentelemetry-exporter-otlp = "1.11.0"
 opentelemetry-exporter-jaeger = "1.11.0"
 bk-notice-sdk = "^1.1.1"
-
+protobuf = "3.19.6"
 
 [tool.poetry.dev-dependencies]
 pytest = "6.2.4"

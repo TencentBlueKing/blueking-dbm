@@ -19,6 +19,14 @@ pip install poetry >> /tmp/pip_install.log
 # 进入dbm-ui进行操作
 cd $DBM_DIR
 poetry export --without-hashes -f requirements.txt --output requirements.txt
+case $PYTHON_VERSION in
+  3.6)
+    cp -f requirements36.txt requirements.txt
+    ;;
+  3.10)
+    cp -f requirements310.txt requirements.txt
+    ;;
+esac
 pip install -r requirements.txt >> /tmp/pip_install.log
 if [[ $? -ne 0 ]];
 then
