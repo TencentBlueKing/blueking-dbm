@@ -54,6 +54,11 @@ def auto_check_checksum():
     )
     start_time = datetime(yesterday.year, yesterday.month, yesterday.day).astimezone(timezone.utc)
     end_time = datetime(yesterday.year, yesterday.month, yesterday.day, 23, 59, 59).astimezone(timezone.utc)
+    logger.info(
+        "[auto_check_checksum] now:{} log_start_time:{} start_time:{} end_time:{}".format(
+            now, log_start_time, start_time, end_time
+        )
+    )
     cluster_type_filter = [ClusterType.TenDBHA.value, ClusterType.TenDBCluster.value]
     cluster_ids = list(Cluster.objects.filter(cluster_type__in=cluster_type_filter).values_list("id", flat=True))
     count = len(cluster_ids)
@@ -88,7 +93,7 @@ def check_cluster_checksum(cluster_id: int, start_time: datetime, end_time: date
     if len(machines) <= 0:
         return
     # BKLogApi.esquery_search的过滤条件filter
-    # 获取近1天的日志
+    # 获取近2天的日志
     machine_filter = [
         {"field": "serverIp", "operator": "is one of", "value": machines},
         {"field": "cloudId", "operator": "is", "value": cluster.bk_cloud_id},

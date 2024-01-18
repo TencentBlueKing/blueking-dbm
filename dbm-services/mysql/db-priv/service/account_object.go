@@ -14,10 +14,11 @@ type TbAccounts struct {
 	ClusterType string    `gorm:"column:cluster_type;not_null" json:"cluster_type"`
 	User        string    `gorm:"column:user;not_null" json:"user"`
 	Psw         string    `gorm:"column:psw;not_null" json:"psw"`
-	Creator     string    `gorm:"column:creator;not_null;" json:"creator"`
+	Creator     string    `gorm:"column:creator;not_null" json:"creator"`
 	CreateTime  time.Time `gorm:"column:create_time" json:"create_time"`
 	Operator    string    `gorm:"column:operator" json:"operator"`
 	UpdateTime  time.Time `gorm:"column:update_time" json:"update_time"`
+	Sid         string    `gorm:"column:sid" json:"sid"`
 }
 
 // Account 账号表中需要在前端展示的字段
@@ -25,7 +26,7 @@ type Account struct {
 	Id         int64     `gorm:"column:id;not_null" json:"id"`
 	BkBizId    int64     `gorm:"column:bk_biz_id;not_null" json:"bk_biz_id"`
 	User       string    `gorm:"column:user;not_null" json:"user"`
-	Creator    string    `gorm:"column:creator;not_null;" json:"creator"`
+	Creator    string    `gorm:"column:creator;not_null" json:"creator"`
 	CreateTime time.Time `gorm:"column:create_time" json:"create_time"`
 }
 
@@ -45,6 +46,7 @@ type AccountPara struct {
 	ClusterType  *string `json:"cluster_type"`
 	MigrateFlag  bool    `json:"migrate_flag"`
 	PasswordFunc bool    `json:"password_func"`
+	Sid          string  `json:"sid"` // sqlserver专用
 }
 
 type GetAccountIncludePswPara struct {

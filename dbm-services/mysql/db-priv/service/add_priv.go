@@ -185,8 +185,10 @@ func (m *AddPrivWithoutAccountRule) AddPrivWithoutAccountRule(jsonPara string) e
 		return err
 	}
 	ts := time.Now()
-	tmpAccount := TbAccounts{0, 0, "", m.User, psw, "", ts, "", ts}
-	tmpAccountRule := TbAccountRules{0, 0, "", 0, m.Dbname, m.Priv, m.DmlDdlPriv, m.GlobalPriv, "", ts, "", ts}
+	tmpAccount := TbAccounts{0, 0, "", m.User, psw, "",
+		ts, "", ts, ""}
+	tmpAccountRule := TbAccountRules{0, 0, "", 0, m.Dbname, m.Priv,
+		m.DmlDdlPriv, m.GlobalPriv, "", ts, "", ts}
 	if m.BkCloudId == nil {
 		return errno.CloudIdRequired
 	}

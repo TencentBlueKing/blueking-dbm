@@ -7,6 +7,7 @@ package riak
 import (
 	"bytes"
 	"dbm-services/common/go-pubpkg/logger"
+	ma "dbm-services/mysql/db-tools/mysql-crond/api"
 	"dbm-services/riak/db-tools/dbactuator/pkg/components"
 	"dbm-services/riak/db-tools/dbactuator/pkg/core/cst"
 	"dbm-services/riak/db-tools/dbactuator/pkg/util/osutil"
@@ -324,19 +325,11 @@ func GetCrondEntries() error {
 
 func QuitCrond() error {
 	// 关闭启动的 mysql-crond
-	url := fmt.Sprintf("http://127.0.0.1:%d/quit", cst.CrondListenPort)
-	resp, err := http.Get(url)
-	defer resp.Body.Close()
+	manager := ma.NewManager("http://127.0.0.1:9999")
+	err := manager.Quit()
 	if err != nil {
-		logger.Error("call quit failed: %s", err.Error())
-		return err
+		logger.Error("quit crond failed: %s", err.Error())
 	}
-	if resp.StatusCode != 200 {
-		err = fmt.Errorf("quit crond response status code is: %d not 200 ", resp.StatusCode)
-		logger.Error(err.Error())
-		return err
-	}
-	time.Sleep(15 * time.Second)
 	logger.Info("quit crond success")
 	return nil
 }

@@ -1,6 +1,7 @@
 package service
 
 import (
+	"dbm-services/common/go-pubpkg/errno"
 	"fmt"
 	"log/slog"
 	"strings"
@@ -25,85 +26,75 @@ func (m *MigratePara) MigrateAccountRule() ([]PrivRule, []PrivRule, []PrivRule, 
 	}
 	defer GcsDb.Self.Close()
 	// 检查scr、gcs中的账号规则，mysql和spider的一起检查
-	pass := CheckOldPriv(m.Key, appWhere, &exclude)
-	notPassTips := "some check not pass, please check logs"
+	users, errMsg := CheckOldPriv(m.Key, appWhere, &exclude)
 	passTips := "all check pass"
 	// 仅检查，不迁移
 	if m.Mode == "check" {
-		if !pass {
-			slog.Error(notPassTips)
-			return nil, nil, nil, nil, nil, fmt.Errorf(notPassTips)
+		if len(errMsg) > 0 {
+			return nil, nil, nil, nil, nil, errno.CheckNotPass.Add("\n" + strings.Join(errMsg, "\n"))
 		} else {
-			slog.Info(passTips)
 			return nil, nil, nil, nil, nil, nil
 		}
 	} else if m.Mode == "run" {
 		// 检查通过迁移，检查不通过不迁移
-		if !pass {
-			slog.Error(fmt.Sprintf("%s, do not migrate", notPassTips))
-			return nil, nil, nil, nil, nil, fmt.Errorf("%s, do not migrate", notPassTips)
+		if len(errMsg) > 0 {
+			return nil, nil, nil, nil, nil, errno.CheckNotPass.Add("\n" + strings.Join(errMsg, "\n"))
 		} else {
 			slog.Info(passTips)
 		}
 	} else if m.Mode == "force-run" {
 		// 检查不通过，剔除不能迁移的帐号以及其规则，迁移剩余的账号规则
-		if !pass {
-			slog.Warn(fmt.Sprintf("%s, but force run", notPassTips))
-			slog.Warn("user can not be migrated", "users", exclude)
+		if len(errMsg) > 0 {
+			errMsg = append(errMsg, "[some check not pass, but force run]")
+			if len(exclude) > 0 {
+				errMsg = append(errMsg, "some accounts and rules belonging to them can't be migrated")
+				slog.Warn("user can not be migrated", "users", exclude)
+			}
+			slog.Warn(fmt.Sprintf("some check not pass, but force run"))
 		} else {
 			slog.Info(passTips)
 		}
 	}
 
 	// 获取需要迁移的scr、gcs中的账号规则
-	// db_module为spider_master/spider_slave属于spider的权限规则，
+	// db_module为spider_master/spider_slave属于spider的权限规则
 	// 其他不明确的，同时迁移到mysql和spider下
 	mysqlUids, uids, exUids, errOuter := FilterMigratePriv(appWhere, &exclude)
 	if errOuter != nil {
 		slog.Error("get privilege uid to migrate", "err", errOuter)
-		return nil, nil, nil, nil, nil, fmt.Errorf("get privilege uid to migrate error: %s", errOuter.Error())
+		errMsg = append(errMsg, fmt.Sprintf("get privilege uid to migrate error: %s", errOuter.Error()))
+		return nil, nil, nil, nil, nil, errno.MigrateFail.Add("\n" + strings.Join(errMsg, "\n"))
 	}
 
-	// 经过检查不能迁移
-	tipsCannotMigrate := "some accounts and rules belonging to them can't be migrated"
-
-	var failFlag bool
-	if m.Mode == "force-run" && len(exUids) > 0 {
-		failFlag = true
-	}
+	// 根据选择的迁移范围迁移
+	// 返回迁移成功的规则、迁移失败的规则、以及经过检查不能迁移的uid
 	if m.Range == "mysql" {
-		success, fail, errs := MigrateForMysqlOrSpider(apps, m.Key, mysqlUids, m.Range)
-		if failFlag {
-			errs = append(errs, tipsCannotMigrate)
-		}
+		success, fail, errs := MigrateForMysqlOrSpider(apps, mysqlUids, m.Range, users)
+		errs = append(errMsg, errs...)
 		if len(errs) > 0 {
 			slog.Info("migrate account rule fail")
-			return success, fail, nil, nil, exUids, fmt.Errorf("errors: %s", strings.Join(errs, "\n"))
+			return success, fail, nil, nil, exUids, errno.MigrateFail.Add("\n" + strings.Join(errs, "\n"))
 		}
 		slog.Info("migrate account rule success")
 		return success, fail, nil, nil, exUids, nil
 	} else if m.Range == "spider" {
-		success, fail, errs := MigrateForMysqlOrSpider(apps, m.Key, uids, m.Range)
-		if failFlag {
-			errs = append(errs, tipsCannotMigrate)
-		}
+		success, fail, errs := MigrateForMysqlOrSpider(apps, uids, m.Range, users)
+		errs = append(errMsg, errs...)
 		if len(errs) > 0 {
 			slog.Info("migrate account rule fail")
-			return nil, nil, success, fail, exUids, fmt.Errorf("errors: %s", strings.Join(errs, "\n"))
+			return nil, nil, success, fail, exUids, errno.MigrateFail.Add("\n" + strings.Join(errs, "\n"))
 		}
 		slog.Info("migrate account rule success")
 		return nil, nil, success, fail, exUids, nil
 	} else if m.Range == "all" {
-		success, fail, errs := MigrateForMysqlOrSpider(apps, m.Key, mysqlUids, "mysql")
-		successSpider, failSpider, errs1 := MigrateForMysqlOrSpider(apps, m.Key, mysqlUids, "spider")
+		success, fail, errs := MigrateForMysqlOrSpider(apps, mysqlUids, "mysql", users)
+		successSpider, failSpider, errs1 := MigrateForMysqlOrSpider(apps, mysqlUids, "spider", users)
+		errs = append(errs, errMsg...)
 		errs = append(errs, errs1...)
-		if failFlag {
-			errs = append(errs, tipsCannotMigrate)
-		}
 		if len(errs) > 0 {
 			slog.Info("migrate account rule fail")
-			return success, fail, successSpider, failSpider, exUids, fmt.Errorf(
-				"errors: %s", strings.Join(errs, "\n"))
+			return success, fail, successSpider, failSpider, exUids, errno.MigrateFail.Add("\n" +
+				strings.Join(errs, "\n"))
 		}
 		slog.Info("migrate account rule success")
 		return success, fail, successSpider, failSpider, exUids, nil
@@ -112,7 +103,8 @@ func (m *MigratePara) MigrateAccountRule() ([]PrivRule, []PrivRule, []PrivRule, 
 	}
 }
 
-func MigrateForMysqlOrSpider(apps map[string]int64, vkey string, uids []string, vtype string) ([]PrivRule, []PrivRule, []string) {
+// MigrateForMysqlOrSpider 迁移帐号和规则
+func MigrateForMysqlOrSpider(apps map[string]int64, uids []string, vtype string, users []PrivModule) ([]PrivRule, []PrivRule, []string) {
 	// 获取需要迁移的权限账号
 	var dbType string
 	var errs []string
@@ -122,13 +114,8 @@ func MigrateForMysqlOrSpider(apps map[string]int64, vkey string, uids []string, 
 		dbType = tendbcluster
 	}
 	var uidsSuccess, uidsFail []PrivRule
-	mysqlUsers, err := GetUsers(vkey, uids)
-	if err != nil {
-		slog.Error("GetUsers", "dbType", vtype, "err", err)
-		return uidsSuccess, uidsFail, []string{fmt.Sprintf("%s GetUsers error: %s", vtype, err.Error())}
-	}
-
-	err = DoAddAccounts(apps, mysqlUsers, dbType)
+	// 迁移帐号
+	err := DoAddAccounts(apps, users, dbType)
 	if err != nil {
 		slog.Error("DoAddAccounts", "dbType", vtype, "err", err)
 		return uidsSuccess, uidsFail, []string{fmt.Sprintf("%s DoAddAccounts error: %s", vtype, err.Error())}
@@ -142,6 +129,7 @@ func MigrateForMysqlOrSpider(apps map[string]int64, vkey string, uids []string, 
 	// 迁移账号规则
 	// 遇到迁移失败的规则，提示并且跳过，继续迁移
 	for _, rule := range mysqlRules {
+		// 格式化权限
 		priv, errInner := FormatPriv(rule.Privileges)
 		if errInner != nil {
 			slog.Error("format privileges error", rule.Privileges, errInner, "rule", rule)
@@ -149,6 +137,7 @@ func MigrateForMysqlOrSpider(apps map[string]int64, vkey string, uids []string, 
 			uidsFail = append(uidsFail, PrivRule{rule.App, rule.User, rule.Dbname})
 			continue
 		}
+		// 迁移规则
 		errInner = DoAddAccountRule(rule, apps, dbType, priv)
 		if errInner != nil {
 			slog.Error("add account rule error", rule, errInner, "rule", rule)
@@ -158,6 +147,7 @@ func MigrateForMysqlOrSpider(apps map[string]int64, vkey string, uids []string, 
 		}
 		uidsSuccess = append(uidsSuccess, PrivRule{rule.App, rule.User, rule.Dbname})
 	}
+	// 返回迁移成功的规则以及失败的规则的uid
 	return uidsSuccess, uidsFail, errs
 }
 
@@ -194,16 +184,24 @@ func (m *MigratePara) CheckPara() (map[string]int64, error) {
 }
 
 // CheckOldPriv 检查旧的密码格式
-func CheckOldPriv(key, appWhere string, exclude *[]AppUser) bool {
-	err1 := CheckDifferentPasswordsForOneUser(key, appWhere, exclude)
-	err2 := CheckEmptyPassword(key, appWhere, exclude)
-	// 如果原本的用户名与密码相同允许创建，dbm兼容
-	// err3 := CheckPasswordConsistentWithUser(key, appWhere, exclude)
-	err3 := CheckPasswordMaybeOldPassword(key, appWhere, exclude)
-	err4 := CheckDifferentPrivileges(appWhere)
-	err5 := CheckPrivilegesFormat(appWhere, exclude)
-	if err1 != nil || err2 != nil || err3 != nil || err4 != nil || err5 != nil {
-		return false
-	}
-	return true
+func CheckOldPriv(key, appWhere string, exclude *[]AppUser) ([]PrivModule, []string) {
+	slog.Info("begin check different privileges")
+	// 检查是否存在多种权限，需要合并
+	err1 := CheckDifferentPrivileges(appWhere)
+	slog.Info("end check different privileges")
+	slog.Info("CheckDifferentPrivileges", "error", err1)
+	slog.Info("CheckDifferentPrivileges", "exclude", exclude)
+	slog.Info("begin check privileges format")
+	// 检查权限格式是否正确
+	err2 := CheckPrivilegesFormat(appWhere, exclude)
+	slog.Info("end check privileges format")
+	slog.Info("CheckPrivilegesFormat", "error", err2)
+	slog.Info("CheckPrivilegesFormat", "exclude", exclude)
+	// 检查密码，并且获取帐号以及密码
+	users, err3 := CheckAndGetPassword(key, appWhere, exclude)
+	slog.Info("CheckAndGetPassword", "error", err3)
+	slog.Info("CheckAndGetPassword", "exclude", exclude)
+	err := append(err1, err2...)
+	err = append(err, err3...)
+	return users, err
 }
