@@ -47,7 +47,7 @@ class MongoDBInstallFlow(object):
         self.data = payload_clusters
         self.get_kwargs = ActKwargs()
         self.get_kwargs.payload = payload_clusters
-        self.get_kwargs.get_inti_info()
+        self.get_kwargs.get_init_info()
         self.get_kwargs.get_file_path()
 
     def prepare_job(self, pipeline: Builder):
