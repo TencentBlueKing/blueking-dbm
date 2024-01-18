@@ -16,6 +16,7 @@ import (
 	"github.com/go-playground/validator/v10"
 )
 
+
 // AddUserConfParams 参数
 type AddUserConfParams struct {
 	IP            string   `json:"ip" validate:"required"`
@@ -26,9 +27,10 @@ type AddUserConfParams struct {
 	AdminUsername string   `json:"adminUsername"`
 	AdminPassword string   `json:"adminPassword"`
 	AuthDb        string   `json:"authDb"`     // 为方便管理用户，验证库默认为admin库
-	Dbs           []string `json:"dbs"`        // 业务库
-	Privileges    []string `json:"privileges"` // 权限
-
+	DbsPrivileges           []struct{
+		Db string `json:"db"`
+		Privileges []string `json:"privileges"`
+	} `json:"dbsPrivileges"`        // 业务库 以及权限 [{"db":xxx,"privileges":[xxx,xxx]}]
 }
 
 // AddUser 添加分片到集群
@@ -151,16 +153,11 @@ func (u *AddUser) makeScriptContent() error {
 		u.ConfParams.AuthDb = "admin"
 	}
 
-	// 判断业务db是否存在
-	if len(u.ConfParams.Dbs) == 0 {
-		u.ConfParams.Dbs = []string{"admin"}
-	}
-
-	for _, db := range u.ConfParams.Dbs {
-		for _, privilege := range u.ConfParams.Privileges {
+	for _, dbPrivileges := range u.ConfParams.DbsPrivileges {
+		for _, privilege := range dbPrivileges.Privileges {
 			role := common.NewMongoRole()
 			role.Role = privilege
-			role.Db = db
+			role.Db = dbPrivileges.Db
 			user.Roles = append(user.Roles, role)
 		}
 	}

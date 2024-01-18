@@ -60,12 +60,12 @@ def replicase_calc(payload: dict, payload_clusters: dict, app: str, domain_prefi
         / node_replica_count
         / 1024
     )
-    if payload["infos"][0]["mongo_machine_set"][0]["storage"].get("/data1"):
+    if payload["infos"][0]["mongo_machine_set"][0]["storage_device"].get("/data1"):
         data_disk = "/data1"
-    elif payload["infos"][0]["mongo_machine_set"][0]["storage"].get("/data"):
+    elif payload["infos"][0]["mongo_machine_set"][0]["storage_device"].get("/data"):
         data_disk = "/data"
     oplog_size_mb = int(
-        payload["infos"][0]["mongo_machine_set"][0]["storage"].get(data_disk)["size"]
+        payload["infos"][0]["mongo_machine_set"][0]["storage_device"].get(data_disk)["size"]
         * 1024
         * oplog_percent
         / node_replica_count
@@ -127,20 +127,24 @@ def cluster_calc(payload: dict, payload_clusters: dict, app: str) -> dict:
         payload["nodes"]["mongo_config"][0]["bk_mem"] * MongoDBTotalCache.Cache_Percent / node_replica_count / 1024
     )
     # shard oplogSizeMB
-    if payload["nodes"]["mongodb"][0][0]["storage"].get("/data1"):
+    data_disk = "/data1"
+    if payload["nodes"]["mongodb"][0][0]["storage_device"].get("/data1"):
         data_disk = "/data1"
-    elif payload["nodes"]["mongodb"][0][0]["storage"].get("/data"):
+    elif payload["nodes"]["mongodb"][0][0]["storage_device"].get("/data"):
         data_disk = "/data"
     shard_oplog_size_mb = int(
-        payload["nodes"]["mongodb"][0][0]["storage"].get(data_disk)["size"] * 1024 * oplog_percent / node_replica_count
+        payload["nodes"]["mongodb"][0][0]["storage_device"].get(data_disk)["size"]
+        * 1024
+        * oplog_percent
+        / node_replica_count
     )
     # config oplogSizeMB
-    if payload["nodes"]["mongo_config"][0]["storage"].get("/data1"):
+    if payload["nodes"]["mongo_config"][0]["storage_device"].get("/data1"):
         data_disk = "/data1"
-    elif payload["nodes"]["mongo_config"][0]["storage"].get("/data"):
+    elif payload["nodes"]["mongo_config"][0]["storage_device"].get("/data"):
         data_disk = "/data"
     config_oplog_size_mb = int(
-        payload["nodes"]["mongo_config"][0]["storage"].get(data_disk)["size"] * 1024 * oplog_percent
+        payload["nodes"]["mongo_config"][0]["storage_device"].get(data_disk)["size"] * 1024 * oplog_percent
     )
 
     # 获取全部主机
