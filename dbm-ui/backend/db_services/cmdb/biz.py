@@ -12,7 +12,6 @@ import collections
 import logging
 from typing import List
 
-from backend import env
 from backend.components import CCApi
 from backend.db_meta.models import AppCache, DBModule
 from backend.db_services.cmdb.exceptions import BkAppAttrAlreadyExistException
@@ -138,7 +137,7 @@ def get_or_create_cmdb_module_with_name(bk_biz_id: int, bk_set_id: int, bk_modul
 
     res = CCApi.create_module(
         {
-            "bk_biz_id": env.DBA_APP_BK_BIZ_ID,
+            "bk_biz_id": bk_biz_id,
             "bk_set_id": bk_set_id,
             "data": {"bk_parent_id": bk_set_id, "bk_module_name": bk_module_name},
         },
