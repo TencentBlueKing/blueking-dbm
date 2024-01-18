@@ -86,4 +86,10 @@ var (
 		CNMessage: "平台级别的密码不允许修改或者删除"}
 	WrongMysqlAdminName = Errno{Code: 51035, Message: "wrong mysql admin name ",
 		CNMessage: "mysql管理用户名错误"}
+	SqlserverSidNull = Errno{Code: 51036, Message: "sqlserver account sid should not be empty ",
+		CNMessage: "sqlserver的sid不能为空"}
+	CheckNotPass = Errno{Code: 51037, Message: "check not pass",
+		CNMessage: "检查没有通过"}
+	MigrateFail = Errno{Code: 51038, Message: "migrate fail",
+		CNMessage: "迁移失败"}
 )

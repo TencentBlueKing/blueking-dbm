@@ -31,4 +31,4 @@ class ChecksumInstance(AuditedModel):
     master_ip = models.CharField(max_length=64, verbose_name=_("master部署机器ip"))
     master_port = models.CharField(max_length=64, verbose_name=_("master部署机器port"))
     details = models.JSONField(default=dict, verbose_name=_("不一致库表详情"))
-    report = models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to="db_report.checksumcheckreport")
+    report = models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to="ChecksumCheckReport")

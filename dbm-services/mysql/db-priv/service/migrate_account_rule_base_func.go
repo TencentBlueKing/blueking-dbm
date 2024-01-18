@@ -52,30 +52,13 @@ func FilterMigratePriv(appWhere string, exclude *[]AppUser) ([]string, []string,
 	return mysqlUids, uids, exUids, err
 }
 
-// GetUsers 获取帐号
-func GetUsers(key string, uids []string) ([]*PrivModule, error) {
-	users := make([]*PrivModule, 0)
-	if len(uids) == 0 {
-		return users, nil
-	}
-	// 从帐号规则中提取帐号信息
-	vsql := fmt.Sprintf("select distinct app,user,AES_DECRYPT(psw,'%s') as psw"+
-		" from tb_app_priv_module where uid in (%s);",
-		key, strings.Join(uids, ","))
-	err := GcsDb.Self.Debug().Raw(vsql).Scan(&users).Error
-	if err != nil {
-		slog.Error(vsql, "execute error", err)
-		return users, err
-	}
-	return users, nil
-}
-
 // GetRules 获取规则
 func GetRules(uids []string) ([]*PrivModule, error) {
 	users := make([]*PrivModule, 0)
 	if len(uids) == 0 {
 		return users, nil
 	}
+	// 获取规则，整合权限
 	vsql := fmt.Sprintf("select app,user,group_concat(privileges) as privileges,dbname "+
 		" from tb_app_priv_module where uid in (%s) group by app,user,dbname;", strings.Join(uids, ","))
 	err := GcsDb.Self.Debug().Raw(vsql).Scan(&users).Error
@@ -118,8 +101,8 @@ func FormatPriv(source string) (map[string]string, error) {
 			return target, fmt.Errorf("privilege: %s not allowed", p)
 		}
 	}
-	// allPrivileges 与其他权限互斥
-	if allPrivileges && (len(global) > 1 || len(dml) > 0 || len(ddl) > 0) {
+	// all privileges 与其他权限互斥
+	if allPrivileges && (len(RemoveRepeate(global)) > 1 || len(dml) > 0 || len(ddl) > 0) {
 		return target, fmt.Errorf("[all privileges] should not be granted with others")
 	}
 	target["dml"] = strings.Join(RemoveRepeate(dml), ",")
@@ -129,10 +112,11 @@ func FormatPriv(source string) (map[string]string, error) {
 }
 
 // DoAddAccounts 创建帐号
-func DoAddAccounts(apps map[string]int64, users []*PrivModule, clusterType string) error {
+func DoAddAccounts(apps map[string]int64, users []PrivModule, clusterType string) error {
 	for _, user := range users {
 		account := AccountPara{BkBizId: apps[user.App], User: user.User,
 			Psw: user.Psw, Operator: "migrate", ClusterType: &clusterType, MigrateFlag: true}
+		// 如果是password()格式，特殊处理
 		if MysqlPassword(user.Psw) {
 			account = AccountPara{BkBizId: apps[user.App], User: user.User,
 				Psw: user.Psw, Operator: "migrate", ClusterType: &clusterType,
@@ -156,6 +140,7 @@ func DoAddAccountRule(rule *PrivModule, apps map[string]int64, clusterType strin
 	if err != nil {
 		return fmt.Errorf("add rule failed when get account: %s", err.Error())
 	}
+	// 创建规则前先确认规则所属的帐号已经存在
 	if cnt == 0 {
 		slog.Error("msg", "account query nothing return", account)
 		return fmt.Errorf("account not found")
@@ -171,124 +156,128 @@ func DoAddAccountRule(rule *PrivModule, apps map[string]int64, clusterType strin
 	return nil
 }
 
-// CheckDifferentPasswordsForOneUser 不同帐号规则中帐号的密码不同
-func CheckDifferentPasswordsForOneUser(key, appWhere string, exclude *[]AppUser) error {
-	slog.Info("check 1: different passwords for one user")
-	count := make([]*Count, 0)
-	vsql := fmt.Sprintf("select app,user,count(distinct(AES_DECRYPT(psw,'%s'))) as cnt "+
-		" from tb_app_priv_module where app in (%s) group by app,user order by 1,2", key, appWhere)
-	err := GcsDb.Self.Debug().Raw(vsql).Scan(&count).Error
-	if err != nil {
-		slog.Error(vsql, "execute error", err)
-		return err
+// CheckAndGetPassword 检查以及获取密码
+func CheckAndGetPassword(key, appWhere string, exclude *[]AppUser) ([]PrivModule, []string) {
+	users := make([]*PrivModule, 0)
+	var errMsg []string
+	var migrateUsers []PrivModule
+	type Psw struct {
+		Psw string `gorm:"column:psw;not_null" json:"psw"`
 	}
-
-	check1 := make([]string, 0)
-	for _, distinct := range count {
-		if distinct.Cnt > 1 {
-			check1 = append(check1,
-				fmt.Sprintf("%s    %s     %d",
-					distinct.App, distinct.User, distinct.Cnt))
-			*exclude = append(*exclude, AppUser{distinct.App, distinct.User})
+	vsql := fmt.Sprintf("select app,user,AES_DECRYPT(psw,'%s') as psw"+
+		" from tb_app_priv_module where app in (%s)", key, appWhere)
+	if len(*exclude) > 0 {
+		var where string
+		for _, ex := range *exclude {
+			where = fmt.Sprintf("%sor (app='%s' and user='%s') ", where, ex.App, ex.User)
 		}
+		where = strings.TrimPrefix(where, "or ")
+		vsql = fmt.Sprintf("%s and not (%s)", vsql, where)
 	}
-	if len(check1) > 0 {
-		msg := "app:    user:     different_passwords_count:"
-		msg = fmt.Sprintf("\n%s\n%s", msg, strings.Join(check1, "\n"))
-		slog.Error(msg)
-		slog.Error("[ check 1 Fail ]")
-		return fmt.Errorf("different passwords for one user")
-	} else {
-		slog.Info("[ check 1 Success ]")
-	}
-	return nil
-}
-
-// CheckEmptyPassword 密码不能为空
-func CheckEmptyPassword(key, appWhere string, exclude *[]AppUser) error {
-	vsql := fmt.Sprintf("select distinct app,user "+
-		" from tb_app_priv_module where app in (%s) and psw=AES_ENCRYPT('','%s');", appWhere, key)
-	slog.Info("check 2: empty password")
-	err := CheckPasswordValue(vsql, exclude, 2)
+	err := GcsDb.Self.Debug().Raw(vsql).Scan(&users).Error
 	if err != nil {
-		slog.Error("CheckPassword", "error", err)
-		return err
+		slog.Error(vsql, "execute sql error", err)
+		return migrateUsers, []string{fmt.Sprintf("execute sql error: %s", err.Error())}
 	}
-	return nil
-}
-
-/*
-// CheckPasswordConsistentWithUser 用户名与密码不能相同
-func CheckPasswordConsistentWithUser(key, appWhere string, exclude *[]AppUser) error {
-	vsql := fmt.Sprintf("select distinct app,user "+
-		" from tb_app_priv_module where app in (%s) and user=AES_DECRYPT(psw,'%s');", appWhere, key)
-	slog.Info("check 3: password consistent with user")
-	err := CheckPasswordValue(vsql, exclude, 3)
-	if err != nil {
-		slog.Error("CheckPassword", "error", err)
-		return err
+	var emptyList []AppUser
+	var oldPasswordList []AppUser
+	var diffentPassword []AppUser
+	tmp := make(map[string][]string)
+	for _, user := range users {
+		userPsw := fmt.Sprintf("%s|||%s", user.App, user.User)
+		tmp[userPsw] = append(tmp[userPsw], user.Psw)
 	}
-	return nil
-}
-*/
-
-// CheckPasswordMaybeOldPassword 检查是否为mysql的old_password格式，此类密码不迁移，从业务侧获取明文迁移
-func CheckPasswordMaybeOldPassword(key, appWhere string, exclude *[]AppUser) error {
-	vsql := fmt.Sprintf("select distinct app,user,AES_DECRYPT(psw,'%s') as psw "+
-		"from tb_app_priv_module where length(AES_DECRYPT(psw,'%s'))=16 and  app in (%s) ;", key, key, appWhere)
-	slog.Info("check 3: old_password not allowed to be migrated")
-	err := CheckPasswordValue(vsql, exclude, 3)
-	if err != nil {
-		slog.Error("CheckPassword", "error", err)
-		return err
+	slog.Info("users map", "users", tmp)
+	// 去重
+	vmap := make(map[string][]string)
+	for k, v := range tmp {
+		unique := RemoveRepeate(v)
+		vmap[k] = unique
 	}
-	return nil
-}
-
-// CheckPasswordValue 检查账户的密码
-func CheckPasswordValue(vsql string, exclude *[]AppUser, round int) error {
-	psw := make([]*PrivModule, 0)
-	temp := make([]*PrivModule, 0)
-	err := GcsDb.Self.Debug().Raw(vsql).Scan(&psw).Error
-	if err != nil {
-		slog.Error(vsql, "execute error", err)
-		return err
-	}
-	if round == 2 {
-		temp = append(temp, psw...)
-	} else if round == 3 {
-		for _, v := range psw {
-			// 检查是否有old_password
-			if MysqlOldPassword(v.Psw) {
-				temp = append(temp, v)
+	slog.Info("users密码去重", "users", vmap)
+	for k, v := range vmap {
+		vlist := strings.Split(k, "|||")
+		a := vlist[0]
+		u := vlist[1]
+		empty := false
+		oldPassword := false
+		var passwordFuncList []string
+		var plainList []string
+		for _, psw := range v {
+			if psw == "" {
+				empty = true
+				break
+			} else if MysqlOldPassword(psw) {
+				oldPassword = true
+				break
+			} else if MysqlPassword(psw) {
+				passwordFuncList = append(passwordFuncList, psw)
+			} else {
+				plainList = append(plainList, psw)
 			}
 		}
-	}
-	if len(temp) > 0 {
-		msg := fmt.Sprintf("app:    user: ")
-		for _, user := range temp {
-			*exclude = append(*exclude, AppUser{user.App, user.User})
-			msg = fmt.Sprintf("%s\n%s    %s", msg, user.App, user.User)
+		// 密码为空不迁移
+		if empty {
+			slog.Error("密码为空", "app", a, "user", u)
+			emptyList = append(emptyList, AppUser{a, u})
+		} else if oldPassword {
+			// 密码为old_password()不迁移
+			slog.Error("密码为old_password", "app", a, "user", u)
+			oldPasswordList = append(oldPasswordList, AppUser{a, u})
+		} else if len(passwordFuncList) == 1 && len(plainList) == 1 {
+			// 同时存在明文和password()两种格式
+			var en Psw
+			// 获取明文对应的password()值
+			errInner := DBVersion56.Self.Table("user").Select("PASSWORD(?) AS psw", plainList[0]).Take(&en).
+				Error
+			if errInner != nil {
+				slog.Error("use password() func", "errror", errInner)
+				return migrateUsers, append(errMsg, fmt.Sprintf("use password() func error: %s",
+					errInner.Error()))
+			}
+			// 明文和password()的密码相同
+			if en.Psw == passwordFuncList[0] {
+				slog.Warn("包含plain and password()，但是密码相同", "app", a, "user", u)
+				migrateUsers = append(migrateUsers, PrivModule{App: a, User: u, Psw: plainList[0]})
+			} else {
+				slog.Error("包含plain and password()，但是密码不同", "app", a, "user", u)
+				diffentPassword = append(diffentPassword, AppUser{a, u})
+			}
+		} else if len(plainList) == 1 && len(passwordFuncList) == 0 {
+			migrateUsers = append(migrateUsers, PrivModule{App: a, User: u, Psw: plainList[0]})
+		} else if len(passwordFuncList) == 1 && len(plainList) == 0 {
+			migrateUsers = append(migrateUsers, PrivModule{App: a, User: u, Psw: passwordFuncList[0]})
+		} else {
+			slog.Error("密码不同", "app", a, "user", u)
+			diffentPassword = append(diffentPassword, AppUser{a, u})
 		}
-		slog.Error(msg)
-		slog.Error(fmt.Sprintf("[ check %d Fail ]", round))
-		return fmt.Errorf("password check fail")
-	} else {
-		slog.Info(fmt.Sprintf("[ check %d Success ]", round))
 	}
-	return nil
+	// exclude用于过滤掉不可迁移的帐号以及帐号下的规则
+	if len(emptyList) > 0 {
+		errMsg = append(errMsg, fmt.Sprintf("密码为空不可迁移:%v", emptyList))
+		*exclude = append(*exclude, emptyList...)
+	}
+	if len(oldPasswordList) > 0 {
+		errMsg = append(errMsg, fmt.Sprintf("密码为old_password不可迁移:%v", oldPasswordList))
+		*exclude = append(*exclude, oldPasswordList...)
+	}
+	if len(diffentPassword) > 0 {
+		errMsg = append(errMsg, fmt.Sprintf("同账号存在不同的密码不可迁移:%v", diffentPassword))
+		*exclude = append(*exclude, diffentPassword...)
+	}
+	return migrateUsers, errMsg
 }
 
 // CheckDifferentPrivileges 同账号有不同的权限范围
-func CheckDifferentPrivileges(appWhere string) error {
-	slog.Info("check 4: different privileges for [app user dbname]")
+func CheckDifferentPrivileges(appWhere string) []string {
+	var errMsg []string
 	vsql := fmt.Sprintf("select app,user,dbname,count(distinct(privileges)) as cnt "+
 		" from tb_app_priv_module where app in (%s) group by app,user,dbname order by 1,2,3", appWhere)
 	count := make([]*Count, 0)
 	err := GcsDb.Self.Debug().Raw(vsql).Scan(&count).Error
 	if err != nil {
-		slog.Error(vsql, "execute error", err)
-		return err
+		slog.Error(vsql, "execute sql error", err)
+		return []string{fmt.Sprintf("execute sql error: %s", err.Error())}
 	}
 	check := make([]string, 0)
 	for _, distinct := range count {
@@ -296,42 +285,41 @@ func CheckDifferentPrivileges(appWhere string) error {
 			check = append(check,
 				fmt.Sprintf("%s    %s     %s     %d",
 					distinct.App, distinct.User, distinct.Dbname, distinct.Cnt))
-			// 权限不同的规则可以合并，不需要剔除
-			// *exclude = append(*exclude, AppUser{distinct.App, distinct.User})
 		}
 	}
 	if len(check) > 0 {
-		msg := "app:    user:     dbname:     different_privileges_count:"
-		msg = fmt.Sprintf("\n%s\n%s", msg, strings.Join(check, "\n"))
-		slog.Error(msg)
-		slog.Error("different privileges will be merged")
-		slog.Error("[ check 4 Fail ]")
-		return fmt.Errorf("different privileges")
-	} else {
-		slog.Info("[ check 4 Success ]")
+		// 权限不同的规则可以合并
+		slog.Error("app+user+dbname存在不同的权限，将被合并")
+		errMsg = append(errMsg, "app+user+dbname存在不同的权限，将被合并")
+		errMsg = append(errMsg, "app:    user:     dbname:     different_privileges_count:")
+		errMsg = append(errMsg, check...)
+		return errMsg
 	}
 	return nil
 }
 
-func CheckPrivilegesFormat(appWhere string, exclude *[]AppUser) error {
+// CheckPrivilegesFormat 检查权限格式
+func CheckPrivilegesFormat(appWhere string, exclude *[]AppUser) []string {
+	var errMsg []string
 	UniqMap := make(map[string]struct{})
-	privPass := true
-	slog.Info("check 5: check privileges format")
-	vsql := fmt.Sprintf("select uid,app,user,privileges "+
+	vsql := fmt.Sprintf("select uid,app,user,dbname,privileges "+
 		" from tb_app_priv_module where app in (%s)", appWhere)
 	rules := make([]*PrivModule, 0)
 	err := GcsDb.Self.Debug().Raw(vsql).Scan(&rules).Error
 	if err != nil {
-		slog.Error(vsql, "execute error", err)
-		return err
+		slog.Error(vsql, "execute sql error", err)
+		return []string{fmt.Sprintf("execute sql error: %s", err.Error())}
 	}
+	check := make([]string, 0)
 	// 找出需要过滤的app+user
 	for _, rule := range rules {
 		// 检查权限格式是否正确、是否存在冲突等
 		_, err = FormatPriv(rule.Privileges)
 		if err != nil {
-			privPass = false
-			slog.Error("msg", "uid", rule.Uid, "app", rule.App, "user", rule.User, "privileges", rule.Privileges, "error", err)
+			slog.Error("msg", "uid", rule.Uid, "app", rule.App, "user", rule.User, "dbname", rule.Dbname,
+				"privileges", rule.Privileges, "error", err)
+			check = append(check, fmt.Sprintf("%d    %s     %s     %s     %s     %s",
+				rule.Uid, rule.App, rule.User, rule.Dbname, rule.Privileges, err.Error()))
 			s := fmt.Sprintf("%s|%s", rule.App, rule.User)
 			// 去重
 			if _, isExists := UniqMap[s]; isExists == true {
@@ -341,11 +329,12 @@ func CheckPrivilegesFormat(appWhere string, exclude *[]AppUser) error {
 			*exclude = append(*exclude, AppUser{rule.App, rule.User})
 		}
 	}
-	if !privPass {
-		slog.Error("[ check 5 Fail ]")
-		return fmt.Errorf("wrong privileges")
-	} else {
-		slog.Info("[ check 5 Success ]")
+	if len(check) > 0 {
+		slog.Error("权限格式检查未通过")
+		errMsg = append(errMsg, "权限格式检查未通过")
+		errMsg = append(errMsg, "uid:    app:     user:     dbname:     privileges:     error:")
+		errMsg = append(errMsg, check...)
+		return errMsg
 	}
 	return nil
 }
@@ -359,7 +348,7 @@ func MysqlOldPassword(psw string) bool {
 
 // MysqlPassword mysql password的格式
 func MysqlPassword(psw string) bool {
-	// 16进制数
+	// 16进制数，以*开头
 	re := regexp.MustCompile(`^\*[0123456789ABCDEF]{40}$`)
 	return re.MatchString(psw)
 }

@@ -29,12 +29,14 @@ func (m *AccountPara) AddAccount(jsonPara string) error {
 	if m.User == "" || m.Psw == "" {
 		return errno.PasswordOrAccountNameNull
 	}
+	if (*m.ClusterType == "sqlserver_single" || *m.ClusterType == "sqlserver_ha") && m.Sid == "" {
+		return errno.SqlserverSidNull
+	}
 	if m.ClusterType == nil {
 		ct := mysql
 		m.ClusterType = &ct
 		// return errno.ClusterTypeIsEmpty
 	}
-
 	err = DB.Self.Model(&TbAccounts{}).Where(&TbAccounts{BkBizId: m.BkBizId, User: m.User, ClusterType: *m.ClusterType}).
 		Count(&count).Error
 	if err != nil {
@@ -66,7 +68,7 @@ func (m *AccountPara) AddAccount(jsonPara string) error {
 		psw = fmt.Sprintf(`{"sm4":"%s"}`, psw)
 	}
 	account = &TbAccounts{BkBizId: m.BkBizId, ClusterType: *m.ClusterType, User: m.User, Psw: psw, Creator: m.Operator,
-		CreateTime: time.Now()}
+		CreateTime: time.Now(), Sid: m.Sid}
 	err = DB.Self.Model(&TbAccounts{}).Create(&account).Error
 	if err != nil {
 		return err
@@ -175,7 +177,6 @@ func (m *AccountPara) GetAccount() ([]*TbAccounts, int64, error) {
 	if m.BkBizId == 0 {
 		return nil, 0, errno.BkBizIdIsEmpty
 	}
-	// mongodb 需要查询psw
 	result = DB.Self.Model(&TbAccounts{}).Where(&TbAccounts{
 		BkBizId: m.BkBizId, ClusterType: *m.ClusterType, User: m.User}).Select(
 		"id,bk_biz_id,user,cluster_type,creator,create_time,update_time").Scan(&accounts)
@@ -202,7 +203,7 @@ func (m *GetAccountIncludePswPara) GetAccountIncludePsw() ([]*TbAccounts, int64,
 	where := fmt.Sprintf("bk_biz_id=%d and cluster_type='%s' and user in (%s)", m.BkBizId, *m.ClusterType, users)
 	result = DB.Self.Model(&TbAccounts{}).Where(where).
 		Select("id,bk_biz_id,user,cluster_type,json_unquote(json_extract(psw,'$.sm4')) as psw," +
-			"creator,create_time,update_time").Scan(&accounts)
+			"creator,create_time,update_time,sid").Scan(&accounts)
 	if result.Error != nil {
 		return nil, 0, result.Error
 	}
