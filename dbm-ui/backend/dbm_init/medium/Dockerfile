@@ -8,7 +8,8 @@ RUN set -ex && \
     goimports -w . && find . -name go.mod -execdir go mod tidy \;
 
 
-FROM python:3.6.12-slim-buster AS base
+#FROM python:3.6.12-slim-buster AS base
+FROM python:3.10.13-slim AS base
 
 ENV LC_ALL=C.UTF-8 \
     LANG=C.UTF-8
@@ -25,11 +26,11 @@ ENV PATH="/venv/bin:$PATH"
 
 RUN set -ex && \
     chmod 1777 /tmp && \
-    rm /etc/apt/sources.list && \
-    echo "deb https://mirrors.cloud.tencent.com/debian buster main contrib non-free" >> /etc/apt/sources.list && \
-    echo "deb https://mirrors.cloud.tencent.com/debian buster-updates main contrib non-free" >> /etc/apt/sources.list && \
-    echo "deb-src https://mirrors.cloud.tencent.com/debian buster main contrib non-free" >> /etc/apt/sources.list && \
-    echo "deb-src https://mirrors.cloud.tencent.com/debian buster-updates main contrib non-free" >> /etc/apt/sources.list
+    rm /etc/apt/sources.list.d/debian.sources && \
+    echo "deb https://mirrors.cloud.tencent.com/debian bookworm main contrib non-free" >> /etc/apt/sources.list && \
+    echo "deb https://mirrors.cloud.tencent.com/debian bookworm-updates main contrib non-free" >> /etc/apt/sources.list && \
+    echo "deb-src https://mirrors.cloud.tencent.com/debian bookworm main contrib non-free" >> /etc/apt/sources.list && \
+    echo "deb-src https://mirrors.cloud.tencent.com/debian bookworm-updates main contrib non-free" >> /etc/apt/sources.list
 
 RUN set -ex && mkdir ~/.pip && printf '[global]\nindex-url = https://mirrors.tencent.com/pypi/simple/' > ~/.pip/pip.conf
 
@@ -42,7 +43,7 @@ WORKDIR /
 RUN set -ex &&  \
     apt-get update && \
     apt-get install -y --no-install-recommends \
-        gcc gettext && \
+     gcc gettext g++ pkg-config && \
     rm -rf /var/lib/apt/lists/*
 
 RUN ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
@@ -143,6 +144,7 @@ RUN set -ex && \
     cd /blueking-dbm/dbm-services/redis/db-tools/dbactuator && \
     make VERSION=$(/lock.sh redis actuator version) GITHASH=$(/lock.sh redis actuator commitId) -j4 && \
     cd /blueking-dbm/dbm-services/redis/db-tools/dbmon && \
+    cat package.sh | tr -d '\r' > package.sh.tmp && mv package.sh.tmp package.sh && \
     bash package.sh --version=$(/lock.sh redis actuator version) --git-hash=$(/lock.sh redis actuator commitId) --git-date=$(/lock.sh redis actuator commitDate)
 
 FROM medium-builder as bigdata-medium-builder
