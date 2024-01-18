@@ -14,7 +14,7 @@ from typing import Dict, Optional
 
 from django.utils.translation import ugettext as _
 
-from backend.flow.consts import MediumEnum
+from backend.flow.consts import MongoDBManagerUser, MongoDBTask
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
 from backend.flow.plugins.components.collections.mongodb.add_domain_to_dns import ExecAddDomainToDnsOperationComponent
 from backend.flow.plugins.components.collections.mongodb.add_password_to_db import (
@@ -79,14 +79,19 @@ def replicaset_install(
     )
 
     # 创建appdba，monitor，monitor用户
-    kwargs = sub_get_kwargs.get_init_exec_script_kwargs(script_type=MediumEnum.MongoDBExtraUserCreate)
+    kwargs = sub_get_kwargs.get_init_exec_script_kwargs(script_type=MongoDBTask.MongoDBExtraUserCreate)
     sub_pipeline.add_act(
         act_name=_("MongoDB--创建额外管理用户"), act_component_code=ExecuteDBActuatorJobComponent.code, kwargs=kwargs
     )
 
     # dba, appdba，monitor，monitor用户密码写入密码服务
     kwargs = sub_get_kwargs.get_add_password_to_db_kwargs(
-        usernames=[MediumEnum.DbaUser, MediumEnum.AppDbaUser, MediumEnum.MonitorUser, MediumEnum.AppMonitorUser],
+        usernames=[
+            MongoDBManagerUser.DbaUser.value,
+            MongoDBManagerUser.AppDbaUser.value,
+            MongoDBManagerUser.MonitorUser.value,
+            MongoDBManagerUser.AppMonitorUser.value,
+        ],
         info=sub_get_kwargs.replicaset_info,
     )
     sub_pipeline.add_act(
@@ -98,7 +103,7 @@ def replicaset_install(
     # 进行初始配置
     # 创建oplog重放权限的role，把role授权给dba，appdba 把admin库的gcs_heartbeat授予给monitor用户
     # 3.x版本修改验证方式
-    kwargs = sub_get_kwargs.get_init_exec_script_kwargs(script_type=MediumEnum.MongoDBInitSet)
+    kwargs = sub_get_kwargs.get_init_exec_script_kwargs(script_type=MongoDBTask.MongoDBInitSet)
     sub_pipeline.add_act(
         act_name=_("MongoDB-{}-db初始设置".format(sub_get_kwargs.replicaset_info["nodes"][0]["ip"])),
         act_component_code=ExecuteDBActuatorJobComponent.code,
