@@ -32,9 +32,8 @@ class MongoUserFlow(object):
         self.data = data
         self.get_kwargs = ActKwargs()
         self.get_kwargs.payload = data
-        self.get_kwargs.get_file_path()
 
-    def multi_cluster_create_user_flow(self, create: bool):
+    def multi_cluster_user_flow(self, create: bool):
         """
         multi replicaset create/delete user流程
         create True：创建
@@ -45,16 +44,19 @@ class MongoUserFlow(object):
         pipeline = Builder(root_id=self.root_id, data=self.data)
 
         # 创建/删除用户子流程并行
-        sub_pipelines = []
-        for cluster_id in self.data["cluster_ids"]:
-            sub_pipline = user(
-                root_id=self.root_id,
-                ticket_data=self.data,
-                sub_kwargs=self.get_kwargs,
-                cluster_id=cluster_id,
-                create=create,
-            )
-            sub_pipelines.append(sub_pipline)
-        pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
+        for info in self.data["infos"]:
+            sub_pipelines = []
+            for cluster_id in info["cluster_ids"]:
+                sub_pipline = user(
+                    root_id=self.root_id,
+                    ticket_data=self.data,
+                    sub_kwargs=self.get_kwargs,
+                    cluster_id=cluster_id,
+                    create=create,
+                    info=info,
+                )
+                sub_pipelines.append(sub_pipline)
+            pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
+
         # 运行流程
         pipeline.run_pipeline()
