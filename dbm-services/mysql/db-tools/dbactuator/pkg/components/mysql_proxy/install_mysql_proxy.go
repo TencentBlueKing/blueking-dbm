@@ -330,7 +330,7 @@ func (i *InstallMySQLProxyComp) Start() error {
 			InstallPath:    i.ProxyInstallDir,
 			ProxyCnf:       util.GetProxyCnfName(port),
 			Host:           i.Params.Host,
-			Port:           native.GetProxyAdminPort(port), // Is Admin Port
+			Port:           port,
 			ProxyAdminUser: i.ProxyAdminUser,
 			ProxyAdminPwd:  i.ProxyAdminPwd,
 		}
