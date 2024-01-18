@@ -65,6 +65,8 @@ from backend.flow.views.migrate_views.redis_migrate import (
 from backend.flow.views.mongodb_scene import (
     ClusterInstallApiView,
     MongoBackupApiView,
+    MongoDBCreateUserView,
+    MongoDBDeleteUserView,
     MongoFakeInstallApiView,
     MultiReplicasetInstallApiView,
 )
@@ -257,6 +259,8 @@ urlpatterns = [
     url(r"^scene/cluster_create$", ClusterInstallApiView.as_view()),
     url(r"^scene/mongo_backup$", MongoBackupApiView.as_view()),
     url(r"^scene/install_rs_fake$", MongoFakeInstallApiView.as_view()),
+    url(r"^scene/multi_cluster_create_user$", MongoDBCreateUserView.as_view()),
+    url(r"^scene/multi_cluster_delete_user$", MongoDBDeleteUserView.as_view()),
     # mongodb end
     url(r"^scene/install_mysql_apply$", InstallMySQLSingleSceneApiView.as_view()),
     url(r"^scene/install_mysql_ha_apply$", InstallMySQLHASceneApiView.as_view()),

@@ -73,3 +73,23 @@ class MongoFakeInstallApiView(FlowTestView):
         # request.data 输入Json
         MongoDBController(root_id=root_id, ticket_data=request.data).fake_install()
         return Response({"root_id": root_id})
+
+
+class MongoDBCreateUserView(FlowTestView):
+    """mongodb创建用户"""
+
+    @staticmethod
+    def post(request):
+        root_id = uuid.uuid1().hex
+        MongoDBController(root_id=root_id, ticket_data=request.data).create_user()
+        return Response({"root_id": root_id})
+
+
+class MongoDBDeleteUserView(FlowTestView):
+    """mongodb删除用户"""
+
+    @staticmethod
+    def post(request):
+        root_id = uuid.uuid1().hex
+        MongoDBController(root_id=root_id, ticket_data=request.data).delete_user()
+        return Response({"root_id": root_id})
