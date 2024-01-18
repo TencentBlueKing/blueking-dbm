@@ -14,7 +14,7 @@ from typing import Dict, Optional
 
 from django.utils.translation import ugettext as _
 
-from backend.flow.consts import MediumEnum
+from backend.flow.consts import MongoDBManagerUser
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
 from backend.flow.plugins.components.collections.mongodb.exec_actuator_job import ExecuteDBActuatorJobComponent
 from backend.flow.plugins.components.collections.mongodb.send_media import ExecSendMediaOperationComponent
@@ -22,7 +22,7 @@ from backend.flow.utils.mongodb.mongodb_dataclass import ActKwargs
 
 
 def user(
-    root_id: str, ticket_data: Optional[Dict], sub_kwargs: ActKwargs, cluster_id: int, create: bool
+    root_id: str, ticket_data: Optional[Dict], sub_kwargs: ActKwargs, cluster_id: int, create: bool, info: dict
 ) -> SubBuilder:
     """
     单个cluster 创建/删除用户流程
@@ -35,7 +35,7 @@ def user(
     sub_pipeline = SubBuilder(root_id=root_id, data=ticket_data)
 
     # 获取信息
-    sub_get_kwargs.get_cluster_info_user(cluster_id=cluster_id, admin_user=MediumEnum.DbaUser)
+    sub_get_kwargs.get_cluster_info_user(cluster_id=cluster_id, admin_user=MongoDBManagerUser.DbaUser.value)
 
     # 介质下发
     kwargs = sub_get_kwargs.get_send_media_kwargs()
@@ -43,15 +43,16 @@ def user(
         act_name=_("MongoDB-介质下发"), act_component_code=ExecSendMediaOperationComponent.code, kwargs=kwargs
     )
 
-    # 创建用户
-    kwargs = sub_get_kwargs.get_user_kwargs(create=create, admin_user=MediumEnum.DbaUser)
+    # 创建或删除用户
+    print("info:", info)
+    kwargs = sub_get_kwargs.get_user_kwargs(create=create, admin_user=MongoDBManagerUser.DbaUser.value, info=info)
     if create:
-        act_name = _("MongoDB-cluster_id:{}-创建用户".format(str(cluster_id)))
+        act_name = _("MongoDB-cluster_id:{}-创建用户:{}".format(str(cluster_id), info["username"]))
         sub_name = _(
             "MongoDB--创建用户--cluster_id:{}-{}".format(str(cluster_id), sub_get_kwargs.payload["hosts"][0]["ip"])
         )
     else:
-        act_name = _("MongoDB-cluster_id:{}-删除用户".format(str(cluster_id)))
+        act_name = _("MongoDB-cluster_id:{}-删除用户:{}".format(str(cluster_id), info["username"]))
         sub_name = _(
             "MongoDB--删除用户--cluster_id:{}-{}".format(str(cluster_id), sub_get_kwargs.payload["hosts"][0]["ip"])
         )

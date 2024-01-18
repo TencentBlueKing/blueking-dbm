@@ -253,27 +253,6 @@ class MediumEnum(str, StructuredEnum):
     TBinlogDumper = EnumField("tbinlogdumper", _("tbinlogdumper实例"))
     Sqlserver = EnumField("sqlserver", _("sqlserver实例"))
     MongoDB = EnumField("mongodb", _("mongodb"))
-    MongoD = EnumField("mongod", _("mongod"))
-    MongoS = EnumField("mongos", _("mongos"))
-    MongoShardSvr = EnumField("shardsvr", _("shardsvr"))
-    MongoConfigSvr = EnumField("configsvr", _("configsvr"))
-    AuthDB = EnumField("admin", _("admin"))
-    DbaUser = EnumField("dba", _("dba"))
-    AppDbaUser = EnumField("appdba", _("appdba"))
-    MonitorUser = EnumField("monitor", _("monitor"))
-    AppMonitorUser = EnumField("appmonitor", _("appmonitor"))
-    RootRole = EnumField("root", _("root"))
-    BackupRole = EnumField("backup", _("backup"))
-    ClusterMonitorRole = EnumField("clusterMonitor", _("clusterMonitor"))
-    ReadAnyDatabaseRole = EnumField("readAnyDatabase", _("readAnyDatabase"))
-    HostManagerRole = EnumField("hostManager", _("hostManager"))
-    ReadWriteRole = EnumField("readWrite", _("readWrite"))
-    UserAdminAnyDatabaseRole = EnumField("userAdminAnyDatabase", _("userAdminAnyDatabase"))
-    DbAdminAnyDatabaseRole = EnumField("dbAdminAnyDatabase", _("dbAdminAnyDatabase"))
-    ReadWriteAnyDatabaseRole = EnumField("readWriteAnyDatabase", _("readWriteAnyDatabase"))
-    ClusterAdminRole = EnumField("clusterAdmin", _("clusterAdmin"))
-    MongoDBInitSet = EnumField("mongodb_init_set", _("mongodb_init_set"))
-    MongoDBExtraUserCreate = EnumField("mongodb_extra_user_create", _("mongodb_extra_user_create"))
 
 
 class CloudServiceName(str, StructuredEnum):
@@ -1155,8 +1134,62 @@ MssqlSystemVersionSupportMap = {
     ],
 }
 
+
 class MongoDBClusterDefaultPort(int, StructuredEnum):
     """mongodb cluster默认端口"""
 
     CONFIG_PORT = EnumField(28021, _("config_port"))
     SHARD_START_PORT = EnumField(27001, _("shard_start_port"))
+
+
+class MongoDBManagerUser(str, StructuredEnum):
+    """mongodb 管理用户"""
+
+    DbaUser = EnumField("dba", _("dba"))
+    AppDbaUser = EnumField("appdba", _("appdba"))
+    MonitorUser = EnumField("monitor", _("monitor"))
+    AppMonitorUser = EnumField("appmonitor", _("appmonitor"))
+
+
+class MongoDBUserPrivileges(str, StructuredEnum):
+    """mongodb 用户权限"""
+
+    RootRole = EnumField("root", _("root"))
+    BackupRole = EnumField("backup", _("backup"))
+    ClusterMonitorRole = EnumField("clusterMonitor", _("clusterMonitor"))
+    ReadAnyDatabaseRole = EnumField("readAnyDatabase", _("readAnyDatabase"))
+    HostManagerRole = EnumField("hostManager", _("hostManager"))
+    ReadWriteRole = EnumField("readWrite", _("readWrite"))
+    UserAdminAnyDatabaseRole = EnumField("userAdminAnyDatabase", _("userAdminAnyDatabase"))
+    DbAdminAnyDatabaseRole = EnumField("dbAdminAnyDatabase", _("dbAdminAnyDatabase"))
+    ReadWriteAnyDatabaseRole = EnumField("readWriteAnyDatabase", _("readWriteAnyDatabase"))
+    ClusterAdminRole = EnumField("clusterAdmin", _("clusterAdmin"))
+    MongoDBInitSet = EnumField("mongodb_init_set", _("mongodb_init_set"))
+    MongoDBExtraUserCreate = EnumField("mongodb_extra_user_create", _("mongodb_extra_user_create"))
+
+
+class MongoDBTask(str, StructuredEnum):
+    """mongodb 任务"""
+
+    MongoDBInitSet = EnumField("mongodb_init_set", _("mongodb_init_set"))
+    MongoDBExtraUserCreate = EnumField("mongodb_extra_user_create", _("mongodb_extra_user_create"))
+
+
+class MongoDBInstanceType(str, StructuredEnum):
+    """mongodb 实例类型"""
+
+    MongoD = EnumField("mongod", _("mongod"))
+    MongoS = EnumField("mongos", _("mongos"))
+
+
+class MongoDBDfaultAuthDB(str, StructuredEnum):
+    """mongodb 默认验证db"""
+
+    AuthDB = EnumField("admin", _("admin"))
+
+
+class MongoDBShardType(str, StructuredEnum):
+    """mongodb shard类型"""
+
+    MongoShardSvr = EnumField("shardsvr", _("shardsvr"))
+    MongoConfigSvr = EnumField("configsvr", _("configsvr"))
