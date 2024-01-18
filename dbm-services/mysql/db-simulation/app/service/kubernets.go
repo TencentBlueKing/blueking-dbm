@@ -141,8 +141,9 @@ func (k *DbPodSets) CreateClusterPod() (err error) {
 					Resources:       k.getResourceLimit(),
 					ImagePullPolicy: v1.PullIfNotPresent,
 					Image:           k.DbImage,
-					Args: []string{"mysqld", "--defaults-file=/etc/my.cnf", "--port=20000", fmt.Sprintf("--character-set-server=%s",
-						k.BaseInfo.Charset),
+					Args: []string{"mysqld", "--defaults-file=/etc/my.cnf", "--log_bin_trust_function_creators", "--port=20000",
+						fmt.Sprintf("--character-set-server=%s",
+							k.BaseInfo.Charset),
 						"--user=mysql"},
 					ReadinessProbe: &v1.Probe{
 						ProbeHandler: v1.ProbeHandler{
@@ -162,8 +163,9 @@ func (k *DbPodSets) CreateClusterPod() (err error) {
 					Resources:       k.getResourceLimit(),
 					ImagePullPolicy: v1.PullIfNotPresent,
 					Image:           k.SpiderImage,
-					Args: []string{"mysqld", "--defaults-file=/etc/my.cnf", "--port=25000", fmt.Sprintf("--character-set-server=%s",
-						k.BaseInfo.Charset),
+					Args: []string{"mysqld", "--defaults-file=/etc/my.cnf", "--log_bin_trust_function_creators", "--port=25000",
+						fmt.Sprintf("--character-set-server=%s",
+							k.BaseInfo.Charset),
 						"--user=mysql"},
 					ReadinessProbe: &v1.Probe{
 						ProbeHandler: v1.ProbeHandler{
@@ -328,8 +330,9 @@ func (k *DbPodSets) CreateMySQLPod() (err error) {
 				},
 				ImagePullPolicy: v1.PullIfNotPresent,
 				Image:           k.DbImage,
-				Args: []string{"mysqld", "--defaults-file=/etc/my.cnf", fmt.Sprintf("--character-set-server=%s",
-					k.BaseInfo.Charset),
+				Args: []string{"mysqld", "--defaults-file=/etc/my.cnf", "--log-bin-trust-function-creators",
+					fmt.Sprintf("--character-set-server=%s",
+						k.BaseInfo.Charset),
 					"--user=mysql"},
 				ReadinessProbe: &v1.Probe{
 					ProbeHandler: v1.ProbeHandler{
