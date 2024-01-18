@@ -22,7 +22,16 @@ from backend.db_meta.enums.instance_role import InstanceRole
 from backend.db_meta.models import Cluster
 from backend.db_meta.models.machine import Machine
 from backend.db_package.models import Package
-from backend.flow.consts import ConfigTypeEnum, MediumEnum, MongoDBActuatorActionEnum
+from backend.flow.consts import (
+    ConfigTypeEnum,
+    MediumEnum,
+    MongoDBActuatorActionEnum,
+    MongoDBDfaultAuthDB,
+    MongoDBInstanceType,
+    MongoDBManagerUser,
+    MongoDBTask,
+    MongoDBUserPrivileges,
+)
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.utils.mongodb import mongodb_password, mongodb_script_template
 from backend.flow.utils.mongodb.mongodb_password import MongoDBPassword
@@ -49,10 +58,10 @@ class ActKwargs:
         self.file_path: str = None
         # 管理员用户
         self.manager_users: list = [
-            MediumEnum.DbaUser.value,
-            MediumEnum.AppDbaUser.value,
-            MediumEnum.MonitorUser.value,
-            MediumEnum.AppMonitorUser.value,
+            MongoDBManagerUser.DbaUser.value,
+            MongoDBManagerUser.AppDbaUser.value,
+            MongoDBManagerUser.MonitorUser.value,
+            MongoDBManagerUser.AppMonitorUser.value,
         ]
 
     def __get_define_config(self, namespace: str, conf_file: str, conf_type: str) -> Any:
@@ -71,7 +80,7 @@ class ActKwargs:
         )
         return data["content"]
 
-    def get_inti_info(self):
+    def get_init_info(self):
         """获取初始信息一些信息"""
 
         # 集群类型
@@ -89,7 +98,7 @@ class ActKwargs:
         )["file_path"]
 
     def get_backup_dir(self):
-        """安装文件存放路径"""
+        """备份文件存放路径"""
 
         resp = self.__get_define_config(
             namespace=self.cluster_type,
@@ -182,7 +191,7 @@ class ActKwargs:
                     "ip": node["ip"],
                     "port": self.replicaset_info["port"],
                     "dbVersion": self.payload["db_version"],
-                    "instanceType": MediumEnum.MongoD,
+                    "instanceType": MongoDBInstanceType.MongoD,
                     "app": self.payload["app"],
                     "setId": self.replicaset_info["set_id"],
                     "keyFile": self.payload["key_file"],
@@ -225,7 +234,7 @@ class ActKwargs:
                     "ip": node["ip"],
                     "port": self.mongos_info["port"],
                     "dbVersion": self.payload["db_version"],
-                    "instanceType": MediumEnum.MongoS,
+                    "instanceType": MongoDBInstanceType.MongoS,
                     "app": self.payload["app"],
                     "setId": self.mongos_info["set_id"],
                     "keyFile": self.payload["key_file"],
@@ -422,7 +431,7 @@ class ActKwargs:
                 "payload": {
                     "ip": self.payload["mongos"]["nodes"][0]["ip"],
                     "port": self.payload["mongos"]["port"],
-                    "adminUsername": MediumEnum.DbaUser,
+                    "adminUsername": MongoDBManagerUser.DbaUser,
                     "shards": self.payload["add_shards"],
                 },
             },
@@ -440,11 +449,11 @@ class ActKwargs:
             mongo_type = "cluster"
             set_name = ""
 
-        if script_type == MediumEnum.MongoDBExtraUserCreate:
+        if script_type == MongoDBTask.MongoDBExtraUserCreate:
             create_extra_manager_user_status = True
             db_init_set_status = False
             script = mongodb_script_template.mongo_extra_manager_user_create_js_script
-        elif script_type == MediumEnum.MongoDBInitSet:
+        elif script_type == MongoDBTask.MongoDBInitSet:
             create_extra_manager_user_status = False
             db_init_set_status = True
             script = mongodb_script_template.mongo_init_set_js_script
@@ -466,7 +475,7 @@ class ActKwargs:
                     "script": script,
                     "type": mongo_type,
                     "secondary": False,
-                    "adminUsername": MediumEnum.DbaUser,
+                    "adminUsername": MongoDBManagerUser.DbaUser,
                     "adminPassword": "",
                     "repoUrl": "",
                     "repoUsername": "",
@@ -498,14 +507,14 @@ class ActKwargs:
                 "payload": {
                     "ip": self.replicaset_info["nodes"][0]["ip"],
                     "port": self.replicaset_info["port"],
-                    "instanceType": MediumEnum.MongoD,
-                    "username": MediumEnum.DbaUser,
+                    "instanceType": MongoDBInstanceType.MongoD,
+                    "username": MongoDBManagerUser.DbaUser,
                     "password": "",
                     "adminUsername": "",
                     "adminPassword": "",
-                    "authDb": MediumEnum.AuthDB,
+                    "authDb": MongoDBDfaultAuthDB.AuthDB,
                     "dbs": [],
-                    "privileges": [MediumEnum.RootRole],
+                    "privileges": [MongoDBUserPrivileges.RootRole],
                 },
             },
         }
@@ -538,32 +547,37 @@ class ActKwargs:
         # 获取集群信息
         cluster_info = MongoRepository().fetch_one_cluster(id=cluster_id)
         bk_cloud_id = cluster_info.bk_cloud_id
+        self.cluster_type = cluster_info.cluster_type
         exec_ip: str = None
         port: int = None
         instance_type: str = None
         if cluster_info.cluster_type == ClusterType.MongoReplicaSet.value:
             exec_ip = cluster_info.get_shards()[0].members[0].ip
             port = int(cluster_info.get_shards()[0].members[0].port)
-            instance_type = MediumEnum.MongoD
+            instance_type = MongoDBInstanceType.MongoD
         elif cluster_info.cluster_type == ClusterType.MongoShardedCluster.value:
             exec_ip = cluster_info.get_mongos()[0].ip
             port = int(cluster_info.get_mongos()[0].port)
-            instance_type = MediumEnum.MongoS
+            instance_type = MongoDBInstanceType.MongoS
 
         # 获取用户密码
         result = MongoDBPassword().get_password_from_db(
             ip=exec_ip, port=port, bk_cloud_id=bk_cloud_id, username=admin_user
         )
-        if result["info"] != "":
-            raise ValueError("get password of dba fail, error:{}".format(result["info"]))
+        if result["info"] is not None:
+            raise ValueError("get password of {} fail, error:{}".format(admin_user, result["info"]))
         self.payload["db_version"] = cluster_info.major_version
-        self.payload["hosts"] = [{"ip": exec_ip}]
+        self.payload["hosts"] = [{"ip": exec_ip, "bk_cloud_id": bk_cloud_id}]
         self.payload["bk_cloud_id"] = bk_cloud_id
         self.payload["port"] = port
         self.payload["instance_type"] = instance_type
         self.payload["admin_password"] = result["password"]
+        # db大版本
+        self.db_main_version = str(self.payload["db_version"].split(".")[0])
+        # 获取file_path
+        self.get_file_path()
 
-    def get_user_kwargs(self, create: bool, admin_user: str) -> dict:
+    def get_user_kwargs(self, create: bool, admin_user: str, info: dict) -> dict:
         """用户"""
 
         if create:
@@ -580,13 +594,12 @@ class ActKwargs:
                         "ip": self.payload["hosts"][0]["ip"],
                         "port": self.payload["port"],
                         "instanceType": self.payload["instance_type"],
-                        "username": self.payload["username"],
-                        "password": self.payload["password"],
+                        "username": info["username"],
+                        "password": info["password"],
                         "adminUsername": admin_user,
                         "adminPassword": self.payload["admin_password"],
-                        "authDb": self.payload["authDb"],
-                        "dbs": self.payload["dbs"],
-                        "privileges": self.payload["privileges"],
+                        "authDb": info["auth_db"],
+                        "dbsPrivileges": info["rule_sets"],
                     },
                 },
             }
@@ -604,10 +617,10 @@ class ActKwargs:
                         "ip": self.payload["hosts"][0]["ip"],
                         "port": self.payload["port"],
                         "instanceType": self.payload["instance_type"],
-                        "username": self.payload["username"],
+                        "username": info["username"],
                         "adminUsername": admin_user,
                         "adminPassword": self.payload["admin_password"],
-                        "authDb": self.payload["authDb"],
+                        "authDb": info["auth_db"],
                     },
                 },
             }
@@ -774,12 +787,7 @@ class ActKwargs:
                     instances.append({"ip": node["ip"], "port": node["port"], "bk_cloud_id": node["bk_cloud_id"]})
         return {
             "instances": self.payload["bk_cloud_id"],
-            "usernames": [
-                MediumEnum.DbaUser,
-                MediumEnum.AppDbaUser,
-                MediumEnum.MonitorUser,
-                MediumEnum.AppMonitorUser,
-            ],
+            "usernames": self.manager_users,
         }
 
     def get_cluster_by_ip_replace(self):
@@ -986,6 +994,7 @@ class MongoRepository:
                 row.cluster_type = i.cluster_type
                 row.major_version = i.major_version
                 row.bk_biz_id = i.bk_biz_id
+                row.bk_cloud_id = i.bk_cloud_id
                 row.immute_domain = i.immute_domain
                 row.mongos = []
                 row.shards = []

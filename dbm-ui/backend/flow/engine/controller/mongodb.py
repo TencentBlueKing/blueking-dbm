@@ -11,6 +11,7 @@ specific language governing permissions and limitations under the License.
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_backup import MongoBackupFlow
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_fake_install import MongoFakeInstallFlow
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_install import MongoDBInstallFlow
+from backend.flow.engine.bamboo.scene.mongodb.mongodb_user import MongoUserFlow
 from backend.flow.engine.controller.base import BaseController
 
 
@@ -48,3 +49,19 @@ class MongoDBController(BaseController):
         """
         flow = MongoFakeInstallFlow(root_id=self.root_id, data=self.ticket_data)
         flow.start()
+
+    def create_user(self):
+        """
+        创建用户
+        """
+
+        flow = MongoUserFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.multi_cluster_user_flow(True)
+
+    def delete_user(self):
+        """
+        删除用户
+        """
+
+        flow = MongoUserFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.multi_cluster_user_flow(False)
