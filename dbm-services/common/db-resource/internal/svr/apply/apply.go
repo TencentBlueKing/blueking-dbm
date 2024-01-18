@@ -14,6 +14,7 @@ package apply
 import (
 	"fmt"
 	"path"
+	"sort"
 	"strconv"
 
 	"dbm-services/common/db-resource/internal/config"
@@ -37,7 +38,12 @@ type SearchContext struct {
 
 // CycleApply TODO
 func CycleApply(param ApplyRequestInputParam) (pickers []*PickerObject, err error) {
-	for _, v := range param.Details {
+	resourceReqList := param.Details
+	sort.Slice(resourceReqList, func(i, j int) bool {
+		return len(resourceReqList[i].StorageSpecs) > len(
+			resourceReqList[j].StorageSpecs)
+	})
+	for _, v := range resourceReqList {
 		var picker *PickerObject
 		logger.Debug(fmt.Sprintf("input.Detail %v", v))
 		// 如果没有配置亲和性，或者请求的数量小于1 重置亲和性为NONE
