@@ -12,66 +12,125 @@
 -->
 
 <template>
-  <BkPopover
-    v-if="data.operationTicketId"
-    placement="top"
-    :popover-delay="[100, 200]"
-    theme="light">
-    <DbIcon
-      style="width: 38px;height: 16px;"
-      svg
-      :type="data.operationStatusIcon" />
-    <template #content>
-      <I18nT
-        keypath="xx_跳转_我的服务单_查看进度"
-        style="font-size: 12px; line-height: 16px; color: #63656e;"
-        tag="div">
-        <span>{{ data.operationStatusText }}</span>
-        <RouterLink
-          target="_blank"
-          :to="{
-            name: 'SelfServiceMyTickets',
-            query: {
-              id: data.operationTicketId,
-            },
-          }">
-          {{ $t('我的服务单') }}
-        </RouterLink>
-      </I18nT>
-    </template>
-  </BkPopover>
+  <div
+    v-if="isRender"
+    class="render-cluster-opration-tag">
+    <span
+      ref="rootRef"
+      class="tag-placeholder">
+      <DbIcon
+        svg
+        :type="tagIcon" />
+    </span>
+    <I18nT
+      ref="popRef"
+      keypath="xx_跳转_我的服务单_查看进度"
+      style="font-size: 12px; line-height: 16px; color: #63656e;"
+      tag="div">
+      <span>{{ tipText }}</span>
+      <RouterLink
+        target="_blank"
+        :to="{
+          name: 'SelfServiceMyTickets',
+          query: {
+            id: data.ticket_id,
+          },
+        }">
+        {{ $t('我的服务单') }}
+      </RouterLink>
+    </I18nT>
+  </div>
 </template>
 <script setup lang="ts">
+  import tippy, {
+    type Instance,
+    type SingleTarget,
+  } from 'tippy.js';
+
   interface Props {
+    iconMap: Record<string, string>,
+    tipMap: Record<string, string>,
     data: {
-      operationStatusIcon: string,
-      operationStatusText: string,
-      operationTicketId: number,
-      [key: string]: any
+      cluster_id: number,
+      flow_id: number,
+      status: string,
+      ticket_id: number,
+      ticket_type: string,
+      title: string,
     }
   }
 
-  defineProps<Props>();
+  const props = defineProps<Props>();
+
+  const rootRef = ref();
+  const popRef = ref();
+
+  const tagIcon = computed(() => {
+    if (props.data.ticket_type) {
+      return props.iconMap[props.data.ticket_type];
+    }
+
+    return '';
+  });
+  const tipText = computed(() => {
+    if (props.data.ticket_type) {
+      return props.tipMap[props.data.ticket_type];
+    }
+
+    return '';
+  });
+  const isRender = computed(() => tagIcon.value && tipText.value && !!props.data.ticket_id);
+
+  let tippyIns:Instance;
+
+  const destroyInst = () => {
+    if (tippyIns) {
+      tippyIns.hide();
+      tippyIns.unmount();
+      tippyIns.destroy();
+    }
+  };
+
+  watch(isRender, () => {
+    if (isRender.value) {
+      destroyInst();
+      nextTick(() => {
+        tippyIns = tippy(rootRef.value as SingleTarget, {
+          content: popRef.value.$el,
+          placement: 'top',
+          appendTo: () => document.body,
+          theme: 'light',
+          maxWidth: 'none',
+          interactive: true,
+          arrow: true,
+          offset: [0, 8],
+          zIndex: 999999,
+          hideOnClick: true,
+        });
+      });
+    }
+  }, {
+    immediate: true,
+  });
+
+  onBeforeUnmount(() => {
+    destroyInst();
+  });
 </script>
-<style lang="less">
+<style lang="less" scoped>
   .render-cluster-opration-tag {
-    position: relative;
     display: inline-block;
-    width: 38px;
-    height: 16px;
-    // margin-top: 2px;
+    margin-right: 4px;
+    font-size: 0;
 
     .tag-placeholder {
-      position: absolute;
-      top: 50%;
+      display: inline-block;
+      font-size: 0;
+    }
+
+    .db-svg-icon {
       width: 38px;
       height: 16px;
-      transform: translateY(-50%);
-
-      .db-svg-icon {
-        width: 38px;
-        height: 16px;
-      }
     }
   }
 </style>

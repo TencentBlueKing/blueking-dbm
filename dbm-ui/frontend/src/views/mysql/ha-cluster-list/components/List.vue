@@ -154,13 +154,14 @@
 
   import ClusterAuthorize from '@components/cluster-authorize/ClusterAuthorize.vue';
   import ExcelAuthorize from '@components/cluster-common/ExcelAuthorize.vue';
+  import OperationBtnStatusTips from '@components/cluster-common/OperationBtnStatusTips.vue';
+  import RenderOperationTag from '@components/cluster-common/RenderOperationTag.vue';
   import EditEntryConfig from '@components/cluster-entry-config/Index.vue';
   import DbStatus from '@components/db-status/index.vue';
   import DropdownExportExcel from '@components/dropdown-export-excel/index.vue';
   import RenderInstances from '@components/render-instances/RenderInstances.vue';
   import RenderTextEllipsisOneLine from '@components/text-ellipsis-one-line/index.vue';
 
-  import RenderOperationTag from '@views/mysql/common/RenderOperationTag.vue';
   import CreateSubscribeRuleSlider from '@views/mysql/dumper/components/create-rule/Index.vue';
 
   import {
@@ -310,7 +311,12 @@
           </div>
           <div class="cluster-tags">
             {
-              data.operations.map(item => <RenderOperationTag class="cluster-tag" data={item} />)
+              data.operations.map(item => (
+                <RenderOperationTag
+                  iconMap={TendbhaModel.operationIconMap}
+                  tipMap={TendbhaModel.operationTextMap}
+                  class="cluster-tag" data={item}/>
+              ))
             }
             {
               data.phase === 'offline'
@@ -335,11 +341,12 @@
     {
       label: t('管控区域'),
       field: 'bk_cloud_name',
+      width: 90,
     },
     {
       label: t('状态'),
       field: 'status',
-      minWidth: 100,
+      width: 90,
       render: ({ data }: ColumnData) => {
         const info = data.status === 'normal' ? { theme: 'success', text: t('正常') } : { theme: 'danger', text: t('异常') };
         return <DbStatus theme={info.theme}>{info.text}</DbStatus>;
@@ -349,6 +356,7 @@
       label: t('从访问入口'),
       field: 'slave_domain',
       minWidth: 200,
+      width: 220,
       showOverflowTooltip: false,
       render: ({ data }: ColumnData) => (
         <div class="domain">
@@ -459,49 +467,58 @@
       width: tableOperationWidth.value,
       fixed: isStretchLayoutOpen.value ? false : 'right',
       render: ({ data }: ColumnData) => (
-          <>
+        <>
+          <bk-button
+            text
+            theme="primary"
+            class="mr-8"
+            onClick={() => handleShowAuthorize([data])}>
+            { t('授权') }
+          </bk-button>
+          {isShowDumperEntry.value && (
             <bk-button
               text
               theme="primary"
               class="mr-8"
-              onClick={() => handleShowAuthorize([data])}>
-              { t('授权') }
+              onClick={() => handleShowCreateSubscribeRuleSlider(data)}>
+              { t('数据订阅') }
             </bk-button>
-            {isShowDumperEntry.value && (
-              <bk-button
-                text
-                theme="primary"
-                class="mr-8"
-                onClick={() => handleShowCreateSubscribeRuleSlider(data)}>
-                { t('数据订阅') }
-              </bk-button>
-            )}
-            {
-              data.isOnline ? (
+          )}
+          {
+            data.isOnline ? (
+              <OperationBtnStatusTips data={data}>
                 <bk-button
                   text
                   theme="primary"
+                  disabled={Boolean(data.operationTicketId)}
                   class="mr-8"
                   onClick={() => handleSwitchCluster(TicketTypes.MYSQL_HA_DISABLE, data)}>
                   { t('禁用') }
                 </bk-button>
-              ) : (
-                <>
+              </OperationBtnStatusTips>
+            ) : (
+              <>
+                <OperationBtnStatusTips data={data}>
                   <bk-button
                     text
                     theme="primary"
+                    disabled={Boolean(data.operationTicketId)}
                     class="mr-8"
                     onClick={() => handleSwitchCluster(TicketTypes.MYSQL_HA_ENABLE, data)}>
                     { t('启用') }
                   </bk-button>
+                </OperationBtnStatusTips>
+                <OperationBtnStatusTips data={data}>
                   <bk-button
                     text
                     theme="primary"
+                    disabled={Boolean(data.operationTicketId)}
                     class="mr-8"
                     onClick={() => handleDeleteCluster(data)}>
                     { t('删除') }
                   </bk-button>
-                </>
+                </OperationBtnStatusTips>
+              </>
               )
             }
           </>

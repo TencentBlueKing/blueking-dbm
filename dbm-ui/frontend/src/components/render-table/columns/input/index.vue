@@ -151,9 +151,9 @@
     event.preventDefault();
     let paste = (event.clipboardData || window.clipboardData).getData('text');
     paste = encodeMult(paste);
-    localValue.value = paste;
+    localValue.value = paste.replace(/^\s+|\s+$/g, '');
     window.changeConfirm = true;
-    modelValue.value = paste;
+    modelValue.value = localValue.value;
   };
 
   defineExpose<Exposes>({
@@ -224,6 +224,7 @@
     outline: none;
 
     :deep(input) {
+      padding-left: 16px;
       border: 1px solid transparent;
       border-radius: 0;
 
@@ -237,6 +238,12 @@
         border-color: #3a84ff;
 
       }
+    }
+
+    :deep(.bk-input--number-control) {
+      position: absolute;
+      right: 1px;
+      background: transparent;
     }
   }
 

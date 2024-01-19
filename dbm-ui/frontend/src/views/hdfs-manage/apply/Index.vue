@@ -22,7 +22,7 @@
       :model="formData"
       :rules="rules"
       style="margin-bottom: 16px;">
-      <DbCard :title="$t('业务信息')">
+      <DbCard :title="t('业务信息')">
         <BusinessItems
           v-model:app-abbr="formData.details.db_app_abbr"
           v-model:biz-id="formData.bk_biz_id"
@@ -41,12 +41,12 @@
         v-model="formData.details.city_code" />
       <!-- <DbCard
         v-if="!isDefaultCity"
-        :title="$t('数据库部署信息')">
+        :title="t('数据库部署信息')">
         <AffinityItem v-model="formData.details.disaster_tolerance_level" />
       </DbCard> -->
-      <DbCard :title="$t('部署需求')">
+      <DbCard :title="t('部署需求')">
         <BkFormItem
-          :label="$t('Hadoop版本')"
+          :label="t('Hadoop版本')"
           property="details.db_version"
           required>
           <DeployVersion
@@ -55,16 +55,16 @@
             query-key="hdfs" />
         </BkFormItem>
         <BkFormItem
-          :label="$t('服务器选择')"
+          :label="t('服务器选择')"
           property="details.ip_source"
           required>
           <BkRadioGroup
             v-model="formData.details.ip_source">
             <BkRadioButton label="resource_pool">
-              {{ $t('自动从资源池匹配') }}
+              {{ t('自动从资源池匹配') }}
             </BkRadioButton>
             <BkRadioButton label="manual_input">
-              {{ $t('手动录入IP') }}
+              {{ t('业务空闲机') }}
             </BkRadioButton>
           </BkRadioGroup>
         </BkFormItem>
@@ -104,7 +104,7 @@
                     </I18nT>
                   </template>
                   <template #desc>
-                    {{ $t('至少3台_最多5台_机器可复用_建议规格至少为2核4G') }}
+                    {{ t('至少3台_最多5台_机器可复用_建议规格至少为2核4G') }}
                   </template>
                 </IpSelector>
               </div>
@@ -138,7 +138,7 @@
                     </I18nT>
                   </template>
                   <template #desc>
-                    {{ $t('至少2台_建议规格至少为2核4G') }}
+                    {{ t('至少2台_建议规格至少为2核4G') }}
                   </template>
                 </IpSelector>
               </div>
@@ -147,12 +147,12 @@
                 :biz-id="formData.bk_biz_id" />
             </DbFormItem>
             <BkFormItem
-              :label="$t('访问端口')"
+              :label="t('访问端口')"
               required>
               <div class="access-port-box item-input">
                 <table>
                   <tr class="port-block">
-                    <td>{{ $t('http端口') }}</td>
+                    <td>{{ t('http端口') }}</td>
                     <td>
                       <BkFormItem property="details.http_port">
                         <BkInput
@@ -162,12 +162,12 @@
                           show-clear-only-hover
                           style="width: 130px;"
                           type="number" />
-                        <span class="input-desc">{{ $t('禁用2181_8480_8485') }}</span>
+                        <span class="input-desc">{{ t('禁用2181_8480_8485') }}</span>
                       </BkFormItem>
                     </td>
                   </tr>
                   <tr class="port-block">
-                    <td>{{ $t('rpc端口') }}</td>
+                    <td>{{ t('rpc端口') }}</td>
                     <td>
                       <BkFormItem property="details.rpc_port">
                         <BkInput
@@ -177,7 +177,7 @@
                           show-clear-only-hover
                           style="width: 130px;"
                           type="number" />
-                        <span class="input-desc">{{ $t('禁用2181_8480_8485') }}</span>
+                        <span class="input-desc">{{ t('禁用2181_8480_8485') }}</span>
                       </BkFormItem>
                     </td>
                   </tr>
@@ -193,7 +193,7 @@
               required>
               <div class="resource-pool-item">
                 <BkFormItem
-                  :label="$t('规格')"
+                  :label="t('规格')"
                   property="details.resource_spec.namenode.spec_id"
                   required>
                   <SpecSelector
@@ -205,14 +205,14 @@
                     machine-type="hdfs_master" />
                 </BkFormItem>
                 <BkFormItem
-                  :label="$t('数量')"
+                  :label="t('数量')"
                   property="details.resource_spec.namenode.count"
                   required>
                   <BkInput
                     v-model="formData.details.resource_spec.namenode.count"
                     disabled
                     type="number" />
-                  <span class="input-desc">{{ $t('n台', [2]) }}</span>
+                  <span class="input-desc">{{ t('n台', [2]) }}</span>
                 </BkFormItem>
               </div>
             </BkFormItem>
@@ -221,7 +221,7 @@
               required>
               <div class="resource-pool-item">
                 <BkFormItem
-                  :label="$t('规格')"
+                  :label="t('规格')"
                   property="details.resource_spec.zookeeper.spec_id"
                   required>
                   <SpecSelector
@@ -233,7 +233,7 @@
                     machine-type="hdfs_master" />
                 </BkFormItem>
                 <BkFormItem
-                  :label="$t('数量')"
+                  :label="t('数量')"
                   property="details.resource_spec.zookeeper.count"
                   required>
                   <div style="display: flex; align-items: center;">
@@ -247,7 +247,7 @@
                     <span
                       class="input-desc pr-12"
                       style="line-height: 16px;">
-                      {{ $t('1_3台_小于3时从Namenode节点复用') }}
+                      {{ t('1_3台_小于3时从Namenode节点复用') }}
                     </span>
                   </div>
                 </BkFormItem>
@@ -258,7 +258,7 @@
               required>
               <div class="resource-pool-item">
                 <BkFormItem
-                  :label="$t('规格')"
+                  :label="t('规格')"
                   property="details.resource_spec.datanode.spec_id"
                   required>
                   <SpecSelector
@@ -270,7 +270,7 @@
                     machine-type="hdfs_datanode" />
                 </BkFormItem>
                 <BkFormItem
-                  :label="$t('数量')"
+                  :label="t('数量')"
                   property="details.resource_spec.datanode.count"
                   required>
                   <BkInput
@@ -278,13 +278,13 @@
                     :min="2"
                     type="number" />
                   <span class="input-desc">
-                    {{ $t('至少n台', { n: 2 }) }}
+                    {{ t('至少n台', { n: 2 }) }}
                   </span>
                 </BkFormItem>
               </div>
             </BkFormItem>
             <BkFormItem
-              :label="$t('总容量')"
+              :label="t('总容量')"
               required>
               <BkInput
                 disabled
@@ -295,12 +295,12 @@
           </div>
         </Transition>
         <BkFormItem
-          :label="$t('备注')"
+          :label="t('备注')"
           property="remark">
           <BkInput
             v-model="formData.remark"
             :maxlength="100"
-            :placeholder="$t('请提供更多有用信息申请信息_以获得更快审批')"
+            :placeholder="t('请提供更多有用信息申请信息_以获得更快审批')"
             style="width: 655px;"
             type="textarea" />
         </BkFormItem>
@@ -313,19 +313,19 @@
           style="width: 88px;"
           theme="primary"
           @click="handleSubmit">
-          {{ $t('提交') }}
+          {{ t('提交') }}
         </BkButton>
         <BkButton
           class="ml8 w-88"
           :disabled="baseState.isSubmitting"
           @click="handleReset">
-          {{ $t('重置') }}
+          {{ t('重置') }}
         </BkButton>
         <BkButton
           class="ml8 w-88"
           :disabled="baseState.isSubmitting"
           @click="handleCancel">
-          {{ $t('取消') }}
+          {{ t('取消') }}
         </BkButton>
       </div>
     </template>

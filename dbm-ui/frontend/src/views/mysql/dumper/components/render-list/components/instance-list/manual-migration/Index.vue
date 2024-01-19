@@ -217,7 +217,7 @@
             cluster_id: props.data.source_cluster.id,
             switch_instances: [
               {
-                dumper_instance_id: props.data.dumper_id,
+                dumper_instance_id: props.data.id,
                 host: props.data.source_cluster.master_ip,
                 port: props.data.source_cluster.master_port,
                 repl_binlog_file: formModel.binlog_file,

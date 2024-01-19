@@ -147,7 +147,7 @@
   import type { Emitter } from 'mitt';
   import { useI18n } from 'vue-i18n';
 
-  import type InfluxDBInstanceModel from '@services/model/influxdb/influxdbInstance';
+  import InfluxDBInstanceModel from '@services/model/influxdb/influxdbInstance';
   import { getInfluxdbInstanceList } from '@services/source/influxdb';
   import { moveInstancesToGroup } from '@services/source/influxdbGroup';
   import { createTicket } from '@services/source/ticket';
@@ -159,7 +159,7 @@
 
   import { UserPersonalSettings } from '@common/const';
 
-  import OperationStatusTips from '@components/cluster-common/OperationStatusTips.vue';
+  import OperationBtnStatusTips from '@components/cluster-common/OperationBtnStatusTips.vue';
   import RenderInstanceStatus from '@components/cluster-common/RenderInstanceStatus.vue';
   import RenderOperationTag from '@components/cluster-common/RenderOperationTag.vue';
   import DropdownExportExcel from '@components/dropdown-export-excel/index.vue';
@@ -272,7 +272,14 @@
               </router-link>
             </div>
             <div class="cluster-tags">
-              <RenderOperationTag data={data} />
+              {
+            data.operations.map(item => (
+              <RenderOperationTag
+                iconMap={InfluxDBInstanceModel.operationIconMap}
+                tipMap={InfluxDBInstanceModel.operationTextMap}
+                class="cluster-tag ml-4" data={item}/>
+            ))
+          }
               <db-icon
                 v-show={!data.isOnline}
                 class="cluster-tag"
@@ -321,7 +328,7 @@
           if (data.isOnline) {
             return (
               <>
-                <OperationStatusTips data={data}>
+                <OperationBtnStatusTips data={data}>
                   <bk-button
                     class="mr-8"
                     disabled={data.operationDisabled}
@@ -331,8 +338,8 @@
                     onClick={() => handleShowReplace(data)}>
                     { t('替换') }
                   </bk-button>
-                </OperationStatusTips>
-                <OperationStatusTips data={data}>
+                </OperationBtnStatusTips>
+                <OperationBtnStatusTips data={data}>
                   <bk-button
                     class="mr-8"
                     disabled={data.operationDisabled}
@@ -342,8 +349,8 @@
                     onClick={() => handleRestart([data])}>
                     { t('重启') }
                   </bk-button>
-                </OperationStatusTips>
-                <OperationStatusTips data={data}>
+                </OperationBtnStatusTips>
+                <OperationBtnStatusTips data={data}>
                   <bk-button
                     class="mr-8"
                     disabled={data.operationDisabled}
@@ -353,7 +360,7 @@
                     onClick={() => handlDisabled(data)}>
                     { t('禁用') }
                   </bk-button>
-                </OperationStatusTips>
+                </OperationBtnStatusTips>
               </>
             );
           }

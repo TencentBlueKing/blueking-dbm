@@ -14,7 +14,7 @@
 <template>
   <span>
     <span
-      v-if="data?.operationDisabled"
+      v-if="data.operationTicketId"
       ref="rootRef"
       class="cluster-operation-status-tips"
       @mouseenter="handleMouseenter">
@@ -23,11 +23,7 @@
         <div
           ref="popRef"
           style="font-size: 12px; line-height: 16px; color: #63656e;">
-          <span v-if="!data.isOnline">
-            {{ $t('集群已被禁用无法操作') }}
-          </span>
           <I18nT
-            v-else
             keypath="xx_跳转_我的服务单_查看进度"
             tag="span">
             <span>{{ data.operationStatusText }}</span>
@@ -60,28 +56,22 @@
   } from 'vue';
 
   let activeTippyIns:Instance;
-
 </script>
 <script setup lang="ts">
 
   interface Props {
-    data?: {
-      operationStatusIcon: string,
+    data: {
       operationStatusText: string,
       operationTicketId: number,
-      operationDisabled: boolean,
-      [key: string]: any
     }
   }
 
-  const props = withDefaults(defineProps<Props>(), {
-    data: () => ({} as any),
-  });
+  const props = defineProps<Props>();
 
   const rootRef = ref();
   const popRef = ref();
 
-  let tippyIns:Instance | undefined;
+  let tippyIns: Instance | undefined;
 
   const handleMouseenter = () => {
     if (!tippyIns) {
@@ -104,7 +94,7 @@
   };
 
   watch(() => props.data, () => {
-    if (props.data?.operationDisabled && !tippyIns) {
+    if (props.data.operationTicketId && !tippyIns) {
       setTimeout(() => {
         tippyIns = tippy(rootRef.value as SingleTarget, {
           content: popRef.value,
@@ -121,7 +111,7 @@
         });
       });
     }
-    if (!props.data.operationDisabled) {
+    if (!props.data.operationTicketId) {
       destroyTippy();
     }
   }, {

@@ -140,13 +140,18 @@ export default class Kafka {
     this.operations = this.initOperations(payload.operations);
   }
 
+  get runningOperation() {
+    const operateTicketTypes = Object.keys(Kafka.operationTextMap);
+    return this.operations.find(item => operateTicketTypes.includes(item.ticket_type) && item.status === 'RUNNING');
+  }
+
   // 操作中的状态
   get operationRunningStatus() {
     if (this.operations.length < 1) {
       return '';
     }
-    const operation = this.operations[0];
-    if (operation.status !== 'RUNNING') {
+    const operation = this.runningOperation;
+    if (!operation) {
       return '';
     }
     return operation.ticket_type;
@@ -164,8 +169,8 @@ export default class Kafka {
     if (this.operations.length < 1) {
       return 0;
     }
-    const operation = this.operations[0];
-    if (operation.status !== 'RUNNING') {
+    const operation = this.runningOperation;
+    if (!operation) {
       return 0;
     }
     return operation.ticket_id;
@@ -181,7 +186,7 @@ export default class Kafka {
       return true;
     }
     // 各个操作互斥，有其他任务进行中禁用操作按钮
-    if (this.operationRunningStatus) {
+    if (this.operationTicketId) {
       return true;
     }
     return false;

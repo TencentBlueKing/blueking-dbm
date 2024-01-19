@@ -24,7 +24,8 @@ export enum StatusTypes {
   PENDING = '审批中',
   RUNNING = '进行中',
   SUCCEEDED = '已完成',
-  FAILED = '已终止',
+  FAILED = '已失败',
+  TERMINATED = '已终止',
   REVOKED = '已撤销',
 }
 
@@ -39,6 +40,7 @@ const tagTheme = {
   SUCCEEDED: 'success',
   FAILED: 'danger',
   REVOKED: 'danger',
+  TERMINATED: 'danger',
   ALL: undefined,
 };
 

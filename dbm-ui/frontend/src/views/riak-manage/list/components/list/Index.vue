@@ -96,7 +96,7 @@
 
   import { TicketTypes } from '@common/const';
 
-  import OperationStatusTips from '@components/cluster-common/OperationStatusTips.vue';
+  import OperationBtnStatusTips from '@components/cluster-common/OperationBtnStatusTips.vue';
   import RenderNodeInstance from '@components/cluster-common/RenderNodeInstance.vue';
   import RenderOperationTag from '@components/cluster-common/RenderOperationTag.vue';
   import RenderClusterStatus from '@components/cluster-common/RenderStatus.vue';
@@ -149,10 +149,14 @@
               </MiniTag>
             )
           }
-          <RenderOperationTag
-            style="flex-shrink: 0;"
-            data={data}
-            class='ml-4' />
+          {
+            data.operations.map(item => (
+              <RenderOperationTag
+                iconMap={RiakModel.operationIconMap}
+                tipMap={RiakModel.operationTextMap}
+                class="ml-4" data={item}/>
+            ))
+          }
           {
             data.isDisabled && (
               <db-icon
@@ -227,7 +231,7 @@
       render: ({ data }: { data: RiakModel }) => (
         data.isOnline
           ? <>
-              <OperationStatusTips data={data}>
+              <OperationBtnStatusTips data={data}>
                 <bk-button
                   text
                   theme="primary"
@@ -236,8 +240,8 @@
                 >
                   { t('添加节点') }
                 </bk-button>
-              </OperationStatusTips>
-              <OperationStatusTips data={data} class="ml-16">
+              </OperationBtnStatusTips>
+              <OperationBtnStatusTips data={data} class="ml-16">
                 <bk-button
                   text
                   theme="primary"
@@ -246,8 +250,8 @@
                 >
                   { t('删除节点') }
                 </bk-button>
-              </OperationStatusTips>
-              <OperationStatusTips data={data} class="ml-16">
+              </OperationBtnStatusTips>
+              <OperationBtnStatusTips data={data} class="ml-16">
                 <bk-button
                   text
                   theme="primary"
@@ -256,10 +260,10 @@
                 >
                   { t('禁用') }
                 </bk-button>
-              </OperationStatusTips>
+              </OperationBtnStatusTips>
             </>
           : <>
-              <OperationStatusTips data={data}>
+              <OperationBtnStatusTips data={data}>
                 <bk-button
                   text
                   theme="primary"
@@ -268,8 +272,8 @@
                 >
                   { t('启用') }
                 </bk-button>
-              </OperationStatusTips>
-              <OperationStatusTips data={data} class="ml-16">
+              </OperationBtnStatusTips>
+              <OperationBtnStatusTips data={data} class="ml-16">
                 <bk-button
                   text
                   theme="primary"
@@ -278,7 +282,7 @@
                 >
                   { t('删除') }
                 </bk-button>
-              </OperationStatusTips>
+              </OperationBtnStatusTips>
             </>
       ),
     },

@@ -20,7 +20,7 @@
       auto-label-width
       :model="formdata"
       :rules="rules">
-      <DbCard :title="$t('业务信息')">
+      <DbCard :title="t('业务信息')">
         <BusinessItems
           v-model:app-abbr="formdata.details.db_app_abbr"
           v-model:biz-id="formdata.bk_biz_id"
@@ -39,12 +39,12 @@
         v-model="formdata.details.city_code" />
       <!-- <DbCard
         v-if="!isDefaultCity"
-        :title="$t('数据库部署信息')">
+        :title="t('数据库部署信息')">
         <AffinityItem v-model="formdata.details.disaster_tolerance_level" />
       </DbCard> -->
-      <DbCard :title="$t('部署需求')">
+      <DbCard :title="t('部署需求')">
         <BkFormItem
-          :label="$t('Pulsar版本')"
+          :label="t('Pulsar版本')"
           property="details.db_version"
           required>
           <DeployVersion
@@ -53,16 +53,16 @@
             query-key="pulsar" />
         </BkFormItem>
         <BkFormItem
-          :label="$t('服务器选择')"
+          :label="t('服务器选择')"
           property="details.ip_source"
           required>
           <BkRadioGroup
             v-model="formdata.details.ip_source">
             <BkRadioButton label="resource_pool">
-              {{ $t('自动从资源池匹配') }}
+              {{ t('自动从资源池匹配') }}
             </BkRadioButton>
             <BkRadioButton label="manual_input">
-              {{ $t('手动录入IP') }}
+              {{ t('业务空闲机') }}
             </BkRadioButton>
           </BkRadioGroup>
         </BkFormItem>
@@ -73,7 +73,7 @@
             v-if="formdata.details.ip_source === 'manual_input'"
             class="mb-24">
             <BkFormItem
-              :label="$t('Bookkeeper节点')"
+              :label="t('Bookkeeper节点')"
               property="details.nodes.bookkeeper"
               required>
               <div>
@@ -96,13 +96,13 @@
                     </I18nT>
                   </template>
                   <template #desc>
-                    {{ $t('至少2台_建议规格至少为2核4G') }}
+                    {{ t('至少2台_建议规格至少为2核4G') }}
                   </template>
                 </IpSelector>
               </div>
             </BkFormItem>
             <BkFormItem
-              :label="$t('Zookeeper节点')"
+              :label="t('Zookeeper节点')"
               property="details.nodes.zookeeper"
               required>
               <IpSelector
@@ -123,12 +123,12 @@
                   </I18nT>
                 </template>
                 <template #desc>
-                  {{ $t('需3台_建议规格至少为2核4G') }}
+                  {{ t('需3台_建议规格至少为2核4G') }}
                 </template>
               </IpSelector>
             </BkFormItem>
             <BkFormItem
-              :label="$t('Broker节点')"
+              :label="t('Broker节点')"
               property="details.nodes.broker"
               required>
               <IpSelector
@@ -149,7 +149,7 @@
                   </I18nT>
                 </template>
                 <template #desc>
-                  {{ $t('至少1台_建议规格至少为2核4G') }}
+                  {{ t('至少1台_建议规格至少为2核4G') }}
                 </template>
               </IpSelector>
             </BkFormItem>
@@ -158,11 +158,11 @@
             v-else
             class="mb-24">
             <BkFormItem
-              :label="$t('Bookkeeper节点')"
+              :label="t('Bookkeeper节点')"
               required>
               <div class="resource-pool-item">
                 <BkFormItem
-                  :label="$t('规格')"
+                  :label="t('规格')"
                   property="details.resource_spec.bookkeeper.spec_id"
                   required>
                   <SpecSelector
@@ -175,7 +175,7 @@
                     style="width: 314px;" />
                 </BkFormItem>
                 <BkFormItem
-                  :label="$t('数量')"
+                  :label="t('数量')"
                   property="details.resource_spec.bookkeeper.count"
                   required>
                   <BkInput
@@ -187,11 +187,11 @@
               </div>
             </BkFormItem>
             <BkFormItem
-              :label="$t('Zookeeper节点')"
+              :label="t('Zookeeper节点')"
               required>
               <div class="resource-pool-item">
                 <BkFormItem
-                  :label="$t('规格')"
+                  :label="t('规格')"
                   property="details.resource_spec.zookeeper.spec_id"
                   required>
                   <SpecSelector
@@ -204,7 +204,7 @@
                     style="width: 314px;" />
                 </BkFormItem>
                 <BkFormItem
-                  :label="$t('数量')"
+                  :label="t('数量')"
                   property="details.resource_spec.zookeeper.count"
                   required>
                   <BkInput
@@ -213,16 +213,16 @@
                     :min="3"
                     style="width: 314px;"
                     type="number" />
-                  <span class="input-desc">{{ $t('需n台', { n: 3 }) }}</span>
+                  <span class="input-desc">{{ t('需n台', { n: 3 }) }}</span>
                 </BkFormItem>
               </div>
             </BkFormItem>
             <BkFormItem
-              :label="$t('Broker节点')"
+              :label="t('Broker节点')"
               required>
               <div class="resource-pool-item">
                 <BkFormItem
-                  :label="$t('规格')"
+                  :label="t('规格')"
                   property="details.resource_spec.broker.spec_id"
                   required>
                   <SpecSelector
@@ -235,7 +235,7 @@
                     style="width: 314px;" />
                 </BkFormItem>
                 <BkFormItem
-                  :label="$t('数量')"
+                  :label="t('数量')"
                   property="details.resource_spec.broker.count"
                   required>
                   <BkInput
@@ -247,7 +247,7 @@
               </div>
             </BkFormItem>
             <BkFormItem
-              :label="$t('总容量')"
+              :label="t('总容量')"
               required>
               <BkInput
                 disabled
@@ -258,7 +258,7 @@
           </div>
         </Transition>
         <BkFormItem
-          :label="$t('Partition数量')"
+          :label="t('Partition数量')"
           property="details.partition_num"
           required>
           <BkInput
@@ -269,7 +269,7 @@
             type="number" />
         </BkFormItem>
         <BkFormItem
-          :label="$t('消息保留')"
+          :label="t('消息保留')"
           property="details.retention_hours"
           required>
           <BkInput
@@ -278,10 +278,10 @@
             :min="1"
             style="width: 185px;"
             type="number" />
-          <span class="input-desc">{{ $t('小时') }}</span>
+          <span class="input-desc">{{ t('小时') }}</span>
         </BkFormItem>
         <BkFormItem
-          :label="$t('副本数量')"
+          :label="t('副本数量')"
           property="details.replication_num"
           required>
           <BkInput
@@ -291,10 +291,10 @@
             :min="2"
             style="width: 185px;"
             type="number" />
-          <span class="input-desc">{{ $t('至少2_不能超过Bookkeeper数量') }}</span>
+          <span class="input-desc">{{ t('至少2_不能超过Bookkeeper数量') }}</span>
         </BkFormItem>
         <BkFormItem
-          :label="$t('至少写入成功副本数量')"
+          :label="t('至少写入成功副本数量')"
           property="details.ack_quorum"
           required>
           <BkInput
@@ -304,10 +304,10 @@
             :min="1"
             style="width: 185px;"
             type="number" />
-          <span class="input-desc">{{ $t('当达到数量后_立即返回结果_减少用户等待时间') }}</span>
+          <span class="input-desc">{{ t('当达到数量后_立即返回结果_减少用户等待时间') }}</span>
         </BkFormItem>
         <BkFormItem
-          :label="$t('访问端口')"
+          :label="t('访问端口')"
           property="details.port"
           required>
           <BkInput
@@ -317,11 +317,11 @@
             style="width: 185px;"
             type="number" />
         </BkFormItem>
-        <BkFormItem :label="$t('备注')">
+        <BkFormItem :label="t('备注')">
           <BkInput
             v-model="formdata.remark"
             :maxlength="100"
-            :placeholder="$t('请提供更多有用信息申请信息_以获得更快审批')"
+            :placeholder="t('请提供更多有用信息申请信息_以获得更快审批')"
             style="width: 655px;"
             type="textarea" />
         </BkFormItem>
@@ -334,19 +334,19 @@
           style="width: 88px;"
           theme="primary"
           @click="handleSubmit">
-          {{ $t('提交') }}
+          {{ t('提交') }}
         </BkButton>
         <BkButton
           class="ml8 w-88"
           :disabled="baseState.isSubmitting"
           @click="handleReset">
-          {{ $t('重置') }}
+          {{ t('重置') }}
         </BkButton>
         <BkButton
           class="ml8 w-88"
           :disabled="baseState.isSubmitting"
           @click="handleCancel">
-          {{ $t('取消') }}
+          {{ t('取消') }}
         </BkButton>
       </div>
     </template>

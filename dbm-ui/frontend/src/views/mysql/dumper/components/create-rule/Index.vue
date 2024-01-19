@@ -92,6 +92,7 @@
         </BkFormItem>
         <BkFormItem
           :label="t('数据源与接收端配置')"
+          property="clusterList"
           required>
           <ReceiverData
             ref="receiverDataRef"
@@ -200,9 +201,11 @@
   const subscribeTableData = ref<DumperConfig['repl_tables']>([]);
 
   const formModel = reactive<{
-    name: string | number
+    name: string | number,
+    clusterList: string[],
   }>({
     name: '',
+    clusterList: [''],
   });
 
   const isUseExistedSubscribe = computed(() => createType.value === 'old');
@@ -266,6 +269,16 @@
         },
         message: t('订阅名称重复'),
         trigger: 'blur',
+      },
+    ],
+    clusterList: [
+      {
+        validator: () => {
+          const list = receiverDataRef.value.getTableValue();
+          return list.length;
+        },
+        message: t('不能为空'),
+        trigger: 'change',
       },
     ],
   };

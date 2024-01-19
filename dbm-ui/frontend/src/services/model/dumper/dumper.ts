@@ -120,6 +120,11 @@ export default class Dumper {
     return Dumper.operationTextMap[this.operationRunningStatus];
   }
 
+  // 操作中的按钮状态提示文本
+  get operationBtnTipStatusText() {
+    return `${Dumper.operationTextMap[this.operationRunningStatus]}，${t('无法操作')}`;
+  }
+
   // 操作中的状态 icon
   get operationStatusIcon() {
     return Dumper.operationIconMap[this.operationRunningStatus];
@@ -134,12 +139,8 @@ export default class Dumper {
     return this.phase === 'online';
   }
 
-  get isMigrating() {
-    return this.operation.ticket_type === Dumper.TBINLOGDUMPER_SWITCH_NODES;
-  }
-
-  get isStopping() {
-    return this.operation.ticket_type === Dumper.TBINLOGDUMPER_DISABLE_NODES;
+  get isOperating() {
+    return Boolean(this.operation.ticket_type);
   }
 
   get isNew() {

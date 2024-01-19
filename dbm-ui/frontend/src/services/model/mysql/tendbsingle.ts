@@ -11,7 +11,35 @@
  * the specific language governing permissions and limitations under the License.
 */
 import { utcDisplayTime } from '@utils';
+
+import { t } from '@locales/index';
+
 export default class Tendbsingle {
+  static MYSQL_HA_DESTROY = 'MYSQL_HA_DESTROY';
+  static MYSQL_HA_DISABLE = 'MYSQL_HA_DISABLE';
+  static MYSQL_HA_ENABLE = 'MYSQL_HA_ENABLE';
+  static MYSQL_SINGLE_DESTROY = 'MYSQL_SINGLE_DESTROY';
+  static MYSQL_SINGLE_DISABLE = 'MYSQL_SINGLE_DISABLE';
+  static MYSQL_SINGLE_ENABLE = 'MYSQL_SINGLE_ENABLE';
+
+  static operationIconMap = {
+    [Tendbsingle.MYSQL_HA_ENABLE]: 'qiyongzhong',
+    [Tendbsingle.MYSQL_HA_DISABLE]: 'jinyongzhong',
+    [Tendbsingle.MYSQL_HA_DESTROY]: 'shanchuzhong',
+    [Tendbsingle.MYSQL_SINGLE_ENABLE]: 'qiyongzhong',
+    [Tendbsingle.MYSQL_SINGLE_DISABLE]: 'jinyongzhong',
+    [Tendbsingle.MYSQL_SINGLE_DESTROY]: 'shanchuzhong',
+  };
+
+  static operationTextMap = {
+    [Tendbsingle.MYSQL_HA_DESTROY]: t('删除任务执行中'),
+    [Tendbsingle.MYSQL_HA_DISABLE]: t('禁用任务执行中'),
+    [Tendbsingle.MYSQL_HA_ENABLE]: t('启用任务执行中'),
+    [Tendbsingle.MYSQL_SINGLE_DESTROY]: t('删除任务执行中'),
+    [Tendbsingle.MYSQL_SINGLE_DISABLE]: t('禁用任务执行中'),
+    [Tendbsingle.MYSQL_SINGLE_ENABLE]: t('启用任务执行中'),
+  };
+
   bk_biz_id: number;
   bk_biz_name: string;
   bk_cloud_id: number;
@@ -94,5 +122,55 @@ export default class Tendbsingle {
 
   get createAtDisplay() {
     return utcDisplayTime(this.create_at);
+  }
+
+  get runningOperation() {
+    const operateTicketTypes = Object.keys(Tendbsingle.operationTextMap);
+    return this.operations.find(item => operateTicketTypes.includes(item.ticket_type) && item.status === 'RUNNING');
+  }
+
+  // 操作中的状态
+  get operationRunningStatus() {
+    if (this.operations.length < 1) {
+      return '';
+    }
+    const operation = this.runningOperation;
+    if (!operation) {
+      return '';
+    }
+    return operation.ticket_type;
+  }
+
+  // 操作中的状态描述文本
+  get operationStatusText() {
+    return Tendbsingle.operationTextMap[this.operationRunningStatus];
+  }
+
+  // 操作中的单据 ID
+  get operationTicketId() {
+    if (this.operations.length < 1) {
+      return 0;
+    }
+    const operation = this.runningOperation;
+    if (!operation) {
+      return 0;
+    }
+    return operation.ticket_id;
+  }
+
+  get operationDisabled() {
+    // 集群异常不支持操作
+    if (this.status === 'abnormal') {
+      return true;
+    }
+    // 被禁用的集群不支持操作
+    if (this.phase !== 'online') {
+      return true;
+    }
+    // 各个操作互斥，有其他任务进行中禁用操作按钮
+    if (this.operationTicketId) {
+      return true;
+    }
+    return false;
   }
 }

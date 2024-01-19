@@ -164,7 +164,7 @@ export interface TicketDetailsRedis {
  */
 export interface FlowItem {
   id: number,
-  status: 'PENDING' | 'RUNNING' | 'SUCCEEDED' | 'FAILED' | 'SKIPPED' | 'REVOKED',
+  status: 'PENDING' | 'RUNNING' | 'SUCCEEDED' | 'FAILED' | 'SKIPPED' | 'REVOKED' | 'TERMINATED',
   url: string,
   start_time: string,
   end_time: string,

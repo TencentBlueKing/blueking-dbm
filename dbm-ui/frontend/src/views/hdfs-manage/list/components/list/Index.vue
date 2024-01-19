@@ -109,7 +109,7 @@
     useRouter,
   } from 'vue-router';
 
-  import type HdfsModel from '@services/model/hdfs/hdfs';
+  import HdfsModel from '@services/model/hdfs/hdfs';
   import {
     getHdfsDetail,
     getHdfsInstanceList,
@@ -128,7 +128,7 @@
 
   import { UserPersonalSettings } from '@common/const';
 
-  import OperationStatusTips from '@components/cluster-common/OperationStatusTips.vue';
+  import OperationBtnStatusTips from '@components/cluster-common/OperationBtnStatusTips.vue';
   import RenderNodeInstance from '@components/cluster-common/RenderNodeInstance.vue';
   import RenderOperationTag from '@components/cluster-common/RenderOperationTag.vue';
   import RenderPassword from '@components/cluster-common/RenderPassword.vue';
@@ -292,9 +292,14 @@
               {data.cluster_alias || '--'}
             </div>
           </div>
-          <RenderOperationTag
-            data={data}
-            style='margin-left: 3px;' />
+          {
+            data.operations.map(item => (
+              <RenderOperationTag
+                iconMap={HdfsModel.operationIconMap}
+                tipMap={HdfsModel.operationTextMap}
+                class="cluster-tag ml-4" data={item}/>
+            ))
+          }
           <db-icon
             v-show={!checkClusterOnline(data)}
             svg
@@ -447,7 +452,7 @@
             ];
           }
           return [
-            <OperationStatusTips
+            <OperationBtnStatusTips
               data={data}
               class="mr8">
               <bk-button
@@ -457,8 +462,8 @@
                 onClick={() => handleShowExpansion(data)}>
                 { t('扩容') }
               </bk-button>
-            </OperationStatusTips>,
-            <OperationStatusTips
+            </OperationBtnStatusTips>,
+            <OperationBtnStatusTips
               data={data}
               class="mr8">
               <bk-button
@@ -468,8 +473,8 @@
                 onClick={() => handleShowShrink(data)}>
                 { t('缩容') }
               </bk-button>
-            </OperationStatusTips>,
-            <OperationStatusTips
+            </OperationBtnStatusTips>,
+            <OperationBtnStatusTips
               data={data}
               class="mr8">
               <bk-button
@@ -480,7 +485,7 @@
                 onClick={() => handlDisabled(data)}>
                 { t('禁用') }
               </bk-button>
-            </OperationStatusTips>,
+            </OperationBtnStatusTips>,
             <a
               class="mr8"
               style={[theme === '' ? 'color: #63656e' : '']}

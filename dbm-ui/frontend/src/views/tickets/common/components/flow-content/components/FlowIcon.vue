@@ -46,7 +46,7 @@
 
   const props = defineProps<Props>();
 
-  const errorColors = ['FAILED', 'REVOKED'];
+  const errorColors = ['FAILED', 'REVOKED', 'TERMINATED'];
   const successColors = ['SKIPPED', 'SUCCEEDED'];
   const status = computed(() => props.data.status);
 </script>
