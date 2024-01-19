@@ -74,7 +74,16 @@ func MigrateInstanceBackupInfo(infoFilePath string, cnf *config.BackupConfig) (s
 			fmt.Println(err)
 			fileList = append(fileList, &dbareport.TarFileItem{FileName: fName})
 		} else {
-			fileList = append(fileList, &dbareport.TarFileItem{FileName: fName, TaskId: uploadInfo.TaskId})
+			fileType := ""
+			if strings.HasSuffix(fName, ".info") {
+				// info: index
+			} else if strings.HasSuffix(fName, ".priv") {
+				fileType = "priv"
+			} else {
+				fileType = "tar"
+			}
+			fileList = append(fileList, &dbareport.TarFileItem{FileName: fName,
+				TaskId: uploadInfo.TaskId, FileType: fileType})
 		}
 	}
 	// add info file to file_list
