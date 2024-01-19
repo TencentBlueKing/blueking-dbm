@@ -64,6 +64,8 @@
     exportSpiderClusterToExcel,
     exportSpiderInstanceToExcel,
   } from '@services/source/spider';
+  import { exportSqlserverHaClusterToExcel } from '@services/source/sqlserveHaCluster';
+  import { exportSqlserverSingleClusterToExcel } from '@services/source/sqlserverSingleCluster';
   import {
     exportTendbhaClusterToExcel,
     exportTendbhaInstanceToExcel,
@@ -74,7 +76,7 @@
   } from '@services/source/tendbsingle';
 
   interface Props {
-    type: 'tendbsingle' | 'tendbha' | 'spider' | 'redis' | 'pulsar' | 'kafka' | 'influxdb' | 'hdfs' | 'es' | 'riak';
+    type: 'tendbsingle' | 'tendbha' | 'spider' | 'redis' | 'pulsar' | 'kafka' | 'influxdb' | 'hdfs' | 'es' | 'mongodb' | 'sqlserverha' | 'sqlserversingle';
     ids?: number[];
     exportType?: 'cluster' | 'instance';
     hasSelected?: boolean;
@@ -132,6 +134,12 @@
     riak: {
       cluster: exportRiakClusterToExcel,
       instance: exportRiakInstanceToExcel,
+    },
+    sqlserverha: {
+      cluster: exportSqlserverHaClusterToExcel,
+    },
+    sqlserversingle: {
+      cluster: exportSqlserverSingleClusterToExcel,
     },
   };
 

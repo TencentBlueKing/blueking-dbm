@@ -25,7 +25,8 @@ export enum DBTypes {
   PULSAR = 'pulsar',
   INFLUXDB = 'influxdb',
   SPIDER = 'spider',
-  RIAK = 'riak'
+  RIAK = 'riak',
+  SQLSERVER = 'sqlserver'
 }
 export type DBTypesValues = `${DBTypes}`
 
@@ -55,6 +56,8 @@ export enum ClusterTypes {
   MONGO_REPLICA_SET = 'MongoReplicaSet',
   MONGO_SHARED_CLUSTER = 'MongoShardedCluster',
   RIAK = 'riak',
+  SQLSERVER_HA = 'sqlserver_ha',
+  SQLSERVER_SINGLE = 'sqlserver_single',
 }
 
 // 机器类型
@@ -268,8 +271,12 @@ export enum TicketTypes {
   RIAK_CLUSTER_ENABLE = 'RIAK_CLUSTER_ENABLE', // Riak 集群启用
   RIAK_CLUSTER_SCALE_OUT = 'RIAK_CLUSTER_SCALE_OUT', // Riak 集群扩容
   RIAK_CLUSTER_SCALE_IN = 'RIAK_CLUSTER_SCALE_IN', // Riak 集群缩容
-  RIAK_CLUSTER_REBOOT = 'RIAK_CLUSTER_REBOOT' // Riak 节点重启
- }
+  RIAK_CLUSTER_REBOOT = 'RIAK_CLUSTER_REBOOT', // Riak 节点重启
+  MONGODB_DISABLE = 'MONGODB_DISABLE', // mongodb禁用
+  MONGODB_INSTANCE_RELOAD = 'MONGODB_INSTANCE_RELOAD', // mongodb重启
+  SQLSERVER_SINGLE_APPLY = 'SQLSERVER_SINGLE_APPLY', // sqlserver单节点部署
+  SQLSERVER_HA_APPLY = 'SQLSERVER_HA_APPLY', // sqlserver主从部署
+}
 export type TicketTypesStrings = keyof typeof TicketTypes;
 
 /**
@@ -308,6 +315,26 @@ export const redisType = {
     dbType: DBTypes.REDIS,
   },
 };
+
+/**
+ * mysql tickets type info
+ */
+export const sqlserverType = {
+  [TicketTypes.SQLSERVER_SINGLE_APPLY]: {
+    id: TicketTypes.SQLSERVER_SINGLE_APPLY,
+    name: t('单节点部署'),
+    type: ClusterTypes.SQLSERVER_SINGLE,
+    dbType: DBTypes.SQLSERVER,
+  },
+  [TicketTypes.SQLSERVER_HA_APPLY]: {
+    id: TicketTypes.SQLSERVER_HA_APPLY,
+    name: t('主从部署'),
+    type: ClusterTypes.SQLSERVER_HA,
+    dbType: DBTypes.SQLSERVER,
+  },
+};
+
+export type SQLserverTypeString = keyof typeof sqlserverType
 
 export const bigDataType = {
   [TicketTypes.ES_APPLY]: {
