@@ -88,7 +88,7 @@
     useRouter,
   } from 'vue-router';
 
-  import type PulsarModel from '@services/model/pulsar/pulsar';
+  import PulsarModel from '@services/model/pulsar/pulsar';
   import {
     getPulsarDetail,
     getPulsarInstanceList,
@@ -107,7 +107,7 @@
 
   import { UserPersonalSettings } from '@common/const';
 
-  import OperationStatusTips from '@components/cluster-common/OperationStatusTips.vue';
+  import OperationBtnStatusTips from '@components/cluster-common/OperationBtnStatusTips.vue';
   import RenderNodeInstance from '@components/cluster-common/RenderNodeInstance.vue';
   import RenderOperationTag from '@components/cluster-common/RenderOperationTag.vue';
   import RenderClusterStatus from '@components/cluster-common/RenderStatus.vue';
@@ -236,9 +236,14 @@
             <span>
               {data.cluster_name}
             </span>
-            <RenderOperationTag
-              data={data}
-              style='margin-left: 3px;' />
+            {
+            data.operations.map(item => (
+              <RenderOperationTag
+                iconMap={PulsarModel.operationIconMap}
+                tipMap={PulsarModel.operationTextMap}
+                class="cluster-tag ml-4" data={item}/>
+            ))
+          }
             <db-icon
               v-show={!checkClusterOnline(data)}
               svg
@@ -368,7 +373,7 @@
             ];
           }
           return [
-            <OperationStatusTips
+            <OperationBtnStatusTips
               data={data}
               class="mr8">
               <bk-button
@@ -378,8 +383,8 @@
                 onClick={() => handleShowExpansion(data)}>
                 { t('扩容') }
               </bk-button>
-            </OperationStatusTips>,
-            <OperationStatusTips
+            </OperationBtnStatusTips>,
+            <OperationBtnStatusTips
               data={data}
               class="mr8">
               <bk-button
@@ -389,8 +394,8 @@
                 onClick={() => handleShowShrink(data)}>
                 { t('缩容') }
               </bk-button>
-            </OperationStatusTips>,
-            <OperationStatusTips
+            </OperationBtnStatusTips>,
+            <OperationBtnStatusTips
               data={data}
               class="mr8">
               <bk-button
@@ -401,7 +406,7 @@
                 onClick={() => handlDisabled(data)}>
                 { t('禁用') }
               </bk-button>
-            </OperationStatusTips>,
+            </OperationBtnStatusTips>,
             <a
               class="mr8"
               href={data.access_url}

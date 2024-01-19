@@ -245,7 +245,7 @@
   };
 
   const handleCopySelected = () => {
-    copy(selectedHosts.value.map(item => item.ip).join('\n'));
+    copy(selectedHosts.value.map(item => item.ip).join(','));
   };
 
   const transferHosts = (data: DirtyMachinesModel[] = []) => {

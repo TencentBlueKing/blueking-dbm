@@ -14,6 +14,8 @@ import { PipelineStatus } from '@common/const';
 
 import { utcDisplayTime } from '@utils';
 
+import { t } from '@locales/index';
+
 export const enum RedisClusterTypes {
   PredixyTendisplusCluster = 'PredixyTendisplusCluster', // Tendisplus
   TwemproxyRedisInstance = 'TwemproxyRedisInstance', // TendisCache
@@ -56,6 +58,22 @@ interface Node {
   }
 }
 export default class Redis {
+  static REDIS_DESTROY = 'REDIS_DESTROY';
+  static REDIS_PROXY_CLOSE = 'REDIS_PROXY_CLOSE';
+  static REDIS_PROXY_OPEN = 'REDIS_PROXY_OPEN';
+
+  static operationIconMap = {
+    [Redis.REDIS_PROXY_OPEN]: 'qiyongzhong',
+    [Redis.REDIS_PROXY_CLOSE]: 'jinyongzhong',
+    [Redis.REDIS_DESTROY]: 'shanchuzhong',
+  };
+
+  static operationTextMap = {
+    [Redis.REDIS_DESTROY]: t('删除任务执行中'),
+    [Redis.REDIS_PROXY_CLOSE]: t('禁用任务执行中'),
+    [Redis.REDIS_PROXY_OPEN]: t('启用任务执行中'),
+  };
+
   bk_biz_id: number;
   bk_cloud_id: number;
   bk_biz_name: string;
@@ -168,14 +186,6 @@ export default class Redis {
     this.redis_master_faults = this.redisMasterFaultNum;
   }
 
-  // get count() {
-  //   return this.storageCount + this.proxyCount;
-  // }
-
-  // set count(num: number) {
-  //   this.count = num;
-  // }
-
   get redisMasterCount() {
     const len = this.redis_master.length;
     if (len <= 1) return len;
@@ -249,5 +259,56 @@ export default class Redis {
    */
   get isStoped() {
     return this.phase === 'offline';
+  }
+
+  get runningOperation() {
+    const operateTicketTypes = Object.keys(Redis.operationTextMap);
+    return this.operations.find(item => operateTicketTypes.includes(item.ticket_type) && item.status === 'RUNNING');
+  }
+
+  // 操作中的状态
+  get operationRunningStatus() {
+    if (this.operations.length < 1) {
+      return '';
+    }
+    const operation = this.runningOperation;
+    if (!operation) {
+      return '';
+    }
+    return operation.ticket_type;
+  }
+
+  // 操作中的状态描述文本
+  get operationStatusText() {
+    return Redis.operationTextMap[this.operationRunningStatus];
+  }
+
+  // 操作中的单据 ID
+  get operationTicketId() {
+    if (this.operations.length < 1) {
+      return 0;
+    }
+    const operation = this.runningOperation;
+    if (!operation) {
+      return 0;
+    }
+    return operation.ticket_id;
+  }
+
+  get operationDisabled() {
+    // 集群异常不支持操作
+    if (this.status === 'abnormal') {
+      return true;
+    }
+    // 被禁用的集群不支持操作
+    if (this.phase !== 'online') {
+      return true;
+    }
+
+    // 各个操作互斥，有其他任务进行中禁用操作按钮
+    if (this.operationTicketId) {
+      return true;
+    }
+    return false;
   }
 }

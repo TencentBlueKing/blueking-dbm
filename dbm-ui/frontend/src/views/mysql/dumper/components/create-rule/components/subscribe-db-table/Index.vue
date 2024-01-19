@@ -36,7 +36,7 @@
   const tableData = ref<string[]>([random()]);
   const rowRefs = ref();
 
-  const removeable = computed(() => tableData.value.length === 1);
+  const removeable = computed(() => tableData.value.length > 1);
 
   const handleAddRow = (index: number) => {
     tableData.value.splice(index + 1, 0, random());

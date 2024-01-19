@@ -85,13 +85,18 @@ export default class InfluxDBInstance {
     return this.instance_address.replace(/:.*/, '');
   }
 
+  get runningOperation() {
+    const operateTicketTypes = Object.keys(InfluxDBInstance.operationTextMap);
+    return this.operations.find(item => operateTicketTypes.includes(item.ticket_type) && item.status === 'RUNNING');
+  }
+
   // 操作中的状态
   get operationRunningStatus() {
     if (this.operations.length < 1) {
       return '';
     }
-    const operation = this.operations[0];
-    if (operation.status !== 'RUNNING') {
+    const operation = this.runningOperation;
+    if (!operation) {
       return '';
     }
     return operation.ticket_type;
@@ -112,8 +117,8 @@ export default class InfluxDBInstance {
     if (this.operations.length < 1) {
       return 0;
     }
-    const operation = this.operations[0];
-    if (operation.status !== 'RUNNING') {
+    const operation = this.runningOperation;
+    if (!operation) {
       return 0;
     }
     return operation.ticket_id;
@@ -129,7 +134,7 @@ export default class InfluxDBInstance {
       return true;
     }
     // 各个操作互斥，有其他任务进行中禁用操作按钮
-    if (this.operationRunningStatus) {
+    if (this.operationTicketId) {
       return true;
     }
     return false;

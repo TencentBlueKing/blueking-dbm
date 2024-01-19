@@ -21,7 +21,7 @@
       :model="formData"
       :rules="rules"
       style="margin-bottom: 16px;">
-      <DbCard :title="$t('业务信息')">
+      <DbCard :title="t('业务信息')">
         <BusinessItems
           v-model:app-abbr="formData.details.db_app_abbr"
           v-model:biz-id="formData.bk_biz_id"
@@ -40,12 +40,12 @@
         v-model="formData.details.city_code" />
       <!-- <DbCard
         v-if="!isDefaultCity"
-        :title="$t('数据库部署信息')">
+        :title="t('数据库部署信息')">
         <AffinityItem v-model="formData.details.disaster_tolerance_level" />
       </DbCard> -->
-      <DbCard :title="$t('部署需求')">
+      <DbCard :title="t('部署需求')">
         <BkFormItem
-          :label="$t('ES版本')"
+          :label="t('ES版本')"
           property="details.db_version"
           required>
           <DeployVersion
@@ -54,16 +54,16 @@
             query-key="es" />
         </BkFormItem>
         <BkFormItem
-          :label="$t('服务器选择')"
+          :label="t('服务器选择')"
           property="details.ip_source"
           required>
           <BkRadioGroup
             v-model="formData.details.ip_source">
             <BkRadioButton label="resource_pool">
-              {{ $t('自动从资源池匹配') }}
+              {{ t('自动从资源池匹配') }}
             </BkRadioButton>
             <BkRadioButton label="manual_input">
-              {{ $t('手动录入IP') }}
+              {{ t('业务空闲机') }}
             </BkRadioButton>
           </BkRadioGroup>
         </BkFormItem>
@@ -74,7 +74,7 @@
             v-if="formData.details.ip_source === 'manual_input'"
             class="mb-24">
             <DbFormItem
-              :label="$t('Master节点')"
+              :label="t('Master节点')"
               property="details.nodes.master"
               required>
               <div>
@@ -98,7 +98,7 @@
                     </I18nT>
                   </template>
                   <template #desc>
-                    {{ $t('至少3台_且为奇数_建议规格至少2核4G') }}
+                    {{ t('至少3台_且为奇数_建议规格至少2核4G') }}
                   </template>
                 </IpSelector>
               </div>
@@ -107,7 +107,7 @@
                 :biz-id="formData.bk_biz_id" />
             </DbFormItem>
             <DbFormItem
-              :label="$t('Client节点')"
+              :label="t('Client节点')"
               property="details.nodes.client">
               <IpSelector
                 :biz-id="formData.bk_biz_id"
@@ -124,10 +124,10 @@
               <BkAlert
                 style="width: 655px;"
                 :theme="tipTheme"
-                :title="$t('请保证冷热节点至少存在一台')" />
+                :title="t('请保证冷热节点至少存在一台')" />
             </BkFormItem>
             <DbFormItem
-              :label="$t('热节点')"
+              :label="t('热节点')"
               property="details.nodes.hot">
               <IpSelector
                 :biz-id="formData.bk_biz_id"
@@ -141,7 +141,7 @@
                 :biz-id="formData.bk_biz_id" />
             </DbFormItem>
             <DbFormItem
-              :label="$t('冷节点')"
+              :label="t('冷节点')"
               property="details.nodes.cold">
               <IpSelector
                 :biz-id="formData.bk_biz_id"
@@ -159,11 +159,11 @@
             v-else
             class="mb-24">
             <BkFormItem
-              :label="$t('Master节点')"
+              :label="t('Master节点')"
               required>
               <div class="resource-pool-item">
                 <BkFormItem
-                  :label="$t('规格')"
+                  :label="t('规格')"
                   property="details.resource_spec.master.spec_id"
                   required>
                   <SpecSelector
@@ -175,21 +175,21 @@
                     machine-type="es_master" />
                 </BkFormItem>
                 <BkFormItem
-                  :label="$t('数量')"
+                  :label="t('数量')"
                   property="details.resource_spec.master.count"
                   required>
                   <BkInput
                     v-model="formData.details.resource_spec.master.count"
                     :min="3"
                     type="number" />
-                  <span class="input-desc">{{ $t('至少3台_且为奇数') }}</span>
+                  <span class="input-desc">{{ t('至少3台_且为奇数') }}</span>
                 </BkFormItem>
               </div>
             </BkFormItem>
-            <BkFormItem :label="$t('Client节点')">
+            <BkFormItem :label="t('Client节点')">
               <div class="resource-pool-item">
                 <BkFormItem
-                  :label="$t('规格')"
+                  :label="t('规格')"
                   property="details.resource_spec.client.spec_id">
                   <SpecSelector
                     ref="specClientRef"
@@ -200,7 +200,7 @@
                     machine-type="es_client" />
                 </BkFormItem>
                 <BkFormItem
-                  :label="$t('数量')"
+                  :label="t('数量')"
                   property="details.resource_spec.client.count">
                   <div style="display: flex; align-items: center;">
                     <span style="flex-shrink: 0;">
@@ -217,12 +217,12 @@
               <BkAlert
                 style="width: 655px;"
                 :theme="tipTheme"
-                :title="$t('请保证冷热节点至少存在一台')" />
+                :title="t('请保证冷热节点至少存在一台')" />
             </BkFormItem>
-            <BkFormItem :label="$t('热节点')">
+            <BkFormItem :label="t('热节点')">
               <div class="resource-pool-item">
                 <BkFormItem
-                  :label="$t('规格')"
+                  :label="t('规格')"
                   property="details.resource_spec.hot.spec_id"
                   required>
                   <SpecSelector
@@ -234,7 +234,7 @@
                     machine-type="es_datanode" />
                 </BkFormItem>
                 <BkFormItem
-                  :label="$t('数量')"
+                  :label="t('数量')"
                   property="details.resource_spec.hot.count"
                   required>
                   <BkInput
@@ -245,10 +245,10 @@
               </div>
             </BkFormItem>
             <BkFormItem
-              :label="$t('冷节点')">
+              :label="t('冷节点')">
               <div class="resource-pool-item">
                 <BkFormItem
-                  :label="$t('规格')"
+                  :label="t('规格')"
                   property="details.resource_spec.cold.spec_id">
                   <SpecSelector
                     ref="specColdRef"
@@ -259,7 +259,7 @@
                     machine-type="es_datanode" />
                 </BkFormItem>
                 <BkFormItem
-                  :label="$t('数量')"
+                  :label="t('数量')"
                   property="details.resource_spec.cold.count">
                   <BkInput
                     v-model="formData.details.resource_spec.cold.count"
@@ -269,7 +269,7 @@
               </div>
             </BkFormItem>
             <BkFormItem
-              :label="$t('总容量')">
+              :label="t('总容量')">
               <BkInput
                 disabled
                 :model-value="totalCapacity"
@@ -279,7 +279,7 @@
           </div>
         </Transition>
         <BkFormItem
-          :label="$t('访问端口')"
+          :label="t('访问端口')"
           property="details.http_port"
           required>
           <BkInput
@@ -290,11 +290,11 @@
             style="width: 185px;"
             type="number" />
         </BkFormItem>
-        <BkFormItem :label="$t('备注')">
+        <BkFormItem :label="t('备注')">
           <BkInput
             v-model="formData.remark"
             :maxlength="100"
-            :placeholder="$t('请提供更多有用信息申请信息_以获得更快审批')"
+            :placeholder="t('请提供更多有用信息申请信息_以获得更快审批')"
             style="width: 655px;"
             type="textarea" />
         </BkFormItem>
@@ -307,19 +307,19 @@
           style="width: 88px;"
           theme="primary"
           @click="handleSubmit">
-          {{ $t('提交') }}
+          {{ t('提交') }}
         </BkButton>
         <BkButton
           class="ml8 w-88"
           :disabled="baseState.isSubmitting"
           @click="handleReset">
-          {{ $t('重置') }}
+          {{ t('重置') }}
         </BkButton>
         <BkButton
           class="ml8 w-88"
           :disabled="baseState.isSubmitting"
           @click="handleCancel">
-          {{ $t('取消') }}
+          {{ t('取消') }}
         </BkButton>
       </div>
     </template>

@@ -151,7 +151,7 @@
 
   import { TicketTypes } from '@common/const';
 
-  import OperationStatusTips from '@components/cluster-common/OperationStatusTips.vue';
+  import OperationBtnStatusTips from '@components/cluster-common/OperationBtnStatusTips.vue';
   import DbTable from '@components/db-table/index.vue';
   import MiniTag from '@components/mini-tag/index.vue';
   import RenderHostStatus from '@components/render-host-status/Index.vue';
@@ -292,7 +292,7 @@
       fixed: 'right',
       render: ({ row }: { row: RiakNodeModel }) => (
         <>
-          <OperationStatusTips data={operationData.value}>
+          <OperationBtnStatusTips data={operationData.value}>
             <bk-button
               class="ml8"
               theme="primary"
@@ -301,8 +301,8 @@
               onClick={() => handleDelete(row)}>
               { t('删除') }
             </bk-button>
-          </OperationStatusTips>
-          <OperationStatusTips data={operationData.value}>
+          </OperationBtnStatusTips>
+          <OperationBtnStatusTips data={operationData.value}>
             <bk-button
               theme="primary"
               text
@@ -311,7 +311,7 @@
               onClick={() => handleReboot(row)}>
               { t('重启') }
             </bk-button>
-          </OperationStatusTips>
+          </OperationBtnStatusTips>
         </>
       ),
     },

@@ -56,7 +56,7 @@
         " {{ $t('中确认') }}
       </template>
       <template v-else>
-        {{ content.summary }}
+        <span :style="{color: content.status === 'TERMINATED' ? '#ea3636' : '#63656e'}">{{ content.summary }}</span>
       </template>
       <template v-if="content.summary">
         ，{{ $t('耗时') }}：

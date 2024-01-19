@@ -49,7 +49,7 @@
 
   import { useGlobalBizs } from '@stores';
 
-  import OperationStatusTips from '@components/cluster-common/OperationStatusTips.vue';
+  import OperationBtnStatusTips from '@components/cluster-common/OperationBtnStatusTips.vue';
   import RenderInstanceStatus from '@components/cluster-common/RenderInstanceStatus.vue';
   import RenderOperationTag from '@components/cluster-common/RenderOperationTag.vue';
 
@@ -141,7 +141,7 @@
       label: t('操作'),
       width: 116,
       render: ({ data }: {data:HdfsInstanceModel}) => (
-        <OperationStatusTips data={data}>
+        <OperationBtnStatusTips data={data}>
           <bk-button
             theme="primary"
             text
@@ -149,7 +149,7 @@
             onClick={() => handleRestartOnde(data)}>
             { t('重启') }
           </bk-button>
-        </OperationStatusTips>
+        </OperationBtnStatusTips>
       ),
     },
   ];

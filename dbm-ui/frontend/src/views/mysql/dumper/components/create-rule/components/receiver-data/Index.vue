@@ -14,131 +14,137 @@
 <template>
   <div class="render-data">
     <BkButton
-      class="mb-16"
       @click="handleOpenClusterSelector">
       <DbIcon
         style="margin-right: 8px;color: #979BA5"
         type="add" />
       {{ t('添加数据源集群') }}
     </BkButton>
-    <RenderTable>
-      <template #default>
-        <RenderTableHeadColumn
-          :min-width="120"
-          :required="false"
-          :width="220">
-          <span>{{ t('数据源集群') }}</span>
-        </RenderTableHeadColumn>
-        <RenderTableHeadColumn
-          :min-width="170"
-          :required="false"
-          :width="300">
-          <template #append>
-            <span
-              class="batch-edit-btn"
-              @click="() => handleShowBatchEdit('dumperId')">
-              <DbIcon type="bulk-edit" />
-            </span>
-          </template>
-          <span>{{ t('部署dumper实例ID') }}</span>
-        </RenderTableHeadColumn>
-        <RenderTableHeadColumn
-          :min-width="90"
-          :width="90">
-          <span>{{ t('接收端类型') }}</span>
-        </RenderTableHeadColumn>
-        <RenderTableHeadColumn
-          v-if="receiverType !== 'L5_AGENT'"
-          :min-width="120"
-          :required="false"
-          :width="220">
-          <template #append>
-            <span
-              class="batch-edit-btn"
-              @click="() => handleShowBatchEdit('receiver')">
-              <DbIcon type="bulk-edit" />
-            </span>
-          </template>
-          <span>{{ t('接收端地址') }}</span>
-        </RenderTableHeadColumn>
-        <template v-if="receiverType === 'KAFKA'">
+    <div
+      v-if="tableData.length > 0"
+      class="mt-16">
+      <RenderTable>
+        <template #default>
           <RenderTableHeadColumn
             :min-width="120"
             :required="false"
             :width="220">
-            <template #append>
-              <span
-                class="batch-edit-btn"
-                @click="() => handleShowBatchEdit('account')">
-                <DbIcon type="bulk-edit" />
-              </span>
-            </template>
-            <span>{{ t('账号') }}</span>
+            <span>{{ t('数据源集群') }}</span>
           </RenderTableHeadColumn>
           <RenderTableHeadColumn
+            :min-width="170"
+            :required="false"
+            :width="300">
+            <template #append>
+              <span
+                v-bk-tooltips="t('批量编辑')"
+                class="batch-edit-btn"
+                @click="() => handleShowBatchEdit('dumperId')">
+                <DbIcon type="bulk-edit" />
+              </span>
+            </template>
+            <span>{{ t('部署dumper实例ID') }}</span>
+          </RenderTableHeadColumn>
+          <RenderTableHeadColumn
+            :min-width="90"
+            :width="90">
+            <span>{{ t('接收端类型') }}</span>
+          </RenderTableHeadColumn>
+          <RenderTableHeadColumn
+            v-if="receiverType !== 'L5_AGENT'"
             :min-width="120"
             :required="false"
             :width="220">
             <template #append>
               <span
+                v-bk-tooltips="t('批量编辑')"
                 class="batch-edit-btn"
-                @click="() => handleShowBatchEdit('password')">
+                @click="() => handleShowBatchEdit('receiver')">
                 <DbIcon type="bulk-edit" />
               </span>
             </template>
-            <span>{{ t('密码') }}</span>
+            <span>{{ t('接收端地址') }}</span>
+          </RenderTableHeadColumn>
+          <template v-if="receiverType === 'KAFKA'">
+            <RenderTableHeadColumn
+              :min-width="120"
+              :required="false"
+              :width="220">
+              <template #append>
+                <span
+                  v-bk-tooltips="t('批量编辑')"
+                  class="batch-edit-btn"
+                  @click="() => handleShowBatchEdit('account')">
+                  <DbIcon type="bulk-edit" />
+                </span>
+              </template>
+              <span>{{ t('账号') }}</span>
+            </RenderTableHeadColumn>
+            <RenderTableHeadColumn
+              :min-width="120"
+              :required="false"
+              :width="220">
+              <template #append>
+                <span
+                  v-bk-tooltips="t('批量编辑')"
+                  class="batch-edit-btn"
+                  @click="() => handleShowBatchEdit('password')">
+                  <DbIcon type="bulk-edit" />
+                </span>
+              </template>
+              <span>{{ t('密码') }}</span>
+            </RenderTableHeadColumn>
+          </template>
+          <template v-if="receiverType === 'L5_AGENT'">
+            <RenderTableHeadColumn
+              :min-width="120"
+              :required="false"
+              :width="220">
+              <template #append>
+                <span
+                  class="batch-edit-btn"
+                  @click="() => handleShowBatchEdit('l5ModId')">
+                  <DbIcon type="bulk-edit" />
+                </span>
+              </template>
+              <span>l5_modid</span>
+            </RenderTableHeadColumn>
+            <RenderTableHeadColumn
+              :min-width="120"
+              :required="false"
+              :width="220">
+              <template #append>
+                <span
+                  class="batch-edit-btn"
+                  @click="() => handleShowBatchEdit('l5CmdId')">
+                  <DbIcon type="bulk-edit" />
+                </span>
+              </template>
+              <span>l5_cmdid</span>
+            </RenderTableHeadColumn>
+          </template>
+          <RenderTableHeadColumn
+            fixed="right"
+            :required="false"
+            :width="60">
+            {{ t('操作') }}
           </RenderTableHeadColumn>
         </template>
-        <template v-if="receiverType === 'L5_AGENT'">
-          <RenderTableHeadColumn
-            :min-width="120"
-            :required="false"
-            :width="220">
-            <template #append>
-              <span
-                class="batch-edit-btn"
-                @click="() => handleShowBatchEdit('l5ModId')">
-                <DbIcon type="bulk-edit" />
-              </span>
-            </template>
-            <span>l5_modid</span>
-          </RenderTableHeadColumn>
-          <RenderTableHeadColumn
-            :min-width="120"
-            :required="false"
-            :width="220">
-            <template #append>
-              <span
-                class="batch-edit-btn"
-                @click="() => handleShowBatchEdit('l5CmdId')">
-                <DbIcon type="bulk-edit" />
-              </span>
-            </template>
-            <span>l5_cmdid</span>
-          </RenderTableHeadColumn>
+        <template #data>
+          <RenderDataRow
+            v-for="(item, index) in tableData"
+            :key="item.rowKey"
+            ref="rowRefs"
+            :data="item"
+            :index="index"
+            :row-span="tableData.length"
+            :type="receiverType"
+            @cluster-input-finish="(value: IDataRow['srcCluster']) => handleClusterInputFinish(index, value)"
+            @remove="handleRemove(index)"
+            @type-change="handleReceiverTypeChange" />
         </template>
-        <RenderTableHeadColumn
-          fixed="right"
-          :required="false"
-          :width="60">
-          {{ t('操作') }}
-        </RenderTableHeadColumn>
-      </template>
-      <template #data>
-        <RenderDataRow
-          v-for="(item, index) in tableData"
-          :key="item.rowKey"
-          ref="rowRefs"
-          :data="item"
-          :index="index"
-          :removeable="tableData.length < 2"
-          :row-span="tableData.length"
-          :type="receiverType"
-          @cluster-input-finish="(value: IDataRow['srcCluster']) => handleClusterInputFinish(index, value)"
-          @remove="handleRemove(index)"
-          @type-change="handleReceiverTypeChange" />
-      </template>
-    </RenderTable>
+      </RenderTable>
+    </div>
     <BatchEditCommon
       v-model="isShowBatchEdit"
       :config="batchDialogConfig"
@@ -163,7 +169,6 @@
 
   import BatchEditCommon from './components/batch-edit-common/Index.vue';
   import RenderDataRow, {
-    createRowData,
     type IDataRow,
   } from './components/Row.vue';
 
@@ -173,6 +178,7 @@
 
   interface Exposes {
     getValue: () => Promise<any[]>,
+    getTableValue: () => IDataRow[],
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -181,7 +187,7 @@
 
   const { t } = useI18n();
 
-  const tableData = ref([createRowData()]);
+  const tableData = ref<IDataRow[]>([]);
   const rowRefs = ref();
   const isShowClusterSelector = ref(false);
   const isShowBatchEdit = ref(false);
@@ -275,15 +281,10 @@
 
   const handleBatchInputChange = (data: string[], isBatch: boolean) => {
     if (isBatch) {
-      data.forEach((id, index) => {
-        const tableLen = tableData.value.length;
-        if (index <= tableLen - 1) {
-          tableData.value[index].dumperId = id;
-        } else {
-          const obj = createRowData();
-          obj.dumperId = id;
-          tableData.value.push(obj);
-        }
+      tableData.value.forEach((item, index) => {
+        Object.assign(item, {
+          dumperId: data[index],
+        });
       });
       return;
     }
@@ -319,7 +320,7 @@
     delete domainMemo[srcCluster.clusterName];
     const clustersArr = selectedClusters.value[ClusterTypes.TENDBHA];
     // eslint-disable-next-line max-len
-    selectedClusters.value[ClusterTypes.TENDBHA] = clustersArr.filter(item => item.cluster_name !== srcCluster.clusterName);
+    selectedClusters.value[ClusterTypes.TENDBHA] = clustersArr.filter(item => item.master_domain !== srcCluster.clusterName);
   };
 
   // 批量选择
@@ -349,6 +350,9 @@
 
   // 检测列表是否为空
   const checkListEmpty = (list: IDataRow[]) => {
+    if (list.length === 0) {
+      return true;
+    }
     if (list.length > 1) {
       return false;
     }
@@ -360,6 +364,7 @@
     getValue: () => Promise.all(rowRefs.value.map((item: {
       getValue: () => Promise<any>
     }) => item.getValue())),
+    getTableValue: () => tableData.value,
   });
 </script>
 <style lang="less">

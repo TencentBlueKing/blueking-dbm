@@ -135,12 +135,17 @@ export default class Riak {
     return today.diff(createDay, 'hour') <= 24;
   }
 
+  get runningOperation() {
+    const operateTicketTypes = Object.keys(Riak.operationTextMap);
+    return this.operations.find(item => operateTicketTypes.includes(item.ticket_type) && item.status === 'RUNNING');
+  }
+
   get operationRunningStatus() {
     if (this.operations.length < 1) {
       return '';
     }
-    const operation = this.operations[0];
-    if (operation.status !== 'RUNNING') {
+    const operation = this.runningOperation;
+    if (!operation) {
       return '';
     }
     return operation.ticket_type;
@@ -169,8 +174,8 @@ export default class Riak {
     if (this.operations.length < 1) {
       return 0;
     }
-    const operation = this.operations[0];
-    if (operation.status !== 'RUNNING') {
+    const operation = this.runningOperation;
+    if (!operation) {
       return 0;
     }
     return operation.ticket_id;
@@ -185,7 +190,7 @@ export default class Riak {
     //   return true;
     // }
 
-    if (this.operationRunningStatus) {
+    if (this.operationTicketId) {
       return true;
     }
     return false;

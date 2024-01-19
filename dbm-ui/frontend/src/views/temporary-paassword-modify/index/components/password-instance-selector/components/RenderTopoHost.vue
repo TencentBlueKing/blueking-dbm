@@ -101,7 +101,7 @@
     bk_host_id: data.bk_host_id,
     instance_address: data.instance_address,
     cluster_id: data.cluster_id,
-    bk_cloud_id: data?.host_info?.cloud_id || 0,
+    bk_cloud_id: data.host_info?.cloud_id || 0,
     ip: data.ip || '',
     port: data.port,
     cluster_type: data.cluster_type as ClusterTypes,
@@ -158,14 +158,14 @@
       minWidth: 100,
       label: t('管控区域'),
       field: 'cloud_area',
-      render: ({ data }: TableItem) => data.host_info.cloud_area.name || '--',
+      render: ({ data }: TableItem) => data.host_info?.cloud_area?.name || '--',
     },
     {
       minWidth: 100,
       label: t('Agent状态'),
       field: 'alive',
       render: ({ data }: TableItem) => {
-        const info = data.host_info.alive === 1
+        const info = data.host_info?.alive === 1
           ? { theme: 'success', text: t('正常') }
           : { theme: 'danger', text: t('异常') };
         return <DbStatus theme={ info.theme }>{ info.text }</DbStatus>;
@@ -175,37 +175,37 @@
       label: t('主机名称'),
       field: 'host_name',
       showOverflowTooltip: true,
-      render: ({ data }: TableItem) => data.host_info.host_name || '--',
+      render: ({ data }: TableItem) => data.host_info?.host_name || '--',
     },
     {
       label: t('OS名称'),
       field: 'os_name',
       showOverflowTooltip: true,
-      render: ({ data }: TableItem) => data.host_info.os_name || '--',
+      render: ({ data }: TableItem) => data.host_info?.os_name || '--',
     },
     {
       label: t('所属云厂商'),
       field: 'cloud_vendor',
       showOverflowTooltip: true,
-      render: ({ data }: TableItem) => data.host_info.cloud_vendor || '--',
+      render: ({ data }: TableItem) => data.host_info?.cloud_vendor || '--',
     },
     {
       label: t('OS类型'),
       field: 'os_type',
       showOverflowTooltip: true,
-      render: ({ data }: TableItem) => data.host_info.os_type || '--',
+      render: ({ data }: TableItem) => data.host_info?.os_type || '--',
     },
     {
       label: t('主机ID'),
       field: 'host_id',
       showOverflowTooltip: true,
-      render: ({ data }: TableItem) => data.host_info.host_id || '--',
+      render: ({ data }: TableItem) => data.host_info?.host_id || '--',
     },
     {
       label: 'Agent ID',
       field: 'agent_id',
       showOverflowTooltip: true,
-      render: ({ data }: TableItem) => data.host_info.agent_id || '--',
+      render: ({ data }: TableItem) => data.host_info?.agent_id || '--',
     },
   ];
 

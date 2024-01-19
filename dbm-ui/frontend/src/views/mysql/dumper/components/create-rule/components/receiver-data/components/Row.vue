@@ -74,7 +74,6 @@
     <FixedColumn>
       <BkButton
         class="delete-column"
-        :disabled="rowSpan === 1"
         text
         theme="primary"
         @click="handleDelete">

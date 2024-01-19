@@ -224,6 +224,7 @@
 
       .bk-input {
         height: 100%;
+        padding-left: 8px;
         border: none;
         outline: none;
 

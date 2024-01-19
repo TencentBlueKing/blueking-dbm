@@ -140,13 +140,13 @@
 
   import ClusterAuthorize from '@components/cluster-authorize/ClusterAuthorize.vue';
   import ExcelAuthorize from '@components/cluster-common/ExcelAuthorize.vue';
+  import OperationBtnStatusTips from '@components/cluster-common/OperationBtnStatusTips.vue';
+  import RenderOperationTag from '@components/cluster-common/RenderOperationTag.vue';
   import EditEntryConfig from '@components/cluster-entry-config/Index.vue';
   import DbStatus from '@components/db-status/index.vue';
   import DropdownExportExcel from '@components/dropdown-export-excel/index.vue';
   import RenderInstances from '@components/render-instances/RenderInstances.vue';
   import RenderTextEllipsisOneLine from '@components/text-ellipsis-one-line/index.vue';
-
-  import RenderOperationTag from '@views/mysql/common/RenderOperationTag.vue';
 
   import {
     getMenuListSearch,
@@ -304,7 +304,12 @@
           </div>
           <div class="cluster-tags">
             {
-              data.operations.map(item => <RenderOperationTag class="cluster-tag" data={item} />)
+              data.operations.map(item => (
+                <RenderOperationTag
+                  iconMap={TendbsingleModel.operationIconMap}
+                  tipMap={TendbsingleModel.operationTextMap}
+                  class="cluster-tag" data={item}/>
+              ))
             }
             {
               data.phase === 'offline'
@@ -408,29 +413,38 @@
           </bk-button>
           {
             data.isOnline ? (
-              <bk-button
-                text
-                theme="primary"
-                class="mr-8"
-                onClick={() => handleSwitchCluster(TicketTypes.MYSQL_SINGLE_DISABLE, data)}>
-                { t('禁用') }
-              </bk-button>
+              <OperationBtnStatusTips data={data}>
+                <bk-button
+                  text
+                  theme="primary"
+                  disabled={Boolean(data.operationTicketId)}
+                  class="mr-8"
+                  onClick={() => handleSwitchCluster(TicketTypes.MYSQL_SINGLE_DISABLE, data)}>
+                  { t('禁用') }
+                </bk-button>
+              </OperationBtnStatusTips>
             ) : (
               <>
-                <bk-button
-                  text
-                  theme="primary"
-                  class="mr-8"
-                  onClick={() => handleSwitchCluster(TicketTypes.MYSQL_SINGLE_ENABLE, data)}>
-                  { t('启用') }
-                </bk-button>
-                <bk-button
-                  text
-                  theme="primary"
-                  class="mr-8"
-                  onClick={() => handleDeleteCluster(data)}>
-                  { t('删除') }
-                </bk-button>
+                <OperationBtnStatusTips data={data}>
+                  <bk-button
+                    text
+                    theme="primary"
+                    class="mr-8"
+                    disabled={Boolean(data.operationTicketId)}
+                    onClick={() => handleSwitchCluster(TicketTypes.MYSQL_SINGLE_ENABLE, data)}>
+                    { t('启用') }
+                  </bk-button>
+                </OperationBtnStatusTips>
+                <OperationBtnStatusTips data={data}>
+                  <bk-button
+                    text
+                    theme="primary"
+                    class="mr-8"
+                    disabled={Boolean(data.operationTicketId)}
+                    onClick={() => handleDeleteCluster(data)}>
+                    { t('删除') }
+                  </bk-button>
+                </OperationBtnStatusTips>
               </>
             )
           }

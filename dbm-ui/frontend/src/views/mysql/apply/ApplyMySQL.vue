@@ -20,7 +20,7 @@
         class="apply-form"
         :model="formdata"
         :rules="rules">
-        <DbCard :title="$t('部署模块')">
+        <DbCard :title="t('部署模块')">
           <BusinessItems
             v-model:app-abbr="formdata.details.db_app_abbr"
             v-model:biz-id="formdata.bk_biz_id"
@@ -28,8 +28,8 @@
           <BkFormItem
             ref="moduleRef"
             class="is-required"
-            :description="$t('表示DB的用途')"
-            :label="$t('DB模块名')"
+            :description="t('表示DB的用途')"
+            :label="t('DB模块名')"
             property="details.db_module_id">
             <BkSelect
               v-model="formdata.details.db_module_id"
@@ -47,7 +47,7 @@
               <template #extension>
                 <p
                   v-bk-tooltips.top="{
-                    content: $t('请先选择所属业务'),
+                    content: t('请先选择所属业务'),
                     disabled: !!formdata.bk_biz_id
                   }">
                   <BkButton
@@ -56,14 +56,14 @@
                     text
                     @click="handleCreateModule">
                     <i class="db-icon-plus-circle" />
-                    {{ $t('新建模块') }}
+                    {{ t('新建模块') }}
                   </BkButton>
                 </p>
               </template>
             </BkSelect>
             <span
               v-if="formdata.bk_biz_id"
-              v-bk-tooltips.top="$t('刷新获取最新DB模块名')"
+              v-bk-tooltips.top="t('刷新获取最新DB模块名')"
               class="refresh-module"
               @click="fetchModules(Number(formdata.bk_biz_id))">
               <i class="db-icon-refresh" />
@@ -84,15 +84,15 @@
                 <div
                   v-else
                   class="no-items">
-                  {{ $t('该模块暂未绑定数据库相关配置') }}
+                  {{ t('该模块暂未绑定数据库相关配置') }}
                   <span
                     class="bind-module"
-                    @click="handleBindConfig">{{ isBindModule ? $t('已完成') : $t('去绑定') }}</span>
+                    @click="handleBindConfig">{{ isBindModule ? t('已完成') : t('去绑定') }}</span>
                 </div>
                 <div
                   v-if="!fetchState.levelConfigList.length"
                   class="bk-form-error mt-10">
-                  {{ $t('需要绑定数据库相关配置') }}
+                  {{ t('需要绑定数据库相关配置') }}
                 </div>
               </BkLoading>
             </div>
@@ -104,13 +104,13 @@
         <RegionItem
           ref="regionItemRef"
           v-model="formdata.details.city_code" />
-        <DbCard :title="$t('数据库部署信息')">
+        <DbCard :title="t('数据库部署信息')">
           <AffinityItem
             v-if="!isSingleType && !isDefaultCity"
             v-model="formdata.details.resource_spec.backend.affinity" />
           <BkFormItem
             v-if="!isSingleType"
-            :label="$t('Proxy起始端口')"
+            :label="t('Proxy起始端口')"
             property="details.start_proxy_port"
             required>
             <BkInput
@@ -119,10 +119,10 @@
               :max="65535"
               :min="1025"
               type="number" />
-            <span class="apply-form__tips ml-10">{{ $t('多集群部署时_系统将从起始端口开始自动分配') }}</span>
+            <span class="apply-form__tips ml-10">{{ t('多集群部署时_系统将从起始端口开始自动分配') }}</span>
           </BkFormItem>
           <BkFormItem
-            :label="$t('MySQL起始端口')"
+            :label="t('MySQL起始端口')"
             property="details.start_mysql_port"
             required>
             <BkInput
@@ -133,13 +133,13 @@
               type="number" />
             <span
               v-if="isSingleType"
-              class="apply-form__tips ml-10">{{ $t('多实例部署时_系统将从起始端口开始自动分配') }}</span>
+              class="apply-form__tips ml-10">{{ t('多实例部署时_系统将从起始端口开始自动分配') }}</span>
             <span
               v-else
-              class="apply-form__tips ml-10">{{ $t('多集群部署时_系统将从起始端口开始自动分配') }}</span>
+              class="apply-form__tips ml-10">{{ t('多集群部署时_系统将从起始端口开始自动分配') }}</span>
           </BkFormItem>
         </DbCard>
-        <DbCard :title="$t('需求信息')">
+        <DbCard :title="t('需求信息')">
           <BkFormItem
             :label="formItemLabels.clusterCount"
             property="details.cluster_count"
@@ -148,7 +148,7 @@
               v-model="formdata.details.cluster_count"
               class="inline-box"
               :min="1"
-              :placeholder="$t('请输入')"
+              :placeholder="t('请输入')"
               type="number"
               @blur="handleCalcIps"
               @change="handleChangeClusterCount" />
@@ -167,7 +167,7 @@
           </BkFormItem>
           <BkFormItem
             class="service"
-            :label="$t('域名设置')"
+            :label="t('域名设置')"
             required>
             <DomainTable
               v-model:domains="formdata.details.domains"
@@ -176,16 +176,16 @@
               :ticket-type="dbType" />
           </BkFormItem>
           <BkFormItem
-            :label="$t('服务器选择')"
+            :label="t('服务器选择')"
             property="details.ip_source"
             required>
             <BkRadioGroup
               v-model="formdata.details.ip_source">
               <BkRadioButton label="resource_pool">
-                {{ $t('自动从资源池匹配') }}
+                {{ t('自动从资源池匹配') }}
               </BkRadioButton>
               <BkRadioButton label="manual_input">
-                {{ $t('手动录入IP') }}
+                {{ t('业务空闲机') }}
               </BkRadioButton>
             </BkRadioGroup>
           </BkFormItem>
@@ -209,7 +209,7 @@
                   :disable-host-method="proxyDisableHostMethod"
                   @change="handleProxyIpChange">
                   <template #desc>
-                    {{ $t('需n台', { n: hostNums }) }}
+                    {{ t('需n台', { n: hostNums }) }}
                   </template>
                   <template #submitTips="{ hostList }">
                     <I18nT
@@ -235,7 +235,7 @@
                   :disable-host-method="backendDisableHostMethod"
                   @change="handleBackendIpChange">
                   <template #desc>
-                    {{ $t('需n台', { n: hostNums }) }}
+                    {{ t('需n台', { n: hostNums }) }}
                   </template>
                   <template #submitTips="{ hostList }">
                     <I18nT
@@ -254,7 +254,7 @@
               class="mb-24">
               <BkFormItem
                 v-if="isSingleType"
-                :label="$t('后端存储资源规格')"
+                :label="t('后端存储资源规格')"
                 property="details.resource_spec.single.spec_id"
                 required>
                 <SpecSelector
@@ -268,7 +268,7 @@
               </BkFormItem>
               <template v-else>
                 <BkFormItem
-                  :label="$t('Proxy存储资源规格')"
+                  :label="t('Proxy存储资源规格')"
                   property="details.resource_spec.proxy.spec_id"
                   required>
                   <SpecSelector
@@ -281,7 +281,7 @@
                     style="width: 435px;" />
                 </BkFormItem>
                 <BkFormItem
-                  :label="$t('后端存储资源规格')"
+                  :label="t('后端存储资源规格')"
                   property="details.resource_spec.backend.spec_id"
                   required>
                   <SpecSelector
@@ -296,11 +296,11 @@
               </template>
             </div>
           </Transition>
-          <BkFormItem :label="$t('备注')">
+          <BkFormItem :label="t('备注')">
             <BkInput
               v-model="formdata.remark"
               :maxlength="100"
-              :placeholder="$t('请提供更多有用信息申请信息_以获得更快审批')"
+              :placeholder="t('请提供更多有用信息申请信息_以获得更快审批')"
               style="width: 655px;"
               type="textarea" />
           </BkFormItem>
@@ -314,24 +314,24 @@
           :loading="baseState.isSubmitting"
           theme="primary"
           @click="handleSubmit">
-          {{ $t('提交') }}
+          {{ t('提交') }}
         </BkButton>
         <BkButton
           class="ml-8 w-88"
           @click="handleShowPreview">
-          {{ $t('预览') }}
+          {{ t('预览') }}
         </BkButton>
         <BkButton
           class="ml-8 w-88"
           :disabled="baseState.isSubmitting"
           @click="handleResetFormdata">
-          {{ $t('重置') }}
+          {{ t('重置') }}
         </BkButton>
         <BkButton
           class="ml-8 w-88"
           :disabled="baseState.isSubmitting"
           @click="handleCancel">
-          {{ $t('取消') }}
+          {{ t('取消') }}
         </BkButton>
       </div>
     </template>
@@ -343,8 +343,8 @@
     :height="624"
     :width="1180">
     <template #header>
-      {{ $t('实例预览') }}
-      <span class="apply-dialog__quantity">{{ $t('共n条', { n: formdata.details.cluster_count }) }}</span>
+      {{ t('实例预览') }}
+      <span class="apply-dialog__quantity">{{ t('共n条', { n: formdata.details.cluster_count }) }}</span>
     </template>
     <PreviewTable
       :data="previewData"
@@ -354,7 +354,7 @@
     <template #footer>
       <BkButton
         @click="() => isShowPreview = false">
-        {{ $t('关闭') }}
+        {{ t('关闭') }}
       </BkButton>
     </template>
   </BkDialog>

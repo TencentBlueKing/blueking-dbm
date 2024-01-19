@@ -21,7 +21,7 @@
       class="mb-16"
       :model="formdata"
       :rules="rules">
-      <DbCard :title="$t('业务信息')">
+      <DbCard :title="t('业务信息')">
         <BusinessItems
           v-model:app-abbr="formdata.details.db_app_abbr"
           v-model:biz-id="formdata.bk_biz_id"
@@ -39,12 +39,12 @@
         v-model="formdata.details.city_code" />
       <!-- <DbCard
         v-if="!isDefaultCity"
-        :title="$t('数据库部署信息')">
+        :title="t('数据库部署信息')">
         <AffinityItem v-model="formdata.details.disaster_tolerance_level" />
       </DbCard> -->
-      <DbCard :title="$t('部署需求')">
+      <DbCard :title="t('部署需求')">
         <BkFormItem
-          :label="$t('InfluxDB版本')"
+          :label="t('InfluxDB版本')"
           property="details.db_version"
           required>
           <DeployVersion
@@ -53,16 +53,16 @@
             query-key="influxdb" />
         </BkFormItem>
         <BkFormItem
-          :label="$t('服务器选择')"
+          :label="t('服务器选择')"
           property="details.ip_source"
           required>
           <BkRadioGroup
             v-model="formdata.details.ip_source">
             <BkRadioButton label="resource_pool">
-              {{ $t('自动从资源池匹配') }}
+              {{ t('自动从资源池匹配') }}
             </BkRadioButton>
             <BkRadioButton label="manual_input">
-              {{ $t('手动录入IP') }}
+              {{ t('业务空闲机') }}
             </BkRadioButton>
           </BkRadioGroup>
         </BkFormItem>
@@ -84,18 +84,18 @@
                 style="display: inline-block;"
                 @change="handleIpChange">
                 <template #desc>
-                  {{ $t('主机数数量即为实例数量_建议规格至少为2核4G') }}
+                  {{ t('主机数数量即为实例数量_建议规格至少为2核4G') }}
                 </template>
               </IpSelector>
             </div>
           </BkFormItem>
           <BkFormItem
             v-else
-            :label="$t('InfluxDB实例')"
+            :label="t('InfluxDB实例')"
             required>
             <div class="resource-pool-item">
               <BkFormItem
-                :label="$t('规格')"
+                :label="t('规格')"
                 property="details.resource_spec.influxdb.spec_id"
                 required>
                 <SpecSelector
@@ -108,7 +108,7 @@
                   style="width: 314px;" />
               </BkFormItem>
               <BkFormItem
-                :label="$t('数量')"
+                :label="t('数量')"
                 property="details.resource_spec.influxdb.count"
                 required>
                 <BkInput
@@ -120,7 +120,7 @@
           </BkFormItem>
         </Transition>
         <BkFormItem
-          :label="$t('访问端口')"
+          :label="t('访问端口')"
           property="details.port"
           required>
           <BkInput
@@ -130,11 +130,11 @@
             style="width: 185px;"
             type="number" />
         </BkFormItem>
-        <BkFormItem :label="$t('备注')">
+        <BkFormItem :label="t('备注')">
           <BkInput
             v-model="formdata.remark"
             :maxlength="100"
-            :placeholder="$t('请提供更多有用信息申请信息_以获得更快审批')"
+            :placeholder="t('请提供更多有用信息申请信息_以获得更快审批')"
             style="width: 655px;"
             type="textarea" />
         </BkFormItem>
@@ -147,19 +147,19 @@
           style="width: 88px;"
           theme="primary"
           @click="handleSubmit">
-          {{ $t('提交') }}
+          {{ t('提交') }}
         </BkButton>
         <BkButton
           class="ml8 w-88"
           :disabled="baseState.isSubmitting"
           @click="handleReset">
-          {{ $t('重置') }}
+          {{ t('重置') }}
         </BkButton>
         <BkButton
           class="ml8 w-88"
           :disabled="baseState.isSubmitting"
           @click="handleCancel">
-          {{ $t('取消') }}
+          {{ t('取消') }}
         </BkButton>
       </div>
     </template>

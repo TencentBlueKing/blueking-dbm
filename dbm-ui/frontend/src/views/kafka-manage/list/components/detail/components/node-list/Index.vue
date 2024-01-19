@@ -14,15 +14,15 @@
 <template>
   <div class="kafka-detail-node-list">
     <div class="action-box">
-      <OperationStatusTips :data="operationData">
+      <OperationBtnStatusTips :data="operationData">
         <BkButton
           :disabled="operationData?.operationDisabled"
           theme="primary"
           @click="handleShowExpansion">
           {{ $t('扩容') }}
         </BkButton>
-      </OperationStatusTips>
-      <OperationStatusTips :data="operationData">
+      </OperationBtnStatusTips>
+      <OperationBtnStatusTips :data="operationData">
         <span
           v-bk-tooltips="batchShrinkDisabledInfo.tooltips">
           <BkButton
@@ -32,8 +32,8 @@
             {{ $t('缩容') }}
           </BkButton>
         </span>
-      </OperationStatusTips>
-      <OperationStatusTips :data="operationData">
+      </OperationBtnStatusTips>
+      <OperationBtnStatusTips :data="operationData">
         <span
           v-bk-tooltips="{
             content: $t('请先选中节点'),
@@ -46,7 +46,7 @@
             {{ $t('替换') }}
           </BkButton>
         </span>
-      </OperationStatusTips>
+      </OperationBtnStatusTips>
       <BkDropdown
         class="ml8"
         @hide="() => isCopyDropdown = false"
@@ -179,7 +179,7 @@
 
   import { useGlobalBizs } from '@stores';
 
-  import OperationStatusTips from '@components/cluster-common/OperationStatusTips.vue';
+  import OperationBtnStatusTips from '@components/cluster-common/OperationBtnStatusTips.vue';
   import RenderClusterRole from '@components/cluster-common/RenderRole.vue';
   import RenderHostStatus from '@components/render-host-status/Index.vue';
 
@@ -374,7 +374,7 @@
         const shrinkDisableTooltips = checkNodeShrinkDisable(data);
         return (
         <>
-          <OperationStatusTips data={operationData.value}>
+          <OperationBtnStatusTips data={operationData.value}>
             <span
               v-bk-tooltips={shrinkDisableTooltips.tooltips}
               class="ml8">
@@ -386,8 +386,8 @@
                 { t('缩容') }
               </bk-button>
             </span>
-          </OperationStatusTips>
-          <OperationStatusTips data={operationData.value}>
+          </OperationBtnStatusTips>
+          <OperationBtnStatusTips data={operationData.value}>
             <bk-button
               class="ml8"
               theme="primary"
@@ -396,8 +396,8 @@
               onClick={() => handleReplaceOne(data)}>
               { t('替换') }
             </bk-button>
-          </OperationStatusTips>
-          <OperationStatusTips data={operationData.value}>
+          </OperationBtnStatusTips>
+          <OperationBtnStatusTips data={operationData.value}>
             <bk-button
               class="ml8"
               theme="primary"
@@ -406,7 +406,7 @@
               onClick={() => handleShowDetail(data)}>
               { t('重启实例') }
             </bk-button>
-          </OperationStatusTips>
+          </OperationBtnStatusTips>
         </>
         );
       },

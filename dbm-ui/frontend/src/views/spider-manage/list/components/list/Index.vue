@@ -128,7 +128,7 @@
     useRouter,
   } from 'vue-router';
 
-  import type TendbClusterModel from '@services/model/spider/tendbCluster';
+  import TendbClusterModel from '@services/model/spider/tendbCluster';
   import {
     getSpiderDetail,
     getSpiderInstanceList,
@@ -158,7 +158,7 @@
 
   import ClusterAuthorize from '@components/cluster-authorize/ClusterAuthorize.vue';
   import ExcelAuthorize from '@components/cluster-common/ExcelAuthorize.vue';
-  import OperationStatusTips from '@components/cluster-common/OperationStatusTips.vue';
+  import OperationBtnStatusTips from '@components/cluster-common/OperationBtnStatusTips.vue';
   import RenderOperationTag from '@components/cluster-common/RenderOperationTag.vue';
   import EditEntryConfig from '@components/cluster-entry-config/Index.vue';
   import DbStatus from '@components/db-status/index.vue';
@@ -334,7 +334,12 @@
           </bk-popover>}
           <div class="cluster-tags">
             {
-              data.operations.map(item => <RenderOperationTag class="cluster-tag" data={item} />)
+              data.operations.map(item => (
+                <RenderOperationTag
+                  iconMap={TendbClusterModel.operationIconMap}
+                  tipMap={TendbClusterModel.operationTextMap}
+                  class="cluster-tag" data={item}/>
+              ))
             }
             {
               !data.isOnline && (
@@ -386,12 +391,12 @@
         </div>
       ),
     },
-    {
-      label: t('MySQL版本'),
-      field: 'version',
-      width: 120,
-      render: ({ data }: IColumn) => data.major_version,
-    },
+    // {
+    //   label: t('MySQL版本'),
+    //   field: 'version',
+    //   width: 120,
+    //   render: ({ data }: IColumn) => data.major_version,
+    // },
     {
       label: t('管控区域'),
       width: 120,
@@ -561,7 +566,7 @@
       render: ({ data }: IColumn) => {
         const getOperations = (theme = 'primary') => {
           const operations = [
-            <OperationStatusTips
+            <OperationBtnStatusTips
               data={data}
               class="mr8">
               <bk-button
@@ -572,42 +577,54 @@
                 onClick={() => handleShowCapacityChange(data)}>
                 { t('集群容量变更') }
               </bk-button>
-            </OperationStatusTips>,
+            </OperationBtnStatusTips>,
           ];
           if (!data.isOnline) {
             operations.push(...[
-              <bk-button
-                text
-                theme={theme}
-                class="mr-8"
-                onClick={() => handleChangeClusterOnline(TicketTypes.TENDBCLUSTER_ENABLE, data)}>
-                { t('启用') }
-              </bk-button>,
-              <bk-button
-                text
-                theme={theme}
-                class="mr-8"
-                onClick={() => handleDeleteCluster(data)}>
-                { t('删除') }
-              </bk-button>,
+              <OperationBtnStatusTips data={data}>
+                <bk-button
+                  text
+                  theme={theme}
+                  disabled={Boolean(data.operationTicketId)}
+                  class="mr-8"
+                  onClick={() => handleChangeClusterOnline(TicketTypes.TENDBCLUSTER_ENABLE, data)}>
+                  { t('启用') }
+                </bk-button>
+              </OperationBtnStatusTips>,
+              <OperationBtnStatusTips data={data}>
+                <bk-button
+                  text
+                  theme={theme}
+                  class="mr-8"
+                  disabled={Boolean(data.operationTicketId)}
+                  onClick={() => handleDeleteCluster(data)}>
+                  { t('删除') }
+                </bk-button>
+              </OperationBtnStatusTips>,
             ]);
           }
           return operations;
         };
         const getDropdownOperations = () => {
           const operations = [
+          <OperationBtnStatusTips data={data}>
             <bk-button
               text
               class="mr-8"
+              disabled={Boolean(data.operationTicketId)}
               onClick={() => handleShowScaleUp(data)}>
               { t('扩容接入层') }
-            </bk-button>,
+            </bk-button>
+          </OperationBtnStatusTips>,
+          <OperationBtnStatusTips data={data}>
             <bk-button
               text
               class="mr-8"
+              disabled={Boolean(data.operationTicketId)}
               onClick={() => handleShowShrink(data)}>
               { t('缩容接入层') }
-            </bk-button>,
+            </bk-button>
+          </OperationBtnStatusTips>,
           ];
           if (data.spider_mnt.length > 0) {
             operations.push(<bk-button
@@ -625,12 +642,15 @@
               { t('下架只读集群') }
             </bk-button>);
           }
-          operations.push(<bk-button
-            text
-            class="mr-8"
-            onClick={() => handleChangeClusterOnline(TicketTypes.TENDBCLUSTER_DISABLE, data)}>
-            { t('禁用') }
-          </bk-button>);
+          operations.push(<OperationBtnStatusTips data={data}>
+            <bk-button
+              text
+              class="mr-8"
+              disabled={Boolean(data.operationTicketId)}
+              onClick={() => handleChangeClusterOnline(TicketTypes.TENDBCLUSTER_DISABLE, data)}>
+              { t('禁用') }
+            </bk-button>
+          </OperationBtnStatusTips>);
 
           return data.isOnline ? operations : [];
         };
@@ -643,7 +663,11 @@
             {
               renderDropdownOperations.length > 0
                 ? (
-                  <bk-dropdown class="operations-more" trigger="click">
+                  <bk-dropdown
+                    class="operations-more"
+                    trigger="click"
+                    popover-options={{ zIndex: 10 }}
+                  >
                     {{
                       default: () => <db-icon type="more" />,
                       content: () => (

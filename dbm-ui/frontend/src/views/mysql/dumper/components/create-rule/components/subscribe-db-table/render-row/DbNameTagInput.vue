@@ -14,7 +14,7 @@
 <template>
   <TableTagInput
     ref="tagRef"
-    :model-value="localValue"
+    v-model="localValue"
     :placeholder="t('请输入单个库名，可以包含通配符 %')"
     :rules="rules"
     single

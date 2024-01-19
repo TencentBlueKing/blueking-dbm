@@ -15,7 +15,7 @@
       <div
         class="action-btn"
         :class="{
-          disabled: removeable
+          disabled: !removeable
         }"
         @click="handleRemove">
         <DbIcon type="minus-fill" />
@@ -43,7 +43,7 @@
     }>,
   }
 
-  defineProps<Props>();
+  const props = defineProps<Props>();
 
   const emits = defineEmits<Emits>();
 
@@ -54,6 +54,9 @@
     emits('add');
   };
   const handleRemove = () => {
+    if (!props.removeable) {
+      return;
+    }
     emits('remove');
   };
 

@@ -78,10 +78,12 @@
       <div class="instances-view-operations-right">
         <DbSearchSelect
           v-model="search"
+          clearable
           :data="searchSelectData"
           :placeholder="t('请选择条件搜索')"
           style="width: 500px;"
-          @change="fetchTableData()" />
+          :validate-values="validateValues"
+          @change="fetchTableData" />
       </div>
     </div>
     <BkAlert
@@ -111,8 +113,10 @@
       :data-source="listDumperInstance"
       :row-class="setRowClass"
       selection-key="dumper_id"
+      :settings="settings"
       style="margin-bottom: 34px;"
       @clear-search="handleClearFilters"
+      @column-filter="handleColumnFilter"
       @request-finished="handleTableRequestFinished"
       @select="handleSelect"
       @select-all="handleSelectAll" />
@@ -123,14 +127,17 @@
   <ManualMigration
     v-if="activeRow"
     v-model="showManualMigration"
-    :data="activeRow" />
+    :data="activeRow"
+    @success="fetchTableData" />
 </template>
 
 <script setup lang="tsx">
   import { InfoBox } from 'bkui-vue';
+  import type { ISearchValue } from 'bkui-vue/lib/search-select/utils';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
+  import DumperInstanceModel from '@services/model/dumper/dumper';
   import {
     listDumperConfig,
     listDumperInstance,
@@ -145,6 +152,10 @@
   import { useGlobalBizs } from '@stores';
 
   import { TicketTypes } from '@common/const';
+  import {
+    ipPort,
+    ipv4,
+  } from '@common/regex';
 
   import RenderOperationTag from '@components/cluster-common/RenderOperationTag.vue';
   import MiniTag from '@components/mini-tag/index.vue';
@@ -155,8 +166,8 @@
   import AppendSubscribeSlider from '../append-subscribe/Index.vue';
 
   import ManualMigration from './manual-migration/Index.vue';
+  import OperationBtnTip from './OperationBtnTip.vue';
 
-  export type DumperInstanceModel = ServiceReturnType<typeof listDumperInstance>['results'][number]
 
   export type DumperConfig = ServiceReturnType<typeof listDumperConfig>['results'][number]
 
@@ -192,20 +203,45 @@
     {
       name: t('接收端类型'),
       id: 'protocol_type',
+      multiple: true,
       children: [
-        { id: 'KAFKA', name: 'KAFKA' },
-        { id: 'L5_AGENT', name: 'L5_AGENT' },
-        { id: 'TCP/IP', name: 'TCP/IP' },
+        {
+          id: 'KAFKA',
+          name: 'KAFKA',
+        },
+        {
+          id: 'L5_AGENT',
+          name: 'L5_AGENT',
+        },
+        {
+          id: 'TCP/IP',
+          name: 'TCP/IP',
+        },
       ],
     },
     {
       name: t('接收端地址'),
       id: 'target_address',
     },
+    {
+      name: t('同步方式'),
+      id: 'add_type',
+      multiple: true,
+      children: [
+        {
+          id: 'full_sync',
+          name: t('全量同步'),
+        },
+        {
+          id: 'incr_sync',
+          name: t('增量同步'),
+        },
+      ],
+    },
   ];
 
   const tableRef = ref();
-  const search = ref([]);
+  const search = ref<ISearchValue[]>([]);
   const tableDataCount = ref(0);
   const showAppendSubscribeSlider = ref(false);
   const showManualMigration = ref(false);
@@ -253,13 +289,17 @@
             }}
             </bk-popover>
           )}
-            <RenderOperationTag data={data} />
-            {!data.isRunning && <MiniTag content={t('已禁用')} extCls='stoped-icon'/>}
-            {data.isNew && <MiniTag theme='success' content="NEW" extCls='success-icon' />}
+          <RenderOperationTag
+            iconMap={DumperInstanceModel.operationIconMap}
+            tipMap={DumperInstanceModel.operationTextMap}
+            data={data.operation} />
+          {!data.isRunning && <MiniTag content={t('已禁用')} extCls='stoped-icon'/>}
+          {data.isNew && <MiniTag theme='success' content="NEW" extCls='success-icon' />}
         </>;
         return (
           <div class="instance-box">
             <RenderTextEllipsisOneLine
+              key={data.operation.ticket_type}
               text={`${data.ip}:${data.listen_port}`}
               textStyle={{ color: '#63656E' }}>
               {content}
@@ -322,73 +362,127 @@
       width: isCN.value ? 160 : 220,
       render: ({ data }: {data: DumperInstanceModel}) => (
         <>
-          <span
-            v-bk-tooltips={{
-              content: t('禁用任务进行中，不可禁用'),
-              disabled: !data.isStopping,
-            }}>
-            <bk-button
-              class="mr-8"
+          <OperationBtnTip
+            data={data}
+            disabled={!data.isOperating}>
+            <span>
+              <bk-button
               text
-              disabled={data.isStopping}
+              disabled={data.isOperating}
+              class='mr-8'
               theme="primary"
               onClick={() => handleOpenOrCloseInstance(data)}>
                 { data.isRunning ? t('禁用') : t('启用') }
             </bk-button>
-          </span>
+            </span>
+          </OperationBtnTip>
           {!data.isRunning && (
-            <bk-button
-              class="mr-8"
-              text
-              theme="primary"
-              onClick={() => handleDeleteInstance(data)}>
-                { t('删除') }
-            </bk-button>
+            <OperationBtnTip
+              data={data}
+              disabled={!data.isOperating}>
+              <span>
+                <bk-button
+                  text
+                  disabled={data.isOperating}
+                  class='mr-8'
+                  theme="primary"
+                  onClick={() => handleDeleteInstance(data)}>
+                    { t('删除') }
+                </bk-button>
+              </span>
+            </OperationBtnTip>
           )}
           {data.need_transfer && (
-            <bk-popover
-              placement="top"
-              theme="light"
-              disabled={!data.isMigrating}
-              popover-delay={[100, 200]}
-            >
-            {{
-              default: () => (
+            <OperationBtnTip
+              data={data}
+              disabled={!data.isOperating}>
+              <span>
                 <bk-button
-                  class={{ 'operate-migrate-disable': data.isMigrating }}
                   text
+                  disabled={data.isOperating}
                   theme="primary"
                   onClick={() => handleOpenManualMigration(data)}>
                     { t('手动迁移') }
                 </bk-button>
-              ),
-              content: () => (
-                <div>{t('迁移任务正在进行中，跳转')}
-                  <bk-button
-                    text
-                    theme="primary"
-                    onClick={() => handleGoTicket(data.operation.ticket_id)}>
-                    { t('我的服务单') }
-                  </bk-button>
-                  {t('查看进度')}
-                </div>
-              ),
-            }}
-            </bk-popover>
+              </span>
+            </OperationBtnTip>
           )}
         </>
       ),
     },
   ];
 
+  const settings = {
+    fields: [
+      {
+        label: t('实例'),
+        field: 'instance',
+        disabled: true,
+      },
+      {
+        label: t('实例 ID'),
+        field: 'dumper_id',
+      },
+      {
+        label: t('数据源集群'),
+        field: 'source_cluster',
+      },
+      {
+        label: t('接收端类型'),
+        field: 'protocol_type',
+      },
+      {
+        label: t('接收端地址'),
+        field: 'receiver',
+      },
+      {
+        label: t('同步方式'),
+        field: 'add_type',
+      },
+    ],
+    checked: ['instance', 'dumper_id', 'source_cluster', 'protocol_type', 'receiver', 'add_type'],
+  };
+
   const { run: runCreateTicket } = useRequest(createTicket, {
     manual: true,
     onSuccess: (data) => {
       if (data && data.id) {
         ticketMessage(data.id);
+        fetchTableData();
       }
     },
   });
+
+  const fetchTableData = () => {
+    const searchParams = getSearchSelectorParams(search.value);
+    tableRef.value?.fetchData(searchParams, {
+      config_name: props.data === null ? undefined : props.data.name,
+    });
+  };
+
+  watch(() => [props.data, search], () => {
+    fetchTableData();
+  }, {
+    immediate: true,
+  });
+
+  // tip: async 去掉组件库会报错
+  const validateValues = async (item: {id: string}, values: ISearchValue['values']) => {
+    if (values) {
+      const targetValue = values[0].id.replace(/^\s+|\s+$/g, '');
+      if (item.id === 'address') {
+        const list = targetValue.split(',');
+        if (list.some(item => !ipPort.test(item))) {
+          return t('格式错误');
+        }
+      }
+      if (item.id === 'ip' && !ipv4.test(targetValue)) {
+        return t('格式错误');
+      }
+      return  true;
+    }
+    return false;
+  };
 
   const handleOpenClusterDetailPage = (id: number) => {
     const routerData = router.resolve({
@@ -413,24 +507,14 @@
     window.open(route.href);
   };
 
-  const fetchTableData = (loading?:boolean) => {
-    const searchParams = getSearchSelectorParams(search.value);
-    tableRef.value?.fetchData(searchParams, {
-      config_name: props.data === null ? undefined : props.data.name,
-    }, loading);
-  };
-
-  watch(() => props.data, () => {
-    fetchTableData();
-  }, {
-    immediate: true,
-  });
-
   const handleAppendInstance = () => {
     showAppendSubscribeSlider.value = true;
   };
 
   const handleOpenOrCloseInstance = (data: DumperInstanceModel) => {
+    if (data.isOperating) {
+      return;
+    }
     if (data.isRunning) {
       InfoBox({
         extCls: 'dumper-instance-infobox',
@@ -494,6 +578,9 @@
 
   // 删除
   const handleDeleteInstance = (data: DumperInstanceModel) => {
+    if (data.isOperating) {
+      return;
+    }
     InfoBox({
       infoType: 'warning',
       extCls: ['dumper-instance-infobox', 'dumper-instance-infobox-delete'],
@@ -542,7 +629,7 @@
   };
 
   const handleOpenManualMigration = (data: DumperInstanceModel) => {
-    if (data.isMigrating) {
+    if (data.isOperating) {
       return;
     }
     activeRow.value = data;
@@ -615,6 +702,29 @@
     batchSelectInstances.value = selectedMap;
   };
 
+  const handleColumnFilter = (data: {
+    checked: string[],
+    column: {
+      field: string,
+      label: string,
+    },
+    index: number,
+  }) => {
+    if (data.checked.length === 0) {
+      search.value = search.value.filter(item => item.id !== data.column.field);
+      return;
+    }
+    const isAddType = data.column.field === 'add_type';
+    search.value = [{
+      id: data.column.field,
+      name: data.column.label,
+      values: data.checked.map(item => ({
+        id: item,
+        name: isAddType ? syncTypeMap[item] : item,
+      })),
+    }];
+  };
+
 </script>
 
 <style lang="less">
@@ -652,14 +762,6 @@
 .dumper-instance-status-migrate {
   color: #8E3AFF;
   background-color: #F2EDFF;
-}
-
-.operate-migrate-disable {
-  color: #C4C6CC;
-
-  &:hover {
-    color: #C4C6CC !important;
-  }
 }
 
 .dumper-instance-list {

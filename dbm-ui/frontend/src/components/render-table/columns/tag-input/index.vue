@@ -22,6 +22,7 @@
         :class="{['is-error']: Boolean(errorMessage),}">
         <BkTagInput
           v-model="localValue"
+          allow-auto-match
           allow-create
           :clearable="false"
           collapse-tags
@@ -119,12 +120,14 @@
 
   const handleChange = (value: string[]) => {
     localValue.value = value;
-    validator(localValue.value)
-      .then(() => {
-        window.changeConfirm = true;
-        emits('update:modelValue', value);
-        emits('change', value);
-      });
+    nextTick(() => {
+      validator(localValue.value)
+        .then(() => {
+          window.changeConfirm = true;
+          emits('update:modelValue', value);
+          emits('change', value);
+        });
+    });
   };
 
   const handleShowTips = () => {

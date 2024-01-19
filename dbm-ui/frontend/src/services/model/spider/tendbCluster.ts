@@ -15,8 +15,6 @@ import type ResourceSpecModel from '@services/model/resource-spec/resourceSpec';
 
 import { t } from '@locales/index';
 
-const STATUS_ABNORMAL = 'abnormal';
-
 export type InstanceSpecInfo = {
   count: number,
   id: number,
@@ -62,6 +60,8 @@ export default class TendbCluster {
   static TENDBCLUSTER_ENABLE = 'TENDBCLUSTER_ENABLE';
   static TENDBCLUSTER_DISABLE = 'TENDBCLUSTER_DISABLE';
   static TENDBCLUSTER_DESTROY = 'TENDBCLUSTER_DESTROY';
+  static MYSQL_OPEN_AREA = 'MYSQL_OPEN_AREA';
+  static TENDBCLUSTER_CHECKSUM = 'TENDBCLUSTER_CHECKSUM';
 
   static operationIconMap = {
     [TendbCluster.TENDBCLUSTER_SPIDER_ADD_NODES]: 'kuorongzhong',
@@ -77,6 +77,8 @@ export default class TendbCluster {
     [TendbCluster.TENDBCLUSTER_ENABLE]: t('启用任务进行中'),
     [TendbCluster.TENDBCLUSTER_DISABLE]: t('禁用任务进行中'),
     [TendbCluster.TENDBCLUSTER_DESTROY]: t('删除任务进行中'),
+    [TendbCluster.MYSQL_OPEN_AREA]: t('开区任务进行中'),
+    [TendbCluster.TENDBCLUSTER_CHECKSUM]: t('数据校验修复任务进行中'),
   };
 
   bk_biz_id: number;
@@ -159,32 +161,40 @@ export default class TendbCluster {
     this.operations = this.initOperations(payload.operations);
   }
 
+  get runningOperation() {
+    const operateTicketTypes = Object.keys(TendbCluster.operationTextMap);
+    return this.operations.find(item => operateTicketTypes.includes(item.ticket_type) && item.status === 'RUNNING');
+  }
+
   // 操作中的状态
   get operationRunningStatus() {
     if (this.operations.length < 1) {
       return '';
     }
-    const operation = this.operations[0];
-    if (operation.status !== 'RUNNING') {
+    const operation = this.runningOperation;
+    if (!operation) {
       return '';
     }
     return operation.ticket_type;
   }
+
   // 操作中的状态描述文本
   get operationStatusText() {
     return TendbCluster.operationTextMap[this.operationRunningStatus];
   }
+
   // 操作中的状态 icon
   get operationStatusIcon() {
     return TendbCluster.operationIconMap[this.operationRunningStatus];
   }
+
   // 操作中的单据 ID
   get operationTicketId() {
     if (this.operations.length < 1) {
       return 0;
     }
-    const operation = this.operations[0];
-    if (operation.status !== 'RUNNING') {
+    const operation = this.runningOperation;
+    if (!operation) {
       return 0;
     }
     return operation.ticket_id;
@@ -192,7 +202,7 @@ export default class TendbCluster {
 
   get operationDisabled() {
     // 集群异常不支持操作
-    if (this.status === STATUS_ABNORMAL) {
+    if (this.status === 'abnormal') {
       return true;
     }
     // 被禁用的集群不支持操作
@@ -201,7 +211,7 @@ export default class TendbCluster {
     }
 
     // 各个操作互斥，有其他任务进行中禁用操作按钮
-    if (this.operations.find(item => item.status === 'RUNNING')) {
+    if (this.operationTicketId) {
       return true;
     }
     return false;
