@@ -175,21 +175,22 @@
 
   export type TabItem = TabListType[number];
 
-  type TabConfig = Omit<TabItem, 'name' | 'id' | 'tableContent' | 'resultContent'>
-
-  const props = defineProps<Props>();
-
-  const emits = defineEmits<Emits>();
-
   interface Props {
     selected: Record<string, T[]>,
     clusterTypes: ClusterTypes[],
-    tabListConfig?: Record<string, TabConfig>
+    tabListConfig?: Record<string, TabConfig>,
+    onlyOneType?: boolean,
   }
 
   interface Emits {
     (e: 'change', value: Props['selected']): void,
   }
+
+  type TabConfig = Omit<TabItem, 'name' | 'id' | 'tableContent' | 'resultContent'>
+
+  const props = defineProps<Props>();
+
+  const emits = defineEmits<Emits>();
 
   const isShow = defineModel<boolean>('isShow', {
     default: false,
@@ -246,11 +247,11 @@
 
   const tabTipsRef = ref();
   const activeTab = ref();
-  const activePanelObj = shallowRef(tabListMap[ClusterTypes.TENDBCLUSTER]);
   const showTabTips = ref(false);
   const isSelectedAll = ref(false);
+  const selectedMap = ref<Record<string, Record<string, T>>>({});
 
-  const selectedMap = shallowRef<Record<string, Record<string, any>>>({});
+  const activePanelObj = shallowRef(tabListMap[ClusterTypes.TENDBCLUSTER]);
 
   const clusterTabListMap = computed<Record<string, TabItem>>(() => {
     if (props.tabListConfig) {
@@ -297,12 +298,12 @@
         const tabSelectMap = props.selected[tabKey].reduce((selectResult, selectItem) => ({
           ...selectResult,
           [selectItem.id]: selectItem,
-        }), {} as Record<string, any>);
+        }), {} as Record<string, T>);
         return {
           ...result,
           [tabKey]: tabSelectMap,
         };
-      }, {} as Record<string, Record<string, any>>);
+      }, {} as Record<string, Record<string, T>>);
       showTabTips.value = true;
     }
   });
@@ -374,7 +375,7 @@
   /**
    * 选择当行数据
    */
-  const handleSelecteRow = (data: any, value: boolean) => {
+  const handleSelecteRow = (data: T, value: boolean) => {
     const selectedMapMemo = { ...selectedMap.value };
     if (!selectedMapMemo[activeTab.value]) {
       selectedMapMemo[activeTab.value] = {};
@@ -387,8 +388,22 @@
     selectedMap.value = selectedMapMemo;
   };
 
-  const handleSelectTable = (selected: Record<string, Record<string, any>>) => {
-    selectedMap.value = selected;
+  const handleSelectTable = (selected: Record<string, Record<string, T>>) => {
+    // 如果只允许选一种集群类型, 则清空非当前集群类型的选中列表
+    // 如果是勾选的取消全选，则忽略
+    if (props.onlyOneType && Object.keys(Object.values(selected)[0]).length > 0) {
+      // 只会有一个key
+      const [currentKey] = Object.keys(selected);
+      Object.keys(selectedMap.value).forEach((key) => {
+        if (key !== currentKey) {
+          selectedMap.value[key] = {};
+        } else {
+          selectedMap.value[key] = selected[key];
+        }
+      });
+      return;
+    }
+    Object.assign(selectedMap.value, selected);
   };
 </script>
 
