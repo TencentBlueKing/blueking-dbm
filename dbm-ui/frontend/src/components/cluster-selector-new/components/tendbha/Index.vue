@@ -245,6 +245,12 @@
     }
   });
 
+  watch(isLoading, (status) => {
+    if (!status) {
+      checkSelectedAll();
+    }
+  });
+
   /**
    * 全选当页数据
    */
