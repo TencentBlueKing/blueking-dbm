@@ -90,7 +90,7 @@ func DumpOldFileList(dir string, portMap map[int]models.BinlogFileModel) error {
 			fileObj.BackupStatus = 0
 		}
 
-		fileObj.Filename = binlogFile
+		fileObj.Filename = binlogName
 		fileObj.Filesize = ff.Size()
 		fileObj.FileMtime = ff.ModTime().Format(time.RFC3339)
 
