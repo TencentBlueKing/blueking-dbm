@@ -86,10 +86,10 @@ func (p *PhysicalDumper) Execute(enableTimeOut bool) error {
 	if strings.Compare(p.mysqlVersion, "005007000") < 0 {
 		args = append(args, targetPath)
 	} else {
-		args = append(args, []string{
+		args = append(args,
 			fmt.Sprintf("--target-dir=%s", targetPath),
-			"--backup", "--binlog-info=ON",
-		}...)
+			"--backup", "--binlog-info=ON", "--lock-ddl",
+		)
 	}
 
 	if p.cnf.PhysicalBackup.Threads > 0 {

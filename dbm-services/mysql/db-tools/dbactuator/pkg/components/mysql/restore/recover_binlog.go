@@ -130,7 +130,7 @@ type MySQLBinlogUtil struct {
 	StartPos uint `json:"start_pos,omitempty"`
 	// --stop-position
 	StopPos uint `json:"stop_pos,omitempty"`
-	// 是否开启幂等模式, mysql --slave-exec-mode=idempotent or mysqlbinlog --idempotent
+	// 是否开启幂等模式, mysqlbinlog --idempotent(>=5.7)
 	IdempotentMode bool `json:"idempotent_mode"`
 	// 导入时是否记录 binlog, mysql sql_log_bin=0 or mysqlbinlog --disable-log-bin. true表示不写
 	NotWriteBinlog bool `json:"not_write_binlog"`
@@ -442,22 +442,36 @@ func (r *RecoverBinlog) buildBinlogOptions() error {
 			return err
 		}
 	}
-	if b.IdempotentMode {
+	if b.NotWriteBinlog {
+		b.options += " --disable-log-bin"
+	}
+	binlogTool := ""
+	if r.RecoverOpt.Flashback {
+		binlogTool = r.ToolSet.MustGet(tools.ToolMysqlbinlogRollback)
+	} else {
+		binlogTool = r.ToolSet.MustGet(tools.ToolMysqlbinlog)
+	}
+	if b.IdempotentMode && mysqlbinlogHasOpt(binlogTool, "--idempotent") == nil {
 		b.options += fmt.Sprintf(" --idempotent")
 	} else if r.QuickMode {
 		logger.Warn("idempotent=false and quick_mode=true may lead binlog-recover fail")
 	}
-	if b.NotWriteBinlog {
-		b.options += " --disable-log-bin"
-	}
-
-	if r.RecoverOpt.Flashback {
-		r.binlogCli += fmt.Sprintf("%s %s", r.ToolSet.MustGet(tools.ToolMysqlbinlogRollback), r.RecoverOpt.options)
-	} else {
-		r.binlogCli += fmt.Sprintf("%s %s", r.ToolSet.MustGet(tools.ToolMysqlbinlog), r.RecoverOpt.options)
-	}
+	r.binlogCli += fmt.Sprintf("%s %s", binlogTool, r.RecoverOpt.options)
 
 	return nil
+}
+
+// mysqlbinlogHasOpt return nil if option exists
+func mysqlbinlogHasOpt(binlogCmd string, option string) error {
+	outStr, errStr, err := cmutil.ExecCommand(false, "", binlogCmd, "--help")
+	if err != nil {
+		return err
+	}
+	if strings.Contains(errStr, option) || strings.Contains(outStr, option) {
+		return nil
+	} else {
+		return errors.Errorf("mysqlbinlog %s has no option %s", binlogCmd, option)
+	}
 }
 
 func (r *RecoverBinlog) buildFilterOpts() error {
@@ -755,7 +769,7 @@ func (r *RecoverBinlog) Start() error {
 		outFile := filepath.Join(r.taskDir, fmt.Sprintf("import_binlog_%s.log", r.WorkID))
 		errFile := filepath.Join(r.taskDir, fmt.Sprintf("import_binlog_%s.err", r.WorkID))
 		cmd := fmt.Sprintf(
-			`cd %s; %s %s | %s >%s 2>%s`,
+			`cd %s; %s %s | %s >>%s 2>%s`,
 			r.BinlogDir, r.binlogCli, binlogFiles, r.mysqlCli, outFile, errFile,
 		)
 		logger.Info(mysqlutil.ClearSensitiveInformation(mysqlutil.RemovePassword(cmd)))
@@ -771,7 +785,7 @@ func (r *RecoverBinlog) Start() error {
 					}
 				}
 			} else {
-				return errors.Errorf("empty stderr: %s", errFile)
+				return errors.WithMessagef(err, "errFile: %s", errFile)
 			}
 			return err
 		}
