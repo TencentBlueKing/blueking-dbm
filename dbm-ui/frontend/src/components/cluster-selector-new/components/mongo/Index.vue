@@ -206,9 +206,8 @@
   const isIndeterminate = computed(() => !isSelectedAll.value
     && selectedMap.value[activeTab.value] && Object.keys(selectedMap.value[activeTab.value]).length > 0);
 
-  const mainSelectDisable = computed(() => (props.disabledRowConfig
-    // eslint-disable-next-line max-len
-    ? tableData.value.filter(data => props.disabledRowConfig?.handler(data)).length === tableData.value.length : false));
+  const mainSelectDisable = computed(() => (props.disabledRowConfig ? tableData.value
+    .filter(data => props.disabledRowConfig?.handler(data)).length === tableData.value.length : false));
 
   const generatedColumns = computed(() => {
     if (props.customColums) {
@@ -239,6 +238,12 @@
   watch(activeTab, (tab) => {
     if (tab) {
       searchSelectValue.value = [];
+    }
+  });
+
+  watch(isLoading, (status) => {
+    if (!status) {
+      checkSelectedAll();
     }
   });
 
@@ -309,7 +314,6 @@
     const isChecked = !!(currentSelected && currentSelected[data.id]);
     handleSelecteRow(data, !isChecked);
   };
-
 
   const handleTablePageChange = (value: number) => {
     handleChangePage(value)
