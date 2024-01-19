@@ -32,7 +32,7 @@ def _check_tendbha_binlog_backup():
     master 实例必须要有备份binlog
     且binlog序号要连续
     """
-    logger.info("+===+++++===  start check binlog for cluster type {} +++++===++++ ".format(ClusterType.TenDBHA))
+    logger.info("==== start check binlog for cluster type {} ====".format(ClusterType.TenDBHA))
     return _check_binlog_backup(ClusterType.TenDBHA)
 
 
@@ -41,7 +41,7 @@ def _check_tendbcluster_binlog_backup():
     master 实例必须要有备份binlog
     且binlog序号要连续
     """
-    logger.info("+===+++++===  start check binlog for cluster type {} +++++===++++ ".format(ClusterType.TenDBCluster))
+    logger.info("==== start check binlog for cluster type {} ====".format(ClusterType.TenDBCluster))
     return _check_binlog_backup(ClusterType.TenDBCluster)
 
 
@@ -50,10 +50,19 @@ def _check_binlog_backup(cluster_type):
     master 实例必须要有备份binlog
     且binlog序号要连续
     """
+    start_time, end_time = get_last_date_time()
+    logger.info(
+        "==== start check binlog for cluster type {}, time range[{},{}] ====".format(
+            cluster_type, start_time, end_time
+        )
+    )
     for c in Cluster.objects.filter(cluster_type=cluster_type):
-        logger.info("+===+++++===  start check binlog for cluster {} +++++===++++ ".format(c.immute_domain))
         backup = ClusterBackup(c.id, c.immute_domain)
-        start_time, end_time = get_last_date_time()
+        logger.info(
+            "==== start check binlog for cluster {}, time range[{},{}] ====".format(
+                c.immute_domain, start_time, end_time
+            )
+        )
 
         items = backup.query_binlog_from_bklog(start_time, end_time)
         instance_binlogs = defaultdict(list)

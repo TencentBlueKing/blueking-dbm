@@ -88,11 +88,15 @@ def _check_tendbha_full_backup():
     """
     tendbha 必须有一份完整的备份
     """
-    logger.info("+===+++++===  start check full backup for cluster type {} +++++===++++ ".format(ClusterType.TenDBHA))
+    start_time, end_time = get_last_date_time()
+    logger.info(
+        "====  start check full backup for cluster type {}, time range[{},{}] ====".format(
+            ClusterType.TenDBHA, start_time, end_time
+        )
+    )
     for c in Cluster.objects.filter(cluster_type=ClusterType.TenDBHA):
-        logger.info("+===+++++===  start check full backup for cluster {} +++++===++++ ".format(c.immute_domain))
+        logger.info("==== start check full backup for cluster {} ====".format(c.immute_domain))
         backup = ClusterBackup(c.id, c.immute_domain)
-        start_time, end_time = get_last_date_time()
 
         items = backup.query_backup_log_from_bklog(start_time, end_time)
         backup.backups = _build_backup_info_files(items)
@@ -118,13 +122,16 @@ def _check_tendbcluster_full_backup():
     """
     tendbcluster 集群必须有完整的备份
     """
+    start_time, end_time = get_last_date_time()
     logger.info(
-        "+===+++++===  start check full backup for cluster type {} +++++===++++ ".format(ClusterType.TenDBCluster)
+        "==== start check full backup for cluster type {}, time range[{},{}] ====".format(
+            ClusterType.TenDBCluster, start_time, end_time
+        )
     )
+
     for c in Cluster.objects.filter(cluster_type=ClusterType.TenDBCluster):
-        logger.info("+===+++++===  start check full backup for cluster {} +++++===++++ ".format(c.immute_domain))
+        logger.info("==== start check full backup for cluster {} ====".format(c.immute_domain))
         backup = ClusterBackup(c.id, c.immute_domain)
-        start_time, end_time = get_last_date_time()
         items = backup.query_backup_log_from_bklog(start_time, end_time)
         backup.backups = _build_backup_info_files(items)
 

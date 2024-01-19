@@ -69,8 +69,8 @@ class ClusterBackup:
             collector="mysql_dbbackup_result",
             start_time=start_time,
             end_time=end_time,
-            query_string=f'log: "cluster_id: {self.cluster_id}"',
-            # query_string=f'log: "cluster_address: \\"{self.cluster_domain}\\""',
+            # query_string=f'log: "cluster_id: {self.cluster_id}"',
+            query_string=f'log: "cluster_address: \\"{self.cluster_domain}\\""',
         )
         for log in backup_logs:
             bf = {
@@ -78,8 +78,8 @@ class ClusterBackup:
                 "backup_id": log["backup_id"],
                 "cluster_domain": log["cluster_address"],
                 "cluster_id": log["cluster_id"],
-                "mysql_host": log["mysql_host"],
-                "mysql_port": log["mysql_port"],
+                "mysql_host": log["backup_host"],
+                "mysql_port": log["backup_port"],
                 "mysql_role": log["mysql_role"],
                 "backup_type": log["backup_type"],
                 "file_list": log["file_list"],
