@@ -270,6 +270,8 @@ func (k *DbPodSets) createpod(pod *v1.Pod, probePort int) (err error) {
 	if err = util.Retry(util.RetryConfig{Times: 60, DelayTime: 1 * time.Second}, fnc); err == nil {
 		model.UpdateTbContainerRecord(k.BaseInfo.PodName)
 	}
+	k.DbWork.Db.Exec("grant all on *.* to ADMIN@localhost;")
+	k.DbWork.Db.Exec("create user ADMIN@localhost;")
 	return err
 }
 
