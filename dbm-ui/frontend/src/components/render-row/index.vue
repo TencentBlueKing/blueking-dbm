@@ -26,9 +26,10 @@
     </p>
     <BkTag
       v-if="overflowData.length > 0"
-      v-bk-tooltips="overflowData.join('\n')"
+      v-bk-tooltips="tipList"
       class="render-row-tag">
-      +{{ overflowData.length }}
+      {{ sign }}
+      {{ count }}
     </BkTag>
   </div>
 </template>
@@ -39,7 +40,8 @@
   import { useResizeObserver } from '@vueuse/core';
 
   interface Props {
-    data: string[]
+    data: string[],
+    showAll?: boolean,
   }
 
   const props = defineProps<Props>();
@@ -47,11 +49,15 @@
   const rowRef = ref<HTMLDivElement>();
   const textRef = ref<HTMLParagraphElement>();
   const overflowIndex = ref<number | null>(null);
+
+  const sign = computed(() => `${props.showAll ? '' : '+'}`);
   const overflowData = computed(() => {
     if (overflowIndex.value === null) return [];
 
     return props.data.slice(overflowIndex.value);
   });
+  const count = computed(() => (props.showAll ? props.data.length : overflowData.value.length));
+  const tipList = computed(() => (props.showAll ? props.data.join('\n') : overflowData.value.join('\n')));
 
   /**
    * 获取第一个溢出文本的 index

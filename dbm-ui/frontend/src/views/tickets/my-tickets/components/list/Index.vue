@@ -96,6 +96,7 @@
                 <RenderRow
                   class="info-item-value"
                   :data="item.related_object.objects"
+                  show-all
                   style="overflow: hidden;" />
               </div>
               <div class="side-item-info is-single">
