@@ -31,6 +31,10 @@ class Command(BaseCommand):
         storage = get_storage()
 
         for pkg_type in storage.listdir(f"/{db_type}")[0]:
+            # 排除非介质文件
+            if pkg_type["name"] in ["keyfiles", "db-remote-service", "sqlfile"]:
+                continue
+
             for version in storage.listdir(pkg_type["fullPath"])[0]:
                 for media in storage.listdir(version["fullPath"])[1]:
                     create_at = datetime.strptime(media["createdDate"], "%Y-%m-%dT%H:%M:%S.%f")
