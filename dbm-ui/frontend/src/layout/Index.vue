@@ -125,6 +125,7 @@
       'DatabaseWhitelist',
       'ticketManage',
       'DBPasswordTemporaryModify',
+      'SqlserverManage',
     ],
     [menuEnum.observableManage]: [
       'DBHASwitchEvents',
