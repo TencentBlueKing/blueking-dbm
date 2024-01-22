@@ -569,7 +569,7 @@ class ListRetrieveResource(BaseListRetrieveResource):
         storage_queryset = (
             StorageInstance.objects.select_related("machine")
             .prefetch_related("cluster")
-            .annotate(role=F("instance_role"))
+            .annotate(role=F("instance_inner_role"))
             .filter(query_filters)
         )
         # 获取proxy实例的查询集
