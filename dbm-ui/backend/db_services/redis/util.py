@@ -84,3 +84,14 @@ def is_have_binlog(cluster_type: str) -> bool:
         ClusterType.TendisplusInstance.value,
         ClusterType.TendisSSDInstance.value,
     ]
+
+
+def is_support_redis_auotfix(cluster_type: str) -> bool:
+    """
+    是否支持自愈
+    """
+    return cluster_type in [
+        ClusterType.TendisTwemproxyRedisInstance.value,
+        ClusterType.TwemproxyTendisSSDInstance.value,
+        ClusterType.TendisPredixyTendisplusCluster.value,
+    ]
