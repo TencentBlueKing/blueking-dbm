@@ -99,6 +99,11 @@ class CcManage(object):
                 bk_set_id=bk_set_id,
                 bk_module_id=bk_module_id,
             )
+            # 如果不是最新创建的，则保存最新的cluster_id
+            if not created and topo.cluster_id != cluster_id:
+                topo.cluster_id = cluster_id
+                topo.save(update_fields=["cluster_id"])
+
             machine_topo[machine_type] = topo.bk_module_id
 
         # 同步采集项
