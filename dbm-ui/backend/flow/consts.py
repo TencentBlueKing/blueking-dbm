@@ -407,6 +407,7 @@ class RedisActuatorActionEnum(str, StructuredEnum):
     CLUSTER_FAILOVER = EnumField("cluster_failover", _("cluster_failover"))
     SLOTS_MIGRATE = EnumField("migrate_slots", _("migrate_slots"))
     REUPLOAD_OLD_BACKUP_RECORDS = EnumField("reupload_old_backup_records", _("reupload_old_backup_records"))
+    PREDIXY_CONFIG_SERVERS_REWRITE = EnumField("predixy_config_servers_rewrite", _("predixy_config_servers_rewrite"))
 
 
 class EsActuatorActionEnum(str, StructuredEnum):

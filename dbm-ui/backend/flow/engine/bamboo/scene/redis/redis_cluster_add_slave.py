@@ -23,6 +23,7 @@ from backend.db_meta.models import Cluster
 from backend.flow.consts import DEFAULT_REDIS_START_PORT, SyncType
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
+from backend.flow.engine.bamboo.scene.redis.atom_jobs import ClusterPredixyConfigServersRewriteAtomJob
 from backend.flow.engine.bamboo.scene.redis.atom_jobs.redis_install import RedisBatchInstallAtomJob
 from backend.flow.engine.bamboo.scene.redis.atom_jobs.redis_makesync import RedisMakeSyncAtomJob
 from backend.flow.engine.bamboo.scene.redis.atom_jobs.redis_shutdown import RedisBatchShutdownAtomJob
@@ -233,6 +234,15 @@ class RedisClusterAddSlaveFlow(object):
                     child_pipelines.append(shutdown_builder)
             if child_pipelines:
                 sub_pipeline.add_parallel_sub_pipeline(child_pipelines)
+
+            predixy_conf_rewrite_bulider = ClusterPredixyConfigServersRewriteAtomJob(
+                self.root_id,
+                self.data,
+                act_kwargs,
+                {"cluster_domain": cluster_info["immute_domain"], "to_remove_servers": []},
+            )
+            if predixy_conf_rewrite_bulider:
+                sub_pipeline.add_sub_pipeline(predixy_conf_rewrite_bulider)
 
             sub_pipelines.append(
                 sub_pipeline.build_sub_process(sub_name=_("Redis-{}-新建从库").format(cluster_info["immute_domain"]))

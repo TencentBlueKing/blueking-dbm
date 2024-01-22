@@ -10,6 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 
 from .access_manager import AccessManagerAtomJob
+from .predixy_config_servers_rewrite import ClusterPredixyConfigServersRewriteAtomJob
 from .proxy_install import ProxyBatchInstallAtomJob
 from .proxy_uninstall import ProxyUnInstallAtomJob
 from .redis_cluster_master_rep import RedisClusterMasterReplaceJob

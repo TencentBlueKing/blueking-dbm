@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
-	"strings"
 	"sync"
 	"time"
 
@@ -179,15 +178,12 @@ func (task *ReplicaTask) newConnects() {
 	task.DbType, task.Err = task.SlaveCli.GetTendisType()
 }
 func (task *ReplicaTask) confirmClusterEnabled() {
-	confData, err := task.SlaveCli.ConfigGet("cluster-enabled")
+	isClusterEnabled, err := task.SlaveCli.IsClusterEnabled()
 	if err != nil {
 		task.Err = err
 		return
 	}
-	defer task.runtime.Logger.Info("slave:%s cluster-enabled=%s",
-		task.SlaveCli.Addr, task.ClusterEnabled)
-	val, ok := confData["cluster-enabled"]
-	if ok && strings.ToLower(val) == "yes" {
+	if isClusterEnabled {
 		task.ClusterEnabled = "yes"
 		return
 	}

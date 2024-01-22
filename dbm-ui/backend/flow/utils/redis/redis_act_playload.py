@@ -1946,3 +1946,18 @@ class RedisActPayload(object):
                 "slots": "",
             },
         }
+
+    def predixy_config_servers_rewrite(self, **kwargs) -> dict:
+        """
+        Predixy配置文件servers rewrite
+        """
+        params = kwargs["params"]
+        return {
+            "db_type": DBActuatorTypeEnum.Redis.value,
+            "action": RedisActuatorActionEnum.PREDIXY_CONFIG_SERVERS_REWRITE.value,
+            "payload": {
+                "predixy_ip": params["predixy_ip"],
+                "predixy_port": params["predixy_port"],
+                "to_remove_servers": params.get("to_remove_servers", []),
+            },
+        }

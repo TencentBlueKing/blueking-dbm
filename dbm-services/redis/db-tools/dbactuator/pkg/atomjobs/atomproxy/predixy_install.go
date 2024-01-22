@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -69,8 +70,8 @@ type PredixyConfParams struct {
 		ServerRetryTimeout   string `json:"serverretrytimeout" validate:"required"`
 		KeepAlive            string `json:"keepalive"`
 		ServerTimeout        string `json:"servertimeout"`
-		SlowlogLogSlowerThan string `json:"slowloglogslowerthan" validate:"required"`
-		SlowlogMaxLen        string `json:"slowlogmaxlen" validate:"required"`
+		SlowlogLogSlowerThan string `json:"slowloglogslowerthan"`
+		SlowlogMaxLen        string `json:"slowlogmaxlen"`
 	} `json:"dbconfig" validate:"required"`
 }
 
@@ -138,17 +139,26 @@ func (p *PredixyInstall) getConfFileContent() {
 	for _, v := range p.ConfParams.Servers {
 		servers += fmt.Sprintf("    + %s\n", v)
 	}
+	slowloglogslowerthan := "100000"
+	if p.ConfParams.DbConfig.SlowlogLogSlowerThan != "" {
+		slowloglogslowerthan = p.ConfParams.DbConfig.SlowlogLogSlowerThan
+	}
+	slowlogmaxlen := "1024"
+	if p.ConfParams.DbConfig.SlowlogMaxLen != "" {
+		slowlogmaxlen = p.ConfParams.DbConfig.SlowlogMaxLen
+	}
 	conf = strings.Replace(conf, "{{ip:port}}", bind, -1)
 	conf = strings.Replace(conf, "{{predixy_password}}", p.ConfParams.PredixyPasswd, -1)
 	conf = strings.Replace(conf, "{{log_path}}", log, -1)
 	conf = strings.Replace(conf, "{{redis_password}}", p.ConfParams.RedisPasswd, -1)
 	conf = strings.Replace(conf, "{{server:port}}", servers, -1)
-	conf = strings.Replace(conf, "{{worker_threads}}", p.ConfParams.DbConfig.WorkerThreads, -1)
+	// 指定 worker_threads 为cpu核数
+	conf = strings.Replace(conf, "{{worker_threads}}", strconv.Itoa(runtime.NumCPU()), -1)
 	conf = strings.Replace(conf, "{{server_timeout}}", p.ConfParams.DbConfig.ServerTimeout, -1)
 	conf = strings.Replace(conf, "{{keep_alive}}", p.ConfParams.DbConfig.KeepAlive, -1)
 	conf = strings.Replace(conf, "{{client_timeout}}", p.ConfParams.DbConfig.ClientTimeout, -1)
-	conf = strings.Replace(conf, "{{slowlog_Log_slower_than}}", p.ConfParams.DbConfig.SlowlogLogSlowerThan, -1)
-	conf = strings.Replace(conf, "{{slowlog_max_len}}", p.ConfParams.DbConfig.SlowlogMaxLen, -1)
+	conf = strings.Replace(conf, "{{slowlog_Log_slower_than}}", slowloglogslowerthan, -1)
+	conf = strings.Replace(conf, "{{slowlog_max_len}}", slowlogmaxlen, -1)
 	conf = strings.Replace(conf, "{{predixy_admin_password}}", p.ConfParams.PredixyAdminPasswd, -1)
 	conf = strings.Replace(conf, "{{refresh_interval}}",
 		p.ConfParams.DbConfig.RefreshInterval, -1)
