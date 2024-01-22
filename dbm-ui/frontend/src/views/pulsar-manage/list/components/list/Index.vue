@@ -237,13 +237,8 @@
               {data.cluster_name}
             </span>
             {
-            data.operations.map(item => (
-              <RenderOperationTag
-                iconMap={PulsarModel.operationIconMap}
-                tipMap={PulsarModel.operationTextMap}
-                class="cluster-tag ml-4" data={item}/>
-            ))
-          }
+              data.operationTagTips.map(item => <RenderOperationTag class="cluster-tag ml-4" data={item}/>)
+            }
             <db-icon
               v-show={!checkClusterOnline(data)}
               svg

@@ -215,6 +215,14 @@ export default class Pulsar {
     return utcDisplayTime(this.create_at);
   }
 
+  get operationTagTips() {
+    return this.operations.map(item => ({
+      icon: Pulsar.operationIconMap[item.ticket_type],
+      tip: Pulsar.operationTextMap[item.ticket_type],
+      ticketId: item.ticket_id,
+    }));
+  }
+
   initOperations(payload = [] as Pulsar['operations']) {
     if (!Array.isArray(payload)) {
       return [];

@@ -14,7 +14,7 @@
 <template>
   <span>
     <span
-      v-if="data.operationTicketId"
+      v-if="data?.operationTicketId && !disabled"
       ref="rootRef"
       class="cluster-operation-status-tips"
       @mouseenter="handleMouseenter">
@@ -49,21 +49,16 @@
     type Instance,
     type SingleTarget,
   } from 'tippy.js';
-  import {
-    onBeforeUnmount,
-    ref,
-    watch,
-  } from 'vue';
 
   let activeTippyIns:Instance;
 </script>
 <script setup lang="ts">
-
   interface Props {
-    data: {
+    data?: {
       operationStatusText: string,
       operationTicketId: number,
-    }
+    },
+    disabled?: boolean,
   }
 
   const props = defineProps<Props>();
@@ -94,7 +89,7 @@
   };
 
   watch(() => props.data, () => {
-    if (props.data.operationTicketId && !tippyIns) {
+    if (props.data?.operationTicketId && !tippyIns) {
       setTimeout(() => {
         tippyIns = tippy(rootRef.value as SingleTarget, {
           content: popRef.value,
@@ -111,7 +106,7 @@
         });
       });
     }
-    if (!props.data.operationTicketId) {
+    if (!props.data?.operationTicketId) {
       destroyTippy();
     }
   }, {

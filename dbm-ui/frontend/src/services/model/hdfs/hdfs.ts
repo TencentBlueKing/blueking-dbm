@@ -208,6 +208,14 @@ export default class Hdfs {
     return utcDisplayTime(this.create_at);
   }
 
+  get operationTagTips() {
+    return this.operations.map(item => ({
+      icon: Hdfs.operationIconMap[item.ticket_type],
+      tip: Hdfs.operationTextMap[item.ticket_type],
+      ticketId: item.ticket_id,
+    }));
+  }
+
   initOperations(payload = [] as Hdfs['operations']) {
     if (!Array.isArray(payload)) {
       return [];

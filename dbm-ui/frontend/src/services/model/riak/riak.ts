@@ -207,4 +207,12 @@ export default class Riak {
   get createAtDisplay() {
     return utcDisplayTime(this.create_at);
   }
+
+  get operationTagTips() {
+    return this.operations.map(item => ({
+      icon: Riak.operationIconMap[item.ticket_type],
+      tip: Riak.operationTextMap[item.ticket_type],
+      ticketId: item.ticket_id,
+    }));
+  }
 }

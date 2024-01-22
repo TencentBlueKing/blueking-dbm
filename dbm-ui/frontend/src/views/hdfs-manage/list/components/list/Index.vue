@@ -293,12 +293,7 @@
             </div>
           </div>
           {
-            data.operations.map(item => (
-              <RenderOperationTag
-                iconMap={HdfsModel.operationIconMap}
-                tipMap={HdfsModel.operationTextMap}
-                class="cluster-tag ml-4" data={item}/>
-            ))
+            data.operationTagTips.map(item => <RenderOperationTag class="cluster-tag ml-4" data={item}/>)
           }
           <db-icon
             v-show={!checkClusterOnline(data)}

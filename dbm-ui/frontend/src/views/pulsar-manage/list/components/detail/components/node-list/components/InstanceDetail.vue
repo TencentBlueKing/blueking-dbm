@@ -106,7 +106,9 @@
           <span class="text-overflow mr4" v-overflow-tips>
             {data.instance_address || '--'}
           </span>
-          <RenderOperationTag data={data} class="instance-tag" />
+          {
+            data.operationTagTips.map(item => <RenderOperationTag class="instance-tag ml-4" data={item}/>)
+          }
         </div>
       ),
     },
