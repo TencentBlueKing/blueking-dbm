@@ -1121,15 +1121,18 @@ func (db *RedisClient) SlaveOf(masterIP, masterPort string) (ret string, err err
 
 // IsClusterEnabled 'cluster-enabled' 是否启动
 func (db *RedisClient) IsClusterEnabled() (clusterEnabled bool, err error) {
-	confData, err := db.ConfigGet("cluster-enabled")
+	infoRet, err := db.Info("Cluster")
 	if err != nil {
 		return
 	}
-	val, ok := confData["cluster-enabled"]
-	if ok && strings.ToLower(val) == "yes" {
-		clusterEnabled = true
+	ret, ok := infoRet["cluster_enabled"]
+	if !ok {
+		return false, nil
 	}
-	return
+	if ret == "1" {
+		return true, nil
+	}
+	return false, nil
 }
 
 // ClusterMeet  'cluster meet' command
@@ -1693,7 +1696,8 @@ func (db *RedisClient) SelectDB1WhenClusterDisabled() (err error) {
 }
 
 // GetTendisHeartbeat 获取心跳信息
-func (db *RedisClient) GetTendisHeartbeat(dbSizeKey, srcHearbeatKey string) (dbSize int, timestamp time.Time, err error) {
+func (db *RedisClient) GetTendisHeartbeat(dbSizeKey, srcHearbeatKey string) (dbSize int, timestamp time.Time,
+	err error) {
 	// 命令'mget ',用普通redis client
 	if db.InstanceClient == nil {
 		err = fmt.Errorf("'adminget' redis:%s must create a standalone client", db.Addr)

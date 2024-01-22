@@ -33,6 +33,9 @@ from backend.flow.engine.bamboo.scene.redis.redis_dbmon import RedisDbmonSceneFl
 from backend.flow.engine.bamboo.scene.redis.redis_flush_data import RedisFlushDataFlow
 from backend.flow.engine.bamboo.scene.redis.redis_keys_delete import RedisKeysDeleteFlow
 from backend.flow.engine.bamboo.scene.redis.redis_keys_extract import RedisKeysExtractFlow
+from backend.flow.engine.bamboo.scene.redis.redis_predixy_config_servers_rewrite import (
+    RedisPredixyConfigServersRewriteFlow,
+)
 from backend.flow.engine.bamboo.scene.redis.redis_proxy_scale import RedisProxyScaleFlow
 from backend.flow.engine.bamboo.scene.redis.redis_remove_dts_server import RedisRemoveDtsServerFlow
 from backend.flow.engine.bamboo.scene.redis.redis_reupload_old_backup_records import RedisReuploadOldBackupRecordsFlow
@@ -169,7 +172,7 @@ class RedisController(BaseController):
 
     def redis_clusters_reinstall_dbmon_scene(self):
         """
-        tendis 集群重新安装dbmon, 集群所有proxy、 redis机器dbmon都会被重转
+        tendis 集群重新安装dbmon, 集群所有proxy、 redis机器dbmon都会被重装
         """
         flow = RedisDbmonSceneFlow(root_id=self.root_id, data=self.ticket_data)
         flow.batch_clusters_update_dbmon()
@@ -299,3 +302,10 @@ class RedisController(BaseController):
         """
         flow = RedisReuploadOldBackupRecordsFlow(root_id=self.root_id, data=self.ticket_data)
         flow.reupload_old_backup_records_flow()
+
+    def redis_predixy_config_servers_rewrite_scene(self):
+        """
+        tendis 集群Predixy配置文件servers rewrite
+        """
+        flow = RedisPredixyConfigServersRewriteFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.batch_clusters_predixy_config_servers_rewrite()

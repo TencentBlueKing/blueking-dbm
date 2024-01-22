@@ -91,13 +91,19 @@ ps aux|grep predixy|grep %d|grep predixy.conf|grep -v grep|head -1|awk '{print $
 
 // GetProxyPasswdFromConfFlie (从配置文件中)获取本地proxy实例密码
 func GetProxyPasswdFromConfFlie(port int, role string) (password string, err error) {
-	var grepCmd string
+	var grepCmd, confFile string
 	if role == consts.MetaRoleTwemproxy {
-		grepCmd = fmt.Sprintf(`grep -w "password" %s/twemproxy*/%d/nutcracker.%d.yml|grep -vE "#"|awk '{print $NF}'`,
-			consts.DataPath, port, port)
+		confFile, err = GetTwemproxyLocalConfFile(port)
+		if err != nil {
+			return
+		}
+		grepCmd = fmt.Sprintf(`grep -w "password" %s|grep -vE "#"|awk '{print $NF}'`, confFile)
 	} else if role == consts.MetaRolePredixy {
-		grepCmd = fmt.Sprintf(`grep -Pi -B 2 "Mode\s*?write" %s/predixy/%d/predixy.conf|grep -iw "auth"|awk '{print $2}'`,
-			consts.GetRedisDataDir(), port)
+		confFile, err = GetPredixyLocalConfFile(port)
+		if err != nil {
+			return
+		}
+		grepCmd = fmt.Sprintf(`grep -Pi -B 2 "Mode\s*?write" %s|grep -iw "auth"|awk '{print $2}'`, confFile)
 	}
 	password, err = util.RunBashCmd(grepCmd, "", nil, 10*time.Second)
 	if err != nil {

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 
 	"dbm-services/redis/db-tools/dbactuator/mylog"
 	"dbm-services/redis/db-tools/dbactuator/pkg/util"
@@ -126,7 +127,8 @@ type PredixyInfoServer struct {
 // GetPredixyInfoServersRaw 获取predixy info server原始内容 s
 func GetPredixyInfoServersRaw(ip string, port int, password string) (svrsinfo string, err error) {
 	predixyAddr := fmt.Sprintf("%s:%d", ip, port)
-	cli01, err := NewRedisClient(predixyAddr, password, 0, consts.TendisTypeRedisInstance)
+	cli01, err := NewRedisClientWithTimeout(predixyAddr, password, 0,
+		consts.TendisTypeRedisInstance, 5*time.Second)
 	if err != nil {
 		return
 	}
