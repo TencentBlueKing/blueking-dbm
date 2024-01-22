@@ -38,5 +38,6 @@ class AutofixStatus(str, StructuredEnum):
     AF_TICKET = EnumField("initticket", _("创建单据"))
     AF_SFLOW = EnumField("startflow", _("发起flow流程"))
     AF_WFLOW = EnumField("watchflow", _("监控流程完成状态"))
+    AF_IGNORE = EnumField("ignore", _("不支持自愈"))
     AF_SUCC = EnumField("success", _("自愈成功"))
     AF_FAIL = EnumField("fail", _("自愈失败"))

@@ -22,6 +22,7 @@ from backend.configuration.models.dba import DBAdministrator
 from backend.db_meta.enums import MachineType
 from backend.db_meta.models import Machine
 from backend.db_services.dbbase.constants import IpSource
+from backend.db_services.redis.util import is_support_redis_auotfix
 from backend.ticket.builders import BuilderFactory
 from backend.ticket.constants import TicketStatus, TicketType
 from backend.ticket.flow_manager.manager import TicketFlowManager
@@ -36,6 +37,19 @@ logger = logging.getLogger("root")
 
 def generate_autofix_ticket(fault_clusters: QuerySet):
     for cluster in fault_clusters:
+        # 目前仅支持这三种架构
+        if not is_support_redis_auotfix(cluster.cluster_type):
+            logger.info(
+                "cluster_autofix_ignore {}, not supported cluster_type {} ".format(
+                    cluster.immute_domain, cluster.cluster_type
+                )
+            )
+            cluster.status_version = get_random_string(12)
+            cluster.update_at = datetime2str(datetime.datetime.now(timezone.utc))
+            cluster.deal_status = AutofixStatus.AF_IGNORE.value
+            cluster.save(update_fields=["status_version", "deal_status", "update_at"])
+            continue
+
         fault_machines = json.loads(cluster.fault_machines)
         redis_proxies, redis_slaves = [], []
         for fault_machine in fault_machines:
