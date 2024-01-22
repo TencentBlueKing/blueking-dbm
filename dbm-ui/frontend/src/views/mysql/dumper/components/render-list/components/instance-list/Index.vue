@@ -289,10 +289,7 @@
             }}
             </bk-popover>
           )}
-          <RenderOperationTag
-            iconMap={DumperInstanceModel.operationIconMap}
-            tipMap={DumperInstanceModel.operationTextMap}
-            data={data.operation} />
+          <RenderOperationTag data={data.operationTagTip} />
           {!data.isRunning && <MiniTag content={t('已禁用')} extCls='stoped-icon'/>}
           {data.isNew && <MiniTag theme='success' content="NEW" extCls='success-icon' />}
         </>;
@@ -318,14 +315,14 @@
       field: 'source_cluster',
       minWidth: 200,
       width: 250,
-      render: ({ data }: {data: DumperInstanceModel}) => (
+      render: ({ data }: {data: DumperInstanceModel}) => (data.source_cluster ? (
         <bk-button
-          class="mr-8 source-cluster-btn"
+          class="source-cluster-btn"
           text
           theme="primary"
-          onClick={() => handleOpenClusterDetailPage(data.source_cluster.id)}>
+          onClick={() => handleOpenClusterDetailPage(data.source_cluster!.id)}>
           {data.source_cluster.immute_domain}:{data.source_cluster.master_port}
-        </bk-button>
+        </bk-button>) : '--'
       ),
     },
     {

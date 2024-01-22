@@ -272,12 +272,7 @@
             <div style='color: #C4C6CC;'>{data.cluster_alias || '--'}</div>
           </div>
           {
-            data.operations.map(item => (
-              <RenderOperationTag
-                iconMap={EsModel.operationIconMap}
-                tipMap={EsModel.operationTextMap}
-                class="cluster-tag ml-4" data={item}/>
-            ))
+            data.operationTagTips.map(item => <RenderOperationTag class="cluster-tag ml-4" data={item}/>)
           }
           <db-icon
             v-show={!checkClusterOnline(data)}

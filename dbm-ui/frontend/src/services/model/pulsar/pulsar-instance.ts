@@ -100,6 +100,14 @@ export default class PulsarInstance {
     return false;
   }
 
+  get operationTagTips() {
+    return this.operations.map(item => ({
+      icon: PulsarInstance.operationIconMap[item.ticket_type],
+      tip: PulsarInstance.operationTextMap[item.ticket_type],
+      ticketId: item.ticket_id,
+    }));
+  }
+
 
   initOperations(payload = [] as PulsarInstance['operations']) {
     if (!Array.isArray(payload)) {

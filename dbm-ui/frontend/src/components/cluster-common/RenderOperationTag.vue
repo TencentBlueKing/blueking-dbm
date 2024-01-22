@@ -20,20 +20,20 @@
       class="tag-placeholder">
       <DbIcon
         svg
-        :type="tagIcon" />
+        :type="data.icon" />
     </span>
     <I18nT
       ref="popRef"
       keypath="xx_跳转_我的服务单_查看进度"
       style="font-size: 12px; line-height: 16px; color: #63656e;"
       tag="div">
-      <span>{{ tipText }}</span>
+      <span>{{ data.tip }}</span>
       <RouterLink
         target="_blank"
         :to="{
           name: 'SelfServiceMyTickets',
           query: {
-            id: data.ticket_id,
+            id: data.ticketId,
           },
         }">
         {{ $t('我的服务单') }}
@@ -48,15 +48,10 @@
   } from 'tippy.js';
 
   interface Props {
-    iconMap: Record<string, string>,
-    tipMap: Record<string, string>,
     data: {
-      cluster_id: number,
-      flow_id: number,
-      status: string,
-      ticket_id: number,
-      ticket_type: string,
-      title: string,
+      icon: string,
+      tip: string,
+      ticketId: number,
     }
   }
 
@@ -65,21 +60,7 @@
   const rootRef = ref();
   const popRef = ref();
 
-  const tagIcon = computed(() => {
-    if (props.data.ticket_type) {
-      return props.iconMap[props.data.ticket_type];
-    }
-
-    return '';
-  });
-  const tipText = computed(() => {
-    if (props.data.ticket_type) {
-      return props.tipMap[props.data.ticket_type];
-    }
-
-    return '';
-  });
-  const isRender = computed(() => tagIcon.value && tipText.value && !!props.data.ticket_id);
+  const isRender = computed(() => props.data.icon && props.data.tip && props.data.ticketId);
 
   let tippyIns:Instance;
 

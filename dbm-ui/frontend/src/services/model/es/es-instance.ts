@@ -100,6 +100,14 @@ export default class EsInstance {
     return false;
   }
 
+  get operationTagTips() {
+    return this.operations.map(item => ({
+      icon: EsInstance.operationIconMap[item.ticket_type],
+      tip: EsInstance.operationTextMap[item.ticket_type],
+      ticketId: item.ticket_id,
+    }));
+  }
+
 
   initOperations(payload = [] as EsInstance['operations']) {
     if (!Array.isArray(payload)) {

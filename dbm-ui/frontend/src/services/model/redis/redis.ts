@@ -311,4 +311,12 @@ export default class Redis {
     }
     return false;
   }
+
+  get operationTagTips() {
+    return this.operations.map(item => ({
+      icon: Redis.operationIconMap[item.ticket_type],
+      tip: Redis.operationTextMap[item.ticket_type],
+      ticketId: item.ticket_id,
+    }));
+  }
 }

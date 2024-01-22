@@ -67,7 +67,7 @@ export default class Dumper {
   phase: string;
   proc_type: string;
   protocol_type: string;
-  source_cluster: {
+  source_cluster?: {
     bk_cloud_id: number;
     cluster_type: string;
     id: number;
@@ -145,5 +145,13 @@ export default class Dumper {
 
   get isNew() {
     return dayjs().isBefore(dayjs(this.create_at).add(24, 'hour'));
+  }
+
+  get operationTagTip() {
+    return ({
+      icon: Dumper.operationIconMap[this.operation?.ticket_type ?? ''],
+      tip: Dumper.operationTextMap[this.operation?.ticket_type ?? ''],
+      ticketId: this.operation?.ticket_id ?? 0,
+    });
   }
 }

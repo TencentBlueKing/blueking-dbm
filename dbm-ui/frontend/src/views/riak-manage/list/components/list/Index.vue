@@ -150,12 +150,7 @@
             )
           }
           {
-            data.operations.map(item => (
-              <RenderOperationTag
-                iconMap={RiakModel.operationIconMap}
-                tipMap={RiakModel.operationTextMap}
-                class="ml-4" data={item}/>
-            ))
+            data.operationTagTips.map(item => <RenderOperationTag class="ml-4" data={item}/>)
           }
           {
             data.isDisabled && (

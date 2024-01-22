@@ -100,6 +100,13 @@ export default class HdfsInstance {
     return false;
   }
 
+  get operationTagTips() {
+    return this.operations.map(item => ({
+      icon: HdfsInstance.operationIconMap[item.ticket_type],
+      tip: HdfsInstance.operationTextMap[item.ticket_type],
+      ticketId: item.ticket_id,
+    }));
+  }
 
   initOperations(payload = [] as HdfsInstance['operations']) {
     if (!Array.isArray(payload)) {

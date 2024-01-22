@@ -109,7 +109,9 @@
       render: ({ data }: {data:KafkaInstanceModel}) => (
         <div>
           <span>{data.instance_address || '--'}</span>
-          <RenderOperationTag data={data} style='margin-left: 3px;' />
+          {
+            data.operationTagTips.map(item => <RenderOperationTag class="ml-4" data={item}/>)
+          }
         </div>
       ),
     },

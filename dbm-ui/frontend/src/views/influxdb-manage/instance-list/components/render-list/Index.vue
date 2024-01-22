@@ -273,13 +273,8 @@
             </div>
             <div class="cluster-tags">
               {
-            data.operations.map(item => (
-              <RenderOperationTag
-                iconMap={InfluxDBInstanceModel.operationIconMap}
-                tipMap={InfluxDBInstanceModel.operationTextMap}
-                class="cluster-tag ml-4" data={item}/>
-            ))
-          }
+                data.operationTagTips.map(item => <RenderOperationTag class="cluster-tag ml-4" data={item}/>)
+              }
               <db-icon
                 v-show={!data.isOnline}
                 class="cluster-tag"

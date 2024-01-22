@@ -304,12 +304,7 @@
           </div>
           <div class="cluster-tags">
             {
-              data.operations.map(item => (
-                <RenderOperationTag
-                  iconMap={TendbsingleModel.operationIconMap}
-                  tipMap={TendbsingleModel.operationTextMap}
-                  class="cluster-tag" data={item}/>
-              ))
+              data.operationTagTips.map(item => <RenderOperationTag class="cluster-tag ml-4" data={item}/>)
             }
             {
               data.phase === 'offline'

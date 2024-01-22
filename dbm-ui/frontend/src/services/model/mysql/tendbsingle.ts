@@ -173,4 +173,12 @@ export default class Tendbsingle {
     }
     return false;
   }
+
+  get operationTagTips() {
+    return this.operations.map(item => ({
+      icon: Tendbsingle.operationIconMap[item.ticket_type],
+      tip: Tendbsingle.operationTextMap[item.ticket_type],
+      ticketId: item.ticket_id,
+    }));
+  }
 }

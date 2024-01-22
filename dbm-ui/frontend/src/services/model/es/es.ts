@@ -210,6 +210,14 @@ export default class Es {
     return utcDisplayTime(this.create_at);
   }
 
+  get operationTagTips() {
+    return this.operations.map(item => ({
+      icon: Es.operationIconMap[item.ticket_type],
+      tip: Es.operationTextMap[item.ticket_type],
+      ticketId: item.ticket_id,
+    }));
+  }
+
   initOperations(payload = [] as Es['operations']) {
     if (!Array.isArray(payload)) {
       return [];
