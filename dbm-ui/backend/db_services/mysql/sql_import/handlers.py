@@ -91,14 +91,20 @@ class SQLHandler(object):
 
         return sql_file_info_list
 
-    def grammar_check(self, sql_content: str = None, sql_files: List[InMemoryUploadedFile] = None) -> Optional[Dict]:
+    def grammar_check(
+        self, sql_content: str = None, sql_filenames: List[str] = None, sql_files: List[InMemoryUploadedFile] = None
+    ) -> Optional[Dict]:
         """
         sql 语法检查
         @param sql_content: sql内容
+        @param sql_filenames: sql文件名(在制品库的路径，说明已经在制品库上传好了。目前是适配sql执行插件形式.)
         @param sql_files: sql文件
         """
+        if sql_filenames:
+            sql_file_info_list = [{"sql_path": filename} for filename in sql_filenames]
+        else:
+            sql_file_info_list = self._upload_sql_file(sql_content, sql_files)
 
-        sql_file_info_list = self._upload_sql_file(sql_content, sql_files)
         file_name_list = [os.path.split(sql_file_info["sql_path"])[1] for sql_file_info in sql_file_info_list]
         dir_name = os.path.split(sql_file_info_list[0]["sql_path"])[0]
 
@@ -112,7 +118,9 @@ class SQLHandler(object):
             sql_path = sql_file_info["sql_path"]
             file_name = os.path.split(sql_path)[1]
             check_info[file_name].update(
-                content=sql_file_info["sql_content"], sql_path=sql_path, raw_file_name=sql_file_info["raw_file_name"]
+                content=sql_file_info.get("sql_content"),
+                sql_path=sql_path,
+                raw_file_name=sql_file_info.get("raw_file_name"),
             )
 
         return check_info

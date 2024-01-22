@@ -27,6 +27,7 @@ from backend.ticket.constants import TicketType
 
 class SQLGrammarCheckSerializer(serializers.Serializer):
     sql_content = serializers.CharField(help_text=_("sql语句"), required=False)
+    sql_filenames = serializers.ListField(help_text=_("sql文件名列表"), child=serializers.CharField(), required=False)
     sql_files = serializers.ListField(
         help_text=_("sql文件列表"), child=serializers.FileField(help_text=_("sql文件"), required=False), required=False
     )
@@ -38,8 +39,8 @@ class SQLGrammarCheckSerializer(serializers.Serializer):
         swagger_schema_fields = {"example": mock_data.SQL_GRAMMAR_CHECK_REQUEST_DATA}
 
     def validate(self, attrs):
-        if not (attrs.get("sql_content", None) or attrs.get("sql_files", None)):
-            raise ValidationError(_("不允许sql_content和sql_file同时为空，请至少填写一项"))
+        if not (attrs.get("sql_content") or attrs.get("sql_files") or attrs.get("sql_filenames")):
+            raise ValidationError(_("不允许语法检查的sql的内容为空！"))
 
         for file in attrs.get("sql_files", []):
             if file.name.rsplit(".")[-1] != "sql":

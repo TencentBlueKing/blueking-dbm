@@ -11,6 +11,8 @@ specific language governing permissions and limitations under the License.
 
 from django.utils.translation import ugettext_lazy as _
 
+from blue_krill.data_types.enum import EnumField, StructuredEnum
+
 from ..base import BaseApi
 from ..domains import CMSI_APIGW_DOMAIN
 
@@ -18,6 +20,14 @@ from ..domains import CMSI_APIGW_DOMAIN
 class _CmsiApi(BaseApi):
     MODULE = _("消息管理")
     BASE = CMSI_APIGW_DOMAIN
+
+    class MsgType(str, StructuredEnum):
+        SMS = EnumField("sms", _("短信"))
+        WEIXIN = EnumField("weixin", _("微信"))
+        MAIL = EnumField("mail", _("邮件"))
+        VOICE = EnumField("voice", _("语音"))
+        RTX = EnumField("rtx", _("企业微信"))
+        WECOM_ROBOT = EnumField("wecom_robot", _("企业微信机器人"))
 
     def __init__(self):
         self.send_msg = self.generate_data_api(

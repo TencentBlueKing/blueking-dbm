@@ -16,6 +16,7 @@ from rest_framework import serializers
 
 from backend.bk_web.constants import LEN_MIDDLE
 from backend.bk_web.serializers import AuditedSerializer, TranslationSerializerMixin
+from backend.components import CmsiApi
 from backend.configuration.constants import DBType
 from backend.ticket import mock_data
 from backend.ticket.builders import BuilderFactory
@@ -24,6 +25,15 @@ from backend.ticket.flow_manager.manager import TicketFlowManager
 from backend.ticket.models import Flow, Ticket, Todo
 from backend.ticket.yasg_slz import todo_operate_example
 from backend.utils.time import calculate_cost_time, strptime
+
+
+class TicketSendMsgSerializer(serializers.Serializer):
+    msg_type = serializers.ListField(
+        help_text=_("发送类型"), child=serializers.ChoiceField(choices=CmsiApi.MsgType.get_choices()), required=False
+    )
+    receiver__username = serializers.CharField(help_text=_("包含用户名，用户需在蓝鲸平台注册，多个以逗号分隔"), required=False)
+    sender = serializers.CharField(help_text=_("发件人/企微机器人ID"), required=False)
+    group_receiver = serializers.ListField(help_text=_("(机器人专用)接收者，可以传@all，或者会话id"), required=False)
 
 
 class TicketDetailsSerializer(serializers.Serializer):
@@ -80,6 +90,8 @@ class TicketSerializer(AuditedSerializer, serializers.ModelSerializer):
     ignore_duplication = serializers.BooleanField(
         help_text=_("是否忽略重复提交"), required=False, default=False, read_only=True
     )
+    # 通知设置
+    send_msg_config = TicketSendMsgSerializer(help_text=_("通知设置"), required=False)
 
     class Meta:
         model = Ticket

@@ -100,6 +100,7 @@ class Ticket(AuditedModel):
     )
     remark = models.CharField(_("备注"), max_length=LEN_MIDDLE)
     details = models.JSONField(_("单据差异化详情"), default=dict)
+    send_msg_config = models.JSONField(_("单据通知设置"), default=dict)
     is_reviewed = models.BooleanField(_("单据是否审阅过"), default=False)
 
     class Meta:
