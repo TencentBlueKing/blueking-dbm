@@ -11,7 +11,6 @@ specific language governing permissions and limitations under the License.
 import datetime
 
 from django.utils import timezone
-from django.utils.crypto import get_random_string
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
@@ -162,7 +161,7 @@ class TendbFixPointRollbackFlowBuilder(BaseTendbTicketFlowBuilder):
 
     def patch_ticket_detail(self):
         cluster = Cluster.objects.get(id=self.ticket.details["cluster_id"])
-        cluster_name = f"{cluster.name}-tmp{get_random_string(4).lower()}{date2str(datetime.date.today(), '%Y%m%d')}"
+        cluster_name = f"{cluster.name}-tmp{date2str(datetime.date.today(), '%Y%m%d')}-{self.ticket.id}"
         db_app_abbr = AppCache.get_app_attr(cluster.bk_biz_id)
 
         # 集群部署的基本信息
