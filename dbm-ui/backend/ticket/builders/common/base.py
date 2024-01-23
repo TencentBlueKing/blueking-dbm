@@ -366,6 +366,9 @@ class InfluxdbTicketFlowBuilderPatchMixin(object):
 
 class BaseOperateResourceParamBuilder(builders.ResourceApplyParamBuilder):
     def format(self):
+        # 忽略没有infos的单据
+        if "infos" not in self.ticket_data:
+            return
         # 对每个info补充云区域ID和业务ID
         cluster_ids = fetch_cluster_ids(self.ticket_data)
         id__clusters = {cluster.id: cluster for cluster in Cluster.objects.filter(id__in=cluster_ids)}

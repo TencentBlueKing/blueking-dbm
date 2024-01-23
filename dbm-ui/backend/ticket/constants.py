@@ -291,13 +291,13 @@ class TicketType(str, StructuredEnum):
     INFLUXDB_REPLACE = EnumField("INFLUXDB_REPLACE", _("InfluxDB 实例替换"))
 
     # Riak
-    RIAK_CLUSTER_APPLY = EnumField("RIAK_CLUSTER_APPLY", _("RIAK 集群部署"))
-    RIAK_CLUSTER_SCALE_OUT = EnumField("RIAK_CLUSTER_SCALE_OUT", _("RIAK 集群扩容"))
-    RIAK_CLUSTER_SCALE_IN = EnumField("RIAK_CLUSTER_SCALE_IN", _("RIAK 集群缩容"))
-    RIAK_CLUSTER_DESTROY = EnumField("RIAK_CLUSTER_DESTROY", _("RIAK 集群销毁"))
-    RIAK_CLUSTER_ENABLE = EnumField("RIAK_CLUSTER_ENABLE", _("RIAK集群启用"))
-    RIAK_CLUSTER_DISABLE = EnumField("RIAK_CLUSTER_DISABLE", _("RIAK集群禁用"))
-    RIAK_CLUSTER_REBOOT = EnumField("RIAK_CLUSTER_REBOOT", _("RIAK集群节点重启"))
+    RIAK_CLUSTER_APPLY = EnumField("RIAK_CLUSTER_APPLY", _("Riak 集群部署"))
+    RIAK_CLUSTER_SCALE_OUT = EnumField("RIAK_CLUSTER_SCALE_OUT", _("Riak 集群扩容"))
+    RIAK_CLUSTER_SCALE_IN = EnumField("RIAK_CLUSTER_SCALE_IN", _("Riak 集群缩容"))
+    RIAK_CLUSTER_DESTROY = EnumField("RIAK_CLUSTER_DESTROY", _("Riak 集群销毁"))
+    RIAK_CLUSTER_ENABLE = EnumField("RIAK_CLUSTER_ENABLE", _("Riak 集群启用"))
+    RIAK_CLUSTER_DISABLE = EnumField("RIAK_CLUSTER_DISABLE", _("Riak 集群禁用"))
+    RIAK_CLUSTER_REBOOT = EnumField("RIAK_CLUSTER_REBOOT", _("Riak 集群节点重启"))
 
     # 云区域组件
     CLOUD_SERVICE_APPLY = EnumField("CLOUD_SERVICE_APPLY", _("云区域服务部署"))

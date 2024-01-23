@@ -9,6 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 from django.utils.translation import ugettext_lazy as _
+from django.db.models import F
 
 from backend.db_meta.api.cluster.tendbsingle.detail import scan_cluster
 from backend.db_meta.enums.cluster_type import ClusterType
@@ -35,3 +36,10 @@ class ListRetrieveResource(query.ListRetrieveResource):
         cluster = Cluster.objects.get(bk_biz_id=bk_biz_id, id=cluster_id)
         graph = scan_cluster(cluster).to_dict()
         return graph
+
+    @classmethod
+    def _filter_instance_qs_hook(cls, storage_queryset, proxy_queryset, inst_fields, query_filters, query_params):
+        # mysql单节点的storage角色取instance_inner_role，没有proxy信息
+        storage_queryset = storage_queryset.annotate(role=F("instance_inner_role")).filter(query_filters)
+        instance_queryset = storage_queryset.values(*inst_fields).order_by("-create_at")
+        return instance_queryset
