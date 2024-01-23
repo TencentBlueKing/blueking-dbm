@@ -3,7 +3,6 @@
     class="ticket-flow-batch-config-dialog"
     :is-show="showDialog"
     :quick-close="false"
-    :show-mask="false"
     theme="primary"
     :title="t('批量设置')"
     @confirm="handleConfirmBatchEdit">
