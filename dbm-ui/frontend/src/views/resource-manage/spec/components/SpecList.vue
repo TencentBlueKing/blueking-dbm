@@ -109,11 +109,21 @@
     updateResourceSpecEnableStatus,
   } from '@services/source/dbresourceSpec';
 
-  import { useBeforeClose, useDebouncedRef, useInfoWithIcon, useTableSettings } from '@hooks';
+  import {
+    useBeforeClose,
+    useDebouncedRef,
+    useInfoWithIcon,
+    useTableSettings,
+  } from '@hooks';
 
-  import { ClusterTypes, UserPersonalSettings } from '@common/const';
+  import {
+    ClusterTypes,
+    UserPersonalSettings,
+  } from '@common/const';
 
   import { messageSuccess } from '@utils';
+
+  import { useHasQPS } from '../hooks/useHasQPS';
 
   import SpecCreate from './SpecCreate.vue';
 
@@ -129,6 +139,7 @@
   const props = defineProps<Props>();
 
   const { t } = useI18n();
+  const { hasQPS } = useHasQPS(props);
   const handleBeforeClose = useBeforeClose();
   const searchKey = useDebouncedRef('');
 
@@ -320,6 +331,13 @@
       baseColumns.splice(3, 0, {
         label: t('每台主机实例数量'),
         field: 'instance_num',
+        width: 140,
+      });
+    }
+    if (hasQPS.value) {
+      baseColumns.splice(3, 0, {
+        label: t('单机QPS'),
+        field: 'qpsText',
         width: 140,
       });
     }
