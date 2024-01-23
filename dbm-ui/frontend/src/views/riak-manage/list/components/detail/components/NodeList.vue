@@ -102,6 +102,7 @@
       class="node-list-table"
       :columns="columns"
       :data-source="getRiakNodeList"
+      primary-key="bk_host_id"
       :row-class="setRowClass"
       selectable
       @column-filter="handleColunmFilter"
@@ -216,7 +217,7 @@
           <bk-button
             text
             theme="primary"
-            onClick={() => copy(row.ip)}
+            onClick={(event: Event) => handleCopyRowIp(event, row.ip)}
           >
            <db-icon type="copy" />
           </bk-button>
@@ -294,7 +295,7 @@
               class="ml8"
               theme="primary"
               text
-              disabled={operationData.value?.operationDisabled}
+              disabled={operationData.value?.operationDisabled || dataList.value.length <= 3}
               onClick={() => handleDelete(row)}>
               { t('删除') }
             </bk-button>
@@ -314,7 +315,8 @@
     },
   ];
 
-  const isAbnormalNodeExits = computed(() => tableRef.value!.getData<RiakNodeModel>()
+  const dataList = computed(() => tableRef.value!.getData<RiakNodeModel>());
+  const isAbnormalNodeExits = computed(() => dataList.value
     .some((riakNode: RiakNodeModel) => !riakNode.isNodeNormal));
   const isTableSelected = computed(() => selected.value.length > 0);
 
@@ -405,6 +407,11 @@
         ;
       },
     });
+  };
+
+  const handleCopyRowIp = (event: Event, ip: string) => {
+    event.stopPropagation();
+    copy(ip);
   };
 
   const handleCopy = (ipList: string[]) => {
