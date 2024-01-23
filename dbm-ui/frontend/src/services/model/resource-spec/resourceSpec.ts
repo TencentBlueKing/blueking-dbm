@@ -84,4 +84,12 @@ export default class ResourceSpec {
   get updateAtDisplay() {
     return utcDisplayTime(this.update_at);
   }
+
+  get qpsText() {
+    if (this.qps) {
+      return `${this.qps.min} ~ ${this.qps.max}`;
+    }
+
+    return '--';
+  }
 }
