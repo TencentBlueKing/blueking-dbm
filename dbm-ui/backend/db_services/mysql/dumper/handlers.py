@@ -81,9 +81,11 @@ class DumperHandler:
         # 对每个dumper实例填充正在运行的状态，一个dumper只会处于一种变更状态
         for data in dumper_results:
             if data["id"] not in dumper_inst_id__ticket:
-                data["operation"] = {}
+                data["operations"] = []
             else:
-                data["operation"] = {
-                    "ticket_type": dumper_inst_id__ticket[data["id"]][0],
-                    "ticket_id": dumper_inst_id__ticket[data["id"]][1],
-                }
+                data["operations"] = [
+                    {
+                        "ticket_type": dumper_inst_id__ticket[data["id"]][0],
+                        "ticket_id": dumper_inst_id__ticket[data["id"]][1],
+                    }
+                ]
