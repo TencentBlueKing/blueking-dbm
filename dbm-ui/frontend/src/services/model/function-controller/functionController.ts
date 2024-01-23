@@ -12,6 +12,8 @@
  * the specific language governing permissions and limitations under the License.
 */
 
+import { ClusterTypes } from '@common/const';
+
 export type AddonsFunctions = 'redis_nameservice';
 export type MySQLFunctions = 'toolbox' | 'tendbsingle' | 'tendbha' | 'tendbcluster' | 'tendbcluster_toolbox';
 export type RedisFunctions = 'PredixyTendisplusCluster' | 'TwemproxyRedisInstance' | 'TwemproxyTendisSSDInstance' | 'toolbox';
@@ -19,6 +21,7 @@ export type BigdataFunctions = 'es' | 'kafka' | 'hdfs' | 'influxdb' | 'pulsar' |
 export type MonitorFunctions = 'duty_rule' | 'monitor_policy' | 'notice_group';
 export type MongoFunctions = 'mongodb';
 export type FunctionKeys = AddonsFunctions | MySQLFunctions | RedisFunctions | BigdataFunctions | MonitorFunctions | MongoFunctions
+export type FunctionTabId = FunctionKeys | ClusterTypes.MONGO_REPLICA_SET | ClusterTypes.MONGO_SHARED_CLUSTER
 
 export interface ControllerBaseInfo {
   is_enabled: boolean,

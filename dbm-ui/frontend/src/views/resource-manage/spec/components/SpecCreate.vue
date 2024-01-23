@@ -137,6 +137,8 @@
 
   import { ClusterTypes } from '@common/const';
 
+  import { useHasQPS } from '../hooks/useHasQPS';
+
   import SpecCPU from './spec-form-item/SpecCPU.vue';
   import SpecDevice from './spec-form-item/SpecDevice.vue';
   import SpecMem from './spec-form-item/SpecMem.vue';
@@ -172,14 +174,6 @@
     `${ClusterTypes.PULSAE}_pulsar_broker`,
   ];
   const isRequired = !notRequiredStorageList.includes(`${props.clusterType}_${props.machineType}`);
-
-  const hasQPSSpecs = [
-    // `${ClusterTypes.TWEMPROXY_REDIS_INSTANCE}_tendiscache`,
-    // `${ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE}_tendisssd`,
-    // `${ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER}_tendisplus`,
-    `${ClusterTypes.TENDBCLUSTER}_remote`,
-  ];
-  const hasQPS = hasQPSSpecs.includes(`${props.clusterType}_${props.machineType}`);
 
   const initFormdata = () => {
     if (props.data) {
@@ -220,6 +214,7 @@
   };
 
   const { t } = useI18n();
+  const { hasQPS } = useHasQPS(props);
 
   const formRef = ref();
   const nameInputRef = ref();
