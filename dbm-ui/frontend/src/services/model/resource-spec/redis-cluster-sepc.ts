@@ -21,6 +21,8 @@ export default class RedisClusterSpec {
   creator: string;
   cluster_qps: number;
   desc: string;
+  device_class: string[];
+  enable: boolean;
   instance_num: number;
   machine_pair: number;
   mem: {
@@ -31,6 +33,11 @@ export default class RedisClusterSpec {
     min: number;
     max: number;
   };
+  shard_choices: {
+    shard_num: number,
+    shard_spec: string,
+  }[];
+  shard_recommend: RedisClusterSpec['shard_choices'][number];
   spec_cluster_type: string;
   spec_id: number;
   spec_machine_type: string;
@@ -49,10 +56,14 @@ export default class RedisClusterSpec {
     this.creator = payload.creator;
     this.cluster_qps = payload.cluster_qps;
     this.desc = payload.desc;
+    this.device_class = payload.device_class;
+    this.enable = payload.enable;
     this.instance_num = payload.instance_num;
     this.machine_pair = payload.machine_pair;
     this.mem = payload.mem;
     this.qps = payload.qps;
+    this.shard_choices = payload.shard_choices;
+    this.shard_recommend = payload.shard_recommend;
     this.spec_cluster_type = payload.spec_cluster_type;
     this.spec_id = payload.spec_id;
     this.spec_machine_type = payload.spec_machine_type;

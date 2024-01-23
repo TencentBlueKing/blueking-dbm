@@ -56,7 +56,7 @@ export function getFilterClusterSpec(params: {
   spec_cluster_type: string,
   spec_machine_type: string,
   capacity: number,
-  future_capacity: number,
+  future_capacity?: number,
   qps?: {
     min: number,
     max: number
